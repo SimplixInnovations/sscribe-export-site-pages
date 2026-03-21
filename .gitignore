@@ -1,0 +1,72 @@
+# Dependencies
+/vendor/
+/node_modules/
+
+# Build outputs
+/dist/
+/build/
+/coverage/
+
+# Agent/Skills (embedded git repo)
+.agent/
+
+# IDE & Editors
+.idea/
+.vscode/
+*.sublime-workspace
+*.sublime-project
+*.swp
+*.swo
+*~
+
+# OS files
+.DS_Store
+.DS_Store?
+._*
+.Spotlight-V100
+.Trashes
+ehthumbs.db
+Thumbs.db
+desktop.ini
+
+# WordPress
+*.log
+wp-config.php
+.htaccess
+
+# Testing
+.phpunit.cache/
+phpunit.xml
+phpunit.result.xml
+
+# PHPStan & PHPCS
+phpstan.neon
+phpcs.xml
+
+# Cache
+.cache/
+
+# Temporary files
+*.tmp
+*.temp
+*.bak
+*.backup
+
+# Environment files
+.env
+.env.*
+!.env.example
+
+# Package locks (keep composer.lock)
+package-lock.json
+yarn.lock
+
+# Generated exports (security)
+/sscribe-exports/
+*.zip
+!vendor/**/*.zip
+
+# Debug files
+*.xdebug.log
+debug.log
+error_log

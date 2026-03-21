@@ -1,0 +1,108 @@
+<?php
+/**
+ * Core plugin orchestrator.
+ *
+ * @package SScribe
+ */
+
+// Prevent direct access.
+if (!defined('ABSPATH')) {
+    exit;
+}
+
+/**
+ * Class SScribe
+ *
+ * Registers all hooks and bootstraps the plugin.
+ */
+class SScribe
+{
+
+    /**
+     * The loader that registers all hooks.
+     *
+     * @var SScribe_Loader
+     */
+    protected $loader;
+
+    /**
+     * Plugin version.
+     *
+     * @var string
+     */
+    protected $version;
+
+    /**
+     * Constructor.
+     */
+    public function __construct()
+    {
+        $this->version = defined('SSCRIBE_VERSION') ? SSCRIBE_VERSION : '1.0.0';
+        $this->loader = new SScribe_Loader();
+
+        $this->set_locale();
+        $this->define_admin_hooks();
+        $this->define_ajax_hooks();
+        $this->define_cron_hooks();
+    }
+
+    /**
+     * Set plugin locale for translations.
+     *
+     * @return void
+     */
+    private function set_locale()
+    {
+        $i18n = new SScribe_i18n();
+        $this->loader->add_action('plugins_loaded', $i18n, 'load_plugin_textdomain');
+    }
+
+    /**
+     * Register admin-specific hooks.
+     *
+     * @return void
+     */
+    private function define_admin_hooks()
+    {
+        $admin = new SScribe_Admin();
+
+        $this->loader->add_action('admin_menu', $admin, 'add_admin_menu');
+        $this->loader->add_action('admin_enqueue_scripts', $admin, 'enqueue_admin_assets');
+        $this->loader->add_filter('plugin_action_links_' . SSCRIBE_PLUGIN_BASENAME, $admin, 'add_plugin_action_links');
+    }
+
+    /**
+     * Register AJAX hooks.
+     *
+     * @return void
+     */
+    private function define_ajax_hooks()
+    {
+        $batch = new SScribe_Batch_Processor();
+
+        $this->loader->add_action('wp_ajax_sscribe_start_export', $batch, 'ajax_start_export');
+        $this->loader->add_action('wp_ajax_sscribe_process_batch', $batch, 'ajax_process_batch');
+        $this->loader->add_action('wp_ajax_sscribe_download', $batch, 'ajax_download');
+    }
+
+    /**
+     * Register cron hooks.
+     *
+     * @return void
+     */
+    private function define_cron_hooks()
+    {
+        $zip = new SScribe_Zip_Handler();
+        $this->loader->add_action('sscribe_cleanup_exports', $zip, 'cleanup_expired');
+    }
+
+    /**
+     * Run the loader to execute all hooks.
+     *
+     * @return void
+     */
+    public function run()
+    {
+        $this->loader->run();
+    }
+}

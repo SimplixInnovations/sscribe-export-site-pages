@@ -1,0 +1,21 @@
+{
+    "name": "simplix-innovations/sscribe-export-site-pages",
+    "description": "Export every page into beautifully formatted Word DOCX files with multilingual support, SEO meta, rich styling, and secure ZIP download.",
+    "type": "wordpress-plugin",
+    "license": "GPL-2.0-or-later",
+    "authors": [
+        {
+            "name": "Simplix Innovations",
+            "email": "info@simplixi.com",
+            "homepage": "https://simplixi.com"
+        }
+    ],
+    "require": {
+        "php": ">=7.4",
+        "phpoffice/phpword": "^1.3"
+    },
+    "config": {
+        "optimize-autoloader": true,
+        "sort-packages": true
+    }
+}
