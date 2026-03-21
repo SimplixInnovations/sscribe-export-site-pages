@@ -10,6 +10,18 @@
 # Agent/Skills (embedded git repo)
 .agent/
 
+# IDE/Tool configs
+opencode.json
+.idea/
+.vscode/
+
+# Internal planning docs (keep out of repo)
+docs/superpowers/
+
+# Test/debug files
+test_require.php
+*.test.php
+
 # IDE & Editors
 .idea/
 .vscode/
