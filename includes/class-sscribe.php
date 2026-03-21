@@ -40,21 +40,9 @@ class SScribe
         $this->version = defined('SSCRIBE_VERSION') ? SSCRIBE_VERSION : '1.0.0';
         $this->loader = new SScribe_Loader();
 
-        $this->set_locale();
         $this->define_admin_hooks();
         $this->define_ajax_hooks();
         $this->define_cron_hooks();
-    }
-
-    /**
-     * Set plugin locale for translations.
-     *
-     * @return void
-     */
-    private function set_locale()
-    {
-        $i18n = new SScribe_i18n();
-        $this->loader->add_action('plugins_loaded', $i18n, 'load_plugin_textdomain');
     }
 
     /**

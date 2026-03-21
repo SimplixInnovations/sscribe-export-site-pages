@@ -298,22 +298,51 @@ if (!defined('ABSPATH')) {
 
                             <!-- Defining all 15 features from UX screenshot -->
                             <?php
-                            $features = array(
-                                array('icon' => '<path d="M12 20.94c1.5 0 2.75 1.06 4 1.06 3 0 6-8 6-12.22A4.91 4.91 0 0 0 17 5c-2.22 0-4 1.44-5 2-1-.56-2.78-2-5-2a4.9 4.9 0 0 0-5 4.78C2 14 5 22 8 22c1.25 0 2.5-1.06 4-1.06Z"/><path d="M10 2c1 .5 2 2 2 5"/>', 'color' => '#F43F5E', 'bg' => '#FFE4E6', 'title' => 'Professional Cover Page', 'desc' => 'Large title, URL, language, date, and breadcrumb path explicitly laid out.'),
-                                array('icon' => '<rect x="3" y="3" width="18" height="18" rx="2" ry="2"/><circle cx="8.5" cy="8.5" r="1.5"/><polyline points="21 15 16 10 5 21"/>', 'color' => '#6366F1', 'bg' => '#E0E7FF', 'title' => 'Featured Image', 'desc' => 'High-resolution featured images automatically mapped and centered.'),
-                                array('icon' => '<path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/><polyline points="10 9 9 9 8 9"/>', 'color' => '#F59E0B', 'bg' => '#FEF3C7', 'title' => 'Page Info Table', 'desc' => 'Tabular metadata block containing author, dates, word count, and reading time.'),
-                                array('icon' => '<circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/>', 'color' => '#10B981', 'bg' => '#D1FAE5', 'title' => 'SEO Section', 'desc' => 'Fetches RankMath, Yoast, and AIOSEO meta titles and focus keywords.'),
-                                array('icon' => '<path d="M15 18l-6-6 6-6"/>', 'color' => '#64748B', 'bg' => '#F1F5F9', 'title' => 'Breadcrumb Trail', 'desc' => 'Preserves the entire hierarchy (Home › Parent › Child Page).'),
-                                array('icon' => '<path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/>', 'color' => '#EC4899', 'bg' => '#FCE7F3', 'title' => 'Full Page Content', 'desc' => 'Semantic parsing of paragraphs, H1-H6 tags, bold, italics, and strict alignment.'),
-                                array('icon' => '<path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"/><path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"/>', 'color' => '#3B82F6', 'bg' => '#DBEAFE', 'title' => 'Smart Links', 'desc' => 'All internal and external hyperlinks are cleanly formatted and clickable.'),
-                                array('icon' => '<rect x="3" y="3" width="18" height="18" rx="2" ry="2"/><circle cx="12" cy="12" r="3"/>', 'color' => '#8B5CF6', 'bg' => '#EDE9FE', 'title' => 'Button Detection', 'desc' => 'Recognizes buttons within content and prints the descriptive URL path.'),
-                                array('icon' => '<rect x="3" y="3" width="18" height="18" rx="2" ry="2"/><line x1="3" y1="9" x2="21" y2="9"/><line x1="3" y1="15" x2="21" y2="15"/><line x1="9" y1="3" x2="9" y2="21"/><line x1="15" y1="3" x2="15" y2="21"/>', 'color' => '#06B6D4', 'bg' => '#CFFAFE', 'title' => 'HTML Tables', 'desc' => 'Converts native web tables into properly nested MS Word tables.'),
-                                array('icon' => '<line x1="8" y1="6" x2="21" y2="6"></line><line x1="8" y1="12" x2="21" y2="12"></line><line x1="8" y1="18" x2="21" y2="18"></line><line x1="3" y1="6" x2="3.01" y2="6"></line><line x1="3" y1="12" x2="3.01" y2="12"></line><line x1="3" y1="18" x2="3.01" y2="18"></line>', 'color' => '#84CC16', 'bg' => '#ECFCCB', 'title' => 'Nested Lists', 'desc' => 'Retains ordered and unordered multi-level list bullet points seamlessly.'),
-                                array('icon' => '<path d="M3 3v18h18"/><path d="M18.7 8l-5.1 5.2-2.8-2.7L7 14.3"/>', 'color' => '#D946EF', 'bg' => '#FAE8FF', 'title' => 'Blockquotes', 'desc' => 'Extracts blockquotes and applies professional italic offset styling.'),
-                                array('icon' => '<polyline points="16 18 22 12 16 6"/><polyline points="8 6 2 12 8 18"/>', 'color' => '#0EA5E9', 'bg' => '#E0F2FE', 'title' => 'Code Blocks', 'desc' => 'Applies monospace font formatting with tinted background blocks for `<pre>`.'),
-                                array('icon' => '<path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z"/>', 'color' => '#EAB308', 'bg' => '#FEF9C3', 'title' => 'Child Pages', 'desc' => 'Appends an organized catalog of any relative sub-pages directly below the content.'),
-                                array('icon' => '<path d="M2 3h6a4 4 0 0 1 4 4v14a3 3 0 0 0-3-3H2z"/><path d="M22 3h-6a4 4 0 0 0-4 4v14a3 3 0 0 1 3-3h7z"/>', 'color' => '#14B8A6', 'bg' => '#CFFAFE', 'title' => 'Header & Footer', 'desc' => 'Injects site identity, paginated footers, and structural markers.'),
-                                array('icon' => '<circle cx="12" cy="12" r="10"/><line x1="4.93" y1="4.93" x2="19.07" y2="19.07"/>', 'color' => '#EF4444', 'bg' => '#FEE2E2', 'title' => 'Shortcode Handling', 'desc' => 'Cleanly bypasses complex UI shortcodes to prevent raw code leak in documents.')
+                            $allowed_svg = array(
+                                'path' => array(
+                                    'd' => true,
+                                    'fill' => true,
+                                    'fill-opacity' => true,
+                                    'stroke' => true,
+                                    'stroke-width' => true,
+                                    'stroke-linecap' => true,
+                                    'stroke-linejoin' => true,
+                                ),
+                                'circle' => array(
+                                    'cx' => true,
+                                    'cy' => true,
+                                    'r' => true,
+                                    'fill' => true,
+                                    'stroke' => true,
+                                    'stroke-width' => true,
+                                ),
+                                'line' => array(
+                                    'x1' => true,
+                                    'x2' => true,
+                                    'y1' => true,
+                                    'y2' => true,
+                                    'stroke' => true,
+                                    'stroke-width' => true,
+                                ),
+                                'polyline' => array(
+                                    'points' => true,
+                                    'fill' => true,
+                                    'stroke' => true,
+                                    'stroke-width' => true,
+                                    'stroke-linecap' => true,
+                                    'stroke-linejoin' => true,
+                                ),
+                                'rect' => array(
+                                    'x' => true,
+                                    'y' => true,
+                                    'width' => true,
+                                    'height' => true,
+                                    'rx' => true,
+                                    'ry' => true,
+                                    'fill' => true,
+                                    'stroke' => true,
+                                    'stroke-width' => true,
+                                ),
                             );
 
                             foreach ($features as $feature): ?>
@@ -322,7 +351,7 @@ if (!defined('ABSPATH')) {
                                         style="color: <?php echo esc_attr($feature['color']); ?>; background: <?php echo esc_attr($feature['bg']); ?>;">
                                         <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor"
                                             stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                                            <?php echo $feature['icon']; ?> // outputting raw SVG paths
+                                            <?php echo wp_kses($feature['icon'], $allowed_svg); ?>
                                         </svg>
                                     </div>
                                     <div class="sscribe-feature-text">

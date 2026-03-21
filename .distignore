@@ -1,0 +1,74 @@
+# Development files
+.git/
+.github/
+.gitignore
+.agent/
+
+# Build & deploy
+build/
+deploy/
+scripts/
+dist/
+
+# Testing
+tests/
+phpunit.xml*
+phpstan.neon*
+phpcs.xml*
+.php-cs-fixer.php
+coverage/
+.phpunit.cache/
+
+# IDE
+.idea/
+.vscode/
+*.sublime-workspace
+*.sublime-project
+*.swp
+*.swo
+*~
+
+# Node
+package*.json
+node_modules/
+
+# Documentation
+docs/
+*.md
+!readme.txt
+
+# Vendor extras (WordPress.org requirement)
+vendor/*/.github/
+vendor/*/.git/
+vendor/*/COPYING*
+vendor/*/.github_changelog_generator
+vendor/*/.php-cs-fixer*
+vendor/*/phpstan.neon*
+vendor/*/phpunit.xml*
+vendor/*/tests/
+vendor/*/docs/
+vendor/*/.travis.yml
+vendor/*/.scrutinizer.yml
+vendor/*/mkdocs.yml
+vendor/*/.gitattributes
+vendor/*/.gitignore
+vendor/*/README.md
+vendor/*/CHANGELOG.md
+vendor/*/CONTRIBUTING.md
+
+# PCLZip conflict (WordPress.org requirement)
+vendor/phpoffice/phpword/src/PhpWord/Shared/PCLZip/
+
+# OS files
+.DS_Store
+Thumbs.db
+desktop.ini
+
+# Debug files
+*.log
+*.tmp
+*.bak
+
+# Environment
+.env
+.env.*

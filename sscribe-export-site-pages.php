@@ -51,7 +51,6 @@ if (file_exists(SSCRIBE_PLUGIN_DIR . 'vendor/autoload.php')) {
  * Load plugin classes.
  */
 require_once SSCRIBE_PLUGIN_DIR . 'includes/class-sscribe-loader.php';
-require_once SSCRIBE_PLUGIN_DIR . 'includes/class-sscribe-i18n.php';
 require_once SSCRIBE_PLUGIN_DIR . 'includes/class-sscribe-activator.php';
 require_once SSCRIBE_PLUGIN_DIR . 'includes/class-sscribe-deactivator.php';
 require_once SSCRIBE_PLUGIN_DIR . 'includes/class-sscribe-page-collector.php';
