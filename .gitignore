@@ -17,6 +17,7 @@ opencode.json
 
 # Internal planning docs (keep out of repo)
 docs/superpowers/
+PROGRESS.md
 
 # Test/debug files
 test_require.php

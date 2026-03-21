@@ -4,6 +4,24 @@
 
 ---
 
+## Quick Start for Agents
+
+```bash
+# 1. Verify environment
+php -v && composer -V && git --version
+
+# 2. Install dependencies
+composer install
+
+# 3. Run syntax check
+php -l sscribe-export-site-pages.php && find includes admin -name "*.php" -exec php -l {} \;
+
+# 4. Check git status
+git status && git branch
+```
+
+---
+
 ## Project Overview
 
 **SScribe Export Site Pages** is a WordPress plugin that exports all published pages into professionally formatted Microsoft Word DOCX files, bundled into a secure ZIP package.
@@ -20,7 +38,7 @@
 |-----------|------------|
 | Language | PHP 7.4+ |
 | Framework | WordPress 5.8+ |
-| PDF/DOCX | PHPWord 1.3+ (phpoffice/phpword) |
+| DOCX Generation | PHPWord 1.3+ (phpoffice/phpword) |
 | Dependency Management | Composer |
 | Version Control | Git (GitFlow) |
 | Repository | GitHub (Private) |
@@ -36,6 +54,7 @@
 | Development Branch | `develop` |
 | License | GPL v2 or later |
 | WordPress.org Slug | `sscribe-export-site-pages` |
+| Current Version | 1.0.0 |
 
 ---
 
@@ -50,6 +69,7 @@ sscribe-export-site-pages/
 ├── composer.json                    # PHP dependencies
 ├── composer.lock                    # Locked dependencies
 ├── .gitignore                       # Git ignore rules
+├── .distignore                      # WordPress.org dist ignore
 │
 ├── includes/                        # Core plugin classes
 │   ├── class-sscribe.php           # Main orchestrator class
@@ -74,9 +94,6 @@ sscribe-export-site-pages/
 │   └── index.php                   # Empty index for security
 │
 └── vendor/                          # Composer dependencies (git-ignored)
-    ├── autoload.php                # Composer autoloader
-    ├── composer/                   # Composer internals
-    └── phpoffice/                  # PHPWord library
 ```
 
 ---
@@ -85,19 +102,19 @@ sscribe-export-site-pages/
 
 ### Class Responsibilities
 
-| Class | Responsibility |
-|-------|----------------|
-| `SScribe` | Main orchestrator - registers all hooks and bootstraps plugin |
-| `SScribe_Loader` | Stores and registers WordPress actions/filters |
-| `SScribe_Activator` | Creates export directory, schedules cron, sets version |
-| `SScribe_Deactivator` | Clears scheduled cron events |
-| `SScribe_Page_Collector` | Queries pages, gathers metadata, handles WPML |
-| `SScribe_SEO_Reader` | Reads SEO metadata from 6 SEO plugins |
-| `SScribe_Content_Parser` | Converts HTML to structured elements for DOCX |
-| `SScribe_Exporter` | Generates DOCX files using PHPWord |
-| `SScribe_Zip_Handler` | Creates ZIP archives, handles cleanup |
-| `SScribe_Batch_Processor` | AJAX handlers for batch export |
-| `SScribe_Admin` | Admin menu, assets, page rendering |
+| Class | File | Responsibility |
+|-------|------|----------------|
+| `SScribe` | `includes/class-sscribe.php` | Main orchestrator - registers all hooks and bootstraps plugin |
+| `SScribe_Loader` | `includes/class-sscribe-loader.php` | Stores and registers WordPress actions/filters |
+| `SScribe_Activator` | `includes/class-sscribe-activator.php` | Creates export directory, schedules cron, sets version |
+| `SScribe_Deactivator` | `includes/class-sscribe-deactivator.php` | Clears scheduled cron events |
+| `SScribe_Page_Collector` | `includes/class-sscribe-page-collector.php` | Queries pages, gathers metadata, handles WPML |
+| `SScribe_SEO_Reader` | `includes/class-sscribe-seo-reader.php` | Reads SEO metadata from 5 SEO plugins |
+| `SScribe_Content_Parser` | `includes/class-sscribe-content-parser.php` | Converts HTML to structured elements for DOCX |
+| `SScribe_Exporter` | `includes/class-sscribe-exporter.php` | Generates DOCX files using PHPWord |
+| `SScribe_Zip_Handler` | `includes/class-sscribe-zip-handler.php` | Creates ZIP archives, handles cleanup |
+| `SScribe_Batch_Processor` | `includes/class-sscribe-batch-processor.php` | AJAX handlers for batch export |
+| `SScribe_Admin` | `admin/class-sscribe-admin.php` | Admin menu, assets, page rendering |
 
 ### Data Flow
 
@@ -125,6 +142,7 @@ Return download URL
 ## Coding Standards
 
 ### WordPress Coding Standards (WPCS)
+
 This plugin follows WordPress Coding Standards. Key rules:
 
 - **Yoda conditions**: `if ( true === $value )` not `if ( $value === true )`
@@ -132,8 +150,8 @@ This plugin follows WordPress Coding Standards. Key rules:
 - **Naming**: snake_case for functions/variables, PascalCase for classes
 - **Prefixing**: All functions/classes prefixed with `SScribe` or `sscribe_`
 - **Sanitization**: Always sanitize input (`sanitize_text_field()`, etc.)
-- **Escaping**: Always escape output (`esc_html()`, `esc_attr()`, `esc_url()`)
-- **Nonces**: Verify nonces for all forms and AJAX requests
+- **Escaping**: Always escape output (`esc_html()`, `esc_attr()`, `esc_url()`, `wp_kses()`)
+- **Nonces**: Verify nonces for all forms and AJAX requests (`check_ajax_referer()`)
 
 ### PHP Version
 - Minimum: PHP 7.4
@@ -154,25 +172,16 @@ This plugin follows WordPress Coding Standards. Key rules:
 |------|---------|---------------|
 | PHP | 7.4+ | `php -v` |
 | Composer | 2.x | `composer -V` |
-| Node.js | 18+ | `node -v` |
-| npm | 9+ | `npm -v` |
 | Git | 2.x | `git --version` |
-| WP-CLI | 2.x | `wp --version` |
+| WP-CLI | 2.x (optional) | `wp --version` |
 
 ### Installation
 
 ```bash
-# Clone repository
 git clone https://github.com/SimplixInnovations/sscribe-export-site-pages.git
 cd sscribe-export-site-pages
-
-# Switch to develop branch
 git checkout develop
-
-# Install dependencies
 composer install
-
-# Verify setup
 php -l sscribe-export-site-pages.php
 ```
 
@@ -188,32 +197,21 @@ php -l sscribe-export-site-pages.php
 
 ## Testing
 
-### Test Structure (To Be Implemented)
+### Test Structure (Planned)
 
 ```
 tests/
 ├── Unit/                    # Unit tests (no WP dependency)
-│   ├── DTO/
-│   ├── Utils/
-│   └── Integration/
 ├── Integration/             # Integration tests (WP loaded)
-│   └── Export/
 ├── fixtures/                # Test data
-│   └── sample-page.html
 └── bootstrap.php            # Test bootstrap
 ```
 
 ### Running Tests (After Setup)
 
 ```bash
-# Run all tests
 composer test
-
-# Run with coverage
 composer test:coverage
-
-# Run specific test
-vendor/bin/phpunit tests/Unit/Utils/CacheTest.php
 ```
 
 ---
@@ -223,17 +221,13 @@ vendor/bin/phpunit tests/Unit/Utils/CacheTest.php
 ### WordPress.org SVN Deployment
 
 ```bash
-# Build production version
 composer install --no-dev --optimize-autoloader
-
-# Create distribution archive
 wp dist-archive . --format=zip
 
-# Or use SVN (after approval)
 svn co https://plugins.svn.wordpress.org/sscribe-export-site-pages
-cd scribe-export-site-pages
+cd sscribe-export-site-pages
 cp -r ../dist/* trunk/
-svn ci -m "Release 1.1.0"
+svn ci -m "Release 1.0.0"
 ```
 
 ### Version Bump Checklist
@@ -242,44 +236,31 @@ svn ci -m "Release 1.1.0"
 2. Update `Version:` in plugin header
 3. Update `Stable tag:` in `readme.txt`
 4. Add changelog entry in `readme.txt`
-5. Tag release: `git tag v1.1.0`
-6. Push tags: `git push origin v1.1.0`
+5. Tag release: `git tag v1.0.0`
+6. Push tags: `git push origin v1.0.0`
 
 ---
 
 ## WordPress.org Review Issues (RESOLVED)
 
-### Issue 1: Not Permitted Files
-**Status:** ✅ FIXED
-**Solution:** Created `.distignore` file
+All issues have been fixed and the plugin is ready for submission.
 
-### Issue 2: PCLZip Library Conflict
-**Status:** ✅ FIXED
-**Solution:** Added to `.distignore`
-
-### Issue 3: load_plugin_textdomain()
-**Status:** ✅ FIXED
-**File:** `includes/class-sscribe-i18n.php`
-**Solution:** Deleted the file and removed require from main plugin file
-**Reason:** WordPress.org auto-loads translations since 4.6
-
-### Issue 4: Unescaped Output
-**Status:** ✅ FIXED
-**File:** `admin/partials/sscribe-admin-display.php:325`
-**Solution:** Used `wp_kses()` for SVG output with allowed tags
+| Issue | Status | Solution |
+|-------|--------|----------|
+| Not Permitted Files | ✅ FIXED | Created `.distignore` file |
+| PCLZip Library Conflict | ✅ FIXED | Added to `.distignore` |
+| load_plugin_textdomain() | ✅ FIXED | Removed class-sscribe-i18n.php |
+| Unescaped SVG Output | ✅ FIXED | Used `wp_kses()` for SVG output |
 
 ---
 
 ## Roadmap
 
-### Version 1.1.0 (Current Target)
-- [x] Fix WordPress.org review issues
-- [x] Add .distignore file
+### Version 1.1.0 (Next Release)
 - [ ] Add PSR-4 autoloading
-- [ ] Add unit tests
+- [ ] Add unit tests with PHPUnit
 - [ ] Add PHPStan static analysis
 - [ ] Add GitHub Actions CI/CD
-- [x] Remove class-sscribe-i18n.php
 
 ### Version 2.0.0 (Future)
 - [ ] PDF export format
@@ -307,11 +288,9 @@ hotfix/*    → Emergency production fixes
 ```bash
 git checkout develop
 git checkout -b feature/add-pdf-export
-# ... make changes ...
 git add -A
 git commit -m "feat: add PDF export capability"
 git push origin feature/add-pdf-export
-# Create PR to develop
 ```
 
 ### Commit Message Convention
@@ -334,16 +313,16 @@ chore:    Maintenance tasks
 
 1. **Always read the relevant file first** - Use the Read tool
 2. **Check existing patterns** - Follow the code style in surrounding code
-3. **Test after changes** - Verify the plugin still works
-4. **Run lint checks** - Use `php -l` for syntax checking
+3. **Test after changes** - Run `php -l` for syntax checking
+4. **Verify security** - Ensure proper escaping and nonce verification
 
 ### Security Considerations
 
-- Always verify nonces in AJAX handlers
-- Always check user capabilities (`current_user_can('manage_options')`)
-- Sanitize all input with WordPress functions
-- Escape all output with WordPress functions
-- Never trust `$_POST` or `$_GET` directly
+- Always verify nonces in AJAX handlers: `check_ajax_referer('sscribe_export_nonce', 'nonce')`
+- Always check user capabilities: `current_user_can('manage_options')`
+- Sanitize all input: `sanitize_text_field()`, `sanitize_file_name()`
+- Escape all output: `esc_html()`, `esc_attr()`, `esc_url()`, `wp_kses()`
+- Never trust `$_POST` or `$_GET` directly - use `wp_unslash()` + sanitize
 
 ### Performance Considerations
 
@@ -361,6 +340,24 @@ chore:    Maintenance tasks
 | Change admin UI | `admin/partials/sscribe-admin-display.php` |
 | Modify document template | `includes/class-sscribe-exporter.php` |
 | Add new content element | `includes/class-sscribe-content-parser.php` |
+
+---
+
+## Files That Should NOT Be In Repository
+
+The following files should NOT be committed to the repository:
+
+| File/Folder | Reason |
+|-------------|--------|
+| `opencode.json` | IDE/Tool config |
+| `vendor/` | Composer dependencies |
+| `.idea/`, `.vscode/` | IDE configs |
+| `*.log`, `*.tmp` | Temporary files |
+| `PROGRESS.md` | Local progress tracking |
+| `.env`, `.env.*` | Environment files |
+| `sscribe-exports/` | Generated exports |
+
+These are already configured in `.gitignore`.
 
 ---
 
