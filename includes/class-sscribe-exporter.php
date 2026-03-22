@@ -491,7 +491,11 @@ class SScribe_Exporter {
 		}
 
 		try {
-			$image_info = @getimagesize( $page_data['featured_image_path'] );
+			$path = $page_data['featured_image_path'];
+			if ( ! file_exists( $path ) || ! is_readable( $path ) ) {
+				return;
+			}
+			$image_info = getimagesize( $path );
 			if ( ! $image_info ) {
 				return;
 			}
@@ -527,7 +531,8 @@ class SScribe_Exporter {
 			$section->addTextBreak( 1 );
 
 		} catch ( \Exception $e ) {
-			// Skip image on error.
+			// Skip image on error - image file may be corrupted or inaccessible.
+			return;
 		}
 	}
 
@@ -1045,31 +1050,27 @@ class SScribe_Exporter {
 				),
 				array( 'alignment' => Jc::CENTER )
 			);
-		} else {
-			try {
-				$image_info = @getimagesize( $path );
-				if ( $image_info ) {
-					$max_width  = Converter::inchToEmu( 5.5 );
-					$width_emu  = Converter::pixelToEmu( $image_info[0] );
-					$height_emu = Converter::pixelToEmu( $image_info[1] );
+		} elseif ( is_readable( $path ) ) {
+			$image_info = getimagesize( $path );
+			if ( $image_info ) {
+				$max_width  = Converter::inchToEmu( 5.5 );
+				$width_emu  = Converter::pixelToEmu( $image_info[0] );
+				$height_emu = Converter::pixelToEmu( $image_info[1] );
 
-					if ( $width_emu > $max_width ) {
-						$ratio      = $max_width / $width_emu;
-						$width_emu  = $max_width;
-						$height_emu = (int) ( $height_emu * $ratio );
-					}
-
-					$section->addImage(
-						$path,
-						array(
-							'width'     => Converter::emuToPixel( $width_emu ),
-							'height'    => Converter::emuToPixel( $height_emu ),
-							'alignment' => Jc::CENTER,
-						)
-					);
+				if ( $width_emu > $max_width ) {
+					$ratio      = $max_width / $width_emu;
+					$width_emu  = $max_width;
+					$height_emu = (int) ( $height_emu * $ratio );
 				}
-			} catch ( \Exception $e ) {
-				// Skip rendering on error.
+
+				$section->addImage(
+					$path,
+					array(
+						'width'     => Converter::emuToPixel( $width_emu ),
+						'height'    => Converter::emuToPixel( $height_emu ),
+						'alignment' => Jc::CENTER,
+					)
+				);
 			}
 		}
 

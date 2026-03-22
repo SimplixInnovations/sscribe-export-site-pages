@@ -293,7 +293,7 @@ class SScribe_Batch_Processor {
 		header( 'Pragma: no-cache' );
 		header( 'Expires: 0' );
 
-        // phpcs:ignore WordPress.WP.AlternativeFunctions.file_system_operations_readfile
+		// phpcs:ignore WordPress.WP.AlternativeFunctions.file_system_operations_readfile
 		readfile( $file_path );
 		exit;
 	}

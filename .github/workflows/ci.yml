@@ -33,7 +33,11 @@ jobs:
 
       - name: PHP Syntax Check
         run: |
-          find . -name "*.php" -not -path "./vendor/*" -not -path "./.git/*" -exec php -l {} \; 2>&1 | grep -v "No syntax errors"
+          ERROR=0
+          for file in $(find . -name "*.php" -not -path "./vendor/*" -not -path "./.git/*"); do
+            php -l "$file" > /dev/null 2>&1 || ERROR=1
+          done
+          exit $ERROR
 
   phpstan:
     name: PHPStan Analysis

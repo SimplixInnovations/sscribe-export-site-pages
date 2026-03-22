@@ -66,14 +66,14 @@ class SScribe_Activator {
 			$htaccess_content .= "  </IfModule>\n";
 			$htaccess_content .= "</Files>\n";
 
-            // phpcs:ignore WordPress.WP.AlternativeFunctions.file_system_operations_file_put_contents
+			// phpcs:ignore WordPress.WP.AlternativeFunctions.file_system_operations_file_put_contents
 			file_put_contents( $htaccess_path, $htaccess_content );
 		}
 
 		// index.php to prevent directory listing.
 		$index_path = $export_path . '/index.php';
 		if ( ! file_exists( $index_path ) ) {
-            // phpcs:ignore WordPress.WP.AlternativeFunctions.file_system_operations_file_put_contents
+			// phpcs:ignore WordPress.WP.AlternativeFunctions.file_system_operations_file_put_contents
 			file_put_contents( $index_path, "<?php\n// Silence is golden.\n" );
 		}
 	}
