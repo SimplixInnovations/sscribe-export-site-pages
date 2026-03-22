@@ -3,8 +3,8 @@ Contributors: simplixinnovations
 Donate link: https://simplixi.com
 Tags: export, docx, word, documentation, multilingual
 Requires at least: 5.8
-Tested up to: 6.8
-Stable tag: 1.2.2
+Tested up to: 6.9.4
+Stable tag: 1.3.0
 Requires PHP: 7.4
 License: GPLv2 or later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
@@ -201,9 +201,13 @@ Yes. SScribe is 100% free and open-source, developed by Simplix Innovations. No 
 3. Example DOCX output showing cover page with branding
 4. Example page content with styled headings, tables, and links
 5. SEO section showing metadata from Rank Math
-6. ZIP download ready with secure auto-deletion notice
 
 == Changelog ==
+
+= 1.3.0 =
+* Updated: Tested up to WordPress 6.9.4
+* Improvement: Removed unnecessary screenshot-6 (5 screenshots sufficient)
+* Improvement: Final code review and cleanup for WordPress.org submission
 
 = 1.2.2 =
 * Fix: Replaced esc_html__() with __() in PHPWord calls to prevent double-encoding in DOCX output
