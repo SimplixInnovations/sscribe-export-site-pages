@@ -6,31 +6,33 @@
  */
 
 // If uninstall not called from WordPress, abort.
-if (!defined('WP_UNINSTALL_PLUGIN')) {
-    exit;
+if ( ! defined( 'WP_UNINSTALL_PLUGIN' ) ) {
+	exit;
 }
 
 // Recursively delete export directory and all files/folders inside.
-$upload_dir = wp_upload_dir();
+$upload_dir  = wp_upload_dir();
 $export_path = $upload_dir['basedir'] . '/sscribe-exports';
 
-if (is_dir($export_path)) {
-    $objects = new RecursiveIteratorIterator(
-        new RecursiveDirectoryIterator($export_path, RecursiveDirectoryIterator::SKIP_DOTS),
-        RecursiveIteratorIterator::CHILD_FIRST
-    );
-    foreach ($objects as $fileinfo) {
-        $todo = ($fileinfo->isDir() ? 'rmdir' : 'unlink');
-        @$todo($fileinfo->getRealPath());
-    }
-    @rmdir($export_path);
+if ( is_dir( $export_path ) ) {
+	$objects = new RecursiveIteratorIterator(
+		new RecursiveDirectoryIterator( $export_path, RecursiveDirectoryIterator::SKIP_DOTS ),
+		RecursiveIteratorIterator::CHILD_FIRST
+	);
+	foreach ( $objects as $fileinfo ) {
+		$todo = ( $fileinfo->isDir() ? 'rmdir' : 'unlink' );
+		// phpcs:ignore WordPress.PHP.DiscouragedPHPFunctions.system_calls_exec -- Cleanup during uninstall.
+		@$todo( $fileinfo->getRealPath() );
+	}
+	// phpcs:ignore WordPress.PHP.DiscouragedPHPFunctions.system_calls_rmdir -- Cleanup during uninstall.
+	@rmdir( $export_path );
 }
 
 // Remove plugin options.
-delete_option('sscribe_version');
+delete_option( 'sscribe_version' );
 
 // Clear scheduled cron events.
-$timestamp = wp_next_scheduled('sscribe_cleanup_exports');
-if ($timestamp) {
-    wp_unschedule_event($timestamp, 'sscribe_cleanup_exports');
+$timestamp = wp_next_scheduled( 'sscribe_cleanup_exports' );
+if ( $timestamp ) {
+	wp_unschedule_event( $timestamp, 'sscribe_cleanup_exports' );
 }
