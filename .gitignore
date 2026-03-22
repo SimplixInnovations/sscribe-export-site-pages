@@ -20,6 +20,7 @@ docs/superpowers/
 PROGRESS.md
 AGENTS.md
 SScribe-Plugin-Audit-GLM5-Instructions.md
+SScribe-Round*-Final-*.md
 
 # Test/debug files
 test_require.php
