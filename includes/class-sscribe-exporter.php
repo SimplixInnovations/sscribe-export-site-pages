@@ -72,7 +72,7 @@ class SScribe_Exporter {
 	 * Constructor.
 	 */
 	public function __construct() {
-		 $this->parser    = new SScribe_Content_Parser();
+		$this->parser     = new SScribe_Content_Parser();
 		$this->seo_reader = new SScribe_SEO_Reader();
 	}
 
@@ -113,23 +113,23 @@ class SScribe_Exporter {
 		}
 
 		try {
-			$phpWord = new PhpWord();
+			$php_word = new PhpWord();
 
 			// Set document properties.
-			$this->set_document_properties( $phpWord, $page_data );
+			$this->set_document_properties( $php_word, $page_data );
 
 			// Set default styles.
-			$this->set_default_styles( $phpWord );
+			$this->set_default_styles( $php_word );
 
 			// Define custom styles.
-			$this->define_styles( $phpWord );
+			$this->define_styles( $php_word );
 
 			// --- Section 1: Cover Page ---
-			$cover = $phpWord->addSection( $this->get_section_settings() );
+			$cover = $php_word->addSection( $this->get_section_settings() );
 			$this->add_cover_page( $cover, $page_data );
 
 			// --- Section 2: Content ---
-			$content_section = $phpWord->addSection( $this->get_section_settings() );
+			$content_section = $php_word->addSection( $this->get_section_settings() );
 
 			// Add header and footer.
 			$this->add_header_footer( $content_section, $page_data );
@@ -157,7 +157,7 @@ class SScribe_Exporter {
 			$filename    = $safe_slug . '.docx';
 			$output_path = trailingslashit( $output_dir ) . $filename;
 
-			$writer = IOFactory::createWriter( $phpWord, 'Word2007' );
+			$writer = IOFactory::createWriter( $php_word, 'Word2007' );
 			$writer->save( $output_path );
 
 			return $output_path;
@@ -172,11 +172,11 @@ class SScribe_Exporter {
 	/**
 	 * Set document metadata properties.
 	 *
-	 * @param PhpWord $phpWord  The PhpWord instance.
+	 * @param PhpWord $php_word  The PhpWord instance.
 	 * @param array   $page_data Page data.
 	 */
-	private function set_document_properties( $phpWord, $page_data ) {
-		$properties = $phpWord->getDocInfo();
+	private function set_document_properties( $php_word, $page_data ) {
+		$properties = $php_word->getDocInfo();
 		$properties->setCreator( 'SScribe by Simplix Innovations' );
 		$properties->setCompany( get_bloginfo( 'name' ) );
 		$properties->setTitle( $page_data['title'] );
@@ -187,12 +187,12 @@ class SScribe_Exporter {
 	/**
 	 * Set default font and paragraph styles.
 	 *
-	 * @param PhpWord $phpWord The PhpWord instance.
+	 * @param PhpWord $php_word The PhpWord instance.
 	 */
-	private function set_default_styles( $phpWord ) {
-		$phpWord->setDefaultFontName( $this->font_name );
-		$phpWord->setDefaultFontSize( $this->font_size );
-		$phpWord->setDefaultParagraphStyle(
+	private function set_default_styles( $php_word ) {
+		$php_word->setDefaultFontName( $this->font_name );
+		$php_word->setDefaultFontSize( $this->font_size );
+		$php_word->setDefaultParagraphStyle(
 			array(
 				'spaceAfter'  => Converter::pointToTwip( 6 ),
 				'spaceBefore' => Converter::pointToTwip( 2 ),
@@ -204,13 +204,13 @@ class SScribe_Exporter {
 	/**
 	 * Define named styles for headings, etc.
 	 *
-	 * @param PhpWord $phpWord The PhpWord instance.
+	 * @param PhpWord $php_word The PhpWord instance.
 	 */
-	private function define_styles( $phpWord ) {
+	private function define_styles( $php_word ) {
 		// Heading styles.
 		$heading_sizes = array( 24, 20, 16, 14, 12, 11 );
 		for ( $i = 1; $i <= 6; $i++ ) {
-			$phpWord->addTitleStyle(
+			$php_word->addTitleStyle(
 				$i,
 				array(
 					'name'  => $this->font_name,
@@ -227,7 +227,7 @@ class SScribe_Exporter {
 		}
 
 		// Blockquote paragraph style.
-		$phpWord->addParagraphStyle(
+		$php_word->addParagraphStyle(
 			'Blockquote',
 			array(
 				'indentation'     => array( 'left' => Converter::cmToTwip( 1 ) ),
@@ -239,7 +239,7 @@ class SScribe_Exporter {
 		);
 
 		// Code paragraph style.
-		$phpWord->addParagraphStyle(
+		$php_word->addParagraphStyle(
 			'CodeBlock',
 			array(
 				'indentation' => array( 'left' => Converter::cmToTwip( 0.5 ) ),
@@ -274,7 +274,7 @@ class SScribe_Exporter {
 	 * @param array                              $page_data Page data.
 	 */
 	private function add_cover_page( $section, $page_data ) {
-		// Top solid bar simulation
+		// Top solid bar simulation.
 		$section->addTextBreak( 2 );
 
 		$table = $section->addTable( array( 'borderSize' => 0 ) );
@@ -303,7 +303,7 @@ class SScribe_Exporter {
 
 		$section->addTextBreak( 4 );
 
-		// Huge Page Title
+		// Huge page title.
 		$section->addText(
 			htmlspecialchars( mb_strtoupper( (string) $page_data['title'], 'UTF-8' ), ENT_XML1 | ENT_COMPAT, 'UTF-8' ),
 			array(
@@ -317,7 +317,7 @@ class SScribe_Exporter {
 
 		$section->addTextBreak( 1 );
 
-		// The URL Link prominently displayed
+		// The URL link prominently displayed.
 		$section->addLink(
 			$page_data['permalink'],
 			$this->safe_text( $page_data['permalink'] ),
@@ -332,7 +332,7 @@ class SScribe_Exporter {
 
 		$section->addTextBreak( 2 );
 
-		// Executive Summary Block
+		// Executive summary block.
 		$info_table = $section->addTable(
 			array(
 				'borderSize'  => 12,
@@ -399,7 +399,7 @@ class SScribe_Exporter {
 
 		$section->addPageBreak();
 
-		// TABLE OF CONTENTS (Crucial for $1,000 look)
+		// Table of contents.
 		$section->addText(
 			'TABLE OF CONTENTS',
 			array(
@@ -491,7 +491,11 @@ class SScribe_Exporter {
 		}
 
 		try {
-			$image_info = @getimagesize( $page_data['featured_image_path'] );
+			$path = $page_data['featured_image_path'];
+			if ( ! file_exists( $path ) || ! is_readable( $path ) ) {
+				return;
+			}
+			$image_info = getimagesize( $path );
 			if ( ! $image_info ) {
 				return;
 			}
@@ -527,7 +531,8 @@ class SScribe_Exporter {
 			$section->addTextBreak( 1 );
 
 		} catch ( \Exception $e ) {
-			// Skip image on error.
+			// Skip image on error - image file may be corrupted or inaccessible.
+			return;
 		}
 	}
 
@@ -706,7 +711,7 @@ class SScribe_Exporter {
 	 * @param array                              $page_data Page data.
 	 */
 	private function add_main_content( $section, $page_data ) {
-		 $section->addTitle( esc_html__( 'Content', 'sscribe-export-site-pages' ), 1 );
+		$section->addTitle( esc_html__( 'Content', 'sscribe-export-site-pages' ), 1 );
 
 		$elements = $this->parser->parse( $page_data['content'] );
 
@@ -742,8 +747,8 @@ class SScribe_Exporter {
 				break;
 
 			case 'blockquote':
-				$textRun = $section->addTextRun( 'Blockquote' );
-				$this->render_runs( $textRun, $element['runs'], true );
+				$text_run = $section->addTextRun( 'Blockquote' );
+				$this->render_runs( $text_run, $element['runs'], true );
 				break;
 
 			case 'code':
@@ -798,25 +803,25 @@ class SScribe_Exporter {
 			return;
 		}
 
-		$textRun = $section->addTextRun();
-		$this->render_runs( $textRun, $element['runs'] );
+		$text_run = $section->addTextRun();
+		$this->render_runs( $text_run, $element['runs'] );
 	}
 
 	/**
 	 * Render inline runs into a text run.
 	 *
-	 * @param \PhpOffice\PhpWord\Element\TextRun $textRun The text run container.
+	 * @param \PhpOffice\PhpWord\Element\TextRun $text_run The text run container.
 	 * @param array                              $runs    Array of run data.
 	 * @param bool                               $italic  Force italic (for blockquotes).
 	 */
-	private function render_runs( $textRun, $runs, $italic = false ) {
+	private function render_runs( $text_run, $runs, $italic = false ) {
 		foreach ( $runs as $run ) {
 			if ( ! isset( $run['text'] ) || '' === $run['text'] ) {
 				continue;
 			}
 
 			if ( isset( $run['break'] ) && $run['break'] ) {
-				$textRun->addTextBreak();
+				$text_run->addTextBreak();
 				continue;
 			}
 
@@ -847,14 +852,14 @@ class SScribe_Exporter {
 
 			if ( ! empty( $run['link'] ) ) {
 				$font_style['color'] = $this->colors['link'];
-				$textRun->addLink(
+				$text_run->addLink(
 					$run['link'],
 					$text_content,
 					$font_style
 				);
 				// Add URL in parentheses for print-friendliness.
 				if ( $run['text'] !== $run['link'] ) {
-					$textRun->addText(
+					$text_run->addText(
 						' (' . $this->safe_text( $run['link'] ) . ')',
 						array(
 							'name'  => $this->font_name,
@@ -864,7 +869,7 @@ class SScribe_Exporter {
 					);
 				}
 			} else {
-				$textRun->addText( $text_content, $font_style );
+				$text_run->addText( $text_content, $font_style );
 			}
 		}
 	}
@@ -1045,35 +1050,31 @@ class SScribe_Exporter {
 				),
 				array( 'alignment' => Jc::CENTER )
 			);
-		} else {
-			try {
-				$image_info = @getimagesize( $path );
-				if ( $image_info ) {
-					$max_width  = Converter::inchToEmu( 5.5 );
-					$width_emu  = Converter::pixelToEmu( $image_info[0] );
-					$height_emu = Converter::pixelToEmu( $image_info[1] );
+		} elseif ( is_readable( $path ) ) {
+			$image_info = getimagesize( $path );
+			if ( $image_info ) {
+				$max_width  = Converter::inchToEmu( 5.5 );
+				$width_emu  = Converter::pixelToEmu( $image_info[0] );
+				$height_emu = Converter::pixelToEmu( $image_info[1] );
 
-					if ( $width_emu > $max_width ) {
-						$ratio      = $max_width / $width_emu;
-						$width_emu  = $max_width;
-						$height_emu = (int) ( $height_emu * $ratio );
-					}
-
-					$section->addImage(
-						$path,
-						array(
-							'width'     => Converter::emuToPixel( $width_emu ),
-							'height'    => Converter::emuToPixel( $height_emu ),
-							'alignment' => Jc::CENTER,
-						)
-					);
+				if ( $width_emu > $max_width ) {
+					$ratio      = $max_width / $width_emu;
+					$width_emu  = $max_width;
+					$height_emu = (int) ( $height_emu * $ratio );
 				}
-			} catch ( \Exception $e ) {
-				// Skip rendering on error.
+
+				$section->addImage(
+					$path,
+					array(
+						'width'     => Converter::emuToPixel( $width_emu ),
+						'height'    => Converter::emuToPixel( $height_emu ),
+						'alignment' => Jc::CENTER,
+					)
+				);
 			}
 		}
 
-		// Render Professional Image Asset Box below
+		// Render professional image asset box below.
 		$table = $section->addTable(
 			array(
 				'borderSize'  => 4,
@@ -1120,8 +1121,8 @@ class SScribe_Exporter {
 		$section->addTitle( esc_html__( 'Child Pages', 'sscribe-export-site-pages' ), 2 );
 
 		foreach ( $page_data['children'] as $child ) {
-			$textRun = $section->addTextRun();
-			$textRun->addText(
+			$text_run = $section->addTextRun();
+			$text_run->addText(
 				'> ',
 				array(
 					'size'  => 10,
@@ -1129,7 +1130,7 @@ class SScribe_Exporter {
 					'color' => $this->colors['primary'],
 				)
 			);
-			$textRun->addLink(
+			$text_run->addLink(
 				$child['url'],
 				$this->safe_text( $child['title'] ),
 				array(
@@ -1138,7 +1139,7 @@ class SScribe_Exporter {
 					'color' => $this->colors['link'],
 				)
 			);
-			$textRun->addText(
+			$text_run->addText(
 				' - ' . $this->safe_text( ( $child['author'] . ' / ' . $child['date'] ) ),
 				array(
 					'name'  => $this->font_name,
