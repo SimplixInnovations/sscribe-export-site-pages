@@ -88,17 +88,26 @@ class SScribe_Content_Parser {
 	 * @return string Normalized HTML.
 	 */
 	private function normalize_html( $html ) {
+		// Strip entire <style> and <script> blocks (tag + content).
 		$html = preg_replace( '/<style\b[^>]*>.*?<\/style>/is', '', $html );
 		$html = preg_replace( '/<script\b[^>]*>.*?<\/script>/is', '', $html );
 		$html = preg_replace( '/<noscript\b[^>]*>.*?<\/noscript>/is', '', $html );
 		$html = preg_replace( '/<svg\b[^>]*>.*?<\/svg>/is', '', $html );
 
-		$html = preg_replace( '/<!--\s*\.elementor[^>]*-->/i', '', $html );
+		// Strip HTML comments that may contain Elementor template data.
+		$html = preg_replace( '/<!--.*?-->/s', '', $html );
 
+		// Strip Elementor print styles and inline CSS variable declarations.
+		$html = preg_replace( '/:root\s*\{[^}]*\}/s', '', $html );
+		$html = preg_replace( '/\.elementor-[a-zA-Z0-9_-]+\s*\{[^}]*\}/s', '', $html );
+
+		// Sanitize remaining HTML.
 		$html = wp_kses_post( $html );
 
+		// Collapse whitespace between tags.
 		$html = preg_replace( '/>\s+</', '><', $html );
 
+		// Ensure block-level element separation.
 		$html = preg_replace( '/<\/(p|div|h[1-6]|ul|ol|li|table|tr|blockquote|pre)>/', "</$1>\n", $html );
 
 		return trim( $html );
