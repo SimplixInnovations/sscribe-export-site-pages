@@ -63,4 +63,10 @@ if ( ! function_exists( 'is_rtl' ) ) {
 	}
 }
 
+if ( ! function_exists( 'strip_shortcodes' ) ) {
+	function strip_shortcodes( $sscribe_content ) {
+		return $sscribe_content;
+	}
+}
+
 require_once SSCRIBE_PLUGIN_DIR . 'vendor/autoload.php';

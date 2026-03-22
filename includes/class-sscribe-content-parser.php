@@ -69,8 +69,15 @@ class SScribe_Content_Parser {
 	 * @return string Cleaned HTML.
 	 */
 	private function strip_shortcodes( $html ) {
-		// Replace unprocessed shortcodes with a marker.
-		$html = preg_replace( '/\[(\/?[a-zA-Z0-9_-]+)[^\]]*\]/', '', $html );
+		// Use WordPress's own shortcode stripper first (safe — only strips registered shortcodes).
+		// phpcs:ignore WordPress.NamingConventions.PrefixAllGlobals.NonPrefixedHooknameFound -- WP core function.
+		$html = strip_shortcodes( $html );
+
+		// Strip any remaining unregistered shortcode-like patterns only if they look like
+		// actual shortcodes (must have a valid tag name at the start, with attributes).
+		// Be conservative — do NOT strip simple [word] patterns that could be content.
+		$html = preg_replace( '/\[(\/?[a-zA-Z0-9_-]+)(\s+[^\]]+)?\]/', '', $html );
+
 		return $html;
 	}
 
@@ -106,13 +113,14 @@ class SScribe_Content_Parser {
 		$dom = new DOMDocument( '1.0', 'UTF-8' );
 
 		// Suppress warnings from malformed HTML.
-		libxml_use_internal_errors( true );
+		$prev_use_errors = libxml_use_internal_errors( true );
 
 		// Wrap content to ensure proper encoding.
 		$wrapped = '<!DOCTYPE html><html><head><meta charset="UTF-8"></head><body>' . $html . '</body></html>';
 		$dom->loadHTML( $wrapped, LIBXML_HTML_NOIMPLIED | LIBXML_HTML_NODEFDTD );
 
 		libxml_clear_errors();
+		libxml_use_internal_errors( $prev_use_errors );
 
 		$body = $dom->getElementsByTagName( 'body' )->item( 0 );
 		if ( ! $body ) {
@@ -346,8 +354,7 @@ class SScribe_Content_Parser {
 	 * @return array Table element data.
 	 */
 	private function parse_table( $node ) {
-		 $rows     = array();
-		$is_header = true;
+		$rows = array();
 
 		// Get thead/tbody/direct tr children.
 		$sections = array();

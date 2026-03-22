@@ -94,9 +94,23 @@ class SScribe_Batch_Processor {
 					'message' => __( 'You do not have permission to export pages.', 'sscribe-export-site-pages' ),
 				)
 			);
+			return;
 		}
 
 		$language = isset( $_POST['language'] ) ? sanitize_text_field( wp_unslash( $_POST['language'] ) ) : '';
+
+		// Validate language code against active WPML languages when WPML is present.
+		if ( ! empty( $language ) && $this->collector->is_wpml_active() ) {
+			$valid_languages = wp_list_pluck( $this->collector->get_wpml_languages(), 'code' );
+			if ( ! in_array( $language, $valid_languages, true ) ) {
+				wp_send_json_error(
+					array(
+						'message' => __( 'Invalid language code specified.', 'sscribe-export-site-pages' ),
+					)
+				);
+				return;
+			}
+		}
 
 		$page_ids = $this->collector->get_page_ids( $language );
 		$total    = count( $page_ids );
@@ -107,6 +121,7 @@ class SScribe_Batch_Processor {
 					'message' => __( 'No published pages found for this language.', 'sscribe-export-site-pages' ),
 				)
 			);
+			return;
 		}
 
 		// Create temp directory for this export session.
@@ -155,6 +170,7 @@ class SScribe_Batch_Processor {
 					'message' => __( 'Permission denied.', 'sscribe-export-site-pages' ),
 				)
 			);
+			return;
 		}
 
 		$session_id = isset( $_POST['session_id'] ) ? sanitize_text_field( wp_unslash( $_POST['session_id'] ) ) : '';
@@ -166,6 +182,7 @@ class SScribe_Batch_Processor {
 					'message' => __( 'Export session expired. Please start again.', 'sscribe-export-site-pages' ),
 				)
 			);
+			return;
 		}
 
 		$page_ids  = $session['page_ids'];

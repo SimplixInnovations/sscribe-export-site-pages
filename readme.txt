@@ -3,8 +3,8 @@ Contributors: simplixinnovations
 Donate link: https://simplixi.com
 Tags: export, docx, word, documentation, multilingual
 Requires at least: 5.8
-Tested up to: 6.9
-Stable tag: 1.2.0
+Tested up to: 6.8
+Stable tag: 1.2.1
 Requires PHP: 7.4
 License: GPLv2 or later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
@@ -204,6 +204,18 @@ Yes. SScribe is 100% free and open-source, developed by Simplix Innovations. No 
 6. ZIP download ready with secure auto-deletion notice
 
 == Changelog ==
+
+= 1.2.1 =
+* Fix: Added paragraph-level RTL bidi support for proper Arabic/Hebrew text rendering in Word
+* Fix: Added explicit cell widths in render_table() for Google Docs/LibreOffice compatibility
+* Fix: Added return statements after wp_send_json_error() for security robustness
+* Fix: Validated language parameter against WPML active languages list
+* Fix: Removed dead $is_header variable in parse_table()
+* Fix: Improved shortcode stripping with WordPress strip_shortcodes() + conservative regex
+* Fix: Restored libxml_use_internal_errors() state after DOM parsing
+* Fix: Fixed indentation issues in class-sscribe.php
+* Added: Screenshots folder with placeholder images for WordPress.org submission
+* Updated: Tested up to WordPress 6.8
 
 = 1.2.0 =
 * Security: Fixed double-encoding issue in cover page title
