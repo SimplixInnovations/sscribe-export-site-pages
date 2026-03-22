@@ -39,6 +39,7 @@ class SScribe_Page_Collector {
 		// WPML language filtering.
 		if ( ! empty( $language ) && $this->is_wpml_active() ) {
 			// Switch WPML language context.
+			// phpcs:ignore WordPress.NamingConventions.PrefixAllGlobals.NonPrefixedHooknameFound -- WPML hook.
 			do_action( 'wpml_switch_language', $language );
 			$args['suppress_filters'] = false;
 		}
@@ -48,6 +49,7 @@ class SScribe_Page_Collector {
 
 		// Reset WPML language context.
 		if ( ! empty( $language ) && $this->is_wpml_active() ) {
+			// phpcs:ignore WordPress.NamingConventions.PrefixAllGlobals.NonPrefixedHooknameFound -- WPML hook.
 			do_action( 'wpml_switch_language', null );
 		}
 
@@ -77,6 +79,7 @@ class SScribe_Page_Collector {
 		}
 
 		// Get rendered content (applies Gutenberg / builder filters).
+		// phpcs:ignore WordPress.NamingConventions.PrefixAllGlobals.NonPrefixedHooknameFound -- WordPress core filter.
 		$content = apply_filters( 'the_content', $post->post_content );
 
 		// Calculate word count and reading time.
@@ -205,6 +208,7 @@ class SScribe_Page_Collector {
 	 */
 	private function get_page_language( $page_id ) {
 		if ( $this->is_wpml_active() ) {
+			// phpcs:ignore WordPress.NamingConventions.PrefixAllGlobals.NonPrefixedHooknameFound -- WPML hook.
 			$language_details = apply_filters( 'wpml_post_language_details', null, $page_id );
 			if ( $language_details && ! is_wp_error( $language_details ) ) {
 				return isset( $language_details['language_code'] ) ? $language_details['language_code'] : 'en';
@@ -232,6 +236,7 @@ class SScribe_Page_Collector {
 			return array();
 		}
 
+		// phpcs:ignore WordPress.NamingConventions.PrefixAllGlobals.NonPrefixedHooknameFound -- WPML hook.
 		$languages = apply_filters(
 			'wpml_active_languages',
 			null,
