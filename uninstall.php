@@ -20,16 +20,24 @@ if ( is_dir( $sscribe_export_path ) ) {
 		RecursiveIteratorIterator::CHILD_FIRST
 	);
 	foreach ( $sscribe_objects as $sscribe_fileinfo ) {
-		$sscribe_todo = ( $sscribe_fileinfo->isDir() ? 'rmdir' : 'unlink' );
-		// phpcs:ignore WordPress.PHP.DiscouragedPHPFunctions.system_calls_exec -- Cleanup during uninstall.
-		@$sscribe_todo( $sscribe_fileinfo->getRealPath() );
+		if ( $sscribe_fileinfo->isDir() ) {
+			if ( is_dir( $sscribe_fileinfo->getRealPath() ) ) {
+				// phpcs:ignore WordPress.WP.AlternativeFunctions.file_system_operations_rmdir
+				rmdir( $sscribe_fileinfo->getRealPath() );
+			}
+		} else {
+			wp_delete_file( $sscribe_fileinfo->getRealPath() );
+		}
 	}
-	// phpcs:ignore WordPress.PHP.DiscouragedPHPFunctions.system_calls_rmdir -- Cleanup during uninstall.
-	@rmdir( $sscribe_export_path );
+	if ( is_dir( $sscribe_export_path ) ) {
+		// phpcs:ignore WordPress.WP.AlternativeFunctions.file_system_operations_rmdir
+		rmdir( $sscribe_export_path );
+	}
 }
 
 // Remove plugin options.
 delete_option( 'sscribe_version' );
+delete_option( 'sscribe_export_index' );
 
 // Clear scheduled cron events.
 $sscribe_timestamp = wp_next_scheduled( 'sscribe_cleanup_exports' );

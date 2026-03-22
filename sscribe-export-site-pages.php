@@ -1,8 +1,9 @@
 <?php
 /**
  * Plugin Name:       SScribe Export Site Pages
+ * Plugin URI:        https://simplixi.com/sscribe
  * Description:       Export every page into beautifully formatted Word DOCX files with multilingual support, SEO meta, rich styling, and secure ZIP download.
- * Version:           1.1.7
+ * Version:           1.1.8
  * Requires at least: 5.8
  * Requires PHP:      7.4
  * Author:            Simplix Innovations
@@ -23,7 +24,7 @@ if ( ! defined( 'ABSPATH' ) ) {
 /**
  * Plugin version.
  */
-define( 'SSCRIBE_VERSION', '1.1.7' );
+define( 'SSCRIBE_VERSION', '1.1.8' );
 
 /**
  * Plugin directory path.
@@ -76,4 +77,4 @@ function sscribe_init() {
 	}
 }
 
-sscribe_init();
+add_action( 'plugins_loaded', 'sscribe_init' );

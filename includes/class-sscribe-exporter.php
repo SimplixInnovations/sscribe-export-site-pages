@@ -94,8 +94,8 @@ class SScribe_Exporter {
 		// 2. Remove XML-illegal control characters (keep tab, newline, carriage return).
 		$text = preg_replace( '/[\x00-\x08\x0B\x0C\x0E-\x1F\x7F]/', '', $text );
 
-		// 3. Escape for XML.
-		$text = htmlspecialchars( $text, ENT_XML1 | ENT_COMPAT, 'UTF-8' );
+		// Do NOT call htmlspecialchars() here — PHPWord handles XML escaping internally.
+		// Calling it here causes double-encoding (&amp; → &amp;amp; in output).
 
 		return $text;
 	}
@@ -113,6 +113,11 @@ class SScribe_Exporter {
 		}
 
 		try {
+			// Force ZipArchive — prevents PHPWord from ever loading bundled PCLZip.
+			if ( class_exists( 'ZipArchive' ) ) {
+				\PhpOffice\PhpWord\Settings::setZipClass( \PhpOffice\PhpWord\Settings::ZIPARCHIVE );
+			}
+
 			$php_word = new PhpWord();
 
 			// Set document properties.
@@ -344,7 +349,7 @@ class SScribe_Exporter {
 
 		$meta_cell = $info_table->addCell( Converter::inchToTwip( 6.5 ), array( 'bgColor' => $this->colors['light_bg'] ) );
 		$meta_cell->addText(
-			'DOCUMENT BLUEPRINT OVERVIEW',
+			esc_html__( 'DOCUMENT BLUEPRINT OVERVIEW', 'sscribe-export-site-pages' ),
 			array(
 				'name'  => $this->font_name,
 				'size'  => 11,
@@ -365,7 +370,7 @@ class SScribe_Exporter {
 		);
 		$meta_cell->addText(
 			/* translators: %s: export date */
-			sprintf( esc_html__( 'Extracted Date: %s', 'sscribe-export-site-pages' ), current_time( 'F j, Y, g:i a' ) ),
+			sprintf( esc_html__( 'Extracted Date: %s', 'sscribe-export-site-pages' ), wp_date( get_option( 'date_format' ) . ' ' . get_option( 'time_format' ) ) ),
 			array(
 				'name'  => $this->font_name,
 				'size'  => 10,
@@ -386,7 +391,10 @@ class SScribe_Exporter {
 			);
 			$meta_cell->addTextBreak( 1 );
 			$meta_cell->addText(
-				'Site Path: ' . $this->safe_text( $breadcrumb_text ),
+				$this->safe_text(
+					/* translators: %s: breadcrumb path */
+					sprintf( __( 'Site Path: %s', 'sscribe-export-site-pages' ), $breadcrumb_text )
+				),
 				array(
 					'name'   => $this->font_name,
 					'size'   => 9,
@@ -401,7 +409,7 @@ class SScribe_Exporter {
 
 		// Table of contents.
 		$section->addText(
-			'TABLE OF CONTENTS',
+			esc_html__( 'TABLE OF CONTENTS', 'sscribe-export-site-pages' ),
 			array(
 				'name'  => $this->font_name,
 				'size'  => 16,
@@ -987,7 +995,7 @@ class SScribe_Exporter {
 		$cell = $table->addCell( Converter::inchToTwip( 5 ), array( 'bgColor' => $this->colors['light_bg'] ) );
 
 		$cell->addText(
-			'[ACTION BUTTON] ' . $this->safe_text( ( $element['label'] ?? 'Click Here' ) ),
+			'[ACTION BUTTON] ' . $this->safe_text( ! empty( $element['content'] ) ? $element['content'] : __( 'Click Here', 'sscribe-export-site-pages' ) ),
 			array(
 				'name'  => $this->font_name,
 				'size'  => 10,
@@ -999,7 +1007,7 @@ class SScribe_Exporter {
 
 		if ( ! empty( $element['url'] ) ) {
 			$cell->addText(
-				'DESTINATION URL:',
+				esc_html__( 'DESTINATION URL:', 'sscribe-export-site-pages' ),
 				array(
 					'name'  => $this->font_name,
 					'size'  => 8,
@@ -1035,13 +1043,13 @@ class SScribe_Exporter {
 	 */
 	private function render_inline_image( $section, $element ) {
 		$path = ! empty( $element['local_path'] ) ? $element['local_path'] : '';
-		$src  = ! empty( $element['src'] ) ? $element['src'] : 'Unknown URL';
+		$src  = ! empty( $element['src'] ) ? $element['src'] : __( 'Unknown URL', 'sscribe-export-site-pages' );
 
 		if ( empty( $path ) || ! file_exists( $path ) ) {
 			// Show placeholder text if image processing failed.
-			$alt = ! empty( $element['alt'] ) ? $element['alt'] : 'No Alt Text Provided';
+			$alt = ! empty( $element['alt'] ) ? $element['alt'] : __( 'No Alt Text Provided', 'sscribe-export-site-pages' );
 			$section->addText(
-				'[MISSING IMAGE] ' . $this->safe_text( $alt ),
+				__( '[MISSING IMAGE] ', 'sscribe-export-site-pages' ) . $this->safe_text( $alt ),
 				array(
 					'name'   => $this->font_name,
 					'size'   => 9,
@@ -1086,7 +1094,7 @@ class SScribe_Exporter {
 		$table->addRow();
 		$cell = $table->addCell( Converter::inchToTwip( 5.5 ), array( 'bgColor' => '#F8FAFC' ) );
 		$cell->addText(
-			'IMAGE ASSET SOURCE URL:',
+			esc_html__( 'IMAGE ASSET SOURCE URL:', 'sscribe-export-site-pages' ),
 			array(
 				'name'  => $this->font_name,
 				'size'  => 7,
@@ -1140,7 +1148,7 @@ class SScribe_Exporter {
 				)
 			);
 			$text_run->addText(
-				' - ' . $this->safe_text( ( $child['author'] . ' / ' . $child['date'] ) ),
+				' — ' . $this->safe_text( $child['url'] ),
 				array(
 					'name'  => $this->font_name,
 					'size'  => 8,

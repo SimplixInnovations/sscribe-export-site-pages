@@ -36,7 +36,7 @@ class SScribe {
 	 * Constructor.
 	 */
 	public function __construct() {
-		 $this->version = defined( 'SSCRIBE_VERSION' ) ? SSCRIBE_VERSION : '1.0.0';
+		$this->version = defined( 'SSCRIBE_VERSION' ) ? SSCRIBE_VERSION : '1.0.0';
 		$this->loader   = new SScribe_Loader();
 
 		$this->define_admin_hooks();
@@ -50,7 +50,7 @@ class SScribe {
 	 * @return void
 	 */
 	private function define_admin_hooks() {
-		 $admin = new SScribe_Admin();
+		$admin = new SScribe_Admin();
 
 		$this->loader->add_action( 'admin_menu', $admin, 'add_admin_menu' );
 		$this->loader->add_action( 'admin_enqueue_scripts', $admin, 'enqueue_admin_assets' );

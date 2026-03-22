@@ -29,7 +29,7 @@ class SScribe_Zip_Handler {
 	 * Constructor.
 	 */
 	public function __construct() {
-		 $upload_dir      = wp_upload_dir();
+		$upload_dir      = wp_upload_dir();
 		$this->export_dir = $upload_dir['basedir'] . '/sscribe-exports';
 	}
 
@@ -51,7 +51,7 @@ class SScribe_Zip_Handler {
 	 * @return string Path to temporary directory.
 	 */
 	public function create_temp_dir() {
-		 $temp_dir = $this->export_dir . '/temp-' . wp_generate_password( 12, false );
+		$temp_dir = $this->export_dir . '/temp-' . wp_generate_password( 12, false );
 		wp_mkdir_p( $temp_dir );
 		return $temp_dir;
 	}
@@ -94,8 +94,10 @@ class SScribe_Zip_Handler {
 		// Clean up temporary directory.
 		$this->delete_directory( $source_dir );
 
-		// Store creation time for cleanup.
-		update_option( 'sscribe_last_export_time_' . md5( $zip_path ), time() );
+		// Store creation time for cleanup using single option.
+		$exports = get_option( 'sscribe_export_index', array() );
+		$exports[ basename( $zip_path ) ] = time();
+		update_option( 'sscribe_export_index', $exports, false );
 
 		return file_exists( $zip_path ) ? $zip_path : false;
 	}
@@ -148,8 +150,10 @@ class SScribe_Zip_Handler {
 			$file_time = filemtime( $file );
 			if ( $file_time && ( time() - $file_time ) > $max_age ) {
 				wp_delete_file( $file );
-				// Remove associated option.
-				delete_option( 'sscribe_last_export_time_' . md5( $file ) );
+				// Remove from export index.
+				$exports = get_option( 'sscribe_export_index', array() );
+				unset( $exports[ basename( $file ) ] );
+				update_option( 'sscribe_export_index', $exports, false );
 				$cleaned++;
 			}
 		}
