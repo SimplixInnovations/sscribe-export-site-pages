@@ -2,14 +2,14 @@
 /**
  * Plugin Name:       SScribe Export Site Pages
  * Description:       Export every page into beautifully formatted Word DOCX files with multilingual support, SEO meta, rich styling, and secure ZIP download.
- * Version:           1.1.3
+ * Version:           1.1.5
  * Requires at least: 5.8
  * Requires PHP:      7.4
  * Author:            Simplix Innovations
  * Author URI:        https://simplixi.com
  * License:           GPL v2 or later
  * License URI:       https://www.gnu.org/licenses/gpl-2.0.html
- * Text Domain:       scribe-export-site-pages
+ * Text Domain:       sscribe-export-site-pages
  * Domain Path:       /languages
  *
  * @package SScribe
@@ -23,7 +23,7 @@ if ( ! defined( 'ABSPATH' ) ) {
 /**
  * Plugin version.
  */
-define( 'SSCRIBE_VERSION', '1.1.3' );
+define( 'SSCRIBE_VERSION', '1.1.5' );
 
 /**
  * Plugin directory path.
@@ -62,7 +62,7 @@ register_deactivation_hook( __FILE__, array( 'SScribe_Deactivator', 'deactivate'
  *
  * @return void
  */
-function scribe_init() {
+function sscribe_init() {
 	// Try-catch block to prevent hard crashes during activation or bootstrapping.
 	try {
 		if ( class_exists( 'SScribe' ) ) {
