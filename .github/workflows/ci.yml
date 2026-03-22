@@ -33,7 +33,11 @@ jobs:
 
       - name: PHP Syntax Check
         run: |
-          find . -name "*.php" -not -path "./vendor/*" -not -path "./.git/*" -exec php -l {} \; 2>&1 | grep -v "No syntax errors"
+          ERROR=0
+          for file in $(find . -name "*.php" -not -path "./vendor/*" -not -path "./.git/*"); do
+            php -l "$file" > /dev/null 2>&1 || ERROR=1
+          done
+          exit $ERROR
 
   phpstan:
     name: PHPStan Analysis
@@ -50,7 +54,7 @@ jobs:
           coverage: none
 
       - name: Install dependencies
-        run: composer install --no-progress --no-suggest
+        run: composer install --no-progress
 
       - name: Run PHPStan
         run: composer stan
@@ -68,13 +72,13 @@ jobs:
         with:
           php-version: '8.1'
           coverage: none
-          tools: composer, cs2pr
+          tools: composer
 
       - name: Install dependencies
-        run: composer install --no-progress --no-suggest
+        run: composer install --no-progress
 
       - name: Run PHPCS
-        run: composer cs -- --report=checkstyle | cs2pr
+        run: composer cs
 
   phpunit:
     name: PHPUnit Tests
@@ -94,7 +98,7 @@ jobs:
           coverage: xdebug
 
       - name: Install dependencies
-        run: composer install --no-progress --no-suggest
+        run: composer install --no-progress
 
       - name: Run PHPUnit
         run: composer test
