@@ -6,8 +6,8 @@
  */
 
 // Prevent direct access.
-if (!defined('ABSPATH')) {
-    exit;
+if ( ! defined( 'ABSPATH' ) ) {
+	exit;
 }
 
 /**
@@ -15,20 +15,19 @@ if (!defined('ABSPATH')) {
  *
  * Clears scheduled cleanup events on deactivation.
  */
-class SScribe_Deactivator
-{
+class SScribe_Deactivator {
 
-    /**
-     * Run deactivation tasks.
-     *
-     * @return void
-     */
-    public static function deactivate()
-    {
-        // Clear scheduled cron events.
-        $timestamp = wp_next_scheduled('sscribe_cleanup_exports');
-        if ($timestamp) {
-            wp_unschedule_event($timestamp, 'sscribe_cleanup_exports');
-        }
-    }
+
+	/**
+	 * Run deactivation tasks.
+	 *
+	 * @return void
+	 */
+	public static function deactivate() {
+		// Clear scheduled cron events.
+		$timestamp = wp_next_scheduled( 'sscribe_cleanup_exports' );
+		if ( $timestamp ) {
+			wp_unschedule_event( $timestamp, 'sscribe_cleanup_exports' );
+		}
+	}
 }

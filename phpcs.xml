@@ -1,0 +1,28 @@
+<?xml version="1.0"?>
+<ruleset name="SScribe Export Site Pages">
+    <description>WordPress coding standards for SScribe Export Site Pages plugin.</description>
+
+    <file>.</file>
+
+    <exclude-pattern>/vendor/*</exclude-pattern>
+    <exclude-pattern>/node_modules/*</exclude-pattern>
+    <exclude-pattern>/tests/*</exclude-pattern>
+    <exclude-pattern>/.github/*</exclude-pattern>
+    <exclude-pattern>/coverage/*</exclude-pattern>
+    <exclude-pattern>/dist/*</exclude-pattern>
+    <exclude-pattern>/sscribe-exports/*</exclude-pattern>
+    <exclude-pattern>/.cache/*</exclude-pattern>
+
+    <arg value="ps"/>
+    <arg name="colors"/>
+    <arg name="extensions" value="php"/>
+    <arg name="encoding" value="utf-8"/>
+
+    <!-- Use a subset of WordPress standards for key security checks -->
+    <rule ref="WordPress.Security"/>
+    <rule ref="WordPress.WP.I18n"/>
+    
+    <!-- Check PHP compatibility -->
+    <rule ref="PHPCompatibility"/>
+    <config name="testVersion" value="7.4-"/>
+</ruleset>

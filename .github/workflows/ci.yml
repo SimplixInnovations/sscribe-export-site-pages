@@ -1,0 +1,136 @@
+name: CI
+
+on:
+  push:
+    branches:
+      - main
+      - develop
+    paths-ignore:
+      - '**.md'
+  pull_request:
+    branches:
+      - main
+      - develop
+    paths-ignore:
+      - '**.md'
+
+jobs:
+  php-lint:
+    name: PHP Syntax Check
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        php-version: ['7.4', '8.0', '8.1', '8.2', '8.3']
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup PHP
+        uses: shivammathur/setup-php@v2
+        with:
+          php-version: ${{ matrix.php-version }}
+          coverage: none
+
+      - name: PHP Syntax Check
+        run: |
+          find . -name "*.php" -not -path "./vendor/*" -not -path "./.git/*" -exec php -l {} \; 2>&1 | grep -v "No syntax errors"
+
+  phpstan:
+    name: PHPStan Analysis
+    runs-on: ubuntu-latest
+    needs: php-lint
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup PHP
+        uses: shivammathur/setup-php@v2
+        with:
+          php-version: '8.1'
+          coverage: none
+
+      - name: Install dependencies
+        run: composer install --no-progress --no-suggest
+
+      - name: Run PHPStan
+        run: composer stan
+
+  phpcs:
+    name: PHP CodeSniffer
+    runs-on: ubuntu-latest
+    needs: php-lint
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup PHP
+        uses: shivammathur/setup-php@v2
+        with:
+          php-version: '8.1'
+          coverage: none
+          tools: composer, cs2pr
+
+      - name: Install dependencies
+        run: composer install --no-progress --no-suggest
+
+      - name: Run PHPCS
+        run: composer cs -- --report=checkstyle | cs2pr
+
+  phpunit:
+    name: PHPUnit Tests
+    runs-on: ubuntu-latest
+    needs: [phpstan, phpcs]
+    strategy:
+      matrix:
+        php-version: ['7.4', '8.0', '8.1', '8.2']
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup PHP
+        uses: shivammathur/setup-php@v2
+        with:
+          php-version: ${{ matrix.php-version }}
+          coverage: xdebug
+
+      - name: Install dependencies
+        run: composer install --no-progress --no-suggest
+
+      - name: Run PHPUnit
+        run: composer test
+
+  build:
+    name: Build Plugin Archive
+    runs-on: ubuntu-latest
+    needs: [phpunit]
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup PHP
+        uses: shivammathur/setup-php@v2
+        with:
+          php-version: '8.1'
+          coverage: none
+
+      - name: Install production dependencies
+        run: composer install --no-dev --optimize-autoloader --no-progress
+
+      - name: Create distribution archive
+        run: |
+          mkdir -p dist
+          zip -r dist/sscribe-export-site-pages.zip \
+            sscribe-export-site-pages.php \
+            includes/ \
+            admin/ \
+            languages/ \
+            vendor/ \
+            LICENSE \
+            -x "*.git*"
+
+      - name: Upload artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: scribe-export-site-pages
+          path: dist/sscribe-export-site-pages.zip
