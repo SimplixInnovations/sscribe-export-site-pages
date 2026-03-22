@@ -19,6 +19,7 @@ opencode.json
 docs/superpowers/
 PROGRESS.md
 AGENTS.md
+SScribe-Plugin-Audit-GLM5-Instructions.md
 
 # Test/debug files
 test_require.php
