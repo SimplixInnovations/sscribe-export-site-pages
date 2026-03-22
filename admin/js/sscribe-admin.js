@@ -22,7 +22,7 @@
 			$( '#sscribe-export-btn' ).on( 'click', $.proxy( this.startExport, this ) );
 			$( '#sscribe-retry-btn, #sscribe-error-try-again' ).on( 'click', $.proxy( this.retry, this ) );
 
-			// Allow clicking anywhere on language option card to select it
+			// Allow clicking anywhere on language option card to select it.
 			$( '.sscribe-lang-card-label' ).on(
 				'click',
 				function () {
@@ -131,10 +131,10 @@
 					$( '#sscribe-download-area' ).css( 'display', 'flex' ).hide().fadeIn( 400 );
 					$( '#sscribe-download-btn' ).attr( 'href', data.download_url );
 
-					// Automatically trigger the download
+					// Automatically trigger the download.
 					window.location.href = data.download_url;
 
-					// Refresh the page after download starts so Recent Exports history populates
+					// Refresh the page after download starts so Recent Exports history populates.
 					setTimeout(
 						function () {
 							window.location.reload();
