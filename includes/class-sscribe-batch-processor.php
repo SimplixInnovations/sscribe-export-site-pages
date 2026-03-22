@@ -50,7 +50,7 @@ class SScribe_Batch_Processor {
 	 * Constructor.
 	 */
 	public function __construct() {
-		 $this->collector  = new SScribe_Page_Collector();
+		$this->collector   = new SScribe_Page_Collector();
 		$this->exporter    = new SScribe_Exporter();
 		$this->zip_handler = new SScribe_Zip_Handler();
 	}
@@ -221,9 +221,9 @@ class SScribe_Batch_Processor {
 	 * @param array  $session    The session data.
 	 */
 	private function finalize_export( $session_id, $session ) {
-		 $lang_code = ! empty( $session['language'] ) ? $session['language'] : 'all';
-		$site_slug  = sanitize_file_name( get_bloginfo( 'name' ) );
-		$zip_name   = 'sscribe-export-' . $lang_code . '-' . $site_slug . '-' . gmdate( 'Y-m-d-His' );
+		$lang_code = ! empty( $session['language'] ) ? $session['language'] : 'all';
+		$site_slug = sanitize_file_name( get_bloginfo( 'name' ) );
+		$zip_name  = 'sscribe-export-' . $lang_code . '-' . $site_slug . '-' . gmdate( 'Y-m-d-His' );
 
 		$zip_path = $this->zip_handler->create_zip( $session['temp_dir'], $zip_name );
 

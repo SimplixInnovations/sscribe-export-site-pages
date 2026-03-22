@@ -24,7 +24,7 @@ class SScribe_Activator {
 	 * @return void
 	 */
 	public static function activate() {
-		 self::create_export_directory();
+		self::create_export_directory();
 		self::schedule_cleanup();
 		update_option( 'sscribe_version', SSCRIBE_VERSION );
 	}
@@ -35,7 +35,7 @@ class SScribe_Activator {
 	 * @return void
 	 */
 	private static function create_export_directory() {
-		 $upload_dir = wp_upload_dir();
+		$upload_dir  = wp_upload_dir();
 		$export_path = $upload_dir['basedir'] . '/sscribe-exports';
 
 		if ( ! file_exists( $export_path ) ) {

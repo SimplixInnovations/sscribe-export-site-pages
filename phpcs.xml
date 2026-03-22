@@ -25,4 +25,9 @@
     <!-- Check PHP compatibility -->
     <rule ref="PHPCompatibility"/>
     <config name="testVersion" value="7.4-"/>
+    
+    <!-- Allow PHP DOM property names (they're built-in camelCase) -->
+    <rule ref="WordPress.NamingConventions.ValidVariableName">
+        <exclude-pattern>*/includes/class-sscribe-content-parser\.php$</exclude-pattern>
+    </rule>
 </ruleset>

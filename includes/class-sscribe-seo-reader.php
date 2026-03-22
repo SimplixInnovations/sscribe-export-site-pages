@@ -241,36 +241,64 @@ class SScribe_SEO_Reader {
 	 * @return array
 	 */
 	private function empty_seo_data() {
-		 return array(
-			 'meta_title'       => '',
-			 'meta_description' => '',
-			 'focus_keyword'    => '',
-			 'source'           => '',
-		 );
+		return array(
+			'meta_title'       => '',
+			'meta_description' => '',
+			'focus_keyword'    => '',
+			'source'           => '',
+		);
 	}
 
-	// Plugin detection helpers.
-
+	/**
+	 * Check if Yoast SEO is active.
+	 *
+	 * @return bool
+	 */
 	private function is_yoast_active() {
 		return defined( 'WPSEO_VERSION' );
 	}
 
+	/**
+	 * Check if Rank Math is active.
+	 *
+	 * @return bool
+	 */
 	private function is_rankmath_active() {
-		 return class_exists( 'RankMath' );
+		return class_exists( 'RankMath' );
 	}
 
+	/**
+	 * Check if All in One SEO v4+ is active.
+	 *
+	 * @return bool
+	 */
 	private function is_aioseo_v4_active() {
 		return function_exists( 'aioseo' ) && defined( 'AIOSEO_VERSION' );
 	}
 
+	/**
+	 * Check if All in One SEO v3 is active.
+	 *
+	 * @return bool
+	 */
 	private function is_aioseo_v3_active() {
 		return class_exists( 'All_in_One_SEO_Pack' ) && ! function_exists( 'aioseo' );
 	}
 
+	/**
+	 * Check if SEOPress is active.
+	 *
+	 * @return bool
+	 */
 	private function is_seopress_active() {
-		 return defined( 'SEOPRESS_VERSION' );
+		return defined( 'SEOPRESS_VERSION' );
 	}
 
+	/**
+	 * Check if The SEO Framework is active.
+	 *
+	 * @return bool
+	 */
 	private function is_tsf_active() {
 		return defined( 'THE_SEO_FRAMEWORK_VERSION' );
 	}
