@@ -33,6 +33,7 @@ jobs:
             sscribe-export-site-pages.php \
             readme.txt \
             LICENSE \
+            composer.json \
             includes/ \
             admin/ \
             languages/ \
@@ -48,7 +49,6 @@ jobs:
             -x "*phpstan.neon*" \
             -x "*phpcs.xml*" \
             -x "*.cache*" \
-            -x "*composer.json*" \
             -x "*composer.lock*" \
             -x "*package*.json*" \
             -x "*node_modules*"

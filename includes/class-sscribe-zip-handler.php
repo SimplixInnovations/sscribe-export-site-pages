@@ -190,6 +190,7 @@ class SScribe_Zip_Handler {
 			}
 		}
 
+		// phpcs:ignore WordPress.WP.AlternativeFunctions.file_system_operations_rmdir -- Required for recursive directory deletion where WP_Filesystem is not available.
 		return rmdir( $dir );
 	}
 }
