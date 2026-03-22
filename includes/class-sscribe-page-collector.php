@@ -127,27 +127,35 @@ class SScribe_Page_Collector {
 
 		// Guard against recursive calls from plugins that hook the_content.
 		static $sscribe_in_content_filter = false;
+
 		if ( $sscribe_in_content_filter ) {
 			$content = $post_object->post_content;
 		} else {
 			$sscribe_in_content_filter = true;
+			$content                   = $post_object->post_content;
 
-			// Set up global post context so page builders and plugins
-			// that use $post inside the_content filter work correctly.
-			global $post;
-			$original_post = $post;
-			// phpcs:ignore WordPress.WP.GlobalVariablesOverride.Prohibited
-			$post = $post_object;
-			setup_postdata( $post );
+			try {
+				global $post;
+				$original_post = $post;
+				// phpcs:ignore WordPress.WP.GlobalVariablesOverride.Prohibited
+				$post = $post_object;
+				setup_postdata( $post );
 
-			// phpcs:ignore WordPress.NamingConventions.PrefixAllGlobals.NonPrefixedHooknameFound -- WordPress core filter.
-			$content = apply_filters( 'the_content', $post->post_content );
+				// phpcs:ignore WordPress.NamingConventions.PrefixAllGlobals.NonPrefixedHooknameFound -- WordPress core filter.
+				$content = apply_filters( 'the_content', $post->post_content );
 
-			wp_reset_postdata();
-			// phpcs:ignore WordPress.WP.GlobalVariablesOverride.Prohibited
-			$post = $original_post;
-
-			$sscribe_in_content_filter = false;
+			} catch ( \Throwable $e ) {
+				$content = $post_object->post_content;
+				if ( defined( 'WP_DEBUG' ) && WP_DEBUG ) {
+					// phpcs:ignore WordPress.PHP.DevelopmentFunctions.error_log_error_log
+					error_log( 'SScribe: apply_filters the_content threw for page ' . $page_id . ': ' . $e->getMessage() );
+				}
+			} finally {
+				wp_reset_postdata();
+				// phpcs:ignore WordPress.WP.GlobalVariablesOverride.Prohibited
+				$post                      = $original_post;
+				$sscribe_in_content_filter = false;
+			}
 		}
 
 		// Calculate word count and reading time with Unicode fallback.
