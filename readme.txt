@@ -3,8 +3,8 @@ Contributors: simplixinnovations
 Donate link: https://simplixi.com
 Tags: export, docx, word, documentation, multilingual
 Requires at least: 5.8
-Tested up to: 6.9.4
-Stable tag: 1.4.0
+Tested up to: 6.9
+Stable tag: 1.4.1
 Requires PHP: 7.4
 License: GPLv2 or later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
@@ -204,6 +204,10 @@ Yes. SScribe is 100% free and open-source, developed by Simplix Innovations. No 
 
 == Changelog ==
 
+= 1.4.1 =
+* Fix: Added PHPCS ignore for set_time_limit() warning (function is safe for batch processing)
+* Fix: Corrected "Tested up to" version format to 6.9 (WordPress.org requires major.minor only)
+
 = 1.4.0 =
 * Critical fix: Pages now export completely (106+ pages) — fixed PHP timeout on Elementor pages by reducing default batch size to 1 and adding per-batch time limit extension
 * Critical fix: Static re-entry guard now uses try/finally to ensure it always resets even when apply_filters throws an exception
@@ -220,7 +224,7 @@ Yes. SScribe is 100% free and open-source, developed by Simplix Innovations. No 
 * Improvement: Consolidated changelog for clarity
 
 = 1.3.0 =
-* Updated: Tested up to WordPress 6.9.4
+* Updated: Tested up to WordPress 6.9
 * Fix: Replaced esc_html__() with __() in PHPWord calls to prevent double-encoding in DOCX output
 * Fix: Added RTL bidi support to info tables, SEO tables, cover page metadata, and heading styles
 * Fix: Made test bootstrap version dynamic (reads from main plugin file)
@@ -304,6 +308,9 @@ Yes. SScribe is 100% free and open-source, developed by Simplix Innovations. No 
 * Performance-safe batch processing
 
 == Upgrade Notice ==
+
+= 1.4.1 =
+Minor fix release: PHPCS compliance and corrected WordPress.org version format. Safe to skip if already on 1.4.0.
 
 = 1.4.0 =
 Critical bug fixes for large sites with Elementor: PHP timeout prevention, proper error handling, CSS stripping, RTL fixes, and sequential filenames. Essential update for all users.

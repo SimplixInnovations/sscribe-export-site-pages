@@ -173,7 +173,7 @@ class SScribe_Batch_Processor {
 			return;
 		}
 
-		// phpcs:ignore WordPress.PHP.NoSilencedErrors.Discouraged -- safe use, max_execution_time is advisory
+		// phpcs:ignore WordPress.PHP.NoSilencedErrors.Discouraged,Squiz.PHP.DiscouragedFunctions.Discouraged -- safe use, max_execution_time is advisory
 		@set_time_limit( 120 ); // Extend execution time for Elementor/page-builder rendering.
 
 		$session_id = isset( $_POST['session_id'] ) ? sanitize_text_field( wp_unslash( $_POST['session_id'] ) ) : '';
