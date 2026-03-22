@@ -41,26 +41,11 @@ define('SSCRIBE_PLUGIN_URL', plugin_dir_url(__FILE__));
 define('SSCRIBE_PLUGIN_BASENAME', plugin_basename(__FILE__));
 
 /**
- * Autoload Composer dependencies.
+ * Autoload Composer dependencies and plugin classes.
  */
 if (file_exists(SSCRIBE_PLUGIN_DIR . 'vendor/autoload.php')) {
     require_once SSCRIBE_PLUGIN_DIR . 'vendor/autoload.php';
 }
-
-/**
- * Load plugin classes.
- */
-require_once SSCRIBE_PLUGIN_DIR . 'includes/class-sscribe-loader.php';
-require_once SSCRIBE_PLUGIN_DIR . 'includes/class-sscribe-activator.php';
-require_once SSCRIBE_PLUGIN_DIR . 'includes/class-sscribe-deactivator.php';
-require_once SSCRIBE_PLUGIN_DIR . 'includes/class-sscribe-page-collector.php';
-require_once SSCRIBE_PLUGIN_DIR . 'includes/class-sscribe-seo-reader.php';
-require_once SSCRIBE_PLUGIN_DIR . 'includes/class-sscribe-content-parser.php';
-require_once SSCRIBE_PLUGIN_DIR . 'includes/class-sscribe-exporter.php';
-require_once SSCRIBE_PLUGIN_DIR . 'includes/class-sscribe-zip-handler.php';
-require_once SSCRIBE_PLUGIN_DIR . 'includes/class-sscribe-batch-processor.php';
-require_once SSCRIBE_PLUGIN_DIR . 'admin/class-sscribe-admin.php';
-require_once SSCRIBE_PLUGIN_DIR . 'includes/class-sscribe.php';
 
 /**
  * Activation hook.
