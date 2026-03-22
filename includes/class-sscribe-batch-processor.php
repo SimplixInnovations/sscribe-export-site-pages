@@ -81,6 +81,34 @@ class SScribe_Batch_Processor {
 	}
 
 	/**
+	 * Clean output buffer and send JSON error response.
+	 *
+	 * Ensures stray HTML from page builders doesn't corrupt the JSON response.
+	 *
+	 * @param array $data Error data array.
+	 * @return void
+	 */
+	private function send_json_error( $data ) {
+		if ( ob_get_level() > 0 ) {
+			ob_end_clean();
+		}
+		wp_send_json_error( $data );
+	}
+
+	/**
+	 * Clean output buffer and send JSON success response.
+	 *
+	 * @param array $data Success data array.
+	 * @return void
+	 */
+	private function send_json_success( $data ) {
+		if ( ob_get_level() > 0 ) {
+			ob_end_clean();
+		}
+		wp_send_json_success( $data );
+	}
+
+	/**
 	 * AJAX handler: Start export process.
 	 *
 	 * @return void
@@ -88,8 +116,10 @@ class SScribe_Batch_Processor {
 	public function ajax_start_export() {
 		check_ajax_referer( 'sscribe_export_nonce', 'nonce' );
 
+		ob_start();
+
 		if ( ! current_user_can( $this->get_required_capability() ) ) {
-			wp_send_json_error(
+			$this->send_json_error(
 				array(
 					'message' => __( 'You do not have permission to export pages.', 'sscribe-export-site-pages' ),
 				)
@@ -103,7 +133,7 @@ class SScribe_Batch_Processor {
 		if ( ! empty( $language ) && $this->collector->is_wpml_active() ) {
 			$valid_languages = wp_list_pluck( $this->collector->get_wpml_languages(), 'code' );
 			if ( ! in_array( $language, $valid_languages, true ) ) {
-				wp_send_json_error(
+				$this->send_json_error(
 					array(
 						'message' => __( 'Invalid language code specified.', 'sscribe-export-site-pages' ),
 					)
@@ -116,7 +146,7 @@ class SScribe_Batch_Processor {
 		$total    = count( $page_ids );
 
 		if ( 0 === $total ) {
-			wp_send_json_error(
+			$this->send_json_error(
 				array(
 					'message' => __( 'No published pages found for this language.', 'sscribe-export-site-pages' ),
 				)
@@ -127,7 +157,7 @@ class SScribe_Batch_Processor {
 		// Create temp directory for this export session.
 		$temp_dir = $this->zip_handler->create_temp_dir();
 
-		// Store session data in transient.
+		// Store session data in transient (4 hours for large sites).
 		$session_id = wp_generate_password( 16, false );
 		set_transient(
 			'sscribe_export_' . $session_id,
@@ -139,10 +169,10 @@ class SScribe_Batch_Processor {
 				'language'  => $language,
 				'errors'    => array(),
 			),
-			HOUR_IN_SECONDS
+			4 * HOUR_IN_SECONDS
 		);
 
-		wp_send_json_success(
+		$this->send_json_success(
 			array(
 				'session_id' => $session_id,
 				'total'      => $total,
@@ -164,8 +194,10 @@ class SScribe_Batch_Processor {
 	public function ajax_process_batch() {
 		check_ajax_referer( 'sscribe_export_nonce', 'nonce' );
 
+		ob_start();
+
 		if ( ! current_user_can( $this->get_required_capability() ) ) {
-			wp_send_json_error(
+			$this->send_json_error(
 				array(
 					'message' => __( 'Permission denied.', 'sscribe-export-site-pages' ),
 				)
@@ -173,14 +205,18 @@ class SScribe_Batch_Processor {
 			return;
 		}
 
-		// phpcs:ignore WordPress.PHP.NoSilencedErrors.Discouraged,Squiz.PHP.DiscouragedFunctions.Discouraged -- safe use, max_execution_time is advisory
-		@set_time_limit( 120 ); // Extend execution time for Elementor/page-builder rendering.
+		// Attempt to extend execution time for slow page-builder rendering.
+		if ( function_exists( 'ini_set' ) ) {
+			// phpcs:ignore WordPress.PHP.IniSet.max_execution_time_Blacklisted -- Required for large Elementor exports.
+			ini_set( 'max_execution_time', '120' );
+		}
+		wp_raise_memory_limit( 'admin' );
 
 		$session_id = isset( $_POST['session_id'] ) ? sanitize_text_field( wp_unslash( $_POST['session_id'] ) ) : '';
 		$session    = get_transient( 'sscribe_export_' . $session_id );
 
 		if ( ! $session ) {
-			wp_send_json_error(
+			$this->send_json_error(
 				array(
 					'message' => __( 'Export session expired. Please start again.', 'sscribe-export-site-pages' ),
 				)
@@ -247,10 +283,10 @@ class SScribe_Batch_Processor {
 			$processed++;
 		}
 
-		// Update session.
+		// Update session and refresh expiry.
 		$session['processed'] = $processed;
 		$session['errors']    = $errors;
-		set_transient( 'sscribe_export_' . $session_id, $session, HOUR_IN_SECONDS );
+		set_transient( 'sscribe_export_' . $session_id, $session, 4 * HOUR_IN_SECONDS );
 
 		$percentage = ( $total > 0 ) ? round( ( $processed / $total ) * 100 ) : 100;
 		$is_done    = ( $processed >= $total );
@@ -260,7 +296,7 @@ class SScribe_Batch_Processor {
 			return;
 		}
 
-		wp_send_json_success(
+		$this->send_json_success(
 			array(
 				'status'     => 'processing',
 				'processed'  => $processed,
@@ -291,9 +327,7 @@ class SScribe_Batch_Processor {
 
 		// Only clean up session AFTER we know the outcome.
 		if ( ! $zip_path ) {
-			// Keep transient alive so the user could potentially retry.
-			// But mark it as failed so the JS can surface the error.
-			wp_send_json_error(
+			$this->send_json_error(
 				array(
 					'message' => __( 'Failed to create ZIP package. Please try again.', 'sscribe-export-site-pages' ),
 				)
@@ -306,7 +340,7 @@ class SScribe_Batch_Processor {
 
 		$download_url = $this->zip_handler->get_ajax_download_url( basename( $zip_path ) );
 
-		wp_send_json_success(
+		$this->send_json_success(
 			array(
 				'status'       => 'complete',
 				'processed'    => $session['total'],

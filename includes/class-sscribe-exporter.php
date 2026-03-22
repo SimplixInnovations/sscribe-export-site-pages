@@ -84,13 +84,17 @@ class SScribe_Exporter {
 	}
 
 	/**
-	 * Make a string safe for PHPWord / XML output.
+	 * Make a string safe for PHPWord / XML 1.0 output.
 	 *
-	 * Strips emoji (astral Unicode planes), control characters, and
-	 * escapes XML entities so PHPWord never produces corrupt XML.
+	 * Strips characters that are illegal or problematic in XML 1.0:
+	 * - Control characters (except tab, LF, CR which XML allows)
+	 * - XML non-characters: U+FFFE, U+FFFF
+	 * - Unicode surrogates: U+D800-U+DFFF
+	 * - Astral plane emoji/symbols above U+FFFF (PHPWord can't handle them)
+	 * - Private Use Area characters from icon fonts (render as boxes in Word)
 	 *
 	 * @param mixed $text Input value (will be cast to string).
-	 * @return string Cleaned, XML-safe string.
+	 * @return string Cleaned, XML 1.0-safe string.
 	 */
 	private function safe_text( $text ) {
 		$text = (string) $text;
@@ -98,11 +102,21 @@ class SScribe_Exporter {
 		// 1. Remove astral-plane Unicode (emoji, symbols above U+FFFF).
 		$text = preg_replace( '/[\x{10000}-\x{10FFFF}]/u', '', $text );
 
-		// 2. Remove XML-illegal control characters (keep tab, newline, carriage return).
+		// 2. Remove XML 1.0 illegal control characters.
 		$text = preg_replace( '/[\x00-\x08\x0B\x0C\x0E-\x1F\x7F]/', '', $text );
 
-		// Do NOT call htmlspecialchars() here — PHPWord handles XML escaping internally.
-		// Calling it here causes double-encoding (&amp; → &amp;amp; in output).
+		// 3. Remove XML non-characters: U+FFFE and U+FFFF.
+		$text = preg_replace( '/[\x{FFFE}\x{FFFF}]/u', '', $text );
+
+		// 4. Remove Unicode surrogate code points (U+D800-U+DFFF).
+		//    These are encoded as 4-byte UTF-8 sequences starting with 0xED.
+		$text = preg_replace( '/\xED[\xA0-\xBF][\x80-\xBF]/', '', $text );
+
+		// 5. Replace Private Use Area characters (U+E000-U+F8FF) with empty string.
+		$text = preg_replace( '/[\x{E000}-\x{F8FF}]/u', '', $text );
+
+		// 6. Replace zero-width and invisible formatting chars.
+		$text = preg_replace( '/[\x{200B}\x{FEFF}\x{00AD}]/u', '', $text );
 
 		return $text;
 	}

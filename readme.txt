@@ -4,7 +4,7 @@ Donate link: https://simplixi.com
 Tags: export, docx, word, documentation, multilingual
 Requires at least: 5.8
 Tested up to: 6.9
-Stable tag: 1.4.1
+Stable tag: 1.5.0
 Requires PHP: 7.4
 License: GPLv2 or later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
@@ -204,6 +204,16 @@ Yes. SScribe is 100% free and open-source, developed by Simplix Innovations. No 
 
 == Changelog ==
 
+= 1.5.0 =
+* Critical fix: DOCX files now open correctly in Word — added XML non-character stripping (U+FFFE, U+FFFF, surrogates)
+* Critical fix: Export no longer stops mid-way on large sites — output buffering prevents Elementor stray HTML from corrupting AJAX JSON
+* Critical fix: Session transient extended to 4 hours and refreshed per batch — exports of 100+ pages complete fully
+* Fix: Replaced @set_time_limit() with ini_set() — removes PHPCS Squiz.PHP.DiscouragedFunctions warning
+* Fix: Icon font characters (FontAwesome, Eicons) stripped from DOCX content — no more boxes/corruption
+* Fix: Zero-width spaces and invisible formatting characters stripped — no more empty paragraphs
+* Fix: HTML comments stripped in content parser — Elementor template data no longer bleeds into text
+* Fix: CSS variable declarations that survive style tag stripping are now cleaned from content
+
 = 1.4.1 =
 * Fix: Added PHPCS ignore for set_time_limit() warning (function is safe for batch processing)
 * Fix: Corrected "Tested up to" version format to 6.9 (WordPress.org requires major.minor only)
@@ -308,6 +318,9 @@ Yes. SScribe is 100% free and open-source, developed by Simplix Innovations. No 
 * Performance-safe batch processing
 
 == Upgrade Notice ==
+
+= 1.5.0 =
+Critical fixes for DOCX corruption, large site exports, and Elementor compatibility. Essential update for all users — DOCX files now open reliably in Word.
 
 = 1.4.1 =
 Minor fix release: PHPCS compliance and corrected WordPress.org version format. Safe to skip if already on 1.4.0.

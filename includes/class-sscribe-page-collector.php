@@ -141,16 +141,30 @@ class SScribe_Page_Collector {
 				$post = $post_object;
 				setup_postdata( $post );
 
+				// Start output buffer to capture any stray output from page builders.
+				ob_start();
+
 				// phpcs:ignore WordPress.NamingConventions.PrefixAllGlobals.NonPrefixedHooknameFound -- WordPress core filter.
 				$content = apply_filters( 'the_content', $post->post_content );
 
+				// Discard any stray output — we only want the filtered string.
+				ob_end_clean();
+
 			} catch ( \Throwable $e ) {
+				// Discard any partial output that may have been buffered before the exception.
+				if ( ob_get_level() > 0 ) {
+					ob_end_clean();
+				}
 				$content = $post_object->post_content;
 				if ( defined( 'WP_DEBUG' ) && WP_DEBUG ) {
 					// phpcs:ignore WordPress.PHP.DevelopmentFunctions.error_log_error_log
 					error_log( 'SScribe: apply_filters the_content threw for page ' . $page_id . ': ' . $e->getMessage() );
 				}
 			} finally {
+				// Ensure any orphaned buffer is cleaned.
+				if ( ob_get_level() > 0 ) {
+					ob_end_clean();
+				}
 				wp_reset_postdata();
 				// phpcs:ignore WordPress.WP.GlobalVariablesOverride.Prohibited
 				$post                      = $original_post;
