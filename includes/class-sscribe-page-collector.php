@@ -36,21 +36,25 @@ class SScribe_Page_Collector {
 			'no_found_rows'  => true,
 		);
 
+		$switched = false;
 		// WPML language filtering.
 		if ( ! empty( $language ) && $this->is_wpml_active() ) {
 			// Switch WPML language context.
 			// phpcs:ignore WordPress.NamingConventions.PrefixAllGlobals.NonPrefixedHooknameFound -- WPML hook.
 			do_action( 'wpml_switch_language', $language );
 			$args['suppress_filters'] = false;
+			$switched = true;
 		}
 
-		$query    = new WP_Query( $args );
-		$page_ids = $query->posts;
-
-		// Reset WPML language context.
-		if ( ! empty( $language ) && $this->is_wpml_active() ) {
-			// phpcs:ignore WordPress.NamingConventions.PrefixAllGlobals.NonPrefixedHooknameFound -- WPML hook.
-			do_action( 'wpml_switch_language', null );
+		try {
+			$query    = new WP_Query( $args );
+			$page_ids = $query->posts;
+		} finally {
+			// Reset WPML language context.
+			if ( $switched ) {
+				// phpcs:ignore WordPress.NamingConventions.PrefixAllGlobals.NonPrefixedHooknameFound -- WPML hook.
+				do_action( 'wpml_switch_language', null );
+			}
 		}
 
 		return $page_ids;
@@ -63,7 +67,7 @@ class SScribe_Page_Collector {
 	 * @return int Total number of pages.
 	 */
 	public function get_total_pages( $language = '' ) {
-		 return count( $this->get_page_ids( $language ) );
+		return count( $this->get_page_ids( $language ) );
 	}
 
 	/**
@@ -73,7 +77,7 @@ class SScribe_Page_Collector {
 	 * @return array|false Page data array or false on failure.
 	 */
 	public function get_page_data( $page_id ) {
-		 $post = get_post( $page_id );
+		$post = get_post( $page_id );
 		if ( ! $post || 'page' !== $post->post_type ) {
 			return false;
 		}

@@ -55,16 +55,6 @@ class SScribe_Activator {
 			$htaccess_content .= "    Deny from all\n";
 			$htaccess_content .= "  </IfModule>\n";
 			$htaccess_content .= "</Files>\n";
-			// Allow PHP to serve files via download handler.
-			$htaccess_content .= "<Files \"*.php\">\n";
-			$htaccess_content .= "  <IfModule mod_authz_core.c>\n";
-			$htaccess_content .= "    Require all granted\n";
-			$htaccess_content .= "  </IfModule>\n";
-			$htaccess_content .= "  <IfModule !mod_authz_core.c>\n";
-			$htaccess_content .= "    Order Allow,Deny\n";
-			$htaccess_content .= "    Allow from all\n";
-			$htaccess_content .= "  </IfModule>\n";
-			$htaccess_content .= "</Files>\n";
 
 			// phpcs:ignore WordPress.WP.AlternativeFunctions.file_system_operations_file_put_contents
 			file_put_contents( $htaccess_path, $htaccess_content );

@@ -67,20 +67,12 @@ class SScribe_Admin {
 			return;
 		}
 
-		// Manrope font from Google Fonts.
-		wp_enqueue_style(
-			'sscribe-manrope-font',
-			'https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700&display=swap',
-			array(),
-			SSCRIBE_VERSION
-		);
-
 		// Admin CSS.
 		wp_enqueue_style(
 			'sscribe-admin',
 			SSCRIBE_PLUGIN_URL . 'admin/css/sscribe-admin.css',
-			array( 'sscribe-manrope-font' ),
-			SSCRIBE_VERSION . '.' . time()
+			array(),
+			SSCRIBE_VERSION
 		);
 
 		// Admin JS.
@@ -88,7 +80,7 @@ class SScribe_Admin {
 			'sscribe-admin',
 			SSCRIBE_PLUGIN_URL . 'admin/js/sscribe-admin.js',
 			array( 'jquery' ),
-			SSCRIBE_VERSION . '.' . time(),
+			SSCRIBE_VERSION,
 			true
 		);
 
@@ -174,7 +166,14 @@ class SScribe_Admin {
 
 					$recent_exports[] = array(
 						'filename'  => $filename,
-						'url'       => $export_url . $filename,
+						'url'       => add_query_arg(
+							array(
+								'action' => 'sscribe_download',
+								'file'   => sanitize_file_name( $filename ),
+								'nonce'  => wp_create_nonce( 'sscribe_download' ),
+							),
+							admin_url( 'admin-ajax.php' )
+						),
 						'time'      => filemtime( $file ),
 						'size'      => filesize( $file ),
 						'lang_code' => $lang_code,
@@ -196,7 +195,7 @@ class SScribe_Admin {
 	 */
 	public function add_plugin_action_links( $links ) {
 		$plugin_links = array(
-			'<a href="' . admin_url( 'tools.php?page=sscribe-export' ) . '">' . __( 'Export Pages', 'sscribe-export-site-pages' ) . '</a>',
+			'<a href="' . esc_url( admin_url( 'tools.php?page=sscribe-export' ) ) . '">' . esc_html__( 'Export Pages', 'sscribe-export-site-pages' ) . '</a>',
 		);
 		return array_merge( $plugin_links, $links );
 	}

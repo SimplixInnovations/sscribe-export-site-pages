@@ -87,7 +87,7 @@ if (!defined('ABSPATH')) {
 								</div>
 								<div class="sscribe-lang-meta">
 									<span
-										class="sscribe-lang-name"><?php echo esc_html($sscribe_lang['translated_name']); ?></span>
+										class="sscribe-lang-name"><?php echo esc_html( $sscribe_lang['name'] ); ?></span>
 									<span class="sscribe-lang-count">
 										<?php
 		printf(

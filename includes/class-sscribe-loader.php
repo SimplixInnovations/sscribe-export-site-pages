@@ -37,7 +37,7 @@ class SScribe_Loader {
 	 * Initialize the collections.
 	 */
 	public function __construct() {
-		 $this->actions = array();
+		$this->actions = array();
 		$this->filters  = array();
 	}
 
