@@ -72,13 +72,13 @@ jobs:
         with:
           php-version: '8.1'
           coverage: none
-          tools: composer, cs2pr
+          tools: composer
 
       - name: Install dependencies
         run: composer install --no-progress
 
       - name: Run PHPCS
-        run: composer cs -- --report=checkstyle | cs2pr
+        run: composer cs
 
   phpunit:
     name: PHPUnit Tests
