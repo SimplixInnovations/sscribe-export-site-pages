@@ -268,6 +268,7 @@ class SScribe_Exporter {
 					'spaceBefore' => Converter::pointToTwip( $i <= 2 ? 18 : 12 ),
 					'spaceAfter'  => Converter::pointToTwip( 6 ),
 					'keepNext'    => true,
+					'bidi'        => $this->is_rtl,
 				)
 			);
 		}
@@ -409,34 +410,34 @@ class SScribe_Exporter {
 
 		$meta_cell = $info_table->addCell( Converter::inchToTwip( 6.5 ), array( 'bgColor' => $this->colors['light_bg'] ) );
 		$meta_cell->addText(
-			esc_html__( 'DOCUMENT BLUEPRINT OVERVIEW', 'sscribe-export-site-pages' ),
+			__( 'DOCUMENT BLUEPRINT OVERVIEW', 'sscribe-export-site-pages' ),
 			array(
 				'name'  => $this->font_name,
 				'size'  => 11,
 				'bold'  => true,
 				'color' => $this->colors['heading'],
 			),
-			array( 'alignment' => Jc::CENTER )
+			$this->get_para_style( array( 'alignment' => Jc::CENTER ) )
 		);
 		$meta_cell->addText(
 			/* translators: %s: language code */
-			sprintf( esc_html__( 'Target Language: %s', 'sscribe-export-site-pages' ), $page_data['language'] ),
+			sprintf( __( 'Target Language: %s', 'sscribe-export-site-pages' ), $page_data['language'] ),
 			array(
 				'name'  => $this->font_name,
 				'size'  => 10,
 				'color' => $this->colors['body'],
 			),
-			array( 'alignment' => Jc::CENTER )
+			$this->get_para_style( array( 'alignment' => Jc::CENTER ) )
 		);
 		$meta_cell->addText(
 			/* translators: %s: export date */
-			sprintf( esc_html__( 'Extracted Date: %s', 'sscribe-export-site-pages' ), wp_date( get_option( 'date_format' ) . ' ' . get_option( 'time_format' ) ) ),
+			sprintf( __( 'Extracted Date: %s', 'sscribe-export-site-pages' ), wp_date( get_option( 'date_format' ) . ' ' . get_option( 'time_format' ) ) ),
 			array(
 				'name'  => $this->font_name,
 				'size'  => 10,
 				'color' => $this->colors['body'],
 			),
-			array( 'alignment' => Jc::CENTER )
+			$this->get_para_style( array( 'alignment' => Jc::CENTER ) )
 		);
 
 		if ( ! empty( $page_data['breadcrumbs'] ) ) {
@@ -469,7 +470,7 @@ class SScribe_Exporter {
 
 		// Table of contents.
 		$section->addText(
-			esc_html__( 'TABLE OF CONTENTS', 'sscribe-export-site-pages' ),
+			__( 'TABLE OF CONTENTS', 'sscribe-export-site-pages' ),
 			array(
 				'name'  => $this->font_name,
 				'size'  => 16,
@@ -537,7 +538,7 @@ class SScribe_Exporter {
 		);
 		$cell = $footer_table->addCell( Converter::inchToTwip( 2.5 ) );
 		$cell->addPreserveText(
-			esc_html__( 'Page', 'sscribe-export-site-pages' ) . ' {PAGE} / {NUMPAGES}',
+			__( 'Page', 'sscribe-export-site-pages' ) . ' {PAGE} / {NUMPAGES}',
 			array(
 				'name'  => $this->font_name,
 				'size'  => 7,
@@ -611,7 +612,7 @@ class SScribe_Exporter {
 	 * @param array                              $page_data Page data.
 	 */
 	private function add_page_info_table( $section, $page_data ) {
-		$section->addTitle( esc_html__( 'Page Information', 'sscribe-export-site-pages' ), 2 );
+		$section->addTitle( __( 'Page Information', 'sscribe-export-site-pages' ), 2 );
 
 		$table_style = array(
 			'borderSize'  => 1,
@@ -655,11 +656,13 @@ class SScribe_Exporter {
 			$table->addRow();
 			$table->addCell( Converter::inchToTwip( 2 ), $header_cell_style )->addText(
 				$this->safe_text( $row[0] ),
-				$label_style
+				$label_style,
+				$this->get_para_style()
 			);
 			$table->addCell( Converter::inchToTwip( 4.5 ) )->addText(
 				$this->safe_text( $row[1] ),
-				$value_style
+				$value_style,
+				$this->get_para_style()
 			);
 		}
 
@@ -679,18 +682,19 @@ class SScribe_Exporter {
 			return;
 		}
 
-		$section->addTitle( esc_html__( 'SEO Information', 'sscribe-export-site-pages' ), 2 );
+		$section->addTitle( __( 'SEO Information', 'sscribe-export-site-pages' ), 2 );
 
 		if ( ! empty( $seo_data['source'] ) ) {
 			$section->addText(
 				/* translators: %s: SEO plugin name */
-				sprintf( esc_html__( 'Source: %s', 'sscribe-export-site-pages' ), $seo_data['source'] ),
+				sprintf( __( 'Source: %s', 'sscribe-export-site-pages' ), $seo_data['source'] ),
 				array(
 					'name'   => $this->font_name,
 					'size'   => 9,
 					'italic' => true,
 					'color'  => $this->colors['body'],
-				)
+				),
+				$this->get_para_style()
 			);
 		}
 
@@ -726,11 +730,13 @@ class SScribe_Exporter {
 				$table->addRow();
 				$table->addCell( Converter::inchToTwip( 2 ), array( 'bgColor' => $this->colors['light_bg'] ) )->addText(
 					$this->safe_text( $row[0] ),
-					$label_style
+					$label_style,
+					$this->get_para_style()
 				);
 				$table->addCell( Converter::inchToTwip( 4.5 ) )->addText(
 					$this->safe_text( $row[1] ),
-					$value_style
+					$value_style,
+					$this->get_para_style()
 				);
 			}
 		}
@@ -786,7 +792,7 @@ class SScribe_Exporter {
 	 * @param array                              $page_data Page data.
 	 */
 	private function add_main_content( $section, $page_data ) {
-		$section->addTitle( esc_html__( 'Content', 'sscribe-export-site-pages' ), 1 );
+		$section->addTitle( __( 'Content', 'sscribe-export-site-pages' ), 1 );
 
 		$elements = $this->parser->parse( $page_data['content'] );
 
@@ -1084,7 +1090,7 @@ class SScribe_Exporter {
 
 		if ( ! empty( $element['url'] ) ) {
 			$cell->addText(
-				esc_html__( 'DESTINATION URL:', 'sscribe-export-site-pages' ),
+				__( 'DESTINATION URL:', 'sscribe-export-site-pages' ),
 				array(
 					'name'  => $this->font_name,
 					'size'  => 8,
@@ -1171,7 +1177,7 @@ class SScribe_Exporter {
 		$table->addRow();
 		$cell = $table->addCell( Converter::inchToTwip( 5.5 ), array( 'bgColor' => '#F8FAFC' ) );
 		$cell->addText(
-			esc_html__( 'IMAGE ASSET SOURCE URL:', 'sscribe-export-site-pages' ),
+			__( 'IMAGE ASSET SOURCE URL:', 'sscribe-export-site-pages' ),
 			array(
 				'name'  => $this->font_name,
 				'size'  => 7,
@@ -1203,7 +1209,7 @@ class SScribe_Exporter {
 		}
 
 		$section->addTextBreak( 1 );
-		$section->addTitle( esc_html__( 'Child Pages', 'sscribe-export-site-pages' ), 2 );
+		$section->addTitle( __( 'Child Pages', 'sscribe-export-site-pages' ), 2 );
 
 		foreach ( $page_data['children'] as $child ) {
 			$text_run = $section->addTextRun( $this->get_para_style() );

@@ -4,7 +4,7 @@ Donate link: https://simplixi.com
 Tags: export, docx, word, documentation, multilingual
 Requires at least: 5.8
 Tested up to: 6.8
-Stable tag: 1.2.1
+Stable tag: 1.2.2
 Requires PHP: 7.4
 License: GPLv2 or later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
@@ -204,6 +204,14 @@ Yes. SScribe is 100% free and open-source, developed by Simplix Innovations. No 
 6. ZIP download ready with secure auto-deletion notice
 
 == Changelog ==
+
+= 1.2.2 =
+* Fix: Replaced esc_html__() with __() in PHPWord calls to prevent double-encoding in DOCX output
+* Fix: Added RTL bidi support to info table and SEO table cell text
+* Fix: Added RTL bidi support to heading styles for proper Arabic/Hebrew rendering
+* Fix: Added RTL support to cover page metadata cells
+* Fix: Made test bootstrap version dynamic (reads from main plugin file)
+* Improvement: Removed internal audit documents from public repo
 
 = 1.2.1 =
 * Fix: Added paragraph-level RTL bidi support for proper Arabic/Hebrew text rendering in Word

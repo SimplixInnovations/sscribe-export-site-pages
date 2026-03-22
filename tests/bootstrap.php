@@ -10,7 +10,6 @@ if ( ! defined( 'ABSPATH' ) ) {
 	define( 'ABSPATH', dirname( __DIR__ ) . '/fake-wp/' );
 }
 
-define( 'SSCRIBE_VERSION', '1.1.3' );
 define( 'SSCRIBE_PLUGIN_DIR', dirname( __DIR__ ) . '/' );
 define( 'SSCRIBE_PLUGIN_URL', 'http://example.org/wp-content/plugins/sscribe-export-site-pages/' );
 define( 'SSCRIBE_PLUGIN_BASENAME', 'sscribe-export-site-pages/sscribe-export-site-pages.php' );
@@ -68,5 +67,24 @@ if ( ! function_exists( 'strip_shortcodes' ) ) {
 		return $sscribe_content;
 	}
 }
+
+if ( ! function_exists( 'get_file_data' ) ) {
+	function get_file_data( $sscribe_file, $sscribe_headers ) {
+		$content = file_get_contents( $sscribe_file );
+		$data    = array();
+		foreach ( $sscribe_headers as $key => $pattern ) {
+			if ( preg_match( '/^[ \t]*\* ' . preg_quote( $pattern, '/' ) . ':\s*(.+?)\s*$/m', $content, $matches ) ) {
+				$data[ $key ] = trim( $matches[1] );
+			}
+		}
+		return $data;
+	}
+}
+
+$sscribe_plugin_data = get_file_data(
+	SSCRIBE_PLUGIN_DIR . 'sscribe-export-site-pages.php',
+	array( 'version' => 'Version' )
+);
+define( 'SSCRIBE_VERSION', $sscribe_plugin_data['version'] ?? '1.0.0' );
 
 require_once SSCRIBE_PLUGIN_DIR . 'vendor/autoload.php';
