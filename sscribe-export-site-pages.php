@@ -2,7 +2,7 @@
 /**
  * Plugin Name:       SScribe Export Site Pages
  * Description:       Export every page into beautifully formatted Word DOCX files with multilingual support, SEO meta, rich styling, and secure ZIP download.
- * Version:           1.0.0
+ * Version:           1.1.0
  * Requires at least: 5.8
  * Requires PHP:      7.4
  * Author:            Simplix Innovations
@@ -23,7 +23,7 @@ if (!defined('ABSPATH')) {
 /**
  * Plugin version.
  */
-define('SSCRIBE_VERSION', '1.0.0');
+define('SSCRIBE_VERSION', '1.1.0');
 
 /**
  * Plugin directory path.
