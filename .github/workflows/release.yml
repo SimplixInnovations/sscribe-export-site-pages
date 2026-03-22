@@ -22,7 +22,9 @@ jobs:
           coverage: none
 
       - name: Install production dependencies
-        run: composer install --no-dev --optimize-autoloader --no-progress
+        run: |
+          composer install --no-dev --optimize-autoloader --no-progress
+          composer dump-autoload --no-dev --optimize
 
       - name: Create distribution archive
         run: |
@@ -37,7 +39,19 @@ jobs:
             vendor/ \
             -x "*.git*" \
             -x "*.DS_Store" \
-            -x "*Thumbs.db"
+            -x "*Thumbs.db" \
+            -x "*.github*" \
+            -x "*tests*" \
+            -x "*.distignore*" \
+            -x "*.gitignore*" \
+            -x "*phpunit.xml*" \
+            -x "*phpstan.neon*" \
+            -x "*phpcs.xml*" \
+            -x "*.cache*" \
+            -x "*composer.json*" \
+            -x "*composer.lock*" \
+            -x "*package*.json*" \
+            -x "*node_modules*"
 
       - name: Upload release asset
         uses: softprops/action-gh-release@v2
