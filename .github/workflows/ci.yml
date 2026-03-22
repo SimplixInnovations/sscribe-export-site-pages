@@ -54,7 +54,7 @@ jobs:
           coverage: none
 
       - name: Install dependencies
-        run: composer install --no-progress --no-suggest
+        run: composer install --no-progress
 
       - name: Run PHPStan
         run: composer stan
@@ -75,9 +75,7 @@ jobs:
           tools: composer, cs2pr
 
       - name: Install dependencies
-        run: |
-          composer install --no-progress --no-suggest
-          vendor/bin/phpcs --config-set installed_paths vendor/wp-coding-standards/wpcs,vendor/phpcompatibility/php-compatibility,vendor/phpcompatibility/phpcompatibility-wp
+        run: composer install --no-progress
 
       - name: Run PHPCS
         run: composer cs -- --report=checkstyle | cs2pr
@@ -100,7 +98,7 @@ jobs:
           coverage: xdebug
 
       - name: Install dependencies
-        run: composer install --no-progress --no-suggest
+        run: composer install --no-progress
 
       - name: Run PHPUnit
         run: composer test
