@@ -1,0 +1,44 @@
+name: Release
+
+on:
+  release:
+    types: [published]
+
+jobs:
+  build:
+    name: Build Plugin
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup PHP
+        uses: shivammathur/setup-php@v2
+        with:
+          php-version: '8.1'
+          coverage: none
+
+      - name: Install production dependencies
+        run: composer install --no-dev --optimize-autoloader --no-progress
+
+      - name: Create distribution archive
+        run: |
+          mkdir -p dist
+          zip -r dist/sscribe-export-site-pages.zip \
+            sscribe-export-site-pages.php \
+            readme.txt \
+            LICENSE \
+            includes/ \
+            admin/ \
+            languages/ \
+            vendor/ \
+            -x "*.git*" \
+            -x "*.DS_Store" \
+            -x "*Thumbs.db"
+
+      - name: Upload release asset
+        uses: softprops/action-gh-release@v2
+        with:
+          files: dist/sscribe-export-site-pages.zip
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
