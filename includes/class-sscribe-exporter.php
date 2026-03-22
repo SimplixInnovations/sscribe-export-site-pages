@@ -378,7 +378,7 @@ class SScribe_Exporter {
 				'bold'  => true,
 				'color' => $this->colors['heading'],
 			),
-			array( 'alignment' => Jc::CENTER )
+			$this->get_para_style( array( 'alignment' => Jc::CENTER ) )
 		);
 
 		$section->addTextBreak( 1 );
@@ -393,7 +393,7 @@ class SScribe_Exporter {
 				'color'     => $this->colors['link'],
 				'underline' => 'single',
 			),
-			array( 'alignment' => Jc::CENTER )
+			$this->get_para_style( array( 'alignment' => Jc::CENTER ) )
 		);
 
 		$section->addTextBreak( 2 );
@@ -462,7 +462,7 @@ class SScribe_Exporter {
 					'color'  => $this->colors['body'],
 					'italic' => true,
 				),
-				array( 'alignment' => Jc::CENTER )
+				$this->get_para_style( array( 'alignment' => Jc::CENTER ) )
 			);
 		}
 
@@ -866,7 +866,7 @@ class SScribe_Exporter {
 						'size'  => 8,
 						'color' => $this->colors['border'],
 					),
-					array( 'alignment' => Jc::CENTER )
+					$this->get_para_style( array( 'alignment' => Jc::CENTER ) )
 				);
 				break;
 		}
@@ -1050,7 +1050,8 @@ class SScribe_Exporter {
 
 				$table->addCell( $cell_width, $cell_style )->addText(
 					$this->safe_text( $cell['content'] ),
-					$font_style
+					$font_style,
+					$this->get_para_style()
 				);
 			}
 		}
@@ -1085,7 +1086,7 @@ class SScribe_Exporter {
 				'bold'  => true,
 				'color' => $this->colors['primary'],
 			),
-			array( 'alignment' => Jc::CENTER )
+			$this->get_para_style( array( 'alignment' => Jc::CENTER ) )
 		);
 
 		if ( ! empty( $element['url'] ) ) {
@@ -1097,10 +1098,10 @@ class SScribe_Exporter {
 					'bold'  => true,
 					'color' => $this->colors['heading'],
 				),
-				array(
+				$this->get_para_style( array(
 					'alignment'   => Jc::CENTER,
 					'spaceBefore' => Converter::pointToTwip( 6 ),
-				)
+				) )
 			);
 			$cell->addLink(
 				$element['url'],
@@ -1111,7 +1112,7 @@ class SScribe_Exporter {
 					'color'     => $this->colors['link'],
 					'underline' => 'single',
 				),
-				array( 'alignment' => Jc::CENTER )
+				$this->get_para_style( array( 'alignment' => Jc::CENTER ) )
 			);
 		}
 
@@ -1139,7 +1140,7 @@ class SScribe_Exporter {
 					'italic' => true,
 					'color'  => 'EF4444',
 				),
-				array( 'alignment' => Jc::CENTER )
+				$this->get_para_style( array( 'alignment' => Jc::CENTER ) )
 			);
 		} elseif ( is_readable( $path ) ) {
 			$image_info = getimagesize( $path );
