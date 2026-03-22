@@ -68,34 +68,34 @@ if ( ! defined( 'ABSPATH' ) ) {
 						<?php esc_html_e( 'Choose a language. The plugin will export all published pages for the selected language into a professional DOCX archive.', 'sscribe-export-site-pages' ); ?>
 					</p>
 
-					<div class="sscribe-language-cards">
-						<?php foreach ( $languages as $lang ) : ?>
-							<label class="sscribe-lang-card-label">
-								<input type="radio" name="sscribe_language" value="<?php echo esc_attr( $lang['code'] ); ?>"
-									<?php checked( $lang, reset( $languages ) ); ?>>
-								<div class="sscribe-lang-card-inner">
-									<div class="sscribe-lang-flag-wrapper">
-										<?php if ( ! empty( $lang['flag_url'] ) ) : ?>
-											<img src="<?php echo esc_url( $lang['flag_url'] ); ?>" alt="flag"
-												class="sscribe-lang-flag">
-										<?php else : ?>
-											<div class="sscribe-lang-flag-placeholder">
-												<?php echo esc_html( strtoupper( substr( $lang['code'], 0, 2 ) ) ); ?></div>
-										<?php endif; ?>
-									</div>
-									<div class="sscribe-lang-meta">
-										<span
-											class="sscribe-lang-name"><?php echo esc_html( $lang['translated_name'] ); ?></span>
-										<span class="sscribe-lang-count">
-											<?php
-											printf(
-												/* translators: %d: number of pages */
-												esc_html__( '%d Pages', 'sscribe-export-site-pages' ),
-												intval( $lang['page_count'] )
-											);
-											?>
-										</span>
-									</div>
+				<div class="sscribe-language-cards">
+					<?php foreach ( $languages as $sscribe_lang ) : ?>
+						<label class="sscribe-lang-card-label">
+							<input type="radio" name="sscribe_language" value="<?php echo esc_attr( $sscribe_lang['code'] ); ?>"
+								<?php checked( $sscribe_lang, reset( $languages ) ); ?>>
+							<div class="sscribe-lang-card-inner">
+								<div class="sscribe-lang-flag-wrapper">
+									<?php if ( ! empty( $sscribe_lang['flag_url'] ) ) : ?>
+										<img src="<?php echo esc_url( $sscribe_lang['flag_url'] ); ?>" alt="flag"
+											class="sscribe-lang-flag">
+									<?php else : ?>
+										<div class="sscribe-lang-flag-placeholder">
+											<?php echo esc_html( strtoupper( substr( $sscribe_lang['code'], 0, 2 ) ) ); ?></div>
+									<?php endif; ?>
+								</div>
+								<div class="sscribe-lang-meta">
+									<span
+										class="sscribe-lang-name"><?php echo esc_html( $sscribe_lang['translated_name'] ); ?></span>
+									<span class="sscribe-lang-count">
+										<?php
+										printf(
+											/* translators: %d: number of pages */
+											esc_html__( '%d Pages', 'sscribe-export-site-pages' ),
+											intval( $sscribe_lang['page_count'] )
+										);
+										?>
+									</span>
+								</div>
 									<div class="sscribe-lang-selector">
 										<svg viewBox="0 0 24 24" width="18" height="18" stroke="currentColor" stroke-width="2.5"
 											fill="none" stroke-linecap="round" stroke-linejoin="round"
@@ -237,27 +237,27 @@ if ( ! defined( 'ABSPATH' ) ) {
 					</div>
 					<div class="sscribe-history-table">
 						<?php if ( ! empty( $recent_exports ) ) : ?>
-							<?php foreach ( $recent_exports as $export ) : ?>
+							<?php foreach ( $recent_exports as $sscribe_export ) : ?>
 								<div class="sscribe-history-row">
 									<div class="sscribe-history-file">
 										<div class="sscribe-file-icon" style="display:flex;align-items:center;justify-content:center;width:40px;height:40px;background:#F8FAFC;border-radius:8px;">
-											<?php if ( ! empty( $export['flag_url'] ) ) : ?>
-												<img src="<?php echo esc_url( $export['flag_url'] ); ?>" alt="<?php echo esc_attr( $export['lang_name'] ); ?> flag" style="width:24px;border-radius:2px;box-shadow:0 1px 3px rgba(0,0,0,0.1);">
+											<?php if ( ! empty( $sscribe_export['flag_url'] ) ) : ?>
+												<img src="<?php echo esc_url( $sscribe_export['flag_url'] ); ?>" alt="<?php echo esc_attr( $sscribe_export['lang_name'] ); ?> flag" style="width:24px;border-radius:2px;box-shadow:0 1px 3px rgba(0,0,0,0.1);">
 											<?php else : ?>
 												<div style="color:#64748B;font-size:12px;font-weight:700;text-transform:uppercase;">
-													<?php echo esc_html( strtoupper( substr( $export['lang_code'], 0, 2 ) ) ); ?>
+													<?php echo esc_html( strtoupper( substr( $sscribe_export['lang_code'], 0, 2 ) ) ); ?>
 												</div>
 											<?php endif; ?>
 										</div>
 										<div class="sscribe-file-details">
-											<strong><?php echo esc_html( $export['filename'] ); ?></strong>
+											<strong><?php echo esc_html( $sscribe_export['filename'] ); ?></strong>
 											<span>
-												<?php echo esc_html( date_i18n( get_option( 'date_format' ) . ' ' . get_option( 'time_format' ), $export['time'] ) ); ?>
-												&mdash; <?php echo esc_html( size_format( $export['size'] ) ); ?>
+												<?php echo esc_html( date_i18n( get_option( 'date_format' ) . ' ' . get_option( 'time_format' ), $sscribe_export['time'] ) ); ?>
+												&mdash; <?php echo esc_html( size_format( $sscribe_export['size'] ) ); ?>
 											</span>
 										</div>
 									</div>
-									<a href="<?php echo esc_url( $export['url'] ); ?>"
+									<a href="<?php echo esc_url( $sscribe_export['url'] ); ?>"
 										class="sscribe-button sscribe-button-outline sscribe-button-sm" download>
 										<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor"
 											stroke-width="2">
@@ -296,9 +296,8 @@ if ( ! defined( 'ABSPATH' ) ) {
 					<div class="sscribe-panel-body">
 						<div class="sscribe-features-grid">
 
-							<!-- Defining all 15 features from UX screenshot -->
 							<?php
-							$allowed_svg = array(
+							$sscribe_allowed_svg = array(
 								'path'     => array(
 									'd'               => true,
 									'fill'            => true,
@@ -345,7 +344,7 @@ if ( ! defined( 'ABSPATH' ) ) {
 								),
 							);
 
-							$features = array(
+							$sscribe_features = array(
 								array(
 									'title' => __( 'Page Title', 'sscribe-export-site-pages' ),
 									'desc'  => __( 'Main H1 heading with proper styling', 'sscribe-export-site-pages' ),
@@ -404,19 +403,19 @@ if ( ! defined( 'ABSPATH' ) ) {
 								),
 							);
 
-							foreach ( $features as $feature ) :
+							foreach ( $sscribe_features as $sscribe_feature ) :
 								?>
 								<div class="sscribe-feature-item">
 									<div class="sscribe-feature-icon"
-										style="color: <?php echo esc_attr( $feature['color'] ); ?>; background: <?php echo esc_attr( $feature['bg'] ); ?>;">
+										style="color: <?php echo esc_attr( $sscribe_feature['color'] ); ?>; background: <?php echo esc_attr( $sscribe_feature['bg'] ); ?>;">
 										<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor"
 											stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-											<?php echo wp_kses( $feature['icon'], $allowed_svg ); ?>
+											<?php echo wp_kses( $sscribe_feature['icon'], $sscribe_allowed_svg ); ?>
 										</svg>
 									</div>
 									<div class="sscribe-feature-text">
-										<h4><?php echo esc_html( $feature['title'] ); ?></h4>
-										<p><?php echo esc_html( $feature['desc'] ); ?></p>
+										<h4><?php echo esc_html( $sscribe_feature['title'] ); ?></h4>
+										<p><?php echo esc_html( $sscribe_feature['desc'] ); ?></p>
 									</div>
 								</div>
 							<?php endforeach; ?>

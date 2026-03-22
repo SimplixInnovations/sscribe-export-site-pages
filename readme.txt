@@ -1,10 +1,10 @@
 === SScribe Export Site Pages ===
 Contributors: simplixinnovations
 Donate link: https://simplixi.com
-Tags: export, docx, word, documentation, multilingual, page export, to pdf, export word, export site
+Tags: export, docx, word, documentation, multilingual
 Requires at least: 5.8
 Tested up to: 6.9
-Stable tag: 1.1.0
+Stable tag: 1.1.3
 Requires PHP: 7.4
 License: GPLv2 or later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
@@ -205,6 +205,24 @@ Yes. SScribe is 100% free and open-source, developed by Simplix Innovations. No 
 
 == Changelog ==
 
+= 1.1.3 =
+* Fixed WordPress coding standards throughout codebase
+* Fixed precision alignment and inline comment formatting
+* Added cleanup commands to composer.json
+* Updated phpstan configuration
+* Added comprehensive code documentation
+
+= 1.1.2 =
+* Fixed precision alignment in multiple files
+* Added doc comments to SEO plugin detection methods
+* Excluded content-parser from variable naming rule (PHP DOM properties)
+
+= 1.1.1 =
+* Fixed PHPCS issues in exporter class
+* Excluded PCLZip from PHPWord autoloader
+* Escaped SVG data attributes for security
+* Removed load_plugin_textdomain call
+
 = 1.1.0 =
 * Added PSR-4 autoloading via Composer classmap
 * Added PHPUnit testing infrastructure with 16 unit tests
@@ -226,6 +244,9 @@ Yes. SScribe is 100% free and open-source, developed by Simplix Innovations. No 
 * Performance-safe batch processing
 
 == Upgrade Notice ==
+
+= 1.1.3 =
+Maintenance release: Fixed coding standards, improved documentation, and updated development tooling. No user-facing changes.
 
 = 1.1.0 =
 Developer release: Added autoloading, testing infrastructure, static analysis, and CI/CD. No user-facing changes.
