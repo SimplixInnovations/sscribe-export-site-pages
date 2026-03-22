@@ -38,7 +38,11 @@
         "test:coverage": "phpunit --coverage-html coverage/",
         "stan": "phpstan analyse --memory-limit=512M",
         "cs": "phpcs -d memory_limit=512M --standard=phpcs.xml",
-        "cs:fix": "phpcbf -d memory_limit=512M --standard=phpcs.xml"
+        "cs:fix": "phpcbf -d memory_limit=512M --standard=phpcs.xml",
+        "clean": "composer clean:cache && composer clean:coverage",
+        "clean:cache": "php -r \"array_map('unlink', glob('.cache/**/*.*')); array_map('rmdir', glob('.cache/*', GLOB_ONLYDIR)); is_dir('.cache') && rmdir('.cache'); echo 'Cache cleared.\\n';\"",
+        "clean:coverage": "php -r \"is_dir('coverage') && array_map('unlink', glob('coverage/*.*')) && rmdir('coverage'); echo 'Coverage cleared.\\n';\"",
+        "ci": "composer test && composer stan && composer cs"
     },
     "config": {
         "optimize-autoloader": true,
