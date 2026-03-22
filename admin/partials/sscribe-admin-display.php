@@ -35,7 +35,7 @@ if (!defined('ABSPATH')) {
 			<h1 style="margin:0 0 16px 0; font-size: 42px; font-weight: 700; color: #fff; letter-spacing: -0.5px;">SScribe</h1>
 			
 			<p style="margin:0 0 24px 0; font-size: 16px; color: #94A3B8; text-wrap: balance; line-height: 1.6;">
-				Export every page into beautifully formatted Word DOCX files with multilingual support, SEO meta, rich styling, and secure ZIP download.
+				<?php esc_html_e( 'Export every page into beautifully formatted Word DOCX files with multilingual support, SEO meta, rich styling, and secure ZIP download.', 'sscribe-export-site-pages' ); ?>
 			</p>
 
 			<p style="margin:0; font-size: 14px; color: #64748B;">

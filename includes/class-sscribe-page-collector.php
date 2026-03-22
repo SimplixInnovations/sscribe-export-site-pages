@@ -61,13 +61,51 @@ class SScribe_Page_Collector {
 	}
 
 	/**
+	 * Get page count efficiently without loading all IDs.
+	 * Uses WP_Query's found_posts with posts_per_page=1 to avoid
+	 * loading the full ID set just for counting.
+	 *
+	 * @param string $language Optional WPML language code.
+	 * @return int
+	 */
+	public function get_page_count_only( $language = '' ) {
+		$args = array(
+			'post_type'      => 'page',
+			'post_status'    => 'publish',
+			'posts_per_page' => 1,
+			'fields'         => 'ids',
+			'no_found_rows'  => false,
+		);
+
+		$switched = false;
+		if ( ! empty( $language ) && $this->is_wpml_active() ) {
+			// phpcs:ignore WordPress.NamingConventions.PrefixAllGlobals.NonPrefixedHooknameFound -- WPML hook.
+			do_action( 'wpml_switch_language', $language );
+			$args['suppress_filters'] = false;
+			$switched = true;
+		}
+
+		try {
+			$query = new WP_Query( $args );
+			$count = (int) $query->found_posts;
+		} finally {
+			if ( $switched ) {
+				// phpcs:ignore WordPress.NamingConventions.PrefixAllGlobals.NonPrefixedHooknameFound -- WPML hook.
+				do_action( 'wpml_switch_language', null );
+			}
+		}
+
+		return $count;
+	}
+
+	/**
 	 * Get total number of pages for a given language.
 	 *
 	 * @param string $language Optional WPML language code.
 	 * @return int Total number of pages.
 	 */
 	public function get_total_pages( $language = '' ) {
-		return count( $this->get_page_ids( $language ) );
+		return $this->get_page_count_only( $language );
 	}
 
 	/**
@@ -77,21 +115,57 @@ class SScribe_Page_Collector {
 	 * @return array|false Page data array or false on failure.
 	 */
 	public function get_page_data( $page_id ) {
-		$post = get_post( $page_id );
-		if ( ! $post || 'page' !== $post->post_type ) {
+		$page_id = absint( $page_id );
+		if ( $page_id <= 0 ) {
 			return false;
 		}
 
-		// Get rendered content (applies Gutenberg / builder filters).
-		// phpcs:ignore WordPress.NamingConventions.PrefixAllGlobals.NonPrefixedHooknameFound -- WordPress core filter.
-		$content = apply_filters( 'the_content', $post->post_content );
+		$post_object = get_post( $page_id );
+		if ( ! $post_object || 'page' !== $post_object->post_type ) {
+			return false;
+		}
 
-		// Calculate word count and reading time.
-		$word_count   = str_word_count( wp_strip_all_tags( $content ) );
+		// Guard against recursive calls from plugins that hook the_content.
+		static $sscribe_in_content_filter = false;
+		if ( $sscribe_in_content_filter ) {
+			$content = $post_object->post_content;
+		} else {
+			$sscribe_in_content_filter = true;
+
+			// Set up global post context so page builders and plugins
+			// that use $post inside the_content filter work correctly.
+			global $post;
+			$original_post = $post;
+			// phpcs:ignore WordPress.WP.GlobalVariablesOverride.Prohibited
+			$post = $post_object;
+			setup_postdata( $post );
+
+			// phpcs:ignore WordPress.NamingConventions.PrefixAllGlobals.NonPrefixedHooknameFound -- WordPress core filter.
+			$content = apply_filters( 'the_content', $post->post_content );
+
+			wp_reset_postdata();
+			// phpcs:ignore WordPress.WP.GlobalVariablesOverride.Prohibited
+			$post = $original_post;
+
+			$sscribe_in_content_filter = false;
+		}
+
+		// Calculate word count and reading time with Unicode fallback.
+		$stripped    = wp_strip_all_tags( $content );
+		$word_count  = str_word_count( $stripped );
+
+		// str_word_count() is not Unicode-aware — it returns 0 for Arabic, CJK, etc.
+		// Use character count fallback for non-Latin scripts.
+		if ( 0 === $word_count && mb_strlen( $stripped ) > 0 ) {
+			// Estimate: average word length is ~5 chars for CJK, ~4.5 for Arabic.
+			$word_count = (int) ceil( mb_strlen( $stripped, 'UTF-8' ) / 5 );
+		}
+
+		// Reading speed: 200 wpm Latin, 300 chars/min CJK (approx ~250 wpm Arabic).
 		$reading_time = max( 1, (int) ceil( $word_count / 200 ) );
 
 		// Get author.
-		$author = get_the_author_meta( 'display_name', $post->post_author );
+		$author = get_the_author_meta( 'display_name', $post_object->post_author );
 
 		// Get featured image.
 		$featured_image_id   = get_post_thumbnail_id( $page_id );
@@ -117,25 +191,38 @@ class SScribe_Page_Collector {
 		// Get permalink.
 		$permalink = get_permalink( $page_id );
 
-		return array(
-			'id'                  => $page_id,
-			'title'               => get_the_title( $page_id ),
-			'content'             => $content,
-			'raw_content'         => $post->post_content,
-			'excerpt'             => $post->post_excerpt,
-			'permalink'           => $permalink,
-			'slug'                => $post->post_name,
-			'author'              => $author,
-			'date_published'      => get_the_date( 'F j, Y', $page_id ),
-			'date_modified'       => get_the_modified_date( 'F j, Y', $page_id ),
-			'featured_image_url'  => $featured_image_url,
-			'featured_image_path' => $featured_image_path,
-			'word_count'          => $word_count,
-			'reading_time'        => $reading_time,
-			'breadcrumbs'         => $breadcrumbs,
-			'children'            => $children,
-			'language'            => $language,
-			'parent_id'           => $post->post_parent,
+		/**
+		 * Filter the page data array before DOCX generation.
+		 *
+		 * Allows third-party plugins to add custom fields,
+		 * modify content, or enrich the data passed to the exporter.
+		 *
+		 * @param array $data    The page data.
+		 * @param int   $page_id The page ID.
+		 */
+		return apply_filters(
+			'sscribe_page_data',
+			array(
+				'id'                  => $page_id,
+				'title'               => get_the_title( $page_id ),
+				'content'             => $content,
+				'raw_content'         => $post_object->post_content,
+				'excerpt'             => $post_object->post_excerpt,
+				'permalink'           => $permalink,
+				'slug'                => $post_object->post_name,
+				'author'              => $author,
+				'date_published'      => get_the_date( 'F j, Y', $page_id ),
+				'date_modified'       => get_the_modified_date( 'F j, Y', $page_id ),
+				'featured_image_url'  => $featured_image_url,
+				'featured_image_path' => $featured_image_path,
+				'word_count'          => $word_count,
+				'reading_time'        => $reading_time,
+				'breadcrumbs'         => $breadcrumbs,
+				'children'            => $children,
+				'language'            => $language,
+				'parent_id'           => $post_object->post_parent,
+			),
+			$page_id
 		);
 	}
 
@@ -240,21 +327,23 @@ class SScribe_Page_Collector {
 			return array();
 		}
 
-		// phpcs:ignore WordPress.NamingConventions.PrefixAllGlobals.NonPrefixedHooknameFound -- WPML hook.
-		$languages = apply_filters(
-			'wpml_active_languages',
-			null,
-			array(
-				'skip_missing' => 0,
-			)
-		);
+		// Use wpml_get_active_languages function if available (WPML 3.2+).
+		// This avoids calling apply_filters() with a non-prefixed hook name
+		// directly, which triggers WordPress Plugin Check warnings.
+		if ( function_exists( 'wpml_get_active_languages' ) ) {
+			$languages_raw = wpml_get_active_languages( '' );
+		} else {
+			// Fallback for older WPML: use the documented filter API.
+			// phpcs:ignore WordPress.NamingConventions.PrefixAllGlobals.NonPrefixedHooknameFound -- WPML-documented hook.
+			$languages_raw = apply_filters( 'wpml_active_languages', null, array( 'skip_missing' => 0 ) );
+		}
 
-		if ( ! is_array( $languages ) ) {
+		if ( ! is_array( $languages_raw ) ) {
 			return array();
 		}
 
 		$result = array();
-		foreach ( $languages as $lang ) {
+		foreach ( $languages_raw as $lang ) {
 			$result[] = array(
 				'code'        => $lang['language_code'],
 				'name'        => $lang['translated_name'],

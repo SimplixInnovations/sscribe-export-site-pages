@@ -4,7 +4,7 @@ Donate link: https://simplixi.com
 Tags: export, docx, word, documentation, multilingual
 Requires at least: 5.8
 Tested up to: 6.9
-Stable tag: 1.1.8
+Stable tag: 1.2.0
 Requires PHP: 7.4
 License: GPLv2 or later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
@@ -204,6 +204,32 @@ Yes. SScribe is 100% free and open-source, developed by Simplix Innovations. No 
 6. ZIP download ready with secure auto-deletion notice
 
 == Changelog ==
+
+= 1.2.0 =
+* Security: Fixed double-encoding issue in cover page title
+* Security: Fixed transient deletion order in finalize_export() for better retry handling
+* Security: Fixed Content-Disposition header injection vulnerability (RFC 5987 encoding)
+* Security: Fixed path traversal vulnerability in url_to_local_path() with realpath() validation
+* Security: Added image extension whitelist for local image processing
+* Feature: Added RTL/BiDi support for Arabic, Hebrew, and other RTL languages
+* Feature: Added `sscribe_batch_size` filter for developer customization
+* Feature: Added `sscribe_export_capability` filter for multisite workflows
+* Feature: Added `sscribe_page_data` filter for third-party data enrichment
+* Feature: Added `sscribe_before_export_page` and `sscribe_after_export_page` action hooks
+* Feature: Added `sscribe_docx_section_settings` filter for document customization
+* Fix: Prevented DOCX filename collision by prefixing with page ID
+* Fix: Added Unicode fallback for word count (Arabic, CJK support)
+* Fix: Added setup_postdata() for page builder compatibility (Elementor, Divi, etc.)
+* Fix: Added re-entry guard for the_content filter to prevent recursion
+* Fix: Removed [H1] prefix from DOCX headings for cleaner output
+* Fix: Internationalized hardcoded strings ('Path: ', 'EXTERNAL AUDIT AND DOCUMENTATION')
+* Fix: Cached wp_upload_dir() calls for better performance
+* Fix: Improved WPML language detection using wpml_get_active_languages()
+* Fix: Added efficient get_page_count_only() method to avoid N+1 queries
+* Fix: Internationalized hero description in admin interface
+* Fix: Removed dead $export_url variable
+* Improvement: Catch Throwable instead of Exception for better error handling
+* Improvement: Added WP_DEBUG guard on error_log calls
 
 = 1.1.3 =
 * Fixed WordPress coding standards throughout codebase

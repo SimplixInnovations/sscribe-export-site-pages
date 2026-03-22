@@ -50,9 +50,34 @@ class SScribe_Batch_Processor {
 	 * Constructor.
 	 */
 	public function __construct() {
+		/**
+		 * Filter the number of pages processed per AJAX batch.
+		 *
+		 * Increase for faster exports on powerful servers.
+		 * Decrease if you experience PHP timeout errors on shared hosting.
+		 *
+		 * @param int $batch_size Default batch size. Default 3.
+		 */
+		$this->batch_size = (int) apply_filters( 'sscribe_batch_size', 3 );
+		$this->batch_size = max( 1, min( 20, $this->batch_size ) );
+
 		$this->collector   = new SScribe_Page_Collector();
 		$this->exporter    = new SScribe_Exporter();
 		$this->zip_handler = new SScribe_Zip_Handler();
+	}
+
+	/**
+	 * Get the required capability for export operations.
+	 *
+	 * @return string WordPress capability slug.
+	 */
+	private function get_required_capability() {
+		/**
+		 * Filter the capability required to run SScribe exports.
+		 *
+		 * @param string $capability WordPress capability slug. Default 'manage_options'.
+		 */
+		return apply_filters( 'sscribe_export_capability', 'manage_options' );
 	}
 
 	/**
@@ -63,7 +88,7 @@ class SScribe_Batch_Processor {
 	public function ajax_start_export() {
 		check_ajax_referer( 'sscribe_export_nonce', 'nonce' );
 
-		if ( ! current_user_can( 'manage_options' ) ) {
+		if ( ! current_user_can( $this->get_required_capability() ) ) {
 			wp_send_json_error(
 				array(
 					'message' => __( 'You do not have permission to export pages.', 'sscribe-export-site-pages' ),
@@ -124,7 +149,7 @@ class SScribe_Batch_Processor {
 	public function ajax_process_batch() {
 		check_ajax_referer( 'sscribe_export_nonce', 'nonce' );
 
-		if ( ! current_user_can( 'manage_options' ) ) {
+		if ( ! current_user_can( $this->get_required_capability() ) ) {
 			wp_send_json_error(
 				array(
 					'message' => __( 'Permission denied.', 'sscribe-export-site-pages' ),
@@ -160,6 +185,14 @@ class SScribe_Batch_Processor {
 
 		// Process each page in the batch.
 		foreach ( $batch as $page_id ) {
+			/**
+			 * Fires before a page is exported to DOCX.
+			 *
+			 * @param int    $page_id  The page ID being exported.
+			 * @param string $language The language code.
+			 */
+			do_action( 'sscribe_before_export_page', $page_id, $session['language'] );
+
 			$page_data = $this->collector->get_page_data( $page_id );
 
 			if ( ! $page_data ) {
@@ -181,6 +214,14 @@ class SScribe_Batch_Processor {
 					$page_data['title']
 				);
 			}
+
+			/**
+			 * Fires after a page has been exported to DOCX.
+			 *
+			 * @param int          $page_id The page ID.
+			 * @param string|false $result  Path to DOCX or false on failure.
+			 */
+			do_action( 'sscribe_after_export_page', $page_id, $result );
 
 			$processed++;
 		}
@@ -227,16 +268,20 @@ class SScribe_Batch_Processor {
 
 		$zip_path = $this->zip_handler->create_zip( $session['temp_dir'], $zip_name );
 
-		// Clean up session transient.
-		delete_transient( 'sscribe_export_' . $session_id );
-
+		// Only clean up session AFTER we know the outcome.
 		if ( ! $zip_path ) {
+			// Keep transient alive so the user could potentially retry.
+			// But mark it as failed so the JS can surface the error.
 			wp_send_json_error(
 				array(
-					'message' => __( 'Failed to create ZIP package.', 'sscribe-export-site-pages' ),
+					'message' => __( 'Failed to create ZIP package. Please try again.', 'sscribe-export-site-pages' ),
 				)
 			);
+			return;
 		}
+
+		// ZIP created successfully — now clean up session.
+		delete_transient( 'sscribe_export_' . $session_id );
 
 		$download_url = $this->zip_handler->get_ajax_download_url( basename( $zip_path ) );
 
@@ -266,7 +311,7 @@ class SScribe_Batch_Processor {
 	public function ajax_download() {
 		check_ajax_referer( 'sscribe_download', 'nonce' );
 
-		if ( ! current_user_can( 'manage_options' ) ) {
+		if ( ! current_user_can( $this->get_required_capability() ) ) {
 			wp_die( esc_html__( 'Permission denied.', 'sscribe-export-site-pages' ) );
 		}
 
@@ -285,13 +330,17 @@ class SScribe_Batch_Processor {
 			wp_die( esc_html__( 'Invalid file request.', 'sscribe-export-site-pages' ) );
 		}
 
-		// Serve the file.
+		// Sanitize for ASCII Content-Disposition (strip non-ASCII and quotes).
+		$ascii_filename = preg_replace( '/[^a-zA-Z0-9._-]/', '_', $filename );
+
+		// Serve the file with RFC 5987-compliant encoding.
 		header( 'Content-Type: application/zip' );
-		header( 'Content-Disposition: attachment; filename="' . $filename . '"' );
+		header( 'Content-Disposition: attachment; filename="' . $ascii_filename . '"; filename*=UTF-8\'\'' . rawurlencode( $filename ) );
 		header( 'Content-Length: ' . filesize( $file_path ) );
 		header( 'Cache-Control: no-cache, no-store, must-revalidate' );
 		header( 'Pragma: no-cache' );
 		header( 'Expires: 0' );
+		header( 'X-Content-Type-Options: nosniff' );
 
 		// phpcs:ignore WordPress.WP.AlternativeFunctions.file_system_operations_readfile
 		readfile( $file_path );
