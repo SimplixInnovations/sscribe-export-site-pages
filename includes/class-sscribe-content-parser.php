@@ -20,6 +20,26 @@ class SScribe_Content_Parser {
 
 
 	/**
+	 * Cached upload directory data.
+	 *
+	 * @var array|null
+	 */
+	private $upload_dir_cache = null;
+
+	/**
+	 * Get cached upload directory info.
+	 *
+	 * @return array
+	 */
+	private function get_upload_dir() {
+		if ( null === $this->upload_dir_cache ) {
+			$this->upload_dir_cache = wp_upload_dir();
+		}
+		return $this->upload_dir_cache;
+	}
+
+
+	/**
 	 * Parse HTML content into structured elements.
 	 *
 	 * @param string $html The rendered HTML content.
@@ -608,18 +628,34 @@ class SScribe_Content_Parser {
 	 * @return string Local file path or empty string.
 	 */
 	private function url_to_local_path( $url ) {
-		$upload_dir  = wp_upload_dir();
+		$upload_dir  = $this->get_upload_dir();
 		$upload_url  = $upload_dir['baseurl'];
-		$upload_path = $upload_dir['basedir'];
+		$upload_path = realpath( $upload_dir['basedir'] );
 
-		if ( strpos( $url, $upload_url ) === 0 ) {
-			$relative = str_replace( $upload_url, '', $url );
-			$local    = $upload_path . $relative;
-			if ( file_exists( $local ) ) {
-				return $local;
-			}
+		// Only process URLs that start with our upload base URL.
+		if ( empty( $upload_path ) || strpos( $url, $upload_url ) !== 0 ) {
+			return '';
 		}
 
-		return '';
+		$relative = substr( $url, strlen( $upload_url ) );
+
+		// Strip query strings (e.g. ?v=123 on CDN URLs).
+		$relative = strtok( $relative, '?' );
+
+		$local      = $upload_path . $relative;
+		$real_local = realpath( $local );
+
+		// CRITICAL: Ensure the resolved path is still within the uploads directory.
+		if ( false === $real_local || strpos( $real_local, $upload_path ) !== 0 ) {
+			return '';
+		}
+
+		// Only allow common image file types.
+		$extension = strtolower( pathinfo( $real_local, PATHINFO_EXTENSION ) );
+		if ( ! in_array( $extension, array( 'jpg', 'jpeg', 'png', 'gif', 'webp', 'bmp' ), true ) ) {
+			return '';
+		}
+
+		return $real_local;
 	}
 }

@@ -101,6 +101,18 @@ class SScribe_Exporter {
 	}
 
 	/**
+	 * Determine if the document should use RTL text direction.
+	 *
+	 * @param array $page_data Page data.
+	 * @return bool True if RTL.
+	 */
+	private function is_rtl_document( $page_data ) {
+		$rtl_languages = array( 'ar', 'he', 'fa', 'ur', 'ps', 'ku', 'sd' );
+		$lang = ! empty( $page_data['language'] ) ? substr( $page_data['language'], 0, 2 ) : 'en';
+		return in_array( $lang, $rtl_languages, true );
+	}
+
+	/**
 	 * Generate a DOCX file for a single page.
 	 *
 	 * @param array  $page_data Page data from SScribe_Page_Collector.
@@ -120,6 +132,9 @@ class SScribe_Exporter {
 
 			$php_word = new PhpWord();
 
+			// Determine RTL setting for the document.
+			$is_rtl = $this->is_rtl_document( $page_data );
+
 			// Set document properties.
 			$this->set_document_properties( $php_word, $page_data );
 
@@ -130,11 +145,11 @@ class SScribe_Exporter {
 			$this->define_styles( $php_word );
 
 			// --- Section 1: Cover Page ---
-			$cover = $php_word->addSection( $this->get_section_settings() );
+			$cover = $php_word->addSection( $this->get_section_settings( $is_rtl ) );
 			$this->add_cover_page( $cover, $page_data );
 
 			// --- Section 2: Content ---
-			$content_section = $php_word->addSection( $this->get_section_settings() );
+			$content_section = $php_word->addSection( $this->get_section_settings( $is_rtl ) );
 
 			// Add header and footer.
 			$this->add_header_footer( $content_section, $page_data );
@@ -158,8 +173,11 @@ class SScribe_Exporter {
 			$this->add_child_pages( $content_section, $page_data );
 
 			// Save document.
-			$safe_slug   = sanitize_file_name( $page_data['slug'] );
-			$filename    = $safe_slug . '.docx';
+			$safe_slug = sanitize_file_name( $page_data['slug'] );
+
+			// Prefix with page ID to guarantee uniqueness.
+			// Format: {ID}-{slug}.docx so it's still human-readable.
+			$filename    = $page_data['id'] . '-' . $safe_slug . '.docx';
 			$output_path = trailingslashit( $output_dir ) . $filename;
 
 			$writer = IOFactory::createWriter( $php_word, 'Word2007' );
@@ -167,9 +185,11 @@ class SScribe_Exporter {
 
 			return $output_path;
 
-		} catch ( \Exception $e ) {
-			// phpcs:ignore WordPress.PHP.DevelopmentFunctions.error_log_error_log
-			error_log( 'SScribe Exporter Error: ' . $e->getMessage() );
+		} catch ( \Throwable $e ) {
+			if ( defined( 'WP_DEBUG' ) && WP_DEBUG ) {
+				// phpcs:ignore WordPress.PHP.DevelopmentFunctions.error_log_error_log
+				error_log( 'SScribe Export Error [Page ' . ( $page_data['id'] ?? 'unknown' ) . ']: ' . $e->getMessage() );
+			}
 			return false;
 		}
 	}
@@ -257,10 +277,11 @@ class SScribe_Exporter {
 	/**
 	 * Get section settings (page size and margins).
 	 *
+	 * @param bool $is_rtl Whether document is RTL.
 	 * @return array Section properties.
 	 */
-	private function get_section_settings() {
-		return array(
+	private function get_section_settings( $is_rtl = false ) {
+		$settings = array(
 			'pageSizeW'    => Converter::inchToTwip( 8.5 ),
 			'pageSizeH'    => Converter::inchToTwip( 11 ),
 			'marginTop'    => Converter::inchToTwip( 1 ),
@@ -270,6 +291,18 @@ class SScribe_Exporter {
 			'headerHeight' => Converter::inchToTwip( 0.5 ),
 			'footerHeight' => Converter::inchToTwip( 0.5 ),
 		);
+
+		if ( $is_rtl ) {
+			$settings['bidi'] = true;
+		}
+
+		/**
+		 * Filter the DOCX section settings.
+		 *
+		 * @param array $settings Section settings array.
+		 * @param bool  $is_rtl   Whether document is RTL.
+		 */
+		return apply_filters( 'sscribe_docx_section_settings', $settings, $is_rtl );
 	}
 
 	/**
@@ -292,7 +325,13 @@ class SScribe_Exporter {
 			)
 		);
 		$cell->addText(
-			$this->safe_text( get_bloginfo( 'name' ) . ' | EXTERNAL AUDIT AND DOCUMENTATION' ),
+			$this->safe_text(
+				sprintf(
+					/* translators: %s: site name */
+					__( '%s | EXTERNAL AUDIT AND DOCUMENTATION', 'sscribe-export-site-pages' ),
+					get_bloginfo( 'name' )
+				)
+			),
 			array(
 				'name'  => $this->font_name,
 				'size'  => 10,
@@ -310,7 +349,7 @@ class SScribe_Exporter {
 
 		// Huge page title.
 		$section->addText(
-			htmlspecialchars( mb_strtoupper( (string) $page_data['title'], 'UTF-8' ), ENT_XML1 | ENT_COMPAT, 'UTF-8' ),
+			$this->safe_text( mb_strtoupper( (string) $page_data['title'], 'UTF-8' ) ),
 			array(
 				'name'  => $this->font_name,
 				'size'  => 28,
@@ -700,7 +739,13 @@ class SScribe_Exporter {
 		);
 
 		$section->addText(
-			'Path: ' . $this->safe_text( $breadcrumb_text ),
+			$this->safe_text(
+				sprintf(
+					/* translators: %s: breadcrumb path */
+					__( 'Path: %s', 'sscribe-export-site-pages' ),
+					$breadcrumb_text
+				)
+			),
 			array(
 				'name'   => $this->font_name,
 				'size'   => 9,
@@ -741,9 +786,8 @@ class SScribe_Exporter {
 
 		switch ( $element['type'] ) {
 			case 'heading':
-				$level        = isset( $element['level'] ) ? min( $element['level'], 6 ) : 2;
-				$heading_text = '[H' . $level . '] ' . $this->safe_text( $element['content'] );
-				$section->addTitle( $heading_text, $level );
+				$level = isset( $element['level'] ) ? min( $element['level'], 6 ) : 2;
+				$section->addTitle( $this->safe_text( $element['content'] ), $level );
 				break;
 
 			case 'paragraph':

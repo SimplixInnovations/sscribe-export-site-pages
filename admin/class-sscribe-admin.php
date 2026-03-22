@@ -49,7 +49,7 @@ class SScribe_Admin {
 		add_management_page(
 			__( 'SScribe Export', 'sscribe-export-site-pages' ),
 			__( 'SScribe Export', 'sscribe-export-site-pages' ),
-			'manage_options',
+			apply_filters( 'sscribe_export_capability', 'manage_options' ),
 			'sscribe-export',
 			array( $this, 'render_admin_page' )
 		);
@@ -120,7 +120,7 @@ class SScribe_Admin {
 		// Enrich languages with per-language page counts.
 		if ( $wpml_active && ! empty( $languages ) ) {
 			foreach ( $languages as &$lang ) {
-				$lang['page_count'] = $this->collector->get_total_pages( $lang['code'] );
+				$lang['page_count'] = $this->collector->get_page_count_only( $lang['code'] );
 			}
 			unset( $lang );
 		}
@@ -129,7 +129,6 @@ class SScribe_Admin {
 		$recent_exports = array();
 		$upload_dir     = wp_upload_dir();
 		$export_dir     = trailingslashit( $upload_dir['basedir'] ) . 'sscribe-exports/';
-		$export_url     = trailingslashit( $upload_dir['baseurl'] ) . 'sscribe-exports/';
 
 		if ( file_exists( $export_dir ) ) {
 			$files = glob( $export_dir . 'sscribe-*.zip' );
