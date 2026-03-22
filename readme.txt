@@ -4,7 +4,7 @@ Donate link: https://simplixi.com
 Tags: export, docx, word, documentation, multilingual
 Requires at least: 5.8
 Tested up to: 6.9.4
-Stable tag: 1.3.1
+Stable tag: 1.4.0
 Requires PHP: 7.4
 License: GPLv2 or later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
@@ -204,6 +204,16 @@ Yes. SScribe is 100% free and open-source, developed by Simplix Innovations. No 
 
 == Changelog ==
 
+= 1.4.0 =
+* Critical fix: Pages now export completely (106+ pages) — fixed PHP timeout on Elementor pages by reducing default batch size to 1 and adding per-batch time limit extension
+* Critical fix: Static re-entry guard now uses try/finally to ensure it always resets even when apply_filters throws an exception
+* Critical fix: Elementor inline CSS no longer appears as text in exported documents — style/script/svg blocks are now stripped before content parsing
+* Critical fix: Cover page title no longer garbled for Arabic — removed mb_strtoupper() which is meaningless and harmful for RTL scripts
+* Critical fix: ZIP download no longer reloads wrong page — fixed window.location.href download trigger replaced with hidden iframe
+* Fix: DOCX filenames now use zero-padded sequential numbers (001-slug.docx) instead of raw WordPress post IDs
+* Fix: Complete RTL paragraph direction support for all remaining document elements (cover page, tables, buttons, images)
+* Fix: Arabic/RTL documents now correctly set default paragraph bidi direction
+
 = 1.3.1 =
 * Fix: Complete RTL bidi support for Arabic/Hebrew documents (cover page title, URL, breadcrumbs, horizontal rules, buttons, image placeholders, content tables)
 * Fix: Removed dead get_download_url() method from zip-handler (security cleanup)
@@ -294,6 +304,9 @@ Yes. SScribe is 100% free and open-source, developed by Simplix Innovations. No 
 * Performance-safe batch processing
 
 == Upgrade Notice ==
+
+= 1.4.0 =
+Critical bug fixes for large sites with Elementor: PHP timeout prevention, proper error handling, CSS stripping, RTL fixes, and sequential filenames. Essential update for all users.
 
 = 1.3.1 =
 Complete RTL/Arabic DOCX support with proper text direction in all document elements. Security hardening and code cleanup. Recommended for all users.

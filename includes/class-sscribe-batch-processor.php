@@ -23,7 +23,7 @@ class SScribe_Batch_Processor {
 	 *
 	 * @var int
 	 */
-	private $batch_size = 3;
+	private $batch_size = 1;
 
 	/**
 	 * Page collector instance.
@@ -56,9 +56,9 @@ class SScribe_Batch_Processor {
 		 * Increase for faster exports on powerful servers.
 		 * Decrease if you experience PHP timeout errors on shared hosting.
 		 *
-		 * @param int $batch_size Default batch size. Default 3.
+		 * @param int $batch_size Default batch size. Default 1 for Elementor safety.
 		 */
-		$this->batch_size = (int) apply_filters( 'sscribe_batch_size', 3 );
+		$this->batch_size = (int) apply_filters( 'sscribe_batch_size', 1 );
 		$this->batch_size = max( 1, min( 20, $this->batch_size ) );
 
 		$this->collector   = new SScribe_Page_Collector();
@@ -173,6 +173,9 @@ class SScribe_Batch_Processor {
 			return;
 		}
 
+		// phpcs:ignore WordPress.PHP.NoSilencedErrors.Discouraged -- safe use, max_execution_time is advisory
+		@set_time_limit( 120 ); // Extend execution time for Elementor/page-builder rendering.
+
 		$session_id = isset( $_POST['session_id'] ) ? sanitize_text_field( wp_unslash( $_POST['session_id'] ) ) : '';
 		$session    = get_transient( 'sscribe_export_' . $session_id );
 
@@ -222,7 +225,8 @@ class SScribe_Batch_Processor {
 				continue;
 			}
 
-			$result = $this->exporter->generate_docx( $page_data, $temp_dir );
+			$page_index = $processed + 1;
+			$result     = $this->exporter->generate_docx( $page_data, $temp_dir, $page_index, $total );
 
 			if ( ! $result ) {
 				$errors[] = sprintf(

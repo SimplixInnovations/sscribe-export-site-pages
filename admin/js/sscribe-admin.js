@@ -131,15 +131,17 @@
 					$( '#sscribe-download-area' ).css( 'display', 'flex' ).hide().fadeIn( 400 );
 					$( '#sscribe-download-btn' ).attr( 'href', data.download_url );
 
-					// Automatically trigger the download.
-					window.location.href = data.download_url;
+					var $iframe = $( '<iframe>' ).css( { display: 'none', width: 0, height: 0 } );
+					$( 'body' ).append( $iframe );
+					$iframe.attr( 'src', data.download_url );
 
-					// Refresh the page after download starts so Recent Exports history populates.
+					setTimeout( function () { $iframe.remove(); }, 30000 );
+
 					setTimeout(
 						function () {
 							window.location.reload();
 						},
-						2500
+						3000
 					);
 				}
 			);

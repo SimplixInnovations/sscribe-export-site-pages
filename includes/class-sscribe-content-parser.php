@@ -88,14 +88,18 @@ class SScribe_Content_Parser {
 	 * @return string Normalized HTML.
 	 */
 	private function normalize_html( $html ) {
-		// Convert common entities.
+		$html = preg_replace( '/<style\b[^>]*>.*?<\/style>/is', '', $html );
+		$html = preg_replace( '/<script\b[^>]*>.*?<\/script>/is', '', $html );
+		$html = preg_replace( '/<noscript\b[^>]*>.*?<\/noscript>/is', '', $html );
+		$html = preg_replace( '/<svg\b[^>]*>.*?<\/svg>/is', '', $html );
+
+		$html = preg_replace( '/<!--\s*\.elementor[^>]*-->/i', '', $html );
+
 		$html = wp_kses_post( $html );
 
-		// Remove excessive whitespace between tags.
 		$html = preg_replace( '/>\s+</', '><', $html );
 
-		// Ensure proper block-level element separation.
-		$html = preg_replace( '/<\/(p|div|h[1-6]|ul|ol|li|table|tr|blockquote|pre)>/', "</\\1>\n", $html );
+		$html = preg_replace( '/<\/(p|div|h[1-6]|ul|ol|li|table|tr|blockquote|pre)>/', "</$1>\n", $html );
 
 		return trim( $html );
 	}
@@ -274,6 +278,15 @@ class SScribe_Content_Parser {
 					'type'    => 'horizontal_rule',
 					'content' => '',
 				);
+
+			case 'style':
+			case 'script':
+			case 'noscript':
+			case 'svg':
+			case 'meta':
+			case 'link':
+			case 'head':
+				return null;
 
 			default:
 				// Try to extract text from unknown elements.

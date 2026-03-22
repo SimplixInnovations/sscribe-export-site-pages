@@ -136,11 +136,13 @@ class SScribe_Exporter {
 	/**
 	 * Generate a DOCX file for a single page.
 	 *
-	 * @param array  $page_data Page data from SScribe_Page_Collector.
+	 * @param array  $page_data  Page data from SScribe_Page_Collector.
 	 * @param string $output_dir Directory to save the DOCX file.
+	 * @param int    $index      Sequential position in the export (1-based). Used for filename.
+	 * @param int    $total      Total number of pages being exported. Used for zero-padding.
 	 * @return string|false Path to generated DOCX or false on failure.
 	 */
-	public function generate_docx( $page_data, $output_dir ) {
+	public function generate_docx( $page_data, $output_dir, $index = 0, $total = 0 ) {
 		if ( empty( $page_data ) || ! is_dir( $output_dir ) ) {
 			return false;
 		}
@@ -196,9 +198,14 @@ class SScribe_Exporter {
 			// Save document.
 			$safe_slug = sanitize_file_name( $page_data['slug'] );
 
-			// Prefix with page ID to guarantee uniqueness.
-			// Format: {ID}-{slug}.docx so it's still human-readable.
-			$filename    = $page_data['id'] . '-' . $safe_slug . '.docx';
+			if ( $index > 0 && $total > 0 ) {
+				$pad_length = strlen( (string) $total );
+				$seq        = str_pad( (string) $index, $pad_length, '0', STR_PAD_LEFT );
+				$filename   = $seq . '-' . $safe_slug . '.docx';
+			} else {
+				$filename = $page_data['id'] . '-' . $safe_slug . '.docx';
+			}
+
 			$output_path = trailingslashit( $output_dir ) . $filename;
 
 			$writer = IOFactory::createWriter( $php_word, 'Word2007' );
@@ -243,6 +250,7 @@ class SScribe_Exporter {
 				'spaceAfter'  => Converter::pointToTwip( 6 ),
 				'spaceBefore' => Converter::pointToTwip( 2 ),
 				'lineHeight'  => 1.15,
+				'bidi'        => $this->is_rtl,
 			)
 		);
 	}
@@ -360,18 +368,23 @@ class SScribe_Exporter {
 				'color' => $this->colors['white'],
 				'bold'  => true,
 			),
-			array(
-				'alignment'   => Jc::CENTER,
-				'spaceBefore' => Converter::pointToTwip( 12 ),
-				'spaceAfter'  => Converter::pointToTwip( 12 ),
+			$this->get_para_style(
+				array(
+					'alignment'   => Jc::CENTER,
+					'spaceBefore' => Converter::pointToTwip( 12 ),
+					'spaceAfter'  => Converter::pointToTwip( 12 ),
+				)
 			)
 		);
 
 		$section->addTextBreak( 4 );
 
-		// Huge page title.
+		$cover_title = (string) $page_data['title'];
+		if ( ! $this->is_rtl ) {
+			$cover_title = mb_strtoupper( $cover_title, 'UTF-8' );
+		}
 		$section->addText(
-			$this->safe_text( mb_strtoupper( (string) $page_data['title'], 'UTF-8' ) ),
+			$this->safe_text( $cover_title ),
 			array(
 				'name'  => $this->font_name,
 				'size'  => 28,
@@ -477,7 +490,7 @@ class SScribe_Exporter {
 				'bold'  => true,
 				'color' => $this->colors['heading'],
 			),
-			array( 'spaceAfter' => Converter::pointToTwip( 12 ) )
+			$this->get_para_style( array( 'spaceAfter' => Converter::pointToTwip( 12 ) ) )
 		);
 
 		$section->addTOC(
@@ -1184,7 +1197,8 @@ class SScribe_Exporter {
 				'size'  => 7,
 				'bold'  => true,
 				'color' => $this->colors['heading'],
-			)
+			),
+			$this->get_para_style()
 		);
 		$cell->addText(
 			$this->safe_text( $src ),
@@ -1192,7 +1206,8 @@ class SScribe_Exporter {
 				'name'  => 'Courier New',
 				'size'  => 8,
 				'color' => $this->colors['link'],
-			)
+			),
+			$this->get_para_style()
 		);
 
 		$section->addTextBreak( 1 );
