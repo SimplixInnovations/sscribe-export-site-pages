@@ -6,8 +6,8 @@
  */
 
 // Prevent direct access.
-if (!defined('ABSPATH')) {
-    exit;
+if ( ! defined( 'ABSPATH' ) ) {
+	exit;
 }
 
 /**
@@ -15,191 +15,189 @@ if (!defined('ABSPATH')) {
  *
  * Handles admin menu registration, page rendering, and asset enqueuing.
  */
-class SScribe_Admin
-{
+class SScribe_Admin {
 
-    /**
-     * Page collector instance.
-     *
-     * @var SScribe_Page_Collector
-     */
-    private $collector;
 
-    /**
-     * SEO reader instance.
-     *
-     * @var SScribe_SEO_Reader
-     */
-    private $seo_reader;
+	/**
+	 * Page collector instance.
+	 *
+	 * @var SScribe_Page_Collector
+	 */
+	private $collector;
 
-    /**
-     * Constructor.
-     */
-    public function __construct()
-    {
-        $this->collector = new SScribe_Page_Collector();
-        $this->seo_reader = new SScribe_SEO_Reader();
-    }
+	/**
+	 * SEO reader instance.
+	 *
+	 * @var SScribe_SEO_Reader
+	 */
+	private $seo_reader;
 
-    /**
-     * Register admin menu.
-     *
-     * @return void
-     */
-    public function add_admin_menu()
-    {
-        add_management_page(
-            __('SScribe Export', 'sscribe-export-site-pages'),
-            __('SScribe Export', 'sscribe-export-site-pages'),
-            'manage_options',
-            'sscribe-export',
-            array($this, 'render_admin_page')
-        );
-    }
+	/**
+	 * Constructor.
+	 */
+	public function __construct() {
+		 $this->collector = new SScribe_Page_Collector();
+		$this->seo_reader = new SScribe_SEO_Reader();
+	}
 
-    /**
-     * Enqueue admin scripts and styles.
-     *
-     * @param string $hook_suffix The current admin page hook suffix.
-     * @return void
-     */
-    public function enqueue_admin_assets($hook_suffix)
-    {
-        // Only load on our plugin page.
-        if ('tools_page_sscribe-export' !== $hook_suffix) {
-            return;
-        }
+	/**
+	 * Register admin menu.
+	 *
+	 * @return void
+	 */
+	public function add_admin_menu() {
+		add_management_page(
+			__( 'SScribe Export', 'sscribe-export-site-pages' ),
+			__( 'SScribe Export', 'sscribe-export-site-pages' ),
+			'manage_options',
+			'sscribe-export',
+			array( $this, 'render_admin_page' )
+		);
+	}
 
-        // Manrope font from Google Fonts.
-        wp_enqueue_style(
-            'sscribe-manrope-font',
-            'https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700&display=swap',
-            array(),
-            SSCRIBE_VERSION
-        );
+	/**
+	 * Enqueue admin scripts and styles.
+	 *
+	 * @param string $hook_suffix The current admin page hook suffix.
+	 * @return void
+	 */
+	public function enqueue_admin_assets( $hook_suffix ) {
+		// Only load on our plugin page.
+		if ( 'tools_page_sscribe-export' !== $hook_suffix ) {
+			return;
+		}
 
-        // Admin CSS.
-        wp_enqueue_style(
-            'sscribe-admin',
-            SSCRIBE_PLUGIN_URL . 'admin/css/sscribe-admin.css',
-            array('sscribe-manrope-font'),
-            SSCRIBE_VERSION . '.' . time()
-        );
+		// Manrope font from Google Fonts.
+		wp_enqueue_style(
+			'sscribe-manrope-font',
+			'https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700&display=swap',
+			array(),
+			SSCRIBE_VERSION
+		);
 
-        // Admin JS.
-        wp_enqueue_script(
-            'sscribe-admin',
-            SSCRIBE_PLUGIN_URL . 'admin/js/sscribe-admin.js',
-            array('jquery'),
-            SSCRIBE_VERSION . '.' . time(),
-            true
-        );
+		// Admin CSS.
+		wp_enqueue_style(
+			'sscribe-admin',
+			SSCRIBE_PLUGIN_URL . 'admin/css/sscribe-admin.css',
+			array( 'sscribe-manrope-font' ),
+			SSCRIBE_VERSION . '.' . time()
+		);
 
-        // Localize script.
-        wp_localize_script(
-            'sscribe-admin',
-            'sscribe_data',
-            array(
-                'ajaxurl' => admin_url('admin-ajax.php'),
-                'nonce' => wp_create_nonce('sscribe_export_nonce'),
-                'strings' => array(
-                    'starting' => __('Starting export...', 'sscribe-export-site-pages'),
-                    'processing' => __('Processing...', 'sscribe-export-site-pages'),
-                    'complete' => __('Export complete!', 'sscribe-export-site-pages'),
-                    'error' => __('An error occurred. Please try again.', 'sscribe-export-site-pages'),
-                    'download' => __('Download ZIP', 'sscribe-export-site-pages'),
-                    'generating' => __('Generating documents...', 'sscribe-export-site-pages'),
-                    'confirm_export' => __('Start exporting pages?', 'sscribe-export-site-pages'),
-                    'auto_delete' => __('This file will be automatically deleted in 1 hour for security.', 'sscribe-export-site-pages'),
-                ),
-            )
-        );
-    }
+		// Admin JS.
+		wp_enqueue_script(
+			'sscribe-admin',
+			SSCRIBE_PLUGIN_URL . 'admin/js/sscribe-admin.js',
+			array( 'jquery' ),
+			SSCRIBE_VERSION . '.' . time(),
+			true
+		);
 
-    /**
-     * Render the admin page.
-     *
-     * @return void
-     */
-    public function render_admin_page()
-    {
-        // Gather data for the template.
-        $wpml_active = $this->collector->is_wpml_active();
-        $languages = $this->collector->get_wpml_languages();
-        $total_pages = $this->collector->get_total_pages();
-        $seo_plugins = $this->seo_reader->get_active_seo_plugins();
+		// Localize script.
+		wp_localize_script(
+			'sscribe-admin',
+			'sscribe_data',
+			array(
+				'ajaxurl' => admin_url( 'admin-ajax.php' ),
+				'nonce'   => wp_create_nonce( 'sscribe_export_nonce' ),
+				'strings' => array(
+					'starting'       => __( 'Starting export...', 'sscribe-export-site-pages' ),
+					'processing'     => __( 'Processing...', 'sscribe-export-site-pages' ),
+					'complete'       => __( 'Export complete!', 'sscribe-export-site-pages' ),
+					'error'          => __( 'An error occurred. Please try again.', 'sscribe-export-site-pages' ),
+					'download'       => __( 'Download ZIP', 'sscribe-export-site-pages' ),
+					'generating'     => __( 'Generating documents...', 'sscribe-export-site-pages' ),
+					'confirm_export' => __( 'Start exporting pages?', 'sscribe-export-site-pages' ),
+					'auto_delete'    => __( 'This file will be automatically deleted in 1 hour for security.', 'sscribe-export-site-pages' ),
+				),
+			)
+		);
+	}
 
-        // Enrich languages with per-language page counts.
-        if ($wpml_active && !empty($languages)) {
-            foreach ($languages as &$lang) {
-                $lang['page_count'] = $this->collector->get_total_pages($lang['code']);
-            }
-            unset($lang);
-        }
+	/**
+	 * Render the admin page.
+	 *
+	 * @return void
+	 */
+	public function render_admin_page() {
+		// Gather data for the template.
+		$wpml_active = $this->collector->is_wpml_active();
+		$languages   = $this->collector->get_wpml_languages();
+		$total_pages = $this->collector->get_total_pages();
+		$seo_plugins = $this->seo_reader->get_active_seo_plugins();
 
-        // Gather recent exports.
-        $recent_exports = array();
-        $upload_dir = wp_upload_dir();
-        $export_dir = trailingslashit($upload_dir['basedir']) . 'sscribe-exports/';
-        $export_url = trailingslashit($upload_dir['baseurl']) . 'sscribe-exports/';
+		// Enrich languages with per-language page counts.
+		if ( $wpml_active && ! empty( $languages ) ) {
+			foreach ( $languages as &$lang ) {
+				$lang['page_count'] = $this->collector->get_total_pages( $lang['code'] );
+			}
+			unset( $lang );
+		}
 
-        if (file_exists($export_dir)) {
-            $files = glob($export_dir . 'sscribe-*.zip');
-            if ($files) {
-                // Sort by modified time descending (newest first).
-                usort($files, function ($a, $b) {
-                    return filemtime($b) - filemtime($a);
-                });
+		// Gather recent exports.
+		$recent_exports = array();
+		$upload_dir     = wp_upload_dir();
+		$export_dir     = trailingslashit( $upload_dir['basedir'] ) . 'sscribe-exports/';
+		$export_url     = trailingslashit( $upload_dir['baseurl'] ) . 'sscribe-exports/';
 
-                foreach ($files as $file) {
-                    $filename = basename($file);
+		if ( file_exists( $export_dir ) ) {
+			$files = glob( $export_dir . 'sscribe-*.zip' );
+			if ( $files ) {
+				// Sort by modified time descending (newest first).
+				usort(
+					$files,
+					function ( $a, $b ) {
+						return filemtime( $b ) - filemtime( $a );
+					}
+				);
 
-                    // Parse language code from new standardized filename format
-                    $lang_code = 'all';
-                    if (preg_match('/^sscribe-export-([a-z0-9_-]+)-/i', $filename, $matches)) {
-                        $lang_code = $matches[1];
-                    }
+				foreach ( $files as $file ) {
+					$filename = basename( $file );
 
-                    // Attempt to find matching WPML flag and name
-                    $flag_url = '';
-                    $lang_name = 'All Languages';
-                    if ($wpml_active && !empty($languages)) {
-                        foreach ($languages as $l) {
-                            if ($l['code'] === $lang_code) {
-                                $flag_url = isset($l['flag_url']) ? $l['flag_url'] : '';
-                                $lang_name = isset($l['name']) ? $l['name'] : strtoupper($lang_code);
-                                break;
-                            }
-                        }
-                    }
+					// Parse language code from new standardized filename format
+					$lang_code = 'all';
+					if ( preg_match( '/^sscribe-export-([a-z0-9_-]+)-/i', $filename, $matches ) ) {
+						$lang_code = $matches[1];
+					}
 
-                    $recent_exports[] = array(
-                        'filename' => $filename,
-                        'url' => $export_url . $filename,
-                        'time' => filemtime($file),
-                        'size' => filesize($file),
-                        'lang_code' => $lang_code,
-                        'flag_url' => $flag_url,
-                        'lang_name' => $lang_name
-                    );
-                }
-            }
-        }
+					// Attempt to find matching WPML flag and name
+					$flag_url  = '';
+					$lang_name = 'All Languages';
+					if ( $wpml_active && ! empty( $languages ) ) {
+						foreach ( $languages as $l ) {
+							if ( $l['code'] === $lang_code ) {
+								$flag_url  = isset( $l['flag_url'] ) ? $l['flag_url'] : '';
+								$lang_name = isset( $l['name'] ) ? $l['name'] : strtoupper( $lang_code );
+								break;
+							}
+						}
+					}
 
-        include SSCRIBE_PLUGIN_DIR . 'admin/partials/sscribe-admin-display.php';
-    }
+					$recent_exports[] = array(
+						'filename'  => $filename,
+						'url'       => $export_url . $filename,
+						'time'      => filemtime( $file ),
+						'size'      => filesize( $file ),
+						'lang_code' => $lang_code,
+						'flag_url'  => $flag_url,
+						'lang_name' => $lang_name,
+					);
+				}
+			}
+		}
 
-    /**
-     * Add plugin action links.
-     *
-     * @param array $links Existing plugin links.
-     * @return array Updated plugin links.
-     */
-    public function add_plugin_action_links($links)
-    {
-        $plugin_links = array(
-            '<a href="' . admin_url('tools.php?page=sscribe-export') . '">' . __('Export Pages', 'sscribe-export-site-pages') . '</a>',
-        );
-        return array_merge($plugin_links, $links);
-    }
+		include SSCRIBE_PLUGIN_DIR . 'admin/partials/sscribe-admin-display.php';
+	}
+
+	/**
+	 * Add plugin action links.
+	 *
+	 * @param array $links Existing plugin links.
+	 * @return array Updated plugin links.
+	 */
+	public function add_plugin_action_links( $links ) {
+		 $plugin_links = array(
+			 '<a href="' . admin_url( 'tools.php?page=sscribe-export' ) . '">' . __( 'Export Pages', 'sscribe-export-site-pages' ) . '</a>',
+		 );
+		 return array_merge( $plugin_links, $links );
+	}
 }
