@@ -103,18 +103,6 @@ class SScribe_Zip_Handler {
 	}
 
 	/**
-	 * Get the download URL for a ZIP file.
-	 *
-	 * @param string $zip_path Full path to ZIP file.
-	 * @return string Download URL.
-	 */
-	public function get_download_url( $zip_path ) {
-		 $upload_dir = wp_upload_dir();
-		$relative    = str_replace( $upload_dir['basedir'], '', $zip_path );
-		return $upload_dir['baseurl'] . $relative;
-	}
-
-	/**
 	 * Get the admin-ajax download URL.
 	 *
 	 * @param string $zip_filename The ZIP filename.

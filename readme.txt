@@ -4,7 +4,7 @@ Donate link: https://simplixi.com
 Tags: export, docx, word, documentation, multilingual
 Requires at least: 5.8
 Tested up to: 6.9.4
-Stable tag: 1.3.0
+Stable tag: 1.3.1
 Requires PHP: 7.4
 License: GPLv2 or later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
@@ -204,17 +204,17 @@ Yes. SScribe is 100% free and open-source, developed by Simplix Innovations. No 
 
 == Changelog ==
 
+= 1.3.1 =
+* Fix: Complete RTL bidi support for Arabic/Hebrew documents (cover page title, URL, breadcrumbs, horizontal rules, buttons, image placeholders, content tables)
+* Fix: Removed dead get_download_url() method from zip-handler (security cleanup)
+* Improvement: Consolidated changelog for clarity
+
 = 1.3.0 =
 * Updated: Tested up to WordPress 6.9.4
-* Improvement: Removed unnecessary screenshot-6 (5 screenshots sufficient)
-* Improvement: Final code review and cleanup for WordPress.org submission
-
-= 1.2.2 =
 * Fix: Replaced esc_html__() with __() in PHPWord calls to prevent double-encoding in DOCX output
-* Fix: Added RTL bidi support to info table and SEO table cell text
-* Fix: Added RTL bidi support to heading styles for proper Arabic/Hebrew rendering
-* Fix: Added RTL support to cover page metadata cells
+* Fix: Added RTL bidi support to info tables, SEO tables, cover page metadata, and heading styles
 * Fix: Made test bootstrap version dynamic (reads from main plugin file)
+* Improvement: Removed unnecessary screenshot-6 (5 screenshots sufficient)
 * Improvement: Removed internal audit documents from public repo
 
 = 1.2.1 =
@@ -294,6 +294,9 @@ Yes. SScribe is 100% free and open-source, developed by Simplix Innovations. No 
 * Performance-safe batch processing
 
 == Upgrade Notice ==
+
+= 1.3.1 =
+Complete RTL/Arabic DOCX support with proper text direction in all document elements. Security hardening and code cleanup. Recommended for all users.
 
 = 1.1.3 =
 Maintenance release: Fixed coding standards, improved documentation, and updated development tooling. No user-facing changes.
