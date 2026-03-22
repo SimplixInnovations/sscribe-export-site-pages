@@ -36,7 +36,7 @@ class SScribe_Admin {
 	 * Constructor.
 	 */
 	public function __construct() {
-		 $this->collector = new SScribe_Page_Collector();
+		$this->collector  = new SScribe_Page_Collector();
 		$this->seo_reader = new SScribe_SEO_Reader();
 	}
 
@@ -153,13 +153,13 @@ class SScribe_Admin {
 				foreach ( $files as $file ) {
 					$filename = basename( $file );
 
-					// Parse language code from new standardized filename format
+					// Parse language code from new standardized filename format.
 					$lang_code = 'all';
 					if ( preg_match( '/^sscribe-export-([a-z0-9_-]+)-/i', $filename, $matches ) ) {
 						$lang_code = $matches[1];
 					}
 
-					// Attempt to find matching WPML flag and name
+					// Attempt to find matching WPML flag and name.
 					$flag_url  = '';
 					$lang_name = 'All Languages';
 					if ( $wpml_active && ! empty( $languages ) ) {
@@ -195,9 +195,9 @@ class SScribe_Admin {
 	 * @return array Updated plugin links.
 	 */
 	public function add_plugin_action_links( $links ) {
-		 $plugin_links = array(
-			 '<a href="' . admin_url( 'tools.php?page=sscribe-export' ) . '">' . __( 'Export Pages', 'sscribe-export-site-pages' ) . '</a>',
-		 );
-		 return array_merge( $plugin_links, $links );
+		$plugin_links = array(
+			'<a href="' . admin_url( 'tools.php?page=sscribe-export' ) . '">' . __( 'Export Pages', 'sscribe-export-site-pages' ) . '</a>',
+		);
+		return array_merge( $plugin_links, $links );
 	}
 }
