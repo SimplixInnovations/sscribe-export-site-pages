@@ -37,7 +37,7 @@ class SScribe {
 	 */
 	public function __construct() {
 		$this->version = defined( 'SSCRIBE_VERSION' ) ? SSCRIBE_VERSION : '1.0.0';
-		$this->loader   = new SScribe_Loader();
+		$this->loader = new SScribe_Loader();
 
 		$this->define_admin_hooks();
 		$this->define_ajax_hooks();
@@ -86,6 +86,6 @@ class SScribe {
 	 * @return void
 	 */
 	public function run() {
-		 $this->loader->run();
+		$this->loader->run();
 	}
 }

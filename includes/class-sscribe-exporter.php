@@ -32,6 +32,13 @@ class SScribe_Exporter {
 	private $parser;
 
 	/**
+	 * Whether the current document is RTL.
+	 *
+	 * @var bool
+	 */
+	private $is_rtl = false;
+
+	/**
 	 * SEO reader instance.
 	 *
 	 * @var SScribe_SEO_Reader
@@ -113,6 +120,20 @@ class SScribe_Exporter {
 	}
 
 	/**
+	 * Get paragraph style with optional RTL bidirectional flag.
+	 *
+	 * @param array $base_style Base paragraph style array.
+	 * @return array Paragraph style with bidi if needed.
+	 */
+	private function get_para_style( $base_style = array() ) {
+		if ( $this->is_rtl ) {
+			$base_style['bidi']      = true;
+			$base_style['alignment'] = Jc::END;
+		}
+		return $base_style;
+	}
+
+	/**
 	 * Generate a DOCX file for a single page.
 	 *
 	 * @param array  $page_data Page data from SScribe_Page_Collector.
@@ -133,7 +154,7 @@ class SScribe_Exporter {
 			$php_word = new PhpWord();
 
 			// Determine RTL setting for the document.
-			$is_rtl = $this->is_rtl_document( $page_data );
+			$this->is_rtl = $this->is_rtl_document( $page_data );
 
 			// Set document properties.
 			$this->set_document_properties( $php_word, $page_data );
@@ -145,11 +166,11 @@ class SScribe_Exporter {
 			$this->define_styles( $php_word );
 
 			// --- Section 1: Cover Page ---
-			$cover = $php_word->addSection( $this->get_section_settings( $is_rtl ) );
+			$cover = $php_word->addSection( $this->get_section_settings( $this->is_rtl ) );
 			$this->add_cover_page( $cover, $page_data );
 
 			// --- Section 2: Content ---
-			$content_section = $php_word->addSection( $this->get_section_settings( $is_rtl ) );
+			$content_section = $php_word->addSection( $this->get_section_settings( $this->is_rtl ) );
 
 			// Add header and footer.
 			$this->add_header_footer( $content_section, $page_data );
@@ -751,7 +772,8 @@ class SScribe_Exporter {
 				'size'   => 9,
 				'italic' => true,
 				'color'  => $this->colors['body'],
-			)
+			),
+			$this->get_para_style()
 		);
 
 		$section->addTextBreak( 1 );
@@ -799,7 +821,7 @@ class SScribe_Exporter {
 				break;
 
 			case 'blockquote':
-				$text_run = $section->addTextRun( 'Blockquote' );
+				$text_run = $section->addTextRun( $this->get_para_style( array( 'styleName' => 'Blockquote' ) ) );
 				$this->render_runs( $text_run, $element['runs'], true );
 				break;
 
@@ -811,7 +833,7 @@ class SScribe_Exporter {
 						'size'  => 9,
 						'color' => $this->colors['heading'],
 					),
-					'CodeBlock'
+					$this->get_para_style( array( 'styleName' => 'CodeBlock' ) )
 				);
 				break;
 
@@ -855,7 +877,7 @@ class SScribe_Exporter {
 			return;
 		}
 
-		$text_run = $section->addTextRun();
+		$text_run = $section->addTextRun( $this->get_para_style() );
 		$this->render_runs( $text_run, $element['runs'] );
 	}
 
@@ -952,7 +974,7 @@ class SScribe_Exporter {
 					'size'  => $this->font_size,
 					'color' => $this->colors['body'],
 				),
-				array( 'listType' => $list_type )
+				array_merge( array( 'listType' => $list_type ), $this->get_para_style() )
 			);
 
 			// Render nested children.
@@ -967,7 +989,7 @@ class SScribe_Exporter {
 							'size'  => $this->font_size,
 							'color' => $this->colors['body'],
 						),
-						array( 'listType' => $list_type )
+						array_merge( array( 'listType' => $list_type ), $this->get_para_style() )
 					);
 				}
 			}
@@ -985,10 +1007,21 @@ class SScribe_Exporter {
 			return;
 		}
 
+		// Calculate column count from first row.
+		$col_count = ! empty( $element['rows'][0]['cells'] )
+			? count( $element['rows'][0]['cells'] )
+			: 1;
+
+		// Total content width: 6.5 inches (US Letter - 1" margins each side).
+		$total_width_twip = Converter::inchToTwip( 6.5 );
+		$cell_width       = (int) ( $total_width_twip / $col_count );
+
 		$table_style = array(
 			'borderSize'  => 1,
 			'borderColor' => $this->colors['border'],
 			'cellMargin'  => Converter::cmToTwip( 0.1 ),
+			'unit'        => \PhpOffice\PhpWord\SimpleType\TblWidth::TWIP,
+			'width'       => $total_width_twip,
 		);
 
 		$table = $section->addTable( $table_style );
@@ -1009,7 +1042,7 @@ class SScribe_Exporter {
 					$font_style['color']   = $this->colors['heading'];
 				}
 
-				$table->addCell( null, $cell_style )->addText(
+				$table->addCell( $cell_width, $cell_style )->addText(
 					$this->safe_text( $cell['content'] ),
 					$font_style
 				);
@@ -1173,7 +1206,7 @@ class SScribe_Exporter {
 		$section->addTitle( esc_html__( 'Child Pages', 'sscribe-export-site-pages' ), 2 );
 
 		foreach ( $page_data['children'] as $child ) {
-			$text_run = $section->addTextRun();
+			$text_run = $section->addTextRun( $this->get_para_style() );
 			$text_run->addText(
 				'> ',
 				array(
