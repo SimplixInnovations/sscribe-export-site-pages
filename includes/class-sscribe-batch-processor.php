@@ -47,6 +47,13 @@ class SScribe_Batch_Processor {
 	private $zip_handler;
 
 	/**
+	 * Session handler instance.
+	 *
+	 * @var SScribe_Session
+	 */
+	private $session;
+
+	/**
 	 * Constructor.
 	 */
 	public function __construct() {
@@ -61,6 +68,7 @@ class SScribe_Batch_Processor {
 		$this->collector   = new SScribe_Page_Collector();
 		$this->exporter    = new SScribe_Exporter();
 		$this->zip_handler = new SScribe_Zip_Handler();
+		$this->session     = new SScribe_Session();
 	}
 
 	/**
@@ -98,6 +106,7 @@ class SScribe_Batch_Processor {
 		}
 
 		$language = isset( $_POST['language'] ) ? sanitize_text_field( wp_unslash( $_POST['language'] ) ) : '';
+		$post_status = isset( $_POST['post_status'] ) ? sanitize_text_field( wp_unslash( $_POST['post_status'] ) ) : 'publish';
 
 		// Validate language code against active WPML languages when WPML is present.
 		if ( ! empty( $language ) && $this->collector->is_wpml_active() ) {
@@ -112,13 +121,13 @@ class SScribe_Batch_Processor {
 			}
 		}
 
-		$page_ids = $this->collector->get_page_ids( $language );
+		$page_ids = $this->collector->get_page_ids( $language, $post_status );
 		$total    = count( $page_ids );
 
 		if ( 0 === $total ) {
 			wp_send_json_error(
 				array(
-					'message' => __( 'No published pages found for this language.', 'sscribe-export-site-pages' ),
+					'message' => __( 'No pages found matching the selected criteria.', 'sscribe-export-site-pages' ),
 				)
 			);
 			return;
@@ -127,20 +136,27 @@ class SScribe_Batch_Processor {
 		// Create temp directory for this export session.
 		$temp_dir = $this->zip_handler->create_temp_dir();
 
-		// Store session data in transient (4 hours for large sites).
-		$session_id = wp_generate_password( 16, false );
-		set_transient(
-			'sscribe_export_' . $session_id,
+		// Store session data in file-based storage (immune to caching plugins).
+		$session_id = $this->session->create(
 			array(
-				'page_ids'  => $page_ids,
-				'temp_dir'  => $temp_dir,
-				'total'     => $total,
-				'processed' => 0,
-				'language'  => $language,
-				'errors'    => array(),
-			),
-			4 * HOUR_IN_SECONDS
+				'page_ids'   => $page_ids,
+				'temp_dir'   => $temp_dir,
+				'total'      => $total,
+				'processed'  => 0,
+				'language'   => $language,
+				'post_status'=> $post_status,
+				'errors'     => array(),
+			)
 		);
+
+		if ( empty( $session_id ) ) {
+			wp_send_json_error(
+				array(
+					'message' => __( 'Failed to create export session. Please try again.', 'sscribe-export-site-pages' ),
+				)
+			);
+			return;
+		}
 
 		wp_send_json_success(
 			array(
@@ -190,14 +206,25 @@ class SScribe_Batch_Processor {
 		ob_start();
 
 		$session_id = isset( $_POST['session_id'] ) ? sanitize_text_field( wp_unslash( $_POST['session_id'] ) ) : '';
-		$session    = get_transient( 'sscribe_export_' . $session_id );
+		$session    = $this->session->get( $session_id );
 
 		if ( ! $session ) {
 			// Restore to exactly the level before our ob_start(), then respond.
 			$this->restore_ob_level( $ob_level_before );
 			wp_send_json_error(
 				array(
-					'message' => __( 'Export session expired. Please start again.', 'sscribe-export-site-pages' ),
+					'message' => __( 'Export session expired or not found. Please start again.', 'sscribe-export-site-pages' ),
+				)
+			);
+			return;
+		}
+
+		// Validate session integrity.
+		if ( ! $this->session->validate( $session_id ) ) {
+			$this->restore_ob_level( $ob_level_before );
+			wp_send_json_error(
+				array(
+					'message' => __( 'Export session data corrupted. Please start again.', 'sscribe-export-site-pages' ),
 				)
 			);
 			return;
@@ -263,10 +290,14 @@ class SScribe_Batch_Processor {
 			$processed++;
 		}
 
-		// Update session and refresh expiry.
-		$session['processed'] = $processed;
-		$session['errors']    = $errors;
-		set_transient( 'sscribe_export_' . $session_id, $session, 4 * HOUR_IN_SECONDS );
+		// Update session.
+		$this->session->update(
+			$session_id,
+			array(
+				'processed' => $processed,
+				'errors'    => $errors,
+			)
+		);
 
 		$percentage = ( $total > 0 ) ? round( ( $processed / $total ) * 100 ) : 100;
 		$is_done    = ( $processed >= $total );
@@ -335,7 +366,9 @@ class SScribe_Batch_Processor {
 		}
 
 		// ZIP created successfully — now clean up session.
-		delete_transient( 'sscribe_export_' . $session_id );
+		$this->session->delete( $session_id );
+
+		$error_count = count( $session['errors'] );
 
 		$download_url = $this->zip_handler->get_ajax_download_url( basename( $zip_path ) );
 
@@ -350,9 +383,18 @@ class SScribe_Batch_Processor {
 				'errors'       => $session['errors'],
 				'message'      => sprintf(
 					/* translators: %d: number of pages */
-					__( 'Export complete! %d pages exported successfully.', 'sscribe-export-site-pages' ),
+					_n(
+						'Export complete! %d page exported successfully.',
+						'Export complete! %d pages exported successfully.',
+						$session['total'],
+						'sscribe-export-site-pages'
+					),
 					$session['total']
-				),
+				) . ( $error_count > 0 ? sprintf(
+					/* translators: %d: number of errors */
+					' ' . _n( '(%d error)', '(%d errors)', $error_count, 'sscribe-export-site-pages' ),
+					$error_count
+				) : '' ),
 			)
 		);
 	}
