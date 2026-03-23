@@ -57,215 +57,89 @@
 	padding: 0;
 }
 
-/* ===== Hero Header (Animated & Glassmorphic) ===== */
+/* ===== Hero Header ===== */
 .sscribe-hero {
 	position: relative;
 	border-radius: var(--sscribe-radius-xl);
 	background: var(--sscribe-secondary);
-	padding: 40px 48px;
+	padding: 32px 40px;
 	margin-bottom: 32px;
 	overflow: hidden;
 	box-shadow: var(--sscribe-shadow-lg);
 }
 
-.sscribe-hero-bg {
-	position: absolute;
-	inset: 0;
-	z-index: 0;
-	overflow: hidden;
-}
-
-.sscribe-blob {
-	position: absolute;
-	filter: blur(60px);
-	border-radius: 50%;
-	opacity: 0.5;
-	animation: sscribe-float 20s infinite alternate ease-in-out;
-}
-
-.sscribe-blob-primary {
-	width: 400px;
-	height: 400px;
-	background: var(--sscribe-primary);
-	top: -150px;
-	right: -100px;
-}
-
-.sscribe-blob-secondary {
-	width: 300px;
-	height: 300px;
-	background: #0284C7;
-	bottom: -150px;
-	right: 300px;
-	animation-delay: -10s;
-}
-
 .sscribe-hero-glass {
 	position: absolute;
 	inset: 0;
-	background: rgba(15, 23, 42, 0.4);
-	backdrop-filter: blur(10px);
-	-webkit-backdrop-filter: blur(10px);
+	background: linear-gradient(135deg, rgba(74,130,99,0.15) 0%, rgba(45,212,191,0.08) 100%);
+	pointer-events: none;
 	z-index: 0;
-}
-
-.sscribe-hero-bg {
-	position: absolute;
-	inset: 0;
-	z-index: 0;
-	overflow: hidden;
-}
-
-.sscribe-blob {
-	position: absolute;
-	filter: blur(60px);
-	border-radius: 50%;
-	opacity: 0.5;
-	animation: sscribe-float 20s infinite alternate ease-in-out;
-}
-
-.sscribe-blob-primary {
-	width: 400px;
-	height: 400px;
-	background: var(--sscribe-primary);
-	top: -150px;
-	right: -100px;
-}
-
-.sscribe-blob-secondary {
-	width: 300px;
-	height: 300px;
-	background: #0284C7;
-	bottom: -150px;
-	right: 300px;
-	animation-delay: -10s;
-}
-
-.sscribe-hero-glass {
-	position: absolute;
-	inset: 0;
-	background: rgba(15, 23, 42, 0.4);
-	backdrop-filter: blur(10px);
-	-webkit-backdrop-filter: blur(10px);
-}
-
-@keyframes sscribe-float {
-	0% {
-		transform: translate(0px, 0px) scale(1);
-	}
-
-	33% {
-		transform: translate(25px, -35px) scale(1.05);
-	}
-
-	66% {
-		transform: translate(-10px, 20px) scale(0.95);
-	}
-
-	100% {
-		transform: translate(0px, 0px) scale(1);
-	}
-}
-
-.sscribe-blob-anim-1 {
-	animation: sscribe-float 14s infinite ease-in-out;
-}
-
-.sscribe-blob-anim-2 {
-	animation: sscribe-float 18s infinite ease-in-out reverse;
-}
-
-.sscribe-blob-anim-3 {
-	animation: sscribe-float 22s infinite ease-in-out 2s;
-}
-
-.sscribe-blob-anim-4 {
-	animation: sscribe-float 16s infinite ease-in-out alternate-reverse;
-}
-
-.sscribe-blob-anim-5 {
-	animation: sscribe-float 12s infinite ease-in-out 1s;
-}
-
-.sscribe-blob-anim-6 {
-	animation: sscribe-float 20s infinite ease-in-out alternate;
 }
 
 .sscribe-hero-content {
 	position: relative;
 	z-index: 1;
 	display: flex;
-	width: 100%;
-	justify-content: space-between;
 	align-items: center;
+	justify-content: space-between;
+	gap: 24px;
 }
 
 .sscribe-hero-left {
 	display: flex;
 	align-items: center;
-	gap: 24px;
+	gap: 20px;
 }
 
-.sscribe-logo-box {
-	width: 64px;
-	height: 64px;
-	background: linear-gradient(135deg, var(--sscribe-primary) 0%, #34614A 100%);
+.sscribe-hero-logo {
+	flex-shrink: 0;
+	width: 56px;
+	height: 56px;
+	background: rgba(45,212,191,0.15);
+	border: 1px solid rgba(45,212,191,0.3);
 	border-radius: var(--sscribe-radius-md);
 	display: flex;
 	align-items: center;
 	justify-content: center;
-	box-shadow: var(--sscribe-shadow-glow), inset 0 1px 0 rgba(255, 255, 255, 0.2);
-	border: 1px solid rgba(255, 255, 255, 0.1);
 }
 
-.sscribe-title {
-	color: #FFFFFF !important;
-	font-size: 32px !important;
-	font-weight: 800 !important;
-	letter-spacing: -0.02em;
-	line-height: 1.1;
-	margin-bottom: 6px !important;
-	text-shadow: 0 2px 4px rgba(0, 0, 0, 0.3);
-}
-
-.sscribe-subtitle {
-	color: #CBD5E1 !important;
-	font-size: 16px !important;
-	font-weight: 400 !important;
-}
-
-.sscribe-hero-right {
+.sscribe-hero-titles {
 	display: flex;
 	flex-direction: column;
-	align-items: flex-end;
-	gap: 12px;
+	gap: 6px;
 }
 
-.sscribe-version-pill {
-	background: rgba(255, 255, 255, 0.1);
-	border: 1px solid rgba(255, 255, 255, 0.1);
-	color: #F8FAFC;
+.sscribe-hero-title {
+	color: #FFFFFF !important;
+	font-size: 28px !important;
+	font-weight: 800 !important;
+	letter-spacing: -0.02em;
+	line-height: 1.1 !important;
+	margin: 0 !important;
+	padding: 0 !important;
+	text-shadow: 0 2px 8px rgba(0,0,0,0.3);
+}
+
+.sscribe-hero-subtitle {
+	color: #94A3B8 !important;
+	font-size: 14px !important;
+	font-weight: 400 !important;
+	max-width: 520px;
+	line-height: 1.5 !important;
+	margin: 0 !important;
+	padding: 0 !important;
+}
+
+.sscribe-hero-version {
+	flex-shrink: 0;
+	background: rgba(255,255,255,0.1);
+	border: 1px solid rgba(255,255,255,0.15);
+	color: #E2E8F0;
 	padding: 6px 14px;
 	border-radius: 100px;
-	font-size: 13px;
+	font-size: 12px;
 	font-weight: 600;
-	letter-spacing: 0.5px;
-	backdrop-filter: blur(4px);
-}
-
-.sscribe-creator-link {
-	color: #94A3B8;
-	text-decoration: none;
-	font-size: 14px;
-	display: flex;
-	align-items: center;
-	gap: 6px;
-	transition: color 0.2s ease;
-	font-weight: 500;
-}
-
-.sscribe-creator-link:hover {
-	color: #FFFFFF;
+	white-space: nowrap;
 }
 
 /* ===== Panels & Cards ===== */
@@ -524,32 +398,46 @@
 
 /* ===== Cancel Button ===== */
 .sscribe-button-cancel {
-	background: #FFFFFF;
-	color: var(--sscribe-danger);
-	padding: 10px 20px;
-	font-size: 14px;
-	font-weight: 600;
-	border: 2px solid var(--sscribe-danger);
+	display: inline-flex;
+	align-items: center;
+	justify-content: center;
+	gap: 6px;
+	padding: 8px 20px;
+	font-size: 13px;
+	font-weight: 500;
+	line-height: 1;
 	border-radius: var(--sscribe-radius-sm);
-	margin-top: 16px;
-	transition: all 0.2s ease;
+	border: 1.5px solid var(--sscribe-danger);
+	background: transparent;
+	color: var(--sscribe-danger);
 	cursor: pointer;
+	transition: background 0.15s ease, color 0.15s ease;
+	margin-top: 16px;
+	font-family: inherit;
 }
 
-.sscribe-button-cancel:hover {
+.sscribe-button-cancel:hover,
+.sscribe-button-cancel:focus {
 	background: var(--sscribe-danger);
 	color: #FFFFFF;
-	border-color: var(--sscribe-danger);
-}
-
-.scribe-button-cancel:focus {
 	outline: none;
-	box-shadow: 0 0 0 3px rgba(239, 68, 68, 0.2);
 }
 
-.sscribe-button-cancel:hover {
-	background: var(--sscribe-danger);
-	color: #FFFFFF;
+.sscribe-button-cancel:disabled {
+	opacity: 0.5;
+	cursor: not-allowed;
+	pointer-events: none;
+}
+
+/* ===== Disabled Status Cards ===== */
+.sscribe-status-disabled {
+	opacity: 0.4;
+	cursor: not-allowed;
+	pointer-events: none;
+}
+
+.sscribe-status-disabled input {
+	cursor: not-allowed;
 }
 
 /* ===== History File Icons ===== */
