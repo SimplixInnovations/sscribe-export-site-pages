@@ -114,8 +114,14 @@ class SScribe_Admin {
 		// Gather data for the template.
 		$wpml_active = $this->collector->is_wpml_active();
 		$languages   = $this->collector->get_wpml_languages();
-		$total_pages = $this->collector->get_total_pages();
 		$seo_plugins = $this->seo_reader->get_active_seo_plugins();
+
+		// Get total pages across all languages.
+		$total_pages_all = $this->collector->get_total_all_statuses();
+
+		// Get post status counts (for default language or all languages).
+		$default_language = $wpml_active && ! empty( $languages ) ? '' : '';
+		$status_counts    = $this->collector->get_post_status_counts( $default_language );
 
 		// Enrich languages with per-language page counts.
 		if ( $wpml_active && ! empty( $languages ) ) {

@@ -41,10 +41,12 @@ class SScribe_Page_Collector {
 
 		$switched = false;
 		// WPML language filtering.
-		if ( ! empty( $language ) && $this->is_wpml_active() ) {
-			// Switch WPML language context.
+		if ( $this->is_wpml_active() ) {
+			// When language is empty, use 'all' to get pages from all languages.
+			// When language is specified, filter by that language.
+			$wpml_lang = empty( $language ) ? 'all' : $language;
 			// phpcs:ignore WordPress.NamingConventions.PrefixAllGlobals.NonPrefixedHooknameFound -- WPML hook.
-			do_action( 'wpml_switch_language', $language );
+			do_action( 'wpml_switch_language', $wpml_lang );
 			$args['suppress_filters'] = false;
 			$switched = true;
 		}
@@ -84,9 +86,11 @@ class SScribe_Page_Collector {
 		);
 
 		$switched = false;
-		if ( ! empty( $language ) && $this->is_wpml_active() ) {
+		if ( $this->is_wpml_active() ) {
+			// When language is empty, use 'all' to count pages from all languages.
+			$wpml_lang = empty( $language ) ? 'all' : $language;
 			// phpcs:ignore WordPress.NamingConventions.PrefixAllGlobals.NonPrefixedHooknameFound -- WPML hook.
-			do_action( 'wpml_switch_language', $language );
+			do_action( 'wpml_switch_language', $wpml_lang );
 			$args['suppress_filters'] = false;
 			$switched = true;
 		}
@@ -364,6 +368,36 @@ class SScribe_Page_Collector {
 			'future'  => __( 'Scheduled', 'sscribe-export-site-pages' ),
 			'pending' => __( 'Pending Review', 'sscribe-export-site-pages' ),
 		);
+	}
+
+	/**
+	 * Get page counts for each post status, optionally filtered by language.
+	 *
+	 * @param string $language Optional WPML language code.
+	 * @return array Associative array of status => count pairs.
+	 */
+	public function get_post_status_counts( string $language = '' ): array {
+		$statuses = $this->get_valid_post_statuses();
+		$counts   = array();
+
+		foreach ( $statuses as $status => $label ) {
+			$counts[ $status ] = $this->get_page_count_only( $language, $status );
+		}
+
+		// Add 'all' count.
+		$counts['all'] = array_sum( $counts );
+
+		return $counts;
+	}
+
+	/**
+	 * Get total page count for all statuses combined.
+	 *
+	 * @param string $language Optional WPML language code.
+	 * @return int Total number of pages across all statuses.
+	 */
+	public function get_total_all_statuses( string $language = '' ): int {
+		return $this->get_page_count_only( $language, 'all' );
 	}
 
 	/**
