@@ -79,7 +79,7 @@ class SScribe {
 		$zip = new SScribe_Zip_Handler();
 		$this->loader->add_action( 'sscribe_cleanup_exports', $zip, 'cleanup_expired' );
 
-		$this->loader->add_action( 'sscribe_cleanup_sessions', array( $this, 'cleanup_sessions' ) );
+		$this->loader->add_action( 'sscribe_cleanup_sessions', $this, 'cleanup_sessions' );
 	}
 
 	/**
