@@ -48,6 +48,8 @@ if ( file_exists( SSCRIBE_PLUGIN_DIR . 'vendor/autoload.php' ) ) {
 	require_once SSCRIBE_PLUGIN_DIR . 'vendor/autoload.php';
 }
 
+require_once SSCRIBE_PLUGIN_DIR . 'includes/class-sscribe-session.php';
+
 /**
  * Activation hook.
  */

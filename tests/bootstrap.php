@@ -68,6 +68,63 @@ if ( ! function_exists( 'strip_shortcodes' ) ) {
 	}
 }
 
+if ( ! function_exists( 'wp_upload_dir' ) ) {
+	function wp_upload_dir() {
+		return array(
+			'basedir' => sys_get_temp_dir() . '/sscribe-test-uploads',
+			'baseurl' => 'http://example.org/wp-content/uploads',
+			'path'    => sys_get_temp_dir() . '/sscribe-test-uploads',
+			'url'     => 'http://example.org/wp-content/uploads',
+			'subdir'  => '',
+			'error'   => false,
+		);
+	}
+}
+
+if ( ! function_exists( 'trailingslashit' ) ) {
+	function trailingslashit( $sscribe_string ) {
+		return rtrim( $sscribe_string, '/\\' ) . '/';
+	}
+}
+
+if ( ! function_exists( 'wp_mkdir_p' ) ) {
+	function wp_mkdir_p( $sscribe_dir ) {
+		if ( ! is_dir( $sscribe_dir ) ) {
+			mkdir( $sscribe_dir, 0755, true );
+		}
+		return true;
+	}
+}
+
+if ( ! function_exists( 'wp_generate_password' ) ) {
+	function wp_generate_password( $sscribe_length = 12, $sscribe_special_chars = true, $sscribe_extra_special_chars = false ) {
+		$sscribe_chars = 'abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789';
+		if ( $sscribe_special_chars ) {
+			$sscribe_chars .= '!@#$%^&*()';
+		}
+		if ( $sscribe_extra_special_chars ) {
+			$sscribe_chars .= '-_ []{}<>~`+=,.;:/?|';
+		}
+		$sscribe_password = '';
+		for ( $sscribe_i = 0; $sscribe_i < $sscribe_length; $sscribe_i++ ) {
+			$sscribe_password .= $sscribe_chars[ random_int( 0, strlen( $sscribe_chars ) - 1 ) ];
+		}
+		return $sscribe_password;
+	}
+}
+
+if ( ! function_exists( 'wp_json_encode' ) ) {
+	function wp_json_encode( $sscribe_data, $sscribe_options = 0, $sscribe_depth = 512 ) {
+		return json_encode( $sscribe_data, $sscribe_options, $sscribe_depth );
+	}
+}
+
+if ( ! function_exists( 'sanitize_key' ) ) {
+	function sanitize_key( $sscribe_key ) {
+		return preg_replace( '/[^a-z0-9_\-]/', '', strtolower( $sscribe_key ) );
+	}
+}
+
 if ( ! function_exists( 'get_file_data' ) ) {
 	function get_file_data( $sscribe_file, $sscribe_headers ) {
 		$content = file_get_contents( $sscribe_file );
