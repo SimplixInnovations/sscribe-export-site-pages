@@ -78,6 +78,18 @@ class SScribe {
 	private function define_cron_hooks() {
 		$zip = new SScribe_Zip_Handler();
 		$this->loader->add_action( 'sscribe_cleanup_exports', $zip, 'cleanup_expired' );
+
+		$this->loader->add_action( 'sscribe_cleanup_sessions', array( $this, 'cleanup_sessions' ) );
+	}
+
+	/**
+	 * Cleanup expired session files.
+	 *
+	 * @return void
+	 */
+	public function cleanup_sessions() {
+		$session = new SScribe_Session();
+		$session->cleanup_expired( 4 * HOUR_IN_SECONDS );
 	}
 
 	/**
