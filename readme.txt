@@ -4,7 +4,7 @@ Donate link: https://simplixi.com
 Tags: export, docx, word, documentation, multilingual
 Requires at least: 5.8
 Tested up to: 6.9
-Stable tag: 1.5.0
+Stable tag: 1.6.0
 Requires PHP: 7.4
 License: GPLv2 or later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
@@ -204,6 +204,14 @@ Yes. SScribe is 100% free and open-source, developed by Simplix Innovations. No 
 
 == Changelog ==
 
+= 1.6.0 =
+* Critical fix: Export now completes fully for all pages — fixed output buffer (ob_start) nesting that was destroying WordPress's own buffers and corrupting AJAX JSON responses
+* Critical fix: Removed unnecessary ob_start() from ajax_start_export() which caused buffer level imbalances
+* Critical fix: Output buffer restoration now uses saved-level approach (while ob_get_level() > $saved) instead of ob_get_level() > 0 which was blindly closing WordPress core buffers
+* Critical fix: Arabic/Hebrew page filenames now human-readable — uses title transliteration instead of URL-encoded slug which produced hex strings like 'd8b9d986...'
+* Fix: Page collector ob_start() now also uses saved-level approach for safe nesting
+* Fix: ob_start/ob_end now properly paired — no more orphaned buffers across multiple AJAX requests
+
 = 1.5.0 =
 * Critical fix: DOCX files now open correctly in Word — added XML non-character stripping (U+FFFE, U+FFFF, surrogates)
 * Critical fix: Export no longer stops mid-way on large sites — output buffering prevents Elementor stray HTML from corrupting AJAX JSON
@@ -318,6 +326,9 @@ Yes. SScribe is 100% free and open-source, developed by Simplix Innovations. No 
 * Performance-safe batch processing
 
 == Upgrade Notice ==
+
+= 1.6.0 =
+Critical fixes for export completion and Arabic/non-Latin filename handling. Exports now complete fully without stopping mid-way, and filenames are now human-readable for all languages. Essential update for all users.
 
 = 1.5.0 =
 Critical fixes for DOCX corruption, large site exports, and Elementor compatibility. Essential update for all users — DOCX files now open reliably in Word.
