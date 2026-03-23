@@ -44,6 +44,7 @@
 			this.showProgress();
 
 			var language = $( 'input[name="sscribe_language"]:checked' ).val() || '';
+			var postStatus = $( '#sscribe-post-status' ).val() || 'publish';
 
 			$.ajax(
 				{
@@ -52,7 +53,8 @@
 					data: {
 						action: 'sscribe_start_export',
 						nonce: sscribe_data.nonce,
-						language: language
+						language: language,
+						post_status: postStatus
 					},
 					success: $.proxy(
 						function (response) {

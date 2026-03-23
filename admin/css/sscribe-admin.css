@@ -386,6 +386,71 @@
 	transform: scale(1);
 }
 
+.sscribe-lang-flag-all {
+	width: 32px;
+	height: 24px;
+	background: linear-gradient(135deg, var(--sscribe-primary) 0%, #34614A 100%);
+	color: #FFFFFF;
+	border-radius: 4px;
+	display: flex;
+	align-items: center;
+	justify-content: center;
+}
+
+.scribe-lang-card-all .sscribe-lang-card-inner {
+	border-style: dashed;
+}
+
+/* ===== Status Filter ===== */
+.sscribe-status-filter {
+	display: flex;
+	align-items: center;
+	gap: 12px;
+	margin-bottom: 24px;
+	padding: 16px 20px;
+	background: #F8FAFC;
+	border-radius: var(--sscribe-radius-md);
+	border: 1px solid var(--sscribe-border);
+}
+
+.sscribe-status-label {
+	display: flex;
+	align-items: center;
+	gap: 8px;
+	font-weight: 600;
+	color: var(--sscribe-text-main);
+	font-size: 14px;
+}
+
+.sscribe-status-label svg {
+	color: var(--sscribe-primary);
+}
+
+.sscribe-status-select {
+	flex: 1;
+	max-width: 200px;
+	padding: 10px 14px;
+	font-size: 14px;
+	font-weight: 500;
+	color: var(--sscribe-text-main);
+	background: #FFFFFF;
+	border: 1px solid var(--sscribe-border);
+	border-radius: var(--sscribe-radius-sm);
+	cursor: pointer;
+	transition: all 0.2s ease;
+	font-family: inherit;
+}
+
+.sscribe-status-select:hover {
+	border-color: #CBD5E1;
+}
+
+.sscribe-status-select:focus {
+	outline: none;
+	border-color: var(--sscribe-primary);
+	box-shadow: 0 0 0 3px rgba(74, 130, 99, 0.1);
+}
+
 /* ===== Buttons ===== */
 .sscribe-action-row {
 	padding-top: 24px;
