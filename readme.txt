@@ -204,6 +204,17 @@ Yes. SScribe is 100% free and open-source, developed by Simplix Innovations. No 
 
 == Changelog ==
 
+= 1.7.1 =
+* Fix: Plugin header now displays correctly with proper glassmorphism effect
+* Fix: "Post Status" label changed to "Page Status" for accuracy
+* Fix: Status options with zero pages are now disabled and cannot be selected
+* Fix: "What Each Document Includes" section now shows colored icon backgrounds
+* Fix: Cancel export button styling improved
+* Fix: JavaScript now updates disabled state when language selection changes
+* Fix: PHP CodeSniffer compliance — replaced unlink() with wp_delete_file()
+* Fix: PHP CodeSniffer compliance — added ignore for ini_set() usage
+* Fix: PHP CodeSniffer compliance — prefixed all internal variables with sscribe_
+
 = 1.7.0 =
 * Critical fix: Export now reliably processes ALL pages — replaced transient-based session storage (corrupted by caching plugins) with file-based JSON storage
 * Critical fix: Session data now immune to Redis/Memcached key limits, WP Rocket purges, LightSpeed optimization, and Cloudflare cache

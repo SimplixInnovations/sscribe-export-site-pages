@@ -193,7 +193,7 @@ class SScribe_Batch_Processor {
 
 		// Attempt to extend execution time for slow page-builder rendering.
 		if ( function_exists( 'ini_set' ) ) {
-			// phpcs:ignore WordPress.PHP.IniSet.max_execution_time_Blacklisted -- Required for large Elementor exports.
+			// phpcs:ignore WordPress.PHP.IniSet.max_execution_time_Blacklisted, Squiz.PHP.DiscouragedFunctions.Discouraged -- Required for large Elementor exports.
 			ini_set( 'max_execution_time', '120' );
 		}
 		wp_raise_memory_limit( 'admin' );

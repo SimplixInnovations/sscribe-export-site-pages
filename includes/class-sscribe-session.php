@@ -122,6 +122,10 @@ class SScribe_Session
             return false;
         }
 
+        if (function_exists('wp_delete_file')) {
+            return wp_delete_file($file_path);
+        }
+
         return unlink($file_path);
     }
 
@@ -170,7 +174,11 @@ class SScribe_Session
             $data = json_decode($content, true);
 
             if (isset($data['created_at']) && ($now - $data['created_at']) > $max_age_seconds) {
-                if (unlink($file)) {
+                if (function_exists('wp_delete_file')) {
+                    if (wp_delete_file($file)) {
+                        $deleted++;
+                    }
+                } elseif (unlink($file)) {
                     $deleted++;
                 }
             }
