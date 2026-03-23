@@ -40,11 +40,19 @@ class SScribe_Page_Collector {
 		);
 
 		$switched = false;
+		$original_lang = null;
+		
 		// WPML language filtering.
 		if ( $this->is_wpml_active() ) {
 			// When language is empty, use 'all' to get pages from all languages.
 			// When language is specified, filter by that language.
 			$wpml_lang = empty( $language ) ? 'all' : $language;
+			
+			$this->debug_log( 'WPML: Switching language', array(
+				'requested_language' => $language,
+				'wpml_lang' => $wpml_lang,
+			) );
+			
 			// phpcs:ignore WordPress.NamingConventions.PrefixAllGlobals.NonPrefixedHooknameFound -- WPML hook.
 			do_action( 'wpml_switch_language', $wpml_lang );
 			$args['suppress_filters'] = false;
@@ -54,15 +62,57 @@ class SScribe_Page_Collector {
 		try {
 			$query    = new WP_Query( $args );
 			$page_ids = $query->posts;
+			
+			$this->debug_log( 'WP_Query results', array(
+				'language' => $language,
+				'post_status' => $post_status,
+				'page_count' => count( $page_ids ),
+				'page_ids_sample' => array_slice( $page_ids, 0, 20 ),
+			) );
 		} finally {
 			// Reset WPML language context.
 			if ( $switched ) {
 				// phpcs:ignore WordPress.NamingConventions.PrefixAllGlobals.NonPrefixedHooknameFound -- WPML hook.
 				do_action( 'wpml_switch_language', null );
+				$this->debug_log( 'WPML: Language reset' );
 			}
 		}
 
 		return $page_ids;
+	}
+
+	/**
+	 * Write debug log entry.
+	 *
+	 * @param string $message Log message.
+	 * @param array  $data    Optional data to include.
+	 */
+	private function debug_log( string $message, array $data = array() ): void {
+		// phpcs:ignore WordPress.NamingConventions.PrefixAllGlobals.NonPrefixedVariableFound
+		// @phpstan-ignore-next-line
+		$debug_enabled = defined( 'SSCRIBE_DEBUG' ) && SSCRIBE_DEBUG;
+		if ( ! $debug_enabled ) {
+			return;
+		}
+
+		$upload_dir = wp_upload_dir();
+		$log_dir    = trailingslashit( $upload_dir['basedir'] ) . 'sscribe-logs/';
+
+		if ( ! is_dir( $log_dir ) ) {
+			wp_mkdir_p( $log_dir );
+		}
+
+		$log_file  = $log_dir . 'export-debug-' . gmdate( 'Y-m-d' ) . '.log';
+		$timestamp = gmdate( 'Y-m-d H:i:s' );
+		$entry     = "[{$timestamp}] [Collector] {$message}";
+
+		if ( ! empty( $data ) ) {
+			$entry .= ' | ' . wp_json_encode( $data, JSON_UNESCAPED_UNICODE );
+		}
+
+		$entry .= "\n";
+
+		file_put_contents( $log_file, $entry, FILE_APPEND | LOCK_EX );
 	}
 
 	/**

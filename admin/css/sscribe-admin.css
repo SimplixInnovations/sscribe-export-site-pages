@@ -58,25 +58,25 @@
 }
 
 /* ===== Hero Header ===== */
-.sscribe-hero {
+.sscribe-master-container .sscribe-hero {
 	position: relative;
 	border-radius: var(--sscribe-radius-xl);
-	background: var(--sscribe-secondary);
+	background: linear-gradient(135deg, #0F172A 0%, #1E293B 100%);
 	padding: 32px 40px;
 	margin-bottom: 32px;
 	overflow: hidden;
 	box-shadow: var(--sscribe-shadow-lg);
 }
 
-.sscribe-hero-glass {
+.sscribe-master-container .sscribe-hero-glass {
 	position: absolute;
 	inset: 0;
-	background: linear-gradient(135deg, rgba(74,130,99,0.15) 0%, rgba(45,212,191,0.08) 100%);
+	background: linear-gradient(135deg, rgba(74,130,99,0.2) 0%, rgba(45,212,191,0.1) 100%);
 	pointer-events: none;
 	z-index: 0;
 }
 
-.sscribe-hero-content {
+.sscribe-master-container .sscribe-hero-content {
 	position: relative;
 	z-index: 1;
 	display: flex;
@@ -85,42 +85,42 @@
 	gap: 24px;
 }
 
-.sscribe-hero-left {
+.sscribe-master-container .sscribe-hero-left {
 	display: flex;
 	align-items: center;
 	gap: 20px;
 }
 
-.sscribe-hero-logo {
+.sscribe-master-container .sscribe-hero-logo {
 	flex-shrink: 0;
 	width: 56px;
 	height: 56px;
-	background: rgba(45,212,191,0.15);
-	border: 1px solid rgba(45,212,191,0.3);
+	background: linear-gradient(135deg, rgba(45,212,191,0.3) 0%, rgba(45,212,191,0.1) 100%);
+	border: 2px solid rgba(45,212,191,0.4);
 	border-radius: var(--sscribe-radius-md);
 	display: flex;
 	align-items: center;
 	justify-content: center;
 }
 
-.sscribe-hero-titles {
+.sscribe-master-container .sscribe-hero-titles {
 	display: flex;
 	flex-direction: column;
 	gap: 6px;
 }
 
-.sscribe-hero-title {
+.sscribe-master-container .sscribe-hero-title {
 	color: #FFFFFF !important;
 	font-size: 28px !important;
 	font-weight: 800 !important;
-	letter-spacing: -0.02em;
+	letter-spacing: -0.02em !important;
 	line-height: 1.1 !important;
 	margin: 0 !important;
 	padding: 0 !important;
-	text-shadow: 0 2px 8px rgba(0,0,0,0.3);
+	text-shadow: 0 2px 8px rgba(0,0,0,0.3) !important;
 }
 
-.sscribe-hero-subtitle {
+.sscribe-master-container .sscribe-hero-subtitle {
 	color: #94A3B8 !important;
 	font-size: 14px !important;
 	font-weight: 400 !important;
@@ -130,16 +130,17 @@
 	padding: 0 !important;
 }
 
-.sscribe-hero-version {
+.sscribe-master-container .sscribe-hero-version {
 	flex-shrink: 0;
-	background: rgba(255,255,255,0.1);
-	border: 1px solid rgba(255,255,255,0.15);
+	background: rgba(255,255,255,0.15);
+	border: 1px solid rgba(255,255,255,0.2);
 	color: #E2E8F0;
 	padding: 6px 14px;
 	border-radius: 100px;
 	font-size: 12px;
 	font-weight: 600;
 	white-space: nowrap;
+	margin: 0;
 }
 
 /* ===== Panels & Cards ===== */
