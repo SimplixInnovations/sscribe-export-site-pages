@@ -134,6 +134,9 @@ class SScribe_Page_Collector {
 			$sscribe_in_content_filter = true;
 			$content                   = $post_object->post_content;
 
+			// Record ob level before our buffer to avoid closing WP's buffers.
+			$ob_level_before = ob_get_level();
+
 			try {
 				global $post;
 				$original_post = $post;
@@ -141,18 +144,22 @@ class SScribe_Page_Collector {
 				$post = $post_object;
 				setup_postdata( $post );
 
-				// Start output buffer to capture any stray output from page builders.
+				// Buffer stray output from page builders (Elementor, Divi, etc.)
+				// that may echo HTML during apply_filters('the_content') in AJAX context.
 				ob_start();
 
 				// phpcs:ignore WordPress.NamingConventions.PrefixAllGlobals.NonPrefixedHooknameFound -- WordPress core filter.
 				$content = apply_filters( 'the_content', $post->post_content );
 
-				// Discard any stray output — we only want the filtered string.
-				ob_end_clean();
+				// Discard any stray HTML output. We only want the return value.
+				// Restore to exactly the level before our ob_start().
+				while ( ob_get_level() > $ob_level_before ) {
+					ob_end_clean();
+				}
 
 			} catch ( \Throwable $e ) {
-				// Discard any partial output that may have been buffered before the exception.
-				if ( ob_get_level() > 0 ) {
+				// Restore buffers to pre-call state before doing anything else.
+				while ( ob_get_level() > $ob_level_before ) {
 					ob_end_clean();
 				}
 				$content = $post_object->post_content;
@@ -161,10 +168,9 @@ class SScribe_Page_Collector {
 					error_log( 'SScribe: apply_filters the_content threw for page ' . $page_id . ': ' . $e->getMessage() );
 				}
 			} finally {
-				// Ensure any orphaned buffer is cleaned.
-				if ( ob_get_level() > 0 ) {
-					ob_end_clean();
-				}
+				// ALWAYS restore: reset post data and re-entry guard.
+				// Buffer restoration already handled above (try success or catch).
+				// This finally only handles state that must ALWAYS reset.
 				wp_reset_postdata();
 				// phpcs:ignore WordPress.WP.GlobalVariablesOverride.Prohibited
 				$post                      = $original_post;

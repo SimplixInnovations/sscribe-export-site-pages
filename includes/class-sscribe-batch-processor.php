@@ -53,9 +53,6 @@ class SScribe_Batch_Processor {
 		/**
 		 * Filter the number of pages processed per AJAX batch.
 		 *
-		 * Increase for faster exports on powerful servers.
-		 * Decrease if you experience PHP timeout errors on shared hosting.
-		 *
 		 * @param int $batch_size Default batch size. Default 1 for Elementor safety.
 		 */
 		$this->batch_size = (int) apply_filters( 'sscribe_batch_size', 1 );
@@ -81,34 +78,6 @@ class SScribe_Batch_Processor {
 	}
 
 	/**
-	 * Clean output buffer and send JSON error response.
-	 *
-	 * Ensures stray HTML from page builders doesn't corrupt the JSON response.
-	 *
-	 * @param array $data Error data array.
-	 * @return void
-	 */
-	private function send_json_error( $data ) {
-		if ( ob_get_level() > 0 ) {
-			ob_end_clean();
-		}
-		wp_send_json_error( $data );
-	}
-
-	/**
-	 * Clean output buffer and send JSON success response.
-	 *
-	 * @param array $data Success data array.
-	 * @return void
-	 */
-	private function send_json_success( $data ) {
-		if ( ob_get_level() > 0 ) {
-			ob_end_clean();
-		}
-		wp_send_json_success( $data );
-	}
-
-	/**
 	 * AJAX handler: Start export process.
 	 *
 	 * @return void
@@ -116,10 +85,11 @@ class SScribe_Batch_Processor {
 	public function ajax_start_export() {
 		check_ajax_referer( 'sscribe_export_nonce', 'nonce' );
 
-		ob_start();
+		// NOTE: No ob_start() here — this handler only queries page IDs.
+		// apply_filters('the_content') is not called here, so no stray output is possible.
 
 		if ( ! current_user_can( $this->get_required_capability() ) ) {
-			$this->send_json_error(
+			wp_send_json_error(
 				array(
 					'message' => __( 'You do not have permission to export pages.', 'sscribe-export-site-pages' ),
 				)
@@ -133,7 +103,7 @@ class SScribe_Batch_Processor {
 		if ( ! empty( $language ) && $this->collector->is_wpml_active() ) {
 			$valid_languages = wp_list_pluck( $this->collector->get_wpml_languages(), 'code' );
 			if ( ! in_array( $language, $valid_languages, true ) ) {
-				$this->send_json_error(
+				wp_send_json_error(
 					array(
 						'message' => __( 'Invalid language code specified.', 'sscribe-export-site-pages' ),
 					)
@@ -146,7 +116,7 @@ class SScribe_Batch_Processor {
 		$total    = count( $page_ids );
 
 		if ( 0 === $total ) {
-			$this->send_json_error(
+			wp_send_json_error(
 				array(
 					'message' => __( 'No published pages found for this language.', 'sscribe-export-site-pages' ),
 				)
@@ -172,7 +142,7 @@ class SScribe_Batch_Processor {
 			4 * HOUR_IN_SECONDS
 		);
 
-		$this->send_json_success(
+		wp_send_json_success(
 			array(
 				'session_id' => $session_id,
 				'total'      => $total,
@@ -194,10 +164,8 @@ class SScribe_Batch_Processor {
 	public function ajax_process_batch() {
 		check_ajax_referer( 'sscribe_export_nonce', 'nonce' );
 
-		ob_start();
-
 		if ( ! current_user_can( $this->get_required_capability() ) ) {
-			$this->send_json_error(
+			wp_send_json_error(
 				array(
 					'message' => __( 'Permission denied.', 'sscribe-export-site-pages' ),
 				)
@@ -212,11 +180,22 @@ class SScribe_Batch_Processor {
 		}
 		wp_raise_memory_limit( 'admin' );
 
+		// Record the current ob level BEFORE our ob_start().
+		// We use this to restore exactly to this level, never touching
+		// WordPress's own buffers (gzip, etc.) that were active before us.
+		$ob_level_before = ob_get_level();
+
+		// Start our buffer to capture stray HTML from page builders that could
+		// corrupt our JSON response if it echoes during apply_filters('the_content').
+		ob_start();
+
 		$session_id = isset( $_POST['session_id'] ) ? sanitize_text_field( wp_unslash( $_POST['session_id'] ) ) : '';
 		$session    = get_transient( 'sscribe_export_' . $session_id );
 
 		if ( ! $session ) {
-			$this->send_json_error(
+			// Restore to exactly the level before our ob_start(), then respond.
+			$this->restore_ob_level( $ob_level_before );
+			wp_send_json_error(
 				array(
 					'message' => __( 'Export session expired. Please start again.', 'sscribe-export-site-pages' ),
 				)
@@ -235,6 +214,7 @@ class SScribe_Batch_Processor {
 
 		if ( empty( $batch ) ) {
 			// All pages processed — create ZIP.
+			$this->restore_ob_level( $ob_level_before );
 			$this->finalize_export( $session_id, $session );
 			return;
 		}
@@ -292,11 +272,15 @@ class SScribe_Batch_Processor {
 		$is_done    = ( $processed >= $total );
 
 		if ( $is_done ) {
+			$this->restore_ob_level( $ob_level_before );
 			$this->finalize_export( $session_id, $session );
 			return;
 		}
 
-		$this->send_json_success(
+		// Restore output buffer to pre-batch level before sending JSON.
+		$this->restore_ob_level( $ob_level_before );
+
+		wp_send_json_success(
 			array(
 				'status'     => 'processing',
 				'processed'  => $processed,
@@ -313,6 +297,22 @@ class SScribe_Batch_Processor {
 	}
 
 	/**
+	 * Restore output buffering to the level it was at before this batch started.
+	 *
+	 * This is the safe way to handle our ob_start() without accidentally closing
+	 * WordPress's own output buffers (gzip compression, core handling, etc.).
+	 * We close only the buffers WE opened, leaving WP's buffers untouched.
+	 *
+	 * @param int $target_level The ob level to restore to.
+	 * @return void
+	 */
+	private function restore_ob_level( $target_level ) {
+		while ( ob_get_level() > $target_level ) {
+			ob_end_clean();
+		}
+	}
+
+	/**
 	 * Finalize the export by creating ZIP and returning download URL.
 	 *
 	 * @param string $session_id The session ID.
@@ -325,9 +325,8 @@ class SScribe_Batch_Processor {
 
 		$zip_path = $this->zip_handler->create_zip( $session['temp_dir'], $zip_name );
 
-		// Only clean up session AFTER we know the outcome.
 		if ( ! $zip_path ) {
-			$this->send_json_error(
+			wp_send_json_error(
 				array(
 					'message' => __( 'Failed to create ZIP package. Please try again.', 'sscribe-export-site-pages' ),
 				)
@@ -340,7 +339,7 @@ class SScribe_Batch_Processor {
 
 		$download_url = $this->zip_handler->get_ajax_download_url( basename( $zip_path ) );
 
-		$this->send_json_success(
+		wp_send_json_success(
 			array(
 				'status'       => 'complete',
 				'processed'    => $session['total'],
