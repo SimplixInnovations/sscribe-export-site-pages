@@ -21,13 +21,45 @@
 		bindEvents: function () {
 			$( '#sscribe-export-btn' ).on( 'click', $.proxy( this.startExport, this ) );
 			$( '#sscribe-retry-btn, #sscribe-error-try-again' ).on( 'click', $.proxy( this.retry, this ) );
+			$( '#sscribe-cancel-btn' ).on( 'click', $.proxy( this.cancelExport, this ) );
 
-			// Allow clicking anywhere on language option card to select it.
 			$( '.sscribe-lang-card-label' ).on(
 				'click',
 				function () {
-					// Focus styling handled by CSS :checked pseudoselector, no JS class toggling needed.
 					$( this ).find( 'input[type="radio"]' ).prop( 'checked', true );
+				}
+			);
+
+			$( 'input[name="sscribe_language"]' ).on( 'change', $.proxy( this.onLanguageChange, this ) );
+		},
+
+		onLanguageChange: function () {
+			if ( this.isProcessing ) {
+				return;
+			}
+
+			var language = $( 'input[name="sscribe_language"]:checked' ).val() || '';
+
+			$.ajax(
+				{
+					url: sscribe_data.ajaxurl,
+					type: 'POST',
+					data: {
+						action: 'sscribe_get_status_counts',
+						nonce: sscribe_data.nonce,
+						language: language
+					},
+					success: function (response) {
+						if ( response.success && response.data.counts ) {
+							$( '.sscribe-status-count' ).each(
+								function () {
+									var status = $( this ).data( 'status' );
+									var count = response.data.counts[ status ] || 0;
+									$( this ).text( count );
+								}
+							);
+						}
+					}
 				}
 			);
 		},
@@ -44,7 +76,7 @@
 			this.showProgress();
 
 			var language = $( 'input[name="sscribe_language"]:checked' ).val() || '';
-			var postStatus = $( '#sscribe-post-status' ).val() || 'publish';
+			var postStatus = $( 'input[name="sscribe_post_status"]:checked' ).val() || 'publish';
 
 			$.ajax(
 				{
@@ -101,14 +133,31 @@
 								this.updateProgress( data.percentage );
 								this.updateStatus( data.message );
 
+								if ( data.current_page ) {
+									$( '#sscribe-current-page' ).text( data.current_page ).show();
+								}
+
+								if ( data.time_remaining !== undefined && data.time_remaining > 0 ) {
+									var minutes = Math.floor( data.time_remaining / 60 );
+									var seconds = data.time_remaining % 60;
+									var timeStr = '';
+									if ( minutes > 0 ) {
+										timeStr = minutes + ' min ' + seconds + ' sec remaining';
+									} else {
+										timeStr = seconds + ' sec remaining';
+									}
+									$( '#sscribe-time-remaining' ).text( timeStr ).show();
+								}
+
 								if (data.status === 'complete') {
 									this.exportComplete( data );
 								} else {
-									// Continue processing next batch.
 									setTimeout( $.proxy( this.processBatch, this ), 200 );
 								}
 							} else {
-								this.showError( response.data.message );
+								var errorMsg = response.data.message;
+								var isCancelled = response.data.cancelled === true;
+								this.showError( errorMsg, isCancelled );
 							}
 						},
 						this
@@ -123,6 +172,35 @@
 			);
 		},
 
+		cancelExport: function (e) {
+			e.preventDefault();
+
+			if ( ! this.sessionId ) {
+				return;
+			}
+
+			$( '#sscribe-cancel-btn' ).prop( 'disabled', true ).text( 'Cancelling...' );
+
+			$.ajax(
+				{
+					url: sscribe_data.ajaxurl,
+					type: 'POST',
+					data: {
+						action: 'sscribe_cancel_export',
+						nonce: sscribe_data.nonce,
+						session_id: this.sessionId
+					},
+					success: $.proxy(
+						function () {
+							this.isProcessing = false;
+							this.sessionId = null;
+						},
+						this
+					)
+				}
+			);
+		},
+
 		exportComplete: function (data) {
 			this.isProcessing = false;
 			this.updateProgress( 100 );
@@ -130,7 +208,7 @@
 			$( '#sscribe-progress-area' ).slideUp(
 				300,
 				function () {
-					$( '#sscribe-download-area' ).css( 'display', 'flex' ).hide().fadeIn( 400 );
+					$( '#sscribe-download-area' ).removeClass( 'sscribe-hidden' ).hide().fadeIn( 400 );
 					$( '#sscribe-download-btn' ).attr( 'href', data.download_url );
 
 					var $iframe = $( '<iframe>' ).css( { display: 'none', width: 0, height: 0 } );
@@ -161,24 +239,31 @@
 
 		showProgress: function () {
 			$( '.sscribe-action-row' ).slideUp( 200 );
-			$( '#sscribe-download-area' ).hide();
-			$( '#sscribe-error-area' ).hide();
-			$( '#sscribe-progress-area' ).css( 'display', 'flex' ).hide().fadeIn( 400 );
+			$( '#sscribe-download-area' ).addClass( 'sscribe-hidden' );
+			$( '#sscribe-error-area' ).addClass( 'sscribe-hidden' );
+			$( '#sscribe-progress-area' ).removeClass( 'sscribe-hidden' ).hide().fadeIn( 400 );
+			$( '#sscribe-current-page' ).text( '' ).hide();
+			$( '#sscribe-time-remaining' ).text( '' ).hide();
+			$( '#sscribe-cancel-btn' ).prop( 'disabled', false ).text( 'Cancel Export' );
 			this.updateProgress( 0 );
 		},
 
-		showError: function (message) {
+		showError: function (message, isCancelled) {
 			this.isProcessing = false;
 			$( '.sscribe-action-row' ).slideDown( 200 );
 			$( '#sscribe-progress-area' ).fadeOut( 200 );
 			$( '#sscribe-error-text' ).text( message );
-			$( '#sscribe-error-area' ).css( 'display', 'flex' ).hide().fadeIn( 300 );
+			$( '#sscribe-error-area' ).removeClass( 'sscribe-hidden' ).hide().fadeIn( 300 );
+
+			if ( isCancelled ) {
+				this.sessionId = null;
+			}
 		},
 
 		resetUI: function () {
-			$( '#sscribe-download-area' ).hide();
-			$( '#sscribe-error-area' ).hide();
-			$( '#sscribe-progress-area' ).hide();
+			$( '#sscribe-download-area' ).addClass( 'sscribe-hidden' );
+			$( '#sscribe-error-area' ).addClass( 'sscribe-hidden' );
+			$( '#sscribe-progress-area' ).addClass( 'sscribe-hidden' );
 			this.updateProgress( 0 );
 		},
 

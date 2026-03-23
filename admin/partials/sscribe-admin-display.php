@@ -6,7 +6,8 @@
  *
  * @var bool   $wpml_active    Whether WPML is active.
  * @var array  $languages      WPML languages array (enriched with page_count).
- * @var int    $total_pages    Total number of pages.
+ * @var int    $total_pages_all Total pages across all languages.
+ * @var array  $status_counts  Page counts per post status.
  * @var array  $seo_plugins    Active SEO plugins.
  * @var array  $recent_exports Array of recent ZIP exports.
  */
@@ -18,29 +19,19 @@ if (!defined('ABSPATH')) {
 ?>
 
 <div class="sscribe-master-container">
-	<header class="sscribe-hero" style="background: radial-gradient(ellipse at 15% 50%, rgba(45,212,191,0.1) 0%, transparent 60%), radial-gradient(ellipse at 85% 50%, rgba(99,102,241,0.08) 0%, transparent 60%), #0B1120; color: #fff; border-radius: 12px; padding: 40px; display: flex; align-items: center; justify-content: center; overflow: hidden; position: relative; min-height: 220px; font-family: 'Manrope', -apple-system, sans-serif; margin-bottom: 24px;">
-
-		<!-- Frosted Glass Container -->
-		<div style="background: rgba(255, 255, 255, 0.04); backdrop-filter: blur(12px); -webkit-backdrop-filter: blur(12px); border: 1px solid rgba(255, 255, 255, 0.08); border-radius: 16px; padding: 40px 48px; text-align: center; position: relative; z-index: 2; width: 70%; max-width: 625px; box-shadow: 0 4px 40px rgba(0, 0, 0, 0.1);">
-
-			<div style="display: flex; justify-content: center; margin-bottom: 20px;">
-				<div class="sscribe-logo-box" style="width: 64px; height: 64px; border: 2px solid rgba(45, 212, 191, 0.5); border-radius: 16px; display: flex; align-items: center; justify-content: center; background: rgba(45, 212, 191, 0.1);">
-					<svg width="32" height="32" viewBox="0 0 32 32" fill="none" xmlns="http://www.w3.org/2000/svg">
-						<path d="M16 3L28 9V23L16 29L4 23V9L16 3Z" fill="#2DD4BF" fill-opacity="0.2" />
-						<path d="M10 20C10 20 11.5 22 16 22C20.5 22 22 20 22 18C22 14 10 16 10 12C10 10 12 8 16 8C20 8 22 10 22 10" stroke="#2DD4BF" stroke-width="2.5" stroke-linecap="round" />
-					</svg>
-				</div>
+	<header class="sscribe-hero">
+		<div class="sscribe-hero-glass">
+			<div class="sscribe-hero-logo">
+				<svg width="32" height="32" viewBox="0 0 32 32" fill="none" xmlns="http://www.w3.org/2000/svg">
+					<path d="M16 3L28 9V23L16 29L4 23V9L16 3Z" fill="#2DD4BF" fill-opacity="0.2" />
+					<path d="M10 20C10 20 11.5 22 16 22C20.5 22 22 20 22 18C22 14 10 16 10 12C10 10 12 8 16 8C20 8 22 10 22 10" stroke="#2DD4BF" stroke-width="2.5" stroke-linecap="round" />
+				</svg>
 			</div>
-
-			<h1 style="margin:0 0 16px 0; font-size: 42px; font-weight: 700; color: #fff; letter-spacing: -0.5px;">SScribe</h1>
-			
-			<p style="margin:0 0 24px 0; font-size: 16px; color: #94A3B8; text-wrap: balance; line-height: 1.6;">
+			<h1 class="sscribe-hero-title">SScribe</h1>
+			<p class="sscribe-hero-subtitle">
 				<?php esc_html_e( 'Export every page into beautifully formatted Word DOCX files with multilingual support, SEO meta, rich styling, and secure ZIP download.', 'sscribe-export-site-pages' ); ?>
 			</p>
-
-			<p style="margin:0; font-size: 14px; color: #64748B;">
-				v<?php echo esc_html(SSCRIBE_VERSION); ?>
-			</p>
+			<p class="sscribe-hero-version">v<?php echo esc_html(SSCRIBE_VERSION); ?></p>
 		</div>
 	</header>
 
@@ -55,8 +46,7 @@ if (!defined('ABSPATH')) {
 						stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
 						<circle cx="12" cy="12" r="10" />
 						<line x1="2" y1="12" x2="22" y2="12" />
-						<path
-							d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z" />
+						<path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z" />
 					</svg>
 					<h2><?php esc_html_e('Select Export Output', 'sscribe-export-site-pages'); ?></h2>
 				</div>
@@ -68,60 +58,36 @@ if (!defined('ABSPATH')) {
 						<?php esc_html_e('Choose a language and post status. The plugin will export all matching pages into a professional DOCX archive.', 'sscribe-export-site-pages'); ?>
 					</p>
 
-				<div class="sscribe-language-cards">
-					<label class="sscribe-lang-card-label sscribe-lang-card-all">
-						<input type="radio" name="sscribe_language" value="" checked>
-						<div class="sscribe-lang-card-inner">
-							<div class="sscribe-lang-flag-wrapper">
-								<div class="sscribe-lang-flag-placeholder sscribe-lang-flag-all">
-									<svg viewBox="0 0 24 24" width="20" height="20" stroke="currentColor" stroke-width="2" fill="none">
-										<circle cx="12" cy="12" r="10"/>
-										<line x1="2" y1="12" x2="22" y2="12"/>
-										<path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"/>
-									</svg>
-								</div>
-							</div>
-							<div class="sscribe-lang-meta">
-								<span class="sscribe-lang-name"><?php esc_html_e('All Languages', 'sscribe-export-site-pages'); ?></span>
-								<span class="sscribe-lang-count"><?php esc_html_e('Export all pages', 'sscribe-export-site-pages'); ?></span>
-							</div>
-							<div class="sscribe-lang-selector">
-								<svg viewBox="0 0 24 24" width="18" height="18" stroke="currentColor" stroke-width="2.5"
-									fill="none" stroke-linecap="round" stroke-linejoin="round"
-									class="sscribe-check-icon">
-									<polyline points="20 6 9 17 4 12"></polyline>
-								</svg>
-							</div>
-						</div>
-					</label>
-					<?php foreach ($languages as $sscribe_lang): ?>
-						<label class="sscribe-lang-card-label">
-							<input type="radio" name="sscribe_language" value="<?php echo esc_attr($sscribe_lang['code']); ?>">
-							<div class="sscribe-lang-card-inner">
-								<div class="sscribe-lang-flag-wrapper">
-									<?php if (!empty($sscribe_lang['flag_url'])): ?>
-										<img src="<?php echo esc_url($sscribe_lang['flag_url']); ?>" alt="flag"
-											class="sscribe-lang-flag">
-									<?php
-		else: ?>
-										<div class="sscribe-lang-flag-placeholder">
-											<?php echo esc_html(strtoupper(substr($sscribe_lang['code'], 0, 2))); ?></div>
-									<?php
-		endif; ?>
-								</div>
-								<div class="sscribe-lang-meta">
-									<span
-										class="sscribe-lang-name"><?php echo esc_html( $sscribe_lang['name'] ); ?></span>
-									<span class="sscribe-lang-count">
+					<!-- Language Selection -->
+					<fieldset class="sscribe-fieldset">
+						<legend class="sscribe-fieldset-legend">
+							<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+								<circle cx="12" cy="12" r="10"/>
+								<line x1="2" y1="12" x2="22" y2="12"/>
+								<path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"/>
+							</svg>
+							<?php esc_html_e('Language', 'sscribe-export-site-pages'); ?>
+						</legend>
+						<div class="sscribe-language-cards">
+							<label class="sscribe-lang-card-label sscribe-lang-card-all">
+								<input type="radio" name="sscribe_language" value="" checked>
+								<div class="sscribe-lang-card-inner">
+									<div class="sscribe-lang-flag-wrapper">
+										<div class="sscribe-lang-flag-placeholder sscribe-lang-flag-all">
+											<svg viewBox="0 0 24 24" width="20" height="20" stroke="currentColor" stroke-width="2" fill="none">
+												<circle cx="12" cy="12" r="10"/>
+												<line x1="2" y1="12" x2="22" y2="12"/>
+												<path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"/>
+											</svg>
+										</div>
+									</div>
+									<div class="sscribe-lang-meta">
+										<span class="sscribe-lang-name"><?php esc_html_e('All Languages', 'sscribe-export-site-pages'); ?></span>
 										<?php
-		printf(
-			/* translators: %d: number of pages */
-			esc_html__('%d Pages', 'sscribe-export-site-pages'),
-			intval($sscribe_lang['page_count'])
-		);
-?>
-									</span>
-								</div>
+										/* translators: %d: Number of pages */
+										printf('<span class="sscribe-lang-count">%s</span>', esc_html(sprintf(__('%d Pages', 'sscribe-export-site-pages'), intval($total_pages_all))));
+										?>
+									</div>
 									<div class="sscribe-lang-selector">
 										<svg viewBox="0 0 24 24" width="18" height="18" stroke="currentColor" stroke-width="2.5"
 											fill="none" stroke-linecap="round" stroke-linejoin="round"
@@ -131,40 +97,112 @@ if (!defined('ABSPATH')) {
 									</div>
 								</div>
 							</label>
-						<?php
-	endforeach; ?>
-					</div>
-				<?php
-else: ?>
+							<?php foreach ($languages as $sscribe_lang): ?>
+								<label class="sscribe-lang-card-label">
+									<input type="radio" name="sscribe_language" value="<?php echo esc_attr($sscribe_lang['code']); ?>">
+									<div class="sscribe-lang-card-inner">
+										<div class="sscribe-lang-flag-wrapper">
+											<?php if (!empty($sscribe_lang['flag_url'])): ?>
+												<img src="<?php echo esc_url($sscribe_lang['flag_url']); ?>" alt="<?php echo esc_attr($sscribe_lang['name']); ?>" class="sscribe-lang-flag">
+											<?php else: ?>
+												<div class="sscribe-lang-flag-placeholder">
+													<?php echo esc_html(strtoupper(substr($sscribe_lang['code'], 0, 2))); ?>
+												</div>
+											<?php endif; ?>
+										</div>
+										<div class="sscribe-lang-meta">
+											<span class="sscribe-lang-name"><?php echo esc_html( $sscribe_lang['name'] ); ?></span>
+											<span class="sscribe-lang-count">
+												<?php
+												/* translators: %d: Number of pages */
+												printf(esc_html__('%d Pages', 'sscribe-export-site-pages'), intval($sscribe_lang['page_count']));
+												?>
+											</span>
+										</div>
+										<div class="sscribe-lang-selector">
+											<svg viewBox="0 0 24 24" width="18" height="18" stroke="currentColor" stroke-width="2.5"
+												fill="none" stroke-linecap="round" stroke-linejoin="round"
+												class="sscribe-check-icon">
+												<polyline points="20 6 9 17 4 12"></polyline>
+											</svg>
+										</div>
+									</div>
+								</label>
+							<?php endforeach; ?>
+						</div>
+					</fieldset>
+
+							<?php else: ?>
 					<p class="sscribe-description">
 						<?php
-	printf(
-		/* translators: %d: number of pages */
-		esc_html__('Ready to export %d pages into beautiful Word documents.', 'sscribe-export-site-pages'),
-		intval($total_pages)
-	);
-?>
+						/* translators: %d: Number of pages */
+						printf(esc_html__('Ready to export %d pages into beautiful Word documents.', 'sscribe-export-site-pages'), intval($total_pages_all));
+						?>
 					</p>
-				<?php
-endif; ?>
+				<?php endif; ?>
 
-				<div class="sscribe-status-filter">
-					<label class="sscribe-status-label">
+				<!-- Post Status Selection -->
+				<fieldset class="sscribe-fieldset">
+					<legend class="sscribe-fieldset-legend">
 						<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
 							<path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/>
 							<polyline points="22 4 12 14.01 9 11.01"/>
 						</svg>
-						<?php esc_html_e('Post Status:', 'sscribe-export-site-pages'); ?>
-					</label>
-					<select name="sscribe_post_status" id="sscribe-post-status" class="sscribe-status-select">
-						<option value="publish"><?php esc_html_e('Published', 'sscribe-export-site-pages'); ?></option>
-						<option value="draft"><?php esc_html_e('Draft', 'sscribe-export-site-pages'); ?></option>
-						<option value="private"><?php esc_html_e('Private', 'sscribe-export-site-pages'); ?></option>
-						<option value="future"><?php esc_html_e('Scheduled', 'sscribe-export-site-pages'); ?></option>
-						<option value="pending"><?php esc_html_e('Pending Review', 'sscribe-export-site-pages'); ?></option>
-						<option value="all"><?php esc_html_e('All Statuses', 'sscribe-export-site-pages'); ?></option>
-					</select>
-				</div>
+						<?php esc_html_e('Post Status', 'sscribe-export-site-pages'); ?>
+					</legend>
+					<div class="sscribe-status-cards" id="sscribe-status-cards">
+						<?php
+						$status_labels = array(
+							'publish' => __('Published', 'sscribe-export-site-pages'),
+							'draft'   => __('Draft', 'sscribe-export-site-pages'),
+							'private' => __('Private', 'sscribe-export-site-pages'),
+							'future'  => __('Scheduled', 'sscribe-export-site-pages'),
+							'pending' => __('Pending', 'sscribe-export-site-pages'),
+							'all'     => __('All Statuses', 'sscribe-export-site-pages'),
+						);
+						$status_icons = array(
+							'publish' => '<path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/>',
+							'draft'   => '<path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/>',
+							'private' => '<rect x="3" y="11" width="18" height="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/>',
+							'future'  => '<circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/>',
+							'pending' => '<circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/><line x1="8" y1="2" x2="8" y2="6"/>',
+							'all'     => '<circle cx="12" cy="12" r="10"/><path d="M8 12h8"/>',
+						);
+						$first = true;
+						$svg_allowed = array(
+							'path'     => array( 'd' => true ),
+							'polyline' => array( 'points' => true ),
+							'circle'   => array( 'cx' => true, 'cy' => true, 'r' => true ),
+							'rect'     => array( 'x' => true, 'y' => true, 'width' => true, 'height' => true, 'rx' => true, 'ry' => true ),
+							'line'     => array( 'x1' => true, 'y1' => true, 'x2' => true, 'y2' => true ),
+						);
+						foreach ($status_labels as $status_key => $status_label):
+							$count = isset($status_counts[$status_key]) ? $status_counts[$status_key] : 0;
+						?>
+						<label class="sscribe-status-card-label">
+							<input type="radio" name="sscribe_post_status" value="<?php echo esc_attr($status_key); ?>" <?php checked($first); $first = false; ?>>
+							<div class="sscribe-status-card-inner">
+								<div class="sscribe-status-icon">
+									<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+										<?php echo wp_kses( $status_icons[ $status_key ], $svg_allowed ); ?>
+									</svg>
+								</div>
+								<div class="sscribe-status-meta">
+									<span class="sscribe-status-name"><?php echo esc_html($status_label); ?></span>
+									<span class="sscribe-status-count" data-status="<?php echo esc_attr($status_key); ?>"><?php echo esc_html( number_format_i18n( $count ) ); ?></span>
+								</div>
+								<div class="sscribe-status-selector">
+									<svg viewBox="0 0 24 24" width="16" height="16" stroke="currentColor" stroke-width="2.5"
+										fill="none" stroke-linecap="round" stroke-linejoin="round"
+										class="sscribe-check-icon">
+										<polyline points="20 6 9 17 4 12"></polyline>
+									</svg>
+								</div>
+							</div>
+						</label>
+						<?php endforeach; ?>
+					</div>
+				</fieldset>
 
 				<div class="sscribe-action-row">
 					<button type="button" id="sscribe-export-btn" class="sscribe-button sscribe-button-primary">
@@ -179,10 +217,8 @@ endif; ?>
 				</div>
 
 				<!-- Live Progress Display -->
-				<div id="sscribe-progress-area" class="sscribe-status-alert sscribe-status-processing"
-					style="display: none;">
+				<div id="sscribe-progress-area" class="sscribe-status-alert sscribe-status-processing sscribe-hidden">
 					<div class="sscribe-spinner">
-						<!-- Custom CSS Animated Spinner -->
 						<svg width="40" height="40" viewBox="0 0 100 100" xmlns="http://www.w3.org/2000/svg">
 							<circle cx="50" cy="50" r="40" stroke="#E5E7EB" stroke-width="8" fill="none" />
 							<path d="M50 10 a 40 40 0 0 1 40 40" stroke="#4A8263" stroke-width="8" fill="none"
@@ -194,19 +230,26 @@ endif; ?>
 					</div>
 					<div class="sscribe-status-info">
 						<h4 id="sscribe-status-text" class="sscribe-status-heading">
-							<?php esc_html_e('Connecting & fetching pages...', 'sscribe-export-site-pages'); ?></h4>
+							<?php esc_html_e('Connecting & fetching pages...', 'sscribe-export-site-pages'); ?>
+						</h4>
+						<p id="sscribe-current-page" class="sscribe-current-page"></p>
 						<div class="sscribe-progress-tracker">
 							<div class="sscribe-progress-bar-container">
 								<div id="sscribe-progress-bar" class="sscribe-progress-bar-fill"></div>
 							</div>
 							<span id="sscribe-progress-text" class="sscribe-progress-percentage">0%</span>
 						</div>
+						<div class="sscribe-progress-meta">
+							<span id="sscribe-time-remaining" class="sscribe-time-remaining"></span>
+						</div>
+						<button type="button" id="sscribe-cancel-btn" class="sscribe-button sscribe-button-cancel">
+							<?php esc_html_e('Cancel Export', 'sscribe-export-site-pages'); ?>
+						</button>
 					</div>
 				</div>
 
 				<!-- Success Download Display -->
-				<div id="sscribe-download-area" class="sscribe-status-alert sscribe-status-success"
-					style="display: none;">
+				<div id="sscribe-download-area" class="sscribe-status-alert sscribe-status-success sscribe-hidden">
 					<div class="sscribe-status-icon">
 						<svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor"
 							stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
@@ -216,13 +259,13 @@ endif; ?>
 					</div>
 					<div class="sscribe-status-info">
 						<h4 class="sscribe-status-heading">
-							<?php esc_html_e('Export Completed Successfully', 'sscribe-export-site-pages'); ?></h4>
+							<?php esc_html_e('Export Completed Successfully', 'sscribe-export-site-pages'); ?>
+						</h4>
 						<p class="sscribe-status-desc">
 							<?php esc_html_e('All selected pages have been packaged into a ZIP archive containing individual DOCX files.', 'sscribe-export-site-pages'); ?>
 						</p>
 						<div class="sscribe-success-actions">
-							<a id="sscribe-download-btn" href="#" class="sscribe-button sscribe-button-success"
-								download>
+							<a id="sscribe-download-btn" href="#" class="sscribe-button sscribe-button-success" download>
 								<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor"
 									stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
 									<path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
@@ -239,7 +282,7 @@ endif; ?>
 				</div>
 
 				<!-- Error Display -->
-				<div id="sscribe-error-area" class="sscribe-status-alert sscribe-status-error" style="display: none;">
+				<div id="sscribe-error-area" class="sscribe-status-alert sscribe-status-error sscribe-hidden">
 					<div class="sscribe-status-icon">
 						<svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor"
 							stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
@@ -250,11 +293,11 @@ endif; ?>
 					</div>
 					<div class="sscribe-status-info">
 						<h4 class="sscribe-status-heading">
-							<?php esc_html_e('Export Failed', 'sscribe-export-site-pages'); ?></h4>
+							<?php esc_html_e('Export Failed', 'sscribe-export-site-pages'); ?>
+						</h4>
 						<p id="sscribe-error-text" class="sscribe-status-desc"></p>
 						<div class="sscribe-error-actions">
-							<button type="button" id="sscribe-error-try-again"
-								class="sscribe-button sscribe-button-secondary">
+							<button type="button" id="sscribe-error-try-again" class="sscribe-button sscribe-button-secondary">
 								<?php esc_html_e('Try Again', 'sscribe-export-site-pages'); ?>
 							</button>
 						</div>
@@ -279,24 +322,19 @@ endif; ?>
 							</svg>
 							<h2><?php esc_html_e('Recent Exports', 'sscribe-export-site-pages'); ?></h2>
 						</div>
-						<span
-							class="sscribe-badge"><?php esc_html_e('Auto-deletes in 1 hour', 'sscribe-export-site-pages'); ?></span>
+						<span class="sscribe-badge"><?php esc_html_e('Auto-deletes in 1 hour', 'sscribe-export-site-pages'); ?></span>
 					</div>
 					<div class="sscribe-history-table">
 						<?php if (!empty($recent_exports)): ?>
 							<?php foreach ($recent_exports as $sscribe_export): ?>
 								<div class="sscribe-history-row">
 									<div class="sscribe-history-file">
-										<div class="sscribe-file-icon" style="display:flex;align-items:center;justify-content:center;width:40px;height:40px;background:#F8FAFC;border-radius:8px;">
+										<div class="sscribe-file-icon">
 											<?php if (!empty($sscribe_export['flag_url'])): ?>
-												<img src="<?php echo esc_url($sscribe_export['flag_url']); ?>" alt="<?php echo esc_attr($sscribe_export['lang_name']); ?> flag" style="width:24px;border-radius:2px;box-shadow:0 1px 3px rgba(0,0,0,0.1);">
-											<?php
-		else: ?>
-												<div style="color:#64748B;font-size:12px;font-weight:700;text-transform:uppercase;">
-													<?php echo esc_html(strtoupper(substr($sscribe_export['lang_code'], 0, 2))); ?>
-												</div>
-											<?php
-		endif; ?>
+												<img src="<?php echo esc_url($sscribe_export['flag_url']); ?>" alt="<?php echo esc_attr($sscribe_export['lang_name']); ?> flag" class="sscribe-file-icon-img">
+											<?php else: ?>
+												<span class="sscribe-file-icon-text"><?php echo esc_html(strtoupper(substr($sscribe_export['lang_code'], 0, 2))); ?></span>
+											<?php endif; ?>
 										</div>
 										<div class="sscribe-file-details">
 											<strong><?php echo esc_html($sscribe_export['filename']); ?></strong>
@@ -317,15 +355,12 @@ endif; ?>
 										<?php esc_html_e('Download', 'sscribe-export-site-pages'); ?>
 									</a>
 								</div>
-							<?php
-	endforeach; ?>
-						<?php
-else: ?>
-							<div class="sscribe-history-row" style="justify-content: center; padding: 40px; color: #64748B;">
+							<?php endforeach; ?>
+						<?php else: ?>
+							<div class="sscribe-history-empty">
 								<em><?php esc_html_e('Your recent export packages will appear here.', 'sscribe-export-site-pages'); ?></em>
 							</div>
-						<?php
-endif; ?>
+						<?php endif; ?>
 					</div>
 				</section>
 
@@ -347,131 +382,89 @@ endif; ?>
 					</div>
 					<div class="sscribe-panel-body">
 						<div class="sscribe-features-grid">
-
 							<?php
-$sscribe_allowed_svg = array(
-	'path' => array(
-		'd' => true,
-		'fill' => true,
-		'fill-opacity' => true,
-		'stroke' => true,
-		'stroke-width' => true,
-		'stroke-linecap' => true,
-		'stroke-linejoin' => true,
-	),
-	'circle' => array(
-		'cx' => true,
-		'cy' => true,
-		'r' => true,
-		'fill' => true,
-		'stroke' => true,
-		'stroke-width' => true,
-	),
-	'line' => array(
-		'x1' => true,
-		'x2' => true,
-		'y1' => true,
-		'y2' => true,
-		'stroke' => true,
-		'stroke-width' => true,
-	),
-	'polyline' => array(
-		'points' => true,
-		'fill' => true,
-		'stroke' => true,
-		'stroke-width' => true,
-		'stroke-linecap' => true,
-		'stroke-linejoin' => true,
-	),
-	'rect' => array(
-		'x' => true,
-		'y' => true,
-		'width' => true,
-		'height' => true,
-		'rx' => true,
-		'ry' => true,
-		'fill' => true,
-		'stroke' => true,
-		'stroke-width' => true,
-	),
-);
+							$sscribe_features = array(
+								array(
+									'title' => __('Page Title', 'sscribe-export-site-pages'),
+									'desc' => __('Main H1 heading with proper styling', 'sscribe-export-site-pages'),
+									'icon' => '<path d="M4 7V4h16v3M9 20h6M12 4v16"/>',
+									'color' => '#2563EB',
+									'bg' => '#DBEAFE',
+								),
+								array(
+									'title' => __('Page Content', 'sscribe-export-site-pages'),
+									'desc' => __('Full HTML content converted to Word', 'sscribe-export-site-pages'),
+									'icon' => '<path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/>',
+									'color' => '#059669',
+									'bg' => '#D1FAE5',
+								),
+								array(
+									'title' => __('SEO Metadata', 'sscribe-export-site-pages'),
+									'desc' => __('Meta title, description, focus keyword', 'sscribe-export-site-pages'),
+									'icon' => '<circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/>',
+									'color' => '#7C3AED',
+									'bg' => '#EDE9FE',
+								),
+								array(
+									'title' => __('URL & Permalink', 'sscribe-export-site-pages'),
+									'desc' => __('Full page URL for reference', 'sscribe-export-site-pages'),
+									'icon' => '<path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"/><path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"/>',
+									'color' => '#0891B2',
+									'bg' => '#CFFAFE',
+								),
+								array(
+									'title' => __('Author Info', 'sscribe-export-site-pages'),
+									'desc' => __('Page author name', 'sscribe-export-site-pages'),
+									'icon' => '<path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/>',
+									'color' => '#DC2626',
+									'bg' => '#FEE2E2',
+								),
+								array(
+									'title' => __('Dates', 'sscribe-export-site-pages'),
+									'desc' => __('Published and modified dates', 'sscribe-export-site-pages'),
+									'icon' => '<circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/>',
+									'color' => '#D97706',
+									'bg' => '#FEF3C7',
+								),
+								array(
+									'title' => __('Parent Page', 'sscribe-export-site-pages'),
+									'desc' => __('Breadcrumb hierarchy', 'sscribe-export-site-pages'),
+									'icon' => '<line x1="8" y1="6" x2="21" y2="6"/><line x1="8" y1="12" x2="21" y2="12"/><line x1="8" y1="18" x2="21" y2="18"/><line x1="3" y1="6" x2="3.01" y2="6"/><line x1="3" y1="12" x2="3.01" y2="12"/><line x1="3" y1="18" x2="3.01" y2="18"/>',
+									'color' => '#0EA5E9',
+									'bg' => '#E0F2FE',
+								),
+								array(
+									'title' => __('Featured Image', 'sscribe-export-site-pages'),
+									'desc' => __('Thumbnail when available', 'sscribe-export-site-pages'),
+									'icon' => '<rect x="3" y="3" width="18" height="18" rx="2" ry="2"/><circle cx="8.5" cy="8.5" r="1.5"/><polyline points="21 15 16 10 5 21"/>',
+									'color' => '#EC4899',
+									'bg' => '#FCE7F3',
+								),
+							);
 
-$sscribe_features = array(
-		array(
-		'title' => __('Page Title', 'sscribe-export-site-pages'),
-		'desc' => __('Main H1 heading with proper styling', 'sscribe-export-site-pages'),
-		'icon' => '<path d="M4 7V4h16v3M9 20h6M12 4v16"/>',
-		'color' => '#2563EB',
-		'bg' => '#DBEAFE',
-	),
-		array(
-		'title' => __('Page Content', 'sscribe-export-site-pages'),
-		'desc' => __('Full HTML content converted to Word', 'sscribe-export-site-pages'),
-		'icon' => '<path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/>',
-		'color' => '#059669',
-		'bg' => '#D1FAE5',
-	),
-		array(
-		'title' => __('SEO Metadata', 'sscribe-export-site-pages'),
-		'desc' => __('Meta title, description, focus keyword', 'sscribe-export-site-pages'),
-		'icon' => '<circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/>',
-		'color' => '#7C3AED',
-		'bg' => '#EDE9FE',
-	),
-		array(
-		'title' => __('URL & Permalink', 'sscribe-export-site-pages'),
-		'desc' => __('Full page URL for reference', 'sscribe-export-site-pages'),
-		'icon' => '<path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"/><path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"/>',
-		'color' => '#0891B2',
-		'bg' => '#CFFAFE',
-	),
-		array(
-		'title' => __('Author Info', 'sscribe-export-site-pages'),
-		'desc' => __('Page author name', 'sscribe-export-site-pages'),
-		'icon' => '<path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/>',
-		'color' => '#DC2626',
-		'bg' => '#FEE2E2',
-	),
-		array(
-		'title' => __('Dates', 'sscribe-export-site-pages'),
-		'desc' => __('Published and modified dates', 'sscribe-export-site-pages'),
-		'icon' => '<circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/>',
-		'color' => '#D97706',
-		'bg' => '#FEF3C7',
-	),
-		array(
-		'title' => __('Parent Page', 'sscribe-export-site-pages'),
-		'desc' => __('Breadcrumb hierarchy', 'sscribe-export-site-pages'),
-		'icon' => '<line x1="8" y1="6" x2="21" y2="6"/><line x1="8" y1="12" x2="21" y2="12"/><line x1="8" y1="18" x2="21" y2="18"/><line x1="3" y1="6" x2="3.01" y2="6"/><line x1="3" y1="12" x2="3.01" y2="12"/><line x1="3" y1="18" x2="3.01" y2="18"/>',
-		'color' => '#0EA5E9',
-		'bg' => '#E0F2FE',
-	),
-		array(
-		'title' => __('Featured Image', 'sscribe-export-site-pages'),
-		'desc' => __('Thumbnail when available', 'sscribe-export-site-pages'),
-		'icon' => '<rect x="3" y="3" width="18" height="18" rx="2" ry="2"/><circle cx="8.5" cy="8.5" r="1.5"/><polyline points="21 15 16 10 5 21"/>',
-		'color' => '#EC4899',
-		'bg' => '#FCE7F3',
-	),
-);
+							$svg_allowed_features = array(
+								'path'     => array( 'd' => true ),
+								'polyline' => array( 'points' => true ),
+								'circle'   => array( 'cx' => true, 'cy' => true, 'r' => true ),
+								'rect'     => array( 'x' => true, 'y' => true, 'width' => true, 'height' => true, 'rx' => true, 'ry' => true ),
+								'line'     => array( 'x1' => true, 'y1' => true, 'x2' => true, 'y2' => true ),
+							);
 
-foreach ($sscribe_features as $sscribe_feature):
-?>
-								<div class="sscribe-feature-item">
-									<div class="sscribe-feature-icon"
-										style="color: <?php echo esc_attr($sscribe_feature['color']); ?>; background: <?php echo esc_attr($sscribe_feature['bg']); ?>;">
-										<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor"
-											stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-											<?php echo wp_kses($sscribe_feature['icon'], $sscribe_allowed_svg); ?>
-										</svg>
-									</div>
-									<div class="sscribe-feature-text">
-										<h4><?php echo esc_html($sscribe_feature['title']); ?></h4>
-										<p><?php echo esc_html($sscribe_feature['desc']); ?></p>
-									</div>
+							foreach ($sscribe_features as $feature):
+							?>
+							<div class="sscribe-feature-item">
+								<div class="sscribe-feature-icon" data-color="<?php echo esc_attr($feature['color']); ?>" data-bg="<?php echo esc_attr($feature['bg']); ?>">
+									<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+										stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+										<?php echo wp_kses( $feature['icon'], $svg_allowed_features ); ?>
+									</svg>
 								</div>
-							<?php
-endforeach; ?>
+								<div class="sscribe-feature-text">
+									<h4><?php echo esc_html($feature['title']); ?></h4>
+									<p><?php echo esc_html($feature['desc']); ?></p>
+								</div>
+							</div>
+							<?php endforeach; ?>
 						</div>
 					</div>
 				</section>
@@ -489,7 +482,6 @@ endforeach; ?>
 								<polyline points="14 2 14 8 20 8" />
 								<line x1="16" y1="13" x2="8" y2="13" />
 								<line x1="16" y1="17" x2="8" y2="17" />
-								<polyline points="10 9 9 9 8 9" />
 							</svg>
 							<h3><?php esc_html_e('Document Format', 'sscribe-export-site-pages'); ?></h3>
 						</div>
@@ -497,8 +489,8 @@ endforeach; ?>
 					<div class="sscribe-panel-body sscribe-p-md">
 						<ul class="sscribe-check-list">
 							<li><?php esc_html_e('Standard Arial Typography', 'sscribe-export-site-pages'); ?></li>
-							<li><?php esc_html_e('Letter (8.5 × 11 in) Layout', 'sscribe-export-site-pages'); ?></li>
-							<li><?php esc_html_e('1-Inch Margin Margins', 'sscribe-export-site-pages'); ?></li>
+							<li><?php esc_html_e('Letter (8.5 x 11 in) Layout', 'sscribe-export-site-pages'); ?></li>
+							<li><?php esc_html_e('1-Inch Margins', 'sscribe-export-site-pages'); ?></li>
 							<li><?php esc_html_e('Strict H1-H6 Hierarchies', 'sscribe-export-site-pages'); ?></li>
 							<li><?php esc_html_e('Auto-Numerated Pages', 'sscribe-export-site-pages'); ?></li>
 							<li><?php esc_html_e('Verified Word Compatibility', 'sscribe-export-site-pages'); ?></li>
@@ -534,16 +526,13 @@ endforeach; ?>
 							stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
 							<path d="M9 18h6" />
 							<path d="M10 22h4" />
-							<path
-								d="M15.09 14c.18-.98.65-1.74 1.41-2.5A4.65 4.65 0 0 0 18 8 6 6 0 0 0 6 8c0 1 .23 2.23 1.5 3.5A4.61 4.61 0 0 1 8.91 14" />
+							<path d="M15.09 14c.18-.98.65-1.74 1.41-2.5A4.65 4.65 0 0 0 18 8 6 6 0 0 0 6 8c0 1 .23 2.23 1.5 3.5A4.61 4.61 0 0 1 8.91 14" />
 						</svg>
 						<strong><?php esc_html_e('System Security Tips', 'sscribe-export-site-pages'); ?></strong>
 					</div>
 					<div class="sscribe-callout-body">
-						<p><?php esc_html_e('To prevent server storage abuse, all exported ZIP archives are automatically purged from your server after 1 hour.', 'sscribe-export-site-pages'); ?>
-						</p>
-						<p><?php esc_html_e('Data generation happens in batched cycles to ensure reliable conversion without hitting PHP max execution limits.', 'sscribe-export-site-pages'); ?>
-						</p>
+						<p><?php esc_html_e('To prevent server storage abuse, all exported ZIP archives are automatically purged from your server after 1 hour.', 'sscribe-export-site-pages'); ?></p>
+						<p><?php esc_html_e('Data generation happens in batched cycles to ensure reliable conversion without hitting PHP max execution limits.', 'sscribe-export-site-pages'); ?></p>
 					</div>
 				</div>
 

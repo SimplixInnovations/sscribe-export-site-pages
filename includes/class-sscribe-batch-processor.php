@@ -146,6 +146,8 @@ class SScribe_Batch_Processor {
 				'language'   => $language,
 				'post_status'=> $post_status,
 				'errors'     => array(),
+				'start_time' => time(),
+				'cancelled'  => false,
 			)
 		);
 
@@ -230,11 +232,25 @@ class SScribe_Batch_Processor {
 			return;
 		}
 
+		// Check if export was cancelled.
+		if ( ! empty( $session['cancelled'] ) ) {
+			$this->restore_ob_level( $ob_level_before );
+			$this->session->delete( $session_id );
+			wp_send_json_error(
+				array(
+					'message' => __( 'Export was cancelled.', 'sscribe-export-site-pages' ),
+					'cancelled' => true,
+				)
+			);
+			return;
+		}
+
 		$page_ids  = $session['page_ids'];
 		$processed = $session['processed'];
 		$total     = $session['total'];
 		$temp_dir  = $session['temp_dir'];
-		$errors    = $session['errors'];
+		$errors    = isset( $session['errors'] ) ? $session['errors'] : array();
+		$start_time = isset( $session['start_time'] ) ? $session['start_time'] : time();
 
 		// Get the next batch of page IDs.
 		$batch = array_slice( $page_ids, $processed, $this->batch_size );
@@ -245,6 +261,10 @@ class SScribe_Batch_Processor {
 			$this->finalize_export( $session_id, $session );
 			return;
 		}
+
+		// Track current page for progress display.
+		$current_page_title = '';
+		$batch_start_time = microtime( true );
 
 		// Process each page in the batch.
 		foreach ( $batch as $page_id ) {
@@ -268,6 +288,8 @@ class SScribe_Batch_Processor {
 				continue;
 			}
 
+			$current_page_title = $page_data['title'];
+
 			$page_index = $processed + 1;
 			$result     = $this->exporter->generate_docx( $page_data, $temp_dir, $page_index, $total );
 
@@ -290,17 +312,26 @@ class SScribe_Batch_Processor {
 			$processed++;
 		}
 
-		// Update session.
+		$batch_duration = microtime( true ) - $batch_start_time;
+
+		// Update session with timing data.
 		$this->session->update(
 			$session_id,
 			array(
 				'processed' => $processed,
 				'errors'    => $errors,
+				'start_time' => $start_time,
 			)
 		);
 
 		$percentage = ( $total > 0 ) ? round( ( $processed / $total ) * 100 ) : 100;
 		$is_done    = ( $processed >= $total );
+
+		// Calculate time remaining estimate.
+		$elapsed = time() - $start_time;
+		$avg_time_per_page = $processed > 0 ? $elapsed / $processed : 0;
+		$remaining_pages = $total - $processed;
+		$time_remaining = round( $avg_time_per_page * $remaining_pages );
 
 		if ( $is_done ) {
 			$this->restore_ob_level( $ob_level_before );
@@ -313,11 +344,13 @@ class SScribe_Batch_Processor {
 
 		wp_send_json_success(
 			array(
-				'status'     => 'processing',
-				'processed'  => $processed,
-				'total'      => $total,
-				'percentage' => $percentage,
-				'message'    => sprintf(
+				'status'            => 'processing',
+				'processed'         => $processed,
+				'total'             => $total,
+				'percentage'        => $percentage,
+				'current_page'      => $current_page_title,
+				'time_remaining'    => $time_remaining,
+				'message'           => sprintf(
 					/* translators: 1: processed count, 2: total count */
 					__( 'Processing %1$d of %2$d pages...', 'sscribe-export-site-pages' ),
 					$processed,
@@ -441,5 +474,55 @@ class SScribe_Batch_Processor {
 		// phpcs:ignore WordPress.WP.AlternativeFunctions.file_system_operations_readfile
 		readfile( $file_path );
 		exit;
+	}
+
+	/**
+	 * AJAX handler: Get status counts for a language.
+	 *
+	 * @return void
+	 */
+	public function ajax_get_status_counts() {
+		check_ajax_referer( 'sscribe_export_nonce', 'nonce' );
+
+		if ( ! current_user_can( $this->get_required_capability() ) ) {
+			wp_send_json_error( array( 'message' => __( 'Permission denied.', 'sscribe-export-site-pages' ) ) );
+			return;
+		}
+
+		$language = isset( $_POST['language'] ) ? sanitize_text_field( wp_unslash( $_POST['language'] ) ) : '';
+
+		$counts = $this->collector->get_post_status_counts( $language );
+
+		wp_send_json_success( array( 'counts' => $counts ) );
+	}
+
+	/**
+	 * AJAX handler: Cancel an in-progress export.
+	 *
+	 * @return void
+	 */
+	public function ajax_cancel_export() {
+		check_ajax_referer( 'sscribe_export_nonce', 'nonce' );
+
+		if ( ! current_user_can( $this->get_required_capability() ) ) {
+			wp_send_json_error( array( 'message' => __( 'Permission denied.', 'sscribe-export-site-pages' ) ) );
+			return;
+		}
+
+		$session_id = isset( $_POST['session_id'] ) ? sanitize_text_field( wp_unslash( $_POST['session_id'] ) ) : '';
+
+		if ( empty( $session_id ) ) {
+			wp_send_json_error( array( 'message' => __( 'Invalid session.', 'sscribe-export-site-pages' ) ) );
+			return;
+		}
+
+		// Mark session as cancelled.
+		$session = $this->session->get( $session_id );
+		if ( $session ) {
+			$session['cancelled'] = true;
+			$this->session->update( $session_id, $session );
+		}
+
+		wp_send_json_success( array( 'message' => __( 'Export cancelled.', 'sscribe-export-site-pages' ) ) );
 	}
 }
