@@ -4,7 +4,7 @@ Donate link: https://simplixi.com
 Tags: export, docx, word, documentation, multilingual
 Requires at least: 5.8
 Tested up to: 6.9
-Stable tag: 1.6.0
+Stable tag: 1.7.0
 Requires PHP: 7.4
 License: GPLv2 or later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
@@ -203,6 +203,16 @@ Yes. SScribe is 100% free and open-source, developed by Simplix Innovations. No 
 5. SEO section showing metadata from Rank Math
 
 == Changelog ==
+
+= 1.7.0 =
+* Critical fix: Export now reliably processes ALL pages — replaced transient-based session storage (corrupted by caching plugins) with file-based JSON storage
+* Critical fix: Session data now immune to Redis/Memcached key limits, WP Rocket purges, LightSpeed optimization, and Cloudflare cache
+* New: Post status filter — export Published, Draft, Private, Scheduled, Pending, or All pages
+* New: "All Languages" option — export pages from all WPML languages in one operation
+* New: Export settings UI with post status dropdown selector
+* New: Scheduled hourly cleanup for expired session files (4-hour TTL)
+* Improvement: Better error messages when session data is corrupted or expired
+* Improvement: Export success message now shows error count when applicable
 
 = 1.6.0 =
 * Critical fix: Export now completes fully for all pages — fixed output buffer (ob_start) nesting that was destroying WordPress's own buffers and corrupting AJAX JSON responses
