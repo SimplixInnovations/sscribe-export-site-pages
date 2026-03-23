@@ -4,7 +4,7 @@ Donate link: https://simplixi.com
 Tags: export, docx, word, documentation, multilingual
 Requires at least: 5.8
 Tested up to: 6.9
-Stable tag: 1.7.1
+Stable tag: 1.8.0
 Requires PHP: 7.4
 License: GPLv2 or later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
@@ -204,16 +204,17 @@ Yes. SScribe is 100% free and open-source, developed by Simplix Innovations. No 
 
 == Changelog ==
 
-= 1.7.1 =
-* Fix: Plugin header now displays correctly with proper glassmorphism effect
-* Fix: "Post Status" label changed to "Page Status" for accuracy
-* Fix: Status options with zero pages are now disabled and cannot be selected
-* Fix: "What Each Document Includes" section now shows colored icon backgrounds
-* Fix: Cancel export button styling improved
-* Fix: JavaScript now updates disabled state when language selection changes
-* Fix: PHP CodeSniffer compliance — replaced unlink() with wp_delete_file()
-* Fix: PHP CodeSniffer compliance — added ignore for ini_set() usage
-* Fix: PHP CodeSniffer compliance — prefixed all internal variables with sscribe_
+= 1.8.0 =
+* Fix: Hero header now displays correctly — separated glass overlay from content in HTML structure
+* Fix: "Post Status" renamed to "Page Status"
+* Fix: Page Status cards now update dynamically when language is changed
+* Fix: Page Status options with zero pages are automatically disabled and non-selectable
+* Fix: Feature icons now show correct colored icon backgrounds
+* Fix: Cancel Export button has correct styling (border-radius, alignment, disabled state)
+* Fix: PHPCS — unlink() replaced with wp_delete_file() in class-sscribe-session.php
+* Fix: PHPCS — ini_set() phpcs:ignore now correctly suppresses both Squiz and WP sniff rules
+* Fix: PHPCS — all template variables prefixed with sscribe_ to fix NonPrefixedVariableFound warnings
+* Fix: Session file writes now use atomic rename pattern to prevent partial-write corruption
 
 = 1.7.0 =
 * Critical fix: Export now reliably processes ALL pages — replaced transient-based session storage (corrupted by caching plugins) with file-based JSON storage

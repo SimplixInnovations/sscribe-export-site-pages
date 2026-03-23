@@ -23,22 +23,20 @@ if (!defined('ABSPATH')) {
 		<div class="sscribe-hero-glass"></div>
 		<div class="sscribe-hero-content">
 			<div class="sscribe-hero-left">
-				<div class="sscribe-logo-box">
+				<div class="sscribe-hero-logo">
 					<svg width="32" height="32" viewBox="0 0 32 32" fill="none" xmlns="http://www.w3.org/2000/svg">
-						<path d="M16 3L28 9V23L16 29L4 23V9L16 3Z" fill="rgba(255,255,255,0.2)" />
-						<path d="M10 20C10 20 11.5 22 16 22C20.5 22 22 20 22 18C22 14 10 16 10 12C10 10 12 8 16 8C20 8 22 10 22 10" stroke="#FFFFFF" stroke-width="2.5" stroke-linecap="round" />
+						<path d="M16 3L28 9V23L16 29L4 23V9L16 3Z" fill="#2DD4BF" fill-opacity="0.2" />
+						<path d="M10 20C10 20 11.5 22 16 22C20.5 22 22 20 22 18C22 14 10 16 10 12C10 10 12 8 16 8C20 8 22 10 22 10" stroke="#2DD4BF" stroke-width="2.5" stroke-linecap="round" />
 					</svg>
 				</div>
-				<div class="sscribe-hero-text">
-					<h1 class="sscribe-title">SScribe</h1>
-					<p class="sscribe-subtitle">
+				<div class="sscribe-hero-titles">
+					<h1 class="sscribe-hero-title">SScribe</h1>
+					<p class="sscribe-hero-subtitle">
 						<?php esc_html_e( 'Export every page into beautifully formatted Word DOCX files with multilingual support, SEO meta, rich styling, and secure ZIP download.', 'sscribe-export-site-pages' ); ?>
 					</p>
 				</div>
 			</div>
-			<div class="sscribe-hero-right">
-				<span class="sscribe-version-pill">v<?php echo esc_html(SSCRIBE_VERSION); ?></span>
-			</div>
+			<p class="sscribe-hero-version">v<?php echo esc_html( SSCRIBE_VERSION ); ?></p>
 		</div>
 	</header>
 
@@ -184,11 +182,13 @@ if (!defined('ABSPATH')) {
 							'line'     => array( 'x1' => true, 'y1' => true, 'x2' => true, 'y2' => true ),
 						);
 						foreach ($sscribe_status_labels as $sscribe_status_key => $sscribe_status_label):
-							$sscribe_count = isset($status_counts[$sscribe_status_key]) ? $status_counts[$sscribe_status_key] : 0;
-							$sscribe_is_disabled = ($sscribe_count === 0 && $sscribe_status_key !== 'all');
+							$sscribe_count    = isset($status_counts[$sscribe_status_key]) ? intval($status_counts[$sscribe_status_key]) : 0;
+							$sscribe_is_zero  = ( $sscribe_count === 0 );
+							$sscribe_is_first = $sscribe_first && ! $sscribe_is_zero;
+							if ( $sscribe_is_first ) { $sscribe_first = false; }
 						?>
-						<label class="sscribe-status-card-label<?php echo $sscribe_is_disabled ? ' sscribe-disabled' : ''; ?>">
-							<input type="radio" name="sscribe_post_status" value="<?php echo esc_attr($sscribe_status_key); ?>" <?php checked($sscribe_first); $sscribe_first = false; ?><?php echo $sscribe_is_disabled ? ' disabled' : ''; ?>>
+						<label class="sscribe-status-card-label<?php echo $sscribe_is_zero ? ' sscribe-status-disabled' : ''; ?>">
+							<input type="radio" name="sscribe_post_status" value="<?php echo esc_attr($sscribe_status_key); ?>" <?php checked($sscribe_is_first); ?><?php echo $sscribe_is_zero ? ' disabled' : ''; ?>>
 							<div class="sscribe-status-card-inner">
 								<div class="sscribe-status-icon">
 									<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">

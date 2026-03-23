@@ -52,9 +52,14 @@ class SScribe_Session
             return '';
         }
 
-        $result = file_put_contents($file_path, $json, LOCK_EX);
+        $tmp_path = $file_path . '.tmp';
+        $result = file_put_contents($tmp_path, $json, LOCK_EX);
 
         if ($result === false) {
+            return '';
+        }
+
+        if (!rename($tmp_path, $file_path)) {
             return '';
         }
 
@@ -108,9 +113,14 @@ class SScribe_Session
             return false;
         }
 
-        $result = file_put_contents($file_path, $json, LOCK_EX);
+        $tmp_path = $file_path . '.tmp';
+        $result = file_put_contents($tmp_path, $json, LOCK_EX);
 
-        return $result !== false;
+        if ($result === false) {
+            return false;
+        }
+
+        return rename($tmp_path, $file_path);
     }
 
     public function delete(string $session_id): bool
@@ -123,10 +133,13 @@ class SScribe_Session
         }
 
         if (function_exists('wp_delete_file')) {
-            return wp_delete_file($file_path);
+            wp_delete_file($file_path);
+        } else {
+            // phpcs:ignore WordPress.WP.AlternativeFunctions.unlink_unlink
+            unlink($file_path);
         }
 
-        return unlink($file_path);
+        return !file_exists($file_path);
     }
 
     public function validate(string $session_id): bool
@@ -175,7 +188,8 @@ class SScribe_Session
 
             if (isset($data['created_at']) && ($now - $data['created_at']) > $max_age_seconds) {
                 if (function_exists('wp_delete_file')) {
-                    if (wp_delete_file($file)) {
+                    wp_delete_file($file);
+                    if (!file_exists($file)) {
                         $deleted++;
                     }
                 } elseif (unlink($file)) {
