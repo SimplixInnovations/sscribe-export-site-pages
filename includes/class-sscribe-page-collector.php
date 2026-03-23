@@ -25,10 +25,12 @@ class SScribe_Page_Collector {
 	 * @param string $language Optional WPML language code (e.g., 'en', 'ar').
 	 * @return array Array of page IDs.
 	 */
-	public function get_page_ids( $language = '' ) {
+	public function get_page_ids( $language = '', $post_status = 'publish' ) {
+		$post_status = $this->validate_post_status( $post_status );
+
 		$args = array(
 			'post_type'      => 'page',
-			'post_status'    => 'publish',
+			'post_status'    => $post_status,
 			'posts_per_page' => -1,
 			'fields'         => 'ids',
 			'orderby'        => 'menu_order title',
@@ -68,10 +70,12 @@ class SScribe_Page_Collector {
 	 * @param string $language Optional WPML language code.
 	 * @return int
 	 */
-	public function get_page_count_only( $language = '' ) {
+	public function get_page_count_only( $language = '', $post_status = 'publish' ) {
+		$post_status = $this->validate_post_status( $post_status );
+
 		$args = array(
 			'post_type'      => 'page',
-			'post_status'    => 'publish',
+			'post_status'    => $post_status,
 			'posts_per_page' => 1,
 			'fields'         => 'ids',
 			'no_found_rows'  => false,
@@ -343,6 +347,30 @@ class SScribe_Page_Collector {
 	 */
 	public function is_wpml_active() {
 		return defined( 'ICL_SITEPRESS_VERSION' ) && class_exists( 'SitePress' );
+	}
+
+	public function get_valid_post_statuses(): array {
+		return array(
+			'publish' => __( 'Published', 'sscribe-export-site-pages' ),
+			'draft'   => __( 'Draft', 'sscribe-export-site-pages' ),
+			'private' => __( 'Private', 'sscribe-export-site-pages' ),
+			'future'  => __( 'Scheduled', 'sscribe-export-site-pages' ),
+			'pending' => __( 'Pending Review', 'sscribe-export-site-pages' ),
+		);
+	}
+
+	public function validate_post_status( string $status ): string {
+		$valid = array_keys( $this->get_valid_post_statuses() );
+
+		if ( 'all' === $status ) {
+			return 'any';
+		}
+
+		if ( in_array( $status, $valid, true ) ) {
+			return $status;
+		}
+
+		return 'publish';
 	}
 
 	/**
