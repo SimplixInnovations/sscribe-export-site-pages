@@ -25,6 +25,7 @@ class SScribe_Activator {
 	 */
 	public static function activate() {
 		self::create_export_directory();
+		self::create_session_directory();
 		self::schedule_cleanup();
 		update_option( 'sscribe_version', SSCRIBE_VERSION );
 	}
@@ -76,6 +77,36 @@ class SScribe_Activator {
 	private static function schedule_cleanup() {
 		if ( ! wp_next_scheduled( 'sscribe_cleanup_exports' ) ) {
 			wp_schedule_event( time(), 'hourly', 'sscribe_cleanup_exports' );
+		}
+
+		if ( ! wp_next_scheduled( 'sscribe_cleanup_sessions' ) ) {
+			wp_schedule_event( time(), 'hourly', 'sscribe_cleanup_sessions' );
+		}
+	}
+
+	/**
+	 * Create the session directory with security files.
+	 *
+	 * @return void
+	 */
+	private static function create_session_directory() {
+		$upload_dir    = wp_upload_dir();
+		$session_path  = $upload_dir['basedir'] . '/sscribe-sessions';
+
+		if ( ! file_exists( $session_path ) ) {
+			wp_mkdir_p( $session_path );
+		}
+
+		$htaccess_path = $session_path . '/.htaccess';
+		if ( ! file_exists( $htaccess_path ) ) {
+			// phpcs:ignore WordPress.WP.AlternativeFunctions.file_system_operations_file_put_contents
+			file_put_contents( $htaccess_path, 'Deny from all' );
+		}
+
+		$index_path = $session_path . '/index.html';
+		if ( ! file_exists( $index_path ) ) {
+			// phpcs:ignore WordPress.WP.AlternativeFunctions.file_system_operations_file_put_contents
+			file_put_contents( $index_path, '' );
 		}
 	}
 }

@@ -29,5 +29,10 @@ class SScribe_Deactivator {
 		if ( $timestamp ) {
 			wp_unschedule_event( $timestamp, 'sscribe_cleanup_exports' );
 		}
+
+		$session_timestamp = wp_next_scheduled( 'sscribe_cleanup_sessions' );
+		if ( $session_timestamp ) {
+			wp_unschedule_event( $session_timestamp, 'sscribe_cleanup_sessions' );
+		}
 	}
 }
