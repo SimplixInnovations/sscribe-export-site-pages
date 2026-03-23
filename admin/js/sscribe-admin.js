@@ -51,13 +51,33 @@
 					},
 					success: function (response) {
 						if ( response.success && response.data.counts ) {
+							var firstEnabled = null;
 							$( '.sscribe-status-count' ).each(
 								function () {
 									var status = $( this ).data( 'status' );
 									var count = response.data.counts[ status ] || 0;
 									$( this ).text( count );
+									
+									var $label = $( this ).closest( '.sscribe-status-card-label' );
+									var $input = $label.find( 'input[type="radio"]' );
+									
+									if ( status !== 'all' && count === 0 ) {
+										$label.addClass( 'sscribe-disabled' );
+										$input.prop( 'disabled', true );
+									} else {
+										$label.removeClass( 'sscribe-disabled' );
+										$input.prop( 'disabled', false );
+										if ( !firstEnabled ) {
+											firstEnabled = $input;
+										}
+									}
 								}
 							);
+							
+							var $checked = $( 'input[name="sscribe_post_status"]:checked' );
+							if ( $checked.prop( 'disabled' ) && firstEnabled ) {
+								firstEnabled.prop( 'checked', true );
+							}
 						}
 					}
 				}

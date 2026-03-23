@@ -65,10 +65,48 @@
 	padding: 40px 48px;
 	margin-bottom: 32px;
 	overflow: hidden;
-	display: flex;
-	align-items: center;
-	justify-content: space-between;
 	box-shadow: var(--sscribe-shadow-lg);
+}
+
+.sscribe-hero-bg {
+	position: absolute;
+	inset: 0;
+	z-index: 0;
+	overflow: hidden;
+}
+
+.sscribe-blob {
+	position: absolute;
+	filter: blur(60px);
+	border-radius: 50%;
+	opacity: 0.5;
+	animation: sscribe-float 20s infinite alternate ease-in-out;
+}
+
+.sscribe-blob-primary {
+	width: 400px;
+	height: 400px;
+	background: var(--sscribe-primary);
+	top: -150px;
+	right: -100px;
+}
+
+.sscribe-blob-secondary {
+	width: 300px;
+	height: 300px;
+	background: #0284C7;
+	bottom: -150px;
+	right: 300px;
+	animation-delay: -10s;
+}
+
+.sscribe-hero-glass {
+	position: absolute;
+	inset: 0;
+	background: rgba(15, 23, 42, 0.4);
+	backdrop-filter: blur(10px);
+	-webkit-backdrop-filter: blur(10px);
+	z-index: 0;
 }
 
 .sscribe-hero-bg {
@@ -434,9 +472,21 @@
 	flex-shrink: 0;
 }
 
-.sscribe-status-card-label input[type="radio"]:checked + .sscribe-status-card-inner .sscribe-check-icon {
+.scribe-status-card-label input[type="radio"]:checked + .sscribe-status-card-inner .sscribe-check-icon {
 	opacity: 1;
 	transform: scale(1);
+}
+
+/* ===== Disabled Status Cards ===== */
+.sscribe-status-card-label.sscribe-disabled {
+	cursor: not-allowed;
+	opacity: 0.5;
+}
+
+.sscribe-status-card-label.sscribe-disabled:hover .sscribe-status-card-inner {
+	transform: none;
+	box-shadow: none;
+	border-color: var(--sscribe-border);
 }
 
 /* ===== Progress Details ===== */
@@ -474,12 +524,27 @@
 
 /* ===== Cancel Button ===== */
 .sscribe-button-cancel {
-	background: transparent;
+	background: #FFFFFF;
 	color: var(--sscribe-danger);
-	padding: 8px 16px;
-	font-size: 13px;
-	border: 1px solid var(--sscribe-danger);
+	padding: 10px 20px;
+	font-size: 14px;
+	font-weight: 600;
+	border: 2px solid var(--sscribe-danger);
+	border-radius: var(--sscribe-radius-sm);
 	margin-top: 16px;
+	transition: all 0.2s ease;
+	cursor: pointer;
+}
+
+.sscribe-button-cancel:hover {
+	background: var(--sscribe-danger);
+	color: #FFFFFF;
+	border-color: var(--sscribe-danger);
+}
+
+.scribe-button-cancel:focus {
+	outline: none;
+	box-shadow: 0 0 0 3px rgba(239, 68, 68, 0.2);
 }
 
 .sscribe-button-cancel:hover {

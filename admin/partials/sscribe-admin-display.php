@@ -20,18 +20,25 @@ if (!defined('ABSPATH')) {
 
 <div class="sscribe-master-container">
 	<header class="sscribe-hero">
-		<div class="sscribe-hero-glass">
-			<div class="sscribe-hero-logo">
-				<svg width="32" height="32" viewBox="0 0 32 32" fill="none" xmlns="http://www.w3.org/2000/svg">
-					<path d="M16 3L28 9V23L16 29L4 23V9L16 3Z" fill="#2DD4BF" fill-opacity="0.2" />
-					<path d="M10 20C10 20 11.5 22 16 22C20.5 22 22 20 22 18C22 14 10 16 10 12C10 10 12 8 16 8C20 8 22 10 22 10" stroke="#2DD4BF" stroke-width="2.5" stroke-linecap="round" />
-				</svg>
+		<div class="sscribe-hero-glass"></div>
+		<div class="sscribe-hero-content">
+			<div class="sscribe-hero-left">
+				<div class="sscribe-logo-box">
+					<svg width="32" height="32" viewBox="0 0 32 32" fill="none" xmlns="http://www.w3.org/2000/svg">
+						<path d="M16 3L28 9V23L16 29L4 23V9L16 3Z" fill="rgba(255,255,255,0.2)" />
+						<path d="M10 20C10 20 11.5 22 16 22C20.5 22 22 20 22 18C22 14 10 16 10 12C10 10 12 8 16 8C20 8 22 10 22 10" stroke="#FFFFFF" stroke-width="2.5" stroke-linecap="round" />
+					</svg>
+				</div>
+				<div class="sscribe-hero-text">
+					<h1 class="sscribe-title">SScribe</h1>
+					<p class="sscribe-subtitle">
+						<?php esc_html_e( 'Export every page into beautifully formatted Word DOCX files with multilingual support, SEO meta, rich styling, and secure ZIP download.', 'sscribe-export-site-pages' ); ?>
+					</p>
+				</div>
 			</div>
-			<h1 class="sscribe-hero-title">SScribe</h1>
-			<p class="sscribe-hero-subtitle">
-				<?php esc_html_e( 'Export every page into beautifully formatted Word DOCX files with multilingual support, SEO meta, rich styling, and secure ZIP download.', 'sscribe-export-site-pages' ); ?>
-			</p>
-			<p class="sscribe-hero-version">v<?php echo esc_html(SSCRIBE_VERSION); ?></p>
+			<div class="sscribe-hero-right">
+				<span class="sscribe-version-pill">v<?php echo esc_html(SSCRIBE_VERSION); ?></span>
+			</div>
 		</div>
 	</header>
 
@@ -148,11 +155,11 @@ if (!defined('ABSPATH')) {
 							<path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/>
 							<polyline points="22 4 12 14.01 9 11.01"/>
 						</svg>
-						<?php esc_html_e('Post Status', 'sscribe-export-site-pages'); ?>
+						<?php esc_html_e('Page Status', 'sscribe-export-site-pages'); ?>
 					</legend>
 					<div class="sscribe-status-cards" id="sscribe-status-cards">
 						<?php
-						$status_labels = array(
+						$sscribe_status_labels = array(
 							'publish' => __('Published', 'sscribe-export-site-pages'),
 							'draft'   => __('Draft', 'sscribe-export-site-pages'),
 							'private' => __('Private', 'sscribe-export-site-pages'),
@@ -160,7 +167,7 @@ if (!defined('ABSPATH')) {
 							'pending' => __('Pending', 'sscribe-export-site-pages'),
 							'all'     => __('All Statuses', 'sscribe-export-site-pages'),
 						);
-						$status_icons = array(
+						$sscribe_status_icons = array(
 							'publish' => '<path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/>',
 							'draft'   => '<path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/>',
 							'private' => '<rect x="3" y="11" width="18" height="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/>',
@@ -168,28 +175,29 @@ if (!defined('ABSPATH')) {
 							'pending' => '<circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/><line x1="8" y1="2" x2="8" y2="6"/>',
 							'all'     => '<circle cx="12" cy="12" r="10"/><path d="M8 12h8"/>',
 						);
-						$first = true;
-						$svg_allowed = array(
+						$sscribe_first = true;
+						$sscribe_svg_allowed = array(
 							'path'     => array( 'd' => true ),
 							'polyline' => array( 'points' => true ),
 							'circle'   => array( 'cx' => true, 'cy' => true, 'r' => true ),
 							'rect'     => array( 'x' => true, 'y' => true, 'width' => true, 'height' => true, 'rx' => true, 'ry' => true ),
 							'line'     => array( 'x1' => true, 'y1' => true, 'x2' => true, 'y2' => true ),
 						);
-						foreach ($status_labels as $status_key => $status_label):
-							$count = isset($status_counts[$status_key]) ? $status_counts[$status_key] : 0;
+						foreach ($sscribe_status_labels as $sscribe_status_key => $sscribe_status_label):
+							$sscribe_count = isset($status_counts[$sscribe_status_key]) ? $status_counts[$sscribe_status_key] : 0;
+							$sscribe_is_disabled = ($sscribe_count === 0 && $sscribe_status_key !== 'all');
 						?>
-						<label class="sscribe-status-card-label">
-							<input type="radio" name="sscribe_post_status" value="<?php echo esc_attr($status_key); ?>" <?php checked($first); $first = false; ?>>
+						<label class="sscribe-status-card-label<?php echo $sscribe_is_disabled ? ' sscribe-disabled' : ''; ?>">
+							<input type="radio" name="sscribe_post_status" value="<?php echo esc_attr($sscribe_status_key); ?>" <?php checked($sscribe_first); $sscribe_first = false; ?><?php echo $sscribe_is_disabled ? ' disabled' : ''; ?>>
 							<div class="sscribe-status-card-inner">
 								<div class="sscribe-status-icon">
 									<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-										<?php echo wp_kses( $status_icons[ $status_key ], $svg_allowed ); ?>
+										<?php echo wp_kses( $sscribe_status_icons[ $sscribe_status_key ], $sscribe_svg_allowed ); ?>
 									</svg>
 								</div>
 								<div class="sscribe-status-meta">
-									<span class="sscribe-status-name"><?php echo esc_html($status_label); ?></span>
-									<span class="sscribe-status-count" data-status="<?php echo esc_attr($status_key); ?>"><?php echo esc_html( number_format_i18n( $count ) ); ?></span>
+									<span class="sscribe-status-name"><?php echo esc_html($sscribe_status_label); ?></span>
+									<span class="sscribe-status-count" data-status="<?php echo esc_attr($sscribe_status_key); ?>"><?php echo esc_html( number_format_i18n( $sscribe_count ) ); ?></span>
 								</div>
 								<div class="sscribe-status-selector">
 									<svg viewBox="0 0 24 24" width="16" height="16" stroke="currentColor" stroke-width="2.5"
@@ -442,26 +450,26 @@ if (!defined('ABSPATH')) {
 								),
 							);
 
-							$svg_allowed_features = array(
-								'path'     => array( 'd' => true ),
-								'polyline' => array( 'points' => true ),
-								'circle'   => array( 'cx' => true, 'cy' => true, 'r' => true ),
-								'rect'     => array( 'x' => true, 'y' => true, 'width' => true, 'height' => true, 'rx' => true, 'ry' => true ),
-								'line'     => array( 'x1' => true, 'y1' => true, 'x2' => true, 'y2' => true ),
-							);
+						$sscribe_svg_allowed_features = array(
+							'path'     => array( 'd' => true ),
+							'polyline' => array( 'points' => true ),
+							'circle'   => array( 'cx' => true, 'cy' => true, 'r' => true ),
+							'rect'     => array( 'x' => true, 'y' => true, 'width' => true, 'height' => true, 'rx' => true, 'ry' => true ),
+							'line'     => array( 'x1' => true, 'y1' => true, 'x2' => true, 'y2' => true ),
+						);
 
-							foreach ($sscribe_features as $feature):
+						foreach ($sscribe_features as $sscribe_feature):
 							?>
 							<div class="sscribe-feature-item">
-								<div class="sscribe-feature-icon" data-color="<?php echo esc_attr($feature['color']); ?>" data-bg="<?php echo esc_attr($feature['bg']); ?>">
+								<div class="sscribe-feature-icon" style="background: <?php echo esc_attr($sscribe_feature['bg']); ?>; color: <?php echo esc_attr($sscribe_feature['color']); ?>;">
 									<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor"
 										stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-										<?php echo wp_kses( $feature['icon'], $svg_allowed_features ); ?>
+										<?php echo wp_kses( $sscribe_feature['icon'], $sscribe_svg_allowed_features ); ?>
 									</svg>
 								</div>
 								<div class="sscribe-feature-text">
-									<h4><?php echo esc_html($feature['title']); ?></h4>
-									<p><?php echo esc_html($feature['desc']); ?></p>
+									<h4><?php echo esc_html($sscribe_feature['title']); ?></h4>
+									<p><?php echo esc_html($sscribe_feature['desc']); ?></p>
 								</div>
 							</div>
 							<?php endforeach; ?>
