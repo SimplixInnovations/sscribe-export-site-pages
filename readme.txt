@@ -4,7 +4,7 @@ Donate link: https://simplixi.com
 Tags: export, docx, word, documentation, multilingual
 Requires at least: 5.8
 Tested up to: 6.9
-Stable tag: 1.8.0
+Stable tag: 1.8.1
 Requires PHP: 7.4
 License: GPLv2 or later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
@@ -203,6 +203,12 @@ Yes. SScribe is 100% free and open-source, developed by Simplix Innovations. No 
 5. SEO section showing metadata from Rank Math
 
 == Changelog ==
+
+= 1.8.1 =
+* Debug release: Added comprehensive logging to diagnose export issues
+* Debug logs saved to wp-content/uploads/sscribe-logs/export-debug-YYYY-MM-DD.log
+* Fix: Hero header CSS specificity improved to override WordPress admin styles
+* Fix: Page Status counts now correctly update based on selected language
 
 = 1.8.0 =
 * Fix: Hero header now displays correctly — separated glass overlay from content in HTML structure

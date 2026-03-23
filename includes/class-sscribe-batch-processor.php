@@ -86,6 +86,40 @@ class SScribe_Batch_Processor {
 	}
 
 	/**
+	 * Write debug log entry.
+	 *
+	 * @param string $message Log message.
+	 * @param array  $data    Optional data to include.
+	 */
+	private function debug_log( string $message, array $data = array() ): void {
+		// phpcs:ignore WordPress.NamingConventions.PrefixAllGlobals.NonPrefixedVariableFound
+		// @phpstan-ignore-next-line
+		$debug_enabled = defined( 'SSCRIBE_DEBUG' ) && SSCRIBE_DEBUG;
+		if ( ! $debug_enabled ) {
+			return;
+		}
+
+		$upload_dir = wp_upload_dir();
+		$log_dir    = trailingslashit( $upload_dir['basedir'] ) . 'sscribe-logs/';
+
+		if ( ! is_dir( $log_dir ) ) {
+			wp_mkdir_p( $log_dir );
+		}
+
+		$log_file  = $log_dir . 'export-debug-' . gmdate( 'Y-m-d' ) . '.log';
+		$timestamp = gmdate( 'Y-m-d H:i:s' );
+		$entry     = "[{$timestamp}] {$message}";
+
+		if ( ! empty( $data ) ) {
+			$entry .= ' | ' . wp_json_encode( $data, JSON_UNESCAPED_UNICODE );
+		}
+
+		$entry .= "\n";
+
+		file_put_contents( $log_file, $entry, FILE_APPEND | LOCK_EX );
+	}
+
+	/**
 	 * AJAX handler: Start export process.
 	 *
 	 * @return void
@@ -93,8 +127,7 @@ class SScribe_Batch_Processor {
 	public function ajax_start_export() {
 		check_ajax_referer( 'sscribe_export_nonce', 'nonce' );
 
-		// NOTE: No ob_start() here — this handler only queries page IDs.
-		// apply_filters('the_content') is not called here, so no stray output is possible.
+		$this->debug_log( '=== START EXPORT ===' );
 
 		if ( ! current_user_can( $this->get_required_capability() ) ) {
 			wp_send_json_error(
@@ -107,6 +140,8 @@ class SScribe_Batch_Processor {
 
 		$language = isset( $_POST['language'] ) ? sanitize_text_field( wp_unslash( $_POST['language'] ) ) : '';
 		$post_status = isset( $_POST['post_status'] ) ? sanitize_text_field( wp_unslash( $_POST['post_status'] ) ) : 'publish';
+
+		$this->debug_log( 'Export params', array( 'language' => $language, 'post_status' => $post_status ) );
 
 		// Validate language code against active WPML languages when WPML is present.
 		if ( ! empty( $language ) && $this->collector->is_wpml_active() ) {
@@ -123,6 +158,12 @@ class SScribe_Batch_Processor {
 
 		$page_ids = $this->collector->get_page_ids( $language, $post_status );
 		$total    = count( $page_ids );
+
+		$this->debug_log( 'Page IDs retrieved', array(
+			'total' => $total,
+			'ids_sample' => array_slice( $page_ids, 0, 10 ),
+			'all_ids' => $page_ids,
+		) );
 
 		if ( 0 === $total ) {
 			wp_send_json_error(
@@ -150,6 +191,11 @@ class SScribe_Batch_Processor {
 				'cancelled'  => false,
 			)
 		);
+
+		$this->debug_log( 'Session created', array(
+			'session_id' => $session_id,
+			'temp_dir'   => $temp_dir,
+		) );
 
 		if ( empty( $session_id ) ) {
 			wp_send_json_error(
@@ -210,7 +256,13 @@ class SScribe_Batch_Processor {
 		$session_id = isset( $_POST['session_id'] ) ? sanitize_text_field( wp_unslash( $_POST['session_id'] ) ) : '';
 		$session    = $this->session->get( $session_id );
 
+		$this->debug_log( 'Process batch called', array(
+			'session_id' => $session_id,
+			'session_found' => ! empty( $session ),
+		) );
+
 		if ( ! $session ) {
+			$this->debug_log( 'ERROR: Session not found' );
 			// Restore to exactly the level before our ob_start(), then respond.
 			$this->restore_ob_level( $ob_level_before );
 			wp_send_json_error(
@@ -223,6 +275,11 @@ class SScribe_Batch_Processor {
 
 		// Validate session integrity.
 		if ( ! $this->session->validate( $session_id ) ) {
+			$this->debug_log( 'ERROR: Session validation failed', array(
+				'session_keys' => array_keys( $session ),
+				'page_ids_count' => isset( $session['page_ids'] ) ? count( $session['page_ids'] ) : 'not set',
+				'total' => $session['total'] ?? 'not set',
+			) );
 			$this->restore_ob_level( $ob_level_before );
 			wp_send_json_error(
 				array(
@@ -234,6 +291,7 @@ class SScribe_Batch_Processor {
 
 		// Check if export was cancelled.
 		if ( ! empty( $session['cancelled'] ) ) {
+			$this->debug_log( 'Export was cancelled' );
 			$this->restore_ob_level( $ob_level_before );
 			$this->session->delete( $session_id );
 			wp_send_json_error(
@@ -252,10 +310,24 @@ class SScribe_Batch_Processor {
 		$errors    = isset( $session['errors'] ) ? $session['errors'] : array();
 		$start_time = isset( $session['start_time'] ) ? $session['start_time'] : time();
 
+		$this->debug_log( 'Session state', array(
+			'total_pages' => $total,
+			'processed' => $processed,
+			'remaining' => $total - $processed,
+			'error_count' => count( $errors ),
+		) );
+
 		// Get the next batch of page IDs.
 		$batch = array_slice( $page_ids, $processed, $this->batch_size );
 
+		$this->debug_log( 'Batch details', array(
+			'batch_size_setting' => $this->batch_size,
+			'batch_count' => count( $batch ),
+			'batch_ids' => $batch,
+		) );
+
 		if ( empty( $batch ) ) {
+			$this->debug_log( 'Batch empty, finalizing export' );
 			// All pages processed — create ZIP.
 			$this->restore_ob_level( $ob_level_before );
 			$this->finalize_export( $session_id, $session );
@@ -268,6 +340,8 @@ class SScribe_Batch_Processor {
 
 		// Process each page in the batch.
 		foreach ( $batch as $page_id ) {
+			$this->debug_log( "Processing page ID: {$page_id}" );
+			
 			/**
 			 * Fires before a page is exported to DOCX.
 			 *
@@ -279,26 +353,33 @@ class SScribe_Batch_Processor {
 			$page_data = $this->collector->get_page_data( $page_id );
 
 			if ( ! $page_data ) {
-				$errors[] = sprintf(
+				$error_msg = sprintf(
 					/* translators: %d: page ID */
 					__( 'Failed to collect data for page ID %d.', 'sscribe-export-site-pages' ),
 					$page_id
 				);
+				$this->debug_log( "ERROR: {$error_msg}" );
+				$errors[] = $error_msg;
 				$processed++;
 				continue;
 			}
 
 			$current_page_title = $page_data['title'];
+			$this->debug_log( "Page data collected", array( 'title' => $current_page_title, 'id' => $page_id ) );
 
 			$page_index = $processed + 1;
 			$result     = $this->exporter->generate_docx( $page_data, $temp_dir, $page_index, $total );
 
 			if ( ! $result ) {
-				$errors[] = sprintf(
+				$error_msg = sprintf(
 					/* translators: %s: page title */
 					__( 'Failed to generate DOCX for "%s".', 'sscribe-export-site-pages' ),
 					$page_data['title']
 				);
+				$this->debug_log( "ERROR: {$error_msg}" );
+				$errors[] = $error_msg;
+			} else {
+				$this->debug_log( "DOCX generated successfully", array( 'file' => basename( $result ) ) );
 			}
 
 			/**
@@ -314,8 +395,15 @@ class SScribe_Batch_Processor {
 
 		$batch_duration = microtime( true ) - $batch_start_time;
 
+		$this->debug_log( 'Batch completed', array(
+			'processed_now' => $processed - $session['processed'],
+			'batch_duration_sec' => round( $batch_duration, 2 ),
+			'total_processed' => $processed,
+			'total_errors' => count( $errors ),
+		) );
+
 		// Update session with timing data.
-		$this->session->update(
+		$update_result = $this->session->update(
 			$session_id,
 			array(
 				'processed' => $processed,
@@ -324,8 +412,17 @@ class SScribe_Batch_Processor {
 			)
 		);
 
+		$this->debug_log( 'Session update result', array( 'success' => $update_result ) );
+
 		$percentage = ( $total > 0 ) ? round( ( $processed / $total ) * 100 ) : 100;
 		$is_done    = ( $processed >= $total );
+
+		$this->debug_log( 'Progress check', array(
+			'processed' => $processed,
+			'total' => $total,
+			'percentage' => $percentage,
+			'is_done' => $is_done,
+		) );
 
 		// Calculate time remaining estimate.
 		$elapsed = time() - $start_time;
@@ -334,6 +431,7 @@ class SScribe_Batch_Processor {
 		$time_remaining = round( $avg_time_per_page * $remaining_pages );
 
 		if ( $is_done ) {
+			$this->debug_log( 'All pages processed, finalizing' );
 			$this->restore_ob_level( $ob_level_before );
 			$this->finalize_export( $session_id, $session );
 			return;
@@ -383,13 +481,23 @@ class SScribe_Batch_Processor {
 	 * @param array  $session    The session data.
 	 */
 	private function finalize_export( $session_id, $session ) {
+		$this->debug_log( '=== FINALIZE EXPORT ===', array(
+			'session_id' => $session_id,
+			'total' => $session['total'],
+			'errors_count' => count( $session['errors'] ),
+			'errors' => $session['errors'],
+		) );
+
 		$lang_code = ! empty( $session['language'] ) ? $session['language'] : 'all';
 		$site_slug = sanitize_file_name( get_bloginfo( 'name' ) );
 		$zip_name  = 'sscribe-export-' . $lang_code . '-' . $site_slug . '-' . gmdate( 'Y-m-d-His' );
 
+		$this->debug_log( 'Creating ZIP', array( 'zip_name' => $zip_name, 'temp_dir' => $session['temp_dir'] ) );
+
 		$zip_path = $this->zip_handler->create_zip( $session['temp_dir'], $zip_name );
 
 		if ( ! $zip_path ) {
+			$this->debug_log( 'ERROR: Failed to create ZIP' );
 			wp_send_json_error(
 				array(
 					'message' => __( 'Failed to create ZIP package. Please try again.', 'sscribe-export-site-pages' ),
@@ -398,12 +506,20 @@ class SScribe_Batch_Processor {
 			return;
 		}
 
+		$this->debug_log( 'ZIP created successfully', array( 'zip_path' => $zip_path ) );
+
+		// Count actual DOCX files in temp dir
+		$docx_files = glob( $session['temp_dir'] . '*.docx' );
+		$this->debug_log( 'DOCX files in ZIP', array( 'count' => $docx_files ? count( $docx_files ) : 0 ) );
+
 		// ZIP created successfully — now clean up session.
 		$this->session->delete( $session_id );
 
 		$error_count = count( $session['errors'] );
 
 		$download_url = $this->zip_handler->get_ajax_download_url( basename( $zip_path ) );
+
+		$this->debug_log( 'Export complete', array( 'download_url' => $download_url ) );
 
 		wp_send_json_success(
 			array(
