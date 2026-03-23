@@ -65,14 +65,38 @@ if (!defined('ABSPATH')) {
 			<div class="sscribe-panel-body">
 				<?php if ($wpml_active && !empty($languages)): ?>
 					<p class="sscribe-description">
-						<?php esc_html_e('Choose a language. The plugin will export all published pages for the selected language into a professional DOCX archive.', 'sscribe-export-site-pages'); ?>
+						<?php esc_html_e('Choose a language and post status. The plugin will export all matching pages into a professional DOCX archive.', 'sscribe-export-site-pages'); ?>
 					</p>
 
 				<div class="sscribe-language-cards">
+					<label class="sscribe-lang-card-label sscribe-lang-card-all">
+						<input type="radio" name="sscribe_language" value="" checked>
+						<div class="sscribe-lang-card-inner">
+							<div class="sscribe-lang-flag-wrapper">
+								<div class="sscribe-lang-flag-placeholder sscribe-lang-flag-all">
+									<svg viewBox="0 0 24 24" width="20" height="20" stroke="currentColor" stroke-width="2" fill="none">
+										<circle cx="12" cy="12" r="10"/>
+										<line x1="2" y1="12" x2="22" y2="12"/>
+										<path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"/>
+									</svg>
+								</div>
+							</div>
+							<div class="sscribe-lang-meta">
+								<span class="sscribe-lang-name"><?php esc_html_e('All Languages', 'sscribe-export-site-pages'); ?></span>
+								<span class="sscribe-lang-count"><?php esc_html_e('Export all pages', 'sscribe-export-site-pages'); ?></span>
+							</div>
+							<div class="sscribe-lang-selector">
+								<svg viewBox="0 0 24 24" width="18" height="18" stroke="currentColor" stroke-width="2.5"
+									fill="none" stroke-linecap="round" stroke-linejoin="round"
+									class="sscribe-check-icon">
+									<polyline points="20 6 9 17 4 12"></polyline>
+								</svg>
+							</div>
+						</div>
+					</label>
 					<?php foreach ($languages as $sscribe_lang): ?>
 						<label class="sscribe-lang-card-label">
-							<input type="radio" name="sscribe_language" value="<?php echo esc_attr($sscribe_lang['code']); ?>"
-								<?php checked($sscribe_lang, reset($languages)); ?>>
+							<input type="radio" name="sscribe_language" value="<?php echo esc_attr($sscribe_lang['code']); ?>">
 							<div class="sscribe-lang-card-inner">
 								<div class="sscribe-lang-flag-wrapper">
 									<?php if (!empty($sscribe_lang['flag_url'])): ?>
@@ -123,6 +147,24 @@ else: ?>
 					</p>
 				<?php
 endif; ?>
+
+				<div class="sscribe-status-filter">
+					<label class="sscribe-status-label">
+						<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+							<path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/>
+							<polyline points="22 4 12 14.01 9 11.01"/>
+						</svg>
+						<?php esc_html_e('Post Status:', 'sscribe-export-site-pages'); ?>
+					</label>
+					<select name="sscribe_post_status" id="sscribe-post-status" class="sscribe-status-select">
+						<option value="publish"><?php esc_html_e('Published', 'sscribe-export-site-pages'); ?></option>
+						<option value="draft"><?php esc_html_e('Draft', 'sscribe-export-site-pages'); ?></option>
+						<option value="private"><?php esc_html_e('Private', 'sscribe-export-site-pages'); ?></option>
+						<option value="future"><?php esc_html_e('Scheduled', 'sscribe-export-site-pages'); ?></option>
+						<option value="pending"><?php esc_html_e('Pending Review', 'sscribe-export-site-pages'); ?></option>
+						<option value="all"><?php esc_html_e('All Statuses', 'sscribe-export-site-pages'); ?></option>
+					</select>
+				</div>
 
 				<div class="sscribe-action-row">
 					<button type="button" id="sscribe-export-btn" class="sscribe-button sscribe-button-primary">
