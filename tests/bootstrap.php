@@ -125,6 +125,12 @@ if ( ! function_exists( 'sanitize_key' ) ) {
 	}
 }
 
+if ( ! function_exists( '__' ) ) {
+	function __( $sscribe_text, $sscribe_domain = 'default' ) {
+		return $sscribe_text;
+	}
+}
+
 if ( ! function_exists( 'get_file_data' ) ) {
 	function get_file_data( $sscribe_file, $sscribe_headers ) {
 		$content = file_get_contents( $sscribe_file );
