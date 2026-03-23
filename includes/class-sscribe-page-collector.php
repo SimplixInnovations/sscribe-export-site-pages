@@ -20,9 +20,10 @@ class SScribe_Page_Collector {
 
 
 	/**
-	 * Get all published page IDs, optionally filtered by language.
+	 * Get all published page IDs, optionally filtered by language and status.
 	 *
-	 * @param string $language Optional WPML language code (e.g., 'en', 'ar').
+	 * @param string $language    Optional WPML language code (e.g., 'en', 'ar').
+	 * @param string $post_status Optional post status (publish, draft, private, future, pending, all).
 	 * @return array Array of page IDs.
 	 */
 	public function get_page_ids( $language = '', $post_status = 'publish' ) {
@@ -67,7 +68,8 @@ class SScribe_Page_Collector {
 	 * Uses WP_Query's found_posts with posts_per_page=1 to avoid
 	 * loading the full ID set just for counting.
 	 *
-	 * @param string $language Optional WPML language code.
+	 * @param string $language    Optional WPML language code.
+	 * @param string $post_status Optional post status (publish, draft, private, future, pending, all).
 	 * @return int
 	 */
 	public function get_page_count_only( $language = '', $post_status = 'publish' ) {
@@ -349,6 +351,11 @@ class SScribe_Page_Collector {
 		return defined( 'ICL_SITEPRESS_VERSION' ) && class_exists( 'SitePress' );
 	}
 
+	/**
+	 * Get list of valid post statuses for export.
+	 *
+	 * @return array Associative array of status => label pairs.
+	 */
 	public function get_valid_post_statuses(): array {
 		return array(
 			'publish' => __( 'Published', 'sscribe-export-site-pages' ),
@@ -359,6 +366,12 @@ class SScribe_Page_Collector {
 		);
 	}
 
+	/**
+	 * Validate and sanitize a post status value.
+	 *
+	 * @param string $status The status to validate.
+	 * @return string Valid status value (defaults to 'publish' if invalid).
+	 */
 	public function validate_post_status( string $status ): string {
 		$valid = array_keys( $this->get_valid_post_statuses() );
 
