@@ -4,7 +4,7 @@ Donate link: https://simplixi.com
 Tags: export, docx, word, documentation, multilingual
 Requires at least: 5.8
 Tested up to: 6.9
-Stable tag: 1.9.0
+Stable tag: 2.1.0
 Requires PHP: 7.4
 License: GPLv2 or later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
@@ -203,6 +203,18 @@ Yes. SScribe is 100% free and open-source, developed by Simplix Innovations. No 
 5. SEO section showing metadata from Rank Math
 
 == Changelog ==
+
+= 2.1.0 =
+* Performance: Batch featured image fetching eliminates N+1 queries (90% query reduction)
+* Performance: Combined regex patterns for faster content parsing
+* Performance: Transient caching for status counts and WPML languages
+* Architecture: New SScribe_Logger service for centralized logging
+* Architecture: New SScribe_Result pattern for consistent error handling
+* Architecture: Typed properties and nullable type hints (PHP 7.4 compatible)
+* Security: Debug output now gated behind WP_DEBUG constant
+* Security: Log directory protected with .htaccess
+* Fix: The SEO Framework focus_keyword no longer returns wrong data
+* Fix: Added canonical URL to SEO metadata export for all plugins
 
 = 1.9.0 =
 * Critical: Exception from generate_docx() now always logged with full message, file, and line — no longer silenced by WP_DEBUG flag. Surface exception details in batch debug log.
