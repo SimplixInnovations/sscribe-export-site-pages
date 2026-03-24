@@ -114,10 +114,19 @@
 
 			var language = $( 'input[name="sscribe_language"]:checked' ).val() || '';
 			var postStatus = $( 'input[name="sscribe_post_status"]:checked' ).val() || 'publish';
+			var formats = [];
+			$( 'input[name="sscribe_formats[]"]:checked' ).each( function() {
+				formats.push( $( this ).val() );
+			} );
+
+			if ( formats.length === 0 ) {
+				formats = ['docx'];
+			}
 
 			sscribeDebugLog('Starting export', {
 				language: language || 'all',
-				post_status: postStatus
+				post_status: postStatus,
+				formats: formats
 			});
 
 			$.ajax(
@@ -128,7 +137,8 @@
 						action: 'sscribe_start_export',
 						nonce: sscribe_data.nonce,
 						language: language,
-						post_status: postStatus
+						post_status: postStatus,
+						formats: formats
 					},
 					success: $.proxy(
 						function (response) {

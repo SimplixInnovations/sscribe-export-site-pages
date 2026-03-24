@@ -404,6 +404,45 @@ if (!defined('ABSPATH')) {
 					</div>
 				</fieldset>
 
+				<fieldset class="sscribe-fieldset">
+					<legend class="sscribe-legend">
+						<?php esc_html_e('Export Format', 'sscribe-export-site-pages'); ?>
+					</legend>
+					<div class="sscribe-format-selection">
+						<?php
+						$sscribe_formats = array(
+							'docx'     => array(
+								'label' => __('Word Document (DOCX)', 'sscribe-export-site-pages'),
+								'icon'  => '<path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/><polyline points="10 9 9 9 8 9"/>',
+							),
+							'pdf'      => array(
+								'label' => __('PDF Document', 'sscribe-export-site-pages'),
+								'icon'  => '<path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><path d="M9 15h6"/><path d="M9 11h6"/>',
+							),
+							'html'     => array(
+								'label' => __('HTML Page', 'sscribe-export-site-pages'),
+								'icon'  => '<polyline points="16 18 22 12 16 6"/><polyline points="8 6 2 12 8 18"/>',
+							),
+							'markdown' => array(
+								'label' => __('Markdown', 'sscribe-export-site-pages'),
+								'icon'  => '<path d="M4 7V4h16v3"/><path d="M9 20h6"/><path d="M12 4v16"/>',
+							),
+						);
+						foreach ($sscribe_formats as $sscribe_format_key => $sscribe_format_data):
+						?>
+						<label class="sscribe-format-option">
+							<input type="checkbox" name="sscribe_formats[]" value="<?php echo esc_attr($sscribe_format_key); ?>" <?php checked($sscribe_format_key, 'docx'); ?>>
+							<div class="sscribe-format-card">
+								<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+									<?php echo wp_kses($sscribe_format_data['icon'], $sscribe_svg_allowed); ?>
+								</svg>
+								<span class="sscribe-format-label"><?php echo esc_html($sscribe_format_data['label']); ?></span>
+							</div>
+						</label>
+						<?php endforeach; ?>
+					</div>
+				</fieldset>
+
 				<div class="sscribe-action-row">
 					<button type="button" id="sscribe-export-btn" class="sscribe-button sscribe-button-primary">
 						<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor"
