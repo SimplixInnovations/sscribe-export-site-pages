@@ -33,13 +33,6 @@ class SScribe_Batch_Processor {
 	private $collector;
 
 	/**
-	 * Exporter instance.
-	 *
-	 * @var SScribe_Exporter
-	 */
-	private $exporter;
-
-	/**
 	 * ZIP handler instance.
 	 *
 	 * @var SScribe_Zip_Handler
@@ -66,7 +59,6 @@ class SScribe_Batch_Processor {
 		$this->batch_size = max( 1, min( 20, $this->batch_size ) );
 
 		$this->collector   = new SScribe_Page_Collector();
-		$this->exporter    = new SScribe_Exporter();
 		$this->zip_handler = new SScribe_Zip_Handler();
 		$this->session     = new SScribe_Session();
 	}
@@ -133,8 +125,25 @@ class SScribe_Batch_Processor {
 
 		$language = isset( $_POST['language'] ) ? sanitize_text_field( wp_unslash( $_POST['language'] ) ) : '';
 		$post_status = isset( $_POST['post_status'] ) ? sanitize_text_field( wp_unslash( $_POST['post_status'] ) ) : 'publish';
+		// phpcs:ignore WordPress.Security.ValidatedSanitizedInput.InputNotSanitized -- sanitized below
+		$formats_raw   = isset( $_POST['formats'] ) ? wp_unslash( $_POST['formats'] ) : array();
+		$formats_input = is_array( $formats_raw ) ? array_map(
+			function( $f ) {
+				return sanitize_text_field( $f );
+			},
+			$formats_raw
+		) : array();
+		$formats = ! empty( $formats_input ) ? $formats_input : array( 'docx' );
 
-		$this->debug_log( 'Export params', array( 'language' => $language, 'post_status' => $post_status ) );
+		$formats = array_filter( $formats, function( $format ) {
+			return \SScribe_Exporter_Factory::is_supported( $format );
+		} );
+
+		if ( empty( $formats ) ) {
+			$formats = array( 'docx' );
+		}
+
+		$this->debug_log( 'Export params', array( 'language' => $language, 'post_status' => $post_status, 'formats' => $formats ) );
 
 		// Validate language code against active WPML languages when WPML is present.
 		if ( ! empty( $language ) && $this->collector->is_wpml_active() ) {
@@ -190,6 +199,7 @@ class SScribe_Batch_Processor {
 				'processed'  => 0,
 				'language'   => $language,
 				'post_status'=> $post_status,
+				'formats'    => $formats,
 				'errors'     => array(),
 				'start_time' => time(),
 				'cancelled'  => false,
@@ -329,6 +339,7 @@ class SScribe_Batch_Processor {
 		$temp_dir  = $session['temp_dir'];
 		$errors    = isset( $session['errors'] ) ? $session['errors'] : array();
 		$start_time = isset( $session['start_time'] ) ? $session['start_time'] : time();
+		$formats   = isset( $session['formats'] ) ? $session['formats'] : array( 'docx' );
 
 		$this->debug_log( 'Session state', array(
 			'total_pages' => $total,
@@ -407,40 +418,60 @@ class SScribe_Batch_Processor {
 			) );
 
 			$page_index = $processed + 1;
-			$result     = $this->exporter->generate_docx( $page_data, $temp_dir, $page_index, $total );
+			$export_success = false;
+			$export_errors = array();
+
+			foreach ( $formats as $format ) {
+				$exporter = \SScribe_Exporter_Factory::create( $format );
+				
+				if ( ! $exporter ) {
+					continue;
+				}
+
+				$result = $exporter->export( $page_data, $temp_dir, $page_index, $total );
+
+				if ( $result->is_success() ) {
+					$export_success = true;
+					$this->debug_log( ucfirst( $format ) . " generated successfully", array( 
+						'file' => basename( $result->get_data()['path'] ?? '' ),
+						'page_id' => $page_id,
+						'format' => $format,
+					) );
+				} else {
+					$export_errors[] = sprintf(
+						'%s: %s',
+						strtoupper( $format ),
+						$result->get_error()
+					);
+				}
+			}
 
 			$page_duration = round( microtime( true ) - $page_start_time, 3 );
 			
-			if ( ! $result ) {
+			if ( ! $export_success ) {
 				$error_msg = sprintf(
 					/* translators: %s: page title */
-					__( 'Failed to generate DOCX for "%s".', 'sscribe-export-site-pages' ),
+					__( 'Failed to generate exports for "%s".', 'sscribe-export-site-pages' ),
 					$page_data['title']
 				);
-				$errors[] = $error_msg;
+				$errors[] = $error_msg . ' ' . implode( ', ', $export_errors );
 
-				// Surface the actual PHP exception for debugging.
-				$this->debug_log( "ERROR: {$error_msg}", array(
+				$this->debug_log( "ERROR: Export failed", array(
 					'page_id'        => $page_id,
 					'title'          => $page_data['title'],
 					'duration_sec'   => $page_duration,
-					'exception'      => $this->exporter->last_error,
-				) );
-			} else {
-				$this->debug_log( "DOCX generated successfully", array( 
-					'file' => basename( $result ),
-					'page_id' => $page_id,
-					'duration_sec' => $page_duration,
+					'errors'         => $export_errors,
 				) );
 			}
 
 			/**
-			 * Fires after a page has been exported to DOCX.
+			 * Fires after a page has been exported.
 			 *
-			 * @param int          $page_id The page ID.
-			 * @param string|false $result  Path to DOCX or false on failure.
+			 * @param int    $page_id The page ID.
+			 * @param array  $formats The formats exported.
+			 * @param bool   $success Whether export succeeded.
 			 */
-			do_action( 'sscribe_after_export_page', $page_id, $result );
+			do_action( 'sscribe_after_export_page', $page_id, $formats, $export_success );
 
 			$processed++;
 		}
