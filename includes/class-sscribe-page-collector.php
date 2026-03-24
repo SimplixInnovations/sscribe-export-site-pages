@@ -18,6 +18,12 @@ if ( ! defined( 'ABSPATH' ) ) {
  */
 class SScribe_Page_Collector {
 
+	/**
+	 * Pre-fetched featured images cache.
+	 *
+	 * @var array
+	 */
+	private array $featured_images_cache = array();
 
 	/**
 	 * Get all published page IDs, optionally filtered by language and status.
@@ -104,6 +110,105 @@ class SScribe_Page_Collector {
 		$entry .= "\n";
 
 		file_put_contents( $log_file, $entry, FILE_APPEND | LOCK_EX );
+	}
+
+	/**
+	 * Batch fetch featured images for multiple page IDs.
+	 *
+	 * Reduces N+1 queries by fetching all featured images in 2 queries
+	 * instead of 3 queries per page.
+	 *
+	 * @param array $page_ids Array of page IDs.
+	 * @return array Associative array: page_id => ['id' => int, 'url' => string, 'path' => string]
+	 */
+	public function get_featured_images_batch( array $page_ids ): array {
+		if ( empty( $page_ids ) ) {
+			return array();
+		}
+
+		$page_ids = array_map(
+			function ( $id ) {
+				return absint( $id );
+			},
+			$page_ids
+		);
+		$page_ids = array_filter( $page_ids );
+
+		if ( empty( $page_ids ) ) {
+			return array();
+		}
+
+		global $wpdb;
+
+		$placeholders = implode( ',', array_fill( 0, count( $page_ids ), '%d' ) );
+		// phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared
+		$results = $wpdb->get_results(
+			$wpdb->prepare(
+				"SELECT post_id, meta_value AS thumbnail_id FROM {$wpdb->postmeta} WHERE meta_key = '_thumbnail_id' AND post_id IN ({$placeholders})",
+				$page_ids
+			)
+		);
+
+		$thumbnail_ids = array();
+		$page_to_thumb = array();
+
+		foreach ( $results as $row ) {
+			$thumb_id = (int) $row->thumbnail_id;
+			$thumbnail_ids[] = $thumb_id;
+			$page_to_thumb[ (int) $row->post_id ] = $thumb_id;
+		}
+
+		$attachment_data = array();
+		if ( ! empty( $thumbnail_ids ) ) {
+			$thumb_placeholders = implode( ',', array_fill( 0, count( $thumbnail_ids ), '%d' ) );
+			// phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared
+			$attachments = $wpdb->get_results(
+				$wpdb->prepare(
+					"SELECT p.ID, p.guid, pm_path.meta_value AS filepath FROM {$wpdb->posts} p LEFT JOIN {$wpdb->postmeta} pm_path ON p.ID = pm_path.post_id AND pm_path.meta_key = '_wp_attached_file' WHERE p.ID IN ({$thumb_placeholders})",
+					$thumbnail_ids
+				)
+			);
+
+			foreach ( $attachments as $att ) {
+				$upload_base = $this->get_upload_base_dir();
+				$attachment_data[ (int) $att->ID ] = array(
+					'url'  => $att->guid,
+					'path' => $att->filepath ? trailingslashit( $upload_base ) . $att->filepath : '',
+				);
+			}
+		}
+
+		$featured_images = array();
+		foreach ( $page_ids as $page_id ) {
+			if ( isset( $page_to_thumb[ $page_id ] ) ) {
+				$thumb_id = $page_to_thumb[ $page_id ];
+				$featured_images[ $page_id ] = array(
+					'id'   => $thumb_id,
+					'url'  => $attachment_data[ $thumb_id ]['url'] ?? '',
+					'path' => $attachment_data[ $thumb_id ]['path'] ?? '',
+				);
+			} else {
+				$featured_images[ $page_id ] = array(
+					'id'   => 0,
+					'url'  => '',
+					'path' => '',
+				);
+			}
+		}
+
+		$this->featured_images_cache = array_merge( $this->featured_images_cache, $featured_images );
+
+		return $featured_images;
+	}
+
+	/**
+	 * Get upload base directory.
+	 *
+	 * @return string
+	 */
+	private function get_upload_base_dir(): string {
+		$upload_dir = wp_upload_dir();
+		return $upload_dir['basedir'];
 	}
 
 	/**
@@ -246,16 +351,23 @@ class SScribe_Page_Collector {
 		// Get author.
 		$author = get_the_author_meta( 'display_name', $post_object->post_author );
 
-		// Get featured image.
-		$featured_image_id   = get_post_thumbnail_id( $page_id );
-		$featured_image_url  = '';
-		$featured_image_path = '';
-		if ( $featured_image_id ) {
-			$image_src = wp_get_attachment_image_src( $featured_image_id, 'large' );
-			if ( $image_src ) {
-				$featured_image_url = $image_src[0];
+		// Get featured image - use cached batch data if available.
+		if ( isset( $this->featured_images_cache[ $page_id ] ) ) {
+			$cached_image = $this->featured_images_cache[ $page_id ];
+			$featured_image_id   = $cached_image['id'];
+			$featured_image_url  = $cached_image['url'];
+			$featured_image_path = $cached_image['path'];
+		} else {
+			$featured_image_id   = get_post_thumbnail_id( $page_id );
+			$featured_image_url  = '';
+			$featured_image_path = '';
+			if ( $featured_image_id ) {
+				$image_src = wp_get_attachment_image_src( $featured_image_id, 'large' );
+				if ( $image_src ) {
+					$featured_image_url = $image_src[0];
+				}
+				$featured_image_path = get_attached_file( $featured_image_id );
 			}
-			$featured_image_path = get_attached_file( $featured_image_id );
 		}
 
 		// Get breadcrumbs.
