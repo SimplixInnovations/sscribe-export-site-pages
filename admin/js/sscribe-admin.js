@@ -16,6 +16,8 @@
 
 		init: function () {
 			this.bindEvents();
+			this.applyFeatureIconColors();
+			this.onLanguageChange();
 		},
 
 		bindEvents: function () {
@@ -31,6 +33,16 @@
 			);
 
 			$( 'input[name="sscribe_language"]' ).on( 'change', $.proxy( this.onLanguageChange, this ) );
+		},
+
+		applyFeatureIconColors: function () {
+			$( '.sscribe-feature-icon[data-bg]' ).each( function () {
+				var $el = $( this );
+				$el.css({
+					'background-color': $el.data( 'bg' ),
+					'color': $el.data( 'color' )
+				});
+			});
 		},
 
 		onLanguageChange: function () {

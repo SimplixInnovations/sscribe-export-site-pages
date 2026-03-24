@@ -116,11 +116,12 @@ class SScribe_Admin {
 		$languages   = $this->collector->get_wpml_languages();
 		$seo_plugins = $this->seo_reader->get_active_seo_plugins();
 
-		// Get total pages across all languages.
-		$total_pages_all = $this->collector->get_total_all_statuses();
+		// For the "All Languages" card: count published pages in ALL languages combined.
+		$total_pages_all  = $this->collector->get_page_count_only( '', 'publish' );
 
-		// Get post status counts (for default language or all languages).
-		$default_language = $wpml_active && ! empty( $languages ) ? '' : '';
+		// For Page Status section: use the first language (or empty for all) as the default.
+		// When user changes language, JS calls ajax_get_status_counts to refresh.
+		$default_language = '';
 		$status_counts    = $this->collector->get_post_status_counts( $default_language );
 
 		// Enrich languages with per-language page counts.

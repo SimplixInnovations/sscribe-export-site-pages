@@ -22,87 +22,6 @@ if (!defined('ABSPATH')) {
 
 <div class="sscribe-master-container">
 	<style>
-		/* Force header styles - inline for maximum specificity */
-		.sscribe-master-container .sscribe-hero {
-			background: linear-gradient(135deg, #0F172A 0%, #1E293B 100%) !important;
-			border-radius: 24px !important;
-			padding: 32px 40px !important;
-			margin-bottom: 32px !important;
-			position: relative !important;
-			overflow: hidden !important;
-			box-shadow: 0 10px 25px -5px rgba(0,0,0,0.1) !important;
-		}
-		.sscribe-master-container .sscribe-hero-glass {
-			position: absolute !important;
-			top: 0 !important;
-			left: 0 !important;
-			right: 0 !important;
-			bottom: 0 !important;
-			background: linear-gradient(135deg, rgba(74,130,99,0.2) 0%, rgba(45,212,191,0.1) 100%) !important;
-			pointer-events: none !important;
-			z-index: 0 !important;
-		}
-		.sscribe-master-container .sscribe-hero-content {
-			position: relative !important;
-			z-index: 1 !important;
-			display: flex !important;
-			align-items: center !important;
-			justify-content: space-between !important;
-			gap: 24px !important;
-		}
-		.sscribe-master-container .sscribe-hero-left {
-			display: flex !important;
-			align-items: center !important;
-			gap: 20px !important;
-		}
-		.sscribe-master-container .sscribe-hero-logo {
-			flex-shrink: 0 !important;
-			width: 56px !important;
-			height: 56px !important;
-			background: linear-gradient(135deg, rgba(45,212,191,0.3) 0%, rgba(45,212,191,0.1) 100%) !important;
-			border: 2px solid rgba(45,212,191,0.4) !important;
-			border-radius: 12px !important;
-			display: flex !important;
-			align-items: center !important;
-			justify-content: center !important;
-		}
-		.sscribe-master-container .sscribe-hero-titles {
-			display: flex !important;
-			flex-direction: column !important;
-			gap: 6px !important;
-		}
-		.sscribe-master-container .sscribe-hero-title {
-			color: #FFFFFF !important;
-			font-size: 28px !important;
-			font-weight: 800 !important;
-			letter-spacing: -0.02em !important;
-			line-height: 1.1 !important;
-			margin: 0 !important;
-			padding: 0 !important;
-			text-shadow: 0 2px 8px rgba(0,0,0,0.3) !important;
-		}
-		.sscribe-master-container .sscribe-hero-subtitle {
-			color: #94A3B8 !important;
-			font-size: 14px !important;
-			font-weight: 400 !important;
-			max-width: 520px !important;
-			line-height: 1.5 !important;
-			margin: 0 !important;
-			padding: 0 !important;
-		}
-		.sscribe-master-container .sscribe-hero-version {
-			flex-shrink: 0 !important;
-			background: rgba(255,255,255,0.15) !important;
-			border: 1px solid rgba(255,255,255,0.2) !important;
-			color: #E2E8F0 !important;
-			padding: 6px 14px !important;
-			border-radius: 100px !important;
-			font-size: 12px !important;
-			font-weight: 600 !important;
-			white-space: nowrap !important;
-			margin: 0 !important;
-		}
-		
 		/* Debug Panel Styles */
 		.sscribe-debug-panel {
 			background: #1E293B;
@@ -183,23 +102,20 @@ if (!defined('ABSPATH')) {
 	</style>
 
 	<header class="sscribe-hero">
-		<div class="sscribe-hero-glass"></div>
 		<div class="sscribe-hero-content">
 			<div class="sscribe-hero-left">
 				<div class="sscribe-hero-logo">
-					<svg width="32" height="32" viewBox="0 0 32 32" fill="none" xmlns="http://www.w3.org/2000/svg">
-						<path d="M16 3L28 9V23L16 29L4 23V9L16 3Z" fill="#2DD4BF" fill-opacity="0.2" />
-						<path d="M10 20C10 20 11.5 22 16 22C20.5 22 22 20 22 18C22 14 10 16 10 12C10 10 12 8 16 8C20 8 22 10 22 10" stroke="#2DD4BF" stroke-width="2.5" stroke-linecap="round" />
+					<svg width="36" height="36" viewBox="0 0 32 32" fill="none" xmlns="http://www.w3.org/2000/svg">
+						<path d="M16 3L28 9V23L16 29L4 23V9L16 3Z" fill="#2DD4BF" fill-opacity="0.25"/>
+						<path d="M10 20C10 20 11.5 22 16 22C20.5 22 22 20 22 18C22 14 10 16 10 12C10 10 12 8 16 8C20 8 22 10 22 10" stroke="#2DD4BF" stroke-width="2.5" stroke-linecap="round"/>
 					</svg>
 				</div>
-				<div class="sscribe-hero-titles">
+				<div>
 					<h1 class="sscribe-hero-title">SScribe</h1>
-					<p class="sscribe-hero-subtitle">
-						<?php esc_html_e( 'Export every page into beautifully formatted Word DOCX files with multilingual support, SEO meta, rich styling, and secure ZIP download.', 'sscribe-export-site-pages' ); ?>
-					</p>
+					<p class="sscribe-hero-subtitle"><?php esc_html_e( 'Export every page into beautifully formatted Word DOCX files with multilingual support, SEO meta, rich styling, and secure ZIP download.', 'sscribe-export-site-pages' ); ?></p>
 				</div>
 			</div>
-			<p class="sscribe-hero-version">v<?php echo esc_html( SSCRIBE_VERSION ); ?></p>
+			<span class="sscribe-hero-version">v<?php echo esc_html( SSCRIBE_VERSION ); ?></span>
 		</div>
 	</header>
 

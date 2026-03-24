@@ -283,7 +283,7 @@ class SScribe_Page_Collector {
 			'sscribe_page_data',
 			array(
 				'id'                  => $page_id,
-				'title'               => get_the_title( $page_id ),
+				'title'               => html_entity_decode( get_the_title( $page_id ), ENT_QUOTES | ENT_HTML5, 'UTF-8' ),
 				'content'             => $content,
 				'raw_content'         => $post_object->post_content,
 				'excerpt'             => $post_object->post_excerpt,
@@ -325,14 +325,14 @@ class SScribe_Page_Collector {
 		// Add ancestors.
 		foreach ( $ancestors as $ancestor_id ) {
 			$breadcrumbs[] = array(
-				'title' => get_the_title( $ancestor_id ),
+				'title' => html_entity_decode( get_the_title( $ancestor_id ), ENT_QUOTES | ENT_HTML5, 'UTF-8' ),
 				'url'   => get_permalink( $ancestor_id ),
 			);
 		}
 
 		// Add current page.
 		$breadcrumbs[] = array(
-			'title' => get_the_title( $page_id ),
+			'title' => html_entity_decode( get_the_title( $page_id ), ENT_QUOTES | ENT_HTML5, 'UTF-8' ),
 			'url'   => get_permalink( $page_id ),
 		);
 
@@ -361,7 +361,7 @@ class SScribe_Page_Collector {
 			foreach ( $child_pages as $child ) {
 				$children[] = array(
 					'id'    => $child->ID,
-					'title' => $child->post_title,
+					'title' => html_entity_decode( $child->post_title, ENT_QUOTES | ENT_HTML5, 'UTF-8' ),
 					'url'   => get_permalink( $child->ID ),
 				);
 			}
