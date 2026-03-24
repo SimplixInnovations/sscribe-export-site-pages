@@ -345,7 +345,7 @@
 })( jQuery );
 
 // Debug logger function (global)
-function scribeDebugLog(message, data) {
+function sscribeDebugLog(message, data) {
 	var logEl = document.getElementById('sscribe-live-log');
 	if (!logEl) return;
 	
