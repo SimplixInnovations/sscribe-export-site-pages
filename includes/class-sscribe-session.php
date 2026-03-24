@@ -15,10 +15,10 @@ if (!defined('ABSPATH')) {
 
 class SScribe_Session
 {
-    private $storage_dir;
-    private $session_prefix = 'sscribe-session-';
+    private string $storage_dir;
+    private string $session_prefix = 'sscribe-session-';
 
-    public function __construct(string $storage_dir = null)
+    public function __construct(?string $storage_dir = null)
     {
         if ($storage_dir === null) {
             $upload_dir = wp_upload_dir();
