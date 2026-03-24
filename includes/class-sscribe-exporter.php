@@ -25,6 +25,13 @@ class SScribe_Exporter {
 
 
 	/**
+	 * Last exception message from generate_docx(), for debug surfacing.
+	 *
+	 * @var string
+	 */
+	public $last_error = '';
+
+	/**
 	 * Content parser instance.
 	 *
 	 * @var SScribe_Content_Parser
@@ -219,10 +226,14 @@ class SScribe_Exporter {
 			return $output_path;
 
 		} catch ( \Throwable $e ) {
-			if ( defined( 'WP_DEBUG' ) && WP_DEBUG ) {
-				// phpcs:ignore WordPress.PHP.DevelopmentFunctions.error_log_error_log
-				error_log( 'SScribe Export Error [Page ' . ( $page_data['id'] ?? 'unknown' ) . ']: ' . $e->getMessage() );
-			}
+			// ALWAYS log — this is an unexpected failure that must be visible regardless of WP_DEBUG.
+			// phpcs:ignore WordPress.PHP.DevelopmentFunctions.error_log_error_log
+			error_log( 'SScribe Export Error [Page ' . ( $page_data['id'] ?? 'unknown' ) . ']: '
+				. $e->getMessage() . ' in ' . $e->getFile() . ':' . $e->getLine() );
+
+			// Store the exception message so the batch processor can surface it in the debug log.
+			$this->last_error = $e->getMessage();
+
 			return false;
 		}
 	}
@@ -299,8 +310,8 @@ class SScribe_Exporter {
 	private function set_document_properties( $php_word, $page_data ) {
 		$properties = $php_word->getDocInfo();
 		$properties->setCreator( 'SScribe by Simplix Innovations' );
-		$properties->setCompany( get_bloginfo( 'name' ) );
-		$properties->setTitle( $page_data['title'] );
+		$properties->setCompany( html_entity_decode( get_bloginfo( 'name' ), ENT_QUOTES | ENT_HTML5, 'UTF-8' ) );
+		$properties->setTitle( html_entity_decode( $page_data['title'], ENT_QUOTES | ENT_HTML5, 'UTF-8' ) );
 		$properties->setDescription( 'Exported from ' . $page_data['permalink'] );
 		$properties->setLastModifiedBy( $page_data['author'] );
 	}

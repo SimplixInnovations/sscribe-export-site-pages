@@ -192,6 +192,7 @@ class SScribe_Session
                     if (!file_exists($file)) {
                         $deleted++;
                     }
+                // phpcs:ignore WordPress.WP.AlternativeFunctions.unlink_unlink -- Fallback when wp_delete_file not available.
                 } elseif (unlink($file)) {
                     $deleted++;
                 }

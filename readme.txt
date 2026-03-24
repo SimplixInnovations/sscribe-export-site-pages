@@ -4,7 +4,7 @@ Donate link: https://simplixi.com
 Tags: export, docx, word, documentation, multilingual
 Requires at least: 5.8
 Tested up to: 6.9
-Stable tag: 1.8.3
+Stable tag: 1.9.0
 Requires PHP: 7.4
 License: GPLv2 or later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
@@ -203,6 +203,16 @@ Yes. SScribe is 100% free and open-source, developed by Simplix Innovations. No 
 5. SEO section showing metadata from Rank Math
 
 == Changelog ==
+
+= 1.9.0 =
+* Critical: Exception from generate_docx() now always logged with full message, file, and line — no longer silenced by WP_DEBUG flag. Surface exception details in batch debug log.
+* Fix: HTML entities in page titles (&#038; → &) now decoded before passing to PHPWord — fixes display of & in document titles and cover pages
+* Fix: Hero header layout completely rebuilt — content no longer trapped inside absolutely-positioned glass overlay
+* Fix: Page Status section now correctly labeled "Page Status" and counts update when switching language
+* Fix: Feature section icon background colors now applied correctly via JS on page load
+* Fix: PHPCS — unlink() → wp_delete_file() in class-sscribe-session.php
+* Fix: PHPCS — ini_set() phpcs:ignore now suppresses both required sniff rules
+* Fix: Debug log temp dir file count corrected (missing slash in glob pattern)
 
 = 1.8.3 =
 * Fix: Critical export failures - safe_text() function now properly handles Unicode characters (Arabic, CJK, RTL)

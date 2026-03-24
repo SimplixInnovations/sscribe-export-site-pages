@@ -408,12 +408,15 @@ class SScribe_Batch_Processor {
 					__( 'Failed to generate DOCX for "%s".', 'sscribe-export-site-pages' ),
 					$page_data['title']
 				);
-				$this->debug_log( "ERROR: {$error_msg}", array(
-					'page_id' => $page_id,
-					'title' => $page_data['title'],
-					'duration_sec' => $page_duration,
-				) );
 				$errors[] = $error_msg;
+
+				// Surface the actual PHP exception for debugging.
+				$this->debug_log( "ERROR: {$error_msg}", array(
+					'page_id'        => $page_id,
+					'title'          => $page_data['title'],
+					'duration_sec'   => $page_duration,
+					'exception'      => $this->exporter->last_error,
+				) );
 			} else {
 				$this->debug_log( "DOCX generated successfully", array( 
 					'file' => basename( $result ),
@@ -550,7 +553,7 @@ class SScribe_Batch_Processor {
 		) );
 
 		// Count DOCX files BEFORE creating ZIP
-		$docx_files_before = glob( $session['temp_dir'] . '*.docx' );
+		$docx_files_before = glob( trailingslashit( $session['temp_dir'] ) . '*.docx' );
 		$docx_count_before = $docx_files_before ? count( $docx_files_before ) : 0;
 		$this->debug_log( 'DOCX files in temp dir BEFORE ZIP', array( 
 			'count' => $docx_count_before,
