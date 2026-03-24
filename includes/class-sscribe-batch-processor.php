@@ -338,6 +338,11 @@ class SScribe_Batch_Processor {
 		// Get the next batch of page IDs.
 		$batch = array_slice( $page_ids, $processed, $this->batch_size );
 
+		// Pre-fetch all featured images for this batch (N+1 optimization).
+		if ( ! empty( $batch ) ) {
+			$this->collector->get_featured_images_batch( $batch );
+		}
+
 		$this->debug_log( 'Batch details', array(
 			'batch_size_setting' => $this->batch_size,
 			'batch_count' => count( $batch ),
