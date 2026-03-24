@@ -90,7 +90,7 @@ if (!defined('ABSPATH')) {
 			margin: 0 !important;
 			padding: 0 !important;
 		}
-		.scribe-master-container .sscribe-hero-version {
+		.sscribe-master-container .sscribe-hero-version {
 			flex-shrink: 0 !important;
 			background: rgba(255,255,255,0.15) !important;
 			border: 1px solid rgba(255,255,255,0.2) !important;

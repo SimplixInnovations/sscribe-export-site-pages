@@ -43,18 +43,16 @@ class SScribe_Page_Collector {
 		$original_lang = null;
 		
 		// WPML language filtering.
-		if ( $this->is_wpml_active() ) {
-			// When language is empty, use 'all' to get pages from all languages.
-			// When language is specified, filter by that language.
-			$wpml_lang = empty( $language ) ? 'all' : $language;
-			
+		if ( $this->is_wpml_active() && ! empty( $language ) ) {
+			// Only switch language when a specific language is requested.
+			// When language is empty, don't switch - this gets pages from all languages.
 			$this->debug_log( 'WPML: Switching language', array(
 				'requested_language' => $language,
-				'wpml_lang' => $wpml_lang,
+				'wpml_lang' => $language,
 			) );
 			
 			// phpcs:ignore WordPress.NamingConventions.PrefixAllGlobals.NonPrefixedHooknameFound -- WPML hook.
-			do_action( 'wpml_switch_language', $wpml_lang );
+			do_action( 'wpml_switch_language', $language );
 			$args['suppress_filters'] = false;
 			$switched = true;
 		}
@@ -129,11 +127,11 @@ class SScribe_Page_Collector {
 		);
 
 		$switched = false;
-		if ( $this->is_wpml_active() ) {
-			// When language is empty, use 'all' to count pages from all languages.
-			$wpml_lang = empty( $language ) ? 'all' : $language;
+		if ( $this->is_wpml_active() && ! empty( $language ) ) {
+			// Only switch language when a specific language is requested.
+			// When language is empty, don't switch - this gets pages from all languages.
 			// phpcs:ignore WordPress.NamingConventions.PrefixAllGlobals.NonPrefixedHooknameFound -- WPML hook.
-			do_action( 'wpml_switch_language', $wpml_lang );
+			do_action( 'wpml_switch_language', $language );
 			$args['suppress_filters'] = false;
 			$switched = true;
 		}

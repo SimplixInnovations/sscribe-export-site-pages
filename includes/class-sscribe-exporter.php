@@ -90,8 +90,10 @@ class SScribe_Exporter {
 	 * - Control characters (except tab, LF, CR which XML allows)
 	 * - XML non-characters: U+FFFE, U+FFFF
 	 * - Unicode surrogates: U+D800-U+DFFF
-	 * - Astral plane emoji/symbols above U+FFFF (PHPWord can't handle them)
-	 * - Private Use Area characters from icon fonts (render as boxes in Word)
+	 * - Zero-width and invisible formatting chars that cause issues
+	 *
+	 * Note: We preserve Unicode characters (including Arabic, CJK, etc.) as PHPWord
+	 * handles them correctly with proper encoding.
 	 *
 	 * @param mixed $text Input value (will be cast to string).
 	 * @return string Cleaned, XML 1.0-safe string.
@@ -99,24 +101,22 @@ class SScribe_Exporter {
 	private function safe_text( $text ) {
 		$text = (string) $text;
 
-		// 1. Remove astral-plane Unicode (emoji, symbols above U+FFFF).
-		$text = preg_replace( '/[\x{10000}-\x{10FFFF}]/u', '', $text );
-
-		// 2. Remove XML 1.0 illegal control characters.
+		// 1. Remove XML 1.0 illegal control characters (keep \t, \n, \r).
 		$text = preg_replace( '/[\x00-\x08\x0B\x0C\x0E-\x1F\x7F]/', '', $text );
 
-		// 3. Remove XML non-characters: U+FFFE and U+FFFF.
+		// 2. Remove XML non-characters: U+FFFE and U+FFFF.
 		$text = preg_replace( '/[\x{FFFE}\x{FFFF}]/u', '', $text );
 
-		// 4. Remove Unicode surrogate code points (U+D800-U+DFFF).
+		// 3. Remove Unicode surrogate code points (U+D800-U+DFFF).
 		//    These are encoded as 4-byte UTF-8 sequences starting with 0xED.
 		$text = preg_replace( '/\xED[\xA0-\xBF][\x80-\xBF]/', '', $text );
 
-		// 5. Replace Private Use Area characters (U+E000-U+F8FF) with empty string.
-		$text = preg_replace( '/[\x{E000}-\x{F8FF}]/u', '', $text );
-
-		// 6. Replace zero-width and invisible formatting chars.
+		// 4. Replace zero-width and invisible formatting chars that cause display issues.
 		$text = preg_replace( '/[\x{200B}\x{FEFF}\x{00AD}]/u', '', $text );
+
+		// IMPORTANT: We do NOT strip astral plane characters (emoji, symbols) or 
+		// Private Use Area characters, as PHPWord handles them correctly with proper
+		// UTF-8 encoding and they may be legitimate content in user pages.
 
 		return $text;
 	}
