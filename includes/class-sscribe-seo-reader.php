@@ -25,13 +25,14 @@ class SScribe_SEO_Reader {
 	 * Priority order: Yoast → Rank Math → AIOSEO v4 → AIOSEO v3 → SEOPress → The SEO Framework.
 	 *
 	 * @param int $page_id The page ID.
-	 * @return array SEO data with keys: meta_title, meta_description, focus_keyword, source.
+	 * @return array SEO data with keys: meta_title, meta_description, focus_keyword, canonical_url, source.
 	 */
 	public function get_seo_data( $page_id ) {
 		$seo_data = array(
 			'meta_title'       => '',
 			'meta_description' => '',
 			'focus_keyword'    => '',
+			'canonical_url'    => '',
 			'source'           => '',
 		);
 
@@ -112,6 +113,7 @@ class SScribe_SEO_Reader {
 			'meta_title'       => (string) get_post_meta( $page_id, '_yoast_wpseo_title', true ),
 			'meta_description' => (string) get_post_meta( $page_id, '_yoast_wpseo_metadesc', true ),
 			'focus_keyword'    => (string) get_post_meta( $page_id, '_yoast_wpseo_focuskw', true ),
+			'canonical_url'    => (string) get_post_meta( $page_id, '_yoast_wpseo_canonical', true ),
 			'source'           => '',
 		);
 	}
@@ -130,6 +132,7 @@ class SScribe_SEO_Reader {
 			'meta_title'       => (string) get_post_meta( $page_id, 'rank_math_title', true ),
 			'meta_description' => (string) get_post_meta( $page_id, 'rank_math_description', true ),
 			'focus_keyword'    => (string) get_post_meta( $page_id, 'rank_math_focus_keyword', true ),
+			'canonical_url'    => (string) get_post_meta( $page_id, 'rank_math_canonical_url', true ),
 			'source'           => '',
 		);
 	}
@@ -145,15 +148,17 @@ class SScribe_SEO_Reader {
 			return $this->empty_seo_data();
 		}
 
-		$title       = '';
-		$description = '';
-		$keyword     = '';
+		$title          = '';
+		$description    = '';
+		$keyword        = '';
+		$canonical_url  = '';
 
 		if ( function_exists( 'aioseo' ) ) {
 			$aioseo_post = aioseo()->models->Post::getPost( $page_id );
 			if ( $aioseo_post ) {
 				$title       = isset( $aioseo_post->title ) ? (string) $aioseo_post->title : '';
 				$description = isset( $aioseo_post->description ) ? (string) $aioseo_post->description : '';
+				$canonical_url = isset( $aioseo_post->canonical_url ) ? (string) $aioseo_post->canonical_url : '';
 				$keyphrases  = isset( $aioseo_post->keyphrases ) ? json_decode( $aioseo_post->keyphrases, true ) : array();
 				if ( ! empty( $keyphrases['focus']['keyphrase'] ) ) {
 					$keyword = $keyphrases['focus']['keyphrase'];
@@ -165,6 +170,7 @@ class SScribe_SEO_Reader {
 			'meta_title'       => $title,
 			'meta_description' => $description,
 			'focus_keyword'    => $keyword,
+			'canonical_url'    => $canonical_url,
 			'source'           => '',
 		);
 	}
@@ -183,6 +189,7 @@ class SScribe_SEO_Reader {
 			'meta_title'       => (string) get_post_meta( $page_id, '_aioseop_title', true ),
 			'meta_description' => (string) get_post_meta( $page_id, '_aioseop_description', true ),
 			'focus_keyword'    => (string) get_post_meta( $page_id, '_aioseop_keywords', true ),
+			'canonical_url'    => (string) get_post_meta( $page_id, '_aioseop_custom_link', true ),
 			'source'           => '',
 		);
 	}
@@ -201,6 +208,7 @@ class SScribe_SEO_Reader {
 			'meta_title'       => (string) get_post_meta( $page_id, '_seopress_titles_title', true ),
 			'meta_description' => (string) get_post_meta( $page_id, '_seopress_titles_desc', true ),
 			'focus_keyword'    => (string) get_post_meta( $page_id, '_seopress_analysis_target_kw', true ),
+			'canonical_url'    => (string) get_post_meta( $page_id, '_seopress_robots_canonical', true ),
 			'source'           => '',
 		);
 	}
@@ -218,7 +226,8 @@ class SScribe_SEO_Reader {
 		return array(
 			'meta_title'       => (string) get_post_meta( $page_id, '_genesis_title', true ),
 			'meta_description' => (string) get_post_meta( $page_id, '_genesis_description', true ),
-			'focus_keyword'    => (string) get_post_meta( $page_id, '_tsf_title', true ),
+			'focus_keyword'    => '',
+			'canonical_url'    => (string) get_post_meta( $page_id, '_genesis_canonical_uri', true ),
 			'source'           => '',
 		);
 	}
@@ -232,19 +241,16 @@ class SScribe_SEO_Reader {
 	private function has_seo_data( $data ) {
 		return ! empty( $data['meta_title'] )
 			|| ! empty( $data['meta_description'] )
-			|| ! empty( $data['focus_keyword'] );
+			|| ! empty( $data['focus_keyword'] )
+			|| ! empty( $data['canonical_url'] );
 	}
 
-	/**
-	 * Return empty SEO data structure.
-	 *
-	 * @return array
-	 */
 	private function empty_seo_data() {
 		return array(
 			'meta_title'       => '',
 			'meta_description' => '',
 			'focus_keyword'    => '',
+			'canonical_url'    => '',
 			'source'           => '',
 		);
 	}
