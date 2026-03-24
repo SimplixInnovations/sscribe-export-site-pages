@@ -4,7 +4,7 @@ Donate link: https://simplixi.com
 Tags: export, docx, word, documentation, multilingual
 Requires at least: 5.8
 Tested up to: 6.9
-Stable tag: 1.8.2
+Stable tag: 1.8.3
 Requires PHP: 7.4
 License: GPLv2 or later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
@@ -203,6 +203,14 @@ Yes. SScribe is 100% free and open-source, developed by Simplix Innovations. No 
 5. SEO section showing metadata from Rank Math
 
 == Changelog ==
+
+= 1.8.3 =
+* Fix: Critical export failures - safe_text() function now properly handles Unicode characters (Arabic, CJK, RTL)
+* Fix: Language filtering logic - "All Languages" option now correctly returns pages from all languages
+* Fix: UI header display - corrected CSS class name typo in admin template
+* Fix: JavaScript debug logging - corrected function name typo
+* Enhancement: Added comprehensive test coverage for language filtering functionality
+* Enhancement: All exports now work reliably with multilingual content including Arabic titles
 
 = 1.8.2 =
 * Enhancement: Debug panel now always visible - no configuration needed for troubleshooting
