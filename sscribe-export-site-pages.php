@@ -28,8 +28,9 @@ define( 'SSCRIBE_VERSION', '1.9.0' );
 
 /**
  * Debug mode - set to true to enable logging to wp-content/uploads/sscribe-logs/
+ * Automatically disabled on production (when WP_DEBUG is false).
  */
-define( 'SSCRIBE_DEBUG', true );
+define( 'SSCRIBE_DEBUG', defined( 'WP_DEBUG' ) && WP_DEBUG );
 
 /**
  * Plugin directory path.
