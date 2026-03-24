@@ -88,11 +88,8 @@ class SScribe_Content_Parser {
 	 * @return string Normalized HTML.
 	 */
 	private function normalize_html( $html ) {
-		// Strip entire <style> and <script> blocks (tag + content).
-		$html = preg_replace( '/<style\b[^>]*>.*?<\/style>/is', '', $html );
-		$html = preg_replace( '/<script\b[^>]*>.*?<\/script>/is', '', $html );
-		$html = preg_replace( '/<noscript\b[^>]*>.*?<\/noscript>/is', '', $html );
-		$html = preg_replace( '/<svg\b[^>]*>.*?<\/svg>/is', '', $html );
+		// Strip entire <style>, <script>, <noscript>, and <svg> blocks in a single pass.
+		$html = preg_replace( '/<(style|script|noscript|svg)\b[^>]*>.*?<\/\1>/is', '', $html );
 
 		// Strip HTML comments that may contain Elementor template data.
 		$html = preg_replace( '/<!--.*?-->/s', '', $html );
