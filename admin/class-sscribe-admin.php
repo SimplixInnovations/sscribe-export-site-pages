@@ -132,9 +132,9 @@ class SScribe_Admin {
 			unset( $lang );
 		}
 
-		// Gather debug info - always enabled for troubleshooting.
+		// Gather debug info - gated behind WP_DEBUG for security.
 		$sscribe_debug_info = array();
-		$sscribe_is_debug = true;
+		$sscribe_is_debug = defined( 'SSCRIBE_DEBUG' ) && SSCRIBE_DEBUG;
 		
 		$sscribe_debug_info['wpml_active'] = $wpml_active;
 		$sscribe_debug_info['languages_count'] = count( $languages );

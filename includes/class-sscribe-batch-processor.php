@@ -211,27 +211,31 @@ class SScribe_Batch_Processor {
 		}
 
 		wp_send_json_success(
-			array(
-				'session_id' => $session_id,
-				'total'      => $total,
-				'batch_size' => $this->batch_size,
-				'message'    => sprintf(
-					/* translators: %d: number of pages */
-					__( 'Found %d pages. Starting export...', 'sscribe-export-site-pages' ),
-					$total
+			array_merge(
+				array(
+					'session_id' => $session_id,
+					'total'      => $total,
+					'batch_size' => $this->batch_size,
+					'message'    => sprintf(
+						/* translators: %d: number of pages */
+						__( 'Found %d pages. Starting export...', 'sscribe-export-site-pages' ),
+						$total
+					),
 				),
-				'debug_info' => array(
-					'page_ids_count' => $total,
-					'page_ids_all' => $page_ids,
-					'page_ids_sample' => array_slice( $page_ids, 0, 20 ),
-					'language' => $language,
-					'post_status' => $post_status,
-					'current_wpml_lang' => $current_lang ?? 'n/a',
-					'temp_dir' => $temp_dir,
-					'session_file' => $this->session->get_storage_dir() . 'sscribe-session-' . $session_id . '.json',
-					'memory_usage' => size_format( memory_get_usage( true ) ),
-					'php_version' => PHP_VERSION,
-				),
+				defined( 'SSCRIBE_DEBUG' ) && SSCRIBE_DEBUG ? array(
+					'debug_info' => array(
+						'page_ids_count' => $total,
+						'page_ids_all' => $page_ids,
+						'page_ids_sample' => array_slice( $page_ids, 0, 20 ),
+						'language' => $language,
+						'post_status' => $post_status,
+						'current_wpml_lang' => $current_lang ?? 'n/a',
+						'temp_dir' => $temp_dir,
+						'session_file' => $this->session->get_storage_dir() . 'sscribe-session-' . $session_id . '.json',
+						'memory_usage' => size_format( memory_get_usage( true ) ),
+						'php_version' => PHP_VERSION,
+					),
+				) : array()
 			)
 		);
 	}
@@ -491,27 +495,31 @@ class SScribe_Batch_Processor {
 		$this->restore_ob_level( $ob_level_before );
 
 		wp_send_json_success(
-			array(
-				'status'            => 'processing',
-				'processed'         => $processed,
-				'total'             => $total,
-				'percentage'        => $percentage,
-				'current_page'      => $current_page_title,
-				'time_remaining'    => $time_remaining,
-				'message'           => sprintf(
-					/* translators: 1: processed count, 2: total count */
-					__( 'Processing %1$d of %2$d pages...', 'sscribe-export-site-pages' ),
-					$processed,
-					$total
+			array_merge(
+				array(
+					'status'            => 'processing',
+					'processed'         => $processed,
+					'total'             => $total,
+					'percentage'        => $percentage,
+					'current_page'      => $current_page_title,
+					'time_remaining'    => $time_remaining,
+					'message'           => sprintf(
+						/* translators: 1: processed count, 2: total count */
+						__( 'Processing %1$d of %2$d pages...', 'sscribe-export-site-pages' ),
+						$processed,
+						$total
+					),
 				),
-				'debug_info' => array(
-					'batch_size' => $this->batch_size,
-					'errors_so_far' => count( $errors ),
-					'last_batch_duration' => round( $batch_duration, 3 ),
-					'memory_usage' => size_format( memory_get_usage( true ) ),
-					'memory_peak' => size_format( memory_get_peak_usage( true ) ),
-					'avg_time_per_page' => round( $avg_time_per_page, 3 ),
-				),
+				defined( 'SSCRIBE_DEBUG' ) && SSCRIBE_DEBUG ? array(
+					'debug_info' => array(
+						'batch_size' => $this->batch_size,
+						'errors_so_far' => count( $errors ),
+						'last_batch_duration' => round( $batch_duration, 3 ),
+						'memory_usage' => size_format( memory_get_usage( true ) ),
+						'memory_peak' => size_format( memory_get_peak_usage( true ) ),
+						'avg_time_per_page' => round( $avg_time_per_page, 3 ),
+					),
+				) : array()
 			)
 		);
 	}
@@ -573,12 +581,16 @@ class SScribe_Batch_Processor {
 				'expected_files' => $docx_count_before,
 			) );
 			wp_send_json_error(
-				array(
-					'message' => __( 'Failed to create ZIP package. Please try again.', 'sscribe-export-site-pages' ),
-					'debug_info' => array(
-						'temp_dir_exists' => is_dir( $session['temp_dir'] ),
-						'docx_files_in_temp' => $docx_count_before,
+				array_merge(
+					array(
+						'message' => __( 'Failed to create ZIP package. Please try again.', 'sscribe-export-site-pages' ),
 					),
+					defined( 'SSCRIBE_DEBUG' ) && SSCRIBE_DEBUG ? array(
+						'debug_info' => array(
+							'temp_dir_exists' => is_dir( $session['temp_dir'] ),
+							'docx_files_in_temp' => $docx_count_before,
+						),
+					) : array()
 				)
 			);
 			return;
@@ -625,42 +637,46 @@ class SScribe_Batch_Processor {
 		) );
 
 		wp_send_json_success(
-			array(
-				'status'       => 'complete',
-				'processed'    => $session['total'],
-				'total'        => $session['total'],
-				'percentage'   => 100,
-				'download_url' => $download_url,
-				'filename'     => basename( $zip_path ),
-				'errors'       => $session['errors'],
-				'message'      => sprintf(
-					/* translators: %d: number of pages */
-					_n(
-						'Export complete! %d page exported successfully.',
-						'Export complete! %d pages exported successfully.',
-						$session['total'],
-						'sscribe-export-site-pages'
-					),
-					$session['total']
-				) . ( $error_count > 0 ? sprintf(
-					/* translators: %d: number of errors */
-					' ' . _n( '(%d error)', '(%d errors)', $error_count, 'sscribe-export-site-pages' ),
-					$error_count
-				) : '' ),
-				'debug_info' => array(
-					'docx_files_in_temp' => $docx_count_before,
-					'docx_files_in_zip' => $docx_in_zip,
-					'expected_pages' => $session['total'],
-					'match' => $docx_in_zip === $session['total'],
-					'difference' => $session['total'] - $docx_in_zip,
-					'page_ids_requested' => $session['page_ids'],
-					'errors_detailed' => $session['errors'],
-					'language' => $session['language'] ?? '',
-					'post_status' => $session['post_status'] ?? '',
-					'total_time_sec' => time() - ( $session['start_time'] ?? time() ),
-					'memory_peak' => size_format( memory_get_peak_usage( true ) ),
-					'zip_size' => size_format( filesize( $zip_path ) ),
+			array_merge(
+				array(
+					'status'       => 'complete',
+					'processed'    => $session['total'],
+					'total'        => $session['total'],
+					'percentage'   => 100,
+					'download_url' => $download_url,
+					'filename'     => basename( $zip_path ),
+					'errors'       => $session['errors'],
+					'message'      => sprintf(
+						/* translators: %d: number of pages */
+						_n(
+							'Export complete! %d page exported successfully.',
+							'Export complete! %d pages exported successfully.',
+							$session['total'],
+							'sscribe-export-site-pages'
+						),
+						$session['total']
+					) . ( $error_count > 0 ? sprintf(
+						/* translators: %d: number of errors */
+						' ' . _n( '(%d error)', '(%d errors)', $error_count, 'sscribe-export-site-pages' ),
+						$error_count
+					) : '' ),
 				),
+				defined( 'SSCRIBE_DEBUG' ) && SSCRIBE_DEBUG ? array(
+					'debug_info' => array(
+						'docx_files_in_temp' => $docx_count_before,
+						'docx_files_in_zip' => $docx_in_zip,
+						'expected_pages' => $session['total'],
+						'match' => $docx_in_zip === $session['total'],
+						'difference' => $session['total'] - $docx_in_zip,
+						'page_ids_requested' => $session['page_ids'],
+						'errors_detailed' => $session['errors'],
+						'language' => $session['language'] ?? '',
+						'post_status' => $session['post_status'] ?? '',
+						'total_time_sec' => time() - ( $session['start_time'] ?? time() ),
+						'memory_peak' => size_format( memory_get_peak_usage( true ) ),
+						'zip_size' => size_format( filesize( $zip_path ) ),
+					),
+				) : array()
 			)
 		);
 	}
