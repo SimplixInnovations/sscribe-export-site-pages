@@ -33,6 +33,11 @@ class SScribe_SEO_Reader {
 			'meta_description' => '',
 			'focus_keyword'    => '',
 			'canonical_url'    => '',
+			'og_title'         => '',
+			'og_description'   => '',
+			'og_image'         => '',
+			'noindex'          => false,
+			'nofollow'         => false,
 			'source'           => '',
 		);
 
@@ -109,11 +114,19 @@ class SScribe_SEO_Reader {
 		if ( ! $this->is_yoast_active() ) {
 			return $this->empty_seo_data();
 		}
+		$robots_noindex = get_post_meta( $page_id, '_yoast_wpseo_meta-robots-noindex', true );
+		$robots_nofollow = get_post_meta( $page_id, '_yoast_wpseo_meta-robots-nofollow', true );
+
 		return array(
 			'meta_title'       => (string) get_post_meta( $page_id, '_yoast_wpseo_title', true ),
 			'meta_description' => (string) get_post_meta( $page_id, '_yoast_wpseo_metadesc', true ),
 			'focus_keyword'    => (string) get_post_meta( $page_id, '_yoast_wpseo_focuskw', true ),
 			'canonical_url'    => (string) get_post_meta( $page_id, '_yoast_wpseo_canonical', true ),
+			'og_title'         => (string) get_post_meta( $page_id, '_yoast_wpseo_opengraph-title', true ),
+			'og_description'   => (string) get_post_meta( $page_id, '_yoast_wpseo_opengraph-description', true ),
+			'og_image'         => (string) get_post_meta( $page_id, '_yoast_wpseo_opengraph-image', true ),
+			'noindex'          => '1' === $robots_noindex,
+			'nofollow'         => '1' === $robots_nofollow,
 			'source'           => '',
 		);
 	}
@@ -128,11 +141,24 @@ class SScribe_SEO_Reader {
 		if ( ! $this->is_rankmath_active() ) {
 			return $this->empty_seo_data();
 		}
+		$robots = get_post_meta( $page_id, 'rank_math_robots', true );
+		$noindex = false;
+		$nofollow = false;
+		if ( is_array( $robots ) ) {
+			$noindex = in_array( 'noindex', $robots, true );
+			$nofollow = in_array( 'nofollow', $robots, true );
+		}
+
 		return array(
 			'meta_title'       => (string) get_post_meta( $page_id, 'rank_math_title', true ),
 			'meta_description' => (string) get_post_meta( $page_id, 'rank_math_description', true ),
 			'focus_keyword'    => (string) get_post_meta( $page_id, 'rank_math_focus_keyword', true ),
 			'canonical_url'    => (string) get_post_meta( $page_id, 'rank_math_canonical_url', true ),
+			'og_title'         => (string) get_post_meta( $page_id, 'rank_math_facebook_title', true ),
+			'og_description'   => (string) get_post_meta( $page_id, 'rank_math_facebook_description', true ),
+			'og_image'         => (string) get_post_meta( $page_id, 'rank_math_facebook_image', true ),
+			'noindex'          => $noindex,
+			'nofollow'         => $nofollow,
 			'source'           => '',
 		);
 	}
@@ -152,14 +178,24 @@ class SScribe_SEO_Reader {
 		$description    = '';
 		$keyword        = '';
 		$canonical_url  = '';
+		$og_title       = '';
+		$og_description = '';
+		$og_image       = '';
+		$noindex        = false;
+		$nofollow       = false;
 
 		if ( function_exists( 'aioseo' ) ) {
 			$aioseo_post = aioseo()->models->Post::getPost( $page_id );
 			if ( $aioseo_post ) {
-				$title       = isset( $aioseo_post->title ) ? (string) $aioseo_post->title : '';
-				$description = isset( $aioseo_post->description ) ? (string) $aioseo_post->description : '';
-				$canonical_url = isset( $aioseo_post->canonical_url ) ? (string) $aioseo_post->canonical_url : '';
-				$keyphrases  = isset( $aioseo_post->keyphrases ) ? json_decode( $aioseo_post->keyphrases, true ) : array();
+				$title          = isset( $aioseo_post->title ) ? (string) $aioseo_post->title : '';
+				$description    = isset( $aioseo_post->description ) ? (string) $aioseo_post->description : '';
+				$canonical_url  = isset( $aioseo_post->canonical_url ) ? (string) $aioseo_post->canonical_url : '';
+				$og_title       = isset( $aioseo_post->og_title ) ? (string) $aioseo_post->og_title : '';
+				$og_description = isset( $aioseo_post->og_description ) ? (string) $aioseo_post->og_description : '';
+				$og_image       = isset( $aioseo_post->og_image_url ) ? (string) $aioseo_post->og_image_url : '';
+				$noindex        = ! empty( $aioseo_post->robots_noindex );
+				$nofollow       = ! empty( $aioseo_post->robots_nofollow );
+				$keyphrases     = isset( $aioseo_post->keyphrases ) ? json_decode( $aioseo_post->keyphrases, true ) : array();
 				if ( ! empty( $keyphrases['focus']['keyphrase'] ) ) {
 					$keyword = $keyphrases['focus']['keyphrase'];
 				}
@@ -171,6 +207,11 @@ class SScribe_SEO_Reader {
 			'meta_description' => $description,
 			'focus_keyword'    => $keyword,
 			'canonical_url'    => $canonical_url,
+			'og_title'         => $og_title,
+			'og_description'   => $og_description,
+			'og_image'         => $og_image,
+			'noindex'          => $noindex,
+			'nofollow'         => $nofollow,
 			'source'           => '',
 		);
 	}
@@ -190,6 +231,11 @@ class SScribe_SEO_Reader {
 			'meta_description' => (string) get_post_meta( $page_id, '_aioseop_description', true ),
 			'focus_keyword'    => (string) get_post_meta( $page_id, '_aioseop_keywords', true ),
 			'canonical_url'    => (string) get_post_meta( $page_id, '_aioseop_custom_link', true ),
+			'og_title'         => (string) get_post_meta( $page_id, '_aioseop_opengraph_title', true ),
+			'og_description'   => (string) get_post_meta( $page_id, '_aioseop_opengraph_description', true ),
+			'og_image'         => '',
+			'noindex'          => false,
+			'nofollow'         => false,
 			'source'           => '',
 		);
 	}
@@ -209,6 +255,11 @@ class SScribe_SEO_Reader {
 			'meta_description' => (string) get_post_meta( $page_id, '_seopress_titles_desc', true ),
 			'focus_keyword'    => (string) get_post_meta( $page_id, '_seopress_analysis_target_kw', true ),
 			'canonical_url'    => (string) get_post_meta( $page_id, '_seopress_robots_canonical', true ),
+			'og_title'         => (string) get_post_meta( $page_id, '_seopress_social_fb_title', true ),
+			'og_description'   => (string) get_post_meta( $page_id, '_seopress_social_fb_desc', true ),
+			'og_image'         => (string) get_post_meta( $page_id, '_seopress_social_fb_img', true ),
+			'noindex'          => 'yes' === get_post_meta( $page_id, '_seopress_robots_index', true ),
+			'nofollow'         => 'yes' === get_post_meta( $page_id, '_seopress_robots_follow', true ),
 			'source'           => '',
 		);
 	}
@@ -228,6 +279,11 @@ class SScribe_SEO_Reader {
 			'meta_description' => (string) get_post_meta( $page_id, '_genesis_description', true ),
 			'focus_keyword'    => '',
 			'canonical_url'    => (string) get_post_meta( $page_id, '_genesis_canonical_uri', true ),
+			'og_title'         => (string) get_post_meta( $page_id, '_open_graph_title', true ),
+			'og_description'   => (string) get_post_meta( $page_id, '_open_graph_description', true ),
+			'og_image'         => '',
+			'noindex'          => false,
+			'nofollow'         => false,
 			'source'           => '',
 		);
 	}
@@ -242,7 +298,10 @@ class SScribe_SEO_Reader {
 		return ! empty( $data['meta_title'] )
 			|| ! empty( $data['meta_description'] )
 			|| ! empty( $data['focus_keyword'] )
-			|| ! empty( $data['canonical_url'] );
+			|| ! empty( $data['canonical_url'] )
+			|| ! empty( $data['og_title'] )
+			|| ! empty( $data['og_description'] )
+			|| ! empty( $data['og_image'] );
 	}
 
 	private function empty_seo_data() {
@@ -251,6 +310,11 @@ class SScribe_SEO_Reader {
 			'meta_description' => '',
 			'focus_keyword'    => '',
 			'canonical_url'    => '',
+			'og_title'         => '',
+			'og_description'   => '',
+			'og_image'         => '',
+			'noindex'          => false,
+			'nofollow'         => false,
 			'source'           => '',
 		);
 	}
