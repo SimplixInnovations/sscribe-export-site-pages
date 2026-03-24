@@ -39,6 +39,8 @@
 			}
 
 			var language = $( 'input[name="sscribe_language"]:checked' ).val() || '';
+			
+			sscribeDebugLog('Language changed to: ' + (language || 'all'));
 
 			$.ajax(
 				{
@@ -53,6 +55,8 @@
 						if ( response.success && response.data.counts ) {
 							var counts = response.data.counts;
 							var firstNonZeroSelected = false;
+
+							sscribeDebugLog('Status counts received', counts);
 
 							$( '.sscribe-status-card-label' ).each( function () {
 								var $label  = $( this );
@@ -74,7 +78,12 @@
 									}
 								}
 							} );
+							
+							sscribeDebugLog('Status cards updated');
 						}
+					},
+					error: function(xhr, status, error) {
+						sscribeDebugLog('ERROR getting status counts: ' + error);
 					}
 				}
 			);
@@ -94,6 +103,11 @@
 			var language = $( 'input[name="sscribe_language"]:checked' ).val() || '';
 			var postStatus = $( 'input[name="sscribe_post_status"]:checked' ).val() || 'publish';
 
+			sscribeDebugLog('Starting export', {
+				language: language || 'all',
+				post_status: postStatus
+			});
+
 			$.ajax(
 				{
 					url: sscribe_data.ajaxurl,
@@ -109,25 +123,36 @@
 							if (response.success) {
 								this.sessionId = response.data.session_id;
 								this.updateStatus( response.data.message );
+								
+								sscribeDebugLog('Export started', {
+									session_id: this.sessionId,
+									total: response.data.total,
+									batch_size: response.data.batch_size,
+									debug_info: response.data.debug_info
+								});
+								
 								this.processBatch();
 							} else {
+								sscribeDebugLog('ERROR: ' + response.data.message);
 								this.showError( response.data.message );
 							}
 						},
 						this
 					),
-				error: $.proxy(
-					function () {
-						this.showError( sscribe_data.strings.error );
-					},
-					this
-				)
+					error: $.proxy(
+						function (xhr, status, error) {
+							sscribeDebugLog('AJAX ERROR: ' + error);
+							this.showError( sscribe_data.strings.error );
+						},
+						this
+					)
 				}
 			);
 		},
 
 		processBatch: function () {
 			if ( ! this.sessionId) {
+				sscribeDebugLog('ERROR: No session ID');
 				this.showError( sscribe_data.strings.error );
 				return;
 			}
@@ -165,6 +190,14 @@
 									$( '#sscribe-time-remaining' ).text( timeStr ).show();
 								}
 
+								sscribeDebugLog('Batch processed', {
+									status: data.status,
+									processed: data.processed,
+									total: data.total,
+									percentage: data.percentage,
+									debug_info: data.debug_info
+								});
+
 								if (data.status === 'complete') {
 									this.exportComplete( data );
 								} else {
@@ -173,17 +206,19 @@
 							} else {
 								var errorMsg = response.data.message;
 								var isCancelled = response.data.cancelled === true;
+								sscribeDebugLog('ERROR: ' + errorMsg, response.data.debug_info);
 								this.showError( errorMsg, isCancelled );
 							}
 						},
 						this
 					),
-				error: $.proxy(
-					function () {
-						this.showError( sscribe_data.strings.error );
-					},
-					this
-				)
+					error: $.proxy(
+						function (xhr, status, error) {
+							sscribeDebugLog('AJAX ERROR in batch: ' + error);
+							this.showError( sscribe_data.strings.error );
+						},
+						this
+					)
 				}
 			);
 		},
@@ -196,6 +231,7 @@
 			}
 
 			$( '#sscribe-cancel-btn' ).prop( 'disabled', true ).text( 'Cancelling...' );
+			sscribeDebugLog('Cancelling export...');
 
 			$.ajax(
 				{
@@ -210,6 +246,7 @@
 						function () {
 							this.isProcessing = false;
 							this.sessionId = null;
+							sscribeDebugLog('Export cancelled');
 						},
 						this
 					)
@@ -220,6 +257,13 @@
 		exportComplete: function (data) {
 			this.isProcessing = false;
 			this.updateProgress( 100 );
+
+			sscribeDebugLog('Export complete!', {
+				download_url: data.download_url,
+				filename: data.filename,
+				errors: data.errors,
+				debug_info: data.debug_info
+			});
 
 			$( '#sscribe-progress-area' ).slideUp(
 				300,
@@ -299,3 +343,52 @@
 	);
 
 })( jQuery );
+
+// Debug logger function (global)
+function scribeDebugLog(message, data) {
+	var logEl = document.getElementById('sscribe-live-log');
+	if (!logEl) return;
+	
+	var timestamp = new Date().toLocaleTimeString();
+	var entry = document.createElement('div');
+	entry.style.marginBottom = '4px';
+	entry.style.padding = '4px 8px';
+	entry.style.background = 'rgba(0,0,0,0.3)';
+	entry.style.borderRadius = '4px';
+	
+	var msgSpan = document.createElement('span');
+	msgSpan.style.color = '#60A5FA';
+	msgSpan.textContent = '[' + timestamp + '] ';
+	entry.appendChild(msgSpan);
+	
+	var textSpan = document.createElement('span');
+	textSpan.style.color = '#F8FAFC';
+	textSpan.textContent = message;
+	entry.appendChild(textSpan);
+	
+	if (data) {
+		try {
+			var dataSpan = document.createElement('div');
+			dataSpan.style.color = '#94A3B8';
+			dataSpan.style.fontSize = '10px';
+			dataSpan.style.marginLeft = '12px';
+			dataSpan.style.marginTop = '4px';
+			dataSpan.style.whiteSpace = 'pre-wrap';
+			dataSpan.style.wordBreak = 'break-all';
+			dataSpan.textContent = JSON.stringify(data, null, 2);
+			entry.appendChild(dataSpan);
+		} catch(e) {
+			// Ignore JSON errors
+		}
+	}
+	
+	logEl.appendChild(entry);
+	logEl.scrollTop = logEl.scrollHeight;
+	
+	// Clear initial message
+	var firstChild = logEl.firstChild;
+	if (firstChild && firstChild.textContent && firstChild.textContent.includes('Waiting')) {
+		logEl.innerHTML = '';
+		logEl.appendChild(entry);
+	}
+}

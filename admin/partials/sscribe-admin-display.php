@@ -10,6 +10,8 @@
  * @var array  $status_counts  Page counts per post status.
  * @var array  $seo_plugins    Active SEO plugins.
  * @var array  $recent_exports Array of recent ZIP exports.
+ * @var array  $sscribe_debug_info Debug information (when debug mode is enabled).
+ * @var bool   $sscribe_is_debug Whether debug mode is enabled.
  */
 
 // Prevent direct access.
@@ -19,6 +21,167 @@ if (!defined('ABSPATH')) {
 ?>
 
 <div class="sscribe-master-container">
+	<style>
+		/* Force header styles - inline for maximum specificity */
+		.sscribe-master-container .sscribe-hero {
+			background: linear-gradient(135deg, #0F172A 0%, #1E293B 100%) !important;
+			border-radius: 24px !important;
+			padding: 32px 40px !important;
+			margin-bottom: 32px !important;
+			position: relative !important;
+			overflow: hidden !important;
+			box-shadow: 0 10px 25px -5px rgba(0,0,0,0.1) !important;
+		}
+		.sscribe-master-container .sscribe-hero-glass {
+			position: absolute !important;
+			top: 0 !important;
+			left: 0 !important;
+			right: 0 !important;
+			bottom: 0 !important;
+			background: linear-gradient(135deg, rgba(74,130,99,0.2) 0%, rgba(45,212,191,0.1) 100%) !important;
+			pointer-events: none !important;
+			z-index: 0 !important;
+		}
+		.sscribe-master-container .sscribe-hero-content {
+			position: relative !important;
+			z-index: 1 !important;
+			display: flex !important;
+			align-items: center !important;
+			justify-content: space-between !important;
+			gap: 24px !important;
+		}
+		.sscribe-master-container .sscribe-hero-left {
+			display: flex !important;
+			align-items: center !important;
+			gap: 20px !important;
+		}
+		.sscribe-master-container .sscribe-hero-logo {
+			flex-shrink: 0 !important;
+			width: 56px !important;
+			height: 56px !important;
+			background: linear-gradient(135deg, rgba(45,212,191,0.3) 0%, rgba(45,212,191,0.1) 100%) !important;
+			border: 2px solid rgba(45,212,191,0.4) !important;
+			border-radius: 12px !important;
+			display: flex !important;
+			align-items: center !important;
+			justify-content: center !important;
+		}
+		.sscribe-master-container .sscribe-hero-titles {
+			display: flex !important;
+			flex-direction: column !important;
+			gap: 6px !important;
+		}
+		.sscribe-master-container .sscribe-hero-title {
+			color: #FFFFFF !important;
+			font-size: 28px !important;
+			font-weight: 800 !important;
+			letter-spacing: -0.02em !important;
+			line-height: 1.1 !important;
+			margin: 0 !important;
+			padding: 0 !important;
+			text-shadow: 0 2px 8px rgba(0,0,0,0.3) !important;
+		}
+		.sscribe-master-container .sscribe-hero-subtitle {
+			color: #94A3B8 !important;
+			font-size: 14px !important;
+			font-weight: 400 !important;
+			max-width: 520px !important;
+			line-height: 1.5 !important;
+			margin: 0 !important;
+			padding: 0 !important;
+		}
+		.scribe-master-container .sscribe-hero-version {
+			flex-shrink: 0 !important;
+			background: rgba(255,255,255,0.15) !important;
+			border: 1px solid rgba(255,255,255,0.2) !important;
+			color: #E2E8F0 !important;
+			padding: 6px 14px !important;
+			border-radius: 100px !important;
+			font-size: 12px !important;
+			font-weight: 600 !important;
+			white-space: nowrap !important;
+			margin: 0 !important;
+		}
+		
+		/* Debug Panel Styles */
+		.sscribe-debug-panel {
+			background: #1E293B;
+			border-radius: 16px;
+			margin-bottom: 24px;
+			overflow: hidden;
+			font-family: monospace;
+			font-size: 12px;
+		}
+		.sscribe-debug-header {
+			background: #0F172A;
+			padding: 12px 20px;
+			display: flex;
+			align-items: center;
+			justify-content: space-between;
+			cursor: pointer;
+		}
+		.scribe-debug-header-title {
+			color: #F59E0B;
+			font-weight: bold;
+			display: flex;
+			align-items: center;
+			gap: 8px;
+		}
+		.scribe-debug-toggle {
+			color: #64748B;
+			font-size: 11px;
+		}
+		.scribe-debug-content {
+			padding: 16px 20px;
+			max-height: 500px;
+			overflow-y: auto;
+		}
+		.scribe-debug-section {
+			margin-bottom: 16px;
+		}
+		.scribe-debug-section:last-child {
+			margin-bottom: 0;
+		}
+		.scribe-debug-section-title {
+			color: #10B981;
+			font-weight: bold;
+			margin-bottom: 8px;
+			padding-bottom: 4px;
+			border-bottom: 1px solid #334155;
+		}
+		.scribe-debug-item {
+			color: #E2E8F0;
+			padding: 4px 0;
+			display: flex;
+			gap: 12px;
+		}
+		.scribe-debug-key {
+			color: #60A5FA;
+			min-width: 180px;
+		}
+		.scribe-debug-value {
+			color: #F8FAFC;
+			word-break: break-all;
+		}
+		.scribe-debug-warning {
+			color: #F59E0B;
+			background: rgba(245, 158, 11, 0.1);
+			padding: 8px 12px;
+			border-radius: 6px;
+			margin: 8px 0;
+		}
+		.scribe-debug-error {
+			color: #EF4444;
+			background: rgba(239, 68, 68, 0.1);
+			padding: 8px 12px;
+			border-radius: 6px;
+			margin: 8px 0;
+		}
+		.scribe-debug-success {
+			color: #10B981;
+		}
+	</style>
+
 	<header class="sscribe-hero">
 		<div class="sscribe-hero-glass"></div>
 		<div class="sscribe-hero-content">
@@ -40,6 +203,119 @@ if (!defined('ABSPATH')) {
 		</div>
 	</header>
 
+	<!-- DEBUG PANEL - Always Visible -->
+	<?php if (!empty($sscribe_debug_info)): ?>
+	<div class="sscribe-debug-panel" id="sscribe-debug-panel">
+	<div class="sscribe-debug-panel" id="sscribe-debug-panel">
+		<div class="sscribe-debug-header" onclick="document.getElementById('sscribe-debug-content').classList.toggle('sscribe-hidden')">
+			<div class="sscribe-debug-header-title">
+				<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+					<path d="M12 22c5.523 0 10-4.477 10-10S17.523 2 12 2 2 6.477 2 12s4.477 10 10 10z"/>
+					<path d="M12 16v-4M12 8h.01"/>
+				</svg>
+				DEBUG PANEL - Live Export Diagnostics
+			</div>
+			<div class="sscribe-debug-toggle">Click to toggle</div>
+		</div>
+		<div class="sscribe-debug-content" id="sscribe-debug-content">
+			<!-- Server Info -->
+			<?php if (!empty($sscribe_debug_info['server'])): ?>
+			<div class="sscribe-debug-section">
+				<div class="sscribe-debug-section-title">Server Configuration</div>
+				<div class="sscribe-debug-item">
+					<span class="sscribe-debug-key">PHP Version:</span>
+					<span class="sscribe-debug-value"><?php echo esc_html($sscribe_debug_info['server']['php_version']); ?></span>
+				</div>
+				<div class="sscribe-debug-item">
+					<span class="sscribe-debug-key">Memory Limit:</span>
+					<span class="sscribe-debug-value"><?php echo esc_html($sscribe_debug_info['server']['memory_limit']); ?></span>
+				</div>
+				<div class="sscribe-debug-item">
+					<span class="sscribe-debug-key">Max Execution Time:</span>
+					<span class="sscribe-debug-value"><?php echo esc_html($sscribe_debug_info['server']['max_execution_time']); ?>s</span>
+				</div>
+			</div>
+			<?php endif; ?>
+			
+			<!-- WPML Info -->
+			<div class="sscribe-debug-section">
+				<div class="sscribe-debug-section-title">WPML Status</div>
+				<div class="sscribe-debug-item">
+					<span class="sscribe-debug-key">WPML Active:</span>
+					<span class="sscribe-debug-value <?php echo $sscribe_debug_info['wpml_active'] ? 'sscribe-debug-success' : 'sscribe-debug-error'; ?>">
+						<?php echo $sscribe_debug_info['wpml_active'] ? 'YES' : 'NO'; ?>
+					</span>
+				</div>
+				<div class="sscribe-debug-item">
+					<span class="sscribe-debug-key">Languages Found:</span>
+					<span class="sscribe-debug-value"><?php echo esc_html($sscribe_debug_info['languages_count']); ?></span>
+				</div>
+			</div>
+			
+			<!-- Language Details -->
+			<?php if (!empty($sscribe_debug_info['language_details'])): ?>
+			<div class="sscribe-debug-section">
+				<div class="sscribe-debug-section-title">Language Details (Page Counts by Status)</div>
+				<?php foreach ($sscribe_debug_info['language_details'] as $lang_code => $lang_info): ?>
+				<div style="margin-bottom: 12px; padding: 12px; background: rgba(0,0,0,0.3); border-radius: 8px;">
+					<div class="sscribe-debug-item">
+						<span class="sscribe-debug-key">Language:</span>
+						<span class="sscribe-debug-value"><?php echo esc_html($lang_info['name']); ?> (<?php echo esc_html($lang_code); ?>)</span>
+					</div>
+					<div class="sscribe-debug-item">
+						<span class="sscribe-debug-key">Status Breakdown:</span>
+						<span class="sscribe-debug-value">
+							<?php foreach ($lang_info['status_breakdown'] as $status => $count): ?>
+								<span style="margin-right: 12px;"><?php echo esc_html($status); ?>: <strong><?php echo esc_html($count); ?></strong></span>
+							<?php endforeach; ?>
+						</span>
+					</div>
+					<div class="sscribe-debug-item">
+						<span class="sscribe-debug-key">Published Page IDs:</span>
+						<span class="sscribe-debug-value" style="font-size: 10px;"><?php echo esc_html(implode(', ', $lang_info['published_page_ids'] ?? array())); ?></span>
+					</div>
+				</div>
+				<?php endforeach; ?>
+			</div>
+			<?php endif; ?>
+			
+			<!-- Duplicate Slugs Warning -->
+			<?php if (!empty($sscribe_debug_info['duplicate_slugs'])): ?>
+			<div class="sscribe-debug-section">
+				<div class="sscribe-debug-section-title" style="color: #F59E0B;">Duplicate Slugs Detected (Same slug in different languages)</div>
+				<div class="sscribe-debug-warning">
+					<strong>Warning:</strong> Found <?php echo count($sscribe_debug_info['duplicate_slugs']); ?> slugs that exist in multiple languages.
+					This may cause issues with page identification.
+				</div>
+				<div style="max-height: 200px; overflow-y: auto;">
+					<?php foreach (array_slice($sscribe_debug_info['duplicate_slugs'], 0, 10, true) as $slug => $pages): ?>
+					<div style="margin-bottom: 8px; padding: 8px; background: rgba(0,0,0,0.2); border-radius: 4px;">
+						<div style="color: #F59E0B; margin-bottom: 4px;">Slug: <?php echo esc_html($slug); ?></div>
+						<?php foreach ($pages as $p): ?>
+						<div style="color: #94A3B8; font-size: 11px;">
+							ID: <?php echo esc_html($p['id']); ?> | Lang: <?php echo esc_html($p['lang']); ?> | Title: <?php echo esc_html($p['title']); ?>
+						</div>
+						<?php endforeach; ?>
+					</div>
+					<?php endforeach; ?>
+					<?php if (count($sscribe_debug_info['duplicate_slugs']) > 10): ?>
+					<div style="color: #64748B; font-style: italic;">...and <?php echo count($sscribe_debug_info['duplicate_slugs']) - 10; ?> more</div>
+					<?php endif; ?>
+				</div>
+			</div>
+			<?php endif; ?>
+			
+			<!-- Live Export Log -->
+			<div class="sscribe-debug-section">
+				<div class="sscribe-debug-section-title">Live Export Log</div>
+				<div id="sscribe-live-log" style="background: #0F172A; padding: 12px; border-radius: 8px; min-height: 100px; max-height: 300px; overflow-y: auto; font-size: 11px; color: #94A3B8;">
+					<div style="color: #64748B;">Waiting for export to start...</div>
+				</div>
+			</div>
+		</div>
+	</div>
+	<?php endif; ?>
+
 	<!-- ===== Main Workspace ===== -->
 	<div class="sscribe-workspace">
 
@@ -60,7 +336,7 @@ if (!defined('ABSPATH')) {
 			<div class="sscribe-panel-body">
 				<?php if ($wpml_active && !empty($languages)): ?>
 					<p class="sscribe-description">
-						<?php esc_html_e('Choose a language and post status. The plugin will export all matching pages into a professional DOCX archive.', 'sscribe-export-site-pages'); ?>
+						<?php esc_html_e('Choose a language and page status. The plugin will export all matching pages into a professional DOCX archive.', 'sscribe-export-site-pages'); ?>
 					</p>
 
 					<!-- Language Selection -->
@@ -73,7 +349,7 @@ if (!defined('ABSPATH')) {
 							</svg>
 							<?php esc_html_e('Language', 'sscribe-export-site-pages'); ?>
 						</legend>
-						<div class="sscribe-language-cards">
+						<div class="sscribe-language-cards" id="sscribe-language-cards">
 							<label class="sscribe-lang-card-label sscribe-lang-card-all">
 								<input type="radio" name="sscribe_language" value="" checked>
 								<div class="sscribe-lang-card-inner">
@@ -120,7 +396,7 @@ if (!defined('ABSPATH')) {
 											<span class="sscribe-lang-count">
 												<?php
 												/* translators: %d: Number of pages */
-												printf(esc_html__('%d Pages', 'sscribe-export-site-pages'), intval($sscribe_lang['page_count']));
+												echo esc_html(sprintf(__('%d Pages', 'sscribe-export-site-pages'), intval($sscribe_lang['page_count'])));
 												?>
 											</span>
 										</div>
@@ -141,12 +417,12 @@ if (!defined('ABSPATH')) {
 					<p class="sscribe-description">
 						<?php
 						/* translators: %d: Number of pages */
-						printf(esc_html__('Ready to export %d pages into beautiful Word documents.', 'sscribe-export-site-pages'), intval($total_pages_all));
+						echo esc_html(sprintf(__('Ready to export %d pages into beautiful Word documents.', 'sscribe-export-site-pages'), intval($total_pages_all)));
 						?>
 					</p>
 				<?php endif; ?>
 
-				<!-- Post Status Selection -->
+				<!-- Page Status Selection -->
 				<fieldset class="sscribe-fieldset">
 					<legend class="sscribe-fieldset-legend">
 						<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
@@ -450,18 +726,18 @@ if (!defined('ABSPATH')) {
 								),
 							);
 
-						$sscribe_svg_allowed_features = array(
-							'path'     => array( 'd' => true ),
-							'polyline' => array( 'points' => true ),
-							'circle'   => array( 'cx' => true, 'cy' => true, 'r' => true ),
-							'rect'     => array( 'x' => true, 'y' => true, 'width' => true, 'height' => true, 'rx' => true, 'ry' => true ),
-							'line'     => array( 'x1' => true, 'y1' => true, 'x2' => true, 'y2' => true ),
-						);
+							$sscribe_svg_allowed_features = array(
+								'path'     => array( 'd' => true ),
+								'polyline' => array( 'points' => true ),
+								'circle'   => array( 'cx' => true, 'cy' => true, 'r' => true ),
+								'rect'     => array( 'x' => true, 'y' => true, 'width' => true, 'height' => true, 'rx' => true, 'ry' => true ),
+								'line'     => array( 'x1' => true, 'y1' => true, 'x2' => true, 'y2' => true ),
+							);
 
-						foreach ($sscribe_features as $sscribe_feature):
+							foreach ($sscribe_features as $sscribe_feature):
 							?>
 							<div class="sscribe-feature-item">
-								<div class="sscribe-feature-icon" style="background: <?php echo esc_attr($sscribe_feature['bg']); ?>; color: <?php echo esc_attr($sscribe_feature['color']); ?>;">
+								<div class="sscribe-feature-icon" style="background-color: <?php echo esc_attr($sscribe_feature['bg']); ?>; color: <?php echo esc_attr($sscribe_feature['color']); ?>;">
 									<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor"
 										stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
 										<?php echo wp_kses( $sscribe_feature['icon'], $sscribe_svg_allowed_features ); ?>
@@ -549,3 +825,59 @@ if (!defined('ABSPATH')) {
 
 	</div>
 </div>
+
+<script>
+// Debug logger function - Always enabled
+function sscribeDebugLog(message, data) {
+	var logEl = document.getElementById('sscribe-live-log');
+	if (!logEl) return;
+	
+	var timestamp = new Date().toLocaleTimeString();
+	var entry = document.createElement('div');
+	entry.style.marginBottom = '4px';
+	entry.style.padding = '4px 8px';
+	entry.style.background = 'rgba(0,0,0,0.3)';
+	entry.style.borderRadius = '4px';
+	
+	var msgSpan = document.createElement('span');
+	msgSpan.style.color = '#60A5FA';
+	msgSpan.textContent = '[' + timestamp + '] ';
+	entry.appendChild(msgSpan);
+	
+	var textSpan = document.createElement('span');
+	textSpan.style.color = '#F8FAFC';
+	textSpan.textContent = message;
+	entry.appendChild(textSpan);
+	
+	if (data) {
+		try {
+			var dataSpan = document.createElement('div');
+			dataSpan.style.color = '#94A3B8';
+			dataSpan.style.fontSize = '10px';
+			dataSpan.style.marginLeft = '12px';
+			dataSpan.style.marginTop = '4px';
+			dataSpan.style.whiteSpace = 'pre-wrap';
+			dataSpan.style.wordBreak = 'break-all';
+			dataSpan.textContent = JSON.stringify(data, null, 2);
+			entry.appendChild(dataSpan);
+		} catch(e) {}
+	}
+	
+	// Clear initial "Waiting" message on first log
+	var firstChild = logEl.firstChild;
+	if (firstChild && firstChild.textContent && firstChild.textContent.includes('Waiting')) {
+		logEl.innerHTML = '';
+	}
+	
+	logEl.appendChild(entry);
+	logEl.scrollTop = logEl.scrollHeight;
+}
+
+// Log initial page load info
+sscribeDebugLog('Page loaded', {
+	language: jQuery('input[name="sscribe_language"]:checked').val() || 'all',
+	status: jQuery('input[name="sscribe_post_status"]:checked').val(),
+	wpml_active: <?php echo $wpml_active ? 'true' : 'false'; ?>,
+	version: '<?php echo esc_js(SSCRIBE_VERSION); ?>'
+});
+</script>
