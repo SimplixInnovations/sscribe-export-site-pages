@@ -530,6 +530,13 @@ class SScribe_Page_Collector {
 	 * @return array Associative array of status => count pairs.
 	 */
 	public function get_post_status_counts( string $language = '' ): array {
+		$cache_key = 'sscribe_status_counts_' . md5( $language );
+		$cached    = get_transient( $cache_key );
+
+		if ( false !== $cached && is_array( $cached ) ) {
+			return $cached;
+		}
+
 		$statuses = $this->get_valid_post_statuses();
 		$counts   = array();
 
@@ -537,8 +544,9 @@ class SScribe_Page_Collector {
 			$counts[ $status ] = $this->get_page_count_only( $language, $status );
 		}
 
-		// Add 'all' count.
 		$counts['all'] = array_sum( $counts );
+
+		set_transient( $cache_key, $counts, MINUTE_IN_SECONDS );
 
 		return $counts;
 	}
@@ -583,6 +591,13 @@ class SScribe_Page_Collector {
 			return array();
 		}
 
+		$cache_key = 'sscribe_wpml_languages';
+		$cached    = get_transient( $cache_key );
+
+		if ( false !== $cached && is_array( $cached ) ) {
+			return $cached;
+		}
+
 		// Use wpml_get_active_languages function if available (WPML 3.2+).
 		// This avoids calling apply_filters() with a non-prefixed hook name
 		// directly, which triggers WordPress Plugin Check warnings.
@@ -607,6 +622,8 @@ class SScribe_Page_Collector {
 				'flag_url'    => isset( $lang['country_flag_url'] ) ? $lang['country_flag_url'] : '',
 			);
 		}
+
+		set_transient( $cache_key, $result, 5 * MINUTE_IN_SECONDS );
 
 		return $result;
 	}

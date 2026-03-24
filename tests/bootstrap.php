@@ -150,4 +150,25 @@ $sscribe_plugin_data = get_file_data(
 );
 define( 'SSCRIBE_VERSION', $sscribe_plugin_data['version'] ?? '1.0.0' );
 
+if ( ! defined( 'MINUTE_IN_SECONDS' ) ) {
+	define( 'MINUTE_IN_SECONDS', 60 );
+}
+
+$sscribe_test_transients = array();
+
+if ( ! function_exists( 'get_transient' ) ) {
+	function get_transient( $sscribe_transient ) {
+		global $sscribe_test_transients;
+		return isset( $sscribe_test_transients[ $sscribe_transient ] ) ? $sscribe_test_transients[ $sscribe_transient ] : false;
+	}
+}
+
+if ( ! function_exists( 'set_transient' ) ) {
+	function set_transient( $sscribe_transient, $sscribe_value, $sscribe_expiration = 0 ) {
+		global $sscribe_test_transients;
+		$sscribe_test_transients[ $sscribe_transient ] = $sscribe_value;
+		return true;
+	}
+}
+
 require_once SSCRIBE_PLUGIN_DIR . 'vendor/autoload.php';
