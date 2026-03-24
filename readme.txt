@@ -4,7 +4,7 @@ Donate link: https://simplixi.com
 Tags: export, docx, word, documentation, multilingual
 Requires at least: 5.8
 Tested up to: 6.9
-Stable tag: 1.8.1
+Stable tag: 1.8.2
 Requires PHP: 7.4
 License: GPLv2 or later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
@@ -203,6 +203,14 @@ Yes. SScribe is 100% free and open-source, developed by Simplix Innovations. No 
 5. SEO section showing metadata from Rank Math
 
 == Changelog ==
+
+= 1.8.2 =
+* Enhancement: Debug panel now always visible - no configuration needed for troubleshooting
+* Enhancement: Comprehensive export diagnostics - page IDs, DOCX counts, memory usage, timing
+* Enhancement: Live Export Log shows real-time progress with detailed debug info
+* Enhancement: ZIP verification compares expected vs actual DOCX file count
+* Enhancement: Server log files at wp-content/uploads/sscribe-logs/ for detailed analysis
+* Fix: CSS typo in header logo class selector
 
 = 1.8.1 =
 * Debug release: Added comprehensive logging to diagnose export issues

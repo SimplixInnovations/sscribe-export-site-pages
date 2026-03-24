@@ -86,19 +86,12 @@ class SScribe_Batch_Processor {
 	}
 
 	/**
-	 * Write debug log entry.
+	 * Write debug log entry - always enabled.
 	 *
 	 * @param string $message Log message.
 	 * @param array  $data    Optional data to include.
 	 */
 	private function debug_log( string $message, array $data = array() ): void {
-		// phpcs:ignore WordPress.NamingConventions.PrefixAllGlobals.NonPrefixedVariableFound
-		// @phpstan-ignore-next-line
-		$debug_enabled = defined( 'SSCRIBE_DEBUG' ) && SSCRIBE_DEBUG;
-		if ( ! $debug_enabled ) {
-			return;
-		}
-
 		$upload_dir = wp_upload_dir();
 		$log_dir    = trailingslashit( $upload_dir['basedir'] ) . 'sscribe-logs/';
 
@@ -158,11 +151,22 @@ class SScribe_Batch_Processor {
 
 		$page_ids = $this->collector->get_page_ids( $language, $post_status );
 		$total    = count( $page_ids );
+		
+		// Get current language context for debugging
+		$current_lang = 'default';
+		if ( $this->collector->is_wpml_active() ) {
+			// phpcs:ignore WordPress.NamingConventions.PrefixAllGlobals.NonPrefixedHooknameFound -- WPML hook.
+			$current_lang = apply_filters( 'wpml_current_language', null );
+		}
 
 		$this->debug_log( 'Page IDs retrieved', array(
 			'total' => $total,
+			'language_requested' => $language,
+			'post_status' => $post_status,
+			'current_wpml_lang' => $current_lang,
 			'ids_sample' => array_slice( $page_ids, 0, 10 ),
-			'all_ids' => $page_ids,
+			'memory_usage' => size_format( memory_get_usage( true ) ),
+			'memory_peak' => size_format( memory_get_peak_usage( true ) ),
 		) );
 
 		if ( 0 === $total ) {
@@ -215,6 +219,18 @@ class SScribe_Batch_Processor {
 					/* translators: %d: number of pages */
 					__( 'Found %d pages. Starting export...', 'sscribe-export-site-pages' ),
 					$total
+				),
+				'debug_info' => array(
+					'page_ids_count' => $total,
+					'page_ids_all' => $page_ids,
+					'page_ids_sample' => array_slice( $page_ids, 0, 20 ),
+					'language' => $language,
+					'post_status' => $post_status,
+					'current_wpml_lang' => $current_lang ?? 'n/a',
+					'temp_dir' => $temp_dir,
+					'session_file' => $this->session->get_storage_dir() . 'sscribe-session-' . $session_id . '.json',
+					'memory_usage' => size_format( memory_get_usage( true ) ),
+					'php_version' => PHP_VERSION,
 				),
 			)
 		);
@@ -315,6 +331,8 @@ class SScribe_Batch_Processor {
 			'processed' => $processed,
 			'remaining' => $total - $processed,
 			'error_count' => count( $errors ),
+			'memory_usage' => size_format( memory_get_usage( true ) ),
+			'memory_peak' => size_format( memory_get_peak_usage( true ) ),
 		) );
 
 		// Get the next batch of page IDs.
@@ -340,7 +358,11 @@ class SScribe_Batch_Processor {
 
 		// Process each page in the batch.
 		foreach ( $batch as $page_id ) {
-			$this->debug_log( "Processing page ID: {$page_id}" );
+			$page_start_time = microtime( true );
+			$this->debug_log( "Processing page ID: {$page_id}", array(
+				'batch_index' => $processed + 1,
+				'total' => $total,
+			) );
 			
 			/**
 			 * Fires before a page is exported to DOCX.
@@ -358,28 +380,46 @@ class SScribe_Batch_Processor {
 					__( 'Failed to collect data for page ID %d.', 'sscribe-export-site-pages' ),
 					$page_id
 				);
-				$this->debug_log( "ERROR: {$error_msg}" );
+				$this->debug_log( "ERROR: {$error_msg}", array(
+					'page_id' => $page_id,
+					'memory' => size_format( memory_get_usage( true ) ),
+				) );
 				$errors[] = $error_msg;
 				$processed++;
 				continue;
 			}
 
 			$current_page_title = $page_data['title'];
-			$this->debug_log( "Page data collected", array( 'title' => $current_page_title, 'id' => $page_id ) );
+			$this->debug_log( "Page data collected", array( 
+				'title' => $current_page_title, 
+				'id' => $page_id,
+				'slug' => $page_data['slug'] ?? 'n/a',
+				'lang' => $page_data['language'] ?? 'n/a',
+			) );
 
 			$page_index = $processed + 1;
 			$result     = $this->exporter->generate_docx( $page_data, $temp_dir, $page_index, $total );
 
+			$page_duration = round( microtime( true ) - $page_start_time, 3 );
+			
 			if ( ! $result ) {
 				$error_msg = sprintf(
 					/* translators: %s: page title */
 					__( 'Failed to generate DOCX for "%s".', 'sscribe-export-site-pages' ),
 					$page_data['title']
 				);
-				$this->debug_log( "ERROR: {$error_msg}" );
+				$this->debug_log( "ERROR: {$error_msg}", array(
+					'page_id' => $page_id,
+					'title' => $page_data['title'],
+					'duration_sec' => $page_duration,
+				) );
 				$errors[] = $error_msg;
 			} else {
-				$this->debug_log( "DOCX generated successfully", array( 'file' => basename( $result ) ) );
+				$this->debug_log( "DOCX generated successfully", array( 
+					'file' => basename( $result ),
+					'page_id' => $page_id,
+					'duration_sec' => $page_duration,
+				) );
 			}
 
 			/**
@@ -397,9 +437,11 @@ class SScribe_Batch_Processor {
 
 		$this->debug_log( 'Batch completed', array(
 			'processed_now' => $processed - $session['processed'],
-			'batch_duration_sec' => round( $batch_duration, 2 ),
+			'batch_duration_sec' => round( $batch_duration, 3 ),
 			'total_processed' => $processed,
 			'total_errors' => count( $errors ),
+			'memory_usage' => size_format( memory_get_usage( true ) ),
+			'memory_peak' => size_format( memory_get_peak_usage( true ) ),
 		) );
 
 		// Update session with timing data.
@@ -454,6 +496,14 @@ class SScribe_Batch_Processor {
 					$processed,
 					$total
 				),
+				'debug_info' => array(
+					'batch_size' => $this->batch_size,
+					'errors_so_far' => count( $errors ),
+					'last_batch_duration' => round( $batch_duration, 3 ),
+					'memory_usage' => size_format( memory_get_usage( true ) ),
+					'memory_peak' => size_format( memory_get_peak_usage( true ) ),
+					'avg_time_per_page' => round( $avg_time_per_page, 3 ),
+				),
 			)
 		);
 	}
@@ -486,31 +536,73 @@ class SScribe_Batch_Processor {
 			'total' => $session['total'],
 			'errors_count' => count( $session['errors'] ),
 			'errors' => $session['errors'],
+			'processed' => $session['processed'] ?? 'not set',
 		) );
 
 		$lang_code = ! empty( $session['language'] ) ? $session['language'] : 'all';
 		$site_slug = sanitize_file_name( get_bloginfo( 'name' ) );
 		$zip_name  = 'sscribe-export-' . $lang_code . '-' . $site_slug . '-' . gmdate( 'Y-m-d-His' );
 
-		$this->debug_log( 'Creating ZIP', array( 'zip_name' => $zip_name, 'temp_dir' => $session['temp_dir'] ) );
+		$this->debug_log( 'Creating ZIP', array( 
+			'zip_name' => $zip_name, 
+			'temp_dir' => $session['temp_dir'],
+			'language' => $lang_code,
+		) );
+
+		// Count DOCX files BEFORE creating ZIP
+		$docx_files_before = glob( $session['temp_dir'] . '*.docx' );
+		$docx_count_before = $docx_files_before ? count( $docx_files_before ) : 0;
+		$this->debug_log( 'DOCX files in temp dir BEFORE ZIP', array( 
+			'count' => $docx_count_before,
+			'files' => $docx_files_before ? array_map( 'basename', $docx_files_before ) : array(),
+		) );
 
 		$zip_path = $this->zip_handler->create_zip( $session['temp_dir'], $zip_name );
 
 		if ( ! $zip_path ) {
-			$this->debug_log( 'ERROR: Failed to create ZIP' );
+			$this->debug_log( 'ERROR: Failed to create ZIP', array(
+				'temp_dir' => $session['temp_dir'],
+				'expected_files' => $docx_count_before,
+			) );
 			wp_send_json_error(
 				array(
 					'message' => __( 'Failed to create ZIP package. Please try again.', 'sscribe-export-site-pages' ),
+					'debug_info' => array(
+						'temp_dir_exists' => is_dir( $session['temp_dir'] ),
+						'docx_files_in_temp' => $docx_count_before,
+					),
 				)
 			);
 			return;
 		}
 
-		$this->debug_log( 'ZIP created successfully', array( 'zip_path' => $zip_path ) );
+		$this->debug_log( 'ZIP created successfully', array( 
+			'zip_path' => $zip_path,
+			'zip_size' => size_format( filesize( $zip_path ) ),
+		) );
 
-		// Count actual DOCX files in temp dir
-		$docx_files = glob( $session['temp_dir'] . '*.docx' );
-		$this->debug_log( 'DOCX files in ZIP', array( 'count' => $docx_files ? count( $docx_files ) : 0 ) );
+		// Verify ZIP contents
+		$zip = new ZipArchive();
+		$zip_open = $zip->open( $zip_path );
+		$docx_in_zip = 0;
+		$zip_files = array();
+		if ( $zip_open === true ) {
+			$docx_in_zip = 0;
+			for ( $i = 0; $i < $zip->numFiles; $i++ ) { // phpcs:ignore WordPress.NamingConventions.ValidVariableName.UsedPropertyNotSnakeCase -- ZipArchive property
+				$filename = $zip->getNameIndex( $i );
+				$zip_files[] = $filename;
+				if ( pathinfo( $filename, PATHINFO_EXTENSION ) === 'docx' ) {
+					$docx_in_zip++;
+				}
+			}
+			$zip->close();
+		}
+		$this->debug_log( 'ZIP contents verified', array(
+			'total_files_in_zip' => count( $zip_files ),
+			'docx_files_in_zip' => $docx_in_zip,
+			'expected_pages' => $session['total'],
+			'match' => $docx_in_zip === $session['total'],
+		) );
 
 		// ZIP created successfully — now clean up session.
 		$this->session->delete( $session_id );
@@ -519,7 +611,10 @@ class SScribe_Batch_Processor {
 
 		$download_url = $this->zip_handler->get_ajax_download_url( basename( $zip_path ) );
 
-		$this->debug_log( 'Export complete', array( 'download_url' => $download_url ) );
+		$this->debug_log( 'Export complete', array( 
+			'download_url' => $download_url,
+			'total_time_sec' => time() - ( $session['start_time'] ?? time() ),
+		) );
 
 		wp_send_json_success(
 			array(
@@ -544,6 +639,20 @@ class SScribe_Batch_Processor {
 					' ' . _n( '(%d error)', '(%d errors)', $error_count, 'sscribe-export-site-pages' ),
 					$error_count
 				) : '' ),
+				'debug_info' => array(
+					'docx_files_in_temp' => $docx_count_before,
+					'docx_files_in_zip' => $docx_in_zip,
+					'expected_pages' => $session['total'],
+					'match' => $docx_in_zip === $session['total'],
+					'difference' => $session['total'] - $docx_in_zip,
+					'page_ids_requested' => $session['page_ids'],
+					'errors_detailed' => $session['errors'],
+					'language' => $session['language'] ?? '',
+					'post_status' => $session['post_status'] ?? '',
+					'total_time_sec' => time() - ( $session['start_time'] ?? time() ),
+					'memory_peak' => size_format( memory_get_peak_usage( true ) ),
+					'zip_size' => size_format( filesize( $zip_path ) ),
+				),
 			)
 		);
 	}

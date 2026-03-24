@@ -82,19 +82,12 @@ class SScribe_Page_Collector {
 	}
 
 	/**
-	 * Write debug log entry.
+	 * Write debug log entry - always enabled.
 	 *
 	 * @param string $message Log message.
 	 * @param array  $data    Optional data to include.
 	 */
 	private function debug_log( string $message, array $data = array() ): void {
-		// phpcs:ignore WordPress.NamingConventions.PrefixAllGlobals.NonPrefixedVariableFound
-		// @phpstan-ignore-next-line
-		$debug_enabled = defined( 'SSCRIBE_DEBUG' ) && SSCRIBE_DEBUG;
-		if ( ! $debug_enabled ) {
-			return;
-		}
-
 		$upload_dir = wp_upload_dir();
 		$log_dir    = trailingslashit( $upload_dir['basedir'] ) . 'sscribe-logs/';
 
