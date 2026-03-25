@@ -32,8 +32,11 @@ class SScribe_Page_Collector {
 	 */
 	private $seo_reader;
 
+	private $logger;
+
 	public function __construct() {
 		$this->seo_reader = new SScribe_SEO_Reader();
+		$this->logger     = new SScribe_Logger( defined( 'SSCRIBE_DEBUG' ) && SSCRIBE_DEBUG );
 	}
 
 	/**
@@ -97,30 +100,13 @@ class SScribe_Page_Collector {
 	}
 
 	/**
-	 * Write debug log entry - always enabled.
+	 * Write debug log entry.
 	 *
 	 * @param string $message Log message.
 	 * @param array  $data    Optional data to include.
 	 */
 	private function debug_log( string $message, array $data = array() ): void {
-		$upload_dir = wp_upload_dir();
-		$log_dir    = trailingslashit( $upload_dir['basedir'] ) . 'sscribe-logs/';
-
-		if ( ! is_dir( $log_dir ) ) {
-			wp_mkdir_p( $log_dir );
-		}
-
-		$log_file  = $log_dir . 'export-debug-' . gmdate( 'Y-m-d' ) . '.log';
-		$timestamp = gmdate( 'Y-m-d H:i:s' );
-		$entry     = "[{$timestamp}] [Collector] {$message}";
-
-		if ( ! empty( $data ) ) {
-			$entry .= ' | ' . wp_json_encode( $data, JSON_UNESCAPED_UNICODE );
-		}
-
-		$entry .= "\n";
-
-		file_put_contents( $log_file, $entry, FILE_APPEND | LOCK_EX );
+		$this->logger->debug( $message, $data );
 	}
 
 	/**
