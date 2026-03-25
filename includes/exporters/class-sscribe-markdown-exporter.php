@@ -30,7 +30,7 @@ class SScribe_Markdown_Exporter implements SScribe_Exporter_Interface {
 	public function export( array $page_data, string $output_dir, int $index = 0, int $total = 0 ): SScribe_Result {
 		$markdown = $this->generate_markdown( $page_data );
 
-		$filename    = $this->build_filename( $page_data, $index, $total );
+		$filename    = \SScribe_Exporter_Factory::build_filename( $page_data, $index, $total, 'md' );
 		$output_path = trailingslashit( $output_dir ) . $filename;
 
 		$result = file_put_contents( $output_path, $markdown );
@@ -108,33 +108,6 @@ class SScribe_Markdown_Exporter implements SScribe_Exporter_Interface {
 		$md = preg_replace( '/\n{3,}/', "\n\n", $md );
 
 		return trim( $md );
-	}
-
-	/**
-	 * Build filename.
-	 *
-	 * @param array $page_data Page data.
-	 * @param int   $index     Page index.
-	 * @param int   $total     Total pages.
-	 * @return string
-	 */
-	private function build_filename( array $page_data, int $index, int $total ): string {
-		if ( $index > 0 && $total > 0 ) {
-			$pad_length = strlen( (string) $total );
-			$seq_prefix = str_pad( (string) $index, $pad_length, '0', STR_PAD_LEFT );
-		} else {
-			$seq_prefix = (string) $page_data['id'];
-		}
-
-		$title = sanitize_file_name( $page_data['title'] );
-		$title = substr( $title, 0, 60 );
-		$title = trim( $title, '-' );
-
-		if ( empty( $title ) ) {
-			$title = 'page-' . $page_data['id'];
-		}
-
-		return $seq_prefix . '-' . $title . '.md';
 	}
 
 	/**

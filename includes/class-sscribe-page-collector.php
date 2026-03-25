@@ -26,6 +26,17 @@ class SScribe_Page_Collector {
 	private array $featured_images_cache = array();
 
 	/**
+	 * SEO reader instance.
+	 *
+	 * @var SScribe_SEO_Reader
+	 */
+	private $seo_reader;
+
+	public function __construct() {
+		$this->seo_reader = new SScribe_SEO_Reader();
+	}
+
+	/**
 	 * Get all published page IDs, optionally filtered by language and status.
 	 *
 	 * @param string $language    Optional WPML language code (e.g., 'en', 'ar').
@@ -412,6 +423,7 @@ class SScribe_Page_Collector {
 				'children'            => $children,
 				'language'            => $language,
 				'parent_id'           => $post_object->post_parent,
+				'seo'                 => $this->seo_reader->get_seo_data( $page_id ),
 			),
 			$page_id
 		);

@@ -63,7 +63,7 @@ class SScribe_PDF_Exporter implements SScribe_Exporter_Interface {
 
 			$output = $dompdf->output();
 
-			$filename    = $this->build_filename( $page_data, $index, $total );
+			$filename    = \SScribe_Exporter_Factory::build_filename( $page_data, $index, $total, 'pdf' );
 			$output_path = trailingslashit( $output_dir ) . $filename;
 
 			file_put_contents( $output_path, $output );
@@ -79,33 +79,6 @@ class SScribe_PDF_Exporter implements SScribe_Exporter_Interface {
 				array( 'page_id' => $page_data['id'] ?? 0 )
 			);
 		}
-	}
-
-	/**
-	 * Build filename for the PDF.
-	 *
-	 * @param array $page_data Page data.
-	 * @param int   $index     Page index.
-	 * @param int   $total     Total pages.
-	 * @return string
-	 */
-	private function build_filename( array $page_data, int $index, int $total ): string {
-		if ( $index > 0 && $total > 0 ) {
-			$pad_length = strlen( (string) $total );
-			$seq_prefix = str_pad( (string) $index, $pad_length, '0', STR_PAD_LEFT );
-		} else {
-			$seq_prefix = (string) $page_data['id'];
-		}
-
-		$title = sanitize_file_name( $page_data['title'] );
-		$title = substr( $title, 0, 60 );
-		$title = trim( $title, '-' );
-
-		if ( empty( $title ) ) {
-			$title = 'page-' . $page_data['id'];
-		}
-
-		return $seq_prefix . '-' . $title . '.pdf';
 	}
 
 	/**
