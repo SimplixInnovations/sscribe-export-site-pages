@@ -274,10 +274,20 @@ class SScribe_SEO_Reader {
 		if ( ! $this->is_tsf_active() ) {
 			return $this->empty_seo_data();
 		}
+
+		$focus_keyword = '';
+		$primary_term_id = get_post_meta( $page_id, '_primary_term_' . $this->get_primary_taxonomy( $page_id ), true );
+		if ( $primary_term_id ) {
+			$term = get_term( $primary_term_id );
+			if ( $term && ! is_wp_error( $term ) ) {
+				$focus_keyword = $term->name;
+			}
+		}
+
 		return array(
 			'meta_title'       => (string) get_post_meta( $page_id, '_genesis_title', true ),
 			'meta_description' => (string) get_post_meta( $page_id, '_genesis_description', true ),
-			'focus_keyword'    => '',
+			'focus_keyword'    => $focus_keyword,
 			'canonical_url'    => (string) get_post_meta( $page_id, '_genesis_canonical_uri', true ),
 			'og_title'         => (string) get_post_meta( $page_id, '_open_graph_title', true ),
 			'og_description'   => (string) get_post_meta( $page_id, '_open_graph_description', true ),
@@ -286,6 +296,16 @@ class SScribe_SEO_Reader {
 			'nofollow'         => false,
 			'source'           => '',
 		);
+	}
+
+	private function get_primary_taxonomy( $page_id ): string {
+		$taxonomies = get_object_taxonomies( 'page', 'objects' );
+		foreach ( $taxonomies as $taxonomy ) {
+			if ( $taxonomy->hierarchical && $taxonomy->public ) {
+				return $taxonomy->name;
+			}
+		}
+		return 'category';
 	}
 
 	/**
