@@ -119,8 +119,8 @@ if (!defined('ABSPATH')) {
 		</div>
 	</header>
 
-	<!-- DEBUG PANEL - Always Visible -->
-	<?php if (!empty($sscribe_debug_info)): ?>
+	<!-- DEBUG PANEL - Only visible when SSCRIBE_DEBUG is enabled -->
+	<?php if (!empty($sscribe_debug_info) && $sscribe_is_debug): ?>
 	<div class="sscribe-debug-panel" id="sscribe-debug-panel">
 		<div class="sscribe-debug-header" onclick="document.getElementById('sscribe-debug-content').classList.toggle('sscribe-hidden')">
 			<div class="sscribe-debug-header-title">

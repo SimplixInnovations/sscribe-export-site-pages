@@ -4,7 +4,7 @@ Donate link: https://simplixi.com
 Tags: export, docx, word, documentation, multilingual
 Requires at least: 5.8
 Tested up to: 6.9
-Stable tag: 2.5.0
+Stable tag: 2.6.0
 Requires PHP: 7.4
 License: GPLv2 or later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
@@ -204,7 +204,16 @@ Yes. SScribe is 100% free and open-source, developed by Simplix Innovations. No 
 
 == Changelog ==
 
-= 2.1.0 =
+= 2.6.0 =
+* Security: Added rate limiting to AJAX endpoints (60 requests/minute per user)
+* Security: Debug panel now gated behind SSCRIBE_DEBUG constant (was always visible)
+* Security: Added audit logging with user ID, IP address, and action tracking
+* Enterprise: Consolidated all logging to use SScribe_Logger class
+* Enterprise: Added centralized audit_log() method for compliance tracking
+* Fix: Removed duplicate debug_log() implementations in favor of SScribe_Logger
+* Tests: Added missing WordPress function stubs for PHPStan compatibility
+
+= 2.5.0 =
 * Performance: Batch featured image fetching eliminates N+1 queries (90% query reduction)
 * Performance: Combined regex patterns for faster content parsing
 * Performance: Transient caching for status counts and WPML languages
