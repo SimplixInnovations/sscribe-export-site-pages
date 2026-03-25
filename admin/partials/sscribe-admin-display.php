@@ -122,7 +122,6 @@ if (!defined('ABSPATH')) {
 	<!-- DEBUG PANEL - Always Visible -->
 	<?php if (!empty($sscribe_debug_info)): ?>
 	<div class="sscribe-debug-panel" id="sscribe-debug-panel">
-	<div class="sscribe-debug-panel" id="sscribe-debug-panel">
 		<div class="sscribe-debug-header" onclick="document.getElementById('sscribe-debug-content').classList.toggle('sscribe-hidden')">
 			<div class="sscribe-debug-header-title">
 				<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">

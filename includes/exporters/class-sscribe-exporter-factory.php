@@ -65,4 +65,50 @@ class SScribe_Exporter_Factory {
 	public static function is_supported( string $format ): bool {
 		return in_array( $format, array_keys( self::get_supported_formats() ), true );
 	}
+
+	/**
+	 * Build a clean, human-readable filename with transliteration for non-ASCII titles.
+	 *
+	 * @param array  $page_data Page data array.
+	 * @param int    $index     Sequential position (1-based).
+	 * @param int    $total     Total pages (for zero-padding).
+	 * @param string $extension File extension without dot.
+	 * @return string Filename with extension.
+	 */
+	public static function build_filename( array $page_data, int $index = 0, int $total = 0, string $extension = 'docx' ): string {
+		if ( $index > 0 && $total > 0 ) {
+			$pad_length = strlen( (string) $total );
+			$seq_prefix = str_pad( (string) $index, $pad_length, '0', STR_PAD_LEFT );
+		} else {
+			$seq_prefix = (string) ( $page_data['id'] ?? 0 );
+		}
+
+		$title = (string) ( $page_data['title'] ?? '' );
+		$ascii_title = '';
+
+		if ( function_exists( 'iconv' ) ) {
+			$transliterated = @iconv( 'UTF-8', 'ASCII//TRANSLIT//IGNORE', $title );
+			if ( $transliterated ) {
+				$ascii_title = $transliterated;
+			}
+		}
+
+		if ( empty( $ascii_title ) || ! preg_match( '/[a-zA-Z0-9]/', $ascii_title ) ) {
+			$ascii_title = preg_replace( '/[^\x20-\x7E]/', '', $title );
+		}
+
+		if ( empty( trim( $ascii_title ) ) || ! preg_match( '/[a-zA-Z0-9]/', $ascii_title ) ) {
+			$ascii_title = 'page-' . ( $page_data['id'] ?? 0 );
+		}
+
+		$safe_label = sanitize_file_name( $ascii_title );
+		$safe_label = substr( $safe_label, 0, 60 );
+		$safe_label = trim( $safe_label, '-' );
+
+		if ( empty( $safe_label ) ) {
+			$safe_label = 'page-' . ( $page_data['id'] ?? 0 );
+		}
+
+		return $seq_prefix . '-' . $safe_label . '.' . $extension;
+	}
 }
