@@ -52,9 +52,10 @@ class SScribe_PDF_Exporter implements SScribe_Exporter_Interface {
 
 		try {
 			$options = new \Dompdf\Options();
-			$options->set( 'isRemoteEnabled', true );
+			$options->set( 'isRemoteEnabled', false );
 			$options->set( 'isHtml5ParserEnabled', true );
 			$options->set( 'defaultFont', 'Arial' );
+			$options->set( 'chroot', WP_CONTENT_DIR );
 
 			$dompdf = new \Dompdf\Dompdf( $options );
 			$dompdf->loadHtml( $html_content );
