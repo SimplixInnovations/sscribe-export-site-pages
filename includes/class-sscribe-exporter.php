@@ -209,7 +209,7 @@ class SScribe_Exporter {
 			$this->add_child_pages( $content_section, $page_data );
 
 			// Save document.
-			$filename    = $this->build_docx_filename( $page_data, $index, $total );
+			$filename    = \SScribe_Exporter_Factory::build_filename( $page_data, $index, $total, 'docx' );
 			$output_path = trailingslashit( $output_dir ) . $filename;
 
 			$writer = IOFactory::createWriter( $php_word, 'Word2007' );
@@ -228,69 +228,6 @@ class SScribe_Exporter {
 
 			return false;
 		}
-	}
-
-	/**
-	 * Build a clean, human-readable DOCX filename.
-	 *
-	 * Uses sequential numbering + page title (transliterated to ASCII).
-	 * Avoids Arabic URL-encoded slugs which produce unreadable hex filenames.
-	 *
-	 * @param array $page_data Page data array.
-	 * @param int   $index     Sequential position (1-based).
-	 * @param int   $total     Total pages (for zero-padding).
-	 * @return string Filename with .docx extension.
-	 */
-	private function build_docx_filename( $page_data, $index, $total ) {
-		// Build sequential prefix.
-		if ( $index > 0 && $total > 0 ) {
-			$pad_length = strlen( (string) $total );
-			$seq_prefix = str_pad( (string) $index, $pad_length, '0', STR_PAD_LEFT );
-		} else {
-			$seq_prefix = (string) $page_data['id'];
-		}
-
-		// Use the page title for the human-readable part, not the slug.
-		// Titles are stored as plain text, slugs are URL-encoded for non-Latin scripts.
-		$title = (string) $page_data['title'];
-
-		// Transliterate to ASCII: remove non-ASCII chars after basic replacements.
-		// This converts Arabic/Hebrew/CJK titles to their Latin equivalents where possible,
-		// or falls back to 'page' for completely non-ASCII titles.
-		$ascii_title = '';
-
-		// Try iconv transliteration if available.
-		if ( function_exists( 'iconv' ) ) {
-			$transliterated = @iconv( 'UTF-8', 'ASCII//TRANSLIT//IGNORE', $title );
-			if ( $transliterated ) {
-				$ascii_title = $transliterated;
-			}
-		}
-
-		// If iconv didn't produce ASCII, try removing non-ASCII entirely.
-		if ( empty( $ascii_title ) || ! preg_match( '/[a-zA-Z0-9]/', $ascii_title ) ) {
-			// Strip everything non-ASCII and use remaining chars.
-			$ascii_title = preg_replace( '/[^\x20-\x7E]/', '', $title );
-		}
-
-		// If the title is entirely non-Latin (pure Arabic, CJK, etc.), use page ID.
-		if ( empty( trim( $ascii_title ) ) || ! preg_match( '/[a-zA-Z0-9]/', $ascii_title ) ) {
-			$ascii_title = 'page-' . $page_data['id'];
-		}
-
-		// Sanitize to filesystem-safe string.
-		$safe_label = sanitize_file_name( $ascii_title );
-
-		// Truncate to max 60 chars to keep filenames manageable.
-		$safe_label = substr( $safe_label, 0, 60 );
-		$safe_label = trim( $safe_label, '-' );
-
-		// Final fallback.
-		if ( empty( $safe_label ) ) {
-			$safe_label = 'page-' . $page_data['id'];
-		}
-
-		return $seq_prefix . '-' . $safe_label . '.docx';
 	}
 
 	/**
