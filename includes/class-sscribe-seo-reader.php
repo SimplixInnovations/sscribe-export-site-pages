@@ -226,6 +226,31 @@ class SScribe_SEO_Reader {
 		if ( ! $this->is_aioseo_v3_active() ) {
 			return $this->empty_seo_data();
 		}
+
+		$og_image = (string) get_post_meta( $page_id, '_aioseop_opengraph_image', true );
+		if ( empty( $og_image ) ) {
+			$og_image = (string) get_post_meta( $page_id, '_aioseop_social_image_url', true );
+		}
+
+		$noindex  = false;
+		$nofollow = false;
+		$robots   = get_post_meta( $page_id, '_aioseop_robots', true );
+		if ( ! empty( $robots ) && is_string( $robots ) ) {
+			$robots_lower = strtolower( $robots );
+			$noindex  = false !== strpos( $robots_lower, 'noindex' );
+			$nofollow = false !== strpos( $robots_lower, 'nofollow' );
+		}
+
+		$meta_robots_noindex = get_post_meta( $page_id, '_aioseop_noindex', true );
+		if ( 'on' === $meta_robots_noindex ) {
+			$noindex = true;
+		}
+
+		$meta_robots_nofollow = get_post_meta( $page_id, '_aioseop_nofollow', true );
+		if ( 'on' === $meta_robots_nofollow ) {
+			$nofollow = true;
+		}
+
 		return array(
 			'meta_title'       => (string) get_post_meta( $page_id, '_aioseop_title', true ),
 			'meta_description' => (string) get_post_meta( $page_id, '_aioseop_description', true ),
@@ -233,9 +258,9 @@ class SScribe_SEO_Reader {
 			'canonical_url'    => (string) get_post_meta( $page_id, '_aioseop_custom_link', true ),
 			'og_title'         => (string) get_post_meta( $page_id, '_aioseop_opengraph_title', true ),
 			'og_description'   => (string) get_post_meta( $page_id, '_aioseop_opengraph_description', true ),
-			'og_image'         => '',
-			'noindex'          => false,
-			'nofollow'         => false,
+			'og_image'         => $og_image,
+			'noindex'          => $noindex,
+			'nofollow'         => $nofollow,
 			'source'           => '',
 		);
 	}
@@ -284,6 +309,14 @@ class SScribe_SEO_Reader {
 			}
 		}
 
+		$og_image = (string) get_post_meta( $page_id, '_social_image_url', true );
+		if ( empty( $og_image ) ) {
+			$og_image = (string) get_post_meta( $page_id, '_open_graph_image', true );
+		}
+
+		$noindex  = '1' === get_post_meta( $page_id, '_genesis_noindex', true );
+		$nofollow = '1' === get_post_meta( $page_id, '_genesis_nofollow', true );
+
 		return array(
 			'meta_title'       => (string) get_post_meta( $page_id, '_genesis_title', true ),
 			'meta_description' => (string) get_post_meta( $page_id, '_genesis_description', true ),
@@ -291,9 +324,9 @@ class SScribe_SEO_Reader {
 			'canonical_url'    => (string) get_post_meta( $page_id, '_genesis_canonical_uri', true ),
 			'og_title'         => (string) get_post_meta( $page_id, '_open_graph_title', true ),
 			'og_description'   => (string) get_post_meta( $page_id, '_open_graph_description', true ),
-			'og_image'         => '',
-			'noindex'          => false,
-			'nofollow'         => false,
+			'og_image'         => $og_image,
+			'noindex'          => $noindex,
+			'nofollow'         => $nofollow,
 			'source'           => '',
 		);
 	}
