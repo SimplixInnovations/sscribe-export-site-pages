@@ -56,7 +56,7 @@ class SScribe_Page_Collector {
 	/**
 	 * Get all published page IDs, optionally filtered by language and status.
 	 *
-	 * @param string $language    Optional WPML language code (e.g., 'en', 'ar').
+	 * @param string $language    Optional WPML language code (e.g., 'en', 'ar'). Empty = all languages.
 	 * @param string $post_status Optional post status (publish, draft, private, future, pending, all).
 	 * @return array Array of page IDs.
 	 */
@@ -76,12 +76,18 @@ class SScribe_Page_Collector {
 		$switched = false;
 		
 		try {
-			if ( $this->is_wpml_active() && ! empty( $language ) ) {
+			if ( $this->is_wpml_active() ) {
+				$target_lang = ! empty( $language ) ? $language : 'all';
+				
 				$this->debug_log( 'WPML: Switching language', array(
 					'requested_language' => $language,
+					'target_lang' => $target_lang,
 				) );
+				
+				$this->clear_status_cache( $language );
+				
 				// phpcs:ignore WordPress.NamingConventions.PrefixAllGlobals.NonPrefixedHooknameFound -- WPML hook.
-				do_action( 'wpml_switch_language', $language );
+				do_action( 'wpml_switch_language', $target_lang );
 				$args['suppress_filters'] = false;
 				$switched = true;
 			}
@@ -104,6 +110,21 @@ class SScribe_Page_Collector {
 		}
 
 		return $page_ids;
+	}
+
+	/**
+	 * Clear status count cache for a specific language.
+	 *
+	 * @param string $language Language code.
+	 */
+	private function clear_status_cache( $language = '' ): void {
+		$cache_key = 'sscribe_status_counts_' . md5( $language );
+		delete_transient( $cache_key );
+		
+		foreach ( array( 'publish', 'draft', 'private', 'future', 'pending', 'all' ) as $status ) {
+			$key = 'sscribe_page_count_' . md5( $language . '_' . $status );
+			delete_transient( $key );
+		}
 	}
 
 	/**
@@ -234,7 +255,7 @@ class SScribe_Page_Collector {
 	 * Uses WP_Query's found_posts with posts_per_page=1 to avoid
 	 * loading the full ID set just for counting.
 	 *
-	 * @param string $language    Optional WPML language code.
+	 * @param string $language    Optional WPML language code. Empty = all languages.
 	 * @param string $post_status Optional post status (publish, draft, private, future, pending, all).
 	 * @return int
 	 */
@@ -252,15 +273,28 @@ class SScribe_Page_Collector {
 		$switched = false;
 
 		try {
-			if ( $this->is_wpml_active() && ! empty( $language ) ) {
+			if ( $this->is_wpml_active() ) {
+				$target_lang = ! empty( $language ) ? $language : 'all';
+				
+				$this->debug_log( 'WPML get_page_count_only: Switching language', array(
+					'requested_language' => $language,
+					'target_lang' => $target_lang,
+				) );
+				
 				// phpcs:ignore WordPress.NamingConventions.PrefixAllGlobals.NonPrefixedHooknameFound -- WPML hook.
-				do_action( 'wpml_switch_language', $language );
+				do_action( 'wpml_switch_language', $target_lang );
 				$args['suppress_filters'] = false;
 				$switched = true;
 			}
 
 			$query = new WP_Query( $args );
 			$count = (int) $query->found_posts;
+			
+			$this->debug_log( 'get_page_count_only result', array(
+				'language' => $language,
+				'post_status' => $post_status,
+				'count' => $count,
+			) );
 		} finally {
 			if ( $switched ) {
 				// phpcs:ignore WordPress.NamingConventions.PrefixAllGlobals.NonPrefixedHooknameFound -- WPML hook.
@@ -607,16 +641,11 @@ class SScribe_Page_Collector {
 	/**
 	 * Get page counts for each post status, optionally filtered by language.
 	 *
-	 * @param string $language Optional WPML language code.
+	 * @param string $language Optional WPML language code. Empty = all languages.
 	 * @return array Associative array of status => count pairs.
 	 */
 	public function get_post_status_counts( string $language = '' ): array {
-		$cache_key = 'sscribe_status_counts_' . md5( $language );
-		$cached    = get_transient( $cache_key );
-
-		if ( false !== $cached && is_array( $cached ) ) {
-			return $cached;
-		}
+		$this->clear_status_cache( $language );
 
 		$statuses = $this->get_valid_post_statuses();
 		$counts   = array();
@@ -626,8 +655,6 @@ class SScribe_Page_Collector {
 		}
 
 		$counts['all'] = array_sum( $counts );
-
-		set_transient( $cache_key, $counts, MINUTE_IN_SECONDS );
 
 		return $counts;
 	}

@@ -86,11 +86,12 @@ class SScribe_Admin {
 
 		// Localize script.
 		wp_localize_script(
-			'sscribe-admin',
-			'sscribe_data',
+			'scribe-admin',
+			'scribe_data',
 			array(
 				'ajaxurl' => admin_url( 'admin-ajax.php' ),
 				'nonce'   => wp_create_nonce( 'sscribe_export_nonce' ),
+				'download_nonce' => wp_create_nonce( 'sscribe_download' ),
 				'strings' => array(
 					'starting'       => __( 'Starting export...', 'sscribe-export-site-pages' ),
 					'processing'     => __( 'Processing...', 'sscribe-export-site-pages' ),
@@ -99,6 +100,7 @@ class SScribe_Admin {
 					'download'       => __( 'Download ZIP', 'sscribe-export-site-pages' ),
 					'generating'     => __( 'Generating documents...', 'sscribe-export-site-pages' ),
 					'confirm_export' => __( 'Start exporting pages?', 'sscribe-export-site-pages' ),
+					'confirm_delete' => __( 'Delete this export file?', 'sscribe-export-site-pages' ),
 					'auto_delete'    => __( 'This file will be automatically deleted in 1 hour for security.', 'sscribe-export-site-pages' ),
 				),
 			)
@@ -119,15 +121,14 @@ class SScribe_Admin {
 		// For the "All Languages" card: count published pages in ALL languages combined.
 		$total_pages_all  = $this->collector->get_page_count_only( '', 'publish' );
 
-		// For Page Status section: use the first language (or empty for all) as the default.
-		// When user changes language, JS calls ajax_get_status_counts to refresh.
+		// For Page Status section: use empty string for all languages as default.
 		$default_language = '';
 		$status_counts    = $this->collector->get_post_status_counts( $default_language );
 
 		// Enrich languages with per-language page counts.
 		if ( $wpml_active && ! empty( $languages ) ) {
 			foreach ( $languages as &$lang ) {
-				$lang['page_count'] = $this->collector->get_page_count_only( $lang['code'] );
+				$lang['page_count'] = $this->collector->get_page_count_only( $lang['code'], 'publish' );
 			}
 			unset( $lang );
 		}

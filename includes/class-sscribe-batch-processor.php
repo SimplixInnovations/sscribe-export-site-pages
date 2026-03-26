@@ -54,6 +54,13 @@ class SScribe_Batch_Processor {
 	private $logger;
 
 	/**
+	 * Export log instance.
+	 *
+	 * @var SScribe_Export_Log
+	 */
+	private $export_log;
+
+	/**
 	 * Rate limit: Maximum requests per minute per user.
 	 */
 	private const RATE_LIMIT_MAX = 60;
@@ -386,6 +393,10 @@ class SScribe_Batch_Processor {
 			return;
 		}
 
+		require_once SSCRIBE_PLUGIN_DIR . 'includes/class-sscribe-export-log.php';
+		$this->export_log = new SScribe_Export_Log( $session_id );
+		$this->export_log->set_total_pages( $total );
+
 		wp_send_json_success(
 			array_merge(
 				array(
@@ -526,6 +537,10 @@ class SScribe_Batch_Processor {
 		$errors    = isset( $session['errors'] ) ? $session['errors'] : array();
 		$start_time = isset( $session['start_time'] ) ? $session['start_time'] : time();
 		$formats   = isset( $session['formats'] ) ? $session['formats'] : array( 'docx' );
+		$session_id = $session['session_id'] ?? '';
+
+		require_once SSCRIBE_PLUGIN_DIR . 'includes/class-sscribe-export-log.php';
+		$this->export_log = new SScribe_Export_Log( $session_id );
 
 		$this->logger->debug( 'Session state', array(
 			'total_pages' => $total,
@@ -604,11 +619,21 @@ class SScribe_Batch_Processor {
 					'memory' => size_format( memory_get_usage( true ) ),
 				) );
 				$errors[] = $error_msg;
+				
+				if ( $this->export_log ) {
+					$this->export_log->log_page_failure( $page_id, $error_msg );
+				}
+				
 				$processed++;
 				continue;
 			}
 
 			$current_page_title = $page_data['title'];
+			
+			if ( $this->export_log ) {
+				$this->export_log->log_page_start( $page_id, $page_data['title'], $page_data['slug'] ?? '' );
+			}
+			
 			$this->logger->debug( "Page data collected", array( 
 				'title' => $current_page_title, 
 				'id' => $page_id,
@@ -619,6 +644,7 @@ class SScribe_Batch_Processor {
 			$page_index = $processed + 1;
 			$export_success = false;
 			$export_errors = array();
+			$successful_formats = array();
 
 			foreach ( $formats as $format ) {
 				$exporter = \SScribe_Exporter_Factory::create( $format );
@@ -631,8 +657,15 @@ class SScribe_Batch_Processor {
 
 				if ( $result->is_success() ) {
 					$export_success = true;
+					$successful_formats[] = $format;
+					$file_path = $result->get_data()['path'] ?? '';
+					
+					if ( $this->export_log ) {
+						$this->export_log->log_format_result( $page_id, $format, true, $file_path );
+					}
+					
 					$this->logger->debug( ucfirst( $format ) . " generated successfully", array( 
-						'file' => basename( $result->get_data()['path'] ?? '' ),
+						'file' => basename( $file_path ),
 						'page_id' => $page_id,
 						'format' => $format,
 					) );
@@ -642,6 +675,10 @@ class SScribe_Batch_Processor {
 						strtoupper( $format ),
 						$result->get_error()
 					);
+					
+					if ( $this->export_log ) {
+						$this->export_log->log_format_result( $page_id, $format, false, '', $result->get_error() );
+					}
 				}
 			}
 
@@ -654,6 +691,10 @@ class SScribe_Batch_Processor {
 					$page_data['title']
 				);
 				$errors[] = $error_msg . ' ' . implode( ', ', $export_errors );
+				
+				if ( $this->export_log ) {
+					$this->export_log->log_page_failure( $page_id, implode( '; ', $export_errors ), $formats );
+				}
 
 				$this->logger->debug( "ERROR: Export failed", array(
 					'page_id'        => $page_id,
@@ -661,6 +702,10 @@ class SScribe_Batch_Processor {
 					'duration_sec'   => $page_duration,
 					'errors'         => $export_errors,
 				) );
+			} else {
+				if ( $this->export_log ) {
+					$this->export_log->log_page_success( $page_id, $successful_formats );
+				}
 			}
 
 			/**
@@ -780,36 +825,49 @@ class SScribe_Batch_Processor {
 		$this->logger->debug( '=== FINALIZE EXPORT ===', array(
 			'session_id' => $session_id,
 			'total' => $session['total'],
-			'errors_count' => count( $session['errors'] ),
-			'errors' => $session['errors'],
+			'errors_count' => count( $session['errors'] ?? array() ),
+			'errors' => $session['errors'] ?? array(),
 			'processed' => $session['processed'] ?? 'not set',
 		) );
 
 		$lang_code = ! empty( $session['language'] ) ? $session['language'] : 'all';
 		$site_slug = sanitize_file_name( get_bloginfo( 'name' ) );
-		$zip_name  = 'sscribe-export-' . $lang_code . '-' . $site_slug . '-' . gmdate( 'Y-m-d-His' );
+		$formats   = isset( $session['formats'] ) ? $session['formats'] : array( 'docx' );
+		
+		$format_suffix = count( $formats ) > 1 ? 'ALL' : strtoupper( $formats[0] );
+		$pages_count   = $session['total'];
+		
+		$zip_name  = 'sscribe-export-' . $lang_code . '-' . $site_slug . '-' . gmdate( 'Y-m-d-His' ) . '-pages-' . $pages_count . '-' . $format_suffix;
 
 		$this->logger->debug( 'Creating ZIP', array( 
 			'zip_name' => $zip_name, 
 			'temp_dir' => $session['temp_dir'],
 			'language' => $lang_code,
+			'formats' => $formats,
 		) );
 
-		// Count DOCX files BEFORE creating ZIP
-		$docx_files_before = glob( trailingslashit( $session['temp_dir'] ) . '*.docx' );
-		$docx_count_before = $docx_files_before ? count( $docx_files_before ) : 0;
-		$this->logger->debug( 'DOCX files in temp dir BEFORE ZIP', array( 
-			'count' => $docx_count_before,
-			'files' => $docx_files_before ? array_map( 'basename', $docx_files_before ) : array(),
-		) );
+		$files_before = array();
+		foreach ( $formats as $format ) {
+			$ext = $format === 'markdown' ? 'md' : $format;
+			$found = glob( trailingslashit( $session['temp_dir'] ) . '*.' . $ext );
+			if ( $found ) {
+				$files_before[ $format ] = count( $found );
+			}
+		}
+		$this->logger->debug( 'Files in temp dir BEFORE ZIP', $files_before );
 
-		$zip_path = $this->zip_handler->create_zip( $session['temp_dir'], $zip_name );
+		$zip_path = $this->zip_handler->create_zip( $session['temp_dir'], $zip_name, $formats );
 
 		if ( ! $zip_path ) {
 			$this->logger->debug( 'ERROR: Failed to create ZIP', array(
 				'temp_dir' => $session['temp_dir'],
-				'expected_files' => $docx_count_before,
+				'expected_files' => $files_before,
 			) );
+			
+			if ( $this->export_log ) {
+				$this->export_log->mark_failed( 'Failed to create ZIP package' );
+			}
+			
 			wp_send_json_error(
 				array_merge(
 					array(
@@ -818,7 +876,7 @@ class SScribe_Batch_Processor {
 					defined( 'SSCRIBE_DEBUG' ) && SSCRIBE_DEBUG ? array(
 						'debug_info' => array(
 							'temp_dir_exists' => is_dir( $session['temp_dir'] ),
-							'docx_files_in_temp' => $docx_count_before,
+							'files_in_temp' => $files_before,
 						),
 					) : array()
 				)
@@ -831,33 +889,30 @@ class SScribe_Batch_Processor {
 			'zip_size' => size_format( filesize( $zip_path ) ),
 		) );
 
-		// Verify ZIP contents
 		$zip = new ZipArchive();
 		$zip_open = $zip->open( $zip_path );
-		$docx_in_zip = 0;
-		$zip_files = array();
+		$files_in_zip = array();
+		$total_files_in_zip = 0;
 		if ( $zip_open === true ) {
-			$docx_in_zip = 0;
-			for ( $i = 0; $i < $zip->numFiles; $i++ ) { // phpcs:ignore WordPress.NamingConventions.ValidVariableName.UsedPropertyNotSnakeCase -- ZipArchive property
+			$total_files_in_zip = $zip->numFiles; // phpcs:ignore WordPress.NamingConventions.ValidVariableName.UsedPropertyNotSnakeCase
+			for ( $i = 0; $i < $zip->numFiles; $i++ ) { // phpcs:ignore WordPress.NamingConventions.ValidVariableName.UsedPropertyNotSnakeCase
 				$filename = $zip->getNameIndex( $i );
-				$zip_files[] = $filename;
-				if ( pathinfo( $filename, PATHINFO_EXTENSION ) === 'docx' ) {
-					$docx_in_zip++;
-				}
+				$files_in_zip[] = $filename;
 			}
 			$zip->close();
 		}
 		$this->logger->debug( 'ZIP contents verified', array(
-			'total_files_in_zip' => count( $zip_files ),
-			'docx_files_in_zip' => $docx_in_zip,
+			'total_files_in_zip' => $total_files_in_zip,
 			'expected_pages' => $session['total'],
-			'match' => $docx_in_zip === $session['total'],
 		) );
 
-		// ZIP created successfully — now clean up session.
+		if ( $this->export_log ) {
+			$this->export_log->mark_complete( $zip_path, $total_files_in_zip );
+		}
+
 		$this->session->delete( $session_id );
 
-		$error_count = count( $session['errors'] );
+		$error_count = count( $session['errors'] ?? array() );
 
 		$download_url = $this->zip_handler->get_ajax_download_url( basename( $zip_path ) );
 
@@ -873,6 +928,8 @@ class SScribe_Batch_Processor {
 			'duration_sec' => time() - ( $session['start_time'] ?? time() ),
 		) );
 
+		$log_summary = $this->export_log ? $this->export_log->get_summary() : array();
+
 		wp_send_json_success(
 			array_merge(
 				array(
@@ -882,7 +939,8 @@ class SScribe_Batch_Processor {
 					'percentage'   => 100,
 					'download_url' => $download_url,
 					'filename'     => basename( $zip_path ),
-					'errors'       => $session['errors'],
+					'errors'       => $session['errors'] ?? array(),
+					'log_summary'  => $log_summary,
 					'message'      => sprintf(
 						/* translators: %d: number of pages */
 						_n(
@@ -900,18 +958,18 @@ class SScribe_Batch_Processor {
 				),
 				defined( 'SSCRIBE_DEBUG' ) && SSCRIBE_DEBUG ? array(
 					'debug_info' => array(
-						'docx_files_in_temp' => $docx_count_before,
-						'docx_files_in_zip' => $docx_in_zip,
+						'files_in_temp' => $files_before,
+						'total_files_in_zip' => $total_files_in_zip,
 						'expected_pages' => $session['total'],
-						'match' => $docx_in_zip === $session['total'],
-						'difference' => $session['total'] - $docx_in_zip,
-						'page_ids_requested' => $session['page_ids'],
-						'errors_detailed' => $session['errors'],
+						'zip_files_sample' => array_slice( $files_in_zip, 0, 20 ),
+						'page_ids_requested' => $session['page_ids'] ?? array(),
+						'errors_detailed' => $session['errors'] ?? array(),
 						'language' => $session['language'] ?? '',
 						'post_status' => $session['post_status'] ?? '',
 						'total_time_sec' => time() - ( $session['start_time'] ?? time() ),
 						'memory_peak' => size_format( memory_get_peak_usage( true ) ),
 						'zip_size' => size_format( filesize( $zip_path ) ),
+						'log_summary' => $log_summary,
 					),
 				) : array()
 			)
@@ -1043,5 +1101,118 @@ class SScribe_Batch_Processor {
 				'temp_dir' => $session['temp_dir'],
 			) );
 		}
+	}
+
+	/**
+	 * AJAX handler: Delete an export file.
+	 *
+	 * @return void
+	 */
+	public function ajax_delete_export() {
+		check_ajax_referer( 'sscribe_download', 'nonce' );
+
+		if ( ! current_user_can( $this->get_required_capability() ) ) {
+			wp_send_json_error( array( 'message' => __( 'Permission denied.', 'sscribe-export-site-pages' ) ) );
+			return;
+		}
+
+		$filename = isset( $_POST['file'] ) ? sanitize_file_name( wp_unslash( $_POST['file'] ) ) : '';
+
+		if ( empty( $filename ) ) {
+			wp_send_json_error( array( 'message' => __( 'Invalid filename.', 'sscribe-export-site-pages' ) ) );
+			return;
+		}
+
+		$exports = get_option( 'sscribe_export_index', array() );
+
+		if ( ! isset( $exports[ $filename ] ) ) {
+			wp_send_json_error( array( 'message' => __( 'Export not found.', 'sscribe-export-site-pages' ) ) );
+			return;
+		}
+
+		$export_info = $exports[ $filename ];
+		if ( isset( $export_info['user_id'] ) && (int) $export_info['user_id'] !== get_current_user_id() ) {
+			$this->audit_log( 'delete_access_denied', array( 'filename' => $filename ) );
+			wp_send_json_error( array( 'message' => __( 'Permission denied.', 'sscribe-export-site-pages' ) ) );
+			return;
+		}
+
+		$file_path = $this->zip_handler->get_export_dir() . '/' . $filename;
+
+		if ( file_exists( $file_path ) ) {
+			wp_delete_file( $file_path );
+		}
+
+		unset( $exports[ $filename ] );
+		update_option( 'sscribe_export_index', $exports, false );
+
+		$this->audit_log( 'export_deleted', array( 'filename' => $filename ) );
+
+		wp_send_json_success( array( 'message' => __( 'Export deleted.', 'sscribe-export-site-pages' ) ) );
+	}
+
+	/**
+	 * AJAX handler: Get export log details.
+	 *
+	 * @return void
+	 */
+	public function ajax_get_export_log() {
+		check_ajax_referer( 'sscribe_download', 'nonce' );
+
+		if ( ! current_user_can( $this->get_required_capability() ) ) {
+			wp_send_json_error( array( 'message' => __( 'Permission denied.', 'sscribe-export-site-pages' ) ) );
+			return;
+		}
+
+		$filename = isset( $_POST['file'] ) ? sanitize_file_name( wp_unslash( $_POST['file'] ) ) : '';
+
+		if ( empty( $filename ) ) {
+			wp_send_json_error( array( 'message' => __( 'Invalid filename.', 'sscribe-export-site-pages' ) ) );
+			return;
+		}
+
+		$exports = get_option( 'sscribe_export_index', array() );
+
+		if ( ! isset( $exports[ $filename ] ) ) {
+			wp_send_json_error( array( 'message' => __( 'Export not found.', 'sscribe-export-site-pages' ) ) );
+			return;
+		}
+
+		$export_info = $exports[ $filename ];
+		if ( isset( $export_info['user_id'] ) && (int) $export_info['user_id'] !== get_current_user_id() ) {
+			wp_send_json_error( array( 'message' => __( 'Permission denied.', 'sscribe-export-site-pages' ) ) );
+			return;
+		}
+
+		require_once SSCRIBE_PLUGIN_DIR . 'includes/class-sscribe-export-log.php';
+		$log_data = SScribe_Export_Log::get_log_by_filename( $filename );
+
+		if ( ! $log_data ) {
+			wp_send_json_error( array( 'message' => __( 'Log not found for this export.', 'sscribe-export-site-pages' ) ) );
+			return;
+		}
+
+		wp_send_json_success( array( 'log' => $log_data ) );
+	}
+
+	/**
+	 * AJAX handler: Clear stuck sessions.
+	 *
+	 * @return void
+	 */
+	public function ajax_clear_session() {
+		check_ajax_referer( 'sscribe_export_nonce', 'nonce' );
+
+		if ( ! current_user_can( $this->get_required_capability() ) ) {
+			wp_send_json_error( array( 'message' => __( 'Permission denied.', 'sscribe-export-site-pages' ) ) );
+			return;
+		}
+
+		$user_id = get_current_user_id();
+		$this->session->cleanup_expired( 60 );
+
+		$this->logger->debug( 'Cleared stuck sessions for user', array( 'user_id' => $user_id ) );
+
+		wp_send_json_success( array( 'message' => __( 'Session cleared.', 'sscribe-export-site-pages' ) ) );
 	}
 }
