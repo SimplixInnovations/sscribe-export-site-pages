@@ -6,6 +6,9 @@
  * (Redis, Memcached, WP Rocket, LightSpeed) that may clear or corrupt
  * large transients during export operations.
  *
+ * Uses file locking (flock) to prevent race conditions during concurrent
+ * read-modify-write operations.
+ *
  * @package SScribe
  */
 
@@ -17,6 +20,7 @@ class SScribe_Session
 {
     private string $storage_dir;
     private string $session_prefix = 'sscribe-session-';
+    private string $lock_suffix = '.lock';
 
     public function __construct(?string $storage_dir = null)
     {
@@ -32,14 +36,16 @@ class SScribe_Session
     {
         if (!is_dir($this->storage_dir)) {
             wp_mkdir_p($this->storage_dir);
+            // phpcs:ignore WordPress.WP.AlternativeFunctions.file_system_operations_file_put_contents
             file_put_contents($this->storage_dir . '.htaccess', 'Deny from all');
+            // phpcs:ignore WordPress.WP.AlternativeFunctions.file_system_operations_file_put_contents
             file_put_contents($this->storage_dir . 'index.html', '');
         }
     }
 
     public function create(array $data): string
     {
-        $session_id = wp_generate_password(16, false);
+        $session_id = sanitize_key(wp_generate_password(16, false));
         $session_id = strtolower($session_id);
 
         $data['created_at'] = time();
@@ -53,6 +59,7 @@ class SScribe_Session
         }
 
         $tmp_path = $file_path . '.tmp';
+        // phpcs:ignore WordPress.WP.AlternativeFunctions.file_system_operations_file_put_contents
         $result = file_put_contents($tmp_path, $json, LOCK_EX);
 
         if ($result === false) {
@@ -60,6 +67,7 @@ class SScribe_Session
         }
 
         if (!rename($tmp_path, $file_path)) {
+            $this->cleanup_tmp_file($tmp_path);
             return '';
         }
 
@@ -80,7 +88,19 @@ class SScribe_Session
             return null;
         }
 
-        $content = file_get_contents($file_path);
+        $handle = fopen($file_path, 'r');
+        if ($handle === false) {
+            return null;
+        }
+
+        if (!flock($handle, LOCK_SH)) {
+            fclose($handle);
+            return null;
+        }
+
+        $content = stream_get_contents($handle);
+        flock($handle, LOCK_UN);
+        fclose($handle);
 
         if ($content === false) {
             return null;
@@ -97,49 +117,119 @@ class SScribe_Session
 
     public function update(string $session_id, array $data): bool
     {
-        $existing = $this->get($session_id);
+        $session_id = sanitize_key($session_id);
 
-        if ($existing === null) {
+        if (empty($session_id) || strlen($session_id) !== 16) {
             return false;
         }
-
-        $merged = array_merge($existing, $data);
-        $merged['updated_at'] = time();
 
         $file_path = $this->get_file_path($session_id);
-        $json = wp_json_encode($merged, JSON_UNESCAPED_UNICODE);
+        $lock_path = $file_path . $this->lock_suffix;
 
-        if ($json === false) {
+        if (!file_exists($file_path)) {
             return false;
         }
 
-        $tmp_path = $file_path . '.tmp';
-        $result = file_put_contents($tmp_path, $json, LOCK_EX);
-
-        if ($result === false) {
+        $lock_handle = fopen($lock_path, 'c');
+        if ($lock_handle === false) {
             return false;
         }
 
-        return rename($tmp_path, $file_path);
+        if (!flock($lock_handle, LOCK_EX)) {
+            fclose($lock_handle);
+            return false;
+        }
+
+        try {
+            $existing = $this->get_with_lock($file_path);
+            if ($existing === null) {
+                return false;
+            }
+
+            $merged = array_merge($existing, $data);
+            $merged['updated_at'] = time();
+
+            $json = wp_json_encode($merged, JSON_UNESCAPED_UNICODE);
+            if ($json === false) {
+                return false;
+            }
+
+            $tmp_path = $file_path . '.tmp';
+            // phpcs:ignore WordPress.WP.AlternativeFunctions.file_system_operations_file_put_contents
+            $result = file_put_contents($tmp_path, $json, LOCK_EX);
+
+            if ($result === false) {
+                $this->cleanup_tmp_file($tmp_path);
+                return false;
+            }
+
+            if (!rename($tmp_path, $file_path)) {
+                $this->cleanup_tmp_file($tmp_path);
+                return false;
+            }
+
+            return true;
+        } finally {
+            flock($lock_handle, LOCK_UN);
+            fclose($lock_handle);
+        }
+    }
+
+    private function get_with_lock(string $file_path): ?array
+    {
+        $handle = fopen($file_path, 'r');
+        if ($handle === false) {
+            return null;
+        }
+
+        $content = stream_get_contents($handle);
+        fclose($handle);
+
+        if ($content === false) {
+            return null;
+        }
+
+        $data = json_decode($content, true);
+
+        if (json_last_error() !== JSON_ERROR_NONE) {
+            return null;
+        }
+
+        return $data;
     }
 
     public function delete(string $session_id): bool
     {
         $session_id = sanitize_key($session_id);
         $file_path = $this->get_file_path($session_id);
+        $lock_path = $file_path . $this->lock_suffix;
 
         if (!file_exists($file_path)) {
             return false;
         }
 
-        if (function_exists('wp_delete_file')) {
-            wp_delete_file($file_path);
-        } else {
-            // phpcs:ignore WordPress.WP.AlternativeFunctions.unlink_unlink
-            unlink($file_path);
+        $lock_handle = fopen($lock_path, 'c');
+        if ($lock_handle !== false) {
+            flock($lock_handle, LOCK_EX);
         }
 
-        return !file_exists($file_path);
+        try {
+            if (function_exists('wp_delete_file')) {
+                wp_delete_file($file_path);
+            } else {
+                // phpcs:ignore WordPress.WP.AlternativeFunctions.unlink_unlink
+                unlink($file_path);
+            }
+
+            $this->cleanup_tmp_file($file_path . '.tmp');
+
+            return !file_exists($file_path);
+        } finally {
+            if ($lock_handle !== false) {
+                flock($lock_handle, LOCK_UN);
+                fclose($lock_handle);
+            }
+        }
     }
 
     public function validate(string $session_id): bool
@@ -180,7 +270,7 @@ class SScribe_Session
         }
 
         foreach ($files as $file) {
-            $content = file_get_contents($file);
+            $content = @file_get_contents($file);
             if ($content === false) {
                 continue;
             }
@@ -192,14 +282,33 @@ class SScribe_Session
                     if (!file_exists($file)) {
                         $deleted++;
                     }
-                // phpcs:ignore WordPress.WP.AlternativeFunctions.unlink_unlink -- Fallback when wp_delete_file not available.
-                } elseif (unlink($file)) {
+                // phpcs:ignore WordPress.WP.AlternativeFunctions.unlink_unlink
+                } elseif (@unlink($file)) {
                     $deleted++;
+                }
+
+                $lock_file = $file . $this->lock_suffix;
+                if (file_exists($lock_file)) {
+                    @unlink($lock_file);
                 }
             }
         }
 
+        $tmp_files = glob($this->storage_dir . '*.tmp');
+        if ($tmp_files !== false) {
+            foreach ($tmp_files as $tmp_file) {
+                @unlink($tmp_file);
+            }
+        }
+
         return $deleted;
+    }
+
+    private function cleanup_tmp_file(string $path): void
+    {
+        if (file_exists($path)) {
+            @unlink($path);
+        }
     }
 
     private function get_file_path(string $session_id): string
@@ -210,5 +319,44 @@ class SScribe_Session
     public function get_storage_dir(): string
     {
         return $this->storage_dir;
+    }
+
+    public function has_active_session(int $user_id): bool
+    {
+        $files = glob($this->storage_dir . $this->session_prefix . '*.json');
+        
+        if ($files === false || empty($files)) {
+            return false;
+        }
+
+        $now = time();
+        $max_age = 300;
+
+        foreach ($files as $file) {
+            $content = @file_get_contents($file);
+            if ($content === false) {
+                continue;
+            }
+            
+            $data = json_decode($content, true);
+            
+            if (!is_array($data)) {
+                continue;
+            }
+
+            if (isset($data['user_id']) && (int) $data['user_id'] === $user_id) {
+                if (isset($data['created_at']) && ($now - $data['created_at']) < $max_age) {
+                    if (isset($data['processed']) && isset($data['total'])) {
+                        $processed = (int) $data['processed'];
+                        $total = (int) $data['total'];
+                        if ($processed < $total && empty($data['cancelled'])) {
+                            return true;
+                        }
+                    }
+                }
+            }
+        }
+
+        return false;
     }
 }

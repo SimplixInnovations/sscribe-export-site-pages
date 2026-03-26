@@ -200,6 +200,16 @@ class SScribe_Batch_Processor {
 
 		$this->logger->debug( 'Export params', array( 'language' => $language, 'post_status' => $post_status, 'formats' => $formats ) );
 
+		$user_id = get_current_user_id();
+		if ( $this->session->has_active_session( $user_id ) ) {
+			wp_send_json_error(
+				array(
+					'message' => __( 'You already have an export in progress. Please wait for it to complete or refresh the page.', 'sscribe-export-site-pages' ),
+				)
+			);
+			return;
+		}
+
 		// Validate language code against active WPML languages when WPML is present.
 		if ( ! empty( $language ) && $this->collector->is_wpml_active() ) {
 			$valid_languages = wp_list_pluck( $this->collector->get_wpml_languages(), 'code' );
@@ -258,6 +268,7 @@ class SScribe_Batch_Processor {
 				'errors'     => array(),
 				'start_time' => time(),
 				'cancelled'  => false,
+				'user_id'    => $user_id,
 			)
 		);
 

@@ -64,6 +64,26 @@ class SScribe_Markdown_Exporter implements SScribe_Exporter_Interface {
 		$md .= "modified: " . ( $page_data['date_modified'] ?? '' ) . "\n";
 		$md .= "word_count: " . ( $page_data['word_count'] ?? 0 ) . "\n";
 		$md .= "language: " . ( $page_data['language'] ?? 'en' ) . "\n";
+
+		if ( ! empty( $page_data['seo'] ) ) {
+			$seo = $page_data['seo'];
+			if ( ! empty( $seo['meta_title'] ) ) {
+				$md .= "seo_title: \"" . str_replace( '"', '\\"', $seo['meta_title'] ) . "\"\n";
+			}
+			if ( ! empty( $seo['meta_description'] ) ) {
+				$md .= "seo_description: \"" . str_replace( '"', '\\"', $seo['meta_description'] ) . "\"\n";
+			}
+			if ( ! empty( $seo['focus_keyword'] ) ) {
+				$md .= "seo_focus_keyword: \"" . str_replace( '"', '\\"', $seo['focus_keyword'] ) . "\"\n";
+			}
+			if ( ! empty( $seo['canonical_url'] ) ) {
+				$md .= "canonical_url: " . $seo['canonical_url'] . "\n";
+			}
+			if ( ! empty( $seo['source'] ) ) {
+				$md .= "seo_source: " . $seo['source'] . "\n";
+			}
+		}
+
 		$md .= "---\n\n";
 
 		$md .= $this->html_to_markdown( $page_data['content'] ?? '' );
