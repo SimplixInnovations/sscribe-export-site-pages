@@ -133,11 +133,16 @@ If multiple SEO plugins are active, uses priority order and clearly labels the s
 
 Yes. SScribe is 100% free and open-source, developed by **Simplix Innovations**. No premium version, no feature gates, no cloud API required.
 
+= Known Limitations =
+
+* **PDF RTL Support**: PDF exports use DomPDF which has limited right-to-left text support. For Arabic/Hebrew content, DOCX format is recommended for best results.
+* **Remote Images**: Only images stored in your WordPress uploads directory are embedded in documents. External images from CDNs or other domains are displayed as placeholder URLs.
+* **Page Builder Styles**: Inline styles from page builders (Elementor, Divi) are not preserved - content structure is maintained.
+
 = Roadmap =
 
 🚀 **Coming Soon:**
 - Export Posts, Custom Post Types, and WooCommerce Products
-- PDF export format
 - Combined "full site" document option
 - Custom branding (logo, colors, fonts in templates)
 - Per-language template optimization (e.g., Arabic-optimized layouts)
@@ -218,6 +223,9 @@ Yes. SScribe is 100% free and open-source, developed by Simplix Innovations. No 
 * **HIGH: Sanitized PDF error messages** - Technical errors no longer leaked to users
 * **HIGH: Added link URL validation** - Invalid/malicious URLs filtered from documents
 * **HIGH: Added session/ZIP operation logging** - Better debugging for production issues
+* **Improved: Markdown conversion quality** - Better table, list, image, and code block handling
+* **Improved: AIOSEO v3 support** - Added OG image and robots directives reading
+* **Improved: The SEO Framework support** - Added OG image and robots directives reading
 * Added empty title fallback - Pages without titles show "Untitled Page {id}"
 * Removed sensitive file paths from error logs
 * Made max_execution_time configurable via `sscribe_max_execution_time` filter
