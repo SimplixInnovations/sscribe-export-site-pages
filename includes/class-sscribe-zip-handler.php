@@ -69,9 +69,10 @@ class SScribe_Zip_Handler {
 	 *
 	 * @param string $source_dir Directory containing export files.
 	 * @param string $zip_name   Desired ZIP filename (without extension).
+	 * @param array  $formats    Export formats used.
 	 * @return string|false Path to ZIP file or false on failure.
 	 */
-	public function create_zip( $source_dir, $zip_name = '' ) {
+	public function create_zip( $source_dir, $zip_name = '', $formats = array( 'docx' ) ) {
 		if ( ! class_exists( 'ZipArchive' ) ) {
 			$this->logger->error( 'ZipArchive not available' );
 			$this->delete_directory( $source_dir );
@@ -92,22 +93,40 @@ class SScribe_Zip_Handler {
 				return false;
 			}
 
-			$files = array();
-			foreach ( array( 'docx', 'pdf', 'html', 'md' ) as $ext ) {
+			$all_files = array();
+			$format_extensions = array(
+				'docx'     => 'docx',
+				'pdf'      => 'pdf',
+				'html'     => 'html',
+				'markdown' => 'md',
+			);
+
+			foreach ( $formats as $format ) {
+				$ext = isset( $format_extensions[ $format ] ) ? $format_extensions[ $format ] : $format;
 				$found = glob( $source_dir . '/*.' . $ext );
 				if ( $found ) {
-					$files = array_merge( $files, $found );
+					$all_files[ $format ] = $found;
 				}
 			}
 
-			if ( empty( $files ) ) {
+			if ( empty( $all_files ) ) {
 				$this->logger->error( 'No export files found in source directory', array( 'source_dir' => $source_dir ) );
 				$this->delete_directory( $source_dir );
 				return false;
 			}
 
-			foreach ( $files as $file ) {
-				$zip->addFile( $file, basename( $file ) );
+			$use_folders = count( $formats ) > 1;
+
+			foreach ( $all_files as $format => $files ) {
+				$folder_name = strtoupper( $format );
+				
+				foreach ( $files as $file ) {
+					if ( $use_folders ) {
+						$zip->addFile( $file, $folder_name . '/' . basename( $file ) );
+					} else {
+						$zip->addFile( $file, basename( $file ) );
+					}
+				}
 			}
 
 		} finally {
@@ -120,6 +139,7 @@ class SScribe_Zip_Handler {
 		$exports[ basename( $zip_path ) ] = array(
 			'created_at' => time(),
 			'user_id'    => get_current_user_id(),
+			'formats'    => $formats,
 		);
 		update_option( 'sscribe_export_index', $exports, false );
 

@@ -158,6 +158,8 @@ class SScribe_Markdown_Exporter implements SScribe_Exporter_Interface {
 		$this->list_depth = 0;
 		$this->list_stack = array();
 
+		$html = $this->strip_all_styles( $html );
+
 		$md = $html;
 
 		$md = $this->convert_tables( $md );
@@ -180,6 +182,32 @@ class SScribe_Markdown_Exporter implements SScribe_Exporter_Interface {
 		$md = preg_replace( '/[ \t]+$/m', '', $md );
 
 		return trim( $md );
+	}
+
+	/**
+	 * Strip all inline styles and Elementor-specific attributes.
+	 *
+	 * @param string $html The HTML content.
+	 * @return string Cleaned HTML.
+	 */
+	private function strip_all_styles( string $html ): string {
+		$html = preg_replace( '/<style[^>]*>.*?<\/style>/is', '', $html );
+		$html = preg_replace( '/<script[^>]*>.*?<\/script>/is', '', $html );
+		$html = preg_replace( '/<noscript[^>]*>.*?<\/noscript>/is', '', $html );
+		$html = preg_replace( '/<svg[^>]*>.*?<\/svg>/is', '', $html );
+
+		$html = preg_replace( '/\s*style="[^"]*"/i', '', $html );
+		$html = preg_replace( "/\s*style='[^']*'/i", '', $html );
+
+		$html = preg_replace( '/\s*class="[^"]*"/i', '', $html );
+		$html = preg_replace( "/\s*class='[^']*'/i", '', $html );
+
+		$html = preg_replace( '/\s*data-[a-z-]+="[^"]*"/i', '', $html );
+		$html = preg_replace( "/\s*data-[a-z-]+='[^']*'/i", '', $html );
+
+		$html = preg_replace( '/<!--.*?-->/s', '', $html );
+
+		return $html;
 	}
 
 	/**

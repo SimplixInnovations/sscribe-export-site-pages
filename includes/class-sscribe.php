@@ -70,6 +70,9 @@ class SScribe {
 		$this->loader->add_action( 'wp_ajax_sscribe_download', $batch, 'ajax_download' );
 		$this->loader->add_action( 'wp_ajax_sscribe_get_status_counts', $batch, 'ajax_get_status_counts' );
 		$this->loader->add_action( 'wp_ajax_sscribe_cancel_export', $batch, 'ajax_cancel_export' );
+		$this->loader->add_action( 'wp_ajax_sscribe_delete_export', $batch, 'ajax_delete_export' );
+		$this->loader->add_action( 'wp_ajax_sscribe_get_export_log', $batch, 'ajax_get_export_log' );
+		$this->loader->add_action( 'wp_ajax_sscribe_clear_session', $batch, 'ajax_clear_session' );
 	}
 
 	/**

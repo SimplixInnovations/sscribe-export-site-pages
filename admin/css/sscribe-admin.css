@@ -1041,6 +1041,427 @@
 		gap: 24px;
 	}
 
+	.scribe-hero-right {
+		align-items: flex-start;
+	}
+
+	.sscribe-language-cards {
+		flex-direction: column;
+	}
+
+	.sscribe-lang-card-label {
+		max-width: 100%;
+	}
+
+	.sscribe-status-alert {
+		flex-direction: column;
+		text-align: center;
+		padding: 24px;
+	}
+
+	.sscribe-success-actions,
+	.scribe-error-actions {
+		justify-content: center;
+		flex-direction: column;
+	}
+
+	.sscribe-history-row {
+		flex-direction: column;
+		align-items: flex-start;
+		gap: 16px;
+	}
+
+	.sscribe-panel-header {
+		flex-direction: column;
+		align-items: flex-start;
+		gap: 12px;
+	}
+}
+
+/* ===== Format Cards (Radio Style) ===== */
+.sscribe-format-cards {
+	display: flex;
+	flex-wrap: wrap;
+	gap: 12px;
+}
+
+.sscribe-format-card-label {
+	display: block;
+	cursor: pointer;
+	flex: 1 1 180px;
+	max-width: 240px;
+}
+
+.sscribe-format-card-label input[type="radio"] {
+	display: none;
+}
+
+.sscribe-format-card-inner {
+	display: flex;
+	align-items: center;
+	background: #FFFFFF;
+	border: 2px solid var(--sscribe-border);
+	border-radius: var(--sscribe-radius-md);
+	padding: 14px 16px;
+	gap: 14px;
+	transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+	height: 100%;
+}
+
+.scribe-format-card-label:hover .sscribe-format-card-inner {
+	border-color: #CBD5E1;
+	transform: translateY(-1px);
+	box-shadow: var(--sscribe-shadow-md);
+}
+
+.scribe-format-card-label input[type="radio"]:checked + .sscribe-format-card-inner {
+	border-color: var(--sscribe-primary);
+	background: #F0FDF4;
+	box-shadow: var(--sscribe-shadow-glow);
+}
+
+.sscribe-format-icon {
+	flex-shrink: 0;
+	width: 40px;
+	height: 40px;
+	background: #F1F5F9;
+	border-radius: var(--sscribe-radius-sm);
+	display: flex;
+	align-items: center;
+	justify-content: center;
+	color: var(--sscribe-text-muted);
+}
+
+.scribe-format-card-label input[type="radio"]:checked + .sscribe-format-card-inner .sscribe-format-icon {
+	background: var(--sscribe-primary);
+	color: #FFFFFF;
+}
+
+.scribe-format-meta {
+	flex-grow: 1;
+	display: flex;
+	flex-direction: column;
+	gap: 2px;
+	min-width: 0;
+}
+
+.sscribe-format-name {
+	font-weight: 600;
+	font-size: 13px;
+	color: var(--sscribe-text-main);
+	white-space: nowrap;
+	overflow: hidden;
+	text-overflow: ellipsis;
+}
+
+.sscribe-format-desc,
+.scribe-format-time {
+	font-size: 11px;
+	color: var(--sscribe-text-muted);
+	font-weight: 500;
+}
+
+.scribe-format-selector .sscribe-check-icon {
+	color: var(--sscribe-primary);
+	opacity: 0;
+	transform: scale(0.5);
+	transition: all 0.3s cubic-bezier(0.34, 1.56, 0.64, 1);
+	flex-shrink: 0;
+}
+
+.scribe-format-card-label input[type="radio"]:checked + .sscribe-format-card-inner .sscribe-check-icon {
+	opacity: 1;
+	transform: scale(1);
+}
+
+.scribe-format-all .sscribe-format-card-inner {
+	border-style: dashed;
+}
+
+/* ===== Time Estimate ===== */
+.sscribe-time-estimate {
+	display: flex;
+	align-items: center;
+	gap: 8px;
+	margin-bottom: 16px;
+	padding: 12px 16px;
+	background: #F8FAFC;
+	border-radius: var(--sscribe-radius-sm);
+	border: 1px solid var(--sscribe-border);
+}
+
+.sscribe-time-estimate img {
+	opacity: 0.6;
+}
+
+#sscribe-time-estimate-text {
+	font-size: 13px;
+	color: var(--sscribe-text-muted);
+	font-weight: 500;
+}
+
+/* ===== History Actions ===== */
+.sscribe-history-actions {
+	display: flex;
+	align-items: center;
+	gap: 8px;
+	flex-wrap: wrap;
+}
+
+.sscribe-delete-btn {
+	border-color: #FEE2E2 !important;
+	color: var(--sscribe-danger) !important;
+}
+
+.sscribe-delete-btn:hover {
+	background: var(--sscribe-danger) !important;
+	color: #FFFFFF !important;
+	border-color: var(--sscribe-danger) !important;
+}
+
+.scribe-delete-icon {
+	opacity: 0.7;
+}
+
+.scribe-delete-btn:hover .sscribe-delete-icon {
+	opacity: 1;
+}
+
+/* ===== Modal ===== */
+.sscribe-modal {
+	position: fixed;
+	top: 0;
+	left: 0;
+	right: 0;
+	bottom: 0;
+	background: rgba(0, 0, 0, 0.5);
+	display: flex;
+	align-items: center;
+	justify-content: center;
+	z-index: 100000;
+	padding: 20px;
+}
+
+.scribe-modal-content {
+	background: #FFFFFF;
+	border-radius: var(--sscribe-radius-lg);
+	max-width: 800px;
+	width: 100%;
+	max-height: 80vh;
+	overflow: hidden;
+	display: flex;
+	flex-direction: column;
+	box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.25);
+}
+
+.scribe-modal-header {
+	display: flex;
+	align-items: center;
+	justify-content: space-between;
+	padding: 20px 24px;
+	border-bottom: 1px solid var(--sscribe-border);
+	background: #F8FAFC;
+}
+
+.scribe-modal-header h3 {
+	font-size: 18px !important;
+	font-weight: 700 !important;
+	color: var(--sscribe-text-main);
+	margin: 0 !important;
+}
+
+.scribe-modal-close {
+	background: none;
+	border: none;
+	font-size: 24px;
+	cursor: pointer;
+	color: var(--sscribe-text-muted);
+	padding: 0;
+	line-height: 1;
+	opacity: 0.6;
+	transition: opacity 0.2s;
+}
+
+.scribe-modal-close:hover {
+	opacity: 1;
+	color: var(--sscribe-danger);
+}
+
+.scribe-modal-body {
+	padding: 24px;
+	overflow-y: auto;
+	flex: 1;
+}
+
+/* ===== Log Display ===== */
+.scribe-log-loading {
+	display: flex;
+	align-items: center;
+	justify-content: center;
+	gap: 12px;
+	padding: 40px;
+	color: var(--sscribe-text-muted);
+}
+
+.scribe-log-summary {
+	display: flex;
+	gap: 24px;
+	padding: 16px;
+	background: #F8FAFC;
+	border-radius: var(--sscribe-radius-sm);
+	margin-bottom: 24px;
+}
+
+.scribe-log-stat {
+	font-size: 14px;
+	color: var(--sscribe-text-main);
+}
+
+.scribe-log-success {
+	color: var(--sscribe-success);
+	font-weight: 600;
+}
+
+.scribe-log-failed {
+	color: var(--sscribe-danger);
+	font-weight: 600;
+}
+
+.scribe-log-pages h4 {
+	font-size: 14px !important;
+	font-weight: 600 !important;
+	margin-bottom: 12px !important;
+	color: var(--sscribe-text-main);
+}
+
+.scribe-log-table {
+	width: 100%;
+	border-collapse: collapse;
+	font-size: 13px;
+}
+
+.scribe-log-table th,
+.scribe-log-table td {
+	padding: 10px 12px;
+	text-align: left;
+	border-bottom: 1px solid var(--sscribe-border);
+}
+
+.scribe-log-table th {
+	background: #F8FAFC;
+	font-weight: 600;
+	color: var(--sscribe-text-muted);
+	font-size: 11px;
+	text-transform: uppercase;
+	letter-spacing: 0.05em;
+}
+
+.scribe-log-table tr:hover td {
+	background: #F8FAFC;
+}
+
+.scribe-log-status-success {
+	color: var(--sscribe-success);
+	font-weight: 500;
+}
+
+.scribe-log-status-failed {
+	color: var(--sscribe-danger);
+	font-weight: 500;
+}
+
+.scribe-log-errors {
+	margin-top: 24px;
+	padding: 16px;
+	background: #FEF2F2;
+	border-radius: var(--sscribe-radius-sm);
+	border: 1px solid #FEE2E2;
+}
+
+.scribe-log-errors h4 {
+	font-size: 14px !important;
+	font-weight: 600 !important;
+	color: var(--sscribe-danger);
+	margin-bottom: 12px !important;
+}
+
+.scribe-log-errors ul {
+	list-style: none;
+	margin: 0 !important;
+	padding: 0 !important;
+}
+
+.scribe-log-errors li {
+	padding: 8px 0;
+	border-bottom: 1px solid #FEE2E2;
+	font-size: 13px;
+	color: #991B1B;
+}
+
+.scribe-log-errors li:last-child {
+	border-bottom: none;
+}
+
+.scribe-log-empty {
+	padding: 40px;
+	text-align: center;
+	color: var(--sscribe-text-muted);
+}
+
+/* ===== Spinner Animation ===== */
+.scribe-spinner-img {
+	animation: scribe-spin 1s linear infinite;
+}
+
+@keyframes scribe-spin {
+	from {
+		transform: rotate(0deg);
+	}
+	to {
+		transform: rotate(360deg);
+	}
+}
+
+/* ===== Icon Styles ===== */
+.scribe-icon-img {
+	display: inline-block;
+	vertical-align: middle;
+}
+
+.scribe-logo-img {
+	display: block;
+}
+
+.scribe-legend-icon {
+	vertical-align: middle;
+	margin-right: 4px;
+	opacity: 0.7;
+}
+
+/* ===== Button States ===== */
+.sscribe-button-primary:disabled {
+	opacity: 0.5;
+	cursor: not-allowed;
+	background: #94A3B8;
+	border-color: #94A3B8;
+}
+
+.scribe-button-primary:disabled:hover {
+	transform: none;
+	box-shadow: none;
+	background: #94A3B8;
+}
+
+/* ===== Badge ===== */
+.sscribe-badge {
+	font-size: 11px;
+	font-weight: 500;
+	color: var(--sscribe-text-muted);
+	background: #F1F5F9;
+	padding: 4px 10px;
+	border-radius: 100px;
+}
+
 	.sscribe-hero-right {
 		align-items: flex-start;
 	}

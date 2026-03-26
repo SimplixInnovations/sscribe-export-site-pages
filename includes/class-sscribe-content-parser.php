@@ -88,26 +88,51 @@ class SScribe_Content_Parser {
 	 * @return string Normalized HTML.
 	 */
 	private function normalize_html( $html ) {
-		// Strip entire <style>, <script>, <noscript>, and <svg> blocks in a single pass.
+		$html = $this->strip_all_styles( $html );
+
 		$html = preg_replace( '/<(style|script|noscript|svg)\b[^>]*>.*?<\/\1>/is', '', $html );
 
-		// Strip HTML comments that may contain Elementor template data.
 		$html = preg_replace( '/<!--.*?-->/s', '', $html );
 
-		// Strip Elementor print styles and inline CSS variable declarations.
 		$html = preg_replace( '/:root\s*\{[^}]*\}/s', '', $html );
 		$html = preg_replace( '/\.elementor-[a-zA-Z0-9_-]+\s*\{[^}]*\}/s', '', $html );
 
-		// Sanitize remaining HTML.
 		$html = wp_kses_post( $html );
 
-		// Collapse whitespace between tags.
 		$html = preg_replace( '/>\s+</', '><', $html );
 
-		// Ensure block-level element separation.
 		$html = preg_replace( '/<\/(p|div|h[1-6]|ul|ol|li|table|tr|blockquote|pre)>/', "</$1>\n", $html );
 
 		return trim( $html );
+	}
+
+	/**
+	 * Strip all inline styles and Elementor-specific attributes.
+	 *
+	 * @param string $html The HTML content.
+	 * @return string Cleaned HTML.
+	 */
+	private function strip_all_styles( $html ) {
+		$html = preg_replace( '/\s*style="[^"]*"/i', '', $html );
+		$html = preg_replace( "/\s*style='[^']*'/i", '', $html );
+
+		$html = preg_replace( '/<style[^>]*>.*?<\/style>/is', '', $html );
+
+		$html = preg_replace( '/\s*class="[^"]*"/i', '', $html );
+		$html = preg_replace( "/\s*class='[^']*'/i", '', $html );
+
+		$html = preg_replace( '/\s*data-elementor(-[a-z]+)?="[^"]*"/i', '', $html );
+		$html = preg_replace( '/\s*data-(widget|column|section)-[^=]*="[^"]*"/i', '', $html );
+		$html = preg_replace( '/\s*data-settings="[^"]*"/i', '', $html );
+		$html = preg_replace( '/\s*data-id="[^"]*"/i', '', $html );
+
+		$html = preg_replace( '/\s*id="elementor-[^"]*"/i', '', $html );
+
+		$html = preg_replace( '/<div\s+id="[^"]*"[^>]*><\/div>/i', '', $html );
+		$html = preg_replace( '/<span\s*><\/span>/i', '', $html );
+		$html = preg_replace( '/<div\s*><\/div>/i', '', $html );
+
+		return $html;
 	}
 
 	/**
