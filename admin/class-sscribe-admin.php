@@ -86,8 +86,8 @@ class SScribe_Admin {
 
 		// Localize script.
 		wp_localize_script(
-			'scribe-admin',
-			'scribe_data',
+			'sscribe-admin',
+			'sscribe_data',
 			array(
 				'ajaxurl' => admin_url( 'admin-ajax.php' ),
 				'nonce'   => wp_create_nonce( 'sscribe_export_nonce' ),
