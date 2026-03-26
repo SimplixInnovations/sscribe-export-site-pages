@@ -77,21 +77,60 @@ class SScribe_Batch_Processor {
 	}
 
 	/**
-	 * Check rate limit for current user.
+	 * Check rate limit for current user using atomic file-based counter.
 	 *
 	 * @return bool True if within limits, false if exceeded.
 	 */
 	private function check_rate_limit(): bool {
-		$user_id      = get_current_user_id();
-		$transient_key = "sscribe_rate_{$user_id}";
-		$count         = (int) get_transient( $transient_key );
+		$user_id = get_current_user_id();
+		$upload_dir = wp_upload_dir();
+		$rate_dir = trailingslashit( $upload_dir['basedir'] ) . 'sscribe-sessions/';
 
-		if ( $count >= self::RATE_LIMIT_MAX ) {
-			return false;
+		if ( ! is_dir( $rate_dir ) ) {
+			wp_mkdir_p( $rate_dir );
 		}
 
-		set_transient( $transient_key, $count + 1, self::RATE_LIMIT_WINDOW );
-		return true;
+		$rate_file = $rate_dir . 'rate-' . absint( $user_id ) . '.json';
+		$lock_file = $rate_file . '.lock';
+		$now = time();
+
+		$lock_handle = fopen( $lock_file, 'c' );
+		if ( $lock_handle === false ) {
+			return true;
+		}
+
+		if ( ! flock( $lock_handle, LOCK_EX ) ) {
+			fclose( $lock_handle );
+			return true;
+		}
+
+		try {
+			$data = array( 'count' => 0, 'reset_at' => $now + self::RATE_LIMIT_WINDOW );
+
+			if ( file_exists( $rate_file ) ) {
+				$content = file_get_contents( $rate_file );
+				if ( $content !== false ) {
+					$existing = json_decode( $content, true );
+					if ( is_array( $existing ) && isset( $existing['reset_at'] ) && $existing['reset_at'] > $now ) {
+						$data = $existing;
+					}
+				}
+			}
+
+			if ( $data['count'] >= self::RATE_LIMIT_MAX ) {
+				return false;
+			}
+
+			$data['count']++;
+
+			// phpcs:ignore WordPress.WP.AlternativeFunctions.file_system_operations_file_put_contents
+			file_put_contents( $rate_file, wp_json_encode( $data ), LOCK_EX );
+
+			return true;
+		} finally {
+			flock( $lock_handle, LOCK_UN );
+			fclose( $lock_handle );
+		}
 	}
 
 	/**
@@ -398,6 +437,7 @@ class SScribe_Batch_Processor {
 		if ( ! empty( $session['cancelled'] ) ) {
 			$this->logger->debug( 'Export was cancelled' );
 			$this->restore_ob_level( $ob_level_before );
+			$this->cleanup_cancelled_export( $session );
 			$this->session->delete( $session_id );
 			wp_send_json_error(
 				array(
@@ -878,13 +918,29 @@ class SScribe_Batch_Processor {
 			return;
 		}
 
-		// Mark session as cancelled.
 		$session = $this->session->get( $session_id );
 		if ( $session ) {
 			$session['cancelled'] = true;
 			$this->session->update( $session_id, $session );
+			$this->cleanup_cancelled_export( $session );
+			$this->session->delete( $session_id );
 		}
 
 		wp_send_json_success( array( 'message' => __( 'Export cancelled.', 'sscribe-export-site-pages' ) ) );
+	}
+
+	/**
+	 * Clean up temporary files for a cancelled export.
+	 *
+	 * @param array $session Session data.
+	 * @return void
+	 */
+	private function cleanup_cancelled_export( array $session ): void {
+		if ( ! empty( $session['temp_dir'] ) && is_dir( $session['temp_dir'] ) ) {
+			$this->zip_handler->delete_directory( $session['temp_dir'] );
+			$this->logger->debug( 'Cleaned up temp directory for cancelled export', array(
+				'temp_dir' => $session['temp_dir'],
+			) );
+		}
 	}
 }

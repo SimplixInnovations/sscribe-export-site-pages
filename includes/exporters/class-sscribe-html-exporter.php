@@ -149,14 +149,39 @@ class SScribe_HTML_Exporter implements SScribe_Exporter_Interface {
 		$seo = $page_data['seo'];
 		$html = '<div class="seo"><h3>' . __( 'SEO Metadata', 'sscribe-export-site-pages' ) . '</h3>';
 
+		if ( ! empty( $seo['source'] ) ) {
+			$html .= '<p><strong>' . __( 'Source:', 'sscribe-export-site-pages' ) . '</strong> ' . esc_html( $seo['source'] ) . '</p>';
+		}
 		if ( ! empty( $seo['meta_title'] ) ) {
-			$html .= '<p><strong>' . __( 'Title:', 'sscribe-export-site-pages' ) . '</strong> ' . esc_html( $seo['meta_title'] ) . '</p>';
+			$html .= '<p><strong>' . __( 'Meta Title:', 'sscribe-export-site-pages' ) . '</strong> ' . esc_html( $seo['meta_title'] ) . '</p>';
 		}
 		if ( ! empty( $seo['meta_description'] ) ) {
-			$html .= '<p><strong>' . __( 'Description:', 'sscribe-export-site-pages' ) . '</strong> ' . esc_html( $seo['meta_description'] ) . '</p>';
+			$html .= '<p><strong>' . __( 'Meta Description:', 'sscribe-export-site-pages' ) . '</strong> ' . esc_html( $seo['meta_description'] ) . '</p>';
 		}
 		if ( ! empty( $seo['focus_keyword'] ) ) {
 			$html .= '<p><strong>' . __( 'Focus Keyword:', 'sscribe-export-site-pages' ) . '</strong> ' . esc_html( $seo['focus_keyword'] ) . '</p>';
+		}
+		if ( ! empty( $seo['canonical_url'] ) ) {
+			$html .= '<p><strong>' . __( 'Canonical URL:', 'sscribe-export-site-pages' ) . '</strong> <a href="' . esc_url( $seo['canonical_url'] ) . '">' . esc_html( $seo['canonical_url'] ) . '</a></p>';
+		}
+		if ( ! empty( $seo['og_title'] ) ) {
+			$html .= '<p><strong>' . __( 'Open Graph Title:', 'sscribe-export-site-pages' ) . '</strong> ' . esc_html( $seo['og_title'] ) . '</p>';
+		}
+		if ( ! empty( $seo['og_description'] ) ) {
+			$html .= '<p><strong>' . __( 'Open Graph Description:', 'sscribe-export-site-pages' ) . '</strong> ' . esc_html( $seo['og_description'] ) . '</p>';
+		}
+		if ( ! empty( $seo['og_image'] ) ) {
+			$html .= '<p><strong>' . __( 'Open Graph Image:', 'sscribe-export-site-pages' ) . '</strong> <a href="' . esc_url( $seo['og_image'] ) . '">' . esc_html( $seo['og_image'] ) . '</a></p>';
+		}
+		if ( ! empty( $seo['noindex'] ) || ! empty( $seo['nofollow'] ) ) {
+			$robots = array();
+			if ( ! empty( $seo['noindex'] ) ) {
+				$robots[] = 'noindex';
+			}
+			if ( ! empty( $seo['nofollow'] ) ) {
+				$robots[] = 'nofollow';
+			}
+			$html .= '<p><strong>' . __( 'Robots:', 'sscribe-export-site-pages' ) . '</strong> ' . esc_html( implode( ', ', $robots ) ) . '</p>';
 		}
 
 		$html .= '</div>';
