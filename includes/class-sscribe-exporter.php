@@ -46,13 +46,6 @@ class SScribe_Exporter {
 	private $is_rtl = false;
 
 	/**
-	 * SEO reader instance.
-	 *
-	 * @var SScribe_SEO_Reader
-	 */
-	private $seo_reader;
-
-	/**
 	 * Font name for normal text.
 	 *
 	 * @var string
@@ -86,8 +79,7 @@ class SScribe_Exporter {
 	 * Constructor.
 	 */
 	public function __construct() {
-		$this->parser     = new SScribe_Content_Parser();
-		$this->seo_reader = new SScribe_SEO_Reader();
+		$this->parser = new SScribe_Content_Parser();
 	}
 
 	/**
@@ -768,7 +760,7 @@ class SScribe_Exporter {
 	 * @param array                              $page_data Page data.
 	 */
 	private function add_seo_section( $section, $page_data ) {
-		$seo_data = $this->seo_reader->get_seo_data( $page_data['id'] );
+		$seo_data = ! empty( $page_data['seo'] ) ? $page_data['seo'] : array();
 
 		if ( empty( $seo_data['meta_title'] ) && empty( $seo_data['meta_description'] ) && empty( $seo_data['focus_keyword'] ) ) {
 			return;
