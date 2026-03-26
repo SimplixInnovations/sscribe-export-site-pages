@@ -13,7 +13,7 @@ if ( ! defined( 'ABSPATH' ) ) {
 /**
  * Class SScribe_Zip_Handler
  *
- * Bundles DOCX files into ZIP packages and manages automatic cleanup.
+ * Bundles export files into ZIP packages and manages automatic cleanup.
  */
 class SScribe_Zip_Handler {
 
@@ -26,11 +26,19 @@ class SScribe_Zip_Handler {
 	private $export_dir;
 
 	/**
+	 * Logger instance.
+	 *
+	 * @var SScribe_Logger
+	 */
+	private $logger;
+
+	/**
 	 * Constructor.
 	 */
 	public function __construct() {
 		$upload_dir      = wp_upload_dir();
 		$this->export_dir = $upload_dir['basedir'] . '/sscribe-exports';
+		$this->logger     = new SScribe_Logger( defined( 'SSCRIBE_DEBUG' ) && SSCRIBE_DEBUG );
 	}
 
 	/**
@@ -57,14 +65,15 @@ class SScribe_Zip_Handler {
 	}
 
 	/**
-	 * Bundle DOCX files from a directory into a ZIP.
+	 * Bundle export files from a directory into a ZIP.
 	 *
-	 * @param string $source_dir Directory containing DOCX files.
+	 * @param string $source_dir Directory containing export files.
 	 * @param string $zip_name   Desired ZIP filename (without extension).
 	 * @return string|false Path to ZIP file or false on failure.
 	 */
 	public function create_zip( $source_dir, $zip_name = '' ) {
 		if ( ! class_exists( 'ZipArchive' ) ) {
+			$this->logger->error( 'ZipArchive not available' );
 			$this->delete_directory( $source_dir );
 			return false;
 		}
@@ -76,28 +85,42 @@ class SScribe_Zip_Handler {
 		$zip_path = $this->export_dir . '/' . sanitize_file_name( $zip_name ) . '.zip';
 
 		$zip = new ZipArchive();
-		if ( $zip->open( $zip_path, ZipArchive::CREATE | ZipArchive::OVERWRITE ) !== true ) {
-			$this->delete_directory( $source_dir );
-			return false;
-		}
+		try {
+			if ( $zip->open( $zip_path, ZipArchive::CREATE | ZipArchive::OVERWRITE ) !== true ) {
+				$this->logger->error( 'Failed to create ZIP file', array( 'zip_path' => $zip_path ) );
+				$this->delete_directory( $source_dir );
+				return false;
+			}
 
-		$files = glob( $source_dir . '/*.docx' );
-		if ( empty( $files ) ) {
+			$files = array();
+			foreach ( array( 'docx', 'pdf', 'html', 'md' ) as $ext ) {
+				$found = glob( $source_dir . '/*.' . $ext );
+				if ( $found ) {
+					$files = array_merge( $files, $found );
+				}
+			}
+
+			if ( empty( $files ) ) {
+				$this->logger->error( 'No export files found in source directory', array( 'source_dir' => $source_dir ) );
+				$this->delete_directory( $source_dir );
+				return false;
+			}
+
+			foreach ( $files as $file ) {
+				$zip->addFile( $file, basename( $file ) );
+			}
+
+		} finally {
 			$zip->close();
-			$this->delete_directory( $source_dir );
-			return false;
 		}
-
-		foreach ( $files as $file ) {
-			$zip->addFile( $file, basename( $file ) );
-		}
-
-		$zip->close();
 
 		$this->delete_directory( $source_dir );
 
 		$exports = get_option( 'sscribe_export_index', array() );
-		$exports[ basename( $zip_path ) ] = time();
+		$exports[ basename( $zip_path ) ] = array(
+			'created_at' => time(),
+			'user_id'    => get_current_user_id(),
+		);
 		update_option( 'sscribe_export_index', $exports, false );
 
 		return file_exists( $zip_path ) ? $zip_path : false;

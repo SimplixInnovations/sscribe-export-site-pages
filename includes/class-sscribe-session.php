@@ -21,6 +21,7 @@ class SScribe_Session
     private string $storage_dir;
     private string $session_prefix = 'sscribe-session-';
     private string $lock_suffix = '.lock';
+    private $logger;
 
     public function __construct(?string $storage_dir = null)
     {
@@ -30,6 +31,7 @@ class SScribe_Session
         }
         $this->storage_dir = trailingslashit($storage_dir);
         $this->ensure_directory_exists();
+        $this->logger = new SScribe_Logger(defined('SSCRIBE_DEBUG') && SSCRIBE_DEBUG);
     }
 
     private function ensure_directory_exists(): void
@@ -55,6 +57,9 @@ class SScribe_Session
         $json = wp_json_encode($data, JSON_UNESCAPED_UNICODE);
 
         if ($json === false) {
+            $this->logger->error('Failed to encode session data to JSON', array(
+                'json_error' => json_last_error_msg(),
+            ));
             return '';
         }
 
@@ -63,10 +68,17 @@ class SScribe_Session
         $result = file_put_contents($tmp_path, $json, LOCK_EX);
 
         if ($result === false) {
+            $this->logger->error('Failed to write session file', array(
+                'tmp_path' => $tmp_path,
+            ));
             return '';
         }
 
         if (!rename($tmp_path, $file_path)) {
+            $this->logger->error('Failed to rename session file', array(
+                'tmp_path' => $tmp_path,
+                'file_path' => $file_path,
+            ));
             $this->cleanup_tmp_file($tmp_path);
             return '';
         }
@@ -132,10 +144,16 @@ class SScribe_Session
 
         $lock_handle = fopen($lock_path, 'c');
         if ($lock_handle === false) {
+            $this->logger->error('Failed to create lock file', array(
+                'lock_path' => $lock_path,
+            ));
             return false;
         }
 
         if (!flock($lock_handle, LOCK_EX)) {
+            $this->logger->error('Failed to acquire lock', array(
+                'lock_path' => $lock_path,
+            ));
             fclose($lock_handle);
             return false;
         }
@@ -143,6 +161,9 @@ class SScribe_Session
         try {
             $existing = $this->get_with_lock($file_path);
             if ($existing === null) {
+                $this->logger->error('Failed to read existing session', array(
+                    'file_path' => $file_path,
+                ));
                 return false;
             }
 
@@ -151,6 +172,9 @@ class SScribe_Session
 
             $json = wp_json_encode($merged, JSON_UNESCAPED_UNICODE);
             if ($json === false) {
+                $this->logger->error('Failed to encode session data', array(
+                    'json_error' => json_last_error_msg(),
+                ));
                 return false;
             }
 
@@ -159,6 +183,9 @@ class SScribe_Session
             $result = file_put_contents($tmp_path, $json, LOCK_EX);
 
             if ($result === false) {
+                $this->logger->error('Failed to write updated session file', array(
+                    'tmp_path' => $tmp_path,
+                ));
                 $this->cleanup_tmp_file($tmp_path);
                 return false;
             }

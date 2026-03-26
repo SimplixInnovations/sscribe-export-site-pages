@@ -176,6 +176,41 @@ class SScribe_Batch_Processor {
 	}
 
 	/**
+	 * Check if enough memory is available.
+	 *
+	 * @param int $buffer_mb Buffer in MB to keep available.
+	 * @return bool True if memory is available.
+	 */
+	private function is_memory_available( int $buffer_mb = 10 ): bool {
+		$limit = wp_convert_hr_to_bytes( ini_get( 'memory_limit' ) );
+
+		if ( $limit <= 0 ) {
+			return true;
+		}
+
+		$used      = memory_get_usage( true );
+		$available = $limit - $used;
+
+		return $available > ( $buffer_mb * 1024 * 1024 );
+	}
+
+	/**
+	 * Get memory usage as percentage.
+	 *
+	 * @return float Memory usage percentage.
+	 */
+	private function get_memory_usage_percent(): float {
+		$limit = wp_convert_hr_to_bytes( ini_get( 'memory_limit' ) );
+
+		if ( $limit <= 0 ) {
+			return 0.0;
+		}
+
+		$used = memory_get_usage( true );
+		return round( ( $used / $limit ) * 100, 1 );
+	}
+
+	/**
 	 * Get the required capability for export operations.
 	 *
 	 * @return string WordPress capability slug.
@@ -187,6 +222,32 @@ class SScribe_Batch_Processor {
 		 * @param string $capability WordPress capability slug. Default 'manage_options'.
 		 */
 		return apply_filters( 'sscribe_export_capability', 'manage_options' );
+	}
+
+	/**
+	 * Validate that the current user owns the session.
+	 *
+	 * @param array  $session    Session data.
+	 * @param string $session_id Session ID for logging.
+	 * @return bool True if ownership is valid, false otherwise.
+	 */
+	private function validate_session_ownership( array $session, string $session_id ): bool {
+		$current_user_id = get_current_user_id();
+
+		if ( ! isset( $session['user_id'] ) ) {
+			return true;
+		}
+
+		if ( (int) $session['user_id'] !== $current_user_id ) {
+			$this->audit_log( 'session_access_denied', array(
+				'session_id'      => $session_id,
+				'session_user'    => $session['user_id'] ?? 'unknown',
+				'attempting_user' => $current_user_id,
+			) );
+			return false;
+		}
+
+		return true;
 	}
 
 	/**
@@ -383,8 +444,9 @@ class SScribe_Batch_Processor {
 
 		// Attempt to extend execution time for slow page-builder rendering.
 		if ( function_exists( 'ini_set' ) ) {
+			$max_time = (int) apply_filters( 'sscribe_max_execution_time', 120 );
 			// phpcs:ignore WordPress.PHP.IniSet.max_execution_time_Blacklisted, Squiz.PHP.DiscouragedFunctions.Discouraged -- Required for large Elementor exports.
-			ini_set( 'max_execution_time', '120' );
+			ini_set( 'max_execution_time', (string) $max_time );
 		}
 		wp_raise_memory_limit( 'admin' );
 
@@ -407,11 +469,20 @@ class SScribe_Batch_Processor {
 
 		if ( ! $session ) {
 			$this->logger->debug( 'ERROR: Session not found' );
-			// Restore to exactly the level before our ob_start(), then respond.
 			$this->restore_ob_level( $ob_level_before );
 			wp_send_json_error(
 				array(
 					'message' => __( 'Export session expired or not found. Please start again.', 'sscribe-export-site-pages' ),
+				)
+			);
+			return;
+		}
+
+		if ( ! $this->validate_session_ownership( $session, $session_id ) ) {
+			$this->restore_ob_level( $ob_level_before );
+			wp_send_json_error(
+				array(
+					'message' => __( 'Invalid session access.', 'sscribe-export-site-pages' ),
 				)
 			);
 			return;
@@ -469,8 +540,10 @@ class SScribe_Batch_Processor {
 		$batch = array_slice( $page_ids, $processed, $this->batch_size );
 
 		// Pre-fetch all featured images for this batch (N+1 optimization).
+		// Pre-fetch all child pages for this batch (N+1 optimization).
 		if ( ! empty( $batch ) ) {
 			$this->collector->get_featured_images_batch( $batch );
+			$this->collector->get_child_pages_batch( $batch );
 		}
 
 		$this->logger->debug( 'Batch details', array(
@@ -493,6 +566,17 @@ class SScribe_Batch_Processor {
 
 		// Process each page in the batch.
 		foreach ( $batch as $page_id ) {
+			// Check memory before processing each page.
+			if ( ! $this->is_memory_available( 20 ) ) {
+				$this->logger->debug( 'Memory threshold approaching limit, pausing batch', array(
+					'memory_usage'   => size_format( memory_get_usage( true ) ),
+					'memory_percent' => $this->get_memory_usage_percent(),
+					'processed'      => $processed,
+					'total'          => $total,
+				) );
+				break;
+			}
+
 			$page_start_time = microtime( true );
 			$this->logger->debug( "Processing page ID: {$page_id}", array(
 				'batch_index' => $processed + 1,
@@ -861,6 +945,15 @@ class SScribe_Batch_Processor {
 			wp_die( esc_html__( 'Invalid file request.', 'sscribe-export-site-pages' ) );
 		}
 
+		$exports = get_option( 'sscribe_export_index', array() );
+		if ( isset( $exports[ $filename ] ) && is_array( $exports[ $filename ] ) ) {
+			$export_info = $exports[ $filename ];
+			if ( isset( $export_info['user_id'] ) && (int) $export_info['user_id'] !== get_current_user_id() ) {
+				$this->audit_log( 'download_access_denied', array( 'filename' => $filename ) );
+				wp_die( esc_html__( 'Invalid file access.', 'sscribe-export-site-pages' ) );
+			}
+		}
+
 		// Sanitize for ASCII Content-Disposition (strip non-ASCII and quotes).
 		$ascii_filename = preg_replace( '/[^a-zA-Z0-9._-]/', '_', $filename );
 
@@ -919,12 +1012,20 @@ class SScribe_Batch_Processor {
 		}
 
 		$session = $this->session->get( $session_id );
-		if ( $session ) {
-			$session['cancelled'] = true;
-			$this->session->update( $session_id, $session );
-			$this->cleanup_cancelled_export( $session );
-			$this->session->delete( $session_id );
+		if ( ! $session ) {
+			wp_send_json_error( array( 'message' => __( 'Session not found.', 'sscribe-export-site-pages' ) ) );
+			return;
 		}
+
+		if ( ! $this->validate_session_ownership( $session, $session_id ) ) {
+			wp_send_json_error( array( 'message' => __( 'Invalid session access.', 'sscribe-export-site-pages' ) ) );
+			return;
+		}
+
+		$session['cancelled'] = true;
+		$this->session->update( $session_id, $session );
+		$this->cleanup_cancelled_export( $session );
+		$this->session->delete( $session_id );
 
 		wp_send_json_success( array( 'message' => __( 'Export cancelled.', 'sscribe-export-site-pages' ) ) );
 	}
