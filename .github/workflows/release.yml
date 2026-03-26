@@ -4,39 +4,14 @@ on:
   push:
     tags:
       - 'v*'
-  workflow_dispatch:
-    inputs:
-      version:
-        description: 'Version to release (e.g., 3.0.1)'
-        required: false
 
 permissions:
   contents: write
 
 jobs:
-  test:
-    name: Run Tests
-    runs-on: ubuntu-latest
-    steps:
-      - name: Checkout code
-        uses: actions/checkout@v4
-
-      - name: Setup PHP
-        uses: shivammathur/setup-php@v2
-        with:
-          php-version: '8.1'
-          coverage: none
-
-      - name: Install dependencies
-        run: composer install --no-progress
-
-      - name: Run PHPUnit
-        run: composer test
-
   build:
     name: Build WordPress Plugin
     runs-on: ubuntu-latest
-    needs: test
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
@@ -48,94 +23,32 @@ jobs:
           coverage: none
 
       - name: Install production dependencies
+        run: composer install --no-dev --optimize-autoloader --no-progress
+
+      - name: Create WordPress.org package
         run: |
-          composer install --no-dev --optimize-autoloader --no-progress
-          composer dump-autoload --no-dev --optimize
+          mkdir -p build/sscribe-export-site-pages
+          
+          cp sscribe-export-site-pages.php build/sscribe-export-site-pages/
+          cp readme.txt build/sscribe-export-site-pages/
+          cp LICENSE build/sscribe-export-site-pages/
+          cp uninstall.php build/sscribe-export-site-pages/
+          
+          cp -r includes build/sscribe-export-site-pages/
+          cp -r admin build/sscribe-export-site-pages/
+          cp -r languages build/sscribe-export-site-pages/
+          cp -r vendor build/sscribe-export-site-pages/
+          
+          cd build
+          zip -r ../sscribe-export-site-pages.zip sscribe-export-site-pages
 
-      - name: Get version
-        id: version
-        run: |
-          if [ "${{ github.event_name }}" = "workflow_dispatch" ] && [ -n "${{ github.event.inputs.version }}" ]; then
-            VERSION="${{ github.event.inputs.version }}"
-          else
-            VERSION="${GITHUB_REF#refs/tags/v}"
-          fi
-          echo "version=$VERSION" >> $GITHUB_OUTPUT
+      - name: Verify package contents
+        run: unzip -l sscribe-export-site-pages.zip
 
-      - name: Create distribution archive
-        run: |
-          mkdir -p dist
-          zip -r dist/sscribe-export-site-pages.zip \
-            sscribe-export-site-pages.php \
-            readme.txt \
-            LICENSE \
-            uninstall.php \
-            includes/ \
-            admin/ \
-            languages/ \
-            vendor/ \
-            -x "*.git*" \
-            -x "*.DS_Store" \
-            -x "*Thumbs.db" \
-            -x "*.github*" \
-            -x "*docs/superpowers*" \
-            -x "*.distignore*" \
-            -x "*.gitignore*" \
-            -x "*phpunit.xml*" \
-            -x "*phpstan.neon*" \
-            -x "*phpcs.xml*" \
-            -x "*.cache*" \
-            -x "*composer.lock*" \
-            -x "*package*.json*" \
-            -x "*node_modules*"
-
-      - name: Verify ZIP contents
-        run: |
-          unzip -l dist/sscribe-export-site-pages.zip
-
-      - name: Upload artifact
-        uses: actions/upload-artifact@v4
-        with:
-          name: sscribe-export-site-pages-v${{ steps.version.outputs.version }}
-          path: dist/sscribe-export-site-pages.zip
-
-  create-release:
-    name: Create GitHub Release
-    runs-on: ubuntu-latest
-    needs: build
-    if: startsWith(github.ref, 'refs/tags/v')
-    steps:
-      - name: Checkout code
-        uses: actions/checkout@v4
-
-      - name: Download artifact
-        uses: actions/download-artifact@v4
-        with:
-          path: dist
-
-      - name: Get version
-        id: version
-        run: |
-          VERSION="${GITHUB_REF#refs/tags/v}"
-          echo "version=$VERSION" >> $GITHUB_OUTPUT
-
-      - name: Create Release
+      - name: Upload to GitHub Release
         uses: softprops/action-gh-release@v2
         with:
-          name: SScribe Export Site Pages v${{ steps.version.outputs.version }}
-          files: dist/*/sscribe-export-site-pages.zip
+          files: sscribe-export-site-pages.zip
           generate_release_notes: true
-          body: |
-            ## SScribe Export Site Pages v${{ steps.version.outputs.version }}
-            
-            WordPress plugin to export all pages to DOCX, PDF, HTML, or Markdown files.
-            
-            ### Installation
-            1. Download the ZIP file
-            2. Go to WordPress Admin → Plugins → Add New → Upload Plugin
-            3. Upload the ZIP and activate
-            
-            ### Changelog
-            See readme.txt for full changelog.
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

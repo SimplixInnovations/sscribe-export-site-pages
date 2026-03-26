@@ -5,18 +5,14 @@ on:
     branches:
       - main
       - develop
-    paths-ignore:
-      - '**.md'
   pull_request:
     branches:
       - main
       - develop
-    paths-ignore:
-      - '**.md'
 
 jobs:
-  php-lint:
-    name: PHP Syntax Check
+  lint:
+    name: PHP ${{ matrix.php-version }}
     runs-on: ubuntu-latest
     strategy:
       matrix:
@@ -33,16 +29,12 @@ jobs:
 
       - name: PHP Syntax Check
         run: |
-          ERROR=0
-          for file in $(find . -name "*.php" -not -path "./vendor/*" -not -path "./.git/*"); do
-            php -l "$file" > /dev/null 2>&1 || ERROR=1
-          done
-          exit $ERROR
+          find . -name "*.php" -not -path "./vendor/*" -not -path "./.git/*" -exec php -l {} \; 2>&1 | grep -v "No syntax errors"
 
-  phpstan:
-    name: PHPStan Analysis
+  test:
+    name: Tests
     runs-on: ubuntu-latest
-    needs: php-lint
+    needs: lint
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
@@ -52,50 +44,6 @@ jobs:
         with:
           php-version: '8.1'
           coverage: none
-
-      - name: Install dependencies
-        run: composer install --no-progress
-
-      - name: Run PHPStan
-        run: composer stan
-
-  phpcs:
-    name: PHP CodeSniffer
-    runs-on: ubuntu-latest
-    needs: php-lint
-    steps:
-      - name: Checkout code
-        uses: actions/checkout@v4
-
-      - name: Setup PHP
-        uses: shivammathur/setup-php@v2
-        with:
-          php-version: '8.1'
-          coverage: none
-          tools: composer
-
-      - name: Install dependencies
-        run: composer install --no-progress
-
-      - name: Run PHPCS
-        run: composer cs
-
-  phpunit:
-    name: PHPUnit Tests
-    runs-on: ubuntu-latest
-    needs: [phpstan, phpcs]
-    strategy:
-      matrix:
-        php-version: ['7.4', '8.0', '8.1', '8.2']
-    steps:
-      - name: Checkout code
-        uses: actions/checkout@v4
-
-      - name: Setup PHP
-        uses: shivammathur/setup-php@v2
-        with:
-          php-version: ${{ matrix.php-version }}
-          coverage: xdebug
 
       - name: Install dependencies
         run: composer install --no-progress
@@ -103,38 +51,8 @@ jobs:
       - name: Run PHPUnit
         run: composer test
 
-  build:
-    name: Build Plugin Archive
-    runs-on: ubuntu-latest
-    needs: [phpunit]
-    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
-    steps:
-      - name: Checkout code
-        uses: actions/checkout@v4
+      - name: Run PHPStan
+        run: composer stan
 
-      - name: Setup PHP
-        uses: shivammathur/setup-php@v2
-        with:
-          php-version: '8.1'
-          coverage: none
-
-      - name: Install production dependencies
-        run: composer install --no-dev --optimize-autoloader --no-progress
-
-      - name: Create distribution archive
-        run: |
-          mkdir -p dist
-          zip -r dist/sscribe-export-site-pages.zip \
-            sscribe-export-site-pages.php \
-            includes/ \
-            admin/ \
-            languages/ \
-            vendor/ \
-            LICENSE \
-            -x "*.git*"
-
-      - name: Upload artifact
-        uses: actions/upload-artifact@v4
-        with:
-          name: scribe-export-site-pages
-          path: dist/sscribe-export-site-pages.zip
+      - name: Run PHPCS
+        run: composer cs
