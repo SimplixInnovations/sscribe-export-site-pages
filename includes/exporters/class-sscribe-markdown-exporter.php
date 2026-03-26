@@ -112,7 +112,16 @@ class SScribe_Markdown_Exporter implements SScribe_Exporter_Interface {
 		$md = preg_replace( '/<(strong|b)>(.*?)<\/\1>/is', '**$2**', $md );
 		$md = preg_replace( '/<(em|i)>(.*?)<\/\1>/is', '*$2*', $md );
 
-		$md = preg_replace( '/<a[^>]*href="([^"]*)"[^>]*>(.*?)<\/a>/is', '[$2]($1)', $md );
+		$md = preg_replace_callback(
+			'/<a[^>]*href="([^"]*)"[^>]*>(.*?)<\/a>/is',
+			function( $matches ) {
+				$url = $matches[1];
+				$text = $matches[2];
+				$sanitized_url = $this->sanitize_markdown_url( $url );
+				return '[' . $text . '](' . $sanitized_url . ')';
+			},
+			$md
+		);
 
 		$md = preg_replace( '/<li>(.*?)<\/li>/is', '- $1', $md );
 		$md = preg_replace( '/<\/?ul>/is', '', $md );
@@ -128,6 +137,31 @@ class SScribe_Markdown_Exporter implements SScribe_Exporter_Interface {
 		$md = preg_replace( '/\n{3,}/', "\n\n", $md );
 
 		return trim( $md );
+	}
+
+	/**
+	 * Sanitize URL for markdown output.
+	 *
+	 * @param string $url URL to sanitize.
+	 * @return string Sanitized URL.
+	 */
+	private function sanitize_markdown_url( string $url ): string {
+		$url = trim( $url );
+		
+		if ( empty( $url ) ) {
+			return '#';
+		}
+
+		$parsed = parse_url( $url );
+		$scheme = isset( $parsed['scheme'] ) ? strtolower( $parsed['scheme'] ) : '';
+
+		$allowed_schemes = array( 'http', 'https', 'mailto', 'tel', 'ftp' );
+		
+		if ( ! empty( $scheme ) && ! in_array( $scheme, $allowed_schemes, true ) ) {
+			return '#';
+		}
+
+		return $url;
 	}
 
 	/**

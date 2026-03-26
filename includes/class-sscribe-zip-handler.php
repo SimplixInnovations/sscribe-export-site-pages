@@ -65,6 +65,7 @@ class SScribe_Zip_Handler {
 	 */
 	public function create_zip( $source_dir, $zip_name = '' ) {
 		if ( ! class_exists( 'ZipArchive' ) ) {
+			$this->delete_directory( $source_dir );
 			return false;
 		}
 
@@ -76,12 +77,14 @@ class SScribe_Zip_Handler {
 
 		$zip = new ZipArchive();
 		if ( $zip->open( $zip_path, ZipArchive::CREATE | ZipArchive::OVERWRITE ) !== true ) {
+			$this->delete_directory( $source_dir );
 			return false;
 		}
 
 		$files = glob( $source_dir . '/*.docx' );
 		if ( empty( $files ) ) {
 			$zip->close();
+			$this->delete_directory( $source_dir );
 			return false;
 		}
 
@@ -91,10 +94,8 @@ class SScribe_Zip_Handler {
 
 		$zip->close();
 
-		// Clean up temporary directory.
 		$this->delete_directory( $source_dir );
 
-		// Store creation time for cleanup using single option.
 		$exports = get_option( 'sscribe_export_index', array() );
 		$exports[ basename( $zip_path ) ] = time();
 		update_option( 'sscribe_export_index', $exports, false );
