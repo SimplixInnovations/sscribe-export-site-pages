@@ -138,6 +138,11 @@ class SScribe_Logger implements SScribe_Logger_Interface {
 
 		$entry .= "\n";
 
-		file_put_contents( $this->get_log_file(), $entry, FILE_APPEND | LOCK_EX );
+		$result = file_put_contents( $this->get_log_file(), $entry, FILE_APPEND | LOCK_EX );
+
+		if ( $result === false && $this->enabled ) {
+			// phpcs:ignore WordPress.PHP.DevelopmentFunctions.error_log_error_log
+			error_log( 'SScribe: Failed to write to log file: ' . $this->get_log_file() );
+		}
 	}
 }

@@ -26,6 +26,20 @@ class SScribe_Page_Collector {
 	private array $featured_images_cache = array();
 
 	/**
+	 * Pre-fetched child pages cache.
+	 *
+	 * @var array
+	 */
+	private array $child_pages_cache = array();
+
+	/**
+	 * Pre-fetched breadcrumbs cache.
+	 *
+	 * @var array
+	 */
+	private array $breadcrumb_cache = array();
+
+	/**
 	 * SEO reader instance.
 	 *
 	 * @var SScribe_SEO_Reader
@@ -139,6 +153,14 @@ class SScribe_Page_Collector {
 			)
 		);
 
+		if ( $wpdb->last_error ) {
+			$this->debug_log( 'Database query failed for featured images', array(
+				'error' => $wpdb->last_error,
+				'query' => $wpdb->last_query,
+			) );
+			return array();
+		}
+
 		$thumbnail_ids = array();
 		$page_to_thumb = array();
 
@@ -158,6 +180,12 @@ class SScribe_Page_Collector {
 					$thumbnail_ids
 				)
 			);
+
+			if ( $wpdb->last_error ) {
+				$this->debug_log( 'Database query failed for attachments', array(
+					'error' => $wpdb->last_error,
+				) );
+			}
 
 			foreach ( $attachments as $att ) {
 				$upload_base = $this->get_upload_base_dir();
@@ -384,7 +412,11 @@ class SScribe_Page_Collector {
 			'sscribe_page_data',
 			array(
 				'id'                  => $page_id,
-				'title'               => html_entity_decode( get_the_title( $page_id ), ENT_QUOTES | ENT_HTML5, 'UTF-8' ),
+				'title'               => html_entity_decode(
+					get_the_title( $page_id ) ?: sprintf( 'Untitled Page %d', $page_id ),
+					ENT_QUOTES | ENT_HTML5,
+					'UTF-8'
+				),
 				'content'             => $content,
 				'raw_content'         => $post_object->post_content,
 				'excerpt'             => $post_object->post_excerpt,
@@ -414,6 +446,10 @@ class SScribe_Page_Collector {
 	 * @return array Array of breadcrumb items with title and url.
 	 */
 	private function get_breadcrumbs( $page_id ) {
+		if ( isset( $this->breadcrumb_cache[ $page_id ] ) ) {
+			return $this->breadcrumb_cache[ $page_id ];
+		}
+
 		$breadcrumbs = array();
 		$ancestors   = get_post_ancestors( $page_id );
 		$ancestors   = array_reverse( $ancestors );
@@ -438,7 +474,57 @@ class SScribe_Page_Collector {
 			'url'   => get_permalink( $page_id ),
 		);
 
+		$this->breadcrumb_cache[ $page_id ] = $breadcrumbs;
 		return $breadcrumbs;
+	}
+
+	/**
+	 * Batch fetch child pages for multiple parent IDs.
+	 *
+	 * Reduces N+1 queries by fetching all children in a single query.
+	 *
+	 * @param array $page_ids Array of parent page IDs.
+	 * @return array Associative array: parent_id => array of child data.
+	 */
+	public function get_child_pages_batch( array $page_ids ): array {
+		if ( empty( $page_ids ) ) {
+			return array();
+		}
+
+		$page_ids = array_map( 'absint', $page_ids );
+		$page_ids = array_filter( $page_ids );
+
+		if ( empty( $page_ids ) ) {
+			return array();
+		}
+
+		$args = array(
+			'post_type'       => 'page',
+			'post_status'     => 'publish',
+			'posts_per_page'  => -1,
+			'post_parent__in' => $page_ids,
+			'orderby'         => 'menu_order title',
+			'order'           => 'ASC',
+		);
+
+		$query = new WP_Query( $args );
+		$children_by_parent = array();
+
+		foreach ( $query->posts as $child ) {
+			$parent_id = $child->post_parent;
+			if ( ! isset( $children_by_parent[ $parent_id ] ) ) {
+				$children_by_parent[ $parent_id ] = array();
+			}
+			$children_by_parent[ $parent_id ][] = array(
+				'id'    => $child->ID,
+				'title' => html_entity_decode( $child->post_title, ENT_QUOTES | ENT_HTML5, 'UTF-8' ),
+				'url'   => get_permalink( $child->ID ),
+			);
+		}
+
+		$this->child_pages_cache = array_merge( $this->child_pages_cache, $children_by_parent );
+
+		return $children_by_parent;
 	}
 
 	/**
@@ -448,6 +534,10 @@ class SScribe_Page_Collector {
 	 * @return array Array of child page data (id, title, url).
 	 */
 	private function get_child_pages( $page_id ) {
+		if ( isset( $this->child_pages_cache[ $page_id ] ) ) {
+			return $this->child_pages_cache[ $page_id ];
+		}
+
 		$children    = array();
 		$child_pages = get_children(
 			array(
@@ -469,6 +559,7 @@ class SScribe_Page_Collector {
 			}
 		}
 
+		$this->child_pages_cache[ $page_id ] = $children;
 		return $children;
 	}
 

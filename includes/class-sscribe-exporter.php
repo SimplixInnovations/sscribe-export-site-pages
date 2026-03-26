@@ -121,6 +121,28 @@ class SScribe_Exporter {
 	}
 
 	/**
+	 * Validate and sanitize a URL for use in documents.
+	 *
+	 * @param string $url URL to validate.
+	 * @return string Valid URL or empty string if invalid.
+	 */
+	private function validate_url( string $url ): string {
+		$url = esc_url( $url );
+
+		if ( empty( $url ) ) {
+			return '';
+		}
+
+		$parsed = wp_parse_url( $url );
+
+		if ( ! isset( $parsed['scheme'] ) || ! in_array( $parsed['scheme'], array( 'http', 'https' ), true ) ) {
+			return '';
+		}
+
+		return $url;
+	}
+
+	/**
 	 * Determine if the document should use RTL text direction.
 	 *
 	 * @param array $page_data Page data.
@@ -219,9 +241,9 @@ class SScribe_Exporter {
 
 		} catch ( \Throwable $e ) {
 			// ALWAYS log — this is an unexpected failure that must be visible regardless of WP_DEBUG.
+			// Note: File path removed for security - sensitive server info should not be in logs.
 			// phpcs:ignore WordPress.PHP.DevelopmentFunctions.error_log_error_log
-			error_log( 'SScribe Export Error [Page ' . ( $page_data['id'] ?? 'unknown' ) . ']: '
-				. $e->getMessage() . ' in ' . $e->getFile() . ':' . $e->getLine() );
+			error_log( 'SScribe Export Error [Page ' . ( $page_data['id'] ?? 'unknown' ) . ']: ' . $e->getMessage() );
 
 			// Store the exception message so the batch processor can surface it in the debug log.
 			$this->last_error = $e->getMessage();
@@ -405,17 +427,20 @@ class SScribe_Exporter {
 		$section->addTextBreak( 1 );
 
 		// The URL link prominently displayed.
-		$section->addLink(
-			$page_data['permalink'],
-			$this->safe_text( $page_data['permalink'] ),
-			array(
-				'name'      => $this->font_name,
-				'size'      => 12,
-				'color'     => $this->colors['link'],
-				'underline' => 'single',
-			),
-			$this->get_para_style( array( 'alignment' => Jc::CENTER ) )
-		);
+		$permalink = $this->validate_url( $page_data['permalink'] );
+		if ( ! empty( $permalink ) ) {
+			$section->addLink(
+				$permalink,
+				$this->safe_text( $permalink ),
+				array(
+					'name'      => $this->font_name,
+					'size'      => 12,
+					'color'     => $this->colors['link'],
+					'underline' => 'single',
+				),
+				$this->get_para_style( array( 'alignment' => Jc::CENTER ) )
+			);
+		}
 
 		$section->addTextBreak( 2 );
 
@@ -813,6 +838,10 @@ class SScribe_Exporter {
 	 * @param array                              $page_data Page data.
 	 */
 	private function add_main_content( $section, $page_data ) {
+		if ( empty( $page_data['word_count'] ) || $page_data['word_count'] === 0 ) {
+			return;
+		}
+
 		$section->addTitle( __( 'Content', 'sscribe-export-site-pages' ), 1 );
 
 		$elements = $this->parser->parse( $page_data['content'] );
@@ -952,22 +981,27 @@ class SScribe_Exporter {
 			$text_content = $this->safe_text( $run['text'] );
 
 			if ( ! empty( $run['link'] ) ) {
-				$font_style['color'] = $this->colors['link'];
-				$text_run->addLink(
-					$run['link'],
-					$text_content,
-					$font_style
-				);
-				// Add URL in parentheses for print-friendliness.
-				if ( $run['text'] !== $run['link'] ) {
-					$text_run->addText(
-						' (' . $this->safe_text( $run['link'] ) . ')',
-						array(
-							'name'  => $this->font_name,
-							'size'  => 8,
-							'color' => $this->colors['body'],
-						)
+				$link_url = $this->validate_url( $run['link'] );
+				if ( ! empty( $link_url ) ) {
+					$font_style['color'] = $this->colors['link'];
+					$text_run->addLink(
+						$link_url,
+						$text_content,
+						$font_style
 					);
+					// Add URL in parentheses for print-friendliness.
+					if ( $run['text'] !== $link_url ) {
+						$text_run->addText(
+							' (' . $this->safe_text( $link_url ) . ')',
+							array(
+								'name'  => $this->font_name,
+								'size'  => 8,
+								'color' => $this->colors['body'],
+							)
+						);
+					}
+				} else {
+					$text_run->addText( $text_content, $font_style );
 				}
 			} else {
 				$text_run->addText( $text_content, $font_style );

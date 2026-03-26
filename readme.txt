@@ -4,7 +4,7 @@ Donate link: https://simplixi.com
 Tags: export, docx, word, documentation, multilingual, pdf, html, markdown
 Requires at least: 5.8
 Tested up to: 6.9
-Stable tag: 3.0.0
+Stable tag: 3.0.1
 Requires PHP: 7.4
 License: GPLv2 or later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
@@ -206,6 +206,24 @@ Yes. SScribe is 100% free and open-source, developed by Simplix Innovations. No 
 5. SEO section showing metadata from Rank Math
 
 == Changelog ==
+
+= 3.0.1 =
+* **CRITICAL: Fixed ZIP handler to collect all export formats** - PDF, HTML, and Markdown exports now work correctly (was only collecting DOCX files)
+* **CRITICAL: Added session ownership validation** - Prevents unauthorized access to other users' export sessions
+* **CRITICAL: Added database error checking** - Prevents silent failures during featured image queries
+* **HIGH: Fixed N+1 query for child pages** - Batch fetching eliminates per-page database queries
+* **HIGH: Added breadcrumb caching** - Improves performance for pages with deep hierarchies
+* **HIGH: Added memory threshold monitoring** - Prevents out-of-memory errors on large exports
+* **HIGH: Wrapped ZIP operations in try/finally** - Prevents resource leaks
+* **HIGH: Sanitized PDF error messages** - Technical errors no longer leaked to users
+* **HIGH: Added link URL validation** - Invalid/malicious URLs filtered from documents
+* **HIGH: Added session/ZIP operation logging** - Better debugging for production issues
+* Added empty title fallback - Pages without titles show "Untitled Page {id}"
+* Removed sensitive file paths from error logs
+* Made max_execution_time configurable via `sscribe_max_execution_time` filter
+* Skip content section when word count is zero
+* Added logger write failure detection
+* Code quality improvements and documentation updates
 
 = 3.0.0 =
 * **NEW: Multiple Export Formats** - Export to DOCX, PDF, HTML, or Markdown
@@ -420,6 +438,9 @@ Yes. SScribe is 100% free and open-source, developed by Simplix Innovations. No 
 * Performance-safe batch processing
 
 == Upgrade Notice ==
+
+= 3.0.1 =
+Critical bug fixes: ZIP handler now correctly exports PDF, HTML, and Markdown files. Session ownership validation prevents unauthorized access. Essential security and performance improvements. Recommended for all users.
 
 = 3.0.0 =
 Major release with multiple export formats (PDF, HTML, Markdown), critical security fixes (SSRF prevention), and enterprise-grade reliability improvements (atomic session locking, concurrent export prevention). Filenames now include language code for multilingual sites. Essential update for all users.

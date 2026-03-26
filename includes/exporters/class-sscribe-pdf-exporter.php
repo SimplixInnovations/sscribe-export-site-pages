@@ -26,10 +26,18 @@ class SScribe_PDF_Exporter implements SScribe_Exporter_Interface {
 	private SScribe_HTML_Exporter $html_exporter;
 
 	/**
+	 * Logger instance.
+	 *
+	 * @var SScribe_Logger
+	 */
+	private SScribe_Logger $logger;
+
+	/**
 	 * Constructor.
 	 */
 	public function __construct() {
 		$this->html_exporter = new SScribe_HTML_Exporter();
+		$this->logger        = new SScribe_Logger( defined( 'SSCRIBE_DEBUG' ) && SSCRIBE_DEBUG );
 	}
 
 	/**
@@ -75,8 +83,15 @@ class SScribe_PDF_Exporter implements SScribe_Exporter_Interface {
 			) );
 
 		} catch ( \Throwable $e ) {
+			$this->logger->error( 'PDF generation failed', array(
+				'error'   => $e->getMessage(),
+				'page_id' => $page_data['id'] ?? 0,
+				'file'    => $e->getFile(),
+				'line'    => $e->getLine(),
+			) );
+
 			return SScribe_Result::failure(
-				'PDF generation failed: ' . $e->getMessage(),
+				__( 'Unable to generate PDF for this page.', 'sscribe-export-site-pages' ),
 				array( 'page_id' => $page_data['id'] ?? 0 )
 			);
 		}
