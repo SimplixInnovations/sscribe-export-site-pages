@@ -254,7 +254,7 @@
 				type: 'POST',
 				data: {
 					action: 'sscribe_cancel_export',
-					nonce: scribe_data.nonce,
+					nonce: sscribe_data.nonce,
 					session_id: this.sessionId
 				},
 				success: function () {
@@ -355,7 +355,7 @@
 			}
 
 			$.ajax({
-				url: scribe_data.ajaxurl,
+				url: sscribe_data.ajaxurl,
 				type: 'POST',
 				data: {
 					action: 'sscribe_delete_export',
@@ -386,11 +386,11 @@
 			$('#sscribe-log-content').html('<div class="sscribe-log-loading"><span>Loading log...</span></div>');
 
 			$.ajax({
-				url: scribe_data.ajaxurl,
+				url: sscribe_data.ajaxurl,
 				type: 'POST',
 				data: {
 					action: 'sscribe_get_export_log',
-					nonce: scribe_data.download_nonce,
+					nonce: sscribe_data.download_nonce,
 					file: filename
 				},
 				success: function (response) {
