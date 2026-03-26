@@ -1,15 +1,15 @@
 === SScribe Export Site Pages ===
 Contributors: simplixinnovations
 Donate link: https://simplixi.com
-Tags: export, docx, word, documentation, multilingual
+Tags: export, docx, word, documentation, multilingual, pdf, html, markdown
 Requires at least: 5.8
 Tested up to: 6.9
-Stable tag: 2.6.0
+Stable tag: 3.0.0
 Requires PHP: 7.4
 License: GPLv2 or later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
 
-Export every page into beautifully formatted Word DOCX files with multilingual support, SEO meta, rich styling, and secure ZIP download.
+Export every page into beautifully formatted Word DOCX, PDF, HTML, or Markdown files with multilingual support, SEO meta, rich styling, and secure ZIP download.
 
 == Description ==
 
@@ -28,7 +28,10 @@ Export content from Classic Editor, Gutenberg, or page builders – completely t
 Currently integrates with WPML to detect active languages and export one language at a time, including full right-to-left languages like Arabic. Roadmap: additional multilingual plugin support (Polylang, TranslatePress, Weglot).
 
 ✅ **Beautiful DOCX (Word) Documents**
-Each page becomes a Microsoft Word-compatible DOCX with clean typography, proper headings, and smart handling of lists, tables, and links. Roadmap: PDF and combined site document formats.
+Each page becomes a Microsoft Word-compatible DOCX with clean typography, proper headings, and smart handling of lists, tables, and links.
+
+✅ **Multiple Export Formats**
+Export to DOCX, PDF, HTML, or Markdown format - choose the format that works best for your workflow.
 
 ✅ **SEO-Aware Exports**
 Pulls meta title, description, and focus keyword from popular SEO plugins into a dedicated SEO section:
@@ -203,6 +206,22 @@ Yes. SScribe is 100% free and open-source, developed by Simplix Innovations. No 
 5. SEO section showing metadata from Rank Math
 
 == Changelog ==
+
+= 3.0.0 =
+* **NEW: Multiple Export Formats** - Export to DOCX, PDF, HTML, or Markdown
+* **NEW: Multilingual Filename Uniqueness** - Files now include language code and page ID (e.g., `01-about-us-en-id123.docx`) to prevent overwrites when pages in different languages have identical titles
+* **Security: SSRF Prevention** - PDF exporter now blocks remote resource loading and uses chroot restriction
+* **Security: Markdown URL Sanitization** - Dangerous protocols (javascript:, data:, vbscript:) filtered from markdown links
+* **Reliability: Session Race Condition Fix** - File-based locking (flock) ensures atomic operations during concurrent AJAX requests
+* **Reliability: Concurrent Export Prevention** - Users blocked from starting multiple simultaneous exports
+* **Reliability: Atomic Rate Limiting** - File-based rate limiting prevents bypass from concurrent requests
+* **Reliability: Temp Directory Cleanup** - Proper cleanup on cancel and ZIP failure prevents disk space leaks
+* **Reliability: WPML Language Switch** - Language switching now inside try/finally block for guaranteed restoration
+* **Data: Full SEO Output** - HTML exports now include all 10 SEO fields (canonical URL, Open Graph data, robots directives)
+* **Data: Markdown SEO Support** - SEO metadata now included in Markdown frontmatter
+* **Performance: Eliminated Redundant Queries** - SEO data cached per page instead of re-fetching
+* **Code: Removed Debug Panel** - Production code no longer includes debug UI
+* **Code: Consolidated Filename Logic** - Single source of truth for filename building
 
 = 2.6.0 =
 * Security: Added rate limiting to AJAX endpoints (60 requests/minute per user)
@@ -402,7 +421,11 @@ Yes. SScribe is 100% free and open-source, developed by Simplix Innovations. No 
 
 == Upgrade Notice ==
 
-= 1.6.0 =
+= 3.0.0 =
+Major release with multiple export formats (PDF, HTML, Markdown), critical security fixes (SSRF prevention), and enterprise-grade reliability improvements (atomic session locking, concurrent export prevention). Filenames now include language code for multilingual sites. Essential update for all users.
+
+= 2.6.0 =
+Security and enterprise improvements: rate limiting, audit logging, centralized logger. Recommended for all users.
 Critical fixes for export completion and Arabic/non-Latin filename handling. Exports now complete fully without stopping mid-way, and filenames are now human-readable for all languages. Essential update for all users.
 
 = 1.5.0 =
