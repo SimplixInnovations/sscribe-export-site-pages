@@ -69,6 +69,9 @@ class SScribe_Exporter_Factory {
 	/**
 	 * Build a clean, human-readable filename with transliteration for non-ASCII titles.
 	 *
+	 * Includes language code suffix to distinguish pages with identical titles
+	 * across different languages (e.g., "01-about-en.docx" vs "01-about-ar.docx").
+	 *
 	 * @param array  $page_data Page data array.
 	 * @param int    $index     Sequential position (1-based).
 	 * @param int    $total     Total pages (for zero-padding).
@@ -76,11 +79,13 @@ class SScribe_Exporter_Factory {
 	 * @return string Filename with extension.
 	 */
 	public static function build_filename( array $page_data, int $index = 0, int $total = 0, string $extension = 'docx' ): string {
+		$page_id = (int) ( $page_data['id'] ?? 0 );
+
 		if ( $index > 0 && $total > 0 ) {
 			$pad_length = strlen( (string) $total );
 			$seq_prefix = str_pad( (string) $index, $pad_length, '0', STR_PAD_LEFT );
 		} else {
-			$seq_prefix = (string) ( $page_data['id'] ?? 0 );
+			$seq_prefix = (string) $page_id;
 		}
 
 		$title = (string) ( $page_data['title'] ?? '' );
@@ -98,17 +103,28 @@ class SScribe_Exporter_Factory {
 		}
 
 		if ( empty( trim( $ascii_title ) ) || ! preg_match( '/[a-zA-Z0-9]/', $ascii_title ) ) {
-			$ascii_title = 'page-' . ( $page_data['id'] ?? 0 );
+			$ascii_title = 'page';
 		}
 
 		$safe_label = sanitize_file_name( $ascii_title );
-		$safe_label = substr( $safe_label, 0, 60 );
+		$safe_label = substr( $safe_label, 0, 55 );
 		$safe_label = trim( $safe_label, '-' );
 
 		if ( empty( $safe_label ) ) {
-			$safe_label = 'page-' . ( $page_data['id'] ?? 0 );
+			$safe_label = 'page';
 		}
 
-		return $seq_prefix . '-' . $safe_label . '.' . $extension;
+		$language_code = '';
+		if ( ! empty( $page_data['language'] ) ) {
+			$lang = $page_data['language'];
+			if ( strlen( $lang ) > 2 ) {
+				$lang = substr( $lang, 0, 2 );
+			}
+			$language_code = '-' . strtolower( sanitize_key( $lang ) );
+		}
+
+		$id_suffix = '-id' . $page_id;
+
+		return $seq_prefix . '-' . $safe_label . $language_code . $id_suffix . '.' . $extension;
 	}
 }
