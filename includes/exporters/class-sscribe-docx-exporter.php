@@ -87,7 +87,8 @@ class SScribe_DOCX_Exporter implements SScribe_Exporter_Interface {
 
 			return SScribe_Result::failure(
 				sprintf(
-					__( 'DOCX export failed for page %d: %s', 'sscribe-export-site-pages' ),
+					/* translators: 1: Page ID, 2: Error message. */
+					__( 'DOCX export failed for page %1$d: %2$s', 'sscribe-export-site-pages' ),
 					$page_id,
 					$e->getMessage()
 				),

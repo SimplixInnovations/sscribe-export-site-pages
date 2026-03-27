@@ -91,14 +91,22 @@ class SScribe_Helpers {
 
 		if ( $total_seconds < 60 ) {
 			return array(
-				'text'    => sprintf( __( '~%d seconds', 'sscribe-export-site-pages' ), ceil( $total_seconds ) ),
+				'text'    => sprintf(
+					/* translators: %d: Estimated seconds. */
+					__( '~%d seconds', 'sscribe-export-site-pages' ),
+					ceil( $total_seconds )
+				),
 				'seconds' => ceil( $total_seconds ),
 			);
 		}
 
 		$minutes = ceil( $total_seconds / 60 );
 		return array(
-			'text'    => sprintf( _n( '~%d minute', '~%d minutes', $minutes, 'sscribe-export-site-pages' ), $minutes ),
+			'text'    => sprintf(
+				/* translators: %d: Estimated minutes. */
+				_n( '~%d minute', '~%d minutes', $minutes, 'sscribe-export-site-pages' ),
+				$minutes
+			),
 			'seconds' => ceil( $total_seconds ),
 		);
 	}
@@ -115,14 +123,23 @@ class SScribe_Helpers {
 
 		if ( $minutes < 60 ) {
 			return array(
-				'text'    => sprintf( _n( '~%d minute', '~%d minutes', $minutes, 'sscribe-export-site-pages' ), $minutes ),
+				'text'    => sprintf(
+					/* translators: %d: Estimated minutes. */
+					_n( '~%d minute', '~%d minutes', $minutes, 'sscribe-export-site-pages' ),
+					$minutes
+				),
 				'seconds' => ceil( $total_seconds ),
 			);
 		}
 
 		$hours = floor( $minutes / 60 );
 		$mins  = $minutes % 60;
-		$text  = sprintf( __( '~%dh %dm', 'sscribe-export-site-pages' ), $hours, $mins );
+		$text  = sprintf(
+			/* translators: 1: Hours, 2: Minutes. */
+			__( '~%1$dh %2$dm', 'sscribe-export-site-pages' ),
+			$hours,
+			$mins
+		);
 		return array(
 			'text'    => $text,
 			'seconds' => ceil( $total_seconds ),
