@@ -9,9 +9,35 @@ permissions:
   contents: write
 
 jobs:
+  test:
+    name: Run Tests Before Release
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup PHP
+        uses: shivammathur/setup-php@v2
+        with:
+          php-version: '8.1'
+          coverage: none
+
+      - name: Install dependencies
+        run: composer install --no-progress
+
+      - name: Run PHPUnit
+        run: composer test
+
+      - name: Run PHPStan
+        run: composer stan
+
+      - name: Run PHPCS
+        run: composer cs
+
   build:
     name: Build WordPress Plugin
     runs-on: ubuntu-latest
+    needs: test
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
@@ -29,22 +55,38 @@ jobs:
         run: |
           mkdir -p build/sscribe-export-site-pages
           
+          # Main plugin file
           cp sscribe-export-site-pages.php build/sscribe-export-site-pages/
+          
+          # Required files
           cp readme.txt build/sscribe-export-site-pages/
           cp LICENSE build/sscribe-export-site-pages/
           cp uninstall.php build/sscribe-export-site-pages/
           
+          # Directories
           cp -r includes build/sscribe-export-site-pages/
           cp -r admin build/sscribe-export-site-pages/
           cp -r assets build/sscribe-export-site-pages/
           cp -r languages build/sscribe-export-site-pages/
           cp -r vendor build/sscribe-export-site-pages/
           
+          # Create ZIP
           cd build
           zip -r ../sscribe-export-site-pages.zip sscribe-export-site-pages
 
       - name: Verify package contents
-        run: unzip -l sscribe-export-site-pages.zip
+        run: |
+          echo "=== Package Contents ==="
+          unzip -l sscribe-export-site-pages.zip
+          echo ""
+          echo "=== Verifying required files ==="
+          unzip -l sscribe-export-site-pages.zip | grep -q "sscribe-export-site-pages/sscribe-export-site-pages.php" || (echo "ERROR: Main plugin file missing!" && exit 1)
+          unzip -l sscribe-export-site-pages.zip | grep -q "sscribe-export-site-pages/readme.txt" || (echo "ERROR: readme.txt missing!" && exit 1)
+          unzip -l sscribe-export-site-pages.zip | grep -q "sscribe-export-site-pages/LICENSE" || (echo "ERROR: LICENSE missing!" && exit 1)
+          unzip -l sscribe-export-site-pages.zip | grep -q "sscribe-export-site-pages/includes/class-sscribe.php" || (echo "ERROR: Core class missing!" && exit 1)
+          unzip -l sscribe-export-site-pages.zip | grep -q "sscribe-export-site-pages/vendor/" || (echo "ERROR: vendor directory missing!" && exit 1)
+          unzip -l sscribe-export-site-pages.zip | grep -q "sscribe-export-site-pages/assets/icons/" || (echo "ERROR: assets/icons missing!" && exit 1)
+          echo "All required files present!"
 
       - name: Upload to GitHub Release
         uses: softprops/action-gh-release@v2
