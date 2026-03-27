@@ -1,7 +1,7 @@
 === SScribe Export Site Pages ===
 Contributors: simplixinnovations
 Donate link: https://simplixi.com
-Tags: export, docx, word, pdf, html, markdown, documentation, multilingual, rtl, arabic, wpml, page export, content export, site backup, offline documentation, seo export, word document, client handover, content audit, translation, compliance, legal documentation
+Tags: export, docx, pdf, multilingual, rtl
 Requires at least: 5.8
 Tested up to: 6.9
 Stable tag: 3.1.4
@@ -135,35 +135,6 @@ Yes. SScribe is 100% free and open source under GPL v2. No premium version, no f
 * Per-language template optimization
 * Additional multilingual plugin support (Polylang, TranslatePress, Weglot)
 
-== Installation ==
-
-= Minimum Requirements =
-
-* WordPress 5.8 or higher
-* PHP 7.4 or higher
-* MySQL 5.6 or higher (or MariaDB 10.1+)
-
-= Automatic Installation =
-
-1. Go to **Plugins → Add New** in your WordPress admin
-1. Search for "SScribe Export Site Pages"
-1. Click **Install Now** then **Activate**
-
-= Manual Installation =
-
-1. Upload the `sscribe-export-site-pages` folder to `/wp-content/plugins/`
-1. Activate the plugin through the **Plugins** menu
-1. Go to **Tools → SScribe Export** to access the export interface
-
-= Getting Started =
-
-1. Navigate to **Tools → SScribe Export** in WordPress admin
-1. Select your export language (if WPML is active)
-1. Choose page status: Published, Draft, Private, Scheduled, Pending Review, or All
-1. Select export format(s): DOCX, PDF, HTML, and/or Markdown
-1. Click **Generate Documentation Package**
-1. Download your ZIP file with one document per page
-
 == Frequently Asked Questions ==
 
 = Does SScribe support Arabic and RTL languages? =
@@ -209,47 +180,3 @@ Yes. SScribe provides extensive hooks and filters for customization. Use `sscrib
 = What's included in each exported document? =
 
 Each document includes: cover page with title/URL/date/breadcrumbs, featured image, page info table (author, dates, word count, reading time), SEO metadata section, full content with formatted headings/tables/lists/blockquotes/code blocks, smart links with visible URLs, button blocks, and child pages list.
-
-== Upgrade Notice ==
-
-= 3.1.4 =
-
-Critical fixes and improvements: SVG icons display correctly, CSS class names fixed, accessibility enhancements with ARIA labels. Recommended update for all users.
-
-= 3.0.1 =
-
-Critical bug fixes: ZIP handler now correctly exports PDF, HTML, and Markdown files. Session ownership validation prevents unauthorized access. Essential security and performance improvements.
-
-= 3.0.0 =
-
-Major release: Multiple export formats (PDF, HTML, Markdown), SSRF prevention security fix, enterprise-grade reliability with atomic session locking, and concurrent export prevention. Filenames now include language codes for multilingual sites.
-
-= 2.6.0 =
-
-Security and enterprise improvements: rate limiting, audit logging, centralized logger. Recommended for all users.
-
-= 1.5.0 =
-
-Critical fixes for DOCX corruption, large site exports, and Elementor compatibility. Essential update — DOCX files now open reliably in Word.
-
-= 1.4.0 =
-
-Critical bug fixes for large sites with Elementor: PHP timeout prevention, proper error handling, CSS stripping, RTL fixes, and sequential filenames.
-
-== Additional Information ==
-
-= Support =
-
-For support, feature requests, or bug reports, please visit the [WordPress.org support forum](https://wordpress.org/support/plugin/sscribe-export-site-pages/) or contact [Simplix Innovations](https://simplixi.com).
-
-= Contributing =
-
-SScribe is open source. Contributions are welcome on our [GitHub repository](https://github.com/simplixinnovations/sscribe-export-site-pages).
-
-= License =
-
-SScribe is licensed under GPL v2 or later. You are free to use, modify, and distribute this software.
-
-= Credits =
-
-Developed by [Simplix Innovations](https://simplixi.com) — Building tools for the WordPress community.
