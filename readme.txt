@@ -4,7 +4,7 @@ Donate link: https://simplixi.com
 Tags: export, docx, word, documentation, multilingual, pdf, html, markdown
 Requires at least: 5.8
 Tested up to: 6.9
-Stable tag: 3.0.1
+Stable tag: 3.1.4
 Requires PHP: 7.4
 License: GPLv2 or later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
@@ -211,6 +211,28 @@ Yes. SScribe is 100% free and open-source, developed by Simplix Innovations. No 
 5. SEO section showing metadata from Rank Math
 
 == Changelog ==
+
+= 3.1.4 =
+* **FIX: SVG Icons** - All icons now display correctly with proper color inheritance
+* **FIX: CSS Class Names** - Corrected 51+ class name mismatches that broke styling
+* **FIX: Page Status Counts** - Status counts now update correctly when language changes
+* **FIX: Export Format Timing** - Per-page time now shows as description in format cards
+* **FIX: Session Management** - Reduced timeout from 5 minutes to 60 seconds with force clear option
+* **IMPROVED: Accessibility** - Added ARIA labels and focus styles for WCAG compliance
+* **CLEANUP: Removed duplicate CSS definitions** - Cleaner, more maintainable stylesheet
+* **CLEANUP: Added missing CSS classes** - Workspace and config panel now styled correctly
+
+= 3.1.3 =
+* **CRITICAL: Fixed VERSION constant name** - Changed SSSCRIBE_VERSION to SSCRIBE_VERSION
+
+= 3.1.2 =
+* **CRITICAL: Fixed localize_script handle** - Corrected variable name mismatch in wp_localize_script
+
+= 3.1.1 =
+* **HOTFIX: Fixed JS typo** - Corrected typo that broke cancel/delete/log features
+
+= 3.1.0 =
+* Major fixes and enhancements for stability and user experience
 
 = 3.0.1 =
 * **CRITICAL: Fixed ZIP handler to collect all export formats** - PDF, HTML, and Markdown exports now work correctly (was only collecting DOCX files)
