@@ -9,10 +9,28 @@ if ( ! defined( 'ABSPATH' ) ) {
 	exit;
 }
 
+/**
+ * Class SScribe_Helpers
+ *
+ * Utility functions for the SScribe plugin.
+ */
 class SScribe_Helpers {
 
-	private static $icons_dir = 'assets/icons/';
+	/**
+	 * Icons directory relative path.
+	 *
+	 * @var string
+	 */
+	private static string $icons_dir = 'assets/icons/';
 
+	/**
+	 * Get an SVG icon as HTML.
+	 *
+	 * @param string $name  Icon name (without .svg extension).
+	 * @param int    $size  Icon size in pixels.
+	 * @param array  $attrs Optional attributes.
+	 * @return string SVG HTML or empty string if not found.
+	 */
 	public static function get_icon( string $name, int $size = 20, array $attrs = array() ): string {
 		$file_path = SSCRIBE_PLUGIN_DIR . self::$icons_dir . $name . '.svg';
 
@@ -21,7 +39,7 @@ class SScribe_Helpers {
 		}
 
 		$svg_content = file_get_contents( $file_path );
-		if ( $svg_content === false ) {
+		if ( false === $svg_content ) {
 			return '';
 		}
 
@@ -43,10 +61,23 @@ class SScribe_Helpers {
 		return $svg_content;
 	}
 
+	/**
+	 * Get the absolute URL for an icon.
+	 *
+	 * @param string $name Icon name (without .svg extension).
+	 * @return string Absolute URL to the icon.
+	 */
 	public static function icon_url( string $name ): string {
 		return SSCRIBE_PLUGIN_URL . self::$icons_dir . $name . '.svg';
 	}
 
+	/**
+	 * Get time estimate for a format export.
+	 *
+	 * @param string $format     Export format.
+	 * @param int    $page_count Number of pages.
+	 * @return array Time estimate with 'text' and 'seconds' keys.
+	 */
 	public static function get_format_time_estimate( string $format, int $page_count ): array {
 		$times = array(
 			'docx'     => 1.2,
@@ -60,7 +91,7 @@ class SScribe_Helpers {
 
 		if ( $total_seconds < 60 ) {
 			return array(
-				'text'   => sprintf( __( '~%d seconds', 'sscribe-export-site-pages' ), ceil( $total_seconds ) ),
+				'text'    => sprintf( __( '~%d seconds', 'sscribe-export-site-pages' ), ceil( $total_seconds ) ),
 				'seconds' => ceil( $total_seconds ),
 			);
 		}
@@ -72,6 +103,12 @@ class SScribe_Helpers {
 		);
 	}
 
+	/**
+	 * Get time estimate for all formats.
+	 *
+	 * @param int $page_count Number of pages.
+	 * @return array Time estimate with 'text' and 'seconds' keys.
+	 */
 	public static function get_all_formats_time_estimate( int $page_count ): array {
 		$total_seconds = ( 1.2 + 8 + 1 + 0.5 ) * $page_count;
 		$minutes       = ceil( $total_seconds / 60 );
@@ -83,34 +120,46 @@ class SScribe_Helpers {
 			);
 		}
 
-		$hours   = floor( $minutes / 60 );
-		$mins    = $minutes % 60;
-		$text    = sprintf( __( '~%dh %dm', 'sscribe-export-site-pages' ), $hours, $mins );
+		$hours = floor( $minutes / 60 );
+		$mins  = $minutes % 60;
+		$text  = sprintf( __( '~%dh %dm', 'sscribe-export-site-pages' ), $hours, $mins );
 		return array(
 			'text'    => $text,
 			'seconds' => ceil( $total_seconds ),
 		);
 	}
 
+	/**
+	 * Format a byte count as human-readable size.
+	 *
+	 * @param int $bytes Byte count.
+	 * @return string Formatted size.
+	 */
 	public static function format_filesize( int $bytes ): string {
 		return size_format( $bytes, 1 );
 	}
 
-	public static function get_export_log_path( string $session_id ): string {
-		$upload_dir = wp_upload_dir();
-		return trailingslashit( $upload_dir['basedir'] ) . 'sscribe-logs/' . $session_id . '.json';
-	}
+	/**
+	 * Validate and sanitize a URL for use in documents.
+	 *
+	 * Uses esc_url_raw to prevent HTML entity encoding.
+	 *
+	 * @param string $url URL to validate.
+	 * @return string Valid URL or empty string.
+	 */
+	public static function validate_document_url( string $url ): string {
+		$url = esc_url_raw( $url );
 
-	public static function ensure_log_directory(): string {
-		$upload_dir = wp_upload_dir();
-		$log_dir    = trailingslashit( $upload_dir['basedir'] ) . 'sscribe-logs/';
-
-		if ( ! is_dir( $log_dir ) ) {
-			wp_mkdir_p( $log_dir );
-			file_put_contents( $log_dir . '.htaccess', 'Deny from all' );
-			file_put_contents( $log_dir . 'index.html', '' );
+		if ( empty( $url ) ) {
+			return '';
 		}
 
-		return $log_dir;
+		$parsed = wp_parse_url( $url );
+
+		if ( ! isset( $parsed['scheme'] ) || ! in_array( $parsed['scheme'], array( 'http', 'https' ), true ) ) {
+			return '';
+		}
+
+		return $url;
 	}
 }

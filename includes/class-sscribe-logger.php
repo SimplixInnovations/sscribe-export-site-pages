@@ -2,6 +2,10 @@
 /**
  * Logging service for SScribe.
  *
+ * Uses WordPress options API for debug log storage to comply with
+ * WordPress.org repository guidelines. Log files are permitted for
+ * debugging purposes when gated behind a debug constant.
+ *
  * @package SScribe
  */
 
@@ -14,7 +18,7 @@ require_once SSCRIBE_PLUGIN_DIR . 'includes/interfaces/interface-sscribe-logger.
 /**
  * Class SScribe_Logger
  *
- * Centralized logging service with file-based output.
+ * Centralized logging service using WordPress options API.
  */
 class SScribe_Logger implements SScribe_Logger_Interface {
 
@@ -26,66 +30,37 @@ class SScribe_Logger implements SScribe_Logger_Interface {
 	private bool $enabled;
 
 	/**
-	 * Log directory path.
-	 *
-	 * @var string
-	 */
-	private string $log_dir;
-
-	/**
-	 * Log file prefix.
+	 * Log entry prefix.
 	 *
 	 * @var string
 	 */
 	private string $prefix;
 
 	/**
+	 * Maximum log entries to keep.
+	 *
+	 * @var int
+	 */
+	private int $max_entries = 1000;
+
+	/**
 	 * Constructor.
 	 *
 	 * @param bool   $enabled Whether logging is enabled.
-	 * @param string $log_dir Optional custom log directory.
-	 * @param string $prefix  Optional log file prefix.
+	 * @param string $prefix  Optional log entry prefix.
 	 */
-	public function __construct( bool $enabled = true, string $log_dir = '', string $prefix = 'sscribe' ) {
+	public function __construct( bool $enabled = true, string $prefix = 'sscribe' ) {
 		$this->enabled = $enabled;
 		$this->prefix  = $prefix;
-
-		if ( empty( $log_dir ) && function_exists( 'wp_upload_dir' ) ) {
-			$upload_dir   = wp_upload_dir();
-			$this->log_dir = trailingslashit( $upload_dir['basedir'] ) . 'sscribe-logs/';
-		} else {
-			$this->log_dir = trailingslashit( $log_dir );
-		}
-
-		$this->ensure_log_directory();
 	}
 
 	/**
-	 * Ensure log directory exists and is protected.
-	 */
-	private function ensure_log_directory(): void {
-		if ( ! is_dir( $this->log_dir ) ) {
-			wp_mkdir_p( $this->log_dir );
-		}
-
-		$htaccess = $this->log_dir . '.htaccess';
-		if ( ! file_exists( $htaccess ) ) {
-			file_put_contents( $htaccess, "Deny from all\n" );
-		}
-
-		$index = $this->log_dir . 'index.html';
-		if ( ! file_exists( $index ) ) {
-			file_put_contents( $index, '' );
-		}
-	}
-
-	/**
-	 * Get the log file path.
+	 * Get the option name for log storage.
 	 *
 	 * @return string
 	 */
-	public function get_log_file(): string {
-		return $this->log_dir . $this->prefix . '-' . gmdate( 'Y-m-d' ) . '.log';
+	private function get_option_name(): string {
+		return $this->prefix . '_log_' . gmdate( 'Y-m-d' );
 	}
 
 	/**
@@ -102,6 +77,7 @@ class SScribe_Logger implements SScribe_Logger_Interface {
 	 *
 	 * @param string $message Log message.
 	 * @param array  $data    Optional data to include.
+	 * @return void
 	 */
 	public function debug( string $message, array $data = array() ): void {
 		$this->log( 'DEBUG', $message, $data );
@@ -112,17 +88,19 @@ class SScribe_Logger implements SScribe_Logger_Interface {
 	 *
 	 * @param string $message Log message.
 	 * @param array  $data    Optional data to include.
+	 * @return void
 	 */
 	public function error( string $message, array $data = array() ): void {
 		$this->log( 'ERROR', $message, $data );
 	}
 
 	/**
-	 * Write to log file.
+	 * Write to log storage.
 	 *
 	 * @param string $level   Log level.
 	 * @param string $message Log message.
 	 * @param array  $data    Optional data.
+	 * @return void
 	 */
 	private function log( string $level, string $message, array $data = array() ): void {
 		if ( ! $this->enabled ) {
@@ -136,13 +114,73 @@ class SScribe_Logger implements SScribe_Logger_Interface {
 			$entry .= ' | ' . wp_json_encode( $data, JSON_UNESCAPED_UNICODE );
 		}
 
-		$entry .= "\n";
+		$option_name = $this->get_option_name();
+		$logs        = get_option( $option_name, array() );
 
-		$result = file_put_contents( $this->get_log_file(), $entry, FILE_APPEND | LOCK_EX );
-
-		if ( $result === false && $this->enabled ) {
-			// phpcs:ignore WordPress.PHP.DevelopmentFunctions.error_log_error_log
-			error_log( 'SScribe: Failed to write to log file: ' . $this->get_log_file() );
+		if ( ! is_array( $logs ) ) {
+			$logs = array();
 		}
+
+		$logs[] = $entry;
+
+		if ( count( $logs ) > $this->max_entries ) {
+			$logs = array_slice( $logs, -$this->max_entries );
+		}
+
+		update_option( $option_name, $logs, false );
+	}
+
+	/**
+	 * Get log entries for the current day.
+	 *
+	 * @return array Log entries.
+	 */
+	public function get_logs(): array {
+		$option_name = $this->get_option_name();
+		return get_option( $option_name, array() );
+	}
+
+	/**
+	 * Clear log entries for the current day.
+	 *
+	 * @return void
+	 */
+	public function clear_logs(): void {
+		$option_name = $this->get_option_name();
+		delete_option( $option_name );
+	}
+
+	/**
+	 * Clean up old log options.
+	 *
+	 * @param int $max_age_days Maximum age in days.
+	 * @return int Number of logs cleaned.
+	 */
+	public static function cleanup_old_logs( int $max_age_days = 7 ): int {
+		global $wpdb;
+
+		$pattern = $wpdb->esc_like( 'sscribe_log_' ) . '%';
+
+		$options = $wpdb->get_col(
+			$wpdb->prepare(
+				"SELECT option_name FROM {$wpdb->options} WHERE option_name LIKE %s AND autoload = 'no'",
+				$pattern
+			)
+		);
+
+		$deleted = 0;
+		$cutoff  = gmdate( 'Y-m-d', strtotime( "-{$max_age_days} days" ) );
+
+		foreach ( $options as $option_name ) {
+			if ( preg_match( '/sscribe_log_(\d{4}-\d{2}-\d{2})/', $option_name, $matches ) ) {
+				if ( $matches[1] < $cutoff ) {
+					if ( delete_option( $option_name ) ) {
+						++$deleted;
+					}
+				}
+			}
+		}
+
+		return $deleted;
 	}
 }

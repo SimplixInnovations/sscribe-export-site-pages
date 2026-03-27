@@ -1410,10 +1410,10 @@
 
 /* ===== Spinner Animation ===== */
 .sscribe-spinner-img {
-	animation: scribe-spin 1s linear infinite;
+	animation: sscribe-spin 1s linear infinite;
 }
 
-@keyframes scribe-spin {
+@keyframes sscribe-spin {
 	from {
 		transform: rotate(0deg);
 	}

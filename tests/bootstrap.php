@@ -201,4 +201,43 @@ if ( ! function_exists( 'wp_unslash' ) ) {
 	}
 }
 
+$sscribe_test_options = array();
+
+if ( ! function_exists( 'get_option' ) ) {
+	function get_option( $sscribe_option, $sscribe_default = false ) {
+		global $sscribe_test_options;
+		return isset( $sscribe_test_options[ $sscribe_option ] ) ? $sscribe_test_options[ $sscribe_option ] : $sscribe_default;
+	}
+}
+
+if ( ! function_exists( 'update_option' ) ) {
+	function update_option( $sscribe_option, $sscribe_value, $sscribe_autoload = null ) {
+		global $sscribe_test_options;
+		$sscribe_test_options[ $sscribe_option ] = $sscribe_value;
+		return true;
+	}
+}
+
+if ( ! function_exists( 'delete_option' ) ) {
+	function delete_option( $sscribe_option ) {
+		global $sscribe_test_options;
+		if ( isset( $sscribe_test_options[ $sscribe_option ] ) ) {
+			unset( $sscribe_test_options[ $sscribe_option ] );
+			return true;
+		}
+		return false;
+	}
+}
+
+if ( ! function_exists( 'size_format' ) ) {
+	function size_format( $bytes, $decimals = 0 ) {
+		$units = array( 'B', 'KB', 'MB', 'GB', 'TB' );
+		$bytes = max( $bytes, 0 );
+		$pow   = floor( ( $bytes ? log( $bytes ) : 0 ) / log( 1024 ) );
+		$pow   = min( $pow, count( $units ) - 1 );
+		$bytes /= pow( 1024, $pow );
+		return round( $bytes, $decimals ) . ' ' . $units[ $pow ];
+	}
+}
+
 require_once SSCRIBE_PLUGIN_DIR . 'vendor/autoload.php';

@@ -97,6 +97,11 @@ class SScribe_Content_Parser {
 		$html = preg_replace( '/:root\s*\{[^}]*\}/s', '', $html );
 		$html = preg_replace( '/\.elementor-[a-zA-Z0-9_-]+\s*\{[^}]*\}/s', '', $html );
 
+		$html = preg_replace( '/<style[^>]*>.*?<\/style>/is', '', $html );
+		$html = preg_replace( '/<script[^>]*>.*?<\/script>/is', '', $html );
+		$html = preg_replace( '/<svg[^>]*>.*?<\/svg>/is', '', $html );
+		$html = preg_replace( '/<noscript[^>]*>.*?<\/noscript>/is', '', $html );
+
 		$html = wp_kses_post( $html );
 
 		$html = preg_replace( '/>\s+</', '><', $html );

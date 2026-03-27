@@ -13,8 +13,7 @@
     "require": {
         "php": ">=7.4",
         "phpoffice/phpword": "^1.3",
-        "dompdf/dompdf": "^2.0",
-        "erusev/parsedown": "^1.7"
+        "dompdf/dompdf": "^2.0"
     },
     "require-dev": {
         "dealerdirect/phpcodesniffer-composer-installer": "^1.2",

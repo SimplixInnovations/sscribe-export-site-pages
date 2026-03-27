@@ -59,16 +59,20 @@ class SScribe_PDF_Exporter implements SScribe_Exporter_Interface {
 		$html_content = $html_result->get_data()['html'] ?? '';
 
 		try {
+			libxml_use_internal_errors( true );
+
 			$options = new \Dompdf\Options();
 			$options->set( 'isRemoteEnabled', false );
 			$options->set( 'isHtml5ParserEnabled', true );
 			$options->set( 'defaultFont', 'Arial' );
-			$options->set( 'chroot', WP_CONTENT_DIR );
+			$options->set( 'chroot', ABSPATH );
 
 			$dompdf = new \Dompdf\Dompdf( $options );
 			$dompdf->loadHtml( $html_content );
 			$dompdf->setPaper( 'A4', 'portrait' );
 			$dompdf->render();
+
+			libxml_clear_errors();
 
 			$output = $dompdf->output();
 

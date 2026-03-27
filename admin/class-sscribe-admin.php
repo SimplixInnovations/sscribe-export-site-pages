@@ -133,68 +133,73 @@ class SScribe_Admin {
 			unset( $lang );
 		}
 
-		// Gather debug info - gated behind WP_DEBUG for security.
+		// Gather debug info - gated behind SSCRIBE_DEBUG for security.
 		$sscribe_debug_info = array();
-		$sscribe_is_debug = defined( 'SSCRIBE_DEBUG' ) && SSCRIBE_DEBUG;
-		
-		$sscribe_debug_info['wpml_active'] = $wpml_active;
-		$sscribe_debug_info['languages_count'] = count( $languages );
-		$sscribe_debug_info['total_pages_all'] = $total_pages_all;
-		$sscribe_debug_info['status_counts'] = $status_counts;
-		
-		// Get detailed page info per language
-		if ( $wpml_active && ! empty( $languages ) ) {
-			foreach ( $languages as $lang ) {
-				$lang_code = $lang['code'];
-				$sscribe_debug_info['language_details'][$lang_code] = array(
-					'name' => $lang['name'],
-					'page_count' => $lang['page_count'] ?? 0,
-					'status_breakdown' => $this->collector->get_post_status_counts( $lang_code ),
-				);
-				
-				$page_ids = $this->collector->get_page_ids( $lang_code, 'publish' );
-				$sscribe_debug_info['language_details'][$lang_code]['published_page_ids'] = $page_ids;
-				$sscribe_debug_info['language_details'][$lang_code]['published_count'] = count( $page_ids );
-			}
-			
-			// Check for duplicate slugs across languages
-			$all_slugs = array();
-			foreach ( $languages as $lang ) {
-				$page_ids = $this->collector->get_page_ids( $lang['code'], 'publish' );
-				foreach ( $page_ids as $pid ) {
-					$post = get_post( $pid );
-					if ( $post ) {
-						$slug = $post->post_name;
-						if ( ! isset( $all_slugs[$slug] ) ) {
-							$all_slugs[$slug] = array();
+		$sscribe_is_debug   = defined( 'SSCRIBE_DEBUG' ) && SSCRIBE_DEBUG;
+
+		if ( $sscribe_is_debug ) {
+			$sscribe_debug_info['wpml_active']      = $wpml_active;
+			$sscribe_debug_info['languages_count']  = count( $languages );
+			$sscribe_debug_info['total_pages_all']  = $total_pages_all;
+			$sscribe_debug_info['status_counts']    = $status_counts;
+
+			// Get detailed page info per language.
+			if ( $wpml_active && ! empty( $languages ) ) {
+				foreach ( $languages as $lang ) {
+					$lang_code = $lang['code'];
+					$sscribe_debug_info['language_details'][ $lang_code ] = array(
+						'name'             => $lang['name'],
+						'page_count'       => $lang['page_count'] ?? 0,
+						'status_breakdown' => $this->collector->get_post_status_counts( $lang_code ),
+					);
+
+					$page_ids                                                    = $this->collector->get_page_ids( $lang_code, 'publish' );
+					$sscribe_debug_info['language_details'][ $lang_code ]['published_page_ids'] = $page_ids;
+					$sscribe_debug_info['language_details'][ $lang_code ]['published_count']   = count( $page_ids );
+				}
+
+				// Check for duplicate slugs across languages.
+				$all_slugs = array();
+				foreach ( $languages as $lang ) {
+					$page_ids = $this->collector->get_page_ids( $lang['code'], 'publish' );
+					foreach ( $page_ids as $pid ) {
+						$post = get_post( $pid );
+						if ( $post ) {
+							$slug = $post->post_name;
+							if ( ! isset( $all_slugs[ $slug ] ) ) {
+								$all_slugs[ $slug ] = array();
+							}
+							$all_slugs[ $slug ][] = array(
+								'id'    => $pid,
+								'lang'  => $lang['code'],
+								'title' => $post->post_title,
+							);
 						}
-						$all_slugs[$slug][] = array(
-							'id' => $pid,
-							'lang' => $lang['code'],
-							'title' => $post->post_title,
-						);
 					}
 				}
+				$sscribe_debug_info['duplicate_slugs'] = array_filter(
+					$all_slugs,
+					function ( $items ) {
+						return count( $items ) > 1;
+					}
+				);
 			}
-			$sscribe_debug_info['duplicate_slugs'] = array_filter( $all_slugs, function( $items ) {
-				return count( $items ) > 1;
-			} );
+
+			// Server info.
+			$sscribe_debug_info['server'] = array(
+				'php_version'        => PHP_VERSION,
+				'memory_limit'       => ini_get( 'memory_limit' ),
+				'max_execution_time' => ini_get( 'max_execution_time' ),
+				'upload_max_filesize' => ini_get( 'upload_max_filesize' ),
+				'post_max_size'      => ini_get( 'post_max_size' ),
+			);
+
+			// WordPress info.
+			$sscribe_debug_info['wordpress'] = array(
+				'version' => get_bloginfo( 'version' ),
+				'locale'  => get_locale(),
+			);
 		}
-		
-		// Server info
-		$sscribe_debug_info['server'] = array(
-			'php_version' => PHP_VERSION,
-			'memory_limit' => ini_get( 'memory_limit' ),
-			'max_execution_time' => ini_get( 'max_execution_time' ),
-			'upload_max_filesize' => ini_get( 'upload_max_filesize' ),
-			'post_max_size' => ini_get( 'post_max_size' ),
-		);
-		
-		// WordPress info
-		$sscribe_debug_info['wordpress'] = array(
-			'version' => get_bloginfo( 'version' ),
-			'locale' => get_locale(),
-		);
 
 		// Gather recent exports.
 		$recent_exports = array();
