@@ -36,6 +36,7 @@ jobs:
           
           cp -r includes build/sscribe-export-site-pages/
           cp -r admin build/sscribe-export-site-pages/
+          cp -r assets build/sscribe-export-site-pages/
           cp -r languages build/sscribe-export-site-pages/
           cp -r vendor build/sscribe-export-site-pages/
           
