@@ -72,12 +72,6 @@ register_deactivation_hook( __FILE__, array( 'SScribe_Deactivator', 'deactivate'
  * @return void
  */
 function sscribe_init() {
-	load_plugin_textdomain(
-		'sscribe-export-site-pages',
-		false,
-		dirname( plugin_basename( __FILE__ ) ) . '/languages'
-	);
-
 	try {
 		if ( class_exists( 'SScribe' ) ) {
 			$plugin = new SScribe();
