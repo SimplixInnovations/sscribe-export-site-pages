@@ -1209,9 +1209,18 @@ class SScribe_Batch_Processor {
 		}
 
 		$user_id = get_current_user_id();
-		$this->session->cleanup_expired( 60 );
-
-		$this->logger->debug( 'Cleared stuck sessions for user', array( 'user_id' => $user_id ) );
+		$force = isset( $_POST['force'] ) && filter_var( $_POST['force'], FILTER_VALIDATE_BOOLEAN );
+		
+		if ( $force ) {
+			$deleted = $this->session->clear_user_sessions( $user_id );
+			$this->logger->debug( 'Force cleared all sessions for user', array( 
+				'user_id' => $user_id,
+				'deleted_count' => $deleted,
+			) );
+		} else {
+			$this->session->cleanup_expired( 60 );
+			$this->logger->debug( 'Cleared expired sessions for user', array( 'user_id' => $user_id ) );
+		}
 
 		wp_send_json_success( array( 'message' => __( 'Session cleared.', 'sscribe-export-site-pages' ) ) );
 	}
