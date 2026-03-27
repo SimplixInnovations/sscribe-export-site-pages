@@ -24,7 +24,7 @@
     
     <!-- Check PHP compatibility -->
     <rule ref="PHPCompatibility"/>
-    <config name="testVersion" value="7.4-"/>
+    <config name="testVersion" value="8.1-"/>
     
     <!-- Allow PHP DOM property names (they're built-in camelCase) -->
     <rule ref="WordPress.NamingConventions.ValidVariableName">

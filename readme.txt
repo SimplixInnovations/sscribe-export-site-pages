@@ -4,8 +4,8 @@ Donate link: https://simplixi.com
 Tags: export, docx, pdf, multilingual, rtl
 Requires at least: 5.8
 Tested up to: 6.9
-Stable tag: 3.1.5
-Requires PHP: 7.4
+Stable tag: 3.2.0
+Requires PHP: 8.1
 License: GPLv2 or later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
 
@@ -191,6 +191,18 @@ Each document includes: cover page with title/URL/date/breadcrumbs, featured ima
 
 == Changelog ==
 
+= 3.2.0 =
+
+* Update: PHP requirement increased to 8.1+ for modern libraries
+* Update: PHPWord updated to 1.4.0 (latest)
+* Update: DomPDF updated to 3.1.5 (latest)
+* Update: PHPUnit updated to 11.5 (latest)
+* Update: PHPStan updated to 2.1 (latest)
+* Update: WordPress Coding Standards updated to 3.3 (latest)
+* Update: PHP_CodeSniffer updated to 3.13 (latest)
+* Improved: CI workflow now tests PHP 8.1, 8.2, 8.3, 8.4
+* Improved: Faster static analysis with PHPStan 2.x
+
 = 3.1.5 =
 
 * Fix: Remove load_plugin_textdomain (WordPress 4.6+ handles automatically)
@@ -247,6 +259,10 @@ Each document includes: cover page with title/URL/date/breadcrumbs, featured ima
 * Initial release
 
 == Upgrade Notice ==
+
+= 3.2.0 =
+
+Major update: PHP 8.1+ now required. All dependencies updated to latest versions for better performance, security, and compatibility. PHPUnit 11, PHPStan 2, and all vendor libraries updated.
 
 = 3.1.5 =
 
