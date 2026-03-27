@@ -29,7 +29,18 @@ jobs:
 
       - name: PHP Syntax Check
         run: |
-          find . -name "*.php" -not -path "./vendor/*" -not -path "./.git/*" -exec php -l {} \; 2>&1 | grep -v "No syntax errors"
+          has_errors=false
+          for file in $(find . -name "*.php" -not -path "./vendor/*" -not -path "./.git/*"); do
+            output=$(php -l "$file" 2>&1)
+            if echo "$output" | grep -q "Parse error"; then
+              echo "$output"
+              has_errors=true
+            fi
+          done
+          if [ "$has_errors" = true ]; then
+            exit 1
+          fi
+          echo "All PHP files have valid syntax"
 
   test:
     name: Tests
