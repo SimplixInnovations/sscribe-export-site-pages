@@ -82,3 +82,6 @@ yarn.lock
 *.xdebug.log
 debug.log
 error_log
+
+# OpenCode CLI
+.opencode/
