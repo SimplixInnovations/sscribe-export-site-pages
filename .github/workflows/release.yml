@@ -87,7 +87,7 @@ jobs:
           
           # Create ZIP
           cd build
-          zip -r ../sscribe-export-site-pages.zip scribe-export-site-pages
+          zip -r ../sscribe-export-site-pages.zip sscribe-export-site-pages
 
       - name: Verify package contents
         run: |
@@ -104,7 +104,7 @@ jobs:
           echo ""
           echo "=== Verifying excluded files ==="
           if unzip -l sscribe-export-site-pages.zip | grep -q "PCLZip"; then echo "ERROR: PCLZip should be excluded!" && exit 1; fi
-          if unzip -l scribe-export-site-pages.zip | grep -q "COPYING.LESSER"; then echo "ERROR: COPYING.LESSER should be excluded!" && exit 1; fi
+          if unzip -l sscribe-export-site-pages.zip | grep -q "COPYING.LESSER"; then echo "ERROR: COPYING.LESSER should be excluded!" && exit 1; fi
           if unzip -l scribe-export-site-pages.zip | grep -q ".github_changelog_generator"; then echo "ERROR: .github_changelog_generator should be excluded!" && exit 1; fi
           echo "All exclusions verified!"
 
