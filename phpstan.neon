@@ -23,5 +23,6 @@ parameters:
         - '#Ternary operator condition is always true\.#'
         - '#If condition is always false\.#'
         - '#Offset .* on array on left side of \?\? always exists#'
+        - '#Offset .* on non-empty-array on left side of \?\? always exists#'
         - '#Strict comparison using === between mixed and#'
         - '#Property .* is never read, only written\.#'
