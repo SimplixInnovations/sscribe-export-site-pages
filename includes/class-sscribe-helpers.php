@@ -25,7 +25,7 @@ class SScribe_Helpers {
 			return '';
 		}
 
-		$class = 'sscribe-icon scribe-icon-' . sanitize_html_class( $name );
+		$class = 'sscribe-icon sscribe-icon-' . sanitize_html_class( $name );
 		if ( isset( $attrs['class'] ) ) {
 			$class .= ' ' . sanitize_html_class( $attrs['class'] );
 		}
