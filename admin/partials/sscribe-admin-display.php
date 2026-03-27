@@ -137,7 +137,7 @@ function sscribe_icon_url($name) {
 							$sscribe_is_first = $sscribe_first && !$sscribe_is_zero;
 							if ($sscribe_is_first) { $sscribe_first = false; }
 						?>
-						<label class="sscribe-status-card-label<?php echo $sscribe_is_zero ? ' scribe-status-disabled' : ''; ?>">
+						<label class="sscribe-status-card-label<?php echo $sscribe_is_zero ? ' sscribe-status-disabled' : ''; ?>">
 							<input type="radio" name="sscribe_post_status" value="<?php echo esc_attr($sscribe_status_key); ?>" <?php checked($sscribe_is_first); ?><?php echo $sscribe_is_zero ? ' disabled' : ''; ?>>
 							<div class="sscribe-status-card-inner">
 								<div class="sscribe-status-icon">
@@ -162,7 +162,7 @@ function sscribe_icon_url($name) {
 						<?php esc_html_e('Export Format', 'sscribe-export-site-pages'); ?>
 					</legend>
 					<div class="sscribe-format-cards" id="sscribe-format-cards">
-						<label class="sscribe-format-card-label scribe-format-all">
+						<label class="sscribe-format-card-label sscribe-format-all">
 							<input type="radio" name="sscribe_format" value="all" checked>
 							<div class="sscribe-format-card-inner">
 								<div class="sscribe-format-icon">
@@ -330,15 +330,15 @@ function sscribe_icon_url($name) {
 										</div>
 									</div>
 									<div class="sscribe-history-actions">
-										<a href="<?php echo esc_url($sscribe_export['url']); ?>" class="sscribe-button scribe-button-outline scribe-button-sm" download>
+										<a href="<?php echo esc_url($sscribe_export['url']); ?>" class="sscribe-button sscribe-button-outline sscribe-button-sm" download>
 											<img src="<?php echo esc_url(sscribe_icon_url('download-file')); ?>" width="14" height="14" alt="">
 											<?php esc_html_e('Download', 'sscribe-export-site-pages'); ?>
 										</a>
-										<button type="button" class="sscribe-button scribe-button-outline scribe-button-sm sscribe-log-btn" data-filename="<?php echo esc_attr($sscribe_export['filename']); ?>">
+										<button type="button" class="sscribe-button sscribe-button-outline sscribe-button-sm sscribe-log-btn" data-filename="<?php echo esc_attr($sscribe_export['filename']); ?>">
 											<img src="<?php echo esc_url(sscribe_icon_url('file-log')); ?>" width="14" height="14" alt="">
 											<?php esc_html_e('Log', 'sscribe-export-site-pages'); ?>
 										</button>
-										<button type="button" class="sscribe-button scribe-button-outline scribe-button-sm sscribe-delete-btn" data-filename="<?php echo esc_attr($sscribe_export['filename']); ?>">
+										<button type="button" class="sscribe-button sscribe-button-outline sscribe-button-sm sscribe-delete-btn" data-filename="<?php echo esc_attr($sscribe_export['filename']); ?>">
 											<img src="<?php echo esc_url(sscribe_icon_url('trash')); ?>" width="14" height="14" alt="" class="sscribe-delete-icon">
 										</button>
 									</div>
