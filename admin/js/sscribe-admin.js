@@ -343,12 +343,18 @@
 			$.ajax({
 				url: sscribe_data.ajaxurl,
 				type: 'POST',
-				async: false,
 				data: {
 					action: 'sscribe_clear_session',
-					nonce: sscribe_data.nonce
+					nonce: sscribe_data.nonce,
+					force: true
 				},
-				complete: function () {
+				success: function () {
+					self.sessionId = null;
+					self.isProcessing = false;
+					self.resetUI();
+					$('.sscribe-action-row').slideDown(200);
+				},
+				error: function () {
 					self.sessionId = null;
 					self.isProcessing = false;
 					self.resetUI();

@@ -357,7 +357,7 @@ class SScribe_Session
         }
 
         $now = time();
-        $max_age = 300;
+        $max_age = 60;
 
         foreach ($files as $file) {
             $content = @file_get_contents($file);
@@ -385,5 +385,46 @@ class SScribe_Session
         }
 
         return false;
+    }
+
+    public function clear_user_sessions(int $user_id): int
+    {
+        $files = glob($this->storage_dir . $this->session_prefix . '*.json');
+        $deleted = 0;
+
+        if ($files === false || empty($files)) {
+            return 0;
+        }
+
+        foreach ($files as $file) {
+            $content = @file_get_contents($file);
+            if ($content === false) {
+                continue;
+            }
+            
+            $data = json_decode($content, true);
+            
+            if (!is_array($data)) {
+                continue;
+            }
+
+            if (isset($data['user_id']) && (int) $data['user_id'] === $user_id) {
+                if (function_exists('wp_delete_file')) {
+                    wp_delete_file($file);
+                } else {
+                    @unlink($file);
+                }
+                if (!file_exists($file)) {
+                    $deleted++;
+                }
+                
+                $lock_file = $file . $this->lock_suffix;
+                if (file_exists($lock_file)) {
+                    @unlink($lock_file);
+                }
+            }
+        }
+
+        return $deleted;
     }
 }
