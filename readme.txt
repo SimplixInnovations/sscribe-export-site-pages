@@ -4,7 +4,7 @@ Donate link: https://simplixi.com
 Tags: export, docx, pdf, multilingual, rtl
 Requires at least: 5.8
 Tested up to: 6.9
-Stable tag: 3.1.4
+Stable tag: 3.1.5
 Requires PHP: 7.4
 License: GPLv2 or later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
@@ -191,6 +191,14 @@ Each document includes: cover page with title/URL/date/breadcrumbs, featured ima
 
 == Changelog ==
 
+= 3.1.5 =
+
+* Fix: Remove load_plugin_textdomain (WordPress 4.6+ handles automatically)
+* Fix: Exclude PCLZip from release (already in WordPress core)
+* Fix: Exclude not permitted files (COPYING.LESSER, .github_changelog_generator)
+* Fix: Remove vendor tests, docs, samples from release package
+* Improved: Release workflow verification for WordPress.org compliance
+
 = 3.1.4 =
 
 * Fix: Correct CSS class naming inconsistency (scribe -> sscribe)
@@ -239,6 +247,10 @@ Each document includes: cover page with title/URL/date/breadcrumbs, featured ima
 * Initial release
 
 == Upgrade Notice ==
+
+= 3.1.5 =
+
+WordPress.org compliance fixes: Removed load_plugin_textdomain, excluded PCLZip and not permitted files from release. Required update for WordPress.org submission.
 
 = 3.1.4 =
 
