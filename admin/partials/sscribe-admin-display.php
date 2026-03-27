@@ -182,22 +182,22 @@ function sscribe_icon_url($name) {
 							'docx' => array(
 								'label' => __('Word Document (DOCX)', 'sscribe-export-site-pages'),
 								'icon'  => 'file-doc',
-								'time'  => '~1.2 sec/page',
+								'desc'  => __('~1.2 seconds per page', 'sscribe-export-site-pages'),
 							),
 							'pdf' => array(
 								'label' => __('PDF Document', 'sscribe-export-site-pages'),
 								'icon'  => 'file-pdf',
-								'time'  => '~8 sec/page',
+								'desc'  => __('~8 seconds per page', 'sscribe-export-site-pages'),
 							),
 							'html' => array(
 								'label' => __('HTML Page', 'sscribe-export-site-pages'),
 								'icon'  => 'file-html',
-								'time'  => '~1 sec/page',
+								'desc'  => __('~1 second per page', 'sscribe-export-site-pages'),
 							),
 							'markdown' => array(
 								'label' => __('Markdown', 'sscribe-export-site-pages'),
 								'icon'  => 'file-md',
-								'time'  => '~0.5 sec/page',
+								'desc'  => __('~0.5 seconds per page', 'sscribe-export-site-pages'),
 							),
 						);
 						foreach ($sscribe_formats as $sscribe_format_key => $sscribe_format_data):
@@ -210,7 +210,7 @@ function sscribe_icon_url($name) {
 								</div>
 								<div class="sscribe-format-meta">
 									<span class="sscribe-format-name"><?php echo esc_html($sscribe_format_data['label']); ?></span>
-									<span class="sscribe-format-time"><?php echo esc_html($sscribe_format_data['time']); ?></span>
+									<span class="sscribe-format-desc"><?php echo esc_html($sscribe_format_data['desc']); ?></span>
 								</div>
 								<div class="sscribe-format-selector">
 									<img src="<?php echo esc_url(sscribe_icon_url('check')); ?>" width="16" height="16" alt="" class="sscribe-check-icon">
