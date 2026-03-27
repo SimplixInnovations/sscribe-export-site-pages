@@ -210,14 +210,6 @@ Yes. SScribe provides extensive hooks and filters for customization. Use `sscrib
 
 Each document includes: cover page with title/URL/date/breadcrumbs, featured image, page info table (author, dates, word count, reading time), SEO metadata section, full content with formatted headings/tables/lists/blockquotes/code blocks, smart links with visible URLs, button blocks, and child pages list.
 
-== Screenshots ==
-
-1. **Export Dashboard** — Clean, modern interface with language selection, page status filter, and format options
-2. **Batch Processing** — Real-time progress indicator with page-by-page status and time remaining
-3. **DOCX Cover Page** — Professional cover page with title, URL, language badge, date, and breadcrumb navigation
-4. **Document Content** — Formatted headings, tables, lists, and code blocks in exported Word document
-5. **SEO Metadata Section** — Meta title, description, focus keyword, and canonical URL from SEO plugins
-
 == Upgrade Notice ==
 
 = 3.1.4 =
