@@ -68,6 +68,7 @@
 							var count = counts[status] || 0;
 
 							$label.find('.sscribe-status-count').text(count);
+							$label.attr('data-count', count);
 
 							if (count === 0) {
 								$input.prop('disabled', true).prop('checked', false);
@@ -105,7 +106,7 @@
 			if ($selectedStatus.length && !$selectedStatus.prop('disabled')) {
 				count = parseInt($selectedStatus.closest('.sscribe-status-card-label').find('.sscribe-status-count').text()) || 0;
 			}
-			
+
 			this.selectedPageCount = count;
 
 			var format = $('input[name="sscribe_format"]:checked').val() || 'all';
@@ -142,7 +143,7 @@
 		},
 
 		updateExportButton: function () {
-			var hasLanguage = $('input[name="sscribe_language"]:checked').length > 0;
+			var hasLanguage = $('input[name="sscribe_language"]:checked').length > 0 || $('input[name="sscribe_language"]').length === 0;
 			var hasStatus = $('input[name="sscribe_post_status"]:checked').length > 0 && !$('input[name="sscribe_post_status"]:checked').prop('disabled');
 			var hasFormat = $('input[name="sscribe_format"]:checked').length > 0;
 			var hasPages = this.selectedPageCount > 0;

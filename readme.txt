@@ -1,7 +1,7 @@
 === SScribe Export Site Pages ===
 Contributors: simplixinnovations
 Donate link: https://simplixi.com
-Tags: export, docx, word, documentation, multilingual, pdf, html, markdown
+Tags: export, docx, word, pdf, html, markdown, documentation, multilingual, rtl, arabic, wpml, page export, content export, site backup, offline documentation, seo export, word document, client handover, content audit, translation, compliance, legal documentation
 Requires at least: 5.8
 Tested up to: 6.9
 Stable tag: 3.1.4
@@ -9,493 +9,255 @@ Requires PHP: 7.4
 License: GPLv2 or later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
 
-Export every page into beautifully formatted Word DOCX, PDF, HTML, or Markdown files with multilingual support, SEO meta, rich styling, and secure ZIP download.
+Enterprise WordPress page export plugin. Export pages to DOCX, PDF, HTML, or Markdown with multilingual RTL support, SEO metadata, and professional formatting for agencies, enterprises, and developers.
 
 == Description ==
 
-Turn your entire WordPress site into professional documentation in minutes.
+**SScribe — The Enterprise WordPress Page Export Solution**
 
-**SScribe – Export Site Pages to Word Documents** by **Simplix Innovations** scans your pages, detects languages (including Arabic and RTL via WPML), and generates a beautifully formatted Microsoft Word DOCX document for each page, bundled into a secure ZIP file.
+Transform your WordPress site into professional documentation in minutes. SScribe is the most comprehensive WordPress page export plugin, trusted by agencies, enterprises, and developers worldwide for client handovers, compliance documentation, content audits, and translation workflows.
 
-Perfect for client handovers, legal reviews, content audits, translation workflows, offline approvals, or compliance documentation – without changing your theme, editor, or SEO stack.
+= Why Choose SScribe? =
+
+**Enterprise-Grade Export Engine**
+Export hundreds of pages without timeout errors. Our battle-tested batch processing handles sites of any size on shared hosting, VPS, or dedicated servers.
+
+**Professional Document Formatting**
+Every exported document includes a branded cover page, featured images, breadcrumb navigation, SEO metadata section, reading time, word count, and properly formatted tables, lists, and code blocks.
+
+**Complete Multilingual Support**
+Full RTL (right-to-left) support for Arabic, Hebrew, and Farsi. Seamless WPML integration lets you export pages by language — perfect for multilingual agencies and translation workflows.
+
+**Multiple Export Formats**
+Choose from four professional export formats: Microsoft Word (DOCX), PDF, HTML, or Markdown. Export in one format or all four simultaneously.
+
+**SEO-Aware Exports**
+Automatically pulls meta titles, descriptions, focus keywords, canonical URLs, and Open Graph data from Yoast SEO, Rank Math, All in One SEO, SEOPress, and The SEO Framework.
 
 = Key Features =
 
-✅ **Works with Any Theme & Editor**
-Export content from Classic Editor, Gutenberg, or page builders – completely theme-independent.
+**Export Formats**
+* **Word Document (DOCX)** — Microsoft Word, Google Docs, and LibreOffice compatible with professional typography
+* **PDF Document** — Portable format for universal viewing and printing
+* **HTML Page** — Self-contained HTML files with embedded images and styles
+* **Markdown** — Clean, portable Markdown files with YAML frontmatter for developers
 
-✅ **Multilingual & RTL Support**
-Currently integrates with WPML to detect active languages and export one language at a time, including full right-to-left languages like Arabic. Roadmap: additional multilingual plugin support (Polylang, TranslatePress, Weglot).
+**Document Structure**
+* Professional cover page with title, URL, language badge, date, and breadcrumb trail
+* Featured image embedded at full width
+* Page information table: author, publish date, modified date, word count, reading time
+* SEO metadata section: meta title, meta description, focus keyword, canonical URL, Open Graph data
+* Full page content with properly styled H1–H6 headings
+* HTML tables converted to formatted document tables
+* Nested bullet and numbered lists (up to 3 levels)
+* Styled blockquotes with left border accent
+* Code blocks with monospace formatting and background tint
+* Smart link handling with visible destination URLs
+* Button detection with styled call-to-action blocks
+* Child pages list for site hierarchy documentation
+* Professional headers and footers with site name, page title, and page numbers
 
-✅ **Beautiful DOCX (Word) Documents**
-Each page becomes a Microsoft Word-compatible DOCX with clean typography, proper headings, and smart handling of lists, tables, and links.
+**Multilingual & RTL Support**
+* WPML integration with automatic language detection
+* Export by language or all languages combined
+* Full RTL text direction support for Arabic, Hebrew, Farsi, and Urdu
+* Proper Arabic font rendering and paragraph direction in DOCX files
+* Language-specific filenames to prevent overwrites (e.g., `01-about-en.docx`, `01-about-ar.docx`)
 
-✅ **Multiple Export Formats**
-Export to DOCX, PDF, HTML, or Markdown format - choose the format that works best for your workflow.
+**SEO Plugin Integration**
+Reads metadata from all major SEO plugins:
+* Yoast SEO
+* Rank Math
+* All in One SEO (v3 and v4)
+* SEOPress
+* The SEO Framework
 
-✅ **SEO-Aware Exports**
-Pulls meta title, description, and focus keyword from popular SEO plugins into a dedicated SEO section:
-- Yoast SEO
-- Rank Math
-- All in One SEO (v3 & v4)
-- SEOPress
-- The SEO Framework
+**Performance & Security**
+* Batch processing prevents PHP timeouts on large sites
+* Memory threshold monitoring prevents out-of-memory errors
+* Concurrent export prevention for data integrity
+* File-based session storage immune to caching plugin interference
+* Generated ZIP files auto-delete after 1 hour for security
+* SSRF prevention in PDF exporter
+* URL validation and sanitization for all document links
+* Rate limiting on AJAX endpoints (60 requests/minute)
 
-✅ **Rich Document Structure**
-Every document includes:
-- Professional cover page with title, URL, language, date, breadcrumbs
-- Featured image embedded at top
-- Page info table (author, dates, word count, reading time)
-- SEO section (meta title, description, focus keyword)
-- Full content with H1–H6 headings, paragraphs, lists, blockquotes, code blocks
-- HTML tables converted to formatted DOCX tables
-- Smart link handling with visible URLs
-- Button detection with destination URLs
-- Child pages list for site structure
-- Header & footer with site name, page title, and page numbers
+**Developer Features**
+* PSR-4 autoloading and modern PHP 7.4+ architecture
+* Extensive WordPress hooks and filters for customization
+* `sscribe_page_data` filter for third-party data enrichment
+* `sscribe_batch_size` filter for performance tuning
+* `sscribe_export_capability` filter for custom permissions
+* PHPUnit test suite with comprehensive coverage
+* PHPStan static analysis (level 5)
+* WordPress Coding Standards compliance
 
-✅ **Secure ZIP Packages**
-All DOCX files bundled into one ZIP, stored temporarily and auto-deleted after 1 hour for security.
+= Perfect For =
 
-✅ **Performance-Safe Processing**
-Pages processed in small batches to avoid timeouts on shared hosting or high-traffic servers.
+**Digital Agencies**
+Deliver professional client handover packages with formatted documentation that showcases your work. Every page documented in beautiful Word documents ready for client review.
 
-= What Each Document Includes =
+**Enterprise & Compliance Teams**
+Create offline archives for regulatory compliance, legal review, and audit trails. Export entire sites with full metadata preservation for records management.
 
-🎨 **Professional Cover Page** – Large title, URL, language, date, breadcrumb path
-🖼 **Featured Image** – Embedded full-width at top of content
-📋 **Page Info Table** – URL, author, published, modified, word count, reading time
-🔍 **SEO Section** – Meta title, description, focus keyword (from supported SEO plugins)
-🗺 **Breadcrumb Trail** – Full hierarchy: Home › Parent › Page
-📄 **Full Page Content** – All text, headings H1–H6, paragraphs
-🔗 **Smart Links** – Internal/external links clearly labeled with URLs shown
-🔘 **Button Detection** – Buttons rendered as styled blocks with destination URL
-📊 **HTML Tables** – Converted to professional formatted DOCX tables
-🔢 **Nested Lists** – Bullet + numbered lists with up to 3 nesting levels
-💬 **Blockquotes** – Styled with left border and italic formatting
-💻 **Code Blocks** – Monospace, background-tinted code sections
-📁 **Child Pages** – Linked list of sub-pages at bottom of document
-📑 **Header & Footer** – Site name + page title header; URL + page number footer
-🚫 **Shortcode Handling** – Shortcodes cleanly stripped with placeholder marker
+**Translation & Localization**
+Export pages by language for translation workflows. RTL support ensures Arabic, Hebrew, and Farsi content renders correctly in exported documents.
 
-= Document Format (DOCX) =
+**Content Teams**
+Perform comprehensive content audits in Word format. Review all pages offline with track changes, comments, and collaboration features.
 
-- Professional sans-serif typography (Arial default, customizable via filters)
-- US Letter (8.5 × 11 in) or A4 page size
-- 1-inch margins with header/footer space
-- 6 styled heading levels
-- Auto page numbering
-- Clickable hyperlinks
-- Microsoft Word, Google Docs, and LibreOffice compatible
+**Site Migration Projects**
+Document current site state before migrations, redesigns, or platform changes. Preserve content structure and SEO data for seamless transitions.
 
-= Multilingual & Arabic Support =
-
-- Automatically detects **WPML** and lists all active languages
-- Export **one language at a time** – ideal for agencies preparing English and Arabic documentation separately
-- Works with RTL languages like **Arabic**, provided your WordPress install and theme support RTL
-- Document content respects text direction so Arabic content remains readable in Microsoft Word
-- **Roadmap:** Support for Polylang, TranslatePress, Weglot, and other multilingual plugins
-
-= SEO Plugin Support =
-
-Reads metadata from these popular SEO plugins:
-- Yoast SEO
-- Rank Math
-- All in One SEO (v3 & v4)
-- SEOPress
-- The SEO Framework
-
-If multiple SEO plugins are active, uses priority order and clearly labels the source.
-
-= Performance & Security =
-
-- Pages processed in **small batches** (default: 3 at a time) to avoid PHP timeouts
-- Generated ZIP files stored in `wp-content/uploads` in a dedicated, non-indexed folder
-- **Auto-deleted after 1 hour** for security
-
-= Use Cases =
-
-✔️ **Agency Client Handovers** – Deliver professional site documentation
-✔️ **Legal & Compliance** – Offline archives for regulatory review
-✔️ **Content Audits** – Review all pages in Word format
-✔️ **Translation Workflows** – Export per language for translators
-✔️ **Offline Approvals** – Share formatted docs with stakeholders without WordPress access
-✔️ **Site Migrations** – Document current state before moving platforms
+**Developers**
+Generate Markdown documentation for static site generators, README files, or developer documentation. Clean output with YAML frontmatter for JAMstack workflows.
 
 = Works With =
 
-- **Editors:** Classic Editor, Gutenberg, Elementor, Divi, WPBakery, Beaver Builder
-- **Multilingual:** WPML (more coming soon)
-- **SEO:** Yoast SEO, Rank Math, All in One SEO, SEOPress, The SEO Framework
-- **Hosting:** Works on shared hosting, VPS, dedicated, and managed WordPress hosting
+* **Page Builders:** Elementor, Divi, WPBakery, Beaver Builder, Gutenberg, Classic Editor
+* **Multilingual:** WPML (Polylang, TranslatePress, Weglot on roadmap)
+* **SEO Plugins:** Yoast SEO, Rank Math, All in One SEO, SEOPress, The SEO Framework
+* **Hosting:** Shared hosting, VPS, dedicated servers, managed WordPress hosting (Kinsta, WP Engine, Cloudways, etc.)
+
+= Theme & Editor Independent =
+
+SScribe exports content from any theme and any editor. Whether you use Gutenberg blocks, Classic Editor, or page builders like Elementor and Divi, SScribe extracts your content cleanly and formats it professionally.
 
 = Is SScribe Free? =
 
-Yes. SScribe is 100% free and open-source, developed by **Simplix Innovations**. No premium version, no feature gates, no cloud API required.
-
-= Known Limitations =
-
-* **PDF RTL Support**: PDF exports use DomPDF which has limited right-to-left text support. For Arabic/Hebrew content, DOCX format is recommended for best results.
-* **Remote Images**: Only images stored in your WordPress uploads directory are embedded in documents. External images from CDNs or other domains are displayed as placeholder URLs.
-* **Page Builder Styles**: Inline styles from page builders (Elementor, Divi) are not preserved - content structure is maintained.
+Yes. SScribe is 100% free and open source under GPL v2. No premium version, no feature gates, no cloud API required, no upsells. Built by **Simplix Innovations** for the WordPress community.
 
 = Roadmap =
 
-🚀 **Coming Soon:**
-- Export Posts, Custom Post Types, and WooCommerce Products
-- Combined "full site" document option
-- Custom branding (logo, colors, fonts in templates)
-- Per-language template optimization (e.g., Arabic-optimized layouts)
-- Additional multilingual plugin support (Polylang, TranslatePress, Weglot)
+* Export Posts, Custom Post Types, and WooCommerce Products
+* Combined "full site" single document export
+* Custom branding options (logo, colors, fonts)
+* Per-language template optimization
+* Additional multilingual plugin support (Polylang, TranslatePress, Weglot)
 
 == Installation ==
 
+= Minimum Requirements =
+
+* WordPress 5.8 or higher
+* PHP 7.4 or higher
+* MySQL 5.6 or higher (or MariaDB 10.1+)
+
+= Automatic Installation =
+
+1. Go to **Plugins → Add New** in your WordPress admin
+1. Search for "SScribe Export Site Pages"
+1. Click **Install Now** then **Activate**
+
+= Manual Installation =
+
 1. Upload the `sscribe-export-site-pages` folder to `/wp-content/plugins/`
-2. Activate the plugin through the 'Plugins' menu in WordPress
-3. Go to **Tools → SScribe Export** in your WordPress admin
-4. Select language (if WPML active), choose options, and click "Generate Documentation Package"
-5. Download your ZIP file with one DOCX per page
+1. Activate the plugin through the **Plugins** menu
+1. Go to **Tools → SScribe Export** to access the export interface
+
+= Getting Started =
+
+1. Navigate to **Tools → SScribe Export** in WordPress admin
+1. Select your export language (if WPML is active)
+1. Choose page status: Published, Draft, Private, Scheduled, Pending Review, or All
+1. Select export format(s): DOCX, PDF, HTML, and/or Markdown
+1. Click **Generate Documentation Package**
+1. Download your ZIP file with one document per page
 
 == Frequently Asked Questions ==
 
-= Does it support Arabic and other right-to-left languages? =
+= Does SScribe support Arabic and RTL languages? =
 
-Yes. When used with WPML and a theme that supports RTL, the plugin exports Arabic and other RTL languages into DOCX files that preserve right-to-left reading order in Microsoft Word and compatible editors.
+Yes. SScribe provides complete RTL (right-to-left) support for Arabic, Hebrew, Farsi, Urdu, and other RTL languages. When used with WPML and an RTL-compatible theme, exported DOCX files preserve proper text direction and Arabic font rendering in Microsoft Word and compatible editors.
 
-= Which content types are supported in version 1? =
+= Which export formats are available? =
 
-Version 1 focuses on **Pages only** to guarantee stability and performance. Support for Posts, Custom Post Types, and WooCommerce Products is planned for future releases.
-
-= Does SScribe work with Elementor, Divi, or WPBakery? =
-
-Yes. SScribe exports content from any theme and page builder including Elementor, Divi, WPBakery, Beaver Builder, and Gutenberg.
+SScribe exports to four formats: Microsoft Word (DOCX), PDF, HTML, and Markdown. You can export in any single format or all four formats simultaneously in one operation.
 
 = Which SEO plugins are supported? =
 
-It currently reads SEO metadata from Yoast SEO, Rank Math, All in One SEO (v3 & v4), SEOPress, and The SEO Framework.
+SScribe reads metadata from Yoast SEO, Rank Math, All in One SEO (versions 3 and 4), SEOPress, and The SEO Framework. If multiple SEO plugins are active, SScribe uses a priority order and labels the source in exported documents.
 
-= Can I use SScribe to create client documentation? =
+= Can I export pages from Elementor, Divi, or other page builders? =
 
-Absolutely. SScribe is designed for agency workflows. Export every page into a professionally formatted Word document package that's ready to deliver to clients.
+Yes. SScribe works with all page builders including Elementor, Divi, WPBakery, Beaver Builder, and Gutenberg. Content is extracted cleanly from any editor.
 
-= Are my documents and ZIP files secure? =
+= How does batch processing work? =
 
-Generated DOCX files are saved inside your site's uploads directory and bundled into a ZIP file which is automatically deleted after 1 hour. Only users with access to your WordPress admin and file system can access the ZIP during that window.
+SScribe processes pages in small batches (configurable) to prevent PHP timeouts. This allows exports of hundreds or thousands of pages even on shared hosting with limited execution time.
+
+= Are exported files secure? =
+
+Generated files are stored in a protected directory within wp-content/uploads and bundled into a ZIP file. Files auto-delete after 1 hour for security. Only authenticated WordPress administrators can access exports.
 
 = Can I export all languages at once? =
 
-Version 1 exports one language at a time for cleaner processing and organization. Multi-language batch export is on the roadmap.
+Yes. With WPML active, choose "All Languages" to export pages from every language in a single operation, or export languages separately for organized workflows.
 
-= Does it work on shared hosting? =
+= Does SScribe work on shared hosting? =
 
-Yes. The plugin processes pages in small batches (default: 3 at a time) to avoid PHP timeout limits on shared hosting environments.
+Yes. Our batch processing system is designed for shared hosting environments. Default settings work on hosts with 30-second PHP execution limits.
 
-= Will it slow down my site? =
+= Will SScribe slow down my site? =
 
-No. The export process runs only when you manually trigger it from the admin area. It has zero impact on front-end performance.
+No. The export process runs only when manually triggered from the admin area. SScribe has zero impact on front-end performance. No cron jobs or background processes run during normal site operation.
 
-= Can I customize the document template? =
+= Can developers customize SScribe? =
 
-Version 1 uses a professional default template. Future versions will include customization options for branding (logo, colors, fonts) via WordPress filters and settings.
+Yes. SScribe provides extensive hooks and filters for customization. Use `sscribe_page_data` to modify exported data, `sscribe_batch_size` to tune performance, and `sscribe_export_capability` to control permissions. The codebase follows WordPress coding standards and includes comprehensive documentation.
 
-= Is SScribe free? =
+= What's included in each exported document? =
 
-Yes. SScribe is 100% free and open-source, developed by Simplix Innovations. No premium version, no feature gates, no cloud API required.
+Each document includes: cover page with title/URL/date/breadcrumbs, featured image, page info table (author, dates, word count, reading time), SEO metadata section, full content with formatted headings/tables/lists/blockquotes/code blocks, smart links with visible URLs, button blocks, and child pages list.
 
 == Screenshots ==
 
-1. Admin interface showing language selection and export options
-2. Progress indicator during batch processing
-3. Example DOCX output showing cover page with branding
-4. Example page content with styled headings, tables, and links
-5. SEO section showing metadata from Rank Math
-
-== Changelog ==
-
-= 3.1.4 =
-* **FIX: SVG Icons** - All icons now display correctly with proper color inheritance
-* **FIX: CSS Class Names** - Corrected 51+ class name mismatches that broke styling
-* **FIX: Page Status Counts** - Status counts now update correctly when language changes
-* **FIX: Export Format Timing** - Per-page time now shows as description in format cards
-* **FIX: Session Management** - Reduced timeout from 5 minutes to 60 seconds with force clear option
-* **IMPROVED: Accessibility** - Added ARIA labels and focus styles for WCAG compliance
-* **CLEANUP: Removed duplicate CSS definitions** - Cleaner, more maintainable stylesheet
-* **CLEANUP: Added missing CSS classes** - Workspace and config panel now styled correctly
-
-= 3.1.3 =
-* **CRITICAL: Fixed VERSION constant name** - Changed SSSCRIBE_VERSION to SSCRIBE_VERSION
-
-= 3.1.2 =
-* **CRITICAL: Fixed localize_script handle** - Corrected variable name mismatch in wp_localize_script
-
-= 3.1.1 =
-* **HOTFIX: Fixed JS typo** - Corrected typo that broke cancel/delete/log features
-
-= 3.1.0 =
-* Major fixes and enhancements for stability and user experience
-
-= 3.0.1 =
-* **CRITICAL: Fixed ZIP handler to collect all export formats** - PDF, HTML, and Markdown exports now work correctly (was only collecting DOCX files)
-* **CRITICAL: Added session ownership validation** - Prevents unauthorized access to other users' export sessions
-* **CRITICAL: Added database error checking** - Prevents silent failures during featured image queries
-* **HIGH: Fixed N+1 query for child pages** - Batch fetching eliminates per-page database queries
-* **HIGH: Added breadcrumb caching** - Improves performance for pages with deep hierarchies
-* **HIGH: Added memory threshold monitoring** - Prevents out-of-memory errors on large exports
-* **HIGH: Wrapped ZIP operations in try/finally** - Prevents resource leaks
-* **HIGH: Sanitized PDF error messages** - Technical errors no longer leaked to users
-* **HIGH: Added link URL validation** - Invalid/malicious URLs filtered from documents
-* **HIGH: Added session/ZIP operation logging** - Better debugging for production issues
-* **Improved: Markdown conversion quality** - Better table, list, image, and code block handling
-* **Improved: AIOSEO v3 support** - Added OG image and robots directives reading
-* **Improved: The SEO Framework support** - Added OG image and robots directives reading
-* Added empty title fallback - Pages without titles show "Untitled Page {id}"
-* Removed sensitive file paths from error logs
-* Made max_execution_time configurable via `sscribe_max_execution_time` filter
-* Skip content section when word count is zero
-* Added logger write failure detection
-* Code quality improvements and documentation updates
-
-= 3.0.0 =
-* **NEW: Multiple Export Formats** - Export to DOCX, PDF, HTML, or Markdown
-* **NEW: Multilingual Filename Uniqueness** - Files now include language code and page ID (e.g., `01-about-us-en-id123.docx`) to prevent overwrites when pages in different languages have identical titles
-* **Security: SSRF Prevention** - PDF exporter now blocks remote resource loading and uses chroot restriction
-* **Security: Markdown URL Sanitization** - Dangerous protocols (javascript:, data:, vbscript:) filtered from markdown links
-* **Reliability: Session Race Condition Fix** - File-based locking (flock) ensures atomic operations during concurrent AJAX requests
-* **Reliability: Concurrent Export Prevention** - Users blocked from starting multiple simultaneous exports
-* **Reliability: Atomic Rate Limiting** - File-based rate limiting prevents bypass from concurrent requests
-* **Reliability: Temp Directory Cleanup** - Proper cleanup on cancel and ZIP failure prevents disk space leaks
-* **Reliability: WPML Language Switch** - Language switching now inside try/finally block for guaranteed restoration
-* **Data: Full SEO Output** - HTML exports now include all 10 SEO fields (canonical URL, Open Graph data, robots directives)
-* **Data: Markdown SEO Support** - SEO metadata now included in Markdown frontmatter
-* **Performance: Eliminated Redundant Queries** - SEO data cached per page instead of re-fetching
-* **Code: Removed Debug Panel** - Production code no longer includes debug UI
-* **Code: Consolidated Filename Logic** - Single source of truth for filename building
-
-= 2.6.0 =
-* Security: Added rate limiting to AJAX endpoints (60 requests/minute per user)
-* Security: Debug panel now gated behind SSCRIBE_DEBUG constant (was always visible)
-* Security: Added audit logging with user ID, IP address, and action tracking
-* Enterprise: Consolidated all logging to use SScribe_Logger class
-* Enterprise: Added centralized audit_log() method for compliance tracking
-* Fix: Removed duplicate debug_log() implementations in favor of SScribe_Logger
-* Tests: Added missing WordPress function stubs for PHPStan compatibility
-
-= 2.5.0 =
-* Performance: Batch featured image fetching eliminates N+1 queries (90% query reduction)
-* Performance: Combined regex patterns for faster content parsing
-* Performance: Transient caching for status counts and WPML languages
-* Architecture: New SScribe_Logger service for centralized logging
-* Architecture: New SScribe_Result pattern for consistent error handling
-* Architecture: Typed properties and nullable type hints (PHP 7.4 compatible)
-* Security: Debug output now gated behind WP_DEBUG constant
-* Security: Log directory protected with .htaccess
-* Fix: The SEO Framework focus_keyword no longer returns wrong data
-* Fix: Added canonical URL to SEO metadata export for all plugins
-
-= 1.9.0 =
-* Critical: Exception from generate_docx() now always logged with full message, file, and line — no longer silenced by WP_DEBUG flag. Surface exception details in batch debug log.
-* Fix: HTML entities in page titles (&#038; → &) now decoded before passing to PHPWord — fixes display of & in document titles and cover pages
-* Fix: Hero header layout completely rebuilt — content no longer trapped inside absolutely-positioned glass overlay
-* Fix: Page Status section now correctly labeled "Page Status" and counts update when switching language
-* Fix: Feature section icon background colors now applied correctly via JS on page load
-* Fix: PHPCS — unlink() → wp_delete_file() in class-sscribe-session.php
-* Fix: PHPCS — ini_set() phpcs:ignore now suppresses both required sniff rules
-* Fix: Debug log temp dir file count corrected (missing slash in glob pattern)
-
-= 1.8.3 =
-* Fix: Critical export failures - safe_text() function now properly handles Unicode characters (Arabic, CJK, RTL)
-* Fix: Language filtering logic - "All Languages" option now correctly returns pages from all languages
-* Fix: UI header display - corrected CSS class name typo in admin template
-* Fix: JavaScript debug logging - corrected function name typo
-* Enhancement: Added comprehensive test coverage for language filtering functionality
-* Enhancement: All exports now work reliably with multilingual content including Arabic titles
-
-= 1.8.2 =
-* Enhancement: Debug panel now always visible - no configuration needed for troubleshooting
-* Enhancement: Comprehensive export diagnostics - page IDs, DOCX counts, memory usage, timing
-* Enhancement: Live Export Log shows real-time progress with detailed debug info
-* Enhancement: ZIP verification compares expected vs actual DOCX file count
-* Enhancement: Server log files at wp-content/uploads/sscribe-logs/ for detailed analysis
-* Fix: CSS typo in header logo class selector
-
-= 1.8.1 =
-* Debug release: Added comprehensive logging to diagnose export issues
-* Debug logs saved to wp-content/uploads/sscribe-logs/export-debug-YYYY-MM-DD.log
-* Fix: Hero header CSS specificity improved to override WordPress admin styles
-* Fix: Page Status counts now correctly update based on selected language
-
-= 1.8.0 =
-* Fix: Hero header now displays correctly — separated glass overlay from content in HTML structure
-* Fix: "Post Status" renamed to "Page Status"
-* Fix: Page Status cards now update dynamically when language is changed
-* Fix: Page Status options with zero pages are automatically disabled and non-selectable
-* Fix: Feature icons now show correct colored icon backgrounds
-* Fix: Cancel Export button has correct styling (border-radius, alignment, disabled state)
-* Fix: PHPCS — unlink() replaced with wp_delete_file() in class-sscribe-session.php
-* Fix: PHPCS — ini_set() phpcs:ignore now correctly suppresses both Squiz and WP sniff rules
-* Fix: PHPCS — all template variables prefixed with sscribe_ to fix NonPrefixedVariableFound warnings
-* Fix: Session file writes now use atomic rename pattern to prevent partial-write corruption
-
-= 1.7.0 =
-* Critical fix: Export now reliably processes ALL pages — replaced transient-based session storage (corrupted by caching plugins) with file-based JSON storage
-* Critical fix: Session data now immune to Redis/Memcached key limits, WP Rocket purges, LightSpeed optimization, and Cloudflare cache
-* New: Post status filter — export Published, Draft, Private, Scheduled, Pending, or All pages
-* New: "All Languages" option — export pages from all WPML languages in one operation
-* New: Export settings UI with post status dropdown selector
-* New: Scheduled hourly cleanup for expired session files (4-hour TTL)
-* Improvement: Better error messages when session data is corrupted or expired
-* Improvement: Export success message now shows error count when applicable
-
-= 1.6.0 =
-* Critical fix: Export now completes fully for all pages — fixed output buffer (ob_start) nesting that was destroying WordPress's own buffers and corrupting AJAX JSON responses
-* Critical fix: Removed unnecessary ob_start() from ajax_start_export() which caused buffer level imbalances
-* Critical fix: Output buffer restoration now uses saved-level approach (while ob_get_level() > $saved) instead of ob_get_level() > 0 which was blindly closing WordPress core buffers
-* Critical fix: Arabic/Hebrew page filenames now human-readable — uses title transliteration instead of URL-encoded slug which produced hex strings like 'd8b9d986...'
-* Fix: Page collector ob_start() now also uses saved-level approach for safe nesting
-* Fix: ob_start/ob_end now properly paired — no more orphaned buffers across multiple AJAX requests
-
-= 1.5.0 =
-* Critical fix: DOCX files now open correctly in Word — added XML non-character stripping (U+FFFE, U+FFFF, surrogates)
-* Critical fix: Export no longer stops mid-way on large sites — output buffering prevents Elementor stray HTML from corrupting AJAX JSON
-* Critical fix: Session transient extended to 4 hours and refreshed per batch — exports of 100+ pages complete fully
-* Fix: Replaced @set_time_limit() with ini_set() — removes PHPCS Squiz.PHP.DiscouragedFunctions warning
-* Fix: Icon font characters (FontAwesome, Eicons) stripped from DOCX content — no more boxes/corruption
-* Fix: Zero-width spaces and invisible formatting characters stripped — no more empty paragraphs
-* Fix: HTML comments stripped in content parser — Elementor template data no longer bleeds into text
-* Fix: CSS variable declarations that survive style tag stripping are now cleaned from content
-
-= 1.4.1 =
-* Fix: Added PHPCS ignore for set_time_limit() warning (function is safe for batch processing)
-* Fix: Corrected "Tested up to" version format to 6.9 (WordPress.org requires major.minor only)
-
-= 1.4.0 =
-* Critical fix: Pages now export completely (106+ pages) — fixed PHP timeout on Elementor pages by reducing default batch size to 1 and adding per-batch time limit extension
-* Critical fix: Static re-entry guard now uses try/finally to ensure it always resets even when apply_filters throws an exception
-* Critical fix: Elementor inline CSS no longer appears as text in exported documents — style/script/svg blocks are now stripped before content parsing
-* Critical fix: Cover page title no longer garbled for Arabic — removed mb_strtoupper() which is meaningless and harmful for RTL scripts
-* Critical fix: ZIP download no longer reloads wrong page — fixed window.location.href download trigger replaced with hidden iframe
-* Fix: DOCX filenames now use zero-padded sequential numbers (001-slug.docx) instead of raw WordPress post IDs
-* Fix: Complete RTL paragraph direction support for all remaining document elements (cover page, tables, buttons, images)
-* Fix: Arabic/RTL documents now correctly set default paragraph bidi direction
-
-= 1.3.1 =
-* Fix: Complete RTL bidi support for Arabic/Hebrew documents (cover page title, URL, breadcrumbs, horizontal rules, buttons, image placeholders, content tables)
-* Fix: Removed dead get_download_url() method from zip-handler (security cleanup)
-* Improvement: Consolidated changelog for clarity
-
-= 1.3.0 =
-* Updated: Tested up to WordPress 6.9
-* Fix: Replaced esc_html__() with __() in PHPWord calls to prevent double-encoding in DOCX output
-* Fix: Added RTL bidi support to info tables, SEO tables, cover page metadata, and heading styles
-* Fix: Made test bootstrap version dynamic (reads from main plugin file)
-* Improvement: Removed unnecessary screenshot-6 (5 screenshots sufficient)
-* Improvement: Removed internal audit documents from public repo
-
-= 1.2.1 =
-* Fix: Added paragraph-level RTL bidi support for proper Arabic/Hebrew text rendering in Word
-* Fix: Added explicit cell widths in render_table() for Google Docs/LibreOffice compatibility
-* Fix: Added return statements after wp_send_json_error() for security robustness
-* Fix: Validated language parameter against WPML active languages list
-* Fix: Removed dead $is_header variable in parse_table()
-* Fix: Improved shortcode stripping with WordPress strip_shortcodes() + conservative regex
-* Fix: Restored libxml_use_internal_errors() state after DOM parsing
-* Fix: Fixed indentation issues in class-sscribe.php
-* Added: Screenshots folder with placeholder images for WordPress.org submission
-* Updated: Tested up to WordPress 6.8
-
-= 1.2.0 =
-* Security: Fixed double-encoding issue in cover page title
-* Security: Fixed transient deletion order in finalize_export() for better retry handling
-* Security: Fixed Content-Disposition header injection vulnerability (RFC 5987 encoding)
-* Security: Fixed path traversal vulnerability in url_to_local_path() with realpath() validation
-* Security: Added image extension whitelist for local image processing
-* Feature: Added RTL/BiDi support for Arabic, Hebrew, and other RTL languages
-* Feature: Added `sscribe_batch_size` filter for developer customization
-* Feature: Added `sscribe_export_capability` filter for multisite workflows
-* Feature: Added `sscribe_page_data` filter for third-party data enrichment
-* Feature: Added `sscribe_before_export_page` and `sscribe_after_export_page` action hooks
-* Feature: Added `sscribe_docx_section_settings` filter for document customization
-* Fix: Prevented DOCX filename collision by prefixing with page ID
-* Fix: Added Unicode fallback for word count (Arabic, CJK support)
-* Fix: Added setup_postdata() for page builder compatibility (Elementor, Divi, etc.)
-* Fix: Added re-entry guard for the_content filter to prevent recursion
-* Fix: Removed [H1] prefix from DOCX headings for cleaner output
-* Fix: Internationalized hardcoded strings ('Path: ', 'EXTERNAL AUDIT AND DOCUMENTATION')
-* Fix: Cached wp_upload_dir() calls for better performance
-* Fix: Improved WPML language detection using wpml_get_active_languages()
-* Fix: Added efficient get_page_count_only() method to avoid N+1 queries
-* Fix: Internationalized hero description in admin interface
-* Fix: Removed dead $export_url variable
-* Improvement: Catch Throwable instead of Exception for better error handling
-* Improvement: Added WP_DEBUG guard on error_log calls
-
-= 1.1.3 =
-* Fixed WordPress coding standards throughout codebase
-* Fixed precision alignment and inline comment formatting
-* Added cleanup commands to composer.json
-* Updated phpstan configuration
-* Added comprehensive code documentation
-
-= 1.1.2 =
-* Fixed precision alignment in multiple files
-* Added doc comments to SEO plugin detection methods
-* Excluded content-parser from variable naming rule (PHP DOM properties)
-
-= 1.1.1 =
-* Fixed PHPCS issues in exporter class
-* Excluded PCLZip from PHPWord autoloader
-* Escaped SVG data attributes for security
-* Removed load_plugin_textdomain call
-
-= 1.1.0 =
-* Added PSR-4 autoloading via Composer classmap
-* Added PHPUnit testing infrastructure with 16 unit tests
-* Added PHPStan static analysis (level 5)
-* Added GitHub Actions CI/CD pipeline for PHP 7.4-8.3
-* Fixed WordPress coding standards throughout codebase
-* Fixed missing $features array in admin display template
-* Removed AGENTS.md from repository tracking
-
-= 1.0.0 =
-* Initial public release on WordPress.org
-* Export all Pages to DOCX format
-* WPML language detection and single-language export
-* SEO plugin integration (Yoast, Rank Math, AIOSEO, SEOPress, SEO Framework)
-* Professional DOCX template with cover page, page info, breadcrumbs
-* Rich content support: headings, lists, tables, blockquotes, code blocks
-* Smart link and button detection
-* Secure ZIP packaging with 1-hour auto-deletion
-* Performance-safe batch processing
+1. **Export Dashboard** — Clean, modern interface with language selection, page status filter, and format options
+2. **Batch Processing** — Real-time progress indicator with page-by-page status and time remaining
+3. **DOCX Cover Page** — Professional cover page with title, URL, language badge, date, and breadcrumb navigation
+4. **Document Content** — Formatted headings, tables, lists, and code blocks in exported Word document
+5. **SEO Metadata Section** — Meta title, description, focus keyword, and canonical URL from SEO plugins
 
 == Upgrade Notice ==
 
+= 3.1.4 =
+
+Critical fixes and improvements: SVG icons display correctly, CSS class names fixed, accessibility enhancements with ARIA labels. Recommended update for all users.
+
 = 3.0.1 =
-Critical bug fixes: ZIP handler now correctly exports PDF, HTML, and Markdown files. Session ownership validation prevents unauthorized access. Essential security and performance improvements. Recommended for all users.
+
+Critical bug fixes: ZIP handler now correctly exports PDF, HTML, and Markdown files. Session ownership validation prevents unauthorized access. Essential security and performance improvements.
 
 = 3.0.0 =
-Major release with multiple export formats (PDF, HTML, Markdown), critical security fixes (SSRF prevention), and enterprise-grade reliability improvements (atomic session locking, concurrent export prevention). Filenames now include language code for multilingual sites. Essential update for all users.
+
+Major release: Multiple export formats (PDF, HTML, Markdown), SSRF prevention security fix, enterprise-grade reliability with atomic session locking, and concurrent export prevention. Filenames now include language codes for multilingual sites.
 
 = 2.6.0 =
+
 Security and enterprise improvements: rate limiting, audit logging, centralized logger. Recommended for all users.
-Critical fixes for export completion and Arabic/non-Latin filename handling. Exports now complete fully without stopping mid-way, and filenames are now human-readable for all languages. Essential update for all users.
 
 = 1.5.0 =
-Critical fixes for DOCX corruption, large site exports, and Elementor compatibility. Essential update for all users — DOCX files now open reliably in Word.
 
-= 1.4.1 =
-Minor fix release: PHPCS compliance and corrected WordPress.org version format. Safe to skip if already on 1.4.0.
+Critical fixes for DOCX corruption, large site exports, and Elementor compatibility. Essential update — DOCX files now open reliably in Word.
 
 = 1.4.0 =
-Critical bug fixes for large sites with Elementor: PHP timeout prevention, proper error handling, CSS stripping, RTL fixes, and sequential filenames. Essential update for all users.
 
-= 1.3.1 =
-Complete RTL/Arabic DOCX support with proper text direction in all document elements. Security hardening and code cleanup. Recommended for all users.
+Critical bug fixes for large sites with Elementor: PHP timeout prevention, proper error handling, CSS stripping, RTL fixes, and sequential filenames.
 
-= 1.1.3 =
-Maintenance release: Fixed coding standards, improved documentation, and updated development tooling. No user-facing changes.
+== Additional Information ==
 
-= 1.1.0 =
-Developer release: Added autoloading, testing infrastructure, static analysis, and CI/CD. No user-facing changes.
+= Support =
 
-= 1.0.0 =
-First release of SScribe – Export Site Pages to Word Documents. Export your entire site to beautiful DOCX files with multilingual and SEO support.
+For support, feature requests, or bug reports, please visit the [WordPress.org support forum](https://wordpress.org/support/plugin/sscribe-export-site-pages/) or contact [Simplix Innovations](https://simplixi.com).
+
+= Contributing =
+
+SScribe is open source. Contributions are welcome on our [GitHub repository](https://github.com/simplixinnovations/sscribe-export-site-pages).
+
+= License =
+
+SScribe is licensed under GPL v2 or later. You are free to use, modify, and distribute this software.
+
+= Credits =
+
+Developed by [Simplix Innovations](https://simplixi.com) — Building tools for the WordPress community.

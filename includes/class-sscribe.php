@@ -88,13 +88,15 @@ class SScribe {
 	}
 
 	/**
-	 * Cleanup expired session files.
+	 * Cleanup expired session data from the database.
 	 *
 	 * @return void
 	 */
 	public function cleanup_sessions() {
 		$session = new SScribe_Session();
 		$session->cleanup_expired( 4 * HOUR_IN_SECONDS );
+
+		SScribe_Logger::cleanup_old_logs( 7 );
 	}
 
 	/**

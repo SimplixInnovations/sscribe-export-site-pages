@@ -26,10 +26,18 @@ class SScribe_DOCX_Exporter implements SScribe_Exporter_Interface {
 	private SScribe_Exporter $exporter;
 
 	/**
+	 * Logger instance.
+	 *
+	 * @var SScribe_Logger
+	 */
+	private SScribe_Logger $logger;
+
+	/**
 	 * Constructor.
 	 */
 	public function __construct() {
 		$this->exporter = new SScribe_Exporter();
+		$this->logger   = new SScribe_Logger( defined( 'SSCRIBE_DEBUG' ) && SSCRIBE_DEBUG );
 	}
 
 	/**
@@ -42,16 +50,50 @@ class SScribe_DOCX_Exporter implements SScribe_Exporter_Interface {
 	 * @return SScribe_Result
 	 */
 	public function export( array $page_data, string $output_dir, int $index = 0, int $total = 0 ): SScribe_Result {
-		$result = $this->exporter->generate_docx( $page_data, $output_dir, $index, $total );
+		$page_id = $page_data['id'] ?? 0;
 
-		if ( $result ) {
-			return SScribe_Result::success( array( 'path' => $result ) );
+		try {
+			$result = $this->exporter->generate_docx( $page_data, $output_dir, $index, $total );
+
+			if ( $result ) {
+				return SScribe_Result::success( array( 'path' => $result ) );
+			}
+
+			$error_message = $this->exporter->last_error ?: 'Unknown export error';
+
+			$this->logger->error(
+				'DOCX export failed',
+				array(
+					'page_id' => $page_id,
+					'error'   => $error_message,
+				)
+			);
+
+			return SScribe_Result::failure(
+				$error_message,
+				array( 'page_id' => $page_id )
+			);
+
+		} catch ( \Throwable $e ) {
+			$this->logger->error(
+				'DOCX export crashed',
+				array(
+					'page_id' => $page_id,
+					'error'   => $e->getMessage(),
+					'file'    => $e->getFile(),
+					'line'    => $e->getLine(),
+				)
+			);
+
+			return SScribe_Result::failure(
+				sprintf(
+					__( 'DOCX export failed for page %d: %s', 'sscribe-export-site-pages' ),
+					$page_id,
+					$e->getMessage()
+				),
+				array( 'page_id' => $page_id )
+			);
 		}
-
-		return SScribe_Result::failure(
-			$this->exporter->last_error ?: 'Unknown export error',
-			array( 'page_id' => $page_data['id'] ?? 0 )
-		);
 	}
 
 	/**

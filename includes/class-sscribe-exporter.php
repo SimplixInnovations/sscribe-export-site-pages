@@ -123,11 +123,13 @@ class SScribe_Exporter {
 	/**
 	 * Validate and sanitize a URL for use in documents.
 	 *
+	 * Uses esc_url_raw to prevent HTML entity encoding in document output.
+	 *
 	 * @param string $url URL to validate.
 	 * @return string Valid URL or empty string if invalid.
 	 */
 	private function validate_url( string $url ): string {
-		$url = esc_url( $url );
+		$url = esc_url_raw( $url );
 
 		if ( empty( $url ) ) {
 			return '';

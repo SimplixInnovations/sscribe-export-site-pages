@@ -72,15 +72,18 @@ register_deactivation_hook( __FILE__, array( 'SScribe_Deactivator', 'deactivate'
  * @return void
  */
 function sscribe_init() {
-	// Try-catch block to prevent hard crashes during activation or bootstrapping.
+	load_plugin_textdomain(
+		'sscribe-export-site-pages',
+		false,
+		dirname( plugin_basename( __FILE__ ) ) . '/languages'
+	);
+
 	try {
 		if ( class_exists( 'SScribe' ) ) {
 			$plugin = new SScribe();
 			$plugin->run();
 		}
 	} catch ( \Throwable $e ) {
-		// Log to WP debug if an underlying dependency crashes at runtime.
-		// phpcs:ignore WordPress.PHP.DevelopmentFunctions.error_log_error_log
 		error_log( 'SScribe Fatal Error Prevented: ' . $e->getMessage() );
 	}
 }
