@@ -9,7 +9,7 @@ Requires PHP: 7.4
 License: GPLv2 or later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
 
-Enterprise WordPress page export plugin. Export pages to DOCX, PDF, HTML, or Markdown with multilingual RTL support, SEO metadata, and professional formatting for agencies, enterprises, and developers.
+Export WordPress pages to DOCX, PDF, HTML, or Markdown with multilingual RTL support, SEO metadata, and professional formatting.
 
 == Description ==
 
@@ -180,3 +180,82 @@ Yes. SScribe provides extensive hooks and filters for customization. Use `sscrib
 = What's included in each exported document? =
 
 Each document includes: cover page with title/URL/date/breadcrumbs, featured image, page info table (author, dates, word count, reading time), SEO metadata section, full content with formatted headings/tables/lists/blockquotes/code blocks, smart links with visible URLs, button blocks, and child pages list.
+
+== Screenshots ==
+
+1. Export Dashboard - Clean, modern interface with language selection, page status filter, and format options
+2. Batch Processing - Real-time progress indicator with page-by-page status and time remaining
+3. DOCX Cover Page - Professional cover page with title, URL, language badge, date, and breadcrumb navigation
+4. Document Content - Formatted headings, tables, lists, and code blocks in exported Word document
+5. SEO Metadata Section - Meta title, description, focus keyword, and canonical URL from SEO plugins
+
+== Changelog ==
+
+= 3.1.4 =
+
+* Fix: Correct CSS class naming inconsistency (scribe -> sscribe)
+* Fix: Add translators comments for all i18n strings with placeholders
+* Fix: Proper input sanitization and wp_unslash for all POST data
+* Fix: Undefined variables in admin display template
+* Improved: PHPStan configuration for WordPress function stubs
+
+= 3.0.1 =
+
+* Fix: ZIP handler correctly exports PDF, HTML, and Markdown files
+* Fix: Session ownership validation prevents unauthorized access
+* Security: Rate limiting on AJAX endpoints
+* Security: Audit logging for security events
+
+= 3.0.0 =
+
+* New: Multiple export formats - PDF, HTML, Markdown in addition to DOCX
+* New: Export in multiple formats simultaneously
+* Security: SSRF prevention in PDF exporter
+* Security: Atomic session locking prevents concurrent exports
+* Improved: Language-specific filenames for multilingual sites
+
+= 2.6.0 =
+
+* Security: Rate limiting (60 requests/minute per user)
+* Security: Centralized audit logging
+* Security: Session ownership validation
+* Improved: Error handling and user feedback
+
+= 2.0.0 =
+
+* New: WPML integration with per-language export
+* New: Full RTL support for Arabic, Hebrew, Farsi
+* New: SEO plugin integration (Yoast, Rank Math, AIO SEO, SEOPress, The SEO Framework)
+* Improved: Batch processing for large sites
+
+= 1.5.0 =
+
+* Fix: DOCX corruption issues resolved
+* Fix: Large site export timeout prevention
+* Fix: Elementor compatibility improvements
+
+= 1.0.0 =
+
+* Initial release
+
+== Upgrade Notice ==
+
+= 3.1.4 =
+
+Critical fixes: CSS class naming corrected, input sanitization improved, translators comments added. Recommended update for all users.
+
+= 3.0.1 =
+
+Essential security and bug fix release. ZIP handler now correctly exports all formats. Session validation prevents unauthorized access.
+
+= 3.0.0 =
+
+Major release with PDF, HTML, and Markdown export formats. SSRF security fix. Essential update for all users.
+
+= 2.6.0 =
+
+Security improvements: rate limiting, audit logging, session validation. Recommended for all users.
+
+= 1.5.0 =
+
+Critical fixes for DOCX corruption and large site exports. Essential update - DOCX files now open reliably in Word.

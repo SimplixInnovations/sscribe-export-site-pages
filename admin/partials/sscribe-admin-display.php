@@ -2,12 +2,30 @@
 /**
  * Admin page display template — Premium UI with History.
  *
+ * Variables are passed from SScribe_Admin::render_admin_page():
+ * - $wpml_active    (bool) Whether WPML is active.
+ * - $languages      (array) Available languages.
+ * - $total_pages_all (int) Total page count across all languages.
+ * - $status_counts  (array) Page counts by status.
+ * - $seo_plugins    (array) Active SEO plugins.
+ * - $recent_exports (array) Recent export files.
+ * - $sscribe_debug_info (array) Debug information (when SSCRIBE_DEBUG is enabled).
+ *
  * @package SScribe
  */
 
 if ( ! defined( 'ABSPATH' ) ) {
 	exit;
 }
+
+$wpml_active     = $wpml_active ?? false;
+$languages       = $languages ?? array();
+$total_pages_all = $total_pages_all ?? 0;
+$status_counts   = $status_counts ?? array();
+$seo_plugins     = $seo_plugins ?? array();
+$recent_exports  = $recent_exports ?? array();
+$sscribe_debug_info = $sscribe_debug_info ?? array();
+$sscribe_is_debug   = $sscribe_is_debug ?? false;
 ?>
 
 <div class="sscribe-master-container">
@@ -57,7 +75,10 @@ if ( ! defined( 'ABSPATH' ) ) {
 									</div>
 									<div class="sscribe-lang-meta">
 										<span class="sscribe-lang-name"><?php esc_html_e('All Languages', 'sscribe-export-site-pages'); ?></span>
-										<?php printf('<span class="sscribe-lang-count">%s</span>', esc_html(sprintf(__('%d Pages', 'sscribe-export-site-pages'), intval($total_pages_all)))); ?>
+										<?php
+										/* translators: %d: Number of pages. */
+										printf('<span class="sscribe-lang-count">%s</span>', esc_html(sprintf(__('%d Pages', 'sscribe-export-site-pages'), intval($total_pages_all))));
+										?>
 									</div>
 									<div class="sscribe-lang-selector">
 										<img src="<?php echo esc_url(SScribe_Helpers::icon_url('check')); ?>" width="18" height="18" alt="" class="sscribe-check-icon">
@@ -80,7 +101,10 @@ if ( ! defined( 'ABSPATH' ) ) {
 										<div class="sscribe-lang-meta">
 											<span class="sscribe-lang-name"><?php echo esc_html($sscribe_lang['name']); ?></span>
 											<span class="sscribe-lang-count">
-												<?php echo esc_html(sprintf(__('%d Pages', 'sscribe-export-site-pages'), intval($sscribe_lang['page_count']))); ?>
+												<?php
+												/* translators: %d: Number of pages. */
+												echo esc_html(sprintf(__('%d Pages', 'sscribe-export-site-pages'), intval($sscribe_lang['page_count'])));
+												?>
 											</span>
 										</div>
 										<div class="sscribe-lang-selector">
@@ -93,7 +117,10 @@ if ( ! defined( 'ABSPATH' ) ) {
 					</fieldset>
 				<?php else: ?>
 					<p class="sscribe-description">
-						<?php echo esc_html(sprintf(__('Ready to export %d pages into beautiful documents.', 'sscribe-export-site-pages'), intval($total_pages_all))); ?>
+						<?php
+						/* translators: %d: Number of pages. */
+						echo esc_html(sprintf(__('Ready to export %d pages into beautiful documents.', 'sscribe-export-site-pages'), intval($total_pages_all)));
+						?>
 					</p>
 				<?php endif; ?>
 

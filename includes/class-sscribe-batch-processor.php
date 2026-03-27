@@ -267,13 +267,9 @@ class SScribe_Batch_Processor {
 
 		$language    = isset( $_POST['language'] ) ? sanitize_text_field( wp_unslash( $_POST['language'] ) ) : '';
 		$post_status = isset( $_POST['post_status'] ) ? sanitize_text_field( wp_unslash( $_POST['post_status'] ) ) : 'publish';
-		$formats_raw = isset( $_POST['formats'] ) ? wp_unslash( $_POST['formats'] ) : array();
-		$formats_input = is_array( $formats_raw ) ? array_map(
-			function ( $f ) {
-				return sanitize_text_field( $f );
-			},
-			$formats_raw
-		) : array();
+		// phpcs:ignore WordPress.Security.ValidatedSanitizedInput.InputNotSanitized -- Sanitization via array_map on next line.
+		$formats_raw    = isset( $_POST['formats'] ) ? wp_unslash( (array) $_POST['formats'] ) : array();
+		$formats_input  = array_map( 'sanitize_text_field', $formats_raw );
 		$formats = ! empty( $formats_input ) ? $formats_input : array( 'docx' );
 
 		$formats = array_filter(
@@ -391,6 +387,7 @@ class SScribe_Batch_Processor {
 			'total'      => $total,
 			'batch_size' => $this->batch_size,
 			'message'    => sprintf(
+				/* translators: %d: Number of pages found. */
 				__( 'Found %d pages. Starting export...', 'sscribe-export-site-pages' ),
 				$total
 			),
@@ -593,6 +590,7 @@ class SScribe_Batch_Processor {
 
 			if ( ! $page_data ) {
 				$error_msg = sprintf(
+					/* translators: %d: Page ID. */
 					__( 'Failed to collect data for page ID %d.', 'sscribe-export-site-pages' ),
 					$page_id
 				);
@@ -677,6 +675,7 @@ class SScribe_Batch_Processor {
 
 			if ( ! $export_success ) {
 				$error_msg = sprintf(
+					/* translators: %s: Page title. */
 					__( 'Failed to generate exports for "%s".', 'sscribe-export-site-pages' ),
 					$page_data['title']
 				);
@@ -766,6 +765,7 @@ class SScribe_Batch_Processor {
 			'current_page'   => $current_page_title,
 			'time_remaining' => $time_remaining,
 			'message'        => sprintf(
+				/* translators: 1: Current page number, 2: Total pages. */
 				__( 'Processing %1$d of %2$d pages...', 'sscribe-export-site-pages' ),
 				$processed,
 				$total
@@ -891,7 +891,9 @@ class SScribe_Batch_Processor {
 		$files_in_zip    = array();
 		$total_files_zip = 0;
 		if ( true === $zip_open ) {
+			// phpcs:ignore WordPress.NamingConventions.ValidVariableName.UsedPropertyNotSnakeCase -- Native ZipArchive property.
 			$total_files_zip = $zip->numFiles;
+			// phpcs:ignore WordPress.NamingConventions.ValidVariableName.UsedPropertyNotSnakeCase -- Native ZipArchive property.
 			for ( $i = 0; $i < $zip->numFiles; $i++ ) {
 				$filename      = $zip->getNameIndex( $i );
 				$files_in_zip[] = $filename;
@@ -946,6 +948,7 @@ class SScribe_Batch_Processor {
 			'errors'       => $session['errors'] ?? array(),
 			'log_summary'  => $log_summary,
 			'message'      => sprintf(
+				/* translators: %d: Number of pages exported. */
 				_n(
 					'Export complete! %d page exported successfully.',
 					'Export complete! %d pages exported successfully.',
@@ -954,6 +957,7 @@ class SScribe_Batch_Processor {
 				),
 				$session['total']
 			) . ( $error_count > 0 ? sprintf(
+				/* translators: %d: Number of errors. */
 				' ' . _n( '(%d error)', '(%d errors)', $error_count, 'sscribe-export-site-pages' ),
 				$error_count
 			) : '' ),
@@ -1211,7 +1215,7 @@ class SScribe_Batch_Processor {
 		}
 
 		$user_id = get_current_user_id();
-		$force   = isset( $_POST['force'] ) && filter_var( $_POST['force'], FILTER_VALIDATE_BOOLEAN );
+		$force   = isset( $_POST['force'] ) && filter_var( wp_unslash( $_POST['force'] ), FILTER_VALIDATE_BOOLEAN );
 
 		if ( $force ) {
 			$deleted = $this->session->clear_user_sessions( $user_id );
