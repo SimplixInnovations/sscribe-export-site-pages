@@ -495,7 +495,7 @@ function sscribe_icon_url($name) {
 	<div class="sscribe-modal-content">
 		<div class="sscribe-modal-header">
 			<h3><?php esc_html_e('Export Log', 'sscribe-export-site-pages'); ?></h3>
-			<button type="button" class="sscribe-modal-close" id="sscribe-modal-close">&times;</button>
+			<button type="button" class="sscribe-modal-close" id="sscribe-modal-close" aria-label="Close modal">&times;</button>
 		</div>
 		<div class="sscribe-modal-body" id="sscribe-log-content">
 			<div class="sscribe-log-loading">
