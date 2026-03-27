@@ -85,3 +85,6 @@ error_log
 
 # OpenCode CLI
 .opencode/
+
+# Audit reports
+AUDIT-REPORT*.md
