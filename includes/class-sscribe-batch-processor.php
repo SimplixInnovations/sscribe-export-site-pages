@@ -91,9 +91,9 @@ class SScribe_Batch_Processor {
 	 * @return bool True if within limits, false if exceeded.
 	 */
 	private function check_rate_limit(): bool {
-		$user_id     = get_current_user_id();
+		$user_id       = get_current_user_id();
 		$transient_key = 'sscribe_rate_' . $user_id;
-		$now         = time();
+		$now           = time();
 
 		$data = get_transient( $transient_key );
 
@@ -115,7 +115,7 @@ class SScribe_Batch_Processor {
 			return false;
 		}
 
-		$data['count']++;
+		++$data['count'];
 		set_transient( $transient_key, $data, self::RATE_LIMIT_WINDOW );
 
 		return true;
@@ -129,17 +129,17 @@ class SScribe_Batch_Processor {
 	 * @return void
 	 */
 	private function audit_log( string $action, array $context = array() ): void {
-		$user_id   = get_current_user_id();
-		$user      = get_user_by( 'id', $user_id );
-		$username  = $user ? $user->user_login : 'unknown';
+		$user_id  = get_current_user_id();
+		$user     = get_user_by( 'id', $user_id );
+		$username = $user ? $user->user_login : 'unknown';
 
 		$log_entry = array(
-			'action'     => $action,
-			'user_id'    => $user_id,
-			'username'   => $username,
-			'ip'         => $this->get_client_ip(),
-			'timestamp'  => current_time( 'mysql' ),
-			'context'    => $context,
+			'action'    => $action,
+			'user_id'   => $user_id,
+			'username'  => $username,
+			'ip'        => $this->get_client_ip(),
+			'timestamp' => current_time( 'mysql' ),
+			'context'   => $context,
 		);
 
 		$this->logger->debug( "[AUDIT] {$action}", $log_entry );
@@ -270,9 +270,9 @@ class SScribe_Batch_Processor {
 		$language    = isset( $_POST['language'] ) ? sanitize_text_field( wp_unslash( $_POST['language'] ) ) : '';
 		$post_status = isset( $_POST['post_status'] ) ? sanitize_text_field( wp_unslash( $_POST['post_status'] ) ) : 'publish';
 		// phpcs:ignore WordPress.Security.ValidatedSanitizedInput.InputNotSanitized -- Sanitization via array_map on next line.
-		$formats_raw    = isset( $_POST['formats'] ) ? wp_unslash( (array) $_POST['formats'] ) : array();
-		$formats_input  = array_map( 'sanitize_text_field', $formats_raw );
-		$formats = ! empty( $formats_input ) ? $formats_input : array( 'docx' );
+		$formats_raw   = isset( $_POST['formats'] ) ? wp_unslash( (array) $_POST['formats'] ) : array();
+		$formats_input = array_map( 'sanitize_text_field', $formats_raw );
+		$formats       = ! empty( $formats_input ) ? $formats_input : array( 'docx' );
 
 		$formats = array_filter(
 			$formats,
@@ -327,13 +327,13 @@ class SScribe_Batch_Processor {
 		$this->logger->debug(
 			'Page IDs retrieved',
 			array(
-				'total'             => $total,
+				'total'              => $total,
 				'language_requested' => $language,
-				'post_status'       => $post_status,
-				'current_wpml_lang' => $current_lang,
-				'ids_sample'        => array_slice( $page_ids, 0, 10 ),
-				'memory_usage'      => size_format( memory_get_usage( true ) ),
-				'memory_peak'       => size_format( memory_get_peak_usage( true ) ),
+				'post_status'        => $post_status,
+				'current_wpml_lang'  => $current_lang,
+				'ids_sample'         => array_slice( $page_ids, 0, 10 ),
+				'memory_usage'       => size_format( memory_get_usage( true ) ),
+				'memory_peak'        => size_format( memory_get_peak_usage( true ) ),
 			)
 		);
 
@@ -398,16 +398,16 @@ class SScribe_Batch_Processor {
 		$sscribe_is_debug = defined( 'SSCRIBE_DEBUG' ) && SSCRIBE_DEBUG;
 		if ( $sscribe_is_debug ) {
 			$response['debug_info'] = array(
-				'page_ids_count'  => $total,
-				'page_ids_all'    => $page_ids,
-				'page_ids_sample' => array_slice( $page_ids, 0, 20 ),
-				'language'        => $language,
-				'post_status'     => $post_status,
+				'page_ids_count'    => $total,
+				'page_ids_all'      => $page_ids,
+				'page_ids_sample'   => array_slice( $page_ids, 0, 20 ),
+				'language'          => $language,
+				'post_status'       => $post_status,
 				'current_wpml_lang' => $current_lang ?? 'n/a',
-				'temp_dir'        => $temp_dir,
-				'session_type'    => $this->session->get_storage_type(),
-				'memory_usage'    => size_format( memory_get_usage( true ) ),
-				'php_version'     => PHP_VERSION,
+				'temp_dir'          => $temp_dir,
+				'session_type'      => $this->session->get_storage_type(),
+				'memory_usage'      => size_format( memory_get_usage( true ) ),
+				'php_version'       => PHP_VERSION,
 			);
 		}
 
@@ -456,8 +456,8 @@ class SScribe_Batch_Processor {
 		$this->logger->debug(
 			'Process batch called',
 			array(
-				'session_id'     => $session_id,
-				'session_found'  => ! empty( $session ),
+				'session_id'    => $session_id,
+				'session_found' => ! empty( $session ),
 			)
 		);
 
@@ -487,7 +487,6 @@ class SScribe_Batch_Processor {
 		}
 		set_transient( $lock_key, time(), 60 ); // Lock for up to 60 seconds
 
-
 		if ( ! $this->validate_session_ownership( $session, $session_id ) ) {
 			$this->restore_ob_level( $ob_level_before );
 			wp_send_json_error(
@@ -502,9 +501,9 @@ class SScribe_Batch_Processor {
 			$this->logger->debug(
 				'ERROR: Session validation failed',
 				array(
-					'session_keys'    => array_keys( $session ),
-					'page_ids_count'  => isset( $session['page_ids'] ) ? count( $session['page_ids'] ) : 'not set',
-					'total'           => $session['total'] ?? 'not set',
+					'session_keys'   => array_keys( $session ),
+					'page_ids_count' => isset( $session['page_ids'] ) ? count( $session['page_ids'] ) : 'not set',
+					'total'          => $session['total'] ?? 'not set',
 				)
 			);
 			$this->restore_ob_level( $ob_level_before );
@@ -531,26 +530,26 @@ class SScribe_Batch_Processor {
 			return;
 		}
 
-		$page_ids    = $session['page_ids'];
-		$processed   = $session['processed'];
-		$total       = $session['total'];
-		$temp_dir    = $session['temp_dir'];
-		$errors      = isset( $session['errors'] ) ? $session['errors'] : array();
-		$start_time  = isset( $session['start_time'] ) ? $session['start_time'] : time();
-		$formats     = isset( $session['formats'] ) ? $session['formats'] : array( 'docx' );
-		$session_id  = $session['session_id'] ?? '';
+		$page_ids   = $session['page_ids'];
+		$processed  = $session['processed'];
+		$total      = $session['total'];
+		$temp_dir   = $session['temp_dir'];
+		$errors     = isset( $session['errors'] ) ? $session['errors'] : array();
+		$start_time = isset( $session['start_time'] ) ? $session['start_time'] : time();
+		$formats    = isset( $session['formats'] ) ? $session['formats'] : array( 'docx' );
+		$session_id = $session['session_id'] ?? '';
 
 		$this->export_log = new SScribe_Export_Log( $session_id );
 
 		$this->logger->debug(
 			'Session state',
 			array(
-				'total_pages'   => $total,
-				'processed'     => $processed,
-				'remaining'     => $total - $processed,
-				'error_count'   => count( $errors ),
-				'memory_usage'  => size_format( memory_get_usage( true ) ),
-				'memory_peak'   => size_format( memory_get_peak_usage( true ) ),
+				'total_pages'  => $total,
+				'processed'    => $processed,
+				'remaining'    => $total - $processed,
+				'error_count'  => count( $errors ),
+				'memory_usage' => size_format( memory_get_usage( true ) ),
+				'memory_peak'  => size_format( memory_get_peak_usage( true ) ),
 			)
 		);
 
@@ -640,16 +639,16 @@ class SScribe_Batch_Processor {
 			$this->logger->debug(
 				'Page data collected',
 				array(
-					'title'  => $current_page_title,
-					'id'     => $page_id,
-					'slug'   => $page_data['slug'] ?? 'n/a',
-					'lang'   => $page_data['language'] ?? 'n/a',
+					'title' => $current_page_title,
+					'id'    => $page_id,
+					'slug'  => $page_data['slug'] ?? 'n/a',
+					'lang'  => $page_data['language'] ?? 'n/a',
 				)
 			);
 
-			$page_index        = $processed + 1;
-			$export_success    = false;
-			$export_errors     = array();
+			$page_index         = $processed + 1;
+			$export_success     = false;
+			$export_errors      = array();
 			$successful_formats = array();
 
 			foreach ( $formats as $format ) {
@@ -662,9 +661,9 @@ class SScribe_Batch_Processor {
 				$result = $exporter->export( $page_data, $temp_dir, $page_index, $total );
 
 				if ( $result->is_success() ) {
-					$export_success      = true;
+					$export_success       = true;
 					$successful_formats[] = $format;
-					$file_path           = $result->get_data()['path'] ?? '';
+					$file_path            = $result->get_data()['path'] ?? '';
 
 					if ( $this->export_log ) {
 						$this->export_log->log_format_result( $page_id, $format, true, $file_path );
@@ -714,10 +713,8 @@ class SScribe_Batch_Processor {
 						'errors'       => $export_errors,
 					)
 				);
-			} else {
-				if ( $this->export_log ) {
+			} elseif ( $this->export_log ) {
 					$this->export_log->log_page_success( $page_id, $successful_formats );
-				}
 			}
 
 			do_action( 'sscribe_after_export_page', $page_id, $formats, $export_success );
@@ -730,12 +727,12 @@ class SScribe_Batch_Processor {
 		$this->logger->debug(
 			'Batch completed',
 			array(
-				'processed_now'     => $processed - $session['processed'],
+				'processed_now'      => $processed - $session['processed'],
 				'batch_duration_sec' => round( $batch_duration, 3 ),
-				'total_processed'   => $processed,
-				'total_errors'      => count( $errors ),
-				'memory_usage'      => size_format( memory_get_usage( true ) ),
-				'memory_peak'       => size_format( memory_get_peak_usage( true ) ),
+				'total_processed'    => $processed,
+				'total_errors'       => count( $errors ),
+				'memory_usage'       => size_format( memory_get_usage( true ) ),
+				'memory_peak'        => size_format( memory_get_peak_usage( true ) ),
 			)
 		);
 
@@ -763,7 +760,7 @@ class SScribe_Batch_Processor {
 			)
 		);
 
-		$elapsed          = time() - $start_time;
+		$elapsed           = time() - $start_time;
 		$avg_time_per_page = $processed > 0 ? $elapsed / $processed : 0;
 		$remaining_pages   = $total - $processed;
 		$time_remaining    = round( $avg_time_per_page * $remaining_pages );
@@ -916,7 +913,7 @@ class SScribe_Batch_Processor {
 			$total_files_zip = $zip->numFiles;
 			// phpcs:ignore WordPress.NamingConventions.ValidVariableName.UsedPropertyNotSnakeCase -- Native ZipArchive property.
 			for ( $i = 0; $i < $zip->numFiles; $i++ ) {
-				$filename      = $zip->getNameIndex( $i );
+				$filename       = $zip->getNameIndex( $i );
 				$files_in_zip[] = $filename;
 			}
 			$zip->close();
@@ -942,8 +939,8 @@ class SScribe_Batch_Processor {
 		$this->logger->debug(
 			'Export complete',
 			array(
-				'download_url'    => $download_url,
-				'total_time_sec'  => time() - ( $session['start_time'] ?? time() ),
+				'download_url'   => $download_url,
+				'total_time_sec' => time() - ( $session['start_time'] ?? time() ),
 			)
 		);
 
@@ -1050,7 +1047,7 @@ class SScribe_Batch_Processor {
 		header( 'Expires: 0' );
 		header( 'X-Content-Type-Options: nosniff' );
 
-				if ( ob_get_level() ) {
+		if ( ob_get_level() ) {
 			ob_end_clean();
 		}
 		flush();
@@ -1248,7 +1245,7 @@ class SScribe_Batch_Processor {
 			$this->logger->debug(
 				'Force cleared all sessions for user',
 				array(
-					'user_id'      => $user_id,
+					'user_id'       => $user_id,
 					'deleted_count' => $deleted,
 				)
 			);

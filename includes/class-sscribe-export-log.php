@@ -94,7 +94,7 @@ class SScribe_Export_Log {
 	 * @return void
 	 */
 	public function set_total_pages( int $total ): void {
-		$data = $this->read_log();
+		$data                = $this->read_log();
 		$data['total_pages'] = $total;
 		$this->write_log( $data );
 	}
@@ -140,24 +140,24 @@ class SScribe_Export_Log {
 			$end_time   = microtime( true );
 			$start_time = $data['pages'][ $page_id ]['start_time'] ?? $end_time;
 
-			$data['pages'][ $page_id ]['status']     = 'success';
-			$data['pages'][ $page_id ]['end_time']   = $end_time;
-			$data['pages'][ $page_id ]['duration']   = round( $end_time - $start_time, 3 );
-			$data['pages'][ $page_id ]['formats']    = $formats;
-			$data['pages'][ $page_id ]['memory']     = size_format( memory_get_usage( true ) );
-			$data['success']++;
+			$data['pages'][ $page_id ]['status']   = 'success';
+			$data['pages'][ $page_id ]['end_time'] = $end_time;
+			$data['pages'][ $page_id ]['duration'] = round( $end_time - $start_time, 3 );
+			$data['pages'][ $page_id ]['formats']  = $formats;
+			$data['pages'][ $page_id ]['memory']   = size_format( memory_get_usage( true ) );
+			++$data['success'];
 		}
 
-		$data['processed']++;
+		++$data['processed'];
 		$this->write_log( $data );
 	}
 
 	/**
 	 * Log failed page export.
 	 *
-	 * @param int         $page_id       Page ID.
-	 * @param string      $error_message Error message.
-	 * @param array|null  $formats       Formats attempted.
+	 * @param int        $page_id       Page ID.
+	 * @param string     $error_message Error message.
+	 * @param array|null $formats       Formats attempted.
 	 * @return void
 	 */
 	public function log_page_failure( int $page_id, string $error_message, ?array $formats = null ): void {
@@ -167,26 +167,26 @@ class SScribe_Export_Log {
 			$end_time   = microtime( true );
 			$start_time = $data['pages'][ $page_id ]['start_time'] ?? $end_time;
 
-			$data['pages'][ $page_id ]['status']     = 'failed';
-			$data['pages'][ $page_id ]['end_time']   = $end_time;
-			$data['pages'][ $page_id ]['duration']   = round( $end_time - $start_time, 3 );
-			$data['pages'][ $page_id ]['error']      = $error_message;
-			$data['pages'][ $page_id ]['formats']    = $formats ?? array();
-			$data['pages'][ $page_id ]['memory']     = size_format( memory_get_usage( true ) );
+			$data['pages'][ $page_id ]['status']   = 'failed';
+			$data['pages'][ $page_id ]['end_time'] = $end_time;
+			$data['pages'][ $page_id ]['duration'] = round( $end_time - $start_time, 3 );
+			$data['pages'][ $page_id ]['error']    = $error_message;
+			$data['pages'][ $page_id ]['formats']  = $formats ?? array();
+			$data['pages'][ $page_id ]['memory']   = size_format( memory_get_usage( true ) );
 		} else {
 			$data['pages'][ $page_id ] = array(
-				'id'       => $page_id,
-				'title'    => 'Unknown',
-				'slug'     => 'unknown',
-				'status'   => 'failed',
-				'error'    => $error_message,
-				'formats'  => $formats ?? array(),
-				'memory'   => size_format( memory_get_usage( true ) ),
+				'id'      => $page_id,
+				'title'   => 'Unknown',
+				'slug'    => 'unknown',
+				'status'  => 'failed',
+				'error'   => $error_message,
+				'formats' => $formats ?? array(),
+				'memory'  => size_format( memory_get_usage( true ) ),
 			);
 		}
 
-		$data['failed']++;
-		$data['processed']++;
+		++$data['failed'];
+		++$data['processed'];
 		$data['errors'][] = array(
 			'page_id' => $page_id,
 			'message' => $error_message,
@@ -211,9 +211,9 @@ class SScribe_Export_Log {
 
 		if ( isset( $data['pages'][ $page_id ] ) ) {
 			$data['pages'][ $page_id ]['formats'][ $format ] = array(
-				'success'  => $success,
-				'file'     => $file_path ? basename( $file_path ) : '',
-				'error'    => $error,
+				'success' => $success,
+				'file'    => $file_path ? basename( $file_path ) : '',
+				'error'   => $error,
 			);
 			$this->write_log( $data );
 		}
@@ -227,7 +227,7 @@ class SScribe_Export_Log {
 	 * @return void
 	 */
 	public function mark_complete( string $zip_path = '', int $files_in_zip = 0 ): void {
-		$data = $this->read_log();
+		$data                 = $this->read_log();
 		$data['status']       = 'complete';
 		$data['completed_at'] = current_time( 'mysql' );
 		$data['zip_file']     = basename( $zip_path );
@@ -242,7 +242,7 @@ class SScribe_Export_Log {
 	 * @return void
 	 */
 	public function mark_failed( string $error_message ): void {
-		$data = $this->read_log();
+		$data                 = $this->read_log();
 		$data['status']       = 'failed';
 		$data['completed_at'] = current_time( 'mysql' );
 		$data['errors'][]     = array(
@@ -270,13 +270,13 @@ class SScribe_Export_Log {
 	public function get_summary(): array {
 		$data = $this->read_log();
 		return array(
-			'session_id'   => $data['session_id'],
-			'total_pages'  => $data['total_pages'],
-			'processed'    => $data['processed'],
-			'success'      => $data['success'],
-			'failed'       => $data['failed'],
-			'status'       => $data['status'],
-			'errors'       => count( $data['errors'] ),
+			'session_id'  => $data['session_id'],
+			'total_pages' => $data['total_pages'],
+			'processed'   => $data['processed'],
+			'success'     => $data['success'],
+			'failed'      => $data['failed'],
+			'status'      => $data['status'],
+			'errors'      => count( $data['errors'] ),
 		);
 	}
 
@@ -364,7 +364,7 @@ class SScribe_Export_Log {
 
 		$upload_dir = wp_upload_dir();
 		$log_dir    = $upload_dir['basedir'] . '/sscribe-logs';
-		
+
 		if ( ! is_dir( $log_dir ) ) {
 			return null;
 		}

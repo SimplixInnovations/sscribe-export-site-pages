@@ -109,13 +109,13 @@ class SScribe_Exporter {
 		$text = preg_replace( '/[\x{FFFE}\x{FFFF}]/u', '', $text );
 
 		// 3. Remove Unicode surrogate code points (U+D800-U+DFFF).
-		//    These are encoded as 4-byte UTF-8 sequences starting with 0xED.
+		// These are encoded as 4-byte UTF-8 sequences starting with 0xED.
 		$text = preg_replace( '/\xED[\xA0-\xBF][\x80-\xBF]/', '', $text );
 
 		// 4. Replace zero-width and invisible formatting chars that cause display issues.
 		$text = preg_replace( '/[\x{200B}\x{FEFF}\x{00AD}]/u', '', $text );
 
-		// IMPORTANT: We do NOT strip astral plane characters (emoji, symbols) or 
+		// IMPORTANT: We do NOT strip astral plane characters (emoji, symbols) or
 		// Private Use Area characters, as PHPWord handles them correctly with proper
 		// UTF-8 encoding and they may be legitimate content in user pages.
 
@@ -154,7 +154,7 @@ class SScribe_Exporter {
 	 */
 	private function is_rtl_document( array $page_data ): bool {
 		$rtl_languages = array( 'ar', 'he', 'fa', 'ur', 'ps', 'ku', 'sd' );
-		$lang = ! empty( $page_data['language'] ) ? substr( $page_data['language'], 0, 2 ) : 'en';
+		$lang          = ! empty( $page_data['language'] ) ? substr( $page_data['language'], 0, 2 ) : 'en';
 		return in_array( $lang, $rtl_languages, true );
 	}
 
@@ -190,7 +190,7 @@ class SScribe_Exporter {
 			if ( ! class_exists( 'ZipArchive' ) ) {
 				throw new \RuntimeException( __( 'The ZipArchive PHP extension is required to generate DOCX files.', 'sscribe-export-site-pages' ) );
 			}
-			
+
 			// Force ZipArchive — prevents PHPWord from ever loading bundled PCLZip.
 			\PhpOffice\PhpWord\Settings::setZipClass( \PhpOffice\PhpWord\Settings::ZIPARCHIVE );
 
@@ -1159,10 +1159,12 @@ class SScribe_Exporter {
 					'bold'  => true,
 					'color' => $this->colors['heading'],
 				),
-				$this->get_para_style( array(
-					'alignment'   => Jc::CENTER,
-					'spaceBefore' => Converter::pointToTwip( 6 ),
-				) )
+				$this->get_para_style(
+					array(
+						'alignment'   => Jc::CENTER,
+						'spaceBefore' => Converter::pointToTwip( 6 ),
+					)
+				)
 			);
 			$cell->addLink(
 				$element['url'],

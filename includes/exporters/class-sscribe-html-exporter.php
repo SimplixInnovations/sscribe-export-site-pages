@@ -45,11 +45,13 @@ class SScribe_HTML_Exporter implements SScribe_Exporter_Interface {
 			);
 		}
 
-		return SScribe_Result::success( array(
-			'path' => $output_path,
-			'html' => $html,
-			'size' => strlen( $html ),
-		) );
+		return SScribe_Result::success(
+			array(
+				'path' => $output_path,
+				'html' => $html,
+				'size' => strlen( $html ),
+			)
+		);
 	}
 
 	/**
@@ -149,7 +151,7 @@ class SScribe_HTML_Exporter implements SScribe_Exporter_Interface {
 			return '';
 		}
 
-		$seo = $page_data['seo'];
+		$seo  = $page_data['seo'];
 		$html = '<div class="seo"><h3>' . __( 'SEO Metadata', 'sscribe-export-site-pages' ) . '</h3>';
 
 		if ( ! empty( $seo['source'] ) ) {

@@ -229,4 +229,3 @@ class SScribe_Logger implements SScribe_Logger_Interface {
 		return $deleted;
 	}
 }
-

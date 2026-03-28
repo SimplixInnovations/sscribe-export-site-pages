@@ -84,33 +84,39 @@ class SScribe_Page_Collector {
 		);
 
 		$switched = false;
-		
+
 		try {
 			if ( $this->is_wpml_active() ) {
 				$target_lang = ! empty( $language ) ? $language : 'all';
-				
-				$this->debug_log( 'WPML: Switching language', array(
-					'requested_language' => $language,
-					'target_lang' => $target_lang,
-				) );
-				
+
+				$this->debug_log(
+					'WPML: Switching language',
+					array(
+						'requested_language' => $language,
+						'target_lang'        => $target_lang,
+					)
+				);
+
 				$this->clear_status_cache( $language );
-				
+
 				// phpcs:ignore WordPress.NamingConventions.PrefixAllGlobals.NonPrefixedHooknameFound -- WPML hook.
 				do_action( 'wpml_switch_language', $target_lang );
 				$args['suppress_filters'] = false;
-				$switched = true;
+				$switched                 = true;
 			}
 
 			$query    = new WP_Query( $args );
 			$page_ids = $query->posts;
-			
-			$this->debug_log( 'WP_Query results', array(
-				'language' => $language,
-				'post_status' => $post_status,
-				'page_count' => count( $page_ids ),
-				'page_ids_sample' => array_slice( $page_ids, 0, 20 ),
-			) );
+
+			$this->debug_log(
+				'WP_Query results',
+				array(
+					'language'        => $language,
+					'post_status'     => $post_status,
+					'page_count'      => count( $page_ids ),
+					'page_ids_sample' => array_slice( $page_ids, 0, 20 ),
+				)
+			);
 		} finally {
 			if ( $switched ) {
 				// phpcs:ignore WordPress.NamingConventions.PrefixAllGlobals.NonPrefixedHooknameFound -- WPML hook.
@@ -130,7 +136,7 @@ class SScribe_Page_Collector {
 	private function clear_status_cache( $language = '' ): void {
 		$cache_key = 'sscribe_status_counts_' . md5( $language );
 		delete_transient( $cache_key );
-		
+
 		foreach ( array( 'publish', 'draft', 'private', 'future', 'pending', 'all' ) as $status ) {
 			$key = 'sscribe_page_count_' . md5( $language . '_' . $status );
 			delete_transient( $key );
@@ -185,10 +191,13 @@ class SScribe_Page_Collector {
 		);
 
 		if ( $wpdb->last_error ) {
-			$this->debug_log( 'Database query failed for featured images', array(
-				'error' => $wpdb->last_error,
-				'query' => $wpdb->last_query,
-			) );
+			$this->debug_log(
+				'Database query failed for featured images',
+				array(
+					'error' => $wpdb->last_error,
+					'query' => $wpdb->last_query,
+				)
+			);
 			return array();
 		}
 
@@ -196,8 +205,8 @@ class SScribe_Page_Collector {
 		$page_to_thumb = array();
 
 		foreach ( $results as $row ) {
-			$thumb_id = (int) $row->thumbnail_id;
-			$thumbnail_ids[] = $thumb_id;
+			$thumb_id                             = (int) $row->thumbnail_id;
+			$thumbnail_ids[]                      = $thumb_id;
 			$page_to_thumb[ (int) $row->post_id ] = $thumb_id;
 		}
 
@@ -213,13 +222,16 @@ class SScribe_Page_Collector {
 			);
 
 			if ( $wpdb->last_error ) {
-				$this->debug_log( 'Database query failed for attachments', array(
-					'error' => $wpdb->last_error,
-				) );
+				$this->debug_log(
+					'Database query failed for attachments',
+					array(
+						'error' => $wpdb->last_error,
+					)
+				);
 			}
 
 			foreach ( $attachments as $att ) {
-				$upload_base = $this->get_upload_base_dir();
+				$upload_base                       = $this->get_upload_base_dir();
 				$attachment_data[ (int) $att->ID ] = array(
 					'url'  => $att->guid,
 					'path' => $att->filepath ? trailingslashit( $upload_base ) . $att->filepath : '',
@@ -230,7 +242,7 @@ class SScribe_Page_Collector {
 		$featured_images = array();
 		foreach ( $page_ids as $page_id ) {
 			if ( isset( $page_to_thumb[ $page_id ] ) ) {
-				$thumb_id = $page_to_thumb[ $page_id ];
+				$thumb_id                    = $page_to_thumb[ $page_id ];
 				$featured_images[ $page_id ] = array(
 					'id'   => $thumb_id,
 					'url'  => $attachment_data[ $thumb_id ]['url'] ?? '',
@@ -285,26 +297,32 @@ class SScribe_Page_Collector {
 		try {
 			if ( $this->is_wpml_active() ) {
 				$target_lang = ! empty( $language ) ? $language : 'all';
-				
-				$this->debug_log( 'WPML get_page_count_only: Switching language', array(
-					'requested_language' => $language,
-					'target_lang' => $target_lang,
-				) );
-				
+
+				$this->debug_log(
+					'WPML get_page_count_only: Switching language',
+					array(
+						'requested_language' => $language,
+						'target_lang'        => $target_lang,
+					)
+				);
+
 				// phpcs:ignore WordPress.NamingConventions.PrefixAllGlobals.NonPrefixedHooknameFound -- WPML hook.
 				do_action( 'wpml_switch_language', $target_lang );
 				$args['suppress_filters'] = false;
-				$switched = true;
+				$switched                 = true;
 			}
 
 			$query = new WP_Query( $args );
 			$count = (int) $query->found_posts;
-			
-			$this->debug_log( 'get_page_count_only result', array(
-				'language' => $language,
-				'post_status' => $post_status,
-				'count' => $count,
-			) );
+
+			$this->debug_log(
+				'get_page_count_only result',
+				array(
+					'language'    => $language,
+					'post_status' => $post_status,
+					'count'       => $count,
+				)
+			);
 		} finally {
 			if ( $switched ) {
 				// phpcs:ignore WordPress.NamingConventions.PrefixAllGlobals.NonPrefixedHooknameFound -- WPML hook.
@@ -373,7 +391,6 @@ class SScribe_Page_Collector {
 				while ( ob_get_level() > $ob_level_before ) {
 					ob_end_clean();
 				}
-
 			} catch ( \Throwable $e ) {
 				// Restore buffers to pre-call state before doing anything else.
 				while ( ob_get_level() > $ob_level_before ) {
@@ -396,8 +413,8 @@ class SScribe_Page_Collector {
 		}
 
 		// Calculate word count and reading time with Unicode fallback.
-		$stripped    = wp_strip_all_tags( $content );
-		$word_count  = str_word_count( $stripped );
+		$stripped   = wp_strip_all_tags( $content );
+		$word_count = str_word_count( $stripped );
 
 		// str_word_count() is not Unicode-aware — it returns 0 for Arabic, CJK, etc.
 		// Use character count fallback for non-Latin scripts.
@@ -414,7 +431,7 @@ class SScribe_Page_Collector {
 
 		// Get featured image - use cached batch data if available.
 		if ( isset( $this->featured_images_cache[ $page_id ] ) ) {
-			$cached_image = $this->featured_images_cache[ $page_id ];
+			$cached_image        = $this->featured_images_cache[ $page_id ];
 			$featured_image_id   = $cached_image['id'];
 			$featured_image_url  = $cached_image['url'];
 			$featured_image_path = $cached_image['path'];
@@ -551,7 +568,7 @@ class SScribe_Page_Collector {
 			'order'           => 'ASC',
 		);
 
-		$query = new WP_Query( $args );
+		$query              = new WP_Query( $args );
 		$children_by_parent = array();
 
 		foreach ( $query->posts as $child ) {

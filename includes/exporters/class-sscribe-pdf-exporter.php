@@ -84,18 +84,23 @@ class SScribe_PDF_Exporter implements SScribe_Exporter_Interface {
 			// phpcs:ignore WordPress.WP.AlternativeFunctions.file_system_read_file_put_contents -- Output generation in temp dir.
 			file_put_contents( $output_path, $output );
 
-			return SScribe_Result::success( array(
-				'path' => $output_path,
-				'size' => strlen( $output ),
-			) );
+			return SScribe_Result::success(
+				array(
+					'path' => $output_path,
+					'size' => strlen( $output ),
+				)
+			);
 
 		} catch ( \Throwable $e ) {
-			$this->logger->error( 'PDF generation failed', array(
-				'error'   => $e->getMessage(),
-				'page_id' => $page_data['id'] ?? 0,
-				'file'    => $e->getFile(),
-				'line'    => $e->getLine(),
-			) );
+			$this->logger->error(
+				'PDF generation failed',
+				array(
+					'error'   => $e->getMessage(),
+					'page_id' => $page_data['id'] ?? 0,
+					'file'    => $e->getFile(),
+					'line'    => $e->getLine(),
+				)
+			);
 
 			return SScribe_Result::failure(
 				__( 'Unable to generate PDF for this page.', 'sscribe-export-site-pages' ),

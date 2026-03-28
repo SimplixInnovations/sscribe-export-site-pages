@@ -59,10 +59,12 @@ class SScribe_Markdown_Exporter implements SScribe_Exporter_Interface {
 			);
 		}
 
-		return SScribe_Result::success( array(
-			'path' => $output_path,
-			'size' => strlen( $markdown ),
-		) );
+		return SScribe_Result::success(
+			array(
+				'path' => $output_path,
+				'size' => strlen( $markdown ),
+			)
+		);
 	}
 
 	/**
@@ -72,7 +74,7 @@ class SScribe_Markdown_Exporter implements SScribe_Exporter_Interface {
 	 * @return string
 	 */
 	private function generate_markdown( array $page_data ): string {
-		$md = $this->generate_frontmatter( $page_data );
+		$md  = $this->generate_frontmatter( $page_data );
 		$md .= $this->html_to_markdown( $page_data['content'] ?? '' );
 
 		return $md;
@@ -85,60 +87,60 @@ class SScribe_Markdown_Exporter implements SScribe_Exporter_Interface {
 	 * @return string
 	 */
 	private function generate_frontmatter( array $page_data ): string {
-		$title  = $page_data['title'] ?? 'Untitled';
-		$md     = '# ' . $this->escape_markdown( $title ) . "\n\n";
-		$md    .= '> ' . ( $page_data['permalink'] ?? '' ) . "\n\n";
+		$title = $page_data['title'] ?? 'Untitled';
+		$md    = '# ' . $this->escape_markdown( $title ) . "\n\n";
+		$md   .= '> ' . ( $page_data['permalink'] ?? '' ) . "\n\n";
 
 		$md .= "---\n";
-		$md .= "title: \"" . $this->escape_yaml_string( $title ) . "\"\n";
-		$md .= "url: " . ( $page_data['permalink'] ?? '' ) . "\n";
-		$md .= "slug: " . ( $page_data['slug'] ?? '' ) . "\n";
-		$md .= "author: \"" . $this->escape_yaml_string( $page_data['author'] ?? 'Unknown' ) . "\"\n";
-		$md .= "published: " . ( $page_data['date_published'] ?? '' ) . "\n";
-		$md .= "modified: " . ( $page_data['date_modified'] ?? '' ) . "\n";
-		$md .= "word_count: " . ( $page_data['word_count'] ?? 0 ) . "\n";
-		$md .= "reading_time: " . ( $page_data['reading_time'] ?? 1 ) . " minutes\n";
-		$md .= "language: " . ( $page_data['language'] ?? 'en' ) . "\n";
+		$md .= 'title: "' . $this->escape_yaml_string( $title ) . "\"\n";
+		$md .= 'url: ' . ( $page_data['permalink'] ?? '' ) . "\n";
+		$md .= 'slug: ' . ( $page_data['slug'] ?? '' ) . "\n";
+		$md .= 'author: "' . $this->escape_yaml_string( $page_data['author'] ?? 'Unknown' ) . "\"\n";
+		$md .= 'published: ' . ( $page_data['date_published'] ?? '' ) . "\n";
+		$md .= 'modified: ' . ( $page_data['date_modified'] ?? '' ) . "\n";
+		$md .= 'word_count: ' . ( $page_data['word_count'] ?? 0 ) . "\n";
+		$md .= 'reading_time: ' . ( $page_data['reading_time'] ?? 1 ) . " minutes\n";
+		$md .= 'language: ' . ( $page_data['language'] ?? 'en' ) . "\n";
 
 		if ( ! empty( $page_data['featured_image_url'] ) ) {
-			$md .= "featured_image: " . $page_data['featured_image_url'] . "\n";
+			$md .= 'featured_image: ' . $page_data['featured_image_url'] . "\n";
 		}
 
 		if ( ! empty( $page_data['seo'] ) ) {
 			$seo = $page_data['seo'];
 			if ( ! empty( $seo['meta_title'] ) ) {
-				$md .= "seo_title: \"" . $this->escape_yaml_string( $seo['meta_title'] ) . "\"\n";
+				$md .= 'seo_title: "' . $this->escape_yaml_string( $seo['meta_title'] ) . "\"\n";
 			}
 			if ( ! empty( $seo['meta_description'] ) ) {
-				$md .= "seo_description: \"" . $this->escape_yaml_string( $seo['meta_description'] ) . "\"\n";
+				$md .= 'seo_description: "' . $this->escape_yaml_string( $seo['meta_description'] ) . "\"\n";
 			}
 			if ( ! empty( $seo['focus_keyword'] ) ) {
-				$md .= "seo_focus_keyword: \"" . $this->escape_yaml_string( $seo['focus_keyword'] ) . "\"\n";
+				$md .= 'seo_focus_keyword: "' . $this->escape_yaml_string( $seo['focus_keyword'] ) . "\"\n";
 			}
 			if ( ! empty( $seo['canonical_url'] ) ) {
-				$md .= "canonical_url: " . $seo['canonical_url'] . "\n";
+				$md .= 'canonical_url: ' . $seo['canonical_url'] . "\n";
 			}
 			if ( ! empty( $seo['og_title'] ) ) {
-				$md .= "og_title: \"" . $this->escape_yaml_string( $seo['og_title'] ) . "\"\n";
+				$md .= 'og_title: "' . $this->escape_yaml_string( $seo['og_title'] ) . "\"\n";
 			}
 			if ( ! empty( $seo['og_description'] ) ) {
-				$md .= "og_description: \"" . $this->escape_yaml_string( $seo['og_description'] ) . "\"\n";
+				$md .= 'og_description: "' . $this->escape_yaml_string( $seo['og_description'] ) . "\"\n";
 			}
 			if ( ! empty( $seo['source'] ) ) {
-				$md .= "seo_source: " . $seo['source'] . "\n";
+				$md .= 'seo_source: ' . $seo['source'] . "\n";
 			}
 		}
 
 		if ( ! empty( $page_data['breadcrumbs'] ) && count( $page_data['breadcrumbs'] ) > 1 ) {
 			$breadcrumbs = array_map(
-				function( $crumb ) {
+				function ( $crumb ) {
 					return $crumb['title'];
 				},
 				$page_data['breadcrumbs']
 			);
-			$md .= "breadcrumbs:\n";
+			$md         .= "breadcrumbs:\n";
 			foreach ( $breadcrumbs as $crumb ) {
-				$md .= "  - \"" . $this->escape_yaml_string( $crumb ) . "\"\n";
+				$md .= '  - "' . $this->escape_yaml_string( $crumb ) . "\"\n";
 			}
 		}
 
@@ -222,25 +224,25 @@ class SScribe_Markdown_Exporter implements SScribe_Exporter_Interface {
 	private function convert_tables( string $html ): string {
 		return preg_replace_callback(
 			'/<table[^>]*>(.*?)<\/table>/is',
-			function( $matches ) {
+			function ( $matches ) {
 				$table_html = $matches[1];
 
 				if ( ! preg_match_all( '/<tr[^>]*>(.*?)<\/tr>/is', $table_html, $row_matches ) ) {
 					return '';
 				}
 
-				$rows    = array();
+				$rows         = array();
 				$is_first_row = true;
 
 				foreach ( $row_matches[1] as $row_html ) {
-					$cells = array();
+					$cells        = array();
 					$cell_pattern = '/<t[dh][^>]*>(.*?)<\/t[dh]>/is';
 
 					if ( preg_match_all( $cell_pattern, $row_html, $cell_matches ) ) {
 						foreach ( $cell_matches[1] as $cell_content ) {
 							$cell_content = strip_tags( $cell_content );
 							$cell_content = trim( preg_replace( '/\s+/', ' ', $cell_content ) );
-							$cells[] = $cell_content;
+							$cells[]      = $cell_content;
 						}
 					}
 
@@ -248,7 +250,7 @@ class SScribe_Markdown_Exporter implements SScribe_Exporter_Interface {
 						$rows[] = $cells;
 
 						if ( $is_first_row ) {
-							$rows[] = array_fill( 0, count( $cells ), '---' );
+							$rows[]       = array_fill( 0, count( $cells ), '---' );
 							$is_first_row = false;
 						}
 					}
@@ -296,7 +298,7 @@ class SScribe_Markdown_Exporter implements SScribe_Exporter_Interface {
 	private function convert_images( string $html ): string {
 		return preg_replace_callback(
 			'/<img[^>]*src=["\']([^"\']*)["\'][^>]*alt=["\']([^"\']*)["\'][^>]*\/?>/is',
-			function( $matches ) {
+			function ( $matches ) {
 				$url = $this->sanitize_url( $matches[1] );
 				$alt = $matches[2];
 				return '![' . $alt . '](' . $url . ')';
@@ -314,7 +316,7 @@ class SScribe_Markdown_Exporter implements SScribe_Exporter_Interface {
 	private function convert_links( string $html ): string {
 		return preg_replace_callback(
 			'/<a[^>]*href=["\']([^"\']*)["\'][^>]*>(.*?)<\/a>/is',
-			function( $matches ) {
+			function ( $matches ) {
 				$url  = $this->sanitize_url( $matches[1] );
 				$text = strip_tags( $matches[2] );
 				$text = trim( preg_replace( '/\s+/', ' ', $text ) );
@@ -348,16 +350,16 @@ class SScribe_Markdown_Exporter implements SScribe_Exporter_Interface {
 	 */
 	private function convert_lists( string $html ): string {
 		$max_iterations = 10;
-		$iteration = 0;
+		$iteration      = 0;
 
 		while ( preg_match( '/<(ul|ol)>(.*?)<\/\1>/is', $html, $matches, PREG_OFFSET_CAPTURE ) && $iteration < $max_iterations ) {
-			$list_type = $matches[1][0];
+			$list_type    = $matches[1][0];
 			$list_content = $matches[2][0];
 
 			$converted = $this->convert_list_items( $list_content, $list_type );
 
 			$html = substr_replace( $html, $converted, $matches[0][1], strlen( $matches[0][0] ) );
-			$iteration++;
+			++$iteration;
 		}
 
 		$html = preg_replace( '/<li>(.*?)<\/li>/is', '- $1' . "\n", $html );
@@ -374,7 +376,7 @@ class SScribe_Markdown_Exporter implements SScribe_Exporter_Interface {
 	 * @return string
 	 */
 	private function convert_list_items( string $content, string $list_type, int $depth = 0 ): string {
-		$indent = str_repeat( '    ', $depth );
+		$indent  = str_repeat( '    ', $depth );
 		$counter = 1;
 
 		$result = "\n";
@@ -386,7 +388,7 @@ class SScribe_Markdown_Exporter implements SScribe_Exporter_Interface {
 
 				if ( 'ol' === $list_type ) {
 					$result .= $indent . $counter . '. ' . $item_content . "\n";
-					$counter++;
+					++$counter;
 				} else {
 					$result .= $indent . '- ' . $item_content . "\n";
 				}
@@ -418,7 +420,7 @@ class SScribe_Markdown_Exporter implements SScribe_Exporter_Interface {
 	private function convert_blockquotes( string $html ): string {
 		return preg_replace_callback(
 			'/<blockquote[^>]*>(.*?)<\/blockquote>/is',
-			function( $matches ) {
+			function ( $matches ) {
 				$content = strip_tags( $matches[1] );
 				$lines   = preg_split( '/\r?\n/', trim( $content ) );
 				$result  = "\n";

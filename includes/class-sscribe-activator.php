@@ -90,8 +90,8 @@ class SScribe_Activator {
 	 * @return void
 	 */
 	private static function create_session_directory() {
-		$upload_dir    = wp_upload_dir();
-		$session_path  = $upload_dir['basedir'] . '/sscribe-sessions';
+		$upload_dir   = wp_upload_dir();
+		$session_path = $upload_dir['basedir'] . '/sscribe-sessions';
 
 		if ( ! file_exists( $session_path ) ) {
 			wp_mkdir_p( $session_path );

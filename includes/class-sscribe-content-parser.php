@@ -556,7 +556,7 @@ class SScribe_Content_Parser {
 	 * @return array Array of run data (text, bold, italic, link, etc.).
 	 */
 	private function get_inline_runs( \DOMNode $node ): array {
-		 $runs = array();
+		$runs = array();
 
 		foreach ( $node->childNodes as $child ) {
 			if ( XML_TEXT_NODE === $child->nodeType ) {

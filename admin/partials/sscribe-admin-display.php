@@ -18,12 +18,12 @@ if ( ! defined( 'ABSPATH' ) ) {
 	exit;
 }
 
-$wpml_active     = $wpml_active ?? false;
-$languages       = $languages ?? array();
-$total_pages_all = $total_pages_all ?? 0;
-$status_counts   = $status_counts ?? array();
-$seo_plugins     = $seo_plugins ?? array();
-$recent_exports  = $recent_exports ?? array();
+$wpml_active        = $wpml_active ?? false;
+$languages          = $languages ?? array();
+$total_pages_all    = $total_pages_all ?? 0;
+$status_counts      = $status_counts ?? array();
+$seo_plugins        = $seo_plugins ?? array();
+$recent_exports     = $recent_exports ?? array();
 $sscribe_debug_info = $sscribe_debug_info ?? array();
 $sscribe_is_debug   = $sscribe_is_debug ?? false;
 ?>
@@ -37,10 +37,10 @@ $sscribe_is_debug   = $sscribe_is_debug ?? false;
 				</div>
 				<div>
 					<h1 class="sscribe-hero-title">SScribe</h1>
-					<p class="sscribe-hero-subtitle"><?php esc_html_e('Export every page into beautifully formatted documents with multilingual support, SEO meta, and secure ZIP download.', 'sscribe-export-site-pages'); ?></p>
+					<p class="sscribe-hero-subtitle"><?php esc_html_e( 'Export every page into beautifully formatted documents with multilingual support, SEO meta, and secure ZIP download.', 'sscribe-export-site-pages' ); ?></p>
 				</div>
 			</div>
-			<span class="sscribe-hero-version">v<?php echo esc_html(SSCRIBE_VERSION); ?></span>
+			<span class="sscribe-hero-version">v<?php echo esc_html( SSCRIBE_VERSION ); ?></span>
 		</div>
 	</header>
 
@@ -48,21 +48,21 @@ $sscribe_is_debug   = $sscribe_is_debug ?? false;
 		<section class="sscribe-panel sscribe-config-panel">
 			<div class="sscribe-panel-header">
 				<div class="sscribe-panel-title">
-					<img src="<?php echo esc_url(SScribe_Helpers::icon_url('settings')); ?>" width="20" height="20" alt="" class="sscribe-icon-img">
-					<h2><?php esc_html_e('Select Export Output', 'sscribe-export-site-pages'); ?></h2>
+					<img src="<?php echo esc_url( SScribe_Helpers::icon_url( 'settings' ) ); ?>" width="20" height="20" alt="" class="sscribe-icon-img">
+					<h2><?php esc_html_e( 'Select Export Output', 'sscribe-export-site-pages' ); ?></h2>
 				</div>
 			</div>
 
 			<div class="sscribe-panel-body">
-				<?php if ($wpml_active && !empty($languages)): ?>
+				<?php if ( $wpml_active && ! empty( $languages ) ) : ?>
 					<p class="sscribe-description">
-						<?php esc_html_e('Choose a language and page status. The plugin will export all matching pages into a professional document archive.', 'sscribe-export-site-pages'); ?>
+						<?php esc_html_e( 'Choose a language and page status. The plugin will export all matching pages into a professional document archive.', 'sscribe-export-site-pages' ); ?>
 					</p>
 
 					<fieldset class="sscribe-fieldset">
 						<legend class="sscribe-fieldset-legend">
-							<img src="<?php echo esc_url(SScribe_Helpers::icon_url('globe')); ?>" width="16" height="16" alt="" class="sscribe-legend-icon">
-							<?php esc_html_e('Language', 'sscribe-export-site-pages'); ?>
+							<img src="<?php echo esc_url( SScribe_Helpers::icon_url( 'globe' ) ); ?>" width="16" height="16" alt="" class="sscribe-legend-icon">
+							<?php esc_html_e( 'Language', 'sscribe-export-site-pages' ); ?>
 						</legend>
 						<div class="sscribe-language-cards" id="sscribe-language-cards">
 							<label class="sscribe-lang-card-label sscribe-lang-card-all">
@@ -70,76 +70,76 @@ $sscribe_is_debug   = $sscribe_is_debug ?? false;
 								<div class="sscribe-lang-card-inner">
 									<div class="sscribe-lang-flag-wrapper">
 										<div class="sscribe-lang-flag-placeholder sscribe-lang-flag-all">
-											<img src="<?php echo esc_url(SScribe_Helpers::icon_url('globe')); ?>" width="20" height="20" alt="">
+											<img src="<?php echo esc_url( SScribe_Helpers::icon_url( 'globe' ) ); ?>" width="20" height="20" alt="">
 										</div>
 									</div>
 									<div class="sscribe-lang-meta">
-										<span class="sscribe-lang-name"><?php esc_html_e('All Languages', 'sscribe-export-site-pages'); ?></span>
+										<span class="sscribe-lang-name"><?php esc_html_e( 'All Languages', 'sscribe-export-site-pages' ); ?></span>
 										<?php
 										/* translators: %d: Number of pages. */
-										printf('<span class="sscribe-lang-count">%s</span>', esc_html(sprintf(__('%d Pages', 'sscribe-export-site-pages'), intval($total_pages_all))));
+										printf( '<span class="sscribe-lang-count">%s</span>', esc_html( sprintf( __( '%d Pages', 'sscribe-export-site-pages' ), intval( $total_pages_all ) ) ) );
 										?>
 									</div>
 									<div class="sscribe-lang-selector">
-										<img src="<?php echo esc_url(SScribe_Helpers::icon_url('check')); ?>" width="18" height="18" alt="" class="sscribe-check-icon">
+										<img src="<?php echo esc_url( SScribe_Helpers::icon_url( 'check' ) ); ?>" width="18" height="18" alt="" class="sscribe-check-icon">
 									</div>
 								</div>
 							</label>
-							<?php foreach ($languages as $sscribe_lang): ?>
+							<?php foreach ( $languages as $sscribe_lang ) : ?>
 								<label class="sscribe-lang-card-label">
-									<input type="radio" name="sscribe_language" value="<?php echo esc_attr($sscribe_lang['code']); ?>">
+									<input type="radio" name="sscribe_language" value="<?php echo esc_attr( $sscribe_lang['code'] ); ?>">
 									<div class="sscribe-lang-card-inner">
 										<div class="sscribe-lang-flag-wrapper">
-											<?php if (!empty($sscribe_lang['flag_url'])): ?>
-												<img src="<?php echo esc_url($sscribe_lang['flag_url']); ?>" alt="<?php echo esc_attr($sscribe_lang['name']); ?>" class="sscribe-lang-flag">
-											<?php else: ?>
+											<?php if ( ! empty( $sscribe_lang['flag_url'] ) ) : ?>
+												<img src="<?php echo esc_url( $sscribe_lang['flag_url'] ); ?>" alt="<?php echo esc_attr( $sscribe_lang['name'] ); ?>" class="sscribe-lang-flag">
+											<?php else : ?>
 												<div class="sscribe-lang-flag-placeholder">
-													<?php echo esc_html(strtoupper(substr($sscribe_lang['code'], 0, 2))); ?>
+													<?php echo esc_html( strtoupper( substr( $sscribe_lang['code'], 0, 2 ) ) ); ?>
 												</div>
 											<?php endif; ?>
 										</div>
 										<div class="sscribe-lang-meta">
-											<span class="sscribe-lang-name"><?php echo esc_html($sscribe_lang['name']); ?></span>
+											<span class="sscribe-lang-name"><?php echo esc_html( $sscribe_lang['name'] ); ?></span>
 											<span class="sscribe-lang-count">
 												<?php
 												/* translators: %d: Number of pages. */
-												echo esc_html(sprintf(__('%d Pages', 'sscribe-export-site-pages'), intval($sscribe_lang['page_count'])));
+												echo esc_html( sprintf( __( '%d Pages', 'sscribe-export-site-pages' ), intval( $sscribe_lang['page_count'] ) ) );
 												?>
 											</span>
 										</div>
 										<div class="sscribe-lang-selector">
-											<img src="<?php echo esc_url(SScribe_Helpers::icon_url('check')); ?>" width="18" height="18" alt="" class="sscribe-check-icon">
+											<img src="<?php echo esc_url( SScribe_Helpers::icon_url( 'check' ) ); ?>" width="18" height="18" alt="" class="sscribe-check-icon">
 										</div>
 									</div>
 								</label>
 							<?php endforeach; ?>
 						</div>
 					</fieldset>
-				<?php else: ?>
+				<?php else : ?>
 					<p class="sscribe-description">
 						<?php
 						/* translators: %d: Number of pages. */
-						echo esc_html(sprintf(__('Ready to export %d pages into beautiful documents.', 'sscribe-export-site-pages'), intval($total_pages_all)));
+						echo esc_html( sprintf( __( 'Ready to export %d pages into beautiful documents.', 'sscribe-export-site-pages' ), intval( $total_pages_all ) ) );
 						?>
 					</p>
 				<?php endif; ?>
 
 				<fieldset class="sscribe-fieldset">
 					<legend class="sscribe-fieldset-legend">
-						<img src="<?php echo esc_url(SScribe_Helpers::icon_url('check-circle')); ?>" width="16" height="16" alt="" class="sscribe-legend-icon">
-						<?php esc_html_e('Page Status', 'sscribe-export-site-pages'); ?>
+						<img src="<?php echo esc_url( SScribe_Helpers::icon_url( 'check-circle' ) ); ?>" width="16" height="16" alt="" class="sscribe-legend-icon">
+						<?php esc_html_e( 'Page Status', 'sscribe-export-site-pages' ); ?>
 					</legend>
 					<div class="sscribe-status-cards" id="sscribe-status-cards">
 						<?php
 						$sscribe_status_labels = array(
-							'publish' => __('Published', 'sscribe-export-site-pages'),
-							'draft'   => __('Draft', 'sscribe-export-site-pages'),
-							'private' => __('Private', 'sscribe-export-site-pages'),
-							'future'  => __('Scheduled', 'sscribe-export-site-pages'),
-							'pending' => __('Pending', 'sscribe-export-site-pages'),
-							'all'     => __('All Statuses', 'sscribe-export-site-pages'),
+							'publish' => __( 'Published', 'sscribe-export-site-pages' ),
+							'draft'   => __( 'Draft', 'sscribe-export-site-pages' ),
+							'private' => __( 'Private', 'sscribe-export-site-pages' ),
+							'future'  => __( 'Scheduled', 'sscribe-export-site-pages' ),
+							'pending' => __( 'Pending', 'sscribe-export-site-pages' ),
+							'all'     => __( 'All Statuses', 'sscribe-export-site-pages' ),
 						);
-						$sscribe_status_icons = array(
+						$sscribe_status_icons  = array(
 							'publish' => 'check-circle',
 							'draft'   => 'file-text',
 							'private' => 'warning-circle',
@@ -147,25 +147,26 @@ $sscribe_is_debug   = $sscribe_is_debug ?? false;
 							'pending' => 'clock',
 							'all'     => 'list',
 						);
-						$sscribe_first = true;
-						foreach ($sscribe_status_labels as $sscribe_status_key => $sscribe_status_label):
-							$sscribe_count    = isset($status_counts[$sscribe_status_key]) ? intval($status_counts[$sscribe_status_key]) : 0;
-							$sscribe_is_zero  = ($sscribe_count === 0);
-							$sscribe_is_first = $sscribe_first && !$sscribe_is_zero;
-							if ($sscribe_is_first) { $sscribe_first = false; }
-						?>
+						$sscribe_first         = true;
+						foreach ( $sscribe_status_labels as $sscribe_status_key => $sscribe_status_label ) :
+							$sscribe_count    = isset( $status_counts[ $sscribe_status_key ] ) ? intval( $status_counts[ $sscribe_status_key ] ) : 0;
+							$sscribe_is_zero  = ( $sscribe_count === 0 );
+							$sscribe_is_first = $sscribe_first && ! $sscribe_is_zero;
+							if ( $sscribe_is_first ) {
+								$sscribe_first = false; }
+							?>
 						<label class="sscribe-status-card-label<?php echo $sscribe_is_zero ? ' sscribe-status-disabled' : ''; ?>">
-							<input type="radio" name="sscribe_post_status" value="<?php echo esc_attr($sscribe_status_key); ?>" <?php checked($sscribe_is_first); ?><?php echo $sscribe_is_zero ? ' disabled' : ''; ?>>
+							<input type="radio" name="sscribe_post_status" value="<?php echo esc_attr( $sscribe_status_key ); ?>" <?php checked( $sscribe_is_first ); ?><?php echo $sscribe_is_zero ? ' disabled' : ''; ?>>
 							<div class="sscribe-status-card-inner">
 								<div class="sscribe-status-icon">
-									<img src="<?php echo esc_url(SScribe_Helpers::icon_url($sscribe_status_icons[$sscribe_status_key])); ?>" width="18" height="18" alt="">
+									<img src="<?php echo esc_url( SScribe_Helpers::icon_url( $sscribe_status_icons[ $sscribe_status_key ] ) ); ?>" width="18" height="18" alt="">
 								</div>
 								<div class="sscribe-status-meta">
-									<span class="sscribe-status-name"><?php echo esc_html($sscribe_status_label); ?></span>
-									<span class="sscribe-status-count" data-status="<?php echo esc_attr($sscribe_status_key); ?>"><?php echo esc_html(number_format_i18n($sscribe_count)); ?></span>
+									<span class="sscribe-status-name"><?php echo esc_html( $sscribe_status_label ); ?></span>
+									<span class="sscribe-status-count" data-status="<?php echo esc_attr( $sscribe_status_key ); ?>"><?php echo esc_html( number_format_i18n( $sscribe_count ) ); ?></span>
 								</div>
 								<div class="sscribe-status-selector">
-									<img src="<?php echo esc_url(SScribe_Helpers::icon_url('check')); ?>" width="16" height="16" alt="" class="sscribe-check-icon">
+									<img src="<?php echo esc_url( SScribe_Helpers::icon_url( 'check' ) ); ?>" width="16" height="16" alt="" class="sscribe-check-icon">
 								</div>
 							</div>
 						</label>
@@ -175,62 +176,62 @@ $sscribe_is_debug   = $sscribe_is_debug ?? false;
 
 				<fieldset class="sscribe-fieldset">
 					<legend class="sscribe-fieldset-legend">
-						<img src="<?php echo esc_url(SScribe_Helpers::icon_url('file-text')); ?>" width="16" height="16" alt="" class="sscribe-legend-icon">
-						<?php esc_html_e('Export Format', 'sscribe-export-site-pages'); ?>
+						<img src="<?php echo esc_url( SScribe_Helpers::icon_url( 'file-text' ) ); ?>" width="16" height="16" alt="" class="sscribe-legend-icon">
+						<?php esc_html_e( 'Export Format', 'sscribe-export-site-pages' ); ?>
 					</legend>
 					<div class="sscribe-format-cards" id="sscribe-format-cards">
 						<label class="sscribe-format-card-label sscribe-format-all">
 							<input type="radio" name="sscribe_format" value="all" checked>
 							<div class="sscribe-format-card-inner">
 								<div class="sscribe-format-icon">
-									<img src="<?php echo esc_url(SScribe_Helpers::icon_url('download-package')); ?>" width="24" height="24" alt="">
+									<img src="<?php echo esc_url( SScribe_Helpers::icon_url( 'download-package' ) ); ?>" width="24" height="24" alt="">
 								</div>
 								<div class="sscribe-format-meta">
-									<span class="sscribe-format-name"><?php esc_html_e('All Formats', 'sscribe-export-site-pages'); ?></span>
-									<span class="sscribe-format-desc"><?php esc_html_e('DOCX, PDF, HTML, Markdown', 'sscribe-export-site-pages'); ?></span>
+									<span class="sscribe-format-name"><?php esc_html_e( 'All Formats', 'sscribe-export-site-pages' ); ?></span>
+									<span class="sscribe-format-desc"><?php esc_html_e( 'DOCX, PDF, HTML, Markdown', 'sscribe-export-site-pages' ); ?></span>
 								</div>
 								<div class="sscribe-format-selector">
-									<img src="<?php echo esc_url(SScribe_Helpers::icon_url('check')); ?>" width="16" height="16" alt="" class="sscribe-check-icon">
+									<img src="<?php echo esc_url( SScribe_Helpers::icon_url( 'check' ) ); ?>" width="16" height="16" alt="" class="sscribe-check-icon">
 								</div>
 							</div>
 						</label>
 						<?php
 						$sscribe_formats = array(
-							'docx' => array(
-								'label' => __('Word Document (DOCX)', 'sscribe-export-site-pages'),
+							'docx'     => array(
+								'label' => __( 'Word Document (DOCX)', 'sscribe-export-site-pages' ),
 								'icon'  => 'file-doc',
-								'desc'  => __('~1.2 seconds per page', 'sscribe-export-site-pages'),
+								'desc'  => __( '~1.2 seconds per page', 'sscribe-export-site-pages' ),
 							),
-							'pdf' => array(
-								'label' => __('PDF Document', 'sscribe-export-site-pages'),
+							'pdf'      => array(
+								'label' => __( 'PDF Document', 'sscribe-export-site-pages' ),
 								'icon'  => 'file-pdf',
-								'desc'  => __('~8 seconds per page', 'sscribe-export-site-pages'),
+								'desc'  => __( '~8 seconds per page', 'sscribe-export-site-pages' ),
 							),
-							'html' => array(
-								'label' => __('HTML Page', 'sscribe-export-site-pages'),
+							'html'     => array(
+								'label' => __( 'HTML Page', 'sscribe-export-site-pages' ),
 								'icon'  => 'file-html',
-								'desc'  => __('~1 second per page', 'sscribe-export-site-pages'),
+								'desc'  => __( '~1 second per page', 'sscribe-export-site-pages' ),
 							),
 							'markdown' => array(
-								'label' => __('Markdown', 'sscribe-export-site-pages'),
+								'label' => __( 'Markdown', 'sscribe-export-site-pages' ),
 								'icon'  => 'file-md',
-								'desc'  => __('~0.5 seconds per page', 'sscribe-export-site-pages'),
+								'desc'  => __( '~0.5 seconds per page', 'sscribe-export-site-pages' ),
 							),
 						);
-						foreach ($sscribe_formats as $sscribe_format_key => $sscribe_format_data):
-						?>
+						foreach ( $sscribe_formats as $sscribe_format_key => $sscribe_format_data ) :
+							?>
 						<label class="sscribe-format-card-label">
-							<input type="radio" name="sscribe_format" value="<?php echo esc_attr($sscribe_format_key); ?>">
+							<input type="radio" name="sscribe_format" value="<?php echo esc_attr( $sscribe_format_key ); ?>">
 							<div class="sscribe-format-card-inner">
 								<div class="sscribe-format-icon">
-									<img src="<?php echo esc_url(SScribe_Helpers::icon_url($sscribe_format_data['icon'])); ?>" width="24" height="24" alt="">
+									<img src="<?php echo esc_url( SScribe_Helpers::icon_url( $sscribe_format_data['icon'] ) ); ?>" width="24" height="24" alt="">
 								</div>
 								<div class="sscribe-format-meta">
-									<span class="sscribe-format-name"><?php echo esc_html($sscribe_format_data['label']); ?></span>
-									<span class="sscribe-format-desc"><?php echo esc_html($sscribe_format_data['desc']); ?></span>
+									<span class="sscribe-format-name"><?php echo esc_html( $sscribe_format_data['label'] ); ?></span>
+									<span class="sscribe-format-desc"><?php echo esc_html( $sscribe_format_data['desc'] ); ?></span>
 								</div>
 								<div class="sscribe-format-selector">
-									<img src="<?php echo esc_url(SScribe_Helpers::icon_url('check')); ?>" width="16" height="16" alt="" class="sscribe-check-icon">
+									<img src="<?php echo esc_url( SScribe_Helpers::icon_url( 'check' ) ); ?>" width="16" height="16" alt="" class="sscribe-check-icon">
 								</div>
 							</div>
 						</label>
@@ -240,22 +241,22 @@ $sscribe_is_debug   = $sscribe_is_debug ?? false;
 
 				<div class="sscribe-action-row">
 					<div id="sscribe-time-estimate" class="sscribe-time-estimate">
-						<img src="<?php echo esc_url(SScribe_Helpers::icon_url('clock')); ?>" width="14" height="14" alt="">
-						<span id="sscribe-time-estimate-text"><?php esc_html_e('Select options to see estimated time', 'sscribe-export-site-pages'); ?></span>
+						<img src="<?php echo esc_url( SScribe_Helpers::icon_url( 'clock' ) ); ?>" width="14" height="14" alt="">
+						<span id="sscribe-time-estimate-text"><?php esc_html_e( 'Select options to see estimated time', 'sscribe-export-site-pages' ); ?></span>
 					</div>
 					<button type="button" id="sscribe-export-btn" class="sscribe-button sscribe-button-primary" disabled>
-						<img src="<?php echo esc_url(SScribe_Helpers::icon_url('download-package')); ?>" width="20" height="20" alt="">
-						<span id="sscribe-export-btn-text"><?php esc_html_e('Generate Documentation Package', 'sscribe-export-site-pages'); ?></span>
+						<img src="<?php echo esc_url( SScribe_Helpers::icon_url( 'download-package' ) ); ?>" width="20" height="20" alt="">
+						<span id="sscribe-export-btn-text"><?php esc_html_e( 'Generate Documentation Package', 'sscribe-export-site-pages' ); ?></span>
 					</button>
 				</div>
 
 				<div id="sscribe-progress-area" class="sscribe-status-alert sscribe-status-processing sscribe-hidden">
 					<div class="sscribe-spinner">
-						<img src="<?php echo esc_url(SScribe_Helpers::icon_url('loader')); ?>" width="40" height="40" alt="" class="sscribe-spinner-img">
+						<img src="<?php echo esc_url( SScribe_Helpers::icon_url( 'loader' ) ); ?>" width="40" height="40" alt="" class="sscribe-spinner-img">
 					</div>
 					<div class="sscribe-status-info">
 						<h4 id="sscribe-status-text" class="sscribe-status-heading">
-							<?php esc_html_e('Connecting & fetching pages...', 'sscribe-export-site-pages'); ?>
+							<?php esc_html_e( 'Connecting & fetching pages...', 'sscribe-export-site-pages' ); ?>
 						</h4>
 						<p id="sscribe-current-page" class="sscribe-current-page"></p>
 						<div class="sscribe-progress-tracker">
@@ -268,29 +269,29 @@ $sscribe_is_debug   = $sscribe_is_debug ?? false;
 							<span id="sscribe-time-remaining" class="sscribe-time-remaining"></span>
 						</div>
 						<button type="button" id="sscribe-cancel-btn" class="sscribe-button sscribe-button-cancel">
-							<?php esc_html_e('Cancel Export', 'sscribe-export-site-pages'); ?>
+							<?php esc_html_e( 'Cancel Export', 'sscribe-export-site-pages' ); ?>
 						</button>
 					</div>
 				</div>
 
 				<div id="sscribe-download-area" class="sscribe-status-alert sscribe-status-success sscribe-hidden">
 					<div class="sscribe-status-icon">
-						<img src="<?php echo esc_url(SScribe_Helpers::icon_url('check-circle')); ?>" width="32" height="32" alt="">
+						<img src="<?php echo esc_url( SScribe_Helpers::icon_url( 'check-circle' ) ); ?>" width="32" height="32" alt="">
 					</div>
 					<div class="sscribe-status-info">
 						<h4 class="sscribe-status-heading">
-							<?php esc_html_e('Export Completed Successfully', 'sscribe-export-site-pages'); ?>
+							<?php esc_html_e( 'Export Completed Successfully', 'sscribe-export-site-pages' ); ?>
 						</h4>
 						<p class="sscribe-status-desc">
-							<?php esc_html_e('All selected pages have been packaged into a ZIP archive.', 'sscribe-export-site-pages'); ?>
+							<?php esc_html_e( 'All selected pages have been packaged into a ZIP archive.', 'sscribe-export-site-pages' ); ?>
 						</p>
 						<div class="sscribe-success-actions">
 							<a id="sscribe-download-btn" href="#" class="sscribe-button sscribe-button-success" download>
-								<img src="<?php echo esc_url(SScribe_Helpers::icon_url('download-package')); ?>" width="18" height="18" alt="">
-								<?php esc_html_e('Download ZIP File', 'sscribe-export-site-pages'); ?>
+								<img src="<?php echo esc_url( SScribe_Helpers::icon_url( 'download-package' ) ); ?>" width="18" height="18" alt="">
+								<?php esc_html_e( 'Download ZIP File', 'sscribe-export-site-pages' ); ?>
 							</a>
 							<button type="button" id="sscribe-retry-btn" class="sscribe-button sscribe-button-ghost">
-								<?php esc_html_e('Start New Export', 'sscribe-export-site-pages'); ?>
+								<?php esc_html_e( 'Start New Export', 'sscribe-export-site-pages' ); ?>
 							</button>
 						</div>
 					</div>
@@ -298,17 +299,17 @@ $sscribe_is_debug   = $sscribe_is_debug ?? false;
 
 				<div id="sscribe-error-area" class="sscribe-status-alert sscribe-status-error sscribe-hidden">
 					<div class="sscribe-status-icon">
-						<img src="<?php echo esc_url(SScribe_Helpers::icon_url('warning-circle')); ?>" width="32" height="32" alt="">
+						<img src="<?php echo esc_url( SScribe_Helpers::icon_url( 'warning-circle' ) ); ?>" width="32" height="32" alt="">
 					</div>
 					<div class="sscribe-status-info">
 						<h4 class="sscribe-status-heading">
-							<?php esc_html_e('Export Failed', 'sscribe-export-site-pages'); ?>
+							<?php esc_html_e( 'Export Failed', 'sscribe-export-site-pages' ); ?>
 						</h4>
 						<p id="sscribe-error-text" class="sscribe-status-desc"></p>
 						<div class="sscribe-error-actions">
 							<button type="button" id="sscribe-error-try-again" class="sscribe-button sscribe-button-secondary">
-								<img src="<?php echo esc_url(SScribe_Helpers::icon_url('refresh-cw')); ?>" width="16" height="16" alt="">
-								<?php esc_html_e('Try Again', 'sscribe-export-site-pages'); ?>
+								<img src="<?php echo esc_url( SScribe_Helpers::icon_url( 'refresh-cw' ) ); ?>" width="16" height="16" alt="">
+								<?php esc_html_e( 'Try Again', 'sscribe-export-site-pages' ); ?>
 							</button>
 						</div>
 					</div>
@@ -321,49 +322,49 @@ $sscribe_is_debug   = $sscribe_is_debug ?? false;
 				<section class="sscribe-panel">
 					<div class="sscribe-panel-header">
 						<div class="sscribe-panel-title">
-							<img src="<?php echo esc_url(SScribe_Helpers::icon_url('clock')); ?>" width="20" height="20" alt="" class="sscribe-icon-img">
-							<h2><?php esc_html_e('Recent Exports', 'sscribe-export-site-pages'); ?></h2>
+							<img src="<?php echo esc_url( SScribe_Helpers::icon_url( 'clock' ) ); ?>" width="20" height="20" alt="" class="sscribe-icon-img">
+							<h2><?php esc_html_e( 'Recent Exports', 'sscribe-export-site-pages' ); ?></h2>
 						</div>
-						<span class="sscribe-badge"><?php esc_html_e('Auto-deletes in 1 hour', 'sscribe-export-site-pages'); ?></span>
+						<span class="sscribe-badge"><?php esc_html_e( 'Auto-deletes in 1 hour', 'sscribe-export-site-pages' ); ?></span>
 					</div>
 					<div class="sscribe-history-table" id="sscribe-history-table">
-						<?php if (!empty($recent_exports)): ?>
-							<?php foreach ($recent_exports as $sscribe_export): ?>
-								<div class="sscribe-history-row" data-filename="<?php echo esc_attr($sscribe_export['filename']); ?>">
+						<?php if ( ! empty( $recent_exports ) ) : ?>
+							<?php foreach ( $recent_exports as $sscribe_export ) : ?>
+								<div class="sscribe-history-row" data-filename="<?php echo esc_attr( $sscribe_export['filename'] ); ?>">
 									<div class="sscribe-history-file">
 										<div class="sscribe-file-icon">
-											<?php if (!empty($sscribe_export['flag_url'])): ?>
-												<img src="<?php echo esc_url($sscribe_export['flag_url']); ?>" alt="<?php echo esc_attr($sscribe_export['lang_name']); ?>" class="sscribe-file-icon-img">
-											<?php else: ?>
-												<span class="sscribe-file-icon-text"><?php echo esc_html(strtoupper(substr($sscribe_export['lang_code'], 0, 2))); ?></span>
+											<?php if ( ! empty( $sscribe_export['flag_url'] ) ) : ?>
+												<img src="<?php echo esc_url( $sscribe_export['flag_url'] ); ?>" alt="<?php echo esc_attr( $sscribe_export['lang_name'] ); ?>" class="sscribe-file-icon-img">
+											<?php else : ?>
+												<span class="sscribe-file-icon-text"><?php echo esc_html( strtoupper( substr( $sscribe_export['lang_code'], 0, 2 ) ) ); ?></span>
 											<?php endif; ?>
 										</div>
 										<div class="sscribe-file-details">
-											<strong><?php echo esc_html($sscribe_export['filename']); ?></strong>
+											<strong><?php echo esc_html( $sscribe_export['filename'] ); ?></strong>
 											<span>
-												<?php echo esc_html(date_i18n(get_option('date_format') . ' ' . get_option('time_format'), $sscribe_export['time'])); ?>
-												&mdash; <?php echo esc_html(size_format($sscribe_export['size'])); ?>
+												<?php echo esc_html( date_i18n( get_option( 'date_format' ) . ' ' . get_option( 'time_format' ), $sscribe_export['time'] ) ); ?>
+												&mdash; <?php echo esc_html( size_format( $sscribe_export['size'] ) ); ?>
 											</span>
 										</div>
 									</div>
 									<div class="sscribe-history-actions">
-										<a href="<?php echo esc_url($sscribe_export['url']); ?>" class="sscribe-button sscribe-button-outline sscribe-button-sm" download>
-											<img src="<?php echo esc_url(SScribe_Helpers::icon_url('download-file')); ?>" width="14" height="14" alt="">
-											<?php esc_html_e('Download', 'sscribe-export-site-pages'); ?>
+										<a href="<?php echo esc_url( $sscribe_export['url'] ); ?>" class="sscribe-button sscribe-button-outline sscribe-button-sm" download>
+											<img src="<?php echo esc_url( SScribe_Helpers::icon_url( 'download-file' ) ); ?>" width="14" height="14" alt="">
+											<?php esc_html_e( 'Download', 'sscribe-export-site-pages' ); ?>
 										</a>
-										<button type="button" class="sscribe-button sscribe-button-outline sscribe-button-sm sscribe-log-btn" data-filename="<?php echo esc_attr($sscribe_export['filename']); ?>">
-											<img src="<?php echo esc_url(SScribe_Helpers::icon_url('file-log')); ?>" width="14" height="14" alt="">
-											<?php esc_html_e('Log', 'sscribe-export-site-pages'); ?>
+										<button type="button" class="sscribe-button sscribe-button-outline sscribe-button-sm sscribe-log-btn" data-filename="<?php echo esc_attr( $sscribe_export['filename'] ); ?>">
+											<img src="<?php echo esc_url( SScribe_Helpers::icon_url( 'file-log' ) ); ?>" width="14" height="14" alt="">
+											<?php esc_html_e( 'Log', 'sscribe-export-site-pages' ); ?>
 										</button>
-										<button type="button" class="sscribe-button sscribe-button-outline sscribe-button-sm sscribe-delete-btn" data-filename="<?php echo esc_attr($sscribe_export['filename']); ?>">
-											<img src="<?php echo esc_url(SScribe_Helpers::icon_url('trash')); ?>" width="14" height="14" alt="" class="sscribe-delete-icon">
+										<button type="button" class="sscribe-button sscribe-button-outline sscribe-button-sm sscribe-delete-btn" data-filename="<?php echo esc_attr( $sscribe_export['filename'] ); ?>">
+											<img src="<?php echo esc_url( SScribe_Helpers::icon_url( 'trash' ) ); ?>" width="14" height="14" alt="" class="sscribe-delete-icon">
 										</button>
 									</div>
 								</div>
 							<?php endforeach; ?>
-						<?php else: ?>
+						<?php else : ?>
 							<div class="sscribe-history-empty">
-								<em><?php esc_html_e('Your recent export packages will appear here.', 'sscribe-export-site-pages'); ?></em>
+								<em><?php esc_html_e( 'Your recent export packages will appear here.', 'sscribe-export-site-pages' ); ?></em>
 							</div>
 						<?php endif; ?>
 					</div>
@@ -372,8 +373,8 @@ $sscribe_is_debug   = $sscribe_is_debug ?? false;
 				<section class="sscribe-panel">
 					<div class="sscribe-panel-header">
 						<div class="sscribe-panel-title">
-							<img src="<?php echo esc_url(SScribe_Helpers::icon_url('list-checks')); ?>" width="20" height="20" alt="" class="sscribe-icon-img">
-							<h2><?php esc_html_e('What Each Document Includes', 'sscribe-export-site-pages'); ?></h2>
+							<img src="<?php echo esc_url( SScribe_Helpers::icon_url( 'list-checks' ) ); ?>" width="20" height="20" alt="" class="sscribe-icon-img">
+							<h2><?php esc_html_e( 'What Each Document Includes', 'sscribe-export-site-pages' ); ?></h2>
 						</div>
 					</div>
 					<div class="sscribe-panel-body">
@@ -381,72 +382,72 @@ $sscribe_is_debug   = $sscribe_is_debug ?? false;
 							<?php
 							$sscribe_features = array(
 								array(
-									'title' => __('Page Title', 'sscribe-export-site-pages'),
-									'desc'  => __('Main H1 heading with proper styling', 'sscribe-export-site-pages'),
+									'title' => __( 'Page Title', 'sscribe-export-site-pages' ),
+									'desc'  => __( 'Main H1 heading with proper styling', 'sscribe-export-site-pages' ),
 									'icon'  => 'file-text',
 									'color' => '#2563EB',
 									'bg'    => '#DBEAFE',
 								),
 								array(
-									'title' => __('Page Content', 'sscribe-export-site-pages'),
-									'desc'  => __('Full HTML content converted to documents', 'sscribe-export-site-pages'),
+									'title' => __( 'Page Content', 'sscribe-export-site-pages' ),
+									'desc'  => __( 'Full HTML content converted to documents', 'sscribe-export-site-pages' ),
 									'icon'  => 'file-doc',
 									'color' => '#059669',
 									'bg'    => '#D1FAE5',
 								),
 								array(
-									'title' => __('SEO Metadata', 'sscribe-export-site-pages'),
-									'desc'  => __('Meta title, description, focus keyword', 'sscribe-export-site-pages'),
+									'title' => __( 'SEO Metadata', 'sscribe-export-site-pages' ),
+									'desc'  => __( 'Meta title, description, focus keyword', 'sscribe-export-site-pages' ),
 									'icon'  => 'search',
 									'color' => '#7C3AED',
 									'bg'    => '#EDE9FE',
 								),
 								array(
-									'title' => __('URL & Permalink', 'sscribe-export-site-pages'),
-									'desc'  => __('Full page URL for reference', 'sscribe-export-site-pages'),
+									'title' => __( 'URL & Permalink', 'sscribe-export-site-pages' ),
+									'desc'  => __( 'Full page URL for reference', 'sscribe-export-site-pages' ),
 									'icon'  => 'link',
 									'color' => '#0891B2',
 									'bg'    => '#CFFAFE',
 								),
 								array(
-									'title' => __('Author Info', 'sscribe-export-site-pages'),
-									'desc'  => __('Page author name', 'sscribe-export-site-pages'),
+									'title' => __( 'Author Info', 'sscribe-export-site-pages' ),
+									'desc'  => __( 'Page author name', 'sscribe-export-site-pages' ),
 									'icon'  => 'user',
 									'color' => '#DC2626',
 									'bg'    => '#FEE2E2',
 								),
 								array(
-									'title' => __('Dates', 'sscribe-export-site-pages'),
-									'desc'  => __('Published and modified dates', 'sscribe-export-site-pages'),
+									'title' => __( 'Dates', 'sscribe-export-site-pages' ),
+									'desc'  => __( 'Published and modified dates', 'sscribe-export-site-pages' ),
 									'icon'  => 'calendar',
 									'color' => '#D97706',
 									'bg'    => '#FEF3C7',
 								),
 								array(
-									'title' => __('Parent Page', 'sscribe-export-site-pages'),
-									'desc'  => __('Breadcrumb hierarchy', 'sscribe-export-site-pages'),
+									'title' => __( 'Parent Page', 'sscribe-export-site-pages' ),
+									'desc'  => __( 'Breadcrumb hierarchy', 'sscribe-export-site-pages' ),
 									'icon'  => 'list',
 									'color' => '#0EA5E9',
 									'bg'    => '#E0F2FE',
 								),
 								array(
-									'title' => __('Featured Image', 'sscribe-export-site-pages'),
-									'desc'  => __('Thumbnail when available', 'sscribe-export-site-pages'),
+									'title' => __( 'Featured Image', 'sscribe-export-site-pages' ),
+									'desc'  => __( 'Thumbnail when available', 'sscribe-export-site-pages' ),
 									'icon'  => 'image',
 									'color' => '#EC4899',
 									'bg'    => '#FCE7F3',
 								),
 							);
 
-							foreach ($sscribe_features as $sscribe_feature):
-							?>
+							foreach ( $sscribe_features as $sscribe_feature ) :
+								?>
 							<div class="sscribe-feature-item">
-								<div class="sscribe-feature-icon" style="background-color: <?php echo esc_attr($sscribe_feature['bg']); ?>;">
-									<img src="<?php echo esc_url(SScribe_Helpers::icon_url($sscribe_feature['icon'])); ?>" width="20" height="20" alt="">
+								<div class="sscribe-feature-icon" style="background-color: <?php echo esc_attr( $sscribe_feature['bg'] ); ?>;">
+									<img src="<?php echo esc_url( SScribe_Helpers::icon_url( $sscribe_feature['icon'] ) ); ?>" width="20" height="20" alt="">
 								</div>
 								<div class="sscribe-feature-text">
-									<h4><?php echo esc_html($sscribe_feature['title']); ?></h4>
-									<p><?php echo esc_html($sscribe_feature['desc']); ?></p>
+									<h4><?php echo esc_html( $sscribe_feature['title'] ); ?></h4>
+									<p><?php echo esc_html( $sscribe_feature['desc'] ); ?></p>
 								</div>
 							</div>
 							<?php endforeach; ?>
@@ -459,18 +460,18 @@ $sscribe_is_debug   = $sscribe_is_debug ?? false;
 				<section class="sscribe-panel">
 					<div class="sscribe-panel-header">
 						<div class="sscribe-panel-title">
-							<img src="<?php echo esc_url(SScribe_Helpers::icon_url('file-doc')); ?>" width="18" height="18" alt="" class="sscribe-icon-img">
-							<h3><?php esc_html_e('Document Format', 'sscribe-export-site-pages'); ?></h3>
+							<img src="<?php echo esc_url( SScribe_Helpers::icon_url( 'file-doc' ) ); ?>" width="18" height="18" alt="" class="sscribe-icon-img">
+							<h3><?php esc_html_e( 'Document Format', 'sscribe-export-site-pages' ); ?></h3>
 						</div>
 					</div>
 					<div class="sscribe-panel-body sscribe-p-md">
 						<ul class="sscribe-check-list">
-							<li><?php esc_html_e('Standard Arial Typography', 'sscribe-export-site-pages'); ?></li>
-							<li><?php esc_html_e('Letter (8.5 x 11 in) Layout', 'sscribe-export-site-pages'); ?></li>
-							<li><?php esc_html_e('1-Inch Margins', 'sscribe-export-site-pages'); ?></li>
-							<li><?php esc_html_e('Strict H1-H6 Hierarchies', 'sscribe-export-site-pages'); ?></li>
-							<li><?php esc_html_e('Auto-Numerated Pages', 'sscribe-export-site-pages'); ?></li>
-							<li><?php esc_html_e('Verified Word Compatibility', 'sscribe-export-site-pages'); ?></li>
+							<li><?php esc_html_e( 'Standard Arial Typography', 'sscribe-export-site-pages' ); ?></li>
+							<li><?php esc_html_e( 'Letter (8.5 x 11 in) Layout', 'sscribe-export-site-pages' ); ?></li>
+							<li><?php esc_html_e( '1-Inch Margins', 'sscribe-export-site-pages' ); ?></li>
+							<li><?php esc_html_e( 'Strict H1-H6 Hierarchies', 'sscribe-export-site-pages' ); ?></li>
+							<li><?php esc_html_e( 'Auto-Numerated Pages', 'sscribe-export-site-pages' ); ?></li>
+							<li><?php esc_html_e( 'Verified Word Compatibility', 'sscribe-export-site-pages' ); ?></li>
 						</ul>
 					</div>
 				</section>
@@ -478,29 +479,29 @@ $sscribe_is_debug   = $sscribe_is_debug ?? false;
 				<section class="sscribe-panel">
 					<div class="sscribe-panel-header">
 						<div class="sscribe-panel-title">
-							<img src="<?php echo esc_url(SScribe_Helpers::icon_url('search')); ?>" width="18" height="18" alt="" class="sscribe-icon-img">
-							<h3><?php esc_html_e('SEO Support Matrix', 'sscribe-export-site-pages'); ?></h3>
+							<img src="<?php echo esc_url( SScribe_Helpers::icon_url( 'search' ) ); ?>" width="18" height="18" alt="" class="sscribe-icon-img">
+							<h3><?php esc_html_e( 'SEO Support Matrix', 'sscribe-export-site-pages' ); ?></h3>
 						</div>
 					</div>
 					<div class="sscribe-panel-body sscribe-p-md">
 						<ul class="sscribe-check-list">
-							<li><?php esc_html_e('Yoast SEO Premium & Free', 'sscribe-export-site-pages'); ?></li>
-							<li><?php esc_html_e('Rank Math Pro & Free', 'sscribe-export-site-pages'); ?></li>
-							<li><?php esc_html_e('All in One SEO (AIOSEO)', 'sscribe-export-site-pages'); ?></li>
-							<li><?php esc_html_e('SEOPress', 'sscribe-export-site-pages'); ?></li>
-							<li><?php esc_html_e('The SEO Framework', 'sscribe-export-site-pages'); ?></li>
+							<li><?php esc_html_e( 'Yoast SEO Premium & Free', 'sscribe-export-site-pages' ); ?></li>
+							<li><?php esc_html_e( 'Rank Math Pro & Free', 'sscribe-export-site-pages' ); ?></li>
+							<li><?php esc_html_e( 'All in One SEO (AIOSEO)', 'sscribe-export-site-pages' ); ?></li>
+							<li><?php esc_html_e( 'SEOPress', 'sscribe-export-site-pages' ); ?></li>
+							<li><?php esc_html_e( 'The SEO Framework', 'sscribe-export-site-pages' ); ?></li>
 						</ul>
 					</div>
 				</section>
 
 				<div class="sscribe-callout">
 					<div class="sscribe-callout-header">
-						<img src="<?php echo esc_url(SScribe_Helpers::icon_url('info')); ?>" width="18" height="18" alt="">
-						<strong><?php esc_html_e('System Security Tips', 'sscribe-export-site-pages'); ?></strong>
+						<img src="<?php echo esc_url( SScribe_Helpers::icon_url( 'info' ) ); ?>" width="18" height="18" alt="">
+						<strong><?php esc_html_e( 'System Security Tips', 'sscribe-export-site-pages' ); ?></strong>
 					</div>
 					<div class="sscribe-callout-body">
-						<p><?php esc_html_e('All exported ZIP archives are automatically purged from your server after 1 hour.', 'sscribe-export-site-pages'); ?></p>
-						<p><?php esc_html_e('Data generation happens in batched cycles to ensure reliable conversion without hitting PHP limits.', 'sscribe-export-site-pages'); ?></p>
+						<p><?php esc_html_e( 'All exported ZIP archives are automatically purged from your server after 1 hour.', 'sscribe-export-site-pages' ); ?></p>
+						<p><?php esc_html_e( 'Data generation happens in batched cycles to ensure reliable conversion without hitting PHP limits.', 'sscribe-export-site-pages' ); ?></p>
 					</div>
 				</div>
 			</div>
@@ -511,13 +512,13 @@ $sscribe_is_debug   = $sscribe_is_debug ?? false;
 <div id="sscribe-log-modal" class="sscribe-modal sscribe-hidden">
 	<div class="sscribe-modal-content">
 		<div class="sscribe-modal-header">
-			<h3><?php esc_html_e('Export Log', 'sscribe-export-site-pages'); ?></h3>
+			<h3><?php esc_html_e( 'Export Log', 'sscribe-export-site-pages' ); ?></h3>
 			<button type="button" class="sscribe-modal-close" id="sscribe-modal-close" aria-label="Close modal">&times;</button>
 		</div>
 		<div class="sscribe-modal-body" id="sscribe-log-content">
 			<div class="sscribe-log-loading">
-				<img src="<?php echo esc_url(SScribe_Helpers::icon_url('loader')); ?>" width="24" height="24" alt="" class="sscribe-spinner-img">
-				<span><?php esc_html_e('Loading log...', 'sscribe-export-site-pages'); ?></span>
+				<img src="<?php echo esc_url( SScribe_Helpers::icon_url( 'loader' ) ); ?>" width="24" height="24" alt="" class="sscribe-spinner-img">
+				<span><?php esc_html_e( 'Loading log...', 'sscribe-export-site-pages' ); ?></span>
 			</div>
 		</div>
 	</div>
