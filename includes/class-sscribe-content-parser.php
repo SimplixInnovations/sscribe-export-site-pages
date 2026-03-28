@@ -492,7 +492,7 @@ class SScribe_Content_Parser {
 	 * Detect button-like elements inside a paragraph.
 	 *
 	 * @param DOMNode $node The paragraph node.
-	 * @return array|null Button element data or null.
+	 * @return array|false Button element data or false.
 	 */
 	private function detect_button( \DOMNode $node ): array|false {
 		// Look for links with button-like classes.
@@ -684,9 +684,9 @@ class SScribe_Content_Parser {
 	 * Try to convert a URL to a local file path.
 	 *
 	 * @param string $url The image URL.
-	 * @return string Local file path or empty string.
+	 * @return string Local file path or empty string if not found/invalid.
 	 */
-	private function url_to_local_path( string $url ): string|false {
+	private function url_to_local_path( string $url ): string {
 		$upload_dir  = $this->get_upload_dir();
 		$upload_url  = $upload_dir['baseurl'];
 		$upload_path = realpath( $upload_dir['basedir'] );

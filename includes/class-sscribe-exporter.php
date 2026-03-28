@@ -84,19 +84,13 @@ class SScribe_Exporter {
 		$this->parser = new SScribe_Content_Parser();
 	}
 
-	/**
-	 * Make a string safe for PHPWord / XML 1.0 output.
-	 *
-	 * Strips characters that are illegal or problematic in XML 1.0:
-	 * - Control characters (except tab, LF, CR which XML allows)
-	 * - XML non-characters: U+FFFE, U+FFFF
-	 * - Unicode surrogates: U+D800-U+DFFF
-	 * - Zero-width and invisible formatting chars that cause issues
+/**
+	 * Clean text for safe XML 1.0 output.
 	 *
 	 * Note: We preserve Unicode characters (including Arabic, CJK, etc.) as PHPWord
 	 * handles them correctly with proper encoding.
 	 *
-	 * @param mixed $text Input value (will be cast to string).
+	 * @param string $text Input value.
 	 * @return string Cleaned, XML 1.0-safe string.
 	 */
 	private function safe_text( string $text ): string {
