@@ -189,11 +189,11 @@ class SScribe_Content_Parser {
 	/**
 	 * Parse a DOM node into a structured element.
 	 *
-	 * @param DOMNode $node The DOM node.
+	 * @param DOMNode $node  The DOM node.
 	 * @param int     $depth Nesting depth for lists.
-	 * @return array|null Element data or null.
+	 * @return array|null Element data or null if node should be skipped.
 	 */
-	private function parse_node( \DOMNode $node, int $depth = 0 ): array {
+	private function parse_node( \DOMNode $node, int $depth = 0 ): ?array {
 		if ( XML_TEXT_NODE === $node->nodeType ) {
 			$text = trim( $node->textContent );
 			if ( ! empty( $text ) ) {
@@ -467,11 +467,11 @@ class SScribe_Content_Parser {
 	 * Parse an image element.
 	 *
 	 * @param DOMNode $node The img node.
-	 * @return array|null Image element data or null.
+	 * @return array|null Image element data or null if src is empty.
 	 */
-	private function parse_image( \DOMNode $node ): array {
-		 $src = $node->getAttribute( 'src' );
-		$alt  = $node->getAttribute( 'alt' );
+	private function parse_image( \DOMNode $node ): ?array {
+		$src = $node->getAttribute( 'src' );
+		$alt = $node->getAttribute( 'alt' );
 
 		if ( empty( $src ) ) {
 			return null;
@@ -519,7 +519,7 @@ class SScribe_Content_Parser {
 			);
 		}
 
-		return null;
+		return false;
 	}
 
 	/**
@@ -541,7 +541,7 @@ class SScribe_Content_Parser {
 		);
 
 		foreach ( $button_patterns as $pattern ) {
-			if ( strpos( $classes, $pattern ) !== false ) {
+			if ( str_contains( $classes, $pattern ) ) {
 				return true;
 			}
 		}
