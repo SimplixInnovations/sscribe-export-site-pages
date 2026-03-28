@@ -31,7 +31,7 @@ class SScribe_Content_Parser {
 	 *
 	 * @return array
 	 */
-	private function get_upload_dir() {
+	private function get_upload_dir(): array {
 		if ( null === $this->upload_dir_cache ) {
 			$this->upload_dir_cache = wp_upload_dir();
 		}
@@ -45,7 +45,7 @@ class SScribe_Content_Parser {
 	 * @param string $html The rendered HTML content.
 	 * @return array Array of element arrays.
 	 */
-	public function parse( $html ) {
+	public function parse( string $html ): array {
 		if ( empty( $html ) ) {
 			return array();
 		}
@@ -68,7 +68,7 @@ class SScribe_Content_Parser {
 	 * @param string $html The HTML content.
 	 * @return string Cleaned HTML.
 	 */
-	private function strip_shortcodes( $html ) {
+	private function strip_shortcodes( string $html ): string {
 		// Use WordPress's own shortcode stripper first (safe — only strips registered shortcodes).
 		// phpcs:ignore WordPress.NamingConventions.PrefixAllGlobals.NonPrefixedHooknameFound -- WP core function.
 		$html = strip_shortcodes( $html );
@@ -87,7 +87,7 @@ class SScribe_Content_Parser {
 	 * @param string $html The HTML content.
 	 * @return string Normalized HTML.
 	 */
-	private function normalize_html( $html ) {
+	private function normalize_html( string $html ): string {
 		$html = $this->strip_all_styles( $html );
 
 		$html = preg_replace( '/<(style|script|noscript|svg)\b[^>]*>.*?<\/\1>/is', '', $html );
@@ -117,7 +117,7 @@ class SScribe_Content_Parser {
 	 * @param string $html The HTML content.
 	 * @return string Cleaned HTML.
 	 */
-	private function strip_all_styles( $html ) {
+	private function strip_all_styles( string $html ): string {
 		$html = preg_replace( '/\s*style="[^"]*"/i', '', $html );
 		$html = preg_replace( "/\s*style='[^']*'/i", '', $html );
 
@@ -146,7 +146,7 @@ class SScribe_Content_Parser {
 	 * @param string $html The HTML content.
 	 * @return array Array of elements.
 	 */
-	private function parse_dom( $html ) {
+	private function parse_dom( string $html ): array {
 		$elements = array();
 
 		// Use DOMDocument for reliable parsing.
@@ -164,6 +164,7 @@ class SScribe_Content_Parser {
 
 		$body = $dom->getElementsByTagName( 'body' )->item( 0 );
 		if ( ! $body ) {
+			unset( $dom );
 			return $elements;
 		}
 
@@ -180,6 +181,8 @@ class SScribe_Content_Parser {
 			}
 		}
 
+		unset( $dom );
+
 		return $elements;
 	}
 
@@ -190,7 +193,7 @@ class SScribe_Content_Parser {
 	 * @param int     $depth Nesting depth for lists.
 	 * @return array|null Element data or null.
 	 */
-	private function parse_node( $node, $depth = 0 ) {
+	private function parse_node( \DOMNode $node, int $depth = 0 ): array {
 		if ( XML_TEXT_NODE === $node->nodeType ) {
 			$text = trim( $node->textContent );
 			if ( ! empty( $text ) ) {
@@ -346,7 +349,7 @@ class SScribe_Content_Parser {
 	 * @param int     $depth  Nesting depth.
 	 * @return array List element data.
 	 */
-	private function parse_list( $node, $style, $depth = 0 ) {
+	private function parse_list( \DOMNode $node, string $style, int $depth = 0 ): array {
 		$items = array();
 
 		foreach ( $node->childNodes as $child ) {
@@ -402,7 +405,7 @@ class SScribe_Content_Parser {
 	 * @param DOMNode $node The table node.
 	 * @return array Table element data.
 	 */
-	private function parse_table( $node ) {
+	private function parse_table( \DOMNode $node ): array {
 		$rows = array();
 
 		// Get thead/tbody/direct tr children.
@@ -466,7 +469,7 @@ class SScribe_Content_Parser {
 	 * @param DOMNode $node The img node.
 	 * @return array|null Image element data or null.
 	 */
-	private function parse_image( $node ) {
+	private function parse_image( \DOMNode $node ): array {
 		 $src = $node->getAttribute( 'src' );
 		$alt  = $node->getAttribute( 'alt' );
 
@@ -491,7 +494,7 @@ class SScribe_Content_Parser {
 	 * @param DOMNode $node The paragraph node.
 	 * @return array|null Button element data or null.
 	 */
-	private function detect_button( $node ) {
+	private function detect_button( \DOMNode $node ): array|false {
 		// Look for links with button-like classes.
 		$links = $node->getElementsByTagName( 'a' );
 
@@ -525,7 +528,7 @@ class SScribe_Content_Parser {
 	 * @param string $classes The class attribute value.
 	 * @return bool
 	 */
-	private function is_button_class( $classes ) {
+	private function is_button_class( string $classes ): bool {
 		$button_patterns = array(
 			'wp-block-button__link',
 			'wp-element-button',
@@ -552,7 +555,7 @@ class SScribe_Content_Parser {
 	 * @param DOMNode $node The container node.
 	 * @return array Array of run data (text, bold, italic, link, etc.).
 	 */
-	private function get_inline_runs( $node ) {
+	private function get_inline_runs( \DOMNode $node ): array {
 		 $runs = array();
 
 		foreach ( $node->childNodes as $child ) {
@@ -659,7 +662,7 @@ class SScribe_Content_Parser {
 	 * @param DOMNode $node The node.
 	 * @return string Plain text content.
 	 */
-	private function get_text_content( $node ) {
+	private function get_text_content( \DOMNode $node ): string {
 		return trim( $node->textContent );
 	}
 
@@ -669,7 +672,7 @@ class SScribe_Content_Parser {
 	 * @param array $runs Array of run data.
 	 * @return string Plain text.
 	 */
-	private function runs_to_text( $runs ) {
+	private function runs_to_text( array $runs ): string {
 		$text = '';
 		foreach ( $runs as $run ) {
 			$text .= isset( $run['text'] ) ? $run['text'] : '';
@@ -683,7 +686,7 @@ class SScribe_Content_Parser {
 	 * @param string $url The image URL.
 	 * @return string Local file path or empty string.
 	 */
-	private function url_to_local_path( $url ) {
+	private function url_to_local_path( string $url ): string|false {
 		$upload_dir  = $this->get_upload_dir();
 		$upload_url  = $upload_dir['baseurl'];
 		$upload_path = realpath( $upload_dir['basedir'] );

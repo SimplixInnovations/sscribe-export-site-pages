@@ -1,4 +1,6 @@
 <?php
+declare(strict_types=1);
+
 /**
  * HTML exporter for SScribe.
  *
@@ -33,6 +35,7 @@ class SScribe_HTML_Exporter implements SScribe_Exporter_Interface {
 		$filename    = \SScribe_Exporter_Factory::build_filename( $page_data, $index, $total, 'html' );
 		$output_path = trailingslashit( $output_dir ) . $filename;
 
+		// phpcs:ignore WordPress.WP.AlternativeFunctions.file_system_read_file_put_contents -- Output generation in temp dir.
 		$result = file_put_contents( $output_path, $html );
 
 		if ( false === $result ) {

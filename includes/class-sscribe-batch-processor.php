@@ -1,4 +1,6 @@
 <?php
+declare(strict_types=1);
+
 /**
  * Handles batch AJAX processing of page exports.
  *
@@ -23,42 +25,42 @@ class SScribe_Batch_Processor {
 	 *
 	 * @var int
 	 */
-	private $batch_size = 1;
+	private int $batch_size = 1;
 
 	/**
 	 * Page collector instance.
 	 *
 	 * @var SScribe_Page_Collector
 	 */
-	private $collector;
+	private readonly \SScribe_Page_Collector $collector;
 
 	/**
 	 * ZIP handler instance.
 	 *
 	 * @var SScribe_Zip_Handler
 	 */
-	private $zip_handler;
+	private readonly \SScribe_Zip_Handler $zip_handler;
 
 	/**
 	 * Session handler instance.
 	 *
 	 * @var SScribe_Session
 	 */
-	private $session;
+	private readonly \SScribe_Session $session;
 
 	/**
 	 * Logger instance.
 	 *
 	 * @var SScribe_Logger
 	 */
-	private $logger;
+	private readonly \SScribe_Logger $logger;
 
 	/**
 	 * Export log instance.
 	 *
 	 * @var SScribe_Export_Log
 	 */
-	private $export_log;
+	private ?\SScribe_Export_Log $export_log = null;
 
 	/**
 	 * Rate limit: Maximum requests per minute per user.
@@ -204,7 +206,7 @@ class SScribe_Batch_Processor {
 	 *
 	 * @return string WordPress capability slug.
 	 */
-	private function get_required_capability() {
+	private function get_required_capability(): string {
 		return apply_filters( 'sscribe_export_capability', 'manage_options' );
 	}
 
@@ -242,7 +244,7 @@ class SScribe_Batch_Processor {
 	 *
 	 * @return void
 	 */
-	public function ajax_start_export() {
+	public function ajax_start_export(): void {
 		check_ajax_referer( 'sscribe_export_nonce', 'nonce' );
 
 		if ( ! $this->check_rate_limit() ) {
@@ -417,7 +419,7 @@ class SScribe_Batch_Processor {
 	 *
 	 * @return void
 	 */
-	public function ajax_process_batch() {
+	public function ajax_process_batch(): void {
 		check_ajax_referer( 'sscribe_export_nonce', 'nonce' );
 
 		if ( ! $this->check_rate_limit() ) {
@@ -470,6 +472,22 @@ class SScribe_Batch_Processor {
 			return;
 		}
 
+		$lock_key = 'sscribe_lock_' . $session_id;
+		if ( get_transient( $lock_key ) ) {
+			$this->logger->debug( 'Batch is already processing concurrently', array( 'session_id' => $session_id ) );
+			$this->restore_ob_level( $ob_level_before );
+			wp_send_json_error(
+				array(
+					// Send status so the frontend can just retry.
+					'status'  => 'locked',
+					'message' => __( 'A batch is already processing. Please wait.', 'sscribe-export-site-pages' ),
+				)
+			);
+			return;
+		}
+		set_transient( $lock_key, time(), 60 ); // Lock for up to 60 seconds
+
+
 		if ( ! $this->validate_session_ownership( $session, $session_id ) ) {
 			$this->restore_ob_level( $ob_level_before );
 			wp_send_json_error(
@@ -503,6 +521,7 @@ class SScribe_Batch_Processor {
 			$this->restore_ob_level( $ob_level_before );
 			$this->cleanup_cancelled_export( $session );
 			$this->session->delete( $session_id );
+			delete_transient( $lock_key );
 			wp_send_json_error(
 				array(
 					'message'   => __( 'Export was cancelled.', 'sscribe-export-site-pages' ),
@@ -554,6 +573,7 @@ class SScribe_Batch_Processor {
 		if ( empty( $batch ) ) {
 			$this->logger->debug( 'Batch empty, finalizing export' );
 			$this->restore_ob_level( $ob_level_before );
+			delete_transient( $lock_key );
 			$this->finalize_export( $session_id, $session );
 			return;
 		}
@@ -750,6 +770,7 @@ class SScribe_Batch_Processor {
 
 		if ( $is_done ) {
 			$this->logger->debug( 'All pages processed, finalizing' );
+			delete_transient( $lock_key );
 			$this->restore_ob_level( $ob_level_before );
 			$this->finalize_export( $session_id, $session );
 			return;
@@ -793,7 +814,7 @@ class SScribe_Batch_Processor {
 	 * @param int $target_level The ob level to restore to.
 	 * @return void
 	 */
-	private function restore_ob_level( $target_level ) {
+	private function restore_ob_level( int $target_level ): void {
 		while ( ob_get_level() > $target_level ) {
 			ob_end_clean();
 		}
@@ -806,7 +827,7 @@ class SScribe_Batch_Processor {
 	 * @param array  $session    The session data.
 	 * @return void
 	 */
-	private function finalize_export( $session_id, $session ) {
+	private function finalize_export( string $session_id, array $session ): void {
 		$this->logger->debug(
 			'=== FINALIZE EXPORT ===',
 			array(
@@ -989,7 +1010,7 @@ class SScribe_Batch_Processor {
 	 *
 	 * @return void
 	 */
-	public function ajax_download() {
+	public function ajax_download(): void {
 		check_ajax_referer( 'sscribe_download', 'nonce' );
 
 		if ( ! current_user_can( $this->get_required_capability() ) ) {
@@ -1006,7 +1027,7 @@ class SScribe_Batch_Processor {
 		$real_path = realpath( $file_path );
 		$real_dir  = realpath( $this->zip_handler->get_export_dir() );
 
-		if ( strpos( $real_path, $real_dir ) !== 0 || 'zip' !== pathinfo( $filename, PATHINFO_EXTENSION ) ) {
+		if ( ! str_starts_with( $real_path, $real_dir ) || 'zip' !== pathinfo( $filename, PATHINFO_EXTENSION ) ) {
 			wp_die( esc_html__( 'Invalid file request.', 'sscribe-export-site-pages' ) );
 		}
 
@@ -1029,6 +1050,11 @@ class SScribe_Batch_Processor {
 		header( 'Expires: 0' );
 		header( 'X-Content-Type-Options: nosniff' );
 
+				if ( ob_get_level() ) {
+			ob_end_clean();
+		}
+		flush();
+		// phpcs:ignore WordPress.WP.AlternativeFunctions.file_system_operations_readfile -- Direct download
 		readfile( $file_path );
 		exit;
 	}
@@ -1038,7 +1064,7 @@ class SScribe_Batch_Processor {
 	 *
 	 * @return void
 	 */
-	public function ajax_get_status_counts() {
+	public function ajax_get_status_counts(): void {
 		check_ajax_referer( 'sscribe_export_nonce', 'nonce' );
 
 		if ( ! current_user_can( $this->get_required_capability() ) ) {
@@ -1058,7 +1084,7 @@ class SScribe_Batch_Processor {
 	 *
 	 * @return void
 	 */
-	public function ajax_cancel_export() {
+	public function ajax_cancel_export(): void {
 		check_ajax_referer( 'sscribe_export_nonce', 'nonce' );
 
 		if ( ! current_user_can( $this->get_required_capability() ) ) {
@@ -1115,7 +1141,7 @@ class SScribe_Batch_Processor {
 	 *
 	 * @return void
 	 */
-	public function ajax_delete_export() {
+	public function ajax_delete_export(): void {
 		check_ajax_referer( 'sscribe_download', 'nonce' );
 
 		if ( ! current_user_can( $this->get_required_capability() ) ) {
@@ -1163,7 +1189,7 @@ class SScribe_Batch_Processor {
 	 *
 	 * @return void
 	 */
-	public function ajax_get_export_log() {
+	public function ajax_get_export_log(): void {
 		check_ajax_referer( 'sscribe_download', 'nonce' );
 
 		if ( ! current_user_can( $this->get_required_capability() ) ) {
@@ -1206,7 +1232,7 @@ class SScribe_Batch_Processor {
 	 *
 	 * @return void
 	 */
-	public function ajax_clear_session() {
+	public function ajax_clear_session(): void {
 		check_ajax_referer( 'sscribe_export_nonce', 'nonce' );
 
 		if ( ! current_user_can( $this->get_required_capability() ) ) {

@@ -5,6 +5,8 @@
  * @package SScribe
  */
 
+declare(strict_types=1);
+
 // Prevent direct access.
 if ( ! defined( 'ABSPATH' ) ) {
 	exit;
@@ -23,14 +25,14 @@ class SScribe_Zip_Handler {
 	 *
 	 * @var string
 	 */
-	private $export_dir;
+	private readonly string $export_dir;
 
 	/**
 	 * Logger instance.
 	 *
 	 * @var SScribe_Logger
 	 */
-	private $logger;
+	private readonly SScribe_Logger $logger;
 
 	/**
 	 * Constructor.
@@ -46,7 +48,7 @@ class SScribe_Zip_Handler {
 	 *
 	 * @return string
 	 */
-	public function get_export_dir() {
+	public function get_export_dir(): string {
 		if ( ! file_exists( $this->export_dir ) ) {
 			wp_mkdir_p( $this->export_dir );
 		}
@@ -58,8 +60,9 @@ class SScribe_Zip_Handler {
 	 *
 	 * @return string Path to temporary directory.
 	 */
-	public function create_temp_dir() {
-		$temp_dir = $this->export_dir . '/temp-' . wp_generate_password( 12, false );
+	public function create_temp_dir(): string {
+		$random_suffix = bin2hex( random_bytes( 6 ) );
+		$temp_dir = $this->export_dir . '/temp-' . $random_suffix;
 		wp_mkdir_p( $temp_dir );
 		return $temp_dir;
 	}
@@ -72,7 +75,7 @@ class SScribe_Zip_Handler {
 	 * @param array  $formats    Export formats used.
 	 * @return string|false Path to ZIP file or false on failure.
 	 */
-	public function create_zip( $source_dir, $zip_name = '', $formats = array( 'docx' ) ) {
+	public function create_zip( string $source_dir, string $zip_name = '', array $formats = array( 'docx' ) ): string|false {
 		if ( ! class_exists( 'ZipArchive' ) ) {
 			$this->logger->error( 'ZipArchive not available' );
 			$this->delete_directory( $source_dir );
@@ -80,7 +83,8 @@ class SScribe_Zip_Handler {
 		}
 
 		if ( empty( $zip_name ) ) {
-			$zip_name = 'sscribe-export-' . gmdate( 'Y-m-d-His' ) . '-' . wp_generate_password( 6, false );
+			$random_suffix = bin2hex( random_bytes( 3 ) );
+			$zip_name = 'sscribe-export-' . gmdate( 'Y-m-d-His' ) . '-' . $random_suffix;
 		}
 
 		$zip_path = $this->export_dir . '/' . sanitize_file_name( $zip_name ) . '.zip';
@@ -152,7 +156,7 @@ class SScribe_Zip_Handler {
 	 * @param string $zip_filename The ZIP filename.
 	 * @return string AJAX download URL.
 	 */
-	public function get_ajax_download_url( $zip_filename ) {
+	public function get_ajax_download_url( string $zip_filename ): string {
 		return add_query_arg(
 			array(
 				'action' => 'sscribe_download',
@@ -168,8 +172,8 @@ class SScribe_Zip_Handler {
 	 *
 	 * @return int Number of files cleaned up.
 	 */
-	public function cleanup_expired() {
-		 $cleaned = 0;
+	public function cleanup_expired(): int {
+		$cleaned  = 0;
 		$files    = glob( $this->export_dir . '/*.zip' );
 
 		if ( empty( $files ) ) {
@@ -211,7 +215,7 @@ class SScribe_Zip_Handler {
 	 * @param string $dir Directory path.
 	 * @return bool
 	 */
-	public function delete_directory( $dir ) {
+	public function delete_directory( string $dir ): bool {
 		if ( ! is_dir( $dir ) ) {
 			return false;
 		}

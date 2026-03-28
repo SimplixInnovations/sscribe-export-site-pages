@@ -17,27 +17,26 @@ if ( ! defined( 'ABSPATH' ) ) {
  */
 class SScribe {
 
-
 	/**
 	 * The loader that registers all hooks.
 	 *
 	 * @var SScribe_Loader
 	 */
-	protected $loader;
+	protected SScribe_Loader $loader;
 
 	/**
 	 * Plugin version.
 	 *
 	 * @var string
 	 */
-	protected $version;
+	protected string $version;
 
 	/**
 	 * Constructor.
 	 */
 	public function __construct() {
 		$this->version = defined( 'SSCRIBE_VERSION' ) ? SSCRIBE_VERSION : '1.0.0';
-		$this->loader = new SScribe_Loader();
+		$this->loader  = new SScribe_Loader();
 
 		$this->define_admin_hooks();
 		$this->define_ajax_hooks();
@@ -49,7 +48,7 @@ class SScribe {
 	 *
 	 * @return void
 	 */
-	private function define_admin_hooks() {
+	private function define_admin_hooks(): void {
 		$admin = new SScribe_Admin();
 
 		$this->loader->add_action( 'admin_menu', $admin, 'add_admin_menu' );
@@ -62,7 +61,7 @@ class SScribe {
 	 *
 	 * @return void
 	 */
-	private function define_ajax_hooks() {
+	private function define_ajax_hooks(): void {
 		$batch = new SScribe_Batch_Processor();
 
 		$this->loader->add_action( 'wp_ajax_sscribe_start_export', $batch, 'ajax_start_export' );
@@ -80,7 +79,7 @@ class SScribe {
 	 *
 	 * @return void
 	 */
-	private function define_cron_hooks() {
+	private function define_cron_hooks(): void {
 		$zip = new SScribe_Zip_Handler();
 		$this->loader->add_action( 'sscribe_cleanup_exports', $zip, 'cleanup_expired' );
 
@@ -92,7 +91,7 @@ class SScribe {
 	 *
 	 * @return void
 	 */
-	public function cleanup_sessions() {
+	public function cleanup_sessions(): void {
 		$session = new SScribe_Session();
 		$session->cleanup_expired( 4 * HOUR_IN_SECONDS );
 
@@ -104,7 +103,7 @@ class SScribe {
 	 *
 	 * @return void
 	 */
-	public function run() {
+	public function run(): void {
 		$this->loader->run();
 	}
 }

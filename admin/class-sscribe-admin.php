@@ -1,4 +1,6 @@
 <?php
+declare(strict_types=1);
+
 /**
  * Admin interface for SScribe.
  *
@@ -23,14 +25,14 @@ class SScribe_Admin {
 	 *
 	 * @var SScribe_Page_Collector
 	 */
-	private $collector;
+	private SScribe_Page_Collector $collector;
 
 	/**
 	 * SEO reader instance.
 	 *
 	 * @var SScribe_SEO_Reader
 	 */
-	private $seo_reader;
+	private SScribe_SEO_Reader $seo_reader;
 
 	/**
 	 * Constructor.
@@ -45,7 +47,7 @@ class SScribe_Admin {
 	 *
 	 * @return void
 	 */
-	public function add_admin_menu() {
+	public function add_admin_menu(): void {
 		add_management_page(
 			__( 'SScribe Export', 'sscribe-export-site-pages' ),
 			__( 'SScribe Export', 'sscribe-export-site-pages' ),
@@ -61,7 +63,7 @@ class SScribe_Admin {
 	 * @param string $hook_suffix The current admin page hook suffix.
 	 * @return void
 	 */
-	public function enqueue_admin_assets( $hook_suffix ) {
+	public function enqueue_admin_assets( string $hook_suffix ): void {
 		// Only load on our plugin page.
 		if ( 'tools_page_sscribe-export' !== $hook_suffix ) {
 			return;
@@ -112,11 +114,10 @@ class SScribe_Admin {
 	 *
 	 * @return void
 	 */
-	public function render_admin_page() {
+	public function render_admin_page(): void {
 		// Gather data for the template.
 		$wpml_active = $this->collector->is_wpml_active();
 		$languages   = $this->collector->get_wpml_languages();
-		$seo_plugins = $this->seo_reader->get_active_seo_plugins();
 
 		// For the "All Languages" card: count published pages in ALL languages combined.
 		$total_pages_all  = $this->collector->get_page_count_only( '', 'publish' );
@@ -268,7 +269,7 @@ class SScribe_Admin {
 	 * @param array $links Existing plugin links.
 	 * @return array Updated plugin links.
 	 */
-	public function add_plugin_action_links( $links ) {
+	public function add_plugin_action_links( array $links ): array {
 		$plugin_links = array(
 			'<a href="' . esc_url( admin_url( 'tools.php?page=sscribe-export' ) ) . '">' . esc_html__( 'Export Pages', 'sscribe-export-site-pages' ) . '</a>',
 		);

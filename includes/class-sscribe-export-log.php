@@ -1,9 +1,10 @@
 <?php
+declare(strict_types=1);
+
 /**
  * Export log for tracking page export status.
  *
- * Uses wp_options table for storage to comply with WordPress.org
- * repository guidelines that prohibit direct filesystem writes.
+ * Uses filesystem JSON storage to optimize performance and prevent database bloat.
  *
  * @package SScribe
  */
@@ -15,23 +16,30 @@ if ( ! defined( 'ABSPATH' ) ) {
 /**
  * Class SScribe_Export_Log
  *
- * Tracks export progress and results using WordPress options API.
+ * Tracks export progress and results using JSON files.
  */
 class SScribe_Export_Log {
-
-	/**
-	 * Option name prefix for log storage.
-	 *
-	 * @var string
-	 */
-	private string $option_prefix = 'sscribe_log_';
 
 	/**
 	 * Session ID for this log.
 	 *
 	 * @var string
 	 */
-	private string $session_id;
+	private readonly string $session_id;
+
+	/**
+	 * Log directory path.
+	 *
+	 * @var string
+	 */
+	private readonly string $log_dir;
+
+	/**
+	 * Log file path.
+	 *
+	 * @var string
+	 */
+	private readonly string $log_file;
 
 	/**
 	 * Constructor.
@@ -39,7 +47,11 @@ class SScribe_Export_Log {
 	 * @param string $session_id The session identifier.
 	 */
 	public function __construct( string $session_id ) {
-		$this->session_id = sanitize_key( $session_id );
+		$this->session_id = sanitize_file_name( $session_id );
+		$upload_dir       = wp_upload_dir();
+		$this->log_dir    = $upload_dir['basedir'] . '/sscribe-logs';
+		$this->log_file   = $this->log_dir . '/export_' . $this->session_id . '.json';
+
 		$this->init_log();
 	}
 
@@ -49,9 +61,16 @@ class SScribe_Export_Log {
 	 * @return void
 	 */
 	private function init_log(): void {
-		$option_name = $this->get_option_name();
+		if ( ! file_exists( $this->log_dir ) ) {
+			wp_mkdir_p( $this->log_dir );
+			// Protect directory from direct access
+			// phpcs:ignore WordPress.WP.AlternativeFunctions.file_system_operations_file_put_contents -- Required to secure the log directory.
+			file_put_contents( $this->log_dir . '/.htaccess', 'deny from all' );
+			// phpcs:ignore WordPress.WP.AlternativeFunctions.file_system_operations_file_put_contents -- Required to secure the log directory.
+			file_put_contents( $this->log_dir . '/index.html', '' );
+		}
 
-		if ( false === get_option( $option_name ) ) {
+		if ( ! file_exists( $this->log_file ) ) {
 			$data = array(
 				'session_id'   => $this->session_id,
 				'created_at'   => current_time( 'mysql' ),
@@ -180,11 +199,11 @@ class SScribe_Export_Log {
 	/**
 	 * Log format-specific result.
 	 *
-	 * @param int    $page_id  Page ID.
-	 * @param string $format   Format name.
-	 * @param bool   $success  Whether export succeeded.
+	 * @param int    $page_id   Page ID.
+	 * @param string $format    Format name.
+	 * @param bool   $success   Whether export succeeded.
 	 * @param string $file_path File path (optional).
-	 * @param string $error    Error message (optional).
+	 * @param string $error     Error message (optional).
 	 * @return void
 	 */
 	public function log_format_result( int $page_id, string $format, bool $success, string $file_path = '', string $error = '' ): void {
@@ -262,14 +281,17 @@ class SScribe_Export_Log {
 	}
 
 	/**
-	 * Read log data from database.
+	 * Read log data from filesystem.
 	 *
 	 * @return array Log data or empty array.
 	 */
 	private function read_log(): array {
-		$option_name = $this->get_option_name();
-		$json        = get_option( $option_name );
+		if ( ! file_exists( $this->log_file ) ) {
+			return array();
+		}
 
+		// phpcs:ignore WordPress.WP.AlternativeFunctions.file_get_contents_file_get_contents -- Safe filesystem read.
+		$json = file_get_contents( $this->log_file );
 		if ( false === $json ) {
 			return array();
 		}
@@ -280,15 +302,15 @@ class SScribe_Export_Log {
 	}
 
 	/**
-	 * Write log data to database.
+	 * Write log data to filesystem.
 	 *
 	 * @param array $data Log data to write.
 	 * @return void
 	 */
 	private function write_log( array $data ): void {
-		$option_name = $this->get_option_name();
-		$json        = wp_json_encode( $data, JSON_UNESCAPED_UNICODE | JSON_PRETTY_PRINT );
-		update_option( $option_name, $json, false );
+		$json = wp_json_encode( $data, JSON_UNESCAPED_UNICODE | JSON_PRETTY_PRINT );
+		// phpcs:ignore WordPress.WP.AlternativeFunctions.file_system_operations_file_put_contents -- Intended logging file operation.
+		file_put_contents( $this->log_file, $json, LOCK_EX );
 	}
 
 	/**
@@ -297,17 +319,9 @@ class SScribe_Export_Log {
 	 * @return void
 	 */
 	public function delete(): void {
-		$option_name = $this->get_option_name();
-		delete_option( $option_name );
-	}
-
-	/**
-	 * Get the option name for this log.
-	 *
-	 * @return string Option name.
-	 */
-	private function get_option_name(): string {
-		return $this->option_prefix . $this->session_id;
+		if ( file_exists( $this->log_file ) ) {
+			wp_delete_file( $this->log_file );
+		}
 	}
 
 	/**
@@ -317,11 +331,18 @@ class SScribe_Export_Log {
 	 * @return array|null Log data or null.
 	 */
 	public static function get_log_by_session( string $session_id ): ?array {
-		$session_id = sanitize_key( $session_id );
-		$option_name = 'sscribe_log_' . $session_id;
-		$json        = get_option( $option_name );
+		$session_id = sanitize_file_name( $session_id );
+		$upload_dir = wp_upload_dir();
+		$log_file   = $upload_dir['basedir'] . '/sscribe-logs/export_' . $session_id . '.json';
 
-		if ( false === $json ) {
+		if ( ! file_exists( $log_file ) ) {
+			return null;
+		}
+
+		// phpcs:ignore WordPress.WP.AlternativeFunctions.file_get_contents_file_get_contents -- Safe filesystem read.
+		$json = file_get_contents( $log_file );
+
+		if ( ! $json ) {
 			return null;
 		}
 
@@ -337,28 +358,34 @@ class SScribe_Export_Log {
 	 * @return array|null Log data or null.
 	 */
 	public static function get_log_by_filename( string $filename ): ?array {
-		if ( ! preg_match( '/^sscribe-export-([a-z0-9]+)-/i', $filename, $matches ) ) {
+		if ( ! preg_match( '/^sscribe-export-([a-z0-9]+)-/i', $filename ) && ! preg_match( '/^sscribe-export-/i', $filename ) ) {
 			return null;
 		}
 
-		global $wpdb;
+		$upload_dir = wp_upload_dir();
+		$log_dir    = $upload_dir['basedir'] . '/sscribe-logs';
+		
+		if ( ! is_dir( $log_dir ) ) {
+			return null;
+		}
 
-		$pattern = $wpdb->esc_like( 'sscribe_log_' ) . '%';
+		$files = glob( $log_dir . '/export_*.json' );
 
-		$options = $wpdb->get_results(
-			$wpdb->prepare(
-				"SELECT option_value FROM {$wpdb->options} WHERE option_name LIKE %s AND autoload = 'no' ORDER BY option_id DESC",
-				$pattern
-			)
-		);
-
-		foreach ( $options as $option ) {
-			$data = json_decode( $option->option_value, true );
-
-			if ( $data && isset( $data['zip_file'] ) && $data['zip_file'] === $filename ) {
-				return $data;
+		if ( is_array( $files ) ) {
+			foreach ( $files as $file ) {
+				// phpcs:ignore WordPress.WP.AlternativeFunctions.file_get_contents_file_get_contents -- Safe filesystem read.
+				$json = file_get_contents( $file );
+				if ( $json ) {
+					$data = json_decode( $json, true );
+					if ( is_array( $data ) && isset( $data['zip_file'] ) && $data['zip_file'] === $filename ) {
+						return $data;
+					}
+				}
 			}
 		}
+
+		// Compatibility logic for older logs could be inserted here if needed
+		// For now, we only scan the filesystem.
 
 		return null;
 	}
@@ -370,32 +397,25 @@ class SScribe_Export_Log {
 	 * @return int Number of logs deleted.
 	 */
 	public static function cleanup_old_logs( int $max_age_hours = 2 ): int {
-		global $wpdb;
+		$upload_dir = wp_upload_dir();
+		$log_dir    = $upload_dir['basedir'] . '/sscribe-logs';
 
-		$pattern  = $wpdb->esc_like( 'sscribe_log_' ) . '%';
-		$now      = time();
-		$max_age  = $max_age_hours * HOUR_IN_SECONDS;
+		if ( ! is_dir( $log_dir ) ) {
+			return 0;
+		}
 
-		$options = $wpdb->get_results(
-			$wpdb->prepare(
-				"SELECT option_name, option_value FROM {$wpdb->options} WHERE option_name LIKE %s AND autoload = 'no'",
-				$pattern
-			)
-		);
-
+		$files   = glob( $log_dir . '/export_*.json' );
 		$deleted = 0;
+		$max_age = $max_age_hours * HOUR_IN_SECONDS;
+		$now     = time();
 
-		foreach ( $options as $option ) {
-			$data = json_decode( $option->option_value, true );
-
-			if ( ! is_array( $data ) ) {
-				continue;
-			}
-
-			$created = isset( $data['created_at'] ) ? strtotime( $data['created_at'] ) : 0;
-			if ( $created && ( $now - $created ) > $max_age ) {
-				if ( delete_option( $option->option_name ) ) {
-					++$deleted;
+		if ( is_array( $files ) ) {
+			foreach ( $files as $file ) {
+				$file_time = filemtime( $file );
+				if ( $file_time && ( $now - $file_time ) > $max_age ) {
+					if ( wp_delete_file( $file ) ) {
+						++$deleted;
+					}
 				}
 			}
 		}

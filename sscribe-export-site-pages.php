@@ -27,6 +27,22 @@ if ( ! defined( 'ABSPATH' ) ) {
 define( 'SSCRIBE_VERSION', '3.2.0' );
 
 /**
+ * Check PHP Version gracefully.
+ * 
+ * If the environment is running < PHP 8.1, do not load the classes.
+ * Show an admin notice instead to prevent fatal errors on older sites.
+ */
+if ( version_compare( PHP_VERSION, '8.1', '<' ) ) {
+	add_action( 'admin_notices', function () {
+		echo '<div class="error"><p>';
+		echo esc_html__( 'SScribe Export Site Pages requires PHP 8.1 or higher to run. Please upgrade your PHP version to benefit from enterprise-level performance and features. Your current version is: ', 'sscribe-export-site-pages' );
+		echo esc_html( PHP_VERSION );
+		echo '</p></div>';
+	} );
+	return; // Stop loading the rest of the plugin.
+}
+
+/**
  * Debug mode - set to true to enable logging to wp-content/uploads/sscribe-logs/
  * Automatically disabled on production (when WP_DEBUG is false).
  */
