@@ -9,6 +9,8 @@
  * @package SScribe
  */
 
+declare(strict_types=1);
+
 if ( ! defined( 'ABSPATH' ) ) {
 	exit;
 }
@@ -53,19 +55,8 @@ class SScribe_Session {
 		$data['updated_at'] = time();
 
 		$option_name = $this->get_option_name( $session_id );
-		$json        = wp_json_encode( $data, JSON_UNESCAPED_UNICODE );
 
-		if ( false === $json ) {
-			$this->logger->error(
-				'Failed to encode session data to JSON',
-				array(
-					'json_error' => json_last_error_msg(),
-				)
-			);
-			return '';
-		}
-
-		$result = update_option( $option_name, $json, false );
+		$result = update_option( $option_name, $data, false );
 
 		if ( ! $result ) {
 			$this->logger->error(
@@ -94,22 +85,9 @@ class SScribe_Session {
 		}
 
 		$option_name = $this->get_option_name( $session_id );
-		$json        = get_option( $option_name );
+		$data        = get_option( $option_name );
 
-		if ( false === $json ) {
-			return null;
-		}
-
-		$data = json_decode( $json, true );
-
-		if ( JSON_ERROR_NONE !== json_last_error() ) {
-			$this->logger->error(
-				'Failed to decode session data',
-				array(
-					'session_id' => $session_id,
-					'json_error' => json_last_error_msg(),
-				)
-			);
+		if ( false === $data ) {
 			return null;
 		}
 
@@ -146,20 +124,8 @@ class SScribe_Session {
 		$merged['updated_at'] = time();
 
 		$option_name = $this->get_option_name( $session_id );
-		$json        = wp_json_encode( $merged, JSON_UNESCAPED_UNICODE );
 
-		if ( false === $json ) {
-			$this->logger->error(
-				'Failed to encode session data for update',
-				array(
-					'session_id' => $session_id,
-					'json_error' => json_last_error_msg(),
-				)
-			);
-			return false;
-		}
-
-		return update_option( $option_name, $json, false );
+		return update_option( $option_name, $merged, false );
 	}
 
 	/**
@@ -234,7 +200,7 @@ class SScribe_Session {
 		$deleted = 0;
 
 		foreach ( $options as $option ) {
-			$data = json_decode( $option->option_value, true );
+			$data = maybe_unserialize( $option->option_value );
 
 			if ( ! is_array( $data ) ) {
 				continue;
@@ -271,7 +237,7 @@ class SScribe_Session {
 		);
 
 		foreach ( $options as $option ) {
-			$data = json_decode( $option->option_value, true );
+			$data = maybe_unserialize( $option->option_value );
 
 			if ( ! is_array( $data ) ) {
 				continue;
@@ -314,7 +280,7 @@ class SScribe_Session {
 		$deleted = 0;
 
 		foreach ( $options as $option ) {
-			$data = json_decode( $option->option_value, true );
+			$data = maybe_unserialize( $option->option_value );
 
 			if ( ! is_array( $data ) ) {
 				continue;

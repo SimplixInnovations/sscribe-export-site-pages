@@ -5,7 +5,8 @@
  * @package SScribe
  */
 
-// Prevent direct access.
+declare(strict_types=1);
+
 if ( ! defined( 'ABSPATH' ) ) {
 	exit;
 }
@@ -17,14 +18,12 @@ if ( ! defined( 'ABSPATH' ) ) {
  */
 class SScribe_Deactivator {
 
-
 	/**
 	 * Run deactivation tasks.
 	 *
 	 * @return void
 	 */
-	public static function deactivate() {
-		// Clear scheduled cron events.
+	public static function deactivate(): void {
 		$timestamp = wp_next_scheduled( 'sscribe_cleanup_exports' );
 		if ( $timestamp ) {
 			wp_unschedule_event( $timestamp, 'sscribe_cleanup_exports' );

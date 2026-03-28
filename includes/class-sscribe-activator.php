@@ -5,7 +5,8 @@
  * @package SScribe
  */
 
-// Prevent direct access.
+declare(strict_types=1);
+
 if ( ! defined( 'ABSPATH' ) ) {
 	exit;
 }
@@ -17,15 +18,13 @@ if ( ! defined( 'ABSPATH' ) ) {
  */
 class SScribe_Activator {
 
-
 	/**
 	 * Run activation tasks.
 	 *
 	 * @return void
 	 */
-	public static function activate() {
+	public static function activate(): void {
 		self::create_export_directory();
-		self::create_session_directory();
 		self::schedule_cleanup();
 		update_option( 'sscribe_version', SSCRIBE_VERSION );
 	}
@@ -35,7 +34,7 @@ class SScribe_Activator {
 	 *
 	 * @return void
 	 */
-	private static function create_export_directory() {
+	private static function create_export_directory(): void {
 		$upload_dir  = wp_upload_dir();
 		$export_path = $upload_dir['basedir'] . '/sscribe-exports';
 
@@ -43,7 +42,6 @@ class SScribe_Activator {
 			wp_mkdir_p( $export_path );
 		}
 
-		// .htaccess to prevent direct access.
 		$htaccess_path = $export_path . '/.htaccess';
 		if ( ! file_exists( $htaccess_path ) ) {
 			$htaccess_content  = "Options -Indexes\n";
@@ -61,7 +59,6 @@ class SScribe_Activator {
 			file_put_contents( $htaccess_path, $htaccess_content );
 		}
 
-		// index.php to prevent directory listing.
 		$index_path = $export_path . '/index.php';
 		if ( ! file_exists( $index_path ) ) {
 			// phpcs:ignore WordPress.WP.AlternativeFunctions.file_system_operations_file_put_contents
@@ -70,43 +67,17 @@ class SScribe_Activator {
 	}
 
 	/**
-	 * Schedule hourly cleanup cron event.
+	 * Schedule hourly cleanup cron events.
 	 *
 	 * @return void
 	 */
-	private static function schedule_cleanup() {
+	private static function schedule_cleanup(): void {
 		if ( ! wp_next_scheduled( 'sscribe_cleanup_exports' ) ) {
 			wp_schedule_event( time(), 'hourly', 'sscribe_cleanup_exports' );
 		}
 
 		if ( ! wp_next_scheduled( 'sscribe_cleanup_sessions' ) ) {
 			wp_schedule_event( time(), 'hourly', 'sscribe_cleanup_sessions' );
-		}
-	}
-
-	/**
-	 * Create the session directory with security files.
-	 *
-	 * @return void
-	 */
-	private static function create_session_directory() {
-		$upload_dir   = wp_upload_dir();
-		$session_path = $upload_dir['basedir'] . '/sscribe-sessions';
-
-		if ( ! file_exists( $session_path ) ) {
-			wp_mkdir_p( $session_path );
-		}
-
-		$htaccess_path = $session_path . '/.htaccess';
-		if ( ! file_exists( $htaccess_path ) ) {
-			// phpcs:ignore WordPress.WP.AlternativeFunctions.file_system_operations_file_put_contents
-			file_put_contents( $htaccess_path, 'Deny from all' );
-		}
-
-		$index_path = $session_path . '/index.html';
-		if ( ! file_exists( $index_path ) ) {
-			// phpcs:ignore WordPress.WP.AlternativeFunctions.file_system_operations_file_put_contents
-			file_put_contents( $index_path, '' );
 		}
 	}
 }
