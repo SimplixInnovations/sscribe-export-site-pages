@@ -48,9 +48,9 @@ class SScribe_Session {
 		$session_id = sanitize_key( bin2hex( random_bytes( 8 ) ) );
 		$session_id = strtolower( $session_id );
 
-		$data['created_at']  = time();
-		$data['session_id']  = $session_id;
-		$data['updated_at']  = time();
+		$data['created_at'] = time();
+		$data['session_id'] = $session_id;
+		$data['updated_at'] = time();
 
 		$option_name = $this->get_option_name( $session_id );
 		$json        = wp_json_encode( $data, JSON_UNESCAPED_UNICODE );
@@ -142,7 +142,7 @@ class SScribe_Session {
 			return false;
 		}
 
-		$merged              = array_merge( $existing, $data );
+		$merged               = array_merge( $existing, $data );
 		$merged['updated_at'] = time();
 
 		$option_name = $this->get_option_name( $session_id );
@@ -259,9 +259,9 @@ class SScribe_Session {
 	public function has_active_session( int $user_id ): bool {
 		global $wpdb;
 
-		$pattern    = $wpdb->esc_like( $this->option_prefix ) . '%';
-		$now        = time();
-		$max_age    = 60;
+		$pattern = $wpdb->esc_like( $this->option_prefix ) . '%';
+		$now     = time();
+		$max_age = 60;
 
 		$options = $wpdb->get_results(
 			$wpdb->prepare(

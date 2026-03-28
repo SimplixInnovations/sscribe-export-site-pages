@@ -114,7 +114,7 @@ class SScribe_SEO_Reader {
 		if ( ! $this->is_yoast_active() ) {
 			return $this->empty_seo_data();
 		}
-		$robots_noindex = get_post_meta( $page_id, '_yoast_wpseo_meta-robots-noindex', true );
+		$robots_noindex  = get_post_meta( $page_id, '_yoast_wpseo_meta-robots-noindex', true );
 		$robots_nofollow = get_post_meta( $page_id, '_yoast_wpseo_meta-robots-nofollow', true );
 
 		return array(
@@ -141,11 +141,11 @@ class SScribe_SEO_Reader {
 		if ( ! $this->is_rankmath_active() ) {
 			return $this->empty_seo_data();
 		}
-		$robots = get_post_meta( $page_id, 'rank_math_robots', true );
-		$noindex = false;
+		$robots   = get_post_meta( $page_id, 'rank_math_robots', true );
+		$noindex  = false;
 		$nofollow = false;
 		if ( is_array( $robots ) ) {
-			$noindex = in_array( 'noindex', $robots, true );
+			$noindex  = in_array( 'noindex', $robots, true );
 			$nofollow = in_array( 'nofollow', $robots, true );
 		}
 
@@ -237,8 +237,8 @@ class SScribe_SEO_Reader {
 		$robots   = get_post_meta( $page_id, '_aioseop_robots', true );
 		if ( ! empty( $robots ) && is_string( $robots ) ) {
 			$robots_lower = strtolower( $robots );
-			$noindex  = str_contains( $robots_lower, 'noindex' );
-			$nofollow = str_contains( $robots_lower, 'nofollow' );
+			$noindex      = str_contains( $robots_lower, 'noindex' );
+			$nofollow     = str_contains( $robots_lower, 'nofollow' );
 		}
 
 		$meta_robots_noindex = get_post_meta( $page_id, '_aioseop_noindex', true );
@@ -300,7 +300,7 @@ class SScribe_SEO_Reader {
 			return $this->empty_seo_data();
 		}
 
-		$focus_keyword = '';
+		$focus_keyword   = '';
 		$primary_term_id = get_post_meta( $page_id, '_primary_term_' . $this->get_primary_taxonomy( $page_id ), true );
 		if ( $primary_term_id ) {
 			$term = get_term( $primary_term_id );

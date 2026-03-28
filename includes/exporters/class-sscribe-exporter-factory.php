@@ -75,7 +75,7 @@ class SScribe_Exporter_Factory {
 			$seq_prefix = (string) $page_id;
 		}
 
-		$title = (string) ( $page_data['title'] ?? '' );
+		$title       = (string) ( $page_data['title'] ?? '' );
 		$ascii_title = '';
 
 		if ( function_exists( 'iconv' ) ) {

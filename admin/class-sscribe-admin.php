@@ -91,10 +91,10 @@ class SScribe_Admin {
 			'sscribe-admin',
 			'sscribe_data',
 			array(
-				'ajaxurl' => admin_url( 'admin-ajax.php' ),
-				'nonce'   => wp_create_nonce( 'sscribe_export_nonce' ),
+				'ajaxurl'        => admin_url( 'admin-ajax.php' ),
+				'nonce'          => wp_create_nonce( 'sscribe_export_nonce' ),
 				'download_nonce' => wp_create_nonce( 'sscribe_download' ),
-				'strings' => array(
+				'strings'        => array(
 					'starting'       => __( 'Starting export...', 'sscribe-export-site-pages' ),
 					'processing'     => __( 'Processing...', 'sscribe-export-site-pages' ),
 					'complete'       => __( 'Export complete!', 'sscribe-export-site-pages' ),
@@ -120,7 +120,7 @@ class SScribe_Admin {
 		$languages   = $this->collector->get_wpml_languages();
 
 		// For the "All Languages" card: count published pages in ALL languages combined.
-		$total_pages_all  = $this->collector->get_page_count_only( '', 'publish' );
+		$total_pages_all = $this->collector->get_page_count_only( '', 'publish' );
 
 		// For Page Status section: use empty string for all languages as default.
 		$default_language = '';
@@ -139,10 +139,10 @@ class SScribe_Admin {
 		$sscribe_is_debug   = defined( 'SSCRIBE_DEBUG' ) && SSCRIBE_DEBUG;
 
 		if ( $sscribe_is_debug ) {
-			$sscribe_debug_info['wpml_active']      = $wpml_active;
-			$sscribe_debug_info['languages_count']  = count( $languages );
-			$sscribe_debug_info['total_pages_all']  = $total_pages_all;
-			$sscribe_debug_info['status_counts']    = $status_counts;
+			$sscribe_debug_info['wpml_active']     = $wpml_active;
+			$sscribe_debug_info['languages_count'] = count( $languages );
+			$sscribe_debug_info['total_pages_all'] = $total_pages_all;
+			$sscribe_debug_info['status_counts']   = $status_counts;
 
 			// Get detailed page info per language.
 			if ( $wpml_active && ! empty( $languages ) ) {
@@ -154,9 +154,9 @@ class SScribe_Admin {
 						'status_breakdown' => $this->collector->get_post_status_counts( $lang_code ),
 					);
 
-					$page_ids                                                    = $this->collector->get_page_ids( $lang_code, 'publish' );
+					$page_ids = $this->collector->get_page_ids( $lang_code, 'publish' );
 					$sscribe_debug_info['language_details'][ $lang_code ]['published_page_ids'] = $page_ids;
-					$sscribe_debug_info['language_details'][ $lang_code ]['published_count']   = count( $page_ids );
+					$sscribe_debug_info['language_details'][ $lang_code ]['published_count']    = count( $page_ids );
 				}
 
 				// Check for duplicate slugs across languages.
@@ -188,11 +188,11 @@ class SScribe_Admin {
 
 			// Server info.
 			$sscribe_debug_info['server'] = array(
-				'php_version'        => PHP_VERSION,
-				'memory_limit'       => ini_get( 'memory_limit' ),
-				'max_execution_time' => ini_get( 'max_execution_time' ),
+				'php_version'         => PHP_VERSION,
+				'memory_limit'        => ini_get( 'memory_limit' ),
+				'max_execution_time'  => ini_get( 'max_execution_time' ),
 				'upload_max_filesize' => ini_get( 'upload_max_filesize' ),
-				'post_max_size'      => ini_get( 'post_max_size' ),
+				'post_max_size'       => ini_get( 'post_max_size' ),
 			);
 
 			// WordPress info.

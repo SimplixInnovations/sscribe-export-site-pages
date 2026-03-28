@@ -38,7 +38,7 @@ class SScribe_Zip_Handler {
 	 * Constructor.
 	 */
 	public function __construct() {
-		$upload_dir      = wp_upload_dir();
+		$upload_dir       = wp_upload_dir();
 		$this->export_dir = $upload_dir['basedir'] . '/sscribe-exports';
 		$this->logger     = new SScribe_Logger( defined( 'SSCRIBE_DEBUG' ) && SSCRIBE_DEBUG );
 	}
@@ -62,7 +62,7 @@ class SScribe_Zip_Handler {
 	 */
 	public function create_temp_dir(): string {
 		$random_suffix = bin2hex( random_bytes( 6 ) );
-		$temp_dir = $this->export_dir . '/temp-' . $random_suffix;
+		$temp_dir      = $this->export_dir . '/temp-' . $random_suffix;
 		wp_mkdir_p( $temp_dir );
 		return $temp_dir;
 	}
@@ -84,7 +84,7 @@ class SScribe_Zip_Handler {
 
 		if ( empty( $zip_name ) ) {
 			$random_suffix = bin2hex( random_bytes( 3 ) );
-			$zip_name = 'sscribe-export-' . gmdate( 'Y-m-d-His' ) . '-' . $random_suffix;
+			$zip_name      = 'sscribe-export-' . gmdate( 'Y-m-d-His' ) . '-' . $random_suffix;
 		}
 
 		$zip_path = $this->export_dir . '/' . sanitize_file_name( $zip_name ) . '.zip';
@@ -97,7 +97,7 @@ class SScribe_Zip_Handler {
 				return false;
 			}
 
-			$all_files = array();
+			$all_files         = array();
 			$format_extensions = array(
 				'docx'     => 'docx',
 				'pdf'      => 'pdf',
@@ -106,7 +106,7 @@ class SScribe_Zip_Handler {
 			);
 
 			foreach ( $formats as $format ) {
-				$ext = isset( $format_extensions[ $format ] ) ? $format_extensions[ $format ] : $format;
+				$ext   = isset( $format_extensions[ $format ] ) ? $format_extensions[ $format ] : $format;
 				$found = glob( $source_dir . '/*.' . $ext );
 				if ( $found ) {
 					$all_files[ $format ] = $found;
@@ -123,7 +123,7 @@ class SScribe_Zip_Handler {
 
 			foreach ( $all_files as $format => $files ) {
 				$folder_name = strtoupper( $format );
-				
+
 				foreach ( $files as $file ) {
 					if ( $use_folders ) {
 						$zip->addFile( $file, $folder_name . '/' . basename( $file ) );
@@ -132,14 +132,13 @@ class SScribe_Zip_Handler {
 					}
 				}
 			}
-
 		} finally {
 			$zip->close();
 		}
 
 		$this->delete_directory( $source_dir );
 
-		$exports = get_option( 'sscribe_export_index', array() );
+		$exports                          = get_option( 'sscribe_export_index', array() );
 		$exports[ basename( $zip_path ) ] = array(
 			'created_at' => time(),
 			'user_id'    => get_current_user_id(),
@@ -173,8 +172,8 @@ class SScribe_Zip_Handler {
 	 * @return int Number of files cleaned up.
 	 */
 	public function cleanup_expired(): int {
-		$cleaned  = 0;
-		$files    = glob( $this->export_dir . '/*.zip' );
+		$cleaned = 0;
+		$files   = glob( $this->export_dir . '/*.zip' );
 
 		if ( empty( $files ) ) {
 			return $cleaned;
@@ -190,7 +189,7 @@ class SScribe_Zip_Handler {
 				$exports = get_option( 'sscribe_export_index', array() );
 				unset( $exports[ basename( $file ) ] );
 				update_option( 'sscribe_export_index', $exports, false );
-				$cleaned++;
+				++$cleaned;
 			}
 		}
 
@@ -201,7 +200,7 @@ class SScribe_Zip_Handler {
 				$dir_time = filemtime( $temp_dir );
 				if ( $dir_time && ( time() - $dir_time ) > $max_age ) {
 					$this->delete_directory( $temp_dir );
-					$cleaned++;
+					++$cleaned;
 				}
 			}
 		}
