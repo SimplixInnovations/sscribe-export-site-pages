@@ -157,10 +157,15 @@ class SScribe_Logger implements SScribe_Logger_Interface {
 	 *
 	 * Returns in-memory buffered entries merged with any previously flushed
 	 * entries from the log file, so callers always see the full picture.
+	 * Returns an empty array when logging is disabled.
 	 *
 	 * @return array Log entries.
 	 */
 	public function get_logs(): array {
+		if ( ! $this->enabled ) {
+			return array();
+		}
+
 		$file_entries = array();
 		$log_file     = $this->get_log_file();
 
@@ -182,7 +187,10 @@ class SScribe_Logger implements SScribe_Logger_Interface {
 	 */
 	public function clear_logs(): void {
 		$this->buffer = array();
-		$log_file     = $this->get_log_file();
+		if ( ! $this->enabled ) {
+			return;
+		}
+		$log_file = $this->get_log_file();
 		if ( file_exists( $log_file ) ) {
 			wp_delete_file( $log_file );
 		}
