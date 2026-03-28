@@ -18,9 +18,8 @@
     <arg name="extensions" value="php"/>
     <arg name="encoding" value="utf-8"/>
 
-    <!-- Use a subset of WordPress standards for key security checks -->
-    <rule ref="WordPress.Security"/>
-    <rule ref="WordPress.WP.I18n"/>
+    <!-- Enforce full WordPress standard, exclude only with justification -->
+    <rule ref="WordPress"/>
     
     <!-- Check PHP compatibility -->
     <rule ref="PHPCompatibility"/>

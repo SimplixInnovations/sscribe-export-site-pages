@@ -1,4 +1,6 @@
 <?php
+declare(strict_types=1);
+
 /**
  * Generates DOCX documents from page data using PHPWord.
  *
@@ -29,42 +31,42 @@ class SScribe_Exporter {
 	 *
 	 * @var string
 	 */
-	public $last_error = '';
+	public string $last_error = '';
 
 	/**
 	 * Content parser instance.
 	 *
 	 * @var SScribe_Content_Parser
 	 */
-	private $parser;
+	private SScribe_Content_Parser $parser;
 
 	/**
 	 * Whether the current document is RTL.
 	 *
 	 * @var bool
 	 */
-	private $is_rtl = false;
+	private bool $is_rtl = false;
 
 	/**
 	 * Font name for normal text.
 	 *
 	 * @var string
 	 */
-	private $font_name = 'Arial';
+	private string $font_name = 'Arial';
 
 	/**
 	 * Font size for normal text (in points).
 	 *
 	 * @var int
 	 */
-	private $font_size = 11;
+	private int $font_size = 11;
 
 	/**
 	 * Document colors.
 	 *
 	 * @var array
 	 */
-	private $colors = array(
+	private array $colors = array(
 		'primary'  => '4A8263',
 		'heading'  => '122119',
 		'body'     => '495057',
@@ -97,7 +99,7 @@ class SScribe_Exporter {
 	 * @param mixed $text Input value (will be cast to string).
 	 * @return string Cleaned, XML 1.0-safe string.
 	 */
-	private function safe_text( $text ) {
+	private function safe_text( string $text ): string {
 		$text = (string) $text;
 
 		// 1. Remove XML 1.0 illegal control characters (keep \t, \n, \r).
@@ -150,7 +152,7 @@ class SScribe_Exporter {
 	 * @param array $page_data Page data.
 	 * @return bool True if RTL.
 	 */
-	private function is_rtl_document( $page_data ) {
+	private function is_rtl_document( array $page_data ): bool {
 		$rtl_languages = array( 'ar', 'he', 'fa', 'ur', 'ps', 'ku', 'sd' );
 		$lang = ! empty( $page_data['language'] ) ? substr( $page_data['language'], 0, 2 ) : 'en';
 		return in_array( $lang, $rtl_languages, true );
@@ -179,16 +181,18 @@ class SScribe_Exporter {
 	 * @param int    $total      Total number of pages being exported. Used for zero-padding.
 	 * @return string|false Path to generated DOCX or false on failure.
 	 */
-	public function generate_docx( $page_data, $output_dir, $index = 0, $total = 0 ) {
+	public function generate_docx( array $page_data, string $output_dir, int $index = 0, int $total = 0 ): string|false {
 		if ( empty( $page_data ) || ! is_dir( $output_dir ) ) {
 			return false;
 		}
 
 		try {
-			// Force ZipArchive — prevents PHPWord from ever loading bundled PCLZip.
-			if ( class_exists( 'ZipArchive' ) ) {
-				\PhpOffice\PhpWord\Settings::setZipClass( \PhpOffice\PhpWord\Settings::ZIPARCHIVE );
+			if ( ! class_exists( 'ZipArchive' ) ) {
+				throw new \RuntimeException( __( 'The ZipArchive PHP extension is required to generate DOCX files.', 'sscribe-export-site-pages' ) );
 			}
+			
+			// Force ZipArchive — prevents PHPWord from ever loading bundled PCLZip.
+			\PhpOffice\PhpWord\Settings::setZipClass( \PhpOffice\PhpWord\Settings::ZIPARCHIVE );
 
 			$php_word = new PhpWord();
 
@@ -260,7 +264,7 @@ class SScribe_Exporter {
 	 * @param PhpWord $php_word  The PhpWord instance.
 	 * @param array   $page_data Page data.
 	 */
-	private function set_document_properties( $php_word, $page_data ) {
+	private function set_document_properties( \PhpOffice\PhpWord\PhpWord $php_word, array $page_data ): void {
 		$properties = $php_word->getDocInfo();
 		$properties->setCreator( 'SScribe by Simplix Innovations' );
 		$properties->setCompany( html_entity_decode( get_bloginfo( 'name' ), ENT_QUOTES | ENT_HTML5, 'UTF-8' ) );
@@ -274,7 +278,7 @@ class SScribe_Exporter {
 	 *
 	 * @param PhpWord $php_word The PhpWord instance.
 	 */
-	private function set_default_styles( $php_word ) {
+	private function set_default_styles( \PhpOffice\PhpWord\PhpWord $php_word ): void {
 		$php_word->setDefaultFontName( $this->font_name );
 		$php_word->setDefaultFontSize( $this->font_size );
 		$php_word->setDefaultParagraphStyle(
@@ -292,7 +296,7 @@ class SScribe_Exporter {
 	 *
 	 * @param PhpWord $php_word The PhpWord instance.
 	 */
-	private function define_styles( $php_word ) {
+	private function define_styles( \PhpOffice\PhpWord\PhpWord $php_word ): void {
 		// Heading styles.
 		$heading_sizes = array( 24, 20, 16, 14, 12, 11 );
 		for ( $i = 1; $i <= 6; $i++ ) {
@@ -342,7 +346,7 @@ class SScribe_Exporter {
 	 * @param bool $is_rtl Whether document is RTL.
 	 * @return array Section properties.
 	 */
-	private function get_section_settings( $is_rtl = false ) {
+	private function get_section_settings( bool $is_rtl = false ): array {
 		$settings = array(
 			'pageSizeW'    => Converter::inchToTwip( 8.5 ),
 			'pageSizeH'    => Converter::inchToTwip( 11 ),
@@ -373,7 +377,7 @@ class SScribe_Exporter {
 	 * @param \PhpOffice\PhpWord\Element\Section $section The section.
 	 * @param array                              $page_data Page data.
 	 */
-	private function add_cover_page( $section, $page_data ) {
+	private function add_cover_page( \PhpOffice\PhpWord\Element\Section $section, array $page_data ): void {
 		// Top solid bar simulation.
 		$section->addTextBreak( 2 );
 
@@ -547,7 +551,7 @@ class SScribe_Exporter {
 	 * @param \PhpOffice\PhpWord\Element\Section $section   The section.
 	 * @param array                              $page_data Page data.
 	 */
-	private function add_header_footer( $section, $page_data ) {
+	private function add_header_footer( \PhpOffice\PhpWord\Element\Section $section, array $page_data ): void {
 		// Header.
 		$header       = $section->addHeader();
 		$header_table = $header->addTable();
@@ -602,7 +606,7 @@ class SScribe_Exporter {
 	 * @param \PhpOffice\PhpWord\Element\Section $section   The section.
 	 * @param array                              $page_data Page data.
 	 */
-	private function add_featured_image( $section, $page_data ) {
+	private function add_featured_image( \PhpOffice\PhpWord\Element\Section $section, array $page_data ): void {
 		if ( empty( $page_data['featured_image_path'] ) || ! file_exists( $page_data['featured_image_path'] ) ) {
 			return;
 		}
@@ -659,7 +663,7 @@ class SScribe_Exporter {
 	 * @param \PhpOffice\PhpWord\Element\Section $section   The section.
 	 * @param array                              $page_data Page data.
 	 */
-	private function add_page_info_table( $section, $page_data ) {
+	private function add_page_info_table( \PhpOffice\PhpWord\Element\Section $section, array $page_data ): void {
 		$section->addTitle( __( 'Page Information', 'sscribe-export-site-pages' ), 2 );
 
 		$table_style = array(
@@ -723,7 +727,7 @@ class SScribe_Exporter {
 	 * @param \PhpOffice\PhpWord\Element\Section $section   The section.
 	 * @param array                              $page_data Page data.
 	 */
-	private function add_seo_section( $section, $page_data ) {
+	private function add_seo_section( \PhpOffice\PhpWord\Element\Section $section, array $page_data ): void {
 		$seo_data = ! empty( $page_data['seo'] ) ? $page_data['seo'] : array();
 
 		if ( empty( $seo_data['meta_title'] ) && empty( $seo_data['meta_description'] ) && empty( $seo_data['focus_keyword'] ) ) {
@@ -798,7 +802,7 @@ class SScribe_Exporter {
 	 * @param \PhpOffice\PhpWord\Element\Section $section   The section.
 	 * @param array                              $page_data Page data.
 	 */
-	private function add_breadcrumbs( $section, $page_data ) {
+	private function add_breadcrumbs( \PhpOffice\PhpWord\Element\Section $section, array $page_data ): void {
 		if ( empty( $page_data['breadcrumbs'] ) || count( $page_data['breadcrumbs'] ) <= 1 ) {
 			return;
 		}
@@ -839,7 +843,7 @@ class SScribe_Exporter {
 	 * @param \PhpOffice\PhpWord\Element\Section $section   The section.
 	 * @param array                              $page_data Page data.
 	 */
-	private function add_main_content( $section, $page_data ) {
+	private function add_main_content( \PhpOffice\PhpWord\Element\Section $section, array $page_data ): void {
 		if ( empty( $page_data['word_count'] ) || $page_data['word_count'] === 0 ) {
 			return;
 		}
@@ -859,7 +863,7 @@ class SScribe_Exporter {
 	 * @param \PhpOffice\PhpWord\Element\Section $section The section.
 	 * @param array                              $element The parsed element.
 	 */
-	private function render_element( $section, $element ) {
+	private function render_element( object $section, array $element ): void {
 		if ( empty( $element['type'] ) ) {
 			return;
 		}
@@ -930,7 +934,7 @@ class SScribe_Exporter {
 	 * @param \PhpOffice\PhpWord\Element\Section $section The section.
 	 * @param array                              $element The paragraph element.
 	 */
-	private function render_paragraph( $section, $element ) {
+	private function render_paragraph( object $section, array $element ): void {
 		if ( empty( $element['runs'] ) ) {
 			return;
 		}
@@ -946,7 +950,7 @@ class SScribe_Exporter {
 	 * @param array                              $runs    Array of run data.
 	 * @param bool                               $italic  Force italic (for blockquotes).
 	 */
-	private function render_runs( $text_run, $runs, $italic = false ) {
+	private function render_runs( object $text_run, array $runs, bool $italic = false ): void {
 		foreach ( $runs as $run ) {
 			if ( ! isset( $run['text'] ) || '' === $run['text'] ) {
 				continue;
@@ -1017,7 +1021,7 @@ class SScribe_Exporter {
 	 * @param \PhpOffice\PhpWord\Element\Section $section The section.
 	 * @param array                              $element The list element.
 	 */
-	private function render_list( $section, $element ) {
+	private function render_list( object $section, array $element ): void {
 		$style = isset( $element['style'] ) ? $element['style'] : 'bullet';
 
 		if ( ! isset( $element['items'] ) ) {
@@ -1065,7 +1069,7 @@ class SScribe_Exporter {
 	 * @param \PhpOffice\PhpWord\Element\Section $section The section.
 	 * @param array                              $element The table element.
 	 */
-	private function render_table( $section, $element ) {
+	private function render_table( object $section, array $element ): void {
 		if ( empty( $element['rows'] ) ) {
 			return;
 		}
@@ -1122,7 +1126,7 @@ class SScribe_Exporter {
 	 * @param \PhpOffice\PhpWord\Element\Section $section The section.
 	 * @param array                              $element The button element.
 	 */
-	private function render_button( $section, $element ) {
+	private function render_button( object $section, array $element ): void {
 		$table = $section->addTable(
 			array(
 				'borderSize'  => 6,
@@ -1182,7 +1186,7 @@ class SScribe_Exporter {
 	 * @param \PhpOffice\PhpWord\Element\Section $section The section.
 	 * @param array                              $element The image element.
 	 */
-	private function render_inline_image( $section, $element ) {
+	private function render_inline_image( object $section, array $element ): void {
 		$path = ! empty( $element['local_path'] ) ? $element['local_path'] : '';
 		$src  = ! empty( $element['src'] ) ? $element['src'] : __( 'Unknown URL', 'sscribe-export-site-pages' );
 
@@ -1263,7 +1267,7 @@ class SScribe_Exporter {
 	 * @param \PhpOffice\PhpWord\Element\Section $section   The section.
 	 * @param array                              $page_data Page data.
 	 */
-	private function add_child_pages( $section, $page_data ) {
+	private function add_child_pages( \PhpOffice\PhpWord\Element\Section $section, array $page_data ): void {
 		if ( empty( $page_data['children'] ) ) {
 			return;
 		}

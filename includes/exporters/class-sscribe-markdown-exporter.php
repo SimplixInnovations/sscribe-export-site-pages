@@ -1,4 +1,6 @@
 <?php
+declare(strict_types=1);
+
 /**
  * Markdown exporter for SScribe.
  *
@@ -47,6 +49,7 @@ class SScribe_Markdown_Exporter implements SScribe_Exporter_Interface {
 		$filename    = \SScribe_Exporter_Factory::build_filename( $page_data, $index, $total, 'md' );
 		$output_path = trailingslashit( $output_dir ) . $filename;
 
+		// phpcs:ignore WordPress.WP.AlternativeFunctions.file_system_read_file_put_contents -- Output generation in temp dir.
 		$result = file_put_contents( $output_path, $markdown );
 
 		if ( false === $result ) {
@@ -347,9 +350,9 @@ class SScribe_Markdown_Exporter implements SScribe_Exporter_Interface {
 		$max_iterations = 10;
 		$iteration = 0;
 
-		while ( preg_match( '/<(ul|ol)>(.*?)<\/\1>/is', $html, $matches, PREG_OFFSET_OFFSET ) && $iteration < $max_iterations ) {
-			$list_type = $matches[1];
-			$list_content = $matches[2];
+		while ( preg_match( '/<(ul|ol)>(.*?)<\/\1>/is', $html, $matches, PREG_OFFSET_CAPTURE ) && $iteration < $max_iterations ) {
+			$list_type = $matches[1][0];
+			$list_content = $matches[2][0];
 
 			$converted = $this->convert_list_items( $list_content, $list_type );
 

@@ -1,4 +1,6 @@
 <?php
+declare(strict_types=1);
+
 /**
  * Result pattern for consistent error handling.
  *
@@ -21,28 +23,28 @@ class SScribe_Result {
 	 *
 	 * @var bool
 	 */
-	private bool $success;
+	private readonly bool $success;
 
 	/**
 	 * The result data (on success).
 	 *
 	 * @var mixed
 	 */
-	private $data;
+	private readonly mixed $data;
 
 	/**
 	 * Error message (on failure).
 	 *
 	 * @var string|null
 	 */
-	private ?string $error;
+	private readonly ?string $error;
 
 	/**
 	 * Additional context (on failure).
 	 *
 	 * @var array
 	 */
-	private array $context;
+	private readonly array $context;
 
 	/**
 	 * Private constructor - use factory methods.
@@ -103,7 +105,7 @@ class SScribe_Result {
 	 *
 	 * @return mixed|null
 	 */
-	public function get_data() {
+	public function get_data(): mixed {
 		return $this->data;
 	}
 

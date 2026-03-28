@@ -21,23 +21,20 @@ if ( ! defined( 'ABSPATH' ) ) {
 class SScribe_Session {
 
 	/**
-	 * Option name prefix for session storage.
-	 *
-	 * @var string
-	 */
-	private $option_prefix = 'sscribe_session_';
-
-	/**
 	 * Logger instance.
 	 *
-	 * @var SScribe_Logger|null
+	 * @var SScribe_Logger
 	 */
-	private $logger;
+	private readonly SScribe_Logger $logger;
 
 	/**
 	 * Constructor.
+	 *
+	 * @param string $option_prefix Option name prefix for session storage.
 	 */
-	public function __construct() {
+	public function __construct(
+		private readonly string $option_prefix = 'sscribe_session_'
+	) {
 		$this->logger = new SScribe_Logger( defined( 'SSCRIBE_DEBUG' ) && SSCRIBE_DEBUG );
 	}
 
@@ -48,7 +45,7 @@ class SScribe_Session {
 	 * @return string Session ID on success, empty string on failure.
 	 */
 	public function create( array $data ): string {
-		$session_id = sanitize_key( wp_generate_password( 16, false ) );
+		$session_id = sanitize_key( bin2hex( random_bytes( 8 ) ) );
 		$session_id = strtolower( $session_id );
 
 		$data['created_at']  = time();

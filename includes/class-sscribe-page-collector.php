@@ -5,6 +5,8 @@
  * @package SScribe
  */
 
+declare(strict_types=1);
+
 // Prevent direct access.
 if ( ! defined( 'ABSPATH' ) ) {
 	exit;
@@ -44,10 +46,18 @@ class SScribe_Page_Collector {
 	 *
 	 * @var SScribe_SEO_Reader
 	 */
-	private $seo_reader;
+	private readonly SScribe_SEO_Reader $seo_reader;
 
-	private $logger;
+	/**
+	 * Logger instance.
+	 *
+	 * @var SScribe_Logger
+	 */
+	private readonly SScribe_Logger $logger;
 
+	/**
+	 * Constructor.
+	 */
 	public function __construct() {
 		$this->seo_reader = new SScribe_SEO_Reader();
 		$this->logger     = new SScribe_Logger( defined( 'SSCRIBE_DEBUG' ) && SSCRIBE_DEBUG );
@@ -60,7 +70,7 @@ class SScribe_Page_Collector {
 	 * @param string $post_status Optional post status (publish, draft, private, future, pending, all).
 	 * @return array Array of page IDs.
 	 */
-	public function get_page_ids( $language = '', $post_status = 'publish' ) {
+	public function get_page_ids( string $language = '', string $post_status = 'publish' ): array {
 		$post_status = $this->validate_post_status( $post_status );
 
 		$args = array(
@@ -259,7 +269,7 @@ class SScribe_Page_Collector {
 	 * @param string $post_status Optional post status (publish, draft, private, future, pending, all).
 	 * @return int
 	 */
-	public function get_page_count_only( $language = '', $post_status = 'publish' ) {
+	public function get_page_count_only( string $language = '', string $post_status = 'publish' ): int {
 		$post_status = $this->validate_post_status( $post_status );
 
 		$args = array(
@@ -311,7 +321,7 @@ class SScribe_Page_Collector {
 	 * @param string $language Optional WPML language code.
 	 * @return int Total number of pages.
 	 */
-	public function get_total_pages( $language = '' ) {
+	public function get_total_pages( string $language = '' ): int {
 		return $this->get_page_count_only( $language );
 	}
 
@@ -321,7 +331,7 @@ class SScribe_Page_Collector {
 	 * @param int $page_id The page ID.
 	 * @return array|false Page data array or false on failure.
 	 */
-	public function get_page_data( $page_id ) {
+	public function get_page_data( int $page_id ): array|false {
 		$page_id = absint( $page_id );
 		if ( $page_id <= 0 ) {
 			return false;
@@ -479,7 +489,7 @@ class SScribe_Page_Collector {
 	 * @param int $page_id The page ID.
 	 * @return array Array of breadcrumb items with title and url.
 	 */
-	private function get_breadcrumbs( $page_id ) {
+	private function get_breadcrumbs( int $page_id ): array {
 		if ( isset( $this->breadcrumb_cache[ $page_id ] ) ) {
 			return $this->breadcrumb_cache[ $page_id ];
 		}
@@ -567,7 +577,7 @@ class SScribe_Page_Collector {
 	 * @param int $page_id The parent page ID.
 	 * @return array Array of child page data (id, title, url).
 	 */
-	private function get_child_pages( $page_id ) {
+	private function get_child_pages( int $page_id ): array {
 		if ( isset( $this->child_pages_cache[ $page_id ] ) ) {
 			return $this->child_pages_cache[ $page_id ];
 		}
@@ -603,7 +613,7 @@ class SScribe_Page_Collector {
 	 * @param int $page_id The page ID.
 	 * @return string Language code or 'en' default.
 	 */
-	private function get_page_language( $page_id ) {
+	private function get_page_language( int $page_id ): string {
 		if ( $this->is_wpml_active() ) {
 			// phpcs:ignore WordPress.NamingConventions.PrefixAllGlobals.NonPrefixedHooknameFound -- WPML hook.
 			$language_details = apply_filters( 'wpml_post_language_details', null, $page_id );
@@ -619,7 +629,7 @@ class SScribe_Page_Collector {
 	 *
 	 * @return bool
 	 */
-	public function is_wpml_active() {
+	public function is_wpml_active(): bool {
 		return defined( 'ICL_SITEPRESS_VERSION' ) && class_exists( 'SitePress' );
 	}
 
@@ -694,7 +704,7 @@ class SScribe_Page_Collector {
 	 *
 	 * @return array Array of language data or empty array if WPML not active.
 	 */
-	public function get_wpml_languages() {
+	public function get_wpml_languages(): array {
 		if ( ! $this->is_wpml_active() ) {
 			return array();
 		}

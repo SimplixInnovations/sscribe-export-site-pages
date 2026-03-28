@@ -27,7 +27,7 @@ class SScribe_SEO_Reader {
 	 * @param int $page_id The page ID.
 	 * @return array SEO data with keys: meta_title, meta_description, focus_keyword, canonical_url, source.
 	 */
-	public function get_seo_data( $page_id ) {
+	public function get_seo_data( int $page_id ): array {
 		$seo_data = array(
 			'meta_title'       => '',
 			'meta_description' => '',
@@ -67,7 +67,7 @@ class SScribe_SEO_Reader {
 	 *
 	 * @return bool
 	 */
-	public function has_seo_plugin() {
+	public function has_seo_plugin(): bool {
 		return $this->is_yoast_active()
 			|| $this->is_rankmath_active()
 			|| $this->is_aioseo_v4_active()
@@ -81,7 +81,7 @@ class SScribe_SEO_Reader {
 	 *
 	 * @return array Array of active SEO plugin names.
 	 */
-	public function get_active_seo_plugins() {
+	public function get_active_seo_plugins(): array {
 		$active = array();
 		if ( $this->is_yoast_active() ) {
 			$active[] = 'Yoast SEO';
@@ -110,7 +110,7 @@ class SScribe_SEO_Reader {
 	 * @param int $page_id The page ID.
 	 * @return array SEO data.
 	 */
-	private function read_yoast( $page_id ) {
+	private function read_yoast( int $page_id ): array {
 		if ( ! $this->is_yoast_active() ) {
 			return $this->empty_seo_data();
 		}
@@ -137,7 +137,7 @@ class SScribe_SEO_Reader {
 	 * @param int $page_id The page ID.
 	 * @return array SEO data.
 	 */
-	private function read_rankmath( $page_id ) {
+	private function read_rankmath( int $page_id ): array {
 		if ( ! $this->is_rankmath_active() ) {
 			return $this->empty_seo_data();
 		}
@@ -169,7 +169,7 @@ class SScribe_SEO_Reader {
 	 * @param int $page_id The page ID.
 	 * @return array SEO data.
 	 */
-	private function read_aioseo_v4( $page_id ) {
+	private function read_aioseo_v4( int $page_id ): array {
 		if ( ! $this->is_aioseo_v4_active() ) {
 			return $this->empty_seo_data();
 		}
@@ -222,7 +222,7 @@ class SScribe_SEO_Reader {
 	 * @param int $page_id The page ID.
 	 * @return array SEO data.
 	 */
-	private function read_aioseo_v3( $page_id ) {
+	private function read_aioseo_v3( int $page_id ): array {
 		if ( ! $this->is_aioseo_v3_active() ) {
 			return $this->empty_seo_data();
 		}
@@ -237,8 +237,8 @@ class SScribe_SEO_Reader {
 		$robots   = get_post_meta( $page_id, '_aioseop_robots', true );
 		if ( ! empty( $robots ) && is_string( $robots ) ) {
 			$robots_lower = strtolower( $robots );
-			$noindex  = false !== strpos( $robots_lower, 'noindex' );
-			$nofollow = false !== strpos( $robots_lower, 'nofollow' );
+			$noindex  = str_contains( $robots_lower, 'noindex' );
+			$nofollow = str_contains( $robots_lower, 'nofollow' );
 		}
 
 		$meta_robots_noindex = get_post_meta( $page_id, '_aioseop_noindex', true );
@@ -271,7 +271,7 @@ class SScribe_SEO_Reader {
 	 * @param int $page_id The page ID.
 	 * @return array SEO data.
 	 */
-	private function read_seopress( $page_id ) {
+	private function read_seopress( int $page_id ): array {
 		if ( ! $this->is_seopress_active() ) {
 			return $this->empty_seo_data();
 		}
@@ -295,7 +295,7 @@ class SScribe_SEO_Reader {
 	 * @param int $page_id The page ID.
 	 * @return array SEO data.
 	 */
-	private function read_tsf( $page_id ) {
+	private function read_tsf( int $page_id ): array {
 		if ( ! $this->is_tsf_active() ) {
 			return $this->empty_seo_data();
 		}
@@ -347,7 +347,7 @@ class SScribe_SEO_Reader {
 	 * @param array $data SEO data array.
 	 * @return bool
 	 */
-	private function has_seo_data( $data ) {
+	private function has_seo_data( array $data ): bool {
 		return ! empty( $data['meta_title'] )
 			|| ! empty( $data['meta_description'] )
 			|| ! empty( $data['focus_keyword'] )
@@ -357,7 +357,7 @@ class SScribe_SEO_Reader {
 			|| ! empty( $data['og_image'] );
 	}
 
-	private function empty_seo_data() {
+	private function empty_seo_data(): array {
 		return array(
 			'meta_title'       => '',
 			'meta_description' => '',
@@ -377,7 +377,7 @@ class SScribe_SEO_Reader {
 	 *
 	 * @return bool
 	 */
-	private function is_yoast_active() {
+	private function is_yoast_active(): bool {
 		return defined( 'WPSEO_VERSION' );
 	}
 
@@ -386,7 +386,7 @@ class SScribe_SEO_Reader {
 	 *
 	 * @return bool
 	 */
-	private function is_rankmath_active() {
+	private function is_rankmath_active(): bool {
 		return class_exists( 'RankMath' );
 	}
 
@@ -395,7 +395,7 @@ class SScribe_SEO_Reader {
 	 *
 	 * @return bool
 	 */
-	private function is_aioseo_v4_active() {
+	private function is_aioseo_v4_active(): bool {
 		return function_exists( 'aioseo' ) && defined( 'AIOSEO_VERSION' );
 	}
 
@@ -404,7 +404,7 @@ class SScribe_SEO_Reader {
 	 *
 	 * @return bool
 	 */
-	private function is_aioseo_v3_active() {
+	private function is_aioseo_v3_active(): bool {
 		return class_exists( 'All_in_One_SEO_Pack' ) && ! function_exists( 'aioseo' );
 	}
 
@@ -413,7 +413,7 @@ class SScribe_SEO_Reader {
 	 *
 	 * @return bool
 	 */
-	private function is_seopress_active() {
+	private function is_seopress_active(): bool {
 		return defined( 'SEOPRESS_VERSION' );
 	}
 
@@ -422,7 +422,7 @@ class SScribe_SEO_Reader {
 	 *
 	 * @return bool
 	 */
-	private function is_tsf_active() {
+	private function is_tsf_active(): bool {
 		return defined( 'THE_SEO_FRAMEWORK_VERSION' );
 	}
 }

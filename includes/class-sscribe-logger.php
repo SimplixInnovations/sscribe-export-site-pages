@@ -1,10 +1,11 @@
 <?php
+declare(strict_types=1);
+
 /**
  * Logging service for SScribe.
  *
- * Uses WordPress options API for debug log storage to comply with
- * WordPress.org repository guidelines. Log files are permitted for
- * debugging purposes when gated behind a debug constant.
+ * Uses filesystem log storage with in-memory buffering to optimize performance
+ * and prevent database bloat.
  *
  * @package SScribe
  */
@@ -18,30 +19,23 @@ require_once SSCRIBE_PLUGIN_DIR . 'includes/interfaces/interface-sscribe-logger.
 /**
  * Class SScribe_Logger
  *
- * Centralized logging service using WordPress options API.
+ * Centralized logging service with buffered filesystem writes.
  */
 class SScribe_Logger implements SScribe_Logger_Interface {
 
 	/**
-	 * Whether logging is enabled.
+	 * Log entries buffer.
 	 *
-	 * @var bool
+	 * @var array
 	 */
-	private bool $enabled;
+	private array $buffer = array();
 
 	/**
-	 * Log entry prefix.
+	 * Log directory path.
 	 *
 	 * @var string
 	 */
-	private string $prefix;
-
-	/**
-	 * Maximum log entries to keep.
-	 *
-	 * @var int
-	 */
-	private int $max_entries = 1000;
+	private readonly string $log_dir;
 
 	/**
 	 * Constructor.
@@ -49,18 +43,40 @@ class SScribe_Logger implements SScribe_Logger_Interface {
 	 * @param bool   $enabled Whether logging is enabled.
 	 * @param string $prefix  Optional log entry prefix.
 	 */
-	public function __construct( bool $enabled = true, string $prefix = 'sscribe' ) {
-		$this->enabled = $enabled;
-		$this->prefix  = $prefix;
+	public function __construct(
+		private readonly bool $enabled = true,
+		private readonly string $prefix = 'sscribe'
+	) {
+		$upload_dir    = wp_upload_dir();
+		$this->log_dir = $upload_dir['basedir'] . '/sscribe-logs';
+
+		if ( $this->enabled ) {
+			add_action( 'shutdown', array( $this, 'flush' ) );
+		}
 	}
 
 	/**
-	 * Get the option name for log storage.
+	 * Destructor to ensure buffer is flushed.
+	 */
+	public function __destruct() {
+		$this->flush();
+	}
+
+	/**
+	 * Get the log file path, ensuring directory exists and is protected.
 	 *
 	 * @return string
 	 */
-	private function get_option_name(): string {
-		return $this->prefix . '_log_' . gmdate( 'Y-m-d' );
+	private function get_log_file(): string {
+		if ( ! file_exists( $this->log_dir ) ) {
+			wp_mkdir_p( $this->log_dir );
+			// Protect directory from direct access
+			// phpcs:ignore WordPress.WP.AlternativeFunctions.file_system_operations_file_put_contents -- Required to secure the log directory.
+			file_put_contents( $this->log_dir . '/.htaccess', 'deny from all' );
+			// phpcs:ignore WordPress.WP.AlternativeFunctions.file_system_operations_file_put_contents -- Required to secure the log directory.
+			file_put_contents( $this->log_dir . '/index.html', '' );
+		}
+		return $this->log_dir . '/' . $this->prefix . '_debug_' . gmdate( 'Y-m-d' ) . '.log';
 	}
 
 	/**
@@ -95,7 +111,7 @@ class SScribe_Logger implements SScribe_Logger_Interface {
 	}
 
 	/**
-	 * Write to log storage.
+	 * Buffer a log entry.
 	 *
 	 * @param string $level   Log level.
 	 * @param string $message Log message.
@@ -114,20 +130,26 @@ class SScribe_Logger implements SScribe_Logger_Interface {
 			$entry .= ' | ' . wp_json_encode( $data, JSON_UNESCAPED_UNICODE );
 		}
 
-		$option_name = $this->get_option_name();
-		$logs        = get_option( $option_name, array() );
+		$this->buffer[] = $entry;
+	}
 
-		if ( ! is_array( $logs ) ) {
-			$logs = array();
+	/**
+	 * Flush buffered logs to the filesystem.
+	 *
+	 * @return void
+	 */
+	public function flush(): void {
+		if ( empty( $this->buffer ) || ! $this->enabled ) {
+			return;
 		}
 
-		$logs[] = $entry;
+		$log_file = $this->get_log_file();
+		$content  = implode( PHP_EOL, $this->buffer ) . PHP_EOL;
 
-		if ( count( $logs ) > $this->max_entries ) {
-			$logs = array_slice( $logs, -$this->max_entries );
-		}
+		// phpcs:ignore WordPress.WP.AlternativeFunctions.file_system_operations_file_put_contents -- Required for debug logging per plugin requirements.
+		file_put_contents( $log_file, $content, FILE_APPEND | LOCK_EX );
 
-		update_option( $option_name, $logs, false );
+		$this->buffer = array();
 	}
 
 	/**
@@ -136,8 +158,15 @@ class SScribe_Logger implements SScribe_Logger_Interface {
 	 * @return array Log entries.
 	 */
 	public function get_logs(): array {
-		$option_name = $this->get_option_name();
-		return get_option( $option_name, array() );
+		$log_file = $this->get_log_file();
+		if ( file_exists( $log_file ) ) {
+			// phpcs:ignore WordPress.WP.AlternativeFunctions.file_get_contents_file_get_contents -- Safe filesystem read.
+			$contents = file_get_contents( $log_file );
+			if ( $contents ) {
+				return explode( PHP_EOL, trim( $contents ) );
+			}
+		}
+		return array();
 	}
 
 	/**
@@ -146,35 +175,37 @@ class SScribe_Logger implements SScribe_Logger_Interface {
 	 * @return void
 	 */
 	public function clear_logs(): void {
-		$option_name = $this->get_option_name();
-		delete_option( $option_name );
+		$this->buffer = array();
+		$log_file     = $this->get_log_file();
+		if ( file_exists( $log_file ) ) {
+			wp_delete_file( $log_file );
+		}
 	}
 
 	/**
-	 * Clean up old log options.
+	 * Clean up old log files.
 	 *
 	 * @param int $max_age_days Maximum age in days.
 	 * @return int Number of logs cleaned.
 	 */
 	public static function cleanup_old_logs( int $max_age_days = 7 ): int {
-		global $wpdb;
+		$upload_dir = wp_upload_dir();
+		$log_dir    = $upload_dir['basedir'] . '/sscribe-logs';
 
-		$pattern = $wpdb->esc_like( 'sscribe_log_' ) . '%';
+		if ( ! is_dir( $log_dir ) ) {
+			return 0;
+		}
 
-		$options = $wpdb->get_col(
-			$wpdb->prepare(
-				"SELECT option_name FROM {$wpdb->options} WHERE option_name LIKE %s AND autoload = 'no'",
-				$pattern
-			)
-		);
-
+		$files   = glob( $log_dir . '/*_debug_*.log' );
 		$deleted = 0;
-		$cutoff  = gmdate( 'Y-m-d', strtotime( "-{$max_age_days} days" ) );
+		$max_age = $max_age_days * DAY_IN_SECONDS;
+		$now     = time();
 
-		foreach ( $options as $option_name ) {
-			if ( preg_match( '/sscribe_log_(\d{4}-\d{2}-\d{2})/', $option_name, $matches ) ) {
-				if ( $matches[1] < $cutoff ) {
-					if ( delete_option( $option_name ) ) {
+		if ( is_array( $files ) ) {
+			foreach ( $files as $file ) {
+				$file_time = filemtime( $file );
+				if ( $file_time && ( $now - $file_time ) > $max_age ) {
+					if ( wp_delete_file( $file ) ) {
 						++$deleted;
 					}
 				}
@@ -184,3 +215,4 @@ class SScribe_Logger implements SScribe_Logger_Interface {
 		return $deleted;
 	}
 }
+
