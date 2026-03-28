@@ -153,20 +153,26 @@ class SScribe_Logger implements SScribe_Logger_Interface {
 	}
 
 	/**
-	 * Get log entries for the current day.
+	 * Get log entries (buffered + flushed to file).
+	 *
+	 * Returns in-memory buffered entries merged with any previously flushed
+	 * entries from the log file, so callers always see the full picture.
 	 *
 	 * @return array Log entries.
 	 */
 	public function get_logs(): array {
-		$log_file = $this->get_log_file();
+		$file_entries = array();
+		$log_file     = $this->get_log_file();
+
 		if ( file_exists( $log_file ) ) {
 			// phpcs:ignore WordPress.WP.AlternativeFunctions.file_get_contents_file_get_contents -- Safe filesystem read.
 			$contents = file_get_contents( $log_file );
 			if ( $contents ) {
-				return explode( PHP_EOL, trim( $contents ) );
+				$file_entries = explode( PHP_EOL, trim( $contents ) );
 			}
 		}
-		return array();
+
+		return array_merge( $file_entries, $this->buffer );
 	}
 
 	/**
