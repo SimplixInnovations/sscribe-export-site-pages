@@ -240,4 +240,29 @@ if ( ! function_exists( 'size_format' ) ) {
 	}
 }
 
+
+if ( ! function_exists( 'add_action' ) ) {
+	function add_action( $sscribe_hook, $sscribe_callback, $sscribe_priority = 10, $sscribe_args = 1 ) {
+		// No-op stub for unit tests.
+		return true;
+	}
+}
+
+if ( ! function_exists( 'wp_delete_file' ) ) {
+	function wp_delete_file( $sscribe_file ) {
+		if ( file_exists( $sscribe_file ) ) {
+			return unlink( $sscribe_file );
+		}
+		return false;
+	}
+}
+
+if ( ! defined( 'DAY_IN_SECONDS' ) ) {
+	define( 'DAY_IN_SECONDS', 86400 );
+}
+
+if ( ! defined( 'HOUR_IN_SECONDS' ) ) {
+	define( 'HOUR_IN_SECONDS', 3600 );
+}
+
 require_once SSCRIBE_PLUGIN_DIR . 'vendor/autoload.php';
