@@ -5,42 +5,46 @@
  * @package SScribe\Tests\Unit
  */
 
+declare(strict_types=1);
+
 namespace SScribe\Tests\Unit;
 
 use PHPUnit\Framework\TestCase;
 
 class SScribe_Logger_Test extends TestCase
 {
+	private string $testPrefix;
 
 	protected function setUp(): void
 	{
 		parent::setUp();
+		$this->testPrefix = 'test_' . uniqid();
 		$GLOBALS['sscribe_test_options'] = array();
 	}
 
 	protected function tearDown(): void
 	{
-		// Clear the shared log file between tests to ensure isolation.
-		(new \SScribe_Logger(true))->clear_logs();
+		$logger = new \SScribe_Logger(true, $this->testPrefix);
+		$logger->clear_logs();
 		$GLOBALS['sscribe_test_options'] = array();
 		parent::tearDown();
 	}
 
 	public function test_is_enabled_returns_true_when_debug_is_true()
 	{
-		$logger = new \SScribe_Logger(true);
+		$logger = new \SScribe_Logger(true, $this->testPrefix);
 		$this->assertTrue($logger->is_enabled());
 	}
 
 	public function test_is_enabled_returns_false_when_debug_is_false()
 	{
-		$logger = new \SScribe_Logger(false);
+		$logger = new \SScribe_Logger(false, $this->testPrefix);
 		$this->assertFalse($logger->is_enabled());
 	}
 
 	public function test_debug_writes_to_log()
 	{
-		$logger = new \SScribe_Logger(true);
+		$logger = new \SScribe_Logger(true, $this->testPrefix);
 
 		$logger->debug('Test message', array('key' => 'value'));
 
@@ -54,7 +58,7 @@ class SScribe_Logger_Test extends TestCase
 
 	public function test_debug_does_not_write_when_disabled()
 	{
-		$logger = new \SScribe_Logger(false);
+		$logger = new \SScribe_Logger(false, $this->testPrefix);
 
 		$logger->debug('Test message');
 
@@ -65,7 +69,7 @@ class SScribe_Logger_Test extends TestCase
 
 	public function test_clear_logs()
 	{
-		$logger = new \SScribe_Logger(true);
+		$logger = new \SScribe_Logger(true, $this->testPrefix);
 
 		$logger->debug('Test message');
 		$this->assertCount(1, $logger->get_logs());
@@ -76,7 +80,7 @@ class SScribe_Logger_Test extends TestCase
 
 	public function test_error_log()
 	{
-		$logger = new \SScribe_Logger(true);
+		$logger = new \SScribe_Logger(true, $this->testPrefix);
 
 		$logger->error('Error message');
 

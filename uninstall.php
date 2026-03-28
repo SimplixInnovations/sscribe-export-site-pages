@@ -5,6 +5,8 @@
  * @package SScribe
  */
 
+declare(strict_types=1);
+
 if ( ! defined( 'WP_UNINSTALL_PLUGIN' ) ) {
 	exit;
 }
@@ -15,7 +17,6 @@ $sscribe_upload_dir = wp_upload_dir();
 
 $directories_to_clean = array(
 	$sscribe_upload_dir['basedir'] . '/sscribe-exports',
-	$sscribe_upload_dir['basedir'] . '/sscribe-sessions',
 	$sscribe_upload_dir['basedir'] . '/sscribe-logs',
 );
 

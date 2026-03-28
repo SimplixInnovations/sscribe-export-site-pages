@@ -5,6 +5,8 @@
  * @package SScribe
  */
 
+declare(strict_types=1);
+
 namespace SScribe\Tests\Unit;
 
 use PHPUnit\Framework\TestCase;
@@ -14,7 +16,7 @@ use stdClass;
 
 class SScribe_Loader_Test extends TestCase
 {
-    private $loader;
+    private SScribe_Loader $loader;
 
     protected function setUp(): void
     {
@@ -34,7 +36,6 @@ class SScribe_Loader_Test extends TestCase
 
         $reflection = new ReflectionClass($this->loader);
         $property = $reflection->getProperty('actions');
-        $property->setAccessible(true);
         $actions = $property->getValue($this->loader);
 
         $this->assertCount(1, $actions);
@@ -48,7 +49,6 @@ class SScribe_Loader_Test extends TestCase
 
         $reflection = new ReflectionClass($this->loader);
         $property = $reflection->getProperty('filters');
-        $property->setAccessible(true);
         $filters = $property->getValue($this->loader);
 
         $this->assertCount(1, $filters);
@@ -62,7 +62,6 @@ class SScribe_Loader_Test extends TestCase
 
         $reflection = new ReflectionClass($this->loader);
         $property = $reflection->getProperty('actions');
-        $property->setAccessible(true);
         $actions = $property->getValue($this->loader);
 
         $this->assertSame(20, $actions[0]['priority']);
@@ -75,7 +74,6 @@ class SScribe_Loader_Test extends TestCase
 
         $reflection = new ReflectionClass($this->loader);
         $property = $reflection->getProperty('actions');
-        $property->setAccessible(true);
         $actions = $property->getValue($this->loader);
 
         $this->assertSame(3, $actions[0]['accepted_args']);
