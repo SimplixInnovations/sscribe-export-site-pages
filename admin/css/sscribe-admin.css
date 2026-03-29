@@ -161,7 +161,44 @@
 	gap: 12px;
 }
 
+/* ===== Inline SVG Icon Styling ===== */
+.sscribe-icon {
+	display: inline-block;
+	vertical-align: middle;
+	flex-shrink: 0;
+}
+
+.sscribe-status-card-label input:checked + .sscribe-status-card-inner .sscribe-icon,
+.sscribe-lang-card-label input:checked + .sscribe-lang-card-inner .sscribe-icon,
+.sscribe-format-card-label input:checked + .sscribe-format-card-inner .sscribe-icon {
+	color: #FFFFFF;
+}
+
+.sscribe-hero-logo .sscribe-icon {
+	color: var(--sscribe-primary);
+}
+
 .sscribe-panel-title .sscribe-icon {
+	color: var(--sscribe-text-muted);
+}
+
+.sscribe-status-icon .sscribe-icon {
+	color: var(--sscribe-text-muted);
+}
+
+.sscribe-format-card .sscribe-icon {
+	color: var(--sscribe-text-muted);
+}
+
+.sscribe-history-file .sscribe-icon {
+	color: var(--sscribe-text-muted);
+}
+
+.sscribe-sidebar-section .sscribe-icon {
+	color: var(--sscribe-text-muted);
+}
+
+.sscribe-callout .sscribe-icon {
 	color: var(--sscribe-text-muted);
 }
 
@@ -1506,6 +1543,85 @@
 .sscribe-format-option input[type="checkbox"]:focus-visible + .sscribe-format-card {
 	outline: 2px solid var(--sscribe-primary);
 	outline-offset: 2px;
+}
+
+
+/* ===== Multi-Step Wizard ===== */
+.sscribe-wizard-steps {
+	display: flex;
+	align-items: center;
+	gap: 4px;
+	padding: 20px 24px 0;
+	margin-bottom: 0;
+}
+
+.sscribe-wizard-step {
+	display: flex;
+	align-items: center;
+	gap: 8px;
+	padding: 10px 16px;
+	font-size: 13px;
+	font-weight: 500;
+	color: var(--sscribe-text-muted);
+	border-bottom: 3px solid transparent;
+	cursor: default;
+	transition: all 0.2s ease;
+	white-space: nowrap;
+}
+
+.sscribe-wizard-step.active {
+	color: var(--sscribe-primary);
+	border-bottom-color: var(--sscribe-primary);
+	font-weight: 600;
+}
+
+.sscribe-wizard-step.completed {
+	color: var(--sscribe-success);
+	border-bottom-color: var(--sscribe-success);
+}
+
+.sscribe-wizard-panel {
+	display: none;
+	padding: 20px 24px 24px;
+	animation: wizardFadeIn 0.3s ease;
+}
+
+.sscribe-wizard-panel-active {
+	display: block;
+}
+
+@keyframes wizardFadeIn {
+	from {
+		opacity: 0;
+		transform: translateY(8px);
+	}
+	to {
+		opacity: 1;
+		transform: translateY(0);
+	}
+}
+
+.sscribe-wizard-nav {
+	display: flex;
+	justify-content: space-between;
+	align-items: center;
+	margin-top: 20px;
+	padding-top: 16px;
+	border-top: 1px solid var(--sscribe-border);
+}
+
+.sscribe-wizard-nav .sscribe-button {
+	min-width: 120px;
+}
+
+.sscribe-wizard-panel .sscribe-fieldset {
+	border: none;
+	padding: 0;
+	margin: 0;
+}
+
+.sscribe-wizard-panel .sscribe-fieldset-legend {
+	margin-bottom: 12px;
 }
 
 /* ===== RTL Support ===== */

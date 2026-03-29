@@ -34,6 +34,47 @@ class SScribe_Helpers {
 	}
 
 	/**
+	 * Get an SVG icon as inline HTML.
+	 *
+	 * Reads the SVG file, strips the outer <svg> attributes and applies
+	 * width/height/class from the caller. Uses fill="currentColor" so
+	 * the icon inherits the parent CSS color property.
+	 *
+	 * @param string $name  Icon name (without .svg extension).
+	 * @param int    $size   Icon size in pixels.
+	 * @param string $css_class Additional CSS class.
+	 * @return string Inline SVG HTML or empty string if not found.
+	 */
+	public static function get_icon( string $name, int $size = 20, string $css_class = '' ): string {
+		$file_path = SSCRIBE_PLUGIN_DIR . self::$icons_dir . $name . '.svg';
+
+		if ( ! file_exists( $file_path ) ) {
+			return '';
+		}
+
+		// phpcs:ignore WordPress.WP.AlternativeFunctions.file_get_contents_file_get_contents -- Reading local SVG file for inline rendering.
+		$svg_content = file_get_contents( $file_path );
+		if ( false === $svg_content ) {
+			return '';
+		}
+
+		$icon_class = 'sscribe-icon sscribe-icon-' . sanitize_html_class( $name );
+		if ( '' !== $css_class ) {
+			$icon_class .= ' ' . sanitize_html_class( $css_class );
+		}
+
+		$svg_content = preg_replace(
+			'/<svg([^>]*)>/i',
+			'<svg$1 width="' . esc_attr( $size ) . '" height="' . esc_attr( $size ) . '" class="' . esc_attr( $icon_class ) . '" aria-hidden="true" focusable="false">',
+			$svg_content,
+			1
+		);
+
+		// phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- SVG content is sanitized via preg_replace with esc_attr() on all dynamic attributes. Icon files are local, trusted assets.
+		return $svg_content;
+	}
+
+	/**
 	 * Get time estimate for a format export.
 	 *
 	 * @param string $format     Export format.
