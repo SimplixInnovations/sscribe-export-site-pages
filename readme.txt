@@ -4,7 +4,7 @@ Donate link: https://simplixi.com
 Tags: export, docx, pdf, multilingual, rtl
 Requires at least: 5.8
 Tested up to: 6.9
-Stable tag: 3.4.1
+Stable tag: 3.4.2
 Requires PHP: 8.2
 License: GPLv2 or later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
@@ -191,6 +191,25 @@ Each document includes: cover page with title/URL/date/breadcrumbs, featured ima
 
 == Changelog ==
 
+= 3.4.2 =
+
+* Improved: Remove inline CSS from admin UI, use data attributes for feature icons
+* Improved: Code quality and CSS best practices compliance
+* Fixed: Line ending consistency (LF) across all PHP files
+
+= 3.4.1 =
+
+* Fix: JavaScript and CSS naming typos corrected
+* Fix: Check icon color in status cards
+* Fix: Session bug fixes and stability improvements
+
+= 3.4.0 =
+
+* New: Multi-step wizard UI for better user experience
+* New: Inline SVG icons for faster loading (no HTTP requests)
+* Improved: Modern admin interface design
+* Improved: Better accessibility and keyboard navigation
+
 = 3.2.0 =
 
 * Update: PHP requirement increased to 8.1+ for modern libraries
@@ -259,6 +278,10 @@ Each document includes: cover page with title/URL/date/breadcrumbs, featured ima
 * Initial release
 
 == Upgrade Notice ==
+
+= 3.4.2 =
+
+Code quality release: Removed inline CSS for better maintainability. All CSS now properly organized in stylesheet files. Recommended for all users.
 
 = 3.2.0 =
 
