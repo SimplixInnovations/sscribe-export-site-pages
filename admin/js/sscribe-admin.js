@@ -15,7 +15,7 @@
 		selectedPageCount: 0,
 
 		init: function () {
-			if (typeof sscribe_data === 'undefined' || !scribe_data) {
+			if (typeof sscribe_data === 'undefined' || !sscribe_data) {
 				return;
 			}
 			this.bindEvents();
