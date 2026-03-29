@@ -282,6 +282,10 @@
 				success: function () {
 					SScribe.isProcessing = false;
 					SScribe.sessionId = null;
+				},
+				error: function () {
+					SScribe.isProcessing = false;
+					$('#sscribe-cancel-btn').prop('disabled', false).text(sscribe_data.strings.cancel || 'Cancel Export');
 				}
 			});
 		},
@@ -403,8 +407,11 @@
 							}
 						});
 					} else {
-						alert(response.data.message || ((sscribe_data.strings && sscribe_data.strings.delete_failed) || 'Failed to delete export.'));
+						SScribe.showError(response.data.message || ((sscribe_data.strings && sscribe_data.strings.delete_failed) || 'Failed to delete export.'));
 					}
+				},
+				error: function () {
+					SScribe.showError((sscribe_data.strings && sscribe_data.strings.delete_failed) || 'Failed to delete export.');
 				}
 			});
 		},
@@ -444,16 +451,23 @@
 
 		renderLog: function (log) {
 			var self = this;
+			var strings = sscribe_data.strings || {};
 			var html = '<div class="sscribe-log-summary">';
-			html += '<div class="sscribe-log-stat"><strong>Total:</strong> ' + (log.total_pages || 0) + ' pages</div>';
-			html += '<div class="sscribe-log-stat"><strong>Success:</strong> <span class="sscribe-log-success">' + (log.success || 0) + '</span></div>';
-			html += '<div class="sscribe-log-stat"><strong>Failed:</strong> <span class="sscribe-log-failed">' + (log.failed || 0) + '</span></div>';
+			html += '<div class="sscribe-log-stat"><strong>' + self.escapeHtml(strings.log_total || 'Total:') + '</strong> ' + (log.total_pages || 0) + ' ' + self.escapeHtml(strings.log_pages || 'pages') + '</div>';
+			html += '<div class="sscribe-log-stat"><strong>' + self.escapeHtml(strings.log_success_label || 'Success:') + '</strong> <span class="sscribe-log-success">' + (log.success || 0) + '</span></div>';
+			html += '<div class="sscribe-log-stat"><strong>' + self.escapeHtml(strings.log_failed_label || 'Failed:') + '</strong> <span class="sscribe-log-failed">' + (log.failed || 0) + '</span></div>';
 			html += '</div>';
 
 			if (log.pages && Object.keys(log.pages).length > 0) {
 				html += '<div class="sscribe-log-pages">';
-				html += '<h4>Page Details</h4>';
-				html += '<table class="sscribe-log-table"><thead><tr><th>ID</th><th>Title</th><th>Status</th><th>Time</th><th>Formats</th></tr></thead><tbody>';
+				html += '<h4>' + self.escapeHtml(strings.log_page_details || 'Page Details') + '</h4>';
+				html += '<table class="sscribe-log-table"><thead><tr>';
+				html += '<th>' + self.escapeHtml(strings.log_col_id || 'ID') + '</th>';
+				html += '<th>' + self.escapeHtml(strings.log_col_title || 'Title') + '</th>';
+				html += '<th>' + self.escapeHtml(strings.log_col_status || 'Status') + '</th>';
+				html += '<th>' + self.escapeHtml(strings.log_col_time || 'Time') + '</th>';
+				html += '<th>' + self.escapeHtml(strings.log_col_formats || 'Formats') + '</th>';
+				html += '</tr></thead><tbody>';
 
 				for (var pageId in log.pages) {
 					var page = log.pages[pageId];
@@ -462,9 +476,9 @@
 
 					html += '<tr>';
 					html += '<td>' + page.id + '</td>';
-					html += '<td>' + self.escapeHtml(page.title || 'Unknown') + '</td>';
+					html += '<td>' + self.escapeHtml(page.title || (strings.log_unknown || 'Unknown')) + '</td>';
 					html += '<td class="' + statusClass + '">' + self.escapeHtml(page.status) + '</td>';
-					html += '<td>' + (page.duration ? page.duration + 's' : '-') + '</td>';
+					html += '<td>' + (page.duration ? page.duration + (strings.log_seconds_suffix || 's') : (strings.log_no_duration || '-')) + '</td>';
 					html += '<td>' + self.escapeHtml(formats) + '</td>';
 					html += '</tr>';
 				}
@@ -474,7 +488,7 @@
 
 			if (log.errors && log.errors.length > 0) {
 				html += '<div class="sscribe-log-errors">';
-				html += '<h4>Errors</h4>';
+				html += '<h4>' + self.escapeHtml(strings.log_errors || 'Errors') + '</h4>';
 				html += '<ul>';
 				for (var i = 0; i < log.errors.length; i++) {
 					html += '<li>' + self.escapeHtml(log.errors[i].message || log.errors[i]) + '</li>';
