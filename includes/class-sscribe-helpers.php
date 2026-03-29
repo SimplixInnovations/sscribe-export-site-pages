@@ -24,45 +24,6 @@ class SScribe_Helpers {
 	private static string $icons_dir = 'assets/icons/';
 
 	/**
-	 * Get an SVG icon as HTML.
-	 *
-	 * @param string $name  Icon name (without .svg extension).
-	 * @param int    $size  Icon size in pixels.
-	 * @param array  $attrs Optional attributes.
-	 * @return string SVG HTML or empty string if not found.
-	 */
-	public static function get_icon( string $name, int $size = 20, array $attrs = array() ): string {
-		$file_path = SSCRIBE_PLUGIN_DIR . self::$icons_dir . $name . '.svg';
-
-		if ( ! file_exists( $file_path ) ) {
-			return '';
-		}
-
-		// phpcs:ignore WordPress.WP.AlternativeFunctions.file_get_contents_file_get_contents -- Reading local SVG file, not a remote URL.
-		$svg_content = file_get_contents( $file_path );
-		if ( false === $svg_content ) {
-			return '';
-		}
-
-		$class = 'sscribe-icon sscribe-icon-' . sanitize_html_class( $name );
-		if ( isset( $attrs['class'] ) ) {
-			$class .= ' ' . sanitize_html_class( $attrs['class'] );
-		}
-
-		$width  = isset( $attrs['width'] ) ? (int) $attrs['width'] : $size;
-		$height = isset( $attrs['height'] ) ? (int) $attrs['height'] : $size;
-
-		$svg_content = preg_replace(
-			'/<svg([^>]*)>/i',
-			'<svg$1 width="' . esc_attr( $width ) . '" height="' . esc_attr( $height ) . '" class="' . esc_attr( $class ) . '">',
-			$svg_content,
-			1
-		);
-
-		return $svg_content;
-	}
-
-	/**
 	 * Get the absolute URL for an icon.
 	 *
 	 * @param string $name Icon name (without .svg extension).

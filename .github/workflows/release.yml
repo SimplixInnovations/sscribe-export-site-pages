@@ -62,6 +62,7 @@ jobs:
           cp readme.txt build/sscribe-export-site-pages/
           cp LICENSE build/sscribe-export-site-pages/
           cp uninstall.php build/sscribe-export-site-pages/
+          cp composer.json build/sscribe-export-site-pages/
           
           # Directories
           cp -r includes build/sscribe-export-site-pages/
