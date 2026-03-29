@@ -1,11 +1,11 @@
 <?php
-declare(strict_types=1);
-
 /**
  * PDF exporter for SScribe.
  *
  * @package SScribe
  */
+
+declare(strict_types=1);
 
 if ( ! defined( 'ABSPATH' ) ) {
 	exit;
@@ -81,7 +81,7 @@ class SScribe_PDF_Exporter implements SScribe_Exporter_Interface {
 			$filename    = \SScribe_Exporter_Factory::build_filename( $page_data, $index, $total, 'pdf' );
 			$output_path = trailingslashit( $output_dir ) . $filename;
 
-			// phpcs:ignore WordPress.WP.AlternativeFunctions.file_system_read_file_put_contents -- Output generation in temp dir.
+			// phpcs:ignore WordPress.WP.AlternativeFunctions.file_system_operations_file_put_contents -- Output generation in temp dir for export; WP_Filesystem adds unnecessary complexity for simple file writes.
 			file_put_contents( $output_path, $output );
 
 			return SScribe_Result::success(

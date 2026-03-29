@@ -1,11 +1,11 @@
 <?php
-declare(strict_types=1);
-
 /**
  * Admin interface for SScribe.
  *
  * @package SScribe
  */
+
+declare(strict_types=1);
 
 // Prevent direct access.
 if ( ! defined( 'ABSPATH' ) ) {

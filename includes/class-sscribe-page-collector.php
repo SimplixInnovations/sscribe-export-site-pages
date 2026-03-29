@@ -182,13 +182,9 @@ class SScribe_Page_Collector {
 		global $wpdb;
 
 		$placeholders = implode( ',', array_fill( 0, count( $page_ids ), '%d' ) );
-		// phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared
-		$results = $wpdb->get_results(
-			$wpdb->prepare(
-				"SELECT post_id, meta_value AS thumbnail_id FROM {$wpdb->postmeta} WHERE meta_key = '_thumbnail_id' AND post_id IN ({$placeholders})",
-				$page_ids
-			)
-		);
+		$sql          = "SELECT post_id, meta_value AS thumbnail_id FROM {$wpdb->postmeta} WHERE meta_key = '_thumbnail_id' AND post_id IN ({$placeholders})";
+		// phpcs:ignore WordPress.DB.PreparedSQL.NotPrepared, WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- Placeholders are safely generated; batch operation for featured images; caching not needed for one-time batch export.
+		$results = $wpdb->get_results( $wpdb->prepare( $sql, $page_ids ) );
 
 		if ( $wpdb->last_error ) {
 			$this->debug_log(
@@ -213,13 +209,9 @@ class SScribe_Page_Collector {
 		$attachment_data = array();
 		if ( ! empty( $thumbnail_ids ) ) {
 			$thumb_placeholders = implode( ',', array_fill( 0, count( $thumbnail_ids ), '%d' ) );
-			// phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared
-			$attachments = $wpdb->get_results(
-				$wpdb->prepare(
-					"SELECT p.ID, p.guid, pm_path.meta_value AS filepath FROM {$wpdb->posts} p LEFT JOIN {$wpdb->postmeta} pm_path ON p.ID = pm_path.post_id AND pm_path.meta_key = '_wp_attached_file' WHERE p.ID IN ({$thumb_placeholders})",
-					$thumbnail_ids
-				)
-			);
+			$sql                = "SELECT p.ID, p.guid, pm_path.meta_value AS filepath FROM {$wpdb->posts} p LEFT JOIN {$wpdb->postmeta} pm_path ON p.ID = pm_path.post_id AND pm_path.meta_key = '_wp_attached_file' WHERE p.ID IN ({$thumb_placeholders})";
+			// phpcs:ignore WordPress.DB.PreparedSQL.NotPrepared, WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- Placeholders are safely generated; batch operation for attachment paths; caching not needed for one-time batch export.
+			$attachments = $wpdb->get_results( $wpdb->prepare( $sql, $thumbnail_ids ) );
 
 			if ( $wpdb->last_error ) {
 				$this->debug_log(
@@ -474,7 +466,7 @@ class SScribe_Page_Collector {
 			array(
 				'id'                  => $page_id,
 				'title'               => html_entity_decode(
-					get_the_title( $page_id ) ?: sprintf( 'Untitled Page %d', $page_id ),
+					get_the_title( $page_id ) ? get_the_title( $page_id ) : sprintf( 'Untitled Page %d', $page_id ),
 					ENT_QUOTES | ENT_HTML5,
 					'UTF-8'
 				),

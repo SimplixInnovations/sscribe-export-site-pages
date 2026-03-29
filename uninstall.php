@@ -33,6 +33,7 @@ foreach ( $directories_to_clean as $dir_path ) {
 					if ( $fileinfo->isDir() ) {
 						$real_path = $fileinfo->getRealPath();
 						if ( $real_path && is_dir( $real_path ) ) {
+							// phpcs:ignore WordPress.WP.AlternativeFunctions.file_system_operations_rmdir -- Cleanup operation during uninstall; WP_Filesystem not available in uninstall context.
 							rmdir( $real_path );
 						}
 					} else {
@@ -47,6 +48,7 @@ foreach ( $directories_to_clean as $dir_path ) {
 			}
 
 			if ( is_dir( $dir_path ) ) {
+				// phpcs:ignore WordPress.WP.AlternativeFunctions.file_system_operations_rmdir -- Cleanup operation during uninstall; WP_Filesystem not available in uninstall context.
 				rmdir( $dir_path );
 			}
 		} catch ( \Throwable $e ) {
@@ -55,6 +57,7 @@ foreach ( $directories_to_clean as $dir_path ) {
 	}
 }
 
+// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- Cleanup operation during uninstall; caching not applicable for deletion.
 $wpdb->query(
 	$wpdb->prepare(
 		"DELETE FROM {$wpdb->options} WHERE option_name LIKE %s AND autoload = 'no'",
@@ -62,6 +65,7 @@ $wpdb->query(
 	)
 );
 
+// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- Cleanup operation during uninstall; caching not applicable for deletion.
 $wpdb->query(
 	$wpdb->prepare(
 		"DELETE FROM {$wpdb->options} WHERE option_name LIKE %s AND autoload = 'no'",
@@ -69,6 +73,7 @@ $wpdb->query(
 	)
 );
 
+// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- Cleanup operation during uninstall; caching not applicable for deletion.
 $wpdb->query(
 	$wpdb->prepare(
 		"DELETE FROM {$wpdb->options} WHERE option_name LIKE %s",

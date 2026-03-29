@@ -79,6 +79,7 @@ class SScribe_Exporter_Factory {
 		$ascii_title = '';
 
 		if ( function_exists( 'iconv' ) ) {
+			// phpcs:ignore WordPress.PHP.NoSilencedErrors.Discouraged -- iconv can emit E_NOTICE for invalid characters; we handle the failure case below.
 			$transliterated = @iconv( 'UTF-8', 'ASCII//TRANSLIT//IGNORE', $title );
 			if ( $transliterated ) {
 				$ascii_title = $transliterated;

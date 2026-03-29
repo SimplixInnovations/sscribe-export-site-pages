@@ -1,6 +1,4 @@
 <?php
-declare(strict_types=1);
-
 /**
  * Export log for tracking page export status.
  *
@@ -8,6 +6,8 @@ declare(strict_types=1);
  *
  * @package SScribe
  */
+
+declare(strict_types=1);
 
 if ( ! defined( 'ABSPATH' ) ) {
 	exit;
@@ -63,7 +63,7 @@ class SScribe_Export_Log {
 	private function init_log(): void {
 		if ( ! file_exists( $this->log_dir ) ) {
 			wp_mkdir_p( $this->log_dir );
-			// Protect directory from direct access
+			// Protect directory from direct access.
 			// phpcs:ignore WordPress.WP.AlternativeFunctions.file_system_operations_file_put_contents -- Required to secure the log directory.
 			file_put_contents( $this->log_dir . '/.htaccess', 'deny from all' );
 			// phpcs:ignore WordPress.WP.AlternativeFunctions.file_system_operations_file_put_contents -- Required to secure the log directory.
