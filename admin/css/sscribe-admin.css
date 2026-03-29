@@ -171,7 +171,7 @@
 .sscribe-status-card-label input:checked + .sscribe-status-card-inner .sscribe-icon,
 .sscribe-lang-card-label input:checked + .sscribe-lang-card-inner .sscribe-icon,
 .sscribe-format-card-label input:checked + .sscribe-format-card-inner .sscribe-icon {
-	color: #FFFFFF;
+	color: var(--sscribe-primary);
 }
 
 .sscribe-hero-logo .sscribe-icon {
@@ -1611,7 +1611,29 @@
 }
 
 .sscribe-wizard-nav .sscribe-button {
-	min-width: 120px;
+	min-width: 140px;
+}
+
+.sscribe-wizard-next {
+	background: var(--sscribe-primary);
+	color: #FFFFFF;
+	border: none;
+}
+
+.sscribe-wizard-next:hover {
+	background: var(--sscribe-primary-hover);
+	color: #FFFFFF;
+}
+
+.scribe-wizard-back {
+	background: transparent;
+	color: var(--sscribe-text-main);
+	border: 1px solid var(--sscribe-border);
+}
+
+.scribe-wizard-back:hover {
+	background: var(--sscribe-bg);
+	border-color: var(--sscribe-text-muted);
 }
 
 .sscribe-wizard-panel .sscribe-fieldset {

@@ -453,7 +453,7 @@
 
 			$('#sscribe-log-modal').removeClass('sscribe-hidden');
 			$('#sscribe-log-content').html('<div class="sscribe-log-loading"><span></span></div>');
-			$('#sscribe-log-content').find('span').text((sscribe_data.strings && scribe_data.strings.loading_log) || 'Loading log...');
+			$('#sscribe-log-content').find('span').text((sscribe_data.strings && sscribe_data.strings.loading_log) || 'Loading log...');
 
 			$.ajax({
 				url: sscribe_data.ajaxurl,
@@ -469,12 +469,12 @@
 						SScribe.renderLog(response.data.log);
 					} else {
 						$('#sscribe-log-content').html('<div class="sscribe-log-empty"><p></p></div>');
-						$('#sscribe-log-content').find('p').text(response.data.message || (sscribe_data.strings && scribe_data.strings.log_not_found) || 'Log not found.');
+						$('#sscribe-log-content').find('p').text(response.data.message || (sscribe_data.strings && sscribe_data.strings.log_not_found) || 'Log not found.');
 					}
 				},
 				error: function () {
 					$('#sscribe-log-content').html('<div class="sscribe-log-empty"><p></p></div>');
-					$('#sscribe-log-content').find('p').text((sscribe_data.strings && scribe_data.strings.log_load_failed) || 'Failed to load log.');
+					$('#sscribe-log-content').find('p').text((sscribe_data.strings && sscribe_data.strings.log_load_failed) || 'Failed to load log.');
 				}
 			});
 		},
