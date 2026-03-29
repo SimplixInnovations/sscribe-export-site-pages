@@ -238,7 +238,7 @@
 							var strings = sscribe_data.strings || {};
 							var timeStr = '';
 							if (minutes > 0) {
-								timeStr = minutes + ' ' + (strings.sec_remaining ? strings.min_sec_remaining.replace('%s', seconds) : 'min ' + seconds + ' sec remaining');
+								timeStr = minutes + ' ' + (strings.min_sec_remaining ? strings.min_sec_remaining.replace('%s', seconds) : 'min ' + seconds + ' sec remaining');
 							} else {
 								timeStr = seconds + ' ' + (strings.sec_remaining || 'sec remaining');
 							}

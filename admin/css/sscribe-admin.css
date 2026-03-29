@@ -1500,6 +1500,14 @@
 	outline-offset: 2px;
 }
 
+.sscribe-status-card-label input[type="radio"]:focus-visible + .sscribe-status-card-inner,
+.sscribe-lang-card-label input[type="radio"]:focus-visible + .sscribe-lang-card-inner,
+.sscribe-format-card-label input[type="radio"]:focus-visible + .sscribe-format-card-inner,
+.sscribe-format-option input[type="checkbox"]:focus-visible + .sscribe-format-card {
+	outline: 2px solid var(--sscribe-primary);
+	outline-offset: 2px;
+}
+
 /* ===== RTL Support ===== */
 [dir="rtl"] .sscribe-hero-content {
 	flex-direction: row-reverse;
