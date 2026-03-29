@@ -473,22 +473,37 @@ class SScribe_Batch_Processor {
 			return;
 		}
 
-		$lock_key = 'sscribe_lock_' . $session_id;
-		if ( get_transient( $lock_key ) ) {
-			$this->logger->debug( 'Batch is already processing concurrently', array( 'session_id' => $session_id ) );
-			$this->restore_ob_level( $ob_level_before );
-			wp_send_json_error(
-				array(
-					// Send status so the frontend can just retry.
-					'status'  => 'locked',
-					'message' => __( 'A batch is already processing. Please wait.', 'sscribe-export-site-pages' ),
-				)
-			);
-			return;
+		$lock_key      = 'sscribe_lock_' . $session_id;
+		$existing_lock = get_transient( $lock_key );
+		if ( $existing_lock ) {
+			// Auto-recover stale locks: if lock is >30s old, override it.
+			$lock_age = time() - (int) $existing_lock;
+			if ( $lock_age > 30 ) {
+				$this->logger->debug(
+					'Overriding stale lock',
+					array(
+						'session_id' => $session_id,
+						'lock_age'   => $lock_age,
+					)
+				);
+				delete_transient( $lock_key );
+			} else {
+				$this->logger->debug( 'Batch is already processing concurrently', array( 'session_id' => $session_id ) );
+				$this->restore_ob_level( $ob_level_before );
+				wp_send_json_error(
+					array(
+						// Send status so the frontend can retry.
+						'status'  => 'locked',
+						'message' => __( 'A batch is already processing. Please wait.', 'sscribe-export-site-pages' ),
+					)
+				);
+				return;
+			}
 		}
 		set_transient( $lock_key, time(), 60 ); // Lock for up to 60 seconds.
 
 		if ( ! $this->validate_session_ownership( $session, $session_id ) ) {
+			delete_transient( $lock_key );
 			$this->restore_ob_level( $ob_level_before );
 			wp_send_json_error(
 				array(
@@ -507,6 +522,7 @@ class SScribe_Batch_Processor {
 					'total'          => $session['total'] ?? 'not set',
 				)
 			);
+			delete_transient( $lock_key );
 			$this->restore_ob_level( $ob_level_before );
 			wp_send_json_error(
 				array(
@@ -881,6 +897,10 @@ class SScribe_Batch_Processor {
 				$this->export_log->mark_failed( 'Failed to create ZIP package' );
 			}
 
+			// Clean up the session and lock so user can retry.
+			$this->session->delete( $session_id );
+			delete_transient( 'sscribe_lock_' . $session_id );
+
 			$error_response = array(
 				'message' => __( 'Failed to create ZIP package. Please try again.', 'sscribe-export-site-pages' ),
 			);
@@ -1112,6 +1132,7 @@ class SScribe_Batch_Processor {
 		$this->session->update( $session_id, $session );
 		$this->cleanup_cancelled_export( $session );
 		$this->session->delete( $session_id );
+		delete_transient( 'sscribe_lock_' . $session_id );
 
 		wp_send_json_success( array( 'message' => __( 'Export cancelled.', 'sscribe-export-site-pages' ) ) );
 	}
@@ -1250,11 +1271,43 @@ class SScribe_Batch_Processor {
 					'deleted_count' => $deleted,
 				)
 			);
+			// Clean up any orphaned lock transients.
+			$this->cleanup_user_locks();
 		} else {
 			$this->session->cleanup_expired( 60 );
 			$this->logger->debug( 'Cleared expired sessions for user', array( 'user_id' => $user_id ) );
 		}
 
 		wp_send_json_success( array( 'message' => __( 'Session cleared.', 'sscribe-export-site-pages' ) ) );
+	}
+
+	/**
+	 * Clean up orphaned lock transients from the database.
+	 *
+	 * @return void
+	 */
+	private function cleanup_user_locks(): void {
+		global $wpdb;
+
+		$pattern = $wpdb->esc_like( '_transient_sscribe_lock_' ) . '%';
+
+		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- Cleanup operation removes orphaned lock transients.
+		$wpdb->query(
+			$wpdb->prepare(
+				"DELETE FROM {$wpdb->options} WHERE option_name LIKE %s",
+				$pattern
+			)
+		);
+
+		// Also delete the corresponding timeout entries.
+		$pattern_timeout = $wpdb->esc_like( '_transient_timeout_sscribe_lock_' ) . '%';
+
+		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- Cleanup operation removes orphaned lock transients.
+		$wpdb->query(
+			$wpdb->prepare(
+				"DELETE FROM {$wpdb->options} WHERE option_name LIKE %s",
+				$pattern_timeout
+			)
+		);
 	}
 }

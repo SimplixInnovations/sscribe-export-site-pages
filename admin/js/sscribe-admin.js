@@ -19,12 +19,12 @@
 				return;
 			}
 			this.bindEvents();
-			this.onLanguageChange();
+			this.wizardStep(1);
 			this.updateTimeEstimate();
 		},
 
 		bindEvents: function () {
-			$('#sscribe-export-btn').on('click', $.proxy(this.startExport, this));
+			$(document).on('click', '#sscribe-export-btn', $.proxy(this.startExport, this));
 			$('#sscribe-retry-btn, #sscribe-error-try-again').on('click', $.proxy(this.retry, this));
 			$('#sscribe-cancel-btn').on('click', $.proxy(this.cancelExport, this));
 
@@ -39,6 +39,28 @@
 			$(document).on('click', '.sscribe-delete-btn', $.proxy(this.deleteExport, this));
 			$(document).on('click', '.sscribe-log-btn', $.proxy(this.showExportLog, this));
 			$('#sscribe-modal-close').on('click', $.proxy(this.closeModal, this));
+
+			$(document).on('click', '.sscribe-wizard-next', function () {
+				var next = parseInt($(this).data('next'));
+				if (next === 2) {
+					SScribe.onLanguageChange();
+				}
+				SScribe.wizardStep(next);
+			});
+			$(document).on('click', '.sscribe-wizard-back', function () {
+				SScribe.wizardStep(parseInt($(this).data('prev')));
+			});
+		},
+
+		wizardStep: function (step) {
+			$('.sscribe-wizard-panel').removeClass('sscribe-wizard-panel-active');
+			$('.sscribe-wizard-panel[data-step="' + step + '"]').addClass('sscribe-wizard-panel-active');
+			$('.sscribe-wizard-step').removeClass('active completed');
+			$('.sscribe-wizard-step').each(function () {
+				var s = parseInt($(this).data('step'));
+				if (s < step) $(this).addClass('completed');
+				if (s === step) $(this).addClass('active');
+			});
 		},
 
 		onLanguageChange: function () {
@@ -324,7 +346,8 @@
 		},
 
 		showProgress: function () {
-			$('.sscribe-action-row').slideUp(200);
+			$('.sscribe-wizard-panel').removeClass('sscribe-wizard-panel-active');
+			$('.sscribe-wizard-steps').hide();
 			$('#sscribe-download-area').addClass('sscribe-hidden');
 			$('#sscribe-error-area').addClass('sscribe-hidden');
 			$('#sscribe-progress-area').removeClass('sscribe-hidden').hide().fadeIn(400);
@@ -336,7 +359,9 @@
 
 		showError: function (message, isCancelled) {
 			this.isProcessing = false;
-			$('.sscribe-action-row').slideDown(200);
+			$('.sscribe-wizard-panel').removeClass('sscribe-wizard-panel-active');
+			$('.sscribe-wizard-panel[data-step="3"]').addClass('sscribe-wizard-panel-active');
+			$('.sscribe-wizard-steps').show();
 			$('#sscribe-progress-area').fadeOut(200);
 			$('#sscribe-error-text').text(message);
 			$('#sscribe-error-area').removeClass('sscribe-hidden').hide().fadeIn(300);
@@ -370,13 +395,15 @@
 					self.sessionId = null;
 					self.isProcessing = false;
 					self.resetUI();
-					$('.sscribe-action-row').slideDown(200);
+					$('.sscribe-wizard-steps').show();
+					self.wizardStep(1);
 				},
 				error: function () {
 					self.sessionId = null;
 					self.isProcessing = false;
 					self.resetUI();
-					$('.sscribe-action-row').slideDown(200);
+					$('.sscribe-wizard-steps').show();
+					self.wizardStep(1);
 				}
 			});
 		},
@@ -426,7 +453,7 @@
 
 			$('#sscribe-log-modal').removeClass('sscribe-hidden');
 			$('#sscribe-log-content').html('<div class="sscribe-log-loading"><span></span></div>');
-			$('#sscribe-log-content').find('span').text((sscribe_data.strings && sscribe_data.strings.loading_log) || 'Loading log...');
+			$('#sscribe-log-content').find('span').text((sscribe_data.strings && scribe_data.strings.loading_log) || 'Loading log...');
 
 			$.ajax({
 				url: sscribe_data.ajaxurl,
@@ -442,12 +469,12 @@
 						SScribe.renderLog(response.data.log);
 					} else {
 						$('#sscribe-log-content').html('<div class="sscribe-log-empty"><p></p></div>');
-						$('#sscribe-log-content').find('p').text(response.data.message || (sscribe_data.strings && sscribe_data.strings.log_not_found) || 'Log not found.');
+						$('#sscribe-log-content').find('p').text(response.data.message || (sscribe_data.strings && scribe_data.strings.log_not_found) || 'Log not found.');
 					}
 				},
 				error: function () {
 					$('#sscribe-log-content').html('<div class="sscribe-log-empty"><p></p></div>');
-					$('#sscribe-log-content').find('p').text((sscribe_data.strings && sscribe_data.strings.log_load_failed) || 'Failed to load log.');
+					$('#sscribe-log-content').find('p').text((sscribe_data.strings && scribe_data.strings.log_load_failed) || 'Failed to load log.');
 				}
 			});
 		},
