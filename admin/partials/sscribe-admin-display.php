@@ -509,11 +509,11 @@ $sscribe_is_debug   = $sscribe_is_debug ?? false;
 	</div>
 </div>
 
-<div id="sscribe-log-modal" class="sscribe-modal sscribe-hidden">
+<div id="sscribe-log-modal" class="sscribe-modal sscribe-hidden" role="dialog" aria-modal="true" aria-labelledby="sscribe-log-modal-title">
 	<div class="sscribe-modal-content">
 		<div class="sscribe-modal-header">
-			<h3><?php esc_html_e( 'Export Log', 'sscribe-export-site-pages' ); ?></h3>
-			<button type="button" class="sscribe-modal-close" id="sscribe-modal-close" aria-label="Close modal">&times;</button>
+			<h3 id="sscribe-log-modal-title"><?php esc_html_e( 'Export Log', 'sscribe-export-site-pages' ); ?></h3>
+			<button type="button" class="sscribe-modal-close" id="sscribe-modal-close" aria-label="<?php echo esc_attr__( 'Close modal', 'sscribe-export-site-pages' ); ?>">&times;</button>
 		</div>
 		<div class="sscribe-modal-body" id="sscribe-log-content">
 			<div class="sscribe-log-loading">

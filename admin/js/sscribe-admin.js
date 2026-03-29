@@ -15,6 +15,9 @@
 		selectedPageCount: 0,
 
 		init: function () {
+			if (typeof sscribe_data === 'undefined' || !scribe_data) {
+				return;
+			}
 			this.bindEvents();
 			this.onLanguageChange();
 			this.updateTimeEstimate();
@@ -125,7 +128,7 @@
 				} else {
 					var hours = Math.floor(minutes / 60);
 					var mins = minutes % 60;
-					estimate = (strings.estimated_time || 'Estimated time:') + ' ~' + hours + 'h ' + mins + 'm';
+					estimate = (strings.estimated_time || 'Estimated time:') + ' ~' + hours + (strings.hour_suffix || 'h') + ' ' + mins + (strings.minute_suffix || 'm');
 				}
 			} else {
 				var times = {
@@ -383,7 +386,7 @@
 			var $btn = $(e.currentTarget);
 			var filename = $btn.data('filename');
 
-			if (!confirm(sscribe_data.strings.confirm_delete || 'Delete this export?')) {
+			if (!confirm(sscribe_data.strings.confirm_delete || 'Delete this export file?')) {
 				return;
 			}
 

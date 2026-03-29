@@ -65,7 +65,7 @@ class SScribe_Export_Log {
 			wp_mkdir_p( $this->log_dir );
 			// Protect directory from direct access.
 			// phpcs:ignore WordPress.WP.AlternativeFunctions.file_system_operations_file_put_contents -- Required to secure the log directory.
-			file_put_contents( $this->log_dir . '/.htaccess', 'deny from all' );
+			file_put_contents( $this->log_dir . '/.htaccess', "Options -Indexes\n<Files \"*\">\n  <IfModule mod_authz_core.c>\n    Require all denied\n  </IfModule>\n  <IfModule !mod_authz_core.c>\n    Order Allow,Deny\n    Deny from all\n  </IfModule>\n</Files>\n" );
 			// phpcs:ignore WordPress.WP.AlternativeFunctions.file_system_operations_file_put_contents -- Required to secure the log directory.
 			file_put_contents( $this->log_dir . '/index.html', '' );
 		}

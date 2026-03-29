@@ -118,6 +118,8 @@ class SScribe_Admin {
 					'sec_remaining'      => __( 'sec remaining', 'sscribe-export-site-pages' ),
 					// translators: %s: remaining seconds value.
 					'min_sec_remaining'  => __( 'min %s sec remaining', 'sscribe-export-site-pages' ),
+					'hour_suffix'        => 'h',
+					'minute_suffix'      => 'm',
 					'log_total'          => __( 'Total:', 'sscribe-export-site-pages' ),
 					'log_pages'          => __( 'pages', 'sscribe-export-site-pages' ),
 					'log_success_label'  => __( 'Success:', 'sscribe-export-site-pages' ),

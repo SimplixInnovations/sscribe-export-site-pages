@@ -40,7 +40,7 @@ class SScribe_HTML_Exporter implements SScribe_Exporter_Interface {
 
 		if ( false === $result ) {
 			return SScribe_Result::failure(
-				'Failed to write HTML file',
+				__( 'Failed to write HTML file.', 'sscribe-export-site-pages' ),
 				array( 'path' => $output_path )
 			);
 		}
@@ -97,7 +97,14 @@ class SScribe_HTML_Exporter implements SScribe_Exporter_Interface {
 
 	<footer>
 		<hr>
-		<p><small>Exported from ' . esc_html( $site_name ) . ' on ' . esc_html( gmdate( 'Y-m-d H:i' ) ) . '</small></p>
+		<p><small>' . esc_html(
+			sprintf(
+			/* translators: 1: site name, 2: date and time */
+				__( 'Exported from %1$s on %2$s', 'sscribe-export-site-pages' ),
+				$site_name,
+				gmdate( 'Y-m-d H:i' )
+			)
+		) . '</small></p>
 	</footer>
 </body>
 </html>';
