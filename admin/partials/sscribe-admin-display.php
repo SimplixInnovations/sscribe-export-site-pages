@@ -448,67 +448,59 @@ $sscribe_is_debug   = $sscribe_is_debug ?? false;
 							<?php
 							$sscribe_features = array(
 								array(
-									'title' => __( 'Page Title', 'sscribe-export-site-pages' ),
-									'desc'  => __( 'Main H1 heading with proper styling', 'sscribe-export-site-pages' ),
-									'icon'  => 'file-text',
-									'color' => '#2563EB',
-									'bg'    => '#DBEAFE',
+									'title'   => __( 'Page Title', 'sscribe-export-site-pages' ),
+									'desc'    => __( 'Main H1 heading with proper styling', 'sscribe-export-site-pages' ),
+									'icon'    => 'file-text',
+									'feature' => 'page-title',
 								),
 								array(
-									'title' => __( 'Page Content', 'sscribe-export-site-pages' ),
-									'desc'  => __( 'Full HTML content converted to documents', 'sscribe-export-site-pages' ),
-									'icon'  => 'file-doc',
-									'color' => '#059669',
-									'bg'    => '#D1FAE5',
+									'title'   => __( 'Page Content', 'sscribe-export-site-pages' ),
+									'desc'    => __( 'Full HTML content converted to documents', 'sscribe-export-site-pages' ),
+									'icon'    => 'file-doc',
+									'feature' => 'page-content',
 								),
 								array(
-									'title' => __( 'SEO Metadata', 'sscribe-export-site-pages' ),
-									'desc'  => __( 'Meta title, description, focus keyword', 'sscribe-export-site-pages' ),
-									'icon'  => 'search',
-									'color' => '#7C3AED',
-									'bg'    => '#EDE9FE',
+									'title'   => __( 'SEO Metadata', 'sscribe-export-site-pages' ),
+									'desc'    => __( 'Meta title, description, focus keyword', 'sscribe-export-site-pages' ),
+									'icon'    => 'search',
+									'feature' => 'seo-metadata',
 								),
 								array(
-									'title' => __( 'URL & Permalink', 'sscribe-export-site-pages' ),
-									'desc'  => __( 'Full page URL for reference', 'sscribe-export-site-pages' ),
-									'icon'  => 'link',
-									'color' => '#0891B2',
-									'bg'    => '#CFFAFE',
+									'title'   => __( 'URL & Permalink', 'sscribe-export-site-pages' ),
+									'desc'    => __( 'Full page URL for reference', 'sscribe-export-site-pages' ),
+									'icon'    => 'link',
+									'feature' => 'url-permalink',
 								),
 								array(
-									'title' => __( 'Author Info', 'sscribe-export-site-pages' ),
-									'desc'  => __( 'Page author name', 'sscribe-export-site-pages' ),
-									'icon'  => 'user',
-									'color' => '#DC2626',
-									'bg'    => '#FEE2E2',
+									'title'   => __( 'Author Info', 'sscribe-export-site-pages' ),
+									'desc'    => __( 'Page author name', 'sscribe-export-site-pages' ),
+									'icon'    => 'user',
+									'feature' => 'author-info',
 								),
 								array(
-									'title' => __( 'Dates', 'sscribe-export-site-pages' ),
-									'desc'  => __( 'Published and modified dates', 'sscribe-export-site-pages' ),
-									'icon'  => 'calendar',
-									'color' => '#D97706',
-									'bg'    => '#FEF3C7',
+									'title'   => __( 'Dates', 'sscribe-export-site-pages' ),
+									'desc'    => __( 'Published and modified dates', 'sscribe-export-site-pages' ),
+									'icon'    => 'calendar',
+									'feature' => 'dates',
 								),
 								array(
-									'title' => __( 'Parent Page', 'sscribe-export-site-pages' ),
-									'desc'  => __( 'Breadcrumb hierarchy', 'sscribe-export-site-pages' ),
-									'icon'  => 'list',
-									'color' => '#0EA5E9',
-									'bg'    => '#E0F2FE',
+									'title'   => __( 'Parent Page', 'sscribe-export-site-pages' ),
+									'desc'    => __( 'Breadcrumb hierarchy', 'sscribe-export-site-pages' ),
+									'icon'    => 'list',
+									'feature' => 'parent-page',
 								),
 								array(
-									'title' => __( 'Featured Image', 'sscribe-export-site-pages' ),
-									'desc'  => __( 'Thumbnail when available', 'sscribe-export-site-pages' ),
-									'icon'  => 'image',
-									'color' => '#EC4899',
-									'bg'    => '#FCE7F3',
+									'title'   => __( 'Featured Image', 'sscribe-export-site-pages' ),
+									'desc'    => __( 'Thumbnail when available', 'sscribe-export-site-pages' ),
+									'icon'    => 'image',
+									'feature' => 'featured-image',
 								),
 							);
 
 							foreach ( $sscribe_features as $sscribe_feature ) :
 								?>
 							<div class="sscribe-feature-item">
-								<div class="sscribe-feature-icon" style="background-color: <?php echo esc_attr( $sscribe_feature['bg'] ); ?>;">
+								<div class="sscribe-feature-icon" data-feature="<?php echo esc_attr( $sscribe_feature['feature'] ); ?>">
 									<?php // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- SVG sanitized in get_icon(). ?>
 									<?php echo SScribe_Helpers::get_icon( $sscribe_feature['icon'], 20 ); ?>
 								</div>
