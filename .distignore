@@ -10,8 +10,7 @@ deploy/
 scripts/
 dist/
 
-# Composer
-composer.json
+# Composer (keep composer.json for WP Plugin Check - required when vendor/ exists)
 composer.lock
 
 # Testing

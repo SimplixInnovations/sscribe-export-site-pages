@@ -18,11 +18,17 @@ if ( ! defined( 'ABSPATH' ) ) {
 	exit;
 }
 
-$wpml_active        = $wpml_active ?? false;
-$languages          = $languages ?? array();
-$total_pages_all    = $total_pages_all ?? 0;
-$status_counts      = $status_counts ?? array();
-$seo_plugins        = $seo_plugins ?? array();
+// phpcs:ignore WordPress.NamingConventions.PrefixAllGlobals.NonPrefixedVariableFound -- Template variables passed via include scope, not global.
+$wpml_active = $wpml_active ?? false;
+// phpcs:ignore WordPress.NamingConventions.PrefixAllGlobals.NonPrefixedVariableFound -- Template variables passed via include scope, not global.
+$languages = $languages ?? array();
+// phpcs:ignore WordPress.NamingConventions.PrefixAllGlobals.NonPrefixedVariableFound -- Template variables passed via include scope, not global.
+$total_pages_all = $total_pages_all ?? 0;
+// phpcs:ignore WordPress.NamingConventions.PrefixAllGlobals.NonPrefixedVariableFound -- Template variables passed via include scope, not global.
+$status_counts = $status_counts ?? array();
+// phpcs:ignore WordPress.NamingConventions.PrefixAllGlobals.NonPrefixedVariableFound -- Template variables passed via include scope, not global.
+$seo_plugins = $seo_plugins ?? array();
+// phpcs:ignore WordPress.NamingConventions.PrefixAllGlobals.NonPrefixedVariableFound -- Template variables passed via include scope, not global.
 $recent_exports     = $recent_exports ?? array();
 $sscribe_debug_info = $sscribe_debug_info ?? array();
 $sscribe_is_debug   = $sscribe_is_debug ?? false;

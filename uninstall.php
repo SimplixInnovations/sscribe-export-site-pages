@@ -15,28 +15,34 @@ global $wpdb;
 
 $sscribe_upload_dir = wp_upload_dir();
 
+// phpcs:ignore WordPress.NamingConventions.PrefixAllGlobals.NonPrefixedVariableFound -- Local file-scope variable in uninstall context, not a global.
 $directories_to_clean = array(
 	$sscribe_upload_dir['basedir'] . '/sscribe-exports',
 	$sscribe_upload_dir['basedir'] . '/sscribe-logs',
 );
 
+// phpcs:ignore WordPress.NamingConventions.PrefixAllGlobals.NonPrefixedVariableFound -- Local foreach variable.
 foreach ( $directories_to_clean as $dir_path ) {
 	if ( is_dir( $dir_path ) ) {
 		try {
+			// phpcs:ignore WordPress.NamingConventions.PrefixAllGlobals.NonPrefixedVariableFound -- Local variable.
 			$iterator = new RecursiveIteratorIterator(
 				new RecursiveDirectoryIterator( $dir_path, RecursiveDirectoryIterator::SKIP_DOTS ),
 				RecursiveIteratorIterator::CHILD_FIRST
 			);
 
+			// phpcs:ignore WordPress.NamingConventions.PrefixAllGlobals.NonPrefixedVariableFound -- Local foreach variable.
 			foreach ( $iterator as $fileinfo ) {
 				try {
 					if ( $fileinfo->isDir() ) {
+						// phpcs:ignore WordPress.NamingConventions.PrefixAllGlobals.NonPrefixedVariableFound -- Local variable.
 						$real_path = $fileinfo->getRealPath();
 						if ( $real_path && is_dir( $real_path ) ) {
 							// phpcs:ignore WordPress.WP.AlternativeFunctions.file_system_operations_rmdir -- Cleanup operation during uninstall; WP_Filesystem not available in uninstall context.
 							rmdir( $real_path );
 						}
 					} else {
+						// phpcs:ignore WordPress.NamingConventions.PrefixAllGlobals.NonPrefixedVariableFound -- Local variable.
 						$real_path = $fileinfo->getRealPath();
 						if ( $real_path ) {
 							wp_delete_file( $real_path );
