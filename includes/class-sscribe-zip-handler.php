@@ -51,6 +51,15 @@ class SScribe_Zip_Handler {
 	public function get_export_dir(): string {
 		if ( ! file_exists( $this->export_dir ) ) {
 			wp_mkdir_p( $this->export_dir );
+
+			// phpcs:ignore WordPress.WP.AlternativeFunctions.file_system_operations_file_put_contents -- Writing directory protection files is standard WP practice and required for security.
+			file_put_contents(
+				$this->export_dir . '/.htaccess',
+				"Options -Indexes\n<Files \"*\">\n  <IfModule mod_authz_core.c>\n    Require all denied\n  </IfModule>\n  <IfModule !mod_authz_core.c>\n    Order Allow,Deny\n    Deny from all\n  </IfModule>\n</Files>\n"
+			);
+
+			// phpcs:ignore WordPress.WP.AlternativeFunctions.file_system_operations_file_put_contents -- Writing directory protection files is standard WP practice and required for security.
+			file_put_contents( $this->export_dir . '/index.php', "<?php\n// Silence is golden.\n" );
 		}
 		return $this->export_dir;
 	}

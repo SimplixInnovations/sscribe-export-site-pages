@@ -474,7 +474,7 @@ class SScribe_Markdown_Exporter implements SScribe_Exporter_Interface {
 		$parsed = wp_parse_url( $url );
 		$scheme = isset( $parsed['scheme'] ) ? strtolower( $parsed['scheme'] ) : '';
 
-		$allowed_schemes = array( 'http', 'https', 'mailto', 'tel', 'ftp' );
+		$allowed_schemes = array( 'http', 'https', 'mailto', 'tel' );
 
 		if ( ! empty( $scheme ) && ! in_array( $scheme, $allowed_schemes, true ) ) {
 			return '#';

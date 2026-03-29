@@ -3,9 +3,9 @@
  * Plugin Name:       SScribe Export Site Pages
  * Plugin URI:        https://simplixi.com/sscribe
  * Description:       Export every page into beautifully formatted Word DOCX files with multilingual support, SEO meta, rich styling, and secure ZIP download.
- * Version:           3.2.0
+ * Version:           3.3.0
  * Requires at least: 5.8
- * Requires PHP:      8.1
+ * Requires PHP:      8.2
  * Author:            Simplix Innovations
  * Author URI:        https://simplixi.com
  * License:           GPL v2 or later
@@ -24,20 +24,20 @@ if ( ! defined( 'ABSPATH' ) ) {
 /**
  * Plugin version.
  */
-define( 'SSCRIBE_VERSION', '3.2.0' );
+define( 'SSCRIBE_VERSION', '3.3.0' );
 
 /**
  * Check PHP Version gracefully.
  *
- * If the environment is running < PHP 8.1, do not load the classes.
+ * If the environment is running < PHP 8.2, do not load the classes.
  * Show an admin notice instead to prevent fatal errors on older sites.
  */
-if ( version_compare( PHP_VERSION, '8.1', '<' ) ) {
+if ( version_compare( PHP_VERSION, '8.2', '<' ) ) {
 	add_action(
 		'admin_notices',
 		function () {
 			echo '<div class="error"><p>';
-			echo esc_html__( 'SScribe Export Site Pages requires PHP 8.1 or higher to run. Please upgrade your PHP version to benefit from enterprise-level performance and features. Your current version is: ', 'sscribe-export-site-pages' );
+			echo esc_html__( 'SScribe Export Site Pages requires PHP 8.2 or higher to run. Please upgrade your PHP version to benefit from enterprise-level performance and features. Your current version is: ', 'sscribe-export-site-pages' );
 			echo esc_html( PHP_VERSION );
 			echo '</p></div>';
 		}

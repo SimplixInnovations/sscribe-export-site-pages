@@ -1024,7 +1024,7 @@ class SScribe_Batch_Processor {
 		$real_path = realpath( $file_path );
 		$real_dir  = realpath( $this->zip_handler->get_export_dir() );
 
-		if ( ! str_starts_with( $real_path, $real_dir ) || 'zip' !== pathinfo( $filename, PATHINFO_EXTENSION ) ) {
+		if ( false === $real_path || false === $real_dir || ! str_starts_with( $real_path, $real_dir ) || 'zip' !== pathinfo( $filename, PATHINFO_EXTENSION ) ) {
 			wp_die( esc_html__( 'Invalid file request.', 'sscribe-export-site-pages' ) );
 		}
 
