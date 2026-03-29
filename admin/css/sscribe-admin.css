@@ -936,6 +936,38 @@
 	justify-content: center;
 }
 
+.sscribe-feature-icon[data-feature="page-title"] {
+	background-color: #DBEAFE;
+}
+
+.sscribe-feature-icon[data-feature="page-content"] {
+	background-color: #D1FAE5;
+}
+
+.sscribe-feature-icon[data-feature="seo-metadata"] {
+	background-color: #EDE9FE;
+}
+
+.sscribe-feature-icon[data-feature="url-permalink"] {
+	background-color: #CFFAFE;
+}
+
+.sscribe-feature-icon[data-feature="author-info"] {
+	background-color: #FEE2E2;
+}
+
+.sscribe-feature-icon[data-feature="dates"] {
+	background-color: #FEF3C7;
+}
+
+.sscribe-feature-icon[data-feature="parent-page"] {
+	background-color: #E0F2FE;
+}
+
+.sscribe-feature-icon[data-feature="featured-image"] {
+	background-color: #FCE7F3;
+}
+
 .sscribe-feature-text h4 {
 	font-size: 15px !important;
 	font-weight: 600 !important;
