@@ -1,11 +1,11 @@
 <?php
-declare(strict_types=1);
-
 /**
  * Markdown exporter for SScribe.
  *
  * @package SScribe
  */
+
+declare(strict_types=1);
 
 if ( ! defined( 'ABSPATH' ) ) {
 	exit;
@@ -49,7 +49,7 @@ class SScribe_Markdown_Exporter implements SScribe_Exporter_Interface {
 		$filename    = \SScribe_Exporter_Factory::build_filename( $page_data, $index, $total, 'md' );
 		$output_path = trailingslashit( $output_dir ) . $filename;
 
-		// phpcs:ignore WordPress.WP.AlternativeFunctions.file_system_read_file_put_contents -- Output generation in temp dir.
+	// phpcs:ignore WordPress.WP.AlternativeFunctions.file_system_operations_file_put_contents -- Output generation in temp dir for export; WP_Filesystem adds unnecessary complexity for simple file writes.
 		$result = file_put_contents( $output_path, $markdown );
 
 		if ( false === $result ) {
@@ -178,7 +178,7 @@ class SScribe_Markdown_Exporter implements SScribe_Exporter_Interface {
 		$md = $this->convert_paragraphs( $md );
 		$md = $this->convert_horizontal_rules( $md );
 
-		$md = strip_tags( $md );
+		$md = wp_strip_all_tags( $md );
 
 		$md = html_entity_decode( $md, ENT_QUOTES | ENT_HTML5, 'UTF-8' );
 
@@ -240,7 +240,7 @@ class SScribe_Markdown_Exporter implements SScribe_Exporter_Interface {
 
 					if ( preg_match_all( $cell_pattern, $row_html, $cell_matches ) ) {
 						foreach ( $cell_matches[1] as $cell_content ) {
-							$cell_content = strip_tags( $cell_content );
+							$cell_content = wp_strip_all_tags( $cell_content );
 							$cell_content = trim( preg_replace( '/\s+/', ' ', $cell_content ) );
 							$cells[]      = $cell_content;
 						}
@@ -318,7 +318,7 @@ class SScribe_Markdown_Exporter implements SScribe_Exporter_Interface {
 			'/<a[^>]*href=["\']([^"\']*)["\'][^>]*>(.*?)<\/a>/is',
 			function ( $matches ) {
 				$url  = $this->sanitize_url( $matches[1] );
-				$text = strip_tags( $matches[2] );
+				$text = wp_strip_all_tags( $matches[2] );
 				$text = trim( preg_replace( '/\s+/', ' ', $text ) );
 				if ( empty( $text ) ) {
 					$text = $url;
@@ -383,7 +383,7 @@ class SScribe_Markdown_Exporter implements SScribe_Exporter_Interface {
 
 		if ( preg_match_all( '/<li>(.*?)<\/li>/is', $content, $matches ) ) {
 			foreach ( $matches[1] as $item_content ) {
-				$item_content = strip_tags( $item_content );
+				$item_content = wp_strip_all_tags( $item_content );
 				$item_content = trim( preg_replace( '/\s+/', ' ', $item_content ) );
 
 				if ( 'ol' === $list_type ) {
@@ -421,7 +421,7 @@ class SScribe_Markdown_Exporter implements SScribe_Exporter_Interface {
 		return preg_replace_callback(
 			'/<blockquote[^>]*>(.*?)<\/blockquote>/is',
 			function ( $matches ) {
-				$content = strip_tags( $matches[1] );
+				$content = wp_strip_all_tags( $matches[1] );
 				$lines   = preg_split( '/\r?\n/', trim( $content ) );
 				$result  = "\n";
 				foreach ( $lines as $line ) {
@@ -471,7 +471,7 @@ class SScribe_Markdown_Exporter implements SScribe_Exporter_Interface {
 			return '#';
 		}
 
-		$parsed = parse_url( $url );
+		$parsed = wp_parse_url( $url );
 		$scheme = isset( $parsed['scheme'] ) ? strtolower( $parsed['scheme'] ) : '';
 
 		$allowed_schemes = array( 'http', 'https', 'mailto', 'tel', 'ftp' );

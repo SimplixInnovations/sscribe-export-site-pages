@@ -97,7 +97,11 @@ function sscribe_init() {
 			$plugin->run();
 		}
 	} catch ( \Throwable $e ) {
-		error_log( 'SScribe Fatal Error Prevented: ' . $e->getMessage() );
+		// Critical error logging for debugging production issues.
+		if ( defined( 'WP_DEBUG' ) && WP_DEBUG ) {
+			// phpcs:ignore WordPress.PHP.DevelopmentFunctions.error_log_error_log
+			error_log( 'SScribe Fatal Error Prevented: ' . $e->getMessage() );
+		}
 	}
 }
 

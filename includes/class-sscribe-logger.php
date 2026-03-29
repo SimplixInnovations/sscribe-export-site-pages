@@ -1,6 +1,4 @@
 <?php
-declare(strict_types=1);
-
 /**
  * Logging service for SScribe.
  *
@@ -9,6 +7,8 @@ declare(strict_types=1);
  *
  * @package SScribe
  */
+
+declare(strict_types=1);
 
 if ( ! defined( 'ABSPATH' ) ) {
 	exit;
@@ -70,7 +70,7 @@ class SScribe_Logger implements SScribe_Logger_Interface {
 	private function get_log_file(): string {
 		if ( ! file_exists( $this->log_dir ) ) {
 			wp_mkdir_p( $this->log_dir );
-			// Protect directory from direct access
+			// Protect directory from direct access.
 			// phpcs:ignore WordPress.WP.AlternativeFunctions.file_system_operations_file_put_contents -- Required to secure the log directory.
 			file_put_contents( $this->log_dir . '/.htaccess', 'deny from all' );
 			// phpcs:ignore WordPress.WP.AlternativeFunctions.file_system_operations_file_put_contents -- Required to secure the log directory.

@@ -1,11 +1,11 @@
 <?php
-declare(strict_types=1);
-
 /**
  * Enumeration of supported export formats.
  *
  * @package SScribe
  */
+
+declare(strict_types=1);
 
 // Prevent direct access.
 if ( ! defined( 'ABSPATH' ) ) {

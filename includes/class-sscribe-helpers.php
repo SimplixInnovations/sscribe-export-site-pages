@@ -38,6 +38,7 @@ class SScribe_Helpers {
 			return '';
 		}
 
+		// phpcs:ignore WordPress.WP.AlternativeFunctions.file_get_contents_file_get_contents -- Reading local SVG file, not a remote URL.
 		$svg_content = file_get_contents( $file_path );
 		if ( false === $svg_content ) {
 			return '';

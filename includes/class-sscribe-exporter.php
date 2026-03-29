@@ -84,7 +84,7 @@ class SScribe_Exporter {
 		$this->parser = new SScribe_Content_Parser();
 	}
 
-/**
+	/**
 	 * Clean text for safe XML 1.0 output.
 	 *
 	 * Note: We preserve Unicode characters (including Arabic, CJK, etc.) as PHPWord

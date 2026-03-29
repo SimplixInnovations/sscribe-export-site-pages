@@ -1,11 +1,11 @@
 <?php
-declare(strict_types=1);
-
 /**
  * Result pattern for consistent error handling.
  *
  * @package SScribe
  */
+
+declare(strict_types=1);
 
 if ( ! defined( 'ABSPATH' ) ) {
 	exit;

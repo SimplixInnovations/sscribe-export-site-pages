@@ -1,11 +1,11 @@
 <?php
-declare(strict_types=1);
-
 /**
  * Handles batch AJAX processing of page exports.
  *
  * @package SScribe
  */
+
+declare(strict_types=1);
 
 if ( ! defined( 'ABSPATH' ) ) {
 	exit;
@@ -441,9 +441,9 @@ class SScribe_Batch_Processor {
 		}
 
 		// phpcs:ignore WordPress.PHP.IniSet.max_execution_time_Blacklisted, Squiz.PHP.DiscouragedFunctions.Discouraged -- Required as a fallback for heavy page-builder DOM parsing during batching operations where WordPress's default 30 seconds is insufficient for Elementor/Divi/Beaver Builder content.
-		if ( function_exists( 'ini_set' ) ) {
-			$max_time = (int) apply_filters( 'sscribe_max_execution_time', 120 );
-			ini_set( 'max_execution_time', (string) $max_time );
+		$max_time = (int) apply_filters( 'sscribe_max_execution_time', 120 );
+		if ( function_exists( 'set_time_limit' ) ) {
+			set_time_limit( $max_time );
 		}
 		wp_raise_memory_limit( 'admin' );
 
@@ -485,7 +485,7 @@ class SScribe_Batch_Processor {
 			);
 			return;
 		}
-		set_transient( $lock_key, time(), 60 ); // Lock for up to 60 seconds
+		set_transient( $lock_key, time(), 60 ); // Lock for up to 60 seconds.
 
 		if ( ! $this->validate_session_ownership( $session, $session_id ) ) {
 			$this->restore_ob_level( $ob_level_before );
@@ -1031,7 +1031,7 @@ class SScribe_Batch_Processor {
 		$exports = get_option( 'sscribe_export_index', array() );
 		if ( isset( $exports[ $filename ] ) && is_array( $exports[ $filename ] ) ) {
 			$export_info = $exports[ $filename ];
-			if ( isset( $export_info['user_id'] ) && (int) $export_info['user_id'] !== get_current_user_id() ) {
+			if ( isset( $export_info['user_id'] ) && get_current_user_id() !== (int) $export_info['user_id'] ) {
 				$this->audit_log( 'download_access_denied', array( 'filename' => $filename ) );
 				wp_die( esc_html__( 'Invalid file access.', 'sscribe-export-site-pages' ) );
 			}
@@ -1161,7 +1161,7 @@ class SScribe_Batch_Processor {
 		}
 
 		$export_info = $exports[ $filename ];
-		if ( isset( $export_info['user_id'] ) && (int) $export_info['user_id'] !== get_current_user_id() ) {
+		if ( isset( $export_info['user_id'] ) && get_current_user_id() !== (int) $export_info['user_id'] ) {
 			$this->audit_log( 'delete_access_denied', array( 'filename' => $filename ) );
 			wp_send_json_error( array( 'message' => __( 'Permission denied.', 'sscribe-export-site-pages' ) ) );
 			return;
@@ -1209,7 +1209,7 @@ class SScribe_Batch_Processor {
 		}
 
 		$export_info = $exports[ $filename ];
-		if ( isset( $export_info['user_id'] ) && (int) $export_info['user_id'] !== get_current_user_id() ) {
+		if ( isset( $export_info['user_id'] ) && get_current_user_id() !== (int) $export_info['user_id'] ) {
 			wp_send_json_error( array( 'message' => __( 'Permission denied.', 'sscribe-export-site-pages' ) ) );
 			return;
 		}

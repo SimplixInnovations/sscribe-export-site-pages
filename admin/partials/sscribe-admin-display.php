@@ -150,7 +150,7 @@ $sscribe_is_debug   = $sscribe_is_debug ?? false;
 						$sscribe_first         = true;
 						foreach ( $sscribe_status_labels as $sscribe_status_key => $sscribe_status_label ) :
 							$sscribe_count    = isset( $status_counts[ $sscribe_status_key ] ) ? intval( $status_counts[ $sscribe_status_key ] ) : 0;
-							$sscribe_is_zero  = ( $sscribe_count === 0 );
+							$sscribe_is_zero  = ( 0 === $sscribe_count );
 							$sscribe_is_first = $sscribe_first && ! $sscribe_is_zero;
 							if ( $sscribe_is_first ) {
 								$sscribe_first = false; }

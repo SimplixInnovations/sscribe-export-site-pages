@@ -301,7 +301,7 @@ class SScribe_SEO_Reader {
 		}
 
 		$focus_keyword   = '';
-		$primary_term_id = get_post_meta( $page_id, '_primary_term_' . $this->get_primary_taxonomy( $page_id ), true );
+		$primary_term_id = get_post_meta( $page_id, '_primary_term_' . $this->get_primary_taxonomy(), true );
 		if ( $primary_term_id ) {
 			$term = get_term( $primary_term_id );
 			if ( $term && ! is_wp_error( $term ) ) {
@@ -331,7 +331,12 @@ class SScribe_SEO_Reader {
 		);
 	}
 
-	private function get_primary_taxonomy( $page_id ): string {
+	/**
+	 * Get the primary taxonomy for pages.
+	 *
+	 * @return string The primary taxonomy name.
+	 */
+	private function get_primary_taxonomy(): string {
 		$taxonomies = get_object_taxonomies( 'page', 'objects' );
 		foreach ( $taxonomies as $taxonomy ) {
 			if ( $taxonomy->hierarchical && $taxonomy->public ) {
@@ -357,6 +362,11 @@ class SScribe_SEO_Reader {
 			|| ! empty( $data['og_image'] );
 	}
 
+	/**
+	 * Return an empty SEO data structure.
+	 *
+	 * @return array Empty SEO data array.
+	 */
 	private function empty_seo_data(): array {
 		return array(
 			'meta_title'       => '',
