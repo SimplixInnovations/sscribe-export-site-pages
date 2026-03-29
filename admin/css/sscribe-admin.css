@@ -219,7 +219,15 @@
 }
 
 .sscribe-status-card-label input[type="radio"] {
-	display: none;
+	position: absolute;
+	width: 1px;
+	height: 1px;
+	padding: 0;
+	margin: -1px;
+	overflow: hidden;
+	clip: rect(0, 0, 0, 0);
+	white-space: nowrap;
+	border: 0;
 }
 
 .sscribe-status-card-inner {
@@ -326,7 +334,15 @@
 }
 
 .sscribe-format-option input[type="checkbox"] {
-	display: none;
+	position: absolute;
+	width: 1px;
+	height: 1px;
+	padding: 0;
+	margin: -1px;
+	overflow: hidden;
+	clip: rect(0, 0, 0, 0);
+	white-space: nowrap;
+	border: 0;
 }
 
 .sscribe-format-card {
@@ -497,7 +513,15 @@
 }
 
 .sscribe-lang-card-label input[type="radio"] {
-	display: none;
+	position: absolute;
+	width: 1px;
+	height: 1px;
+	padding: 0;
+	margin: -1px;
+	overflow: hidden;
+	clip: rect(0, 0, 0, 0);
+	white-space: nowrap;
+	border: 0;
 }
 
 .sscribe-lang-card-inner {
@@ -1093,7 +1117,15 @@
 }
 
 .sscribe-format-card-label input[type="radio"] {
-	display: none;
+	position: absolute;
+	width: 1px;
+	height: 1px;
+	padding: 0;
+	margin: -1px;
+	overflow: hidden;
+	clip: rect(0, 0, 0, 0);
+	white-space: nowrap;
+	border: 0;
 }
 
 .sscribe-format-card-inner {
@@ -1457,4 +1489,99 @@
 .sscribe-button:focus-visible {
 	outline: 2px solid var(--sscribe-primary);
 	outline-offset: 2px;
+}
+
+/* ===== Focus Visible for Card Labels (Accessibility) ===== */
+.sscribe-status-card-label:focus-within .sscribe-status-card-inner,
+.sscribe-lang-card-label:focus-within .sscribe-lang-card-inner,
+.sscribe-format-card-label:focus-within .sscribe-format-card-inner,
+.sscribe-format-option:focus-within .sscribe-format-card {
+	outline: 2px solid var(--sscribe-primary);
+	outline-offset: 2px;
+}
+
+/* ===== RTL Support ===== */
+[dir="rtl"] .sscribe-hero-content {
+	flex-direction: row-reverse;
+}
+
+[dir="rtl"] .sscribe-hero-left {
+	flex-direction: row-reverse;
+}
+
+[dir="rtl"] .sscribe-panel-header {
+	flex-direction: row-reverse;
+}
+
+[dir="rtl"] .sscribe-panel-title {
+	flex-direction: row-reverse;
+}
+
+[dir="rtl"] .sscribe-fieldset-legend {
+	flex-direction: row-reverse;
+}
+
+[dir="rtl"] .sscribe-check-list li {
+	padding-left: 0;
+	padding-right: 32px;
+}
+
+[dir="rtl"] .sscribe-check-list li::before {
+	left: auto;
+	right: 0;
+}
+
+[dir="rtl"] .sscribe-history-row {
+	flex-direction: row-reverse;
+}
+
+[dir="rtl"] .sscribe-history-file {
+	flex-direction: row-reverse;
+}
+
+[dir="rtl"] .sscribe-status-alert {
+	flex-direction: row-reverse;
+}
+
+[dir="rtl"] .sscribe-status-filter {
+	flex-direction: row-reverse;
+}
+
+[dir="rtl"] .sscribe-status-card-inner,
+[dir="rtl"] .sscribe-lang-card-inner,
+[dir="rtl"] .sscribe-format-card-inner,
+[dir="rtl"] .sscribe-format-card {
+	flex-direction: row-reverse;
+}
+
+[dir="rtl"] .sscribe-log-table th,
+[dir="rtl"] .sscribe-log-table td {
+	text-align: right;
+}
+
+[dir="rtl"] .sscribe-legend-icon {
+	margin-right: 0;
+	margin-left: 4px;
+}
+
+[dir="rtl"] .sscribe-callout-header {
+	flex-direction: row-reverse;
+}
+
+[dir="rtl"] .sscribe-time-remaining {
+	flex-direction: row-reverse;
+}
+
+@media (max-width: 782px) {
+	[dir="rtl"] .sscribe-history-row {
+		flex-direction: column;
+	}
+
+	[dir="rtl"] .sscribe-status-alert {
+		flex-direction: column;
+	}
+
+	[dir="rtl"] .sscribe-panel-header {
+		flex-direction: column;
+	}
 }
