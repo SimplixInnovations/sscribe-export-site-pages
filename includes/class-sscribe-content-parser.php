@@ -5,6 +5,8 @@
  * @package SScribe
  */
 
+declare(strict_types=1);
+
 // Prevent direct access.
 if ( ! defined( 'ABSPATH' ) ) {
 	exit;
@@ -189,8 +191,8 @@ class SScribe_Content_Parser {
 	/**
 	 * Parse a DOM node into a structured element.
 	 *
-	 * @param DOMNode $node  The DOM node.
-	 * @param int     $depth Nesting depth for lists.
+	 * @param \DOMNode $node  The DOM node.
+	 * @param int      $depth Nesting depth for lists.
 	 * @return array|null Element data or null if node should be skipped.
 	 */
 	private function parse_node( \DOMNode $node, int $depth = 0 ): ?array {
@@ -344,9 +346,9 @@ class SScribe_Content_Parser {
 	/**
 	 * Parse a list element (ul/ol) into structured items.
 	 *
-	 * @param DOMNode $node   The list node.
-	 * @param string  $style  'bullet' or 'numbered'.
-	 * @param int     $depth  Nesting depth.
+	 * @param \DOMNode $node   The list node.
+	 * @param string   $style  'bullet' or 'numbered'.
+	 * @param int      $depth  Nesting depth.
 	 * @return array List element data.
 	 */
 	private function parse_list( \DOMNode $node, string $style, int $depth = 0 ): array {
@@ -374,17 +376,15 @@ class SScribe_Content_Parser {
 					if ( isset( $nested['items'] ) ) {
 						$item['children'] = $nested['items'];
 					}
-				} else {
+				} elseif ( XML_TEXT_NODE === $li_child->nodeType ) {
 					// Text content of this list item.
-					if ( XML_TEXT_NODE === $li_child->nodeType ) {
-						$text = trim( $li_child->textContent );
-						if ( ! empty( $text ) ) {
-							$item['runs'][] = array( 'text' => $text );
-						}
-					} elseif ( XML_ELEMENT_NODE === $li_child->nodeType ) {
-						$inline_runs  = $this->get_inline_runs( $li_child );
-						$item['runs'] = array_merge( $item['runs'], $inline_runs );
+					$text = trim( $li_child->textContent );
+					if ( ! empty( $text ) ) {
+						$item['runs'][] = array( 'text' => $text );
 					}
+				} elseif ( XML_ELEMENT_NODE === $li_child->nodeType ) {
+					$inline_runs  = $this->get_inline_runs( $li_child );
+					$item['runs'] = array_merge( $item['runs'], $inline_runs );
 				}
 			}
 
@@ -402,7 +402,7 @@ class SScribe_Content_Parser {
 	/**
 	 * Parse an HTML table into structured data.
 	 *
-	 * @param DOMNode $node The table node.
+	 * @param \DOMNode $node The table node.
 	 * @return array Table element data.
 	 */
 	private function parse_table( \DOMNode $node ): array {
@@ -466,7 +466,8 @@ class SScribe_Content_Parser {
 	/**
 	 * Parse an image element.
 	 *
-	 * @param DOMNode $node The img node.
+	 * @param \DOMNode $node The img node.
+	 *
 	 * @return array|null Image element data or null if src is empty.
 	 */
 	private function parse_image( \DOMNode $node ): ?array {
@@ -491,7 +492,8 @@ class SScribe_Content_Parser {
 	/**
 	 * Detect button-like elements inside a paragraph.
 	 *
-	 * @param DOMNode $node The paragraph node.
+	 * @param \DOMNode $node The paragraph node.
+	 *
 	 * @return array|false Button element data or false.
 	 */
 	private function detect_button( \DOMNode $node ): array|false {
@@ -552,7 +554,8 @@ class SScribe_Content_Parser {
 	/**
 	 * Get inline runs (text with formatting) from a node.
 	 *
-	 * @param DOMNode $node The container node.
+	 * @param \DOMNode $node The container node.
+	 *
 	 * @return array Array of run data (text, bold, italic, link, etc.).
 	 */
 	private function get_inline_runs( \DOMNode $node ): array {
@@ -659,7 +662,8 @@ class SScribe_Content_Parser {
 	/**
 	 * Get plain text content from a node.
 	 *
-	 * @param DOMNode $node The node.
+	 * @param \DOMNode $node The node.
+	 *
 	 * @return string Plain text content.
 	 */
 	private function get_text_content( \DOMNode $node ): string {

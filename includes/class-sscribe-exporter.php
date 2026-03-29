@@ -1,11 +1,11 @@
 <?php
-declare(strict_types=1);
-
 /**
  * Generates DOCX documents from page data using PHPWord.
  *
  * @package SScribe
  */
+
+declare(strict_types=1);
 
 // Prevent direct access.
 if ( ! defined( 'ABSPATH' ) ) {
@@ -17,6 +17,8 @@ use PhpOffice\PhpWord\IOFactory;
 use PhpOffice\PhpWord\Style\Font;
 use PhpOffice\PhpWord\SimpleType\Jc;
 use PhpOffice\PhpWord\Shared\Converter;
+use PhpOffice\PhpWord\Element\Section;
+use PhpOffice\PhpWord\Element\TextRun;
 
 /**
  * Class SScribe_Exporter
@@ -174,6 +176,7 @@ class SScribe_Exporter {
 	 * @param int    $index      Sequential position in the export (1-based). Used for filename.
 	 * @param int    $total      Total number of pages being exported. Used for zero-padding.
 	 * @return string|false Path to generated DOCX or false on failure.
+	 * @throws \RuntimeException If ZipArchive extension is not available or DOCX generation fails.
 	 */
 	public function generate_docx( array $page_data, string $output_dir, int $index = 0, int $total = 0 ): string|false {
 		if ( empty( $page_data ) || ! is_dir( $output_dir ) ) {
@@ -258,7 +261,7 @@ class SScribe_Exporter {
 	 * @param PhpWord $php_word  The PhpWord instance.
 	 * @param array   $page_data Page data.
 	 */
-	private function set_document_properties( \PhpOffice\PhpWord\PhpWord $php_word, array $page_data ): void {
+	private function set_document_properties( PhpWord $php_word, array $page_data ): void {
 		$properties = $php_word->getDocInfo();
 		$properties->setCreator( 'SScribe by Simplix Innovations' );
 		$properties->setCompany( html_entity_decode( get_bloginfo( 'name' ), ENT_QUOTES | ENT_HTML5, 'UTF-8' ) );
@@ -272,7 +275,7 @@ class SScribe_Exporter {
 	 *
 	 * @param PhpWord $php_word The PhpWord instance.
 	 */
-	private function set_default_styles( \PhpOffice\PhpWord\PhpWord $php_word ): void {
+	private function set_default_styles( PhpWord $php_word ): void {
 		$php_word->setDefaultFontName( $this->font_name );
 		$php_word->setDefaultFontSize( $this->font_size );
 		$php_word->setDefaultParagraphStyle(
@@ -290,7 +293,7 @@ class SScribe_Exporter {
 	 *
 	 * @param PhpWord $php_word The PhpWord instance.
 	 */
-	private function define_styles( \PhpOffice\PhpWord\PhpWord $php_word ): void {
+	private function define_styles( PhpWord $php_word ): void {
 		// Heading styles.
 		$heading_sizes = array( 24, 20, 16, 14, 12, 11 );
 		for ( $i = 1; $i <= 6; $i++ ) {
@@ -838,7 +841,7 @@ class SScribe_Exporter {
 	 * @param array                              $page_data Page data.
 	 */
 	private function add_main_content( \PhpOffice\PhpWord\Element\Section $section, array $page_data ): void {
-		if ( empty( $page_data['word_count'] ) || $page_data['word_count'] === 0 ) {
+		if ( empty( $page_data['word_count'] ) ) {
 			return;
 		}
 
@@ -857,7 +860,7 @@ class SScribe_Exporter {
 	 * @param \PhpOffice\PhpWord\Element\Section $section The section.
 	 * @param array                              $element The parsed element.
 	 */
-	private function render_element( object $section, array $element ): void {
+	private function render_element( Section $section, array $element ): void {
 		if ( empty( $element['type'] ) ) {
 			return;
 		}
@@ -928,7 +931,7 @@ class SScribe_Exporter {
 	 * @param \PhpOffice\PhpWord\Element\Section $section The section.
 	 * @param array                              $element The paragraph element.
 	 */
-	private function render_paragraph( object $section, array $element ): void {
+	private function render_paragraph( Section $section, array $element ): void {
 		if ( empty( $element['runs'] ) ) {
 			return;
 		}
@@ -944,7 +947,7 @@ class SScribe_Exporter {
 	 * @param array                              $runs    Array of run data.
 	 * @param bool                               $italic  Force italic (for blockquotes).
 	 */
-	private function render_runs( object $text_run, array $runs, bool $italic = false ): void {
+	private function render_runs( TextRun $text_run, array $runs, bool $italic = false ): void {
 		foreach ( $runs as $run ) {
 			if ( ! isset( $run['text'] ) || '' === $run['text'] ) {
 				continue;
@@ -1015,7 +1018,7 @@ class SScribe_Exporter {
 	 * @param \PhpOffice\PhpWord\Element\Section $section The section.
 	 * @param array                              $element The list element.
 	 */
-	private function render_list( object $section, array $element ): void {
+	private function render_list( Section $section, array $element ): void {
 		$style = isset( $element['style'] ) ? $element['style'] : 'bullet';
 
 		if ( ! isset( $element['items'] ) ) {
@@ -1063,7 +1066,7 @@ class SScribe_Exporter {
 	 * @param \PhpOffice\PhpWord\Element\Section $section The section.
 	 * @param array                              $element The table element.
 	 */
-	private function render_table( object $section, array $element ): void {
+	private function render_table( Section $section, array $element ): void {
 		if ( empty( $element['rows'] ) ) {
 			return;
 		}
@@ -1120,7 +1123,7 @@ class SScribe_Exporter {
 	 * @param \PhpOffice\PhpWord\Element\Section $section The section.
 	 * @param array                              $element The button element.
 	 */
-	private function render_button( object $section, array $element ): void {
+	private function render_button( Section $section, array $element ): void {
 		$table = $section->addTable(
 			array(
 				'borderSize'  => 6,
@@ -1182,7 +1185,7 @@ class SScribe_Exporter {
 	 * @param \PhpOffice\PhpWord\Element\Section $section The section.
 	 * @param array                              $element The image element.
 	 */
-	private function render_inline_image( object $section, array $element ): void {
+	private function render_inline_image( Section $section, array $element ): void {
 		$path = ! empty( $element['local_path'] ) ? $element['local_path'] : '';
 		$src  = ! empty( $element['src'] ) ? $element['src'] : __( 'Unknown URL', 'sscribe-export-site-pages' );
 
