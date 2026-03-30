@@ -74,15 +74,25 @@ class SScribe_Batch_Processor {
 
 	/**
 	 * Constructor.
+	 *
+	 * @param SScribe_Page_Collector|null $collector   Page collector instance.
+	 * @param SScribe_Zip_Handler|null    $zip_handler ZIP handler instance.
+	 * @param SScribe_Session|null        $session     Session handler instance.
+	 * @param SScribe_Logger|null         $logger      Logger instance.
 	 */
-	public function __construct() {
+	public function __construct(
+		?SScribe_Page_Collector $collector = null,
+		?SScribe_Zip_Handler $zip_handler = null,
+		?SScribe_Session $session = null,
+		?SScribe_Logger $logger = null
+	) {
 		$this->batch_size = (int) apply_filters( 'sscribe_batch_size', 1 );
 		$this->batch_size = max( 1, min( 20, $this->batch_size ) );
 
-		$this->collector   = new SScribe_Page_Collector();
-		$this->zip_handler = new SScribe_Zip_Handler();
-		$this->session     = new SScribe_Session();
-		$this->logger      = new SScribe_Logger( defined( 'SSCRIBE_DEBUG' ) && SSCRIBE_DEBUG );
+		$this->collector   = $collector ?? new SScribe_Page_Collector();
+		$this->zip_handler = $zip_handler ?? new SScribe_Zip_Handler();
+		$this->session     = $session ?? new SScribe_Session();
+		$this->logger      = $logger ?? SScribe_Logger::instance( defined( 'SSCRIBE_DEBUG' ) && SSCRIBE_DEBUG );
 	}
 
 	/**

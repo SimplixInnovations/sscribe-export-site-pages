@@ -21,18 +21,32 @@ class SScribe_Exporter_Factory {
 	/**
 	 * Create an exporter for the given format.
 	 *
+	 * Uses the service container when available for proper dependency injection,
+	 * falls back to direct instantiation for standalone usage.
+	 *
 	 * @param string $format Export format.
 	 * @return SScribe_Exporter_Interface|null
 	 */
 	public static function create( string $format ): ?SScribe_Exporter_Interface {
 		$enum_format = SScribe_Export_Format::tryFrom( $format );
 
+		if ( null === $enum_format ) {
+			return null;
+		}
+
+		$container = SScribe_Container::instance();
+
 		return match ( $enum_format ) {
-			SScribe_Export_Format::DOCX     => new SScribe_DOCX_Exporter(),
-			SScribe_Export_Format::PDF      => new SScribe_PDF_Exporter(),
-			SScribe_Export_Format::HTML     => new SScribe_HTML_Exporter(),
+			SScribe_Export_Format::DOCX     => $container->has( SScribe_DOCX_Exporter::class )
+				? $container->get( SScribe_DOCX_Exporter::class )
+				: new SScribe_DOCX_Exporter(),
+			SScribe_Export_Format::PDF      => $container->has( SScribe_PDF_Exporter::class )
+				? $container->get( SScribe_PDF_Exporter::class )
+				: new SScribe_PDF_Exporter(),
+			SScribe_Export_Format::HTML     => $container->has( SScribe_HTML_Exporter::class )
+				? $container->get( SScribe_HTML_Exporter::class )
+				: new SScribe_HTML_Exporter(),
 			SScribe_Export_Format::MARKDOWN => new SScribe_Markdown_Exporter(),
-			default                         => null,
 		};
 	}
 
