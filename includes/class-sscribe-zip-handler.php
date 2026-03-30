@@ -50,16 +50,7 @@ class SScribe_Zip_Handler {
 	 */
 	public function get_export_dir(): string {
 		if ( ! file_exists( $this->export_dir ) ) {
-			wp_mkdir_p( $this->export_dir );
-
-			// phpcs:ignore WordPress.WP.AlternativeFunctions.file_system_operations_file_put_contents -- Writing directory protection files is standard WP practice and required for security.
-			file_put_contents(
-				$this->export_dir . '/.htaccess',
-				"Options -Indexes\n<Files \"*\">\n  <IfModule mod_authz_core.c>\n    Require all denied\n  </IfModule>\n  <IfModule !mod_authz_core.c>\n    Order Allow,Deny\n    Deny from all\n  </IfModule>\n</Files>\n"
-			);
-
-			// phpcs:ignore WordPress.WP.AlternativeFunctions.file_system_operations_file_put_contents -- Writing directory protection files is standard WP practice and required for security.
-			file_put_contents( $this->export_dir . '/index.php', "<?php\n// Silence is golden.\n" );
+			SScribe_Security::protect_directory( $this->export_dir );
 		}
 		return $this->export_dir;
 	}
@@ -185,30 +176,48 @@ class SScribe_Zip_Handler {
 		$files   = glob( $this->export_dir . '/*.zip' );
 
 		if ( empty( $files ) ) {
-			return $cleaned;
+			// Also clean up any stale temp directories.
+			return $this->cleanup_stale_temp_dirs();
 		}
 
-		$max_age = HOUR_IN_SECONDS;
+		$max_age  = HOUR_IN_SECONDS;
+		$now      = time();
+		$exports  = get_option( 'sscribe_export_index', array() );
+		$modified = false;
 
 		foreach ( $files as $file ) {
 			$file_time = filemtime( $file );
-			if ( $file_time && ( time() - $file_time ) > $max_age ) {
+			if ( $file_time && ( $now - $file_time ) > $max_age ) {
 				wp_delete_file( $file );
-				// Remove from export index.
-				$exports = get_option( 'sscribe_export_index', array() );
 				unset( $exports[ basename( $file ) ] );
-				update_option( 'sscribe_export_index', $exports, false );
+				$modified = true;
 				++$cleaned;
 			}
 		}
 
-		// Also clean up any stale temp directories.
+		if ( $modified ) {
+			update_option( 'sscribe_export_index', $exports, false );
+		}
+
+		return $cleaned + $this->cleanup_stale_temp_dirs();
+	}
+
+	/**
+	 * Clean up stale temporary directories older than 1 hour.
+	 *
+	 * @return int Number of directories cleaned up.
+	 */
+	private function cleanup_stale_temp_dirs(): int {
+		$cleaned = 0;
+		$max_age = HOUR_IN_SECONDS;
+		$now     = time();
+
 		$temp_dirs = glob( $this->export_dir . '/temp-*', GLOB_ONLYDIR );
 		if ( $temp_dirs ) {
 			foreach ( $temp_dirs as $temp_dir ) {
 				$dir_time = filemtime( $temp_dir );
-				if ( $dir_time && ( time() - $dir_time ) > $max_age ) {
-					$this->delete_directory( $temp_dir );
+				if ( $dir_time && ( $now - $dir_time ) > $max_age ) {
+					SScribe_Security::delete_directory( $temp_dir );
 					++$cleaned;
 				}
 			}
@@ -224,21 +233,6 @@ class SScribe_Zip_Handler {
 	 * @return bool
 	 */
 	public function delete_directory( string $dir ): bool {
-		if ( ! is_dir( $dir ) ) {
-			return false;
-		}
-
-		$files = array_diff( scandir( $dir ), array( '.', '..' ) );
-		foreach ( $files as $file ) {
-			$path = $dir . '/' . $file;
-			if ( is_dir( $path ) ) {
-				$this->delete_directory( $path );
-			} else {
-				wp_delete_file( $path );
-			}
-		}
-
-		// phpcs:ignore WordPress.WP.AlternativeFunctions.file_system_operations_rmdir -- Required for recursive directory deletion where WP_Filesystem is not available.
-		return rmdir( $dir );
+		return SScribe_Security::delete_directory( $dir );
 	}
 }

@@ -39,32 +39,7 @@ class SScribe_Activator {
 		$upload_dir  = wp_upload_dir();
 		$export_path = $upload_dir['basedir'] . '/sscribe-exports';
 
-		if ( ! file_exists( $export_path ) ) {
-			wp_mkdir_p( $export_path );
-		}
-
-		$htaccess_path = $export_path . '/.htaccess';
-		if ( ! file_exists( $htaccess_path ) ) {
-			$htaccess_content  = "Options -Indexes\n";
-			$htaccess_content .= "<Files \"*\">\n";
-			$htaccess_content .= "  <IfModule mod_authz_core.c>\n";
-			$htaccess_content .= "    Require all denied\n";
-			$htaccess_content .= "  </IfModule>\n";
-			$htaccess_content .= "  <IfModule !mod_authz_core.c>\n";
-			$htaccess_content .= "    Order Allow,Deny\n";
-			$htaccess_content .= "    Deny from all\n";
-			$htaccess_content .= "  </IfModule>\n";
-			$htaccess_content .= "</Files>\n";
-
-			// phpcs:ignore WordPress.WP.AlternativeFunctions.file_system_operations_file_put_contents
-			file_put_contents( $htaccess_path, $htaccess_content );
-		}
-
-		$index_path = $export_path . '/index.php';
-		if ( ! file_exists( $index_path ) ) {
-			// phpcs:ignore WordPress.WP.AlternativeFunctions.file_system_operations_file_put_contents
-			file_put_contents( $index_path, "<?php\n// Silence is golden.\n" );
-		}
+		SScribe_Security::protect_directory( $export_path );
 	}
 
 	/**
