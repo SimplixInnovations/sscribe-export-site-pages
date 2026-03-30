@@ -154,7 +154,7 @@ class SScribe_Logger implements SScribe_Logger_Interface {
 		$entry     = "[{$timestamp}] [{$level}] {$message}";
 
 		if ( ! empty( $data ) ) {
-			$entry .= ' | ' . wp_json_encode( $data, JSON_UNESCAPED_UNICODE );
+			$entry .= ' | ' . wp_json_encode( $data, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES );
 		}
 
 		$this->buffer[] = $entry;
