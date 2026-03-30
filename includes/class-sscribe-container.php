@@ -103,7 +103,7 @@ class SScribe_Container {
 	 * @return self
 	 */
 	public function set( string $key, object $instance ): self {
-		$this->resolved[ $key ]  = $instance;
+		$this->resolved[ $key ]   = $instance;
 		$this->singletons[ $key ] = true;
 		return $this;
 	}
@@ -122,6 +122,7 @@ class SScribe_Container {
 		}
 
 		if ( ! isset( $this->factories[ $key ] ) ) {
+			// phpcs:ignore WordPress.Security.EscapeOutput.ExceptionNotEscaped -- Exception messages are not HTML output.
 			throw new \RuntimeException( "No binding registered for: {$key}" );
 		}
 
