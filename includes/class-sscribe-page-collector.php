@@ -667,10 +667,40 @@ class SScribe_Page_Collector {
 		$this->clear_status_cache( $language );
 
 		$statuses = $this->get_valid_post_statuses();
-		$counts   = array();
+		$counts   = array_fill_keys( array_keys( $statuses ), 0 );
 
-		foreach ( $statuses as $status => $label ) {
-			$counts[ $status ] = $this->get_page_count_only( $language, $status );
+		$args = array(
+			'post_type'      => 'page',
+			'post_status'    => array_keys( $statuses ),
+			'posts_per_page' => -1,
+			'fields'         => 'ids',
+			'no_found_rows'  => true,
+		);
+
+		$switched = false;
+
+		try {
+			if ( $this->is_wpml_active() && ! empty( $language ) ) {
+				// phpcs:ignore WordPress.NamingConventions.PrefixAllGlobals.NonPrefixedHooknameFound -- WPML hook.
+				do_action( 'wpml_switch_language', $language );
+				$args['suppress_filters'] = false;
+				$switched                 = true;
+			}
+
+			$query = new WP_Query( $args );
+
+			// Count by status from the returned posts.
+			foreach ( $query->posts as $post_id ) {
+				$post = get_post( $post_id );
+				if ( $post && isset( $counts[ $post->post_status ] ) ) {
+					++$counts[ $post->post_status ];
+				}
+			}
+		} finally {
+			if ( $switched ) {
+				// phpcs:ignore WordPress.NamingConventions.PrefixAllGlobals.NonPrefixedHooknameFound -- WPML hook.
+				do_action( 'wpml_switch_language', null );
+			}
 		}
 
 		$counts['all'] = array_sum( $counts );
