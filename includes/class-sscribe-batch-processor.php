@@ -295,6 +295,9 @@ class SScribe_Batch_Processor {
 		);
 
 		$user_id = get_current_user_id();
+
+		$this->cleanup_user_locks( $user_id );
+
 		if ( $this->session->has_active_session( $user_id ) ) {
 			wp_send_json_error(
 				array(
@@ -441,9 +444,9 @@ class SScribe_Batch_Processor {
 			return;
 		}
 
-		// phpcs:ignore WordPress.PHP.IniSet.max_execution_time_Blacklisted, Squiz.PHP.DiscouragedFunctions.Discouraged -- Required as a fallback for heavy page-builder DOM parsing during batching operations where WordPress's default 30 seconds is insufficient for Elementor/Divi/Beaver Builder content.
 		$max_time = (int) apply_filters( 'sscribe_max_execution_time', 120 );
 		if ( function_exists( 'set_time_limit' ) ) {
+			// phpcs:ignore WordPress.PHP.DiscouragedFunctions.Discouraged, WordPress.PHP.IniSet.max_execution_time_Blacklisted -- Required for batch processing large page content from page builders (Elementor/Divi) where default 30s timeout causes failures. This is a standard practice for export plugins.
 			set_time_limit( $max_time );
 		}
 		wp_raise_memory_limit( 'admin' );
@@ -463,7 +466,14 @@ class SScribe_Batch_Processor {
 		);
 
 		if ( ! $session ) {
-			$this->logger->debug( 'ERROR: Session not found' );
+			$lock_key = 'sscribe_lock_' . $session_id;
+			delete_transient( $lock_key );
+			$this->logger->debug(
+				'ERROR: Session not found, cleared orphaned lock',
+				array(
+					'session_id' => $session_id,
+				)
+			);
 			$this->restore_ob_level( $ob_level_before );
 			wp_send_json_error(
 				array(
@@ -476,9 +486,8 @@ class SScribe_Batch_Processor {
 		$lock_key      = 'sscribe_lock_' . $session_id;
 		$existing_lock = get_transient( $lock_key );
 		if ( $existing_lock ) {
-			// Auto-recover stale locks: if lock is >30s old, override it.
 			$lock_age = time() - (int) $existing_lock;
-			if ( $lock_age > 30 ) {
+			if ( $lock_age > 15 ) {
 				$this->logger->debug(
 					'Overriding stale lock',
 					array(
@@ -492,7 +501,6 @@ class SScribe_Batch_Processor {
 				$this->restore_ob_level( $ob_level_before );
 				wp_send_json_error(
 					array(
-						// Send status so the frontend can retry.
 						'status'  => 'locked',
 						'message' => __( 'A batch is already processing. Please wait.', 'sscribe-export-site-pages' ),
 					)
@@ -500,7 +508,7 @@ class SScribe_Batch_Processor {
 				return;
 			}
 		}
-		set_transient( $lock_key, time(), 60 ); // Lock for up to 60 seconds.
+		set_transient( $lock_key, time(), 60 );
 
 		if ( ! $this->validate_session_ownership( $session, $session_id ) ) {
 			delete_transient( $lock_key );
@@ -1284,10 +1292,33 @@ class SScribe_Batch_Processor {
 	/**
 	 * Clean up orphaned lock transients from the database.
 	 *
+	 * @param int|null $user_id Optional user ID to clean specific user's locks.
 	 * @return void
 	 */
-	private function cleanup_user_locks(): void {
+	private function cleanup_user_locks( ?int $user_id = null ): void {
 		global $wpdb;
+
+		if ( null !== $user_id ) {
+			$session_pattern = $wpdb->esc_like( '_transient_sscribe_session_' ) . '%';
+			// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- Cleanup operation.
+			$sessions = $wpdb->get_results(
+				$wpdb->prepare(
+					"SELECT option_name, option_value FROM {$wpdb->options} WHERE option_name LIKE %s AND autoload = 'no'",
+					$session_pattern
+				)
+			);
+
+			foreach ( $sessions as $session ) {
+				$data = maybe_unserialize( $session->option_value );
+				if ( is_array( $data ) && isset( $data['user_id'] ) && (int) $data['user_id'] === $user_id ) {
+					if ( isset( $data['session_id'] ) ) {
+						delete_transient( 'sscribe_lock_' . $data['session_id'] );
+						delete_option( $session->option_name );
+					}
+				}
+			}
+			return;
+		}
 
 		$pattern = $wpdb->esc_like( '_transient_sscribe_lock_' ) . '%';
 
@@ -1299,7 +1330,6 @@ class SScribe_Batch_Processor {
 			)
 		);
 
-		// Also delete the corresponding timeout entries.
 		$pattern_timeout = $wpdb->esc_like( '_transient_timeout_sscribe_lock_' ) . '%';
 
 		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- Cleanup operation removes orphaned lock transients.

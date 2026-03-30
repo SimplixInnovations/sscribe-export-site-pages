@@ -26,6 +26,7 @@ class SScribe_Activator {
 	public static function activate(): void {
 		self::create_export_directory();
 		self::schedule_cleanup();
+		self::cleanup_orphaned_data();
 		update_option( 'sscribe_version', SSCRIBE_VERSION );
 	}
 
@@ -78,6 +79,49 @@ class SScribe_Activator {
 
 		if ( ! wp_next_scheduled( 'sscribe_cleanup_sessions' ) ) {
 			wp_schedule_event( time(), 'hourly', 'sscribe_cleanup_sessions' );
+		}
+	}
+
+	/**
+	 * Clean up orphaned sessions and locks from previous installations.
+	 *
+	 * This ensures a clean state when reinstalling or updating the plugin.
+	 *
+	 * @return void
+	 */
+	private static function cleanup_orphaned_data(): void {
+		global $wpdb;
+
+		$session_pattern = $wpdb->esc_like( '_transient_sscribe_session_' ) . '%';
+		$lock_pattern    = $wpdb->esc_like( '_transient_sscribe_lock_' ) . '%';
+		$rate_pattern    = $wpdb->esc_like( '_transient_sscribe_rate_' ) . '%';
+
+		$patterns = array( $session_pattern, $lock_pattern, $rate_pattern );
+
+		foreach ( $patterns as $pattern ) {
+			// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- Cleanup operation during activation.
+			$wpdb->query(
+				$wpdb->prepare(
+					"DELETE FROM {$wpdb->options} WHERE option_name LIKE %s",
+					$pattern
+				)
+			);
+		}
+
+		$timeout_patterns = array(
+			$wpdb->esc_like( '_transient_timeout_sscribe_session_' ) . '%',
+			$wpdb->esc_like( '_transient_timeout_sscribe_lock_' ) . '%',
+			$wpdb->esc_like( '_transient_timeout_sscribe_rate_' ) . '%',
+		);
+
+		foreach ( $timeout_patterns as $pattern ) {
+			// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- Cleanup operation during activation.
+			$wpdb->query(
+				$wpdb->prepare(
+					"DELETE FROM {$wpdb->options} WHERE option_name LIKE %s",
+					$pattern
+				)
+			);
 		}
 	}
 }
