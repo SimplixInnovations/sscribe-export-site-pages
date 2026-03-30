@@ -24,6 +24,13 @@ require_once SSCRIBE_PLUGIN_DIR . 'includes/interfaces/interface-sscribe-logger.
 class SScribe_Logger implements SScribe_Logger_Interface {
 
 	/**
+	 * Singleton instances keyed by prefix.
+	 *
+	 * @var array<string, self>
+	 */
+	private static array $instances = array();
+
+	/**
 	 * Log entries buffer.
 	 *
 	 * @var array
@@ -36,6 +43,30 @@ class SScribe_Logger implements SScribe_Logger_Interface {
 	 * @var string
 	 */
 	private readonly string $log_dir;
+
+	/**
+	 * Whether shutdown hook is registered.
+	 *
+	 * @var bool
+	 */
+	private bool $shutdown_registered = false;
+
+	/**
+	 * Get or create singleton instance.
+	 *
+	 * @param bool   $enabled Whether logging is enabled.
+	 * @param string $prefix  Optional log entry prefix.
+	 * @return self
+	 */
+	public static function instance( bool $enabled = true, string $prefix = 'sscribe' ): self {
+		$key = $prefix . '_' . ( $enabled ? '1' : '0' );
+
+		if ( ! isset( self::$instances[ $key ] ) ) {
+			self::$instances[ $key ] = new self( $enabled, $prefix );
+		}
+
+		return self::$instances[ $key ];
+	}
 
 	/**
 	 * Constructor.
@@ -51,6 +82,7 @@ class SScribe_Logger implements SScribe_Logger_Interface {
 		$this->log_dir = $upload_dir['basedir'] . '/sscribe-logs';
 
 		if ( $this->enabled ) {
+			$this->shutdown_registered = true;
 			add_action( 'shutdown', array( $this, 'flush' ) );
 		}
 	}
@@ -69,12 +101,7 @@ class SScribe_Logger implements SScribe_Logger_Interface {
 	 */
 	private function get_log_file(): string {
 		if ( ! file_exists( $this->log_dir ) ) {
-			wp_mkdir_p( $this->log_dir );
-			// Protect directory from direct access.
-			// phpcs:ignore WordPress.WP.AlternativeFunctions.file_system_operations_file_put_contents -- Required to secure the log directory.
-			file_put_contents( $this->log_dir . '/.htaccess', "Options -Indexes\n<Files \"*\">\n  <IfModule mod_authz_core.c>\n    Require all denied\n  </IfModule>\n  <IfModule !mod_authz_core.c>\n    Order Allow,Deny\n    Deny from all\n  </IfModule>\n</Files>\n" );
-			// phpcs:ignore WordPress.WP.AlternativeFunctions.file_system_operations_file_put_contents -- Required to secure the log directory.
-			file_put_contents( $this->log_dir . '/index.html', '' );
+			SScribe_Security::protect_directory( $this->log_dir );
 		}
 		return $this->log_dir . '/' . $this->prefix . '_debug_' . gmdate( 'Y-m-d' ) . '.log';
 	}

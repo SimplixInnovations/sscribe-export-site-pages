@@ -42,6 +42,20 @@ class SScribe_Export_Log {
 	private readonly string $log_file;
 
 	/**
+	 * In-memory log data buffer to reduce file I/O.
+	 *
+	 * @var array|null
+	 */
+	private ?array $data_cache = null;
+
+	/**
+	 * Whether the cache has been modified since last write.
+	 *
+	 * @var bool
+	 */
+	private bool $dirty = false;
+
+	/**
 	 * Constructor.
 	 *
 	 * @param string $session_id The session identifier.
@@ -62,12 +76,7 @@ class SScribe_Export_Log {
 	 */
 	private function init_log(): void {
 		if ( ! file_exists( $this->log_dir ) ) {
-			wp_mkdir_p( $this->log_dir );
-			// Protect directory from direct access.
-			// phpcs:ignore WordPress.WP.AlternativeFunctions.file_system_operations_file_put_contents -- Required to secure the log directory.
-			file_put_contents( $this->log_dir . '/.htaccess', "Options -Indexes\n<Files \"*\">\n  <IfModule mod_authz_core.c>\n    Require all denied\n  </IfModule>\n  <IfModule !mod_authz_core.c>\n    Order Allow,Deny\n    Deny from all\n  </IfModule>\n</Files>\n" );
-			// phpcs:ignore WordPress.WP.AlternativeFunctions.file_system_operations_file_put_contents -- Required to secure the log directory.
-			file_put_contents( $this->log_dir . '/index.html', '' );
+			SScribe_Security::protect_directory( $this->log_dir );
 		}
 
 		if ( ! file_exists( $this->log_file ) ) {
@@ -84,6 +93,27 @@ class SScribe_Export_Log {
 				'completed_at' => null,
 			);
 			$this->write_log( $data );
+		}
+	}
+
+	/**
+	 * Destructor to ensure buffered data is flushed to disk.
+	 */
+	public function __destruct() {
+		$this->flush();
+	}
+
+	/**
+	 * Flush any pending writes to disk.
+	 *
+	 * @return void
+	 */
+	public function flush(): void {
+		if ( $this->dirty && null !== $this->data_cache ) {
+			$json = wp_json_encode( $this->data_cache, JSON_UNESCAPED_UNICODE | JSON_PRETTY_PRINT );
+			// phpcs:ignore WordPress.WP.AlternativeFunctions.file_system_operations_file_put_contents -- Intended logging file operation.
+			file_put_contents( $this->log_file, $json, LOCK_EX );
+			$this->dirty = false;
 		}
 	}
 
@@ -281,36 +311,45 @@ class SScribe_Export_Log {
 	}
 
 	/**
-	 * Read log data from filesystem.
+	 * Read log data from filesystem or in-memory cache.
 	 *
 	 * @return array Log data or empty array.
 	 */
 	private function read_log(): array {
+		if ( null !== $this->data_cache ) {
+			return $this->data_cache;
+		}
+
 		if ( ! file_exists( $this->log_file ) ) {
-			return array();
+			$this->data_cache = array();
+			return $this->data_cache;
 		}
 
 		// phpcs:ignore WordPress.WP.AlternativeFunctions.file_get_contents_file_get_contents -- Safe filesystem read.
 		$json = file_get_contents( $this->log_file );
 		if ( false === $json ) {
-			return array();
+			$this->data_cache = array();
+			return $this->data_cache;
 		}
 
-		$data = json_decode( $json, true );
+		$this->data_cache = json_decode( $json, true );
+		$this->data_cache = is_array( $this->data_cache ) ? $this->data_cache : array();
 
-		return is_array( $data ) ? $data : array();
+		return $this->data_cache;
 	}
 
 	/**
-	 * Write log data to filesystem.
+	 * Write log data to in-memory buffer.
+	 *
+	 * Data is flushed to disk on explicit flush(), at end of batch,
+	 * or via the destructor.
 	 *
 	 * @param array $data Log data to write.
 	 * @return void
 	 */
 	private function write_log( array $data ): void {
-		$json = wp_json_encode( $data, JSON_UNESCAPED_UNICODE | JSON_PRETTY_PRINT );
-		// phpcs:ignore WordPress.WP.AlternativeFunctions.file_system_operations_file_put_contents -- Intended logging file operation.
-		file_put_contents( $this->log_file, $json, LOCK_EX );
+		$this->data_cache = $data;
+		$this->dirty      = true;
 	}
 
 	/**
@@ -319,6 +358,8 @@ class SScribe_Export_Log {
 	 * @return void
 	 */
 	public function delete(): void {
+		$this->data_cache = null;
+		$this->dirty      = false;
 		if ( file_exists( $this->log_file ) ) {
 			wp_delete_file( $this->log_file );
 		}
