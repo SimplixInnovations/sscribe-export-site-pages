@@ -33,7 +33,7 @@ class SScribe_Exporter {
 	 *
 	 * @var string
 	 */
-	public string $last_error = '';
+	private string $last_error = '';
 
 	/**
 	 * Content parser instance.
@@ -164,7 +164,7 @@ class SScribe_Exporter {
 	 * @param array $base_style Base paragraph style array.
 	 * @return array Paragraph style with bidi if needed.
 	 */
-	private function get_para_style( $base_style = array() ) {
+	private function get_para_style( array $base_style = array() ): array {
 		if ( $this->is_rtl ) {
 			$base_style['bidi']      = true;
 			$base_style['alignment'] = Jc::END;
@@ -270,8 +270,17 @@ class SScribe_Exporter {
 		$properties->setCreator( 'SScribe by Simplix Innovations' );
 		$properties->setCompany( html_entity_decode( get_bloginfo( 'name' ), ENT_QUOTES | ENT_HTML5, 'UTF-8' ) );
 		$properties->setTitle( html_entity_decode( $page_data['title'], ENT_QUOTES | ENT_HTML5, 'UTF-8' ) );
-		$properties->setDescription( 'Exported from ' . $page_data['permalink'] );
-		$properties->setLastModifiedBy( $page_data['author'] );
+		$properties->setDescription( 'Exported from ' . esc_url_raw( $page_data['permalink'] ) );
+		$properties->setLastModifiedBy( wp_strip_all_tags( $page_data['author'] ) );
+	}
+
+	/**
+	 * Get the last error message from document generation.
+	 *
+	 * @return string Last error message, or empty string if no error.
+	 */
+	public function get_last_error(): string {
+		return $this->last_error;
 	}
 
 	/**

@@ -67,7 +67,7 @@ class SScribe_DOCX_Exporter implements SScribe_Exporter_Interface {
 				return SScribe_Result::success( array( 'path' => $result ) );
 			}
 
-			$error_message = $this->exporter->last_error ? $this->exporter->last_error : 'Unknown export error';
+			$error_message = ( $this->exporter->get_last_error() ) ? $this->exporter->get_last_error() : 'Unknown export error';
 
 			$this->logger->error(
 				'DOCX export failed',
