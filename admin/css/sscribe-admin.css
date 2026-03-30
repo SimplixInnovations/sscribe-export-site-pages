@@ -1643,13 +1643,19 @@
 	display: flex;
 	justify-content: space-between;
 	align-items: center;
-	margin-top: 20px;
-	padding-top: 16px;
+	margin-top: 24px;
+	padding-top: 20px;
 	border-top: 1px solid var(--sscribe-border);
+	gap: 16px;
 }
 
 .sscribe-wizard-nav .sscribe-button {
-	min-width: 140px;
+	min-width: 130px;
+	padding: 12px 24px;
+	font-size: 14px;
+	font-weight: 600;
+	border-radius: var(--sscribe-radius-sm);
+	transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
 }
 
 .sscribe-wizard-generate-wrap {
@@ -1663,22 +1669,45 @@
 	background: var(--sscribe-primary);
 	color: #FFFFFF;
 	border: none;
+	box-shadow: 0 2px 8px rgba(74, 130, 99, 0.2);
 }
 
 .sscribe-wizard-next:hover {
 	background: var(--sscribe-primary-hover);
 	color: #FFFFFF;
+	transform: translateY(-1px);
+	box-shadow: 0 4px 12px rgba(74, 130, 99, 0.3);
+}
+
+.sscribe-wizard-next:active {
+	transform: translateY(0);
+	box-shadow: 0 1px 4px rgba(74, 130, 99, 0.2);
+}
+
+.scribe-wizard-next:focus-visible {
+	outline: 2px solid var(--sscribe-primary);
+	outline-offset: 2px;
 }
 
 .sscribe-wizard-back {
-	background: transparent;
+	background: #FFFFFF;
 	color: var(--sscribe-text-main);
-	border: 1px solid var(--sscribe-border);
+	border: 1.5px solid var(--sscribe-border);
 }
 
 .sscribe-wizard-back:hover {
 	background: var(--sscribe-bg);
-	border-color: var(--sscribe-text-muted);
+	border-color: #CBD5E1;
+	color: var(--sscribe-text-main);
+}
+
+.sscribe-wizard-back:active {
+	background: #E2E8F0;
+}
+
+.scribe-wizard-back:focus-visible {
+	outline: 2px solid var(--sscribe-primary);
+	outline-offset: 2px;
 }
 
 .sscribe-wizard-panel .sscribe-fieldset {

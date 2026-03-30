@@ -4,7 +4,7 @@ Donate link: https://simplixi.com
 Tags: export, docx, pdf, multilingual, rtl
 Requires at least: 5.8
 Tested up to: 6.9
-Stable tag: 3.4.2
+Stable tag: 3.4.3
 Requires PHP: 8.2
 License: GPLv2 or later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
@@ -191,6 +191,15 @@ Each document includes: cover page with title/URL/date/breadcrumbs, featured ima
 
 == Changelog ==
 
+= 3.4.3 =
+
+* Fix: Critical "batch already processing" false positive error on fresh installs
+* Fix: Orphaned sessions and locks cleanup on plugin activation
+* Fix: Improved wizard button styling with proper hover and active states
+* Fix: WordPress Plugin Check warning for set_time_limit()
+* Improved: Reduced stale lock timeout from 30s to 15s for faster recovery
+* Improved: Auto-cleanup of orphaned locks before starting new export
+
 = 3.4.2 =
 
 * Improved: Remove inline CSS from admin UI, use data attributes for feature icons
@@ -278,6 +287,10 @@ Each document includes: cover page with title/URL/date/breadcrumbs, featured ima
 * Initial release
 
 == Upgrade Notice ==
+
+= 3.4.3 =
+
+Critical bug fix: Resolves "batch already processing" error that could occur on fresh installs or after plugin reactivation. Essential update for all users experiencing export failures.
 
 = 3.4.2 =
 
