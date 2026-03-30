@@ -37,7 +37,7 @@ class SScribe {
 	 * Constructor.
 	 */
 	public function __construct() {
-		$this->version = defined( 'SSCRIBE_VERSION' ) ? SSCRIBE_VERSION : '1.0.0';
+		$this->version = SSCRIBE_VERSION;
 		$this->loader  = new SScribe_Loader();
 
 		$this->register_services();
@@ -118,6 +118,7 @@ class SScribe {
 
 		$this->loader->add_action( 'admin_menu', $admin, 'add_admin_menu' );
 		$this->loader->add_action( 'admin_enqueue_scripts', $admin, 'enqueue_admin_assets' );
+		$this->loader->add_action( 'admin_init', $admin, 'maybe_send_csp_headers' );
 		$this->loader->add_filter( 'plugin_action_links_' . SSCRIBE_PLUGIN_BASENAME, $admin, 'add_plugin_action_links' );
 	}
 

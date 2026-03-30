@@ -195,7 +195,8 @@ $sscribe_is_debug   = $sscribe_is_debug ?? false;
 								$sscribe_is_zero  = ( 0 === $sscribe_count );
 								$sscribe_is_first = $sscribe_first && ! $sscribe_is_zero;
 								if ( $sscribe_is_first ) {
-									$sscribe_first = false; }
+									$sscribe_first = false;
+								}
 								?>
 							<label class="sscribe-status-card-label<?php echo $sscribe_is_zero ? ' sscribe-status-disabled' : ''; ?>">
 								<input type="radio" name="sscribe_post_status" value="<?php echo esc_attr( $sscribe_status_key ); ?>" <?php checked( $sscribe_is_first ); ?><?php echo $sscribe_is_zero ? ' disabled' : ''; ?>>
@@ -407,7 +408,7 @@ $sscribe_is_debug   = $sscribe_is_debug ?? false;
 										<div class="sscribe-file-details">
 											<strong><?php echo esc_html( $sscribe_export['filename'] ); ?></strong>
 											<span>
-												<?php echo esc_html( date_i18n( get_option( 'date_format' ) . ' ' . get_option( 'time_format' ), $sscribe_export['time'] ) ); ?>
+												<?php echo esc_html( wp_date( get_option( 'date_format' ) . ' ' . get_option( 'time_format' ), $sscribe_export['time'] ) ); ?>
 												&mdash; <?php echo esc_html( size_format( $sscribe_export['size'] ) ); ?>
 											</span>
 										</div>

@@ -163,7 +163,7 @@
 				if (seconds < 60) {
 					estimate = (strings.estimated_time || 'Estimated time:') + ' ~' + Math.ceil(seconds) + ' ' + (strings.seconds || 'seconds');
 				} else {
-					var mins = Math.ceil(seconds / 60);
+					let mins = Math.ceil(seconds / 60);
 					estimate = (strings.estimated_time || 'Estimated time:') + ' ~' + mins + ' ' + (mins === 1 ? (strings.minute || 'minute') : (strings.minutes || 'minutes'));
 				}
 			}
@@ -328,10 +328,6 @@
 				$iframe.attr('src', data.download_url);
 
 				setTimeout(function () { $iframe.remove(); }, 30000);
-
-				setTimeout(function () {
-					window.location.reload();
-				}, 3000);
 			});
 		},
 

@@ -64,6 +64,48 @@ class SScribe_Admin {
 	}
 
 	/**
+	 * Send Content-Security-Policy header on the SScribe admin page.
+	 *
+	 * Called on admin_init. CSP is sent only when the current request is for
+	 * our specific admin page, to avoid affecting other admin pages.
+	 *
+	 * @return void
+	 */
+	public function maybe_send_csp_headers(): void {
+		// phpcs:ignore WordPress.Security.NonceVerification.Recommended -- Read-only page param check.
+		if ( ! isset( $_GET['page'] ) || 'sscribe-export' !== sanitize_key( $_GET['page'] ) ) {
+			return;
+		}
+
+		if ( headers_sent() ) {
+			return;
+		}
+
+		// WordPress admin loads many inline scripts from core and other plugins.
+		// We use Report-Only mode so violations are logged but nothing is blocked.
+		// frame-ancestors and X-Frame-Options are enforced via separate headers.
+		$policy = implode(
+			'; ',
+			array(
+				"default-src 'self'",
+				"script-src 'self' 'unsafe-inline'",
+				"style-src 'self' https://fonts.googleapis.com 'unsafe-inline'",
+				"font-src 'self' https://fonts.gstatic.com",
+				"img-src 'self' data:",
+				"object-src 'none'",
+				"frame-ancestors 'self'",
+				"base-uri 'self'",
+				"form-action 'self'",
+			)
+		);
+
+		header( 'Content-Security-Policy-Report-Only: ' . $policy );
+		header( 'X-Frame-Options: SAMEORIGIN' );
+		header( 'X-Content-Type-Options: nosniff' );
+		header( 'Referrer-Policy: strict-origin-when-cross-origin' );
+	}
+
+	/**
 	 * Enqueue admin scripts and styles.
 	 *
 	 * @param string $hook_suffix The current admin page hook suffix.
@@ -220,11 +262,11 @@ class SScribe_Admin {
 							'post_type'      => 'page',
 							'post_status'    => 'any',
 							'posts_per_page' => -1,
-							'fields'         => 'id=>parent',
+							'fields'         => 'ids',
 						)
 					);
-					foreach ( $batch_posts as $bp ) {
-						$posts_by_id[ $bp->ID ] = get_post( $bp->ID );
+					foreach ( $batch_posts as $bp_id ) {
+						$posts_by_id[ $bp_id ] = get_post( (int) $bp_id );
 					}
 				}
 
