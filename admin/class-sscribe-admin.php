@@ -290,6 +290,9 @@ class SScribe_Admin {
 			}
 		}
 
+		// Gather active SEO plugins for template.
+		$seo_plugins = $this->seo_reader->get_active_seo_plugins();
+
 		include SSCRIBE_PLUGIN_DIR . 'admin/partials/sscribe-admin-display.php';
 	}
 
