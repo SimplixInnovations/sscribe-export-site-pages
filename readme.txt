@@ -2,9 +2,9 @@
 Contributors: simplixinnovations
 Donate link: https://simplixi.com
 Tags: export, docx, pdf, multilingual, rtl
-Requires at least: 5.8
+Requires at least: 6.0
 Tested up to: 6.9
-Stable tag: 3.4.3
+Stable tag: 3.5.0
 Requires PHP: 8.2
 License: GPLv2 or later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
@@ -76,14 +76,14 @@ Reads metadata from all major SEO plugins:
 * Batch processing prevents PHP timeouts on large sites
 * Memory threshold monitoring prevents out-of-memory errors
 * Concurrent export prevention for data integrity
-* File-based session storage immune to caching plugin interference
-* Generated ZIP files auto-delete after 1 hour for security
+* Database session storage immune to caching plugin interference
+* Generated export ZIPs auto-delete after 1 hour for security
 * SSRF prevention in PDF exporter
 * URL validation and sanitization for all document links
 * Rate limiting on AJAX endpoints (60 requests/minute)
 
 **Developer Features**
-* PSR-4 autoloading and modern PHP 7.4+ architecture
+* PSR-4 autoloading and modern PHP 8.2+ architecture
 * Extensive WordPress hooks and filters for customization
 * `sscribe_page_data` filter for third-party data enrichment
 * `sscribe_batch_size` filter for performance tuning
@@ -190,6 +190,23 @@ Each document includes: cover page with title/URL/date/breadcrumbs, featured ima
 5. SEO Metadata Section - Meta title, description, focus keyword, and canonical URL from SEO plugins
 
 == Changelog ==
+
+= 3.5.0 =
+
+* Security: Session data now stored as JSON instead of PHP-serialized format, eliminating object injection risk
+* Security: Content-Security-Policy, X-Frame-Options, X-Content-Type-Options, and Referrer-Policy headers on admin page
+* Security: DOCX metadata (permalink, author) sanitized before writing to document properties
+* Fix: `$last_error` property on exporter made private with `get_last_error()` accessor
+* Fix: Admin debug `get_posts()` call used invalid `fields` parameter — corrected to `ids`
+* Fix: Removed debug response leaking full page ID array over AJAX
+* Fix: Removed unconditional 3-second `window.location.reload()` after export completes
+* Fix: Variable shadowing in time estimation JS (`var` → `let`)
+* Fix: WPCS brace placement on admin template status card
+* Fix: Admin notice echo chain consolidated into single `printf()`
+* Fix: Logger singleton used consistently across all classes (ZipHandler, PageCollector)
+* Performance: Page status count query cached for 60 seconds to reduce admin page load time
+* Code: Dead fallback version string `'1.0.0'` removed from core class
+* Code: Session storage type identifier updated to `database-json`
 
 = 3.4.3 =
 

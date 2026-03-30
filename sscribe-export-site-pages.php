@@ -38,18 +38,20 @@ if ( version_compare( PHP_VERSION, '8.2', '<' ) ) {
 	add_action(
 		'admin_notices',
 		function () {
-			echo '<div class="error"><p>';
-			echo esc_html__( 'SScribe Export Site Pages requires PHP 8.2 or higher to run. Please upgrade your PHP version to benefit from enterprise-level performance and features. Your current version is: ', 'sscribe-export-site-pages' );
-			echo esc_html( PHP_VERSION );
-			echo '</p></div>';
+			printf(
+				'<div class="error"><p>%s %s</p></div>',
+				esc_html__( 'SScribe Export Site Pages requires PHP 8.2 or higher to run. Please upgrade your PHP version to benefit from enterprise-level performance and features. Your current version is:', 'sscribe-export-site-pages' ),
+				esc_html( PHP_VERSION )
+			);
 		}
 	);
 	return; // Stop loading the rest of the plugin.
 }
 
 /**
- * Debug mode - set to true to enable logging to wp-content/uploads/sscribe-logs/
- * Automatically disabled on production (when WP_DEBUG is false).
+ * Debug mode — enabled when WP_DEBUG is true.
+ * Activates detailed logging to wp-content/uploads/sscribe-logs/.
+ * To enable: define( 'WP_DEBUG', true ) in wp-config.php.
  */
 define( 'SSCRIBE_DEBUG', defined( 'WP_DEBUG' ) && WP_DEBUG );
 
