@@ -772,6 +772,11 @@ class SScribe_Batch_Processor {
 
 		$this->logger->debug( 'Session update result', array( 'success' => $update_result ) );
 
+		// Flush export log to disk after each batch.
+		if ( $this->export_log ) {
+			$this->export_log->flush();
+		}
+
 		$percentage = ( $total > 0 ) ? round( ( $processed / $total ) * 100 ) : 100;
 		$is_done    = ( $processed >= $total );
 
@@ -903,6 +908,7 @@ class SScribe_Batch_Processor {
 
 			if ( $this->export_log ) {
 				$this->export_log->mark_failed( 'Failed to create ZIP package' );
+				$this->export_log->flush();
 			}
 
 			// Clean up the session and lock so user can retry.
@@ -957,6 +963,7 @@ class SScribe_Batch_Processor {
 
 		if ( $this->export_log ) {
 			$this->export_log->mark_complete( $zip_path, $total_files_zip );
+			$this->export_log->flush();
 		}
 
 		$this->session->delete( $session_id );
@@ -1320,23 +1327,16 @@ class SScribe_Batch_Processor {
 			return;
 		}
 
-		$pattern = $wpdb->esc_like( '_transient_sscribe_lock_' ) . '%';
+		// Combined query: delete both lock transients and their timeouts in one pass.
+		$lock_pattern         = $wpdb->esc_like( '_transient_sscribe_lock_' ) . '%';
+		$lock_timeout_pattern = $wpdb->esc_like( '_transient_timeout_sscribe_lock_' ) . '%';
 
 		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- Cleanup operation removes orphaned lock transients.
 		$wpdb->query(
 			$wpdb->prepare(
-				"DELETE FROM {$wpdb->options} WHERE option_name LIKE %s",
-				$pattern
-			)
-		);
-
-		$pattern_timeout = $wpdb->esc_like( '_transient_timeout_sscribe_lock_' ) . '%';
-
-		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- Cleanup operation removes orphaned lock transients.
-		$wpdb->query(
-			$wpdb->prepare(
-				"DELETE FROM {$wpdb->options} WHERE option_name LIKE %s",
-				$pattern_timeout
+				"DELETE FROM {$wpdb->options} WHERE option_name LIKE %s OR option_name LIKE %s",
+				$lock_pattern,
+				$lock_timeout_pattern
 			)
 		);
 	}
