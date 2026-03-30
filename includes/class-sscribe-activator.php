@@ -67,11 +67,15 @@ class SScribe_Activator {
 	private static function cleanup_orphaned_data(): void {
 		global $wpdb;
 
+		// Clean up legacy transient-based sessions (pre-3.5.0).
 		$session_pattern = $wpdb->esc_like( '_transient_sscribe_session_' ) . '%';
 		$lock_pattern    = $wpdb->esc_like( '_transient_sscribe_lock_' ) . '%';
 		$rate_pattern    = $wpdb->esc_like( '_transient_sscribe_rate_' ) . '%';
 
-		$patterns = array( $session_pattern, $lock_pattern, $rate_pattern );
+		// Clean up raw option-based sessions (3.5.0+).
+		$session_option_pattern = $wpdb->esc_like( 'sscribe_session_' ) . '%';
+
+		$patterns = array( $session_pattern, $lock_pattern, $rate_pattern, $session_option_pattern );
 
 		foreach ( $patterns as $pattern ) {
 			// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- Cleanup operation during activation.

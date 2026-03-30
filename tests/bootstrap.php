@@ -269,6 +269,17 @@ if ( ! function_exists( 'delete_option' ) ) {
 	}
 }
 
+if ( ! function_exists( 'add_option' ) ) {
+	function add_option( $sscribe_option, $sscribe_value = '', $sscribe_deprecated = '', $sscribe_autoload = 'yes' ) {
+		global $sscribe_test_options;
+		if ( ! isset( $sscribe_test_options[ $sscribe_option ] ) ) {
+			$sscribe_test_options[ $sscribe_option ] = $sscribe_value;
+			return true;
+		}
+		return false;
+	}
+}
+
 if ( ! function_exists( 'setup_postdata' ) ) {
 	function setup_postdata( $post ) {
 		return true;
