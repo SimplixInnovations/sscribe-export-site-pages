@@ -344,18 +344,6 @@
 	transform: scale(1);
 }
 
-/* ===== Disabled Status Cards ===== */
-.sscribe-status-card-label.sscribe-disabled {
-	cursor: not-allowed;
-	opacity: 0.5;
-}
-
-.sscribe-status-card-label.sscribe-disabled:hover .sscribe-status-card-inner {
-	transform: none;
-	box-shadow: none;
-	border-color: var(--sscribe-border);
-}
-
 /* ===== Format Selection ===== */
 .sscribe-format-selection {
 	display: flex;
@@ -1684,7 +1672,7 @@
 	box-shadow: 0 1px 4px rgba(74, 130, 99, 0.2);
 }
 
-.scribe-wizard-next:focus-visible {
+.sscribe-wizard-next:focus-visible {
 	outline: 2px solid var(--sscribe-primary);
 	outline-offset: 2px;
 }
@@ -1705,7 +1693,7 @@
 	background: #E2E8F0;
 }
 
-.scribe-wizard-back:focus-visible {
+.sscribe-wizard-back:focus-visible {
 	outline: 2px solid var(--sscribe-primary);
 	outline-offset: 2px;
 }
