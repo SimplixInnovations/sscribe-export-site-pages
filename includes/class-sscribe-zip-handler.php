@@ -40,7 +40,7 @@ class SScribe_Zip_Handler {
 	public function __construct() {
 		$upload_dir       = wp_upload_dir();
 		$this->export_dir = $upload_dir['basedir'] . '/sscribe-exports';
-		$this->logger     = new SScribe_Logger( defined( 'SSCRIBE_DEBUG' ) && SSCRIBE_DEBUG );
+		$this->logger     = SScribe_Logger::instance( defined( 'SSCRIBE_DEBUG' ) && SSCRIBE_DEBUG );
 	}
 
 	/**

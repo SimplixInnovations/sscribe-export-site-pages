@@ -60,7 +60,7 @@ class SScribe_Page_Collector {
 	 */
 	public function __construct() {
 		$this->seo_reader = new SScribe_SEO_Reader();
-		$this->logger     = new SScribe_Logger( defined( 'SSCRIBE_DEBUG' ) && SSCRIBE_DEBUG );
+		$this->logger     = SScribe_Logger::instance( defined( 'SSCRIBE_DEBUG' ) && SSCRIBE_DEBUG );
 	}
 
 	/**
@@ -670,7 +670,14 @@ class SScribe_Page_Collector {
 	 * @return array Associative array of status => count pairs.
 	 */
 	public function get_post_status_counts( string $language = '' ): array {
-		$this->clear_status_cache( $language );
+		// Tier 2: Cache status counts for 60 seconds to avoid repeating the full
+		// WP_Query + post status iteration on every admin page load.
+		$cache_key = 'sscribe_status_counts_' . md5( $language );
+		$cached    = get_transient( $cache_key );
+
+		if ( false !== $cached && is_array( $cached ) ) {
+			return $cached;
+		}
 
 		$statuses = $this->get_valid_post_statuses();
 		$counts   = array_fill_keys( array_keys( $statuses ), 0 );
@@ -710,6 +717,8 @@ class SScribe_Page_Collector {
 		}
 
 		$counts['all'] = array_sum( $counts );
+
+		set_transient( $cache_key, $counts, 60 );
 
 		return $counts;
 	}
