@@ -89,6 +89,6 @@ class SScribe_Session_Test extends TestCase {
 	public function test_get_storage_type(): void {
 		$session = new \SScribe_Session();
 
-		$this->assertEquals( 'database', $session->get_storage_type() );
+		$this->assertEquals( 'database-json', $session->get_storage_type() );
 	}
 }
