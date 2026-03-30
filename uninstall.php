@@ -87,6 +87,15 @@ $wpdb->query(
 	)
 );
 
+// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- Cleanup during uninstall; caching not applicable.
+$wpdb->query(
+	$wpdb->prepare(
+		"DELETE FROM {$wpdb->options} WHERE option_name LIKE %s OR option_name LIKE %s",
+		$wpdb->esc_like( '_transient_sscribe_status_counts_' ) . '%',
+		$wpdb->esc_like( '_transient_timeout_sscribe_status_counts_' ) . '%'
+	)
+);
+
 delete_option( 'sscribe_version' );
 delete_option( 'sscribe_export_index' );
 
