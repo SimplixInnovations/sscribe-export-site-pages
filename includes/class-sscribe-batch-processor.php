@@ -139,9 +139,9 @@ class SScribe_Batch_Processor {
 	 * @return void
 	 */
 	private function audit_log( string $action, array $context = array() ): void {
-		$user_id  = get_current_user_id();
-		$user     = get_user_by( 'id', $user_id );
-		$username = $user ? $user->user_login : 'unknown';
+		$user_id      = get_current_user_id();
+		$current_user = wp_get_current_user();
+		$username     = ( $current_user && $current_user->exists() ) ? $current_user->user_login : 'unknown';
 
 		$log_entry = array(
 			'action'    => $action,
@@ -263,6 +263,7 @@ class SScribe_Batch_Processor {
 					'message' => __( 'Too many requests. Please wait a moment and try again.', 'sscribe-export-site-pages' ),
 				)
 			);
+			return;
 		}
 
 		$this->audit_log( 'export_started' );
@@ -413,7 +414,6 @@ class SScribe_Batch_Processor {
 		if ( $sscribe_is_debug ) {
 			$response['debug_info'] = array(
 				'page_ids_count'    => $total,
-				'page_ids_all'      => $page_ids,
 				'page_ids_sample'   => array_slice( $page_ids, 0, 20 ),
 				'language'          => $language,
 				'post_status'       => $post_status,
@@ -1316,7 +1316,8 @@ class SScribe_Batch_Processor {
 		global $wpdb;
 
 		if ( null !== $user_id ) {
-			$session_pattern = $wpdb->esc_like( '_transient_sscribe_session_' ) . '%';
+			// Sessions are stored as raw wp_options (sscribe_session_*), not transients.
+			$session_pattern = $wpdb->esc_like( 'sscribe_session_' ) . '%';
 			// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- Cleanup operation.
 			$sessions = $wpdb->get_results(
 				$wpdb->prepare(
