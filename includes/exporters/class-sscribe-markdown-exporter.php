@@ -182,15 +182,15 @@ class SScribe_Markdown_Exporter implements SScribe_Exporter_Interface {
 
 		$md = html_entity_decode( $md, ENT_QUOTES | ENT_HTML5, 'UTF-8' );
 
+		// Normalize whitespace: collapse 3+ newlines to 2, strip trailing spaces.
 		$md = preg_replace( '/\n{3,}/', "\n\n", $md );
-
 		$md = preg_replace( '/[ \t]+$/m', '', $md );
 
 		return trim( $md );
 	}
 
 	/**
-	 * Strip all inline styles and Elementor-specific attributes.
+	 * Strip all inline styles, classes, data attributes, and embedded blocks.
 	 *
 	 * @param string $html The HTML content.
 	 * @return string Cleaned HTML.
@@ -203,13 +203,10 @@ class SScribe_Markdown_Exporter implements SScribe_Exporter_Interface {
 
 		$html = preg_replace( '/\s*style="[^"]*"/i', '', $html );
 		$html = preg_replace( "/\s*style='[^']*'/i", '', $html );
-
 		$html = preg_replace( '/\s*class="[^"]*"/i', '', $html );
 		$html = preg_replace( "/\s*class='[^']*'/i", '', $html );
-
 		$html = preg_replace( '/\s*data-[a-z-]+="[^"]*"/i', '', $html );
 		$html = preg_replace( "/\s*data-[a-z-]+='[^']*'/i", '', $html );
-
 		$html = preg_replace( '/<!--.*?-->/s', '', $html );
 
 		return $html;
