@@ -1,0 +1,114 @@
+<?php
+/**
+ * Tests for SScribe_Security helper class.
+ *
+ * @package SScribe\Tests
+ */
+
+declare(strict_types=1);
+
+namespace SScribe\Tests;
+
+use PHPUnit\Framework\TestCase;
+use SScribe_Security;
+
+final class SScribe_Security_Test extends TestCase {
+
+	/**
+	 * Temporary directory for testing.
+	 */
+	private string $temp_dir;
+
+	protected function setUp(): void {
+		$this->temp_dir = sys_get_temp_dir() . '/sscribe_security_test_' . uniqid();
+		mkdir( $this->temp_dir, 0755, true );
+	}
+
+	protected function tearDown(): void {
+		if ( is_dir( $this->temp_dir ) ) {
+			SScribe_Security::delete_directory( $this->temp_dir );
+		}
+	}
+
+	public function test_protect_directory_creates_htaccess(): void {
+		$protected_dir = $this->temp_dir . '/protected';
+		SScribe_Security::protect_directory( $protected_dir );
+
+		$this->assertFileExists( $protected_dir . '/.htaccess' );
+
+		$content = file_get_contents( $protected_dir . '/.htaccess' );
+		$this->assertStringContainsString( 'Options -Indexes', $content );
+		$this->assertStringContainsString( 'Require all denied', $content );
+		$this->assertStringContainsString( 'Deny from all', $content );
+	}
+
+	public function test_protect_directory_creates_index_php(): void {
+		$protected_dir = $this->temp_dir . '/protected';
+		SScribe_Security::protect_directory( $protected_dir );
+
+		$this->assertFileExists( $protected_dir . '/index.php' );
+
+		$content = file_get_contents( $protected_dir . '/index.php' );
+		$this->assertStringContainsString( 'Silence is golden', $content );
+	}
+
+	public function test_protect_directory_does_not_overwrite_existing(): void {
+		$protected_dir = $this->temp_dir . '/protected';
+		mkdir( $protected_dir, 0755, true );
+		file_put_contents( $protected_dir . '/.htaccess', 'custom content' );
+
+		SScribe_Security::protect_directory( $protected_dir );
+
+		$this->assertEquals( 'custom content', file_get_contents( $protected_dir . '/.htaccess' ) );
+	}
+
+	public function test_protect_directory_creates_parent_if_missing(): void {
+		$nested_dir = $this->temp_dir . '/a/b/c';
+		SScribe_Security::protect_directory( $nested_dir );
+
+		$this->assertDirectoryExists( $nested_dir );
+		$this->assertFileExists( $nested_dir . '/.htaccess' );
+	}
+
+	public function test_delete_directory_removes_contents(): void {
+		$target = $this->temp_dir . '/to_delete';
+		mkdir( $target, 0755, true );
+		file_put_contents( $target . '/file.txt', 'test' );
+		mkdir( $target . '/subdir', 0755, true );
+		file_put_contents( $target . '/subdir/nested.txt', 'nested' );
+
+		$result = SScribe_Security::delete_directory( $target );
+
+		$this->assertTrue( $result );
+		$this->assertDirectoryDoesNotExist( $target );
+		$this->assertFileDoesNotExist( $target . '/file.txt' );
+	}
+
+	public function test_delete_directory_returns_false_for_nonexistent(): void {
+		$result = SScribe_Security::delete_directory( $this->temp_dir . '/does_not_exist' );
+		$this->assertFalse( $result );
+	}
+
+	public function test_delete_directory_respects_depth_limit(): void {
+		// Create a shallow directory (2 levels) and verify it deletes fully.
+		$target = $this->temp_dir . '/shallow';
+		mkdir( $target, 0755, true );
+		mkdir( $target . '/sub', 0755, true );
+		file_put_contents( $target . '/sub/file.txt', 'test' );
+
+		$result = SScribe_Security::delete_directory( $target, 5 );
+		$this->assertTrue( $result );
+		$this->assertDirectoryDoesNotExist( $target );
+	}
+
+	public function test_delete_directory_with_custom_depth(): void {
+		$target = $this->temp_dir . '/nested';
+		mkdir( $target, 0755, true );
+		mkdir( $target . '/sub', 0755, true );
+		file_put_contents( $target . '/sub/file.txt', 'test' );
+
+		$result = SScribe_Security::delete_directory( $target, 10 );
+		$this->assertTrue( $result );
+		$this->assertDirectoryDoesNotExist( $target );
+	}
+}

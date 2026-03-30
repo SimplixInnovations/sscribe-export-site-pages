@@ -125,6 +125,13 @@ if ( ! function_exists( 'sanitize_key' ) ) {
 	}
 }
 
+if ( ! function_exists( 'sanitize_file_name' ) ) {
+	function sanitize_file_name( $sscribe_filename ) {
+		$sscribe_filename = preg_replace( '/[^a-zA-Z0-9._\-]/', '_', $sscribe_filename );
+		return preg_replace( '/_+/', '_', trim( $sscribe_filename, '_' ) );
+	}
+}
+
 if ( ! function_exists( '__' ) ) {
 	function __( $sscribe_text, $sscribe_domain = 'default' ) {
 		return $sscribe_text;
@@ -168,6 +175,39 @@ if ( ! function_exists( 'set_transient' ) ) {
 		global $sscribe_test_transients;
 		$sscribe_test_transients[ $sscribe_transient ] = $sscribe_value;
 		return true;
+	}
+}
+
+if ( ! function_exists( 'delete_transient' ) ) {
+	function delete_transient( $sscribe_transient ) {
+		global $sscribe_test_transients;
+		unset( $sscribe_test_transients[ $sscribe_transient ] );
+		return true;
+	}
+}
+
+// WP_Query stub for unit tests.
+if ( ! class_exists( 'WP_Query' ) ) {
+	class WP_Query {
+		public array $posts = array();
+		public int $found_posts = 0;
+
+		public function __construct( $query = array() ) {
+			// Return empty results for unit tests.
+		}
+	}
+}
+
+// WP_Post stub for unit tests.
+if ( ! class_exists( 'WP_Post' ) ) {
+	class WP_Post {
+		public int $ID = 0;
+		public string $post_title = '';
+		public string $post_content = '';
+		public string $post_status = 'publish';
+		public string $post_type = 'page';
+		public string $post_name = '';
+		public int $post_parent = 0;
 	}
 }
 
@@ -226,6 +266,44 @@ if ( ! function_exists( 'delete_option' ) ) {
 			return true;
 		}
 		return false;
+	}
+}
+
+if ( ! function_exists( 'setup_postdata' ) ) {
+	function setup_postdata( $post ) {
+		return true;
+	}
+}
+
+if ( ! function_exists( 'wp_reset_postdata' ) ) {
+	function wp_reset_postdata() {
+		global $post;
+		$post = null;
+	}
+}
+
+if ( ! function_exists( 'get_post' ) ) {
+	function get_post( $post = null ) {
+		if ( $post instanceof WP_Post ) {
+			return $post;
+		}
+		if ( is_numeric( $post ) ) {
+			$p = new WP_Post();
+			$p->ID = (int) $post;
+			return $p;
+		}
+		return null;
+	}
+}
+
+if ( ! function_exists( 'wp_strip_all_tags' ) ) {
+	function wp_strip_all_tags( $string, $remove_breaks = false ) {
+		$string = preg_replace( '@<(script|style)[^>]*?>.*?</\\1>@si', '', $string );
+		$string = strip_tags( $string );
+		if ( $remove_breaks ) {
+			$string = preg_replace( '/[\r\n\t ]+/', ' ', $string );
+		}
+		return trim( $string );
 	}
 }
 
