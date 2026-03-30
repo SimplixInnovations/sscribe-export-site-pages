@@ -20,19 +20,6 @@ require_once SSCRIBE_PLUGIN_DIR . 'includes/exporters/interface-sscribe-exporter
  */
 class SScribe_Markdown_Exporter implements SScribe_Exporter_Interface {
 
-	/**
-	 * List depth counter for nested lists.
-	 *
-	 * @var int
-	 */
-	private int $list_depth = 0;
-
-	/**
-	 * List type stack (ul/ol).
-	 *
-	 * @var array
-	 */
-	private array $list_stack = array();
 
 	/**
 	 * Export a single page to Markdown.
@@ -159,9 +146,6 @@ class SScribe_Markdown_Exporter implements SScribe_Exporter_Interface {
 		if ( empty( $html ) ) {
 			return '';
 		}
-
-		$this->list_depth = 0;
-		$this->list_stack = array();
 
 		$html = $this->strip_all_styles( $html );
 
