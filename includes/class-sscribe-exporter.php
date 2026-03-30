@@ -81,9 +81,13 @@ class SScribe_Exporter {
 
 	/**
 	 * Constructor.
+	 *
+	 * @param SScribe_Content_Parser|null $parser Content parser instance.
 	 */
-	public function __construct() {
-		$this->parser = new SScribe_Content_Parser();
+	public function __construct(
+		?SScribe_Content_Parser $parser = null
+	) {
+		$this->parser = $parser ?? new SScribe_Content_Parser();
 	}
 
 	/**

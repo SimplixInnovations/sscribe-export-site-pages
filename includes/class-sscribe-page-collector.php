@@ -364,6 +364,9 @@ class SScribe_Page_Collector {
 			// Record ob level before our buffer to avoid closing WP's buffers.
 			$ob_level_before = ob_get_level();
 
+			// Defensive initialization for the finally block.
+			$original_post = null;
+
 			try {
 				global $post;
 				$original_post = $post;
@@ -399,7 +402,10 @@ class SScribe_Page_Collector {
 				// This finally only handles state that must ALWAYS reset.
 				wp_reset_postdata();
 				// phpcs:ignore WordPress.WP.GlobalVariablesOverride.Prohibited
-				$post                      = $original_post;
+				if ( null !== $original_post ) {
+					// phpcs:ignore WordPress.WP.GlobalVariablesOverride.Prohibited
+					$post = $original_post;
+				}
 				$sscribe_in_content_filter = false;
 			}
 		}

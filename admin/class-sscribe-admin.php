@@ -36,10 +36,16 @@ class SScribe_Admin {
 
 	/**
 	 * Constructor.
+	 *
+	 * @param SScribe_Page_Collector|null $collector   Page collector instance.
+	 * @param SScribe_SEO_Reader|null     $seo_reader  SEO reader instance.
 	 */
-	public function __construct() {
-		$this->collector  = new SScribe_Page_Collector();
-		$this->seo_reader = new SScribe_SEO_Reader();
+	public function __construct(
+		?SScribe_Page_Collector $collector = null,
+		?SScribe_SEO_Reader $seo_reader = null
+	) {
+		$this->collector  = $collector ?? new SScribe_Page_Collector();
+		$this->seo_reader = $seo_reader ?? new SScribe_SEO_Reader();
 	}
 
 	/**
@@ -176,6 +182,8 @@ class SScribe_Admin {
 
 			// Get detailed page info per language.
 			if ( $wpml_active && ! empty( $languages ) ) {
+				$all_page_ids_by_lang = array();
+
 				foreach ( $languages as $lang ) {
 					$lang_code = $lang['code'];
 					$sscribe_debug_info['language_details'][ $lang_code ] = array(
@@ -187,25 +195,53 @@ class SScribe_Admin {
 					$page_ids = $this->collector->get_page_ids( $lang_code, 'publish' );
 					$sscribe_debug_info['language_details'][ $lang_code ]['published_page_ids'] = $page_ids;
 					$sscribe_debug_info['language_details'][ $lang_code ]['published_count']    = count( $page_ids );
+					$all_page_ids_by_lang[ $lang_code ] = $page_ids;
 				}
 
-				// Check for duplicate slugs across languages.
-				$all_slugs = array();
-				foreach ( $languages as $lang ) {
-					$page_ids = $this->collector->get_page_ids( $lang['code'], 'publish' );
-					foreach ( $page_ids as $pid ) {
-						$post = get_post( $pid );
-						if ( $post ) {
-							$slug = $post->post_name;
-							if ( ! isset( $all_slugs[ $slug ] ) ) {
-								$all_slugs[ $slug ] = array();
-							}
-							$all_slugs[ $slug ][] = array(
-								'id'    => $pid,
-								'lang'  => $lang['code'],
-								'title' => $post->post_title,
-							);
+				// Check for duplicate slugs across languages using batched query.
+				$all_slugs    = array();
+				$all_flat_ids = array();
+				foreach ( $all_page_ids_by_lang as $lang_code => $ids ) {
+					foreach ( $ids as $pid ) {
+						$all_flat_ids[] = array(
+							'id'   => $pid,
+							'lang' => $lang_code,
+						);
+					}
+				}
+
+				// Single batch query for all pages across all languages.
+				$all_id_list = array_column( $all_flat_ids, 'id' );
+				$posts_by_id = array();
+				if ( ! empty( $all_id_list ) ) {
+					$batch_posts = get_posts(
+						array(
+							'post__in'       => $all_id_list,
+							'post_type'      => 'page',
+							'post_status'    => 'any',
+							'posts_per_page' => -1,
+							'fields'         => 'id=>parent',
+						)
+					);
+					foreach ( $batch_posts as $bp ) {
+						$posts_by_id[ $bp->ID ] = get_post( $bp->ID );
+					}
+				}
+
+				foreach ( $all_flat_ids as $entry ) {
+					$pid  = $entry['id'];
+					$lc   = $entry['lang'];
+					$post = $posts_by_id[ $pid ] ?? null;
+					if ( $post ) {
+						$slug = $post->post_name;
+						if ( ! isset( $all_slugs[ $slug ] ) ) {
+							$all_slugs[ $slug ] = array();
 						}
+						$all_slugs[ $slug ][] = array(
+							'id'    => $pid,
+							'lang'  => $lc,
+							'title' => $post->post_title,
+						);
 					}
 				}
 				$sscribe_debug_info['duplicate_slugs'] = array_filter(

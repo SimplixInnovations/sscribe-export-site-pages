@@ -36,10 +36,16 @@ class SScribe_PDF_Exporter implements SScribe_Exporter_Interface {
 
 	/**
 	 * Constructor.
+	 *
+	 * @param SScribe_HTML_Exporter|null $html_exporter HTML exporter instance.
+	 * @param SScribe_Logger|null        $logger        Logger instance.
 	 */
-	public function __construct() {
-		$this->html_exporter = new SScribe_HTML_Exporter();
-		$this->logger        = new SScribe_Logger( defined( 'SSCRIBE_DEBUG' ) && SSCRIBE_DEBUG );
+	public function __construct(
+		?SScribe_HTML_Exporter $html_exporter = null,
+		?SScribe_Logger $logger = null
+	) {
+		$this->html_exporter = $html_exporter ?? new SScribe_HTML_Exporter();
+		$this->logger        = $logger ?? SScribe_Logger::instance( defined( 'SSCRIBE_DEBUG' ) && SSCRIBE_DEBUG );
 	}
 
 	/**

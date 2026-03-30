@@ -40,9 +40,71 @@ class SScribe {
 		$this->version = defined( 'SSCRIBE_VERSION' ) ? SSCRIBE_VERSION : '1.0.0';
 		$this->loader  = new SScribe_Loader();
 
+		$this->register_services();
 		$this->define_admin_hooks();
 		$this->define_ajax_hooks();
 		$this->define_cron_hooks();
+	}
+
+	/**
+	 * Register all services in the container for dependency injection.
+	 *
+	 * @return void
+	 */
+	private function register_services(): void {
+		$container = SScribe_Container::instance();
+		$debug     = defined( 'SSCRIBE_DEBUG' ) && SSCRIBE_DEBUG;
+
+		$container->singleton( SScribe_Logger::class, fn() => SScribe_Logger::instance( $debug ) );
+		$container->singleton( SScribe_Content_Parser::class, fn() => new SScribe_Content_Parser() );
+		$container->singleton( SScribe_SEO_Reader::class, fn() => new SScribe_SEO_Reader() );
+		$container->singleton( SScribe_Zip_Handler::class, fn() => new SScribe_Zip_Handler() );
+		$container->singleton( SScribe_Page_Collector::class, fn() => new SScribe_Page_Collector() );
+		$container->singleton( SScribe_Session::class, fn() => new SScribe_Session() );
+
+		$container->singleton(
+			SScribe_Exporter::class,
+			fn( SScribe_Container $c ) => new SScribe_Exporter( $c->get( SScribe_Content_Parser::class ) )
+		);
+
+		$container->singleton(
+			SScribe_HTML_Exporter::class,
+			fn() => new SScribe_HTML_Exporter()
+		);
+
+		$container->singleton(
+			SScribe_DOCX_Exporter::class,
+			fn( SScribe_Container $c ) => new SScribe_DOCX_Exporter(
+				$c->get( SScribe_Exporter::class ),
+				$c->get( SScribe_Logger::class )
+			)
+		);
+
+		$container->singleton(
+			SScribe_PDF_Exporter::class,
+			fn( SScribe_Container $c ) => new SScribe_PDF_Exporter(
+				$c->get( SScribe_HTML_Exporter::class ),
+				$c->get( SScribe_Logger::class )
+			)
+		);
+
+		$container->singleton(
+			SScribe_Admin::class,
+			fn( SScribe_Container $c ) => new SScribe_Admin(
+				$c->get( SScribe_Page_Collector::class ),
+				$c->get( SScribe_SEO_Reader::class )
+			)
+		);
+
+		$container->singleton(
+			SScribe_Batch_Processor::class,
+			fn( SScribe_Container $c ) => new SScribe_Batch_Processor(
+				$c->get( SScribe_Page_Collector::class ),
+				$c->get( SScribe_Zip_Handler::class ),
+				$c->get( SScribe_Session::class ),
+				$c->get( SScribe_Logger::class )
+			)
+		);
 	}
 
 	/**
@@ -51,7 +113,8 @@ class SScribe {
 	 * @return void
 	 */
 	private function define_admin_hooks(): void {
-		$admin = new SScribe_Admin();
+		$container = SScribe_Container::instance();
+		$admin     = $container->get( SScribe_Admin::class );
 
 		$this->loader->add_action( 'admin_menu', $admin, 'add_admin_menu' );
 		$this->loader->add_action( 'admin_enqueue_scripts', $admin, 'enqueue_admin_assets' );
@@ -64,7 +127,8 @@ class SScribe {
 	 * @return void
 	 */
 	private function define_ajax_hooks(): void {
-		$batch = new SScribe_Batch_Processor();
+		$container = SScribe_Container::instance();
+		$batch     = $container->get( SScribe_Batch_Processor::class );
 
 		$this->loader->add_action( 'wp_ajax_sscribe_start_export', $batch, 'ajax_start_export' );
 		$this->loader->add_action( 'wp_ajax_sscribe_process_batch', $batch, 'ajax_process_batch' );
@@ -82,7 +146,8 @@ class SScribe {
 	 * @return void
 	 */
 	private function define_cron_hooks(): void {
-		$zip = new SScribe_Zip_Handler();
+		$container = SScribe_Container::instance();
+		$zip       = $container->get( SScribe_Zip_Handler::class );
 		$this->loader->add_action( 'sscribe_cleanup_exports', $zip, 'cleanup_expired' );
 
 		$this->loader->add_action( 'sscribe_cleanup_sessions', $this, 'cleanup_sessions' );
@@ -94,7 +159,7 @@ class SScribe {
 	 * @return void
 	 */
 	public function cleanup_sessions(): void {
-		$session = new SScribe_Session();
+		$session = SScribe_Container::instance()->get( SScribe_Session::class );
 		$session->cleanup_expired( 4 * HOUR_IN_SECONDS );
 
 		SScribe_Logger::cleanup_old_logs( 7 );
