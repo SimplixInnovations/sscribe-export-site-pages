@@ -4,7 +4,7 @@ Donate link: https://simplixi.com
 Tags: export, docx, pdf, multilingual, rtl
 Requires at least: 6.0
 Tested up to: 6.9
-Stable tag: 3.6.0
+Stable tag: 3.7.0
 Requires PHP: 8.2
 License: GPLv2 or later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
@@ -190,6 +190,19 @@ Each document includes: cover page with title/URL/date/breadcrumbs, featured ima
 5. SEO Metadata Section - Meta title, description, focus keyword, and canonical URL from SEO plugins
 
 == Changelog ==
+
+= 3.7.0 =
+
+* New: Futuristic dark mode UI with glassmorphism effects and neon glow accents
+* New: Animated gradient progress bar with shimmer effect
+* New: Primary button shine animation on hover
+* Improved: All cards now have glass backdrop blur and subtle border glow
+* Improved: Enhanced hover states with smooth cubic-bezier transitions
+* Improved: Better visual hierarchy with teal accent color (#22D3EE)
+* Improved: Feature icons with glass backgrounds and glow shadows
+* Improved: Modal and callout components with frosted glass effect
+* Improved: Wizard steps with neon text glow on active state
+* Accessibility: Added prefers-reduced-motion support to disable animations
 
 = 3.6.0 =
 
