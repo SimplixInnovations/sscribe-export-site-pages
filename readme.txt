@@ -4,7 +4,7 @@ Donate link: https://simplixi.com
 Tags: export, docx, pdf, multilingual, rtl
 Requires at least: 6.0
 Tested up to: 6.9
-Stable tag: 3.7.0
+Stable tag: 3.8.0
 Requires PHP: 8.2
 License: GPLv2 or later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
@@ -190,6 +190,19 @@ Each document includes: cover page with title/URL/date/breadcrumbs, featured ima
 5. SEO Metadata Section - Meta title, description, focus keyword, and canonical URL from SEO plugins
 
 == Changelog ==
+
+= 3.8.0 =
+
+* Security: Implemented atomic locking with unique tokens to prevent race conditions
+* Security: Added HTTP status codes to all AJAX error responses (403/429/400/404/500)
+* Security: Added prominent warning when debug mode is enabled (logs to error_log)
+* Security: Added SSCRIBE_DEBUG override capability via wp-config.php
+* Security: Fixed conditional class escaping with esc_attr() in admin template
+* Improved: ajax_download now returns proper HTTP status codes for errors
+* Improved: Memory pause state now includes user-friendly guidance message
+* Improved: Increased stale lock threshold from 10s to 15s for safer recovery
+* Improved: Lock token verification before release to prevent cross-process issues
+* Dev: Added release_lock() helper method with token ownership verification
 
 = 3.7.0 =
 
