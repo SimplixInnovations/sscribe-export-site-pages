@@ -213,8 +213,16 @@ class SScribe_Admin {
 		}
 
 		// Gather debug info - gated behind SSCRIBE_DEBUG for security.
+		// SECURITY WARNING: Debug mode exposes sensitive internal data including page IDs,
+		// server configuration, and error details. NEVER enable in production.
 		$sscribe_debug_info = array();
 		$sscribe_is_debug   = defined( 'SSCRIBE_DEBUG' ) && SSCRIBE_DEBUG;
+
+		// Log a warning if debug mode is enabled (helps catch accidental production enabling).
+		if ( $sscribe_is_debug ) {
+			// phpcs:ignore WordPress.PHP.DevelopmentFunctions.error_log_error_log -- Intentional debug warning.
+			error_log( 'SScribe: Debug mode is ENABLED. This should NOT be enabled in production environments.' );
+		}
 
 		if ( $sscribe_is_debug ) {
 			$sscribe_debug_info['wpml_active']     = $wpml_active;
