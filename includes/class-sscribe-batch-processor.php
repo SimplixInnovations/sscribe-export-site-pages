@@ -497,7 +497,7 @@ class SScribe_Batch_Processor {
 		$existing_lock = get_transient( $lock_key );
 		if ( $existing_lock ) {
 			$lock_age = time() - (int) $existing_lock;
-			if ( $lock_age > 15 ) {
+			if ( $lock_age > 10 ) {
 				$this->logger->debug(
 					'Overriding stale lock',
 					array(
@@ -512,13 +512,14 @@ class SScribe_Batch_Processor {
 				wp_send_json_error(
 					array(
 						'status'  => 'locked',
+						'retry'   => true,
 						'message' => __( 'A batch is already processing. Please wait.', 'sscribe-export-site-pages' ),
 					)
 				);
 				return;
 			}
 		}
-		set_transient( $lock_key, time(), 60 );
+		set_transient( $lock_key, time(), 30 );
 
 		if ( ! $this->validate_session_ownership( $session, $session_id ) ) {
 			delete_transient( $lock_key );
@@ -812,6 +813,9 @@ class SScribe_Batch_Processor {
 			$this->finalize_export( $session_id, $session );
 			return;
 		}
+
+		// Release the lock so the next batch request can proceed.
+		delete_transient( $lock_key );
 
 		$this->restore_ob_level( $ob_level_before );
 
@@ -1327,12 +1331,16 @@ class SScribe_Batch_Processor {
 			);
 
 			foreach ( $sessions as $session ) {
-				$data = maybe_unserialize( $session->option_value );
+				// Try JSON first (current format), fall back to PHP unserialization (legacy).
+				$data = json_decode( $session->option_value, true );
+				if ( ! is_array( $data ) ) {
+					$data = maybe_unserialize( $session->option_value );
+				}
 				if ( is_array( $data ) && isset( $data['user_id'] ) && (int) $data['user_id'] === $user_id ) {
 					if ( isset( $data['session_id'] ) ) {
 						delete_transient( 'sscribe_lock_' . $data['session_id'] );
-						delete_option( $session->option_name );
 					}
+					delete_option( $session->option_name );
 				}
 			}
 			return;

@@ -370,6 +370,9 @@ $sscribe_is_debug   = $sscribe_is_debug ?? false;
 							<?php esc_html_e( 'Export Failed', 'sscribe-export-site-pages' ); ?>
 						</h4>
 						<p id="sscribe-error-text" class="sscribe-status-desc"></p>
+						<div id="sscribe-error-guidance" class="sscribe-error-guidance sscribe-hidden">
+							<p id="sscribe-error-guidance-text" class="sscribe-guidance-text"></p>
+						</div>
 						<div class="sscribe-error-actions">
 							<button type="button" id="sscribe-error-try-again" class="sscribe-button sscribe-button-secondary">
 								<?php // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- SVG sanitized in get_icon(). ?>
