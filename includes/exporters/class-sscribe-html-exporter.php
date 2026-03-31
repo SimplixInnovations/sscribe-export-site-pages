@@ -21,6 +21,22 @@ require_once SSCRIBE_PLUGIN_DIR . 'includes/exporters/interface-sscribe-exporter
 class SScribe_HTML_Exporter implements SScribe_Exporter_Interface {
 
 	/**
+	 * Logger instance.
+	 *
+	 * @var SScribe_Logger|null
+	 */
+	private ?SScribe_Logger $logger = null;
+
+	/**
+	 * Constructor.
+	 *
+	 * @param SScribe_Logger|null $logger Logger instance.
+	 */
+	public function __construct( ?SScribe_Logger $logger = null ) {
+		$this->logger = $logger ?? SScribe_Logger::instance( defined( 'SSCRIBE_DEBUG' ) && SSCRIBE_DEBUG );
+	}
+
+	/**
 	 * Export a single page to HTML.
 	 *
 	 * @param array  $page_data  Page data from collector.
@@ -30,28 +46,70 @@ class SScribe_HTML_Exporter implements SScribe_Exporter_Interface {
 	 * @return SScribe_Result
 	 */
 	public function export( array $page_data, string $output_dir, int $index = 0, int $total = 0 ): SScribe_Result {
-		$html = $this->generate_html( $page_data );
+		$page_id = $page_data['id'] ?? 0;
+		$title   = $page_data['title'] ?? 'Untitled';
 
-		$filename    = \SScribe_Exporter_Factory::build_filename( $page_data, $index, $total, 'html' );
-		$output_path = trailingslashit( $output_dir ) . $filename;
+		try {
+			$html = $this->generate_html( $page_data );
 
-	// phpcs:ignore WordPress.WP.AlternativeFunctions.file_system_operations_file_put_contents -- Output generation in temp dir for export; WP_Filesystem adds unnecessary complexity for simple file writes.
-		$result = file_put_contents( $output_path, $html );
+			$filename    = \SScribe_Exporter_Factory::build_filename( $page_data, $index, $total, 'html' );
+			$output_path = trailingslashit( $output_dir ) . $filename;
 
-		if ( false === $result ) {
+			// phpcs:ignore WordPress.WP.AlternativeFunctions.file_system_operations_file_put_contents -- Output generation in temp dir for export.
+			$result = file_put_contents( $output_path, $html );
+
+			if ( false === $result ) {
+				$this->logger->error(
+					'HTML export failed: file_put_contents returned false',
+					array(
+						'page_id' => $page_id,
+						'path'    => $output_path,
+					)
+				);
+
+				return SScribe_Result::failure(
+					sprintf(
+						/* translators: %s: Page title. */
+						__( 'Failed to write HTML file for "%s".', 'sscribe-export-site-pages' ),
+						$title
+					),
+					array(
+						'page_id' => $page_id,
+						'path'    => $output_path,
+					)
+				);
+			}
+
+			return SScribe_Result::success(
+				array(
+					'path' => $output_path,
+					'html' => $html,
+					'size' => strlen( $html ),
+				)
+			);
+
+		} catch ( \Throwable $e ) {
+			$this->logger->error(
+				'HTML export crashed',
+				array(
+					'page_id' => $page_id,
+					'title'   => $title,
+					'error'   => $e->getMessage(),
+					'file'    => $e->getFile(),
+					'line'    => $e->getLine(),
+				)
+			);
+
 			return SScribe_Result::failure(
-				__( 'Failed to write HTML file.', 'sscribe-export-site-pages' ),
-				array( 'path' => $output_path )
+				sprintf(
+					/* translators: 1: Page title, 2: Error message. */
+					__( 'HTML export failed for "%1$s": %2$s', 'sscribe-export-site-pages' ),
+					$title,
+					$e->getMessage()
+				),
+				array( 'page_id' => $page_id )
 			);
 		}
-
-		return SScribe_Result::success(
-			array(
-				'path' => $output_path,
-				'html' => $html,
-				'size' => strlen( $html ),
-			)
-		);
 	}
 
 	/**

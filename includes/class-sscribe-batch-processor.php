@@ -12,6 +12,7 @@ if ( ! defined( 'ABSPATH' ) ) {
 }
 
 require_once SSCRIBE_PLUGIN_DIR . 'includes/class-sscribe-export-log.php';
+require_once SSCRIBE_PLUGIN_DIR . 'includes/class-sscribe-error.php';
 
 /**
  * Class SScribe_Batch_Processor
@@ -1465,5 +1466,233 @@ class SScribe_Batch_Processor {
 
 		// We don't own this lock.
 		return false;
+	}
+
+	/**
+	 * Run pre-flight diagnostics before export starts.
+	 *
+	 * Checks system requirements, permissions, and resources.
+	 *
+	 * @param array $formats Requested export formats.
+	 * @return array Array with 'status' (ready/warning/error) and 'checks' array.
+	 */
+	public function run_preflight_diagnostics( array $formats = array() ): array {
+		$checks   = array();
+		$has_error = false;
+		$has_warning = false;
+
+		// Check ZIP extension.
+		$zip_available = class_exists( 'ZipArchive' );
+		$checks['zip_extension'] = array(
+			'name'     => __( 'ZIP Extension', 'sscribe-export-site-pages' ),
+			'status'   => $zip_available ? 'ok' : 'error',
+			'message'  => $zip_available 
+				? __( 'ZipArchive extension is available.', 'sscribe-export-site-pages' )
+				: __( 'ZipArchive extension is missing. Export cannot create ZIP packages.', 'sscribe-export-site-pages' ),
+			'fix_steps' => $zip_available ? null : array(
+				__( 'Contact your hosting provider.', 'sscribe-export-site-pages' ),
+				__( 'Request enabling the ZipArchive PHP extension.', 'sscribe-export-site-pages' ),
+			),
+		);
+		if ( ! $zip_available ) {
+			$has_error = true;
+		}
+
+		// Check DOM extension (needed for PDF).
+		if ( in_array( 'pdf', $formats, true ) ) {
+			$dom_available = class_exists( 'DOMDocument' );
+			$checks['dom_extension'] = array(
+				'name'     => __( 'DOM Extension (PDF)', 'sscribe-export-site-pages' ),
+				'status'   => $dom_available ? 'ok' : 'error',
+				'message'  => $dom_available
+					? __( 'DOM extension is available for PDF generation.', 'sscribe-export-site-pages' )
+					: __( 'DOM extension is missing. PDF export will fail.', 'sscribe-export-site-pages' ),
+				'fix_steps' => $dom_available ? null : array(
+					__( 'Contact your hosting provider.', 'sscribe-export-site-pages' ),
+					__( 'Request enabling the DOM PHP extension.', 'sscribe-export-site-pages' ),
+				),
+			);
+			if ( ! $dom_available ) {
+				$has_error = true;
+			}
+		}
+
+		// Check mbstring extension (recommended).
+		$mbstring_available = extension_loaded( 'mbstring' );
+		$checks['mbstring_extension'] = array(
+			'name'     => __( 'Multibyte String', 'sscribe-export-site-pages' ),
+			'status'   => $mbstring_available ? 'ok' : 'warning',
+			'message'  => $mbstring_available
+				? __( 'mbstring extension is available for Unicode support.', 'sscribe-export-site-pages' )
+				: __( 'mbstring extension is missing. Unicode handling may be limited.', 'sscribe-export-site-pages' ),
+			'fix_steps' => $mbstring_available ? null : array(
+				__( 'Contact your hosting provider.', 'sscribe-export-site-pages' ),
+				__( 'Request enabling the mbstring PHP extension.', 'sscribe-export-site-pages' ),
+			),
+		);
+		if ( ! $mbstring_available ) {
+			$has_warning = true;
+		}
+
+		// Check memory limit.
+		$memory_limit    = wp_convert_hr_to_bytes( ini_get( 'memory_limit' ) );
+		$memory_limit_mb = round( $memory_limit / 1024 / 1024 );
+		$memory_ok       = $memory_limit >= 128 * 1024 * 1024; // 128MB minimum.
+		$memory_recommended = $memory_limit >= 256 * 1024 * 1024; // 256MB recommended.
+		
+		$memory_status = $memory_recommended ? 'ok' : ( $memory_ok ? 'warning' : 'error' );
+		$checks['memory_limit'] = array(
+			'name'     => __( 'Memory Limit', 'sscribe-export-site-pages' ),
+			'status'   => $memory_status,
+			'message'  => sprintf(
+				/* translators: %s: Memory limit in MB. */
+				__( 'PHP memory limit: %sMB.', 'sscribe-export-site-pages' ),
+				$memory_limit_mb
+			) . ( $memory_recommended 
+				? ''
+				: ( $memory_ok 
+					? ' ' . __( 'Recommended: 256MB or higher for large exports.', 'sscribe-export-site-pages' )
+					: ' ' . __( 'Minimum 128MB required. Export may fail.', 'sscribe-export-site-pages' )
+				)
+			),
+			'fix_steps' => $memory_recommended ? null : array(
+				__( 'Add to wp-config.php: define(\'WP_MEMORY_LIMIT\', \'256M\');', 'sscribe-export-site-pages' ),
+				__( 'Or contact your hosting provider to increase memory_limit.', 'sscribe-export-site-pages' ),
+			),
+		);
+		if ( ! $memory_ok ) {
+			$has_error = true;
+		} elseif ( ! $memory_recommended ) {
+			$has_warning = true;
+		}
+
+		// Check disk space.
+		$upload_dir      = $this->zip_handler->get_export_dir();
+		$disk_free       = @disk_free_space( $upload_dir ); // phpcs:ignore WordPress.PHP.NoSilencedErrors.Discouraged -- Fallback if directory doesn't exist.
+		$disk_free_mb    = $disk_free ? round( $disk_free / 1024 / 1024 ) : 0;
+		$disk_ok         = $disk_free && $disk_free >= 50 * 1024 * 1024; // 50MB minimum.
+		$disk_recommended = $disk_free && $disk_free >= 200 * 1024 * 1024; // 200MB recommended.
+
+		$disk_status = $disk_recommended ? 'ok' : ( $disk_ok ? 'warning' : 'error' );
+		$checks['disk_space'] = array(
+			'name'     => __( 'Disk Space', 'sscribe-export-site-pages' ),
+			'status'   => $disk_status,
+			'message'  => sprintf(
+				/* translators: %s: Available disk space in MB. */
+				__( 'Available disk space: %sMB.', 'sscribe-export-site-pages' ),
+				$disk_free_mb
+			) . ( $disk_recommended 
+				? ''
+				: ( $disk_ok 
+					? ' ' . __( 'Recommended: 200MB or more.', 'sscribe-export-site-pages' )
+					: ' ' . __( 'Insufficient disk space. Export may fail.', 'sscribe-export-site-pages' )
+				)
+			),
+			'fix_steps' => $disk_recommended ? null : array(
+				__( 'Delete old export files from the history.', 'sscribe-export-site-pages' ),
+				__( 'Clear WordPress cache and temporary files.', 'sscribe-export-site-pages' ),
+				__( 'Contact your hosting provider to increase storage.', 'sscribe-export-site-pages' ),
+			),
+		);
+		if ( ! $disk_ok ) {
+			$has_error = true;
+		} elseif ( ! $disk_recommended ) {
+			$has_warning = true;
+		}
+
+		// Check uploads directory writable.
+		$is_writable = wp_is_writable( $upload_dir );
+		$checks['directory_writable'] = array(
+			'name'     => __( 'Upload Directory', 'sscribe-export-site-pages' ),
+			'status'   => $is_writable ? 'ok' : 'error',
+			'message'  => $is_writable
+				? sprintf(
+					/* translators: %s: Directory path. */
+					__( 'Export directory is writable: %s', 'sscribe-export-site-pages' ),
+					$upload_dir
+				)
+				: sprintf(
+					/* translators: %s: Directory path. */
+					__( 'Export directory is not writable: %s', 'sscribe-export-site-pages' ),
+					$upload_dir
+				),
+			'fix_steps' => $is_writable ? null : array(
+				__( 'Verify wp-content/uploads directory exists.', 'sscribe-export-site-pages' ),
+				__( 'Set directory permissions to 755.', 'sscribe-export-site-pages' ),
+				__( 'Contact hosting support if the issue persists.', 'sscribe-export-site-pages' ),
+			),
+		);
+		if ( ! $is_writable ) {
+			$has_error = true;
+		}
+
+		// Determine overall status.
+		$status = $has_error ? 'error' : ( $has_warning ? 'warning' : 'ready' );
+
+		return array(
+			'status'   => $status,
+			'checks'   => $checks,
+			'message'  => $has_error 
+				? __( 'Some requirements are not met. Export may fail.', 'sscribe-export-site-pages' )
+				: ( $has_warning 
+					? __( 'Export can proceed but some optimizations are recommended.', 'sscribe-export-site-pages' )
+					: __( 'All systems ready for export.', 'sscribe-export-site-pages' )
+				),
+		);
+	}
+
+	/**
+	 * AJAX handler: Run pre-flight diagnostics.
+	 *
+	 * @return void
+	 */
+	public function ajax_preflight_check(): void {
+		check_ajax_referer( 'sscribe_export_nonce', 'nonce' );
+
+		if ( ! current_user_can( $this->get_required_capability() ) ) {
+			wp_send_json_error( 
+				array( 
+					'message' => __( 'Permission denied.', 'sscribe-export-site-pages' ) 
+				), 
+				403 
+			);
+			return;
+		}
+
+		// phpcs:ignore WordPress.Security.ValidatedSanitizedInput.InputNotSanitized -- Sanitization via array_map on next line.
+		$formats_raw   = isset( $_POST['formats'] ) ? wp_unslash( (array) $_POST['formats'] ) : array();
+		$formats_input = array_map( 'sanitize_text_field', $formats_raw );
+		$formats       = ! empty( $formats_input ) ? $formats_input : array( 'docx' );
+
+		$diagnostics = $this->run_preflight_diagnostics( $formats );
+
+		$sscribe_is_debug = defined( 'SSCRIBE_DEBUG' ) && SSCRIBE_DEBUG;
+		if ( $sscribe_is_debug ) {
+			$diagnostics['debug_info'] = array(
+				'php_version'     => PHP_VERSION,
+				'memory_limit'    => ini_get( 'memory_limit' ),
+				'max_execution'   => ini_get( 'max_execution_time' ),
+				'upload_dir'      => $this->zip_handler->get_export_dir(),
+			);
+		}
+
+		wp_send_json_success( $diagnostics );
+	}
+
+	/**
+	 * Build a structured error response using SScribe_Error.
+	 *
+	 * @param string $error_code Error code from templates.
+	 * @param array  $context    Context data for interpolation.
+	 * @param int    $http_code  HTTP status code.
+	 * @return void
+	 */
+	private function send_structured_error( string $error_code, array $context = array(), int $http_code = 500 ): void {
+		$error = SScribe_Error::from_template( $error_code, $context );
+		
+		$sscribe_is_debug = defined( 'SSCRIBE_DEBUG' ) && SSCRIBE_DEBUG;
+		$response = $error->to_array( $sscribe_is_debug );
+
+		wp_send_json_error( $response, $http_code );
 	}
 }

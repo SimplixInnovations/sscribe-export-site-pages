@@ -208,6 +208,89 @@
 				formats = [format];
 			}
 
+			var self = this;
+
+			// Run pre-flight checks before starting export.
+			$.ajax({
+				url: sscribe_data.ajaxurl,
+				type: 'POST',
+				timeout: 30000,
+				data: {
+					action: 'sscribe_preflight_check',
+					nonce: sscribe_data.nonce,
+					formats: formats
+				},
+				success: function (response) {
+					if (response.success) {
+						var diagnostics = response.data;
+						
+						// If there are errors, show a warning but allow user to proceed.
+						if (diagnostics.status === 'error') {
+							self.showPreflightWarnings(diagnostics, function () {
+								self.proceedWithExport(language, postStatus, formats);
+							});
+						} else {
+							self.proceedWithExport(language, postStatus, formats);
+						}
+					} else {
+						// Preflight check failed, proceed anyway (non-blocking).
+						self.proceedWithExport(language, postStatus, formats);
+					}
+				},
+				error: function () {
+					// Preflight check failed, proceed anyway (non-blocking).
+					self.proceedWithExport(language, postStatus, formats);
+				}
+			});
+		},
+
+		showPreflightWarnings: function (diagnostics, onProceed) {
+			var checks = diagnostics.checks || {};
+			var errors = [];
+			var warnings = [];
+
+			for (var key in checks) {
+				if (checks.hasOwnProperty(key)) {
+					var check = checks[key];
+					if (check.status === 'error') {
+						errors.push(check);
+					} else if (check.status === 'warning') {
+						warnings.push(check);
+					}
+				}
+			}
+
+			var message = diagnostics.message + '\n\n';
+			
+			if (errors.length > 0) {
+				message += (sscribe_data.strings.preflight_errors || 'Critical Issues:') + '\n';
+				for (var i = 0; i < errors.length; i++) {
+					message += '• ' + errors[i].name + ': ' + errors[i].message + '\n';
+				}
+			}
+			
+			if (warnings.length > 0) {
+				message += '\n' + (sscribe_data.strings.preflight_warnings || 'Recommendations:') + '\n';
+				for (var j = 0; j < warnings.length; j++) {
+					message += '• ' + warnings[j].name + ': ' + warnings[j].message + '\n';
+				}
+			}
+
+			message += '\n' + (sscribe_data.strings.preflight_continue || 'Do you want to continue anyway?');
+
+			if (confirm(message)) {
+				onProceed();
+			} else {
+				this.isProcessing = false;
+				this.resetUI();
+				$('.sscribe-wizard-steps').show();
+				this.wizardStep(1);
+			}
+		},
+
+		proceedWithExport: function (language, postStatus, formats) {
+			var self = this;
+
 			// Force-clear any stale sessions/locks before starting.
 			$.ajax({
 				url: sscribe_data.ajaxurl,
@@ -242,7 +325,7 @@
 						SScribe.updateStatus(response.data.message);
 						SScribe.processBatch();
 					} else {
-						SScribe.showError(response.data.message);
+						SScribe.showError(response.data.message, false, response.data);
 					}
 				},
 				error: function (xhr) {
@@ -299,11 +382,10 @@
 						}
 					} else {
 						var isCancelled = response.data.cancelled === true;
-						// If the server says retry (lock contention), wait and retry instead of failing.
 						if (response.data.retry === true) {
 							setTimeout($.proxy(SScribe.processBatch, SScribe), 2000);
 						} else {
-							SScribe.showError(response.data.message, isCancelled);
+							SScribe.showError(response.data.message, isCancelled, response.data);
 						}
 					}
 				},
@@ -386,18 +468,39 @@
 			this.updateProgress(0);
 		},
 
-		showError: function (message, isCancelled) {
+		showError: function (message, isCancelled, errorData) {
 			this.isProcessing = false;
 			$('.sscribe-wizard-panel').removeClass('sscribe-wizard-panel-active');
 			$('.sscribe-wizard-panel[data-step="3"]').addClass('sscribe-wizard-panel-active');
 			$('.sscribe-wizard-steps').show();
 			$('#sscribe-progress-area').fadeOut(200);
-			$('#sscribe-error-text').text(message);
 
-			// Show contextual guidance based on error type.
-			var guidance = this.getErrorGuidance(message);
+			var displayMessage = message;
+			var guidance = '';
+
+			if (errorData) {
+				if (errorData.code) {
+					displayMessage = '[' + errorData.code + '] ' + message;
+				}
+				if (errorData.guidance) {
+					guidance = errorData.guidance;
+				}
+				if (errorData.fix_steps && errorData.fix_steps.length > 0) {
+					guidance += (guidance ? '\n\n' : '') + (sscribe_data.strings.fix_steps || 'Steps to fix:') + '\n';
+					for (var i = 0; i < errorData.fix_steps.length; i++) {
+						guidance += (i + 1) + '. ' + errorData.fix_steps[i] + '\n';
+					}
+				}
+			}
+
+			if (!guidance && !isCancelled) {
+				guidance = this.getErrorGuidance(message);
+			}
+
+			$('#sscribe-error-text').text(displayMessage);
+
 			if (guidance && !isCancelled) {
-				$('#sscribe-error-guidance-text').text(guidance);
+				$('#sscribe-error-guidance-text').html(this.formatGuidance(guidance));
 				$('#sscribe-error-guidance').removeClass('sscribe-hidden');
 			} else {
 				$('#sscribe-error-guidance').addClass('sscribe-hidden');
@@ -408,6 +511,12 @@
 			if (isCancelled) {
 				this.sessionId = null;
 			}
+		},
+
+		formatGuidance: function (text) {
+			var escaped = this.escapeHtml(text);
+			escaped = escaped.replace(/\n/g, '<br>');
+			return escaped;
 		},
 
 		getErrorGuidance: function (message) {
