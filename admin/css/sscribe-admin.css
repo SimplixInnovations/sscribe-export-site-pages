@@ -857,6 +857,23 @@
 	margin-bottom: 20px !important;
 }
 
+/* Error guidance panel */
+.sscribe-error-guidance {
+	background: #FFFBEB;
+	border: 1px solid #FDE68A;
+	border-radius: var(--sscribe-radius-sm);
+	padding: 14px 18px;
+	margin-bottom: 16px;
+	margin-top: 4px;
+}
+
+.sscribe-guidance-text {
+	color: #92400E !important;
+	font-size: 13px !important;
+	line-height: 1.65 !important;
+	margin: 0 !important;
+}
+
 .sscribe-success-actions,
 .sscribe-error-actions {
 	display: flex;
