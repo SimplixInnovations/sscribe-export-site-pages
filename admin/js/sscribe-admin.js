@@ -13,6 +13,8 @@
 		sessionId: null,
 		isProcessing: false,
 		selectedPageCount: 0,
+		batchRetries: 0,
+		maxBatchRetries: 3,
 
 		init: function () {
 			if (typeof sscribe_data === 'undefined' || !sscribe_data) {
@@ -191,6 +193,7 @@
 			}
 
 			this.isProcessing = true;
+			this.batchRetries = 0;
 			this.resetUI();
 			this.showProgress();
 
@@ -205,6 +208,23 @@
 				formats = [format];
 			}
 
+			// Force-clear any stale sessions/locks before starting.
+			$.ajax({
+				url: sscribe_data.ajaxurl,
+				type: 'POST',
+				timeout: 15000,
+				data: {
+					action: 'sscribe_clear_session',
+					nonce: sscribe_data.nonce,
+					force: true
+				},
+				complete: function () {
+					SScribe.doStartExport(language, postStatus, formats);
+				}
+			});
+		},
+
+		doStartExport: function (language, postStatus, formats) {
 			$.ajax({
 				url: sscribe_data.ajaxurl,
 				type: 'POST',
@@ -225,8 +245,9 @@
 						SScribe.showError(response.data.message);
 					}
 				},
-				error: function () {
-					SScribe.showError(sscribe_data.strings.error);
+				error: function (xhr) {
+					var msg = SScribe.getNetworkErrorMessage(xhr, 'start_export');
+					SScribe.showError(msg);
 				}
 			});
 		},
@@ -248,6 +269,7 @@
 				},
 				success: function (response) {
 					if (response.success) {
+						SScribe.batchRetries = 0;
 						var data = response.data;
 
 						SScribe.updateProgress(data.percentage);
@@ -277,11 +299,22 @@
 						}
 					} else {
 						var isCancelled = response.data.cancelled === true;
-						SScribe.showError(response.data.message, isCancelled);
+						// If the server says retry (lock contention), wait and retry instead of failing.
+						if (response.data.retry === true) {
+							setTimeout($.proxy(SScribe.processBatch, SScribe), 2000);
+						} else {
+							SScribe.showError(response.data.message, isCancelled);
+						}
 					}
 				},
-				error: function () {
-					SScribe.showError(sscribe_data.strings.error);
+				error: function (xhr) {
+					SScribe.batchRetries++;
+					if (SScribe.batchRetries <= SScribe.maxBatchRetries) {
+						setTimeout($.proxy(SScribe.processBatch, SScribe), 3000);
+					} else {
+						var msg = SScribe.getNetworkErrorMessage(xhr, 'process_batch');
+						SScribe.showError(msg);
+					}
 				}
 			});
 		},
@@ -360,11 +393,97 @@
 			$('.sscribe-wizard-steps').show();
 			$('#sscribe-progress-area').fadeOut(200);
 			$('#sscribe-error-text').text(message);
+
+			// Show contextual guidance based on error type.
+			var guidance = this.getErrorGuidance(message);
+			if (guidance && !isCancelled) {
+				$('#sscribe-error-guidance-text').text(guidance);
+				$('#sscribe-error-guidance').removeClass('sscribe-hidden');
+			} else {
+				$('#sscribe-error-guidance').addClass('sscribe-hidden');
+			}
+
 			$('#sscribe-error-area').removeClass('sscribe-hidden').hide().fadeIn(300);
 
 			if (isCancelled) {
 				this.sessionId = null;
 			}
+		},
+
+		getErrorGuidance: function (message) {
+			if (!message) return '';
+			var msg = message.toLowerCase();
+
+			if (msg.indexOf('permission') !== -1 || msg.indexOf('not allowed') !== -1) {
+				return 'Your WordPress user role does not have the required capability (manage_options). Please contact your site administrator to grant export permissions, or log in with an Administrator account.';
+			}
+			if (msg.indexOf('session expired') !== -1 || msg.indexOf('session not found') !== -1 || msg.indexOf('start again') !== -1) {
+				return 'The export session was lost — this typically happens when the PHP session or database connection timed out. Click "Try Again" to start a fresh export. If this keeps happening, ask your hosting provider to increase the PHP max_execution_time (recommended: 120s or higher).';
+			}
+			if (msg.indexOf('session data corrupted') !== -1) {
+				return 'The session data in the database became invalid. This can happen if your database ran out of storage or a caching plugin (e.g., WP Rocket, W3 Total Cache) is caching wp_options. Click "Try Again" — the old session has been cleaned up. If it recurs, exclude "sscribe_session_*" from object caching.';
+			}
+			if (msg.indexOf('rate limit') !== -1 || msg.indexOf('too many requests') !== -1) {
+				return 'You have exceeded the request rate limit (60 requests per minute). Please wait about 1 minute and then click "Try Again". This limit protects your server from overload.';
+			}
+			if (msg.indexOf('no pages found') !== -1) {
+				return 'No pages match the selected language and status combination. Go back and verify your selection. If using WPML, ensure the selected language has pages assigned to it.';
+			}
+			if (msg.indexOf('zip') !== -1 || msg.indexOf('package') !== -1) {
+				return 'The server could not create the ZIP archive. Common causes: (1) The wp-content/uploads/sscribe-exports/ directory is not writable — check folder permissions (should be 755). (2) The server ran out of disk space. (3) The PHP zip extension is not installed. Contact your hosting provider if this persists.';
+			}
+			if (msg.indexOf('timeout') !== -1 || msg.indexOf('timed out') !== -1) {
+				return 'The server took too long to respond. This usually happens with large pages or slow server hardware. Click "Try Again" — the plugin processes pages individually, so it will resume from where it left off. If this keeps happening, ask your hosting provider to increase max_execution_time to at least 120 seconds.';
+			}
+			if (msg.indexOf('memory') !== -1) {
+				return 'The server ran out of PHP memory during export. Ask your hosting provider to increase the WordPress memory limit (wp-config.php: WP_MEMORY_LIMIT) to at least 256M. You can also try exporting fewer pages at a time by selecting a specific language.';
+			}
+			if (msg.indexOf('connection') !== -1 || msg.indexOf('network') !== -1) {
+				return 'The connection to your server was interrupted. Check your internet connection, then click "Try Again". If you are behind a proxy or CDN (e.g., Cloudflare), ensure AJAX requests are not being blocked or cached.';
+			}
+			if (msg.indexOf('invalid language') !== -1) {
+				return 'The selected language code is not recognized by WPML. Go back to step 1 and select a valid language. If you recently changed your WPML configuration, refresh this page first.';
+			}
+			if (msg.indexOf('already have an export') !== -1 || msg.indexOf('in progress') !== -1) {
+				return 'A previous export session is still active. Click "Try Again" to force-clear it and start fresh. This can happen if a previous export was interrupted without proper cleanup.';
+			}
+			if (msg.indexOf('500') !== -1 || msg.indexOf('internal server error') !== -1) {
+				return 'Your server encountered an internal error (HTTP 500). Check your server\'s PHP error log for details. Common causes: (1) A conflicting plugin. (2) PHP memory limit too low. (3) A corrupted .htaccess file. Try deactivating other plugins temporarily to isolate the issue.';
+			}
+			if (msg.indexOf('403') !== -1 || msg.indexOf('forbidden') !== -1) {
+				return 'The server rejected the request (HTTP 403 Forbidden). This is usually caused by a security plugin (e.g., Wordfence, Sucuri, iThemes Security) or server-level firewall blocking AJAX requests. Whitelist the SScribe AJAX actions in your security plugin settings.';
+			}
+
+			// Generic fallback with actionable steps.
+			return 'Click "Try Again" to retry the export. If the problem continues: (1) Refresh the page and try again. (2) Check your browser\'s developer console (F12) for details. (3) Contact your hosting provider to review PHP error logs.';
+		},
+
+		getNetworkErrorMessage: function (xhr, context) {
+			if (xhr && xhr.status === 0) {
+				return 'Connection lost — the server did not respond. Please check your internet connection and try again.';
+			}
+			if (xhr && xhr.status === 403) {
+				return 'Access denied (HTTP 403). A security plugin or firewall may be blocking this request.';
+			}
+			if (xhr && xhr.status === 500) {
+				return 'Internal server error (HTTP 500). The server encountered a problem — check your PHP error log for details.';
+			}
+			if (xhr && xhr.status === 502) {
+				return 'Bad gateway (HTTP 502). Your server or reverse proxy (Nginx/Cloudflare) is unavailable. Please wait a moment and try again.';
+			}
+			if (xhr && xhr.status === 503) {
+				return 'Service unavailable (HTTP 503). Your server is temporarily overloaded or under maintenance. Please wait a moment and try again.';
+			}
+			if (xhr && xhr.status === 504) {
+				return 'Gateway timeout (HTTP 504). The request took too long to process. Ask your hosting provider to increase the PHP max_execution_time.';
+			}
+			if (xhr && xhr.statusText === 'timeout') {
+				return 'Request timed out — the server took too long to respond. This may happen with large exports. Please try again.';
+			}
+
+			// Unknown HTTP error.
+			var statusCode = (xhr && xhr.status) ? ' (HTTP ' + xhr.status + ')' : '';
+			return 'A network error occurred' + statusCode + '. Please check your connection and try again.';
 		},
 
 		resetUI: function () {
