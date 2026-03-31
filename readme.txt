@@ -4,7 +4,7 @@ Donate link: https://simplixi.com
 Tags: export, docx, pdf, multilingual, rtl
 Requires at least: 6.0
 Tested up to: 6.9
-Stable tag: 3.5.0
+Stable tag: 3.6.0
 Requires PHP: 8.2
 License: GPLv2 or later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
@@ -190,6 +190,17 @@ Each document includes: cover page with title/URL/date/breadcrumbs, featured ima
 5. SEO Metadata Section - Meta title, description, focus keyword, and canonical URL from SEO plugins
 
 == Changelog ==
+
+= 3.6.0 =
+
+* Improved: Modern admin UI with glassmorphism effects, enhanced shadows, and smooth micro-interactions
+* Improved: Automatic retry on batch lock contention (up to 3 attempts) for more reliable exports
+* Improved: Contextual error guidance with actionable fix suggestions for common issues
+* Improved: Structured network error messages (403/500/502/503/504 timeout) with troubleshooting steps
+* Improved: Batch lock timeout reduced (15s→10s) and TTL reduced (60s→30s) for faster recovery
+* Fix: Force-clear stale sessions before starting new export to prevent conflicts
+* Fix: Batch lock released immediately after processing completes, not just on next request
+* Fix: Session cleanup always deletes the option, not just the transient
 
 = 3.5.0 =
 
