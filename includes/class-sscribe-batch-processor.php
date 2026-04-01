@@ -13,11 +13,10 @@ if ( ! defined( 'ABSPATH' ) ) {
 
 require_once SSCRIBE_PLUGIN_DIR . 'includes/class-sscribe-export-log.php';
 require_once SSCRIBE_PLUGIN_DIR . 'includes/class-sscribe-error.php';
+require_once SSCRIBE_PLUGIN_DIR . 'includes/class-sscribe-diagnostics.php';
 
 /**
- * Class SScribe_Batch_Processor
- *
- * Processes pages in small batches via AJAX to avoid timeouts.
+ * Batch processor for AJAX-based page exports.
  */
 class SScribe_Batch_Processor {
 
@@ -26,7 +25,14 @@ class SScribe_Batch_Processor {
 	 *
 	 * @var int
 	 */
-	private int $batch_size = 1;
+	private int $batch_size = 5;
+
+	/**
+	 * Diagnostics instance for preflight checks and error diagnosis.
+	 *
+	 * @var SScribe_Diagnostics
+	 */
+	private SScribe_Diagnostics $diagnostics;
 
 	/**
 	 * Page collector instance.
@@ -101,6 +107,7 @@ class SScribe_Batch_Processor {
 		$this->zip_handler = $zip_handler ?? new SScribe_Zip_Handler();
 		$this->session     = $session ?? new SScribe_Session();
 		$this->logger      = $logger ?? SScribe_Logger::instance( defined( 'SSCRIBE_DEBUG' ) && SSCRIBE_DEBUG );
+		$this->diagnostics = new SScribe_Diagnostics();
 	}
 
 	/**
@@ -279,6 +286,9 @@ class SScribe_Batch_Processor {
 			);
 			return;
 		}
+
+		// Self-healing: clear orphaned locks and sessions before starting.
+		$this->diagnostics->self_heal();
 
 		$this->audit_log( 'export_started' );
 		$this->logger->debug( '=== START EXPORT ===' );
@@ -820,13 +830,23 @@ class SScribe_Batch_Processor {
 					$this->export_log->log_page_failure( $page_id, implode( '; ', $export_errors ), $formats );
 				}
 
+				$detailed_errors = array();
+				foreach ( $export_errors as $format_error ) {
+					$parts             = explode( ':', $format_error, 2 );
+					$fmt               = strtolower( trim( $parts[0] ) );
+					$err_msg           = trim( $parts[1] ?? $format_error );
+					$detailed_errors[] = $this->diagnostics->diagnose_page_error( $page_id, $fmt, $err_msg );
+				}
+
 				$this->logger->debug(
 					'ERROR: Export failed',
 					array(
-						'page_id'      => $page_id,
-						'title'        => $page_data['title'],
-						'duration_sec' => $page_duration,
-						'errors'       => $export_errors,
+						'page_id'        => $page_id,
+						'title'          => $page_data['title'],
+						'duration_sec'   => $page_duration,
+						'errors'         => $export_errors,
+						'diagnosis'      => $detailed_errors,
+						'memory_at_fail' => size_format( memory_get_usage( true ) ),
 					)
 				);
 			} elseif ( $this->export_log ) {
@@ -1695,7 +1715,9 @@ class SScribe_Batch_Processor {
 		$formats_input = array_map( 'sanitize_text_field', $formats_raw );
 		$formats       = ! empty( $formats_input ) ? $formats_input : array( 'docx' );
 
-		$diagnostics = $this->run_preflight_diagnostics( $formats );
+		$page_count = isset( $_POST['page_count'] ) ? absint( $_POST['page_count'] ) : 0;
+
+		$diagnostics = $this->diagnostics->run_preflight( $page_count, $formats );
 
 		$sscribe_is_debug = defined( 'SSCRIBE_DEBUG' ) && SSCRIBE_DEBUG;
 		if ( $sscribe_is_debug ) {
