@@ -151,7 +151,7 @@ class SScribe_Admin {
 					'generating'         => __( 'Generating documents...', 'sscribe-export-site-pages' ),
 					'confirm_export'     => __( 'Start exporting pages?', 'sscribe-export-site-pages' ),
 					'confirm_delete'     => __( 'Delete this export file?', 'sscribe-export-site-pages' ),
-					'auto_delete'        => __( 'This file will be automatically deleted in 1 hour for security.', 'sscribe-export-site-pages' ),
+					'auto_delete'        => __( 'This file will be automatically deleted in 72 hours for security.', 'sscribe-export-site-pages' ),
 					'cancel'             => __( 'Cancel Export', 'sscribe-export-site-pages' ),
 					'cancelling'         => __( 'Cancelling...', 'sscribe-export-site-pages' ),
 					'loading_log'        => __( 'Loading log...', 'sscribe-export-site-pages' ),

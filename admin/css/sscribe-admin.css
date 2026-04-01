@@ -4,51 +4,6 @@
  * Modern, minimal, highly polished interface with micro-interactions,
  * glassmorphism effects, and strict grid alignments.
  *
- * Font: Inter / System UI
- * Primary color: #4A8263
- *
- * @package SScribe
- */
-
-:root {
-	/* === FUTURISTIC DESIGN TOKENS === */
-	--sscribe-primary: #4A8263;
-	--sscribe-primary-hover: #5A9A78;
-	--sscribe-primary-glow: rgba(74, 130, 99, 0.4);
-	--sscribe-secondary: #0F172A;
-	--sscribe-bg: #0A0E1A;
-	--sscribe-panel-bg: rgba(15, 23, 42, 0.8);
-	--sscribe-card-bg: rgba(30, 41, 59, 0.6);
-	--sscribe-border: rgba(45, 212, 191, 0.15);
-	--sscribe-border-hover: rgba(45, 212, 191, 0.35);
-	--sscribe-text-main: #F1F5F9;
-	--sscribe-text-muted: #94A3B8;
-	--sscribe-success: #22D3EE;
-	--sscribe-danger: #F87171;
-	--sscribe-accent: #22D3EE;
-	--sscribe-accent-glow: rgba(34, 211, 238, 0.3);
-
-	--sscribe-radius-sm: 8px;
-	--sscribe-radius-md: 14px;
-	--sscribe-radius-lg: 20px;
-	--sscribe-radius-xl: 28px;
-
-	/* Glassmorphism Shadows */
-	--sscribe-shadow-sm: 0 2px 8px rgba(0, 0, 0, 0.3);
-	--sscribe-shadow-md: 0 8px 32px rgba(0, 0, 0, 0.4), 0 0 1px rgba(45, 212, 191, 0.2);
-	--sscribe-shadow-lg: 0 16px 48px rgba(0, 0, 0, 0.5), 0 0 2px rgba(45, 212, 191, 0.3);
-	--sscribe-shadow-glow: 0 0 30px rgba(74, 130, 99, 0.25), 0 0 60px rgba(34, 211, 238, 0.15);
-	--sscribe-shadow-neon: 0 0 20px rgba(74, 130, 99, 0.4), 0 0 40px rgba(74, 130, 99, 0.2);
-
-	/* Glass Effects */
-	--sscribe-glass-bg: rgba(15, 23, 42, 0.7);
-	--sscribe-glass-border: rgba(45, 212, 191, 0.12);
-	--sscribe-blur: blur(16px);
-}
-
-.sscribe-master-container {
-	max-width: 1280px;
-	margin: 24px 20px 40px 0;
 	font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Oxygen, Ubuntu, Cantarell, Helvetica, Arial, sans-serif;
 	color: var(--sscribe-text-main);
 	box-sizing: border-box;
@@ -237,24 +192,6 @@
 
 .sscribe-sidebar-section .sscribe-icon {
 	color: var(--sscribe-text-muted);
-}
-
-.sscribe-callout .sscribe-icon {
-	color: var(--sscribe-text-muted);
-}
-
-.sscribe-panel-title h2,
-.sscribe-panel-title h3 {
-	font-size: 18px !important;
-	font-weight: 700 !important;
-	color: var(--sscribe-text-main);
-	letter-spacing: -0.01em;
-	text-shadow: 0 0 30px rgba(45, 212, 191, 0.1);
-}
-
-.sscribe-panel-body {
-	padding: 32px;
-	background: transparent;
 }
 
 /* ===== Utility Classes ===== */
@@ -962,13 +899,13 @@
 }
 
 .sscribe-status-success .sscribe-status-heading {
-	color: #6EE7B7;
-	text-shadow: 0 0 20px rgba(110, 231, 183, 0.3);
+	color: #15803D;
+	text-shadow: none;
 }
 
 .sscribe-status-error .sscribe-status-heading {
-	color: #FCA5A5;
-	text-shadow: 0 0 20px rgba(252, 165, 165, 0.3);
+	color: #B91C1C;
+	text-shadow: none;
 }
 
 .sscribe-status-desc {
@@ -977,20 +914,20 @@
 }
 
 .sscribe-status-success .sscribe-status-desc {
-	color: #6EE7B7;
+	color: #15803D;
 	margin-bottom: 20px !important;
 }
 
 .sscribe-status-error .sscribe-status-desc {
-	color: #FCA5A5;
+	color: #B91C1C;
 	margin-bottom: 20px !important;
 }
 
 .sscribe-error-guidance {
-	background: rgba(251, 191, 36, 0.1);
+	background: rgba(245, 158, 11, 0.1);
 	backdrop-filter: var(--sscribe-blur);
 	-webkit-backdrop-filter: var(--sscribe-blur);
-	border: 1px solid rgba(251, 191, 36, 0.3);
+	border: 1px solid rgba(245, 158, 11, 0.3);
 	border-radius: var(--sscribe-radius-sm);
 	padding: 14px 18px;
 	margin-bottom: 16px;
@@ -998,7 +935,7 @@
 }
 
 .sscribe-guidance-text {
-	color: #FCD34D !important;
+	color: #B45309 !important;
 	font-size: 13px !important;
 	line-height: 1.65 !important;
 	margin: 0 !important;
@@ -1037,7 +974,6 @@
 	background: linear-gradient(90deg, transparent, rgba(255,255,255,0.1), transparent);
 	animation: shimmer 2s infinite;
 }
-
 @keyframes shimmer {
 	0% { transform: translateX(-100%); }
 	100% { transform: translateX(100%); }

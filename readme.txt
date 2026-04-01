@@ -4,7 +4,7 @@ Donate link: https://simplixi.com
 Tags: export, docx, pdf, multilingual, rtl
 Requires at least: 6.0
 Tested up to: 6.9
-Stable tag: 3.8.0
+Stable tag: 3.9.1
 Requires PHP: 8.2
 License: GPLv2 or later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
@@ -190,6 +190,13 @@ Each document includes: cover page with title/URL/date/breadcrumbs, featured ima
 5. SEO Metadata Section - Meta title, description, focus keyword, and canonical URL from SEO plugins
 
 == Changelog ==
+
+= 3.9.1 =
+
+* Fixed: Resolved partial export failures for large batches by implementing a Crash Recovery Loop that skips memory-exhausting pages.
+* New: Native Arabic and Unicode support in PDF exports via DejaVu Sans.
+* Improved: Significantly cleaner documents by automatically stripping Elementor/page-builder inline styles and classes.
+* Improved: Updated UI to reflect the extended 72-hour export retention policy.
 
 = 3.8.0 =
 

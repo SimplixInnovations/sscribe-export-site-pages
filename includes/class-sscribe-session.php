@@ -98,6 +98,10 @@ class SScribe_Session {
 		}
 
 		$option_name = $this->get_option_name( $session_id );
+		
+		// Bypass object caching to prevent reading stale session data across rapid AJAX requests.
+		wp_cache_delete( $option_name, 'options' );
+		
 		$raw         = get_option( $option_name );
 
 		if ( false === $raw ) {
@@ -142,7 +146,7 @@ class SScribe_Session {
 		}
 
 		$merged               = array_merge( $existing, $data );
-		$merged['updated_at'] = time();
+		$merged['updated_at'] = microtime( true );
 
 		$option_name  = $this->get_option_name( $session_id );
 		$encoded_data = wp_json_encode( $merged, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES );

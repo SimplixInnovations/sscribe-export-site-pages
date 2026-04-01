@@ -410,6 +410,17 @@ class SScribe_Page_Collector {
 			}
 		}
 
+		// Optional: strip inline styles and page builder classes for a cleaner export,
+		// ensuring exports (like HTML, MD, PDF) are perfectly legible and well-structured.
+		$content = preg_replace( '/\s*style="[^"]*"/i', '', $content );
+		$content = preg_replace( "/\s*style='[^']*'/i", '', $content );
+		$content = preg_replace( '/<style[^>]*>.*?<\/style>/is', '', $content );
+		$content = preg_replace( '/\s*class="[^"]*"/i', '', $content );
+		$content = preg_replace( "/\s*class='[^']*'/i", '', $content );
+		$content = preg_replace( '/\s*data-elementor(-[a-z]+)?="[^"]*"/i', '', $content );
+		$content = preg_replace( '/\s*data-(widget|column|section)-[^=]*="[^"]*"/i', '', $content );
+		$content = preg_replace( '/\s*id="elementor-[^"]*"/i', '', $content );
+
 		// Calculate word count and reading time with Unicode fallback.
 		$stripped   = wp_strip_all_tags( $content );
 		$word_count = str_word_count( $stripped );

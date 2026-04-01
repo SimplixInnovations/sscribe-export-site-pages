@@ -162,7 +162,7 @@ class SScribe {
 	 */
 	public function cleanup_sessions(): void {
 		$session = SScribe_Container::instance()->get( SScribe_Session::class );
-		$session->cleanup_expired( 4 * HOUR_IN_SECONDS );
+		$session->cleanup_expired( 24 * HOUR_IN_SECONDS );
 
 		SScribe_Logger::cleanup_old_logs( 7 );
 	}

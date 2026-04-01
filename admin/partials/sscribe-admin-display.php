@@ -395,7 +395,7 @@ $sscribe_is_debug   = $sscribe_is_debug ?? false;
 							<?php echo SScribe_Helpers::get_icon( 'clock', 20, 'sscribe-icon-img' ); ?>
 							<h2><?php esc_html_e( 'Recent Exports', 'sscribe-export-site-pages' ); ?></h2>
 						</div>
-						<span class="sscribe-badge"><?php esc_html_e( 'Auto-deletes in 1 hour', 'sscribe-export-site-pages' ); ?></span>
+						<span class="sscribe-badge"><?php esc_html_e( 'Auto-deletes in 72 hours', 'sscribe-export-site-pages' ); ?></span>
 					</div>
 					<div class="sscribe-history-table" id="sscribe-history-table">
 						<?php if ( ! empty( $recent_exports ) ) : ?>
@@ -569,7 +569,7 @@ $sscribe_is_debug   = $sscribe_is_debug ?? false;
 						<strong><?php esc_html_e( 'System Security Tips', 'sscribe-export-site-pages' ); ?></strong>
 					</div>
 					<div class="sscribe-callout-body">
-						<p><?php esc_html_e( 'All exported ZIP archives are automatically purged from your server after 1 hour.', 'sscribe-export-site-pages' ); ?></p>
+						<p><?php esc_html_e( 'All exported ZIP archives are automatically purged from your server after 72 hours.', 'sscribe-export-site-pages' ); ?></p>
 						<p><?php esc_html_e( 'Data generation happens in batched cycles to ensure reliable conversion without hitting PHP limits.', 'sscribe-export-site-pages' ); ?></p>
 					</div>
 				</div>

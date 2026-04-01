@@ -72,7 +72,7 @@ class SScribe_PDF_Exporter implements SScribe_Exporter_Interface {
 			$options = new \Dompdf\Options();
 			$options->set( 'isRemoteEnabled', false );
 			$options->set( 'isHtml5ParserEnabled', true );
-			$options->set( 'defaultFont', 'Arial' );
+			$options->set( 'defaultFont', 'DejaVu Sans' );
 			$options->set( 'chroot', ABSPATH );
 
 			$dompdf = new \Dompdf\Dompdf( $options );
