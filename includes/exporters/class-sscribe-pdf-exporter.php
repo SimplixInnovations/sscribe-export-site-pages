@@ -35,17 +35,27 @@ class SScribe_PDF_Exporter implements SScribe_Exporter_Interface {
 	private SScribe_Logger $logger;
 
 	/**
+	 * Filesystem instance.
+	 *
+	 * @var SScribe_Filesystem
+	 */
+	private SScribe_Filesystem $filesystem;
+
+	/**
 	 * Constructor.
 	 *
 	 * @param SScribe_HTML_Exporter|null $html_exporter HTML exporter instance.
 	 * @param SScribe_Logger|null        $logger        Logger instance.
+	 * @param SScribe_Filesystem|null    $filesystem    Filesystem instance.
 	 */
 	public function __construct(
 		?SScribe_HTML_Exporter $html_exporter = null,
-		?SScribe_Logger $logger = null
+		?SScribe_Logger $logger = null,
+		?SScribe_Filesystem $filesystem = null
 	) {
 		$this->html_exporter = $html_exporter ?? new SScribe_HTML_Exporter();
 		$this->logger        = $logger ?? SScribe_Logger::instance( defined( 'SSCRIBE_DEBUG' ) && SSCRIBE_DEBUG );
+		$this->filesystem    = $filesystem ?? new SScribe_Filesystem();
 	}
 
 	/**
@@ -87,8 +97,24 @@ class SScribe_PDF_Exporter implements SScribe_Exporter_Interface {
 			$filename    = \SScribe_Exporter_Factory::build_filename( $page_data, $index, $total, 'pdf' );
 			$output_path = trailingslashit( $output_dir ) . $filename;
 
-			// phpcs:ignore WordPress.WP.AlternativeFunctions.file_system_operations_file_put_contents -- Output generation in temp dir for export; WP_Filesystem adds unnecessary complexity for simple file writes.
-			file_put_contents( $output_path, $output );
+			$result = $this->filesystem->put_contents( $output_path, $output );
+
+			if ( ! $result ) {
+				$this->logger->error(
+					'PDF export failed: filesystem write error',
+					array(
+						'page_id'   => $page_data['id'] ?? 0,
+						'path'      => $output_path,
+						'fs_error'  => $this->filesystem->get_last_error(),
+						'fs_method' => $this->filesystem->get_method(),
+					)
+				);
+
+				return SScribe_Result::failure(
+					__( 'Failed to write PDF file.', 'sscribe-export-site-pages' ),
+					array( 'page_id' => $page_data['id'] ?? 0 )
+				);
+			}
 
 			return SScribe_Result::success(
 				array(

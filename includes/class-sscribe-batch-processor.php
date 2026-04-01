@@ -516,16 +516,16 @@ class SScribe_Batch_Processor {
 		}
 
 		// Implement atomic locking with unique token to prevent race conditions.
-		$lock_key       = 'sscribe_lock_' . $session_id;
-		$lock_token     = wp_generate_password( 32, false );
-		$existing_lock  = get_transient( $lock_key );
-		$current_time   = time();
+		$lock_key        = 'sscribe_lock_' . $session_id;
+		$lock_token      = wp_generate_password( 32, false );
+		$existing_lock   = get_transient( $lock_key );
+		$current_time    = time();
 		$stale_threshold = 25; // Increased from 15 to 25 seconds for safer recovery on heavy DOCX files.
 
 		if ( $existing_lock ) {
 			// Parse existing lock: format is "timestamp|token" for atomic operations.
 			$lock_parts = explode( '|', $existing_lock );
-			$lock_time  = (int) ( $lock_parts[0] ?? 0 );
+			$lock_time  = (int) $lock_parts[0];
 			$lock_age   = $current_time - $lock_time;
 
 			if ( $lock_age > $stale_threshold ) {
@@ -671,9 +671,9 @@ class SScribe_Batch_Processor {
 			return;
 		}
 
-		$current_page_title = '';
-		$batch_start_time   = microtime( true );
-		$memory_paused      = false; // Track if batch was paused due to memory.
+		$current_page_title      = '';
+		$batch_start_time        = microtime( true );
+		$memory_paused           = false; // Track if batch was paused due to memory.
 		$processed_in_this_batch = 0;
 
 		foreach ( $batch as $page_id ) {
@@ -709,10 +709,10 @@ class SScribe_Batch_Processor {
 				if ( isset( $log_data['pages'][ $page_id ] ) && 'processing' === $log_data['pages'][ $page_id ]['status'] ) {
 					$error_msg = __( 'Page skipped: A fatal error occurred during export (likely Memory Limit Exhausted or Max Execution Timeout). To fix this, try decreasing the Export Batch Size in Settings or increasing WP_MEMORY_LIMIT on your server.', 'sscribe-export-site-pages' );
 					$this->logger->error( "Crash recovery triggered for page {$page_id}" );
-					
+
 					$this->export_log->log_page_failure( $page_id, $error_msg );
 					$this->export_log->flush();
-					
+
 					$errors[] = $error_msg;
 					++$processed;
 					continue;
@@ -1487,8 +1487,8 @@ class SScribe_Batch_Processor {
 		}
 
 		// Parse lock value: format is "timestamp|token".
-		$lock_parts  = explode( '|', $lock );
-		$lock_token  = $lock_parts[1] ?? '';
+		$lock_parts = explode( '|', $lock );
+		$lock_token = $lock_parts[1] ?? '';
 
 		// Only release if we own the lock (token matches).
 		if ( $this->current_lock_token && $lock_token === $this->current_lock_token ) {
@@ -1510,16 +1510,16 @@ class SScribe_Batch_Processor {
 	 * @return array Array with 'status' (ready/warning/error) and 'checks' array.
 	 */
 	public function run_preflight_diagnostics( array $formats = array() ): array {
-		$checks   = array();
-		$has_error = false;
+		$checks      = array();
+		$has_error   = false;
 		$has_warning = false;
 
 		// Check ZIP extension.
-		$zip_available = class_exists( 'ZipArchive' );
+		$zip_available           = class_exists( 'ZipArchive' );
 		$checks['zip_extension'] = array(
-			'name'     => __( 'ZIP Extension', 'sscribe-export-site-pages' ),
-			'status'   => $zip_available ? 'ok' : 'error',
-			'message'  => $zip_available 
+			'name'      => __( 'ZIP Extension', 'sscribe-export-site-pages' ),
+			'status'    => $zip_available ? 'ok' : 'error',
+			'message'   => $zip_available
 				? __( 'ZipArchive extension is available.', 'sscribe-export-site-pages' )
 				: __( 'ZipArchive extension is missing. Export cannot create ZIP packages.', 'sscribe-export-site-pages' ),
 			'fix_steps' => $zip_available ? null : array(
@@ -1533,11 +1533,11 @@ class SScribe_Batch_Processor {
 
 		// Check DOM extension (needed for PDF).
 		if ( in_array( 'pdf', $formats, true ) ) {
-			$dom_available = class_exists( 'DOMDocument' );
+			$dom_available           = class_exists( 'DOMDocument' );
 			$checks['dom_extension'] = array(
-				'name'     => __( 'DOM Extension (PDF)', 'sscribe-export-site-pages' ),
-				'status'   => $dom_available ? 'ok' : 'error',
-				'message'  => $dom_available
+				'name'      => __( 'DOM Extension (PDF)', 'sscribe-export-site-pages' ),
+				'status'    => $dom_available ? 'ok' : 'error',
+				'message'   => $dom_available
 					? __( 'DOM extension is available for PDF generation.', 'sscribe-export-site-pages' )
 					: __( 'DOM extension is missing. PDF export will fail.', 'sscribe-export-site-pages' ),
 				'fix_steps' => $dom_available ? null : array(
@@ -1551,11 +1551,11 @@ class SScribe_Batch_Processor {
 		}
 
 		// Check mbstring extension (recommended).
-		$mbstring_available = extension_loaded( 'mbstring' );
+		$mbstring_available           = extension_loaded( 'mbstring' );
 		$checks['mbstring_extension'] = array(
-			'name'     => __( 'Multibyte String', 'sscribe-export-site-pages' ),
-			'status'   => $mbstring_available ? 'ok' : 'warning',
-			'message'  => $mbstring_available
+			'name'      => __( 'Multibyte String', 'sscribe-export-site-pages' ),
+			'status'    => $mbstring_available ? 'ok' : 'warning',
+			'message'   => $mbstring_available
 				? __( 'mbstring extension is available for Unicode support.', 'sscribe-export-site-pages' )
 				: __( 'mbstring extension is missing. Unicode handling may be limited.', 'sscribe-export-site-pages' ),
 			'fix_steps' => $mbstring_available ? null : array(
@@ -1568,22 +1568,22 @@ class SScribe_Batch_Processor {
 		}
 
 		// Check memory limit.
-		$memory_limit    = wp_convert_hr_to_bytes( ini_get( 'memory_limit' ) );
-		$memory_limit_mb = round( $memory_limit / 1024 / 1024 );
-		$memory_ok       = $memory_limit >= 128 * 1024 * 1024; // 128MB minimum.
+		$memory_limit       = wp_convert_hr_to_bytes( ini_get( 'memory_limit' ) );
+		$memory_limit_mb    = round( $memory_limit / 1024 / 1024 );
+		$memory_ok          = $memory_limit >= 128 * 1024 * 1024; // 128MB minimum.
 		$memory_recommended = $memory_limit >= 256 * 1024 * 1024; // 256MB recommended.
-		
-		$memory_status = $memory_recommended ? 'ok' : ( $memory_ok ? 'warning' : 'error' );
+
+		$memory_status          = $memory_recommended ? 'ok' : ( $memory_ok ? 'warning' : 'error' );
 		$checks['memory_limit'] = array(
-			'name'     => __( 'Memory Limit', 'sscribe-export-site-pages' ),
-			'status'   => $memory_status,
-			'message'  => sprintf(
+			'name'      => __( 'Memory Limit', 'sscribe-export-site-pages' ),
+			'status'    => $memory_status,
+			'message'   => sprintf(
 				/* translators: %s: Memory limit in MB. */
 				__( 'PHP memory limit: %sMB.', 'sscribe-export-site-pages' ),
 				$memory_limit_mb
-			) . ( $memory_recommended 
+			) . ( $memory_recommended
 				? ''
-				: ( $memory_ok 
+				: ( $memory_ok
 					? ' ' . __( 'Recommended: 256MB or higher for large exports.', 'sscribe-export-site-pages' )
 					: ' ' . __( 'Minimum 128MB required. Export may fail.', 'sscribe-export-site-pages' )
 				)
@@ -1600,23 +1600,23 @@ class SScribe_Batch_Processor {
 		}
 
 		// Check disk space.
-		$upload_dir      = $this->zip_handler->get_export_dir();
-		$disk_free       = @disk_free_space( $upload_dir ); // phpcs:ignore WordPress.PHP.NoSilencedErrors.Discouraged -- Fallback if directory doesn't exist.
-		$disk_free_mb    = $disk_free ? round( $disk_free / 1024 / 1024 ) : 0;
-		$disk_ok         = $disk_free && $disk_free >= 50 * 1024 * 1024; // 50MB minimum.
+		$upload_dir       = $this->zip_handler->get_export_dir();
+		$disk_free        = @disk_free_space( $upload_dir ); // phpcs:ignore WordPress.PHP.NoSilencedErrors.Discouraged -- Fallback if directory doesn't exist.
+		$disk_free_mb     = $disk_free ? round( $disk_free / 1024 / 1024 ) : 0;
+		$disk_ok          = $disk_free && $disk_free >= 50 * 1024 * 1024; // 50MB minimum.
 		$disk_recommended = $disk_free && $disk_free >= 200 * 1024 * 1024; // 200MB recommended.
 
-		$disk_status = $disk_recommended ? 'ok' : ( $disk_ok ? 'warning' : 'error' );
+		$disk_status          = $disk_recommended ? 'ok' : ( $disk_ok ? 'warning' : 'error' );
 		$checks['disk_space'] = array(
-			'name'     => __( 'Disk Space', 'sscribe-export-site-pages' ),
-			'status'   => $disk_status,
-			'message'  => sprintf(
+			'name'      => __( 'Disk Space', 'sscribe-export-site-pages' ),
+			'status'    => $disk_status,
+			'message'   => sprintf(
 				/* translators: %s: Available disk space in MB. */
 				__( 'Available disk space: %sMB.', 'sscribe-export-site-pages' ),
 				$disk_free_mb
-			) . ( $disk_recommended 
+			) . ( $disk_recommended
 				? ''
-				: ( $disk_ok 
+				: ( $disk_ok
 					? ' ' . __( 'Recommended: 200MB or more.', 'sscribe-export-site-pages' )
 					: ' ' . __( 'Insufficient disk space. Export may fail.', 'sscribe-export-site-pages' )
 				)
@@ -1634,11 +1634,11 @@ class SScribe_Batch_Processor {
 		}
 
 		// Check uploads directory writable.
-		$is_writable = wp_is_writable( $upload_dir );
+		$is_writable                  = wp_is_writable( $upload_dir );
 		$checks['directory_writable'] = array(
-			'name'     => __( 'Upload Directory', 'sscribe-export-site-pages' ),
-			'status'   => $is_writable ? 'ok' : 'error',
-			'message'  => $is_writable
+			'name'      => __( 'Upload Directory', 'sscribe-export-site-pages' ),
+			'status'    => $is_writable ? 'ok' : 'error',
+			'message'   => $is_writable
 				? sprintf(
 					/* translators: %s: Directory path. */
 					__( 'Export directory is writable: %s', 'sscribe-export-site-pages' ),
@@ -1663,11 +1663,11 @@ class SScribe_Batch_Processor {
 		$status = $has_error ? 'error' : ( $has_warning ? 'warning' : 'ready' );
 
 		return array(
-			'status'   => $status,
-			'checks'   => $checks,
-			'message'  => $has_error 
+			'status'  => $status,
+			'checks'  => $checks,
+			'message' => $has_error
 				? __( 'Some requirements are not met. Export may fail.', 'sscribe-export-site-pages' )
-				: ( $has_warning 
+				: ( $has_warning
 					? __( 'Export can proceed but some optimizations are recommended.', 'sscribe-export-site-pages' )
 					: __( 'All systems ready for export.', 'sscribe-export-site-pages' )
 				),
@@ -1683,11 +1683,11 @@ class SScribe_Batch_Processor {
 		check_ajax_referer( 'sscribe_export_nonce', 'nonce' );
 
 		if ( ! current_user_can( $this->get_required_capability() ) ) {
-			wp_send_json_error( 
-				array( 
-					'message' => __( 'Permission denied.', 'sscribe-export-site-pages' ) 
-				), 
-				403 
+			wp_send_json_error(
+				array(
+					'message' => __( 'Permission denied.', 'sscribe-export-site-pages' ),
+				),
+				403
 			);
 			return;
 		}
@@ -1702,30 +1702,13 @@ class SScribe_Batch_Processor {
 		$sscribe_is_debug = defined( 'SSCRIBE_DEBUG' ) && SSCRIBE_DEBUG;
 		if ( $sscribe_is_debug ) {
 			$diagnostics['debug_info'] = array(
-				'php_version'     => PHP_VERSION,
-				'memory_limit'    => ini_get( 'memory_limit' ),
-				'max_execution'   => ini_get( 'max_execution_time' ),
-				'upload_dir'      => $this->zip_handler->get_export_dir(),
+				'php_version'   => PHP_VERSION,
+				'memory_limit'  => ini_get( 'memory_limit' ),
+				'max_execution' => ini_get( 'max_execution_time' ),
+				'upload_dir'    => $this->zip_handler->get_export_dir(),
 			);
 		}
 
 		wp_send_json_success( $diagnostics );
-	}
-
-	/**
-	 * Build a structured error response using SScribe_Error.
-	 *
-	 * @param string $error_code Error code from templates.
-	 * @param array  $context    Context data for interpolation.
-	 * @param int    $http_code  HTTP status code.
-	 * @return void
-	 */
-	private function send_structured_error( string $error_code, array $context = array(), int $http_code = 500 ): void {
-		$error = SScribe_Error::from_template( $error_code, $context );
-		
-		$sscribe_is_debug = defined( 'SSCRIBE_DEBUG' ) && SSCRIBE_DEBUG;
-		$response = $error->to_array( $sscribe_is_debug );
-
-		wp_send_json_error( $response, $http_code );
 	}
 }

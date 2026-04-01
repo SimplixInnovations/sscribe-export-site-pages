@@ -61,6 +61,7 @@ class SScribe {
 		$container->singleton( SScribe_Zip_Handler::class, fn() => new SScribe_Zip_Handler() );
 		$container->singleton( SScribe_Page_Collector::class, fn() => new SScribe_Page_Collector() );
 		$container->singleton( SScribe_Session::class, fn() => new SScribe_Session() );
+		$container->singleton( SScribe_Filesystem::class, fn() => new SScribe_Filesystem() );
 
 		$container->singleton(
 			SScribe_Exporter::class,
@@ -69,7 +70,10 @@ class SScribe {
 
 		$container->singleton(
 			SScribe_HTML_Exporter::class,
-			fn() => new SScribe_HTML_Exporter()
+			fn( SScribe_Container $c ) => new SScribe_HTML_Exporter(
+				$c->get( SScribe_Logger::class ),
+				$c->get( SScribe_Filesystem::class )
+			)
 		);
 
 		$container->singleton(
@@ -84,7 +88,8 @@ class SScribe {
 			SScribe_PDF_Exporter::class,
 			fn( SScribe_Container $c ) => new SScribe_PDF_Exporter(
 				$c->get( SScribe_HTML_Exporter::class ),
-				$c->get( SScribe_Logger::class )
+				$c->get( SScribe_Logger::class ),
+				$c->get( SScribe_Filesystem::class )
 			)
 		);
 

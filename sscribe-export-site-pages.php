@@ -26,7 +26,7 @@ if ( ! defined( 'ABSPATH' ) ) {
 /**
  * Plugin version.
  */
-define( 'SSCRIBE_VERSION', '3.9.0' );
+define( 'SSCRIBE_VERSION', '3.9.1' );
 
 /**
  * Check PHP Version gracefully.
@@ -50,19 +50,19 @@ if ( version_compare( PHP_VERSION, '8.2', '<' ) ) {
 
 /**
  * Debug mode — enabled when WP_DEBUG is true.
- * 
+ *
  * SECURITY WARNING: Debug mode exposes sensitive internal data in API responses
  * and writes detailed logs to wp-content/uploads/sscribe-logs/. This should NEVER
  * be enabled in production environments.
- * 
+ *
  * To enable for development: define( 'WP_DEBUG', true ) in wp-config.php.
  * To force disable in production: define( 'SSCRIBE_DEBUG', false ) in wp-config.php.
  */
-define( 
-	'SSCRIBE_DEBUG', 
-	defined( 'SSCRIBE_DEBUG' ) 
-		? SSCRIBE_DEBUG  // Allow manual override via wp-config.php
-		: ( defined( 'WP_DEBUG' ) && WP_DEBUG )  // Fallback to WP_DEBUG
+define(
+	'SSCRIBE_DEBUG',
+	defined( 'SSCRIBE_DEBUG' )
+		? SSCRIBE_DEBUG  // Allow manual override via wp-config.php.
+		: ( defined( 'WP_DEBUG' ) && WP_DEBUG )  // Fallback to WP_DEBUG.
 );
 
 /**

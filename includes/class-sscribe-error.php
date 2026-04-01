@@ -21,7 +21,7 @@ class SScribe_Error {
 	/**
 	 * Error categories.
 	 */
-	public const CATEGORY_SYSTEM    = 'system';    // Server configuration issues.
+	public const CATEGORY_SYSTEM     = 'system';    // Server configuration issues.
 	public const CATEGORY_PERMISSION = 'permission'; // Access/rights issues.
 	public const CATEGORY_RESOURCE   = 'resource';   // Memory, disk, time limits.
 	public const CATEGORY_CONTENT    = 'content';    // Page data issues.
@@ -170,8 +170,8 @@ class SScribe_Error {
 		$template = $templates[ $code ];
 
 		// Interpolate context into message and details.
-		$message = self::interpolate( $template['message'], $context );
-		$details = self::interpolate( $template['details'] ?? '', $context );
+		$message  = self::interpolate( $template['message'], $context );
+		$details  = self::interpolate( $template['details'] ?? '', $context );
 		$guidance = self::interpolate( $template['guidance'] ?? '', $context );
 
 		return new self(
@@ -190,16 +190,16 @@ class SScribe_Error {
 	/**
 	 * Interpolate context values into string.
 	 *
-	 * @param string $string  String with {placeholder}s.
-	 * @param array  $context Context values.
+	 * @param string $template String with {placeholder}s.
+	 * @param array  $context  Context values.
 	 * @return string
 	 */
-	private static function interpolate( string $string, array $context ): string {
+	private static function interpolate( string $template, array $context ): string {
 		$replace = array();
 		foreach ( $context as $key => $value ) {
 			$replace[ '{' . $key . '}' ] = is_scalar( $value ) ? (string) $value : wp_json_encode( $value );
 		}
-		return strtr( $string, $replace );
+		return strtr( $template, $replace );
 	}
 
 	/**
@@ -210,7 +210,7 @@ class SScribe_Error {
 	public static function get_templates(): array {
 		return array(
 			// System errors.
-			'SYSTEM_ZIP_EXTENSION_MISSING' => array(
+			'SYSTEM_ZIP_EXTENSION_MISSING'      => array(
 				'category'  => self::CATEGORY_SYSTEM,
 				'severity'  => self::SEVERITY_CRITICAL,
 				'message'   => __( 'ZIP extension is not available on this server.', 'sscribe-export-site-pages' ),
@@ -223,7 +223,7 @@ class SScribe_Error {
 				),
 			),
 
-			'SYSTEM_DOM_EXTENSION_MISSING' => array(
+			'SYSTEM_DOM_EXTENSION_MISSING'      => array(
 				'category'  => self::CATEGORY_SYSTEM,
 				'severity'  => self::SEVERITY_CRITICAL,
 				'message'   => __( 'DOM extension is not available on this server.', 'sscribe-export-site-pages' ),
@@ -235,7 +235,7 @@ class SScribe_Error {
 				),
 			),
 
-			'SYSTEM_MBSTRING_MISSING' => array(
+			'SYSTEM_MBSTRING_MISSING'           => array(
 				'category'  => self::CATEGORY_SYSTEM,
 				'severity'  => self::SEVERITY_ERROR,
 				'message'   => __( 'Multibyte string extension is not available.', 'sscribe-export-site-pages' ),
@@ -248,7 +248,7 @@ class SScribe_Error {
 			),
 
 			// Resource errors.
-			'RESOURCE_MEMORY_EXHAUSTED' => array(
+			'RESOURCE_MEMORY_EXHAUSTED'         => array(
 				'category'  => self::CATEGORY_RESOURCE,
 				'severity'  => self::SEVERITY_CRITICAL,
 				'message'   => __( 'Server memory limit reached. Cannot complete export.', 'sscribe-export-site-pages' ),
@@ -261,7 +261,7 @@ class SScribe_Error {
 				),
 			),
 
-			'RESOURCE_DISK_SPACE_LOW' => array(
+			'RESOURCE_DISK_SPACE_LOW'           => array(
 				'category'  => self::CATEGORY_RESOURCE,
 				'severity'  => self::SEVERITY_CRITICAL,
 				'message'   => __( 'Insufficient disk space for export.', 'sscribe-export-site-pages' ),
@@ -274,7 +274,7 @@ class SScribe_Error {
 				),
 			),
 
-			'RESOURCE_EXECUTION_TIMEOUT' => array(
+			'RESOURCE_EXECUTION_TIMEOUT'        => array(
 				'category'  => self::CATEGORY_RESOURCE,
 				'severity'  => self::SEVERITY_ERROR,
 				'message'   => __( 'Export timed out due to server limits.', 'sscribe-export-site-pages' ),
@@ -300,7 +300,7 @@ class SScribe_Error {
 				),
 			),
 
-			'PERMISSION_TEMP_DIRECTORY_FAILED' => array(
+			'PERMISSION_TEMP_DIRECTORY_FAILED'  => array(
 				'category'  => self::CATEGORY_PERMISSION,
 				'severity'  => self::SEVERITY_CRITICAL,
 				'message'   => __( 'Failed to create temporary directory for export.', 'sscribe-export-site-pages' ),
@@ -314,7 +314,7 @@ class SScribe_Error {
 			),
 
 			// Content errors.
-			'CONTENT_PAGE_DATA_FAILED' => array(
+			'CONTENT_PAGE_DATA_FAILED'          => array(
 				'category'  => self::CATEGORY_CONTENT,
 				'severity'  => self::SEVERITY_ERROR,
 				'message'   => __( 'Failed to retrieve data for page "{title}" (ID: {page_id}).', 'sscribe-export-site-pages' ),
@@ -327,7 +327,7 @@ class SScribe_Error {
 				),
 			),
 
-			'CONTENT_EMPTY_PAGE' => array(
+			'CONTENT_EMPTY_PAGE'                => array(
 				'category'  => self::CATEGORY_CONTENT,
 				'severity'  => self::SEVERITY_WARNING,
 				'message'   => __( 'Page "{title}" (ID: {page_id}) has no content.', 'sscribe-export-site-pages' ),
@@ -339,7 +339,7 @@ class SScribe_Error {
 				),
 			),
 
-			'CONTENT_PAGE_NOT_FOUND' => array(
+			'CONTENT_PAGE_NOT_FOUND'            => array(
 				'category'  => self::CATEGORY_CONTENT,
 				'severity'  => self::SEVERITY_ERROR,
 				'message'   => __( 'Page with ID {page_id} no longer exists.', 'sscribe-export-site-pages' ),
@@ -352,7 +352,7 @@ class SScribe_Error {
 			),
 
 			// Export errors.
-			'EXPORT_DOCX_FAILED' => array(
+			'EXPORT_DOCX_FAILED'                => array(
 				'category'  => self::CATEGORY_EXPORT,
 				'severity'  => self::SEVERITY_ERROR,
 				'message'   => __( 'Failed to generate DOCX for page "{title}".', 'sscribe-export-site-pages' ),
@@ -365,7 +365,7 @@ class SScribe_Error {
 				),
 			),
 
-			'EXPORT_PDF_FAILED' => array(
+			'EXPORT_PDF_FAILED'                 => array(
 				'category'  => self::CATEGORY_EXPORT,
 				'severity'  => self::SEVERITY_ERROR,
 				'message'   => __( 'Failed to generate PDF for page "{title}".', 'sscribe-export-site-pages' ),
@@ -378,7 +378,7 @@ class SScribe_Error {
 				),
 			),
 
-			'EXPORT_ZIP_CREATION_FAILED' => array(
+			'EXPORT_ZIP_CREATION_FAILED'        => array(
 				'category'  => self::CATEGORY_EXPORT,
 				'severity'  => self::SEVERITY_CRITICAL,
 				'message'   => __( 'Failed to create ZIP package for download.', 'sscribe-export-site-pages' ),
@@ -392,7 +392,7 @@ class SScribe_Error {
 			),
 
 			// Validation errors.
-			'VALIDATION_NO_PAGES_SELECTED' => array(
+			'VALIDATION_NO_PAGES_SELECTED'      => array(
 				'category'  => self::CATEGORY_VALIDATION,
 				'severity'  => self::SEVERITY_ERROR,
 				'message'   => __( 'No pages match the selected criteria.', 'sscribe-export-site-pages' ),
@@ -405,7 +405,7 @@ class SScribe_Error {
 				),
 			),
 
-			'VALIDATION_INVALID_LANGUAGE' => array(
+			'VALIDATION_INVALID_LANGUAGE'       => array(
 				'category'  => self::CATEGORY_VALIDATION,
 				'severity'  => self::SEVERITY_ERROR,
 				'message'   => __( 'Invalid language code: {language}.', 'sscribe-export-site-pages' ),
@@ -417,7 +417,7 @@ class SScribe_Error {
 				),
 			),
 
-			'VALIDATION_INVALID_FORMAT' => array(
+			'VALIDATION_INVALID_FORMAT'         => array(
 				'category'  => self::CATEGORY_VALIDATION,
 				'severity'  => self::SEVERITY_ERROR,
 				'message'   => __( 'Invalid export format: {format}.', 'sscribe-export-site-pages' ),
@@ -430,7 +430,7 @@ class SScribe_Error {
 			),
 
 			// Session errors.
-			'SESSION_EXPIRED' => array(
+			'SESSION_EXPIRED'                   => array(
 				'category'  => self::CATEGORY_SYSTEM,
 				'severity'  => self::SEVERITY_ERROR,
 				'message'   => __( 'Export session has expired.', 'sscribe-export-site-pages' ),
@@ -442,7 +442,7 @@ class SScribe_Error {
 				),
 			),
 
-			'SESSION_LOCK_CONFLICT' => array(
+			'SESSION_LOCK_CONFLICT'             => array(
 				'category'  => self::CATEGORY_SYSTEM,
 				'severity'  => self::SEVERITY_WARNING,
 				'message'   => __( 'Another export is in progress.', 'sscribe-export-site-pages' ),
@@ -454,7 +454,7 @@ class SScribe_Error {
 				),
 			),
 
-			'SESSION_CORRUPTED' => array(
+			'SESSION_CORRUPTED'                 => array(
 				'category'  => self::CATEGORY_SYSTEM,
 				'severity'  => self::SEVERITY_ERROR,
 				'message'   => __( 'Export session data is corrupted.', 'sscribe-export-site-pages' ),
@@ -467,7 +467,7 @@ class SScribe_Error {
 			),
 
 			// Rate limiting.
-			'RATE_LIMIT_EXCEEDED' => array(
+			'RATE_LIMIT_EXCEEDED'               => array(
 				'category'  => self::CATEGORY_SYSTEM,
 				'severity'  => self::SEVERITY_WARNING,
 				'message'   => __( 'Too many requests. Please slow down.', 'sscribe-export-site-pages' ),
@@ -483,42 +483,92 @@ class SScribe_Error {
 
 	// Getters.
 
+	/**
+	 * Get the error code.
+	 *
+	 * @return string
+	 */
 	public function get_code(): string {
 		return $this->code;
 	}
 
+	/**
+	 * Get the error category.
+	 *
+	 * @return string
+	 */
 	public function get_category(): string {
 		return $this->category;
 	}
 
+	/**
+	 * Get the error severity.
+	 *
+	 * @return string
+	 */
 	public function get_severity(): string {
 		return $this->severity;
 	}
 
+	/**
+	 * Get the error message.
+	 *
+	 * @return string
+	 */
 	public function get_message(): string {
 		return $this->message;
 	}
 
+	/**
+	 * Get the error details.
+	 *
+	 * @return string
+	 */
 	public function get_details(): string {
 		return $this->details;
 	}
 
+	/**
+	 * Get the guidance text.
+	 *
+	 * @return string
+	 */
 	public function get_guidance(): string {
 		return $this->guidance;
 	}
 
+	/**
+	 * Get the fix steps.
+	 *
+	 * @return array
+	 */
 	public function get_fix_steps(): array {
 		return $this->fix_steps;
 	}
 
+	/**
+	 * Get the documentation URL.
+	 *
+	 * @return string|null
+	 */
 	public function get_doc_url(): ?string {
 		return $this->doc_url;
 	}
 
+	/**
+	 * Get the error context.
+	 *
+	 * @return array
+	 */
 	public function get_context(): array {
 		return $this->context;
 	}
 
+	/**
+	 * Get the timestamp.
+	 *
+	 * @return int
+	 */
 	public function get_timestamp(): int {
 		return $this->timestamp;
 	}
@@ -547,8 +597,8 @@ class SScribe_Error {
 		}
 
 		if ( $include_details ) {
-			$data['details'] = $this->details;
-			$data['context'] = $this->context;
+			$data['details']   = $this->details;
+			$data['context']   = $this->context;
 			$data['timestamp'] = $this->timestamp;
 		}
 

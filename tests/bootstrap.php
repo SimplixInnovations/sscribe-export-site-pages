@@ -186,6 +186,13 @@ if ( ! function_exists( 'delete_transient' ) ) {
 	}
 }
 
+if ( ! function_exists( 'wp_cache_delete' ) ) {
+	function wp_cache_delete( $key, $group = '' ) {
+		// No-op stub for unit tests - cache is not used in test environment.
+		return true;
+	}
+}
+
 // WP_Query stub for unit tests.
 if ( ! class_exists( 'WP_Query' ) ) {
 	class WP_Query {
