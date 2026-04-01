@@ -1,10 +1,10 @@
 === SScribe Export Site Pages ===
 Contributors: simplixinnovations
 Donate link: https://simplixi.com
-Tags: export, docx, pdf, multilingual, rtl
+Tags: export, docx, pdf, html, markdown, multilingual, rtl, seo, batch-export, page-export, content-export, wpml, compliance, documentation
 Requires at least: 6.0
 Tested up to: 6.9
-Stable tag: 3.9.1
+Stable tag: 3.12.2
 Requires PHP: 8.2
 License: GPLv2 or later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
@@ -81,6 +81,9 @@ Reads metadata from all major SEO plugins:
 * SSRF prevention in PDF exporter
 * URL validation and sanitization for all document links
 * Rate limiting on AJAX endpoints (60 requests/minute)
+* WP_Filesystem API support for hosting compatibility
+* Self-healing diagnostics and preflight checks
+* Automatic crash recovery with page retry (not skip)
 
 **Developer Features**
 * PSR-4 autoloading and modern PHP 8.2+ architecture
@@ -88,9 +91,13 @@ Reads metadata from all major SEO plugins:
 * `sscribe_page_data` filter for third-party data enrichment
 * `sscribe_batch_size` filter for performance tuning
 * `sscribe_export_capability` filter for custom permissions
+* `sscribe_page_ids_chunk_size` filter for memory-efficient large sites
+* `sscribe_lock_stale_threshold` filter for lock timeout
+* `sscribe_memory_threshold_mb` filter for memory limits
 * PHPUnit test suite with comprehensive coverage
 * PHPStan static analysis (level 5)
 * WordPress Coding Standards compliance
+* VIP coding standards support
 
 = Perfect For =
 
@@ -190,6 +197,61 @@ Each document includes: cover page with title/URL/date/breadcrumbs, featured ima
 5. SEO Metadata Section - Meta title, description, focus keyword, and canonical URL from SEO plugins
 
 == Changelog ==
+
+= 3.12.2 =
+
+* New: Chunked page collection (`get_page_ids_chunked()`) for memory-efficient processing of large sites
+* New: Configurable filters for all tunables:
+  - `sscribe_page_ids_chunk_size` (default: 100) - Page IDs per chunk
+  - `sscribe_lock_stale_threshold` (default: 25s) - Lock expiration time
+  - `sscribe_memory_threshold_mb` (default: 10MB) - Memory pause threshold
+* Improved: Better memory management for sites with thousands of pages
+
+= 3.12.1 =
+
+* Improved: Prefixed all template variables with `sscribe_` for WordPress compliance
+* Improved: Removed duplicate `phpcs:ignore` comments
+* Improved: Reduced `phpcs:ignore` count from 110 to 103
+
+= 3.12.0 =
+
+* New: `SScribe_Diagnostics` class for comprehensive preflight checks
+* New: Self-healing mechanism that auto-clears orphaned locks and sessions
+* New: Detailed error diagnosis with categorized fixes and recommendations
+* New: Memory and execution time estimation before export
+* Improved: Crash recovery now retries pages instead of permanently skipping
+* Improved: Default batch size increased from 1 to 5
+* Improved: Memory threshold reduced from 20MB to 10MB
+
+= 3.11.2 =
+
+* Fixed: DOCX export crash recovery now retries pages instead of skipping
+* Improved: Reduced memory threshold for less aggressive pausing
+* Improved: Increased default batch size for faster processing
+
+= 3.11.1 =
+
+* Fixed: Critical CSS class name typos (`.scribe-` → `.sscribe-`) that broke all styling
+* Fixed: 173 instances of missing 's' prefix in CSS selectors
+
+= 3.11.0 =
+
+* Security: Removed all dark theme styles from CSS
+* New: Clean enterprise-level light theme with design tokens
+* New: WCAG 2.1 AA compliance (focus-visible, prefers-reduced-motion)
+* New: CSS minification script in build process
+* New: WordPress.com VIP coding standards support
+* New: `SScribe_Filesystem` class with WP_Filesystem API
+* New: Integration tests for filesystem operations
+* Improved: All exporters now use WP_Filesystem API with fallback
+* Improved: Removed ~300 lines of duplicate CSS
+
+= 3.10.0 =
+
+* New: WP_Filesystem API support for all exporters
+* New: `SScribe_Filesystem` wrapper class for hosting compatibility
+* Improved: Exporters now use proper WordPress filesystem functions
+* Improved: Better hosting compatibility across different server configurations
 
 = 3.9.1 =
 
@@ -349,9 +411,33 @@ Each document includes: cover page with title/URL/date/breadcrumbs, featured ima
 
 == Upgrade Notice ==
 
-= 3.4.3 =
+= 3.12.2 =
 
-Critical bug fix: Resolves "batch already processing" error that could occur on fresh installs or after plugin reactivation. Essential update for all users experiencing export failures.
+New chunked page collection for memory-efficient processing. Added configurable filters for all tunables. Recommended update for large sites.
+
+= 3.12.0 =
+
+Major improvements: preflight diagnostics, self-healing mechanism, and better crash recovery. Essential update for reliable exports.
+
+= 3.11.2 =
+
+Fixed crash recovery to retry pages instead of skipping. Critical update for completing all page exports.
+
+= 3.11.1 =
+
+Critical CSS fix: corrected 173 class name typos that broke styling. Essential update if CSS is broken.
+
+= 3.11.0 =
+
+Major update: clean light theme, WCAG compliance, WP_Filesystem API, CSS minification. Recommended for all users.
+
+= 3.10.0 =
+
+New WP_Filesystem API support for better hosting compatibility. Recommended update for all users.
+
+= 3.9.1 =
+
+Essential update: Fixed partial export failures for large batches. Arabic/PDF improvements. Recommended for all users.
 
 = 3.4.2 =
 
