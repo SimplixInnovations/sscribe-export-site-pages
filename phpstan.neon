@@ -15,7 +15,7 @@ parameters:
         - '#Call to method .* on an unknown class WP_Filesystem_Base\.#'
         - '#Property .* has unknown class WP_Filesystem_Base as its type\.#'
         - '#Instantiated class WP_Query not found\.#'
-        - '#Access to property \$(posts|found_posts) on an unknown class WP_Query\.#'
+        - '#Access to property \$(posts|found_posts|max_num_pages) on an unknown class WP_Query\.#'
         - '#Function aioseo not found\.#'
         - '#Call to an undefined method DOMNode::#'
         - '#addCell\(\) expects int#'

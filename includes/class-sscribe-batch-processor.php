@@ -530,7 +530,7 @@ class SScribe_Batch_Processor {
 		$lock_token      = wp_generate_password( 32, false );
 		$existing_lock   = get_transient( $lock_key );
 		$current_time    = time();
-		$stale_threshold = 25; // Increased from 15 to 25 seconds for safer recovery on heavy DOCX files.
+		$stale_threshold = (int) apply_filters( 'sscribe_lock_stale_threshold', 25 );
 
 		if ( $existing_lock ) {
 			// Parse existing lock: format is "timestamp|token" for atomic operations.
@@ -689,7 +689,8 @@ class SScribe_Batch_Processor {
 		foreach ( $batch as $page_id ) {
 			// Only pause for memory if we have successfully processed at least 1 page in this request.
 			// This prevents an infinite loop where the first page continually aborts due to high base memory.
-			if ( $processed_in_this_batch > 0 && ! $this->is_memory_available( 10 ) ) {
+			$memory_threshold_mb = (int) apply_filters( 'sscribe_memory_threshold_mb', 10 );
+			if ( $processed_in_this_batch > 0 && ! $this->is_memory_available( $memory_threshold_mb ) ) {
 				$memory_paused = true;
 				$this->logger->debug(
 					'Memory threshold approaching limit, pausing batch',
