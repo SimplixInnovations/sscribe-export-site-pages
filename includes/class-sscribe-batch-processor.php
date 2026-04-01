@@ -94,7 +94,7 @@ class SScribe_Batch_Processor {
 		?SScribe_Session $session = null,
 		?SScribe_Logger $logger = null
 	) {
-		$this->batch_size = (int) apply_filters( 'sscribe_batch_size', 1 );
+		$this->batch_size = (int) apply_filters( 'sscribe_batch_size', 5 );
 		$this->batch_size = max( 1, min( 20, $this->batch_size ) );
 
 		$this->collector   = $collector ?? new SScribe_Page_Collector();
@@ -679,7 +679,7 @@ class SScribe_Batch_Processor {
 		foreach ( $batch as $page_id ) {
 			// Only pause for memory if we have successfully processed at least 1 page in this request.
 			// This prevents an infinite loop where the first page continually aborts due to high base memory.
-			if ( $processed_in_this_batch > 0 && ! $this->is_memory_available( 20 ) ) {
+			if ( $processed_in_this_batch > 0 && ! $this->is_memory_available( 10 ) ) {
 				$memory_paused = true;
 				$this->logger->debug(
 					'Memory threshold approaching limit, pausing batch',
@@ -702,20 +702,18 @@ class SScribe_Batch_Processor {
 				)
 			);
 
-			// Verify we are not in a crash-loop on this specific page.
-			// If it is marked "processing", the previous PHP request crashed while exporting it.
+			// Check if previous batch crashed while processing this page.
+			// Instead of skipping, clear the stale "processing" status and retry.
 			if ( $this->export_log ) {
 				$log_data = $this->export_log->get_log();
 				if ( isset( $log_data['pages'][ $page_id ] ) && 'processing' === $log_data['pages'][ $page_id ]['status'] ) {
-					$error_msg = __( 'Page skipped: A fatal error occurred during export (likely Memory Limit Exhausted or Max Execution Timeout). To fix this, try decreasing the Export Batch Size in Settings or increasing WP_MEMORY_LIMIT on your server.', 'sscribe-export-site-pages' );
-					$this->logger->error( "Crash recovery triggered for page {$page_id}" );
-
-					$this->export_log->log_page_failure( $page_id, $error_msg );
-					$this->export_log->flush();
-
-					$errors[] = $error_msg;
-					++$processed;
-					continue;
+					$this->logger->debug(
+						"Retrying page {$page_id} after previous crash",
+						array(
+							'page_id'   => $page_id,
+							'memory_mb' => round( memory_get_usage( true ) / 1024 / 1024 ),
+						)
+					);
 				}
 			}
 
