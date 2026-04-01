@@ -129,6 +129,61 @@ class SScribe_Page_Collector {
 	}
 
 	/**
+	 * Get page IDs in chunks for memory-efficient processing.
+	 *
+	 * Returns a generator that yields batches of page IDs,
+	 * reducing memory usage for sites with thousands of pages.
+	 *
+	 * @param string $language    Optional WPML language code.
+	 * @param string $post_status Optional post status.
+	 * @param int    $chunk_size  Number of IDs per chunk.
+	 * @return \Generator Yields arrays of page IDs.
+	 */
+	public function get_page_ids_chunked( string $language = '', string $post_status = 'publish', int $chunk_size = 100 ): \Generator {
+		$post_status = $this->validate_post_status( $post_status );
+		$chunk_size  = (int) apply_filters( 'sscribe_page_ids_chunk_size', $chunk_size );
+
+		$page = 1;
+
+		do {
+			$args = array(
+				'post_type'      => 'page',
+				'post_status'    => $post_status,
+				'posts_per_page' => $chunk_size,
+				'paged'          => $page,
+				'fields'         => 'ids',
+				'orderby'        => 'menu_order title',
+				'order'          => 'ASC',
+			);
+
+			$switched = false;
+
+			try {
+				if ( $this->is_wpml_active() ) {
+					$target_lang = ! empty( $language ) ? $language : 'all';
+					// phpcs:ignore WordPress.NamingConventions.PrefixAllGlobals.NonPrefixedHooknameFound -- WPML hook.
+					do_action( 'wpml_switch_language', $target_lang );
+					$args['suppress_filters'] = false;
+					$switched                 = true;
+				}
+
+				$query = new WP_Query( $args );
+			} finally {
+				if ( $switched ) {
+					// phpcs:ignore WordPress.NamingConventions.PrefixAllGlobals.NonPrefixedHooknameFound -- WPML hook.
+					do_action( 'wpml_switch_language', null );
+				}
+			}
+
+			if ( ! empty( $query->posts ) ) {
+				yield $query->posts;
+			}
+
+			++$page;
+		} while ( $page <= $query->max_num_pages );
+	}
+
+	/**
 	 * Clear status count cache for a specific language.
 	 *
 	 * @param string $language Language code.
