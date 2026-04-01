@@ -167,7 +167,7 @@ class SScribe_Zip_Handler {
 	}
 
 	/**
-	 * Cleanup expired export files (older than 1 hour).
+	 * Cleanup expired export files (older than 24 hours).
 	 *
 	 * @return int Number of files cleaned up.
 	 */
@@ -180,7 +180,7 @@ class SScribe_Zip_Handler {
 			return $this->cleanup_stale_temp_dirs();
 		}
 
-		$max_age  = HOUR_IN_SECONDS;
+		$max_age  = 3 * DAY_IN_SECONDS;
 		$now      = time();
 		$exports  = get_option( 'sscribe_export_index', array() );
 		$modified = false;
@@ -203,13 +203,13 @@ class SScribe_Zip_Handler {
 	}
 
 	/**
-	 * Clean up stale temporary directories older than 1 hour.
+	 * Clean up stale temporary directories older than 24 hours.
 	 *
 	 * @return int Number of directories cleaned up.
 	 */
 	private function cleanup_stale_temp_dirs(): int {
 		$cleaned = 0;
-		$max_age = HOUR_IN_SECONDS;
+		$max_age = 3 * DAY_IN_SECONDS;
 		$now     = time();
 
 		$temp_dirs = glob( $this->export_dir . '/temp-*', GLOB_ONLYDIR );

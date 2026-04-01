@@ -73,7 +73,7 @@ class SScribe_Batch_Processor {
 	/**
 	 * Rate limit: Maximum requests per minute per user.
 	 */
-	private const RATE_LIMIT_MAX = 60;
+	private const RATE_LIMIT_MAX = 5000;
 
 	/**
 	 * Rate limit: Time window in seconds.
@@ -109,6 +109,11 @@ class SScribe_Batch_Processor {
 	 * @return bool True if within limits, false if exceeded.
 	 */
 	private function check_rate_limit(): bool {
+		// Bypass rate limit for administrators to ensure large exports do not arbitrarily fail.
+		if ( current_user_can( apply_filters( 'sscribe_export_capability', 'manage_options' ) ) ) {
+			return true;
+		}
+
 		$user_id       = get_current_user_id();
 		$transient_key = 'sscribe_rate_' . $user_id;
 		$now           = time();
@@ -515,7 +520,7 @@ class SScribe_Batch_Processor {
 		$lock_token     = wp_generate_password( 32, false );
 		$existing_lock  = get_transient( $lock_key );
 		$current_time   = time();
-		$stale_threshold = 15; // Increased from 10 to 15 seconds for safer recovery.
+		$stale_threshold = 25; // Increased from 15 to 25 seconds for safer recovery on heavy DOCX files.
 
 		if ( $existing_lock ) {
 			// Parse existing lock: format is "timestamp|token" for atomic operations.
@@ -669,9 +674,12 @@ class SScribe_Batch_Processor {
 		$current_page_title = '';
 		$batch_start_time   = microtime( true );
 		$memory_paused      = false; // Track if batch was paused due to memory.
+		$processed_in_this_batch = 0;
 
 		foreach ( $batch as $page_id ) {
-			if ( ! $this->is_memory_available( 20 ) ) {
+			// Only pause for memory if we have successfully processed at least 1 page in this request.
+			// This prevents an infinite loop where the first page continually aborts due to high base memory.
+			if ( $processed_in_this_batch > 0 && ! $this->is_memory_available( 20 ) ) {
 				$memory_paused = true;
 				$this->logger->debug(
 					'Memory threshold approaching limit, pausing batch',
@@ -694,6 +702,23 @@ class SScribe_Batch_Processor {
 				)
 			);
 
+			// Verify we are not in a crash-loop on this specific page.
+			// If it is marked "processing", the previous PHP request crashed while exporting it.
+			if ( $this->export_log ) {
+				$log_data = $this->export_log->get_log();
+				if ( isset( $log_data['pages'][ $page_id ] ) && 'processing' === $log_data['pages'][ $page_id ]['status'] ) {
+					$error_msg = __( 'Page skipped: A fatal error occurred during export (likely Memory Limit Exhausted or Max Execution Timeout). To fix this, try decreasing the Export Batch Size in Settings or increasing WP_MEMORY_LIMIT on your server.', 'sscribe-export-site-pages' );
+					$this->logger->error( "Crash recovery triggered for page {$page_id}" );
+					
+					$this->export_log->log_page_failure( $page_id, $error_msg );
+					$this->export_log->flush();
+					
+					$errors[] = $error_msg;
+					++$processed;
+					continue;
+				}
+			}
+
 			do_action( 'sscribe_before_export_page', $page_id, $session['language'] );
 
 			$page_data = $this->collector->get_page_data( $page_id );
@@ -715,6 +740,7 @@ class SScribe_Batch_Processor {
 
 				if ( $this->export_log ) {
 					$this->export_log->log_page_failure( $page_id, $error_msg );
+					$this->export_log->flush();
 				}
 
 				++$processed;
@@ -725,6 +751,7 @@ class SScribe_Batch_Processor {
 
 			if ( $this->export_log ) {
 				$this->export_log->log_page_start( $page_id, $page_data['title'], $page_data['slug'] ?? '' );
+				$this->export_log->flush();
 			}
 
 			$this->logger->debug(
@@ -810,7 +837,13 @@ class SScribe_Batch_Processor {
 
 			do_action( 'sscribe_after_export_page', $page_id, $formats, $export_success );
 
+			// Free up memory for the next iterations in large batches.
+			if ( function_exists( 'clean_post_cache' ) ) {
+				clean_post_cache( $page_id );
+			}
+
 			++$processed;
+			++$processed_in_this_batch;
 		}
 
 		$batch_duration = microtime( true ) - $batch_start_time;
