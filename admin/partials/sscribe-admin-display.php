@@ -3,12 +3,12 @@
  * Admin page display template — Premium UI with History.
  *
  * Variables are passed from SScribe_Admin::render_admin_page():
- * - $wpml_active    (bool) Whether WPML is active.
- * - $languages      (array) Available languages.
- * - $total_pages_all (int) Total page count across all languages.
- * - $status_counts  (array) Page counts by status.
- * - $seo_plugins    (array) Active SEO plugins.
- * - $recent_exports (array) Recent export files.
+ * - $sscribe_wpml_active    (bool) Whether WPML is active.
+ * - $sscribe_languages       (array) Available WPML languages.
+ * - $sscribe_total_pages_all (int) Total page count across all languages.
+ * - $sscribe_status_counts   (array) Page counts by status.
+ * - $sscribe_seo_plugins     (array) Active SEO plugins.
+ * - $sscribe_recent_exports  (array) Recent export files.
  * - $sscribe_debug_info (array) Debug information (when SSCRIBE_DEBUG is enabled).
  *
  * @package SScribe
@@ -20,20 +20,14 @@ if ( ! defined( 'ABSPATH' ) ) {
 	exit;
 }
 
-// phpcs:ignore WordPress.NamingConventions.PrefixAllGlobals.NonPrefixedVariableFound -- Template variables passed via include scope, not global.
-$wpml_active = $wpml_active ?? false;
-// phpcs:ignore WordPress.NamingConventions.PrefixAllGlobals.NonPrefixedVariableFound -- Template variables passed via include scope, not global.
-$languages = $languages ?? array();
-// phpcs:ignore WordPress.NamingConventions.PrefixAllGlobals.NonPrefixedVariableFound -- Template variables passed via include scope, not global.
-$total_pages_all = $total_pages_all ?? 0;
-// phpcs:ignore WordPress.NamingConventions.PrefixAllGlobals.NonPrefixedVariableFound -- Template variables passed via include scope, not global.
-$status_counts = $status_counts ?? array();
-// phpcs:ignore WordPress.NamingConventions.PrefixAllGlobals.NonPrefixedVariableFound -- Template variables passed via include scope, not global.
-$seo_plugins = $seo_plugins ?? array();
-// phpcs:ignore WordPress.NamingConventions.PrefixAllGlobals.NonPrefixedVariableFound -- Template variables passed via include scope, not global.
-$recent_exports     = $recent_exports ?? array();
-$sscribe_debug_info = $sscribe_debug_info ?? array();
-$sscribe_is_debug   = $sscribe_is_debug ?? false;
+$sscribe_wpml_active     = $sscribe_wpml_active ?? false;
+$sscribe_languages       = $sscribe_languages ?? array();
+$sscribe_total_pages_all = $sscribe_total_pages_all ?? 0;
+$sscribe_status_counts   = $sscribe_status_counts ?? array();
+$sscribe_seo_plugins     = $sscribe_seo_plugins ?? array();
+$sscribe_recent_exports  = $sscribe_recent_exports ?? array();
+$sscribe_debug_info      = $sscribe_debug_info ?? array();
+$sscribe_is_debug        = $sscribe_is_debug ?? false;
 ?>
 
 <div class="sscribe-master-container">
@@ -41,9 +35,8 @@ $sscribe_is_debug   = $sscribe_is_debug ?? false;
 		<div class="sscribe-hero-content">
 			<div class="sscribe-hero-left">
 				<div class="sscribe-hero-logo">
-					<?php // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- SVG is sanitized in get_icon() with esc_attr() on all dynamic attributes. ?>
-					<?php // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- SVG sanitized in get_icon(). ?>
-					<?php echo SScribe_Helpers::get_icon( 'file-doc', 36, 'sscribe-logo-img' ); ?>
+				<?php // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- SVG is sanitized in get_icon() with esc_attr() on all dynamic attributes. ?>
+				<?php echo SScribe_Helpers::get_icon( 'file-doc', 36, 'sscribe-logo-img' ); ?>
 					<span class="screen-reader-text">SScribe</span>
 				</div>
 				<div>
@@ -66,7 +59,7 @@ $sscribe_is_debug   = $sscribe_is_debug ?? false;
 			</div>
 
 			<div class="sscribe-panel-body">
-				<?php if ( $wpml_active && ! empty( $languages ) ) : ?>
+				<?php if ( $sscribe_wpml_active && ! empty( $sscribe_languages ) ) : ?>
 					<p class="sscribe-description">
 						<?php esc_html_e( 'Choose a language and page status. The plugin will export all matching pages into a professional document archive.', 'sscribe-export-site-pages' ); ?>
 					</p>
@@ -74,7 +67,7 @@ $sscribe_is_debug   = $sscribe_is_debug ?? false;
 					<p class="sscribe-description">
 						<?php
 						/* translators: %d: Number of pages. */
-						echo esc_html( sprintf( __( 'Ready to export %d pages into beautiful documents.', 'sscribe-export-site-pages' ), intval( $total_pages_all ) ) );
+						echo esc_html( sprintf( __( 'Ready to export %d pages into beautiful documents.', 'sscribe-export-site-pages' ), intval( $sscribe_total_pages_all ) ) );
 						?>
 					</p>
 				<?php endif; ?>
@@ -88,7 +81,7 @@ $sscribe_is_debug   = $sscribe_is_debug ?? false;
 
 				<!-- Step 1: Language -->
 				<div class="sscribe-wizard-panel sscribe-wizard-panel-active" data-step="1">
-					<?php if ( $wpml_active && ! empty( $languages ) ) : ?>
+					<?php if ( $sscribe_wpml_active && ! empty( $sscribe_languages ) ) : ?>
 					<fieldset class="sscribe-fieldset">
 						<legend class="sscribe-fieldset-legend">
 							<?php // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- SVG sanitized in get_icon(). ?>
@@ -109,7 +102,7 @@ $sscribe_is_debug   = $sscribe_is_debug ?? false;
 										<span class="sscribe-lang-name"><?php esc_html_e( 'All Languages', 'sscribe-export-site-pages' ); ?></span>
 										<?php
 										/* translators: %d: Number of pages. */
-										printf( '<span class="sscribe-lang-count">%s</span>', esc_html( sprintf( __( '%d Pages', 'sscribe-export-site-pages' ), intval( $total_pages_all ) ) ) );
+										printf( '<span class="sscribe-lang-count">%s</span>', esc_html( sprintf( __( '%d Pages', 'sscribe-export-site-pages' ), intval( $sscribe_total_pages_all ) ) ) );
 										?>
 									</div>
 									<div class="sscribe-lang-selector">
@@ -118,7 +111,7 @@ $sscribe_is_debug   = $sscribe_is_debug ?? false;
 									</div>
 								</div>
 							</label>
-							<?php foreach ( $languages as $sscribe_lang ) : ?>
+							<?php foreach ( $sscribe_languages as $sscribe_lang ) : ?>
 								<label class="sscribe-lang-card-label">
 									<input type="radio" name="sscribe_language" value="<?php echo esc_attr( $sscribe_lang['code'] ); ?>">
 									<div class="sscribe-lang-card-inner">
@@ -153,7 +146,7 @@ $sscribe_is_debug   = $sscribe_is_debug ?? false;
 					<p class="sscribe-description">
 						<?php
 						/* translators: %d: Number of pages. */
-						echo esc_html( sprintf( __( 'Ready to export %d pages into beautiful documents.', 'sscribe-export-site-pages' ), intval( $total_pages_all ) ) );
+						echo esc_html( sprintf( __( 'Ready to export %d pages into beautiful documents.', 'sscribe-export-site-pages' ), intval( $sscribe_total_pages_all ) ) );
 						?>
 					</p>
 					<?php endif; ?>
@@ -191,7 +184,7 @@ $sscribe_is_debug   = $sscribe_is_debug ?? false;
 							);
 							$sscribe_first         = true;
 							foreach ( $sscribe_status_labels as $sscribe_status_key => $sscribe_status_label ) :
-								$sscribe_count    = isset( $status_counts[ $sscribe_status_key ] ) ? intval( $status_counts[ $sscribe_status_key ] ) : 0;
+								$sscribe_count    = isset( $sscribe_status_counts[ $sscribe_status_key ] ) ? intval( $sscribe_status_counts[ $sscribe_status_key ] ) : 0;
 								$sscribe_is_zero  = ( 0 === $sscribe_count );
 								$sscribe_is_first = $sscribe_first && ! $sscribe_is_zero;
 								if ( $sscribe_is_first ) {
@@ -398,8 +391,8 @@ $sscribe_is_debug   = $sscribe_is_debug ?? false;
 						<span class="sscribe-badge"><?php esc_html_e( 'Auto-deletes in 72 hours', 'sscribe-export-site-pages' ); ?></span>
 					</div>
 					<div class="sscribe-history-table" id="sscribe-history-table">
-						<?php if ( ! empty( $recent_exports ) ) : ?>
-							<?php foreach ( $recent_exports as $sscribe_export ) : ?>
+						<?php if ( ! empty( $sscribe_recent_exports ) ) : ?>
+							<?php foreach ( $sscribe_recent_exports as $sscribe_export ) : ?>
 								<div class="sscribe-history-row" data-filename="<?php echo esc_attr( $sscribe_export['filename'] ); ?>">
 									<div class="sscribe-history-file">
 										<div class="sscribe-file-icon">

@@ -198,19 +198,19 @@ class SScribe_Admin {
 	 */
 	public function render_admin_page(): void {
 		// Gather data for the template.
-		$wpml_active = $this->collector->is_wpml_active();
-		$languages   = $this->collector->get_wpml_languages();
+		$sscribe_wpml_active = $this->collector->is_wpml_active();
+		$sscribe_languages   = $this->collector->get_wpml_languages();
 
 		// For the "All Languages" card: count published pages in ALL languages combined.
-		$total_pages_all = $this->collector->get_page_count_only( '', 'publish' );
+		$sscribe_total_pages_all = $this->collector->get_page_count_only( '', 'publish' );
 
 		// For Page Status section: use empty string for all languages as default.
-		$default_language = '';
-		$status_counts    = $this->collector->get_post_status_counts( $default_language );
+		$default_language      = '';
+		$sscribe_status_counts = $this->collector->get_post_status_counts( $default_language );
 
 		// Enrich languages with per-language page counts.
-		if ( $wpml_active && ! empty( $languages ) ) {
-			foreach ( $languages as &$lang ) {
+		if ( $sscribe_wpml_active && ! empty( $sscribe_languages ) ) {
+			foreach ( $sscribe_languages as &$lang ) {
 				$lang['page_count'] = $this->collector->get_page_count_only( $lang['code'], 'publish' );
 			}
 			unset( $lang );
@@ -229,16 +229,16 @@ class SScribe_Admin {
 		}
 
 		if ( $sscribe_is_debug ) {
-			$sscribe_debug_info['wpml_active']     = $wpml_active;
-			$sscribe_debug_info['languages_count'] = count( $languages );
-			$sscribe_debug_info['total_pages_all'] = $total_pages_all;
-			$sscribe_debug_info['status_counts']   = $status_counts;
+			$sscribe_debug_info['wpml_active']     = $sscribe_wpml_active;
+			$sscribe_debug_info['languages_count'] = count( $sscribe_languages );
+			$sscribe_debug_info['total_pages_all'] = $sscribe_total_pages_all;
+			$sscribe_debug_info['status_counts']   = $sscribe_status_counts;
 
 			// Get detailed page info per language.
-			if ( $wpml_active && ! empty( $languages ) ) {
+			if ( $sscribe_wpml_active && ! empty( $sscribe_languages ) ) {
 				$all_page_ids_by_lang = array();
 
-				foreach ( $languages as $lang ) {
+				foreach ( $sscribe_languages as $lang ) {
 					$lang_code = $lang['code'];
 					$sscribe_debug_info['language_details'][ $lang_code ] = array(
 						'name'             => $lang['name'],
@@ -323,9 +323,9 @@ class SScribe_Admin {
 		}
 
 		// Gather recent exports.
-		$recent_exports = array();
-		$upload_dir     = wp_upload_dir();
-		$export_dir     = trailingslashit( $upload_dir['basedir'] ) . 'sscribe-exports/';
+		$sscribe_recent_exports = array();
+		$upload_dir             = wp_upload_dir();
+		$export_dir             = trailingslashit( $upload_dir['basedir'] ) . 'sscribe-exports/';
 
 		if ( file_exists( $export_dir ) ) {
 			$files = glob( $export_dir . 'sscribe-*.zip' );
@@ -350,8 +350,8 @@ class SScribe_Admin {
 					// Attempt to find matching WPML flag and name.
 					$flag_url  = '';
 					$lang_name = 'All Languages';
-					if ( $wpml_active && ! empty( $languages ) ) {
-						foreach ( $languages as $l ) {
+					if ( $sscribe_wpml_active && ! empty( $sscribe_languages ) ) {
+						foreach ( $sscribe_languages as $l ) {
 							if ( $l['code'] === $lang_code ) {
 								$flag_url  = isset( $l['flag_url'] ) ? $l['flag_url'] : '';
 								$lang_name = isset( $l['name'] ) ? $l['name'] : strtoupper( $lang_code );
@@ -360,7 +360,7 @@ class SScribe_Admin {
 						}
 					}
 
-					$recent_exports[] = array(
+					$sscribe_recent_exports[] = array(
 						'filename'  => $filename,
 						'url'       => add_query_arg(
 							array(
@@ -381,7 +381,7 @@ class SScribe_Admin {
 		}
 
 		// Gather active SEO plugins for template.
-		$seo_plugins = $this->seo_reader->get_active_seo_plugins();
+		$sscribe_seo_plugins = $this->seo_reader->get_active_seo_plugins();
 
 		include SSCRIBE_PLUGIN_DIR . 'admin/partials/sscribe-admin-display.php';
 	}
