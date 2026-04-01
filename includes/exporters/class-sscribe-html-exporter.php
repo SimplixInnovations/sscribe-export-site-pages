@@ -28,12 +28,21 @@ class SScribe_HTML_Exporter implements SScribe_Exporter_Interface {
 	private ?SScribe_Logger $logger = null;
 
 	/**
+	 * Filesystem instance.
+	 *
+	 * @var SScribe_Filesystem
+	 */
+	private SScribe_Filesystem $filesystem;
+
+	/**
 	 * Constructor.
 	 *
-	 * @param SScribe_Logger|null $logger Logger instance.
+	 * @param SScribe_Logger|null     $logger     Logger instance.
+	 * @param SScribe_Filesystem|null $filesystem Filesystem instance.
 	 */
-	public function __construct( ?SScribe_Logger $logger = null ) {
-		$this->logger = $logger ?? SScribe_Logger::instance( defined( 'SSCRIBE_DEBUG' ) && SSCRIBE_DEBUG );
+	public function __construct( ?SScribe_Logger $logger = null, ?SScribe_Filesystem $filesystem = null ) {
+		$this->logger     = $logger ?? SScribe_Logger::instance( defined( 'SSCRIBE_DEBUG' ) && SSCRIBE_DEBUG );
+		$this->filesystem = $filesystem ?? new SScribe_Filesystem();
 	}
 
 	/**
@@ -55,15 +64,16 @@ class SScribe_HTML_Exporter implements SScribe_Exporter_Interface {
 			$filename    = \SScribe_Exporter_Factory::build_filename( $page_data, $index, $total, 'html' );
 			$output_path = trailingslashit( $output_dir ) . $filename;
 
-			// phpcs:ignore WordPress.WP.AlternativeFunctions.file_system_operations_file_put_contents -- Output generation in temp dir for export.
-			$result = file_put_contents( $output_path, $html );
+			$result = $this->filesystem->put_contents( $output_path, $html );
 
-			if ( false === $result ) {
+			if ( ! $result ) {
 				$this->logger->error(
-					'HTML export failed: file_put_contents returned false',
+					'HTML export failed: filesystem write error',
 					array(
-						'page_id' => $page_id,
-						'path'    => $output_path,
+						'page_id'   => $page_id,
+						'path'      => $output_path,
+						'fs_error'  => $this->filesystem->get_last_error(),
+						'fs_method' => $this->filesystem->get_method(),
 					)
 				);
 

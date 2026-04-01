@@ -117,10 +117,14 @@ class SScribe_Admin {
 			return;
 		}
 
-		// Admin CSS.
+		// Admin CSS - use minified version in production.
+		$css_file = ( defined( 'WP_DEBUG' ) && WP_DEBUG )
+			? 'admin/css/sscribe-admin.css'
+			: 'admin/css/sscribe-admin.min.css';
+
 		wp_enqueue_style(
 			'sscribe-admin',
-			SSCRIBE_PLUGIN_URL . 'admin/css/sscribe-admin.css',
+			SSCRIBE_PLUGIN_URL . $css_file,
 			array(),
 			SSCRIBE_VERSION
 		);

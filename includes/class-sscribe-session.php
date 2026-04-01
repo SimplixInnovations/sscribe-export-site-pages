@@ -98,11 +98,11 @@ class SScribe_Session {
 		}
 
 		$option_name = $this->get_option_name( $session_id );
-		
+
 		// Bypass object caching to prevent reading stale session data across rapid AJAX requests.
 		wp_cache_delete( $option_name, 'options' );
-		
-		$raw         = get_option( $option_name );
+
+		$raw = get_option( $option_name );
 
 		if ( false === $raw ) {
 			return null;
