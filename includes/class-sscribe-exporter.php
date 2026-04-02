@@ -258,6 +258,16 @@ class SScribe_Exporter {
 			// ALWAYS log — this is an unexpected failure that must be visible regardless of WP_DEBUG.
 			// Note: File path removed for security - sensitive server info should not be in logs.
 			
+			// CRITICAL: Ensure cleanup even on failure to prevent memory/resource leaks.
+			if ( isset( $writer ) ) {
+				unset( $writer );
+			}
+			if ( isset( $php_word ) ) {
+				unset( $php_word );
+			}
+			$this->parser = null;
+			unset( $this->parser );
+			
 			// Capture memory context for diagnostics - helps identify memory exhaustion vs other failures.
 			$memory_context = sprintf(
 				'Memory: %s used / %s limit (peak: %s)',

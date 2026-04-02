@@ -216,6 +216,46 @@ class SScribe_Batch_Processor {
 	}
 
 	/**
+	 * Check if enough time remains before PHP timeout.
+	 *
+	 * @param float $batch_start_time The microtime when batch processing started.
+	 * @param int   $buffer_seconds   Seconds to keep as buffer before timeout.
+	 * @return bool True if time is available, false if approaching timeout.
+	 */
+	private function is_time_available( float $batch_start_time, int $buffer_seconds = 10 ): bool {
+		$max_execution = (int) ini_get( 'max_execution_time' );
+		
+		// If max_execution_time is 0 (unlimited) or not set, always return true.
+		if ( $max_execution <= 0 ) {
+			return true;
+		}
+
+		$elapsed      = microtime( true ) - $batch_start_time;
+		$remaining    = $max_execution - $elapsed;
+		
+		return $remaining > $buffer_seconds;
+	}
+
+	/**
+	 * Get remaining time before timeout.
+	 *
+	 * @param float $batch_start_time The microtime when batch processing started.
+	 * @return float Remaining seconds, or -1 if unlimited.
+	 */
+	private function get_remaining_time( float $batch_start_time ): float {
+		$max_execution = (int) ini_get( 'max_execution_time' );
+		
+		if ( $max_execution <= 0 ) {
+			return -1; // Unlimited.
+		}
+
+		$elapsed   = microtime( true ) - $batch_start_time;
+		$remaining = $max_execution - $elapsed;
+		
+		return max( 0, $remaining );
+	}
+
+	/**
 	 * Get memory usage as percentage.
 	 *
 	 * @return float Memory usage percentage.
@@ -821,9 +861,27 @@ class SScribe_Batch_Processor {
 		$current_page_title      = '';
 		$batch_start_time        = microtime( true );
 		$memory_paused           = false; // Track if batch was paused due to memory.
+		$timeout_paused          = false; // Track if batch was paused due to timeout.
 		$processed_in_this_batch = 0;
 
 		foreach ( $batch as $page_id ) {
+			// Timeout check - pause batch if approaching PHP max_execution_time.
+			// This prevents fatal timeout errors during batch processing.
+			$timeout_buffer = (int) apply_filters( 'sscribe_timeout_buffer_seconds', 15 );
+			if ( $processed_in_this_batch > 0 && ! $this->is_time_available( $batch_start_time, $timeout_buffer ) ) {
+				$timeout_paused = true;
+				$this->logger->debug(
+					'Timeout approaching, pausing batch for continuation',
+					array(
+						'elapsed_time'   => round( microtime( true ) - $batch_start_time, 2 ),
+						'remaining_time' => round( $this->get_remaining_time( $batch_start_time ), 2 ),
+						'processed'      => $processed,
+						'total'          => $total,
+					)
+				);
+				break;
+			}
+
 			// Only pause for memory if we have successfully processed at least 1 page in this request.
 			// This prevents an infinite loop where the first page continually aborts due to high base memory.
 			$memory_threshold_mb = (int) apply_filters( 'sscribe_memory_threshold_mb', 10 );
@@ -1122,6 +1180,14 @@ class SScribe_Batch_Processor {
 
 		$this->restore_ob_level( $ob_level_before );
 
+		// Build response with pause status for memory or timeout.
+		$paused_reason = '';
+		if ( $memory_paused ) {
+			$paused_reason = 'memory';
+		} elseif ( $timeout_paused ) {
+			$paused_reason = 'timeout';
+		}
+
 		$response = array(
 			'status'         => 'processing',
 			'processed'      => $processed,
@@ -1130,6 +1196,8 @@ class SScribe_Batch_Processor {
 			'current_page'   => $current_page_title,
 			'time_remaining' => $time_remaining,
 			'memory_paused'  => $memory_paused,
+			'timeout_paused' => $timeout_paused,
+			'paused_reason'  => $paused_reason,
 			'message'        => $memory_paused
 				? sprintf(
 					/* translators: 1: Current page number, 2: Total pages. */
@@ -1137,16 +1205,26 @@ class SScribe_Batch_Processor {
 					$processed,
 					$total
 				)
-				: sprintf(
-					/* translators: 1: Current page number, 2: Total pages. */
-					__( 'Processing %1$d of %2$d pages...', 'sscribe-export-site-pages' ),
-					$processed,
-					$total
+				: ( $timeout_paused
+					? sprintf(
+						/* translators: 1: Current page number, 2: Total pages. */
+						__( 'Processing %1$d of %2$d pages... (Paused to prevent timeout - will resume automatically)', 'sscribe-export-site-pages' ),
+						$processed,
+						$total
+					)
+					: sprintf(
+						/* translators: 1: Current page number, 2: Total pages. */
+						__( 'Processing %1$d of %2$d pages...', 'sscribe-export-site-pages' ),
+						$processed,
+						$total
+					)
 				),
 		);
 
 		if ( $memory_paused ) {
 			$response['resume_guidance'] = __( 'The export paused briefly to manage server memory. It will resume automatically. No action needed.', 'sscribe-export-site-pages' );
+		} elseif ( $timeout_paused ) {
+			$response['resume_guidance'] = __( 'The export paused briefly to prevent a server timeout. It will resume automatically. No action needed.', 'sscribe-export-site-pages' );
 		}
 
 		$sscribe_is_debug = defined( 'SSCRIBE_DEBUG' ) && SSCRIBE_DEBUG;
@@ -1158,6 +1236,7 @@ class SScribe_Batch_Processor {
 				'memory_usage'        => size_format( memory_get_usage( true ) ),
 				'memory_peak'         => size_format( memory_get_peak_usage( true ) ),
 				'avg_time_per_page'   => round( $avg_time_per_page, 3 ),
+				'elapsed_time'        => round( microtime( true ) - $batch_start_time, 2 ),
 			);
 		}
 
@@ -1240,9 +1319,17 @@ class SScribe_Batch_Processor {
 				$this->export_log->flush();
 			}
 
+			// Clean up temp directory to prevent disk space leak on failure.
+			if ( ! empty( $session['temp_dir'] ) && is_dir( $session['temp_dir'] ) ) {
+				$this->zip_handler->delete_directory( $session['temp_dir'] );
+			}
+
 			// Clean up the session and lock so user can retry.
 			$this->session->delete( $session_id );
 			delete_transient( 'sscribe_lock_' . $session_id );
+
+			// Run self-heal to clear any orphaned data from this failed export.
+			$this->diagnostics->self_heal();
 
 			$error_response = array(
 				'message' => __( 'Failed to create ZIP package. Please try again.', 'sscribe-export-site-pages' ),
