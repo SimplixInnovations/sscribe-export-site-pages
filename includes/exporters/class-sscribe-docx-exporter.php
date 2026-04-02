@@ -67,19 +67,35 @@ class SScribe_DOCX_Exporter implements SScribe_Exporter_Interface {
 				return SScribe_Result::success( array( 'path' => $result ) );
 			}
 
-			$error_message = ( $this->exporter->get_last_error() ) ? $this->exporter->get_last_error() : 'Unknown export error';
+			// Provide detailed error context for debugging - memory exhaustion is the most common failure.
+			$last_error = $this->exporter->get_last_error();
+			$memory_context = sprintf(
+				'Memory: %s / %s',
+				size_format( memory_get_usage( true ) ),
+				ini_get( 'memory_limit' )
+			);
+			
+			$error_message = $last_error 
+				? $last_error 
+				: sprintf( 'Unknown export error. %s', $memory_context );
 
 			$this->logger->error(
 				'DOCX export failed',
 				array(
-					'page_id' => $page_id,
-					'error'   => $error_message,
+					'page_id'        => $page_id,
+					'error'          => $error_message,
+					'memory_usage'   => size_format( memory_get_usage( true ) ),
+					'memory_peak'    => size_format( memory_get_peak_usage( true ) ),
+					'memory_limit'   => ini_get( 'memory_limit' ),
 				)
 			);
 
 			return SScribe_Result::failure(
 				$error_message,
-				array( 'page_id' => $page_id )
+				array( 
+					'page_id'      => $page_id,
+					'memory_usage' => size_format( memory_get_usage( true ) ),
+				)
 			);
 
 		} catch ( \Throwable $e ) {

@@ -166,6 +166,10 @@ class SScribe_Content_Parser {
 
 		$body = $dom->getElementsByTagName( 'body' )->item( 0 );
 		if ( ! $body ) {
+			// CRITICAL: Clear DOMDocument before returning to free memory.
+			// DOMDocument can retain large amounts of memory for complex HTML.
+			unset( $body );
+			$dom = null;
 			unset( $dom );
 			return $elements;
 		}
@@ -183,6 +187,11 @@ class SScribe_Content_Parser {
 			}
 		}
 
+		// CRITICAL: Explicitly release DOMDocument to prevent memory accumulation.
+		// DOMDocument retains the entire parsed tree in memory even after processing.
+		// For large HTML documents (5MB+), this can consume significant memory.
+		unset( $body );
+		$dom = null;
 		unset( $dom );
 
 		return $elements;

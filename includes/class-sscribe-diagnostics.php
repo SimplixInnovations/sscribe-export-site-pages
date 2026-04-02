@@ -111,15 +111,26 @@ class SScribe_Diagnostics {
 		$used_mb      = round( memory_get_usage( true ) / 1024 / 1024 );
 		$available_mb = $memory_mb - $used_mb;
 
-		$estimate_per_page = 2;
+		// Calculate estimated memory requirement based on formats.
+		$estimate_per_page = 2; // Base 2MB for page data collection.
 		if ( in_array( 'docx', $formats, true ) ) {
-			$estimate_per_page += 3;
+			$estimate_per_page += 3; // PHPWord overhead.
 		}
 		if ( in_array( 'pdf', $formats, true ) ) {
-			$estimate_per_page += 5;
+			$estimate_per_page += 5; // DomPDF overhead.
+		}
+		if ( in_array( 'markdown', $formats, true ) ) {
+			$estimate_per_page += 0.5;
+		}
+		if ( in_array( 'html', $formats, true ) ) {
+			$estimate_per_page += 1;
 		}
 
-		$estimated_total_mb = ( $page_count * $estimate_per_page ) / 1024;
+		// Total estimated memory for all pages (with 50MB overhead).
+		$estimated_total_mb = ( $page_count * $estimate_per_page ) + 50;
+		
+		// Memory safety margin (80% of available).
+		$safe_available_mb = $available_mb * 0.8;
 
 		if ( $memory_mb < 128 ) {
 			return array(
@@ -127,6 +138,37 @@ class SScribe_Diagnostics {
 				'status'  => 'error',
 				'message' => sprintf( 'Memory limit: %dMB. Minimum required: 128MB. Increase memory_limit in php.ini.', $memory_mb ),
 				'fix'     => 'Add define( "WP_MEMORY_LIMIT", "256M" ); to wp-config.php',
+			);
+		}
+
+		// Check if the export will likely fail due to memory constraints.
+		if ( $estimated_total_mb > $safe_available_mb ) {
+			$recommended_memory = ceil( $estimated_total_mb / 256 ) * 256;
+			
+			if ( $estimated_total_mb > $available_mb ) {
+				return array(
+					'name'    => 'Memory Forecast',
+					'status'  => 'error',
+					'message' => sprintf(
+						'Export requires ~%dMB but only %dMB available. Increase memory to %dMB+ or reduce page count.',
+						$estimated_total_mb,
+						$available_mb,
+						$recommended_memory
+					),
+					'fix'     => sprintf( 'Add define( "WP_MEMORY_LIMIT", "%dM" ); to wp-config.php or export fewer pages.', $recommended_memory ),
+				);
+			}
+			
+			return array(
+				'name'    => 'Memory Forecast',
+				'status'  => 'warning',
+				'message' => sprintf(
+					'Export will use ~%dMB of %dMB available (%d%%). Consider increasing memory for safety.',
+					$estimated_total_mb,
+					$available_mb,
+					round( ( $estimated_total_mb / $available_mb ) * 100 )
+				),
+				'fix'     => 'Increase memory_limit to provide more headroom for large exports',
 			);
 		}
 
@@ -142,7 +184,7 @@ class SScribe_Diagnostics {
 		return array(
 			'name'    => 'Memory',
 			'status'  => 'ok',
-			'message' => sprintf( '%dMB available (limit: %dMB, used: %dMB)', $available_mb, $memory_mb, $used_mb ),
+			'message' => sprintf( '%dMB available (limit: %dMB, used: %dMB, estimated need: %dMB)', $available_mb, $memory_mb, $used_mb, $estimated_total_mb ),
 		);
 	}
 

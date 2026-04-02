@@ -232,6 +232,136 @@ class SScribe_Batch_Processor {
 	}
 
 	/**
+	 * Optimize batch size based on available memory.
+	 *
+	 * Dynamically adjusts the batch size to prevent memory exhaustion.
+	 * Estimates ~3MB per page average for DOCX generation, with 20% safety margin.
+	 *
+	 * @return void
+	 */
+	private function optimize_batch_size(): void {
+		$memory_limit = wp_convert_hr_to_bytes( ini_get( 'memory_limit' ) );
+		$current_usage = memory_get_usage( true );
+		$available = $memory_limit - $current_usage;
+
+		// Estimate memory per page:
+		// - Page data collection: ~500KB
+		// - Content parsing (DOMDocument): ~1MB
+		// - PHPWord DOCX generation: ~2-3MB
+		// Total: ~4MB average per page, use 5MB for safety margin.
+		$memory_per_page = 5 * 1024 * 1024;
+
+		// Reserve 20% safety margin.
+		$safe_available = $available * 0.8;
+		
+		// Calculate safe batch size.
+		$safe_batch_size = (int) floor( $safe_available / $memory_per_page );
+		
+		// Apply configured batch size as upper limit, but allow reduction for memory.
+		$configured_size = (int) apply_filters( 'sscribe_batch_size', 5 );
+		$this->batch_size = max( 1, min( $safe_batch_size, $configured_size, 20 ) );
+
+		$this->logger->debug(
+			'Batch size optimized for available memory',
+			array(
+				'memory_limit'      => size_format( $memory_limit ),
+				'current_usage'     => size_format( $current_usage ),
+				'available'         => size_format( $available ),
+				'safe_available'    => size_format( $safe_available ),
+				'memory_per_page'   => size_format( $memory_per_page ),
+				'configured_size'   => $configured_size,
+				'optimized_size'    => $this->batch_size,
+			)
+		);
+	}
+
+	/**
+	 * Calculate estimated memory requirement for an export.
+	 *
+	 * @param int   $page_count Number of pages to export.
+	 * @param array $formats    Export formats selected.
+	 * @return int Estimated memory requirement in bytes.
+	 */
+	private function calculate_export_memory_requirement( int $page_count, array $formats ): int {
+		// Base memory per page varies by format:
+		// - HTML: ~1MB
+		// - Markdown: ~0.5MB
+		// - DOCX: ~5MB (PHPWord + DOMDocument)
+		// - PDF: ~8MB (DomPDF + rendering)
+		$memory_per_page = 1; // Base 1MB for page data collection.
+
+		if ( in_array( 'docx', $formats, true ) ) {
+			$memory_per_page += 4; // PHPWord overhead.
+		}
+		if ( in_array( 'pdf', $formats, true ) ) {
+			$memory_per_page += 7; // DomPDF overhead.
+		}
+		if ( in_array( 'markdown', $formats, true ) ) {
+			$memory_per_page += 0.5;
+		}
+
+		// Convert to bytes, add 50MB overhead for PHP/WordPress core.
+		$total_mb = ( $page_count * $memory_per_page ) + 50;
+		
+		return $total_mb * 1024 * 1024;
+	}
+
+	/**
+	 * Get memory warning message if export may fail due to memory constraints.
+	 *
+	 * @param int   $page_count Number of pages to export.
+	 * @param array $formats    Export formats selected.
+	 * @return array|null Warning array with 'level' and 'message', or null if no warning.
+	 */
+	private function get_memory_warning( int $page_count, array $formats ): ?array {
+		$memory_limit = wp_convert_hr_to_bytes( ini_get( 'memory_limit' ) );
+		$current_usage = memory_get_usage( true );
+		$available = $memory_limit - $current_usage;
+		
+		$estimated_need = $this->calculate_export_memory_requirement( $page_count, $formats );
+		$safe_available = $available * 0.8; // 20% safety margin.
+		
+		// No warning if we have enough memory.
+		if ( $estimated_need <= $safe_available ) {
+			return null;
+		}
+		
+		$estimated_mb = round( $estimated_need / 1024 / 1024 );
+		$available_mb = round( $available / 1024 / 1024 );
+		$limit_mb = round( $memory_limit / 1024 / 1024 );
+		$recommended_mb = ceil( $estimated_mb / 128 ) * 128;
+		
+		if ( $estimated_need > $available ) {
+			return array(
+				'level'   => 'error',
+				'message' => sprintf(
+					/* translators: 1: Estimated memory needed, 2: Available memory, 3: Recommended memory */
+					__( 'Warning: Export requires ~%1$dMB but only %2$dMB available. Increase PHP memory_limit to %3$dMB+ for reliable export.', 'sscribe-export-site-pages' ),
+					$estimated_mb,
+					$available_mb,
+					$recommended_mb
+				),
+				'estimated_mb' => $estimated_mb,
+				'available_mb' => $available_mb,
+				'recommended_mb' => $recommended_mb,
+			);
+		}
+		
+		return array(
+			'level'   => 'warning',
+			'message' => sprintf(
+				/* translators: 1: Estimated memory needed, 2: Available memory, 3: Percentage */
+				__( 'Note: Export will use ~%1$dMB of %2$dMB available (%3$d%%). Consider increasing memory for safety.', 'sscribe-export-site-pages' ),
+				$estimated_mb,
+				$available_mb,
+				round( ( $estimated_mb / $available_mb ) * 100 )
+			),
+			'estimated_mb' => $estimated_mb,
+			'available_mb' => $available_mb,
+		);
+	}
+
+	/**
 	 * Get the required capability for export operations.
 	 *
 	 * @return string WordPress capability slug.
@@ -428,11 +558,15 @@ class SScribe_Batch_Processor {
 		$this->export_log = new SScribe_Export_Log( $session_id );
 		$this->export_log->set_total_pages( $total );
 
+		// Calculate memory forecast and warn if export may fail.
+		$memory_warning = $this->get_memory_warning( $total, $formats );
+
 		$response = array(
-			'session_id' => $session_id,
-			'total'      => $total,
-			'batch_size' => $this->batch_size,
-			'message'    => sprintf(
+			'session_id'     => $session_id,
+			'total'          => $total,
+			'batch_size'     => $this->batch_size,
+			'memory_warning' => $memory_warning,
+			'message'        => sprintf(
 				/* translators: %d: Number of pages found. */
 				__( 'Found %d pages. Starting export...', 'sscribe-export-site-pages' ),
 				$total
@@ -491,6 +625,9 @@ class SScribe_Batch_Processor {
 			set_time_limit( $max_time );
 		}
 		wp_raise_memory_limit( 'admin' );
+
+		// Optimize batch size based on available memory to prevent exhaustion.
+		$this->optimize_batch_size();
 
 		$ob_level_before = ob_get_level();
 		ob_start();
@@ -778,43 +915,89 @@ class SScribe_Batch_Processor {
 			$export_errors      = array();
 			$successful_formats = array();
 
-			foreach ( $formats as $format ) {
-				$exporter = \SScribe_Exporter_Factory::create( $format );
-
-				if ( ! $exporter ) {
-					continue;
+			// Pre-export memory check - skip page if memory critically low.
+			// This prevents fatal memory errors during export.
+			$pre_export_memory_mb = (int) apply_filters( 'sscribe_pre_export_memory_threshold_mb', 5 );
+			if ( ! $this->is_memory_available( $pre_export_memory_mb ) ) {
+				$error_msg = sprintf(
+					/* translators: %d: Page ID. */
+					__( 'Skipped page %d - insufficient memory to proceed.', 'sscribe-export-site-pages' ),
+					$page_id
+				);
+				$this->logger->debug(
+					"Skipped page due to memory: {$page_id}",
+					array(
+						'page_id'       => $page_id,
+						'memory_usage'  => size_format( memory_get_usage( true ) ),
+						'memory_limit'  => ini_get( 'memory_limit' ),
+					)
+				);
+				$errors[] = $error_msg;
+				if ( $this->export_log ) {
+					$this->export_log->log_page_failure( $page_id, 'Insufficient memory for export' );
+					$this->export_log->flush();
 				}
+				++$processed;
+				continue;
+			}
 
-				$result = $exporter->export( $page_data, $temp_dir, $page_index, $total );
+			try {
+				foreach ( $formats as $format ) {
+					$exporter = \SScribe_Exporter_Factory::create( $format );
 
-				if ( $result->is_success() ) {
-					$export_success       = true;
-					$successful_formats[] = $format;
-					$file_path            = $result->get_data()['path'] ?? '';
-
-					if ( $this->export_log ) {
-						$this->export_log->log_format_result( $page_id, $format, true, $file_path );
+					if ( ! $exporter ) {
+						continue;
 					}
 
-					$this->logger->debug(
-						ucfirst( $format ) . ' generated successfully',
-						array(
-							'file'    => basename( $file_path ),
-							'page_id' => $page_id,
-							'format'  => $format,
-						)
-					);
-				} else {
-					$export_errors[] = sprintf(
-						'%s: %s',
-						strtoupper( $format ),
-						$result->get_error()
-					);
+					$result = $exporter->export( $page_data, $temp_dir, $page_index, $total );
 
-					if ( $this->export_log ) {
-						$this->export_log->log_format_result( $page_id, $format, false, '', $result->get_error() );
+					if ( $result->is_success() ) {
+						$export_success       = true;
+						$successful_formats[] = $format;
+						$file_path            = $result->get_data()['path'] ?? '';
+
+						if ( $this->export_log ) {
+							$this->export_log->log_format_result( $page_id, $format, true, $file_path );
+						}
+
+						$this->logger->debug(
+							ucfirst( $format ) . ' generated successfully',
+							array(
+								'file'    => basename( $file_path ),
+								'page_id' => $page_id,
+								'format'  => $format,
+							)
+						);
+					} else {
+						$export_errors[] = sprintf(
+							'%s: %s',
+							strtoupper( $format ),
+							$result->get_error()
+						);
+
+						if ( $this->export_log ) {
+							$this->export_log->log_format_result( $page_id, $format, false, '', $result->get_error() );
+						}
 					}
 				}
+			} catch ( \Error $e ) {
+				// Catch fatal errors (like out of memory) that would otherwise crash the entire export.
+				$error_msg = sprintf(
+					/* translators: %s: Error message. */
+					__( 'Critical error: %s', 'sscribe-export-site-pages' ),
+					$e->getMessage()
+				);
+				$export_errors[] = $error_msg;
+				
+				$this->logger->error(
+					'Critical error during page export',
+					array(
+						'page_id'      => $page_id,
+						'error'        => $e->getMessage(),
+						'memory_usage' => size_format( memory_get_usage( true ) ),
+						'memory_peak'  => size_format( memory_get_peak_usage( true ) ),
+					)
+				);
 			}
 
 			$page_duration = round( microtime( true ) - $page_start_time, 3 );
@@ -861,8 +1044,21 @@ class SScribe_Batch_Processor {
 				clean_post_cache( $page_id );
 			}
 
+			// CRITICAL: Explicitly release page data and exporter objects to prevent memory accumulation.
+			// PHPWord and DOMDocument objects can consume 2-5MB per page and are not automatically
+			// garbage collected between batch iterations due to circular references.
+			$page_data = null;
+			$exporter  = null;
+			unset( $page_data, $exporter );
+
 			++$processed;
 			++$processed_in_this_batch;
+
+			// Force garbage collection every 3 pages to reclaim memory from circular references.
+			// This is critical for PHPWord objects which retain references to parent documents.
+			if ( 0 === $processed % 3 && function_exists( 'gc_collect_cycles' ) ) {
+				gc_collect_cycles();
+			}
 		}
 
 		$batch_duration = microtime( true ) - $batch_start_time;
