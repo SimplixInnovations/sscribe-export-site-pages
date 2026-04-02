@@ -11,9 +11,26 @@ on:
       - develop
 
 jobs:
+  version-check:
+    name: Version Sync Check
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup PHP
+        uses: shivammathur/setup-php@v2
+        with:
+          php-version: '8.4'
+          coverage: none
+
+      - name: Verify version synchronization
+        run: php scripts/verify-version-sync.php
+
   lint:
     name: PHP ${{ matrix.php-version }}
     runs-on: ubuntu-latest
+    needs: version-check
     strategy:
       matrix:
         php-version: ['8.2', '8.3', '8.4']
