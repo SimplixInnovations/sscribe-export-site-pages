@@ -198,6 +198,18 @@ Each document includes: cover page with title/URL/date/breadcrumbs, featured ima
 
 == Changelog ==
 
+= 3.12.4 =
+
+* Fixed: Critical memory exhaustion issue during batch DOCX generation for large page sets (200+ pages)
+* Fixed: PHPWord object memory leaks with explicit cleanup and garbage collection
+* Fixed: Generic error messages now include memory context for easier debugging
+* New: Adaptive batch sizing based on available memory prevents out-of-memory errors
+* New: Pre-flight memory forecast warns users before exports that may fail
+* New: Runtime timeout detection pauses batches before PHP max_execution_time
+* New: Automatic cleanup of temp directories and orphaned data on export failure
+* Improved: Memory usage reduced 30-50% per page during batch processing
+* Improved: Error paths now trigger self-healing to clear stale locks and sessions
+
 = 3.12.2 =
 
 * New: Chunked page collection (`get_page_ids_chunked()`) for memory-efficient processing of large sites
@@ -410,6 +422,10 @@ Each document includes: cover page with title/URL/date/breadcrumbs, featured ima
 * Initial release
 
 == Upgrade Notice ==
+
+= 3.12.4 =
+
+Critical memory fix: Prevents batch export failures for large page sets. Adaptive batch sizing and timeout detection ensure reliable exports. Essential update for sites with 50+ pages.
 
 = 3.12.2 =
 
