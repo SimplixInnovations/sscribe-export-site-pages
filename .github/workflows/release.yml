@@ -9,9 +9,36 @@ permissions:
   contents: write
 
 jobs:
+  verify:
+    name: Pre-release Verification
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup PHP
+        uses: shivammathur/setup-php@v2
+        with:
+          php-version: '8.4'
+          coverage: none
+
+      - name: Verify version synchronization
+        run: php scripts/verify-version-sync.php
+
+      - name: Verify tag matches version
+        run: |
+          TAG_VERSION="${GITHUB_REF#refs/tags/v}"
+          PLUGIN_VERSION=$(grep -oP "define\s*\(\s*['\"]SSCRIBE_VERSION['\"]\s*,\s*['\"]\K[0-9.]+" sscribe-export-site-pages.php)
+          if [ "$TAG_VERSION" != "$PLUGIN_VERSION" ]; then
+            echo "Error: Tag version ($TAG_VERSION) does not match plugin version ($PLUGIN_VERSION)"
+            exit 1
+          fi
+          echo "✓ Tag version matches plugin version: $TAG_VERSION"
+
   test:
     name: Run Tests Before Release
     runs-on: ubuntu-latest
+    needs: verify
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
@@ -50,6 +77,9 @@ jobs:
 
       - name: Install production dependencies
         run: composer install --no-dev --optimize-autoloader --no-progress
+
+      - name: Minify CSS assets
+        run: composer run-script css:minify
 
       - name: Create WordPress.org package
         run: |
@@ -102,6 +132,7 @@ jobs:
           unzip -l sscribe-export-site-pages.zip | grep -q "sscribe-export-site-pages/includes/class-sscribe.php" || (echo "ERROR: Core class missing!" && exit 1)
           unzip -l sscribe-export-site-pages.zip | grep -q "sscribe-export-site-pages/vendor/" || (echo "ERROR: vendor directory missing!" && exit 1)
           unzip -l sscribe-export-site-pages.zip | grep -q "sscribe-export-site-pages/assets/icons/" || (echo "ERROR: assets/icons missing!" && exit 1)
+          unzip -l sscribe-export-site-pages.zip | grep -q "sscribe-export-site-pages/admin/css/sscribe-admin.min.css" || echo "WARNING: Minified CSS missing (optional)"
           echo ""
           echo "=== Verifying excluded files ==="
           if unzip -l sscribe-export-site-pages.zip | grep -q "PCLZip"; then echo "ERROR: PCLZip should be excluded!" && exit 1; fi

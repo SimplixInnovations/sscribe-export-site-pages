@@ -42,10 +42,11 @@
         "cs": "phpcs -d memory_limit=512M --standard=phpcs.xml",
         "cs:fix": "phpcbf -d memory_limit=512M --standard=phpcs.xml",
         "css:minify": "php -r \"file_put_contents('admin/css/sscribe-admin.min.css', preg_replace(array('/\\/\\*[^*]*\\*+(?:[^*\\/][^*]*\\*+)*\\//', '/[\\s]+/', '/\\s*([{};:,])\\s*/'), array('', '\\n', '\\$1'), file_get_contents('admin/css/sscribe-admin.css')));\"",
+        "version:check": "php scripts/verify-version-sync.php",
         "clean": "composer clean:cache && composer clean:coverage",
         "clean:cache": "php -r \"array_map('unlink', glob('.cache/**/*.*')); array_map('rmdir', glob('.cache/*', GLOB_ONLYDIR)); is_dir('.cache') && rmdir('.cache'); echo 'Cache cleared.\\n';\"",
         "clean:coverage": "php -r \"is_dir('coverage') && array_map('unlink', glob('coverage/*.*')) && rmdir('coverage'); echo 'Coverage cleared.\\n';\"",
-        "ci": "composer test && composer stan && composer cs",
+        "ci": "composer version:check && composer test && composer stan && composer cs",
         "build": "composer css:minify"
     },
     "config": {
