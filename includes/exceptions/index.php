@@ -1,6 +1,8 @@
 <?php
 /**
- * Index file to prevent directory listing.
+ * Prevents direct access to the exceptions directory.
+ *
+ * @package SScribe
  */
 
 // Silence is golden.

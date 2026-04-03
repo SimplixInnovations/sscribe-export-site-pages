@@ -198,6 +198,10 @@ Each document includes: cover page with title/URL/date/breadcrumbs, featured ima
 
 == Changelog ==
 
+= 3.13.0 =
+
+Enterprise-grade release with comprehensive enhancements: Exception hierarchy with detailed error codes (E_EXPORT_001-E_EXPORT_999), PSR-3 compatible logger with database logging and Query Monitor integration, security audit trail with database-backed event logging, comprehensive input validation class with 15 validation methods, streaming DOCX generator for memory-efficient large exports, export statistics tracking and analytics, rate limiting with per-action configuration, WCAG 2.1 AA accessibility improvements (modal focus traps, ARIA live region updates, skip links, keyboard navigation), inline preflight banners replacing confirm() dialogs, consistent loading states for all AJAX operations, export preview feature with sample content display, production packaging script with auto-version detection, version synchronization across all references (header, constant, stable tag, CSS), and 25 new unit/integration/security tests. Recommended for all users.
+
 = 3.12.6 =
 
 * New: Version sync verification script for CI/CD reliability

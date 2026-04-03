@@ -123,12 +123,13 @@ class SScribe_Diagnostics {
 			$estimate_per_page += 0.5;
 		}
 		if ( in_array( 'html', $formats, true ) ) {
+			// phpcs:ignore Squiz.Operators.IncrementDecrementUsage.Found -- Float increment, not integer.
 			$estimate_per_page += 1;
 		}
 
 		// Total estimated memory for all pages (with 50MB overhead).
 		$estimated_total_mb = ( $page_count * $estimate_per_page ) + 50;
-		
+
 		// Memory safety margin (80% of available).
 		$safe_available_mb = $available_mb * 0.8;
 
@@ -144,7 +145,7 @@ class SScribe_Diagnostics {
 		// Check if the export will likely fail due to memory constraints.
 		if ( $estimated_total_mb > $safe_available_mb ) {
 			$recommended_memory = ceil( $estimated_total_mb / 256 ) * 256;
-			
+
 			if ( $estimated_total_mb > $available_mb ) {
 				return array(
 					'name'    => 'Memory Forecast',
@@ -158,7 +159,7 @@ class SScribe_Diagnostics {
 					'fix'     => sprintf( 'Add define( "WP_MEMORY_LIMIT", "%dM" ); to wp-config.php or export fewer pages.', $recommended_memory ),
 				);
 			}
-			
+
 			return array(
 				'name'    => 'Memory Forecast',
 				'status'  => 'warning',

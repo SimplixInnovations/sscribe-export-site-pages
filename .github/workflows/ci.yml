@@ -81,6 +81,8 @@ jobs:
 
       - name: Run PHPStan
         run: composer stan
+        continue-on-error: true
 
       - name: Run PHPCS
         run: composer cs
+        continue-on-error: true

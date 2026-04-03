@@ -83,7 +83,7 @@ class SScribe_Exception extends Exception {
 	 * @param string         $message          Human-readable error message.
 	 * @param int            $http_status_code HTTP status code (default 500).
 	 * @param array          $error_data       Additional error context.
-	 * @param Throwable|null $previous     Previous exception for chaining.
+	 * @param Throwable|null $previous         Previous exception for chaining.
 	 */
 	public function __construct(
 		string $error_code,

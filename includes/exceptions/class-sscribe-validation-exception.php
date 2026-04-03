@@ -22,11 +22,15 @@ class SScribe_Validation_Exception extends SScribe_Exception {
 
 	/**
 	 * Field that failed validation.
+	 *
+	 * @var string
 	 */
 	protected string $field;
 
 	/**
 	 * Validation rule that failed.
+	 *
+	 * @var string
 	 */
 	protected string $rule;
 
@@ -61,8 +65,8 @@ class SScribe_Validation_Exception extends SScribe_Exception {
 
 		$message = $message ?? sprintf(
 			'Validation failed for field "%s": %s',
-			$field ?: 'unknown',
-			$rule ?: 'unknown rule'
+			'' !== $field ? $field : 'unknown',
+			'' !== $rule ? $rule : 'unknown rule'
 		);
 
 		parent::__construct(
@@ -76,6 +80,8 @@ class SScribe_Validation_Exception extends SScribe_Exception {
 
 	/**
 	 * Get the field that failed validation.
+	 *
+	 * @return string
 	 */
 	public function get_field(): string {
 		return $this->field;
@@ -83,6 +89,8 @@ class SScribe_Validation_Exception extends SScribe_Exception {
 
 	/**
 	 * Get the validation rule that failed.
+	 *
+	 * @return string
 	 */
 	public function get_rule(): string {
 		return $this->rule;

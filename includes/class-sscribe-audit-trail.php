@@ -37,11 +37,15 @@ class SScribe_Audit_Trail {
 
 	/**
 	 * Table name for audit logs.
+	 *
+	 * @var string
 	 */
 	private readonly string $table_name;
 
 	/**
 	 * Whether database logging is enabled.
+	 *
+	 * @var bool
 	 */
 	private readonly bool $enabled;
 
@@ -56,6 +60,8 @@ class SScribe_Audit_Trail {
 
 	/**
 	 * Check if the audit table exists.
+	 *
+	 * @return bool True if table exists.
 	 */
 	private function table_exists(): bool {
 		global $wpdb;
@@ -112,6 +118,9 @@ class SScribe_Audit_Trail {
 
 	/**
 	 * Sanitize context by removing sensitive data.
+	 *
+	 * @param array $context Raw context data.
+	 * @return array Sanitized context.
 	 */
 	private function sanitize_context( array $context ): array {
 		$forbidden_keys = array(
@@ -144,6 +153,8 @@ class SScribe_Audit_Trail {
 	 * Get client IP address.
 	 *
 	 * Prioritizes REMOTE_ADDR to prevent IP spoofing via HTTP headers.
+	 *
+	 * @return string Client IP address.
 	 */
 	private function get_client_ip(): string {
 		$ip = '';
@@ -161,6 +172,8 @@ class SScribe_Audit_Trail {
 
 	/**
 	 * Get user agent string.
+	 *
+	 * @return string User agent or 'Unknown'.
 	 */
 	private function get_user_agent(): string {
 		if ( ! empty( $_SERVER['HTTP_USER_AGENT'] ) ) {
@@ -171,6 +184,8 @@ class SScribe_Audit_Trail {
 
 	/**
 	 * Get request URI.
+	 *
+	 * @return string Request URI or empty string.
 	 */
 	private function get_request_uri(): string {
 		if ( ! empty( $_SERVER['REQUEST_URI'] ) ) {
@@ -231,6 +246,8 @@ class SScribe_Audit_Trail {
 		$args[]       = $limit;
 		$args[]       = $offset;
 
+		// phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared
+		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
 		return $wpdb->get_results(
 			$wpdb->prepare(
 				"SELECT * FROM {$this->table_name} WHERE {$where_clause} ORDER BY timestamp DESC LIMIT %d OFFSET %d",
@@ -267,6 +284,8 @@ class SScribe_Audit_Trail {
 
 		$where_clause = implode( ' AND ', $where );
 
+		// phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared
+		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
 		return $wpdb->get_results(
 			$wpdb->prepare(
 				"SELECT event, COUNT(*) as count FROM {$this->table_name} WHERE {$where_clause} GROUP BY event ORDER BY count DESC",
@@ -290,6 +309,8 @@ class SScribe_Audit_Trail {
 
 		$cutoff = gmdate( 'Y-m-d H:i:s', strtotime( "-{$days} days" ) );
 
+		// phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared
+		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
 		return $wpdb->query(
 			$wpdb->prepare(
 				"DELETE FROM {$this->table_name} WHERE timestamp < %s",
@@ -300,6 +321,8 @@ class SScribe_Audit_Trail {
 
 	/**
 	 * Create the audit log table.
+	 *
+	 * @return void
 	 */
 	public static function create_table(): void {
 		global $wpdb;

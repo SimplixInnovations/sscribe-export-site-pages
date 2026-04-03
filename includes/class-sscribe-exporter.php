@@ -257,7 +257,7 @@ class SScribe_Exporter {
 		} catch ( \Throwable $e ) {
 			// ALWAYS log — this is an unexpected failure that must be visible regardless of WP_DEBUG.
 			// Note: File path removed for security - sensitive server info should not be in logs.
-			
+
 			// CRITICAL: Ensure cleanup even on failure to prevent memory/resource leaks.
 			if ( isset( $writer ) ) {
 				unset( $writer );
@@ -267,7 +267,7 @@ class SScribe_Exporter {
 			}
 			$this->parser = null;
 			unset( $this->parser );
-			
+
 			// Capture memory context for diagnostics - helps identify memory exhaustion vs other failures.
 			$memory_context = sprintf(
 				'Memory: %s used / %s limit (peak: %s)',
@@ -275,7 +275,7 @@ class SScribe_Exporter {
 				ini_get( 'memory_limit' ),
 				size_format( memory_get_peak_usage( true ) )
 			);
-			
+
 			// Detect likely memory exhaustion even if error message doesn't explicitly say so.
 			$error_message = $e->getMessage();
 			$error_lower   = strtolower( $error_message );
@@ -284,7 +284,7 @@ class SScribe_Exporter {
 			} else {
 				$error_message .= ' | ' . $memory_context;
 			}
-			
+
 			// phpcs:ignore WordPress.PHP.DevelopmentFunctions.error_log_error_log
 			error_log( 'SScribe Export Error [Page ' . ( $page_data['id'] ?? 'unknown' ) . ']: ' . $error_message );
 

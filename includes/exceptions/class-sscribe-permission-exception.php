@@ -22,11 +22,15 @@ class SScribe_Permission_Exception extends SScribe_Exception {
 
 	/**
 	 * Path that caused the permission error.
+	 *
+	 * @var string
 	 */
 	protected string $path;
 
 	/**
 	 * Type of permission required.
+	 *
+	 * @var string
 	 */
 	protected string $permission_type;
 
@@ -60,7 +64,7 @@ class SScribe_Permission_Exception extends SScribe_Exception {
 		$message = $message ?? sprintf(
 			'Permission denied: Cannot %s to %s',
 			$permission_type,
-			$this->path ?: 'unknown location'
+			'' !== $this->path ? $this->path : 'unknown location'
 		);
 
 		parent::__construct(
@@ -74,6 +78,8 @@ class SScribe_Permission_Exception extends SScribe_Exception {
 
 	/**
 	 * Get the path that caused the error.
+	 *
+	 * @return string
 	 */
 	public function get_path(): string {
 		return $this->path;
@@ -81,6 +87,8 @@ class SScribe_Permission_Exception extends SScribe_Exception {
 
 	/**
 	 * Get the permission type required.
+	 *
+	 * @return string
 	 */
 	public function get_permission_type(): string {
 		return $this->permission_type;

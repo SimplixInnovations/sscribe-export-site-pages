@@ -228,9 +228,9 @@ class SScribe_Logger implements SScribe_Logger_Interface {
 			return;
 		}
 
-		$timestamp = gmdate( 'Y-m-d H:i:s' );
+		$timestamp   = gmdate( 'Y-m-d H:i:s' );
 		$level_upper = strtoupper( $level );
-		$entry     = "[{$timestamp}] [{$level_upper}] {$message}";
+		$entry       = "[{$timestamp}] [{$level_upper}] {$message}";
 
 		if ( ! empty( $data ) ) {
 			$entry .= ' | ' . wp_json_encode( $data, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES );

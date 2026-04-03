@@ -22,16 +22,22 @@ class SScribe_Export_Exception extends SScribe_Exception {
 
 	/**
 	 * Page ID being exported when error occurred.
+	 *
+	 * @var int
 	 */
 	protected int $page_id;
 
 	/**
 	 * Export format being processed.
+	 *
+	 * @var string
 	 */
 	protected string $format;
 
 	/**
 	 * Whether the export can be retried.
+	 *
+	 * @var bool
 	 */
 	protected bool $retryable = false;
 
@@ -65,7 +71,7 @@ class SScribe_Export_Exception extends SScribe_Exception {
 		$message = $message ?? sprintf(
 			'Export failed for page %d in %s format',
 			$page_id,
-			$format ?: 'unknown'
+			'' !== $format ? $format : 'unknown'
 		);
 
 		$error_code = match ( strtolower( $format ) ) {
@@ -85,6 +91,8 @@ class SScribe_Export_Exception extends SScribe_Exception {
 
 	/**
 	 * Get the page ID that failed.
+	 *
+	 * @return int
 	 */
 	public function get_page_id(): int {
 		return $this->page_id;
@@ -92,6 +100,8 @@ class SScribe_Export_Exception extends SScribe_Exception {
 
 	/**
 	 * Get the export format.
+	 *
+	 * @return string
 	 */
 	public function get_format(): string {
 		return $this->format;
@@ -99,6 +109,8 @@ class SScribe_Export_Exception extends SScribe_Exception {
 
 	/**
 	 * Check if the export can be retried.
+	 *
+	 * @return bool
 	 */
 	public function is_retryable(): bool {
 		return $this->retryable;
@@ -106,6 +118,9 @@ class SScribe_Export_Exception extends SScribe_Exception {
 
 	/**
 	 * Set whether the export can be retried.
+	 *
+	 * @param bool $retryable Whether retryable.
+	 * @return self
 	 */
 	public function set_retryable( bool $retryable ): self {
 		$this->retryable = $retryable;
