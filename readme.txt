@@ -80,7 +80,7 @@ Reads metadata from all major SEO plugins:
 * Generated export ZIPs auto-delete after 72 hours for security
 * SSRF prevention in PDF exporter
 * URL validation and sanitization for all document links
-* Rate limiting on AJAX endpoints (60 requests/minute)
+* Rate limiting on AJAX endpoints (5,000 requests/minute for exports, 100 requests/hour for API)
 * WP_Filesystem API support for hosting compatibility
 * Self-healing diagnostics and preflight checks
 * Automatic crash recovery with page retry (not skip)

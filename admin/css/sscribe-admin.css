@@ -251,6 +251,14 @@
 	color: var(--sscribe-primary);
 }
 
+.sscribe-panel-body {
+	padding: var(--sscribe-space-lg, 24px);
+}
+
+.sscribe-panel-body.sscribe-p-md {
+	padding: var(--sscribe-space-md, 16px);
+}
+
 .sscribe-status-icon .sscribe-icon {
 	color: var(--sscribe-text-muted);
 }
