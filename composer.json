@@ -42,12 +42,13 @@
         "cs": "phpcs -d memory_limit=512M --standard=phpcs.xml",
         "cs:fix": "phpcbf -d memory_limit=512M --standard=phpcs.xml",
         "css:minify": "php scripts/minify-css.php",
+        "js:minify": "php scripts/minify-js.php",
         "version:check": "php scripts/verify-version-sync.php",
         "clean": "composer clean:cache && composer clean:coverage",
         "clean:cache": "php -r \"array_map('unlink', glob('.cache/**/*.*')); array_map('rmdir', glob('.cache/*', GLOB_ONLYDIR)); is_dir('.cache') && rmdir('.cache'); echo 'Cache cleared.\\n';\"",
         "clean:coverage": "php -r \"is_dir('coverage') && array_map('unlink', glob('coverage/*.*')) && rmdir('coverage'); echo 'Coverage cleared.\\n';\"",
         "ci": "composer version:check && composer test && composer stan && composer cs",
-        "build": "composer css:minify"
+        "build": "composer css:minify && composer js:minify"
     },
     "config": {
         "optimize-autoloader": true,

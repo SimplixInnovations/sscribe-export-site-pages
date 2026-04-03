@@ -129,10 +129,14 @@ class SScribe_Admin {
 			SSCRIBE_VERSION
 		);
 
-		// Admin JS.
+		// Admin JS - use minified version in production.
+		$js_file = ( defined( 'SCRIPT_DEBUG' ) && SCRIPT_DEBUG )
+			? 'admin/js/sscribe-admin.js'
+			: 'admin/js/sscribe-admin.min.js';
+
 		wp_enqueue_script(
 			'sscribe-admin',
-			SSCRIBE_PLUGIN_URL . 'admin/js/sscribe-admin.js',
+			SSCRIBE_PLUGIN_URL . $js_file,
 			array( 'jquery' ),
 			SSCRIBE_VERSION,
 			true
@@ -197,23 +201,47 @@ class SScribe_Admin {
 	 * @return void
 	 */
 	public function render_admin_page(): void {
-		// Gather data for the template.
-		$sscribe_wpml_active = $this->collector->is_wpml_active();
-		$sscribe_languages   = $this->collector->get_wpml_languages();
+		// Try to get cached admin page data (60-second TTL for page counts).
+		// Note: Transients are already site-specific in WordPress multisite.
+		$cache_key        = 'sscribe_admin_page_data';
+		$cached_page_data = get_transient( $cache_key );
 
-		// For the "All Languages" card: count published pages in ALL languages combined.
-		$sscribe_total_pages_all = $this->collector->get_page_count_only( '', 'publish' );
+		if ( false !== $cached_page_data ) {
+			$sscribe_wpml_active     = $cached_page_data['wpml_active'];
+			$sscribe_languages       = $cached_page_data['languages'];
+			$sscribe_total_pages_all = $cached_page_data['total_pages_all'];
+			$sscribe_status_counts   = $cached_page_data['status_counts'];
+		} else {
+			// Gather data for the template (uncached).
+			$sscribe_wpml_active = $this->collector->is_wpml_active();
+			$sscribe_languages   = $this->collector->get_wpml_languages();
 
-		// For Page Status section: use empty string for all languages as default.
-		$default_language      = '';
-		$sscribe_status_counts = $this->collector->get_post_status_counts( $default_language );
+			// For the "All Languages" card: count published pages in ALL languages combined.
+			$sscribe_total_pages_all = $this->collector->get_page_count_only( '', 'publish' );
 
-		// Enrich languages with per-language page counts.
-		if ( $sscribe_wpml_active && ! empty( $sscribe_languages ) ) {
-			foreach ( $sscribe_languages as &$lang ) {
-				$lang['page_count'] = $this->collector->get_page_count_only( $lang['code'], 'publish' );
+			// For Page Status section: use empty string for all languages as default.
+			$default_language      = '';
+			$sscribe_status_counts = $this->collector->get_post_status_counts( $default_language );
+
+			// Enrich languages with per-language page counts.
+			if ( $sscribe_wpml_active && ! empty( $sscribe_languages ) ) {
+				foreach ( $sscribe_languages as &$lang ) {
+					$lang['page_count'] = $this->collector->get_page_count_only( $lang['code'], 'publish' );
+				}
+				unset( $lang );
 			}
-			unset( $lang );
+
+			// Cache for 60 seconds (short TTL for accuracy).
+			set_transient(
+				$cache_key,
+				array(
+					'wpml_active'     => $sscribe_wpml_active,
+					'languages'       => $sscribe_languages,
+					'total_pages_all' => $sscribe_total_pages_all,
+					'status_counts'   => $sscribe_status_counts,
+				),
+				60
+			);
 		}
 
 		// Gather debug info - gated behind SSCRIBE_DEBUG for security.
@@ -326,60 +354,89 @@ class SScribe_Admin {
 			);
 		}
 
-		// Gather recent exports.
+		// Gather recent exports (30-second TTL for file list).
 		$sscribe_recent_exports = array();
 		$upload_dir             = wp_upload_dir();
 		$export_dir             = trailingslashit( $upload_dir['basedir'] ) . 'sscribe-exports/';
 
+		// Get download nonce once (not per-file).
+		$download_nonce = wp_create_nonce( 'sscribe_download' );
+
 		if ( file_exists( $export_dir ) ) {
-			$files = glob( $export_dir . 'sscribe-*.zip' );
-			if ( $files ) {
-				// Sort by modified time descending (newest first).
-				usort(
-					$files,
-					function ( $a, $b ) {
-						return filemtime( $b ) - filemtime( $a );
-					}
-				);
+			// Try cached file list first.
+			$files_cache_key = 'sscribe_export_files_' . md5( $export_dir );
+			$cached_files    = get_transient( $files_cache_key );
 
-				foreach ( $files as $file ) {
-					$filename = basename( $file );
+			if ( false !== $cached_files ) {
+				$sscribe_recent_exports = $cached_files;
+			} else {
+				$files = glob( $export_dir . 'sscribe-*.zip' );
+				if ( $files ) {
+					// Build file data with single filemtime call per file.
+					$file_data = array();
+					foreach ( $files as $file ) {
+						$mtime    = filemtime( $file );
+						$filename = basename( $file );
 
-					// Parse language code from new standardized filename format.
-					$lang_code = 'all';
-					if ( preg_match( '/^sscribe-export-([a-z0-9_-]+)-/i', $filename, $matches ) ) {
-						$lang_code = $matches[1];
-					}
+						// Parse language code from new standardized filename format.
+						$lang_code = 'all';
+						if ( preg_match( '/^sscribe-export-([a-z0-9_-]+)-/i', $filename, $matches ) ) {
+							$lang_code = $matches[1];
+						}
 
-					// Attempt to find matching WPML flag and name.
-					$flag_url  = '';
-					$lang_name = 'All Languages';
-					if ( $sscribe_wpml_active && ! empty( $sscribe_languages ) ) {
-						foreach ( $sscribe_languages as $l ) {
-							if ( $l['code'] === $lang_code ) {
-								$flag_url  = isset( $l['flag_url'] ) ? $l['flag_url'] : '';
-								$lang_name = isset( $l['name'] ) ? $l['name'] : strtoupper( $lang_code );
-								break;
+						// Attempt to find matching WPML flag and name.
+						$flag_url  = '';
+						$lang_name = 'All Languages';
+						if ( $sscribe_wpml_active && ! empty( $sscribe_languages ) ) {
+							foreach ( $sscribe_languages as $l ) {
+								if ( $l['code'] === $lang_code ) {
+									$flag_url  = isset( $l['flag_url'] ) ? $l['flag_url'] : '';
+									$lang_name = isset( $l['name'] ) ? $l['name'] : strtoupper( $lang_code );
+									break;
+								}
 							}
 						}
+
+						$file_data[] = array(
+							'filename'  => $filename,
+							'mtime'     => $mtime,
+							'size'      => filesize( $file ),
+							'lang_code' => $lang_code,
+							'flag_url'  => $flag_url,
+							'lang_name' => $lang_name,
+						);
 					}
 
-					$sscribe_recent_exports[] = array(
-						'filename'  => $filename,
-						'url'       => add_query_arg(
-							array(
-								'action' => 'sscribe_download',
-								'file'   => sanitize_file_name( $filename ),
-								'nonce'  => wp_create_nonce( 'sscribe_download' ),
-							),
-							admin_url( 'admin-ajax.php' )
-						),
-						'time'      => filemtime( $file ),
-						'size'      => filesize( $file ),
-						'lang_code' => $lang_code,
-						'flag_url'  => $flag_url,
-						'lang_name' => $lang_name,
+					// Sort by mtime descending (newest first).
+					usort(
+						$file_data,
+						function ( $a, $b ) {
+							return $b['mtime'] - $a['mtime'];
+						}
 					);
+
+					// Build final export list with URLs.
+					foreach ( $file_data as $data ) {
+						$sscribe_recent_exports[] = array(
+							'filename'  => $data['filename'],
+							'url'       => add_query_arg(
+								array(
+									'action' => 'sscribe_download',
+									'file'   => sanitize_file_name( $data['filename'] ),
+									'nonce'  => $download_nonce,
+								),
+								admin_url( 'admin-ajax.php' )
+							),
+							'time'      => $data['mtime'],
+							'size'      => $data['size'],
+							'lang_code' => $data['lang_code'],
+							'flag_url'  => $data['flag_url'],
+							'lang_name' => $data['lang_name'],
+						);
+					}
+
+					// Cache for 30 seconds.
+					set_transient( $files_cache_key, $sscribe_recent_exports, 30 );
 				}
 			}
 		}

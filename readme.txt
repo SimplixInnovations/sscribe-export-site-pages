@@ -4,7 +4,7 @@ Donate link: https://simplixi.com
 Tags: export, docx, multilingual, seo, pdf
 Requires at least: 6.0
 Tested up to: 6.9
-Stable tag: 3.15.3
+Stable tag: 3.15.4
 Requires PHP: 8.2
 License: GPLv2 or later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
@@ -198,7 +198,16 @@ Each document includes: cover page with title/URL/date/breadcrumbs, featured ima
 
 == Changelog ==
 
-**Note:** For the complete changelog (v1.0.0 through v3.15.3), see the [GitHub Releases page](https://github.com/SimplixInnovations/sscribe-export-site-pages/releases).
+**Note:** For the complete changelog (v1.0.0 through v3.15.4), see the [GitHub Releases page](https://github.com/SimplixInnovations/sscribe-export-site-pages/releases).
+
+= 3.15.4 =
+
+* New: JS minification with SCRIPT_DEBUG switch (38KB → 31KB production savings)
+* Improved: Added transient caching for admin page data (60s TTL, reduces DB queries)
+* Improved: Added transient caching for export file list (30s TTL, reduces filesystem calls)
+* Improved: Fixed double filemtime() calls in export file sorting (was 4 stat calls/file, now 1)
+* Improved: Moved wp_create_nonce() outside file loop (was generating N nonces, now 1)
+* Performance: Admin page now caches 4+ DB queries and file operations for enterprise scale
 
 = 3.15.3 =
 

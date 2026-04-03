@@ -56,4 +56,5 @@
 
     <!-- Exclude standalone CLI scripts that don't run inside WordPress -->
     <exclude-pattern>*/scripts/minify-css\.php$</exclude-pattern>
+    <exclude-pattern>*/scripts/minify-js\.php$</exclude-pattern>
 </ruleset>
