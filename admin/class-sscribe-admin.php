@@ -268,17 +268,17 @@ class SScribe_Admin {
 				$all_id_list = array_column( $all_flat_ids, 'id' );
 				$posts_by_id = array();
 				if ( ! empty( $all_id_list ) ) {
+					// Use 'all' fields to get complete post objects in a single query (avoids N+1).
 					$batch_posts = get_posts(
 						array(
 							'post__in'       => $all_id_list,
 							'post_type'      => 'page',
 							'post_status'    => 'any',
 							'posts_per_page' => -1,
-							'fields'         => 'ids',
 						)
 					);
-					foreach ( $batch_posts as $bp_id ) {
-						$posts_by_id[ $bp_id ] = get_post( (int) $bp_id );
+					foreach ( $batch_posts as $post ) {
+						$posts_by_id[ $post->ID ] = $post;
 					}
 				}
 
