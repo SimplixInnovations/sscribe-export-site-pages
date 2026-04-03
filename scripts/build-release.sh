@@ -2,6 +2,7 @@
 #
 # Build production artifact for WordPress.org submission.
 # Excludes dev dependencies, tests, and unnecessary files.
+# Auto-detects version from plugin header.
 #
 # Usage: ./scripts/build-release.sh [version]
 #
@@ -9,7 +10,20 @@
 set -e
 
 PLUGIN_SLUG="sscribe-export-site-pages"
-VERSION=${1:-$(grep -oP 'Version:\s*\K[0-9.]+' sscribe-export-site-pages.php)}
+PLUGIN_FILE="sscribe-export-site-pages.php"
+
+# Auto-detect version from plugin header if not provided
+if [ -z "$1" ]; then
+	VERSION=$(grep -oP 'Version:\s*\K[0-9.]+' "$PLUGIN_FILE" 2>/dev/null || grep -m1 'Version:' "$PLUGIN_FILE" | sed 's/.*Version:[[:space:]]*//' | tr -d '[:space:]')
+	if [ -z "$VERSION" ]; then
+		echo "❌ Error: Could not detect version from plugin header."
+		exit 1
+	fi
+	echo "🔍 Auto-detected version: ${VERSION}"
+else
+	VERSION="$1"
+fi
+
 BUILD_DIR="build/${PLUGIN_SLUG}"
 
 echo "🔨 Building ${PLUGIN_SLUG} v${VERSION}..."
