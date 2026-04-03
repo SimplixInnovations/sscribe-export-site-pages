@@ -157,15 +157,23 @@ class SScribe_Filesystem {
 		}
 
 		if ( $mode ) {
-			// phpcs:ignore WordPress.WP.AlternativeFunctions.file_system_operations_chmod, WordPress.PHP.NoSilencedErrors.Discouraged -- WP_Filesystem fallback for file permissions.
-			@chmod( $file, $mode );
+			// phpcs:ignore WordPress.WP.AlternativeFunctions.file_system_operations_chmod -- WP_Filesystem fallback for file permissions.
+			if ( ! chmod( $file, $mode ) ) {
+				$this->logger->warning(
+					'Failed to set file permissions',
+					array(
+						'file' => $file,
+						'mode' => decoct( $mode ),
+					)
+				);
+			}
 		}
 
 		return true;
 	}
 
 	/**
-	 * Read contents from a file.
+	 * Read file contents.
 	 *
 	 * @param string $file File path.
 	 * @return string|false File contents or false on failure.
@@ -183,7 +191,14 @@ class SScribe_Filesystem {
 		}
 
 		// phpcs:ignore WordPress.WP.AlternativeFunctions.file_get_contents_file_get_contents -- WP_Filesystem fallback for local file reading.
-		return file_get_contents( $file );
+		$content = file_get_contents( $file );
+
+		if ( false === $content ) {
+			self::$last_error = 'Failed to read file contents';
+			return false;
+		}
+
+		return $content;
 	}
 
 	/**
@@ -203,8 +218,19 @@ class SScribe_Filesystem {
 			return true;
 		}
 
-		// phpcs:ignore WordPress.PHP.NoSilencedErrors.Discouraged, WordPress.WP.AlternativeFunctions.unlink_unlink -- WP_Filesystem fallback for file deletion.
-		return @unlink( $file );
+		// phpcs:ignore WordPress.WP.AlternativeFunctions.unlink_unlink -- WP_Filesystem fallback for file deletion.
+		$result = unlink( $file );
+
+		if ( ! $result ) {
+			self::$last_error = 'Failed to delete file';
+			$this->logger->warning(
+				'File deletion failed',
+				array( 'file' => $file )
+			);
+			return false;
+		}
+
+		return true;
 	}
 
 	/**
