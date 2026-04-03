@@ -115,30 +115,30 @@ if ( ! empty( $versions['constant'] ) ) {
 // Output results.
 echo "=== SScribe Version Verification ===\n\n";
 
-if ( ! empty( $versions ) ) {
-	echo "Versions found:\n";
-	foreach ( $versions as $v_name => $v_version ) {
-		printf( "  ✓ %-15s: %s\n", esc_html( $v_name ), esc_html( $v_version ) );
+	if ( ! empty( $versions ) ) {
+		echo "Versions found:\n";
+		foreach ( $versions as $v_name => $v_version ) {
+			printf( "  ✓ %-15s: %s\n", $v_name, $v_version );
+		}
+		echo "\n";
 	}
-	echo "\n";
-}
 
-if ( ! empty( $version_warnings ) ) {
-	echo "Warnings:\n";
-	foreach ( $version_warnings as $v_warning ) {
-		printf( "  ⚠ %s\n", esc_html( $v_warning ) );
+	if ( ! empty( $version_warnings ) ) {
+		echo "Warnings:\n";
+		foreach ( $version_warnings as $v_warning ) {
+			printf( "  ⚠ %s\n", $v_warning );
+		}
+		echo "\n";
 	}
-	echo "\n";
-}
 
-if ( ! empty( $version_errors ) ) {
-	echo "Errors:\n";
-	foreach ( $version_errors as $v_error ) {
-		printf( "  ✗ %s\n", esc_html( $v_error ) );
+	if ( ! empty( $version_errors ) ) {
+		echo "Errors:\n";
+		foreach ( $version_errors as $v_error ) {
+			printf( "  ✗ %s\n", $v_error );
+		}
+		echo "\n";
+		exit( 1 );
 	}
-	echo "\n";
-	exit( 1 );
-}
 
 echo "✓ All version references are synchronized.\n";
 echo "✓ All checks passed.\n";
