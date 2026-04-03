@@ -3,7 +3,7 @@ Contributors: simplixinnovations
 Donate link: https://simplixi.com
 Tags: export, docx, pdf, html, markdown, multilingual, rtl, seo, batch-export, page-export, content-export, wpml, compliance, documentation
 Requires at least: 6.0
-Tested up to: 6.9.4
+Tested up to: 6.9
 Stable tag: 3.15.1
 Requires PHP: 8.2
 License: GPLv2 or later

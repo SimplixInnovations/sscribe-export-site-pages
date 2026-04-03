@@ -91,8 +91,8 @@ class SScribe_Logger implements SScribe_Logger_Interface {
 	 * @return bool True if enhanced logger should be used.
 	 */
 	private static function should_use_enhanced(): bool {
-		// Use enhanced if Query Monitor is active.
-		if ( class_exists( 'QueryMonitor' ) || defined( 'QM_DISABLED' ) ) {
+		// Use enhanced if Query Monitor is active (not disabled).
+		if ( class_exists( 'QM_Collector' ) && ! ( defined( 'QM_DISABLED' ) && QM_DISABLED ) ) {
 			return true;
 		}
 
