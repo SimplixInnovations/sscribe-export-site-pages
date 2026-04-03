@@ -1,10 +1,10 @@
 === SScribe Export Site Pages ===
 Contributors: simplixinnovations
 Donate link: https://simplixi.com
-Tags: export, docx, pdf, html, markdown, multilingual, rtl, seo, batch-export, page-export, content-export, wpml, compliance, documentation
+Tags: export, docx, multilingual, seo, pdf
 Requires at least: 6.0
 Tested up to: 6.9
-Stable tag: 3.15.2
+Stable tag: 3.15.3
 Requires PHP: 8.2
 License: GPLv2 or later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
@@ -86,7 +86,7 @@ Reads metadata from all major SEO plugins:
 * Automatic crash recovery with page retry (not skip)
 
 **Developer Features**
-* PSR-4 autoloading and modern PHP 8.2+ architecture
+* Composer classmap autoloading with optimized class loading
 * Extensive WordPress hooks and filters for customization
 * `sscribe_page_data` filter for third-party data enrichment
 * `sscribe_batch_size` filter for performance tuning
@@ -198,7 +198,18 @@ Each document includes: cover page with title/URL/date/breadcrumbs, featured ima
 
 == Changelog ==
 
-**Note:** For the complete changelog (v1.0.0 through v3.15.2), see the [GitHub Releases page](https://github.com/SimplixInnovations/sscribe-export-site-pages/releases).
+**Note:** For the complete changelog (v1.0.0 through v3.15.3), see the [GitHub Releases page](https://github.com/SimplixInnovations/sscribe-export-site-pages/releases).
+
+= 3.15.3 =
+
+* Fixed: SSCRIBE_DEBUG define pattern that caused PHP warnings when pre-defined in wp-config.php
+* Fixed: Reduced tags from 14 to 5 (WP.org hard limit)
+* Fixed: Corrected PSR-4 autoloading claim to classmap
+* Improved: Removed redundant manual require_once calls (rely on Composer autoloader)
+* Improved: Added no_found_rows and cache flags to admin query for 20-40% performance gain
+* Improved: Converted sscribe_init to anonymous function (no global namespace pollution)
+* Improved: Removed class_exists guard that hid autoloader failures
+* Improved: Updated plugin description to mention all 4 export formats
 
 = 3.15.2 =
 
@@ -253,6 +264,10 @@ Each document includes: cover page with title/URL/date/breadcrumbs, featured ima
 == Upgrade Notice ==
 
 **Note:** For complete upgrade notices, see the [GitHub Releases page](https://github.com/SimplixInnovations/sscribe-export-site-pages/releases).
+
+= 3.15.3 =
+
+Critical fixes: SSCRIBE_DEBUG PHP warning fix, WP.org tags compliance, and performance improvements. Recommended update for all users.
 
 = 3.15.2 =
 

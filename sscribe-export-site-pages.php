@@ -2,8 +2,8 @@
 /**
  * Plugin Name:       SScribe Export Site Pages
  * Plugin URI:        https://simplixi.com/sscribe
- * Description:       Export every page into beautifully formatted Word DOCX files with multilingual support, SEO meta, rich styling, and secure ZIP download.
- * Version:           3.15.2
+ * Description:       Export WordPress pages to professional DOCX, PDF, HTML, or Markdown files with multilingual RTL support, SEO metadata, and secure ZIP download.
+ * Version:           3.15.3
  * Requires at least: 6.0
  * Requires PHP:      8.2
  * Author:            Simplix Innovations
@@ -27,7 +27,7 @@ if ( ! defined( 'ABSPATH' ) ) {
  * Plugin version - single source of truth.
  * All version references read from the plugin header above.
  */
-define( 'SSCRIBE_VERSION', '3.15.2' );
+define( 'SSCRIBE_VERSION', '3.15.3' );
 
 /**
  * Check PHP Version gracefully.
@@ -59,12 +59,9 @@ if ( version_compare( PHP_VERSION, '8.2', '<' ) ) {
  * To enable for development: define( 'WP_DEBUG', true ) in wp-config.php.
  * To force disable in production: define( 'SSCRIBE_DEBUG', false ) in wp-config.php.
  */
-define(
-	'SSCRIBE_DEBUG',
-	defined( 'SSCRIBE_DEBUG' )
-		? SSCRIBE_DEBUG  // Allow manual override via wp-config.php.
-		: ( defined( 'WP_DEBUG' ) && WP_DEBUG )  // Fallback to WP_DEBUG.
-);
+if ( ! defined( 'SSCRIBE_DEBUG' ) ) {
+	define( 'SSCRIBE_DEBUG', defined( 'WP_DEBUG' ) && WP_DEBUG );
+}
 
 /**
  * Plugin directory path.
@@ -88,17 +85,6 @@ if ( file_exists( SSCRIBE_PLUGIN_DIR . 'vendor/autoload.php' ) ) {
 	require_once SSCRIBE_PLUGIN_DIR . 'vendor/autoload.php';
 }
 
-require_once SSCRIBE_PLUGIN_DIR . 'includes/class-sscribe-session.php';
-require_once SSCRIBE_PLUGIN_DIR . 'includes/class-sscribe-error.php';
-
-// Load exception classes.
-require_once SSCRIBE_PLUGIN_DIR . 'includes/exceptions/class-sscribe-exception.php';
-require_once SSCRIBE_PLUGIN_DIR . 'includes/exceptions/class-sscribe-memory-exception.php';
-require_once SSCRIBE_PLUGIN_DIR . 'includes/exceptions/class-sscribe-permission-exception.php';
-require_once SSCRIBE_PLUGIN_DIR . 'includes/exceptions/class-sscribe-validation-exception.php';
-require_once SSCRIBE_PLUGIN_DIR . 'includes/exceptions/class-sscribe-export-exception.php';
-require_once SSCRIBE_PLUGIN_DIR . 'includes/exceptions/class-sscribe-session-exception.php';
-
 /**
  * Activation hook.
  */
@@ -111,22 +97,18 @@ register_deactivation_hook( __FILE__, array( 'SScribe_Deactivator', 'deactivate'
 
 /**
  * Initialize the plugin safely.
- *
- * @return void
  */
-function sscribe_init() {
-	try {
-		if ( class_exists( 'SScribe' ) ) {
-			$plugin = new SScribe();
-			$plugin->run();
-		}
-	} catch ( \Throwable $e ) {
-		// Critical error logging for debugging production issues.
-		if ( defined( 'WP_DEBUG' ) && WP_DEBUG ) {
-			// phpcs:ignore WordPress.PHP.DevelopmentFunctions.error_log_error_log
-			error_log( 'SScribe Fatal Error Prevented: ' . $e->getMessage() );
+add_action(
+	'plugins_loaded',
+	static function () {
+		try {
+			( new SScribe() )->run();
+		} catch ( \Throwable $e ) {
+			// Critical error logging for debugging production issues.
+			if ( defined( 'WP_DEBUG' ) && WP_DEBUG ) {
+				// phpcs:ignore WordPress.PHP.DevelopmentFunctions.error_log_error_log
+				error_log( 'SScribe Fatal Error Prevented: ' . $e->getMessage() );
+			}
 		}
 	}
-}
-
-add_action( 'plugins_loaded', 'sscribe_init' );
+);
