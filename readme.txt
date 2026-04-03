@@ -4,7 +4,7 @@ Donate link: https://simplixi.com
 Tags: export, docx, pdf, html, markdown, multilingual, rtl, seo, batch-export, page-export, content-export, wpml, compliance, documentation
 Requires at least: 6.0
 Tested up to: 6.9
-Stable tag: 3.14.1
+Stable tag: 3.14.2
 Requires PHP: 8.2
 License: GPLv2 or later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
@@ -197,6 +197,17 @@ Each document includes: cover page with title/URL/date/breadcrumbs, featured ima
 5. SEO Metadata Section - Meta title, description, focus keyword, and canonical URL from SEO plugins
 
 == Changelog ==
+
+= 3.14.2 =
+
+* Improved: Optimized session table scan with transient caching for better performance
+* Improved: Removed unused strip_shortcodes method from Content Parser
+* Improved: Cleaned up duplicate code in Page Collector WPML handling
+* Improved: Added PHPCS exclusions for legacy files and CLI scripts
+* Improved: Updated PHPStan config for comprehensive WordPress function coverage
+* Improved: Enhanced minify-css.php script with proper formatting
+* Fixed: Session handling now uses transient caching to reduce database queries
+* Dev: Added wp_count_posts mock to test bootstrap for better test isolation
 
 = 3.13.0 =
 
@@ -434,6 +445,10 @@ Enterprise-grade release with comprehensive enhancements: Exception hierarchy wi
 * Initial release
 
 == Upgrade Notice ==
+
+= 3.14.2 =
+
+Performance and code quality release: Optimized session handling with caching, removed dead code, and improved test coverage. Recommended update for all users.
 
 = 3.12.6 =
 
