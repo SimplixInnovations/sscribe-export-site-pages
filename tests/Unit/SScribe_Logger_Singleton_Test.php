@@ -16,9 +16,9 @@ final class SScribe_Logger_Singleton_Test extends TestCase {
 
 	protected function setUp(): void {
 		// Reset singleton state between tests via reflection.
+		// Note: setAccessible() is deprecated since PHP 8.1 as it's no longer needed.
 		$reflection = new \ReflectionClass( SScribe_Logger::class );
 		$property   = $reflection->getProperty( 'instances' );
-		$property->setAccessible( true );
 		$property->setValue( null, array() );
 	}
 

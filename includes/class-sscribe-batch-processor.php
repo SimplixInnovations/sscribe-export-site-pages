@@ -2094,7 +2094,7 @@ class SScribe_Batch_Processor {
 			'markdown' => 0.5,
 		);
 
-		$seconds_per_page = $times_per_page[ $format ] ?? 2;
+		$seconds_per_page = isset( $times_per_page[ $format ] ) ? $times_per_page[ $format ] : 2;
 		$total_seconds    = $page_count * $seconds_per_page;
 
 		if ( $total_seconds < 60 ) {
@@ -2119,7 +2119,7 @@ class SScribe_Batch_Processor {
 			'markdown' => 0.1,
 		);
 
-		$size_mb = $page_count * ( $size_per_page[ $format ] ?? 0.5 );
+		$size_mb = $page_count * ( isset( $size_per_page[ $format ] ) ? $size_per_page[ $format ] : 0.5 );
 		if ( $size_mb < 1 ) {
 			$file_size_estimate = round( $size_mb * 1024 ) . ' KB';
 		} else {
