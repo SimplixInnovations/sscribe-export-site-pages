@@ -21,4 +21,4 @@ $css    = preg_replace( '/\s*([{};:,>~+])\s*/', '$1', $css );
 $css    = preg_replace( '/;}/', '}', $css );
 $css    = trim( $css );
 file_put_contents( $output, $css );
-echo esc_html( "Done: $output (" . strlen( $css ) . ' bytes)' ) . "\n";
+echo "Done: $output (" . strlen( $css ) . " bytes)\n";
