@@ -376,7 +376,7 @@ $sscribe_is_debug        = $sscribe_is_debug ?? false;
 					</div>
 				</div>
 
-				<div id="sscribe-download-area" class="sscribe-status-alert sscribe-status-success ssscribe-hidden" role="status" aria-live="polite">
+				<div id="sscribe-download-area" class="sscribe-status-alert sscribe-status-success sscribe-hidden" role="status" aria-live="polite">
 					<div class="sscribe-status-icon" aria-hidden="true">
 						<?php // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- SVG sanitized in get_icon(). ?>
 						<?php echo SScribe_Helpers::get_icon( 'check-circle', 32 ); ?>
@@ -402,7 +402,7 @@ $sscribe_is_debug        = $sscribe_is_debug ?? false;
 					</div>
 				</div>
 
-				<div id="sscribe-error-area" class="sscribe-status-alert sscribe-status-error ssscribe-hidden" role="alert" aria-live="assertive">
+				<div id="sscribe-error-area" class="sscribe-status-alert sscribe-status-error sscribe-hidden" role="alert" aria-live="assertive">
 					<div class="sscribe-status-icon" aria-hidden="true">
 						<?php // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- SVG sanitized in get_icon(). ?>
 						<?php echo SScribe_Helpers::get_icon( 'warning-circle', 32 ); ?>
@@ -412,7 +412,7 @@ $sscribe_is_debug        = $sscribe_is_debug ?? false;
 							<?php esc_html_e( 'Export Failed', 'sscribe-export-site-pages' ); ?>
 						</h4>
 						<p id="sscribe-error-text" class="sscribe-status-desc"></p>
-						<div id="sscribe-error-guidance" class="sscribe-error-guidance ssscribe-hidden">
+						<div id="sscribe-error-guidance" class="sscribe-error-guidance sscribe-hidden">
 							<p id="sscribe-error-guidance-text" class="sscribe-guidance-text"></p>
 						</div>
 						<div class="sscribe-error-actions">
@@ -620,7 +620,7 @@ $sscribe_is_debug        = $sscribe_is_debug ?? false;
 	</div>
 </div>
 
-<div id="sscribe-log-modal" class="sscribe-modal ssscribe-hidden" role="dialog" aria-modal="true" aria-labelledby="sscribe-log-modal-title" aria-describedby="sscribe-log-modal-desc">
+<div id="sscribe-log-modal" class="sscribe-modal sscribe-hidden" role="dialog" aria-modal="true" aria-labelledby="sscribe-log-modal-title" aria-describedby="sscribe-log-modal-desc">
 	<div class="sscribe-modal-content" role="document">
 		<div class="sscribe-modal-header">
 			<h3 id="sscribe-log-modal-title"><?php esc_html_e( 'Export Log', 'sscribe-export-site-pages' ); ?></h3>
