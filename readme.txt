@@ -4,7 +4,7 @@ Donate link: https://simplixi.com
 Tags: export, docx, pdf, html, markdown, multilingual, rtl, seo, batch-export, page-export, content-export, wpml, compliance, documentation
 Requires at least: 6.0
 Tested up to: 6.9
-Stable tag: 3.14.0
+Stable tag: 3.14.1
 Requires PHP: 8.2
 License: GPLv2 or later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
@@ -446,6 +446,10 @@ Critical memory fix: Prevents batch export failures for large page sets. Adaptiv
 = 3.12.2 =
 
 New chunked page collection for memory-efficient processing. Added configurable filters for all tunables. Recommended update for large sites.
+
+= 3.14.1 =
+
+Security fix: Patched XSS vulnerability in export preview rendering, removed duplicate JavaScript code block, and normalized variable declarations for consistency.
 
 = 3.14.0 =
 
