@@ -271,10 +271,14 @@ class SScribe_Admin {
 					// Use 'all' fields to get complete post objects in a single query (avoids N+1).
 					$batch_posts = get_posts(
 						array(
-							'post__in'       => $all_id_list,
-							'post_type'      => 'page',
-							'post_status'    => 'any',
-							'posts_per_page' => -1,
+							'post__in'               => $all_id_list,
+							'post_type'              => 'page',
+							'post_status'            => 'any',
+							'posts_per_page'         => -1,
+							'no_found_rows'          => true,
+							'update_post_meta_cache' => false,
+							'update_post_term_cache' => false,
+							'orderby'                => 'post__in',
 						)
 					);
 					foreach ( $batch_posts as $post ) {
