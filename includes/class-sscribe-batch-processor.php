@@ -111,12 +111,12 @@ class SScribe_Batch_Processor {
 		$this->batch_size = (int) apply_filters( 'sscribe_batch_size', 5 );
 		$this->batch_size = max( 1, min( 20, $this->batch_size ) );
 
-		$this->collector     = $collector ?? new SScribe_Page_Collector();
-		$this->zip_handler   = $zip_handler ?? new SScribe_Zip_Handler();
-		$this->session       = $session ?? new SScribe_Session();
-		$this->logger        = $logger ?? SScribe_Logger::instance( defined( 'SSCRIBE_DEBUG' ) && SSCRIBE_DEBUG );
-		$this->diagnostics   = new SScribe_Diagnostics();
-		$this->audit_trail   = new SScribe_Audit_Trail();
+		$this->collector   = $collector ?? new SScribe_Page_Collector();
+		$this->zip_handler = $zip_handler ?? new SScribe_Zip_Handler();
+		$this->session     = $session ?? new SScribe_Session();
+		$this->logger      = $logger ?? SScribe_Logger::instance( defined( 'SSCRIBE_DEBUG' ) && SSCRIBE_DEBUG );
+		$this->diagnostics = new SScribe_Diagnostics();
+		$this->audit_trail = new SScribe_Audit_Trail();
 	}
 
 	/**
@@ -197,19 +197,19 @@ class SScribe_Batch_Processor {
 	 */
 	private function map_action_to_event( string $action ): ?string {
 		$map = array(
-			'export_started'     => SScribe_Audit_Trail::EVENT_EXPORT_STARTED,
-			'export_completed'   => SScribe_Audit_Trail::EVENT_EXPORT_COMPLETED,
-			'export_failed'      => SScribe_Audit_Trail::EVENT_EXPORT_FAILED,
-			'export_cancelled'   => SScribe_Audit_Trail::EVENT_EXPORT_CANCELLED,
-			'download'           => SScribe_Audit_Trail::EVENT_DOWNLOAD,
-			'download_denied'    => SScribe_Audit_Trail::EVENT_DOWNLOAD_DENIED,
-			'delete_export'      => SScribe_Audit_Trail::EVENT_DELETE,
-			'session_cleared'    => SScribe_Audit_Trail::EVENT_SESSION_CLEARED,
-			'preflight_check'    => SScribe_Audit_Trail::EVENT_PREFLIGHT_CHECK,
-			'rate_limited'       => SScribe_Audit_Trail::EVENT_RATE_LIMITED,
-			'permission_denied'  => SScribe_Audit_Trail::EVENT_PERMISSION_DENIED,
-			'invalid_nonce'      => SScribe_Audit_Trail::EVENT_INVALID_NONCE,
-			'session_hijack'     => SScribe_Audit_Trail::EVENT_SESSION_HIJACK_ATTEMPT,
+			'export_started'    => SScribe_Audit_Trail::EVENT_EXPORT_STARTED,
+			'export_completed'  => SScribe_Audit_Trail::EVENT_EXPORT_COMPLETED,
+			'export_failed'     => SScribe_Audit_Trail::EVENT_EXPORT_FAILED,
+			'export_cancelled'  => SScribe_Audit_Trail::EVENT_EXPORT_CANCELLED,
+			'download'          => SScribe_Audit_Trail::EVENT_DOWNLOAD,
+			'download_denied'   => SScribe_Audit_Trail::EVENT_DOWNLOAD_DENIED,
+			'delete_export'     => SScribe_Audit_Trail::EVENT_DELETE,
+			'session_cleared'   => SScribe_Audit_Trail::EVENT_SESSION_CLEARED,
+			'preflight_check'   => SScribe_Audit_Trail::EVENT_PREFLIGHT_CHECK,
+			'rate_limited'      => SScribe_Audit_Trail::EVENT_RATE_LIMITED,
+			'permission_denied' => SScribe_Audit_Trail::EVENT_PERMISSION_DENIED,
+			'invalid_nonce'     => SScribe_Audit_Trail::EVENT_INVALID_NONCE,
+			'session_hijack'    => SScribe_Audit_Trail::EVENT_SESSION_HIJACK_ATTEMPT,
 		);
 
 		return $map[ $action ] ?? null;
@@ -264,15 +264,15 @@ class SScribe_Batch_Processor {
 	 */
 	private function is_time_available( float $batch_start_time, int $buffer_seconds = 10 ): bool {
 		$max_execution = (int) ini_get( 'max_execution_time' );
-		
+
 		// If max_execution_time is 0 (unlimited) or not set, always return true.
 		if ( $max_execution <= 0 ) {
 			return true;
 		}
 
-		$elapsed      = microtime( true ) - $batch_start_time;
-		$remaining    = $max_execution - $elapsed;
-		
+		$elapsed   = microtime( true ) - $batch_start_time;
+		$remaining = $max_execution - $elapsed;
+
 		return $remaining > $buffer_seconds;
 	}
 
@@ -284,14 +284,14 @@ class SScribe_Batch_Processor {
 	 */
 	private function get_remaining_time( float $batch_start_time ): float {
 		$max_execution = (int) ini_get( 'max_execution_time' );
-		
+
 		if ( $max_execution <= 0 ) {
 			return -1; // Unlimited.
 		}
 
 		$elapsed   = microtime( true ) - $batch_start_time;
 		$remaining = $max_execution - $elapsed;
-		
+
 		return max( 0, $remaining );
 	}
 
@@ -320,9 +320,9 @@ class SScribe_Batch_Processor {
 	 * @return void
 	 */
 	private function optimize_batch_size(): void {
-		$memory_limit = wp_convert_hr_to_bytes( ini_get( 'memory_limit' ) );
+		$memory_limit  = wp_convert_hr_to_bytes( ini_get( 'memory_limit' ) );
 		$current_usage = memory_get_usage( true );
-		$available = $memory_limit - $current_usage;
+		$available     = $memory_limit - $current_usage;
 
 		// Estimate memory per page:
 		// - Page data collection: ~500KB
@@ -333,24 +333,24 @@ class SScribe_Batch_Processor {
 
 		// Reserve 20% safety margin.
 		$safe_available = $available * 0.8;
-		
+
 		// Calculate safe batch size.
 		$safe_batch_size = (int) floor( $safe_available / $memory_per_page );
-		
+
 		// Apply configured batch size as upper limit, but allow reduction for memory.
-		$configured_size = (int) apply_filters( 'sscribe_batch_size', 5 );
+		$configured_size  = (int) apply_filters( 'sscribe_batch_size', 5 );
 		$this->batch_size = max( 1, min( $safe_batch_size, $configured_size, 20 ) );
 
 		$this->logger->debug(
 			'Batch size optimized for available memory',
 			array(
-				'memory_limit'      => size_format( $memory_limit ),
-				'current_usage'     => size_format( $current_usage ),
-				'available'         => size_format( $available ),
-				'safe_available'    => size_format( $safe_available ),
-				'memory_per_page'   => size_format( $memory_per_page ),
-				'configured_size'   => $configured_size,
-				'optimized_size'    => $this->batch_size,
+				'memory_limit'    => size_format( $memory_limit ),
+				'current_usage'   => size_format( $current_usage ),
+				'available'       => size_format( $available ),
+				'safe_available'  => size_format( $safe_available ),
+				'memory_per_page' => size_format( $memory_per_page ),
+				'configured_size' => $configured_size,
+				'optimized_size'  => $this->batch_size,
 			)
 		);
 	}
@@ -367,7 +367,7 @@ class SScribe_Batch_Processor {
 		// - HTML: ~1MB
 		// - Markdown: ~0.5MB
 		// - DOCX: ~5MB (PHPWord + DOMDocument)
-		// - PDF: ~8MB (DomPDF + rendering)
+		// - PDF: ~8MB (DomPDF + rendering).
 		$memory_per_page = 1; // Base 1MB for page data collection.
 
 		if ( in_array( 'docx', $formats, true ) ) {
@@ -382,7 +382,7 @@ class SScribe_Batch_Processor {
 
 		// Convert to bytes, add 50MB overhead for PHP/WordPress core.
 		$total_mb = ( $page_count * $memory_per_page ) + 50;
-		
+
 		return $total_mb * 1024 * 1024;
 	}
 
@@ -394,42 +394,42 @@ class SScribe_Batch_Processor {
 	 * @return array|null Warning array with 'level' and 'message', or null if no warning.
 	 */
 	private function get_memory_warning( int $page_count, array $formats ): ?array {
-		$memory_limit = wp_convert_hr_to_bytes( ini_get( 'memory_limit' ) );
+		$memory_limit  = wp_convert_hr_to_bytes( ini_get( 'memory_limit' ) );
 		$current_usage = memory_get_usage( true );
-		$available = $memory_limit - $current_usage;
-		
+		$available     = $memory_limit - $current_usage;
+
 		$estimated_need = $this->calculate_export_memory_requirement( $page_count, $formats );
 		$safe_available = $available * 0.8; // 20% safety margin.
-		
+
 		// No warning if we have enough memory.
 		if ( $estimated_need <= $safe_available ) {
 			return null;
 		}
-		
-		$estimated_mb = round( $estimated_need / 1024 / 1024 );
-		$available_mb = round( $available / 1024 / 1024 );
-		$limit_mb = round( $memory_limit / 1024 / 1024 );
+
+		$estimated_mb   = round( $estimated_need / 1024 / 1024 );
+		$available_mb   = round( $available / 1024 / 1024 );
+		$limit_mb       = round( $memory_limit / 1024 / 1024 );
 		$recommended_mb = ceil( $estimated_mb / 128 ) * 128;
-		
+
 		if ( $estimated_need > $available ) {
 			return array(
-				'level'   => 'error',
-				'message' => sprintf(
+				'level'          => 'error',
+				'message'        => sprintf(
 					/* translators: 1: Estimated memory needed, 2: Available memory, 3: Recommended memory */
 					__( 'Warning: Export requires ~%1$dMB but only %2$dMB available. Increase PHP memory_limit to %3$dMB+ for reliable export.', 'sscribe-export-site-pages' ),
 					$estimated_mb,
 					$available_mb,
 					$recommended_mb
 				),
-				'estimated_mb' => $estimated_mb,
-				'available_mb' => $available_mb,
+				'estimated_mb'   => $estimated_mb,
+				'available_mb'   => $available_mb,
 				'recommended_mb' => $recommended_mb,
 			);
 		}
-		
+
 		return array(
-			'level'   => 'warning',
-			'message' => sprintf(
+			'level'        => 'warning',
+			'message'      => sprintf(
 				/* translators: 1: Estimated memory needed, 2: Available memory, 3: Percentage */
 				__( 'Note: Export will use ~%1$dMB of %2$dMB available (%3$d%%). Consider increasing memory for safety.', 'sscribe-export-site-pages' ),
 				$estimated_mb,
@@ -1025,9 +1025,9 @@ class SScribe_Batch_Processor {
 				$this->logger->debug(
 					"Skipped page due to memory: {$page_id}",
 					array(
-						'page_id'       => $page_id,
-						'memory_usage'  => size_format( memory_get_usage( true ) ),
-						'memory_limit'  => ini_get( 'memory_limit' ),
+						'page_id'      => $page_id,
+						'memory_usage' => size_format( memory_get_usage( true ) ),
+						'memory_limit' => ini_get( 'memory_limit' ),
 					)
 				);
 				$errors[] = $error_msg;
@@ -1086,7 +1086,7 @@ class SScribe_Batch_Processor {
 					$e->getMessage()
 				);
 				$export_errors[] = $error_msg;
-				
+
 				$this->logger->error(
 					'Critical error during page export',
 					array(
@@ -1942,7 +1942,8 @@ class SScribe_Batch_Processor {
 		}
 
 		// Check disk space.
-		$upload_dir       = $this->zip_handler->get_export_dir();
+		$upload_dir = $this->zip_handler->get_export_dir();
+		// phpcs:ignore WordPress.WP.AlternativeFunctions.file_system_operations_is_writable
 		$disk_free        = is_dir( $upload_dir ) && is_writable( $upload_dir ) ? disk_free_space( $upload_dir ) : false;
 		$disk_free_mb     = $disk_free ? round( $disk_free / 1024 / 1024 ) : 0;
 		$disk_ok          = $disk_free && $disk_free >= 50 * 1024 * 1024; // 50MB minimum.
@@ -2083,7 +2084,7 @@ class SScribe_Batch_Processor {
 			$format = 'docx';
 		}
 
-		$pages = $this->collector->get_page_ids( $language, $post_status );
+		$pages      = $this->collector->get_page_ids( $language, $post_status );
 		$page_count = count( $pages );
 
 		$times_per_page = array(
@@ -2139,12 +2140,12 @@ class SScribe_Batch_Processor {
 		}
 
 		$preview_data = array(
-			'total_pages'       => $page_count,
-			'format'            => $format,
-			'estimated_time'    => $estimated_time,
+			'total_pages'        => $page_count,
+			'format'             => $format,
+			'estimated_time'     => $estimated_time,
 			'file_size_estimate' => $file_size_estimate,
-			'language'          => $language ?: __( 'All Languages', 'sscribe-export-site-pages' ),
-			'post_status'       => $post_status,
+			'language'           => '' !== $language ? $language : __( 'All Languages', 'sscribe-export-site-pages' ),
+			'post_status'        => $post_status,
 		);
 
 		if ( $sample_page ) {

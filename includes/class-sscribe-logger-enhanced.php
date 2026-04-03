@@ -22,41 +22,57 @@ class SScribe_Logger_Enhanced implements SScribe_Logger_Interface {
 
 	/**
 	 * Minimum log level to record.
+	 *
+	 * @var string
 	 */
 	private string $min_level;
 
 	/**
 	 * Enable database logging.
+	 *
+	 * @var bool
 	 */
 	private bool $enable_db;
 
 	/**
 	 * Enable Query Monitor integration.
+	 *
+	 * @var bool
 	 */
 	private bool $enable_qm;
 
 	/**
 	 * Enable file logging.
+	 *
+	 * @var bool
 	 */
 	private bool $enable_file;
 
 	/**
 	 * Log entries buffer for batch writes.
+	 *
+	 * @var array
 	 */
 	private array $buffer = array();
 
 	/**
 	 * Log directory path.
+	 *
+	 * @var string
 	 */
 	private readonly string $log_dir;
 
 	/**
 	 * Table name for database logs.
+	 *
+	 * @var string
 	 */
 	private readonly string $table_name;
 
 	/**
 	 * Request ID for correlation.
+	 *
+	 * @var string
 	 */
 	private readonly string $request_id;
 
@@ -97,6 +113,9 @@ class SScribe_Logger_Enhanced implements SScribe_Logger_Interface {
 
 	/**
 	 * Check if a level should be logged.
+	 *
+	 * @param string $level Log level to check.
+	 * @return bool True if level meets minimum threshold.
 	 */
 	private function should_log( string $level ): bool {
 		$current = self::LEVEL_PRIORITY[ $this->min_level ] ?? 1;
@@ -133,6 +152,11 @@ class SScribe_Logger_Enhanced implements SScribe_Logger_Interface {
 
 	/**
 	 * Format a log entry.
+	 *
+	 * @param string $level   Log level.
+	 * @param string $message Log message.
+	 * @param array  $context Context data.
+	 * @return array Formatted file and db entries.
 	 */
 	private function format_entry( string $level, string $message, array $context ): array {
 		$timestamp = current_time( 'mysql', true );
@@ -166,6 +190,9 @@ class SScribe_Logger_Enhanced implements SScribe_Logger_Interface {
 
 	/**
 	 * Sanitize context by removing sensitive data.
+	 *
+	 * @param array $context Raw context data.
+	 * @return array Sanitized context with sensitive values redacted.
 	 */
 	private function sanitize_context( array $context ): array {
 		$forbidden_keys = array( 'password', 'token', 'secret', 'api_key', 'auth', 'credential', 'private_key' );
@@ -181,6 +208,8 @@ class SScribe_Logger_Enhanced implements SScribe_Logger_Interface {
 
 	/**
 	 * Write to database.
+	 *
+	 * @param array $entry Log entry data.
 	 */
 	private function write_to_database( array $entry ): void {
 		global $wpdb;
@@ -189,6 +218,7 @@ class SScribe_Logger_Enhanced implements SScribe_Logger_Interface {
 			return;
 		}
 
+		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
 		$wpdb->insert(
 			$this->table_name,
 			$entry,
@@ -198,12 +228,15 @@ class SScribe_Logger_Enhanced implements SScribe_Logger_Interface {
 
 	/**
 	 * Check if the log table exists.
+	 *
+	 * @return bool True if table exists.
 	 */
 	private function table_exists(): bool {
 		global $wpdb;
 		static $exists = null;
 
 		if ( null === $exists ) {
+			// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
 			$table  = $wpdb->get_var(
 				$wpdb->prepare( 'SHOW TABLES LIKE %s', $this->table_name )
 			);
@@ -215,6 +248,10 @@ class SScribe_Logger_Enhanced implements SScribe_Logger_Interface {
 
 	/**
 	 * Write to Query Monitor.
+	 *
+	 * @param string $level   Log level.
+	 * @param string $message Log message.
+	 * @param array  $context Context data.
 	 */
 	private function write_to_query_monitor( string $level, string $message, array $context ): void {
 		$action = 'qm/' . $level;
@@ -226,6 +263,8 @@ class SScribe_Logger_Enhanced implements SScribe_Logger_Interface {
 
 	/**
 	 * Get log file path.
+	 *
+	 * @return string
 	 */
 	private function get_log_file(): string {
 		if ( ! file_exists( $this->log_dir ) ) {
@@ -236,6 +275,8 @@ class SScribe_Logger_Enhanced implements SScribe_Logger_Interface {
 
 	/**
 	 * Flush buffered logs to file.
+	 *
+	 * @return void
 	 */
 	public function flush(): void {
 		if ( empty( $this->buffer ) || ! $this->enable_file ) {
@@ -253,6 +294,9 @@ class SScribe_Logger_Enhanced implements SScribe_Logger_Interface {
 
 	/**
 	 * Log a debug message.
+	 *
+	 * @param string $message Log message.
+	 * @param array  $context Context data.
 	 */
 	public function debug( string $message, array $context = array() ): void {
 		$this->log( self::LEVEL_DEBUG, $message, $context );
@@ -260,6 +304,9 @@ class SScribe_Logger_Enhanced implements SScribe_Logger_Interface {
 
 	/**
 	 * Log an info message.
+	 *
+	 * @param string $message Log message.
+	 * @param array  $context Context data.
 	 */
 	public function info( string $message, array $context = array() ): void {
 		$this->log( self::LEVEL_INFO, $message, $context );
@@ -267,6 +314,9 @@ class SScribe_Logger_Enhanced implements SScribe_Logger_Interface {
 
 	/**
 	 * Log a notice message.
+	 *
+	 * @param string $message Log message.
+	 * @param array  $context Context data.
 	 */
 	public function notice( string $message, array $context = array() ): void {
 		$this->log( self::LEVEL_NOTICE, $message, $context );
@@ -274,6 +324,9 @@ class SScribe_Logger_Enhanced implements SScribe_Logger_Interface {
 
 	/**
 	 * Log a warning message.
+	 *
+	 * @param string $message Log message.
+	 * @param array  $context Context data.
 	 */
 	public function warning( string $message, array $context = array() ): void {
 		$this->log( self::LEVEL_WARNING, $message, $context );
@@ -281,6 +334,9 @@ class SScribe_Logger_Enhanced implements SScribe_Logger_Interface {
 
 	/**
 	 * Log an error message.
+	 *
+	 * @param string $message Log message.
+	 * @param array  $context Context data.
 	 */
 	public function error( string $message, array $context = array() ): void {
 		$this->log( self::LEVEL_ERROR, $message, $context );
@@ -288,6 +344,9 @@ class SScribe_Logger_Enhanced implements SScribe_Logger_Interface {
 
 	/**
 	 * Log a critical message.
+	 *
+	 * @param string $message Log message.
+	 * @param array  $context Context data.
 	 */
 	public function critical( string $message, array $context = array() ): void {
 		$this->log( self::LEVEL_CRITICAL, $message, $context );
@@ -295,6 +354,9 @@ class SScribe_Logger_Enhanced implements SScribe_Logger_Interface {
 
 	/**
 	 * Log an alert message.
+	 *
+	 * @param string $message Log message.
+	 * @param array  $context Context data.
 	 */
 	public function alert( string $message, array $context = array() ): void {
 		$this->log( self::LEVEL_ALERT, $message, $context );
@@ -302,6 +364,9 @@ class SScribe_Logger_Enhanced implements SScribe_Logger_Interface {
 
 	/**
 	 * Log an emergency message.
+	 *
+	 * @param string $message Log message.
+	 * @param array  $context Context data.
 	 */
 	public function emergency( string $message, array $context = array() ): void {
 		$this->log( self::LEVEL_EMERGENCY, $message, $context );
@@ -309,6 +374,8 @@ class SScribe_Logger_Enhanced implements SScribe_Logger_Interface {
 
 	/**
 	 * Check if logging is enabled.
+	 *
+	 * @return bool True if any logging destination is active.
 	 */
 	public function is_enabled(): bool {
 		return $this->enable_file || $this->enable_db;
@@ -354,6 +421,7 @@ class SScribe_Logger_Enhanced implements SScribe_Logger_Interface {
 		$where_clause = implode( ' AND ', $where );
 		$args[]       = $limit;
 
+		// phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared
 		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
 		return $wpdb->get_results(
 			$wpdb->prepare(
@@ -378,6 +446,7 @@ class SScribe_Logger_Enhanced implements SScribe_Logger_Interface {
 
 		$cutoff = gmdate( 'Y-m-d H:i:s', strtotime( "-{$days} days" ) );
 
+		// phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared
 		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
 		return $wpdb->query(
 			$wpdb->prepare(

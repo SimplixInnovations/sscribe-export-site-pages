@@ -22,11 +22,15 @@ class SScribe_Memory_Exception extends SScribe_Exception {
 
 	/**
 	 * Memory limit that was exceeded.
+	 *
+	 * @var int
 	 */
 	protected int $memory_limit;
 
 	/**
 	 * Memory used at time of exception.
+	 *
+	 * @var int
 	 */
 	protected int $memory_used;
 

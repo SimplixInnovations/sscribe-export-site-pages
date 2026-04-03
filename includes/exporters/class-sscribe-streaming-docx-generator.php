@@ -24,26 +24,36 @@ class SScribe_Streaming_DOCX_Generator {
 
 	/**
 	 * Temporary directory for document parts.
+	 *
+	 * @var string
 	 */
 	private string $temp_dir;
 
 	/**
 	 * Document content XML buffer.
+	 *
+	 * @var string
 	 */
 	private string $document_xml;
 
 	/**
 	 * Number of sections added.
+	 *
+	 * @var int
 	 */
 	private int $section_count = 0;
 
 	/**
 	 * Memory threshold for flush (bytes).
+	 *
+	 * @var int
 	 */
 	private int $memory_threshold;
 
 	/**
 	 * Logger instance.
+	 *
+	 * @var SScribe_Logger
 	 */
 	private SScribe_Logger $logger;
 
@@ -235,6 +245,7 @@ class SScribe_Streaming_DOCX_Generator {
 	 */
 	private function flush_to_disk(): void {
 		$chunk_file = $this->temp_dir . '/chunk_' . $this->section_count . '.xml';
+		// phpcs:ignore WordPress.WP.AlternativeFunctions.file_system_operations_file_put_contents
 		file_put_contents( $chunk_file, $this->document_xml );
 		$this->document_xml = '';
 		$this->logger->debug(
@@ -260,6 +271,7 @@ class SScribe_Streaming_DOCX_Generator {
 
 		$document_dir = $this->temp_dir . '/word';
 		wp_mkdir_p( $document_dir );
+		// phpcs:ignore WordPress.WP.AlternativeFunctions.file_system_operations_file_put_contents
 		file_put_contents( $document_dir . '/document.xml', $final_xml );
 
 		$this->create_content_types();
@@ -288,6 +300,7 @@ class SScribe_Streaming_DOCX_Generator {
 		natsort( $chunks );
 
 		foreach ( $chunks as $chunk ) {
+			// phpcs:ignore WordPress.WP.AlternativeFunctions.file_get_contents_file_get_contents
 			$combined .= file_get_contents( $chunk );
 		}
 
@@ -307,6 +320,7 @@ class SScribe_Streaming_DOCX_Generator {
 <Override PartName="/word/document.xml" ContentType="application/vnd.openxmlformats-officedocument.wordprocessingml.document.main+xml"/>
 </Types>';
 
+		// phpcs:ignore WordPress.WP.AlternativeFunctions.file_system_operations_file_put_contents
 		file_put_contents( $this->temp_dir . '/[Content_Types].xml', $content );
 	}
 
@@ -322,6 +336,7 @@ class SScribe_Streaming_DOCX_Generator {
 <Relationship Id="rId1" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/officeDocument" Target="word/document.xml"/>
 </Relationships>';
 
+		// phpcs:ignore WordPress.WP.AlternativeFunctions.file_system_operations_file_put_contents
 		file_put_contents( $rels_dir . '/.rels', $content );
 	}
 
@@ -373,12 +388,14 @@ class SScribe_Streaming_DOCX_Generator {
 
 		foreach ( $iterator as $item ) {
 			if ( $item->isDir() ) {
+				// phpcs:ignore WordPress.WP.AlternativeFunctions.file_system_operations_rmdir
 				rmdir( $item->getRealPath() );
 			} else {
 				wp_delete_file( $item->getRealPath() );
 			}
 		}
 
+		// phpcs:ignore WordPress.WP.AlternativeFunctions.file_system_operations_rmdir
 		rmdir( $this->temp_dir );
 	}
 

@@ -22,6 +22,8 @@ class SScribe_Session_Exception extends SScribe_Exception {
 
 	/**
 	 * Session ID that caused the error.
+	 *
+	 * @var string
 	 */
 	protected string $session_id;
 
@@ -56,7 +58,7 @@ class SScribe_Session_Exception extends SScribe_Exception {
 		$message = $message ?? sprintf(
 			'Session %s: %s',
 			$expired ? 'expired' : 'corrupted',
-			$session_id ?: 'unknown'
+			'' !== $session_id ? $session_id : 'unknown'
 		);
 
 		parent::__construct(
@@ -70,6 +72,8 @@ class SScribe_Session_Exception extends SScribe_Exception {
 
 	/**
 	 * Get the session ID.
+	 *
+	 * @return string
 	 */
 	public function get_session_id(): string {
 		return $this->session_id;

@@ -99,9 +99,8 @@ class SScribe_Rate_Limiter {
 		$user_id = $user_id ?? get_current_user_id();
 		$key     = self::get_rate_key( $user_id, $action );
 		$limit   = self::get_limit( $action );
-		$window  = self::get_window( $action );
 
-		$current = self::get_current_count( $key, $window );
+		$current = self::get_current_count( $key );
 
 		return max( 0, $limit - $current );
 	}
@@ -185,11 +184,10 @@ class SScribe_Rate_Limiter {
 	/**
 	 * Get current count for rate limit.
 	 *
-	 * @param string $key    Transient key.
-	 * @param int    $window Window in seconds.
+	 * @param string $key Transient key.
 	 * @return int Current count.
 	 */
-	private static function get_current_count( string $key, int $window ): int {
+	private static function get_current_count( string $key ): int {
 		$data = get_transient( $key );
 
 		if ( false === $data ) {

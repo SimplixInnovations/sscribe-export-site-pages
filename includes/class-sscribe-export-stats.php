@@ -20,11 +20,15 @@ class SScribe_Export_Stats {
 
 	/**
 	 * Table name for statistics.
+	 *
+	 * @var string
 	 */
 	private readonly string $table_name;
 
 	/**
 	 * Constructor.
+	 *
+	 * @return void
 	 */
 	public function __construct() {
 		global $wpdb;
@@ -37,7 +41,7 @@ class SScribe_Export_Stats {
 	 * @param string $session_id Session ID.
 	 * @param int    $user_id    User ID.
 	 * @param array  $config     Export configuration.
-	 * @return bool Success.
+	 * @return bool True if insert succeeded.
 	 */
 	public function start_export( string $session_id, int $user_id, array $config ): bool {
 		global $wpdb;
@@ -178,7 +182,9 @@ class SScribe_Export_Stats {
 	private function get_total_exports( string $date_from ): int {
 		global $wpdb;
 
+		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
 		return (int) $wpdb->get_var(
+			// phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared
 			$wpdb->prepare(
 				"SELECT COUNT(*) FROM {$this->table_name} WHERE export_date >= %s",
 				$date_from
@@ -195,7 +201,9 @@ class SScribe_Export_Stats {
 	private function get_successful_exports( string $date_from ): int {
 		global $wpdb;
 
+		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
 		return (int) $wpdb->get_var(
+			// phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared
 			$wpdb->prepare(
 				"SELECT COUNT(*) FROM {$this->table_name} WHERE export_date >= %s AND status = 'completed'",
 				$date_from
@@ -212,7 +220,9 @@ class SScribe_Export_Stats {
 	private function get_failed_exports( string $date_from ): int {
 		global $wpdb;
 
+		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
 		return (int) $wpdb->get_var(
+			// phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared
 			$wpdb->prepare(
 				"SELECT COUNT(*) FROM {$this->table_name} WHERE export_date >= %s AND status = 'failed'",
 				$date_from
@@ -229,7 +239,9 @@ class SScribe_Export_Stats {
 	private function get_total_pages( string $date_from ): int {
 		global $wpdb;
 
+		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
 		return (int) $wpdb->get_var(
+			// phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared
 			$wpdb->prepare(
 				"SELECT SUM(total_pages) FROM {$this->table_name} WHERE export_date >= %s AND status = 'completed'",
 				$date_from
@@ -246,7 +258,9 @@ class SScribe_Export_Stats {
 	private function get_avg_duration( string $date_from ): float {
 		global $wpdb;
 
+		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
 		return (float) $wpdb->get_var(
+			// phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared
 			$wpdb->prepare(
 				"SELECT AVG(duration_seconds) FROM {$this->table_name} WHERE export_date >= %s AND status = 'completed'",
 				$date_from
@@ -263,7 +277,9 @@ class SScribe_Export_Stats {
 	private function get_total_size( string $date_from ): float {
 		global $wpdb;
 
+		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
 		return (float) $wpdb->get_var(
+			// phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared
 			$wpdb->prepare(
 				"SELECT SUM(file_size_mb) FROM {$this->table_name} WHERE export_date >= %s AND status = 'completed'",
 				$date_from
@@ -280,7 +296,9 @@ class SScribe_Export_Stats {
 	private function get_format_breakdown( string $date_from ): array {
 		global $wpdb;
 
+		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
 		$results = $wpdb->get_results(
+			// phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared
 			$wpdb->prepare(
 				"SELECT formats FROM {$this->table_name} WHERE export_date >= %s AND status = 'completed'",
 				$date_from
@@ -317,7 +335,9 @@ class SScribe_Export_Stats {
 	private function get_daily_exports( string $date_from ): array {
 		global $wpdb;
 
+		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
 		$results = $wpdb->get_results(
+			// phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared
 			$wpdb->prepare(
 				"SELECT DATE(export_date) as date, COUNT(*) as count, SUM(total_pages) as pages 
 				FROM {$this->table_name} 
@@ -349,7 +369,9 @@ class SScribe_Export_Stats {
 	public function get_recent_exports( int $limit = 10 ): array {
 		global $wpdb;
 
+		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
 		return $wpdb->get_results(
+			// phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared
 			$wpdb->prepare(
 				"SELECT * FROM {$this->table_name} ORDER BY export_date DESC LIMIT %d",
 				$limit
@@ -368,7 +390,9 @@ class SScribe_Export_Stats {
 
 		$cutoff = gmdate( 'Y-m-d H:i:s', strtotime( "-{$days} days" ) );
 
+		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
 		return $wpdb->query(
+			// phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared
 			$wpdb->prepare(
 				"DELETE FROM {$this->table_name} WHERE export_date < %s",
 				$cutoff
