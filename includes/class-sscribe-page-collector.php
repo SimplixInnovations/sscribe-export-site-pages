@@ -781,56 +781,12 @@ class SScribe_Page_Collector {
 		$switched = false;
 
 		try {
-			if ( $this->is_wpml_active() && ! empty( $language ) ) {
-				// phpcs:ignore WordPress.NamingConventions.PrefixAllGlobals.NonPrefixedHooknameFound -- WPML hook.
-				do_action( 'wpml_switch_language', $language );
-				$args['suppress_filters'] = false;
-				$switched                 = true;
-			}
-
-			$query = new WP_Query( $args );
-
-			// Count by status from the returned posts.
-			foreach ( $query->posts as $post_id ) {
-				$post = get_post( $post_id );
-				if ( $post && isset( $counts[ $post->post_status ] ) ) {
-					++$counts[ $post->post_status ];
-				}
-			}
-		} finally {
-			if ( $switched ) {
-				// phpcs:ignore WordPress.NamingConventions.PrefixAllGlobals.NonPrefixedHooknameFound -- WPML hook.
-				do_action( 'wpml_switch_language', null );
-			}
-		}
-
-		$counts['all'] = array_sum( $counts );
-
-		set_transient( $cache_key, $counts, 60 );
-
-		return $counts;
-	}
-
-		$statuses = $this->get_valid_post_statuses();
-		$counts   = array_fill_keys( array_keys( $statuses ), 0 );
-
-		$args = array(
-			'post_type'      => 'page',
-			'post_status'    => array_keys( $statuses ),
-			'posts_per_page' => -1,
-			'fields'         => 'ids',
-			'no_found_rows'  => true,
-		);
-
-		$switched = false;
-
-		try {
-			if ( $this->is_wpml_active() && ! empty( $language ) ) {
-				// phpcs:ignore WordPress.NamingConventions.PrefixAllGlobals.NonPrefixedHooknameFound -- WPML hook.
-				do_action( 'wpml_switch_language', $language );
-				$args['suppress_filters'] = false;
-				$switched                 = true;
-			}
+			// WPML is active and language is non-empty (guaranteed by early return above).
+			// phpcs:ignore WordPress.NamingConventions.PrefixAllGlobals.NonPrefixedHooknameFound -- WPML hook.
+			do_action( 'wpml_switch_language', $language );
+			$args['suppress_filters'] = false;
+			$switched                 = true;
+		} catch ( Throwable $e ) {
 
 			$query = new WP_Query( $args );
 

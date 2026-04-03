@@ -42,6 +42,16 @@ class SScribe_Session {
 	}
 
 	/**
+	 * Build the full option name for a session.
+	 *
+	 * @param string $session_id Session ID.
+	 * @return string Option name.
+	 */
+	private function get_option_name( string $session_id ): string {
+		return $this->option_prefix . $session_id;
+	}
+
+	/**
 	 * Create a new session with the provided data.
 	 *
 	 * Uses add_option() instead of update_option() so that:
@@ -81,8 +91,8 @@ class SScribe_Session {
 			return '';
 		}
 
-		if (isset($data['user_id'])) {
-			delete_transient('sscribe_active_session_' . (int) $data['user_id']);
+		if ( isset( $data['user_id'] ) ) {
+			delete_transient( 'sscribe_active_session_' . (int) $data['user_id'] );
 		}
 
 		return $session_id;
@@ -264,53 +274,6 @@ class SScribe_Session {
 	}
 
 	/**
-	 * Check if a user has a recently started (active) session.
-	 *
-	 * Note: The $recently_started_window is intentionally short (60s) because
-	 * this guard only prevents START of duplicate exports, not the ongoing batch.
-	 *
-	 * @param int $user_id User ID to check.
-	 * @return bool True if user has an active session.
-	 */
-	public function has_active_session( int $user_id ): bool {
-		global $wpdb;
-
-		$pattern                 = $wpdb->esc_like( $this->option_prefix ) . '%';
-		$now                     = time();
-		$recently_started_window = 60; // seconds — only guards against duplicate export starts.
-
-		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- Session check scans all options; caching not applicable for existence check.
-		$options = $wpdb->get_results(
-			$wpdb->prepare(
-				"SELECT option_value FROM {$wpdb->options} WHERE option_name LIKE %s AND autoload = 'no'",
-				$pattern
-			)
-		);
-
-		foreach ( $options as $option ) {
-			$data = $this->decode_session_value( $option->option_value );
-
-			if ( ! is_array( $data ) ) {
-				continue;
-			}
-
-			if ( isset( $data['user_id'] ) && (int) $data['user_id'] === $user_id ) {
-				if ( isset( $data['created_at'] ) && ( $now - $data['created_at'] ) < $recently_started_window ) {
-					if ( isset( $data['processed'], $data['total'] ) ) {
-						$processed = (int) $data['processed'];
-						$total     = (int) $data['total'];
-						if ( $processed < $total && empty( $data['cancelled'] ) ) {
-							return true;
-						}
-					}
-				}
-			}
-		}
-
-		return false;
-	}
-
-	/**
 	 * Clear all sessions for a specific user.
 	 *
 	 * @param int $user_id User ID.
@@ -345,7 +308,7 @@ class SScribe_Session {
 			}
 		}
 
-		delete_transient('sscribe_active_session_' . $user_id);
+		delete_transient( 'sscribe_active_session_' . $user_id );
 
 		return $deleted;
 	}
@@ -366,8 +329,8 @@ class SScribe_Session {
 	 */
 	public function has_active_session( int $user_id ): bool {
 		$cache_key = 'sscribe_active_session_' . $user_id;
-		$cached = get_transient($cache_key);
-		if ($cached !== false) {
+		$cached    = get_transient( $cache_key );
+		if ( false !== $cached ) {
 			return (bool) $cached;
 		}
 
@@ -384,12 +347,11 @@ class SScribe_Session {
 			$wpdb->prepare(
 				"SELECT option_value FROM {$wpdb->options} WHERE option_name LIKE %s AND autoload = 'no'",
 				$pattern
-			),
-			ARRAY_A
+			)
 		);
 
 		foreach ( $options as $option ) {
-			$data = $this->decode_session_value( $option['option_value'] ?? '' );
+			$data = $this->decode_session_value( $option->option_value ?? '' );
 
 			if ( ! is_array( $data ) ) {
 				continue;
@@ -409,7 +371,7 @@ class SScribe_Session {
 			}
 		}
 
-		set_transient($cache_key, $has_active ? '1' : '0', 5);
+		set_transient( $cache_key, $has_active ? '1' : '0', 5 );
 
 		return $has_active;
 	}
