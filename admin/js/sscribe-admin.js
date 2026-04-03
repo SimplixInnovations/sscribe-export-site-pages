@@ -172,7 +172,7 @@
 				if (seconds < 60) {
 					estimate = (strings.estimated_time || 'Estimated time:') + ' ~' + Math.ceil(seconds) + ' ' + (strings.seconds || 'seconds');
 				} else {
-					let mins = Math.ceil(seconds / 60);
+					var mins = Math.ceil(seconds / 60);
 					estimate = (strings.estimated_time || 'Estimated time:') + ' ~' + mins + ' ' + (mins === 1 ? (strings.minute || 'minute') : (strings.minutes || 'minutes'));
 				}
 			}
@@ -899,7 +899,7 @@
 
 			if (data.content) {
 				var previewContent = data.content.length > 300 ? data.content.substring(0, 300) + '...' : data.content;
-				html += '<div style="color: var(--sscribe-text-secondary); font-size: 13px; line-height: 1.6;">' + previewContent + '</div>';
+				html += '<div style="color: var(--sscribe-text-secondary); font-size: 13px; line-height: 1.6;">' + this.escapeHtml(previewContent) + '</div>';
 			}
 
 			html += '<div class="sscribe-preview-meta">';
@@ -987,25 +987,6 @@
 					}
 				}
 			});
-		}
-	};
-
-			var html = '<div class="sscribe-preview-sample">';
-			html += '<h1>' + this.escapeHtml(strings.preview_sample_title || 'Sample Export') + '</h1>';
-			html += '<div class="sscribe-preview-meta">';
-			html += '<div class="sscribe-preview-meta-item"><strong>' + this.escapeHtml(strings.preview_total_pages || 'Total Pages') + '</strong>' + this.selectedPageCount + '</div>';
-			html += '<div class="sscribe-preview-meta-item"><strong>' + this.escapeHtml(strings.preview_format || 'Format') + '</strong>' + this.escapeHtml(formatLabels[format] || format) + '</div>';
-			html += '<div class="sscribe-preview-meta-item"><strong>' + this.escapeHtml(strings.preview_language || 'Language') + '</strong>' + this.escapeHtml(language || 'All Languages') + '</div>';
-			html += '<div class="sscribe-preview-meta-item"><strong>' + this.escapeHtml(strings.preview_status || 'Status') + '</strong>' + this.escapeHtml(postStatus) + '</div>';
-			html += '</div>';
-			html += '<p class="sscribe-preview-note">' + this.escapeHtml(strings.preview_fallback_note || 'Preview shows your export configuration. The actual export will include all selected pages with professional formatting.') + '</p>';
-			html += '</div>';
-
-			$content.html(html);
-		},
-
-		closePreview: function () {
-			$('#sscribe-preview-panel').addClass('sscribe-hidden');
 		}
 	};
 
