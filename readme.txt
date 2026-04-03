@@ -77,7 +77,7 @@ Reads metadata from all major SEO plugins:
 * Memory threshold monitoring prevents out-of-memory errors
 * Concurrent export prevention for data integrity
 * Database session storage immune to caching plugin interference
-* Generated export ZIPs auto-delete after 1 hour for security
+* Generated export ZIPs auto-delete after 72 hours for security
 * SSRF prevention in PDF exporter
 * URL validation and sanitization for all document links
 * Rate limiting on AJAX endpoints (60 requests/minute)
@@ -166,7 +166,7 @@ SScribe processes pages in small batches (configurable) to prevent PHP timeouts.
 
 = Are exported files secure? =
 
-Generated files are stored in a protected directory within wp-content/uploads and bundled into a ZIP file. Files auto-delete after 1 hour for security. Only authenticated WordPress administrators can access exports.
+Generated files are stored in a protected directory within wp-content/uploads and bundled into a ZIP file. Files auto-delete after 72 hours for security. Only authenticated WordPress administrators can access exports.
 
 = Can I export all languages at once? =
 
