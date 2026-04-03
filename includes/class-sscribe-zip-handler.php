@@ -30,9 +30,9 @@ class SScribe_Zip_Handler {
 	/**
 	 * Logger instance.
 	 *
-	 * @var SScribe_Logger
+	 * @var SScribe_Logger_Interface
 	 */
-	private readonly SScribe_Logger $logger;
+	private readonly SScribe_Logger_Interface $logger;
 
 	/**
 	 * Constructor.

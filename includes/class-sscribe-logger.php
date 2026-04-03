@@ -20,13 +20,18 @@ require_once SSCRIBE_PLUGIN_DIR . 'includes/interfaces/interface-sscribe-logger.
  * Class SScribe_Logger
  *
  * Centralized logging service with buffered filesystem writes.
+ *
+ * Automatically upgrades to SScribe_Logger_Enhanced when:
+ * - Query Monitor is active
+ * - Database logging is enabled via SSCRIBE_DB_LOGGING constant
+ * - Advanced logging features are requested.
  */
 class SScribe_Logger implements SScribe_Logger_Interface {
 
 	/**
 	 * Singleton instances keyed by prefix.
 	 *
-	 * @var array<string, self>
+	 * @var array<string, self|SScribe_Logger_Enhanced>
 	 */
 	private static array $instances = array();
 
@@ -54,18 +59,54 @@ class SScribe_Logger implements SScribe_Logger_Interface {
 	/**
 	 * Get or create singleton instance.
 	 *
+	 * Automatically returns enhanced logger when Query Monitor is active
+	 * or database logging is enabled.
+	 *
 	 * @param bool   $enabled Whether logging is enabled.
 	 * @param string $prefix  Optional log entry prefix.
-	 * @return self
+	 * @param array  $options Optional logger options (enable_db, enable_qm, etc).
+	 * @return SScribe_Logger_Interface
 	 */
-	public static function instance( bool $enabled = true, string $prefix = 'sscribe' ): self {
-		$key = $prefix . '_' . ( $enabled ? '1' : '0' );
+	public static function instance( bool $enabled = true, string $prefix = 'sscribe', array $options = array() ): SScribe_Logger_Interface {
+		// Use JSON for safe serialization (avoiding PHP object injection risks).
+		$key = $prefix . '_' . ( $enabled ? '1' : '0' ) . '_' . md5( wp_json_encode( $options ) );
 
 		if ( ! isset( self::$instances[ $key ] ) ) {
-			self::$instances[ $key ] = new self( $enabled, $prefix );
+			// Check if we should use enhanced logger.
+			$use_enhanced = self::should_use_enhanced();
+
+			if ( $use_enhanced && class_exists( 'SScribe_Logger_Enhanced' ) ) {
+				self::$instances[ $key ] = new SScribe_Logger_Enhanced( $options );
+			} else {
+				self::$instances[ $key ] = new self( $enabled, $prefix );
+			}
 		}
 
 		return self::$instances[ $key ];
+	}
+
+	/**
+	 * Determine if enhanced logger should be used.
+	 *
+	 * @return bool True if enhanced logger should be used.
+	 */
+	private static function should_use_enhanced(): bool {
+		// Use enhanced if Query Monitor is active.
+		if ( class_exists( 'QueryMonitor' ) || defined( 'QM_DISABLED' ) ) {
+			return true;
+		}
+
+		// Use enhanced if database logging is explicitly enabled.
+		if ( defined( 'SSCRIBE_DB_LOGGING' ) && SSCRIBE_DB_LOGGING ) {
+			return true;
+		}
+
+		// Use enhanced in debug mode.
+		if ( defined( 'WP_DEBUG' ) && WP_DEBUG && defined( 'SSCRIBE_DEBUG' ) && SSCRIBE_DEBUG ) {
+			return true;
+		}
+
+		return false;
 	}
 
 	/**

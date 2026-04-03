@@ -304,7 +304,7 @@ msgid "DOCX, PDF, HTML, Markdown"
 msgstr ""
 
 #: admin/partials/sscribe-admin-display.php:270
-#: includes/enum-sscribe-export-format.php:32
+#: includes/class-sscribe-export-format.php:32
 msgid "Word Document (DOCX)"
 msgstr ""
 
@@ -313,7 +313,7 @@ msgid "~1.2 seconds per page"
 msgstr ""
 
 #: admin/partials/sscribe-admin-display.php:275
-#: includes/enum-sscribe-export-format.php:33
+#: includes/class-sscribe-export-format.php:33
 msgid "PDF Document"
 msgstr ""
 
@@ -322,7 +322,7 @@ msgid "~8 seconds per page"
 msgstr ""
 
 #: admin/partials/sscribe-admin-display.php:280
-#: includes/enum-sscribe-export-format.php:34
+#: includes/class-sscribe-export-format.php:34
 msgid "HTML Page"
 msgstr ""
 
@@ -331,7 +331,7 @@ msgid "~1 second per page"
 msgstr ""
 
 #: admin/partials/sscribe-admin-display.php:285
-#: includes/enum-sscribe-export-format.php:35
+#: includes/class-sscribe-export-format.php:35
 msgid "Markdown"
 msgstr ""
 

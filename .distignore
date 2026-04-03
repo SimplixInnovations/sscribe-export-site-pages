@@ -1,5 +1,8 @@
 # Development files
 .git/
+
+# WordPress.org SVN assets (not in plugin ZIP)
+screenshots/
 .github/
 .gitignore
 .agent/
