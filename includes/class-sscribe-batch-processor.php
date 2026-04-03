@@ -1943,7 +1943,7 @@ class SScribe_Batch_Processor {
 
 		// Check disk space.
 		$upload_dir       = $this->zip_handler->get_export_dir();
-		$disk_free        = @disk_free_space( $upload_dir ); // phpcs:ignore WordPress.PHP.NoSilencedErrors.Discouraged -- Fallback if directory doesn't exist.
+		$disk_free        = is_dir( $upload_dir ) && is_writable( $upload_dir ) ? disk_free_space( $upload_dir ) : false;
 		$disk_free_mb     = $disk_free ? round( $disk_free / 1024 / 1024 ) : 0;
 		$disk_ok          = $disk_free && $disk_free >= 50 * 1024 * 1024; // 50MB minimum.
 		$disk_recommended = $disk_free && $disk_free >= 200 * 1024 * 1024; // 200MB recommended.
@@ -2054,5 +2054,103 @@ class SScribe_Batch_Processor {
 		}
 
 		wp_send_json_success( $diagnostics );
+	}
+
+	/**
+	 * AJAX handler: Get export preview.
+	 *
+	 * @return void
+	 */
+	public function ajax_get_export_preview(): void {
+		check_ajax_referer( 'sscribe_export_nonce', 'nonce' );
+
+		if ( ! current_user_can( $this->get_required_capability() ) ) {
+			wp_send_json_error(
+				array(
+					'message' => __( 'Permission denied.', 'sscribe-export-site-pages' ),
+				),
+				403
+			);
+			return;
+		}
+
+		$language    = isset( $_POST['language'] ) ? sanitize_text_field( wp_unslash( $_POST['language'] ) ) : '';
+		$post_status = isset( $_POST['post_status'] ) ? sanitize_text_field( wp_unslash( $_POST['post_status'] ) ) : 'publish';
+		$format      = isset( $_POST['format'] ) ? sanitize_text_field( wp_unslash( $_POST['format'] ) ) : 'docx';
+
+		$allowed_formats = array( 'docx', 'pdf', 'html', 'markdown' );
+		if ( ! in_array( $format, $allowed_formats, true ) ) {
+			$format = 'docx';
+		}
+
+		$pages = $this->collector->get_page_ids( $language, $post_status );
+		$page_count = count( $pages );
+
+		$times_per_page = array(
+			'docx'     => 1.2,
+			'pdf'      => 8,
+			'html'     => 1,
+			'markdown' => 0.5,
+		);
+
+		$seconds_per_page = $times_per_page[ $format ] ?? 2;
+		$total_seconds    = $page_count * $seconds_per_page;
+
+		if ( $total_seconds < 60 ) {
+			$estimated_time = sprintf(
+				/* translators: %d: Number of seconds. */
+				_n( '%d second', '%d seconds', $total_seconds, 'sscribe-export-site-pages' ),
+				ceil( $total_seconds )
+			);
+		} else {
+			$minutes        = ceil( $total_seconds / 60 );
+			$estimated_time = sprintf(
+				/* translators: %d: Number of minutes. */
+				_n( '%d minute', '%d minutes', $minutes, 'sscribe-export-site-pages' ),
+				$minutes
+			);
+		}
+
+		$size_per_page = array(
+			'docx'     => 0.5,
+			'pdf'      => 2,
+			'html'     => 0.3,
+			'markdown' => 0.1,
+		);
+
+		$size_mb = $page_count * ( $size_per_page[ $format ] ?? 0.5 );
+		if ( $size_mb < 1 ) {
+			$file_size_estimate = round( $size_mb * 1024 ) . ' KB';
+		} else {
+			$file_size_estimate = round( $size_mb, 1 ) . ' MB';
+		}
+
+		$sample_page = null;
+		if ( ! empty( $pages ) ) {
+			$sample_id   = $pages[0];
+			$sample_post = get_post( $sample_id );
+			if ( $sample_post ) {
+				$sample_page = array(
+					'title'   => $sample_post->post_title,
+					'url'     => get_permalink( $sample_id ),
+					'content' => wp_trim_words( strip_shortcodes( $sample_post->post_content ), 50 ),
+				);
+			}
+		}
+
+		$preview_data = array(
+			'total_pages'       => $page_count,
+			'format'            => $format,
+			'estimated_time'    => $estimated_time,
+			'file_size_estimate' => $file_size_estimate,
+			'language'          => $language ?: __( 'All Languages', 'sscribe-export-site-pages' ),
+			'post_status'       => $post_status,
+		);
+
+		if ( $sample_page ) {
+			$preview_data = array_merge( $preview_data, $sample_page );
+		}
+
+		wp_send_json_success( $preview_data );
 	}
 }

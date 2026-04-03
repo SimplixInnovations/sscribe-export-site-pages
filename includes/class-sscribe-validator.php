@@ -375,7 +375,7 @@ class SScribe_Validator {
 					break;
 				case 'array_int':
 					$value               = (array) $value;
-					$sanitized[ $field ] = array_map( 'absint', $value );
+					$sanitized[ $field ] = array_filter( array_map( 'absint', $value ) );
 					break;
 				case 'array_string':
 					$value               = (array) $value;
@@ -385,7 +385,11 @@ class SScribe_Validator {
 					$sanitized[ $field ] = sanitize_key( $value );
 					break;
 				case 'url':
-					$sanitized[ $field ] = esc_url_raw( $value );
+					$sanitized_url       = esc_url_raw( $value );
+					$sanitized[ $field ] = self::is_safe_url( $sanitized_url ) ? $sanitized_url : '';
+					break;
+				case 'filename':
+					$sanitized[ $field ] = self::sanitize_filename( $value );
 					break;
 				default:
 					$sanitized[ $field ] = sanitize_text_field( $value );
@@ -393,5 +397,43 @@ class SScribe_Validator {
 		}
 
 		return $sanitized;
+	}
+
+	/**
+	 * Check if URL is safe (not javascript:, data:, vbscript:, etc.).
+	 *
+	 * @param string $url URL to check.
+	 * @return bool True if safe.
+	 */
+	public static function is_safe_url( string $url ): bool {
+		$dangerous_protocols = array( 'javascript:', 'data:', 'vbscript:', 'file:' );
+		$url_lower           = strtolower( $url );
+
+		foreach ( $dangerous_protocols as $protocol ) {
+			if ( str_contains( $url_lower, $protocol ) ) {
+				return false;
+			}
+		}
+
+		return true;
+	}
+
+	/**
+	 * Sanitize filename to prevent path traversal.
+	 *
+	 * @param string $filename Filename to sanitize.
+	 * @return string Sanitized filename.
+	 */
+	public static function sanitize_filename( string $filename ): string {
+		$filename = sanitize_file_name( $filename );
+
+		$dangerous_patterns = array( '../', '..\\', '/', '\\', "\x00" );
+		foreach ( $dangerous_patterns as $pattern ) {
+			$filename = str_replace( $pattern, '', $filename );
+		}
+
+		$filename = preg_replace( '/\.\.+/', '.', $filename );
+
+		return $filename;
 	}
 }

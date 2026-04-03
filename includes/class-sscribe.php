@@ -145,6 +145,7 @@ class SScribe {
 		$this->loader->add_action( 'wp_ajax_sscribe_get_export_log', $batch, 'ajax_get_export_log' );
 		$this->loader->add_action( 'wp_ajax_sscribe_clear_session', $batch, 'ajax_clear_session' );
 		$this->loader->add_action( 'wp_ajax_sscribe_preflight_check', $batch, 'ajax_preflight_check' );
+		$this->loader->add_action( 'wp_ajax_sscribe_get_export_preview', $batch, 'ajax_get_export_preview' );
 	}
 
 	/**

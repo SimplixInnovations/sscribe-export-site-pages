@@ -21,18 +21,18 @@ class SScribe_Audit_Trail {
 	/**
 	 * Audit event types.
 	 */
-	public const EVENT_EXPORT_STARTED     = 'export_started';
-	public const EVENT_EXPORT_COMPLETED   = 'export_completed';
-	public const EVENT_EXPORT_FAILED      = 'export_failed';
-	public const EVENT_EXPORT_CANCELLED   = 'export_cancelled';
-	public const EVENT_DOWNLOAD           = 'download';
-	public const EVENT_DOWNLOAD_DENIED    = 'download_denied';
-	public const EVENT_DELETE             = 'delete_export';
-	public const EVENT_SESSION_CLEARED    = 'session_cleared';
-	public const EVENT_PREFLIGHT_CHECK    = 'preflight_check';
-	public const EVENT_RATE_LIMITED       = 'rate_limited';
-	public const EVENT_PERMISSION_DENIED  = 'permission_denied';
-	public const EVENT_INVALID_NONCE      = 'invalid_nonce';
+	public const EVENT_EXPORT_STARTED         = 'export_started';
+	public const EVENT_EXPORT_COMPLETED       = 'export_completed';
+	public const EVENT_EXPORT_FAILED          = 'export_failed';
+	public const EVENT_EXPORT_CANCELLED       = 'export_cancelled';
+	public const EVENT_DOWNLOAD               = 'download';
+	public const EVENT_DOWNLOAD_DENIED        = 'download_denied';
+	public const EVENT_DELETE                 = 'delete_export';
+	public const EVENT_SESSION_CLEARED        = 'session_cleared';
+	public const EVENT_PREFLIGHT_CHECK        = 'preflight_check';
+	public const EVENT_RATE_LIMITED           = 'rate_limited';
+	public const EVENT_PERMISSION_DENIED      = 'permission_denied';
+	public const EVENT_INVALID_NONCE          = 'invalid_nonce';
 	public const EVENT_SESSION_HIJACK_ATTEMPT = 'session_hijack_attempt';
 
 	/**
@@ -62,7 +62,7 @@ class SScribe_Audit_Trail {
 		static $exists = null;
 
 		if ( null === $exists ) {
-			$table = $wpdb->get_var(
+			$table  = $wpdb->get_var(
 				$wpdb->prepare( 'SHOW TABLES LIKE %s', $this->table_name )
 			);
 			$exists = ( $table === $this->table_name );
@@ -85,9 +85,9 @@ class SScribe_Audit_Trail {
 
 		global $wpdb;
 
-		$user_id   = get_current_user_id();
-		$ip        = $this->get_client_ip();
-		$user_agent = $this->get_user_agent();
+		$user_id     = get_current_user_id();
+		$ip          = $this->get_client_ip();
+		$user_agent  = $this->get_user_agent();
 		$request_uri = $this->get_request_uri();
 
 		$sanitized_context = $this->sanitize_context( $context );
@@ -95,14 +95,14 @@ class SScribe_Audit_Trail {
 		$result = $wpdb->insert(
 			$this->table_name,
 			array(
-				'timestamp'    => current_time( 'mysql', true ),
-				'event'        => $event,
-				'user_id'      => $user_id,
-				'ip_address'   => $ip,
-				'user_agent'   => $user_agent,
-				'request_uri'  => $request_uri,
-				'context'      => wp_json_encode( $sanitized_context ),
-				'session_id'   => $context['session_id'] ?? '',
+				'timestamp'   => current_time( 'mysql', true ),
+				'event'       => $event,
+				'user_id'     => $user_id,
+				'ip_address'  => $ip,
+				'user_agent'  => $user_agent,
+				'request_uri' => $request_uri,
+				'context'     => wp_json_encode( $sanitized_context ),
+				'session_id'  => $context['session_id'] ?? '',
 			),
 			array( '%s', '%s', '%d', '%s', '%s', '%s', '%s', '%s' )
 		);
