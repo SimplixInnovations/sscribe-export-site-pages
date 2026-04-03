@@ -730,7 +730,10 @@ class SScribe_Page_Collector {
 	}
 
 	/**
-	 * Get page counts for each post status, optionally filtered by language.
+	 * Get page counts by status for the admin UI.
+	 *
+	 * Uses wp_count_posts() for non-WPML case (most efficient).
+	 * Falls back to WP_Query for WPML since language filtering is needed.
 	 *
 	 * @param string $language Optional WPML language code. Empty = all languages.
 	 * @return array Associative array of status => count pairs.
@@ -744,6 +747,69 @@ class SScribe_Page_Collector {
 		if ( false !== $cached && is_array( $cached ) ) {
 			return $cached;
 		}
+
+		$statuses = $this->get_valid_post_statuses();
+		$counts   = array_fill_keys( array_keys( $statuses ), 0 );
+
+		// For non-WPML, use wp_count_posts() which is highly optimized (single cached query).
+		if ( ! $this->is_wpml_active() || empty( $language ) ) {
+			$count = wp_count_posts( 'page' );
+
+			if ( $count ) {
+				foreach ( $statuses as $status => $label ) {
+					if ( isset( $count->$status ) ) {
+						$counts[ $status ] = (int) $count->$status;
+					}
+				}
+			}
+
+			$counts['all'] = array_sum( $counts );
+			set_transient( $cache_key, $counts, 60 );
+
+			return $counts;
+		}
+
+		// WPML case: need to filter by language, so use WP_Query.
+		$args = array(
+			'post_type'      => 'page',
+			'post_status'    => array_keys( $statuses ),
+			'posts_per_page' => -1,
+			'fields'         => 'ids',
+			'no_found_rows'  => true,
+		);
+
+		$switched = false;
+
+		try {
+			if ( $this->is_wpml_active() && ! empty( $language ) ) {
+				// phpcs:ignore WordPress.NamingConventions.PrefixAllGlobals.NonPrefixedHooknameFound -- WPML hook.
+				do_action( 'wpml_switch_language', $language );
+				$args['suppress_filters'] = false;
+				$switched                 = true;
+			}
+
+			$query = new WP_Query( $args );
+
+			// Count by status from the returned posts.
+			foreach ( $query->posts as $post_id ) {
+				$post = get_post( $post_id );
+				if ( $post && isset( $counts[ $post->post_status ] ) ) {
+					++$counts[ $post->post_status ];
+				}
+			}
+		} finally {
+			if ( $switched ) {
+				// phpcs:ignore WordPress.NamingConventions.PrefixAllGlobals.NonPrefixedHooknameFound -- WPML hook.
+				do_action( 'wpml_switch_language', null );
+			}
+		}
+
+		$counts['all'] = array_sum( $counts );
+
+		set_transient( $cache_key, $counts, 60 );
+
+		return $counts;
+	}
 
 		$statuses = $this->get_valid_post_statuses();
 		$counts   = array_fill_keys( array_keys( $statuses ), 0 );

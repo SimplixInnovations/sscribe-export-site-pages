@@ -38,9 +38,9 @@ class SScribe_Exporter {
 	/**
 	 * Content parser instance.
 	 *
-	 * @var SScribe_Content_Parser
+	 * @var SScribe_Content_Parser|null
 	 */
-	private SScribe_Content_Parser $parser;
+	private ?SScribe_Content_Parser $parser = null;
 
 	/**
 	 * Whether the current document is RTL.

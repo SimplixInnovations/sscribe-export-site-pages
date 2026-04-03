@@ -190,13 +190,13 @@ class SScribe_Error
 	}
 
 	/**
-	 * Interpolate context values into string.
+	 * Interpolate context values into a template string.
 	 *
 	 * @param string $template String with {placeholder}s.
 	 * @param array  $context  Context values.
 	 * @return string
 	 */
-	private static function interpolate(string $template, array $context): string
+	public static function interpolate(string $template, array $context): string
 	{
 		$replace = array();
 		foreach ($context as $key => $value) {

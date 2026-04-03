@@ -52,8 +52,9 @@ class SScribe_Content_Parser {
 			return array();
 		}
 
-		// Strip shortcode markers.
-		$html = $this->strip_shortcodes( $html );
+		// Note: Shortcodes are already expanded by apply_filters('the_content') before
+		// this method is called, so we don't need to strip shortcode markers here.
+		// We only clean up any remaining shortcode-like patterns that could be content.
 
 		// Normalize HTML.
 		$html = $this->normalize_html( $html );
@@ -65,20 +66,20 @@ class SScribe_Content_Parser {
 	}
 
 	/**
-	 * Strip remaining shortcodes and add placeholder marker.
+	 * Strip remaining shortcode-like patterns from content.
+	 *
+	 * Note: This is only for unregistered shortcode patterns that the_content filter
+	 * did not process. We use a conservative regex to avoid stripping legitimate
+	 * bracket notation that could be user content.
 	 *
 	 * @param string $html The HTML content.
 	 * @return string Cleaned HTML.
 	 */
 	private function strip_shortcodes( string $html ): string {
-		// Use WordPress's own shortcode stripper first (safe — only strips registered shortcodes).
-		// phpcs:ignore WordPress.NamingConventions.PrefixAllGlobals.NonPrefixedHooknameFound -- WP core function.
-		$html = strip_shortcodes( $html );
-
-		// Strip any remaining unregistered shortcode-like patterns only if they look like
-		// actual shortcodes (must have a valid tag name at the start, with attributes).
-		// Be conservative — do NOT strip simple [word] patterns that could be content.
-		$html = preg_replace( '/\[(\/?[a-zA-Z0-9_-]+)(\s+[^\]]+)?\]/', '', $html );
+		// Be conservative: only strip patterns that look like actual shortcodes
+		// (must have a valid tag name and optional attributes).
+		// Do NOT strip simple [word] patterns that could be content like [1] or [note].
+		$html = preg_replace( '/\[(\/?[a-zA-Z][a-zA-Z0-9_-]*)(\s+[^\]]+)?\]/', '', $html );
 
 		return $html;
 	}

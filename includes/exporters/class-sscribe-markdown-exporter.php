@@ -397,7 +397,8 @@ class SScribe_Markdown_Exporter implements SScribe_Exporter_Interface {
 	 * @return string
 	 */
 	private function convert_lists( string $html ): string {
-		$max_iterations = 10;
+		// Allow up to 500 list blocks to handle large documents with many lists.
+		$max_iterations = 500;
 		$iteration      = 0;
 
 		while ( preg_match( '/<(ul|ol)>(.*?)<\/\1>/is', $html, $matches, PREG_OFFSET_CAPTURE ) && $iteration < $max_iterations ) {
