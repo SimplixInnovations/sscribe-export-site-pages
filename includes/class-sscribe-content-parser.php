@@ -66,25 +66,6 @@ class SScribe_Content_Parser {
 	}
 
 	/**
-	 * Strip remaining shortcode-like patterns from content.
-	 *
-	 * Note: This is only for unregistered shortcode patterns that the_content filter
-	 * did not process. We use a conservative regex to avoid stripping legitimate
-	 * bracket notation that could be user content.
-	 *
-	 * @param string $html The HTML content.
-	 * @return string Cleaned HTML.
-	 */
-	private function strip_shortcodes( string $html ): string {
-		// Be conservative: only strip patterns that look like actual shortcodes
-		// (must have a valid tag name and optional attributes).
-		// Do NOT strip simple [word] patterns that could be content like [1] or [note].
-		$html = preg_replace( '/\[(\/?[a-zA-Z][a-zA-Z0-9_-]*)(\s+[^\]]+)?\]/', '', $html );
-
-		return $html;
-	}
-
-	/**
 	 * Normalize HTML for consistent parsing.
 	 *
 	 * @param string $html The HTML content.

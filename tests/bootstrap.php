@@ -423,4 +423,20 @@ if ( ! defined( 'HOUR_IN_SECONDS' ) ) {
 	define( 'HOUR_IN_SECONDS', 3600 );
 }
 
+if ( ! function_exists( 'wp_count_posts' ) ) {
+	function wp_count_posts( $post_type = 'post', $perm = 'readable' ) {
+		// Return a mock object with post status counts.
+		$counts                = new \stdClass();
+		$counts->publish       = 5;
+		$counts->draft         = 2;
+		$counts->private       = 1;
+		$counts->future        = 0;
+		$counts->pending       = 1;
+		$counts->inherit       = 0;
+		$counts->trash         = 0;
+		$counts->{'auto-draft'} = 0;
+		return $counts;
+	}
+}
+
 require_once SSCRIBE_PLUGIN_DIR . 'vendor/autoload.php';
