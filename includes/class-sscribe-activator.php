@@ -25,9 +25,69 @@ class SScribe_Activator {
 	 */
 	public static function activate(): void {
 		self::create_export_directory();
+		self::create_database_tables();
 		self::schedule_cleanup();
 		self::cleanup_orphaned_data();
 		update_option( 'sscribe_version', SSCRIBE_VERSION );
+	}
+
+	/**
+	 * Create database tables for logging and stats.
+	 *
+	 * @return void
+	 */
+	private static function create_database_tables(): void {
+		global $wpdb;
+
+		$charset_collate = $wpdb->get_charset_collate();
+
+		$table_logs = $wpdb->prefix . 'sscribe_export_logs';
+
+		$sql_logs = "CREATE TABLE $table_logs (
+			id BIGINT UNSIGNED NOT NULL AUTO_INCREMENT PRIMARY KEY,
+			timestamp DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+			level VARCHAR(20) NOT NULL,
+			message TEXT NOT NULL,
+			context LONGTEXT,
+			user_id BIGINT UNSIGNED,
+			request_id VARCHAR(12),
+			memory_usage VARCHAR(20),
+			INDEX idx_timestamp (timestamp),
+			INDEX idx_level (level),
+			INDEX idx_user_id (user_id),
+			INDEX idx_request_id (request_id)
+		) $charset_collate;";
+
+		$table_stats = $wpdb->prefix . 'sscribe_export_stats';
+
+		$sql_stats = "CREATE TABLE $table_stats (
+			id BIGINT UNSIGNED NOT NULL AUTO_INCREMENT PRIMARY KEY,
+			export_session_id VARCHAR(12) NOT NULL,
+			user_id BIGINT UNSIGNED NOT NULL,
+			export_date DATETIME NOT NULL,
+			total_pages INT UNSIGNED,
+			successful_pages INT UNSIGNED,
+			failed_pages INT UNSIGNED,
+			formats JSON,
+			memory_peak VARCHAR(20),
+			duration_seconds FLOAT,
+			file_size_mb DECIMAL(10, 2),
+			status ENUM('completed', 'failed', 'paused') DEFAULT 'completed',
+			error_message TEXT,
+			created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+			INDEX idx_export_date (export_date),
+			INDEX idx_user_id (user_id),
+			INDEX idx_status (status)
+		) $charset_collate;";
+
+		require_once ABSPATH . 'wp-admin/includes/upgrade.php';
+
+		dbDelta( $sql_logs );
+		dbDelta( $sql_stats );
+
+		// Create audit log table.
+		require_once SSCRIBE_PLUGIN_DIR . 'includes/class-sscribe-audit-trail.php';
+		SScribe_Audit_Trail::create_table();
 	}
 
 	/**

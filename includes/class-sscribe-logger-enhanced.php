@@ -1,0 +1,389 @@
+<?php
+/**
+ * Enhanced logging service for SScribe with database and Query Monitor support.
+ *
+ * @package SScribe
+ */
+
+declare(strict_types=1);
+
+if ( ! defined( 'ABSPATH' ) ) {
+	exit;
+}
+
+require_once SSCRIBE_PLUGIN_DIR . 'includes/interfaces/interface-sscribe-logger.php';
+
+/**
+ * Class SScribe_Logger_Enhanced
+ *
+ * Extended logger with database storage and Query Monitor integration.
+ */
+class SScribe_Logger_Enhanced implements SScribe_Logger_Interface {
+
+	/**
+	 * Minimum log level to record.
+	 */
+	private string $min_level;
+
+	/**
+	 * Enable database logging.
+	 */
+	private bool $enable_db;
+
+	/**
+	 * Enable Query Monitor integration.
+	 */
+	private bool $enable_qm;
+
+	/**
+	 * Enable file logging.
+	 */
+	private bool $enable_file;
+
+	/**
+	 * Log entries buffer for batch writes.
+	 */
+	private array $buffer = array();
+
+	/**
+	 * Log directory path.
+	 */
+	private readonly string $log_dir;
+
+	/**
+	 * Table name for database logs.
+	 */
+	private readonly string $table_name;
+
+	/**
+	 * Request ID for correlation.
+	 */
+	private readonly string $request_id;
+
+	/**
+	 * Log level priority mapping.
+	 */
+	private const LEVEL_PRIORITY = array(
+		self::LEVEL_DEBUG     => 0,
+		self::LEVEL_INFO      => 1,
+		self::LEVEL_NOTICE    => 2,
+		self::LEVEL_WARNING   => 3,
+		self::LEVEL_ERROR     => 4,
+		self::LEVEL_CRITICAL  => 5,
+		self::LEVEL_ALERT     => 6,
+		self::LEVEL_EMERGENCY => 7,
+	);
+
+	/**
+	 * Constructor.
+	 *
+	 * @param array $options Configuration options.
+	 */
+	public function __construct( array $options = array() ) {
+		$this->min_level   = $options['min_level'] ?? self::LEVEL_INFO;
+		$this->enable_db   = $options['enable_db'] ?? false;
+		$this->enable_qm   = $options['enable_qm'] ?? true;
+		$this->enable_file = $options['enable_file'] ?? true;
+
+		$upload_dir       = wp_upload_dir();
+		$this->log_dir    = $upload_dir['basedir'] . '/sscribe-logs';
+		$this->table_name = $GLOBALS['wpdb']->prefix . 'sscribe_export_logs';
+		$this->request_id = substr( md5( microtime() . wp_rand() ), 0, 12 );
+
+		if ( $this->enable_file || $this->enable_db ) {
+			add_action( 'shutdown', array( $this, 'flush' ) );
+		}
+	}
+
+	/**
+	 * Check if a level should be logged.
+	 */
+	private function should_log( string $level ): bool {
+		$current = self::LEVEL_PRIORITY[ $this->min_level ] ?? 1;
+		$check   = self::LEVEL_PRIORITY[ $level ] ?? 1;
+		return $check >= $current;
+	}
+
+	/**
+	 * Log a message.
+	 *
+	 * @param string $level   Log level.
+	 * @param string $message Log message.
+	 * @param array  $context Context data.
+	 */
+	public function log( string $level, string $message, array $context = array() ): void {
+		if ( ! $this->should_log( $level ) ) {
+			return;
+		}
+
+		$entry = $this->format_entry( $level, $message, $context );
+
+		if ( $this->enable_file ) {
+			$this->buffer[] = $entry['file'];
+		}
+
+		if ( $this->enable_db ) {
+			$this->write_to_database( $entry['db'] );
+		}
+
+		if ( $this->enable_qm ) {
+			$this->write_to_query_monitor( $level, $message, $context );
+		}
+	}
+
+	/**
+	 * Format a log entry.
+	 */
+	private function format_entry( string $level, string $message, array $context ): array {
+		$timestamp = current_time( 'mysql', true );
+		$user_id   = get_current_user_id();
+
+		$sanitized_context = $this->sanitize_context( $context );
+
+		$file_entry = sprintf(
+			'[%s] [%s] %s | %s',
+			$timestamp,
+			strtoupper( $level ),
+			$message,
+			wp_json_encode( $sanitized_context, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES )
+		);
+
+		$db_entry = array(
+			'timestamp'    => $timestamp,
+			'level'        => $level,
+			'message'      => $message,
+			'context'      => wp_json_encode( $sanitized_context ),
+			'user_id'      => $user_id,
+			'request_id'   => $this->request_id,
+			'memory_usage' => size_format( memory_get_usage( true ) ),
+		);
+
+		return array(
+			'file' => $file_entry,
+			'db'   => $db_entry,
+		);
+	}
+
+	/**
+	 * Sanitize context by removing sensitive data.
+	 */
+	private function sanitize_context( array $context ): array {
+		$forbidden_keys = array( 'password', 'token', 'secret', 'api_key', 'auth', 'credential', 'private_key' );
+
+		foreach ( $forbidden_keys as $key ) {
+			if ( isset( $context[ $key ] ) ) {
+				$context[ $key ] = '[REDACTED]';
+			}
+		}
+
+		return $context;
+	}
+
+	/**
+	 * Write to database.
+	 */
+	private function write_to_database( array $entry ): void {
+		global $wpdb;
+
+		if ( ! $this->table_exists() ) {
+			return;
+		}
+
+		$wpdb->insert(
+			$this->table_name,
+			$entry,
+			array( '%s', '%s', '%s', '%s', '%d', '%s', '%s' )
+		);
+	}
+
+	/**
+	 * Check if the log table exists.
+	 */
+	private function table_exists(): bool {
+		global $wpdb;
+		static $exists = null;
+
+		if ( null === $exists ) {
+			$table  = $wpdb->get_var(
+				$wpdb->prepare( 'SHOW TABLES LIKE %s', $this->table_name )
+			);
+			$exists = ( $table === $this->table_name );
+		}
+
+		return $exists;
+	}
+
+	/**
+	 * Write to Query Monitor.
+	 */
+	private function write_to_query_monitor( string $level, string $message, array $context ): void {
+		$action = 'qm/' . $level;
+
+		if ( did_action( 'plugins_loaded' ) ) {
+			do_action( $action, $message, $context );
+		}
+	}
+
+	/**
+	 * Get log file path.
+	 */
+	private function get_log_file(): string {
+		if ( ! file_exists( $this->log_dir ) ) {
+			SScribe_Security::protect_directory( $this->log_dir );
+		}
+		return $this->log_dir . '/sscribe_' . gmdate( 'Y-m-d' ) . '.log';
+	}
+
+	/**
+	 * Flush buffered logs to file.
+	 */
+	public function flush(): void {
+		if ( empty( $this->buffer ) || ! $this->enable_file ) {
+			return;
+		}
+
+		$log_file = $this->get_log_file();
+		$content  = implode( PHP_EOL, $this->buffer ) . PHP_EOL;
+
+		// phpcs:ignore WordPress.WP.AlternativeFunctions.file_system_operations_file_put_contents
+		file_put_contents( $log_file, $content, FILE_APPEND | LOCK_EX );
+
+		$this->buffer = array();
+	}
+
+	/**
+	 * Log a debug message.
+	 */
+	public function debug( string $message, array $context = array() ): void {
+		$this->log( self::LEVEL_DEBUG, $message, $context );
+	}
+
+	/**
+	 * Log an info message.
+	 */
+	public function info( string $message, array $context = array() ): void {
+		$this->log( self::LEVEL_INFO, $message, $context );
+	}
+
+	/**
+	 * Log a notice message.
+	 */
+	public function notice( string $message, array $context = array() ): void {
+		$this->log( self::LEVEL_NOTICE, $message, $context );
+	}
+
+	/**
+	 * Log a warning message.
+	 */
+	public function warning( string $message, array $context = array() ): void {
+		$this->log( self::LEVEL_WARNING, $message, $context );
+	}
+
+	/**
+	 * Log an error message.
+	 */
+	public function error( string $message, array $context = array() ): void {
+		$this->log( self::LEVEL_ERROR, $message, $context );
+	}
+
+	/**
+	 * Log a critical message.
+	 */
+	public function critical( string $message, array $context = array() ): void {
+		$this->log( self::LEVEL_CRITICAL, $message, $context );
+	}
+
+	/**
+	 * Log an alert message.
+	 */
+	public function alert( string $message, array $context = array() ): void {
+		$this->log( self::LEVEL_ALERT, $message, $context );
+	}
+
+	/**
+	 * Log an emergency message.
+	 */
+	public function emergency( string $message, array $context = array() ): void {
+		$this->log( self::LEVEL_EMERGENCY, $message, $context );
+	}
+
+	/**
+	 * Check if logging is enabled.
+	 */
+	public function is_enabled(): bool {
+		return $this->enable_file || $this->enable_db;
+	}
+
+	/**
+	 * Get logs from database.
+	 *
+	 * @param array $filters Filters (level, user_id, date_from, date_to).
+	 * @param int   $limit   Maximum results.
+	 * @return array Log entries.
+	 */
+	public function get_db_logs( array $filters = array(), int $limit = 100 ): array {
+		global $wpdb;
+
+		if ( ! $this->table_exists() ) {
+			return array();
+		}
+
+		$where = array( '1=1' );
+		$args  = array();
+
+		if ( ! empty( $filters['level'] ) ) {
+			$where[] = 'level = %s';
+			$args[]  = $filters['level'];
+		}
+
+		if ( ! empty( $filters['user_id'] ) ) {
+			$where[] = 'user_id = %d';
+			$args[]  = $filters['user_id'];
+		}
+
+		if ( ! empty( $filters['date_from'] ) ) {
+			$where[] = 'timestamp >= %s';
+			$args[]  = $filters['date_from'];
+		}
+
+		if ( ! empty( $filters['date_to'] ) ) {
+			$where[] = 'timestamp <= %s';
+			$args[]  = $filters['date_to'];
+		}
+
+		$where_clause = implode( ' AND ', $where );
+		$args[]       = $limit;
+
+		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
+		return $wpdb->get_results(
+			$wpdb->prepare(
+				"SELECT * FROM {$this->table_name} WHERE {$where_clause} ORDER BY timestamp DESC LIMIT %d",
+				...$args
+			)
+		);
+	}
+
+	/**
+	 * Clean up old logs from database.
+	 *
+	 * @param int $days Maximum age in days.
+	 * @return int Number of deleted rows.
+	 */
+	public function cleanup_db_logs( int $days = 30 ): int {
+		global $wpdb;
+
+		if ( ! $this->table_exists() ) {
+			return 0;
+		}
+
+		$cutoff = gmdate( 'Y-m-d H:i:s', strtotime( "-{$days} days" ) );
+
+		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
+		return $wpdb->query(
+			$wpdb->prepare(
+				"DELETE FROM {$this->table_name} WHERE timestamp < %s",
+				$cutoff
+			)
+		);
+	}
+}

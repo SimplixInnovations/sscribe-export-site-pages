@@ -138,6 +138,29 @@ if ( ! function_exists( '__' ) ) {
 	}
 }
 
+if ( ! function_exists( '_n' ) ) {
+	function _n( $sscribe_single, $sscribe_plural, $sscribe_number, $sscribe_domain = 'default' ) {
+		return 1 === $sscribe_number ? $sscribe_single : $sscribe_plural;
+	}
+}
+
+if ( ! function_exists( 'wp_convert_hr_to_bytes' ) ) {
+	function wp_convert_hr_to_bytes( $value ) {
+		$value = strtolower( trim( $value ) );
+		$bytes = (int) $value;
+
+		if ( str_contains( $value, 'g' ) ) {
+			$bytes *= 1024 * 1024 * 1024;
+		} elseif ( str_contains( $value, 'm' ) ) {
+			$bytes *= 1024 * 1024;
+		} elseif ( str_contains( $value, 'k' ) ) {
+			$bytes *= 1024;
+		}
+
+		return $bytes;
+	}
+}
+
 if ( ! function_exists( 'get_file_data' ) ) {
 	function get_file_data( $sscribe_file, $sscribe_headers ) {
 		$content = file_get_contents( $sscribe_file );
@@ -244,6 +267,9 @@ if ( ! function_exists( 'sanitize_text_field' ) ) {
 
 if ( ! function_exists( 'wp_unslash' ) ) {
 	function wp_unslash( $value ) {
+		if ( is_array( $value ) ) {
+			return array_map( 'wp_unslash', $value );
+		}
 		return stripslashes( $value );
 	}
 }
@@ -334,6 +360,42 @@ if ( ! function_exists( 'size_format' ) ) {
 		$bytes /= pow( 1024, $pow );
 		return round( $bytes, $decimals ) . ' ' . $units[ $pow ];
 	}
+}
+
+if ( ! function_exists( 'absint' ) ) {
+	function absint( $value ) {
+		return abs( (int) $value );
+	}
+}
+
+if ( ! function_exists( 'esc_html' ) ) {
+	function esc_html( $text ) {
+		return htmlspecialchars( $text, ENT_QUOTES, 'UTF-8' );
+	}
+}
+
+if ( ! function_exists( 'esc_url_raw' ) ) {
+	function esc_url_raw( $url ) {
+		return filter_var( $url, FILTER_SANITIZE_URL ) ?: '';
+	}
+}
+
+if ( ! function_exists( 'wp_list_pluck' ) ) {
+	function wp_list_pluck( $list, $field ) {
+		$result = array();
+		foreach ( $list as $item ) {
+			if ( is_object( $item ) ) {
+				$result[] = $item->$field ?? null;
+			} elseif ( is_array( $item ) ) {
+				$result[] = $item[ $field ] ?? null;
+			}
+		}
+		return $result;
+	}
+}
+
+if ( ! function_exists( 'class_exists' ) || ! class_exists( 'WP_Query' ) ) {
+	// WP_Query already defined above.
 }
 
 

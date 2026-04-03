@@ -3,7 +3,7 @@
  * Plugin Name:       SScribe Export Site Pages
  * Plugin URI:        https://simplixi.com/sscribe
  * Description:       Export every page into beautifully formatted Word DOCX files with multilingual support, SEO meta, rich styling, and secure ZIP download.
- * Version:           3.12.4
+ * Version:           3.12.6
  * Requires at least: 5.8
  * Requires PHP:      8.2
  * Author:            Simplix Innovations
@@ -27,7 +27,7 @@ if ( ! defined( 'ABSPATH' ) ) {
  * Plugin version - single source of truth.
  * All version references read from the plugin header above.
  */
-define( 'SSCRIBE_VERSION', '3.12.4' );
+define( 'SSCRIBE_VERSION', '3.12.6' );
 
 /**
  * Check PHP Version gracefully.
@@ -90,6 +90,14 @@ if ( file_exists( SSCRIBE_PLUGIN_DIR . 'vendor/autoload.php' ) ) {
 
 require_once SSCRIBE_PLUGIN_DIR . 'includes/class-sscribe-session.php';
 require_once SSCRIBE_PLUGIN_DIR . 'includes/class-sscribe-error.php';
+
+// Load exception classes.
+require_once SSCRIBE_PLUGIN_DIR . 'includes/exceptions/class-sscribe-exception.php';
+require_once SSCRIBE_PLUGIN_DIR . 'includes/exceptions/class-sscribe-memory-exception.php';
+require_once SSCRIBE_PLUGIN_DIR . 'includes/exceptions/class-sscribe-permission-exception.php';
+require_once SSCRIBE_PLUGIN_DIR . 'includes/exceptions/class-sscribe-validation-exception.php';
+require_once SSCRIBE_PLUGIN_DIR . 'includes/exceptions/class-sscribe-export-exception.php';
+require_once SSCRIBE_PLUGIN_DIR . 'includes/exceptions/class-sscribe-session-exception.php';
 
 /**
  * Activation hook.

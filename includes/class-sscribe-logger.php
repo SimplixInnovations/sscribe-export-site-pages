@@ -123,7 +123,40 @@ class SScribe_Logger implements SScribe_Logger_Interface {
 	 * @return void
 	 */
 	public function debug( string $message, array $data = array() ): void {
-		$this->log( 'DEBUG', $message, $data );
+		$this->log_internal( 'debug', $message, $data );
+	}
+
+	/**
+	 * Log an info message.
+	 *
+	 * @param string $message Log message.
+	 * @param array  $data    Optional data to include.
+	 * @return void
+	 */
+	public function info( string $message, array $data = array() ): void {
+		$this->log_internal( 'info', $message, $data );
+	}
+
+	/**
+	 * Log a notice message.
+	 *
+	 * @param string $message Log message.
+	 * @param array  $data    Optional data to include.
+	 * @return void
+	 */
+	public function notice( string $message, array $data = array() ): void {
+		$this->log_internal( 'notice', $message, $data );
+	}
+
+	/**
+	 * Log a warning message.
+	 *
+	 * @param string $message Log message.
+	 * @param array  $data    Optional data to include.
+	 * @return void
+	 */
+	public function warning( string $message, array $data = array() ): void {
+		$this->log_internal( 'warning', $message, $data );
 	}
 
 	/**
@@ -134,24 +167,70 @@ class SScribe_Logger implements SScribe_Logger_Interface {
 	 * @return void
 	 */
 	public function error( string $message, array $data = array() ): void {
-		$this->log( 'ERROR', $message, $data );
+		$this->log_internal( 'error', $message, $data );
 	}
 
 	/**
-	 * Buffer a log entry.
+	 * Log a critical message.
+	 *
+	 * @param string $message Log message.
+	 * @param array  $data    Optional data to include.
+	 * @return void
+	 */
+	public function critical( string $message, array $data = array() ): void {
+		$this->log_internal( 'critical', $message, $data );
+	}
+
+	/**
+	 * Log an alert message.
+	 *
+	 * @param string $message Log message.
+	 * @param array  $data    Optional data to include.
+	 * @return void
+	 */
+	public function alert( string $message, array $data = array() ): void {
+		$this->log_internal( 'alert', $message, $data );
+	}
+
+	/**
+	 * Log an emergency message.
+	 *
+	 * @param string $message Log message.
+	 * @param array  $data    Optional data to include.
+	 * @return void
+	 */
+	public function emergency( string $message, array $data = array() ): void {
+		$this->log_internal( 'emergency', $message, $data );
+	}
+
+	/**
+	 * Log a message with a specific level (PSR-3 compatible).
 	 *
 	 * @param string $level   Log level.
 	 * @param string $message Log message.
 	 * @param array  $data    Optional data.
 	 * @return void
 	 */
-	private function log( string $level, string $message, array $data = array() ): void {
+	public function log( string $level, string $message, array $data = array() ): void {
+		$this->log_internal( $level, $message, $data );
+	}
+
+	/**
+	 * Buffer a log entry (internal method).
+	 *
+	 * @param string $level   Log level.
+	 * @param string $message Log message.
+	 * @param array  $data    Optional data.
+	 * @return void
+	 */
+	private function log_internal( string $level, string $message, array $data = array() ): void {
 		if ( ! $this->enabled ) {
 			return;
 		}
 
 		$timestamp = gmdate( 'Y-m-d H:i:s' );
-		$entry     = "[{$timestamp}] [{$level}] {$message}";
+		$level_upper = strtoupper( $level );
+		$entry     = "[{$timestamp}] [{$level_upper}] {$message}";
 
 		if ( ! empty( $data ) ) {
 			$entry .= ' | ' . wp_json_encode( $data, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES );

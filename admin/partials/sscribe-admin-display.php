@@ -48,7 +48,18 @@ $sscribe_is_debug        = $sscribe_is_debug ?? false;
 		</div>
 	</header>
 
-	<div class="sscribe-workspace">
+	<!-- Skip link for keyboard navigation -->
+	<a href="#sscribe-main-content" class="sscribe-skip-link screen-reader-text">
+		<?php esc_html_e( 'Skip to main content', 'sscribe-export-site-pages' ); ?>
+	</a>
+
+	<!-- Live region for screen reader announcements -->
+	<div id="sscribe-live-region" class="screen-reader-text" aria-live="polite" aria-atomic="true"></div>
+	
+	<!-- Alert region for critical announcements -->
+	<div id="sscribe-alert-region" class="screen-reader-text" aria-live="assertive" aria-atomic="true"></div>
+
+	<div class="sscribe-workspace" id="sscribe-main-content" role="main">
 		<section class="sscribe-panel sscribe-config-panel">
 			<div class="sscribe-panel-header">
 				<div class="sscribe-panel-title">
@@ -73,11 +84,20 @@ $sscribe_is_debug        = $sscribe_is_debug ?? false;
 				<?php endif; ?>
 
 				<!-- Wizard step indicators -->
-				<div class="sscribe-wizard-steps">
-					<span class="sscribe-wizard-step active" data-step="1">1. <?php esc_html_e( 'Language', 'sscribe-export-site-pages' ); ?></span>
-					<span class="sscribe-wizard-step" data-step="2">2. <?php esc_html_e( 'Page Status', 'sscribe-export-site-pages' ); ?></span>
-					<span class="sscribe-wizard-step" data-step="3">3. <?php esc_html_e( 'Export Format', 'sscribe-export-site-pages' ); ?></span>
-				</div>
+				<nav class="sscribe-wizard-steps" aria-label="<?php esc_attr_e( 'Export wizard progress', 'sscribe-export-site-pages' ); ?>">
+					<span class="sscribe-wizard-step active" data-step="1" aria-current="step">
+						<span class="screen-reader-text"><?php esc_html_e( 'Step 1 of 3:', 'sscribe-export-site-pages' ); ?></span> 
+						<?php esc_html_e( 'Language', 'sscribe-export-site-pages' ); ?>
+					</span>
+					<span class="sscribe-wizard-step" data-step="2">
+						<span class="screen-reader-text"><?php esc_html_e( 'Step 2 of 3:', 'sscribe-export-site-pages' ); ?></span> 
+						<?php esc_html_e( 'Page Status', 'sscribe-export-site-pages' ); ?>
+					</span>
+					<span class="sscribe-wizard-step" data-step="3">
+						<span class="screen-reader-text"><?php esc_html_e( 'Step 3 of 3:', 'sscribe-export-site-pages' ); ?></span> 
+						<?php esc_html_e( 'Export Format', 'sscribe-export-site-pages' ); ?>
+					</span>
+				</nav>
 
 				<!-- Step 1: Language -->
 				<div class="sscribe-wizard-panel sscribe-wizard-panel-active" data-step="1">
@@ -292,46 +312,48 @@ $sscribe_is_debug        = $sscribe_is_debug ?? false;
 					<div class="sscribe-wizard-nav">
 						<button type="button" class="sscribe-button sscribe-wizard-back" data-prev="2">&larr; <?php esc_html_e( 'Back', 'sscribe-export-site-pages' ); ?></button>
 						<div class="sscribe-wizard-generate-wrap">
-							<div id="sscribe-time-estimate" class="sscribe-time-estimate">
+							<div id="sscribe-time-estimate" class="sscribe-time-estimate" aria-live="polite">
 								<?php // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- SVG sanitized in get_icon(). ?>
 								<?php echo SScribe_Helpers::get_icon( 'clock', 14 ); ?>
 								<span id="sscribe-time-estimate-text"><?php esc_html_e( 'Select options to see estimated time', 'sscribe-export-site-pages' ); ?></span>
 							</div>
-							<button type="button" id="sscribe-export-btn" class="sscribe-button sscribe-button-primary" disabled>
+							<button type="button" id="sscribe-export-btn" class="sscribe-button sscribe-button-primary" disabled aria-describedby="sscribe-export-btn-hint">
 								<?php // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- SVG sanitized in get_icon(). ?>
 								<?php echo SScribe_Helpers::get_icon( 'download-package', 20 ); ?>
 								<span id="sscribe-export-btn-text"><?php esc_html_e( 'Generate Documentation Package', 'sscribe-export-site-pages' ); ?></span>
 							</button>
+							<span id="sscribe-export-btn-hint" class="screen-reader-text"><?php esc_html_e( 'Start the export process for selected pages and format', 'sscribe-export-site-pages' ); ?></span>
 						</div>
 					</div>
 				</div>
 
-				<div id="sscribe-progress-area" class="sscribe-status-alert sscribe-status-processing sscribe-hidden">
-					<div class="sscribe-spinner">
+				<div id="sscribe-progress-area" class="sscribe-status-alert sscribe-status-processing scribe-hidden" role="status" aria-live="polite" aria-labelledby="sscribe-status-text">
+					<div class="sscribe-spinner" aria-hidden="true">
 						<img src="<?php echo esc_url( SScribe_Helpers::icon_url( 'loader' ) ); ?>" width="40" height="40" alt="" class="sscribe-spinner-img">
 					</div>
 					<div class="sscribe-status-info">
 						<h4 id="sscribe-status-text" class="sscribe-status-heading">
 							<?php esc_html_e( 'Connecting & fetching pages...', 'sscribe-export-site-pages' ); ?>
 						</h4>
-						<p id="sscribe-current-page" class="sscribe-current-page"></p>
+						<p id="sscribe-current-page" class="sscribe-current-page" aria-live="polite"></p>
 						<div class="sscribe-progress-tracker">
-							<div class="sscribe-progress-bar-container">
+							<div class="sscribe-progress-bar-container" role="progressbar" aria-valuemin="0" aria-valuemax="100" aria-valuenow="0" aria-labelledby="sscribe-progress-text">
 								<div id="sscribe-progress-bar" class="sscribe-progress-bar-fill"></div>
 							</div>
 							<span id="sscribe-progress-text" class="sscribe-progress-percentage">0%</span>
 						</div>
 						<div class="sscribe-progress-meta">
-							<span id="sscribe-time-remaining" class="sscribe-time-remaining"></span>
+							<span id="sscribe-time-remaining" class="sscribe-time-remaining" aria-live="off"></span>
 						</div>
-						<button type="button" id="sscribe-cancel-btn" class="sscribe-button sscribe-button-cancel">
+						<button type="button" id="sscribe-cancel-btn" class="sscribe-button scribe-button-cancel" aria-describedby="sscribe-cancel-hint">
 							<?php esc_html_e( 'Cancel Export', 'sscribe-export-site-pages' ); ?>
 						</button>
+						<span id="sscribe-cancel-hint" class="screen-reader-text"><?php esc_html_e( 'Stop the current export process and discard progress', 'sscribe-export-site-pages' ); ?></span>
 					</div>
 				</div>
 
-				<div id="sscribe-download-area" class="sscribe-status-alert sscribe-status-success sscribe-hidden">
-					<div class="sscribe-status-icon">
+				<div id="sscribe-download-area" class="sscribe-status-alert sscribe-status-success sscribe-hidden" role="status" aria-live="polite">
+					<div class="sscribe-status-icon" aria-hidden="true">
 						<?php // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- SVG sanitized in get_icon(). ?>
 						<?php echo SScribe_Helpers::get_icon( 'check-circle', 32 ); ?>
 					</div>
@@ -343,19 +365,21 @@ $sscribe_is_debug        = $sscribe_is_debug ?? false;
 							<?php esc_html_e( 'All selected pages have been packaged into a ZIP archive.', 'sscribe-export-site-pages' ); ?>
 						</p>
 						<div class="sscribe-success-actions">
-							<a id="sscribe-download-btn" href="#" class="sscribe-button sscribe-button-success" download>
-								<img src="<?php echo esc_url( SScribe_Helpers::icon_url( 'download-package' ) ); ?>" width="18" height="18" alt="">
+							<a id="sscribe-download-btn" href="#" class="sscribe-button sscribe-button-success" download aria-describedby="sscribe-download-hint">
+								<img src="<?php echo esc_url( SScribe_Helpers::icon_url( 'download-package' ) ); ?>" width="18" height="18" alt="" aria-hidden="true">
 								<?php esc_html_e( 'Download ZIP File', 'sscribe-export-site-pages' ); ?>
 							</a>
-							<button type="button" id="sscribe-retry-btn" class="sscribe-button sscribe-button-ghost">
+							<span id="sscribe-download-hint" class="screen-reader-text"><?php esc_html_e( 'Download the exported ZIP file to your computer', 'sscribe-export-site-pages' ); ?></span>
+							<button type="button" id="sscribe-retry-btn" class="sscribe-button sscribe-button-ghost" aria-describedby="sscribe-retry-hint">
 								<?php esc_html_e( 'Start New Export', 'sscribe-export-site-pages' ); ?>
 							</button>
+							<span id="sscribe-retry-hint" class="screen-reader-text"><?php esc_html_e( 'Clear current export and start a new one', 'sscribe-export-site-pages' ); ?></span>
 						</div>
 					</div>
 				</div>
 
-				<div id="sscribe-error-area" class="sscribe-status-alert sscribe-status-error sscribe-hidden">
-					<div class="sscribe-status-icon">
+				<div id="sscribe-error-area" class="sscribe-status-alert sscribe-status-error sscribe-hidden" role="alert" aria-live="assertive">
+					<div class="sscribe-status-icon" aria-hidden="true">
 						<?php // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- SVG sanitized in get_icon(). ?>
 						<?php echo SScribe_Helpers::get_icon( 'warning-circle', 32 ); ?>
 					</div>
@@ -368,11 +392,12 @@ $sscribe_is_debug        = $sscribe_is_debug ?? false;
 							<p id="sscribe-error-guidance-text" class="sscribe-guidance-text"></p>
 						</div>
 						<div class="sscribe-error-actions">
-							<button type="button" id="sscribe-error-try-again" class="sscribe-button sscribe-button-secondary">
+							<button type="button" id="sscribe-error-try-again" class="sscribe-button scribe-button-secondary" aria-describedby="sscribe-try-again-hint">
 								<?php // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- SVG sanitized in get_icon(). ?>
 								<?php echo SScribe_Helpers::get_icon( 'refresh-cw', 16 ); ?>
 								<?php esc_html_e( 'Try Again', 'sscribe-export-site-pages' ); ?>
 							</button>
+							<span id="sscribe-try-again-hint" class="screen-reader-text"><?php esc_html_e( 'Attempt the export again', 'sscribe-export-site-pages' ); ?></span>
 						</div>
 					</div>
 				</div>
@@ -571,17 +596,20 @@ $sscribe_is_debug        = $sscribe_is_debug ?? false;
 	</div>
 </div>
 
-<div id="sscribe-log-modal" class="sscribe-modal sscribe-hidden" role="dialog" aria-modal="true" aria-labelledby="sscribe-log-modal-title">
-	<div class="sscribe-modal-content">
+<div id="sscribe-log-modal" class="sscribe-modal sscribe-hidden" role="dialog" aria-modal="true" aria-labelledby="sscribe-log-modal-title" aria-describedby="sscribe-log-modal-desc">
+	<div class="sscribe-modal-content" role="document">
 		<div class="sscribe-modal-header">
 			<h3 id="sscribe-log-modal-title"><?php esc_html_e( 'Export Log', 'sscribe-export-site-pages' ); ?></h3>
-			<button type="button" class="sscribe-modal-close" id="sscribe-modal-close" aria-label="<?php echo esc_attr__( 'Close modal', 'sscribe-export-site-pages' ); ?>">&times;</button>
+			<button type="button" class="sscribe-modal-close" id="sscribe-modal-close" aria-label="<?php echo esc_attr__( 'Close modal', 'sscribe-export-site-pages' ); ?>">
+				<span aria-hidden="true">&times;</span>
+			</button>
 		</div>
-		<div class="sscribe-modal-body" id="sscribe-log-content">
+		<div class="sscribe-modal-body" id="sscribe-log-content" aria-live="polite">
 			<div class="sscribe-log-loading">
-				<img src="<?php echo esc_url( SScribe_Helpers::icon_url( 'loader' ) ); ?>" width="24" height="24" alt="" class="sscribe-spinner-img">
+				<img src="<?php echo esc_url( SScribe_Helpers::icon_url( 'loader' ) ); ?>" width="24" height="24" alt="" class="sscribe-spinner-img" aria-hidden="true">
 				<span><?php esc_html_e( 'Loading log...', 'sscribe-export-site-pages' ); ?></span>
 			</div>
 		</div>
+		<span id="sscribe-log-modal-desc" class="screen-reader-text"><?php esc_html_e( 'Export log details showing processing information for this export', 'sscribe-export-site-pages' ); ?></span>
 	</div>
 </div>
