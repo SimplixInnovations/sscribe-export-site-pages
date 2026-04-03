@@ -447,6 +447,10 @@ Critical memory fix: Prevents batch export failures for large page sets. Adaptiv
 
 New chunked page collection for memory-efficient processing. Added configurable filters for all tunables. Recommended update for large sites.
 
+= 3.14.0 =
+
+Enterprise-grade stability: Fixed all PHPStan/PHPCS errors, updated CI/CD workflows for strict compliance, resolved deprecated PHP 8.5 ReflectionProperty usage, and strengthened WordPress compatibility with comprehensive static analysis ignores.
+
 = 3.12.0 =
 
 Major improvements: preflight diagnostics, self-healing mechanism, and better crash recovery. Essential update for reliable exports.
