@@ -23,9 +23,9 @@ class SScribe_HTML_Exporter implements SScribe_Exporter_Interface {
 	/**
 	 * Logger instance.
 	 *
-	 * @var SScribe_Logger|null
+	 * @var SScribe_Logger_Interface|null
 	 */
-	private ?SScribe_Logger $logger = null;
+	private ?SScribe_Logger_Interface $logger = null;
 
 	/**
 	 * Filesystem instance.
@@ -37,10 +37,10 @@ class SScribe_HTML_Exporter implements SScribe_Exporter_Interface {
 	/**
 	 * Constructor.
 	 *
-	 * @param SScribe_Logger|null     $logger     Logger instance.
-	 * @param SScribe_Filesystem|null $filesystem Filesystem instance.
+	 * @param SScribe_Logger_Interface|null $logger     Logger instance.
+	 * @param SScribe_Filesystem|null       $filesystem Filesystem instance.
 	 */
-	public function __construct( ?SScribe_Logger $logger = null, ?SScribe_Filesystem $filesystem = null ) {
+	public function __construct( ?SScribe_Logger_Interface $logger = null, ?SScribe_Filesystem $filesystem = null ) {
 		$this->logger     = $logger ?? SScribe_Logger::instance( defined( 'SSCRIBE_DEBUG' ) && SSCRIBE_DEBUG );
 		$this->filesystem = $filesystem ?? new SScribe_Filesystem();
 	}

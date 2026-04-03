@@ -3,8 +3,8 @@ Contributors: simplixinnovations
 Donate link: https://simplixi.com
 Tags: export, docx, pdf, html, markdown, multilingual, rtl, seo, batch-export, page-export, content-export, wpml, compliance, documentation
 Requires at least: 6.0
-Tested up to: 6.9
-Stable tag: 3.14.2
+Tested up to: 6.9.4
+Stable tag: 3.15.0
 Requires PHP: 8.2
 License: GPLv2 or later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
@@ -197,6 +197,18 @@ Each document includes: cover page with title/URL/date/breadcrumbs, featured ima
 5. SEO Metadata Section - Meta title, description, focus keyword, and canonical URL from SEO plugins
 
 == Changelog ==
+
+= 3.15.0 =
+
+* New: Integrated enhanced logger with automatic Query Monitor support and database logging
+* New: Logger automatically upgrades when Query Monitor is active or debug mode is enabled
+* Improved: PHPCS testVersion updated from 8.1 to 8.2 to match minimum PHP requirement
+* Improved: Tested up to WordPress 6.9.4 for latest compatibility
+* Improved: Screenshots excluded from distribution package (WordPress.org SVN assets)
+* Improved: Export format enum file renamed to follow WordPress naming conventions
+* Fixed: All audit findings addressed - version consistency, naming conventions, CI workflow
+* Dev: Enhanced logger supports multiple destinations (file, database, Query Monitor)
+* Dev: Logger context sanitization removes sensitive data (passwords, tokens, secrets)
 
 = 3.14.2 =
 
@@ -445,6 +457,10 @@ Enterprise-grade release with comprehensive enhancements: Exception hierarchy wi
 * Initial release
 
 == Upgrade Notice ==
+
+= 3.15.0 =
+
+Major architecture release: Enhanced logging integration with Query Monitor support and database logging. PHPCS PHP 8.2 alignment, WordPress 6.9.4 compatibility, and comprehensive audit fixes. Recommended update for all users.
 
 = 3.14.2 =
 

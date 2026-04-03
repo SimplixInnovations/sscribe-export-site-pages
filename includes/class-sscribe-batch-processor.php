@@ -59,9 +59,9 @@ class SScribe_Batch_Processor {
 	/**
 	 * Logger instance.
 	 *
-	 * @var SScribe_Logger
+	 * @var SScribe_Logger_Interface
 	 */
-	private readonly \SScribe_Logger $logger;
+	private readonly \SScribe_Logger_Interface $logger;
 
 	/**
 	 * Audit trail instance for security logging.
@@ -97,16 +97,16 @@ class SScribe_Batch_Processor {
 	/**
 	 * Constructor.
 	 *
-	 * @param SScribe_Page_Collector|null $collector   Page collector instance.
-	 * @param SScribe_Zip_Handler|null    $zip_handler ZIP handler instance.
-	 * @param SScribe_Session|null        $session     Session handler instance.
-	 * @param SScribe_Logger|null         $logger      Logger instance.
+	 * @param SScribe_Page_Collector|null   $collector   Page collector instance.
+	 * @param SScribe_Zip_Handler|null      $zip_handler ZIP handler instance.
+	 * @param SScribe_Session|null          $session     Session handler instance.
+	 * @param SScribe_Logger_Interface|null $logger      Logger instance.
 	 */
 	public function __construct(
 		?SScribe_Page_Collector $collector = null,
 		?SScribe_Zip_Handler $zip_handler = null,
 		?SScribe_Session $session = null,
-		?SScribe_Logger $logger = null
+		?SScribe_Logger_Interface $logger = null
 	) {
 		$this->batch_size = (int) apply_filters( 'sscribe_batch_size', 5 );
 		$this->batch_size = max( 1, min( 20, $this->batch_size ) );

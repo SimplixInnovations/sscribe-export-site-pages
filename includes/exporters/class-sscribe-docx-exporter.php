@@ -30,19 +30,19 @@ class SScribe_DOCX_Exporter implements SScribe_Exporter_Interface {
 	/**
 	 * Logger instance.
 	 *
-	 * @var SScribe_Logger
+	 * @var SScribe_Logger_Interface
 	 */
-	private SScribe_Logger $logger;
+	private SScribe_Logger_Interface $logger;
 
 	/**
 	 * Constructor.
 	 *
-	 * @param SScribe_Exporter|null $exporter DOCX exporter instance.
-	 * @param SScribe_Logger|null   $logger   Logger instance.
+	 * @param SScribe_Exporter|null         $exporter DOCX exporter instance.
+	 * @param SScribe_Logger_Interface|null $logger   Logger instance.
 	 */
 	public function __construct(
 		?SScribe_Exporter $exporter = null,
-		?SScribe_Logger $logger = null
+		?SScribe_Logger_Interface $logger = null
 	) {
 		$this->exporter = $exporter ?? new SScribe_Exporter();
 		$this->logger   = $logger ?? SScribe_Logger::instance( defined( 'SSCRIBE_DEBUG' ) && SSCRIBE_DEBUG );

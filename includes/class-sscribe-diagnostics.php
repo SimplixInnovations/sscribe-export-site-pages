@@ -22,9 +22,9 @@ class SScribe_Diagnostics {
 	/**
 	 * Logger instance.
 	 *
-	 * @var SScribe_Logger
+	 * @var SScribe_Logger_Interface
 	 */
-	private SScribe_Logger $logger;
+	private SScribe_Logger_Interface $logger;
 
 	/**
 	 * Constructor.

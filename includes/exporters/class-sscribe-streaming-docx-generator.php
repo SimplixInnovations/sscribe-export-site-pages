@@ -53,21 +53,21 @@ class SScribe_Streaming_DOCX_Generator {
 	/**
 	 * Logger instance.
 	 *
-	 * @var SScribe_Logger
+	 * @var SScribe_Logger_Interface
 	 */
-	private SScribe_Logger $logger;
+	private SScribe_Logger_Interface $logger;
 
 	/**
 	 * Constructor.
 	 *
-	 * @param string|null         $temp_dir        Temporary directory.
-	 * @param int                 $memory_threshold Memory threshold in MB before flush.
-	 * @param SScribe_Logger|null $logger         Logger instance.
+	 * @param string|null                   $temp_dir        Temporary directory.
+	 * @param int                           $memory_threshold Memory threshold in MB before flush.
+	 * @param SScribe_Logger_Interface|null $logger         Logger instance.
 	 */
 	public function __construct(
 		?string $temp_dir = null,
 		int $memory_threshold = 50,
-		?SScribe_Logger $logger = null
+		?SScribe_Logger_Interface $logger = null
 	) {
 		$this->temp_dir         = $temp_dir ?? sys_get_temp_dir() . '/sscribe_stream_' . uniqid();
 		$this->memory_threshold = $memory_threshold * 1024 * 1024;
