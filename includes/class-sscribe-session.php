@@ -81,6 +81,10 @@ class SScribe_Session {
 			return '';
 		}
 
+		if (isset($data['user_id'])) {
+			delete_transient('sscribe_active_session_' . (int) $data['user_id']);
+		}
+
 		return $session_id;
 	}
 
@@ -341,17 +345,73 @@ class SScribe_Session {
 			}
 		}
 
+		delete_transient('sscribe_active_session_' . $user_id);
+
 		return $deleted;
 	}
 
 	/**
-	 * Get the option name for a session.
+	 * Check if a user has an active export session.
 	 *
-	 * @param string $session_id The session identifier.
-	 * @return string Option name.
+	 * An "active" session is one that was started within the last 60 seconds
+	 * and has not yet completed all pages.
+	 *
+	 * Note: The $recently_started_window is intentionally short (60s) because
+	 * this guard only prevents START of duplicate exports, not the ongoing batch.
+	 *
+	 * Uses a short-lived cache (5 seconds) to reduce database load on repeated checks.
+	 *
+	 * @param int $user_id User ID to check.
+	 * @return bool True if user has an active session.
 	 */
-	private function get_option_name( string $session_id ): string {
-		return $this->option_prefix . $session_id;
+	public function has_active_session( int $user_id ): bool {
+		$cache_key = 'sscribe_active_session_' . $user_id;
+		$cached = get_transient($cache_key);
+		if ($cached !== false) {
+			return (bool) $cached;
+		}
+
+		global $wpdb;
+
+		$pattern                 = $wpdb->esc_like( $this->option_prefix ) . '%';
+		$now                     = time();
+		$recently_started_window = 60; // seconds — only guards against duplicate export starts.
+
+		$has_active = false;
+
+		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- Session check scans all options; caching not applicable for existence check.
+		$options = $wpdb->get_results(
+			$wpdb->prepare(
+				"SELECT option_value FROM {$wpdb->options} WHERE option_name LIKE %s AND autoload = 'no'",
+				$pattern
+			),
+			ARRAY_A
+		);
+
+		foreach ( $options as $option ) {
+			$data = $this->decode_session_value( $option['option_value'] ?? '' );
+
+			if ( ! is_array( $data ) ) {
+				continue;
+			}
+
+			if ( isset( $data['user_id'] ) && (int) $data['user_id'] === $user_id ) {
+				if ( isset( $data['created_at'] ) && ( $now - (int) $data['created_at'] ) < $recently_started_window ) {
+					if ( isset( $data['processed'], $data['total'] ) ) {
+						$processed = (int) $data['processed'];
+						$total     = (int) $data['total'];
+						if ( $processed < $total && empty( $data['cancelled'] ) ) {
+							$has_active = true;
+							break;
+						}
+					}
+				}
+			}
+		}
+
+		set_transient($cache_key, $has_active ? '1' : '0', 5);
+
+		return $has_active;
 	}
 
 	/**
