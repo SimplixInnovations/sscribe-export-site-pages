@@ -14,6 +14,7 @@ if ( ! defined( 'ABSPATH' ) ) {
 require_once SSCRIBE_PLUGIN_DIR . 'includes/class-sscribe-export-log.php';
 require_once SSCRIBE_PLUGIN_DIR . 'includes/class-sscribe-error.php';
 require_once SSCRIBE_PLUGIN_DIR . 'includes/class-sscribe-diagnostics.php';
+require_once SSCRIBE_PLUGIN_DIR . 'includes/class-sscribe-audit-trail.php';
 
 /**
  * Batch processor for AJAX-based page exports.
@@ -63,6 +64,13 @@ class SScribe_Batch_Processor {
 	private readonly \SScribe_Logger $logger;
 
 	/**
+	 * Audit trail instance for security logging.
+	 *
+	 * @var SScribe_Audit_Trail
+	 */
+	private readonly \SScribe_Audit_Trail $audit_trail;
+
+	/**
 	 * Export log instance.
 	 *
 	 * @var SScribe_Export_Log
@@ -103,11 +111,12 @@ class SScribe_Batch_Processor {
 		$this->batch_size = (int) apply_filters( 'sscribe_batch_size', 5 );
 		$this->batch_size = max( 1, min( 20, $this->batch_size ) );
 
-		$this->collector   = $collector ?? new SScribe_Page_Collector();
-		$this->zip_handler = $zip_handler ?? new SScribe_Zip_Handler();
-		$this->session     = $session ?? new SScribe_Session();
-		$this->logger      = $logger ?? SScribe_Logger::instance( defined( 'SSCRIBE_DEBUG' ) && SSCRIBE_DEBUG );
-		$this->diagnostics = new SScribe_Diagnostics();
+		$this->collector     = $collector ?? new SScribe_Page_Collector();
+		$this->zip_handler   = $zip_handler ?? new SScribe_Zip_Handler();
+		$this->session       = $session ?? new SScribe_Session();
+		$this->logger        = $logger ?? SScribe_Logger::instance( defined( 'SSCRIBE_DEBUG' ) && SSCRIBE_DEBUG );
+		$this->diagnostics   = new SScribe_Diagnostics();
+		$this->audit_trail   = new SScribe_Audit_Trail();
 	}
 
 	/**
@@ -173,6 +182,37 @@ class SScribe_Batch_Processor {
 		);
 
 		$this->logger->debug( "[AUDIT] {$action}", $log_entry );
+
+		$event_type = $this->map_action_to_event( $action );
+		if ( $event_type ) {
+			$this->audit_trail->log( $event_type, $context );
+		}
+	}
+
+	/**
+	 * Map action name to audit event type.
+	 *
+	 * @param string $action Action name.
+	 * @return string|null Event type constant or null if not mappable.
+	 */
+	private function map_action_to_event( string $action ): ?string {
+		$map = array(
+			'export_started'     => SScribe_Audit_Trail::EVENT_EXPORT_STARTED,
+			'export_completed'   => SScribe_Audit_Trail::EVENT_EXPORT_COMPLETED,
+			'export_failed'      => SScribe_Audit_Trail::EVENT_EXPORT_FAILED,
+			'export_cancelled'   => SScribe_Audit_Trail::EVENT_EXPORT_CANCELLED,
+			'download'           => SScribe_Audit_Trail::EVENT_DOWNLOAD,
+			'download_denied'    => SScribe_Audit_Trail::EVENT_DOWNLOAD_DENIED,
+			'delete_export'      => SScribe_Audit_Trail::EVENT_DELETE,
+			'session_cleared'    => SScribe_Audit_Trail::EVENT_SESSION_CLEARED,
+			'preflight_check'    => SScribe_Audit_Trail::EVENT_PREFLIGHT_CHECK,
+			'rate_limited'       => SScribe_Audit_Trail::EVENT_RATE_LIMITED,
+			'permission_denied'  => SScribe_Audit_Trail::EVENT_PERMISSION_DENIED,
+			'invalid_nonce'      => SScribe_Audit_Trail::EVENT_INVALID_NONCE,
+			'session_hijack'     => SScribe_Audit_Trail::EVENT_SESSION_HIJACK_ATTEMPT,
+		);
+
+		return $map[ $action ] ?? null;
 	}
 
 	/**
