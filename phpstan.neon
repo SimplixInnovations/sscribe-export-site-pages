@@ -34,6 +34,5 @@ parameters:
         - '#Unsafe usage of new static\(\)\.#'
         - '#Method .* has invalid return type WP_Error\.#'
         - '#Instantiated class WP_Error not found\.#'
-        - '#Call to private static method interpolate\(\) of class.*#'
         - '#Offset.*\$format.* on left side of \?\? always exists and is not nullable\.#'
         - '#Offset.* in isset\(\) always exists and is not nullable\.#'
