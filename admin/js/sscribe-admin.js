@@ -27,6 +27,8 @@
 
 		bindEvents: function () {
 			$(document).on('click', '#sscribe-export-btn', $.proxy(this.startExport, this));
+			$(document).on('click', '#sscribe-preview-btn', $.proxy(this.showPreview, this));
+			$(document).on('click', '#sscribe-preview-close', $.proxy(this.closePreview, this));
 			$('#sscribe-retry-btn, #sscribe-error-try-again').on('click', $.proxy(this.retry, this));
 			$('#sscribe-cancel-btn').on('click', $.proxy(this.cancelExport, this));
 
@@ -72,6 +74,8 @@
 
 			var language = $('input[name="sscribe_language"]:checked').val() || '';
 			var self = this;
+
+			$('.sscribe-status-card-label').addClass('sscribe-loading');
 
 			$.ajax({
 				url: sscribe_data.ajaxurl,
@@ -122,6 +126,9 @@
 				},
 				error: function () {
 					// Silently fail on status count refresh; user can still export.
+				},
+				complete: function () {
+					$('.sscribe-status-card-label').removeClass('sscribe-loading');
 				}
 			});
 		},
@@ -183,6 +190,7 @@
 			var canExport = hasLanguage && hasStatus && hasFormat && hasPages;
 
 			$('#sscribe-export-btn').prop('disabled', !canExport);
+			$('#sscribe-preview-btn').prop('disabled', !canExport);
 		},
 
 		startExport: function (e) {
@@ -260,32 +268,75 @@
 				}
 			}
 
-			var message = diagnostics.message + '\n\n';
-			
+			var bannerHtml = '<div class="sscribe-preflight-banner">';
+			bannerHtml += '<div class="sscribe-preflight-header">';
+			bannerHtml += '<span class="sscribe-preflight-icon" aria-hidden="true">⚠</span>';
+			bannerHtml += '<h3>' + this.escapeHtml(sscribe_data.strings.preflight_title || 'Export Readiness Check') + '</h3>';
+			bannerHtml += '<button type="button" class="sscribe-preflight-close" aria-label="' + this.escapeHtml(sscribe_data.strings.close || 'Close') + '">&times;</button>';
+			bannerHtml += '</div>';
+			bannerHtml += '<div class="sscribe-preflight-body">';
+
 			if (errors.length > 0) {
-				message += (sscribe_data.strings.preflight_errors || 'Critical Issues:') + '\n';
+				bannerHtml += '<div class="sscribe-preflight-section sscribe-preflight-errors">';
+				bannerHtml += '<h4 class="sscribe-preflight-section-title">' + this.escapeHtml(sscribe_data.strings.preflight_errors || 'Critical Issues') + '</h4>';
+				bannerHtml += '<ul class="sscribe-preflight-list">';
 				for (var i = 0; i < errors.length; i++) {
-					message += '• ' + errors[i].name + ': ' + errors[i].message + '\n';
+					bannerHtml += '<li><strong>' + this.escapeHtml(errors[i].name) + ':</strong> ' + this.escapeHtml(errors[i].message);
+					if (errors[i].fix) {
+						bannerHtml += '<br><em class="sscribe-preflight-fix">' + this.escapeHtml(errors[i].fix) + '</em>';
+					}
+					bannerHtml += '</li>';
 				}
+				bannerHtml += '</ul></div>';
 			}
-			
+
 			if (warnings.length > 0) {
-				message += '\n' + (sscribe_data.strings.preflight_warnings || 'Recommendations:') + '\n';
+				bannerHtml += '<div class="sscribe-preflight-section sscribe-preflight-warnings">';
+				bannerHtml += '<h4 class="sscribe-preflight-section-title">' + this.escapeHtml(sscribe_data.strings.preflight_warnings || 'Recommendations') + '</h4>';
+				bannerHtml += '<ul class="sscribe-preflight-list">';
 				for (var j = 0; j < warnings.length; j++) {
-					message += '• ' + warnings[j].name + ': ' + warnings[j].message + '\n';
+					bannerHtml += '<li><strong>' + this.escapeHtml(warnings[j].name) + ':</strong> ' + this.escapeHtml(warnings[j].message);
+					if (warnings[j].fix) {
+						bannerHtml += '<br><em class="sscribe-preflight-fix">' + this.escapeHtml(warnings[j].fix) + '</em>';
+					}
+					bannerHtml += '</li>';
 				}
+				bannerHtml += '</ul></div>';
 			}
 
-			message += '\n' + (sscribe_data.strings.preflight_continue || 'Do you want to continue anyway?');
+			bannerHtml += '</div>';
+			bannerHtml += '<div class="sscribe-preflight-actions">';
+			bannerHtml += '<button type="button" class="sscribe-button sscribe-button-primary sscribe-preflight-proceed">' + this.escapeHtml(sscribe_data.strings.preflight_continue || 'Continue Anyway') + '</button>';
+			bannerHtml += '<button type="button" class="sscribe-button sscribe-button-ghost sscribe-preflight-cancel">' + this.escapeHtml(sscribe_data.strings.preflight_cancel || 'Go Back') + '</button>';
+			bannerHtml += '</div></div>';
 
-			if (confirm(message)) {
+			$('.sscribe-preflight-banner').remove();
+			$('.sscribe-wizard-steps').before(bannerHtml);
+
+			$('.sscribe-preflight-proceed').on('click', function () {
+				$('.sscribe-preflight-banner').fadeOut(200, function () { $(this).remove(); });
 				onProceed();
-			} else {
-				this.isProcessing = false;
-				this.resetUI();
+			});
+
+			$('.sscribe-preflight-cancel').on('click', function () {
+				$('.sscribe-preflight-banner').fadeOut(200, function () { $(this).remove(); });
+				SScribe.isProcessing = false;
+				SScribe.resetUI();
 				$('.sscribe-wizard-steps').show();
-				this.wizardStep(1);
-			}
+				SScribe.wizardStep(1);
+			});
+
+			$('.sscribe-preflight-close').on('click', function () {
+				$('.sscribe-preflight-banner').fadeOut(200, function () { $(this).remove(); });
+				SScribe.isProcessing = false;
+				SScribe.resetUI();
+				$('.sscribe-wizard-steps').show();
+				SScribe.wizardStep(1);
+			});
+
+			$('html, body').animate({
+				scrollTop: $('.sscribe-preflight-banner').offset().top - 20
+			}, 300);
 		},
 
 		proceedWithExport: function (language, postStatus, formats) {
@@ -450,10 +501,25 @@
 			percentage = Math.min(100, Math.max(0, percentage));
 			$('#sscribe-progress-bar').css('width', percentage + '%');
 			$('#sscribe-progress-text').text(percentage + '%');
+
+			var progressBar = document.getElementById('sscribe-progress-bar');
+			if (progressBar) {
+				progressBar.setAttribute('aria-valuenow', percentage);
+			}
+
+			var liveRegion = document.getElementById('sscribe-live-region');
+			if (liveRegion) {
+				liveRegion.textContent = 'Export progress: ' + percentage + '%';
+			}
 		},
 
 		updateStatus: function (message) {
 			$('#sscribe-status-text').text(message);
+
+			var liveRegion = document.getElementById('sscribe-live-region');
+			if (liveRegion) {
+				liveRegion.textContent = message;
+			}
 		},
 
 		showProgress: function () {
@@ -507,6 +573,11 @@
 			}
 
 			$('#sscribe-error-area').removeClass('sscribe-hidden').hide().fadeIn(300);
+
+			var alertRegion = document.getElementById('sscribe-alert-region');
+			if (alertRegion) {
+				alertRegion.textContent = 'Export failed: ' + message;
+			}
 
 			if (isCancelled) {
 				this.sessionId = null;
@@ -675,9 +746,15 @@
 			var $btn = $(e.currentTarget);
 			var filename = $btn.data('filename');
 
+			this.saveFocus();
+
 			$('#sscribe-log-modal').removeClass('sscribe-hidden');
 			$('#sscribe-log-content').html('<div class="sscribe-log-loading"><span></span></div>');
 			$('#sscribe-log-content').find('span').text((sscribe_data.strings && sscribe_data.strings.loading_log) || 'Loading log...');
+
+			var modal = document.getElementById('sscribe-log-modal');
+			this.trapFocus(modal);
+			modal.querySelector('.sscribe-modal-close').focus();
 
 			$.ajax({
 				url: sscribe_data.ajaxurl,
@@ -761,6 +838,174 @@
 
 		closeModal: function () {
 			$('#sscribe-log-modal').addClass('sscribe-hidden');
+			this.restoreFocus();
+		},
+
+		showPreview: function (e) {
+			e.preventDefault();
+
+			var language = $('input[name="sscribe_language"]:checked').val() || '';
+			var postStatus = $('input[name="sscribe_post_status"]:checked').val() || 'publish';
+			var format = $('input[name="sscribe_format"]:checked').val() || 'docx';
+
+			var $panel = $('#sscribe-preview-panel');
+			var $content = $('#sscribe-preview-content');
+
+			$panel.removeClass('sscribe-hidden');
+			$content.html('<div class="sscribe-preview-loading"><span class="sscribe-loading-spinner"></span><span>' + (sscribe_data.strings.generating_preview || 'Generating preview...') + '</span></div>');
+
+			this.saveFocus();
+
+			$('html, body').animate({
+				scrollTop: $panel.offset().top - 20
+			}, 300);
+
+			var self = this;
+
+			$.ajax({
+				url: sscribe_data.ajaxurl,
+				type: 'POST',
+				timeout: 30000,
+				data: {
+					action: 'sscribe_get_export_preview',
+					nonce: sscribe_data.nonce,
+					language: language,
+					post_status: postStatus,
+					format: format
+				},
+				success: function (response) {
+					if (response.success && response.data) {
+						self.renderPreview(response.data);
+					} else {
+						$content.html('<p class="sscribe-preview-note">' + self.escapeHtml(response.data.message || 'Preview not available') + '</p>');
+					}
+				},
+				error: function () {
+					self.renderFallbackPreview(language, postStatus, format);
+				}
+			});
+		},
+
+		renderPreview: function (data) {
+			var $content = $('#sscribe-preview-content');
+			var strings = sscribe_data.strings || {};
+
+			var html = '<div class="sscribe-preview-sample">';
+			html += '<h1>' + this.escapeHtml(data.title || strings.preview_sample_title || 'Sample Page') + '</h1>';
+
+			if (data.url) {
+				html += '<p style="color: var(--sscribe-text-muted); font-size: 13px; margin: 0 0 12px;">' + this.escapeHtml(data.url) + '</p>';
+			}
+
+			if (data.content) {
+				var previewContent = data.content.length > 300 ? data.content.substring(0, 300) + '...' : data.content;
+				html += '<div style="color: var(--sscribe-text-secondary); font-size: 13px; line-height: 1.6;">' + previewContent + '</div>';
+			}
+
+			html += '<div class="sscribe-preview-meta">';
+
+			if (data.total_pages !== undefined) {
+				html += '<div class="sscribe-preview-meta-item"><strong>' + this.escapeHtml(strings.preview_total_pages || 'Total Pages') + '</strong>' + data.total_pages + '</div>';
+			}
+			if (data.format) {
+				html += '<div class="sscribe-preview-meta-item"><strong>' + this.escapeHtml(strings.preview_format || 'Format') + '</strong>' + this.escapeHtml(data.format.toUpperCase()) + '</div>';
+			}
+			if (data.estimated_time) {
+				html += '<div class="sscribe-preview-meta-item"><strong>' + this.escapeHtml(strings.preview_estimated_time || 'Estimated Time') + '</strong>' + this.escapeHtml(data.estimated_time) + '</div>';
+			}
+			if (data.file_size_estimate) {
+				html += '<div class="sscribe-preview-meta-item"><strong>' + this.escapeHtml(strings.preview_file_size || 'Estimated Size') + '</strong>' + this.escapeHtml(data.file_size_estimate) + '</div>';
+			}
+
+			html += '</div>';
+
+			html += '<p class="sscribe-preview-note">' + this.escapeHtml(strings.preview_note || 'This is a preview of your export configuration. The actual export will include all selected pages with full formatting and SEO metadata.') + '</p>';
+			html += '</div>';
+
+			$content.html(html);
+		},
+
+		renderFallbackPreview: function (language, postStatus, format) {
+			var $content = $('#sscribe-preview-content');
+			var strings = sscribe_data.strings || {};
+
+			var formatLabels = {
+				'docx': 'Word Document (DOCX)',
+				'pdf': 'PDF Document',
+				'html': 'HTML Page',
+				'markdown': 'Markdown'
+			};
+
+			var html = '<div class="sscribe-preview-sample">';
+			html += '<h1>' + this.escapeHtml(strings.preview_sample_title || 'Sample Export') + '</h1>';
+			html += '<div class="sscribe-preview-meta">';
+			html += '<div class="sscribe-preview-meta-item"><strong>' + this.escapeHtml(strings.preview_total_pages || 'Total Pages') + '</strong>' + this.selectedPageCount + '</div>';
+			html += '<div class="sscribe-preview-meta-item"><strong>' + this.escapeHtml(strings.preview_format || 'Format') + '</strong>' + this.escapeHtml(formatLabels[format] || format) + '</div>';
+			html += '<div class="sscribe-preview-meta-item"><strong>' + this.escapeHtml(strings.preview_language || 'Language') + '</strong>' + this.escapeHtml(language || 'All Languages') + '</div>';
+			html += '<div class="sscribe-preview-meta-item"><strong>' + this.escapeHtml(strings.preview_status || 'Status') + '</strong>' + this.escapeHtml(postStatus) + '</div>';
+			html += '</div>';
+			html += '<p class="sscribe-preview-note">' + this.escapeHtml(strings.preview_fallback_note || 'Preview shows your export configuration. The actual export will include all selected pages with professional formatting.') + '</p>';
+			html += '</div>';
+
+			$content.html(html);
+		},
+
+		closePreview: function () {
+			$('#sscribe-preview-panel').addClass('sscribe-hidden');
+			this.restoreFocus();
+		},
+
+		saveFocus: function () {
+			this._lastFocusedElement = document.activeElement;
+		},
+
+		restoreFocus: function () {
+			if (this._lastFocusedElement && typeof this._lastFocusedElement.focus === 'function') {
+				this._lastFocusedElement.focus();
+				this._lastFocusedElement = null;
+			}
+		},
+
+		trapFocus: function (container) {
+			var focusableSelectors = 'a[href], button:not([disabled]), textarea:not([disabled]), input:not([disabled]), select:not([disabled]), [tabindex]:not([tabindex="-1"])';
+			var focusableElements = container.querySelectorAll(focusableSelectors);
+			var firstFocusable = focusableElements[0];
+			var lastFocusable = focusableElements[focusableElements.length - 1];
+
+			container.addEventListener('keydown', function (e) {
+				if (e.key !== 'Tab') return;
+
+				if (e.shiftKey) {
+					if (document.activeElement === firstFocusable) {
+						e.preventDefault();
+						lastFocusable.focus();
+					}
+				} else {
+					if (document.activeElement === lastFocusable) {
+						e.preventDefault();
+						firstFocusable.focus();
+					}
+				}
+			});
+		}
+	};
+
+			var html = '<div class="sscribe-preview-sample">';
+			html += '<h1>' + this.escapeHtml(strings.preview_sample_title || 'Sample Export') + '</h1>';
+			html += '<div class="sscribe-preview-meta">';
+			html += '<div class="sscribe-preview-meta-item"><strong>' + this.escapeHtml(strings.preview_total_pages || 'Total Pages') + '</strong>' + this.selectedPageCount + '</div>';
+			html += '<div class="sscribe-preview-meta-item"><strong>' + this.escapeHtml(strings.preview_format || 'Format') + '</strong>' + this.escapeHtml(formatLabels[format] || format) + '</div>';
+			html += '<div class="sscribe-preview-meta-item"><strong>' + this.escapeHtml(strings.preview_language || 'Language') + '</strong>' + this.escapeHtml(language || 'All Languages') + '</div>';
+			html += '<div class="sscribe-preview-meta-item"><strong>' + this.escapeHtml(strings.preview_status || 'Status') + '</strong>' + this.escapeHtml(postStatus) + '</div>';
+			html += '</div>';
+			html += '<p class="sscribe-preview-note">' + this.escapeHtml(strings.preview_fallback_note || 'Preview shows your export configuration. The actual export will include all selected pages with professional formatting.') + '</p>';
+			html += '</div>';
+
+			$content.html(html);
+		},
+
+		closePreview: function () {
+			$('#sscribe-preview-panel').addClass('sscribe-hidden');
 		}
 	};
 

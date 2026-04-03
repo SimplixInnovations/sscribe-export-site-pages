@@ -4,7 +4,7 @@
  * Plugin URI:        https://simplixi.com/sscribe
  * Description:       Export every page into beautifully formatted Word DOCX files with multilingual support, SEO meta, rich styling, and secure ZIP download.
  * Version:           3.12.6
- * Requires at least: 5.8
+ * Requires at least: 6.0
  * Requires PHP:      8.2
  * Author:            Simplix Innovations
  * Author URI:        https://simplixi.com
