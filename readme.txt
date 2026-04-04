@@ -4,7 +4,7 @@ Donate link: https://simplixi.com
 Tags: export, docx, multilingual, seo, pdf
 Requires at least: 6.0
 Tested up to: 6.9
-Stable tag: 3.15.9
+Stable tag: 3.15.10
 Requires PHP: 8.2
 License: GPLv2 or later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
@@ -199,6 +199,18 @@ Each document includes: cover page with title/URL/date/breadcrumbs, featured ima
 == Changelog ==
 
 **Note:** For the complete changelog (v1.0.0 through v3.15.7), see the [GitHub Releases page](https://github.com/SimplixInnovations/sscribe-export-site-pages/releases).
+
+= 3.15.10 =
+
+* Fixed: WPML language status counts now correctly returns counts for selected language
+* Fixed: Content parser no longer runs duplicate regex patterns (3-4x faster)
+* Fixed: Upload base directory call moved outside loop for performance
+* Fixed: DomPDF memory leak with proper finally block cleanup
+* Fixed: ZipArchive object released after close for memory efficiency
+* Fixed: Numeric created_at timestamp handling in diagnostics
+* Added: Integration and Security test suites to PHPUnit configuration
+* Improved: Added missing type hints for PHP 8.2+ strict typing
+* Improved: All 131 tests passing (including Integration and Security suites)
 
 = 3.15.9 =
 * Fixed: Added missing changelog entry for version 3.15.9
