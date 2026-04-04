@@ -429,9 +429,9 @@ class SScribe_Admin {
 							),
 							'time'      => $data['mtime'],
 							'size'      => $data['size'],
-							'lang_code' => $data['lang_code'],
-							'flag_url'  => $data['flag_url'],
-							'lang_name' => $data['lang_name'],
+							'lang_code' => sanitize_key( $data['lang_code'] ),
+							'flag_url'  => esc_url( $data['flag_url'] ),
+							'lang_name' => esc_html( $data['lang_name'] ),
 						);
 					}
 
