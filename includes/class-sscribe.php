@@ -35,15 +35,13 @@ class SScribe {
 
 	/**
 	 * Constructor.
+	 *
+	 * Only assigns dependencies - no side effects.
+	 * This allows the class to be instantiated safely in tests.
 	 */
 	public function __construct() {
 		$this->version = SSCRIBE_VERSION;
 		$this->loader  = new SScribe_Loader();
-
-		$this->register_services();
-		$this->define_admin_hooks();
-		$this->define_ajax_hooks();
-		$this->define_cron_hooks();
 	}
 
 	/**
@@ -91,6 +89,11 @@ class SScribe {
 				$c->get( SScribe_Logger::class ),
 				$c->get( SScribe_Filesystem::class )
 			)
+		);
+
+		$container->singleton(
+			SScribe_Markdown_Exporter::class,
+			fn() => new SScribe_Markdown_Exporter()
 		);
 
 		$container->singleton(
@@ -176,9 +179,17 @@ class SScribe {
 	/**
 	 * Run the loader to execute all hooks.
 	 *
+	 * This method performs all initialization and hook registration.
+	 * It should be called after instantiation to activate the plugin.
+	 *
 	 * @return void
 	 */
 	public function run(): void {
+		$this->register_services();
+		$this->define_admin_hooks();
+		$this->define_ajax_hooks();
+		$this->define_cron_hooks();
+
 		$this->loader->run();
 	}
 }
