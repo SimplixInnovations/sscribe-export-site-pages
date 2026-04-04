@@ -15,6 +15,7 @@ if ( ! defined( 'ABSPATH' ) ) {
  * Class SScribe_Rate_Limiter
  *
  * Implements rate limiting for export operations.
+ * Uses transient-based counting with advisory note for distributed deployments.
  */
 class SScribe_Rate_Limiter {
 
@@ -48,9 +49,8 @@ class SScribe_Rate_Limiter {
 		$user_id = $user_id ?? get_current_user_id();
 		$key     = self::get_rate_key( $user_id, $action );
 		$limit   = self::get_limit( $action );
-		$window  = self::get_window( $action );
 
-		$current = self::get_current_count( $key, $window );
+		$current = self::get_current_count( $key );
 
 		return $current < $limit;
 	}

@@ -62,33 +62,61 @@ class SScribe_Session {
 	 * @return string Session ID on success, empty string on failure.
 	 */
 	public function create( array $data ): string {
-		$session_id = sanitize_key( bin2hex( random_bytes( 8 ) ) );
-		$session_id = strtolower( $session_id );
+		$max_retries = 5;
+		$attempt     = 0;
 
-		$data['created_at'] = time();
-		$data['session_id'] = $session_id;
-		$data['updated_at'] = time();
+		while ( $attempt < $max_retries ) {
+			$session_id = sanitize_key( bin2hex( random_bytes( 8 ) ) );
+			$session_id = strtolower( $session_id );
 
-		$option_name  = $this->get_option_name( $session_id );
-		$encoded_data = wp_json_encode( $data, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES );
+			$data['created_at'] = time();
+			$data['session_id'] = $session_id;
+			$data['updated_at'] = time();
 
-		if ( false === $encoded_data ) {
-			$this->logger->error(
-				'Failed to JSON-encode session data',
-				array( 'session_id' => $session_id )
+			$option_name  = $this->get_option_name( $session_id );
+			$encoded_data = wp_json_encode( $data, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES );
+
+			if ( false === $encoded_data ) {
+				$this->logger->error(
+					'Failed to JSON-encode session data',
+					array( 'session_id' => $session_id )
+				);
+				return '';
+			}
+
+			// Use add_option() — always true for a fresh insert, never false for "no change".
+			$result = add_option( $option_name, $encoded_data, '', 'no' );
+
+			if ( $result ) {
+				// Success - break out of retry loop.
+				break;
+			}
+
+			// Collision detected - retry with new session_id.
+			$this->logger->warning(
+				'Session ID collision detected, retrying',
+				array(
+					'session_id' => $session_id,
+					'attempt'    => $attempt + 1,
+					'max'        => $max_retries,
+				)
 			);
-			return '';
-		}
+			++$attempt;
 
-		// Use add_option() — always true for a fresh insert, never false for "no change".
-		$result = add_option( $option_name, $encoded_data, '', 'no' );
-
-		if ( ! $result ) {
-			$this->logger->error(
-				'Failed to create session (option already exists?)',
-				array( 'session_id' => $session_id )
-			);
-			return '';
+			// If this was the last attempt, log final failure.
+			if ( $attempt >= $max_retries ) {
+				$this->logger->error(
+					'Failed to create session after max retries (collision)',
+					array(
+						'attempts' => $max_retries,
+						'data'     => array(
+							'user_id' => $data['user_id'] ?? null,
+							'action'  => $data['action'] ?? 'unknown',
+						),
+					)
+				);
+				return '';
+			}
 		}
 
 		if ( isset( $data['user_id'] ) ) {
