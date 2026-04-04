@@ -774,7 +774,6 @@ class SScribe_Page_Collector {
 			'post_type'      => 'page',
 			'post_status'    => array_keys( $statuses ),
 			'posts_per_page' => -1,
-			'fields'         => 'ids',
 			'no_found_rows'  => true,
 		);
 
@@ -790,9 +789,8 @@ class SScribe_Page_Collector {
 
 			$query = new WP_Query( $args );
 
-			// Count by status from the returned posts.
-			foreach ( $query->posts as $post_id ) {
-				$post = get_post( $post_id );
+			// Count by status directly from query posts (no N+1 - use post objects already loaded).
+			foreach ( $query->posts as $post ) {
 				if ( $post && isset( $counts[ $post->post_status ] ) ) {
 					++$counts[ $post->post_status ];
 				}

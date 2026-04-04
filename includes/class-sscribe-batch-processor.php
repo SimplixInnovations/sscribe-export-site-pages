@@ -442,7 +442,41 @@ class SScribe_Batch_Processor {
 	 * @return string WordPress capability slug.
 	 */
 	private function get_required_capability(): string {
-		return apply_filters( 'sscribe_export_capability', 'manage_options' );
+		$capability = apply_filters( 'sscribe_export_capability', 'manage_options' );
+
+		// SECURITY: Validate capability against whitelist to prevent malicious plugins from lowering permissions.
+		if ( ! self::is_allowed_capability( $capability ) ) {
+			$this->audit_log(
+				'invalid_capability_blocked',
+				array(
+					'requested_capability' => $capability,
+					'fallback'             => 'manage_options',
+				)
+			);
+			return 'manage_options';
+		}
+
+		return $capability;
+	}
+
+	/**
+	 * Validate that a capability string is in the allowed whitelist.
+	 *
+	 * Prevents malicious plugins from lowering required capabilities via filters.
+	 *
+	 * @param string $capability The capability to validate.
+	 * @return bool True if allowed.
+	 */
+	private static function is_allowed_capability( string $capability ): bool {
+		$allowed = array(
+			'manage_options',
+			'edit_pages',
+			'publish_pages',
+			'delete_pages',
+			'export',
+		);
+
+		return in_array( $capability, $allowed, true );
 	}
 
 	/**
