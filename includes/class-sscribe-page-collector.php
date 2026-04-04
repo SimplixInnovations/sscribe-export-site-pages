@@ -277,8 +277,9 @@ class SScribe_Page_Collector {
 				);
 			}
 
+			$upload_base = $this->get_upload_base_dir();
+
 			foreach ( $attachments as $att ) {
-				$upload_base                       = $this->get_upload_base_dir();
 				$attachment_data[ (int) $att->ID ] = array(
 					'url'  => $att->guid,
 					'path' => $att->filepath ? trailingslashit( $upload_base ) . $att->filepath : '',
