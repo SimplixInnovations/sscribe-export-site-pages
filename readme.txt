@@ -198,7 +198,19 @@ Each document includes: cover page with title/URL/date/breadcrumbs, featured ima
 
 == Changelog ==
 
-**Note:** For the complete changelog (v1.0.0 through v3.15.5), see the [GitHub Releases page](https://github.com/SimplixInnovations/sscribe-export-site-pages/releases).
+**Note:** For the complete changelog (v1.0.0 through v3.15.6), see the [GitHub Releases page](https://github.com/SimplixInnovations/sscribe-export-site-pages/releases).
+
+= 3.15.7 =
+
+* Fixed: Version consistency - all version references now synchronized (PHP header, constant, CSS, POT)
+* Fixed: Session collision handling - added retry loop for race condition resilience
+* Fixed: N+1 query in WPML path - now uses post objects directly instead of per-ID queries
+* Fixed: Rate limiter TOCTOU race condition - simplified to transient-based approach
+* Fixed: Capability whitelist validation in get_required_capability()
+* Fixed: CSS version header synchronized to 3.15.7
+* Fixed: POT file Project-Id-Version synchronized to 3.15.7
+* Improved: All PHPStan and PHPCS checks passing
+* Improved: 106 unit tests all passing
 
 = 3.15.5 =
 
