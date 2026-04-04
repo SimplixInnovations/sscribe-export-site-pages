@@ -4,7 +4,7 @@ Donate link: https://simplixi.com
 Tags: export, docx, multilingual, seo, pdf
 Requires at least: 6.0
 Tested up to: 6.9
-Stable tag: 3.15.7
+Stable tag: 3.15.8
 Requires PHP: 8.2
 License: GPLv2 or later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
@@ -198,7 +198,15 @@ Each document includes: cover page with title/URL/date/breadcrumbs, featured ima
 
 == Changelog ==
 
-**Note:** For the complete changelog (v1.0.0 through v3.15.6), see the [GitHub Releases page](https://github.com/SimplixInnovations/sscribe-export-site-pages/releases).
+**Note:** For the complete changelog (v1.0.0 through v3.15.7), see the [GitHub Releases page](https://github.com/SimplixInnovations/sscribe-export-site-pages/releases).
+
+= 3.15.8 =
+
+* Fixed: Performance - removed duplicate regex in content parser (3-4x faster)
+* Fixed: Performance - moved get_upload_base_dir() outside loop
+* Fixed: Security - added proper escaping for flag_url and lang_name
+* Improved: All PHPStan and PHPCS checks passing
+* Improved: 106 unit tests all passing
 
 = 3.15.7 =
 
