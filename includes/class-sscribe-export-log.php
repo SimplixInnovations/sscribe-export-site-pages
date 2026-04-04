@@ -432,6 +432,45 @@ class SScribe_Export_Log {
 	}
 
 	/**
+	 * Delete log file associated with a ZIP filename.
+	 *
+	 * @param string $filename ZIP filename.
+	 * @return bool True if log was deleted, false otherwise.
+	 */
+	public static function delete_by_filename( string $filename ): bool {
+		if ( ! preg_match( '/^sscribe-export-/i', $filename ) ) {
+			return false;
+		}
+
+		$upload_dir = wp_upload_dir();
+		$log_dir    = $upload_dir['basedir'] . '/sscribe-logs';
+
+		if ( ! is_dir( $log_dir ) ) {
+			return false;
+		}
+
+		$files = glob( $log_dir . '/export_*.json' );
+
+		if ( ! is_array( $files ) ) {
+			return false;
+		}
+
+		foreach ( $files as $file ) {
+			// phpcs:ignore WordPress.WP.AlternativeFunctions.file_get_contents_file_get_contents -- Safe filesystem read.
+			$json = file_get_contents( $file );
+			if ( $json ) {
+				$data = json_decode( $json, true );
+				if ( is_array( $data ) && isset( $data['zip_file'] ) && $data['zip_file'] === $filename ) {
+					wp_delete_file( $file );
+					return true;
+				}
+			}
+		}
+
+		return false;
+	}
+
+	/**
 	 * Clean up old logs.
 	 *
 	 * @param int $max_age_hours Maximum age in hours. Default 2.

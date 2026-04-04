@@ -84,7 +84,8 @@ class SScribe_Content_Parser {
 	private function normalize_html( string $html ): string {
 		$html = $this->strip_all_styles( $html );
 
-		$html = preg_replace( '/<(style|script|noscript|svg)\b[^>]*>.*?<\/\1>/is', '', $html );
+		// Note: <style> blocks already removed by strip_all_styles() above - no need to duplicate.
+		$html = preg_replace( '/<(script|noscript|svg)\b[^>]*>.*?<\/\1>/is', '', $html );
 
 		$html = preg_replace( '/<!--.*?-->/s', '', $html );
 
