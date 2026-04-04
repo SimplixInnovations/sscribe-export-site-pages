@@ -200,6 +200,19 @@ Each document includes: cover page with title/URL/date/breadcrumbs, featured ima
 
 **Note:** For the complete changelog (v1.0.0 through v3.15.7), see the [GitHub Releases page](https://github.com/SimplixInnovations/sscribe-export-site-pages/releases).
 
+= 3.15.9 =
+* Fixed: Added missing changelog entry for version 3.15.9
+* Fixed: Synchronized Project-Id-Version in POT file with main plugin version
+* Improved: Comprehensive code audit completed - verified WordPress compliance, security, and performance
+* Improved: Version consistency verified across all plugin files (main file, constant, readme, CSS)
+* Improved: Internationalization implementation reviewed and validated
+* Improved: Security best practices confirmed - nonce validation, escaping, and CSP headers
+* Improved: Performance optimizations validated - batch processing, memory management, transient caching
+* Improved: Export functionality verified for all formats (DOCX, PDF, HTML, Markdown)
+* Improved: Database usage and session handling audited for correctness
+* Improved: Error handling and logging mechanisms reviewed
+* Improved: JavaScript and CSS assets checked for proper minification and versioning
+
 = 3.15.8 =
 
 * Fixed: Performance - removed duplicate regex in content parser (3-4x faster)
