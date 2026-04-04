@@ -11,11 +11,6 @@ if ( ! defined( 'ABSPATH' ) ) {
 	exit;
 }
 
-require_once SSCRIBE_PLUGIN_DIR . 'includes/class-sscribe-export-log.php';
-require_once SSCRIBE_PLUGIN_DIR . 'includes/class-sscribe-error.php';
-require_once SSCRIBE_PLUGIN_DIR . 'includes/class-sscribe-diagnostics.php';
-require_once SSCRIBE_PLUGIN_DIR . 'includes/class-sscribe-audit-trail.php';
-
 /**
  * Batch processor for AJAX-based page exports.
  */
@@ -125,14 +120,14 @@ class SScribe_Batch_Processor {
 	 * @return bool True if within limits, false if exceeded.
 	 */
 	private function check_rate_limit(): bool {
-		// Bypass rate limit for administrators to ensure large exports do not arbitrarily fail.
-		if ( current_user_can( apply_filters( 'sscribe_export_capability', 'manage_options' ) ) ) {
-			return true;
-		}
-
 		$user_id       = get_current_user_id();
 		$transient_key = 'sscribe_rate_' . $user_id;
 		$now           = time();
+
+		// Administrators get a higher rate limit to support large exports.
+		$rate_limit = current_user_can( apply_filters( 'sscribe_export_capability', 'manage_options' ) )
+			? (int) apply_filters( 'sscribe_rate_limit_admin', 1000 )
+			: self::RATE_LIMIT_MAX;
 
 		$data = get_transient( $transient_key );
 
@@ -150,7 +145,7 @@ class SScribe_Batch_Processor {
 			);
 		}
 
-		if ( $data['count'] >= self::RATE_LIMIT_MAX ) {
+		if ( $data['count'] >= $rate_limit ) {
 			return false;
 		}
 
@@ -1550,6 +1545,10 @@ class SScribe_Batch_Processor {
 		if ( ob_get_level() ) {
 			ob_end_clean();
 		}
+
+		// Log successful download for audit trail.
+		$this->audit_log( 'download', array( 'filename' => $filename ) );
+
 		flush();
 		// phpcs:ignore WordPress.WP.AlternativeFunctions.file_system_operations_readfile -- Direct download
 		readfile( $file_path );
@@ -1763,6 +1762,9 @@ class SScribe_Batch_Processor {
 	/**
 	 * Clean up orphaned lock transients from the database.
 	 *
+	 * IMPORTANT: When called without user_id, only expired locks are removed.
+	 * This prevents accidentally deleting active locks from other users.
+	 *
 	 * @param int|null $user_id Optional user ID to clean specific user's locks.
 	 * @return void
 	 */
@@ -1796,18 +1798,25 @@ class SScribe_Batch_Processor {
 			return;
 		}
 
-		// Combined query: delete both lock transients and their timeouts in one pass.
-		$lock_pattern         = $wpdb->esc_like( '_transient_sscribe_lock_' ) . '%';
+		// Only delete EXPIRED locks when called without user_id.
+		// This prevents race conditions where active exports lose their locks.
+		$now                  = time();
 		$lock_timeout_pattern = $wpdb->esc_like( '_transient_timeout_sscribe_lock_' ) . '%';
 
-		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- Cleanup operation removes orphaned lock transients.
-		$wpdb->query(
+		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- Cleanup operation.
+		$expired_locks = $wpdb->get_results(
 			$wpdb->prepare(
-				"DELETE FROM {$wpdb->options} WHERE option_name LIKE %s OR option_name LIKE %s",
-				$lock_pattern,
-				$lock_timeout_pattern
+				"SELECT option_name FROM {$wpdb->options} WHERE option_name LIKE %s AND option_value < %d",
+				$lock_timeout_pattern,
+				$now
 			)
 		);
+
+		foreach ( $expired_locks as $expired ) {
+			// Extract the session_id from the timeout option name.
+			$session_id = str_replace( '_transient_timeout_sscribe_lock_', '', $expired->option_name );
+			delete_transient( 'sscribe_lock_' . $session_id );
+		}
 	}
 
 	/**
@@ -2134,7 +2143,7 @@ class SScribe_Batch_Processor {
 				$sample_page = array(
 					'title'   => $sample_post->post_title,
 					'url'     => get_permalink( $sample_id ),
-					'content' => wp_trim_words( strip_shortcodes( $sample_post->post_content ), 50 ),
+					'content' => wp_kses_post( wp_trim_words( strip_shortcodes( $sample_post->post_content ), 50 ) ),
 				);
 			}
 		}

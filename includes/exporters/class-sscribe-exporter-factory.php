@@ -11,8 +11,6 @@ if ( ! defined( 'ABSPATH' ) ) {
 	exit;
 }
 
-require_once SSCRIBE_PLUGIN_DIR . 'includes/exporters/interface-sscribe-exporter.php';
-
 /**
  * Class SScribe_Exporter_Factory
  */
@@ -46,7 +44,9 @@ class SScribe_Exporter_Factory {
 			SScribe_Export_Format::HTML     => $container->has( SScribe_HTML_Exporter::class )
 				? $container->get( SScribe_HTML_Exporter::class )
 				: new SScribe_HTML_Exporter(),
-			SScribe_Export_Format::MARKDOWN => new SScribe_Markdown_Exporter(),
+			SScribe_Export_Format::MARKDOWN => $container->has( SScribe_Markdown_Exporter::class )
+				? $container->get( SScribe_Markdown_Exporter::class )
+				: new SScribe_Markdown_Exporter(),
 		};
 	}
 

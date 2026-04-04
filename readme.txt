@@ -4,7 +4,7 @@ Donate link: https://simplixi.com
 Tags: export, docx, multilingual, seo, pdf
 Requires at least: 6.0
 Tested up to: 6.9
-Stable tag: 3.15.4
+Stable tag: 3.15.5
 Requires PHP: 8.2
 License: GPLv2 or later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
@@ -198,7 +198,17 @@ Each document includes: cover page with title/URL/date/breadcrumbs, featured ima
 
 == Changelog ==
 
-**Note:** For the complete changelog (v1.0.0 through v3.15.4), see the [GitHub Releases page](https://github.com/SimplixInnovations/sscribe-export-site-pages/releases).
+**Note:** For the complete changelog (v1.0.0 through v3.15.5), see the [GitHub Releases page](https://github.com/SimplixInnovations/sscribe-export-site-pages/releases).
+
+= 3.15.5 =
+
+* Fixed: Rate limiting now applies to admins with higher limit (1000/min) instead of complete bypass
+* Fixed: Added audit logging for successful file downloads
+* Fixed: Cleanup locks only removes expired locks (prevents race conditions)
+* Fixed: Preview content now sanitized with wp_kses_post() to prevent XSS
+* Improved: Moved hook registration from constructor to run() for testability
+* Improved: Added Markdown exporter to DI container for consistency
+* Improved: Removed redundant require_once calls (Composer autoloader handles it)
 
 = 3.15.4 =
 
