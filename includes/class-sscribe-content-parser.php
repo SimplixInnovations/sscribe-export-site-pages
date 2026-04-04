@@ -56,11 +56,21 @@ class SScribe_Content_Parser {
 		// this method is called, so we don't need to strip shortcode markers here.
 		// We only clean up any remaining shortcode-like patterns that could be content.
 
-		// Normalize HTML.
+		// CRITICAL: Detect button elements BEFORE normalizing HTML.
+		// normalize_html() strips class attributes which detect_button() needs.
+		// We must extract buttons from raw HTML first, then normalize for further parsing.
+		$button_elements = $this->extract_buttons_from_html( $html );
+
+		// Normalize HTML (strips classes, but we already captured buttons).
 		$html = $this->normalize_html( $html );
 
 		// Parse DOM.
 		$elements = $this->parse_dom( $html );
+
+		// Inject detected buttons into the element stream.
+		if ( ! empty( $button_elements ) ) {
+			$elements = $this->merge_buttons_into_elements( $elements, $button_elements );
+		}
 
 		return $elements;
 	}
@@ -225,11 +235,11 @@ class SScribe_Content_Parser {
 					return null;
 				}
 
-				// Check if this is a button paragraph.
-				$button = $this->detect_button( $node );
-				if ( $button ) {
-					return $button;
-				}
+				// NOTE: Button detection is now handled in parse() before normalize_html() strips classes.
+				// This commented code is kept for reference but is effectively dead code.
+				// $button = $this->detect_button( $node );
+				// if ( $button ) { return $button; }
+				// End of commented code.
 
 				return array(
 					'type'    => 'paragraph',
@@ -481,65 +491,59 @@ class SScribe_Content_Parser {
 	}
 
 	/**
-	 * Detect button-like elements inside a paragraph.
+	 * Extract button elements from raw HTML before normalization.
 	 *
-	 * @param \DOMNode $node The paragraph node.
+	 * This must be called BEFORE normalize_html() because that function
+	 * strips class attributes which are needed to detect button-like links.
 	 *
-	 * @return array|false Button element data or false.
+	 * @param string $html The raw HTML content.
+	 * @return array Array of button element arrays.
 	 */
-	private function detect_button( \DOMNode $node ): array|false {
-		// Look for links with button-like classes.
-		$links = $node->getElementsByTagName( 'a' );
+	private function extract_buttons_from_html( string $html ): array {
+		$buttons = array();
 
-		foreach ( $links as $link ) {
-			$classes = $link->getAttribute( 'class' );
-			if ( $this->is_button_class( $classes ) ) {
-				return array(
-					'type'    => 'button',
-					'content' => trim( $link->textContent ),
-					'url'     => $link->getAttribute( 'href' ),
-				);
+		// Use regex to find anchor tags with button-like classes before DOM parsing.
+		// This captures buttons that would be lost after normalize_html() strips classes.
+		$pattern = '/<a\s+[^>]*class=["\']([^"\']*(?:wp-block-button__link|wp-element-button|button|btn|elementor-button|et_pb_button|fl-button|vc_btn)[^"\']*)["\'][^>]*>(.*?)<\/a>/is';
+
+		if ( preg_match_all( $pattern, $html, $matches, PREG_SET_ORDER ) ) {
+			foreach ( $matches as $match ) {
+				$classes = $match[1];
+				$content = wp_strip_all_tags( $match[2] );
+				$content = html_entity_decode( $content, ENT_QUOTES | ENT_HTML5, 'UTF-8' );
+				$content = trim( $content );
+
+				// Extract href if present.
+				$url = '';
+				if ( preg_match( '/href=["\']([^"\']+)/', $match[0], $url_match ) ) {
+					$url = $url_match[1];
+				}
+
+				if ( ! empty( $content ) ) {
+					$buttons[] = array(
+						'type'    => 'button',
+						'content' => $content,
+						'url'     => $url,
+					);
+				}
 			}
 		}
 
-		// Check for actual button elements.
-		$buttons = $node->getElementsByTagName( 'button' );
-		foreach ( $buttons as $button ) {
-			return array(
-				'type'    => 'button',
-				'content' => trim( $button->textContent ),
-				'url'     => '',
-			);
-		}
-
-		return false;
+		return $buttons;
 	}
 
 	/**
-	 * Check if CSS classes indicate a button.
+	 * Merge extracted buttons into the element stream.
 	 *
-	 * @param string $classes The class attribute value.
-	 * @return bool
+	 * Buttons are inserted as first-level elements in the stream.
+	 *
+	 * @param array $elements Parsed elements from DOM.
+	 * @param array $buttons   Extracted button elements.
+	 * @return array Merged elements with buttons included.
 	 */
-	private function is_button_class( string $classes ): bool {
-		$button_patterns = array(
-			'wp-block-button__link',
-			'wp-element-button',
-			'button',
-			'btn',
-			'elementor-button',
-			'et_pb_button',
-			'fl-button',
-			'vc_btn',
-		);
-
-		foreach ( $button_patterns as $pattern ) {
-			if ( str_contains( $classes, $pattern ) ) {
-				return true;
-			}
-		}
-
-		return false;
+	private function merge_buttons_into_elements( array $elements, array $buttons ): array {
+		// Prepend all detected buttons to the element stream.
+		return array_merge( $buttons, $elements );
 	}
 
 	/**

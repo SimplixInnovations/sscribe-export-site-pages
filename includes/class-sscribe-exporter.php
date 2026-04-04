@@ -249,8 +249,10 @@ class SScribe_Exporter {
 			// which prevents PHP's garbage collector from reclaiming memory automatically.
 			// Without this, memory accumulates 2-5MB per page during batch exports.
 			unset( $writer, $php_word );
-			$this->parser = null;
-			unset( $this->parser );
+
+			// NOTE: Parser is intentionally kept alive across page exports in a batch.
+			// The parser is stateless and can be safely reused. Destroying it would cause
+			// crashes on page 2+ because the exporter instance is reused.
 
 			return $output_path;
 
@@ -265,8 +267,10 @@ class SScribe_Exporter {
 			if ( isset( $php_word ) ) {
 				unset( $php_word );
 			}
-			$this->parser = null;
-			unset( $this->parser );
+
+			// NOTE: Parser is intentionally kept alive even on failure.
+			// The batch processor may retry or continue with remaining pages,
+			// and the parser can still be used for those pages.
 
 			// Capture memory context for diagnostics - helps identify memory exhaustion vs other failures.
 			$memory_context = sprintf(
@@ -1197,32 +1201,38 @@ class SScribe_Exporter {
 		);
 
 		if ( ! empty( $element['url'] ) ) {
-			$cell->addText(
-				__( 'DESTINATION URL:', 'sscribe-export-site-pages' ),
-				array(
-					'name'  => $this->font_name,
-					'size'  => 8,
-					'bold'  => true,
-					'color' => $this->colors['heading'],
-				),
-				$this->get_para_style(
+			// CRITICAL: Validate URL before rendering to prevent XSS attacks.
+			// Button URLs come from parsed HTML and may contain malicious content.
+			$validated_url = $this->validate_url( $element['url'] );
+
+			if ( ! empty( $validated_url ) ) {
+				$cell->addText(
+					__( 'DESTINATION URL:', 'sscribe-export-site-pages' ),
 					array(
-						'alignment'   => Jc::CENTER,
-						'spaceBefore' => Converter::pointToTwip( 6 ),
+						'name'  => $this->font_name,
+						'size'  => 8,
+						'bold'  => true,
+						'color' => $this->colors['heading'],
+					),
+					$this->get_para_style(
+						array(
+							'alignment'   => Jc::CENTER,
+							'spaceBefore' => Converter::pointToTwip( 6 ),
+						)
 					)
-				)
-			);
-			$cell->addLink(
-				$element['url'],
-				$this->safe_text( $element['url'] ),
-				array(
-					'name'      => $this->font_name,
-					'size'      => 9,
-					'color'     => $this->colors['link'],
-					'underline' => 'single',
-				),
-				$this->get_para_style( array( 'alignment' => Jc::CENTER ) )
-			);
+				);
+				$cell->addLink(
+					$validated_url,
+					$this->safe_text( $element['url'] ),
+					array(
+						'name'      => $this->font_name,
+						'size'      => 9,
+						'color'     => $this->colors['link'],
+						'underline' => 'single',
+					),
+					$this->get_para_style( array( 'alignment' => Jc::CENTER ) )
+				);
+			}
 		}
 
 		$section->addTextBreak( 1 );
