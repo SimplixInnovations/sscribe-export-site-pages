@@ -83,6 +83,19 @@ define( 'SSCRIBE_PLUGIN_BASENAME', plugin_basename( __FILE__ ) );
  */
 if ( file_exists( SSCRIBE_PLUGIN_DIR . 'vendor/autoload.php' ) ) {
 	require_once SSCRIBE_PLUGIN_DIR . 'vendor/autoload.php';
+} else {
+	// Graceful error handling if dependencies are missing (e.g., incomplete install).
+	add_action(
+		'admin_notices',
+		static function () {
+			printf(
+				'<div class="error"><p><strong>%s</strong> %s</p></div>',
+				esc_html__( 'SScribe Export Site Pages:', 'sscribe-export-site-pages' ),
+				esc_html__( 'Required dependencies are missing. Please reinstall the plugin or run "composer install" in the plugin directory.', 'sscribe-export-site-pages' )
+			);
+		}
+	);
+	return; // Stop loading the rest of the plugin.
 }
 
 /**
