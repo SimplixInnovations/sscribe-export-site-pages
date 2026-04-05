@@ -232,30 +232,39 @@ class SScribe_Session {
 	 * @param string $session_id The session identifier.
 	 * @return bool True if valid, false otherwise.
 	 */
+	/**
+	 * Validate session integrity and schema.
+	 *
+	 * Requires: page_ids (array), total (int), processed (int), session_id (string), user_id (int).
+	 *
+	 * @param string $session_id The session identifier.
+	 * @return bool True if valid, false otherwise.
+	 */
 	public function validate( string $session_id ): bool {
 		$data = $this->get( $session_id );
 
-		if ( null === $data ) {
+		if ( ! is_array( $data ) ) {
 			return false;
 		}
 
-		// All required keys must exist.
-		$required_keys = array( 'page_ids', 'total', 'processed', 'session_id' );
+		// All required keys must exist with correct types.
+		$required = array(
+			'page_ids'   => 'is_array',
+			'total'      => 'is_int',
+			'processed'  => 'is_int',
+			'session_id' => 'is_string',
+			'user_id'    => 'is_int',
+		);
 
-		foreach ( $required_keys as $key ) {
-			if ( ! isset( $data[ $key ] ) ) {
+		foreach ( $required as $key => $check ) {
+			if ( ! isset( $data[ $key ] ) || ! $check( $data[ $key ] ) ) {
+				$this->logger->error( "Session validation failed for key: {$key}", array( 'session_id' => $session_id ) );
 				return false;
 			}
 		}
 
-		// Type checks only — don't compare count vs total to avoid false invalids
-		// when pages are added/removed after session creation (e.g., WPML refresh).
-		if ( ! is_array( $data['page_ids'] ) ) {
-			return false;
-		}
-
-		$total = (int) $data['total'];
-		if ( $total < 0 ) {
+		// Logic checks.
+		if ( $data['total'] < 0 || $data['processed'] < 0 || $data['session_id'] !== $session_id ) {
 			return false;
 		}
 
