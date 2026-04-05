@@ -4,7 +4,7 @@ Donate link: https://simplixi.com
 Tags: export, docx, multilingual, seo, pdf
 Requires at least: 6.0
 Tested up to: 6.9
-Stable tag: 3.15.10
+Stable tag: 3.15.11
 Requires PHP: 8.2
 License: GPLv2 or later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
@@ -199,6 +199,21 @@ Each document includes: cover page with title/URL/date/breadcrumbs, featured ima
 == Changelog ==
 
 **Note:** For the complete changelog (v1.0.0 through v3.15.7), see the [GitHub Releases page](https://github.com/SimplixInnovations/sscribe-export-site-pages/releases).
+
+= 3.15.11 =
+
+* **Security:** Fixed ReDoS vulnerability in data-attribute regex patterns (bounded character class)
+* **Security:** Fixed race condition in export index updates (atomic locking with abort on lock failure)
+* **Security:** Fixed TOCTOU vulnerability in download handler (re-check file existence before read)
+* **Security:** Fixed symlink traversal in diagnostics delete_directory (delegates to secure implementation)
+* **Security:** Fixed type juggling in user_id validation (strict int casting)
+* **Security:** Fixed glob injection in ZIP creation (whitelist-only format extensions)
+* **Security:** Fixed float precision in memory calculations (int casting)
+* **Security:** Added session bounds validation (max 100k pages, processed <= total)
+* **Security:** Standardized timestamp types (int consistency for created_at/updated_at)
+* **Security:** Added JSON schema validation for session data integrity
+* Improved: All 131 tests passing with zero warnings
+* Improved: PHPStan, PHPCS, and version sync checks all passing
 
 = 3.15.10 =
 
