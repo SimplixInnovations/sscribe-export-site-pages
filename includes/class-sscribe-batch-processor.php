@@ -1583,6 +1583,13 @@ class SScribe_Batch_Processor {
 		// Log successful download for audit trail.
 		$this->audit_log( 'download', array( 'filename' => $filename ) );
 
+		// SECURITY FIX: Re-check file existence immediately before read to prevent TOCTOU race condition.
+		// File could be deleted by cleanup cron between initial check and actual read.
+		if ( ! file_exists( $file_path ) || ! is_readable( $file_path ) ) {
+			status_header( 404 );
+			wp_die( esc_html__( 'File no longer available. Please regenerate the export.', 'sscribe-export-site-pages' ) );
+		}
+
 		flush();
 		// phpcs:ignore WordPress.WP.AlternativeFunctions.file_system_operations_readfile -- Direct download
 		readfile( $file_path );
