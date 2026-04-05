@@ -188,11 +188,25 @@ class SScribe {
 	 * @return void
 	 */
 	public function run(): void {
+		$this->init_i18n();
 		$this->register_services();
 		$this->define_admin_hooks();
 		$this->define_ajax_hooks();
 		$this->define_cron_hooks();
 
 		$this->loader->run();
+	}
+
+	/**
+	 * Initialize internationalization.
+	 *
+	 * @return void
+	 */
+	private function init_i18n(): void {
+		load_plugin_textdomain(
+			'sscribe-export-site-pages',
+			false,
+			dirname( SSCRIBE_PLUGIN_BASENAME ) . '/languages'
+		);
 	}
 }

@@ -134,6 +134,37 @@ SScribe exports content from any theme and any editor. Whether you use Gutenberg
 
 Yes. SScribe is 100% free and open source under GPL v2. No premium version, no feature gates, no cloud API required, no upsells. Built by **Simplix Innovations** for the WordPress community.
 
+== Installation ==
+
+= Automatic Installation =
+
+1. Go to **Plugins → Add New** in your WordPress admin
+2. Search for "SScribe Export Site Pages"
+3. Click **Install Now** then **Activate**
+
+= Manual Installation =
+
+1. Download the plugin ZIP file
+2. Go to **Plugins → Add New → Upload Plugin**
+3. Select the ZIP file and click **Install Now**
+4. Click **Activate** after installation completes
+
+= FTP Installation =
+
+1. Extract the plugin ZIP file
+2. Upload the `sscribe-export-site-pages` folder to `/wp-content/plugins/`
+3. Activate the plugin from the **Plugins** menu in WordPress
+
+= Requirements =
+
+* WordPress 6.0 or higher
+* PHP 8.2 or higher
+* Recommended: 256MB PHP memory limit for large exports
+
+= First-Time Setup =
+
+After activation, find **SScribe Export** in your WordPress admin menu. No additional configuration required — just select your pages and export!
+
 = Roadmap =
 
 * Export Posts, Custom Post Types, and WooCommerce Products
