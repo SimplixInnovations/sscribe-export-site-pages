@@ -573,7 +573,10 @@ class SScribe_Diagnostics {
 
 		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
 		$locks = $wpdb->get_results(
-			"SELECT option_name FROM {$wpdb->options} WHERE option_name LIKE 'sscribe_lock_%'"
+			$wpdb->prepare(
+				"SELECT option_name FROM {$wpdb->options} WHERE option_name LIKE %s",
+				$wpdb->esc_like( 'sscribe_lock_' ) . '%'
+			)
 		);
 
 		$cleared = 0;
@@ -615,8 +618,9 @@ class SScribe_Diagnostics {
 			$data = json_decode( $session->option_value, true );
 
 			if ( $data && isset( $data['created_at'] ) ) {
-				$created = strtotime( $data['created_at'] );
-				if ( time() - $created > 3600 ) {
+				$created_at = $data['created_at'];
+				$created    = is_numeric( $created_at ) ? (int) $created_at : strtotime( (string) $created_at );
+				if ( $created && time() - $created > 3600 ) {
 					delete_option( $session->option_name );
 					++$cleared;
 				}

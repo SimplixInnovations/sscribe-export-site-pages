@@ -76,9 +76,10 @@ class SScribe_PDF_Exporter implements SScribe_Exporter_Interface {
 
 		$html_content = $html_result->get_data()['html'] ?? '';
 
-		try {
-			libxml_use_internal_errors( true );
+		$dompdf      = null;
+		$prev_errors = libxml_use_internal_errors( true );
 
+		try {
 			$options = new \Dompdf\Options();
 			$options->set( 'isRemoteEnabled', false );
 			$options->set( 'isHtml5ParserEnabled', true );
@@ -89,8 +90,6 @@ class SScribe_PDF_Exporter implements SScribe_Exporter_Interface {
 			$dompdf->loadHtml( $html_content );
 			$dompdf->setPaper( 'A4', 'portrait' );
 			$dompdf->render();
-
-			libxml_clear_errors();
 
 			$output = $dompdf->output();
 
@@ -138,6 +137,11 @@ class SScribe_PDF_Exporter implements SScribe_Exporter_Interface {
 				__( 'Unable to generate PDF for this page.', 'sscribe-export-site-pages' ),
 				array( 'page_id' => $page_data['id'] ?? 0 )
 			);
+		} finally {
+			libxml_clear_errors();
+			libxml_use_internal_errors( $prev_errors );
+			$dompdf = null;
+			unset( $dompdf );
 		}
 	}
 
