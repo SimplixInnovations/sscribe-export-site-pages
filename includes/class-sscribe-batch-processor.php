@@ -1710,6 +1710,9 @@ class SScribe_Batch_Processor {
 		unset( $exports[ $filename ] );
 		update_option( 'sscribe_export_index', $exports, false );
 
+		// Also delete the associated log file if it exists.
+		SScribe_Export_Log::delete_by_filename( $filename );
+
 		$this->audit_log( 'export_deleted', array( 'filename' => $filename ) );
 
 		wp_send_json_success( array( 'message' => __( 'Export deleted.', 'sscribe-export-site-pages' ) ) );

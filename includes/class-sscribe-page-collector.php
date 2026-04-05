@@ -188,7 +188,7 @@ class SScribe_Page_Collector {
 	 *
 	 * @param string $language Language code.
 	 */
-	private function clear_status_cache( $language = '' ): void {
+	private function clear_status_cache( string $language = '' ): void {
 		$cache_key = 'sscribe_status_counts_' . md5( $language );
 		delete_transient( $cache_key );
 
@@ -277,8 +277,9 @@ class SScribe_Page_Collector {
 				);
 			}
 
+			$upload_base = $this->get_upload_base_dir();
+
 			foreach ( $attachments as $att ) {
-				$upload_base                       = $this->get_upload_base_dir();
 				$attachment_data[ (int) $att->ID ] = array(
 					'url'  => $att->guid,
 					'path' => $att->filepath ? trailingslashit( $upload_base ) . $att->filepath : '',
@@ -770,6 +771,7 @@ class SScribe_Page_Collector {
 		}
 
 		// WPML case: need to filter by language, so use WP_Query.
+		// Note: We already know WPML is active and language is non-empty due to early return above.
 		$args = array(
 			'post_type'      => 'page',
 			'post_status'    => array_keys( $statuses ),
@@ -780,13 +782,13 @@ class SScribe_Page_Collector {
 		$switched = false;
 
 		try {
-			// WPML is active and language is non-empty (guaranteed by early return above).
-			// phpcs:ignore WordPress.NamingConventions.PrefixAllGlobals.NonPrefixedHooknameFound -- WPML hook.
+			// Switch to the requested language.
+            // phpcs:ignore WordPress.NamingConventions.PrefixAllGlobals.NonPrefixedHooknameFound -- WPML hook.
 			do_action( 'wpml_switch_language', $language );
 			$args['suppress_filters'] = false;
 			$switched                 = true;
-		} catch ( Throwable $e ) {
 
+			// Query outside try-catch - always executes regardless of exception.
 			$query = new WP_Query( $args );
 
 			// Count by status directly from query posts (no N+1 - use post objects already loaded).
@@ -797,7 +799,7 @@ class SScribe_Page_Collector {
 			}
 		} finally {
 			if ( $switched ) {
-				// phpcs:ignore WordPress.NamingConventions.PrefixAllGlobals.NonPrefixedHooknameFound -- WPML hook.
+                // phpcs:ignore WordPress.NamingConventions.PrefixAllGlobals.NonPrefixedHooknameFound -- WPML hook.
 				do_action( 'wpml_switch_language', null );
 			}
 		}

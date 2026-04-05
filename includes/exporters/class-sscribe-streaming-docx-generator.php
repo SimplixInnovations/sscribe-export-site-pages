@@ -373,6 +373,8 @@ class SScribe_Streaming_DOCX_Generator {
 		}
 
 		$zip->close();
+		$zip = null;
+		unset( $zip );
 
 		return file_exists( $output_path );
 	}

@@ -206,11 +206,11 @@ class SScribe_Admin {
 		$cache_key        = 'sscribe_admin_page_data';
 		$cached_page_data = get_transient( $cache_key );
 
-		if ( false !== $cached_page_data ) {
-			$sscribe_wpml_active     = $cached_page_data['wpml_active'];
-			$sscribe_languages       = $cached_page_data['languages'];
-			$sscribe_total_pages_all = $cached_page_data['total_pages_all'];
-			$sscribe_status_counts   = $cached_page_data['status_counts'];
+		if ( is_array( $cached_page_data ) ) {
+			$sscribe_wpml_active     = $cached_page_data['wpml_active'] ?? false;
+			$sscribe_languages       = $cached_page_data['languages'] ?? array();
+			$sscribe_total_pages_all = $cached_page_data['total_pages_all'] ?? 0;
+			$sscribe_status_counts   = $cached_page_data['status_counts'] ?? array();
 		} else {
 			// Gather data for the template (uncached).
 			$sscribe_wpml_active = $this->collector->is_wpml_active();
@@ -226,7 +226,9 @@ class SScribe_Admin {
 			// Enrich languages with per-language page counts.
 			if ( $sscribe_wpml_active && ! empty( $sscribe_languages ) ) {
 				foreach ( $sscribe_languages as &$lang ) {
-					$lang['page_count'] = $this->collector->get_page_count_only( $lang['code'], 'publish' );
+					if ( isset( $lang['code'] ) ) {
+						$lang['page_count'] = $this->collector->get_page_count_only( $lang['code'], 'publish' );
+					}
 				}
 				unset( $lang );
 			}
@@ -429,9 +431,9 @@ class SScribe_Admin {
 							),
 							'time'      => $data['mtime'],
 							'size'      => $data['size'],
-							'lang_code' => $data['lang_code'],
-							'flag_url'  => $data['flag_url'],
-							'lang_name' => $data['lang_name'],
+							'lang_code' => sanitize_key( $data['lang_code'] ),
+							'flag_url'  => esc_url( $data['flag_url'] ),
+							'lang_name' => esc_html( $data['lang_name'] ),
 						);
 					}
 
