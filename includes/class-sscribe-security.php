@@ -80,7 +80,7 @@ class SScribe_Security {
 			$path = $dir . '/' . $file;
 			if ( is_dir( $path ) && ! is_link( $path ) ) {
 				self::delete_directory( $path, $max_depth, $depth + 1 );
-			} else if ( is_link( $path ) ) {
+			} elseif ( is_link( $path ) ) {
 				wp_delete_file( $path );
 			} else {
 				wp_delete_file( $path );
