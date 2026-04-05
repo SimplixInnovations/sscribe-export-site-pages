@@ -474,7 +474,9 @@ class SScribe_Page_Collector {
 		$content = preg_replace( '/\s*class="[^"]*"/i', '', $content );
 		$content = preg_replace( "/\s*class='[^']*'/i", '', $content );
 		$content = preg_replace( '/\s*data-elementor(-[a-z]+)?="[^"]*"/i', '', $content );
-		$content = preg_replace( '/\s*data-(widget|column|section)-[^=]*="[^"]*"/i', '', $content );
+		// SECURITY FIX: Limit attribute name to valid chars and max 30 length to prevent ReDoS.
+		// Previously used [^=]* which caused catastrophic backtracking on malformed input.
+		$content = preg_replace( '/\s*data-(widget|column|section)-[a-z0-9_-]{0,30}="[^"]*"/i', '', $content );
 		$content = preg_replace( '/\s*id="elementor-[^"]*"/i', '', $content );
 
 		// Calculate word count and reading time with Unicode fallback.

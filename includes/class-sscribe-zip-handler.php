@@ -156,6 +156,13 @@ class SScribe_Zip_Handler {
 			usleep( 50000 ); // 50ms
 		}
 
+		// SECURITY: If lock not acquired, abort indexing to prevent race condition.
+		// The ZIP file exists but won't appear in history panel (acceptable degradation).
+		if ( ! $locked ) {
+			$this->logger->error( 'Failed to acquire export index lock - export created but not indexed' );
+			return file_exists( $zip_path ) ? $zip_path : false;
+		}
+
 		$exports                          = get_option( 'sscribe_export_index', array() );
 		$exports[ basename( $zip_path ) ] = array(
 			'created_at' => time(),
@@ -163,10 +170,7 @@ class SScribe_Zip_Handler {
 			'formats'    => $formats,
 		);
 		update_option( 'sscribe_export_index', $exports, false );
-
-		if ( $locked ) {
-			delete_transient( $lock_key );
-		}
+		delete_transient( $lock_key );
 
 		return file_exists( $zip_path ) ? $zip_path : false;
 	}
