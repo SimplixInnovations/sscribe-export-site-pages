@@ -73,7 +73,7 @@ class SScribe_Session_Test extends TestCase {
 
 	public function test_validate_integrity(): void {
 		$session = new \SScribe_Session();
-		$id      = $session->create( array( 'page_ids' => array( 1, 2, 3 ), 'total' => 3, 'processed' => 0 ) );
+		$id      = $session->create( array( 'page_ids' => array( 1, 2, 3 ), 'total' => 3, 'processed' => 0, 'user_id' => 1 ) );
 
 		$this->assertTrue( $session->validate( $id ) );
 	}

@@ -145,7 +145,7 @@ class SScribe_Zip_Handler {
 		// Finding #5 fix: Use a transient-based lock to prevent race conditions during indexing.
 		$lock_key = 'sscribe_export_index_lock';
 		$locked   = false;
-		$timeout  = 5; // seconds
+		$timeout  = 5; // Seconds.
 		$start    = time();
 
 		while ( time() - $start < $timeout ) {
