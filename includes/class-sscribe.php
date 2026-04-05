@@ -93,7 +93,10 @@ class SScribe {
 
 		$container->singleton(
 			SScribe_Markdown_Exporter::class,
-			fn() => new SScribe_Markdown_Exporter()
+			fn( SScribe_Container $c ) => new SScribe_Markdown_Exporter(
+				$c->get( SScribe_Logger::class ),
+				$c->get( SScribe_Filesystem::class )
+			)
 		);
 
 		$container->singleton(
