@@ -248,12 +248,12 @@ class SScribe_Session {
 		}
 
 		// All required keys must exist with correct types.
+		// Note: user_id is optional for backward compatibility (sessions created before security fix).
 		$required = array(
 			'page_ids'   => 'is_array',
 			'total'      => 'is_int',
 			'processed'  => 'is_int',
 			'session_id' => 'is_string',
-			'user_id'    => 'is_int',
 		);
 
 		foreach ( $required as $key => $check ) {
@@ -263,19 +263,39 @@ class SScribe_Session {
 			}
 		}
 
-		// Logic checks.
-		if ( $data['total'] < 0 || $data['processed'] < 0 || $data['session_id'] !== $session_id ) {
+		// user_id validation (optional but must be int if present).
+		if ( isset( $data['user_id'] ) && ! is_int( $data['user_id'] ) ) {
+			$this->logger->error( 'Session user_id is not an integer', array( 'user_id' => $data['user_id'] ) );
 			return false;
 		}
 
-		// Bounds checks: Sanity limits to prevent abuse.
+		// Logic checks.
+		if ( $data['total'] < 0 || $data['processed'] < 0 ) {
+			return false;
+		}
+
+		// Session ID mismatch indicates potential tampering.
+		if ( $data['session_id'] !== $session_id ) {
+			$this->logger->error(
+				'Session ID mismatch',
+				array(
+					'expected' => $session_id,
+					'actual'   => $data['session_id'],
+				)
+			);
+			return false;
+		}
+
+		// Bounds checks: Sanity limits to prevent abuse (but be lenient for active processing).
+		// Allow processed to exceed total by a small margin (handles race conditions during updates).
 		if ( $data['total'] > 100000 ) {
 			$this->logger->error( 'Session total exceeds maximum limit', array( 'total' => $data['total'] ) );
 			return false;
 		}
-		if ( $data['processed'] > $data['total'] ) {
+		// Only fail if processed is significantly larger than total (indicates corruption).
+		if ( $data['processed'] > $data['total'] + 10 ) {
 			$this->logger->error(
-				'Session processed exceeds total',
+				'Session processed significantly exceeds total (possible corruption)',
 				array(
 					'processed' => $data['processed'],
 					'total'     => $data['total'],
