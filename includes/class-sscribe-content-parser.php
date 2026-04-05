@@ -117,7 +117,11 @@ class SScribe_Content_Parser {
 		$html = preg_replace( "/\s*class='[^']*'/i", '', $html );
 
 		$html = preg_replace( '/\s*data-elementor(-[a-z]+)?="[^"]*"/i', '', $html );
-		$html = preg_replace( '/\s*data-(widget|column|section)-[^=]*="[^"]*"/i', '', $html );
+
+		// SECURITY FIX: Limit attribute name to valid chars and max 30 length to prevent ReDoS.
+		// Previously used [^=]* which caused catastrophic backtracking on malformed input.
+		$html = preg_replace( '/\s*data-(widget|column|section)-[a-z0-9_-]{0,30}="[^"]*"/i', '', $html );
+
 		$html = preg_replace( '/\s*data-settings="[^"]*"/i', '', $html );
 		$html = preg_replace( '/\s*data-id="[^"]*"/i', '', $html );
 
