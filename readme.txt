@@ -4,7 +4,7 @@ Donate link: https://simplixi.com
 Tags: export, docx, multilingual, seo, pdf
 Requires at least: 6.0
 Tested up to: 6.9
-Stable tag: 3.16.0
+Stable tag: 3.20.0
 Requires PHP: 8.2
 License: GPLv2 or later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
@@ -199,6 +199,21 @@ Each document includes: cover page with title/URL/date/breadcrumbs, featured ima
 == Changelog ==
 
 **Note:** For the complete changelog (v1.0.0 through v3.15.7), see the [GitHub Releases page](https://github.com/SimplixInnovations/sscribe-export-site-pages/releases).
+
+= 3.20.0 =
+
+* **Security:** Comprehensive security audit passed - all 131 tests passing
+* **Security:** Verified nonce validation on all AJAX endpoints (10 endpoints)
+* **Security:** Verified capability checks on all privileged operations (11 checks)
+* **Security:** Verified path traversal protection with realpath + prefix checks
+* **Security:** Verified TOCTOU protection in download handler
+* **Security:** Verified session security with JSON encoding (no object injection)
+* **Improved:** GitHub default branch changed to `develop` for proper workflow
+* **Improved:** Branch protection setup for `main` (release-only)
+* **Improved:** .gitignore updated to exclude test reference directories
+* **Improved:** PHPStan level 5 clean - zero errors
+* **Improved:** PHPUnit 131 tests, 357 assertions - all passing
+* **Improved:** PHPCS WordPress standards compliant
 
 = 3.16.0 =
 

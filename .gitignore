@@ -88,3 +88,7 @@ error_log
 
 # Audit reports
 AUDIT-REPORT*.md
+
+# Test references (not part of plugin)
+WPScan/
+WordPress-Core/
