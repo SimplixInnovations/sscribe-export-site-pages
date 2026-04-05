@@ -1694,11 +1694,12 @@ class SScribe_Batch_Processor {
 			return;
 		}
 
-		$export_info = $exports[ $filename ];
-		if ( isset( $export_info['user_id'] ) && get_current_user_id() !== (int) $export_info['user_id'] ) {
-			$this->audit_log( 'delete_access_denied', array( 'filename' => $filename ) );
-			wp_send_json_error( array( 'message' => __( 'Permission denied.', 'sscribe-export-site-pages' ) ), 403 );
-			return;
+		$export_info = $exports[ $filename ] ?? array();
+		$stored_user_id = isset( $export_info['user_id'] ) ? (int) (string) $export_info['user_id'] : 0;
+		if ( $stored_user_id <= 0 || get_current_user_id() !== $stored_user_id ) {
+    			$this->audit_log( 'delete_access_denied', array( 'filename' => $filename ) );
+    			wp_send_json_error( array( 'message' => __( 'Permission denied.', 'sscribe-export-site-pages' ) ), 403 );
+    			return;
 		}
 
 		$file_path = $this->zip_handler->get_export_dir() . '/' . $filename;
