@@ -106,7 +106,11 @@ class SScribe_Zip_Handler {
 			);
 
 			foreach ( $formats as $format ) {
-				$ext   = isset( $format_extensions[ $format ] ) ? $format_extensions[ $format ] : $format;
+				// Finding #7 fix: Only allow known, safe extensions to prevent glob injection.
+				$ext = isset( $format_extensions[ $format ] ) ? $format_extensions[ $format ] : null;
+				if ( ! $ext ) {
+					continue;
+				}
 				$found = glob( $source_dir . '/*.' . $ext );
 				if ( $found ) {
 					$all_files[ $format ] = $found;
@@ -138,6 +142,20 @@ class SScribe_Zip_Handler {
 
 		$this->delete_directory( $source_dir );
 
+		// Finding #5 fix: Use a transient-based lock to prevent race conditions during indexing.
+		$lock_key = 'sscribe_export_index_lock';
+		$locked   = false;
+		$timeout  = 5; // seconds
+		$start    = time();
+
+		while ( time() - $start < $timeout ) {
+			if ( add_transient( $lock_key, '1', 10 ) ) {
+				$locked = true;
+				break;
+			}
+			usleep( 50000 ); // 50ms
+		}
+
 		$exports                          = get_option( 'sscribe_export_index', array() );
 		$exports[ basename( $zip_path ) ] = array(
 			'created_at' => time(),
@@ -145,6 +163,10 @@ class SScribe_Zip_Handler {
 			'formats'    => $formats,
 		);
 		update_option( 'sscribe_export_index', $exports, false );
+
+		if ( $locked ) {
+			delete_transient( $lock_key );
+		}
 
 		return file_exists( $zip_path ) ? $zip_path : false;
 	}
