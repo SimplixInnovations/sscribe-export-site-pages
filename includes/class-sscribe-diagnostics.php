@@ -131,7 +131,8 @@ class SScribe_Diagnostics {
 		$estimated_total_mb = ( $page_count * $estimate_per_page ) + 50;
 
 		// Memory safety margin (80% of available).
-		$safe_available_mb = $available_mb * 0.8;
+		// Finding #9 fix: Cast to int to prevent floating point precision issues.
+		$safe_available_mb = (int) ( $available_mb * 0.8 );
 
 		if ( $memory_mb < 128 ) {
 			return array(
@@ -617,7 +618,8 @@ class SScribe_Diagnostics {
 		foreach ( $sessions as $session ) {
 			$data = json_decode( $session->option_value, true );
 
-			if ( $data && isset( $data['created_at'] ) ) {
+			// Finding #2 fix: Validate session schema before use.
+			if ( is_array( $data ) && isset( $data['created_at'] ) ) {
 				$created_at = $data['created_at'];
 				$created    = is_numeric( $created_at ) ? (int) $created_at : strtotime( (string) $created_at );
 				if ( $created && time() - $created > 3600 ) {
