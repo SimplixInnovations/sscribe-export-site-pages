@@ -670,24 +670,11 @@ class SScribe_Diagnostics {
 	/**
 	 * Recursively delete a directory.
 	 *
+	 * Uses SScribe_Security for proper symlink handling.
+	 *
 	 * @param string $dir Directory path to delete.
 	 */
 	private function delete_directory( string $dir ): void {
-		$items = new RecursiveIteratorIterator(
-			new RecursiveDirectoryIterator( $dir, RecursiveDirectoryIterator::SKIP_DOTS ),
-			RecursiveIteratorIterator::CHILD_FIRST
-		);
-
-		foreach ( $items as $item ) {
-			if ( $item->isDir() ) {
-				// phpcs:ignore WordPress.WP.AlternativeFunctions.file_system_operations_rmdir -- Cleanup operation for old export directories.
-				rmdir( $item->getRealPath() );
-			} else {
-				wp_delete_file( $item->getRealPath() );
-			}
-		}
-
-		// phpcs:ignore WordPress.WP.AlternativeFunctions.file_system_operations_rmdir -- Cleanup operation for old export directories.
-		rmdir( $dir );
+		SScribe_Security::delete_directory( $dir );
 	}
 }

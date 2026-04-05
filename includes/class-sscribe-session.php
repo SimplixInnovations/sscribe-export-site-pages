@@ -188,7 +188,7 @@ class SScribe_Session {
 		}
 
 		$merged               = array_merge( $existing, $data );
-		$merged['updated_at'] = microtime( true );
+		$merged['updated_at'] = time();
 
 		$option_name  = $this->get_option_name( $session_id );
 		$encoded_data = wp_json_encode( $merged, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES );
@@ -265,6 +265,22 @@ class SScribe_Session {
 
 		// Logic checks.
 		if ( $data['total'] < 0 || $data['processed'] < 0 || $data['session_id'] !== $session_id ) {
+			return false;
+		}
+
+		// Bounds checks: Sanity limits to prevent abuse.
+		if ( $data['total'] > 100000 ) {
+			$this->logger->error( 'Session total exceeds maximum limit', array( 'total' => $data['total'] ) );
+			return false;
+		}
+		if ( $data['processed'] > $data['total'] ) {
+			$this->logger->error(
+				'Session processed exceeds total',
+				array(
+					'processed' => $data['processed'],
+					'total'     => $data['total'],
+				)
+			);
 			return false;
 		}
 
