@@ -105,19 +105,14 @@ jobs:
           rm -rf build/sscribe-export-site-pages/vendor/phpoffice/phpword/src/PhpWord/Shared/PCLZip/
           
           # Vendor extra files - use safer deletion approach
-          # Remove top-level vendor extra files only, not recursively
-          cd build/sscribe-export-site-pages/vendor
-          
-          # Remove extra files from each package individually
-          for dir in */; do
-            if [ -d "${dir}tests" ]; then rm -rf "${dir}tests"; fi
-            if [ -d "${dir}docs" ]; then rm -rf "${dir}docs"; fi
-            if [ -d "${dir}samples" ]; then rm -rf "${dir}samples"; fi
-            if [ -d "${dir}.github" ]; then rm -rf "${dir}.github"; fi
+          # Remove tests, docs, samples, .github from each vendor package
+          for dir in build/sscribe-export-site-pages/vendor/*/; do
+            rm -rf "${dir}tests" 2>/dev/null || true
+            rm -rf "${dir}docs" 2>/dev/null || true
+            rm -rf "${dir}samples" 2>/dev/null || true
+            rm -rf "${dir}.github" 2>/dev/null || true
             rm -f "${dir}CHANGELOG"* "${dir}README"* "${dir}CONTRIBUTING"* "${dir}COPYING"* 2>/dev/null || true
           done
-          
-          cd ../..
           
           # Create ZIP
           cd build
