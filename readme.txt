@@ -4,7 +4,7 @@ Donate link: https://simplixi.com
 Tags: export, docx, multilingual, seo, pdf
 Requires at least: 6.0
 Tested up to: 6.9
-Stable tag: 3.20.5
+Stable tag: 3.20.6
 Requires PHP: 8.2
 License: GPLv2 or later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
@@ -337,6 +337,13 @@ Each document includes: cover page with title/URL/date/breadcrumbs, featured ima
 * Fixed: Security - added proper escaping for flag_url and lang_name
 * Improved: All PHPStan and PHPCS checks passing
 * Improved: 106 unit tests all passing
+
+= 3.20.6 =
+
+* Fixed: Fatal error on export - calculate_export_memory_requirement() now correctly returns int (was returning float)
+* Fixed: Fatal error on ZIP creation - changed add_transient() to set_transient() (WordPress API typo)
+* Fixed: Database activation warning - PRIMARY KEY now on separate line for dbDelta compatibility
+* Fixed: All three tables (export_logs, export_stats, audit_log) use correct dbDelta schema format
 
 = 3.15.7 =
 

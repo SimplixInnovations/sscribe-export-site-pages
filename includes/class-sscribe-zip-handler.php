@@ -149,7 +149,7 @@ class SScribe_Zip_Handler {
 		$start    = time();
 
 		while ( time() - $start < $timeout ) {
-			if ( add_transient( $lock_key, '1', 10 ) ) {
+			if ( set_transient( $lock_key, '1', 10 ) ) {
 				$locked = true;
 				break;
 			}
