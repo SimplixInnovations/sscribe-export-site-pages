@@ -378,7 +378,7 @@ class SScribe_Batch_Processor {
 		// Convert to bytes, add 50MB overhead for PHP/WordPress core.
 		$total_mb = ( $page_count * $memory_per_page ) + 50;
 
-		return $total_mb * 1024 * 1024;
+		return (int) ( $total_mb * 1024 * 1024 );
 	}
 
 	/**
