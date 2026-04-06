@@ -92,7 +92,6 @@ jobs:
           cp readme.txt build/sscribe-export-site-pages/
           cp LICENSE build/sscribe-export-site-pages/
           cp uninstall.php build/sscribe-export-site-pages/
-          cp composer.json build/sscribe-export-site-pages/
           
           # Directories
           cp -r includes build/sscribe-export-site-pages/
@@ -105,16 +104,20 @@ jobs:
           # PCLZip (already in WordPress core)
           rm -rf build/sscribe-export-site-pages/vendor/phpoffice/phpword/src/PhpWord/Shared/PCLZip/
           
-          # Vendor extra files (CHANGELOG, README, tests, docs, etc.)
-          find build/sscribe-export-site-pages/vendor -type f -name "CHANGELOG*" -delete
-          find build/sscribe-export-site-pages/vendor -type f -name "README*" -delete
-          find build/sscribe-export-site-pages/vendor -type f -name "CONTRIBUTING*" -delete
-          find build/sscribe-export-site-pages/vendor -type f -name "COPYING*" -delete
-          find build/sscribe-export-site-pages/vendor -type f -name ".github_changelog_generator" -delete
-          find build/sscribe-export-site-pages/vendor -type d -name ".github" -exec rm -rf {} + 2>/dev/null || true
-          find build/sscribe-export-site-pages/vendor -type d -name "tests" -exec rm -rf {} + 2>/dev/null || true
-          find build/sscribe-export-site-pages/vendor -type d -name "docs" -exec rm -rf {} + 2>/dev/null || true
-          find build/sscribe-export-site-pages/vendor -type d -name "samples" -exec rm -rf {} + 2>/dev/null || true
+          # Vendor extra files - use safer deletion approach
+          # Remove top-level vendor extra files only, not recursively
+          cd build/sscribe-export-site-pages/vendor
+          
+          # Remove extra files from each package individually
+          for dir in */; do
+            if [ -d "${dir}tests" ]; then rm -rf "${dir}tests"; fi
+            if [ -d "${dir}docs" ]; then rm -rf "${dir}docs"; fi
+            if [ -d "${dir}samples" ]; then rm -rf "${dir}samples"; fi
+            if [ -d "${dir}.github" ]; then rm -rf "${dir}.github"; fi
+            rm -f "${dir}CHANGELOG"* "${dir}README"* "${dir}CONTRIBUTING"* "${dir}COPYING"* 2>/dev/null || true
+          done
+          
+          cd ../..
           
           # Create ZIP
           cd build
@@ -133,6 +136,11 @@ jobs:
           unzip -l sscribe-export-site-pages.zip | grep -q "sscribe-export-site-pages/vendor/" || (echo "ERROR: vendor directory missing!" && exit 1)
           unzip -l sscribe-export-site-pages.zip | grep -q "sscribe-export-site-pages/assets/icons/" || (echo "ERROR: assets/icons missing!" && exit 1)
           unzip -l sscribe-export-site-pages.zip | grep -q "sscribe-export-site-pages/admin/css/sscribe-admin.min.css" || echo "WARNING: Minified CSS missing (optional)"
+          echo ""
+          echo "=== Verifying vendor dependencies ==="
+          unzip -l sscribe-export-site-pages.zip | grep -q "sscribe-export-site-pages/vendor/autoload.php" || (echo "ERROR: vendor/autoload.php missing!" && exit 1)
+          unzip -l scribe-export-site-pages.zip | grep -q "sscribe-export-site-pages/vendor/dompdf/dompdf/src/" || (echo "ERROR: Dompdf missing!" && exit 1)
+          unzip -l sscribe-export-site-pages.zip | grep -q "sscribe-export-site-pages/vendor/phpoffice/phpword/src/" || (echo "ERROR: PhpWord missing!" && exit 1)
           echo ""
           echo "=== Verifying excluded files ==="
           if unzip -l sscribe-export-site-pages.zip | grep -q "PCLZip"; then echo "ERROR: PCLZip should be excluded!" && exit 1; fi
