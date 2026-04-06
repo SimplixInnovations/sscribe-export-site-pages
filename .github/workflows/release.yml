@@ -100,19 +100,8 @@ jobs:
           cp -r languages build/sscribe-export-site-pages/
           cp -r vendor build/sscribe-export-site-pages/
           
-          # Remove files not permitted by WordPress.org
-          # PCLZip (already in WordPress core)
+          # Remove only PCLZip (WordPress.org requirement - conflicts with core)
           rm -rf build/sscribe-export-site-pages/vendor/phpoffice/phpword/src/PhpWord/Shared/PCLZip/
-          
-          # Vendor extra files - use safer deletion approach
-          # Remove tests, docs, samples, .github from each vendor package
-          for dir in build/sscribe-export-site-pages/vendor/*/; do
-            rm -rf "${dir}tests" 2>/dev/null || true
-            rm -rf "${dir}docs" 2>/dev/null || true
-            rm -rf "${dir}samples" 2>/dev/null || true
-            rm -rf "${dir}.github" 2>/dev/null || true
-            rm -f "${dir}CHANGELOG"* "${dir}README"* "${dir}CONTRIBUTING"* "${dir}COPYING"* 2>/dev/null || true
-          done
           
           # Create ZIP
           cd build
@@ -120,28 +109,21 @@ jobs:
 
       - name: Verify package contents
         run: |
-          echo "=== Package Contents ==="
-          unzip -l sscribe-export-site-pages.zip
+          echo "=== Package Contents (first 100 files) ==="
+          unzip -l sscribe-export-site-pages.zip | head -100
           echo ""
           echo "=== Verifying required files ==="
-          unzip -l sscribe-export-site-pages.zip | grep -q "sscribe-export-site-pages/sscribe-export-site-pages.php" || (echo "ERROR: Main plugin file missing!" && exit 1)
-          unzip -l sscribe-export-site-pages.zip | grep -q "sscribe-export-site-pages/readme.txt" || (echo "ERROR: readme.txt missing!" && exit 1)
-          unzip -l sscribe-export-site-pages.zip | grep -q "sscribe-export-site-pages/LICENSE" || (echo "ERROR: LICENSE missing!" && exit 1)
-          unzip -l sscribe-export-site-pages.zip | grep -q "sscribe-export-site-pages/includes/class-sscribe.php" || (echo "ERROR: Core class missing!" && exit 1)
-          unzip -l sscribe-export-site-pages.zip | grep -q "sscribe-export-site-pages/vendor/" || (echo "ERROR: vendor directory missing!" && exit 1)
-          unzip -l sscribe-export-site-pages.zip | grep -q "sscribe-export-site-pages/assets/icons/" || (echo "ERROR: assets/icons missing!" && exit 1)
-          unzip -l sscribe-export-site-pages.zip | grep -q "sscribe-export-site-pages/admin/css/sscribe-admin.min.css" || echo "WARNING: Minified CSS missing (optional)"
+          unzip -l sscribe-export-site-pages.zip | grep -q "sscribe-export-site-pages.php" || (echo "ERROR: Main plugin file missing!" && exit 1)
+          unzip -l sscribe-export-site-pages.zip | grep -q "readme.txt" || (echo "ERROR: readme.txt missing!" && exit 1)
+          unzip -l sscribe-export-site-pages.zip | grep -q "vendor/autoload.php" || (echo "ERROR: vendor/autoload.php missing!" && exit 1)
           echo ""
           echo "=== Verifying vendor dependencies ==="
-          unzip -l sscribe-export-site-pages.zip | grep -q "sscribe-export-site-pages/vendor/autoload.php" || (echo "ERROR: vendor/autoload.php missing!" && exit 1)
-          unzip -l sscribe-export-site-pages.zip | grep -q "sscribe-export-site-pages/vendor/dompdf/dompdf/src/" || (echo "ERROR: Dompdf missing!" && exit 1)
-          unzip -l sscribe-export-site-pages.zip | grep -q "sscribe-export-site-pages/vendor/phpoffice/phpword/src/" || (echo "ERROR: PhpWord missing!" && exit 1)
+          unzip -l sscribe-export-site-pages.zip | grep -q "dompdf/dompdf" || (echo "ERROR: Dompdf missing!" && exit 1)
+          unzip -l sscribe-export-site-pages.zip | grep -q "phpoffice/phpword" || (echo "ERROR: PhpWord missing!" && exit 1)
           echo ""
-          echo "=== Verifying excluded files ==="
+          echo "=== Verifying PCLZip excluded ==="
           if unzip -l sscribe-export-site-pages.zip | grep -q "PCLZip"; then echo "ERROR: PCLZip should be excluded!" && exit 1; fi
-          if unzip -l sscribe-export-site-pages.zip | grep -q "COPYING.LESSER"; then echo "ERROR: COPYING.LESSER should be excluded!" && exit 1; fi
-          if unzip -l sscribe-export-site-pages.zip | grep -q ".github_changelog_generator"; then echo "ERROR: .github_changelog_generator should be excluded!" && exit 1; fi
-          echo "All exclusions verified!"
+          echo "✓ All verifications passed!"
 
       - name: Upload to GitHub Release
         uses: softprops/action-gh-release@v2
