@@ -331,7 +331,7 @@ class SScribe_Audit_Trail {
 		$table_name      = $wpdb->prefix . 'sscribe_audit_log';
 
 		$sql = "CREATE TABLE $table_name (
-			id BIGINT UNSIGNED NOT NULL AUTO_INCREMENT PRIMARY KEY,
+			id BIGINT UNSIGNED NOT NULL AUTO_INCREMENT,
 			timestamp DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
 			event VARCHAR(50) NOT NULL,
 			user_id BIGINT UNSIGNED,
@@ -340,6 +340,7 @@ class SScribe_Audit_Trail {
 			request_uri VARCHAR(2083),
 			context LONGTEXT,
 			session_id VARCHAR(50),
+			PRIMARY KEY  (id),
 			INDEX idx_timestamp (timestamp),
 			INDEX idx_event (event),
 			INDEX idx_user_id (user_id),
