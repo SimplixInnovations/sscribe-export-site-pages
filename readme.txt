@@ -4,7 +4,7 @@ Donate link: https://simplixi.com
 Tags: export, docx, multilingual, seo, pdf
 Requires at least: 6.0
 Tested up to: 6.9
-Stable tag: 3.20.1
+Stable tag: 3.20.2
 Requires PHP: 8.2
 License: GPLv2 or later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
@@ -230,6 +230,11 @@ Each document includes: cover page with title/URL/date/breadcrumbs, featured ima
 == Changelog ==
 
 **Note:** For the complete changelog (v1.0.0 through v3.15.7), see the [GitHub Releases page](https://github.com/SimplixInnovations/sscribe-export-site-pages/releases).
+
+= 3.20.2 =
+
+* **Fix:** Release workflow now correctly includes all vendor dependencies (Dompdf for PDF export)
+* **Fix:** Safer vendor cleanup prevents accidental deletion of required packages
 
 = 3.20.1 =
 
