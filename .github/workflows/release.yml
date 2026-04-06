@@ -134,7 +134,7 @@ jobs:
           echo ""
           echo "=== Verifying vendor dependencies ==="
           unzip -l sscribe-export-site-pages.zip | grep -q "sscribe-export-site-pages/vendor/autoload.php" || (echo "ERROR: vendor/autoload.php missing!" && exit 1)
-          unzip -l scribe-export-site-pages.zip | grep -q "sscribe-export-site-pages/vendor/dompdf/dompdf/src/" || (echo "ERROR: Dompdf missing!" && exit 1)
+          unzip -l sscribe-export-site-pages.zip | grep -q "sscribe-export-site-pages/vendor/dompdf/dompdf/src/" || (echo "ERROR: Dompdf missing!" && exit 1)
           unzip -l sscribe-export-site-pages.zip | grep -q "sscribe-export-site-pages/vendor/phpoffice/phpword/src/" || (echo "ERROR: PhpWord missing!" && exit 1)
           echo ""
           echo "=== Verifying excluded files ==="
