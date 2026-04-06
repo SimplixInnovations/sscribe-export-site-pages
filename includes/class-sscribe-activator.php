@@ -44,7 +44,7 @@ class SScribe_Activator {
 		$table_logs = $wpdb->prefix . 'sscribe_export_logs';
 
 		$sql_logs = "CREATE TABLE $table_logs (
-			id BIGINT UNSIGNED NOT NULL AUTO_INCREMENT PRIMARY KEY,
+			id BIGINT UNSIGNED NOT NULL AUTO_INCREMENT,
 			timestamp DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
 			level VARCHAR(20) NOT NULL,
 			message TEXT NOT NULL,
@@ -52,6 +52,7 @@ class SScribe_Activator {
 			user_id BIGINT UNSIGNED,
 			request_id VARCHAR(12),
 			memory_usage VARCHAR(20),
+			PRIMARY KEY  (id),
 			INDEX idx_timestamp (timestamp),
 			INDEX idx_level (level),
 			INDEX idx_user_id (user_id),
@@ -61,7 +62,7 @@ class SScribe_Activator {
 		$table_stats = $wpdb->prefix . 'sscribe_export_stats';
 
 		$sql_stats = "CREATE TABLE $table_stats (
-			id BIGINT UNSIGNED NOT NULL AUTO_INCREMENT PRIMARY KEY,
+			id BIGINT UNSIGNED NOT NULL AUTO_INCREMENT,
 			export_session_id VARCHAR(12) NOT NULL,
 			user_id BIGINT UNSIGNED NOT NULL,
 			export_date DATETIME NOT NULL,
@@ -75,6 +76,7 @@ class SScribe_Activator {
 			status ENUM('completed', 'failed', 'paused') DEFAULT 'completed',
 			error_message TEXT,
 			created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+			PRIMARY KEY  (id),
 			INDEX idx_export_date (export_date),
 			INDEX idx_user_id (user_id),
 			INDEX idx_status (status)
