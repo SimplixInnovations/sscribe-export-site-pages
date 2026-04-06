@@ -99,7 +99,7 @@ class SScribe_Activator {
 	 */
 	private static function create_export_directory(): void {
 		$upload_dir  = wp_upload_dir();
-		$export_path = $upload_dir['basedir'] . '/sscribe-exports';
+		$export_path = untrailingslashit( $upload_dir['basedir'] ) . '/sscribe-exports';
 
 		SScribe_Security::protect_directory( $export_path );
 	}

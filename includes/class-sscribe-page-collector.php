@@ -536,7 +536,7 @@ class SScribe_Page_Collector {
 		 * @param array $data    The page data.
 		 * @param int   $page_id The page ID.
 		 */
-		return apply_filters(
+		$filtered = apply_filters(
 			'sscribe_page_data',
 			array(
 				'id'                  => $page_id,
@@ -565,6 +565,9 @@ class SScribe_Page_Collector {
 			),
 			$page_id
 		);
+
+		// Ensure filter returns valid type (array|false) to match return type declaration.
+		return is_array( $filtered ) ? $filtered : false;
 	}
 
 	/**
