@@ -48,8 +48,8 @@ class SScribe_Arabic_Segmenter {
 	}
 
 	private static function count_arabic_words( string $text ): int {
-		$text = preg_replace( '/[\x{064B}-\x{0652}]/u', '', $text );
-		$text = preg_replace( '/\x{0640}/u', '', $text );
+		$text  = preg_replace( '/[\x{064B}-\x{0652}]/u', '', $text );
+		$text  = preg_replace( '/\x{0640}/u', '', $text );
 		$words = preg_split( '/[\s\p{P}]+/u', trim( $text ), -1, PREG_SPLIT_NO_EMPTY );
 		return $words ? count( array_filter( $words ) ) : 0;
 	}
@@ -63,7 +63,7 @@ class SScribe_Arabic_Segmenter {
 	 */
 	public static function get_reading_time( string $text, string $language = 'en' ): int {
 		$word_count = self::count_words( $text, $language );
-		$wpm = 'ar' === strtolower( $language ) ? 138 : 200;
+		$wpm        = 'ar' === strtolower( $language ) ? 138 : 200;
 		return max( 1, (int) ceil( $word_count / $wpm ) );
 	}
 }

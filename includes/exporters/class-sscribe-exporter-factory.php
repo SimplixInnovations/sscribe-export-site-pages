@@ -83,7 +83,7 @@ class SScribe_Exporter_Factory {
 	public static function build_filename( array $page_data, int $index = 0, int $total = 0, string $extension = 'docx' ): string {
 		$site_name = sanitize_file_name( get_bloginfo( 'name' ) );
 		$site_name = strtolower( substr( $site_name, 0, 20 ) );
-		
+
 		if ( empty( $site_name ) ) {
 			$site_name = 'export';
 		}
@@ -97,7 +97,7 @@ class SScribe_Exporter_Factory {
 		}
 
 		$page_id = (int) ( $page_data['id'] ?? 0 );
-		
+
 		return sprintf(
 			'%s-%s-%s-P%d.%s',
 			$site_name,
