@@ -150,6 +150,7 @@ class SScribe_Admin {
 				'ajaxurl'        => admin_url( 'admin-ajax.php' ),
 				'nonce'          => wp_create_nonce( 'sscribe_export_nonce' ),
 				'download_nonce' => wp_create_nonce( 'sscribe_download' ),
+				'icons_url'      => SSCRIBE_PLUGIN_URL . 'admin/img/',
 				'strings'        => array(
 					'starting'           => __( 'Starting export...', 'sscribe-export-site-pages' ),
 					'processing'         => __( 'Processing...', 'sscribe-export-site-pages' ),
@@ -172,7 +173,6 @@ class SScribe_Admin {
 					'minute'             => __( 'minute', 'sscribe-export-site-pages' ),
 					'seconds'            => __( 'seconds', 'sscribe-export-site-pages' ),
 					'sec_remaining'      => __( 'sec remaining', 'sscribe-export-site-pages' ),
-					// translators: %s: remaining seconds value.
 					'min_sec_remaining'  => __( 'min %s sec remaining', 'sscribe-export-site-pages' ),
 					'hour_suffix'        => 'h',
 					'minute_suffix'      => 'm',
@@ -190,6 +190,9 @@ class SScribe_Admin {
 					'log_errors'         => __( 'Errors', 'sscribe-export-site-pages' ),
 					'log_seconds_suffix' => 's',
 					'log_no_duration'    => '-',
+					'download_tooltip'   => __( 'Download this export', 'sscribe-export-site-pages' ),
+					'log_tooltip'        => __( 'View export log', 'sscribe-export-site-pages' ),
+					'delete_tooltip'     => __( 'Delete this export', 'sscribe-export-site-pages' ),
 				),
 			)
 		);

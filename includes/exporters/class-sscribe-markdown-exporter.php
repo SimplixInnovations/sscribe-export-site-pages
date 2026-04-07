@@ -131,7 +131,24 @@ class SScribe_Markdown_Exporter implements SScribe_Exporter_Interface {
 		$md  = $this->generate_frontmatter( $page_data );
 		$md .= $this->html_to_markdown( $page_data['content'] ?? '' );
 
+		$md = $this->add_bom_if_rtl( $md, $page_data );
+
 		return $md;
+	}
+
+	/**
+	 * Add UTF-8 BOM for RTL content to ensure editor compatibility.
+	 */
+	private function add_bom_if_rtl( string $content, array $page_data ): string {
+		require_once SSCRIBE_PLUGIN_DIR . 'includes/class-sscribe-rtl-helper.php';
+
+		$language = $page_data['language'] ?? 'en';
+		
+		if ( SScribe_RTL_Helper::is_rtl( $language ) ) {
+			return "\xEF\xBB\xBF" . $content;
+		}
+
+		return $content;
 	}
 
 	/**
@@ -141,9 +158,14 @@ class SScribe_Markdown_Exporter implements SScribe_Exporter_Interface {
 	 * @return string
 	 */
 	private function generate_frontmatter( array $page_data ): string {
-		$title = $page_data['title'] ?? 'Untitled';
-		$md    = '# ' . $this->escape_markdown( $title ) . "\n\n";
-		$md   .= '> ' . ( $page_data['permalink'] ?? '' ) . "\n\n";
+		require_once SSCRIBE_PLUGIN_DIR . 'includes/class-sscribe-rtl-helper.php';
+
+		$title    = $page_data['title'] ?? 'Untitled';
+		$language = $page_data['language'] ?? 'en';
+		$direction = SScribe_RTL_Helper::get_direction( $language );
+		
+		$md  = '# ' . $this->escape_markdown( $title ) . "\n\n";
+		$md .= '> ' . ( $page_data['permalink'] ?? '' ) . "\n\n";
 
 		$md .= "---\n";
 		$md .= 'title: "' . $this->escape_yaml_string( $title ) . "\"\n";
@@ -154,7 +176,8 @@ class SScribe_Markdown_Exporter implements SScribe_Exporter_Interface {
 		$md .= 'modified: ' . ( $page_data['date_modified'] ?? '' ) . "\n";
 		$md .= 'word_count: ' . ( $page_data['word_count'] ?? 0 ) . "\n";
 		$md .= 'reading_time: ' . ( $page_data['reading_time'] ?? 1 ) . " minutes\n";
-		$md .= 'language: ' . ( $page_data['language'] ?? 'en' ) . "\n";
+		$md .= 'language: ' . $language . "\n";
+		$md .= 'direction: ' . $direction . "\n";
 
 		if ( ! empty( $page_data['featured_image_url'] ) ) {
 			$md .= 'featured_image: ' . $page_data['featured_image_url'] . "\n";
