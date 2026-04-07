@@ -4,7 +4,7 @@ Donate link: https://simplixi.com
 Tags: export, docx, multilingual, seo, pdf
 Requires at least: 6.0
 Tested up to: 6.9
-Stable tag: 3.30.0
+Stable tag: 3.30.1
 Requires PHP: 8.2
 License: GPLv2 or later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
@@ -229,114 +229,25 @@ Each document includes: cover page with title/URL/date/breadcrumbs, featured ima
 
 == Changelog ==
 
-**Note:** For the complete changelog (v1.0.0 through v3.15.7), see the [GitHub Releases page](https://github.com/SimplixInnovations/sscribe-export-site-pages/releases).
+= 3.30.1 =
 
-= 3.20.5 =
+* Fixed: PHPCS compliance — added missing doc comments and translators notes for RTL/Arabic code
+* Fixed: PHPCS alignment and spacing issues in exporter classes
+* Fixed: Added phpdocs for image processor silenced functions
+* Fixed: Resolved all CI lint warnings for zero-issue production release
+* Improved: Complete plugin audit passed — spelling, version sync, security, WordPress compliance
 
-* **Fix:** Simplified release workflow - removed broken vendor cleanup
-* **Fix:** All vendor dependencies (dompdf, phpword) now correctly included
-* **Improved:** Streamlined verification process
+= 3.30.0 =
 
-= 3.20.4 =
-
-* **Fix:** Release workflow verification command typo fixed
-* **Fix:** Production ZIP now builds correctly with all dependencies
-
-= 3.20.3 =
-
-* **Fix:** Release workflow directory navigation fixed
-* **Fix:** Vendor dependencies now correctly included in all builds
-
-= 3.20.2 =
-
-* **Fix:** Release workflow now correctly includes all vendor dependencies (Dompdf for PDF export)
-* **Fix:** Safer vendor cleanup prevents accidental deletion of required packages
-
-= 3.20.1 =
-
-* **Fix:** Added `load_plugin_textdomain()` for proper internationalization (WordPress.org requirement)
-* **Fix:** Added Installation section to readme.txt (WordPress.org requirement)
-* **Improved:** Production build workflow now creates clean ZIP for WordPress.org submission
-
-= 3.20.0 =
-
-* **Security:** Comprehensive security audit passed - all 131 tests passing
-* **Security:** Verified nonce validation on all AJAX endpoints (10 endpoints)
-* **Security:** Verified capability checks on all privileged operations (11 checks)
-* **Security:** Verified path traversal protection with realpath + prefix checks
-* **Security:** Verified TOCTOU protection in download handler
-* **Security:** Verified session security with JSON encoding (no object injection)
-* **Improved:** GitHub default branch changed to `develop` for proper workflow
-* **Improved:** Branch protection setup for `main` (release-only)
-* **Improved:** .gitignore updated to exclude test reference directories
-* **Improved:** PHPStan level 5 clean - zero errors
-* **Improved:** PHPUnit 131 tests, 357 assertions - all passing
-* **Improved:** PHPCS WordPress standards compliant
-
-= 3.16.0 =
-
-* **Security:** Comprehensive security hardening - all 10+ vulnerabilities audited and verified
-* **Security:** ReDoS protection with bounded character classes in all regex patterns
-* **Security:** Symlink-safe directory deletion with is_link() checks
-* **Security:** Atomic locking for export index to prevent race conditions
-* **Security:** Strict type casting for user_id validation
-* **Security:** Glob whitelist validation to prevent path injection
-* **Security:** TOCTOU protection in download handler
-* **Fix:** Markdown exporter now properly receives filesystem dependency via DI container
-* **Fix:** Session validation relaxed to prevent false rejections (allows processed > total by up to 10)
-* **Fix:** Graceful error message when vendor dependencies are missing
-* **Improved:** All exporters have proper dependency injection
-* **Improved:** Release workflow includes vendor directory verification
-* **Improved:** CI/CD pipeline with full test suite (131 tests passing)
-* **Improved:** PHPStan and PHPCS clean with zero warnings
-
-= 3.15.11 =
-
-* **Security:** Fixed ReDoS vulnerability in data-attribute regex patterns (bounded character class)
-* **Security:** Fixed race condition in export index updates (atomic locking with abort on lock failure)
-* **Security:** Fixed TOCTOU vulnerability in download handler (re-check file existence before read)
-* **Security:** Fixed symlink traversal in diagnostics delete_directory (delegates to secure implementation)
-* **Security:** Fixed type juggling in user_id validation (strict int casting)
-* **Security:** Fixed glob injection in ZIP creation (whitelist-only format extensions)
-* **Security:** Fixed float precision in memory calculations (int casting)
-* **Security:** Added session bounds validation (max 100k pages, processed <= total)
-* **Security:** Standardized timestamp types (int consistency for created_at/updated_at)
-* **Security:** Added JSON schema validation for session data integrity
-* Improved: All 131 tests passing with zero warnings
-* Improved: PHPStan, PHPCS, and version sync checks all passing
-
-= 3.15.10 =
-
-* Fixed: WPML language status counts now correctly returns counts for selected language
-* Fixed: Content parser no longer runs duplicate regex patterns (3-4x faster)
-* Fixed: Upload base directory call moved outside loop for performance
-* Fixed: DomPDF memory leak with proper finally block cleanup
-* Fixed: ZipArchive object released after close for memory efficiency
-* Fixed: Numeric created_at timestamp handling in diagnostics
-* Added: Integration and Security test suites to PHPUnit configuration
-* Improved: Added missing type hints for PHP 8.2+ strict typing
-* Improved: All 131 tests passing (including Integration and Security suites)
-
-= 3.15.9 =
-* Fixed: Added missing changelog entry for version 3.15.9
-* Fixed: Synchronized Project-Id-Version in POT file with main plugin version
-* Improved: Comprehensive code audit completed - verified WordPress compliance, security, and performance
-* Improved: Version consistency verified across all plugin files (main file, constant, readme, CSS)
-* Improved: Internationalization implementation reviewed and validated
-* Improved: Security best practices confirmed - nonce validation, escaping, and CSP headers
-* Improved: Performance optimizations validated - batch processing, memory management, transient caching
-* Improved: Export functionality verified for all formats (DOCX, PDF, HTML, Markdown)
-* Improved: Database usage and session handling audited for correctness
-* Improved: Error handling and logging mechanisms reviewed
-* Improved: JavaScript and CSS assets checked for proper minification and versioning
-
-= 3.15.8 =
-
-* Fixed: Performance - removed duplicate regex in content parser (3-4x faster)
-* Fixed: Performance - moved get_upload_base_dir() outside loop
-* Fixed: Security - added proper escaping for flag_url and lang_name
-* Improved: All PHPStan and PHPCS checks passing
-* Improved: 106 unit tests all passing
+* New: Full RTL/Arabic language support with Arabic word segmentation and RTL helper
+* New: Image processing and optimization for exported documents
+* New: Streaming DOCX generator for memory-efficient large exports
+* New: UTF-8 BOM support for RTL markdown files
+* New: Arabic font integration (NotoSansArabic) for DOCX exports
+* Improved: HTML exporter now supports RTL direction with proper styling
+* Improved: PDF exporter supports RTL content with Arabic fonts
+* Improved: Markdown exporter adds BOM marker for RTL language compatibility
+* Improved: .gitignore updated to exclude agent metadata directories
 
 = 3.20.7 =
 
@@ -444,6 +355,14 @@ Each document includes: cover page with title/URL/date/breadcrumbs, featured ima
 * Fixed: 25 new unit/integration/security tests added
 
 == Upgrade Notice ==
+
+= 3.30.1 =
+
+Production release: PHPCS compliance fixes for RTL/Arabic support code, complete plugin audit passed. Recommended update for all users.
+
+= 3.30.0 =
+
+Major feature release: Full RTL/Arabic language support, image processing, and streaming DOCX generation. Essential update for multilingual sites.
 
 **Note:** For complete upgrade notices, see the [GitHub Releases page](https://github.com/SimplixInnovations/sscribe-export-site-pages/releases).
 
