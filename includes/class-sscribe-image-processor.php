@@ -91,9 +91,9 @@ class SScribe_Image_Processor {
 			return false;
 		}
 
-		$path     = wp_parse_url( $url, PHP_URL_PATH ) ?? '';
-		$ext      = strtolower( pathinfo( $path, PATHINFO_EXTENSION ) );
-		$valid_ext= array( 'jpg', 'jpeg', 'png', 'gif', 'webp' );
+		$path      = wp_parse_url( $url, PHP_URL_PATH ) ?? '';
+		$ext       = strtolower( pathinfo( $path, PATHINFO_EXTENSION ) );
+		$valid_ext = array( 'jpg', 'jpeg', 'png', 'gif', 'webp' );
 
 		if ( ! in_array( $ext, $valid_ext, true ) ) {
 			$ext = 'jpg';
@@ -151,6 +151,7 @@ class SScribe_Image_Processor {
 
 		$resized = imagecreatetruecolor( $new_width, $new_height );
 		if ( false === $resized ) {
+			// phpcs:ignore Generic.PHP.DeprecatedFunctions.Deprecated
 			imagedestroy( $image );
 			return $path;
 		}
@@ -163,12 +164,14 @@ class SScribe_Image_Processor {
 		}
 
 		imagecopyresampled( $resized, $image, 0, 0, 0, 0, $new_width, $new_height, $width, $height );
+		// phpcs:ignore Generic.PHP.DeprecatedFunctions.Deprecated
 		imagedestroy( $image );
 
 		$optimized_path = sys_get_temp_dir() . '/sscribe-opt-' . uniqid() . '.jpg';
 
 		// phpcs:ignore WordPress.WP.AlternativeFunctions.image_jpeg
 		$result = imagejpeg( $resized, $optimized_path, self::JPEG_QUALITY );
+		// phpcs:ignore Generic.PHP.DeprecatedFunctions.Deprecated
 		imagedestroy( $resized );
 
 		if ( false === $result ) {
