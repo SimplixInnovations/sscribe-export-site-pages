@@ -641,7 +641,7 @@ class SScribe_Batch_Processor {
 			$this->logger->debug(
 				'Streaming DOCX mode enabled',
 				array(
-					'page_count'   => $total,
+					'page_count'    => $total,
 					'streaming_dir' => $streaming_dir,
 				)
 			);
@@ -900,17 +900,17 @@ class SScribe_Batch_Processor {
 			return;
 		}
 
-		$page_ids          = $session['page_ids'];
-		$processed         = $session['processed'];
-		$total             = $session['total'];
-		$temp_dir          = $session['temp_dir'];
-		$errors            = isset( $session['errors'] ) ? $session['errors'] : array();
-		$start_time        = isset( $session['start_time'] ) ? $session['start_time'] : time();
-		$formats           = isset( $session['formats'] ) ? $session['formats'] : array( 'docx' );
-		$session_id        = $session['session_id'] ?? '';
-		$streaming_docx    = isset( $session['streaming_docx'] ) && $session['streaming_docx'];
-		$streaming_dir     = $session['streaming_dir'] ?? null;
-		$streaming_count   = isset( $session['streaming_count'] ) ? (int) $session['streaming_count'] : 0;
+		$page_ids        = $session['page_ids'];
+		$processed       = $session['processed'];
+		$total           = $session['total'];
+		$temp_dir        = $session['temp_dir'];
+		$errors          = isset( $session['errors'] ) ? $session['errors'] : array();
+		$start_time      = isset( $session['start_time'] ) ? $session['start_time'] : time();
+		$formats         = isset( $session['formats'] ) ? $session['formats'] : array( 'docx' );
+		$session_id      = $session['session_id'] ?? '';
+		$streaming_docx  = isset( $session['streaming_docx'] ) && $session['streaming_docx'];
+		$streaming_dir   = $session['streaming_dir'] ?? null;
+		$streaming_count = isset( $session['streaming_count'] ) ? (int) $session['streaming_count'] : 0;
 
 		$this->export_log = new SScribe_Export_Log( $session_id );
 
@@ -965,9 +965,9 @@ class SScribe_Batch_Processor {
 			$this->logger->debug(
 				'Streaming DOCX generator initialized',
 				array(
-					'streaming_dir'   => $streaming_dir,
-					'resumed_count'   => $streaming_count,
-					'memory_usage'    => size_format( memory_get_usage( true ) ),
+					'streaming_dir' => $streaming_dir,
+					'resumed_count' => $streaming_count,
+					'memory_usage'  => size_format( memory_get_usage( true ) ),
 				)
 			);
 		}
@@ -1164,9 +1164,9 @@ class SScribe_Batch_Processor {
 						$this->logger->debug(
 							'Added page to streaming DOCX',
 							array(
-								'page_id'        => $page_id,
-								'section_count'  => $streaming_generator->get_section_count(),
-								'memory_usage'   => size_format( memory_get_usage( true ) ),
+								'page_id'       => $page_id,
+								'section_count' => $streaming_generator->get_section_count(),
+								'memory_usage'  => size_format( memory_get_usage( true ) ),
 							)
 						);
 					} else {
@@ -1270,8 +1270,8 @@ class SScribe_Batch_Processor {
 			$this->logger->debug(
 				'Streaming DOCX flushed',
 				array(
-					'section_count'    => $new_streaming_count,
-					'memory_after'     => size_format( memory_get_usage( true ) ),
+					'section_count' => $new_streaming_count,
+					'memory_after'  => size_format( memory_get_usage( true ) ),
 				)
 			);
 		}
@@ -1451,16 +1451,16 @@ class SScribe_Batch_Processor {
 			$lang_upper
 		);
 
-		$temp_dir   = $session['temp_dir'];
+		$temp_dir    = $session['temp_dir'];
 		$output_path = trailingslashit( $temp_dir ) . $docx_name;
 
 		$this->logger->debug(
 			'Finalizing streaming DOCX',
 			array(
-				'streaming_dir'   => $streaming_dir,
-				'section_count'   => $section_count,
-				'output_path'     => $output_path,
-				'memory_before'   => size_format( memory_get_usage( true ) ),
+				'streaming_dir' => $streaming_dir,
+				'section_count' => $section_count,
+				'output_path'   => $output_path,
+				'memory_before' => size_format( memory_get_usage( true ) ),
 			)
 		);
 
@@ -1470,9 +1470,9 @@ class SScribe_Batch_Processor {
 			$this->logger->debug(
 				'Streaming DOCX created successfully',
 				array(
-					'output_path'   => $output_path,
-					'file_size'     => size_format( filesize( $output_path ) ),
-					'memory_after'  => size_format( memory_get_usage( true ) ),
+					'output_path'  => $output_path,
+					'file_size'    => size_format( filesize( $output_path ) ),
+					'memory_after' => size_format( memory_get_usage( true ) ),
 				)
 			);
 		} else {
@@ -1529,12 +1529,12 @@ class SScribe_Batch_Processor {
 		$this->logger->debug(
 			'=== FINALIZE EXPORT ===',
 			array(
-				'session_id'      => $session_id,
-				'total'           => $session['total'],
-				'errors_count'    => count( $session['errors'] ?? array() ),
-				'errors'          => $session['errors'] ?? array(),
-				'processed'       => $session['processed'] ?? 'not set',
-				'streaming_docx'  => $session['streaming_docx'] ?? false,
+				'session_id'     => $session_id,
+				'total'          => $session['total'],
+				'errors_count'   => count( $session['errors'] ?? array() ),
+				'errors'         => $session['errors'] ?? array(),
+				'processed'      => $session['processed'] ?? 'not set',
+				'streaming_docx' => $session['streaming_docx'] ?? false,
 			)
 		);
 
@@ -1550,7 +1550,7 @@ class SScribe_Batch_Processor {
 		$lang_code = ! empty( $session['language'] ) ? $session['language'] : 'all';
 		$site_slug = sanitize_file_name( get_bloginfo( 'name' ) );
 		$site_slug = strtolower( substr( $site_slug, 0, 20 ) );
-		
+
 		if ( empty( $site_slug ) ) {
 			$site_slug = 'export';
 		}
@@ -2450,7 +2450,7 @@ class SScribe_Batch_Processor {
 		 *
 		 * @var array<int, array{filename: string, url: string, size: int, time: int, date: string, lang_code: string, lang_name: string, flag_url: string}>
 		 */
-		$result  = array();
+		$result = array();
 
 		foreach ( $exports as $filename => $data ) {
 			if ( isset( $data['user_id'] ) && (int) $data['user_id'] !== $user_id ) {

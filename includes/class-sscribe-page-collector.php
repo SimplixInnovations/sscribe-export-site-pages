@@ -484,7 +484,7 @@ class SScribe_Page_Collector {
 
 		// Calculate word count using Arabic segmenter for accurate RTL support.
 		require_once SSCRIBE_PLUGIN_DIR . 'includes/class-sscribe-arabic-segmenter.php';
-		
+
 		$word_count   = SScribe_Arabic_Segmenter::count_words( $content, $language );
 		$reading_time = SScribe_Arabic_Segmenter::get_reading_time( $content, $language );
 

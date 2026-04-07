@@ -91,9 +91,9 @@ class SScribe_Image_Processor {
 			return false;
 		}
 
-		$path       = wp_parse_url( $url, PHP_URL_PATH ) ?? '';
-		$ext        = strtolower( pathinfo( $path, PATHINFO_EXTENSION ) );
-		$valid_ext  = array( 'jpg', 'jpeg', 'png', 'gif', 'webp' );
+		$path     = wp_parse_url( $url, PHP_URL_PATH ) ?? '';
+		$ext      = strtolower( pathinfo( $path, PATHINFO_EXTENSION ) );
+		$valid_ext= array( 'jpg', 'jpeg', 'png', 'gif', 'webp' );
 
 		if ( ! in_array( $ext, $valid_ext, true ) ) {
 			$ext = 'jpg';
