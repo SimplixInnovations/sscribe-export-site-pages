@@ -70,65 +70,41 @@ class SScribe_Exporter_Factory {
 	}
 
 	/**
-	 * Build a clean, human-readable filename with transliteration for non-ASCII titles.
+	 * Build a clean filename with format: WebsiteName-Date-Time-Lang-Type
 	 *
-	 * Includes language code suffix to distinguish pages with identical titles
-	 * across different languages (e.g., "01-about-en.docx" vs "01-about-ar.docx").
+	 * Example: mywebsite-2026-04-02-192555-AR-DOCX
 	 *
 	 * @param array  $page_data Page data array.
 	 * @param int    $index     Sequential position (1-based).
-	 * @param int    $total     Total pages (for zero-padding).
+	 * @param int    $total     Total pages (unused, kept for API compatibility).
 	 * @param string $extension File extension without dot.
 	 * @return string Filename with extension.
 	 */
 	public static function build_filename( array $page_data, int $index = 0, int $total = 0, string $extension = 'docx' ): string {
-		$page_id = (int) ( $page_data['id'] ?? 0 );
-
-		if ( $index > 0 && $total > 0 ) {
-			$pad_length = strlen( (string) $total );
-			$seq_prefix = str_pad( (string) $index, $pad_length, '0', STR_PAD_LEFT );
-		} else {
-			$seq_prefix = (string) $page_id;
+		$site_name = sanitize_file_name( get_bloginfo( 'name' ) );
+		$site_name = strtolower( substr( $site_name, 0, 20 ) );
+		
+		if ( empty( $site_name ) ) {
+			$site_name = 'export';
 		}
 
-		$title       = (string) ( $page_data['title'] ?? '' );
-		$ascii_title = '';
+		$timestamp = gmdate( 'Y-m-d-His' );
 
-		if ( function_exists( 'iconv' ) ) {
-			// phpcs:ignore WordPress.PHP.NoSilencedErrors.Discouraged -- iconv can emit E_NOTICE for invalid characters; we handle the failure case below.
-			$transliterated = @iconv( 'UTF-8', 'ASCII//TRANSLIT//IGNORE', $title );
-			if ( $transliterated ) {
-				$ascii_title = $transliterated;
-			}
-		}
-
-		if ( empty( $ascii_title ) || ! preg_match( '/[a-zA-Z0-9]/', $ascii_title ) ) {
-			$ascii_title = preg_replace( '/[^\x20-\x7E]/', '', $title );
-		}
-
-		if ( empty( trim( $ascii_title ) ) || ! preg_match( '/[a-zA-Z0-9]/', $ascii_title ) ) {
-			$ascii_title = 'page';
-		}
-
-		$safe_label = sanitize_file_name( $ascii_title );
-		$safe_label = substr( $safe_label, 0, 55 );
-		$safe_label = trim( $safe_label, '-' );
-
-		if ( empty( $safe_label ) ) {
-			$safe_label = 'page';
-		}
-
-		$language_code = '';
+		$lang_code = 'EN';
 		if ( ! empty( $page_data['language'] ) ) {
-			$lang = $page_data['language'];
-			if ( strlen( $lang ) > 2 ) {
-				$lang = substr( $lang, 0, 2 );
-			}
-			$language_code = '-' . strtolower( sanitize_key( $lang ) );
+			$lang      = substr( $page_data['language'], 0, 2 );
+			$lang_code = strtoupper( sanitize_key( $lang ) );
 		}
 
-		$id_suffix = '-id' . $page_id;
-
-		return $seq_prefix . '-' . $safe_label . $language_code . $id_suffix . '.' . $extension;
+		$page_id = (int) ( $page_data['id'] ?? 0 );
+		
+		return sprintf(
+			'%s-%s-%s-P%d.%s',
+			$site_name,
+			$timestamp,
+			$lang_code,
+			$page_id,
+			strtolower( $extension )
+		);
 	}
 }

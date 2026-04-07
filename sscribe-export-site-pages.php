@@ -79,6 +79,12 @@ define( 'SSCRIBE_PLUGIN_URL', plugin_dir_url( __FILE__ ) );
 define( 'SSCRIBE_PLUGIN_BASENAME', plugin_basename( __FILE__ ) );
 
 /**
+ * Arabic font paths for RTL support.
+ */
+define( 'SSCRIBE_FONT_ARABIC', SSCRIBE_PLUGIN_DIR . 'assets/fonts/NotoSansArabic-Regular.ttf' );
+define( 'SSCRIBE_FONT_ARABIC_BOLD', SSCRIBE_PLUGIN_DIR . 'assets/fonts/NotoSansArabic-Bold.ttf' );
+
+/**
  * Autoload Composer dependencies and plugin classes.
  */
 if ( file_exists( SSCRIBE_PLUGIN_DIR . 'vendor/autoload.php' ) ) {

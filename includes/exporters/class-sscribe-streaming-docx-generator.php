@@ -171,7 +171,7 @@ class SScribe_Streaming_DOCX_Generator {
 
 		return sprintf(
 			'<w:p><w:pPr><w:pStyle w:val="%s"/></w:pPr><w:r><w:t>%s</w:t></w:r></w:p>',
-			esc_attr( $style ),
+			$style,
 			$this->escape_xml( $text )
 		);
 	}
@@ -256,6 +256,45 @@ class SScribe_Streaming_DOCX_Generator {
 				'section_count' => $this->section_count,
 			)
 		);
+	}
+
+	/**
+	 * Force flush current buffer to disk (for AJAX batch persistence).
+	 *
+	 * @return void
+	 */
+	public function flush(): void {
+		if ( ! empty( $this->document_xml ) ) {
+			$this->flush_to_disk();
+		}
+	}
+
+	/**
+	 * Get the temporary directory path (for session persistence).
+	 *
+	 * @return string
+	 */
+	public function get_temp_dir(): string {
+		return $this->temp_dir;
+	}
+
+	/**
+	 * Get current section count (for session persistence).
+	 *
+	 * @return int
+	 */
+	public function get_section_count(): int {
+		return $this->section_count;
+	}
+
+	/**
+	 * Set section count (for resuming from session).
+	 *
+	 * @param int $count Section count to restore.
+	 * @return void
+	 */
+	public function set_section_count( int $count ): void {
+		$this->section_count = $count;
 	}
 
 	/**
@@ -359,6 +398,8 @@ class SScribe_Streaming_DOCX_Generator {
 			return false;
 		}
 
+		$temp_dir_normalized = rtrim( str_replace( '\\', '/', $this->temp_dir ), '/' );
+
 		$iterator = new RecursiveIteratorIterator(
 			new RecursiveDirectoryIterator( $this->temp_dir, RecursiveDirectoryIterator::SKIP_DOTS ),
 			RecursiveIteratorIterator::SELF_FIRST
@@ -367,7 +408,8 @@ class SScribe_Streaming_DOCX_Generator {
 		foreach ( $iterator as $item ) {
 			if ( $item->isFile() ) {
 				$file_path = $item->getRealPath();
-				$relative  = str_replace( $this->temp_dir . '/', '', $file_path );
+				$file_path_normalized = str_replace( '\\', '/', $file_path );
+				$relative = str_replace( $temp_dir_normalized . '/', '', $file_path_normalized );
 				$zip->addFile( $file_path, $relative );
 			}
 		}

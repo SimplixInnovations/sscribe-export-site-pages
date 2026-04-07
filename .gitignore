@@ -86,6 +86,9 @@ error_log
 # OpenCode CLI
 .opencode/
 
+# Sisyphus agent metadata
+.sisyphus/
+
 # Audit reports
 AUDIT-REPORT*.md
 

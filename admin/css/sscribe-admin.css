@@ -897,6 +897,54 @@
 	font-size: 13px;
 }
 
+.sscribe-button-icon {
+	padding: 8px;
+	min-width: 36px;
+	min-height: 36px;
+	border-radius: var(--sscribe-radius-sm);
+	background: transparent;
+	border: 1px solid var(--sscribe-border);
+	color: var(--sscribe-text-secondary);
+}
+
+.sscribe-button-icon:hover {
+	background: var(--sscribe-primary-light);
+	border-color: var(--sscribe-primary);
+	color: var(--sscribe-primary);
+}
+
+.sscribe-button-icon:focus-visible {
+	outline: 2px solid var(--sscribe-primary);
+	outline-offset: 2px;
+}
+
+.sscribe-button-icon img {
+	width: 16px;
+	height: 16px;
+	opacity: 0.7;
+	transition: opacity var(--sscribe-transition-fast);
+}
+
+.sscribe-button-icon:hover img {
+	opacity: 1;
+}
+
+.sscribe-button-icon.sscribe-button-danger {
+	border-color: var(--sscribe-danger-light);
+	color: var(--sscribe-danger);
+}
+
+.sscribe-button-icon.sscribe-button-danger:hover {
+	background: var(--sscribe-danger);
+	border-color: var(--sscribe-danger);
+	color: #FFFFFF;
+}
+
+.sscribe-button-icon.sscribe-button-danger:hover img {
+	opacity: 1;
+	filter: brightness(0) invert(1);
+}
+
 /* Cancel Button */
 .sscribe-button-cancel {
 	display: inline-flex;
