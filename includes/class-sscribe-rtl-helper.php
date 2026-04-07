@@ -20,6 +20,8 @@ class SScribe_RTL_Helper {
 
 	/**
 	 * RTL language codes map.
+	 *
+	 * @var array<string, bool>
 	 */
 	private static array $rtl_languages = array(
 		'ar' => true,

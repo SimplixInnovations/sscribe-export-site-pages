@@ -47,6 +47,12 @@ class SScribe_Arabic_Segmenter {
 		return $words ? count( array_filter( $words ) ) : 0;
 	}
 
+	/**
+	 * Count Arabic words by stripping diacritics and tatweel.
+	 *
+	 * @param string $text The Arabic text to count words in.
+	 * @return int Word count.
+	 */
 	private static function count_arabic_words( string $text ): int {
 		$text  = preg_replace( '/[\x{064B}-\x{0652}]/u', '', $text );
 		$text  = preg_replace( '/\x{0640}/u', '', $text );
