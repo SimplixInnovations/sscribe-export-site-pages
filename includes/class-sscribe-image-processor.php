@@ -91,9 +91,9 @@ class SScribe_Image_Processor {
 			return false;
 		}
 
-		$path = wp_parse_url( $url, PHP_URL_PATH ) ?? '';
-		$ext  = strtolower( pathinfo( $path, PATHINFO_EXTENSION ) );
-		$valid_ext = array( 'jpg', 'jpeg', 'png', 'gif', 'webp' );
+		$path       = wp_parse_url( $url, PHP_URL_PATH ) ?? '';
+		$ext        = strtolower( pathinfo( $path, PATHINFO_EXTENSION ) );
+		$valid_ext  = array( 'jpg', 'jpeg', 'png', 'gif', 'webp' );
 
 		if ( ! in_array( $ext, $valid_ext, true ) ) {
 			$ext = 'jpg';
@@ -120,6 +120,7 @@ class SScribe_Image_Processor {
 			return false;
 		}
 
+		// phpcs:ignore WordPress.PHP.NoSilencedErrors.Discouraged
 		$info = @getimagesize( $path );
 		if ( false === $info ) {
 			return $path;
@@ -131,6 +132,7 @@ class SScribe_Image_Processor {
 			return $path;
 		}
 
+		// phpcs:disable WordPress.PHP.NoSilencedErrors.Discouraged
 		$image = match ( $type ) {
 			IMAGETYPE_JPEG, IMAGETYPE_JPEG2000 => @imagecreatefromjpeg( $path ),
 			IMAGETYPE_PNG                      => @imagecreatefrompng( $path ),
@@ -138,6 +140,7 @@ class SScribe_Image_Processor {
 			IMAGETYPE_WEBP                     => @imagecreatefromwebp( $path ),
 			default                            => false,
 		};
+		// phpcs:enable
 
 		if ( false === $image ) {
 			return $path;

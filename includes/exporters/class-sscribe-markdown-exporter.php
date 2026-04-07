@@ -138,12 +138,16 @@ class SScribe_Markdown_Exporter implements SScribe_Exporter_Interface {
 
 	/**
 	 * Add UTF-8 BOM for RTL content to ensure editor compatibility.
+	 *
+	 * @param string $content   The markdown content.
+	 * @param array  $page_data The page data array.
+	 * @return string Modified content with BOM if RTL.
 	 */
 	private function add_bom_if_rtl( string $content, array $page_data ): string {
 		require_once SSCRIBE_PLUGIN_DIR . 'includes/class-sscribe-rtl-helper.php';
 
 		$language = $page_data['language'] ?? 'en';
-		
+
 		if ( SScribe_RTL_Helper::is_rtl( $language ) ) {
 			return "\xEF\xBB\xBF" . $content;
 		}
@@ -160,10 +164,9 @@ class SScribe_Markdown_Exporter implements SScribe_Exporter_Interface {
 	private function generate_frontmatter( array $page_data ): string {
 		require_once SSCRIBE_PLUGIN_DIR . 'includes/class-sscribe-rtl-helper.php';
 
-		$title    = $page_data['title'] ?? 'Untitled';
-		$language = $page_data['language'] ?? 'en';
+		$title     = $page_data['title'] ?? 'Untitled';
+		$language  = $page_data['language'] ?? 'en';
 		$direction = SScribe_RTL_Helper::get_direction( $language );
-		
 		$md  = '# ' . $this->escape_markdown( $title ) . "\n\n";
 		$md .= '> ' . ( $page_data['permalink'] ?? '' ) . "\n\n";
 
