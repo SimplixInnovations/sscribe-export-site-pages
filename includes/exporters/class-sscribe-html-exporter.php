@@ -138,14 +138,16 @@ class SScribe_HTML_Exporter implements SScribe_Exporter_Interface {
 		$text_align = SScribe_RTL_Helper::get_alignment( $language );
 		$is_rtl     = SScribe_RTL_Helper::is_rtl( $language );
 
-		$rtl_extra = $is_rtl ? "
+		$rtl_extra = $is_rtl ?
+			'
 		html, body { direction: rtl; }
 		h1 { text-align: center; }
 		.featured-image { max-width: 600px; margin: 0 auto; display: block; }
-		" : "
+		' :
+			'
 		h1 { text-align: center; }
 		.featured-image { max-width: 600px; margin: 0 auto; display: block; }
-		";
+		';
 
 		$html = '<!DOCTYPE html>
 <html lang="' . esc_attr( $language ) . '" dir="' . esc_attr( $direction ) . '">
