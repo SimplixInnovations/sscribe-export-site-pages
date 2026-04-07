@@ -153,9 +153,8 @@ class SScribe_Exporter {
 	 * @return bool True if RTL.
 	 */
 	private function is_rtl_document( array $page_data ): bool {
-		$rtl_languages = array( 'ar', 'he', 'fa', 'ur', 'ps', 'ku', 'sd' );
-		$lang          = ! empty( $page_data['language'] ) ? substr( $page_data['language'], 0, 2 ) : 'en';
-		return in_array( $lang, $rtl_languages, true );
+		require_once SSCRIBE_PLUGIN_DIR . 'includes/class-sscribe-rtl-helper.php';
+		return SScribe_RTL_Helper::is_rtl( $page_data['language'] ?? 'en' );
 	}
 
 	/**

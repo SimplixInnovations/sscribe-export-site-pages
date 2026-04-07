@@ -1,0 +1,115 @@
+<?php
+/**
+ * Integration tests for Wave 1 foundation components.
+ *
+ * @package SScribe
+ */
+
+declare(strict_types=1);
+
+use PHPUnit\Framework\TestCase;
+
+require_once SSCRIBE_PLUGIN_DIR . 'includes/class-sscribe-rtl-helper.php';
+require_once SSCRIBE_PLUGIN_DIR . 'includes/class-sscribe-arabic-segmenter.php';
+require_once SSCRIBE_PLUGIN_DIR . 'includes/class-sscribe-image-processor.php';
+
+/**
+ * Class SScribe_Wave1_Integration_Test
+ */
+class SScribe_Wave1_Integration_Test extends TestCase {
+
+	public function test_font_constants_defined(): void {
+		$font_path = SSCRIBE_PLUGIN_DIR . 'assets/fonts/NotoSansArabic-Regular.ttf';
+		$this->assertFileExists( $font_path, 'Arabic font file should exist' );
+	}
+
+	public function test_font_files_exist(): void {
+		$regular = SSCRIBE_PLUGIN_DIR . 'assets/fonts/NotoSansArabic-Regular.ttf';
+		$bold    = SSCRIBE_PLUGIN_DIR . 'assets/fonts/NotoSansArabic-Bold.ttf';
+		$this->assertFileExists( $regular, 'Regular Arabic font should exist' );
+		$this->assertFileExists( $bold, 'Bold Arabic font should exist' );
+	}
+
+	public function test_font_helper_exists(): void {
+		$this->assertTrue( class_exists( 'SScribe_Font_Helper' ), 'SScribe_Font_Helper class should exist' );
+	}
+
+	public function test_rtl_helper_arabic(): void {
+		$this->assertTrue( SScribe_RTL_Helper::is_rtl( 'ar' ), 'Arabic should be RTL' );
+		$this->assertEquals( 'rtl', SScribe_RTL_Helper::get_direction( 'ar' ) );
+		$this->assertEquals( 'right', SScribe_RTL_Helper::get_alignment( 'ar' ) );
+	}
+
+	public function test_rtl_helper_hebrew(): void {
+		$this->assertTrue( SScribe_RTL_Helper::is_rtl( 'he' ), 'Hebrew should be RTL' );
+		$this->assertTrue( SScribe_RTL_Helper::is_rtl( 'he_IL' ), 'Hebrew locale should be RTL' );
+	}
+
+	public function test_rtl_helper_english(): void {
+		$this->assertFalse( SScribe_RTL_Helper::is_rtl( 'en' ), 'English should not be RTL' );
+		$this->assertEquals( 'ltr', SScribe_RTL_Helper::get_direction( 'en' ) );
+		$this->assertEquals( 'left', SScribe_RTL_Helper::get_alignment( 'en' ) );
+	}
+
+	public function test_rtl_helper_get_languages(): void {
+		$languages = SScribe_RTL_Helper::get_rtl_languages();
+		$this->assertContains( 'ar', $languages );
+		$this->assertContains( 'he', $languages );
+		$this->assertContains( 'fa', $languages );
+	}
+
+	public function test_arabic_segmenter_count(): void {
+		$arabic_text = 'مرحبا بالعالم هذا نص عربي';
+		$count = SScribe_Arabic_Segmenter::count_words( $arabic_text, 'ar' );
+		$this->assertGreaterThan( 0, $count, 'Arabic word count should be positive' );
+	}
+
+	public function test_arabic_segmenter_english(): void {
+		$english_text = 'Hello world this is test';
+		$count = SScribe_Arabic_Segmenter::count_words( $english_text, 'en' );
+		$this->assertEquals( 5, $count, 'English word count should be 5' );
+	}
+
+	public function test_arabic_segmenter_empty(): void {
+		$this->assertEquals( 0, SScribe_Arabic_Segmenter::count_words( '', 'ar' ) );
+		$this->assertEquals( 0, SScribe_Arabic_Segmenter::count_words( '   ', 'ar' ) );
+	}
+
+	public function test_arabic_segmenter_reading_time(): void {
+		$text = str_repeat( 'test ', 200 );
+		$time = SScribe_Arabic_Segmenter::get_reading_time( $text, 'en' );
+		$this->assertGreaterThanOrEqual( 1, $time, 'Reading time should be at least 1 minute' );
+	}
+
+	public function test_image_processor_invalid_url(): void {
+		$result = SScribe_Image_Processor::download_and_optimize( 'invalid-url' );
+		$this->assertFalse( $result, 'Invalid URL should return false' );
+	}
+
+	public function test_image_processor_empty_url(): void {
+		$result = SScribe_Image_Processor::download_and_optimize( '' );
+		$this->assertFalse( $result, 'Empty URL should return false' );
+	}
+
+	public function test_file_naming_requires_wordpress(): void {
+		if ( ! function_exists( 'get_bloginfo' ) ) {
+			$this->markTestSkipped( 'WordPress not loaded - skipping file naming test' );
+		}
+
+		$page_data = array(
+			'id'       => 123,
+			'title'    => 'Test Page',
+			'language' => 'ar',
+		);
+
+		$filename = SScribe_Exporter_Factory::build_filename( $page_data, 1, 10, 'docx' );
+
+		$this->assertMatchesRegularExpression(
+			'/^[a-z0-9-]+-\d{4}-\d{2}-\d{2}-\d{6}-AR-P\d+\.docx$/',
+			$filename,
+			'Filename should match new format'
+		);
+		$this->assertStringContainsString( '-AR-', $filename );
+		$this->assertStringEndsWith( '.docx', $filename );
+	}
+}

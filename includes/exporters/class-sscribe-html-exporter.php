@@ -129,25 +129,46 @@ class SScribe_HTML_Exporter implements SScribe_Exporter_Interface {
 	 * @return string
 	 */
 	private function generate_html( array $page_data ): string {
-		$site_name = get_bloginfo( 'name' );
-		$title     = esc_html( $page_data['title'] );
+		require_once SSCRIBE_PLUGIN_DIR . 'includes/class-sscribe-rtl-helper.php';
+
+		$site_name  = get_bloginfo( 'name' );
+		$title      = esc_html( $page_data['title'] );
+		$language   = $page_data['language'] ?? 'en';
+		$direction  = SScribe_RTL_Helper::get_direction( $language );
+		$text_align = SScribe_RTL_Helper::get_alignment( $language );
+		$is_rtl     = SScribe_RTL_Helper::is_rtl( $language );
+
+		$rtl_extra = $is_rtl ? "
+		html, body { direction: rtl; }
+		h1 { text-align: center; }
+		.featured-image { max-width: 600px; margin: 0 auto; display: block; }
+		" : "
+		h1 { text-align: center; }
+		.featured-image { max-width: 600px; margin: 0 auto; display: block; }
+		";
 
 		$html = '<!DOCTYPE html>
-<html lang="' . esc_attr( $page_data['language'] ?? 'en' ) . '">
+<html lang="' . esc_attr( $language ) . '" dir="' . esc_attr( $direction ) . '">
 <head>
 	<meta charset="UTF-8">
 	<meta name="viewport" content="width=device-width, initial-scale=1.0">
 	<title>' . $title . ' | ' . esc_html( $site_name ) . '</title>
 	<style>
-		body { font-family: Arial, sans-serif; max-width: 800px; margin: 0 auto; padding: 20px; line-height: 1.6; }
-		h1, h2, h3 { color: #122119; }
-		.meta { background: #E8EFEB; padding: 15px; border-radius: 4px; margin-bottom: 20px; }
+		* { margin: 0; padding: 0; box-sizing: border-box; }
+		body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Arial, sans-serif; max-width: 800px; margin: 0 auto; padding: 30px 20px; line-height: 1.6; color: #333; }
+		header { border-bottom: 2px solid #4A8263; padding-bottom: 20px; margin-bottom: 30px; }
+		h1 { font-size: 2em; color: #122119; margin-bottom: 10px; }
+		h2, h3, h4 { color: #122119; margin: 20px 0 10px; }
+		.meta { background: #E8EFEB; padding: 15px 20px; border-radius: 4px; margin-bottom: 20px; }
 		.meta dt { font-weight: bold; margin-top: 10px; }
 		.meta dd { margin: 0; color: #495057; }
 		.content { margin-top: 20px; }
-		.seo { background: #f5f5f5; padding: 15px; border-radius: 4px; margin-top: 20px; }
-		.featured-image { max-width: 100%; height: auto; margin-bottom: 20px; }
-		a { color: #2C6E8A; }
+		.seo { background: #f5f5f5; padding: 15px 20px; border-radius: 4px; margin-top: 20px; }
+		.featured-image { max-width: 600px; height: auto; margin-bottom: 20px; border-radius: 4px; }
+		a { color: #2C6E8A; text-decoration: none; }
+		a:hover { text-decoration: underline; }
+		footer { margin-top: 40px; padding-top: 20px; border-top: 1px solid #ddd; color: #666; font-size: 0.9em; }
+		' . $rtl_extra . '
 	</style>
 </head>
 <body>
@@ -164,7 +185,6 @@ class SScribe_HTML_Exporter implements SScribe_Exporter_Interface {
 	</main>
 
 	<footer>
-		<hr>
 		<p><small>' . esc_html(
 			sprintf(
 			/* translators: 1: site name, 2: date and time */

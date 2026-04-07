@@ -494,7 +494,69 @@
 				$iframe.attr('src', data.download_url);
 
 				setTimeout(function () { $iframe.remove(); }, 30000);
+
+				SScribe.refreshRecentExports();
 			});
+		},
+
+		refreshRecentExports: function () {
+			$.ajax({
+				url: sscribe_data.ajaxurl,
+				type: 'POST',
+				timeout: 30000,
+				data: {
+					action: 'sscribe_get_recent_exports',
+					nonce: sscribe_data.nonce
+				},
+				success: function (response) {
+					if (response.success && response.data.exports) {
+						SScribe.renderRecentExports(response.data.exports);
+					}
+				}
+			});
+		},
+
+		renderRecentExports: function (exports) {
+			var $table = $('#sscribe-history-table');
+			var strings = sscribe_data.strings || {};
+
+			if (!exports || exports.length === 0) {
+				$table.html('<div class="sscribe-history-empty"><em>' + this.escapeHtml(strings.history_empty || 'Your recent export packages will appear here.') + '</em></div>');
+				return;
+			}
+
+			var html = '';
+			for (var i = 0; i < exports.length; i++) {
+				var exp = exports[i];
+				html += '<div class="sscribe-history-row" data-filename="' + this.escapeHtml(exp.filename) + '">';
+				html += '<div class="sscribe-history-file">';
+				html += '<div class="sscribe-file-icon">';
+
+				if (exp.flag_url) {
+					html += '<img src="' + this.escapeHtml(exp.flag_url) + '" alt="' + this.escapeHtml(exp.lang_name || '') + '" class="sscribe-file-icon-img">';
+				} else {
+					html += '<span class="sscribe-file-icon-text">' + this.escapeHtml((exp.lang_code || 'EN').substring(0, 2).toUpperCase()) + '</span>';
+				}
+
+				html += '</div>';
+				html += '<div class="sscribe-file-details">';
+				html += '<strong>' + this.escapeHtml(exp.filename) + '</strong>';
+				html += '<span>' + this.escapeHtml(exp.date || '') + ' — ' + this.escapeHtml(exp.size || '') + '</span>';
+				html += '</div></div>';
+				html += '<div class="sscribe-history-actions">';
+				html += '<a href="' + this.escapeHtml(exp.url) + '" class="sscribe-button sscribe-button-icon sscribe-button-sm" download title="' + this.escapeHtml(strings.download_tooltip || 'Download') + '" aria-label="' + this.escapeHtml(strings.download_tooltip || 'Download') + '">';
+				html += '<img src="' + this.escapeHtml(sscribe_data.icons_url + 'download-file.svg') + '" width="16" height="16" alt="">';
+				html += '</a>';
+				html += '<button type="button" class="sscribe-button sscribe-button-icon sscribe-button-sm sscribe-log-btn" data-filename="' + this.escapeHtml(exp.filename) + '" title="' + this.escapeHtml(strings.log_tooltip || 'View Log') + '" aria-label="' + this.escapeHtml(strings.log_tooltip || 'View Log') + '">';
+				html += '<img src="' + this.escapeHtml(sscribe_data.icons_url + 'file-log.svg') + '" width="16" height="16" alt="">';
+				html += '</button>';
+				html += '<button type="button" class="sscribe-button sscribe-button-icon sscribe-button-sm sscribe-button-danger sscribe-delete-btn" data-filename="' + this.escapeHtml(exp.filename) + '" title="' + this.escapeHtml(strings.delete_tooltip || 'Delete') + '" aria-label="' + this.escapeHtml(strings.delete_tooltip || 'Delete') + '">';
+				html += '<img src="' + this.escapeHtml(sscribe_data.icons_url + 'trash.svg') + '" width="16" height="16" alt="">';
+				html += '</button>';
+				html += '</div></div>';
+			}
+
+			$table.html(html);
 		},
 
 		updateProgress: function (percentage) {
