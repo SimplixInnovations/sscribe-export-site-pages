@@ -36,3 +36,5 @@ parameters:
         - '#Instantiated class WP_Error not found\.#'
         - '#Offset.*\$format.* on left side of \?\? always exists and is not nullable\.#'
         - '#Offset.* in isset\(\) always exists and is not nullable\.#'
+        # Ignore unresolvable type errors from dynamically built arrays in usort/uasort/array_values/array_slice
+        - '#contains unresolvable type\.$#'

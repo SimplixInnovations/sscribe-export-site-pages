@@ -630,19 +630,39 @@ class SScribe_Batch_Processor {
 
 		$temp_dir = $this->zip_handler->create_temp_dir();
 
+		// Streaming DOCX setup for large exports (30+ pages).
+		$streaming_docx = false;
+		$streaming_dir  = null;
+		if ( in_array( 'docx', $formats, true ) && $total >= 30 ) {
+			$streaming_docx = true;
+			// Create dedicated directory for streaming chunks.
+			$streaming_dir = $temp_dir . '/streaming_docx';
+			wp_mkdir_p( $streaming_dir );
+			$this->logger->debug(
+				'Streaming DOCX mode enabled',
+				array(
+					'page_count'   => $total,
+					'streaming_dir' => $streaming_dir,
+				)
+			);
+		}
+
 		$session_id = $this->session->create(
 			array(
-				'page_ids'    => $page_ids,
-				'temp_dir'    => $temp_dir,
-				'total'       => $total,
-				'processed'   => 0,
-				'language'    => $language,
-				'post_status' => $post_status,
-				'formats'     => $formats,
-				'errors'      => array(),
-				'start_time'  => time(),
-				'cancelled'   => false,
-				'user_id'     => $user_id,
+				'page_ids'        => $page_ids,
+				'temp_dir'        => $temp_dir,
+				'total'           => $total,
+				'processed'       => 0,
+				'language'        => $language,
+				'post_status'     => $post_status,
+				'formats'         => $formats,
+				'errors'          => array(),
+				'start_time'      => time(),
+				'cancelled'       => false,
+				'user_id'         => $user_id,
+				'streaming_docx'  => $streaming_docx,
+				'streaming_dir'   => $streaming_dir,
+				'streaming_count' => 0,
 			)
 		);
 
@@ -880,14 +900,17 @@ class SScribe_Batch_Processor {
 			return;
 		}
 
-		$page_ids   = $session['page_ids'];
-		$processed  = $session['processed'];
-		$total      = $session['total'];
-		$temp_dir   = $session['temp_dir'];
-		$errors     = isset( $session['errors'] ) ? $session['errors'] : array();
-		$start_time = isset( $session['start_time'] ) ? $session['start_time'] : time();
-		$formats    = isset( $session['formats'] ) ? $session['formats'] : array( 'docx' );
-		$session_id = $session['session_id'] ?? '';
+		$page_ids          = $session['page_ids'];
+		$processed         = $session['processed'];
+		$total             = $session['total'];
+		$temp_dir          = $session['temp_dir'];
+		$errors            = isset( $session['errors'] ) ? $session['errors'] : array();
+		$start_time        = isset( $session['start_time'] ) ? $session['start_time'] : time();
+		$formats           = isset( $session['formats'] ) ? $session['formats'] : array( 'docx' );
+		$session_id        = $session['session_id'] ?? '';
+		$streaming_docx    = isset( $session['streaming_docx'] ) && $session['streaming_docx'];
+		$streaming_dir     = $session['streaming_dir'] ?? null;
+		$streaming_count   = isset( $session['streaming_count'] ) ? (int) $session['streaming_count'] : 0;
 
 		$this->export_log = new SScribe_Export_Log( $session_id );
 
@@ -932,6 +955,22 @@ class SScribe_Batch_Processor {
 		$memory_paused           = false; // Track if batch was paused due to memory.
 		$timeout_paused          = false; // Track if batch was paused due to timeout.
 		$processed_in_this_batch = 0;
+
+		// Initialize streaming DOCX generator if active.
+		$streaming_generator = null;
+		if ( $streaming_docx && $streaming_dir && in_array( 'docx', $formats, true ) ) {
+			require_once SSCRIBE_PLUGIN_DIR . 'includes/exporters/class-sscribe-streaming-docx-generator.php';
+			$streaming_generator = new SScribe_Streaming_DOCX_Generator( $streaming_dir, 50 );
+			$streaming_generator->set_section_count( $streaming_count );
+			$this->logger->debug(
+				'Streaming DOCX generator initialized',
+				array(
+					'streaming_dir'   => $streaming_dir,
+					'resumed_count'   => $streaming_count,
+					'memory_usage'    => size_format( memory_get_usage( true ) ),
+				)
+			);
+		}
 
 		foreach ( $batch as $page_id ) {
 			// Timeout check - pause batch if approaching PHP max_execution_time.
@@ -1070,6 +1109,11 @@ class SScribe_Batch_Processor {
 
 			try {
 				foreach ( $formats as $format ) {
+					// Skip DOCX in streaming mode - handle separately after loop.
+					if ( 'docx' === $format && $streaming_generator ) {
+						continue;
+					}
+
 					$exporter = \SScribe_Exporter_Factory::create( $format );
 
 					if ( ! $exporter ) {
@@ -1104,6 +1148,31 @@ class SScribe_Batch_Processor {
 
 						if ( $this->export_log ) {
 							$this->export_log->log_format_result( $page_id, $format, false, '', $result->get_error() );
+						}
+					}
+				}
+
+				// Handle streaming DOCX separately for memory efficiency.
+				if ( $streaming_generator ) {
+					$added = $streaming_generator->add_page( $page_data );
+					if ( $added ) {
+						$export_success       = true;
+						$successful_formats[] = 'docx';
+						if ( $this->export_log ) {
+							$this->export_log->log_format_result( $page_id, 'docx', true, '[streaming]' );
+						}
+						$this->logger->debug(
+							'Added page to streaming DOCX',
+							array(
+								'page_id'        => $page_id,
+								'section_count'  => $streaming_generator->get_section_count(),
+								'memory_usage'   => size_format( memory_get_usage( true ) ),
+							)
+						);
+					} else {
+						$export_errors[] = 'DOCX: Failed to add page to streaming generator';
+						if ( $this->export_log ) {
+							$this->export_log->log_format_result( $page_id, 'docx', false, '', 'Streaming add failed' );
 						}
 					}
 				}
@@ -1190,6 +1259,23 @@ class SScribe_Batch_Processor {
 
 		$batch_duration = microtime( true ) - $batch_start_time;
 
+		// Flush streaming generator and persist state.
+		$new_streaming_count = $streaming_count;
+		if ( $streaming_generator ) {
+			$streaming_generator->flush();
+			$new_streaming_count = $streaming_generator->get_section_count();
+			$streaming_generator = null;
+			unset( $streaming_generator );
+
+			$this->logger->debug(
+				'Streaming DOCX flushed',
+				array(
+					'section_count'    => $new_streaming_count,
+					'memory_after'     => size_format( memory_get_usage( true ) ),
+				)
+			);
+		}
+
 		$this->logger->debug(
 			'Batch completed',
 			array(
@@ -1205,9 +1291,10 @@ class SScribe_Batch_Processor {
 		$update_result = $this->session->update(
 			$session_id,
 			array(
-				'processed'  => $processed,
-				'errors'     => $errors,
-				'start_time' => $start_time,
+				'processed'       => $processed,
+				'errors'          => $errors,
+				'start_time'      => $start_time,
+				'streaming_count' => $new_streaming_count,
 			)
 		);
 
@@ -1325,6 +1412,113 @@ class SScribe_Batch_Processor {
 	}
 
 	/**
+	 * Finalize streaming DOCX generation.
+	 *
+	 * Creates the final combined DOCX file from streaming chunks.
+	 *
+	 * @param array  $session        Session data.
+	 * @param string $streaming_dir  Directory containing streaming chunks.
+	 * @param int    $section_count  Number of sections (pages) added.
+	 * @return void
+	 */
+	private function finalize_streaming_docx( array $session, string $streaming_dir, int $section_count ): void {
+		if ( ! is_dir( $streaming_dir ) ) {
+			$this->logger->error(
+				'Streaming DOCX directory not found',
+				array( 'streaming_dir' => $streaming_dir )
+			);
+			return;
+		}
+
+		require_once SSCRIBE_PLUGIN_DIR . 'includes/exporters/class-sscribe-streaming-docx-generator.php';
+
+		// Create generator pointing to existing chunks.
+		$generator = new SScribe_Streaming_DOCX_Generator( $streaming_dir, 50 );
+		$generator->set_section_count( $section_count );
+
+		// Build output filename.
+		$lang_code  = ! empty( $session['language'] ) ? $session['language'] : 'all';
+		$site_slug  = sanitize_file_name( get_bloginfo( 'name' ) );
+		$site_slug  = strtolower( substr( $site_slug, 0, 20 ) );
+		$site_slug  = empty( $site_slug ) ? 'export' : $site_slug;
+		$timestamp  = gmdate( 'Y-m-d-His' );
+		$lang_upper = strtoupper( $lang_code );
+
+		$docx_name = sprintf(
+			'%s-%s-%s-COMBINED.docx',
+			$site_slug,
+			$timestamp,
+			$lang_upper
+		);
+
+		$temp_dir   = $session['temp_dir'];
+		$output_path = trailingslashit( $temp_dir ) . $docx_name;
+
+		$this->logger->debug(
+			'Finalizing streaming DOCX',
+			array(
+				'streaming_dir'   => $streaming_dir,
+				'section_count'   => $section_count,
+				'output_path'     => $output_path,
+				'memory_before'   => size_format( memory_get_usage( true ) ),
+			)
+		);
+
+		$success = $generator->save( $output_path );
+
+		if ( $success && file_exists( $output_path ) ) {
+			$this->logger->debug(
+				'Streaming DOCX created successfully',
+				array(
+					'output_path'   => $output_path,
+					'file_size'     => size_format( filesize( $output_path ) ),
+					'memory_after'  => size_format( memory_get_usage( true ) ),
+				)
+			);
+		} else {
+			$this->logger->error(
+				'Failed to create streaming DOCX',
+				array( 'output_path' => $output_path )
+			);
+		}
+
+		// Clean up streaming directory (generator handles this in save()).
+		// But if save failed, clean up manually.
+		if ( is_dir( $streaming_dir ) ) {
+			$this->cleanup_streaming_dir( $streaming_dir );
+		}
+	}
+
+	/**
+	 * Clean up streaming directory.
+	 *
+	 * @param string $streaming_dir Path to streaming directory.
+	 * @return void
+	 */
+	private function cleanup_streaming_dir( string $streaming_dir ): void {
+		if ( ! is_dir( $streaming_dir ) ) {
+			return;
+		}
+
+		$iterator = new RecursiveIteratorIterator(
+			new RecursiveDirectoryIterator( $streaming_dir, RecursiveDirectoryIterator::SKIP_DOTS ),
+			RecursiveIteratorIterator::CHILD_FIRST
+		);
+
+		foreach ( $iterator as $item ) {
+			if ( $item->isDir() ) {
+				// phpcs:ignore WordPress.WP.AlternativeFunctions.file_system_operations_rmdir
+				rmdir( $item->getRealPath() );
+			} else {
+				wp_delete_file( $item->getRealPath() );
+			}
+		}
+
+		// phpcs:ignore WordPress.WP.AlternativeFunctions.file_system_operations_rmdir
+		rmdir( $streaming_dir );
+	}
+
+	/**
 	 * Finalize the export by creating ZIP and returning download URL.
 	 *
 	 * @param string $session_id The session ID.
@@ -1335,22 +1529,45 @@ class SScribe_Batch_Processor {
 		$this->logger->debug(
 			'=== FINALIZE EXPORT ===',
 			array(
-				'session_id'   => $session_id,
-				'total'        => $session['total'],
-				'errors_count' => count( $session['errors'] ?? array() ),
-				'errors'       => $session['errors'] ?? array(),
-				'processed'    => $session['processed'] ?? 'not set',
+				'session_id'      => $session_id,
+				'total'           => $session['total'],
+				'errors_count'    => count( $session['errors'] ?? array() ),
+				'errors'          => $session['errors'] ?? array(),
+				'processed'       => $session['processed'] ?? 'not set',
+				'streaming_docx'  => $session['streaming_docx'] ?? false,
 			)
 		);
 
+		// Finalize streaming DOCX if active.
+		$streaming_docx  = isset( $session['streaming_docx'] ) && $session['streaming_docx'];
+		$streaming_dir   = $session['streaming_dir'] ?? null;
+		$streaming_count = isset( $session['streaming_count'] ) ? (int) $session['streaming_count'] : 0;
+
+		if ( $streaming_docx && $streaming_dir && $streaming_count > 0 ) {
+			$this->finalize_streaming_docx( $session, $streaming_dir, $streaming_count );
+		}
+
 		$lang_code = ! empty( $session['language'] ) ? $session['language'] : 'all';
 		$site_slug = sanitize_file_name( get_bloginfo( 'name' ) );
-		$formats   = isset( $session['formats'] ) ? $session['formats'] : array( 'docx' );
+		$site_slug = strtolower( substr( $site_slug, 0, 20 ) );
+		
+		if ( empty( $site_slug ) ) {
+			$site_slug = 'export';
+		}
+
+		$formats = isset( $session['formats'] ) ? $session['formats'] : array( 'docx' );
 
 		$format_suffix = count( $formats ) > 1 ? 'ALL' : strtoupper( $formats[0] );
-		$pages_count   = $session['total'];
+		$timestamp     = gmdate( 'Y-m-d-His' );
+		$lang_upper    = strtoupper( $lang_code );
 
-		$zip_name = 'sscribe-export-' . $lang_code . '-' . $site_slug . '-' . gmdate( 'Y-m-d-His' ) . '-pages-' . $pages_count . '-' . $format_suffix;
+		$zip_name = sprintf(
+			'%s-%s-%s-%s',
+			$site_slug,
+			$timestamp,
+			$lang_upper,
+			$format_suffix
+		);
 
 		$this->logger->debug(
 			'Creating ZIP',
@@ -2207,5 +2424,72 @@ class SScribe_Batch_Processor {
 		}
 
 		wp_send_json_success( $preview_data );
+	}
+
+	/**
+	 * AJAX handler: Get recent exports list.
+	 *
+	 * @return void
+	 */
+	public function ajax_get_recent_exports(): void {
+		check_ajax_referer( 'sscribe_export_nonce', 'nonce' );
+
+		if ( ! current_user_can( $this->get_required_capability() ) ) {
+			wp_send_json_error(
+				array( 'message' => __( 'Permission denied.', 'sscribe-export-site-pages' ) ),
+				403
+			);
+			return;
+		}
+
+		$exports = get_option( 'sscribe_export_index', array() );
+		$user_id = get_current_user_id();
+
+		/**
+		 * List of recent exports.
+		 *
+		 * @var array<int, array{filename: string, url: string, size: int, time: int, date: string, lang_code: string, lang_name: string, flag_url: string}>
+		 */
+		$result  = array();
+
+		foreach ( $exports as $filename => $data ) {
+			if ( isset( $data['user_id'] ) && (int) $data['user_id'] !== $user_id ) {
+				continue;
+			}
+
+			$file_path = $this->zip_handler->get_export_dir() . '/' . $filename;
+			if ( ! file_exists( $file_path ) ) {
+				continue;
+			}
+
+			$result[] = array(
+				'filename'  => $filename,
+				'url'       => $this->zip_handler->get_ajax_download_url( $filename ),
+				'size'      => filesize( $file_path ),
+				'time'      => $data['time'] ?? filemtime( $file_path ),
+				'date'      => wp_date( get_option( 'date_format' ) . ' ' . get_option( 'time_format' ), $data['time'] ?? filemtime( $file_path ) ),
+				'lang_code' => $data['lang_code'] ?? '',
+				'lang_name' => $data['lang_name'] ?? '',
+				'flag_url'  => $data['flag_url'] ?? '',
+			);
+		}
+
+		// Sort by time descending (newest first).
+		$sorted = $result;
+		uasort(
+			$sorted,
+			/**
+			 * Compare exports by time for sorting.
+			 *
+			 * @param array{filename: string, url: string, size: int, time: int, date: string, lang_code: string, lang_name: string, flag_url: string} $a First export.
+			 * @param array{filename: string, url: string, size: int, time: int, date: string, lang_code: string, lang_name: string, flag_url: string} $b Second export.
+			 * @return int Comparison result.
+			 */
+			function ( array $a, array $b ): int {
+				return $b['time'] <=> $a['time'];
+			}
+		);
+
+		wp_send_json_success( array( 'exports' => array_slice( array_values( $sorted ), 0, 10 ) ) );
 	}
 }

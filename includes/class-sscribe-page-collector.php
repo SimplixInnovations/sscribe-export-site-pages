@@ -479,19 +479,14 @@ class SScribe_Page_Collector {
 		$content = preg_replace( '/\s*data-(widget|column|section)-[a-z0-9_-]{0,30}="[^"]*"/i', '', $content );
 		$content = preg_replace( '/\s*id="elementor-[^"]*"/i', '', $content );
 
-		// Calculate word count and reading time with Unicode fallback.
-		$stripped   = wp_strip_all_tags( $content );
-		$word_count = str_word_count( $stripped );
+		// Get language for word counting.
+		$language = $this->get_page_language( $page_id );
 
-		// str_word_count() is not Unicode-aware — it returns 0 for Arabic, CJK, etc.
-		// Use character count fallback for non-Latin scripts.
-		if ( 0 === $word_count && mb_strlen( $stripped ) > 0 ) {
-			// Estimate: average word length is ~5 chars for CJK, ~4.5 for Arabic.
-			$word_count = (int) ceil( mb_strlen( $stripped, 'UTF-8' ) / 5 );
-		}
-
-		// Reading speed: 200 wpm Latin, 300 chars/min CJK (approx ~250 wpm Arabic).
-		$reading_time = max( 1, (int) ceil( $word_count / 200 ) );
+		// Calculate word count using Arabic segmenter for accurate RTL support.
+		require_once SSCRIBE_PLUGIN_DIR . 'includes/class-sscribe-arabic-segmenter.php';
+		
+		$word_count   = SScribe_Arabic_Segmenter::count_words( $content, $language );
+		$reading_time = SScribe_Arabic_Segmenter::get_reading_time( $content, $language );
 
 		// Get author.
 		$author = get_the_author_meta( 'display_name', $post_object->post_author );

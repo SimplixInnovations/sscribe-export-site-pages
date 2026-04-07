@@ -68,7 +68,17 @@ class SScribe_PDF_Exporter implements SScribe_Exporter_Interface {
 	 * @return SScribe_Result
 	 */
 	public function export( array $page_data, string $output_dir, int $index = 0, int $total = 0 ): SScribe_Result {
-		$html_result = $this->html_exporter->export( $page_data, $output_dir, $index, $total );
+		require_once SSCRIBE_PLUGIN_DIR . 'includes/class-sscribe-rtl-helper.php';
+		require_once SSCRIBE_PLUGIN_DIR . 'includes/class-sscribe-image-processor.php';
+
+		$page_id     = $page_data['id'] ?? 0;
+		$title       = $page_data['title'] ?? 'Untitled';
+		$language    = $page_data['language'] ?? 'en';
+		$is_rtl      = SScribe_RTL_Helper::is_rtl( $language );
+
+		$processed_page_data = $this->process_images_in_page_data( $page_data );
+
+		$html_result = $this->html_exporter->export( $processed_page_data, $output_dir, $index, $total );
 
 		if ( $html_result->is_failure() ) {
 			return $html_result;
@@ -81,9 +91,10 @@ class SScribe_PDF_Exporter implements SScribe_Exporter_Interface {
 
 		try {
 			$options = new \Dompdf\Options();
-			$options->set( 'isRemoteEnabled', false );
+			$options->set( 'isRemoteEnabled', true );
 			$options->set( 'isHtml5ParserEnabled', true );
-			$options->set( 'defaultFont', 'DejaVu Sans' );
+			$options->set( 'isFontSubsettingEnabled', true );
+			$options->set( 'defaultFont', $is_rtl ? 'Noto Sans Arabic' : 'DejaVu Sans' );
 			$options->set( 'chroot', ABSPATH );
 
 			$dompdf = new \Dompdf\Dompdf( $options );
@@ -102,7 +113,7 @@ class SScribe_PDF_Exporter implements SScribe_Exporter_Interface {
 				$this->logger->error(
 					'PDF export failed: filesystem write error',
 					array(
-						'page_id'   => $page_data['id'] ?? 0,
+						'page_id'   => $page_id,
 						'path'      => $output_path,
 						'fs_error'  => $this->filesystem->get_last_error(),
 						'fs_method' => $this->filesystem->get_method(),
@@ -111,7 +122,7 @@ class SScribe_PDF_Exporter implements SScribe_Exporter_Interface {
 
 				return SScribe_Result::failure(
 					__( 'Failed to write PDF file.', 'sscribe-export-site-pages' ),
-					array( 'page_id' => $page_data['id'] ?? 0 )
+					array( 'page_id' => $page_id )
 				);
 			}
 
@@ -127,7 +138,7 @@ class SScribe_PDF_Exporter implements SScribe_Exporter_Interface {
 				'PDF generation failed',
 				array(
 					'error'   => $e->getMessage(),
-					'page_id' => $page_data['id'] ?? 0,
+					'page_id' => $page_id,
 					'file'    => $e->getFile(),
 					'line'    => $e->getLine(),
 				)
@@ -135,7 +146,7 @@ class SScribe_PDF_Exporter implements SScribe_Exporter_Interface {
 
 			return SScribe_Result::failure(
 				__( 'Unable to generate PDF for this page.', 'sscribe-export-site-pages' ),
-				array( 'page_id' => $page_data['id'] ?? 0 )
+				array( 'page_id' => $page_id )
 			);
 		} finally {
 			libxml_clear_errors();
@@ -143,6 +154,20 @@ class SScribe_PDF_Exporter implements SScribe_Exporter_Interface {
 			$dompdf = null;
 			unset( $dompdf );
 		}
+	}
+
+	/**
+	 * Process images in page data for PDF embedding.
+	 */
+	private function process_images_in_page_data( array $page_data ): array {
+		if ( ! empty( $page_data['featured_image_url'] ) ) {
+			$local_path = SScribe_Image_Processor::download_and_optimize( $page_data['featured_image_url'] );
+			if ( $local_path && file_exists( $local_path ) ) {
+				$page_data['featured_image_url'] = $local_path;
+			}
+		}
+
+		return $page_data;
 	}
 
 	/**
