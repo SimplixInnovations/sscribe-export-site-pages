@@ -71,10 +71,10 @@ class SScribe_PDF_Exporter implements SScribe_Exporter_Interface {
 		require_once SSCRIBE_PLUGIN_DIR . 'includes/class-sscribe-rtl-helper.php';
 		require_once SSCRIBE_PLUGIN_DIR . 'includes/class-sscribe-image-processor.php';
 
-		$page_id = $page_data['id'] ?? 0;
-		$title   = $page_data['title'] ?? 'Untitled';
-		$language= $page_data['language'] ?? 'en';
-		$is_rtl  = SScribe_RTL_Helper::is_rtl( $language );
+		$page_id  = $page_data['id'] ?? 0;
+		$title    = $page_data['title'] ?? 'Untitled';
+		$language = $page_data['language'] ?? 'en';
+		$is_rtl   = SScribe_RTL_Helper::is_rtl( $language );
 
 		$processed_page_data = $this->process_images_in_page_data( $page_data );
 
@@ -158,6 +158,9 @@ class SScribe_PDF_Exporter implements SScribe_Exporter_Interface {
 
 	/**
 	 * Process images in page data for PDF embedding.
+	 *
+	 * @param array $page_data The page data array.
+	 * @return array Modified page data with local image paths.
 	 */
 	private function process_images_in_page_data( array $page_data ): array {
 		if ( ! empty( $page_data['featured_image_url'] ) ) {

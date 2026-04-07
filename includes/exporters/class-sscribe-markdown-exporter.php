@@ -168,7 +168,7 @@ class SScribe_Markdown_Exporter implements SScribe_Exporter_Interface {
 		$language  = $page_data['language'] ?? 'en';
 		$direction = SScribe_RTL_Helper::get_direction( $language );
 		$md        = '# ' . $this->escape_markdown( $title ) . "\n\n";
-		$md        .= '> ' . ( $page_data['permalink'] ?? '' ) . "\n\n";
+		$md       .= '> ' . ( $page_data['permalink'] ?? '' ) . "\n\n";
 
 		$md .= "---\n";
 		$md .= 'title: "' . $this->escape_yaml_string( $title ) . "\"\n";

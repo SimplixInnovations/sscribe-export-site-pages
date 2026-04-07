@@ -407,9 +407,9 @@ class SScribe_Streaming_DOCX_Generator {
 
 		foreach ( $iterator as $item ) {
 			if ( $item->isFile() ) {
-				$file_path           = $item->getRealPath();
-				$file_path_normalized= str_replace( '\\', '/', $file_path );
-				$relative            = str_replace( $temp_dir_normalized . '/', '', $file_path_normalized );
+				$file_path            = $item->getRealPath();
+				$file_path_normalized = str_replace( '\\', '/', $file_path );
+				$relative             = str_replace( $temp_dir_normalized . '/', '', $file_path_normalized );
 				$zip->addFile( $file_path, $relative );
 			}
 		}
