@@ -12,13 +12,13 @@ if ( ! defined( 'ABSPATH' ) ) {
 	exit;
 }
 
-use PhpOffice\PhpWord\PhpWord;
-use PhpOffice\PhpWord\IOFactory;
-use PhpOffice\PhpWord\Style\Font;
-use PhpOffice\PhpWord\SimpleType\Jc;
-use PhpOffice\PhpWord\Shared\Converter;
-use PhpOffice\PhpWord\Element\Section;
-use PhpOffice\PhpWord\Element\TextRun;
+use SScribeVendor\PhpOffice\PhpWord\PhpWord;
+use SScribeVendor\PhpOffice\PhpWord\IOFactory;
+use SScribeVendor\PhpOffice\PhpWord\Style\Font;
+use SScribeVendor\PhpOffice\PhpWord\SimpleType\Jc;
+use SScribeVendor\PhpOffice\PhpWord\Shared\Converter;
+use SScribeVendor\PhpOffice\PhpWord\Element\Section;
+use SScribeVendor\PhpOffice\PhpWord\Element\TextRun;
 
 /**
  * Class SScribe_Exporter
@@ -192,7 +192,7 @@ class SScribe_Exporter {
 			}
 
 			// Force ZipArchive — prevents PHPWord from ever loading bundled PCLZip.
-			\PhpOffice\PhpWord\Settings::setZipClass( \PhpOffice\PhpWord\Settings::ZIPARCHIVE );
+			\SScribeVendor\PhpOffice\PhpWord\Settings::setZipClass( \SScribeVendor\PhpOffice\PhpWord\Settings::ZIPARCHIVE );
 
 			$php_word = new PhpWord();
 
@@ -423,10 +423,10 @@ class SScribe_Exporter {
 	/**
 	 * Add the cover page.
 	 *
-	 * @param \PhpOffice\PhpWord\Element\Section $section The section.
+	 * @param \SScribeVendor\PhpOffice\PhpWord\Element\Section $section The section.
 	 * @param array                              $page_data Page data.
 	 */
-	private function add_cover_page( \PhpOffice\PhpWord\Element\Section $section, array $page_data ): void {
+	private function add_cover_page( \SScribeVendor\PhpOffice\PhpWord\Element\Section $section, array $page_data ): void {
 		// Top solid bar simulation.
 		$section->addTextBreak( 2 );
 
@@ -586,7 +586,7 @@ class SScribe_Exporter {
 				'name' => $this->font_name,
 				'size' => 11,
 			),
-			array( 'tabLeader' => \PhpOffice\PhpWord\Style\TOC::TAB_LEADER_DOT ),
+			array( 'tabLeader' => \SScribeVendor\PhpOffice\PhpWord\Style\TOC::TAB_LEADER_DOT ),
 			1,
 			3
 		);
@@ -597,10 +597,10 @@ class SScribe_Exporter {
 	/**
 	 * Add header and footer to a section.
 	 *
-	 * @param \PhpOffice\PhpWord\Element\Section $section   The section.
+	 * @param \SScribeVendor\PhpOffice\PhpWord\Element\Section $section   The section.
 	 * @param array                              $page_data Page data.
 	 */
-	private function add_header_footer( \PhpOffice\PhpWord\Element\Section $section, array $page_data ): void {
+	private function add_header_footer( \SScribeVendor\PhpOffice\PhpWord\Element\Section $section, array $page_data ): void {
 		// Header.
 		$header       = $section->addHeader();
 		$header_table = $header->addTable();
@@ -652,10 +652,10 @@ class SScribe_Exporter {
 	/**
 	 * Add featured image if available.
 	 *
-	 * @param \PhpOffice\PhpWord\Element\Section $section   The section.
+	 * @param \SScribeVendor\PhpOffice\PhpWord\Element\Section $section   The section.
 	 * @param array                              $page_data Page data.
 	 */
-	private function add_featured_image( \PhpOffice\PhpWord\Element\Section $section, array $page_data ): void {
+	private function add_featured_image( \SScribeVendor\PhpOffice\PhpWord\Element\Section $section, array $page_data ): void {
 		if ( empty( $page_data['featured_image_path'] ) || ! file_exists( $page_data['featured_image_path'] ) ) {
 			return;
 		}
@@ -709,10 +709,10 @@ class SScribe_Exporter {
 	/**
 	 * Add page info table.
 	 *
-	 * @param \PhpOffice\PhpWord\Element\Section $section   The section.
+	 * @param \SScribeVendor\PhpOffice\PhpWord\Element\Section $section   The section.
 	 * @param array                              $page_data Page data.
 	 */
-	private function add_page_info_table( \PhpOffice\PhpWord\Element\Section $section, array $page_data ): void {
+	private function add_page_info_table( \SScribeVendor\PhpOffice\PhpWord\Element\Section $section, array $page_data ): void {
 		$section->addTitle( __( 'Page Information', 'sscribe-export-site-pages' ), 2 );
 
 		$table_style = array(
@@ -773,10 +773,10 @@ class SScribe_Exporter {
 	/**
 	 * Add SEO metadata section.
 	 *
-	 * @param \PhpOffice\PhpWord\Element\Section $section   The section.
+	 * @param \SScribeVendor\PhpOffice\PhpWord\Element\Section $section   The section.
 	 * @param array                              $page_data Page data.
 	 */
-	private function add_seo_section( \PhpOffice\PhpWord\Element\Section $section, array $page_data ): void {
+	private function add_seo_section( \SScribeVendor\PhpOffice\PhpWord\Element\Section $section, array $page_data ): void {
 		$seo_data = ! empty( $page_data['seo'] ) ? $page_data['seo'] : array();
 
 		if ( empty( $seo_data['meta_title'] ) && empty( $seo_data['meta_description'] ) && empty( $seo_data['focus_keyword'] ) ) {
@@ -848,10 +848,10 @@ class SScribe_Exporter {
 	/**
 	 * Add breadcrumb trail.
 	 *
-	 * @param \PhpOffice\PhpWord\Element\Section $section   The section.
+	 * @param \SScribeVendor\PhpOffice\PhpWord\Element\Section $section   The section.
 	 * @param array                              $page_data Page data.
 	 */
-	private function add_breadcrumbs( \PhpOffice\PhpWord\Element\Section $section, array $page_data ): void {
+	private function add_breadcrumbs( \SScribeVendor\PhpOffice\PhpWord\Element\Section $section, array $page_data ): void {
 		if ( empty( $page_data['breadcrumbs'] ) || count( $page_data['breadcrumbs'] ) <= 1 ) {
 			return;
 		}
@@ -889,10 +889,10 @@ class SScribe_Exporter {
 	/**
 	 * Add main content (parsed HTML → DOCX elements).
 	 *
-	 * @param \PhpOffice\PhpWord\Element\Section $section   The section.
+	 * @param \SScribeVendor\PhpOffice\PhpWord\Element\Section $section   The section.
 	 * @param array                              $page_data Page data.
 	 */
-	private function add_main_content( \PhpOffice\PhpWord\Element\Section $section, array $page_data ): void {
+	private function add_main_content( \SScribeVendor\PhpOffice\PhpWord\Element\Section $section, array $page_data ): void {
 		if ( empty( $page_data['word_count'] ) ) {
 			return;
 		}
@@ -909,7 +909,7 @@ class SScribe_Exporter {
 	/**
 	 * Render a parsed element into the DOCX section.
 	 *
-	 * @param \PhpOffice\PhpWord\Element\Section $section The section.
+	 * @param \SScribeVendor\PhpOffice\PhpWord\Element\Section $section The section.
 	 * @param array                              $element The parsed element.
 	 */
 	private function render_element( Section $section, array $element ): void {
@@ -980,7 +980,7 @@ class SScribe_Exporter {
 	/**
 	 * Render a paragraph with inline runs.
 	 *
-	 * @param \PhpOffice\PhpWord\Element\Section $section The section.
+	 * @param \SScribeVendor\PhpOffice\PhpWord\Element\Section $section The section.
 	 * @param array                              $element The paragraph element.
 	 */
 	private function render_paragraph( Section $section, array $element ): void {
@@ -995,7 +995,7 @@ class SScribe_Exporter {
 	/**
 	 * Render inline runs into a text run.
 	 *
-	 * @param \PhpOffice\PhpWord\Element\TextRun $text_run The text run container.
+	 * @param \SScribeVendor\PhpOffice\PhpWord\Element\TextRun $text_run The text run container.
 	 * @param array                              $runs    Array of run data.
 	 * @param bool                               $italic  Force italic (for blockquotes).
 	 */
@@ -1067,7 +1067,7 @@ class SScribe_Exporter {
 	/**
 	 * Render a list element.
 	 *
-	 * @param \PhpOffice\PhpWord\Element\Section $section The section.
+	 * @param \SScribeVendor\PhpOffice\PhpWord\Element\Section $section The section.
 	 * @param array                              $element The list element.
 	 */
 	private function render_list( Section $section, array $element ): void {
@@ -1077,7 +1077,7 @@ class SScribe_Exporter {
 			return;
 		}
 
-		$list_type = ( 'numbered' === $style ) ? \PhpOffice\PhpWord\Style\ListItem::TYPE_NUMBER : \PhpOffice\PhpWord\Style\ListItem::TYPE_BULLET_FILLED;
+		$list_type = ( 'numbered' === $style ) ? \SScribeVendor\PhpOffice\PhpWord\Style\ListItem::TYPE_NUMBER : \SScribeVendor\PhpOffice\PhpWord\Style\ListItem::TYPE_BULLET_FILLED;
 
 		foreach ( $element['items'] as $item ) {
 			$depth = isset( $item['depth'] ) ? $item['depth'] : 0;
@@ -1115,7 +1115,7 @@ class SScribe_Exporter {
 	/**
 	 * Render an HTML table into DOCX.
 	 *
-	 * @param \PhpOffice\PhpWord\Element\Section $section The section.
+	 * @param \SScribeVendor\PhpOffice\PhpWord\Element\Section $section The section.
 	 * @param array                              $element The table element.
 	 */
 	private function render_table( Section $section, array $element ): void {
@@ -1136,7 +1136,7 @@ class SScribe_Exporter {
 			'borderSize'  => 1,
 			'borderColor' => $this->colors['border'],
 			'cellMargin'  => Converter::cmToTwip( 0.1 ),
-			'unit'        => \PhpOffice\PhpWord\SimpleType\TblWidth::TWIP,
+			'unit'        => \SScribeVendor\PhpOffice\PhpWord\SimpleType\TblWidth::TWIP,
 			'width'       => $total_width_twip,
 		);
 
@@ -1172,7 +1172,7 @@ class SScribe_Exporter {
 	/**
 	 * Render a button element.
 	 *
-	 * @param \PhpOffice\PhpWord\Element\Section $section The section.
+	 * @param \SScribeVendor\PhpOffice\PhpWord\Element\Section $section The section.
 	 * @param array                              $element The button element.
 	 */
 	private function render_button( Section $section, array $element ): void {
@@ -1240,7 +1240,7 @@ class SScribe_Exporter {
 	/**
 	 * Render an inline image.
 	 *
-	 * @param \PhpOffice\PhpWord\Element\Section $section The section.
+	 * @param \SScribeVendor\PhpOffice\PhpWord\Element\Section $section The section.
 	 * @param array                              $element The image element.
 	 */
 	private function render_inline_image( Section $section, array $element ): void {
@@ -1321,10 +1321,10 @@ class SScribe_Exporter {
 	/**
 	 * Add child pages list.
 	 *
-	 * @param \PhpOffice\PhpWord\Element\Section $section   The section.
+	 * @param \SScribeVendor\PhpOffice\PhpWord\Element\Section $section   The section.
 	 * @param array                              $page_data Page data.
 	 */
-	private function add_child_pages( \PhpOffice\PhpWord\Element\Section $section, array $page_data ): void {
+	private function add_child_pages( \SScribeVendor\PhpOffice\PhpWord\Element\Section $section, array $page_data ): void {
 		if ( empty( $page_data['children'] ) ) {
 			return;
 		}
