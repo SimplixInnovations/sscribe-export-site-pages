@@ -43,27 +43,30 @@ docs/
 *.md
 !readme.txt
 
-# Vendor extras (WordPress.org requirement)
-vendor/*/.github/
-vendor/*/.git/
-vendor/*/COPYING*
-vendor/*/.github_changelog_generator
-vendor/*/.php-cs-fixer*
-vendor/*/phpstan.neon*
-vendor/*/phpunit.xml*
-vendor/*/tests/
-vendor/*/docs/
-vendor/*/.travis.yml
-vendor/*/.scrutinizer.yml
-vendor/*/mkdocs.yml
-vendor/*/.gitattributes
-vendor/*/.gitignore
-vendor/*/README.md
-vendor/*/CHANGELOG.md
-vendor/*/CONTRIBUTING.md
+# Raw Composer vendor tree excluded from release package
+vendor/
+
+# Vendor-prefixed extras (WordPress.org requirement)
+vendor-prefixed/*/.github/
+vendor-prefixed/*/.git/
+vendor-prefixed/*/COPYING*
+vendor-prefixed/*/.github_changelog_generator
+vendor-prefixed/*/.php-cs-fixer*
+vendor-prefixed/*/phpstan.neon*
+vendor-prefixed/*/phpunit.xml*
+vendor-prefixed/*/tests/
+vendor-prefixed/*/docs/
+vendor-prefixed/*/.travis.yml
+vendor-prefixed/*/.scrutinizer.yml
+vendor-prefixed/*/mkdocs.yml
+vendor-prefixed/*/.gitattributes
+vendor-prefixed/*/.gitignore
+vendor-prefixed/*/README.md
+vendor-prefixed/*/CHANGELOG.md
+vendor-prefixed/*/CONTRIBUTING.md
 
 # PCLZip conflict (WordPress.org requirement)
-vendor/phpoffice/phpword/src/PhpWord/Shared/PCLZip/
+vendor-prefixed/phpoffice/phpword/src/PhpWord/Shared/PCLZip/
 
 # OS files
 .DS_Store

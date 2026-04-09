@@ -32,40 +32,21 @@ echo "🔨 Building ${PLUGIN_SLUG} v${VERSION}..."
 rm -rf build/
 mkdir -p "${BUILD_DIR}"
 
-# Copy plugin files (excluding dev files)
-rsync -a --exclude='.git/' \
-         --exclude='.github/' \
-         --exclude='build/' \
-         --exclude='node_modules/' \
-         --exclude='vendor/' \
-         --exclude='tests/' \
-         --exclude='.phpunit.cache/' \
-         --exclude='.sisyphus/' \
-         --exclude='.env' \
-         --exclude='.env.*' \
-         --exclude='phpcs.xml' \
-         --exclude='phpstan.neon' \
-         --exclude='phpunit.xml' \
-         --exclude='composer.json' \
-         --exclude='composer.lock' \
-         --exclude='.gitignore' \
-         --exclude='.distignore' \
-         --exclude='opencode.json' \
-         --exclude='*.log' \
-         --exclude='screenshots/' \
-         ./ "${BUILD_DIR}/"
+# Install dependencies required to build the prefixed vendor tree
+echo "📦 Installing build dependencies..."
+composer install --optimize-autoloader --no-interaction --no-progress
 
-# Install production dependencies only
-echo "📦 Installing production dependencies..."
-cd "${BUILD_DIR}"
-composer install --no-dev --optimize-autoloader --no-interaction
-cd - > /dev/null
+# Generate the prefixed runtime vendor tree
+echo "🧬 Generating prefixed vendor tree..."
+composer vendor:prefix
 
-# Minify CSS
-echo "🎨 Minifying CSS..."
-if command -v node &> /dev/null; then
-    node scripts/minify-css.js
-fi
+# Build production assets
+echo "🎨 Building production assets..."
+composer build
+
+# Copy plugin files using the canonical distribution ignore rules
+echo "📁 Copying distribution files..."
+rsync -av ./ "${BUILD_DIR}/" --exclude-from=.distignore
 
 # Create ZIP archive
 echo "📦 Creating ZIP archive..."

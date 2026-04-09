@@ -1,6 +1,6 @@
 {
     "name": "simplix-innovations/sscribe-export-site-pages",
-    "description": "Export every page into beautifully formatted Word DOCX files with multilingual support, SEO meta, rich styling, and secure ZIP download.",
+    "description": "Export WordPress pages to professional DOCX, PDF, HTML, or Markdown packages with multilingual RTL support, SEO metadata, and secure ZIP downloads.",
     "type": "wordpress-plugin",
     "license": "GPL-2.0-or-later",
     "authors": [
@@ -22,7 +22,8 @@
         "phpunit/phpunit": "^13.0",
         "squizlabs/php_codesniffer": "^3.13",
         "wp-coding-standards/wpcs": "^3.3",
-        "automattic/vipwpcs": "^3.0"
+        "automattic/vipwpcs": "^3.0",
+        "brianhenryie/strauss": "^0.19.0"
     },
     "autoload": {
         "classmap": [
@@ -44,11 +45,25 @@
         "css:minify": "php scripts/minify-css.php",
         "js:minify": "php scripts/minify-js.php",
         "version:check": "php scripts/verify-version-sync.php",
+        "vendor:prefix": "strauss",
         "clean": "composer clean:cache && composer clean:coverage",
         "clean:cache": "php -r \"array_map('unlink', glob('.cache/**/*.*')); array_map('rmdir', glob('.cache/*', GLOB_ONLYDIR)); is_dir('.cache') && rmdir('.cache'); echo 'Cache cleared.\\n';\"",
         "clean:coverage": "php -r \"is_dir('coverage') && array_map('unlink', glob('coverage/*.*')) && rmdir('coverage'); echo 'Coverage cleared.\\n';\"",
-        "ci": "composer version:check && composer test && composer stan && composer cs",
+        "ci": "composer version:check && composer vendor:prefix && composer test && composer stan && composer cs",
         "build": "composer css:minify && composer js:minify"
+    },
+    "extra": {
+        "strauss": {
+            "target_directory": "vendor-prefixed",
+            "namespace_prefix": "SScribeVendor\\",
+            "classmap_prefix": "SScribeVendor_",
+            "packages": [
+                "dompdf/dompdf",
+                "phpoffice/phpword"
+            ],
+            "delete_vendor_packages": false,
+            "exclude_constants": []
+        }
     },
     "config": {
         "optimize-autoloader": true,

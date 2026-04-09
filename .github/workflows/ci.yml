@@ -23,6 +23,7 @@ jobs:
         with:
           php-version: '8.4'
           coverage: none
+          extensions: fileinfo
 
       - name: Verify version synchronization
         run: php scripts/verify-version-sync.php
@@ -43,6 +44,7 @@ jobs:
         with:
           php-version: ${{ matrix.php-version }}
           coverage: none
+          extensions: fileinfo
 
       - name: PHP Syntax Check
         run: |
@@ -63,6 +65,9 @@ jobs:
     name: Tests
     runs-on: ubuntu-latest
     needs: lint
+    strategy:
+      matrix:
+        php-version: ['8.2', '8.4']
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
@@ -70,11 +75,18 @@ jobs:
       - name: Setup PHP
         uses: shivammathur/setup-php@v2
         with:
-          php-version: '8.4'
+          php-version: ${{ matrix.php-version }}
           coverage: none
+          extensions: fileinfo
 
       - name: Install dependencies
         run: composer install --no-progress
+
+      - name: Generate prefixed vendor tree
+        run: composer vendor:prefix
+
+      - name: Build assets
+        run: composer build
 
       - name: Run PHPUnit
         run: composer test
