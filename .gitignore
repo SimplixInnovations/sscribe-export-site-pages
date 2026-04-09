@@ -1,5 +1,6 @@
 # Dependencies
 /vendor/
+/vendor-prefixed/
 /node_modules/
 
 # Build outputs
@@ -85,6 +86,11 @@ error_log
 
 # OpenCode CLI
 .opencode/
+
+# Local WordPress environment
+.wp-env/
+wordpress/
+wordpress-tests-lib/
 
 # Sisyphus agent metadata
 .sisyphus/
