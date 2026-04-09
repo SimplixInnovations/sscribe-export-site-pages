@@ -21,6 +21,7 @@ jobs:
         with:
           php-version: '8.4'
           coverage: none
+          extensions: fileinfo
 
       - name: Verify version synchronization
         run: php scripts/verify-version-sync.php
@@ -48,9 +49,16 @@ jobs:
         with:
           php-version: '8.4'
           coverage: none
+          extensions: fileinfo
 
       - name: Install dependencies
         run: composer install --no-progress
+
+      - name: Generate prefixed vendor tree
+        run: composer vendor:prefix
+
+      - name: Build assets
+        run: composer build
 
       - name: Run PHPUnit
         run: composer test
@@ -74,35 +82,23 @@ jobs:
         with:
           php-version: '8.4'
           coverage: none
+          extensions: fileinfo
 
-      - name: Install production dependencies
-        run: composer install --no-dev --optimize-autoloader --no-progress
+      - name: Install build dependencies
+        run: composer install --optimize-autoloader --no-progress
 
-      - name: Minify CSS assets
-        run: composer run-script css:minify
+      - name: Generate prefixed vendor tree
+        run: composer vendor:prefix
+
+      - name: Build assets
+        run: composer build
 
       - name: Create WordPress.org package
         run: |
           mkdir -p build/sscribe-export-site-pages
-          
-          # Main plugin file
-          cp sscribe-export-site-pages.php build/sscribe-export-site-pages/
-          
-          # Required files
-          cp readme.txt build/sscribe-export-site-pages/
-          cp LICENSE build/sscribe-export-site-pages/
-          cp uninstall.php build/sscribe-export-site-pages/
-          
-          # Directories
-          cp -r includes build/sscribe-export-site-pages/
-          cp -r admin build/sscribe-export-site-pages/
-          cp -r assets build/sscribe-export-site-pages/
-          cp -r languages build/sscribe-export-site-pages/
-          cp -r vendor build/sscribe-export-site-pages/
-          
-          # Remove only PCLZip (WordPress.org requirement - conflicts with core)
-          rm -rf build/sscribe-export-site-pages/vendor/phpoffice/phpword/src/PhpWord/Shared/PCLZip/
-          
+
+          rsync -av ./ build/sscribe-export-site-pages/ --exclude-from=.distignore
+
           # Create ZIP
           cd build
           zip -r ../sscribe-export-site-pages.zip sscribe-export-site-pages
@@ -115,11 +111,10 @@ jobs:
           echo "=== Verifying required files ==="
           unzip -l sscribe-export-site-pages.zip | grep -q "sscribe-export-site-pages.php" || (echo "ERROR: Main plugin file missing!" && exit 1)
           unzip -l sscribe-export-site-pages.zip | grep -q "readme.txt" || (echo "ERROR: readme.txt missing!" && exit 1)
-          unzip -l sscribe-export-site-pages.zip | grep -q "vendor/autoload.php" || (echo "ERROR: vendor/autoload.php missing!" && exit 1)
+          unzip -l sscribe-export-site-pages.zip | grep -q "vendor-prefixed/autoload.php" || (echo "ERROR: vendor-prefixed/autoload.php missing!" && exit 1)
           echo ""
           echo "=== Verifying vendor dependencies ==="
-          unzip -l sscribe-export-site-pages.zip | grep -q "dompdf/dompdf" || (echo "ERROR: Dompdf missing!" && exit 1)
-          unzip -l sscribe-export-site-pages.zip | grep -q "phpoffice/phpword" || (echo "ERROR: PhpWord missing!" && exit 1)
+          unzip -l sscribe-export-site-pages.zip | grep -q "vendor-prefixed/" || (echo "ERROR: Prefixed vendor tree missing!" && exit 1)
           echo ""
           echo "=== Verifying PCLZip excluded ==="
           if unzip -l sscribe-export-site-pages.zip | grep -q "PCLZip"; then echo "ERROR: PCLZip should be excluded!" && exit 1; fi
