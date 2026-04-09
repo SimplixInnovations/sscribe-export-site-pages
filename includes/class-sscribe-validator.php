@@ -83,7 +83,7 @@ class SScribe_Validator {
 			);
 		}
 
-		if ( in_array( 'pdf', $formats, true ) && ! class_exists( '\Dompdf\Dompdf' ) ) {
+		if ( in_array( 'pdf', $formats, true ) && ! class_exists( '\SScribeVendor\Dompdf\Dompdf' ) ) {
 			$errors[] = __( 'PDF format selected but DomPDF library is not installed. Run composer install.', 'sscribe-export-site-pages' );
 		}
 
@@ -231,7 +231,7 @@ class SScribe_Validator {
 		$estimated_need = ( $page_count * $memory_per_page ) + ( 50 * 1024 * 1024 );
 		$safe_available = $memory_available * 0.8;
 
-		if ( $estimated_need > $safe_available ) {
+		if ( $estimated_need > $memory_available ) {
 			$estimated_mb   = round( $estimated_need / 1024 / 1024 );
 			$available_mb   = round( $memory_available / 1024 / 1024 );
 			$recommended_mb = ceil( $estimated_mb / 128 ) * 128;
