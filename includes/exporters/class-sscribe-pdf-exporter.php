@@ -90,14 +90,14 @@ class SScribe_PDF_Exporter implements SScribe_Exporter_Interface {
 		$prev_errors = libxml_use_internal_errors( true );
 
 		try {
-			$options = new \Dompdf\Options();
+			$options = new \SScribeVendor\Dompdf\Options();
 			$options->set( 'isRemoteEnabled', true );
 			$options->set( 'isHtml5ParserEnabled', true );
 			$options->set( 'isFontSubsettingEnabled', true );
 			$options->set( 'defaultFont', $is_rtl ? 'Noto Sans Arabic' : 'DejaVu Sans' );
 			$options->set( 'chroot', ABSPATH );
 
-			$dompdf = new \Dompdf\Dompdf( $options );
+			$dompdf = new \SScribeVendor\Dompdf\Dompdf( $options );
 			$dompdf->loadHtml( $html_content );
 			$dompdf->setPaper( 'A4', 'portrait' );
 			$dompdf->render();
