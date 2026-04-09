@@ -34,6 +34,107 @@ class SScribe_Diagnostics {
 	}
 
 	/**
+	 * Build support/debug information for administrators.
+	 *
+	 * @return array<string, mixed>
+	 */
+	public function get_support_info(): array {
+		$upload_dir    = wp_upload_dir();
+		$export_dir    = trailingslashit( $upload_dir['basedir'] ) . 'sscribe-exports';
+		$log_dir       = trailingslashit( $upload_dir['basedir'] ) . 'sscribe-logs';
+		$debug_enabled = defined( 'SSCRIBE_DEBUG' ) && SSCRIBE_DEBUG;
+
+		$export_stats = new SScribe_Export_Stats();
+		$collector    = new SScribe_Page_Collector();
+		$session      = new SScribe_Session();
+		$audit_trail  = new SScribe_Audit_Trail();
+
+		$monthly_stats     = $export_stats->get_stats( 'month' );
+		$status_counts     = $collector->get_post_status_counts( '' );
+		$session_check     = $this->check_session_health();
+		$recent_audit_logs = $audit_trail->get_logs( array(), 5, 0 );
+		$support_logger    = new SScribe_Logger( defined( 'SSCRIBE_DEBUG' ) && SSCRIBE_DEBUG );
+		$logger_entries    = $support_logger->get_logs();
+		$recent_log_tail   = array_slice( $logger_entries, -5 );
+
+		$sections = array(
+			'plugin'      => array(
+				'label' => __( 'Plugin', 'sscribe-export-site-pages' ),
+				'items' => array(
+					'plugin_version' => SSCRIBE_VERSION,
+					'debug_mode'     => $debug_enabled ? __( 'Enabled', 'sscribe-export-site-pages' ) : __( 'Disabled', 'sscribe-export-site-pages' ),
+					'wpml_active'    => $collector->is_wpml_active() ? __( 'Yes', 'sscribe-export-site-pages' ) : __( 'No', 'sscribe-export-site-pages' ),
+					'seo_plugins'    => implode( ', ', $this->get_active_seo_plugins() ),
+				),
+			),
+			'environment' => array(
+				'label' => __( 'Environment', 'sscribe-export-site-pages' ),
+				'items' => array(
+					'wordpress_version'  => get_bloginfo( 'version' ),
+					'php_version'        => PHP_VERSION,
+					'locale'             => get_locale(),
+					'memory_limit'       => (string) ini_get( 'memory_limit' ),
+					'max_execution_time' => (string) ini_get( 'max_execution_time' ),
+					'zip_extension'      => class_exists( 'ZipArchive' ) ? __( 'Available', 'sscribe-export-site-pages' ) : __( 'Missing', 'sscribe-export-site-pages' ),
+					'dompdf'             => class_exists( '\\SScribeVendor\\Dompdf\\Dompdf' ) ? __( 'Available', 'sscribe-export-site-pages' ) : __( 'Missing', 'sscribe-export-site-pages' ),
+					'phpword'            => class_exists( '\\SScribeVendor\\PhpOffice\\PhpWord\\PhpWord' ) ? __( 'Available', 'sscribe-export-site-pages' ) : __( 'Missing', 'sscribe-export-site-pages' ),
+				),
+			),
+			'paths'       => array(
+				'label' => __( 'Paths', 'sscribe-export-site-pages' ),
+				'items' => array(
+					'upload_base' => $upload_dir['basedir'] ?? '',
+					'export_dir'  => $export_dir,
+					'log_dir'     => $log_dir,
+				),
+			),
+			'stats'       => array(
+				'label' => __( 'Usage', 'sscribe-export-site-pages' ),
+				'items' => array(
+					'total_pages'        => (string) ( $status_counts['all'] ?? 0 ),
+					'published_pages'    => (string) ( $status_counts['publish'] ?? 0 ),
+					'exports_this_month' => (string) ( $monthly_stats['total_exports'] ?? 0 ),
+					'failed_this_month'  => (string) ( $monthly_stats['failed_exports'] ?? 0 ),
+					'avg_duration'       => isset( $monthly_stats['avg_duration'] ) ? round( (float) $monthly_stats['avg_duration'], 2 ) . 's' : '0s',
+					'total_size'         => isset( $monthly_stats['total_size_mb'] ) ? round( (float) $monthly_stats['total_size_mb'], 2 ) . ' MB' : '0 MB',
+				),
+			),
+			'health'      => array(
+				'label' => __( 'Health', 'sscribe-export-site-pages' ),
+				'items' => array(
+					'session_health'   => $session_check['message'] ?? '',
+					'upload_writable'  => $this->check_upload_directory()['message'] ?? '',
+					'file_permissions' => $this->check_file_permissions()['message'] ?? '',
+					'wp_cron'          => $this->check_wp_cron()['message'] ?? '',
+				),
+			),
+		);
+
+		$recent_audit_summary = array_map(
+			static function ( object $entry ): array {
+				return array(
+					'timestamp' => (string) ( $entry->timestamp ?? '' ),
+					'event'     => (string) ( $entry->event ?? '' ),
+					'user_id'   => isset( $entry->user_id ) ? (int) $entry->user_id : 0,
+				);
+			},
+			$recent_audit_logs
+		);
+
+		return array(
+			'generated_at'   => gmdate( 'Y-m-d H:i:s' ),
+			'sections'       => $sections,
+			'audit_events'   => $recent_audit_summary,
+			'log_tail'       => array_values( $recent_log_tail ),
+			'copy_text'      => $this->build_support_copy_text( $sections, $recent_audit_summary, $recent_log_tail ),
+			'has_debug_mode' => $debug_enabled,
+			'storage'        => array(
+				'session_storage' => $session->get_storage_type(),
+			),
+		);
+	}
+
+	/**
 	 * Run comprehensive preflight checks before export.
 	 *
 	 * @param int   $page_count Number of pages to export.
@@ -292,7 +393,7 @@ class SScribe_Diagnostics {
 	 * Check DomPDF library.
 	 */
 	private function check_dompdf(): array {
-		if ( class_exists( '\\Dompdf\\Dompdf' ) ) {
+		if ( class_exists( '\\SScribeVendor\\Dompdf\\Dompdf' ) ) {
 			return array(
 				'name'    => 'DomPDF Library',
 				'status'  => 'ok',
@@ -312,7 +413,7 @@ class SScribe_Diagnostics {
 	 * Check PHPWord library.
 	 */
 	private function check_phpword(): array {
-		if ( class_exists( '\\PhpOffice\\PhpWord\\PhpWord' ) ) {
+		if ( class_exists( '\\SScribeVendor\\PhpOffice\\PhpWord\\PhpWord' ) ) {
 			return array(
 				'name'    => 'PHPWord Library',
 				'status'  => 'ok',
@@ -365,7 +466,9 @@ class SScribe_Diagnostics {
 	 * Check WP-Cron status.
 	 */
 	private function check_wp_cron(): array {
-		if ( defined( 'DISABLE_WP_CRON' ) && DISABLE_WP_CRON ) {
+		$cron_disabled = defined( 'DISABLE_WP_CRON' ) && true === constant( 'DISABLE_WP_CRON' );
+
+		if ( $cron_disabled ) {
 			return array(
 				'name'    => 'WP-Cron',
 				'status'  => 'warning',
@@ -676,5 +779,66 @@ class SScribe_Diagnostics {
 	 */
 	private function delete_directory( string $dir ): void {
 		SScribe_Security::delete_directory( $dir );
+	}
+
+	/**
+	 * Get active SEO plugin names for diagnostics.
+	 *
+	 * @return array<int, string>
+	 */
+	private function get_active_seo_plugins(): array {
+		$reader  = new SScribe_SEO_Reader();
+		$plugins = $reader->get_active_seo_plugins();
+
+		if ( empty( $plugins ) ) {
+			return array( __( 'None detected', 'sscribe-export-site-pages' ) );
+		}
+
+		return array_values( $plugins );
+	}
+
+	/**
+	 * Build copy-friendly support text.
+	 *
+	 * @param array<string, array{label: string, items: array<string, string>}> $sections Sections to render.
+	 * @param array<int, array<string, string|int>>                             $audit_events Recent audit events.
+	 * @param array<int, string>                                                $log_tail Recent log entries.
+	 * @return string
+	 */
+	private function build_support_copy_text( array $sections, array $audit_events, array $log_tail ): string {
+		$lines   = array();
+		$lines[] = 'SScribe Support Information';
+		$lines[] = 'Generated: ' . gmdate( 'Y-m-d H:i:s' ) . ' UTC';
+
+		foreach ( $sections as $section ) {
+			$lines[] = '';
+			$lines[] = '[' . $section['label'] . ']';
+			foreach ( $section['items'] as $key => $value ) {
+				$lines[] = $key . ': ' . $value;
+			}
+		}
+
+		if ( ! empty( $audit_events ) ) {
+			$lines[] = '';
+			$lines[] = '[Recent Audit Events]';
+			foreach ( $audit_events as $event ) {
+				$lines[] = sprintf(
+					'%s | %s | user:%d',
+					(string) ( $event['timestamp'] ?? '' ),
+					(string) ( $event['event'] ?? '' ),
+					(int) ( $event['user_id'] ?? 0 )
+				);
+			}
+		}
+
+		if ( ! empty( $log_tail ) ) {
+			$lines[] = '';
+			$lines[] = '[Recent Log Tail]';
+			foreach ( $log_tail as $entry ) {
+				$lines[] = $entry;
+			}
+		}
+
+		return implode( PHP_EOL, $lines );
 	}
 }

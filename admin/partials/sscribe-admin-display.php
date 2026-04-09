@@ -558,6 +558,44 @@ $sscribe_is_debug        = $sscribe_is_debug ?? false;
 						</div>
 					</div>
 				</section>
+
+				<section class="sscribe-panel">
+					<div class="sscribe-panel-header">
+						<div class="sscribe-panel-title">
+							<?php echo SScribe_Helpers::get_icon( 'info', 20, 'sscribe-icon-img' ); // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- SVG sanitized in helper. ?>
+							<h2><?php esc_html_e( 'Support Information', 'sscribe-export-site-pages' ); ?></h2>
+						</div>
+						<span class="sscribe-badge"><?php esc_html_e( 'For support tickets', 'sscribe-export-site-pages' ); ?></span>
+					</div>
+					<div class="sscribe-panel-body">
+						<div class="sscribe-support-card" data-support-card>
+							<p class="sscribe-description"><?php esc_html_e( 'Generate a redacted system snapshot to share with support when troubleshooting export failures or environment issues.', 'sscribe-export-site-pages' ); ?></p>
+							<div class="sscribe-support-actions">
+								<button type="button" class="sscribe-button sscribe-button-outline" id="sscribe-support-refresh-btn">
+									<?php esc_html_e( 'Refresh', 'sscribe-export-site-pages' ); ?>
+								</button>
+								<button type="button" class="sscribe-button sscribe-button-primary" id="sscribe-support-copy-btn" disabled>
+									<?php esc_html_e( 'Copy support info', 'sscribe-export-site-pages' ); ?>
+								</button>
+							</div>
+							<div class="sscribe-callout sscribe-support-callout sscribe-hidden" id="sscribe-support-debug-note">
+								<div class="sscribe-callout-header">
+									<?php echo SScribe_Helpers::get_icon( 'warning-circle', 18 ); // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- SVG sanitized in helper. ?>
+									<strong><?php esc_html_e( 'Debug Mode Notice', 'sscribe-export-site-pages' ); ?></strong>
+								</div>
+								<div class="sscribe-callout-body">
+									<p><?php esc_html_e( 'Debug mode may expose extra detail intended for administrators only.', 'sscribe-export-site-pages' ); ?></p>
+								</div>
+							</div>
+							<div class="sscribe-support-grid" id="sscribe-support-grid" aria-live="polite"></div>
+							<div class="sscribe-support-copy-wrap">
+								<label class="screen-reader-text" for="sscribe-support-copy-text"><?php esc_html_e( 'Support information text', 'sscribe-export-site-pages' ); ?></label>
+								<textarea id="sscribe-support-copy-text" class="sscribe-support-copy-text" readonly></textarea>
+							</div>
+							<p class="sscribe-support-feedback sscribe-hidden" id="sscribe-support-feedback" aria-live="polite"></p>
+						</div>
+					</div>
+				</section>
 			</div>
 
 			<div class="sscribe-grid-sidebar">

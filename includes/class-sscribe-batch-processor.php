@@ -2492,4 +2492,23 @@ class SScribe_Batch_Processor {
 
 		wp_send_json_success( array( 'exports' => array_slice( array_values( $sorted ), 0, 10 ) ) );
 	}
+
+	/**
+	 * AJAX handler: Get support/debug information.
+	 *
+	 * @return void
+	 */
+	public function ajax_get_support_info(): void {
+		check_ajax_referer( 'sscribe_export_nonce', 'nonce' );
+
+		if ( ! current_user_can( $this->get_required_capability() ) ) {
+			wp_send_json_error(
+				array( 'message' => __( 'Permission denied.', 'sscribe-export-site-pages' ) ),
+				403
+			);
+			return;
+		}
+
+		wp_send_json_success( $this->diagnostics->get_support_info() );
+	}
 }
