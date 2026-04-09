@@ -153,6 +153,7 @@ class SScribe {
 		$this->loader->add_action( 'wp_ajax_sscribe_preflight_check', $batch, 'ajax_preflight_check' );
 		$this->loader->add_action( 'wp_ajax_sscribe_get_export_preview', $batch, 'ajax_get_export_preview' );
 		$this->loader->add_action( 'wp_ajax_sscribe_get_recent_exports', $batch, 'ajax_get_recent_exports' );
+		$this->loader->add_action( 'wp_ajax_sscribe_get_support_info', $batch, 'ajax_get_support_info' );
 	}
 
 	/**
@@ -166,6 +167,19 @@ class SScribe {
 		$this->loader->add_action( 'sscribe_cleanup_exports', $zip, 'cleanup_expired' );
 
 		$this->loader->add_action( 'sscribe_cleanup_sessions', $this, 'cleanup_sessions' );
+	}
+
+	/**
+	 * Register privacy-related hooks.
+	 *
+	 * @return void
+	 */
+	private function define_privacy_hooks(): void {
+		$privacy = new SScribe_Privacy();
+
+		$this->loader->add_action( 'admin_init', $privacy, 'register_privacy_policy' );
+		$this->loader->add_filter( 'wp_privacy_personal_data_exporters', $privacy, 'register_exporter' );
+		$this->loader->add_filter( 'wp_privacy_personal_data_erasers', $privacy, 'register_eraser' );
 	}
 
 	/**
@@ -194,6 +208,7 @@ class SScribe {
 		$this->define_admin_hooks();
 		$this->define_ajax_hooks();
 		$this->define_cron_hooks();
+		$this->define_privacy_hooks();
 
 		$this->loader->run();
 	}

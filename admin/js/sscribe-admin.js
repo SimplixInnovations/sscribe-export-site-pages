@@ -23,6 +23,7 @@
 			this.bindEvents();
 			this.wizardStep(1);
 			this.updateTimeEstimate();
+			this.loadSupportInfo();
 		},
 
 		bindEvents: function () {
@@ -42,6 +43,8 @@
 
 			$(document).on('click', '.sscribe-delete-btn', $.proxy(this.deleteExport, this));
 			$(document).on('click', '.sscribe-log-btn', $.proxy(this.showExportLog, this));
+			$(document).on('click', '#sscribe-support-refresh-btn', $.proxy(this.loadSupportInfo, this));
+			$(document).on('click', '#sscribe-support-copy-btn', $.proxy(this.copySupportInfo, this));
 			$('#sscribe-modal-close').on('click', $.proxy(this.closeModal, this));
 
 			$(document).on('click', '.sscribe-wizard-next', function () {
@@ -1015,6 +1018,120 @@
 		closePreview: function () {
 			$('#sscribe-preview-panel').addClass('sscribe-hidden');
 			this.restoreFocus();
+		},
+
+		loadSupportInfo: function (e) {
+			if (e) {
+				e.preventDefault();
+			}
+
+			var strings = sscribe_data.strings || {};
+			var $grid = $('#sscribe-support-grid');
+			var $copy = $('#sscribe-support-copy-text');
+			var $feedback = $('#sscribe-support-feedback');
+
+			$grid.html('<div class="sscribe-support-loading">' + this.escapeHtml(strings.support_loading || 'Loading support information...') + '</div>');
+			$copy.val('');
+			$('#sscribe-support-copy-btn').prop('disabled', true);
+			$feedback.addClass('sscribe-hidden').text('');
+
+			$.ajax({
+				url: sscribe_data.ajaxurl,
+				type: 'POST',
+				timeout: 30000,
+				data: {
+					action: 'sscribe_get_support_info',
+					nonce: sscribe_data.nonce
+				},
+				success: function (response) {
+					if (response.success && response.data) {
+						SScribe.renderSupportInfo(response.data);
+						return;
+					}
+
+					SScribe.renderSupportError((response.data && response.data.message) || strings.support_error || 'Unable to load support information right now.');
+				},
+				error: function () {
+					SScribe.renderSupportError(strings.support_error || 'Unable to load support information right now.');
+				}
+			});
+		},
+
+		renderSupportInfo: function (data) {
+			var strings = sscribe_data.strings || {};
+			var html = '';
+
+			if (data.sections) {
+				for (var key in data.sections) {
+					if (!data.sections.hasOwnProperty(key)) continue;
+					var section = data.sections[key];
+					html += '<section class="sscribe-support-section">';
+					html += '<h3 class="sscribe-support-section-title">' + this.escapeHtml(section.label) + '</h3>';
+					html += '<dl class="sscribe-support-list">';
+					for (var itemKey in section.items) {
+						if (!section.items.hasOwnProperty(itemKey)) continue;
+						html += '<div class="sscribe-support-list-row">';
+						html += '<dt>' + this.escapeHtml(this.humanizeSupportKey(itemKey)) + '</dt>';
+						html += '<dd>' + this.escapeHtml(String(section.items[itemKey] || '')) + '</dd>';
+						html += '</div>';
+					}
+					html += '</dl></section>';
+				}
+			}
+
+			if (data.audit_events && data.audit_events.length) {
+				html += '<section class="sscribe-support-section">';
+				html += '<h3 class="sscribe-support-section-title">Recent Audit Events</h3>';
+				html += '<ul class="sscribe-support-events">';
+				for (var i = 0; i < data.audit_events.length; i++) {
+					var event = data.audit_events[i];
+					html += '<li><strong>' + this.escapeHtml(String(event.event || '')) + '</strong><span>' + this.escapeHtml(String(event.timestamp || '')) + '</span></li>';
+				}
+				html += '</ul></section>';
+			}
+
+			$('#sscribe-support-grid').html(html || '<div class="sscribe-support-loading">' + this.escapeHtml(strings.support_error || 'Unable to load support information right now.') + '</div>');
+			$('#sscribe-support-copy-text').val(data.copy_text || '');
+			$('#sscribe-support-copy-btn').prop('disabled', !(data.copy_text && data.copy_text.length));
+			$('#sscribe-support-debug-note').toggleClass('sscribe-hidden', !data.has_debug_mode);
+
+			if (data.generated_at) {
+				$('#sscribe-support-feedback').removeClass('sscribe-hidden').text((strings.support_generated || 'Generated') + ': ' + data.generated_at + ' UTC');
+			}
+		},
+
+		renderSupportError: function (message) {
+			$('#sscribe-support-grid').html('<div class="sscribe-support-error">' + this.escapeHtml(message) + '</div>');
+			$('#sscribe-support-copy-btn').prop('disabled', true);
+		},
+
+		copySupportInfo: function (e) {
+			e.preventDefault();
+			var text = $('#sscribe-support-copy-text').val();
+			var strings = sscribe_data.strings || {};
+
+			if (!text) {
+				return;
+			}
+
+			var onSuccess = function () {
+				$('#sscribe-support-feedback').removeClass('sscribe-hidden').text(strings.support_copied || 'Support information copied.');
+			};
+
+			if (navigator.clipboard && navigator.clipboard.writeText) {
+				navigator.clipboard.writeText(text).then(onSuccess);
+				return;
+			}
+
+			var textarea = document.getElementById('sscribe-support-copy-text');
+			textarea.focus();
+			textarea.select();
+			document.execCommand('copy');
+			onSuccess();
+		},
+
+		humanizeSupportKey: function (key) {
+			return key.replace(/_/g, ' ').replace(/\b\w/g, function (char) { return char.toUpperCase(); });
 		},
 
 		saveFocus: function () {
