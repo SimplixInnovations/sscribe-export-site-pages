@@ -19,6 +19,30 @@ if ( ! defined( 'ABSPATH' ) ) {
 class SScribe_Image_Processor {
 
 	/**
+	 * Allowed remote content types.
+	 *
+	 * @var array<int, string>
+	 */
+	private const ALLOWED_CONTENT_TYPES = array(
+		'image/jpeg',
+		'image/png',
+		'image/gif',
+		'image/webp',
+	);
+
+	/**
+	 * Allowed image extensions.
+	 *
+	 * @var array<int, string>
+	 */
+	private const ALLOWED_EXTENSIONS = array( 'jpg', 'jpeg', 'png', 'gif', 'webp' );
+
+	/**
+	 * Maximum remote image size in bytes.
+	 */
+	private const MAX_DOWNLOAD_BYTES = 10485760;
+
+	/**
 	 * Maximum width for images.
 	 */
 	private const MAX_WIDTH = 1200;
@@ -35,7 +59,9 @@ class SScribe_Image_Processor {
 	 * @return string|false Local path or false on failure.
 	 */
 	public static function download_and_optimize( string $url ): string|false {
-		if ( empty( $url ) || ! filter_var( $url, FILTER_VALIDATE_URL ) ) {
+		$url = self::normalize_url( $url );
+
+		if ( '' === $url || ! self::is_allowed_remote_url( $url ) ) {
 			return false;
 		}
 
@@ -68,12 +94,13 @@ class SScribe_Image_Processor {
 	 * @return string|false Temp path or false.
 	 */
 	private static function download_to_temp( string $url ): string|false {
-		$response = wp_remote_get(
+		$response = wp_safe_remote_get(
 			$url,
 			array(
-				'timeout'    => 30,
-				'sslverify'  => false,
-				'user-agent' => 'SScribe Export Plugin',
+				'timeout'             => 15,
+				'user-agent'          => 'SScribe Export Plugin',
+				'reject_unsafe_urls'  => true,
+				'limit_response_size' => self::MAX_DOWNLOAD_BYTES,
 			)
 		);
 
@@ -91,12 +118,16 @@ class SScribe_Image_Processor {
 			return false;
 		}
 
+		$content_type = self::normalize_content_type( (string) wp_remote_retrieve_header( $response, 'content-type' ) );
+		if ( '' === $content_type || ! in_array( $content_type, self::ALLOWED_CONTENT_TYPES, true ) ) {
+			return false;
+		}
+
 		$path      = wp_parse_url( $url, PHP_URL_PATH ) ?? '';
 		$ext       = strtolower( pathinfo( $path, PATHINFO_EXTENSION ) );
-		$valid_ext = array( 'jpg', 'jpeg', 'png', 'gif', 'webp' );
 
-		if ( ! in_array( $ext, $valid_ext, true ) ) {
-			$ext = 'jpg';
+		if ( ! in_array( $ext, self::ALLOWED_EXTENSIONS, true ) ) {
+			$ext = self::extension_from_content_type( $content_type );
 		}
 
 		$temp_path = sys_get_temp_dir() . '/sscribe-img-' . uniqid() . '.' . $ext;
@@ -107,6 +138,93 @@ class SScribe_Image_Processor {
 		}
 
 		return $temp_path;
+	}
+
+	/**
+	 * Normalize a candidate URL.
+	 *
+	 * @param string $url Candidate image URL.
+	 * @return string
+	 */
+	private static function normalize_url( string $url ): string {
+		$url = trim( $url );
+		if ( '' === $url ) {
+			return '';
+		}
+
+		return esc_url_raw( $url );
+	}
+
+	/**
+	 * Validate that the URL is safe and stays on the local site host.
+	 *
+	 * @param string $url Candidate image URL.
+	 * @return bool
+	 */
+	private static function is_allowed_remote_url( string $url ): bool {
+		if ( ! filter_var( $url, FILTER_VALIDATE_URL ) ) {
+			return false;
+		}
+
+		if ( function_exists( 'wp_http_validate_url' ) && ! wp_http_validate_url( $url ) ) {
+			return false;
+		}
+
+		$parts = wp_parse_url( $url );
+		if ( ! is_array( $parts ) ) {
+			return false;
+		}
+
+		$scheme = strtolower( (string) ( $parts['scheme'] ?? '' ) );
+		if ( ! in_array( $scheme, array( 'http', 'https' ), true ) ) {
+			return false;
+		}
+
+		$host = strtolower( (string) ( $parts['host'] ?? '' ) );
+		if ( '' === $host ) {
+			return false;
+		}
+
+		$site_hosts = array_filter(
+			array_unique(
+				array(
+					strtolower( (string) wp_parse_url( home_url(), PHP_URL_HOST ) ),
+					strtolower( (string) wp_parse_url( site_url(), PHP_URL_HOST ) ),
+					strtolower( (string) wp_parse_url( wp_upload_dir()['baseurl'] ?? '', PHP_URL_HOST ) ),
+				)
+			)
+		);
+
+		return in_array( $host, $site_hosts, true );
+	}
+
+	/**
+	 * Normalize a response content type.
+	 *
+	 * @param string $content_type Raw content type header.
+	 * @return string
+	 */
+	private static function normalize_content_type( string $content_type ): string {
+		if ( '' === $content_type ) {
+			return '';
+		}
+
+		return strtolower( trim( explode( ';', $content_type )[0] ) );
+	}
+
+	/**
+	 * Derive a file extension from a supported content type.
+	 *
+	 * @param string $content_type Normalized content type.
+	 * @return string
+	 */
+	private static function extension_from_content_type( string $content_type ): string {
+		return match ( $content_type ) {
+			'image/png'  => 'png',
+			'image/gif'  => 'gif',
+			'image/webp' => 'webp',
+			default      => 'jpg',
+		};
 	}
 
 	/**
