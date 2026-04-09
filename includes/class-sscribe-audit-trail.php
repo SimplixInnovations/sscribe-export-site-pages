@@ -320,6 +320,36 @@ class SScribe_Audit_Trail {
 	}
 
 	/**
+	 * Erase personal data associated with a user while retaining non-personal audit metadata.
+	 *
+	 * @param int $user_id User ID.
+	 * @return int Number of updated rows.
+	 */
+	public function erase_user_data( int $user_id ): int {
+		if ( ! $this->enabled || $user_id <= 0 ) {
+			return 0;
+		}
+
+		global $wpdb;
+
+		$result = $wpdb->update(
+			$this->table_name,
+			array(
+				'user_id'     => 0,
+				'ip_address'  => '',
+				'user_agent'  => '',
+				'request_uri' => '',
+				'context'     => '{}',
+			),
+			array( 'user_id' => $user_id ),
+			array( '%d', '%s', '%s', '%s', '%s' ),
+			array( '%d' )
+		);
+
+		return false === $result ? 0 : (int) $result;
+	}
+
+	/**
 	 * Create the audit log table.
 	 *
 	 * @return void
