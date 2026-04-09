@@ -238,6 +238,9 @@ if ( ! class_exists( 'WP_Post' ) ) {
 		public string $post_type = 'page';
 		public string $post_name = '';
 		public int $post_parent = 0;
+
+		public function __construct( $post = null ) {
+		}
 	}
 }
 
@@ -274,7 +277,152 @@ if ( ! function_exists( 'wp_unslash' ) ) {
 	}
 }
 
+if ( ! function_exists( 'maybe_unserialize' ) ) {
+	function maybe_unserialize( $data ) {
+		if ( ! is_string( $data ) ) {
+			return $data;
+		}
+
+		$trimmed = trim( $data );
+		if ( '' === $trimmed ) {
+			return $data;
+		}
+
+		$unserialized = @unserialize( $trimmed ); // phpcs:ignore WordPress.PHP.DiscouragedPHPFunctions.serialize_unserialize -- Test bootstrap compatibility shim.
+
+		if ( false !== $unserialized || 'b:0;' === $trimmed ) {
+			return $unserialized;
+		}
+
+		return $data;
+	}
+}
+
 $sscribe_test_options = array();
+$sscribe_test_db_tables = array(
+	'wp_sscribe_audit_log'    => array(),
+	'wp_sscribe_export_stats' => array(),
+);
+$sscribe_test_http_response = array();
+
+if ( ! class_exists( 'wpdb' ) ) {
+	class wpdb {
+		public string $prefix = 'wp_';
+		public string $options = 'wp_options';
+
+		public function __construct( $dbuser = '', $dbpassword = '', $dbname = '', $dbhost = '' ) {
+		}
+
+		public function prepare( $query, ...$args ) {
+			$index = 0;
+			return preg_replace_callback(
+				'/%(?:d|s|f)/',
+				static function ( array $matches ) use ( $args, &$index ) {
+					$value = $args[ $index++ ] ?? null;
+					if ( '%d' === $matches[0] ) {
+						return (string) (int) $value;
+					}
+					if ( '%f' === $matches[0] ) {
+						return (string) (float) $value;
+					}
+					return "'" . str_replace( "'", "''", (string) $value ) . "'";
+				},
+				$query
+			);
+		}
+
+		public function esc_like( $text ) {
+			return addcslashes( (string) $text, '_%\\' );
+		}
+
+		public function get_charset_collate() {
+			return 'CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci';
+		}
+
+		public function get_var( $query ) {
+			global $sscribe_test_db_tables;
+
+			if ( preg_match( "/SHOW TABLES LIKE '([^']+)'/i", $query, $matches ) ) {
+				return array_key_exists( $matches[1], $sscribe_test_db_tables ) ? $matches[1] : null;
+			}
+
+			return null;
+		}
+
+		public function get_results( $query ) {
+			global $sscribe_test_options, $sscribe_test_db_tables;
+
+			if ( false !== strpos( $query, $this->options ) && preg_match( "/LIKE '([^']+)'/i", $query, $matches ) ) {
+				$like_pattern = str_replace( '\\_', '_', $matches[1] );
+				$pattern      = str_replace( '%', '.*', preg_quote( $like_pattern, '/' ) );
+				$results = array();
+
+				foreach ( $sscribe_test_options as $option_name => $option_value ) {
+					if ( preg_match( '/^' . $pattern . '$/', $option_name ) ) {
+						$results[] = (object) array(
+							'option_name'  => $option_name,
+							'option_value' => $option_value,
+						);
+					}
+				}
+
+				return $results;
+			}
+
+			if ( preg_match( '/FROM\s+(\w+_sscribe_export_stats)\s+WHERE\s+user_id\s*=\s*(\d+)\s+ORDER BY\s+export_date\s+DESC\s+LIMIT\s+(\d+)/i', $query, $matches ) ) {
+				$table   = $matches[1];
+				$user_id = (int) $matches[2];
+				$limit   = (int) $matches[3];
+				$rows    = array_values(
+					array_filter(
+						$sscribe_test_db_tables[ $table ] ?? array(),
+						static fn( array $row ): bool => (int) ( $row['user_id'] ?? 0 ) === $user_id
+					)
+				);
+
+				usort(
+					$rows,
+					static fn( array $left, array $right ): int => strcmp( (string) ( $right['export_date'] ?? '' ), (string) ( $left['export_date'] ?? '' ) )
+				);
+
+				$rows = array_slice( $rows, 0, $limit );
+
+				return array_map( static fn( array $row ): object => (object) $row, $rows );
+			}
+
+			return array();
+		}
+
+		public function update( $table, $data, $where, $format = null, $where_format = null ) {
+			global $sscribe_test_db_tables;
+
+			if ( ! isset( $sscribe_test_db_tables[ $table ] ) || ! is_array( $sscribe_test_db_tables[ $table ] ) ) {
+				return false;
+			}
+
+			$count = 0;
+			foreach ( $sscribe_test_db_tables[ $table ] as &$row ) {
+				$matches = true;
+				foreach ( $where as $key => $value ) {
+					if ( ! array_key_exists( $key, $row ) || (string) $row[ $key ] !== (string) $value ) {
+						$matches = false;
+						break;
+					}
+				}
+
+				if ( $matches ) {
+					$row = array_merge( $row, $data );
+					++$count;
+				}
+			}
+			unset( $row );
+
+			return $count;
+		}
+	}
+}
+
+$GLOBALS['wpdb'] = new wpdb();
 
 if ( ! function_exists( 'get_option' ) ) {
 	function get_option( $sscribe_option, $sscribe_default = false ) {
@@ -380,6 +528,110 @@ if ( ! function_exists( 'esc_url_raw' ) ) {
 	}
 }
 
+if ( ! function_exists( 'home_url' ) ) {
+	function home_url( $path = '', $scheme = null ) {
+		unset( $scheme );
+		return 'https://example.org' . ( $path ? '/' . ltrim( (string) $path, '/' ) : '' );
+	}
+}
+
+if ( ! function_exists( 'site_url' ) ) {
+	function site_url( $path = '', $scheme = null ) {
+		unset( $scheme );
+		return 'https://example.org' . ( $path ? '/' . ltrim( (string) $path, '/' ) : '' );
+	}
+}
+
+if ( ! class_exists( 'WP_Error' ) ) {
+	class WP_Error {
+		public function __construct(
+			public string $code = '',
+			public string $message = '',
+			public mixed $data = null
+		) {
+		}
+	}
+}
+
+if ( ! function_exists( 'is_wp_error' ) ) {
+	function is_wp_error( $thing ) {
+		return $thing instanceof WP_Error;
+	}
+}
+
+if ( ! function_exists( 'wp_http_validate_url' ) ) {
+	function wp_http_validate_url( $url ) {
+		$validated = filter_var( $url, FILTER_VALIDATE_URL );
+		if ( false === $validated ) {
+			return false;
+		}
+
+		$parts = parse_url( $validated );
+		$scheme = strtolower( $parts['scheme'] ?? '' );
+		$host   = strtolower( $parts['host'] ?? '' );
+
+		if ( ! in_array( $scheme, array( 'http', 'https' ), true ) ) {
+			return false;
+		}
+
+		if ( '' === $host || in_array( $host, array( 'localhost', '127.0.0.1' ), true ) ) {
+			return false;
+		}
+
+		return $validated;
+	}
+}
+
+if ( ! function_exists( 'wp_parse_url' ) ) {
+	function wp_parse_url( $url, $component = -1 ) {
+		return parse_url( $url, $component );
+	}
+}
+
+if ( ! function_exists( 'wp_safe_remote_get' ) ) {
+	function wp_safe_remote_get( $url, $args = array() ) {
+		global $sscribe_test_http_response;
+
+		if ( empty( $sscribe_test_http_response ) ) {
+			return new WP_Error( 'no_response', 'No mock HTTP response configured.' );
+		}
+
+		$response = $sscribe_test_http_response;
+		$response['requested_url'] = $url;
+		$response['request_args']  = $args;
+		$sscribe_test_http_response = $response;
+
+		return $response;
+	}
+}
+
+if ( ! function_exists( 'wp_remote_retrieve_response_code' ) ) {
+	function wp_remote_retrieve_response_code( $response ) {
+		return (int) ( $response['response']['code'] ?? 0 );
+	}
+}
+
+if ( ! function_exists( 'wp_remote_retrieve_body' ) ) {
+	function wp_remote_retrieve_body( $response ) {
+		return (string) ( $response['body'] ?? '' );
+	}
+}
+
+if ( ! function_exists( 'wp_remote_retrieve_header' ) ) {
+	function wp_remote_retrieve_header( $response, $header ) {
+		$headers = $response['headers'] ?? array();
+		$header  = strtolower( (string) $header );
+
+		foreach ( $headers as $key => $value ) {
+			if ( strtolower( (string) $key ) === $header ) {
+				return $value;
+			}
+		}
+
+		return '';
+	}
+}
+
 if ( ! function_exists( 'wp_list_pluck' ) ) {
 	function wp_list_pluck( $list, $field ) {
 		$result = array();
@@ -439,4 +691,11 @@ if ( ! function_exists( 'wp_count_posts' ) ) {
 	}
 }
 
-require_once SSCRIBE_PLUGIN_DIR . 'vendor/autoload.php';
+if ( file_exists( SSCRIBE_PLUGIN_DIR . 'vendor-prefixed/autoload.php' ) ) {
+	require_once SSCRIBE_PLUGIN_DIR . 'vendor-prefixed/autoload.php';
+} elseif ( file_exists( SSCRIBE_PLUGIN_DIR . 'vendor/autoload.php' ) ) {
+	require_once SSCRIBE_PLUGIN_DIR . 'vendor/autoload.php';
+	if ( file_exists( SSCRIBE_PLUGIN_DIR . 'includes/sscribe-vendor-compat.php' ) ) {
+		require_once SSCRIBE_PLUGIN_DIR . 'includes/sscribe-vendor-compat.php';
+	}
+}
