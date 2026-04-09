@@ -18,6 +18,16 @@ require_once SSCRIBE_PLUGIN_DIR . 'includes/class-sscribe-image-processor.php';
  */
 class SScribe_Wave1_Integration_Test extends TestCase {
 
+	protected function setUp(): void {
+		parent::setUp();
+		$GLOBALS['sscribe_test_http_response'] = array();
+	}
+
+	protected function tearDown(): void {
+		$GLOBALS['sscribe_test_http_response'] = array();
+		parent::tearDown();
+	}
+
 	public function test_font_constants_defined(): void {
 		$font_path = SSCRIBE_PLUGIN_DIR . 'assets/fonts/NotoSansArabic-Regular.ttf';
 		$this->assertFileExists( $font_path, 'Arabic font file should exist' );
@@ -89,6 +99,45 @@ class SScribe_Wave1_Integration_Test extends TestCase {
 	public function test_image_processor_empty_url(): void {
 		$result = SScribe_Image_Processor::download_and_optimize( '' );
 		$this->assertFalse( $result, 'Empty URL should return false' );
+	}
+
+	public function test_image_processor_rejects_offsite_urls(): void {
+		$result = SScribe_Image_Processor::download_and_optimize( 'https://evil.example/image.jpg' );
+		$this->assertFalse( $result );
+	}
+
+	public function test_image_processor_rejects_invalid_content_type(): void {
+		$GLOBALS['sscribe_test_http_response'] = array(
+			'response' => array( 'code' => 200 ),
+			'headers'  => array( 'content-type' => 'text/html; charset=utf-8' ),
+			'body'     => '<html>not an image</html>',
+		);
+
+		$result = SScribe_Image_Processor::download_and_optimize( 'https://example.org/wp-content/uploads/test.jpg' );
+
+		$this->assertFalse( $result );
+	}
+
+	public function test_image_processor_downloads_same_host_image_with_safe_http_options(): void {
+		$image_data = base64_decode( 'iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mP8/x8AAusB9Wn8M6kAAAAASUVORK5CYII=' );
+		$this->assertNotFalse( $image_data );
+
+		$GLOBALS['sscribe_test_http_response'] = array(
+			'response' => array( 'code' => 200 ),
+			'headers'  => array( 'content-type' => 'image/png' ),
+			'body'     => $image_data,
+		);
+
+		$result = SScribe_Image_Processor::download_and_optimize( 'https://example.org/wp-content/uploads/test-image' );
+
+		$this->assertIsString( $result );
+		$this->assertFileExists( $result );
+		$this->assertSame( $image_data, file_get_contents( $result ) );
+		$this->assertSame( 'https://example.org/wp-content/uploads/test-image', $GLOBALS['sscribe_test_http_response']['requested_url'] );
+		$this->assertTrue( $GLOBALS['sscribe_test_http_response']['request_args']['reject_unsafe_urls'] );
+		$this->assertArrayNotHasKey( 'sslverify', $GLOBALS['sscribe_test_http_response']['request_args'] );
+
+		SScribe_Image_Processor::cleanup( $result );
 	}
 
 	public function test_file_naming_requires_wordpress(): void {
