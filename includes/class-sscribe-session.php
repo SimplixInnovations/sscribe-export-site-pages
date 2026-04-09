@@ -387,6 +387,63 @@ class SScribe_Session {
 	}
 
 	/**
+	 * Get all sessions associated with a specific user.
+	 *
+	 * @param int $user_id User ID.
+	 * @return array<int, array<string, mixed>>
+	 */
+	public function get_sessions_for_user( int $user_id ): array {
+		if ( $user_id <= 0 ) {
+			return array();
+		}
+
+		global $wpdb;
+
+		$pattern = $wpdb->esc_like( $this->option_prefix ) . '%';
+
+		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- Privacy export needs a complete scan of session options.
+		$options = $wpdb->get_results(
+			$wpdb->prepare(
+				"SELECT option_name, option_value FROM {$wpdb->options} WHERE option_name LIKE %s AND autoload = 'no'",
+				$pattern
+			)
+		);
+
+		$sessions = array();
+
+		foreach ( $options as $option ) {
+			$data = $this->decode_session_value( $option->option_value ?? '' );
+
+			if ( ! is_array( $data ) ) {
+				continue;
+			}
+
+			if ( isset( $data['user_id'] ) && (int) $data['user_id'] === $user_id ) {
+				$sessions[] = $data;
+			}
+		}
+
+		usort(
+			$sessions,
+			static function ( array $left, array $right ): int {
+				return (int) ( $right['updated_at'] ?? 0 ) <=> (int) ( $left['updated_at'] ?? 0 );
+			}
+		);
+
+		return $sessions;
+	}
+
+	/**
+	 * Delete all sessions associated with a specific user.
+	 *
+	 * @param int $user_id User ID.
+	 * @return int Number of deleted sessions.
+	 */
+	public function delete_sessions_for_user( int $user_id ): int {
+		return $this->clear_user_sessions( $user_id );
+	}
+
+	/**
 	 * Check if a user has an active export session.
 	 *
 	 * An "active" session is one that was started within the last 60 seconds

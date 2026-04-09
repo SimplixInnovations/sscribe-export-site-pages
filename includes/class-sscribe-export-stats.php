@@ -380,6 +380,58 @@ class SScribe_Export_Stats {
 	}
 
 	/**
+	 * Get exports associated with a specific user.
+	 *
+	 * @param int $user_id User ID.
+	 * @param int $limit   Maximum results.
+	 * @return array
+	 */
+	public function get_exports_by_user( int $user_id, int $limit = 100 ): array {
+		if ( $user_id <= 0 ) {
+			return array();
+		}
+
+		global $wpdb;
+
+		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
+		return $wpdb->get_results(
+			// phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared
+			$wpdb->prepare(
+				"SELECT * FROM {$this->table_name} WHERE user_id = %d ORDER BY export_date DESC LIMIT %d",
+				$user_id,
+				$limit
+			)
+		);
+	}
+
+	/**
+	 * Erase personal data associated with a specific user while retaining aggregate export history.
+	 *
+	 * @param int $user_id User ID.
+	 * @return int Number of updated rows.
+	 */
+	public function erase_user_data( int $user_id ): int {
+		if ( $user_id <= 0 ) {
+			return 0;
+		}
+
+		global $wpdb;
+
+		$result = $wpdb->update(
+			$this->table_name,
+			array(
+				'user_id'       => 0,
+				'error_message' => '',
+			),
+			array( 'user_id' => $user_id ),
+			array( '%d', '%s' ),
+			array( '%d' )
+		);
+
+		return false === $result ? 0 : (int) $result;
+	}
+
+	/**
 	 * Clean up old statistics.
 	 *
 	 * @param int $days Maximum age in days.
