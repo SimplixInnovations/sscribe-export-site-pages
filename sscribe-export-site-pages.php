@@ -84,12 +84,24 @@ define( 'SSCRIBE_PLUGIN_BASENAME', plugin_basename( __FILE__ ) );
 define( 'SSCRIBE_FONT_ARABIC', SSCRIBE_PLUGIN_DIR . 'assets/fonts/NotoSansArabic-Regular.ttf' );
 define( 'SSCRIBE_FONT_ARABIC_BOLD', SSCRIBE_PLUGIN_DIR . 'assets/fonts/NotoSansArabic-Bold.ttf' );
 
+require_once SSCRIBE_PLUGIN_DIR . 'includes/sscribe-autoloader.php';
+
 /**
  * Autoload Composer dependencies and plugin classes.
  */
-if ( file_exists( SSCRIBE_PLUGIN_DIR . 'vendor/autoload.php' ) ) {
+
+$sscribe_has_dependencies = false;
+
+if ( file_exists( SSCRIBE_PLUGIN_DIR . 'vendor-prefixed/autoload.php' ) ) {
+	require_once SSCRIBE_PLUGIN_DIR . 'vendor-prefixed/autoload.php';
+	$sscribe_has_dependencies = true;
+} elseif ( file_exists( SSCRIBE_PLUGIN_DIR . 'vendor/autoload.php' ) ) {
 	require_once SSCRIBE_PLUGIN_DIR . 'vendor/autoload.php';
-} else {
+	require_once SSCRIBE_PLUGIN_DIR . 'includes/sscribe-vendor-compat.php';
+	$sscribe_has_dependencies = true;
+}
+
+if ( ! $sscribe_has_dependencies ) {
 	// Graceful error handling if dependencies are missing (e.g., incomplete install).
 	add_action(
 		'admin_notices',
@@ -97,7 +109,7 @@ if ( file_exists( SSCRIBE_PLUGIN_DIR . 'vendor/autoload.php' ) ) {
 			printf(
 				'<div class="error"><p><strong>%s</strong> %s</p></div>',
 				esc_html__( 'SScribe Export Site Pages:', 'sscribe-export-site-pages' ),
-				esc_html__( 'Required dependencies are missing. Please reinstall the plugin or run "composer install" in the plugin directory.', 'sscribe-export-site-pages' )
+				esc_html__( 'Required runtime dependencies are missing. Rebuild the plugin package or run "composer install" followed by "composer vendor:prefix" in the plugin directory.', 'sscribe-export-site-pages' )
 			);
 		}
 	);

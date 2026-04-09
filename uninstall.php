@@ -99,6 +99,18 @@ $wpdb->query(
 delete_option( 'sscribe_version' );
 delete_option( 'sscribe_export_index' );
 
+$sscribe_tables = array(
+	$wpdb->prefix . 'sscribe_export_logs',
+	$wpdb->prefix . 'sscribe_export_stats',
+	$wpdb->prefix . 'sscribe_audit_log',
+);
+
+foreach ( $sscribe_tables as $sscribe_table_name ) {
+	// phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared -- Table name is derived from the current site's own prefix and fixed plugin table suffixes.
+	// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- Cleanup operation during uninstall; caching not applicable for deletion.
+	$wpdb->query( "DROP TABLE IF EXISTS {$sscribe_table_name}" );
+}
+
 $sscribe_timestamp = wp_next_scheduled( 'sscribe_cleanup_exports' );
 if ( $sscribe_timestamp ) {
 	wp_unschedule_event( $sscribe_timestamp, 'sscribe_cleanup_exports' );
