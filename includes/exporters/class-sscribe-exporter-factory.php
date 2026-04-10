@@ -28,10 +28,10 @@ class SScribe_Exporter_Factory {
 
 		if ( null === $enum_format ) {
 			throw new SScribe_Validation_Exception(
-				sprintf( 'Invalid export format: %s', esc_html( $format ) ),
+				'Invalid export format provided',
 				'format',
 				'enum',
-				array( 'format' => $format )
+				array()
 			);
 		}
 

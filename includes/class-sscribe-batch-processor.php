@@ -485,9 +485,9 @@ class SScribe_Batch_Processor {
 			$this->audit_log(
 				'session_hijack',
 				array(
-					'session_id'       => $session_id,
-					'reason'           => 'missing_user_id',
-					'attempting_user'  => $current_user_id,
+					'session_id'      => $session_id,
+					'reason'          => 'missing_user_id',
+					'attempting_user' => $current_user_id,
 				)
 			);
 			return false;
