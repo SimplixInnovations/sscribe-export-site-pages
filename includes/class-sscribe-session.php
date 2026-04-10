@@ -24,6 +24,18 @@ if ( ! defined( 'ABSPATH' ) ) {
 class SScribe_Session {
 
 	/**
+	 * Batch size for session cleanup scans.
+	 */
+	private const SESSION_CLEANUP_BATCH = 100;
+
+	/**
+	 * In-memory active session cache by user ID.
+	 *
+	 * @var array<int, bool>
+	 */
+	private static array $active_session_cache = array();
+
+	/**
 	 * Logger instance.
 	 *
 	 * @var SScribe_Logger_Interface
@@ -71,6 +83,7 @@ class SScribe_Session {
 
 			$data['created_at'] = time();
 			$data['session_id'] = $session_id;
+			$data['_sig']       = $this->sign_session_id( $session_id );
 			$data['updated_at'] = time();
 
 			$option_name  = $this->get_option_name( $session_id );
@@ -120,6 +133,7 @@ class SScribe_Session {
 		}
 
 		if ( isset( $data['user_id'] ) ) {
+			unset( self::$active_session_cache[ (int) $data['user_id'] ] );
 			delete_transient( 'sscribe_active_session_' . (int) $data['user_id'] );
 		}
 
@@ -150,15 +164,39 @@ class SScribe_Session {
 			return null;
 		}
 
-		// Decode JSON-encoded session data.
-		$data = json_decode( $raw, true );
+		if ( is_array( $raw ) ) {
+			$data = $raw;
+		} elseif ( is_string( $raw ) ) {
+			$data = json_decode( $raw, true );
 
-		if ( ! is_array( $data ) ) {
-			// Legacy: fall back to PHP unserialization for backward compatibility.
-			$data = maybe_unserialize( $raw );
+			if ( ! is_array( $data ) ) {
+				$data = $this->migrate_legacy_session( $session_id, $raw );
+			}
+		} else {
+			return null;
 		}
 
-		return is_array( $data ) ? $data : null;
+		if ( ! is_array( $data ) ) {
+			return null;
+		}
+
+		if ( ! array_key_exists( '_sig', $data ) ) {
+			$this->logger->notice(
+				'Legacy session loaded without signature',
+				array( 'session_id' => $session_id )
+			);
+			return $data;
+		}
+
+		if ( ! is_string( $data['_sig'] ) || ! $this->verify_session_signature( $session_id, $data['_sig'] ) ) {
+			$this->logger->warning(
+				'Session signature verification failed',
+				array( 'session_id' => $session_id )
+			);
+			return null;
+		}
+
+		return $data;
 	}
 
 	/**
@@ -175,6 +213,9 @@ class SScribe_Session {
 			return false;
 		}
 
+		$option_name = $this->get_option_name( $session_id );
+		wp_cache_delete( $option_name, 'options' );
+
 		$existing = $this->get( $session_id );
 
 		if ( null === $existing ) {
@@ -188,9 +229,9 @@ class SScribe_Session {
 		}
 
 		$merged               = array_merge( $existing, $data );
+		$merged['_sig']       = $this->sign_session_id( $session_id );
 		$merged['updated_at'] = time();
 
-		$option_name  = $this->get_option_name( $session_id );
 		$encoded_data = wp_json_encode( $merged, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES );
 
 		if ( false === $encoded_data ) {
@@ -201,7 +242,29 @@ class SScribe_Session {
 			return false;
 		}
 
-		return update_option( $option_name, $encoded_data, false );
+		for ( $attempt = 1; $attempt <= 2; ++$attempt ) {
+			if ( update_option( $option_name, $encoded_data, false ) ) {
+				if ( isset( $merged['user_id'] ) ) {
+					unset( self::$active_session_cache[ (int) $merged['user_id'] ] );
+					delete_transient( 'sscribe_active_session_' . (int) $merged['user_id'] );
+				}
+
+				return true;
+			}
+
+			wp_cache_delete( $option_name, 'options' );
+
+			$this->logger->warning(
+				'Failed to update session option, retrying',
+				array(
+					'session_id' => $session_id,
+					'attempt'    => $attempt,
+					'max'        => 2,
+				)
+			);
+		}
+
+		return false;
 	}
 
 	/**
@@ -222,16 +285,6 @@ class SScribe_Session {
 		return delete_option( $option_name );
 	}
 
-	/**
-	 * Validate session integrity.
-	 *
-	 * Requires: page_ids (array), total (int), processed (int), session_id (string).
-	 * The count of page_ids may legitimately differ from total if pages changed
-	 * after the session was created (WPML cache refresh, etc.) — we only check types.
-	 *
-	 * @param string $session_id The session identifier.
-	 * @return bool True if valid, false otherwise.
-	 */
 	/**
 	 * Validate session integrity and schema.
 	 *
@@ -319,29 +372,37 @@ class SScribe_Session {
 		$pattern = $wpdb->esc_like( $this->option_prefix ) . '%';
 		$now     = time();
 
-		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- Cleanup operation scans all session options; caching not applicable for cleanup.
-		$options = $wpdb->get_results(
-			$wpdb->prepare(
-				"SELECT option_name, option_value FROM {$wpdb->options} WHERE option_name LIKE %s AND autoload = 'no'",
-				$pattern
-			)
-		);
-
 		$deleted = 0;
+		$cursor  = '';
 
-		foreach ( $options as $option ) {
-			$data = $this->decode_session_value( $option->option_value );
+		do {
+			// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- Cleanup operation scans session options in bounded batches; caching not applicable.
+			$options = $wpdb->get_results(
+				$wpdb->prepare(
+					"SELECT option_name, option_value FROM {$wpdb->options} WHERE option_name LIKE %s AND autoload = 'no' AND option_name > %s ORDER BY option_name ASC LIMIT %d",
+					$pattern,
+					$cursor,
+					self::SESSION_CLEANUP_BATCH
+				)
+			);
 
-			if ( ! is_array( $data ) ) {
-				continue;
-			}
+			foreach ( $options as $option ) {
+				$data = $this->decode_session_value( $option->option_value );
 
-			if ( isset( $data['created_at'] ) && ( $now - $data['created_at'] ) > $max_age_seconds ) {
-				if ( delete_option( $option->option_name ) ) {
-					++$deleted;
+				if ( ! is_array( $data ) ) {
+					$cursor = $option->option_name;
+					continue;
 				}
+
+				if ( isset( $data['created_at'] ) && ( $now - $data['created_at'] ) > $max_age_seconds ) {
+					if ( delete_option( $option->option_name ) ) {
+						++$deleted;
+					}
+				}
+
+				$cursor = $option->option_name;
 			}
-		}
+		} while ( ! empty( $options ) );
 
 		return $deleted;
 	}
@@ -458,10 +519,15 @@ class SScribe_Session {
 	 * @return bool True if user has an active session.
 	 */
 	public function has_active_session( int $user_id ): bool {
+		if ( isset( self::$active_session_cache[ $user_id ] ) ) {
+			return self::$active_session_cache[ $user_id ];
+		}
+
 		$cache_key = 'sscribe_active_session_' . $user_id;
 		$cached    = get_transient( $cache_key );
 		if ( false !== $cached ) {
-			return (bool) $cached;
+			self::$active_session_cache[ $user_id ] = (bool) $cached;
+			return self::$active_session_cache[ $user_id ];
 		}
 
 		global $wpdb;
@@ -501,14 +567,77 @@ class SScribe_Session {
 			}
 		}
 
+		self::$active_session_cache[ $user_id ] = $has_active;
 		set_transient( $cache_key, $has_active ? '1' : '0', 5 );
 
 		return $has_active;
 	}
 
 	/**
-	 * Decode a session option value, supporting both JSON (current) and
-	 * PHP serialization (legacy backward compatibility).
+	 * Migrate all legacy serialized sessions to JSON storage.
+	 *
+	 * @return int Number of migrated sessions.
+	 */
+	public function migrate_all_legacy_sessions(): int {
+		global $wpdb;
+
+		$pattern = $wpdb->esc_like( $this->option_prefix ) . '%';
+
+		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- One-time migration scan across session options.
+		$options = $wpdb->get_results(
+			$wpdb->prepare(
+				"SELECT option_name, option_value FROM {$wpdb->options} WHERE option_name LIKE %s AND autoload = 'no'",
+				$pattern
+			)
+		);
+
+		$migrated = 0;
+
+		foreach ( $options as $option ) {
+			if ( ! is_string( $option->option_value ) ) {
+				continue;
+			}
+
+			$data = json_decode( $option->option_value, true );
+
+			if ( is_array( $data ) ) {
+				continue;
+			}
+
+			$data = maybe_unserialize( $option->option_value );
+
+			if ( ! is_array( $data ) ) {
+				continue;
+			}
+
+			$session_id = str_replace( $this->option_prefix, '', (string) $option->option_name );
+			if ( '' !== $session_id && ! isset( $data['_sig'] ) ) {
+				$data['_sig'] = $this->sign_session_id( $session_id );
+			}
+
+			$encoded_data = wp_json_encode( $data, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES );
+
+			if ( false === $encoded_data ) {
+				continue;
+			}
+
+			if ( update_option( (string) $option->option_name, $encoded_data, false ) ) {
+				++$migrated;
+				$this->logger->info(
+					'Migrated legacy serialized session to JSON storage',
+					array(
+						'option_name' => (string) $option->option_name,
+						'session_id'  => $session_id,
+					)
+				);
+			}
+		}
+
+		return $migrated;
+	}
+
+	/**
+	 * Decode a session option value stored as JSON.
 	 *
 	 * @param mixed $raw Raw option_value from database.
 	 * @return array|null Decoded session array or null on failure.
@@ -525,10 +654,100 @@ class SScribe_Session {
 			return $data;
 		}
 
-		// Fall back to PHP unserialization (legacy sessions).
+		$this->logger->warning(
+			'Ignoring non-JSON session data during bulk session scan',
+			array( 'json_error' => json_last_error_msg() )
+		);
+
+		return null;
+	}
+
+	/**
+	 * Migrate a legacy serialized session to JSON storage.
+	 *
+	 * @param string $session_id Session identifier.
+	 * @param string $raw        Raw option value.
+	 * @return array|null Migrated session data or null on failure.
+	 */
+	private function migrate_legacy_session( string $session_id, string $raw ): ?array {
+		if ( ! preg_match( '/^a:\d+:\{/', $raw ) ) {
+			return null;
+		}
+
 		$data = maybe_unserialize( $raw );
 
-		return is_array( $data ) ? $data : null;
+		if ( ! is_array( $data ) ) {
+			return null;
+		}
+
+		$data['_sig'] = $this->sign_session_id( $session_id );
+
+		$encoded_data = wp_json_encode( $data, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES );
+
+		if ( false === $encoded_data ) {
+			$this->logger->warning(
+				'Failed to JSON-encode legacy session during migration',
+				array( 'session_id' => $session_id )
+			);
+			return null;
+		}
+
+		if ( ! update_option( $this->get_option_name( $session_id ), $encoded_data, false ) ) {
+			$this->logger->warning(
+				'Failed to persist migrated legacy session',
+				array( 'session_id' => $session_id )
+			);
+			return null;
+		}
+
+		$this->logger->debug(
+			'Migrated legacy serialized session to JSON storage',
+			array( 'session_id' => $session_id )
+		);
+
+		return $data;
+	}
+
+	/**
+	 * Sign a session identifier.
+	 *
+	 * @param string $session_id Session identifier.
+	 * @return string Signature hash.
+	 */
+	private function sign_session_id( string $session_id ): string {
+		return hash_hmac( 'sha256', $session_id, $this->get_signing_key() );
+	}
+
+	/**
+	 * Verify a session signature.
+	 *
+	 * @param string $session_id Session identifier.
+	 * @param string $signature  Stored signature.
+	 * @return bool True when valid.
+	 */
+	private function verify_session_signature( string $session_id, string $signature ): bool {
+		return hash_equals( $this->sign_session_id( $session_id ), $signature );
+	}
+
+	/**
+	 * Get the session signing key.
+	 *
+	 * @return string Signing key material.
+	 */
+	private function get_signing_key(): string {
+		if ( defined( 'AUTH_SALT' ) && '' !== AUTH_SALT ) {
+			return AUTH_SALT;
+		}
+
+		if ( defined( 'SECURE_AUTH_KEY' ) && '' !== SECURE_AUTH_KEY ) {
+			return SECURE_AUTH_KEY;
+		}
+
+		if ( defined( 'DB_PASSWORD' ) && '' !== DB_PASSWORD ) {
+			return DB_PASSWORD;
+		}
+
+		return $this->option_prefix;
 	}
 
 	/**
