@@ -40,3 +40,6 @@ parameters:
         - '#Offset.* in isset\(\) always exists and is not nullable\.#'
         # Ignore unresolvable type errors from dynamically built arrays in usort/uasort/array_values/array_slice
         - '#contains unresolvable type\.$#'
+        # Ignore boolean static analysis false positives in vendor dependency check (classes exist in CI but may not in production)
+        - '#Right side of \|\| is always false\.#'
+        - '#Negated boolean expression is always true\.#'
