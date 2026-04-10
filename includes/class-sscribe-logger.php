@@ -36,6 +36,13 @@ class SScribe_Logger implements SScribe_Logger_Interface {
 	private static array $instances = array();
 
 	/**
+	 * Per-request log correlation ID.
+	 *
+	 * @var string|null
+	 */
+	private static ?string $request_id = null;
+
+	/**
 	 * Log entries buffer.
 	 *
 	 * @var array
@@ -219,7 +226,7 @@ class SScribe_Logger implements SScribe_Logger_Interface {
 	 * @return void
 	 */
 	public function critical( string $message, array $data = array() ): void {
-		$this->log_internal( 'critical', $message, $data );
+		$this->error( 'CRITICAL: ' . $message, $data );
 	}
 
 	/**
@@ -269,6 +276,7 @@ class SScribe_Logger implements SScribe_Logger_Interface {
 			return;
 		}
 
+		$data        = array_merge( $this->get_context_enrichment(), $data );
 		$timestamp   = gmdate( 'Y-m-d H:i:s' );
 		$level_upper = strtoupper( $level );
 		$entry       = "[{$timestamp}] [{$level_upper}] {$message}";
@@ -278,6 +286,33 @@ class SScribe_Logger implements SScribe_Logger_Interface {
 		}
 
 		$this->buffer[] = $entry;
+	}
+
+	/**
+	 * Get standard context enrichment for log entries.
+	 *
+	 * @return array<string, string>
+	 */
+	private function get_context_enrichment(): array {
+		return array(
+			'plugin_version' => defined( 'SSCRIBE_VERSION' ) ? (string) SSCRIBE_VERSION : 'unknown',
+			'php_version'    => PHP_VERSION,
+			'memory_usage'   => size_format( memory_get_usage( true ) ),
+			'request_id'     => self::get_request_id(),
+		);
+	}
+
+	/**
+	 * Get the per-request correlation ID.
+	 *
+	 * @return string
+	 */
+	private static function get_request_id(): string {
+		if ( null === self::$request_id ) {
+			self::$request_id = substr( md5( microtime( true ) . (string) wp_rand() ), 0, 12 );
+		}
+
+		return self::$request_id;
 	}
 
 	/**

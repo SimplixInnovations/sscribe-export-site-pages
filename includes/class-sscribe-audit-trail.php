@@ -157,17 +157,7 @@ class SScribe_Audit_Trail {
 	 * @return string Client IP address.
 	 */
 	private function get_client_ip(): string {
-		$ip = '';
-
-		if ( ! empty( $_SERVER['REMOTE_ADDR'] ) ) {
-			$ip = sanitize_text_field( wp_unslash( $_SERVER['REMOTE_ADDR'] ) );
-		}
-
-		if ( empty( $ip ) ) {
-			$ip = '0.0.0.0';
-		}
-
-		return filter_var( $ip, FILTER_VALIDATE_IP ) ? $ip : '0.0.0.0';
+		return SScribe_Helpers::get_client_ip();
 	}
 
 	/**
