@@ -54,13 +54,53 @@ class SScribe_Admin {
 	 * @return void
 	 */
 	public function add_admin_menu(): void {
-		add_management_page(
+		add_menu_page(
 			__( 'SScribe Export', 'sscribe-export-site-pages' ),
 			__( 'SScribe Export', 'sscribe-export-site-pages' ),
-			apply_filters( 'sscribe_export_capability', 'manage_options' ),
+			$this->get_required_capability(),
 			'sscribe-export',
-			array( $this, 'render_admin_page' )
+			array( $this, 'render_admin_page' ),
+			'dashicons-media-document',
+			58
 		);
+	}
+
+	/**
+	 * Get the capability required to access the plugin admin page.
+	 *
+	 * @return string
+	 */
+	private function get_required_capability(): string {
+		return (string) apply_filters( 'sscribe_export_capability', 'manage_options' );
+	}
+
+	/**
+	 * Redirect administrators to the plugin page after activation.
+	 *
+	 * @return void
+	 */
+	public function maybe_redirect_after_activation(): void {
+		if ( wp_doing_ajax() || ! is_admin() ) {
+			return;
+		}
+
+		if ( ! get_transient( 'sscribe_activation_redirect' ) ) {
+			return;
+		}
+
+		delete_transient( 'sscribe_activation_redirect' );
+
+		if ( ! current_user_can( $this->get_required_capability() ) ) {
+			return;
+		}
+
+		// phpcs:ignore WordPress.Security.NonceVerification.Recommended -- Redirect guard only checks activation flow markers.
+		if ( isset( $_GET['activate-multi'] ) ) {
+			return;
+		}
+
+		header( 'Location: ' . admin_url( 'admin.php?page=sscribe-export' ) );
+		exit;
 	}
 
 	/**
@@ -113,7 +153,7 @@ class SScribe_Admin {
 	 */
 	public function enqueue_admin_assets( string $hook_suffix ): void {
 		// Only load on our plugin page.
-		if ( 'tools_page_sscribe-export' !== $hook_suffix ) {
+		if ( ! in_array( $hook_suffix, array( 'toplevel_page_sscribe-export', 'tools_page_sscribe-export' ), true ) ) {
 			return;
 		}
 
@@ -469,7 +509,7 @@ class SScribe_Admin {
 	 */
 	public function add_plugin_action_links( array $links ): array {
 		$plugin_links = array(
-			'<a href="' . esc_url( admin_url( 'tools.php?page=sscribe-export' ) ) . '">' . esc_html__( 'Export Pages', 'sscribe-export-site-pages' ) . '</a>',
+			'<a href="' . esc_url( admin_url( 'admin.php?page=sscribe-export' ) ) . '">' . esc_html__( 'Export Pages', 'sscribe-export-site-pages' ) . '</a>',
 		);
 		return array_merge( $plugin_links, $links );
 	}

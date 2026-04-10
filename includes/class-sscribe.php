@@ -128,6 +128,7 @@ class SScribe {
 		$admin     = $container->get( SScribe_Admin::class );
 
 		$this->loader->add_action( 'admin_menu', $admin, 'add_admin_menu' );
+		$this->loader->add_action( 'admin_init', $admin, 'maybe_redirect_after_activation' );
 		$this->loader->add_action( 'admin_enqueue_scripts', $admin, 'enqueue_admin_assets' );
 		$this->loader->add_action( 'admin_init', $admin, 'maybe_send_csp_headers' );
 		$this->loader->add_filter( 'plugin_action_links_' . SSCRIBE_PLUGIN_BASENAME, $admin, 'add_plugin_action_links' );
