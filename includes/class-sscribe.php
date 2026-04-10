@@ -131,7 +131,34 @@ class SScribe {
 		add_action( 'admin_init', array( $admin, 'maybe_redirect_after_activation' ) );
 		add_action( 'admin_enqueue_scripts', array( $admin, 'enqueue_admin_assets' ) );
 		add_action( 'admin_init', array( $admin, 'maybe_send_csp_headers' ) );
+		add_action( 'admin_notices', array( $this, 'render_vendor_dependency_notice' ) );
 		add_filter( 'plugin_action_links_' . SSCRIBE_PLUGIN_BASENAME, array( $admin, 'add_plugin_action_links' ) );
+	}
+
+	/**
+	 * Render an admin notice when required vendor dependencies are missing.
+	 *
+	 * @return void
+	 */
+	public function render_vendor_dependency_notice(): void {
+		if ( ! current_user_can( apply_filters( 'sscribe_export_capability', 'manage_options' ) ) ) {
+			return;
+		}
+
+		$diagnostics = new SScribe_Diagnostics();
+		$missing     = $diagnostics->check_vendor_dependencies();
+
+		if ( empty( $missing ) ) {
+			return;
+		}
+
+		$message = sprintf(
+			/* translators: %s: missing dependency class list. */
+			__( 'SScribe is missing required vendor dependencies: %s. Run composer install in the plugin directory to restore export functionality.', 'sscribe-export-site-pages' ),
+			implode( ', ', $missing )
+		);
+
+		echo '<div class="notice notice-error is-dismissible"><p>' . esc_html( $message ) . '</p></div>';
 	}
 
 	/**
