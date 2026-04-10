@@ -12,44 +12,49 @@
 
 declare(strict_types=1);
 
-$baseDir          = dirname( __DIR__ );
-$targetSafeDir    = $baseDir . '/vendor-prefixed/thecodingmachine/safe/generated';
-$canonicalSafeDir = $baseDir . '/vendor/thecodingmachine/safe/generated';
+$base_dir           = dirname( __DIR__ );
+$target_safe_dir    = $base_dir . '/vendor-prefixed/thecodingmachine/safe/generated';
+$canonical_safe_dir = $base_dir . '/vendor/thecodingmachine/safe/generated';
 
-if ( ! is_dir( $targetSafeDir ) ) {
-	fwrite( STDOUT, "[fix-prefixed-safe] Skipped: {$targetSafeDir} not found.\n" );
+if ( ! is_dir( $target_safe_dir ) ) {
+	// phpcs:ignore WordPress.WP.AlternativeFunctions.file_system_operations_fwrite -- Standalone CLI maintenance script.
+	fwrite( STDOUT, "[fix-prefixed-safe] Skipped: {$target_safe_dir} not found.\n" );
 	exit( 0 );
 }
 
-if ( ! is_dir( $canonicalSafeDir ) ) {
-	fwrite( STDOUT, "[fix-prefixed-safe] Skipped: {$canonicalSafeDir} not found.\n" );
+if ( ! is_dir( $canonical_safe_dir ) ) {
+	// phpcs:ignore WordPress.WP.AlternativeFunctions.file_system_operations_fwrite -- Standalone CLI maintenance script.
+	fwrite( STDOUT, "[fix-prefixed-safe] Skipped: {$canonical_safe_dir} not found.\n" );
 	exit( 0 );
 }
 
-$canonicalEntries = scandir( $canonicalSafeDir );
-if ( false === $canonicalEntries ) {
-	fwrite( STDERR, "[fix-prefixed-safe] Failed to read {$canonicalSafeDir}.\n" );
+$canonical_entries = scandir( $canonical_safe_dir );
+if ( false === $canonical_entries ) {
+	// phpcs:ignore WordPress.WP.AlternativeFunctions.file_system_operations_fwrite -- Standalone CLI maintenance script.
+	fwrite( STDERR, "[fix-prefixed-safe] Failed to read {$canonical_safe_dir}.\n" );
 	exit( 1 );
 }
 
-$targetVersions = array( '8.1', '8.2', '8.3', '8.4', '8.5', '8.6' );
-$copied         = 0;
+$target_versions = array( '8.1', '8.2', '8.3', '8.4', '8.5', '8.6' );
+$copied          = 0;
 
-foreach ( $targetVersions as $version ) {
-	$sourceVersionDir = $canonicalSafeDir . '/' . $version;
-	if ( ! is_dir( $sourceVersionDir ) ) {
+foreach ( $target_versions as $version ) {
+	$source_version_dir = $canonical_safe_dir . '/' . $version;
+	if ( ! is_dir( $source_version_dir ) ) {
 		continue;
 	}
 
-	$targetVersionDir = $targetSafeDir . '/' . $version;
-	if ( ! is_dir( $targetVersionDir ) && ! mkdir( $targetVersionDir, 0755, true ) && ! is_dir( $targetVersionDir ) ) {
-		fwrite( STDERR, "[fix-prefixed-safe] Failed to create {$targetVersionDir}.\n" );
+	$target_version_dir = $target_safe_dir . '/' . $version;
+	// phpcs:ignore WordPress.WP.AlternativeFunctions.file_system_operations_mkdir -- Standalone CLI maintenance script.
+	if ( ! is_dir( $target_version_dir ) && ! mkdir( $target_version_dir, 0755, true ) && ! is_dir( $target_version_dir ) ) {
+		// phpcs:ignore WordPress.WP.AlternativeFunctions.file_system_operations_fwrite -- Standalone CLI maintenance script.
+		fwrite( STDERR, "[fix-prefixed-safe] Failed to create {$target_version_dir}.\n" );
 		exit( 1 );
 	}
 
-	foreach ( $canonicalEntries as $entry ) {
-		$source = $sourceVersionDir . '/' . $entry;
-		$target = $targetVersionDir . '/' . $entry;
+	foreach ( $canonical_entries as $entry ) {
+		$source = $source_version_dir . '/' . $entry;
+		$target = $target_version_dir . '/' . $entry;
 
 		if ( ! is_file( $source ) || ! str_ends_with( $entry, '.php' ) ) {
 			continue;
@@ -57,6 +62,7 @@ foreach ( $targetVersions as $version ) {
 
 		if ( ! file_exists( $target ) ) {
 			if ( ! copy( $source, $target ) ) {
+				// phpcs:ignore WordPress.WP.AlternativeFunctions.file_system_operations_fwrite -- Standalone CLI maintenance script.
 				fwrite( STDERR, "[fix-prefixed-safe] Failed copying {$source} -> {$target}.\n" );
 				exit( 1 );
 			}
@@ -66,4 +72,5 @@ foreach ( $targetVersions as $version ) {
 	}
 }
 
+// phpcs:ignore WordPress.WP.AlternativeFunctions.file_system_operations_fwrite -- Standalone CLI maintenance script.
 fwrite( STDOUT, "[fix-prefixed-safe] Completed. Files copied: {$copied}.\n" );

@@ -106,9 +106,9 @@ $sscribe_tables = array(
 );
 
 foreach ( $sscribe_tables as $sscribe_table_name ) {
-	// phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared -- Table name is derived from the current site's own prefix and fixed plugin table suffixes.
-	// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- Cleanup operation during uninstall; caching not applicable for deletion.
+	// phpcs:disable WordPress.DB.PreparedSQL.InterpolatedNotPrepared, WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.DirectDatabaseQuery.SchemaChange -- Table names are controlled plugin tables during uninstall cleanup.
 	$wpdb->query( "DROP TABLE IF EXISTS {$sscribe_table_name}" );
+	// phpcs:enable
 }
 
 $sscribe_timestamp = wp_next_scheduled( 'sscribe_cleanup_exports' );

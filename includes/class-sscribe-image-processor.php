@@ -123,8 +123,8 @@ class SScribe_Image_Processor {
 			return false;
 		}
 
-		$path      = wp_parse_url( $url, PHP_URL_PATH ) ?? '';
-		$ext       = strtolower( pathinfo( $path, PATHINFO_EXTENSION ) );
+		$path = wp_parse_url( $url, PHP_URL_PATH ) ?? '';
+		$ext  = strtolower( pathinfo( $path, PATHINFO_EXTENSION ) );
 
 		if ( ! in_array( $ext, self::ALLOWED_EXTENSIONS, true ) ) {
 			$ext = self::extension_from_content_type( $content_type );
