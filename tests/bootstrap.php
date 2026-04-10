@@ -691,12 +691,17 @@ if ( ! function_exists( 'wp_count_posts' ) ) {
 	}
 }
 
-if ( file_exists( SSCRIBE_PLUGIN_DIR . 'vendor-prefixed/autoload.php' ) ) {
-	require_once SSCRIBE_PLUGIN_DIR . 'includes/sscribe-prefixed-runtime-shim.php';
-	require_once SSCRIBE_PLUGIN_DIR . 'vendor-prefixed/autoload.php';
-} elseif ( file_exists( SSCRIBE_PLUGIN_DIR . 'vendor/autoload.php' ) ) {
+if ( file_exists( SSCRIBE_PLUGIN_DIR . 'vendor/autoload.php' ) ) {
 	require_once SSCRIBE_PLUGIN_DIR . 'vendor/autoload.php';
 	if ( file_exists( SSCRIBE_PLUGIN_DIR . 'includes/sscribe-vendor-compat.php' ) ) {
 		require_once SSCRIBE_PLUGIN_DIR . 'includes/sscribe-vendor-compat.php';
 	}
+	// Prefer raw vendor autoload in test runtime to avoid loading duplicate
+	// function wrappers when phpunit has already bootstrapped vendor classes.
+	return;
+}
+
+if ( file_exists( SSCRIBE_PLUGIN_DIR . 'vendor-prefixed/autoload.php' ) ) {
+	require_once SSCRIBE_PLUGIN_DIR . 'includes/sscribe-prefixed-runtime-shim.php';
+	require_once SSCRIBE_PLUGIN_DIR . 'vendor-prefixed/autoload.php';
 }
