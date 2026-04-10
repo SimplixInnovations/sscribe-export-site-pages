@@ -424,7 +424,7 @@ class SScribe_Exporter {
 	 * Add the cover page.
 	 *
 	 * @param \SScribeVendor\PhpOffice\PhpWord\Element\Section $section The section.
-	 * @param array                              $page_data Page data.
+	 * @param array                                            $page_data Page data.
 	 */
 	private function add_cover_page( \SScribeVendor\PhpOffice\PhpWord\Element\Section $section, array $page_data ): void {
 		// Top solid bar simulation.
@@ -598,7 +598,7 @@ class SScribe_Exporter {
 	 * Add header and footer to a section.
 	 *
 	 * @param \SScribeVendor\PhpOffice\PhpWord\Element\Section $section   The section.
-	 * @param array                              $page_data Page data.
+	 * @param array                                            $page_data Page data.
 	 */
 	private function add_header_footer( \SScribeVendor\PhpOffice\PhpWord\Element\Section $section, array $page_data ): void {
 		// Header.
@@ -653,7 +653,7 @@ class SScribe_Exporter {
 	 * Add featured image if available.
 	 *
 	 * @param \SScribeVendor\PhpOffice\PhpWord\Element\Section $section   The section.
-	 * @param array                              $page_data Page data.
+	 * @param array                                            $page_data Page data.
 	 */
 	private function add_featured_image( \SScribeVendor\PhpOffice\PhpWord\Element\Section $section, array $page_data ): void {
 		if ( empty( $page_data['featured_image_path'] ) || ! file_exists( $page_data['featured_image_path'] ) ) {
@@ -710,7 +710,7 @@ class SScribe_Exporter {
 	 * Add page info table.
 	 *
 	 * @param \SScribeVendor\PhpOffice\PhpWord\Element\Section $section   The section.
-	 * @param array                              $page_data Page data.
+	 * @param array                                            $page_data Page data.
 	 */
 	private function add_page_info_table( \SScribeVendor\PhpOffice\PhpWord\Element\Section $section, array $page_data ): void {
 		$section->addTitle( __( 'Page Information', 'sscribe-export-site-pages' ), 2 );
@@ -774,7 +774,7 @@ class SScribe_Exporter {
 	 * Add SEO metadata section.
 	 *
 	 * @param \SScribeVendor\PhpOffice\PhpWord\Element\Section $section   The section.
-	 * @param array                              $page_data Page data.
+	 * @param array                                            $page_data Page data.
 	 */
 	private function add_seo_section( \SScribeVendor\PhpOffice\PhpWord\Element\Section $section, array $page_data ): void {
 		$seo_data = ! empty( $page_data['seo'] ) ? $page_data['seo'] : array();
@@ -849,7 +849,7 @@ class SScribe_Exporter {
 	 * Add breadcrumb trail.
 	 *
 	 * @param \SScribeVendor\PhpOffice\PhpWord\Element\Section $section   The section.
-	 * @param array                              $page_data Page data.
+	 * @param array                                            $page_data Page data.
 	 */
 	private function add_breadcrumbs( \SScribeVendor\PhpOffice\PhpWord\Element\Section $section, array $page_data ): void {
 		if ( empty( $page_data['breadcrumbs'] ) || count( $page_data['breadcrumbs'] ) <= 1 ) {
@@ -890,7 +890,7 @@ class SScribe_Exporter {
 	 * Add main content (parsed HTML → DOCX elements).
 	 *
 	 * @param \SScribeVendor\PhpOffice\PhpWord\Element\Section $section   The section.
-	 * @param array                              $page_data Page data.
+	 * @param array                                            $page_data Page data.
 	 */
 	private function add_main_content( \SScribeVendor\PhpOffice\PhpWord\Element\Section $section, array $page_data ): void {
 		if ( empty( $page_data['word_count'] ) ) {
@@ -910,7 +910,7 @@ class SScribe_Exporter {
 	 * Render a parsed element into the DOCX section.
 	 *
 	 * @param \SScribeVendor\PhpOffice\PhpWord\Element\Section $section The section.
-	 * @param array                              $element The parsed element.
+	 * @param array                                            $element The parsed element.
 	 */
 	private function render_element( Section $section, array $element ): void {
 		if ( empty( $element['type'] ) ) {
@@ -981,7 +981,7 @@ class SScribe_Exporter {
 	 * Render a paragraph with inline runs.
 	 *
 	 * @param \SScribeVendor\PhpOffice\PhpWord\Element\Section $section The section.
-	 * @param array                              $element The paragraph element.
+	 * @param array                                            $element The paragraph element.
 	 */
 	private function render_paragraph( Section $section, array $element ): void {
 		if ( empty( $element['runs'] ) ) {
@@ -996,8 +996,8 @@ class SScribe_Exporter {
 	 * Render inline runs into a text run.
 	 *
 	 * @param \SScribeVendor\PhpOffice\PhpWord\Element\TextRun $text_run The text run container.
-	 * @param array                              $runs    Array of run data.
-	 * @param bool                               $italic  Force italic (for blockquotes).
+	 * @param array                                            $runs    Array of run data.
+	 * @param bool                                             $italic  Force italic (for blockquotes).
 	 */
 	private function render_runs( TextRun $text_run, array $runs, bool $italic = false ): void {
 		foreach ( $runs as $run ) {
@@ -1068,7 +1068,7 @@ class SScribe_Exporter {
 	 * Render a list element.
 	 *
 	 * @param \SScribeVendor\PhpOffice\PhpWord\Element\Section $section The section.
-	 * @param array                              $element The list element.
+	 * @param array                                            $element The list element.
 	 */
 	private function render_list( Section $section, array $element ): void {
 		$style = isset( $element['style'] ) ? $element['style'] : 'bullet';
@@ -1116,7 +1116,7 @@ class SScribe_Exporter {
 	 * Render an HTML table into DOCX.
 	 *
 	 * @param \SScribeVendor\PhpOffice\PhpWord\Element\Section $section The section.
-	 * @param array                              $element The table element.
+	 * @param array                                            $element The table element.
 	 */
 	private function render_table( Section $section, array $element ): void {
 		if ( empty( $element['rows'] ) ) {
@@ -1173,7 +1173,7 @@ class SScribe_Exporter {
 	 * Render a button element.
 	 *
 	 * @param \SScribeVendor\PhpOffice\PhpWord\Element\Section $section The section.
-	 * @param array                              $element The button element.
+	 * @param array                                            $element The button element.
 	 */
 	private function render_button( Section $section, array $element ): void {
 		$table = $section->addTable(
@@ -1241,7 +1241,7 @@ class SScribe_Exporter {
 	 * Render an inline image.
 	 *
 	 * @param \SScribeVendor\PhpOffice\PhpWord\Element\Section $section The section.
-	 * @param array                              $element The image element.
+	 * @param array                                            $element The image element.
 	 */
 	private function render_inline_image( Section $section, array $element ): void {
 		$path = ! empty( $element['local_path'] ) ? $element['local_path'] : '';
@@ -1322,7 +1322,7 @@ class SScribe_Exporter {
 	 * Add child pages list.
 	 *
 	 * @param \SScribeVendor\PhpOffice\PhpWord\Element\Section $section   The section.
-	 * @param array                              $page_data Page data.
+	 * @param array                                            $page_data Page data.
 	 */
 	private function add_child_pages( \SScribeVendor\PhpOffice\PhpWord\Element\Section $section, array $page_data ): void {
 		if ( empty( $page_data['children'] ) ) {
