@@ -67,6 +67,10 @@ class SScribe_Container {
 	 * @return void
 	 */
 	public static function reset(): void {
+		if ( ! defined( 'WP_TESTS_DOMAIN' ) && ! defined( 'SSCRIBE_TESTING' ) ) {
+			throw new \RuntimeException( 'SScribe_Container::reset() is only available in test contexts.' );
+		}
+
 		self::$instance = null;
 	}
 
