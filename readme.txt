@@ -4,7 +4,7 @@ Donate link: https://simplixi.com
 Tags: export, docx, multilingual, seo, pdf
 Requires at least: 6.0
 Tested up to: 6.9.5
-Stable tag: 3.330.2
+Stable tag: 3.30.3
 Requires PHP: 8.2
 License: GPLv2 or later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
@@ -229,7 +229,7 @@ Each document includes: cover page with title/URL/date/breadcrumbs, featured ima
 
 == Changelog ==
 
-= 3.330.2 =
+= 3.30.3 =
 
 * Fixed: PHPCS compliance — added missing doc comments and translators notes for RTL/Arabic code
 * Fixed: PHPCS alignment and spacing issues in exporter classes
@@ -356,7 +356,7 @@ Each document includes: cover page with title/URL/date/breadcrumbs, featured ima
 
 == Upgrade Notice ==
 
-= 3.330.2 =
+= 3.30.3 =
 
 Production release: PHPCS compliance fixes for RTL/Arabic support code, complete plugin audit passed. Recommended update for all users.
 
