@@ -99,6 +99,15 @@ class SScribe_Admin {
 			return;
 		}
 
+		$this->redirect_to_plugin_page();
+	}
+
+	/**
+	 * Redirect to the plugin admin page.
+	 *
+	 * @return void
+	 */
+	protected function redirect_to_plugin_page(): void {
 		header( 'Location: ' . admin_url( 'admin.php?page=sscribe-export' ) );
 		exit;
 	}
