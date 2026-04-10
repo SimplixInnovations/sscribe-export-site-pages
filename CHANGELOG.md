@@ -12,7 +12,7 @@ All notable changes to this project will be documented in this file.
 ### Added
 - Added repository hygiene files: `.editorconfig`, `CONTRIBUTING.md`, `package.json`, and `.wp-env.json`.
 
-## [3.30.1] - 2026-04-10
+## [3.330.2] - 2026-04-10
 
 ### Existing baseline
 - Current plugin release version as declared in the main plugin file and readme metadata.
