@@ -117,6 +117,37 @@ if ( ! $sscribe_has_dependencies ) {
 	return; // Stop loading the rest of the plugin.
 }
 
+if ( ! function_exists( 'sscribe_render_boot_error_notice' ) ) {
+	/**
+	 * Render a persistent admin notice when plugin boot fails.
+	 *
+	 * @return void
+	 */
+	function sscribe_render_boot_error_notice(): void {
+		$boot_error = get_transient( 'sscribe_boot_error' );
+
+		if ( ! is_array( $boot_error ) || empty( $boot_error['message'] ) ) {
+			return;
+		}
+
+		if ( ! current_user_can( 'manage_options' ) ) {
+			return;
+		}
+
+		$message = (string) $boot_error['message'];
+		$time    = isset( $boot_error['time'] ) ? (string) $boot_error['time'] : '';
+
+		printf(
+			'<div class="notice notice-error"><p><strong>%1$s</strong> %2$s</p>%3$s</div>',
+			esc_html__( 'SScribe Export Site Pages could not finish loading.', 'sscribe-export-site-pages' ),
+			esc_html( $message ),
+			$time ? '<p><small>' . esc_html( $time ) . '</small></p>' : ''
+		);
+	}
+}
+
+add_action( 'admin_notices', 'sscribe_render_boot_error_notice' );
+
 /**
  * Activation hook.
  */
@@ -133,9 +164,24 @@ register_deactivation_hook( __FILE__, array( 'SScribe_Deactivator', 'deactivate'
 add_action(
 	'plugins_loaded',
 	static function () {
+		delete_transient( 'sscribe_boot_error' );
+
 		try {
 			( new SScribe() )->run();
 		} catch ( \Throwable $e ) {
+			set_transient(
+				'sscribe_boot_error',
+				array(
+					'message' => sprintf(
+						/* translators: %s: error message */
+						__( 'The plugin bootstrap failed before the admin menu could be registered: %s', 'sscribe-export-site-pages' ),
+						$e->getMessage()
+					),
+					'time'    => gmdate( 'Y-m-d H:i:s \U\T\C' ),
+				),
+				MINUTE_IN_SECONDS * 10
+			);
+
 			// Critical error logging for debugging production issues.
 			if ( defined( 'WP_DEBUG' ) && WP_DEBUG ) {
 				// phpcs:ignore WordPress.PHP.DevelopmentFunctions.error_log_error_log
