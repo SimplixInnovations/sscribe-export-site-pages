@@ -696,6 +696,12 @@ if ( file_exists( SSCRIBE_PLUGIN_DIR . 'vendor/autoload.php' ) ) {
 	if ( file_exists( SSCRIBE_PLUGIN_DIR . 'includes/sscribe-vendor-compat.php' ) ) {
 		require_once SSCRIBE_PLUGIN_DIR . 'includes/sscribe-vendor-compat.php';
 	}
+	if ( class_exists( 'Dompdf\\Dompdf' ) && ! class_exists( 'SScribeVendor\\Dompdf\\Dompdf' ) ) {
+		class_alias( 'Dompdf\\Dompdf', 'SScribeVendor\\Dompdf\\Dompdf' );
+	}
+	if ( class_exists( 'Dompdf\\Options' ) && ! class_exists( 'SScribeVendor\\Dompdf\\Options' ) ) {
+		class_alias( 'Dompdf\\Options', 'SScribeVendor\\Dompdf\\Options' );
+	}
 	// Prefer raw vendor autoload in test runtime to avoid loading duplicate
 	// function wrappers when phpunit has already bootstrapped vendor classes.
 	return;
