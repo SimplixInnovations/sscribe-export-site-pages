@@ -304,6 +304,15 @@ $sscribe_test_db_tables = array(
 	'wp_sscribe_export_stats' => array(),
 );
 $sscribe_test_http_response = array();
+$sscribe_test_filters       = array();
+$sscribe_test_actions       = array();
+$sscribe_test_menu_pages    = array();
+$sscribe_test_styles        = array();
+$sscribe_test_scripts       = array();
+$sscribe_test_localized     = array();
+$sscribe_test_current_user_can = true;
+$sscribe_test_is_admin         = true;
+$sscribe_test_doing_ajax       = false;
 
 if ( ! class_exists( 'wpdb' ) ) {
 	class wpdb {
@@ -653,8 +662,140 @@ if ( ! function_exists( 'class_exists' ) || ! class_exists( 'WP_Query' ) ) {
 
 if ( ! function_exists( 'add_action' ) ) {
 	function add_action( $sscribe_hook, $sscribe_callback, $sscribe_priority = 10, $sscribe_args = 1 ) {
-		// No-op stub for unit tests.
+		global $sscribe_test_actions;
+		$sscribe_test_actions[] = array(
+			'hook'          => $sscribe_hook,
+			'callback'      => $sscribe_callback,
+			'priority'      => $sscribe_priority,
+			'accepted_args' => $sscribe_args,
+		);
 		return true;
+	}
+}
+
+if ( ! function_exists( 'add_filter' ) ) {
+	function add_filter( $sscribe_hook, $sscribe_callback, $sscribe_priority = 10, $sscribe_args = 1 ) {
+		global $sscribe_test_filters;
+		$sscribe_test_filters[] = array(
+			'hook'          => $sscribe_hook,
+			'callback'      => $sscribe_callback,
+			'priority'      => $sscribe_priority,
+			'accepted_args' => $sscribe_args,
+		);
+		return true;
+	}
+}
+
+if ( ! function_exists( 'apply_filters' ) ) {
+	function apply_filters( $hook_name, $value ) {
+		global $sscribe_test_filters;
+
+		foreach ( $sscribe_test_filters as $filter ) {
+			if ( $filter['hook'] !== $hook_name || ! is_callable( $filter['callback'] ) ) {
+				continue;
+			}
+
+			$value = call_user_func( $filter['callback'], $value );
+		}
+
+		return $value;
+	}
+}
+
+if ( ! function_exists( 'current_user_can' ) ) {
+	function current_user_can( $capability ) {
+		global $sscribe_test_current_user_can;
+		unset( $capability );
+		return (bool) $sscribe_test_current_user_can;
+	}
+}
+
+if ( ! function_exists( 'is_admin' ) ) {
+	function is_admin() {
+		global $sscribe_test_is_admin;
+		return (bool) $sscribe_test_is_admin;
+	}
+}
+
+if ( ! function_exists( 'wp_doing_ajax' ) ) {
+	function wp_doing_ajax() {
+		global $sscribe_test_doing_ajax;
+		return (bool) $sscribe_test_doing_ajax;
+	}
+}
+
+if ( ! function_exists( 'admin_url' ) ) {
+	function admin_url( $path = '' ) {
+		return 'http://example.org/wp-admin/' . ltrim( (string) $path, '/' );
+	}
+}
+
+if ( ! function_exists( 'wp_create_nonce' ) ) {
+	function wp_create_nonce( $action = -1 ) {
+		return 'nonce-' . md5( (string) $action );
+	}
+}
+
+if ( ! function_exists( 'esc_url' ) ) {
+	function esc_url( $url ) {
+		return filter_var( $url, FILTER_SANITIZE_URL ) ?: '';
+	}
+}
+
+if ( ! function_exists( 'esc_html__' ) ) {
+	function esc_html__( $text, $domain = 'default' ) {
+		unset( $domain );
+		return esc_html( $text );
+	}
+}
+
+if ( ! function_exists( 'add_menu_page' ) ) {
+	function add_menu_page( $page_title, $menu_title, $capability, $menu_slug, $callback = '', $icon_url = '', $position = null ) {
+		global $sscribe_test_menu_pages;
+		$sscribe_test_menu_pages[] = array(
+			'page_title' => $page_title,
+			'menu_title' => $menu_title,
+			'capability' => $capability,
+			'menu_slug'  => $menu_slug,
+			'callback'   => $callback,
+			'icon_url'   => $icon_url,
+			'position'   => $position,
+		);
+		return 'toplevel_page_' . $menu_slug;
+	}
+}
+
+if ( ! function_exists( 'wp_enqueue_style' ) ) {
+	function wp_enqueue_style( $handle, $src = '', $deps = array(), $ver = false, $media = 'all' ) {
+		global $sscribe_test_styles;
+		$sscribe_test_styles[] = compact( 'handle', 'src', 'deps', 'ver', 'media' );
+		return true;
+	}
+}
+
+if ( ! function_exists( 'wp_enqueue_script' ) ) {
+	function wp_enqueue_script( $handle, $src = '', $deps = array(), $ver = false, $in_footer = false ) {
+		global $sscribe_test_scripts;
+		$sscribe_test_scripts[] = compact( 'handle', 'src', 'deps', 'ver', 'in_footer' );
+		return true;
+	}
+}
+
+if ( ! function_exists( 'wp_localize_script' ) ) {
+	function wp_localize_script( $handle, $object_name, $l10n ) {
+		global $sscribe_test_localized;
+		$sscribe_test_localized[] = compact( 'handle', 'object_name', 'l10n' );
+		return true;
+	}
+}
+
+if ( ! function_exists( 'checked' ) ) {
+	function checked( $checked, $current = true, $display = true ) {
+		$result = ( $checked == $current ) ? 'checked="checked"' : '';
+		if ( $display ) {
+			echo $result;
+		}
+		return $result;
 	}
 }
 
@@ -711,3 +852,5 @@ if ( file_exists( SSCRIBE_PLUGIN_DIR . 'vendor-prefixed/autoload.php' ) ) {
 	require_once SSCRIBE_PLUGIN_DIR . 'includes/sscribe-prefixed-runtime-shim.php';
 	require_once SSCRIBE_PLUGIN_DIR . 'vendor-prefixed/autoload.php';
 }
+
+require_once SSCRIBE_PLUGIN_DIR . 'includes/sscribe-autoloader.php';
