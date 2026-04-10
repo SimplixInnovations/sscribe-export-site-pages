@@ -31,6 +31,11 @@
         <exclude-pattern>*/includes/class-sscribe-content-parser\.php$</exclude-pattern>
     </rule>
 
+    <!-- Allow manual alias map spacing in vendor compatibility table -->
+    <rule ref="WordPress.Arrays.MultipleStatementAlignment">
+        <exclude-pattern>*/includes/sscribe-vendor-compat\.php$</exclude-pattern>
+    </rule>
+
     <!-- Allow direct DB queries in logging/audit/stats classes (intentional for performance) -->
     <rule ref="WordPress.DB.DirectDatabaseQuery">
         <exclude-pattern>*/includes/class-sscribe-audit-trail\.php$</exclude-pattern>
