@@ -93,6 +93,7 @@ require_once SSCRIBE_PLUGIN_DIR . 'includes/sscribe-autoloader.php';
 $sscribe_has_dependencies = false;
 
 if ( file_exists( SSCRIBE_PLUGIN_DIR . 'vendor-prefixed/autoload.php' ) ) {
+	require_once SSCRIBE_PLUGIN_DIR . 'includes/sscribe-prefixed-runtime-shim.php';
 	require_once SSCRIBE_PLUGIN_DIR . 'vendor-prefixed/autoload.php';
 	$sscribe_has_dependencies = true;
 } elseif ( file_exists( SSCRIBE_PLUGIN_DIR . 'vendor/autoload.php' ) ) {
