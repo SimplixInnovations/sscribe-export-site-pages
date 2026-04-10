@@ -177,6 +177,25 @@ class SScribe_Diagnostics {
 	}
 
 	/**
+	 * Check required vendor dependencies at runtime.
+	 *
+	 * @return array<int, string> Missing dependency class labels.
+	 */
+	public function check_vendor_dependencies(): array {
+		$missing = array();
+
+		if ( ! class_exists( '\\SScribeVendor\\Dompdf\\Dompdf' ) && ! class_exists( '\\Dompdf\\Dompdf' ) ) {
+			$missing[] = 'Dompdf\\Dompdf';
+		}
+
+		if ( ! class_exists( '\\SScribeVendor\\PhpOffice\\PhpWord\\PhpWord' ) && ! class_exists( '\\PhpOffice\\PhpWord\\PhpWord' ) ) {
+			$missing[] = 'PhpOffice\\PhpWord\\PhpWord';
+		}
+
+		return $missing;
+	}
+
+	/**
 	 * Check PHP version.
 	 */
 	private function check_php_version(): array {
@@ -720,6 +739,9 @@ class SScribe_Diagnostics {
 		$cleared = 0;
 		foreach ( $sessions as $session ) {
 			$data = json_decode( $session->option_value, true );
+
+			// SECURITY: Skip legacy PHP-serialized sessions — do not use maybe_unserialize().
+			// Those sessions will be cleaned up by SScribe_Session::cleanup_expired() instead.
 
 			// Finding #2 fix: Validate session schema before use.
 			if ( is_array( $data ) && isset( $data['created_at'] ) ) {

@@ -71,7 +71,16 @@ class SScribe_Admin {
 	 * @return string
 	 */
 	private function get_required_capability(): string {
-		return (string) apply_filters( 'sscribe_export_capability', 'manage_options' );
+		$capability = apply_filters( 'sscribe_export_capability', 'manage_options' );
+
+		// SECURITY: Validate capability against whitelist to prevent malicious plugins from lowering permissions.
+		$allowed = array( 'manage_options', 'edit_pages', 'publish_pages', 'delete_pages', 'export' );
+
+		if ( ! in_array( $capability, $allowed, true ) ) {
+			return 'manage_options';
+		}
+
+		return $capability;
 	}
 
 	/**
@@ -130,17 +139,16 @@ class SScribe_Admin {
 			return;
 		}
 
-		// WordPress admin loads many inline scripts from core and other plugins.
-		// We use Report-Only mode so violations are logged but nothing is blocked.
-		// frame-ancestors and X-Frame-Options are enforced via separate headers.
+		// Keep the policy scoped to the plugin admin page and allow the minimum
+		// sources required for WordPress-admin rendering.
 		$policy = implode(
 			'; ',
 			array(
 				"default-src 'self'",
 				"script-src 'self' 'unsafe-inline'",
-				"style-src 'self' https://fonts.googleapis.com 'unsafe-inline'",
-				"font-src 'self' https://fonts.gstatic.com",
+				"style-src 'self' 'unsafe-inline'",
 				"img-src 'self' data:",
+				"font-src 'self' data:",
 				"object-src 'none'",
 				"frame-ancestors 'self'",
 				"base-uri 'self'",
@@ -148,7 +156,7 @@ class SScribe_Admin {
 			)
 		);
 
-		header( 'Content-Security-Policy-Report-Only: ' . $policy );
+		header( 'Content-Security-Policy: ' . $policy );
 		header( 'X-Frame-Options: SAMEORIGIN' );
 		header( 'X-Content-Type-Options: nosniff' );
 		header( 'Referrer-Policy: strict-origin-when-cross-origin' );
