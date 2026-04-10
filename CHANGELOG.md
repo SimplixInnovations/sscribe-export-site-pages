@@ -6,6 +6,14 @@ All notable changes to this project will be documented in this file.
 
 ### Changed
 
+## [3.30.7] - 2026-04-11
+
+### Fixed
+- DOCX export now produces separate per-page DOCX files for all page counts (removed broken streaming mode).
+- Export Log viewer now loads correctly (fixed filename matching for non-sscribe-export- prefixed ZIPs).
+
+### Changed
+
 ## [3.30.6] - 2026-04-10
 
 ### Fixed

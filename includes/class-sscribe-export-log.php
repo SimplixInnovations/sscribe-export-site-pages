@@ -399,7 +399,9 @@ class SScribe_Export_Log {
 	 * @return array|null Log data or null.
 	 */
 	public static function get_log_by_filename( string $filename ): ?array {
-		if ( ! preg_match( '/^sscribe-export-([a-z0-9]+)-/i', $filename ) && ! preg_match( '/^sscribe-export-/i', $filename ) ) {
+		// Validate: must be a sanitized filename ending in .zip.
+		$clean = sanitize_file_name( $filename );
+		if ( $clean !== $filename || '.zip' !== substr( $filename, -4 ) ) {
 			return null;
 		}
 
@@ -438,7 +440,9 @@ class SScribe_Export_Log {
 	 * @return bool True if log was deleted, false otherwise.
 	 */
 	public static function delete_by_filename( string $filename ): bool {
-		if ( ! preg_match( '/^sscribe-export-/i', $filename ) ) {
+		// Validate: must be a sanitized filename ending in .zip.
+		$clean = sanitize_file_name( $filename );
+		if ( $clean !== $filename || '.zip' !== substr( $filename, -4 ) ) {
 			return false;
 		}
 
