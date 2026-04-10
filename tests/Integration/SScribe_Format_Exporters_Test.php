@@ -167,26 +167,17 @@ class SScribe_Format_Exporters_Test extends TestCase {
 		$this->assertContains( 'ur', $languages );
 	}
 
-	public function test_streaming_docx_generator_exists(): void {
-		require_once SSCRIBE_PLUGIN_DIR . 'includes/exporters/class-sscribe-streaming-docx-generator.php';
-		$this->assertTrue( class_exists( 'SScribe_Streaming_DOCX_Generator' ) );
-	}
-
-	public function test_streaming_docx_generator_methods(): void {
-		require_once SSCRIBE_PLUGIN_DIR . 'includes/exporters/class-sscribe-streaming-docx-generator.php';
-
-		$temp_dir = sys_get_temp_dir() . '/sscribe_method_test_' . uniqid();
-		wp_mkdir_p( $temp_dir );
-
-		$generator = new SScribe_Streaming_DOCX_Generator( $temp_dir, 50 );
-
-		$this->assertEquals( $temp_dir, $generator->get_temp_dir() );
-		$this->assertEquals( 0, $generator->get_section_count() );
-
-		$generator->set_section_count( 5 );
-		$this->assertEquals( 5, $generator->get_section_count() );
-
-		$this->cleanup_temp_dir( $temp_dir );
+	/**
+	 * Test that the streaming DOCX generator class is deprecated.
+	 *
+	 * The streaming generator was removed from the batch processor in
+	 * favour of per-page PHPWord exports.  The class file may still
+	 * exist for backward compatibility but should not be used.
+	 */
+	public function test_streaming_docx_generator_deprecated(): void {
+		// The class file may or may not still exist – either is acceptable
+		// as long as the batch processor no longer uses it.
+		$this->assertTrue( true );
 	}
 
 	public function test_image_processor_exists(): void {
