@@ -17,6 +17,28 @@ if ( ! defined( 'ABSPATH' ) ) {
 class SScribe_Exporter_Factory {
 
 	/**
+	 * Validate and normalize an export format string.
+	 *
+	 * @param string $format Export format.
+	 * @return SScribe_Export_Format
+	 * @throws SScribe_Validation_Exception When format is invalid.
+	 */
+	private static function validate_format( string $format ): SScribe_Export_Format {
+		$enum_format = SScribe_Export_Format::tryFrom( $format );
+
+		if ( null === $enum_format ) {
+			throw new SScribe_Validation_Exception(
+				sprintf( 'Invalid export format: %s', $format ),
+				'format',
+				'enum',
+				array( 'format' => $format )
+			);
+		}
+
+		return $enum_format;
+	}
+
+	/**
 	 * Create an exporter for the given format.
 	 *
 	 * Uses the service container when available for proper dependency injection,
@@ -26,11 +48,7 @@ class SScribe_Exporter_Factory {
 	 * @return SScribe_Exporter_Interface|null
 	 */
 	public static function create( string $format ): ?SScribe_Exporter_Interface {
-		$enum_format = SScribe_Export_Format::tryFrom( $format );
-
-		if ( null === $enum_format ) {
-			return null;
-		}
+		$enum_format = self::validate_format( $format );
 
 		$container = SScribe_Container::instance();
 

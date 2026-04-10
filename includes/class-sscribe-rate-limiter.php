@@ -16,6 +16,8 @@ if ( ! defined( 'ABSPATH' ) ) {
  *
  * Implements rate limiting for export operations.
  * Uses transient-based counting with advisory note for distributed deployments.
+ *
+ * @deprecated 3.30.5 Use SScribe_Batch_Processor::check_rate_limit() instead. This class is unused and will be removed in a future version.
  */
 class SScribe_Rate_Limiter {
 
