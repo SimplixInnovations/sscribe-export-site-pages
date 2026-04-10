@@ -692,6 +692,7 @@ if ( ! function_exists( 'wp_count_posts' ) ) {
 }
 
 if ( file_exists( SSCRIBE_PLUGIN_DIR . 'vendor-prefixed/autoload.php' ) ) {
+	require_once SSCRIBE_PLUGIN_DIR . 'includes/sscribe-prefixed-runtime-shim.php';
 	require_once SSCRIBE_PLUGIN_DIR . 'vendor-prefixed/autoload.php';
 } elseif ( file_exists( SSCRIBE_PLUGIN_DIR . 'vendor/autoload.php' ) ) {
 	require_once SSCRIBE_PLUGIN_DIR . 'vendor/autoload.php';
