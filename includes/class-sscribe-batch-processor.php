@@ -218,17 +218,7 @@ class SScribe_Batch_Processor {
 	 * @return string
 	 */
 	private function get_client_ip(): string {
-		$ip = '';
-
-		if ( ! empty( $_SERVER['REMOTE_ADDR'] ) ) {
-			$ip = sanitize_text_field( wp_unslash( $_SERVER['REMOTE_ADDR'] ) );
-		}
-
-		if ( empty( $ip ) ) {
-			$ip = '0.0.0.0';
-		}
-
-		return filter_var( $ip, FILTER_VALIDATE_IP ) ? $ip : '0.0.0.0';
+		return SScribe_Helpers::get_client_ip();
 	}
 
 	/**
@@ -489,8 +479,18 @@ class SScribe_Batch_Processor {
 	private function validate_session_ownership( array $session, string $session_id ): bool {
 		$current_user_id = get_current_user_id();
 
+		// SECURITY: Legacy sessions without user_id are no longer accessible.
+		// This prevents session hijacking on sessions created before the user_id fix.
 		if ( ! isset( $session['user_id'] ) ) {
-			return true;
+			$this->audit_log(
+				'session_hijack',
+				array(
+					'session_id'       => $session_id,
+					'reason'           => 'missing_user_id',
+					'attempting_user'  => $current_user_id,
+				)
+			);
+			return false;
 		}
 
 		if ( (int) $session['user_id'] !== $current_user_id ) {
@@ -2045,12 +2045,17 @@ class SScribe_Batch_Processor {
 			);
 
 			foreach ( $sessions as $session ) {
-				// Try JSON first (current format), fall back to PHP unserialization (legacy).
+				// Try JSON first (current format).
 				$data = json_decode( $session->option_value, true );
+
+				// SECURITY: Do NOT use maybe_unserialize() here — it enables object injection.
+				// Legacy PHP-serialized sessions that fail JSON decode are skipped intentionally.
+				// Those sessions will be naturally cleaned up by the 4-hour expiry in SScribe_Session::cleanup_expired().
 				if ( ! is_array( $data ) ) {
-					$data = maybe_unserialize( $session->option_value );
+					continue;
 				}
-				if ( is_array( $data ) && isset( $data['user_id'] ) && (int) $data['user_id'] === $user_id ) {
+
+				if ( isset( $data['user_id'] ) && (int) $data['user_id'] === $user_id ) {
 					if ( isset( $data['session_id'] ) ) {
 						delete_transient( 'sscribe_lock_' . $data['session_id'] );
 					}
