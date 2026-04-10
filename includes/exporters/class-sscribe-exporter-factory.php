@@ -48,7 +48,11 @@ class SScribe_Exporter_Factory {
 	 * @return SScribe_Exporter_Interface|null
 	 */
 	public static function create( string $format ): ?SScribe_Exporter_Interface {
-		$enum_format = self::validate_format( $format );
+		try {
+			$enum_format = self::validate_format( $format );
+		} catch ( SScribe_Validation_Exception $e ) {
+			return null;
+		}
 
 		$container = SScribe_Container::instance();
 
