@@ -184,4 +184,23 @@ class SScribe_Helpers {
 
 		return $url;
 	}
+
+	/**
+	 * Get the current client IP address.
+	 *
+	 * @return string
+	 */
+	public static function get_client_ip(): string {
+		$ip = '';
+
+		if ( ! empty( $_SERVER['REMOTE_ADDR'] ) ) {
+			$ip = sanitize_text_field( wp_unslash( $_SERVER['REMOTE_ADDR'] ) );
+		}
+
+		if ( empty( $ip ) ) {
+			return '0.0.0.0';
+		}
+
+		return filter_var( $ip, FILTER_VALIDATE_IP ) ? $ip : '0.0.0.0';
+	}
 }

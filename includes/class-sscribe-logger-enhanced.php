@@ -162,7 +162,7 @@ class SScribe_Logger_Enhanced implements SScribe_Logger_Interface {
 		$timestamp = current_time( 'mysql', true );
 		$user_id   = get_current_user_id();
 
-		$sanitized_context = $this->sanitize_context( $context );
+		$sanitized_context = $this->sanitize_context( array_merge( $this->get_context_enrichment(), $context ) );
 
 		$file_entry = sprintf(
 			'[%s] [%s] %s | %s',
@@ -349,7 +349,7 @@ class SScribe_Logger_Enhanced implements SScribe_Logger_Interface {
 	 * @param array  $context Context data.
 	 */
 	public function critical( string $message, array $context = array() ): void {
-		$this->log( self::LEVEL_CRITICAL, $message, $context );
+		$this->log( self::LEVEL_CRITICAL, 'CRITICAL: ' . $message, $context );
 	}
 
 	/**
@@ -379,6 +379,20 @@ class SScribe_Logger_Enhanced implements SScribe_Logger_Interface {
 	 */
 	public function is_enabled(): bool {
 		return $this->enable_file || $this->enable_db;
+	}
+
+	/**
+	 * Get standard context enrichment for structured logs.
+	 *
+	 * @return array<string, string>
+	 */
+	public function get_context_enrichment(): array {
+		return array(
+			'plugin_version' => defined( 'SSCRIBE_VERSION' ) ? (string) SSCRIBE_VERSION : 'unknown',
+			'php_version'    => PHP_VERSION,
+			'memory_usage'   => size_format( memory_get_usage( true ) ),
+			'request_id'     => $this->request_id,
+		);
 	}
 
 	/**
