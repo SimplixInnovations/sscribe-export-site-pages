@@ -65,6 +65,8 @@ class SScribe_Container {
 	 * Reset the container (primarily for testing).
 	 *
 	 * @return void
+	 *
+	 * @throws \RuntimeException If called outside test contexts.
 	 */
 	public static function reset(): void {
 		if ( ! defined( 'WP_TESTS_DOMAIN' ) && ! defined( 'SSCRIBE_TESTING' ) ) {

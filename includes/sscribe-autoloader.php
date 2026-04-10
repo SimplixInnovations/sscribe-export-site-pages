@@ -41,14 +41,14 @@ spl_autoload_register(
 		} elseif ( str_ends_with( $class_name, '_Exporter' ) || str_contains( $class_name, '_Exporter_' ) ) {
 			$paths[] = SSCRIBE_PLUGIN_DIR . 'includes/exporters/class-sscribe-' . $relative . '.php';
 			$paths[] = SSCRIBE_PLUGIN_DIR . 'includes/class-sscribe-' . $relative . '.php';
-	} elseif ( 'SScribe_Admin' === $class_name ) {
-		$paths[] = SSCRIBE_PLUGIN_DIR . 'admin/class-sscribe-admin.php';
-	} else {
-		$paths[] = SSCRIBE_PLUGIN_DIR . 'includes/class-sscribe-' . $relative . '.php';
-		// Fallback: some non-Exporter classes (e.g. Streaming_DOCX_Generator)
-		// live in the exporters subdirectory.
-		$paths[] = SSCRIBE_PLUGIN_DIR . 'includes/exporters/class-sscribe-' . $relative . '.php';
-	}
+		} elseif ( 'SScribe_Admin' === $class_name ) {
+			$paths[] = SSCRIBE_PLUGIN_DIR . 'admin/class-sscribe-admin.php';
+		} else {
+			$paths[] = SSCRIBE_PLUGIN_DIR . 'includes/class-sscribe-' . $relative . '.php';
+			// Fallback: some non-Exporter classes (e.g. Streaming_DOCX_Generator)
+			// live in the exporters subdirectory.
+			$paths[] = SSCRIBE_PLUGIN_DIR . 'includes/exporters/class-sscribe-' . $relative . '.php';
+		}
 
 		foreach ( $paths as $path ) {
 			if ( file_exists( $path ) ) {
