@@ -10,14 +10,46 @@
 
 declare(strict_types=1);
 
-$baseDir = __DIR__;
+$baseDir         = __DIR__;
+$vendorAutoload  = $baseDir . '/vendor/autoload.php';
+$prefixedAutoload = $baseDir . '/vendor-prefixed/autoload.php';
 
-if ( file_exists( $baseDir . '/vendor-prefixed/autoload.php' ) ) {
+/**
+ * Prefer raw vendor autoload for PHPStan to avoid duplicate Safe\ wrappers
+ * when both raw and prefixed trees are present in CI.
+ */
+if ( file_exists( $vendorAutoload ) ) {
+	require_once $vendorAutoload;
+} elseif ( file_exists( $prefixedAutoload ) ) {
 	require_once $baseDir . '/includes/sscribe-prefixed-runtime-shim.php';
-	require_once $baseDir . '/vendor-prefixed/autoload.php';
-} elseif ( file_exists( $baseDir . '/vendor/autoload.php' ) ) {
-	require_once $baseDir . '/vendor/autoload.php';
-	if ( file_exists( $baseDir . '/includes/sscribe-vendor-compat.php' ) ) {
-		require_once $baseDir . '/includes/sscribe-vendor-compat.php';
-	}
+	require_once $prefixedAutoload;
 }
+
+/**
+ * Map prefixed runtime class names used by plugin code to raw vendor classes
+ * so PHPStan can resolve symbols without loading both vendor trees.
+ */
+$sscribePhpstanAliasPrefixes = array(
+	'SScribeVendor\\Dompdf\\'              => 'Dompdf\\',
+	'SScribeVendor\\PhpOffice\\PhpWord\\' => 'PhpOffice\\PhpWord\\',
+);
+
+spl_autoload_register(
+	static function ( string $class ) use ( $sscribePhpstanAliasPrefixes ): void {
+		foreach ( $sscribePhpstanAliasPrefixes as $prefixedPrefix => $rawPrefix ) {
+			if ( ! str_starts_with( $class, $prefixedPrefix ) ) {
+				continue;
+			}
+
+			$rawClass = $rawPrefix . substr( $class, strlen( $prefixedPrefix ) );
+
+			if ( class_exists( $rawClass ) || interface_exists( $rawClass ) || trait_exists( $rawClass ) ) {
+				class_alias( $rawClass, $class );
+			}
+
+			return;
+		}
+	},
+	true,
+	true
+);
