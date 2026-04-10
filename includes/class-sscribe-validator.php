@@ -83,7 +83,11 @@ class SScribe_Validator {
 			);
 		}
 
-		if ( in_array( 'pdf', $formats, true ) && ! class_exists( '\SScribeVendor\Dompdf\Dompdf' ) ) {
+		if (
+			in_array( 'pdf', $formats, true ) &&
+			! class_exists( '\SScribeVendor\Dompdf\Dompdf' ) &&
+			! class_exists( '\Dompdf\Dompdf' )
+		) {
 			$errors[] = __( 'PDF format selected but DomPDF library is not installed. Run composer install.', 'sscribe-export-site-pages' );
 		}
 
