@@ -309,7 +309,8 @@ class SScribe_Logger implements SScribe_Logger_Interface {
 	 */
 	private static function get_request_id(): string {
 		if ( null === self::$request_id ) {
-			self::$request_id = substr( md5( microtime( true ) . (string) wp_rand() ), 0, 12 );
+			// Use random_int() instead of wp_rand() for test bootstrap compatibility.
+			self::$request_id = substr( md5( microtime( true ) . (string) random_int( 0, PHP_INT_MAX ) ), 0, 12 );
 		}
 
 		return self::$request_id;
