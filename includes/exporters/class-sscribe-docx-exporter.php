@@ -100,7 +100,7 @@ class SScribe_DOCX_Exporter implements SScribe_Exporter_Interface {
 
 		} catch ( \Throwable $e ) {
 			$exception_class = (string) get_class( $e );
-			$raw_message      = $e->getMessage();
+			$raw_message     = $e->getMessage();
 			// Include exception class name for diagnostics — many PHP/DOM errors have empty messages.
 			$display_message = ! empty( $raw_message )
 				? sprintf( '%s: %s', $exception_class, $raw_message )
