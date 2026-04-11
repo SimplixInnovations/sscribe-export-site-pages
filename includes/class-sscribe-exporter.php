@@ -210,31 +210,62 @@ class SScribe_Exporter {
 
 			// --- Section 1: Cover Page ---
 			$cover = $php_word->addSection( $this->get_section_settings( $this->is_rtl ) );
-			$this->add_cover_page( $cover, $page_data );
+			try {
+				$this->add_cover_page( $cover, $page_data );
+			} catch ( \Throwable $e ) {
+				// Non-fatal: cover page is decorative, continue without it.
+				// phpcs:ignore WordPress.PHP.DevelopmentFunctions.error_log_error_log
+				error_log( 'SScribe: Cover page skipped for page ' . ( $page_data['id'] ?? '?' ) . ': ' . get_class( $e ) );
+			}
 
 			// --- Section 2: Content ---
 			$content_section = $php_word->addSection( $this->get_section_settings( $this->is_rtl ) );
 
 			// Add header and footer.
-			$this->add_header_footer( $content_section, $page_data );
+			try {
+				$this->add_header_footer( $content_section, $page_data );
+			} catch ( \Throwable $e ) {
+				// phpcs:ignore WordPress.PHP.DevelopmentFunctions.error_log_error_log
+				error_log( 'SScribe: Header/footer skipped for page ' . ( $page_data['id'] ?? '?' ) . ': ' . get_class( $e ) );
+			}
 
 			// Add featured image.
 			$this->add_featured_image( $content_section, $page_data );
 
 			// Add page info table.
-			$this->add_page_info_table( $content_section, $page_data );
+			try {
+				$this->add_page_info_table( $content_section, $page_data );
+			} catch ( \Throwable $e ) {
+				// phpcs:ignore WordPress.PHP.DevelopmentFunctions.error_log_error_log
+				error_log( 'SScribe: Page info table skipped for page ' . ( $page_data['id'] ?? '?' ) . ': ' . get_class( $e ) );
+			}
 
 			// Add SEO section.
-			$this->add_seo_section( $content_section, $page_data );
+			try {
+				$this->add_seo_section( $content_section, $page_data );
+			} catch ( \Throwable $e ) {
+				// phpcs:ignore WordPress.PHP.DevelopmentFunctions.error_log_error_log
+				error_log( 'SScribe: SEO section skipped for page ' . ( $page_data['id'] ?? '?' ) . ': ' . get_class( $e ) );
+			}
 
 			// Add breadcrumb trail.
-			$this->add_breadcrumbs( $content_section, $page_data );
+			try {
+				$this->add_breadcrumbs( $content_section, $page_data );
+			} catch ( \Throwable $e ) {
+				// phpcs:ignore WordPress.PHP.DevelopmentFunctions.error_log_error_log
+				error_log( 'SScribe: Breadcrumbs skipped for page ' . ( $page_data['id'] ?? '?' ) . ': ' . get_class( $e ) );
+			}
 
 			// Add main content.
 			$this->add_main_content( $content_section, $page_data );
 
 			// Add child pages.
-			$this->add_child_pages( $content_section, $page_data );
+			try {
+				$this->add_child_pages( $content_section, $page_data );
+			} catch ( \Throwable $e ) {
+				// phpcs:ignore WordPress.PHP.DevelopmentFunctions.error_log_error_log
+				error_log( 'SScribe: Child pages skipped for page ' . ( $page_data['id'] ?? '?' ) . ': ' . get_class( $e ) );
+			}
 
 			// Save document.
 			$filename    = \SScribe_Exporter_Factory::build_filename( $page_data, $index, $total, 'docx' );
@@ -282,7 +313,7 @@ class SScribe_Exporter {
 			// Build descriptive error message including exception class for diagnostics.
 			// Many PHPWord/DOMDocument exceptions have empty messages, so the class name is critical.
 			$exception_class = (string) get_class( $e );
-			$raw_message      = $e->getMessage();
+			$raw_message     = $e->getMessage();
 
 			$error_lower = strtolower( $raw_message );
 			if ( str_contains( $error_lower, 'memory' ) || str_contains( $error_lower, 'allocated' ) ) {
@@ -706,8 +737,9 @@ class SScribe_Exporter {
 
 			$section->addTextBreak( 1 );
 
-		} catch ( \Exception $e ) {
+		} catch ( \Throwable $e ) {
 			// Skip image on error - image file may be corrupted or inaccessible.
+			// Catches both Exception and Error (e.g., TypeError from Converter).
 			return;
 		}
 	}
@@ -907,8 +939,24 @@ class SScribe_Exporter {
 
 		$elements = $this->parser->parse( $page_data['content'] );
 
-		foreach ( $elements as $element ) {
-			$this->render_element( $section, $element );
+		foreach ( $elements as $element_index => $element ) {
+			try {
+				$this->render_element( $section, $element );
+			} catch ( \Throwable $e ) {
+				// Log but don't abort — a single bad element must not kill the entire page export.
+				$ex_class         = get_class( $e );
+				$ex_message       = $e->getMessage();
+				$this->last_error = sprintf(
+					'Element %d (%s) failed: %s%s',
+					$element_index,
+					$element['type'] ?? 'unknown',
+					$ex_class,
+					! empty( $ex_message ) ? ': ' . $ex_message : ' (no message)'
+				);
+				// phpcs:ignore WordPress.PHP.DevelopmentFunctions.error_log_error_log
+				error_log( 'SScribe Element Error [Page ' . ( $page_data['id'] ?? '?' ) . ']: ' . $this->last_error );
+				// Continue processing remaining elements.
+			}
 		}
 	}
 
