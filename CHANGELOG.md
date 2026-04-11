@@ -6,6 +6,18 @@ All notable changes to this project will be documented in this file.
 
 ### Changed
 
+## [3.30.12] - 2026-04-11
+
+### Fixed
+- Arabic/RTL text in DOCX exports now renders correctly with `complexScript` font support — no more square characters in Microsoft Word and compatible editors.
+- ZIP structure now organizes multi-language exports into `FORMAT/LANG/` subfolders (e.g., `DOCX/AR/P001-Title.docx`) instead of flat file lists, removing redundant language suffix from filenames when in language folders.
+- ZIP finalization no longer times out with large PDF-heavy exports — time limit increased to 300 seconds during `finalize_export()`.
+
+### Changed
+- `with_complex_script()` helper ensures all DOCX text elements (cover page, breadcrumbs, headings, body text) use the correct font for Arabic, Hebrew, and Farsi complex scripts.
+- `build_filename()` accepts `$include_lang` parameter to control language suffix in filenames (stripped when language is already in folder path).
+- `create_zip()` accepts `$has_language` parameter to organize ZIP into language subfolders when exporting all languages.
+
 ## [3.30.11] - 2026-04-11
 
 ### Fixed
