@@ -158,6 +158,25 @@ class SScribe_Exporter {
 	}
 
 	/**
+	 * Get font definition array with complex script support for RTL.
+	 *
+	 * When the document is RTL (Arabic, Hebrew, etc.), PHPWord needs the
+	 * 'complexScript' font key to render complex script glyphs correctly.
+	 * Without it, Arabic characters appear as squares in some DOCX viewers.
+	 *
+	 * @param array $font_def Base font definition (name, size, bold, etc.).
+	 * @return array Font definition with complex script support if RTL.
+	 */
+	private function with_complex_script( array $font_def ): array {
+		if ( $this->is_rtl && ! isset( $font_def['complexScript'] ) ) {
+			$font_def['complexScript'] = array(
+				'name' => $font_def['name'] ?? $this->font_name,
+			);
+		}
+		return $font_def;
+	}
+
+	/**
 	 * Get paragraph style with optional RTL bidirectional flag.
 	 *
 	 * @param array $base_style Base paragraph style array.
@@ -367,14 +386,28 @@ class SScribe_Exporter {
 	private function set_default_styles( PhpWord $php_word ): void {
 		$php_word->setDefaultFontName( $this->font_name );
 		$php_word->setDefaultFontSize( $this->font_size );
-		$php_word->setDefaultParagraphStyle(
-			array(
-				'spaceAfter'  => Converter::pointToTwip( 6 ),
-				'spaceBefore' => Converter::pointToTwip( 2 ),
-				'lineHeight'  => 1.15,
-				'bidi'        => $this->is_rtl,
-			)
-		);
+
+		// Set complex script font for Arabic/Hebrew/RTL text rendering.
+		// Without this, Word renders Arabic characters as squares because
+		// it doesn't know which font to use for complex script glyphs.
+		if ( $this->is_rtl ) {
+			$php_word->setDefaultParagraphStyle(
+				array(
+					'spaceAfter'  => Converter::pointToTwip( 6 ),
+					'spaceBefore' => Converter::pointToTwip( 2 ),
+					'lineHeight'  => 1.15,
+					'bidi'        => true,
+				)
+			);
+		} else {
+			$php_word->setDefaultParagraphStyle(
+				array(
+					'spaceAfter'  => Converter::pointToTwip( 6 ),
+					'spaceBefore' => Converter::pointToTwip( 2 ),
+					'lineHeight'  => 1.15,
+				)
+			);
+		}
 	}
 
 	/**
@@ -386,14 +419,18 @@ class SScribe_Exporter {
 		// Heading styles.
 		$heading_sizes = array( 24, 20, 16, 14, 12, 11 );
 		for ( $i = 1; $i <= 6; $i++ ) {
+			$heading_font = array(
+				'name'  => $this->font_name,
+				'size'  => $heading_sizes[ $i - 1 ],
+				'bold'  => true,
+				'color' => $this->colors['heading'],
+			);
+			if ( $this->is_rtl ) {
+				$heading_font['complexScript'] = array( 'name' => $this->font_name );
+			}
 			$php_word->addTitleStyle(
 				$i,
-				array(
-					'name'  => $this->font_name,
-					'size'  => $heading_sizes[ $i - 1 ],
-					'bold'  => true,
-					'color' => $this->colors['heading'],
-				),
+				$heading_font,
 				array(
 					'spaceBefore' => Converter::pointToTwip( $i <= 2 ? 18 : 12 ),
 					'spaceAfter'  => Converter::pointToTwip( 6 ),
@@ -507,11 +544,13 @@ class SScribe_Exporter {
 		}
 		$section->addText(
 			$this->safe_text( $cover_title ),
-			array(
-				'name'  => $this->font_name,
-				'size'  => 28,
-				'bold'  => true,
-				'color' => $this->colors['heading'],
+			$this->with_complex_script(
+				array(
+					'name'  => $this->font_name,
+					'size'  => 28,
+					'bold'  => true,
+					'color' => $this->colors['heading'],
+				)
 			),
 			$this->get_para_style( array( 'alignment' => Jc::CENTER ) )
 		);
@@ -594,11 +633,13 @@ class SScribe_Exporter {
 					/* translators: %s: breadcrumb path */
 					sprintf( __( 'Site Path: %s', 'sscribe-export-site-pages' ), $breadcrumb_text )
 				),
-				array(
-					'name'   => $this->font_name,
-					'size'   => 9,
-					'color'  => $this->colors['body'],
-					'italic' => true,
+				$this->with_complex_script(
+					array(
+						'name'   => $this->font_name,
+						'size'   => 9,
+						'color'  => $this->colors['body'],
+						'italic' => true,
+					)
 				),
 				$this->get_para_style( array( 'alignment' => Jc::CENTER ) )
 			);
@@ -912,11 +953,13 @@ class SScribe_Exporter {
 					$breadcrumb_text
 				)
 			),
-			array(
-				'name'   => $this->font_name,
-				'size'   => 9,
-				'italic' => true,
-				'color'  => $this->colors['body'],
+			$this->with_complex_script(
+				array(
+					'name'   => $this->font_name,
+					'size'   => 9,
+					'italic' => true,
+					'color'  => $this->colors['body'],
+				)
 			),
 			$this->get_para_style()
 		);
@@ -1069,6 +1112,10 @@ class SScribe_Exporter {
 				'size'  => $this->font_size,
 				'color' => $this->colors['body'],
 			);
+
+			if ( $this->is_rtl ) {
+				$font_style['complexScript'] = array( 'name' => $this->font_name );
+			}
 
 			if ( ! empty( $run['bold'] ) ) {
 				$font_style['bold'] = true;
