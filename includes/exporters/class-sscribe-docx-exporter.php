@@ -99,11 +99,18 @@ class SScribe_DOCX_Exporter implements SScribe_Exporter_Interface {
 			);
 
 		} catch ( \Throwable $e ) {
+			$exception_class = (string) get_class( $e );
+			$raw_message      = $e->getMessage();
+			// Include exception class name for diagnostics — many PHP/DOM errors have empty messages.
+			$display_message = ! empty( $raw_message )
+				? sprintf( '%s: %s', $exception_class, $raw_message )
+				: sprintf( '%s (no message)', $exception_class );
+
 			$this->logger->error(
 				'DOCX export crashed',
 				array(
 					'page_id' => $page_id,
-					'error'   => $e->getMessage(),
+					'error'   => $display_message,
 					'file'    => $e->getFile(),
 					'line'    => $e->getLine(),
 				)
@@ -114,7 +121,7 @@ class SScribe_DOCX_Exporter implements SScribe_Exporter_Interface {
 					/* translators: 1: Page ID, 2: Error message. */
 					__( 'DOCX export failed for page %1$d: %2$s', 'sscribe-export-site-pages' ),
 					$page_id,
-					$e->getMessage()
+					$display_message
 				),
 				array( 'page_id' => $page_id )
 			);

@@ -279,13 +279,19 @@ class SScribe_Exporter {
 				size_format( memory_get_peak_usage( true ) )
 			);
 
-			// Detect likely memory exhaustion even if error message doesn't explicitly say so.
-			$error_message = $e->getMessage();
-			$error_lower   = strtolower( $error_message );
+			// Build descriptive error message including exception class for diagnostics.
+			// Many PHPWord/DOMDocument exceptions have empty messages, so the class name is critical.
+			$exception_class = (string) get_class( $e );
+			$raw_message      = $e->getMessage();
+
+			$error_lower = strtolower( $raw_message );
 			if ( str_contains( $error_lower, 'memory' ) || str_contains( $error_lower, 'allocated' ) ) {
 				$error_message = 'Memory exhausted - ' . $memory_context;
+			} elseif ( ! empty( $raw_message ) ) {
+				$error_message = sprintf( '%s: %s | %s', $exception_class, $raw_message, $memory_context );
 			} else {
-				$error_message .= ' | ' . $memory_context;
+				// Exception message is empty — class name is the only diagnostic.
+				$error_message = sprintf( '%s (no message) | %s', $exception_class, $memory_context );
 			}
 
 			// phpcs:ignore WordPress.PHP.DevelopmentFunctions.error_log_error_log
