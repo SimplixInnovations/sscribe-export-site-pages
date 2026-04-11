@@ -70,12 +70,18 @@ class SScribe_Zip_Handler {
 	/**
 	 * Bundle export files from a directory into a ZIP.
 	 *
-	 * @param string $source_dir Directory containing export files.
-	 * @param string $zip_name   Desired ZIP filename (without extension).
-	 * @param array  $formats    Export formats used.
+	 * ZIP structure when multiple languages are exported:
+	 *   FORMAT/LANG/P001-Title.ext (e.g., DOCX/AR/P001-Title.docx)
+	 * ZIP structure when single language:
+	 *   FORMAT/P001-Title.ext or just P001-Title.ext (flat)
+	 *
+	 * @param string $source_dir    Directory containing export files.
+	 * @param string $zip_name      Desired ZIP filename (without extension).
+	 * @param array  $formats       Export formats used.
+	 * @param bool   $has_language  Whether a specific language was selected (false = all languages).
 	 * @return string|false Path to ZIP file or false on failure.
 	 */
-	public function create_zip( string $source_dir, string $zip_name = '', array $formats = array( 'docx' ) ): string|false {
+	public function create_zip( string $source_dir, string $zip_name = '', array $formats = array( 'docx' ), bool $has_language = true ): string|false {
 		if ( ! class_exists( 'ZipArchive' ) ) {
 			$this->logger->error( 'ZipArchive not available' );
 			$this->delete_directory( $source_dir );
@@ -124,15 +130,32 @@ class SScribe_Zip_Handler {
 			}
 
 			$use_folders = count( $formats ) > 1;
+			// When exporting all languages, organize into FORMAT/LANG/ subfolders.
+			$use_lang_folders = ! $has_language;
 
 			foreach ( $all_files as $format => $files ) {
 				$folder_name = strtoupper( $format );
 
 				foreach ( $files as $file ) {
-					if ( $use_folders ) {
-						$zip->addFile( $file, $folder_name . '/' . basename( $file ) );
+					$basename = basename( $file );
+
+					if ( $use_lang_folders ) {
+						// Extract language code from filename: P001-Title-AR.docx → AR.
+						// Pattern: ends with -XX.ext where XX is 2-letter language code.
+						$lang_code = $this->extract_lang_from_filename( $basename );
+
+						if ( $lang_code ) {
+							// Remove language suffix from filename since it's in the folder path.
+							$clean_name = $this->remove_lang_from_filename( $basename );
+							$zip->addFile( $file, $folder_name . '/' . $lang_code . '/' . $clean_name );
+						} else {
+							// No language code found — put in format folder directly.
+							$zip->addFile( $file, $folder_name . '/' . $basename );
+						}
+					} elseif ( $use_folders ) {
+						$zip->addFile( $file, $folder_name . '/' . $basename );
 					} else {
-						$zip->addFile( $file, basename( $file ) );
+						$zip->addFile( $file, $basename );
 					}
 				}
 			}
@@ -173,6 +196,35 @@ class SScribe_Zip_Handler {
 		delete_transient( $lock_key );
 
 		return file_exists( $zip_path ) ? $zip_path : false;
+	}
+
+	/**
+	 * Extract language code from a filename like P001-Title-AR.docx.
+	 *
+	 * Looks for a 2-letter uppercase language code before the file extension.
+	 *
+	 * @param string $filename The filename (basename only).
+	 * @return string|null Language code (e.g., 'AR') or null if not found.
+	 */
+	private function extract_lang_from_filename( string $filename ): ?string {
+		// Match -XX.ext where XX is 2-letter uppercase code before extension.
+		if ( preg_match( '/-([A-Z]{2})\.[a-z]+$/', $filename, $matches ) ) {
+			return $matches[1];
+		}
+		return null;
+	}
+
+	/**
+	 * Remove language code suffix from a filename.
+	 *
+	 * Converts P001-Title-AR.docx → P001-Title.docx.
+	 *
+	 * @param string $filename The filename (basename only).
+	 * @return string Filename without language suffix.
+	 */
+	private function remove_lang_from_filename( string $filename ): string {
+		// Remove -XX before extension where XX is 2-letter uppercase code.
+		return preg_replace( '/-([A-Z]{2})(\.[a-z]+)$/', '$2', $filename );
 	}
 
 	/**
