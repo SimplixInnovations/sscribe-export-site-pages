@@ -6,6 +6,14 @@ All notable changes to this project will be documented in this file.
 
 ### Changed
 
+## [3.30.8] - 2026-04-11
+
+### Fixed
+- DOCX export error messages now include exception class name for diagnostics (previously empty messages made debugging impossible).
+- Synced develop branch with main branch (was stuck at 3.30.3).
+
+### Changed
+
 ## [3.30.7] - 2026-04-11
 
 ### Fixed
