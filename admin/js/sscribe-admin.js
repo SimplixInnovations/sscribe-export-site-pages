@@ -379,7 +379,7 @@
 						SScribe.updateStatus(response.data.message);
 						SScribe.processBatch();
 					} else {
-						SScribe.showError(response.data.message, false, response.data);
+						SScribe.showError(response.data.message, false, SScribe.normalizeErrorData(response.data));
 					}
 				},
 				error: function (xhr) {
@@ -439,7 +439,7 @@
 						if (response.data.retry === true) {
 							setTimeout($.proxy(SScribe.processBatch, SScribe), 2000);
 						} else {
-							SScribe.showError(response.data.message, isCancelled, response.data);
+							SScribe.showError(response.data.message, isCancelled, SScribe.normalizeErrorData(response.data));
 						}
 					}
 				},
@@ -649,6 +649,29 @@
 			}
 		},
 
+		normalizeErrorData: function (errorData) {
+			var normalized = errorData || {};
+			var diagnostics = normalized.error_diagnostics || normalized.diagnostics || null;
+
+			if (!diagnostics) {
+				return normalized;
+			}
+
+			if (!normalized.guidance && diagnostics.guidance) {
+				normalized.guidance = diagnostics.guidance;
+			}
+
+			if ((!normalized.fix_steps || !normalized.fix_steps.length) && diagnostics.fix_steps) {
+				normalized.fix_steps = diagnostics.fix_steps;
+			}
+
+			if (!normalized.technical && diagnostics.technical) {
+				normalized.technical = diagnostics.technical;
+			}
+
+			return normalized;
+		},
+
 		formatGuidance: function (text) {
 			var escaped = this.escapeHtml(text);
 			escaped = escaped.replace(/\n/g, '<br>');
@@ -832,7 +855,7 @@
 				},
 				success: function (response) {
 					if (response.success && response.data.log) {
-						SScribe.renderLog(response.data.log);
+						SScribe.renderLog(response.data.log, response.data.diagnostics || null);
 					} else {
 						$('#sscribe-log-content').html('<div class="sscribe-log-empty"><p></p></div>');
 						$('#sscribe-log-content').find('p').text(response.data.message || (sscribe_data.strings && sscribe_data.strings.log_not_found) || 'Log not found.');
@@ -845,9 +868,10 @@
 			});
 		},
 
-		renderLog: function (log) {
+		renderLog: function (log, diagnostics) {
 			var self = this;
 			var strings = sscribe_data.strings || {};
+			diagnostics = diagnostics || log.diagnostics || null;
 			var html = '<div class="sscribe-log-summary">';
 			html += '<div class="sscribe-log-stat"><strong>' + self.escapeHtml(strings.log_total || 'Total:') + '</strong> ' + (log.total_pages || 0) + ' ' + self.escapeHtml(strings.log_pages || 'pages') + '</div>';
 			html += '<div class="sscribe-log-stat"><strong>' + self.escapeHtml(strings.log_success_label || 'Success:') + '</strong> <span class="sscribe-log-success">' + (log.success || 0) + '</span></div>';
@@ -892,7 +916,87 @@
 				html += '</ul></div>';
 			}
 
+			if (diagnostics && (diagnostics.categories || diagnostics.fix_steps || diagnostics.technical)) {
+				html += self.renderLogDiagnostics(diagnostics);
+			}
+
 			$('#sscribe-log-content').html(html);
+		},
+
+		renderLogDiagnostics: function (diagnostics) {
+			var html = '<div class="sscribe-log-errors sscribe-log-diagnostics">';
+			html += '<h4>' + this.escapeHtml((sscribe_data.strings && sscribe_data.strings.log_diagnostics) || 'Diagnostics') + '</h4>';
+
+			if (diagnostics.categories && diagnostics.categories.length) {
+				html += '<div class="sscribe-log-diagnostic-badges">';
+				for (var i = 0; i < diagnostics.categories.length; i++) {
+					var category = diagnostics.categories[i];
+					html += '<span class="sscribe-badge ' + this.escapeHtml(this.getDiagnosticBadgeClass(category)) + '">' + this.escapeHtml(this.humanizeSupportKey(String(category))) + '</span>';
+				}
+				html += '</div>';
+			}
+
+			if (diagnostics.entries && diagnostics.entries.length) {
+				html += '<ul class="sscribe-log-diagnostic-list">';
+				for (var j = 0; j < diagnostics.entries.length; j++) {
+					var entry = diagnostics.entries[j] || {};
+					html += '<li>';
+					html += '<strong>' + this.escapeHtml(this.humanizeSupportKey(String(entry.category || 'unknown'))) + '</strong>';
+					if (entry.severity) {
+						html += ' <span class="sscribe-badge ' + this.escapeHtml(this.getSeverityBadgeClass(entry.severity)) + '">' + this.escapeHtml(String(entry.severity)) + '</span>';
+					}
+					if (entry.error) {
+						html += '<div>' + this.escapeHtml(String(entry.error)) + '</div>';
+					}
+					html += '</li>';
+				}
+				html += '</ul>';
+			}
+
+			if (diagnostics.guidance) {
+				html += '<p>' + this.formatGuidance(diagnostics.guidance) + '</p>';
+			}
+
+			if (diagnostics.fix_steps && diagnostics.fix_steps.length) {
+				html += '<h5>' + this.escapeHtml((sscribe_data.strings && sscribe_data.strings.fix_steps) || 'Steps to fix:') + '</h5>';
+				html += '<ol>';
+				for (var k = 0; k < diagnostics.fix_steps.length; k++) {
+					html += '<li>' + this.escapeHtml(String(diagnostics.fix_steps[k])) + '</li>';
+				}
+				html += '</ol>';
+			}
+
+			if (diagnostics.technical) {
+				html += '<details class="sscribe-log-diagnostic-details"><summary>' + this.escapeHtml((sscribe_data.strings && sscribe_data.strings.technical_details) || 'Technical details') + '</summary>';
+				html += '<pre>' + this.escapeHtml(JSON.stringify(diagnostics.technical, null, 2)) + '</pre>';
+				html += '</details>';
+			}
+
+			html += '</div>';
+			return html;
+		},
+
+		getDiagnosticBadgeClass: function (category) {
+			var map = {
+				memory_exhausted: 'sscribe-badge-danger',
+				timeout: 'sscribe-badge-warning',
+				pdf_generation: 'sscribe-badge-info',
+				pdf_missing_library: 'sscribe-badge-info',
+				pdf_filesystem: 'sscribe-badge-warning',
+				zip_creation: 'sscribe-badge-warning'
+			};
+
+			return map[category] || 'sscribe-badge-muted';
+		},
+
+		getSeverityBadgeClass: function (severity) {
+			var map = {
+				critical: 'sscribe-badge-danger',
+				error: 'sscribe-badge-warning',
+				warning: 'sscribe-badge-muted'
+			};
+
+			return map[severity] || 'sscribe-badge-muted';
 		},
 
 		escapeHtml: function (text) {
