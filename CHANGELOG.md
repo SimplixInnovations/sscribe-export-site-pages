@@ -6,6 +6,14 @@ All notable changes to this project will be documented in this file.
 
 ### Changed
 
+## [3.30.11] - 2026-04-11
+
+### Fixed
+- ZIP filename no longer shows "ALL-ALL" when exporting all formats and all languages. Now shows "ALL-LANGS" for multi-language and "ALL-FORMATS" for multi-format exports.
+- PDF export no longer times out with HTTP 404. Batch size is reduced to 2 pages when PDF format is included, and per-batch execution time is increased to 300 seconds for PDF-heavy exports.
+- PDF exporter now checks for DomPDF availability before attempting export and provides clear error messages with exception class names.
+- Adaptive export metrics are now accurate — per-format timing and file sizes are tracked individually during batch processing instead of dividing total ZIP size equally across all formats.
+
 ## [3.30.10] - 2026-04-11
 
 ### Changed
