@@ -6,6 +6,13 @@ All notable changes to this project will be documented in this file.
 
 ### Changed
 
+## [3.30.9] - 2026-04-11
+
+### Fixed
+- DOCX export now resilient to individual section/element failures — a bad cover page, image, table, or content element no longer kills the entire page export.
+- Per-element try-catch in main content rendering so one malformed HTML element doesn't abort the page.
+- Featured image handler now catches `\Throwable` (not just `\Exception`) to handle TypeErrors from image processing.
+
 ## [3.30.8] - 2026-04-11
 
 ### Fixed
