@@ -1381,6 +1381,14 @@ class SScribe_Batch_Processor {
 	 * @return void
 	 */
 	private function finalize_export( string $session_id, array $session ): void {
+		// Increase time limit for ZIP finalization.
+		// Creating a ZIP with many PDF files (each 1-5MB) is I/O intensive and can
+		// exceed the default batch time limit, causing a 404 "session not found" error.
+		if ( function_exists( 'set_time_limit' ) ) {
+			// phpcs:ignore WordPress.PHP.DiscouragedFunctions.Discouraged, WordPress.PHP.IniSet.max_execution_time_Blacklisted -- ZIP creation with many large files (especially PDF) requires extended time.
+			set_time_limit( 300 );
+		}
+
 		$this->logger->debug(
 			'=== FINALIZE EXPORT ===',
 			array(
@@ -1435,7 +1443,7 @@ class SScribe_Batch_Processor {
 		}
 		$this->logger->debug( 'Files in temp dir BEFORE ZIP', $files_before );
 
-		$zip_path = $this->zip_handler->create_zip( $session['temp_dir'], $zip_name, $formats );
+		$zip_path = $this->zip_handler->create_zip( $session['temp_dir'], $zip_name, $formats, $has_language );
 
 		if ( ! $zip_path ) {
 			$this->logger->debug(

@@ -100,13 +100,14 @@ class SScribe_Exporter_Factory {
 	 * so users can identify files at a glance. The slug is NOT used because
 	 * it is shared across all language variants of the same page.
 	 *
-	 * @param array  $page_data Page data array (must contain 'title' and 'id').
-	 * @param int    $index     Sequential position (1-based).
-	 * @param int    $total     Total pages (unused, kept for API compatibility).
-	 * @param string $extension File extension without dot.
+	 * @param array  $page_data    Page data array (must contain 'title' and 'id').
+	 * @param int    $index        Sequential position (1-based).
+	 * @param int    $total        Total pages (unused, kept for API compatibility).
+	 * @param string $extension    File extension without dot.
+	 * @param bool   $include_lang Whether to include language code suffix (default true).
 	 * @return string Filename with extension.
 	 */
-	public static function build_filename( array $page_data, int $index = 0, int $total = 0, string $extension = 'docx' ): string {
+	public static function build_filename( array $page_data, int $index = 0, int $total = 0, string $extension = 'docx', bool $include_lang = true ): string {
 		$page_id = (int) ( $page_data['id'] ?? 0 );
 
 		// Include page title in native language for user-friendly identification.
@@ -124,12 +125,12 @@ class SScribe_Exporter_Factory {
 		}
 
 		$lang_code = '';
-		if ( ! empty( $page_data['language'] ) ) {
+		if ( $include_lang && ! empty( $page_data['language'] ) ) {
 			$lang      = substr( $page_data['language'], 0, 2 );
 			$lang_code = '-' . strtoupper( sanitize_key( $lang ) );
 		}
 
-		// Format: P001-Page-Title-AR.docx.
+		// Format: P001-Page-Title-AR.docx (with lang) or P001-Page-Title.docx (without lang).
 		return sprintf(
 			'P%03d-%s%s.%s',
 			$index > 0 ? $index : $page_id,
