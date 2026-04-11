@@ -6,7 +6,19 @@ All notable changes to this project will be documented in this file.
 
 ### Changed
 
-## [3.30.12] - 2026-04-11
+## [3.30.13] - 2026-04-11
+
+### Fixed
+- Recent Exports now displays the correct language badge (AR, HE, etc.) instead of always showing "EN" — language metadata is stored in the export index at ZIP creation time.
+- Download, trash, and log action icons in Recent Exports no longer return 404 — corrected `icons_url` from `admin/img/` to `assets/icons/` in JS localization.
+- PDF export failures now provide enterprise-grade structured diagnostics — error category, severity, actionable fix steps, and technical context (memory, HTML size, libxml errors, DomPDF details) surface in both the Export Log viewer modal and the frontend error UI.
+
+### Changed
+- Recent Exports list uses the `sscribe_export_index` option as the authoritative data source instead of unreliable filename parsing with glob.
+- `create_zip()` accepts `$lang_metadata` parameter to store `lang_code`, `lang_name`, and `flag_url` in the export index.
+- PDF exporter returns detailed failure context including `error_category`, `html_size`, `memory_usage`, `memory_peak`, `memory_limit`, `page_id`, `language`, `is_rtl`, `libxml_errors`, and `exception_class`.
+- Batch processor propagates structured errors with `format`, `message`, `category`, and `context` through the pipeline, with aggregated `error_diagnostics` in AJAX responses.
+- Export Log viewer modal renders categorized diagnostics with color-coded severity badges, ordered fix steps, and collapsible technical details.
 
 ### Fixed
 - Arabic/RTL text in DOCX exports now renders correctly with `complexScript` font support — no more square characters in Microsoft Word and compatible editors.

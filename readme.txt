@@ -4,7 +4,7 @@ Donate link: https://simplixi.com
 Tags: export, docx, multilingual, seo, pdf
 Requires at least: 6.0
 Tested up to: 6.9.5
-Stable tag: 3.30.12
+Stable tag: 3.30.13
 Requires PHP: 8.2
 License: GPLv2 or later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
@@ -229,6 +229,15 @@ Each document includes: cover page with title/URL/date/breadcrumbs, featured ima
 
 == Changelog ==
 
+= 3.30.13 =
+
+* Fixed: Recent Exports now shows the correct language badge (AR, HE, etc.) instead of always showing "EN" — language metadata is now stored in the export index
+* Fixed: Download, trash, and log icons in Recent Exports no longer return 404 — corrected icon URL path from admin/img/ to assets/icons/
+* Fixed: Enterprise-grade PDF error reporting — structured diagnostics with error category, severity, fix steps, and technical context (memory, HTML size, libxml errors) now surface in both the Export Log viewer and error UI
+* Improved: Recent Exports list now uses the export index as authoritative data source instead of unreliable filename parsing
+* Improved: PDF exporter returns detailed failure context including HTML size, memory usage, DomPDF details, and libxml parsing errors
+* Improved: Batch processor propagates structured errors with category, severity, and actionable fix steps through the entire pipeline
+
 = 3.30.12 =
 
 * Fixed: Arabic/RTL text in DOCX exports now renders correctly with complex script font support — no more square characters in Microsoft Word
@@ -380,6 +389,14 @@ Major feature release: Full RTL/Arabic language support, image processing, and s
 = 3.15.3 =
 
 Critical fixes: SSCRIBE_DEBUG PHP warning fix, WP.org tags compliance, and performance improvements. Recommended update for all users.
+
+= 3.30.13 =
+
+Critical fixes: Language badge now displays correctly in Recent Exports, action icons (download/trash/log) no longer return 404, and PDF exports now provide enterprise-grade error diagnostics with actionable fix steps. Recommended update for all users.
+
+= 3.30.12 =
+
+Critical fix: Arabic/RTL text now renders correctly in DOCX exports (no more square characters). Multi-language ZIP exports are organized into language subfolders. Recommended update for all multilingual sites.
 
 = 3.15.2 =
 
