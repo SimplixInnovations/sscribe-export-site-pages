@@ -85,16 +85,28 @@ class SScribe_PDF_Exporter implements SScribe_Exporter_Interface {
 		}
 
 		$html_content = $html_result->get_data()['html'] ?? '';
+		$html_size    = strlen( $html_content );
 
-		$dompdf      = null;
-		$prev_errors = libxml_use_internal_errors( true );
+		$dompdf        = null;
+		$libxml_errors = array();
+		$prev_errors   = libxml_use_internal_errors( true );
 
 		try {
 			// Verify DomPDF is available before attempting export.
 			if ( ! class_exists( '\\SScribeVendor\\Dompdf\\Dompdf' ) && ! class_exists( '\\Dompdf\\Dompdf' ) ) {
 				return SScribe_Result::failure(
 					__( 'PDF export is not available — DomPDF library is missing. Please reinstall the plugin.', 'sscribe-export-site-pages' ),
-					array( 'page_id' => $page_id )
+					array(
+						'error_category' => 'pdf_missing_library',
+						'page_id'        => $page_id,
+						'page_title'     => $title,
+						'language'       => $language,
+						'fix_steps'      => array(
+							__( 'Reinstall the SScribe plugin to restore the bundled DomPDF library.', 'sscribe-export-site-pages' ),
+							__( 'Verify the plugin upload completed successfully and no vendor files were removed.', 'sscribe-export-site-pages' ),
+							__( 'If the issue persists, contact support or your hosting provider to inspect the plugin files.', 'sscribe-export-site-pages' ),
+						),
+					)
 				);
 			}
 
@@ -126,19 +138,30 @@ class SScribe_PDF_Exporter implements SScribe_Exporter_Interface {
 			$result = $this->filesystem->put_contents( $output_path, $output );
 
 			if ( ! $result ) {
+				$fs_error  = $this->filesystem->get_last_error();
+				$fs_method = $this->filesystem->get_method();
+
 				$this->logger->error(
 					'PDF export failed: filesystem write error',
 					array(
 						'page_id'   => $page_id,
 						'path'      => $output_path,
-						'fs_error'  => $this->filesystem->get_last_error(),
-						'fs_method' => $this->filesystem->get_method(),
+						'fs_error'  => $fs_error,
+						'fs_method' => $fs_method,
 					)
 				);
 
 				return SScribe_Result::failure(
 					__( 'Failed to write PDF file.', 'sscribe-export-site-pages' ),
-					array( 'page_id' => $page_id )
+					array(
+						'error_category' => 'pdf_filesystem',
+						'page_id'        => $page_id,
+						'page_title'     => $title,
+						'language'       => $language,
+						'fs_method'      => $fs_method,
+						'fs_error'       => $fs_error,
+						'output_path'    => $output_path,
+					)
 				);
 			}
 
@@ -150,14 +173,21 @@ class SScribe_PDF_Exporter implements SScribe_Exporter_Interface {
 			);
 
 		} catch ( \Throwable $e ) {
+			$libxml_errors = $this->get_libxml_error_details();
+
 			$this->logger->error(
 				'PDF generation failed',
 				array(
-					'error'   => $e->getMessage(),
-					'class'   => get_class( $e ),
-					'page_id' => $page_id,
-					'file'    => $e->getFile(),
-					'line'    => $e->getLine(),
+					'error'         => $e->getMessage(),
+					'class'         => get_class( $e ),
+					'page_id'       => $page_id,
+					'file'          => $e->getFile(),
+					'line'          => $e->getLine(),
+					'html_size'     => $html_size,
+					'memory_usage'  => memory_get_usage( true ),
+					'memory_peak'   => memory_get_peak_usage( true ),
+					'memory_limit'  => ini_get( 'memory_limit' ),
+					'libxml_errors' => $libxml_errors,
 				)
 			);
 
@@ -168,7 +198,21 @@ class SScribe_PDF_Exporter implements SScribe_Exporter_Interface {
 					get_class( $e ),
 					$e->getMessage()
 				),
-				array( 'page_id' => $page_id )
+				array(
+					'error_category'   => 'pdf_generation',
+					'page_id'          => $page_id,
+					'page_title'       => $title,
+					'language'         => $language,
+					'is_rtl'           => $is_rtl,
+					'html_size'        => $html_size,
+					'memory_usage'     => memory_get_usage( true ),
+					'memory_peak'      => memory_get_peak_usage( true ),
+					'memory_limit'     => ini_get( 'memory_limit' ),
+					'dompdf_available' => true,
+					'libxml_errors'    => $libxml_errors,
+					'exception_class'  => get_class( $e ),
+					'exception_file'   => basename( $e->getFile() ) . ':' . $e->getLine(),
+				)
 			);
 		} finally {
 			libxml_clear_errors();
@@ -193,6 +237,30 @@ class SScribe_PDF_Exporter implements SScribe_Exporter_Interface {
 		}
 
 		return $page_data;
+	}
+
+	/**
+	 * Collect libxml errors in a serializable structure.
+	 *
+	 * @return array<int, array<string, int|string>>
+	 */
+	private function get_libxml_error_details(): array {
+		$errors  = libxml_get_errors();
+		$details = array();
+
+		foreach ( $errors as $error ) {
+
+			$details[] = array(
+				'level'   => (int) $error->level,
+				'code'    => (int) $error->code,
+				'line'    => (int) $error->line,
+				'column'  => (int) $error->column,
+				'message' => trim( $error->message ),
+				'file'    => (string) $error->file,
+			);
+		}
+
+		return $details;
 	}
 
 	/**

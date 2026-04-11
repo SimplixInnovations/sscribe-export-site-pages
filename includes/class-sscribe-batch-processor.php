@@ -647,17 +647,18 @@ class SScribe_Batch_Processor {
 
 		$session_id = $this->session->create(
 			array(
-				'page_ids'    => $page_ids,
-				'temp_dir'    => $temp_dir,
-				'total'       => $total,
-				'processed'   => 0,
-				'language'    => $language,
-				'post_status' => $post_status,
-				'formats'     => $formats,
-				'errors'      => array(),
-				'start_time'  => time(),
-				'cancelled'   => false,
-				'user_id'     => $user_id,
+				'page_ids'          => $page_ids,
+				'temp_dir'          => $temp_dir,
+				'total'             => $total,
+				'processed'         => 0,
+				'language'          => $language,
+				'post_status'       => $post_status,
+				'formats'           => $formats,
+				'errors'            => array(),
+				'structured_errors' => array(),
+				'start_time'        => time(),
+				'cancelled'         => false,
+				'user_id'           => $user_id,
 			)
 		);
 
@@ -905,14 +906,15 @@ class SScribe_Batch_Processor {
 			return;
 		}
 
-		$page_ids   = $session['page_ids'];
-		$processed  = $session['processed'];
-		$total      = $session['total'];
-		$temp_dir   = $session['temp_dir'];
-		$errors     = isset( $session['errors'] ) ? $session['errors'] : array();
-		$start_time = isset( $session['start_time'] ) ? $session['start_time'] : time();
-		$formats    = isset( $session['formats'] ) ? $session['formats'] : array( 'docx' );
-		$session_id = $session['session_id'] ?? '';
+		$page_ids          = $session['page_ids'];
+		$processed         = $session['processed'];
+		$total             = $session['total'];
+		$temp_dir          = $session['temp_dir'];
+		$errors            = isset( $session['errors'] ) ? $session['errors'] : array();
+		$structured_errors = isset( $session['structured_errors'] ) && is_array( $session['structured_errors'] ) ? $session['structured_errors'] : array();
+		$start_time        = isset( $session['start_time'] ) ? $session['start_time'] : time();
+		$formats           = isset( $session['formats'] ) ? $session['formats'] : array( 'docx' );
+		$session_id        = $session['session_id'] ?? '';
 
 		$this->export_log = new SScribe_Export_Log( $session_id );
 
@@ -1137,10 +1139,12 @@ class SScribe_Batch_Processor {
 							)
 						);
 					} else {
-						$export_errors[] = sprintf(
-							'%s: %s',
-							strtoupper( $format ),
-							$result->get_error()
+						$result_data     = $result->get_data();
+						$export_errors[] = array(
+							'format'   => strtoupper( $format ),
+							'message'  => $result->get_error(),
+							'category' => $result_data['error_category'] ?? 'unknown',
+							'context'  => is_array( $result_data ) ? $result_data : array(),
 						);
 
 						if ( $this->export_log ) {
@@ -1155,7 +1159,20 @@ class SScribe_Batch_Processor {
 					__( 'Critical error: %s', 'sscribe-export-site-pages' ),
 					$e->getMessage()
 				);
-				$export_errors[] = $error_msg;
+				$export_errors[] = array(
+					'format'   => 'SYSTEM',
+					'message'  => $error_msg,
+					'category' => 'critical_error',
+					'context'  => array(
+						'page_id'         => $page_id,
+						'page_title'      => $page_data['title'] ?? '',
+						'exception_class' => get_class( $e ),
+						'exception_file'  => basename( $e->getFile() ) . ':' . $e->getLine(),
+						'memory_usage'    => memory_get_usage( true ),
+						'memory_peak'     => memory_get_peak_usage( true ),
+						'memory_limit'    => ini_get( 'memory_limit' ),
+					),
+				);
 
 				$this->logger->error(
 					'Critical error during page export',
@@ -1171,24 +1188,53 @@ class SScribe_Batch_Processor {
 			$page_duration = round( microtime( true ) - $page_start_time, 3 );
 
 			if ( ! $export_success ) {
-				$error_msg = sprintf(
+				$string_export_errors = array();
+				$error_msg            = sprintf(
 					/* translators: %s: Page title. */
 					__( 'Failed to generate exports for "%s".', 'sscribe-export-site-pages' ),
 					$page_data['title']
 				);
-				$errors[] = $error_msg . ' ' . implode( ', ', $export_errors );
+
+				foreach ( $export_errors as $export_error ) {
+					$string_export_errors[] = sprintf(
+						'%s: %s',
+						$export_error['format'],
+						$export_error['message'] ?? ''
+					);
+				}
+
+				$errors[] = $error_msg . ' ' . implode( ', ', $string_export_errors );
 
 				if ( $this->export_log ) {
-					$this->export_log->log_page_failure( $page_id, implode( '; ', $export_errors ), $formats );
+					$this->export_log->log_page_failure( $page_id, implode( '; ', $string_export_errors ), $formats );
 				}
 
 				$detailed_errors = array();
 				foreach ( $export_errors as $format_error ) {
-					$parts             = explode( ':', $format_error, 2 );
-					$fmt               = strtolower( trim( $parts[0] ) );
-					$err_msg           = trim( $parts[1] ?? $format_error );
-					$detailed_errors[] = $this->diagnostics->diagnose_page_error( $page_id, $fmt, $err_msg );
+					$fmt       = strtolower( $format_error['format'] );
+					$err_msg   = $format_error['message'] ?? '';
+					$context   = $format_error['context'];
+					$diagnosis = $this->diagnostics->diagnose_page_error( $page_id, $fmt, $err_msg, $context );
+
+					if ( ! empty( $format_error['category'] ) && 'unknown' !== $format_error['category'] ) {
+						$diagnosis['category'] = $format_error['category'];
+					}
+
+					if ( ! empty( $context['fix_steps'] ) && empty( $diagnosis['fix'] ) ) {
+						$diagnosis['fix'] = $context['fix_steps'];
+					}
+
+					$detailed_errors[] = $diagnosis;
 				}
+
+				$structured_errors[] = array(
+					'page_id'     => $page_id,
+					'page_title'  => $page_data['title'],
+					'message'     => $error_msg,
+					'errors'      => $export_errors,
+					'diagnostics' => $detailed_errors,
+					'time'        => current_time( 'mysql' ),
+				);
 
 				$this->logger->debug(
 					'ERROR: Export failed',
@@ -1245,9 +1291,10 @@ class SScribe_Batch_Processor {
 
 		// Build session update data, only including format metrics that have values.
 		$update_data = array(
-			'processed'  => $processed,
-			'errors'     => $errors,
-			'start_time' => $start_time,
+			'processed'         => $processed,
+			'errors'            => $errors,
+			'structured_errors' => $structured_errors,
+			'start_time'        => $start_time,
 		);
 
 		// Persist per-format timing/size metrics across batches.
@@ -1287,6 +1334,9 @@ class SScribe_Batch_Processor {
 
 		if ( $is_done ) {
 			$this->logger->debug( 'All pages processed, finalizing' );
+			$session['processed']         = $processed;
+			$session['errors']            = $errors;
+			$session['structured_errors'] = $structured_errors;
 			$this->release_lock( $session_id );
 			$this->restore_ob_level( $ob_level_before );
 			$this->finalize_export( $session_id, $session );
@@ -1338,6 +1388,10 @@ class SScribe_Batch_Processor {
 					)
 				),
 		);
+
+		if ( ! empty( $structured_errors ) ) {
+			$response['error_diagnostics'] = $this->build_error_diagnostics_payload( $structured_errors, $errors );
+		}
 
 		if ( $memory_paused ) {
 			$response['resume_guidance'] = __( 'The export paused briefly to manage server memory. It will resume automatically. No action needed.', 'sscribe-export-site-pages' );
@@ -1409,6 +1463,25 @@ class SScribe_Batch_Processor {
 			$site_slug = 'export';
 		}
 
+		// Build language metadata for export index (used by Recent Exports UI).
+		$lang_name = $has_language ? strtoupper( $lang_code ) : 'All Languages';
+		$flag_url  = '';
+		if ( $this->collector->is_wpml_active() && $has_language ) {
+			$wpml_languages = $this->collector->get_wpml_languages();
+			foreach ( $wpml_languages as $wl ) {
+				if ( isset( $wl['code'] ) && $wl['code'] === $lang_code ) {
+					$lang_name = $wl['name'] ?? strtoupper( $lang_code );
+					$flag_url  = $wl['flag_url'] ?? '';
+					break;
+				}
+			}
+		}
+		$lang_metadata = array(
+			'lang_code' => $has_language ? $lang_code : 'all',
+			'lang_name' => $lang_name,
+			'flag_url'  => $flag_url,
+		);
+
 		$formats = isset( $session['formats'] ) ? $session['formats'] : array( 'docx' );
 
 		$format_suffix = count( $formats ) > 1 ? 'ALL-FORMATS' : strtoupper( $formats[0] );
@@ -1443,7 +1516,7 @@ class SScribe_Batch_Processor {
 		}
 		$this->logger->debug( 'Files in temp dir BEFORE ZIP', $files_before );
 
-		$zip_path = $this->zip_handler->create_zip( $session['temp_dir'], $zip_name, $formats, $has_language );
+		$zip_path = $this->zip_handler->create_zip( $session['temp_dir'], $zip_name, $formats, $has_language, $lang_metadata );
 
 		if ( ! $zip_path ) {
 			$this->logger->debug(
@@ -1471,8 +1544,43 @@ class SScribe_Batch_Processor {
 			// Run self-heal to clear any orphaned data from this failed export.
 			$this->diagnostics->self_heal();
 
+			$zip_error = array(
+				'page_id'     => 0,
+				'page_title'  => __( 'ZIP package', 'sscribe-export-site-pages' ),
+				'message'     => __( 'Failed to create ZIP package. Please try again.', 'sscribe-export-site-pages' ),
+				'errors'      => array(
+					array(
+						'format'   => 'ZIP',
+						'message'  => __( 'Failed to create ZIP package.', 'sscribe-export-site-pages' ),
+						'category' => 'zip_creation',
+						'context'  => array(
+							'temp_dir'       => $session['temp_dir'],
+							'expected_files' => $files_before,
+						),
+					),
+				),
+				'diagnostics' => array(
+					$this->diagnostics->diagnose_page_error(
+						0,
+						'zip',
+						'Failed to create ZIP package.',
+						array(
+							'temp_dir'       => $session['temp_dir'],
+							'expected_files' => $files_before,
+						)
+					),
+				),
+				'time'        => current_time( 'mysql' ),
+			);
+
+			$error_diagnostics = $this->build_error_diagnostics_payload( array( $zip_error ), $session['errors'] ?? array() );
+
 			$error_response = array(
-				'message' => __( 'Failed to create ZIP package. Please try again.', 'sscribe-export-site-pages' ),
+				'message'           => __( 'Failed to create ZIP package. Please try again.', 'sscribe-export-site-pages' ),
+				'guidance'          => $error_diagnostics['guidance'],
+				'fix_steps'         => $error_diagnostics['fix_steps'],
+				'technical'         => $error_diagnostics['technical'],
+				'error_diagnostics' => $error_diagnostics,
 			);
 
 			$sscribe_is_debug = defined( 'SSCRIBE_DEBUG' ) && SSCRIBE_DEBUG;
@@ -1524,7 +1632,8 @@ class SScribe_Batch_Processor {
 
 		$this->session->delete( $session_id );
 
-		$error_count = count( $session['errors'] ?? array() );
+		$error_count       = count( $session['errors'] ?? array() );
+		$structured_errors = isset( $session['structured_errors'] ) && is_array( $session['structured_errors'] ) ? $session['structured_errors'] : array();
 
 		$download_url = $this->zip_handler->get_ajax_download_url( basename( $zip_path ) );
 
@@ -1565,18 +1674,20 @@ class SScribe_Batch_Processor {
 			}
 		}
 
-		$log_summary = $this->export_log ? $this->export_log->get_summary() : array();
+		$log_summary       = $this->export_log ? $this->export_log->get_summary() : array();
+		$error_diagnostics = $this->build_error_diagnostics_payload( $structured_errors, $session['errors'] ?? array() );
 
 		$response = array(
-			'status'       => 'complete',
-			'processed'    => $session['total'],
-			'total'        => $session['total'],
-			'percentage'   => 100,
-			'download_url' => $download_url,
-			'filename'     => basename( $zip_path ),
-			'errors'       => $session['errors'] ?? array(),
-			'log_summary'  => $log_summary,
-			'message'      => sprintf(
+			'status'            => 'complete',
+			'processed'         => $session['total'],
+			'total'             => $session['total'],
+			'percentage'        => 100,
+			'download_url'      => $download_url,
+			'filename'          => basename( $zip_path ),
+			'errors'            => $session['errors'] ?? array(),
+			'error_diagnostics' => $error_diagnostics,
+			'log_summary'       => $log_summary,
+			'message'           => sprintf(
 				/* translators: %d: Number of pages exported. */
 				_n(
 					'Export complete! %d page exported successfully.',
@@ -1856,7 +1967,237 @@ class SScribe_Batch_Processor {
 			return;
 		}
 
-		wp_send_json_success( array( 'log' => $log_data ) );
+		$structured_errors = $this->build_structured_errors_from_log( $log_data );
+		$diagnostics       = $this->build_error_diagnostics_payload( $structured_errors, wp_list_pluck( $log_data['errors'] ?? array(), 'message' ) );
+
+		wp_send_json_success(
+			array(
+				'log'         => $log_data,
+				'diagnostics' => $diagnostics,
+			)
+		);
+	}
+
+	/**
+	 * Build a normalized diagnostics payload for AJAX responses.
+	 *
+	 * @param array $structured_errors Structured page error entries.
+	 * @param array $string_errors     Legacy string errors.
+	 * @return array
+	 */
+	private function build_error_diagnostics_payload( array $structured_errors, array $string_errors = array() ): array {
+		$categories      = array();
+		$guidance_map    = array();
+		$fix_steps_map   = array();
+		$technical_items = array();
+		$diagnostics     = array();
+		$html_sizes      = array();
+		$memory_peaks    = array();
+		$memory_limits   = array();
+		$exception_types = array();
+		$formats         = array();
+		$page_ids        = array();
+		$libxml_count    = 0;
+
+		foreach ( $structured_errors as $entry ) {
+			$page_id       = (int) ( $entry['page_id'] ?? 0 );
+			$page_ids[]    = $page_id;
+			$format_errors = isset( $entry['errors'] ) && is_array( $entry['errors'] ) ? $entry['errors'] : array();
+
+			if ( ! empty( $entry['diagnostics'] ) && is_array( $entry['diagnostics'] ) ) {
+				foreach ( $entry['diagnostics'] as $diagnosis ) {
+					$diagnostics[] = $diagnosis;
+				}
+			} else {
+				foreach ( $format_errors as $format_error ) {
+					$diagnostics[] = $this->diagnostics->diagnose_page_error(
+						$page_id,
+						strtolower( $format_error['format'] ?? 'unknown' ),
+						$format_error['message'] ?? '',
+						is_array( $format_error['context'] ?? null ) ? $format_error['context'] : array()
+					);
+				}
+			}
+
+			foreach ( $format_errors as $format_error ) {
+				$context   = is_array( $format_error['context'] ?? null ) ? $format_error['context'] : array();
+				$formats[] = $format_error['format'] ?? 'UNKNOWN';
+
+				if ( isset( $context['html_size'] ) ) {
+					$html_sizes[] = (int) $context['html_size'];
+				}
+
+				if ( isset( $context['memory_peak'] ) ) {
+					$memory_peaks[] = (int) $context['memory_peak'];
+				}
+
+				if ( ! empty( $context['memory_limit'] ) ) {
+					$memory_limits[] = (string) $context['memory_limit'];
+				}
+
+				if ( ! empty( $context['exception_class'] ) ) {
+					$exception_types[] = (string) $context['exception_class'];
+				}
+
+				if ( ! empty( $context['libxml_errors'] ) && is_array( $context['libxml_errors'] ) ) {
+					$libxml_count += count( $context['libxml_errors'] );
+				}
+
+				if ( ! empty( $context ) ) {
+					$technical_items[] = array(
+						'page_id'    => $page_id,
+						'page_title' => $entry['page_title'] ?? '',
+						'format'     => $format_error['format'] ?? 'UNKNOWN',
+						'category'   => $format_error['category'] ?? 'unknown',
+						'context'    => $context,
+					);
+				}
+			}
+		}
+
+		foreach ( $diagnostics as $diagnosis ) {
+			$category                = $diagnosis['category'] ?? 'unknown';
+			$categories[ $category ] = true;
+
+			$guidance = $this->get_error_guidance_for_category( $category );
+			if ( ! empty( $guidance ) ) {
+				$guidance_map[ $guidance ] = true;
+			}
+
+			$fixes = $diagnosis['fix'] ?? array();
+			if ( is_array( $fixes ) ) {
+				foreach ( $fixes as $fix_step ) {
+					$fix_steps_map[ $fix_step ] = true;
+				}
+			}
+
+			$technical = $diagnosis['technical'] ?? array();
+			if ( ! empty( $technical ) ) {
+				$technical_items[] = array(
+					'page_id'  => $diagnosis['page_id'] ?? 0,
+					'format'   => strtoupper( $diagnosis['format'] ?? 'unknown' ),
+					'category' => $category,
+					'context'  => $technical,
+				);
+			}
+		}
+
+		if ( empty( $diagnostics ) && ! empty( $string_errors ) ) {
+			foreach ( $string_errors as $error_message ) {
+				$diagnosis     = $this->diagnostics->diagnose_page_error( 0, 'system', (string) $error_message );
+				$diagnostics[] = $diagnosis;
+				$categories[ $diagnosis['category'] ?? 'unknown' ] = true;
+				$guidance = $this->get_error_guidance_for_category( $diagnosis['category'] ?? 'unknown' );
+				if ( ! empty( $guidance ) ) {
+					$guidance_map[ $guidance ] = true;
+				}
+				foreach ( $diagnosis['fix'] ?? array() as $fix_step ) {
+					$fix_steps_map[ $fix_step ] = true;
+				}
+			}
+		}
+
+		return array(
+			'total_errors' => count( $string_errors ),
+			'categories'   => array_keys( $categories ),
+			'guidance'     => implode( "\n\n", array_keys( $guidance_map ) ),
+			'fix_steps'    => array_keys( $fix_steps_map ),
+			'technical'    => array(
+				'formats'            => array_unique( $formats ),
+				'page_ids'           => array_unique( $page_ids ),
+				'max_html_size'      => empty( $html_sizes ) ? 0 : max( $html_sizes ),
+				'max_memory_peak'    => empty( $memory_peaks ) ? 0 : max( $memory_peaks ),
+				'memory_limits'      => array_unique( $memory_limits ),
+				'exceptions'         => array_unique( $exception_types ),
+				'libxml_error_count' => $libxml_count,
+				'entries'            => $technical_items,
+			),
+			'entries'      => $diagnostics,
+		);
+	}
+
+	/**
+	 * Build structured error entries from log data.
+	 *
+	 * @param array $log_data Export log data.
+	 * @return array
+	 */
+	private function build_structured_errors_from_log( array $log_data ): array {
+		$structured_errors = array();
+		$pages             = isset( $log_data['pages'] ) && is_array( $log_data['pages'] ) ? $log_data['pages'] : array();
+
+		foreach ( $pages as $page_id => $page ) {
+			$page_errors = array();
+			$formats     = isset( $page['formats'] ) && is_array( $page['formats'] ) ? $page['formats'] : array();
+
+			foreach ( $formats as $format => $format_data ) {
+				if ( ! empty( $format_data['success'] ) || empty( $format_data['error'] ) ) {
+					continue;
+				}
+
+				$page_errors[] = array(
+					'format'   => strtoupper( $format ),
+					'message'  => (string) $format_data['error'],
+					'category' => 'unknown',
+					'context'  => array(
+						'page_id'    => (int) $page_id,
+						'page_title' => $page['title'] ?? '',
+						'memory'     => $page['memory'] ?? '',
+					),
+				);
+			}
+
+			if ( empty( $page_errors ) && ! empty( $page['error'] ) ) {
+				$page_errors[] = array(
+					'format'   => 'SYSTEM',
+					'message'  => (string) $page['error'],
+					'category' => 'unknown',
+					'context'  => array(
+						'page_id'    => (int) $page_id,
+						'page_title' => $page['title'] ?? '',
+						'memory'     => $page['memory'] ?? '',
+					),
+				);
+			}
+
+			if ( empty( $page_errors ) ) {
+				continue;
+			}
+
+			$structured_errors[] = array(
+				'page_id'    => (int) $page_id,
+				'page_title' => $page['title'] ?? '',
+				'message'    => $page['error'] ?? '',
+				'errors'     => $page_errors,
+				'time'       => $page['end_time'] ?? '',
+			);
+		}
+
+		return $structured_errors;
+	}
+
+	/**
+	 * Get user-facing guidance for an error category.
+	 *
+	 * @param string $category Error category.
+	 * @return string
+	 */
+	private function get_error_guidance_for_category( string $category ): string {
+		$guidance_map = array(
+			'memory_exhausted'    => __( 'The server ran out of memory during export. Large PDF renders often need a higher PHP memory limit.', 'sscribe-export-site-pages' ),
+			'timeout'             => __( 'The export is hitting a server time limit before rendering can finish. Reduce load or increase execution time.', 'sscribe-export-site-pages' ),
+			'pdf_generation'      => __( 'DomPDF could not render the page successfully. Review the technical details for HTML size, memory usage, and libxml parsing problems.', 'sscribe-export-site-pages' ),
+			'pdf_missing_library' => __( 'The DomPDF library is missing from the plugin install, so PDF export cannot start.', 'sscribe-export-site-pages' ),
+			'pdf_filesystem'      => __( 'The PDF was generated but could not be written to disk. Review filesystem access and output path details.', 'sscribe-export-site-pages' ),
+			'permissions'         => __( 'The server does not have permission to write required export files. Check upload directory access.', 'sscribe-export-site-pages' ),
+			'zip_extension'       => __( 'ZIP creation failed because the server is missing ZIP support or the archive step could not complete.', 'sscribe-export-site-pages' ),
+			'zip_creation'        => __( 'The export finished processing pages but failed while packaging the ZIP archive.', 'sscribe-export-site-pages' ),
+			'docx_generation'     => __( 'DOCX generation failed for at least one page. Complex content or resource pressure may be involved.', 'sscribe-export-site-pages' ),
+			'critical_error'      => __( 'A low-level PHP error interrupted the export. Review the technical context and server logs for the failing component.', 'sscribe-export-site-pages' ),
+			'unknown'             => __( 'Review the diagnostics below and your server error log for the most specific failure details.', 'sscribe-export-site-pages' ),
+		);
+
+		return $guidance_map[ $category ] ?? $guidance_map['unknown'];
 	}
 
 	/**
