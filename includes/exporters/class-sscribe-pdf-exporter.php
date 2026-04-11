@@ -90,6 +90,14 @@ class SScribe_PDF_Exporter implements SScribe_Exporter_Interface {
 		$prev_errors = libxml_use_internal_errors( true );
 
 		try {
+			// Verify DomPDF is available before attempting export.
+			if ( ! class_exists( '\\SScribeVendor\\Dompdf\\Dompdf' ) && ! class_exists( '\\Dompdf\\Dompdf' ) ) {
+				return SScribe_Result::failure(
+					__( 'PDF export is not available — DomPDF library is missing. Please reinstall the plugin.', 'sscribe-export-site-pages' ),
+					array( 'page_id' => $page_id )
+				);
+			}
+
 			$options = new \SScribeVendor\Dompdf\Options();
 			$options->set( 'isRemoteEnabled', true );
 			$options->set( 'isHtml5ParserEnabled', true );
@@ -100,6 +108,14 @@ class SScribe_PDF_Exporter implements SScribe_Exporter_Interface {
 			$dompdf = new \SScribeVendor\Dompdf\Dompdf( $options );
 			$dompdf->loadHtml( $html_content );
 			$dompdf->setPaper( 'A4', 'portrait' );
+
+			// Increase PHP time limit for DomPDF rendering (CPU-intensive).
+			// Each page can take 5-15 seconds; the default 120s may not suffice.
+			if ( function_exists( 'set_time_limit' ) ) {
+				// phpcs:ignore WordPress.PHP.DiscouragedFunctions.Discouraged, WordPress.PHP.IniSet.max_execution_time_Blacklisted -- DomPDF rendering is CPU-intensive and requires extended time per page.
+				set_time_limit( 120 );
+			}
+
 			$dompdf->render();
 
 			$output = $dompdf->output();
@@ -138,6 +154,7 @@ class SScribe_PDF_Exporter implements SScribe_Exporter_Interface {
 				'PDF generation failed',
 				array(
 					'error'   => $e->getMessage(),
+					'class'   => get_class( $e ),
 					'page_id' => $page_id,
 					'file'    => $e->getFile(),
 					'line'    => $e->getLine(),
@@ -145,7 +162,12 @@ class SScribe_PDF_Exporter implements SScribe_Exporter_Interface {
 			);
 
 			return SScribe_Result::failure(
-				__( 'Unable to generate PDF for this page.', 'sscribe-export-site-pages' ),
+				sprintf(
+					/* translators: 1: Error class, 2: Error message. */
+					__( 'Unable to generate PDF: %1$s — %2$s', 'sscribe-export-site-pages' ),
+					get_class( $e ),
+					$e->getMessage()
+				),
 				array( 'page_id' => $page_id )
 			);
 		} finally {

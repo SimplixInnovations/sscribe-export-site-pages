@@ -297,14 +297,16 @@ class SScribe_Batch_Processor {
 	}
 
 	/**
-	 * Optimize batch size based on available memory.
+	 * Optimize batch size based on available memory and format type.
 	 *
 	 * Dynamically adjusts the batch size to prevent memory exhaustion.
-	 * Estimates ~3MB per page average for DOCX generation, with 20% safety margin.
+	 * Estimates ~5MB per page average for DOCX generation, with 20% safety margin.
+	 * Reduces batch size to 2 when PDF format is included to prevent timeouts.
 	 *
+	 * @param array $formats Export formats selected for this session.
 	 * @return void
 	 */
-	private function optimize_batch_size(): void {
+	private function optimize_batch_size( array $formats = array() ): void {
 		$memory_limit  = wp_convert_hr_to_bytes( ini_get( 'memory_limit' ) );
 		$current_usage = memory_get_usage( true );
 		$available     = $memory_limit - $current_usage;
@@ -325,6 +327,12 @@ class SScribe_Batch_Processor {
 		// Apply configured batch size as upper limit, but allow reduction for memory.
 		$configured_size  = (int) apply_filters( 'sscribe_batch_size', 5 );
 		$this->batch_size = max( 1, min( $safe_batch_size, $configured_size, 20 ) );
+
+		// Further reduce batch size when PDF format is included to prevent timeouts.
+		// PDF generation via DomPDF is ~8s/page — large batches exceed PHP max_execution_time.
+		if ( in_array( 'pdf', $formats, true ) && $this->batch_size > 2 ) {
+			$this->batch_size = 2;
+		}
 
 		$this->logger->debug(
 			'Batch size optimized for available memory',
@@ -742,14 +750,24 @@ class SScribe_Batch_Processor {
 		}
 		wp_raise_memory_limit( 'admin' );
 
-		// Optimize batch size based on available memory to prevent exhaustion.
-		$this->optimize_batch_size();
-
 		$ob_level_before = ob_get_level();
 		ob_start();
 
 		$session_id = isset( $_POST['session_id'] ) ? sanitize_text_field( wp_unslash( $_POST['session_id'] ) ) : '';
 		$session    = $this->session->get( $session_id );
+
+		// Optimize batch size based on available memory and format type.
+		// PDF (DomPDF) is ~8s/page and needs smaller batches to prevent timeouts.
+		$formats = isset( $session['formats'] ) ? $session['formats'] : array( 'docx' );
+		$this->optimize_batch_size( $formats );
+
+		// Increase time limit for PDF-heavy exports.
+		// DomPDF rendering is CPU-intensive (~8s/page); allow more time per batch.
+		if ( in_array( 'pdf', $formats, true ) && function_exists( 'set_time_limit' ) ) {
+			$pdf_max_time = (int) apply_filters( 'sscribe_pdf_max_execution_time', 300 );
+			// phpcs:ignore WordPress.PHP.DiscouragedFunctions.Discouraged, WordPress.PHP.IniSet.max_execution_time_Blacklisted -- PDF export requires extended execution time. DomPDF rendering is ~8s per page; with batch_size=2, each batch needs ~16s+ overhead.
+			set_time_limit( $pdf_max_time );
+		}
 
 		$this->logger->debug(
 			'Process batch called',
@@ -1077,7 +1095,8 @@ class SScribe_Batch_Processor {
 
 			try {
 				foreach ( $formats as $format ) {
-					$exporter = \SScribe_Exporter_Factory::create( $format );
+					$format_start = microtime( true );
+					$exporter     = \SScribe_Exporter_Factory::create( $format );
 
 					if ( ! $exporter ) {
 						continue;
@@ -1085,10 +1104,24 @@ class SScribe_Batch_Processor {
 
 					$result = $exporter->export( $page_data, $temp_dir, $page_index, $total );
 
+					// Track per-format timing for adaptive metrics.
+					$format_elapsed         = microtime( true ) - $format_start;
+					$format_key             = 'format_time_' . $format;
+					$session[ $format_key ] = ( $session[ $format_key ] ?? 0 ) + $format_elapsed;
+
 					if ( $result->is_success() ) {
 						$export_success       = true;
 						$successful_formats[] = $format;
 						$file_path            = $result->get_data()['path'] ?? '';
+						$file_size            = $result->get_data()['size'] ?? 0;
+
+						// Track per-format file sizes for adaptive metrics.
+						$format_size_key             = 'format_size_' . $format;
+						$session[ $format_size_key ] = ( $session[ $format_size_key ] ?? 0 ) + $file_size;
+
+						// Track per-format page count for accurate metrics.
+						$format_pages_key             = 'format_pages_' . $format;
+						$session[ $format_pages_key ] = ( $session[ $format_pages_key ] ?? 0 ) + 1;
 
 						if ( $this->export_log ) {
 							$this->export_log->log_format_result( $page_id, $format, true, $file_path );
@@ -1097,9 +1130,10 @@ class SScribe_Batch_Processor {
 						$this->logger->debug(
 							ucfirst( $format ) . ' generated successfully',
 							array(
-								'file'    => basename( $file_path ),
-								'page_id' => $page_id,
-								'format'  => $format,
+								'file'     => basename( $file_path ),
+								'page_id'  => $page_id,
+								'format'   => $format,
+								'duration' => round( $format_elapsed, 3 ),
 							)
 						);
 					} else {
@@ -1209,14 +1243,22 @@ class SScribe_Batch_Processor {
 			)
 		);
 
-		$update_result = $this->session->update(
-			$session_id,
-			array(
-				'processed'  => $processed,
-				'errors'     => $errors,
-				'start_time' => $start_time,
-			)
+		// Build session update data, only including format metrics that have values.
+		$update_data = array(
+			'processed'  => $processed,
+			'errors'     => $errors,
+			'start_time' => $start_time,
 		);
+
+		// Persist per-format timing/size metrics across batches.
+		$format_keys = array( 'format_time_docx', 'format_time_pdf', 'format_time_html', 'format_time_markdown', 'format_size_docx', 'format_size_pdf', 'format_size_html', 'format_size_markdown', 'format_pages_docx', 'format_pages_pdf', 'format_pages_html', 'format_pages_markdown' );
+		foreach ( $format_keys as $key ) {
+			if ( isset( $session[ $key ] ) ) {
+				$update_data[ $key ] = $session[ $key ];
+			}
+		}
+
+		$update_result = $this->session->update( $session_id, $update_data );
 
 		$this->logger->debug( 'Session update result', array( 'success' => $update_result ) );
 
@@ -1350,9 +1392,10 @@ class SScribe_Batch_Processor {
 			)
 		);
 
-		$lang_code = ! empty( $session['language'] ) ? $session['language'] : 'all';
-		$site_slug = sanitize_file_name( get_bloginfo( 'name' ) );
-		$site_slug = strtolower( substr( $site_slug, 0, 20 ) );
+		$has_language = ! empty( $session['language'] );
+		$lang_code    = $has_language ? $session['language'] : '';
+		$site_slug    = sanitize_file_name( get_bloginfo( 'name' ) );
+		$site_slug    = strtolower( substr( $site_slug, 0, 20 ) );
 
 		if ( empty( $site_slug ) ) {
 			$site_slug = 'export';
@@ -1360,15 +1403,15 @@ class SScribe_Batch_Processor {
 
 		$formats = isset( $session['formats'] ) ? $session['formats'] : array( 'docx' );
 
-		$format_suffix = count( $formats ) > 1 ? 'ALL' : strtoupper( $formats[0] );
+		$format_suffix = count( $formats ) > 1 ? 'ALL-FORMATS' : strtoupper( $formats[0] );
 		$timestamp     = gmdate( 'Y-m-d-His' );
-		$lang_upper    = strtoupper( $lang_code );
+		$lang_suffix   = $has_language ? strtoupper( $lang_code ) : 'ALL-LANGS';
 
 		$zip_name = sprintf(
 			'%s-%s-%s-%s',
 			$site_slug,
 			$timestamp,
-			$lang_upper,
+			$lang_suffix,
 			$format_suffix
 		);
 
@@ -1496,11 +1539,22 @@ class SScribe_Batch_Processor {
 		);
 
 		// Save adaptive metrics for future time/size estimates.
-		$formats       = isset( $session['formats'] ) ? $session['formats'] : array( 'docx' );
-		$elapsed_total = time() - ( $session['start_time'] ?? time() );
-		$zip_size_mb   = file_exists( $zip_path ) ? filesize( $zip_path ) / 1048576 : 0;
+		// Uses per-format timing tracked during batch processing for accuracy.
+		$formats = isset( $session['formats'] ) ? $session['formats'] : array( 'docx' );
 		foreach ( $formats as $fmt ) {
-			$this->save_export_metrics( $fmt, $session['total'], $elapsed_total, $zip_size_mb );
+			$format_time_key  = 'format_time_' . $fmt;
+			$format_size_key  = 'format_size_' . $fmt;
+			$format_pages_key = 'format_pages_' . $fmt;
+
+			$elapsed_seconds = (float) ( $session[ $format_time_key ] ?? 0 );
+			$total_bytes     = (int) ( $session[ $format_size_key ] ?? 0 );
+			$pages_exported  = (int) ( $session[ $format_pages_key ] ?? 0 );
+			$total_mb        = $total_bytes / 1048576;
+
+			// Only save if we have actual data for this format.
+			if ( $pages_exported > 0 && $elapsed_seconds > 0 ) {
+				$this->save_export_metrics( $fmt, $pages_exported, $elapsed_seconds, $total_mb );
+			}
 		}
 
 		$log_summary = $this->export_log ? $this->export_log->get_summary() : array();
