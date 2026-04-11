@@ -6,6 +6,12 @@ All notable changes to this project will be documented in this file.
 
 ### Changed
 
+## [3.30.10] - 2026-04-11
+
+### Changed
+- Export filenames now include the page title in its native language (e.g., `P001-Contact Us-EN.docx`, `P002-تواصل معنا-AR.docx`) instead of cryptic page IDs. Slug is not used as it is shared across all language variants.
+- Export time and size estimates are now adaptive — they learn from actual export performance and improve over time instead of using static per-format guesses. Initial estimates use conservative baselines, then converge to real data after 3+ exports.
+
 ## [3.30.9] - 2026-04-11
 
 ### Fixed
