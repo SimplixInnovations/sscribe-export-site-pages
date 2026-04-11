@@ -92,40 +92,49 @@ class SScribe_Exporter_Factory {
 	}
 
 	/**
-	 * Build a clean filename with format: WebsiteName-Date-Time-Lang-Type
+	 * Build a user-friendly filename including the page title.
 	 *
-	 * Example: mywebsite-2026-04-02-192555-AR-DOCX
+	 * Format: P001-Page-Title-AR.docx
 	 *
-	 * @param array  $page_data Page data array.
+	 * The page title is included in its native language (Arabic, English, etc.)
+	 * so users can identify files at a glance. The slug is NOT used because
+	 * it is shared across all language variants of the same page.
+	 *
+	 * @param array  $page_data Page data array (must contain 'title' and 'id').
 	 * @param int    $index     Sequential position (1-based).
 	 * @param int    $total     Total pages (unused, kept for API compatibility).
 	 * @param string $extension File extension without dot.
 	 * @return string Filename with extension.
 	 */
 	public static function build_filename( array $page_data, int $index = 0, int $total = 0, string $extension = 'docx' ): string {
-		$site_name = sanitize_file_name( get_bloginfo( 'name' ) );
-		$site_name = strtolower( substr( $site_name, 0, 20 ) );
-
-		if ( empty( $site_name ) ) {
-			$site_name = 'export';
-		}
-
-		$timestamp = gmdate( 'Y-m-d-His' );
-
-		$lang_code = 'EN';
-		if ( ! empty( $page_data['language'] ) ) {
-			$lang      = substr( $page_data['language'], 0, 2 );
-			$lang_code = strtoupper( sanitize_key( $lang ) );
-		}
-
 		$page_id = (int) ( $page_data['id'] ?? 0 );
 
+		// Include page title in native language for user-friendly identification.
+		// sanitize_file_name handles Unicode (Arabic, CJK, etc.) and strips unsafe chars.
+		$page_title = isset( $page_data['title'] ) && '' !== $page_data['title']
+			? sanitize_file_name( trim( $page_data['title'] ) )
+			: 'page';
+
+		// Truncate title to 60 chars to keep filenames reasonable.
+		// mb_substr handles multibyte (Arabic, CJK) correctly.
+		if ( mb_strlen( $page_title ) > 60 ) {
+			$page_title = mb_substr( $page_title, 0, 60 );
+			// Remove trailing partial char from multibyte truncation.
+			$page_title = rtrim( $page_title, '- _' );
+		}
+
+		$lang_code = '';
+		if ( ! empty( $page_data['language'] ) ) {
+			$lang      = substr( $page_data['language'], 0, 2 );
+			$lang_code = '-' . strtoupper( sanitize_key( $lang ) );
+		}
+
+		// Format: P001-Page-Title-AR.docx.
 		return sprintf(
-			'%s-%s-%s-P%d.%s',
-			$site_name,
-			$timestamp,
+			'P%03d-%s%s.%s',
+			$index > 0 ? $index : $page_id,
+			$page_title,
 			$lang_code,
-			$page_id,
 			strtolower( $extension )
 		);
 	}

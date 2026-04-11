@@ -1495,6 +1495,14 @@ class SScribe_Batch_Processor {
 			)
 		);
 
+		// Save adaptive metrics for future time/size estimates.
+		$formats       = isset( $session['formats'] ) ? $session['formats'] : array( 'docx' );
+		$elapsed_total = time() - ( $session['start_time'] ?? time() );
+		$zip_size_mb   = file_exists( $zip_path ) ? filesize( $zip_path ) / 1048576 : 0;
+		foreach ( $formats as $fmt ) {
+			$this->save_export_metrics( $fmt, $session['total'], $elapsed_total, $zip_size_mb );
+		}
+
 		$log_summary = $this->export_log ? $this->export_log->get_summary() : array();
 
 		$response = array(
@@ -2166,14 +2174,9 @@ class SScribe_Batch_Processor {
 		$pages      = $this->collector->get_page_ids( $language, $post_status );
 		$page_count = count( $pages );
 
-		$times_per_page = array(
-			'docx'     => 1.2,
-			'pdf'      => 8,
-			'html'     => 1,
-			'markdown' => 0.5,
-		);
-
-		$seconds_per_page = isset( $times_per_page[ $format ] ) ? $times_per_page[ $format ] : 2;
+		// Adaptive time estimation based on actual export history.
+		// Falls back to conservative baseline estimates for first export.
+		$seconds_per_page = $this->get_adaptive_seconds_per_page( $format );
 		$total_seconds    = $page_count * $seconds_per_page;
 
 		if ( $total_seconds < 60 ) {
@@ -2191,14 +2194,9 @@ class SScribe_Batch_Processor {
 			);
 		}
 
-		$size_per_page = array(
-			'docx'     => 0.5,
-			'pdf'      => 2,
-			'html'     => 0.3,
-			'markdown' => 0.1,
-		);
-
-		$size_mb = $page_count * ( isset( $size_per_page[ $format ] ) ? $size_per_page[ $format ] : 0.5 );
+		// Adaptive file size estimation based on actual export history.
+		$megabytes_per_page = $this->get_adaptive_mb_per_page( $format );
+		$size_mb            = $page_count * $megabytes_per_page;
 		if ( $size_mb < 1 ) {
 			$file_size_estimate = round( $size_mb * 1024 ) . ' KB';
 		} else {
@@ -2318,5 +2316,133 @@ class SScribe_Batch_Processor {
 		}
 
 		wp_send_json_success( $this->diagnostics->get_support_info() );
+	}
+
+	/**
+	 * Get adaptive seconds-per-page estimate for a format.
+	 *
+	 * Uses actual metrics from previous exports stored in the sscribe_export_metrics
+	 * option. Falls back to conservative baseline for the first export.
+	 * Blends historical average with baseline to avoid wild swings.
+	 *
+	 * @param string $format Export format.
+	 * @return float Seconds per page estimate.
+	 */
+	private function get_adaptive_seconds_per_page( string $format ): float {
+		// Conservative baselines for first-time exports.
+		$baselines = array(
+			'docx'     => 1.5,
+			'pdf'      => 8.0,
+			'html'     => 1.0,
+			'markdown' => 0.5,
+		);
+
+		$baseline = $baselines[ $format ] ?? 2.0;
+
+		$metrics = get_option( 'sscribe_export_metrics', array() );
+		if ( ! isset( $metrics['formats'][ $format ]['avg_seconds_per_page'] ) ) {
+			return $baseline;
+		}
+
+		$historical = (float) $metrics['formats'][ $format ]['avg_seconds_per_page'];
+		$samples    = (int) ( $metrics['formats'][ $format ]['sample_count'] ?? 0 );
+
+		if ( $samples < 3 ) {
+			// Not enough data — blend 70% baseline + 30% historical.
+			return ( $baseline * 0.7 ) + ( $historical * 0.3 );
+		}
+
+		// Enough data — blend 20% baseline + 80% historical for stability.
+		return ( $baseline * 0.2 ) + ( $historical * 0.8 );
+	}
+
+	/**
+	 * Get adaptive megabytes-per-page estimate for a format.
+	 *
+	 * @param string $format Export format.
+	 * @return float MB per page estimate.
+	 */
+	private function get_adaptive_mb_per_page( string $format ): float {
+		$baselines = array(
+			'docx'     => 0.5,
+			'pdf'      => 2.0,
+			'html'     => 0.3,
+			'markdown' => 0.1,
+		);
+
+		$baseline = $baselines[ $format ] ?? 0.5;
+
+		$metrics = get_option( 'sscribe_export_metrics', array() );
+		if ( ! isset( $metrics['formats'][ $format ]['avg_mb_per_page'] ) ) {
+			return $baseline;
+		}
+
+		$historical = (float) $metrics['formats'][ $format ]['avg_mb_per_page'];
+		$samples    = (int) ( $metrics['formats'][ $format ]['sample_count'] ?? 0 );
+
+		if ( $samples < 3 ) {
+			return ( $baseline * 0.7 ) + ( $historical * 0.3 );
+		}
+
+		return ( $baseline * 0.2 ) + ( $historical * 0.8 );
+	}
+
+	/**
+	 * Save export metrics for adaptive estimation.
+	 *
+	 * Called after each export completes to record actual performance data.
+	 * Uses exponential moving average so recent exports weigh more.
+	 *
+	 * @param string $format      Export format.
+	 * @param int    $page_count  Number of pages exported.
+	 * @param float  $elapsed_sec Total elapsed seconds.
+	 * @param float  $total_mb    Total file size in MB.
+	 * @return void
+	 */
+	private function save_export_metrics( string $format, int $page_count, float $elapsed_sec, float $total_mb ): void {
+		if ( $page_count <= 0 ) {
+			return;
+		}
+
+		$metrics = get_option( 'sscribe_export_metrics', array() );
+		if ( ! isset( $metrics['formats'] ) ) {
+			$metrics['formats'] = array();
+		}
+		if ( ! isset( $metrics['formats'][ $format ] ) ) {
+			$metrics['formats'][ $format ] = array(
+				'avg_seconds_per_page' => 0,
+				'avg_mb_per_page'      => 0,
+				'sample_count'         => 0,
+			);
+		}
+
+		$new_seconds = $elapsed_sec / $page_count;
+		$new_mb      = $total_mb / $page_count;
+
+		$existing_seconds = (float) ( $metrics['formats'][ $format ]['avg_seconds_per_page'] ?? 0 );
+		$existing_mb      = (float) ( $metrics['formats'][ $format ]['avg_mb_per_page'] ?? 0 );
+		$samples          = (int) ( $metrics['formats'][ $format ]['sample_count'] ?? 0 );
+
+		// Exponential moving average: α = 0.3 (recent exports weigh more).
+		$alpha = 0.3;
+
+		if ( 0 === $samples ) {
+			$metrics['formats'][ $format ]['avg_seconds_per_page'] = $new_seconds;
+			$metrics['formats'][ $format ]['avg_mb_per_page']      = $new_mb;
+		} else {
+			$metrics['formats'][ $format ]['avg_seconds_per_page'] = round(
+				( $existing_seconds * ( 1 - $alpha ) ) + ( $new_seconds * $alpha ),
+				4
+			);
+			$metrics['formats'][ $format ]['avg_mb_per_page']      = round(
+				( $existing_mb * ( 1 - $alpha ) ) + ( $new_mb * $alpha ),
+				4
+			);
+		}
+
+		++$metrics['formats'][ $format ]['sample_count'];
+		$metrics['last_export'] = current_time( 'mysql' );
+
+		update_option( 'sscribe_export_metrics', $metrics, false );
 	}
 }
