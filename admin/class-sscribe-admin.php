@@ -207,7 +207,7 @@ class SScribe_Admin {
 				'ajaxurl'        => admin_url( 'admin-ajax.php' ),
 				'nonce'          => wp_create_nonce( 'sscribe_export_nonce' ),
 				'download_nonce' => wp_create_nonce( 'sscribe_download' ),
-				'icons_url'      => SSCRIBE_PLUGIN_URL . 'admin/img/',
+				'icons_url'      => SSCRIBE_PLUGIN_URL . 'assets/icons/',
 				'strings'        => array(
 					'starting'           => __( 'Starting export...', 'sscribe-export-site-pages' ),
 					'processing'         => __( 'Processing...', 'sscribe-export-site-pages' ),
@@ -433,81 +433,81 @@ class SScribe_Admin {
 		// Get download nonce once (not per-file).
 		$download_nonce = wp_create_nonce( 'sscribe_download' );
 
-		if ( file_exists( $export_dir ) ) {
-			// Try cached file list first.
-			$files_cache_key = 'sscribe_export_files_' . md5( $export_dir );
-			$cached_files    = get_transient( $files_cache_key );
+		// Build Recent Exports from the export index (authoritative source for language metadata).
+		$export_index = get_option( 'sscribe_export_index', array() );
+		$user_id      = get_current_user_id();
 
-			if ( false !== $cached_files ) {
-				$sscribe_recent_exports = $cached_files;
-			} else {
-				$files = glob( $export_dir . 'sscribe-*.zip' );
-				if ( $files ) {
-					// Build file data with single filemtime call per file.
-					$file_data = array();
-					foreach ( $files as $file ) {
-						$mtime    = filemtime( $file );
-						$filename = basename( $file );
+		if ( ! empty( $export_index ) ) {
+			// Sort by time descending (newest first).
+			uasort(
+				$export_index,
+				function ( $a, $b ) {
+					return ( $b['created_at'] ?? 0 ) <=> ( $a['created_at'] ?? 0 );
+				}
+			);
 
-						// Parse language code from new standardized filename format.
+			$count = 0;
+			foreach ( $export_index as $filename => $data ) {
+				// Skip exports from other users.
+				if ( isset( $data['user_id'] ) && (int) $data['user_id'] !== $user_id ) {
+					continue;
+				}
+
+				$file_path = $export_dir . $filename;
+				if ( ! file_exists( $file_path ) ) {
+					continue;
+				}
+
+				// Use stored language metadata from export index (populated at ZIP creation time).
+				$lang_code = $data['lang_code'] ?? 'all';
+				$lang_name = $data['lang_name'] ?? 'All Languages';
+				$flag_url  = $data['flag_url'] ?? '';
+
+				// Fallback: if language metadata is empty, attempt WPML lookup.
+				if ( empty( $lang_code ) && $sscribe_wpml_active && ! empty( $sscribe_languages ) ) {
+					// Try parsing from filename as last resort.
+					if ( preg_match( '/-([A-Z]{2,3})-[A-Z]+\.zip$/', $filename, $matches ) ) {
+						$lang_code = strtolower( $matches[1] );
+					} else {
 						$lang_code = 'all';
-						if ( preg_match( '/^sscribe-export-([a-z0-9_-]+)-/i', $filename, $matches ) ) {
-							$lang_code = $matches[1];
-						}
+					}
+				}
 
-						// Attempt to find matching WPML flag and name.
-						$flag_url  = '';
-						$lang_name = 'All Languages';
-						if ( $sscribe_wpml_active && ! empty( $sscribe_languages ) ) {
-							foreach ( $sscribe_languages as $l ) {
-								if ( $l['code'] === $lang_code ) {
-									$flag_url  = isset( $l['flag_url'] ) ? $l['flag_url'] : '';
-									$lang_name = isset( $l['name'] ) ? $l['name'] : strtoupper( $lang_code );
-									break;
-								}
+				if ( empty( $lang_name ) || 'All Languages' === $lang_name ) {
+					if ( $sscribe_wpml_active && ! empty( $sscribe_languages ) && 'all' !== $lang_code ) {
+						foreach ( $sscribe_languages as $l ) {
+							if ( $l['code'] === $lang_code ) {
+								$lang_name = $l['name'] ?? strtoupper( $lang_code );
+								$flag_url  = $l['flag_url'] ?? $flag_url;
+								break;
 							}
 						}
-
-						$file_data[] = array(
-							'filename'  => $filename,
-							'mtime'     => $mtime,
-							'size'      => filesize( $file ),
-							'lang_code' => $lang_code,
-							'flag_url'  => $flag_url,
-							'lang_name' => $lang_name,
-						);
 					}
-
-					// Sort by mtime descending (newest first).
-					usort(
-						$file_data,
-						function ( $a, $b ) {
-							return $b['mtime'] - $a['mtime'];
-						}
-					);
-
-					// Build final export list with URLs.
-					foreach ( $file_data as $data ) {
-						$sscribe_recent_exports[] = array(
-							'filename'  => $data['filename'],
-							'url'       => add_query_arg(
-								array(
-									'action' => 'sscribe_download',
-									'file'   => sanitize_file_name( $data['filename'] ),
-									'nonce'  => $download_nonce,
-								),
-								admin_url( 'admin-ajax.php' )
-							),
-							'time'      => $data['mtime'],
-							'size'      => $data['size'],
-							'lang_code' => sanitize_key( $data['lang_code'] ),
-							'flag_url'  => esc_url( $data['flag_url'] ),
-							'lang_name' => esc_html( $data['lang_name'] ),
-						);
+					if ( empty( $lang_name ) || 'All Languages' === $lang_name ) {
+						$lang_name = 'all' === $lang_code ? 'All Languages' : strtoupper( $lang_code );
 					}
+				}
 
-					// Cache for 30 seconds.
-					set_transient( $files_cache_key, $sscribe_recent_exports, 30 );
+				$sscribe_recent_exports[] = array(
+					'filename'  => $filename,
+					'url'       => add_query_arg(
+						array(
+							'action' => 'sscribe_download',
+							'file'   => sanitize_file_name( $filename ),
+							'nonce'  => $download_nonce,
+						),
+						admin_url( 'admin-ajax.php' )
+					),
+					'time'      => $data['created_at'] ?? filemtime( $file_path ),
+					'size'      => filesize( $file_path ),
+					'lang_code' => sanitize_key( $lang_code ),
+					'flag_url'  => esc_url( $flag_url ),
+					'lang_name' => esc_html( $lang_name ),
+				);
+
+				++$count;
+				if ( $count >= 10 ) {
+					break;
 				}
 			}
 		}

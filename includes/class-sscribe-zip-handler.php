@@ -75,13 +75,14 @@ class SScribe_Zip_Handler {
 	 * ZIP structure when single language:
 	 *   FORMAT/P001-Title.ext or just P001-Title.ext (flat)
 	 *
-	 * @param string $source_dir    Directory containing export files.
-	 * @param string $zip_name      Desired ZIP filename (without extension).
-	 * @param array  $formats       Export formats used.
-	 * @param bool   $has_language  Whether a specific language was selected (false = all languages).
+	 * @param string $source_dir      Directory containing export files.
+	 * @param string $zip_name        Desired ZIP filename (without extension).
+	 * @param array  $formats         Export formats used.
+	 * @param bool   $has_language    Whether a specific language was selected (false = all languages).
+	 * @param array  $lang_metadata   Language metadata: lang_code, lang_name, flag_url.
 	 * @return string|false Path to ZIP file or false on failure.
 	 */
-	public function create_zip( string $source_dir, string $zip_name = '', array $formats = array( 'docx' ), bool $has_language = true ): string|false {
+	public function create_zip( string $source_dir, string $zip_name = '', array $formats = array( 'docx' ), bool $has_language = true, array $lang_metadata = array() ): string|false {
 		if ( ! class_exists( 'ZipArchive' ) ) {
 			$this->logger->error( 'ZipArchive not available' );
 			$this->delete_directory( $source_dir );
@@ -191,6 +192,9 @@ class SScribe_Zip_Handler {
 			'created_at' => time(),
 			'user_id'    => get_current_user_id(),
 			'formats'    => $formats,
+			'lang_code'  => $lang_metadata['lang_code'] ?? '',
+			'lang_name'  => $lang_metadata['lang_name'] ?? '',
+			'flag_url'   => $lang_metadata['flag_url'] ?? '',
 		);
 		update_option( 'sscribe_export_index', $exports, false );
 		delete_transient( $lock_key );
