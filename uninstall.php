@@ -49,6 +49,24 @@ $sscribe_cleanup_site = static function (): void {
 		)
 	);
 
+	// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- Cleanup during uninstall.
+	$wpdb->query(
+		$wpdb->prepare(
+			"DELETE FROM {$wpdb->options} WHERE option_name LIKE %s OR option_name LIKE %s",
+			$wpdb->esc_like( '_transient_sscribe_lock_' ) . '%',
+			$wpdb->esc_like( '_transient_timeout_sscribe_lock_' ) . '%'
+		)
+	);
+
+	// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- Cleanup during uninstall.
+	$wpdb->query(
+		$wpdb->prepare(
+			"DELETE FROM {$wpdb->options} WHERE option_name LIKE %s OR option_name LIKE %s",
+			$wpdb->esc_like( '_transient_sscribe_upgrade_lock' ),
+			$wpdb->esc_like( '_transient_timeout_sscribe_upgrade_lock' )
+		)
+	);
+
 	delete_option( 'sscribe_version' );
 	delete_option( 'sscribe_export_index' );
 	delete_option( 'sscribe_export_metrics' );

@@ -2118,7 +2118,7 @@ class SScribe_Batch_Processor {
 			'fix_steps'    => array_keys( $fix_steps_map ),
 			'technical'    => array(
 				'formats'            => array_unique( $formats ),
-				'page_ids'           => array_unique( $page_ids ),
+				'page_ids_count'     => count( array_unique( $page_ids ) ),
 				'max_html_size'      => empty( $html_sizes ) ? 0 : max( $html_sizes ),
 				'max_memory_peak'    => empty( $memory_peaks ) ? 0 : max( $memory_peaks ),
 				'memory_limits'      => array_unique( $memory_limits ),
@@ -2486,15 +2486,11 @@ class SScribe_Batch_Processor {
 			'name'      => __( 'Upload Directory', 'sscribe-export-site-pages' ),
 			'status'    => $is_writable ? 'ok' : 'error',
 			'message'   => $is_writable
-				? sprintf(
-					/* translators: %s: Directory path. */
-					__( 'Export directory is writable: %s', 'sscribe-export-site-pages' ),
-					$upload_dir
-				)
+				? __( 'Export directory is writable.', 'sscribe-export-site-pages' )
 				: sprintf(
 					/* translators: %s: Directory path. */
 					__( 'Export directory is not writable: %s', 'sscribe-export-site-pages' ),
-					$upload_dir
+					basename( $upload_dir )
 				),
 			'fix_steps' => $is_writable ? null : array(
 				__( 'Verify wp-content/uploads directory exists.', 'sscribe-export-site-pages' ),

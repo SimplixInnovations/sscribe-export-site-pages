@@ -70,4 +70,6 @@
     <exclude-pattern>*/scripts/verify-zip\.php$</exclude-pattern>
     <exclude-pattern>*/scripts/list-zip\.php$</exclude-pattern>
     <exclude-pattern>*/scripts/check-wp-org\.php$</exclude-pattern>
+    <exclude-pattern>*/scripts/fix-phpstan\.php$</exclude-pattern>
+    <exclude-pattern>*/scripts/test-prefixed\.php$</exclude-pattern>
 </ruleset>
