@@ -145,7 +145,7 @@ class SScribe_Admin {
 			'; ',
 			array(
 				"default-src 'self'",
-				"script-src 'self' 'unsafe-inline'",
+				"script-src 'self'",
 				"style-src 'self' 'unsafe-inline'",
 				"img-src 'self' data:",
 				"font-src 'self' data:",
@@ -315,11 +315,11 @@ class SScribe_Admin {
 			);
 		}
 
-		// Gather debug info - gated behind SSCRIBE_DEBUG for security.
+		// Gather debug info - gated behind SSCRIBE_DEBUG_PUBLIC for security.
 		// SECURITY WARNING: Debug mode exposes sensitive internal data including page IDs,
 		// server configuration, and error details. NEVER enable in production.
 		$sscribe_debug_info = array();
-		$sscribe_is_debug   = defined( 'SSCRIBE_DEBUG' ) && SSCRIBE_DEBUG;
+		$sscribe_is_debug   = defined( 'SSCRIBE_DEBUG_PUBLIC' ) && SSCRIBE_DEBUG_PUBLIC;
 
 		// Log a warning if debug mode is enabled (helps catch accidental production enabling).
 		if ( $sscribe_is_debug ) {
