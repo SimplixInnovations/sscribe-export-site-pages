@@ -4,7 +4,7 @@ Donate link: https://simplixi.com
 Tags: export, docx, multilingual, seo, pdf
 Requires at least: 6.0
 Tested up to: 6.9.5
-Stable tag: 3.31.0
+Stable tag: 3.32.0
 Requires PHP: 8.2
 License: GPLv2 or later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
@@ -228,6 +228,18 @@ Each document includes: cover page with title/URL/date/breadcrumbs, featured ima
 5. SEO Metadata Section - Meta title, description, focus keyword, and canonical URL from SEO plugins
 
 == Changelog ==
+
+= 3.32.0 =
+
+* Compliance: Replaced JSON column types with LONGTEXT for MySQL 5.6 compatibility
+* Compliance: Replaced INDEX with KEY in dbDelta SQL for cross-database compatibility
+* Compliance: Multisite-aware uninstall with switch_to_blog loop for network cleanup
+* Compliance: Added missing uninstall cleanup for sscribe_sessions table and schema version
+* Compliance: Replaced header() redirect with wp_safe_redirect()
+* Compliance: Standardized readme.txt heading format for WordPress.org parser
+* Compliance: Replaced manual cron unschedule with wp_clear_scheduled_hook()
+* Build: Excluded build/ and WPScan/ directories from PHPCS scanning
+* Build: Production release package excludes all development and test files
 
 = 3.31.0 =
 

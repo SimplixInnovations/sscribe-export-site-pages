@@ -3,7 +3,7 @@
  * Runtime shims for vendor-prefixed dependencies.
  *
  * Some prefixed packages can reference namespaced wrappers for global PHP
- * functions (for example SScribeVendor\Safe\class_alias()). Provide safe
+ * functions (for example \SScribeVendor\Safe\class_alias()). Provide safe
  * passthrough shims so prefixed autoload files work consistently.
  *
  * @package SScribe

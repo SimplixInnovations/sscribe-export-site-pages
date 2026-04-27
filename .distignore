@@ -12,6 +12,8 @@ build/
 deploy/
 scripts/
 dist/
+WPScan/
+WordPress-Core/
 
 # Composer (keep composer.json for WP Plugin Check - required when vendor/ exists)
 composer.lock
