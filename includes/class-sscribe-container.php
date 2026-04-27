@@ -50,6 +50,13 @@ class SScribe_Container {
 	private array $singletons = array();
 
 	/**
+	 * Keys currently being resolved (re-entrancy guard).
+	 *
+	 * @var array<string, bool>
+	 */
+	private array $resolving = array();
+
+	/**
 	 * Get the global container instance.
 	 *
 	 * @return self
@@ -132,7 +139,25 @@ class SScribe_Container {
 			throw new \RuntimeException( "No binding registered for: {$key}" );
 		}
 
-		$instance = ( $this->factories[ $key ] )( $this );
+		// A-1: Detect circular dependency (re-entrancy guard).
+		if ( isset( $this->resolving[ $key ] ) ) {
+			// phpcs:ignore WordPress.Security.EscapeOutput.ExceptionNotEscaped
+			throw new \RuntimeException( "Circular dependency detected while resolving: {$key}" );
+		}
+
+		$this->resolving[ $key ] = true;
+
+		try {
+			$instance = ( $this->factories[ $key ] )( $this );
+		} finally {
+			unset( $this->resolving[ $key ] );
+		}
+
+		// A-2: Validate factory returned an object.
+		if ( ! is_object( $instance ) ) {
+			// phpcs:ignore WordPress.Security.EscapeOutput.ExceptionNotEscaped
+			throw new \RuntimeException( "Factory for '{$key}' returned non-object: " . gettype( $instance ) );
+		}
 
 		// Cache if singleton.
 		if ( isset( $this->singletons[ $key ] ) ) {
