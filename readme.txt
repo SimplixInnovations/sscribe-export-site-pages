@@ -17,7 +17,7 @@ Export WordPress pages to DOCX, PDF, HTML, or Markdown with multilingual RTL sup
 
 Transform your WordPress site into professional documentation in minutes. SScribe is the most comprehensive WordPress page export plugin, trusted by agencies, enterprises, and developers worldwide for client handovers, compliance documentation, content audits, and translation workflows.
 
-= Why Choose SScribe? =
+=== Why Choose SScribe? ===
 
 **Enterprise-Grade Export Engine**
 Export hundreds of pages without timeout errors. Our battle-tested batch processing handles sites of any size on shared hosting, VPS, or dedicated servers.
@@ -34,7 +34,7 @@ Choose from four professional export formats: Microsoft Word (DOCX), PDF, HTML, 
 **SEO-Aware Exports**
 Automatically pulls meta titles, descriptions, focus keywords, canonical URLs, and Open Graph data from Yoast SEO, Rank Math, All in One SEO, SEOPress, and The SEO Framework.
 
-= Key Features =
+=== Key Features ===
 
 **Export Formats**
 * **Word Document (DOCX)** — Microsoft Word, Google Docs, and LibreOffice compatible with professional typography
@@ -99,7 +99,7 @@ Reads metadata from all major SEO plugins:
 * WordPress Coding Standards compliance
 * VIP coding standards support
 
-= Perfect For =
+=== Perfect For ===
 
 **Digital Agencies**
 Deliver professional client handover packages with formatted documentation that showcases your work. Every page documented in beautiful Word documents ready for client review.
@@ -119,18 +119,18 @@ Document current site state before migrations, redesigns, or platform changes. P
 **Developers**
 Generate Markdown documentation for static site generators, README files, or developer documentation. Clean output with YAML frontmatter for JAMstack workflows.
 
-= Works With =
+=== Works With ===
 
 * **Page Builders:** Elementor, Divi, WPBakery, Beaver Builder, Gutenberg, Classic Editor
 * **Multilingual:** WPML (Polylang, TranslatePress, Weglot on roadmap)
 * **SEO Plugins:** Yoast SEO, Rank Math, All in One SEO, SEOPress, The SEO Framework
 * **Hosting:** Shared hosting, VPS, dedicated servers, managed WordPress hosting (Kinsta, WP Engine, Cloudways, etc.)
 
-= Theme & Editor Independent =
+=== Theme & Editor Independent ===
 
 SScribe exports content from any theme and any editor. Whether you use Gutenberg blocks, Classic Editor, or page builders like Elementor and Divi, SScribe extracts your content cleanly and formats it professionally.
 
-= Is SScribe Free? =
+=== Is SScribe Free? ===
 
 Yes. SScribe is 100% free and open source under GPL v2. No premium version, no feature gates, no cloud API required, no upsells. Built by **Simplix Innovations** for the WordPress community.
 

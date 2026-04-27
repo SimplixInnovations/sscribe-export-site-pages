@@ -361,11 +361,11 @@ class SScribe_Audit_Trail {
 			context LONGTEXT,
 			session_id VARCHAR(50),
 			PRIMARY KEY  (id),
-			INDEX idx_timestamp (timestamp),
-			INDEX idx_event (event),
-			INDEX idx_user_id (user_id),
-			INDEX idx_ip_address (ip_address),
-			INDEX idx_session_id (session_id)
+			KEY idx_timestamp (timestamp),
+			KEY idx_event (event),
+			KEY idx_user_id (user_id),
+			KEY idx_ip_address (ip_address),
+			KEY idx_session_id (session_id)
 		) $charset_collate;";
 
 		require_once ABSPATH . 'wp-admin/includes/upgrade.php';

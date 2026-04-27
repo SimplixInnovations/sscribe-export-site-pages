@@ -14,6 +14,11 @@ define( 'SSCRIBE_PLUGIN_DIR', dirname( __DIR__ ) . '/' );
 define( 'SSCRIBE_PLUGIN_URL', 'http://example.org/wp-content/plugins/sscribe-export-site-pages/' );
 define( 'SSCRIBE_PLUGIN_BASENAME', 'sscribe-export-site-pages/sscribe-export-site-pages.php' );
 
+// Provide signing key material for session tests (S-2 security fix requires this).
+if ( ! defined( 'AUTH_SALT' ) ) {
+	define( 'AUTH_SALT', 'test-auth-salt-for-unit-tests-only' );
+}
+
 if ( ! function_exists( 'wp_kses_post' ) ) {
 	function wp_kses_post( $sscribe_data ) {
 		return $sscribe_data;
