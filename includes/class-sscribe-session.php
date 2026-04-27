@@ -733,6 +733,7 @@ class SScribe_Session {
 	 * Get the session signing key.
 	 *
 	 * @return string Signing key material.
+	 * @throws \RuntimeException If no signing key material is available.
 	 */
 	private function get_signing_key(): string {
 		if ( defined( 'AUTH_SALT' ) && '' !== AUTH_SALT ) {
@@ -747,7 +748,10 @@ class SScribe_Session {
 			return DB_PASSWORD;
 		}
 
-		return $this->option_prefix;
+		// Fail securely: no signing key material available.
+		throw new \RuntimeException(
+			'SScribe session signing key unavailable. Define AUTH_SALT, SECURE_AUTH_KEY, or DB_PASSWORD in wp-config.php.'
+		);
 	}
 
 	/**
