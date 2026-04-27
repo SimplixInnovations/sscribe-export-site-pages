@@ -448,10 +448,13 @@ class SScribe_Page_Collector {
 					ob_end_clean();
 				}
 				$content = $post_object->post_content;
-				if ( defined( 'WP_DEBUG' ) && WP_DEBUG ) {
-					// phpcs:ignore WordPress.PHP.DevelopmentFunctions.error_log_error_log
-					error_log( 'SScribe: apply_filters the_content threw for page ' . $page_id . ': ' . $e->getMessage() );
-				}
+				$this->logger->warning(
+					'apply_filters the_content threw',
+					array(
+						'page_id' => $page_id,
+						'error'   => $e->getMessage(),
+					)
+				);
 			} finally {
 				// ALWAYS restore: reset post data and re-entry guard.
 				// Buffer restoration already handled above (try success or catch).
