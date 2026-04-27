@@ -16,16 +16,32 @@ if ( ! defined( 'ABSPATH' ) ) {
 
 spl_autoload_register(
 	static function ( string $class_name ): void {
+		// A-5: In-request cache to avoid repeated file_exists checks.
+		static $loaded  = array();
+		static $missing = array();
+
+		if ( isset( $loaded[ $class_name ] ) ) {
+			return;
+		}
+
+		if ( isset( $missing[ $class_name ] ) ) {
+			return;
+		}
+
 		// Handle the core orchestrator class (no underscore).
 		if ( 'SScribe' === $class_name ) {
 			$file = SSCRIBE_PLUGIN_DIR . 'includes/class-sscribe.php';
 			if ( file_exists( $file ) ) {
 				require_once $file;
+				$loaded[ $class_name ] = true;
+			} else {
+				$missing[ $class_name ] = true;
 			}
 			return;
 		}
 
 		if ( 0 !== strpos( $class_name, 'SScribe_' ) ) {
+			$missing[ $class_name ] = true;
 			return;
 		}
 
@@ -53,8 +69,11 @@ spl_autoload_register(
 		foreach ( $paths as $path ) {
 			if ( file_exists( $path ) ) {
 				require_once $path;
+				$loaded[ $class_name ] = true;
 				return;
 			}
 		}
+
+		$missing[ $class_name ] = true;
 	}
 );
