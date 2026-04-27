@@ -64,6 +64,20 @@ if ( ! defined( 'SSCRIBE_DEBUG' ) ) {
 }
 
 /**
+ * Secondary debug flag: controls whether debug/support info is displayed
+ * on the admin page. Defaults to SSCRIBE_DEBUG but can be overridden
+ * independently for production environments.
+ *
+ * To show debug info on admin page without enabling full debug logging:
+ *   define( 'SSCRIBE_DEBUG_PUBLIC', true );
+ * To hide all debug info even when WP_DEBUG is on:
+ *   define( 'SSCRIBE_DEBUG_PUBLIC', false );
+ */
+if ( ! defined( 'SSCRIBE_DEBUG_PUBLIC' ) ) {
+	define( 'SSCRIBE_DEBUG_PUBLIC', defined( 'SSCRIBE_DEBUG' ) && SSCRIBE_DEBUG );
+}
+
+/**
  * Plugin directory path.
  */
 define( 'SSCRIBE_PLUGIN_DIR', plugin_dir_path( __FILE__ ) );

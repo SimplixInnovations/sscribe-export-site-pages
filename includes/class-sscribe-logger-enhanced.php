@@ -12,6 +12,7 @@ if ( ! defined( 'ABSPATH' ) ) {
 }
 
 require_once SSCRIBE_PLUGIN_DIR . 'includes/interfaces/interface-sscribe-logger.php';
+require_once SSCRIBE_PLUGIN_DIR . 'includes/traits/trait-sscribe-logger-common.php';
 
 /**
  * Class SScribe_Logger_Enhanced
@@ -19,6 +20,8 @@ require_once SSCRIBE_PLUGIN_DIR . 'includes/interfaces/interface-sscribe-logger.
  * Extended logger with database storage and Query Monitor integration.
  */
 class SScribe_Logger_Enhanced implements SScribe_Logger_Interface {
+
+	use SScribe_Logger_Common;
 
 	/**
 	 * Minimum log level to record.
@@ -104,11 +107,20 @@ class SScribe_Logger_Enhanced implements SScribe_Logger_Interface {
 		$upload_dir       = wp_upload_dir();
 		$this->log_dir    = $upload_dir['basedir'] . '/sscribe-logs';
 		$this->table_name = $GLOBALS['wpdb']->prefix . 'sscribe_export_logs';
-		$this->request_id = substr( md5( microtime() . wp_rand() ), 0, 12 );
+		$this->request_id = substr( md5( microtime( true ) . (string) random_int( 0, PHP_INT_MAX ) ), 0, 12 );
 
 		if ( $this->enable_file || $this->enable_db ) {
 			add_action( 'shutdown', array( $this, 'flush' ) );
 		}
+	}
+
+	/**
+	 * Override trait method to return the cached instance request ID.
+	 *
+	 * @return string
+	 */
+	protected function get_request_id(): string {
+		return $this->request_id;
 	}
 
 	/**
@@ -379,20 +391,6 @@ class SScribe_Logger_Enhanced implements SScribe_Logger_Interface {
 	 */
 	public function is_enabled(): bool {
 		return $this->enable_file || $this->enable_db;
-	}
-
-	/**
-	 * Get standard context enrichment for structured logs.
-	 *
-	 * @return array<string, string>
-	 */
-	public function get_context_enrichment(): array {
-		return array(
-			'plugin_version' => defined( 'SSCRIBE_VERSION' ) ? (string) SSCRIBE_VERSION : 'unknown',
-			'php_version'    => PHP_VERSION,
-			'memory_usage'   => size_format( memory_get_usage( true ) ),
-			'request_id'     => $this->request_id,
-		);
 	}
 
 	/**
