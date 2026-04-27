@@ -117,7 +117,7 @@ class SScribe_Admin {
 	 * @return void
 	 */
 	protected function redirect_to_plugin_page(): void {
-		header( 'Location: ' . admin_url( 'admin.php?page=sscribe-export' ) );
+		wp_safe_redirect( admin_url( 'admin.php?page=sscribe-export' ) );
 		exit;
 	}
 

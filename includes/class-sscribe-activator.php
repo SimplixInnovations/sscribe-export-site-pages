@@ -54,10 +54,10 @@ class SScribe_Activator {
 			request_id VARCHAR(12),
 			memory_usage VARCHAR(20),
 			PRIMARY KEY  (id),
-			INDEX idx_timestamp (timestamp),
-			INDEX idx_level (level),
-			INDEX idx_user_id (user_id),
-			INDEX idx_request_id (request_id)
+			KEY idx_timestamp (timestamp),
+			KEY idx_level (level),
+			KEY idx_user_id (user_id),
+			KEY idx_request_id (request_id)
 		) $charset_collate;";
 
 		$table_stats = $wpdb->prefix . 'sscribe_export_stats';
@@ -70,7 +70,7 @@ class SScribe_Activator {
 			total_pages INT UNSIGNED,
 			successful_pages INT UNSIGNED,
 			failed_pages INT UNSIGNED,
-			formats JSON,
+			formats LONGTEXT,
 			memory_peak VARCHAR(20),
 			duration_seconds FLOAT,
 			file_size_mb DECIMAL(10, 2),
@@ -78,10 +78,10 @@ class SScribe_Activator {
 			error_message TEXT,
 			created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
 			PRIMARY KEY  (id),
-			INDEX idx_export_session_id (export_session_id),
-			INDEX idx_export_date (export_date),
-			INDEX idx_user_id (user_id),
-			INDEX idx_status (status)
+			KEY idx_export_session_id (export_session_id),
+			KEY idx_export_date (export_date),
+			KEY idx_user_id (user_id),
+			KEY idx_status (status)
 		) $charset_collate;";
 
 		require_once ABSPATH . 'wp-admin/includes/upgrade.php';
@@ -98,7 +98,7 @@ class SScribe_Activator {
 			status ENUM('pending', 'processing', 'completed', 'failed', 'paused', 'cancelled') DEFAULT 'pending',
 			language VARCHAR(10) NOT NULL DEFAULT '',
 			post_status VARCHAR(20) NOT NULL DEFAULT 'publish',
-			formats JSON,
+			formats LONGTEXT,
 			total_pages INT UNSIGNED DEFAULT 0,
 			processed_pages INT UNSIGNED DEFAULT 0,
 			current_page_index INT UNSIGNED DEFAULT 0,
@@ -110,9 +110,9 @@ class SScribe_Activator {
 			expires_at DATETIME,
 			PRIMARY KEY  (id),
 			UNIQUE KEY idx_session_id (session_id),
-			INDEX idx_user_id (user_id),
-			INDEX idx_status (status),
-			INDEX idx_expires_at (expires_at)
+			KEY idx_user_id (user_id),
+			KEY idx_status (status),
+			KEY idx_expires_at (expires_at)
 		) $charset_collate;";
 		dbDelta( $sql_sessions );
 

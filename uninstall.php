@@ -13,6 +13,78 @@ if ( ! defined( 'WP_UNINSTALL_PLUGIN' ) ) {
 
 global $wpdb;
 
+$sscribe_cleanup_site = static function (): void {
+	global $wpdb;
+
+	// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- Cleanup operation during uninstall.
+	$wpdb->query(
+		$wpdb->prepare(
+			"DELETE FROM {$wpdb->options} WHERE option_name LIKE %s AND autoload = 'no'",
+			$wpdb->esc_like( 'sscribe_session_' ) . '%'
+		)
+	);
+
+	// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- Cleanup operation during uninstall.
+	$wpdb->query(
+		$wpdb->prepare(
+			"DELETE FROM {$wpdb->options} WHERE option_name LIKE %s AND autoload = 'no'",
+			$wpdb->esc_like( 'sscribe_log_' ) . '%'
+		)
+	);
+
+	// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- Cleanup operation during uninstall.
+	$wpdb->query(
+		$wpdb->prepare(
+			"DELETE FROM {$wpdb->options} WHERE option_name LIKE %s",
+			$wpdb->esc_like( 'sscribe_rate_' ) . '%'
+		)
+	);
+
+	// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- Cleanup during uninstall.
+	$wpdb->query(
+		$wpdb->prepare(
+			"DELETE FROM {$wpdb->options} WHERE option_name LIKE %s OR option_name LIKE %s",
+			$wpdb->esc_like( '_transient_sscribe_status_counts_' ) . '%',
+			$wpdb->esc_like( '_transient_timeout_sscribe_status_counts_' ) . '%'
+		)
+	);
+
+	delete_option( 'sscribe_version' );
+	delete_option( 'sscribe_export_index' );
+	delete_option( 'sscribe_export_metrics' );
+	delete_option( 'sscribe_schema_version' );
+
+	$sscribe_tables = array(
+		$wpdb->prefix . 'sscribe_export_logs',
+		$wpdb->prefix . 'sscribe_export_stats',
+		$wpdb->prefix . 'sscribe_audit_log',
+		$wpdb->prefix . 'sscribe_sessions',
+	);
+
+	foreach ( $sscribe_tables as $sscribe_table_name ) {
+		// phpcs:disable WordPress.DB.PreparedSQL.InterpolatedNotPrepared, WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.DirectDatabaseQuery.SchemaChange -- Table names are controlled plugin tables during uninstall cleanup.
+		$wpdb->query( "DROP TABLE IF EXISTS {$sscribe_table_name}" );
+		// phpcs:enable
+	}
+
+	wp_clear_scheduled_hook( 'sscribe_cleanup_exports' );
+	wp_clear_scheduled_hook( 'sscribe_cleanup_sessions' );
+};
+
+if ( is_multisite() ) {
+	// phpcs:ignore WordPressVIPMinimum.Functions.RestrictedFunctions.get_sites_deprecated, WordPress.WP.DeprecatedFunctions.wp_get_sitesFound -- Fallback for WP < 4.6.
+	$sscribe_sites = function_exists( 'get_sites' ) ? get_sites() : wp_get_sites();
+
+	foreach ( $sscribe_sites as $sscribe_site ) {
+		$sscribe_blog_id = is_object( $sscribe_site ) ? $sscribe_site->blog_id : $sscribe_site['blog_id'];
+		switch_to_blog( (int) $sscribe_blog_id );
+		$sscribe_cleanup_site();
+		restore_current_blog();
+	}
+} else {
+	$sscribe_cleanup_site();
+}
+
 $sscribe_upload_dir = wp_upload_dir();
 
 // phpcs:ignore WordPress.NamingConventions.PrefixAllGlobals.NonPrefixedVariableFound -- Local file-scope variable in uninstall context, not a global.
@@ -61,62 +133,4 @@ foreach ( $directories_to_clean as $dir_path ) {
 			continue;
 		}
 	}
-}
-
-// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- Cleanup operation during uninstall; caching not applicable for deletion.
-$wpdb->query(
-	$wpdb->prepare(
-		"DELETE FROM {$wpdb->options} WHERE option_name LIKE %s AND autoload = 'no'",
-		$wpdb->esc_like( 'sscribe_session_' ) . '%'
-	)
-);
-
-// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- Cleanup operation during uninstall; caching not applicable for deletion.
-$wpdb->query(
-	$wpdb->prepare(
-		"DELETE FROM {$wpdb->options} WHERE option_name LIKE %s AND autoload = 'no'",
-		$wpdb->esc_like( 'sscribe_log_' ) . '%'
-	)
-);
-
-// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- Cleanup operation during uninstall; caching not applicable for deletion.
-$wpdb->query(
-	$wpdb->prepare(
-		"DELETE FROM {$wpdb->options} WHERE option_name LIKE %s",
-		$wpdb->esc_like( 'sscribe_rate_' ) . '%'
-	)
-);
-
-// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- Cleanup during uninstall; caching not applicable.
-$wpdb->query(
-	$wpdb->prepare(
-		"DELETE FROM {$wpdb->options} WHERE option_name LIKE %s OR option_name LIKE %s",
-		$wpdb->esc_like( '_transient_sscribe_status_counts_' ) . '%',
-		$wpdb->esc_like( '_transient_timeout_sscribe_status_counts_' ) . '%'
-	)
-);
-
-delete_option( 'sscribe_version' );
-delete_option( 'sscribe_export_index' );
-
-$sscribe_tables = array(
-	$wpdb->prefix . 'sscribe_export_logs',
-	$wpdb->prefix . 'sscribe_export_stats',
-	$wpdb->prefix . 'sscribe_audit_log',
-);
-
-foreach ( $sscribe_tables as $sscribe_table_name ) {
-	// phpcs:disable WordPress.DB.PreparedSQL.InterpolatedNotPrepared, WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.DirectDatabaseQuery.SchemaChange -- Table names are controlled plugin tables during uninstall cleanup.
-	$wpdb->query( "DROP TABLE IF EXISTS {$sscribe_table_name}" );
-	// phpcs:enable
-}
-
-$sscribe_timestamp = wp_next_scheduled( 'sscribe_cleanup_exports' );
-if ( $sscribe_timestamp ) {
-	wp_unschedule_event( $sscribe_timestamp, 'sscribe_cleanup_exports' );
-}
-
-$sscribe_session_timestamp = wp_next_scheduled( 'sscribe_cleanup_sessions' );
-if ( $sscribe_session_timestamp ) {
-	wp_unschedule_event( $sscribe_session_timestamp, 'sscribe_cleanup_sessions' );
 }
