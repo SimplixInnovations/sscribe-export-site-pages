@@ -78,7 +78,7 @@ class SScribe_Upgrader {
 				status ENUM('pending', 'processing', 'completed', 'failed', 'paused', 'cancelled') DEFAULT 'pending',
 				language VARCHAR(10) NOT NULL DEFAULT '',
 				post_status VARCHAR(20) NOT NULL DEFAULT 'publish',
-				formats JSON,
+				formats LONGTEXT,
 				total_pages INT UNSIGNED DEFAULT 0,
 				processed_pages INT UNSIGNED DEFAULT 0,
 				current_page_index INT UNSIGNED DEFAULT 0,
@@ -90,9 +90,9 @@ class SScribe_Upgrader {
 				expires_at DATETIME,
 				PRIMARY KEY  (id),
 				UNIQUE KEY idx_session_id (session_id),
-				INDEX idx_user_id (user_id),
-				INDEX idx_status (status),
-				INDEX idx_expires_at (expires_at)
+				KEY idx_user_id (user_id),
+				KEY idx_status (status),
+				KEY idx_expires_at (expires_at)
 			) $charset_collate;";
 			dbDelta( $sql_sessions );
 
