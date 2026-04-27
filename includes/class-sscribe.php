@@ -216,10 +216,17 @@ class SScribe {
 	 * @return void
 	 */
 	public function cleanup_sessions(): void {
-		$session = SScribe_Container::instance()->get( SScribe_Session::class );
-		$session->cleanup_expired( 24 * HOUR_IN_SECONDS );
+		// P-4: Prevent overlapping cron runs.
+		if ( ! get_transient( 'sscribe_cron_cleanup_lock' ) ) {
+			set_transient( 'sscribe_cron_cleanup_lock', true, 5 * MINUTE_IN_SECONDS );
 
-		SScribe_Logger::cleanup_old_logs( 7 );
+			$session = SScribe_Container::instance()->get( SScribe_Session::class );
+			$session->cleanup_expired( 24 * HOUR_IN_SECONDS );
+
+			SScribe_Logger::cleanup_old_logs( 7 );
+
+			delete_transient( 'sscribe_cron_cleanup_lock' );
+		}
 	}
 
 	/**
@@ -231,6 +238,10 @@ class SScribe {
 	 * @return void
 	 */
 	public function run(): void {
+		// Q-3: Check for pending schema upgrades before initializing.
+		require_once SSCRIBE_PLUGIN_DIR . 'includes/class-sscribe-upgrader.php';
+		SScribe_Upgrader::maybe_upgrade();
+
 		$this->init_i18n();
 		$this->register_services();
 		$this->define_admin_hooks();

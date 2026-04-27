@@ -254,34 +254,44 @@ class SScribe_Zip_Handler {
 	 * @return int Number of files cleaned up.
 	 */
 	public function cleanup_expired(): int {
-		$cleaned = 0;
-		$files   = glob( $this->export_dir . '/*.zip' );
-
-		if ( empty( $files ) ) {
-			// Also clean up any stale temp directories.
-			return $this->cleanup_stale_temp_dirs();
+		// P-4: Prevent overlapping cron runs.
+		if ( get_transient( 'sscribe_cron_cleanup_lock' ) ) {
+			return 0;
 		}
+		set_transient( 'sscribe_cron_cleanup_lock', true, 5 * MINUTE_IN_SECONDS );
 
-		$max_age  = 3 * DAY_IN_SECONDS;
-		$now      = time();
-		$exports  = get_option( 'sscribe_export_index', array() );
-		$modified = false;
+		try {
+			$cleaned = 0;
+			$files   = glob( $this->export_dir . '/*.zip' );
 
-		foreach ( $files as $file ) {
-			$file_time = filemtime( $file );
-			if ( $file_time && ( $now - $file_time ) > $max_age ) {
-				wp_delete_file( $file );
-				unset( $exports[ basename( $file ) ] );
-				$modified = true;
-				++$cleaned;
+			if ( empty( $files ) ) {
+				// Also clean up any stale temp directories.
+				return $this->cleanup_stale_temp_dirs();
 			}
-		}
 
-		if ( $modified ) {
-			update_option( 'sscribe_export_index', $exports, false );
-		}
+			$max_age  = 3 * DAY_IN_SECONDS;
+			$now      = time();
+			$exports  = get_option( 'sscribe_export_index', array() );
+			$modified = false;
 
-		return $cleaned + $this->cleanup_stale_temp_dirs();
+			foreach ( $files as $file ) {
+				$file_time = filemtime( $file );
+				if ( $file_time && ( $now - $file_time ) > $max_age ) {
+					wp_delete_file( $file );
+					unset( $exports[ basename( $file ) ] );
+					$modified = true;
+					++$cleaned;
+				}
+			}
+
+			if ( $modified ) {
+				update_option( 'sscribe_export_index', $exports, false );
+			}
+
+			return $cleaned + $this->cleanup_stale_temp_dirs();
+		} finally {
+			delete_transient( 'sscribe_cron_cleanup_lock' );
+		}
 	}
 
 	/**

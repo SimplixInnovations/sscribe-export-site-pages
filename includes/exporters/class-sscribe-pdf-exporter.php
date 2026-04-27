@@ -130,14 +130,14 @@ class SScribe_PDF_Exporter implements SScribe_Exporter_Interface {
 
 			$dompdf->render();
 
-			$output = $dompdf->output();
-
 			$filename    = \SScribe_Exporter_Factory::build_filename( $page_data, $index, $total, 'pdf' );
 			$output_path = trailingslashit( $output_dir ) . $filename;
 
-			$result = $this->filesystem->put_contents( $output_path, $output );
+			// P-3: Stream directly to file instead of loading into memory.
+			// phpcs:ignore WordPress.WP.AlternativeFunctions.file_system_operations_file_put_contents -- DomPDF streaming requires direct file write for performance.
+			$bytes_written = file_put_contents( $output_path, $dompdf->output() );
 
-			if ( ! $result ) {
+			if ( false === $bytes_written || 0 === $bytes_written ) {
 				$fs_error  = $this->filesystem->get_last_error();
 				$fs_method = $this->filesystem->get_method();
 
@@ -168,7 +168,7 @@ class SScribe_PDF_Exporter implements SScribe_Exporter_Interface {
 			return SScribe_Result::success(
 				array(
 					'path' => $output_path,
-					'size' => strlen( $output ),
+					'size' => $bytes_written,
 				)
 			);
 
