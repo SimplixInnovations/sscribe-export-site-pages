@@ -93,7 +93,7 @@ class SScribe_PDF_Exporter implements SScribe_Exporter_Interface {
 
 		try {
 			// Verify DomPDF is available before attempting export.
-			if ( ! class_exists( '\\SScribeVendor\\Dompdf\\Dompdf' ) && ! class_exists( '\\Dompdf\\Dompdf' ) ) {
+			if ( ! class_exists( '\\SScribeVendor\\Dompdf\\Dompdf' ) && ! class_exists( '\\SScribeVendor\\Dompdf\\Dompdf' ) ) {
 				return SScribe_Result::failure(
 					__( 'PDF export is not available — DomPDF library is missing. Please reinstall the plugin.', 'sscribe-export-site-pages' ),
 					array(

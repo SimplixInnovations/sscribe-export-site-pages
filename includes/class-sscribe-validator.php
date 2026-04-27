@@ -85,7 +85,7 @@ class SScribe_Validator {
 
 		$pdf_runtime_candidates = array(
 			'\SScribeVendor\Dompdf\Dompdf',
-			'\Dompdf\Dompdf',
+			'\SScribeVendor\Dompdf\Dompdf',
 		);
 
 		$pdf_runtime_available = false;
