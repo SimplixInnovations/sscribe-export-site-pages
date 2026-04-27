@@ -78,6 +78,7 @@ class SScribe_Activator {
 			error_message TEXT,
 			created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
 			PRIMARY KEY  (id),
+			INDEX idx_export_session_id (export_session_id),
 			INDEX idx_export_date (export_date),
 			INDEX idx_user_id (user_id),
 			INDEX idx_status (status)
@@ -87,6 +88,33 @@ class SScribe_Activator {
 
 		dbDelta( $sql_logs );
 		dbDelta( $sql_stats );
+
+		// P-5: Dedicated session table (replaces wp_options storage for sessions).
+		$table_sessions = $wpdb->prefix . 'sscribe_sessions';
+		$sql_sessions   = "CREATE TABLE $table_sessions (
+			id BIGINT UNSIGNED NOT NULL AUTO_INCREMENT,
+			session_id VARCHAR(64) NOT NULL,
+			user_id BIGINT UNSIGNED NOT NULL,
+			status ENUM('pending', 'processing', 'completed', 'failed', 'paused', 'cancelled') DEFAULT 'pending',
+			language VARCHAR(10) NOT NULL DEFAULT '',
+			post_status VARCHAR(20) NOT NULL DEFAULT 'publish',
+			formats JSON,
+			total_pages INT UNSIGNED DEFAULT 0,
+			processed_pages INT UNSIGNED DEFAULT 0,
+			current_page_index INT UNSIGNED DEFAULT 0,
+			page_ids LONGTEXT,
+			session_data LONGTEXT,
+			signature VARCHAR(64),
+			created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+			updated_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+			expires_at DATETIME,
+			PRIMARY KEY  (id),
+			UNIQUE KEY idx_session_id (session_id),
+			INDEX idx_user_id (user_id),
+			INDEX idx_status (status),
+			INDEX idx_expires_at (expires_at)
+		) $charset_collate;";
+		dbDelta( $sql_sessions );
 
 		// Create audit log table.
 		require_once SSCRIBE_PLUGIN_DIR . 'includes/class-sscribe-audit-trail.php';
