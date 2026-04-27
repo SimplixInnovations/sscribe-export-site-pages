@@ -10,9 +10,9 @@ $ignore_file = $root . '/.distignore';
 $excludes    = array(
 	'dist', '.git', '.gitignore', '.distignore', '.cache', '.phpunit.cache',
 	'.sisyphus', '.wp-env', 'wordpress', 'wordpress-tests-lib',
-	'package.json', 'opencode.json', 'CONTRIBUTING.md',
+	'package.json', 'opencode.json', 'CONTRIBUTING.md', 'CHANGELOG.md',
 	'phpunit.xml', 'phpunit.xml.dist', 'phpstan.neon', 'phpstan.neon.dist',
-	'phpcs.xml', 'phpstan-bootstrap.php',
+	'phpcs.xml', 'phpstan-bootstrap.php', '.editorconfig', '.wp-env.json',
 );
 if ( file_exists( $ignore_file ) ) {
 	$lines = file( $ignore_file, FILE_IGNORE_NEW_LINES | FILE_SKIP_EMPTY_LINES );
