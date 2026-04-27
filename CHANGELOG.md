@@ -6,6 +6,35 @@ All notable changes to this project will be documented in this file.
 
 ### Changed
 
+## [3.31.0] - 2026-04-27
+
+### Security
+- AJAX endpoints now verify capability before nonce to fail fast on unauthorized requests (12 endpoints hardened)
+- Session signing key now throws `RuntimeException` when no key material is available instead of falling back to insecure prefix
+- Removed `'unsafe-inline'` from CSP `script-src` directive to prevent inline script injection
+- Batch processing lock now verifies `set_transient()` return and fails securely with HTTP 503
+
+### Architecture
+- Container adds circular dependency detection with re-entrancy guard
+- Container validates factory return types and throws on non-object resolution
+- Autoloader adds in-request cache to eliminate repeated `file_exists()` calls
+- Shared logger helpers extracted into `SScribe_Logger_Common` trait to eliminate duplication
+- Logger request ID generation unified to use cryptographically secure `random_int()`
+
+### Performance
+- Dedicated `sscribe_sessions` table replaces wp_options storage for session data
+- Added `INDEX idx_export_session_id` to export stats table
+- DomPDF output streams directly to file instead of loading into memory
+- Cron overlap protection prevents concurrent cleanup job execution
+
+### Code Quality
+- Replaced all direct `error_log()` calls with structured logger in exporter and page collector
+- Version-aware upgrade system with incremental schema migrations
+
+### Features
+- Structured JSON logger (`SScribe_Logger_Structured`) for production observability with machine-parseable log entries
+- `SSCRIBE_DEBUG_PUBLIC` constant allows independent control of admin debug display
+
 ## [3.30.13] - 2026-04-11
 
 ### Fixed

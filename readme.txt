@@ -4,7 +4,7 @@ Donate link: https://simplixi.com
 Tags: export, docx, multilingual, seo, pdf
 Requires at least: 6.0
 Tested up to: 6.9.5
-Stable tag: 3.30.13
+Stable tag: 3.31.0
 Requires PHP: 8.2
 License: GPLv2 or later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
@@ -228,6 +228,26 @@ Each document includes: cover page with title/URL/date/breadcrumbs, featured ima
 5. SEO Metadata Section - Meta title, description, focus keyword, and canonical URL from SEO plugins
 
 == Changelog ==
+
+= 3.31.0 =
+
+* Security: AJAX endpoints now verify capability before nonce to fail fast on unauthorized requests
+* Security: Session signing key throws RuntimeException when no key material available
+* Security: Removed unsafe-inline from CSP script-src directive
+* Security: Batch processing lock verifies set_transient return and fails securely
+* Architecture: Container adds circular dependency detection with re-entrancy guard
+* Architecture: Container validates factory return types
+* Architecture: Autoloader adds in-request cache to eliminate repeated file_exists calls
+* Architecture: Shared logger helpers extracted into trait to eliminate duplication
+* Architecture: Logger request ID generation unified to use cryptographically secure random_int
+* Performance: Dedicated ssessions table replaces wp_options storage
+* Performance: Added index on export_session_id in stats table
+* Performance: DomPDF output streams directly to file instead of loading into memory
+* Performance: Cron overlap protection prevents concurrent cleanup jobs
+* Quality: Replaced direct error_log calls with structured logger
+* Quality: Version-aware upgrade system with incremental schema migrations
+* Feature: Structured JSON logger for production observability
+* Feature: SSCRIBE_DEBUG_PUBLIC constant for independent admin debug control
 
 = 3.30.13 =
 
