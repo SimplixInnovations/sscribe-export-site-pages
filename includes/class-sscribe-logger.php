@@ -15,6 +15,7 @@ if ( ! defined( 'ABSPATH' ) ) {
 }
 
 require_once SSCRIBE_PLUGIN_DIR . 'includes/interfaces/interface-sscribe-logger.php';
+require_once SSCRIBE_PLUGIN_DIR . 'includes/traits/trait-sscribe-logger-common.php';
 
 /**
  * Class SScribe_Logger
@@ -27,6 +28,8 @@ require_once SSCRIBE_PLUGIN_DIR . 'includes/interfaces/interface-sscribe-logger.
  * - Advanced logging features are requested.
  */
 class SScribe_Logger implements SScribe_Logger_Interface {
+
+	use SScribe_Logger_Common;
 
 	/**
 	 * Singleton instances keyed by prefix.
