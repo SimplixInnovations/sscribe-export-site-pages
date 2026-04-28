@@ -36,7 +36,7 @@ class SScribe_Activator {
 						__( 'Activation aborted: required runtime dependencies are missing. Run "composer install" in the plugin directory or reinstall the plugin package. Version: %s', 'sscribe-export-site-pages' ),
 						SSCRIBE_VERSION
 					),
-					'time' => gmdate( 'Y-m-d H:i:s \\U\\T\\C' ),
+					'time'    => gmdate( 'Y-m-d H:i:s \\U\\T\\C' ),
 				),
 				MINUTE_IN_SECONDS * 10
 			);

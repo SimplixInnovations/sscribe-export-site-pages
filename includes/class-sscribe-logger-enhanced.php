@@ -433,6 +433,7 @@ class SScribe_Logger_Enhanced implements SScribe_Logger_Interface {
 		$where_clause = implode( ' AND ', $where );
 		$args[]       = $limit;
 
+		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- Custom table read
 		return $wpdb->get_results(
 			$wpdb->prepare(
 				"SELECT * FROM {$wpdb->esc_sql($this->table_name)} WHERE {$where_clause} ORDER BY timestamp DESC LIMIT %d", // phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared
