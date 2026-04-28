@@ -135,14 +135,12 @@ class SScribe_Container {
 		}
 
 		if ( ! isset( $this->factories[ $key ] ) ) {
-			// phpcs:ignore WordPress.Security.EscapeOutput.ExceptionNotEscaped -- Exception messages are not HTML output.
-			throw new \RuntimeException( "No binding registered for: {$key}" );
+			throw new \RuntimeException( 'Service not registered in container.' );
 		}
 
-		// A-1: Detect circular dependency (re-entrancy guard).
+		// Detect circular dependency (re-entrancy guard).
 		if ( isset( $this->resolving[ $key ] ) ) {
-			// phpcs:ignore WordPress.Security.EscapeOutput.ExceptionNotEscaped
-			throw new \RuntimeException( "Circular dependency detected while resolving: {$key}" );
+			throw new \RuntimeException( 'Circular dependency detected in container.' );
 		}
 
 		$this->resolving[ $key ] = true;
@@ -155,8 +153,8 @@ class SScribe_Container {
 
 		// A-2: Validate factory returned an object.
 		if ( ! is_object( $instance ) ) {
-			// phpcs:ignore WordPress.Security.EscapeOutput.ExceptionNotEscaped
-			throw new \RuntimeException( "Factory for '{$key}' returned non-object: " . gettype( $instance ) );
+			// phpcs:ignore WordPress.Security.EscapeOutput.ExceptionNotEscaped -- Exception message, not browser output.
+			throw new \RuntimeException( 'Container factory returned non-object type: ' . gettype( $instance ) );
 		}
 
 		// Cache if singleton.

@@ -166,8 +166,9 @@ class SScribe_Zip_Handler {
 
 		$this->delete_directory( $source_dir );
 
-		// Finding #5 fix: Use a transient-based lock to prevent race conditions during indexing.
-		$lock_key = 'sscribe_export_index_lock';
+		// Use per-user transient lock to prevent race conditions during indexing
+		// without blocking concurrent exports from different users.
+		$lock_key = 'sscribe_export_index_lock_' . get_current_user_id();
 		$locked   = false;
 		$timeout  = 5; // Seconds.
 		$start    = time();

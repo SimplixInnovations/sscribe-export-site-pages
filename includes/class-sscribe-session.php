@@ -745,6 +745,28 @@ class SScribe_Session {
 		}
 
 		if ( defined( 'DB_PASSWORD' ) && '' !== DB_PASSWORD ) {
+			// Log warning: DB_PASSWORD as crypto key is a security anti-pattern.
+			// Site admins should define AUTH_SALT or SECURE_AUTH_KEY instead.
+			if ( defined( 'SSCRIBE_DEBUG' ) && SSCRIBE_DEBUG ) {
+				// phpcs:ignore WordPress.PHP.DevelopmentFunctions.error_log_error_log
+				error_log( 'SScribe: Using DB_PASSWORD as session signing key (fallback). Define AUTH_SALT or SECURE_AUTH_KEY in wp-config.php for stronger session security.' );
+			}
+
+			// Show admin notice once to alert site admins.
+			if ( ! get_transient( 'sscribe_key_warning_shown' ) ) {
+				set_transient( 'sscribe_key_warning_shown', true, WEEK_IN_SECONDS );
+				add_action(
+					'admin_notices',
+					static function () {
+						printf(
+							'<div class="notice notice-warning is-dismissible"><p><strong>%s</strong> %s</p></div>',
+							esc_html__( 'SScribe:', 'sscribe-export-site-pages' ),
+							esc_html__( 'Session security can be improved. Define AUTH_SALT or SECURE_AUTH_KEY in your wp-config.php file for stronger export session protection.', 'sscribe-export-site-pages' )
+						);
+					}
+				);
+			}
+
 			return DB_PASSWORD;
 		}
 
