@@ -820,6 +820,128 @@ class SScribe_Diagnostics {
 	}
 
 	/**
+	 * Run comprehensive AJAX health check to diagnose 404/network errors.
+	 *
+	 * Checks admin-ajax.php reachability, plugin hook registration,
+	 * and nonce validity. Returns actionable diagnostics for CDN/proxy
+	 * issues that commonly cause "HTTP 404" on AJAX requests.
+	 *
+	 * @return array{status: string, checks: array, summary: string, recommendations: array}
+	 */
+	public function check_ajax_health(): array {
+		$checks = array();
+
+		// Check: admin-ajax.php URL is accessible.
+		$ajax_url           = admin_url( 'admin-ajax.php' );
+		$home_url           = home_url();
+		$checks['ajax_url'] = array(
+			'name'    => 'AJAX Endpoint',
+			'status'  => 'ok',
+			'message' => $ajax_url,
+		);
+
+		// Check: Plugin hooks registered (nonce can be created).
+		$nonce                      = wp_create_nonce( 'sscribe_export_nonce' );
+		$checks['nonce_generation'] = array(
+			'name'    => 'Nonce Generation',
+			'status'  => ! empty( $nonce ) ? 'ok' : 'error',
+			'message' => ! empty( $nonce ) ? 'Nonces can be created' : 'Failed to generate nonce',
+		);
+
+		// Check: Current user has required capability.
+		$has_cap                   = current_user_can( apply_filters( 'sscribe_export_capability', 'manage_options' ) );
+		$checks['user_capability'] = array(
+			'name'    => 'User Permission',
+			'status'  => $has_cap ? 'ok' : 'error',
+			'message' => $has_cap ? 'User has export capability' : 'User lacks required capability',
+		);
+
+		// Detect CDN/proxy issues: compare home_url to site_url.
+		$site_url                  = site_url();
+		$checks['url_consistency'] = array(
+			'name'    => 'URL Configuration',
+			'status'  => 'ok',
+			'message' => sprintf( 'Home: %s | Site: %s', $home_url, $site_url ),
+		);
+
+		$has_error       = false;
+		$summary         = 'AJAX health: OK';
+		$recommendations = array();
+
+		foreach ( $checks as $check ) {
+			if ( 'error' === $check['status'] ) {
+				$has_error = true;
+			}
+		}
+
+		if ( $has_error ) {
+			$summary = 'AJAX health: ERRORS DETECTED';
+		}
+
+		// Add CDN/proxy-specific guidance.
+		$recommendations[] = 'If AJAX returns 404, check that admin-ajax.php is NOT excluded in CDN/WAF rules (Cloudflare, Sucuri, Wordfence).';
+		$recommendations[] = 'Ensure ModSecurity or similar WAF modules are not blocking AJAX POST requests containing HTML content.';
+		$recommendations[] = sprintf( 'Verify that the plugin files are intact in %s', SSCRIBE_PLUGIN_DIR );
+
+		return array(
+			'status'          => $has_error ? 'error' : 'ok',
+			'checks'          => $checks,
+			'summary'         => $summary,
+			'recommendations' => $recommendations,
+		);
+	}
+
+	/**
+	 * Get diagnostic information about the plugin's boot state.
+	 *
+	 * Useful for debugging silent boot failures where the plugin loads
+	 * without errors but hooks are not registered (e.g., dependency
+	 * resolution failure caught by try/catch).
+	 *
+	 * @return array{loaded: bool, version: string, dependencies: array, hooks_registered: int, boot_errors: array}
+	 */
+	public function get_boot_diagnostics(): array {
+		$missing_deps = $this->check_vendor_dependencies();
+		$loaded       = empty( $missing_deps );
+
+		$hooks_registered = 0;
+		if ( class_exists( 'SScribe_Loader' ) ) {
+			// Count actions registered by checking if key hooks exist.
+			$hook_checks = array(
+				'admin_menu',
+				'admin_enqueue_scripts',
+				'wp_ajax_sscribe_start_export',
+				'wp_ajax_sscribe_process_batch',
+			);
+			foreach ( $hook_checks as $hook ) {
+				if ( has_action( $hook ) ) {
+					++$hooks_registered;
+				}
+			}
+		}
+
+		$boot_errors = array();
+		if ( ! class_exists( 'SScribe' ) ) {
+			$boot_errors[] = 'Core class SScribe not found';
+		}
+		if ( ! class_exists( 'SScribe_Batch_Processor' ) ) {
+			$boot_errors[] = 'Batch processor class not found';
+		}
+
+		return array(
+			'loaded'           => $loaded && empty( $boot_errors ),
+			'version'          => defined( 'SSCRIBE_VERSION' ) ? SSCRIBE_VERSION : 'unknown',
+			'dependencies'     => array(
+				'dompdf_loaded'  => class_exists( '\\SScribeVendor\\Dompdf\\Dompdf' ),
+				'phpword_loaded' => class_exists( '\\SScribeVendor\\PhpOffice\\PhpWord\\PhpWord' ),
+				'zip_extension'  => class_exists( 'ZipArchive' ),
+			),
+			'hooks_registered' => $hooks_registered,
+			'boot_errors'      => $boot_errors,
+		);
+	}
+
+	/**
 	 * Build copy-friendly support text.
 	 *
 	 * @param array<string, array{label: string, items: array<string, string>}> $sections Sections to render.

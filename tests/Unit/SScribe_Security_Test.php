@@ -20,8 +20,9 @@ final class SScribe_Security_Test extends TestCase {
 	private string $temp_dir;
 
 	protected function setUp(): void {
-		$this->temp_dir = sys_get_temp_dir() . '/sscribe_security_test_' . uniqid();
-		mkdir( $this->temp_dir, 0755, true );
+		$upload_dir = wp_upload_dir();
+		$this->temp_dir = $upload_dir['basedir'] . '/sscribe_security_test_' . uniqid();
+		wp_mkdir_p( $this->temp_dir );
 	}
 
 	protected function tearDown(): void {

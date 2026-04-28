@@ -182,6 +182,8 @@ class SScribe {
 		$this->loader->add_action( 'wp_ajax_sscribe_get_export_preview', $batch, 'ajax_get_export_preview' );
 		$this->loader->add_action( 'wp_ajax_sscribe_get_recent_exports', $batch, 'ajax_get_recent_exports' );
 		$this->loader->add_action( 'wp_ajax_sscribe_get_support_info', $batch, 'ajax_get_support_info' );
+		$this->loader->add_action( 'wp_ajax_sscribe_health_check', $batch, 'ajax_health_check' );
+		$this->loader->add_action( 'wp_ajax_nopriv_sscribe_health_check', $batch, 'ajax_health_check' );
 	}
 
 	/**

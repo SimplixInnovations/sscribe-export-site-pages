@@ -2732,6 +2732,29 @@ class SScribe_Batch_Processor {
 	}
 
 	/**
+	 * AJAX handler: Check AJAX health to diagnose 404/network errors.
+	 *
+	 * Provides a lightweight diagnostic endpoint to verify admin-ajax.php
+	 * is reachable, plugin hooks are registered, and common CDN/proxy
+	 * issues are surfaced.
+	 *
+	 * @return void
+	 */
+	public function ajax_health_check(): void {
+		$diagnostics = $this->diagnostics->check_ajax_health();
+		$boot        = $this->diagnostics->get_boot_diagnostics();
+
+		wp_send_json_success(
+			array(
+				'ajax_health' => $diagnostics,
+				'boot_state'  => $boot,
+				'server_time' => current_time( 'mysql' ),
+				'server_utc'  => gmdate( 'Y-m-d H:i:s' ),
+			)
+		);
+	}
+
+	/**
 	 * Get adaptive seconds-per-page estimate for a format.
 	 *
 	 * Uses actual metrics from previous exports stored in the sscribe_export_metrics
