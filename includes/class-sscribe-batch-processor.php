@@ -92,7 +92,7 @@ class SScribe_Batch_Processor {
 	 * Use sscribe_batch_size to reduce AJAX call frequency instead
 	 * of lowering this limit.
 	 */
-	private const RATE_LIMIT_MAX = 5000;
+	private const RATE_LIMIT_MAX = 200;
 
 	/**
 	 * Rate limit: Time window in seconds.
@@ -566,6 +566,9 @@ class SScribe_Batch_Processor {
 		// Self-healing: clear orphaned locks and sessions before starting.
 		$this->diagnostics->self_heal();
 
+		// Raise memory limit for export operations.
+		wp_raise_memory_limit( 'admin' );
+
 		$this->audit_log( 'export_started' );
 		$this->logger->debug( '=== START EXPORT ===' );
 
@@ -729,11 +732,11 @@ class SScribe_Batch_Processor {
 		if ( $sscribe_is_debug ) {
 			$response['debug_info'] = array(
 				'page_ids_count'    => $total,
-				'page_ids_sample'   => array_slice( $page_ids, 0, 20 ),
 				'language'          => $language,
 				'post_status'       => $post_status,
+				'post_type'         => $post_type,
 				'current_wpml_lang' => $current_lang ?? 'n/a',
-				'temp_dir'          => $temp_dir,
+				'temp_dir'          => basename( $temp_dir ),
 				'session_type'      => $this->session->get_storage_type(),
 				'memory_usage'      => size_format( memory_get_usage( true ) ),
 				'php_version'       => PHP_VERSION,
@@ -1628,7 +1631,7 @@ class SScribe_Batch_Processor {
 			if ( $sscribe_is_debug ) {
 				$error_response['debug_info'] = array(
 					'temp_dir_exists' => is_dir( $session['temp_dir'] ),
-					'files_in_temp'   => $files_before,
+					'files_in_temp'   => count( $files_before ),
 				);
 			}
 
@@ -1747,18 +1750,15 @@ class SScribe_Batch_Processor {
 		$sscribe_is_debug = defined( 'SSCRIBE_DEBUG' ) && SSCRIBE_DEBUG;
 		if ( $sscribe_is_debug ) {
 			$response['debug_info'] = array(
-				'files_in_temp'      => $files_before,
-				'total_files_in_zip' => $total_files_zip,
-				'expected_pages'     => $session['total'],
-				'zip_files_sample'   => array_slice( $files_in_zip, 0, 20 ),
-				'page_ids_requested' => $session['page_ids'] ?? array(),
-				'errors_detailed'    => $session['errors'] ?? array(),
-				'language'           => $session['language'] ?? '',
-				'post_status'        => $session['post_status'] ?? '',
-				'total_time_sec'     => time() - ( $session['start_time'] ?? time() ),
-				'memory_peak'        => size_format( memory_get_peak_usage( true ) ),
-				'zip_size'           => size_format( filesize( $zip_path ) ),
-				'log_summary'        => $log_summary,
+				'files_in_temp_count' => count( $files_before ),
+				'total_files_in_zip'  => $total_files_zip,
+				'expected_pages'      => $session['total'],
+				'errors_count'        => $error_count,
+				'language'            => $session['language'] ?? '',
+				'post_status'         => $session['post_status'] ?? '',
+				'total_time_sec'      => time() - ( $session['start_time'] ?? time() ),
+				'memory_peak'         => size_format( memory_get_peak_usage( true ) ),
+				'zip_size'            => size_format( filesize( $zip_path ) ),
 			);
 		}
 
@@ -1799,13 +1799,17 @@ class SScribe_Batch_Processor {
 		}
 
 		$exports = get_option( 'sscribe_export_index', array() );
-		if ( isset( $exports[ $filename ] ) && is_array( $exports[ $filename ] ) ) {
-			$export_info = $exports[ $filename ];
-			if ( isset( $export_info['user_id'] ) && get_current_user_id() !== (int) $export_info['user_id'] ) {
-				$this->audit_log( 'download_access_denied', array( 'filename' => $filename ) );
-				status_header( 403 );
-				wp_die( esc_html__( 'Invalid file access.', 'sscribe-export-site-pages' ) );
-			}
+		if ( ! isset( $exports[ $filename ] ) || ! is_array( $exports[ $filename ] ) ) {
+			$this->audit_log( 'download_orphaned_denied', array( 'filename' => $filename ) );
+			status_header( 403 );
+			wp_die( esc_html__( 'Invalid file access.', 'sscribe-export-site-pages' ) );
+		}
+
+		$export_info = $exports[ $filename ];
+		if ( isset( $export_info['user_id'] ) && get_current_user_id() !== (int) $export_info['user_id'] ) {
+			$this->audit_log( 'download_access_denied', array( 'filename' => $filename ) );
+			status_header( 403 );
+			wp_die( esc_html__( 'Invalid file access.', 'sscribe-export-site-pages' ) );
 		}
 
 		$ascii_filename = preg_replace( '/[^a-zA-Z0-9._-]/', '_', $filename );
@@ -2589,7 +2593,7 @@ class SScribe_Batch_Processor {
 				'php_version'   => PHP_VERSION,
 				'memory_limit'  => ini_get( 'memory_limit' ),
 				'max_execution' => ini_get( 'max_execution_time' ),
-				'upload_dir'    => $this->zip_handler->get_export_dir(),
+				'upload_dir'    => basename( $this->zip_handler->get_export_dir() ),
 			);
 		}
 
