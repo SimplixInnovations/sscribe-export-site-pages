@@ -28,7 +28,7 @@ if ( ! defined( 'ABSPATH' ) ) {
  * All version references read from the plugin header above.
  */
 if ( ! defined( 'SSCRIBE_VERSION' ) ) {
-	define( 'SSCRIBE_VERSION', '3.33.1' );
+	define( 'SSCRIBE_VERSION', '3.33.2' );
 }
 
 /**
