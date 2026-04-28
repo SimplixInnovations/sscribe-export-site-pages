@@ -46,6 +46,7 @@ class SScribe_Export_Stats {
 	public function start_export( string $session_id, int $user_id, array $config ): bool {
 		global $wpdb;
 
+		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- Custom table write, no caching for stats integrity
 		return false !== $wpdb->insert(
 			$this->table_name,
 			array(
@@ -71,6 +72,7 @@ class SScribe_Export_Stats {
 	public function update_progress( string $session_id, int $successful_pages, int $failed_pages = 0 ): bool {
 		global $wpdb;
 
+		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- Custom table write
 		return false !== $wpdb->update(
 			$this->table_name,
 			array(
@@ -102,6 +104,7 @@ class SScribe_Export_Stats {
 			'file_size_mb'     => $results['file_size_mb'] ?? 0,
 		);
 
+		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- Custom table write
 		return false !== $wpdb->update(
 			$this->table_name,
 			$data,
@@ -121,6 +124,7 @@ class SScribe_Export_Stats {
 	public function fail_export( string $session_id, string $error_message ): bool {
 		global $wpdb;
 
+		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- Custom table write
 		return false !== $wpdb->update(
 			$this->table_name,
 			array(
@@ -417,6 +421,7 @@ class SScribe_Export_Stats {
 
 		global $wpdb;
 
+		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- GDPR erase, custom table write
 		$result = $wpdb->update(
 			$this->table_name,
 			array(

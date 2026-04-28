@@ -55,6 +55,7 @@ class SScribe_Upgrader {
 			} catch ( \Throwable $e ) {
 				update_option( 'sscribe_upgrade_last_error', $e->getMessage() );
 				if ( defined( 'WP_DEBUG' ) && WP_DEBUG ) {
+					// phpcs:ignore WordPress.PHP.DevelopmentFunctions.error_log_error_log -- Debug-only error logging for upgrade failures
 					error_log( 'SScribe Upgrade Error: ' . $e->getMessage() );
 				}
 			}
@@ -106,6 +107,7 @@ class SScribe_Upgrader {
 			// Add missing index on stats table.
 			$table_stats = $wpdb->prefix . 'sscribe_export_stats';
 			try {
+				// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- Schema introspection
 				$index_check = $wpdb->get_results(
 					$wpdb->prepare(
 						'SHOW INDEX FROM %i WHERE Key_name = %s',
@@ -127,7 +129,8 @@ class SScribe_Upgrader {
 		if ( version_compare( $from_version, '3.33.0', '<' ) ) {
 			$table_stats = $wpdb->prefix . 'sscribe_export_stats';
 			try {
-				$col = $wpdb->get_row(
+				// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- Schema introspection
+				$col          = $wpdb->get_row(
 					$wpdb->prepare(
 						'SHOW COLUMNS FROM %i LIKE %s',
 						$table_stats,

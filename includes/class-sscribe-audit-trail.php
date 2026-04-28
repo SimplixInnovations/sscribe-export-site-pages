@@ -68,6 +68,7 @@ class SScribe_Audit_Trail {
 		static $exists = null;
 
 		if ( null === $exists ) {
+			// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- Schema introspection, cached via static variable
 			$table  = $wpdb->get_var(
 				$wpdb->prepare( 'SHOW TABLES LIKE %s', $this->table_name )
 			);
@@ -98,6 +99,7 @@ class SScribe_Audit_Trail {
 
 		$sanitized_context = $this->sanitize_context( $context );
 
+		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- Custom table write, no caching for audit integrity
 		$result = $wpdb->insert(
 			$this->table_name,
 			array(
@@ -247,9 +249,11 @@ class SScribe_Audit_Trail {
 		$args[]       = $limit;
 		$args[]       = $offset;
 
+		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- Custom table read
 		return $wpdb->get_results(
+			// phpcs:ignore WordPress.DB.PreparedSQLPlaceholders.ReplacementsWrongNumber -- Dynamic WHERE clause placeholders counted at runtime
 			$wpdb->prepare(
-				"SELECT * FROM {$wpdb->esc_sql($this->table_name)} WHERE {$where_clause} ORDER BY timestamp DESC LIMIT %d OFFSET %d", // phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared
+				"SELECT * FROM {$wpdb->esc_sql($this->table_name)} WHERE {$where_clause} ORDER BY timestamp DESC LIMIT %d OFFSET %d", // phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared, WordPress.DB.PreparedSQLPlaceholders.UnfinishedPrepare
 				...$args
 			)
 		);
@@ -283,9 +287,10 @@ class SScribe_Audit_Trail {
 
 		$where_clause = implode( ' AND ', $where );
 
+		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- Custom table aggregation
 		return $wpdb->get_results(
 			$wpdb->prepare(
-				"SELECT event, COUNT(*) as count FROM {$wpdb->esc_sql($this->table_name)} WHERE {$where_clause} GROUP BY event ORDER BY count DESC", // phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared
+				"SELECT event, COUNT(*) as count FROM {$wpdb->esc_sql($this->table_name)} WHERE {$where_clause} GROUP BY event ORDER BY count DESC", // phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared, WordPress.DB.PreparedSQLPlaceholders.UnfinishedPrepare
 				...$args
 			)
 		);
@@ -329,6 +334,7 @@ class SScribe_Audit_Trail {
 
 		global $wpdb;
 
+		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- GDPR erase, custom table write
 		$result = $wpdb->update(
 			$this->table_name,
 			array(
