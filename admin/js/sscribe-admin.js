@@ -25,7 +25,7 @@
 				return;
 			}
 			this.bindEvents();
-			this.wizardStep(1);
+			this.wizardStep(0);
 			this.updateTimeEstimate();
 			this.loadSupportInfo();
 		},
