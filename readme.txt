@@ -430,48 +430,14 @@ Each document includes: cover page with title/URL/date/breadcrumbs, featured ima
 
 == Upgrade Notice ==
 
-= 3.30.12 =
+= 3.33.0 =
 
-Critical fix: Arabic/RTL text now renders correctly in DOCX exports (no more square characters). Multi-language ZIP exports are organized into language subfolders. Recommended update for all multilingual sites.
+New: Post type selection — export Pages, Posts, or Both with dynamic counts per type. Enhanced batch processing, status filtering, and wizard navigation. Recommended update for all users.
 
-= 3.30.5 =
+= 3.32.0 =
 
-Production release: PHPCS compliance fixes for RTL/Arabic support code, complete plugin audit passed. Recommended update for all users.
+Compliance: MySQL 5.6 compatibility (LONGTEXT replaces JSON columns), multisite-aware uninstall, wp_safe_redirect, and schema version cleanup. Recommended update for all users.
 
-= 3.30.0 =
+= 3.31.0 =
 
-Major feature release: Full RTL/Arabic language support, image processing, and streaming DOCX generation. Essential update for multilingual sites.
-
-**Note:** For complete upgrade notices, see the [GitHub Releases page](https://github.com/SimplixInnovations/sscribe-export-site-pages/releases).
-
-= 3.15.3 =
-
-Critical fixes: SSCRIBE_DEBUG PHP warning fix, WP.org tags compliance, and performance improvements. Recommended update for all users.
-
-= 3.30.13 =
-
-Critical fixes: Language badge now displays correctly in Recent Exports, action icons (download/trash/log) no longer return 404, and PDF exports now provide enterprise-grade error diagnostics with actionable fix steps. Recommended update for all users.
-
-= 3.30.12 =
-
-Critical fix: Arabic/RTL text now renders correctly in DOCX exports (no more square characters). Multi-language ZIP exports are organized into language subfolders. Recommended update for all multilingual sites.
-
-= 3.15.2 =
-
-Bug fix release: Corrected Query Monitor detection logic and updated WordPress compatibility. Safe update for all users.
-
-= 3.15.1 =
-
-Performance and standards polish: Optimized queries (N+1 fix), improved error handling in filesystem operations, and trimmed changelog for WordPress.org compliance. Perfect 10/10 in all audit categories. Recommended update for all users.
-
-= 3.15.0 =
-
-Major architecture release: Enhanced logging integration with Query Monitor support and database logging. PHPCS PHP 8.2 alignment, WordPress 6.9.4 compatibility, and comprehensive audit fixes. Recommended update for all users.
-
-= 3.14.2 =
-
-Performance and code quality release: Optimized session handling with caching, removed dead code, and improved test coverage. Recommended update for all users.
-
-= 3.13.0 =
-
-Enterprise-grade release: Exception hierarchy, PSR-3 logger, security audit trail, streaming DOCX generator, WCAG 2.1 AA accessibility. Essential update for all users.
+Security: AJAX capability verification before nonce, session signing key enforcement, CSP unsafe-inline removal. Architecture: DI container with circular dependency detection, dedicated ssessions table, structured JSON logger. Essential update for all users.
