@@ -53,3 +53,15 @@ spl_autoload_register(
 	true,
 	true
 );
+
+// Stub WordPress functions that PHPStan cannot discover.
+if ( ! function_exists( 'is_user_logged_in' ) ) {
+	/**
+	 * Check if user is logged in (PHPStan stub).
+	 *
+	 * @return bool
+	 */
+	function is_user_logged_in(): bool {
+		return true;
+	}
+}

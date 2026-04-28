@@ -103,5 +103,12 @@ class SScribe_Upgrader {
 			// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.NotPrepared
 			$wpdb->query( $sql_stats );
 		}
+
+		// Migration: 3.33.0 — Fix export_session_id column width (VARCHAR(12) → VARCHAR(64)).
+		if ( version_compare( $from_version, '3.33.0', '<' ) ) {
+			$table_stats = $wpdb->prefix . 'sscribe_export_stats';
+			// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.DirectDatabaseQuery.SchemaChange, WordPress.DB.PreparedSQL.InterpolatedNotPrepared
+			$wpdb->query( "ALTER TABLE $table_stats MODIFY COLUMN export_session_id VARCHAR(64) NOT NULL" );
+		}
 	}
 }
