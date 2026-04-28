@@ -398,11 +398,10 @@ class SScribe_Page_Collector {
 	/**
 	 * Collect full data for a single page/post.
 	 *
-	 * @param int    $page_id   The page/post ID.
-	 * @param string $post_type Post type: 'page' or 'post'.
+	 * @param int $page_id The page/post ID.
 	 * @return array|false Page data array or false on failure.
 	 */
-	public function get_page_data( int $page_id, string $post_type = 'page' ): array|false {
+	public function get_page_data( int $page_id ): array|false {
 		$page_id = absint( $page_id );
 		if ( $page_id <= 0 ) {
 			return false;
