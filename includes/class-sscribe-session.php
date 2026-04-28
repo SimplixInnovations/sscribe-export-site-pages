@@ -6,6 +6,11 @@
  * Session data is JSON-encoded for cross-compatibility and to prevent
  * PHP object injection attacks that can occur with serialized data.
  *
+ * Note: All session options use autoload='no' to prevent wp_options autoload
+ * table bloat. This requires explicit cleanup — sessions are NOT expired
+ * automatically by WordPress and must be cleaned up via the scheduled
+ * cron (sscribe_cleanup_sessions) or the cleanup_expired() method.
+ *
  * @package SScribe
  */
 

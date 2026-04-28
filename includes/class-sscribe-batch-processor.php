@@ -81,6 +81,16 @@ class SScribe_Batch_Processor {
 
 	/**
 	 * Rate limit: Maximum requests per minute per user.
+	 *
+	 * 5000 req/min by design — supports large batch exports where
+	 * the AJAX client polls every few seconds per page across multiple
+	 * concurrent format renders (DOCX + PDF + HTML + Markdown).
+	 *
+	 * Admins receive a higher per-request budget via the
+	 * sscribe_rate_limit_admin filter (default: 1000/min).
+	 *
+	 * Use sscribe_batch_size to reduce AJAX call frequency instead
+	 * of lowering this limit.
 	 */
 	private const RATE_LIMIT_MAX = 5000;
 
