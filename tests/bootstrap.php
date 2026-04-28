@@ -349,6 +349,10 @@ if ( ! class_exists( 'wpdb' ) ) {
 			return addcslashes( (string) $text, '_%\\' );
 		}
 
+		public function esc_sql( $data ) {
+			return (string) $data;
+		}
+
 		public function get_charset_collate() {
 			return 'CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci';
 		}

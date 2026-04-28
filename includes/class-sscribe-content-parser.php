@@ -5,6 +5,8 @@
  * @package SScribe
  */
 
+// phpcs:disable WordPress.NamingConventions.ValidVariableName.UsedPropertyNotSnakeCase
+
 declare(strict_types=1);
 
 // Prevent direct access.
@@ -588,8 +590,8 @@ class SScribe_Content_Parser {
 					case 'strong':
 					case 'b':
 						$sub_runs = $this->get_inline_runs( $child );
-						foreach ( $sub_runs as &$run ) {
-							$run['bold'] = true;
+						foreach ( $sub_runs as $key => $run ) {
+							$sub_runs[ $key ]['bold'] = true;
 						}
 						$runs = array_merge( $runs, $sub_runs );
 						break;
@@ -597,16 +599,16 @@ class SScribe_Content_Parser {
 					case 'em':
 					case 'i':
 						$sub_runs = $this->get_inline_runs( $child );
-						foreach ( $sub_runs as &$run ) {
-							$run['italic'] = true;
+						foreach ( $sub_runs as $key => $run ) {
+							$sub_runs[ $key ]['italic'] = true;
 						}
 						$runs = array_merge( $runs, $sub_runs );
 						break;
 
 					case 'u':
 						$sub_runs = $this->get_inline_runs( $child );
-						foreach ( $sub_runs as &$run ) {
-							$run['underline'] = true;
+						foreach ( $sub_runs as $key => $run ) {
+							$sub_runs[ $key ]['underline'] = true;
 						}
 						$runs = array_merge( $runs, $sub_runs );
 						break;
@@ -615,8 +617,8 @@ class SScribe_Content_Parser {
 					case 'del':
 					case 'strike':
 						$sub_runs = $this->get_inline_runs( $child );
-						foreach ( $sub_runs as &$run ) {
-							$run['strikethrough'] = true;
+						foreach ( $sub_runs as $key => $run ) {
+							$sub_runs[ $key ]['strikethrough'] = true;
 						}
 						$runs = array_merge( $runs, $sub_runs );
 						break;
@@ -624,8 +626,8 @@ class SScribe_Content_Parser {
 					case 'a':
 						$href     = $child->getAttribute( 'href' );
 						$sub_runs = $this->get_inline_runs( $child );
-						foreach ( $sub_runs as &$run ) {
-							$run['link'] = $href;
+						foreach ( $sub_runs as $key => $run ) {
+							$sub_runs[ $key ]['link'] = $href;
 						}
 						$runs = array_merge( $runs, $sub_runs );
 						break;

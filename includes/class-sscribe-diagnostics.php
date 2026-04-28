@@ -264,6 +264,19 @@ class SScribe_Diagnostics {
 		}
 
 		// Check if the export will likely fail due to memory constraints.
+		if ( $available_mb <= 0 ) {
+			return array(
+				'name'    => 'Memory Forecast',
+				'status'  => 'error',
+				'message' => sprintf(
+					'No memory available for export (limit: %dMB, used: %dMB). Increase memory_limit in php.ini.',
+					$memory_mb,
+					$used_mb
+				),
+				'fix'     => 'Add define( "WP_MEMORY_LIMIT", "256M" ); to wp-config.php',
+			);
+		}
+
 		if ( $estimated_total_mb > $safe_available_mb ) {
 			$recommended_memory = ceil( $estimated_total_mb / 256 ) * 256;
 
@@ -281,6 +294,8 @@ class SScribe_Diagnostics {
 				);
 			}
 
+			$percent = round( ( $estimated_total_mb / $available_mb ) * 100 );
+
 			return array(
 				'name'    => 'Memory Forecast',
 				'status'  => 'warning',
@@ -288,7 +303,7 @@ class SScribe_Diagnostics {
 					'Export will use ~%dMB of %dMB available (%d%%). Consider increasing memory for safety.',
 					$estimated_total_mb,
 					$available_mb,
-					round( ( $estimated_total_mb / $available_mb ) * 100 )
+					$percent
 				),
 				'fix'     => 'Increase memory_limit to provide more headroom for large exports',
 			);
@@ -370,7 +385,15 @@ class SScribe_Diagnostics {
 		}
 
 		$free_space = disk_free_space( $export_dir );
-		$free_mb    = round( $free_space / 1024 / 1024 );
+		if ( false === $free_space ) {
+			return array(
+				'name'    => 'Disk Space',
+				'status'  => 'warning',
+				'message' => 'Unable to determine free disk space. Server may restrict disk_free_space().',
+				'fix'     => 'Contact your hosting provider to verify available disk space',
+			);
+		}
+		$free_mb = round( $free_space / 1024 / 1024 );
 
 		if ( $free_mb < 100 ) {
 			return array(
@@ -698,7 +721,7 @@ class SScribe_Diagnostics {
 		$locks = $wpdb->get_results(
 			$wpdb->prepare(
 				"SELECT option_name FROM {$wpdb->options} WHERE option_name LIKE %s",
-				$wpdb->esc_like( 'sscribe_lock_' ) . '%'
+				$wpdb->esc_like( '_transient_sscribe_lock_' ) . '%'
 			)
 		);
 

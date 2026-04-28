@@ -11,13 +11,13 @@
 /* ============================================
    CSS CUSTOM PROPERTIES (Design Tokens)
    ============================================ */
-:root {
+.sscribe-master-container {
 	/* Primary Colors */
 	--sscribe-primary: #0891B2;
 	--sscribe-primary-hover: #0E7490;
 	--sscribe-primary-light: #ECFEFF;
 	--sscribe-accent: #22D3EE;
-	
+
 	/* Semantic Colors */
 	--sscribe-success: #10B981;
 	--sscribe-success-light: #D1FAE5;
@@ -27,38 +27,53 @@
 	--sscribe-danger-light: #FEE2E2;
 	--sscribe-info: #3B82F6;
 	--sscribe-info-light: #DBEAFE;
-	
+
 	/* Neutral Colors */
 	--sscribe-bg: #F8FAFC;
 	--sscribe-card-bg: #FFFFFF;
 	--sscribe-border: #E2E8F0;
 	--sscribe-border-hover: #CBD5E1;
-	
+
 	/* Text Colors */
 	--sscribe-text-main: #0F172A;
 	--sscribe-text-secondary: #475569;
 	--sscribe-text-muted: #64748B;
 	--sscribe-text-light: #94A3B8;
-	
+
 	/* Spacing */
 	--sscribe-radius-sm: 6px;
 	--sscribe-radius-md: 10px;
 	--sscribe-radius-lg: 14px;
 	--sscribe-radius-xl: 20px;
-	
+
 	/* Shadows */
 	--sscribe-shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.05);
 	--sscribe-shadow-md: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -2px rgba(0, 0, 0, 0.1);
 	--sscribe-shadow-lg: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -4px rgba(0, 0, 0, 0.1);
 	--sscribe-shadow-xl: 0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 8px 10px -6px rgba(0, 0, 0, 0.1);
-	
+
 	/* Typography */
 	--sscribe-font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Oxygen, Ubuntu, Cantarell, "Helvetica Neue", sans-serif;
-	
+
 	/* Transitions */
 	--sscribe-transition-fast: 150ms ease;
 	--sscribe-transition-normal: 200ms ease;
 	--sscribe-transition-slow: 300ms ease;
+}
+
+@media (prefers-color-scheme: dark) {
+	.sscribe-master-container {
+		--sscribe-bg: #1e1e1e;
+		--sscribe-card-bg: #1e1e1e;
+		--sscribe-border: #444444;
+		--sscribe-border-hover: #555555;
+		--sscribe-text-main: #ffffff;
+		--sscribe-text-secondary: #e6e6e6;
+		--sscribe-text-muted: #bfbfbf;
+		--sscribe-primary-light: rgba(8,145,178,0.08);
+		--sscribe-shadow-sm: 0 1px 2px rgba(0,0,0,0.4);
+		--sscribe-shadow-md: 0 6px 18px rgba(0,0,0,0.5);
+	}
 }
 
 /* ============================================
@@ -1122,8 +1137,10 @@
 	height: 100%;
 	background: linear-gradient(90deg, var(--sscribe-primary) 0%, var(--sscribe-accent) 100%);
 	border-radius: 10px;
-	transition: width 0.3s ease-out;
+	transition: transform 0.3s ease-out;
+	transform-origin: left;
 	position: relative;
+	transform: scaleX(0);
 }
 
 .sscribe-progress-percentage {
@@ -2774,5 +2791,13 @@
 	.sscribe-lang-card-inner,
 	.sscribe-format-card-inner {
 		border-width: 2px;
+	}
+}
+
+@media (prefers-reduced-motion: reduce) {
+	* {
+		transition-duration: 0.01ms !important;
+		animation-duration: 0.01ms !important;
+		scroll-behavior: auto !important;
 	}
 }

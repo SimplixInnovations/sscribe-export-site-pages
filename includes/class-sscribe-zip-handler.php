@@ -166,15 +166,15 @@ class SScribe_Zip_Handler {
 
 		$this->delete_directory( $source_dir );
 
-		// Use per-user transient lock to prevent race conditions during indexing
-		// without blocking concurrent exports from different users.
-		$lock_key = 'sscribe_export_index_lock_' . get_current_user_id();
+		// Use atomic option-based lock to prevent race conditions during indexing.
+		// add_option() is atomic (fails if option exists) unlike set_transient().
+		$lock_key = '_sscribe_export_index_lock_' . get_current_user_id();
 		$locked   = false;
 		$timeout  = 5; // Seconds.
 		$start    = time();
 
 		while ( time() - $start < $timeout ) {
-			if ( set_transient( $lock_key, '1', 10 ) ) {
+			if ( add_option( $lock_key, time(), '', 'no' ) ) {
 				$locked = true;
 				break;
 			}
@@ -198,7 +198,7 @@ class SScribe_Zip_Handler {
 			'flag_url'   => $lang_metadata['flag_url'] ?? '',
 		);
 		update_option( 'sscribe_export_index', $exports, false );
-		delete_transient( $lock_key );
+		delete_option( $lock_key );
 
 		return file_exists( $zip_path ) ? $zip_path : false;
 	}
@@ -212,9 +212,9 @@ class SScribe_Zip_Handler {
 	 * @return string|null Language code (e.g., 'AR') or null if not found.
 	 */
 	private function extract_lang_from_filename( string $filename ): ?string {
-		// Match -XX.ext where XX is 2-letter uppercase code before extension.
-		if ( preg_match( '/-([A-Z]{2})\.[a-z]+$/', $filename, $matches ) ) {
-			return $matches[1];
+		// Match -XX.ext where XX is 2-3 letter code (case-insensitive) before extension.
+		if ( preg_match( '/-([A-Za-z]{2,3}(?:-[A-Za-z]{2,3})?)\.[A-Za-z]+$/', $filename, $matches ) ) {
+			return strtoupper( $matches[1] );
 		}
 		return null;
 	}
@@ -228,8 +228,15 @@ class SScribe_Zip_Handler {
 	 * @return string Filename without language suffix.
 	 */
 	private function remove_lang_from_filename( string $filename ): string {
-		// Remove -XX before extension where XX is 2-letter uppercase code.
-		return preg_replace( '/-([A-Z]{2})(\.[a-z]+)$/', '$2', $filename );
+		// Use pathinfo to safely remove -XX suffix from filename base only.
+		$parts = pathinfo( $filename );
+		$base  = $parts['filename'];
+		$ext   = isset( $parts['extension'] ) ? '.' . $parts['extension'] : '';
+
+		// Remove trailing -XX (2-letter language code) from the base name.
+		$clean_base = preg_replace( '/-[A-Za-z]{2}$/', '', $base );
+
+		return $clean_base . $ext;
 	}
 
 	/**

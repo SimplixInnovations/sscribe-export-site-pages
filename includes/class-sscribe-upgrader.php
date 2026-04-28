@@ -45,12 +45,19 @@ class SScribe_Upgrader {
 		if ( get_transient( 'sscribe_upgrade_lock' ) ) {
 			return;
 		}
-		set_transient( 'sscribe_upgrade_lock', true, 2 * MINUTE_IN_SECONDS );
+		set_transient( 'sscribe_upgrade_lock', true, 20 * MINUTE_IN_SECONDS );
 
 		try {
-			self::run_migrations( $installed_version );
-			update_option( self::SCHEMA_VERSION_OPTION, SSCRIBE_VERSION, false );
-			update_option( 'sscribe_version', SSCRIBE_VERSION );
+			try {
+				self::run_migrations( $installed_version );
+				update_option( self::SCHEMA_VERSION_OPTION, SSCRIBE_VERSION, false );
+				update_option( 'sscribe_version', SSCRIBE_VERSION );
+			} catch ( \Throwable $e ) {
+				update_option( 'sscribe_upgrade_last_error', $e->getMessage() );
+				if ( defined( 'WP_DEBUG' ) && WP_DEBUG ) {
+					error_log( 'SScribe Upgrade Error: ' . $e->getMessage() );
+				}
+			}
 		} finally {
 			delete_transient( 'sscribe_upgrade_lock' );
 		}
@@ -98,17 +105,47 @@ class SScribe_Upgrader {
 
 			// Add missing index on stats table.
 			$table_stats = $wpdb->prefix . 'sscribe_export_stats';
-			$sql_stats   = "ALTER TABLE $table_stats ADD INDEX idx_export_session_id (export_session_id)";
-			// dbDelta handles ALTER TABLE poorly; use direct query.
-			// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.NotPrepared
-			$wpdb->query( $sql_stats );
+			try {
+				$index_check = $wpdb->get_results(
+					$wpdb->prepare(
+						'SHOW INDEX FROM %i WHERE Key_name = %s',
+						$table_stats,
+						'idx_export_session_id'
+					)
+				);
+				if ( empty( $index_check ) ) {
+					$sql_stats = "ALTER TABLE {$table_stats} ADD INDEX idx_export_session_id (export_session_id)";
+					// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.NotPrepared
+					$wpdb->query( $sql_stats );
+				}
+			} catch ( \Throwable $e ) {
+				update_option( 'sscribe_upgrade_last_error', 'Error adding idx_export_session_id: ' . $e->getMessage() );
+			}
 		}
 
 		// Migration: 3.33.0 — Fix export_session_id column width (VARCHAR(12) → VARCHAR(64)).
 		if ( version_compare( $from_version, '3.33.0', '<' ) ) {
 			$table_stats = $wpdb->prefix . 'sscribe_export_stats';
-			// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.DirectDatabaseQuery.SchemaChange, WordPress.DB.PreparedSQL.InterpolatedNotPrepared
-			$wpdb->query( "ALTER TABLE $table_stats MODIFY COLUMN export_session_id VARCHAR(64) NOT NULL" );
+			try {
+				$col = $wpdb->get_row(
+					$wpdb->prepare(
+						'SHOW COLUMNS FROM %i LIKE %s',
+						$table_stats,
+						'export_session_id'
+					)
+				);
+				$needs_modify = true;
+				// phpcs:ignore WordPress.NamingConventions.ValidVariableName.UsedPropertyNotSnakeCase -- MySQL SHOW COLUMNS result
+				if ( $col && isset( $col->Type ) && stripos( $col->Type, 'varchar(64)' ) !== false ) {
+					$needs_modify = false;
+				}
+				if ( $needs_modify ) {
+					// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.DirectDatabaseQuery.SchemaChange, WordPress.DB.PreparedSQL.InterpolatedNotPrepared
+					$wpdb->query( "ALTER TABLE {$table_stats} MODIFY COLUMN export_session_id VARCHAR(64) NOT NULL" );
+				}
+			} catch ( \Throwable $e ) {
+				update_option( 'sscribe_upgrade_last_error', 'Error modifying export_session_id: ' . $e->getMessage() );
+			}
 		}
 	}
 }
