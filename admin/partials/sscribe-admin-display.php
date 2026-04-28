@@ -85,22 +85,100 @@ $sscribe_is_debug        = $sscribe_is_debug ?? false;
 
 				<!-- Wizard step indicators -->
 				<nav class="sscribe-wizard-steps" aria-label="<?php esc_attr_e( 'Export wizard progress', 'sscribe-export-site-pages' ); ?>">
-					<span class="sscribe-wizard-step active" data-step="1" aria-current="step">
-						<span class="screen-reader-text"><?php esc_html_e( 'Step 1 of 3:', 'sscribe-export-site-pages' ); ?></span> 
+					<span class="sscribe-wizard-step active" data-step="0" aria-current="step">
+						<span class="screen-reader-text"><?php esc_html_e( 'Step 1 of 4:', 'sscribe-export-site-pages' ); ?></span>
+						<?php esc_html_e( 'Post Type', 'sscribe-export-site-pages' ); ?>
+					</span>
+					<span class="sscribe-wizard-step" data-step="1">
+						<span class="screen-reader-text"><?php esc_html_e( 'Step 2 of 4:', 'sscribe-export-site-pages' ); ?></span>
 						<?php esc_html_e( 'Language', 'sscribe-export-site-pages' ); ?>
 					</span>
 					<span class="sscribe-wizard-step" data-step="2">
-						<span class="screen-reader-text"><?php esc_html_e( 'Step 2 of 3:', 'sscribe-export-site-pages' ); ?></span> 
+						<span class="screen-reader-text"><?php esc_html_e( 'Step 3 of 4:', 'sscribe-export-site-pages' ); ?></span>
 						<?php esc_html_e( 'Page Status', 'sscribe-export-site-pages' ); ?>
 					</span>
 					<span class="sscribe-wizard-step" data-step="3">
-						<span class="screen-reader-text"><?php esc_html_e( 'Step 3 of 3:', 'sscribe-export-site-pages' ); ?></span> 
+						<span class="screen-reader-text"><?php esc_html_e( 'Step 4 of 4:', 'sscribe-export-site-pages' ); ?></span>
 						<?php esc_html_e( 'Export Format', 'sscribe-export-site-pages' ); ?>
 					</span>
 				</nav>
 
+				<!-- Step 0: Post Type Selection -->
+				<div class="sscribe-wizard-panel sscribe-wizard-panel-active" data-step="0">
+					<fieldset class="sscribe-fieldset">
+						<legend class="sscribe-fieldset-legend">
+							<?php // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- SVG sanitized in get_icon(). ?>
+							<?php echo SScribe_Helpers::get_icon( 'layers', 16, 'sscribe-legend-icon' ); ?>
+							<?php esc_html_e( 'Post Type', 'sscribe-export-site-pages' ); ?>
+						</legend>
+						<p class="sscribe-description">
+							<?php esc_html_e( 'Choose which content types to export.', 'sscribe-export-site-pages' ); ?>
+						</p>
+						<div class="sscribe-post-type-cards" id="sscribe-post-type-cards">
+							<label class="sscribe-post-type-card sscribe-post-type-card-selected" data-post-type="page">
+								<input type="radio" name="sscribe_post_type" value="page" checked>
+								<div class="sscribe-post-type-card-inner">
+									<div class="sscribe-post-type-icon">
+										<?php // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- SVG sanitized in get_icon(). ?>
+										<?php echo SScribe_Helpers::get_icon( 'file-text', 28 ); ?>
+									</div>
+									<div class="sscribe-post-type-meta">
+										<span class="sscribe-post-type-name"><?php esc_html_e( 'Pages', 'sscribe-export-site-pages' ); ?></span>
+										<?php
+										/* translators: %d: Number of items (pages/posts). */
+										echo esc_html( sprintf( __( '%d Pages', 'sscribe-export-site-pages' ), intval( $sscribe_total_pages_all ) ) );
+										?>
+									</div>
+									<div class="sscribe-post-type-selector">
+										<?php // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- SVG sanitized in get_icon(). ?>
+										<?php echo SScribe_Helpers::get_icon( 'check', 20, 'sscribe-check-icon' ); ?>
+									</div>
+								</div>
+							</label>
+							<label class="sscribe-post-type-card" data-post-type="post">
+								<input type="radio" name="sscribe_post_type" value="post">
+								<div class="sscribe-post-type-card-inner">
+									<div class="sscribe-post-type-icon">
+										<?php // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- SVG sanitized in get_icon(). ?>
+										<?php echo SScribe_Helpers::get_icon( 'article', 28 ); ?>
+									</div>
+									<div class="sscribe-post-type-meta">
+										<span class="sscribe-post-type-name"><?php esc_html_e( 'Posts', 'sscribe-export-site-pages' ); ?></span>
+										<span class="sscribe-post-type-count" id="sscribe-post-count">—</span>
+									</div>
+									<div class="sscribe-post-type-selector">
+										<?php // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- SVG sanitized in get_icon(). ?>
+										<?php echo SScribe_Helpers::get_icon( 'check', 20, 'sscribe-check-icon' ); ?>
+									</div>
+								</div>
+							</label>
+							<label class="sscribe-post-type-card" data-post-type="any">
+								<input type="radio" name="sscribe_post_type" value="any">
+								<div class="sscribe-post-type-card-inner">
+									<div class="sscribe-post-type-icon">
+										<?php // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- SVG sanitized in get_icon(). ?>
+										<?php echo SScribe_Helpers::get_icon( 'copy', 28 ); ?>
+									</div>
+									<div class="sscribe-post-type-meta">
+										<span class="sscribe-post-type-name"><?php esc_html_e( 'Both', 'sscribe-export-site-pages' ); ?></span>
+										<span class="sscribe-post-type-count" id="sscribe-both-count">—</span>
+									</div>
+									<div class="sscribe-post-type-selector">
+										<?php // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- SVG sanitized in get_icon(). ?>
+										<?php echo SScribe_Helpers::get_icon( 'check', 20, 'sscribe-check-icon' ); ?>
+									</div>
+								</div>
+							</label>
+						</div>
+					</fieldset>
+					<div class="sscribe-wizard-nav">
+						<span></span>
+						<button type="button" class="sscribe-button sscribe-wizard-next" data-next="1"><?php esc_html_e( 'Continue', 'sscribe-export-site-pages' ); ?> &rarr;</button>
+					</div>
+				</div>
+
 				<!-- Step 1: Language -->
-				<div class="sscribe-wizard-panel sscribe-wizard-panel-active" data-step="1">
+				<div class="sscribe-wizard-panel" data-step="1">
 					<?php if ( $sscribe_wpml_active && ! empty( $sscribe_languages ) ) : ?>
 					<fieldset class="sscribe-fieldset">
 						<legend class="sscribe-fieldset-legend">

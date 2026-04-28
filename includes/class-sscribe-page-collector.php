@@ -64,17 +64,18 @@ class SScribe_Page_Collector {
 	}
 
 	/**
-	 * Get all published page IDs, optionally filtered by language and status.
+	 * Get all published page/post IDs, optionally filtered by language, status, and post type.
 	 *
 	 * @param string $language    Optional WPML language code (e.g., 'en', 'ar'). Empty = all languages.
 	 * @param string $post_status Optional post status (publish, draft, private, future, pending, all).
-	 * @return array Array of page IDs.
+	 * @param string $post_type   Post type: 'page', 'post', or 'any' for both.
+	 * @return array Array of page/post IDs.
 	 */
-	public function get_page_ids( string $language = '', string $post_status = 'publish' ): array {
+	public function get_page_ids( string $language = '', string $post_status = 'publish', string $post_type = 'page' ): array {
 		$post_status = $this->validate_post_status( $post_status );
 
 		$args = array(
-			'post_type'      => 'page',
+			'post_type'      => $this->resolve_post_type_for_query( $post_type ),
 			'post_status'    => $post_status,
 			'posts_per_page' => -1,
 			'fields'         => 'ids',
@@ -113,6 +114,7 @@ class SScribe_Page_Collector {
 				array(
 					'language'        => $language,
 					'post_status'     => $post_status,
+					'post_type'       => $post_type,
 					'page_count'      => count( $page_ids ),
 					'page_ids_sample' => array_slice( $page_ids, 0, 20 ),
 				)
@@ -129,17 +131,18 @@ class SScribe_Page_Collector {
 	}
 
 	/**
-	 * Get page IDs in chunks for memory-efficient processing.
+	 * Get page/post IDs in chunks for memory-efficient processing.
 	 *
-	 * Returns a generator that yields batches of page IDs,
+	 * Returns a generator that yields batches of page/post IDs,
 	 * reducing memory usage for sites with thousands of pages.
 	 *
 	 * @param string $language    Optional WPML language code.
 	 * @param string $post_status Optional post status.
+	 * @param string $post_type   Post type: 'page', 'post', or 'any' for both.
 	 * @param int    $chunk_size  Number of IDs per chunk.
-	 * @return \Generator Yields arrays of page IDs.
+	 * @return \Generator Yields arrays of page/post IDs.
 	 */
-	public function get_page_ids_chunked( string $language = '', string $post_status = 'publish', int $chunk_size = 100 ): \Generator {
+	public function get_page_ids_chunked( string $language = '', string $post_status = 'publish', string $post_type = 'page', int $chunk_size = 100 ): \Generator {
 		$post_status = $this->validate_post_status( $post_status );
 		$chunk_size  = (int) apply_filters( 'sscribe_page_ids_chunk_size', $chunk_size );
 
@@ -147,7 +150,7 @@ class SScribe_Page_Collector {
 
 		do {
 			$args = array(
-				'post_type'      => 'page',
+				'post_type'      => $this->resolve_post_type_for_query( $post_type ),
 				'post_status'    => $post_status,
 				'posts_per_page' => $chunk_size,
 				'paged'          => $page,
@@ -327,13 +330,14 @@ class SScribe_Page_Collector {
 	 *
 	 * @param string $language    Optional WPML language code. Empty = all languages.
 	 * @param string $post_status Optional post status (publish, draft, private, future, pending, all).
+	 * @param string $post_type   Post type: 'page', 'post', or 'any' for both.
 	 * @return int
 	 */
-	public function get_page_count_only( string $language = '', string $post_status = 'publish' ): int {
+	public function get_page_count_only( string $language = '', string $post_status = 'publish', string $post_type = 'page' ): int {
 		$post_status = $this->validate_post_status( $post_status );
 
 		$args = array(
-			'post_type'      => 'page',
+			'post_type'      => $this->resolve_post_type_for_query( $post_type ),
 			'post_status'    => $post_status,
 			'posts_per_page' => 1,
 			'fields'         => 'ids',
@@ -392,19 +396,20 @@ class SScribe_Page_Collector {
 	}
 
 	/**
-	 * Collect full data for a single page.
+	 * Collect full data for a single page/post.
 	 *
-	 * @param int $page_id The page ID.
+	 * @param int    $page_id   The page/post ID.
+	 * @param string $post_type Post type: 'page' or 'post'.
 	 * @return array|false Page data array or false on failure.
 	 */
-	public function get_page_data( int $page_id ): array|false {
+	public function get_page_data( int $page_id, string $post_type = 'page' ): array|false {
 		$page_id = absint( $page_id );
 		if ( $page_id <= 0 ) {
 			return false;
 		}
 
 		$post_object = get_post( $page_id );
-		if ( ! $post_object || 'page' !== $post_object->post_type ) {
+		if ( ! $post_object || ! in_array( $post_object->post_type, array( 'page', 'post' ), true ) ) {
 			return false;
 		}
 
@@ -571,53 +576,15 @@ class SScribe_Page_Collector {
 	}
 
 	/**
-	 * Get breadcrumb trail for a page.
-	 *
-	 * @param int $page_id The page ID.
-	 * @return array Array of breadcrumb items with title and url.
-	 */
-	private function get_breadcrumbs( int $page_id ): array {
-		if ( isset( $this->breadcrumb_cache[ $page_id ] ) ) {
-			return $this->breadcrumb_cache[ $page_id ];
-		}
-
-		$breadcrumbs = array();
-		$ancestors   = get_post_ancestors( $page_id );
-		$ancestors   = array_reverse( $ancestors );
-
-		// Add home.
-		$breadcrumbs[] = array(
-			'title' => __( 'Home', 'sscribe-export-site-pages' ),
-			'url'   => home_url( '/' ),
-		);
-
-		// Add ancestors.
-		foreach ( $ancestors as $ancestor_id ) {
-			$breadcrumbs[] = array(
-				'title' => html_entity_decode( get_the_title( $ancestor_id ), ENT_QUOTES | ENT_HTML5, 'UTF-8' ),
-				'url'   => get_permalink( $ancestor_id ),
-			);
-		}
-
-		// Add current page.
-		$breadcrumbs[] = array(
-			'title' => html_entity_decode( get_the_title( $page_id ), ENT_QUOTES | ENT_HTML5, 'UTF-8' ),
-			'url'   => get_permalink( $page_id ),
-		);
-
-		$this->breadcrumb_cache[ $page_id ] = $breadcrumbs;
-		return $breadcrumbs;
-	}
-
-	/**
-	 * Batch fetch child pages for multiple parent IDs.
+	 * Batch fetch child pages/posts for multiple parent IDs.
 	 *
 	 * Reduces N+1 queries by fetching all children in a single query.
 	 *
-	 * @param array $page_ids Array of parent page IDs.
+	 * @param array  $page_ids Array of parent page IDs.
+	 * @param string $post_type Post type: 'page', 'post', or 'any'.
 	 * @return array Associative array: parent_id => array of child data.
 	 */
-	public function get_child_pages_batch( array $page_ids ): array {
+	public function get_child_pages_batch( array $page_ids, string $post_type = 'page' ): array {
 		if ( empty( $page_ids ) ) {
 			return array();
 		}
@@ -630,7 +597,7 @@ class SScribe_Page_Collector {
 		}
 
 		$args = array(
-			'post_type'       => 'page',
+			'post_type'       => $this->resolve_post_type_for_query( $post_type ),
 			'post_status'     => 'publish',
 			'posts_per_page'  => -1,
 			'post_parent__in' => $page_ids,
@@ -659,12 +626,13 @@ class SScribe_Page_Collector {
 	}
 
 	/**
-	 * Get child pages of a given page.
+	 * Get child pages/posts of a given page.
 	 *
-	 * @param int $page_id The parent page ID.
+	 * @param int    $page_id   The parent page ID.
+	 * @param string $post_type Post type: 'page', 'post', or 'any'.
 	 * @return array Array of child page data (id, title, url).
 	 */
-	private function get_child_pages( int $page_id ): array {
+	private function get_child_pages( int $page_id, string $post_type = 'page' ): array {
 		if ( isset( $this->child_pages_cache[ $page_id ] ) ) {
 			return $this->child_pages_cache[ $page_id ];
 		}
@@ -673,7 +641,7 @@ class SScribe_Page_Collector {
 		$child_pages = get_children(
 			array(
 				'post_parent' => $page_id,
-				'post_type'   => 'page',
+				'post_type'   => $post_type,
 				'post_status' => 'publish',
 				'orderby'     => 'menu_order title',
 				'order'       => 'ASC',
@@ -712,12 +680,58 @@ class SScribe_Page_Collector {
 	}
 
 	/**
+	 * Get breadcrumb trail for a page.
+	 *
+	 * @param int $page_id The page ID.
+	 * @return array Array of breadcrumb items with title and url.
+	 */
+	private function get_breadcrumbs( int $page_id ): array {
+		if ( isset( $this->breadcrumb_cache[ $page_id ] ) ) {
+			return $this->breadcrumb_cache[ $page_id ];
+		}
+
+		$breadcrumbs = array();
+		$ancestors   = get_post_ancestors( $page_id );
+
+		if ( $ancestors ) {
+			$ancestors = array_reverse( $ancestors );
+			foreach ( $ancestors as $ancestor_id ) {
+				$breadcrumbs[] = array(
+					'title' => html_entity_decode( get_the_title( $ancestor_id ), ENT_QUOTES | ENT_HTML5, 'UTF-8' ),
+					'url'   => get_permalink( $ancestor_id ),
+				);
+			}
+		}
+
+		$breadcrumbs[] = array(
+			'title' => html_entity_decode( get_the_title( $page_id ), ENT_QUOTES | ENT_HTML5, 'UTF-8' ),
+			'url'   => get_permalink( $page_id ),
+		);
+
+		$this->breadcrumb_cache[ $page_id ] = $breadcrumbs;
+		return $breadcrumbs;
+	}
+
+	/**
 	 * Check if WPML is active.
 	 *
 	 * @return bool
 	 */
 	public function is_wpml_active(): bool {
 		return defined( 'ICL_SITEPRESS_VERSION' ) && class_exists( 'SitePress' );
+	}
+
+	/**
+	 * Resolve post_type parameter for WP_Query.
+	 *
+	 * @param string $post_type 'page', 'post', or 'any'.
+	 * @return string|array Post type value for WP_Query.
+	 */
+	private function resolve_post_type_for_query( string $post_type ): string|array {
+		if ( 'any' === $post_type ) {
+			return array( 'page', 'post' );
+		}
+		return $post_type;
 	}
 
 	/**
@@ -736,18 +750,19 @@ class SScribe_Page_Collector {
 	}
 
 	/**
-	 * Get page counts by status for the admin UI.
+	 * Get page/post counts by status for the admin UI.
 	 *
 	 * Uses wp_count_posts() for non-WPML case (most efficient).
 	 * Falls back to WP_Query for WPML since language filtering is needed.
 	 *
-	 * @param string $language Optional WPML language code. Empty = all languages.
+	 * @param string $language  Optional WPML language code. Empty = all languages.
+	 * @param string $post_type Post type: 'page', 'post', or 'any' for both.
 	 * @return array Associative array of status => count pairs.
 	 */
-	public function get_post_status_counts( string $language = '' ): array {
+	public function get_post_status_counts( string $language = '', string $post_type = 'page' ): array {
 		// Tier 2: Cache status counts for 60 seconds to avoid repeating the full
 		// WP_Query + post status iteration on every admin page load.
-		$cache_key = 'sscribe_status_counts_' . md5( $language );
+		$cache_key = 'sscribe_status_counts_' . md5( $language . '_' . $post_type );
 		$cached    = get_transient( $cache_key );
 
 		if ( false !== $cached && is_array( $cached ) ) {
@@ -759,12 +774,23 @@ class SScribe_Page_Collector {
 
 		// For non-WPML, use wp_count_posts() which is highly optimized (single cached query).
 		if ( ! $this->is_wpml_active() || empty( $language ) ) {
-			$count = wp_count_posts( 'page' );
+			if ( 'any' === $post_type ) {
+				$count_page = wp_count_posts( 'page' );
+				$count_post = wp_count_posts( 'post' );
 
-			if ( $count ) {
 				foreach ( $statuses as $status => $label ) {
-					if ( isset( $count->$status ) ) {
-						$counts[ $status ] = (int) $count->$status;
+					$page_count        = isset( $count_page->$status ) ? (int) $count_page->$status : 0;
+					$post_count        = isset( $count_post->$status ) ? (int) $count_post->$status : 0;
+					$counts[ $status ] = $page_count + $post_count;
+				}
+			} else {
+				$count = wp_count_posts( $post_type );
+
+				if ( $count ) {
+					foreach ( $statuses as $status => $label ) {
+						if ( isset( $count->$status ) ) {
+							$counts[ $status ] = (int) $count->$status;
+						}
 					}
 				}
 			}
@@ -778,7 +804,7 @@ class SScribe_Page_Collector {
 		// WPML case: need to filter by language, so use WP_Query.
 		// Note: We already know WPML is active and language is non-empty due to early return above.
 		$args = array(
-			'post_type'      => 'page',
+			'post_type'      => $this->resolve_post_type_for_query( $post_type ),
 			'post_status'    => array_keys( $statuses ),
 			'posts_per_page' => -1,
 			'no_found_rows'  => true,
@@ -817,13 +843,14 @@ class SScribe_Page_Collector {
 	}
 
 	/**
-	 * Get total page count for all statuses combined.
+	 * Get total page/post count for all statuses combined.
 	 *
-	 * @param string $language Optional WPML language code.
-	 * @return int Total number of pages across all statuses.
+	 * @param string $language  Optional WPML language code.
+	 * @param string $post_type Post type: 'page', 'post', or 'any' for both.
+	 * @return int Total number of pages/posts across all statuses.
 	 */
-	public function get_total_all_statuses( string $language = '' ): int {
-		return $this->get_page_count_only( $language, 'all' );
+	public function get_total_all_statuses( string $language = '', string $post_type = 'page' ): int {
+		return $this->get_page_count_only( $language, 'all', $post_type );
 	}
 
 	/**
