@@ -1499,271 +1499,339 @@ class SScribe_Batch_Processor {
 			)
 		);
 
-		$has_language = ! empty( $session['language'] );
-		$lang_code    = $has_language ? $session['language'] : '';
-		$site_slug    = sanitize_file_name( get_bloginfo( 'name' ) );
-		$site_slug    = strtolower( substr( $site_slug, 0, 20 ) );
+		try {
+			$has_language = ! empty( $session['language'] );
+			$lang_code    = $has_language ? $session['language'] : '';
+			$site_slug    = sanitize_file_name( get_bloginfo( 'name' ) );
+			$site_slug    = strtolower( substr( $site_slug, 0, 20 ) );
 
-		if ( empty( $site_slug ) ) {
-			$site_slug = 'export';
-		}
+			if ( empty( $site_slug ) ) {
+				$site_slug = 'export';
+			}
 
-		// Build language metadata for export index (used by Recent Exports UI).
-		$lang_name = $has_language ? strtoupper( $lang_code ) : 'All Languages';
-		$flag_url  = '';
-		if ( $this->collector->is_wpml_active() && $has_language ) {
-			$wpml_languages = $this->collector->get_wpml_languages();
-			foreach ( $wpml_languages as $wl ) {
-				if ( isset( $wl['code'] ) && $wl['code'] === $lang_code ) {
-					$lang_name = $wl['name'] ?? strtoupper( $lang_code );
-					$flag_url  = $wl['flag_url'] ?? '';
-					break;
+			// Build language metadata for export index (used by Recent Exports UI).
+			$lang_name = $has_language ? strtoupper( $lang_code ) : 'All Languages';
+			$flag_url  = '';
+			if ( $this->collector->is_wpml_active() && $has_language ) {
+				$wpml_languages = $this->collector->get_wpml_languages();
+				foreach ( $wpml_languages as $wl ) {
+					if ( isset( $wl['code'] ) && $wl['code'] === $lang_code ) {
+						$lang_name = $wl['name'] ?? strtoupper( $lang_code );
+						$flag_url  = $wl['flag_url'] ?? '';
+						break;
+					}
 				}
 			}
-		}
-		$lang_metadata = array(
-			'lang_code' => $has_language ? $lang_code : 'all',
-			'lang_name' => $lang_name,
-			'flag_url'  => $flag_url,
-		);
+			$lang_metadata = array(
+				'lang_code' => $has_language ? $lang_code : 'all',
+				'lang_name' => $lang_name,
+				'flag_url'  => $flag_url,
+			);
 
-		$formats = isset( $session['formats'] ) ? $session['formats'] : array( 'docx' );
+			$formats = isset( $session['formats'] ) ? $session['formats'] : array( 'docx' );
 
-		$format_suffix = count( $formats ) > 1 ? 'ALL-FORMATS' : strtoupper( $formats[0] );
-		$timestamp     = gmdate( 'Y-m-d-His' );
-		$lang_suffix   = $has_language ? strtoupper( $lang_code ) : 'ALL-LANGS';
+			$format_suffix = count( $formats ) > 1 ? 'ALL-FORMATS' : strtoupper( $formats[0] );
+			$timestamp     = gmdate( 'Y-m-d-His' );
+			$lang_suffix   = $has_language ? strtoupper( $lang_code ) : 'ALL-LANGS';
 
-		$zip_name = sprintf(
-			'%s-%s-%s-%s',
-			$site_slug,
-			$timestamp,
-			$lang_suffix,
-			$format_suffix
-		);
+			$zip_name = sprintf(
+				'%s-%s-%s-%s',
+				$site_slug,
+				$timestamp,
+				$lang_suffix,
+				$format_suffix
+			);
 
-		$this->logger->debug(
-			'Creating ZIP',
-			array(
-				'zip_name' => $zip_name,
-				'temp_dir' => $session['temp_dir'],
-				'language' => $lang_code,
-				'formats'  => $formats,
-			)
-		);
-
-		$files_before = array();
-		foreach ( $formats as $format ) {
-			$ext   = 'markdown' === $format ? 'md' : $format;
-			$found = glob( trailingslashit( $session['temp_dir'] ) . '*.' . $ext );
-			if ( $found ) {
-				$files_before[ $format ] = count( $found );
-			}
-		}
-		$this->logger->debug( 'Files in temp dir BEFORE ZIP', $files_before );
-
-		$zip_path = $this->zip_handler->create_zip( $session['temp_dir'], $zip_name, $formats, $has_language, $lang_metadata );
-
-		if ( ! $zip_path ) {
 			$this->logger->debug(
-				'ERROR: Failed to create ZIP',
+				'Creating ZIP',
 				array(
-					'temp_dir'       => $session['temp_dir'],
-					'expected_files' => $files_before,
+					'zip_name' => $zip_name,
+					'temp_dir' => $session['temp_dir'],
+					'language' => $lang_code,
+					'formats'  => $formats,
+				)
+			);
+
+			$files_before = array();
+			foreach ( $formats as $format ) {
+				$ext   = 'markdown' === $format ? 'md' : $format;
+				$found = glob( trailingslashit( $session['temp_dir'] ) . '*.' . $ext );
+				if ( $found ) {
+					$files_before[ $format ] = count( $found );
+				}
+			}
+			$this->logger->debug( 'Files in temp dir BEFORE ZIP', $files_before );
+
+			$zip_path = $this->zip_handler->create_zip( $session['temp_dir'], $zip_name, $formats, $has_language, $lang_metadata );
+
+			if ( ! $zip_path ) {
+				$this->logger->debug(
+					'ERROR: Failed to create ZIP',
+					array(
+						'temp_dir'       => $session['temp_dir'],
+						'expected_files' => $files_before,
+					)
+				);
+
+				if ( $this->export_log ) {
+					$this->export_log->mark_failed( 'Failed to create ZIP package' );
+					$this->export_log->flush();
+				}
+
+				// Clean up temp directory to prevent disk space leak on failure.
+				if ( ! empty( $session['temp_dir'] ) && is_dir( $session['temp_dir'] ) ) {
+					$this->zip_handler->delete_directory( $session['temp_dir'] );
+				}
+
+				// Clean up the session and lock so user can retry.
+				$this->session->delete( $session_id );
+				delete_transient( 'sscribe_lock_' . $session_id );
+
+				// Run self-heal to clear any orphaned data from this failed export.
+				$this->diagnostics->self_heal();
+
+				$zip_error = array(
+					'page_id'     => 0,
+					'page_title'  => __( 'ZIP package', 'sscribe-export-site-pages' ),
+					'message'     => __( 'Failed to create ZIP package. Please try again.', 'sscribe-export-site-pages' ),
+					'errors'      => array(
+						array(
+							'format'   => 'ZIP',
+							'message'  => __( 'Failed to create ZIP package.', 'sscribe-export-site-pages' ),
+							'category' => 'zip_creation',
+							'context'  => array(
+								'temp_dir'       => $session['temp_dir'],
+								'expected_files' => $files_before,
+							),
+						),
+					),
+					'diagnostics' => array(
+						$this->diagnostics->diagnose_page_error(
+							0,
+							'zip',
+							'Failed to create ZIP package.',
+							array(
+								'temp_dir'       => $session['temp_dir'],
+								'expected_files' => $files_before,
+							)
+						),
+					),
+					'time'        => current_time( 'mysql' ),
+				);
+
+				$error_diagnostics = $this->build_error_diagnostics_payload( array( $zip_error ), $session['errors'] ?? array() );
+
+				$error_response = array(
+					'message'           => __( 'Failed to create ZIP package. Please try again.', 'sscribe-export-site-pages' ),
+					'guidance'          => $error_diagnostics['guidance'],
+					'fix_steps'         => $error_diagnostics['fix_steps'],
+					'technical'         => $error_diagnostics['technical'],
+					'error_diagnostics' => $error_diagnostics,
+				);
+
+				$sscribe_is_debug = defined( 'SSCRIBE_DEBUG' ) && SSCRIBE_DEBUG;
+				if ( $sscribe_is_debug ) {
+					$error_response['debug_info'] = array(
+						'temp_dir_exists' => is_dir( $session['temp_dir'] ),
+						'files_in_temp'   => count( $files_before ),
+					);
+				}
+
+				wp_send_json_error( $error_response, 500 ); // HTTP 500 Internal Server Error.
+				return;
+			}
+
+			// Verify ZIP contains files. An empty ZIP means something went wrong during packaging.
+			$zip             = new ZipArchive();
+			$zip_open        = $zip->open( $zip_path );
+			$total_files_zip = 0;
+			if ( true === $zip_open ) {
+				// phpcs:ignore WordPress.NamingConventions.ValidVariableName.UsedPropertyNotSnakeCase -- Native ZipArchive property.
+				$total_files_zip = $zip->numFiles;
+				$zip->close();
+			}
+
+			if ( $total_files_zip <= 0 ) {
+				$this->logger->error(
+					'ZIP created but contains no files',
+					array(
+						'zip_path'     => $zip_path,
+						'files_before' => $files_before,
+					)
+				);
+
+				if ( $this->export_log ) {
+					$this->export_log->mark_failed( 'ZIP package is empty' );
+					$this->export_log->flush();
+				}
+
+				// Remove the empty ZIP.
+				if ( file_exists( $zip_path ) ) {
+					wp_delete_file( $zip_path );
+				}
+
+				// Clean up temp directory.
+				if ( ! empty( $session['temp_dir'] ) && is_dir( $session['temp_dir'] ) ) {
+					$this->zip_handler->delete_directory( $session['temp_dir'] );
+				}
+
+				// DO NOT delete the session so the user can retry.
+				delete_transient( 'sscribe_lock_' . $session_id );
+
+				wp_send_json_error(
+					array(
+						'message'   => __( 'Export packaging failed — the ZIP archive was empty. Please try again.', 'sscribe-export-site-pages' ),
+						'guidance'  => __( 'This can happen if temporary export files were deleted before packaging completed. Click "Try Again" to restart the export.', 'sscribe-export-site-pages' ),
+						'fix_steps' => array(
+							__( 'Click "Try Again" to restart the export.', 'sscribe-export-site-pages' ),
+							__( 'If this keeps happening, check that your server has enough disk space.', 'sscribe-export-site-pages' ),
+						),
+					),
+					500
+				);
+				return;
+			}
+
+			$this->logger->debug(
+				'ZIP created successfully',
+				array(
+					'zip_path' => $zip_path,
+					'zip_size' => function_exists( 'wp_filesize' ) && file_exists( $zip_path )
+						? size_format( wp_filesize( $zip_path ) )
+						: __( 'unknown', 'sscribe-export-site-pages' ),
+				)
+			);
+
+			$this->logger->debug(
+				'ZIP contents verified',
+				array(
+					'total_files_in_zip' => $total_files_zip,
+					'expected_pages'     => $session['total'],
 				)
 			);
 
 			if ( $this->export_log ) {
-				$this->export_log->mark_failed( 'Failed to create ZIP package' );
+				$this->export_log->mark_complete( $zip_path, $total_files_zip );
 				$this->export_log->flush();
 			}
 
-			// Clean up temp directory to prevent disk space leak on failure.
-			if ( ! empty( $session['temp_dir'] ) && is_dir( $session['temp_dir'] ) ) {
-				$this->zip_handler->delete_directory( $session['temp_dir'] );
-			}
+			$error_count       = count( $session['errors'] ?? array() );
+			$structured_errors = isset( $session['structured_errors'] ) && is_array( $session['structured_errors'] ) ? $session['structured_errors'] : array();
 
-			// Clean up the session and lock so user can retry.
-			$this->session->delete( $session_id );
-			delete_transient( 'sscribe_lock_' . $session_id );
+			$download_url = $this->zip_handler->get_ajax_download_url( basename( $zip_path ) );
 
-			// Run self-heal to clear any orphaned data from this failed export.
-			$this->diagnostics->self_heal();
-
-			$zip_error = array(
-				'page_id'     => 0,
-				'page_title'  => __( 'ZIP package', 'sscribe-export-site-pages' ),
-				'message'     => __( 'Failed to create ZIP package. Please try again.', 'sscribe-export-site-pages' ),
-				'errors'      => array(
-					array(
-						'format'   => 'ZIP',
-						'message'  => __( 'Failed to create ZIP package.', 'sscribe-export-site-pages' ),
-						'category' => 'zip_creation',
-						'context'  => array(
-							'temp_dir'       => $session['temp_dir'],
-							'expected_files' => $files_before,
-						),
-					),
-				),
-				'diagnostics' => array(
-					$this->diagnostics->diagnose_page_error(
-						0,
-						'zip',
-						'Failed to create ZIP package.',
-						array(
-							'temp_dir'       => $session['temp_dir'],
-							'expected_files' => $files_before,
-						)
-					),
-				),
-				'time'        => current_time( 'mysql' ),
+			$this->logger->debug(
+				'Export complete',
+				array(
+					'download_url'   => $download_url,
+					'total_time_sec' => time() - ( $session['start_time'] ?? time() ),
+				)
 			);
 
-			$error_diagnostics = $this->build_error_diagnostics_payload( array( $zip_error ), $session['errors'] ?? array() );
+			$this->audit_log(
+				'export_completed',
+				array(
+					'total_pages'  => $session['total'],
+					'errors'       => $error_count,
+					'filename'     => basename( $zip_path ),
+					'duration_sec' => time() - ( $session['start_time'] ?? time() ),
+				)
+			);
 
-			$error_response = array(
-				'message'           => __( 'Failed to create ZIP package. Please try again.', 'sscribe-export-site-pages' ),
-				'guidance'          => $error_diagnostics['guidance'],
-				'fix_steps'         => $error_diagnostics['fix_steps'],
-				'technical'         => $error_diagnostics['technical'],
+			// Save adaptive metrics for future time/size estimates.
+			$formats = isset( $session['formats'] ) ? $session['formats'] : array( 'docx' );
+			foreach ( $formats as $fmt ) {
+				$format_time_key  = 'format_time_' . $fmt;
+				$format_size_key  = 'format_size_' . $fmt;
+				$format_pages_key = 'format_pages_' . $fmt;
+
+				$elapsed_seconds = (float) ( $session[ $format_time_key ] ?? 0 );
+				$total_bytes     = (int) ( $session[ $format_size_key ] ?? 0 );
+				$pages_exported  = (int) ( $session[ $format_pages_key ] ?? 0 );
+				$total_mb        = $total_bytes / 1048576;
+
+				if ( $pages_exported > 0 && $elapsed_seconds > 0 ) {
+					$this->save_export_metrics( $fmt, $pages_exported, $elapsed_seconds, $total_mb );
+				}
+			}
+
+			$log_summary       = $this->export_log ? $this->export_log->get_summary() : array();
+			$error_diagnostics = $this->build_error_diagnostics_payload( $structured_errors, $session['errors'] ?? array() );
+
+			$response = array(
+				'status'            => 'complete',
+				'processed'         => $session['total'],
+				'total'             => $session['total'],
+				'percentage'        => 100,
+				'download_url'      => $download_url,
+				'filename'          => basename( $zip_path ),
+				'errors'            => $session['errors'] ?? array(),
 				'error_diagnostics' => $error_diagnostics,
+				'log_summary'       => $log_summary,
+				'message'           => sprintf(
+					/* translators: %d: Number of pages exported. */
+					_n(
+						'Export complete! %d page exported successfully.',
+						'Export complete! %d pages exported successfully.',
+						$session['total'],
+						'sscribe-export-site-pages'
+					),
+					$session['total']
+				) . ( $error_count > 0 ? sprintf(
+					/* translators: %d: Number of errors. */
+					' ' . _n( '(%d error)', '(%d errors)', $error_count, 'sscribe-export-site-pages' ),
+					$error_count
+				) : '' ),
 			);
 
 			$sscribe_is_debug = defined( 'SSCRIBE_DEBUG' ) && SSCRIBE_DEBUG;
-			if ( $sscribe_is_debug ) {
-				$error_response['debug_info'] = array(
-					'temp_dir_exists' => is_dir( $session['temp_dir'] ),
-					'files_in_temp'   => count( $files_before ),
+			if ( $sscribe_is_debug && file_exists( $zip_path ) ) {
+				$response['debug_info'] = array(
+					'files_in_temp_count' => count( $files_before ),
+					'total_files_in_zip'  => $total_files_zip,
+					'expected_pages'      => $session['total'],
+					'errors_count'        => $error_count,
+					'language'            => $session['language'] ?? '',
+					'post_status'         => $session['post_status'] ?? '',
+					'total_time_sec'      => time() - ( $session['start_time'] ?? time() ),
+					'memory_peak'         => size_format( memory_get_peak_usage( true ) ),
+					'zip_size'            => function_exists( 'wp_filesize' )
+						? size_format( wp_filesize( $zip_path ) )
+						: __( 'unknown', 'sscribe-export-site-pages' ),
 				);
 			}
 
-			wp_send_json_error( $error_response, 500 ); // HTTP 500 Internal Server Error.
-			return;
-		}
+			// CRITICAL: Delete session ONLY after everything else succeeded and right before sending success.
+			// If anything above throws, the session remains intact so the client can retry.
+			$this->session->delete( $session_id );
+			wp_send_json_success( $response );
+		} catch ( \Throwable $e ) {
+			$this->logger->error(
+				'Finalize export crashed',
+				array(
+					'session_id'      => $session_id,
+					'error'           => $e->getMessage(),
+					'exception_class' => get_class( $e ),
+					'file'            => basename( $e->getFile() ) . ':' . $e->getLine(),
+					'memory_usage'    => size_format( memory_get_usage( true ) ),
+				)
+			);
 
-		$this->logger->debug(
-			'ZIP created successfully',
-			array(
-				'zip_path' => $zip_path,
-				'zip_size' => size_format( filesize( $zip_path ) ),
-			)
-		);
+			// DO NOT delete the session on crash so the client can retry.
+			delete_transient( 'sscribe_lock_' . $session_id );
 
-		$zip             = new ZipArchive();
-		$zip_open        = $zip->open( $zip_path );
-		$files_in_zip    = array();
-		$total_files_zip = 0;
-		if ( true === $zip_open ) {
-			// phpcs:ignore WordPress.NamingConventions.ValidVariableName.UsedPropertyNotSnakeCase -- Native ZipArchive property.
-			$total_files_zip = $zip->numFiles;
-			// phpcs:ignore WordPress.NamingConventions.ValidVariableName.UsedPropertyNotSnakeCase -- Native ZipArchive property.
-			for ( $i = 0; $i < $zip->numFiles; $i++ ) {
-				$filename       = $zip->getNameIndex( $i );
-				$files_in_zip[] = $filename;
-			}
-			$zip->close();
-		}
-		$this->logger->debug(
-			'ZIP contents verified',
-			array(
-				'total_files_in_zip' => $total_files_zip,
-				'expected_pages'     => $session['total'],
-			)
-		);
-
-		if ( $this->export_log ) {
-			$this->export_log->mark_complete( $zip_path, $total_files_zip );
-			$this->export_log->flush();
-		}
-
-		$this->session->delete( $session_id );
-
-		$error_count       = count( $session['errors'] ?? array() );
-		$structured_errors = isset( $session['structured_errors'] ) && is_array( $session['structured_errors'] ) ? $session['structured_errors'] : array();
-
-		$download_url = $this->zip_handler->get_ajax_download_url( basename( $zip_path ) );
-
-		$this->logger->debug(
-			'Export complete',
-			array(
-				'download_url'   => $download_url,
-				'total_time_sec' => time() - ( $session['start_time'] ?? time() ),
-			)
-		);
-
-		$this->audit_log(
-			'export_completed',
-			array(
-				'total_pages'  => $session['total'],
-				'errors'       => $error_count,
-				'filename'     => basename( $zip_path ),
-				'duration_sec' => time() - ( $session['start_time'] ?? time() ),
-			)
-		);
-
-		// Save adaptive metrics for future time/size estimates.
-		// Uses per-format timing tracked during batch processing for accuracy.
-		$formats = isset( $session['formats'] ) ? $session['formats'] : array( 'docx' );
-		foreach ( $formats as $fmt ) {
-			$format_time_key  = 'format_time_' . $fmt;
-			$format_size_key  = 'format_size_' . $fmt;
-			$format_pages_key = 'format_pages_' . $fmt;
-
-			$elapsed_seconds = (float) ( $session[ $format_time_key ] ?? 0 );
-			$total_bytes     = (int) ( $session[ $format_size_key ] ?? 0 );
-			$pages_exported  = (int) ( $session[ $format_pages_key ] ?? 0 );
-			$total_mb        = $total_bytes / 1048576;
-
-			// Only save if we have actual data for this format.
-			if ( $pages_exported > 0 && $elapsed_seconds > 0 ) {
-				$this->save_export_metrics( $fmt, $pages_exported, $elapsed_seconds, $total_mb );
-			}
-		}
-
-		$log_summary       = $this->export_log ? $this->export_log->get_summary() : array();
-		$error_diagnostics = $this->build_error_diagnostics_payload( $structured_errors, $session['errors'] ?? array() );
-
-		$response = array(
-			'status'            => 'complete',
-			'processed'         => $session['total'],
-			'total'             => $session['total'],
-			'percentage'        => 100,
-			'download_url'      => $download_url,
-			'filename'          => basename( $zip_path ),
-			'errors'            => $session['errors'] ?? array(),
-			'error_diagnostics' => $error_diagnostics,
-			'log_summary'       => $log_summary,
-			'message'           => sprintf(
-				/* translators: %d: Number of pages exported. */
-				_n(
-					'Export complete! %d page exported successfully.',
-					'Export complete! %d pages exported successfully.',
-					$session['total'],
-					'sscribe-export-site-pages'
+			wp_send_json_error(
+				array(
+					'message'   => __( 'Export finalization failed. Please try again.', 'sscribe-export-site-pages' ),
+					'guidance'  => __( 'An unexpected error occurred while packaging the export. Click "Try Again" to resume from where it left off.', 'sscribe-export-site-pages' ),
+					'fix_steps' => array(
+						__( 'Click "Try Again" to retry the export.', 'sscribe-export-site-pages' ),
+						__( 'If the problem persists, check your server PHP error logs for details.', 'sscribe-export-site-pages' ),
+					),
 				),
-				$session['total']
-			) . ( $error_count > 0 ? sprintf(
-				/* translators: %d: Number of errors. */
-				' ' . _n( '(%d error)', '(%d errors)', $error_count, 'sscribe-export-site-pages' ),
-				$error_count
-			) : '' ),
-		);
-
-		$sscribe_is_debug = defined( 'SSCRIBE_DEBUG' ) && SSCRIBE_DEBUG;
-		if ( $sscribe_is_debug ) {
-			$response['debug_info'] = array(
-				'files_in_temp_count' => count( $files_before ),
-				'total_files_in_zip'  => $total_files_zip,
-				'expected_pages'      => $session['total'],
-				'errors_count'        => $error_count,
-				'language'            => $session['language'] ?? '',
-				'post_status'         => $session['post_status'] ?? '',
-				'total_time_sec'      => time() - ( $session['start_time'] ?? time() ),
-				'memory_peak'         => size_format( memory_get_peak_usage( true ) ),
-				'zip_size'            => size_format( filesize( $zip_path ) ),
+				500
 			);
 		}
-
-		wp_send_json_success( $response );
 	}
 
 	/**
@@ -2780,7 +2848,25 @@ class SScribe_Batch_Processor {
 
 		check_ajax_referer( 'sscribe_export_nonce', 'nonce' );
 
-		wp_send_json_success( $this->diagnostics->get_support_info() );
+		try {
+			$support_info = $this->diagnostics->get_support_info();
+			wp_send_json_success( $support_info );
+		} catch ( \Throwable $e ) {
+			$this->logger->error(
+				'Support info AJAX failed',
+				array(
+					'error' => $e->getMessage(),
+					'file'  => basename( $e->getFile() ) . ':' . $e->getLine(),
+				)
+			);
+
+			wp_send_json_error(
+				array(
+					'message' => __( 'Unable to load support information right now. Please try again later.', 'sscribe-export-site-pages' ),
+				),
+				500
+			);
+		}
 	}
 
 	/**
