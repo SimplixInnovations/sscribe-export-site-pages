@@ -67,6 +67,21 @@ $sscribe_cleanup_site = static function (): void {
 		)
 	);
 
+	// Catch-all: delete ALL sscribe transients and their timeouts.
+	// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- Cleanup during uninstall.
+	$wpdb->query(
+		$wpdb->prepare(
+			"DELETE FROM {$wpdb->options} WHERE option_name LIKE %s OR option_name LIKE %s",
+			$wpdb->esc_like( '_transient_sscribe_' ) . '%',
+			$wpdb->esc_like( '_transient_timeout_sscribe_' ) . '%'
+		)
+	);
+
+	// Delete known single-name transients explicitly.
+	delete_transient( 'sscribe_activation_redirect' );
+	delete_transient( 'sscribe_key_warning_shown' );
+	delete_transient( 'sscribe_boot_error' );
+
 	delete_option( 'sscribe_version' );
 	delete_option( 'sscribe_export_index' );
 	delete_option( 'sscribe_export_metrics' );

@@ -64,7 +64,7 @@ class SScribe_Activator {
 
 		$sql_stats = "CREATE TABLE $table_stats (
 			id BIGINT UNSIGNED NOT NULL AUTO_INCREMENT,
-			export_session_id VARCHAR(12) NOT NULL,
+			export_session_id VARCHAR(64) NOT NULL,
 			user_id BIGINT UNSIGNED NOT NULL,
 			export_date DATETIME NOT NULL,
 			total_pages INT UNSIGNED,

@@ -130,9 +130,18 @@ class SScribe_Batch_Processor {
 	 * @return bool True if within limits, false if exceeded.
 	 */
 	private function check_rate_limit(): bool {
-		$user_id       = get_current_user_id();
-		$transient_key = 'sscribe_rate_' . $user_id;
-		$now           = time();
+		$user_id = get_current_user_id();
+
+		// For authenticated users, use user ID. For anonymous users, use IP hash
+		// to prevent cross-user rate-limiting collisions.
+		if ( $user_id > 0 ) {
+			$transient_key = 'sscribe_rate_' . $user_id;
+		} else {
+			$remote_ip     = isset( $_SERVER['REMOTE_ADDR'] ) ? sanitize_text_field( wp_unslash( $_SERVER['REMOTE_ADDR'] ) ) : '0.0.0.0';
+			$transient_key = 'sscribe_rate_anon_' . substr( hash( 'sha256', $remote_ip ), 0, 12 );
+		}
+
+		$now = time();
 
 		// Administrators get a higher rate limit to support large exports.
 		$rate_limit = current_user_can( apply_filters( 'sscribe_export_capability', 'manage_options' ) )
@@ -1948,6 +1957,14 @@ class SScribe_Batch_Processor {
 
 		$file_path = $this->zip_handler->get_export_dir() . '/' . $filename;
 
+		// Defense-in-depth: verify file is within export directory.
+		$real_path = realpath( $file_path );
+		$real_dir  = realpath( $this->zip_handler->get_export_dir() );
+		if ( ! $real_path || ! $real_dir || ! str_starts_with( $real_path, $real_dir . '/' ) ) {
+			wp_send_json_error( array( 'message' => __( 'Invalid file path.', 'sscribe-export-site-pages' ) ), 400 );
+			return;
+		}
+
 		if ( file_exists( $file_path ) ) {
 			wp_delete_file( $file_path );
 		}
@@ -2768,6 +2785,18 @@ class SScribe_Batch_Processor {
 	 * @return void
 	 */
 	public function ajax_health_check(): void {
+		// For unauthenticated requests, return minimal reachability check only.
+		if ( ! is_user_logged_in() ) {
+			wp_send_json_success(
+				array(
+					'status'      => 'ok',
+					'server_time' => current_time( 'mysql' ),
+					'server_utc'  => gmdate( 'Y-m-d H:i:s' ),
+				)
+			);
+			return;
+		}
+
 		$diagnostics = $this->diagnostics->check_ajax_health();
 		$boot        = $this->diagnostics->get_boot_diagnostics();
 
