@@ -134,11 +134,25 @@ class SScribe_Zip_Handler {
 			// When exporting all languages, organize into FORMAT/LANG/ subfolders.
 			$use_lang_folders = ! $has_language;
 
+			$this->logger->debug(
+				'ZIP folder structure config',
+				array(
+					'use_folders'      => $use_folders,
+					'use_lang_folders' => $use_lang_folders,
+					'has_language'     => $has_language,
+					'formats'          => $formats,
+					'total_files'      => array_sum( array_map( 'count', $all_files ) ),
+				)
+			);
+
+			$zip_entries = array();
+
 			foreach ( $all_files as $format => $files ) {
 				$folder_name = strtoupper( $format );
 
 				foreach ( $files as $file ) {
 					$basename = basename( $file );
+					$zip_path = $basename;
 
 					if ( $use_lang_folders ) {
 						// Extract language code from filename: P001-Title-AR.docx → AR.
@@ -148,18 +162,32 @@ class SScribe_Zip_Handler {
 						if ( $lang_code ) {
 							// Remove language suffix from filename since it's in the folder path.
 							$clean_name = $this->remove_lang_from_filename( $basename );
-							$zip->addFile( $file, $folder_name . '/' . $lang_code . '/' . $clean_name );
+							$zip_path   = $folder_name . '/' . $lang_code . '/' . $clean_name;
 						} else {
 							// No language code found — put in format folder directly.
-							$zip->addFile( $file, $folder_name . '/' . $basename );
+							$zip_path = $folder_name . '/' . $basename;
 						}
 					} elseif ( $use_folders ) {
-						$zip->addFile( $file, $folder_name . '/' . $basename );
-					} else {
-						$zip->addFile( $file, $basename );
+						$zip_path = $folder_name . '/' . $basename;
 					}
+
+					$zip->addFile( $file, $zip_path );
+					$zip_entries[] = array(
+						'source'    => $basename,
+						'zip_path'  => $zip_path,
+						'lang_code' => $lang_code ?? null,
+						'size'      => file_exists( $file ) ? (int) filesize( $file ) : 0,
+					);
 				}
 			}
+
+			$this->logger->debug(
+				'ZIP entries created',
+				array(
+					'entry_count' => count( $zip_entries ),
+					'entries'     => array_slice( $zip_entries, 0, 20 ),
+				)
+			);
 		} finally {
 			$zip->close();
 		}
@@ -207,14 +235,18 @@ class SScribe_Zip_Handler {
 	 * Extract language code from a filename like P001-Title-AR.docx.
 	 *
 	 * Looks for a 2-letter uppercase language code before the file extension.
+	 * Only matches SINGLE language codes (e.g., AR, EN, FR) not compound codes.
+	 * This prevents page slugs like "SD-AR" from being misidentified as "AR" language.
 	 *
 	 * @param string $filename The filename (basename only).
 	 * @return string|null Language code (e.g., 'AR') or null if not found.
 	 */
 	private function extract_lang_from_filename( string $filename ): ?string {
-		// Match -XX.ext where XX is 2-3 letter code (case-insensitive) before extension.
-		if ( preg_match( '/-([A-Za-z]{2,3}(?:-[A-Za-z]{2,3})?)\.[A-Za-z]+$/', $filename, $matches ) ) {
-			return strtoupper( $matches[1] );
+		// Match -XX.ext where XX is EXACTLY 2 letters (language code).
+		// Do NOT match 3+ letter codes (compound like EN-US) or partial page slugs.
+		// Page filenames are like P001-SD-AR.docx - the AR is part of the title, not language.
+		if ( preg_match( '/-([A-Z]{2})\.[A-Za-z]+$/', $filename, $matches ) ) {
+			return $matches[1];
 		}
 		return null;
 	}
@@ -233,8 +265,10 @@ class SScribe_Zip_Handler {
 		$base  = $parts['filename'];
 		$ext   = isset( $parts['extension'] ) ? '.' . $parts['extension'] : '';
 
-		// Remove trailing -XX (2-letter language code) from the base name.
-		$clean_base = preg_replace( '/-[A-Za-z]{2}$/', '', $base );
+		// Remove trailing -XX ONLY when XX is EXACTLY 2 letters (language code).
+		// This prevents misinterpreting page slug segments as language codes.
+		// P001-SD-AR.docx → P001-SD-AR.docx (not P001-SD.docx)
+		$clean_base = preg_replace( '/-[A-Z]{2}$/', '', $base );
 
 		return $clean_base . $ext;
 	}

@@ -174,22 +174,16 @@ class SScribe_Admin {
 			return;
 		}
 
-		// Admin CSS - use minified version in production.
-		$css_file = ( defined( 'WP_DEBUG' ) && WP_DEBUG )
-			? 'admin/css/sscribe-admin.css'
-			: 'admin/css/sscribe-admin.min.css';
-
+		// Admin CSS - always use source file (minification disabled).
 		wp_enqueue_style(
 			'sscribe-admin',
-			SSCRIBE_PLUGIN_URL . $css_file,
+			SSCRIBE_PLUGIN_URL . 'admin/css/sscribe-admin.css',
 			array(),
 			SSCRIBE_VERSION
 		);
 
-		// Admin JS - use minified version in production.
-		$js_file = ( defined( 'SCRIPT_DEBUG' ) && SCRIPT_DEBUG )
-			? 'admin/js/sscribe-admin.js'
-			: 'admin/js/sscribe-admin.min.js';
+		// Admin JS - always use source file (minification disabled).
+		$js_file = 'admin/js/sscribe-admin.js';
 
 		wp_enqueue_script(
 			'sscribe-admin',
