@@ -105,14 +105,36 @@ $sscribe_cleanup_site = static function (): void {
 };
 
 if ( is_multisite() ) {
-	// phpcs:ignore WordPressVIPMinimum.Functions.RestrictedFunctions.get_sites_deprecated, WordPress.WP.DeprecatedFunctions.wp_get_sitesFound -- Fallback for WP < 4.6.
-	$sscribe_sites = function_exists( 'get_sites' ) ? get_sites() : wp_get_sites();
-
-	foreach ( $sscribe_sites as $sscribe_site ) {
-		$sscribe_blog_id = is_object( $sscribe_site ) ? $sscribe_site->blog_id : $sscribe_site['blog_id'];
-		switch_to_blog( (int) $sscribe_blog_id );
-		$sscribe_cleanup_site();
-		restore_current_blog();
+	if ( function_exists( 'get_sites' ) ) {
+		$sscribe_number = 100;
+		$sscribe_offset = 0;
+		while ( true ) {
+			$sscribe_sites = get_sites(
+				array(
+					'number' => $sscribe_number,
+					'offset' => $sscribe_offset,
+				)
+			);
+			if ( empty( $sscribe_sites ) ) {
+				break;
+			}
+			foreach ( $sscribe_sites as $sscribe_site ) {
+				$sscribe_blog_id = is_object( $sscribe_site ) ? $sscribe_site->blog_id : $sscribe_site['blog_id'];
+				switch_to_blog( (int) $sscribe_blog_id );
+				$sscribe_cleanup_site();
+				restore_current_blog();
+			}
+			$sscribe_offset += $sscribe_number;
+		}
+	} else {
+		// phpcs:ignore WordPress.WP.DeprecatedFunctions.wp_get_sitesFound -- Fallback for WP < 4.6.
+		$sscribe_sites = wp_get_sites();
+		foreach ( $sscribe_sites as $sscribe_site ) {
+			$sscribe_blog_id = is_object( $sscribe_site ) ? $sscribe_site->blog_id : $sscribe_site['blog_id'];
+			switch_to_blog( (int) $sscribe_blog_id );
+			$sscribe_cleanup_site();
+			restore_current_blog();
+		}
 	}
 } else {
 	$sscribe_cleanup_site();

@@ -15,6 +15,10 @@
 		selectedPageCount: 0,
 		batchRetries: 0,
 		maxBatchRetries: 3,
+		pollBackoff: 0,
+		pollBackoffBase: 1000,
+		pollBackoffMax: 30000,
+		pollJitter: 200,
 
 		init: function () {
 			if (typeof sscribe_data === 'undefined' || !sscribe_data) {
@@ -117,7 +121,10 @@
 						self.updateExportButton();
 					}
 				},
-				error: function () {}
+				error: function () {
+					var msg = (sscribe_data.strings && sscribe_data.strings.refresh_counts_failed) || 'Failed to refresh counts. Please try again.';
+					$('#sscribe-alert-region').text(msg);
+				}
 			});
 		},
 
@@ -213,7 +220,10 @@
 						self.updateTimeEstimate();
 					}
 				},
-				error: function () {},
+				error: function () {
+					var msg = (sscribe_data.strings && sscribe_data.strings.refresh_counts_failed) || 'Failed to refresh counts. Please try again.';
+					$('#sscribe-alert-region').text(msg);
+				},
 				complete: function () {
 					$('.sscribe-status-card-label').removeClass('sscribe-loading');
 				}
@@ -473,6 +483,30 @@
 			});
 		},
 
+		scheduleNextBatch: function(retryInMs) {
+			var self = this;
+			var delay = 0;
+
+			if (typeof retryInMs === 'number' && isFinite(retryInMs) && retryInMs > 0) {
+				delay = Math.max(0, Math.floor(retryInMs));
+				self.pollBackoff = 0;
+			} else {
+				var base = self.pollBackoffBase * Math.pow(2, Math.max(0, self.pollBackoff));
+				delay = Math.min(self.pollBackoffMax, Math.floor(base));
+				if (self.pollBackoffBase * Math.pow(2, self.pollBackoff) < self.pollBackoffMax) {
+					self.pollBackoff++;
+				}
+			}
+
+			var jitter = Math.floor(Math.random() * (self.pollJitter * 2 + 1)) - self.pollJitter;
+			delay = Math.max(0, delay + jitter);
+			delay = Math.max(300, delay);
+
+			setTimeout(function () {
+				self.processBatch();
+			}, delay);
+		},
+
 		processBatch: function () {
 			if (!this.sessionId) {
 				this.showError(sscribe_data.strings.error);
@@ -516,12 +550,13 @@
 						if (data.status === 'complete') {
 							SScribe.exportComplete(data);
 						} else {
-							setTimeout($.proxy(SScribe.processBatch, SScribe), 200);
+							SScribe.pollBackoff = 0;
+							SScribe.scheduleNextBatch();
 						}
 					} else {
 						var isCancelled = response.data.cancelled === true;
-						if (response.data.retry === true) {
-							setTimeout($.proxy(SScribe.processBatch, SScribe), 2000);
+					if (response.data.retry === true) {
+							SScribe.scheduleNextBatch(response.data && response.data.retry_in);
 						} else {
 							SScribe.showError(response.data.message, isCancelled, SScribe.normalizeErrorData(response.data));
 						}
@@ -530,7 +565,7 @@
 				error: function (xhr) {
 					SScribe.batchRetries++;
 					if (SScribe.batchRetries <= SScribe.maxBatchRetries) {
-						setTimeout($.proxy(SScribe.processBatch, SScribe), 3000);
+						SScribe.scheduleNextBatch();
 					} else {
 						var msg = SScribe.getNetworkErrorMessage(xhr, 'process_batch');
 						SScribe.showError(msg);
@@ -648,17 +683,20 @@
 
 		updateProgress: function (percentage) {
 			percentage = Math.min(100, Math.max(0, percentage));
-			$('#sscribe-progress-bar').css('width', percentage + '%');
-			$('#sscribe-progress-text').text(percentage + '%');
 
 			var progressBar = document.getElementById('sscribe-progress-bar');
 			if (progressBar) {
+				progressBar.style.transform = 'scaleX(' + (percentage / 100) + ')';
 				progressBar.setAttribute('aria-valuenow', percentage);
+			} else {
+				$('#sscribe-progress-bar').css('width', percentage + '%');
 			}
+			$('#sscribe-progress-text').text(percentage + '%');
 
 			var liveRegion = document.getElementById('sscribe-live-region');
 			if (liveRegion) {
-				liveRegion.textContent = 'Export progress: ' + percentage + '%';
+				var msg = (sscribe_data.strings && sscribe_data.strings.export_progress_prefix) || 'Export progress:';
+				liveRegion.textContent = msg + ' ' + percentage + '%';
 			}
 		},
 

@@ -306,11 +306,11 @@ class SScribe_Session {
 		}
 
 		// All required keys must exist with correct types.
-		// Note: user_id is optional for backward compatibility (sessions created before security fix).
+		// Accept numeric strings (from JSON/JS) and normalize to int.
 		$required = array(
 			'page_ids'   => 'is_array',
-			'total'      => 'is_int',
-			'processed'  => 'is_int',
+			'total'      => 'is_numeric',
+			'processed'  => 'is_numeric',
 			'session_id' => 'is_string',
 		);
 
@@ -321,10 +321,17 @@ class SScribe_Session {
 			}
 		}
 
-		// user_id validation (optional but must be int if present).
-		if ( isset( $data['user_id'] ) && ! is_int( $data['user_id'] ) ) {
-			$this->logger->error( 'Session user_id is not an integer', array( 'user_id' => $data['user_id'] ) );
+		// Normalize numeric strings to integers for arithmetic safety.
+		$data['total']     = (int) $data['total'];
+		$data['processed'] = (int) $data['processed'];
+
+		// user_id validation (optional but must be numeric if present).
+		if ( isset( $data['user_id'] ) && ! is_numeric( $data['user_id'] ) ) {
+			$this->logger->error( 'Session user_id is not numeric', array( 'user_id' => $data['user_id'] ) );
 			return false;
+		}
+		if ( isset( $data['user_id'] ) ) {
+			$data['user_id'] = (int) $data['user_id'];
 		}
 
 		// Logic checks.
@@ -738,7 +745,6 @@ class SScribe_Session {
 	 * Get the session signing key.
 	 *
 	 * @return string Signing key material.
-	 * @throws \RuntimeException If no signing key material is available.
 	 */
 	private function get_signing_key(): string {
 		if ( defined( 'AUTH_SALT' ) && '' !== AUTH_SALT ) {
@@ -749,11 +755,19 @@ class SScribe_Session {
 			return SECURE_AUTH_KEY;
 		}
 
-		// Fail securely: no signing key material available.
-		// AUTH_SALT or SECURE_AUTH_KEY must be defined in wp-config.php.
-		throw new \RuntimeException(
-			'SScribe session signing key unavailable. Define AUTH_SALT or SECURE_AUTH_KEY in wp-config.php.'
-		);
+		if ( defined( 'NONCE_SALT' ) && '' !== NONCE_SALT ) {
+			return NONCE_SALT;
+		}
+
+		// Fallback: use a plugin-specific secret stored in options.
+		// Created once at first use, never rotated (session invalidation on change).
+		$secret = get_option( 'sscribe_session_signing_key', '' );
+		if ( '' === $secret ) {
+			$secret = bin2hex( random_bytes( 32 ) );
+			add_option( 'sscribe_session_signing_key', $secret, '', 'no' );
+		}
+
+		return $secret;
 	}
 
 	/**

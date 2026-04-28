@@ -672,10 +672,12 @@ class SScribe_Page_Collector {
 			// phpcs:ignore WordPress.NamingConventions.PrefixAllGlobals.NonPrefixedHooknameFound -- WPML hook.
 			$language_details = apply_filters( 'wpml_post_language_details', null, $page_id );
 			if ( $language_details && ! is_wp_error( $language_details ) ) {
-				return isset( $language_details['language_code'] ) ? $language_details['language_code'] : 'en';
+				$code = isset( $language_details['language_code'] ) ? $language_details['language_code'] : 'en';
+				return strtolower( substr( $code, 0, 2 ) );
 			}
 		}
-		return get_bloginfo( 'language' );
+		$lang = get_bloginfo( 'language' );
+		return strtolower( substr( $lang, 0, 2 ) );
 	}
 
 	/**

@@ -92,7 +92,7 @@ class SScribe_Audit_Trail {
 		global $wpdb;
 
 		$user_id     = get_current_user_id();
-		$ip          = $this->get_client_ip();
+		$ip          = $this->hash_client_ip();
 		$user_agent  = $this->get_user_agent();
 		$request_uri = $this->get_request_uri();
 
@@ -158,6 +158,17 @@ class SScribe_Audit_Trail {
 	 */
 	private function get_client_ip(): string {
 		return SScribe_Helpers::get_client_ip();
+	}
+
+	/**
+	 * Get hashed client IP for GDPR-compliant audit logging.
+	 *
+	 * @return string Hashed IP (SHA-256, first 16 chars).
+	 */
+	private function hash_client_ip(): string {
+		$raw_ip = $this->get_client_ip();
+		$salt   = defined( 'AUTH_SALT' ) && '' !== AUTH_SALT ? AUTH_SALT : 'sscribe-audit';
+		return substr( hash_hmac( 'sha256', $raw_ip, $salt ), 0, 16 );
 	}
 
 	/**
@@ -236,11 +247,9 @@ class SScribe_Audit_Trail {
 		$args[]       = $limit;
 		$args[]       = $offset;
 
-		// phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared
-		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
 		return $wpdb->get_results(
 			$wpdb->prepare(
-				"SELECT * FROM {$this->table_name} WHERE {$where_clause} ORDER BY timestamp DESC LIMIT %d OFFSET %d",
+				"SELECT * FROM {$wpdb->esc_sql($this->table_name)} WHERE {$where_clause} ORDER BY timestamp DESC LIMIT %d OFFSET %d", // phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared
 				...$args
 			)
 		);
@@ -274,11 +283,9 @@ class SScribe_Audit_Trail {
 
 		$where_clause = implode( ' AND ', $where );
 
-		// phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared
-		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
 		return $wpdb->get_results(
 			$wpdb->prepare(
-				"SELECT event, COUNT(*) as count FROM {$this->table_name} WHERE {$where_clause} GROUP BY event ORDER BY count DESC",
+				"SELECT event, COUNT(*) as count FROM {$wpdb->esc_sql($this->table_name)} WHERE {$where_clause} GROUP BY event ORDER BY count DESC", // phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared
 				...$args
 			)
 		);
@@ -303,7 +310,7 @@ class SScribe_Audit_Trail {
 		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
 		return $wpdb->query(
 			$wpdb->prepare(
-				"DELETE FROM {$this->table_name} WHERE timestamp < %s",
+				"DELETE FROM {$wpdb->esc_sql($this->table_name)} WHERE timestamp < %s",
 				$cutoff
 			)
 		);

@@ -439,10 +439,15 @@ $sscribe_is_debug        = $sscribe_is_debug ?? false;
 						</h4>
 						<p id="sscribe-current-page" class="sscribe-current-page" aria-live="polite"></p>
 						<div class="sscribe-progress-tracker">
-							<div class="sscribe-progress-bar-container" role="progressbar" aria-valuemin="0" aria-valuemax="100" aria-valuenow="0" aria-labelledby="sscribe-progress-text">
-								<div id="sscribe-progress-bar" class="sscribe-progress-bar-fill"></div>
+							<div class="sscribe-progress-bar-container">
+								<div id="sscribe-progress-bar" class="sscribe-progress-bar-fill"
+									role="progressbar"
+									aria-valuemin="0"
+									aria-valuemax="100"
+									aria-valuenow="0"
+									aria-labelledby="sscribe-status-text"></div>
 							</div>
-							<span id="sscribe-progress-text" class="sscribe-progress-percentage">0%</span>
+							<span id="sscribe-progress-text" class="sscribe-progress-percentage" aria-hidden="true">0%</span>
 						</div>
 						<div class="sscribe-progress-meta">
 							<span id="sscribe-time-remaining" class="sscribe-time-remaining" aria-live="off"></span>

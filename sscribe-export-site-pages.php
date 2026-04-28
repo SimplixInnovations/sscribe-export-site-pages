@@ -27,7 +27,9 @@ if ( ! defined( 'ABSPATH' ) ) {
  * Plugin version - single source of truth.
  * All version references read from the plugin header above.
  */
-define( 'SSCRIBE_VERSION', '3.33.0' );
+if ( ! defined( 'SSCRIBE_VERSION' ) ) {
+	define( 'SSCRIBE_VERSION', '3.33.0' );
+}
 
 /**
  * Check PHP Version gracefully.
@@ -104,6 +106,14 @@ define( 'SSCRIBE_FONT_ARABIC_BOLD', SSCRIBE_PLUGIN_DIR . 'assets/fonts/NotoSansA
 require_once SSCRIBE_PLUGIN_DIR . 'includes/sscribe-autoloader.php';
 
 /**
+ * Activation/deactivation hooks — register unconditionally so WP calls them
+ * even when vendor dependencies are missing. The activator itself detects
+ * missing vendors and bails gracefully.
+ */
+register_activation_hook( __FILE__, array( 'SScribe_Activator', 'activate' ) );
+register_deactivation_hook( __FILE__, array( 'SScribe_Deactivator', 'deactivate' ) );
+
+/**
  * Autoload Composer dependencies and plugin classes.
  */
 
@@ -164,16 +174,6 @@ if ( ! function_exists( 'sscribe_render_boot_error_notice' ) ) {
 }
 
 add_action( 'admin_notices', 'sscribe_render_boot_error_notice' );
-
-/**
- * Activation hook.
- */
-register_activation_hook( __FILE__, array( 'SScribe_Activator', 'activate' ) );
-
-/**
- * Deactivation hook.
- */
-register_deactivation_hook( __FILE__, array( 'SScribe_Deactivator', 'deactivate' ) );
 
 /**
  * Initialize the plugin safely.

@@ -144,7 +144,8 @@ class SScribe_Batch_Processor {
 		$now = time();
 
 		// Administrators get a higher rate limit to support large exports.
-		$rate_limit = current_user_can( apply_filters( 'sscribe_export_capability', 'manage_options' ) )
+		// Use get_required_capability() to ensure whitelist validation (not raw filter).
+		$rate_limit = current_user_can( $this->get_required_capability() )
 			? (int) apply_filters( 'sscribe_rate_limit_admin', 1000 )
 			: self::RATE_LIMIT_MAX;
 
@@ -1196,8 +1197,8 @@ class SScribe_Batch_Processor {
 						}
 					}
 				}
-			} catch ( \Error $e ) {
-				// Catch fatal errors (like out of memory) that would otherwise crash the entire export.
+			} catch ( \Throwable $e ) {
+				// Catch both Errors and Exceptions to prevent export crashes.
 				$error_msg = sprintf(
 					/* translators: %s: Error message. */
 					__( 'Critical error: %s', 'sscribe-export-site-pages' ),
@@ -1793,7 +1794,10 @@ class SScribe_Batch_Processor {
 		$real_path = realpath( $file_path );
 		$real_dir  = realpath( $this->zip_handler->get_export_dir() );
 
-		if ( false === $real_path || false === $real_dir || ! str_starts_with( $real_path, $real_dir ) || 'zip' !== pathinfo( $filename, PATHINFO_EXTENSION ) ) {
+		// SECURITY: Require trailing separator to prevent path-prefix attacks
+		// (e.g., /var/www/exports_evil passing for /var/www/exports).
+		$safe_dir = false !== $real_dir ? rtrim( $real_dir, DIRECTORY_SEPARATOR ) . DIRECTORY_SEPARATOR : '';
+		if ( false === $real_path || false === $real_dir || ! str_starts_with( $real_path, $safe_dir ) || 'zip' !== pathinfo( $filename, PATHINFO_EXTENSION ) ) {
 			status_header( 400 );
 			wp_die( esc_html__( 'Invalid file request.', 'sscribe-export-site-pages' ) );
 		}

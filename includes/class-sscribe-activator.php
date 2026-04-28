@@ -24,6 +24,25 @@ class SScribe_Activator {
 	 * @return void
 	 */
 	public static function activate(): void {
+		// If required runtime dependencies are not present, bail gracefully.
+		if ( ! file_exists( SSCRIBE_PLUGIN_DIR . 'vendor-prefixed/autoload.php' )
+			&& ! file_exists( SSCRIBE_PLUGIN_DIR . 'vendor/autoload.php' )
+		) {
+			set_transient(
+				'sscribe_boot_error',
+				array(
+					'message' => sprintf(
+						/* translators: %s: plugin version */
+						__( 'Activation aborted: required runtime dependencies are missing. Run "composer install" in the plugin directory or reinstall the plugin package. Version: %s', 'sscribe-export-site-pages' ),
+						SSCRIBE_VERSION
+					),
+					'time' => gmdate( 'Y-m-d H:i:s \\U\\T\\C' ),
+				),
+				MINUTE_IN_SECONDS * 10
+			);
+			return;
+		}
+
 		self::create_export_directory();
 		self::create_database_tables();
 		self::schedule_cleanup();
@@ -139,12 +158,13 @@ class SScribe_Activator {
 	 * @return void
 	 */
 	private static function schedule_cleanup(): void {
+		$interval = apply_filters( 'sscribe_cleanup_interval', 'hourly' );
 		if ( ! wp_next_scheduled( 'sscribe_cleanup_exports' ) ) {
-			wp_schedule_event( time(), 'hourly', 'sscribe_cleanup_exports' );
+			wp_schedule_event( time(), $interval, 'sscribe_cleanup_exports' );
 		}
 
 		if ( ! wp_next_scheduled( 'sscribe_cleanup_sessions' ) ) {
-			wp_schedule_event( time(), 'hourly', 'sscribe_cleanup_sessions' );
+			wp_schedule_event( time(), $interval, 'sscribe_cleanup_sessions' );
 		}
 	}
 
@@ -169,13 +189,16 @@ class SScribe_Activator {
 		$patterns = array( $session_pattern, $lock_pattern, $rate_pattern, $session_option_pattern );
 
 		foreach ( $patterns as $pattern ) {
-			// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- Cleanup operation during activation.
-			$wpdb->query(
-				$wpdb->prepare(
-					"DELETE FROM {$wpdb->options} WHERE option_name LIKE %s",
-					$pattern
-				)
-			);
+			// Delete in batches to avoid long-running locks on large sites.
+			do {
+				// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- Cleanup operation during activation.
+				$rows = $wpdb->query(
+					$wpdb->prepare(
+						"DELETE FROM {$wpdb->options} WHERE option_name LIKE %s LIMIT 1000",
+						$pattern
+					)
+				);
+			} while ( false !== $rows && $rows > 0 );
 		}
 
 		$timeout_patterns = array(
@@ -185,13 +208,15 @@ class SScribe_Activator {
 		);
 
 		foreach ( $timeout_patterns as $pattern ) {
-			// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- Cleanup operation during activation.
-			$wpdb->query(
-				$wpdb->prepare(
-					"DELETE FROM {$wpdb->options} WHERE option_name LIKE %s",
-					$pattern
-				)
-			);
+			do {
+				// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- Cleanup operation during activation.
+				$rows = $wpdb->query(
+					$wpdb->prepare(
+						"DELETE FROM {$wpdb->options} WHERE option_name LIKE %s LIMIT 1000",
+						$pattern
+					)
+				);
+			} while ( false !== $rows && $rows > 0 );
 		}
 	}
 }
