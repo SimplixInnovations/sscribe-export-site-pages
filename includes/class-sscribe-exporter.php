@@ -1009,19 +1009,63 @@ class SScribe_Exporter {
 	}
 
 	/**
-	 * Add main content (parsed HTML → DOCX elements).
+	 * Add main content section with detailed error tracing.
 	 *
-	 * @param \SScribeVendor\PhpOffice\PhpWord\Element\Section $section   The section.
+	 * @param \SScribeVendor\PhpOffice\PhpWord\Element\Section $section The section.
 	 * @param array                                            $page_data Page data.
 	 */
 	private function add_main_content( \SScribeVendor\PhpOffice\PhpWord\Element\Section $section, array $page_data ): void {
 		if ( empty( $page_data['word_count'] ) ) {
+			$this->get_logger()->warning(
+				'Main content skipped: word_count is zero',
+				array(
+					'page_id'     => $page_data['id'] ?? 0,
+					'page_title'  => $page_data['title'] ?? 'unknown',
+					'content_len' => strlen( $page_data['content'] ?? '' ),
+				)
+			);
 			return;
 		}
 
 		$section->addTitle( __( 'Content', 'sscribe-export-site-pages' ), 1 );
 
-		$elements = $this->parser->parse( $page_data['content'] );
+		$content     = $page_data['content'] ?? '';
+		$content_len = strlen( $content );
+
+		$this->get_logger()->debug(
+			'Parsing content for DOCX',
+			array(
+				'page_id'     => $page_data['id'] ?? 0,
+				'content_len' => $content_len,
+				'word_count'  => $page_data['word_count'] ?? 0,
+			)
+		);
+
+		$elements = $this->parser->parse( $content );
+
+		$element_count = count( $elements );
+
+		$this->get_logger()->debug(
+			'Content parsed into elements',
+			array(
+				'page_id'       => $page_data['id'] ?? 0,
+				'element_count' => $element_count,
+				'content_len'   => $content_len,
+			)
+		);
+
+		// CRITICAL: Log when no elements were extracted — indicates content parsing failure.
+		if ( 0 === $element_count && $content_len > 0 ) {
+			$this->get_logger()->error(
+				'CRITICAL: Content parser returned zero elements',
+				array(
+					'page_id'         => $page_data['id'] ?? 0,
+					'page_title'      => $page_data['title'] ?? 'unknown',
+					'content_len'     => $content_len,
+					'content_preview' => substr( $content, 0, 500 ),
+				)
+			);
+		}
 
 		foreach ( $elements as $element_index => $element ) {
 			try {
@@ -1040,10 +1084,13 @@ class SScribe_Exporter {
 				$this->get_logger()->warning(
 					'Element render failed',
 					array(
-						'page_id'       => $page_data['id'] ?? 0,
-						'element_index' => $element_index,
-						'element_type'  => $element['type'] ?? 'unknown',
-						'error'         => $this->last_error,
+						'page_id'                 => $page_data['id'] ?? 0,
+						'element_index'           => $element_index,
+						'element_type'            => $element['type'] ?? 'unknown',
+						'element_content_preview' => substr( $element['content'] ?? '', 0, 100 ),
+						'error_class'             => $ex_class,
+						'error_message'           => $ex_message,
+						'error_file'              => basename( $e->getFile() ) . ':' . $e->getLine(),
 					)
 				);
 				// Continue processing remaining elements.

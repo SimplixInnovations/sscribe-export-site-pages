@@ -578,11 +578,19 @@ class SScribe_Batch_Processor {
 			$formats = array( 'docx' );
 		}
 
+		// Post type: 'page', 'post', or 'any' (both). Default to 'page' for backward compatibility.
+		$post_type        = isset( $_POST['post_type'] ) ? sanitize_text_field( wp_unslash( $_POST['post_type'] ) ) : 'page';
+		$valid_post_types = array( 'page', 'post', 'any' );
+		if ( ! in_array( $post_type, $valid_post_types, true ) ) {
+			$post_type = 'page';
+		}
+
 		$this->logger->debug(
 			'Export params',
 			array(
 				'language'    => $language,
 				'post_status' => $post_status,
+				'post_type'   => $post_type,
 				'formats'     => $formats,
 			)
 		);
@@ -614,7 +622,7 @@ class SScribe_Batch_Processor {
 			}
 		}
 
-		$page_ids = $this->collector->get_page_ids( $language, $post_status );
+		$page_ids = $this->collector->get_page_ids( $language, $post_status, $post_type );
 		$total    = count( $page_ids );
 
 		$current_lang = 'default';
@@ -1822,7 +1830,7 @@ class SScribe_Batch_Processor {
 	}
 
 	/**
-	 * AJAX handler: Get status counts for a language.
+	 * AJAX handler: Get status counts for a language and post type.
 	 *
 	 * @return void
 	 */
@@ -1834,9 +1842,13 @@ class SScribe_Batch_Processor {
 
 		check_ajax_referer( 'sscribe_export_nonce', 'nonce' );
 
-		$language = isset( $_POST['language'] ) ? sanitize_text_field( wp_unslash( $_POST['language'] ) ) : '';
+		$language  = isset( $_POST['language'] ) ? sanitize_text_field( wp_unslash( $_POST['language'] ) ) : '';
+		$post_type = isset( $_POST['post_type'] ) ? sanitize_text_field( wp_unslash( $_POST['post_type'] ) ) : 'page';
+		if ( ! in_array( $post_type, array( 'page', 'post', 'any' ), true ) ) {
+			$post_type = 'page';
+		}
 
-		$counts = $this->collector->get_post_status_counts( $language );
+		$counts = $this->collector->get_post_status_counts( $language, $post_type );
 
 		wp_send_json_success( array( 'counts' => $counts ) );
 	}
@@ -2594,7 +2606,12 @@ class SScribe_Batch_Processor {
 			$format = 'docx';
 		}
 
-		$pages      = $this->collector->get_page_ids( $language, $post_status );
+		$post_type = isset( $_POST['post_type'] ) ? sanitize_text_field( wp_unslash( $_POST['post_type'] ) ) : 'page';
+		if ( ! in_array( $post_type, array( 'page', 'post', 'any' ), true ) ) {
+			$post_type = 'page';
+		}
+
+		$pages      = $this->collector->get_page_ids( $language, $post_status, $post_type );
 		$page_count = count( $pages );
 
 		// Adaptive time estimation based on actual export history.

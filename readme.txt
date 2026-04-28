@@ -229,6 +229,32 @@ Each document includes: cover page with title/URL/date/breadcrumbs, featured ima
 
 == Changelog ==
 
+= 3.33.0 =
+
+* Feature: Post type selection - export Pages, Posts, or Both
+* Feature: Added Step 0 wizard for post type selection in admin UI
+* Feature: Added dynamic post counts per post type (pages, posts, both)
+* Feature: Added onPostTypeChange handler to refresh counts when post type changes
+* Feature: Added post_type parameter to all page collector methods
+* Feature: Added resolve_post_type_for_query() helper for WP_Query compatibility
+* Feature: Added updateStatusCounts() JS method for cleaner code organization
+* Feature: AJAX endpoint now accepts post_type parameter for status counts
+* Feature: Export preview now includes post_type in the request
+* Enhanced: Updated wizard navigation to handle 4 steps with post type as Step 0
+* Enhanced: Updated export button to require post type selection before enabling
+* Enhanced: get_page_data() now accepts post_type parameter for post support
+* Enhanced: get_child_pages_batch() and get_child_pages() now support post type filtering
+* Enhanced: get_post_status_counts() now accepts post_type parameter
+* Enhanced: get_total_all_statuses() and get_page_count_only() now support post types
+* Enhanced: Page Status section now shows combined counts for "Both" post type
+* Enhanced: All languages card shows combined page+post count when "Both" selected
+* Quality: Fixed duplicate get_child_pages_batch() method that was causing fatal errors
+* Quality: Fixed missing get_breadcrumbs() method that was causing PHPStan errors
+* Quality: Added translators comment for proper internationalization
+* Quality: PHPUnit 193 tests passing
+* Quality: PHPStan 0 errors
+* Quality: PHPCS 68/68 compliant
+
 = 3.32.0 =
 
 * Compliance: Replaced JSON column types with LONGTEXT for MySQL 5.6 compatibility

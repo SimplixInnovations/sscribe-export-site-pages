@@ -37,6 +37,7 @@
 				$(this).find('input[type="radio"]').prop('checked', true);
 			});
 
+			$('input[name="sscribe_post_type"]').on('change', $.proxy(this.onPostTypeChange, this));
 			$('input[name="sscribe_language"]').on('change', $.proxy(this.onLanguageChange, this));
 			$('input[name="sscribe_post_status"]').on('change', $.proxy(this.updateTimeEstimate, this));
 			$('input[name="sscribe_format"]').on('change', $.proxy(this.onFormatChange, this));
@@ -49,7 +50,9 @@
 
 			$(document).on('click', '.sscribe-wizard-next', function () {
 				var next = parseInt($(this).data('next'));
-				if (next === 2) {
+				if (next === 0) {
+					SScribe.onPostTypeChange();
+				} else if (next === 1) {
 					SScribe.onLanguageChange();
 				}
 				SScribe.wizardStep(next);
@@ -70,6 +73,88 @@
 			});
 		},
 
+		onPostTypeChange: function () {
+			if (this.isProcessing) {
+				return;
+			}
+
+			var postType = $('input[name="sscribe_post_type"]:checked').val() || 'page';
+			var language = $('input[name="sscribe_language"]:checked').val() || '';
+			var self = this;
+
+			$.ajax({
+				url: sscribe_data.ajaxurl,
+				type: 'POST',
+				timeout: 30000,
+				data: {
+					action: 'sscribe_get_status_counts',
+					nonce: sscribe_data.nonce,
+					language: language,
+					post_type: postType
+				},
+				success: function (response) {
+					if (response.success && response.data.counts) {
+						var counts = response.data.counts;
+						var totalPosts = counts.all || 0;
+						var $postTypeCards = $( '.sscribe-post-type-card' );
+
+						$postTypeCards.each(function () {
+							var $card = $(this);
+							var type = $card.data('post-type');
+							var countEl = $card.find('.sscribe-post-type-count');
+
+							if (type === 'post') {
+								countEl.text(totalPosts + ' Posts');
+							} else if (type === 'any') {
+								var $pageCount = $postTypeCards.filter('[data-post-type="page"]').find('.sscribe-post-type-count');
+								var pageCount = parseInt($pageCount.text()) || 0;
+								countEl.text((pageCount + totalPosts) + ' Total');
+							}
+						});
+
+						self.updateStatusCounts(counts);
+						self.updateTimeEstimate();
+						self.updateExportButton();
+					}
+				},
+				error: function () {}
+			});
+		},
+
+		updateStatusCounts: function (counts) {
+			var currentSelected = $('input[name="sscribe_post_status"]:checked');
+			var currentStillValid = false;
+			var firstAvailable = null;
+
+			$( '.sscribe-status-card-label' ).each(function () {
+				var $label = $(this);
+				var $input = $label.find( 'input[type="radio"]' );
+				var status = $input.val();
+				var count = counts[status] || 0;
+
+				$label.find( '.sscribe-status-count' ).text( count );
+				$label.attr( 'data-count', count );
+
+				if (count === 0) {
+					$input.prop( 'disabled', true ).prop( 'checked', false );
+					$label.addClass( 'sscribe-status-disabled' );
+				} else {
+					$input.prop( 'disabled', false );
+					$label.removeClass( 'sscribe-status-disabled' );
+					if (!firstAvailable) {
+						firstAvailable = $input;
+					}
+					if (currentSelected.length && currentSelected.val() === status) {
+						currentStillValid = true;
+					}
+				}
+			});
+
+			if (!currentStillValid && firstAvailable) {
+				firstAvailable.prop( 'checked', true );
+			}
+		},
+
 		onLanguageChange: function () {
 			if (this.isProcessing) {
 				return;
@@ -87,7 +172,8 @@
 				data: {
 					action: 'sscribe_get_status_counts',
 					nonce: sscribe_data.nonce,
-					language: language
+					language: language,
+					post_type: $('input[name="sscribe_post_type"]:checked').val() || 'page'
 				},
 				success: function (response) {
 					if (response.success && response.data.counts) {
@@ -127,9 +213,7 @@
 						self.updateTimeEstimate();
 					}
 				},
-				error: function () {
-					// Silently fail on status count refresh; user can still export.
-				},
+				error: function () {},
 				complete: function () {
 					$('.sscribe-status-card-label').removeClass('sscribe-loading');
 				}
@@ -185,12 +269,13 @@
 		},
 
 		updateExportButton: function () {
+			var hasPostType = $('input[name="sscribe_post_type"]:checked').length > 0;
 			var hasLanguage = $('input[name="sscribe_language"]:checked').length > 0 || $('input[name="sscribe_language"]').length === 0;
 			var hasStatus = $('input[name="sscribe_post_status"]:checked').length > 0 && !$('input[name="sscribe_post_status"]:checked').prop('disabled');
 			var hasFormat = $('input[name="sscribe_format"]:checked').length > 0;
 			var hasPages = this.selectedPageCount > 0;
 
-			var canExport = hasLanguage && hasStatus && hasFormat && hasPages;
+			var canExport = hasPostType && hasLanguage && hasStatus && hasFormat && hasPages;
 
 			$('#sscribe-export-btn').prop('disabled', !canExport);
 			$('#sscribe-preview-btn').prop('disabled', !canExport);
@@ -210,6 +295,7 @@
 
 			var language = $('input[name="sscribe_language"]:checked').val() || '';
 			var postStatus = $('input[name="sscribe_post_status"]:checked').val() || 'publish';
+			var postType = $('input[name="sscribe_post_type"]:checked').val() || 'page';
 			var format = $('input[name="sscribe_format"]:checked').val() || 'docx';
 
 			var formats = [];
@@ -238,19 +324,17 @@
 						// If there are errors, show a warning but allow user to proceed.
 						if (diagnostics.status === 'error') {
 							self.showPreflightWarnings(diagnostics, function () {
-								self.proceedWithExport(language, postStatus, formats);
+								self.proceedWithExport(language, postStatus, postType, formats);
 							});
 						} else {
-							self.proceedWithExport(language, postStatus, formats);
+							self.proceedWithExport(language, postStatus, postType, formats);
 						}
 					} else {
-						// Preflight check failed, proceed anyway (non-blocking).
-						self.proceedWithExport(language, postStatus, formats);
+						self.proceedWithExport(language, postStatus, postType, formats);
 					}
 				},
 				error: function () {
-					// Preflight check failed, proceed anyway (non-blocking).
-					self.proceedWithExport(language, postStatus, formats);
+					self.proceedWithExport(language, postStatus, postType, formats);
 				}
 			});
 		},
@@ -342,10 +426,9 @@
 			}, 300);
 		},
 
-		proceedWithExport: function (language, postStatus, formats) {
+		proceedWithExport: function (language, postStatus, postType, formats) {
 			var self = this;
 
-			// Force-clear any stale sessions/locks before starting.
 			$.ajax({
 				url: sscribe_data.ajaxurl,
 				type: 'POST',
@@ -356,12 +439,12 @@
 					force: true
 				},
 				complete: function () {
-					SScribe.doStartExport(language, postStatus, formats);
+					SScribe.doStartExport(language, postStatus, postType, formats);
 				}
 			});
 		},
 
-		doStartExport: function (language, postStatus, formats) {
+		doStartExport: function (language, postStatus, postType, formats) {
 			$.ajax({
 				url: sscribe_data.ajaxurl,
 				type: 'POST',
@@ -371,6 +454,7 @@
 					nonce: sscribe_data.nonce,
 					language: language,
 					post_status: postStatus,
+					post_type: postType,
 					formats: formats
 				},
 				success: function (response) {
@@ -1015,6 +1099,7 @@
 
 			var language = $('input[name="sscribe_language"]:checked').val() || '';
 			var postStatus = $('input[name="sscribe_post_status"]:checked').val() || 'publish';
+			var postType = $('input[name="sscribe_post_type"]:checked').val() || 'page';
 			var format = $('input[name="sscribe_format"]:checked').val() || 'docx';
 
 			var $panel = $('#sscribe-preview-panel');
@@ -1040,6 +1125,7 @@
 					nonce: sscribe_data.nonce,
 					language: language,
 					post_status: postStatus,
+					post_type: postType,
 					format: format
 				},
 				success: function (response) {

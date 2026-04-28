@@ -27,7 +27,7 @@ if ( ! defined( 'ABSPATH' ) ) {
  * Plugin version - single source of truth.
  * All version references read from the plugin header above.
  */
-define( 'SSCRIBE_VERSION', '3.32.0' );
+define( 'SSCRIBE_VERSION', '3.33.0' );
 
 /**
  * Check PHP Version gracefully.

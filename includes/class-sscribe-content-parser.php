@@ -52,6 +52,16 @@ class SScribe_Content_Parser {
 			return array();
 		}
 
+		$logger = SScribe_Logger::instance( defined( 'SSCRIBE_DEBUG' ) && SSCRIBE_DEBUG );
+
+		$logger->debug(
+			'Content parser: parse() called',
+			array(
+				'html_len'     => strlen( $html ),
+				'html_preview' => substr( $html, 0, 200 ),
+			)
+		);
+
 		// Note: Shortcodes are already expanded by apply_filters('the_content') before
 		// this method is called, so we don't need to strip shortcode markers here.
 		// We only clean up any remaining shortcode-like patterns that could be content.
@@ -60,12 +70,21 @@ class SScribe_Content_Parser {
 		// normalize_html() strips class attributes which detect_button() needs.
 		// We must extract buttons from raw HTML first, then normalize for further parsing.
 		$button_elements = $this->extract_buttons_from_html( $html );
+		$logger->debug( 'Content parser: buttons extracted', array( 'count' => count( $button_elements ) ) );
 
 		// Normalize HTML (strips classes, but we already captured buttons).
 		$html = $this->normalize_html( $html );
+		$logger->debug( 'Content parser: HTML normalized', array( 'normalized_len' => strlen( $html ) ) );
 
 		// Parse DOM.
 		$elements = $this->parse_dom( $html );
+		$logger->debug(
+			'Content parser: DOM parsed',
+			array(
+				'element_count' => count( $elements ),
+				'button_count'  => count( $button_elements ),
+			)
+		);
 
 		// Inject detected buttons into the element stream.
 		if ( ! empty( $button_elements ) ) {
