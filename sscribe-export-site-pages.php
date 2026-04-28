@@ -58,6 +58,9 @@ if ( version_compare( PHP_VERSION, '8.2', '<' ) ) {
  *
  * To enable for development: define( 'WP_DEBUG', true ) in wp-config.php.
  * To force disable in production: define( 'SSCRIBE_DEBUG', false ) in wp-config.php.
+ *
+ * Note: Site admins can override this by defining SSCRIBE_DEBUG in wp-config.php.
+ * The define() guard ensures wp-config.php overrides always take precedence.
  */
 if ( ! defined( 'SSCRIBE_DEBUG' ) ) {
 	define( 'SSCRIBE_DEBUG', defined( 'WP_DEBUG' ) && WP_DEBUG );

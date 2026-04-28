@@ -409,13 +409,15 @@ class SScribe_Page_Collector {
 		}
 
 		// Guard against recursive calls from plugins that hook the_content.
-		static $sscribe_in_content_filter = false;
+		// Static preserves state across recursive get_page_data() calls within
+		// the same request only — reset per request via new instance.
+		static $is_applying_the_content_filter = false;
 
-		if ( $sscribe_in_content_filter ) {
+		if ( $is_applying_the_content_filter ) {
 			$content = $post_object->post_content;
 		} else {
-			$sscribe_in_content_filter = true;
-			$content                   = $post_object->post_content;
+			$is_applying_the_content_filter = true;
+			$content                        = $post_object->post_content;
 
 			// Record ob level before our buffer to avoid closing WP's buffers.
 			$ob_level_before = ob_get_level();
@@ -465,7 +467,7 @@ class SScribe_Page_Collector {
 					// phpcs:ignore WordPress.WP.GlobalVariablesOverride.Prohibited
 					$post = $original_post;
 				}
-				$sscribe_in_content_filter = false;
+				$is_applying_the_content_filter = false;
 			}
 		}
 

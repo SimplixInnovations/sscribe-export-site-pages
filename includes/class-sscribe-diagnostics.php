@@ -184,12 +184,12 @@ class SScribe_Diagnostics {
 	public function check_vendor_dependencies(): array {
 		$missing = array();
 
-		if ( ! class_exists( '\SScribeVendor\Dompdf\Dompdf' ) && ! class_exists( '\SScribeVendor\Dompdf\Dompdf' ) ) {
-			$missing[] = 'SScribeVendor\\Dompdf\\Dompdf';
+		if ( ! class_exists( '\SScribeVendor\Dompdf\Dompdf' ) ) {
+			$missing[] = 'SScribeVendor\Dompdf\Dompdf';
 		}
 
-		if ( ! class_exists( '\SScribeVendor\PhpOffice\PhpWord\PhpWord' ) && ! class_exists( '\SScribeVendor\PhpOffice\PhpWord\PhpWord' ) ) {
-			$missing[] = 'SScribeVendor\\PhpOffice\\PhpWord\\PhpWord';
+		if ( ! class_exists( '\SScribeVendor\PhpOffice\PhpWord\PhpWord' ) ) {
+			$missing[] = 'SScribeVendor\PhpOffice\PhpWord\PhpWord';
 		}
 
 		return $missing;
