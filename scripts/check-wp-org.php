@@ -1,7 +1,13 @@
 <?php
 declare(strict_types=1);
 
-$zip_file = dirname( __DIR__ ) . '/dist/sscribe-export-site-pages-3.32.0.zip';
+// Find the most recent dist ZIP file dynamically.
+$dist_files = glob( dirname( __DIR__ ) . '/dist/sscribe-export-site-pages-*.zip' );
+if ( empty( $dist_files ) ) {
+	exit( "No dist ZIP found. Run: composer release\n" );
+}
+usort( $dist_files, fn( $a, $b ) => filemtime( $b ) - filemtime( $a ) );
+$zip_file = $dist_files[0];
 $zip      = new ZipArchive();
 $zip->open( $zip_file );
 
