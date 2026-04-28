@@ -1015,22 +1015,24 @@ class SScribe_Exporter {
 	 * @param array                                            $page_data Page data.
 	 */
 	private function add_main_content( \SScribeVendor\PhpOffice\PhpWord\Element\Section $section, array $page_data ): void {
-		if ( empty( $page_data['word_count'] ) ) {
+		$content     = $page_data['content'] ?? '';
+		$content_len = strlen( $content );
+
+		// CRITICAL: Don't skip content just because word_count is 0.
+		// word_count can be 0 when content is only HTML tags (no visible text).
+		// But DOM-parsed content may still have valid elements to render.
+		// Only skip when content is truly empty.
+		if ( empty( $content ) ) {
 			$this->get_logger()->warning(
-				'Main content skipped: word_count is zero',
+				'Main content skipped: content is empty',
 				array(
 					'page_id'     => $page_data['id'] ?? 0,
 					'page_title'  => $page_data['title'] ?? 'unknown',
-					'content_len' => strlen( $page_data['content'] ?? '' ),
+					'word_count'  => $page_data['word_count'] ?? 0,
 				)
 			);
 			return;
 		}
-
-		$section->addTitle( __( 'Content', 'sscribe-export-site-pages' ), 1 );
-
-		$content     = $page_data['content'] ?? '';
-		$content_len = strlen( $content );
 
 		$this->get_logger()->debug(
 			'Parsing content for DOCX',
@@ -1040,6 +1042,8 @@ class SScribe_Exporter {
 				'word_count'  => $page_data['word_count'] ?? 0,
 			)
 		);
+
+		$section->addTitle( __( 'Content', 'sscribe-export-site-pages' ), 1 );
 
 		$elements = $this->parser->parse( $content );
 

@@ -1157,32 +1157,80 @@ class SScribe_Batch_Processor {
 					$session[ $format_key ] = ( $session[ $format_key ] ?? 0 ) + $format_elapsed;
 
 					if ( $result->is_success() ) {
-						$export_success       = true;
-						$successful_formats[] = $format;
-						$file_path            = $result->get_data()['path'] ?? '';
-						$file_size            = $result->get_data()['size'] ?? 0;
+						$file_path = $result->get_data()['path'] ?? '';
+						$file_size = $result->get_data()['size'] ?? 0;
 
-						// Track per-format file sizes for adaptive metrics.
-						$format_size_key             = 'format_size_' . $format;
-						$session[ $format_size_key ] = ( $session[ $format_size_key ] ?? 0 ) + $file_size;
-
-						// Track per-format page count for accurate metrics.
-						$format_pages_key             = 'format_pages_' . $format;
-						$session[ $format_pages_key ] = ( $session[ $format_pages_key ] ?? 0 ) + 1;
-
-						if ( $this->export_log ) {
-							$this->export_log->log_format_result( $page_id, $format, true, $file_path );
-						}
-
-						$this->logger->debug(
-							ucfirst( $format ) . ' generated successfully',
-							array(
-								'file'     => basename( $file_path ),
-								'page_id'  => $page_id,
-								'format'   => $format,
-								'duration' => round( $format_elapsed, 3 ),
-							)
+						// Validate exported file exists and has reasonable size.
+						$actual_size = ( ! empty( $file_path ) && file_exists( $file_path ) ) ? (int) filesize( $file_path ) : 0;
+						$min_sizes   = array(
+							'docx'     => 1024,  // 1KB minimum for valid DOCX.
+							'pdf'      => 512,   // 500 bytes minimum for valid PDF.
+							'html'     => 100,   // 100 bytes minimum for valid HTML.
+							'markdown' => 50,    // 50 bytes minimum for valid Markdown.
 						);
+						$min_size = $min_sizes[ $format ] ?? 100;
+
+						if ( $actual_size < $min_size ) {
+							// File is too small — likely corrupted or empty.
+							$size_error = sprintf(
+								/* translators: 1: Format, 2: Actual size, 3: Minimum size. */
+								__( '%1$s file appears empty or corrupted (size: %2$d bytes, minimum: %3$d bytes).', 'sscribe-export-site-pages' ),
+								strtoupper( $format ),
+								$actual_size,
+								$min_size
+							);
+							$export_errors[] = array(
+								'format'   => strtoupper( $format ),
+								'message'  => $size_error,
+								'category' => 'empty_file',
+								'context'  => array(
+									'file_path'    => $file_path,
+									'actual_size'  => $actual_size,
+									'reported_size' => $file_size,
+								),
+							);
+
+							if ( $this->export_log ) {
+								$this->export_log->log_format_result( $page_id, $format, false, '', $size_error );
+							}
+
+							$this->logger->error(
+								ucfirst( $format ) . ' export produced empty/corrupted file',
+								array(
+									'page_id'       => $page_id,
+									'file_path'     => $file_path,
+									'actual_size'   => $actual_size,
+									'reported_size' => $file_size,
+									'min_size'      => $min_size,
+								)
+							);
+						} else {
+							$export_success       = true;
+							$successful_formats[] = $format;
+
+							// Use actual file size for metrics.
+							$format_size_key             = 'format_size_' . $format;
+							$session[ $format_size_key ] = ( $session[ $format_size_key ] ?? 0 ) + $actual_size;
+
+							// Track per-format page count for accurate metrics.
+							$format_pages_key             = 'format_pages_' . $format;
+							$session[ $format_pages_key ] = ( $session[ $format_pages_key ] ?? 0 ) + 1;
+
+							if ( $this->export_log ) {
+								$this->export_log->log_format_result( $page_id, $format, true, $file_path );
+							}
+
+							$this->logger->debug(
+								ucfirst( $format ) . ' generated successfully',
+								array(
+									'file'        => basename( $file_path ),
+									'page_id'     => $page_id,
+									'format'      => $format,
+									'actual_size' => $actual_size,
+									'duration'    => round( $format_elapsed, 3 ),
+								)
+							);
+						}
 					} else {
 						$result_data     = $result->get_data();
 						$export_errors[] = array(
