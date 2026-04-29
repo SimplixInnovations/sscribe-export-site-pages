@@ -267,7 +267,7 @@ class SScribe_Zip_Handler {
 
 		// Remove trailing -XX ONLY when XX is EXACTLY 2 letters (language code).
 		// This prevents misinterpreting page slug segments as language codes.
-		// P001-SD-AR.docx → P001-SD-AR.docx (not P001-SD.docx)
+		// P001-SD-AR.docx → P001-SD-AR.docx (not P001-SD.docx).
 		$clean_base = preg_replace( '/-[A-Z]{2}$/', '', $base );
 
 		return $clean_base . $ext;

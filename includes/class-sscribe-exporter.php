@@ -1026,9 +1026,9 @@ class SScribe_Exporter {
 			$this->get_logger()->warning(
 				'Main content skipped: content is empty',
 				array(
-					'page_id'     => $page_data['id'] ?? 0,
-					'page_title'  => $page_data['title'] ?? 'unknown',
-					'word_count'  => $page_data['word_count'] ?? 0,
+					'page_id'    => $page_data['id'] ?? 0,
+					'page_title' => $page_data['title'] ?? 'unknown',
+					'word_count' => $page_data['word_count'] ?? 0,
 				)
 			);
 			return;

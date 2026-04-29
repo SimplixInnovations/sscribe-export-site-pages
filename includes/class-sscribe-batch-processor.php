@@ -1168,7 +1168,7 @@ class SScribe_Batch_Processor {
 							'html'     => 100,   // 100 bytes minimum for valid HTML.
 							'markdown' => 50,    // 50 bytes minimum for valid Markdown.
 						);
-						$min_size = $min_sizes[ $format ] ?? 100;
+						$min_size    = $min_sizes[ $format ] ?? 100;
 
 						if ( $actual_size < $min_size ) {
 							// File is too small — likely corrupted or empty.
@@ -1184,8 +1184,8 @@ class SScribe_Batch_Processor {
 								'message'  => $size_error,
 								'category' => 'empty_file',
 								'context'  => array(
-									'file_path'    => $file_path,
-									'actual_size'  => $actual_size,
+									'file_path'     => $file_path,
+									'actual_size'   => $actual_size,
 									'reported_size' => $file_size,
 								),
 							);
