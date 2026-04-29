@@ -339,6 +339,14 @@ if ( ! class_exists( 'wpdb' ) ) {
 					if ( '%f' === $matches[0] ) {
 						return (string) (float) $value;
 					}
+					// WordPress does not quote table/column name tokens in %s placeholders —
+					// values derived from $wpdb->prefix (e.g. wp_sscribe_export_stats) are
+					// trusted and passed through unquoted. Only quote values that look like
+					// regular string content (contain spaces, special chars, etc.).
+					if ( is_string( $value ) && preg_match( '/^[\w]+$/', $value ) ) {
+						// Looks like a table or column name — pass through unquoted.
+						return $value;
+					}
 					return "'" . str_replace( "'", "''", (string) $value ) . "'";
 				},
 				$query
@@ -360,7 +368,8 @@ if ( ! class_exists( 'wpdb' ) ) {
 		public function get_var( $query ) {
 			global $sscribe_test_db_tables;
 
-			if ( preg_match( "/SHOW TABLES LIKE '([^']+)'/i", $query, $matches ) ) {
+			// Handle both quoted (old mock behavior) and unquoted (WordPress-realtime) table names.
+			if ( preg_match( "/SHOW TABLES LIKE '?(\w+)'?/i", $query, $matches ) ) {
 				return array_key_exists( $matches[1], $sscribe_test_db_tables ) ? $matches[1] : null;
 			}
 
