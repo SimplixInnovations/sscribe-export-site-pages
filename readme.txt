@@ -4,7 +4,7 @@ Donate link: https://simplixi.com
 Tags: export, docx, multilingual, seo, pdf
 Requires at least: 6.0
 Tested up to: 6.9.5
-Stable tag: 3.33.2
+Stable tag: 3.33.3
 Requires PHP: 8.2
 License: GPLv2 or later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
@@ -228,6 +228,17 @@ Each document includes: cover page with title/URL/date/breadcrumbs, featured ima
 5. SEO Metadata Section - Meta title, description, focus keyword, and canonical URL from SEO plugins
 
 == Changelog ==
+
+= 3.33.3 =
+
+* Security: Fix lock token mismatch in finalize export — prevents stale locks blocking retries
+* Security: Add read-after-write lock verification — prevents concurrent finalize race
+* Security: Add rate limiting to ajax_finalize_export endpoint
+* Security: Add session integrity validation before finalize heavy work
+* Security: Standardize lock release to use token-verified release_lock() consistently
+* Code quality: Fix all PHPCS PreparedSQL and alignment errors — 0 errors, 0 warnings
+* Code quality: PHPStan level 5 [OK] — 0 errors
+* Dev: Add flush error logging in SScribe_Logger
 
 = 3.33.2 =
 
