@@ -311,6 +311,7 @@ class SScribe_Audit_Trail {
 
 		$cutoff = gmdate( 'Y-m-d H:i:s', strtotime( "-{$days} days" ) );
 
+		// Table name from $wpdb->prefix is trusted (not user-controlled) — safe to interpolate.
 		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
 		return $wpdb->query(
 			$wpdb->prepare(

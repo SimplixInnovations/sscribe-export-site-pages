@@ -186,6 +186,7 @@ class SScribe_Export_Stats {
 	private function get_total_exports( string $date_from ): int {
 		global $wpdb;
 
+		// Table name from $wpdb->prefix is trusted (not user-controlled) — safe to interpolate.
 		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
 		return (int) $wpdb->get_var(
 			$wpdb->prepare(
@@ -205,6 +206,7 @@ class SScribe_Export_Stats {
 	private function get_successful_exports( string $date_from ): int {
 		global $wpdb;
 
+		// Table name from $wpdb->prefix is trusted (not user-controlled) — safe to interpolate.
 		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
 		return (int) $wpdb->get_var(
 			$wpdb->prepare(
@@ -224,6 +226,7 @@ class SScribe_Export_Stats {
 	private function get_failed_exports( string $date_from ): int {
 		global $wpdb;
 
+		// Table name from $wpdb->prefix is trusted (not user-controlled) — safe to interpolate.
 		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
 		return (int) $wpdb->get_var(
 			$wpdb->prepare(
@@ -243,6 +246,7 @@ class SScribe_Export_Stats {
 	private function get_total_pages( string $date_from ): int {
 		global $wpdb;
 
+		// Table name from $wpdb->prefix is trusted (not user-controlled) — safe to interpolate.
 		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
 		return (int) $wpdb->get_var(
 			$wpdb->prepare(
@@ -262,6 +266,7 @@ class SScribe_Export_Stats {
 	private function get_avg_duration( string $date_from ): float {
 		global $wpdb;
 
+		// Table name from $wpdb->prefix is trusted (not user-controlled) — safe to interpolate.
 		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
 		return (float) $wpdb->get_var(
 			$wpdb->prepare(
@@ -281,6 +286,7 @@ class SScribe_Export_Stats {
 	private function get_total_size( string $date_from ): float {
 		global $wpdb;
 
+		// Table name from $wpdb->prefix is trusted (not user-controlled) — safe to interpolate.
 		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
 		return (float) $wpdb->get_var(
 			$wpdb->prepare(
@@ -300,6 +306,7 @@ class SScribe_Export_Stats {
 	private function get_format_breakdown( string $date_from ): array {
 		global $wpdb;
 
+		// Table name from $wpdb->prefix is trusted (not user-controlled) — safe to interpolate.
 		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
 		$results = $wpdb->get_results(
 			$wpdb->prepare(
@@ -340,6 +347,8 @@ class SScribe_Export_Stats {
 		global $wpdb;
 
 		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
+		// Table name from $wpdb->prefix is trusted (not user-controlled) — safe to interpolate.
+		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
 		$results = $wpdb->get_results(
 			$wpdb->prepare(
 				'SELECT DATE(export_date) as date, COUNT(*) as count, SUM(total_pages) as pages
@@ -375,6 +384,7 @@ class SScribe_Export_Stats {
 	public function get_recent_exports( int $limit = 10 ): array {
 		global $wpdb;
 
+		// Table name from $wpdb->prefix is trusted (not user-controlled) — safe to interpolate.
 		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
 		return $wpdb->get_results(
 			$wpdb->prepare(
@@ -399,6 +409,7 @@ class SScribe_Export_Stats {
 
 		global $wpdb;
 
+		// Table name from $wpdb->prefix is trusted (not user-controlled) — safe to interpolate.
 		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
 		return $wpdb->get_results(
 			$wpdb->prepare(
@@ -449,6 +460,7 @@ class SScribe_Export_Stats {
 
 		$cutoff = gmdate( 'Y-m-d H:i:s', strtotime( "-{$days} days" ) );
 
+		// Table name from $wpdb->prefix is trusted (not user-controlled) — safe to interpolate.
 		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
 		return $wpdb->query(
 			$wpdb->prepare(
