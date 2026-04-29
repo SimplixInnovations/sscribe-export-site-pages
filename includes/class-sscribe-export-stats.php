@@ -190,7 +190,7 @@ class SScribe_Export_Stats {
 		return (int) $wpdb->get_var(
 			// phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared
 			$wpdb->prepare(
-				"SELECT COUNT(*) FROM {$wpdb->esc_sql($this->table_name)} WHERE export_date >= %s",
+				"SELECT COUNT(*) FROM {$this->table_name} WHERE export_date >= %s",
 				$date_from
 			)
 		);
@@ -209,7 +209,7 @@ class SScribe_Export_Stats {
 		return (int) $wpdb->get_var(
 			// phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared
 			$wpdb->prepare(
-				"SELECT COUNT(*) FROM {$wpdb->esc_sql($this->table_name)} WHERE export_date >= %s AND status = 'completed'",
+				"SELECT COUNT(*) FROM {$this->table_name} WHERE export_date >= %s AND status = 'completed'",
 				$date_from
 			)
 		);
@@ -228,7 +228,7 @@ class SScribe_Export_Stats {
 		return (int) $wpdb->get_var(
 			// phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared
 			$wpdb->prepare(
-				"SELECT COUNT(*) FROM {$wpdb->esc_sql($this->table_name)} WHERE export_date >= %s AND status = 'failed'",
+				"SELECT COUNT(*) FROM {$this->table_name} WHERE export_date >= %s AND status = 'failed'",
 				$date_from
 			)
 		);
@@ -247,7 +247,7 @@ class SScribe_Export_Stats {
 		return (int) $wpdb->get_var(
 			// phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared
 			$wpdb->prepare(
-				"SELECT SUM(total_pages) FROM {$wpdb->esc_sql($this->table_name)} WHERE export_date >= %s AND status = 'completed'",
+				"SELECT SUM(total_pages) FROM {$this->table_name} WHERE export_date >= %s AND status = 'completed'",
 				$date_from
 			)
 		);
@@ -266,7 +266,7 @@ class SScribe_Export_Stats {
 		return (float) $wpdb->get_var(
 			// phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared
 			$wpdb->prepare(
-				"SELECT AVG(duration_seconds) FROM {$wpdb->esc_sql($this->table_name)} WHERE export_date >= %s AND status = 'completed'",
+				"SELECT AVG(duration_seconds) FROM {$this->table_name} WHERE export_date >= %s AND status = 'completed'",
 				$date_from
 			)
 		);
@@ -285,7 +285,7 @@ class SScribe_Export_Stats {
 		return (float) $wpdb->get_var(
 			// phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared
 			$wpdb->prepare(
-				"SELECT SUM(file_size_mb) FROM {$wpdb->esc_sql($this->table_name)} WHERE export_date >= %s AND status = 'completed'",
+				"SELECT SUM(file_size_mb) FROM {$this->table_name} WHERE export_date >= %s AND status = 'completed'",
 				$date_from
 			)
 		);
@@ -304,7 +304,7 @@ class SScribe_Export_Stats {
 		$results = $wpdb->get_results(
 			// phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared
 			$wpdb->prepare(
-				"SELECT formats FROM {$wpdb->esc_sql($this->table_name)} WHERE export_date >= %s AND status = 'completed'",
+				"SELECT formats FROM {$this->table_name} WHERE export_date >= %s AND status = 'completed'",
 				$date_from
 			)
 		);
@@ -344,7 +344,7 @@ class SScribe_Export_Stats {
 			// phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared
 			$wpdb->prepare(
 				"SELECT DATE(export_date) as date, COUNT(*) as count, SUM(total_pages) as pages 
-				FROM {$wpdb->esc_sql($this->table_name)} 
+				FROM {$this->table_name} 
 				WHERE export_date >= %s 
 				GROUP BY DATE(export_date) 
 				ORDER BY date DESC 
@@ -377,7 +377,7 @@ class SScribe_Export_Stats {
 		return $wpdb->get_results(
 			// phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared
 			$wpdb->prepare(
-				"SELECT * FROM {$wpdb->esc_sql($this->table_name)} ORDER BY export_date DESC LIMIT %d",
+				"SELECT * FROM {$this->table_name} ORDER BY export_date DESC LIMIT %d",
 				$limit
 			)
 		);
@@ -401,7 +401,7 @@ class SScribe_Export_Stats {
 		return $wpdb->get_results(
 			// phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared
 			$wpdb->prepare(
-				"SELECT * FROM {$wpdb->esc_sql($this->table_name)} WHERE user_id = %d ORDER BY export_date DESC LIMIT %d",
+				"SELECT * FROM {$this->table_name} WHERE user_id = %d ORDER BY export_date DESC LIMIT %d",
 				$user_id,
 				$limit
 			)
@@ -451,7 +451,7 @@ class SScribe_Export_Stats {
 		return $wpdb->query(
 			// phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared
 			$wpdb->prepare(
-				"DELETE FROM {$wpdb->esc_sql($this->table_name)} WHERE export_date < %s",
+				"DELETE FROM {$this->table_name} WHERE export_date < %s",
 				$cutoff
 			)
 		);

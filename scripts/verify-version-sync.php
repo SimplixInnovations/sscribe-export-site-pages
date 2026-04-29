@@ -157,7 +157,8 @@ if ( $canonical_version ) {
 	}
 
 	if ( ! empty( $stray_hits ) ) {
-		$version_warnings[] = 'Stale version references found in source files:';
+		$has_actual_warnings = false;
+		$warning_details     = array();
 		foreach ( $stray_hits as $f => $vs ) {
 			// Skip readme.txt — changelog entries are legitimate historical records.
 			if ( 'readme.txt' === basename( $f ) ) {
@@ -171,9 +172,17 @@ if ( $canonical_version ) {
 			if ( 'class-sscribe-activator.php' === basename( $f ) ) {
 				continue;
 			}
-			$unique = array_unique( $vs );
+			$has_actual_warnings = true;
+			$unique              = array_unique( $vs );
 			foreach ( $unique as $v ) {
-				$version_warnings[] = sprintf( '  - %s → contains %s (should be %s)', $f, $v, $canonical_version );
+				$warning_details[] = sprintf( '  - %s → contains %s (should be %s)', $f, $v, $canonical_version );
+			}
+		}
+		// Only add header if there are actual (non-skipped) warnings.
+		if ( $has_actual_warnings ) {
+			$version_warnings[] = 'Stale version references found in source files:';
+			foreach ( $warning_details as $detail ) {
+				$version_warnings[] = $detail;
 			}
 		}
 	}

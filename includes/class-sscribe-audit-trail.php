@@ -253,7 +253,7 @@ class SScribe_Audit_Trail {
 		return $wpdb->get_results(
 			// phpcs:ignore WordPress.DB.PreparedSQLPlaceholders.ReplacementsWrongNumber -- Dynamic WHERE clause placeholders counted at runtime
 			$wpdb->prepare(
-				"SELECT * FROM {$wpdb->esc_sql($this->table_name)} WHERE {$where_clause} ORDER BY timestamp DESC LIMIT %d OFFSET %d", // phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared, WordPress.DB.PreparedSQLPlaceholders.UnfinishedPrepare
+				"SELECT * FROM {$this->table_name} WHERE {$where_clause} ORDER BY timestamp DESC LIMIT %d OFFSET %d", // phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared, WordPress.DB.PreparedSQLPlaceholders.UnfinishedPrepare
 				...$args
 			)
 		);
@@ -290,7 +290,7 @@ class SScribe_Audit_Trail {
 		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- Custom table aggregation
 		return $wpdb->get_results(
 			$wpdb->prepare(
-				"SELECT event, COUNT(*) as count FROM {$wpdb->esc_sql($this->table_name)} WHERE {$where_clause} GROUP BY event ORDER BY count DESC", // phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared, WordPress.DB.PreparedSQLPlaceholders.UnfinishedPrepare
+				"SELECT event, COUNT(*) as count FROM {$this->table_name} WHERE {$where_clause} GROUP BY event ORDER BY count DESC", // phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared, WordPress.DB.PreparedSQLPlaceholders.UnfinishedPrepare
 				...$args
 			)
 		);
@@ -315,7 +315,7 @@ class SScribe_Audit_Trail {
 		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
 		return $wpdb->query(
 			$wpdb->prepare(
-				"DELETE FROM {$wpdb->esc_sql($this->table_name)} WHERE timestamp < %s",
+				"DELETE FROM {$this->table_name} WHERE timestamp < %s",
 				$cutoff
 			)
 		);
