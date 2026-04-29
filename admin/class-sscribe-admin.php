@@ -241,7 +241,7 @@ class SScribe_Admin {
 					'log_unknown'        => __( 'Unknown', 'sscribe-export-site-pages' ),
 					'log_errors'         => __( 'Errors', 'sscribe-export-site-pages' ),
 					'log_seconds_suffix' => __( 's', 'sscribe-export-site-pages' ),
-					'log_no_duration'    => __( '-', 'sscribe-export-site-pages' ),
+					'packaging'          => __( 'Packaging files into ZIP archive...', 'sscribe-export-site-pages' ),
 					'download_tooltip'   => __( 'Download this export', 'sscribe-export-site-pages' ),
 					'log_tooltip'        => __( 'View export log', 'sscribe-export-site-pages' ),
 					'delete_tooltip'     => __( 'Delete this export', 'sscribe-export-site-pages' ),

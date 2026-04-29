@@ -1915,6 +1915,115 @@
 }
 
 /* ============================================
+   POST TYPE SELECTION CARDS
+   ============================================ */
+.sscribe-post-type-cards {
+	display: flex;
+	flex-wrap: wrap;
+	gap: 12px;
+	margin-bottom: 20px;
+}
+
+.sscribe-post-type-card {
+	display: block;
+	cursor: pointer;
+	flex: 1 1 160px;
+	max-width: 200px;
+}
+
+.sscribe-post-type-card input[type="radio"] {
+	position: absolute;
+	width: 1px;
+	height: 1px;
+	padding: 0;
+	margin: -1px;
+	overflow: hidden;
+	clip: rect(0, 0, 0, 0);
+	white-space: nowrap;
+	border: 0;
+}
+
+.sscribe-post-type-card-inner {
+	display: flex;
+	align-items: center;
+	background: var(--sscribe-card-bg);
+	border: 1px solid var(--sscribe-border);
+	border-radius: var(--sscribe-radius-md);
+	padding: 14px 16px;
+	gap: 12px;
+	transition: all var(--sscribe-transition-normal);
+	height: 100%;
+}
+
+.sscribe-post-type-card:hover .sscribe-post-type-card-inner {
+	border-color: var(--sscribe-primary);
+	box-shadow: var(--sscribe-shadow-md);
+	transform: translateY(-1px);
+}
+
+.sscribe-post-type-card input[type="radio"]:checked + .sscribe-post-type-card-inner {
+	border-color: var(--sscribe-primary);
+	background: var(--sscribe-primary-light);
+	box-shadow: 0 0 0 3px rgba(8, 145, 178, 0.1);
+}
+
+.sscribe-post-type-icon {
+	flex-shrink: 0;
+	width: 40px;
+	height: 40px;
+	background: var(--sscribe-bg);
+	border-radius: var(--sscribe-radius-sm);
+	display: flex;
+	align-items: center;
+	justify-content: center;
+	color: var(--sscribe-text-muted);
+	border: 1px solid var(--sscribe-border);
+	transition: all var(--sscribe-transition-normal);
+}
+
+.sscribe-post-type-card input[type="radio"]:checked + .sscribe-post-type-card-inner .sscribe-post-type-icon {
+	background: var(--sscribe-primary);
+	color: #FFFFFF;
+	border-color: var(--sscribe-primary);
+}
+
+.sscribe-post-type-meta {
+	flex-grow: 1;
+	display: flex;
+	flex-direction: column;
+	gap: 2px;
+	min-width: 0;
+	font-size: 13px;
+}
+
+.sscribe-post-type-name {
+	font-weight: 600;
+	color: var(--sscribe-text-main);
+	white-space: nowrap;
+	overflow: hidden;
+	text-overflow: ellipsis;
+}
+
+.sscribe-post-type-meta .sscribe-post-type-count {
+	font-size: 11px;
+	color: var(--sscribe-text-muted);
+	font-weight: 500;
+}
+
+.sscribe-post-type-selector .sscribe-check-icon {
+	color: var(--sscribe-primary);
+	opacity: 0;
+	transform: scale(0.5);
+	transition: all var(--sscribe-transition-normal);
+	flex-shrink: 0;
+}
+
+.sscribe-post-type-card input[type="radio"]:checked + .sscribe-post-type-card-inner .sscribe-check-icon {
+	opacity: 1;
+	transform: scale(1);
+}
+
+/* ============================================
    MULTI-STEP WIZARD
    ============================================ */
 .sscribe-wizard-steps {
@@ -2050,6 +2159,275 @@
 
 .sscribe-wizard-panel .sscribe-fieldset-legend {
 	margin-bottom: 12px;
+}
+
+/* ============================================
+   FLAT SINGLE-PAGE DASHBOARD LAYOUT
+   ============================================ */
+.sscribe-flat-workspace {
+	padding-bottom: 40px;
+}
+
+.sscribe-flat-body {
+	padding: 0 !important;
+}
+
+.sscribe-config-grid {
+	display: grid;
+	grid-template-columns: 1fr;
+	gap: 0;
+}
+
+.sscribe-config-section {
+	padding: 20px 24px;
+	border-bottom: 1px solid var(--sscribe-border);
+}
+
+.sscribe-config-section:last-child {
+	border-bottom: none;
+}
+
+.sscribe-config-section-header {
+	display: flex;
+	align-items: center;
+	gap: 8px;
+	margin-bottom: 14px;
+	color: var(--sscribe-text-secondary);
+	font-size: 12px;
+	font-weight: 600;
+	text-transform: uppercase;
+	letter-spacing: 0.05em;
+}
+
+.sscribe-config-section-header .sscribe-icon {
+	color: var(--sscribe-primary);
+}
+
+.sscribe-cards-row {
+	display: flex;
+	flex-wrap: wrap;
+	gap: 10px;
+}
+
+.sscribe-cards-compact {
+	display: flex;
+	flex-wrap: wrap;
+	gap: 10px;
+}
+
+.sscribe-config-section .sscribe-post-type-cards {
+	display: flex;
+	flex-wrap: wrap;
+	gap: 10px;
+}
+
+.sscribe-config-section .sscribe-status-cards {
+	display: flex;
+	flex-wrap: wrap;
+	gap: 10px;
+}
+
+.sscribe-config-section .sscribe-format-cards {
+	display: flex;
+	flex-wrap: wrap;
+	gap: 10px;
+}
+
+.sscribe-config-section .sscribe-language-cards {
+	display: flex;
+	flex-wrap: wrap;
+	gap: 10px;
+	overflow-x: auto;
+	max-height: 160px;
+	flex-direction: column;
+}
+
+@media (min-width: 782px) {
+	.sscribe-config-section .sscribe-language-cards {
+		flex-direction: row;
+		max-height: none;
+		overflow-x: visible;
+	}
+}
+
+.sscribe-lang-card-compact .sscribe-lang-card-inner {
+	padding: 8px 12px;
+	min-height: 56px;
+}
+
+.sscribe-lang-card-compact .sscribe-lang-flag-wrapper {
+	width: 28px;
+	height: 28px;
+	flex-shrink: 0;
+}
+
+.sscribe-lang-card-compact .sscribe-lang-flag-placeholder {
+	font-size: 10px;
+}
+
+.sscribe-lang-card-compact .sscribe-lang-meta {
+	gap: 2px;
+}
+
+.sscribe-lang-card-compact .sscribe-lang-name {
+	font-size: 12px;
+}
+
+.sscribe-lang-card-compact .sscribe-lang-count {
+	font-size: 11px;
+}
+
+.sscribe-lang-card-compact .sscribe-lang-selector {
+	width: 18px;
+	height: 18px;
+}
+
+.sscribe-lang-card-selected .sscribe-lang-card-inner {
+	border-color: var(--sscribe-primary);
+	background: var(--sscribe-primary-light);
+}
+
+.sscribe-lang-card-selected .sscribe-lang-card-inner .sscribe-lang-name {
+	color: var(--sscribe-primary);
+	font-weight: 600;
+}
+
+.sscribe-lang-card-selected .sscribe-lang-selector .sscribe-check-icon {
+	opacity: 1;
+}
+
+.sscribe-format-card-selected .sscribe-format-card-inner {
+	border-color: var(--sscribe-primary);
+	background: var(--sscribe-primary-light);
+}
+
+.sscribe-format-card-selected .sscribe-format-card-inner .sscribe-format-name {
+	color: var(--sscribe-primary);
+	font-weight: 600;
+}
+
+.sscribe-format-card-selected .sscribe-format-selector .sscribe-check-icon {
+	opacity: 1;
+}
+
+.sscribe-btn-sm {
+	padding: 8px 16px !important;
+	font-size: 13px !important;
+}
+
+.sscribe-btn-lg {
+	padding: 12px 28px !important;
+	font-size: 15px !important;
+	font-weight: 700 !important;
+}
+
+.sscribe-export-bar {
+	display: flex;
+	align-items: center;
+	justify-content: space-between;
+	gap: 16px;
+	padding: 18px 24px;
+	border-top: 1px solid var(--sscribe-border);
+	background: #FAFAFA;
+	flex-wrap: wrap;
+}
+
+.sscribe-export-bar-actions {
+	display: flex;
+	align-items: center;
+	gap: 10px;
+	flex-wrap: wrap;
+}
+
+.sscribe-time-estimate {
+	display: flex;
+	align-items: center;
+	gap: 6px;
+	color: var(--sscribe-text-muted);
+	font-size: 13px;
+	font-weight: 500;
+}
+
+.sscribe-time-estimate .sscribe-icon {
+	color: var(--sscribe-text-light);
+	flex-shrink: 0;
+}
+
+.sscribe-status-alert.sscribe-status-processing {
+	border-radius: var(--sscribe-radius-lg);
+	margin-bottom: 24px;
+	border: 1px solid var(--sscribe-border);
+	box-shadow: var(--sscribe-shadow-md);
+	padding: 24px 28px;
+}
+
+.sscribe-status-alert.sscribe-status-success {
+	border-radius: var(--sscribe-radius-lg);
+	margin-bottom: 24px;
+	border: 1px solid #A7F3D0;
+	background: #F0FDF4;
+	box-shadow: var(--sscribe-shadow-sm);
+	padding: 24px 28px;
+}
+
+.sscribe-status-alert.sscribe-status-error {
+	border-radius: var(--sscribe-radius-lg);
+	margin-bottom: 24px;
+	border: 1px solid #FECACA;
+	background: #FEF2F2;
+	box-shadow: var(--sscribe-shadow-sm);
+	padding: 24px 28px;
+}
+
+.sscribe-features-grid {
+	display: grid;
+	grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+	gap: 16px;
+}
+
+.sscribe-feature-item {
+	display: flex;
+	align-items: flex-start;
+	gap: 12px;
+	padding: 14px 16px;
+	border-radius: var(--sscribe-radius-sm);
+	border: 1px solid var(--sscribe-border);
+	background: var(--sscribe-bg);
+	transition: all var(--sscribe-transition-fast);
+}
+
+.sscribe-feature-item:hover {
+	border-color: var(--sscribe-border-hover);
+	background: var(--sscribe-card-bg);
+	box-shadow: var(--sscribe-shadow-sm);
+}
+
+.sscribe-feature-icon {
+	width: 36px;
+	height: 36px;
+	border-radius: 8px;
+	background: var(--sscribe-primary-light);
+	display: flex;
+	align-items: center;
+	justify-content: center;
+	flex-shrink: 0;
+}
+
+.sscribe-feature-icon .sscribe-icon {
+	color: var(--sscribe-primary);
+}
+
+.sscribe-feature-text h4 {
+	font-size: 13px;
+	font-weight: 600;
+	color: var(--sscribe-text-main);
+	margin-bottom: 3px;
+}
+
+.sscribe-feature-text p {
+	font-size: 12px;
+	color: var(--sscribe-text-muted);
+	line-height: 1.4;
 }
 
 /* ============================================

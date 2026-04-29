@@ -1427,12 +1427,30 @@ class SScribe_Batch_Processor {
 
 		if ( $is_done ) {
 			$this->logger->debug( 'All pages processed, finalizing' );
-			$session['processed']         = $processed;
-			$session['errors']            = $errors;
-			$session['structured_errors'] = $structured_errors;
+			$update_data['processed']         = $processed;
+			$update_data['errors']            = $errors;
+			$update_data['structured_errors'] = $structured_errors;
+			$update_data['status']            = 'finalizing';
+			$this->session->update( $session_id, $update_data );
 			$this->release_lock( $session_id );
 			$this->restore_ob_level( $ob_level_before );
-			$this->finalize_export( $session_id, $session );
+
+			$error_diagnostics = array();
+			if ( ! empty( $structured_errors ) ) {
+				$error_diagnostics = $this->build_error_diagnostics_payload( $structured_errors, $errors );
+			}
+
+			wp_send_json_success(
+				array(
+					'status'             => 'finalizing',
+					'processed'          => $processed,
+					'total'              => $total,
+					'percentage'         => 95,
+					'message'            => __( 'Packaging files into ZIP archive...', 'sscribe-export-site-pages' ),
+					'time_remaining'     => 0,
+					'error_diagnostics'  => $error_diagnostics ? $error_diagnostics : null,
+				)
+			);
 			return;
 		}
 
@@ -1880,6 +1898,91 @@ class SScribe_Batch_Processor {
 				500
 			);
 		}
+	}
+
+	/**
+	 * AJAX handler: Finalize export (ZIP packaging).
+	 *
+	 * Called asynchronously after all pages are processed. The server returns
+	 * 95%/finalizing from process_batch and then JS polls this endpoint until
+	 * the ZIP is ready. This avoids PHP max_execution_time issues when creating
+	 * large ZIP archives with many PDF files.
+	 *
+	 * @return void
+	 */
+	public function ajax_finalize_export(): void {
+		if ( ! current_user_can( $this->get_required_capability() ) ) {
+			wp_send_json_error(
+				array(
+					'message' => __( 'Permission denied.', 'sscribe-export-site-pages' ),
+				),
+				403
+			);
+			return;
+		}
+
+		check_ajax_referer( 'sscribe_export_nonce', 'nonce' );
+
+		$session_id = isset( $_POST['session_id'] ) ? sanitize_text_field( wp_unslash( $_POST['session_id'] ) ) : '';
+
+		if ( empty( $session_id ) ) {
+			wp_send_json_error(
+				array(
+					'message' => __( 'Session ID is required.', 'sscribe-export-site-pages' ),
+				),
+				400
+			);
+			return;
+		}
+
+		$session = $this->session->get( $session_id );
+
+		if ( ! $session ) {
+			wp_send_json_error(
+				array(
+					'message' => __( 'Session not found or has expired. Please start a new export.', 'sscribe-export-site-pages' ),
+				),
+				404
+			);
+			return;
+		}
+
+		// Only allow finalizing sessions that are actually in 'finalizing' state.
+		if ( isset( $session['status'] ) && 'finalizing' !== $session['status'] ) {
+			$this->logger->debug(
+				'Finalize requested but session not in finalizing state',
+				array(
+					'session_id' => $session_id,
+					'status'     => $session['status'],
+				)
+			);
+			wp_send_json_error(
+				array(
+					'code'    => 'not_finalizing',
+					'message' => __( 'Export is not ready for finalization. Current status: ', 'sscribe-export-site-pages' ) . $session['status'],
+				),
+				409 // Conflict.
+			);
+			return;
+		}
+
+		if ( ! $this->validate_session_ownership( $session, $session_id ) ) {
+			wp_send_json_error(
+				array(
+					'message' => __( 'Session access denied.', 'sscribe-export-site-pages' ),
+				),
+				403
+			);
+			return;
+		}
+
+		// Re-acquire lock if it was released by process_batch.
+		$lock_key = 'sscribe_lock_' . $session_id;
+		if ( empty( get_transient( $lock_key ) ) ) {
+			set_transient( $lock_key, true, 5 * MINUTE_IN_SECONDS );
+		}
+
+		$this->finalize_export( $session_id, $session );
 	}
 
 	/**
