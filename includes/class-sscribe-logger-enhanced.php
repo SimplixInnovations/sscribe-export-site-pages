@@ -436,7 +436,7 @@ class SScribe_Logger_Enhanced implements SScribe_Logger_Interface {
 		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- Custom table read
 		return $wpdb->get_results(
 			$wpdb->prepare(
-				"SELECT * FROM {$wpdb->esc_sql($this->table_name)} WHERE {$where_clause} ORDER BY timestamp DESC LIMIT %d", // phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared
+				"SELECT * FROM {$this->table_name} WHERE {$where_clause} ORDER BY timestamp DESC LIMIT %d", // phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared
 				...$args
 			)
 		);
@@ -461,7 +461,7 @@ class SScribe_Logger_Enhanced implements SScribe_Logger_Interface {
 		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
 		return $wpdb->query(
 			$wpdb->prepare(
-				"DELETE FROM {$wpdb->esc_sql($this->table_name)} WHERE timestamp < %s",
+				"DELETE FROM {$this->table_name} WHERE timestamp < %s",
 				$cutoff
 			)
 		);
