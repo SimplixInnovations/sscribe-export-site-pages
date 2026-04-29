@@ -87,9 +87,10 @@ class SScribe_PDF_Exporter implements SScribe_Exporter_Interface {
 		$html_content = $html_result->get_data()['html'] ?? '';
 		$html_size    = strlen( $html_content );
 
-		$dompdf        = null;
+		$dompdf = null;
 		$libxml_errors = array();
 		$prev_errors   = libxml_use_internal_errors( true );
+		$ob_level      = ob_get_level();
 
 		try {
 			// Verify DomPDF is available before attempting export.
@@ -119,6 +120,41 @@ class SScribe_PDF_Exporter implements SScribe_Exporter_Interface {
 				);
 			}
 
+			// Pre-render memory guard: DomPDF can consume 3x the HTML size in memory.
+			// If HTML is > 5MB, DomPDF will likely exhaust PHP memory and kill the process
+			// silently (no exception — SIGKILL). Abort early with a clear error instead.
+			if ( $html_size > 5 * 1024 * 1024 ) {
+				$this->logger->error(
+					'PDF export aborted: HTML content too large for render',
+					array(
+						'page_id'       => $page_id,
+						'html_size'     => $html_size,
+						'memory_usage'  => memory_get_usage( true ),
+						'memory_peak'   => memory_get_peak_usage( true ),
+						'memory_limit'  => ini_get( 'memory_limit' ),
+					)
+				);
+
+				return SScribe_Result::failure(
+					sprintf(
+						/* translators: 1: HTML size, 2: Page title. */
+						__( 'PDF render skipped — HTML content is too large (%1$s). Try exporting to DOCX instead, or reduce page content complexity.', 'sscribe-export-site-pages' ),
+						size_format( $html_size )
+					),
+					array(
+						'error_category' => 'pdf_memory_guard',
+						'page_id'        => $page_id,
+						'page_title'     => $title,
+						'html_size'      => $html_size,
+					)
+				);
+			}
+
+			// Isolate DomPDF output buffering. DomPDF may trigger PHP warnings/notices
+			// during rendering that would corrupt the JSON response if output is already
+			// started. Capture any accidental output and log it instead.
+			ob_start();
+
 			$options = new \SScribeVendor\Dompdf\Options();
 			$options->set( 'isRemoteEnabled', true );
 			$options->set( 'isHtml5ParserEnabled', true );
@@ -130,14 +166,15 @@ class SScribe_PDF_Exporter implements SScribe_Exporter_Interface {
 			$dompdf->loadHtml( $html_content );
 			$dompdf->setPaper( 'A4', 'portrait' );
 
-			// Increase PHP time limit for DomPDF rendering (CPU-intensive).
-			// Each page can take 5-15 seconds; the default 120s may not suffice.
 			if ( function_exists( 'set_time_limit' ) ) {
 				// phpcs:ignore WordPress.PHP.DiscouragedFunctions.Discouraged, WordPress.PHP.IniSet.max_execution_time_Blacklisted -- DomPDF rendering is CPU-intensive and requires extended time per page.
 				set_time_limit( 120 );
 			}
 
 			$dompdf->render();
+
+			// Discard any warnings/notices DomPDF emitted into the buffer.
+			$ob_content = ob_get_clean();
 
 			$filename    = \SScribe_Exporter_Factory::build_filename( $page_data, $index, $total, 'pdf' );
 			$output_path = trailingslashit( $output_dir ) . $filename;
@@ -228,6 +265,12 @@ class SScribe_PDF_Exporter implements SScribe_Exporter_Interface {
 			libxml_use_internal_errors( $prev_errors );
 			$dompdf = null;
 			unset( $dompdf );
+			// Restore output buffering to pre-render level. If DomPDF
+			// threw during render, the inner ob_start() buffer may still
+			// be open; clean it up to prevent JSON corruption.
+			while ( ob_get_level() > $ob_level ) {
+				ob_end_clean();
+			}
 		}
 	}
 

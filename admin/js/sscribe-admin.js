@@ -549,6 +549,10 @@
 
 						if (data.status === 'complete') {
 							SScribe.exportComplete(data);
+						} else if (data.status === 'finalizing') {
+							// All pages processed; now polling for ZIP finalization.
+							var finalizeDelay = SScribe.finalizePollInterval || 2000;
+							SScribe.pollFinalize(SScribe.sessionId, 0, finalizeDelay);
 						} else {
 							SScribe.pollBackoff = 0;
 							SScribe.scheduleNextBatch();
@@ -604,8 +608,6 @@
 		},
 
 		exportComplete: function (data) {
-			this.isProcessing = false;
-			this.updateProgress(100);
 
 			$('#sscribe-progress-area').slideUp(300, function () {
 				$('#sscribe-download-area').removeClass('sscribe-hidden').hide().fadeIn(400);
@@ -619,6 +621,58 @@
 
 				SScribe.refreshRecentExports();
 			});
+		},
+
+		pollFinalize: function (sessionId, attempt, delay) {
+			this.isProcessing = true;
+
+			$('#sscribe-status-label').text(sscribe_data.strings.packaging || 'Packaging files into ZIP archive...');
+
+			var maxAttempts = 30;
+			var self = this;
+
+			setTimeout(function () {
+				$.ajax({
+					url: sscribe_data.ajaxurl,
+					type: 'POST',
+					timeout: 120000,
+					data: {
+						action: 'sscribe_finalize_export',
+						nonce: sscribe_data.nonce,
+						session_id: sessionId
+					},
+					success: function (response) {
+						if (response.success) {
+							self.isProcessing = false;
+							self.updateProgress(100);
+							self.exportComplete(response.data);
+							return;
+						}
+
+						if (response.data && response.data.code === 'not_finalizing') {
+							self.isProcessing = false;
+							self.showError(response.data.message || 'Export failed to finalize. Please try again.', false, {});
+							return;
+						}
+
+						if (attempt < maxAttempts) {
+							self.pollFinalize(sessionId, attempt + 1, 2000);
+						} else {
+							self.isProcessing = false;
+							self.showError('Export finalization timed out. Please try again.', false, {});
+						}
+					},
+					error: function (xhr) {
+						if (attempt < maxAttempts) {
+							self.pollFinalize(sessionId, attempt + 1, 2000);
+						} else {
+							self.isProcessing = false;
+							var msg = self.getNetworkErrorMessage(xhr, 'finalize_export');
+							self.showError(msg);
+						}
+					}
+				});
+			}, delay);
 		},
 
 		refreshRecentExports: function () {
