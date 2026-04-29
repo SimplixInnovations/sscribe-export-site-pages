@@ -188,9 +188,9 @@ class SScribe_Export_Stats {
 
 		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
 		return (int) $wpdb->get_var(
-			// phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared
 			$wpdb->prepare(
-				"SELECT COUNT(*) FROM {$this->table_name} WHERE export_date >= %s",
+				'SELECT COUNT(*) FROM %s WHERE export_date >= %s',
+				$this->table_name,
 				$date_from
 			)
 		);
@@ -207,9 +207,9 @@ class SScribe_Export_Stats {
 
 		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
 		return (int) $wpdb->get_var(
-			// phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared
 			$wpdb->prepare(
-				"SELECT COUNT(*) FROM {$this->table_name} WHERE export_date >= %s AND status = 'completed'",
+				"SELECT COUNT(*) FROM %s WHERE export_date >= %s AND status = 'completed'",
+				$this->table_name,
 				$date_from
 			)
 		);
@@ -226,9 +226,9 @@ class SScribe_Export_Stats {
 
 		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
 		return (int) $wpdb->get_var(
-			// phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared
 			$wpdb->prepare(
-				"SELECT COUNT(*) FROM {$this->table_name} WHERE export_date >= %s AND status = 'failed'",
+				"SELECT COUNT(*) FROM %s WHERE export_date >= %s AND status = 'failed'",
+				$this->table_name,
 				$date_from
 			)
 		);
@@ -245,9 +245,9 @@ class SScribe_Export_Stats {
 
 		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
 		return (int) $wpdb->get_var(
-			// phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared
 			$wpdb->prepare(
-				"SELECT SUM(total_pages) FROM {$this->table_name} WHERE export_date >= %s AND status = 'completed'",
+				"SELECT SUM(total_pages) FROM %s WHERE export_date >= %s AND status = 'completed'",
+				$this->table_name,
 				$date_from
 			)
 		);
@@ -264,9 +264,9 @@ class SScribe_Export_Stats {
 
 		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
 		return (float) $wpdb->get_var(
-			// phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared
 			$wpdb->prepare(
-				"SELECT AVG(duration_seconds) FROM {$this->table_name} WHERE export_date >= %s AND status = 'completed'",
+				"SELECT AVG(duration_seconds) FROM %s WHERE export_date >= %s AND status = 'completed'",
+				$this->table_name,
 				$date_from
 			)
 		);
@@ -283,9 +283,9 @@ class SScribe_Export_Stats {
 
 		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
 		return (float) $wpdb->get_var(
-			// phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared
 			$wpdb->prepare(
-				"SELECT SUM(file_size_mb) FROM {$this->table_name} WHERE export_date >= %s AND status = 'completed'",
+				"SELECT SUM(file_size_mb) FROM %s WHERE export_date >= %s AND status = 'completed'",
+				$this->table_name,
 				$date_from
 			)
 		);
@@ -302,9 +302,9 @@ class SScribe_Export_Stats {
 
 		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
 		$results = $wpdb->get_results(
-			// phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared
 			$wpdb->prepare(
-				"SELECT formats FROM {$this->table_name} WHERE export_date >= %s AND status = 'completed'",
+				"SELECT formats FROM %s WHERE export_date >= %s AND status = 'completed'",
+				$this->table_name,
 				$date_from
 			)
 		);
@@ -341,14 +341,14 @@ class SScribe_Export_Stats {
 
 		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
 		$results = $wpdb->get_results(
-			// phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared
 			$wpdb->prepare(
-				"SELECT DATE(export_date) as date, COUNT(*) as count, SUM(total_pages) as pages 
-				FROM {$this->table_name} 
-				WHERE export_date >= %s 
-				GROUP BY DATE(export_date) 
-				ORDER BY date DESC 
-				LIMIT 30",
+				'SELECT DATE(export_date) as date, COUNT(*) as count, SUM(total_pages) as pages
+				FROM %s
+				WHERE export_date >= %s
+				GROUP BY DATE(export_date)
+				ORDER BY date DESC
+				LIMIT 30',
+				$this->table_name,
 				$date_from
 			)
 		);
@@ -375,9 +375,9 @@ class SScribe_Export_Stats {
 
 		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
 		return $wpdb->get_results(
-			// phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared
 			$wpdb->prepare(
-				"SELECT * FROM {$this->table_name} ORDER BY export_date DESC LIMIT %d",
+				'SELECT * FROM %s ORDER BY export_date DESC LIMIT %d',
+				$this->table_name,
 				$limit
 			)
 		);
@@ -399,9 +399,9 @@ class SScribe_Export_Stats {
 
 		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
 		return $wpdb->get_results(
-			// phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared
 			$wpdb->prepare(
-				"SELECT * FROM {$this->table_name} WHERE user_id = %d ORDER BY export_date DESC LIMIT %d",
+				'SELECT * FROM %s WHERE user_id = %d ORDER BY export_date DESC LIMIT %d',
+				$this->table_name,
 				$user_id,
 				$limit
 			)
@@ -449,9 +449,9 @@ class SScribe_Export_Stats {
 
 		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
 		return $wpdb->query(
-			// phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared
 			$wpdb->prepare(
-				"DELETE FROM {$this->table_name} WHERE export_date < %s",
+				'DELETE FROM %s WHERE export_date < %s',
+				$this->table_name,
 				$cutoff
 			)
 		);

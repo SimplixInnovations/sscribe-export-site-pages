@@ -1442,13 +1442,13 @@ class SScribe_Batch_Processor {
 
 			wp_send_json_success(
 				array(
-					'status'             => 'finalizing',
-					'processed'          => $processed,
-					'total'              => $total,
-					'percentage'         => 95,
-					'message'            => __( 'Packaging files into ZIP archive...', 'sscribe-export-site-pages' ),
-					'time_remaining'     => 0,
-					'error_diagnostics'  => $error_diagnostics ? $error_diagnostics : null,
+					'status'            => 'finalizing',
+					'processed'         => $processed,
+					'total'             => $total,
+					'percentage'        => 95,
+					'message'           => __( 'Packaging files into ZIP archive...', 'sscribe-export-site-pages' ),
+					'time_remaining'    => 0,
+					'error_diagnostics' => $error_diagnostics ? $error_diagnostics : null,
 				)
 			);
 			return;
@@ -1651,7 +1651,7 @@ class SScribe_Batch_Processor {
 
 				// Clean up the session and lock so user can retry.
 				$this->session->delete( $session_id );
-				delete_transient( 'sscribe_lock_' . $session_id );
+				$this->release_lock( $session_id );
 
 				// Run self-heal to clear any orphaned data from this failed export.
 				$this->diagnostics->self_heal();
@@ -1742,7 +1742,7 @@ class SScribe_Batch_Processor {
 				}
 
 				// DO NOT delete the session so the user can retry.
-				delete_transient( 'sscribe_lock_' . $session_id );
+				$this->release_lock( $session_id );
 
 				wp_send_json_error(
 					array(
@@ -1869,6 +1869,7 @@ class SScribe_Batch_Processor {
 
 			// CRITICAL: Delete session ONLY after everything else succeeded and right before sending success.
 			// If anything above throws, the session remains intact so the client can retry.
+			$this->release_lock( $session_id );
 			$this->session->delete( $session_id );
 			wp_send_json_success( $response );
 		} catch ( \Throwable $e ) {
@@ -1884,7 +1885,7 @@ class SScribe_Batch_Processor {
 			);
 
 			// DO NOT delete the session on crash so the client can retry.
-			delete_transient( 'sscribe_lock_' . $session_id );
+			$this->release_lock( $session_id );
 
 			wp_send_json_error(
 				array(
@@ -1923,6 +1924,10 @@ class SScribe_Batch_Processor {
 
 		check_ajax_referer( 'sscribe_export_nonce', 'nonce' );
 
+		if ( ! $this->check_rate_limit() ) {
+			return;
+		}
+
 		$session_id = isset( $_POST['session_id'] ) ? sanitize_text_field( wp_unslash( $_POST['session_id'] ) ) : '';
 
 		if ( empty( $session_id ) ) {
@@ -1943,6 +1948,17 @@ class SScribe_Batch_Processor {
 					'message' => __( 'Session not found or has expired. Please start a new export.', 'sscribe-export-site-pages' ),
 				),
 				404
+			);
+			return;
+		}
+
+		// Re-validate session integrity before heavy finalization work.
+		if ( ! $this->session->validate( $session_id ) ) {
+			wp_send_json_error(
+				array(
+					'message' => __( 'Session integrity check failed. Please start a new export.', 'sscribe-export-site-pages' ),
+				),
+				500
 			);
 			return;
 		}
@@ -1979,7 +1995,23 @@ class SScribe_Batch_Processor {
 		// Re-acquire lock if it was released by process_batch.
 		$lock_key = 'sscribe_lock_' . $session_id;
 		if ( empty( get_transient( $lock_key ) ) ) {
-			set_transient( $lock_key, true, 5 * MINUTE_IN_SECONDS );
+			$lock_token = wp_generate_password( 32, false );
+			set_transient( $lock_key, time() . '|' . $lock_token, 5 * MINUTE_IN_SECONDS );
+			$this->current_lock_token = $lock_token;
+
+			// Read-after-write verification: confirm we actually own the lock (race check).
+			// If another finalize request wrote first, our token won't match.
+			$verify = get_transient( $lock_key );
+			if ( ! $verify || ! str_ends_with( $verify, '|' . $lock_token ) ) {
+				wp_send_json_error(
+					array(
+						'code'    => 'lock_contested',
+						'message' => __( 'Export finalization is in progress by another request. Please wait and retry.', 'sscribe-export-site-pages' ),
+					),
+					409
+				);
+				return;
+			}
 		}
 
 		$this->finalize_export( $session_id, $session );

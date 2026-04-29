@@ -457,11 +457,11 @@ class SScribe_Logger_Enhanced implements SScribe_Logger_Interface {
 
 		$cutoff = gmdate( 'Y-m-d H:i:s', strtotime( "-{$days} days" ) );
 
-		// phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared
 		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
 		return $wpdb->query(
 			$wpdb->prepare(
-				"DELETE FROM {$this->table_name} WHERE timestamp < %s",
+				'DELETE FROM %s WHERE timestamp < %s',
+				$this->table_name,
 				$cutoff
 			)
 		);

@@ -333,7 +333,11 @@ class SScribe_Logger implements SScribe_Logger_Interface {
 		$content  = implode( PHP_EOL, $this->buffer ) . PHP_EOL;
 
 		// phpcs:ignore WordPress.WP.AlternativeFunctions.file_system_operations_file_put_contents -- Required for debug logging per plugin requirements.
-		file_put_contents( $log_file, $content, FILE_APPEND | LOCK_EX );
+		$result = file_put_contents( $log_file, $content, FILE_APPEND | LOCK_EX );
+		if ( false === $result ) {
+			// phpcs:ignore WordPress.PHP.DevelopmentFunctions.error_log_error_log -- Reporting flush failure when file_put_contents fails; no better alternative in production.
+			error_log( 'SScribe_Logger: Failed to flush log to ' . $log_file );
+		}
 
 		$this->buffer = array();
 	}

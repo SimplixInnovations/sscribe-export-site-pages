@@ -47,14 +47,14 @@ class SScribe_Diagnostics {
 		$sections = array();
 
 		try {
-			$export_stats = new SScribe_Export_Stats();
+			$export_stats  = new SScribe_Export_Stats();
 			$monthly_stats = $export_stats->get_stats( 'month' );
 		} catch ( \Throwable $e ) {
 			$monthly_stats = array();
 		}
 
 		try {
-			$collector = new SScribe_Page_Collector();
+			$collector     = new SScribe_Page_Collector();
 			$status_counts = $collector->get_post_status_counts( '' );
 		} catch ( \Throwable $e ) {
 			$status_counts = array();
@@ -67,7 +67,7 @@ class SScribe_Diagnostics {
 		}
 
 		try {
-			$audit_trail = new SScribe_Audit_Trail();
+			$audit_trail       = new SScribe_Audit_Trail();
 			$recent_audit_logs = $audit_trail->get_logs( array(), 5, 0 );
 		} catch ( \Throwable $e ) {
 			$recent_audit_logs = array();
@@ -98,7 +98,7 @@ class SScribe_Diagnostics {
 		}
 
 		try {
-			$session = new SScribe_Session();
+			$session         = new SScribe_Session();
 			$session_storage = $session->get_storage_type();
 		} catch ( \Throwable $e ) {
 			$session_storage = 'unknown';

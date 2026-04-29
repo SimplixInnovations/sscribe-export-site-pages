@@ -87,7 +87,7 @@ class SScribe_PDF_Exporter implements SScribe_Exporter_Interface {
 		$html_content = $html_result->get_data()['html'] ?? '';
 		$html_size    = strlen( $html_content );
 
-		$dompdf = null;
+		$dompdf        = null;
 		$libxml_errors = array();
 		$prev_errors   = libxml_use_internal_errors( true );
 		$ob_level      = ob_get_level();
@@ -127,11 +127,11 @@ class SScribe_PDF_Exporter implements SScribe_Exporter_Interface {
 				$this->logger->error(
 					'PDF export aborted: HTML content too large for render',
 					array(
-						'page_id'       => $page_id,
-						'html_size'     => $html_size,
-						'memory_usage'  => memory_get_usage( true ),
-						'memory_peak'   => memory_get_peak_usage( true ),
-						'memory_limit'  => ini_get( 'memory_limit' ),
+						'page_id'      => $page_id,
+						'html_size'    => $html_size,
+						'memory_usage' => memory_get_usage( true ),
+						'memory_peak'  => memory_get_peak_usage( true ),
+						'memory_limit' => ini_get( 'memory_limit' ),
 					)
 				);
 
