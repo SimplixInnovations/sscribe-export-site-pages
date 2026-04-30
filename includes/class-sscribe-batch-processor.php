@@ -667,7 +667,24 @@ class SScribe_Batch_Processor {
 			return;
 		}
 
-		$temp_dir = $this->zip_handler->create_temp_dir();
+		try {
+			$temp_dir = $this->zip_handler->create_temp_dir();
+		} catch ( \Throwable $e ) {
+			$this->logger->error(
+				'Failed to create temp directory (random_bytes/permission issue)',
+				array(
+					'exception' => $e->getMessage(),
+					'trace'     => $e->getTraceAsString(),
+				)
+			);
+			wp_send_json_error(
+				array(
+					'message' => __( 'Failed to initialize export directory. Please try again.', 'sscribe-export-site-pages' ),
+				),
+				500
+			);
+			return;
+		}
 
 		// DOCX exports always use per-page PHPWord generation.
 		// The streaming DOCX generator was removed because it produced a
@@ -1562,6 +1579,88 @@ class SScribe_Batch_Processor {
 	}
 
 	/**
+	 * AJAX handler: Finalize export and create ZIP.
+	 *
+	 * Called by the JS pollFinalize() function after all pages are processed.
+	 * Checks capability, rate limit, nonce, session validity, and finalizing status
+	 * before delegating to the private finalize_export() method.
+	 *
+	 * @return void
+	 */
+	public function ajax_finalize_export(): void {
+		if ( ! current_user_can( $this->get_required_capability() ) ) {
+			wp_send_json_error(
+				array( 'message' => __( 'Permission denied.', 'sscribe-export-site-pages' ) ),
+				403
+			);
+			return;
+		}
+
+		check_ajax_referer( 'sscribe_export_nonce', 'nonce' );
+
+		if ( ! $this->check_rate_limit() ) {
+			wp_send_json_error(
+				array(
+					'message' => __( 'Too many requests. Please wait a moment.', 'sscribe-export-site-pages' ),
+				),
+				429 // HTTP 429 Too Many Requests.
+			);
+			return;
+		}
+
+		$session_id = isset( $_POST['session_id'] )
+			? sanitize_text_field( wp_unslash( $_POST['session_id'] ) )
+			: '';
+
+		if ( empty( $session_id ) ) {
+			wp_send_json_error(
+				array(
+					'message' => __( 'Invalid session.', 'sscribe-export-site-pages' ),
+				),
+				400
+			);
+			return;
+		}
+
+		$session = $this->session->get( $session_id );
+
+		if ( ! $session ) {
+			wp_send_json_error(
+				array(
+					'code'    => 'not_finalizing',
+					'message' => __( 'Export session not found. Please start again.', 'sscribe-export-site-pages' ),
+				),
+				404
+			);
+			return;
+		}
+
+		if ( ! $this->validate_session_ownership( $session, $session_id ) ) {
+			wp_send_json_error(
+				array(
+					'message' => __( 'Invalid session access.', 'sscribe-export-site-pages' ),
+				),
+				403
+			);
+			return;
+		}
+
+		$status = $session['status'] ?? '';
+		if ( 'finalizing' !== $status ) {
+			wp_send_json_error(
+				array(
+					'code'    => 'not_finalizing',
+					'message' => __( 'Export is not in the finalizing state.', 'sscribe-export-site-pages' ),
+				),
+				409 // HTTP 409 Conflict.
+			);
+			return;
+		}
+
+		$this->finalize_export( $session_id, $session );
+	}
+
+	/**
 	 * Finalize the export by creating ZIP and returning download URL.
 	 *
 	 * @param string $session_id The session ID.
@@ -1988,7 +2087,24 @@ class SScribe_Batch_Processor {
 		check_ajax_referer( 'sscribe_download', 'nonce' );
 
 		$filename  = isset( $_GET['file'] ) ? sanitize_file_name( wp_unslash( $_GET['file'] ) ) : '';
-		$file_path = $this->zip_handler->get_export_dir() . '/' . $filename;
+
+		// SECURITY: Wrap get_export_dir() to catch potential \InvalidArgumentException
+		// from SScribe_Security::protect_directory() (path scope validation).
+		try {
+			$export_dir = $this->zip_handler->get_export_dir();
+		} catch ( \InvalidArgumentException $e ) {
+			$this->logger->error(
+				'Export directory access failed during download',
+				array(
+					'exception' => $e->getMessage(),
+					'filename'  => $filename,
+				)
+			);
+			status_header( 500 );
+			wp_die( esc_html__( 'Server misconfiguration: export directory is invalid or inaccessible.', 'sscribe-export-site-pages' ) );
+		}
+
+		$file_path = $export_dir . '/' . $filename;
 
 		if ( empty( $filename ) || ! file_exists( $file_path ) ) {
 			status_header( 404 );
@@ -1996,7 +2112,7 @@ class SScribe_Batch_Processor {
 		}
 
 		$real_path = realpath( $file_path );
-		$real_dir  = realpath( $this->zip_handler->get_export_dir() );
+		$real_dir  = realpath( $export_dir );
 
 		// SECURITY: Require trailing separator to prevent path-prefix attacks
 		// (e.g., /var/www/exports_evil passing for /var/www/exports).
@@ -2167,11 +2283,30 @@ class SScribe_Batch_Processor {
 				return;
 		}
 
-		$file_path = $this->zip_handler->get_export_dir() . '/' . $filename;
+		// SECURITY: Wrap get_export_dir() to catch potential \InvalidArgumentException
+		// from SScribe_Security::protect_directory() (path scope validation).
+		try {
+			$export_dir = $this->zip_handler->get_export_dir();
+		} catch ( \InvalidArgumentException $e ) {
+			$this->logger->error(
+				'Export directory access failed during delete',
+				array(
+					'exception' => $e->getMessage(),
+					'filename'  => $filename,
+				)
+			);
+			wp_send_json_error(
+				array( 'message' => __( 'Server misconfiguration: export directory is invalid.', 'sscribe-export-site-pages' ) ),
+				500
+			);
+			return;
+		}
+
+		$file_path = $export_dir . '/' . $filename;
 
 		// Defense-in-depth: verify file is within export directory.
 		$real_path = realpath( $file_path );
-		$real_dir  = realpath( $this->zip_handler->get_export_dir() );
+		$real_dir  = realpath( $export_dir );
 		if ( ! $real_path || ! $real_dir || ! str_starts_with( $real_path, $real_dir . '/' ) ) {
 			wp_send_json_error( array( 'message' => __( 'Invalid file path.', 'sscribe-export-site-pages' ) ), 400 );
 			return;
