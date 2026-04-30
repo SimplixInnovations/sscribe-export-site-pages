@@ -19,14 +19,14 @@
 		pollBackoffBase: 1000,
 		pollBackoffMax: 30000,
 		pollJitter: 200,
+		finalizePollInterval: 2000,
 
 		init: function () {
 			if (typeof sscribe_data === 'undefined' || !sscribe_data) {
 				return;
 			}
-			this.bindEvents();
-			this.wizardStep(0);
-			this.updateTimeEstimate();
+		this.bindEvents();
+		this.updateTimeEstimate();
 			this.loadSupportInfo();
 		},
 
@@ -59,22 +59,6 @@
 				} else if (next === 1) {
 					SScribe.onLanguageChange();
 				}
-				SScribe.wizardStep(next);
-			});
-			$(document).on('click', '.sscribe-wizard-back', function () {
-				SScribe.wizardStep(parseInt($(this).data('prev')));
-			});
-		},
-
-		wizardStep: function (step) {
-			$('.sscribe-wizard-panel').removeClass('sscribe-wizard-panel-active');
-			$('.sscribe-wizard-panel[data-step="' + step + '"]').addClass('sscribe-wizard-panel-active');
-			$('.sscribe-wizard-step').removeClass('active completed');
-			$('.sscribe-wizard-step').each(function () {
-				var s = parseInt($(this).data('step'));
-				if (s < step) $(this).addClass('completed');
-				if (s === step) $(this).addClass('active');
-			});
 		},
 
 		onPostTypeChange: function () {
@@ -420,16 +404,14 @@
 				SScribe.isProcessing = false;
 				SScribe.resetUI();
 				$('.sscribe-wizard-steps').show();
-				SScribe.wizardStep(1);
-			});
+							});
 
 			$('.sscribe-preflight-close').on('click', function () {
 				$('.sscribe-preflight-banner').fadeOut(200, function () { $(this).remove(); });
 				SScribe.isProcessing = false;
 				SScribe.resetUI();
 				$('.sscribe-wizard-steps').show();
-				SScribe.wizardStep(1);
-			});
+							});
 
 			$('html, body').animate({
 				scrollTop: $('.sscribe-preflight-banner').offset().top - 20
@@ -955,15 +937,13 @@
 					self.isProcessing = false;
 					self.resetUI();
 					$('.sscribe-wizard-steps').show();
-					self.wizardStep(1);
-				},
+									},
 				error: function () {
 					self.sessionId = null;
 					self.isProcessing = false;
 					self.resetUI();
 					$('.sscribe-wizard-steps').show();
-					self.wizardStep(1);
-				}
+									}
 			});
 		},
 

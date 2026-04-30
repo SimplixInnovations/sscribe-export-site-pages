@@ -108,10 +108,11 @@ class SScribe_Upgrader {
 			$table_stats = $wpdb->prefix . 'sscribe_export_stats';
 			try {
 				// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- Schema introspection
+				// Table name is controlled by plugin ($wpdb->prefix + known string), safe to interpolate for WP 6.0 compatibility.
+				// phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared
 				$index_check = $wpdb->get_results(
 					$wpdb->prepare(
-						'SHOW INDEX FROM %i WHERE Key_name = %s',
-						$table_stats,
+						"SHOW INDEX FROM `{$table_stats}` WHERE Key_name = %s",
 						'idx_export_session_id'
 					)
 				);
@@ -130,10 +131,11 @@ class SScribe_Upgrader {
 			$table_stats = $wpdb->prefix . 'sscribe_export_stats';
 			try {
 				// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- Schema introspection
+				// Table name is controlled by plugin ($wpdb->prefix + known string), safe to interpolate for WP 6.0 compatibility.
+				// phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared
 				$col          = $wpdb->get_row(
 					$wpdb->prepare(
-						'SHOW COLUMNS FROM %i LIKE %s',
-						$table_stats,
+						"SHOW COLUMNS FROM `{$table_stats}` LIKE %s",
 						'export_session_id'
 					)
 				);
