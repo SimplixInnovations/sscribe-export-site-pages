@@ -103,23 +103,21 @@ class SScribe_Upgrader {
 				KEY idx_expires_at (expires_at)
 			) $charset_collate;";
 			dbDelta( $sql_sessions );
+		}
 
-			// Add missing index on stats table.
-			$table_stats = $wpdb->prefix . 'sscribe_export_stats';
+		// Migration: 3.32.3 — Add missing idx_export_session_id index on stats table.
+		if ( version_compare( $from_version, '3.32.3', '<' ) ) {
 			try {
-				// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- Schema introspection
-				// Table name is controlled by plugin ($wpdb->prefix + known string), safe to interpolate for WP 6.0 compatibility.
-				// phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared
+				// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- Schema introspection; plugin-controlled table name.
 				$index_check = $wpdb->get_results(
 					$wpdb->prepare(
-						"SHOW INDEX FROM `{$table_stats}` WHERE Key_name = %s",
+						'SHOW INDEX FROM ' . $wpdb->prefix . 'sscribe_export_stats WHERE Key_name = %s',
 						'idx_export_session_id'
 					)
 				);
 				if ( empty( $index_check ) ) {
-					$sql_stats = "ALTER TABLE {$table_stats} ADD INDEX idx_export_session_id (export_session_id)";
-					// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.NotPrepared
-					$wpdb->query( $sql_stats );
+					// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.DirectDatabaseQuery.SchemaChange, WordPress.DB.PreparedSQL.NotPrepared -- Schema change; table name is plugin-controlled constant.
+					$wpdb->query( 'ALTER TABLE `' . $wpdb->prefix . 'sscribe_export_stats` ADD INDEX idx_export_session_id (export_session_id)' );
 				}
 			} catch ( \Throwable $e ) {
 				update_option( 'sscribe_upgrade_last_error', 'Error adding idx_export_session_id: ' . $e->getMessage() );
@@ -128,14 +126,11 @@ class SScribe_Upgrader {
 
 		// Migration: 3.33.0 — Fix export_session_id column width (VARCHAR(12) → VARCHAR(64)).
 		if ( version_compare( $from_version, '3.33.0', '<' ) ) {
-			$table_stats = $wpdb->prefix . 'sscribe_export_stats';
 			try {
-				// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- Schema introspection
-				// Table name is controlled by plugin ($wpdb->prefix + known string), safe to interpolate for WP 6.0 compatibility.
-				// phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared
+				// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- Schema introspection; plugin-controlled table name.
 				$col          = $wpdb->get_row(
 					$wpdb->prepare(
-						"SHOW COLUMNS FROM `{$table_stats}` LIKE %s",
+						'SHOW COLUMNS FROM ' . $wpdb->prefix . 'sscribe_export_stats LIKE %s',
 						'export_session_id'
 					)
 				);
@@ -145,8 +140,8 @@ class SScribe_Upgrader {
 					$needs_modify = false;
 				}
 				if ( $needs_modify ) {
-					// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.DirectDatabaseQuery.SchemaChange, WordPress.DB.PreparedSQL.InterpolatedNotPrepared
-					$wpdb->query( "ALTER TABLE {$table_stats} MODIFY COLUMN export_session_id VARCHAR(64) NOT NULL" );
+					// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.DirectDatabaseQuery.SchemaChange, WordPress.DB.PreparedSQL.NotPrepared -- Schema change; table name is plugin-controlled constant.
+					$wpdb->query( 'ALTER TABLE `' . $wpdb->prefix . 'sscribe_export_stats` MODIFY COLUMN export_session_id VARCHAR(64) NOT NULL' );
 				}
 			} catch ( \Throwable $e ) {
 				update_option( 'sscribe_upgrade_last_error', 'Error modifying export_session_id: ' . $e->getMessage() );

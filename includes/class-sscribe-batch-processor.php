@@ -2086,7 +2086,7 @@ class SScribe_Batch_Processor {
 
 		check_ajax_referer( 'sscribe_download', 'nonce' );
 
-		$filename  = isset( $_GET['file'] ) ? sanitize_file_name( wp_unslash( $_GET['file'] ) ) : '';
+		$filename = isset( $_GET['file'] ) ? sanitize_file_name( wp_unslash( $_GET['file'] ) ) : '';
 
 		$export_dir = ''; // Initialize to satisfy PHPStan (assigned in try block below).
 

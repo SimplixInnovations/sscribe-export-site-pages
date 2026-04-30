@@ -145,37 +145,37 @@ class SScribe_Zip_Handler {
 				)
 			);
 
-		$zip_entries = array();
+			$zip_entries = array();
 
-		foreach ( $all_files as $format => $files ) {
-			$folder_name = strtoupper( $format );
+			foreach ( $all_files as $format => $files ) {
+				$folder_name = strtoupper( $format );
 
-			foreach ( $files as $file ) {
-				$basename    = basename( $file );
-				$archive_entry = $basename;
-				$lang_code     = null;
+				foreach ( $files as $file ) {
+					$basename      = basename( $file );
+					$archive_entry = $basename;
+					$lang_code     = null;
 
-				if ( $use_lang_folders ) {
-					// Extract language code from filename: P001-Title-AR.docx → AR.
-					// Pattern: ends with -XX.ext where XX is 2-letter language code.
-					$lang_code = $this->extract_lang_from_filename( $basename );
+					if ( $use_lang_folders ) {
+						// Extract language code from filename: P001-Title-AR.docx → AR.
+						// Pattern: ends with -XX.ext where XX is 2-letter language code.
+						$lang_code = $this->extract_lang_from_filename( $basename );
 
-					if ( $lang_code ) {
-						// Remove language suffix from filename since it's in the folder path.
-						$clean_name    = $this->remove_lang_from_filename( $basename );
-						$archive_entry = $folder_name . '/' . $lang_code . '/' . $clean_name;
-					} else {
-						// No language code found — put in format folder directly.
+						if ( $lang_code ) {
+							// Remove language suffix from filename since it's in the folder path.
+							$clean_name    = $this->remove_lang_from_filename( $basename );
+							$archive_entry = $folder_name . '/' . $lang_code . '/' . $clean_name;
+						} else {
+							// No language code found — put in format folder directly.
+							$archive_entry = $folder_name . '/' . $basename;
+						}
+					} elseif ( $use_folders ) {
 						$archive_entry = $folder_name . '/' . $basename;
 					}
-				} elseif ( $use_folders ) {
-					$archive_entry = $folder_name . '/' . $basename;
-				}
 
-				$zip->addFile( $file, $archive_entry );
-				$zip_entries[] = array(
-					'source'    => $basename,
-					'zip_path'  => $archive_entry,
+					$zip->addFile( $file, $archive_entry );
+					$zip_entries[] = array(
+						'source'    => $basename,
+						'zip_path'  => $archive_entry,
 						'lang_code' => $lang_code ?? null,
 						'size'      => file_exists( $file ) ? (int) filesize( $file ) : 0,
 					);
