@@ -6,6 +6,21 @@ All notable changes to this project will be documented in this file.
 
 ### Changed
 
+## [3.34.0] - 2026-04-30
+
+### Security & Robustness
+- Health check AJAX now applies rate limiting to authenticated requests to prevent abuse (previously only unauthenticated reachability check was rate-limited)
+- Lock TTL increased from 30s to 45s with configurable filter `sscribe_lock_ttl`; stale threshold increased from 25s to 35s with filter `sscribe_lock_stale_threshold` — prevents false "batch already running" errors on slow servers processing PDF-heavy exports
+
+### Debugging & Diagnostics
+- PDF exporter now logs captured DomPDF output buffer in debug mode when buffer is non-empty — enables troubleshooting of DomPDF render warnings that previously went unseen
+- Session `get()` now logs detailed debug info (option_name, raw type) on session not found, unexpected types, and JSON decode failures — enables diagnosis of "session not found" errors caused by transient/storage issues rather than actual expiry
+
+### Code Quality
+- Fixed duplicate `ajax_health_check()` method that was accidentally introduced during prior refactoring — PHP now properly declares the method only once
+- Fixed malformed PHP in `ajax_finalize_export()` where dangling code (nonce check, rate limit check, session validation) was left outside the method body after a refactor — caused fatal PHP parse errors during test suite load
+- All LSP diagnostics clean across modified files
+
 ## [3.31.0] - 2026-04-27
 
 ### Security

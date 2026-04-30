@@ -174,7 +174,18 @@ class SScribe_PDF_Exporter implements SScribe_Exporter_Interface {
 			$dompdf->render();
 
 			// Discard any warnings/notices DomPDF emitted into the buffer.
+			// Log captured output in debug mode for troubleshooting PDF render issues.
 			$ob_content = ob_get_clean();
+			if ( ! empty( $ob_content ) && SSCRIBE_DEBUG ) {
+				$this->logger->debug(
+					'DomPDF output buffer captured during render',
+					array(
+						'page_id'  => $page_id,
+						'buf_size' => strlen( $ob_content ),
+						'preview'  => substr( $ob_content, 0, 300 ),
+					)
+				);
+			}
 
 			$filename    = \SScribe_Exporter_Factory::build_filename( $page_data, $index, $total, 'pdf' );
 			$output_path = trailingslashit( $output_dir ) . $filename;
