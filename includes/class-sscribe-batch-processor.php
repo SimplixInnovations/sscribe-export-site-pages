@@ -839,7 +839,7 @@ class SScribe_Batch_Processor {
 		if ( $existing_lock ) {
 			// Parse existing lock: format is "timestamp|token" for atomic operations.
 			$lock_parts = explode( '|', $existing_lock );
-			$lock_time  = (int) ( $lock_parts[0] ?? 0 );
+			$lock_time  = isset( $lock_parts[0] ) ? (int) $lock_parts[0] : 0;
 			$lock_age   = $current_time - $lock_time;
 
 			if ( $lock_age > $stale_threshold ) {
