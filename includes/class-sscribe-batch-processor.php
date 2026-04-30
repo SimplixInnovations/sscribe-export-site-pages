@@ -1924,7 +1924,7 @@ class SScribe_Batch_Processor {
 		}
 	}
 
-/**
+	/**
 	 * AJAX handler: System health check.
 	 *
 	 * For unauthenticated requests: returns minimal reachability check.
