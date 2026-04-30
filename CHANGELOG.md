@@ -6,6 +6,18 @@ All notable changes to this project will be documented in this file.
 
 ### Changed
 
+## [3.35.0] - 2026-05-01
+
+* Security: Health check AJAX endpoint now enforces capability check for authenticated diagnostics
+* Reliability: Batch processor caps in-memory error arrays at 50 entries to prevent OOM
+* Reliability: Image processor replaces `@getimagesize` suppression with structured logging
+* Reliability: Container circular dependency exceptions include offending service key
+* UX: Dark mode card contrast improved
+* Maintenance: Deactivation now cleans all plugin options, transients, tables, and export files
+* Maintenance: Removed dead wizard CSS (130+ lines)
+* Maintenance: Removed PHPCS exclusion for class-sscribe-error.php
+* Build: Regenerated minified assets
+
 ## [3.34.0] - 2026-04-30
 
 ### Security & Robustness

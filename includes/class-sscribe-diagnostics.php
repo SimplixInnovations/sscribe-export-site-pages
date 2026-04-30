@@ -796,7 +796,7 @@ class SScribe_Diagnostics {
 				$parts     = explode( '|', $value );
 				$lock_time = (int) $parts[0];
 
-				if ( time() - $lock_time > 60 ) {
+				if ( time() - $lock_time > 300 ) {
 					delete_transient( $transient );
 					++$cleared;
 				}

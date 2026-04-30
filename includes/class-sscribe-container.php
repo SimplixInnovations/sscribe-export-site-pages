@@ -140,7 +140,13 @@ class SScribe_Container {
 
 		// Detect circular dependency (re-entrancy guard).
 		if ( isset( $this->resolving[ $key ] ) ) {
-			throw new \RuntimeException( 'Circular dependency detected in container.' );
+			throw new \RuntimeException(
+				sprintf(
+					/* translators: %s: Service identifier causing circular dependency. */
+					'Circular dependency detected in container while resolving: %s',
+					$key // phpcs:ignore WordPress.Security.EscapeOutput.ExceptionNotEscaped -- Exception message, not browser output.
+				)
+			);
 		}
 
 		$this->resolving[ $key ] = true;

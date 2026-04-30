@@ -17,6 +17,16 @@ if ( ! defined( 'ABSPATH' ) ) {
 class SScribe_Batch_Processor {
 
 	/**
+	 * Maximum number of errors to retain in memory per export session.
+	 *
+	 * Beyond this limit, errors are still logged to disk but not stored
+	 * in the session array to prevent OOM on large exports (500+ pages).
+	 *
+	 * @var int
+	 */
+	private const MAX_STORED_ERRORS = 50;
+
+	/**
 	 * Number of pages to process per batch.
 	 *
 	 * @var int
@@ -1401,6 +1411,57 @@ class SScribe_Batch_Processor {
 			)
 		);
 
+		// CRITICAL: Cap error arrays to prevent OOM on large exports (500+ pages).
+		// Errors beyond the limit remain logged to disk via export_log but are not
+		// stored in the session to keep memory bounded.
+		$total_errors              = count( $errors );
+		$total_structured_errors   = count( $structured_errors );
+		$errors_trimmed            = $total_errors > self::MAX_STORED_ERRORS;
+		$structured_errors_trimmed = $total_structured_errors > self::MAX_STORED_ERRORS;
+
+		if ( $errors_trimmed ) {
+			$trimmed_count = $total_errors - self::MAX_STORED_ERRORS;
+			$errors        = array_slice( $errors, 0, self::MAX_STORED_ERRORS );
+			$errors[]      = sprintf(
+				/* translators: %d: Number of additional errors not stored. */
+				__( '... and %d more errors occurred (see export log for full details).', 'sscribe-export-site-pages' ),
+				$trimmed_count
+			);
+			$this->logger->warning(
+				'Error array capped to prevent memory exhaustion',
+				array(
+					'stored'  => self::MAX_STORED_ERRORS,
+					'trimmed' => $trimmed_count,
+					'total'   => $total_errors,
+				)
+			);
+		}
+
+		if ( $structured_errors_trimmed ) {
+			$trimmed_count       = $total_structured_errors - self::MAX_STORED_ERRORS;
+			$structured_errors   = array_slice( $structured_errors, 0, self::MAX_STORED_ERRORS );
+			$structured_errors[] = array(
+				'page_id'     => 0,
+				'page_title'  => __( 'Summary', 'sscribe-export-site-pages' ),
+				'message'     => sprintf(
+					/* translators: %d: Number of additional structured errors not stored. */
+					__( '%d additional errors occurred — full details available in the export log.', 'sscribe-export-site-pages' ),
+					$trimmed_count
+				),
+				'errors'      => array(),
+				'diagnostics' => array(),
+				'time'        => current_time( 'mysql' ),
+			);
+			$this->logger->warning(
+				'Structured error array capped to prevent memory exhaustion',
+				array(
+					'stored'  => self::MAX_STORED_ERRORS,
+					'trimmed' => $trimmed_count,
+					'total'   => $total_structured_errors,
+				)
+			);
+		}
+
 		// Build session update data, only including format metrics that have values.
 		$update_data = array(
 			'processed'         => $processed,
@@ -2041,6 +2102,15 @@ class SScribe_Batch_Processor {
 					'server_time' => current_time( 'mysql' ),
 					'server_utc'  => gmdate( 'Y-m-d H:i:s' ),
 				)
+			);
+			return;
+		}
+
+		// Authenticated requests require export capability.
+		if ( ! current_user_can( $this->get_required_capability() ) ) {
+			wp_send_json_error(
+				array( 'message' => __( 'Permission denied.', 'sscribe-export-site-pages' ) ),
+				403
 			);
 			return;
 		}

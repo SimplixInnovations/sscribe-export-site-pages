@@ -60,9 +60,6 @@
         <exclude-pattern>*/includes/class-sscribe-logger-enhanced\.php$</exclude-pattern>
     </rule>
 
-    <!-- Exclude pre-existing file with legacy formatting (305 CS errors from original codebase) -->
-    <exclude-pattern>*/includes/class-sscribe-error\.php$</exclude-pattern>
-
     <!-- Exclude standalone CLI scripts that don't run inside WordPress -->
     <exclude-pattern>*/scripts/minify-css\.php$</exclude-pattern>
     <exclude-pattern>*/scripts/minify-js\.php$</exclude-pattern>

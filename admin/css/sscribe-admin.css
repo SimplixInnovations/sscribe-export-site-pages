@@ -5,7 +5,7 @@
  * WCAG 2.1 AA compliant, accessible, and professional.
  *
  * @package SScribe
- * @version 3.34.0
+ * @version 3.35.0
  */
 
 /* Manrope Font — Local, No CDN — SIL Open Font License 1.1 */
@@ -100,7 +100,7 @@
 		--sscribe-text-main: #ffffff;
 		--sscribe-text-secondary: #e6e6e6;
 		--sscribe-text-muted: #bfbfbf;
-		--sscribe-primary-light: rgba(8, 145, 178, 0.08);
+		--sscribe-primary-light: rgba(8, 145, 178, 0.15);
 		--sscribe-shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.4);
 		--sscribe-shadow-md: 0 6px 18px rgba(0, 0, 0, 0.5);
 	}
@@ -707,7 +707,7 @@
 .sscribe-lang-card-label input[type="radio"]:checked + .sscribe-lang-card-inner {
 	border-color: var(--sscribe-primary);
 	background: var(--sscribe-primary-light);
-	box-shadow: 0 0 0 3px rgba(8, 145, 178, 0.1);
+	box-shadow: 0 0 0 3px rgba(8, 145, 178, 0.2);
 }
 
 .sscribe-lang-flag-wrapper {
@@ -2054,144 +2054,6 @@
 }
 
 /* ============================================
-   MULTI-STEP WIZARD
-   ============================================ */
-.sscribe-wizard-steps {
-	display: flex;
-	align-items: center;
-	gap: 4px;
-	padding: 18px 20px 0;
-	margin-bottom: 0;
-}
-
-.sscribe-wizard-step {
-	display: flex;
-	align-items: center;
-	gap: 8px;
-	padding: 10px 16px;
-	font-size: 13px;
-	font-weight: 500;
-	color: var(--sscribe-text-muted);
-	border-bottom: 2px solid transparent;
-	cursor: default;
-	transition: all var(--sscribe-transition-normal);
-	white-space: nowrap;
-}
-
-.sscribe-wizard-step.active {
-	color: var(--sscribe-primary);
-	border-bottom-color: var(--sscribe-primary);
-	font-weight: 600;
-}
-
-.sscribe-wizard-step.completed {
-	color: var(--sscribe-success);
-	border-bottom-color: var(--sscribe-success);
-}
-
-.sscribe-wizard-panel {
-	display: none;
-	padding: 18px 20px 20px;
-	animation: wizardFadeIn 0.3s ease;
-}
-
-.sscribe-wizard-panel-active {
-	display: block;
-}
-
-@keyframes wizardFadeIn {
-	from {
-		opacity: 0;
-		transform: translateY(8px);
-	}
-	to {
-		opacity: 1;
-		transform: translateY(0);
-	}
-}
-
-.sscribe-wizard-nav {
-	display: flex;
-	justify-content: space-between;
-	align-items: center;
-	margin-top: 20px;
-	padding-top: 18px;
-	border-top: 1px solid var(--sscribe-border);
-	gap: 16px;
-}
-
-.sscribe-wizard-nav .sscribe-button {
-	min-width: 130px;
-	padding: 12px 24px;
-	font-size: 14px;
-	font-weight: 600;
-	border-radius: var(--sscribe-radius-sm);
-	transition: all var(--sscribe-transition-normal);
-}
-
-.sscribe-wizard-generate-wrap {
-	display: flex;
-	flex-direction: column;
-	align-items: flex-end;
-	gap: 12px;
-}
-
-.sscribe-wizard-next {
-	background: linear-gradient(135deg, var(--sscribe-primary) 0%, #065F73 100%);
-	color: #FFFFFF;
-	border: none;
-	box-shadow: 0 4px 14px rgba(8, 145, 178, 0.35);
-}
-
-.sscribe-wizard-next:hover {
-	background: linear-gradient(135deg, var(--sscribe-primary-hover) 0%, #0891B2 100%);
-	color: #FFFFFF;
-	transform: translateY(-1px);
-	box-shadow: 0 6px 20px rgba(8, 145, 178, 0.4);
-}
-
-.sscribe-wizard-next:active {
-	transform: translateY(0);
-	box-shadow: 0 2px 8px rgba(8, 145, 178, 0.3);
-}
-
-.sscribe-wizard-next:focus-visible {
-	outline: 2px solid var(--sscribe-accent);
-	outline-offset: 2px;
-}
-
-.sscribe-wizard-back {
-	background: var(--sscribe-card-bg);
-	color: var(--sscribe-text-main);
-	border: 1.5px solid var(--sscribe-border);
-}
-
-.sscribe-wizard-back:hover {
-	background: var(--sscribe-bg);
-	border-color: var(--sscribe-border-hover);
-	color: var(--sscribe-text-main);
-}
-
-.sscribe-wizard-back:active {
-	background: var(--sscribe-border);
-}
-
-.sscribe-wizard-back:focus-visible {
-	outline: 2px solid var(--sscribe-primary);
-	outline-offset: 2px;
-}
-
-.sscribe-wizard-panel .sscribe-fieldset {
-	border: none;
-	padding: 0;
-	margin: 0;
-}
-
-.sscribe-wizard-panel .sscribe-fieldset-legend {
-	margin-bottom: 12px;
-}
-
-/* ============================================
    FLAT SINGLE-PAGE DASHBOARD LAYOUT
    ============================================ */
 .sscribe-flat-workspace {
@@ -2720,27 +2582,6 @@
 	.sscribe-spinner-img {
 		filter: none;
 	}
-}
-
-/* Ensure color is not the only indicator */
-.sscribe-wizard-step.active::before {
-	content: '';
-	display: inline-block;
-	width: 8px;
-	height: 8px;
-	background: var(--sscribe-primary);
-	border-radius: 50%;
-	margin-right: 8px;
-}
-
-.sscribe-wizard-step::before {
-	content: '';
-	display: inline-block;
-	width: 8px;
-	height: 8px;
-	background: var(--sscribe-border);
-	border-radius: 50%;
-	margin-right: 8px;
 }
 
 /* Progress bar accessible styling */
