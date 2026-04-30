@@ -13,7 +13,7 @@
     "require": {
         "php": ">=8.2",
         "phpoffice/phpword": "^1.4",
-        "dompdf/dompdf": "^3.1"
+        "mpdf/mpdf": "^8.2"
     },
     "require-dev": {
         "dealerdirect/phpcodesniffer-composer-installer": "^1.0",
@@ -61,7 +61,7 @@
             "namespace_prefix": "SScribeVendor\\",
             "classmap_prefix": "SScribeVendor_",
             "packages": [
-                "dompdf/dompdf",
+                "mpdf/mpdf",
                 "phpoffice/phpword"
             ],
             "delete_vendor_packages": false,

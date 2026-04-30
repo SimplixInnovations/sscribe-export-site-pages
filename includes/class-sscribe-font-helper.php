@@ -46,6 +46,6 @@ class SScribe_Font_Helper {
 	 */
 	public static function get_arabic_font_url( bool $bold = false ): string {
 		$filename = $bold ? 'NotoSansArabic-Bold.ttf' : 'NotoSansArabic-Regular.ttf';
-		return SSCRIBE_PLUGIN_URL . 'assets/fonts/' . $filename;
+		return SSCRIBE_PLUGIN_URL . 'assets/fonts/notosansarabic/' . $filename;
 	}
 }

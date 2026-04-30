@@ -100,8 +100,8 @@ define( 'SSCRIBE_PLUGIN_BASENAME', plugin_basename( __FILE__ ) );
 /**
  * Arabic font paths for RTL support.
  */
-define( 'SSCRIBE_FONT_ARABIC', SSCRIBE_PLUGIN_DIR . 'assets/fonts/NotoSansArabic-Regular.ttf' );
-define( 'SSCRIBE_FONT_ARABIC_BOLD', SSCRIBE_PLUGIN_DIR . 'assets/fonts/NotoSansArabic-Bold.ttf' );
+define( 'SSCRIBE_FONT_ARABIC', SSCRIBE_PLUGIN_DIR . 'assets/fonts/notosansarabic/NotoSansArabic-Regular.ttf' );
+define( 'SSCRIBE_FONT_ARABIC_BOLD', SSCRIBE_PLUGIN_DIR . 'assets/fonts/notosansarabic/NotoSansArabic-Bold.ttf' );
 
 require_once SSCRIBE_PLUGIN_DIR . 'includes/sscribe-autoloader.php';
 

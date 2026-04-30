@@ -30,7 +30,7 @@ if ( file_exists( $vendor_autoload ) ) {
  * so PHPStan can resolve symbols without loading both vendor trees.
  */
 $sscribe_phpstan_alias_prefixes = array(
-	'SScribeVendor\\Dompdf\\'             => 'Dompdf\\',
+	'SScribeVendor\\Mpdf\\'               => 'Mpdf\\',
 	'SScribeVendor\\PhpOffice\\PhpWord\\' => 'PhpOffice\\PhpWord\\',
 );
 

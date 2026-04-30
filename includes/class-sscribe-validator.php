@@ -83,21 +83,8 @@ class SScribe_Validator {
 			);
 		}
 
-		$pdf_runtime_candidates = array(
-			'\SScribeVendor\Dompdf\Dompdf',
-			'\SScribeVendor\Dompdf\Dompdf',
-		);
-
-		$pdf_runtime_available = false;
-		foreach ( $pdf_runtime_candidates as $pdf_runtime_candidate ) {
-			if ( class_exists( $pdf_runtime_candidate ) ) {
-				$pdf_runtime_available = true;
-				break;
-			}
-		}
-
-		if ( in_array( 'pdf', $formats, true ) && ! $pdf_runtime_available ) {
-			$errors[] = __( 'PDF format selected but DomPDF library is not installed. Run composer install.', 'sscribe-export-site-pages' );
+		if ( in_array( 'pdf', $formats, true ) && ! class_exists( '\\SScribeVendor\\Mpdf\\Mpdf' ) ) {
+			$errors[] = __( 'PDF format selected but mPDF library is not installed. Run composer install.', 'sscribe-export-site-pages' );
 		}
 
 		return $errors;

@@ -349,7 +349,7 @@ class SScribe_Batch_Processor {
 		$this->batch_size = max( 1, min( $safe_batch_size, $configured_size, 20 ) );
 
 		// Further reduce batch size when PDF format is included to prevent timeouts.
-		// PDF generation via DomPDF is ~8s/page — large batches exceed PHP max_execution_time.
+		// PDF generation via mPDF is ~3s/page — large batches exceed PHP max_execution_time.
 		if ( in_array( 'pdf', $formats, true ) && $this->batch_size > 2 ) {
 			$this->batch_size = 2;
 		}
@@ -380,14 +380,14 @@ class SScribe_Batch_Processor {
 		// - HTML: ~1MB
 		// - Markdown: ~0.5MB
 		// - DOCX: ~5MB (PHPWord + DOMDocument)
-		// - PDF: ~8MB (DomPDF + rendering).
+		// - PDF: ~4MB (mPDF + rendering).
 		$memory_per_page = 1; // Base 1MB for page data collection.
 
 		if ( in_array( 'docx', $formats, true ) ) {
 			$memory_per_page += 4; // PHPWord overhead.
 		}
 		if ( in_array( 'pdf', $formats, true ) ) {
-			$memory_per_page += 7; // DomPDF overhead.
+			$memory_per_page += 3; // mPDF overhead.
 		}
 		if ( in_array( 'markdown', $formats, true ) ) {
 			$memory_per_page += 0.5;
@@ -806,15 +806,15 @@ class SScribe_Batch_Processor {
 		$session    = $this->session->get( $session_id );
 
 		// Optimize batch size based on available memory and format type.
-		// PDF (DomPDF) is ~8s/page and needs smaller batches to prevent timeouts.
+		// PDF (mPDF) is ~3s/page and needs smaller batches to prevent timeouts.
 		$formats = isset( $session['formats'] ) ? $session['formats'] : array( 'docx' );
 		$this->optimize_batch_size( $formats );
 
 		// Increase time limit for PDF-heavy exports.
-		// DomPDF rendering is CPU-intensive (~8s/page); allow more time per batch.
+		// mPDF rendering is CPU-intensive (~3s/page); allow more time per batch.
 		if ( in_array( 'pdf', $formats, true ) && function_exists( 'set_time_limit' ) ) {
 			$pdf_max_time = (int) apply_filters( 'sscribe_pdf_max_execution_time', 300 );
-			// phpcs:ignore WordPress.PHP.DiscouragedFunctions.Discouraged, WordPress.PHP.IniSet.max_execution_time_Blacklisted -- PDF export requires extended execution time. DomPDF rendering is ~8s per page; with batch_size=2, each batch needs ~16s+ overhead.
+				// phpcs:ignore WordPress.PHP.DiscouragedFunctions.Discouraged, WordPress.PHP.IniSet.max_execution_time_Blacklisted -- PDF export requires extended execution time. mPDF rendering is ~3s per page; with batch_size=2, each batch needs ~6s+ overhead.
 			set_time_limit( $pdf_max_time );
 		}
 
@@ -2649,8 +2649,8 @@ class SScribe_Batch_Processor {
 		$guidance_map = array(
 			'memory_exhausted'    => __( 'The server ran out of memory during export. Large PDF renders often need a higher PHP memory limit.', 'sscribe-export-site-pages' ),
 			'timeout'             => __( 'The export is hitting a server time limit before rendering can finish. Reduce load or increase execution time.', 'sscribe-export-site-pages' ),
-			'pdf_generation'      => __( 'DomPDF could not render the page successfully. Review the technical details for HTML size, memory usage, and libxml parsing problems.', 'sscribe-export-site-pages' ),
-			'pdf_missing_library' => __( 'The DomPDF library is missing from the plugin install, so PDF export cannot start.', 'sscribe-export-site-pages' ),
+			'pdf_generation'      => __( 'mPDF could not render the page successfully. Review the technical details for HTML size, memory usage, and libxml parsing problems.', 'sscribe-export-site-pages' ),
+			'pdf_missing_library' => __( 'The mPDF library is missing from the plugin install, so PDF export cannot start.', 'sscribe-export-site-pages' ),
 			'pdf_filesystem'      => __( 'The PDF was generated but could not be written to disk. Review filesystem access and output path details.', 'sscribe-export-site-pages' ),
 			'permissions'         => __( 'The server does not have permission to write required export files. Check upload directory access.', 'sscribe-export-site-pages' ),
 			'zip_extension'       => __( 'ZIP creation failed because the server is missing ZIP support or the archive step could not complete.', 'sscribe-export-site-pages' ),
