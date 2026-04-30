@@ -229,16 +229,15 @@ Each document includes: cover page with title/URL/date/breadcrumbs, featured ima
 
 == Changelog ==
 
-= 3.33.3 =
+= 3.34.0 =
 
-* Security: Fix lock token mismatch in finalize export — prevents stale locks blocking retries
-* Security: Add read-after-write lock verification — prevents concurrent finalize race
-* Security: Add rate limiting to ajax_finalize_export endpoint
-* Security: Add session integrity validation before finalize heavy work
-* Security: Standardize lock release to use token-verified release_lock() consistently
-* Code quality: Fix all PHPCS PreparedSQL and alignment errors — 0 errors, 0 warnings
-* Code quality: PHPStan level 5 [OK] — 0 errors
-* Dev: Add flush error logging in SScribe_Logger
+* Security: Health check AJAX now applies rate limiting to authenticated requests to prevent abuse
+* Security: Lock TTL increased from 30s to 45s to prevent false "batch already running" on slow PDF-heavy servers
+* Debug: PDF exporter now logs DomPDF output buffer in debug mode for render troubleshooting
+* Debug: Session get() now logs detailed debug info on not-found, unexpected type, and JSON decode failures
+* Code quality: Fixed duplicate ajax_health_check() method causing PHP fatal error on test load
+* Code quality: Fixed malformed ajax_finalize_export() with orphaned code outside method body
+* Code quality: Full test suite passes (193 tests, 494 assertions); LSP diagnostics clean
 
 = 3.33.2 =
 
