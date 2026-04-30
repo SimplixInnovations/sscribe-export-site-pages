@@ -16,7 +16,7 @@ require_once SSCRIBE_PLUGIN_DIR . 'includes/exporters/interface-sscribe-exporter
 /**
  * Class SScribe_PDF_Exporter
  *
- * Exports pages to PDF format using DomPDF.
+ * Exports pages to PDF format using mPDF.
  */
 class SScribe_PDF_Exporter implements SScribe_Exporter_Interface {
 
@@ -87,32 +87,29 @@ class SScribe_PDF_Exporter implements SScribe_Exporter_Interface {
 		$html_content = $html_result->get_data()['html'] ?? '';
 		$html_size    = strlen( $html_content );
 
-		$dompdf        = null;
 		$libxml_errors = array();
 		$prev_errors   = libxml_use_internal_errors( true );
-		$ob_level      = ob_get_level();
 
 		try {
-			// Verify DomPDF is available before attempting export.
-			if ( ! class_exists( '\\SScribeVendor\\Dompdf\\Dompdf' ) ) {
+			if ( ! class_exists( '\\SScribeVendor\\Mpdf\\Mpdf' ) ) {
 				$this->logger->error(
-					'PDF export failed: DomPDF class not found',
+					'PDF export failed: mPDF class not found',
 					array(
 						'page_id'           => $page_id,
-						'class_check'       => '\\SScribeVendor\\Dompdf\\Dompdf',
+						'class_check'       => '\\SScribeVendor\\Mpdf\\Mpdf',
 						'available_classes' => get_declared_classes(),
 					)
 				);
 
 				return SScribe_Result::failure(
-					__( 'PDF export is not available — DomPDF library is missing. Please reinstall the plugin.', 'sscribe-export-site-pages' ),
+					__( 'PDF export is not available — mPDF library is missing. Please reinstall the plugin.', 'sscribe-export-site-pages' ),
 					array(
 						'error_category' => 'pdf_missing_library',
 						'page_id'        => $page_id,
 						'page_title'     => $title,
 						'language'       => $language,
 						'fix_steps'      => array(
-							__( 'Reinstall the SScribe plugin to restore the bundled DomPDF library.', 'sscribe-export-site-pages' ),
+							__( 'Reinstall the SScribe plugin to restore the bundled mPDF library.', 'sscribe-export-site-pages' ),
 							__( 'Verify the plugin upload completed successfully and no vendor files were removed.', 'sscribe-export-site-pages' ),
 							__( 'If the issue persists, contact support or your hosting provider to inspect the plugin files.', 'sscribe-export-site-pages' ),
 						),
@@ -120,9 +117,6 @@ class SScribe_PDF_Exporter implements SScribe_Exporter_Interface {
 				);
 			}
 
-			// Pre-render memory guard: DomPDF can consume 3x the HTML size in memory.
-			// If HTML is > 5MB, DomPDF will likely exhaust PHP memory and kill the process
-			// silently (no exception — SIGKILL). Abort early with a clear error instead.
 			if ( $html_size > 5 * 1024 * 1024 ) {
 				$this->logger->error(
 					'PDF export aborted: HTML content too large for render',
@@ -150,56 +144,62 @@ class SScribe_PDF_Exporter implements SScribe_Exporter_Interface {
 				);
 			}
 
-			// Isolate DomPDF output buffering. DomPDF may trigger PHP warnings/notices
-			// during rendering that would corrupt the JSON response if output is already
-			// started. Capture any accidental output and log it instead.
-			ob_start();
+			$font_dir    = trailingslashit( SSCRIBE_PLUGIN_DIR ) . 'assets/fonts/';
+			$manrope_dir = $font_dir . 'manrope/';
+			$mpdf_temp   = trailingslashit( WP_CONTENT_DIR ) . 'uploads/sscribe/mpdf-tmp/';
 
-			$options = new \SScribeVendor\Dompdf\Options();
-			$options->set( 'isRemoteEnabled', true );
-			$options->set( 'isHtml5ParserEnabled', true );
-			$options->set( 'isFontSubsettingEnabled', true );
-			$options->set( 'defaultFont', $is_rtl ? 'Noto Sans Arabic' : 'DejaVu Sans' );
-			$options->set( 'chroot', ABSPATH );
-
-			$dompdf = new \SScribeVendor\Dompdf\Dompdf( $options );
-			$dompdf->loadHtml( $html_content );
-			$dompdf->setPaper( 'A4', 'portrait' );
-
-			if ( function_exists( 'set_time_limit' ) ) {
-				// phpcs:ignore WordPress.PHP.DiscouragedFunctions.Discouraged, WordPress.PHP.IniSet.max_execution_time_Blacklisted -- DomPDF rendering is CPU-intensive and requires extended time per page.
-				set_time_limit( 120 );
+			if ( ! is_dir( $mpdf_temp ) ) {
+				wp_mkdir_p( $mpdf_temp );
 			}
 
-			$dompdf->render();
+			$config = array(
+				'mode'             => $is_rtl ? 'ar' : 'utf-8',
+				'default_font'     => 'manrope',
+				'fontdata'         => array(
+					'manrope'        => array(
+						'R' => $manrope_dir . 'Manrope-Regular.ttf',
+						'B' => $manrope_dir . 'Manrope-Bold.ttf',
+						'M' => $manrope_dir . 'Manrope-Medium.ttf',
+						'L' => $manrope_dir . 'Manrope-Light.ttf',
+					),
+					'notosansarabic' => array(
+						'R' => $font_dir . 'notosansarabic/NotoSansArabic-Regular.ttf',
+						'B' => $font_dir . 'notosansarabic/NotoSansArabic-Bold.ttf',
+					),
+				),
+				'orientation'      => 'P',
+				'format'           => 'A4',
+				'margin_left'      => 15,
+				'margin_right'     => 15,
+				'margin_top'       => 15,
+				'margin_bottom'    => 15,
+				'autoScriptToLang' => true,
+				'autoLangToFont'   => true,
+				'tempDir'          => $mpdf_temp,
+				'debug'            => SSCRIBE_DEBUG,
+				'tabSpaces'        => null,
+			);
 
-			// Discard any warnings/notices DomPDF emitted into the buffer.
-			// Log captured output in debug mode for troubleshooting PDF render issues.
-			$ob_content = ob_get_clean();
-			if ( ! empty( $ob_content ) && SSCRIBE_DEBUG ) {
-				$this->logger->debug(
-					'DomPDF output buffer captured during render',
-					array(
-						'page_id'  => $page_id,
-						'buf_size' => strlen( $ob_content ),
-						'preview'  => substr( $ob_content, 0, 300 ),
-					)
-				);
+			$mpdf = new \SScribeVendor\Mpdf\Mpdf( $config );
+			$mpdf->SetDirectionality( $is_rtl ? 'rtl' : 'ltr' );
+
+			if ( function_exists( 'set_time_limit' ) ) {
+				// phpcs:ignore WordPress.PHP.DiscouragedFunctions.Discouraged, WordPress.PHP.IniSet.max_execution_time_Blacklisted -- mPDF rendering is CPU-intensive and requires extended time per page.
+				set_time_limit( 60 );
 			}
 
 			$filename    = \SScribe_Exporter_Factory::build_filename( $page_data, $index, $total, 'pdf' );
 			$output_path = trailingslashit( $output_dir ) . $filename;
 
-			// P-3: Stream directly to file instead of loading into memory.
-			// phpcs:ignore WordPress.WP.AlternativeFunctions.file_system_operations_file_put_contents -- DomPDF streaming requires direct file write for performance.
-			$bytes_written = file_put_contents( $output_path, $dompdf->output() );
+			$mpdf->WriteHTML( $html_content );
+			$mpdf->Output( $output_path, \SScribeVendor\Mpdf\Output\Destination::FILE );
 
-			if ( false === $bytes_written || 0 === $bytes_written ) {
+			if ( ! file_exists( $output_path ) ) {
 				$fs_error  = $this->filesystem->get_last_error();
 				$fs_method = $this->filesystem->get_method();
 
 				$this->logger->error(
-					'PDF export failed: filesystem write error',
+					'PDF export failed: mPDF did not create output file',
 					array(
 						'page_id'   => $page_id,
 						'path'      => $output_path,
@@ -222,6 +222,8 @@ class SScribe_PDF_Exporter implements SScribe_Exporter_Interface {
 				);
 			}
 
+			$bytes_written = filesize( $output_path );
+
 			return SScribe_Result::success(
 				array(
 					'path' => $output_path,
@@ -229,7 +231,7 @@ class SScribe_PDF_Exporter implements SScribe_Exporter_Interface {
 				)
 			);
 
-		} catch ( \Throwable $e ) {
+		} catch ( \SScribeVendor\Mpdf\MpdfException $e ) {
 			$libxml_errors = $this->get_libxml_error_details();
 
 			$this->logger->error(
@@ -256,32 +258,24 @@ class SScribe_PDF_Exporter implements SScribe_Exporter_Interface {
 					$e->getMessage()
 				),
 				array(
-					'error_category'   => 'pdf_generation',
-					'page_id'          => $page_id,
-					'page_title'       => $title,
-					'language'         => $language,
-					'is_rtl'           => $is_rtl,
-					'html_size'        => $html_size,
-					'memory_usage'     => memory_get_usage( true ),
-					'memory_peak'      => memory_get_peak_usage( true ),
-					'memory_limit'     => ini_get( 'memory_limit' ),
-					'dompdf_available' => true,
-					'libxml_errors'    => $libxml_errors,
-					'exception_class'  => get_class( $e ),
-					'exception_file'   => basename( $e->getFile() ) . ':' . $e->getLine(),
+					'error_category'  => 'pdf_generation',
+					'page_id'         => $page_id,
+					'page_title'      => $title,
+					'language'        => $language,
+					'is_rtl'          => $is_rtl,
+					'html_size'       => $html_size,
+					'memory_usage'    => memory_get_usage( true ),
+					'memory_peak'     => memory_get_peak_usage( true ),
+					'memory_limit'    => ini_get( 'memory_limit' ),
+					'mpdf_available'  => true,
+					'libxml_errors'   => $libxml_errors,
+					'exception_class' => get_class( $e ),
+					'exception_file'  => basename( $e->getFile() ) . ':' . $e->getLine(),
 				)
 			);
 		} finally {
 			libxml_clear_errors();
 			libxml_use_internal_errors( $prev_errors );
-			$dompdf = null;
-			unset( $dompdf );
-			// Restore output buffering to pre-render level. If DomPDF
-			// threw during render, the inner ob_start() buffer may still
-			// be open; clean it up to prevent JSON corruption.
-			while ( ob_get_level() > $ob_level ) {
-				ob_end_clean();
-			}
 		}
 	}
 

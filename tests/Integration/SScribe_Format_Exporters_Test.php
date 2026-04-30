@@ -150,8 +150,8 @@ class SScribe_Format_Exporters_Test extends TestCase {
 	}
 
 	public function test_font_files_exist(): void {
-		$regular = SSCRIBE_PLUGIN_DIR . 'assets/fonts/NotoSansArabic-Regular.ttf';
-		$bold = SSCRIBE_PLUGIN_DIR . 'assets/fonts/NotoSansArabic-Bold.ttf';
+		$regular = SSCRIBE_PLUGIN_DIR . 'assets/fonts/notosansarabic/NotoSansArabic-Regular.ttf';
+		$bold = SSCRIBE_PLUGIN_DIR . 'assets/fonts/notosansarabic/NotoSansArabic-Bold.ttf';
 
 		$this->assertFileExists( $regular );
 		$this->assertFileExists( $bold );

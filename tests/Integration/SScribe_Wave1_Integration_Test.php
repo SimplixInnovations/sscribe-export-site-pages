@@ -29,13 +29,13 @@ class SScribe_Wave1_Integration_Test extends TestCase {
 	}
 
 	public function test_font_constants_defined(): void {
-		$font_path = SSCRIBE_PLUGIN_DIR . 'assets/fonts/NotoSansArabic-Regular.ttf';
+		$font_path = SSCRIBE_PLUGIN_DIR . 'assets/fonts/notosansarabic/NotoSansArabic-Regular.ttf';
 		$this->assertFileExists( $font_path, 'Arabic font file should exist' );
 	}
 
 	public function test_font_files_exist(): void {
-		$regular = SSCRIBE_PLUGIN_DIR . 'assets/fonts/NotoSansArabic-Regular.ttf';
-		$bold    = SSCRIBE_PLUGIN_DIR . 'assets/fonts/NotoSansArabic-Bold.ttf';
+		$regular = SSCRIBE_PLUGIN_DIR . 'assets/fonts/notosansarabic/NotoSansArabic-Regular.ttf';
+		$bold    = SSCRIBE_PLUGIN_DIR . 'assets/fonts/notosansarabic/NotoSansArabic-Bold.ttf';
 		$this->assertFileExists( $regular, 'Regular Arabic font should exist' );
 		$this->assertFileExists( $bold, 'Bold Arabic font should exist' );
 	}

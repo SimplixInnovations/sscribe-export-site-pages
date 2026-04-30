@@ -157,7 +157,7 @@ class SScribe_HTML_Exporter implements SScribe_Exporter_Interface {
 	<title>' . $title . ' | ' . esc_html( $site_name ) . '</title>
 	<style>
 		* { margin: 0; padding: 0; box-sizing: border-box; }
-		body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Arial, sans-serif; max-width: 800px; margin: 0 auto; padding: 30px 20px; line-height: 1.6; color: #333; }
+		body { font-family: \'Manrope\', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Arial, sans-serif; max-width: 800px; margin: 0 auto; padding: 30px 20px; line-height: 1.6; color: #333; }
 		header { border-bottom: 2px solid #4A8263; padding-bottom: 20px; margin-bottom: 30px; }
 		h1 { font-size: 2em; color: #122119; margin-bottom: 10px; }
 		h2, h3, h4 { color: #122119; margin: 20px 0 10px; }

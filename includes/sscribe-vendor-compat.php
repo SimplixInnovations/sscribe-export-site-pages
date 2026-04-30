@@ -16,21 +16,18 @@ if ( ! defined( 'ABSPATH' ) ) {
 }
 
 $sscribe_vendor_aliases = array(
-	// Dompdf aliases.
-	'Dompdf\\Dompdf'                           => 'SScribeVendor\\Dompdf\\Dompdf',
-	'Dompdf\\Options'                          => 'SScribeVendor\\Dompdf\\Options',
 	// PhpOffice\PhpWord aliases.
-	'PhpOffice\\PhpWord\\PhpWord'              => 'SScribeVendor\\PhpOffice\\PhpWord\\PhpWord',
-	'PhpOffice\\PhpWord\\IOFactory'            => 'SScribeVendor\\PhpOffice\\PhpWord\\IOFactory',
-	'PhpOffice\\PhpWord\\Settings'             => 'SScribeVendor\\PhpOffice\\PhpWord\\Settings',
-	'PhpOffice\\PhpWord\\Style\\Font'          => 'SScribeVendor\\PhpOffice\\PhpWord\\Style\\Font',
-	'PhpOffice\\PhpWord\\Style\\TOC'           => 'SScribeVendor\\PhpOffice\\PhpWord\\Style\\TOC',
-	'PhpOffice\\PhpWord\\Style\\ListItem'      => 'SScribeVendor\\PhpOffice\\PhpWord\\Style\\ListItem',
-	'PhpOffice\\PhpWord\\SimpleType\\Jc'       => 'SScribeVendor\\PhpOffice\\PhpWord\\SimpleType\\Jc',
-	'PhpOffice\\PhpWord\\SimpleType\\TblWidth' => 'SScribeVendor\\PhpOffice\\PhpWord\\SimpleType\\TblWidth',
-	'PhpOffice\\PhpWord\\Shared\\Converter'    => 'SScribeVendor\\PhpOffice\\PhpWord\\Shared\\Converter',
-	'PhpOffice\\PhpWord\\Element\\Section'     => 'SScribeVendor\\PhpOffice\\PhpWord\\Element\\Section',
-	'PhpOffice\\PhpWord\\Element\\TextRun'     => 'SScribeVendor\\PhpOffice\\PhpWord\\Element\\TextRun',
+	'SScribeVendor\\PhpOffice\\PhpWord\\PhpWord'              => 'SScribeVendor\\PhpOffice\\PhpWord\\PhpWord',
+	'SScribeVendor\\PhpOffice\\PhpWord\\IOFactory'            => 'SScribeVendor\\PhpOffice\\PhpWord\\IOFactory',
+	'SScribeVendor\\PhpOffice\\PhpWord\\Settings'             => 'SScribeVendor\\PhpOffice\\PhpWord\\Settings',
+	'SScribeVendor\\PhpOffice\\PhpWord\\Style\\Font'          => 'SScribeVendor\\PhpOffice\\PhpWord\\Style\\Font',
+	'SScribeVendor\\PhpOffice\\PhpWord\\Style\\TOC'           => 'SScribeVendor\\PhpOffice\\PhpWord\\Style\\TOC',
+	'SScribeVendor\\PhpOffice\\PhpWord\\Style\\ListItem'      => 'SScribeVendor\\PhpOffice\\PhpWord\\Style\\ListItem',
+	'SScribeVendor\\PhpOffice\\PhpWord\\SimpleType\\Jc'       => 'SScribeVendor\\PhpOffice\\PhpWord\\SimpleType\\Jc',
+	'SScribeVendor\\PhpOffice\\PhpWord\\SimpleType\\TblWidth' => 'SScribeVendor\\PhpOffice\\PhpWord\\SimpleType\\TblWidth',
+	'SScribeVendor\\PhpOffice\\PhpWord\\Shared\\Converter'    => 'SScribeVendor\\PhpOffice\\PhpWord\\Shared\\Converter',
+	'SScribeVendor\\PhpOffice\\PhpWord\\Element\\Section'     => 'SScribeVendor\\PhpOffice\\PhpWord\\Element\\Section',
+	'SScribeVendor\\PhpOffice\\PhpWord\\Element\\TextRun'     => 'SScribeVendor\\PhpOffice\\PhpWord\\Element\\TextRun',
 );
 
 foreach ( $sscribe_vendor_aliases as $source => $target ) {

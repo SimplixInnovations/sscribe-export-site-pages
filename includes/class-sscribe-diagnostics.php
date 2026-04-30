@@ -123,7 +123,7 @@ class SScribe_Diagnostics {
 				'memory_limit'       => (string) ini_get( 'memory_limit' ),
 				'max_execution_time' => (string) ini_get( 'max_execution_time' ),
 				'zip_extension'      => class_exists( 'ZipArchive' ) ? __( 'Available', 'sscribe-export-site-pages' ) : __( 'Missing', 'sscribe-export-site-pages' ),
-				'dompdf'             => class_exists( '\SScribeVendor\Dompdf\Dompdf' ) ? __( 'Available', 'sscribe-export-site-pages' ) : __( 'Missing', 'sscribe-export-site-pages' ),
+				'mpdf'               => class_exists( '\SScribeVendor\Mpdf\Mpdf' ) ? __( 'Available', 'sscribe-export-site-pages' ) : __( 'Missing', 'sscribe-export-site-pages' ),
 				'phpword'            => class_exists( '\SScribeVendor\PhpOffice\PhpWord\PhpWord' ) ? __( 'Available', 'sscribe-export-site-pages' ) : __( 'Missing', 'sscribe-export-site-pages' ),
 			),
 		);
@@ -213,7 +213,7 @@ class SScribe_Diagnostics {
 		$checks['execution']   = $this->check_execution_time( $page_count );
 		$checks['upload_dir']  = $this->check_upload_directory();
 		$checks['zip']         = $this->check_zip_extension();
-		$checks['dompdf']      = $this->check_dompdf();
+			$checks['mpdf']    = $this->check_mpdf();
 		$checks['phpword']     = $this->check_phpword();
 		$checks['permissions'] = $this->check_file_permissions();
 		$checks['wp_cron']     = $this->check_wp_cron();
@@ -246,8 +246,8 @@ class SScribe_Diagnostics {
 	public function check_vendor_dependencies(): array {
 		$missing = array();
 
-		if ( ! class_exists( '\SScribeVendor\Dompdf\Dompdf' ) ) {
-			$missing[] = 'SScribeVendor\Dompdf\Dompdf';
+		if ( ! class_exists( '\SScribeVendor\Mpdf\Mpdf' ) ) {
+			$missing[] = 'SScribeVendor\Mpdf\Mpdf';
 		}
 
 		if ( ! class_exists( '\SScribeVendor\PhpOffice\PhpWord\PhpWord' ) ) {
@@ -299,7 +299,7 @@ class SScribe_Diagnostics {
 			$estimate_per_page += 3; // PHPWord overhead.
 		}
 		if ( in_array( 'pdf', $formats, true ) ) {
-			$estimate_per_page += 5; // DomPDF overhead.
+			$estimate_per_page += 3; // mPDF overhead.
 		}
 		if ( in_array( 'markdown', $formats, true ) ) {
 			$estimate_per_page += 0.5;
@@ -494,21 +494,21 @@ class SScribe_Diagnostics {
 	}
 
 	/**
-	 * Check DomPDF library.
+	 * Check mPDF library.
 	 */
-	private function check_dompdf(): array {
-		if ( class_exists( '\\SScribeVendor\\Dompdf\\Dompdf' ) ) {
+	private function check_mpdf(): array {
+		if ( class_exists( '\\SScribeVendor\\Mpdf\\Mpdf' ) ) {
 			return array(
-				'name'    => 'DomPDF Library',
+				'name'    => 'mPDF Library',
 				'status'  => 'ok',
-				'message' => 'DomPDF loaded',
+				'message' => 'mPDF loaded',
 			);
 		}
 
 		return array(
-			'name'    => 'DomPDF Library',
+			'name'    => 'mPDF Library',
 			'status'  => 'error',
-			'message' => 'DomPDF library not found. Run: composer install',
+			'message' => 'mPDF library not found. Run: composer install',
 			'fix'     => 'Run composer install in the plugin directory',
 		);
 	}
@@ -708,10 +708,10 @@ class SScribe_Diagnostics {
 				'Set wp-content/uploads permissions to 755',
 				'Check that the PHP process can write to the uploads directory',
 			);
-		} elseif ( str_contains( $lower_error, 'dompdf' ) || str_contains( $lower_error, 'pdf' ) ) {
+		} elseif ( str_contains( $lower_error, 'mpdf' ) || str_contains( $lower_error, 'pdf' ) ) {
 			$diagnosis['category'] = 'pdf_generation';
 			$diagnosis['fix']      = array(
-				'Run composer install to ensure DomPDF is installed',
+				'Run composer install to ensure mPDF is installed',
 				'Check that the page content does not contain invalid HTML',
 			);
 		} elseif ( str_contains( $lower_error, 'phpword' ) || str_contains( $lower_error, 'docx' ) ) {
@@ -739,7 +739,7 @@ class SScribe_Diagnostics {
 			'timeout'    => array( 'timeout', 'time limit', 'execution' ),
 			'permission' => array( 'permission', 'writable', 'denied' ),
 			'zip'        => array( 'zip', 'ziparchive', 'archive' ),
-			'pdf'        => array( 'dompdf', 'pdf' ),
+			'pdf'        => array( 'mpdf', 'pdf' ),
 			'docx'       => array( 'phpword', 'docx', 'word' ),
 			'network'    => array( 'network', 'connection', 'ajax' ),
 			'session'    => array( 'session', 'expired', 'not found' ),
@@ -1017,7 +1017,7 @@ class SScribe_Diagnostics {
 			'loaded'           => $loaded && empty( $boot_errors ),
 			'version'          => defined( 'SSCRIBE_VERSION' ) ? SSCRIBE_VERSION : 'unknown',
 			'dependencies'     => array(
-				'dompdf_loaded'  => class_exists( '\\SScribeVendor\\Dompdf\\Dompdf' ),
+				'mpdf_loaded'    => class_exists( '\\SScribeVendor\\Mpdf\\Mpdf' ),
 				'phpword_loaded' => class_exists( '\\SScribeVendor\\PhpOffice\\PhpWord\\PhpWord' ),
 				'zip_extension'  => class_exists( 'ZipArchive' ),
 			),
