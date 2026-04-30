@@ -25,8 +25,8 @@
 			if (typeof sscribe_data === 'undefined' || !sscribe_data) {
 				return;
 			}
-		this.bindEvents();
-		this.updateTimeEstimate();
+			this.bindEvents();
+			this.updateTimeEstimate();
 			this.loadSupportInfo();
 		},
 
@@ -34,8 +34,8 @@
 			$(document).on('click', '#sscribe-export-btn', $.proxy(this.startExport, this));
 			$(document).on('click', '#sscribe-preview-btn', $.proxy(this.showPreview, this));
 			$(document).on('click', '#sscribe-preview-close', $.proxy(this.closePreview, this));
-			$('#sscribe-retry-btn, #sscribe-error-try-again').on('click', $.proxy(this.retry, this));
-			$('#sscribe-cancel-btn').on('click', $.proxy(this.cancelExport, this));
+			$(document).on('click', '#sscribe-retry-btn, #sscribe-error-try-again', $.proxy(this.retry, this));
+			$(document).on('click', '#sscribe-cancel-btn', $.proxy(this.cancelExport, this));
 
 			$('.sscribe-lang-card-label').on('click', function () {
 				$(this).find('input[type="radio"]').prop('checked', true);
@@ -50,8 +50,8 @@
 			$(document).on('click', '.sscribe-log-btn', $.proxy(this.showExportLog, this));
 			$(document).on('click', '#sscribe-support-refresh-btn', $.proxy(this.loadSupportInfo, this));
 			$(document).on('click', '#sscribe-support-copy-btn', $.proxy(this.copySupportInfo, this));
-		$('#sscribe-modal-close').on('click', $.proxy(this.closeModal, this));
-	},
+			$(document).on('click', '#sscribe-modal-close', $.proxy(this.closeModal, this));
+		},
 
 		onPostTypeChange: function () {
 			if (this.isProcessing) {
@@ -113,7 +113,7 @@
 				var $label = $(this);
 				var $input = $label.find( 'input[type="radio"]' );
 				var status = $input.val();
-				var count = counts[status] || 0;
+				var count = parseInt( counts[status], 10 ) || 0;
 
 				$label.find( '.sscribe-status-count' ).text( count );
 				$label.attr( 'data-count', count );
@@ -160,39 +160,7 @@
 				},
 				success: function (response) {
 					if (response.success && response.data.counts) {
-						var counts = response.data.counts;
-						var currentSelected = $('input[name="sscribe_post_status"]:checked');
-						var currentStillValid = false;
-						var firstAvailable = null;
-
-						$('.sscribe-status-card-label').each(function () {
-							var $label = $(this);
-							var $input = $label.find('input[type="radio"]');
-							var status = $input.val();
-							var count = counts[status] || 0;
-
-							$label.find('.sscribe-status-count').text(count);
-							$label.attr('data-count', count);
-
-							if (count === 0) {
-								$input.prop('disabled', true).prop('checked', false);
-								$label.addClass('sscribe-status-disabled');
-							} else {
-								$input.prop('disabled', false);
-								$label.removeClass('sscribe-status-disabled');
-								if (!firstAvailable) {
-									firstAvailable = $input;
-								}
-								if (currentSelected.length && currentSelected.val() === status) {
-									currentStillValid = true;
-								}
-							}
-						});
-
-						if (!currentStillValid && firstAvailable) {
-							firstAvailable.prop('checked', true);
-						}
-
+						self.updateStatusCounts(response.data.counts);
 						self.updateTimeEstimate();
 					}
 				},
@@ -384,27 +352,34 @@
 			bannerHtml += '</div></div>';
 
 			$('.sscribe-preflight-banner').remove();
-			
-			$('.sscribe-preflight-proceed').on('click', function () {
-				$('.sscribe-preflight-banner').fadeOut(200, function () { $(this).remove(); });
+
+			$('.sscribe-workspace').prepend(bannerHtml);
+
+			var $banner = $('.sscribe-preflight-banner');
+
+			$banner.on('click.sscribe-preflight', '.sscribe-preflight-proceed', function () {
+				$banner.fadeOut(200, function () { $banner.remove(); });
 				onProceed();
 			});
 
-			$('.sscribe-preflight-cancel').on('click', function () {
-				$('.sscribe-preflight-banner').fadeOut(200, function () { $(this).remove(); });
+			$banner.on('click.sscribe-preflight', '.sscribe-preflight-cancel', function () {
+				$banner.fadeOut(200, function () { $banner.remove(); });
 				SScribe.isProcessing = false;
 				SScribe.resetUI();
-											});
+			});
 
-			$('.sscribe-preflight-close').on('click', function () {
-				$('.sscribe-preflight-banner').fadeOut(200, function () { $(this).remove(); });
+			$banner.on('click.sscribe-preflight', '.sscribe-preflight-close', function () {
+				$banner.fadeOut(200, function () { $banner.remove(); });
 				SScribe.isProcessing = false;
 				SScribe.resetUI();
-											});
+			});
 
-			$('html, body').animate({
-				scrollTop: $('.sscribe-preflight-banner').offset().top - 20
-			}, 300);
+			var bannerOffset = $banner.offset();
+			if (bannerOffset) {
+				$('html, body').animate({
+					scrollTop: bannerOffset.top - 20
+				}, 300);
+			}
 		},
 
 		proceedWithExport: function (language, postStatus, postType, formats) {
@@ -484,6 +459,13 @@
 				return;
 			}
 
+			if (this._batchInProgress) {
+				return;
+			}
+			this._batchInProgress = true;
+
+			var self = this;
+
 			$.ajax({
 				url: sscribe_data.ajaxurl,
 				type: 'POST',
@@ -494,6 +476,7 @@
 					session_id: this.sessionId
 				},
 				success: function (response) {
+					self._batchInProgress = false;
 					if (response.success) {
 						SScribe.batchRetries = 0;
 						var data = response.data;
@@ -530,7 +513,7 @@
 						}
 					} else {
 						var isCancelled = response.data.cancelled === true;
-					if (response.data.retry === true) {
+						if (response.data.retry === true) {
 							SScribe.scheduleNextBatch(response.data && response.data.retry_in);
 						} else {
 							SScribe.showError(response.data.message, isCancelled, SScribe.normalizeErrorData(response.data));
@@ -538,6 +521,7 @@
 					}
 				},
 				error: function (xhr) {
+					SScribe._batchInProgress = false;
 					SScribe.batchRetries++;
 					if (SScribe.batchRetries <= SScribe.maxBatchRetries) {
 						SScribe.scheduleNextBatch();
@@ -707,6 +691,10 @@
 		},
 
 		updateProgress: function (percentage) {
+			percentage = Number(percentage);
+			if (!isFinite(percentage)) {
+				percentage = 0;
+			}
 			percentage = Math.min(100, Math.max(0, percentage));
 
 			var progressBar = document.getElementById('sscribe-progress-bar');
@@ -735,7 +723,7 @@
 		},
 
 		showProgress: function () {
-						$('#sscribe-download-area').addClass('sscribe-hidden');
+			$('#sscribe-download-area').addClass('sscribe-hidden');
 			$('#sscribe-error-area').addClass('sscribe-hidden');
 			$('#sscribe-progress-area').removeClass('sscribe-hidden').hide().fadeIn(400);
 			$('#sscribe-current-page').text('').hide();
@@ -746,7 +734,7 @@
 
 		showError: function (message, isCancelled, errorData) {
 			this.isProcessing = false;
-						$('#sscribe-progress-area').fadeOut(200);
+			$('#sscribe-progress-area').fadeOut(200);
 
 			var displayMessage = message;
 			var guidance = '';
@@ -920,12 +908,12 @@
 					self.sessionId = null;
 					self.isProcessing = false;
 					self.resetUI();
-														},
+				},
 				error: function () {
 					self.sessionId = null;
 					self.isProcessing = false;
 					self.resetUI();
-														}
+				}
 			});
 		},
 
@@ -953,8 +941,7 @@
 							$(this).remove();
 							if ($('.sscribe-history-row').length === 0) {
 								var emptyMsg = (sscribe_data.strings && sscribe_data.strings.history_empty) || 'Your recent export packages will appear here.';
-								$('#sscribe-history-table').html('<div class="sscribe-history-empty"><em></em></div>');
-								$('#sscribe-history-table').find('em').text(emptyMsg);
+								$('#sscribe-history-table').html('<div class="sscribe-history-empty"><em>' + emptyMsg + '</em></div>');
 							}
 						});
 					} else {
@@ -979,8 +966,14 @@
 			$('#sscribe-log-content').find('span').text((sscribe_data.strings && sscribe_data.strings.loading_log) || 'Loading log...');
 
 			var modal = document.getElementById('sscribe-log-modal');
+			if (!modal) {
+				return;
+			}
 			this.trapFocus(modal);
-			modal.querySelector('.sscribe-modal-close').focus();
+			var closeBtn = modal.querySelector('.sscribe-modal-close');
+			if (closeBtn) {
+				closeBtn.focus();
+			}
 
 			$.ajax({
 				url: sscribe_data.ajaxurl,
@@ -1033,10 +1026,10 @@
 					var formats = page.formats ? Object.keys(page.formats).join(', ') : '';
 
 					html += '<tr>';
-					html += '<td>' + page.id + '</td>';
+					html += '<td>' + self.escapeHtml(String(page.id || '')) + '</td>';
 					html += '<td>' + self.escapeHtml(page.title || (strings.log_unknown || 'Unknown')) + '</td>';
 					html += '<td class="' + statusClass + '">' + self.escapeHtml(page.status) + '</td>';
-					html += '<td>' + (page.duration ? page.duration + (strings.log_seconds_suffix || 's') : (strings.log_no_duration || '-')) + '</td>';
+					html += '<td>' + (page.duration ? self.escapeHtml(String(page.duration)) + (strings.log_seconds_suffix || 's') : (strings.log_no_duration || '-')) + '</td>';
 					html += '<td>' + self.escapeHtml(formats) + '</td>';
 					html += '</tr>';
 				}
@@ -1144,6 +1137,11 @@
 		},
 
 		closeModal: function () {
+			var modal = document.getElementById('sscribe-log-modal');
+			if (modal && modal._sscribeTrapHandler) {
+				modal.removeEventListener('keydown', modal._sscribeTrapHandler);
+				modal._sscribeTrapHandler = null;
+			}
 			$('#sscribe-log-modal').addClass('sscribe-hidden');
 			this.restoreFocus();
 		},
@@ -1186,7 +1184,8 @@
 					if (response.success && response.data) {
 						self.renderPreview(response.data);
 					} else {
-						$content.html('<p class="sscribe-preview-note">' + self.escapeHtml(response.data.message || 'Preview not available') + '</p>');
+						var fallbackMsg = (response && response.data && response.data.message) || 'Preview not available';
+						$content.html('<p class="sscribe-preview-note">' + self.escapeHtml(fallbackMsg) + '</p>');
 					}
 				},
 				error: function () {
@@ -1312,12 +1311,12 @@
 					html += '<section class="sscribe-support-section">';
 					html += '<h3 class="sscribe-support-section-title">' + this.escapeHtml(section.label) + '</h3>';
 					html += '<dl class="sscribe-support-list">';
-					for (var itemKey in section.items) {
-						if (!section.items.hasOwnProperty(itemKey)) continue;
-						html += '<div class="sscribe-support-list-row">';
-						html += '<dt>' + this.escapeHtml(this.humanizeSupportKey(itemKey)) + '</dt>';
-						html += '<dd>' + this.escapeHtml(String(section.items[itemKey] || '')) + '</dd>';
-						html += '</div>';
+				for (var itemKey in section.items) {
+					if (!section.items.hasOwnProperty(itemKey)) continue;
+					html += '<div class="sscribe-support-list"><div class="sscribe-support-list-row">';
+					html += '<dt>' + this.escapeHtml(this.humanizeSupportKey(itemKey)) + '</dt>';
+					html += '<dd>' + this.escapeHtml(String(section.items[itemKey] || '')) + '</dd>';
+					html += '</div></div>';
 					}
 					html += '</dl></section>';
 				}
@@ -1363,15 +1362,28 @@
 			};
 
 			if (navigator.clipboard && navigator.clipboard.writeText) {
-				navigator.clipboard.writeText(text).then(onSuccess);
+				navigator.clipboard.writeText(text).then(onSuccess, function () {
+					SScribe.copyViaTextarea(text, onSuccess);
+				});
 				return;
 			}
 
+			SScribe.copyViaTextarea(text, onSuccess);
+		},
+
+		copyViaTextarea: function (text, onSuccess) {
 			var textarea = document.getElementById('sscribe-support-copy-text');
+			if (!textarea) {
+				return;
+			}
 			textarea.focus();
 			textarea.select();
-			document.execCommand('copy');
-			onSuccess();
+			try {
+				document.execCommand('copy');
+				onSuccess();
+			} catch (e) {
+				// eslint-disable-next-line no-empty
+			}
 		},
 
 		humanizeSupportKey: function (key) {
@@ -1390,14 +1402,26 @@
 		},
 
 		trapFocus: function (container) {
+			if (!container || typeof container.querySelectorAll !== 'function') {
+				return;
+			}
+
 			var focusableSelectors = 'a[href], button:not([disabled]), textarea:not([disabled]), input:not([disabled]), select:not([disabled]), [tabindex]:not([tabindex="-1"])';
 			var focusableElements = container.querySelectorAll(focusableSelectors);
+
+			if (focusableElements.length === 0) {
+				return;
+			}
+
 			var firstFocusable = focusableElements[0];
 			var lastFocusable = focusableElements[focusableElements.length - 1];
 
-			container.addEventListener('keydown', function (e) {
-				if (e.key !== 'Tab') return;
+			if (container._sscribeTrapHandler) {
+				container.removeEventListener('keydown', container._sscribeTrapHandler);
+			}
 
+			var handler = function (e) {
+				if (e.key !== 'Tab') return;
 				if (e.shiftKey) {
 					if (document.activeElement === firstFocusable) {
 						e.preventDefault();
@@ -1409,8 +1433,11 @@
 						firstFocusable.focus();
 					}
 				}
-			});
-		}
+			};
+
+			container._sscribeTrapHandler = handler;
+			container.addEventListener('keydown', handler);
+		},
 	};
 
 	$(document).ready(function () {
