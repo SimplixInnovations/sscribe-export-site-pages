@@ -2088,10 +2088,73 @@ class SScribe_Batch_Processor {
 
 		$filename  = isset( $_GET['file'] ) ? sanitize_file_name( wp_unslash( $_GET['file'] ) ) : '';
 
+		$export_dir = ''; // Initialize to satisfy PHPStan (assigned in try block below).
+
 		// SECURITY: Wrap get_export_dir() to catch potential \InvalidArgumentException
 		// from SScribe_Security::protect_directory() (path scope validation).
 		try {
 			$export_dir = $this->zip_handler->get_export_dir();
+
+			$file_path = $export_dir . '/' . $filename;
+
+			if ( empty( $filename ) || ! file_exists( $file_path ) ) {
+				status_header( 404 );
+				wp_die( esc_html__( 'File not found or has expired. Please generate a new export.', 'sscribe-export-site-pages' ) );
+			}
+
+			$real_path = realpath( $file_path );
+			$real_dir  = realpath( $export_dir );
+
+			// SECURITY: Require trailing separator to prevent path-prefix attacks
+			// (e.g., /var/www/exports_evil passing for /var/www/exports).
+			$safe_dir = false !== $real_dir ? rtrim( $real_dir, DIRECTORY_SEPARATOR ) . DIRECTORY_SEPARATOR : '';
+			if ( false === $real_path || false === $real_dir || ! str_starts_with( $real_path, $safe_dir ) || 'zip' !== pathinfo( $filename, PATHINFO_EXTENSION ) ) {
+				status_header( 400 );
+				wp_die( esc_html__( 'Invalid file request.', 'sscribe-export-site-pages' ) );
+			}
+
+			$exports = get_option( 'sscribe_export_index', array() );
+			if ( ! isset( $exports[ $filename ] ) || ! is_array( $exports[ $filename ] ) ) {
+				$this->audit_log( 'download_orphaned_denied', array( 'filename' => $filename ) );
+				status_header( 403 );
+				wp_die( esc_html__( 'Invalid file access.', 'sscribe-export-site-pages' ) );
+			}
+
+			$export_info = $exports[ $filename ];
+			if ( isset( $export_info['user_id'] ) && get_current_user_id() !== (int) $export_info['user_id'] ) {
+				$this->audit_log( 'download_access_denied', array( 'filename' => $filename ) );
+				status_header( 403 );
+				wp_die( esc_html__( 'Invalid file access.', 'sscribe-export-site-pages' ) );
+			}
+
+			$ascii_filename = preg_replace( '/[^a-zA-Z0-9._-]/', '_', $filename );
+
+			header( 'Content-Type: application/zip' );
+			header( 'Content-Disposition: attachment; filename="' . $ascii_filename . '"; filename*=UTF-8\'\'' . rawurlencode( $filename ) );
+			header( 'Content-Length: ' . filesize( $file_path ) );
+			header( 'Cache-Control: no-cache, no-store, must-revalidate' );
+			header( 'Pragma: no-cache' );
+			header( 'Expires: 0' );
+			header( 'X-Content-Type-Options: nosniff' );
+
+			if ( ob_get_level() ) {
+				ob_end_clean();
+			}
+
+			// Log successful download for audit trail.
+			$this->audit_log( 'download', array( 'filename' => $filename ) );
+
+			// SECURITY FIX: Re-check file existence immediately before read to prevent TOCTOU race condition.
+			// File could be deleted by cleanup cron between initial check and actual read.
+			if ( ! file_exists( $file_path ) || ! is_readable( $file_path ) ) {
+				status_header( 404 );
+				wp_die( esc_html__( 'File no longer available. Please regenerate the export.', 'sscribe-export-site-pages' ) );
+			}
+
+			flush();
+			// phpcs:ignore WordPress.WP.AlternativeFunctions.file_system_operations_readfile -- Direct download
+			readfile( $file_path );
+			exit;
 		} catch ( \InvalidArgumentException $e ) {
 			$this->logger->error(
 				'Export directory access failed during download',
