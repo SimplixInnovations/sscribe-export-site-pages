@@ -186,9 +186,9 @@ class SScribe_Session {
 				$this->logger->warning(
 					'JSON decode failed for session, attempting legacy migration',
 					array(
-						'session_id' => $session_id,
-						'json_error' => $json_error,
-						'raw_len'    => strlen( $raw ),
+						'session_id'  => $session_id,
+						'json_error'  => $json_error,
+						'raw_len'     => strlen( $raw ),
 						'raw_preview' => substr( $raw, 0, 100 ),
 					)
 				);
