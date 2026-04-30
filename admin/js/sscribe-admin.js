@@ -50,16 +50,8 @@
 			$(document).on('click', '.sscribe-log-btn', $.proxy(this.showExportLog, this));
 			$(document).on('click', '#sscribe-support-refresh-btn', $.proxy(this.loadSupportInfo, this));
 			$(document).on('click', '#sscribe-support-copy-btn', $.proxy(this.copySupportInfo, this));
-			$('#sscribe-modal-close').on('click', $.proxy(this.closeModal, this));
-
-			$(document).on('click', '.sscribe-wizard-next', function () {
-				var next = parseInt($(this).data('next'));
-				if (next === 0) {
-					SScribe.onPostTypeChange();
-				} else if (next === 1) {
-					SScribe.onLanguageChange();
-				}
-		},
+		$('#sscribe-modal-close').on('click', $.proxy(this.closeModal, this));
+	},
 
 		onPostTypeChange: function () {
 			if (this.isProcessing) {
@@ -392,8 +384,7 @@
 			bannerHtml += '</div></div>';
 
 			$('.sscribe-preflight-banner').remove();
-			$('.sscribe-wizard-steps').before(bannerHtml);
-
+			
 			$('.sscribe-preflight-proceed').on('click', function () {
 				$('.sscribe-preflight-banner').fadeOut(200, function () { $(this).remove(); });
 				onProceed();
@@ -403,15 +394,13 @@
 				$('.sscribe-preflight-banner').fadeOut(200, function () { $(this).remove(); });
 				SScribe.isProcessing = false;
 				SScribe.resetUI();
-				$('.sscribe-wizard-steps').show();
-							});
+											});
 
 			$('.sscribe-preflight-close').on('click', function () {
 				$('.sscribe-preflight-banner').fadeOut(200, function () { $(this).remove(); });
 				SScribe.isProcessing = false;
 				SScribe.resetUI();
-				$('.sscribe-wizard-steps').show();
-							});
+											});
 
 			$('html, body').animate({
 				scrollTop: $('.sscribe-preflight-banner').offset().top - 20
@@ -746,9 +735,7 @@
 		},
 
 		showProgress: function () {
-			$('.sscribe-wizard-panel').removeClass('sscribe-wizard-panel-active');
-			$('.sscribe-wizard-steps').hide();
-			$('#sscribe-download-area').addClass('sscribe-hidden');
+						$('#sscribe-download-area').addClass('sscribe-hidden');
 			$('#sscribe-error-area').addClass('sscribe-hidden');
 			$('#sscribe-progress-area').removeClass('sscribe-hidden').hide().fadeIn(400);
 			$('#sscribe-current-page').text('').hide();
@@ -759,10 +746,7 @@
 
 		showError: function (message, isCancelled, errorData) {
 			this.isProcessing = false;
-			$('.sscribe-wizard-panel').removeClass('sscribe-wizard-panel-active');
-			$('.sscribe-wizard-panel[data-step="3"]').addClass('sscribe-wizard-panel-active');
-			$('.sscribe-wizard-steps').show();
-			$('#sscribe-progress-area').fadeOut(200);
+						$('#sscribe-progress-area').fadeOut(200);
 
 			var displayMessage = message;
 			var guidance = '';
@@ -936,14 +920,12 @@
 					self.sessionId = null;
 					self.isProcessing = false;
 					self.resetUI();
-					$('.sscribe-wizard-steps').show();
-									},
+														},
 				error: function () {
 					self.sessionId = null;
 					self.isProcessing = false;
 					self.resetUI();
-					$('.sscribe-wizard-steps').show();
-									}
+														}
 			});
 		},
 

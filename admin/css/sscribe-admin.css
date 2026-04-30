@@ -76,22 +76,6 @@
 	}
 }
 
-@media (prefers-color-scheme: dark) {
-	.sscribe-master-container {
-		--sscribe-bg: #121212;
-		--sscribe-card-bg: #1e1e1e;
-		--sscribe-border: #3a3a3a;
-		--sscribe-border-hover: #555555;
-		--sscribe-text-main: #ffffff;
-		--sscribe-text-secondary: #e6e6e6;
-		--sscribe-text-muted: #bfbfbf;
-		--sscribe-primary-light: rgba(8,145,178,0.08);
-	--sscribe-shadow-sm: 0 1px 2px rgba(0,0,0,0.4);
-		--sscribe-shadow-md: 0 6px 18px rgba(0,0,0,0.5);
-	}
-}
-}
-
 /* ============================================
    BASE STYLES
    ============================================ */
@@ -2565,22 +2549,7 @@
 
 /* ============================================
    HIGH CONTRAST MODE (Accessibility)
-============================================ */
-@media (prefers-contrast: high) {
-	.sscribe-panel {
-		border-width: 2px;
-	}
-	
-	.sscribe-button-primary {
-		border: 2px solid currentColor;
-	}
-	
-	.sscribe-status-card-inner,
-	.sscribe-lang-card-inner,
-	.sscribe-format-card-inner {
-		border-width: 2px;
-	}
-}
+   ============================================ */
 
 /* ============================================
    ACCESSIBILITY ENHANCEMENTS (WCAG 2.1 AA)
