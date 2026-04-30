@@ -166,6 +166,13 @@ class SScribe_Session {
 		$raw = get_option( $option_name );
 
 		if ( false === $raw ) {
+			$this->logger->debug(
+				'Session not found in database',
+				array(
+					'session_id'  => $session_id,
+					'option_name' => $option_name,
+				)
+			);
 			return null;
 		}
 
@@ -175,9 +182,26 @@ class SScribe_Session {
 			$data = json_decode( $raw, true );
 
 			if ( ! is_array( $data ) ) {
+				$json_error = json_last_error_msg();
+				$this->logger->warning(
+					'JSON decode failed for session, attempting legacy migration',
+					array(
+						'session_id' => $session_id,
+						'json_error' => $json_error,
+						'raw_len'    => strlen( $raw ),
+						'raw_preview' => substr( $raw, 0, 100 ),
+					)
+				);
 				$data = $this->migrate_legacy_session( $session_id, $raw );
 			}
 		} else {
+			$this->logger->warning(
+				'Session option has unexpected type',
+				array(
+					'session_id' => $session_id,
+					'raw_type'   => gettype( $raw ),
+				)
+			);
 			return null;
 		}
 

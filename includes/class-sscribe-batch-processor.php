@@ -833,12 +833,13 @@ class SScribe_Batch_Processor {
 		$lock_token      = wp_generate_password( 32, false );
 		$existing_lock   = get_transient( $lock_key );
 		$current_time    = time();
-		$stale_threshold = (int) apply_filters( 'sscribe_lock_stale_threshold', 25 );
+		$lock_ttl        = (int) apply_filters( 'sscribe_lock_ttl', 45 );
+		$stale_threshold = (int) apply_filters( 'sscribe_lock_stale_threshold', 35 );
 
 		if ( $existing_lock ) {
 			// Parse existing lock: format is "timestamp|token" for atomic operations.
 			$lock_parts = explode( '|', $existing_lock );
-			$lock_time  = (int) $lock_parts[0];
+			$lock_time  = (int) ( $lock_parts[0] ?? 0 );
 			$lock_age   = $current_time - $lock_time;
 
 			if ( $lock_age > $stale_threshold ) {
@@ -849,10 +850,11 @@ class SScribe_Batch_Processor {
 					array(
 						'session_id' => $session_id,
 						'lock_age'   => $lock_age,
+						'lock_ttl'   => $lock_ttl,
 					)
 				);
 				// Set new lock with token for ownership verification.
-				$lock_acquired = set_transient( $lock_key, $current_time . '|' . $lock_token, 30 );
+				$lock_acquired = set_transient( $lock_key, $current_time . '|' . $lock_token, $lock_ttl );
 				if ( ! $lock_acquired ) {
 					// Another process acquired the lock between our check and set.
 					$this->logger->debug( 'Lock acquisition failed - another process won', array( 'session_id' => $session_id ) );
@@ -883,7 +885,7 @@ class SScribe_Batch_Processor {
 			}
 		} else {
 			// No existing lock - acquire atomically.
-			$lock_acquired = set_transient( $lock_key, $current_time . '|' . $lock_token, 30 );
+			$lock_acquired = set_transient( $lock_key, $current_time . '|' . $lock_token, $lock_ttl );
 			if ( ! $lock_acquired ) {
 				// Transient storage unavailable - fail securely.
 				$this->logger->warning( 'Lock transient unavailable, aborting batch', array( 'session_id' => $session_id ) );
@@ -1529,12 +1531,33 @@ class SScribe_Batch_Processor {
 	/**
 	 * Restore output buffering to the target level.
 	 *
+	 * Uses ob_end_clean() (not ob_end_flush()) since we always want to discard
+	 * buffers, never flush them. Also handles the "headers already sent" scenario
+	 * gracefully — if output was already started by a third-party plugin (e.g. WPML
+	 * emitting whitespace/BOM before AJAX response), the buffer is discarded and we
+	 * allow the JSON response to continue, relying on the ob_start() guard above to
+	 * isolate each handler.
+	 *
 	 * @param int $target_level The ob level to restore to.
 	 * @return void
 	 */
 	private function restore_ob_level( int $target_level ): void {
+		// First, unconditionally drain ALL buffers down to target level.
+		// This ensures that any pre-existing output (e.g. from WPML) is discarded
+		// before we attempt to send the JSON response. Doing this first prevents
+		// corrupted AJAX responses where JSON is prepended with stray HTML/PHP warnings.
 		while ( ob_get_level() > $target_level ) {
 			ob_end_clean();
+		}
+
+		// If headers were already sent by a third-party plugin (WPML BOM/whitespace),
+		// the main output may still contain garbage before our JSON payload.
+		// Attempt one final drain of any remaining buffers — this is a best-effort
+		// recovery so the client at least gets parseable JSON.
+		if ( headers_sent() && ob_get_level() > $target_level ) {
+			while ( ob_get_level() > $target_level ) {
+				ob_end_clean();
+			}
 		}
 	}
 
@@ -1901,120 +1924,50 @@ class SScribe_Batch_Processor {
 		}
 	}
 
-	/**
-	 * AJAX handler: Finalize export (ZIP packaging).
+/**
+	 * AJAX handler: System health check.
 	 *
-	 * Called asynchronously after all pages are processed. The server returns
-	 * 95%/finalizing from process_batch and then JS polls this endpoint until
-	 * the ZIP is ready. This avoids PHP max_execution_time issues when creating
-	 * large ZIP archives with many PDF files.
+	 * For unauthenticated requests: returns minimal reachability check.
+	 * For authenticated requests: returns full diagnostics + boot state.
+	 * Rate limiting is applied to authenticated requests to prevent abuse.
 	 *
 	 * @return void
 	 */
-	public function ajax_finalize_export(): void {
-		if ( ! current_user_can( $this->get_required_capability() ) ) {
-			wp_send_json_error(
+	public function ajax_health_check(): void {
+		// For unauthenticated requests, return minimal reachability check only.
+		if ( ! is_user_logged_in() ) {
+			wp_send_json_success(
 				array(
-					'message' => __( 'Permission denied.', 'sscribe-export-site-pages' ),
-				),
-				403
-			);
-			return;
-		}
-
-		check_ajax_referer( 'sscribe_export_nonce', 'nonce' );
-
-		if ( ! $this->check_rate_limit() ) {
-			return;
-		}
-
-		$session_id = isset( $_POST['session_id'] ) ? sanitize_text_field( wp_unslash( $_POST['session_id'] ) ) : '';
-
-		if ( empty( $session_id ) ) {
-			wp_send_json_error(
-				array(
-					'message' => __( 'Session ID is required.', 'sscribe-export-site-pages' ),
-				),
-				400
-			);
-			return;
-		}
-
-		$session = $this->session->get( $session_id );
-
-		if ( ! $session ) {
-			wp_send_json_error(
-				array(
-					'message' => __( 'Session not found or has expired. Please start a new export.', 'sscribe-export-site-pages' ),
-				),
-				404
-			);
-			return;
-		}
-
-		// Re-validate session integrity before heavy finalization work.
-		if ( ! $this->session->validate( $session_id ) ) {
-			wp_send_json_error(
-				array(
-					'message' => __( 'Session integrity check failed. Please start a new export.', 'sscribe-export-site-pages' ),
-				),
-				500
-			);
-			return;
-		}
-
-		// Only allow finalizing sessions that are actually in 'finalizing' state.
-		if ( isset( $session['status'] ) && 'finalizing' !== $session['status'] ) {
-			$this->logger->debug(
-				'Finalize requested but session not in finalizing state',
-				array(
-					'session_id' => $session_id,
-					'status'     => $session['status'],
+					'status'      => 'ok',
+					'server_time' => current_time( 'mysql' ),
+					'server_utc'  => gmdate( 'Y-m-d H:i:s' ),
 				)
 			);
+			return;
+		}
+
+		// Authenticated requests are rate-limited to prevent abuse.
+		if ( ! $this->check_rate_limit() ) {
 			wp_send_json_error(
 				array(
-					'code'    => 'not_finalizing',
-					'message' => __( 'Export is not ready for finalization. Current status: ', 'sscribe-export-site-pages' ) . $session['status'],
+					'message' => __( 'Too many requests. Please wait a moment.', 'sscribe-export-site-pages' ),
 				),
-				409 // Conflict.
+				429 // HTTP 429 Too Many Requests.
 			);
 			return;
 		}
 
-		if ( ! $this->validate_session_ownership( $session, $session_id ) ) {
-			wp_send_json_error(
-				array(
-					'message' => __( 'Session access denied.', 'sscribe-export-site-pages' ),
-				),
-				403
-			);
-			return;
-		}
+		$diagnostics = $this->diagnostics->check_ajax_health();
+		$boot        = $this->diagnostics->get_boot_diagnostics();
 
-		// Re-acquire lock if it was released by process_batch.
-		$lock_key = 'sscribe_lock_' . $session_id;
-		if ( empty( get_transient( $lock_key ) ) ) {
-			$lock_token = wp_generate_password( 32, false );
-			set_transient( $lock_key, time() . '|' . $lock_token, 5 * MINUTE_IN_SECONDS );
-			$this->current_lock_token = $lock_token;
-
-			// Read-after-write verification: confirm we actually own the lock (race check).
-			// If another finalize request wrote first, our token won't match.
-			$verify = get_transient( $lock_key );
-			if ( ! $verify || ! str_ends_with( $verify, '|' . $lock_token ) ) {
-				wp_send_json_error(
-					array(
-						'code'    => 'lock_contested',
-						'message' => __( 'Export finalization is in progress by another request. Please wait and retry.', 'sscribe-export-site-pages' ),
-					),
-					409
-				);
-				return;
-			}
-		}
-
-		$this->finalize_export( $session_id, $session );
+		wp_send_json_success(
+			array(
+				'ajax_health' => $diagnostics,
+				'boot_state'  => $boot,
+				'server_time' => current_time( 'mysql' ),
+				'server_utc'  => gmdate( 'Y-m-d H:i:s' ),
+			)
+		);
 	}
 
 	/**
@@ -3050,41 +3003,6 @@ class SScribe_Batch_Processor {
 				500
 			);
 		}
-	}
-
-	/**
-	 * AJAX handler: Check AJAX health to diagnose 404/network errors.
-	 *
-	 * Provides a lightweight diagnostic endpoint to verify admin-ajax.php
-	 * is reachable, plugin hooks are registered, and common CDN/proxy
-	 * issues are surfaced.
-	 *
-	 * @return void
-	 */
-	public function ajax_health_check(): void {
-		// For unauthenticated requests, return minimal reachability check only.
-		if ( ! is_user_logged_in() ) {
-			wp_send_json_success(
-				array(
-					'status'      => 'ok',
-					'server_time' => current_time( 'mysql' ),
-					'server_utc'  => gmdate( 'Y-m-d H:i:s' ),
-				)
-			);
-			return;
-		}
-
-		$diagnostics = $this->diagnostics->check_ajax_health();
-		$boot        = $this->diagnostics->get_boot_diagnostics();
-
-		wp_send_json_success(
-			array(
-				'ajax_health' => $diagnostics,
-				'boot_state'  => $boot,
-				'server_time' => current_time( 'mysql' ),
-				'server_utc'  => gmdate( 'Y-m-d H:i:s' ),
-			)
-		);
 	}
 
 	/**
