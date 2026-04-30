@@ -4,7 +4,7 @@ Donate link: https://simplixi.com
 Tags: export, docx, multilingual, seo, pdf
 Requires at least: 6.0
 Tested up to: 6.9.5
-Stable tag: 3.34.0
+Stable tag: 3.35.0
 Requires PHP: 8.2
 License: GPLv2 or later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
@@ -229,6 +229,21 @@ Each document includes: cover page with title/URL/date/breadcrumbs, featured ima
 
 == Changelog ==
 
+= 3.35.0 =
+
+* Security: Health check AJAX endpoint now enforces capability check (export_site_pages) for authenticated diagnostics
+* Reliability: Batch processor caps in-memory error arrays at 50 entries to prevent OOM on 500+ page exports — errors beyond limit remain in disk-based export log
+* Reliability: Image processor replaces `@getimagesize` error suppression with structured `set_error_handler()` logging
+* Reliability: Container circular dependency exceptions now include the offending service key for faster debugging
+* UX: Dark mode card contrast improved — primary-light opacity 0.08→0.15, checked-state ring 0.1→0.2
+* Maintenance: Self-heal lock threshold increased from 60s to 300s to prevent false positives on slow servers
+* Maintenance: Deactivation now cleans up all plugin options, transients, database tables, and export files
+* Maintenance: Removed dead wizard CSS (130+ lines of unused styles for removed multi-step wizard UI)
+* Maintenance: Removed class-sscribe-error.php PHPCS exclusion — file now fully compliant
+* Maintenance: Trimmed readme.txt changelog to 10 recent versions for WordPress.org compliance
+* Maintenance: Re-enabled composer `platform-check` for accurate PHP version validation
+* Build: Regenerated minified assets (54KB CSS, 45KB JS)
+
 = 3.34.0 =
 
 * Security: Health check AJAX now applies rate limiting to authenticated requests to prevent abuse
@@ -346,111 +361,6 @@ Each document includes: cover page with title/URL/date/breadcrumbs, featured ima
 * Improved: PDF exporter supports RTL content with Arabic fonts
 * Improved: Markdown exporter adds BOM marker for RTL language compatibility
 * Improved: .gitignore updated to exclude agent metadata directories
-
-= 3.20.7 =
-
-* Improved: Type safety in get_page_data() - filter results now validated before return
-* Improved: Path handling robustness using untrailingslashit() for export directory
-* Code: Both minor audit findings from comprehensive review addressed
-
-= 3.20.6 =
-
-* Fixed: Fatal error on export - calculate_export_memory_requirement() now correctly returns int (was returning float)
-* Fixed: Fatal error on ZIP creation - changed add_transient() to set_transient() (WordPress API typo)
-* Fixed: Database activation warning - PRIMARY KEY now on separate line for dbDelta compatibility
-* Fixed: All three tables (export_logs, export_stats, audit_log) use correct dbDelta schema format
-
-= 3.15.7 =
-
-* Fixed: Version consistency - all version references now synchronized (PHP header, constant, CSS, POT)
-* Fixed: Session collision handling - added retry loop for race condition resilience
-* Fixed: N+1 query in WPML path - now uses post objects directly instead of per-ID queries
-* Fixed: Rate limiter TOCTOU race condition - simplified to transient-based approach
-* Fixed: Capability whitelist validation in get_required_capability()
-* Fixed: CSS version header synchronized to 3.15.7
-* Fixed: POT file Project-Id-Version synchronized to 3.15.7
-* Improved: All PHPStan and PHPCS checks passing
-* Improved: 106 unit tests all passing
-
-= 3.15.5 =
-
-* Fixed: Rate limiting now applies to admins with higher limit (1000/min) instead of complete bypass
-* Fixed: Added audit logging for successful file downloads
-* Fixed: Cleanup locks only removes expired locks (prevents race conditions)
-* Fixed: Preview content now sanitized with wp_kses_post() to prevent XSS
-* Improved: Moved hook registration from constructor to run() for testability
-* Improved: Added Markdown exporter to DI container for consistency
-* Improved: Removed redundant require_once calls (Composer autoloader handles it)
-
-= 3.15.4 =
-
-* New: JS minification with SCRIPT_DEBUG switch (38KB → 31KB production savings)
-* Improved: Added transient caching for admin page data (60s TTL, reduces DB queries)
-* Improved: Added transient caching for export file list (30s TTL, reduces filesystem calls)
-* Improved: Fixed double filemtime() calls in export file sorting (was 4 stat calls/file, now 1)
-* Improved: Moved wp_create_nonce() outside file loop (was generating N nonces, now 1)
-* Performance: Admin page now caches 4+ DB queries and file operations for enterprise scale
-
-= 3.15.3 =
-
-* Fixed: SSCRIBE_DEBUG define pattern that caused PHP warnings when pre-defined in wp-config.php
-* Fixed: Reduced tags from 14 to 5 (WP.org hard limit)
-* Fixed: Corrected PSR-4 autoloading claim to classmap
-* Improved: Removed redundant manual require_once calls (rely on Composer autoloader)
-* Improved: Added no_found_rows and cache flags to admin query for 20-40% performance gain
-* Improved: Converted sscribe_init to anonymous function (no global namespace pollution)
-* Improved: Removed class_exists guard that hid autoloader failures
-* Improved: Updated plugin description to mention all 4 export formats
-
-= 3.15.2 =
-
-* Fixed: Query Monitor detection logic (was incorrectly upgrading when QM disabled)
-* Fixed: WordPress "Tested up to" version updated to 6.9
-
-= 3.15.1 =
-
-* Improved: Trimmed changelog to last 3 versions for WordPress.org compliance
-* Improved: Added false check to file_get_contents for better error handling
-* Improved: Replaced @ error suppression with proper logging in filesystem operations
-* Improved: Optimized admin display query from N+1 pattern to single batch query
-* Fixed: All performance and WordPress standards issues resolved (now 10/10 in all categories)
-
-= 3.15.0 =
-
-* New: Integrated enhanced logger with automatic Query Monitor support and database logging
-* New: Logger automatically upgrades when Query Monitor is active or debug mode is enabled
-* Improved: PHPCS testVersion updated from 8.1 to 8.2 to match minimum PHP requirement
-* Improved: Tested up to WordPress 6.9.4 for latest compatibility
-* Improved: Screenshots excluded from distribution package (WordPress.org SVN assets)
-* Improved: Export format enum file renamed to follow WordPress naming conventions
-* Fixed: All audit findings addressed - version consistency, naming conventions, CI workflow
-* Dev: Enhanced logger supports multiple destinations (file, database, Query Monitor)
-* Dev: Logger context sanitization removes sensitive data (passwords, tokens, secrets)
-
-= 3.14.2 =
-
-* Improved: Optimized session table scan with transient caching for better performance
-* Improved: Removed unused strip_shortcodes method from Content Parser
-* Improved: Cleaned up duplicate code in Page Collector WPML handling
-* Improved: Added PHPCS exclusions for legacy files and CLI scripts
-* Improved: Updated PHPStan config for comprehensive WordPress function coverage
-* Improved: Enhanced minify-css.php script with proper formatting
-* Fixed: Session handling now uses transient caching to reduce database queries
-* Dev: Added wp_count_posts mock to test bootstrap for better test isolation
-
-= 3.13.0 =
-
-* New: Enterprise-grade exception hierarchy with detailed error codes (E_EXPORT_001-E_EXPORT_999)
-* New: PSR-3 compatible logger with database logging and Query Monitor integration
-* New: Security audit trail with database-backed event logging
-* New: Comprehensive input validation class with 15 validation methods
-* New: Streaming DOCX generator for memory-efficient large exports
-* New: Export statistics tracking and analytics
-* New: Rate limiting with per-action configuration
-* Improved: WCAG 2.1 AA accessibility (modal focus traps, ARIA live regions, skip links)
-* Improved: Inline preflight banners replacing confirm() dialogs
-* Improved: Consistent loading states for all AJAX operations
-* Fixed: 25 new unit/integration/security tests added
 
 == Upgrade Notice ==
 
