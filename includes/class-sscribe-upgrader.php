@@ -76,6 +76,56 @@ class SScribe_Upgrader {
 
 		require_once ABSPATH . 'wp-admin/includes/upgrade.php';
 
+		// Migration: 3.35.0 — Ensure all core tables exist for upgrade paths.
+		if ( version_compare( $from_version, '3.35.0', '<' ) ) {
+			// Create export_logs table if missing.
+			$table_logs = $wpdb->prefix . 'sscribe_export_logs';
+			$sql_logs   = "CREATE TABLE $table_logs (
+				id BIGINT UNSIGNED NOT NULL AUTO_INCREMENT,
+				timestamp DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+				level VARCHAR(20) NOT NULL,
+				message TEXT NOT NULL,
+				context LONGTEXT,
+				user_id BIGINT UNSIGNED,
+				request_id VARCHAR(12),
+				memory_usage VARCHAR(20),
+				PRIMARY KEY  (id),
+				KEY idx_timestamp (timestamp),
+				KEY idx_level (level),
+				KEY idx_user_id (user_id),
+				KEY idx_request_id (request_id)
+			) $charset_collate;";
+			dbDelta( $sql_logs );
+
+			// Create export_stats table if missing.
+			$table_stats = $wpdb->prefix . 'sscribe_export_stats';
+			$sql_stats   = "CREATE TABLE $table_stats (
+				id BIGINT UNSIGNED NOT NULL AUTO_INCREMENT,
+				export_session_id VARCHAR(64) NOT NULL,
+				user_id BIGINT UNSIGNED NOT NULL,
+				export_date DATETIME NOT NULL,
+				total_pages INT UNSIGNED,
+				successful_pages INT UNSIGNED,
+				failed_pages INT UNSIGNED,
+				formats LONGTEXT,
+				memory_peak VARCHAR(20),
+				duration_seconds FLOAT,
+				file_size_mb DECIMAL(10, 2),
+				status ENUM('completed', 'failed', 'paused') DEFAULT 'completed',
+				error_message TEXT,
+				created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+				PRIMARY KEY  (id),
+				KEY idx_export_session_id (export_session_id),
+				KEY idx_user_id (user_id),
+				KEY idx_export_date (export_date),
+				KEY idx_status (status)
+			) $charset_collate;";
+			dbDelta( $sql_stats );
+
+			// Create audit_log table if missing.
+			SScribe_Audit_Trail::create_table();
+		}
+
 		// Migration: 3.30.13 — Add dedicated sessions table + stats index.
 		if ( version_compare( $from_version, '3.30.13', '<' ) ) {
 			$table_sessions = $wpdb->prefix . 'sscribe_sessions';
