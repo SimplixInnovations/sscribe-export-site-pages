@@ -61,9 +61,6 @@ spl_autoload_register(
 			$paths[] = SSCRIBE_PLUGIN_DIR . 'admin/class-sscribe-admin.php';
 		} else {
 			$paths[] = SSCRIBE_PLUGIN_DIR . 'includes/class-sscribe-' . $relative . '.php';
-			// Fallback: some non-Exporter classes (e.g. Streaming_DOCX_Generator)
-			// live in the exporters subdirectory.
-			$paths[] = SSCRIBE_PLUGIN_DIR . 'includes/exporters/class-sscribe-' . $relative . '.php';
 		}
 
 		foreach ( $paths as $path ) {

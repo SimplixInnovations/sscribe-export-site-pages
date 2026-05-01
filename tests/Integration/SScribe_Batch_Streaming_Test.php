@@ -69,14 +69,16 @@ class SScribe_Batch_Streaming_Test extends TestCase {
 	}
 
 	/**
-	 * Test that SScribe_Streaming_DOCX_Generator class is deprecated.
+	 * Test that SScribe_Streaming_DOCX_Generator class has been removed.
 	 */
-	public function test_streaming_generator_deprecated(): void {
-		// The streaming generator file still exists but is deprecated.
-		// It should no longer be loaded by the batch processor.
-		$this->assertTrue(
-			class_exists( 'SScribe_Streaming_DOCX_Generator' ) || ! file_exists( SSCRIBE_PLUGIN_DIR . 'includes/exporters/class-sscribe-streaming-docx-generator.php' ),
-			'Streaming generator should either exist as deprecated or be removed'
+	public function test_streaming_generator_removed(): void {
+		$this->assertFalse(
+			class_exists( 'SScribe_Streaming_DOCX_Generator' ),
+			'Streaming_DOCX_Generator class should not exist'
+		);
+		$this->assertFalse(
+			file_exists( SSCRIBE_PLUGIN_DIR . 'includes/exporters/class-sscribe-streaming-docx-generator.php' ),
+			'Streaming generator file should be removed'
 		);
 	}
 

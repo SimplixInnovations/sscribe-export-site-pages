@@ -2232,7 +2232,7 @@
 	flex-wrap: wrap;
 }
 
-.sscribe-time-estimate {
+.sscribe-export-bar .sscribe-time-estimate {
 	display: flex;
 	align-items: center;
 	gap: 6px;
@@ -2241,7 +2241,7 @@
 	font-weight: 500;
 }
 
-.sscribe-time-estimate .sscribe-icon {
+.sscribe-export-bar .sscribe-time-estimate .sscribe-icon {
 	color: var(--sscribe-text-light);
 	flex-shrink: 0;
 }

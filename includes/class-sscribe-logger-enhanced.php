@@ -394,6 +394,16 @@ class SScribe_Logger_Enhanced implements SScribe_Logger_Interface {
 	}
 
 	/**
+	 * Get recent log entries.
+	 *
+	 * @param int $limit Maximum entries to return.
+	 * @return array Log entries.
+	 */
+	public function get_logs( int $limit = 100 ): array {
+		return $this->get_db_logs( array(), $limit );
+	}
+
+	/**
 	 * Get logs from database.
 	 *
 	 * @param array $filters Filters (level, user_id, date_from, date_to).

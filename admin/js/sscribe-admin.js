@@ -581,7 +581,7 @@
 		pollFinalize: function (sessionId, attempt, delay) {
 			this.isProcessing = true;
 
-			$('#sscribe-status-label').text(sscribe_data.strings.packaging || 'Packaging files into ZIP archive...');
+			$('#sscribe-status-text').text(sscribe_data.strings.packaging || 'Packaging files into ZIP archive...');
 
 			var maxAttempts = 30;
 			var self = this;
@@ -1206,12 +1206,12 @@
 			html += '<h1>' + this.escapeHtml(data.title || strings.preview_sample_title || 'Sample Page') + '</h1>';
 
 			if (data.url) {
-				html += '<p style="color: var(--sscribe-text-muted); font-size: 13px; margin: 0 0 12px;">' + this.escapeHtml(data.url) + '</p>';
+				html += '<p style="color:var(--sscribe-text-muted);font-size:13px;margin:0 0 12px;">' + this.escapeHtml(data.url) + '</p>';
 			}
 
 			if (data.content) {
 				var previewContent = data.content.length > 300 ? data.content.substring(0, 300) + '...' : data.content;
-				html += '<div style="color: var(--sscribe-text-secondary); font-size: 13px; line-height: 1.6;">' + this.escapeHtml(previewContent) + '</div>';
+				html += '<div style="color:var(--sscribe-text-secondary);font-size:13px;line-height:1.6;">' + this.escapeHtml(previewContent) + '</div>';
 			}
 
 			html += '<div class="sscribe-preview-meta">';

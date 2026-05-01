@@ -152,6 +152,8 @@ class SScribe_PDF_Exporter implements SScribe_Exporter_Interface {
 				wp_mkdir_p( $mpdf_temp );
 			}
 
+			$this->protect_temp_directory( $mpdf_temp );
+
 			$config = array(
 				'mode'             => $is_rtl ? 'ar' : 'utf-8',
 				'default_font'     => 'manrope',
@@ -285,6 +287,24 @@ class SScribe_PDF_Exporter implements SScribe_Exporter_Interface {
 	 * @param array $page_data The page data array.
 	 * @return array Modified page data with local image paths.
 	 */
+	private function protect_temp_directory( string $dir ): void {
+		$htaccess = $dir . '.htaccess';
+		if ( ! file_exists( $htaccess ) ) {
+			@file_put_contents( // phpcs:ignore WordPress.WP.AlternativeFunctions.file_system_operations_file_put_contents
+				$htaccess,
+				"Order deny,allow\nDeny from all\n"
+			);
+		}
+
+		$index = $dir . 'index.html';
+		if ( ! file_exists( $index ) ) {
+			@file_put_contents( // phpcs:ignore WordPress.WP.AlternativeFunctions.file_system_operations_file_put_contents
+				$index,
+				''
+			);
+		}
+	}
+
 	private function process_images_in_page_data( array $page_data ): array {
 		if ( ! empty( $page_data['featured_image_url'] ) ) {
 			$local_path = SScribe_Image_Processor::download_and_optimize( $page_data['featured_image_url'] );

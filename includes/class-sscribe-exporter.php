@@ -138,19 +138,25 @@ class SScribe_Exporter {
 	 * @return string Valid URL or empty string if invalid.
 	 */
 	private function validate_url( string $url ): string {
-		$url = esc_url_raw( $url );
-
 		if ( empty( $url ) ) {
 			return '';
 		}
 
-		$parsed = wp_parse_url( $url );
-
-		if ( ! isset( $parsed['scheme'] ) || ! in_array( $parsed['scheme'], array( 'http', 'https' ), true ) ) {
-			return '';
+		if ( str_starts_with( $url, '#' ) ) {
+			return $url;
 		}
 
-		return $url;
+		if ( str_starts_with( $url, '/' ) ) {
+			return esc_url_raw( site_url( $url ) );
+		}
+
+		$scheme = strtolower( wp_parse_url( $url, PHP_URL_SCHEME ) ?? '' );
+
+		if ( in_array( $scheme, array( 'http', 'https', 'mailto', 'tel' ), true ) ) {
+			return esc_url_raw( $url );
+		}
+
+		return '';
 	}
 
 	/**
@@ -650,7 +656,7 @@ class SScribe_Exporter {
 		);
 		$meta_cell->addText(
 			/* translators: %s: export date */
-			sprintf( __( 'Extracted Date: %s', 'sscribe-export-site-pages' ), wp_date( get_option( 'date_format' ) . ' ' . get_option( 'time_format' ) ) ),
+			sprintf( __( 'Extracted Date: %s', 'sscribe-export-site-pages' ), wp_date( ( get_option( 'date_format' ) ?: 'Y-m-d' ) . ' ' . ( get_option( 'time_format' ) ?: 'H:i' ) ) ),
 			array(
 				'name'  => $this->font_name,
 				'size'  => 10,

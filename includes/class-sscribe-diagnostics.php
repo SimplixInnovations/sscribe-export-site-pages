@@ -450,9 +450,8 @@ class SScribe_Diagnostics {
 		if ( false === $free_space ) {
 			return array(
 				'name'    => 'Disk Space',
-				'status'  => 'warning',
-				'message' => 'Unable to determine free disk space. Server may restrict disk_free_space().',
-				'fix'     => 'Contact your hosting provider to verify available disk space',
+				'status'  => 'ok',
+				'message' => 'Disk space check not available on this server configuration.',
 			);
 		}
 		$free_mb = round( $free_space / 1024 / 1024 );

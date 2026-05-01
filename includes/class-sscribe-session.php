@@ -34,6 +34,11 @@ class SScribe_Session {
 	private const SESSION_CLEANUP_BATCH = 100;
 
 	/**
+	 * Expected session ID length in hex characters.
+	 */
+	private const SESSION_ID_LENGTH = 16;
+
+	/**
 	 * In-memory active session cache by user ID.
 	 *
 	 * @var array<int, bool>
@@ -154,7 +159,7 @@ class SScribe_Session {
 	public function get( string $session_id ): ?array {
 		$session_id = sanitize_key( $session_id );
 
-		if ( empty( $session_id ) || 16 !== strlen( $session_id ) ) {
+		if ( empty( $session_id ) || self::SESSION_ID_LENGTH !== strlen( $session_id ) ) {
 			return null;
 		}
 
@@ -238,7 +243,7 @@ class SScribe_Session {
 	public function update( string $session_id, array $data ): bool {
 		$session_id = sanitize_key( $session_id );
 
-		if ( empty( $session_id ) || 16 !== strlen( $session_id ) ) {
+		if ( empty( $session_id ) || self::SESSION_ID_LENGTH !== strlen( $session_id ) ) {
 			return false;
 		}
 
@@ -590,14 +595,13 @@ class SScribe_Session {
 			}
 
 			if ( isset( $data['user_id'] ) && (int) $data['user_id'] === $user_id ) {
-				if ( isset( $data['created_at'] ) && ( $now - (int) $data['created_at'] ) < $recently_started_window ) {
-					if ( isset( $data['processed'], $data['total'] ) ) {
-						$processed = (int) $data['processed'];
-						$total     = (int) $data['total'];
-						if ( $processed < $total && empty( $data['cancelled'] ) ) {
-							$has_active = true;
-							break;
-						}
+				$status = $data['status'] ?? '';
+				if ( in_array( $status, array( 'processing', 'pending', 'finalizing' ), true ) ) {
+					$processed = (int) ( $data['processed'] ?? 0 );
+					$total     = (int) ( $data['total'] ?? 0 );
+					if ( $processed < $total && empty( $data['cancelled'] ) ) {
+						$has_active = true;
+						break;
 					}
 				}
 			}

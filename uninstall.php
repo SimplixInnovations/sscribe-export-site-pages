@@ -126,15 +126,6 @@ if ( is_multisite() ) {
 			}
 			$sscribe_offset += $sscribe_number;
 		}
-	} else {
-		// phpcs:ignore WordPress.WP.DeprecatedFunctions.wp_get_sitesFound -- Fallback for WP < 4.6.
-		$sscribe_sites = wp_get_sites();
-		foreach ( $sscribe_sites as $sscribe_site ) {
-			$sscribe_blog_id = is_object( $sscribe_site ) ? $sscribe_site->blog_id : $sscribe_site['blog_id'];
-			switch_to_blog( (int) $sscribe_blog_id );
-			$sscribe_cleanup_site();
-			restore_current_blog();
-		}
 	}
 } else {
 	$sscribe_cleanup_site();

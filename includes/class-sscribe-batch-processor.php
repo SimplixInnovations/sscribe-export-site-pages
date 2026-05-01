@@ -2987,7 +2987,7 @@ class SScribe_Batch_Processor {
 				'url'       => $this->zip_handler->get_ajax_download_url( $filename ),
 				'size'      => filesize( $file_path ),
 				'time'      => $data['time'] ?? filemtime( $file_path ),
-				'date'      => wp_date( get_option( 'date_format' ) . ' ' . get_option( 'time_format' ), $data['time'] ?? filemtime( $file_path ) ),
+				'date'      => wp_date( ( get_option( 'date_format' ) ?: 'Y-m-d' ) . ' ' . ( get_option( 'time_format' ) ?: 'H:i' ), $data['time'] ?? filemtime( $file_path ) ),
 				'lang_code' => $data['lang_code'] ?? '',
 				'lang_name' => $data['lang_name'] ?? '',
 				'flag_url'  => $data['flag_url'] ?? '',

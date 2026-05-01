@@ -563,8 +563,7 @@ class SScribe_Content_Parser {
 	 * @return array Merged elements with buttons included.
 	 */
 	private function merge_buttons_into_elements( array $elements, array $buttons ): array {
-		// Prepend all detected buttons to the element stream.
-		return array_merge( $buttons, $elements );
+		return array_merge( $elements, $buttons );
 	}
 
 	/**
@@ -731,7 +730,7 @@ class SScribe_Content_Parser {
 
 		// Only allow common image file types.
 		$extension = strtolower( pathinfo( $real_local, PATHINFO_EXTENSION ) );
-		if ( ! in_array( $extension, array( 'jpg', 'jpeg', 'png', 'gif', 'webp', 'bmp' ), true ) ) {
+		if ( ! in_array( $extension, array( 'jpg', 'jpeg', 'png', 'gif', 'webp', 'bmp', 'svg', 'avif' ), true ) ) {
 			return '';
 		}
 
