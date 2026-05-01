@@ -812,7 +812,7 @@ class SScribe_Page_Collector {
 			$args['suppress_filters'] = false;
 			$switched                 = true;
 
-			// Query outside try-catch - always executes regardless of exception.
+			// WP_Query runs inside the try block; finally ensures language reset on any exception.
 			$query = new WP_Query( $args );
 
 			// Count by status directly from query posts (no N+1 - use post objects already loaded).

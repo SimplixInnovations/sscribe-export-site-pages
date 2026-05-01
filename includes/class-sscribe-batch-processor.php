@@ -1144,6 +1144,7 @@ class SScribe_Batch_Processor {
 					$exporter     = \SScribe_Exporter_Factory::create( $format );
 
 					if ( ! $exporter ) {
+						$this->logger->warning( 'Unsupported export format skipped during batch processing', array( 'format' => $format ) );
 						continue;
 					}
 
