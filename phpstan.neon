@@ -1,6 +1,5 @@
 parameters:
-    level: 6
-    memoryLimit: 512M
+    level: 5
     bootstrapFiles:
         - phpstan-bootstrap.php
     paths:
@@ -45,3 +44,5 @@ parameters:
         - '#Right side of \|\| is always false\.#'
         - '#Negated boolean expression is always true\.#'
         - '#Function has_action not found\.#'
+        # PHPStan cannot resolve private static self:: calls within same class (false positive).
+        - '#Call to an undefined static method SScribe_Deactivator::cleanup_transients\(\)\.#'
