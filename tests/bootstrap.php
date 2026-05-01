@@ -10,6 +10,13 @@ if ( ! defined( 'ABSPATH' ) ) {
 	define( 'ABSPATH', dirname( __DIR__ ) . '/fake-wp/' );
 }
 
+// Initialize $_SESSION before any WordPress code tries to use it.
+if ( session_status() === PHP_SESSION_NONE && ! headers_sent() ) {
+	// phpcs:ignore WordPress.PHP.NoSilencedErrors.Discouraged
+	@session_start();
+}
+$_SESSION = $_SESSION ?? array();
+
 define( 'SSCRIBE_PLUGIN_DIR', dirname( __DIR__ ) . '/' );
 define( 'SSCRIBE_PLUGIN_URL', 'http://example.org/wp-content/plugins/sscribe-export-site-pages/' );
 define( 'SSCRIBE_PLUGIN_BASENAME', 'sscribe-export-site-pages/sscribe-export-site-pages.php' );
@@ -117,6 +124,39 @@ if ( ! function_exists( 'trailingslashit' ) ) {
 	}
 }
 
+if ( ! function_exists( 'get_bloginfo' ) ) {
+	function get_bloginfo( $show = '', $filter = 'raw' ) {
+		$site_name = 'Test Site';
+		switch ( $show ) {
+			case 'name':
+				return $site_name;
+			case 'description':
+				return 'Just another WordPress site';
+			case 'url':
+			case 'home':
+				return 'https://example.org';
+			case 'wpurl':
+			case 'siteurl':
+				return 'https://example.org/wp';
+			case 'version':
+				return '6.4.0';
+			default:
+				return $site_name;
+		}
+	}
+}
+
+if ( ! function_exists( 'wp_strip_all_tags' ) ) {
+	function wp_strip_all_tags( $string, $remove_breaks = false ) {
+		$string = preg_replace( '@<(script|style)[^>]*?>.*?</\\1>@si', '', $string );
+		$string = strip_tags( $string );
+		if ( $remove_breaks ) {
+			$string = preg_replace( '/[\r\n\t ]+/', ' ', $string );
+		}
+		return trim( $string );
+	}
+}
+
 if ( ! function_exists( 'wp_mkdir_p' ) ) {
 	function wp_mkdir_p( $sscribe_dir ) {
 		if ( ! is_dir( $sscribe_dir ) ) {
@@ -159,6 +199,99 @@ if ( ! function_exists( 'sanitize_file_name' ) ) {
 	function sanitize_file_name( $sscribe_filename ) {
 		$sscribe_filename = preg_replace( '/[^a-zA-Z0-9._\-]/', '_', $sscribe_filename );
 		return preg_replace( '/_+/', '_', trim( $sscribe_filename, '_' ) );
+	}
+}
+
+if ( ! function_exists( 'did_action' ) ) {
+	function did_action( $hook_name ) {
+		global $sscribe_test_actions;
+		return count( $sscribe_test_actions[ $hook_name ] ?? array() );
+	}
+}
+
+if ( ! function_exists( 'get_locale' ) ) {
+	function get_locale() {
+		return 'en_US';
+	}
+}
+
+if ( ! function_exists( 'sanitize_html_class' ) ) {
+	function sanitize_html_class( $class ) {
+		return preg_replace( '/[^a-zA-Z0-9_\-]/', '', $class );
+	}
+}
+
+if ( ! function_exists( 'status_header' ) ) {
+	function status_header( $code, $description = '' ) {
+		global $sscribe_test_status_header;
+		$sscribe_test_status_header = $code;
+		return true;
+	}
+}
+
+if ( ! function_exists( 'wp_send_json_error' ) ) {
+	function wp_send_json_error( $data = null, $status_code = null, $options = 0 ) {
+		echo wp_json_encode( array( 'success' => false, 'data' => $data ) );
+		throw new \RuntimeException( 'AJAX error response sent' );
+	}
+}
+
+if ( ! function_exists( 'wp_send_json_success' ) ) {
+	function wp_send_json_success( $data = null, $status_code = null, $options = 0 ) {
+		echo wp_json_encode( array( 'success' => true, 'data' => $data ) );
+		throw new \RuntimeException( 'AJAX success response sent' );
+	}
+}
+
+if ( ! function_exists( 'wp_is_writable' ) ) {
+	function wp_is_writable( $path ) {
+		if ( is_dir( $path ) ) {
+			return is_writable( $path );
+		}
+		return is_dir( dirname( $path ) ) && is_writable( dirname( $path ) );
+	}
+}
+
+if ( ! function_exists( 'check_ajax_referer' ) ) {
+	function check_ajax_referer( $action = -1, $query_arg = false, $stop = true ) {
+		// Check if a valid nonce was provided via POST.
+		$nonce_field = false === $query_arg ? '_ajax_nonce' : $query_arg;
+		$nonce_value = $_POST[ $nonce_field ] ?? $_REQUEST[ $nonce_field ] ?? '';
+
+		if ( empty( $nonce_value ) ) {
+			if ( $stop ) {
+				wp_send_json_error( 'Nonce check failed', 403 );
+			}
+			return false;
+		}
+
+		return 1; // WordPress returns 1 on success
+	}
+}
+
+if ( ! function_exists( 'esc_attr' ) ) {
+	function esc_attr( $text ) {
+		return htmlspecialchars( (string) $text, ENT_QUOTES, 'UTF-8' );
+	}
+}
+
+if ( ! function_exists( 'wp_raise_memory_limit' ) ) {
+	function wp_raise_memory_limit( $context = 'admin' ) {
+		return 268435456; // 256MB in bytes
+	}
+}
+
+if ( ! function_exists( 'wp_die' ) ) {
+	function wp_die( $message = '', $title = '', $args = array() ) {
+		echo (string) $message;
+		throw new \RuntimeException( 'wp_die called' );
+	}
+}
+
+if ( ! function_exists( 'wp_get_current_user' ) ) {
+	function wp_get_current_user() {
+		global $sscribe_test_current_user;
+		return $sscribe_test_current_user ?? null;
 	}
 }
 
@@ -336,6 +469,7 @@ $sscribe_test_db_tables = array(
 $sscribe_test_http_response = array();
 $sscribe_test_filters       = array();
 $sscribe_test_actions       = array();
+$sscribe_test_actions       = array();
 $sscribe_test_menu_pages    = array();
 $sscribe_test_styles        = array();
 $sscribe_test_scripts       = array();
@@ -343,6 +477,7 @@ $sscribe_test_localized     = array();
 $sscribe_test_current_user_can = true;
 $sscribe_test_is_admin         = true;
 $sscribe_test_doing_ajax       = false;
+$sscribe_test_ajax_nonce_valid = true;
 
 if ( ! class_exists( 'wpdb' ) ) {
 	class wpdb {
@@ -394,7 +529,8 @@ if ( ! class_exists( 'wpdb' ) ) {
 			global $sscribe_test_db_tables;
 
 			// Handle both quoted (old mock behavior) and unquoted (WordPress-realtime) table names.
-			if ( preg_match( "/SHOW TABLES LIKE '?(\w+)'?/i", $query, $matches ) ) {
+			// WordPress uses: SHOW TABLES LIKE 'wp_sscribe_audit_log'
+			if ( preg_match( "/SHOW TABLES LIKE\s+['`]([^'`]+)['`]/i", $query, $matches ) ) {
 				return array_key_exists( $matches[1], $sscribe_test_db_tables ) ? $matches[1] : null;
 			}
 
@@ -576,7 +712,18 @@ if ( ! function_exists( 'esc_html' ) ) {
 
 if ( ! function_exists( 'esc_url_raw' ) ) {
 	function esc_url_raw( $url ) {
-		return filter_var( $url, FILTER_SANITIZE_URL ) ?: '';
+		$url = (string) $url;
+		// Reject dangerous protocols (javascript:, data:, etc.).
+		$protocol = strtolower( (string) wp_parse_url( $url, PHP_URL_SCHEME ) );
+		if ( '' === $protocol ) {
+			return '';
+		}
+		$bad_protocols = array( 'javascript', 'data', 'vbscript', 'file' );
+		if ( in_array( $protocol, $bad_protocols, true ) ) {
+			return '';
+		}
+		$filtered = filter_var( $url, FILTER_SANITIZE_URL );
+		return $filtered ?: '';
 	}
 }
 
