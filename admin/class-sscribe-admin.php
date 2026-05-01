@@ -319,7 +319,12 @@ class SScribe_Admin {
 		}
 
 		if ( $sscribe_is_debug ) {
-			$sscribe_debug_info['wpml_active']     = $sscribe_wpml_active;
+			// Cache debug info for 30 seconds to avoid expensive queries on every page load.
+			$debug_cache_key  = 'sscribe_debug_info_' . get_current_user_id();
+			$sscribe_debug_info = get_transient( $debug_cache_key );
+
+			if ( false === $sscribe_debug_info ) {
+				$sscribe_debug_info = array();
 			$sscribe_debug_info['languages_count'] = count( $sscribe_languages );
 			$sscribe_debug_info['total_pages_all'] = $sscribe_total_pages_all;
 			$sscribe_debug_info['status_counts']   = $sscribe_status_counts;
@@ -414,7 +419,10 @@ class SScribe_Admin {
 				'version' => get_bloginfo( 'version' ),
 				'locale'  => get_locale(),
 			);
-		}
+
+				set_transient( $debug_cache_key, $sscribe_debug_info, 30 );
+			} // End debug cache check.
+		} // End $sscribe_is_debug block.
 
 		// Gather recent exports (30-second TTL for file list).
 		$sscribe_recent_exports = array();

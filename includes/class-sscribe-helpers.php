@@ -218,4 +218,25 @@ class SScribe_Helpers {
 
 		return filter_var( $ip, FILTER_VALIDATE_IP ) ? $ip : '0.0.0.0';
 	}
+
+	/**
+	 * Strip page builder inline styles, classes, and data attributes from HTML.
+	 *
+	 * Shared between SScribe_Page_Collector and SScribe_Content_Parser.
+	 *
+	 * @param string $html Raw HTML content.
+	 * @return string Cleaned HTML.
+	 */
+	public static function strip_page_builder_attributes( string $html ): string {
+		$html = preg_replace( '/\s*style="[^"]*"/i', '', $html );
+		$html = preg_replace( "/\s*style='[^']*'/i", '', $html );
+		$html = preg_replace( '/<style[^>]*>.*?<\/style>/is', '', $html );
+		$html = preg_replace( '/\s*class="[^"]*"/i', '', $html );
+		$html = preg_replace( "/\s*class='[^']*'/i", '', $html );
+		$html = preg_replace( '/\s*data-elementor(-[a-z]+)?="[^"]*"/i', '', $html );
+		$html = preg_replace( '/\s*data-(widget|column|section)-[a-z0-9_-]{0,30}="[^"]*"/i', '', $html );
+		$html = preg_replace( '/\s*id="elementor-[^"]*"/i', '', $html );
+
+		return $html;
+	}
 }
