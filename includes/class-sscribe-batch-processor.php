@@ -2600,16 +2600,31 @@ class SScribe_Batch_Processor {
 
 		foreach ( $pages as $page_id => $page ) {
 			$page_errors = array();
-			$formats     = isset( $page['formats'] ) && is_array( $page['formats'] ) ? $page['formats'] : array();
+			$formats_raw = isset( $page['formats'] ) && is_array( $page['formats'] ) ? $page['formats'] : array();
+
+			// Normalize: handle both plain array ['docx','pdf'] and
+			// associative array ['docx' => ['success'=>true,...]].
+			$formats = array();
+			foreach ( $formats_raw as $key => $value ) {
+				if ( is_int( $key ) && is_string( $value ) ) {
+					// Plain format-name array — no per-format detail available.
+					$formats[ $value ] = array( 'success' => true, 'file' => '', 'error' => '' );
+				} else {
+					$formats[ $key ] = $value;
+				}
+			}
 
 			foreach ( $formats as $format => $format_data ) {
+				if ( ! is_array( $format_data ) ) {
+					continue;
+				}
 				if ( ! empty( $format_data['success'] ) || empty( $format_data['error'] ) ) {
 					continue;
 				}
 
 				$page_errors[] = array(
-					'format'   => strtoupper( $format ),
-					'message'  => (string) $format_data['error'],
+					'format'   => strtoupper( (string) $format ),
+					'message'  => (string) ( $format_data['error'] ?? '' ),
 					'category' => 'unknown',
 					'context'  => array(
 						'page_id'    => (int) $page_id,
@@ -2983,14 +2998,15 @@ class SScribe_Batch_Processor {
 			}
 
 			$result[] = array(
-				'filename'  => $filename,
-				'url'       => $this->zip_handler->get_ajax_download_url( $filename ),
-				'size'      => filesize( $file_path ),
-				'time'      => $data['time'] ?? filemtime( $file_path ),
-				'date'      => wp_date( ( get_option( 'date_format' ) ?: 'Y-m-d' ) . ' ' . ( get_option( 'time_format' ) ?: 'H:i' ), $data['time'] ?? filemtime( $file_path ) ),
-				'lang_code' => $data['lang_code'] ?? '',
-				'lang_name' => $data['lang_name'] ?? '',
-				'flag_url'  => $data['flag_url'] ?? '',
+				'filename'       => $filename,
+				'url'            => $this->zip_handler->get_ajax_download_url( $filename ),
+				'size'           => filesize( $file_path ),
+				'size_formatted' => size_format( filesize( $file_path ) ),
+				'time'           => $data['time'] ?? filemtime( $file_path ),
+				'date'           => wp_date( ( get_option( 'date_format' ) ?: 'Y-m-d' ) . ' ' . ( get_option( 'time_format' ) ?: 'H:i' ), $data['time'] ?? filemtime( $file_path ) ),
+				'lang_code'      => $data['lang_code'] ?? '',
+				'lang_name'      => $data['lang_name'] ?? '',
+				'flag_url'       => $data['flag_url'] ?? '',
 			);
 		}
 

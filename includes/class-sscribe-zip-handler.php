@@ -217,17 +217,20 @@ class SScribe_Zip_Handler {
 			return file_exists( $zip_path ) ? $zip_path : false;
 		}
 
-		$exports                          = get_option( 'sscribe_export_index', array() );
-		$exports[ basename( $zip_path ) ] = array(
-			'created_at' => time(),
-			'user_id'    => get_current_user_id(),
-			'formats'    => $formats,
-			'lang_code'  => $lang_metadata['lang_code'] ?? '',
-			'lang_name'  => $lang_metadata['lang_name'] ?? '',
-			'flag_url'   => $lang_metadata['flag_url'] ?? '',
-		);
-		update_option( 'sscribe_export_index', $exports, false );
-		delete_option( $lock_key );
+		try {
+			$exports                          = get_option( 'sscribe_export_index', array() );
+			$exports[ basename( $zip_path ) ] = array(
+				'created_at' => time(),
+				'user_id'    => get_current_user_id(),
+				'formats'    => $formats,
+				'lang_code'  => $lang_metadata['lang_code'] ?? '',
+				'lang_name'  => $lang_metadata['lang_name'] ?? '',
+				'flag_url'   => $lang_metadata['flag_url'] ?? '',
+			);
+			update_option( 'sscribe_export_index', $exports, false );
+		} finally {
+			delete_option( $lock_key );
+		}
 
 		return file_exists( $zip_path ) ? $zip_path : false;
 	}
@@ -243,13 +246,21 @@ class SScribe_Zip_Handler {
 	 * @return string|null Language code (e.g., 'AR') or null if not found.
 	 */
 	private function extract_lang_from_filename( string $filename ): ?string {
-		// Match -XX.ext where XX is EXACTLY 2 letters (language code).
-		// Do NOT match 3+ letter codes (compound like EN-US) or partial page slugs.
-		// Page filenames are like P001-SD-AR.docx - the AR is part of the title, not language.
-		if ( preg_match( '/-([A-Z]{2})\.[A-Za-z]+$/', $filename, $matches ) ) {
-			return $matches[1];
+		// Match -XX.ext where XX is EXACTLY 2 uppercase letters.
+		if ( ! preg_match( '/-([A-Z]{2})\.[A-Za-z]+$/', $filename, $matches ) ) {
+			return null;
 		}
-		return null;
+
+		// Validate against known 2-letter language codes to prevent
+		// false matches on page title segments (e.g., P001-GO.docx).
+		static $known_codes = array(
+			'AR', 'EN', 'FR', 'DE', 'ES', 'IT', 'PT', 'NL', 'RU', 'ZH',
+			'JA', 'KO', 'HE', 'FA', 'UR', 'TR', 'PL', 'SV', 'DA', 'FI',
+			'NB', 'CS', 'SK', 'HU', 'RO', 'BG', 'HR', 'SR', 'UK', 'VI',
+			'TH', 'ID', 'MS', 'EL', 'HI', 'BN', 'LT', 'LV', 'ET', 'SL',
+		);
+
+		return in_array( $matches[1], $known_codes, true ) ? $matches[1] : null;
 	}
 
 	/**
@@ -297,11 +308,11 @@ class SScribe_Zip_Handler {
 	 * @return int Number of files cleaned up.
 	 */
 	public function cleanup_expired(): int {
-		// P-4: Prevent overlapping cron runs.
-		if ( get_transient( 'sscribe_cron_cleanup_lock' ) ) {
+		// P-4: Prevent overlapping cron runs (uses dedicated key — separate from session cleanup).
+		if ( get_transient( 'sscribe_cron_exports_lock' ) ) {
 			return 0;
 		}
-		set_transient( 'sscribe_cron_cleanup_lock', true, 5 * MINUTE_IN_SECONDS );
+		set_transient( 'sscribe_cron_exports_lock', true, 5 * MINUTE_IN_SECONDS );
 
 		try {
 			$cleaned = 0;
@@ -333,7 +344,7 @@ class SScribe_Zip_Handler {
 
 			return $cleaned + $this->cleanup_stale_temp_dirs();
 		} finally {
-			delete_transient( 'sscribe_cron_cleanup_lock' );
+			delete_transient( 'sscribe_cron_exports_lock' );
 		}
 	}
 

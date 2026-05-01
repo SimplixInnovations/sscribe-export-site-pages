@@ -2236,6 +2236,12 @@
 	display: flex;
 	align-items: center;
 	gap: 6px;
+	/* Reset inherited properties from generic .sscribe-time-estimate */
+	margin-bottom: 0;
+	padding: 0;
+	background: transparent;
+	border-radius: 0;
+	border: none;
 	color: var(--sscribe-text-muted);
 	font-size: 13px;
 	font-weight: 500;

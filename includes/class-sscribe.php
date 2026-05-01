@@ -145,8 +145,11 @@ class SScribe {
 			return;
 		}
 
-		$diagnostics = new SScribe_Diagnostics();
-		$missing     = $diagnostics->check_vendor_dependencies();
+		static $missing = null;
+		if ( null === $missing ) {
+			$diagnostics = new SScribe_Diagnostics();
+			$missing     = $diagnostics->check_vendor_dependencies();
+		}
 
 		if ( empty( $missing ) ) {
 			return;
@@ -219,16 +222,16 @@ class SScribe {
 	 * @return void
 	 */
 	public function cleanup_sessions(): void {
-		// P-4: Prevent overlapping cron runs.
-		if ( ! get_transient( 'sscribe_cron_cleanup_lock' ) ) {
-			set_transient( 'sscribe_cron_cleanup_lock', true, 5 * MINUTE_IN_SECONDS );
+		// P-4: Prevent overlapping cron runs (uses dedicated key — separate from export cleanup).
+		if ( ! get_transient( 'sscribe_cron_sessions_lock' ) ) {
+			set_transient( 'sscribe_cron_sessions_lock', true, 5 * MINUTE_IN_SECONDS );
 
 			$session = SScribe_Container::instance()->get( SScribe_Session::class );
 			$session->cleanup_expired( 24 * HOUR_IN_SECONDS );
 
 			SScribe_Logger::cleanup_old_logs( 7 );
 
-			delete_transient( 'sscribe_cron_cleanup_lock' );
+			delete_transient( 'sscribe_cron_sessions_lock' );
 		}
 	}
 

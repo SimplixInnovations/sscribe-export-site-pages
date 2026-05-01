@@ -62,6 +62,40 @@
 			var language = $('input[name="sscribe_language"]:checked').val() || '';
 			var self = this;
 
+			// For 'any', we need separate counts for 'page' and 'post'
+			// to correctly populate cards without double-counting.
+			if (postType === 'any') {
+				$.ajax({
+					url: sscribe_data.ajaxurl,
+					type: 'POST',
+					timeout: 30000,
+					data: {
+						action: 'sscribe_get_status_counts',
+						nonce: sscribe_data.nonce,
+						language: language,
+						post_type: 'post'
+					},
+					success: function (response) {
+						if (response.success && response.data.counts) {
+							var postCounts = response.data.counts;
+							var postTotal = postCounts.all || 0;
+							var $pageCard = $('.sscribe-post-type-card[data-post-type="page"]');
+							var pageTotal = parseInt($pageCard.find('.sscribe-post-type-count').text()) || 0;
+
+							$('.sscribe-post-type-card[data-post-type="post"]').find('.sscribe-post-type-count').text(postTotal + ' Posts');
+							$('.sscribe-post-type-card[data-post-type="any"]').find('.sscribe-post-type-count').text((pageTotal + postTotal) + ' Total');
+
+							self.updateStatusCountsForAny(language);
+						}
+					},
+					error: function () {
+						var msg = (sscribe_data.strings && sscribe_data.strings.refresh_counts_failed) || 'Failed to refresh counts.';
+						$('#sscribe-alert-region').text(msg);
+					}
+				});
+				return;
+			}
+
 			$.ajax({
 				url: sscribe_data.ajaxurl,
 				type: 'POST',
@@ -76,7 +110,7 @@
 					if (response.success && response.data.counts) {
 						var counts = response.data.counts;
 						var totalPosts = counts.all || 0;
-						var $postTypeCards = $( '.sscribe-post-type-card' );
+						var $postTypeCards = $('.sscribe-post-type-card');
 
 						$postTypeCards.each(function () {
 							var $card = $(this);
@@ -85,10 +119,6 @@
 
 							if (type === 'post') {
 								countEl.text(totalPosts + ' Posts');
-							} else if (type === 'any') {
-								var $pageCount = $postTypeCards.filter('[data-post-type="page"]').find('.sscribe-post-type-count');
-								var pageCount = parseInt($pageCount.text()) || 0;
-								countEl.text((pageCount + totalPosts) + ' Total');
 							}
 						});
 
@@ -100,6 +130,28 @@
 				error: function () {
 					var msg = (sscribe_data.strings && sscribe_data.strings.refresh_counts_failed) || 'Failed to refresh counts. Please try again.';
 					$('#sscribe-alert-region').text(msg);
+				}
+			});
+		},
+
+		updateStatusCountsForAny: function (language) {
+			var self = this;
+			$.ajax({
+				url: sscribe_data.ajaxurl,
+				type: 'POST',
+				timeout: 30000,
+				data: {
+					action: 'sscribe_get_status_counts',
+					nonce: sscribe_data.nonce,
+					language: language,
+					post_type: 'any'
+				},
+				success: function (response) {
+					if (response.success && response.data.counts) {
+						self.updateStatusCounts(response.data.counts);
+						self.updateTimeEstimate();
+						self.updateExportButton();
+					}
 				}
 			});
 		},
@@ -672,7 +724,7 @@
 				html += '</div>';
 				html += '<div class="sscribe-file-details">';
 				html += '<strong>' + this.escapeHtml(exp.filename) + '</strong>';
-				html += '<span>' + this.escapeHtml(exp.date || '') + ' — ' + this.escapeHtml(exp.size || '') + '</span>';
+				html += '<span>' + this.escapeHtml(exp.date || '') + ' — ' + this.escapeHtml(exp.size_formatted || exp.size || '') + '</span>';
 				html += '</div></div>';
 				html += '<div class="sscribe-history-actions">';
 				html += '<a href="' + this.escapeHtml(exp.url) + '" class="sscribe-button sscribe-button-icon sscribe-button-sm" download title="' + this.escapeHtml(strings.download_tooltip || 'Download') + '" aria-label="' + this.escapeHtml(strings.download_tooltip || 'Download') + '">';
