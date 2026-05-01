@@ -515,7 +515,7 @@ class SScribe_Page_Collector {
 
 		// Get child pages using the same post type as the parent.
 		$post_type_for_children = $post_object->post_type;
-		$children = $this->get_child_pages( $page_id, $post_type_for_children );
+		$children               = $this->get_child_pages( $page_id, $post_type_for_children );
 
 		// Get language.
 		$language = $this->get_page_language( $page_id );

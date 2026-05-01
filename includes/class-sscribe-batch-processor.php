@@ -2582,7 +2582,11 @@ class SScribe_Batch_Processor {
 			foreach ( $formats_raw as $key => $value ) {
 				if ( is_int( $key ) && is_string( $value ) ) {
 					// Plain format-name array — no per-format detail available.
-					$formats[ $value ] = array( 'success' => true, 'file' => '', 'error' => '' );
+					$formats[ $value ] = array(
+						'success' => true,
+						'file'    => '',
+						'error'   => '',
+					);
 				} else {
 					$formats[ $key ] = $value;
 				}
