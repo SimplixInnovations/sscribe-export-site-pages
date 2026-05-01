@@ -311,6 +311,12 @@ class SScribe_PDF_Exporter implements SScribe_Exporter_Interface {
 		}
 	}
 
+	/**
+	 * Process images in page data for PDF embedding.
+	 *
+	 * @param array $page_data The page data array.
+	 * @return array Modified page data with local image paths.
+	 */
 	private function process_images_in_page_data( array $page_data ): array {
 		if ( ! empty( $page_data['featured_image_url'] ) ) {
 			$local_path = SScribe_Image_Processor::download_and_optimize( $page_data['featured_image_url'] );

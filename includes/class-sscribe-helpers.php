@@ -61,7 +61,7 @@ class SScribe_Helpers {
 			if ( ! file_exists( $file_path ) ) {
 				self::$icon_cache[ $name ] = '';
 			} else {
-				$svg_content = file_get_contents( $file_path );
+				$svg_content               = file_get_contents( $file_path );
 				self::$icon_cache[ $name ] = ( false === $svg_content ) ? '' : $svg_content;
 			}
 		}
@@ -89,8 +89,6 @@ class SScribe_Helpers {
 
 	/**
 	 * Get time estimate for a format export.
-	 *
-	 * @param string $format     Export format.
 	/**
 	 * Get time estimate for a single format.
 	 *
