@@ -476,18 +476,8 @@ class SScribe_Page_Collector {
 			}
 		}
 
-		// Optional: strip inline styles and page builder classes for a cleaner export,
-		// ensuring exports (like HTML, MD, PDF) are perfectly legible and well-structured.
-		$content = preg_replace( '/\s*style="[^"]*"/i', '', $content );
-		$content = preg_replace( "/\s*style='[^']*'/i", '', $content );
-		$content = preg_replace( '/<style[^>]*>.*?<\/style>/is', '', $content );
-		$content = preg_replace( '/\s*class="[^"]*"/i', '', $content );
-		$content = preg_replace( "/\s*class='[^']*'/i", '', $content );
-		$content = preg_replace( '/\s*data-elementor(-[a-z]+)?="[^"]*"/i', '', $content );
-		// SECURITY FIX: Limit attribute name to valid chars and max 30 length to prevent ReDoS.
-		// Previously used [^=]* which caused catastrophic backtracking on malformed input.
-		$content = preg_replace( '/\s*data-(widget|column|section)-[a-z0-9_-]{0,30}="[^"]*"/i', '', $content );
-		$content = preg_replace( '/\s*id="elementor-[^"]*"/i', '', $content );
+		// Strip inline styles and page builder attributes for cleaner exports.
+		$content = SScribe_Helpers::strip_page_builder_attributes( $content );
 
 		// Get language for word counting.
 		$language = $this->get_page_language( $page_id );

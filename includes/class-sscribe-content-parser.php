@@ -129,30 +129,7 @@ class SScribe_Content_Parser {
 	 * @return string Cleaned HTML.
 	 */
 	private function strip_all_styles( string $html ): string {
-		$html = preg_replace( '/\s*style="[^"]*"/i', '', $html );
-		$html = preg_replace( "/\s*style='[^']*'/i", '', $html );
-
-		$html = preg_replace( '/<style[^>]*>.*?<\/style>/is', '', $html );
-
-		$html = preg_replace( '/\s*class="[^"]*"/i', '', $html );
-		$html = preg_replace( "/\s*class='[^']*'/i", '', $html );
-
-		$html = preg_replace( '/\s*data-elementor(-[a-z]+)?="[^"]*"/i', '', $html );
-
-		// SECURITY FIX: Limit attribute name to valid chars and max 30 length to prevent ReDoS.
-		// Previously used [^=]* which caused catastrophic backtracking on malformed input.
-		$html = preg_replace( '/\s*data-(widget|column|section)-[a-z0-9_-]{0,30}="[^"]*"/i', '', $html );
-
-		$html = preg_replace( '/\s*data-settings="[^"]*"/i', '', $html );
-		$html = preg_replace( '/\s*data-id="[^"]*"/i', '', $html );
-
-		$html = preg_replace( '/\s*id="elementor-[^"]*"/i', '', $html );
-
-		$html = preg_replace( '/<div\s+id="[^"]*"[^>]*><\/div>/i', '', $html );
-		$html = preg_replace( '/<span\s*><\/span>/i', '', $html );
-		$html = preg_replace( '/<div\s*><\/div>/i', '', $html );
-
-		return $html;
+		return SScribe_Helpers::strip_page_builder_attributes( $html );
 	}
 
 	/**
