@@ -251,7 +251,7 @@
 					estimate = (strings.estimated_time || 'Estimated time:') + ' ~' + minutes + ' ' + (minutes === 1 ? (strings.minute || 'minute') : (strings.minutes || 'minutes'));
 				} else {
 					var hours = Math.floor(minutes / 60);
-					var mins = minutes % 60;
+					let mins = minutes % 60;
 					estimate = (strings.estimated_time || 'Estimated time:') + ' ~' + hours + (strings.hour_suffix || 'h') + ' ' + mins + (strings.minute_suffix || 'm');
 				}
 			} else {
@@ -265,7 +265,7 @@
 				if (seconds < 60) {
 					estimate = (strings.estimated_time || 'Estimated time:') + ' ~' + Math.ceil(seconds) + ' ' + (strings.seconds || 'seconds');
 				} else {
-					var mins = Math.ceil(seconds / 60);
+					let mins = Math.ceil(seconds / 60);
 					estimate = (strings.estimated_time || 'Estimated time:') + ' ~' + mins + ' ' + (mins === 1 ? (strings.minute || 'minute') : (strings.minutes || 'minutes'));
 				}
 			}

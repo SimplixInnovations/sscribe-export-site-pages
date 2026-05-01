@@ -90,17 +90,12 @@ class SScribe_Batch_Processor {
 	private ?string $current_lock_token = null;
 
 	/**
-	 * Rate limit: Maximum requests per minute per user.
+	/**
+	 * Rate limit: 200 requests per minute per user by default.
 	 *
-	 * 5000 req/min by design — supports large batch exports where
-	 * the AJAX client polls every few seconds per page across multiple
-	 * concurrent format renders (DOCX + PDF + HTML + Markdown).
-	 *
-	 * Admins receive a higher per-request budget via the
-	 * sscribe_rate_limit_admin filter (default: 1000/min).
-	 *
-	 * Use sscribe_batch_size to reduce AJAX call frequency instead
-	 * of lowering this limit.
+	 * Admins get up to 1000/min via the sscribe_rate_limit_admin filter.
+	 * 200 req/min supports large batch exports where the AJAX client polls
+	 * every few seconds per page across multiple concurrent format renders.
 	 */
 	private const RATE_LIMIT_MAX = 200;
 
@@ -472,8 +467,7 @@ class SScribe_Batch_Processor {
 	private function get_required_capability(): string {
 		$capability = apply_filters( 'sscribe_export_capability', 'manage_options' );
 
-		// SECURITY: Validate capability against whitelist to prevent malicious plugins from lowering permissions.
-		if ( ! self::is_allowed_capability( $capability ) ) {
+		if ( ! SScribe_Capabilities::is_allowed( $capability ) ) {
 			$this->audit_log(
 				'invalid_capability_blocked',
 				array(
@@ -485,26 +479,6 @@ class SScribe_Batch_Processor {
 		}
 
 		return $capability;
-	}
-
-	/**
-	 * Validate that a capability string is in the allowed whitelist.
-	 *
-	 * Prevents malicious plugins from lowering required capabilities via filters.
-	 *
-	 * @param string $capability The capability to validate.
-	 * @return bool True if allowed.
-	 */
-	private static function is_allowed_capability( string $capability ): bool {
-		$allowed = array(
-			'manage_options',
-			'edit_pages',
-			'publish_pages',
-			'delete_pages',
-			'export',
-		);
-
-		return in_array( $capability, $allowed, true );
 	}
 
 	/**

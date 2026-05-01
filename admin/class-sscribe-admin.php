@@ -71,16 +71,7 @@ class SScribe_Admin {
 	 * @return string
 	 */
 	private function get_required_capability(): string {
-		$capability = apply_filters( 'sscribe_export_capability', 'manage_options' );
-
-		// SECURITY: Validate capability against whitelist to prevent malicious plugins from lowering permissions.
-		$allowed = array( 'manage_options', 'edit_pages', 'publish_pages', 'delete_pages', 'export' );
-
-		if ( ! in_array( $capability, $allowed, true ) ) {
-			return 'manage_options';
-		}
-
-		return $capability;
+		return SScribe_Capabilities::get_required();
 	}
 
 	/**
@@ -142,8 +133,8 @@ class SScribe_Admin {
 		// Keep the policy scoped to the plugin admin page and allow the minimum
 		// sources required for WordPress-admin rendering.
 		//
-		// Note: style-src is omitted because no inline <style> blocks are injected;
-		// only element attributes (width/height/class) are added via get_icon().
+		// Note: style-src includes 'unsafe-inline' to support WordPress admin core
+		// and third-party plugins that inject inline styles into the admin area.
 		// WordPress admin pages do not include a Content-Security-Policy by default.
 		$policy = implode(
 			'; ',
@@ -178,16 +169,18 @@ class SScribe_Admin {
 			return;
 		}
 
-		// Admin CSS - always use source file (minification disabled).
+		$suffix = ( defined( 'SCRIPT_DEBUG' ) && SCRIPT_DEBUG ) ? '' : '.min';
+
+		// Admin CSS.
 		wp_enqueue_style(
 			'sscribe-admin',
-			SSCRIBE_PLUGIN_URL . 'admin/css/sscribe-admin.css',
+			SSCRIBE_PLUGIN_URL . "admin/css/sscribe-admin{$suffix}.css",
 			array(),
 			SSCRIBE_VERSION
 		);
 
-		// Admin JS - always use source file (minification disabled).
-		$js_file = 'admin/js/sscribe-admin.js';
+		// Admin JS — respects SCRIPT_DEBUG for source vs minified.
+		$js_file = "admin/js/sscribe-admin{$suffix}.js";
 
 		wp_enqueue_script(
 			'sscribe-admin',
