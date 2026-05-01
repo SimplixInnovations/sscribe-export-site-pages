@@ -2240,9 +2240,6 @@ class SScribe_Batch_Processor {
 
 	/**
 	 * AJAX handler: Get status counts for a language and post type.
-
-	/**
-	 * AJAX handler: Get status counts for a language and post type.
 	 *
 	 * @return void
 	 */
