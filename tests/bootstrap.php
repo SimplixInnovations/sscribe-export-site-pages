@@ -24,6 +24,26 @@ if ( ! defined( 'AUTH_SALT' ) ) {
 	define( 'AUTH_SALT', 'test-auth-salt-for-unit-tests-only' );
 }
 
+if ( ! defined( 'SECURE_AUTH_KEY' ) ) {
+	define( 'SECURE_AUTH_KEY', 'test-secure-auth-salt-for-unit-tests-only' );
+}
+
+if ( ! defined( 'SSCRIBE_DEBUG' ) ) {
+	define( 'SSCRIBE_DEBUG', false );
+}
+
+if ( ! defined( 'SSCRIBE_FONT_ARABIC' ) ) {
+	define( 'SSCRIBE_FONT_ARABIC', SSCRIBE_PLUGIN_DIR . 'assets/fonts/notosansarabic/NotoSansArabic-Regular.ttf' );
+}
+
+if ( ! defined( 'SSCRIBE_FONT_ARABIC_BOLD' ) ) {
+	define( 'SSCRIBE_FONT_ARABIC_BOLD', SSCRIBE_PLUGIN_DIR . 'assets/fonts/notosansarabic/NotoSansArabic-Bold.ttf' );
+}
+
+if ( ! defined( 'WP_CONTENT_DIR' ) ) {
+	define( 'WP_CONTENT_DIR', dirname( __DIR__ ) . '/fake-wp/wp-content' );
+}
+
 if ( ! function_exists( 'wp_kses_post' ) ) {
 	function wp_kses_post( $sscribe_data ) {
 		return $sscribe_data;

@@ -364,6 +364,10 @@ Each document includes: cover page with title/URL/date/breadcrumbs, featured ima
 
 == Upgrade Notice ==
 
+= 3.35.0 =
+
+Security: Health check AJAX endpoint now enforces capability check for authenticated diagnostics. Reliability: Batch processor caps in-memory error arrays at 50 entries to prevent OOM on large exports. Recommended update for all users.
+
 = 3.33.0 =
 
 New: Post type selection — export Pages, Posts, or Both with dynamic counts per type. Enhanced batch processing, status filtering, and wizard navigation. Recommended update for all users.
