@@ -90,7 +90,6 @@ class SScribe_Batch_Processor {
 	private ?string $current_lock_token = null;
 
 	/**
-	/**
 	 * Rate limit: 200 requests per minute per user by default.
 	 *
 	 * Admins get up to 1000/min via the sscribe_rate_limit_admin filter.

@@ -12,10 +12,23 @@ if ( ! defined( 'ABSPATH' ) ) {
 
 // Initialize $_SESSION before any WordPress code tries to use it.
 if ( session_status() === PHP_SESSION_NONE && ! headers_sent() ) {
-	// phpcs:ignore WordPress.PHP.NoSilencedErrors.Discouraged
 	@session_start();
 }
 $_SESSION = $_SESSION ?? array();
+
+// Stub wp_cache_flush() for tests — SScribe_Privacy uses it.
+if ( ! function_exists( 'wp_cache_flush' ) ) {
+	function wp_cache_flush() {
+		return true;
+	}
+}
+
+// Stub wp_safe_redirect() for tests — SScribe_Admin redirect guard uses it.
+if ( ! function_exists( 'wp_safe_redirect' ) ) {
+	function wp_safe_redirect( $location, $status = 302, $x_redirect_by = 'WordPress' ) {
+		return true;
+	}
+}
 
 define( 'SSCRIBE_PLUGIN_DIR', dirname( __DIR__ ) . '/' );
 define( 'SSCRIBE_PLUGIN_URL', 'http://example.org/wp-content/plugins/sscribe-export-site-pages/' );

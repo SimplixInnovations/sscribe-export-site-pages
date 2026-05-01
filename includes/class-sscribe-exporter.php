@@ -150,7 +150,8 @@ class SScribe_Exporter {
 			return esc_url_raw( site_url( $url ) );
 		}
 
-		$scheme = strtolower( wp_parse_url( $url, PHP_URL_SCHEME ) ?? '' );
+		$parsed_scheme = wp_parse_url( $url, PHP_URL_SCHEME );
+		$scheme       = strtolower( ( false === $parsed_scheme || null === $parsed_scheme ) ? '' : $parsed_scheme );
 
 		if ( in_array( $scheme, array( 'http', 'https', 'mailto', 'tel' ), true ) ) {
 			return esc_url_raw( $url );

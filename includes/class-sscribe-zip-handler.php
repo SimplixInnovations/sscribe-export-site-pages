@@ -355,30 +355,31 @@ class SScribe_Zip_Handler {
 			$files   = glob( $this->export_dir . '/*.zip' );
 
 			if ( empty( $files ) ) {
-				// Also clean up any stale temp directories.
-				return $this->cleanup_stale_temp_dirs();
-			}
+				$cleaned = $this->cleanup_stale_temp_dirs();
+			} else {
+				$max_age  = 3 * DAY_IN_SECONDS;
+				$now      = time();
+				$exports  = get_option( 'sscribe_export_index', array() );
+				$modified = false;
 
-			$max_age  = 3 * DAY_IN_SECONDS;
-			$now      = time();
-			$exports  = get_option( 'sscribe_export_index', array() );
-			$modified = false;
-
-			foreach ( $files as $file ) {
-				$file_time = filemtime( $file );
-				if ( $file_time && ( $now - $file_time ) > $max_age ) {
-					wp_delete_file( $file );
-					unset( $exports[ basename( $file ) ] );
-					$modified = true;
-					++$cleaned;
+				foreach ( $files as $file ) {
+					$file_time = filemtime( $file );
+					if ( $file_time && ( $now - $file_time ) > $max_age ) {
+						wp_delete_file( $file );
+						unset( $exports[ basename( $file ) ] );
+						$modified = true;
+						++$cleaned;
+					}
 				}
+
+				if ( $modified ) {
+					update_option( 'sscribe_export_index', $exports, false );
+				}
+
+				$cleaned += $this->cleanup_stale_temp_dirs();
 			}
 
-			if ( $modified ) {
-				update_option( 'sscribe_export_index', $exports, false );
-			}
-
-			return $cleaned + $this->cleanup_stale_temp_dirs();
+			return $cleaned;
 		} finally {
 			delete_transient( 'sscribe_cron_exports_lock' );
 		}
