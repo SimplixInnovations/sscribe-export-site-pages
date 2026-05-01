@@ -4,7 +4,7 @@ Donate link: https://simplixi.com
 Tags: export, docx, multilingual, seo, pdf
 Requires at least: 6.0
 Tested up to: 6.10
-Stable tag: 3.45.0
+Stable tag: 3.46.0
 Requires PHP: 8.2
 License: GPLv2 or later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
@@ -229,7 +229,7 @@ Each document includes: cover page with title/URL/date/breadcrumbs, featured ima
 
 == Changelog ==
 
-= 3.45.0 =
+= 3.46.0 =
 
 * Critical: Fixed format names displaying as "0,1" instead of "docx,pdf" in export logs and admin UI
 * Critical: Fixed PHP 8.5 deprecations — removed all ReflectionMethod::setAccessible() calls from test suite
@@ -249,7 +249,7 @@ Each document includes: cover page with title/URL/date/breadcrumbs, featured ima
 * a11y: Added filename context to aria-label on export log buttons for screen reader users
 * i18n: Added mb_strtoupper fallback for hosts without mbstring extension
 * Compatibility: Added TOC TabLeader constant guard for prefixed PHPWord versions
-* Misc: Readme synced to v3.45.0, changelog entries added, version sync script passes, zero test warnings
+* Misc: Readme synced to v3.46.0, changelog entries added, version sync script passes, zero test warnings
 
 = 3.36.0 =
 
@@ -396,7 +396,7 @@ Each document includes: cover page with title/URL/date/breadcrumbs, featured ima
 
 == Upgrade Notice ==
 
-= 3.45.0 =
+= 3.46.0 =
 
 Critical bug fixes: format names display, PHP 8.5 compatibility, cron lock conflict, ZIP lock safety, CSS/JS fixes, accessibility improvements. Zero test warnings. Recommended update for all users.
 
@@ -419,6 +419,7 @@ Compliance: MySQL 5.6 compatibility (LONGTEXT replaces JSON columns), multisite-
 = 3.31.0 =
 
 Security: AJAX capability verification before nonce, session signing key enforcement, CSP unsafe-inline removal. Architecture: DI container with circular dependency detection, dedicated ssessions table, structured JSON logger. Essential update for all users.
+
 
 
 

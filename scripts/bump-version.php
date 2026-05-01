@@ -3,7 +3,7 @@
  * Automated version bump script.
  *
  * Updates all version references across the entire plugin in a single atomic operation.
- * Run: php scripts/bump-version.php 3.45.0
+ * Run: php scripts/bump-version.php 3.46.0
  *
  * @package SScribe
  */
@@ -16,7 +16,7 @@ if ( 'cli' !== php_sapi_name() ) {
 
 if ( $argc < 2 ) {
 	echo "Usage: php scripts/bump-version.php <new-version>\n";
-	echo "Example: php scripts/bump-version.php 3.45.0\n";
+	echo "Example: php scripts/bump-version.php 3.46.0\n";
 	exit( 1 );
 }
 
@@ -24,7 +24,7 @@ $new_version = $argv[1];
 
 // Validate version format (semver-like: major.minor.patch).
 if ( ! preg_match( '/^\d+\.\d+\.\d+$/', $new_version ) ) {
-	echo "Error: Version must be in format major.minor.patch (e.g., 3.45.0)\n";
+	echo "Error: Version must be in format major.minor.patch (e.g., 3.46.0)\n";
 	exit( 1 );
 }
 
@@ -279,6 +279,7 @@ echo "    4. Commit: git commit -am 'chore: bump version to v{$new_version}'\n";
 echo "═══════════════════════════════════════\n";
 
 exit( 0 );
+
 
 
 

@@ -17,10 +17,16 @@ if ( ! defined( 'ABSPATH' ) ) {
 /**
  * Trait SScribe_Logger_Common
  *
- * A-6: Extracted shared logger helpers to avoid duplication.
+ * Provides get_context_enrichment() and get_request_id() for loggers.
+ *
+ * Note: SScribe_Logger overrides both methods as private/static using PHP's
+ * class-over-trait precedence. This is intentional — the static logger has
+ * a different lifecycle (no instance request ID). Other loggers
+ * (SScribe_Logger_Enhanced, SScribe_Logger_Structured) inherit from
+ * the trait and may override get_request_id() per their caching needs.
  */
-trait SScribe_Logger_Common {
 
+trait SScribe_Logger_Common {
 	/**
 	 * Get standard context enrichment for log entries.
 	 *
