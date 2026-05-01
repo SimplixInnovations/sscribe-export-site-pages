@@ -643,7 +643,7 @@ class SScribe_Diagnostics {
 			);
 		}
 
-		if ( 'warning' === $checks['wp_cron']['status'] ) {
+		if ( isset( $checks['wp_cron'] ) && 'warning' === $checks['wp_cron']['status'] ) {
 			$recommendations[] = array(
 				'priority' => 'medium',
 				'message'  => 'Consider setting up a server-side cron for WP-Cron.',

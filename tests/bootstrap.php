@@ -545,7 +545,7 @@ if ( ! class_exists( 'wpdb' ) ) {
 				$pattern      = str_replace( '%', '.*', preg_quote( $like_pattern, '/' ) );
 				$results = array();
 
-				foreach ( $sscribe_test_options as $option_name => $option_value ) {
+				foreach ( (array) $sscribe_test_options as $option_name => $option_value ) {
 					if ( preg_match( '/^' . $pattern . '$/', $option_name ) ) {
 						$results[] = (object) array(
 							'option_name'  => $option_name,
@@ -879,6 +879,10 @@ if ( ! function_exists( 'add_filter' ) ) {
 if ( ! function_exists( 'apply_filters' ) ) {
 	function apply_filters( $hook_name, $value ) {
 		global $sscribe_test_filters;
+
+		if ( ! is_array( $sscribe_test_filters ) ) {
+			return $value;
+		}
 
 		foreach ( $sscribe_test_filters as $filter ) {
 			if ( $filter['hook'] !== $hook_name || ! is_callable( $filter['callback'] ) ) {
