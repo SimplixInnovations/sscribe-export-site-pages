@@ -456,7 +456,7 @@ $sscribe_is_debug        = $sscribe_is_debug ?? false;
 										<div class="sscribe-file-details">
 											<strong><?php echo esc_html( $sscribe_export['filename'] ); ?></strong>
 											<span>
-												<?php echo esc_html( wp_date( get_option( 'date_format' ) . ' ' . get_option( 'time_format' ), $sscribe_export['time'] ) ); ?>
+												<?php echo esc_html( wp_date( ( get_option( 'date_format' ) ?: 'Y-m-d' ) . ' ' . ( get_option( 'time_format' ) ?: 'H:i' ), $sscribe_export['time'] ) ); ?>
 												&mdash; <?php echo esc_html( size_format( $sscribe_export['size'] ) ); ?>
 											</span>
 										</div>
@@ -631,12 +631,14 @@ $sscribe_is_debug        = $sscribe_is_debug ?? false;
 					</div>
 					<div class="sscribe-panel-body sscribe-p-md">
 						<ul class="sscribe-check-list">
-							<li><?php esc_html_e( 'Yoast SEO Premium & Free', 'sscribe-export-site-pages' ); ?></li>
-							<li><?php esc_html_e( 'Rank Math Pro & Free', 'sscribe-export-site-pages' ); ?></li>
-							<li><?php esc_html_e( 'All in One SEO (AIOSEO)', 'sscribe-export-site-pages' ); ?></li>
-							<li><?php esc_html_e( 'SEOPress', 'sscribe-export-site-pages' ); ?></li>
-							<li><?php esc_html_e( 'The SEO Framework', 'sscribe-export-site-pages' ); ?></li>
-						</ul>
+						<?php if ( ! empty( $sscribe_seo_plugins ) ) : ?>
+							<?php foreach ( $sscribe_seo_plugins as $sscribe_plugin_name ) : ?>
+								<li><?php echo esc_html( $sscribe_plugin_name ); ?></li>
+							<?php endforeach; ?>
+						<?php else : ?>
+							<li><?php esc_html_e( 'No SEO plugin detected — title and URL still exported', 'sscribe-export-site-pages' ); ?></li>
+						<?php endif; ?>
+					</ul>
 					</div>
 				</section>
 

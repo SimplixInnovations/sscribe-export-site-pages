@@ -141,11 +141,15 @@ class SScribe_Admin {
 
 		// Keep the policy scoped to the plugin admin page and allow the minimum
 		// sources required for WordPress-admin rendering.
+		//
+		// Note: style-src is omitted because no inline <style> blocks are injected;
+		// only element attributes (width/height/class) are added via get_icon().
+		// WordPress admin pages do not include a Content-Security-Policy by default.
 		$policy = implode(
 			'; ',
 			array(
 				"default-src 'self'",
-				"script-src 'self'",
+				"script-src 'self' 'unsafe-inline'",
 				"style-src 'self' 'unsafe-inline'",
 				"img-src 'self' data:",
 				"font-src 'self' data:",
@@ -170,7 +174,7 @@ class SScribe_Admin {
 	 */
 	public function enqueue_admin_assets( string $hook_suffix ): void {
 		// Only load on our plugin page.
-		if ( ! in_array( $hook_suffix, array( 'toplevel_page_sscribe-export', 'tools_page_sscribe-export' ), true ) ) {
+		if ( 'toplevel_page_sscribe-export' !== $hook_suffix ) {
 			return;
 		}
 

@@ -252,6 +252,8 @@ class SScribe_Privacy {
 		$removed_items += $this->export_stats->erase_user_data( $user_id );
 		$removed_items += $this->session->delete_sessions_for_user( $user_id );
 
+		wp_cache_flush();
+
 		return array(
 			'items_removed'  => $removed_items > 0,
 			'items_retained' => false,

@@ -26,6 +26,13 @@ class SScribe_Helpers {
 	private static string $icons_dir = 'assets/icons/';
 
 	/**
+	 * SVG icon content cache.
+	 *
+	 * @var array<string, string>
+	 */
+	private static array $icon_cache = array();
+
+	/**
 	 * Get the absolute URL for an icon.
 	 *
 	 * @param string $name Icon name (without .svg extension).
@@ -48,15 +55,19 @@ class SScribe_Helpers {
 	 * @return string Inline SVG HTML or empty string if not found.
 	 */
 	public static function get_icon( string $name, int $size = 20, string $css_class = '' ): string {
-		$file_path = SSCRIBE_PLUGIN_DIR . self::$icons_dir . $name . '.svg';
+		if ( ! isset( self::$icon_cache[ $name ] ) ) {
+			$file_path = SSCRIBE_PLUGIN_DIR . self::$icons_dir . $name . '.svg';
 
-		if ( ! file_exists( $file_path ) ) {
-			return '';
+			if ( ! file_exists( $file_path ) ) {
+				self::$icon_cache[ $name ] = '';
+			} else {
+				$svg_content = file_get_contents( $file_path );
+				self::$icon_cache[ $name ] = ( false === $svg_content ) ? '' : $svg_content;
+			}
 		}
 
-		// phpcs:ignore WordPress.WP.AlternativeFunctions.file_get_contents_file_get_contents -- Reading local SVG file for inline rendering.
-		$svg_content = file_get_contents( $file_path );
-		if ( false === $svg_content ) {
+		$svg_content = self::$icon_cache[ $name ];
+		if ( '' === $svg_content ) {
 			return '';
 		}
 
@@ -66,8 +77,8 @@ class SScribe_Helpers {
 		}
 
 		$svg_content = preg_replace(
-			'/<svg([^>]*)>/i',
-			'<svg$1 width="' . esc_attr( $size ) . '" height="' . esc_attr( $size ) . '" class="' . esc_attr( $icon_class ) . '" aria-hidden="true" focusable="false">',
+			'/<svg[^>]*>/i',
+			'<svg width="' . esc_attr( $size ) . '" height="' . esc_attr( $size ) . '" class="' . esc_attr( $icon_class ) . '" aria-hidden="true" focusable="false">',
 			$svg_content,
 			1
 		);
