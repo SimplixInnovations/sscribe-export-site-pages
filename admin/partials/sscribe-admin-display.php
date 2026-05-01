@@ -187,7 +187,7 @@ $sscribe_is_debug        = $sscribe_is_debug ?? false;
 						<div class="sscribe-config-section-header">
 							<?php // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- SVG sanitized in get_icon(). ?>
 							<?php echo SScribe_Helpers::get_icon( 'check-circle', 15 ); ?>
-							<span><?php esc_html_e( 'Page Status', 'sscribe-export-site-pages' ); ?></span>
+							<span><?php esc_html_e( 'Content Status', 'sscribe-export-site-pages' ); ?></span>
 						</div>
 						<div class="sscribe-status-cards sscribe-cards-row" id="sscribe-status-cards">
 							<?php

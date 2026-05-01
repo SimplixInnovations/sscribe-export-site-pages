@@ -11,28 +11,28 @@
 /* Manrope Font â€” Local, No CDN â€” SIL Open Font License 1.1 */
 @font-face {
 	font-family: 'Manrope';
-	src: url('../fonts/manrope/Manrope-Regular.ttf') format('truetype');
+	src: url('../../assets/fonts/manrope/Manrope-Regular.ttf') format('truetype');
 	font-weight: 400;
 	font-style: normal;
 	font-display: swap;
 }
 @font-face {
 	font-family: 'Manrope';
-	src: url('../fonts/manrope/Manrope-Bold.ttf') format('truetype');
+	src: url('../../assets/fonts/manrope/Manrope-Bold.ttf') format('truetype');
 	font-weight: 700;
 	font-style: normal;
 	font-display: swap;
 }
 @font-face {
 	font-family: 'Manrope';
-	src: url('../fonts/manrope/Manrope-Medium.ttf') format('truetype');
+	src: url('../../assets/fonts/manrope/Manrope-Medium.ttf') format('truetype');
 	font-weight: 500;
 	font-style: normal;
 	font-display: swap;
 }
 @font-face {
 	font-family: 'Manrope';
-	src: url('../fonts/manrope/Manrope-Light.ttf') format('truetype');
+	src: url('../../assets/fonts/manrope/Manrope-Light.ttf') format('truetype');
 	font-weight: 300;
 	font-style: normal;
 	font-display: swap;

@@ -1,7 +1,7 @@
 === SScribe Export Site Pages ===
 Contributors: simplixinnovations
 Donate link: https://simplixi.com
-Tags: export, docx, multilingual, seo, pdf
+Tags: export, docx, multilingual, seo, pdf, posts, pages
 Requires at least: 6.0
 Tested up to: 6.10
 Stable tag: 3.50.0
