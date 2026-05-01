@@ -107,27 +107,27 @@ class SScribe_Helpers {
 		);
 
 		$seconds_per_page = isset( $times[ $format ] ) ? $times[ $format ] : 2;
-		$total_seconds    = $seconds_per_page * $page_count;
+		$total_seconds    = (int) ceil( $seconds_per_page * $page_count );
 
 		if ( $total_seconds < 60 ) {
 			return array(
 				'text'    => sprintf(
 					/* translators: %d: Estimated seconds. */
 					__( '~%d seconds', 'sscribe-export-site-pages' ),
-					ceil( $total_seconds )
+					$total_seconds
 				),
-				'seconds' => ceil( $total_seconds ),
+				'seconds' => $total_seconds,
 			);
 		}
 
-		$minutes = ceil( $total_seconds / 60 );
+		$minutes = (int) ceil( $total_seconds / 60 );
 		return array(
 			'text'    => sprintf(
 				/* translators: %d: Estimated minutes. */
 				_n( '~%d minute', '~%d minutes', $minutes, 'sscribe-export-site-pages' ),
 				$minutes
 			),
-			'seconds' => ceil( $total_seconds ),
+			'seconds' => $total_seconds,
 		);
 	}
 
@@ -138,8 +138,8 @@ class SScribe_Helpers {
 	 * @return array{text: string, seconds: int}
 	 */
 	public static function get_all_formats_time_estimate( int $page_count ): array {
-		$total_seconds = ( 1.2 + 8 + 1 + 0.5 ) * $page_count;
-		$minutes       = ceil( $total_seconds / 60 );
+		$total_seconds = (int) ceil( ( 1.2 + 8 + 1 + 0.5 ) * $page_count );
+		$minutes       = (int) ceil( $total_seconds / 60 );
 
 		if ( $minutes < 60 ) {
 			return array(
@@ -148,11 +148,11 @@ class SScribe_Helpers {
 					_n( '~%d minute', '~%d minutes', $minutes, 'sscribe-export-site-pages' ),
 					$minutes
 				),
-				'seconds' => ceil( $total_seconds ),
+				'seconds' => $total_seconds,
 			);
 		}
 
-		$hours = floor( $minutes / 60 );
+		$hours = (int) floor( $minutes / 60 );
 		$mins  = $minutes % 60;
 		$text  = sprintf(
 			/* translators: 1: Hours, 2: Minutes. */
@@ -162,7 +162,7 @@ class SScribe_Helpers {
 		);
 		return array(
 			'text'    => $text,
-			'seconds' => ceil( $total_seconds ),
+			'seconds' => $total_seconds,
 		);
 	}
 
