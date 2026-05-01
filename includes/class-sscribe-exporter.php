@@ -882,7 +882,7 @@ class SScribe_Exporter {
 			array(
 				__( 'Reading Time', 'sscribe-export-site-pages' ),
 				/* translators: %d: number of minutes */
-				sprintf( _n( '%d minute', '%d minutes', $page_data['reading_time'], 'sscribe-export-site-pages' ), $page_data['reading_time'] ),
+				sprintf( _n( '%d minute', '%d minutes', (int) ( $page_data['reading_time'] ?? 0 ), 'sscribe-export-site-pages' ), (int) ( $page_data['reading_time'] ?? 0 ) ),
 			),
 		);
 
