@@ -863,77 +863,78 @@
 		getErrorGuidance: function (message) {
 			if (!message) return '';
 			var msg = message.toLowerCase();
+			var s   = sscribe_data.strings || {};
 
 			if (msg.indexOf('permission') !== -1 || msg.indexOf('not allowed') !== -1) {
-				return 'Your WordPress user role does not have the required capability (manage_options). Please contact your site administrator to grant export permissions, or log in with an Administrator account.';
+				return s.err_permission || '';
 			}
 			if (msg.indexOf('session expired') !== -1 || msg.indexOf('session not found') !== -1 || msg.indexOf('start again') !== -1) {
-				return 'The export session was lost — this typically happens when the PHP session or database connection timed out. Click "Try Again" to start a fresh export. If this keeps happening, ask your hosting provider to increase the PHP max_execution_time (recommended: 120s or higher).';
+				return s.err_session_expired || '';
 			}
 			if (msg.indexOf('session data corrupted') !== -1) {
-				return 'The session data in the database became invalid. This can happen if your database ran out of storage or a caching plugin (e.g., WP Rocket, W3 Total Cache) is caching wp_options. Click "Try Again" — the old session has been cleaned up. If it recurs, exclude "sscribe_session_*" from object caching.';
+				return s.err_data_corrupted || '';
 			}
 			if (msg.indexOf('rate limit') !== -1 || msg.indexOf('too many requests') !== -1) {
-				return 'You have exceeded the request rate limit (60 requests per minute). Please wait about 1 minute and then click "Try Again". This limit protects your server from overload.';
+				return s.err_rate_limit || '';
 			}
 			if (msg.indexOf('no pages found') !== -1) {
-				return 'No pages match the selected language and status combination. Go back and verify your selection. If using WPML, ensure the selected language has pages assigned to it.';
+				return s.err_no_pages || '';
 			}
 			if (msg.indexOf('zip') !== -1 || msg.indexOf('package') !== -1) {
-				return 'The server could not create the ZIP archive. Common causes: (1) The wp-content/uploads/sscribe-exports/ directory is not writable — check folder permissions (should be 755). (2) The server ran out of disk space. (3) The PHP zip extension is not installed. Contact your hosting provider if this persists.';
+				return s.err_zip || '';
 			}
 			if (msg.indexOf('timeout') !== -1 || msg.indexOf('timed out') !== -1) {
-				return 'The server took too long to respond. This usually happens with large pages or slow server hardware. Click "Try Again" — the plugin processes pages individually, so it will resume from where it left off. If this keeps happening, ask your hosting provider to increase max_execution_time to at least 120 seconds.';
+				return s.err_timeout || '';
 			}
 			if (msg.indexOf('memory') !== -1) {
-				return 'The server ran out of PHP memory during export. Ask your hosting provider to increase the WordPress memory limit (wp-config.php: WP_MEMORY_LIMIT) to at least 256M. You can also try exporting fewer pages at a time by selecting a specific language.';
+				return s.err_memory || '';
 			}
 			if (msg.indexOf('connection') !== -1 || msg.indexOf('network') !== -1) {
-				return 'The connection to your server was interrupted. Check your internet connection, then click "Try Again". If you are behind a proxy or CDN (e.g., Cloudflare), ensure AJAX requests are not being blocked or cached.';
+				return s.err_connection || '';
 			}
 			if (msg.indexOf('invalid language') !== -1) {
-				return 'The selected language code is not recognized by WPML. Go back to step 1 and select a valid language. If you recently changed your WPML configuration, refresh this page first.';
+				return s.err_invalid_lang || '';
 			}
 			if (msg.indexOf('already have an export') !== -1 || msg.indexOf('in progress') !== -1) {
-				return 'A previous export session is still active. Click "Try Again" to force-clear it and start fresh. This can happen if a previous export was interrupted without proper cleanup.';
+				return s.err_in_progress || '';
 			}
 			if (msg.indexOf('500') !== -1 || msg.indexOf('internal server error') !== -1) {
-				return 'Your server encountered an internal error (HTTP 500). Check your server\'s PHP error log for details. Common causes: (1) A conflicting plugin. (2) PHP memory limit too low. (3) A corrupted .htaccess file. Try deactivating other plugins temporarily to isolate the issue.';
+				return s.err_500 || '';
 			}
 			if (msg.indexOf('403') !== -1 || msg.indexOf('forbidden') !== -1) {
-				return 'The server rejected the request (HTTP 403 Forbidden). This is usually caused by a security plugin (e.g., Wordfence, Sucuri, iThemes Security) or server-level firewall blocking AJAX requests. Whitelist the SScribe AJAX actions in your security plugin settings.';
+				return s.err_403 || '';
 			}
 
-			// Generic fallback with actionable steps.
-			return 'Click "Try Again" to retry the export. If the problem continues: (1) Refresh the page and try again. (2) Check your browser\'s developer console (F12) for details. (3) Contact your hosting provider to review PHP error logs.';
+			return s.err_generic || '';
 		},
 
 		getNetworkErrorMessage: function (xhr, context) {
+			var s = sscribe_data.strings || {};
+
 			if (xhr && xhr.status === 0) {
-				return 'Connection lost — the server did not respond. Please check your internet connection and try again.';
+				return s.net_connection_lost || '';
 			}
 			if (xhr && xhr.status === 403) {
-				return 'Access denied (HTTP 403). A security plugin or firewall may be blocking this request.';
+				return s.net_403 || '';
 			}
 			if (xhr && xhr.status === 500) {
-				return 'Internal server error (HTTP 500). The server encountered a problem — check your PHP error log for details.';
+				return s.net_500 || '';
 			}
 			if (xhr && xhr.status === 502) {
-				return 'Bad gateway (HTTP 502). Your server or reverse proxy (Nginx/Cloudflare) is unavailable. Please wait a moment and try again.';
+				return s.net_502 || '';
 			}
 			if (xhr && xhr.status === 503) {
-				return 'Service unavailable (HTTP 503). Your server is temporarily overloaded or under maintenance. Please wait a moment and try again.';
+				return s.net_503 || '';
 			}
 			if (xhr && xhr.status === 504) {
-				return 'Gateway timeout (HTTP 504). The request took too long to process. Ask your hosting provider to increase the PHP max_execution_time.';
+				return s.net_504 || '';
 			}
 			if (xhr && xhr.statusText === 'timeout') {
-				return 'Request timed out — the server took too long to respond. This may happen with large exports. Please try again.';
+				return s.net_timeout || '';
 			}
 
-			// Unknown HTTP error.
-			var statusCode = (xhr && xhr.status) ? ' (HTTP ' + xhr.status + ')' : '';
-			return 'A network error occurred' + statusCode + '. Please check your connection and try again.';
+			var statusCode = (xhr && xhr.status) ? xhr.status : 0;
+			return (s.net_unknown || '').replace('%d', statusCode);
 		},
 
 		resetUI: function () {
