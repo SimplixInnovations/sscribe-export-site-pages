@@ -229,6 +229,38 @@ Each document includes: cover page with title/URL/date/breadcrumbs, featured ima
 
 == Changelog ==
 
+= 3.37.0 =
+
+* Critical: Fixed format names displaying as "0,1" instead of "docx,pdf" in export logs and admin UI
+* Critical: Fixed PHP 8.5 deprecations — removed all ReflectionMethod::setAccessible() calls from test suite
+* Bug: Fixed shared cron lock key (sscribe_cron_cleanup_lock) preventing session cleanup when exports also run cleanup
+* Bug: Fixed ZIP export index lock permanently held on exception by wrapping in try/finally
+* Bug: Fixed minified JS referencing non-existent element ID (#sscribe-status-label → #sscribe-status-text)
+* Bug: Fixed invalid CSS var() syntax with space before parens in minified admin JS
+* Bug: Fixed onPostTypeChange double-counting page totals when post_type="any"
+* Bug: Fixed admin UI showing raw bytes (1234567) instead of formatted size (1.2 MB) for AJAX-refreshed history
+* Bug: Fixed hardcoded WP_CONTENT_DIR upload path in PDF exporter breaking multisite/Bedrock configurations
+* Bug: Fixed Apache 2.2-only .htaccess syntax in PDF temp directory to support Apache 2.4+
+* Perf: Fixed render_vendor_dependency_notice instantiating SScribe_Diagnostics on every admin page (now cached with static)
+* Perf: Fixed check_session_health doing full table scan on wp_options via JSON value LIKE search
+* Sec: Fixed ReDoS vulnerability in button extraction regex pattern (possessive quantifiers)
+* Sec: Added wp_reset_postdata() after WP_Query in page collector to prevent $post global pollution
+* UX: Fixed .sscribe-export-bar .sscribe-time-estimate inheriting unwanted background/border from generic rule
+* a11y: Added filename context to aria-label on export log buttons for screen reader users
+* i18n: Added mb_strtoupper fallback for hosts without mbstring extension
+* Compatibility: Added TOC TabLeader constant guard for prefixed PHPWord versions
+* Misc: Readme synced to v3.37.0, changelog entries added, version sync script passes, zero test warnings
+
+= 3.36.0 =
+
+* Tests: Added comprehensive unit test coverage for 9 previously untested classes (Exporter, Zip Handler, Diagnostics, AJAX Handlers, Logger Enhanced, Export Format, Helpers, Image Processor, RTL Helper)
+* Tests: Updated bootstrap with 12 new WordPress function mocks for proper test isolation
+* Tests: Added wp-phpunit/wp-phpunit to require-dev dependencies
+* Tests: Fixed test data to include all expected array keys (permalink, author, dates, word_count) eliminating undefined key warnings
+* Tooling: Updated composer.json scripts, added ci:full workflow
+* Deep-dive: Confirmed CSS !important, JS innerHTML, and @file_put_contents usage patterns are safe
+* Quality: 338 tests, 763 assertions, zero new errors or failures introduced
+
 = 3.35.1 =
 
 * Security: Health check AJAX endpoint now enforces capability check (export_site_pages) for authenticated diagnostics
@@ -363,6 +395,14 @@ Each document includes: cover page with title/URL/date/breadcrumbs, featured ima
 * Improved: .gitignore updated to exclude agent metadata directories
 
 == Upgrade Notice ==
+
+= 3.37.0 =
+
+Critical bug fixes: format names display, PHP 8.5 compatibility, cron lock conflict, ZIP lock safety, CSS/JS fixes, accessibility improvements. Zero test warnings. Recommended update for all users.
+
+= 3.36.0 =
+
+Comprehensive test coverage added for 9 previously untested classes. 338 tests, 763 assertions. Recommended update for all users.
 
 = 3.35.1 =
 
