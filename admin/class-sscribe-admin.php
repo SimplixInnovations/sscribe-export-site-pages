@@ -302,7 +302,7 @@ class SScribe_Admin {
 		// all admin users because the cached data (page counts, status counts,
 		// language lists) is site-wide and not user-specific. Transients are
 		// already site-scoped in WordPress multisite, so no blog_id suffix needed.
-		$cache_key        = 'sscribe_admin_page_data';
+		$cache_key        = 'sscribe_admin_page_data_v' . SSCRIBE_VERSION;
 		$cached_page_data = get_transient( $cache_key );
 
 		if ( is_array( $cached_page_data ) ) {

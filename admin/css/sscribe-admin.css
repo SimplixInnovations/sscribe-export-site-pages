@@ -5,7 +5,7 @@
  * WCAG 2.1 AA compliant, accessible, and professional.
  *
  * @package SScribe
- * @version 3.48.0
+ * @version 3.49.0
  */
 
 /* Manrope Font â€” Local, No CDN â€” SIL Open Font License 1.1 */
@@ -103,6 +103,13 @@
 		--sscribe-primary-light: rgba(8, 145, 178, 0.15);
 		--sscribe-shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.4);
 		--sscribe-shadow-md: 0 6px 18px rgba(0, 0, 0, 0.5);
+		--sscribe-success-light: rgba(47, 133, 90, 0.15);
+		--sscribe-warning-light: rgba(221, 153, 51, 0.15);
+		--sscribe-danger-light: rgba(220, 53, 69, 0.15);
+		--sscribe-info-light: rgba(8, 145, 178, 0.12);
+		--sscribe-text-light: rgba(255, 255, 255, 0.6);
+		--sscribe-shadow-lg: 0 12px 32px rgba(0, 0, 0, 0.5);
+		--sscribe-shadow-xl: 0 20px 48px rgba(0, 0, 0, 0.6);
 	}
 }
 
@@ -1599,7 +1606,7 @@
    RESPONSIVE BREAKPOINTS
    ============================================ */
 @media (max-width: 782px) {
-	.sscribe-hero {
+	.sscribe-hero-content {
 		flex-direction: column;
 		align-items: flex-start;
 		padding: 20px 16px;
@@ -2928,6 +2935,7 @@
 .sscribe-log-loading .sscribe-spinner-img {
 	animation: sscribe-spin 1s linear infinite;
 }
+
 
 
 
