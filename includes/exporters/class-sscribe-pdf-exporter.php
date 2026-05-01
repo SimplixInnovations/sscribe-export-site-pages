@@ -146,7 +146,8 @@ class SScribe_PDF_Exporter implements SScribe_Exporter_Interface {
 
 			$font_dir    = trailingslashit( SSCRIBE_PLUGIN_DIR ) . 'assets/fonts/';
 			$manrope_dir = $font_dir . 'manrope/';
-			$mpdf_temp   = trailingslashit( WP_CONTENT_DIR ) . 'uploads/sscribe/mpdf-tmp/';
+			$upload_dir  = wp_upload_dir();
+			$mpdf_temp   = trailingslashit( $upload_dir['basedir'] ) . 'sscribe/mpdf-tmp/';
 
 			if ( ! is_dir( $mpdf_temp ) ) {
 				wp_mkdir_p( $mpdf_temp );
@@ -290,18 +291,24 @@ class SScribe_PDF_Exporter implements SScribe_Exporter_Interface {
 	private function protect_temp_directory( string $dir ): void {
 		$htaccess = $dir . '.htaccess';
 		if ( ! file_exists( $htaccess ) ) {
-			@file_put_contents( // phpcs:ignore WordPress.WP.AlternativeFunctions.file_system_operations_file_put_contents
-				$htaccess,
-				"Order deny,allow\nDeny from all\n"
-			);
+			$content  = "Options -Indexes\n";
+			$content .= "<Files \"*\">\n";
+			$content .= "  <IfModule mod_authz_core.c>\n";
+			$content .= "    Require all denied\n";
+			$content .= "  </IfModule>\n";
+			$content .= "  <IfModule !mod_authz_core.c>\n";
+			$content .= "    Order Allow,Deny\n";
+			$content .= "    Deny from all\n";
+			$content .= "  </IfModule>\n";
+			$content .= "</Files>\n";
+			// phpcs:ignore WordPress.WP.AlternativeFunctions.file_system_operations_file_put_contents
+			file_put_contents( $htaccess, $content );
 		}
 
-		$index = $dir . 'index.html';
+		$index = $dir . 'index.php';
 		if ( ! file_exists( $index ) ) {
-			@file_put_contents( // phpcs:ignore WordPress.WP.AlternativeFunctions.file_system_operations_file_put_contents
-				$index,
-				''
-			);
+			// phpcs:ignore WordPress.WP.AlternativeFunctions.file_system_operations_file_put_contents
+			file_put_contents( $index, "<?php\n// Silence is golden.\n" );
 		}
 	}
 

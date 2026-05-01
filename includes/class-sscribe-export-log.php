@@ -173,8 +173,23 @@ class SScribe_Export_Log {
 			$data['pages'][ $page_id ]['status']   = 'success';
 			$data['pages'][ $page_id ]['end_time'] = $end_time;
 			$data['pages'][ $page_id ]['duration'] = round( $end_time - $start_time, 3 );
-			$data['pages'][ $page_id ]['formats']  = $formats;
 			$data['pages'][ $page_id ]['memory']   = size_format( memory_get_usage( true ) );
+
+			// Merge into the associative formats array built by log_format_result().
+			// Do NOT overwrite with a plain indexed array — that breaks the
+			// build_structured_errors_from_log() consumer and the admin JS display.
+			if ( empty( $data['pages'][ $page_id ]['formats'] ) ) {
+				// Fallback: log_format_result() was never called.
+				foreach ( $formats as $fmt ) {
+					$data['pages'][ $page_id ]['formats'][ $fmt ] = array(
+						'success' => true,
+						'file'    => '',
+						'error'   => '',
+					);
+				}
+			}
+			// If log_format_result() already populated the formats array, keep it.
+
 			++$data['success'];
 		}
 

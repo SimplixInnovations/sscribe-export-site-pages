@@ -525,7 +525,7 @@ class SScribe_Content_Parser {
 
 		// Use regex to find anchor tags with button-like classes before DOM parsing.
 		// This captures buttons that would be lost after normalize_html() strips classes.
-		$pattern = '/<a\s+[^>]*class=["\']([^"\']*(?:wp-block-button__link|wp-element-button|button|btn|elementor-button|et_pb_button|fl-button|vc_btn)[^"\']*)["\'][^>]*>(.*?)<\/a>/is';
+		$pattern = '/<a\s+[^>]*+class=["\']([^"\']*(?:wp-block-button__link|wp-element-button|button|btn|elementor-button|et_pb_button|fl-button|vc_btn)[^"\']*)["\'][^>]*+>(.*?)<\/a>/is';
 
 		if ( preg_match_all( $pattern, $html, $matches, PREG_SET_ORDER ) ) {
 			foreach ( $matches as $match ) {

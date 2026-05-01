@@ -91,7 +91,9 @@ class SScribe_Deactivator {
 	 * @return void
 	 */
 	private static function cleanup_transients(): void {
-		delete_transient( 'sscribe_cron_cleanup_lock' );
+		delete_transient( 'sscribe_cron_exports_lock' );
+		delete_transient( 'sscribe_cron_sessions_lock' );
+		delete_transient( 'sscribe_cron_cleanup_lock' ); // Legacy — remove after migration.
 		delete_transient( 'sscribe_upgrade_lock' );
 
 		global $wpdb;

@@ -366,6 +366,7 @@ class SScribe_Page_Collector {
 
 			$query = new WP_Query( $args );
 			$count = (int) $query->found_posts;
+			wp_reset_postdata();
 
 			$this->debug_log(
 				'get_page_count_only result',

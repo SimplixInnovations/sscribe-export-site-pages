@@ -587,7 +587,9 @@ class SScribe_Exporter {
 
 		$cover_title = (string) $page_data['title'];
 		if ( ! $this->is_rtl ) {
-			$cover_title = mb_strtoupper( $cover_title, 'UTF-8' );
+			$cover_title = function_exists( 'mb_strtoupper' )
+				? mb_strtoupper( $cover_title, 'UTF-8' )
+				: strtoupper( $cover_title );
 		}
 		$section->addText(
 			$this->safe_text( $cover_title ),
@@ -707,12 +709,16 @@ class SScribe_Exporter {
 			$this->get_para_style( array( 'spaceAfter' => Converter::pointToTwip( 12 ) ) )
 		);
 
+		$tab_leader = defined( '\\SScribeVendor\\PhpOffice\\PhpWord\\Style\\TOC::TAB_LEADER_DOT' )
+			? \SScribeVendor\PhpOffice\PhpWord\Style\TOC::TAB_LEADER_DOT
+			: '.';
+
 		$section->addTOC(
 			array(
 				'name' => $this->font_name,
 				'size' => 11,
 			),
-			array( 'tabLeader' => \SScribeVendor\PhpOffice\PhpWord\Style\TOC::TAB_LEADER_DOT ),
+			array( 'tabLeader' => $tab_leader ),
 			1,
 			3
 		);
