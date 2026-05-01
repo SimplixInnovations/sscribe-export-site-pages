@@ -122,11 +122,11 @@ class SScribe_Exporter_Test extends TestCase {
 		if ( ! class_exists( 'ZipArchive' ) ) {
 			$this->markTestSkipped( 'ZipArchive extension not available' );
 		}
-		$page_data = array(
-			'title'   => 'اختبار الصفحة',
-			'content' => '<p>مرحبا بالعالم</p>',
-			'url'     => 'https://example.com/test-ar',
-		);
+		$page_data = array_merge( $this->get_sample_page_data(), array(
+			'title'   => 'Special & Characters < > " \'',
+			'content' => '<p>Content with &amp; entities & "quotes"</p>',
+			'url'     => 'https://example.com/special',
+		) );
 		$result    = $this->exporter->generate_docx( $page_data, $this->temp_dir );
 		$this->assertIsString( $result );
 		if ( file_exists( $result ) ) {
@@ -141,11 +141,11 @@ class SScribe_Exporter_Test extends TestCase {
 		if ( ! class_exists( 'ZipArchive' ) ) {
 			$this->markTestSkipped( 'ZipArchive extension not available' );
 		}
-		$page_data = array(
+		$page_data = array_merge( $this->get_sample_page_data(), array(
 			'title'   => 'Page with Image',
 			'content' => '<p>Text <img src="https://example.com/image.jpg" alt="test" /></p>',
 			'url'     => 'https://example.com/image-page',
-		);
+		) );
 		$result    = $this->exporter->generate_docx( $page_data, $this->temp_dir );
 		$this->assertIsString( $result );
 		if ( file_exists( $result ) ) {
@@ -160,11 +160,11 @@ class SScribe_Exporter_Test extends TestCase {
 		if ( ! class_exists( 'ZipArchive' ) ) {
 			$this->markTestSkipped( 'ZipArchive extension not available' );
 		}
-		$page_data = array(
+		$page_data = array_merge( $this->get_sample_page_data(), array(
 			'title'   => 'Page with Table',
 			'content' => '<table><tr><th>Header</th></tr><tr><td>Cell</td></tr></table>',
 			'url'     => 'https://example.com/table-page',
-		);
+		) );
 		$result    = $this->exporter->generate_docx( $page_data, $this->temp_dir );
 		$this->assertIsString( $result );
 		if ( file_exists( $result ) ) {
@@ -179,11 +179,11 @@ class SScribe_Exporter_Test extends TestCase {
 		if ( ! class_exists( 'ZipArchive' ) ) {
 			$this->markTestSkipped( 'ZipArchive extension not available' );
 		}
-		$page_data = array(
+		$page_data = array_merge( $this->get_sample_page_data(), array(
 			'title'   => 'Page with List',
 			'content' => '<ul><li>Item 1</li><li>Item 2</li></ul>',
 			'url'     => 'https://example.com/list-page',
-		);
+		) );
 		$result    = $this->exporter->generate_docx( $page_data, $this->temp_dir );
 		$this->assertIsString( $result );
 		if ( file_exists( $result ) ) {
@@ -198,11 +198,11 @@ class SScribe_Exporter_Test extends TestCase {
 		if ( ! class_exists( 'ZipArchive' ) ) {
 			$this->markTestSkipped( 'ZipArchive extension not available' );
 		}
-		$page_data = array(
-			'title'   => '',
-			'content' => '<p>Content only</p>',
-			'url'     => 'https://example.com/no-title',
-		);
+		$page_data = array_merge( $this->get_sample_page_data(), array(
+			'title'   => 'اختبار الصفحة',
+			'content' => '<p>مرحبا بالعالم</p>',
+			'url'     => 'https://example.com/test-ar',
+		) );
 		$result    = $this->exporter->generate_docx( $page_data, $this->temp_dir );
 		$this->assertIsString( $result );
 		if ( file_exists( $result ) ) {
@@ -217,11 +217,11 @@ class SScribe_Exporter_Test extends TestCase {
 		if ( ! class_exists( 'ZipArchive' ) ) {
 			$this->markTestSkipped( 'ZipArchive extension not available' );
 		}
-		$page_data = array(
-			'title'   => 'Special & Characters < > " \'',
-			'content' => '<p>Content with &amp; entities & "quotes"</p>',
-			'url'     => 'https://example.com/special',
-		);
+		$page_data = array_merge( $this->get_sample_page_data(), array(
+			'title'   => '',
+			'content' => '<p>Content only</p>',
+			'url'     => 'https://example.com/no-title',
+		) );
 		$result    = $this->exporter->generate_docx( $page_data, $this->temp_dir );
 		$this->assertIsString( $result );
 		if ( file_exists( $result ) ) {
@@ -237,11 +237,11 @@ class SScribe_Exporter_Test extends TestCase {
 			$this->markTestSkipped( 'ZipArchive extension not available' );
 		}
 		$long_content = str_repeat( '<p>This is a paragraph of content.</p>', 50 );
-		$page_data    = array(
+		$page_data    = array_merge( $this->get_sample_page_data(), array(
 			'title'   => 'Long Page',
 			'content' => $long_content,
 			'url'     => 'https://example.com/long',
-		);
+		) );
 		$result       = $this->exporter->generate_docx( $page_data, $this->temp_dir );
 		$this->assertIsString( $result );
 		if ( file_exists( $result ) ) {
@@ -261,12 +261,11 @@ class SScribe_Exporter_Test extends TestCase {
 	 * Test is_rtl_document method.
 	 */
 	public function test_is_rtl_document_detects_rtl(): void {
-		$rtl_data   = array( 'title' => 'مرحبا' );
+		$rtl_data   = array( 'title' => 'Ù…Ø±Ø­Ø¨Ø§' );
 		$ltr_data   = array( 'title' => 'Hello' );
 		$ar_data    = array( 'title' => 'Test', 'language' => 'ar' );
 		// Use reflection to test private method.
 		$method = new \ReflectionMethod( SScribe_Exporter::class, 'is_rtl_document' );
-		$method->setAccessible( true );
 
 		$this->assertTrue( $method->invoke( $this->exporter, $ar_data ) );
 		$this->assertFalse( $method->invoke( $this->exporter, $ltr_data ) );

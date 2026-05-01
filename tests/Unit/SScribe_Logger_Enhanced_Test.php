@@ -203,7 +203,6 @@ class SScribe_Logger_Enhanced_Test extends TestCase {
 	 */
 	public function test_should_log_respects_min_level(): void {
 		$method = new \ReflectionMethod( SScribe_Logger_Enhanced::class, 'should_log' );
-		$method->setAccessible( true );
 
 		// With min_level='warning', debug and info should not log.
 		$result = $method->invoke( $this->logger, 'debug' );
@@ -215,7 +214,6 @@ class SScribe_Logger_Enhanced_Test extends TestCase {
 	 */
 	public function test_format_entry_returns_correct_structure(): void {
 		$method = new \ReflectionMethod( SScribe_Logger_Enhanced::class, 'format_entry' );
-		$method->setAccessible( true );
 
 		$args   = array( 'info', 'Test message', array( 'key' => 'value' ) );
 		$result = $method->invokeArgs( $this->logger, $args );
@@ -230,7 +228,6 @@ class SScribe_Logger_Enhanced_Test extends TestCase {
 	 */
 	public function test_sanitize_context_removes_forbidden(): void {
 		$method = new \ReflectionMethod( SScribe_Logger_Enhanced::class, 'sanitize_context' );
-		$method->setAccessible( true );
 
 		$input    = array(
 			'password'  => 'secret',
@@ -253,7 +250,6 @@ class SScribe_Logger_Enhanced_Test extends TestCase {
 	 */
 	public function test_table_exists_returns_bool(): void {
 		$method = new \ReflectionMethod( SScribe_Logger_Enhanced::class, 'table_exists' );
-		$method->setAccessible( true );
 
 		$result = $method->invoke( $this->logger );
 		$this->assertIsBool( $result );
@@ -272,7 +268,6 @@ class SScribe_Logger_Enhanced_Test extends TestCase {
 	 */
 	public function test_get_log_file_returns_path(): void {
 		$method = new \ReflectionMethod( SScribe_Logger_Enhanced::class, 'get_log_file' );
-		$method->setAccessible( true );
 
 		$result = $method->invoke( $this->logger );
 		$this->assertIsString( $result );

@@ -138,7 +138,6 @@ class SScribe_Diagnostics_Test extends TestCase {
 	 */
 	public function test_check_vendor_dependencies(): void {
 		$method = new \ReflectionMethod( SScribe_Diagnostics::class, 'check_vendor_dependencies' );
-		$method->setAccessible( true );
 
 		$result = $method->invoke( $this->diagnostics );
 
@@ -150,7 +149,6 @@ class SScribe_Diagnostics_Test extends TestCase {
 	 */
 	public function test_check_php_version_returns_valid(): void {
 		$method = new \ReflectionMethod( SScribe_Diagnostics::class, 'check_php_version' );
-		$method->setAccessible( true );
 
 		$result = $method->invoke( $this->diagnostics );
 
@@ -165,7 +163,6 @@ class SScribe_Diagnostics_Test extends TestCase {
 	 */
 	public function test_check_memory_returns_valid(): void {
 		$method = new \ReflectionMethod( SScribe_Diagnostics::class, 'check_memory' );
-		$method->setAccessible( true );
 
 		$args   = array( 5, array( 'docx' ) );
 		$result = $method->invokeArgs( $this->diagnostics, $args );
@@ -181,7 +178,6 @@ class SScribe_Diagnostics_Test extends TestCase {
 	 */
 	public function test_check_execution_time_returns_valid(): void {
 		$method = new \ReflectionMethod( SScribe_Diagnostics::class, 'check_execution_time' );
-		$method->setAccessible( true );
 
 		$args   = array( 10 );
 		$result = $method->invokeArgs( $this->diagnostics, $args );
@@ -196,7 +192,6 @@ class SScribe_Diagnostics_Test extends TestCase {
 	 */
 	public function test_check_upload_directory_returns_valid(): void {
 		$method = new \ReflectionMethod( SScribe_Diagnostics::class, 'check_upload_directory' );
-		$method->setAccessible( true );
 
 		$result = $method->invoke( $this->diagnostics );
 
@@ -210,7 +205,6 @@ class SScribe_Diagnostics_Test extends TestCase {
 	 */
 	public function test_check_zip_extension_returns_valid(): void {
 		$method = new \ReflectionMethod( SScribe_Diagnostics::class, 'check_zip_extension' );
-		$method->setAccessible( true );
 
 		$result = $method->invoke( $this->diagnostics );
 
@@ -224,7 +218,6 @@ class SScribe_Diagnostics_Test extends TestCase {
 	 */
 	public function test_check_file_permissions_returns_valid(): void {
 		$method = new \ReflectionMethod( SScribe_Diagnostics::class, 'check_file_permissions' );
-		$method->setAccessible( true );
 
 		$result = $method->invoke( $this->diagnostics );
 
@@ -238,7 +231,6 @@ class SScribe_Diagnostics_Test extends TestCase {
 	 */
 	public function test_check_wp_cron_returns_valid(): void {
 		$method = new \ReflectionMethod( SScribe_Diagnostics::class, 'check_wp_cron' );
-		$method->setAccessible( true );
 
 		$result = $method->invoke( $this->diagnostics );
 
@@ -252,7 +244,6 @@ class SScribe_Diagnostics_Test extends TestCase {
 	 */
 	public function test_check_session_health_returns_valid(): void {
 		$method = new \ReflectionMethod( SScribe_Diagnostics::class, 'check_session_health' );
-		$method->setAccessible( true );
 
 		$result = $method->invoke( $this->diagnostics );
 
@@ -266,7 +257,6 @@ class SScribe_Diagnostics_Test extends TestCase {
 	 */
 	public function test_get_recommendations_returns_array(): void {
 		$method = new \ReflectionMethod( SScribe_Diagnostics::class, 'get_recommendations' );
-		$method->setAccessible( true );
 
 		$checks = array(
 			'php_version' => array( 'status' => 'ok', 'name' => 'PHP', 'message' => 'PHP 8.2' ),
@@ -284,7 +274,6 @@ class SScribe_Diagnostics_Test extends TestCase {
 	 */
 	public function test_get_active_seo_plugins_returns_array(): void {
 		$method = new \ReflectionMethod( SScribe_Diagnostics::class, 'get_active_seo_plugins' );
-		$method->setAccessible( true );
 
 		$result = $method->invoke( $this->diagnostics );
 
@@ -296,7 +285,6 @@ class SScribe_Diagnostics_Test extends TestCase {
 	 */
 	public function test_build_support_copy_text_returns_string(): void {
 		$method = new \ReflectionMethod( SScribe_Diagnostics::class, 'build_support_copy_text' );
-		$method->setAccessible( true );
 
 		$sections            = array(
 			'plugin'     => array( 'label' => 'Plugin', 'items' => array( 'version' => '3.35.1' ) ),
@@ -316,7 +304,6 @@ class SScribe_Diagnostics_Test extends TestCase {
 	 */
 	public function test_build_support_copy_text_includes_debug_warning(): void {
 		$method = new \ReflectionMethod( SScribe_Diagnostics::class, 'build_support_copy_text' );
-		$method->setAccessible( true );
 
 		$sections            = array(
 			'plugin' => array(

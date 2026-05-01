@@ -28,7 +28,6 @@ class SScribe_Image_Processor_Test extends TestCase {
 	 */
 	public function test_allowed_content_types(): void {
 		$method = new \ReflectionMethod( SScribe_Image_Processor::class, 'normalize_url' );
-		$method->setAccessible( true );
 
 		// Test that the method exists and is callable.
 		$this->assertIsCallable( array( SScribe_Image_Processor::class, 'download_and_optimize' ) );
@@ -39,7 +38,6 @@ class SScribe_Image_Processor_Test extends TestCase {
 	 */
 	public function test_normalize_url_http(): void {
 		$method = new \ReflectionMethod( SScribe_Image_Processor::class, 'normalize_url' );
-		$method->setAccessible( true );
 
 		$result = $method->invoke( null, 'http://example.org/image.jpg' );
 		$this->assertSame( 'http://example.org/image.jpg', $result );
@@ -50,7 +48,6 @@ class SScribe_Image_Processor_Test extends TestCase {
 	 */
 	public function test_normalize_url_https(): void {
 		$method = new \ReflectionMethod( SScribe_Image_Processor::class, 'normalize_url' );
-		$method->setAccessible( true );
 
 		$result = $method->invoke( null, 'https://example.org/image.jpg' );
 		$this->assertSame( 'https://example.org/image.jpg', $result );
@@ -61,7 +58,6 @@ class SScribe_Image_Processor_Test extends TestCase {
 	 */
 	public function test_normalize_url_rejects_javascript(): void {
 		$method = new \ReflectionMethod( SScribe_Image_Processor::class, 'normalize_url' );
-		$method->setAccessible( true );
 
 		$result = $method->invoke( null, 'javascript:alert(1)' );
 		$this->assertSame( '', $result );
@@ -72,7 +68,6 @@ class SScribe_Image_Processor_Test extends TestCase {
 	 */
 	public function test_normalize_url_rejects_data_uri(): void {
 		$method = new \ReflectionMethod( SScribe_Image_Processor::class, 'normalize_url' );
-		$method->setAccessible( true );
 
 		$result = $method->invoke( null, 'data:image/png;base64,abc' );
 		$this->assertSame( '', $result );
@@ -83,7 +78,6 @@ class SScribe_Image_Processor_Test extends TestCase {
 	 */
 	public function test_is_allowed_remote_url_accepts_valid(): void {
 		$method = new \ReflectionMethod( SScribe_Image_Processor::class, 'is_allowed_remote_url' );
-		$method->setAccessible( true );
 
 		$valid_urls = array(
 			'https://example.org/image.jpg',
@@ -101,7 +95,6 @@ class SScribe_Image_Processor_Test extends TestCase {
 	 */
 	public function test_is_allowed_remote_url_rejects_invalid(): void {
 		$method = new \ReflectionMethod( SScribe_Image_Processor::class, 'is_allowed_remote_url' );
-		$method->setAccessible( true );
 
 		$invalid_urls = array(
 			'javascript:alert(1)',

@@ -24,7 +24,7 @@ class SScribe_Zip_Handler_Test extends TestCase {
 		$this->handler = null;
 		if ( is_dir( $this->test_export_dir ) ) {
 			array_map( 'unlink', glob( $this->test_export_dir . '/**/*' ) ?: array() );
-			rmdir( $this->test_export_dir );
+			@rmdir( $this->test_export_dir );
 		}
 		parent::tearDown();
 	}
@@ -85,7 +85,6 @@ class SScribe_Zip_Handler_Test extends TestCase {
 		$this->assertDirectoryExists( $test_dir );
 
 		$method = new \ReflectionMethod( SScribe_Zip_Handler::class, 'delete_directory' );
-		$method->setAccessible( true );
 		$method->invoke( $this->handler, $test_dir );
 
 		$this->assertDirectoryDoesNotExist( $test_dir );
@@ -96,7 +95,6 @@ class SScribe_Zip_Handler_Test extends TestCase {
 	 */
 	public function test_delete_directory_handles_missing_dir(): void {
 		$method = new \ReflectionMethod( SScribe_Zip_Handler::class, 'delete_directory' );
-		$method->setAccessible( true );
 		$result = $method->invoke( $this->handler, '/non-existent-dir' );
 
 		$this->assertFalse( $result );
@@ -107,7 +105,6 @@ class SScribe_Zip_Handler_Test extends TestCase {
 	 */
 	public function test_extract_lang_from_filename(): void {
 		$method = new \ReflectionMethod( SScribe_Zip_Handler::class, 'extract_lang_from_filename' );
-		$method->setAccessible( true );
 
 		$test_cases = array(
 			'P001-Title-AR.docx'   => 'AR',
@@ -129,7 +126,6 @@ class SScribe_Zip_Handler_Test extends TestCase {
 	 */
 	public function test_remove_lang_from_filename(): void {
 		$method = new \ReflectionMethod( SScribe_Zip_Handler::class, 'remove_lang_from_filename' );
-		$method->setAccessible( true );
 
 		$test_cases = array(
 			'P001-Title-AR.docx' => 'P001-Title.docx',
