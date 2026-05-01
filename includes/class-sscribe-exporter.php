@@ -637,9 +637,10 @@ class SScribe_Exporter {
 			),
 			$this->get_para_style( array( 'alignment' => Jc::CENTER ) )
 		);
+		$lang_display = ! empty( $page_data['language'] ) ? strtoupper( $page_data['language'] ) : __( 'All Languages', 'sscribe-export-site-pages' );
 		$meta_cell->addText(
 			/* translators: %s: language code */
-			sprintf( __( 'Target Language: %s', 'sscribe-export-site-pages' ), $page_data['language'] ),
+			sprintf( __( 'Target Language: %s', 'sscribe-export-site-pages' ), $lang_display ),
 			array(
 				'name'  => $this->font_name,
 				'size'  => 10,

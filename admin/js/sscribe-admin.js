@@ -987,9 +987,10 @@
 				success: function (response) {
 					if (response.success && response.data.log) {
 						SScribe.renderLog(response.data.log, response.data.diagnostics || null);
-					} else {
+} else {
+						var failMsg = (response && response.data && response.data.message) || (sscribe_data.strings && sscribe_data.strings.log_not_found) || 'Log not found.';
 						$('#sscribe-log-content').html('<div class="sscribe-log-empty"><p></p></div>');
-						$('#sscribe-log-content').find('p').text(response.data.message || (sscribe_data.strings && sscribe_data.strings.log_not_found) || 'Log not found.');
+						$('#sscribe-log-content').find('p').text(failMsg);
 					}
 				},
 				error: function () {
@@ -1162,9 +1163,12 @@
 
 			this.saveFocus();
 
-			$('html, body').animate({
-				scrollTop: $panel.offset().top - 20
-			}, 300);
+			var panelOffset = $panel.offset();
+			if (panelOffset) {
+				$('html, body').animate({
+					scrollTop: panelOffset.top - 20
+				}, 300);
+			}
 
 			var self = this;
 
@@ -1313,10 +1317,10 @@
 					html += '<dl class="sscribe-support-list">';
 				for (var itemKey in section.items) {
 					if (!section.items.hasOwnProperty(itemKey)) continue;
-					html += '<div class="sscribe-support-list"><div class="sscribe-support-list-row">';
+					html += '<div class="sscribe-support-list-row">';
 					html += '<dt>' + this.escapeHtml(this.humanizeSupportKey(itemKey)) + '</dt>';
 					html += '<dd>' + this.escapeHtml(String(section.items[itemKey] || '')) + '</dd>';
-					html += '</div></div>';
+					html += '</div>';
 					}
 					html += '</dl></section>';
 				}
