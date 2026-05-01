@@ -30,13 +30,32 @@ jobs:
       - name: Verify version synchronization
         run: php scripts/verify-version-sync.php
 
+  audit:
+    name: Security Audit
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+
+      - name: Setup PHP
+        uses: shivammathur/setup-php@v2
+        with:
+          php-version: '8.4'
+          coverage: none
+          extensions: fileinfo
+
+      - name: Composer security audit
+        run: composer audit --no-dev
+
   lint:
     name: PHP ${{ matrix.php-version }}
     runs-on: ubuntu-latest
     needs: version-check
     strategy:
       matrix:
-        php-version: ['8.2', '8.3', '8.4']
+        php-version: ['8.2', '8.3', '8.4', '8.5']
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
@@ -66,12 +85,12 @@ jobs:
           echo "All PHP files have valid syntax"
 
   test:
-    name: Tests
+    name: Tests PHP ${{ matrix.php-version }}
     runs-on: ubuntu-latest
     needs: lint
     strategy:
       matrix:
-        php-version: ['8.2', '8.4']
+        php-version: ['8.2', '8.4', '8.5']
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
@@ -84,6 +103,14 @@ jobs:
           php-version: ${{ matrix.php-version }}
           coverage: none
           extensions: fileinfo
+
+      - name: Cache Composer dependencies
+        uses: actions/cache@v4
+        with:
+          path: vendor
+          key: ${{ runner.os }}-php-${{ matrix.php-version }}-vendor-${{ hashFiles('composer.lock') }}
+          restore-keys: |
+            ${{ runner.os }}-php-${{ matrix.php-version }}-vendor-
 
       - name: Install dependencies
         run: composer install --no-progress
@@ -102,3 +129,45 @@ jobs:
 
       - name: Run PHPCS
         run: composer cs
+
+  coverage:
+    name: Coverage PHP 8.4
+    runs-on: ubuntu-latest
+    needs: test
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+
+      - name: Setup PHP
+        uses: shivammathur/setup-php@v2
+        with:
+          php-version: '8.4'
+          extensions: fileinfo
+
+      - name: Cache Composer dependencies
+        uses: actions/cache@v4
+        with:
+          path: vendor
+          key: ${{ runner.os }}-php-8.4-vendor-${{ hashFiles('composer.lock') }}
+          restore-keys: |
+            ${{ runner.os }}-php-8.4-vendor-
+
+      - name: Install dependencies
+        run: composer install --no-progress
+
+      - name: Generate prefixed vendor tree
+        run: composer vendor:prefix
+
+      - name: Build assets
+        run: composer build
+
+      - name: Run tests with coverage
+        run: composer test:coverage
+
+      - name: Upload coverage report
+        uses: actions/upload-artifact@v4
+        with:
+          name: coverage-report
+          path: coverage/
