@@ -176,7 +176,7 @@ class SScribe_PDF_Exporter implements SScribe_Exporter_Interface {
 				'autoScriptToLang' => true,
 				'autoLangToFont'   => true,
 				'tempDir'          => $mpdf_temp,
-				'debug'            => SSCRIBE_DEBUG,
+				'debug'            => defined( 'SSCRIBE_DEBUG' ) && SSCRIBE_DEBUG,
 				'tabSpaces'        => null,
 			);
 

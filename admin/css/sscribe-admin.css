@@ -261,6 +261,7 @@
 	gap: 12px;
 }
 
+.sscribe-panel-title h2,
 .sscribe-panel-title h3 {
 	font-size: 16px !important;
 	font-weight: 600 !important;
@@ -2369,6 +2370,7 @@
 		animation-duration: 0.01ms !important;
 		animation-iteration-count: 1 !important;
 		transition-duration: 0.01ms !important;
+		scroll-behavior: auto !important;
 	}
 
 	.sscribe-loading-spinner,
@@ -2378,12 +2380,6 @@
 	.sscribe-log-loading .sscribe-spinner-img {
 		animation: none;
 		opacity: 0.5;
-	}
-
-	* {
-		transition-duration: 0.01ms !important;
-		animation-duration: 0.01ms !important;
-		scroll-behavior: auto !important;
 	}
 }
 
@@ -2878,37 +2874,17 @@
 	backdrop-filter: blur(2px);
 }
 
-.sscribe-loading-spinner {
-	display: inline-block;
+.sscribe-loading-overlay .sscribe-loading-spinner {
 	width: 24px;
 	height: 24px;
-	border: 3px solid var(--sscribe-border);
-	border-top-color: var(--sscribe-primary);
-	border-radius: 50%;
-	animation: sscribe-spin 0.8s linear infinite;
+	border-width: 3px;
+	margin-right: 0;
 }
 
 .sscribe-loading-text {
 	color: var(--sscribe-text-muted);
 	font-size: 14px;
 	margin-left: 12px;
-}
-
-.sscribe-status-card-label.sscribe-loading .sscribe-status-count {
-	opacity: 0.5;
-}
-
-.sscribe-status-card-label.sscribe-loading .sscribe-status-count::after {
-	content: '';
-	display: inline-block;
-	width: 12px;
-	height: 12px;
-	border: 2px solid var(--sscribe-border);
-	border-top-color: var(--sscribe-primary);
-	border-radius: 50%;
-	animation: sscribe-spin 0.8s linear infinite;
-	vertical-align: middle;
-	margin-left: 6px;
 }
 
 .sscribe-button.sscribe-loading {
@@ -2941,24 +2917,6 @@
 @keyframes sscribe-skeleton-loading {
 	0% { background-position: 200% 0; }
 	100% { background-position: -200% 0; }
-}
-
-.sscribe-preview-loading {
-	display: flex;
-	align-items: center;
-	gap: 12px;
-	color: var(--sscribe-text-muted);
-	font-size: 14px;
-	padding: 20px;
-}
-
-.sscribe-log-loading {
-	display: flex;
-	align-items: center;
-	gap: 12px;
-	color: var(--sscribe-text-muted);
-	font-size: 14px;
-	padding: 20px;
 }
 
 .sscribe-log-loading .sscribe-spinner-img {
