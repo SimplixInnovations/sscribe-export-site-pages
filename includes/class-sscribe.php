@@ -127,6 +127,11 @@ class SScribe {
 		$container = SScribe_Container::instance();
 		$admin     = $container->get( SScribe_Admin::class );
 
+		// Admin hooks use add_action() directly (not $this->loader) because:
+		// 1. These are WordPress core hooks (admin_menu, admin_init) that never need
+		//    deregistration — loader's registry adds no value here.
+		// 2. The test container cannot resolve SScribe_Admin (test mock limitation),
+		//    so loader-based registration would break the test suite.
 		add_action( 'admin_menu', array( $admin, 'add_admin_menu' ) );
 		add_action( 'admin_init', array( $admin, 'maybe_redirect_after_activation' ) );
 		add_action( 'admin_enqueue_scripts', array( $admin, 'enqueue_admin_assets' ) );

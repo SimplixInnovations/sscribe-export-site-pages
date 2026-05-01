@@ -75,6 +75,16 @@ class SScribe_Admin {
 	}
 
 	/**
+	 * Get download nonce with static cache to avoid duplicate generation.
+	 *
+	 * @return string Nonce value.
+	 */
+	private function get_download_nonce(): string {
+		static $nonce = null;
+		return $nonce ??= wp_create_nonce( 'sscribe_download' );
+	}
+
+	/**
 	 * Redirect administrators to the plugin page after activation.
 	 *
 	 * @return void
@@ -197,7 +207,7 @@ class SScribe_Admin {
 			array(
 				'ajaxurl'        => admin_url( 'admin-ajax.php' ),
 				'nonce'          => wp_create_nonce( 'sscribe_export_nonce' ),
-				'download_nonce' => wp_create_nonce( 'sscribe_download' ),
+				'download_nonce' => $this->get_download_nonce(),
 				'icons_url'      => SSCRIBE_PLUGIN_URL . 'assets/icons/',
 				'strings'        => array(
 					'starting'           => __( 'Starting export...', 'sscribe-export-site-pages' ),
@@ -432,7 +442,7 @@ class SScribe_Admin {
 		$export_dir             = trailingslashit( $upload_dir['basedir'] ) . 'sscribe-exports/';
 
 		// Get download nonce once (not per-file).
-		$download_nonce = wp_create_nonce( 'sscribe_download' );
+		$download_nonce = $this->get_download_nonce();
 
 		// Build Recent Exports from the export index (authoritative source for language metadata).
 		$export_index = get_option( 'sscribe_export_index', array() );
