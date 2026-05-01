@@ -91,8 +91,12 @@ class SScribe_Helpers {
 	 * Get time estimate for a format export.
 	 *
 	 * @param string $format     Export format.
+	/**
+	 * Get time estimate for a single format.
+	 *
+	 * @param string $format     Export format.
 	 * @param int    $page_count Number of pages.
-	 * @return array Time estimate with 'text' and 'seconds' keys.
+	 * @return array{text: string, seconds: int}
 	 */
 	public static function get_format_time_estimate( string $format, int $page_count ): array {
 		$times = array(
@@ -131,7 +135,7 @@ class SScribe_Helpers {
 	 * Get time estimate for all formats.
 	 *
 	 * @param int $page_count Number of pages.
-	 * @return array Time estimate with 'text' and 'seconds' keys.
+	 * @return array{text: string, seconds: int}
 	 */
 	public static function get_all_formats_time_estimate( int $page_count ): array {
 		$total_seconds = ( 1.2 + 8 + 1 + 0.5 ) * $page_count;
