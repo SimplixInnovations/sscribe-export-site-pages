@@ -53,12 +53,22 @@ class SScribe_Session {
 	private readonly SScribe_Logger_Interface $logger;
 
 	/**
+	 * Default option name prefix for session storage.
+	 *
+	 * Must match the constructor default. Exposed as a constant so
+	 * diagnostics and cleanup code can reference it without hardcoding.
+	 *
+	 * @var string
+	 */
+	public const OPTION_PREFIX = 'sscribe_session_';
+
+	/**
 	 * Constructor.
 	 *
 	 * @param string $option_prefix Option name prefix for session storage.
 	 */
 	public function __construct(
-		private readonly string $option_prefix = 'sscribe_session_'
+		private readonly string $option_prefix = self::OPTION_PREFIX
 	) {
 		$this->logger = SScribe_Logger::instance( defined( 'SSCRIBE_DEBUG' ) && SSCRIBE_DEBUG );
 	}

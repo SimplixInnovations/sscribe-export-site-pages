@@ -261,8 +261,10 @@ class SScribe_Admin {
 	 * @return void
 	 */
 	public function render_admin_page(): void {
-		// Try to get cached admin page data (60-second TTL for page counts).
-		// Note: Transients are already site-specific in WordPress multisite.
+		// Cache admin page data for 60 seconds. The cache key is shared across
+		// all admin users because the cached data (page counts, status counts,
+		// language lists) is site-wide and not user-specific. Transients are
+		// already site-scoped in WordPress multisite, so no blog_id suffix needed.
 		$cache_key        = 'sscribe_admin_page_data';
 		$cached_page_data = get_transient( $cache_key );
 
