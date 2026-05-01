@@ -54,6 +54,9 @@
         "ci": "composer version:check && composer test && composer stan && composer cs",
         "ci:full": "composer version:check && composer vendor:prefix && composer test && composer stan && composer cs",
         "build": "composer css:minify && composer js:minify",
+        "release:prepare": "php scripts/release-prepare.php",
+        "release:commit": "php scripts/release-commit.php",
+        "release:full": "composer release:prepare && composer release:commit",
         "release": "php scripts/build-release.php",
         "full": "composer ci && composer release"
     },
