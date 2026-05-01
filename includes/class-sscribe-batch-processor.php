@@ -196,7 +196,7 @@ class SScribe_Batch_Processor {
 			'action'    => $action,
 			'user_id'   => $user_id,
 			'username'  => $username,
-			'ip'        => $this->get_client_ip(),
+			'ip'        => SScribe_Helpers::get_client_ip(),
 			'timestamp' => current_time( 'mysql' ),
 			'context'   => $context,
 		);
@@ -242,10 +242,6 @@ class SScribe_Batch_Processor {
 	 *
 	 * @return string
 	 */
-	private function get_client_ip(): string {
-		return SScribe_Helpers::get_client_ip();
-	}
-
 	/**
 	 * Check if enough memory is available.
 	 *
