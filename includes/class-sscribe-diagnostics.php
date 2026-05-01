@@ -593,7 +593,7 @@ class SScribe_Diagnostics {
 	private function check_session_health(): array {
 		global $wpdb;
 
-		$option_prefix = 'sscribe_session_';
+		$option_prefix = SScribe_Session::OPTION_PREFIX;
 		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
 		$orphaned = $wpdb->get_var(
 			$wpdb->prepare(
@@ -811,7 +811,7 @@ class SScribe_Diagnostics {
 	private function clear_stale_sessions(): int {
 		global $wpdb;
 
-		$option_prefix = 'sscribe_session_';
+		$option_prefix = SScribe_Session::OPTION_PREFIX;
 		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
 		$sessions = $wpdb->get_results(
 			$wpdb->prepare(
