@@ -1,0 +1,17 @@
+{
+  "extends": "stylelint-config-standard",
+  "rules": {
+    "no-descending-specificity": null,
+    "selector-class-pattern": null,
+    "no-duplicate-selectors": true,
+    "declaration-no-important": [true, { "severity": "warning" }],
+    "color-no-invalid-hex": true,
+    "function-calc-no-unspaced-operator": true,
+    "unit-no-unknown": true,
+    "property-no-unknown": true,
+    "selector-pseudo-class-no-unknown": true,
+    "selector-pseudo-element-no-unknown": true,
+    "media-feature-name-no-unknown": true,
+    "at-rule-no-unknown": null
+  }
+}

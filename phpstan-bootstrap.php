@@ -65,3 +65,14 @@ if ( ! function_exists( 'is_user_logged_in' ) ) {
 		return true;
 	}
 }
+
+if ( ! function_exists( 'wp_cache_flush' ) ) {
+	/**
+	 * Flush WordPress object cache (PHPStan stub).
+	 *
+	 * @return bool
+	 */
+	function wp_cache_flush(): bool {
+		return true;
+	}
+}

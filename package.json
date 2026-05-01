@@ -1,0 +1,33 @@
+{
+  "name": "sscribe-export-site-pages",
+  "version": "3.41.0",
+  "private": true,
+  "description": "Export WordPress pages to professional DOCX, PDF, HTML, or Markdown packages",
+  "scripts": {
+    "lint:js": "eslint admin/js/*.js",
+    "lint:css": "stylelint admin/css/*.css",
+    "lint": "npm run lint:js && npm run lint:css",
+    "format": "prettier --write \"admin/**/*.{js,css,json}\"",
+    "format:check": "prettier --check \"admin/**/*.{js,css,json}\"",
+    "prepare": "husky"
+  },
+  "devDependencies": {
+    "eslint": "^9.0.0",
+    "stylelint": "^16.0.0",
+    "stylelint-config-standard": "^37.0.0",
+    "prettier": "^3.0.0",
+    "husky": "^9.0.0",
+    "lint-staged": "^15.0.0"
+  },
+  "lint-staged": {
+    "admin/js/*.js": [
+      "eslint --fix",
+      "prettier --write"
+    ],
+    "admin/css/*.css": [
+      "stylelint --fix",
+      "prettier --write"
+    ]
+  }
+}
+

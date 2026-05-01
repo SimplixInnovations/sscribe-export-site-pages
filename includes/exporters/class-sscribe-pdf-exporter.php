@@ -283,10 +283,9 @@ class SScribe_PDF_Exporter implements SScribe_Exporter_Interface {
 	}
 
 	/**
-	 * Process images in page data for PDF embedding.
+	 * Write .htaccess and index.php to protect a temp directory from direct access.
 	 *
-	 * @param array $page_data The page data array.
-	 * @return array Modified page data with local image paths.
+	 * @param string $dir Directory path to protect.
 	 */
 	private function protect_temp_directory( string $dir ): void {
 		$htaccess = $dir . '.htaccess';

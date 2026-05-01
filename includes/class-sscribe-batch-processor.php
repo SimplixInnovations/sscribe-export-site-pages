@@ -2624,7 +2624,7 @@ class SScribe_Batch_Processor {
 
 				$page_errors[] = array(
 					'format'   => strtoupper( (string) $format ),
-					'message'  => (string) ( $format_data['error'] ?? '' ),
+					'message'  => (string) $format_data['error'],
 					'category' => 'unknown',
 					'context'  => array(
 						'page_id'    => (int) $page_id,
