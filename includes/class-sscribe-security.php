@@ -36,11 +36,11 @@ class SScribe_Security {
 	 * @throws \InvalidArgumentException If directory is outside allowed scope.
 	 */
 	public static function protect_directory( string $dir ): void {
+		self::validate_path_scope( $dir );
+
 		if ( ! is_dir( $dir ) ) {
 			wp_mkdir_p( $dir );
 		}
-
-		self::validate_path_scope( $dir );
 
 		$htaccess_path = $dir . '/.htaccess';
 		if ( ! file_exists( $htaccess_path ) ) {

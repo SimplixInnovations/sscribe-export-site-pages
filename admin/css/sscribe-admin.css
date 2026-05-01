@@ -5,10 +5,10 @@
  * WCAG 2.1 AA compliant, accessible, and professional.
  *
  * @package SScribe
- * @version 3.42.0
+ * @version 3.43.0
  */
 
-/* Manrope Font — Local, No CDN — SIL Open Font License 1.1 */
+/* Manrope Font â€” Local, No CDN â€” SIL Open Font License 1.1 */
 @font-face {
 	font-family: 'Manrope';
 	src: url('../fonts/manrope/Manrope-Regular.ttf') format('truetype');
@@ -2928,8 +2928,5 @@
 .sscribe-log-loading .sscribe-spinner-img {
 	animation: sscribe-spin 1s linear infinite;
 }
-
-(End of file)
-
 
 

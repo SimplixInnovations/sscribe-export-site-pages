@@ -86,32 +86,11 @@ class SScribe_Deactivator {
 	}
 
 	/**
-	 * Remove plugin transients.
+	 * Remove plugin tables.
 	 *
-	 * @return void
-	 */
-	private static function cleanup_transients(): void {
-		delete_transient( 'sscribe_cron_exports_lock' );
-		delete_transient( 'sscribe_cron_sessions_lock' );
-		delete_transient( 'sscribe_cron_cleanup_lock' ); // Legacy — remove after migration.
-		delete_transient( 'sscribe_upgrade_lock' );
-
-		global $wpdb;
-		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- Deactivation cleanup.
-		$user_transients = $wpdb->get_results(
-			$wpdb->prepare(
-				"SELECT option_name FROM {$wpdb->options} WHERE option_name LIKE %s",
-				$wpdb->esc_like( '_transient_sscribe_active_session_' ) . '%'
-			)
-		);
-
-		foreach ( $user_transients as $ut ) {
-			delete_option( $ut->option_name );
-		}
-	}
-
-	/**
-	 * Drop plugin-specific database tables.
+	 * NOTE: Only session and stats tables are dropped on deactivation
+	 * to keep the audit trail and export logs intact for reactivation.
+	 * ALL tables are dropped on full uninstall (see uninstall.php).
 	 *
 	 * @return void
 	 */
