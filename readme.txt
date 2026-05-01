@@ -4,7 +4,7 @@ Donate link: https://simplixi.com
 Tags: export, docx, multilingual, seo, pdf
 Requires at least: 6.0
 Tested up to: 6.9.5
-Stable tag: 3.35.0
+Stable tag: 3.35.1
 Requires PHP: 8.2
 License: GPLv2 or later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
@@ -229,7 +229,7 @@ Each document includes: cover page with title/URL/date/breadcrumbs, featured ima
 
 == Changelog ==
 
-= 3.35.0 =
+= 3.35.1 =
 
 * Security: Health check AJAX endpoint now enforces capability check (export_site_pages) for authenticated diagnostics
 * Reliability: Batch processor caps in-memory error arrays at 50 entries to prevent OOM on 500+ page exports — errors beyond limit remain in disk-based export log
@@ -364,7 +364,7 @@ Each document includes: cover page with title/URL/date/breadcrumbs, featured ima
 
 == Upgrade Notice ==
 
-= 3.35.0 =
+= 3.35.1 =
 
 Security: Health check AJAX endpoint now enforces capability check for authenticated diagnostics. Reliability: Batch processor caps in-memory error arrays at 50 entries to prevent OOM on large exports. Recommended update for all users.
 
