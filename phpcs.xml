@@ -63,15 +63,6 @@
 
     <!-- Allow standalone CLI scripts that don't run inside WordPress -->
     <exclude-pattern>*/scripts/*</exclude-pattern>
-
-    <!-- Allow short ternaries (?:) — valid PHP 8.x pattern used throughout the codebase -->
-    <rule ref="Universal.Operators.DisallowShortTernary.Found">
-        <severity>0</severity>
-    </rule>
-
-    <!-- Exclude standalone CLI scripts that don't run inside WordPress -->
-    <exclude-pattern>*/scripts/minify-css\.php$</exclude-pattern>
-    <exclude-pattern>*/scripts/minify-js\.php$</exclude-pattern>
     <exclude-pattern>*/scripts/build-release\.php$</exclude-pattern>
     <exclude-pattern>*/scripts/verify-zip\.php$</exclude-pattern>
     <exclude-pattern>*/scripts/list-zip\.php$</exclude-pattern>

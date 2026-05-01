@@ -179,18 +179,16 @@ class SScribe_Admin {
 			return;
 		}
 
-		$suffix = ( defined( 'SCRIPT_DEBUG' ) && SCRIPT_DEBUG ) ? '' : '.min';
-
-		// Admin CSS.
+		// Admin CSS — source file only (no minification needed for single admin page).
 		wp_enqueue_style(
 			'sscribe-admin',
-			SSCRIBE_PLUGIN_URL . "admin/css/sscribe-admin{$suffix}.css",
+			SSCRIBE_PLUGIN_URL . 'admin/css/sscribe-admin.css',
 			array(),
 			SSCRIBE_VERSION
 		);
 
-		// Admin JS — respects SCRIPT_DEBUG for source vs minified.
-		$js_file = "admin/js/sscribe-admin{$suffix}.js";
+		// Admin JS — source file only.
+		$js_file = 'admin/js/sscribe-admin.js';
 
 		wp_enqueue_script(
 			'sscribe-admin',

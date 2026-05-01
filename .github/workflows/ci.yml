@@ -119,10 +119,6 @@ jobs:
 
       - name: Generate prefixed vendor tree
         run: composer vendor:prefix
-
-      - name: Build assets
-        run: composer build
-
       - name: Run PHPUnit
         run: composer test
 
@@ -161,10 +157,6 @@ jobs:
 
       - name: Generate prefixed vendor tree
         run: composer vendor:prefix
-
-      - name: Build assets
-        run: composer build
-
       - name: Run tests with coverage
         run: composer test:coverage
 
