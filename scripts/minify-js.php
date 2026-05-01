@@ -25,8 +25,8 @@ $js = preg_replace( '~/\*[\s\S]*?\*/~', '', $js );
 // Remove unnecessary whitespace (preserve necessary spaces)
 $js = preg_replace( '/\s+/', ' ', $js );
 
-// Remove spaces around operators and brackets
-$js = preg_replace( '/\s*([{};:,=\(\)\[\]<>&|!+\-*\/])\s*/', '$1', $js );
+// Remove spaces around operators and brackets (exclude () to preserve string literals)
+$js = preg_replace( '/\s*([{};:,=\[\]<>&|!+\-*\/])\s*/', '$1', $js );
 
 // Restore necessary spaces (keywords like return, var, etc.)
 $keywords = array( 'return', 'var', 'let', 'const', 'if', 'else', 'for', 'while', 'function', 'new', 'typeof', 'instanceof' );

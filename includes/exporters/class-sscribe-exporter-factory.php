@@ -130,9 +130,13 @@ class SScribe_Exporter_Factory {
 			$lang_code = '-' . strtoupper( sanitize_key( $lang ) );
 		}
 
+		// Dynamic padding based on total count for proper sort order with 1000+ pages.
+		$pad_length = $total > 0 ? strlen( (string) $total ) : 3;
+		$pad_length = max( 3, $pad_length );
+
 		// Format: P001-Page-Title-AR.docx (with lang) or P001-Page-Title.docx (without lang).
 		return sprintf(
-			'P%03d-%s%s.%s',
+			'P%0' . $pad_length . 'd-%s%s.%s',
 			$index > 0 ? $index : $page_id,
 			$page_title,
 			$lang_code,
