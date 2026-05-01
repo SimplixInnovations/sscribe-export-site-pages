@@ -152,6 +152,9 @@
 						self.updateTimeEstimate();
 						self.updateExportButton();
 					}
+				},
+				error: function () {
+					// Non-critical: stale counts are acceptable on failure.
 				}
 			});
 		},
@@ -695,6 +698,9 @@
 					if (response.success && response.data.exports) {
 						SScribe.renderRecentExports(response.data.exports);
 					}
+				},
+				error: function () {
+					// Non-critical: stale history is acceptable on failure.
 				}
 			});
 		},
