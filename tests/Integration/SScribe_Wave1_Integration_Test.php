@@ -154,11 +154,11 @@ class SScribe_Wave1_Integration_Test extends TestCase {
 		$filename = SScribe_Exporter_Factory::build_filename( $page_data, 1, 10, 'docx' );
 
 		$this->assertMatchesRegularExpression(
-			'/^[a-z0-9-]+-\d{4}-\d{2}-\d{2}-\d{6}-AR-P\d+\.docx$/',
+			'/^P\d{3}-.+?-AR\.docx$/',
 			$filename,
-			'Filename should match new format'
+			'Filename should match format: P{number}-{title}-{lang}.docx'
 		);
-		$this->assertStringContainsString( '-AR-', $filename );
+		$this->assertStringContainsString( '-AR.', $filename );
 		$this->assertStringEndsWith( '.docx', $filename );
 	}
 }
