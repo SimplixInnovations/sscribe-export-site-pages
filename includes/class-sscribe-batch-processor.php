@@ -174,7 +174,7 @@ class SScribe_Batch_Processor {
 		}
 
 		++$data['count'];
-		set_transient( $transient_key, $data, self::RATE_LIMIT_WINDOW );
+		set_transient( $transient_key, $data, self::RATE_LIMIT_WINDOW + 5 );
 
 		return true;
 	}

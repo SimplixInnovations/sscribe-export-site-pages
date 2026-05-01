@@ -197,7 +197,7 @@ class SScribe_Zip_Handler {
 
 		// Use atomic option-based lock to prevent race conditions during indexing.
 		// add_option() is atomic (fails if option exists) unlike set_transient().
-		$lock_key = '_sscribe_export_index_lock_' . get_current_user_id();
+		$lock_key = 'sscribe_index_lock_' . get_current_user_id();
 		$locked   = false;
 		$timeout  = 5; // Seconds.
 		$start    = time();
