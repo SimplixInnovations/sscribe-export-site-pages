@@ -64,6 +64,13 @@ class SScribe_Exporter {
 	private string $font_name = 'Arial';
 
 	/**
+	 * Font name for RTL text (Arabic-capable).
+	 *
+	 * @var string
+	 */
+	private string $rtl_font_name = 'Noto Sans Arabic';
+
+	/**
 	 * Font size for normal text (in points).
 	 *
 	 * @var int
@@ -231,6 +238,11 @@ class SScribe_Exporter {
 
 			// Determine RTL setting for the document.
 			$this->is_rtl = $this->is_rtl_document( $page_data );
+
+			// Use Arabic-capable font for RTL documents to render Arabic glyphs properly.
+			if ( $this->is_rtl ) {
+				$this->font_name = $this->rtl_font_name;
+			}
 
 			// Set document properties.
 			$this->set_document_properties( $php_word, $page_data );

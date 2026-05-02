@@ -153,9 +153,7 @@ class SScribe_PDF_Exporter implements SScribe_Exporter_Interface {
 				wp_mkdir_p( $mpdf_temp );
 			}
 
-			$this->protect_temp_directory( $mpdf_temp );
-
-			// Switch to centralized security helper.
+			// Protect temp directory with .htaccess + index.php (centralized security helper).
 			SScribe_Security::protect_directory( $mpdf_temp );
 
 			$config = array(
@@ -282,35 +280,6 @@ class SScribe_PDF_Exporter implements SScribe_Exporter_Interface {
 		} finally {
 			libxml_clear_errors();
 			libxml_use_internal_errors( $prev_errors );
-		}
-	}
-
-	/**
-	 * Write .htaccess and index.php to protect a temp directory from direct access.
-	 *
-	 * @param string $dir Directory path to protect.
-	 */
-	private function protect_temp_directory( string $dir ): void {
-		$htaccess = $dir . '.htaccess';
-		if ( ! file_exists( $htaccess ) ) {
-			$content  = "Options -Indexes\n";
-			$content .= "<Files \"*\">\n";
-			$content .= "  <IfModule mod_authz_core.c>\n";
-			$content .= "    Require all denied\n";
-			$content .= "  </IfModule>\n";
-			$content .= "  <IfModule !mod_authz_core.c>\n";
-			$content .= "    Order Allow,Deny\n";
-			$content .= "    Deny from all\n";
-			$content .= "  </IfModule>\n";
-			$content .= "</Files>\n";
-			// phpcs:ignore WordPress.WP.AlternativeFunctions.file_system_operations_file_put_contents
-			file_put_contents( $htaccess, $content );
-		}
-
-		$index = $dir . 'index.php';
-		if ( ! file_exists( $index ) ) {
-			// phpcs:ignore WordPress.WP.AlternativeFunctions.file_system_operations_file_put_contents
-			file_put_contents( $index, "<?php\n// Silence is golden.\n" );
 		}
 	}
 
