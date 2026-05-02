@@ -76,3 +76,27 @@ if ( ! function_exists( 'wp_cache_flush' ) ) {
 		return true;
 	}
 }
+
+if ( ! function_exists( 'wp_is_post_autosave' ) ) {
+	/**
+	 * Check if post is an autosave (PHPStan stub).
+	 *
+	 * @param int $post_id Post ID.
+	 * @return bool
+	 */
+	function wp_is_post_autosave( int $post_id ): bool {
+		return false;
+	}
+}
+
+if ( ! function_exists( 'wp_is_post_revision' ) ) {
+	/**
+	 * Check if post is a revision (PHPStan stub).
+	 *
+	 * @param int $post_id Post ID.
+	 * @return bool
+	 */
+	function wp_is_post_revision( int $post_id ): bool {
+		return false;
+	}
+}

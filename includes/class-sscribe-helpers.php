@@ -55,6 +55,11 @@ class SScribe_Helpers {
 	 * @return string HTML <img> tag or empty string if icon not found.
 	 */
 	public static function get_icon( string $name, int $size = 20, string $css_class = '' ): string {
+		$cache_key = $name . ':' . $size . ':' . $css_class;
+		if ( isset( self::$icon_cache[ $cache_key ] ) ) {
+			return self::$icon_cache[ $cache_key ];
+		}
+
 		$file_path = SSCRIBE_PLUGIN_DIR . self::$icons_dir . $name . '.svg';
 
 		if ( ! file_exists( $file_path ) ) {
@@ -68,13 +73,15 @@ class SScribe_Helpers {
 
 		$icon_url = esc_url( SSCRIBE_PLUGIN_URL . self::$icons_dir . $name . '.svg' );
 
-		return sprintf(
+		$html = sprintf(
 			'<img src="%s" width="%d" height="%d" class="%s" aria-hidden="true" focusable="false">',
 			$icon_url,
 			absint( $size ),
 			absint( $size ),
 			esc_attr( $icon_class )
 		);
+		self::$icon_cache[ $cache_key ] = $html;
+		return $html;
 	}
 
 	/**
