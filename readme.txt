@@ -4,7 +4,7 @@ Donate link: https://simplixi.com
 Tags: export, docx, multilingual, seo, pdf, posts, pages
 Requires at least: 6.0
 Tested up to: 6.10
-Stable tag: 3.50.1
+Stable tag: 3.50.4
 Requires PHP: 8.2
 License: GPLv2 or later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
@@ -229,7 +229,7 @@ Each document includes: cover page with title/URL/date/breadcrumbs, featured ima
 
 == Changelog ==
 
-= 3.50.1 =
+= 3.50.4 =
 
 * Critical: Fixed format names displaying as "0,1" instead of "docx,pdf" in export logs and admin UI
 * Critical: Fixed PHP 8.5 deprecations — removed all ReflectionMethod::setAccessible() calls from test suite
@@ -396,7 +396,7 @@ Each document includes: cover page with title/URL/date/breadcrumbs, featured ima
 
 == Upgrade Notice ==
 
-= 3.50.1 =
+= 3.50.4 =
 
 Critical bug fixes: format names display, PHP 8.5 compatibility, cron lock conflict, ZIP lock safety, CSS/JS fixes, accessibility improvements. Zero test warnings. Recommended update for all users.
 
