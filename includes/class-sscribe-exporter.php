@@ -116,6 +116,12 @@ class SScribe_Exporter {
 	private function safe_text( string $text ): string {
 		$text = (string) $text;
 
+		// 0. Decode percent-encoded URLs so they display as readable text (e.g. %D9%84%D8%B9%D8%B1%D8%A7%D9%86 →发展有限公司).
+		// This must happen before any XML character filtering so we don't double-decode.
+		if ( str_starts_with( $text, 'http' ) || str_starts_with( $text, '//' ) ) {
+			$text = urldecode( $text );
+		}
+
 		// 1. Remove XML 1.0 illegal control characters (keep \t, \n, \r).
 		$text = preg_replace( '/[\x00-\x08\x0B\x0C\x0E-\x1F\x7F]/', '', $text );
 
