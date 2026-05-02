@@ -28,6 +28,18 @@ spl_autoload_register(
 			return;
 		}
 
+		// Explicit mapping for SScribe_Security (used by deactivator before any other class loads).
+		if ( 'SScribe_Security' === $class_name ) {
+			$file = SSCRIBE_PLUGIN_DIR . 'includes/class-sscribe-security.php';
+			if ( file_exists( $file ) ) {
+				require_once $file;
+				$loaded[ $class_name ] = true;
+			} else {
+				$missing[ $class_name ] = true;
+			}
+			return;
+		}
+
 		// Handle the core orchestrator class (no underscore).
 		if ( 'SScribe' === $class_name ) {
 			$file = SSCRIBE_PLUGIN_DIR . 'includes/class-sscribe.php';
