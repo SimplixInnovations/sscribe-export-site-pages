@@ -714,9 +714,10 @@ class SScribe_Page_Collector {
 		}
 
 		// Use page's own language for final page permalink.
-		if ( $this->is_wpml_active() && ! empty( $language ) ) {
+		$page_language = $this->get_page_language( $page_id );
+		if ( $this->is_wpml_active() && ! empty( $page_language ) ) {
 			// phpcs:ignore WordPress.NamingConventions.PrefixAllGlobals.NonPrefixedHooknameFound -- WPML hook.
-			do_action( 'wpml_switch_language', $language );
+			do_action( 'wpml_switch_language', $page_language );
 		}
 		$breadcrumbs[] = array(
 			'title' => html_entity_decode( get_the_title( $page_id ), ENT_QUOTES | ENT_HTML5, 'UTF-8' ),

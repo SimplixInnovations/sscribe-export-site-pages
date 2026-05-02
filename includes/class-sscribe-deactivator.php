@@ -112,8 +112,8 @@ class SScribe_Deactivator {
 
 		foreach ( $tables_to_drop as $table ) {
 			$table_safe = preg_replace( '/[^a-zA-Z0-9_]/', '', $table );
-			// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.DirectDatabaseQuery.SchemaChange, WordPress.DB.PreparedSQL.NotPrepared -- Deactivation cleanup; table name is plugin-controlled constant.
-			$wpdb->query( "DROP TABLE IF EXISTS `{$table_safe}`" );
+			// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.DirectDatabaseQuery.SchemaChange, WordPress.DB.PreparedSQL.InterpolatedNotPrepared -- Deactivation cleanup; table name is plugin-controlled constant.
+			$wpdb->query( $wpdb->prepare( 'DROP TABLE IF EXISTS `%s`', $table_safe ) );
 		}
 	}
 
@@ -149,7 +149,8 @@ class SScribe_Deactivator {
 				}
 			}
 		} catch ( \Throwable $e ) {
-			// Non-fatal during deactivation.
+			// Non-fatal during deactivation — cleanup failures are logged but do not block plugin deactivation.
+			\SScribe_Logger::instance()->warning( 'SScribe deactivation cleanup error: ' . $e->getMessage() );
 		}
 	}
 }
