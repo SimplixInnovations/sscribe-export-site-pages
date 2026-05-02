@@ -43,31 +43,21 @@ class SScribe_Helpers {
 	}
 
 	/**
-	 * Get an SVG icon as inline HTML.
+	 * Get an SVG icon as an <img> tag.
 	 *
-	 * Reads the SVG file, strips the outer <svg> attributes and applies
-	 * width/height/class from the caller. Uses fill="currentColor" so
-	 * the icon inherits the parent CSS color property.
+	 * Uses CSS filter technique for color inheritance so icons
+	 * match their parent CSS color without inline styles.
+	 * For accessibility, icons are aria-hidden by default (decorative).
 	 *
-	 * @param string $name  Icon name (without .svg extension).
-	 * @param int    $size   Icon size in pixels.
-	 * @param string $css_class Additional CSS class.
-	 * @return string Inline SVG HTML or empty string if not found.
+	 * @param string $name       Icon name (without .svg extension).
+	 * @param int    $size       Icon size in pixels.
+	 * @param string $css_class  Additional CSS class.
+	 * @return string HTML <img> tag or empty string if icon not found.
 	 */
 	public static function get_icon( string $name, int $size = 20, string $css_class = '' ): string {
-		if ( ! isset( self::$icon_cache[ $name ] ) ) {
-			$file_path = SSCRIBE_PLUGIN_DIR . self::$icons_dir . $name . '.svg';
+		$file_path = SSCRIBE_PLUGIN_DIR . self::$icons_dir . $name . '.svg';
 
-			if ( ! file_exists( $file_path ) ) {
-				self::$icon_cache[ $name ] = '';
-			} else {
-				$svg_content               = file_get_contents( $file_path );
-				self::$icon_cache[ $name ] = ( false === $svg_content ) ? '' : $svg_content;
-			}
-		}
-
-		$svg_content = self::$icon_cache[ $name ];
-		if ( '' === $svg_content ) {
+		if ( ! file_exists( $file_path ) ) {
 			return '';
 		}
 
@@ -76,15 +66,15 @@ class SScribe_Helpers {
 			$icon_class .= ' ' . sanitize_html_class( $css_class );
 		}
 
-		$svg_content = preg_replace(
-			'/<svg[^>]*>/i',
-			'<svg width="' . esc_attr( $size ) . '" height="' . esc_attr( $size ) . '" class="' . esc_attr( $icon_class ) . '" aria-hidden="true" focusable="false">',
-			$svg_content,
-			1
-		);
+		$icon_url = esc_url( SSCRIBE_PLUGIN_URL . self::$icons_dir . $name . '.svg' );
 
-		// phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- SVG content is sanitized via preg_replace with esc_attr() on all dynamic attributes. Icon files are local, trusted assets.
-		return $svg_content;
+		return sprintf(
+			'<img src="%s" width="%d" height="%d" class="%s" aria-hidden="true" focusable="false">',
+			$icon_url,
+			absint( $size ),
+			absint( $size ),
+			esc_attr( $icon_class )
+		);
 	}
 
 	/**

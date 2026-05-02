@@ -32,10 +32,16 @@ class SScribe_Deactivator {
 			wp_unschedule_event( $session_timestamp, 'sscribe_cleanup_sessions' );
 		}
 
-		self::cleanup_options();
-		self::cleanup_transients();
-		self::cleanup_database_tables();
-		self::cleanup_export_files();
+		try {
+			self::cleanup_options();
+			self::cleanup_database_tables();
+			self::cleanup_export_files();
+		} catch ( \Throwable $e ) {
+			if ( defined( 'WP_DEBUG' ) && WP_DEBUG ) {
+				// phpcs:ignore WordPress.PHP.DevelopmentFunctions.error_log_error_log
+				error_log( 'SScribe deactivation error: ' . $e->getMessage() );
+			}
+		}
 	}
 
 	/**
@@ -105,8 +111,9 @@ class SScribe_Deactivator {
 		require_once ABSPATH . 'wp-admin/includes/upgrade.php';
 
 		foreach ( $tables_to_drop as $table ) {
-			// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.DirectDatabaseQuery.SchemaChange, WordPress.DB.PreparedSQL.NotPrepared -- Deactivation cleanup; table name is plugin-controlled.
-			$wpdb->query( 'DROP TABLE IF EXISTS `' . $wpdb->esc_sql( $table ) . '`' );
+			$table_safe = preg_replace( '/[^a-zA-Z0-9_]/', '', $table );
+			// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.DirectDatabaseQuery.SchemaChange, WordPress.DB.PreparedSQL.NotPrepared -- Deactivation cleanup; table name is plugin-controlled constant.
+			$wpdb->query( "DROP TABLE IF EXISTS `{$table_safe}`" );
 		}
 	}
 
@@ -123,15 +130,26 @@ class SScribe_Deactivator {
 			return;
 		}
 
-		if ( class_exists( 'SScribe_Security' ) ) {
-			SScribe_Security::delete_directory( $export_dir );
-		} else {
-			require_once ABSPATH . 'wp-admin/includes/file.php';
-			WP_Filesystem();
-			global $wp_filesystem;
-			if ( $wp_filesystem ) {
-				$wp_filesystem->rmdir( $export_dir, true );
+		try {
+			if ( class_exists( 'SScribe_Security' ) ) {
+				SScribe_Security::delete_directory( $export_dir );
+			} else {
+				$log_dir = $upload_dir['basedir'] . '/sscribe-logs';
+				foreach ( array( $export_dir, $log_dir ) as $dir ) {
+					if ( is_dir( $dir ) ) {
+						$it = new \RecursiveIteratorIterator(
+							new \RecursiveDirectoryIterator( $dir, \RecursiveDirectoryIterator::SKIP_DOTS ),
+							\RecursiveIteratorIterator::CHILD_FIRST
+						);
+						foreach ( $it as $file ) {
+							$file->isDir() ? @rmdir( $file->getRealPath() ) : wp_delete_file( $file->getRealPath() );
+						}
+						@rmdir( $dir );
+					}
+				}
 			}
+		} catch ( \Throwable $e ) {
+			// Non-fatal during deactivation.
 		}
 	}
 }

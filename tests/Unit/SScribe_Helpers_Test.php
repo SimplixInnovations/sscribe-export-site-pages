@@ -104,13 +104,13 @@ class SScribe_Helpers_Test extends TestCase {
 	}
 
 	/**
-	 * Test get_icon contains svg tag.
+	 * Test get_icon contains img tag (uses <img> tags per security/accessibility requirements).
 	 */
 	public function test_get_icon_returns_svg_tag(): void {
 		$result = SScribe_Helpers::get_icon( 'check' );
 		if ( '' !== $result ) {
-			$this->assertStringStartsWith( '<svg', $result );
-			$this->assertStringEndsWith( '</svg>', $result );
+			$this->assertStringStartsWith( '<img', $result );
+			$this->assertStringContainsString( 'sscribe-icon', $result );
 		}
 	}
 }

@@ -520,8 +520,16 @@ class SScribe_Page_Collector {
 		// Get language.
 		$language = $this->get_page_language( $page_id );
 
-		// Get permalink.
-		$permalink = get_permalink( $page_id );
+		// Get permalink in the page's own language (WPML-aware).
+		if ( $this->is_wpml_active() && ! empty( $language ) ) {
+			// phpcs:ignore WordPress.NamingConventions.PrefixAllGlobals.NonPrefixedHooknameFound -- WPML hook.
+			do_action( 'wpml_switch_language', $language );
+			$permalink = get_permalink( $page_id );
+			// phpcs:ignore WordPress.NamingConventions.PrefixAllGlobals.NonPrefixedHooknameFound -- WPML hook.
+			do_action( 'wpml_switch_language', null );
+		} else {
+			$permalink = get_permalink( $page_id );
+		}
 
 		/**
 		 * Filter the page data array before DOCX generation.
@@ -689,17 +697,35 @@ class SScribe_Page_Collector {
 		if ( $ancestors ) {
 			$ancestors = array_reverse( $ancestors );
 			foreach ( $ancestors as $ancestor_id ) {
+				$ancestor_lang = $this->get_page_language( $ancestor_id );
+				if ( $this->is_wpml_active() && ! empty( $ancestor_lang ) ) {
+					// phpcs:ignore WordPress.NamingConventions.PrefixAllGlobals.NonPrefixedHooknameFound -- WPML hook.
+					do_action( 'wpml_switch_language', $ancestor_lang );
+				}
 				$breadcrumbs[] = array(
 					'title' => html_entity_decode( get_the_title( $ancestor_id ), ENT_QUOTES | ENT_HTML5, 'UTF-8' ),
 					'url'   => get_permalink( $ancestor_id ),
 				);
+				if ( $this->is_wpml_active() ) {
+					// phpcs:ignore WordPress.NamingConventions.PrefixAllGlobals.NonPrefixedHooknameFound -- WPML hook.
+					do_action( 'wpml_switch_language', null );
+				}
 			}
 		}
 
+		// Use page's own language for final page permalink.
+		if ( $this->is_wpml_active() && ! empty( $language ) ) {
+			// phpcs:ignore WordPress.NamingConventions.PrefixAllGlobals.NonPrefixedHooknameFound -- WPML hook.
+			do_action( 'wpml_switch_language', $language );
+		}
 		$breadcrumbs[] = array(
 			'title' => html_entity_decode( get_the_title( $page_id ), ENT_QUOTES | ENT_HTML5, 'UTF-8' ),
 			'url'   => get_permalink( $page_id ),
 		);
+		if ( $this->is_wpml_active() ) {
+			// phpcs:ignore WordPress.NamingConventions.PrefixAllGlobals.NonPrefixedHooknameFound -- WPML hook.
+			do_action( 'wpml_switch_language', null );
+		}
 
 		$this->breadcrumb_cache[ $page_id ] = $breadcrumbs;
 		return $breadcrumbs;

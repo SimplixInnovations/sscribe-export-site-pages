@@ -678,6 +678,7 @@ class SScribe_Batch_Processor {
 				'temp_dir'          => $temp_dir,
 				'total'             => $total,
 				'processed'         => 0,
+				'status'            => 'processing',
 				'language'          => $language,
 				'post_status'       => $post_status,
 				'formats'           => $formats,
