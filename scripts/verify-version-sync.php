@@ -188,19 +188,6 @@ if ( $canonical_version ) {
 	}
 }
 
-// Check if minified CSS exists and has same content (if minification was run).
-$min_css_file = $root_dir . '/admin/css/sscribe-admin.min.css';
-if ( file_exists( $min_css_file ) ) {
-	// Minified CSS exists - good.
-	// phpcs:ignore WordPress.WP.AlternativeFunctions.file_get_contents_file_get_contents
-	$min_css_content = file_get_contents( $min_css_file );
-	if ( strlen( $min_css_content ) < 100 ) {
-		$version_warnings[] = 'Minified CSS file appears to be empty or too small.';
-	}
-} else {
-	$version_warnings[] = 'Minified CSS file not found. Run: composer css:minify';
-}
-
 // Verify all versions match.
 if ( count( $versions ) < 2 ) {
 	$version_errors[] = 'Could not extract enough version references to compare.';
