@@ -474,6 +474,8 @@ class SScribe_Exporter {
 				'color' => $this->colors['heading'],
 			);
 			if ( $this->is_rtl ) {
+				$heading_font['bidi']          = true;
+				$heading_font['rtl']           = true;
 				$heading_font['complexScript'] = array( 'name' => $this->font_name );
 			}
 			$php_word->addTitleStyle(
@@ -1227,6 +1229,8 @@ class SScribe_Exporter {
 			);
 
 			if ( $this->is_rtl ) {
+				$font_style['bidi']          = true;
+				$font_style['rtl']          = true;
 				$font_style['complexScript'] = array( 'name' => $this->font_name );
 			}
 
@@ -1258,10 +1262,10 @@ class SScribe_Exporter {
 						$text_content,
 						$font_style
 					);
-					// Add URL in parentheses for print-friendliness.
-					if ( $run['text'] !== $link_url ) {
+					$display_url = urldecode( $link_url );
+					if ( $text_content !== $display_url && $text_content !== $link_url ) {
 						$text_run->addText(
-							' (' . $this->safe_text( $link_url ) . ')',
+							' (' . $this->safe_text( $display_url ) . ')',
 							array(
 								'name'  => $this->font_name,
 								'size'  => 8,

@@ -155,6 +155,9 @@ class SScribe_PDF_Exporter implements SScribe_Exporter_Interface {
 
 			$this->protect_temp_directory( $mpdf_temp );
 
+			// Switch to centralized security helper.
+			SScribe_Security::protect_directory( $mpdf_temp );
+
 			$config = array(
 				'mode'             => $is_rtl ? 'ar' : 'utf-8',
 				'default_font'     => 'manrope',

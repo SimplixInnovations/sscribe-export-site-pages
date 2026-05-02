@@ -131,9 +131,12 @@ class SScribe_Diagnostics {
 		$sections['paths'] = array(
 			'label' => __( 'Paths', 'sscribe-export-site-pages' ),
 			'items' => array(
-				'upload_base' => $upload_dir['basedir'] ?? '',
-				'export_dir'  => $export_dir,
-				'log_dir'     => $log_dir,
+				'upload_base' => defined( 'ABSPATH' )
+					? str_replace( trailingslashit( ABSPATH ), '[ABSPATH]/', $upload_dir['basedir'] )
+					: basename( $upload_dir['basedir'] ),
+				'export_dir'  => '[uploads]/sscribe-exports',
+				'log_dir'     => '[uploads]/sscribe-logs',
+				'writable'     => wp_is_writable( $export_dir ) ? __( 'Yes', 'sscribe-export-site-pages' ) : __( 'No', 'sscribe-export-site-pages' ),
 			),
 		);
 
@@ -496,19 +499,30 @@ class SScribe_Diagnostics {
 	 * Check mPDF library.
 	 */
 	private function check_mpdf(): array {
-		if ( class_exists( '\\SScribeVendor\\Mpdf\\Mpdf' ) ) {
+		if ( ! class_exists( '\SScribeVendor\Mpdf\Mpdf' ) ) {
 			return array(
 				'name'    => 'mPDF Library',
-				'status'  => 'ok',
-				'message' => 'mPDF loaded',
+				'status'  => 'error',
+				'message' => 'mPDF library not found. Run: composer install',
+				'fix'     => 'Run composer install in the plugin directory',
+			);
+		}
+
+		// Verify required font files exist (Manrope is the primary font).
+		$manrope_regular = SSCRIBE_PLUGIN_DIR . 'assets/fonts/manrope/Manrope-Regular.ttf';
+		if ( ! file_exists( $manrope_regular ) ) {
+			return array(
+				'name'    => 'mPDF Library',
+				'status'  => 'warning',
+				'message' => 'mPDF loaded, but Manrope font files missing',
+				'fix'     => 'Reinstall the plugin to restore font files',
 			);
 		}
 
 		return array(
 			'name'    => 'mPDF Library',
-			'status'  => 'error',
-			'message' => 'mPDF library not found. Run: composer install',
-			'fix'     => 'Run composer install in the plugin directory',
+			'status'  => 'ok',
+			'message' => 'mPDF loaded',
 		);
 	}
 

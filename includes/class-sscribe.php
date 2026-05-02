@@ -137,6 +137,7 @@ class SScribe {
 		add_action( 'admin_enqueue_scripts', array( $admin, 'enqueue_admin_assets' ) );
 		add_action( 'admin_init', array( $admin, 'maybe_send_csp_headers' ) );
 		add_action( 'admin_notices', array( $this, 'render_vendor_dependency_notice' ) );
+		add_action( 'save_post', array( $this, 'invalidate_admin_page_cache' ) );
 		add_filter( 'plugin_action_links_' . SSCRIBE_PLUGIN_BASENAME, array( $admin, 'add_plugin_action_links' ) );
 	}
 
@@ -167,6 +168,29 @@ class SScribe {
 		);
 
 		echo '<div class="notice notice-error is-dismissible"><p>' . esc_html( $message ) . '</p></div>';
+	}
+
+	/**
+	 * Invalidate admin page transient cache when any post is saved/updated.
+	 *
+	 * This prevents the admin page from displaying stale post status counts after
+	 * pages are published, updated, or deleted.
+	 *
+	 * @param int $post_id Post ID being saved.
+	 * @return void
+	 */
+	public function invalidate_admin_page_cache( int $post_id ): void {
+		if ( wp_is_post_autosave( $post_id ) || wp_is_post_revision( $post_id ) ) {
+			return;
+		}
+
+		$post_type = get_post_type( $post_id );
+		if ( '' === $post_type ) {
+			return;
+		}
+
+		$cache_key = 'sscribe_admin_page_data_v' . SSCRIBE_VERSION;
+		delete_transient( $cache_key );
 	}
 
 	/**
