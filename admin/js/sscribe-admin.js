@@ -173,6 +173,7 @@
 			var currentSelected = $('input[name="sscribe_post_status"]:checked');
 			var currentStillValid = false;
 			var firstAvailable = null;
+			var self = this;
 
 			$( '.sscribe-status-card-label' ).each(function () {
 				var $label = $(this);
@@ -1025,7 +1026,7 @@
 				timeout: 30000,
 				data: {
 					action: 'sscribe_get_export_log',
-					nonce: sscribe_data.download_nonce,
+					nonce: sscribe_data.nonce,
 					file: filename
 				},
 				success: function (response) {
