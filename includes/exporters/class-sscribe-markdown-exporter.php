@@ -247,6 +247,7 @@ class SScribe_Markdown_Exporter implements SScribe_Exporter_Interface {
 		$md = $this->convert_tables( $md );
 		$md = $this->convert_headings( $md );
 		$md = $this->convert_images( $md );
+		$md = $this->convert_images_fallback( $md );
 		$md = $this->convert_links( $md );
 		$md = $this->convert_formatting( $md );
 		$md = $this->convert_lists( $md );
@@ -376,6 +377,23 @@ class SScribe_Markdown_Exporter implements SScribe_Exporter_Interface {
 				$url = $this->sanitize_url( $matches[1] );
 				$alt = $matches[2];
 				return '![' . $alt . '](' . $url . ')';
+			},
+			$html
+		);
+	}
+
+	/**
+	 * Convert HTML images to Markdown images (fallback when alt is missing).
+	 *
+	 * @param string $html HTML content.
+	 * @return string
+	 */
+	private function convert_images_fallback( string $html ): string {
+		return preg_replace_callback(
+			'/<img[^>]*src=["\']([^"\']*)["\'][^>]*>/is',
+			function ( $matches ) {
+				$url = $this->sanitize_url( $matches[1] );
+				return '![image](' . $url . ')';
 			},
 			$html
 		);
