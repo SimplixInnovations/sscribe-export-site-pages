@@ -74,3 +74,35 @@ foreach ( $target_versions as $version ) {
 
 // phpcs:ignore WordPress.WP.AlternativeFunctions.file_system_operations_fwrite -- Standalone CLI maintenance script.
 fwrite( STDOUT, "[fix-prefixed-safe] Completed. Files copied: {$copied}.\n" );
+
+/**
+ * Fix missing mpdf data files in vendor-prefixed.
+ *
+ * Strauss sometimes excludes mpdf's data/ directory which contains
+ * required files like upperCase.php and lowerCase.php.
+ */
+$target_mpdf_dir    = $base_dir . '/vendor-prefixed/mpdf/mpdf/src/data';
+$canonical_mpdf_dir = $base_dir . '/vendor/mpdf/mpdf/src/data';
+
+if ( is_dir( $canonical_mpdf_dir ) ) {
+	$copied_mpdf = 0;
+	$entries     = scandir( $canonical_mpdf_dir );
+	if ( false !== $entries ) {
+		foreach ( $entries as $entry ) {
+			if ( ! is_file( $canonical_mpdf_dir . '/' . $entry ) || ! str_ends_with( $entry, '.php' ) ) {
+				continue;
+			}
+			$target = $target_mpdf_dir . '/' . $entry;
+			if ( ! file_exists( $target ) ) {
+				if ( copy( $canonical_mpdf_dir . '/' . $entry, $target ) ) {
+					++$copied_mpdf;
+				}
+			}
+		}
+	}
+	// phpcs:ignore WordPress.WP.AlternativeFunctions.file_system_operations_fwrite -- Standalone CLI maintenance script.
+	fwrite( STDOUT, "[fix-prefixed-safe] mpdf data files copied: {$copied_mpdf}.\n" );
+} else {
+	// phpcs:ignore WordPress.WP.AlternativeFunctions.file_system_operations_fwrite -- Standalone CLI maintenance script.
+	fwrite( STDOUT, "[fix-prefixed-safe] Skipped: {$canonical_mpdf_dir} not found.\n" );
+}
