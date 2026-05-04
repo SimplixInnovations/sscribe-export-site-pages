@@ -80,7 +80,7 @@ class SScribe_Admin {
 	 * @return string Nonce value.
 	 */
 	private function get_download_nonce(): string {
-		static $nonce   = null;
+		static $nonce = null;
 		return $nonce ??= wp_create_nonce( 'sscribe_download' );
 	}
 

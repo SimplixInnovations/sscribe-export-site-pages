@@ -51,13 +51,27 @@
 		}
 		this.bindEvents();
 		this.updateTimeEstimate();
-		this.loadSupportInfo();
 
-		// Initialize counts for the default post type + language via AJAX
-		// instead of only reading the DOM, so Posts/Both switch works correctly.
 		var defaultPostType = $('input[name="sscribe_post_type"]:checked').val() || 'page';
 		var defaultLanguage = $('input[name="sscribe_language"]:checked').val() || '';
 		this.refreshStatusAndLanguageCounts(defaultPostType, defaultLanguage);
+
+		var self = this;
+		var supportTriggered = false;
+		var observer = new IntersectionObserver(
+			function (entries) {
+				if (entries[0].isIntersecting && !supportTriggered) {
+					supportTriggered = true;
+					self.loadSupportInfo();
+					observer.disconnect();
+				}
+			},
+			{ threshold: 0.1 }
+		);
+		var supportSection = document.getElementById('sscribe-support-grid');
+		if (supportSection) {
+			observer.observe(supportSection);
+		}
 	},
 
 		bindEvents: function () {
@@ -113,6 +127,13 @@
 						self.updateStatusCounts(response.data.counts);
 						self.updateTimeEstimate();
 						self.updateExportButton();
+
+						var total = self.parseLocalizedInt(response.data.counts.all) || 0;
+						if (postType === 'post') {
+							$('#sscribe-post-count').text(total.toLocaleString());
+						} else if (postType === 'any') {
+							$('#sscribe-both-count').text(total.toLocaleString());
+						}
 					}
 				}
 			});
