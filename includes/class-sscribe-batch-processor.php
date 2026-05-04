@@ -671,6 +671,7 @@ class SScribe_Batch_Processor {
 				'processed'         => 0,
 				'status'            => 'processing',
 				'language'          => $language,
+				'post_type'         => $post_type,
 				'post_status'       => $post_status,
 				'formats'           => $formats,
 				'errors'            => array(),
