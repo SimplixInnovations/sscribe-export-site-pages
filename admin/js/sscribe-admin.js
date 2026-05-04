@@ -135,7 +135,8 @@
 							$('#sscribe-both-count').text(total.toLocaleString());
 						}
 					}
-				}
+				},
+				error: function () {}
 			});
 
 			$('input[name="sscribe_language"]').each(function () {
@@ -160,7 +161,8 @@
 								.find('.sscribe-lang-count')
 								.text(total.toLocaleString());
 						}
-					}
+					},
+					error: function () {}
 				});
 			});
 
@@ -182,7 +184,8 @@
 							.find('.sscribe-lang-count')
 							.text(total.toLocaleString());
 					}
-				}
+				},
+				error: function () {}
 			});
 		},
 
