@@ -173,6 +173,7 @@
 			var currentSelected = $('input[name="sscribe_post_status"]:checked');
 			var currentStillValid = false;
 			var firstAvailable = null;
+			var self = this;
 
 			$( '.sscribe-status-card-label' ).each(function () {
 				var $label = $(this);
