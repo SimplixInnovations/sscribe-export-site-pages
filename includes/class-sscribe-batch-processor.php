@@ -2185,10 +2185,22 @@ class SScribe_Batch_Processor {
 				wp_die( esc_html__( 'File no longer available. Please regenerate the export.', 'sscribe-export-site-pages' ) );
 			}
 
-			flush();
-			// phpcs:ignore WordPress.WP.AlternativeFunctions.file_system_operations_readfile -- Direct download
-			readfile( $file_path );
-			exit;
+		flush();
+		// Force the script to continue even if client disconnects (prevents partial ZIP sends).
+		ignore_user_abort( true );
+
+		// phpcs:ignore WordPress.WP.AlternativeFunctions.file_system_operations_readfile -- Direct download
+		$read_result = readfile( $file_path );
+		if ( false === $read_result ) {
+			$this->logger->warning(
+				'readfile() returned false — possible partial read',
+				array(
+					'filename' => $filename,
+					'path'     => $file_path,
+				)
+			);
+		}
+		exit;
 		} catch ( \InvalidArgumentException $e ) {
 			$this->logger->error(
 				'Export directory access failed during download',
