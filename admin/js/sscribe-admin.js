@@ -1003,8 +1003,8 @@
 			this.saveFocus();
 
 			$('#sscribe-log-modal').removeClass('sscribe-hidden');
-			$('#sscribe-log-content').html('<div class="sscribe-log-loading"><span></span></div>');
-			$('#sscribe-log-content').find('span').text((sscribe_data.strings && sscribe_data.strings.loading_log) || 'Loading log...');
+			var loadingText = (sscribe_data.strings && sscribe_data.strings.loading_log) || 'Loading log...';
+			$('#sscribe-log-content').html('<div class="sscribe-log-loading"><span>' + this.escapeHtml(loadingText) + '</span></div>');
 
 			var modal = document.getElementById('sscribe-log-modal');
 			if (!modal) {
