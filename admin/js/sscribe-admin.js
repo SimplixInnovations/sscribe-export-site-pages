@@ -45,24 +45,20 @@
 			return isNaN(num) ? 0 : num;
 		},
 
-		init: function () {
-			if (typeof sscribe_data === 'undefined' || !sscribe_data) {
-				return;
-			}
-			this.bindEvents();
-			this.updateTimeEstimate();
-			this.loadSupportInfo();
+	init: function () {
+		if (typeof sscribe_data === 'undefined' || !sscribe_data) {
+			return;
+		}
+		this.bindEvents();
+		this.updateTimeEstimate();
+		this.loadSupportInfo();
 
-			// Initialize selectedPageCount from the pre-selected status card.
-			var $defaultStatus = $('input[name="sscribe_post_status"]:checked:not([disabled])');
-			if ($defaultStatus.length) {
-				var initialCount = this.parseLocalizedInt(
-					$defaultStatus.closest('.sscribe-status-card-label').find('.sscribe-status-count').text()
-				);
-				this.selectedPageCount = initialCount;
-				this.updateExportButton();
-			}
-		},
+		// Initialize counts for the default post type + language via AJAX
+		// instead of only reading the DOM, so Posts/Both switch works correctly.
+		var defaultPostType = $('input[name="sscribe_post_type"]:checked').val() || 'page';
+		var defaultLanguage = $('input[name="sscribe_language"]:checked').val() || '';
+		this.refreshStatusAndLanguageCounts(defaultPostType, defaultLanguage);
+	},
 
 		bindEvents: function () {
 			$(document).on('click', '#sscribe-export-btn', $.proxy(this.startExport, this));

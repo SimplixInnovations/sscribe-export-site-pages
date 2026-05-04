@@ -140,7 +140,19 @@ class SScribe_HTML_Exporter implements SScribe_Exporter_Interface {
 
 		$rtl_extra = $is_rtl ?
 			'
-		html, body { direction: rtl; }
+		@font-face {
+			font-family: \'Noto Sans Arabic\';
+			src: url(\'' . esc_url( SSCRIBE_PLUGIN_URL . 'assets/fonts/notosansarabic/NotoSansArabic-Regular.ttf' ) . '\') format(\'truetype\');
+			font-weight: normal;
+			font-style: normal;
+		}
+		@font-face {
+			font-family: \'Noto Sans Arabic\';
+			src: url(\'' . esc_url( SSCRIBE_PLUGIN_URL . 'assets/fonts/notosansarabic/NotoSansArabic-Bold.ttf' ) . '\') format(\'truetype\');
+			font-weight: bold;
+			font-style: normal;
+		}
+		html, body { direction: rtl; font-family: \'Noto Sans Arabic\', \'Manrope\', sans-serif; }
 		h1 { text-align: center; }
 		.featured-image { max-width: 600px; margin: 0 auto; display: block; }
 		' :
@@ -176,7 +188,7 @@ class SScribe_HTML_Exporter implements SScribe_Exporter_Interface {
 <body>
 	<header>
 		<h1>' . $title . '</h1>
-		<p><a href="' . esc_url( $page_data['permalink'] ) . '">' . esc_html( $page_data['permalink'] ) . '</a></p>
+		<p><a href="' . esc_url( $page_data['permalink'] ) . '">' . esc_html( rawurldecode( $page_data['permalink'] ) ) . '</a></p>
 	</header>
 
 	<main class="content">
