@@ -635,7 +635,7 @@ class SScribe_Exporter {
 		if ( ! empty( $permalink ) ) {
 			$section->addLink(
 				$permalink,
-				$this->safe_text( $permalink ),
+				$this->safe_text( rawurldecode( $permalink ) ),
 				array(
 					'name'      => $this->font_name,
 					'size'      => 12,
@@ -786,7 +786,7 @@ class SScribe_Exporter {
 		$footer_table = $footer->addTable();
 		$footer_table->addRow();
 		$footer_table->addCell( Converter::inchToTwip( 4 ) )->addText(
-			$this->safe_text( $page_data['permalink'] ),
+			$this->safe_text( rawurldecode( $page_data['permalink'] ) ),
 			array(
 				'name'  => $this->font_name,
 				'size'  => 7,
