@@ -235,13 +235,6 @@ class SScribe_Batch_Processor {
 	}
 
 	/**
-	 * Get client IP address.
-	 *
-	 * Prioritizes REMOTE_ADDR to prevent IP spoofing via HTTP headers.
-	 *
-	 * @return string
-	 */
-	/**
 	 * Check if enough memory is available.
 	 *
 	 * @param int $buffer_mb Buffer in MB to keep available.
