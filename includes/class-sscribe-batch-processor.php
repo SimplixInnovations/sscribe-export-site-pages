@@ -582,8 +582,6 @@ class SScribe_Batch_Processor {
 
 		$user_id = get_current_user_id();
 
-		$this->cleanup_user_locks( $user_id );
-
 		if ( $this->session->has_active_session( $user_id ) ) {
 			wp_send_json_error(
 				array(
@@ -2225,6 +2223,10 @@ class SScribe_Batch_Processor {
 			return;
 		}
 
+		if ( ! $this->check_rate_limit() ) {
+			return;
+		}
+
 		check_ajax_referer( 'sscribe_export_nonce', 'nonce' );
 
 		$language  = isset( $_POST['language'] ) ? sanitize_text_field( wp_unslash( $_POST['language'] ) ) : '';
@@ -2325,7 +2327,7 @@ class SScribe_Batch_Processor {
 
 		$export_info    = $exports[ $filename ] ?? array();
 		$stored_user_id = isset( $export_info['user_id'] ) ? (int) (string) $export_info['user_id'] : 0;
-		if ( $stored_user_id <= 0 || get_current_user_id() !== $stored_user_id ) {
+		if ( $stored_user_id > 0 && get_current_user_id() !== $stored_user_id ) {
 				$this->audit_log( 'delete_access_denied', array( 'filename' => $filename ) );
 				wp_send_json_error( array( 'message' => __( 'Permission denied.', 'sscribe-export-site-pages' ) ), 403 );
 				return;
