@@ -246,6 +246,10 @@ class SScribe_Session {
 	/**
 	 * Update session data.
 	 *
+	 * Uses an atomic cache lock (wp_cache_add) to prevent race conditions
+	 * on the read-modify-write cycle. The lock expires after 5 seconds
+	 * to prevent deadlocks from crashed processes.
+	 *
 	 * @param string $session_id The session identifier.
 	 * @param array  $data       Data to merge with existing session.
 	 * @return bool True on success, false on failure.
@@ -258,57 +262,83 @@ class SScribe_Session {
 		}
 
 		$option_name = $this->get_option_name( $session_id );
-		wp_cache_delete( $option_name, 'options' );
+		$lock_key    = 'sscribe_lock_' . $session_id;
 
-		$existing = $this->get( $session_id );
-
-		if ( null === $existing ) {
-			$this->logger->error(
-				'Failed to read existing session for update',
-				array(
-					'session_id' => $session_id,
-				)
-			);
-			return false;
+		// --- ACQUIRE ATOMIC LOCK (expires after 5s to prevent deadlocks) ---
+		$lock_acquired = false;
+		for ( $lock_attempt = 1; $lock_attempt <= 5; ++$lock_attempt ) {
+			// wp_cache_add() is atomic: succeeds only if key doesn't exist.
+			if ( wp_cache_add( $lock_key, time(), 'options', 5 ) ) {
+				$lock_acquired = true;
+				break;
+			}
+			// Lock held by another request — brief sleep then retry.
+			usleep( 100000 ); // 100ms
 		}
 
-		$merged               = array_merge( $existing, $data );
-		$merged['_sig']       = $this->sign_session_id( $session_id );
-		$merged['updated_at'] = time();
-
-		$encoded_data = wp_json_encode( $merged, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES );
-
-		if ( false === $encoded_data ) {
+		if ( ! $lock_acquired ) {
 			$this->logger->error(
-				'Failed to JSON-encode session update',
+				'Failed to acquire session lock (concurrent access)',
 				array( 'session_id' => $session_id )
 			);
 			return false;
 		}
 
-		for ( $attempt = 1; $attempt <= 2; ++$attempt ) {
-			if ( update_option( $option_name, $encoded_data, false ) ) {
-				if ( isset( $merged['user_id'] ) ) {
-					unset( self::$active_session_cache[ (int) $merged['user_id'] ] );
-					delete_transient( 'sscribe_active_session_' . (int) $merged['user_id'] );
-				}
-
-				return true;
-			}
-
+		// --- READ-MODIFY-WRITE (lock held) ---
+		try {
 			wp_cache_delete( $option_name, 'options' );
 
-			$this->logger->warning(
-				'Failed to update session option, retrying',
-				array(
-					'session_id' => $session_id,
-					'attempt'    => $attempt,
-					'max'        => 2,
-				)
-			);
-		}
+			$existing = $this->get( $session_id );
 
-		return false;
+			if ( null === $existing ) {
+				$this->logger->error(
+					'Failed to read existing session for update',
+					array( 'session_id' => $session_id )
+				);
+				return false;
+			}
+
+			$merged               = array_merge( $existing, $data );
+			$merged['_sig']       = $this->sign_session_id( $session_id );
+			$merged['updated_at'] = time();
+
+			$encoded_data = wp_json_encode( $merged, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES );
+
+			if ( false === $encoded_data ) {
+				$this->logger->error(
+					'Failed to JSON-encode session update',
+					array( 'session_id' => $session_id )
+				);
+				return false;
+			}
+
+			for ( $attempt = 1; $attempt <= 2; ++$attempt ) {
+				if ( update_option( $option_name, $encoded_data, false ) ) {
+					if ( isset( $merged['user_id'] ) ) {
+						unset( self::$active_session_cache[ (int) $merged['user_id'] ] );
+						delete_transient( 'sscribe_active_session_' . (int) $merged['user_id'] );
+					}
+					return true;
+				}
+
+				wp_cache_delete( $option_name, 'options' );
+
+				$this->logger->warning(
+					'Failed to update session option, retrying',
+					array(
+						'session_id' => $session_id,
+						'attempt'    => $attempt,
+						'max'        => 2,
+					)
+				);
+			}
+
+			return false;
+
+		} finally {
+			// --- ALWAYS RELEASE LOCK ---
+			wp_cache_delete( $lock_key, 'options' );
+		}
 	}
 
 	/**

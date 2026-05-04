@@ -235,7 +235,7 @@ class SScribe_PDF_Exporter implements SScribe_Exporter_Interface {
 				)
 			);
 
-		} catch ( \SScribeVendor\Mpdf\MpdfException $e ) {
+		} catch ( \Throwable $e ) {
 			$libxml_errors = $this->get_libxml_error_details();
 
 			$this->logger->error(

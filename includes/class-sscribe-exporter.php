@@ -348,13 +348,17 @@ class SScribe_Exporter {
 			$writer = IOFactory::createWriter( $php_word, 'Word2007' );
 			$writer->save( $output_path );
 
-			// CRITICAL: Explicitly release PHPWord objects to prevent memory leaks in batch processing.
-			// PHPWord retains circular references between elements and the parent document,
-			// which prevents PHP's garbage collector from reclaiming memory automatically.
-			// Without this, memory accumulates 2-5MB per page during batch exports.
-			unset( $writer, $php_word );
+		// CRITICAL: Explicitly release PHPWord objects to prevent memory leaks in batch processing.
+		// PHPWord retains circular references between elements and the parent document,
+		// which prevents PHP's garbage collector from reclaiming memory automatically.
+		// Without this, memory accumulates 2-5MB per page during batch exports.
+		unset( $writer, $php_word );
 
-			// NOTE: Parser is intentionally kept alive across page exports in a batch.
+		// Force garbage collection to break PHPWord's circular references immediately.
+		// Without this, memory isn't freed until end of request.
+		gc_collect_cycles();
+
+		// NOTE: Parser is intentionally kept alive across page exports in a batch.
 			// The parser is stateless and can be safely reused. Destroying it would cause
 			// crashes on page 2+ because the exporter instance is reused.
 

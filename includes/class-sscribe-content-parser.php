@@ -147,44 +147,62 @@ class SScribe_Content_Parser {
 		// Suppress warnings from malformed HTML.
 		$prev_use_errors = libxml_use_internal_errors( true );
 
-		// Wrap content to ensure proper encoding.
-		$wrapped = '<!DOCTYPE html><html><head><meta charset="UTF-8"></head><body>' . $html . '</body></html>';
-		$dom->loadHTML( $wrapped, LIBXML_HTML_NOIMPLIED | LIBXML_HTML_NODEFDTD );
+		try {
+			// Wrap content to ensure proper encoding.
+			$wrapped = '<!DOCTYPE html><html><head><meta charset="UTF-8"></head><body>' . $html . '</body></html>';
+			$dom->loadHTML( $wrapped, LIBXML_HTML_NOIMPLIED | LIBXML_HTML_NODEFDTD );
 
-		libxml_clear_errors();
-		libxml_use_internal_errors( $prev_use_errors );
+			libxml_clear_errors();
+			libxml_use_internal_errors( $prev_use_errors );
 
-		$body = $dom->getElementsByTagName( 'body' )->item( 0 );
-		if ( ! $body ) {
-			// CRITICAL: Clear DOMDocument before returning to free memory.
-			// DOMDocument can retain large amounts of memory for complex HTML.
+			$body = $dom->getElementsByTagName( 'body' )->item( 0 );
+			if ( ! $body ) {
+				// CRITICAL: Clear DOMDocument before returning to free memory.
+				// DOMDocument can retain large amounts of memory for complex HTML.
+				unset( $body );
+				$dom = null;
+				unset( $dom );
+				return $elements;
+			}
+
+			// Process child nodes.
+			foreach ( $body->childNodes as $node ) {
+				$parsed = $this->parse_node( $node );
+				if ( $parsed ) {
+					if ( isset( $parsed['type'] ) ) {
+						$elements[] = $parsed;
+					} else {
+						// Array of elements returned.
+						$elements = array_merge( $elements, $parsed );
+					}
+				}
+			}
+
+			// CRITICAL: Explicitly release DOMDocument to prevent memory accumulation.
+			// DOMDocument retains the entire parsed tree in memory even after processing.
+			// For large HTML documents (5MB+), this can consume significant memory.
 			unset( $body );
 			$dom = null;
 			unset( $dom );
-			return $elements;
-		}
 
-		// Process child nodes.
-		foreach ( $body->childNodes as $node ) {
-			$parsed = $this->parse_node( $node );
-			if ( $parsed ) {
-				if ( isset( $parsed['type'] ) ) {
-					$elements[] = $parsed;
-				} else {
-					// Array of elements returned.
-					$elements = array_merge( $elements, $parsed );
-				}
+			return $elements;
+
+		} catch ( \Throwable $e ) {
+			// Ensure libxml state is ALWAYS restored on ANY error (fatal or exception).
+			libxml_clear_errors();
+			libxml_use_internal_errors( $prev_use_errors );
+
+			// Re-throw so caller handles it.
+			throw $e;
+
+		} finally {
+			// Final safety net: if somehow we get here without restore, do it now.
+			// This should be redundant given the catch above, but defense-in-depth.
+			$current_use_errors = libxml_use_internal_errors( $prev_use_errors );
+			if ( $current_use_errors !== $prev_use_errors ) {
+				libxml_use_internal_errors( $prev_use_errors );
 			}
 		}
-
-		// CRITICAL: Explicitly release DOMDocument to prevent memory accumulation.
-		// DOMDocument retains the entire parsed tree in memory even after processing.
-		// For large HTML documents (5MB+), this can consume significant memory.
-		unset( $body );
-		$dom = null;
-		unset( $dom );
-
-		return $elements;
 	}
 
 	/**
