@@ -227,14 +227,19 @@ class SScribe_Exporter {
 		}
 
 		try {
-			if ( ! class_exists( 'ZipArchive' ) ) {
-				throw new \RuntimeException( __( 'The ZipArchive PHP extension is required to generate DOCX files.', 'sscribe-export-site-pages' ) );
-			}
+		if ( ! class_exists( 'ZipArchive' ) ) {
+			throw new \RuntimeException( __( 'The ZipArchive PHP extension is required to generate DOCX files.', 'sscribe-export-site-pages' ) );
+		}
 
-			// Force ZipArchive — prevents PHPWord from ever loading bundled PCLZip.
-			\SScribeVendor\PhpOffice\PhpWord\Settings::setZipClass( \SScribeVendor\PhpOffice\PhpWord\Settings::ZIPARCHIVE );
+		// Force ZipArchive — prevents PHPWord from ever loading bundled PCLZip.
+		// Guard with class_exists to handle prefixed/vendor-less installations.
+		if ( class_exists( '\SScribeVendor\PhpOffice\PhpWord\Settings' ) ) {
+			\SScribeVendor\PhpOffice\PhpWord\Settings::setZipClass(
+				\SScribeVendor\PhpOffice\PhpWord\Settings::ZIPARCHIVE
+			);
+		}
 
-			$php_word = new PhpWord();
+		$php_word = new PhpWord();
 
 			// Determine RTL setting for the document.
 			$this->is_rtl = $this->is_rtl_document( $page_data );
