@@ -86,6 +86,7 @@ $sscribe_cleanup_site = static function (): void {
 	delete_option( 'sscribe_export_index' );
 	delete_option( 'sscribe_export_metrics' );
 	delete_option( 'sscribe_schema_version' );
+	delete_option( 'sscribe_session_signing_key' );
 
 	$sscribe_tables = array(
 		$wpdb->prefix . 'sscribe_export_logs',

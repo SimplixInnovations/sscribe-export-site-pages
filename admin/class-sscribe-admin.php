@@ -94,15 +94,19 @@ class SScribe_Admin {
 			return;
 		}
 
+		// SECURITY FIX: Check transient first, then verify capability BEFORE consuming the transient.
+		// If the transient is consumed before the capability check, a filtered capability can cause
+		// the redirect to silently fail with no admin ever reaching the plugin page on activation.
 		if ( ! get_transient( 'sscribe_activation_redirect' ) ) {
 			return;
 		}
 
-		delete_transient( 'sscribe_activation_redirect' );
-
 		if ( ! current_user_can( $this->get_required_capability() ) ) {
+			delete_transient( 'sscribe_activation_redirect' );
 			return;
 		}
+
+		delete_transient( 'sscribe_activation_redirect' );
 
 		// phpcs:ignore WordPress.Security.NonceVerification.Recommended -- Redirect guard only checks activation flow markers.
 		if ( isset( $_GET['activate-multi'] ) ) {
@@ -413,8 +417,13 @@ class SScribe_Admin {
 								'orderby'                => 'post__in',
 							)
 						);
-						foreach ( $batch_posts as $post ) {
-							$posts_by_id[ $post->ID ] = $post;
+						// SECURITY FIX: get_posts() can return false/WP_Error on failure (e.g., invalid
+						// post__in from filtered query args). Guard with is_array() to prevent fatal error
+						// when SSCRIBE_DEBUG_PUBLIC is enabled and WPML/filters cause an invalid query.
+						if ( is_array( $batch_posts ) && ! empty( $batch_posts ) ) {
+							foreach ( $batch_posts as $post ) {
+								$posts_by_id[ $post->ID ] = $post;
+							}
 						}
 					}
 

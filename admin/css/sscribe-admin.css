@@ -5,10 +5,10 @@
  * WCAG 2.1 AA compliant, accessible, and professional.
  *
  * @package SScribe
- * @version 3.51.5
+ * @version 3.51.6
  */
 
-/* Manrope Font Ã¢â‚¬â€ Local, No CDN Ã¢â‚¬â€ SIL Open Font License 1.1 */
+/* Manrope Font - Local, No CDN - SIL Open Font License 1.1 */
 @font-face {
 	font-family: 'Manrope';
 	src: url('../../assets/fonts/manrope/Manrope-Regular.ttf') format('truetype');
@@ -2137,7 +2137,7 @@
 	display: flex;
 	flex-wrap: wrap;
 	gap: 10px;
-	overflow-x: auto;
+	overflow-y: auto;
 	max-height: 160px;
 	flex-direction: column;
 }

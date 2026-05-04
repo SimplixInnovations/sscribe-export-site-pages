@@ -306,7 +306,6 @@
 			this.isProcessing = true;
 			this.batchRetries = 0;
 			this.resetUI();
-			this.showProgress();
 
 			var language = $('input[name="sscribe_language"]:checked').val() || '';
 			var postStatus = $('input[name="sscribe_post_status"]:checked').val() || 'publish';
@@ -474,8 +473,9 @@
 					post_type: postType,
 					formats: formats
 				},
-				success: function (response) {
+success: function (response) {
 					if (response.success) {
+						SScribe.showProgress();
 						SScribe.sessionId = response.data.session_id;
 						SScribe.updateStatus(response.data.message);
 						SScribe.processBatch();

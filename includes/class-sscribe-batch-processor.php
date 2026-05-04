@@ -514,24 +514,24 @@ class SScribe_Batch_Processor {
 	 * @return void
 	 */
 	public function ajax_start_export(): void {
+		check_ajax_referer( 'sscribe_export_nonce', 'nonce' );
+
 		if ( ! current_user_can( $this->get_required_capability() ) ) {
 			wp_send_json_error(
 				array(
 					'message' => __( 'You do not have permission to export pages.', 'sscribe-export-site-pages' ),
 				),
-				403 // HTTP 403 Forbidden.
+				403
 			);
 			return;
 		}
-
-		check_ajax_referer( 'sscribe_export_nonce', 'nonce' );
 
 		if ( ! $this->check_rate_limit() ) {
 			wp_send_json_error(
 				array(
 					'message' => __( 'Too many requests. Please wait a moment and try again.', 'sscribe-export-site-pages' ),
 				),
-				429 // HTTP 429 Too Many Requests.
+				429
 			);
 			return;
 		}
@@ -742,24 +742,24 @@ class SScribe_Batch_Processor {
 	 * @return void
 	 */
 	public function ajax_process_batch(): void {
+		check_ajax_referer( 'sscribe_export_nonce', 'nonce' );
+
 		if ( ! current_user_can( $this->get_required_capability() ) ) {
 			wp_send_json_error(
 				array(
 					'message' => __( 'Permission denied.', 'sscribe-export-site-pages' ),
 				),
-				403 // HTTP 403 Forbidden.
+				403
 			);
 			return;
 		}
-
-		check_ajax_referer( 'sscribe_export_nonce', 'nonce' );
 
 		if ( ! $this->check_rate_limit() ) {
 			wp_send_json_error(
 				array(
 					'message' => __( 'Too many requests. Please wait a moment.', 'sscribe-export-site-pages' ),
 				),
-				429 // HTTP 429 Too Many Requests.
+				429
 			);
 			return;
 		}
@@ -1612,6 +1612,8 @@ class SScribe_Batch_Processor {
 	 * @return void
 	 */
 	public function ajax_finalize_export(): void {
+		check_ajax_referer( 'sscribe_export_nonce', 'nonce' );
+
 		if ( ! current_user_can( $this->get_required_capability() ) ) {
 			wp_send_json_error(
 				array( 'message' => __( 'Permission denied.', 'sscribe-export-site-pages' ) ),
@@ -1620,14 +1622,12 @@ class SScribe_Batch_Processor {
 			return;
 		}
 
-		check_ajax_referer( 'sscribe_export_nonce', 'nonce' );
-
 		if ( ! $this->check_rate_limit() ) {
 			wp_send_json_error(
 				array(
 					'message' => __( 'Too many requests. Please wait a moment.', 'sscribe-export-site-pages' ),
 				),
-				429 // HTTP 429 Too Many Requests.
+				429
 			);
 			return;
 		}
@@ -2112,12 +2112,12 @@ class SScribe_Batch_Processor {
 	 * @return void
 	 */
 	public function ajax_download(): void {
+		check_ajax_referer( 'sscribe_download', 'nonce' );
+
 		if ( ! current_user_can( $this->get_required_capability() ) ) {
 			status_header( 403 );
 			wp_die( esc_html__( 'Permission denied.', 'sscribe-export-site-pages' ) );
 		}
-
-		check_ajax_referer( 'sscribe_download', 'nonce' );
 
 		$filename = isset( $_GET['file'] ) ? sanitize_file_name( wp_unslash( $_GET['file'] ) ) : '';
 
@@ -2219,6 +2219,8 @@ class SScribe_Batch_Processor {
 	 * @return void
 	 */
 	public function ajax_get_status_counts(): void {
+		check_ajax_referer( 'sscribe_export_nonce', 'nonce' );
+
 		if ( ! current_user_can( $this->get_required_capability() ) ) {
 			wp_send_json_error( array( 'message' => __( 'Permission denied.', 'sscribe-export-site-pages' ) ), 403 );
 			return;
@@ -2227,8 +2229,6 @@ class SScribe_Batch_Processor {
 		if ( ! $this->check_rate_limit() ) {
 			return;
 		}
-
-		check_ajax_referer( 'sscribe_export_nonce', 'nonce' );
 
 		$language  = isset( $_POST['language'] ) ? sanitize_text_field( wp_unslash( $_POST['language'] ) ) : '';
 		$post_type = isset( $_POST['post_type'] ) ? sanitize_text_field( wp_unslash( $_POST['post_type'] ) ) : 'page';
@@ -2247,12 +2247,12 @@ class SScribe_Batch_Processor {
 	 * @return void
 	 */
 	public function ajax_cancel_export(): void {
+		check_ajax_referer( 'sscribe_export_nonce', 'nonce' );
+
 		if ( ! current_user_can( $this->get_required_capability() ) ) {
 			wp_send_json_error( array( 'message' => __( 'Permission denied.', 'sscribe-export-site-pages' ) ), 403 );
 			return;
 		}
-
-		check_ajax_referer( 'sscribe_export_nonce', 'nonce' );
 
 		$session_id = isset( $_POST['session_id'] ) ? sanitize_text_field( wp_unslash( $_POST['session_id'] ) ) : '';
 
@@ -2305,12 +2305,12 @@ class SScribe_Batch_Processor {
 	 * @return void
 	 */
 	public function ajax_delete_export(): void {
+		check_ajax_referer( 'sscribe_download', 'nonce' );
+
 		if ( ! current_user_can( $this->get_required_capability() ) ) {
 			wp_send_json_error( array( 'message' => __( 'Permission denied.', 'sscribe-export-site-pages' ) ), 403 );
 			return;
 		}
-
-		check_ajax_referer( 'sscribe_download', 'nonce' );
 
 		$filename = isset( $_POST['file'] ) ? sanitize_file_name( wp_unslash( $_POST['file'] ) ) : '';
 
@@ -2384,12 +2384,12 @@ class SScribe_Batch_Processor {
 	 * @return void
 	 */
 	public function ajax_get_export_log(): void {
+		check_ajax_referer( 'sscribe_download', 'nonce' );
+
 		if ( ! current_user_can( $this->get_required_capability() ) ) {
 			wp_send_json_error( array( 'message' => __( 'Permission denied.', 'sscribe-export-site-pages' ) ), 403 );
 			return;
 		}
-
-		check_ajax_referer( 'sscribe_download', 'nonce' );
 
 		$filename = isset( $_POST['file'] ) ? sanitize_file_name( wp_unslash( $_POST['file'] ) ) : '';
 
@@ -2676,12 +2676,12 @@ class SScribe_Batch_Processor {
 	 * @return void
 	 */
 	public function ajax_clear_session(): void {
+		check_ajax_referer( 'sscribe_export_nonce', 'nonce' );
+
 		if ( ! current_user_can( $this->get_required_capability() ) ) {
 			wp_send_json_error( array( 'message' => __( 'Permission denied.', 'sscribe-export-site-pages' ) ), 403 );
 			return;
 		}
-
-		check_ajax_referer( 'sscribe_export_nonce', 'nonce' );
 
 		$user_id = get_current_user_id();
 		$force   = isset( $_POST['force'] ) && filter_var( wp_unslash( $_POST['force'] ), FILTER_VALIDATE_BOOLEAN );
@@ -2817,6 +2817,8 @@ class SScribe_Batch_Processor {
 	 * @return void
 	 */
 	public function ajax_preflight_check(): void {
+		check_ajax_referer( 'sscribe_export_nonce', 'nonce' );
+
 		if ( ! current_user_can( $this->get_required_capability() ) ) {
 			wp_send_json_error(
 				array(
@@ -2826,8 +2828,6 @@ class SScribe_Batch_Processor {
 			);
 			return;
 		}
-
-		check_ajax_referer( 'sscribe_export_nonce', 'nonce' );
 
 		// phpcs:ignore WordPress.Security.ValidatedSanitizedInput.InputNotSanitized -- Sanitization via array_map on next line.
 		$formats_raw   = isset( $_POST['formats'] ) ? wp_unslash( (array) $_POST['formats'] ) : array();
@@ -2857,6 +2857,8 @@ class SScribe_Batch_Processor {
 	 * @return void
 	 */
 	public function ajax_get_export_preview(): void {
+		check_ajax_referer( 'sscribe_export_nonce', 'nonce' );
+
 		if ( ! current_user_can( $this->get_required_capability() ) ) {
 			wp_send_json_error(
 				array(
@@ -2866,8 +2868,6 @@ class SScribe_Batch_Processor {
 			);
 			return;
 		}
-
-		check_ajax_referer( 'sscribe_export_nonce', 'nonce' );
 
 		$language    = isset( $_POST['language'] ) ? sanitize_text_field( wp_unslash( $_POST['language'] ) ) : '';
 		$post_status = isset( $_POST['post_status'] ) ? sanitize_text_field( wp_unslash( $_POST['post_status'] ) ) : 'publish';
@@ -2950,6 +2950,8 @@ class SScribe_Batch_Processor {
 	 * @return void
 	 */
 	public function ajax_get_recent_exports(): void {
+		check_ajax_referer( 'sscribe_export_nonce', 'nonce' );
+
 		if ( ! current_user_can( $this->get_required_capability() ) ) {
 			wp_send_json_error(
 				array( 'message' => __( 'Permission denied.', 'sscribe-export-site-pages' ) ),
@@ -2957,8 +2959,6 @@ class SScribe_Batch_Processor {
 			);
 			return;
 		}
-
-		check_ajax_referer( 'sscribe_export_nonce', 'nonce' );
 
 		$exports = get_option( 'sscribe_export_index', array() );
 		$user_id = get_current_user_id();
@@ -3018,6 +3018,8 @@ class SScribe_Batch_Processor {
 	 * @return void
 	 */
 	public function ajax_get_support_info(): void {
+		check_ajax_referer( 'sscribe_export_nonce', 'nonce' );
+
 		if ( ! current_user_can( $this->get_required_capability() ) ) {
 			wp_send_json_error(
 				array( 'message' => __( 'Permission denied.', 'sscribe-export-site-pages' ) ),
@@ -3025,8 +3027,6 @@ class SScribe_Batch_Processor {
 			);
 			return;
 		}
-
-		check_ajax_referer( 'sscribe_export_nonce', 'nonce' );
 
 		try {
 			$support_info = $this->diagnostics->get_support_info();
