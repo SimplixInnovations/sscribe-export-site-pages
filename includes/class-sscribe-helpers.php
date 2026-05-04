@@ -85,8 +85,6 @@ class SScribe_Helpers {
 	}
 
 	/**
-	 * Get time estimate for a format export.
-	/**
 	 * Get time estimate for a single format.
 	 *
 	 * @param string $format     Export format.
