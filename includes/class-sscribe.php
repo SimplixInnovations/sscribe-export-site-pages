@@ -189,6 +189,12 @@ class SScribe {
 			return;
 		}
 
+		// Only invalidate cache for post types that affect the export plugin.
+		// Custom post types (WooCommerce products, ACF option pages, etc.) are irrelevant.
+		if ( ! in_array( $post_type, array( 'page', 'post' ), true ) ) {
+			return;
+		}
+
 		$cache_key = 'sscribe_admin_page_data_v' . SSCRIBE_VERSION;
 		delete_transient( $cache_key );
 	}
@@ -253,7 +259,7 @@ class SScribe {
 	public function cleanup_sessions(): void {
 		// P-4: Prevent overlapping cron runs (uses dedicated key — separate from export cleanup).
 		if ( ! get_transient( 'sscribe_cron_sessions_lock' ) ) {
-			set_transient( 'sscribe_cron_sessions_lock', true, 5 * MINUTE_IN_SECONDS );
+			set_transient( 'sscribe_cron_sessions_lock', true, 2 * MINUTE_IN_SECONDS );
 
 			$session = SScribe_Container::instance()->get( SScribe_Session::class );
 			$session->cleanup_expired( 24 * HOUR_IN_SECONDS );

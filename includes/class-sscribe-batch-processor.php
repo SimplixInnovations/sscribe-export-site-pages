@@ -235,13 +235,6 @@ class SScribe_Batch_Processor {
 	}
 
 	/**
-	 * Get client IP address.
-	 *
-	 * Prioritizes REMOTE_ADDR to prevent IP spoofing via HTTP headers.
-	 *
-	 * @return string
-	 */
-	/**
 	 * Check if enough memory is available.
 	 *
 	 * @param int $buffer_mb Buffer in MB to keep available.
@@ -521,24 +514,24 @@ class SScribe_Batch_Processor {
 	 * @return void
 	 */
 	public function ajax_start_export(): void {
+		check_ajax_referer( 'sscribe_export_nonce', 'nonce' );
+
 		if ( ! current_user_can( $this->get_required_capability() ) ) {
 			wp_send_json_error(
 				array(
 					'message' => __( 'You do not have permission to export pages.', 'sscribe-export-site-pages' ),
 				),
-				403 // HTTP 403 Forbidden.
+				403
 			);
 			return;
 		}
-
-		check_ajax_referer( 'sscribe_export_nonce', 'nonce' );
 
 		if ( ! $this->check_rate_limit() ) {
 			wp_send_json_error(
 				array(
 					'message' => __( 'Too many requests. Please wait a moment and try again.', 'sscribe-export-site-pages' ),
 				),
-				429 // HTTP 429 Too Many Requests.
+				429
 			);
 			return;
 		}
@@ -588,8 +581,6 @@ class SScribe_Batch_Processor {
 		);
 
 		$user_id = get_current_user_id();
-
-		$this->cleanup_user_locks( $user_id );
 
 		if ( $this->session->has_active_session( $user_id ) ) {
 			wp_send_json_error(
@@ -680,6 +671,7 @@ class SScribe_Batch_Processor {
 				'processed'         => 0,
 				'status'            => 'processing',
 				'language'          => $language,
+				'post_type'         => $post_type,
 				'post_status'       => $post_status,
 				'formats'           => $formats,
 				'errors'            => array(),
@@ -710,6 +702,17 @@ class SScribe_Batch_Processor {
 
 		$this->export_log = new SScribe_Export_Log( $session_id );
 		$this->export_log->set_total_pages( $total );
+
+		// Record export start in statistics table.
+		$export_stats = new SScribe_Export_Stats();
+		$export_stats->start_export(
+			$session_id,
+			$user_id,
+			array(
+				'total_pages' => $total,
+				'formats' => $formats,
+			)
+		);
 
 		// Calculate memory forecast and warn if export may fail.
 		$memory_warning = $this->get_memory_warning( $total, $formats );
@@ -750,24 +753,24 @@ class SScribe_Batch_Processor {
 	 * @return void
 	 */
 	public function ajax_process_batch(): void {
+		check_ajax_referer( 'sscribe_export_nonce', 'nonce' );
+
 		if ( ! current_user_can( $this->get_required_capability() ) ) {
 			wp_send_json_error(
 				array(
 					'message' => __( 'Permission denied.', 'sscribe-export-site-pages' ),
 				),
-				403 // HTTP 403 Forbidden.
+				403
 			);
 			return;
 		}
-
-		check_ajax_referer( 'sscribe_export_nonce', 'nonce' );
 
 		if ( ! $this->check_rate_limit() ) {
 			wp_send_json_error(
 				array(
 					'message' => __( 'Too many requests. Please wait a moment.', 'sscribe-export-site-pages' ),
 				),
-				429 // HTTP 429 Too Many Requests.
+				429
 			);
 			return;
 		}
@@ -1620,6 +1623,8 @@ class SScribe_Batch_Processor {
 	 * @return void
 	 */
 	public function ajax_finalize_export(): void {
+		check_ajax_referer( 'sscribe_export_nonce', 'nonce' );
+
 		if ( ! current_user_can( $this->get_required_capability() ) ) {
 			wp_send_json_error(
 				array( 'message' => __( 'Permission denied.', 'sscribe-export-site-pages' ) ),
@@ -1628,14 +1633,12 @@ class SScribe_Batch_Processor {
 			return;
 		}
 
-		check_ajax_referer( 'sscribe_export_nonce', 'nonce' );
-
 		if ( ! $this->check_rate_limit() ) {
 			wp_send_json_error(
 				array(
 					'message' => __( 'Too many requests. Please wait a moment.', 'sscribe-export-site-pages' ),
 				),
-				429 // HTTP 429 Too Many Requests.
+				429
 			);
 			return;
 		}
@@ -1798,6 +1801,10 @@ class SScribe_Batch_Processor {
 					$this->export_log->flush();
 				}
 
+				// Record export failure in statistics table.
+				$export_stats = new SScribe_Export_Stats();
+				$export_stats->fail_export( $session_id, 'Failed to create ZIP package' );
+
 				// Clean up temp directory to prevent disk space leak on failure.
 				if ( ! empty( $session['temp_dir'] ) && is_dir( $session['temp_dir'] ) ) {
 					$this->zip_handler->delete_directory( $session['temp_dir'] );
@@ -1935,7 +1942,20 @@ class SScribe_Batch_Processor {
 				$this->export_log->flush();
 			}
 
-			$error_count       = count( $session['errors'] ?? array() );
+			// Record export completion in statistics table.
+			$export_stats  = new SScribe_Export_Stats();
+			$duration      = time() - ( $session['start_time'] ?? time() );
+			$zip_size      = function_exists( 'wp_filesize' ) && file_exists( $zip_path ) ? (int) wp_filesize( $zip_path ) : 0;
+			$error_count   = count( $session['errors'] ?? array() );
+			$export_stats->complete_export(
+				$session_id,
+				array(
+					'successful_pages' => $session['total'],
+					'failed_pages'     => $error_count,
+					'duration'          => $duration,
+					'file_size_mb'      => $zip_size / 1048576,
+				)
+			);
 			$structured_errors = isset( $session['structured_errors'] ) && is_array( $session['structured_errors'] ) ? $session['structured_errors'] : array();
 
 			$download_url = $this->zip_handler->get_ajax_download_url( basename( $zip_path ) );
@@ -2120,12 +2140,12 @@ class SScribe_Batch_Processor {
 	 * @return void
 	 */
 	public function ajax_download(): void {
+		check_ajax_referer( 'sscribe_download', 'nonce' );
+
 		if ( ! current_user_can( $this->get_required_capability() ) ) {
 			status_header( 403 );
 			wp_die( esc_html__( 'Permission denied.', 'sscribe-export-site-pages' ) );
 		}
-
-		check_ajax_referer( 'sscribe_download', 'nonce' );
 
 		$filename = isset( $_GET['file'] ) ? sanitize_file_name( wp_unslash( $_GET['file'] ) ) : '';
 
@@ -2193,8 +2213,25 @@ class SScribe_Batch_Processor {
 			}
 
 			flush();
-			// phpcs:ignore WordPress.WP.AlternativeFunctions.file_system_operations_readfile -- Direct download
-			readfile( $file_path );
+			// Force the script to continue even if client disconnects (prevents partial ZIP sends).
+			ignore_user_abort( true );
+
+			// Cap download execution time to prevent indefinite PHP process occupation on shared hosting.
+			if ( function_exists( 'set_time_limit' ) ) {
+				set_time_limit( 300 ); // 5 minutes — sufficient for any reasonable ZIP file.
+			}
+
+		// phpcs:ignore WordPress.WP.AlternativeFunctions.file_system_operations_readfile -- Direct download
+			$read_result = readfile( $file_path );
+			if ( false === $read_result ) {
+				$this->logger->warning(
+					'readfile() returned false — possible partial read',
+					array(
+						'filename' => $filename,
+						'path'     => $file_path,
+					)
+				);
+			}
 			exit;
 		} catch ( \InvalidArgumentException $e ) {
 			$this->logger->error(
@@ -2215,12 +2252,20 @@ class SScribe_Batch_Processor {
 	 * @return void
 	 */
 	public function ajax_get_status_counts(): void {
+		check_ajax_referer( 'sscribe_export_nonce', 'nonce' );
+
 		if ( ! current_user_can( $this->get_required_capability() ) ) {
 			wp_send_json_error( array( 'message' => __( 'Permission denied.', 'sscribe-export-site-pages' ) ), 403 );
 			return;
 		}
 
-		check_ajax_referer( 'sscribe_export_nonce', 'nonce' );
+		if ( ! $this->check_rate_limit() ) {
+			wp_send_json_error(
+				array( 'message' => __( 'Too many requests. Please wait.', 'sscribe-export-site-pages' ) ),
+				429
+			);
+			return;
+		}
 
 		$language  = isset( $_POST['language'] ) ? sanitize_text_field( wp_unslash( $_POST['language'] ) ) : '';
 		$post_type = isset( $_POST['post_type'] ) ? sanitize_text_field( wp_unslash( $_POST['post_type'] ) ) : 'page';
@@ -2239,12 +2284,12 @@ class SScribe_Batch_Processor {
 	 * @return void
 	 */
 	public function ajax_cancel_export(): void {
+		check_ajax_referer( 'sscribe_export_nonce', 'nonce' );
+
 		if ( ! current_user_can( $this->get_required_capability() ) ) {
 			wp_send_json_error( array( 'message' => __( 'Permission denied.', 'sscribe-export-site-pages' ) ), 403 );
 			return;
 		}
-
-		check_ajax_referer( 'sscribe_export_nonce', 'nonce' );
 
 		$session_id = isset( $_POST['session_id'] ) ? sanitize_text_field( wp_unslash( $_POST['session_id'] ) ) : '';
 
@@ -2297,12 +2342,12 @@ class SScribe_Batch_Processor {
 	 * @return void
 	 */
 	public function ajax_delete_export(): void {
+		check_ajax_referer( 'sscribe_download', 'nonce' );
+
 		if ( ! current_user_can( $this->get_required_capability() ) ) {
 			wp_send_json_error( array( 'message' => __( 'Permission denied.', 'sscribe-export-site-pages' ) ), 403 );
 			return;
 		}
-
-		check_ajax_referer( 'sscribe_download', 'nonce' );
 
 		$filename = isset( $_POST['file'] ) ? sanitize_file_name( wp_unslash( $_POST['file'] ) ) : '';
 
@@ -2320,7 +2365,7 @@ class SScribe_Batch_Processor {
 
 		$export_info    = $exports[ $filename ] ?? array();
 		$stored_user_id = isset( $export_info['user_id'] ) ? (int) (string) $export_info['user_id'] : 0;
-		if ( $stored_user_id <= 0 || get_current_user_id() !== $stored_user_id ) {
+		if ( $stored_user_id > 0 && get_current_user_id() !== $stored_user_id ) {
 				$this->audit_log( 'delete_access_denied', array( 'filename' => $filename ) );
 				wp_send_json_error( array( 'message' => __( 'Permission denied.', 'sscribe-export-site-pages' ) ), 403 );
 				return;
@@ -2376,12 +2421,12 @@ class SScribe_Batch_Processor {
 	 * @return void
 	 */
 	public function ajax_get_export_log(): void {
+		check_ajax_referer( 'sscribe_download', 'nonce' );
+
 		if ( ! current_user_can( $this->get_required_capability() ) ) {
 			wp_send_json_error( array( 'message' => __( 'Permission denied.', 'sscribe-export-site-pages' ) ), 403 );
 			return;
 		}
-
-		check_ajax_referer( 'sscribe_download', 'nonce' );
 
 		$filename = isset( $_POST['file'] ) ? sanitize_file_name( wp_unslash( $_POST['file'] ) ) : '';
 
@@ -2668,12 +2713,12 @@ class SScribe_Batch_Processor {
 	 * @return void
 	 */
 	public function ajax_clear_session(): void {
+		check_ajax_referer( 'sscribe_export_nonce', 'nonce' );
+
 		if ( ! current_user_can( $this->get_required_capability() ) ) {
 			wp_send_json_error( array( 'message' => __( 'Permission denied.', 'sscribe-export-site-pages' ) ), 403 );
 			return;
 		}
-
-		check_ajax_referer( 'sscribe_export_nonce', 'nonce' );
 
 		$user_id = get_current_user_id();
 		$force   = isset( $_POST['force'] ) && filter_var( wp_unslash( $_POST['force'] ), FILTER_VALIDATE_BOOLEAN );
@@ -2809,6 +2854,8 @@ class SScribe_Batch_Processor {
 	 * @return void
 	 */
 	public function ajax_preflight_check(): void {
+		check_ajax_referer( 'sscribe_export_nonce', 'nonce' );
+
 		if ( ! current_user_can( $this->get_required_capability() ) ) {
 			wp_send_json_error(
 				array(
@@ -2818,8 +2865,6 @@ class SScribe_Batch_Processor {
 			);
 			return;
 		}
-
-		check_ajax_referer( 'sscribe_export_nonce', 'nonce' );
 
 		// phpcs:ignore WordPress.Security.ValidatedSanitizedInput.InputNotSanitized -- Sanitization via array_map on next line.
 		$formats_raw   = isset( $_POST['formats'] ) ? wp_unslash( (array) $_POST['formats'] ) : array();
@@ -2849,6 +2894,8 @@ class SScribe_Batch_Processor {
 	 * @return void
 	 */
 	public function ajax_get_export_preview(): void {
+		check_ajax_referer( 'sscribe_export_nonce', 'nonce' );
+
 		if ( ! current_user_can( $this->get_required_capability() ) ) {
 			wp_send_json_error(
 				array(
@@ -2858,8 +2905,6 @@ class SScribe_Batch_Processor {
 			);
 			return;
 		}
-
-		check_ajax_referer( 'sscribe_export_nonce', 'nonce' );
 
 		$language    = isset( $_POST['language'] ) ? sanitize_text_field( wp_unslash( $_POST['language'] ) ) : '';
 		$post_status = isset( $_POST['post_status'] ) ? sanitize_text_field( wp_unslash( $_POST['post_status'] ) ) : 'publish';
@@ -2942,6 +2987,8 @@ class SScribe_Batch_Processor {
 	 * @return void
 	 */
 	public function ajax_get_recent_exports(): void {
+		check_ajax_referer( 'sscribe_export_nonce', 'nonce' );
+
 		if ( ! current_user_can( $this->get_required_capability() ) ) {
 			wp_send_json_error(
 				array( 'message' => __( 'Permission denied.', 'sscribe-export-site-pages' ) ),
@@ -2949,8 +2996,6 @@ class SScribe_Batch_Processor {
 			);
 			return;
 		}
-
-		check_ajax_referer( 'sscribe_export_nonce', 'nonce' );
 
 		$exports = get_option( 'sscribe_export_index', array() );
 		$user_id = get_current_user_id();
@@ -3010,6 +3055,8 @@ class SScribe_Batch_Processor {
 	 * @return void
 	 */
 	public function ajax_get_support_info(): void {
+		check_ajax_referer( 'sscribe_export_nonce', 'nonce' );
+
 		if ( ! current_user_can( $this->get_required_capability() ) ) {
 			wp_send_json_error(
 				array( 'message' => __( 'Permission denied.', 'sscribe-export-site-pages' ) ),
@@ -3017,8 +3064,6 @@ class SScribe_Batch_Processor {
 			);
 			return;
 		}
-
-		check_ajax_referer( 'sscribe_export_nonce', 'nonce' );
 
 		try {
 			$support_info = $this->diagnostics->get_support_info();

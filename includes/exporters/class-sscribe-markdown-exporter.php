@@ -597,7 +597,11 @@ class SScribe_Markdown_Exporter implements SScribe_Exporter_Interface {
 	 * @return string
 	 */
 	private function escape_yaml_string( string $text ): string {
-		return str_replace( '"', '\\"', $text );
+		$text = str_replace( '\\', '\\\\', $text );
+		$text = str_replace( '"', '\\"', $text );
+		$text = str_replace( "\n", '\\n', $text );
+		$text = str_replace( "\t", '\\t', $text );
+		return $text;
 	}
 
 	/**

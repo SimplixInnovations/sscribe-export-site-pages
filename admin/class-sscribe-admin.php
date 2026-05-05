@@ -80,7 +80,7 @@ class SScribe_Admin {
 	 * @return string Nonce value.
 	 */
 	private function get_download_nonce(): string {
-		static $nonce   = null;
+		static $nonce = null;
 		return $nonce ??= wp_create_nonce( 'sscribe_download' );
 	}
 
@@ -94,15 +94,19 @@ class SScribe_Admin {
 			return;
 		}
 
+		// SECURITY FIX: Check transient first, then verify capability BEFORE consuming the transient.
+		// If the transient is consumed before the capability check, a filtered capability can cause
+		// the redirect to silently fail with no admin ever reaching the plugin page on activation.
 		if ( ! get_transient( 'sscribe_activation_redirect' ) ) {
 			return;
 		}
 
-		delete_transient( 'sscribe_activation_redirect' );
-
 		if ( ! current_user_can( $this->get_required_capability() ) ) {
+			delete_transient( 'sscribe_activation_redirect' );
 			return;
 		}
+
+		delete_transient( 'sscribe_activation_redirect' );
 
 		// phpcs:ignore WordPress.Security.NonceVerification.Recommended -- Redirect guard only checks activation flow markers.
 		if ( isset( $_GET['activate-multi'] ) ) {
@@ -186,6 +190,42 @@ class SScribe_Admin {
 			array(),
 			SSCRIBE_VERSION
 		);
+
+		// Manrope font-face declarations — injected as inline CSS with absolute URLs
+		// so they survive CSS concatenation/minification plugins (Autoptimize, WP Rocket, etc.).
+		// Relative paths in the CSS file break when the CSS is served from a cache directory.
+		$fonts_url = SSCRIBE_PLUGIN_URL . 'assets/fonts/manrope/';
+		$font_face_css = <<<FONTS
+@font-face {
+	font-family: 'Manrope';
+	src: url('{$fonts_url}Manrope-Regular.ttf') format('truetype');
+	font-weight: 400;
+	font-style: normal;
+	font-display: swap;
+}
+@font-face {
+	font-family: 'Manrope';
+	src: url('{$fonts_url}Manrope-Bold.ttf') format('truetype');
+	font-weight: 700;
+	font-style: normal;
+	font-display: swap;
+}
+@font-face {
+	font-family: 'Manrope';
+	src: url('{$fonts_url}Manrope-Medium.ttf') format('truetype');
+	font-weight: 500;
+	font-style: normal;
+	font-display: swap;
+}
+@font-face {
+	font-family: 'Manrope';
+	src: url('{$fonts_url}Manrope-Light.ttf') format('truetype');
+	font-weight: 300;
+	font-style: normal;
+	font-display: swap;
+}
+FONTS;
+		wp_add_inline_style( 'sscribe-admin', $font_face_css );
 
 		// Admin JS — source file only.
 		$js_file = 'admin/js/sscribe-admin.js';
@@ -285,6 +325,30 @@ class SScribe_Admin {
 					'support_refresh'     => __( 'Refresh', 'sscribe-export-site-pages' ),
 					'support_generated'   => __( 'Generated', 'sscribe-export-site-pages' ),
 					'support_debug'       => __( 'Debug mode may expose extra detail intended for administrators only.', 'sscribe-export-site-pages' ),
+					'preflight_title'      => __( 'Export Readiness Check', 'sscribe-export-site-pages' ),
+					'preflight_errors'    => __( 'Critical Issues', 'sscribe-export-site-pages' ),
+					'preflight_warnings'   => __( 'Recommendations', 'sscribe-export-site-pages' ),
+					'preflight_continue'   => __( 'Continue Anyway', 'sscribe-export-site-pages' ),
+					'preflight_cancel'     => __( 'Go Back', 'sscribe-export-site-pages' ),
+					'close'                => __( 'Close', 'sscribe-export-site-pages' ),
+					'generating_preview'   => __( 'Generating preview...', 'sscribe-export-site-pages' ),
+					'preview_note'         => __( 'Preview is generated from the first page and may differ from the final export.', 'sscribe-export-site-pages' ),
+					'preview_total_pages'  => __( 'Total pages:', 'sscribe-export-site-pages' ),
+					'preview_format'      => __( 'Format:', 'sscribe-export-site-pages' ),
+					'preview_language'     => __( 'Language:', 'sscribe-export-site-pages' ),
+					'preview_status'      => __( 'Status:', 'sscribe-export-site-pages' ),
+					'preview_estimated_time' => __( 'Estimated time:', 'sscribe-export-site-pages' ),
+					'preview_file_size'   => __( 'Est. file size:', 'sscribe-export-site-pages' ),
+					'preview_sample_title' => __( 'Sample:', 'sscribe-export-site-pages' ),
+					'preview_fallback_note' => __( 'Only the first few pages are shown in the preview.', 'sscribe-export-site-pages' ),
+					'log_diagnostics'      => __( 'Diagnostics', 'sscribe-export-site-pages' ),
+					'technical_details'   => __( 'Technical details', 'sscribe-export-site-pages' ),
+					'fix_steps'           => __( 'Steps to fix:', 'sscribe-export-site-pages' ),
+					'export_progress_prefix' => __( 'Export progress:', 'sscribe-export-site-pages' ),
+					'format_docx'         => __( 'Word Document (DOCX)', 'sscribe-export-site-pages' ),
+					'format_pdf'          => __( 'PDF Document', 'sscribe-export-site-pages' ),
+					'format_html'         => __( 'HTML Page', 'sscribe-export-site-pages' ),
+					'format_markdown'     => __( 'Markdown', 'sscribe-export-site-pages' ),
 				),
 			)
 		);
@@ -298,8 +362,9 @@ class SScribe_Admin {
 	public function render_admin_page(): void {
 		// Cache admin page data for 60 seconds. The cache key is shared across
 		// all admin users because the cached data (page counts, status counts,
-		// language lists) is site-wide and not user-specific. Transients are
-		// already site-scoped in WordPress multisite, so no blog_id suffix needed.
+		// language lists) is site-wide and not user-specific. In WordPress Multisite,
+		// get_transient() is scoped to the current blog (subsite), not the network,
+		// so data is correctly isolated per subsite without a blog_id suffix.
 		$cache_key        = 'sscribe_admin_page_data_v' . SSCRIBE_VERSION;
 		$cached_page_data = get_transient( $cache_key );
 
@@ -413,8 +478,13 @@ class SScribe_Admin {
 								'orderby'                => 'post__in',
 							)
 						);
-						foreach ( $batch_posts as $post ) {
-							$posts_by_id[ $post->ID ] = $post;
+						// SECURITY FIX: get_posts() can return false/WP_Error on failure (e.g., invalid
+						// post__in from filtered query args). Guard with is_array() to prevent fatal error
+						// when SSCRIBE_DEBUG_PUBLIC is enabled and WPML/filters cause an invalid query.
+						if ( is_array( $batch_posts ) && ! empty( $batch_posts ) ) {
+							foreach ( $batch_posts as $post ) {
+								$posts_by_id[ $post->ID ] = $post;
+							}
 						}
 					}
 

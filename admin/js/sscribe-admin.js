@@ -28,6 +28,9 @@
 		 * @returns {number} Parsed integer.
 		 */
 		parseLocalizedInt: function (text) {
+			if (typeof text === 'number') {
+				return Math.floor(text);
+			}
 			if (!text || typeof text !== 'string') {
 				return 0;
 			}
@@ -45,24 +48,34 @@
 			return isNaN(num) ? 0 : num;
 		},
 
-		init: function () {
-			if (typeof sscribe_data === 'undefined' || !sscribe_data) {
-				return;
-			}
-			this.bindEvents();
-			this.updateTimeEstimate();
-			this.loadSupportInfo();
+	init: function () {
+		if (typeof sscribe_data === 'undefined' || !sscribe_data) {
+			return;
+		}
+		this.bindEvents();
+		this.updateTimeEstimate();
 
-			// Initialize selectedPageCount from the pre-selected status card.
-			var $defaultStatus = $('input[name="sscribe_post_status"]:checked:not([disabled])');
-			if ($defaultStatus.length) {
-				var initialCount = this.parseLocalizedInt(
-					$defaultStatus.closest('.sscribe-status-card-label').find('.sscribe-status-count').text()
-				);
-				this.selectedPageCount = initialCount;
-				this.updateExportButton();
-			}
-		},
+		var defaultPostType = $('input[name="sscribe_post_type"]:checked').val() || 'page';
+		var defaultLanguage = $('input[name="sscribe_language"]:checked').val() || '';
+		this.refreshStatusAndLanguageCounts(defaultPostType, defaultLanguage);
+
+		var self = this;
+		var supportTriggered = false;
+		var observer = new IntersectionObserver(
+			function (entries) {
+				if (entries[0].isIntersecting && !supportTriggered) {
+					supportTriggered = true;
+					self.loadSupportInfo();
+					observer.disconnect();
+				}
+			},
+			{ threshold: 0.1 }
+		);
+		var supportSection = document.getElementById('sscribe-support-grid');
+		if (supportSection) {
+			observer.observe(supportSection);
+		}
+	},
 
 		bindEvents: function () {
 			$(document).on('click', '#sscribe-export-btn', $.proxy(this.startExport, this));
@@ -94,7 +107,6 @@
 
 			var postType = $('input[name="sscribe_post_type"]:checked').val() || 'page';
 			var language = $('input[name="sscribe_language"]:checked').val() || '';
-			var self = this;
 
 			this.refreshStatusAndLanguageCounts(postType, language);
 		},
@@ -117,8 +129,16 @@
 						self.updateStatusCounts(response.data.counts);
 						self.updateTimeEstimate();
 						self.updateExportButton();
+
+						var total = self.parseLocalizedInt(response.data.counts.all) || 0;
+						if (postType === 'post') {
+							$('#sscribe-post-count').text(total.toLocaleString());
+						} else if (postType === 'any') {
+							$('#sscribe-both-count').text(total.toLocaleString());
+						}
 					}
-				}
+				},
+				error: function () {}
 			});
 
 			$('input[name="sscribe_language"]').each(function () {
@@ -143,7 +163,8 @@
 								.find('.sscribe-lang-count')
 								.text(total.toLocaleString());
 						}
-					}
+					},
+					error: function () {}
 				});
 			});
 
@@ -165,7 +186,8 @@
 							.find('.sscribe-lang-count')
 							.text(total.toLocaleString());
 					}
-				}
+				},
+				error: function () {}
 			});
 		},
 
@@ -286,7 +308,7 @@
 			this.isProcessing = true;
 			this.batchRetries = 0;
 			this.resetUI();
-			this.showProgress();
+			this.updateExportButton();
 
 			var language = $('input[name="sscribe_language"]:checked').val() || '';
 			var postStatus = $('input[name="sscribe_post_status"]:checked').val() || 'publish';
@@ -310,6 +332,7 @@
 				data: {
 					action: 'sscribe_preflight_check',
 					nonce: sscribe_data.nonce,
+					page_count: this.selectedPageCount,
 					formats: formats
 				},
 				success: function (response) {
@@ -407,12 +430,14 @@
 				$banner.fadeOut(200, function () { $banner.remove(); });
 				SScribe.isProcessing = false;
 				SScribe.resetUI();
+				SScribe.updateExportButton();
 			});
 
 			$banner.on('click.sscribe-preflight', '.sscribe-preflight-close', function () {
 				$banner.fadeOut(200, function () { $banner.remove(); });
 				SScribe.isProcessing = false;
 				SScribe.resetUI();
+				SScribe.updateExportButton();
 			});
 
 			var bannerOffset = $banner.offset();
@@ -454,8 +479,9 @@
 					post_type: postType,
 					formats: formats
 				},
-				success: function (response) {
+success: function (response) {
 					if (response.success) {
+						SScribe.showProgress();
 						SScribe.sessionId = response.data.session_id;
 						SScribe.updateStatus(response.data.message);
 						SScribe.processBatch();
@@ -821,6 +847,8 @@
 			if (isCancelled) {
 				this.sessionId = null;
 			}
+
+			this.updateExportButton();
 		},
 
 		normalizeErrorData: function (errorData) {
@@ -1007,14 +1035,22 @@
 			this.saveFocus();
 
 			$('#sscribe-log-modal').removeClass('sscribe-hidden');
-			$('#sscribe-log-content').html('<div class="sscribe-log-loading"><span></span></div>');
-			$('#sscribe-log-content').find('span').text((sscribe_data.strings && sscribe_data.strings.loading_log) || 'Loading log...');
+			var loadingText = (sscribe_data.strings && sscribe_data.strings.loading_log) || 'Loading log...';
+			$('#sscribe-log-content').html('<div class="sscribe-log-loading"><span>' + this.escapeHtml(loadingText) + '</span></div>');
 
 			var modal = document.getElementById('sscribe-log-modal');
 			if (!modal) {
 				return;
 			}
 			this.trapFocus(modal);
+			var self = this;
+			var escapeHandler = function (e) {
+				if (e.key === 'Escape') {
+					self.closeModal();
+				}
+			};
+			modal._sscribeEscapeHandler = escapeHandler;
+			modal.addEventListener('keydown', escapeHandler);
 			var closeBtn = modal.querySelector('.sscribe-modal-close');
 			if (closeBtn) {
 				closeBtn.focus();
@@ -1188,6 +1224,10 @@
 				modal.removeEventListener('keydown', modal._sscribeTrapHandler);
 				modal._sscribeTrapHandler = null;
 			}
+			if (modal && modal._sscribeEscapeHandler) {
+				modal.removeEventListener('keydown', modal._sscribeEscapeHandler);
+				modal._sscribeEscapeHandler = null;
+			}
 			$('#sscribe-log-modal').addClass('sscribe-hidden');
 			this.restoreFocus();
 		},
@@ -1287,10 +1327,10 @@
 			var strings = sscribe_data.strings || {};
 
 			var formatLabels = {
-				'docx': 'Word Document (DOCX)',
-				'pdf': 'PDF Document',
-				'html': 'HTML Page',
-				'markdown': 'Markdown'
+				'docx': strings.format_docx || 'Word Document (DOCX)',
+				'pdf': strings.format_pdf || 'PDF Document',
+				'html': strings.format_html || 'HTML Page',
+				'markdown': strings.format_markdown || 'Markdown'
 			};
 
 			var html = '<div class="sscribe-preview-sample">';

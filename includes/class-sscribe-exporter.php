@@ -238,7 +238,12 @@ class SScribe_Exporter {
 			}
 
 			// Force ZipArchive — prevents PHPWord from ever loading bundled PCLZip.
-			\SScribeVendor\PhpOffice\PhpWord\Settings::setZipClass( \SScribeVendor\PhpOffice\PhpWord\Settings::ZIPARCHIVE );
+			// Guard with class_exists to handle prefixed/vendor-less installations.
+			if ( class_exists( '\SScribeVendor\PhpOffice\PhpWord\Settings' ) ) {
+				\SScribeVendor\PhpOffice\PhpWord\Settings::setZipClass(
+					\SScribeVendor\PhpOffice\PhpWord\Settings::ZIPARCHIVE
+				);
+			}
 
 			$php_word = new PhpWord();
 
@@ -359,6 +364,10 @@ class SScribe_Exporter {
 			// which prevents PHP's garbage collector from reclaiming memory automatically.
 			// Without this, memory accumulates 2-5MB per page during batch exports.
 			unset( $writer, $php_word );
+
+			// Force garbage collection to break PHPWord's circular references immediately.
+			// Without this, memory isn't freed until end of request.
+			gc_collect_cycles();
 
 			// NOTE: Parser is intentionally kept alive across page exports in a batch.
 			// The parser is stateless and can be safely reused. Destroying it would cause
@@ -632,7 +641,7 @@ class SScribe_Exporter {
 		if ( ! empty( $permalink ) ) {
 			$section->addLink(
 				$permalink,
-				$this->safe_text( $permalink ),
+				$this->safe_text( rawurldecode( $permalink ) ),
 				array(
 					'name'      => $this->font_name,
 					'size'      => 12,
@@ -783,7 +792,7 @@ class SScribe_Exporter {
 		$footer_table = $footer->addTable();
 		$footer_table->addRow();
 		$footer_table->addCell( Converter::inchToTwip( 4 ) )->addText(
-			$this->safe_text( $page_data['permalink'] ),
+			$this->safe_text( rawurldecode( $page_data['permalink'] ) ),
 			array(
 				'name'  => $this->font_name,
 				'size'  => 7,
@@ -820,6 +829,13 @@ class SScribe_Exporter {
 			}
 			$image_info = getimagesize( $path );
 			if ( ! $image_info ) {
+				return;
+			}
+
+			// PHPWord cannot handle SVG — skip SVG featured images to prevent fatal errors.
+			$ext = strtolower( pathinfo( $path, PATHINFO_EXTENSION ) );
+			if ( 'svg' === $ext ) {
+				$this->logger->debug( 'Skipping SVG featured image', array( 'path' => $path ) );
 				return;
 			}
 
