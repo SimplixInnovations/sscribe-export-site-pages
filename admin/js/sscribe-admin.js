@@ -28,6 +28,9 @@
 		 * @returns {number} Parsed integer.
 		 */
 		parseLocalizedInt: function (text) {
+			if (typeof text === 'number') {
+				return Math.floor(text);
+			}
 			if (!text || typeof text !== 'string') {
 				return 0;
 			}
@@ -1040,6 +1043,14 @@ success: function (response) {
 				return;
 			}
 			this.trapFocus(modal);
+			var self = this;
+			var escapeHandler = function (e) {
+				if (e.key === 'Escape') {
+					self.closeModal();
+				}
+			};
+			modal._sscribeEscapeHandler = escapeHandler;
+			modal.addEventListener('keydown', escapeHandler);
 			var closeBtn = modal.querySelector('.sscribe-modal-close');
 			if (closeBtn) {
 				closeBtn.focus();
@@ -1212,6 +1223,10 @@ success: function (response) {
 			if (modal && modal._sscribeTrapHandler) {
 				modal.removeEventListener('keydown', modal._sscribeTrapHandler);
 				modal._sscribeTrapHandler = null;
+			}
+			if (modal && modal._sscribeEscapeHandler) {
+				modal.removeEventListener('keydown', modal._sscribeEscapeHandler);
+				modal._sscribeEscapeHandler = null;
 			}
 			$('#sscribe-log-modal').addClass('sscribe-hidden');
 			this.restoreFocus();

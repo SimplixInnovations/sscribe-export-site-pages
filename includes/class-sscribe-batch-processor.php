@@ -2227,6 +2227,10 @@ class SScribe_Batch_Processor {
 		}
 
 		if ( ! $this->check_rate_limit() ) {
+			wp_send_json_error(
+				array( 'message' => __( 'Too many requests. Please wait.', 'sscribe-export-site-pages' ) ),
+				429
+			);
 			return;
 		}
 

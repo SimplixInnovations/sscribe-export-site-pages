@@ -706,7 +706,7 @@ class SScribe_Content_Parser {
 		$upload_path = realpath( $upload_dir['basedir'] );
 
 		// Only process URLs that start with our upload base URL.
-		if ( empty( $upload_path ) || strpos( $url, $upload_url ) !== 0 ) {
+		if ( empty( $upload_path ) || stripos( $url, $upload_url ) !== 0 ) {
 			return '';
 		}
 

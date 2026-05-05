@@ -5,7 +5,7 @@
  * WCAG 2.1 AA compliant, accessible, and professional.
  *
  * @package SScribe
- * @version 3.51.7
+ * @version 3.51.8
  */
 
 /* Manrope Font - Local, No CDN - SIL Open Font License 1.1 */
@@ -118,6 +118,7 @@
 		--sscribe-radius-sm: 6px;
 		--sscribe-radius-md: 8px;
 		--sscribe-radius-lg: 12px;
+		--sscribe-panel-header-bg: #1e1e1e;
 	}
 }
 
@@ -270,7 +271,7 @@
 	display: flex;
 	align-items: center;
 	justify-content: space-between;
-	background: #FAFAFA;
+	background: var(--sscribe-panel-header-bg, #FAFAFA);
 }
 
 .sscribe-panel-title {
