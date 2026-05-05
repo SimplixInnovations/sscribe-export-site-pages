@@ -185,13 +185,7 @@ class SScribe {
 		}
 
 		$post_type = get_post_type( $post_id );
-		if ( '' === $post_type ) {
-			return;
-		}
-
-		// Only invalidate cache for post types that affect the export plugin.
-		// Custom post types (WooCommerce products, ACF option pages, etc.) are irrelevant.
-		if ( ! in_array( $post_type, array( 'page', 'post' ), true ) ) {
+		if ( ! $post_type || ! in_array( $post_type, array( 'page', 'post' ), true ) ) {
 			return;
 		}
 

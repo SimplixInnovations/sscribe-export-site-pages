@@ -197,12 +197,9 @@ class SScribe_Content_Parser {
 			throw $e;
 
 		} finally {
-			// Final safety net: if somehow we get here without restore, do it now.
-			// This should be redundant given the catch above, but defense-in-depth.
-			$current_use_errors = libxml_use_internal_errors( $prev_use_errors );
-			if ( $current_use_errors !== $prev_use_errors ) {
-				libxml_use_internal_errors( $prev_use_errors );
-			}
+			// Safety net: always restore libxml state and clear any residual errors.
+			libxml_clear_errors();
+			libxml_use_internal_errors( $prev_use_errors );
 		}
 	}
 

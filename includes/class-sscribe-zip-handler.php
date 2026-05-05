@@ -195,15 +195,17 @@ class SScribe_Zip_Handler {
 
 		$this->delete_directory( $source_dir );
 
-		// Use atomic option-based lock to prevent race conditions during indexing.
-		// add_option() is atomic (fails if option exists) unlike set_transient().
+		// Use atomic transient-based lock with TTL to prevent race conditions during indexing.
+		// set_transient() with expiry is crash-safe unlike add_option() (no TTL, permanent orphan).
+		// Also clear any stale lock at start in case prior process crashed before cleanup.
 		$lock_key = 'sscribe_index_lock_' . get_current_user_id();
+		delete_transient( $lock_key ); // Clear any stale lock from crashed process.
 		$locked   = false;
 		$timeout  = 5; // Seconds.
 		$start    = time();
 
 		while ( time() - $start < $timeout ) {
-			if ( add_option( $lock_key, time(), '', 'no' ) ) {
+			if ( set_transient( $lock_key, time(), 30 ) ) {
 				$locked = true;
 				break;
 			}
@@ -229,7 +231,7 @@ class SScribe_Zip_Handler {
 			);
 			update_option( 'sscribe_export_index', $exports, false );
 		} finally {
-			delete_option( $lock_key );
+			delete_transient( $lock_key );
 		}
 
 		return file_exists( $zip_path ) ? $zip_path : false;

@@ -131,7 +131,9 @@
 						self.updateExportButton();
 
 						var total = self.parseLocalizedInt(response.data.counts.all) || 0;
-						if (postType === 'post') {
+						if (postType === 'page') {
+							$('#sscribe-page-count').text(total.toLocaleString());
+						} else if (postType === 'post') {
 							$('#sscribe-post-count').text(total.toLocaleString());
 						} else if (postType === 'any') {
 							$('#sscribe-both-count').text(total.toLocaleString());
@@ -650,7 +652,7 @@ success: function (response) {
 
 			$('#sscribe-status-text').text(sscribe_data.strings.packaging || 'Packaging files into ZIP archive...');
 
-			var maxAttempts = 30;
+			var maxAttempts = 60; // 60 × 2s = 120s max wait for ZIP finalization (was 30×2s=60s).
 			var self = this;
 
 			setTimeout(function () {
@@ -981,11 +983,13 @@ success: function (response) {
 					self.sessionId = null;
 					self.isProcessing = false;
 					self.resetUI();
+					self.updateExportButton();
 				},
 				error: function () {
 					self.sessionId = null;
 					self.isProcessing = false;
 					self.resetUI();
+					self.updateExportButton();
 				}
 			});
 		},

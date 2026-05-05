@@ -743,15 +743,25 @@ class SScribe_Exporter {
 			? \SScribeVendor\PhpOffice\PhpWord\Style\TOC::TAB_LEADER_DOT
 			: '.';
 
-		$section->addTOC(
-			array(
-				'name' => $this->font_name,
-				'size' => 11,
-			),
-			array( 'tabLeader' => $tab_leader ),
-			1,
-			3
-		);
+		try {
+			$section->addTOC(
+				array(
+					'name' => $this->font_name,
+					'size' => 11,
+				),
+				array( 'tabLeader' => $tab_leader ),
+				1,
+				3
+			);
+		} catch ( \Throwable $e ) {
+			$this->logger->warning(
+				'TOC generation failed, omitting table of contents',
+				array(
+					'error' => $e->getMessage(),
+					'font'  => $this->font_name,
+				)
+			);
+		}
 
 		$section->addPageBreak();
 	}

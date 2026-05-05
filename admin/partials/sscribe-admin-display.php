@@ -83,7 +83,7 @@ $sscribe_is_debug        = $sscribe_is_debug ?? false;
 									</div>
 									<div class="sscribe-post-type-meta">
 										<span class="sscribe-post-type-name"><?php esc_html_e( 'Pages', 'sscribe-export-site-pages' ); ?></span>
-										<span class="sscribe-post-type-count"><?php echo esc_html( number_format_i18n( $sscribe_total_pages_all ) ); ?></span>
+										<span class="sscribe-post-type-count" id="sscribe-page-count"><?php echo esc_html( number_format_i18n( $sscribe_total_pages_all ) ); ?></span>
 									</div>
 									<div class="sscribe-post-type-selector">
 										<?php // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- SVG sanitized in get_icon(). ?>
