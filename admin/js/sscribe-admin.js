@@ -306,6 +306,7 @@
 			this.isProcessing = true;
 			this.batchRetries = 0;
 			this.resetUI();
+			this.updateExportButton();
 
 			var language = $('input[name="sscribe_language"]:checked').val() || '';
 			var postStatus = $('input[name="sscribe_post_status"]:checked').val() || 'publish';
@@ -426,12 +427,14 @@
 				$banner.fadeOut(200, function () { $banner.remove(); });
 				SScribe.isProcessing = false;
 				SScribe.resetUI();
+				SScribe.updateExportButton();
 			});
 
 			$banner.on('click.sscribe-preflight', '.sscribe-preflight-close', function () {
 				$banner.fadeOut(200, function () { $banner.remove(); });
 				SScribe.isProcessing = false;
 				SScribe.resetUI();
+				SScribe.updateExportButton();
 			});
 
 			var bannerOffset = $banner.offset();
@@ -841,6 +844,8 @@ success: function (response) {
 			if (isCancelled) {
 				this.sessionId = null;
 			}
+
+			this.updateExportButton();
 		},
 
 		normalizeErrorData: function (errorData) {
