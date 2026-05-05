@@ -1327,10 +1327,10 @@ success: function (response) {
 			var strings = sscribe_data.strings || {};
 
 			var formatLabels = {
-				'docx': 'Word Document (DOCX)',
-				'pdf': 'PDF Document',
-				'html': 'HTML Page',
-				'markdown': 'Markdown'
+				'docx': strings.format_docx || 'Word Document (DOCX)',
+				'pdf': strings.format_pdf || 'PDF Document',
+				'html': strings.format_html || 'HTML Page',
+				'markdown': strings.format_markdown || 'Markdown'
 			};
 
 			var html = '<div class="sscribe-preview-sample">';
