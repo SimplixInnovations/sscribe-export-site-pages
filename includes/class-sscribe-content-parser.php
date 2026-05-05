@@ -137,6 +137,7 @@ class SScribe_Content_Parser {
 	 *
 	 * @param string $html The HTML content.
 	 * @return array Array of elements.
+	 * @throws \Throwable When DOM parsing fails.
 	 */
 	private function parse_dom( string $html ): array {
 		$elements = array();

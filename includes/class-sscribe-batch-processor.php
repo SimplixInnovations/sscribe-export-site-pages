@@ -705,7 +705,14 @@ class SScribe_Batch_Processor {
 
 		// Record export start in statistics table.
 		$export_stats = new SScribe_Export_Stats();
-		$export_stats->start_export( $session_id, $user_id, array( 'total_pages' => $total, 'formats' => $formats ) );
+		$export_stats->start_export(
+			$session_id,
+			$user_id,
+			array(
+				'total_pages' => $total,
+				'formats' => $formats,
+			)
+		);
 
 		// Calculate memory forecast and warn if export may fail.
 		$memory_warning = $this->get_memory_warning( $total, $formats );
@@ -1936,12 +1943,19 @@ class SScribe_Batch_Processor {
 			}
 
 			// Record export completion in statistics table.
-			$export_stats = new SScribe_Export_Stats();
-			$duration = time() - ( $session['start_time'] ?? time() );
-			$zip_size = function_exists( 'wp_filesize' ) && file_exists( $zip_path ) ? (int) wp_filesize( $zip_path ) : 0;
-			$export_stats->complete_export( $session_id, $session['total'], $error_count, $duration, $zip_size );
-
-			$error_count       = count( $session['errors'] ?? array() );
+			$export_stats  = new SScribe_Export_Stats();
+			$duration      = time() - ( $session['start_time'] ?? time() );
+			$zip_size      = function_exists( 'wp_filesize' ) && file_exists( $zip_path ) ? (int) wp_filesize( $zip_path ) : 0;
+			$error_count   = count( $session['errors'] ?? array() );
+			$export_stats->complete_export(
+				$session_id,
+				array(
+					'successful_pages' => $session['total'],
+					'failed_pages'     => $error_count,
+					'duration'          => $duration,
+					'file_size_mb'      => $zip_size / 1048576,
+				)
+			);
 			$structured_errors = isset( $session['structured_errors'] ) && is_array( $session['structured_errors'] ) ? $session['structured_errors'] : array();
 
 			$download_url = $this->zip_handler->get_ajax_download_url( basename( $zip_path ) );
@@ -2198,27 +2212,27 @@ class SScribe_Batch_Processor {
 				wp_die( esc_html__( 'File no longer available. Please regenerate the export.', 'sscribe-export-site-pages' ) );
 			}
 
-		flush();
-		// Force the script to continue even if client disconnects (prevents partial ZIP sends).
-		ignore_user_abort( true );
+			flush();
+			// Force the script to continue even if client disconnects (prevents partial ZIP sends).
+			ignore_user_abort( true );
 
-		// Cap download execution time to prevent indefinite PHP process occupation on shared hosting.
-		if ( function_exists( 'set_time_limit' ) ) {
-			set_time_limit( 300 ); // 5 minutes — sufficient for any reasonable ZIP file.
-		}
+			// Cap download execution time to prevent indefinite PHP process occupation on shared hosting.
+			if ( function_exists( 'set_time_limit' ) ) {
+				set_time_limit( 300 ); // 5 minutes — sufficient for any reasonable ZIP file.
+			}
 
 		// phpcs:ignore WordPress.WP.AlternativeFunctions.file_system_operations_readfile -- Direct download
-		$read_result = readfile( $file_path );
-		if ( false === $read_result ) {
-			$this->logger->warning(
-				'readfile() returned false — possible partial read',
-				array(
-					'filename' => $filename,
-					'path'     => $file_path,
-				)
-			);
-		}
-		exit;
+			$read_result = readfile( $file_path );
+			if ( false === $read_result ) {
+				$this->logger->warning(
+					'readfile() returned false — possible partial read',
+					array(
+						'filename' => $filename,
+						'path'     => $file_path,
+					)
+				);
+			}
+			exit;
 		} catch ( \InvalidArgumentException $e ) {
 			$this->logger->error(
 				'Export directory access failed during download',
