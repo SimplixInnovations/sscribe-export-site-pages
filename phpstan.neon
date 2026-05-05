@@ -32,6 +32,7 @@ parameters:
         - '#Strict comparison using === between mixed and#'
         - '#Property .* is never read, only written\.#'
         - '#Property .* does not accept null\.#'
+        - '#Function wp_add_inline_style not found\.#'
         - '#Static method .* invoked with \d+ parameters, \d+ required\.#'
         - '#Unsafe usage of new static\(\)\.#'
         - '#Method .* has invalid return type WP_Error\.#'
