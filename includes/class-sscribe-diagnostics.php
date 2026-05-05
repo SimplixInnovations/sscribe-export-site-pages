@@ -1004,7 +1004,10 @@ class SScribe_Diagnostics {
 
 		$hooks_registered = 0;
 		if ( class_exists( 'SScribe_Loader' ) ) {
-			// Count actions registered by checking if key hooks exist.
+			// Check that WordPress core / AJAX hooks are present in the system.
+			// has_action() returns true if ANY plugin registered a callback,
+			// so this measures hook availability, not SScribe-specific registration.
+			// Use class_exists() as primary indicator of plugin loading.
 			$hook_checks = array(
 				'admin_menu',
 				'admin_enqueue_scripts',

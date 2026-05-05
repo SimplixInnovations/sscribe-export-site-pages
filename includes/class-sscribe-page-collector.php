@@ -72,6 +72,16 @@ class SScribe_Page_Collector {
 	 * @return array Array of page/post IDs.
 	 */
 	public function get_page_ids( string $language = '', string $post_status = 'publish', string $post_type = 'page' ): array {
+		$use_chunked = (bool) apply_filters( 'sscribe_use_chunked_page_ids', false );
+
+		if ( $use_chunked && function_exists( 'add_filter' ) ) {
+			$all_ids = array();
+			foreach ( $this->get_page_ids_chunked( $language, $post_status, $post_type, 500 ) as $chunk ) {
+				$all_ids = array_merge( $all_ids, $chunk );
+			}
+			return $all_ids;
+		}
+
 		$post_status = $this->validate_post_status( $post_status );
 
 		$args = array(
