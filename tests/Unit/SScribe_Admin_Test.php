@@ -82,7 +82,7 @@ class SScribe_Admin_Test extends TestCase {
 
 		$admin->enqueue_admin_assets( 'toplevel_page_sscribe-export' );
 
-		$this->assertCount( 1, $sscribe_test_styles );
+		$this->assertCount( 2, $sscribe_test_styles );
 		$this->assertCount( 1, $sscribe_test_scripts );
 		$this->assertCount( 1, $sscribe_test_localized );
 	}
