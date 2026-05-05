@@ -189,6 +189,12 @@ class SScribe {
 			return;
 		}
 
+		// Only invalidate cache for post types that affect the export plugin.
+		// Custom post types (WooCommerce products, ACF option pages, etc.) are irrelevant.
+		if ( ! in_array( $post_type, array( 'page', 'post' ), true ) ) {
+			return;
+		}
+
 		$cache_key = 'sscribe_admin_page_data_v' . SSCRIBE_VERSION;
 		delete_transient( $cache_key );
 	}

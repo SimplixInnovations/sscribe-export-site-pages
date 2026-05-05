@@ -917,15 +917,14 @@ class SScribe_Page_Collector {
 			return $cached;
 		}
 
-		// Use wpml_get_active_languages function if available (WPML 3.2+).
-		// This avoids calling apply_filters() with a non-prefixed hook name
-		// directly, which triggers WordPress Plugin Check warnings.
-		if ( function_exists( 'wpml_get_active_languages' ) ) {
+		// Use the documented WPML filter API as primary method.
+		// wpml_get_active_languages() is an internal function not guaranteed in all WPML versions.
+		// phpcs:ignore WordPress.NamingConventions.PrefixAllGlobals.NonPrefixedHooknameFound -- WPML-documented hook.
+		$languages_raw = apply_filters( 'wpml_active_languages', null, array( 'skip_missing' => 0 ) );
+
+		// Fallback: some WPML versions only expose the function, not the filter.
+		if ( empty( $languages_raw ) && function_exists( 'wpml_get_active_languages' ) ) {
 			$languages_raw = wpml_get_active_languages( '' );
-		} else {
-			// Fallback for older WPML: use the documented filter API.
-			// phpcs:ignore WordPress.NamingConventions.PrefixAllGlobals.NonPrefixedHooknameFound -- WPML-documented hook.
-			$languages_raw = apply_filters( 'wpml_active_languages', null, array( 'skip_missing' => 0 ) );
 		}
 
 		if ( ! is_array( $languages_raw ) ) {
