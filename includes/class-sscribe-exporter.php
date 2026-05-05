@@ -227,19 +227,19 @@ class SScribe_Exporter {
 		}
 
 		try {
-		if ( ! class_exists( 'ZipArchive' ) ) {
-			throw new \RuntimeException( __( 'The ZipArchive PHP extension is required to generate DOCX files.', 'sscribe-export-site-pages' ) );
-		}
+			if ( ! class_exists( 'ZipArchive' ) ) {
+				throw new \RuntimeException( __( 'The ZipArchive PHP extension is required to generate DOCX files.', 'sscribe-export-site-pages' ) );
+			}
 
-		// Force ZipArchive — prevents PHPWord from ever loading bundled PCLZip.
-		// Guard with class_exists to handle prefixed/vendor-less installations.
-		if ( class_exists( '\SScribeVendor\PhpOffice\PhpWord\Settings' ) ) {
-			\SScribeVendor\PhpOffice\PhpWord\Settings::setZipClass(
-				\SScribeVendor\PhpOffice\PhpWord\Settings::ZIPARCHIVE
-			);
-		}
+			// Force ZipArchive — prevents PHPWord from ever loading bundled PCLZip.
+			// Guard with class_exists to handle prefixed/vendor-less installations.
+			if ( class_exists( '\SScribeVendor\PhpOffice\PhpWord\Settings' ) ) {
+				\SScribeVendor\PhpOffice\PhpWord\Settings::setZipClass(
+					\SScribeVendor\PhpOffice\PhpWord\Settings::ZIPARCHIVE
+				);
+			}
 
-		$php_word = new PhpWord();
+			$php_word = new PhpWord();
 
 			// Determine RTL setting for the document.
 			$this->is_rtl = $this->is_rtl_document( $page_data );
@@ -353,17 +353,17 @@ class SScribe_Exporter {
 			$writer = IOFactory::createWriter( $php_word, 'Word2007' );
 			$writer->save( $output_path );
 
-		// CRITICAL: Explicitly release PHPWord objects to prevent memory leaks in batch processing.
-		// PHPWord retains circular references between elements and the parent document,
-		// which prevents PHP's garbage collector from reclaiming memory automatically.
-		// Without this, memory accumulates 2-5MB per page during batch exports.
-		unset( $writer, $php_word );
+			// CRITICAL: Explicitly release PHPWord objects to prevent memory leaks in batch processing.
+			// PHPWord retains circular references between elements and the parent document,
+			// which prevents PHP's garbage collector from reclaiming memory automatically.
+			// Without this, memory accumulates 2-5MB per page during batch exports.
+			unset( $writer, $php_word );
 
-		// Force garbage collection to break PHPWord's circular references immediately.
-		// Without this, memory isn't freed until end of request.
-		gc_collect_cycles();
+			// Force garbage collection to break PHPWord's circular references immediately.
+			// Without this, memory isn't freed until end of request.
+			gc_collect_cycles();
 
-		// NOTE: Parser is intentionally kept alive across page exports in a batch.
+			// NOTE: Parser is intentionally kept alive across page exports in a batch.
 			// The parser is stateless and can be safely reused. Destroying it would cause
 			// crashes on page 2+ because the exporter instance is reused.
 
@@ -828,7 +828,7 @@ class SScribe_Exporter {
 
 			// PHPWord cannot handle SVG — skip SVG featured images to prevent fatal errors.
 			$ext = strtolower( pathinfo( $path, PATHINFO_EXTENSION ) );
-			if ( $ext === 'svg' ) {
+			if ( 'svg' === $ext ) {
 				$this->logger->debug( 'Skipping SVG featured image', array( 'path' => $path ) );
 				return;
 			}

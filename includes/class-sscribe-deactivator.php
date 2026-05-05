@@ -112,8 +112,8 @@ class SScribe_Deactivator {
 
 		foreach ( $tables_to_drop as $table ) {
 			$table_safe = preg_replace( '/[^a-zA-Z0-9_]/', '', $table );
-			// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.DirectDatabaseQuery.SchemaChange -- Deactivation cleanup; table name is plugin-controlled constant (a-zA-Z0-9_ only).
-			$wpdb->query( "DROP TABLE IF EXISTS `" . $table_safe . "`" );
+			// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.DirectDatabaseQuery.SchemaChange, WordPress.DB.PreparedSQL.NotPrepared -- Deactivation cleanup; table name is plugin-controlled constant (a-zA-Z0-9_ only).
+			$wpdb->query( 'DROP TABLE IF EXISTS `' . $table_safe . '`' );
 		}
 	}
 
