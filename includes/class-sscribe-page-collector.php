@@ -72,6 +72,16 @@ class SScribe_Page_Collector {
 	 * @return array Array of page/post IDs.
 	 */
 	public function get_page_ids( string $language = '', string $post_status = 'publish', string $post_type = 'page' ): array {
+		$use_chunked = (bool) apply_filters( 'sscribe_use_chunked_page_ids', false );
+
+		if ( $use_chunked && function_exists( 'add_filter' ) ) {
+			$all_ids = array();
+			foreach ( $this->get_page_ids_chunked( $language, $post_status, $post_type, 500 ) as $chunk ) {
+				$all_ids = array_merge( $all_ids, $chunk );
+			}
+			return $all_ids;
+		}
+
 		$post_status = $this->validate_post_status( $post_status );
 
 		$args = array(
@@ -468,10 +478,7 @@ class SScribe_Page_Collector {
 				// This finally only handles state that must ALWAYS reset.
 				wp_reset_postdata();
 				// phpcs:ignore WordPress.WP.GlobalVariablesOverride.Prohibited
-				if ( null !== $original_post ) {
-					// phpcs:ignore WordPress.WP.GlobalVariablesOverride.Prohibited
-					$post = $original_post;
-				}
+				$post = $original_post;
 				$is_applying_the_content_filter = false;
 			}
 		}
@@ -910,15 +917,14 @@ class SScribe_Page_Collector {
 			return $cached;
 		}
 
-		// Use wpml_get_active_languages function if available (WPML 3.2+).
-		// This avoids calling apply_filters() with a non-prefixed hook name
-		// directly, which triggers WordPress Plugin Check warnings.
-		if ( function_exists( 'wpml_get_active_languages' ) ) {
+		// Use the documented WPML filter API as primary method.
+		// wpml_get_active_languages() is an internal function not guaranteed in all WPML versions.
+		// phpcs:ignore WordPress.NamingConventions.PrefixAllGlobals.NonPrefixedHooknameFound -- WPML-documented hook.
+		$languages_raw = apply_filters( 'wpml_active_languages', null, array( 'skip_missing' => 0 ) );
+
+		// Fallback: some WPML versions only expose the function, not the filter.
+		if ( empty( $languages_raw ) && function_exists( 'wpml_get_active_languages' ) ) {
 			$languages_raw = wpml_get_active_languages( '' );
-		} else {
-			// Fallback for older WPML: use the documented filter API.
-			// phpcs:ignore WordPress.NamingConventions.PrefixAllGlobals.NonPrefixedHooknameFound -- WPML-documented hook.
-			$languages_raw = apply_filters( 'wpml_active_languages', null, array( 'skip_missing' => 0 ) );
 		}
 
 		if ( ! is_array( $languages_raw ) ) {

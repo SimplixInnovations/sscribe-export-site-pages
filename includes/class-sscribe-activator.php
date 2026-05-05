@@ -24,6 +24,13 @@ class SScribe_Activator {
 	 * @return void
 	 */
 	public static function activate(): void {
+		// Force-clean any stale options from a previous install before rebuilding.
+		// Without this, left-over sscribe_version or sscribe_export_index can
+		// block activation or cause duplicated data on reinstall.
+		delete_option( 'sscribe_export_index' );
+		delete_option( 'sscribe_schema_version' );
+		delete_option( 'sscribe_version' );
+
 		// If required runtime dependencies are not present, bail gracefully.
 		if ( ! file_exists( SSCRIBE_PLUGIN_DIR . 'vendor-prefixed/autoload.php' )
 			&& ! file_exists( SSCRIBE_PLUGIN_DIR . 'vendor/autoload.php' )

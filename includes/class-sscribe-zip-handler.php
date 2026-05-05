@@ -344,11 +344,10 @@ class SScribe_Zip_Handler {
 	 * @return int Number of files cleaned up.
 	 */
 	public function cleanup_expired(): int {
-		// P-4: Prevent overlapping cron runs (uses dedicated key — separate from session cleanup).
 		if ( get_transient( 'sscribe_cron_exports_lock' ) ) {
 			return 0;
 		}
-		set_transient( 'sscribe_cron_exports_lock', true, 5 * MINUTE_IN_SECONDS );
+		set_transient( 'sscribe_cron_exports_lock', true, 2 * MINUTE_IN_SECONDS );
 
 		try {
 			$cleaned = 0;
@@ -365,8 +364,10 @@ class SScribe_Zip_Handler {
 				foreach ( $files as $file ) {
 					$file_time = filemtime( $file );
 					if ( $file_time && ( $now - $file_time ) > $max_age ) {
+						$basename = basename( $file );
 						wp_delete_file( $file );
-						unset( $exports[ basename( $file ) ] );
+						unset( $exports[ $basename ] );
+						SScribe_Export_Log::delete_by_filename( $basename );
 						$modified = true;
 						++$cleaned;
 					}

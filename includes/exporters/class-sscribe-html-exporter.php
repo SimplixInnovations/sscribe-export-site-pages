@@ -140,7 +140,19 @@ class SScribe_HTML_Exporter implements SScribe_Exporter_Interface {
 
 		$rtl_extra = $is_rtl ?
 			'
-		html, body { direction: rtl; }
+		@font-face {
+			font-family: \'Noto Sans Arabic\';
+			src: url(\'' . esc_url( SSCRIBE_PLUGIN_URL . 'assets/fonts/notosansarabic/NotoSansArabic-Regular.ttf' ) . '\') format(\'truetype\');
+			font-weight: normal;
+			font-style: normal;
+		}
+		@font-face {
+			font-family: \'Noto Sans Arabic\';
+			src: url(\'' . esc_url( SSCRIBE_PLUGIN_URL . 'assets/fonts/notosansarabic/NotoSansArabic-Bold.ttf' ) . '\') format(\'truetype\');
+			font-weight: bold;
+			font-style: normal;
+		}
+		html, body { direction: rtl; font-family: \'Noto Sans Arabic\', \'Manrope\', sans-serif; }
 		h1 { text-align: center; }
 		.featured-image { max-width: 600px; margin: 0 auto; display: block; }
 		' :
@@ -176,7 +188,7 @@ class SScribe_HTML_Exporter implements SScribe_Exporter_Interface {
 <body>
 	<header>
 		<h1>' . $title . '</h1>
-		<p><a href="' . esc_url( $page_data['permalink'] ) . '">' . esc_html( $page_data['permalink'] ) . '</a></p>
+		<p><a href="' . esc_url( $page_data['permalink'] ) . '">' . esc_html( rawurldecode( $page_data['permalink'] ) ) . '</a></p>
 	</header>
 
 	<main class="content">
@@ -264,7 +276,7 @@ class SScribe_HTML_Exporter implements SScribe_Exporter_Interface {
 			$html .= '<p><strong>' . __( 'Focus Keyword:', 'sscribe-export-site-pages' ) . '</strong> ' . esc_html( $seo['focus_keyword'] ) . '</p>';
 		}
 		if ( ! empty( $seo['canonical_url'] ) ) {
-			$html .= '<p><strong>' . __( 'Canonical URL:', 'sscribe-export-site-pages' ) . '</strong> <a href="' . esc_url( $seo['canonical_url'] ) . '">' . esc_html( $seo['canonical_url'] ) . '</a></p>';
+			$html .= '<p><strong>' . __( 'Canonical URL:', 'sscribe-export-site-pages' ) . '</strong> <a href="' . esc_url( $seo['canonical_url'] ) . '">' . esc_html( rawurldecode( $seo['canonical_url'] ) ) . '</a></p>';
 		}
 		if ( ! empty( $seo['og_title'] ) ) {
 			$html .= '<p><strong>' . __( 'Open Graph Title:', 'sscribe-export-site-pages' ) . '</strong> ' . esc_html( $seo['og_title'] ) . '</p>';
@@ -273,7 +285,7 @@ class SScribe_HTML_Exporter implements SScribe_Exporter_Interface {
 			$html .= '<p><strong>' . __( 'Open Graph Description:', 'sscribe-export-site-pages' ) . '</strong> ' . esc_html( $seo['og_description'] ) . '</p>';
 		}
 		if ( ! empty( $seo['og_image'] ) ) {
-			$html .= '<p><strong>' . __( 'Open Graph Image:', 'sscribe-export-site-pages' ) . '</strong> <a href="' . esc_url( $seo['og_image'] ) . '">' . esc_html( $seo['og_image'] ) . '</a></p>';
+			$html .= '<p><strong>' . __( 'Open Graph Image:', 'sscribe-export-site-pages' ) . '</strong> <a href="' . esc_url( $seo['og_image'] ) . '">' . esc_html( rawurldecode( $seo['og_image'] ) ) . '</a></p>';
 		}
 		if ( ! empty( $seo['noindex'] ) || ! empty( $seo['nofollow'] ) ) {
 			$robots = array();
