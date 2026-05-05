@@ -74,7 +74,7 @@ $sscribe_is_debug        = $sscribe_is_debug ?? false;
 							<span><?php esc_html_e( 'Content Type', 'sscribe-export-site-pages' ); ?></span>
 						</div>
 						<div class="sscribe-post-type-cards sscribe-cards-compact" id="sscribe-post-type-cards">
-							<label class="sscribe-post-type-card sscribe-post-type-card-selected" data-post-type="page">
+							<label class="sscribe-post-type-card">
 								<input type="radio" name="sscribe_post_type" value="page" checked>
 								<div class="sscribe-post-type-card-inner">
 									<div class="sscribe-post-type-icon">
@@ -91,7 +91,7 @@ $sscribe_is_debug        = $sscribe_is_debug ?? false;
 									</div>
 								</div>
 							</label>
-							<label class="sscribe-post-type-card" data-post-type="post">
+							<label class="sscribe-post-type-card">
 								<input type="radio" name="sscribe_post_type" value="post">
 								<div class="sscribe-post-type-card-inner">
 									<div class="sscribe-post-type-icon">
@@ -108,7 +108,7 @@ $sscribe_is_debug        = $sscribe_is_debug ?? false;
 									</div>
 								</div>
 							</label>
-							<label class="sscribe-post-type-card" data-post-type="any">
+							<label class="sscribe-post-type-card">
 								<input type="radio" name="sscribe_post_type" value="any">
 								<div class="sscribe-post-type-card-inner">
 									<div class="sscribe-post-type-icon">
@@ -136,7 +136,7 @@ $sscribe_is_debug        = $sscribe_is_debug ?? false;
 							<span><?php esc_html_e( 'Language', 'sscribe-export-site-pages' ); ?></span>
 						</div>
 						<div class="sscribe-language-cards sscribe-cards-row" id="sscribe-language-cards">
-							<label class="sscribe-lang-card-label sscribe-lang-card-all sscribe-lang-card-compact sscribe-lang-card-selected">
+							<label class="sscribe-lang-card-label sscribe-lang-card-all sscribe-lang-card-compact">
 								<input type="radio" name="sscribe_language" value="" checked>
 								<div class="sscribe-lang-card-inner">
 									<div class="sscribe-lang-flag-wrapper">
@@ -245,7 +245,7 @@ $sscribe_is_debug        = $sscribe_is_debug ?? false;
 							<span><?php esc_html_e( 'Export Format', 'sscribe-export-site-pages' ); ?></span>
 						</div>
 						<div class="sscribe-format-cards sscribe-cards-row" id="sscribe-format-cards">
-							<label class="sscribe-format-card-label sscribe-format-all sscribe-format-card-selected">
+							<label class="sscribe-format-card-label sscribe-format-all">
 								<input type="radio" name="sscribe_format" value="all" checked>
 								<div class="sscribe-format-card-inner">
 									<div class="sscribe-format-icon">
@@ -466,7 +466,7 @@ $sscribe_is_debug        = $sscribe_is_debug ?? false;
 											<img src="<?php echo esc_url( SScribe_Helpers::icon_url( 'download-file' ) ); ?>" width="16" height="16" alt="">
 										</a>
 										<?php /* translators: %s: export filename */ ?>
-										<button type="button" class="sscribe-button sscribe-button-icon sscribe-button-sm sscribe-log-btn" data-filename="<?php echo esc_attr( $sscribe_export['filename'] ); ?>" title="<?php esc_attr_e( 'View export log', 'sscribe-export-site-pages' ); ?>" aria-label="<?php printf( esc_attr__( 'View export log for %s', 'sscribe-export-site-pages' ), esc_attr( $sscribe_export['filename'] ) ); ?>">
+										<button type="button" class="sscribe-button sscribe-button-icon sscribe-button-sm sscribe-log-btn" data-filename="<?php echo esc_attr( $sscribe_export['filename'] ); ?>" title="<?php esc_attr_e( 'View export log', 'sscribe-export-site-pages' ); ?>" aria-label="<?php echo esc_attr( sprintf( __( 'View export log for %s', 'sscribe-export-site-pages' ), $sscribe_export['filename'] ) ); ?>">
 											<img src="<?php echo esc_url( SScribe_Helpers::icon_url( 'file-log' ) ); ?>" width="16" height="16" alt="">
 										</button>
 										<button type="button" class="sscribe-button sscribe-button-icon sscribe-button-sm sscribe-button-danger sscribe-delete-btn" data-filename="<?php echo esc_attr( $sscribe_export['filename'] ); ?>" title="<?php esc_attr_e( 'Delete this export', 'sscribe-export-site-pages' ); ?>" aria-label="<?php esc_attr_e( 'Delete this export', 'sscribe-export-site-pages' ); ?>">

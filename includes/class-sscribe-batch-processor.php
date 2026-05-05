@@ -703,6 +703,10 @@ class SScribe_Batch_Processor {
 		$this->export_log = new SScribe_Export_Log( $session_id );
 		$this->export_log->set_total_pages( $total );
 
+		// Record export start in statistics table.
+		$export_stats = new SScribe_Export_Stats();
+		$export_stats->start_export( $session_id, $user_id, array( 'total_pages' => $total, 'formats' => $formats ) );
+
 		// Calculate memory forecast and warn if export may fail.
 		$memory_warning = $this->get_memory_warning( $total, $formats );
 
@@ -1790,6 +1794,10 @@ class SScribe_Batch_Processor {
 					$this->export_log->flush();
 				}
 
+				// Record export failure in statistics table.
+				$export_stats = new SScribe_Export_Stats();
+				$export_stats->fail_export( $session_id, 'Failed to create ZIP package' );
+
 				// Clean up temp directory to prevent disk space leak on failure.
 				if ( ! empty( $session['temp_dir'] ) && is_dir( $session['temp_dir'] ) ) {
 					$this->zip_handler->delete_directory( $session['temp_dir'] );
@@ -1926,6 +1934,12 @@ class SScribe_Batch_Processor {
 				$this->export_log->mark_complete( $zip_path, $total_files_zip );
 				$this->export_log->flush();
 			}
+
+			// Record export completion in statistics table.
+			$export_stats = new SScribe_Export_Stats();
+			$duration = time() - ( $session['start_time'] ?? time() );
+			$zip_size = function_exists( 'wp_filesize' ) && file_exists( $zip_path ) ? (int) wp_filesize( $zip_path ) : 0;
+			$export_stats->complete_export( $session_id, $session['total'], $error_count, $duration, $zip_size );
 
 			$error_count       = count( $session['errors'] ?? array() );
 			$structured_errors = isset( $session['structured_errors'] ) && is_array( $session['structured_errors'] ) ? $session['structured_errors'] : array();
@@ -2187,6 +2201,11 @@ class SScribe_Batch_Processor {
 		flush();
 		// Force the script to continue even if client disconnects (prevents partial ZIP sends).
 		ignore_user_abort( true );
+
+		// Cap download execution time to prevent indefinite PHP process occupation on shared hosting.
+		if ( function_exists( 'set_time_limit' ) ) {
+			set_time_limit( 300 ); // 5 minutes — sufficient for any reasonable ZIP file.
+		}
 
 		// phpcs:ignore WordPress.WP.AlternativeFunctions.file_system_operations_readfile -- Direct download
 		$read_result = readfile( $file_path );

@@ -247,7 +247,7 @@ class SScribe_Session {
 	 * Update session data.
 	 *
 	 * Uses an atomic cache lock (wp_cache_add) to prevent race conditions
-	 * on the read-modify-write cycle. The lock expires after 5 seconds
+	 * on the read-modify-write cycle. The lock expires after 10 seconds
 	 * to prevent deadlocks from crashed processes.
 	 *
 	 * @param string $session_id The session identifier.
@@ -262,16 +262,16 @@ class SScribe_Session {
 		}
 
 		$option_name = $this->get_option_name( $session_id );
-		$lock_key    = 'sscribe_lock_' . $session_id;
+		$lock_key    = 'sscribe_update_lock_' . $session_id;
 
-		// --- ACQUIRE ATOMIC LOCK (expires after 60s to prevent deadlocks) ---
+		// --- ACQUIRE ATOMIC LOCK via transient (DB-backed, works across PHP processes) ---
 		$lock_acquired = false;
-		$lock_ttl      = 60;
+		$lock_ttl      = 10; // 10 seconds — enough for read-modify-write, short enough to recover from crashes.
 
 		for ( $lock_attempt = 1; $lock_attempt <= 5; ++$lock_attempt ) {
-			// wp_cache_add() is atomic: succeeds only if key doesn't exist.
-			// TTL of 60s prevents deadlocks from crashed processes.
-			if ( wp_cache_add( $lock_key, time(), 'options', $lock_ttl ) ) {
+			// set_transient() is atomic via MySQL INSERT and works across separate PHP processes.
+			// Unlike wp_cache_add(), this does not rely on in-memory caching (Redis/Memcached).
+			if ( set_transient( $lock_key, time(), $lock_ttl ) ) {
 				$lock_acquired = true;
 				break;
 			}
@@ -340,7 +340,7 @@ class SScribe_Session {
 
 		} finally {
 			// --- ALWAYS RELEASE LOCK ---
-			wp_cache_delete( $lock_key, 'options' );
+			delete_transient( $lock_key );
 		}
 	}
 

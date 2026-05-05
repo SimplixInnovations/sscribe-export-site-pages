@@ -107,7 +107,6 @@
 
 			var postType = $('input[name="sscribe_post_type"]:checked').val() || 'page';
 			var language = $('input[name="sscribe_language"]:checked').val() || '';
-			var self = this;
 
 			this.refreshStatusAndLanguageCounts(postType, language);
 		},
@@ -333,6 +332,7 @@
 				data: {
 					action: 'sscribe_preflight_check',
 					nonce: sscribe_data.nonce,
+					page_count: this.selectedPageCount,
 					formats: formats
 				},
 				success: function (response) {
