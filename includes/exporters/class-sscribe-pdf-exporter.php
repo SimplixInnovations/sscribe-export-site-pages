@@ -181,7 +181,7 @@ class SScribe_PDF_Exporter implements SScribe_Exporter_Interface {
 				'autoLangToFont'   => true,
 				'tempDir'          => $mpdf_temp,
 				'debug'            => defined( 'SSCRIBE_DEBUG' ) && SSCRIBE_DEBUG,
-				'tabSpaces'        => null,
+				// tabSpaces omitted — mPDF defaults to 4 spaces; null causes PHP 8 strict warning.
 			);
 
 			$mpdf = new \SScribeVendor\Mpdf\Mpdf( $config );

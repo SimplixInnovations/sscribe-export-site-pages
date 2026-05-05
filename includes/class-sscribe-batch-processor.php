@@ -1007,368 +1007,383 @@ class SScribe_Batch_Processor {
 		$timeout_paused          = false; // Track if batch was paused due to timeout.
 		$processed_in_this_batch = 0;
 
-		foreach ( $batch as $page_id ) {
-			// Timeout check - pause batch if approaching PHP max_execution_time.
-			// This prevents fatal timeout errors during batch processing.
-			$timeout_buffer = (int) apply_filters( 'sscribe_timeout_buffer_seconds', 15 );
-			if ( $processed_in_this_batch > 0 && ! $this->is_time_available( $batch_start_time, $timeout_buffer ) ) {
-				$timeout_paused = true;
-				$this->logger->debug(
-					'Timeout approaching, pausing batch for continuation',
-					array(
-						'elapsed_time'   => round( microtime( true ) - $batch_start_time, 2 ),
-						'remaining_time' => round( $this->get_remaining_time( $batch_start_time ), 2 ),
-						'processed'      => $processed,
-						'total'          => $total,
-					)
-				);
-				break;
-			}
-
-			// Only pause for memory if we have successfully processed at least 1 page in this request.
-			// This prevents an infinite loop where the first page continually aborts due to high base memory.
-			$memory_threshold_mb = (int) apply_filters( 'sscribe_memory_threshold_mb', 10 );
-			if ( $processed_in_this_batch > 0 && ! $this->is_memory_available( $memory_threshold_mb ) ) {
-				$memory_paused = true;
-				$this->logger->debug(
-					'Memory threshold approaching limit, pausing batch',
-					array(
-						'memory_usage'   => size_format( memory_get_usage( true ) ),
-						'memory_percent' => $this->get_memory_usage_percent(),
-						'processed'      => $processed,
-						'total'          => $total,
-					)
-				);
-				break;
-			}
-
-			$page_start_time = microtime( true );
-			$this->logger->debug(
-				"Processing page ID: {$page_id}",
-				array(
-					'batch_index' => $processed + 1,
-					'total'       => $total,
-				)
-			);
-
-			// Check if previous batch crashed while processing this page.
-			// Instead of skipping, clear the stale "processing" status and retry.
-			if ( $this->export_log ) {
-				$log_data = $this->export_log->get_log();
-				if ( isset( $log_data['pages'][ $page_id ] ) && 'processing' === $log_data['pages'][ $page_id ]['status'] ) {
+		try {
+			foreach ( $batch as $page_id ) {
+				// Timeout check - pause batch if approaching PHP max_execution_time.
+				// This prevents fatal timeout errors during batch processing.
+				$timeout_buffer = (int) apply_filters( 'sscribe_timeout_buffer_seconds', 15 );
+				if ( $processed_in_this_batch > 0 && ! $this->is_time_available( $batch_start_time, $timeout_buffer ) ) {
+					$timeout_paused = true;
 					$this->logger->debug(
-						"Retrying page {$page_id} after previous crash",
+						'Timeout approaching, pausing batch for continuation',
 						array(
-							'page_id'   => $page_id,
-							'memory_mb' => round( memory_get_usage( true ) / 1024 / 1024 ),
+							'elapsed_time'   => round( microtime( true ) - $batch_start_time, 2 ),
+							'remaining_time' => round( $this->get_remaining_time( $batch_start_time ), 2 ),
+							'processed'      => $processed,
+							'total'          => $total,
+						)
+					);
+					break;
+				}
+
+				// Only pause for memory if we have successfully processed at least 1 page in this request.
+				// This prevents an infinite loop where the first page continually aborts due to high base memory.
+				$memory_threshold_mb = (int) apply_filters( 'sscribe_memory_threshold_mb', 10 );
+				if ( $processed_in_this_batch > 0 && ! $this->is_memory_available( $memory_threshold_mb ) ) {
+					$memory_paused = true;
+					$this->logger->debug(
+						'Memory threshold approaching limit, pausing batch',
+						array(
+							'memory_usage'   => size_format( memory_get_usage( true ) ),
+							'memory_percent' => $this->get_memory_usage_percent(),
+							'processed'      => $processed,
+							'total'          => $total,
+						)
+					);
+					break;
+				}
+
+				$page_start_time = microtime( true );
+				$this->logger->debug(
+					"Processing page ID: {$page_id}",
+					array(
+						'batch_index' => $processed + 1,
+						'total'       => $total,
+					)
+				);
+
+				// Check if previous batch crashed while processing this page.
+				// Instead of skipping, clear the stale "processing" status and retry.
+				if ( $this->export_log ) {
+					$log_data = $this->export_log->get_log();
+					if ( isset( $log_data['pages'][ $page_id ] ) && 'processing' === $log_data['pages'][ $page_id ]['status'] ) {
+						$this->logger->debug(
+							"Retrying page {$page_id} after previous crash",
+							array(
+								'page_id'   => $page_id,
+								'memory_mb' => round( memory_get_usage( true ) / 1024 / 1024 ),
+							)
+						);
+					}
+				}
+
+				do_action( 'sscribe_before_export_page', $page_id, $session['language'] );
+
+				$page_data = $this->collector->get_page_data( $page_id );
+
+				if ( ! $page_data ) {
+					$error_msg = sprintf(
+					/* translators: %d: Page ID. */
+						__( 'Failed to collect data for page ID %d.', 'sscribe-export-site-pages' ),
+						$page_id
+					);
+					$this->logger->debug(
+						"ERROR: {$error_msg}",
+						array(
+							'page_id' => $page_id,
+							'memory'  => size_format( memory_get_usage( true ) ),
+						)
+					);
+					$errors[] = $error_msg;
+
+					if ( $this->export_log ) {
+						$this->export_log->log_page_failure( $page_id, $error_msg );
+						$this->export_log->flush();
+					}
+
+					++$processed;
+					continue;
+				}
+
+				$current_page_title = $page_data['title'];
+
+				if ( $this->export_log ) {
+					$this->export_log->log_page_start( $page_id, $page_data['title'], $page_data['slug'] ?? '' );
+					$this->export_log->flush();
+				}
+
+				$this->logger->debug(
+					'Page data collected',
+					array(
+						'title' => $current_page_title,
+						'id'    => $page_id,
+						'slug'  => $page_data['slug'] ?? 'n/a',
+						'lang'  => $page_data['language'] ?? 'n/a',
+					)
+				);
+
+				$page_index         = $processed + 1;
+				$export_success     = false;
+				$export_errors      = array();
+				$successful_formats = array();
+
+				// Pre-export memory check - skip page if memory critically low.
+				// This prevents fatal memory errors during export.
+				$pre_export_memory_mb = (int) apply_filters( 'sscribe_pre_export_memory_threshold_mb', 5 );
+				if ( ! $this->is_memory_available( $pre_export_memory_mb ) ) {
+					$error_msg = sprintf(
+					/* translators: %d: Page ID. */
+						__( 'Skipped page %d - insufficient memory to proceed.', 'sscribe-export-site-pages' ),
+						$page_id
+					);
+					$this->logger->debug(
+						"Skipped page due to memory: {$page_id}",
+						array(
+							'page_id'      => $page_id,
+							'memory_usage' => size_format( memory_get_usage( true ) ),
+							'memory_limit' => ini_get( 'memory_limit' ),
+						)
+					);
+					$errors[] = $error_msg;
+					if ( $this->export_log ) {
+						$this->export_log->log_page_failure( $page_id, 'Insufficient memory for export' );
+						$this->export_log->flush();
+					}
+					++$processed;
+					continue;
+				}
+
+				try {
+					foreach ( $formats as $format ) {
+						$format_start = microtime( true );
+						$exporter     = \SScribe_Exporter_Factory::create( $format );
+
+						if ( ! $exporter ) {
+							$this->logger->warning( 'Unsupported export format skipped during batch processing', array( 'format' => $format ) );
+							continue;
+						}
+
+						$result = $exporter->export( $page_data, $temp_dir, $page_index, $total );
+
+						// Track per-format timing for adaptive metrics.
+						$format_elapsed         = microtime( true ) - $format_start;
+						$format_key             = 'format_time_' . $format;
+						$session[ $format_key ] = ( $session[ $format_key ] ?? 0 ) + $format_elapsed;
+
+						if ( $result->is_success() ) {
+							$file_path = $result->get_data()['path'] ?? '';
+							$file_size = $result->get_data()['size'] ?? 0;
+
+							// Validate exported file exists and has reasonable size.
+							$actual_size = ( ! empty( $file_path ) && file_exists( $file_path ) ) ? (int) filesize( $file_path ) : 0;
+							$min_sizes   = array(
+								'docx'     => 1024,  // 1KB minimum for valid DOCX.
+								'pdf'      => 4096,   // 4KB minimum — valid mPDF output is never this small.
+								'html'     => 100,   // 100 bytes minimum for valid HTML.
+								'markdown' => 50,    // 50 bytes minimum for valid Markdown.
+							);
+							$min_size    = $min_sizes[ $format ] ?? 100;
+
+							if ( $actual_size < $min_size ) {
+								// File is too small — likely corrupted or empty.
+								$size_error = sprintf(
+								/* translators: 1: Format, 2: Actual size, 3: Minimum size. */
+									__( '%1$s file appears empty or corrupted (size: %2$d bytes, minimum: %3$d bytes).', 'sscribe-export-site-pages' ),
+									strtoupper( $format ),
+									$actual_size,
+									$min_size
+								);
+								$export_errors[] = array(
+									'format'   => strtoupper( $format ),
+									'message'  => $size_error,
+									'category' => 'empty_file',
+									'context'  => array(
+										'file_path'     => $file_path,
+										'actual_size'   => $actual_size,
+										'reported_size' => $file_size,
+									),
+								);
+
+								if ( $this->export_log ) {
+									$this->export_log->log_format_result( $page_id, $format, false, '', $size_error );
+								}
+
+								$this->logger->error(
+									ucfirst( $format ) . ' export produced empty/corrupted file',
+									array(
+										'page_id'       => $page_id,
+										'file_path'     => $file_path,
+										'actual_size'   => $actual_size,
+										'reported_size' => $file_size,
+										'min_size'      => $min_size,
+									)
+								);
+							} else {
+								$export_success       = true;
+								$successful_formats[] = $format;
+
+								// Use actual file size for metrics.
+								$format_size_key             = 'format_size_' . $format;
+								$session[ $format_size_key ] = ( $session[ $format_size_key ] ?? 0 ) + $actual_size;
+
+								// Track per-format page count for accurate metrics.
+								$format_pages_key             = 'format_pages_' . $format;
+								$session[ $format_pages_key ] = ( $session[ $format_pages_key ] ?? 0 ) + 1;
+
+								if ( $this->export_log ) {
+									$this->export_log->log_format_result( $page_id, $format, true, $file_path );
+								}
+
+								$this->logger->debug(
+									ucfirst( $format ) . ' generated successfully',
+									array(
+										'file'        => basename( $file_path ),
+										'page_id'     => $page_id,
+										'format'      => $format,
+										'actual_size' => $actual_size,
+										'duration'    => round( $format_elapsed, 3 ),
+									)
+								);
+							}
+						} else {
+							$result_data     = $result->get_data();
+							$export_errors[] = array(
+								'format'   => strtoupper( $format ),
+								'message'  => $result->get_error(),
+								'category' => $result_data['error_category'] ?? 'unknown',
+								'context'  => is_array( $result_data ) ? $result_data : array(),
+							);
+
+							if ( $this->export_log ) {
+								$this->export_log->log_format_result( $page_id, $format, false, '', $result->get_error() );
+							}
+						}
+					}
+				} catch ( \Throwable $e ) {
+					// Catch both Errors and Exceptions to prevent export crashes.
+					$error_msg = sprintf(
+					/* translators: %s: Error message. */
+						__( 'Critical error: %s', 'sscribe-export-site-pages' ),
+						$e->getMessage()
+					);
+					$export_errors[] = array(
+						'format'   => 'SYSTEM',
+						'message'  => $error_msg,
+						'category' => 'critical_error',
+						'context'  => array(
+							'page_id'         => $page_id,
+							'page_title'      => $page_data['title'] ?? '',
+							'exception_class' => get_class( $e ),
+							'exception_file'  => basename( $e->getFile() ) . ':' . $e->getLine(),
+							'memory_usage'    => memory_get_usage( true ),
+							'memory_peak'     => memory_get_peak_usage( true ),
+							'memory_limit'    => ini_get( 'memory_limit' ),
+						),
+					);
+
+					$this->logger->error(
+						'Critical error during page export',
+						array(
+							'page_id'      => $page_id,
+							'error'        => $e->getMessage(),
+							'memory_usage' => size_format( memory_get_usage( true ) ),
+							'memory_peak'  => size_format( memory_get_peak_usage( true ) ),
 						)
 					);
 				}
-			}
 
-			do_action( 'sscribe_before_export_page', $page_id, $session['language'] );
+				$page_duration = round( microtime( true ) - $page_start_time, 3 );
 
-			$page_data = $this->collector->get_page_data( $page_id );
+				if ( ! $export_success ) {
+					$string_export_errors = array();
+					$error_msg            = sprintf(
+					/* translators: %s: Page title. */
+						__( 'Failed to generate exports for "%s".', 'sscribe-export-site-pages' ),
+						$page_data['title']
+					);
 
-			if ( ! $page_data ) {
-				$error_msg = sprintf(
-					/* translators: %d: Page ID. */
-					__( 'Failed to collect data for page ID %d.', 'sscribe-export-site-pages' ),
-					$page_id
-				);
-				$this->logger->debug(
-					"ERROR: {$error_msg}",
-					array(
-						'page_id' => $page_id,
-						'memory'  => size_format( memory_get_usage( true ) ),
-					)
-				);
-				$errors[] = $error_msg;
+					foreach ( $export_errors as $export_error ) {
+						$string_export_errors[] = sprintf(
+							'%s: %s',
+							$export_error['format'],
+							$export_error['message'] ?? ''
+						);
+					}
 
-				if ( $this->export_log ) {
-					$this->export_log->log_page_failure( $page_id, $error_msg );
-					$this->export_log->flush();
+					$errors[] = $error_msg . ' ' . implode( ', ', $string_export_errors );
+
+					if ( $this->export_log ) {
+						$this->export_log->log_page_failure( $page_id, implode( '; ', $string_export_errors ), $formats );
+					}
+
+					$detailed_errors = array();
+					foreach ( $export_errors as $format_error ) {
+						$fmt       = strtolower( $format_error['format'] );
+						$err_msg   = $format_error['message'] ?? '';
+						$context   = $format_error['context'];
+						$diagnosis = $this->diagnostics->diagnose_page_error( $page_id, $fmt, $err_msg, $context );
+
+						if ( ! empty( $format_error['category'] ) && 'unknown' !== $format_error['category'] ) {
+							$diagnosis['category'] = $format_error['category'];
+						}
+
+						if ( ! empty( $context['fix_steps'] ) && empty( $diagnosis['fix'] ) ) {
+							$diagnosis['fix'] = $context['fix_steps'];
+						}
+
+						$detailed_errors[] = $diagnosis;
+					}
+
+					$structured_errors[] = array(
+						'page_id'     => $page_id,
+						'page_title'  => $page_data['title'],
+						'message'     => $error_msg,
+						'errors'      => $export_errors,
+						'diagnostics' => $detailed_errors,
+						'time'        => current_time( 'mysql' ),
+					);
+
+					$this->logger->debug(
+						'ERROR: Export failed',
+						array(
+							'page_id'        => $page_id,
+							'title'          => $page_data['title'],
+							'duration_sec'   => $page_duration,
+							'errors'         => $export_errors,
+							'diagnosis'      => $detailed_errors,
+							'memory_at_fail' => size_format( memory_get_usage( true ) ),
+						)
+					);
+				} elseif ( $this->export_log ) {
+					$this->export_log->log_page_success( $page_id, $successful_formats );
 				}
 
+				do_action( 'sscribe_after_export_page', $page_id, $formats, $export_success );
+
+				// Free up memory for the next iterations in large batches.
+				if ( function_exists( 'clean_post_cache' ) ) {
+					clean_post_cache( $page_id );
+				}
+
+				// CRITICAL: Explicitly release page data and exporter objects to prevent memory accumulation.
+				// PHPWord and DOMDocument objects can consume 2-5MB per page and are not automatically
+				// garbage collected between batch iterations due to circular references.
+				$page_data = null;
+				$exporter  = null;
+				unset( $page_data, $exporter );
+
 				++$processed;
-				continue;
+				++$processed_in_this_batch;
+
+				// Force garbage collection every 3 pages to reclaim memory from circular references.
+				// This is critical for PHPWord objects which retain references to parent documents.
+				if ( 0 === $processed % 3 && function_exists( 'gc_collect_cycles' ) ) {
+					gc_collect_cycles();
+				}
 			}
-
-			$current_page_title = $page_data['title'];
-
-			if ( $this->export_log ) {
-				$this->export_log->log_page_start( $page_id, $page_data['title'], $page_data['slug'] ?? '' );
-				$this->export_log->flush();
-			}
-
-			$this->logger->debug(
-				'Page data collected',
+		} catch ( \Throwable $e ) {
+			$this->logger->error(
+				'Batch processing failed uncaught',
 				array(
-					'title' => $current_page_title,
-					'id'    => $page_id,
-					'slug'  => $page_data['slug'] ?? 'n/a',
-					'lang'  => $page_data['language'] ?? 'n/a',
+					'error'       => $e->getMessage(),
+					'page_id'     => $page_id ?? 'unknown',
+					'processed'   => $processed,
+					'memory_used' => size_format( memory_get_usage( true ) ),
 				)
 			);
-
-			$page_index         = $processed + 1;
-			$export_success     = false;
-			$export_errors      = array();
-			$successful_formats = array();
-
-			// Pre-export memory check - skip page if memory critically low.
-			// This prevents fatal memory errors during export.
-			$pre_export_memory_mb = (int) apply_filters( 'sscribe_pre_export_memory_threshold_mb', 5 );
-			if ( ! $this->is_memory_available( $pre_export_memory_mb ) ) {
-				$error_msg = sprintf(
-					/* translators: %d: Page ID. */
-					__( 'Skipped page %d - insufficient memory to proceed.', 'sscribe-export-site-pages' ),
-					$page_id
-				);
-				$this->logger->debug(
-					"Skipped page due to memory: {$page_id}",
-					array(
-						'page_id'      => $page_id,
-						'memory_usage' => size_format( memory_get_usage( true ) ),
-						'memory_limit' => ini_get( 'memory_limit' ),
-					)
-				);
-				$errors[] = $error_msg;
-				if ( $this->export_log ) {
-					$this->export_log->log_page_failure( $page_id, 'Insufficient memory for export' );
-					$this->export_log->flush();
-				}
-				++$processed;
-				continue;
-			}
-
-			try {
-				foreach ( $formats as $format ) {
-					$format_start = microtime( true );
-					$exporter     = \SScribe_Exporter_Factory::create( $format );
-
-					if ( ! $exporter ) {
-						$this->logger->warning( 'Unsupported export format skipped during batch processing', array( 'format' => $format ) );
-						continue;
-					}
-
-					$result = $exporter->export( $page_data, $temp_dir, $page_index, $total );
-
-					// Track per-format timing for adaptive metrics.
-					$format_elapsed         = microtime( true ) - $format_start;
-					$format_key             = 'format_time_' . $format;
-					$session[ $format_key ] = ( $session[ $format_key ] ?? 0 ) + $format_elapsed;
-
-					if ( $result->is_success() ) {
-						$file_path = $result->get_data()['path'] ?? '';
-						$file_size = $result->get_data()['size'] ?? 0;
-
-						// Validate exported file exists and has reasonable size.
-						$actual_size = ( ! empty( $file_path ) && file_exists( $file_path ) ) ? (int) filesize( $file_path ) : 0;
-						$min_sizes   = array(
-							'docx'     => 1024,  // 1KB minimum for valid DOCX.
-							'pdf'      => 512,   // 500 bytes minimum for valid PDF.
-							'html'     => 100,   // 100 bytes minimum for valid HTML.
-							'markdown' => 50,    // 50 bytes minimum for valid Markdown.
-						);
-						$min_size    = $min_sizes[ $format ] ?? 100;
-
-						if ( $actual_size < $min_size ) {
-							// File is too small — likely corrupted or empty.
-							$size_error = sprintf(
-								/* translators: 1: Format, 2: Actual size, 3: Minimum size. */
-								__( '%1$s file appears empty or corrupted (size: %2$d bytes, minimum: %3$d bytes).', 'sscribe-export-site-pages' ),
-								strtoupper( $format ),
-								$actual_size,
-								$min_size
-							);
-							$export_errors[] = array(
-								'format'   => strtoupper( $format ),
-								'message'  => $size_error,
-								'category' => 'empty_file',
-								'context'  => array(
-									'file_path'     => $file_path,
-									'actual_size'   => $actual_size,
-									'reported_size' => $file_size,
-								),
-							);
-
-							if ( $this->export_log ) {
-								$this->export_log->log_format_result( $page_id, $format, false, '', $size_error );
-							}
-
-							$this->logger->error(
-								ucfirst( $format ) . ' export produced empty/corrupted file',
-								array(
-									'page_id'       => $page_id,
-									'file_path'     => $file_path,
-									'actual_size'   => $actual_size,
-									'reported_size' => $file_size,
-									'min_size'      => $min_size,
-								)
-							);
-						} else {
-							$export_success       = true;
-							$successful_formats[] = $format;
-
-							// Use actual file size for metrics.
-							$format_size_key             = 'format_size_' . $format;
-							$session[ $format_size_key ] = ( $session[ $format_size_key ] ?? 0 ) + $actual_size;
-
-							// Track per-format page count for accurate metrics.
-							$format_pages_key             = 'format_pages_' . $format;
-							$session[ $format_pages_key ] = ( $session[ $format_pages_key ] ?? 0 ) + 1;
-
-							if ( $this->export_log ) {
-								$this->export_log->log_format_result( $page_id, $format, true, $file_path );
-							}
-
-							$this->logger->debug(
-								ucfirst( $format ) . ' generated successfully',
-								array(
-									'file'        => basename( $file_path ),
-									'page_id'     => $page_id,
-									'format'      => $format,
-									'actual_size' => $actual_size,
-									'duration'    => round( $format_elapsed, 3 ),
-								)
-							);
-						}
-					} else {
-						$result_data     = $result->get_data();
-						$export_errors[] = array(
-							'format'   => strtoupper( $format ),
-							'message'  => $result->get_error(),
-							'category' => $result_data['error_category'] ?? 'unknown',
-							'context'  => is_array( $result_data ) ? $result_data : array(),
-						);
-
-						if ( $this->export_log ) {
-							$this->export_log->log_format_result( $page_id, $format, false, '', $result->get_error() );
-						}
-					}
-				}
-			} catch ( \Throwable $e ) {
-				// Catch both Errors and Exceptions to prevent export crashes.
-				$error_msg = sprintf(
-					/* translators: %s: Error message. */
-					__( 'Critical error: %s', 'sscribe-export-site-pages' ),
-					$e->getMessage()
-				);
-				$export_errors[] = array(
-					'format'   => 'SYSTEM',
-					'message'  => $error_msg,
-					'category' => 'critical_error',
-					'context'  => array(
-						'page_id'         => $page_id,
-						'page_title'      => $page_data['title'] ?? '',
-						'exception_class' => get_class( $e ),
-						'exception_file'  => basename( $e->getFile() ) . ':' . $e->getLine(),
-						'memory_usage'    => memory_get_usage( true ),
-						'memory_peak'     => memory_get_peak_usage( true ),
-						'memory_limit'    => ini_get( 'memory_limit' ),
-					),
-				);
-
-				$this->logger->error(
-					'Critical error during page export',
-					array(
-						'page_id'      => $page_id,
-						'error'        => $e->getMessage(),
-						'memory_usage' => size_format( memory_get_usage( true ) ),
-						'memory_peak'  => size_format( memory_get_peak_usage( true ) ),
-					)
-				);
-			}
-
-			$page_duration = round( microtime( true ) - $page_start_time, 3 );
-
-			if ( ! $export_success ) {
-				$string_export_errors = array();
-				$error_msg            = sprintf(
-					/* translators: %s: Page title. */
-					__( 'Failed to generate exports for "%s".', 'sscribe-export-site-pages' ),
-					$page_data['title']
-				);
-
-				foreach ( $export_errors as $export_error ) {
-					$string_export_errors[] = sprintf(
-						'%s: %s',
-						$export_error['format'],
-						$export_error['message'] ?? ''
-					);
-				}
-
-				$errors[] = $error_msg . ' ' . implode( ', ', $string_export_errors );
-
-				if ( $this->export_log ) {
-					$this->export_log->log_page_failure( $page_id, implode( '; ', $string_export_errors ), $formats );
-				}
-
-				$detailed_errors = array();
-				foreach ( $export_errors as $format_error ) {
-					$fmt       = strtolower( $format_error['format'] );
-					$err_msg   = $format_error['message'] ?? '';
-					$context   = $format_error['context'];
-					$diagnosis = $this->diagnostics->diagnose_page_error( $page_id, $fmt, $err_msg, $context );
-
-					if ( ! empty( $format_error['category'] ) && 'unknown' !== $format_error['category'] ) {
-						$diagnosis['category'] = $format_error['category'];
-					}
-
-					if ( ! empty( $context['fix_steps'] ) && empty( $diagnosis['fix'] ) ) {
-						$diagnosis['fix'] = $context['fix_steps'];
-					}
-
-					$detailed_errors[] = $diagnosis;
-				}
-
-				$structured_errors[] = array(
-					'page_id'     => $page_id,
-					'page_title'  => $page_data['title'],
-					'message'     => $error_msg,
-					'errors'      => $export_errors,
-					'diagnostics' => $detailed_errors,
-					'time'        => current_time( 'mysql' ),
-				);
-
-				$this->logger->debug(
-					'ERROR: Export failed',
-					array(
-						'page_id'        => $page_id,
-						'title'          => $page_data['title'],
-						'duration_sec'   => $page_duration,
-						'errors'         => $export_errors,
-						'diagnosis'      => $detailed_errors,
-						'memory_at_fail' => size_format( memory_get_usage( true ) ),
-					)
-				);
-			} elseif ( $this->export_log ) {
-					$this->export_log->log_page_success( $page_id, $successful_formats );
-			}
-
-			do_action( 'sscribe_after_export_page', $page_id, $formats, $export_success );
-
-			// Free up memory for the next iterations in large batches.
-			if ( function_exists( 'clean_post_cache' ) ) {
-				clean_post_cache( $page_id );
-			}
-
-			// CRITICAL: Explicitly release page data and exporter objects to prevent memory accumulation.
-			// PHPWord and DOMDocument objects can consume 2-5MB per page and are not automatically
-			// garbage collected between batch iterations due to circular references.
-			$page_data = null;
-			$exporter  = null;
-			unset( $page_data, $exporter );
-
-			++$processed;
-			++$processed_in_this_batch;
-
-			// Force garbage collection every 3 pages to reclaim memory from circular references.
-			// This is critical for PHPWord objects which retain references to parent documents.
-			if ( 0 === $processed % 3 && function_exists( 'gc_collect_cycles' ) ) {
-				gc_collect_cycles();
-			}
+		} finally {
+			$this->release_lock( $session_id );
+			$this->restore_ob_level( $ob_level_before );
 		}
 
 		$batch_duration = microtime( true ) - $batch_start_time;
