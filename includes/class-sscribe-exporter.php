@@ -826,6 +826,13 @@ class SScribe_Exporter {
 				return;
 			}
 
+			// PHPWord cannot handle SVG — skip SVG featured images to prevent fatal errors.
+			$ext = strtolower( pathinfo( $path, PATHINFO_EXTENSION ) );
+			if ( $ext === 'svg' ) {
+				$this->logger->debug( 'Skipping SVG featured image', array( 'path' => $path ) );
+				return;
+			}
+
 			// Calculate dimensions to fit within 6.5 inches width.
 			$max_width  = Converter::inchToEmu( 6.5 );
 			$max_height = Converter::inchToEmu( 4 );

@@ -264,11 +264,14 @@ class SScribe_Session {
 		$option_name = $this->get_option_name( $session_id );
 		$lock_key    = 'sscribe_lock_' . $session_id;
 
-		// --- ACQUIRE ATOMIC LOCK (expires after 5s to prevent deadlocks) ---
+		// --- ACQUIRE ATOMIC LOCK (expires after 60s to prevent deadlocks) ---
 		$lock_acquired = false;
+		$lock_ttl      = 60;
+
 		for ( $lock_attempt = 1; $lock_attempt <= 5; ++$lock_attempt ) {
 			// wp_cache_add() is atomic: succeeds only if key doesn't exist.
-			if ( wp_cache_add( $lock_key, time(), 'options', 5 ) ) {
+			// TTL of 60s prevents deadlocks from crashed processes.
+			if ( wp_cache_add( $lock_key, time(), 'options', $lock_ttl ) ) {
 				$lock_acquired = true;
 				break;
 			}
@@ -475,7 +478,14 @@ class SScribe_Session {
 					continue;
 				}
 
-				if ( isset( $data['created_at'] ) && ( $now - $data['created_at'] ) > $max_age_seconds ) {
+				// Use the most recent activity timestamp to prevent deleting active sessions.
+				// A long-running export that gets updated_at refreshed regularly
+				// should not be cleaned up while it is still running.
+				$last_activity = isset( $data['updated_at'] )
+					? max( $data['created_at'], $data['updated_at'] )
+					: $data['created_at'];
+
+				if ( isset( $data['created_at'] ) && ( $now - $last_activity ) > $max_age_seconds ) {
 					if ( delete_option( $option->option_name ) ) {
 						++$deleted;
 					}
