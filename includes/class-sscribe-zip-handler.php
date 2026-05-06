@@ -197,14 +197,18 @@ class SScribe_Zip_Handler {
 
 		// Use atomic transient-based lock with TTL to prevent race conditions during indexing.
 		// set_transient() with expiry is crash-safe unlike add_option() (no TTL, permanent orphan).
-		// Also clear any stale lock at start in case prior process crashed before cleanup.
+		// Stale lock detection: only delete if lock exists AND is older than 30s.
 		$lock_key = 'sscribe_index_lock'; // Global lock — export index is shared across all users.
-		delete_transient( $lock_key ); // Clear any stale lock from crashed process.
 		$locked   = false;
 		$timeout  = 5; // Seconds.
 		$start    = time();
 
 		while ( time() - $start < $timeout ) {
+			// Check for stale lock (older than 30 seconds) before attempting acquisition.
+			$existing = get_transient( $lock_key );
+			if ( $existing !== false && ( time() - (int) $existing ) > 30 ) {
+				delete_transient( $lock_key ); // Only delete if stale.
+			}
 			if ( set_transient( $lock_key, time(), 30 ) ) {
 				$locked = true;
 				break;

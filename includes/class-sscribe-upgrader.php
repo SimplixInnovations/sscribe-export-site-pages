@@ -51,9 +51,9 @@ class SScribe_Upgrader {
 			try {
 				self::run_migrations( $installed_version );
 				update_option( self::SCHEMA_VERSION_OPTION, SSCRIBE_VERSION, false );
-				update_option( 'sscribe_version', SSCRIBE_VERSION );
+				update_option( 'sscribe_version', SSCRIBE_VERSION, false );
 			} catch ( \Throwable $e ) {
-				update_option( 'sscribe_upgrade_last_error', $e->getMessage() );
+				update_option( 'sscribe_upgrade_last_error', $e->getMessage(), false );
 				if ( defined( 'WP_DEBUG' ) && WP_DEBUG ) {
 					// phpcs:ignore WordPress.PHP.DevelopmentFunctions.error_log_error_log -- Debug-only error logging for upgrade failures
 					error_log( 'SScribe Upgrade Error: ' . $e->getMessage() );

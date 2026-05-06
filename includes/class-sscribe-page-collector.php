@@ -829,12 +829,14 @@ class SScribe_Page_Collector {
 		}
 
 		// WPML case: need to filter by language, so use WP_Query.
-		// Note: We already know WPML is active and language is non-empty due to early return above.
+		// Use fields='ids' to avoid loading full post objects (major memory savings for large sites).
+		// Count by status via separate queries using found_posts — cheaper than loading thousands of objects.
 		$args = array(
 			'post_type'      => $this->resolve_post_type_for_query( $post_type ),
 			'post_status'    => array_keys( $statuses ),
-			'posts_per_page' => -1,
-			'no_found_rows'  => true,
+			'posts_per_page' => 1, // Only need found_posts, not actual posts.
+			'no_found_rows'  => false,
+			'fields'         => 'ids',
 		);
 
 		$switched = false;
@@ -846,14 +848,11 @@ class SScribe_Page_Collector {
 			$args['suppress_filters'] = false;
 			$switched                 = true;
 
-			// WP_Query runs inside the try block; finally ensures language reset on any exception.
-			$query = new WP_Query( $args );
-
-			// Count by status directly from query posts (no N+1 - use post objects already loaded).
-			foreach ( $query->posts as $post ) {
-				if ( $post && isset( $counts[ $post->post_status ] ) ) {
-					++$counts[ $post->post_status ];
-				}
+			// Run one query per status to get counts without loading post objects.
+			foreach ( $statuses as $status => $label ) {
+				$args['post_status'] = $status;
+				$query               = new WP_Query( $args );
+				$counts[ $status ]   = (int) $query->found_posts;
 			}
 		} finally {
 			if ( $switched ) {

@@ -102,7 +102,7 @@ class SScribe_Exporter_Factory {
 	 *
 	 * @param array  $page_data    Page data array (must contain 'title' and 'id').
 	 * @param int    $index        Sequential position (1-based).
-	 * @param int    $total        Total pages (unused, kept for API compatibility).
+	 * @param int    $total        Total page count — used to calculate zero-padding width for proper sort order with 1000+ pages.
 	 * @param string $extension    File extension without dot.
 	 * @param bool   $include_lang Whether to include language code suffix (default true).
 	 * @return string Filename with extension.
