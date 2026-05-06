@@ -974,6 +974,8 @@
 	background: var(--sscribe-danger);
 	color: #FFFFFF;
 	outline: none;
+	transform: none;
+	box-shadow: none;
 }
 
 .sscribe-button-cancel:disabled {

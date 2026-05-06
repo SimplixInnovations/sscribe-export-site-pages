@@ -1505,8 +1505,7 @@ class SScribe_Batch_Processor {
 			$update_data['structured_errors'] = $structured_errors;
 			$update_data['status']            = 'finalizing';
 			$this->session->update( $session_id, $update_data );
-			$this->release_lock( $session_id );
-			$this->restore_ob_level( $ob_level_before );
+			// Note: release_lock + restore_ob_level already called in finally block above.
 
 			$error_diagnostics = array();
 			if ( ! empty( $structured_errors ) ) {
@@ -1527,10 +1526,7 @@ class SScribe_Batch_Processor {
 			return;
 		}
 
-		// Release the lock so the next batch request can proceed.
-		$this->release_lock( $session_id );
-
-		$this->restore_ob_level( $ob_level_before );
+		// Note: release_lock + restore_ob_level already handled by finally block.
 
 		// Build response with pause status for memory or timeout.
 		$paused_reason = '';
@@ -3008,12 +3004,25 @@ class SScribe_Batch_Processor {
 			}
 		}
 
+		// Resolve language display name for WPML sites — return the full language
+			// name (e.g., "Arabic") instead of the raw code (e.g., "ar") when WPML is active.
+			$language_display = '' !== $language ? $language : __( 'All Languages', 'sscribe-export-site-pages' );
+			if ( '' !== $language && $this->collector->is_wpml_active() ) {
+				$wpml_languages = $this->collector->get_wpml_languages();
+				foreach ( $wpml_languages as $wl ) {
+					if ( isset( $wl['code'] ) && $wl['code'] === $language ) {
+						$language_display = $wl['name'] ?? strtoupper( $language );
+						break;
+					}
+				}
+			}
+
 		$preview_data = array(
 			'total_pages'        => $page_count,
 			'format'             => $format,
 			'estimated_time'     => $estimated_time,
 			'file_size_estimate' => $file_size_estimate,
-			'language'           => '' !== $language ? $language : __( 'All Languages', 'sscribe-export-site-pages' ),
+			'language'           => $language_display,
 			'post_status'        => $post_status,
 		);
 

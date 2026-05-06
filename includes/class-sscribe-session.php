@@ -121,6 +121,10 @@ class SScribe_Session {
 			$result = add_option( $option_name, $encoded_data, '', 'no' );
 
 			if ( $result ) {
+				// Set per-user active session transient for O(1) has_active_session() lookup.
+				if ( isset( $data['user_id'] ) ) {
+					set_transient( 'sscribe_active_sid_' . $data['user_id'], $session_id, 300 );
+				}
 				// Success - break out of retry loop.
 				break;
 			}
@@ -359,6 +363,12 @@ class SScribe_Session {
 
 		$option_name = $this->get_option_name( $session_id );
 
+		// Clear per-user active session transient to keep has_active_session() accurate.
+		$data = $this->get( $session_id );
+		if ( is_array( $data ) && isset( $data['user_id'] ) ) {
+			delete_transient( 'sscribe_active_sid_' . $data['user_id'] );
+		}
+
 		return delete_option( $option_name );
 	}
 
@@ -474,6 +484,12 @@ class SScribe_Session {
 				$data = $this->decode_session_value( $option->option_value );
 
 				if ( ! is_array( $data ) ) {
+					// Legacy PHP-serialized sessions (pre-JSON migration) can never be
+					// decoded as JSON and would accumulate forever. Delete them immediately.
+					if ( is_string( $option->option_value ) && str_starts_with( $option->option_value, 'a:' ) ) {
+						delete_option( $option->option_name );
+						++$deleted;
+					}
 					$cursor = $option->option_name;
 					continue;
 				}

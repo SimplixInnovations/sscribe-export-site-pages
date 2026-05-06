@@ -68,7 +68,17 @@ class SScribe_Helpers {
 
 		$icon_class = 'sscribe-icon sscribe-icon-' . sanitize_html_class( $name );
 		if ( '' !== $css_class ) {
-			$icon_class .= ' ' . sanitize_html_class( $css_class );
+			$parts = preg_split( '/\s+/', trim( $css_class ), -1, PREG_SPLIT_NO_EMPTY );
+			$sanitized = array();
+			foreach ( $parts as $part ) {
+				$cleaned = sanitize_html_class( $part );
+				if ( '' !== $cleaned ) {
+					$sanitized[] = $cleaned;
+				}
+			}
+			if ( ! empty( $sanitized ) ) {
+				$icon_class .= ' ' . implode( ' ', $sanitized );
+			}
 		}
 
 		$icon_url = esc_url( SSCRIBE_PLUGIN_URL . self::$icons_dir . $name . '.svg' );

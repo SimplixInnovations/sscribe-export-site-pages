@@ -58,7 +58,7 @@ class SScribe_Deactivator {
 			'sscribe_upgrade_last_error',
 			'sscribe_settings',
 			'sscribe_active_languages',
-			'sscribe_adaptive_metrics',
+			'sscribe_export_metrics',
 		);
 
 		foreach ( $options_to_remove as $option ) {

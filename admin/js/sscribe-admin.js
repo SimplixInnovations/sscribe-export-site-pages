@@ -34,10 +34,10 @@
 			if (!text || typeof text !== 'string') {
 				return 0;
 			}
-			// Remove all non-digit characters except digits and the last period/comma for decimals.
-			var cleaned = text.replace(/[^\d.,]/g, '');
-			// Replace European-style comma decimal separator with period.
-			cleaned = cleaned.replace(/,/g, '');
+			// Strip all dots and commas — this handles both English (1,000) and
+			// European (1.000) thousands separators. Decimal precision is irrelevant
+			// for page counts, so we treat both as thousands separators.
+			var cleaned = text.replace(/[.,]/g, '');
 			var num = parseInt(cleaned, 10);
 			return isNaN(num) ? 0 : num;
 		},
@@ -1330,7 +1330,13 @@ success: function (response) {
 				html += '<div class="sscribe-preview-meta-item"><strong>' + this.escapeHtml(strings.preview_total_pages || 'Total Pages') + '</strong>' + data.total_pages + '</div>';
 			}
 			if (data.format) {
-				html += '<div class="sscribe-preview-meta-item"><strong>' + this.escapeHtml(strings.preview_format || 'Format') + '</strong>' + this.escapeHtml(data.format.toUpperCase()) + '</div>';
+				var formatLabels = {
+					'docx': strings.format_docx || 'Word Document (DOCX)',
+					'pdf': strings.format_pdf || 'PDF Document',
+					'html': strings.format_html || 'HTML Page',
+					'markdown': strings.format_markdown || 'Markdown'
+				};
+				html += '<div class="sscribe-preview-meta-item"><strong>' + this.escapeHtml(strings.preview_format || 'Format') + '</strong>' + this.escapeHtml(formatLabels[data.format] || data.format.toUpperCase()) + '</div>';
 			}
 			if (data.estimated_time) {
 				html += '<div class="sscribe-preview-meta-item"><strong>' + this.escapeHtml(strings.preview_estimated_time || 'Estimated Time') + '</strong>' + this.escapeHtml(data.estimated_time) + '</div>';
@@ -1377,11 +1383,19 @@ success: function (response) {
 			this.restoreFocus();
 		},
 
-		loadSupportInfo: function (e) {
+loadSupportInfo: function (e) {
 			if (e) {
 				e.preventDefault();
 			}
 
+			// Guard against concurrent calls — disable button during AJAX.
+			var $btn = $('#sscribe-support-refresh-btn');
+			if ($btn.length && $btn.prop('disabled')) {
+				return;
+			}
+			$btn.prop('disabled', true);
+
+			var self = this;
 			var strings = sscribe_data.strings || {};
 			var $grid = $('#sscribe-support-grid');
 			var $copy = $('#sscribe-support-copy-text');
@@ -1403,13 +1417,16 @@ success: function (response) {
 				success: function (response) {
 					if (response.success && response.data) {
 						SScribe.renderSupportInfo(response.data);
+						$btn.prop('disabled', false);
 						return;
 					}
 
 					SScribe.renderSupportError((response.data && response.data.message) || strings.support_error || 'Unable to load support information right now.');
+					$btn.prop('disabled', false);
 				},
 				error: function () {
 					SScribe.renderSupportError(strings.support_error || 'Unable to load support information right now.');
+					$btn.prop('disabled', false);
 				}
 			});
 		},

@@ -54,7 +54,7 @@ class SScribe_Activator {
 		self::create_database_tables();
 		self::schedule_cleanup();
 		self::cleanup_orphaned_data();
-		update_option( 'sscribe_version', SSCRIBE_VERSION );
+		update_option( 'sscribe_version', SSCRIBE_VERSION, false );
 		set_transient( 'sscribe_activation_redirect', '1', MINUTE_IN_SECONDS );
 	}
 

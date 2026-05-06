@@ -42,6 +42,14 @@ class SScribe_PDF_Exporter implements SScribe_Exporter_Interface {
 	private SScribe_Filesystem $filesystem;
 
 	/**
+	 * Whether the mpdf temp directory has been protected.
+	 * Set once per request to avoid redundant file_exists() checks.
+	 *
+	 * @var bool
+	 */
+	private static bool $mpdf_temp_protected = false;
+
+	/**
 	 * Constructor.
 	 *
 	 * @param SScribe_HTML_Exporter|null    $html_exporter HTML exporter instance.
@@ -155,8 +163,12 @@ class SScribe_PDF_Exporter implements SScribe_Exporter_Interface {
 				wp_mkdir_p( $mpdf_temp );
 			}
 
-			// Protect temp directory with .htaccess + index.php (centralized security helper).
-			SScribe_Security::protect_directory( $mpdf_temp );
+			// Protect temp directory with .htaccess + index.php — guard prevents
+			// repeated file_exists() calls on every PDF page (200 checks per 100 pages).
+			if ( ! self::$mpdf_temp_protected ) {
+				SScribe_Security::protect_directory( $mpdf_temp );
+				self::$mpdf_temp_protected = true;
+			}
 
 			$config = array(
 				'mode'             => $is_rtl ? 'ar' : 'utf-8',

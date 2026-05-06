@@ -179,13 +179,6 @@ class SScribe_Content_Parser {
 				}
 			}
 
-			// CRITICAL: Explicitly release DOMDocument to prevent memory accumulation.
-			// DOMDocument retains the entire parsed tree in memory even after processing.
-			// For large HTML documents (5MB+), this can consume significant memory.
-			unset( $body );
-			$dom = null;
-			unset( $dom );
-
 			return $elements;
 
 		} catch ( \Throwable $e ) {
@@ -197,7 +190,15 @@ class SScribe_Content_Parser {
 			throw $e;
 
 		} finally {
-			// Safety net: always restore libxml state and clear any residual errors.
+			// Always release DOMDocument and restore libxml state, whether processing
+			// succeeded or threw an exception. DOMDocument can hold 5-20MB for complex HTML.
+			if ( isset( $body ) ) {
+				unset( $body );
+			}
+			if ( isset( $dom ) ) {
+				$dom = null;
+				unset( $dom );
+			}
 			libxml_clear_errors();
 			libxml_use_internal_errors( $prev_use_errors );
 		}
