@@ -170,7 +170,7 @@ class SScribe_Upgrader {
 					$wpdb->query( 'ALTER TABLE `' . $wpdb->prefix . 'sscribe_export_stats` ADD INDEX idx_export_session_id (export_session_id)' );
 				}
 			} catch ( \Throwable $e ) {
-				update_option( 'sscribe_upgrade_last_error', 'Error adding idx_export_session_id: ' . $e->getMessage() );
+				update_option( 'sscribe_upgrade_last_error', 'Error adding idx_export_session_id: ' . $e->getMessage(), false );
 			}
 		}
 
@@ -194,7 +194,7 @@ class SScribe_Upgrader {
 					$wpdb->query( 'ALTER TABLE `' . $wpdb->prefix . 'sscribe_export_stats` MODIFY COLUMN export_session_id VARCHAR(64) NOT NULL' );
 				}
 			} catch ( \Throwable $e ) {
-				update_option( 'sscribe_upgrade_last_error', 'Error modifying export_session_id: ' . $e->getMessage() );
+				update_option( 'sscribe_upgrade_last_error', 'Error modifying export_session_id: ' . $e->getMessage(), false );
 			}
 		}
 	}
