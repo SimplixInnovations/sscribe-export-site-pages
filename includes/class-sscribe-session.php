@@ -630,10 +630,10 @@ class SScribe_Session {
 			return self::$active_session_cache[ $user_id ];
 		}
 
-		$cache_key = 'sscribe_active_session_' . $user_id;
+		$cache_key = 'sscribe_active_sid_' . $user_id;
 		$cached    = get_transient( $cache_key );
 		if ( false !== $cached ) {
-			self::$active_session_cache[ $user_id ] = (bool) $cached;
+			self::$active_session_cache[ $user_id ] = ! empty( $cached );
 			return self::$active_session_cache[ $user_id ];
 		}
 
