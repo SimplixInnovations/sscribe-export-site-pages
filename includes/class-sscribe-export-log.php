@@ -61,10 +61,17 @@ class SScribe_Export_Log {
 	 * @param string $session_id The session identifier.
 	 */
 	public function __construct( string $session_id ) {
-		$this->session_id = sanitize_file_name( $session_id );
-		$upload_dir       = wp_upload_dir();
-		$this->log_dir    = $upload_dir['basedir'] . '/sscribe-logs';
-		$this->log_file   = $this->log_dir . '/export_' . $this->session_id . '.json';
+		$upload_dir = wp_upload_dir();
+		$this->log_dir = $upload_dir['basedir'] . '/sscribe-logs';
+
+		// Validate session ID is exactly 16 hex characters (bin2hex(random_bytes(8)) format).
+		// This prevents path traversal. For invalid formats, fall back to sanitize_file_name.
+		if ( preg_match( '/^[a-f0-9]{16}$/', $session_id ) ) {
+			$this->session_id = $session_id;
+		} else {
+			$this->session_id = sanitize_file_name( $session_id );
+		}
+		$this->log_file = $this->log_dir . '/export_' . $this->session_id . '.json';
 
 		$this->init_log();
 	}

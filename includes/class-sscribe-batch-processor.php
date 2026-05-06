@@ -529,7 +529,9 @@ class SScribe_Batch_Processor {
 		if ( ! $this->check_rate_limit() ) {
 			wp_send_json_error(
 				array(
-					'message' => __( 'Too many requests. Please wait a moment and try again.', 'sscribe-export-site-pages' ),
+					'message'   => __( 'Too many requests. Please wait a moment and try again.', 'sscribe-export-site-pages' ),
+					'retry'     => true,
+					'retry_in'  => 60000,
 				),
 				429
 			);
@@ -768,7 +770,9 @@ class SScribe_Batch_Processor {
 		if ( ! $this->check_rate_limit() ) {
 			wp_send_json_error(
 				array(
-					'message' => __( 'Too many requests. Please wait a moment.', 'sscribe-export-site-pages' ),
+					'message'  => __( 'Too many requests. Please wait a moment.', 'sscribe-export-site-pages' ),
+					'retry'    => true,
+					'retry_in' => 60000,
 				),
 				429
 			);
@@ -2881,6 +2885,18 @@ class SScribe_Batch_Processor {
 			return;
 		}
 
+		if ( ! $this->check_rate_limit() ) {
+			wp_send_json_error(
+				array(
+					'message'  => __( 'Too many requests. Please wait a moment.', 'sscribe-export-site-pages' ),
+					'retry'    => true,
+					'retry_in' => 60000,
+				),
+				429
+			);
+			return;
+		}
+
 		// phpcs:ignore WordPress.Security.ValidatedSanitizedInput.InputNotSanitized -- Sanitization via array_map on next line.
 		$formats_raw   = isset( $_POST['formats'] ) ? wp_unslash( (array) $_POST['formats'] ) : array();
 		$formats_input = array_map( 'sanitize_text_field', $formats_raw );
@@ -2917,6 +2933,18 @@ class SScribe_Batch_Processor {
 					'message' => __( 'Permission denied.', 'sscribe-export-site-pages' ),
 				),
 				403
+			);
+			return;
+		}
+
+		if ( ! $this->check_rate_limit() ) {
+			wp_send_json_error(
+				array(
+					'message'  => __( 'Too many requests. Please wait a moment.', 'sscribe-export-site-pages' ),
+					'retry'    => true,
+					'retry_in' => 60000,
+				),
+				429
 			);
 			return;
 		}
@@ -3037,8 +3065,8 @@ class SScribe_Batch_Processor {
 				'url'            => $this->zip_handler->get_ajax_download_url( $filename ),
 				'size'           => filesize( $file_path ),
 				'size_formatted' => size_format( filesize( $file_path ) ),
-				'time'           => $data['time'] ?? filemtime( $file_path ),
-				'date'           => wp_date( ( get_option( 'date_format' ) ?: 'Y-m-d' ) . ' ' . ( get_option( 'time_format' ) ?: 'H:i' ), $data['time'] ?? filemtime( $file_path ) ),
+				'time'           => $data['created_at'] ?? filemtime( $file_path ),
+				'date'           => wp_date( ( get_option( 'date_format' ) ?: 'Y-m-d' ) . ' ' . ( get_option( 'time_format' ) ?: 'H:i' ), $data['created_at'] ?? filemtime( $file_path ) ),
 				'lang_code'      => $data['lang_code'] ?? '',
 				'lang_name'      => $data['lang_name'] ?? '',
 				'flag_url'       => $data['flag_url'] ?? '',
@@ -3076,6 +3104,18 @@ class SScribe_Batch_Processor {
 			wp_send_json_error(
 				array( 'message' => __( 'Permission denied.', 'sscribe-export-site-pages' ) ),
 				403
+			);
+			return;
+		}
+
+		if ( ! $this->check_rate_limit() ) {
+			wp_send_json_error(
+				array(
+					'message'  => __( 'Too many requests. Please wait a moment.', 'sscribe-export-site-pages' ),
+					'retry'    => true,
+					'retry_in' => 60000,
+				),
+				429
 			);
 			return;
 		}

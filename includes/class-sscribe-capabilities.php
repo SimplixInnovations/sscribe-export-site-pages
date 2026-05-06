@@ -27,6 +27,7 @@ class SScribe_Capabilities {
 	private const ALLOWED = array(
 		'manage_options',
 		'edit_pages',
+		'edit_posts',   // Supports post type export for post editors.
 		'publish_pages',
 		'delete_pages',
 		'export',

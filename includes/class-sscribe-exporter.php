@@ -116,11 +116,11 @@ class SScribe_Exporter {
 	private function safe_text( string $text ): string {
 		$text = (string) $text;
 
-		// 0. Decode percent-encoded URLs so they display as readable text (e.g. %D9%84%D8%B9%D8%B1%D8%A7%D9%86 →发展有限公司).
-		// This must happen before any XML character filtering so we don't double-decode.
-		if ( str_starts_with( $text, 'http' ) || str_starts_with( $text, '//' ) ) {
-			$text = urldecode( $text );
-		}
+		// NOTE: Do NOT urldecode here — callers already decode URLs before passing.
+		// Applying urldecode would corrupt encoded path segments (%2F → /) and query
+		// strings, breaking hyperlink targets in addLink() calls.
+		// Per-word URL decoding happens at display-time in $display_url assignments,
+		// not in this general-purpose XML-safe text routine.
 
 		// 1. Remove XML 1.0 illegal control characters (keep \t, \n, \r).
 		$text = preg_replace( '/[\x00-\x08\x0B\x0C\x0E-\x1F\x7F]/', '', $text );
@@ -761,6 +761,24 @@ class SScribe_Exporter {
 					'font'  => $this->font_name,
 				)
 			);
+		}
+
+		// Word requires user to right-click TOC and select "Update Field" to populate it.
+		// Add a subtle italic hint so users know they need to do this.
+		try {
+			$section->addText(
+				/* translators: This appears below the TOC placeholder in DOCX files. */
+				__( 'Right-click above and select "Update Field" to generate the Table of Contents.', 'sscribe-export-site-pages' ),
+				array(
+					'name'  => $this->font_name,
+					'size'  => 9,
+					'italic'=> true,
+					'color' => '888888',
+				),
+				$this->get_para_style( array( 'spaceBefore' => Converter::pointToTwip( 4 ) ) )
+			);
+		} catch ( \Throwable $e ) {
+			// Silently ignore — the TOC instruction is non-critical.
 		}
 
 		$section->addPageBreak();
