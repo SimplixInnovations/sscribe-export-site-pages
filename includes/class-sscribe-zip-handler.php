@@ -206,7 +206,7 @@ class SScribe_Zip_Handler {
 		while ( time() - $start < $timeout ) {
 			// Check for stale lock (older than 30 seconds) before attempting acquisition.
 			$existing = get_transient( $lock_key );
-			if ( $existing !== false && ( time() - (int) $existing ) > 30 ) {
+			if ( false !== $existing && ( time() - (int) $existing ) > 30 ) {
 				delete_transient( $lock_key ); // Only delete if stale.
 			}
 			if ( set_transient( $lock_key, time(), 30 ) ) {
@@ -300,12 +300,12 @@ class SScribe_Zip_Handler {
 			'LV',
 			'ET',
 			'SL',
-			'PS', // Pashto
-			'KU', // Kurdish
-			'SD', // Sindhi
-			'YI', // Yiddish (modern)
-			'IW', // Hebrew (legacy ISO 639-1)
-			'JI', // Yiddish (legacy ISO 639-1)
+			'PS',   // Pashto.
+			'KU',   // Kurdish.
+			'SD',   // Sindhi.
+			'YI',   // Yiddish (modern).
+			'IW',   // Hebrew (legacy ISO 639-1).
+			'JI',   // Yiddish (legacy ISO 639-1).
 		);
 
 		return in_array( $matches[1], $known_codes, true ) ? $matches[1] : null;
