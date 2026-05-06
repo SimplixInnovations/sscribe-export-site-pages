@@ -770,15 +770,16 @@ class SScribe_Exporter {
 				/* translators: This appears below the TOC placeholder in DOCX files. */
 				__( 'Right-click above and select "Update Field" to generate the Table of Contents.', 'sscribe-export-site-pages' ),
 				array(
-					'name'  => $this->font_name,
-					'size'  => 9,
-					'italic'=> true,
-					'color' => '888888',
+					'name'   => $this->font_name,
+					'size'   => 9,
+					'italic' => true,
+					'color'  => '888888',
 				),
 				$this->get_para_style( array( 'spaceBefore' => Converter::pointToTwip( 4 ) ) )
 			);
 		} catch ( \Throwable $e ) {
 			// Silently ignore — the TOC instruction is non-critical.
+			unset( $e ); // Sentinel: empty catch is intentional here.
 		}
 
 		$section->addPageBreak();
