@@ -37,13 +37,7 @@
 			// Remove all non-digit characters except digits and the last period/comma for decimals.
 			var cleaned = text.replace(/[^\d.,]/g, '');
 			// Replace European-style comma decimal separator with period.
-			if (cleaned.indexOf(',') !== -1 && cleaned.indexOf('.') === -1) {
-				cleaned = cleaned.replace(/,/g, '');
-			} else if (cleaned.indexOf(',') !== -1 && cleaned.lastIndexOf(',') > cleaned.lastIndexOf('.')) {
-				cleaned = cleaned.replace(/,/g, '');
-			} else {
-				cleaned = cleaned.replace(/,/g, '');
-			}
+			cleaned = cleaned.replace(/,/g, '');
 			var num = parseInt(cleaned, 10);
 			return isNaN(num) ? 0 : num;
 		},
@@ -674,8 +668,35 @@ success: function (response) {
 						}
 
 						if (response.data && response.data.code === 'not_finalizing') {
-							self.isProcessing = false;
-							self.showError(response.data.message || 'Export failed to finalize. Please try again.', false, {});
+							// Session gone but ZIP may have been created. Check recent exports before failing.
+							$.ajax({
+								url: sscribe_data.ajaxurl,
+								type: 'POST',
+								timeout: 15000,
+								data: { action: 'sscribe_get_recent_exports', nonce: sscribe_data.nonce },
+								success: function (recentResp) {
+									if (recentResp.success && recentResp.data && recentResp.data.exports && recentResp.data.exports.length > 0) {
+										var latest = recentResp.data.exports[0];
+										var resultData = {
+											download_url: latest.url,
+											filename: latest.filename,
+											percentage: 100,
+											processed: 0,
+											total: 0
+										};
+										self.isProcessing = false;
+										self.updateProgress(100);
+										self.exportComplete(resultData);
+									} else {
+										self.isProcessing = false;
+										self.showError(response.data.message || 'Export failed to finalize. Please try again.', false, {});
+									}
+								},
+								error: function () {
+									self.isProcessing = false;
+									self.showError(response.data.message || 'Export failed to finalize. Please try again.', false, {});
+								}
+							});
 							return;
 						}
 
@@ -1066,7 +1087,7 @@ success: function (response) {
 				timeout: 30000,
 				data: {
 					action: 'sscribe_get_export_log',
-					nonce: sscribe_data.nonce,
+					nonce: sscribe_data.download_nonce,
 					file: filename
 				},
 				success: function (response) {

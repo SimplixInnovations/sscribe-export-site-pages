@@ -77,10 +77,12 @@ class SScribe_PDF_Exporter implements SScribe_Exporter_Interface {
 		$is_rtl   = SScribe_RTL_Helper::is_rtl( $language );
 
 		$processed_page_data = $this->process_images_in_page_data( $page_data );
+		$temp_image_paths     = $this->collect_temp_image_paths( $processed_page_data );
 
 		$html_result = $this->html_exporter->export( $processed_page_data, $output_dir, $index, $total );
 
 		if ( $html_result->is_failure() ) {
+			$this->cleanup_temp_images( $temp_image_paths );
 			return $html_result;
 		}
 
@@ -278,8 +280,39 @@ class SScribe_PDF_Exporter implements SScribe_Exporter_Interface {
 				)
 			);
 		} finally {
+			$this->cleanup_temp_images( $temp_image_paths );
 			libxml_clear_errors();
 			libxml_use_internal_errors( $prev_errors );
+		}
+	}
+
+	/**
+	 * Collect temp image paths from processed page data for cleanup later.
+	 *
+	 * @param array $processed_page_data Page data with resolved image paths.
+	 * @return array<string> List of temp file paths to clean up.
+	 */
+	private function collect_temp_image_paths( array $processed_page_data ): array {
+		$paths = array();
+		if ( ! empty( $processed_page_data['featured_image_url'] ) ) {
+			$path = $processed_page_data['featured_image_url'];
+			// Only track temp files (not uploads dir files which are permanent).
+			if ( file_exists( $path ) && strpos( $path, sys_get_temp_dir() ) === 0 ) {
+				$paths[] = $path;
+			}
+		}
+		return $paths;
+	}
+
+	/**
+	 * Clean up temp image files to prevent disk space accumulation.
+	 *
+	 * @param array<string> $paths List of temp file paths.
+	 * @return void
+	 */
+	private function cleanup_temp_images( array $paths ): void {
+		foreach ( $paths as $path ) {
+			SScribe_Image_Processor::cleanup( $path );
 		}
 	}
 

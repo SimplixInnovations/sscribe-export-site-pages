@@ -198,7 +198,7 @@ class SScribe_Zip_Handler {
 		// Use atomic transient-based lock with TTL to prevent race conditions during indexing.
 		// set_transient() with expiry is crash-safe unlike add_option() (no TTL, permanent orphan).
 		// Also clear any stale lock at start in case prior process crashed before cleanup.
-		$lock_key = 'sscribe_index_lock_' . get_current_user_id();
+		$lock_key = 'sscribe_index_lock'; // Global lock — export index is shared across all users.
 		delete_transient( $lock_key ); // Clear any stale lock from crashed process.
 		$locked   = false;
 		$timeout  = 5; // Seconds.
@@ -296,6 +296,12 @@ class SScribe_Zip_Handler {
 			'LV',
 			'ET',
 			'SL',
+			'PS', // Pashto
+			'KU', // Kurdish
+			'SD', // Sindhi
+			'YI', // Yiddish (modern)
+			'IW', // Hebrew (legacy ISO 639-1)
+			'JI', // Yiddish (legacy ISO 639-1)
 		);
 
 		return in_array( $matches[1], $known_codes, true ) ? $matches[1] : null;

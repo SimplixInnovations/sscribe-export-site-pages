@@ -112,11 +112,16 @@ class SScribe_Exporter_Factory {
 
 		// Include page title in native language for user-friendly identification.
 		// sanitize_file_name handles Unicode (Arabic, CJK, etc.) and strips unsafe chars.
-		// Fallback to 'page' if sanitize_file_name returns empty (e.g. pure Arabic/CJK titles).
-		$raw_title  = isset( $page_data['title'] ) && '' !== $page_data['title']
+		// Attempt page title first, then slug, then 'page' as last resort.
+		// sanitize_file_name() strips all non-ASCII (Arabic, CJK, etc.) returning empty.
+		// Slug is URL-safe ASCII and uniquely identifies the page even for non-Latin scripts.
+		$raw_title = isset( $page_data['title'] ) && '' !== $page_data['title']
 			? sanitize_file_name( trim( $page_data['title'] ) )
 			: '';
-		$page_title = '' !== $raw_title ? $raw_title : 'page';
+		$raw_slug = isset( $page_data['slug'] ) && '' !== $page_data['slug']
+			? sanitize_file_name( trim( $page_data['slug'] ) )
+			: '';
+		$page_title = '' !== $raw_title ? $raw_title : ( '' !== $raw_slug ? $raw_slug : 'page' );
 
 		// Truncate title to 60 chars to keep filenames reasonable.
 		// mb_substr handles multibyte (Arabic, CJK) correctly.
