@@ -212,7 +212,13 @@ foreach ( $all_files as $file ) {
 		$basename = basename( $file );
 		$skip     = false;
 		foreach ( $skip_patterns as $pattern => $reason ) {
-			if ( fnmatch( $pattern, $basename ) || str_contains( $basename, $pattern ) ) {
+			// Use str_ends_with for extension patterns (e.g., '.pot'),
+			// exact match for full filenames. Avoids fnmatch() which is
+			// unavailable on Windows by default.
+			$match = str_starts_with( $pattern, '.' )
+				? str_ends_with( $basename, $pattern )
+				: ( $basename === $pattern );
+			if ( $match || str_contains( $basename, $pattern ) ) {
 				$skip = true;
 				break;
 			}
