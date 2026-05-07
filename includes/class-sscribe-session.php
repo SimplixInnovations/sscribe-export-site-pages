@@ -158,7 +158,7 @@ class SScribe_Session {
 
 		if ( isset( $data['user_id'] ) ) {
 			unset( self::$active_session_cache[ (int) $data['user_id'] ] );
-			delete_transient( 'sscribe_active_session_' . (int) $data['user_id'] );
+			delete_transient( 'sscribe_active_sid_' . (int) $data['user_id'] );
 		}
 
 		return $session_id;
@@ -323,7 +323,7 @@ class SScribe_Session {
 				if ( update_option( $option_name, $encoded_data, false ) ) {
 					if ( isset( $merged['user_id'] ) ) {
 						unset( self::$active_session_cache[ (int) $merged['user_id'] ] );
-						delete_transient( 'sscribe_active_session_' . (int) $merged['user_id'] );
+						delete_transient( 'sscribe_active_sid_' . (int) $merged['user_id'] );
 					}
 					return true;
 				}
@@ -549,7 +549,7 @@ class SScribe_Session {
 			}
 		}
 
-		delete_transient( 'sscribe_active_session_' . $user_id );
+		delete_transient( 'sscribe_active_sid_' . $user_id );
 
 		return $deleted;
 	}
