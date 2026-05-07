@@ -156,10 +156,9 @@ class SScribe_Session {
 			}
 		}
 
-		if ( isset( $data['user_id'] ) ) {
-			unset( self::$active_session_cache[ (int) $data['user_id'] ] );
-			delete_transient( 'sscribe_active_sid_' . (int) $data['user_id'] );
-		}
+		// On success, the transient was already set at line 126 — do NOT delete it.
+		// On failure (retries exhausted), cleanup is handled by the early return at line 155.
+		// This guard ensures the O(1) has_active_session() cache survives successful creation.
 
 		return $session_id;
 	}
