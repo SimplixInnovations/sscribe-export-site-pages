@@ -708,6 +708,20 @@ success: function (response) {
 						}
 					},
 					error: function (xhr) {
+						// HTTP 404 = session was deleted (session cleanup on failure).
+						// Stop retrying and show error — the session is gone so retry is futile.
+						if (xhr.status === 404) {
+							self.isProcessing = false;
+							self.showError(
+								sscribe_data.strings.err_zip ||
+								'Export failed: no files were generated. Please check your format selection and try again.',
+								false,
+								{}
+							);
+							return;
+						}
+
+						// For 500 and other errors, retry up to maxAttempts.
 						if (attempt < maxAttempts) {
 							self.pollFinalize(sessionId, attempt + 1, 2000);
 						} else {
@@ -823,6 +837,7 @@ success: function (response) {
 			$('#sscribe-time-remaining').text('').hide();
 			$('#sscribe-cancel-btn').prop('disabled', false).text(sscribe_data.strings.cancel || 'Cancel Export');
 			this.updateProgress(0);
+			$('#sscribe-export-btn, #sscribe-preview-btn').prop('disabled', true);
 		},
 
 		showError: function (message, isCancelled, errorData) {

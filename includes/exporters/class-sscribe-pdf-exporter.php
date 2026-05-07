@@ -171,14 +171,24 @@ class SScribe_PDF_Exporter implements SScribe_Exporter_Interface {
 			}
 
 			$config = array(
+				// fontDir: tells mPDF where to search for TTF font files.
+				// Without this, FontFileFinder cannot locate fonts even when fontdata paths are set.
+				'fontDir'          => array(
+					$manrope_dir,
+					$font_dir . 'notosansarabic/',
+				),
 				'mode'             => $is_rtl ? 'ar' : 'utf-8',
 				'default_font'     => 'manrope',
 				'fontdata'         => array(
 					'manrope'        => array(
-						'R' => $manrope_dir . 'Manrope-Regular.ttf',
-						'B' => $manrope_dir . 'Manrope-Bold.ttf',
-						'M' => $manrope_dir . 'Manrope-Medium.ttf',
-						'L' => $manrope_dir . 'Manrope-Light.ttf',
+						'R'  => $manrope_dir . 'Manrope-Regular.ttf',
+						'B'  => $manrope_dir . 'Manrope-Bold.ttf',
+						'M'  => file_exists( $manrope_dir . 'Manrope-Medium.ttf' )
+							? $manrope_dir . 'Manrope-Medium.ttf'
+							: $manrope_dir . 'Manrope-Regular.ttf',
+						'L'  => file_exists( $manrope_dir . 'Manrope-Light.ttf' )
+							? $manrope_dir . 'Manrope-Light.ttf'
+							: $manrope_dir . 'Manrope-Regular.ttf',
 					),
 					'notosansarabic' => array(
 						'R' => $font_dir . 'notosansarabic/NotoSansArabic-Regular.ttf',

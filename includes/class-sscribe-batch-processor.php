@@ -1800,6 +1800,48 @@ class SScribe_Batch_Processor {
 			}
 			$this->logger->debug( 'Files in temp dir BEFORE ZIP', $files_before );
 
+			// Early exit: if no files were generated (all pages failed), return immediately
+			// without attempting ZIP creation. This prevents a confusing "ZIP failed" error
+			// and preserves the session so the JS client gets a proper 500 (not 404) on retry.
+			$total_generated_files = array_sum( $files_before );
+			if ( $total_generated_files === 0 ) {
+				$this->logger->debug(
+					'No files generated — all pages likely failed',
+					array(
+						'temp_dir'       => $session['temp_dir'],
+						'formats'       => $formats,
+					)
+				);
+
+				if ( $this->export_log ) {
+					$this->export_log->mark_failed( 'No files generated — all pages failed' );
+					$this->export_log->flush();
+				}
+
+				$export_stats = new SScribe_Export_Stats();
+				$export_stats->fail_export( $session_id, 'No files generated' );
+
+				if ( ! empty( $session['temp_dir'] ) && is_dir( $session['temp_dir'] ) ) {
+					$this->zip_handler->delete_directory( $session['temp_dir'] );
+				}
+
+				$this->release_lock( $session_id );
+				$this->diagnostics->self_heal();
+
+				wp_send_json_error(
+					array(
+						'message'   => __( 'No files were generated — all pages failed to export. Check the export format selected and try again.', 'sscribe-export-site-pages' ),
+						'guidance'  => __( 'If you selected PDF format, verify that the PDF export works before running a bulk export. Try exporting a single page first.', 'sscribe-export-site-pages' ),
+						'fix_steps' => array(
+							__( 'Select DOCX, HTML, or Markdown format instead of PDF-only.', 'sscribe-export-site-pages' ),
+							__( 'If PDF is needed, contact your plugin developer to verify PDF is configured correctly.', 'sscribe-export-site-pages' ),
+						),
+					),
+					500
+				);
+				return;
+			}
+
 			$zip_path = $this->zip_handler->create_zip( $session['temp_dir'], $zip_name, $formats, $has_language, $lang_metadata );
 
 			if ( ! $zip_path ) {
@@ -1825,11 +1867,11 @@ class SScribe_Batch_Processor {
 					$this->zip_handler->delete_directory( $session['temp_dir'] );
 				}
 
-				// Clean up the session and lock so user can retry.
-				$this->session->delete( $session_id );
+				// Release lock so user can retry without waiting for lock TTL expiry.
+				// Do NOT delete session — preserving it allows the retry to get a proper
+				// error response (500) instead of 404 (session gone), which stops the
+				// infinite retry flood in the JS client.
 				$this->release_lock( $session_id );
-
-				// Run self-heal to clear any orphaned data from this failed export.
 				$this->diagnostics->self_heal();
 
 				$zip_error = array(
