@@ -299,9 +299,11 @@ class SScribe_Logger_Enhanced implements SScribe_Logger_Interface {
 		$content  = implode( PHP_EOL, $this->buffer ) . PHP_EOL;
 
 		// phpcs:ignore WordPress.WP.AlternativeFunctions.file_system_operations_file_put_contents
-		file_put_contents( $log_file, $content, FILE_APPEND | LOCK_EX );
+		$result = file_put_contents( $log_file, $content, FILE_APPEND | LOCK_EX );
 
-		$this->buffer = array();
+		if ( false !== $result ) {
+			$this->buffer = array();
+		}
 	}
 
 	/**
