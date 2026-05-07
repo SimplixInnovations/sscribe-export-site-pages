@@ -65,12 +65,30 @@ echo "✓ Pushed to develop\n";
 
 // Merge to main and push.
 exec( 'git checkout main', $co_output, $co_exit );
-exec( 'git merge develop', $merge_output, $merge_exit );
-exec( 'git push origin main', $push_main_output, $push_main_exit );
-exec( 'git checkout develop', $co_dev_output, $co_dev_exit );
+if ( 0 !== $co_exit ) {
+	echo "Error: git checkout main failed.\n";
+	exit( 1 );
+}
 
-if ( 0 === $push_main_exit ) {
-	echo "✓ Merged to main and pushed\n";
+exec( 'git merge develop -m "Merge develop: release v' . $new_version . '"', $merge_output, $merge_exit );
+if ( 0 !== $merge_exit ) {
+	echo "Error: git merge develop failed — resolve conflicts manually.\n";
+	// Switch back to develop to avoid leaving repo on main in broken state.
+	exec( 'git merge --abort 2>NUL', $abort_output, $abort_exit );
+	exec( 'git checkout develop', $co_back_output, $co_back_exit );
+	exit( 1 );
+}
+
+exec( 'git push origin main', $push_main_output, $push_main_exit );
+if ( 0 !== $push_main_exit ) {
+	echo "Error: git push main failed.\n";
+	exit( 1 );
+}
+echo "✓ Merged to main and pushed\n";
+
+exec( 'git checkout develop', $co_dev_output, $co_dev_exit );
+if ( 0 !== $co_dev_exit ) {
+	echo "Warning: git checkout develop failed.\n";
 }
 
 // Create tag if requested.
