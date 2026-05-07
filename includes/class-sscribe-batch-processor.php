@@ -1804,7 +1804,7 @@ class SScribe_Batch_Processor {
 			// without attempting ZIP creation. This prevents a confusing "ZIP failed" error
 			// and preserves the session so the JS client gets a proper 500 (not 404) on retry.
 			$total_generated_files = array_sum( $files_before );
-			if ( $total_generated_files === 0 ) {
+			if ( 0 === $total_generated_files ) {
 				$this->logger->debug(
 					'No files generated — all pages likely failed',
 					array(
