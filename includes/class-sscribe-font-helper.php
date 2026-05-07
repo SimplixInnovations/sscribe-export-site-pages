@@ -26,9 +26,9 @@ class SScribe_Font_Helper {
 	 */
 	public static function get_arabic_font_path( bool $bold = false ): string {
 		if ( $bold ) {
-			return defined( 'SSCRIBE_FONT_ARABIC_BOLD' ) ? SSCRIBE_FONT_ARABIC_BOLD : SSCRIBE_PLUGIN_DIR . 'assets/fonts/noto/NotoSansArabic-Bold.ttf';
+			return defined( 'SSCRIBE_FONT_ARABIC_BOLD' ) ? SSCRIBE_FONT_ARABIC_BOLD : SSCRIBE_PLUGIN_DIR . 'assets/fonts/notosansarabic/NotoSansArabic-Bold.ttf';
 		}
-		return defined( 'SSCRIBE_FONT_ARABIC' ) ? SSCRIBE_FONT_ARABIC : SSCRIBE_PLUGIN_DIR . 'assets/fonts/noto/NotoSansArabic-Regular.ttf';
+		return defined( 'SSCRIBE_FONT_ARABIC' ) ? SSCRIBE_FONT_ARABIC : SSCRIBE_PLUGIN_DIR . 'assets/fonts/notosansarabic/NotoSansArabic-Regular.ttf';
 	}
 
 	/**
