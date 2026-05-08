@@ -1718,6 +1718,14 @@ class SScribe_Batch_Processor {
 	 * @return void
 	 */
 	private function finalize_export( string $session_id, array $session ): void {
+		// Re-initialize export log — finalize_export runs in a separate HTTP request
+		// from ajax_process_batch, so $this->export_log is always null here.
+		// Without this, mark_complete() is never called and zip_file is never
+		// written to the log, causing get_log_by_filename() to always return null.
+		if ( null === $this->export_log ) {
+			$this->export_log = new SScribe_Export_Log( $session_id );
+		}
+
 		// Increase time limit for ZIP finalization.
 		// Creating a ZIP with many PDF files (each 1-5MB) is I/O intensive and can
 		// exceed the default batch time limit, causing a 404 "session not found" error.

@@ -163,6 +163,36 @@ class SScribe_PDF_Exporter implements SScribe_Exporter_Interface {
 				wp_mkdir_p( $mpdf_temp );
 			}
 
+			// Validate font directories before mPDF init — if fontDir entries don't
+			// exist, mPDF throws a generic exception that gets swallowed by the outer
+			// catch, producing a silent failure with no file written and no useful error.
+			if ( ! is_dir( $manrope_dir ) || ! file_exists( $manrope_dir . 'Manrope-Regular.ttf' ) ) {
+				return SScribe_Result::failure(
+					__( 'PDF export failed: Manrope font files are missing. Reinstall the plugin.', 'sscribe-export-site-pages' ),
+					array(
+						'error_category' => 'pdf_missing_library',
+						'page_id'        => $page_id,
+						'missing_dir'    => $manrope_dir,
+					)
+				);
+			}
+
+			// Validate temp dir is writable — mPDF writes temporary files during
+			// rendering. If the dir is not writable, mPDF fails silently.
+			if ( ! wp_is_writable( $mpdf_temp ) ) {
+				return SScribe_Result::failure(
+					sprintf(
+						__( 'PDF export failed: temp directory is not writable (%s).', 'sscribe-export-site-pages' ),
+						$mpdf_temp
+					),
+					array(
+						'error_category' => 'pdf_filesystem',
+						'page_id'        => $page_id,
+						'temp_dir'       => $mpdf_temp,
+					)
+				);
+			}
+
 			// Protect temp directory with .htaccess + index.php — guard prevents
 			// repeated file_exists() calls on every PDF page (200 checks per 100 pages).
 			if ( ! self::$mpdf_temp_protected ) {
@@ -260,6 +290,13 @@ class SScribe_PDF_Exporter implements SScribe_Exporter_Interface {
 			);
 
 		} catch ( \Throwable $e ) {
+			// CRITICAL: Remove any partial file left by a failed mPDF->Output().
+			// Without this, the partial (corrupted) PDF gets included in the ZIP,
+			// corrupting the entire export package.
+			if ( ! empty( $output_path ) && file_exists( $output_path ) ) {
+				wp_delete_file( $output_path );
+			}
+
 			$libxml_errors = $this->get_libxml_error_details();
 
 			$this->logger->error(
