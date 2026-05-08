@@ -61,7 +61,7 @@ class SScribe_Export_Log {
 	 * @param string $session_id The session identifier.
 	 */
 	public function __construct( string $session_id ) {
-		$upload_dir = wp_upload_dir();
+		$upload_dir    = wp_upload_dir();
 		$this->log_dir = $upload_dir['basedir'] . '/sscribe-logs';
 
 		// Validate session ID is exactly 16 hex characters (bin2hex(random_bytes(8)) format).
@@ -117,12 +117,12 @@ class SScribe_Export_Log {
 	 */
 	public function flush(): void {
 		if ( $this->dirty && null !== $this->data_cache ) {
-		$json = wp_json_encode( $this->data_cache, JSON_UNESCAPED_UNICODE | JSON_PRETTY_PRINT );
-		// phpcs:ignore WordPress.WP.AlternativeFunctions.file_system_operations_file_put_contents -- Intended logging file operation.
-		$result = file_put_contents( $this->log_file, $json, LOCK_EX );
-		if ( false !== $result ) {
-			$this->dirty = false;
-		}
+			$json = wp_json_encode( $this->data_cache, JSON_UNESCAPED_UNICODE | JSON_PRETTY_PRINT );
+			// phpcs:ignore WordPress.WP.AlternativeFunctions.file_system_operations_file_put_contents -- Intended logging file operation.
+			$result = file_put_contents( $this->log_file, $json, LOCK_EX );
+			if ( false !== $result ) {
+				$this->dirty = false;
+			}
 		}
 	}
 
@@ -446,7 +446,7 @@ class SScribe_Export_Log {
 		}
 
 		// O(1) lookup: check transient index first.
-		$index_key = 'sscribe_zip_index_' . md5( $filename );
+		$index_key  = 'sscribe_zip_index_' . md5( $filename );
 		$session_id = get_transient( $index_key );
 
 		if ( false !== $session_id && is_string( $session_id ) ) {
