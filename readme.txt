@@ -4,7 +4,7 @@ Donate link: https://simplixi.com
 Tags: export, docx, multilingual, seo, pdf, posts, pages
 Requires at least: 6.0
 Tested up to: 6.10
-Stable tag: 3.54.0
+Stable tag: 3.55.0
 Requires PHP: 8.2
 License: GPLv2 or later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
@@ -229,24 +229,28 @@ Each document includes: cover page with title/URL/date/breadcrumbs, featured ima
 
 == Changelog ==
 
-= 3.54.0 =
+= 3.55.0 =
 
-* Feature: Added session_id correlation to all log entries during export operations — enables correlation across AJAX requests
-* Feature: Added log file size limit (10MB) to prevent runaway log files from consuming disk space
-* Feature: Added MAX_LOG_FILE_SIZE constant to SScribe_Logger_Interface for configurable limits
-* Feature: Added set_session_id() method to all logger implementations (SScribe_Logger, SScribe_Logger_Enhanced, SScribe_Logger_Structured)
-* Critical: Fixed 100% PDF export failure — added fontDir key to mPDF config so FontFileFinder locates TTF fonts
-* Critical: Added file_exists() guards for Manrope Medium/Light font variants with Regular.ttf fallback
-* Critical: Fixed infinite JS retry loop on export failure — session preserved on ZIP failure (no more 404 cascade)
-* Critical: Added early "0 files generated" detection with user-friendly error instead of confusing "ZIP failed"
-* Critical: pollFinalize() JS now stops retrying on HTTP 404 (session gone) — prevents console flood
-* Bug: Fixed export log staying at "started" status on failure — now calls mark_failed() in all error paths
-* Bug: Fixed has_active_session() transient cache key inconsistency — create/update/delete now use same sscribe_active_sid_ key
-* Bug: Fixed create() method deleting active-session transient on success — O(1) cache optimization now works
-* Bug: Fixed font-helper fallback paths pointing to non-existent assets/fonts/noto/ directory
-* UI: Export and Preview buttons now disabled during processing to prevent double-start
+* Performance: O(1) ZIP filename lookup via transient index — replaces O(n) scan of all log files
+* Performance: Transient index maps ZIP filename → session_id for instant log retrieval
+* Performance: Fallback to O(n) scan for backward compatibility with pre-index logs
+* Performance: Auto-caches on first lookup for future O(1) access
+* Feature: Added session_id correlation to all log entries during export operations
+* Feature: Added log file size limit (10MB) to prevent runaway log files
+* Feature: Added MAX_LOG_FILE_SIZE constant to SScribe_Logger_Interface
+* Feature: Added set_session_id() method to all logger implementations
+* Critical: Fixed 100% PDF export failure — added fontDir key to mPDF config
+* Critical: Added file_exists() guards for Manrope Medium/Light font variants
+* Critical: Fixed infinite JS retry loop on export failure — session preserved on ZIP failure
+* Critical: Added early "0 files generated" detection with user-friendly error
+* Critical: pollFinalize() JS now stops retrying on HTTP 404 (session gone)
+* Bug: Fixed export log staying at "started" status on failure
+* Bug: Fixed has_active_session() transient cache key inconsistency
+* Bug: Fixed create() method deleting active-session transient on success
+* Bug: Fixed font-helper fallback paths pointing to non-existent directory
+* UI: Export and Preview buttons now disabled during processing
 * Code: All 15 AJAX handlers verified with nonce + capability checks
-* Code: 0 PHPStan errors (level 6) · 338 PHPUnit tests passing · PHPCS clean
+* Code: 0 PHPStan errors (level 6) · 338 PHPUnit tests passing
 
 = 3.52.0 =
 
@@ -282,7 +286,7 @@ Each document includes: cover page with title/URL/date/breadcrumbs, featured ima
 
 == Upgrade Notice ==
 
-= 3.54.0 =
+= 3.55.0 =
 
 Fixes 100% PDF export failure (root cause: missing fontDir), infinite retry loop on export failure, session cache consistency, and 5 other bugs. Strongly recommended for all users.
 

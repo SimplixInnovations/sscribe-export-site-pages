@@ -276,7 +276,7 @@ class SScribe_Export_Log {
 	/**
 	 * Mark export as complete.
 	 *
-	 * @param string $zip_path     Path to ZIP file.
+	 * @param string $zip_path    Path to ZIP file.
 	 * @param int    $files_in_zip Number of files in ZIP.
 	 * @return void
 	 */
@@ -287,6 +287,13 @@ class SScribe_Export_Log {
 		$data['zip_file']     = basename( $zip_path );
 		$data['files_in_zip'] = $files_in_zip;
 		$this->write_log( $data );
+
+		// Create transient index for O(1) ZIP filename lookup.
+		// Maps ZIP filename → session_id to avoid O(n) scan in get_log_by_filename().
+		if ( ! empty( $data['zip_file'] ) ) {
+			$index_key = 'sscribe_zip_index_' . md5( $data['zip_file'] );
+			set_transient( $index_key, $this->session_id, 7 * DAY_IN_SECONDS );
+		}
 	}
 
 	/**
@@ -419,6 +426,8 @@ class SScribe_Export_Log {
 	/**
 	 * Get log by ZIP filename (static helper).
 	 *
+	 * Uses transient index for O(1) lookup instead of scanning all log files.
+	 *
 	 * @param string $filename ZIP filename.
 	 * @return array|null Log data or null.
 	 */
@@ -436,12 +445,14 @@ class SScribe_Export_Log {
 			return null;
 		}
 
-		$files = glob( $log_dir . '/export_*.json' );
+		// O(1) lookup: check transient index first.
+		$index_key = 'sscribe_zip_index_' . md5( $filename );
+		$session_id = get_transient( $index_key );
 
-		if ( is_array( $files ) ) {
-			foreach ( $files as $file ) {
-				// phpcs:ignore WordPress.WP.AlternativeFunctions.file_get_contents_file_get_contents -- Safe filesystem read.
-				$json = file_get_contents( $file );
+		if ( false !== $session_id && is_string( $session_id ) ) {
+			$log_file = $log_dir . '/export_' . sanitize_file_name( $session_id ) . '.json';
+			if ( file_exists( $log_file ) ) {
+				$json = file_get_contents( $log_file );
 				if ( $json ) {
 					$data = json_decode( $json, true );
 					if ( is_array( $data ) && isset( $data['zip_file'] ) && $data['zip_file'] === $filename ) {
@@ -451,8 +462,24 @@ class SScribe_Export_Log {
 			}
 		}
 
-		// Compatibility logic for older logs could be inserted here if needed
-		// For now, we only scan the filesystem.
+		// Fallback: O(n) scan for backward compatibility with pre-index logs.
+		$files = glob( $log_dir . '/export_*.json' );
+
+		if ( is_array( $files ) ) {
+			foreach ( $files as $file ) {
+				$json = file_get_contents( $file );
+				if ( $json ) {
+					$data = json_decode( $json, true );
+					if ( is_array( $data ) && isset( $data['zip_file'] ) && $data['zip_file'] === $filename ) {
+						// Cache for future lookups.
+						if ( isset( $data['session_id'] ) ) {
+							set_transient( $index_key, $data['session_id'], 7 * DAY_IN_SECONDS );
+						}
+						return $data;
+					}
+				}
+			}
+		}
 
 		return null;
 	}
@@ -477,6 +504,10 @@ class SScribe_Export_Log {
 			return false;
 		}
 
+		// Delete transient index.
+		$index_key = 'sscribe_zip_index_' . md5( $filename );
+		delete_transient( $index_key );
+
 		$files = glob( $log_dir . '/export_*.json' );
 
 		if ( ! is_array( $files ) ) {
@@ -484,7 +515,6 @@ class SScribe_Export_Log {
 		}
 
 		foreach ( $files as $file ) {
-			// phpcs:ignore WordPress.WP.AlternativeFunctions.file_get_contents_file_get_contents -- Safe filesystem read.
 			$json = file_get_contents( $file );
 			if ( $json ) {
 				$data = json_decode( $json, true );
