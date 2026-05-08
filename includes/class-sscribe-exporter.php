@@ -248,7 +248,12 @@ class SScribe_Exporter {
 			$php_word = new PhpWord();
 
 			// Determine RTL setting for the document.
-			$this->is_rtl = $this->is_rtl_document( $page_data );
+			// CRITICAL: Reset font_name before each page — SScribe_Exporter is reused
+			// across pages in a batch. If an Arabic page runs first, font_name is set
+			// to 'Noto Sans Arabic'. Without this reset, subsequent English pages would
+			// use the wrong font, corrupting heading styles in the DOCX.
+			$this->font_name = 'Arial';
+			$this->is_rtl    = $this->is_rtl_document( $page_data );
 
 			// Use Arabic-capable font for RTL documents to render Arabic glyphs properly.
 			if ( $this->is_rtl ) {
@@ -385,6 +390,13 @@ class SScribe_Exporter {
 			}
 			if ( isset( $php_word ) ) {
 				unset( $php_word );
+			}
+
+			// CRITICAL: Remove any partial file left by a failed $writer->save().
+			// Without this, the partial (corrupted) DOCX gets included in the ZIP,
+			// corrupting the entire export package.
+			if ( ! empty( $output_path ) && file_exists( $output_path ) ) {
+				wp_delete_file( $output_path );
 			}
 
 			// NOTE: Parser is intentionally kept alive even on failure.
@@ -739,9 +751,13 @@ class SScribe_Exporter {
 			$this->get_para_style( array( 'spaceAfter' => Converter::pointToTwip( 12 ) ) )
 		);
 
+		// Tab leader for TOC: use the PHPWord constant if available, otherwise
+		// fall back to 'dot' (the correct string token). The previous fallback
+		// '.' was not a valid PHPWord tab leader and would generate malformed
+		// <w:tab> XML that could corrupt the document.
 		$tab_leader = defined( '\\SScribeVendor\\PhpOffice\\PhpWord\\Style\\TOC::TAB_LEADER_DOT' )
 			? \SScribeVendor\PhpOffice\PhpWord\Style\TOC::TAB_LEADER_DOT
-			: '.';
+			: 'dot';
 
 		try {
 			$section->addTOC(
