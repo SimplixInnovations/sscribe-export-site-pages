@@ -3216,5 +3216,4 @@ class SScribe_Batch_Processor {
 			);
 		}
 	}
-
 }
