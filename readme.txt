@@ -4,7 +4,7 @@ Donate link: https://simplixi.com
 Tags: export, docx, multilingual, seo, pdf, posts, pages
 Requires at least: 6.0
 Tested up to: 6.10
-Stable tag: 3.55.0
+Stable tag: 3.56.0
 Requires PHP: 8.2
 License: GPLv2 or later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
@@ -229,14 +229,25 @@ Each document includes: cover page with title/URL/date/breadcrumbs, featured ima
 
 == Changelog ==
 
-= 3.55.0 =
+= 3.56.0 =
 
-* Performance: O(1) ZIP filename lookup via transient index — replaces O(n) scan of all log files
-* Performance: Transient index maps ZIP filename → session_id for instant log retrieval
-* Performance: Fallback to O(n) scan for backward compatibility with pre-index logs
-* Performance: Auto-caches on first lookup for future O(1) access
-* Feature: Added session_id correlation to all log entries during export operations
-* Feature: Added log file size limit (10MB) to prevent runaway log files
+* Architecture: Extracted SScribe_Adaptive_Metrics class from batch processor (-119 lines)
+* Architecture: Adaptive metrics now uses EMA constants instead of magic numbers
+* Architecture: Batch processor reduced from 3339 to 3220 lines
+* Performance: O(1) ZIP filename lookup via transient index
+* Performance: Transient index maps ZIP filename → session_id
+* Feature: Added session_id correlation to all log entries
+* Feature: Added log file size limit (10MB)
+* Critical: Fixed 100% PDF export failure — added fontDir key to mPDF config
+* Critical: Added file_exists() guards for Manrope font variants
+* Critical: Fixed infinite JS retry loop on export failure
+* Critical: Added early "0 files generated" detection
+* Bug: Fixed export log staying at "started" status on failure
+* Bug: Fixed has_active_session() transient cache key inconsistency
+* Bug: Fixed create() method deleting active-session transient on success
+* Bug: Fixed font-helper fallback paths
+* Code: All 15 AJAX handlers verified with nonce + capability checks
+* Code: 0 PHPStan errors (level 6) · 338 PHPUnit tests passing
 * Feature: Added MAX_LOG_FILE_SIZE constant to SScribe_Logger_Interface
 * Feature: Added set_session_id() method to all logger implementations
 * Critical: Fixed 100% PDF export failure — added fontDir key to mPDF config
@@ -286,7 +297,7 @@ Each document includes: cover page with title/URL/date/breadcrumbs, featured ima
 
 == Upgrade Notice ==
 
-= 3.55.0 =
+= 3.56.0 =
 
 Fixes 100% PDF export failure (root cause: missing fontDir), infinite retry loop on export failure, session cache consistency, and 5 other bugs. Strongly recommended for all users.
 
