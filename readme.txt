@@ -4,7 +4,7 @@ Donate link: https://simplixi.com
 Tags: export, docx, multilingual, seo, pdf, posts, pages
 Requires at least: 6.0
 Tested up to: 6.10
-Stable tag: 3.53.0
+Stable tag: 3.54.0
 Requires PHP: 8.2
 License: GPLv2 or later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
@@ -229,8 +229,12 @@ Each document includes: cover page with title/URL/date/breadcrumbs, featured ima
 
 == Changelog ==
 
-= 3.53.0 =
+= 3.54.0 =
 
+* Feature: Added session_id correlation to all log entries during export operations — enables correlation across AJAX requests
+* Feature: Added log file size limit (10MB) to prevent runaway log files from consuming disk space
+* Feature: Added MAX_LOG_FILE_SIZE constant to SScribe_Logger_Interface for configurable limits
+* Feature: Added set_session_id() method to all logger implementations (SScribe_Logger, SScribe_Logger_Enhanced, SScribe_Logger_Structured)
 * Critical: Fixed 100% PDF export failure — added fontDir key to mPDF config so FontFileFinder locates TTF fonts
 * Critical: Added file_exists() guards for Manrope Medium/Light font variants with Regular.ttf fallback
 * Critical: Fixed infinite JS retry loop on export failure — session preserved on ZIP failure (no more 404 cascade)
@@ -278,7 +282,7 @@ Each document includes: cover page with title/URL/date/breadcrumbs, featured ima
 
 == Upgrade Notice ==
 
-= 3.53.0 =
+= 3.54.0 =
 
 Fixes 100% PDF export failure (root cause: missing fontDir), infinite retry loop on export failure, session cache consistency, and 5 other bugs. Strongly recommended for all users.
 

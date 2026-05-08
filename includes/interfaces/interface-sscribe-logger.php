@@ -31,6 +31,22 @@ interface SScribe_Logger_Interface {
 	public const LEVEL_EMERGENCY = 'emergency';
 
 	/**
+	 * Maximum log file size in bytes (10 MB).
+	 * Prevents runaway log files from consuming disk space.
+	 */
+	public const MAX_LOG_FILE_SIZE = 10485760;
+
+	/**
+	 * Set the session ID for correlation in log entries.
+	 *
+	 * When set, all subsequent log entries will include this session_id
+	 * in their context data, enabling correlation across export operations.
+	 *
+	 * @param string $session_id The export session identifier.
+	 */
+	public function set_session_id( string $session_id ): void;
+
+	/**
 	 * Log a debug message.
 	 *
 	 * @param string $message Log message.
