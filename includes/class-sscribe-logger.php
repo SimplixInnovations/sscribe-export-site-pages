@@ -46,6 +46,13 @@ class SScribe_Logger implements SScribe_Logger_Interface {
 	private static ?string $request_id = null;
 
 	/**
+	 * Export session ID for correlation in log entries.
+	 *
+	 * @var string|null
+	 */
+	private ?string $session_id = null;
+
+	/**
 	 * Log entries buffer.
 	 *
 	 * @var array
@@ -164,6 +171,18 @@ class SScribe_Logger implements SScribe_Logger_Interface {
 	 */
 	public function is_enabled(): bool {
 		return $this->enabled;
+	}
+
+	/**
+	 * Set the session ID for correlation in log entries.
+	 *
+	 * When set, all subsequent log entries will include this session_id
+	 * in their context data, enabling correlation across export operations.
+	 *
+	 * @param string $session_id The export session identifier.
+	 */
+	public function set_session_id( string $session_id ): void {
+		$this->session_id = $session_id;
 	}
 
 	/**
@@ -297,12 +316,19 @@ class SScribe_Logger implements SScribe_Logger_Interface {
 	 * @return array<string, string>
 	 */
 	private function get_context_enrichment(): array {
-		return array(
+		$context = array(
 			'plugin_version' => defined( 'SSCRIBE_VERSION' ) ? (string) SSCRIBE_VERSION : 'unknown',
 			'php_version'    => PHP_VERSION,
 			'memory_usage'   => size_format( memory_get_usage( true ) ),
 			'request_id'     => self::get_request_id(),
 		);
+
+		// Include session_id for export operation correlation.
+		if ( null !== $this->session_id ) {
+			$context['session_id'] = $this->session_id;
+		}
+
+		return $context;
 	}
 
 	/**
@@ -330,7 +356,15 @@ class SScribe_Logger implements SScribe_Logger_Interface {
 		}
 
 		$log_file = $this->get_log_file();
-		$content  = implode( PHP_EOL, $this->buffer ) . PHP_EOL;
+
+		// Prevent log files from growing too large within a day.
+		// If the file exceeds MAX_LOG_FILE_SIZE, skip writing to prevent disk exhaustion.
+		if ( file_exists( $log_file ) && filesize( $log_file ) >= self::MAX_LOG_FILE_SIZE ) {
+			$this->buffer = array();
+			return;
+		}
+
+		$content = implode( PHP_EOL, $this->buffer ) . PHP_EOL;
 
 		// phpcs:ignore WordPress.WP.AlternativeFunctions.file_system_operations_file_put_contents -- Required for debug logging per plugin requirements.
 		$result = file_put_contents( $log_file, $content, FILE_APPEND | LOCK_EX );

@@ -705,6 +705,9 @@ class SScribe_Batch_Processor {
 		$this->export_log = new SScribe_Export_Log( $session_id );
 		$this->export_log->set_total_pages( $total );
 
+		// Set session_id on logger for correlation in all log entries.
+		$this->logger->set_session_id( $session_id );
+
 		// Record export start in statistics table.
 		$export_stats = new SScribe_Export_Stats();
 		$export_stats->start_export(
@@ -968,6 +971,9 @@ class SScribe_Batch_Processor {
 		$session_id        = $session['session_id'] ?? '';
 
 		$this->export_log = new SScribe_Export_Log( $session_id );
+
+		// Set session_id on logger for correlation in all log entries.
+		$this->logger->set_session_id( $session_id );
 
 		$this->logger->debug(
 			'Session state',
@@ -1725,6 +1731,9 @@ class SScribe_Batch_Processor {
 		if ( null === $this->export_log ) {
 			$this->export_log = new SScribe_Export_Log( $session_id );
 		}
+
+		// Set session_id on logger for correlation in all log entries.
+		$this->logger->set_session_id( $session_id );
 
 		// Increase time limit for ZIP finalization.
 		// Creating a ZIP with many PDF files (each 1-5MB) is I/O intensive and can

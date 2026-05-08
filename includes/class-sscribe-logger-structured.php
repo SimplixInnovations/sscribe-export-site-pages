@@ -59,6 +59,13 @@ class SScribe_Logger_Structured implements SScribe_Logger_Interface {
 	private readonly string $request_id;
 
 	/**
+	 * Export session ID for correlation in log entries.
+	 *
+	 * @var string|null
+	 */
+	private ?string $session_id = null;
+
+	/**
 	 * Constructor.
 	 *
 	 * @param string $min_level Minimum log level to record.
@@ -166,6 +173,18 @@ class SScribe_Logger_Structured implements SScribe_Logger_Interface {
 	}
 
 	/**
+	 * Set the session ID for correlation in log entries.
+	 *
+	 * When set, all subsequent log entries will include this session_id
+	 * in their context data, enabling correlation across export operations.
+	 *
+	 * @param string $session_id The export session identifier.
+	 */
+	public function set_session_id( string $session_id ): void {
+		$this->session_id = $session_id;
+	}
+
+	/**
 	 * Check if a level should be logged.
 	 *
 	 * @param string $level Log level to check.
@@ -189,20 +208,27 @@ class SScribe_Logger_Structured implements SScribe_Logger_Interface {
 			return;
 		}
 
+		$base_entry = array(
+			'timestamp'    => gmdate( 'Y-m-d\TH:i:s\Z' ),
+			'level'        => $level,
+			'message'      => $message,
+			'service'      => 'sscribe-export-site-pages',
+			'version'      => defined( 'SSCRIBE_VERSION' ) ? SSCRIBE_VERSION : 'unknown',
+			'request_id'   => $this->request_id,
+			'php_version'  => PHP_VERSION,
+			'memory_usage' => memory_get_usage( true ),
+			'memory_peak'  => memory_get_peak_usage( true ),
+			'user_id'      => get_current_user_id(),
+			'wp_site_url'  => get_option( 'siteurl', '' ),
+		);
+
+		// Include session_id for export operation correlation.
+		if ( null !== $this->session_id ) {
+			$base_entry['session_id'] = $this->session_id;
+		}
+
 		$entry = array_merge(
-			array(
-				'timestamp'    => gmdate( 'Y-m-d\TH:i:s\Z' ),
-				'level'        => $level,
-				'message'      => $message,
-				'service'      => 'sscribe-export-site-pages',
-				'version'      => defined( 'SSCRIBE_VERSION' ) ? SSCRIBE_VERSION : 'unknown',
-				'request_id'   => $this->request_id,
-				'php_version'  => PHP_VERSION,
-				'memory_usage' => memory_get_usage( true ),
-				'memory_peak'  => memory_get_peak_usage( true ),
-				'user_id'      => get_current_user_id(),
-				'wp_site_url'  => get_option( 'siteurl', '' ),
-			),
+			$base_entry,
 			$this->sanitize_context( $context )
 		);
 

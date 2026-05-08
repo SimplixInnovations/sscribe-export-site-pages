@@ -80,6 +80,13 @@ class SScribe_Logger_Enhanced implements SScribe_Logger_Interface {
 	private readonly string $request_id;
 
 	/**
+	 * Export session ID for correlation in log entries.
+	 *
+	 * @var string|null
+	 */
+	private ?string $session_id = null;
+
+	/**
 	 * Log level priority mapping.
 	 */
 	private const LEVEL_PRIORITY = array(
@@ -121,6 +128,41 @@ class SScribe_Logger_Enhanced implements SScribe_Logger_Interface {
 	 */
 	protected function get_request_id(): string {
 		return $this->request_id;
+	}
+
+	/**
+	 * Set the session ID for correlation in log entries.
+	 *
+	 * When set, all subsequent log entries will include this session_id
+	 * in their context data, enabling correlation across export operations.
+	 *
+	 * @param string $session_id The export session identifier.
+	 */
+	public function set_session_id( string $session_id ): void {
+		$this->session_id = $session_id;
+	}
+
+	/**
+	 * Get standard context enrichment for log entries.
+	 *
+	 * Extends trait method to include session_id for export correlation.
+	 *
+	 * @return array<string, string>
+	 */
+	protected function get_context_enrichment(): array {
+		$context = array(
+			'plugin_version' => defined( 'SSCRIBE_VERSION' ) ? (string) SSCRIBE_VERSION : 'unknown',
+			'php_version'    => PHP_VERSION,
+			'memory_usage'   => size_format( memory_get_usage( true ) ),
+			'request_id'     => $this->get_request_id(),
+		);
+
+		// Include session_id for export operation correlation.
+		if ( null !== $this->session_id ) {
+			$context['session_id'] = $this->session_id;
+		}
+
+		return $context;
 	}
 
 	/**
