@@ -182,6 +182,7 @@ class SScribe_PDF_Exporter implements SScribe_Exporter_Interface {
 			if ( ! wp_is_writable( $mpdf_temp ) ) {
 				return SScribe_Result::failure(
 					sprintf(
+						/* translators: %s: Temp directory path. */
 						__( 'PDF export failed: temp directory is not writable (%s).', 'sscribe-export-site-pages' ),
 						$mpdf_temp
 					),
