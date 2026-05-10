@@ -30,9 +30,15 @@ if ( ! function_exists( 'wp_safe_redirect' ) ) {
 	}
 }
 
-define( 'SSCRIBE_PLUGIN_DIR', dirname( __DIR__ ) . '/' );
-define( 'SSCRIBE_PLUGIN_URL', 'http://example.org/wp-content/plugins/sscribe-export-site-pages/' );
-define( 'SSCRIBE_PLUGIN_BASENAME', 'sscribe-export-site-pages/sscribe-export-site-pages.php' );
+if ( ! defined( 'SSCRIBE_PLUGIN_DIR' ) ) {
+	define( 'SSCRIBE_PLUGIN_DIR', dirname( __DIR__ ) . '/' );
+}
+if ( ! defined( 'SSCRIBE_PLUGIN_URL' ) ) {
+	define( 'SSCRIBE_PLUGIN_URL', 'http://example.org/wp-content/plugins/sscribe-export-site-pages/' );
+}
+if ( ! defined( 'SSCRIBE_PLUGIN_BASENAME' ) ) {
+	define( 'SSCRIBE_PLUGIN_BASENAME', 'sscribe-export-site-pages/sscribe-export-site-pages.php' );
+}
 
 // Allow SScribe_Container::reset() to work in test context.
 if ( ! defined( 'SSCRIBE_TESTING' ) ) {
@@ -350,11 +356,13 @@ if ( ! function_exists( 'get_file_data' ) ) {
 	}
 }
 
-$sscribe_plugin_data = get_file_data(
-	SSCRIBE_PLUGIN_DIR . 'sscribe-export-site-pages.php',
-	array( 'version' => 'Version' )
-);
-define( 'SSCRIBE_VERSION', $sscribe_plugin_data['version'] ?? '1.0.0' );
+if ( ! defined( 'SSCRIBE_VERSION' ) ) {
+	$sscribe_plugin_data = get_file_data(
+		SSCRIBE_PLUGIN_DIR . 'sscribe-export-site-pages.php',
+		array( 'version' => 'Version' )
+	);
+	define( 'SSCRIBE_VERSION', $sscribe_plugin_data['version'] ?? '1.0.0' );
+}
 
 if ( ! defined( 'MINUTE_IN_SECONDS' ) ) {
 	define( 'MINUTE_IN_SECONDS', 60 );
