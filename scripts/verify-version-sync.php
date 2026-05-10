@@ -73,21 +73,23 @@ foreach ( $version_locations as $name => $location ) {
 }
 
 // For 'get_latest' entries, extract the highest version found.
-foreach ( $version_locations as $name => &$location ) {
-	if ( ! empty( $location['get_latest'] ) && isset( $versions[ $name ] ) ) {
-		// Multiple versions may exist; take the highest (newest changelog entry).
-		// The initial preg_match may have already captured all — re-extract.
-		$file = $location['file'];
-		// phpcs:ignore WordPress.WP.AlternativeFunctions.file_get_contents_file_get_contents
-		$content = file_get_contents( $file );
-		preg_match_all( $location['pattern'], $content, $matches );
-		if ( ! empty( $matches[1] ) ) {
-			usort( $matches[1], 'version_compare' );
-			$versions[ $name ] = end( $matches[1] );
+	foreach ( $version_locations as $name => &$location ) {
+		if ( ! empty( $location['get_latest'] ) && isset( $versions[ $name ] ) ) {
+			// Multiple versions may exist; take the highest (newest changelog entry).
+			// The initial preg_match may have already captured all — re-extract.
+			$file = $location['file'];
+			// phpcs:ignore WordPress.WP.AlternativeFunctions.file_get_contents_file_get_contents
+			$content = file_get_contents( $file );
+			preg_match_all( $location['pattern'], $content, $matches );
+			if ( ! empty( $matches[1] ) ) {
+				// Get unique versions, then sort descending (string sort handles 3.6.0 > 3.52.0).
+				$unique_versions = array_unique( $matches[1] );
+				rsort( $unique_versions, SORT_STRING | SORT_FLAG_CASE );
+				$versions[ $name ] = reset( $unique_versions ); // First element is highest.
+			}
 		}
 	}
-}
-unset( $location );
+	unset( $location );
 
 // ---- COMPREHENSIVE FILESYSTEM VERSION SCAN ----
 // Scan all plugin source files for hardcoded version numbers (e.g. '3.xx.xx')
@@ -170,6 +172,10 @@ if ( $canonical_version ) {
 			}
 			// Skip activator.php — cleanup comments for legacy versions are intentional.
 			if ( 'class-sscribe-activator.php' === basename( $f ) ) {
+				continue;
+			}
+			// Skip verify-version-sync.php — inline version examples in comments are intentional.
+			if ( 'verify-version-sync.php' === basename( $f ) ) {
 				continue;
 			}
 			$has_actual_warnings = true;

@@ -4,6 +4,11 @@ All notable changes to this project will be documented in this file.
 
 ## [Unreleased]
 
+## [3.6.0] - 2026-05-10
+
+### Fixed
+- PHPCS: Fixed 56 indentation errors in `class-sscribe-pdf-exporter.php` (line 417 return statement indentation)
+
 ## [3.56.1] - 2026-05-10
 
 ### Fixed

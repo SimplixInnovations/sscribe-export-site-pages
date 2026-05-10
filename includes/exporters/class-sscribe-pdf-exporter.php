@@ -154,51 +154,51 @@ class SScribe_PDF_Exporter implements SScribe_Exporter_Interface {
 				);
 			}
 
-$font_dir    = trailingslashit( SSCRIBE_PLUGIN_DIR ) . 'assets/fonts/';
-		$manrope_dir = $font_dir . 'manrope/';
-		$upload_dir  = wp_upload_dir();
-		$mpdf_temp   = trailingslashit( $upload_dir['basedir'] ) . 'sscribe/mpdf-tmp/';
+			$font_dir    = trailingslashit( SSCRIBE_PLUGIN_DIR ) . 'assets/fonts/';
+			$manrope_dir = $font_dir . 'manrope/';
+			$upload_dir  = wp_upload_dir();
+			$mpdf_temp   = trailingslashit( $upload_dir['basedir'] ) . 'sscribe/mpdf-tmp/';
 
-		if ( ! is_dir( $mpdf_temp ) ) {
-			wp_mkdir_p( $mpdf_temp );
-		}
+			if ( ! is_dir( $mpdf_temp ) ) {
+				wp_mkdir_p( $mpdf_temp );
+			}
 
-		// Find Manrope-Regular.ttf with case-insensitive search since Linux servers
-		// may have case sensitivity issues and font files may have different casing.
-		$manrope_regular = null;
-		if ( is_dir( $manrope_dir ) ) {
-			$font_files = scandir( $manrope_dir );
-			foreach ( $font_files as $font_file ) {
-				if ( preg_match( '/^manrope[-_]?regular\.ttf$/i', $font_file ) ) {
-					$manrope_regular = $manrope_dir . $font_file;
-					break;
+			// Find Manrope-Regular.ttf with case-insensitive search since Linux servers
+			// may have case sensitivity issues and font files may have different casing.
+			$manrope_regular = null;
+			if ( is_dir( $manrope_dir ) ) {
+				$font_files = scandir( $manrope_dir );
+				foreach ( $font_files as $font_file ) {
+					if ( preg_match( '/^manrope[-_]?regular\.ttf$/i', $font_file ) ) {
+						$manrope_regular = $manrope_dir . $font_file;
+						break;
+					}
 				}
 			}
-		}
 
-		// Validate font directories before mPDF init — if fontDir entries don't
-		// exist, mPDF throws a generic exception that gets swallowed by the outer
-		// catch, producing a silent failure with no file written and no useful error.
-		if ( ! is_dir( $manrope_dir ) || empty( $manrope_regular ) ) {
-			$this->logger->error(
-				'PDF export failed: Manrope font files are missing',
-				array(
-					'manrope_dir'      => $manrope_dir,
-					'dir_exists'       => is_dir( $manrope_dir ),
-					'manrope_regular' => $manrope_regular,
-					'dir_contents'     => is_dir( $manrope_dir ) ? scandir( $manrope_dir ) : array(),
-				)
-			);
+			// Validate font directories before mPDF init — if fontDir entries don't
+			// exist, mPDF throws a generic exception that gets swallowed by the outer
+			// catch, producing a silent failure with no file written and no useful error.
+			if ( ! is_dir( $manrope_dir ) || empty( $manrope_regular ) ) {
+				$this->logger->error(
+					'PDF export failed: Manrope font files are missing',
+					array(
+						'manrope_dir'      => $manrope_dir,
+						'dir_exists'       => is_dir( $manrope_dir ),
+						'manrope_regular' => $manrope_regular,
+						'dir_contents'     => is_dir( $manrope_dir ) ? scandir( $manrope_dir ) : array(),
+					)
+				);
 
-			return SScribe_Result::failure(
-				__( 'PDF export failed: Manrope font files are missing. Reinstall the plugin.', 'sscribe-export-site-pages' ),
-				array(
-					'error_category' => 'pdf_missing_library',
-					'page_id'        => $page_id,
-					'missing_dir'    => $manrope_dir,
-				)
-			);
-		}
+				return SScribe_Result::failure(
+					__( 'PDF export failed: Manrope font files are missing. Reinstall the plugin.', 'sscribe-export-site-pages' ),
+					array(
+						'error_category' => 'pdf_missing_library',
+						'page_id'        => $page_id,
+						'missing_dir'    => $manrope_dir,
+					)
+				);
+			}
 
 			// Validate temp dir is writable — mPDF writes temporary files during
 			// rendering. If the dir is not writable, mPDF fails silently.
@@ -224,7 +224,7 @@ $font_dir    = trailingslashit( SSCRIBE_PLUGIN_DIR ) . 'assets/fonts/';
 				self::$mpdf_temp_protected = true;
 			}
 
-$config = array(
+			$config = array(
 				// fontDir: tells mPDF where to search for TTF font files.
 				// Without this, FontFileFinder cannot locate fonts even when fontdata paths are set.
 				'fontDir'          => array(
@@ -233,12 +233,15 @@ $config = array(
 				),
 				'mode'             => $is_rtl ? 'ar' : 'utf-8',
 				'default_font'     => 'manrope',
-'fontdata'         => array(
+				'fontdata'         => array(
 					'manrope'        => array(
 						'R'  => $manrope_regular,
-						'B'  => $this->find_font_file( $manrope_dir, 'manrope[-_]?bold' ) ?: $manrope_regular,
-						'M'  => $this->find_font_file( $manrope_dir, 'manrope[-_]?medium' ) ?: $manrope_regular,
-						'L'  => $this->find_font_file( $manrope_dir, 'manrope[-_]?light' ) ?: $manrope_regular,
+						'B'  => $this->find_font_file( $manrope_dir, 'manrope[-_]?bold' )
+							?: $manrope_regular,
+						'M'  => $this->find_font_file( $manrope_dir, 'manrope[-_]?medium' )
+							?: $manrope_regular,
+						'L'  => $this->find_font_file( $manrope_dir, 'manrope[-_]?light' )
+							?: $manrope_regular,
 					),
 					'notosansarabic' => array(
 						'R' => $this->find_font_file( $font_dir . 'notosansarabic/', 'notosansarabic[-_]?regular' )
@@ -412,7 +415,7 @@ $config = array(
 		}
 
 return $page_data;
-	}
+		}
 
 	/**
 	 * Find a font file in a directory using a case-insensitive regex pattern.
