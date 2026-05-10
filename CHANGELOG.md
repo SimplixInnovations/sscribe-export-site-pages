@@ -4,6 +4,17 @@ All notable changes to this project will be documented in this file.
 
 ## [Unreleased]
 
+## [3.56.1] - 2026-05-10
+
+### Fixed
+- PDF export: Font discovery now uses case-insensitive regex matching to handle Linux servers with case-sensitive filesystems
+- PDF export: Added `find_font_file()` helper method for all font variants (Manrope R/B/M/L, NotoSansArabic R/B)
+- PDF export: Enhanced error logging now includes directory contents when font validation fails
+- Admin CSS: Modal content/header/body now have explicit fallback values for CSS custom properties
+- Admin CSS: Added fallback `#FFFFFF` background to `.sscribe-modal-content` and `.sscribe-modal-body`
+- Admin CSS: Added fallback `#F8FAFC` background and `#E2E8F0` border to `.sscribe-modal-header`
+- Admin CSS: Added fallback box-shadow values to `.sscribe-modal-content`
+
 ### Changed
 
 ## [3.35.0] - 2026-05-01
