@@ -433,7 +433,7 @@ class SScribe_PDF_Exporter implements SScribe_Exporter_Interface {
 		$files = scandir( $dir );
 		foreach ( $files as $file ) {
 			if ( preg_match( '/^' . $pattern . '\.ttf$/i', $file ) ) {
-				return $dir . $file;
+				return $file;
 			}
 		}
 
