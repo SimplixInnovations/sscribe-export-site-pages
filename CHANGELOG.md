@@ -4,6 +4,11 @@ All notable changes to this project will be documented in this file.
 
 ## [Unreleased]
 
+## [3.6.2] - 2026-05-11
+
+### Fixed
+- PDF font helper: `find_font_file()` now returns just the filename instead of full path (prevents mPDF double-path resolution for B/M/L font variants)
+
 ## [3.6.1] - 2026-05-11
 
 ### Fixed
