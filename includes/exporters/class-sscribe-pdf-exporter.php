@@ -235,19 +235,19 @@ class SScribe_PDF_Exporter implements SScribe_Exporter_Interface {
 				'default_font'     => 'manrope',
 				'fontdata'         => array(
 					'manrope'        => array(
-						'R'  => $manrope_regular,
+						'R'  => 'Manrope-Regular.ttf',
 						'B'  => $this->find_font_file( $manrope_dir, 'manrope[-_]?bold' )
-							?: $manrope_regular,
+							?: 'Manrope-Bold.ttf',
 						'M'  => $this->find_font_file( $manrope_dir, 'manrope[-_]?medium' )
-							?: $manrope_regular,
+							?: 'Manrope-Medium.ttf',
 						'L'  => $this->find_font_file( $manrope_dir, 'manrope[-_]?light' )
-							?: $manrope_regular,
+							?: 'Manrope-Light.ttf',
 					),
 					'notosansarabic' => array(
 						'R' => $this->find_font_file( $font_dir . 'notosansarabic/', 'notosansarabic[-_]?regular' )
-							?: $font_dir . 'notosansarabic/NotoSansArabic-Regular.ttf',
+							?: 'NotoSansArabic-Regular.ttf',
 						'B' => $this->find_font_file( $font_dir . 'notosansarabic/', 'notosansarabic[-_]?bold' )
-							?: $font_dir . 'notosansarabic/NotoSansArabic-Bold.ttf',
+							?: 'NotoSansArabic-Bold.ttf',
 					),
 				),
 				'orientation'      => 'P',
