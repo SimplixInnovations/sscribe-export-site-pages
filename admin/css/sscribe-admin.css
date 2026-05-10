@@ -10,8 +10,11 @@
 
 /* ============================================
    CSS CUSTOM PROPERTIES (Design Tokens)
+   Global scope so all elements — including
+   modals rendered outside .sscribe-master-container —
+   can access these variables.
    ============================================ */
-.sscribe-master-container {
+:root {
 	/* Primary Colors */
 	--sscribe-primary: #0891B2;
 	--sscribe-primary-hover: #0E7490;
@@ -41,6 +44,8 @@
 	--sscribe-text-light: #94A3B8;
 
 	/* Spacing */
+
+	/* Border Radius */
 	--sscribe-radius-sm: 6px;
 	--sscribe-radius-md: 10px;
 	--sscribe-radius-lg: 14px;
@@ -72,9 +77,6 @@
 	-moz-osx-font-smoothing: grayscale;
 	background: var(--sscribe-bg);
 	line-height: 1.5;
-
-	--sscribe-space-lg: 24px;
-	--sscribe-space-md: 16px;
 }
 
 .sscribe-master-container *,
