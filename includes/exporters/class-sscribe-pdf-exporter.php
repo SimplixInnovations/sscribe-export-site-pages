@@ -414,8 +414,8 @@ class SScribe_PDF_Exporter implements SScribe_Exporter_Interface {
 			}
 		}
 
-return $page_data;
-		}
+		return $page_data;
+	}
 
 	/**
 	 * Find a font file in a directory using a case-insensitive regex pattern.
