@@ -4,7 +4,7 @@ Donate link: https://simplixi.com
 Tags: export, docx, multilingual, seo, pdf, posts, pages
 Requires at least: 6.0
 Tested up to: 6.10
-Stable tag: 3.56.0
+Stable tag: 3.56.1
 Requires PHP: 8.2
 License: GPLv2 or later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
@@ -229,39 +229,16 @@ Each document includes: cover page with title/URL/date/breadcrumbs, featured ima
 
 == Changelog ==
 
-= 3.56.0 =
+= 3.56.1 =
 
-* Architecture: Extracted SScribe_Adaptive_Metrics class from batch processor (-119 lines)
-* Architecture: Adaptive metrics now uses EMA constants instead of magic numbers
-* Architecture: Batch processor reduced from 3339 to 3220 lines
-* Performance: O(1) ZIP filename lookup via transient index
-* Performance: Transient index maps ZIP filename → session_id
-* Feature: Added session_id correlation to all log entries
-* Feature: Added log file size limit (10MB)
-* Critical: Fixed 100% PDF export failure — added fontDir key to mPDF config
-* Critical: Added file_exists() guards for Manrope font variants
-* Critical: Fixed infinite JS retry loop on export failure
-* Critical: Added early "0 files generated" detection
-* Bug: Fixed export log staying at "started" status on failure
-* Bug: Fixed has_active_session() transient cache key inconsistency
-* Bug: Fixed create() method deleting active-session transient on success
-* Bug: Fixed font-helper fallback paths
-* Code: All 15 AJAX handlers verified with nonce + capability checks
-* Code: 0 PHPStan errors (level 6) · 338 PHPUnit tests passing
-* Feature: Added MAX_LOG_FILE_SIZE constant to SScribe_Logger_Interface
-* Feature: Added set_session_id() method to all logger implementations
-* Critical: Fixed 100% PDF export failure — added fontDir key to mPDF config
-* Critical: Added file_exists() guards for Manrope Medium/Light font variants
-* Critical: Fixed infinite JS retry loop on export failure — session preserved on ZIP failure
-* Critical: Added early "0 files generated" detection with user-friendly error
-* Critical: pollFinalize() JS now stops retrying on HTTP 404 (session gone)
-* Bug: Fixed export log staying at "started" status on failure
-* Bug: Fixed has_active_session() transient cache key inconsistency
-* Bug: Fixed create() method deleting active-session transient on success
-* Bug: Fixed font-helper fallback paths pointing to non-existent directory
-* UI: Export and Preview buttons now disabled during processing
-* Code: All 15 AJAX handlers verified with nonce + capability checks
-* Code: 0 PHPStan errors (level 6) · 338 PHPUnit tests passing
+* PDF export: Font discovery now uses case-insensitive regex matching to handle Linux servers with case-sensitive filesystems
+* PDF export: Added `find_font_file()` helper method for all font variants (Manrope R/B/M/L, NotoSansArabic R/B)
+* PDF export: Enhanced error logging now includes directory contents when font validation fails
+* Admin CSS: Modal content/header/body now have explicit fallback values for CSS custom properties
+* Admin CSS: Added fallback `#FFFFFF` background to `.sscribe-modal-content` and `.sscribe-modal-body`
+* Admin CSS: Added fallback `#F8FAFC` background and `#E2E8F0` border to `.sscribe-modal-header`
+* Admin CSS: Added fallback box-shadow values to `.sscribe-modal-content`
+* All 338 PHPUnit tests passing
 
 = 3.52.0 =
 
@@ -297,7 +274,7 @@ Each document includes: cover page with title/URL/date/breadcrumbs, featured ima
 
 == Upgrade Notice ==
 
-= 3.56.0 =
+= 3.56.1 =
 
 Fixes 100% PDF export failure (root cause: missing fontDir), infinite retry loop on export failure, session cache consistency, and 5 other bugs. Strongly recommended for all users.
 

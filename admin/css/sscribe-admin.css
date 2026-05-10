@@ -5,7 +5,7 @@
  * WCAG 2.1 AA compliant, accessible, and professional.
  *
  * @package SScribe
- * @version 3.56.0
+ * @version 3.56.1
  */
 
 /* ============================================
@@ -1655,16 +1655,16 @@
 }
 
 .sscribe-modal-content {
-	background: var(--sscribe-card-bg);
-	border-radius: var(--sscribe-radius-lg);
-	border: 1px solid var(--sscribe-border);
+	background: var(--sscribe-card-bg, #FFFFFF);
+	border-radius: var(--sscribe-radius-lg, 14px);
+	border: 1px solid var(--sscribe-border, #E2E8F0);
 	max-width: 800px;
 	width: 100%;
 	max-height: 80vh;
 	overflow: hidden;
 	display: flex;
 	flex-direction: column;
-	box-shadow: var(--sscribe-shadow-xl);
+	box-shadow: var(--sscribe-shadow-xl, 0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 8px 10px -6px rgba(0, 0, 0, 0.1));
 }
 
 .sscribe-modal-header {
@@ -1672,8 +1672,8 @@
 	align-items: center;
 	justify-content: space-between;
 	padding: 18px 24px;
-	border-bottom: 1px solid var(--sscribe-border);
-	background: var(--sscribe-bg);
+	border-bottom: 1px solid var(--sscribe-border, #E2E8F0);
+	background: var(--sscribe-bg, #F8FAFC);
 }
 
 .sscribe-modal-header h3 {
@@ -1710,7 +1710,7 @@
 	padding: 24px;
 	overflow-y: auto;
 	flex: 1;
-	background: var(--sscribe-card-bg);
+	background: var(--sscribe-card-bg, #FFFFFF);
 }
 
 /* ============================================
