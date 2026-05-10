@@ -4,6 +4,12 @@ All notable changes to this project will be documented in this file.
 
 ## [Unreleased]
 
+## [3.6.1] - 2026-05-11
+
+### Fixed
+- mPDF font configuration: fontdata entries must use relative filenames when fontDir is set to absolute path (prevents double-path resolution causing "Cannot find TTF" errors on Linux servers)
+- Admin CSS: Moved CSS custom properties from `.sscribe-master-container` scope to `:root` scope so modals rendered outside the container can access design tokens
+
 ## [3.6.0] - 2026-05-10
 
 ### Fixed
