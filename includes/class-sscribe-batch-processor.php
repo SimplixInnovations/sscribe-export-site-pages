@@ -127,13 +127,13 @@ class SScribe_Batch_Processor {
 		$this->batch_size = (int) apply_filters( 'sscribe_batch_size', 5 );
 		$this->batch_size = max( 1, min( 20, $this->batch_size ) );
 
-		$this->collector         = $collector ?? new SScribe_Page_Collector();
-		$this->zip_handler       = $zip_handler ?? new SScribe_Zip_Handler();
-		$this->session           = $session ?? new SScribe_Session();
-		$this->logger            = $logger ?? SScribe_Logger::instance( defined( 'SSCRIBE_DEBUG' ) && SSCRIBE_DEBUG );
-		$this->diagnostics       = new SScribe_Diagnostics();
-		$this->audit_trail       = new SScribe_Audit_Trail();
-		$this->adaptive_metrics  = new SScribe_Adaptive_Metrics();
+		$this->collector        = $collector ?? new SScribe_Page_Collector();
+		$this->zip_handler      = $zip_handler ?? new SScribe_Zip_Handler();
+		$this->session          = $session ?? new SScribe_Session();
+		$this->logger           = $logger ?? SScribe_Logger::instance( defined( 'SSCRIBE_DEBUG' ) && SSCRIBE_DEBUG );
+		$this->diagnostics      = new SScribe_Diagnostics();
+		$this->audit_trail      = new SScribe_Audit_Trail();
+		$this->adaptive_metrics = new SScribe_Adaptive_Metrics();
 	}
 
 	/**
@@ -537,9 +537,9 @@ class SScribe_Batch_Processor {
 		if ( ! $this->check_rate_limit() ) {
 			wp_send_json_error(
 				array(
-					'message'   => __( 'Too many requests. Please wait a moment and try again.', 'sscribe-export-site-pages' ),
-					'retry'     => true,
-					'retry_in'  => 60000,
+					'message'  => __( 'Too many requests. Please wait a moment and try again.', 'sscribe-export-site-pages' ),
+					'retry'    => true,
+					'retry_in' => 60000,
 				),
 				429
 			);
@@ -723,7 +723,7 @@ class SScribe_Batch_Processor {
 			$user_id,
 			array(
 				'total_pages' => $total,
-				'formats' => $formats,
+				'formats'     => $formats,
 			)
 		);
 
@@ -1398,10 +1398,10 @@ class SScribe_Batch_Processor {
 				if ( ! empty( $current_session['cancelled'] ) ) {
 					$this->logger->debug(
 						'Mid-batch cancellation detected',
-					array(
-						'session_id' => $session_id,
-						'processed'  => $processed,
-					)
+						array(
+							'session_id' => $session_id,
+							'processed'  => $processed,
+						)
 					);
 					break;
 				}
@@ -1868,8 +1868,8 @@ class SScribe_Batch_Processor {
 				$this->logger->debug(
 					'No files generated — all pages likely failed',
 					array(
-						'temp_dir'       => $session['temp_dir'],
-						'formats'       => $formats,
+						'temp_dir' => $session['temp_dir'],
+						'formats'  => $formats,
 					)
 				);
 
@@ -2060,17 +2060,17 @@ class SScribe_Batch_Processor {
 			}
 
 			// Record export completion in statistics table.
-			$export_stats  = new SScribe_Export_Stats();
-			$duration      = time() - ( $session['start_time'] ?? time() );
-			$zip_size      = function_exists( 'wp_filesize' ) && file_exists( $zip_path ) ? (int) wp_filesize( $zip_path ) : 0;
-			$error_count   = count( $session['errors'] ?? array() );
+			$export_stats = new SScribe_Export_Stats();
+			$duration     = time() - ( $session['start_time'] ?? time() );
+			$zip_size     = function_exists( 'wp_filesize' ) && file_exists( $zip_path ) ? (int) wp_filesize( $zip_path ) : 0;
+			$error_count  = count( $session['errors'] ?? array() );
 			$export_stats->complete_export(
 				$session_id,
 				array(
 					'successful_pages' => $session['total'],
 					'failed_pages'     => $error_count,
-					'duration'          => $duration,
-					'file_size_mb'      => $zip_size / 1048576,
+					'duration'         => $duration,
+					'file_size_mb'     => $zip_size / 1048576,
 				)
 			);
 			$structured_errors = isset( $session['structured_errors'] ) && is_array( $session['structured_errors'] ) ? $session['structured_errors'] : array();
@@ -2735,8 +2735,8 @@ class SScribe_Batch_Processor {
 			$page_errors = array();
 			$formats_raw = isset( $page['formats'] ) && is_array( $page['formats'] ) ? $page['formats'] : array();
 
-			// Normalize: handle both plain array ['docx','pdf'] and
-			// associative array ['docx' => ['success'=>true,...]].
+			// Normalize: handle both plain array ('docx', 'pdf') and
+			// associative array ('docx' => array('success' => true, ...)).
 			$formats = array();
 			foreach ( $formats_raw as $key => $value ) {
 				if ( is_int( $key ) && is_string( $value ) ) {
@@ -3177,7 +3177,10 @@ class SScribe_Batch_Processor {
 				'size'           => filesize( $file_path ),
 				'size_formatted' => size_format( filesize( $file_path ) ),
 				'time'           => $data['created_at'] ?? filemtime( $file_path ),
-				'date'           => wp_date( ( get_option( 'date_format' ) ?: 'Y-m-d' ) . ' ' . ( get_option( 'time_format' ) ?: 'H:i' ), $data['created_at'] ?? filemtime( $file_path ) ),
+				'date'           => wp_date(
+					( get_option( 'date_format' ) ? get_option( 'date_format' ) : 'Y-m-d' ) . ' ' . ( get_option( 'time_format' ) ? get_option( 'time_format' ) : 'H:i' ),
+					$data['created_at'] ?? filemtime( $file_path ),
+				),
 				'lang_code'      => $data['lang_code'] ?? '',
 				'lang_name'      => $data['lang_name'] ?? '',
 				'flag_url'       => $data['flag_url'] ?? '',
