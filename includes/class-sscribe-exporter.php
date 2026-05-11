@@ -128,16 +128,33 @@ class SScribe_Exporter {
 		// 2. Remove XML non-characters: U+FFFE and U+FFFF.
 		$text = preg_replace( '/[\x{FFFE}\x{FFFF}]/u', '', $text );
 
-		// 3. Remove Unicode surrogate code points (U+D800-U+DFFF).
+		// 3. Remove Unicode non-characters (U+FDD0–U+FDEF).
+		$text = preg_replace( '/[\x{FDD0}-\x{FDEF}]/u', '', $text );
+
+		// 4. Remove Unicode surrogate code points (U+D800-U+DFFF).
 		// These are encoded as 4-byte UTF-8 sequences starting with 0xED.
 		$text = preg_replace( '/\xED[\xA0-\xBF][\x80-\xBF]/', '', $text );
 
-		// 4. Replace zero-width and invisible formatting chars that cause display issues.
+		// 5. Replace zero-width and invisible formatting chars that cause display issues.
 		$text = preg_replace( '/[\x{200B}\x{FEFF}\x{00AD}]/u', '', $text );
 
-		// IMPORTANT: We do NOT strip astral plane characters (emoji, symbols) or
-		// Private Use Area characters, as PHPWord handles them correctly with proper
-		// UTF-8 encoding and they may be legitimate content in user pages.
+		// 6. Normalize mixed line endings to Unix style.
+		$text = str_replace( array( "\r\n", "\r" ), "\n", $text );
+
+		// 7. Remove form feed characters (cause some XML parsers to fail).
+		$text = str_replace( "\x0C", '', $text );
+
+		// 8. Insert soft hyphens in very long unbreakable strings (URLs, base64)
+		// to prevent table cell overflow in DOCX/PDF rendering.
+		if ( strlen( $text ) > 150 && false === strpos( $text, ' ' ) ) {
+			$text = wordwrap( $text, 80, "\xC2\xAD", true );
+		}
+
+		// 9. Final pass: drop any remaining invalid UTF-8 sequences.
+		$cleaned = mb_convert_encoding( $text, 'UTF-8', 'UTF-8' );
+		if ( false !== $cleaned ) {
+			$text = $cleaned;
+		}
 
 		return $text;
 	}
@@ -365,6 +382,23 @@ class SScribe_Exporter {
 
 			$writer = IOFactory::createWriter( $php_word, 'Word2007' );
 			$writer->save( $output_path );
+
+			// Verify DOCX ZIP integrity — PHPWord can produce malformed ZIPs from
+			// broken HTML (nested tables, invalid lists, malformed headings).
+			$zip_check = new \ZipArchive();
+			if ( true !== $zip_check->open( $output_path ) ) {
+				wp_delete_file( $output_path );
+				unset( $writer, $php_word );
+				throw new \RuntimeException( 'DOCX failed ZipArchive integrity check after write' );
+			}
+			$has_document   = false !== $zip_check->locateName( 'word/document.xml' );
+			$has_types      = false !== $zip_check->locateName( '[Content_Types].xml' );
+			$zip_check->close();
+			if ( ! $has_document || ! $has_types ) {
+				wp_delete_file( $output_path );
+				unset( $writer, $php_word );
+				throw new \RuntimeException( 'DOCX missing required internal files (word/document.xml or [Content_Types].xml)' );
+			}
 
 			// CRITICAL: Explicitly release PHPWord objects to prevent memory leaks in batch processing.
 			// PHPWord retains circular references between elements and the parent document,
@@ -893,12 +927,11 @@ class SScribe_Exporter {
 			$width_emu  = Converter::pixelToEmu( $image_info[0] );
 			$height_emu = Converter::pixelToEmu( $image_info[1] );
 
-			// Scale down if necessary.
-			if ( $width_emu > $max_width ) {
-				$ratio      = $max_width / $width_emu;
-				$width_emu  = $max_width;
-				$height_emu = (int) ( $height_emu * $ratio );
-			}
+			// Always scale to target width (both up and down) for uniform appearance.
+			$ratio      = $max_width / $width_emu;
+			$width_emu  = $max_width;
+			$height_emu = (int) ( $height_emu * $ratio );
+
 			if ( $height_emu > $max_height ) {
 				$ratio      = $max_height / $height_emu;
 				$height_emu = $max_height;
@@ -1425,7 +1458,11 @@ class SScribe_Exporter {
 		// Calculate column count from first row.
 		$col_count = ! empty( $element['rows'][0]['cells'] )
 			? count( $element['rows'][0]['cells'] )
-			: 1;
+			: 0;
+
+		if ( 0 === $col_count ) {
+			return;
+		}
 
 		// Total content width: 6.5 inches (US Letter - 1" margins each side).
 		$total_width_twip = Converter::inchToTwip( 6.5 );
@@ -1566,11 +1603,10 @@ class SScribe_Exporter {
 				$width_emu  = Converter::pixelToEmu( $image_info[0] );
 				$height_emu = Converter::pixelToEmu( $image_info[1] );
 
-				if ( $width_emu > $max_width ) {
-					$ratio      = $max_width / $width_emu;
-					$width_emu  = $max_width;
-					$height_emu = (int) ( $height_emu * $ratio );
-				}
+				// Always scale to target width (both up and down) for uniform appearance.
+				$ratio      = $max_width / $width_emu;
+				$width_emu  = $max_width;
+				$height_emu = (int) ( $height_emu * $ratio );
 
 				$section->addImage(
 					$path,

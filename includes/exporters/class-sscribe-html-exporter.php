@@ -154,11 +154,11 @@ class SScribe_HTML_Exporter implements SScribe_Exporter_Interface {
 		}
 		html, body { direction: rtl; font-family: \'Noto Sans Arabic\', \'Manrope\', sans-serif; }
 		h1 { text-align: center; }
-		.featured-image { max-width: 600px; margin: 0 auto; display: block; }
+		.featured-image { width: 100%; max-width: 600px; margin: 0 auto; display: block; }
 		' :
 			'
 		h1 { text-align: center; }
-		.featured-image { max-width: 600px; margin: 0 auto; display: block; }
+		.featured-image { width: 100%; max-width: 600px; margin: 0 auto; display: block; }
 		';
 
 		$html = '<!DOCTYPE html>
@@ -178,7 +178,8 @@ class SScribe_HTML_Exporter implements SScribe_Exporter_Interface {
 		.meta dd { margin: 0; color: #495057; }
 		.content { margin-top: 20px; }
 		.seo { background: #f5f5f5; padding: 15px 20px; border-radius: 4px; margin-top: 20px; }
-		.featured-image { max-width: 600px; height: auto; margin-bottom: 20px; border-radius: 4px; }
+		.featured-image { width: 100%; max-width: 600px; height: auto; margin-bottom: 20px; border-radius: 4px; display: block; margin-left: auto; margin-right: auto; }
+		img { max-width: 100%; height: auto; display: block; margin: 8px auto; }
 		a { color: #2C6E8A; text-decoration: none; }
 		a:hover { text-decoration: underline; }
 		footer { margin-top: 40px; padding-top: 20px; border-top: 1px solid #ddd; color: #666; font-size: 0.9em; }
