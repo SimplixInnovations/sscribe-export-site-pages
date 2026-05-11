@@ -1668,6 +1668,10 @@ class SScribe_Exporter {
 		$section->addTitle( __( 'Child Pages', 'sscribe-export-site-pages' ), 2 );
 
 		foreach ( $page_data['children'] as $child ) {
+			$child_url = $this->validate_url( $child['url'] ?? '' );
+			if ( empty( $child_url ) ) {
+				continue;
+			}
 			$text_run = $section->addTextRun( $this->get_para_style() );
 			$text_run->addText(
 				'> ',
@@ -1678,7 +1682,7 @@ class SScribe_Exporter {
 				)
 			);
 			$text_run->addLink(
-				$child['url'],
+				$child_url,
 				$this->safe_text( $child['title'] ),
 				array(
 					'name'  => $this->font_name,
