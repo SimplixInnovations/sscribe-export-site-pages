@@ -268,7 +268,7 @@ class SScribe_PDF_Exporter implements SScribe_Exporter_Interface {
 
 			if ( function_exists( 'set_time_limit' ) ) {
 				// phpcs:ignore WordPress.PHP.DiscouragedFunctions.Discouraged, WordPress.PHP.IniSet.max_execution_time_Blacklisted -- mPDF rendering is CPU-intensive and requires extended time per page.
-				set_time_limit( 60 );
+				@set_time_limit( 60 );
 			}
 
 			$filename    = \SScribe_Exporter_Factory::build_filename( $page_data, $index, $total, 'pdf' );

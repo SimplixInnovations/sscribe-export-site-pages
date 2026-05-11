@@ -1562,8 +1562,8 @@
 	font-family: Consolas, Monaco, monospace;
 	font-size: 12px;
 	line-height: 1.6;
-	background: #0F172A;
-	color: #E2E8F0;
+	background: #0F172A !important;	
+	color: #E2E8F0 !important;
 	resize: vertical;
 }
 

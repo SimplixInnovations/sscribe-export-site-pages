@@ -793,7 +793,7 @@ class SScribe_Batch_Processor {
 		$max_time = (int) apply_filters( 'sscribe_max_execution_time', 120 );
 		if ( function_exists( 'set_time_limit' ) ) {
 			// phpcs:ignore WordPress.PHP.DiscouragedFunctions.Discouraged, WordPress.PHP.IniSet.max_execution_time_Blacklisted -- Required for batch processing large page content from page builders (Elementor/Divi) where default 30s timeout causes failures. This is a standard practice for export plugins.
-			set_time_limit( $max_time );
+			@set_time_limit( $max_time );
 		}
 		wp_raise_memory_limit( 'admin' );
 
@@ -813,7 +813,7 @@ class SScribe_Batch_Processor {
 		if ( in_array( 'pdf', $formats, true ) && function_exists( 'set_time_limit' ) ) {
 			$pdf_max_time = (int) apply_filters( 'sscribe_pdf_max_execution_time', 300 );
 				// phpcs:ignore WordPress.PHP.DiscouragedFunctions.Discouraged, WordPress.PHP.IniSet.max_execution_time_Blacklisted -- PDF export requires extended execution time. mPDF rendering is ~3s per page; with batch_size=2, each batch needs ~6s+ overhead.
-			set_time_limit( $pdf_max_time );
+			@set_time_limit( $pdf_max_time );
 		}
 
 		$this->logger->debug(
@@ -858,8 +858,11 @@ class SScribe_Batch_Processor {
 			$lock_age   = $current_time - $lock_time;
 
 			if ( $lock_age > $stale_threshold ) {
-				// Stale lock detected - use atomic compare-and-swap via WP's transient race condition handling.
-				// We attempt to acquire the lock atomically by setting a new value.
+				// Stale lock detected — delete first to force atomic INSERT on next set_transient().
+				// Without delete, set_transient() calls update_option() which is NOT atomic —
+				// two concurrent processes can both succeed and corrupt the export.
+				delete_transient( $lock_key );
+
 				$this->logger->debug(
 					'Detected stale lock, attempting atomic acquisition',
 					array(
@@ -1185,7 +1188,7 @@ class SScribe_Batch_Processor {
 							// Validate exported file exists and has reasonable size.
 							$actual_size = ( ! empty( $file_path ) && file_exists( $file_path ) ) ? (int) filesize( $file_path ) : 0;
 							$min_sizes   = array(
-								'docx'     => 1024,  // 1KB minimum for valid DOCX.
+								'docx'     => 4096,  // 4KB minimum — valid OOXML ZIP has multiple required XML files.
 								'pdf'      => 4096,   // 4KB minimum — valid mPDF output is never this small.
 								'html'     => 100,   // 100 bytes minimum for valid HTML.
 								'markdown' => 50,    // 50 bytes minimum for valid Markdown.
@@ -1402,6 +1405,7 @@ class SScribe_Batch_Processor {
 		} finally {
 			$this->release_lock( $session_id );
 			$this->restore_ob_level( $ob_level_before );
+			$this->collector->clear_page_caches();
 		}
 
 		$batch_duration = microtime( true ) - $batch_start_time;
@@ -1710,11 +1714,22 @@ class SScribe_Batch_Processor {
 		}
 
 		$status = $session['status'] ?? '';
-		if ( 'finalizing' !== $status ) {
+		if ( 'finalizing' !== $status && 'completing' !== $status ) {
 			wp_send_json_error(
 				array(
 					'code'    => 'not_finalizing',
 					'message' => __( 'Export is not in the finalizing state.', 'sscribe-export-site-pages' ),
+				),
+				409 // HTTP 409 Conflict.
+			);
+			return;
+		}
+
+		if ( 'completing' === $status ) {
+			wp_send_json_error(
+				array(
+					'code'    => 'already_completing',
+					'message' => __( 'Export is already being finalized. Please wait.', 'sscribe-export-site-pages' ),
 				),
 				409 // HTTP 409 Conflict.
 			);
@@ -1740,6 +1755,12 @@ class SScribe_Batch_Processor {
 			$this->export_log = new SScribe_Export_Log( $session_id );
 		}
 
+		// Prevent double execution: set status to 'completing' before doing any work.
+		// If two concurrent ajax_finalize_export() calls both see 'finalizing', only the
+		// first one transitions to 'completing'; the second sees 'completing' and rejects.
+		$this->session->update( $session_id, array( 'status' => 'completing' ) );
+		$session['status'] = 'completing';
+
 		// Set session_id on logger for correlation in all log entries.
 		$this->logger->set_session_id( $session_id );
 
@@ -1748,7 +1769,7 @@ class SScribe_Batch_Processor {
 		// exceed the default batch time limit, causing a 404 "session not found" error.
 		if ( function_exists( 'set_time_limit' ) ) {
 			// phpcs:ignore WordPress.PHP.DiscouragedFunctions.Discouraged, WordPress.PHP.IniSet.max_execution_time_Blacklisted -- ZIP creation with many large files (especially PDF) requires extended time.
-			set_time_limit( 300 );
+			@set_time_limit( 300 );
 		}
 
 		$this->logger->debug(
@@ -2300,7 +2321,7 @@ class SScribe_Batch_Processor {
 
 			// Cap download execution time to prevent indefinite PHP process occupation on shared hosting.
 			if ( function_exists( 'set_time_limit' ) ) {
-				set_time_limit( 300 ); // 5 minutes — sufficient for any reasonable ZIP file.
+				@set_time_limit( 300 ); // 5 minutes — sufficient for any reasonable ZIP file.
 			}
 
 		// phpcs:ignore WordPress.WP.AlternativeFunctions.file_system_operations_readfile -- Direct download

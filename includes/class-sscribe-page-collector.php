@@ -42,6 +42,17 @@ class SScribe_Page_Collector {
 	private array $breadcrumb_cache = array();
 
 	/**
+	 * Clear all page caches to free memory during batch processing.
+	 *
+	 * @return void
+	 */
+	public function clear_page_caches(): void {
+		$this->featured_images_cache = array();
+		$this->child_pages_cache     = array();
+		$this->breadcrumb_cache      = array();
+	}
+
+	/**
 	 * SEO reader instance.
 	 *
 	 * @var SScribe_SEO_Reader
