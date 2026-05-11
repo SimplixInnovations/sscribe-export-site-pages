@@ -268,12 +268,6 @@ class SScribe_PDF_Exporter implements SScribe_Exporter_Interface {
 			$mpdf = new \SScribeVendor\Mpdf\Mpdf( $config );
 			$mpdf->SetDirectionality( $is_rtl ? 'rtl' : 'ltr' );
 
-			// Map RTL languages to NotoSansArabic for proper glyph rendering.
-			$mpdf->lang2fonts['ar'] = 'notosansarabic';
-			$mpdf->lang2fonts['fa'] = 'notosansarabic';
-			$mpdf->lang2fonts['ur'] = 'notosansarabic';
-			$mpdf->lang2fonts['he'] = 'notosansarabic';
-
 			// Set PDF metadata for accessibility and DMS compatibility.
 			$mpdf->SetTitle( $title );
 			$mpdf->SetAuthor( $page_data['author'] ?? '' );
