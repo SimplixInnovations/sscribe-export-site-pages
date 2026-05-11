@@ -17,7 +17,7 @@ parameters:
         - '#Call to method .* on an unknown class WP_Filesystem_Base\.#'
         - '#Property .* has unknown class WP_Filesystem_Base as its type\.#'
         - '#Instantiated class WP_Query not found\.#'
-        - '#Access to property \$(posts|found_posts|max_num_pages) on an unknown class WP_Query\.#'
+        - '#Access to .+ property WP_Query::\$max_num_pages#'
         - '#Function aioseo not found\.#'
         - '#Call to an undefined method DOMNode::#'
         - '#addCell\(\) expects int#'
@@ -49,3 +49,7 @@ parameters:
         - '#Call to an undefined static method SScribe_Deactivator::cleanup_transients\(\)\.#'
         # Level 6: iterable value types for WordPress API arrays are impractical to annotate.
         - '#no value type specified in iterable type#'
+        # WordPress apply_filters/do_action accept variadic args but PHPStan stubs don't reflect this.
+        - '#Function (apply_filters|do_action) invoked with \d+ parameters, \d+ required\.#'
+        # PHPStan evaluates constant values at analysis time — these comparisons are runtime guards.
+        - '#Strict comparison using !== between .* will always evaluate to true\.#'
