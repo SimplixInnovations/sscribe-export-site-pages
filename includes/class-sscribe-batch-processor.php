@@ -1398,7 +1398,10 @@ class SScribe_Batch_Processor {
 				if ( ! empty( $current_session['cancelled'] ) ) {
 					$this->logger->debug(
 						'Mid-batch cancellation detected',
-						array( 'session_id' => $session_id, 'processed' => $processed )
+					array(
+						'session_id' => $session_id,
+						'processed'  => $processed,
+					)
 					);
 					break;
 				}
