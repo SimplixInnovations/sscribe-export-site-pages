@@ -136,7 +136,7 @@ class SScribe_Diagnostics {
 					: basename( $upload_dir['basedir'] ),
 				'export_dir'  => '[uploads]/sscribe-exports',
 				'log_dir'     => '[uploads]/sscribe-logs',
-				'writable'     => wp_is_writable( $export_dir ) ? __( 'Yes', 'sscribe-export-site-pages' ) : __( 'No', 'sscribe-export-site-pages' ),
+				'writable'    => wp_is_writable( $export_dir ) ? __( 'Yes', 'sscribe-export-site-pages' ) : __( 'No', 'sscribe-export-site-pages' ),
 			),
 		);
 

@@ -181,7 +181,7 @@ class SScribe_Exporter {
 		}
 
 		$parsed_scheme = wp_parse_url( $url, PHP_URL_SCHEME );
-		$scheme       = strtolower( ( false === $parsed_scheme || null === $parsed_scheme ) ? '' : $parsed_scheme );
+		$scheme        = strtolower( ( false === $parsed_scheme || null === $parsed_scheme ) ? '' : $parsed_scheme );
 
 		if ( in_array( $scheme, array( 'http', 'https', 'mailto', 'tel' ), true ) ) {
 			return esc_url_raw( $url );
@@ -391,8 +391,8 @@ class SScribe_Exporter {
 				unset( $writer, $php_word );
 				throw new \RuntimeException( 'DOCX failed ZipArchive integrity check after write' );
 			}
-			$has_document   = false !== $zip_check->locateName( 'word/document.xml' );
-			$has_types      = false !== $zip_check->locateName( '[Content_Types].xml' );
+			$has_document = false !== $zip_check->locateName( 'word/document.xml' );
+			$has_types    = false !== $zip_check->locateName( '[Content_Types].xml' );
 			$zip_check->close();
 			if ( ! $has_document || ! $has_types ) {
 				wp_delete_file( $output_path );
@@ -1344,7 +1344,7 @@ class SScribe_Exporter {
 
 			if ( $this->is_rtl ) {
 				$font_style['bidi']          = true;
-				$font_style['rtl']          = true;
+				$font_style['rtl']           = true;
 				$font_style['complexScript'] = array( 'name' => $this->font_name );
 			}
 

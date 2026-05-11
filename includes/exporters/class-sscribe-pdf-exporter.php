@@ -85,7 +85,7 @@ class SScribe_PDF_Exporter implements SScribe_Exporter_Interface {
 		$is_rtl   = SScribe_RTL_Helper::is_rtl( $language );
 
 		$processed_page_data = $this->process_images_in_page_data( $page_data );
-		$temp_image_paths     = $this->collect_temp_image_paths( $processed_page_data );
+		$temp_image_paths    = $this->collect_temp_image_paths( $processed_page_data );
 
 		$html_result = $this->html_exporter->export( $processed_page_data, $output_dir, $index, $total );
 
@@ -183,10 +183,10 @@ class SScribe_PDF_Exporter implements SScribe_Exporter_Interface {
 				$this->logger->error(
 					'PDF export failed: Manrope font files are missing',
 					array(
-						'manrope_dir'      => $manrope_dir,
-						'dir_exists'       => is_dir( $manrope_dir ),
+						'manrope_dir'     => $manrope_dir,
+						'dir_exists'      => is_dir( $manrope_dir ),
 						'manrope_regular' => $manrope_regular,
-						'dir_contents'     => is_dir( $manrope_dir ) ? scandir( $manrope_dir ) : array(),
+						'dir_contents'    => is_dir( $manrope_dir ) ? scandir( $manrope_dir ) : array(),
 					)
 				);
 
@@ -237,19 +237,14 @@ class SScribe_PDF_Exporter implements SScribe_Exporter_Interface {
 				'useKashida'       => 75,
 				'fontdata'         => array(
 					'manrope'        => array(
-						'R'  => 'Manrope-Regular.ttf',
-						'B'  => $this->find_font_file( $manrope_dir, 'manrope[-_]?bold' )
-							?: 'Manrope-Bold.ttf',
-						'M'  => $this->find_font_file( $manrope_dir, 'manrope[-_]?medium' )
-							?: 'Manrope-Medium.ttf',
-						'L'  => $this->find_font_file( $manrope_dir, 'manrope[-_]?light' )
-							?: 'Manrope-Light.ttf',
+						'R' => 'Manrope-Regular.ttf',
+						'B' => $this->find_font_file( $manrope_dir, 'manrope[-_]?bold' ) ? $this->find_font_file( $manrope_dir, 'manrope[-_]?bold' ) : 'Manrope-Bold.ttf',
+						'M' => $this->find_font_file( $manrope_dir, 'manrope[-_]?medium' ) ? $this->find_font_file( $manrope_dir, 'manrope[-_]?medium' ) : 'Manrope-Medium.ttf',
+						'L' => $this->find_font_file( $manrope_dir, 'manrope[-_]?light' ) ? $this->find_font_file( $manrope_dir, 'manrope[-_]?light' ) : 'Manrope-Light.ttf',
 					),
 					'notosansarabic' => array(
-						'R' => $this->find_font_file( $font_dir . 'notosansarabic/', 'notosansarabic[-_]?regular' )
-							?: 'NotoSansArabic-Regular.ttf',
-						'B' => $this->find_font_file( $font_dir . 'notosansarabic/', 'notosansarabic[-_]?bold' )
-							?: 'NotoSansArabic-Bold.ttf',
+						'R' => $this->find_font_file( $font_dir . 'notosansarabic/', 'notosansarabic[-_]?regular' ) ? $this->find_font_file( $font_dir . 'notosansarabic/', 'notosansarabic[-_]?regular' ) : 'NotoSansArabic-Regular.ttf',
+						'B' => $this->find_font_file( $font_dir . 'notosansarabic/', 'notosansarabic[-_]?bold' ) ? $this->find_font_file( $font_dir . 'notosansarabic/', 'notosansarabic[-_]?bold' ) : 'NotoSansArabic-Bold.ttf',
 					),
 				),
 				'orientation'      => 'P',
