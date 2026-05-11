@@ -4,6 +4,21 @@ All notable changes to this project will be documented in this file.
 
 ## [Unreleased]
 
+## [3.6.4] - 2026-05-11
+
+### Fixed
+- CRITICAL: Arabic PDF rendering — `useOTL=0xFF` and `useKashida=75` for proper character shaping and joining
+- CRITICAL: Arabic PDF — `default_font` conditional (notosansarabic for RTL, manrope otherwise)
+- CRITICAL: Arabic PDF — `lang2fonts` mapping for ar/fa/ur/he to notosansarabic
+- CRITICAL: Arabic PDF — Strip `@font-face` from HTML before `WriteHTML()` to prevent HTTP self-request
+- CRITICAL: DOCX — ZipArchive integrity check after save catches malformed ZIPs before packaging
+- CRITICAL: DOCX — Division by zero guard in `render_table()` for empty tables
+- HIGH: Image scaling — Always scale to target width (both up and down) for uniform appearance
+- HIGH: PDF images — `width: 100%` instead of `max-width` for proper rendering
+- MEDIUM: `safe_text()` — iconv UTF-8 normalization, form-feed removal, line-ending normalization, long string soft-hyphen breaking
+- MEDIUM: PDF metadata — `SetTitle`, `SetAuthor`, `SetCreator`, `SetSubject`, `SetKeywords` populated
+- MEDIUM: Mid-batch cancellation — re-read session after each page for responsive cancel
+
 ## [3.6.3] - 2026-05-11
 
 ### Fixed
