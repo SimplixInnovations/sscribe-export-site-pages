@@ -232,7 +232,9 @@ class SScribe_PDF_Exporter implements SScribe_Exporter_Interface {
 					$font_dir . 'notosansarabic/',
 				),
 				'mode'             => $is_rtl ? 'ar' : 'utf-8',
-				'default_font'     => 'manrope',
+				'default_font'     => $is_rtl ? 'notosansarabic' : 'manrope',
+				'useOTL'           => 0xFF,
+				'useKashida'       => 75,
 				'fontdata'         => array(
 					'manrope'        => array(
 						'R'  => 'Manrope-Regular.ttf',
@@ -265,6 +267,24 @@ class SScribe_PDF_Exporter implements SScribe_Exporter_Interface {
 
 			$mpdf = new \SScribeVendor\Mpdf\Mpdf( $config );
 			$mpdf->SetDirectionality( $is_rtl ? 'rtl' : 'ltr' );
+
+			// Map RTL languages to NotoSansArabic for proper glyph rendering.
+			$mpdf->lang2fonts['ar'] = 'notosansarabic';
+			$mpdf->lang2fonts['fa'] = 'notosansarabic';
+			$mpdf->lang2fonts['ur'] = 'notosansarabic';
+			$mpdf->lang2fonts['he'] = 'notosansarabic';
+
+			// Set PDF metadata for accessibility and DMS compatibility.
+			$mpdf->SetTitle( $title );
+			$mpdf->SetAuthor( $page_data['author'] ?? '' );
+			$mpdf->SetCreator( 'SScribe Export Plugin v' . SSCRIBE_VERSION );
+			$mpdf->SetSubject( $page_data['seo']['meta_description'] ?? '' );
+			$mpdf->SetKeywords( $page_data['seo']['focus_keyword'] ?? '' );
+
+			// Strip @font-face declarations from HTML — they contain HTTP URLs that
+			// cause mPDF to attempt server-side HTTP requests to itself, which fails.
+			// The fontdata config above handles font resolution via local files.
+			$html_content = preg_replace( '/@font-face\s*\{[^}]+\}/is', '', $html_content );
 
 			if ( function_exists( 'set_time_limit' ) ) {
 				// phpcs:ignore WordPress.PHP.DiscouragedFunctions.Discouraged, WordPress.PHP.IniSet.max_execution_time_Blacklisted -- mPDF rendering is CPU-intensive and requires extended time per page.

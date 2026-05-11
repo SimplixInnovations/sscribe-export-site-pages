@@ -1391,6 +1391,17 @@ class SScribe_Batch_Processor {
 				if ( 0 === $processed % 3 && function_exists( 'gc_collect_cycles' ) ) {
 					gc_collect_cycles();
 				}
+
+				// Mid-batch cancellation check: re-read session to detect user-initiated cancel.
+				// Without this, a cancelled export continues until the batch completes (up to 30s for PDF).
+				$current_session = $this->session->get( $session_id );
+				if ( ! empty( $current_session['cancelled'] ) ) {
+					$this->logger->debug(
+						'Mid-batch cancellation detected',
+						array( 'session_id' => $session_id, 'processed' => $processed )
+					);
+					break;
+				}
 			}
 		} catch ( \Throwable $e ) {
 			$this->logger->error(
