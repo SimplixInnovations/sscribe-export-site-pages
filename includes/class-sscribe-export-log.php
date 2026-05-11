@@ -287,6 +287,7 @@ class SScribe_Export_Log {
 		$data['zip_file']     = basename( $zip_path );
 		$data['files_in_zip'] = $files_in_zip;
 		$this->write_log( $data );
+		$this->flush();
 
 		// Create transient index for O(1) ZIP filename lookup.
 		// Maps ZIP filename → session_id to avoid O(n) scan in get_log_by_filename().
@@ -312,6 +313,7 @@ class SScribe_Export_Log {
 			'time'    => current_time( 'mysql' ),
 		);
 		$this->write_log( $data );
+		$this->flush();
 	}
 
 	/**

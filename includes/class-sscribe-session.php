@@ -638,9 +638,7 @@ class SScribe_Session {
 
 		global $wpdb;
 
-		$pattern                 = $wpdb->esc_like( $this->option_prefix ) . '%';
-		$now                     = time();
-		$recently_started_window = 60; // seconds — only guards against duplicate export starts.
+		$pattern = $wpdb->esc_like( $this->option_prefix ) . '%';
 
 		$has_active = false;
 

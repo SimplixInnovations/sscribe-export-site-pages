@@ -232,6 +232,8 @@ class SScribe_Exporter {
 			return false;
 		}
 
+		$output_path = '';
+
 		try {
 			if ( ! class_exists( 'ZipArchive' ) ) {
 				throw new \RuntimeException( __( 'The ZipArchive PHP extension is required to generate DOCX files.', 'sscribe-export-site-pages' ) );
