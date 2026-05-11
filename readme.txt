@@ -4,7 +4,7 @@ Donate link: https://simplixi.com
 Tags: export, docx, multilingual, seo, pdf, posts, pages
 Requires at least: 6.0
 Tested up to: 6.10
-Stable tag: 3.6.2
+Stable tag: 3.6.3
 Requires PHP: 8.2
 License: GPLv2 or later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
@@ -229,7 +229,7 @@ Each document includes: cover page with title/URL/date/breadcrumbs, featured ima
 
 == Changelog ==
 
-= 3.6.2 =
+= 3.6.3 =
 
 * PDF export: Font discovery now uses case-insensitive regex matching to handle Linux servers with case-sensitive filesystems
 * PDF export: Added `find_font_file()` helper method for all font variants (Manrope R/B/M/L, NotoSansArabic R/B)
@@ -274,7 +274,7 @@ Each document includes: cover page with title/URL/date/breadcrumbs, featured ima
 
 == Upgrade Notice ==
 
-= 3.6.2 =
+= 3.6.3 =
 
 Fixes 100% PDF export failure (root cause: missing fontDir), infinite retry loop on export failure, session cache consistency, and 5 other bugs. Strongly recommended for all users.
 

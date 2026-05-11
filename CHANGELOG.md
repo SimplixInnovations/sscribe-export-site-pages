@@ -4,6 +4,18 @@ All notable changes to this project will be documented in this file.
 
 ## [Unreleased]
 
+## [3.6.3] - 2026-05-11
+
+### Fixed
+- CRITICAL: Stale lock race condition — `delete_transient()` before `set_transient()` prevents double batch processing that corrupts DOCX files
+- CRITICAL: Uninitialized `$output_path` in DOCX exporter catch block — prevents silent failure on partial file cleanup
+- HIGH: Unbounded page cache growth — `clear_page_caches()` called in batch finally block to prevent OOM on large exports
+- MEDIUM: Dead code `$recently_started_window` removed from session check
+- MEDIUM: DOCX minimum size threshold raised from 1KB to 4KB (valid OOXML ZIP is never < 4KB)
+- MEDIUM: `set_time_limit()` silenced with `@` for restricted hosting environments
+- MEDIUM: Double `finalize_export()` guard — session status set to 'completing' before ZIP creation
+- MEDIUM: Export log `mark_complete()`/`mark_failed()` now explicitly flush to disk
+
 ## [3.6.2] - 2026-05-11
 
 ### Fixed
