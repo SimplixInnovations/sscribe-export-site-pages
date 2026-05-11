@@ -115,10 +115,10 @@ class SScribe_Exporter_Factory {
 		// Attempt page title first, then slug, then 'page' as last resort.
 		// sanitize_file_name() strips all non-ASCII (Arabic, CJK, etc.) returning empty.
 		// Slug is URL-safe ASCII and uniquely identifies the page even for non-Latin scripts.
-		$raw_title = isset( $page_data['title'] ) && '' !== $page_data['title']
+		$raw_title  = isset( $page_data['title'] ) && '' !== $page_data['title']
 			? sanitize_file_name( trim( $page_data['title'] ) )
 			: '';
-		$raw_slug = isset( $page_data['slug'] ) && '' !== $page_data['slug']
+		$raw_slug   = isset( $page_data['slug'] ) && '' !== $page_data['slug']
 			? sanitize_file_name( trim( $page_data['slug'] ) )
 			: '';
 		$page_title = '' !== $raw_title ? $raw_title : ( '' !== $raw_slug ? $raw_slug : 'page' );

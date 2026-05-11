@@ -489,7 +489,7 @@ class SScribe_Page_Collector {
 				// This finally only handles state that must ALWAYS reset.
 				wp_reset_postdata();
 				// phpcs:ignore WordPress.WP.GlobalVariablesOverride.Prohibited
-				$post = $original_post;
+				$post                           = $original_post;
 				$is_applying_the_content_filter = false;
 			}
 		}
