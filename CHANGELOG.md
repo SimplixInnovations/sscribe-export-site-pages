@@ -4,7 +4,7 @@ All notable changes to this project will be documented in this file.
 
 ## [Unreleased]
 
-## [3.6.4] - 2026-05-11
+## [3.6.5] - 2026-05-11
 
 ### Fixed
 - CRITICAL: Arabic PDF rendering — `useOTL=0xFF` and `useKashida=75` for proper character shaping and joining
