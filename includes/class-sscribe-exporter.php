@@ -1434,15 +1434,9 @@ class SScribe_Exporter {
 			return;
 		}
 
-		// Resolve list type constants with try/catch — PHPWord constants can vary
-		// across versions and may throw on undefined constants in some setups.
-		try {
-			$list_type = ( 'numbered' === $style )
-				? \SScribeVendor\PhpOffice\PhpWord\Style\ListItem::TYPE_NUMBER
-				: \SScribeVendor\PhpOffice\PhpWord\Style\ListItem::TYPE_BULLET_FILLED;
-		} catch ( \Throwable $e ) {
-			$list_type = 'bullet';
-		}
+		$list_type = ( 'numbered' === $style )
+			? \SScribeVendor\PhpOffice\PhpWord\Style\ListItem::TYPE_NUMBER
+			: \SScribeVendor\PhpOffice\PhpWord\Style\ListItem::TYPE_BULLET_FILLED;
 
 		foreach ( $element['items'] as $item ) {
 			$depth = isset( $item['depth'] ) ? $item['depth'] : 0;
@@ -1501,13 +1495,7 @@ class SScribe_Exporter {
 		$total_width_twip = Converter::inchToTwip( 6.5 );
 		$cell_width       = (int) ( $total_width_twip / $col_count );
 
-		// Resolve TblWidth::TWIP with try/catch — PHPWord constants can vary across
-		// versions and may throw on undefined constants in some setups.
-		try {
-			$table_unit = \SScribeVendor\PhpOffice\PhpWord\SimpleType\TblWidth::TWIP;
-		} catch ( \Throwable $e ) {
-			$table_unit = 'twip';
-		}
+		$table_unit = \SScribeVendor\PhpOffice\PhpWord\SimpleType\TblWidth::TWIP;
 
 		$table_style = array(
 			'borderSize'  => 1,
