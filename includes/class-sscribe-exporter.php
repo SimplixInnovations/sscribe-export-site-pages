@@ -105,6 +105,24 @@ class SScribe_Exporter {
 	}
 
 	/**
+	 * Safe-preg_replace wrapper that never returns null.
+	 *
+	 * Preg_replace() returns null when the pattern causes backtrack/recursion
+	 * limit exhaustion (PCRE_ERROR). In PHP 8.2+, passing null to str_replace
+	 * or another preg_replace causes a TypeError, crashing the export.
+	 * This wrapper ensures string type is always preserved.
+	 *
+	 * @param string|string[] $pattern  Regex pattern(s).
+	 * @param string|string[] $replacement Replacement string(s).
+	 * @param string          $subject The input string.
+	 * @return string Cleaned string (original subject on failure).
+	 */
+	private function safe_preg_replace( array|string $pattern, array|string $replacement, string $subject ): string {
+		$result = preg_replace( $pattern, $replacement, $subject );
+		return is_string( $result ) ? $result : $subject;
+	}
+
+	/**
 	 * Clean text for safe XML 1.0 output.
 	 *
 	 * Note: We preserve Unicode characters (including Arabic, CJK, etc.) as PHPWord
@@ -122,39 +140,50 @@ class SScribe_Exporter {
 		// Per-word URL decoding happens at display-time in $display_url assignments,
 		// not in this general-purpose XML-safe text routine.
 
-		// 1. Remove XML 1.0 illegal control characters (keep \t, \n, \r).
-		$text = preg_replace( '/[\x00-\x08\x0B\x0C\x0E-\x1F\x7F]/', '', $text );
-
-		// 2. Remove XML non-characters: U+FFFE and U+FFFF.
-		$text = preg_replace( '/[\x{FFFE}\x{FFFF}]/u', '', $text );
-
-		// 3. Remove Unicode non-characters (U+FDD0–U+FDEF).
-		$text = preg_replace( '/[\x{FDD0}-\x{FDEF}]/u', '', $text );
-
-		// 4. Remove Unicode surrogate code points (U+D800-U+DFFF).
-		// These are encoded as 4-byte UTF-8 sequences starting with 0xED.
-		$text = preg_replace( '/\xED[\xA0-\xBF][\x80-\xBF]/', '', $text );
-
-		// 5. Replace zero-width and invisible formatting chars that cause display issues.
-		$text = preg_replace( '/[\x{200B}\x{FEFF}\x{00AD}]/u', '', $text );
-
-		// 6. Normalize mixed line endings to Unix style.
-		$text = str_replace( array( "\r\n", "\r" ), "\n", $text );
-
-		// 7. Remove form feed characters (cause some XML parsers to fail).
-		$text = str_replace( "\x0C", '', $text );
-
-		// 8. Truncate very long unbreakable strings (URLs, base64) to prevent
-		// table cell overflow in DOCX rendering. No soft-hyphen insertion —
-		// raw UTF-8 bytes in XML character data cause parsing errors in PHPWord.
-		if ( strlen( $text ) > 150 && false === strpos( $text, ' ' ) ) {
-			$text = mb_substr( $text, 0, 150, 'UTF-8' );
-		}
-
-		// 9. Final pass: drop any remaining invalid UTF-8 sequences.
+		// 1. FIRST: Strip invalid UTF-8 sequences before any regex processing.
+		// All subsequent preg_replace() calls with /u modifier will fail on invalid
+		// UTF-8, potentially returning null and losing the entire text content.
 		$cleaned = mb_convert_encoding( $text, 'UTF-8', 'UTF-8' );
 		if ( false !== $cleaned ) {
 			$text = $cleaned;
+		}
+
+		// 2. Remove XML 1.0 illegal control characters (keep \t, \n, \r).
+		// Use safe_preg_replace() to guard against PCRE backtrack limit exhaustion
+		// on very long strings — null return would cause TypeError downstream.
+		$text = $this->safe_preg_replace( '/[\x00-\x08\x0B\x0C\x0E-\x1F\x7F]/', '', $text );
+
+		// 3. Remove XML non-characters: U+FFFE and U+FFFF.
+		$text = $this->safe_preg_replace( '/[\x{FFFE}\x{FFFF}]/u', '', $text );
+
+		// 4. Remove Unicode non-characters (U+FDD0–U+FDEF).
+		$text = $this->safe_preg_replace( '/[\x{FDD0}-\x{FDEF}]/u', '', $text );
+
+		// 5. Remove Unicode surrogate code points (U+D800-U+DFFF).
+		// These are encoded as 3-byte UTF-8 sequences starting with 0xED.
+		// Valid UTF-8 never contains surrogates, but corrupted data might.
+		$text = $this->safe_preg_replace( '/\xED[\xA0-\xBF][\x80-\xBF]/', '', $text );
+
+		// 6. Replace zero-width and invisible formatting chars that cause display issues.
+		// NOTE: Preserves U+200C (ZWNJ) and U+200D (ZWJ) which are CRITICAL for
+		// Arabic/Persian text shaping — removing them breaks letter joining.
+		// Also preserves U+200E (LRM) and U+200F (RLM) needed for bidi text.
+		$text = $this->safe_preg_replace( '/[\x{200B}\x{FEFF}\x{00AD}]/u', '', $text );
+
+		// 7. Normalize mixed line endings to Unix style.
+		$text = str_replace( array( "\r\n", "\r" ), "\n", $text );
+
+		// 8. Remove form feed characters (cause some XML parsers to fail).
+		$text = str_replace( "\x0C", '', $text );
+
+		// 9. Truncate very long unbreakable strings (URLs, base64) to prevent
+		// table cell overflow in DOCX rendering. No soft-hyphen insertion —
+		// raw UTF-8 bytes in XML character data cause parsing errors in PHPWord.
+		// CRITICAL: Use mb_strlen (character count) not strlen (byte count).
+		// Arabic text uses 2-byte UTF-8 per character, so strlen > 150 triggers
+		// for strings of only ~75 Arabic chars, prematurely truncating content.
+		if ( mb_strlen( $text, 'UTF-8' ) > 200 && false === mb_strpos( $text, ' ', 0, 'UTF-8' ) ) {
+			$text = mb_substr( $text, 0, 200, 'UTF-8' );
 		}
 
 		return $text;
@@ -418,11 +447,59 @@ class SScribe_Exporter {
 			}
 			$has_document = false !== $zip_check->locateName( 'word/document.xml' );
 			$has_types    = false !== $zip_check->locateName( '[Content_Types].xml' );
+
+			// CRITICAL: Validate XML content inside document.xml — not just ZIP structure.
+			// Corrupted text encoding (e.g., mangled Arabic from bad UTF-8 handling)
+			// produces invalid XML that passes the ZIP check but makes the DOCX
+			// unopenable in Word/LibreOffice. Parse the XML to catch this.
+			$xml_valid = true;
+			if ( $has_document ) {
+				$doc_xml = $zip_check->getFromName( 'word/document.xml' );
+				if ( false !== $doc_xml && ! empty( $doc_xml ) ) {
+					$prev_xml_errors = libxml_use_internal_errors( true );
+					$test_doc        = new \DOMDocument();
+					$parse_result    = $test_doc->loadXML( $doc_xml );
+					$xml_errors      = libxml_get_errors();
+					libxml_clear_errors();
+					libxml_use_internal_errors( $prev_xml_errors );
+
+					// Check for fatal XML errors (level 3 = LIBXML_ERR_FATAL).
+					foreach ( $xml_errors as $xml_error ) {
+						if ( LIBXML_ERR_FATAL === $xml_error->level ) {
+							$xml_valid = false;
+							$this->get_logger()->error(
+								'DOCX XML validation failed',
+								array(
+									'page_id'   => $page_data['id'] ?? 0,
+									'xml_error' => trim( $xml_error->message ),
+									'xml_line'  => $xml_error->line,
+								)
+							);
+							break;
+						}
+					}
+					if ( false === $parse_result ) {
+						$xml_valid = false;
+					}
+					unset( $test_doc, $doc_xml );
+				}
+			}
+
 			$zip_check->close();
-			if ( ! $has_document || ! $has_types ) {
+			if ( ! $has_document || ! $has_types || ! $xml_valid ) {
 				wp_delete_file( $output_path );
 				unset( $writer, $php_word );
-				throw new \RuntimeException( 'DOCX missing required internal files (word/document.xml or [Content_Types].xml)' );
+				$missing = array();
+				if ( ! $has_document ) {
+					$missing[] = 'word/document.xml';
+				}
+				if ( ! $has_types ) {
+					$missing[] = '[Content_Types].xml';
+				}
+				if ( ! $xml_valid ) {
+					$missing[] = 'valid XML content';
+				}
+				throw new \RuntimeException( 'DOCX integrity check failed: missing ' . implode( ', ', $missing ) );
 			}
 
 			// CRITICAL: Explicitly release PHPWord objects to prevent memory leaks in batch processing.
@@ -1441,14 +1518,24 @@ class SScribe_Exporter {
 		foreach ( $element['items'] as $item ) {
 			$depth = isset( $item['depth'] ) ? $item['depth'] : 0;
 
+			// CRITICAL: Apply bidi/rtl/complexScript to the font style for RTL documents.
+			// Without these, Arabic/Hebrew text in list items renders as squares in Word
+			// because the font lacks complex script shaping instructions.
+			$list_font_style = array(
+				'name'  => $this->font_name,
+				'size'  => $this->font_size,
+				'color' => $this->colors['body'],
+			);
+			if ( $this->is_rtl ) {
+				$list_font_style['bidi']          = true;
+				$list_font_style['rtl']           = true;
+				$list_font_style['complexScript'] = true;
+			}
+
 			$section->addListItem(
 				$this->safe_text( $item['content'] ),
 				$depth,
-				array(
-					'name'  => $this->font_name,
-					'size'  => $this->font_size,
-					'color' => $this->colors['body'],
-				),
+				$list_font_style,
 				array_merge( array( 'listType' => $list_type ), $this->get_para_style() )
 			);
 
@@ -1459,11 +1546,7 @@ class SScribe_Exporter {
 					$section->addListItem(
 						$this->safe_text( $child['content'] ),
 						$child_depth,
-						array(
-							'name'  => $this->font_name,
-							'size'  => $this->font_size,
-							'color' => $this->colors['body'],
-						),
+						$list_font_style,
 						array_merge( array( 'listType' => $list_type ), $this->get_para_style() )
 					);
 				}

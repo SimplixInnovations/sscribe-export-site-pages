@@ -133,10 +133,9 @@ class SScribe_HTML_Exporter implements SScribe_Exporter_Interface {
 
 		$site_name  = get_bloginfo( 'name' );
 		$title      = esc_html( $page_data['title'] );
-		$language   = $page_data['language'] ?? 'en';
-		$direction  = SScribe_RTL_Helper::get_direction( $language );
-		$text_align = SScribe_RTL_Helper::get_alignment( $language );
-		$is_rtl     = SScribe_RTL_Helper::is_rtl( $language );
+		$language  = $page_data['language'] ?? 'en';
+		$direction = SScribe_RTL_Helper::get_direction( $language );
+		$is_rtl    = SScribe_RTL_Helper::is_rtl( $language );
 
 		$rtl_extra = $is_rtl ?
 			'
