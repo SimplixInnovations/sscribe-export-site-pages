@@ -216,7 +216,7 @@ class SScribe_Diagnostics {
 		$checks['execution']   = $this->check_execution_time( $page_count );
 		$checks['upload_dir']  = $this->check_upload_directory();
 		$checks['zip']         = $this->check_zip_extension();
-			$checks['mpdf']    = $this->check_mpdf();
+		$checks['mpdf']        = $this->check_mpdf();
 		$checks['phpword']     = $this->check_phpword();
 		$checks['permissions'] = $this->check_file_permissions();
 		$checks['wp_cron']     = $this->check_wp_cron();
@@ -519,10 +519,25 @@ class SScribe_Diagnostics {
 			);
 		}
 
+		// Check for bundled fonts count (should be ~83 files in vendor-prefixed/mpdf/mpdf/ttfonts/).
+		$ttfonts_dir = SSCRIBE_PLUGIN_DIR . 'vendor-prefixed/mpdf/mpdf/ttfonts';
+		if ( is_dir( $ttfonts_dir ) ) {
+			$font_files = glob( $ttfonts_dir . '/*.{ttf,otf,txt}', GLOB_BRACE );
+			$count      = is_array( $font_files ) ? count( $font_files ) : 0;
+			if ( $count < 50 ) {
+				return array(
+					'name'    => 'mPDF Library',
+					'status'  => 'warning',
+					'message' => sprintf( 'mPDF loaded, but bundled fonts are incomplete (%d files found). Fallback rendering may fail.', $count ),
+					'fix'     => 'Run "composer vendor:prefix" to restore all bundled fonts',
+				);
+			}
+		}
+
 		return array(
 			'name'    => 'mPDF Library',
 			'status'  => 'ok',
-			'message' => 'mPDF loaded',
+			'message' => 'mPDF loaded with full font support',
 		);
 	}
 
