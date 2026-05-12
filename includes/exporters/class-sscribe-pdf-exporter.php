@@ -259,21 +259,21 @@ class SScribe_PDF_Exporter implements SScribe_Exporter_Interface {
 
 			// Get default config to merge with. This ensures mPDF's built-in fonts (like DejaVu)
 			// and character mappings remain available as fallbacks if the custom fonts fail.
-			$defaultConfig = ( new \SScribeVendor\Mpdf\Config\ConfigVariables() )->getDefaults();
-			$fontDirs      = $defaultConfig['fontDir'];
+			$default_config = ( new \SScribeVendor\Mpdf\Config\ConfigVariables() )->getDefaults();
+			$font_dirs      = $default_config['fontDir'];
 
-			$defaultFontConfig = ( new \SScribeVendor\Mpdf\Config\FontVariables() )->getDefaults();
-			$fontData          = $defaultFontConfig['fontdata'];
+			$default_font_config = ( new \SScribeVendor\Mpdf\Config\FontVariables() )->getDefaults();
+			$font_data          = $default_font_config['fontdata'];
 
 			$config = array(
 				'fontDir'          => array_merge(
-					$fontDirs,
+					$font_dirs,
 					array(
 						$manrope_dir,
 						$noto_arabic_dir,
 					)
 				),
-				'fontdata'         => $fontData + array(
+				'fontdata'         => $font_data + array(
 					'manrope'        => array(
 						'R' => $this->find_font_file( $manrope_dir, 'manrope[-_]?regular' ) ?? 'Manrope-Regular.ttf',
 						'B' => $this->find_font_file( $manrope_dir, 'manrope[-_]?bold' ) ?? 'Manrope-Bold.ttf',
