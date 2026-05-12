@@ -76,33 +76,37 @@ foreach ( $target_versions as $version ) {
 fwrite( STDOUT, "[fix-prefixed-safe] Completed. Files copied: {$copied}.\n" );
 
 /**
- * Fix missing mpdf data files in vendor-prefixed.
+ * Backfill missing mpdf data files in vendor-prefixed.
  *
- * Strauss sometimes excludes mpdf's data/ directory which contains
- * required files like upperCase.php and lowerCase.php.
+ * In mPDF v8.3+, the data directory moved from src/data/ to data/ at the
+ * package root. Strauss v0.27.2 copies non-PHP assets (including data/)
+ * automatically, so this is only needed as a safety net for edge cases
+ * where Strauss configuration or a future version skips them.
  */
-$target_mpdf_dir    = $base_dir . '/vendor-prefixed/mpdf/mpdf/src/data';
-$canonical_mpdf_dir = $base_dir . '/vendor/mpdf/mpdf/src/data';
+$target_mpdf_dir    = $base_dir . '/vendor-prefixed/mpdf/mpdf/data';
+$canonical_mpdf_dir = $base_dir . '/vendor/mpdf/mpdf/data';
 
-if ( is_dir( $canonical_mpdf_dir ) ) {
-	$copied_mpdf = 0;
-	$entries     = scandir( $canonical_mpdf_dir );
-	if ( false !== $entries ) {
-		foreach ( $entries as $entry ) {
-			if ( ! is_file( $canonical_mpdf_dir . '/' . $entry ) || ! str_ends_with( $entry, '.php' ) ) {
-				continue;
-			}
-			$target = $target_mpdf_dir . '/' . $entry;
-			if ( ! file_exists( $target ) ) {
-				if ( copy( $canonical_mpdf_dir . '/' . $entry, $target ) ) {
-					++$copied_mpdf;
-				}
+$copied_mpdf = 0;
+$entries     = is_dir( $canonical_mpdf_dir ) ? scandir( $canonical_mpdf_dir ) : false;
+if ( false !== $entries && is_array( $entries ) ) {
+	// Ensure target dir exists.
+	if ( ! is_dir( $target_mpdf_dir ) ) {
+		// phpcs:ignore WordPress.WP.AlternativeFunctions.file_system_operations_mkdir -- Standalone CLI maintenance script.
+		mkdir( $target_mpdf_dir, 0755, true );
+	}
+	foreach ( $entries as $entry ) {
+		if ( ! is_file( $canonical_mpdf_dir . '/' . $entry ) || ! str_ends_with( $entry, '.php' ) ) {
+			continue;
+		}
+		$target = $target_mpdf_dir . '/' . $entry;
+		if ( ! file_exists( $target ) ) {
+			if ( copy( $canonical_mpdf_dir . '/' . $entry, $target ) ) {
+				++$copied_mpdf;
 			}
 		}
 	}
-	// phpcs:ignore WordPress.WP.AlternativeFunctions.file_system_operations_fwrite -- Standalone CLI maintenance script.
-	fwrite( STDOUT, "[fix-prefixed-safe] mpdf data files copied: {$copied_mpdf}.\n" );
 } else {
-	// phpcs:ignore WordPress.WP.AlternativeFunctions.file_system_operations_fwrite -- Standalone CLI maintenance script.
-	fwrite( STDOUT, "[fix-prefixed-safe] Skipped: {$canonical_mpdf_dir} not found.\n" );
+	fwrite( STDOUT, "[fix-prefixed-safe] mpdf data dir {$canonical_mpdf_dir} not found — likely handled by Strauss.\n" );
 }
+// phpcs:ignore WordPress.WP.AlternativeFunctions.file_system_operations_fwrite -- Standalone CLI maintenance script.
+fwrite( STDOUT, "[fix-prefixed-safe] mpdf data files backfilled: {$copied_mpdf}.\n" );
