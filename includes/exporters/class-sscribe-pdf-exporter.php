@@ -227,17 +227,17 @@ class SScribe_PDF_Exporter implements SScribe_Exporter_Interface {
 				self::$mpdf_temp_protected = true;
 			}
 
+			// Validate Arabic font directory existence — if the NotoSansArabic
+			// directory is missing, RTL PDF exports will fail with a silent error.
+			$noto_arabic_dir = $font_dir . 'notosansarabic/';
+
 			// Find font files with case-insensitive search. Cache results to avoid
 			// redundant scandir() calls on the same directory (4-6 lookups per page).
 			$manrope_bold_file   = $this->find_font_file( $manrope_dir, 'manrope[-_]?bold' );
 			$manrope_medium_file = $this->find_font_file( $manrope_dir, 'manrope[-_]?medium' );
 			$manrope_light_file  = $this->find_font_file( $manrope_dir, 'manrope[-_]?light' );
-			$noto_arabic_regular  = $this->find_font_file( $font_dir . 'notosansarabic/', 'notosansarabic[-_]?regular' );
-			$noto_arabic_bold     = $this->find_font_file( $font_dir . 'notosansarabic/', 'notosansarabic[-_]?bold' );
-
-			// Validate Arabic font directory existence — if the NotoSansArabic
-			// directory is missing, RTL PDF exports will fail with a silent error.
-			$noto_arabic_dir = $font_dir . 'notosansarabic/';
+			$noto_arabic_regular  = $this->find_font_file( $noto_arabic_dir, 'notosansarabic[-_]?regular' );
+			$noto_arabic_bold     = $this->find_font_file( $noto_arabic_dir, 'notosansarabic[-_]?bold' );
 			if ( ! is_dir( $noto_arabic_dir ) ) {
 				$this->logger->error(
 					'PDF export failed: NotoSansArabic font directory is missing',
@@ -285,6 +285,14 @@ class SScribe_PDF_Exporter implements SScribe_Exporter_Interface {
 						'B' => ! empty( $noto_arabic_bold ) ? $noto_arabic_bold : 'NotoSansArabic-Bold.ttf',
 					),
 				),
+				// fonttrans: Maps CSS font-family names (with spaces/quotes) to mPDF fontdata keys.
+				// Without this, CSS 'Noto Sans Arabic' can't resolve to fontdata 'notosansarabic'
+				// causing Arabic text to render as squares or random characters.
+				'fonttrans'        => array(
+					'noto sans arabic' => 'notosansarabic',
+					'notosansarabic'   => 'notosansarabic',
+					'noto sans'        => 'notosansarabic',
+				),
 				'orientation'      => 'P',
 				'format'           => 'A4',
 				'margin_left'      => 15,
@@ -299,16 +307,9 @@ class SScribe_PDF_Exporter implements SScribe_Exporter_Interface {
 			$mpdf = new \SScribeVendor\Mpdf\Mpdf( $config );
 			$mpdf->SetDirectionality( $is_rtl ? 'rtl' : 'ltr' );
 
-			// Force notosansarabic for RTL pages — the HTML exporter outputs
-			// font-family: 'Noto Sans Arabic' with a space, but mPDF's fontdata
-			// key is 'notosansarabic' (no space, lowercase). Without this CSS
-			// override, mPDF falls back to a default font for Arabic text.
-			if ( $is_rtl ) {
-				$mpdf->WriteHTML(
-					'<style>html, body { font-family: notosansarabic, manrope, sans-serif; }</style>',
-					2
-				);
-			}
+			// NOTE: RTL CSS override is now applied later (after HTML cleanup)
+			// as part of the consolidated base_css block. This ensures the CSS
+			// is applied AFTER all conflicting styles are stripped from the HTML.
 
 			// Set PDF metadata for accessibility and DMS compatibility.
 			$mpdf->SetTitle( $title );
@@ -317,9 +318,20 @@ class SScribe_PDF_Exporter implements SScribe_Exporter_Interface {
 			$mpdf->SetSubject( $page_data['seo']['meta_description'] ?? '' );
 			$mpdf->SetKeywords( $page_data['seo']['focus_keyword'] ?? '' );
 
-			// Strip @font-face declarations from HTML — they contain HTTP URLs that
+			// CRITICAL: Strip ALL <style> blocks and inline styles from HTML.
+			// The HTML exporter embeds CSS with font-family: 'Noto Sans Arabic' (with spaces),
+			// but mPDF's fontdata uses 'notosansarabic' (no spaces, lowercase).
+			// If we don't strip these, the CSS font-family declarations override mPDF's
+			// font configuration, causing Arabic text to render as squares/random characters
+			// because mPDF falls back to a default font without Arabic glyphs.
+			// mPDF handles all font resolution via fontdata + autoLangToFont instead.
+			$html_content = preg_replace( '/<style[^>]*>.*?<\/style>/is', '', $html_content );
+			$html_content = preg_replace( '/\s*style="[^"]*"/i', '', $html_content );
+			$html_content = preg_replace( "/\s*style='[^']*'/i", '', $html_content );
+
+			// Also strip @font-face declarations that might appear outside <style> blocks
+			// (edge case: inline @font-face in HTML body). These contain HTTP URLs that
 			// cause mPDF to attempt server-side HTTP requests to itself, which fails.
-			// The fontdata config above handles font resolution via local files.
 			$html_content = preg_replace( '/@font-face\s*\{[^}]+\}/isU', '', $html_content );
 
 			if ( function_exists( 'set_time_limit' ) ) {
@@ -329,6 +341,17 @@ class SScribe_PDF_Exporter implements SScribe_Exporter_Interface {
 
 			$filename    = \SScribe_Exporter_Factory::build_filename( $page_data, $index, $total, 'pdf' );
 			$output_path = trailingslashit( $output_dir ) . $filename;
+
+			// Write base styling CSS first (mode 2 = CSS only). This sets the
+			// document-wide font and direction before any HTML content is processed.
+			$base_css = 'html, body { font-family: ' . ( $is_rtl ? 'notosansarabic' : 'manrope' ) . ', sans-serif; }';
+			if ( $is_rtl ) {
+				$base_css .= ' html, body { direction: rtl; }';
+			}
+			$base_css .= ' img { max-width: 100%; height: auto; }';
+			$base_css .= ' a { color: #2C6E8A; text-decoration: none; }';
+			$base_css .= ' h1, h2, h3, h4, h5, h6 { color: #122119; }';
+			$mpdf->WriteHTML( '<style>' . $base_css . '</style>', 2 );
 
 			$mpdf->WriteHTML( $html_content );
 			$mpdf->Output( $output_path, \SScribeVendor\Mpdf\Output\Destination::FILE );

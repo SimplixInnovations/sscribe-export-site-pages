@@ -4,6 +4,16 @@ All notable changes to this project will be documented in this file.
 
 ## [Unreleased]
 
+## [3.7.1] - 2026-05-12
+
+### Fixed
+- CRITICAL: DOCX export — Arabic/RTL list items now render with correct complexScript font settings (bidi/rtl/complexScript) — previously showed squares in Microsoft Word
+- CRITICAL: DOCX export — safe_text() preg_replace null return guard prevents TypeError crash on PCRE backtrack limit exhaustion
+- HIGH: Content parser — Added safe_replace() wrapper guards all preg_replace calls against null return from PCRE backtrack/recursion limit exhaustion
+- HIGH: Content parser — Button extraction now handles preg_match_all returning false (PCRE error) instead of silently dropping buttons
+- HIGH: PDF export — Reordered NotoSansArabic font validation to happen before font file search, eliminating E_WARNING from scandir() on missing directory
+- MEDIUM: HTML exporter — Removed unused $text_align variable (dead code)
+
 ## [3.6.5] - 2026-05-11
 
 ### Fixed

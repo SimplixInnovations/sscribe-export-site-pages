@@ -97,6 +97,22 @@ class SScribe_Content_Parser {
 	}
 
 	/**
+	 * Safe preg_replace wrapper that never returns null.
+	 *
+	 * Preg_replace() returns null on PCRE backtrack/recursion limit exhaustion,
+	 * which would cause TypeError when passed to string functions downstream.
+	 *
+	 * @param string|string[] $pattern     Regex pattern(s).
+	 * @param string|string[] $replacement Replacement string(s).
+	 * @param string          $subject     The input string.
+	 * @return string Cleaned string (original subject on failure).
+	 */
+	private function safe_replace( array|string $pattern, array|string $replacement, string $subject ): string {
+		$result = preg_replace( $pattern, $replacement, $subject );
+		return is_string( $result ) ? $result : $subject;
+	}
+
+	/**
 	 * Normalize HTML for consistent parsing.
 	 *
 	 * @param string $html The HTML content.
@@ -106,18 +122,19 @@ class SScribe_Content_Parser {
 		$html = $this->strip_all_styles( $html );
 
 		// Note: <style> blocks already removed by strip_all_styles() above - no need to duplicate.
-		$html = preg_replace( '/<(script|noscript|svg)\b[^>]*>.*?<\/\1>/is', '', $html );
+		// Use safe_replace() to guard against PCRE backtrack limit on very large HTML.
+		$html = $this->safe_replace( '/<(script|noscript|svg)\b[^>]*>.*?<\/\1>/is', '', $html );
 
-		$html = preg_replace( '/<!--.*?-->/s', '', $html );
+		$html = $this->safe_replace( '/<!--.*?-->/s', '', $html );
 
-		$html = preg_replace( '/:root\s*\{[^}]*\}/s', '', $html );
-		$html = preg_replace( '/\.elementor-[a-zA-Z0-9_-]+\s*\{[^}]*\}/s', '', $html );
+		$html = $this->safe_replace( '/:root\s*\{[^}]*\}/s', '', $html );
+		$html = $this->safe_replace( '/\.elementor-[a-zA-Z0-9_-]+\s*\{[^}]*\}/s', '', $html );
 
 		$html = wp_kses_post( $html );
 
-		$html = preg_replace( '/>\s+</', '><', $html );
+		$html = $this->safe_replace( '/>\s+</', '><', $html );
 
-		$html = preg_replace( '/<\/(p|div|h[1-6]|ul|ol|li|table|tr|blockquote|pre)>/', "</$1>\n", $html );
+		$html = $this->safe_replace( '/<\/(p|div|h[1-6]|ul|ol|li|table|tr|blockquote|pre)>/', "</$1>\n", $html );
 
 		return trim( $html );
 	}
@@ -149,8 +166,25 @@ class SScribe_Content_Parser {
 		$prev_use_errors = libxml_use_internal_errors( true );
 
 		try {
-			// Wrap content to ensure proper encoding.
-			$wrapped = '<!DOCTYPE html><html><head><meta charset="UTF-8"></head><body>' . $html . '</body></html>';
+			// CRITICAL: DOMDocument::loadHTML() defaults to ISO-8859-1 encoding.
+			// Even with <meta charset="UTF-8">, it often misinterprets multibyte
+			// characters (Arabic, CJK, Cyrillic, etc.), producing corrupted text
+			// that causes DOCX files to be malformed/unopenable.
+			//
+			// Fix: Convert all multibyte characters to HTML numeric entities
+			// (e.g., &#x0627; for Arabic Alef) before parsing. DOMDocument
+			// correctly decodes these back to Unicode in textContent output.
+			$html = mb_encode_numericentity(
+				$html,
+				array( 0x80, 0x10FFFF, 0, 0x1FFFFF ),
+				'UTF-8'
+			);
+
+			// Wrap content with http-equiv Content-Type (more reliable than
+			// <meta charset> for loadHTML) plus the XML encoding declaration.
+			$wrapped = '<!DOCTYPE html><html><head>'
+				. '<meta http-equiv="Content-Type" content="text/html; charset=UTF-8">'
+				. '</head><body>' . $html . '</body></html>';
 			$dom->loadHTML( $wrapped, LIBXML_HTML_NOIMPLIED | LIBXML_HTML_NODEFDTD );
 
 			libxml_clear_errors();
@@ -521,7 +555,11 @@ class SScribe_Content_Parser {
 		// This captures buttons that would be lost after normalize_html() strips classes.
 		$pattern = '/<a\s+[^>]*+class=["\']([^"\']*(?:wp-block-button__link|wp-element-button|button|btn|elementor-button|et_pb_button|fl-button|vc_btn)[^"\']*)["\'][^>]*+>(.*?)<\/a>/is';
 
-		if ( preg_match_all( $pattern, $html, $matches, PREG_SET_ORDER ) ) {
+		// CRITICAL: preg_match_all can return false on PCRE backtrack/recursion limit
+		// exhaustion (very large HTML, deeply nested tags). Without explicit false check,
+		// the if-condition treats false as "no matches" and buttons are silently dropped.
+		$match_count = preg_match_all( $pattern, $html, $matches, PREG_SET_ORDER );
+		if ( false !== $match_count && $match_count > 0 ) {
 			foreach ( $matches as $match ) {
 				$classes = $match[1];
 				$content = wp_strip_all_tags( $match[2] );

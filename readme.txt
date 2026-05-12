@@ -4,7 +4,7 @@ Donate link: https://simplixi.com
 Tags: export, docx, multilingual, seo, pdf, posts, pages
 Requires at least: 6.0
 Tested up to: 6.10
-Stable tag: 3.7.0
+Stable tag: 3.7.1
 Requires PHP: 8.2
 License: GPLv2 or later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
@@ -229,6 +229,16 @@ Each document includes: cover page with title/URL/date/breadcrumbs, featured ima
 
 == Changelog ==
 
+= 3.7.1 =
+
+* CRITICAL: DOCX export — Arabic/RTL list items now render with correct complexScript font settings (bidi/rtl/complexScript) — previously showed squares in Microsoft Word
+* CRITICAL: DOCX export — safe_text() preg_replace null return guard prevents TypeError crash on PCRE backtrack limit exhaustion
+* HIGH: Content parser — Added safe_replace() wrapper guards all preg_replace calls against null return from PCRE backtrack/recursion limit exhaustion
+* HIGH: Content parser — Button extraction now handles preg_match_all returning false (PCRE error) instead of silently dropping buttons
+* HIGH: PDF export — Reordered NotoSansArabic font validation to happen before font file search, eliminating E_WARNING from scandir() on missing directory
+* MEDIUM: HTML exporter — Removed unused $text_align variable (dead code)
+* All 338+ PHPUnit tests passing, PHPStan level 6 clean, PHPCS clean
+
 = 3.7.0 =
 
 * PDF export: Font discovery now uses case-insensitive regex matching to handle Linux servers with case-sensitive filesystems
@@ -273,6 +283,10 @@ Each document includes: cover page with title/URL/date/breadcrumbs, featured ima
 * Sec: Fixed ReDoS vulnerability in button extraction regex pattern (possessive quantifiers)
 
 == Upgrade Notice ==
+
+= 3.7.1 =
+
+Fixes Arabic/RTL text rendering in DOCX list items (complex script font support), adds PCRE backtrack safety guards across all string processing, and removes dead code. Recommended update for all users with RTL/multilingual content.
 
 = 3.7.0 =
 
