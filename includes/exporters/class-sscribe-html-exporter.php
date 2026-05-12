@@ -185,7 +185,7 @@ class SScribe_HTML_Exporter implements SScribe_Exporter_Interface {
 		' . $rtl_extra . '
 	</style>
 </head>
-<body>
+<body lang="' . esc_attr( $language ) . '" dir="' . esc_attr( $direction ) . '">
 	<header>
 		<h1>' . $title . '</h1>
 		<p><a href="' . esc_url( $page_data['permalink'] ) . '">' . esc_html( rawurldecode( $page_data['permalink'] ) ) . '</a></p>

@@ -54,8 +54,8 @@ class SScribe_Arabic_Segmenter {
 	 * @return int Word count.
 	 */
 	private static function count_arabic_words( string $text ): int {
-		$text  = preg_replace( '/[\x{064B}-\x{0652}]/u', '', $text );
-		$text  = preg_replace( '/\x{0640}/u', '', $text );
+		$text  = preg_replace( '/[\x{064B}-\x{0652}]/u', '', $text ) ?? $text;
+		$text  = preg_replace( '/\x{0640}/u', '', $text ) ?? $text;
 		$words = preg_split( '/[\s\p{P}]+/u', trim( $text ), -1, PREG_SPLIT_NO_EMPTY );
 		return $words ? count( array_filter( $words ) ) : 0;
 	}

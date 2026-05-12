@@ -274,18 +274,18 @@ class SScribe_Markdown_Exporter implements SScribe_Exporter_Interface {
 	 * @return string Cleaned HTML.
 	 */
 	private function strip_all_styles( string $html ): string {
-		$html = preg_replace( '/<style[^>]*>.*?<\/style>/is', '', $html );
-		$html = preg_replace( '/<script[^>]*>.*?<\/script>/is', '', $html );
-		$html = preg_replace( '/<noscript[^>]*>.*?<\/noscript>/is', '', $html );
-		$html = preg_replace( '/<svg[^>]*>.*?<\/svg>/is', '', $html );
+		$html = preg_replace( '/<style[^>]*>.*?<\/style>/is', '', $html ) ?? $html;
+		$html = preg_replace( '/<script[^>]*>.*?<\/script>/is', '', $html ) ?? $html;
+		$html = preg_replace( '/<noscript[^>]*>.*?<\/noscript>/is', '', $html ) ?? $html;
+		$html = preg_replace( '/<svg[^>]*>.*?<\/svg>/is', '', $html ) ?? $html;
 
-		$html = preg_replace( '/\s*style="[^"]*"/i', '', $html );
-		$html = preg_replace( "/\s*style='[^']*'/i", '', $html );
-		$html = preg_replace( '/\s*class="[^"]*"/i', '', $html );
-		$html = preg_replace( "/\s*class='[^']*'/i", '', $html );
-		$html = preg_replace( '/\s*data-[a-z-]+="[^"]*"/i', '', $html );
-		$html = preg_replace( "/\s*data-[a-z-]+='[^']*'/i", '', $html );
-		$html = preg_replace( '/<!--.*?-->/s', '', $html );
+		$html = preg_replace( '/\s*style="[^"]*"/i', '', $html ) ?? $html;
+		$html = preg_replace( "/\s*style='[^']*'/i", '', $html ) ?? $html;
+		$html = preg_replace( '/\s*class="[^"]*"/i', '', $html ) ?? $html;
+		$html = preg_replace( "/\s*class='[^']*'/i", '', $html ) ?? $html;
+		$html = preg_replace( '/\s*data-[a-z-]+="[^"]*"/i', '', $html ) ?? $html;
+		$html = preg_replace( "/\s*data-[a-z-]+='[^']*'/i", '', $html ) ?? $html;
+		$html = preg_replace( '/<!--.*?-->/s', '', $html ) ?? $html;
 
 		return $html;
 	}
@@ -428,9 +428,9 @@ class SScribe_Markdown_Exporter implements SScribe_Exporter_Interface {
 	 * @return string
 	 */
 	private function convert_formatting( string $html ): string {
-		$html = preg_replace( '/<(strong|b)>(.*?)<\/\1>/is', '**$2**', $html );
-		$html = preg_replace( '/<(em|i)>(.*?)<\/\1>/is', '*$2*', $html );
-		$html = preg_replace( '/<(s|strike|del)>(.*?)<\/\1>/is', '~~$2~~', $html );
+		$html = preg_replace( '/<(strong|b)>(.*?)<\/\1>/is', '**$2**', $html ) ?? $html;
+		$html = preg_replace( '/<(em|i)>(.*?)<\/\1>/is', '*$2*', $html ) ?? $html;
+		$html = preg_replace( '/<(s|strike|del)>(.*?)<\/\1>/is', '~~$2~~', $html ) ?? $html;
 		return $html;
 	}
 
@@ -455,7 +455,7 @@ class SScribe_Markdown_Exporter implements SScribe_Exporter_Interface {
 			++$iteration;
 		}
 
-		$html = preg_replace( '/<li>(.*?)<\/li>/is', '- $1' . "\n", $html );
+		$html = preg_replace( '/<li>(.*?)<\/li>/is', '- $1' . "\n", $html ) ?? $html;
 
 		return $html;
 	}
@@ -498,9 +498,9 @@ class SScribe_Markdown_Exporter implements SScribe_Exporter_Interface {
 	 * @return string
 	 */
 	private function convert_code_blocks( string $html ): string {
-		$html = preg_replace( '/<pre[^>]*><code[^>]*>(.*?)<\/code><\/pre>/is', "\n```\n$1\n```\n", $html );
-		$html = preg_replace( '/<pre[^>]*>(.*?)<\/pre>/is', "\n```\n$1\n```\n", $html );
-		$html = preg_replace( '/<code>(.*?)<\/code>/is', '`$1`', $html );
+		$html = preg_replace( '/<pre[^>]*><code[^>]*>(.*?)<\/code><\/pre>/is', "\n```\n$1\n```\n", $html ) ?? $html;
+		$html = preg_replace( '/<pre[^>]*>(.*?)<\/pre>/is', "\n```\n$1\n```\n", $html ) ?? $html;
+		$html = preg_replace( '/<code>(.*?)<\/code>/is', '`$1`', $html ) ?? $html;
 		return $html;
 	}
 
@@ -536,8 +536,8 @@ class SScribe_Markdown_Exporter implements SScribe_Exporter_Interface {
 	 * @return string
 	 */
 	private function convert_paragraphs( string $html ): string {
-		$html = preg_replace( '/<p[^>]*>(.*?)<\/p>/is', "\n$1\n", $html );
-		$html = preg_replace( '/<br\s*\/?>/i', "\n", $html );
+		$html = preg_replace( '/<p[^>]*>(.*?)<\/p>/is', "\n$1\n", $html ) ?? $html;
+		$html = preg_replace( '/<br\s*\/?>/i', "\n", $html ) ?? $html;
 		return $html;
 	}
 
@@ -548,7 +548,7 @@ class SScribe_Markdown_Exporter implements SScribe_Exporter_Interface {
 	 * @return string
 	 */
 	private function convert_horizontal_rules( string $html ): string {
-		return preg_replace( '/<hr\s*\/?>/i', "\n---\n", $html );
+		return preg_replace( '/<hr\s*\/?>/i', "\n---\n", $html ) ?? $html;
 	}
 
 	/**

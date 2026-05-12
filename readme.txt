@@ -4,7 +4,7 @@ Donate link: https://simplixi.com
 Tags: export, docx, multilingual, seo, pdf, posts, pages
 Requires at least: 6.0
 Tested up to: 6.10
-Stable tag: 3.7.1
+Stable tag: 3.7.2
 Requires PHP: 8.2
 License: GPLv2 or later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
@@ -229,6 +229,15 @@ Each document includes: cover page with title/URL/date/breadcrumbs, featured ima
 
 == Changelog ==
 
+= 3.7.2 =
+
+* FIX: Arabic PDF rendering — disabled mPDF autoLangToFont/autoArabic/autoScriptToLang which were overriding custom NotoSansArabic font with missing bundled fonts (xbriyaz/lateef)
+* FIX: Arabic PDF rendering — merged default fontDir + fontData from mPDF config to restore fallback font chain (freeserif, dejavusanscondensed)
+* FIX: Arabic PDF rendering — added fonttrans redirects for xbriyaz/lateef/arial to notosansarabic for robust CSS font-family resolution
+* FIX: Arabic PDF rendering — improved LTR/RTL font stacks with multi-font fallback chains
+* FIX: Arabic PDF rendering — restored bundled mPDF ttfonts/ (83 files) in vendor-prefixed for fallback font availability
+* All 338+ PHPUnit tests passing, PHPStan level 6 clean, PHPCS clean
+
 = 3.7.1 =
 
 * CRITICAL: DOCX export — Arabic/RTL list items now render with correct complexScript font settings (bidi/rtl/complexScript) — previously showed squares in Microsoft Word
@@ -283,6 +292,10 @@ Each document includes: cover page with title/URL/date/breadcrumbs, featured ima
 * Sec: Fixed ReDoS vulnerability in button extraction regex pattern (possessive quantifiers)
 
 == Upgrade Notice ==
+
+= 3.7.2 =
+
+Fixes Arabic PDF rendering — text was showing as squares or disconnected characters due to mPDF auto-detection overriding the custom NotoSansArabic font with missing bundled fonts. All 83 bundled font files are now present in the prefixed build. Recommended update for all users exporting Arabic/RTL content to PDF.
 
 = 3.7.1 =
 
