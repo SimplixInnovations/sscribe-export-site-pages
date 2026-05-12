@@ -144,10 +144,11 @@ class SScribe_Exporter {
 		// 7. Remove form feed characters (cause some XML parsers to fail).
 		$text = str_replace( "\x0C", '', $text );
 
-		// 8. Insert soft hyphens in very long unbreakable strings (URLs, base64)
-		// to prevent table cell overflow in DOCX/PDF rendering.
+		// 8. Truncate very long unbreakable strings (URLs, base64) to prevent
+		// table cell overflow in DOCX rendering. No soft-hyphen insertion —
+		// raw UTF-8 bytes in XML character data cause parsing errors in PHPWord.
 		if ( strlen( $text ) > 150 && false === strpos( $text, ' ' ) ) {
-			$text = wordwrap( $text, 80, "\xC2\xAD", true );
+			$text = mb_substr( $text, 0, 150, 'UTF-8' );
 		}
 
 		// 9. Final pass: drop any remaining invalid UTF-8 sequences.
@@ -736,7 +737,7 @@ class SScribe_Exporter {
 		);
 		$meta_cell->addText(
 			/* translators: %s: export date */
-			sprintf( __( 'Extracted Date: %s', 'sscribe-export-site-pages' ), wp_date( ( get_option( 'date_format' ) ?: 'Y-m-d' ) . ' ' . ( get_option( 'time_format' ) ?: 'H:i' ) ) ),
+			sprintf( __( 'Extracted Date: %s', 'sscribe-export-site-pages' ), wp_date( ( get_option( 'date_format' ) ? get_option( 'date_format' ) : 'Y-m-d' ) . ' ' . ( get_option( 'time_format' ) ? get_option( 'time_format' ) : 'H:i' ) ) ),
 			array(
 				'name'  => $this->font_name,
 				'size'  => 10,

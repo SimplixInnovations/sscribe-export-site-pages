@@ -127,7 +127,10 @@ class SScribe_PDF_Exporter implements SScribe_Exporter_Interface {
 				);
 			}
 
-			if ( $html_size > 5 * 1024 * 1024 ) {
+			// Configurable HTML size guard — allows large documents (legal, guides) to be exported.
+			// Default 5MB; set to 0 to disable, or use apply_filters('sscribe_pdf_max_html_size').
+			$max_html_size = (int) apply_filters( 'sscribe_pdf_max_html_size', 5 * 1024 * 1024 );
+			if ( $max_html_size > 0 && $html_size > $max_html_size ) {
 				$this->logger->error(
 					'PDF export aborted: HTML content too large for render',
 					array(
@@ -231,10 +234,15 @@ class SScribe_PDF_Exporter implements SScribe_Exporter_Interface {
 					$manrope_dir,
 					$font_dir . 'notosansarabic/',
 				),
-				'mode'             => $is_rtl ? 'ar' : 'utf-8',
+				// Always use 'utf-8' mode — let SetDirectionality() handle RTL.
+				// Using mode => 'ar' forces Arabic script globally which breaks numbers.
+				'mode'             => 'utf-8',
 				'default_font'     => $is_rtl ? 'notosansarabic' : 'manrope',
 				'useOTL'           => 0xFF,
 				'useKashida'       => 75,
+				'autoArabic'       => true,
+				'autoScriptToLang' => true,
+				'autoLangToFont'   => true,
 				'fontdata'         => array(
 					'manrope'        => array(
 						'R' => 'Manrope-Regular.ttf',
@@ -253,8 +261,6 @@ class SScribe_PDF_Exporter implements SScribe_Exporter_Interface {
 				'margin_right'     => 15,
 				'margin_top'       => 15,
 				'margin_bottom'    => 15,
-				'autoScriptToLang' => true,
-				'autoLangToFont'   => true,
 				'tempDir'          => $mpdf_temp,
 				'debug'            => defined( 'SSCRIBE_DEBUG' ) && SSCRIBE_DEBUG,
 				// tabSpaces omitted — mPDF defaults to 4 spaces; null causes PHP 8 strict warning.
