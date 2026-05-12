@@ -494,6 +494,7 @@ class SScribe_Content_Parser {
 				if ( 'td' === $cell_tag || 'th' === $cell_tag ) {
 					$cells[] = array(
 						'content'   => trim( $td->textContent ),
+						'runs'      => $this->get_inline_runs( $td ),
 						'is_header' => ( 'th' === $cell_tag || $section['is_header'] ),
 					);
 				}
@@ -750,7 +751,8 @@ class SScribe_Content_Parser {
 		$relative = substr( $url, strlen( $upload_url ) );
 
 		// Strip query strings (e.g. ?v=123 on CDN URLs).
-		$relative = strtok( $relative, '?' );
+		$stripped = strtok( $relative, '?' );
+		$relative = false !== $stripped ? $stripped : $relative;
 
 		$local      = $upload_path . $relative;
 		$real_local = realpath( $local );

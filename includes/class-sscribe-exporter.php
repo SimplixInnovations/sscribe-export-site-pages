@@ -186,6 +186,13 @@ class SScribe_Exporter {
 			$text = mb_substr( $text, 0, 200, 'UTF-8' );
 		}
 
+		// 10. Encode XML 1.0 special characters. PHPWord 1.4.0 does not escape
+		// &, <, >, ", ' in addText/addTitle output, producing invalid XML that
+		// makes DOCX unopenable. htmlspecialchars with ENT_XML1 ensures all five
+		// XML entities are encoded. The double_encode=false flag prevents
+		// re-escaping text that was already XML-encoded upstream.
+		$text = htmlspecialchars( $text, ENT_XML1 | ENT_QUOTES, 'UTF-8', false );
+
 		return $text;
 	}
 
@@ -222,7 +229,12 @@ class SScribe_Exporter {
 
 			$safe_path = implode(
 				'/',
-				array_map( 'rawurlencode', explode( '/', $path ) )
+				array_map(
+					function ( $segment ) {
+						return rawurlencode( rawurldecode( $segment ) );
+					},
+					explode( '/', $path )
+				)
 			);
 			$safe_query = '';
 			if ( ! empty( $query ) ) {
@@ -1426,8 +1438,9 @@ class SScribe_Exporter {
 	 * @param \SScribeVendor\PhpOffice\PhpWord\Element\TextRun $text_run The text run container.
 	 * @param array                                            $runs    Array of run data.
 	 * @param bool                                             $italic  Force italic (for blockquotes).
+	 * @param bool                                             $bold    Force bold (for table headers).
 	 */
-	private function render_runs( TextRun $text_run, array $runs, bool $italic = false ): void {
+	private function render_runs( TextRun $text_run, array $runs, bool $italic = false, bool $bold = false ): void {
 		foreach ( $runs as $run ) {
 			if ( ! isset( $run['text'] ) || '' === $run['text'] ) {
 				continue;
@@ -1450,7 +1463,7 @@ class SScribe_Exporter {
 				$font_style['complexScript'] = true;
 			}
 
-			if ( ! empty( $run['bold'] ) ) {
+			if ( ! empty( $run['bold'] ) || $bold ) {
 				$font_style['bold'] = true;
 			}
 			if ( ! empty( $run['italic'] ) || $italic ) {
@@ -1600,17 +1613,30 @@ class SScribe_Exporter {
 					'color' => $this->colors['body'],
 				);
 
+				// Apply RTL font settings for Arabic/Hebrew table content.
+				if ( $this->is_rtl ) {
+					$font_style['bidi']          = true;
+					$font_style['rtl']           = true;
+					$font_style['complexScript'] = true;
+				}
+
 				if ( ! empty( $cell['is_header'] ) ) {
 					$cell_style['bgColor'] = $this->colors['light_bg'];
 					$font_style['bold']    = true;
 					$font_style['color']   = $this->colors['heading'];
 				}
 
-				$table->addCell( $cell_width, $cell_style )->addText(
-					$this->safe_text( $cell['content'] ),
-					$font_style,
-					$this->get_para_style()
-				);
+				$cell_obj = $table->addCell( $cell_width, $cell_style );
+				if ( ! empty( $cell['runs'] ) ) {
+					$text_run = $cell_obj->addTextRun( $this->get_para_style() );
+					$this->render_runs( $text_run, $cell['runs'], false, ! empty( $cell['is_header'] ) );
+				} else {
+					$cell_obj->addText(
+						$this->safe_text( $cell['content'] ),
+						$font_style,
+						$this->get_para_style()
+					);
+				}
 			}
 		}
 
@@ -1741,7 +1767,7 @@ class SScribe_Exporter {
 			)
 		);
 		$table->addRow();
-		$cell = $table->addCell( Converter::inchToTwip( 5.5 ), array( 'bgColor' => '#F8FAFC' ) );
+		$cell = $table->addCell( Converter::inchToTwip( 5.5 ), array( 'bgColor' => 'F8FAFC' ) );
 		$cell->addText(
 			__( 'IMAGE ASSET SOURCE URL:', 'sscribe-export-site-pages' ),
 			array(

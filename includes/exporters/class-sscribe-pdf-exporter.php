@@ -325,14 +325,14 @@ class SScribe_PDF_Exporter implements SScribe_Exporter_Interface {
 			// font configuration, causing Arabic text to render as squares/random characters
 			// because mPDF falls back to a default font without Arabic glyphs.
 			// mPDF handles all font resolution via fontdata + autoLangToFont instead.
-			$html_content = preg_replace( '/<style[^>]*>.*?<\/style>/is', '', $html_content );
-			$html_content = preg_replace( '/\s*style="[^"]*"/i', '', $html_content );
-			$html_content = preg_replace( "/\s*style='[^']*'/i", '', $html_content );
+			$html_content = preg_replace( '/<style[^>]*>.*?<\/style>/is', '', $html_content ) ?? $html_content;
+			$html_content = preg_replace( '/\s*style="[^"]*"/i', '', $html_content ) ?? $html_content;
+			$html_content = preg_replace( "/\s*style='[^']*'/i", '', $html_content ) ?? $html_content;
 
 			// Also strip @font-face declarations that might appear outside <style> blocks
 			// (edge case: inline @font-face in HTML body). These contain HTTP URLs that
 			// cause mPDF to attempt server-side HTTP requests to itself, which fails.
-			$html_content = preg_replace( '/@font-face\s*\{[^}]+\}/isU', '', $html_content );
+			$html_content = preg_replace( '/@font-face\s*\{[^}]+\}/isU', '', $html_content ) ?? $html_content;
 
 			if ( function_exists( 'set_time_limit' ) ) {
 				// phpcs:ignore WordPress.PHP.DiscouragedFunctions.Discouraged, WordPress.PHP.IniSet.max_execution_time_Blacklisted -- mPDF rendering is CPU-intensive and requires extended time per page.
@@ -510,6 +510,9 @@ class SScribe_PDF_Exporter implements SScribe_Exporter_Interface {
 		}
 
 		$files = scandir( $dir );
+		if ( false === $files ) {
+			return null;
+		}
 		foreach ( $files as $file ) {
 			if ( preg_match( '/^' . $pattern . '\.ttf$/i', $file ) ) {
 				return $file;

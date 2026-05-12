@@ -232,9 +232,16 @@ class SScribe_HTML_Exporter implements SScribe_Exporter_Interface {
 
 		// For local files, use file:// URI so browsers can access them.
 		// For remote URLs, use esc_url as normal.
-		$src_attr = str_starts_with( $src, '/' ) || str_starts_with( $src, 'C:' )
-			? 'file://' . str_replace( '\\', '/', realpath( $src ) )
-			: esc_url( $src );
+		// CRITICAL: realpath() returns false if file doesn't exist — must check
+		// before using it, or the file:// URI becomes empty/broken.
+		if ( str_starts_with( $src, '/' ) || str_starts_with( $src, 'C:' ) ) {
+			$real = realpath( $src );
+			$src_attr = false !== $real
+				? 'file://' . str_replace( '\\', '/', $real )
+				: esc_url( $src );
+		} else {
+			$src_attr = esc_url( $src );
+		}
 
 		return '<img src="' . $src_attr . '"
 			alt="' . esc_attr( $page_data['title'] ) . '"
@@ -256,7 +263,7 @@ class SScribe_HTML_Exporter implements SScribe_Exporter_Interface {
 			<dt>' . __( 'Last Modified', 'sscribe-export-site-pages' ) . '</dt>
 			<dd>' . esc_html( $page_data['date_modified'] ?? '' ) . '</dd>
 			<dt>' . __( 'Word Count', 'sscribe-export-site-pages' ) . '</dt>
-			<dd>' . number_format( $page_data['word_count'] ?? 0 ) . '</dd>
+			<dd>' . number_format_i18n( $page_data['word_count'] ?? 0 ) . '</dd>
 		</dl>';
 	}
 
