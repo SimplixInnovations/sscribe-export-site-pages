@@ -82,7 +82,7 @@ foreach ( $version_locations as $name => $location ) {
 			$content = file_get_contents( $file );
 			preg_match_all( $location['pattern'], $content, $matches );
 			if ( ! empty( $matches[1] ) ) {
-				// Get unique versions, then sort descending (string sort handles 3.6.5 > 3.52.0).
+				// Get unique versions, then sort descending (string sort handles 3.7.0 > 3.52.0).
 				$unique_versions = array_unique( $matches[1] );
 				rsort( $unique_versions, SORT_STRING | SORT_FLAG_CASE );
 				$versions[ $name ] = reset( $unique_versions ); // First element is highest.
