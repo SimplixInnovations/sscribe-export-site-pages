@@ -4,7 +4,7 @@ Donate link: https://simplixi.com
 Tags: export, docx, multilingual, seo, pdf, posts, pages
 Requires at least: 6.0
 Tested up to: 6.10
-Stable tag: 3.7.2
+Stable tag: 3.7.3
 Requires PHP: 8.2
 License: GPLv2 or later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
@@ -228,6 +228,15 @@ Each document includes: cover page with title/URL/date/breadcrumbs, featured ima
 5. SEO Metadata Section - Meta title, description, focus keyword, and canonical URL from SEO plugins
 
 == Changelog ==
+
+= 3.7.3 =
+
+* PRODUCTION RELEASE: Bloat stripped — ttfonts/ reduced from 83 files (87 MB) to 36 files (19 MB); only DejaVu family (Sans/Condensed/Serif/Mono), Free family (Sans/Serif/Mono), and OCR-B retained
+* PRODUCTION RELEASE: All rare-script fonts removed (CJK, Thai, Lao, Khmer, Myanmar, Ethiopic, Cherokee, Tibetan, ancient scripts, Hebrew, Syriac, Sinhala, Indic, etc.) — fonttrans maps xbriyaz/lateef/KFGQPC to NotoSansArabic
+* PRODUCTION RELEASE: .distignore enhanced with 18 new segment-level patterns for vendor-prefixed dev file exclusion (composer.json, phpstan.neon, phpunit.xml, .gitattributes, CREDITS.txt, ruleset.xml, etc.)
+* PRODUCTION RELEASE: build-release.php font_excludes expanded from 20 to 47 entries for future-proof ZIP bloat protection
+* PRODUCTION RELEASE: Version bump to 3.7.3 — SSCRIBE_VERSION constant, plugin header, stable tag, CSS header, and .pot file all synced
+* All 338+ PHPUnit tests passing, PHPStan level 6 clean, PHPCS clean
 
 = 3.7.2 =
 

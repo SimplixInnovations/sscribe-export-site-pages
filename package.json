@@ -1,6 +1,6 @@
 {
   "name": "sscribe-export-site-pages",
-  "version": "3.7.2",
+  "version": "3.7.3",
   "private": true,
   "description": "Export WordPress pages to professional DOCX, PDF, HTML, or Markdown packages",
   "scripts": {

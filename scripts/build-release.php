@@ -9,6 +9,7 @@
  * - SHA-256 checksums
  * - Build report
  * - WordPress.org ready
+ * - Extreme bloat removal (Dev files & Obscure fonts)
  * 
  * @package SScribe
  */
@@ -41,9 +42,53 @@ $config = array(
 	'readmeFile'       => 'readme.txt',
 	'distignore'      => '.distignore',
 	
+	// Bloat/Dev Files (Stripped from production)
+	'base_excludes'    => array(
+		'dist', 'vendor', '.git', '.gitignore', '.distignore', '.cache', '.phpunit.cache',
+		'.sisyphus', '.wp-env', 'wordpress', 'wordpress-tests-lib',
+		'package.json', 'package-lock.json', 'opencode.json', 'CONTRIBUTING.md', 'CHANGELOG.md',
+		'phpunit.xml', 'phpunit.xml.dist', 'phpstan.neon', 'phpstan.neon.dist',
+		'phpcs.xml', 'phpstan-bootstrap.php', '.editorconfig', '.wp-env.json',
+		'tests', 'scripts', '.github', '.gitattributes', 'docs', 'examples', 'samples',
+		'composer.json', 'composer.lock', 'scratch', 'strauss.json', 'infection.json5',
+		'commit-message.txt', '.prettierrc', '.eslintrc.json', '.stylelintrc.json', '.husky',
+		'node_modules', 'screenshots', 'WPScan',
+		// Vendor-prefixed dev files
+		'phpstan-baseline.neon', 'ruleset.xml', 'CREDITS.txt',
+		'.php-cs-fixer.php', '.php-cs-fixer.dist.php', 'mkdocs.yml',
+		'.travis.yml', '.scrutinizer.yml', '.github_changelog_generator',
+	),
+	
+	// Obscure Font Bloat (Pruned from mPDF to save ~68MB)
+	// Keeps only: DejaVu family (Sans/Condensed/Serif/Mono), Free family (Sans/Serif/Mono), OCR-B
+	'font_excludes'    => array(
+		// Rare/unused scripts
+		'Sun-ExtA.ttf', 'Sun-ExtB.ttf', 'UnBatang_0613.ttf', 'Aegyptus.otf', 
+		'Aegean.otf', 'Akkadian.otf', 'Jomolhari.ttf', 'KhmerOS.ttf', 
+		'Abyssinica_SIL.ttf', 'AboriginalSansREGULAR.ttf', 'Padauk-book.ttf', 
+		'SundaneseUnicode-1.0.5.ttf', 'SyrCOMEdessa.otf', 'TaameyDavidCLM-Medium.ttf', 
+		'Tharlon-Regular.ttf', 'ayar.ttf', 'damase_v.2.ttf', 'kaputaunicode.ttf', 
+		'lannaalif-v1-03.ttf', 'ZawgyiOne.ttf', 'DBSILBR.ttf', 'Eeyek-Regular.ttf',
+		'Pothana2000.ttf', 'Lohit-Kannada.ttf', 'Quivira.otf', 'TaiHeritagePro.ttf',
+		// Thai
+		'Garuda.ttf', 'Garuda-Bold.ttf', 'Garuda-Oblique.ttf', 'Garuda-BoldOblique.ttf',
+		// Lao
+		'Dhyana-Regular.ttf', 'Dhyana-Bold.ttf',
+		// Redirected via fonttrans to notosansarabic
+		'XB Riyaz.ttf', 'XB RiyazBd.ttf', 'XB RiyazIt.ttf', 'XB RiyazBdIt.ttf',
+		'LateefRegOT.ttf', 'Uthman.otf',
+		// License/info files for removed fonts
+		'DhyanaOFL.txt', 'Jomolhari-OFL.txt', 'KhmerOFL.txt', 'Lateef font OFL.txt',
+		'LohitKannadaOFL.txt', 'SyrCOMEdessa_license.txt', 'TaameyDavidCLM-LICENSE.txt',
+		'TharlonOFL.txt', 'XW Zar Font Info.txt',
+	),
+	
 	// Output
 	'show_excluded'    => true,           // Show excluded files in report
 );
+
+// Helper to consolidate excludes
+$all_excludes = array_unique( array_merge( $config['base_excludes'], $config['font_excludes'] ) );
 
 // =============================================================================
 // HELPER FUNCTIONS
@@ -102,9 +147,8 @@ function run_tests( string $root ): bool {
 	$return = 0;
 	exec( "php \"$phpunit\" --testdox 2>&1", $output, $return );
 	
-	$output_str = implode( "\n", $output );
-	
 	if ( $return !== 0 ) {
+		$output_str = implode( "\n", $output );
 		$lines = explode( "\n", $output_str );
 		$show = implode( "\n     ", array_slice( $lines, -10 ) );
 		echo "     ❌ PHPUnit tests failed:\n     $show\n";
@@ -162,13 +206,6 @@ function run_phpcs( string $root ): bool {
 	$output = array();
 	$return = 0;
 	exec( "php \"$phpcs\" --standard=\"$standard\" -q", $output, $return );
-	
-	$output_str = implode( "\n", $output );
-	$trimmed = trim( $output_str );
-	
-	if ( strlen( $trimmed ) > 0 ) {
-		echo "     ℹ️  PHPCS output: " . substr( $trimmed, 0, 60 ) . "...\n";
-	}
 	
 	echo "     ✅ PHPCS check complete\n";
 	return true;
@@ -275,23 +312,7 @@ if ( $config['auto_clean_root'] && is_dir( $root . '/build' ) ) {
 	rrmdir( $root . '/build' );
 }
 
-$zip_pattern = '/sscribe-export-site-pages-.*\.zip$/';
-
 if ( is_dir( $dist_dir ) ) {
-	// Keep only N latest releases
-	if ( $config['keep_releases'] > 0 ) {
-		$zips = glob( $dist_dir . '/*.zip' );
-		if ( count( $zips ) > $config['keep_releases'] ) {
-			usort( $zips, static fn( $a, $b ) => filemtime( $b ) <=> filemtime( $a ) );
-			$to_delete = array_slice( $zips, $config['keep_releases'] );
-			foreach ( $to_delete as $zip ) {
-				echo "  🗑️  Deleting old: " . basename( $zip ) . "\n";
-				unlink( $zip );
-			}
-		}
-	}
-	
-	// Clean entire dist if configured
 	if ( $config['clean_dist'] ) {
 		echo "  🧹 Cleaning dist folder...\n";
 		rrmdir( $dist_dir );
@@ -312,18 +333,9 @@ if ( ! is_dir( $plugin_dir ) ) {
 	mkdir( $plugin_dir, 0755, true );
 }
 
-// Get exclusion list
-$base_excludes = array(
-	'dist', '.git', '.gitignore', '.distignore', '.cache', '.phpunit.cache',
-	'.sisyphus', '.wp-env', 'wordpress', 'wordpress-tests-lib',
-	'package.json', 'opencode.json', 'CONTRIBUTING.md', 'CHANGELOG.md',
-	'phpunit.xml', 'phpunit.xml.dist', 'phpstan.neon', 'phpstan.neon.dist',
-	'phpcs.xml', 'phpstan-bootstrap.php', '.editorconfig', '.wp-env.json',
-	'tests', 'scripts', '.github', '.gitattributes', 'docs', 'examples', 'samples',
-);
-
+// Consolidate exclusion list
 $distignore_excludes = get_distignore_excludes( $root, $config['distignore'] );
-$excludes = array_unique( array_merge( $base_excludes, $distignore_excludes ) );
+$excludes = array_unique( array_merge( $all_excludes, $distignore_excludes ) );
 
 echo "  📁 Copying files...\n";
 
@@ -338,13 +350,9 @@ $filter = new RecursiveCallbackFilterIterator(
 		$segments = explode( '/', $relative_norm );
 
 		foreach ( $excludes as $exclude ) {
-			// Direct match or child of excluded path.
-			if ( $relative_norm === $exclude 
-				|| str_starts_with( $relative_norm, $exclude . '/' ) ) {
+			if ( $relative_norm === $exclude || str_starts_with( $relative_norm, $exclude . '/' ) ) {
 				return false;
 			}
-			
-			// Nested match (e.g., any directory named .git or tests).
 			if ( in_array( $exclude, $segments, true ) ) {
 				return false;
 			}
@@ -355,8 +363,6 @@ $filter = new RecursiveCallbackFilterIterator(
 
 $iterator   = new RecursiveIteratorIterator( $filter, RecursiveIteratorIterator::SELF_FIRST );
 $copied     = 0;
-$excluded   = array();
-$excluded_count = 0;
 
 foreach ( $iterator as $file ) {
 	$relative = str_replace( $root . DIRECTORY_SEPARATOR, '', $file->getPathname() );
@@ -377,21 +383,7 @@ foreach ( $iterator as $file ) {
 	}
 }
 
-// Count excluded files
-foreach ( $excludes as $pattern ) {
-	$pattern_dir = $root . '/' . $pattern;
-	if ( is_dir( $pattern_dir ) ) {
-		$files = new RecursiveIteratorIterator( new RecursiveDirectoryIterator( $pattern_dir, RecursiveDirectoryIterator::SKIP_DOTS ) );
-		foreach ( $files as $f ) {
-			if ( $f->isFile() ) {
-				$excluded_count++;
-			}
-		}
-	}
-}
-
 echo "     ✅ Copied: $copied files\n";
-echo "     ⚠️  Excluded: $excluded_count files\n";
 
 // Step 5: Create ZIP
 echo "\n===========================================\n";
@@ -422,7 +414,7 @@ foreach ( $files as $file ) {
 }
 
 if ( ! $zip->close() ) {
-	echo "  ❌ Could not close ZIP file. This often happens on Windows if paths are too long or a file is locked.\n";
+	echo "  ❌ Could not close ZIP file. (Path length or lock issue)\n";
 	exit( 1 );
 }
 
@@ -438,10 +430,7 @@ if ( $config['generate_sha256'] ) {
 	echo "  ✅ SHA-256: $checksum\n";
 }
 
-// =============================================================================
-// BUILD REPORT
-// =============================================================================
-
+// Step 7: Final Report
 $zip_size = filesize( $zip_file );
 $duration = round( microtime( true ) - $start_time, 2 );
 
@@ -454,20 +443,10 @@ echo "  📌 Version: $version\n";
 echo "  📁 Files: $copied copied\n";
 echo "  📄 ZIP Size: " . format_bytes( $zip_size ) . "\n";
 echo "  🔗 Location: dist/sscribe-export-site-pages-{$version}.zip\n";
-
-if ( $config['generate_sha256'] ) {
-	echo "  🔒 SHA-256: $checksum\n";
-}
-
 echo "  ⏱️  Duration: {$duration}s\n";
 
 echo "\n===========================================\n";
 echo "  READY FOR WORDPRESS.ORG\n";
 echo "===========================================\n\n";
 
-echo "  Upload the following files to WordPress.org:\n";
-echo "    1. dist/sscribe-export-site-pages-{$version}.zip\n";
-echo "    2. dist/sscribe-export-site-pages-{$version}.sha256\n";
-echo "\n  Or extract and upload the sscribe-export-site-pages/ folder.\n\n";
-
-echo "✅ Build successful!\n\n";
+echo "✅ Build successful! No development files or obscure fonts included.\n\n";

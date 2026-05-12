@@ -15,15 +15,20 @@ dist/
 WPScan/
 WordPress-Core/
 
-# Composer (keep composer.json for WP Plugin Check - required when vendor/ exists)
+# Composer (dev-only — not needed in production ZIP)
+composer.json
 composer.lock
 
 # Testing
 tests/
 phpunit.xml*
 phpstan.neon*
+phpstan-baseline.neon
 phpcs.xml*
+psalm.xml
+psalm.xml.dist
 .php-cs-fixer.php
+.php-cs-fixer.dist.php
 coverage/
 .phpunit.cache/
 
@@ -71,6 +76,21 @@ vendor-prefixed/*/CONTRIBUTING.md
 
 # PCLZip conflict (WordPress.org requirement)
 vendor-prefixed/phpoffice/phpword/src/PhpWord/Shared/PCLZip/
+
+# Vendor-prefixed dev files (exact-name segment-level)
+composer.json
+.gitattributes
+phpstan.neon
+phpstan.neon.dist
+phpstan-baseline.neon
+phpunit.xml
+phpunit.xml.dist
+ruleset.xml
+CREDITS.txt
+mkdocs.yml
+.travis.yml
+.scrutinizer.yml
+.github_changelog_generator
 
 # Dev-only directories (segment-level — matched by build-release.php in_array check)
 utils/
