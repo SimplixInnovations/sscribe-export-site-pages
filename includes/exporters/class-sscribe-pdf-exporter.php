@@ -227,12 +227,42 @@ class SScribe_PDF_Exporter implements SScribe_Exporter_Interface {
 				self::$mpdf_temp_protected = true;
 			}
 
+			// Find font files with case-insensitive search. Cache results to avoid
+			// redundant scandir() calls on the same directory (4-6 lookups per page).
+			$manrope_bold_file   = $this->find_font_file( $manrope_dir, 'manrope[-_]?bold' );
+			$manrope_medium_file = $this->find_font_file( $manrope_dir, 'manrope[-_]?medium' );
+			$manrope_light_file  = $this->find_font_file( $manrope_dir, 'manrope[-_]?light' );
+			$noto_arabic_regular  = $this->find_font_file( $font_dir . 'notosansarabic/', 'notosansarabic[-_]?regular' );
+			$noto_arabic_bold     = $this->find_font_file( $font_dir . 'notosansarabic/', 'notosansarabic[-_]?bold' );
+
+			// Validate Arabic font directory existence — if the NotoSansArabic
+			// directory is missing, RTL PDF exports will fail with a silent error.
+			$noto_arabic_dir = $font_dir . 'notosansarabic/';
+			if ( ! is_dir( $noto_arabic_dir ) ) {
+				$this->logger->error(
+					'PDF export failed: NotoSansArabic font directory is missing',
+					array(
+						'noto_arabic_dir' => $noto_arabic_dir,
+						'dir_exists'      => is_dir( $noto_arabic_dir ),
+					)
+				);
+
+				return SScribe_Result::failure(
+					__( 'PDF export failed: NotoSansArabic font directory is missing. Reinstall the plugin.', 'sscribe-export-site-pages' ),
+					array(
+						'error_category' => 'pdf_missing_library',
+						'page_id'        => $page_id,
+						'missing_dir'    => $noto_arabic_dir,
+					)
+				);
+			}
+
 			$config = array(
 				// fontDir: tells mPDF where to search for TTF font files.
 				// Without this, FontFileFinder cannot locate fonts even when fontdata paths are set.
 				'fontDir'          => array(
 					$manrope_dir,
-					$font_dir . 'notosansarabic/',
+					$noto_arabic_dir,
 				),
 				// Always use 'utf-8' mode — let SetDirectionality() handle RTL.
 				// Using mode => 'ar' forces Arabic script globally which breaks numbers.
@@ -246,13 +276,13 @@ class SScribe_PDF_Exporter implements SScribe_Exporter_Interface {
 				'fontdata'         => array(
 					'manrope'        => array(
 						'R' => 'Manrope-Regular.ttf',
-						'B' => $this->find_font_file( $manrope_dir, 'manrope[-_]?bold' ) ? $this->find_font_file( $manrope_dir, 'manrope[-_]?bold' ) : 'Manrope-Bold.ttf',
-						'M' => $this->find_font_file( $manrope_dir, 'manrope[-_]?medium' ) ? $this->find_font_file( $manrope_dir, 'manrope[-_]?medium' ) : 'Manrope-Medium.ttf',
-						'L' => $this->find_font_file( $manrope_dir, 'manrope[-_]?light' ) ? $this->find_font_file( $manrope_dir, 'manrope[-_]?light' ) : 'Manrope-Light.ttf',
+						'B' => ! empty( $manrope_bold_file ) ? $manrope_bold_file : 'Manrope-Bold.ttf',
+						'M' => ! empty( $manrope_medium_file ) ? $manrope_medium_file : 'Manrope-Medium.ttf',
+						'L' => ! empty( $manrope_light_file ) ? $manrope_light_file : 'Manrope-Light.ttf',
 					),
 					'notosansarabic' => array(
-						'R' => $this->find_font_file( $font_dir . 'notosansarabic/', 'notosansarabic[-_]?regular' ) ? $this->find_font_file( $font_dir . 'notosansarabic/', 'notosansarabic[-_]?regular' ) : 'NotoSansArabic-Regular.ttf',
-						'B' => $this->find_font_file( $font_dir . 'notosansarabic/', 'notosansarabic[-_]?bold' ) ? $this->find_font_file( $font_dir . 'notosansarabic/', 'notosansarabic[-_]?bold' ) : 'NotoSansArabic-Bold.ttf',
+						'R' => ! empty( $noto_arabic_regular ) ? $noto_arabic_regular : 'NotoSansArabic-Regular.ttf',
+						'B' => ! empty( $noto_arabic_bold ) ? $noto_arabic_bold : 'NotoSansArabic-Bold.ttf',
 					),
 				),
 				'orientation'      => 'P',
@@ -269,6 +299,17 @@ class SScribe_PDF_Exporter implements SScribe_Exporter_Interface {
 			$mpdf = new \SScribeVendor\Mpdf\Mpdf( $config );
 			$mpdf->SetDirectionality( $is_rtl ? 'rtl' : 'ltr' );
 
+			// Force notosansarabic for RTL pages — the HTML exporter outputs
+			// font-family: 'Noto Sans Arabic' with a space, but mPDF's fontdata
+			// key is 'notosansarabic' (no space, lowercase). Without this CSS
+			// override, mPDF falls back to a default font for Arabic text.
+			if ( $is_rtl ) {
+				$mpdf->WriteHTML(
+					'<style>html, body { font-family: notosansarabic, manrope, sans-serif; }</style>',
+					2
+				);
+			}
+
 			// Set PDF metadata for accessibility and DMS compatibility.
 			$mpdf->SetTitle( $title );
 			$mpdf->SetAuthor( $page_data['author'] ?? '' );
@@ -279,7 +320,7 @@ class SScribe_PDF_Exporter implements SScribe_Exporter_Interface {
 			// Strip @font-face declarations from HTML — they contain HTTP URLs that
 			// cause mPDF to attempt server-side HTTP requests to itself, which fails.
 			// The fontdata config above handles font resolution via local files.
-			$html_content = preg_replace( '/@font-face\s*\{[^}]+\}/is', '', $html_content );
+			$html_content = preg_replace( '/@font-face\s*\{[^}]+\}/isU', '', $html_content );
 
 			if ( function_exists( 'set_time_limit' ) ) {
 				// phpcs:ignore WordPress.PHP.DiscouragedFunctions.Discouraged, WordPress.PHP.IniSet.max_execution_time_Blacklisted -- mPDF rendering is CPU-intensive and requires extended time per page.

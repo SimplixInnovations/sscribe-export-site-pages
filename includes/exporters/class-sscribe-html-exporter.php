@@ -222,12 +222,23 @@ class SScribe_HTML_Exporter implements SScribe_Exporter_Interface {
 	 * @return string
 	 */
 	private function get_featured_image_html( array $page_data ): string {
-		if ( empty( $page_data['featured_image_url'] ) ) {
+		// Prefer local file path (populated by image processing) over remote URL.
+		$src = ! empty( $page_data['featured_image_path'] )
+			? $page_data['featured_image_path']
+			: ( $page_data['featured_image_url'] ?? '' );
+
+		if ( empty( $src ) ) {
 			return '';
 		}
 
-		return '<img src="' . esc_url( $page_data['featured_image_url'] ) . '" 
-			alt="' . esc_attr( $page_data['title'] ) . '" 
+		// For local files, use file:// URI so browsers can access them.
+		// For remote URLs, use esc_url as normal.
+		$src_attr = str_starts_with( $src, '/' ) || str_starts_with( $src, 'C:' )
+			? 'file://' . str_replace( '\\', '/', realpath( $src ) )
+			: esc_url( $src );
+
+		return '<img src="' . $src_attr . '"
+			alt="' . esc_attr( $page_data['title'] ) . '"
 			class="featured-image">';
 	}
 

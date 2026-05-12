@@ -178,7 +178,33 @@ class SScribe_Exporter {
 		}
 
 		if ( str_starts_with( $url, '/' ) ) {
-			return esc_url_raw( site_url( $url ) );
+			// Use esc_url_raw only for the scheme+host; re-encode the path
+			// portion with rawurlencode to avoid double-encoding %XX sequences.
+			$parsed = wp_parse_url( site_url( $url ) );
+			if ( ! $parsed ) {
+				return '';
+			}
+			$scheme   = $parsed['scheme'] ?? 'https';
+			$host     = $parsed['host'] ?? '';
+			$port     = ! empty( $parsed['port'] ) ? ':' . $parsed['port'] : '';
+			$path     = $parsed['path'] ?? '';
+			$query    = $parsed['query'] ?? '';
+			$fragment = $parsed['fragment'] ?? '';
+
+			$safe_path = implode(
+				'/',
+				array_map( 'rawurlencode', explode( '/', $path ) )
+			);
+			$safe_query = '';
+			if ( ! empty( $query ) ) {
+				// Use query string as-is — it may already contain encoded characters
+				// (%XX sequences). Re-encoding would create double-encoded sequences
+				// that break URL parsing (e.g., %3D → %253D for the = sign).
+				$safe_query = '?' . $query;
+			}
+			$safe_fragment = ! empty( $fragment ) ? '#' . rawurlencode( $fragment ) : '';
+
+			return $scheme . '://' . $host . $port . $safe_path . $safe_query . $safe_fragment;
 		}
 
 		$parsed_scheme = wp_parse_url( $url, PHP_URL_SCHEME );
@@ -214,9 +240,7 @@ class SScribe_Exporter {
 	 */
 	private function with_complex_script( array $font_def ): array {
 		if ( $this->is_rtl && ! isset( $font_def['complexScript'] ) ) {
-			$font_def['complexScript'] = array(
-				'name' => $font_def['name'] ?? $this->font_name,
-			);
+			$font_def['complexScript'] = true;
 		}
 		return $font_def;
 	}
@@ -552,7 +576,7 @@ class SScribe_Exporter {
 			if ( $this->is_rtl ) {
 				$heading_font['bidi']          = true;
 				$heading_font['rtl']           = true;
-				$heading_font['complexScript'] = array( 'name' => $this->font_name );
+				$heading_font['complexScript'] = true;
 			}
 			$php_word->addTitleStyle(
 				$i,
@@ -644,7 +668,7 @@ class SScribe_Exporter {
 				sprintf(
 					/* translators: %s: site name */
 					__( '%s | EXTERNAL AUDIT AND DOCUMENTATION', 'sscribe-export-site-pages' ),
-					get_bloginfo( 'name' )
+					html_entity_decode( get_bloginfo( 'name' ), ENT_QUOTES | ENT_HTML5, 'UTF-8' )
 				)
 			),
 			array(
@@ -850,7 +874,7 @@ class SScribe_Exporter {
 		$header_table = $header->addTable();
 		$header_table->addRow();
 		$header_table->addCell( Converter::inchToTwip( 3.25 ) )->addText(
-			$this->safe_text( get_bloginfo( 'name' ) ),
+			$this->safe_text( html_entity_decode( get_bloginfo( 'name' ), ENT_QUOTES | ENT_HTML5, 'UTF-8' ) ),
 			array(
 				'name'  => $this->font_name,
 				'size'  => 8,
@@ -1346,7 +1370,7 @@ class SScribe_Exporter {
 			if ( $this->is_rtl ) {
 				$font_style['bidi']          = true;
 				$font_style['rtl']           = true;
-				$font_style['complexScript'] = array( 'name' => $this->font_name );
+				$font_style['complexScript'] = true;
 			}
 
 			if ( ! empty( $run['bold'] ) ) {
@@ -1410,7 +1434,15 @@ class SScribe_Exporter {
 			return;
 		}
 
-		$list_type = ( 'numbered' === $style ) ? \SScribeVendor\PhpOffice\PhpWord\Style\ListItem::TYPE_NUMBER : \SScribeVendor\PhpOffice\PhpWord\Style\ListItem::TYPE_BULLET_FILLED;
+		// Resolve list type constants with try/catch — PHPWord constants can vary
+		// across versions and may throw on undefined constants in some setups.
+		try {
+			$list_type = ( 'numbered' === $style )
+				? \SScribeVendor\PhpOffice\PhpWord\Style\ListItem::TYPE_NUMBER
+				: \SScribeVendor\PhpOffice\PhpWord\Style\ListItem::TYPE_BULLET_FILLED;
+		} catch ( \Throwable $e ) {
+			$list_type = 'bullet';
+		}
 
 		foreach ( $element['items'] as $item ) {
 			$depth = isset( $item['depth'] ) ? $item['depth'] : 0;
@@ -1469,11 +1501,19 @@ class SScribe_Exporter {
 		$total_width_twip = Converter::inchToTwip( 6.5 );
 		$cell_width       = (int) ( $total_width_twip / $col_count );
 
+		// Resolve TblWidth::TWIP with try/catch — PHPWord constants can vary across
+		// versions and may throw on undefined constants in some setups.
+		try {
+			$table_unit = \SScribeVendor\PhpOffice\PhpWord\SimpleType\TblWidth::TWIP;
+		} catch ( \Throwable $e ) {
+			$table_unit = 'twip';
+		}
+
 		$table_style = array(
 			'borderSize'  => 1,
 			'borderColor' => $this->colors['border'],
 			'cellMargin'  => Converter::cmToTwip( 0.1 ),
-			'unit'        => \SScribeVendor\PhpOffice\PhpWord\SimpleType\TblWidth::TWIP,
+			'unit'        => $table_unit,
 			'width'       => $total_width_twip,
 		);
 
