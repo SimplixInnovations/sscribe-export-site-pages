@@ -58,6 +58,8 @@ vendor-prefixed/*/phpstan.neon*
 vendor-prefixed/*/phpunit.xml*
 vendor-prefixed/*/tests/
 vendor-prefixed/*/docs/
+vendor-prefixed/*/utils/
+vendor-prefixed/*/tmp/
 vendor-prefixed/*/.travis.yml
 vendor-prefixed/*/.scrutinizer.yml
 vendor-prefixed/*/mkdocs.yml
@@ -69,6 +71,10 @@ vendor-prefixed/*/CONTRIBUTING.md
 
 # PCLZip conflict (WordPress.org requirement)
 vendor-prefixed/phpoffice/phpword/src/PhpWord/Shared/PCLZip/
+
+# Dev-only directories (segment-level — matched by build-release.php in_array check)
+utils/
+tmp/
 
 # OS files
 .DS_Store

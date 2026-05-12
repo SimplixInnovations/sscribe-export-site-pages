@@ -65,10 +65,10 @@ function rrmdir( string $dir ): void {
 		if ( is_dir( $path ) ) {
 			rrmdir( $path );
 		} else {
-			unlink( $path );
+			@unlink( $path );
 		}
 	}
-	rmdir( $dir );
+	@rmdir( $dir );
 }
 
 /**
@@ -319,6 +319,7 @@ $base_excludes = array(
 	'package.json', 'opencode.json', 'CONTRIBUTING.md', 'CHANGELOG.md',
 	'phpunit.xml', 'phpunit.xml.dist', 'phpstan.neon', 'phpstan.neon.dist',
 	'phpcs.xml', 'phpstan-bootstrap.php', '.editorconfig', '.wp-env.json',
+	'tests', 'scripts', '.github', '.gitattributes', 'docs', 'examples', 'samples',
 );
 
 $distignore_excludes = get_distignore_excludes( $root, $config['distignore'] );
@@ -332,10 +333,19 @@ $filter = new RecursiveCallbackFilterIterator(
 	static function ( $current ) use ( $root, $excludes ): bool {
 		$relative = str_replace( $root . DIRECTORY_SEPARATOR, '', $current->getPathname() );
 		$relative = str_replace( $root . '/', '', $relative );
+		$relative_norm = str_replace( '\\', '/', $relative );
+		
+		$segments = explode( '/', $relative_norm );
+
 		foreach ( $excludes as $exclude ) {
-			if ( $relative === $exclude 
-				|| str_starts_with( $relative, $exclude . DIRECTORY_SEPARATOR ) 
-				|| str_starts_with( $relative, $exclude . '/' ) ) {
+			// Direct match or child of excluded path.
+			if ( $relative_norm === $exclude 
+				|| str_starts_with( $relative_norm, $exclude . '/' ) ) {
+				return false;
+			}
+			
+			// Nested match (e.g., any directory named .git or tests).
+			if ( in_array( $exclude, $segments, true ) ) {
 				return false;
 			}
 		}
@@ -388,11 +398,11 @@ echo "\n===========================================\n";
 echo "  CREATING RELEASE PACKAGE\n";
 echo "===========================================\n\n";
 
-$zip_file = $dist_dir . "/sscribe-export-site-pages-{$version}.zip";
+$zip_file = realpath( $dist_dir ) . DIRECTORY_SEPARATOR . "sscribe-export-site-pages-{$version}.zip";
 
 $zip = new ZipArchive();
 if ( true !== $zip->open( $zip_file, ZipArchive::CREATE | ZipArchive::OVERWRITE ) ) {
-	echo "  ❌ Could not create ZIP file\n";
+	echo "  ❌ Could not create ZIP file at: $zip_file\n";
 	exit( 1 );
 }
 
@@ -401,17 +411,18 @@ $files = new RecursiveIteratorIterator(
 	RecursiveIteratorIterator::LEAVES_ONLY
 );
 
+$plugin_dir_norm = str_replace( '\\', '/', $plugin_dir );
+
 foreach ( $files as $file ) {
 	if ( ! $file->isDir() ) {
-		$raw_path = str_replace( $plugin_dir . '/', '', $file->getPathname() );
-		$raw_path = str_replace( $plugin_dir . '\\', '', $raw_path );
-		$relative_path = 'sscribe-export-site-pages/' . str_replace( '\\', '/', $raw_path );
-		$zip->addFile( $file->getPathname(), $relative_path );
+		$full_path = str_replace( '\\', '/', $file->getPathname() );
+		$relative_in_zip = 'sscribe-export-site-pages/' . str_replace( $plugin_dir_norm . '/', '', $full_path );
+		$zip->addFile( $file->getPathname(), $relative_in_zip );
 	}
 }
 
 if ( ! $zip->close() ) {
-	echo "  ❌ Could not close ZIP file\n";
+	echo "  ❌ Could not close ZIP file. This often happens on Windows if paths are too long or a file is locked.\n";
 	exit( 1 );
 }
 
