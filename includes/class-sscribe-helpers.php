@@ -231,14 +231,14 @@ class SScribe_Helpers {
 	 * @return string Cleaned HTML.
 	 */
 	public static function strip_page_builder_attributes( string $html ): string {
-		$html = preg_replace( '/\s*style="[^"]*"/i', '', $html );
-		$html = preg_replace( "/\s*style='[^']*'/i", '', $html );
-		$html = preg_replace( '/<style[^>]*>.*?<\/style>/is', '', $html );
-		$html = preg_replace( '/\s*class="[^"]*"/i', '', $html );
-		$html = preg_replace( "/\s*class='[^']*'/i", '', $html );
-		$html = preg_replace( '/\s*data-elementor(-[a-z]+)?="[^"]*"/i', '', $html );
-		$html = preg_replace( '/\s*data-(widget|column|section)-[a-z0-9_-]{0,30}="[^"]*"/i', '', $html );
-		$html = preg_replace( '/\s*id="elementor-[^"]*"/i', '', $html );
+		$html = preg_replace( '/\s*style="[^"]*"/i', '', $html ) ?? $html;
+		$html = preg_replace( "/\s*style='[^']*'/i", '', $html ) ?? $html;
+		$html = preg_replace( '/<style[^>]*>.*?<\/style>/is', '', $html ) ?? $html;
+		$html = preg_replace( '/\s*class="[^"]*"/i', '', $html ) ?? $html;
+		$html = preg_replace( "/\s*class='[^']*'/i", '', $html ) ?? $html;
+		$html = preg_replace( '/\s*data-elementor(-[a-z]+)?="[^"]*"/i', '', $html ) ?? $html;
+		$html = preg_replace( '/\s*data-(widget|column|section)-[a-z0-9_-]{0,30}="[^"]*"/i', '', $html ) ?? $html;
+		$html = preg_replace( '/\s*id="elementor-[^"]*"/i', '', $html ) ?? $html;
 
 		return $html;
 	}

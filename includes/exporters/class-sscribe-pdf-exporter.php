@@ -257,12 +257,53 @@ class SScribe_PDF_Exporter implements SScribe_Exporter_Interface {
 				);
 			}
 
+			// Get default config to merge with. This ensures mPDF's built-in fonts (like DejaVu)
+			// and character mappings remain available as fallbacks if the custom fonts fail.
+			$defaultConfig = ( new \SScribeVendor\Mpdf\Config\ConfigVariables() )->getDefaults();
+			$fontDirs      = $defaultConfig['fontDir'];
+
+			$defaultFontConfig = ( new \SScribeVendor\Mpdf\Config\FontVariables() )->getDefaults();
+			$fontData          = $defaultFontConfig['fontdata'];
+
 			$config = array(
-				// fontDir: tells mPDF where to search for TTF font files.
-				// Without this, FontFileFinder cannot locate fonts even when fontdata paths are set.
-				'fontDir'          => array(
-					$manrope_dir,
-					$noto_arabic_dir,
+				'fontDir'          => array_merge(
+					$fontDirs,
+					array(
+						$manrope_dir,
+						$noto_arabic_dir,
+					)
+				),
+				'fontdata'         => $fontData + array(
+					'manrope'        => array(
+						'R' => $this->find_font_file( $manrope_dir, 'manrope[-_]?regular' ) ?? 'Manrope-Regular.ttf',
+						'B' => $this->find_font_file( $manrope_dir, 'manrope[-_]?bold' ) ?? 'Manrope-Bold.ttf',
+						'M' => $this->find_font_file( $manrope_dir, 'manrope[-_]?medium' ) ?? 'Manrope-Medium.ttf',
+						'L' => $this->find_font_file( $manrope_dir, 'manrope[-_]?light' ) ?? 'Manrope-Light.ttf',
+					),
+					'notosansarabic' => array(
+						'R'          => ! empty( $noto_arabic_regular ) ? $noto_arabic_regular : 'NotoSansArabic-Regular.ttf',
+						'B'          => ! empty( $noto_arabic_bold ) ? $noto_arabic_bold : 'NotoSansArabic-Bold.ttf',
+						// CRITICAL: Explicitly enable OTL for THIS font specifically in addition
+						// to the global setting. This ensures mPDF knows the font supports it.
+						'useOTL'     => 0xFF,
+						'useKashida' => 75,
+					),
+				),
+				// fonttrans: Maps CSS font-family names (with spaces/quotes) to mPDF fontdata keys.
+				// Without this, CSS 'Noto Sans Arabic' can't resolve to fontdata 'notosansarabic'
+				// causing Arabic text to render as squares or random characters.
+				//
+				// Also redirect xbriyaz/lateef (mPDF internal Arabic font names used by
+				// LanguageToFont mappings) to notosansarabic. Without this, if any mPDF
+				// auto-detection code references these internal names, they resolve to
+				// our custom NotoSansArabic font instead of the missing bundled fonts.
+				'fonttrans'        => array(
+					'noto sans arabic' => 'notosansarabic',
+					'notosansarabic'   => 'notosansarabic',
+					'noto sans'        => 'notosansarabic',
+					'arial'            => 'notosansarabic',
+					'xbriyaz'          => 'notosansarabic',
+					'lateef'           => 'notosansarabic',
 				),
 				// Always use 'utf-8' mode — let SetDirectionality() handle RTL.
 				// Using mode => 'ar' forces Arabic script globally which breaks numbers.
@@ -270,29 +311,17 @@ class SScribe_PDF_Exporter implements SScribe_Exporter_Interface {
 				'default_font'     => $is_rtl ? 'notosansarabic' : 'manrope',
 				'useOTL'           => 0xFF,
 				'useKashida'       => 75,
-				'autoArabic'       => true,
-				'autoScriptToLang' => true,
-				'autoLangToFont'   => true,
-				'fontdata'         => array(
-					'manrope'        => array(
-						'R' => 'Manrope-Regular.ttf',
-						'B' => ! empty( $manrope_bold_file ) ? $manrope_bold_file : 'Manrope-Bold.ttf',
-						'M' => ! empty( $manrope_medium_file ) ? $manrope_medium_file : 'Manrope-Medium.ttf',
-						'L' => ! empty( $manrope_light_file ) ? $manrope_light_file : 'Manrope-Light.ttf',
-					),
-					'notosansarabic' => array(
-						'R' => ! empty( $noto_arabic_regular ) ? $noto_arabic_regular : 'NotoSansArabic-Regular.ttf',
-						'B' => ! empty( $noto_arabic_bold ) ? $noto_arabic_bold : 'NotoSansArabic-Bold.ttf',
-					),
-				),
-				// fonttrans: Maps CSS font-family names (with spaces/quotes) to mPDF fontdata keys.
-				// Without this, CSS 'Noto Sans Arabic' can't resolve to fontdata 'notosansarabic'
-				// causing Arabic text to render as squares or random characters.
-				'fonttrans'        => array(
-					'noto sans arabic' => 'notosansarabic',
-					'notosansarabic'   => 'notosansarabic',
-					'noto sans'        => 'notosansarabic',
-				),
+				// Disable autoLangToFont/autoArabic/autoScriptToLang — the plugin's
+				// CSS font-family and default_font config already handle correct font
+				// selection per-page based on SScribe_RTL_Helper::is_rtl(). These
+				// auto-detection features override the explicitly-configured notosansarabic
+				// font with mPDF internal font names (xbriyaz, dejavusanscondensed, etc.)
+				// that reference font files in the bundled ttfonts/ directory. While
+				// those fonts are now restored, keeping auto-detection disabled ensures
+				// the user's chosen NotoSansArabic font is always used for Arabic content.
+				'autoArabic'       => false,
+				'autoScriptToLang' => false,
+				'autoLangToFont'   => false,
 				'orientation'      => 'P',
 				'format'           => 'A4',
 				'margin_left'      => 15,
@@ -301,7 +330,6 @@ class SScribe_PDF_Exporter implements SScribe_Exporter_Interface {
 				'margin_bottom'    => 15,
 				'tempDir'          => $mpdf_temp,
 				'debug'            => defined( 'SSCRIBE_DEBUG' ) && SSCRIBE_DEBUG,
-				// tabSpaces omitted — mPDF defaults to 4 spaces; null causes PHP 8 strict warning.
 			);
 
 			$mpdf = new \SScribeVendor\Mpdf\Mpdf( $config );
@@ -344,9 +372,18 @@ class SScribe_PDF_Exporter implements SScribe_Exporter_Interface {
 
 			// Write base styling CSS first (mode 2 = CSS only). This sets the
 			// document-wide font and direction before any HTML content is processed.
-			$base_css = 'html, body { font-family: ' . ( $is_rtl ? 'notosansarabic' : 'manrope' ) . ', sans-serif; }';
+			// Aggressively apply the font family to all common block and inline elements
+			// to override any inherited browser defaults that might lack Arabic glyphs.
+			// For RTL: prefer notosansarabic, fall back to freeserif (ttfonts restored),
+			// then generic sans-serif.
+			// For LTR: prefer manrope (Latin), fall back to notosansarabic for mixed
+			// Arabic content, then dejavusanscondensed (ttfonts restored), then sans-serif.
+			$font_stack = $is_rtl ? 'notosansarabic, freeserif, sans-serif' : 'manrope, notosansarabic, dejavusanscondensed, sans-serif';
+			$base_css   = 'html, body, div, p, span, h1, h2, h3, h4, h5, h6, table, tr, td, th, ul, ol, li, blockquote, q, cite, a { font-family: ' . $font_stack . '; }';
+
 			if ( $is_rtl ) {
-				$base_css .= ' html, body { direction: rtl; }';
+				$base_css .= ' html, body { direction: rtl; text-align: right; }';
+				$base_css .= ' table { direction: rtl; border-collapse: collapse; }';
 			}
 			$base_css .= ' img { max-width: 100%; height: auto; }';
 			$base_css .= ' a { color: #2C6E8A; text-decoration: none; }';

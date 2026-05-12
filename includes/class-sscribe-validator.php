@@ -433,7 +433,7 @@ class SScribe_Validator {
 			$filename = str_replace( $pattern, '', $filename );
 		}
 
-		$filename = preg_replace( '/\.\.+/', '.', $filename );
+		$filename = preg_replace( '/\.\.+/', '.', $filename ) ?? $filename;
 
 		return $filename;
 	}
