@@ -45,7 +45,7 @@
         "cs": "phpcs -d memory_limit=512M --standard=phpcs.xml",
         "cs:fix": "phpcbf -d memory_limit=512M --standard=phpcs.xml",
         "version:check": "php scripts/verify-version-sync.php",
-        "vendor:prefix": "strauss && php scripts/fix-prefixed-safe.php",
+        "vendor:prefix": "php -d memory_limit=512M -d error_reporting=\"E_ALL & ~E_DEPRECATED\" vendor/bin/strauss && php -d memory_limit=512M scripts/fix-prefixed-safe.php",
         "clean": "composer clean:cache && composer clean:coverage",
         "clean:cache": "php -r \"array_map('unlink', glob('.cache/**/*.*')); array_map('rmdir', glob('.cache/*', GLOB_ONLYDIR)); is_dir('.cache') && rmdir('.cache'); echo 'Cache cleared.\\n';\"",
         "clean:coverage": "php -r \"is_dir('coverage') && array_map('unlink', glob('coverage/*.*')) && rmdir('coverage'); echo 'Coverage cleared.\\n';\"",
@@ -74,6 +74,7 @@
         "optimize-autoloader": true,
         "sort-packages": true,
         "platform-check": true,
+        "process-timeout": 900,
         "allow-plugins": {
             "dealerdirect/phpcodesniffer-composer-installer": true,
             "infection/extension-installer": true
