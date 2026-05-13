@@ -257,58 +257,10 @@ class SScribe_Zip_Handler {
 			return null;
 		}
 
-		// Validate against known 2-letter language codes to prevent
-		// false matches on page title segments (e.g., P001-GO.docx).
-		static $known_codes = array(
-			'AR',
-			'EN',
-			'FR',
-			'DE',
-			'ES',
-			'IT',
-			'PT',
-			'NL',
-			'RU',
-			'ZH',
-			'JA',
-			'KO',
-			'HE',
-			'FA',
-			'UR',
-			'TR',
-			'PL',
-			'SV',
-			'DA',
-			'FI',
-			'NB',
-			'CS',
-			'SK',
-			'HU',
-			'RO',
-			'BG',
-			'HR',
-			'SR',
-			'UK',
-			'VI',
-			'TH',
-			'ID',
-			'MS',
-			'EL',
-			'HI',
-			'BN',
-			'LT',
-			'LV',
-			'ET',
-			'SL',
-			'PS',   // Pashto.
-			'KU',   // Kurdish.
-			'SD',   // Sindhi.
-			'YI',   // Yiddish (modern).
-			'IW',   // Hebrew (legacy ISO 639-1).
-			'JI',   // Yiddish (legacy ISO 639-1).
-		);
-
-		return in_array( $matches[1], $known_codes, true ) ? $matches[1] : null;
+		// Validate against known 2-letter language codes from single source.
+		// Uses SScribe_RTL_Helper::get_all_known_codes() to prevent code duplication.
+		// If a new language is added there, it is automatically recognized here.
+		return in_array( $matches[1], SScribe_RTL_Helper::get_all_known_codes(), true ) ? $matches[1] : null;
 	}
 
 	/**

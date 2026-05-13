@@ -315,6 +315,11 @@ class SScribe_Exporter {
 			return false;
 		}
 
+		// CRITICAL: Reset last_error before each page — SScribe_Exporter instance
+		// is reused across all pages in a batch. Without this, a failure on page 3
+		// would leave $last_error set, causing stale error messages on subsequent pages.
+		$this->last_error = '';
+
 		$output_path = '';
 
 		try {

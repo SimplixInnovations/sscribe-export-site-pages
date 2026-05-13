@@ -57,6 +57,68 @@ class SScribe_RTL_Helper {
 	}
 
 	/**
+	 * Get all known ISO 639-1 two-letter language codes.
+	 *
+	 * Single authoritative source for all language code lookups across the plugin.
+	 * Used by SScribe_Zip_Handler::extract_lang_from_filename() and any other code
+	 * that needs to validate 2-letter language suffixes against a known list.
+	 *
+	 * Adding a new language code here makes it available everywhere.
+	 *
+	 * @return array<string> All known 2-letter language codes (uppercase).
+	 */
+	public static function get_all_known_codes(): array {
+		return array(
+			'AR',
+			'EN',
+			'FR',
+			'DE',
+			'ES',
+			'IT',
+			'PT',
+			'NL',
+			'RU',
+			'ZH',
+			'JA',
+			'KO',
+			'HE',
+			'FA',
+			'UR',
+			'TR',
+			'PL',
+			'SV',
+			'DA',
+			'FI',
+			'NB',
+			'CS',
+			'SK',
+			'HU',
+			'RO',
+			'BG',
+			'HR',
+			'SR',
+			'UK',
+			'VI',
+			'TH',
+			'ID',
+			'MS',
+			'EL',
+			'HI',
+			'BN',
+			'LT',
+			'LV',
+			'ET',
+			'SL',
+			'PS',
+			'KU',
+			'SD',
+			'YI',
+			'IW',
+			'JI',
+		);
+	}
+
+	/**
 	 * Get text direction for a language.
 	 *
 	 * @param string $lang_code Language code.

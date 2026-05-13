@@ -2305,7 +2305,7 @@ class SScribe_Batch_Processor {
 				wp_die( esc_html__( 'Invalid file access.', 'sscribe-export-site-pages' ) );
 			}
 
-			$ascii_filename = preg_replace( '/[^a-zA-Z0-9._-]/', '_', $filename );
+			$ascii_filename = preg_replace( '/[^a-zA-Z0-9._-]/', '_', $filename ) ?? $filename;
 
 			header( 'Content-Type: application/zip' );
 			header( 'Content-Disposition: attachment; filename="' . $ascii_filename . '"; filename*=UTF-8\'\'' . rawurlencode( $filename ) );

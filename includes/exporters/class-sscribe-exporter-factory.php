@@ -123,6 +123,22 @@ class SScribe_Exporter_Factory {
 			: '';
 		$page_title = '' !== $raw_title ? $raw_title : ( '' !== $raw_slug ? $raw_slug : 'page' );
 
+		// Debug log when Arabic/RTL title silently falls back to slug.
+		// sanitize_file_name() strips all non-ASCII (Arabic, CJK, etc.),
+		// returning empty string. The slug is used as fallback, but this is
+		// invisible to end users. Log it so admins can investigate.
+		if ( '' === $raw_title && isset( $page_data['title'] ) && '' !== $page_data['title'] && function_exists( 'do_action' ) ) {
+			do_action(
+				'sscribe_debug_log',
+				'build_filename: title stripped to empty by sanitize_file_name — falling back to slug',
+				array(
+					'page_id' => $page_data['id'] ?? 0,
+					'title'   => $page_data['title'],
+					'slug'    => $raw_slug,
+				)
+			);
+		}
+
 		// Truncate title to 60 chars to keep filenames reasonable.
 		// mb_substr handles multibyte (Arabic, CJK) correctly.
 		if ( mb_strlen( $page_title ) > 60 ) {

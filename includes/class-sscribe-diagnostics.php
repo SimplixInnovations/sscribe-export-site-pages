@@ -509,8 +509,10 @@ class SScribe_Diagnostics {
 		}
 
 		// Verify required font files exist (Manrope is the primary font).
-		$manrope_regular = SSCRIBE_PLUGIN_DIR . 'assets/fonts/manrope/Manrope-Regular.ttf';
-		if ( ! file_exists( $manrope_regular ) ) {
+		// Use glob() with case-insensitive search to handle filesystem casing variations.
+		$manrope_dir = SSCRIBE_PLUGIN_DIR . 'assets/fonts/manrope';
+		$manrope_fonts = is_dir( $manrope_dir ) ? glob( $manrope_dir . '/*[Rr]egular.ttf' ) : array();
+		if ( empty( $manrope_fonts ) ) {
 			return array(
 				'name'    => 'mPDF Library',
 				'status'  => 'warning',
@@ -546,6 +548,32 @@ class SScribe_Diagnostics {
 	 */
 	private function check_phpword(): array {
 		if ( class_exists( '\\SScribeVendor\\PhpOffice\\PhpWord\\PhpWord' ) ) {
+			// Verify PHPWord version is within the expected range for safe_text() encoding workaround.
+			// PHPWord < 1.5.0 does not escape
+			// &, <, >, ", ' in addText/addTitle output. SScribe_Exporter::safe_text() applies
+			// htmlspecialchars() as a workaround. If the bundled PHPWord version changes to 1.5+,
+			// the workaround would cause double-encoding and must be removed.
+			$phpword_composer_file = SSCRIBE_PLUGIN_DIR . 'vendor-prefixed/phpoffice/phpword/composer.json';
+			if ( file_exists( $phpword_composer_file ) ) {
+				$composer_data = json_decode( file_get_contents( $phpword_composer_file ), true );
+				$bundled_version = $composer_data['version'] ?? 'unknown';
+				preg_match( '/^(\d+\.\d+)/', $bundled_version, $m );
+				$major_minor = $m[1] ?? '';
+				// If PHPWord 1.5+ is detected, the htmlspecialchars workaround in safe_text()
+				// must be reviewed for double-encoding. See SScribe_Exporter::safe_text() line ~189.
+				if ( version_compare( $major_minor, '1.5', '>=' ) ) {
+					return array(
+						'name'    => 'PHPWord Library',
+						'status'  => 'warning',
+						'message' => sprintf(
+							'PHPWord %s detected — safe_text() htmlspecialchars workaround may cause double-encoding. Version compatibility check needed.',
+							$bundled_version
+						),
+						'fix' => 'Review SScribe_Exporter::safe_text() for double-encoding with PHPWord >= 1.5',
+					);
+				}
+			}
+
 			return array(
 				'name'    => 'PHPWord Library',
 				'status'  => 'ok',
