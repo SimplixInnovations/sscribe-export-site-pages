@@ -55,7 +55,8 @@ for ($i = 0; $i < $zip->numFiles; $i++) {
     }
 
     // Bloat fonts check
-    $bloatPatterns = ['Sun-Ext', 'UnBatang', 'XB Riyaz', 'Lateef', 'Uthman', 'Garuda', 'Dhyana', 'KhmerOS', 'ayar.ttf', 'Padauk', 'Tharlon', 'Zawgyi', 'Abyssinica', 'Aboriginal', 'Jomolhari', 'Sundanese', 'TaiHeritage', 'Aegean', 'Aegyptus', 'Akkadian', 'Quivira', 'Eeyek', 'lannaalif', 'DBSILBR', 'SyrCOM', 'TaameyDavid', 'kaputa', 'Lohit', 'Pothana2000', 'damase'];
+    // NOTE: XB Riyaz, Lateef, and Uthman are intentionally kept for Arabic PDF shaping support.
+    $bloatPatterns = ['Sun-Ext', 'UnBatang', 'Garuda', 'Dhyana', 'KhmerOS', 'ayar.ttf', 'Padauk', 'Tharlon', 'Zawgyi', 'Abyssinica', 'Aboriginal', 'Jomolhari', 'Sundanese', 'TaiHeritage', 'Aegean', 'Aegyptus', 'Akkadian', 'Quivira', 'Eeyek', 'lannaalif', 'DBSILBR', 'SyrCOM', 'TaameyDavid', 'kaputa', 'Lohit', 'Pothana2000', 'damase'];
     foreach ($bloatPatterns as $bp) {
         if (str_contains($name, $bp)) {
             $bloatCount++;
@@ -85,7 +86,7 @@ foreach ($criticalFound as $k => $v) {
     echo "  " . ($v ? 'PASS' : 'FAIL') . ": $k\n";
 }
 
-echo "\n=== ttfONTS IN ZIP: $fontCount files ===\n";
+echo "\n=== FONTS IN ZIP: $fontCount files ===\n";
 foreach ($fontFiles as $f) {
     echo "  $f\n";
 }
