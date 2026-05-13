@@ -556,9 +556,11 @@ class SScribe_Content_Parser {
 		// This captures buttons that would be lost after normalize_html() strips classes.
 		$pattern = '/<a\s+[^>]*+class=["\']([^"\']*(?:wp-block-button__link|wp-element-button|button|btn|elementor-button|et_pb_button|fl-button|vc_btn)[^"\']*)["\'][^>]*+>(.*?)<\/a>/is';
 
-		// CRITICAL: preg_match_all can return false on PCRE backtrack/recursion limit
-		// exhaustion (very large HTML, deeply nested tags). Without explicit false check,
-		// the if-condition treats false as "no matches" and buttons are silently dropped.
+		// CRITICAL: Guard against PCRE backtrack/recursion limit exhaustion.
+		// Very large HTML with deeply nested tags (e.g., Elementor templates) can hit
+		// pcre.backtrack_limit. preg_match_all returns false on exhaustion.
+		// Without this guard, the result is silently treated as "no matches".
+		// The existing false !== $match_count check below catches this case.
 		$match_count = preg_match_all( $pattern, $html, $matches, PREG_SET_ORDER );
 		if ( false !== $match_count && $match_count > 0 ) {
 			foreach ( $matches as $match ) {

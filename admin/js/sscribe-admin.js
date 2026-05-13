@@ -646,7 +646,7 @@ success: function (response) {
 
 			$('#sscribe-status-text').text(sscribe_data.strings.packaging || 'Packaging files into ZIP archive...');
 
-			var maxAttempts = 60; // 60 × 2s = 120s max wait for ZIP finalization (was 30×2s=60s).
+			var maxAttempts = 150; // 150 × 2s = 300s max wait for ZIP finalization — matches PHP set_time_limit(300).
 			var self = this;
 
 			setTimeout(function () {

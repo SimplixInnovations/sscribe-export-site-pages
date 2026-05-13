@@ -3,11 +3,14 @@
  * Verify ZIP contents for production readiness.
  * Run: php scripts/verify-zip-contents.php
  */
-$zip_file = dirname(__DIR__) . '/dist/sscribe-export-site-pages-3.7.3.zip';
-if (!file_exists($zip_file)) {
-    fwrite(STDERR, "ZIP not found: $zip_file\n");
-    exit(1);
+// Find the most recent dist ZIP file dynamically (same pattern as list-zip.php and check-wp-org.php).
+$dist_files = glob( dirname( __DIR__ ) . '/dist/sscribe-export-site-pages-*.zip' );
+if ( empty( $dist_files ) ) {
+	fwrite( STDERR, "No dist ZIP found. Run: composer build\n" );
+	exit( 1 );
 }
+usort( $dist_files, fn( $a, $b ) => filemtime( $b ) - filemtime( $a ) );
+$zip_file = $dist_files[0];
 
 $zip = new ZipArchive();
 if ($zip->open($zip_file) !== true) {

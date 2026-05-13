@@ -150,6 +150,12 @@ class SScribe_Admin {
 		// Note: style-src includes 'unsafe-inline' to support WordPress admin core
 		// and third-party plugins that inject inline styles into the admin area.
 		// WordPress admin pages do not include a Content-Security-Policy by default.
+		//
+		// TODO: When WordPress core supports CSP nonce-based script injection
+		// (wp_script_add_data with 'strategy'), migrate our own scripts to use
+		// nonces instead of 'unsafe-inline' for script-src. The 'unsafe-inline'
+		// for script-src is required today because WordPress core and many plugins
+		// (including the block editor) inject inline scripts without nonces.
 		$policy = implode(
 			'; ',
 			array(

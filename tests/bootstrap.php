@@ -307,6 +307,24 @@ if ( ! function_exists( 'wp_die' ) ) {
 	}
 }
 
+// WP_User stub for test environment — SScribe_Batch_Processor::audit_log() calls
+// $current_user->exists() on the result of wp_get_current_user().
+if ( ! class_exists( 'WP_User' ) ) {
+	class WP_User {
+		public int $ID = 0;
+		public string $user_login = '';
+		public string $display_name = '';
+
+		public function __construct( int $id = 0 ) {
+			$this->ID = $id;
+		}
+
+		public function exists(): bool {
+			return $this->ID > 0;
+		}
+	}
+}
+
 if ( ! function_exists( 'wp_get_current_user' ) ) {
 	function wp_get_current_user() {
 		global $sscribe_test_current_user;

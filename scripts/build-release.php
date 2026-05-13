@@ -171,16 +171,14 @@ function run_phpstan( string $root ): bool {
 		return true;
 	}
 	
-	$output = shell_exec( "php \"$phpstan\" analyse --no-progress 2>&1" );
-	
-	if ( $output === null ) {
-		echo "     ⚠️  PHPStan execution failed\n";
-		return false;
-	}
-	
-	if ( str_contains( $output, '[ERROR]' ) || preg_match( '/^\s*\d+\s+errors?/', $output ) ) {
-		$lines = explode( "\n", $output );
-		$show = implode( "\n     ", array_slice( $lines, -5 ) );
+	$output = array();
+	$return = 0;
+	exec( "php \"$phpstan\" analyse --no-progress 2>&1", $output, $return );
+
+	if ( $return !== 0 ) {
+		$output_str = implode( "\n", $output );
+		$lines = explode( "\n", $output_str );
+		$show = implode( "\n     ", array_slice( $lines, -10 ) );
 		echo "     ❌ PHPStan found errors:\n     $show\n";
 		return false;
 	}
