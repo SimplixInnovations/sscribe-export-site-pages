@@ -283,20 +283,13 @@ class SScribe_PDF_Exporter implements SScribe_Exporter_Interface {
 					'notosansarabic' => array(
 						'R'          => ! empty( $noto_arabic_regular ) ? $noto_arabic_regular : 'NotoSansArabic-Regular.ttf',
 						'B'          => ! empty( $noto_arabic_bold ) ? $noto_arabic_bold : 'NotoSansArabic-Bold.ttf',
-						// CRITICAL: Explicitly enable OTL for THIS font specifically in addition
-						// to the global setting. This ensures mPDF knows the font supports it.
+						// CRITICAL: Explicitly enable OTL for THIS font specifically.
+						// This ensures mPDF knows the font supports ligatures and shaping.
 						'useOTL'     => 0xFF,
 						'useKashida' => 75,
 					),
 				),
-				// fonttrans: Maps CSS font-family names (with spaces/quotes) to mPDF fontdata keys.
-				// Without this, CSS 'Noto Sans Arabic' can't resolve to fontdata 'notosansarabic'
-				// causing Arabic text to render as squares or random characters.
-				//
-				// Also redirect xbriyaz/lateef (mPDF internal Arabic font names used by
-				// LanguageToFont mappings) to notosansarabic. Without this, if any mPDF
-				// auto-detection code references these internal names, they resolve to
-				// our custom NotoSansArabic font instead of the missing bundled fonts.
+				// fonttrans: Maps CSS font-family names to mPDF fontdata keys.
 				'fonttrans'        => array(
 					'noto sans arabic' => 'notosansarabic',
 					'notosansarabic'   => 'notosansarabic',
@@ -304,24 +297,21 @@ class SScribe_PDF_Exporter implements SScribe_Exporter_Interface {
 					'arial'            => 'notosansarabic',
 					'xbriyaz'          => 'notosansarabic',
 					'lateef'           => 'notosansarabic',
+					'times new roman'  => 'notosansarabic',
+					'serif'            => 'notosansarabic',
+					'sans-serif'       => 'notosansarabic',
 				),
-				// Always use 'utf-8' mode — let SetDirectionality() handle RTL.
-				// Using mode => 'ar' forces Arabic script globally which breaks numbers.
 				'mode'             => 'utf-8',
 				'default_font'     => $is_rtl ? 'notosansarabic' : 'manrope',
 				'useOTL'           => 0xFF,
 				'useKashida'       => 75,
-				// Disable autoLangToFont/autoArabic/autoScriptToLang — the plugin's
-				// CSS font-family and default_font config already handle correct font
-				// selection per-page based on SScribe_RTL_Helper::is_rtl(). These
-				// auto-detection features override the explicitly-configured notosansarabic
-				// font with mPDF internal font names (xbriyaz, dejavusanscondensed, etc.)
-				// that reference font files in the bundled ttfonts/ directory. While
-				// those fonts are now restored, keeping auto-detection disabled ensures
-				// the user's chosen NotoSansArabic font is always used for Arabic content.
-				'autoArabic'       => false,
-				'autoScriptToLang' => false,
-				'autoLangToFont'   => false,
+				'OTLhelper'        => true,
+				// autoLangToFont: Scans text for Arabic characters and switches to an
+				// Arabic-capable font. This is the SAFEST way to handle mixed content
+				// and ensures Arabic Unicode characters are correctly shaped.
+				'autoArabic'       => true,
+				'autoScriptToLang' => true,
+				'autoLangToFont'   => true,
 				'orientation'      => 'P',
 				'format'           => 'A4',
 				'margin_left'      => 15,

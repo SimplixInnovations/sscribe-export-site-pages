@@ -53,14 +53,15 @@ $config = array(
 		'composer.json', 'composer.lock', 'scratch', 'strauss.json', 'infection.json5',
 		'commit-message.txt', '.prettierrc', '.eslintrc.json', '.stylelintrc.json', '.husky',
 		'node_modules', 'screenshots', 'WPScan',
-		// Vendor-prefixed dev files
-		'phpstan-baseline.neon', 'ruleset.xml', 'CREDITS.txt',
+		// Recursive dev patterns (matched in Step 4)
+		'phpstan-baseline.neon', 'ruleset.xml', 'CREDITS.txt', 'COPYING',
 		'.php-cs-fixer.php', '.php-cs-fixer.dist.php', 'mkdocs.yml',
 		'.travis.yml', '.scrutinizer.yml', '.github_changelog_generator',
 	),
 	
-	// Obscure Font Bloat (Pruned from mPDF to save ~68MB)
-	// Keeps only: DejaVu family (Sans/Condensed/Serif/Mono), Free family (Sans/Serif/Mono), OCR-B
+	// Obscure Font Bloat (Pruned from mPDF to save ~60MB)
+	// We MUST keep XB Riyaz and Lateef as they are mPDF's standard fallbacks for Arabic.
+	// Pruning them causes disconnected Arabic characters (shaping failure) in many environments.
 	'font_excludes'    => array(
 		// Rare/unused scripts
 		'Sun-ExtA.ttf', 'Sun-ExtB.ttf', 'UnBatang_0613.ttf', 'Aegyptus.otf', 
@@ -74,11 +75,8 @@ $config = array(
 		'Garuda.ttf', 'Garuda-Bold.ttf', 'Garuda-Oblique.ttf', 'Garuda-BoldOblique.ttf',
 		// Lao
 		'Dhyana-Regular.ttf', 'Dhyana-Bold.ttf',
-		// Redirected via fonttrans to notosansarabic
-		'XB Riyaz.ttf', 'XB RiyazBd.ttf', 'XB RiyazIt.ttf', 'XB RiyazBdIt.ttf',
-		'LateefRegOT.ttf', 'Uthman.otf',
 		// License/info files for removed fonts
-		'DhyanaOFL.txt', 'Jomolhari-OFL.txt', 'KhmerOFL.txt', 'Lateef font OFL.txt',
+		'DhyanaOFL.txt', 'Jomolhari-OFL.txt', 'KhmerOFL.txt', 
 		'LohitKannadaOFL.txt', 'SyrCOMEdessa_license.txt', 'TaameyDavidCLM-LICENSE.txt',
 		'TharlonOFL.txt', 'XW Zar Font Info.txt',
 	),
@@ -173,7 +171,8 @@ function run_phpstan( string $root ): bool {
 	
 	$output = array();
 	$return = 0;
-	exec( "php \"$phpstan\" analyse --no-progress 2>&1", $output, $return );
+	// Use 2G memory limit to prevent worker crashes on large projects.
+	exec( "php \"$phpstan\" analyse --no-progress --memory-limit 2G 2>&1", $output, $return );
 
 	if ( $return !== 0 ) {
 		$output_str = implode( "\n", $output );
@@ -203,9 +202,20 @@ function run_phpcs( string $root ): bool {
 	
 	$output = array();
 	$return = 0;
-	exec( "php \"$phpcs\" --standard=\"$standard\" -q", $output, $return );
+	// Keep the -q flag to avoid flooding build output on success.
+	// On failure, we re-run without -q to show errors.
+	exec( "php -d memory_limit=512M \"$phpcs\" --standard=\"$standard\" -q 2>&1", $output, $return );
 	
-	echo "     ✅ PHPCS check complete\n";
+	if ( $return !== 0 ) {
+		// Re-run without quiet flag to show detailed errors.
+		$error_output = array();
+		exec( "php -d memory_limit=512M \"$phpcs\" --standard=\"$standard\" 2>&1", $error_output, $return );
+		$show = implode( "\n     ", $error_output );
+		echo "     ❌ PHPCS found errors (exit code: $return):\n     $show\n";
+		return false;
+	}
+	
+	echo "     ✅ PHPCS passed\n";
 	return true;
 }
 
@@ -382,6 +392,37 @@ foreach ( $iterator as $file ) {
 }
 
 echo "     ✅ Copied: $copied files\n";
+
+// Step 4.1: Extreme Size Optimization (Recursive Vendor Cleanup)
+echo "  🧹 Extreme Optimization: Stripping vendor bloat...\n";
+$vendor_dir = $plugin_dir . '/vendor-prefixed';
+if ( is_dir( $vendor_dir ) ) {
+	$prune_patterns = array(
+		'tests', 'docs', '.github', 'samples', 'examples', 'utils', 'bin',
+		'composer.json', 'composer.lock', 'package.json', 'phpunit.xml',
+		'.gitignore', '.gitattributes', '.travis.yml', '.scrutinizer.yml',
+		'CHANGELOG.md', 'CONTRIBUTING.md', 'README.md', 'CREDITS.txt', 'COPYING',
+	);
+	
+	$pruned_count = 0;
+	$v_iterator = new RecursiveIteratorIterator(
+		new RecursiveDirectoryIterator( $vendor_dir, RecursiveDirectoryIterator::SKIP_DOTS ),
+		RecursiveIteratorIterator::CHILD_FIRST
+	);
+
+	foreach ( $v_iterator as $item ) {
+		$name = $item->getBasename();
+		if ( in_array( $name, $prune_patterns, true ) ) {
+			if ( $item->isDir() ) {
+				rrmdir( $item->getPathname() );
+			} else {
+				@unlink( $item->getPathname() );
+			}
+			$pruned_count++;
+		}
+	}
+	echo "     ✅ Pruned: $pruned_count vendor development artifacts\n";
+}
 
 // Step 5: Create ZIP
 echo "\n===========================================\n";
