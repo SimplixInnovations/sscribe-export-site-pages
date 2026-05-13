@@ -58,13 +58,8 @@ if ( ! defined( 'SSCRIBE_DEBUG' ) ) {
 	define( 'SSCRIBE_DEBUG', false );
 }
 
-if ( ! defined( 'SSCRIBE_FONT_ARABIC' ) ) {
-	define( 'SSCRIBE_FONT_ARABIC', SSCRIBE_PLUGIN_DIR . 'assets/fonts/notosansarabic/NotoSansArabic-Regular.ttf' );
-}
-
-if ( ! defined( 'SSCRIBE_FONT_ARABIC_BOLD' ) ) {
-	define( 'SSCRIBE_FONT_ARABIC_BOLD', SSCRIBE_PLUGIN_DIR . 'assets/fonts/notosansarabic/NotoSansArabic-Bold.ttf' );
-}
+// SSCRIBE_FONT_ARABIC / SSCRIBE_FONT_ARABIC_BOLD removed in v3.7.6.
+// NotoSansArabic is no longer shipped — Arabic PDF uses DejaVu Sans (mPDF bundled).
 
 if ( ! defined( 'WP_CONTENT_DIR' ) ) {
 	define( 'WP_CONTENT_DIR', dirname( __DIR__ ) . '/fake-wp/wp-content' );

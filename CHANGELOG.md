@@ -4,6 +4,20 @@ All notable changes to this project will be documented in this file.
 
 ## [Unreleased]
 
+## [3.7.6] - 2026-05-13
+
+### Changed
+- **Arabic PDF rendering**: Replaced NotoSansArabic with DejaVu Sans (bundled with mPDF) — eliminates `MarkGlyphSets - Not tested yet` error that caused ~96% Arabic PDF failures
+- Removed `SSCRIBE_FONT_ARABIC` / `SSCRIBE_FONT_ARABIC_BOLD` constants and NotoSansArabic font files (~488 KB) from plugin distribution
+- HTML exporter: Removed NotoSansArabic `@font-face` CSS — now relies on system font stack (`system-ui, -apple-system, sans-serif`) for RTL browser preview
+- Font helper: `get_arabic_font_path()` now points to DejaVu Sans in vendor-prefixed/mpdf
+- Font helper: `get_arabic_font_url()` returns empty string (DejaVu Sans is not web-accessible)
+- XB Riyaz, Lateef, and Uthman retained as mPDF Arabic shaping fallbacks
+
+### Removed
+- `assets/fonts/notosansarabic/` directory (NotoSansArabic-Regular.ttf, NotoSansArabic-Bold.ttf)
+- `SSCRIBE_FONT_ARABIC` and `SSCRIBE_FONT_ARABIC_BOLD` constants from plugin bootstrap
+
 ## [3.7.1] - 2026-05-12
 
 ### Fixed

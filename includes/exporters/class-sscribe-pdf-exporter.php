@@ -227,36 +227,6 @@ class SScribe_PDF_Exporter implements SScribe_Exporter_Interface {
 				self::$mpdf_temp_protected = true;
 			}
 
-			// Validate Arabic font directory existence — if the NotoSansArabic
-			// directory is missing, RTL PDF exports will fail with a silent error.
-			$noto_arabic_dir = $font_dir . 'notosansarabic/';
-
-			// Find font files with case-insensitive search. Cache results to avoid
-			// redundant scandir() calls on the same directory (4-6 lookups per page).
-			$manrope_bold_file   = $this->find_font_file( $manrope_dir, 'manrope[-_]?bold' );
-			$manrope_medium_file = $this->find_font_file( $manrope_dir, 'manrope[-_]?medium' );
-			$manrope_light_file  = $this->find_font_file( $manrope_dir, 'manrope[-_]?light' );
-			$noto_arabic_regular  = $this->find_font_file( $noto_arabic_dir, 'notosansarabic[-_]?regular' );
-			$noto_arabic_bold     = $this->find_font_file( $noto_arabic_dir, 'notosansarabic[-_]?bold' );
-			if ( ! is_dir( $noto_arabic_dir ) ) {
-				$this->logger->error(
-					'PDF export failed: NotoSansArabic font directory is missing',
-					array(
-						'noto_arabic_dir' => $noto_arabic_dir,
-						'dir_exists'      => is_dir( $noto_arabic_dir ),
-					)
-				);
-
-				return SScribe_Result::failure(
-					__( 'PDF export failed: NotoSansArabic font directory is missing. Reinstall the plugin.', 'sscribe-export-site-pages' ),
-					array(
-						'error_category' => 'pdf_missing_library',
-						'page_id'        => $page_id,
-						'missing_dir'    => $noto_arabic_dir,
-					)
-				);
-			}
-
 			// Get default config to merge with. This ensures mPDF's built-in fonts (like DejaVu)
 			// and character mappings remain available as fallbacks if the custom fonts fail.
 			$default_config = ( new \SScribeVendor\Mpdf\Config\ConfigVariables() )->getDefaults();
@@ -265,44 +235,40 @@ class SScribe_PDF_Exporter implements SScribe_Exporter_Interface {
 			$default_font_config = ( new \SScribeVendor\Mpdf\Config\FontVariables() )->getDefaults();
 			$font_data          = $default_font_config['fontdata'];
 
+			// Find Manrope font files with case-insensitive search since Linux servers
+			// may have case sensitivity issues and font files may have different casing.
+			$manrope_regular = $this->find_font_file( $manrope_dir, 'manrope[-_]?regular' ) ?? 'Manrope-Regular.ttf';
+
 			$config = array(
 				'fontDir'          => array_merge(
 					$font_dirs,
 					array(
 						$manrope_dir,
-						$noto_arabic_dir,
 					)
 				),
 				'fontdata'         => $font_data + array(
 					'manrope'        => array(
-						'R' => $this->find_font_file( $manrope_dir, 'manrope[-_]?regular' ) ?? 'Manrope-Regular.ttf',
+						'R' => $manrope_regular,
 						'B' => $this->find_font_file( $manrope_dir, 'manrope[-_]?bold' ) ?? 'Manrope-Bold.ttf',
 						'M' => $this->find_font_file( $manrope_dir, 'manrope[-_]?medium' ) ?? 'Manrope-Medium.ttf',
 						'L' => $this->find_font_file( $manrope_dir, 'manrope[-_]?light' ) ?? 'Manrope-Light.ttf',
 					),
-					'notosansarabic' => array(
-						'R'          => ! empty( $noto_arabic_regular ) ? $noto_arabic_regular : 'NotoSansArabic-Regular.ttf',
-						'B'          => ! empty( $noto_arabic_bold ) ? $noto_arabic_bold : 'NotoSansArabic-Bold.ttf',
-						// CRITICAL: Explicitly enable OTL for THIS font specifically.
-						// This ensures mPDF knows the font supports ligatures and shaping.
-						'useOTL'     => 0xFF,
-						'useKashida' => 75,
-					),
 				),
 				// fonttrans: Maps CSS font-family names to mPDF fontdata keys.
+				// DejaVu Sans is bundled with mPDF and supports Arabic without
+				// MarkGlyphSets issues — safe for all RTL PDF generation.
 				'fonttrans'        => array(
-					'noto sans arabic' => 'notosansarabic',
-					'notosansarabic'   => 'notosansarabic',
-					'noto sans'        => 'notosansarabic',
-					'arial'            => 'notosansarabic',
-					'xbriyaz'          => 'notosansarabic',
-					'lateef'           => 'notosansarabic',
-					'times new roman'  => 'notosansarabic',
-					'serif'            => 'notosansarabic',
-					'sans-serif'       => 'notosansarabic',
+					'dejavu sans'      => 'dejavusans',
+					'dejavusans'       => 'dejavusans',
+					'arial'            => 'dejavusans',
+					'xbriyaz'          => 'dejavusans',
+					'lateef'           => 'dejavusans',
+					'times new roman'  => 'dejavusans',
+					'serif'            => 'dejavusans',
+					'sans-serif'       => 'dejavusans',
 				),
 				'mode'             => 'utf-8',
-				'default_font'     => $is_rtl ? 'notosansarabic' : 'manrope',
+				'default_font'     => $is_rtl ? 'dejavusans' : 'manrope',
 				'useOTL'           => 0xFF,
 				'useKashida'       => 75,
 				'OTLhelper'        => true,
@@ -337,12 +303,10 @@ class SScribe_PDF_Exporter implements SScribe_Exporter_Interface {
 			$mpdf->SetKeywords( $page_data['seo']['focus_keyword'] ?? '' );
 
 			// CRITICAL: Strip ALL <style> blocks and inline styles from HTML.
-			// The HTML exporter embeds CSS with font-family: 'Noto Sans Arabic' (with spaces),
-			// but mPDF's fontdata uses 'notosansarabic' (no spaces, lowercase).
-			// If we don't strip these, the CSS font-family declarations override mPDF's
-			// font configuration, causing Arabic text to render as squares/random characters
-			// because mPDF falls back to a default font without Arabic glyphs.
-			// mPDF handles all font resolution via fontdata + autoLangToFont instead.
+			// The HTML exporter no longer embeds @font-face (NotoSansArabic removed in v3.7.6),
+			// but we still strip styles to prevent any CSS font-family declarations from
+			// overriding mPDF's font configuration. mPDF handles all font resolution via
+			// fontdata (dejavusans for RTL) + autoLangToFont instead.
 			$html_content = preg_replace( '/<style[^>]*>.*?<\/style>/is', '', $html_content ) ?? $html_content;
 			$html_content = preg_replace( '/\s*style="[^"]*"/i', '', $html_content ) ?? $html_content;
 			$html_content = preg_replace( "/\s*style='[^']*'/i", '', $html_content ) ?? $html_content;
@@ -364,11 +328,9 @@ class SScribe_PDF_Exporter implements SScribe_Exporter_Interface {
 			// document-wide font and direction before any HTML content is processed.
 			// Aggressively apply the font family to all common block and inline elements
 			// to override any inherited browser defaults that might lack Arabic glyphs.
-			// For RTL: prefer notosansarabic, fall back to freeserif (ttfonts restored),
-			// then generic sans-serif.
-			// For LTR: prefer manrope (Latin), fall back to notosansarabic for mixed
-			// Arabic content, then dejavusanscondensed (ttfonts restored), then sans-serif.
-			$font_stack = $is_rtl ? 'notosansarabic, freeserif, sans-serif' : 'manrope, notosansarabic, dejavusanscondensed, sans-serif';
+			// For RTL: DejaVu Sans (bundled with mPDF, supports Arabic, no MarkGlyphSets).
+			// For LTR: Manrope (custom Latin font), fall back to DejaVu for mixed content.
+			$font_stack = $is_rtl ? 'dejavusans, freeserif, sans-serif' : 'manrope, dejavusans, sans-serif';
 			$base_css   = 'html, body, div, p, span, h1, h2, h3, h4, h5, h6, table, tr, td, th, ul, ol, li, blockquote, q, cite, a { font-family: ' . $font_stack . '; }';
 
 			if ( $is_rtl ) {

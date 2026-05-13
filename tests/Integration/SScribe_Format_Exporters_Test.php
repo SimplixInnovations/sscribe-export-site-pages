@@ -149,12 +149,12 @@ class SScribe_Format_Exporters_Test extends TestCase {
 		$this->assertGreaterThan( 0, $time );
 	}
 
-	public function test_font_files_exist(): void {
-		$regular = SSCRIBE_PLUGIN_DIR . 'assets/fonts/notosansarabic/NotoSansArabic-Regular.ttf';
-		$bold = SSCRIBE_PLUGIN_DIR . 'assets/fonts/notosansarabic/NotoSansArabic-Bold.ttf';
+	public function test_font_helper_returns_dejavusans(): void {
+		$regular = SScribe_Font_Helper::get_arabic_font_path();
+		$bold    = SScribe_Font_Helper::get_arabic_font_path( true );
 
-		$this->assertFileExists( $regular );
-		$this->assertFileExists( $bold );
+		$this->assertStringContainsString( 'DejaVuSans.ttf', $regular );
+		$this->assertStringContainsString( 'DejaVuSans-Bold.ttf', $bold );
 	}
 
 	public function test_rtl_helper_get_languages(): void {

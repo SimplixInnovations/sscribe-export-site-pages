@@ -60,7 +60,7 @@ $config = array(
 	),
 	
 	// Obscure Font Bloat (Pruned from mPDF to save ~60MB)
-	// We MUST keep XB Riyaz and Lateef as they are mPDF's standard fallbacks for Arabic.
+	// XB Riyaz, Lateef, and Uthman are kept — they are mPDF's standard fallbacks for Arabic.
 	// Pruning them causes disconnected Arabic characters (shaping failure) in many environments.
 	'font_excludes'    => array(
 		// Rare/unused scripts
