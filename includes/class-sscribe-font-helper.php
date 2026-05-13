@@ -15,20 +15,26 @@ if ( ! defined( 'ABSPATH' ) ) {
  * Class SScribe_Font_Helper
  *
  * Provides font path utilities for RTL language support.
+ *
+ * Note: As of v3.7.6, Arabic PDF rendering uses DejaVu Sans (bundled with mPDF)
+ * instead of NotoSansArabic. Font constants SSCRIBE_FONT_ARABIC / SSCRIBE_FONT_ARABIC_BOLD
+ * have been removed — their referenced files are no longer shipped with the plugin.
  */
 class SScribe_Font_Helper {
 
 	/**
-	 * Get the path to the Arabic font file.
+	 * Get the path to the Arabic font file (DejaVu Sans from mPDF).
 	 *
 	 * @param bool $bold Whether to get the bold variant.
 	 * @return string Path to the font file.
 	 */
 	public static function get_arabic_font_path( bool $bold = false ): string {
+		$base   = defined( 'SSCRIBE_PLUGIN_DIR' ) ? SSCRIBE_PLUGIN_DIR : '';
+		$prefix = $base . 'vendor-prefixed/mpdf/mpdf/ttfonts/';
 		if ( $bold ) {
-			return defined( 'SSCRIBE_FONT_ARABIC_BOLD' ) ? SSCRIBE_FONT_ARABIC_BOLD : SSCRIBE_PLUGIN_DIR . 'assets/fonts/notosansarabic/NotoSansArabic-Bold.ttf';
+			return $prefix . 'DejaVuSans-Bold.ttf';
 		}
-		return defined( 'SSCRIBE_FONT_ARABIC' ) ? SSCRIBE_FONT_ARABIC : SSCRIBE_PLUGIN_DIR . 'assets/fonts/notosansarabic/NotoSansArabic-Regular.ttf';
+		return $prefix . 'DejaVuSans.ttf';
 	}
 
 	/**
@@ -44,11 +50,14 @@ class SScribe_Font_Helper {
 	/**
 	 * Get the font URL (for web use).
 	 *
+	 * DejaVu Sans is bundled with mPDF in vendor-prefixed and is not directly
+	 * web-accessible. This method returns an empty string; the HTML exporter
+	 * now relies on system fonts for Arabic rendering.
+	 *
 	 * @param bool $bold Whether to get the bold variant.
-	 * @return string URL to the font file.
+	 * @return string Empty string — font is not served via URL.
 	 */
 	public static function get_arabic_font_url( bool $bold = false ): string {
-		$filename = $bold ? 'NotoSansArabic-Bold.ttf' : 'NotoSansArabic-Regular.ttf';
-		return SSCRIBE_PLUGIN_URL . 'assets/fonts/notosansarabic/' . $filename;
+		return '';
 	}
 }

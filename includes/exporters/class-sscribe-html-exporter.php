@@ -139,19 +139,7 @@ class SScribe_HTML_Exporter implements SScribe_Exporter_Interface {
 
 		$rtl_extra = $is_rtl ?
 			'
-		@font-face {
-			font-family: \'Noto Sans Arabic\';
-			src: url(\'' . esc_url( SSCRIBE_PLUGIN_URL . 'assets/fonts/notosansarabic/NotoSansArabic-Regular.ttf' ) . '\') format(\'truetype\');
-			font-weight: normal;
-			font-style: normal;
-		}
-		@font-face {
-			font-family: \'Noto Sans Arabic\';
-			src: url(\'' . esc_url( SSCRIBE_PLUGIN_URL . 'assets/fonts/notosansarabic/NotoSansArabic-Bold.ttf' ) . '\') format(\'truetype\');
-			font-weight: bold;
-			font-style: normal;
-		}
-		html, body { direction: rtl; font-family: \'Noto Sans Arabic\', \'Manrope\', sans-serif; }
+		html, body { direction: rtl; font-family: system-ui, -apple-system, sans-serif; }
 		h1 { text-align: center; }
 		.featured-image { width: 100%; max-width: 600px; margin: 0 auto; display: block; }
 		' :

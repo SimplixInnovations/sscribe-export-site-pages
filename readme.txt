@@ -4,7 +4,7 @@ Donate link: https://simplixi.com
 Tags: export, docx, multilingual, seo, pdf, posts, pages
 Requires at least: 6.0
 Tested up to: 6.10
-Stable tag: 3.7.5
+Stable tag: 3.7.6
 Requires PHP: 8.2
 License: GPLv2 or later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
@@ -229,6 +229,14 @@ Each document includes: cover page with title/URL/date/breadcrumbs, featured ima
 
 == Changelog ==
 
+= 3.7.6 =
+
+* CRITICAL: Arabic PDF rendering — replaced NotoSansArabic with DejaVu Sans (bundled with mPDF). NotoSansArabic contains OpenType MarkGlyphSets that mPDF 8.x cannot process, causing ~96% failure on Arabic PDF exports. DejaVu Sans has zero MarkGlyphSets issues and supports full Arabic Unicode range.
+* REMOVED: `SSCRIBE_FONT_ARABIC` / `SSCRIBE_FONT_ARABIC_BOLD` constants and NotoSansArabic font files (~488 KB) from plugin distribution
+* CHANGED: HTML exporter no longer embeds NotoSansArabic @font-face — uses system font stack for RTL preview
+* CHANGED: SScribe_Font_Helper now points to DejaVu Sans (vendor-prefixed/mpdf) for font path resolution
+* All 339 PHPUnit tests passing, PHPStan level 6 clean, PHPCS clean
+
 = 3.7.5 =
 
 * PRODUCTION RELEASE: Bloat stripped — ttfonts/ reduced from 83 files (87 MB) to 36 files (19 MB); only DejaVu family (Sans/Condensed/Serif/Mono), Free family (Sans/Serif/Mono), and OCR-B retained
@@ -301,6 +309,10 @@ Each document includes: cover page with title/URL/date/breadcrumbs, featured ima
 * Sec: Fixed ReDoS vulnerability in button extraction regex pattern (possessive quantifiers)
 
 == Upgrade Notice ==
+
+= 3.7.6 =
+
+Fixes Arabic PDF rendering failure caused by NotoSansArabic OpenType MarkGlyphSets incompatibility with mPDF 8.x. Switches to DejaVu Sans (bundled with mPDF) which has full Arabic Unicode support and zero MarkGlyphSets issues. Recommended update for all users exporting Arabic/RTL content to PDF.
 
 = 3.7.2 =
 

@@ -28,20 +28,13 @@ class SScribe_Wave1_Integration_Test extends TestCase {
 		parent::tearDown();
 	}
 
-	public function test_font_constants_defined(): void {
-		$font_path = SSCRIBE_PLUGIN_DIR . 'assets/fonts/notosansarabic/NotoSansArabic-Regular.ttf';
-		$this->assertFileExists( $font_path, 'Arabic font file should exist' );
-	}
-
-	public function test_font_files_exist(): void {
-		$regular = SSCRIBE_PLUGIN_DIR . 'assets/fonts/notosansarabic/NotoSansArabic-Regular.ttf';
-		$bold    = SSCRIBE_PLUGIN_DIR . 'assets/fonts/notosansarabic/NotoSansArabic-Bold.ttf';
-		$this->assertFileExists( $regular, 'Regular Arabic font should exist' );
-		$this->assertFileExists( $bold, 'Bold Arabic font should exist' );
-	}
-
 	public function test_font_helper_exists(): void {
 		$this->assertTrue( class_exists( 'SScribe_Font_Helper' ), 'SScribe_Font_Helper class should exist' );
+	}
+
+	public function test_font_helper_returns_dejavusans(): void {
+		$path = SScribe_Font_Helper::get_arabic_font_path();
+		$this->assertStringContainsString( 'DejaVuSans.ttf', $path, 'Font helper should return DejaVu Sans' );
 	}
 
 	public function test_rtl_helper_arabic(): void {
