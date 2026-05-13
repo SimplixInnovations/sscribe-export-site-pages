@@ -4,6 +4,14 @@ All notable changes to this project will be documented in this file.
 
 ## [Unreleased]
 
+## [3.7.7] - 2026-05-13
+
+### Changed
+- **Arabic PDF rendering**: Switched from DejaVu Sans to **XB Riyaz** (bundled with mPDF) for superior Arabic typography — XB Riyaz is purpose-built for Arabic script with professional letterforms, while DejaVu Sans is a general-purpose font with basic Arabic coverage
+- Font helper: `get_arabic_font_path()` now returns XB Riyaz (regular/bold) instead of DejaVu Sans
+- PDF exporter: `default_font` for RTL changed from `dejavusans` to `xbriyaz`; fonttrans mappings redirected from dejavusans to xbriyaz
+- XB Riyaz is mPDF's standard bundled Arabic font — already in vendor-prefixed, zero additional ZIP size
+
 ## [3.7.6] - 2026-05-13
 
 ### Changed

@@ -149,12 +149,12 @@ class SScribe_Format_Exporters_Test extends TestCase {
 		$this->assertGreaterThan( 0, $time );
 	}
 
-	public function test_font_helper_returns_dejavusans(): void {
+	public function test_font_helper_returns_xbriyaz(): void {
 		$regular = SScribe_Font_Helper::get_arabic_font_path();
 		$bold    = SScribe_Font_Helper::get_arabic_font_path( true );
 
-		$this->assertStringContainsString( 'DejaVuSans.ttf', $regular );
-		$this->assertStringContainsString( 'DejaVuSans-Bold.ttf', $bold );
+		$this->assertStringContainsString( 'XB Riyaz.ttf', $regular );
+		$this->assertStringContainsString( 'XB RiyazBd.ttf', $bold );
 	}
 
 	public function test_rtl_helper_get_languages(): void {

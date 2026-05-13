@@ -32,9 +32,9 @@ class SScribe_Wave1_Integration_Test extends TestCase {
 		$this->assertTrue( class_exists( 'SScribe_Font_Helper' ), 'SScribe_Font_Helper class should exist' );
 	}
 
-	public function test_font_helper_returns_dejavusans(): void {
+	public function test_font_helper_returns_xbriyaz(): void {
 		$path = SScribe_Font_Helper::get_arabic_font_path();
-		$this->assertStringContainsString( 'DejaVuSans.ttf', $path, 'Font helper should return DejaVu Sans' );
+		$this->assertStringContainsString( 'XB Riyaz.ttf', $path, 'Font helper should return XB Riyaz' );
 	}
 
 	public function test_rtl_helper_arabic(): void {
