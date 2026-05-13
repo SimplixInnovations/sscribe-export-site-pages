@@ -258,17 +258,17 @@ class SScribe_PDF_Exporter implements SScribe_Exporter_Interface {
 				// DejaVu Sans is bundled with mPDF and supports Arabic without
 				// MarkGlyphSets issues — safe for all RTL PDF generation.
 				'fonttrans'        => array(
-					'dejavu sans'      => 'dejavusans',
-					'dejavusans'       => 'dejavusans',
-					'arial'            => 'dejavusans',
-					'xbriyaz'          => 'dejavusans',
-					'lateef'           => 'dejavusans',
-					'times new roman'  => 'dejavusans',
-					'serif'            => 'dejavusans',
-					'sans-serif'       => 'dejavusans',
+					'dejavu sans'      => 'xbriyaz',
+					'dejavusans'       => 'xbriyaz',
+					'arial'            => 'xbriyaz',
+					'xbriyaz'          => 'xbriyaz',
+					'lateef'           => 'xbriyaz',
+					'times new roman'  => 'xbriyaz',
+					'serif'            => 'xbriyaz',
+					'sans-serif'       => 'xbriyaz',
 				),
 				'mode'             => 'utf-8',
-				'default_font'     => $is_rtl ? 'dejavusans' : 'manrope',
+				'default_font'     => $is_rtl ? 'xbriyaz' : 'manrope',
 				'useOTL'           => 0xFF,
 				'useKashida'       => 75,
 				'OTLhelper'        => true,
@@ -328,9 +328,9 @@ class SScribe_PDF_Exporter implements SScribe_Exporter_Interface {
 			// document-wide font and direction before any HTML content is processed.
 			// Aggressively apply the font family to all common block and inline elements
 			// to override any inherited browser defaults that might lack Arabic glyphs.
-			// For RTL: DejaVu Sans (bundled with mPDF, supports Arabic, no MarkGlyphSets).
-			// For LTR: Manrope (custom Latin font), fall back to DejaVu for mixed content.
-			$font_stack = $is_rtl ? 'dejavusans, freeserif, sans-serif' : 'manrope, dejavusans, sans-serif';
+			// For RTL: XB Riyaz (bundled with mPDF, standard for Arabic, no MarkGlyphSets).
+			// For LTR: Manrope (custom Latin font), fall back to XB Riyaz for mixed content.
+			$font_stack = $is_rtl ? 'xbriyaz, freeserif, sans-serif' : 'manrope, xbriyaz, sans-serif';
 			$base_css   = 'html, body, div, p, span, h1, h2, h3, h4, h5, h6, table, tr, td, th, ul, ol, li, blockquote, q, cite, a { font-family: ' . $font_stack . '; }';
 
 			if ( $is_rtl ) {

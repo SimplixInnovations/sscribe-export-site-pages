@@ -16,14 +16,15 @@ if ( ! defined( 'ABSPATH' ) ) {
  *
  * Provides font path utilities for RTL language support.
  *
- * Note: As of v3.7.6, Arabic PDF rendering uses DejaVu Sans (bundled with mPDF)
- * instead of NotoSansArabic. Font constants SSCRIBE_FONT_ARABIC / SSCRIBE_FONT_ARABIC_BOLD
- * have been removed — their referenced files are no longer shipped with the plugin.
+ * Note: As of v3.7.6, NotoSansArabic font files are no longer shipped with the plugin.
+ * Font constants SSCRIBE_FONT_ARABIC / SSCRIBE_FONT_ARABIC_BOLD have been removed.
+ * As of v3.7.7, Arabic PDF rendering uses XB Riyaz (bundled with mPDF) — purpose-built
+ * for Arabic script with professional typography and zero MarkGlyphSets issues.
  */
 class SScribe_Font_Helper {
 
 	/**
-	 * Get the path to the Arabic font file (DejaVu Sans from mPDF).
+	 * Get the path to the Arabic font file (XB Riyaz from mPDF).
 	 *
 	 * @param bool $bold Whether to get the bold variant.
 	 * @return string Path to the font file.
@@ -32,9 +33,9 @@ class SScribe_Font_Helper {
 		$base   = defined( 'SSCRIBE_PLUGIN_DIR' ) ? SSCRIBE_PLUGIN_DIR : '';
 		$prefix = $base . 'vendor-prefixed/mpdf/mpdf/ttfonts/';
 		if ( $bold ) {
-			return $prefix . 'DejaVuSans-Bold.ttf';
+			return $prefix . 'XB RiyazBd.ttf';
 		}
-		return $prefix . 'DejaVuSans.ttf';
+		return $prefix . 'XB Riyaz.ttf';
 	}
 
 	/**
