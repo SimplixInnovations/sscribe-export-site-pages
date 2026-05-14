@@ -268,7 +268,7 @@ $sscribe_is_debug        = $sscribe_is_debug ?? false;
 	<div class="sscribe-support-master">
 		<div class="sscribe-support-sidebar">
 			<div class="sscribe-support-header">
-				<?php echo SScribe_Helpers::get_icon( 'life-buoy', 28 ); ?>
+				<?php echo wp_kses_post( SScribe_Helpers::get_icon( 'life-buoy', 28 ) ); ?>
 				<h2><?php esc_html_e( 'System Diagnostics', 'sscribe-export-site-pages' ); ?></h2>
 				<p><?php esc_html_e( 'Generate a redacted environment snapshot. Share this securely with Simplixi support to help us diagnose and resolve issues faster.', 'sscribe-export-site-pages' ); ?></p>
 			</div>
