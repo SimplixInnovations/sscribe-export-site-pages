@@ -67,11 +67,136 @@ $sscribe_is_debug        = $sscribe_is_debug ?? false;
 			</button>
 			<button type="button" class="sscribe-tab-btn" data-tab="docs">
 				<?php echo SScribe_Helpers::get_icon( 'info', 16 ); // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped ?>
-				<?php esc_html_e( 'Docs & Support', 'sscribe-export-site-pages' ); ?>
+				<?php esc_html_e( 'Support', 'sscribe-export-site-pages' ); ?>
 			</button>
 		</nav>
 
 		<div class="sscribe-tab-content sscribe-tab-active" id="sscribe-tab-export">
+
+<div class="sscribe-promo-layout">
+	<div class="sscribe-promo-main">
+					<section class="sscribe-panel">
+					<div class="sscribe-panel-header">
+						<div class="sscribe-panel-title">
+							<?php // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- SVG sanitized in get_icon(). ?>
+							<?php echo SScribe_Helpers::get_icon( 'list-checks', 20, 'sscribe-icon-img' ); ?>
+							<h2><?php esc_html_e( 'What Each Document Includes', 'sscribe-export-site-pages' ); ?></h2>
+						</div>
+					</div>
+					<div class="sscribe-panel-body">
+						<div class="sscribe-features-grid">
+							<?php
+							$sscribe_features = array(
+								array(
+									'title'   => __( 'Page Title', 'sscribe-export-site-pages' ),
+									'desc'    => __( 'Main H1 heading with proper styling', 'sscribe-export-site-pages' ),
+									'icon'    => 'file-text',
+									'feature' => 'page-title',
+								),
+								array(
+									'title'   => __( 'Page Content', 'sscribe-export-site-pages' ),
+									'desc'    => __( 'Full HTML content converted to documents', 'sscribe-export-site-pages' ),
+									'icon'    => 'file-doc',
+									'feature' => 'page-content',
+								),
+								array(
+									'title'   => __( 'SEO Metadata', 'sscribe-export-site-pages' ),
+									'desc'    => __( 'Meta title, description, focus keyword', 'sscribe-export-site-pages' ),
+									'icon'    => 'search',
+									'feature' => 'seo-metadata',
+								),
+								array(
+									'title'   => __( 'URL & Permalink', 'sscribe-export-site-pages' ),
+									'desc'    => __( 'Full page URL for reference', 'sscribe-export-site-pages' ),
+									'icon'    => 'link',
+									'feature' => 'url-permalink',
+								),
+								array(
+									'title'   => __( 'Author Info', 'sscribe-export-site-pages' ),
+									'desc'    => __( 'Page author name', 'sscribe-export-site-pages' ),
+									'icon'    => 'user',
+									'feature' => 'author-info',
+								),
+								array(
+									'title'   => __( 'Dates', 'sscribe-export-site-pages' ),
+									'desc'    => __( 'Published and modified dates', 'sscribe-export-site-pages' ),
+									'icon'    => 'calendar',
+									'feature' => 'dates',
+								),
+								array(
+									'title'   => __( 'Parent Page', 'sscribe-export-site-pages' ),
+									'desc'    => __( 'Breadcrumb hierarchy', 'sscribe-export-site-pages' ),
+									'icon'    => 'list',
+									'feature' => 'parent-page',
+								),
+								array(
+									'title'   => __( 'Featured Image', 'sscribe-export-site-pages' ),
+									'desc'    => __( 'Thumbnail when available', 'sscribe-export-site-pages' ),
+									'icon'    => 'image',
+									'feature' => 'featured-image',
+								),
+							);
+
+							foreach ( $sscribe_features as $sscribe_feature ) :
+								?>
+							<div class="sscribe-feature-item">
+								<div class="sscribe-feature-icon" data-feature="<?php echo esc_attr( $sscribe_feature['feature'] ); ?>">
+									<?php // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- SVG sanitized in get_icon(). ?>
+									<?php echo SScribe_Helpers::get_icon( $sscribe_feature['icon'], 20 ); ?>
+								</div>
+								<div class="sscribe-feature-text">
+									<h4><?php echo esc_html( $sscribe_feature['title'] ); ?></h4>
+									<p><?php echo esc_html( $sscribe_feature['desc'] ); ?></p>
+								</div>
+							</div>
+							<?php endforeach; ?>
+						</div>
+					</div>
+				</section>
+	</div>
+	<div class="sscribe-promo-sidebar">
+				<section class="sscribe-panel">
+					<div class="sscribe-panel-header">
+						<div class="sscribe-panel-title">
+							<?php // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- SVG sanitized in get_icon(). ?>
+							<?php echo SScribe_Helpers::get_icon( 'file-doc', 18, 'sscribe-icon-img' ); ?>
+							<h3><?php esc_html_e( 'Document Format', 'sscribe-export-site-pages' ); ?></h3>
+						</div>
+					</div>
+					<div class="sscribe-panel-body sscribe-p-md">
+						<ul class="sscribe-check-list">
+							<li><?php esc_html_e( 'Standard Arial Typography', 'sscribe-export-site-pages' ); ?></li>
+							<li><?php esc_html_e( 'Letter (8.5 x 11 in) Layout', 'sscribe-export-site-pages' ); ?></li>
+							<li><?php esc_html_e( '1-Inch Margins', 'sscribe-export-site-pages' ); ?></li>
+							<li><?php esc_html_e( 'Strict H1-H6 Hierarchies', 'sscribe-export-site-pages' ); ?></li>
+							<li><?php esc_html_e( 'Auto-Numerated Pages', 'sscribe-export-site-pages' ); ?></li>
+							<li><?php esc_html_e( 'Verified Word Compatibility', 'sscribe-export-site-pages' ); ?></li>
+						</ul>
+					</div>
+				</section>
+				<section class="sscribe-panel">
+					<div class="sscribe-panel-header">
+						<div class="sscribe-panel-title">
+							<?php // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- SVG sanitized in get_icon(). ?>
+							<?php echo SScribe_Helpers::get_icon( 'search', 18, 'sscribe-icon-img' ); ?>
+							<h3><?php esc_html_e( 'SEO Support Matrix', 'sscribe-export-site-pages' ); ?></h3>
+						</div>
+					</div>
+					<div class="sscribe-panel-body sscribe-p-md">
+						<ul class="sscribe-check-list">
+						<?php if ( ! empty( $sscribe_seo_plugins ) ) : ?>
+							<?php foreach ( $sscribe_seo_plugins as $sscribe_plugin_name ) : ?>
+								<li><?php echo esc_html( $sscribe_plugin_name ); ?></li>
+							<?php endforeach; ?>
+						<?php else : ?>
+							<li><?php esc_html_e( 'No SEO plugin detected — title and URL still exported', 'sscribe-export-site-pages' ); ?></li>
+						<?php endif; ?>
+					</ul>
+					</div>
+				</section>
+	</div>
+</div>
+
 			<section class="sscribe-panel sscribe-config-panel">
 			<div class="sscribe-panel-header">
 				<div class="sscribe-panel-title">
@@ -499,89 +624,100 @@ $sscribe_is_debug        = $sscribe_is_debug ?? false;
 						<?php endif; ?>
 					</div>
 				</section>
+				<div class="sscribe-callout">
+					<div class="sscribe-callout-header">
+						<?php // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- SVG sanitized in get_icon(). ?>
+						<?php echo SScribe_Helpers::get_icon( 'info', 18 ); ?>
+						<strong><?php esc_html_e( 'System Security Tips', 'sscribe-export-site-pages' ); ?></strong>
+					</div>
+					<div class="sscribe-callout-body">
+						<p><?php esc_html_e( 'All exported ZIP archives are automatically purged from your server after 72 hours.', 'sscribe-export-site-pages' ); ?></p>
+						<p><?php esc_html_e( 'Data generation happens in batched cycles to ensure reliable conversion without hitting PHP limits.', 'sscribe-export-site-pages' ); ?></p>
+					</div>
+				</div>
 		</div>
 
 		<div class="sscribe-tab-content" id="sscribe-tab-docs">
-			<div class="sscribe-grid-layout">
-				<div class="sscribe-grid-main">
-					<section class="sscribe-panel">
-					<div class="sscribe-panel-header">
-						<div class="sscribe-panel-title">
-							<?php // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- SVG sanitized in get_icon(). ?>
-							<?php echo SScribe_Helpers::get_icon( 'list-checks', 20, 'sscribe-icon-img' ); ?>
-							<h2><?php esc_html_e( 'What Each Document Includes', 'sscribe-export-site-pages' ); ?></h2>
-						</div>
-					</div>
-					<div class="sscribe-panel-body">
-						<div class="sscribe-features-grid">
-							<?php
-							$sscribe_features = array(
-								array(
-									'title'   => __( 'Page Title', 'sscribe-export-site-pages' ),
-									'desc'    => __( 'Main H1 heading with proper styling', 'sscribe-export-site-pages' ),
-									'icon'    => 'file-text',
-									'feature' => 'page-title',
-								),
-								array(
-									'title'   => __( 'Page Content', 'sscribe-export-site-pages' ),
-									'desc'    => __( 'Full HTML content converted to documents', 'sscribe-export-site-pages' ),
-									'icon'    => 'file-doc',
-									'feature' => 'page-content',
-								),
-								array(
-									'title'   => __( 'SEO Metadata', 'sscribe-export-site-pages' ),
-									'desc'    => __( 'Meta title, description, focus keyword', 'sscribe-export-site-pages' ),
-									'icon'    => 'search',
-									'feature' => 'seo-metadata',
-								),
-								array(
-									'title'   => __( 'URL & Permalink', 'sscribe-export-site-pages' ),
-									'desc'    => __( 'Full page URL for reference', 'sscribe-export-site-pages' ),
-									'icon'    => 'link',
-									'feature' => 'url-permalink',
-								),
-								array(
-									'title'   => __( 'Author Info', 'sscribe-export-site-pages' ),
-									'desc'    => __( 'Page author name', 'sscribe-export-site-pages' ),
-									'icon'    => 'user',
-									'feature' => 'author-info',
-								),
-								array(
-									'title'   => __( 'Dates', 'sscribe-export-site-pages' ),
-									'desc'    => __( 'Published and modified dates', 'sscribe-export-site-pages' ),
-									'icon'    => 'calendar',
-									'feature' => 'dates',
-								),
-								array(
-									'title'   => __( 'Parent Page', 'sscribe-export-site-pages' ),
-									'desc'    => __( 'Breadcrumb hierarchy', 'sscribe-export-site-pages' ),
-									'icon'    => 'list',
-									'feature' => 'parent-page',
-								),
-								array(
-									'title'   => __( 'Featured Image', 'sscribe-export-site-pages' ),
-									'desc'    => __( 'Thumbnail when available', 'sscribe-export-site-pages' ),
-									'icon'    => 'image',
-									'feature' => 'featured-image',
-								),
-							);
 
-							foreach ( $sscribe_features as $sscribe_feature ) :
-								?>
-							<div class="sscribe-feature-item">
-								<div class="sscribe-feature-icon" data-feature="<?php echo esc_attr( $sscribe_feature['feature'] ); ?>">
-									<?php // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- SVG sanitized in get_icon(). ?>
-									<?php echo SScribe_Helpers::get_icon( $sscribe_feature['icon'], 20 ); ?>
-								</div>
-								<div class="sscribe-feature-text">
-									<h4><?php echo esc_html( $sscribe_feature['title'] ); ?></h4>
-									<p><?php echo esc_html( $sscribe_feature['desc'] ); ?></p>
-								</div>
-							</div>
-							<?php endforeach; ?>
-						</div>
-					</div>
-				</section>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 				<section class="sscribe-panel">
 					<div class="sscribe-panel-header">
@@ -622,62 +758,62 @@ $sscribe_is_debug        = $sscribe_is_debug ?? false;
 				</section>
 			</div>
 
-			<div class="sscribe-grid-sidebar">
-				<section class="sscribe-panel">
-					<div class="sscribe-panel-header">
-						<div class="sscribe-panel-title">
-							<?php // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- SVG sanitized in get_icon(). ?>
-							<?php echo SScribe_Helpers::get_icon( 'file-doc', 18, 'sscribe-icon-img' ); ?>
-							<h3><?php esc_html_e( 'Document Format', 'sscribe-export-site-pages' ); ?></h3>
-						</div>
-					</div>
-					<div class="sscribe-panel-body sscribe-p-md">
-						<ul class="sscribe-check-list">
-							<li><?php esc_html_e( 'Standard Arial Typography', 'sscribe-export-site-pages' ); ?></li>
-							<li><?php esc_html_e( 'Letter (8.5 x 11 in) Layout', 'sscribe-export-site-pages' ); ?></li>
-							<li><?php esc_html_e( '1-Inch Margins', 'sscribe-export-site-pages' ); ?></li>
-							<li><?php esc_html_e( 'Strict H1-H6 Hierarchies', 'sscribe-export-site-pages' ); ?></li>
-							<li><?php esc_html_e( 'Auto-Numerated Pages', 'sscribe-export-site-pages' ); ?></li>
-							<li><?php esc_html_e( 'Verified Word Compatibility', 'sscribe-export-site-pages' ); ?></li>
-						</ul>
-					</div>
-				</section>
 
-				<section class="sscribe-panel">
-					<div class="sscribe-panel-header">
-						<div class="sscribe-panel-title">
-							<?php // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- SVG sanitized in get_icon(). ?>
-							<?php echo SScribe_Helpers::get_icon( 'search', 18, 'sscribe-icon-img' ); ?>
-							<h3><?php esc_html_e( 'SEO Support Matrix', 'sscribe-export-site-pages' ); ?></h3>
-						</div>
-					</div>
-					<div class="sscribe-panel-body sscribe-p-md">
-						<ul class="sscribe-check-list">
-						<?php if ( ! empty( $sscribe_seo_plugins ) ) : ?>
-							<?php foreach ( $sscribe_seo_plugins as $sscribe_plugin_name ) : ?>
-								<li><?php echo esc_html( $sscribe_plugin_name ); ?></li>
-							<?php endforeach; ?>
-						<?php else : ?>
-							<li><?php esc_html_e( 'No SEO plugin detected — title and URL still exported', 'sscribe-export-site-pages' ); ?></li>
-						<?php endif; ?>
-					</ul>
-					</div>
-				</section>
 
-				<div class="sscribe-callout">
-					<div class="sscribe-callout-header">
-						<?php // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- SVG sanitized in get_icon(). ?>
-						<?php echo SScribe_Helpers::get_icon( 'info', 18 ); ?>
-						<strong><?php esc_html_e( 'System Security Tips', 'sscribe-export-site-pages' ); ?></strong>
-					</div>
-					<div class="sscribe-callout-body">
-						<p><?php esc_html_e( 'All exported ZIP archives are automatically purged from your server after 72 hours.', 'sscribe-export-site-pages' ); ?></p>
-						<p><?php esc_html_e( 'Data generation happens in batched cycles to ensure reliable conversion without hitting PHP limits.', 'sscribe-export-site-pages' ); ?></p>
-					</div>
-				</div>
-			</div>
-			</div>
-		</div>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 	</div>
 </div>
 
