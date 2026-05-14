@@ -73,7 +73,258 @@ $sscribe_is_debug        = $sscribe_is_debug ?? false;
 
 		<div class="sscribe-tab-content sscribe-tab-active" id="sscribe-tab-export">
 
+<section class="sscribe-panel sscribe-config-panel">
+			<div class="sscribe-panel-header">
+				<div class="sscribe-panel-title">
+					<?php // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- SVG sanitized in get_icon(). ?>
+					<?php echo SScribe_Helpers::get_icon( 'settings', 20, 'sscribe-icon-img' ); ?>
+					<h2><?php esc_html_e( 'Export Configuration', 'sscribe-export-site-pages' ); ?></h2>
+				</div>
+			</div>
 
+			<div class="sscribe-panel-body sscribe-flat-body">
+				<div class="sscribe-config-grid">
+					<div class="sscribe-config-section">
+						<div class="sscribe-config-section-header">
+							<?php // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- SVG sanitized in get_icon(). ?>
+							<?php echo SScribe_Helpers::get_icon( 'layers', 15 ); ?>
+							<span><?php esc_html_e( 'Content Type', 'sscribe-export-site-pages' ); ?></span>
+						</div>
+						<div class="sscribe-post-type-cards sscribe-cards-compact" id="sscribe-post-type-cards">
+							<label class="sscribe-post-type-card">
+								<input type="radio" name="sscribe_post_type" value="page" checked>
+								<div class="sscribe-post-type-card-inner">
+									<div class="sscribe-post-type-icon">
+										<?php // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- SVG sanitized in get_icon(). ?>
+										<?php echo SScribe_Helpers::get_icon( 'file-text', 22 ); ?>
+									</div>
+									<div class="sscribe-post-type-meta">
+										<span class="sscribe-post-type-name"><?php esc_html_e( 'Pages', 'sscribe-export-site-pages' ); ?></span>
+										<span class="sscribe-post-type-count" id="sscribe-page-count"><?php echo esc_html( number_format_i18n( $sscribe_total_pages_all ) ); ?></span>
+									</div>
+									<div class="sscribe-post-type-selector">
+										<?php // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- SVG sanitized in get_icon(). ?>
+										<?php echo SScribe_Helpers::get_icon( 'check', 16, 'sscribe-check-icon' ); ?>
+									</div>
+								</div>
+							</label>
+							<label class="sscribe-post-type-card">
+								<input type="radio" name="sscribe_post_type" value="post">
+								<div class="sscribe-post-type-card-inner">
+									<div class="sscribe-post-type-icon">
+										<?php // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- SVG sanitized in get_icon(). ?>
+										<?php echo SScribe_Helpers::get_icon( 'article', 22 ); ?>
+									</div>
+									<div class="sscribe-post-type-meta">
+										<span class="sscribe-post-type-name"><?php esc_html_e( 'Posts', 'sscribe-export-site-pages' ); ?></span>
+										<span class="sscribe-post-type-count" id="sscribe-post-count">—</span>
+									</div>
+									<div class="sscribe-post-type-selector">
+										<?php // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- SVG sanitized in get_icon(). ?>
+										<?php echo SScribe_Helpers::get_icon( 'check', 16, 'sscribe-check-icon' ); ?>
+									</div>
+								</div>
+							</label>
+							<label class="sscribe-post-type-card">
+								<input type="radio" name="sscribe_post_type" value="any">
+								<div class="sscribe-post-type-card-inner">
+									<div class="sscribe-post-type-icon">
+										<?php // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- SVG sanitized in get_icon(). ?>
+										<?php echo SScribe_Helpers::get_icon( 'copy', 22 ); ?>
+									</div>
+									<div class="sscribe-post-type-meta">
+										<span class="sscribe-post-type-name"><?php esc_html_e( 'Both', 'sscribe-export-site-pages' ); ?></span>
+										<span class="sscribe-post-type-count" id="sscribe-both-count">—</span>
+									</div>
+									<div class="sscribe-post-type-selector">
+										<?php // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- SVG sanitized in get_icon(). ?>
+										<?php echo SScribe_Helpers::get_icon( 'check', 16, 'sscribe-check-icon' ); ?>
+									</div>
+								</div>
+							</label>
+						</div>
+					</div>
+
+					<?php if ( $sscribe_wpml_active && ! empty( $sscribe_languages ) ) : ?>
+					<div class="sscribe-config-section">
+						<div class="sscribe-config-section-header">
+							<?php // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- SVG sanitized in get_icon(). ?>
+							<?php echo SScribe_Helpers::get_icon( 'globe', 15 ); ?>
+							<span><?php esc_html_e( 'Language', 'sscribe-export-site-pages' ); ?></span>
+						</div>
+						<div class="sscribe-language-cards sscribe-cards-row" id="sscribe-language-cards">
+							<label class="sscribe-lang-card-label sscribe-lang-card-all sscribe-lang-card-compact">
+								<input type="radio" name="sscribe_language" value="" checked>
+								<div class="sscribe-lang-card-inner">
+									<div class="sscribe-lang-flag-wrapper">
+										<div class="sscribe-lang-flag-placeholder sscribe-lang-flag-all">
+											<?php // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- SVG sanitized in get_icon(). ?>
+											<?php echo SScribe_Helpers::get_icon( 'globe', 16 ); ?>
+										</div>
+									</div>
+									<div class="sscribe-lang-meta">
+										<span class="sscribe-lang-name"><?php esc_html_e( 'All', 'sscribe-export-site-pages' ); ?></span>
+										<span class="sscribe-lang-count"><?php echo esc_html( number_format_i18n( $sscribe_total_pages_all ) ); ?></span>
+									</div>
+									<div class="sscribe-lang-selector">
+										<?php // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- SVG sanitized in get_icon(). ?>
+										<?php echo SScribe_Helpers::get_icon( 'check', 14, 'sscribe-check-icon' ); ?>
+									</div>
+								</div>
+							</label>
+							<?php foreach ( $sscribe_languages as $sscribe_lang ) : ?>
+								<label class="sscribe-lang-card-label sscribe-lang-card-compact">
+									<input type="radio" name="sscribe_language" value="<?php echo esc_attr( $sscribe_lang['code'] ); ?>">
+									<div class="sscribe-lang-card-inner">
+										<div class="sscribe-lang-flag-wrapper">
+											<?php if ( ! empty( $sscribe_lang['flag_url'] ) ) : ?>
+												<img src="<?php echo esc_url( $sscribe_lang['flag_url'] ); ?>" alt="<?php echo esc_attr( $sscribe_lang['name'] ); ?>" class="sscribe-lang-flag">
+											<?php else : ?>
+												<div class="sscribe-lang-flag-placeholder">
+													<?php echo esc_html( strtoupper( substr( $sscribe_lang['code'], 0, 2 ) ) ); ?>
+												</div>
+											<?php endif; ?>
+										</div>
+										<div class="sscribe-lang-meta">
+											<span class="sscribe-lang-name"><?php echo esc_html( $sscribe_lang['name'] ); ?></span>
+											<span class="sscribe-lang-count"><?php echo esc_html( number_format_i18n( $sscribe_lang['page_count'] ) ); ?></span>
+										</div>
+										<div class="sscribe-lang-selector">
+											<?php // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- SVG sanitized in get_icon(). ?>
+											<?php echo SScribe_Helpers::get_icon( 'check', 14, 'sscribe-check-icon' ); ?>
+										</div>
+									</div>
+								</label>
+							<?php endforeach; ?>
+						</div>
+					</div>
+					<?php endif; ?>
+
+					<div class="sscribe-config-section">
+						<div class="sscribe-config-section-header">
+							<?php // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- SVG sanitized in get_icon(). ?>
+							<?php echo SScribe_Helpers::get_icon( 'check-circle', 15 ); ?>
+							<span><?php esc_html_e( 'Content Status', 'sscribe-export-site-pages' ); ?></span>
+						</div>
+						<div class="sscribe-status-cards sscribe-cards-row" id="sscribe-status-cards">
+							<?php
+							$sscribe_status_labels = array(
+								'publish' => __( 'Published', 'sscribe-export-site-pages' ),
+								'draft'   => __( 'Draft', 'sscribe-export-site-pages' ),
+								'private' => __( 'Private', 'sscribe-export-site-pages' ),
+								'future'  => __( 'Scheduled', 'sscribe-export-site-pages' ),
+								'pending' => __( 'Pending', 'sscribe-export-site-pages' ),
+								'all'     => __( 'All', 'sscribe-export-site-pages' ),
+							);
+							$sscribe_status_icons  = array(
+								'publish' => 'check-circle',
+								'draft'   => 'file-text',
+								'private' => 'warning-circle',
+								'future'  => 'clock',
+								'pending' => 'clock',
+								'all'     => 'list',
+							);
+							$sscribe_first         = true;
+							foreach ( $sscribe_status_labels as $sscribe_status_key => $sscribe_status_label ) :
+								$sscribe_count    = isset( $sscribe_status_counts[ $sscribe_status_key ] ) ? intval( $sscribe_status_counts[ $sscribe_status_key ] ) : 0;
+								$sscribe_is_zero  = ( 0 === $sscribe_count );
+								$sscribe_is_first = $sscribe_first && ! $sscribe_is_zero;
+								if ( $sscribe_is_first ) {
+									$sscribe_first = false;
+								}
+								$sscribe_label_class = 'sscribe-status-card-label' . ( $sscribe_is_zero ? ' sscribe-status-disabled' : '' );
+								?>
+							<label class="<?php echo esc_attr( $sscribe_label_class ); ?>">
+								<input type="radio" name="sscribe_post_status" value="<?php echo esc_attr( $sscribe_status_key ); ?>" <?php checked( $sscribe_is_first ); ?><?php echo $sscribe_is_zero ? ' disabled' : ''; // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- Static attribute string. ?>>
+								<div class="sscribe-status-card-inner">
+									<div class="sscribe-status-icon">
+										<?php // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- SVG sanitized in get_icon(). ?>
+										<?php echo SScribe_Helpers::get_icon( $sscribe_status_icons[ $sscribe_status_key ], 16 ); ?>
+									</div>
+									<div class="sscribe-status-meta">
+										<span class="sscribe-status-name"><?php echo esc_html( $sscribe_status_label ); ?></span>
+										<span class="sscribe-status-count" data-status="<?php echo esc_attr( $sscribe_status_key ); ?>"><?php echo esc_html( number_format_i18n( $sscribe_count ) ); ?></span>
+									</div>
+									<div class="sscribe-status-selector">
+										<?php // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- SVG sanitized in get_icon(). ?>
+										<?php echo SScribe_Helpers::get_icon( 'check', 14, 'sscribe-check-icon' ); ?>
+									</div>
+								</div>
+							</label>
+							<?php endforeach; ?>
+						</div>
+					</div>
+
+					<div class="sscribe-config-section">
+						<div class="sscribe-config-section-header">
+							<?php // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- SVG sanitized in get_icon(). ?>
+							<?php echo SScribe_Helpers::get_icon( 'file-text', 15 ); ?>
+							<span><?php esc_html_e( 'Export Format', 'sscribe-export-site-pages' ); ?></span>
+						</div>
+						<div class="sscribe-format-cards sscribe-cards-row" id="sscribe-format-cards">
+							<label class="sscribe-format-card-label sscribe-format-all">
+								<input type="radio" name="sscribe_format" value="all" checked>
+								<div class="sscribe-format-card-inner">
+									<div class="sscribe-format-icon">
+										<?php // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- SVG sanitized in get_icon(). ?>
+										<?php echo SScribe_Helpers::get_icon( 'download-package', 20 ); ?>
+									</div>
+									<div class="sscribe-format-meta">
+										<span class="sscribe-format-name"><?php esc_html_e( 'All Formats', 'sscribe-export-site-pages' ); ?></span>
+										<span class="sscribe-format-desc"><?php esc_html_e( 'DOCX, PDF, HTML, MD', 'sscribe-export-site-pages' ); ?></span>
+									</div>
+									<div class="sscribe-format-selector">
+										<?php // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- SVG sanitized in get_icon(). ?>
+										<?php echo SScribe_Helpers::get_icon( 'check', 14, 'sscribe-check-icon' ); ?>
+									</div>
+								</div>
+							</label>
+							<?php
+							$sscribe_formats = array(
+								'docx'     => array(
+									'label' => __( 'DOCX', 'sscribe-export-site-pages' ),
+									'icon'  => 'file-doc',
+									'desc'  => __( '~1.2s/page', 'sscribe-export-site-pages' ),
+								),
+								'pdf'      => array(
+									'label' => __( 'PDF', 'sscribe-export-site-pages' ),
+									'icon'  => 'file-pdf',
+									'desc'  => __( '~8s/page', 'sscribe-export-site-pages' ),
+								),
+								'html'     => array(
+									'label' => __( 'HTML', 'sscribe-export-site-pages' ),
+									'icon'  => 'file-html',
+									'desc'  => __( '~1s/page', 'sscribe-export-site-pages' ),
+								),
+								'markdown' => array(
+									'label' => __( 'Markdown', 'sscribe-export-site-pages' ),
+									'icon'  => 'file-md',
+									'desc'  => __( '~0.5s/page', 'sscribe-export-site-pages' ),
+								),
+							);
+							foreach ( $sscribe_formats as $sscribe_format_key => $sscribe_format_data ) :
+								?>
+							<label class="sscribe-format-card-label">
+								<input type="radio" name="sscribe_format" value="<?php echo esc_attr( $sscribe_format_key ); ?>">
+								<div class="sscribe-format-card-inner">
+									<div class="sscribe-format-icon">
+										<?php // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- SVG sanitized in get_icon(). ?>
+										<?php echo SScribe_Helpers::get_icon( $sscribe_format_data['icon'], 20 ); ?>
+									</div>
+									<div class="sscribe-format-meta">
+										<span class="sscribe-format-name"><?php echo esc_html( $sscribe_format_data['label'] ); ?></span>
+										<span class="sscribe-format-desc"><?php echo esc_html( $sscribe_format_data['desc'] ); ?></span>
+									</div>
+									<div class="sscribe-format-selector">
+										<?php // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- SVG sanitized in get_icon(). ?>
+										<?php echo SScribe_Helpers::get_icon( 'check', 14, 'sscribe-check-icon' ); ?>
+									</div>
+								</div>
+							</label>
+							<?php endforeach; ?>
+						</div>
+					</div>
+				</div>
 
 				<div class="sscribe-export-bar">
 					<div id="sscribe-time-estimate" class="sscribe-time-estimate" aria-live="polite">
@@ -98,13 +349,15 @@ $sscribe_is_debug        = $sscribe_is_debug ?? false;
 
 				<div id="sscribe-preview-panel" class="sscribe-modal sscribe-hidden" role="dialog" aria-modal="true" aria-labelledby="sscribe-preview-title">
 					<div class="sscribe-modal-content" role="document" style="max-width: 800px; max-height: 85vh;">
-<div class="sscribe-modal-header">
+					<div class="sscribe-modal-header">
 						<h3 id="sscribe-preview-title">
 							<?php // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- SVG sanitized in get_icon(). ?>
 							<?php echo SScribe_Helpers::get_icon( 'eye', 16 ); ?>
 							<?php esc_html_e( 'Export Preview', 'sscribe-export-site-pages' ); ?>
 						</h3>
-						<button type="button" id="sscribe-preview-close" class="sscribe-modal-close" aria-label="Close preview"><span aria-hidden="true">&times;</span></button>
+						<button type="button" id="sscribe-preview-close" class="sscribe-modal-close" aria-label="Close preview">
+							<span aria-hidden="true">&times;</span>
+						</button>
 					</div>
 					<div id="sscribe-preview-content" class="sscribe-modal-body">
 						<div class="sscribe-preview-loading">
@@ -113,9 +366,9 @@ $sscribe_is_debug        = $sscribe_is_debug ?? false;
 						</div>
 					</div>
 				</div>
-</div>
-</div>
-</section>
+			</div>
+		</div>
+				</section>
 
 		<div id="sscribe-progress-area" class="sscribe-status-alert sscribe-status-processing sscribe-hidden" role="status" aria-live="polite" aria-labelledby="sscribe-status-text">
 			<div class="sscribe-spinner" aria-hidden="true">
