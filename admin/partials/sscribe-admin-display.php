@@ -56,7 +56,23 @@ $sscribe_is_debug        = $sscribe_is_debug ?? false;
 	<div id="sscribe-alert-region" class="screen-reader-text" aria-live="assertive" aria-atomic="true"></div>
 
 	<div class="sscribe-workspace sscribe-flat-workspace" id="sscribe-main-content" role="main">
-		<section class="sscribe-panel sscribe-config-panel">
+		<nav class="sscribe-tabs-nav" aria-label="<?php esc_attr_e( 'Main Navigation', 'sscribe-export-site-pages' ); ?>">
+			<button type="button" class="sscribe-tab-btn sscribe-tab-active" data-tab="export">
+				<?php echo SScribe_Helpers::get_icon( 'settings', 16 ); // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped ?>
+				<?php esc_html_e( 'Export', 'sscribe-export-site-pages' ); ?>
+			</button>
+			<button type="button" class="sscribe-tab-btn" data-tab="history">
+				<?php echo SScribe_Helpers::get_icon( 'clock', 16 ); // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped ?>
+				<?php esc_html_e( 'History', 'sscribe-export-site-pages' ); ?>
+			</button>
+			<button type="button" class="sscribe-tab-btn" data-tab="docs">
+				<?php echo SScribe_Helpers::get_icon( 'info', 16 ); // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped ?>
+				<?php esc_html_e( 'Docs & Support', 'sscribe-export-site-pages' ); ?>
+			</button>
+		</nav>
+
+		<div class="sscribe-tab-content sscribe-tab-active" id="sscribe-tab-export">
+			<section class="sscribe-panel sscribe-config-panel">
 			<div class="sscribe-panel-header">
 				<div class="sscribe-panel-title">
 					<?php // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- SVG sanitized in get_icon(). ?>
@@ -430,9 +446,10 @@ $sscribe_is_debug        = $sscribe_is_debug ?? false;
 			</div>
 		</div>
 
-		<div class="sscribe-grid-layout">
-			<div class="sscribe-grid-main">
-				<section class="sscribe-panel">
+		</div>
+
+		<div class="sscribe-tab-content" id="sscribe-tab-history">
+			<section class="sscribe-panel">
 					<div class="sscribe-panel-header">
 						<div class="sscribe-panel-title">
 							<?php // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- SVG sanitized in get_icon(). ?>
@@ -482,8 +499,12 @@ $sscribe_is_debug        = $sscribe_is_debug ?? false;
 						<?php endif; ?>
 					</div>
 				</section>
+		</div>
 
-				<section class="sscribe-panel">
+		<div class="sscribe-tab-content" id="sscribe-tab-docs">
+			<div class="sscribe-grid-layout">
+				<div class="sscribe-grid-main">
+					<section class="sscribe-panel">
 					<div class="sscribe-panel-header">
 						<div class="sscribe-panel-title">
 							<?php // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- SVG sanitized in get_icon(). ?>
@@ -654,6 +675,7 @@ $sscribe_is_debug        = $sscribe_is_debug ?? false;
 						<p><?php esc_html_e( 'Data generation happens in batched cycles to ensure reliable conversion without hitting PHP limits.', 'sscribe-export-site-pages' ); ?></p>
 					</div>
 				</div>
+			</div>
 			</div>
 		</div>
 	</div>
