@@ -340,7 +340,7 @@ class SScribe_PDF_Exporter implements SScribe_Exporter_Interface {
 			$base_css .= ' img { max-width: 100%; height: auto; }';
 			$base_css .= ' a { color: #2C6E8A; text-decoration: none; }';
 			$base_css .= ' h1, h2, h3, h4, h5, h6 { color: #122119; }';
-			$mpdf->WriteHTML( '<style>' . $base_css . '</style>', 2 );
+			$mpdf->WriteHTML( $base_css, 1 );
 
 			$mpdf->WriteHTML( $html_content );
 			$mpdf->Output( $output_path, \SScribeVendor\Mpdf\Output\Destination::FILE );
