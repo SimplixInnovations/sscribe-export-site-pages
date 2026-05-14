@@ -178,6 +178,10 @@ if ( $canonical_version ) {
 			if ( 'verify-version-sync.php' === basename( $f ) ) {
 				continue;
 			}
+			// Skip sscribe-export-site-pages.php — deprecation comments reference historical versions (e.g., REMOVED in v3.7.6).
+			if ( 'sscribe-export-site-pages.php' === basename( $f ) ) {
+				continue;
+			}
 			$has_actual_warnings = true;
 			$unique              = array_unique( $vs );
 			foreach ( $unique as $v ) {
