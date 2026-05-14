@@ -201,36 +201,35 @@ class SScribe_Admin {
 		// so they survive CSS concatenation/minification plugins (Autoptimize, WP Rocket, etc.).
 		// Relative paths in the CSS file break when the CSS is served from a cache directory.
 		$fonts_url = SSCRIBE_PLUGIN_URL . 'assets/fonts/manrope/';
-		$font_face_css = <<<FONTS
-@font-face {
-	font-family: 'Manrope';
-	src: url('{$fonts_url}Manrope-Regular.ttf') format('truetype');
-	font-weight: 400;
-	font-style: normal;
-	font-display: swap;
-}
-@font-face {
-	font-family: 'Manrope';
-	src: url('{$fonts_url}Manrope-Bold.ttf') format('truetype');
-	font-weight: 700;
-	font-style: normal;
-	font-display: swap;
-}
-@font-face {
-	font-family: 'Manrope';
-	src: url('{$fonts_url}Manrope-Medium.ttf') format('truetype');
-	font-weight: 500;
-	font-style: normal;
-	font-display: swap;
-}
-@font-face {
-	font-family: 'Manrope';
-	src: url('{$fonts_url}Manrope-Light.ttf') format('truetype');
-	font-weight: 300;
-	font-style: normal;
-	font-display: swap;
-}
-FONTS;
+		$font_face_css = ''
+			. '@font-face {'
+			. 'font-family: \'Manrope\';'
+			. 'src: url(\'' . $fonts_url . 'Manrope-Regular.ttf\') format(\'truetype\');'
+			. 'font-weight: 400;'
+			. 'font-style: normal;'
+			. 'font-display: swap;'
+			. '}'
+			. '@font-face {'
+			. 'font-family: \'Manrope\';'
+			. 'src: url(\'' . $fonts_url . 'Manrope-Bold.ttf\') format(\'truetype\');'
+			. 'font-weight: 700;'
+			. 'font-style: normal;'
+			. 'font-display: swap;'
+			. '}'
+			. '@font-face {'
+			. 'font-family: \'Manrope\';'
+			. 'src: url(\'' . $fonts_url . 'Manrope-Medium.ttf\') format(\'truetype\');'
+			. 'font-weight: 500;'
+			. 'font-style: normal;'
+			. 'font-display: swap;'
+			. '}'
+			. '@font-face {'
+			. 'font-family: \'Manrope\';'
+			. 'src: url(\'' . $fonts_url . 'Manrope-Light.ttf\') format(\'truetype\');'
+			. 'font-weight: 300;'
+			. 'font-style: normal;'
+			. 'font-display: swap;'
+			. '}';
 		wp_add_inline_style( 'sscribe-admin', $font_face_css );
 
 		// Admin JS — source file only.

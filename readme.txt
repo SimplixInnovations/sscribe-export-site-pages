@@ -1,10 +1,10 @@
 === SScribe Export Site Pages ===
 Contributors: simplixinnovations
 Donate link: https://simplixi.com
-Tags: export, docx, multilingual, seo, pdf, posts, pages
+Tags: export, docx, pdf, multilingual, rtl
 Requires at least: 6.0
 Tested up to: 6.10
-Stable tag: 3.8.6
+Stable tag: 3.8.7
 Requires PHP: 8.2
 License: GPLv2 or later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
@@ -317,9 +317,9 @@ Each document includes: cover page with title/URL/date/breadcrumbs, featured ima
 
 == Upgrade Notice ==
 
-= 3.8.6 =
+= 3.8.7 =
 
-Switches Arabic PDF font from DejaVu Sans to XB Riyaz (mPDF's standard bundled Arabic font) for superior Arabic typography. XB Riyaz is purpose-built for Arabic script with professional shaping and ligatures. Recommended update for all users exporting Arabic/RTL content to PDF.
+WordPress Plugin Check (PCP) compliance update. Fixes: heredoc syntax replacement, parse_url to wp_parse_url, direct file access protection, Domain Path header, rmdir to WP_Filesystem, DB prepared statements. Note: load_plugin_textdomain call is required for non-wordpress.org hosted plugins. Recommended update for all users.
 
 = 3.7.6 =
 
@@ -327,7 +327,7 @@ Fixes Arabic PDF rendering failure caused by NotoSansArabic OpenType MarkGlyphSe
 
 = 3.7.2 =
 
-Fixes Arabic PDF rendering — text was showing as squares or disconnected characters due to mPDF auto-detection overriding the custom NotoSansArabic font with missing bundled fonts. All 83 bundled font files are now present in the prefixed build. Recommended update for all users exporting Arabic/RTL content to PDF.
+Fixes Arabic PDF rendering (text showing as squares). mPDF auto-detection was overriding the custom NotoSansArabic font. All 83 bundled font files are now present in the prefixed build. Recommended update for Arabic/RTL users.
 
 = 3.7.1 =
 

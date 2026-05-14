@@ -13,6 +13,10 @@ declare(strict_types=1);
 
 namespace SScribeVendor\Safe;
 
+if ( ! defined( 'ABSPATH' ) ) {
+	exit;
+}
+
 if ( ! \function_exists( __NAMESPACE__ . '\\class_alias' ) ) {
 	/**
 	 * Pass-through shim for class_alias in prefixed namespace.
