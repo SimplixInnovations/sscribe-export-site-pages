@@ -503,7 +503,6 @@ $sscribe_test_db_tables = array(
 $sscribe_test_http_response = array();
 $sscribe_test_filters       = array();
 $sscribe_test_actions       = array();
-$sscribe_test_actions       = array();
 $sscribe_test_menu_pages    = array();
 $sscribe_test_styles        = array();
 $sscribe_test_scripts       = array();
