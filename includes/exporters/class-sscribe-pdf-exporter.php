@@ -324,10 +324,11 @@ class SScribe_PDF_Exporter implements SScribe_Exporter_Interface {
 			$filename    = \SScribe_Exporter_Factory::build_filename( $page_data, $index, $total, 'pdf' );
 			$output_path = trailingslashit( $output_dir ) . $filename;
 
-			// Write base styling CSS first (mode 2 = CSS only). This sets the
-			// document-wide font and direction before any HTML content is processed.
-			// Aggressively apply the font family to all common block and inline elements
-			// to override any inherited browser defaults that might lack Arabic glyphs.
+			// Write base styling CSS first (mode 1 = HEADER_CSS = CSS only).
+			// This stores the document-wide font and direction in mPDF's CSS manager
+			// before any HTML content is processed. Aggressively apply the font family
+			// to all common block and inline elements to override any inherited browser
+			// defaults that might lack Arabic glyphs.
 			// For RTL: XB Riyaz (bundled with mPDF, standard for Arabic, no MarkGlyphSets).
 			// For LTR: Manrope (custom Latin font), fall back to XB Riyaz for mixed content.
 			$font_stack = $is_rtl ? 'xbriyaz, freeserif, sans-serif' : 'manrope, xbriyaz, sans-serif';
@@ -340,9 +341,12 @@ class SScribe_PDF_Exporter implements SScribe_Exporter_Interface {
 			$base_css .= ' img { max-width: 100%; height: auto; }';
 			$base_css .= ' a { color: #2C6E8A; text-decoration: none; }';
 			$base_css .= ' h1, h2, h3, h4, h5, h6 { color: #122119; }';
-			$mpdf->WriteHTML( $base_css, 1 );
+			$mpdf->WriteHTML( $base_css, \SScribeVendor\Mpdf\HTMLParserMode::HEADER_CSS );
 
-			$mpdf->WriteHTML( $html_content );
+			// Write HTML content with mode 4 (HTML_HEADER_BUFFER) to properly apply
+			// the CSS styles from base_css to the HTML content. Mode 4 writes HTML
+			// to a buffer, allowing it to properly merge with previously parsed CSS.
+			$mpdf->WriteHTML( $html_content, \SScribeVendor\Mpdf\HTMLParserMode::HTML_HEADER_BUFFER );
 			$mpdf->Output( $output_path, \SScribeVendor\Mpdf\Output\Destination::FILE );
 
 			if ( ! file_exists( $output_path ) ) {

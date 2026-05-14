@@ -1514,8 +1514,9 @@ class SScribe_Exporter {
 						$text_content,
 						$font_style
 					);
-					$display_url = urldecode( $link_url );
-					if ( $text_content !== $display_url && $text_content !== $link_url ) {
+					$display_url      = urldecode( $link_url );
+					$url_path_decoded = trim( parse_url( $display_url, PHP_URL_PATH ), '/' );
+					if ( $text_content !== $url_path_decoded && $text_content !== $link_url ) {
 						$text_run->addText(
 							' (' . $this->safe_text( $display_url ) . ')',
 							$this->with_complex_script(
