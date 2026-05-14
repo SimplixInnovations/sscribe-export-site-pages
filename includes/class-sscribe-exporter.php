@@ -280,8 +280,13 @@ class SScribe_Exporter {
 	 * @return array Font definition with complex script support if RTL.
 	 */
 	private function with_complex_script( array $font_def ): array {
-		if ( $this->is_rtl && ! isset( $font_def['complexScript'] ) ) {
-			$font_def['complexScript'] = true;
+		if ( $this->is_rtl ) {
+			if ( ! isset( $font_def['complexScript'] ) ) {
+				$font_def['complexScript'] = true;
+			}
+			if ( ! isset( $font_def['rtl'] ) ) {
+				$font_def['rtl'] = true;
+			}
 		}
 		return $font_def;
 	}
@@ -294,8 +299,10 @@ class SScribe_Exporter {
 	 */
 	private function get_para_style( array $base_style = array() ): array {
 		if ( $this->is_rtl ) {
-			$base_style['bidi']      = true;
-			$base_style['alignment'] = Jc::END;
+			$base_style['bidi'] = true;
+			if ( ! isset( $base_style['alignment'] ) ) {
+				$base_style['alignment'] = Jc::START;
+			}
 		}
 		return $base_style;
 	}
@@ -675,26 +682,33 @@ class SScribe_Exporter {
 			$php_word->addTitleStyle(
 				$i,
 				$heading_font,
-				array(
-					'spaceBefore' => Converter::pointToTwip( $i <= 2 ? 18 : 12 ),
-					'spaceAfter'  => Converter::pointToTwip( 6 ),
-					'keepNext'    => true,
-					'bidi'        => $this->is_rtl,
+				$this->get_para_style(
+					array(
+						'spaceBefore' => Converter::pointToTwip( $i <= 2 ? 18 : 12 ),
+						'spaceAfter'  => Converter::pointToTwip( 6 ),
+						'keepNext'    => true,
+					)
 				)
 			);
 		}
 
 		// Blockquote paragraph style.
-		$php_word->addParagraphStyle(
-			'Blockquote',
-			array(
-				'indentation'     => array( 'left' => Converter::cmToTwip( 1 ) ),
-				'spaceBefore'     => Converter::pointToTwip( 6 ),
-				'spaceAfter'      => Converter::pointToTwip( 6 ),
-				'borderLeftSize'  => 12,
-				'borderLeftColor' => $this->colors['primary'],
-			)
+		$blockquote_style = array(
+			'spaceBefore' => Converter::pointToTwip( 6 ),
+			'spaceAfter'  => Converter::pointToTwip( 6 ),
 		);
+
+		if ( $this->is_rtl ) {
+			$blockquote_style['indentation']      = array( 'right' => Converter::cmToTwip( 1 ) );
+			$blockquote_style['borderRightSize']  = 12;
+			$blockquote_style['borderRightColor'] = $this->colors['primary'];
+		} else {
+			$blockquote_style['indentation']     = array( 'left' => Converter::cmToTwip( 1 ) );
+			$blockquote_style['borderLeftSize']  = 12;
+			$blockquote_style['borderLeftColor'] = $this->colors['primary'];
+		}
+
+		$php_word->addParagraphStyle( 'Blockquote', $this->get_para_style( $blockquote_style ) );
 
 		// Code paragraph style.
 		$php_word->addParagraphStyle(
@@ -984,7 +998,7 @@ class SScribe_Exporter {
 				'color'  => $this->colors['body'],
 				'italic' => true,
 			),
-			array( 'alignment' => Jc::END )
+			array( 'alignment' => Jc::START )
 		);
 
 		// Footer.
@@ -1007,7 +1021,7 @@ class SScribe_Exporter {
 				'size'  => 7,
 				'color' => $this->colors['body'],
 			),
-			array( 'alignment' => Jc::END )
+			array( 'alignment' => Jc::START )
 		);
 	}
 
@@ -1090,17 +1104,21 @@ class SScribe_Exporter {
 			'cellMargin'  => Converter::cmToTwip( 0.15 ),
 		);
 
-		$label_style = array(
-			'name'  => $this->font_name,
-			'size'  => 10,
-			'bold'  => true,
-			'color' => $this->colors['heading'],
+		$label_style = $this->with_complex_script(
+			array(
+				'name'  => $this->font_name,
+				'size'  => 10,
+				'bold'  => true,
+				'color' => $this->colors['heading'],
+			)
 		);
 
-		$value_style = array(
-			'name'  => $this->font_name,
-			'size'  => 10,
-			'color' => $this->colors['body'],
+		$value_style = $this->with_complex_script(
+			array(
+				'name'  => $this->font_name,
+				'size'  => 10,
+				'color' => $this->colors['body'],
+			)
 		);
 
 		$header_cell_style = array(
@@ -1500,10 +1518,12 @@ class SScribe_Exporter {
 					if ( $text_content !== $display_url && $text_content !== $link_url ) {
 						$text_run->addText(
 							' (' . $this->safe_text( $display_url ) . ')',
-							array(
-								'name'  => $this->font_name,
-								'size'  => 8,
-								'color' => $this->colors['body'],
+							$this->with_complex_script(
+								array(
+									'name'  => $this->font_name,
+									'size'  => 8,
+									'color' => $this->colors['body'],
+								)
 							)
 						);
 					}
