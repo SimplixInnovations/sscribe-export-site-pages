@@ -111,6 +111,7 @@ class SScribe_Deactivator {
 		require_once ABSPATH . 'wp-admin/includes/upgrade.php';
 
 		foreach ( $tables_to_drop as $table ) {
+			// Table names from plugin constants (a-zA-Z0-9_ only) — preg_replace enforces this.
 			$table_safe = preg_replace( '/[^a-zA-Z0-9_]/', '', $table ) ?? $table;
 			// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.DirectDatabaseQuery.SchemaChange, WordPress.DB.PreparedSQL.NotPrepared -- Deactivation cleanup; table name is plugin-controlled constant (a-zA-Z0-9_ only).
 			$wpdb->query( 'DROP TABLE IF EXISTS `' . $table_safe . '`' );
@@ -125,32 +126,20 @@ class SScribe_Deactivator {
 	private static function cleanup_export_files(): void {
 		$upload_dir = wp_upload_dir();
 		$export_dir = $upload_dir['basedir'] . '/sscribe-exports';
+		$log_dir    = $upload_dir['basedir'] . '/sscribe-logs';
 
-		if ( ! is_dir( $export_dir ) ) {
+		if ( ! is_dir( $export_dir ) && ! is_dir( $log_dir ) ) {
 			return;
 		}
 
 		try {
-			if ( class_exists( 'SScribe_Security' ) ) {
-				SScribe_Security::delete_directory( $export_dir );
-			} else {
-				$log_dir = $upload_dir['basedir'] . '/sscribe-logs';
-				foreach ( array( $export_dir, $log_dir ) as $dir ) {
-					if ( is_dir( $dir ) ) {
-						$it = new \RecursiveIteratorIterator(
-							new \RecursiveDirectoryIterator( $dir, \RecursiveDirectoryIterator::SKIP_DOTS ),
-							\RecursiveIteratorIterator::CHILD_FIRST
-						);
-						foreach ( $it as $file ) {
-							$file->isDir() ? @rmdir( $file->getRealPath() ) : wp_delete_file( $file->getRealPath() );
-						}
-						@rmdir( $dir );
-					}
-				}
-			}
+			SScribe_Security::delete_directory( $export_dir );
+			SScribe_Security::delete_directory( $log_dir );
 		} catch ( \Throwable $e ) {
-			// Non-fatal during deactivation — cleanup failures are logged but do not block plugin deactivation.
-			\SScribe_Logger::instance()->warning( 'SScribe deactivation cleanup error: ' . $e->getMessage() );
+			if ( defined( 'WP_DEBUG' ) && WP_DEBUG ) {
+				// phpcs:ignore WordPress.PHP.DevelopmentFunctions.error_log_error_log
+				error_log( 'SScribe deactivation cleanup error: ' . $e->getMessage() );
+			}
 		}
 	}
 }
