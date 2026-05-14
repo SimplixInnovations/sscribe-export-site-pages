@@ -343,10 +343,9 @@ class SScribe_PDF_Exporter implements SScribe_Exporter_Interface {
 			$base_css .= ' h1, h2, h3, h4, h5, h6 { color: #122119; }';
 			$mpdf->WriteHTML( $base_css, \SScribeVendor\Mpdf\HTMLParserMode::HEADER_CSS );
 
-			// Write HTML content with mode 4 (HTML_HEADER_BUFFER) to properly apply
-			// the CSS styles from base_css to the HTML content. Mode 4 writes HTML
-			// to a buffer, allowing it to properly merge with previously parsed CSS.
-			$mpdf->WriteHTML( $html_content, \SScribeVendor\Mpdf\HTMLParserMode::HTML_HEADER_BUFFER );
+			// Write HTML content with DEFAULT_MODE (0) to properly parse both
+			// HTML structure and apply the CSS styles from base_css.
+			$mpdf->WriteHTML( $html_content );
 			$mpdf->Output( $output_path, \SScribeVendor\Mpdf\Output\Destination::FILE );
 
 			if ( ! file_exists( $output_path ) ) {
