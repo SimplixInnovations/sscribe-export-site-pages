@@ -4,7 +4,7 @@ Donate link: https://simplixi.com
 Tags: export, docx, multilingual, seo, pdf, posts, pages
 Requires at least: 6.0
 Tested up to: 6.10
-Stable tag: 3.7.7
+Stable tag: 3.8.0
 Requires PHP: 8.2
 License: GPLv2 or later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
@@ -229,7 +229,7 @@ Each document includes: cover page with title/URL/date/breadcrumbs, featured ima
 
 == Changelog ==
 
-= 3.7.7 =
+= 3.8.0 =
 
 * CHANGED: Arabic PDF rendering — DejaVu Sans → XB Riyaz for superior Arabic typography. XB Riyaz is purpose-built for Arabic script with professional letterforms, already bundled with mPDF (zero additional ZIP size).
 * CHANGED: PDF exporter default_font for RTL changed from `dejavusans` to `xbriyaz`; fonttrans mappings redirected accordingly
@@ -317,7 +317,7 @@ Each document includes: cover page with title/URL/date/breadcrumbs, featured ima
 
 == Upgrade Notice ==
 
-= 3.7.7 =
+= 3.8.0 =
 
 Switches Arabic PDF font from DejaVu Sans to XB Riyaz (mPDF's standard bundled Arabic font) for superior Arabic typography. XB Riyaz is purpose-built for Arabic script with professional shaping and ligatures. Recommended update for all users exporting Arabic/RTL content to PDF.
 
