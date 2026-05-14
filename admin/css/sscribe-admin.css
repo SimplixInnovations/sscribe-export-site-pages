@@ -77,6 +77,12 @@
 	-moz-osx-font-smoothing: grayscale;
 	background: var(--sscribe-bg);
 	line-height: 1.5;
+	max-width: 1140px;
+	margin: 24px auto;
+	padding: 40px;
+	border-radius: var(--sscribe-radius-xl);
+	box-shadow: var(--sscribe-shadow-lg);
+	border: 1px solid var(--sscribe-border);
 }
 
 .sscribe-master-container *,
@@ -1293,6 +1299,36 @@
 }
 
 /* ============================================
+   PROMO LAYOUT (Docs in Export Tab)
+   ============================================ */
+.sscribe-promo-layout {
+	display: grid;
+	grid-template-columns: 2fr 1fr;
+	gap: 24px;
+	margin-bottom: 32px;
+}
+
+@media (width <= 992px) {
+	.sscribe-promo-layout {
+		grid-template-columns: 1fr;
+	}
+}
+
+.sscribe-promo-main .sscribe-panel {
+	height: 100%;
+}
+
+.sscribe-promo-sidebar {
+	display: flex;
+	flex-direction: column;
+	gap: 24px;
+}
+
+.sscribe-promo-sidebar .sscribe-panel {
+	flex: 1;
+}
+
+/* ============================================
    HISTORY TABLE
    ============================================ */
 .sscribe-badge {
@@ -1507,13 +1543,20 @@
 .sscribe-support-card {
 	display: flex;
 	flex-direction: column;
-	gap: 16px;
+	gap: 24px;
+	background: var(--sscribe-card-bg);
+	padding: 32px;
+	border-radius: var(--sscribe-radius-lg);
+	box-shadow: var(--sscribe-shadow-md);
+	border: 1px solid var(--sscribe-border);
 }
 
 .sscribe-support-actions {
 	display: flex;
-	gap: 12px;
+	gap: 16px;
 	flex-wrap: wrap;
+	padding-top: 24px;
+	border-top: 1px solid var(--sscribe-border);
 }
 
 .sscribe-support-grid {
@@ -1523,10 +1566,12 @@
 }
 
 .sscribe-support-section {
-	border: 1px solid var(--sscribe-border);
+	border: none;
+	background: #f8fafc;
+	padding: 24px;
 	border-radius: var(--sscribe-radius-md);
-	background: var(--sscribe-bg);
-	padding: 16px;
+	border-left: 4px solid var(--sscribe-primary);
+	box-shadow: var(--sscribe-shadow-sm);
 }
 
 .sscribe-support-section-title {
@@ -1607,16 +1652,17 @@
 
 .sscribe-support-copy-text {
 	width: 100%;
-	min-height: 180px;
-	border: 1px solid var(--sscribe-border);
+	min-height: 240px;
+	border: none;
 	border-radius: var(--sscribe-radius-md);
-	padding: 14px;
-	font-family: Consolas, Monaco, monospace;
-	font-size: 12px;
-	line-height: 1.6;
+	padding: 24px;
+	font-family: 'Fira Code', Consolas, Monaco, monospace;
+	font-size: 13px;
+	line-height: 1.7;
 	background: #0f172a !important;
-	color: #e2e8f0 !important;
+	color: #38bdf8 !important;
 	resize: vertical;
+	box-shadow: inset 0 2px 4px rgb(0 0 0 / 20%);
 }
 
 .sscribe-support-feedback,
