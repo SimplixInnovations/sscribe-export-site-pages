@@ -250,12 +250,12 @@ class SScribe_Audit_Trail {
 		$args[]       = $offset;
 
 		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
-		// phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared
 		// JUSTIFICATION: The table name {$this->table_name} is derived from $wpdb->prefix (a trusted WordPress core value)
 		// and is NOT user-controlled input. The WHERE clause {$where_clause} is built from controlled filter keys
 		// (event, user_id, ip_address, date_from, date_to, session_id) using %s and %d placeholders in the $args array,
 		// which are properly escaped by $wpdb->prepare(). The table name interpolation is necessary because
 		// $wpdb->prepare() does not support table name placeholders — this is a documented WordPress limitation.
+		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.InterpolatedNotPrepared
 		return $wpdb->get_results(
 			// phpcs:ignore WordPress.DB.PreparedSQLPlaceholders.ReplacementsWrongNumber -- Dynamic WHERE clause placeholders counted at runtime
 			$wpdb->prepare(
@@ -293,12 +293,11 @@ class SScribe_Audit_Trail {
 
 		$where_clause = implode( ' AND ', $where );
 
-		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
-		// phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared
 		// JUSTIFICATION: The table name {$this->table_name} is derived from $wpdb->prefix (a trusted WordPress core value)
 		// and is NOT user-controlled input. The WHERE clause {$where_clause} is built from controlled filter keys
 		// (date_from, date_to) using %s placeholders in the $args array, which are properly escaped by $wpdb->prepare().
 		// The table name interpolation is necessary because $wpdb->prepare() does not support table name placeholders.
+		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.InterpolatedNotPrepared
 		return $wpdb->get_results(
 			$wpdb->prepare(
 				"SELECT event, COUNT(*) as count FROM {$this->table_name} WHERE {$where_clause} GROUP BY event ORDER BY count DESC", // phpcs:ignore WordPress.DB.PreparedSQL.NotPrepared, WordPress.DB.PreparedSQLPlaceholders.UnfinishedPrepare
