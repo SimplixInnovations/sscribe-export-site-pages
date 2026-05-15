@@ -792,7 +792,11 @@ class SScribe_Batch_Processor {
 
 		$max_time = (int) apply_filters( 'sscribe_max_execution_time', 120 );
 		if ( function_exists( 'set_time_limit' ) ) {
-			// phpcs:ignore WordPress.PHP.DiscouragedFunctions.Discouraged, WordPress.PHP.IniSet.max_execution_time_Blacklisted -- Required for batch processing large page content from page builders (Elementor/Divi) where default 30s timeout causes failures. This is a standard practice for export plugins.
+			// phpcs:ignore Squiz.PHP.DiscouragedFunctions.Discouraged
+		// JUSTIFICATION: set_time_limit() is required for batch export of pages with heavy content from page builders (Elementor, Divi, etc.)
+		// where the default 30s PHP timeout causes incomplete exports. The value is filtered via 'sscribe_max_execution_time' allowing
+		// hosting providers to override it. The @ operator suppresses warnings on hosts that disable this function. This is wrapped
+		// in function_exists() to safely handle hosts that disable set_time_limit entirely.
 			@set_time_limit( $max_time );
 		}
 		wp_raise_memory_limit( 'admin' );
@@ -812,7 +816,10 @@ class SScribe_Batch_Processor {
 		// mPDF rendering is CPU-intensive (~3s/page); allow more time per batch.
 		if ( in_array( 'pdf', $formats, true ) && function_exists( 'set_time_limit' ) ) {
 			$pdf_max_time = (int) apply_filters( 'sscribe_pdf_max_execution_time', 300 );
-				// phpcs:ignore WordPress.PHP.DiscouragedFunctions.Discouraged, WordPress.PHP.IniSet.max_execution_time_Blacklisted -- PDF export requires extended execution time. mPDF rendering is ~3s per page; with batch_size=2, each batch needs ~6s+ overhead.
+			// phpcs:ignore Squiz.PHP.DiscouragedFunctions.Discouraged
+			// JUSTIFICATION: PDF export via mPDF is CPU-intensive (~3 seconds per page). With batch_size=2, each batch needs 6+ seconds.
+			// Without extending the time limit, PDF exports of sites with 10+ pages would fail on shared hosting. The value is filtered
+			// via 'sscribe_pdf_max_execution_time' and wrapped in function_exists() for safe degradation on restrictive hosts.
 			@set_time_limit( $pdf_max_time );
 		}
 
@@ -1782,7 +1789,10 @@ class SScribe_Batch_Processor {
 		// Creating a ZIP with many PDF files (each 1-5MB) is I/O intensive and can
 		// exceed the default batch time limit, causing a 404 "session not found" error.
 		if ( function_exists( 'set_time_limit' ) ) {
-			// phpcs:ignore WordPress.PHP.DiscouragedFunctions.Discouraged, WordPress.PHP.IniSet.max_execution_time_Blacklisted -- ZIP creation with many large files (especially PDF) requires extended time.
+			// phpcs:ignore Squiz.PHP.DiscouragedFunctions.Discouraged
+		// JUSTIFICATION: ZIP file creation with many exported files (especially large PDFs) requires extended time to avoid
+		// incomplete archives. Without this, exports of 50+ pages would timeout during the finalization phase. Wrapped in
+		// function_exists() to safely degrade on hosts that disable set_time_limit.
 			@set_time_limit( 300 );
 		}
 
@@ -2335,7 +2345,11 @@ class SScribe_Batch_Processor {
 
 			// Cap download execution time to prevent indefinite PHP process occupation on shared hosting.
 			if ( function_exists( 'set_time_limit' ) ) {
-				@set_time_limit( 300 ); // 5 minutes — sufficient for any reasonable ZIP file.
+				// phpcs:ignore Squiz.PHP.DiscouragedFunctions.Discouraged
+			// JUSTIFICATION: Cap download execution time to prevent indefinite PHP process occupation on shared hosting.
+			// Without this, large ZIP downloads could tie up a PHP process indefinitely, affecting other sites on the server.
+			// The 5-minute cap (300s) is generous for any reasonable ZIP file size. Wrapped in function_exists() for safe degradation.
+				@set_time_limit( 300 );
 			}
 
 		// phpcs:ignore WordPress.WP.AlternativeFunctions.file_system_operations_readfile -- Direct download

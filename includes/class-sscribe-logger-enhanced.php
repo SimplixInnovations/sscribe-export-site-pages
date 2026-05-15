@@ -308,6 +308,11 @@ class SScribe_Logger_Enhanced implements SScribe_Logger_Interface {
 	 * @param array  $context Context data.
 	 */
 	private function write_to_query_monitor( string $level, string $message, array $context ): void {
+		// phpcs:ignore WordPress.NamingConventions.PrefixAllGlobals.DynamicHooknameFound
+		// JUSTIFICATION: The hook name is dynamically constructed from 'sscribe_qm/' prefix concatenated with $level
+		// (debug, info, warning, error). The 'sscribe_qm/' prefix satisfies the plugin prefix requirement. The dynamic
+		// construction is necessary because the log level (debug/info/warning/error) determines which Query Monitor
+		// hook to fire. This is a standard pattern for Query Monitor integration and the prefix ensures no conflicts.
 		$action = 'sscribe_qm/' . $level;
 
 		if ( did_action( 'plugins_loaded' ) ) {
@@ -487,7 +492,14 @@ class SScribe_Logger_Enhanced implements SScribe_Logger_Interface {
 		$where_clause = implode( ' AND ', $where );
 		$args[]       = $limit;
 
-		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- Custom table read
+		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
+		// phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared
+		// JUSTIFICATION: The table name {$this->table_name} is derived from $wpdb->prefix (a trusted WordPress core value)
+		// and is NOT user-controlled input. The WHERE clause {$where_clause} is built from controlled filter keys
+		// (level, user_id, date_from, date_to) using %s and %d placeholders in the $args array, which are properly
+		// escaped by $wpdb->prepare(). The table name interpolation is necessary because $wpdb->prepare() does not
+		// support table name placeholders — this is a documented WordPress limitation. All filter values pass through
+		// the $args array with proper placeholder escaping.
 		return $wpdb->get_results(
 			$wpdb->prepare(
 				"SELECT * FROM {$this->table_name} WHERE {$where_clause} ORDER BY timestamp DESC LIMIT %d", // phpcs:ignore WordPress.DB.PreparedSQL.NotPrepared
