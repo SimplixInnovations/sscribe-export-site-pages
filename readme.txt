@@ -4,7 +4,7 @@ Donate link: https://simplixi.com
 Tags: export, docx, pdf, multilingual, rtl
 Requires at least: 6.0
 Tested up to: 6.9
-Stable tag: 3.8.8
+Stable tag: 3.8.9
 Requires PHP: 8.2
 License: GPLv2 or later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
@@ -316,6 +316,10 @@ Each document includes: cover page with title/URL/date/breadcrumbs, featured ima
 * Sec: Fixed ReDoS vulnerability in button extraction regex pattern (possessive quantifiers)
 
 == Upgrade Notice ==
+
+= 3.8.9 =
+
+UI/UX revamp: improved admin interface with enhanced format selection, better visual hierarchy, and refined user experience. All existing functionality preserved. Recommended update for all users.
 
 = 3.8.8 =
 
