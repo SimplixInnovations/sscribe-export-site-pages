@@ -315,7 +315,7 @@ class SScribe_Logger_Enhanced implements SScribe_Logger_Interface {
 		$action = 'sscribe_qm/' . $level; // phpcs:ignore WordPress.NamingConventions.PrefixAllGlobals.DynamicHooknameFound -- Hook name prefixed with sscribe_qm/
 
 		if ( did_action( 'plugins_loaded' ) ) {
-			do_action( $action, $message, $context );
+			do_action( $action, $message, $context ); // phpcs:ignore WordPress.NamingConventions.PrefixAllGlobals.DynamicHooknameFound -- Hook name prefixed with sscribe_qm/
 		}
 	}
 
