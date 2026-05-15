@@ -4,7 +4,7 @@ Donate link: https://simplixi.com
 Tags: export, docx, pdf, multilingual, rtl
 Requires at least: 6.0
 Tested up to: 6.9
-Stable tag: 3.9.0
+Stable tag: 3.9.1
 Requires PHP: 8.2
 License: GPLv2 or later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
@@ -317,7 +317,7 @@ Each document includes: cover page with title/URL/date/breadcrumbs, featured ima
 
 == Upgrade Notice ==
 
-= 3.9.0 =
+= 3.9.1 =
 
 Complete UI/UX revamp with enhanced format selection cards, improved visual hierarchy, refined user experience, and detailed PCP compliance justifications. All existing functionality preserved. Recommended update for all users.
 
