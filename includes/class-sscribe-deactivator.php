@@ -113,7 +113,14 @@ class SScribe_Deactivator {
 		foreach ( $tables_to_drop as $table ) {
 			// Table names from plugin constants (a-zA-Z0-9_ only) — preg_replace enforces this.
 			$table_safe = preg_replace( '/[^a-zA-Z0-9_]/', '', $table ) ?? $table;
-			// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.DirectDatabaseQuery.SchemaChange, WordPress.DB.PreparedSQL.NotPrepared -- Deactivation cleanup; table name is plugin-controlled constant (a-zA-Z0-9_ only).
+			// phpcs:ignore PluginCheck.Security.DirectDB.UnescapedDBParameter
+			// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.DirectDatabaseQuery.SchemaChange, WordPress.DB.PreparedSQL.NotPrepared
+			// JUSTIFICATION: The $table_safe variable is sanitized via preg_replace('/[^a-zA-Z0-9_]/', '', $table)
+			// which strips all characters except alphanumeric and underscore. This ensures the table name cannot
+			// contain SQL injection characters. The input $table comes from hardcoded $wpdb->prefix constants
+			// (e.g., 'wp_sscribe_sessions'), not user input. $wpdb->prepare() cannot be used for table names
+			// as it's a documented WordPress limitation — table identifiers must be interpolated. This pattern is
+			// standard for WordPress plugins that manage custom tables during deactivation.
 			$wpdb->query( 'DROP TABLE IF EXISTS `' . $table_safe . '`' );
 		}
 	}
