@@ -309,7 +309,7 @@ class SScribe_Diagnostics_Test extends TestCase {
 			'plugin' => array(
 				'label' => 'Plugin',
 				'items' => array(
-'version'     => '3.8.6',
+'version'     => '3.8.8',
 					'debug_mode' => 'Enabled',
 				),
 			),
