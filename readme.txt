@@ -3,7 +3,7 @@ Contributors: simplixinnovations
 Donate link: https://simplixi.com
 Tags: export, docx, pdf, multilingual, rtl
 Requires at least: 6.0
-Tested up to: 6.10
+Tested up to: 6.9
 Stable tag: 3.8.8
 Requires PHP: 8.2
 License: GPLv2 or later
@@ -323,7 +323,7 @@ CSS compatibility fix: adds -webkit-backdrop-filter for Safari 9+ and iOS 9+ sup
 
 = 3.8.7 =
 
-WordPress Plugin Check (PCP) compliance update. Fixes: heredoc syntax replacement, parse_url to wp_parse_url, direct file access protection, Domain Path header, rmdir to WP_Filesystem, DB prepared statements. Note: load_plugin_textdomain call is required for non-wordpress.org hosted plugins. Recommended update for all users.
+PCP compliance update. Fixes: heredoc replacement, parse_url→wp_parse_url, direct file access protection, Domain Path header, rmdir→WP_Filesystem, DB prepared statements. load_plugin_textdomain required for non-wordpress.org hosted plugins. Recommended update.
 
 = 3.7.6 =
 

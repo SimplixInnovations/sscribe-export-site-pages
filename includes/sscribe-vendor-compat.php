@@ -30,8 +30,8 @@ $sscribe_vendor_aliases = array(
 	'SScribeVendor\\PhpOffice\\PhpWord\\Element\\TextRun'  => 'SScribeVendor\\PhpOffice\\PhpWord\\Element\\TextRun',
 );
 
-foreach ( $sscribe_vendor_aliases as $source => $target ) {
-	if ( class_exists( $source ) && ! class_exists( $target ) ) {
-		class_alias( $source, $target );
+foreach ( $sscribe_vendor_aliases as $sscribe_source => $sscribe_target ) {
+	if ( class_exists( $sscribe_source ) && ! class_exists( $sscribe_target ) ) {
+		class_alias( $sscribe_source, $sscribe_target );
 	}
 }
