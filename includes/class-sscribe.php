@@ -302,10 +302,7 @@ class SScribe {
 	 * @return void
 	 */
 	private function init_i18n(): void {
-		load_plugin_textdomain(
-			'sscribe-export-site-pages',
-			false,
-			dirname( SSCRIBE_PLUGIN_BASENAME ) . '/languages'
-		);
+		// load_plugin_textdomain() is deprecated since WP 4.6 for wordpress.org hosted plugins.
+		// WordPress automatically loads translations for plugins hosted on wordpress.org.
 	}
 }

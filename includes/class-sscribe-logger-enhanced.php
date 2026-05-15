@@ -308,7 +308,7 @@ class SScribe_Logger_Enhanced implements SScribe_Logger_Interface {
 	 * @param array  $context Context data.
 	 */
 	private function write_to_query_monitor( string $level, string $message, array $context ): void {
-		$action = 'qm/' . $level;
+		$action = 'sscribe_qm/' . $level;
 
 		if ( did_action( 'plugins_loaded' ) ) {
 			do_action( $action, $message, $context );
