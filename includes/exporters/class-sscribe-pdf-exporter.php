@@ -233,7 +233,7 @@ class SScribe_PDF_Exporter implements SScribe_Exporter_Interface {
 			$font_dirs      = $default_config['fontDir'];
 
 			$default_font_config = ( new \SScribeVendor\Mpdf\Config\FontVariables() )->getDefaults();
-			$font_data          = $default_font_config['fontdata'];
+			$font_data           = $default_font_config['fontdata'];
 
 			// Find Manrope font files with case-insensitive search since Linux servers
 			// may have case sensitivity issues and font files may have different casing.
@@ -247,7 +247,7 @@ class SScribe_PDF_Exporter implements SScribe_Exporter_Interface {
 					)
 				),
 				'fontdata'         => $font_data + array(
-					'manrope'        => array(
+					'manrope' => array(
 						'R' => $manrope_regular,
 						'B' => $this->find_font_file( $manrope_dir, 'manrope[-_]?bold' ) ?? 'Manrope-Bold.ttf',
 						'M' => $this->find_font_file( $manrope_dir, 'manrope[-_]?medium' ) ?? 'Manrope-Medium.ttf',
@@ -258,14 +258,14 @@ class SScribe_PDF_Exporter implements SScribe_Exporter_Interface {
 				// DejaVu Sans is bundled with mPDF and supports Arabic without
 				// MarkGlyphSets issues — safe for all RTL PDF generation.
 				'fonttrans'        => array(
-					'dejavu sans'      => 'xbriyaz',
-					'dejavusans'       => 'xbriyaz',
-					'arial'            => 'xbriyaz',
-					'xbriyaz'          => 'xbriyaz',
-					'lateef'           => 'xbriyaz',
-					'times new roman'  => 'xbriyaz',
-					'serif'            => 'xbriyaz',
-					'sans-serif'       => 'xbriyaz',
+					'dejavu sans'     => 'xbriyaz',
+					'dejavusans'      => 'xbriyaz',
+					'arial'           => 'xbriyaz',
+					'xbriyaz'         => 'xbriyaz',
+					'lateef'          => 'xbriyaz',
+					'times new roman' => 'xbriyaz',
+					'serif'           => 'xbriyaz',
+					'sans-serif'      => 'xbriyaz',
 				),
 				'mode'             => 'utf-8',
 				'default_font'     => $is_rtl ? 'xbriyaz' : 'manrope',
@@ -318,9 +318,9 @@ class SScribe_PDF_Exporter implements SScribe_Exporter_Interface {
 
 			if ( function_exists( 'set_time_limit' ) ) {
 				// phpcs:ignore Squiz.PHP.DiscouragedFunctions.Discouraged
-			// JUSTIFICATION: mPDF rendering is CPU-intensive (~3 seconds per page for complex layouts with images and tables).
-			// Without extending the time limit, PDF exports of even moderately complex pages would timeout on shared hosting.
-			// The 60-second limit is per-page and wrapped in function_exists() for safe degradation on restrictive hosts.
+				// JUSTIFICATION: mPDF rendering is CPU-intensive (~3 seconds per page for complex layouts with images and tables).
+				// Without extending the time limit, PDF exports of even moderately complex pages would timeout on shared hosting.
+				// The 60-second limit is per-page and wrapped in function_exists() for safe degradation on restrictive hosts.
 				@set_time_limit( 60 );
 			}
 
