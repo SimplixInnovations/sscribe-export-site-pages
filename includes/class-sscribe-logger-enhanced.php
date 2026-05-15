@@ -312,8 +312,7 @@ class SScribe_Logger_Enhanced implements SScribe_Logger_Interface {
 		// (debug, info, warning, error). The 'sscribe_qm/' prefix satisfies the plugin prefix requirement. The dynamic
 		// construction is necessary because the log level (debug/info/warning/error) determines which Query Monitor
 		// hook to fire. This is a standard pattern for Query Monitor integration and the prefix ensures no conflicts.
-		// phpcs:ignore WordPress.NamingConventions.PrefixAllGlobals.DynamicHooknameFound
-		$action = 'sscribe_qm/' . $level;
+		$action = 'sscribe_qm/' . $level; // phpcs:ignore WordPress.NamingConventions.PrefixAllGlobals.DynamicHooknameFound -- Hook name prefixed with sscribe_qm/
 
 		if ( did_action( 'plugins_loaded' ) ) {
 			do_action( $action, $message, $context );
@@ -498,10 +497,10 @@ class SScribe_Logger_Enhanced implements SScribe_Logger_Interface {
 		// escaped by $wpdb->prepare(). The table name interpolation is necessary because $wpdb->prepare() does not
 		// support table name placeholders — this is a documented WordPress limitation. All filter values pass through
 		// the $args array with proper placeholder escaping.
-		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.InterpolatedNotPrepared
+		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, PluginCheck.Security.DirectDB.UnescapedDBParameter
 		return $wpdb->get_results(
 			$wpdb->prepare(
-				"SELECT * FROM {$this->table_name} WHERE {$where_clause} ORDER BY timestamp DESC LIMIT %d", // phpcs:ignore WordPress.DB.PreparedSQL.NotPrepared
+				"SELECT * FROM {$this->table_name} WHERE {$where_clause} ORDER BY timestamp DESC LIMIT %d", // phpcs:ignore WordPress.DB.PreparedSQL.NotPrepared, WordPress.DB.PreparedSQL.InterpolatedNotPrepared -- Table name from $wpdb->prefix (trusted), WHERE clause built from controlled filter keys with placeholders
 				...$args
 			)
 		);
