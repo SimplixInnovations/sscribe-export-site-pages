@@ -1,5 +1,4 @@
 <?php
-
 /**
  * Runtime shims for vendor-prefixed dependencies.
  *
@@ -14,22 +13,21 @@ declare(strict_types=1);
 
 namespace SScribeVendor\Safe;
 
-if (! defined('ABSPATH')) {
-    exit;
+if ( ! defined( 'ABSPATH' ) ) {
+	exit;
 }
 
-if (! \function_exists(__NAMESPACE__ . '\\class_alias')) {
-    /**
-     * Pass-through shim for class_alias in prefixed namespace.
-     *
-     * @param string $class_name Original class name.
-     * @param string $alias      Alias class name.
-     * @param bool   $autoload   Whether to autoload original class.
-     *
-     * @return bool
-     */
-    function class_alias(string $class_name, string $alias, bool $autoload = true): bool
-    {
-        return \class_alias($class_name, $alias, $autoload);
-    }
+if ( ! \function_exists( __NAMESPACE__ . '\\class_alias' ) ) {
+	/**
+	 * Pass-through shim for class_alias in prefixed namespace.
+	 *
+	 * @param string $class_name Original class name.
+	 * @param string $alias      Alias class name.
+	 * @param bool   $autoload   Whether to autoload original class.
+	 *
+	 * @return bool
+	 */
+	function class_alias( string $class_name, string $alias, bool $autoload = true ): bool {
+		return \class_alias( $class_name, $alias, $autoload );
+	}
 }
