@@ -3,7 +3,7 @@
  * Automated version bump script.
  *
  * Updates all version references across the entire plugin in a single atomic operation.
- * Run: php scripts/bump-version.php 3.9.0
+ * Run: php scripts/bump-version.php 3.9.1
  *
  * @package SScribe
  */
@@ -16,7 +16,7 @@ if ('cli' !== php_sapi_name()) {
 
 if ($argc < 2) {
 	echo "Usage: php scripts/bump-version.php <new-version>\n";
-	echo "Example: php scripts/bump-version.php 3.9.0\n";
+	echo "Example: php scripts/bump-version.php 3.9.1\n";
 	exit(1);
 }
 
