@@ -133,14 +133,16 @@ class SScribe_Deactivator {
 		$upload_dir = wp_upload_dir();
 		$export_dir = $upload_dir['basedir'] . '/sscribe-exports';
 		$log_dir    = $upload_dir['basedir'] . '/sscribe-logs';
+		$mpdf_tmp   = $upload_dir['basedir'] . '/sscribe/mpdf-tmp';
 
-		if ( ! is_dir( $export_dir ) && ! is_dir( $log_dir ) ) {
+		if ( ! is_dir( $export_dir ) && ! is_dir( $log_dir ) && ! is_dir( $mpdf_tmp ) ) {
 			return;
 		}
 
 		try {
 			SScribe_Security::delete_directory( $export_dir );
 			SScribe_Security::delete_directory( $log_dir );
+			SScribe_Security::delete_directory( $mpdf_tmp );
 		} catch ( \Throwable $e ) {
 			if ( defined( 'WP_DEBUG' ) && WP_DEBUG ) {
 				// phpcs:ignore WordPress.PHP.DevelopmentFunctions.error_log_error_log

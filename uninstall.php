@@ -138,6 +138,7 @@ $sscribe_upload_dir = wp_upload_dir();
 $directories_to_clean = array(
 	$sscribe_upload_dir['basedir'] . '/sscribe-exports',
 	$sscribe_upload_dir['basedir'] . '/sscribe-logs',
+	$sscribe_upload_dir['basedir'] . '/sscribe/mpdf-tmp',
 );
 
 // phpcs:ignore WordPress.NamingConventions.PrefixAllGlobals.NonPrefixedVariableFound -- Local foreach variable.

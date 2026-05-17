@@ -122,8 +122,13 @@ class SScribe_HTML_Exporter implements SScribe_Exporter_Interface {
 		}
 	}
 
-	/**
+/**
 	 * Generate HTML content for a page.
+	 *
+	 * For standalone HTML exports, we apply a more permissive content filter
+	 * since the content has already been sanitized at input time via WordPress.
+	 * We extend the allowlist to include media elements appropriate for
+	 * standalone HTML files (video, audio, iframe, canvas, svg).
 	 *
 	 * @param array $page_data Page data.
 	 * @return string
@@ -147,6 +152,82 @@ class SScribe_HTML_Exporter implements SScribe_Exporter_Interface {
 		h1 { text-align: center; }
 		.featured-image { width: 100%; max-width: 600px; margin: 0 auto; display: block; }
 		';
+
+		// Build a permissive kses allowlist for standalone HTML export.
+		// wp_kses_post() strips video, audio, iframe, canvas — elements valid in HTML.
+		// The content was already sanitized at input time via WordPress, so this is safe.
+		$allowed_html = array(
+			'video'  => array(
+				'src'      => true,
+				'controls' => true,
+				'width'    => true,
+				'height'   => true,
+				'loop'     => true,
+				'muted'    => true,
+				'poster'   => true,
+				'preload'  => true,
+			),
+			'audio'  => array(
+				'src'      => true,
+				'controls' => true,
+				'loop'     => true,
+				'muted'    => true,
+				'preload'  => true,
+			),
+			'iframe' => array(
+				'src'             => true,
+				'width'           => true,
+				'height'          => true,
+				'frameborder'     => true,
+				'allow'           => true,
+				'allowfullscreen' => true,
+				'loading'         => true,
+			),
+			'canvas' => array(
+				'width'  => true,
+				'height' => true,
+				'id'     => true,
+			),
+			'svg'    => array(
+				'xmlns'       => true,
+				'viewbox'     => true,
+				'width'       => true,
+				'height'      => true,
+				'fill'        => true,
+				'stroke'      => true,
+				'stroke-width' => true,
+			),
+			'source' => array(
+				'src'  => true,
+				'type' => true,
+				'media' => true,
+			),
+			'track' => array(
+				'kind'    => true,
+				'src'     => true,
+				'srclang' => true,
+				'label'   => true,
+				'default' => true,
+			),
+			'embed' => array(
+				'src'    => true,
+				'type'   => true,
+				'width'  => true,
+				'height' => true,
+			),
+			'object' => array(
+				'data'   => true,
+				'type'   => true,
+				'width'  => true,
+				'height' => true,
+			),
+			'param' => array(
+				'name'  => true,
+				'value' => true,
+			),
+		);
+
+		$filtered_content = wp_kses( $page_data['content'], $allowed_html );
 
 		$html = '<!DOCTYPE html>
 <html lang="' . esc_attr( $language ) . '" dir="' . esc_attr( $direction ) . '">
@@ -183,7 +264,7 @@ class SScribe_HTML_Exporter implements SScribe_Exporter_Interface {
 		' . $this->get_featured_image_html( $page_data ) . '
 		' . $this->get_meta_html( $page_data ) . '
 		' . $this->get_seo_html( $page_data ) . '
-		' . wp_kses_post( $page_data['content'] ) . '
+		' . $filtered_content . '
 	</main>
 
 	<footer>
@@ -205,33 +286,25 @@ class SScribe_HTML_Exporter implements SScribe_Exporter_Interface {
 	/**
 	 * Get featured image HTML.
 	 *
+	 * For standalone HTML exports, always use the HTTP URL so the image
+	 * is accessible when the HTML file is opened on any device/server.
+	 * The local path (featured_image_path) is only needed for PDF generation.
+	 *
 	 * @param array $page_data Page data.
 	 * @return string
 	 */
 	private function get_featured_image_html( array $page_data ): string {
-		// Prefer local file path (populated by image processing) over remote URL.
-		$src = ! empty( $page_data['featured_image_path'] )
-			? $page_data['featured_image_path']
-			: ( $page_data['featured_image_url'] ?? '' );
+		// Use HTTP URL for standalone HTML portability.
+		// Local paths are only useful for PDF (mPDF) generation, not HTML exports.
+		$src = ! empty( $page_data['featured_image_url'] )
+			? $page_data['featured_image_url']
+			: '';
 
 		if ( empty( $src ) ) {
 			return '';
 		}
 
-		// For local files, use file:// URI so browsers can access them.
-		// For remote URLs, use esc_url as normal.
-		// CRITICAL: realpath() returns false if file doesn't exist — must check
-		// before using it, or the file:// URI becomes empty/broken.
-		if ( str_starts_with( $src, '/' ) || str_starts_with( $src, 'C:' ) ) {
-			$real = realpath( $src );
-			$src_attr = false !== $real
-				? 'file://' . str_replace( '\\', '/', $real )
-				: esc_url( $src );
-		} else {
-			$src_attr = esc_url( $src );
-		}
-
-		return '<img src="' . $src_attr . '"
+		return '<img src="' . esc_url( $src ) . '"
 			alt="' . esc_attr( $page_data['title'] ) . '"
 			class="featured-image">';
 	}

@@ -939,7 +939,7 @@ class SScribe_Exporter {
 				3
 			);
 		} catch ( \Throwable $e ) {
-			$this->logger->warning(
+			$this->get_logger()->warning(
 				'TOC generation failed, omitting table of contents',
 				array(
 					'error' => $e->getMessage(),
@@ -1049,7 +1049,7 @@ class SScribe_Exporter {
 			// PHPWord cannot handle SVG — skip SVG featured images to prevent fatal errors.
 			$ext = strtolower( pathinfo( $path, PATHINFO_EXTENSION ) );
 			if ( 'svg' === $ext ) {
-				$this->logger->debug( 'Skipping SVG featured image', array( 'path' => $path ) );
+				$this->get_logger()->debug( 'Skipping SVG featured image', array( 'path' => $path ) );
 				return;
 			}
 

@@ -93,12 +93,17 @@
 			$(document).on('click', '#sscribe-support-copy-btn', $.proxy(this.copySupportInfo, this));
 			$(document).on('click', '#sscribe-modal-close', $.proxy(this.closeModal, this));
 
-			// Tab switching logic
+			// Tab switching logic — handles ARIA roles and aria-selected state for accessibility.
 			$('.sscribe-tab-btn').on('click', function (e) {
 				e.preventDefault();
-				var tabId = $(this).data('tab');
-				$('.sscribe-tab-btn').removeClass('sscribe-tab-active');
-				$(this).addClass('sscribe-tab-active');
+				var $btn = $(this);
+				var tabId = $btn.data('tab');
+
+				// Update ARIA states for all tab buttons.
+				$('.sscribe-tab-btn').attr('aria-selected', 'false').removeClass('sscribe-tab-active');
+				$btn.attr('aria-selected', 'true').addClass('sscribe-tab-active');
+
+				// Switch the visible tab panel.
 				$('.sscribe-tab-content').removeClass('sscribe-tab-active');
 				$('#sscribe-tab-' + tabId).addClass('sscribe-tab-active');
 			});
@@ -1506,8 +1511,8 @@
 				closeBtn.focus();
 			}
 			var self = this;
-			var escapeHandler = function (e) {
-				if (e.key === 'Escape') {
+			var escapeHandler = function (ev) {
+				if (ev.key === 'Escape') {
 					self.closePreview();
 				}
 			};
@@ -1530,8 +1535,6 @@
 					300
 				);
 			}
-
-			var self = this;
 
 			$.ajax({
 				url: sscribe_data.ajaxurl,

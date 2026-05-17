@@ -2250,6 +2250,11 @@ class SScribe_Batch_Processor {
 			wp_die( esc_html__( 'Permission denied.', 'sscribe-export-site-pages' ) );
 		}
 
+		if ( ! $this->check_rate_limit() ) {
+			status_header( 429 );
+			wp_die( esc_html__( 'Too many requests. Please wait a moment and try again.', 'sscribe-export-site-pages' ) );
+		}
+
 		$filename = isset( $_GET['file'] ) ? sanitize_file_name( wp_unslash( $_GET['file'] ) ) : '';
 
 		$export_dir = ''; // Initialize to satisfy PHPStan (assigned in try block below).
@@ -2839,8 +2844,8 @@ class SScribe_Batch_Processor {
 					'deleted_count' => $deleted,
 				)
 			);
-			// Clean up any orphaned lock transients.
-			$this->cleanup_user_locks();
+			// Clean up any orphaned lock transients for this specific user.
+			$this->cleanup_user_locks( $user_id );
 		} else {
 			$this->session->cleanup_expired( 60 );
 			$this->logger->debug( 'Cleared expired sessions for user', array( 'user_id' => $user_id ) );

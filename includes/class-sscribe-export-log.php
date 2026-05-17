@@ -533,10 +533,14 @@ class SScribe_Export_Log {
 	/**
 	 * Clean up old logs.
 	 *
-	 * @param int $max_age_hours Maximum age in hours. Default 2.
+	 * Skips logs with status 'started' or 'processing' — these belong to
+	 * active exports that may still be running. Only deletes logs that
+	 * are complete, failed, or cancelled.
+	 *
+	 * @param int $max_age_hours Maximum age in hours. Default 6 hours.
 	 * @return int Number of logs deleted.
 	 */
-	public static function cleanup_old_logs( int $max_age_hours = 2 ): int {
+	public static function cleanup_old_logs( int $max_age_hours = 6 ): int {
 		$upload_dir = wp_upload_dir();
 		$log_dir    = $upload_dir['basedir'] . '/sscribe-logs';
 
@@ -552,7 +556,24 @@ class SScribe_Export_Log {
 		if ( is_array( $files ) ) {
 			foreach ( $files as $file ) {
 				$file_time = filemtime( $file );
-				if ( $file_time && ( $now - $file_time ) > $max_age ) {
+				if ( ! $file_time ) {
+					continue;
+				}
+
+				if ( ( $now - $file_time ) > $max_age ) {
+					// Read the log to check its status — skip active exports.
+					$json = file_get_contents( $file );
+					if ( $json ) {
+						$data = json_decode( $json, true );
+						if ( is_array( $data ) ) {
+							$status = $data['status'] ?? '';
+							// Skip active logs — they belong to ongoing exports.
+							if ( in_array( $status, array( 'started', 'processing', 'finalizing' ), true ) ) {
+								continue;
+							}
+						}
+					}
+
 					if ( wp_delete_file( $file ) ) {
 						++$deleted;
 					}

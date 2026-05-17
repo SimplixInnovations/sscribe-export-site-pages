@@ -27,10 +27,12 @@ class SScribe_Capabilities {
 	private const ALLOWED = array(
 		'manage_options',
 		'edit_pages',
-		'edit_posts',   // Supports post type export for post editors.
+		'edit_posts',    // Supports post type export for post editors.
 		'publish_pages',
+		'publish_posts', // Supports post type export for post editors.
 		'delete_pages',
 		'export',
+		'export_posts',  // Some WordPress configurations grant export and export_posts separately.
 	);
 
 	/**
