@@ -545,7 +545,9 @@ $sscribe_is_debug        = $sscribe_is_debug ?? false;
 	</div>
 </div>
 
-<div id="sscribe-log-modal" class="sscribe-modal sscribe-hidden" role="dialog" aria-modal="true" aria-labelledby="sscribe-log-modal-title" aria-describedby="sscribe-log-modal-desc">
+	</div><!-- .sscribe-workspace -->
+
+	<div id="sscribe-log-modal" class="sscribe-modal sscribe-hidden" role="dialog" aria-modal="true" aria-labelledby="sscribe-log-modal-title" aria-describedby="sscribe-log-modal-desc">
 	<div class="sscribe-modal-content" role="document">
 		<div class="sscribe-modal-header">
 			<h3 id="sscribe-log-modal-title"><?php esc_html_e( 'Export Log', 'sscribe-export-site-pages' ); ?></h3>
@@ -562,3 +564,5 @@ $sscribe_is_debug        = $sscribe_is_debug ?? false;
 		<span id="sscribe-log-modal-desc" class="screen-reader-text"><?php esc_html_e( 'Export log details showing processing information for this export', 'sscribe-export-site-pages' ); ?></span>
 	</div>
 </div>
+
+</div><!-- .sscribe-master-container -->
