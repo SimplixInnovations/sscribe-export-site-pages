@@ -57,6 +57,7 @@ vendor/
 vendor-prefixed/*/.github/
 vendor-prefixed/*/.git/
 vendor-prefixed/*/COPYING*
+vendor-prefixed/*/LICENSE*
 vendor-prefixed/*/.github_changelog_generator
 vendor-prefixed/*/.php-cs-fixer*
 vendor-prefixed/*/phpstan.neon*
@@ -73,6 +74,10 @@ vendor-prefixed/*/.gitignore
 vendor-prefixed/*/README.md
 vendor-prefixed/*/CHANGELOG.md
 vendor-prefixed/*/CONTRIBUTING.md
+vendor-prefixed/*/CREDITS.txt
+vendor-prefixed/*/composer.json
+vendor-prefixed/*/composer.lock
+vendor-prefixed/*/ruleset.xml
 
 # PCLZip conflict (WordPress.org requirement)
 vendor-prefixed/phpoffice/phpword/src/PhpWord/Shared/PCLZip/

@@ -2323,9 +2323,9 @@ class SScribe_Batch_Processor {
 			if ( function_exists( 'set_time_limit' ) ) {
 				// JUSTIFICATION: Cap download execution time to prevent indefinite PHP process occupation on shared hosting.
 				// Without this, large ZIP downloads could tie up a PHP process indefinitely, affecting other sites on the server.
-				// The 5-minute cap (300s) is generous for any reasonable ZIP file size. Wrapped in function_exists() for safe degradation.
+				// The 6-minute cap (360s) is generous for any reasonable ZIP file size. Wrapped in function_exists() for safe degradation.
 				// phpcs:ignore Squiz.PHP.DiscouragedFunctions.Discouraged
-@set_time_limit( 360 );
+				@set_time_limit( 360 );
 			}
 
 		// phpcs:ignore WordPress.WP.AlternativeFunctions.file_system_operations_readfile -- Direct download
