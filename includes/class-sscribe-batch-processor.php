@@ -1031,12 +1031,14 @@ class SScribe_Batch_Processor {
 
 		$current_page_title      = '';
 		$batch_start_time        = microtime( true );
-		$memory_paused           = false; // Track if batch was paused due to memory.
-		$timeout_paused          = false; // Track if batch was paused due to timeout.
+		$memory_paused           = false;
+		$timeout_paused          = false;
 		$processed_in_this_batch = 0;
+		$current_batch_page_id   = null;
 
 		try {
 			foreach ( $batch as $page_id ) {
+				$current_batch_page_id = $page_id;
 				// Timeout check - pause batch if approaching PHP max_execution_time.
 				// This prevents fatal timeout errors during batch processing.
 				$timeout_buffer = (int) apply_filters( 'sscribe_timeout_buffer_seconds', 15 );
@@ -1388,7 +1390,6 @@ class SScribe_Batch_Processor {
 				// garbage collected between batch iterations due to circular references.
 				$page_data = null;
 				$exporter  = null;
-				unset( $page_data, $exporter );
 
 				++$processed;
 				++$processed_in_this_batch;
@@ -1418,7 +1419,7 @@ class SScribe_Batch_Processor {
 				'Batch processing failed uncaught',
 				array(
 					'error'       => $e->getMessage(),
-					'page_id'     => $page_id ?? 'unknown',
+					'page_id'     => $current_batch_page_id ?? 'unknown',
 					'processed'   => $processed,
 					'memory_used' => size_format( memory_get_usage( true ) ),
 				)
@@ -1454,42 +1455,17 @@ class SScribe_Batch_Processor {
 		if ( $errors_trimmed ) {
 			$trimmed_count = $total_errors - self::MAX_STORED_ERRORS;
 			$errors        = array_slice( $errors, 0, self::MAX_STORED_ERRORS );
-			$errors[]      = sprintf(
-				/* translators: %d: Number of additional errors not stored. */
-				__( '... and %d more errors occurred (see export log for full details).', 'sscribe-export-site-pages' ),
-				$trimmed_count
-			);
 			$this->logger->warning(
 				'Error array capped to prevent memory exhaustion',
 				array(
 					'stored'  => self::MAX_STORED_ERRORS,
 					'trimmed' => $trimmed_count,
 					'total'   => $total_errors,
-				)
-			);
-		}
-
-		if ( $structured_errors_trimmed ) {
-			$trimmed_count       = $total_structured_errors - self::MAX_STORED_ERRORS;
-			$structured_errors   = array_slice( $structured_errors, 0, self::MAX_STORED_ERRORS );
-			$structured_errors[] = array(
-				'page_id'     => 0,
-				'page_title'  => __( 'Summary', 'sscribe-export-site-pages' ),
-				'message'     => sprintf(
-					/* translators: %d: Number of additional structured errors not stored. */
-					__( '%d additional errors occurred — full details available in the export log.', 'sscribe-export-site-pages' ),
-					$trimmed_count
-				),
-				'errors'      => array(),
-				'diagnostics' => array(),
-				'time'        => current_time( 'mysql' ),
-			);
-			$this->logger->warning(
-				'Structured error array capped to prevent memory exhaustion',
-				array(
-					'stored'  => self::MAX_STORED_ERRORS,
-					'trimmed' => $trimmed_count,
-					'total'   => $total_structured_errors,
+					'message' => sprintf(
+						/* translators: %d: Number of additional errors not stored. */
+						__( '... and %d more errors occurred (see export log for full details).', 'sscribe-export-site-pages' ),
+						$trimmed_count
+					),
 				)
 			);
 		}
@@ -2325,7 +2301,7 @@ class SScribe_Batch_Processor {
 			header( 'Expires: 0' );
 			header( 'X-Content-Type-Options: nosniff' );
 
-			if ( ob_get_level() ) {
+			while ( ob_get_level() ) {
 				ob_end_clean();
 			}
 
@@ -2349,7 +2325,7 @@ class SScribe_Batch_Processor {
 				// Without this, large ZIP downloads could tie up a PHP process indefinitely, affecting other sites on the server.
 				// The 5-minute cap (300s) is generous for any reasonable ZIP file size. Wrapped in function_exists() for safe degradation.
 				// phpcs:ignore Squiz.PHP.DiscouragedFunctions.Discouraged
-				@set_time_limit( 300 );
+@set_time_limit( 360 );
 			}
 
 		// phpcs:ignore WordPress.WP.AlternativeFunctions.file_system_operations_readfile -- Direct download

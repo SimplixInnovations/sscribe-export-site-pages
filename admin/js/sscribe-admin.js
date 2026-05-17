@@ -630,11 +630,9 @@
 							var timeStr = '';
 							if (minutes > 0) {
 								timeStr =
-									minutes +
-									' ' +
-									(strings.min_sec_remaining
-										? strings.min_sec_remaining.replace('%s', seconds)
-										: 'min ' + seconds + ' sec remaining');
+									strings.min_sec_remaining
+										? strings.min_sec_remaining.replace( '%1$d', minutes ).replace( '%2$d', seconds )
+										: minutes + ' min ' + seconds + ' sec remaining';
 							} else {
 								timeStr = seconds + ' ' + (strings.sec_remaining || 'sec remaining');
 							}
@@ -732,7 +730,7 @@
 
 			$('#sscribe-status-text').text(sscribe_data.strings.packaging || 'Packaging files into ZIP archive...');
 
-			var maxAttempts = 150; // 150 × 2s = 300s max wait for ZIP finalization — matches PHP set_time_limit(300).
+			var maxAttempts = 180;
 			var self = this;
 
 			setTimeout(function () {
@@ -1500,6 +1498,21 @@
 			var $content = $('#sscribe-preview-content');
 
 			$panel.removeClass('sscribe-hidden');
+
+			var panel = $panel[0];
+			this.trapFocus(panel);
+			var closeBtn = panel.querySelector('#sscribe-preview-close');
+			if (closeBtn) {
+				closeBtn.focus();
+			}
+			var self = this;
+			var escapeHandler = function (e) {
+				if (e.key === 'Escape') {
+					self.closePreview();
+				}
+			};
+			panel._sscribeEscapeHandler = escapeHandler;
+			panel.addEventListener('keydown', escapeHandler);
 			$content.html(
 				'<div class="sscribe-preview-loading"><span class="sscribe-loading-spinner"></span><span>' +
 					(sscribe_data.strings.generating_preview || 'Generating preview...') +
@@ -1676,6 +1689,15 @@
 		},
 
 		closePreview: function () {
+			var panel = $('#sscribe-preview-panel')[0];
+			if (panel && panel._sscribeEscapeHandler) {
+				panel.removeEventListener('keydown', panel._sscribeEscapeHandler);
+				panel._sscribeEscapeHandler = null;
+			}
+			if (panel && panel._sscribeTrapHandler) {
+				panel.removeEventListener('keydown', panel._sscribeTrapHandler);
+				panel._sscribeTrapHandler = null;
+			}
 			$('#sscribe-preview-panel').addClass('sscribe-hidden');
 			this.restoreFocus();
 		},

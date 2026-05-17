@@ -340,14 +340,14 @@ $sscribe_is_debug        = $sscribe_is_debug ?? false;
 						</button>
 						<span id="sscribe-preview-btn-hint" class="screen-reader-text"><?php esc_html_e( 'Preview what your export will look like before generating', 'sscribe-export-site-pages' ); ?></span>
 						<button type="button" id="sscribe-export-btn" class="sscribe-button sscribe-button-primary sscribe-btn-lg" disabled aria-describedby="sscribe-export-btn-hint">
-							
+							<?php echo SScribe_Helpers::get_icon( 'download-package', 16 ); ?>
 							<span id="sscribe-export-btn-text"><?php esc_html_e( 'Generate Package', 'sscribe-export-site-pages' ); ?></span>
 						</button>
 						<span id="sscribe-export-btn-hint" class="screen-reader-text"><?php esc_html_e( 'Start the export process for selected pages and format', 'sscribe-export-site-pages' ); ?></span>
 					</div>
 				</div>
 
-				<div id="sscribe-preview-panel" class="sscribe-modal sscribe-hidden" role="dialog" aria-modal="true" aria-labelledby="sscribe-preview-title">
+				<div id="sscribe-preview-panel" class="sscribe-modal sscribe-hidden" role="dialog" aria-modal="true" aria-labelledby="sscribe-preview-title" aria-describedby="sscribe-preview-desc">
 					<div class="sscribe-modal-content" role="document" style="max-width: 800px; max-height: 85vh;">
 					<div class="sscribe-modal-header">
 						<h3 id="sscribe-preview-title">
@@ -365,6 +365,7 @@ $sscribe_is_debug        = $sscribe_is_debug ?? false;
 							<span><?php esc_html_e( 'Generating preview...', 'sscribe-export-site-pages' ); ?></span>
 						</div>
 					</div>
+					<span id="sscribe-preview-desc" class="screen-reader-text"><?php esc_html_e( 'Export preview showing selected configuration and estimated output', 'sscribe-export-site-pages' ); ?></span>
 				</div>
 			</div>
 		</div>
@@ -513,8 +514,8 @@ $sscribe_is_debug        = $sscribe_is_debug ?? false;
 						<p><?php esc_html_e( 'All exported ZIP archives are automatically purged from your server after 72 hours.', 'sscribe-export-site-pages' ); ?></p>
 						<p><?php esc_html_e( 'Data generation happens in batched cycles to ensure reliable conversion without hitting PHP limits.', 'sscribe-export-site-pages' ); ?></p>
 					</div>
+<span id="sscribe-preview-desc" class="screen-reader-text"><?php esc_html_e( 'Export preview showing selected configuration and estimated output', 'sscribe-export-site-pages' ); ?></span>
 				</div>
-		</div>
 
 		
 <div class="sscribe-tab-content" id="sscribe-tab-docs">

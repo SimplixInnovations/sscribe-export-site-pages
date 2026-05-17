@@ -293,7 +293,7 @@ class SScribe_Export_Log {
 		// Maps ZIP filename → session_id to avoid O(n) scan in get_log_by_filename().
 		if ( ! empty( $data['zip_file'] ) ) {
 			$index_key = 'sscribe_zip_index_' . md5( $data['zip_file'] );
-			set_transient( $index_key, $this->session_id, 7 * DAY_IN_SECONDS );
+			set_transient( $index_key, $this->session_id, 30 * DAY_IN_SECONDS );
 		}
 	}
 
@@ -475,7 +475,7 @@ class SScribe_Export_Log {
 					if ( is_array( $data ) && isset( $data['zip_file'] ) && $data['zip_file'] === $filename ) {
 						// Cache for future lookups.
 						if ( isset( $data['session_id'] ) ) {
-							set_transient( $index_key, $data['session_id'], 7 * DAY_IN_SECONDS );
+							set_transient( $index_key, $data['session_id'], 30 * DAY_IN_SECONDS );
 						}
 						return $data;
 					}
