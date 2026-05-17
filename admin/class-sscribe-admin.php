@@ -274,8 +274,8 @@ class SScribe_Admin {
 					'minute'              => __( 'minute', 'sscribe-export-site-pages' ),
 					'seconds'             => __( 'seconds', 'sscribe-export-site-pages' ),
 					'sec_remaining'       => __( 'sec remaining', 'sscribe-export-site-pages' ),
-					// translators: %s: seconds remaining.
-					'min_sec_remaining'   => __( 'min %s sec remaining', 'sscribe-export-site-pages' ),
+					// translators: 1: minutes, 2: seconds.
+					'min_sec_remaining'   => __( '%1$d min %2$d sec remaining', 'sscribe-export-site-pages' ),
 					'hour_suffix'         => __( 'h', 'sscribe-export-site-pages' ),
 					'minute_suffix'       => __( 'm', 'sscribe-export-site-pages' ),
 					'log_total'           => __( 'Total:', 'sscribe-export-site-pages' ),

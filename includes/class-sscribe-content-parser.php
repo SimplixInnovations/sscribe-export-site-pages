@@ -188,7 +188,6 @@ class SScribe_Content_Parser {
 			$dom->loadHTML( $wrapped, LIBXML_HTML_NOIMPLIED | LIBXML_HTML_NODEFDTD );
 
 			libxml_clear_errors();
-			libxml_use_internal_errors( $prev_use_errors );
 
 			$body = $dom->getElementsByTagName( 'body' )->item( 0 );
 			if ( ! $body ) {
@@ -216,11 +215,6 @@ class SScribe_Content_Parser {
 			return $elements;
 
 		} catch ( \Throwable $e ) {
-			// Ensure libxml state is ALWAYS restored on ANY error (fatal or exception).
-			libxml_clear_errors();
-			libxml_use_internal_errors( $prev_use_errors );
-
-			// Re-throw so caller handles it.
 			throw $e;
 
 		} finally {

@@ -366,6 +366,7 @@ class SScribe_Session {
 		$data = $this->get( $session_id );
 		if ( is_array( $data ) && isset( $data['user_id'] ) ) {
 			delete_transient( 'sscribe_active_sid_' . $data['user_id'] );
+			unset( self::$active_session_cache[ (int) $data['user_id'] ] );
 		}
 
 		return delete_option( $option_name );
@@ -549,6 +550,7 @@ class SScribe_Session {
 		}
 
 		delete_transient( 'sscribe_active_sid_' . $user_id );
+		unset( self::$active_session_cache[ $user_id ] );
 
 		return $deleted;
 	}
@@ -707,7 +709,7 @@ class SScribe_Session {
 				continue;
 			}
 
-			$data = maybe_unserialize( $option->option_value );
+			$data = unserialize( $option->option_value, array( 'allowed_classes' => false ) );
 
 			if ( ! is_array( $data ) ) {
 				continue;
