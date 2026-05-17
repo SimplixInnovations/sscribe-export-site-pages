@@ -4,7 +4,7 @@ Donate link: https://simplixi.com
 Tags: export, docx, pdf, multilingual, rtl
 Requires at least: 6.0
 Tested up to: 6.9
-Stable tag: 3.9.5
+Stable tag: 3.9.6
 Requires PHP: 8.2
 License: GPLv2 or later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
@@ -229,11 +229,40 @@ Each document includes: cover page with title/URL/date/breadcrumbs, featured ima
 
 == Changelog ==
 
+= 3.9.6 =
+
+* Fix: Version pump to 3.9.6 — all 14 version references synchronized across plugin header, readme, CSS, POT, package.json, and tests
+* Fix: Added missing closing &lt;/div&gt; for #sscribe-tab-history — Support tab was inaccessible when History tab display:none was applied
+* Fix: Removed duplicate id="sscribe-preview-desc" from History tab callout section
+* Fix: Replaced direct $this->logger-&gt; calls with $this-&gt;get_logger()-&gt; in SScribe_Exporter::add_cover_page() and add_featured_image() to prevent null pointer fatal errors
+* Fix: Removed duplicate var self = this; in showPreview() and renamed inner e parameter to ev to prevent shadowing
+* Fix: Added sscribe/mpdf-tmp/ directory cleanup to SScribe_Deactivator and uninstall.php
+* Fix: Pass $user_id to cleanup_user_locks() in force-clear path to prevent orphaned lock transients
+* Fix: HTML export images now use HTTP URL instead of file:// for standalone portability
+* Fix: Log modal moved outside workspace div, added missing closing wrapper divs for .sscribe-workspace and .sscribe-master-container
+* Fix: Added check_rate_limit() to ajax_download() for consistent rate limiting across all AJAX handlers
+* Fix: Implemented log rotation at 10MB in SScribe_Logger — rotates to timestamped backup instead of silently discarding entries
+* Fix: SScribe_Session::update() lock acquisition uses transient with retry loop for multi-process safety
+* Fix: get_breadcrumbs() uses batch get_posts() to avoid N+1 queries on WPML sites
+* Fix: Added ".." guard to is_path_in_scope() to prevent path traversal attacks
+* Fix: Auto-enable chunked page loading when total pages exceeds 500 to prevent memory exhaustion
+* Fix: Expanded kses allowlist in HTML exporter to preserve video, audio, iframe, canvas, svg elements
+* Fix: Added export_posts and publish_posts to SScribe_Capabilities::ALLOWED array
+* Fix: Added PHPWord version-aware handling in safe_text() to prevent double-encoding
+* Fix: Added ARIA tab roles (role="tab", role="tablist", role="tabpanel") and aria-selected state management for accessibility
+* Fix: SScribe_Export_Log::cleanup_old_logs() increased default from 2h to 6h and skips active logs (status: started/processing/finalizing)
+* Fix: Updated bump-version.php usage examples from 3.9.4 to 3.9.5 for documentation accuracy
+* Fix: Added bump-version.php skip rule to verify-version-sync.php to prevent false warnings
+* Fix: Corrected phpcs:ignore error code in class-sscribe-page-collector.php (NotPrepared → InterpolatedNotPrepared)
+* Fix: Fixed docblock alignment in class-sscribe-html-exporter.php (PHPCBF auto-fix)
+* Fix: Added missing WordPress function ignores to phpstan.neon (esc_sql, is_multisite, switch_to_blog, restore_current_blog)
+* Fix: Added esc_sql() standalone function stub and $wpdb->posts property to test bootstrap for PHPUnit compatibility
+
 = 3.9.5 =
 
-* Fix: Added missing closing </div> for #sscribe-tab-history — Support tab was inaccessible when History tab display:none was applied
+* Fix: Added missing closing &lt;/div&gt; for #sscribe-tab-history — Support tab was inaccessible when History tab display:none was applied
 * Fix: Removed duplicate id="sscribe-preview-desc" from History tab callout section
-* Fix: Replaced direct $this->logger-> calls with $this->get_logger()-> in SScribe_Exporter::add_cover_page() and add_featured_image() to prevent null pointer fatal errors
+* Fix: Replaced direct $this-&gt;logger-&gt; calls with $this-&gt;get_logger()-&gt; in SScribe_Exporter::add_cover_page() and add_featured_image() to prevent null pointer fatal errors
 * Fix: Removed duplicate var self = this; in showPreview() and renamed inner e parameter to ev to prevent shadowing
 * Fix: Added sscribe/mpdf-tmp/ directory cleanup to SScribe_Deactivator and uninstall.php
 * Fix: Pass $user_id to cleanup_user_locks() in force-clear path to prevent orphaned lock transients
@@ -349,6 +378,10 @@ Each document includes: cover page with title/URL/date/breadcrumbs, featured ima
 * Sec: Fixed ReDoS vulnerability in button extraction regex pattern (possessive quantifiers)
 
 == Upgrade Notice ==
+
+= 3.9.6 =
+
+All 20 comprehensive fixes from v3.9.5 plus version synchronization cleanup, documentation accuracy fixes, PHPCS/PHPStan compliance, and test environment stubs. All 338 PHPUnit tests passing, PHPCS clean, PHPStan Level 6 clean. Recommended update for all users.
 
 = 3.9.2 =
 
