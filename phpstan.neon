@@ -23,6 +23,7 @@ parameters:
         - '#addCell\(\) expects int#'
         - '#array_map expects.*sanitize_text_field#'
         - '#array_map expects.*absint#'
+        - '#array_map expects.*esc_sql#'
         - '#If condition is always true\.#'
         - '#Ternary operator condition is always true\.#'
         - '#If condition is always false\.#'
@@ -45,6 +46,8 @@ parameters:
         - '#Right side of \|\| is always false\.#'
         - '#Negated boolean expression is always true\.#'
         - '#Function has_action not found\.#'
+        - '#Function esc_sql not found\.#'
+        - '#Function (is_multisite|switch_to_blog|restore_current_blog) not found\.#'
         # PHPStan cannot resolve private static self:: calls within same class (false positive).
         - '#Call to an undefined static method SScribe_Deactivator::cleanup_transients\(\)\.#'
         # Level 6: iterable value types for WordPress API arrays are impractical to annotate.

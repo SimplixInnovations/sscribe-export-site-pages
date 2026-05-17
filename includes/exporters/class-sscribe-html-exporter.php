@@ -122,7 +122,7 @@ class SScribe_HTML_Exporter implements SScribe_Exporter_Interface {
 		}
 	}
 
-/**
+	/**
 	 * Generate HTML content for a page.
 	 *
 	 * For standalone HTML exports, we apply a more permissive content filter

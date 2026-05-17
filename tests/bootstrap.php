@@ -459,6 +459,13 @@ if ( ! function_exists( 'current_time' ) ) {
 	}
 }
 
+if ( ! function_exists( 'esc_sql' ) ) {
+	function esc_sql( $data ) {
+		global $wpdb;
+		return $wpdb->esc_sql( $data );
+	}
+}
+
 if ( ! function_exists( 'sanitize_text_field' ) ) {
 	function sanitize_text_field( $str ) {
 		return strip_tags( $str );
@@ -512,10 +519,11 @@ $sscribe_test_is_admin         = true;
 $sscribe_test_doing_ajax       = false;
 $sscribe_test_ajax_nonce_valid = true;
 
-if ( ! class_exists( 'wpdb' ) ) {
+	if ( ! class_exists( 'wpdb' ) ) {
 	class wpdb {
 		public string $prefix = 'wp_';
 		public string $options = 'wp_options';
+		public string $posts = 'wp_posts';
 
 		public function __construct( $dbuser = '', $dbpassword = '', $dbname = '', $dbhost = '' ) {
 		}

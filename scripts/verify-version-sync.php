@@ -178,6 +178,10 @@ if ( $canonical_version ) {
 			if ( 'verify-version-sync.php' === basename( $f ) ) {
 				continue;
 			}
+			// Skip bump-version.php — usage examples (e.g., "php scripts/bump-version.php 3.9.6") are intentional documentation.
+			if ( 'bump-version.php' === basename( $f ) ) {
+				continue;
+			}
 			// Skip sscribe-export-site-pages.php — deprecation comments reference historical versions (e.g., REMOVED in v3.7.6).
 			if ( 'sscribe-export-site-pages.php' === basename( $f ) ) {
 				continue;

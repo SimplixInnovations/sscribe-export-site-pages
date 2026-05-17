@@ -4,6 +4,22 @@ All notable changes to this project will be documented in this file.
 
 ## [Unreleased]
 
+## [3.9.6] - 2026-05-18
+
+### Fixed
+- Version pump to 3.9.6 — all 14 version references synchronized across plugin header, readme, CSS, POT, package.json, and tests
+- Close missing workspace/master-container divs and move log-modal outside workspace for correct DOM nesting
+- Updated bump-version.php usage examples from 3.9.4 to 3.9.5 for documentation accuracy
+- Added bump-version.php skip rule to verify-version-sync.php to prevent false warnings
+- Added missing 3.9.5 upgrade notice to readme.txt
+- Corrected phpcs:ignore error code in class-sscribe-page-collector.php (NotPrepared → InterpolatedNotPrepared)
+- Fixed docblock alignment in class-sscribe-html-exporter.php (PHPCBF auto-fix)
+- Added missing WordPress function ignores to phpstan.neon (esc_sql, is_multisite, switch_to_blog, restore_current_blog)
+- Added esc_sql() standalone function stub and `$wpdb->posts` property to test bootstrap for PHPUnit compatibility
+
+### Changed
+- All 338 PHPUnit tests passing, PHPCS clean, PHPStan Level 6 clean
+
 ## [3.7.7] - 2026-05-13
 
 ### Changed

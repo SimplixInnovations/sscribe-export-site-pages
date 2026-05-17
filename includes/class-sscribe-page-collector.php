@@ -206,10 +206,11 @@ class SScribe_Page_Collector {
 			$status_clause = " AND post_status = '" . esc_sql( $post_status ) . "'";
 		}
 
-		// phpcs:ignore WordPress.DB.PreparedSQL.NotPrepared, WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- Count query for auto-detection; caching not needed.
+		// phpcs:disable WordPress.DB.PreparedSQL.InterpolatedNotPrepared, WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- Count query for auto-detection; caching not needed.
 		$count = (int) $wpdb->get_var(
 			"SELECT COUNT(*) FROM {$wpdb->posts} WHERE {$post_type_clause}{$status_clause}"
 		);
+		// phpcs:enable
 
 		return $count;
 	}
