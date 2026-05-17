@@ -133,10 +133,20 @@ class SScribe_Security {
 	 * production (wp-content/uploads) and test (sys_get_temp_dir) environments.
 	 * Relies on wp_upload_dir() to define the valid boundary.
 	 *
+	 * SECURITY: Normalizes path separators and checks for parent-directory
+	 * traversal attacks before comparison. Paths containing ".." segments
+	 * that would escape the uploads scope are rejected.
+	 *
 	 * @param string $path Absolute path to check.
 	 * @return bool True if the path is in scope.
 	 */
 	private static function is_path_in_scope( string $path ): bool {
+		// Reject paths with parent-directory traversal sequences.
+		// This prevents /uploads/../etc/passwd from passing the scope check.
+		if ( str_contains( $path, '..' ) ) {
+			return false;
+		}
+
 		$upload_dir = wp_upload_dir();
 		$base_dir   = trailingslashit( $upload_dir['basedir'] );
 

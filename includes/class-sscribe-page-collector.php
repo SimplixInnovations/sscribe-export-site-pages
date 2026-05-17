@@ -77,15 +77,32 @@ class SScribe_Page_Collector {
 	/**
 	 * Get all published page/post IDs, optionally filtered by language, status, and post type.
 	 *
+	 * Uses chunked loading automatically when the estimated page count exceeds 500
+	 * to prevent large memory allocations on sites with thousands of pages.
+	 * The chunked generator yields batches of 500 IDs at a time, keeping memory
+	 * usage bounded regardless of total page count.
+	 *
+	 * The sscribe_use_chunked_page_ids filter can force enable/disable for specific setups.
+	 *
 	 * @param string $language    Optional WPML language code (e.g., 'en', 'ar'). Empty = all languages.
 	 * @param string $post_status Optional post status (publish, draft, private, future, pending, all).
 	 * @param string $post_type   Post type: 'page', 'post', or 'any' for both.
 	 * @return array Array of page/post IDs.
 	 */
 	public function get_page_ids( string $language = '', string $post_status = 'publish', string $post_type = 'page' ): array {
-		$use_chunked = (bool) apply_filters( 'sscribe_use_chunked_page_ids', false );
+		// Respect filter override if explicitly set (allows forcing on/off for specific setups).
+		$filter_value = apply_filters( 'sscribe_use_chunked_page_ids', null );
+		if ( null !== $filter_value && false === $filter_value ) {
+			// Filter explicitly disabled — use standard query.
+			return $this->get_page_ids_direct( $language, $post_status, $post_type );
+		}
 
-		if ( $use_chunked && function_exists( 'add_filter' ) ) {
+		// Auto-enable chunked loading when total exceeds 500 pages to prevent memory exhaustion.
+		// Uses a quick COUNT query to estimate total without loading all IDs.
+		$estimated_count = $this->estimate_page_count( $language, $post_status, $post_type );
+		$use_chunked     = $estimated_count > 500;
+
+		if ( $filter_value || $use_chunked ) {
 			$all_ids = array();
 			foreach ( $this->get_page_ids_chunked( $language, $post_status, $post_type, 500 ) as $chunk ) {
 				$all_ids = array_merge( $all_ids, $chunk );
@@ -93,6 +110,18 @@ class SScribe_Page_Collector {
 			return $all_ids;
 		}
 
+		return $this->get_page_ids_direct( $language, $post_status, $post_type );
+	}
+
+	/**
+	 * Get page IDs using direct query (no chunking).
+	 *
+	 * @param string $language    Optional WPML language code.
+	 * @param string $post_status Optional post status.
+	 * @param string $post_type   Post type.
+	 * @return array Array of page/post IDs.
+	 */
+	private function get_page_ids_direct( string $language, string $post_status, string $post_type ): array {
 		$post_status = $this->validate_post_status( $post_status );
 
 		$args = array(
@@ -149,6 +178,40 @@ class SScribe_Page_Collector {
 		}
 
 		return $page_ids;
+	}
+
+	/**
+	 * Estimate total page count for auto-enable chunked loading decision.
+	 *
+	 * Uses a quick SELECT COUNT query to estimate total pages without
+	 * loading all IDs into memory. This enables intelligent chunking
+	 * decisions based on actual site size.
+	 *
+	 * @param string $language    Optional WPML language code.
+	 * @param string $post_status Optional post status.
+	 * @param string $post_type   Post type.
+	 * @return int Estimated page count (minimum 0).
+	 */
+	private function estimate_page_count( string $language, string $post_status, string $post_type ): int {
+		global $wpdb;
+
+		$post_status = $this->validate_post_status( $post_status );
+		$post_types  = $this->resolve_post_type_for_query( $post_type );
+		$post_type_clause = is_array( $post_types )
+			? "post_type IN ('" . implode( "','", array_map( 'esc_sql', $post_types ) ) . "')"
+			: "post_type = '" . esc_sql( $post_types ) . "'";
+
+		$status_clause = '';
+		if ( 'all' !== $post_status ) {
+			$status_clause = " AND post_status = '" . esc_sql( $post_status ) . "'";
+		}
+
+		// phpcs:ignore WordPress.DB.PreparedSQL.NotPrepared, WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- Count query for auto-detection; caching not needed.
+		$count = (int) $wpdb->get_var(
+			"SELECT COUNT(*) FROM {$wpdb->posts} WHERE {$post_type_clause}{$status_clause}"
+		);
+
+		return $count;
 	}
 
 	/**
@@ -701,6 +764,10 @@ class SScribe_Page_Collector {
 	/**
 	 * Get breadcrumb trail for a page.
 	 *
+	 * Uses batch query to reduce N+1 queries on WPML sites.
+	 * Instead of querying each ancestor individually, fetches all
+	 * ancestor titles and permalinks in a single query via get_posts().
+	 *
 	 * @param int $page_id The page ID.
 	 * @return array Array of breadcrumb items with title and url.
 	 */
@@ -714,16 +781,43 @@ class SScribe_Page_Collector {
 
 		if ( $ancestors ) {
 			$ancestors = array_reverse( $ancestors );
+
+			// Batch fetch all ancestor posts to avoid N+1 queries on WPML sites.
+			// This reduces ~15 queries per page (for 5-level hierarchy) down to 1.
+			$ancestor_posts = get_posts(
+				array(
+					'post__in'    => $ancestors,
+					'post_type'   => get_post_type( $page_id ),
+					'post_status' => 'publish',
+					'fields'      => 'all',
+					'orderby'     => 'post__in',
+					'order'       => 'ASC',
+				)
+			);
+
+			// Build a map of ID => post for O(1) lookup.
+			$ancestor_map = array();
+			foreach ( $ancestor_posts as $ancestor_post ) {
+				$ancestor_map[ $ancestor_post->ID ] = $ancestor_post;
+			}
+
 			foreach ( $ancestors as $ancestor_id ) {
+				if ( ! isset( $ancestor_map[ $ancestor_id ] ) ) {
+					continue;
+				}
+
 				$ancestor_lang = $this->get_page_language( $ancestor_id );
 				if ( $this->is_wpml_active() && ! empty( $ancestor_lang ) ) {
 					// phpcs:ignore WordPress.NamingConventions.PrefixAllGlobals.NonPrefixedHooknameFound -- WPML hook.
 					do_action( 'wpml_switch_language', $ancestor_lang );
 				}
+
+				$ancestor_post = $ancestor_map[ $ancestor_id ];
 				$breadcrumbs[] = array(
-					'title' => html_entity_decode( get_the_title( $ancestor_id ), ENT_QUOTES | ENT_HTML5, 'UTF-8' ),
+					'title' => html_entity_decode( $ancestor_post->post_title, ENT_QUOTES | ENT_HTML5, 'UTF-8' ),
 					'url'   => get_permalink( $ancestor_id ),
 				);
+
 				if ( $this->is_wpml_active() ) {
 					// phpcs:ignore WordPress.NamingConventions.PrefixAllGlobals.NonPrefixedHooknameFound -- WPML hook.
 					do_action( 'wpml_switch_language', null );

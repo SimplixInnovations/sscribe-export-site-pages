@@ -56,22 +56,22 @@ $sscribe_is_debug        = $sscribe_is_debug ?? false;
 	<div id="sscribe-alert-region" class="screen-reader-text" aria-live="assertive" aria-atomic="true"></div>
 
 	<div class="sscribe-workspace sscribe-flat-workspace" id="sscribe-main-content" role="main">
-		<nav class="sscribe-tabs-nav" aria-label="<?php esc_attr_e( 'Main Navigation', 'sscribe-export-site-pages' ); ?>">
-			<button type="button" class="sscribe-tab-btn sscribe-tab-active" data-tab="export">
+		<nav class="sscribe-tabs-nav" role="tablist" aria-label="<?php esc_attr_e( 'Main Navigation', 'sscribe-export-site-pages' ); ?>">
+			<button type="button" class="sscribe-tab-btn sscribe-tab-active" id="sscribe-tab-btn-export" data-tab="export" role="tab" aria-selected="true" aria-controls="sscribe-tab-export">
 				<?php echo SScribe_Helpers::get_icon( 'settings', 16 ); // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped ?>
 				<?php esc_html_e( 'Export', 'sscribe-export-site-pages' ); ?>
 			</button>
-			<button type="button" class="sscribe-tab-btn" data-tab="history">
+			<button type="button" class="sscribe-tab-btn" id="sscribe-tab-btn-history" data-tab="history" role="tab" aria-selected="false" aria-controls="sscribe-tab-history">
 				<?php echo SScribe_Helpers::get_icon( 'clock', 16 ); // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped ?>
 				<?php esc_html_e( 'History', 'sscribe-export-site-pages' ); ?>
 			</button>
-			<button type="button" class="sscribe-tab-btn" data-tab="docs">
+			<button type="button" class="sscribe-tab-btn" id="sscribe-tab-btn-docs" data-tab="docs" role="tab" aria-selected="false" aria-controls="sscribe-tab-docs">
 				<?php echo SScribe_Helpers::get_icon( 'info', 16 ); // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped ?>
 				<?php esc_html_e( 'Support', 'sscribe-export-site-pages' ); ?>
 			</button>
 		</nav>
 
-		<div class="sscribe-tab-content sscribe-tab-active" id="sscribe-tab-export">
+		<div class="sscribe-tab-content sscribe-tab-active" id="sscribe-tab-export" role="tabpanel" aria-labelledby="sscribe-tab-btn-export">
 
 <section class="sscribe-panel sscribe-config-panel">
 			<div class="sscribe-panel-header">
@@ -454,7 +454,7 @@ $sscribe_is_debug        = $sscribe_is_debug ?? false;
 
 		</div>
 
-		<div class="sscribe-tab-content" id="sscribe-tab-history">
+		<div class="sscribe-tab-content" id="sscribe-tab-history" role="tabpanel" aria-labelledby="sscribe-tab-btn-history">
 			<section class="sscribe-panel">
 					<div class="sscribe-panel-header">
 						<div class="sscribe-panel-title">
@@ -505,21 +505,9 @@ $sscribe_is_debug        = $sscribe_is_debug ?? false;
 						<?php endif; ?>
 					</div>
 				</section>
-				<div class="sscribe-callout">
-					<div class="sscribe-callout-header">
-						<?php // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- SVG sanitized in get_icon(). ?>
-						<?php echo SScribe_Helpers::get_icon( 'info', 18 ); ?>
-						<strong><?php esc_html_e( 'System Security Tips', 'sscribe-export-site-pages' ); ?></strong>
-					</div>
-					<div class="sscribe-callout-body">
-						<p><?php esc_html_e( 'All exported ZIP archives are automatically purged from your server after 72 hours.', 'sscribe-export-site-pages' ); ?></p>
-						<p><?php esc_html_e( 'Data generation happens in batched cycles to ensure reliable conversion without hitting PHP limits.', 'sscribe-export-site-pages' ); ?></p>
-					</div>
-<span id="sscribe-preview-desc" class="screen-reader-text"><?php esc_html_e( 'Export preview showing selected configuration and estimated output', 'sscribe-export-site-pages' ); ?></span>
-				</div>
+			</div>
 
-		
-<div class="sscribe-tab-content" id="sscribe-tab-docs">
+			<div class="sscribe-tab-content" id="sscribe-tab-docs" role="tabpanel" aria-labelledby="sscribe-tab-btn-docs">
 	<div class="sscribe-support-master">
 		<div class="sscribe-support-sidebar">
 			<div class="sscribe-support-header">

@@ -4,7 +4,7 @@ Donate link: https://simplixi.com
 Tags: export, docx, pdf, multilingual, rtl
 Requires at least: 6.0
 Tested up to: 6.9
-Stable tag: 3.9.4
+Stable tag: 3.9.5
 Requires PHP: 8.2
 License: GPLv2 or later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
@@ -228,6 +228,27 @@ Each document includes: cover page with title/URL/date/breadcrumbs, featured ima
 5. SEO Metadata Section - Meta title, description, focus keyword, and canonical URL from SEO plugins
 
 == Changelog ==
+
+= 3.9.5 =
+
+* Fix: Added missing closing </div> for #sscribe-tab-history — Support tab was inaccessible when History tab display:none was applied
+* Fix: Removed duplicate id="sscribe-preview-desc" from History tab callout section
+* Fix: Replaced direct $this->logger-> calls with $this->get_logger()-> in SScribe_Exporter::add_cover_page() and add_featured_image() to prevent null pointer fatal errors
+* Fix: Removed duplicate var self = this; in showPreview() and renamed inner e parameter to ev to prevent shadowing
+* Fix: Added sscribe/mpdf-tmp/ directory cleanup to SScribe_Deactivator and uninstall.php
+* Fix: Pass $user_id to cleanup_user_locks() in force-clear path to prevent orphaned lock transients
+* Fix: HTML export images now use HTTP URL instead of file:// for standalone portability
+* Fix: Added check_rate_limit() to ajax_download() for consistent rate limiting across all AJAX handlers
+* Fix: Implemented log rotation at 10MB in SScribe_Logger — rotates to timestamped backup instead of silently discarding entries
+* Fix: SScribe_Session::update() lock acquisition uses transient with retry loop for multi-process safety
+* Fix: get_breadcrumbs() uses batch get_posts() to avoid N+1 queries on WPML sites
+* Fix: Added ".." guard to is_path_in_scope() to prevent path traversal attacks
+* Fix: Auto-enable chunked page loading when total pages exceeds 500 to prevent memory exhaustion
+* Fix: Expanded kses allowlist in HTML exporter to preserve video, audio, iframe, canvas, svg elements
+* Fix: Added export_posts and publish_posts to SScribe_Capabilities::ALLOWED array
+* Fix: Added PHPWord version-aware handling in safe_text() to prevent double-encoding
+* Fix: Added ARIA tab roles (role="tab", role="tablist", role="tabpanel") and aria-selected state management for accessibility
+* Fix: SScribe_Export_Log::cleanup_old_logs() increased default from 2h to 6h and skips active logs (status: started/processing/finalizing)
 
 = 3.9.4 =
 

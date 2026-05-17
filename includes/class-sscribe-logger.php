@@ -347,6 +347,10 @@ class SScribe_Logger implements SScribe_Logger_Interface {
 	/**
 	 * Flush buffered logs to the filesystem.
 	 *
+	 * Implements log rotation: when the file exceeds MAX_LOG_FILE_SIZE,
+	 * the current log is renamed to a timestamped backup and a fresh
+	 * log is started. A warning entry is written to indicate truncation.
+	 *
 	 * @return void
 	 */
 	public function flush(): void {
@@ -356,11 +360,21 @@ class SScribe_Logger implements SScribe_Logger_Interface {
 
 		$log_file = $this->get_log_file();
 
-		// Prevent log files from growing too large within a day.
-		// If the file exceeds MAX_LOG_FILE_SIZE, skip writing to prevent disk exhaustion.
+		// Log rotation: if the file exceeds MAX_LOG_FILE_SIZE, rotate it.
 		if ( file_exists( $log_file ) && filesize( $log_file ) >= self::MAX_LOG_FILE_SIZE ) {
-			$this->buffer = array();
-			return;
+			$rotated_file = $this->log_dir . '/' . $this->prefix . '_debug_' . gmdate( 'Y-m-d_H-i-s' ) . '.log';
+			// phpcs:ignore WordPress.WP.AlternativeFunctions.file_system_operations_rename -- Safe filesystem rename for log rotation.
+			rename( $log_file, $rotated_file );
+
+			// Write a warning entry to the new fresh log indicating that rotation occurred.
+			$warning_entry = sprintf(
+				"[%s] [WARNING] Log file exceeded %s bytes — rotated to %s\n",
+				gmdate( 'Y-m-d H:i:s' ),
+				size_format( self::MAX_LOG_FILE_SIZE ),
+				basename( $rotated_file )
+			);
+			// phpcs:ignore WordPress.WP.AlternativeFunctions.file_system_operations_file_put_contents -- Required for debug logging per plugin requirements.
+			file_put_contents( $log_file, $warning_entry, LOCK_EX );
 		}
 
 		$content = implode( PHP_EOL, $this->buffer ) . PHP_EOL;
