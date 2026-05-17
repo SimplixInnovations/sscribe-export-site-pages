@@ -401,7 +401,9 @@ if ( is_dir( $vendor_dir ) ) {
 		'tests', 'docs', '.github', 'samples', 'examples', 'utils', 'bin',
 		'composer.json', 'composer.lock', 'package.json', 'phpunit.xml',
 		'.gitignore', '.gitattributes', '.travis.yml', '.scrutinizer.yml',
-		'CHANGELOG.md', 'CONTRIBUTING.md', 'README.md', 'CREDITS.txt', 'COPYING',
+		'CHANGELOG.md', 'CONTRIBUTING.md', 'README.md', 'CREDITS.txt',
+		'COPYING', 'COPYING.LESSER', 'LICENSE', 'LICENSE.txt',
+		'.github_changelog_generator', 'roave-bc-check.yaml',
 	);
 	
 	$pruned_count = 0;

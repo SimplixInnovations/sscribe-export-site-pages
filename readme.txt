@@ -229,6 +229,18 @@ Each document includes: cover page with title/URL/date/breadcrumbs, featured ima
 
 == Changelog ==
 
+= 3.9.4 =
+
+* Sec: Fixed PHP object injection risk in migrate_legacy_session() — replaced maybe_unserialize() with unserialize($raw, ['allowed_classes' => false])
+* Sec: Wrapped all SVG icon output in wp_kses_post() for explicit WordPress.org escaping compliance
+* Fix: Updated .distignore to exclude LICENSE*, CREDITS.txt, composer.json, composer.lock, ruleset.xml from distribution
+* Fix: Updated build-release.php to prune COPYING.LESSER, LICENSE, .github_changelog_generator from vendor-prefixed
+
+= 3.9.3 =
+
+* Fix: Version synchronization across all source files
+* Fix: Stale version references cleaned up
+
 = 3.8.6 =
 
 * CHANGED: Arabic PDF rendering — DejaVu Sans → XB Riyaz for superior Arabic typography. XB Riyaz is purpose-built for Arabic script with professional letterforms, already bundled with mPDF (zero additional ZIP size).

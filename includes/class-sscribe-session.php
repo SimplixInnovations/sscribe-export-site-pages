@@ -779,7 +779,10 @@ class SScribe_Session {
 			return null;
 		}
 
-		$data = maybe_unserialize( $raw );
+		// SECURITY: Use unserialize with allowed_classes => false to prevent PHP object injection.
+		// This is consistent with migrate_all_legacy_sessions() which uses the same protection.
+		// Legacy PHP-serialized sessions can only contain scalar/array structures.
+		$data = unserialize( $raw, array( 'allowed_classes' => false ) );
 
 		if ( ! is_array( $data ) ) {
 			return null;
