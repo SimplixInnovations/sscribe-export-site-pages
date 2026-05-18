@@ -486,6 +486,15 @@ class SScribe_Diagnostics {
 			);
 		}
 
+		// disk_free_space() is not available on S3, NFS, or some restricted hosting environments.
+		if ( ! function_exists( 'disk_free_space' ) ) {
+			return array(
+				'name'    => 'Disk Space',
+				'status'  => 'ok',
+				'message' => 'Disk space check is not available on this server configuration (S3, NFS, or restricted hosting).',
+			);
+		}
+
 		$free_space = disk_free_space( $export_dir );
 		if ( false === $free_space ) {
 			return array(
