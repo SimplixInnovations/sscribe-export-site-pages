@@ -47,7 +47,8 @@
 				return;
 			}
 			this.bindEvents();
-			this.updateTimeEstimate();
+			this.updateConfigSummary();
+			this.toggleHistorySkeleton(false);
 
 			const defaultPostType = $('input[name="sscribe_post_type"]:checked').val() || 'page';
 			const defaultLanguage = $('input[name="sscribe_language"]:checked').val() || '';
@@ -84,15 +85,38 @@
 
 			$('input[name="sscribe_post_type"]').on('change', $.proxy(this.onPostTypeChange, this));
 			$('input[name="sscribe_language"]').on('change', $.proxy(this.onLanguageChange, this));
-			$('input[name="sscribe_post_status"]').on('change', $.proxy(this.updateTimeEstimate, this));
+			$('input[name="sscribe_post_status"]').on('change', $.proxy(this.updateConfigSummary, this));
 			$('input[name="sscribe_format"]').on('change', $.proxy(this.onFormatChange, this));
 
 			$(document).on('click', '.sscribe-delete-btn', $.proxy(this.deleteExport, this));
 			$(document).on('click', '.sscribe-log-btn', $.proxy(this.showExportLog, this));
+			$(document).on('change', '.sscribe-history-check', $.proxy(this.updateBulkBar, this));
+			$(document).on('change', '#sscribe-bulk-select-all', $.proxy(this.toggleSelectAll, this));
+			$(document).on('click', '#sscribe-bulk-delete-btn', $.proxy(this.bulkDeleteSelected, this));
+			$(document).on('click', '#sscribe-bulk-download-btn', $.proxy(this.bulkDownload, this));
 			$(document).on('click', '#sscribe-support-refresh-btn', $.proxy(this.loadSupportInfo, this));
 			$(document).on('click', '#sscribe-support-copy-btn', $.proxy(this.copySupportInfo, this));
 			$(document).on('click', '#sscribe-modal-close', $.proxy(this.closeModal, this));
 			$(document).on('click', '.sscribe-history-actions > a', $.proxy(this.downloadExport, this));
+
+			// Keyboard shortcuts: Ctrl+E = Export, Ctrl+P = Preview.
+			$(document).on('keydown', function (e) {
+				if (!e.ctrlKey && !e.metaKey) { return; }
+				if (e.key === 'e' || e.key === 'E') {
+					e.preventDefault();
+					const $btn = $('#sscribe-export-btn');
+					if (!$btn.prop('disabled')) {
+						$btn.trigger('click');
+					}
+				}
+				if (e.key === 'p' || e.key === 'P') {
+					e.preventDefault();
+					const $btn = $('#sscribe-preview-btn');
+					if (!$btn.prop('disabled')) {
+						$btn.trigger('click');
+					}
+				}
+			});
 
 			// Tab switching logic — handles ARIA roles and aria-selected state for accessibility.
 			$('.sscribe-tab-btn').on('click', function (e) {
@@ -140,7 +164,7 @@
 				success: function (response) {
 					if (response.success && response.data.counts) {
 						self.updateStatusCounts(response.data.counts);
-						self.updateTimeEstimate();
+						self.updateConfigSummary();
 						self.updateExportButton();
 
 						const total = self.parseLocalizedInt(response.data.counts.all) || 0;
@@ -253,11 +277,11 @@
 		},
 
 		onFormatChange: function () {
-			this.updateTimeEstimate();
+			this.updateConfigSummary();
 			this.updateExportButton();
 		},
 
-		updateTimeEstimate: function () {
+		updateConfigSummary: function () {
 			const $selectedStatus = $('input[name="sscribe_post_status"]:checked');
 			let count = 0;
 			if ($selectedStatus.length && !$selectedStatus.prop('disabled')) {
@@ -269,59 +293,45 @@
 
 			this.selectedPageCount = count;
 
+			const postType = $('input[name="sscribe_post_type"]:checked').val() || 'page';
+			const language = $('input[name="sscribe_language"]:checked').val();
 			const format = $('input[name="sscribe_format"]:checked').val() || 'all';
-			let estimate = '';
+			const status = $selectedStatus.val() || 'publish';
 			const strings = sscribe_data.strings || {};
 
-			if (format === 'all') {
-				const totalSeconds = (1.5 + 8 + 1 + 0.5) * count;
-				const minutes = Math.ceil(totalSeconds / 60);
-				if (minutes < 60) {
-					estimate =
-						(strings.estimated_time || 'Estimated time:') +
-						' ~' +
-						minutes +
-						' ' +
-						(minutes === 1 ? strings.minute || 'minute' : strings.minutes || 'minutes');
-				} else {
-					const hours = Math.floor(minutes / 60);
-					const mins = minutes % 60;
-					estimate =
-						(strings.estimated_time || 'Estimated time:') +
-						' ~' +
-						hours +
-						(strings.hour_suffix || 'h') +
-						' ' +
-						mins +
-						(strings.minute_suffix || 'm');
-				}
-			} else {
-			const times = {
-				docx: 1.5,
-				pdf: 8,
-				html: 1,
-				markdown: 0.5,
+			const postTypeLabels = { page: 'Pages', post: 'Posts', any: 'Both' };
+			const statusLabels = {
+				publish: 'Published', draft: 'Draft', private: 'Private',
+				future: 'Scheduled', pending: 'Pending', all: 'All',
 			};
-				const seconds = (times[format] || 2) * count;
-				if (seconds < 60) {
-					estimate =
-						(strings.estimated_time || 'Estimated time:') +
-						' ~' +
-						Math.ceil(seconds) +
-						' ' +
-						(strings.seconds || 'seconds');
-				} else {
-					const mins = Math.ceil(seconds / 60);
-					estimate =
-						(strings.estimated_time || 'Estimated time:') +
-						' ~' +
-						mins +
-						' ' +
-						(mins === 1 ? strings.minute || 'minute' : strings.minutes || 'minutes');
-				}
+
+			$('#sscribe-summary-post-type').text(postTypeLabels[postType] || postType);
+			$('#sscribe-summary-status').text(statusLabels[status] || status);
+			$('#sscribe-summary-language').text(language ? language.toUpperCase() : 'All');
+			$('#sscribe-summary-format').text(format === 'all' ? 'All' : format.toUpperCase());
+			$('#sscribe-summary-pages').text('~' + count + ' pages');
+
+			// Calculate time estimate.
+			const times = { docx: 1.5, pdf: 8, html: 1, markdown: 0.5 };
+			let estSeconds = 0;
+			if (format === 'all') {
+				estSeconds = (1.5 + 8 + 1 + 0.5) * count;
+			} else {
+				estSeconds = (times[format] || 2) * count;
 			}
 
-			$('#sscribe-time-estimate-text').text(estimate);
+			let timeText = '';
+			if (estSeconds < 60) {
+				timeText = '~' + Math.ceil(estSeconds) + 's';
+			} else if (estSeconds < 3600) {
+				timeText = '~' + Math.ceil(estSeconds / 60) + 'm';
+			} else {
+				const h = Math.floor(estSeconds / 3600);
+				const m = Math.ceil((estSeconds % 3600) / 60);
+				timeText = '~' + h + 'h ' + m + 'm';
+			}
+			$('#sscribe-summary-time').text(timeText);
+
 			this.updateExportButton();
 		},
 
@@ -652,6 +662,9 @@
 
 						SScribe.updateProgress(data.percentage);
 						SScribe.updateStatus(data.message);
+						if (data.status === 'processing') {
+							SScribe.updatePhase('processing');
+						}
 
 						if (data.current_page) {
 							$('#sscribe-current-page').text(data.current_page).show();
@@ -769,6 +782,7 @@
 			this.isProcessing = true;
 
 			$('#sscribe-status-text').text(sscribe_data.strings.packaging || 'Packaging files into ZIP archive...');
+			SScribe.updatePhase('packaging');
 
 			const progressFill = document.getElementById('sscribe-progress-bar');
 			if (progressFill) {
@@ -876,7 +890,21 @@
 			}, delay);
 		},
 
+		toggleHistorySkeleton: function (show) {
+			const $skel = $('#sscribe-history-skeleton');
+			const $table = $('#sscribe-history-table');
+			if (!$skel.length) { return; }
+			if (show) {
+				$skel.removeClass('sscribe-hidden');
+				$table.addClass('sscribe-hidden');
+			} else {
+				$skel.addClass('sscribe-hidden');
+				$table.removeClass('sscribe-hidden');
+			}
+		},
+
 		refreshRecentExports: function () {
+			this.toggleHistorySkeleton(true);
 			$.ajax({
 				url: sscribe_data.ajaxurl,
 				type: 'POST',
@@ -889,9 +917,10 @@
 					if (response.success && response.data.exports) {
 						SScribe.renderRecentExports(response.data.exports);
 					}
+					SScribe.toggleHistorySkeleton(false);
 				},
 				error: function () {
-					// Non-critical: stale history is acceptable on failure.
+					SScribe.toggleHistorySkeleton(false);
 				},
 			});
 		},
@@ -906,6 +935,7 @@
 						this.escapeHtml(strings.history_empty || 'Your recent export packages will appear here.') +
 						'</em></div>'
 				);
+				this.updateBulkBar();
 				return;
 			}
 
@@ -913,6 +943,13 @@
 			for (let i = 0; i < exports.length; i++) {
 				const exp = exports[i];
 				html += '<div class="sscribe-history-row" data-filename="' + this.escapeHtml(exp.filename) + '">';
+				html +=
+					'<label class="sscribe-history-check-label">' +
+					'<input type="checkbox" class="sscribe-history-check" value="' +
+					this.escapeHtml(exp.filename) +
+					'">' +
+					'<span class="sscribe-check-visual"></span>' +
+					'</label>';
 				html += '<div class="sscribe-history-file">';
 				html += '<div class="sscribe-file-icon">';
 
@@ -986,6 +1023,105 @@
 			$table.html(html);
 		},
 
+		updateBulkBar: function () {
+			const $checks = $('.sscribe-history-check:checked');
+			const $all = $('.sscribe-history-check');
+			const $bar = $('#sscribe-bulk-bar');
+			const count = $checks.length;
+			const total = $all.length;
+			if (count > 0) {
+				$bar.removeClass('sscribe-hidden');
+				$('#sscribe-bulk-count').text(count + ' ' + (sscribe_data.strings.selected || 'selected'));
+				$('.sscribe-history-row').removeClass('sscribe-row-selected');
+				$checks.closest('.sscribe-history-row').addClass('sscribe-row-selected');
+				const $selectAll = $('#sscribe-bulk-select-all');
+				if (count === total) {
+					$selectAll.prop('checked', true).prop('indeterminate', false);
+				} else {
+					$selectAll.prop('checked', false).prop('indeterminate', true);
+				}
+			} else {
+				$bar.addClass('sscribe-hidden');
+				$('.sscribe-history-row').removeClass('sscribe-row-selected');
+				$('#sscribe-bulk-select-all').prop('checked', false).prop('indeterminate', false);
+			}
+		},
+
+		toggleSelectAll: function (e) {
+			const isChecked = $(e.currentTarget).prop('checked');
+			$('.sscribe-history-check').prop('checked', isChecked);
+			this.updateBulkBar();
+		},
+
+		deleteSingleExport: function (filename, callback) {
+			$.ajax({
+				url: sscribe_data.ajaxurl,
+				type: 'POST',
+				timeout: 30000,
+				data: {
+					action: 'sscribe_delete_export',
+					nonce: sscribe_data.download_nonce,
+					file: filename,
+				},
+				success: function (response) {
+					if (response.success) {
+						SScribe.showToast(sscribe_data.strings && sscribe_data.strings.delete_success || 'Export deleted.', 'success');
+					} else {
+						SScribe.showError(
+							response.data.message ||
+								(sscribe_data.strings && sscribe_data.strings.delete_failed) ||
+								'Failed to delete export.'
+						);
+					}
+					if (typeof callback === 'function') { callback(); }
+				},
+				error: function () {
+					SScribe.showError(
+						(sscribe_data.strings && sscribe_data.strings.delete_failed) || 'Failed to delete export.'
+					);
+					if (typeof callback === 'function') { callback(); }
+				},
+			});
+		},
+
+		bulkDeleteSelected: function () {
+			const $checks = $('.sscribe-history-check:checked');
+			if ($checks.length === 0) { return; }
+			const filenames = [];
+			$checks.each(function () {
+				filenames.push($(this).val());
+			});
+			$checks.closest('.sscribe-history-row').addClass('sscribe-row-deleting');
+			if (typeof this.bulkDeleteQueue === 'undefined') {
+				this.bulkDeleteQueue = [];
+			}
+			this.bulkDeleteQueue = filenames.slice();
+			this.processBulkDelete();
+		},
+
+		bulkDownload: function () {
+			const $checks = $('.sscribe-history-check:checked');
+			if ($checks.length === 0) { return; }
+			$checks.each(function () {
+				const $row = $(this).closest('.sscribe-history-row');
+				const $downloadLink = $row.find('.sscribe-history-actions > a');
+				if ($downloadLink.length) {
+					const link = $downloadLink[0];
+					link.click();
+				}
+			});
+		},
+
+		processBulkDelete: function () {
+			if (this.bulkDeleteQueue.length === 0) {
+				this.updateBulkBar();
+				this.refreshRecentExports();
+				return;
+			}
+			const filename = this.bulkDeleteQueue.shift();
+			this.deleteSingleExport(filename, $.proxy(this.processBulkDelete, this));
+		},
+
 		updateProgress: function (percentage) {
 			percentage = Number(percentage);
 			if (!isFinite(percentage)) {
@@ -1011,6 +1147,26 @@
 			document.title = '(' + percentage + '%) SScribe Export';
 		},
 
+		updatePhase: function (phase) {
+			const $steps = $('.sscribe-phase-step');
+			if (!$steps.length) { return; }
+
+			let found = false;
+			$steps.each(function () {
+				const $step = $(this);
+				const stepPhase = $step.data('phase');
+
+				if (stepPhase === phase) {
+					$step.removeClass('sscribe-phase-completed sscribe-phase-active').addClass('sscribe-phase-active');
+					found = true;
+				} else if (!found) {
+					$step.removeClass('sscribe-phase-active').addClass('sscribe-phase-completed');
+				} else {
+					$step.removeClass('sscribe-phase-completed sscribe-phase-active');
+				}
+			});
+		},
+
 		updateStatus: function (message) {
 			$('#sscribe-status-text').text(message);
 
@@ -1030,6 +1186,7 @@
 				.prop('disabled', false)
 				.text(sscribe_data.strings.cancel || 'Cancel Export');
 			this.updateProgress(0);
+			this.updatePhase('fetching');
 			$('#sscribe-export-btn, #sscribe-preview-btn').prop('disabled', true);
 		},
 
@@ -1274,51 +1431,28 @@
 				(this.escapeHtml(sscribe_data.strings && sscribe_data.strings.confirm_delete) || 'Delete this?') +
 				'</span>' +
 				'<button type="button" class="sscribe-button sscribe-button-danger sscribe-btn-xs sscribe-confirm-yes">' +
-				this.escapeHtml(sscribe_data.strings && sscribe_data.strings.close || 'Delete') +
+				this.escapeHtml(sscribe_data.strings && sscribe_data.strings.delete || 'Delete') +
 				'</button>' +
 				'<button type="button" class="sscribe-button sscribe-button-ghost sscribe-btn-xs sscribe-confirm-no">Cancel</button>' +
 				'</span>');
 			$btn.after($confirmWrap);
 
+			// Restore the delete button in case AJAX fails silently.
 			$confirmWrap.find('.sscribe-confirm-yes').on('click', function () {
 				$confirmWrap.remove();
-				$.ajax({
-					url: sscribe_data.ajaxurl,
-					type: 'POST',
-					timeout: 30000,
-					data: {
-						action: 'sscribe_delete_export',
-						nonce: sscribe_data.download_nonce,
-						file: filename,
-					},
-					success: function (response) {
-						if (response.success) {
-							$btn.closest('.sscribe-history-row').fadeOut(300, function () {
-								$(this).remove();
-								if ($('.sscribe-history-row').length === 0) {
-								const emptyMsg =
-									(sscribe_data.strings && sscribe_data.strings.history_empty) ||
-									'Your recent export packages will appear here.';
-								$('#sscribe-history-table').html(
-									'<div class="sscribe-history-empty"><em>' + SScribe.escapeHtml(emptyMsg) + '</em></div>'
-								);
-								}
-							});
-							SScribe.showToast(sscribe_data.strings && sscribe_data.strings.delete_success || 'Export deleted.');
-						} else {
-							SScribe.showError(
-								response.data.message ||
-									(sscribe_data.strings && sscribe_data.strings.delete_failed) ||
-									'Failed to delete export.'
-							);
-						}
-					},
-					error: function () {
-						SScribe.showError(
-							(sscribe_data.strings && sscribe_data.strings.delete_failed) || 'Failed to delete export.'
+				$btn.closest('.sscribe-history-row').fadeOut(300, function () {
+					$(this).remove();
+					if ($('.sscribe-history-row').length === 0) {
+						const emptyMsg =
+							(sscribe_data.strings && sscribe_data.strings.history_empty) ||
+							'Your recent export packages will appear here.';
+						$('#sscribe-history-table').html(
+							'<div class="sscribe-history-empty"><em>' + SScribe.escapeHtml(emptyMsg) + '</em></div>'
 						);
-					},
+					}
+					SScribe.updateBulkBar();
 				});
+				SScribe.deleteSingleExport(filename);
 			});
 
 			$confirmWrap.find('.sscribe-confirm-no').on('click', function () {
@@ -1919,15 +2053,44 @@
 			$('#sscribe-support-copy-btn').prop('disabled', true);
 		},
 
-		showToast: function (message) {
-			const $toast = $('#sscribe-toast');
-			const $msg = $('#sscribe-toast-message');
-			if (!$toast.length || !$msg.length) { return; }
-			$msg.text(message);
-			$toast.removeClass('sscribe-toast-hidden');
-			setTimeout(function () {
-				$toast.addClass('sscribe-toast-hidden');
-			}, 4000);
+		showToast: function (message, type, duration) {
+			type = type || 'info';
+			duration = (typeof duration === 'number') ? duration : 4000;
+
+			const $container = $('#sscribe-toast-container');
+			if (!$container.length) { return; }
+
+			const icons = { success: '✓', error: '✕', warning: '⚠', info: 'ℹ' };
+			const icon = icons[type] || 'ℹ';
+
+			// Cap visible toasts at 5 to prevent overflow.
+			const $existing = $container.children('.sscribe-toast');
+			if ($existing.length >= 5) {
+				$existing.last().addClass('sscribe-toast-removing');
+				setTimeout(function () { $existing.last().remove(); }, 200);
+			}
+
+			const $toast = $(
+				'<div class="sscribe-toast sscribe-toast-' + type + '" role="status">' +
+					'<span class="sscribe-toast-icon">' + icon + '</span>' +
+					'<span class="sscribe-toast-message">' + this.escapeHtml(message) + '</span>' +
+					'<button type="button" class="sscribe-toast-dismiss" aria-label="Dismiss">&times;</button>' +
+				'</div>'
+			);
+
+			$container.append($toast);
+
+			$toast.find('.sscribe-toast-dismiss').on('click', function () {
+				$toast.addClass('sscribe-toast-removing');
+				setTimeout(function () { $toast.remove(); }, 200);
+			});
+
+			if (duration > 0) {
+				setTimeout(function () {
+					$toast.addClass('sscribe-toast-removing');
+					setTimeout(function () { $toast.remove(); }, 200);
+				}, duration);
+			}
 		},
 
 		copySupportInfo: function (e) {
@@ -1940,7 +2103,7 @@
 			}
 
 			const onSuccess = function () {
-				SScribe.showToast(strings.support_copied || 'Support information copied.');
+				SScribe.showToast(strings.support_copied || 'Support information copied.', 'success');
 			};
 
 			if (navigator.clipboard && navigator.clipboard.writeText) {
