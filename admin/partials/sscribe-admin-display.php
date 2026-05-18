@@ -24,6 +24,7 @@ $sscribe_status_counts   = $sscribe_status_counts ?? array();
 $sscribe_recent_exports  = $sscribe_recent_exports ?? array();
 $sscribe_debug_info      = $sscribe_debug_info ?? array();
 $sscribe_is_debug        = $sscribe_is_debug ?? false;
+$sscribe_step            = 1;
 ?>
 
 <div class="sscribe-master-container">
@@ -143,10 +144,11 @@ $sscribe_is_debug        = $sscribe_is_debug ?? false;
 						</div>
 					</div>
 
-					<?php if ( $sscribe_wpml_active && ! empty( $sscribe_languages ) ) : ?>
+				<?php if ( $sscribe_wpml_active && ! empty( $sscribe_languages ) ) : ?>
+					<?php $sscribe_step++; ?>
 					<div class="sscribe-config-section">
 						<div class="sscribe-config-section-header">
-							<span class="sscribe-step-badge">2</span>
+							<span class="sscribe-step-badge"><?php echo esc_html( $sscribe_step ); ?></span>
 							<?php // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- SVG sanitized in get_icon(). ?>
 							<?php echo SScribe_Helpers::get_icon( 'globe', 15 ); ?>
 							<span><?php esc_html_e( 'Language', 'sscribe-export-site-pages' ); ?></span>
@@ -199,9 +201,10 @@ $sscribe_is_debug        = $sscribe_is_debug ?? false;
 					</div>
 					<?php endif; ?>
 
+					<?php $sscribe_step++; ?>
 					<div class="sscribe-config-section">
 						<div class="sscribe-section-title">
-							<span class="sscribe-step-badge">3</span>
+							<span class="sscribe-step-badge"><?php echo esc_html( $sscribe_step ); ?></span>
 							<?php esc_html_e( 'Content Status', 'sscribe-export-site-pages' ); ?></div>
 						<div class="sscribe-status-cards sscribe-cards-row" id="sscribe-status-cards">
 							<?php
@@ -252,9 +255,10 @@ $sscribe_is_debug        = $sscribe_is_debug ?? false;
 						</div>
 					</div>
 
+					<?php $sscribe_step++; ?>
 					<div class="sscribe-config-section">
 						<div class="sscribe-section-title">
-							<span class="sscribe-step-badge">4</span>
+							<span class="sscribe-step-badge"><?php echo esc_html( $sscribe_step ); ?></span>
 							<?php esc_html_e( 'Export Format', 'sscribe-export-site-pages' ); ?></div>
 						<div class="sscribe-format-cards sscribe-cards-row" id="sscribe-format-cards">
 							<label class="sscribe-format-card-label sscribe-format-all">
