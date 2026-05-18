@@ -7,7 +7,7 @@
  * and technical context for troubleshooting.
  *
  * @package       SScribe
- * @since         1.1.4
+ * @since         1.1.5
  */
 
 declare( strict_types=1 );
@@ -24,7 +24,7 @@ if ( ! defined( 'ABSPATH' ) ) {
  * category-level guidance, deduplicated fix steps, and aggregated
  * technical metadata (memory peaks, HTML sizes, exception types).
  *
- * @since 1.1.4
+ * @since 1.1.5
  */
 class SScribe_Export_Error_Handler {
 
@@ -35,7 +35,7 @@ class SScribe_Export_Error_Handler {
 	 * in the session array to prevent OOM on large exports (500+ pages).
 	 *
 	 * @var int
-	 * @since 1.1.4
+	 * @since 1.1.5
 	 */
 	public const MAX_STORED_ERRORS = 50;
 
@@ -43,14 +43,14 @@ class SScribe_Export_Error_Handler {
 	 * Diagnostics instance for per-page error diagnosis.
 	 *
 	 * @var SScribe_Diagnostics
-	 * @since 1.1.4
+	 * @since 1.1.5
 	 */
 	private readonly SScribe_Diagnostics $diagnostics;
 
 	/**
 	 * Constructor.
 	 *
-	 * @since 1.1.4
+	 * @since 1.1.5
 	 *
 	 * @param SScribe_Diagnostics|null $diagnostics Diagnostics instance.
 	 *                                              Falls back to a new
@@ -69,7 +69,7 @@ class SScribe_Export_Error_Handler {
 	 * - Aggregated technical metadata (HTML sizes, memory peaks)
 	 * - Per-entry diagnostics
 	 *
-	 * @since 1.1.4
+	 * @since 1.1.5
 	 *
 	 * @param array $structured_errors Array of structured error entries,
 	 *                                 each containing 'page_id', 'errors',
@@ -226,7 +226,7 @@ class SScribe_Export_Error_Handler {
 	 * Transforms the flat log format into the structured error array
 	 * expected by {@see build_diagnostics_payload()}.
 	 *
-	 * @since 1.1.4
+	 * @since 1.1.5
 	 *
 	 * @param array $log_data Export log data containing a 'pages' key.
 	 *
@@ -313,7 +313,7 @@ class SScribe_Export_Error_Handler {
 	/**
 	 * Get user-facing guidance text for an error category.
 	 *
-	 * @since 1.1.4
+	 * @since 1.1.5
 	 *
 	 * @param string $category Error category slug.
 	 *
