@@ -157,7 +157,7 @@
 
 			$('input[name="sscribe_language"]').each(function () {
 				var langCode = $(this).val();
-				if (!langCode) return;
+				if (!langCode) { return; }
 
 				$.ajax({
 					url: sscribe_data.ajaxurl,
@@ -282,7 +282,7 @@
 						(minutes === 1 ? strings.minute || 'minute' : strings.minutes || 'minutes');
 				} else {
 					var hours = Math.floor(minutes / 60);
-					let mins = minutes % 60;
+					const mins = minutes % 60;
 					estimate =
 						(strings.estimated_time || 'Estimated time:') +
 						' ~' +
@@ -308,7 +308,7 @@
 						' ' +
 						(strings.seconds || 'seconds');
 				} else {
-					let mins = Math.ceil(seconds / 60);
+					const mins = Math.ceil(seconds / 60);
 					estimate =
 						(strings.estimated_time || 'Estimated time:') +
 						' ~' +
@@ -404,7 +404,7 @@
 			var warnings = [];
 
 			for (var key in checks) {
-				if (checks.hasOwnProperty(key)) {
+				if (Object.prototype.hasOwnProperty.call(checks, key)) {
 					var check = checks[key];
 					if (check.status === 'error') {
 						errors.push(check);
@@ -1073,7 +1073,7 @@
 		},
 
 		getErrorGuidance: function (message) {
-			if (!message) return '';
+			if (!message) { return ''; }
 			var msg = message.toLowerCase();
 			var s = sscribe_data.strings || {};
 
@@ -1772,13 +1772,13 @@
 
 			if (data.sections) {
 				for (var key in data.sections) {
-					if (!data.sections.hasOwnProperty(key)) continue;
+					if (!Object.prototype.hasOwnProperty.call(data.sections, key)) { continue; }
 					var section = data.sections[key];
 					html += '<section class="sscribe-support-section">';
 					html += '<h3 class="sscribe-support-section-title">' + this.escapeHtml(section.label) + '</h3>';
 					html += '<dl class="sscribe-support-list">';
 					for (var itemKey in section.items) {
-						if (!section.items.hasOwnProperty(itemKey)) continue;
+						if (!Object.prototype.hasOwnProperty.call(section.items, itemKey)) { continue; }
 						html += '<div class="sscribe-support-list-row">';
 						html += '<dt>' + this.escapeHtml(this.humanizeSupportKey(itemKey)) + '</dt>';
 						html += '<dd>' + this.escapeHtml(String(section.items[itemKey] || '')) + '</dd>';
@@ -1906,7 +1906,7 @@
 			}
 
 			var handler = function (e) {
-				if (e.key !== 'Tab') return;
+				if (e.key !== 'Tab') { return; }
 				if (e.shiftKey) {
 					if (document.activeElement === firstFocusable) {
 						e.preventDefault();

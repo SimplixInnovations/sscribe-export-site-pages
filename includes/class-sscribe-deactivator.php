@@ -126,5 +126,4 @@ class SScribe_Deactivator {
 			$wpdb->query( 'DROP TABLE IF EXISTS `' . $table_safe . '`' );
 		}
 	}
-
 }
