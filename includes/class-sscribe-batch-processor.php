@@ -1898,7 +1898,8 @@ class SScribe_Batch_Processor {
 			);
 
 			// Save adaptive metrics for future time/size estimates.
-			$formats = isset( $session['formats'] ) ? $session['formats'] : array( 'docx' );
+			$formats    = isset( $session['formats'] ) ? $session['formats'] : array( 'docx' );
+			$session_pt = $session['post_type'] ?? 'page';
 			foreach ( $formats as $fmt ) {
 				$format_time_key  = 'format_time_' . $fmt;
 				$format_size_key  = 'format_size_' . $fmt;
@@ -1910,7 +1911,7 @@ class SScribe_Batch_Processor {
 				$total_mb        = $total_bytes / 1048576;
 
 				if ( $pages_exported > 0 && $elapsed_seconds > 0 ) {
-					$this->adaptive_metrics->save( $fmt, $pages_exported, $elapsed_seconds, $total_mb );
+					$this->adaptive_metrics->save( $fmt, $pages_exported, $elapsed_seconds, $total_mb, $session_pt );
 				}
 			}
 

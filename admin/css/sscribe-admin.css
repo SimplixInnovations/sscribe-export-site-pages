@@ -5,7 +5,7 @@
  * WCAG 2.1 AA compliant, accessible, and professional.
  *
  * @package SScribe
- * @version 1.1.0
+ * @version 1.1.1
  */
 
 /* ============================================
@@ -2221,20 +2221,6 @@
 	font-size: 15px;
 	font-weight: 700;
 	letter-spacing: 0.01em;
-}
-
-.sscribe-step-badge {
-	display: inline-flex;
-	align-items: center;
-	justify-content: center;
-	width: 20px;
-	height: 20px;
-	border-radius: 50%;
-	background: var(--sscribe-accent);
-	color: #fff;
-	font-size: 11px;
-	font-weight: 700;
-	flex-shrink: 0;
 }
 
 .sscribe-config-section:last-child {

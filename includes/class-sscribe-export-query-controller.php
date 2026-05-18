@@ -384,7 +384,7 @@ class SScribe_Export_Query_Controller {
 		$pages      = $this->collector->get_page_ids( $language, $post_status, $post_type );
 		$page_count = count( $pages );
 
-		$seconds_per_page = $this->adaptive_metrics->get_seconds_per_page( $format );
+		$seconds_per_page = $this->adaptive_metrics->get_seconds_per_page( $format, $post_type );
 		$total_seconds    = (int) ( $page_count * $seconds_per_page );
 
 		if ( $total_seconds < 60 ) {
@@ -402,7 +402,7 @@ class SScribe_Export_Query_Controller {
 			);
 		}
 
-		$megabytes_per_page = $this->adaptive_metrics->get_mb_per_page( $format );
+		$megabytes_per_page = $this->adaptive_metrics->get_mb_per_page( $format, $post_type );
 		$size_mb            = $page_count * $megabytes_per_page;
 
 		if ( $size_mb < 1 ) {

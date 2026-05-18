@@ -121,7 +121,7 @@
 			this.refreshStatusAndLanguageCounts(postType, language);
 		},
 
-		'refreshStatusAndLanguageCounts: function (postType, language) {
+		refreshStatusAndLanguageCounts: function (postType, language) {
 			const self = this;
 
 			$('.sscribe-status-card-label').addClass('sscribe-loading');
@@ -1299,12 +1299,12 @@
 							$btn.closest('.sscribe-history-row').fadeOut(300, function () {
 								$(this).remove();
 								if ($('.sscribe-history-row').length === 0) {
-									const emptyMsg =
-										(sscribe_data.strings && sscribe_data.strings.history_empty) ||
-										'Your recent export packages will appear here.';
-									$('#sscribe-history-table').html(
-										'<div class="sscribe-history-empty"><em>' + emptyMsg + '</em></div>'
-									);
+								const emptyMsg =
+									(sscribe_data.strings && sscribe_data.strings.history_empty) ||
+									'Your recent export packages will appear here.';
+								$('#sscribe-history-table').html(
+									'<div class="sscribe-history-empty"><em>' + SScribe.escapeHtml(emptyMsg) + '</em></div>'
+								);
 								}
 							});
 							SScribe.showToast(sscribe_data.strings && sscribe_data.strings.delete_success || 'Export deleted.');
@@ -1954,23 +1954,6 @@
 			}
 
 			SScribe.copyViaTextarea(text, onSuccess);
-		},
-
-		copyViaTextarea: function (text, onSuccess) {
-			const textarea = document.getElementById('sscribe-support-copy-text');
-			if (!textarea) {
-				return;
-			}
-			textarea.focus();
-			textarea.select();
-			try {
-				document.execCommand('copy');
-				onSuccess();
-			} catch {
-				$('#sscribe-support-feedback')
-					.removeClass('sscribe-hidden')
-					.text(sscribe_data.strings && sscribe_data.strings.support_copy_error || 'Copy failed. Try selecting the text manually.');
-			}
 		},
 
 		copyViaTextarea: function (text, onSuccess) {
