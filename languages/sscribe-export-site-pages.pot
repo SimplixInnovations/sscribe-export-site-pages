@@ -2,7 +2,7 @@
 # This file is distributed under the GPL v2 or later.
 msgid ""
 msgstr ""
-"Project-Id-Version: SScribe Export Site Pages 1.1.0\n"
+"Project-Id-Version: SScribe Export Site Pages 1.1.1\n"
 "Report-Msgid-Bugs-To: https://wordpress.org/support/plugin/sscribe-export-site-pages\n"
 "Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
 "Language-Team: LANGUAGE <LL@li.org>\n"
@@ -26,7 +26,7 @@ msgstr ""
 
 #. Description of the plugin
 #: sscribe-export-site-pages.php:5
-msgid "Export every page into beautifully formatted Word DOCX files with multilingual support, SEO meta, rich styling, and secure ZIP download."
+msgid "Export WordPress pages and posts to professional DOCX, PDF, HTML, or Markdown files with multilingual RTL support, SEO metadata, and secure ZIP download."
 msgstr ""
 
 #. Author of the plugin

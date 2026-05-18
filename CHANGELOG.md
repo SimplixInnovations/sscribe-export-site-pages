@@ -2,8 +2,33 @@
 
 All notable changes to this project will be documented in this file.
 
-## [Unreleased]
+## [1.1.1] - 2026-05-18
+
+### Fixed
+- JavaScript syntax error: stray quote character in refreshStatusAndLanguageCounts method
+- Duplicate JavaScript function definition (copyViaTextarea)
+- XSS vulnerability in history empty state (unescaped HTML interpolation)
+- Critical PHP fatal error: missing $zip_handler property in SScribe_Admin
+- PHP fatal error on null: missing null safety in diagnostics PHPWord version detection
+- PCRE1 incompatibility: possessive regex quantifiers in content parser
+- Missing version bumps in 8 source files (export-*, test, .pot)
 
 ### Changed
-- Refactored SScribe_Batch_Processor: extracted 7 private methods into 6 single-responsibility classes (SScribe_Export_Rate_Limiter, SScribe_Export_Auditor, SScribe_Export_Resource_Monitor, SScribe_Export_Lock_Manager, SScribe_Export_Error_Handler, SScribe_Export_Query_Controller). Removed 4 orphaned methods and 2 unused constants. Net -722 lines.
-- All 340 PHPUnit tests passing, PHPStan Level 6 clean, PHPCS clean, full includes/ directory at PHPStan Level 6 — 0 errors.
+- Adaptive metrics now post-type-aware: keys use format + post_type for accurate per-content-type estimates
+- Language code regex widened from {2} to {2,3} for WPML 3-letter codes (ZHT, ZHS)
+- Deactivator no longer drops database tables on deactivation (tables only removed on uninstall)
+- Added defensive load_plugin_textdomain() call for non-.org installations
+- One-time migration for adaptive metrics schema change (preserves historical data)
+
+### Removed
+- Dead code: unused $sscribe_seo_plugins variable and template reference
+- Duplicate CSS .sscribe-step-badge selector
+- Stale @deprecated 3.7.6 version reference
+
+### Security
+- Content-Security-Policy headers added to plugin admin page
+- Path traversal protection strengthened with realpath + str_starts_with validation
+- Download TOCTOU race condition guard added
+- Multiple security hardening improvements (see changelog above)
+
+## [Unreleased]

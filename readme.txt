@@ -4,7 +4,7 @@ Donate link: https://simplixi.com
 Tags: export, docx, pdf, html, markdown, multilingual, rtl, wordpress
 Requires at least: 6.0
 Tested up to: 6.9
-Stable tag: 1.1.0
+Stable tag: 1.1.1
 Requires PHP: 8.2
 License: GPLv2 or later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
@@ -82,6 +82,11 @@ Cron hook for cleaning up expired export files. Triggered daily by WordPress cro
 `sscribe_cleanup_sessions`
 Cron hook for cleaning up stale export sessions. Triggered daily by WordPress cron.
 
+`sscribe_debug_log`
+Fires when debug logging occurs during export operations.
+
+Parameters: `(string $level, string $message, array $context)`
+
 = Filters =
 
 `sscribe_max_execution_time`
@@ -101,6 +106,18 @@ Parameters: `(int $bytes)` — Default: 5,242,880 (5MB)
 
 == Changelog ==
 
+= 1.1.1 =
+
+* Fixed duplicate JavaScript function definition (copyViaTextarea)
+* Fixed JS syntax error: stray quote character in refreshStatusAndLanguageCounts method
+* Fixed unescaped HTML in history empty state (XSS prevention)
+* Fixed null safety in diagnostics PHPWord version detection
+* Fixed possessive regex quantifiers for PCRE1 compatibility (content parser)
+* Improved language code extraction to support 2-3 letter codes (WPML ZHT, ZHS)
+* Added post-type-aware adaptive metrics for more accurate time estimates
+* Removed duplicate CSS step-badge selector
+* Added missing .distignore entries for development files
+
 = 1.1.0 =
 
 * Initial release with full feature set: DOCX, PDF, HTML, and Markdown export
@@ -114,6 +131,10 @@ Parameters: `(int $bytes)` — Default: 5,242,880 (5MB)
 * GDPR-compliant audit trail with HMAC-SHA256 hashed IP addresses
 
 == Upgrade Notice ==
+
+= 1.1.1 =
+
+Bug fixes and improvements: JavaScript syntax fix, security hardening, and better WPML language code support.
 
 = 1.1.0 =
 
