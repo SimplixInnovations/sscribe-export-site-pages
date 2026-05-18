@@ -208,10 +208,10 @@
 								.text(total.toLocaleString());
 						}
 					},
-						error: function () {
-						$('.sscribe-status-card-label').removeClass('sscribe-loading');
-						$('#sscribe-post-count, #sscribe-both-count').removeClass('sscribe-loading-count');
-					},
+					error: function () {
+					$('.sscribe-status-card-label').removeClass('sscribe-loading');
+					$('#sscribe-post-count, #sscribe-both-count').removeClass('sscribe-loading-count');
+				},
 				});
 			});
 
@@ -318,7 +318,7 @@
 			$('#sscribe-summary-status').text(statusLabels[status] || status);
 			$('#sscribe-summary-language').text(language ? language.toUpperCase() : 'All');
 			$('#sscribe-summary-format').text(format === 'all' ? 'All' : format.toUpperCase());
-			$('#sscribe-summary-pages').text('~' + count + ' pages');
+			$('#sscribe-summary-pages').text('~' + count + ' ' + sscribe_data.strings.log_pages);
 
 			// Calculate time estimate.
 			const times = { docx: 1.5, pdf: 8, html: 1, markdown: 0.5 };
