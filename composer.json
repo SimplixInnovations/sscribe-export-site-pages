@@ -39,13 +39,19 @@
         ]
     },
     "scripts": {
+        "post-install-cmd": [
+            "@php scripts/fix-phpword-style-deprecation.php"
+        ],
+        "post-update-cmd": [
+            "@php scripts/fix-phpword-style-deprecation.php"
+        ],
         "test": "phpunit",
         "test:coverage": "phpunit --coverage-html coverage/",
         "stan": "phpstan analyse --memory-limit=512M",
         "cs": "phpcs -d memory_limit=512M --standard=phpcs.xml",
         "cs:fix": "phpcbf -d memory_limit=512M --standard=phpcs.xml",
         "version:check": "php scripts/verify-version-sync.php",
-        "vendor:prefix": "php -d memory_limit=512M -d error_reporting=\"E_ALL & ~E_DEPRECATED\" vendor/bin/strauss && php -d memory_limit=512M scripts/fix-prefixed-safe.php",
+        "vendor:prefix": "php -d memory_limit=512M -d error_reporting=\"E_ALL & ~E_DEPRECATED\" vendor/bin/strauss && php -d memory_limit=512M scripts/fix-prefixed-safe.php && php scripts/fix-phpword-style-deprecation.php",
         "clean": "composer clean:cache && composer clean:coverage",
         "clean:cache": "php -r \"array_map('unlink', glob('.cache/**/*.*')); array_map('rmdir', glob('.cache/*', GLOB_ONLYDIR)); is_dir('.cache') && rmdir('.cache'); echo 'Cache cleared.\\n';\"",
         "clean:coverage": "php -r \"is_dir('coverage') && array_map('unlink', glob('coverage/*.*')) && rmdir('coverage'); echo 'Coverage cleared.\\n';\"",
