@@ -363,7 +363,7 @@ class SScribe_Logger implements SScribe_Logger_Interface {
 		// Log rotation: if the file exceeds MAX_LOG_FILE_SIZE, rotate it.
 		if ( file_exists( $log_file ) && filesize( $log_file ) >= self::MAX_LOG_FILE_SIZE ) {
 			$rotated_file = $this->log_dir . '/' . $this->prefix . '_debug_' . gmdate( 'Y-m-d_H-i-s' ) . '.log';
-			// phpcs:ignore WordPress.WP.AlternativeFunctions.file_system_operations_rename -- Safe filesystem rename for log rotation.
+			// phpcs:ignore WordPress.WP.AlternativeFunctions.rename_rename -- Safe filesystem rename for log rotation.
 			rename( $log_file, $rotated_file );
 
 			// Write a warning entry to the new fresh log indicating that rotation occurred.

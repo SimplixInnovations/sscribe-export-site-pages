@@ -13,7 +13,7 @@
  * {@see 'sscribe_rate_limit_admin'} hook.
  *
  * @package       SScribe
- * @since         1.1.1
+ * @since         1.1.2
  */
 
 declare( strict_types=1 );
@@ -29,7 +29,7 @@ if ( ! defined( 'ABSPATH' ) ) {
  * class constants and filterable hooks, so it needs no injected
  * dependencies beyond standard WordPress API functions.
  *
- * @since 1.1.1
+ * @since 1.1.2
  */
 class SScribe_Export_Rate_Limiter {
 
@@ -41,7 +41,7 @@ class SScribe_Export_Rate_Limiter {
 	 * format renders.
 	 *
 	 * @var int
-	 * @since 1.1.1
+	 * @since 1.1.2
 	 */
 	private const RATE_LIMIT_MAX = 200;
 
@@ -49,7 +49,7 @@ class SScribe_Export_Rate_Limiter {
 	 * Rate limit time window in seconds.
 	 *
 	 * @var int
-	 * @since 1.1.1
+	 * @since 1.1.2
 	 */
 	private const RATE_LIMIT_WINDOW = 60;
 
@@ -61,7 +61,7 @@ class SScribe_Export_Rate_Limiter {
 	 * The window resets automatically after {@see RATE_LIMIT_WINDOW}
 	 * seconds from the first request.
 	 *
-	 * @since 1.1.1
+	 * @since 1.1.2
 	 *
 	 * @param string $export_capability WordPress capability required to
 	 *                                  perform exports. Users holding this
@@ -97,7 +97,7 @@ class SScribe_Export_Rate_Limiter {
 		 * interruption. The admin limit is filterable so hosting
 		 * providers or site owners can tune it.
 		 *
-		 * @since 1.1.1
+		 * @since 1.1.2
 		 * @param int $admin_rate_limit Maximum requests per window for admins.
 		 */
 		$rate_limit = current_user_can( $export_capability )
