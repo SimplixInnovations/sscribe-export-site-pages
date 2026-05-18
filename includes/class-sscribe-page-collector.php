@@ -197,19 +197,29 @@ class SScribe_Page_Collector {
 
 		$post_status = $this->validate_post_status( $post_status );
 		$post_types  = $this->resolve_post_type_for_query( $post_type );
-		$post_type_clause = is_array( $post_types )
-			? "post_type IN ('" . implode( "','", array_map( 'esc_sql', $post_types ) ) . "')"
-			: "post_type = '" . esc_sql( $post_types ) . "'";
 
-		$status_clause = '';
-		if ( 'all' !== $post_status ) {
-			$status_clause = " AND post_status = '" . esc_sql( $post_status ) . "'";
+		// Build a safe prepared query for the page count estimate.
+		if ( is_array( $post_types ) ) {
+			$placeholders = implode( ',', array_fill( 0, count( $post_types ), '%s' ) );
+			// phpcs:disable WordPress.DB.PreparedSQLPlaceholders.UnfinishedPrepare -- placeholders are dynamically built above.
+			$sql = $wpdb->prepare(
+				"SELECT COUNT(*) FROM {$wpdb->posts} WHERE post_type IN ({$placeholders})", // phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared -- Table name is safe.
+				$post_types
+			);
+			// phpcs:enable
+		} else {
+			$sql = $wpdb->prepare(
+				"SELECT COUNT(*) FROM {$wpdb->posts} WHERE post_type = %s", // phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared -- Table name is safe.
+				$post_types
+			);
 		}
 
-		// phpcs:disable WordPress.DB.PreparedSQL.InterpolatedNotPrepared, WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- Count query for auto-detection; caching not needed.
-		$count = (int) $wpdb->get_var(
-			"SELECT COUNT(*) FROM {$wpdb->posts} WHERE {$post_type_clause}{$status_clause}"
-		);
+		if ( 'all' !== $post_status ) {
+			$sql .= $wpdb->prepare( ' AND post_status = %s', $post_status );
+		}
+
+		// phpcs:disable WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.NotPrepared -- Count query for auto-detection; caching not needed. SQL is prepared via $wpdb->prepare() above.
+		$count = (int) $wpdb->get_var( $sql );
 		// phpcs:enable
 
 		return $count;
