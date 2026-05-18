@@ -62,6 +62,43 @@ Yes. ZIP files are stored in a protected uploads directory and auto-delete after
 
 Yes. You can export pages by individual language or all languages at once.
 
+== Hooks ==
+
+= Actions =
+
+`sscribe_before_export_page`
+Fires before a page is exported during batch processing.
+
+Parameters: `(int $page_id, string $language)`
+
+`sscribe_after_export_page`
+Fires after a page has been exported during batch processing.
+
+Parameters: `(int $page_id, array $formats, bool $export_success)`
+
+`sscribe_cleanup_exports`
+Cron hook for cleaning up expired export files. Triggered daily by WordPress cron.
+
+`sscribe_cleanup_sessions`
+Cron hook for cleaning up stale export sessions. Triggered daily by WordPress cron.
+
+= Filters =
+
+`sscribe_max_execution_time`
+Override the maximum PHP execution time for batch exports.
+
+Parameters: `(int $seconds)` — Default: 120
+
+`sscribe_pdf_max_execution_time`
+Override the maximum PHP execution time for PDF-heavy exports.
+
+Parameters: `(int $seconds)` — Default: 300
+
+`sscribe_pdf_max_html_size`
+Maximum HTML size (in bytes) passed to mPDF before truncation.
+
+Parameters: `(int $bytes)` — Default: 5,242,880 (5MB)
+
 == Changelog ==
 
 = 1.1.0 =
