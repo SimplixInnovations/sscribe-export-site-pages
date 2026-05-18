@@ -166,19 +166,35 @@ if ( $canonical_version ) {
 			if ( 'readme.txt' === basename( $f ) ) {
 				continue;
 			}
-			// Skip upgrader.php — version_compare() calls are intentional historical migrations.
-			if ( 'class-sscribe-upgrader.php' === basename( $f ) ) {
-				continue;
-			}
-			// Skip activator.php — cleanup comments for legacy versions are intentional.
-			if ( 'class-sscribe-activator.php' === basename( $f ) ) {
-				continue;
-			}
+// Skip upgrader.php — version_compare() calls are intentional historical migrations.
+		if ( 'class-sscribe-upgrader.php' === basename( $f ) ) {
+			continue;
+		}
+		// Skip activator.php — cleanup comments for legacy versions are intentional.
+		if ( 'class-sscribe-activator.php' === basename( $f ) ) {
+			continue;
+		}
+		// Skip diagnostics.php — PHPWord library version comments (e.g., "PHPWord < 1.5.0").
+		if ( 'class-sscribe-diagnostics.php' === basename( $f ) ) {
+			continue;
+		}
+		// Skip exporter.php — PHPWord library version check comments.
+		if ( 'class-sscribe-exporter.php' === basename( $f ) ) {
+			continue;
+		}
+		// Skip build-release.php — WordPress.org API version spec comments.
+		if ( 'build-release.php' === basename( $f ) ) {
+			continue;
+		}
+		// Skip bootstrap.php — PHPStan version check references.
+		if ( 'bootstrap.php' === basename( $f ) ) {
+			continue;
+		}
 			// Skip verify-version-sync.php — inline version examples in comments are intentional.
 			if ( 'verify-version-sync.php' === basename( $f ) ) {
 				continue;
 			}
-			// Skip bump-version.php — usage examples (e.g., "php scripts/bump-version.php 3.9.7") are intentional documentation.
+			// Skip bump-version.php — usage examples (e.g., "php scripts/bump-version.php 1.1.0") are intentional documentation.
 			if ( 'bump-version.php' === basename( $f ) ) {
 				continue;
 			}
