@@ -264,7 +264,7 @@ class SScribe_Validator {
 
 		$export_dir = $upload_dir['basedir'] . '/sscribe-exports';
 		// phpcs:ignore WordPress.PHP.NoSilencedErrors.Discouraged -- disk_free_space returns false on failure, properly guarded.
-		$free_space = @disk_free_space( $export_dir );
+		$free_space = function_exists( 'disk_free_space' ) ? @disk_free_space( $export_dir ) : false;
 
 		if ( false !== $free_space ) {
 			$free_mb = round( $free_space / 1024 / 1024 );
