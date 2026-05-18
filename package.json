@@ -2,6 +2,7 @@
   "name": "sscribe-export-site-pages",
   "version": "3.9.7",
   "private": true,
+  "type": "module",
   "description": "Export WordPress pages to professional DOCX, PDF, HTML, or Markdown packages",
   "scripts": {
     "lint:js": "eslint admin/js/*.js",
