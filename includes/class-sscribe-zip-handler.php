@@ -195,34 +195,38 @@ class SScribe_Zip_Handler {
 
 		$this->delete_directory( $source_dir );
 
-		// Use atomic transient-based lock with TTL to prevent race conditions during indexing.
-		// set_transient() with expiry is crash-safe unlike add_option() (no TTL, permanent orphan).
-		// Stale lock detection: only delete if lock exists AND is older than 30s.
-		$lock_key = 'sscribe_index_lock'; // Global lock — export index is shared across all users.
-		$locked   = false;
-		$timeout  = 5; // Seconds.
-		$start    = time();
+		// Acquire index lock with exponential backoff to handle transient contention.
+		// Uses wp_cache_add() on persistent cache system, set_transient() on MySQL.
+		$lock_key     = 'sscribe_index_lock'; // Global lock — export index is shared across all users.
+		$locked       = false;
+		$lock_using_cache = wp_using_ext_object_cache();
+		$lock_attempts = array( 100000, 200000, 400000 ); // 100ms, 200ms, 400ms.
 
-		while ( time() - $start < $timeout ) {
-			// Check for stale lock (older than 30 seconds) before attempting acquisition.
-			$existing = get_transient( $lock_key );
-			if ( false !== $existing && ( time() - (int) $existing ) > 30 ) {
-				delete_transient( $lock_key ); // Only delete if stale.
+		// Check for stale lock before attempting acquisition.
+		if ( false !== get_transient( $lock_key ) && ( time() - (int) get_transient( $lock_key ) ) > 30 ) {
+			if ( $lock_using_cache ) {
+				wp_cache_delete( $lock_key, 'transient' );
 			}
-			if ( set_transient( $lock_key, time(), 30 ) ) {
+			delete_transient( $lock_key );
+		}
+
+		foreach ( $lock_attempts as $lock_delay ) {
+			if ( $lock_using_cache ) {
+				if ( wp_cache_add( $lock_key, time(), 'transient', 30 ) ) {
+					$locked = true;
+					break;
+				}
+			} elseif ( set_transient( $lock_key, time(), 30 ) ) {
 				$locked = true;
 				break;
 			}
-			usleep( 50000 ); // 50ms
+			usleep( $lock_delay );
 		}
 
-		// SECURITY: If lock not acquired, abort indexing to prevent race condition.
-		// The ZIP file exists but won't appear in history panel (acceptable degradation).
-		if ( ! $locked ) {
-			$this->logger->error( 'Failed to acquire export index lock - export created but not indexed' );
-			return file_exists( $zip_path ) ? $zip_path : false;
-		}
-
+		// Always attempt to index the ZIP. If the lock succeeded, we have exclusive
+		// access. If the lock failed, we still index to prevent orphaned files that
+		// exist on disk but cannot be downloaded (worst case: a race overwrites an
+		// unrelated entry in the index — acceptable vs. invisible exports).
 		try {
 			$exports                          = get_option( 'sscribe_export_index', array() );
 			$exports[ basename( $zip_path ) ] = array(
@@ -234,8 +238,20 @@ class SScribe_Zip_Handler {
 				'flag_url'   => $lang_metadata['flag_url'] ?? '',
 			);
 			update_option( 'sscribe_export_index', $exports, false );
+
+			if ( ! $locked ) {
+				$this->logger->warning(
+					'Export indexed without exclusive lock (possible race)',
+					array( 'zip' => basename( $zip_path ) )
+				);
+			}
 		} finally {
-			delete_transient( $lock_key );
+			if ( $locked ) {
+				if ( $lock_using_cache ) {
+					wp_cache_delete( $lock_key, 'transient' );
+				}
+				delete_transient( $lock_key );
+			}
 		}
 
 		return file_exists( $zip_path ) ? $zip_path : false;

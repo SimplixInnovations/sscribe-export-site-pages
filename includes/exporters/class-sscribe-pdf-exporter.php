@@ -145,7 +145,7 @@ class SScribe_PDF_Exporter implements SScribe_Exporter_Interface {
 				return SScribe_Result::failure(
 					sprintf(
 						/* translators: 1: HTML size, 2: Page title. */
-						__( 'PDF render skipped — HTML content is too large (%1$s). Try exporting to DOCX instead, or reduce page content complexity.', 'sscribe-export-site-pages' ),
+						__( 'PDF render skipped — HTML content is too large (%1$s). To raise the limit, use the "sscribe_pdf_max_html_size" filter. Try exporting to DOCX instead, or reduce page content complexity.', 'sscribe-export-site-pages' ),
 						size_format( $html_size )
 					),
 					array(

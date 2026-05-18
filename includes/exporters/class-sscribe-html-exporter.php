@@ -153,10 +153,12 @@ class SScribe_HTML_Exporter implements SScribe_Exporter_Interface {
 		.featured-image { width: 100%; max-width: 600px; margin: 0 auto; display: block; }
 		';
 
-		// Build a permissive kses allowlist for standalone HTML export.
-		// wp_kses_post() strips video, audio, iframe, canvas — elements valid in HTML.
+		// Start with full WordPress post allowlist (p, div, h1-h6, a, img, ul, ol, li,
+		// table, blockquote, strong, em, etc.) so standard page content is preserved.
+		// Then add media/embed elements that wp_kses_post() normally strips but are
+		// valid in standalone HTML files (video, audio, iframe, canvas, svg, etc.).
 		// The content was already sanitized at input time via WordPress, so this is safe.
-		$allowed_html = array(
+		$media_html = array(
 			'video'  => array(
 				'src'      => true,
 				'controls' => true,
@@ -189,27 +191,27 @@ class SScribe_HTML_Exporter implements SScribe_Exporter_Interface {
 				'id'     => true,
 			),
 			'svg'    => array(
-				'xmlns'       => true,
-				'viewbox'     => true,
-				'width'       => true,
-				'height'      => true,
-				'fill'        => true,
-				'stroke'      => true,
+				'xmlns'        => true,
+				'viewbox'      => true,
+				'width'        => true,
+				'height'       => true,
+				'fill'         => true,
+				'stroke'       => true,
 				'stroke-width' => true,
 			),
 			'source' => array(
-				'src'  => true,
-				'type' => true,
+				'src'   => true,
+				'type'  => true,
 				'media' => true,
 			),
-			'track' => array(
+			'track'  => array(
 				'kind'    => true,
 				'src'     => true,
 				'srclang' => true,
 				'label'   => true,
 				'default' => true,
 			),
-			'embed' => array(
+			'embed'  => array(
 				'src'    => true,
 				'type'   => true,
 				'width'  => true,
@@ -221,13 +223,14 @@ class SScribe_HTML_Exporter implements SScribe_Exporter_Interface {
 				'width'  => true,
 				'height' => true,
 			),
-			'param' => array(
+			'param'  => array(
 				'name'  => true,
 				'value' => true,
 			),
 		);
 
-		$filtered_content = wp_kses( $page_data['content'], $allowed_html );
+		$full_allowed  = array_merge_recursive( wp_kses_allowed_html( 'post' ), $media_html );
+		$filtered_content = wp_kses( $page_data['content'], $full_allowed );
 
 		$html = '<!DOCTYPE html>
 <html lang="' . esc_attr( $language ) . '" dir="' . esc_attr( $direction ) . '">

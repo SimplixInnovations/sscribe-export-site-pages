@@ -267,19 +267,29 @@ class SScribe_Session {
 		$option_name = $this->get_option_name( $session_id );
 		$lock_key    = 'sscribe_update_lock_' . $session_id;
 
-		// --- ACQUIRE ATOMIC LOCK via transient (DB-backed, works across PHP processes) ---
+		// --- ACQUIRE ATOMIC LOCK ---
+		// Dual mechanism for cross-environment safety. 1. Persistent object cache
+		// (Redis/Memcached): wp_cache_add() is the only atomic operation. set_transient()
+		// uses wp_cache_set() on cached systems, which is NOT atomic — concurrent requests
+		// can both pass and corrupt the session's processed counter. 2. Non-cached systems
+		// (MySQL): set_transient() uses MySQL INSERT which IS atomic. wp_cache_add() on
+		// non-persistent cache is per-request only and useless across processes.
 		$lock_acquired = false;
-		$lock_ttl      = 10; // 10 seconds — enough for read-modify-write, short enough to recover from crashes.
+		$lock_ttl      = 10;
+		$using_cache   = wp_using_ext_object_cache();
 
 		for ( $lock_attempt = 1; $lock_attempt <= 5; ++$lock_attempt ) {
-			// set_transient() is atomic via MySQL INSERT and works across separate PHP processes.
-			// Unlike wp_cache_add(), this does not rely on in-memory caching (Redis/Memcached).
-			if ( set_transient( $lock_key, time(), $lock_ttl ) ) {
+			if ( $using_cache ) {
+				if ( wp_cache_add( $lock_key, time(), 'transient', $lock_ttl ) ) {
+					$lock_acquired = true;
+					break;
+				}
+			} elseif ( set_transient( $lock_key, time(), $lock_ttl ) ) {
 				$lock_acquired = true;
 				break;
 			}
 			// Lock held by another request — brief sleep then retry.
-			usleep( 100000 ); // 100ms
+			usleep( 100000 );
 		}
 
 		if ( ! $lock_acquired ) {
@@ -343,6 +353,9 @@ class SScribe_Session {
 
 		} finally {
 			// --- ALWAYS RELEASE LOCK ---
+			if ( $using_cache ) {
+				wp_cache_delete( $lock_key, 'transient' );
+			}
 			delete_transient( $lock_key );
 		}
 	}

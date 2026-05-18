@@ -123,6 +123,8 @@
 		refreshStatusAndLanguageCounts: function (postType, language) {
 			var self = this;
 
+			$('.sscribe-status-card-label').addClass('sscribe-loading');
+
 			$.ajax({
 				url: sscribe_data.ajaxurl,
 				type: 'POST',
@@ -148,6 +150,7 @@
 							$('#sscribe-both-count').text(total.toLocaleString());
 						}
 					}
+					$('.sscribe-status-card-label').removeClass('sscribe-loading');
 				},
 				error: function () {},
 			});
@@ -268,7 +271,7 @@
 			var strings = sscribe_data.strings || {};
 
 			if (format === 'all') {
-				var totalSeconds = (1.2 + 8 + 1 + 0.5) * count;
+				var totalSeconds = (1.5 + 8 + 1 + 0.5) * count;
 				var minutes = Math.ceil(totalSeconds / 60);
 				if (minutes < 60) {
 					estimate =
@@ -290,12 +293,12 @@
 						(strings.minute_suffix || 'm');
 				}
 			} else {
-				var times = {
-					docx: 1.2,
-					pdf: 8,
-					html: 1,
-					markdown: 0.5,
-				};
+			var times = {
+				docx: 1.5,
+				pdf: 8,
+				html: 1,
+				markdown: 0.5,
+			};
 				var seconds = (times[format] || 2) * count;
 				if (seconds < 60) {
 					estimate =
@@ -609,7 +612,7 @@
 			$.ajax({
 				url: sscribe_data.ajaxurl,
 				type: 'POST',
-				timeout: 120000,
+				timeout: 180000, // Must exceed PHP set_time_limit (120s) to prevent false network errors. 180s = 60s grace over PHP's 120s.
 				data: {
 					action: 'sscribe_process_batch',
 					nonce: sscribe_data.nonce,

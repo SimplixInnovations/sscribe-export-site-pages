@@ -64,11 +64,17 @@ class SScribe_Exporter {
 	private string $font_name = 'Arial';
 
 	/**
-	 * Font name for RTL text (Arabic-capable).
+	 * Font name for RTL text (Arabic-capable DOCX).
+	 *
+	 * Arial is used intentionally — NotoSansArabic was removed from the plugin
+	 * package in v3.7.6 (see class-sscribe-font-helper.php). Arial is universally
+	 * available on Windows (the primary DOCX viewing environment), includes full
+	 * Arabic Unicode block, and provides consistent rendering across all systems
+	 * without requiring bundled font files.
 	 *
 	 * @var string
 	 */
-	private string $rtl_font_name = 'Noto Sans Arabic';
+	private string $rtl_font_name = 'Arial';
 
 	/**
 	 * Font size for normal text (in points).

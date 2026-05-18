@@ -109,7 +109,7 @@ class SScribe_Admin {
 		delete_transient( 'sscribe_activation_redirect' );
 
 		// phpcs:ignore WordPress.Security.NonceVerification.Recommended -- Redirect guard only checks activation flow markers.
-		if ( isset( $_GET['activate-multi'] ) ) {
+		if ( isset( $_GET['activate-multi'] ) && '1' === sanitize_key( (string) $_GET['activate-multi'] ) ) {
 			return;
 		}
 
@@ -301,7 +301,7 @@ class SScribe_Admin {
 					'err_permission'      => __( 'Your WordPress user role does not have the required capability (manage_options). Please contact your site administrator to grant export permissions, or log in with an Administrator account.', 'sscribe-export-site-pages' ),
 					'err_session_expired' => __( 'The export session was lost — this typically happens when the PHP session or database connection timed out. Click "Try Again" to start a fresh export. If this keeps happening, ask your hosting provider to increase the PHP max_execution_time (recommended: 120s or higher).', 'sscribe-export-site-pages' ),
 					'err_data_corrupted'  => __( 'The session data in the database became invalid. This can happen if your database ran out of storage or a caching plugin (e.g., WP Rocket, W3 Total Cache) is caching wp_options. Exclude "sscribe_session_*" from object caching.', 'sscribe-export-site-pages' ),
-					'err_rate_limit'      => __( 'You have exceeded the request rate limit (60 requests per minute). Please wait about 1 minute and then try again. This limit protects your server from overload.', 'sscribe-export-site-pages' ),
+					'err_rate_limit'      => __( 'You have exceeded the request rate limit (200 requests per minute). Please wait about 1 minute and then try again. This limit protects your server from overload.', 'sscribe-export-site-pages' ),
 					'err_no_pages'        => __( 'No pages match the selected language and status combination. Go back and verify your selection. If using WPML, ensure the selected language has pages assigned to it.', 'sscribe-export-site-pages' ),
 					'err_zip'             => __( 'The server could not create the ZIP archive. Common causes: the uploads directory is not writable (check folder permissions, should be 755), the server ran out of disk space, or the PHP zip extension is not installed. Contact your hosting provider if this persists.', 'sscribe-export-site-pages' ),
 					'err_timeout'         => __( 'The server took too long to respond. This usually happens with large pages or slow server hardware. The plugin processes pages individually and will resume from where it left off. If this keeps happening, ask your hosting provider to increase max_execution_time to at least 120 seconds.', 'sscribe-export-site-pages' ),

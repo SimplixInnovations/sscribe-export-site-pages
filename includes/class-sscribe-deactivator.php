@@ -32,10 +32,13 @@ class SScribe_Deactivator {
 			wp_unschedule_event( $session_timestamp, 'sscribe_cleanup_sessions' );
 		}
 
+		// NOTE: cleanup_export_files() is intentionally NOT called here.
+		// Deactivation can be temporary (troubleshooting, staging migration).
+		// Export files and logs are only deleted on full uninstall (uninstall.php).
+		// See issue #9: Deactivator deletes export files on deactivate.
 		try {
 			self::cleanup_options();
 			self::cleanup_database_tables();
-			self::cleanup_export_files();
 		} catch ( \Throwable $e ) {
 			if ( defined( 'WP_DEBUG' ) && WP_DEBUG ) {
 				// phpcs:ignore WordPress.PHP.DevelopmentFunctions.error_log_error_log
@@ -124,30 +127,4 @@ class SScribe_Deactivator {
 		}
 	}
 
-	/**
-	 * Remove export files from the uploads directory.
-	 *
-	 * @return void
-	 */
-	private static function cleanup_export_files(): void {
-		$upload_dir = wp_upload_dir();
-		$export_dir = $upload_dir['basedir'] . '/sscribe-exports';
-		$log_dir    = $upload_dir['basedir'] . '/sscribe-logs';
-		$mpdf_tmp   = $upload_dir['basedir'] . '/sscribe/mpdf-tmp';
-
-		if ( ! is_dir( $export_dir ) && ! is_dir( $log_dir ) && ! is_dir( $mpdf_tmp ) ) {
-			return;
-		}
-
-		try {
-			SScribe_Security::delete_directory( $export_dir );
-			SScribe_Security::delete_directory( $log_dir );
-			SScribe_Security::delete_directory( $mpdf_tmp );
-		} catch ( \Throwable $e ) {
-			if ( defined( 'WP_DEBUG' ) && WP_DEBUG ) {
-				// phpcs:ignore WordPress.PHP.DevelopmentFunctions.error_log_error_log
-				error_log( 'SScribe deactivation cleanup error: ' . $e->getMessage() );
-			}
-		}
-	}
 }

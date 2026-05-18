@@ -284,7 +284,7 @@ $sscribe_is_debug        = $sscribe_is_debug ?? false;
 								'docx'     => array(
 									'label' => __( 'DOCX', 'sscribe-export-site-pages' ),
 									'icon'  => 'file-doc',
-									'desc'  => __( '~1.2s/page', 'sscribe-export-site-pages' ),
+									'desc'  => __( '~1.5s/page', 'sscribe-export-site-pages' ),
 								),
 								'pdf'      => array(
 									'label' => __( 'PDF', 'sscribe-export-site-pages' ),
