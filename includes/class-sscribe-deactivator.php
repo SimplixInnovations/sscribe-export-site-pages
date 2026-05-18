@@ -37,8 +37,8 @@ class SScribe_Deactivator {
 		// Tables are only removed on full uninstall (uninstall.php).
 		// See issue #9: Deactivator deletes export files on deactivate.
 		//
-		// Version history: Prior to 1.1.2, the deactivator dropped sscribe_sessions
-		// and sscribe_export_stats tables. This was changed in 1.1.2 to preserve
+		// Version history: Prior to 1.1.3, the deactivator dropped sscribe_sessions
+		// and sscribe_export_stats tables. This was changed in 1.1.3 to preserve
 		// data across deactivation/reactivation cycles, matching the behavior of
 		// most enterprise WordPress plugins.
 		try {
@@ -99,12 +99,12 @@ class SScribe_Deactivator {
 	}
 
 	/**
-	 * Remove plugin tables — REMOVED in 1.1.2.
+	 * Remove plugin tables — REMOVED in 1.1.3.
 	 *
 	 * Previously dropped sscribe_sessions and sscribe_export_stats on deactivation.
 	 * Moved to uninstall.php only to preserve data across deactivation/reactivation.
 	 *
-	 * @deprecated 1.1.2
+	 * @deprecated 1.1.3
 	 * @return void
 	 */
 }
