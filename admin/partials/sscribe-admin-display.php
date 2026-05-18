@@ -7,7 +7,6 @@
  * - $sscribe_languages       (array) Available WPML languages.
  * - $sscribe_total_pages_all (int) Total page count across all languages.
  * - $sscribe_status_counts   (array) Page counts by status.
- * - $sscribe_seo_plugins     (array) Active SEO plugins.
  * - $sscribe_recent_exports  (array) Recent export files.
  * - $sscribe_debug_info (array) Debug information (when SSCRIBE_DEBUG is enabled).
  *
@@ -24,7 +23,6 @@ $sscribe_wpml_active     = $sscribe_wpml_active ?? false;
 $sscribe_languages       = $sscribe_languages ?? array();
 $sscribe_total_pages_all = $sscribe_total_pages_all ?? 0;
 $sscribe_status_counts   = $sscribe_status_counts ?? array();
-$sscribe_seo_plugins     = $sscribe_seo_plugins ?? array();
 $sscribe_recent_exports  = $sscribe_recent_exports ?? array();
 $sscribe_debug_info      = $sscribe_debug_info ?? array();
 $sscribe_is_debug        = $sscribe_is_debug ?? false;
