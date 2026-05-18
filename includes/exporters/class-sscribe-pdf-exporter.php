@@ -321,7 +321,7 @@ class SScribe_PDF_Exporter implements SScribe_Exporter_Interface {
 				// Without extending the time limit, PDF exports of even moderately complex pages would timeout on shared hosting.
 				// The 60-second limit is per-page and wrapped in function_exists() for safe degradation on restrictive hosts.
 				// phpcs:ignore Squiz.PHP.DiscouragedFunctions.Discouraged
-				@set_time_limit( 60 );
+				set_time_limit( 60 );
 			}
 
 			$filename    = \SScribe_Exporter_Factory::build_filename( $page_data, $index, $total, 'pdf' );

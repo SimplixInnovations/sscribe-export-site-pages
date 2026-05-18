@@ -345,9 +345,9 @@ class SScribe_Filesystem {
 		// phpcs:ignore WordPress.WP.AlternativeFunctions.file_system_operations_copy -- WP_Filesystem fallback for file copy.
 		$result = copy( $source, $destination );
 
-		if ( $result && $mode ) {
-			// phpcs:ignore WordPress.WP.AlternativeFunctions.file_system_operations_chmod, WordPress.PHP.NoSilencedErrors.Discouraged -- WP_Filesystem fallback for file permissions.
-			@chmod( $destination, $mode );
+		if ( $result && $mode && function_exists( 'chmod' ) ) {
+			// phpcs:ignore WordPress.WP.AlternativeFunctions.file_system_operations_chmod -- WP_Filesystem fallback for file permissions. Wrapped in function_exists() to safely handle environments where chmod is disabled.
+			chmod( $destination, $mode );
 		}
 
 		return $result;
