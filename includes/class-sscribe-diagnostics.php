@@ -1045,22 +1045,17 @@ class SScribe_Diagnostics {
 		$missing_deps = $this->check_vendor_dependencies();
 		$loaded       = empty( $missing_deps );
 
+		// Count hooks by verifying SScribe-specific class/method existence.
+		// Using has_action() would be misleading because WordPress core registers
+		// callbacks on hooks like 'admin_menu' regardless of SScribe loading,
+		// so has_action('admin_menu') always returns true even if SScribe failed.
 		$hooks_registered = 0;
 		if ( class_exists( 'SScribe_Loader' ) ) {
-			// Check that WordPress core / AJAX hooks are present in the system.
-			// has_action() returns true if ANY plugin registered a callback,
-			// so this measures hook availability, not SScribe-specific registration.
-			// Use class_exists() as primary indicator of plugin loading.
-			$hook_checks = array(
-				'admin_menu',
-				'admin_enqueue_scripts',
-				'wp_ajax_sscribe_start_export',
-				'wp_ajax_sscribe_process_batch',
-			);
-			foreach ( $hook_checks as $hook ) {
-				if ( has_action( $hook ) ) {
-					++$hooks_registered;
-				}
+			if ( class_exists( 'SScribe_Admin' ) ) {
+				$hooks_registered += 2; // admin_menu, admin_enqueue_scripts.
+			}
+			if ( class_exists( 'SScribe_Batch_Processor' ) ) {
+				$hooks_registered += 2; // wp_ajax_sscribe_start_export, wp_ajax_sscribe_process_batch.
 			}
 		}
 

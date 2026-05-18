@@ -178,7 +178,7 @@ if ( $canonical_version ) {
 			if ( 'verify-version-sync.php' === basename( $f ) ) {
 				continue;
 			}
-			// Skip bump-version.php — usage examples (e.g., "php scripts/bump-version.php 3.9.6") are intentional documentation.
+			// Skip bump-version.php — usage examples (e.g., "php scripts/bump-version.php 3.9.7") are intentional documentation.
 			if ( 'bump-version.php' === basename( $f ) ) {
 				continue;
 			}

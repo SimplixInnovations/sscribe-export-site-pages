@@ -30,6 +30,121 @@ if ( ! function_exists( 'wp_safe_redirect' ) ) {
 	}
 }
 
+// Stub wp_using_ext_object_cache() for tests — session lock and ZIP index lock use it.
+if ( ! function_exists( 'wp_using_ext_object_cache' ) ) {
+	function wp_using_ext_object_cache(): bool {
+		return false; // Default to no-persistent-cache for test isolation.
+	}
+}
+
+// Stub wp_kses_allowed_html() and kses for tests — HTML exporter content filter.
+if ( ! function_exists( 'wp_kses_allowed_html' ) ) {
+	/**
+	 * @param string $context The context for which to retrieve allowed HTML.
+	 * @return array<string, array<string, bool>>
+	 */
+	function wp_kses_allowed_html( string $context = 'post' ): array {
+		// Return a basic set of allowed HTML elements for test purposes.
+		// This covers standard WordPress post content elements.
+		$html = array(
+			'address'    => array(),
+			'a'          => array( 'href' => true, 'title' => true, 'rel' => true, 'target' => true ),
+			'abbr'       => array(),
+			'area'       => array( 'alt' => true, 'coords' => true, 'href' => true, 'shape' => true ),
+			'article'    => array(),
+			'aside'      => array(),
+			'b'          => array(),
+			'blockquote' => array( 'cite' => true ),
+			'br'         => array(),
+			'caption'    => array(),
+			'cite'       => array(),
+			'code'       => array(),
+			'col'        => array( 'span' => true ),
+			'colgroup'   => array( 'span' => true ),
+			'dd'         => array(),
+			'del'        => array( 'datetime' => true ),
+			'dfn'        => array(),
+			'div'        => array( 'class' => true, 'id' => true, 'style' => true ),
+			'dl'         => array(),
+			'dt'         => array(),
+			'em'         => array(),
+			'fieldset'   => array(),
+			'figcaption' => array(),
+			'figure'     => array(),
+			'footer'     => array(),
+			'h1'         => array( 'class' => true, 'id' => true ),
+			'h2'         => array( 'class' => true, 'id' => true ),
+			'h3'         => array( 'class' => true, 'id' => true ),
+			'h4'         => array( 'class' => true, 'id' => true ),
+			'h5'         => array( 'class' => true, 'id' => true ),
+			'h6'         => array( 'class' => true, 'id' => true ),
+			'header'     => array(),
+			'hgroup'     => array(),
+			'hr'         => array(),
+			'i'          => array(),
+			'img'        => array( 'alt' => true, 'class' => true, 'height' => true, 'src' => true, 'width' => true ),
+			'ins'        => array( 'datetime' => true ),
+			'li'         => array( 'class' => true ),
+			'main'       => array(),
+			'mark'       => array(),
+			'nav'        => array(),
+			'ol'         => array( 'class' => true, 'start' => true, 'type' => true ),
+			'p'          => array( 'class' => true, 'style' => true ),
+			'pre'        => array(),
+			's'          => array(),
+			'section'    => array(),
+			'small'      => array(),
+			'span'       => array( 'class' => true, 'style' => true ),
+			'strong'     => array(),
+			'sub'        => array(),
+			'sup'        => array(),
+			'table'      => array( 'class' => true ),
+			'tbody'      => array(),
+			'td'         => array( 'colspan' => true, 'rowspan' => true, 'class' => true ),
+			'tfoot'      => array(),
+			'th'         => array( 'colspan' => true, 'rowspan' => true, 'scope' => true, 'class' => true ),
+			'thead'      => array(),
+			'time'       => array( 'datetime' => true ),
+			'tr'         => array(),
+			'u'          => array(),
+			'ul'         => array( 'class' => true ),
+			'video'      => array( 'controls' => true, 'height' => true, 'src' => true, 'width' => true ),
+			'audio'      => array( 'controls' => true, 'src' => true ),
+			'iframe'     => array( 'allow' => true, 'height' => true, 'src' => true, 'width' => true ),
+		);
+
+		/**
+		 * Filter the allowed HTML tags.
+		 * Mimics WordPress core wp_kses_allowed_html() filter.
+		 *
+		 * @param array  $html    Allowed HTML tags and attributes.
+		 * @param string $context The context name.
+		 */
+		return apply_filters( 'wp_kses_allowed_html', $html, $context );
+	}
+}
+
+if ( ! function_exists( 'wp_kses' ) ) {
+	/**
+	 * Strip content to allowed HTML only.
+	 *
+	 * @param string $content     Content to filter.
+	 * @param array  $allowed_html Allowed HTML tags and attributes.
+	 * @return string Filtered content.
+	 */
+	function wp_kses( string $content, array $allowed_html ): string {
+		// Simple test implementation: strip tags not in allowed_html.
+		// Real wp_kses does deep attribute validation; for tests this is sufficient.
+		return strip_tags( $content, array_keys( $allowed_html ) );
+	}
+}
+
+if ( ! function_exists( 'wp_filter_content_tags' ) ) {
+	function wp_filter_content_tags( string $content ): string {
+		return $content;
+	}
+}
+
 if ( ! defined( 'SSCRIBE_PLUGIN_DIR' ) ) {
 	define( 'SSCRIBE_PLUGIN_DIR', dirname( __DIR__ ) . '/' );
 }
@@ -981,6 +1096,12 @@ if ( ! function_exists( 'esc_html__' ) ) {
 	function esc_html__( $text, $domain = 'default' ) {
 		unset( $domain );
 		return esc_html( $text );
+	}
+}
+
+if ( ! function_exists( 'number_format_i18n' ) ) {
+	function number_format_i18n( $number, $decimals = 0 ) {
+		return number_format( (float) $number, $decimals, '.', ',' );
 	}
 }
 

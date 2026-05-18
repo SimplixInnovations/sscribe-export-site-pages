@@ -195,7 +195,16 @@ class SScribe_Image_Processor {
 			)
 		);
 
-		return in_array( $host, $site_hosts, true );
+		// Allow sites using external CDNs (Cloudinary, AWS S3, Bunny CDN, imgix)
+		// to whitelist additional image hosts via the sscribe_allowed_image_hosts filter.
+		// Without this, images from external CDNs are silently dropped in PDF exports.
+		$allowed_hosts = apply_filters( 'sscribe_allowed_image_hosts', $site_hosts );
+
+		if ( ! is_array( $allowed_hosts ) ) {
+			$allowed_hosts = $site_hosts;
+		}
+
+		return in_array( $host, $allowed_hosts, true );
 	}
 
 	/**

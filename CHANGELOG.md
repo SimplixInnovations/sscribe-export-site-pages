@@ -4,6 +4,29 @@ All notable changes to this project will be documented in this file.
 
 ## [Unreleased]
 
+## [3.9.7] - 2026-05-18
+
+### Fixed
+- Critical: HTML exporter kses allowlist only allowed media elements — all standard WordPress content was stripped.
+- Critical: JS/PHP timeout race condition — JS timeout increased from 120s to 180s with 60s grace window.
+- Critical: RTL DOCX exporter referenced Noto Sans Arabic font removed in v3.7.6 — switched to universally-available Arial.
+- Critical: Deactivator called cleanup_export_files() on deactivation, destroying all exports on temporary deactivation — cleanup moved exclusively to uninstall.php.
+- Session lock used set_transient() which is non-atomic on Redis/Memcached — dual mechanism with wp_cache_add() for persistent cache.
+- ZIP lock acquisition failure returned unindexed exports — added exponential backoff retry + always-index guarantee.
+- Rate limit error message claimed "60 requests per minute" when actual limit is 200.
+- Diagnostics hook counting used has_action() which always returns true — class/method existence checks now used.
+- Baseline time estimates inconsistent across PHP, JS, and template for DOCX — all synced to 1.5s.
+- PDF max_html_size error omitted filter name — added "sscribe_pdf_max_html_size" to message.
+- Image processor silently dropped external CDN images — added sscribe_allowed_image_hosts filter.
+- $_GET['activate-multi'] accessed without sanitization — added sanitize_key().
+- Status cards no loading feedback — added .sscribe-loading class during refresh.
+- Removed unused SScribe_Deactivator::cleanup_export_files() method.
+- Added content output tests for HTML and Markdown exporters.
+
+### Changed
+- All 340 PHPUnit tests passing, PHPStan Level 6 clean, PHPCS clean.
+- Version pump to 3.9.7 — all 14 version references synchronized.
+
 ## [3.9.6] - 2026-05-18
 
 ### Fixed

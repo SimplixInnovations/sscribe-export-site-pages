@@ -53,12 +53,108 @@ class SScribe_Format_Exporters_Test extends TestCase {
 		$this->assertEquals( 'text/markdown', $exporter->get_mime_type() );
 	}
 
+	public function test_markdown_exporter_content_output(): void {
+		require_once SSCRIBE_PLUGIN_DIR . 'includes/exporters/class-sscribe-markdown-exporter.php';
+		$exporter = new SScribe_Markdown_Exporter();
+
+		$temp_dir = sys_get_temp_dir() . '/sscribe-test-' . uniqid();
+		wp_mkdir_p( $temp_dir );
+
+		$page_data = array(
+			'id'              => 42,
+			'title'           => 'Test Markdown Page',
+			'content'         => '<p>Hello World</p><h1>Heading</h1>',
+			'permalink'       => home_url( '/test-markdown/' ),
+			'language'        => 'en',
+			'featured_image'  => '',
+			'author'          => 'Test Author',
+			'date_published'  => '2024-01-01',
+			'date_modified'   => '2024-01-02',
+			'word_count'      => 5,
+		);
+
+		$result = $exporter->export( $page_data, $temp_dir, 1, 1 );
+
+		$this->assertTrue( $result->is_success(), 'Markdown export should succeed' );
+
+		// Read the generated file.
+		$data   = $result->get_data();
+		$path   = $data['path'] ?? '';
+		$this->assertFileExists( $path );
+
+		$content = file_get_contents( $path );
+		$this->assertNotEmpty( $content, 'Markdown output should not be empty' );
+
+		// Verify YAML frontmatter keys exist.
+		$this->assertStringContainsString( 'title:', $content, 'Frontmatter should contain title key' );
+		$this->assertStringContainsString( 'Test Markdown Page', $content, 'Frontmatter should contain the page title' );
+		$this->assertStringContainsString( 'published:', $content, 'Frontmatter should contain published date key' );
+		$this->assertStringContainsString( 'author:', $content, 'Frontmatter should contain author key' );
+
+		// Verify content is present.
+		$this->assertStringContainsString( 'Hello World', $content, 'Markdown content should contain page text' );
+
+		// Cleanup.
+		if ( $path && file_exists( $path ) ) {
+			wp_delete_file( $path );
+		}
+		if ( is_dir( $temp_dir ) ) {
+			rmdir( $temp_dir );
+		}
+	}
+
 	public function test_html_exporter_interface(): void {
 		require_once SSCRIBE_PLUGIN_DIR . 'includes/exporters/class-sscribe-html-exporter.php';
 		$exporter = new SScribe_HTML_Exporter();
 
 		$this->assertEquals( 'html', $exporter->get_extension() );
 		$this->assertEquals( 'text/html', $exporter->get_mime_type() );
+	}
+
+	public function test_html_exporter_preserves_standard_content(): void {
+		require_once SSCRIBE_PLUGIN_DIR . 'includes/exporters/class-sscribe-html-exporter.php';
+		$exporter = new SScribe_HTML_Exporter();
+
+		$temp_dir = sys_get_temp_dir() . '/sscribe-test-' . uniqid();
+		wp_mkdir_p( $temp_dir );
+
+		$page_data = array(
+			'id'              => 1,
+			'title'           => 'Test Page',
+			'content'         => '<p>Hello World</p><h1>Heading 1</h1><a href="https://example.com">Link</a><img src="https://example.com/img.jpg" alt="test"><ul><li>Item</li></ul>',
+			'permalink'       => home_url( '/test-page/' ),
+			'language'        => 'en',
+			'featured_image'  => '',
+			'author'          => 'Test Author',
+			'date_published'  => '2024-01-01',
+			'date_modified'   => '2024-01-02',
+			'word_count'      => 10,
+		);
+
+		$result = $exporter->export( $page_data, $temp_dir, 1, 1 );
+
+		$this->assertTrue( $result->is_success(), 'HTML export should succeed. Error: ' . ( $result->get_error() ?? 'none' ) );
+		$data = $result->get_data();
+		$this->assertNotEmpty( $data['html'] ?? '', 'HTML output should not be empty' );
+
+		$html = $data['html'] ?? '';
+
+		// Verify standard HTML elements are preserved (regression test for content-stripping bug).
+		$this->assertStringContainsString( '<p>Hello World</p>', $html, 'Paragraph elements should be preserved' );
+		$this->assertStringContainsString( '<h1>Heading 1</h1>', $html, 'Heading elements should be preserved' );
+		$this->assertStringContainsString( '<a href="https://example.com">Link</a>', $html, 'Link elements should be preserved' );
+		$this->assertStringContainsString( '<img src="https://example.com/img.jpg"', $html, 'Image elements should be preserved' );
+		$this->assertStringContainsString( '<ul>', $html, 'List elements should be preserved' );
+		$this->assertStringContainsString( '<li>Item</li>', $html, 'List item elements should be preserved' );
+
+		// Cleanup.
+		$generated_file = $data['path'] ?? '';
+		if ( $generated_file && file_exists( $generated_file ) ) {
+			wp_delete_file( $generated_file );
+		}
+		if ( is_dir( $temp_dir ) ) {
+			rmdir( $temp_dir );
+		}
 	}
 
 	public function test_pdf_exporter_interface(): void {
