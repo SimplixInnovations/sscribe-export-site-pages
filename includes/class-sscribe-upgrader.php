@@ -177,6 +177,31 @@ class SScribe_Upgrader {
 			}
 		}
 
+		// Migration: 1.1.1 — Migrate adaptive metrics to post-type-aware keys.
+		// Prior to 1.1.1, metrics were keyed by format only (e.g., 'docx').
+		// From 1.1.1 onward, they use format + post_type (e.g., 'docx_page').
+		// This migrates old data to the new key format to preserve historical estimates.
+		if ( version_compare( $from_version, '1.1.1', '<' ) ) {
+			$metrics = get_option( 'sscribe_export_metrics', array() );
+			if ( isset( $metrics['formats'] ) && is_array( $metrics['formats'] ) ) {
+				$migrated      = false;
+				$known_formats = array( 'docx', 'pdf', 'html', 'markdown' );
+				foreach ( array_keys( $metrics['formats'] ) as $key ) {
+					// Old keys have no underscore (e.g., 'docx'). New keys have '_' (e.g., 'docx_page').
+					if ( false === strpos( $key, '_' ) && in_array( $key, $known_formats, true ) ) {
+						$new_key = $key . '_page';
+						if ( ! isset( $metrics['formats'][ $new_key ] ) ) {
+							$metrics['formats'][ $new_key ] = $metrics['formats'][ $key ];
+							$migrated                       = true;
+						}
+					}
+				}
+				if ( $migrated ) {
+					update_option( 'sscribe_export_metrics', $metrics, false );
+				}
+			}
+		}
+
 		// Migration: 3.33.0 — Fix export_session_id column width (VARCHAR(12) → VARCHAR(64)).
 		if ( version_compare( $from_version, '3.33.0', '<' ) ) {
 			try {

@@ -22,7 +22,7 @@ class SScribe_Diagnostics {
 	/**
 	 * Minimum expected mPDF bundled font file count.
 	 *
-	 * mPDF ships with ~83 font files. If fewer than this threshold are
+	 * MPDF ships with ~83 font files. If fewer than this threshold are
 	 * detected, the diagnostic warns that fonts may be incomplete.
 	 * Lowered from 50 to account for future mPDF versions that may
 	 * ship fewer bundled fonts.

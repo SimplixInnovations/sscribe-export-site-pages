@@ -104,7 +104,7 @@ define( 'SSCRIBE_PLUGIN_BASENAME', plugin_basename( __FILE__ ) );
  * Arabic PDF rendering now uses DejaVu Sans (bundled with mPDF).
  * The HTML exporter relies on system fonts for Arabic text.
  *
- * @deprecated 3.7.6
+ * @deprecated 1.1.0
  */
 
 require_once SSCRIBE_PLUGIN_DIR . 'includes/sscribe-autoloader.php';
