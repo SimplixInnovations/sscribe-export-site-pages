@@ -85,7 +85,9 @@ $sscribe_is_debug        = $sscribe_is_debug ?? false;
 			<div class="sscribe-panel-body sscribe-flat-body">
 				<div class="sscribe-config-grid">
 					<div class="sscribe-config-section">
-						<div class="sscribe-section-title"><?php esc_html_e( 'Content Type', 'sscribe-export-site-pages' ); ?></div>
+						<div class="sscribe-section-title">
+							<span class="sscribe-step-badge">1</span>
+							<?php esc_html_e( 'Content Type', 'sscribe-export-site-pages' ); ?></div>
 						<div class="sscribe-post-type-cards sscribe-cards-compact" id="sscribe-post-type-cards">
 							<label class="sscribe-post-type-card">
 								<input type="radio" name="sscribe_post_type" value="page" checked>
@@ -144,6 +146,7 @@ $sscribe_is_debug        = $sscribe_is_debug ?? false;
 					<?php if ( $sscribe_wpml_active && ! empty( $sscribe_languages ) ) : ?>
 					<div class="sscribe-config-section">
 						<div class="sscribe-config-section-header">
+							<span class="sscribe-step-badge">2</span>
 							<?php // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- SVG sanitized in get_icon(). ?>
 							<?php echo SScribe_Helpers::get_icon( 'globe', 15 ); ?>
 							<span><?php esc_html_e( 'Language', 'sscribe-export-site-pages' ); ?></span>
@@ -197,7 +200,9 @@ $sscribe_is_debug        = $sscribe_is_debug ?? false;
 					<?php endif; ?>
 
 					<div class="sscribe-config-section">
-						<div class="sscribe-section-title"><?php esc_html_e( 'Content Status', 'sscribe-export-site-pages' ); ?></div>
+						<div class="sscribe-section-title">
+							<span class="sscribe-step-badge">3</span>
+							<?php esc_html_e( 'Content Status', 'sscribe-export-site-pages' ); ?></div>
 						<div class="sscribe-status-cards sscribe-cards-row" id="sscribe-status-cards">
 							<?php
 							$sscribe_status_labels = array(
@@ -248,7 +253,9 @@ $sscribe_is_debug        = $sscribe_is_debug ?? false;
 					</div>
 
 					<div class="sscribe-config-section">
-						<div class="sscribe-section-title"><?php esc_html_e( 'Export Format', 'sscribe-export-site-pages' ); ?></div>
+						<div class="sscribe-section-title">
+							<span class="sscribe-step-badge">4</span>
+							<?php esc_html_e( 'Export Format', 'sscribe-export-site-pages' ); ?></div>
 						<div class="sscribe-format-cards sscribe-cards-row" id="sscribe-format-cards">
 							<label class="sscribe-format-card-label sscribe-format-all">
 								<input type="radio" name="sscribe_format" value="all" checked>
@@ -260,6 +267,7 @@ $sscribe_is_debug        = $sscribe_is_debug ?? false;
 									<div class="sscribe-format-meta">
 										<span class="sscribe-format-name"><?php esc_html_e( 'All Formats', 'sscribe-export-site-pages' ); ?></span>
 										<span class="sscribe-format-desc"><?php esc_html_e( 'DOCX, PDF, HTML, MD', 'sscribe-export-site-pages' ); ?></span>
+										<span class="sscribe-format-note"><?php esc_html_e( '~8s/page', 'sscribe-export-site-pages' ); ?></span>
 									</div>
 									<div class="sscribe-format-selector">
 										<?php // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- SVG sanitized in get_icon(). ?>
@@ -331,6 +339,7 @@ $sscribe_is_debug        = $sscribe_is_debug ?? false;
 							<span id="sscribe-export-btn-text"><?php esc_html_e( 'Generate Package', 'sscribe-export-site-pages' ); ?></span>
 						</button>
 						<span id="sscribe-export-btn-hint" class="screen-reader-text"><?php esc_html_e( 'Start the export process for selected pages and format', 'sscribe-export-site-pages' ); ?></span>
+						<span id="sscribe-export-disabled-reason" class="sscribe-export-disabled-reason" aria-live="polite"></span>
 					</div>
 				</div>
 
@@ -485,6 +494,13 @@ $sscribe_is_debug        = $sscribe_is_debug ?? false;
 							<?php endforeach; ?>
 						<?php else : ?>
 							<div class="sscribe-history-empty">
+								<svg class="sscribe-empty-illustration" width="64" height="64" viewBox="0 0 64 64" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+									<rect x="8" y="12" width="48" height="40" rx="4" stroke="currentColor" stroke-width="2" fill="none" opacity="0.3"/>
+									<path d="M8 20h48" stroke="currentColor" stroke-width="2" opacity="0.3"/>
+									<rect x="14" y="28" width="20" height="3" rx="1.5" fill="currentColor" opacity="0.2"/>
+									<rect x="14" y="34" width="14" height="3" rx="1.5" fill="currentColor" opacity="0.15"/>
+									<rect x="14" y="40" width="17" height="3" rx="1.5" fill="currentColor" opacity="0.1"/>
+								</svg>
 								<em><?php esc_html_e( 'Your recent export packages will appear here.', 'sscribe-export-site-pages' ); ?></em>
 							</div>
 						<?php endif; ?>
@@ -522,7 +538,7 @@ $sscribe_is_debug        = $sscribe_is_debug ?? false;
 				</div>
 				<div class="sscribe-support-copy-wrap">
 					<label class="screen-reader-text" for="sscribe-support-copy-text"><?php esc_html_e( 'Support information text', 'sscribe-export-site-pages' ); ?></label>
-					<textarea id="sscribe-support-copy-text" class="sscribe-support-copy-text" readonly></textarea>
+					<textarea id="sscribe-support-copy-text" class="sscribe-support-copy-text" readonly inputmode="none"></textarea>
 				</div>
 				<div class="sscribe-hidden" id="sscribe-support-grid" aria-live="polite"></div>
 			</div>

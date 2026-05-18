@@ -99,6 +99,7 @@ class SScribe_PDF_Exporter implements SScribe_Exporter_Interface {
 
 		$libxml_errors = array();
 		$prev_errors   = libxml_use_internal_errors( true );
+		$output_path   = '';
 
 		try {
 			if ( ! class_exists( '\\SScribeVendor\\Mpdf\\Mpdf' ) ) {

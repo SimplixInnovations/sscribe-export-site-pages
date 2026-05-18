@@ -514,6 +514,17 @@ class SScribe_Session {
 					? max( $data['created_at'], $data['updated_at'] )
 					: $data['created_at'];
 
+				// Guard: Do not delete sessions in 'finalizing' status that are still
+				// relatively recent (< 1 hour old). The finalization process (creating a ZIP
+				// of many PDF files) can take several minutes. If the cleanup cron fires
+				// during this window, deleting the session would orphan the ZIP on disk.
+				$status = $data['status'] ?? '';
+				$age    = $now - $last_activity;
+				if ( 'finalizing' === $status && $age < HOUR_IN_SECONDS ) {
+					$cursor = $option->option_name;
+					continue;
+				}
+
 				if ( isset( $data['created_at'] ) && ( $now - $last_activity ) > $max_age_seconds ) {
 					if ( delete_option( $option->option_name ) ) {
 						++$deleted;

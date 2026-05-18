@@ -38,7 +38,16 @@ class SScribe_Zip_Handler {
 	 * Constructor.
 	 */
 	public function __construct() {
-		$upload_dir       = wp_upload_dir();
+		$upload_dir = wp_upload_dir();
+		if ( ! empty( $upload_dir['error'] ) ) {
+			$this->export_dir = '';
+			$this->logger     = SScribe_Logger::instance( defined( 'SSCRIBE_DEBUG' ) && SSCRIBE_DEBUG );
+			$this->logger->warning(
+				'wp_upload_dir() returned an error — export directory unavailable',
+				array( 'error' => $upload_dir['error'] )
+			);
+			return;
+		}
 		$this->export_dir = $upload_dir['basedir'] . '/sscribe-exports';
 		$this->logger     = SScribe_Logger::instance( defined( 'SSCRIBE_DEBUG' ) && SSCRIBE_DEBUG );
 	}
