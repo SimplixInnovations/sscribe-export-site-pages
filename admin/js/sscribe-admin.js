@@ -179,7 +179,10 @@
 					$('.sscribe-status-card-label').removeClass('sscribe-loading');
 					$('#sscribe-post-count, #sscribe-both-count').removeClass('sscribe-loading-count');
 				},
-				error: function () {},
+				error: function () {
+					$('.sscribe-status-card-label').removeClass('sscribe-loading');
+					$('#sscribe-post-count, #sscribe-both-count').removeClass('sscribe-loading-count');
+				},
 			});
 
 			$('input[name="sscribe_language"]').each(function () {
@@ -205,7 +208,10 @@
 								.text(total.toLocaleString());
 						}
 					},
-					error: function () {},
+						error: function () {
+						$('.sscribe-status-card-label').removeClass('sscribe-loading');
+						$('#sscribe-post-count, #sscribe-both-count').removeClass('sscribe-loading-count');
+					},
 				});
 			});
 
@@ -228,7 +234,10 @@
 							.text(total.toLocaleString());
 					}
 				},
-				error: function () {},
+				error: function () {
+					$('.sscribe-status-card-label').removeClass('sscribe-loading');
+					$('#sscribe-post-count, #sscribe-both-count').removeClass('sscribe-loading-count');
+				},
 			});
 		},
 
