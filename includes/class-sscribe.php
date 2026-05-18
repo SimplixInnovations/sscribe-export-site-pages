@@ -103,7 +103,8 @@ class SScribe {
 			SScribe_Admin::class,
 			fn( SScribe_Container $c ) => new SScribe_Admin(
 				$c->get( SScribe_Page_Collector::class ),
-				$c->get( SScribe_SEO_Reader::class )
+				$c->get( SScribe_SEO_Reader::class ),
+				$c->get( SScribe_Zip_Handler::class )
 			)
 		);
 
