@@ -97,18 +97,46 @@ class SScribe_Batch_Processor {
 	private readonly \SScribe_Adaptive_Metrics $adaptive_metrics;
 
 	/**
-	 * Rate limit: 200 requests per minute per user by default.
+	 * Rate limiter for endpoint protection.
 	 *
-	 * Admins get up to 1000/min via the sscribe_rate_limit_admin filter.
-	 * 200 req/min supports large batch exports where the AJAX client polls
-	 * every few seconds per page across multiple concurrent format renders.
+	 * @var SScribe_Export_Rate_Limiter
 	 */
-	private const RATE_LIMIT_MAX = 200;
+	private readonly SScribe_Export_Rate_Limiter $rate_limiter;
 
 	/**
-	 * Rate limit: Time window in seconds.
+	 * Export auditor for structured event logging.
+	 *
+	 * @var SScribe_Export_Auditor
 	 */
-	private const RATE_LIMIT_WINDOW = 60;
+	private readonly SScribe_Export_Auditor $auditor;
+
+	/**
+	 * Resource monitor for memory, time, and batch size checks.
+	 *
+	 * @var SScribe_Export_Resource_Monitor
+	 */
+	private readonly SScribe_Export_Resource_Monitor $resource_monitor;
+
+	/**
+	 * Lock manager for atomic export session locking.
+	 *
+	 * @var SScribe_Export_Lock_Manager
+	 */
+	private readonly SScribe_Export_Lock_Manager $lock_manager;
+
+	/**
+	 * Error handler for diagnostics payloads and structured error building.
+	 *
+	 * @var SScribe_Export_Error_Handler
+	 */
+	private readonly SScribe_Export_Error_Handler $error_handler;
+
+	/**
+	 * Query controller for read-only AJAX endpoints.
+	 *
+	 * @var SScribe_Export_Query_Controller
+	 */
+	private readonly SScribe_Export_Query_Controller $query_controller;
 
 	/**
 	 * Constructor.
@@ -134,6 +162,21 @@ class SScribe_Batch_Processor {
 		$this->diagnostics      = new SScribe_Diagnostics();
 		$this->audit_trail      = new SScribe_Audit_Trail();
 		$this->adaptive_metrics = new SScribe_Adaptive_Metrics();
+
+		$this->rate_limiter     = new SScribe_Export_Rate_Limiter();
+		$this->auditor          = new SScribe_Export_Auditor();
+		$this->resource_monitor = new SScribe_Export_Resource_Monitor();
+		$this->lock_manager     = new SScribe_Export_Lock_Manager();
+		$this->error_handler    = new SScribe_Export_Error_Handler();
+		$this->query_controller = new SScribe_Export_Query_Controller(
+			$this->rate_limiter,
+			$this->diagnostics,
+			$this->collector,
+			$this->logger,
+			$this->zip_handler,
+			$this->adaptive_metrics,
+			$this->error_handler
+		);
 	}
 
 	/**
@@ -142,49 +185,7 @@ class SScribe_Batch_Processor {
 	 * @return bool True if within limits, false if exceeded.
 	 */
 	private function check_rate_limit(): bool {
-		$user_id = get_current_user_id();
-
-		// For authenticated users, use user ID. For anonymous users, use IP hash
-		// to prevent cross-user rate-limiting collisions.
-		if ( $user_id > 0 ) {
-			$transient_key = 'sscribe_rate_' . $user_id;
-		} else {
-			$remote_ip     = isset( $_SERVER['REMOTE_ADDR'] ) ? sanitize_text_field( wp_unslash( $_SERVER['REMOTE_ADDR'] ) ) : '0.0.0.0';
-			$transient_key = 'sscribe_rate_anon_' . substr( hash( 'sha256', $remote_ip ), 0, 12 );
-		}
-
-		$now = time();
-
-		// Administrators get a higher rate limit to support large exports.
-		// Use get_required_capability() to ensure whitelist validation (not raw filter).
-		$rate_limit = current_user_can( $this->get_required_capability() )
-			? (int) apply_filters( 'sscribe_rate_limit_admin', 1000 )
-			: self::RATE_LIMIT_MAX;
-
-		$data = get_transient( $transient_key );
-
-		if ( false === $data ) {
-			$data = array(
-				'count'    => 0,
-				'reset_at' => $now + self::RATE_LIMIT_WINDOW,
-			);
-		}
-
-		if ( isset( $data['reset_at'] ) && $data['reset_at'] <= $now ) {
-			$data = array(
-				'count'    => 0,
-				'reset_at' => $now + self::RATE_LIMIT_WINDOW,
-			);
-		}
-
-		if ( $data['count'] >= $rate_limit ) {
-			return false;
-		}
-
-		++$data['count'];
-		set_transient( $transient_key, $data, self::RATE_LIMIT_WINDOW + 5 );
-
-		return true;
+		return $this->rate_limiter->check_rate_limit( $this->get_required_capability() );
 	}
 
 	/**
@@ -195,51 +196,7 @@ class SScribe_Batch_Processor {
 	 * @return void
 	 */
 	private function audit_log( string $action, array $context = array() ): void {
-		$user_id      = get_current_user_id();
-		$current_user = wp_get_current_user();
-		$username     = ( $current_user && $current_user->exists() ) ? $current_user->user_login : 'unknown';
-
-		$log_entry = array(
-			'action'    => $action,
-			'user_id'   => $user_id,
-			'username'  => $username,
-			'ip'        => SScribe_Helpers::get_client_ip(),
-			'timestamp' => current_time( 'mysql' ),
-			'context'   => $context,
-		);
-
-		$this->logger->debug( "[AUDIT] {$action}", $log_entry );
-
-		$event_type = $this->map_action_to_event( $action );
-		if ( $event_type ) {
-			$this->audit_trail->log( $event_type, $context );
-		}
-	}
-
-	/**
-	 * Map action name to audit event type.
-	 *
-	 * @param string $action Action name.
-	 * @return string|null Event type constant or null if not mappable.
-	 */
-	private function map_action_to_event( string $action ): ?string {
-		$map = array(
-			'export_started'    => SScribe_Audit_Trail::EVENT_EXPORT_STARTED,
-			'export_completed'  => SScribe_Audit_Trail::EVENT_EXPORT_COMPLETED,
-			'export_failed'     => SScribe_Audit_Trail::EVENT_EXPORT_FAILED,
-			'export_cancelled'  => SScribe_Audit_Trail::EVENT_EXPORT_CANCELLED,
-			'download'          => SScribe_Audit_Trail::EVENT_DOWNLOAD,
-			'download_denied'   => SScribe_Audit_Trail::EVENT_DOWNLOAD_DENIED,
-			'delete_export'     => SScribe_Audit_Trail::EVENT_DELETE,
-			'session_cleared'   => SScribe_Audit_Trail::EVENT_SESSION_CLEARED,
-			'preflight_check'   => SScribe_Audit_Trail::EVENT_PREFLIGHT_CHECK,
-			'rate_limited'      => SScribe_Audit_Trail::EVENT_RATE_LIMITED,
-			'permission_denied' => SScribe_Audit_Trail::EVENT_PERMISSION_DENIED,
-			'invalid_nonce'     => SScribe_Audit_Trail::EVENT_INVALID_NONCE,
-			'session_hijack'    => SScribe_Audit_Trail::EVENT_SESSION_HIJACK_ATTEMPT,
-		);
-
-		return $map[ $action ] ?? null;
+		$this->auditor->log( $action, $context );
 	}
 
 	/**
@@ -249,16 +206,7 @@ class SScribe_Batch_Processor {
 	 * @return bool True if memory is available.
 	 */
 	private function is_memory_available( int $buffer_mb = 10 ): bool {
-		$limit = wp_convert_hr_to_bytes( ini_get( 'memory_limit' ) );
-
-		if ( $limit <= 0 ) {
-			return true;
-		}
-
-		$used      = memory_get_usage( true );
-		$available = $limit - $used;
-
-		return $available > ( $buffer_mb * 1024 * 1024 );
+		return $this->resource_monitor->is_memory_available( $buffer_mb );
 	}
 
 	/**
@@ -269,17 +217,7 @@ class SScribe_Batch_Processor {
 	 * @return bool True if time is available, false if approaching timeout.
 	 */
 	private function is_time_available( float $batch_start_time, int $buffer_seconds = 10 ): bool {
-		$max_execution = (int) ini_get( 'max_execution_time' );
-
-		// If max_execution_time is 0 (unlimited) or not set, always return true.
-		if ( $max_execution <= 0 ) {
-			return true;
-		}
-
-		$elapsed   = microtime( true ) - $batch_start_time;
-		$remaining = $max_execution - $elapsed;
-
-		return $remaining > $buffer_seconds;
+		return $this->resource_monitor->is_time_available( $batch_start_time, $buffer_seconds );
 	}
 
 	/**
@@ -289,16 +227,7 @@ class SScribe_Batch_Processor {
 	 * @return float Remaining seconds, or -1 if unlimited.
 	 */
 	private function get_remaining_time( float $batch_start_time ): float {
-		$max_execution = (int) ini_get( 'max_execution_time' );
-
-		if ( $max_execution <= 0 ) {
-			return -1; // Unlimited.
-		}
-
-		$elapsed   = microtime( true ) - $batch_start_time;
-		$remaining = $max_execution - $elapsed;
-
-		return max( 0, $remaining );
+		return $this->resource_monitor->get_remaining_time( $batch_start_time );
 	}
 
 	/**
@@ -307,14 +236,7 @@ class SScribe_Batch_Processor {
 	 * @return float Memory usage percentage.
 	 */
 	private function get_memory_usage_percent(): float {
-		$limit = wp_convert_hr_to_bytes( ini_get( 'memory_limit' ) );
-
-		if ( $limit <= 0 ) {
-			return 0.0;
-		}
-
-		$used = memory_get_usage( true );
-		return round( ( $used / $limit ) * 100, 1 );
+		return $this->resource_monitor->get_memory_usage_percent();
 	}
 
 	/**
@@ -328,76 +250,15 @@ class SScribe_Batch_Processor {
 	 * @return void
 	 */
 	private function optimize_batch_size( array $formats = array() ): void {
-		$memory_limit  = wp_convert_hr_to_bytes( ini_get( 'memory_limit' ) );
-		$current_usage = memory_get_usage( true );
-		$available     = $memory_limit - $current_usage;
-
-		// Estimate memory per page:
-		// - Page data collection: ~500KB
-		// - Content parsing (DOMDocument): ~1MB
-		// - PHPWord DOCX generation: ~2-3MB
-		// Total: ~4MB average per page, use 5MB for safety margin.
-		$memory_per_page = 5 * 1024 * 1024;
-
-		// Reserve 20% safety margin.
-		$safe_available = $available * 0.8;
-
-		// Calculate safe batch size.
-		$safe_batch_size = (int) floor( $safe_available / $memory_per_page );
-
-		// Apply configured batch size as upper limit, but allow reduction for memory.
-		$configured_size  = (int) apply_filters( 'sscribe_batch_size', 5 );
-		$this->batch_size = max( 1, min( $safe_batch_size, $configured_size, 20 ) );
-
-		// Further reduce batch size when PDF format is included to prevent timeouts.
-		// PDF generation via mPDF is ~3s/page — large batches exceed PHP max_execution_time.
-		if ( in_array( 'pdf', $formats, true ) && $this->batch_size > 2 ) {
-			$this->batch_size = 2;
-		}
+		$this->batch_size = $this->resource_monitor->get_optimal_batch_size( $formats );
 
 		$this->logger->debug(
-			'Batch size optimized for available memory',
+			'Batch size optimized',
 			array(
-				'memory_limit'    => size_format( $memory_limit ),
-				'current_usage'   => size_format( $current_usage ),
-				'available'       => size_format( $available ),
-				'safe_available'  => size_format( $safe_available ),
-				'memory_per_page' => size_format( $memory_per_page ),
-				'configured_size' => $configured_size,
-				'optimized_size'  => $this->batch_size,
+				'formats'        => $formats,
+				'optimized_size' => $this->batch_size,
 			)
 		);
-	}
-
-	/**
-	 * Calculate estimated memory requirement for an export.
-	 *
-	 * @param int   $page_count Number of pages to export.
-	 * @param array $formats    Export formats selected.
-	 * @return int Estimated memory requirement in bytes.
-	 */
-	private function calculate_export_memory_requirement( int $page_count, array $formats ): int {
-		// Base memory per page varies by format:
-		// - HTML: ~1MB
-		// - Markdown: ~0.5MB
-		// - DOCX: ~5MB (PHPWord + DOMDocument)
-		// - PDF: ~4MB (mPDF + rendering).
-		$memory_per_page = 1; // Base 1MB for page data collection.
-
-		if ( in_array( 'docx', $formats, true ) ) {
-			$memory_per_page += 4; // PHPWord overhead.
-		}
-		if ( in_array( 'pdf', $formats, true ) ) {
-			$memory_per_page += 3; // mPDF overhead.
-		}
-		if ( in_array( 'markdown', $formats, true ) ) {
-			$memory_per_page += 0.5;
-		}
-
-		// Convert to bytes, add 50MB overhead for PHP/WordPress core.
-		$total_mb = ( $page_count * $memory_per_page ) + 50;
-
-		return (int) ( $total_mb * 1024 * 1024 );
 	}
 
 	/**
@@ -408,51 +269,7 @@ class SScribe_Batch_Processor {
 	 * @return array|null Warning array with 'level' and 'message', or null if no warning.
 	 */
 	private function get_memory_warning( int $page_count, array $formats ): ?array {
-		$memory_limit  = wp_convert_hr_to_bytes( ini_get( 'memory_limit' ) );
-		$current_usage = memory_get_usage( true );
-		$available     = $memory_limit - $current_usage;
-
-		$estimated_need = $this->calculate_export_memory_requirement( $page_count, $formats );
-		$safe_available = $available * 0.8; // 20% safety margin.
-
-		// No warning if we have enough memory.
-		if ( $estimated_need <= $safe_available ) {
-			return null;
-		}
-
-		$estimated_mb   = round( $estimated_need / 1024 / 1024 );
-		$available_mb   = round( $available / 1024 / 1024 );
-		$limit_mb       = round( $memory_limit / 1024 / 1024 );
-		$recommended_mb = ceil( $estimated_mb / 128 ) * 128;
-
-		if ( $estimated_need > $available ) {
-			return array(
-				'level'          => 'error',
-				'message'        => sprintf(
-					/* translators: 1: Estimated memory needed, 2: Available memory, 3: Recommended memory */
-					__( 'Warning: Export requires ~%1$dMB but only %2$dMB available. Increase PHP memory_limit to %3$dMB+ for reliable export.', 'sscribe-export-site-pages' ),
-					$estimated_mb,
-					$available_mb,
-					$recommended_mb
-				),
-				'estimated_mb'   => $estimated_mb,
-				'available_mb'   => $available_mb,
-				'recommended_mb' => $recommended_mb,
-			);
-		}
-
-		return array(
-			'level'        => 'warning',
-			'message'      => sprintf(
-				/* translators: 1: Estimated memory needed, 2: Available memory, 3: Percentage */
-				__( 'Note: Export will use ~%1$dMB of %2$dMB available (%3$d%%). Consider increasing memory for safety.', 'sscribe-export-site-pages' ),
-				$estimated_mb,
-				$available_mb,
-				round( ( $estimated_mb / $available_mb ) * 100 )
-			),
-			'estimated_mb' => $estimated_mb,
-			'available_mb' => $available_mb,
-		);
+		return $this->resource_monitor->get_memory_warning( $page_count, $formats );
 	}
 
 	/**
@@ -2188,49 +2005,7 @@ class SScribe_Batch_Processor {
 	 * @return void
 	 */
 	public function ajax_health_check(): void {
-		// For unauthenticated requests, return minimal reachability check only.
-		if ( ! is_user_logged_in() ) {
-			wp_send_json_success(
-				array(
-					'status'      => 'ok',
-					'server_time' => current_time( 'mysql' ),
-					'server_utc'  => gmdate( 'Y-m-d H:i:s' ),
-				)
-			);
-			return;
-		}
-
-		// Authenticated requests require export capability.
-		if ( ! current_user_can( $this->get_required_capability() ) ) {
-			wp_send_json_error(
-				array( 'message' => __( 'Permission denied.', 'sscribe-export-site-pages' ) ),
-				403
-			);
-			return;
-		}
-
-		// Authenticated requests are rate-limited to prevent abuse.
-		if ( ! $this->check_rate_limit() ) {
-			wp_send_json_error(
-				array(
-					'message' => __( 'Too many requests. Please wait a moment.', 'sscribe-export-site-pages' ),
-				),
-				429 // HTTP 429 Too Many Requests.
-			);
-			return;
-		}
-
-		$diagnostics = $this->diagnostics->check_ajax_health();
-		$boot        = $this->diagnostics->get_boot_diagnostics();
-
-		wp_send_json_success(
-			array(
-				'ajax_health' => $diagnostics,
-				'boot_state'  => $boot,
-				'server_time' => current_time( 'mysql' ),
-				'server_utc'  => gmdate( 'Y-m-d H:i:s' ),
-			)
-		);
+		$this->query_controller->ajax_health_check( $this->get_required_capability() );
 	}
 
 	/**
@@ -2364,30 +2139,7 @@ class SScribe_Batch_Processor {
 	 * @return void
 	 */
 	public function ajax_get_status_counts(): void {
-		check_ajax_referer( 'sscribe_export_nonce', 'nonce' );
-
-		if ( ! current_user_can( $this->get_required_capability() ) ) {
-			wp_send_json_error( array( 'message' => __( 'Permission denied.', 'sscribe-export-site-pages' ) ), 403 );
-			return;
-		}
-
-		if ( ! $this->check_rate_limit() ) {
-			wp_send_json_error(
-				array( 'message' => __( 'Too many requests. Please wait.', 'sscribe-export-site-pages' ) ),
-				429
-			);
-			return;
-		}
-
-		$language  = isset( $_POST['language'] ) ? sanitize_text_field( wp_unslash( $_POST['language'] ) ) : '';
-		$post_type = isset( $_POST['post_type'] ) ? sanitize_text_field( wp_unslash( $_POST['post_type'] ) ) : 'page';
-		if ( ! in_array( $post_type, array( 'page', 'post', 'any' ), true ) ) {
-			$post_type = 'page';
-		}
-
-		$counts = $this->collector->get_post_status_counts( $language, $post_type );
-
-		wp_send_json_success( array( 'counts' => $counts ) );
+		$this->query_controller->ajax_get_status_counts( $this->get_required_capability() );
 	}
 
 	/**
@@ -2533,290 +2285,20 @@ class SScribe_Batch_Processor {
 	 * @return void
 	 */
 	public function ajax_get_export_log(): void {
-		check_ajax_referer( 'sscribe_download', 'nonce' );
-
-		if ( ! current_user_can( $this->get_required_capability() ) ) {
-			wp_send_json_error( array( 'message' => __( 'Permission denied.', 'sscribe-export-site-pages' ) ), 403 );
-			return;
-		}
-
-		$filename = isset( $_POST['file'] ) ? sanitize_file_name( wp_unslash( $_POST['file'] ) ) : '';
-
-		if ( empty( $filename ) ) {
-			wp_send_json_error( array( 'message' => __( 'Invalid filename.', 'sscribe-export-site-pages' ) ), 400 );
-			return;
-		}
-
-		$exports = get_option( 'sscribe_export_index', array() );
-
-		if ( ! isset( $exports[ $filename ] ) ) {
-			wp_send_json_error( array( 'message' => __( 'Export not found.', 'sscribe-export-site-pages' ) ), 404 );
-			return;
-		}
-
-		$export_info = $exports[ $filename ];
-		if ( isset( $export_info['user_id'] ) && get_current_user_id() !== (int) $export_info['user_id'] ) {
-			wp_send_json_error( array( 'message' => __( 'Permission denied.', 'sscribe-export-site-pages' ) ), 403 );
-			return;
-		}
-
-		$log_data = SScribe_Export_Log::get_log_by_filename( $filename );
-
-		if ( ! $log_data ) {
-			wp_send_json_error( array( 'message' => __( 'Log not found for this export.', 'sscribe-export-site-pages' ) ), 404 );
-			return;
-		}
-
-		$structured_errors = $this->build_structured_errors_from_log( $log_data );
-		$diagnostics       = $this->build_error_diagnostics_payload( $structured_errors, wp_list_pluck( $log_data['errors'] ?? array(), 'message' ) );
-
-		wp_send_json_success(
-			array(
-				'log'         => $log_data,
-				'diagnostics' => $diagnostics,
-			)
-		);
+		$this->query_controller->ajax_get_export_log( $this->get_required_capability() );
 	}
 
 	/**
 	 * Build a normalized diagnostics payload for AJAX responses.
+	 *
+	 * Delegates to the error handler for payload construction.
 	 *
 	 * @param array $structured_errors Structured page error entries.
 	 * @param array $string_errors     Legacy string errors.
 	 * @return array
 	 */
 	private function build_error_diagnostics_payload( array $structured_errors, array $string_errors = array() ): array {
-		$categories      = array();
-		$guidance_map    = array();
-		$fix_steps_map   = array();
-		$technical_items = array();
-		$diagnostics     = array();
-		$html_sizes      = array();
-		$memory_peaks    = array();
-		$memory_limits   = array();
-		$exception_types = array();
-		$formats         = array();
-		$page_ids        = array();
-		$libxml_count    = 0;
-
-		foreach ( $structured_errors as $entry ) {
-			$page_id       = (int) ( $entry['page_id'] ?? 0 );
-			$page_ids[]    = $page_id;
-			$format_errors = isset( $entry['errors'] ) && is_array( $entry['errors'] ) ? $entry['errors'] : array();
-
-			if ( ! empty( $entry['diagnostics'] ) && is_array( $entry['diagnostics'] ) ) {
-				foreach ( $entry['diagnostics'] as $diagnosis ) {
-					$diagnostics[] = $diagnosis;
-				}
-			} else {
-				foreach ( $format_errors as $format_error ) {
-					$diagnostics[] = $this->diagnostics->diagnose_page_error(
-						$page_id,
-						strtolower( $format_error['format'] ?? 'unknown' ),
-						$format_error['message'] ?? '',
-						is_array( $format_error['context'] ?? null ) ? $format_error['context'] : array()
-					);
-				}
-			}
-
-			foreach ( $format_errors as $format_error ) {
-				$context   = is_array( $format_error['context'] ?? null ) ? $format_error['context'] : array();
-				$formats[] = $format_error['format'] ?? 'UNKNOWN';
-
-				if ( isset( $context['html_size'] ) ) {
-					$html_sizes[] = (int) $context['html_size'];
-				}
-
-				if ( isset( $context['memory_peak'] ) ) {
-					$memory_peaks[] = (int) $context['memory_peak'];
-				}
-
-				if ( ! empty( $context['memory_limit'] ) ) {
-					$memory_limits[] = (string) $context['memory_limit'];
-				}
-
-				if ( ! empty( $context['exception_class'] ) ) {
-					$exception_types[] = (string) $context['exception_class'];
-				}
-
-				if ( ! empty( $context['libxml_errors'] ) && is_array( $context['libxml_errors'] ) ) {
-					$libxml_count += count( $context['libxml_errors'] );
-				}
-
-				if ( ! empty( $context ) ) {
-					$technical_items[] = array(
-						'page_id'    => $page_id,
-						'page_title' => $entry['page_title'] ?? '',
-						'format'     => $format_error['format'] ?? 'UNKNOWN',
-						'category'   => $format_error['category'] ?? 'unknown',
-						'context'    => $context,
-					);
-				}
-			}
-		}
-
-		foreach ( $diagnostics as $diagnosis ) {
-			$category                = $diagnosis['category'] ?? 'unknown';
-			$categories[ $category ] = true;
-
-			$guidance = $this->get_error_guidance_for_category( $category );
-			if ( ! empty( $guidance ) ) {
-				$guidance_map[ $guidance ] = true;
-			}
-
-			$fixes = $diagnosis['fix'] ?? array();
-			if ( is_array( $fixes ) ) {
-				foreach ( $fixes as $fix_step ) {
-					$fix_steps_map[ $fix_step ] = true;
-				}
-			}
-
-			$technical = $diagnosis['technical'] ?? array();
-			if ( ! empty( $technical ) ) {
-				$technical_items[] = array(
-					'page_id'  => $diagnosis['page_id'] ?? 0,
-					'format'   => strtoupper( $diagnosis['format'] ?? 'unknown' ),
-					'category' => $category,
-					'context'  => $technical,
-				);
-			}
-		}
-
-		if ( empty( $diagnostics ) && ! empty( $string_errors ) ) {
-			foreach ( $string_errors as $error_message ) {
-				$diagnosis     = $this->diagnostics->diagnose_page_error( 0, 'system', (string) $error_message );
-				$diagnostics[] = $diagnosis;
-				$categories[ $diagnosis['category'] ?? 'unknown' ] = true;
-				$guidance = $this->get_error_guidance_for_category( $diagnosis['category'] ?? 'unknown' );
-				if ( ! empty( $guidance ) ) {
-					$guidance_map[ $guidance ] = true;
-				}
-				foreach ( $diagnosis['fix'] ?? array() as $fix_step ) {
-					$fix_steps_map[ $fix_step ] = true;
-				}
-			}
-		}
-
-		return array(
-			'total_errors' => count( $string_errors ),
-			'categories'   => array_keys( $categories ),
-			'guidance'     => implode( "\n\n", array_keys( $guidance_map ) ),
-			'fix_steps'    => array_keys( $fix_steps_map ),
-			'technical'    => array(
-				'formats'            => array_unique( $formats ),
-				'page_ids_count'     => count( array_unique( $page_ids ) ),
-				'max_html_size'      => empty( $html_sizes ) ? 0 : max( $html_sizes ),
-				'max_memory_peak'    => empty( $memory_peaks ) ? 0 : max( $memory_peaks ),
-				'memory_limits'      => array_unique( $memory_limits ),
-				'exceptions'         => array_unique( $exception_types ),
-				'libxml_error_count' => $libxml_count,
-				'entries'            => $technical_items,
-			),
-			'entries'      => $diagnostics,
-		);
-	}
-
-	/**
-	 * Build structured error entries from log data.
-	 *
-	 * @param array $log_data Export log data.
-	 * @return array
-	 */
-	private function build_structured_errors_from_log( array $log_data ): array {
-		$structured_errors = array();
-		$pages             = isset( $log_data['pages'] ) && is_array( $log_data['pages'] ) ? $log_data['pages'] : array();
-
-		foreach ( $pages as $page_id => $page ) {
-			$page_errors = array();
-			$formats_raw = isset( $page['formats'] ) && is_array( $page['formats'] ) ? $page['formats'] : array();
-
-			// Normalize: handle both plain array ('docx', 'pdf') and
-			// associative array ('docx' => array('success' => true, ...)).
-			$formats = array();
-			foreach ( $formats_raw as $key => $value ) {
-				if ( is_int( $key ) && is_string( $value ) ) {
-					// Plain format-name array — no per-format detail available.
-					$formats[ $value ] = array(
-						'success' => true,
-						'file'    => '',
-						'error'   => '',
-					);
-				} else {
-					$formats[ $key ] = $value;
-				}
-			}
-
-			foreach ( $formats as $format => $format_data ) {
-				if ( ! is_array( $format_data ) ) {
-					continue;
-				}
-				if ( ! empty( $format_data['success'] ) || empty( $format_data['error'] ) ) {
-					continue;
-				}
-
-				$page_errors[] = array(
-					'format'   => strtoupper( (string) $format ),
-					'message'  => (string) $format_data['error'],
-					'category' => 'unknown',
-					'context'  => array(
-						'page_id'    => (int) $page_id,
-						'page_title' => $page['title'] ?? '',
-						'memory'     => $page['memory'] ?? '',
-					),
-				);
-			}
-
-			if ( empty( $page_errors ) && ! empty( $page['error'] ) ) {
-				$page_errors[] = array(
-					'format'   => 'SYSTEM',
-					'message'  => (string) $page['error'],
-					'category' => 'unknown',
-					'context'  => array(
-						'page_id'    => (int) $page_id,
-						'page_title' => $page['title'] ?? '',
-						'memory'     => $page['memory'] ?? '',
-					),
-				);
-			}
-
-			if ( empty( $page_errors ) ) {
-				continue;
-			}
-
-			$structured_errors[] = array(
-				'page_id'    => (int) $page_id,
-				'page_title' => $page['title'] ?? '',
-				'message'    => $page['error'] ?? '',
-				'errors'     => $page_errors,
-				'time'       => $page['end_time'] ?? '',
-			);
-		}
-
-		return $structured_errors;
-	}
-
-	/**
-	 * Get user-facing guidance for an error category.
-	 *
-	 * @param string $category Error category.
-	 * @return string
-	 */
-	private function get_error_guidance_for_category( string $category ): string {
-		$guidance_map = array(
-			'memory_exhausted'    => __( 'The server ran out of memory during export. Large PDF renders often need a higher PHP memory limit.', 'sscribe-export-site-pages' ),
-			'timeout'             => __( 'The export is hitting a server time limit before rendering can finish. Reduce load or increase execution time.', 'sscribe-export-site-pages' ),
-			'pdf_generation'      => __( 'mPDF could not render the page successfully. Review the technical details for HTML size, memory usage, and libxml parsing problems.', 'sscribe-export-site-pages' ),
-			'pdf_missing_library' => __( 'The mPDF library is missing from the plugin install, so PDF export cannot start.', 'sscribe-export-site-pages' ),
-			'pdf_filesystem'      => __( 'The PDF was generated but could not be written to disk. Review filesystem access and output path details.', 'sscribe-export-site-pages' ),
-			'permissions'         => __( 'The server does not have permission to write required export files. Check upload directory access.', 'sscribe-export-site-pages' ),
-			'zip_extension'       => __( 'ZIP creation failed because the server is missing ZIP support or the archive step could not complete.', 'sscribe-export-site-pages' ),
-			'zip_creation'        => __( 'The export finished processing pages but failed while packaging the ZIP archive.', 'sscribe-export-site-pages' ),
-			'docx_generation'     => __( 'DOCX generation failed for at least one page. Complex content or resource pressure may be involved.', 'sscribe-export-site-pages' ),
-			'critical_error'      => __( 'A low-level PHP error interrupted the export. Review the technical context and server logs for the failing component.', 'sscribe-export-site-pages' ),
-			'unknown'             => __( 'Review the diagnostics below and your server error log for the most specific failure details.', 'sscribe-export-site-pages' ),
-		);
-
-		return $guidance_map[ $category ] ?? $guidance_map['unknown'];
+		return $this->error_handler->build_diagnostics_payload( $structured_errors, $string_errors );
 	}
 
 	/**
@@ -2864,59 +2346,7 @@ class SScribe_Batch_Processor {
 	 * @return void
 	 */
 	private function cleanup_user_locks( ?int $user_id = null ): void {
-		global $wpdb;
-
-		if ( null !== $user_id ) {
-			// Sessions are stored as raw wp_options (sscribe_session_*), not transients.
-			$session_pattern = $wpdb->esc_like( 'sscribe_session_' ) . '%';
-			// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- Cleanup operation.
-			$sessions = $wpdb->get_results(
-				$wpdb->prepare(
-					"SELECT option_name, option_value FROM {$wpdb->options} WHERE option_name LIKE %s AND autoload = 'no'",
-					$session_pattern
-				)
-			);
-
-			foreach ( $sessions as $session ) {
-				// Try JSON first (current format).
-				$data = json_decode( $session->option_value, true );
-
-				// SECURITY: Do NOT use maybe_unserialize() here — it enables object injection.
-				// Legacy PHP-serialized sessions that fail JSON decode are skipped intentionally.
-				// Those sessions will be naturally cleaned up by the 4-hour expiry in SScribe_Session::cleanup_expired().
-				if ( ! is_array( $data ) ) {
-					continue;
-				}
-
-				if ( isset( $data['user_id'] ) && (int) $data['user_id'] === $user_id ) {
-					if ( isset( $data['session_id'] ) ) {
-						delete_transient( 'sscribe_lock_' . $data['session_id'] );
-					}
-					delete_option( $session->option_name );
-				}
-			}
-			return;
-		}
-
-		// Only delete EXPIRED locks when called without user_id.
-		// This prevents race conditions where active exports lose their locks.
-		$now                  = time();
-		$lock_timeout_pattern = $wpdb->esc_like( '_transient_timeout_sscribe_lock_' ) . '%';
-
-		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- Cleanup operation.
-		$expired_locks = $wpdb->get_results(
-			$wpdb->prepare(
-				"SELECT option_name FROM {$wpdb->options} WHERE option_name LIKE %s AND option_value < %d",
-				$lock_timeout_pattern,
-				$now
-			)
-		);
-
-		foreach ( $expired_locks as $expired ) {
-			// Extract the session_id from the timeout option name.
-			$session_id = str_replace( '_transient_timeout_sscribe_lock_', '', $expired->option_name );
-			delete_transient( 'sscribe_lock_' . $session_id );
-		}
+		$this->lock_manager->cleanup_user_locks( $user_id );
 	}
 
 	/**
@@ -2929,27 +2359,7 @@ class SScribe_Batch_Processor {
 	 * @return bool True if lock was released, false if not owned or doesn't exist.
 	 */
 	private function release_lock( string $session_id ): bool {
-		$lock_key = 'sscribe_lock_' . $session_id;
-		$lock     = get_transient( $lock_key );
-
-		if ( ! $lock ) {
-			// Lock doesn't exist, nothing to release.
-			return true;
-		}
-
-		// Parse lock value: format is "timestamp|token".
-		$lock_parts = explode( '|', $lock );
-		$lock_token = $lock_parts[1] ?? '';
-
-		// Only release if we own the lock (token matches).
-		if ( $this->current_lock_token && $lock_token === $this->current_lock_token ) {
-			delete_transient( $lock_key );
-			$this->current_lock_token = null;
-			return true;
-		}
-
-		// We don't own this lock.
-		return false;
+		return $this->lock_manager->release_lock( $session_id, $this->current_lock_token );
 	}
 
 	/**
@@ -2966,50 +2376,7 @@ class SScribe_Batch_Processor {
 	 * @return void
 	 */
 	public function ajax_preflight_check(): void {
-		check_ajax_referer( 'sscribe_export_nonce', 'nonce' );
-
-		if ( ! current_user_can( $this->get_required_capability() ) ) {
-			wp_send_json_error(
-				array(
-					'message' => __( 'Permission denied.', 'sscribe-export-site-pages' ),
-				),
-				403
-			);
-			return;
-		}
-
-		if ( ! $this->check_rate_limit() ) {
-			wp_send_json_error(
-				array(
-					'message'  => __( 'Too many requests. Please wait a moment.', 'sscribe-export-site-pages' ),
-					'retry'    => true,
-					'retry_in' => 60000,
-				),
-				429
-			);
-			return;
-		}
-
-		// phpcs:ignore WordPress.Security.ValidatedSanitizedInput.InputNotSanitized -- Sanitization via array_map on next line.
-		$formats_raw   = isset( $_POST['formats'] ) ? wp_unslash( (array) $_POST['formats'] ) : array();
-		$formats_input = array_map( 'sanitize_text_field', $formats_raw );
-		$formats       = ! empty( $formats_input ) ? $formats_input : array( 'docx' );
-
-		$page_count = isset( $_POST['page_count'] ) ? absint( $_POST['page_count'] ) : 0;
-
-		$diagnostics = $this->diagnostics->run_preflight( $page_count, $formats );
-
-		$sscribe_is_debug = defined( 'SSCRIBE_DEBUG' ) && SSCRIBE_DEBUG;
-		if ( $sscribe_is_debug ) {
-			$diagnostics['debug_info'] = array(
-				'php_version'   => PHP_VERSION,
-				'memory_limit'  => ini_get( 'memory_limit' ),
-				'max_execution' => ini_get( 'max_execution_time' ),
-				'upload_dir'    => basename( $this->zip_handler->get_export_dir() ),
-			);
-		}
-
-		wp_send_json_success( $diagnostics );
+		$this->query_controller->ajax_preflight_check( $this->get_required_capability() );
 	}
 
 	/**
@@ -3018,116 +2385,7 @@ class SScribe_Batch_Processor {
 	 * @return void
 	 */
 	public function ajax_get_export_preview(): void {
-		check_ajax_referer( 'sscribe_export_nonce', 'nonce' );
-
-		if ( ! current_user_can( $this->get_required_capability() ) ) {
-			wp_send_json_error(
-				array(
-					'message' => __( 'Permission denied.', 'sscribe-export-site-pages' ),
-				),
-				403
-			);
-			return;
-		}
-
-		if ( ! $this->check_rate_limit() ) {
-			wp_send_json_error(
-				array(
-					'message'  => __( 'Too many requests. Please wait a moment.', 'sscribe-export-site-pages' ),
-					'retry'    => true,
-					'retry_in' => 60000,
-				),
-				429
-			);
-			return;
-		}
-
-		$language    = isset( $_POST['language'] ) ? sanitize_text_field( wp_unslash( $_POST['language'] ) ) : '';
-		$post_status = isset( $_POST['post_status'] ) ? sanitize_text_field( wp_unslash( $_POST['post_status'] ) ) : 'publish';
-		$format      = isset( $_POST['format'] ) ? sanitize_text_field( wp_unslash( $_POST['format'] ) ) : 'docx';
-
-		$allowed_formats = array( 'docx', 'pdf', 'html', 'markdown' );
-		if ( ! in_array( $format, $allowed_formats, true ) ) {
-			$format = 'docx';
-		}
-
-		$post_type = isset( $_POST['post_type'] ) ? sanitize_text_field( wp_unslash( $_POST['post_type'] ) ) : 'page';
-		if ( ! in_array( $post_type, array( 'page', 'post', 'any' ), true ) ) {
-			$post_type = 'page';
-		}
-
-		$pages      = $this->collector->get_page_ids( $language, $post_status, $post_type );
-		$page_count = count( $pages );
-
-		// Adaptive time estimation based on actual export history.
-		// Falls back to conservative baseline estimates for first export.
-		$seconds_per_page = $this->adaptive_metrics->get_seconds_per_page( $format );
-		$total_seconds    = $page_count * $seconds_per_page;
-
-		if ( $total_seconds < 60 ) {
-			$estimated_time = sprintf(
-				/* translators: %d: Number of seconds. */
-				_n( '%d second', '%d seconds', $total_seconds, 'sscribe-export-site-pages' ),
-				ceil( $total_seconds )
-			);
-		} else {
-			$minutes        = ceil( $total_seconds / 60 );
-			$estimated_time = sprintf(
-				/* translators: %d: Number of minutes. */
-				_n( '%d minute', '%d minutes', $minutes, 'sscribe-export-site-pages' ),
-				$minutes
-			);
-		}
-
-		// Adaptive file size estimation based on actual export history.
-		$megabytes_per_page = $this->adaptive_metrics->get_mb_per_page( $format );
-		$size_mb            = $page_count * $megabytes_per_page;
-		if ( $size_mb < 1 ) {
-			$file_size_estimate = round( $size_mb * 1024 ) . ' KB';
-		} else {
-			$file_size_estimate = round( $size_mb, 1 ) . ' MB';
-		}
-
-		$sample_page = null;
-		if ( ! empty( $pages ) ) {
-			$sample_id   = $pages[0];
-			$sample_post = get_post( $sample_id );
-			if ( $sample_post ) {
-				$sample_page = array(
-					'title'   => $sample_post->post_title,
-					'url'     => get_permalink( $sample_id ),
-					'content' => wp_kses_post( wp_trim_words( strip_shortcodes( $sample_post->post_content ), 50 ) ),
-				);
-			}
-		}
-
-		// Resolve language display name for WPML sites — return the full language
-		// name (e.g., "Arabic") instead of the raw code (e.g., "ar") when WPML is active.
-		$language_display = '' !== $language ? $language : __( 'All Languages', 'sscribe-export-site-pages' );
-		if ( '' !== $language && $this->collector->is_wpml_active() ) {
-			$wpml_languages = $this->collector->get_wpml_languages();
-			foreach ( $wpml_languages as $wl ) {
-				if ( isset( $wl['code'] ) && $wl['code'] === $language ) {
-					$language_display = $wl['name'] ?? strtoupper( $language );
-					break;
-				}
-			}
-		}
-
-		$preview_data = array(
-			'total_pages'        => $page_count,
-			'format'             => $format,
-			'estimated_time'     => $estimated_time,
-			'file_size_estimate' => $file_size_estimate,
-			'language'           => $language_display,
-			'post_status'        => $post_status,
-		);
-
-		if ( $sample_page ) {
-			$preview_data = array_merge( $preview_data, $sample_page );
-		}
-
-		wp_send_json_success( $preview_data );
+		$this->query_controller->ajax_get_export_preview( $this->get_required_capability() );
 	}
 
 	/**
@@ -3136,69 +2394,7 @@ class SScribe_Batch_Processor {
 	 * @return void
 	 */
 	public function ajax_get_recent_exports(): void {
-		check_ajax_referer( 'sscribe_export_nonce', 'nonce' );
-
-		if ( ! current_user_can( $this->get_required_capability() ) ) {
-			wp_send_json_error(
-				array( 'message' => __( 'Permission denied.', 'sscribe-export-site-pages' ) ),
-				403
-			);
-			return;
-		}
-
-		$exports = get_option( 'sscribe_export_index', array() );
-		$user_id = get_current_user_id();
-
-		/**
-		 * List of recent exports.
-		 *
-		 * @var array<int, array{filename: string, url: string, size: int, time: int, date: string, lang_code: string, lang_name: string, flag_url: string}>
-		 */
-		$result = array();
-
-		foreach ( $exports as $filename => $data ) {
-			if ( isset( $data['user_id'] ) && (int) $data['user_id'] !== $user_id ) {
-				continue;
-			}
-
-			$file_path = $this->zip_handler->get_export_dir() . '/' . $filename;
-			if ( ! file_exists( $file_path ) ) {
-				continue;
-			}
-
-			$result[] = array(
-				'filename'       => $filename,
-				'url'            => $this->zip_handler->get_ajax_download_url( $filename ),
-				'size'           => filesize( $file_path ),
-				'size_formatted' => size_format( filesize( $file_path ) ),
-				'time'           => $data['created_at'] ?? filemtime( $file_path ),
-				'date'           => wp_date(
-					( get_option( 'date_format' ) ? get_option( 'date_format' ) : 'Y-m-d' ) . ' ' . ( get_option( 'time_format' ) ? get_option( 'time_format' ) : 'H:i' ),
-					$data['created_at'] ?? filemtime( $file_path ),
-				),
-				'lang_code'      => $data['lang_code'] ?? '',
-				'lang_name'      => $data['lang_name'] ?? '',
-				'flag_url'       => $data['flag_url'] ?? '',
-			);
-		}
-
-		// Sort by time descending (newest first).
-		$sorted = $result;
-		uasort(
-			$sorted,
-			/**
-			 * Compare exports by time for sorting.
-			 *
-			 * @param array{filename: string, url: string, size: int, time: int, date: string, lang_code: string, lang_name: string, flag_url: string} $a First export.
-			 * @param array{filename: string, url: string, size: int, time: int, date: string, lang_code: string, lang_name: string, flag_url: string} $b Second export.
-			 * @return int Comparison result.
-			 */
-			function ( array $a, array $b ): int {
-				return $b['time'] <=> $a['time'];
-			}
-		);
-
-		wp_send_json_success( array( 'exports' => array_slice( array_values( $sorted ), 0, 10 ) ) );
+		$this->query_controller->ajax_get_recent_exports( $this->get_required_capability() );
 	}
 
 	/**
@@ -3207,46 +2403,6 @@ class SScribe_Batch_Processor {
 	 * @return void
 	 */
 	public function ajax_get_support_info(): void {
-		check_ajax_referer( 'sscribe_export_nonce', 'nonce' );
-
-		if ( ! current_user_can( $this->get_required_capability() ) ) {
-			wp_send_json_error(
-				array( 'message' => __( 'Permission denied.', 'sscribe-export-site-pages' ) ),
-				403
-			);
-			return;
-		}
-
-		if ( ! $this->check_rate_limit() ) {
-			wp_send_json_error(
-				array(
-					'message'  => __( 'Too many requests. Please wait a moment.', 'sscribe-export-site-pages' ),
-					'retry'    => true,
-					'retry_in' => 60000,
-				),
-				429
-			);
-			return;
-		}
-
-		try {
-			$support_info = $this->diagnostics->get_support_info();
-			wp_send_json_success( $support_info );
-		} catch ( \Throwable $e ) {
-			$this->logger->error(
-				'Support info AJAX failed',
-				array(
-					'error' => $e->getMessage(),
-					'file'  => basename( $e->getFile() ) . ':' . $e->getLine(),
-				)
-			);
-
-			wp_send_json_error(
-				array(
-					'message' => __( 'Unable to load support information right now. Please try again later.', 'sscribe-export-site-pages' ),
-				),
-				500
-			);
-		}
+		$this->query_controller->ajax_get_support_info( $this->get_required_capability() );
 	}
 }
