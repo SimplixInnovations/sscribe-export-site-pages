@@ -7,7 +7,7 @@
  * state and carry no mutable state of their own (pure utility class).
  *
  * @package       SScribe
- * @since         1.1.3
+ * @since         1.1.4
  */
 
 declare( strict_types=1 );
@@ -24,7 +24,7 @@ if ( ! defined( 'ABSPATH' ) ) {
  * Used by the batch processor to dynamically pause/resume export flows
  * and to warn administrators of potential resource constraints.
  *
- * @since 1.1.3
+ * @since 1.1.4
  */
 class SScribe_Export_Resource_Monitor {
 
@@ -34,7 +34,7 @@ class SScribe_Export_Resource_Monitor {
 	 * Compares current memory usage against the PHP memory_limit,
 	 * keeping at least {@see $buffer_mb} megabytes free.
 	 *
-	 * @since 1.1.3
+	 * @since 1.1.4
 	 *
 	 * @param int $buffer_mb Minimum free memory to maintain, in MB.
 	 *                        Default 10.
@@ -59,7 +59,7 @@ class SScribe_Export_Resource_Monitor {
 	/**
 	 * Check if enough time remains before PHP max_execution_time.
 	 *
-	 * @since 1.1.3
+	 * @since 1.1.4
 	 *
 	 * @param float $batch_start_time Microtime (from microtime(true)) when
 	 *                                the current batch started processing.
@@ -86,7 +86,7 @@ class SScribe_Export_Resource_Monitor {
 	/**
 	 * Get remaining seconds before PHP max_execution_time.
 	 *
-	 * @since 1.1.3
+	 * @since 1.1.4
 	 *
 	 * @param float $batch_start_time Microtime when the current batch started.
 	 *
@@ -109,7 +109,7 @@ class SScribe_Export_Resource_Monitor {
 	/**
 	 * Get current PHP memory usage as a percentage of memory_limit.
 	 *
-	 * @since 1.1.3
+	 * @since 1.1.4
 	 *
 	 * @return float Memory usage percentage (0.0–100.0). Returns 0.0 if
 	 *               memory_limit is unlimited.
@@ -133,7 +133,7 @@ class SScribe_Export_Resource_Monitor {
 	 * batch to 2 when PDF format is included (mPDF is CPU-intensive at
 	 * ~3 s/page).
 	 *
-	 * @since 1.1.3
+	 * @since 1.1.4
 	 *
 	 * @param array $formats Export format slugs (e.g. ['docx'], ['pdf', 'html']).
 	 *
@@ -164,7 +164,7 @@ class SScribe_Export_Resource_Monitor {
 		 * Apply the configured batch size as the upper bound, but allow
 		 * memory pressure to reduce it further.
 		 *
-		 * @since 1.1.3
+		 * @since 1.1.4
 		 * @param int $batch_size Maximum batch size. Default 5.
 		 */
 		$configured_size = (int) apply_filters( 'sscribe_batch_size', 5 );
@@ -187,7 +187,7 @@ class SScribe_Export_Resource_Monitor {
 	 *
 	 * Accounts for base page data collection plus per-format overhead.
 	 *
-	 * @since 1.1.3
+	 * @since 1.1.4
 	 *
 	 * @param int   $page_count Number of pages to export.
 	 * @param array $formats    Export format slugs.
@@ -220,7 +220,7 @@ class SScribe_Export_Resource_Monitor {
 	 * currently available PHP memory. Returns null if there is sufficient
 	 * headroom (with a 20 % safety margin).
 	 *
-	 * @since 1.1.3
+	 * @since 1.1.4
 	 *
 	 * @param int   $page_count Number of pages to export.
 	 * @param array $formats    Export format slugs.

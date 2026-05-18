@@ -7,7 +7,7 @@
  * batch requests. Lock format: "timestamp|token".
  *
  * @package       SScribe
- * @since         1.1.3
+ * @since         1.1.4
  */
 
 declare( strict_types=1 );
@@ -24,7 +24,7 @@ if ( ! defined( 'ABSPATH' ) ) {
  * the same token to release the lock. This prevents one HTTP request
  * from releasing another request's lock.
  *
- * @since 1.1.3
+ * @since 1.1.4
  */
 class SScribe_Export_Lock_Manager {
 
@@ -32,14 +32,14 @@ class SScribe_Export_Lock_Manager {
 	 * Logger instance for lock debug events.
 	 *
 	 * @var SScribe_Logger_Interface
-	 * @since 1.1.3
+	 * @since 1.1.4
 	 */
 	private readonly SScribe_Logger_Interface $logger;
 
 	/**
 	 * Constructor.
 	 *
-	 * @since 1.1.3
+	 * @since 1.1.4
 	 *
 	 * @param SScribe_Logger_Interface|null $logger Logger instance. Falls
 	 *                                              back to the default logger
@@ -56,7 +56,7 @@ class SScribe_Export_Lock_Manager {
 	 * a configurable TTL. Detects stale locks (exceeded the stale threshold)
 	 * and replaces them atomically.
 	 *
-	 * @since 1.1.3
+	 * @since 1.1.4
 	 *
 	 * @param string $session_id      The export session ID to lock.
 	 * @param int    $lock_ttl        Lock TTL in seconds. Default 45.
@@ -146,7 +146,7 @@ class SScribe_Export_Lock_Manager {
 	 * Token ownership verification prevents one request from releasing
 	 * another request's lock, which would cause race conditions.
 	 *
-	 * @since 1.1.3
+	 * @since 1.1.4
 	 *
 	 * @param string      $session_id The export session ID.
 	 * @param string|null $lock_token The token returned by
@@ -189,7 +189,7 @@ class SScribe_Export_Lock_Manager {
 	 * called without a user ID, only removes EXPIRED locks (those
 	 * whose transient timeout has passed).
 	 *
-	 * @since 1.1.3
+	 * @since 1.1.4
 	 *
 	 * @param int|null    $user_id             User ID to clean up locks
 	 *                                         for. Null to only clean
