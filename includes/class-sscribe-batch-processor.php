@@ -339,7 +339,10 @@ class SScribe_Batch_Processor {
 	 * @return void
 	 */
 	public function ajax_start_export(): void {
-		check_ajax_referer( 'sscribe_export_nonce', 'nonce' );
+		if ( ! check_ajax_referer( 'sscribe_export_nonce', 'nonce', false ) ) {
+			wp_send_json_error( array( 'message' => __( 'Security check failed.', 'sscribe-export-site-pages' ) ), 403 );
+			return;
+		}
 
 		if ( ! current_user_can( $this->get_required_capability() ) ) {
 			wp_send_json_error(
@@ -583,7 +586,10 @@ class SScribe_Batch_Processor {
 	 * @return void
 	 */
 	public function ajax_process_batch(): void {
-		check_ajax_referer( 'sscribe_export_nonce', 'nonce' );
+		if ( ! check_ajax_referer( 'sscribe_export_nonce', 'nonce', false ) ) {
+			wp_send_json_error( array( 'message' => __( 'Security check failed.', 'sscribe-export-site-pages' ) ), 403 );
+			return;
+		}
 
 		if ( ! current_user_can( $this->get_required_capability() ) ) {
 			wp_send_json_error(
@@ -1469,7 +1475,10 @@ class SScribe_Batch_Processor {
 	 * @return void
 	 */
 	public function ajax_finalize_export(): void {
-		check_ajax_referer( 'sscribe_export_nonce', 'nonce' );
+		if ( ! check_ajax_referer( 'sscribe_export_nonce', 'nonce', false ) ) {
+			wp_send_json_error( array( 'message' => __( 'Security check failed.', 'sscribe-export-site-pages' ) ), 403 );
+			return;
+		}
 
 		if ( ! current_user_can( $this->get_required_capability() ) ) {
 			wp_send_json_error(
@@ -2018,7 +2027,10 @@ class SScribe_Batch_Processor {
 	 * @return void
 	 */
 	public function ajax_download(): void {
-		check_ajax_referer( 'sscribe_download', 'nonce' );
+		if ( ! check_ajax_referer( 'sscribe_download', 'nonce', false ) ) {
+			status_header( 403 );
+			wp_die( esc_html__( 'Security check failed. The download link may have expired — please refresh the page and try again.', 'sscribe-export-site-pages' ) );
+		}
 
 		if ( ! current_user_can( $this->get_required_capability() ) ) {
 			status_header( 403 );
@@ -2149,7 +2161,10 @@ class SScribe_Batch_Processor {
 	 * @return void
 	 */
 	public function ajax_cancel_export(): void {
-		check_ajax_referer( 'sscribe_export_nonce', 'nonce' );
+		if ( ! check_ajax_referer( 'sscribe_export_nonce', 'nonce', false ) ) {
+			wp_send_json_error( array( 'message' => __( 'Security check failed.', 'sscribe-export-site-pages' ) ), 403 );
+			return;
+		}
 
 		if ( ! current_user_can( $this->get_required_capability() ) ) {
 			wp_send_json_error( array( 'message' => __( 'Permission denied.', 'sscribe-export-site-pages' ) ), 403 );
@@ -2207,7 +2222,10 @@ class SScribe_Batch_Processor {
 	 * @return void
 	 */
 	public function ajax_delete_export(): void {
-		check_ajax_referer( 'sscribe_download', 'nonce' );
+		if ( ! check_ajax_referer( 'sscribe_download', 'nonce', false ) ) {
+			wp_send_json_error( array( 'message' => __( 'Security check failed.', 'sscribe-export-site-pages' ) ), 403 );
+			return;
+		}
 
 		if ( ! current_user_can( $this->get_required_capability() ) ) {
 			wp_send_json_error( array( 'message' => __( 'Permission denied.', 'sscribe-export-site-pages' ) ), 403 );
@@ -2308,7 +2326,10 @@ class SScribe_Batch_Processor {
 	 * @return void
 	 */
 	public function ajax_clear_session(): void {
-		check_ajax_referer( 'sscribe_export_nonce', 'nonce' );
+		if ( ! check_ajax_referer( 'sscribe_export_nonce', 'nonce', false ) ) {
+			wp_send_json_error( array( 'message' => __( 'Security check failed.', 'sscribe-export-site-pages' ) ), 403 );
+			return;
+		}
 
 		if ( ! current_user_can( $this->get_required_capability() ) ) {
 			wp_send_json_error( array( 'message' => __( 'Permission denied.', 'sscribe-export-site-pages' ) ), 403 );
@@ -2417,7 +2438,10 @@ class SScribe_Batch_Processor {
 	 * @return void
 	 */
 	public function ajax_refresh_download_nonce(): void {
-		check_ajax_referer( 'sscribe_export_nonce', 'nonce' );
+		if ( ! check_ajax_referer( 'sscribe_export_nonce', 'nonce', false ) ) {
+			wp_send_json_error( array( 'message' => __( 'Security check failed.', 'sscribe-export-site-pages' ) ), 403 );
+			return;
+		}
 
 		if ( ! current_user_can( $this->get_required_capability() ) ) {
 			wp_send_json_error( array( 'message' => __( 'Permission denied.', 'sscribe-export-site-pages' ) ), 403 );
