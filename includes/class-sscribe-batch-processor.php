@@ -2405,4 +2405,28 @@ class SScribe_Batch_Processor {
 	public function ajax_get_support_info(): void {
 		$this->query_controller->ajax_get_support_info( $this->get_required_capability() );
 	}
+
+	/**
+	 * AJAX handler: Get a fresh download nonce for history tab download URLs.
+	 *
+	 * Fixes nonce expiry issue where history download URLs embedded at page
+	 * render time become invalid after the WordPress nonce lifetime (12h).
+	 * The JS calls this endpoint to get a fresh nonce just before downloading.
+	 *
+	 * @return void
+	 */
+	public function ajax_refresh_download_nonce(): void {
+		check_ajax_referer( 'sscribe_export_nonce', 'nonce' );
+
+		if ( ! current_user_can( $this->get_required_capability() ) ) {
+			wp_send_json_error( array( 'message' => __( 'Permission denied.', 'sscribe-export-site-pages' ) ), 403 );
+			return;
+		}
+
+		wp_send_json_success(
+			array(
+				'nonce' => wp_create_nonce( 'sscribe_download' ),
+			)
+		);
+	}
 }

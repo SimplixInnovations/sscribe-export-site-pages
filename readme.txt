@@ -82,6 +82,11 @@ Cron hook for cleaning up expired export files. Triggered daily by WordPress cro
 `sscribe_cleanup_sessions`
 Cron hook for cleaning up stale export sessions. Triggered daily by WordPress cron.
 
+`sscribe_debug_log`
+Fires when debug logging occurs during export operations.
+
+Parameters: `(string $level, string $message, array $context)`
+
 = Filters =
 
 `sscribe_max_execution_time`
