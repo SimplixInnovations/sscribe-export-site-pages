@@ -59,23 +59,27 @@ class SScribe_Adaptive_Metrics {
 	);
 
 	/**
-	 * Get adaptive seconds-per-page estimate for a format.
+	 * Get adaptive seconds-per-page estimate for a format and post type.
 	 *
 	 * Blends baseline estimates with historical actuals using EMA.
+	 * Metrics are keyed by format + post_type for accurate estimates
+	 * when exporting different content types (pages vs posts).
 	 *
-	 * @param string $format Export format (docx, pdf, html, markdown).
+	 * @param string $format    Export format (docx, pdf, html, markdown).
+	 * @param string $post_type Post type (page, post, or 'any').
 	 * @return float Seconds per page estimate.
 	 */
-	public function get_seconds_per_page( string $format ): float {
+	public function get_seconds_per_page( string $format, string $post_type = 'page' ): float {
 		$baseline = self::BASELINE_SECONDS[ $format ] ?? 2.0;
 
 		$metrics = get_option( 'sscribe_export_metrics', array() );
-		if ( ! isset( $metrics['formats'][ $format ]['avg_seconds_per_page'] ) ) {
+		$key     = $format . '_' . $post_type;
+		if ( ! isset( $metrics['formats'][ $key ]['avg_seconds_per_page'] ) ) {
 			return $baseline;
 		}
 
-		$historical = (float) $metrics['formats'][ $format ]['avg_seconds_per_page'];
-		$samples    = (int) ( $metrics['formats'][ $format ]['sample_count'] ?? 0 );
+		$historical = (float) $metrics['formats'][ $key ]['avg_seconds_per_page'];
+		$samples    = (int) ( $metrics['formats'][ $key ]['sample_count'] ?? 0 );
 
 		if ( $samples < self::MIN_SAMPLES ) {
 			// Not enough data — blend 70% baseline + 30% historical.
@@ -87,23 +91,26 @@ class SScribe_Adaptive_Metrics {
 	}
 
 	/**
-	 * Get adaptive MB-per-page estimate for a format.
+	 * Get adaptive MB-per-page estimate for a format and post type.
 	 *
 	 * Blends baseline estimates with historical actuals using EMA.
+	 * Metrics are keyed by format + post_type for accurate estimates.
 	 *
-	 * @param string $format Export format (docx, pdf, html, markdown).
+	 * @param string $format    Export format (docx, pdf, html, markdown).
+	 * @param string $post_type Post type (page, post, or 'any').
 	 * @return float MB per page estimate.
 	 */
-	public function get_mb_per_page( string $format ): float {
+	public function get_mb_per_page( string $format, string $post_type = 'page' ): float {
 		$baseline = self::BASELINE_MB[ $format ] ?? 0.5;
 
 		$metrics = get_option( 'sscribe_export_metrics', array() );
-		if ( ! isset( $metrics['formats'][ $format ]['avg_mb_per_page'] ) ) {
+		$key     = $format . '_' . $post_type;
+		if ( ! isset( $metrics['formats'][ $key ]['avg_mb_per_page'] ) ) {
 			return $baseline;
 		}
 
-		$historical = (float) $metrics['formats'][ $format ]['avg_mb_per_page'];
-		$samples    = (int) ( $metrics['formats'][ $format ]['sample_count'] ?? 0 );
+		$historical = (float) $metrics['formats'][ $key ]['avg_mb_per_page'];
+		$samples    = (int) ( $metrics['formats'][ $key ]['sample_count'] ?? 0 );
 
 		if ( $samples < self::MIN_SAMPLES ) {
 			// Not enough data — blend 70% baseline + 30% historical.
@@ -118,24 +125,27 @@ class SScribe_Adaptive_Metrics {
 	 * Save export metrics for adaptive estimation.
 	 *
 	 * Updates exponential moving averages for time and size per page.
+	 * Metrics are keyed by format + post_type for accurate per-type estimates.
 	 *
 	 * @param string $format     Export format.
 	 * @param int    $page_count Number of pages exported.
 	 * @param float  $elapsed_sec Total elapsed seconds.
 	 * @param float  $total_mb    Total file size in MB.
+	 * @param string $post_type   Post type (page, post, or 'any').
 	 * @return void
 	 */
-	public function save( string $format, int $page_count, float $elapsed_sec, float $total_mb ): void {
+	public function save( string $format, int $page_count, float $elapsed_sec, float $total_mb, string $post_type = 'page' ): void {
 		if ( $page_count <= 0 ) {
 			return;
 		}
 
 		$metrics = get_option( 'sscribe_export_metrics', array() );
+		$key     = $format . '_' . $post_type;
 		if ( ! isset( $metrics['formats'] ) ) {
 			$metrics['formats'] = array();
 		}
-		if ( ! isset( $metrics['formats'][ $format ] ) ) {
-			$metrics['formats'][ $format ] = array(
+		if ( ! isset( $metrics['formats'][ $key ] ) ) {
+			$metrics['formats'][ $key ] = array(
 				'avg_seconds_per_page' => 0,
 				'avg_mb_per_page'      => 0,
 				'sample_count'         => 0,
@@ -145,25 +155,25 @@ class SScribe_Adaptive_Metrics {
 		$new_seconds = $elapsed_sec / $page_count;
 		$new_mb      = $total_mb / $page_count;
 
-		$existing_seconds = (float) ( $metrics['formats'][ $format ]['avg_seconds_per_page'] ?? 0 );
-		$existing_mb      = (float) ( $metrics['formats'][ $format ]['avg_mb_per_page'] ?? 0 );
-		$samples          = (int) ( $metrics['formats'][ $format ]['sample_count'] ?? 0 );
+		$existing_seconds = (float) ( $metrics['formats'][ $key ]['avg_seconds_per_page'] ?? 0 );
+		$existing_mb      = (float) ( $metrics['formats'][ $key ]['avg_mb_per_page'] ?? 0 );
+		$samples          = (int) ( $metrics['formats'][ $key ]['sample_count'] ?? 0 );
 
 		if ( 0 === $samples ) {
-			$metrics['formats'][ $format ]['avg_seconds_per_page'] = $new_seconds;
-			$metrics['formats'][ $format ]['avg_mb_per_page']      = $new_mb;
+			$metrics['formats'][ $key ]['avg_seconds_per_page'] = $new_seconds;
+			$metrics['formats'][ $key ]['avg_mb_per_page']      = $new_mb;
 		} else {
-			$metrics['formats'][ $format ]['avg_seconds_per_page'] = round(
+			$metrics['formats'][ $key ]['avg_seconds_per_page'] = round(
 				( $existing_seconds * ( 1 - self::EMA_ALPHA ) ) + ( $new_seconds * self::EMA_ALPHA ),
 				4
 			);
-			$metrics['formats'][ $format ]['avg_mb_per_page']      = round(
+			$metrics['formats'][ $key ]['avg_mb_per_page']      = round(
 				( $existing_mb * ( 1 - self::EMA_ALPHA ) ) + ( $new_mb * self::EMA_ALPHA ),
 				4
 			);
 		}
 
-		++$metrics['formats'][ $format ]['sample_count'];
+		++$metrics['formats'][ $key ]['sample_count'];
 		$metrics['last_export'] = current_time( 'mysql' );
 
 		update_option( 'sscribe_export_metrics', $metrics, false );

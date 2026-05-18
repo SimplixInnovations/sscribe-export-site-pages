@@ -20,6 +20,18 @@ if ( ! defined( 'ABSPATH' ) ) {
 class SScribe_Diagnostics {
 
 	/**
+	 * Minimum expected mPDF bundled font file count.
+	 *
+	 * mPDF ships with ~83 font files. If fewer than this threshold are
+	 * detected, the diagnostic warns that fonts may be incomplete.
+	 * Lowered from 50 to account for future mPDF versions that may
+	 * ship fewer bundled fonts.
+	 *
+	 * @var int
+	 */
+	private const MIN_MPDF_FONT_COUNT = 40;
+
+	/**
 	 * Logger instance.
 	 *
 	 * @var SScribe_Logger_Interface
@@ -551,7 +563,7 @@ class SScribe_Diagnostics {
 		if ( is_dir( $ttfonts_dir ) ) {
 			$font_files = glob( $ttfonts_dir . '/*.{ttf,otf,txt}', GLOB_BRACE );
 			$count      = is_array( $font_files ) ? count( $font_files ) : 0;
-			if ( $count < 50 ) {
+			if ( $count < self::MIN_MPDF_FONT_COUNT ) {
 				return array(
 					'name'    => 'mPDF Library',
 					'status'  => 'warning',
@@ -580,8 +592,10 @@ class SScribe_Diagnostics {
 			// the workaround would cause double-encoding and must be removed.
 			$phpword_composer_file = SSCRIBE_PLUGIN_DIR . 'vendor-prefixed/phpoffice/phpword/composer.json';
 			if ( file_exists( $phpword_composer_file ) ) {
-				$composer_data = json_decode( file_get_contents( $phpword_composer_file ), true );
-				$bundled_version = $composer_data['version'] ?? 'unknown';
+				// phpcs:ignore WordPress.WP.AlternativeFunctions.file_get_contents_file_get_contents -- Safe: reading a local composer.json from plugin directory.
+				$raw_json = file_get_contents( $phpword_composer_file );
+				$composer_data = is_string( $raw_json ) ? json_decode( $raw_json, true ) : null;
+				$bundled_version = ( is_array( $composer_data ) && isset( $composer_data['version'] ) ) ? $composer_data['version'] : 'unknown';
 				preg_match( '/^(\d+\.\d+)/', $bundled_version, $m );
 				$major_minor = $m[1] ?? '';
 				// If PHPWord 1.5+ is detected, the htmlspecialchars workaround in safe_text()
