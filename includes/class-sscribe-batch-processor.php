@@ -611,10 +611,9 @@ class SScribe_Batch_Processor {
 		if ( function_exists( 'set_time_limit' ) ) {
 			// JUSTIFICATION: set_time_limit() is required for batch export of pages with heavy content from page builders (Elementor, Divi, etc.)
 			// where the default 30s PHP timeout causes incomplete exports. The value is filtered via 'sscribe_max_execution_time' allowing
-			// hosting providers to override it. The @ operator suppresses warnings on hosts that disable this function. This is wrapped
-			// in function_exists() to safely handle hosts that disable set_time_limit entirely.
+			// hosting providers to override it. Wrapped in function_exists() to safely handle hosts that disable set_time_limit entirely.
 			// phpcs:ignore Squiz.PHP.DiscouragedFunctions.Discouraged
-			@set_time_limit( $max_time );
+			set_time_limit( $max_time );
 		}
 		wp_raise_memory_limit( 'admin' );
 
@@ -637,7 +636,7 @@ class SScribe_Batch_Processor {
 			// Without extending the time limit, PDF exports of sites with 10+ pages would fail on shared hosting. The value is filtered
 			// via 'sscribe_pdf_max_execution_time' and wrapped in function_exists() for safe degradation on restrictive hosts.
 			// phpcs:ignore Squiz.PHP.DiscouragedFunctions.Discouraged
-			@set_time_limit( $pdf_max_time );
+			set_time_limit( $pdf_max_time );
 		}
 
 		$this->logger->debug(
@@ -1586,7 +1585,7 @@ class SScribe_Batch_Processor {
 			// incomplete archives. Without this, exports of 50+ pages would timeout during the finalization phase. Wrapped in
 			// function_exists() to safely degrade on hosts that disable set_time_limit.
 			// phpcs:ignore Squiz.PHP.DiscouragedFunctions.Discouraged
-			@set_time_limit( 300 );
+			set_time_limit( 300 );
 		}
 
 		$this->logger->debug(
@@ -2105,7 +2104,7 @@ class SScribe_Batch_Processor {
 				// Without this, large ZIP downloads could tie up a PHP process indefinitely, affecting other sites on the server.
 				// The 6-minute cap (360s) is generous for any reasonable ZIP file size. Wrapped in function_exists() for safe degradation.
 				// phpcs:ignore Squiz.PHP.DiscouragedFunctions.Discouraged
-				@set_time_limit( 360 );
+				set_time_limit( 360 );
 			}
 
 		// phpcs:ignore WordPress.WP.AlternativeFunctions.file_system_operations_readfile -- Direct download
@@ -2119,6 +2118,7 @@ class SScribe_Batch_Processor {
 					)
 				);
 			}
+			ignore_user_abort( false );
 			exit;
 		} catch ( \InvalidArgumentException $e ) {
 			$this->logger->error(

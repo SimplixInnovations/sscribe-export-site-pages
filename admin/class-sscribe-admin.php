@@ -75,13 +75,12 @@ class SScribe_Admin {
 	}
 
 	/**
-	 * Get download nonce with static cache to avoid duplicate generation.
+	 * Get download nonce.
 	 *
 	 * @return string Nonce value.
 	 */
 	private function get_download_nonce(): string {
-		static $nonce = null;
-		return $nonce ??= wp_create_nonce( 'sscribe_download' );
+		return wp_create_nonce( 'sscribe_download' );
 	}
 
 	/**
@@ -601,14 +600,7 @@ class SScribe_Admin {
 
 				$sscribe_recent_exports[] = array(
 					'filename'  => $filename,
-					'url'       => add_query_arg(
-						array(
-							'action' => 'sscribe_download',
-							'file'   => sanitize_file_name( $filename ),
-							'nonce'  => $download_nonce,
-						),
-						admin_url( 'admin-ajax.php' )
-					),
+					'url'       => $this->zip_handler->get_ajax_download_url( $filename ),
 					'time'      => $data['created_at'] ?? filemtime( $file_path ),
 					'size'      => filesize( $file_path ),
 					'lang_code' => sanitize_key( $lang_code ),
