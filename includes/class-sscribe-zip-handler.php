@@ -341,11 +341,20 @@ class SScribe_Zip_Handler {
 				$exports  = get_option( 'sscribe_export_index', array() );
 				$modified = false;
 
-				foreach ( $files as $file ) {
-					$file_time = filemtime( $file );
+				foreach ( $exports as $basename => $data ) {
+					$file_path = $this->export_dir . $basename;
+					// Remove orphaned index entries where the ZIP file no longer exists on disk.
+					if ( ! file_exists( $file_path ) ) {
+						unset( $exports[ $basename ] );
+						SScribe_Export_Log::delete_by_filename( $basename );
+						$modified = true;
+						++$cleaned;
+						continue;
+					}
+					// Remove expired ZIP files.
+					$file_time = filemtime( $file_path );
 					if ( $file_time && ( $now - $file_time ) > $max_age ) {
-						$basename = basename( $file );
-						wp_delete_file( $file );
+						wp_delete_file( $file_path );
 						unset( $exports[ $basename ] );
 						SScribe_Export_Log::delete_by_filename( $basename );
 						$modified = true;

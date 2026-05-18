@@ -303,6 +303,39 @@ class SScribe_Image_Processor {
 			return $path;
 		}
 
+		// Safely create image resources with a custom error handler.
+		// These GD functions can fail on corrupt or truncated images.
+		// phpcs:ignore WordPress.PHP.DevelopmentFunctions.error_log_set_error_handler -- Production error handling for GD image loading.
+		$prev_handler = set_error_handler(
+			static function ( int $errno, string $errstr ) use ( $path ): bool {
+				SScribe_Logger::instance( defined( 'SSCRIBE_DEBUG' ) && SSCRIBE_DEBUG )
+					->warning(
+						'Image loading failed',
+						array(
+							'path'  => $path,
+							'error' => $errstr,
+						)
+					);
+				return true; // Suppress the PHP warning.
+			}
+		);
+		$image = false;
+		try {
+			$image = match ( $type ) {
+				IMAGETYPE_JPEG, IMAGETYPE_JPEG2000 => imagecreatefromjpeg( $path ),
+				IMAGETYPE_PNG                      => imagecreatefrompng( $path ),
+				IMAGETYPE_GIF                      => imagecreatefromgif( $path ),
+				IMAGETYPE_WEBP                     => imagecreatefromwebp( $path ),
+				default                            => false,
+			};
+		} finally {
+			restore_error_handler();
+		}
+
+		if ( false === $image ) {
+			return $path;
+		}
+
 		if ( IMAGETYPE_PNG === $type || IMAGETYPE_GIF === $type ) {
 			imagealphablending( $resized, false );
 			imagesavealpha( $resized, true );

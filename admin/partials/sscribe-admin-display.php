@@ -85,11 +85,7 @@ $sscribe_is_debug        = $sscribe_is_debug ?? false;
 			<div class="sscribe-panel-body sscribe-flat-body">
 				<div class="sscribe-config-grid">
 					<div class="sscribe-config-section">
-						<div class="sscribe-config-section-header">
-							<?php // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- SVG sanitized in get_icon(). ?>
-							<?php echo SScribe_Helpers::get_icon( 'layers', 15 ); ?>
-							<span><?php esc_html_e( 'Content Type', 'sscribe-export-site-pages' ); ?></span>
-						</div>
+						<div class="sscribe-section-title"><?php esc_html_e( 'Content Type', 'sscribe-export-site-pages' ); ?></div>
 						<div class="sscribe-post-type-cards sscribe-cards-compact" id="sscribe-post-type-cards">
 							<label class="sscribe-post-type-card">
 								<input type="radio" name="sscribe_post_type" value="page" checked>
@@ -201,11 +197,7 @@ $sscribe_is_debug        = $sscribe_is_debug ?? false;
 					<?php endif; ?>
 
 					<div class="sscribe-config-section">
-						<div class="sscribe-config-section-header">
-							<?php // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- SVG sanitized in get_icon(). ?>
-							<?php echo SScribe_Helpers::get_icon( 'check-circle', 15 ); ?>
-							<span><?php esc_html_e( 'Content Status', 'sscribe-export-site-pages' ); ?></span>
-						</div>
+						<div class="sscribe-section-title"><?php esc_html_e( 'Content Status', 'sscribe-export-site-pages' ); ?></div>
 						<div class="sscribe-status-cards sscribe-cards-row" id="sscribe-status-cards">
 							<?php
 							$sscribe_status_labels = array(
@@ -256,11 +248,7 @@ $sscribe_is_debug        = $sscribe_is_debug ?? false;
 					</div>
 
 					<div class="sscribe-config-section">
-						<div class="sscribe-config-section-header">
-							<?php // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- SVG sanitized in get_icon(). ?>
-							<?php echo SScribe_Helpers::get_icon( 'file-text', 15 ); ?>
-							<span><?php esc_html_e( 'Export Format', 'sscribe-export-site-pages' ); ?></span>
-						</div>
+						<div class="sscribe-section-title"><?php esc_html_e( 'Export Format', 'sscribe-export-site-pages' ); ?></div>
 						<div class="sscribe-format-cards sscribe-cards-row" id="sscribe-format-cards">
 							<label class="sscribe-format-card-label sscribe-format-all">
 								<input type="radio" name="sscribe_format" value="all" checked>
@@ -340,8 +328,6 @@ $sscribe_is_debug        = $sscribe_is_debug ?? false;
 						</button>
 						<span id="sscribe-preview-btn-hint" class="screen-reader-text"><?php esc_html_e( 'Preview what your export will look like before generating', 'sscribe-export-site-pages' ); ?></span>
 						<button type="button" id="sscribe-export-btn" class="sscribe-button sscribe-button-primary sscribe-btn-lg" disabled aria-describedby="sscribe-export-btn-hint">
-							<?php // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- SVG sanitized in get_icon(). ?>
-							<?php echo SScribe_Helpers::get_icon( 'download-package', 16 ); ?>
 							<span id="sscribe-export-btn-text"><?php esc_html_e( 'Generate Package', 'sscribe-export-site-pages' ); ?></span>
 						</button>
 						<span id="sscribe-export-btn-hint" class="screen-reader-text"><?php esc_html_e( 'Start the export process for selected pages and format', 'sscribe-export-site-pages' ); ?></span>
@@ -416,7 +402,6 @@ $sscribe_is_debug        = $sscribe_is_debug ?? false;
 				</p>
 				<div class="sscribe-success-actions">
 					<a id="sscribe-download-btn" href="#" class="sscribe-button sscribe-button-success" download aria-describedby="sscribe-download-hint">
-						<img src="<?php echo esc_url( SScribe_Helpers::icon_url( 'download-package' ) ); ?>" width="18" height="18" alt="" aria-hidden="true">
 						<?php esc_html_e( 'Download ZIP File', 'sscribe-export-site-pages' ); ?>
 					</a>
 					<span id="sscribe-download-hint" class="screen-reader-text"><?php esc_html_e( 'Download the exported ZIP file to your computer', 'sscribe-export-site-pages' ); ?></span>
