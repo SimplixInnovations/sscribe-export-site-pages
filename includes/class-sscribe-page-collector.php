@@ -512,9 +512,6 @@ class SScribe_Page_Collector {
 			// Record ob level before our buffer to avoid closing WP's buffers.
 			$ob_level_before = ob_get_level();
 
-			// Defensive initialization for the finally block.
-			$original_post = null;
-
 			try {
 				global $post;
 				$original_post = $post;

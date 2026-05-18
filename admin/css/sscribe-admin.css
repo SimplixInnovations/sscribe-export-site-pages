@@ -2159,6 +2159,15 @@
 	border-bottom: 1px solid var(--sscribe-border);
 }
 
+.sscribe-section-title {
+	display: block;
+	margin-bottom: 14px;
+	color: var(--sscribe-text-primary);
+	font-size: 15px;
+	font-weight: 700;
+	letter-spacing: 0.01em;
+}
+
 .sscribe-config-section:last-child {
 	border-bottom: none;
 }
