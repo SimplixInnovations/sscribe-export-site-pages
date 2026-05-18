@@ -1,10 +1,10 @@
 === SScribe Export Site Pages ===
 Contributors: simplixinnovations
 Donate link: https://simplixi.com
-Tags: export, docx, pdf, html, markdown, multilingual, rtl, wordpress
+Tags: docx, pdf, html, markdown, multilingual
 Requires at least: 6.0
 Tested up to: 6.9
-Stable tag: 1.1.1
+Stable tag: 1.1.2
 Requires PHP: 8.2
 License: GPLv2 or later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
@@ -106,7 +106,7 @@ Parameters: `(int $bytes)` — Default: 5,242,880 (5MB)
 
 == Changelog ==
 
-= 1.1.1 =
+= 1.1.2 =
 
 * Fixed duplicate JavaScript function definition (copyViaTextarea)
 * Fixed JS syntax error: stray quote character in refreshStatusAndLanguageCounts method
@@ -132,7 +132,7 @@ Parameters: `(int $bytes)` — Default: 5,242,880 (5MB)
 
 == Upgrade Notice ==
 
-= 1.1.1 =
+= 1.1.2 =
 
 Bug fixes and improvements: JavaScript syntax fix, security hardening, and better WPML language code support.
 

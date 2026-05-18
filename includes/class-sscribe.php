@@ -311,6 +311,7 @@ class SScribe {
 		// - Non-.org installations (private repos, enterprise distributions)
 		// - Local development environments where translations are in the plugin's /languages dir
 		// - Edge cases where the auto-loading mechanism is filtered or disabled.
+		// phpcs:ignore PluginCheck.CodeAnalysis.DiscouragedFunctions.load_plugin_textdomainFound -- Defensive fallback for non-.org installations and local dev.
 		load_plugin_textdomain(
 			'sscribe-export-site-pages',
 			false,
