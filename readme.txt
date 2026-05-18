@@ -95,7 +95,7 @@ Reads metadata from all major SEO plugins:
 * `sscribe_lock_stale_threshold` filter for lock timeout
 * `sscribe_memory_threshold_mb` filter for memory limits
 * PHPUnit test suite with comprehensive coverage
-* PHPStan static analysis (level 5)
+* PHPStan static analysis (level 6)
 * WordPress Coding Standards compliance
 * VIP coding standards support
 

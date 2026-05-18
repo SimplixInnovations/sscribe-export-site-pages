@@ -96,8 +96,8 @@ $sscribe_cleanup_site = static function (): void {
 	);
 
 	foreach ( $sscribe_tables as $sscribe_table_name ) {
-		// phpcs:disable WordPress.DB.PreparedSQL.InterpolatedNotPrepared, WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.DirectDatabaseQuery.SchemaChange -- Table names are controlled plugin tables during uninstall cleanup.
-		$wpdb->query( "DROP TABLE IF EXISTS {$sscribe_table_name}" );
+		// phpcs:disable WordPress.DB.PreparedSQL.NotPrepared, WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.DirectDatabaseQuery.SchemaChange -- Controlled plugin tables during uninstall. Table names are hardcoded in array above.
+		$wpdb->query( 'DROP TABLE IF EXISTS `' . $sscribe_table_name . '`' );
 		// phpcs:enable
 	}
 
