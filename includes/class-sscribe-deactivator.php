@@ -32,13 +32,17 @@ class SScribe_Deactivator {
 			wp_unschedule_event( $session_timestamp, 'sscribe_cleanup_sessions' );
 		}
 
-		// NOTE: cleanup_export_files() is intentionally NOT called here.
-		// Deactivation can be temporary (troubleshooting, staging migration).
-		// Export files and logs are only deleted on full uninstall (uninstall.php).
+		// NOTE: Database tables are intentionally NOT dropped on deactivation.
+		// Deactivation is often temporary (troubleshooting, staging migration).
+		// Tables are only removed on full uninstall (uninstall.php).
 		// See issue #9: Deactivator deletes export files on deactivate.
+		//
+		// Version history: Prior to 1.1.1, the deactivator dropped sscribe_sessions
+		// and sscribe_export_stats tables. This was changed in 1.1.1 to preserve
+		// data across deactivation/reactivation cycles, matching the behavior of
+		// most enterprise WordPress plugins.
 		try {
 			self::cleanup_options();
-			self::cleanup_database_tables();
 		} catch ( \Throwable $e ) {
 			if ( defined( 'WP_DEBUG' ) && WP_DEBUG ) {
 				// phpcs:ignore WordPress.PHP.DevelopmentFunctions.error_log_error_log
@@ -95,35 +99,12 @@ class SScribe_Deactivator {
 	}
 
 	/**
-	 * Remove plugin tables.
+	 * Remove plugin tables — REMOVED in 1.1.1.
 	 *
-	 * NOTE: Only session and stats tables are dropped on deactivation
-	 * to keep the audit trail and export logs intact for reactivation.
-	 * ALL tables are dropped on full uninstall (see uninstall.php).
+	 * Previously dropped sscribe_sessions and sscribe_export_stats on deactivation.
+	 * Moved to uninstall.php only to preserve data across deactivation/reactivation.
 	 *
+	 * @deprecated 1.1.1
 	 * @return void
 	 */
-	private static function cleanup_database_tables(): void {
-		global $wpdb;
-
-		$tables_to_drop = array(
-			$wpdb->prefix . 'sscribe_sessions',
-			$wpdb->prefix . 'sscribe_export_stats',
-		);
-
-		require_once ABSPATH . 'wp-admin/includes/upgrade.php';
-
-		foreach ( $tables_to_drop as $table ) {
-			// Table names from plugin constants (a-zA-Z0-9_ only) — preg_replace enforces this.
-			$table_safe = preg_replace( '/[^a-zA-Z0-9_]/', '', $table ) ?? $table;
-			// JUSTIFICATION: The $table_safe variable is sanitized via preg_replace('/[^a-zA-Z0-9_]/', '', $table)
-			// which strips all characters except alphanumeric and underscore. This ensures the table name cannot
-			// contain SQL injection characters. The input $table comes from hardcoded $wpdb->prefix constants
-			// (e.g., 'wp_sscribe_sessions'), not user input. $wpdb->prepare() cannot be used for table names
-			// as it's a documented WordPress limitation — table identifiers must be interpolated. This pattern is
-			// standard for WordPress plugins that manage custom tables during deactivation.
-			// phpcs:ignore PluginCheck.Security.DirectDB.UnescapedDBParameter, WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.DirectDatabaseQuery.SchemaChange, WordPress.DB.PreparedSQL.NotPrepared
-			$wpdb->query( 'DROP TABLE IF EXISTS `' . $table_safe . '`' );
-		}
-	}
 }

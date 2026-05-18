@@ -35,17 +35,27 @@ class SScribe_Admin {
 	private SScribe_SEO_Reader $seo_reader;
 
 	/**
+	 * ZIP handler instance (for download URL generation).
+	 *
+	 * @var SScribe_Zip_Handler
+	 */
+	private readonly SScribe_Zip_Handler $zip_handler;
+
+	/**
 	 * Constructor.
 	 *
 	 * @param SScribe_Page_Collector|null $collector   Page collector instance.
 	 * @param SScribe_SEO_Reader|null     $seo_reader  SEO reader instance.
+	 * @param SScribe_Zip_Handler|null    $zip_handler ZIP handler instance.
 	 */
 	public function __construct(
 		?SScribe_Page_Collector $collector = null,
-		?SScribe_SEO_Reader $seo_reader = null
+		?SScribe_SEO_Reader $seo_reader = null,
+		?SScribe_Zip_Handler $zip_handler = null
 	) {
-		$this->collector  = $collector ?? new SScribe_Page_Collector();
-		$this->seo_reader = $seo_reader ?? new SScribe_SEO_Reader();
+		$this->collector   = $collector ?? new SScribe_Page_Collector();
+		$this->seo_reader  = $seo_reader ?? new SScribe_SEO_Reader();
+		$this->zip_handler = $zip_handler ?? new SScribe_Zip_Handler();
 	}
 
 	/**
@@ -266,8 +276,9 @@ class SScribe_Admin {
 					'loading_log'         => __( 'Loading log...', 'sscribe-export-site-pages' ),
 					'log_not_found'       => __( 'Log not found.', 'sscribe-export-site-pages' ),
 					'log_load_failed'     => __( 'Failed to load log.', 'sscribe-export-site-pages' ),
-					'delete_failed'       => __( 'Failed to delete export.', 'sscribe-export-site-pages' ),
-					'history_empty'       => __( 'Your recent export packages will appear here.', 'sscribe-export-site-pages' ),
+					'delete_failed'      => __( 'Failed to delete export.', 'sscribe-export-site-pages' ),
+					'delete_success'     => __( 'Export deleted.', 'sscribe-export-site-pages' ),
+					'history_empty'     => __( 'Your recent export packages will appear here.', 'sscribe-export-site-pages' ),
 					'estimated_time'      => __( 'Estimated time:', 'sscribe-export-site-pages' ),
 					'minutes'             => __( 'minutes', 'sscribe-export-site-pages' ),
 					'minute'              => __( 'minute', 'sscribe-export-site-pages' ),
@@ -324,6 +335,7 @@ class SScribe_Admin {
 					'net_unknown'         => __( 'A network error occurred (HTTP %d). Please check your connection and try again.', 'sscribe-export-site-pages' ),
 					'support_loading'     => __( 'Loading support information...', 'sscribe-export-site-pages' ),
 					'support_error'       => __( 'Unable to load support information right now.', 'sscribe-export-site-pages' ),
+					'support_copy_error'  => __( 'Copy failed. Try selecting the text manually.', 'sscribe-export-site-pages' ),
 					'support_copy'        => __( 'Copy support info', 'sscribe-export-site-pages' ),
 					'support_copied'      => __( 'Support information copied.', 'sscribe-export-site-pages' ),
 					'support_refresh'     => __( 'Refresh', 'sscribe-export-site-pages' ),
@@ -333,7 +345,7 @@ class SScribe_Admin {
 					'preflight_errors'    => __( 'Critical Issues', 'sscribe-export-site-pages' ),
 					'preflight_warnings'   => __( 'Recommendations', 'sscribe-export-site-pages' ),
 					'preflight_continue'   => __( 'Continue Anyway', 'sscribe-export-site-pages' ),
-					'preflight_cancel'     => __( 'Go Back', 'sscribe-export-site-pages' ),
+					'preflight_cancel'     => __( 'Cancel Export', 'sscribe-export-site-pages' ),
 					'close'                => __( 'Close', 'sscribe-export-site-pages' ),
 					'generating_preview'   => __( 'Generating preview...', 'sscribe-export-site-pages' ),
 					'preview_note'         => __( 'Preview is generated from the first page and may differ from the final export.', 'sscribe-export-site-pages' ),
@@ -614,9 +626,6 @@ class SScribe_Admin {
 				}
 			}
 		}
-
-		// Gather active SEO plugins for template.
-		$sscribe_seo_plugins = $this->seo_reader->get_active_seo_plugins();
 
 		include SSCRIBE_PLUGIN_DIR . 'admin/partials/sscribe-admin-display.php';
 	}

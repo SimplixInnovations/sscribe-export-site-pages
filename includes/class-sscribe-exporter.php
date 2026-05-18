@@ -952,6 +952,17 @@ class SScribe_Exporter {
 					'font'  => $this->font_name,
 				)
 			);
+			// Add a clear placeholder so users know the TOC section is intentionally blank.
+			$section->addText(
+				'[Table of Contents could not be generated]',
+				array(
+					'name'   => $this->font_name,
+					'size'   => 10,
+					'italic' => true,
+					'color'  => '888888',
+				),
+				$this->get_para_style( array( 'spaceBefore' => Converter::pointToTwip( 6 ) ) )
+			);
 		}
 
 		// Word requires user to right-click TOC and select "Update Field" to populate it.

@@ -279,15 +279,13 @@ class SScribe_Image_Processor {
 			return $path;
 		}
 
-		// phpcs:disable WordPress.PHP.NoSilencedErrors.Discouraged
 		$image = match ( $type ) {
-			IMAGETYPE_JPEG, IMAGETYPE_JPEG2000 => @imagecreatefromjpeg( $path ),
-			IMAGETYPE_PNG                      => @imagecreatefrompng( $path ),
-			IMAGETYPE_GIF                      => @imagecreatefromgif( $path ),
-			IMAGETYPE_WEBP                     => @imagecreatefromwebp( $path ),
+			IMAGETYPE_JPEG, IMAGETYPE_JPEG2000 => imagecreatefromjpeg( $path ),
+			IMAGETYPE_PNG                      => imagecreatefrompng( $path ),
+			IMAGETYPE_GIF                      => imagecreatefromgif( $path ),
+			IMAGETYPE_WEBP                     => imagecreatefromwebp( $path ),
 			default                            => false,
 		};
-		// phpcs:enable
 
 		if ( false === $image ) {
 			return $path;

@@ -114,3 +114,27 @@ desktop.ini
 # Environment
 .env
 .env.*
+
+# Editor / formatter config
+.editorconfig
+.prettierrc
+.stylelintrc.json
+eslint.config.js
+.opencode.json
+
+# WordPress local dev
+.wp-env.json
+
+# Infection (mutation testing)
+infection.json5
+infection.json5.dist
+
+# OpenCode config
+opencode.json
+.opencode/
+
+# Husky git hooks
+.husky/
+
+# Scratch / experimental
+scratch/

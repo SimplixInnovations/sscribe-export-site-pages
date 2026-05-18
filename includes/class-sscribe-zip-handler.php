@@ -38,7 +38,16 @@ class SScribe_Zip_Handler {
 	 * Constructor.
 	 */
 	public function __construct() {
-		$upload_dir       = wp_upload_dir();
+		$upload_dir = wp_upload_dir();
+		if ( ! empty( $upload_dir['error'] ) ) {
+			$this->export_dir = '';
+			$this->logger     = SScribe_Logger::instance( defined( 'SSCRIBE_DEBUG' ) && SSCRIBE_DEBUG );
+			$this->logger->warning(
+				'wp_upload_dir() returned an error — export directory unavailable',
+				array( 'error' => $upload_dir['error'] )
+			);
+			return;
+		}
 		$this->export_dir = $upload_dir['basedir'] . '/sscribe-exports';
 		$this->logger     = SScribe_Logger::instance( defined( 'SSCRIBE_DEBUG' ) && SSCRIBE_DEBUG );
 	}
@@ -268,12 +277,14 @@ class SScribe_Zip_Handler {
 	 * @return string|null Language code (e.g., 'AR') or null if not found.
 	 */
 	private function extract_lang_from_filename( string $filename ): ?string {
-		// Match -XX.ext where XX is EXACTLY 2 uppercase letters.
-		if ( ! preg_match( '/-([A-Z]{2})\.[A-Za-z]+$/', $filename, $matches ) ) {
+		// Match -XX.ext or -XXX.ext where XX/XXX is a 2-3 uppercase letter language code.
+		// This handles both ISO 639-1 two-letter codes (AR, EN, FR) and
+		// three-letter codes used by some WPML configurations (ZHT, ZHS).
+		if ( ! preg_match( '/-([A-Z]{2,3})\.[A-Za-z]+$/', $filename, $matches ) ) {
 			return null;
 		}
 
-		// Validate against known 2-letter language codes from single source.
+		// Validate against known language codes from single source.
 		// Uses SScribe_RTL_Helper::get_all_known_codes() to prevent code duplication.
 		// If a new language is added there, it is automatically recognized here.
 		return in_array( $matches[1], SScribe_RTL_Helper::get_all_known_codes(), true ) ? $matches[1] : null;
@@ -293,10 +304,11 @@ class SScribe_Zip_Handler {
 		$base  = $parts['filename'];
 		$ext   = isset( $parts['extension'] ) ? '.' . $parts['extension'] : '';
 
-		// Remove trailing -XX ONLY when XX is EXACTLY 2 letters (language code).
+		// Remove trailing -XX or -XXX ONLY when XX/XXX is a 2-3 letter language code.
 		// This prevents misinterpreting page slug segments as language codes.
 		// P001-SD-AR.docx → P001-SD-AR.docx (not P001-SD.docx).
-		$clean_base = preg_replace( '/-[A-Z]{2}$/', '', $base ) ?? $base;
+		// P001-Title-ZHT.docx → P001-Title.docx (3-letter code removed).
+		$clean_base = preg_replace( '/-[A-Z]{2,3}$/', '', $base ) ?? $base;
 
 		return $clean_base . $ext;
 	}

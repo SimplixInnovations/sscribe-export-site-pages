@@ -1898,7 +1898,8 @@ class SScribe_Batch_Processor {
 			);
 
 			// Save adaptive metrics for future time/size estimates.
-			$formats = isset( $session['formats'] ) ? $session['formats'] : array( 'docx' );
+			$formats    = isset( $session['formats'] ) ? $session['formats'] : array( 'docx' );
+			$session_pt = $session['post_type'] ?? 'page';
 			foreach ( $formats as $fmt ) {
 				$format_time_key  = 'format_time_' . $fmt;
 				$format_size_key  = 'format_size_' . $fmt;
@@ -1910,7 +1911,7 @@ class SScribe_Batch_Processor {
 				$total_mb        = $total_bytes / 1048576;
 
 				if ( $pages_exported > 0 && $elapsed_seconds > 0 ) {
-					$this->adaptive_metrics->save( $fmt, $pages_exported, $elapsed_seconds, $total_mb );
+					$this->adaptive_metrics->save( $fmt, $pages_exported, $elapsed_seconds, $total_mb, $session_pt );
 				}
 			}
 
@@ -2404,5 +2405,29 @@ class SScribe_Batch_Processor {
 	 */
 	public function ajax_get_support_info(): void {
 		$this->query_controller->ajax_get_support_info( $this->get_required_capability() );
+	}
+
+	/**
+	 * AJAX handler: Get a fresh download nonce for history tab download URLs.
+	 *
+	 * Fixes nonce expiry issue where history download URLs embedded at page
+	 * render time become invalid after the WordPress nonce lifetime (12h).
+	 * The JS calls this endpoint to get a fresh nonce just before downloading.
+	 *
+	 * @return void
+	 */
+	public function ajax_refresh_download_nonce(): void {
+		check_ajax_referer( 'sscribe_export_nonce', 'nonce' );
+
+		if ( ! current_user_can( $this->get_required_capability() ) ) {
+			wp_send_json_error( array( 'message' => __( 'Permission denied.', 'sscribe-export-site-pages' ) ), 403 );
+			return;
+		}
+
+		wp_send_json_success(
+			array(
+				'nonce' => wp_create_nonce( 'sscribe_download' ),
+			)
+		);
 	}
 }

@@ -287,7 +287,7 @@ class SScribe_Diagnostics_Test extends TestCase {
 		$method = new \ReflectionMethod( SScribe_Diagnostics::class, 'build_support_copy_text' );
 
 		$sections            = array(
-			'plugin'     => array( 'label' => 'Plugin', 'items' => array( 'version' => '1.1.0' ) ),
+			'plugin'     => array( 'label' => 'Plugin', 'items' => array( 'version' => '1.1.1' ) ),
 			'environment' => array( 'label' => 'Env', 'items' => array( 'php' => '8.2' ) ),
 		);
 		$audit              = array();
@@ -309,7 +309,7 @@ $sections            = array(
 			'plugin' => array(
 				'label' => 'Plugin',
 				'items' => array(
-					'version'     => '1.1.0',
+					'version'     => '1.1.1',
 					'debug_mode'  => 'Enabled',
 				),
 			),

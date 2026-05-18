@@ -20,6 +20,18 @@ if ( ! defined( 'ABSPATH' ) ) {
 class SScribe_Diagnostics {
 
 	/**
+	 * Minimum expected mPDF bundled font file count.
+	 *
+	 * MPDF ships with ~83 font files. If fewer than this threshold are
+	 * detected, the diagnostic warns that fonts may be incomplete.
+	 * Lowered from 50 to account for future mPDF versions that may
+	 * ship fewer bundled fonts.
+	 *
+	 * @var int
+	 */
+	private const MIN_MPDF_FONT_COUNT = 40;
+
+	/**
 	 * Logger instance.
 	 *
 	 * @var SScribe_Logger_Interface
@@ -43,6 +55,7 @@ class SScribe_Diagnostics {
 		$export_dir    = trailingslashit( $upload_dir['basedir'] ) . 'sscribe-exports';
 		$log_dir       = trailingslashit( $upload_dir['basedir'] ) . 'sscribe-logs';
 		$debug_enabled = defined( 'SSCRIBE_DEBUG' ) && SSCRIBE_DEBUG;
+		$debug_logger = $debug_enabled ? SScribe_Logger::instance( true ) : null;
 
 		$sections = array();
 
@@ -51,6 +64,9 @@ class SScribe_Diagnostics {
 			$monthly_stats = $export_stats->get_stats( 'month' );
 		} catch ( \Throwable $e ) {
 			$monthly_stats = array();
+			if ( $debug_logger ) {
+				$debug_logger->warning( 'Support info: monthly_stats unavailable', array( 'error' => $e->getMessage() ) );
+			}
 		}
 
 		try {
@@ -58,12 +74,18 @@ class SScribe_Diagnostics {
 			$status_counts = $collector->get_post_status_counts( '' );
 		} catch ( \Throwable $e ) {
 			$status_counts = array();
+			if ( $debug_logger ) {
+				$debug_logger->warning( 'Support info: status_counts unavailable', array( 'error' => $e->getMessage() ) );
+			}
 		}
 
 		try {
 			$session_check = $this->check_session_health();
 		} catch ( \Throwable $e ) {
 			$session_check = array( 'message' => __( 'Unavailable', 'sscribe-export-site-pages' ) );
+			if ( $debug_logger ) {
+				$debug_logger->warning( 'Support info: session_check unavailable', array( 'error' => $e->getMessage() ) );
+			}
 		}
 
 		try {
@@ -71,6 +93,9 @@ class SScribe_Diagnostics {
 			$recent_audit_logs = $audit_trail->get_logs( array(), 5, 0 );
 		} catch ( \Throwable $e ) {
 			$recent_audit_logs = array();
+			if ( $debug_logger ) {
+				$debug_logger->warning( 'Support info: recent_audit_logs unavailable', array( 'error' => $e->getMessage() ) );
+			}
 		}
 
 		try {
@@ -78,6 +103,9 @@ class SScribe_Diagnostics {
 			$logger_entries = $support_logger->get_logs();
 		} catch ( \Throwable $e ) {
 			$logger_entries = array();
+			if ( $debug_logger ) {
+				$debug_logger->warning( 'Support info: logger_entries unavailable', array( 'error' => $e->getMessage() ) );
+			}
 		}
 
 		$recent_log_tail = array();
@@ -89,12 +117,18 @@ class SScribe_Diagnostics {
 			$wpml_active = ( new SScribe_Page_Collector() )->is_wpml_active();
 		} catch ( \Throwable $e ) {
 			$wpml_active = false;
+			if ( $debug_logger ) {
+				$debug_logger->warning( 'Support info: wpml_active check failed', array( 'error' => $e->getMessage() ) );
+			}
 		}
 
 		try {
 			$seo_plugins = implode( ', ', $this->get_active_seo_plugins() );
 		} catch ( \Throwable $e ) {
 			$seo_plugins = __( 'Unavailable', 'sscribe-export-site-pages' );
+			if ( $debug_logger ) {
+				$debug_logger->warning( 'Support info: seo_plugins unavailable', array( 'error' => $e->getMessage() ) );
+			}
 		}
 
 		try {
@@ -102,6 +136,9 @@ class SScribe_Diagnostics {
 			$session_storage = $session->get_storage_type();
 		} catch ( \Throwable $e ) {
 			$session_storage = 'unknown';
+			if ( $debug_logger ) {
+				$debug_logger->warning( 'Support info: session_storage unavailable', array( 'error' => $e->getMessage() ) );
+			}
 		}
 
 		$sections['plugin'] = array(
@@ -526,7 +563,7 @@ class SScribe_Diagnostics {
 		if ( is_dir( $ttfonts_dir ) ) {
 			$font_files = glob( $ttfonts_dir . '/*.{ttf,otf,txt}', GLOB_BRACE );
 			$count      = is_array( $font_files ) ? count( $font_files ) : 0;
-			if ( $count < 50 ) {
+			if ( $count < self::MIN_MPDF_FONT_COUNT ) {
 				return array(
 					'name'    => 'mPDF Library',
 					'status'  => 'warning',
@@ -555,8 +592,10 @@ class SScribe_Diagnostics {
 			// the workaround would cause double-encoding and must be removed.
 			$phpword_composer_file = SSCRIBE_PLUGIN_DIR . 'vendor-prefixed/phpoffice/phpword/composer.json';
 			if ( file_exists( $phpword_composer_file ) ) {
-				$composer_data = json_decode( file_get_contents( $phpword_composer_file ), true );
-				$bundled_version = $composer_data['version'] ?? 'unknown';
+				// phpcs:ignore WordPress.WP.AlternativeFunctions.file_get_contents_file_get_contents -- Safe: reading a local composer.json from plugin directory.
+				$raw_json = file_get_contents( $phpword_composer_file );
+				$composer_data = is_string( $raw_json ) ? json_decode( $raw_json, true ) : null;
+				$bundled_version = ( is_array( $composer_data ) && isset( $composer_data['version'] ) ) ? $composer_data['version'] : 'unknown';
 				preg_match( '/^(\d+\.\d+)/', $bundled_version, $m );
 				$major_minor = $m[1] ?? '';
 				// If PHPWord 1.5+ is detected, the htmlspecialchars workaround in safe_text()

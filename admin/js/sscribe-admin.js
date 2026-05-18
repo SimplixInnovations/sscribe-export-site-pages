@@ -92,6 +92,7 @@
 			$(document).on('click', '#sscribe-support-refresh-btn', $.proxy(this.loadSupportInfo, this));
 			$(document).on('click', '#sscribe-support-copy-btn', $.proxy(this.copySupportInfo, this));
 			$(document).on('click', '#sscribe-modal-close', $.proxy(this.closeModal, this));
+			$(document).on('click', '.sscribe-history-actions > a', $.proxy(this.downloadExport, this));
 
 			// Tab switching logic — handles ARIA roles and aria-selected state for accessibility.
 			$('.sscribe-tab-btn').on('click', function (e) {
@@ -124,6 +125,7 @@
 			const self = this;
 
 			$('.sscribe-status-card-label').addClass('sscribe-loading');
+			$('#sscribe-post-count, #sscribe-both-count').addClass('sscribe-loading-count');
 
 			$.ajax({
 				url: sscribe_data.ajaxurl,
@@ -151,6 +153,7 @@
 						}
 					}
 					$('.sscribe-status-card-label').removeClass('sscribe-loading');
+					$('#sscribe-post-count, #sscribe-both-count').removeClass('sscribe-loading-count');
 				},
 				error: function () {},
 			});
@@ -337,6 +340,17 @@
 
 			$('#sscribe-export-btn').prop('disabled', !canExport);
 			$('#sscribe-preview-btn').prop('disabled', !canExport);
+
+			const $reason = $('#sscribe-export-disabled-reason');
+			if (!canExport) {
+				if (!hasPages) {
+					$reason.text(sscribe_data.strings && sscribe_data.strings.err_no_pages || 'No pages match selected options');
+				} else {
+					$reason.text('');
+				}
+			} else {
+				$reason.text('');
+			}
 		},
 
 		startExport: function (e) {
@@ -525,6 +539,13 @@
 		},
 
 		proceedWithExport: function (language, postStatus, postType, formats) {
+			this.clearSessionWithRetry(language, postStatus, postType, formats, 0);
+		},
+
+		clearSessionWithRetry: function (language, postStatus, postType, formats, attempt) {
+			const maxAttempts = 3;
+			const self = this;
+
 			$.ajax({
 				url: sscribe_data.ajaxurl,
 				type: 'POST',
@@ -534,8 +555,15 @@
 					nonce: sscribe_data.nonce,
 					force: true,
 				},
-				complete: function () {
-					SScribe.doStartExport(language, postStatus, postType, formats);
+				success: function () {
+					self.doStartExport(language, postStatus, postType, formats);
+				},
+				error: function () {
+					if (attempt < maxAttempts - 1) {
+						self.clearSessionWithRetry(language, postStatus, postType, formats, attempt + 1);
+					} else {
+						self.doStartExport(language, postStatus, postType, formats);
+					}
 				},
 			});
 		},
@@ -715,9 +743,15 @@
 		},
 
 		exportComplete: function (data) {
+			const progressFill = document.getElementById('sscribe-progress-bar');
+			if (progressFill) {
+				progressFill.classList.remove('sscribe-progress-bar-fill-finalizing');
+			}
 			$('#sscribe-progress-area').slideUp(300, function () {
 				$('#sscribe-download-area').removeClass('sscribe-hidden').hide().fadeIn(400);
 				$('#sscribe-download-btn').attr('href', data.download_url);
+
+				$('html, body').animate({ scrollTop: $('#sscribe-download-area').offset().top - 20 }, 300);
 
 				const $iframe = $('<iframe>').css({ display: 'none', width: 0, height: 0 });
 				$('body').append($iframe);
@@ -735,6 +769,11 @@
 			this.isProcessing = true;
 
 			$('#sscribe-status-text').text(sscribe_data.strings.packaging || 'Packaging files into ZIP archive...');
+
+			const progressFill = document.getElementById('sscribe-progress-bar');
+			if (progressFill) {
+				progressFill.classList.add('sscribe-progress-bar-fill-finalizing');
+			}
 
 			const maxAttempts = 180;
 			const self = this;
@@ -968,6 +1007,8 @@
 				const msg = (sscribe_data.strings && sscribe_data.strings.export_progress_prefix) || 'Export progress:';
 				liveRegion.textContent = msg + ' ' + percentage + '%';
 			}
+
+			document.title = '(' + percentage + '%) SScribe Export';
 		},
 
 		updateStatus: function (message) {
@@ -1156,6 +1197,7 @@
 			$('#sscribe-error-area').addClass('sscribe-hidden');
 			$('#sscribe-progress-area').addClass('sscribe-hidden');
 			this.updateProgress(0);
+			document.title = 'SScribe Export';
 		},
 
 		retry: function (e) {
@@ -1186,50 +1228,102 @@
 			});
 		},
 
+		downloadExport: function (e) {
+			const $link = $(e.currentTarget);
+			const originalHref = $link.attr('href');
+			// Skip if not a download link (e.g., if event bubbling from a child button).
+			if (!originalHref || !originalHref.includes('action=sscribe_download')) {
+				return;
+			}
+
+			e.preventDefault();
+
+			// Get a fresh nonce just before downloading to avoid expiry.
+			$.ajax({
+				url: sscribe_data.ajaxurl,
+				type: 'POST',
+				timeout: 10000,
+				data: {
+					action: 'sscribe_refresh_download_nonce',
+					nonce: sscribe_data.nonce,
+				},
+				success: function (response) {
+					if (response.success && response.data && response.data.nonce) {
+						const freshUrl = originalHref.replace(/nonce=[^&]+/, 'nonce=' + encodeURIComponent(response.data.nonce));
+						window.location.href = freshUrl;
+					} else {
+						// Fallback: use the original URL (may fail with 403 if nonce expired, but better than breaking).
+						window.location.href = originalHref;
+					}
+				},
+				error: function () {
+					// Fallback: proceed with original URL on network failure.
+					window.location.href = originalHref;
+				},
+			});
+		},
+
 		deleteExport: function (e) {
 			e.preventDefault();
 			const $btn = $(e.currentTarget);
 			const filename = $btn.data('filename');
 
-			if (!confirm(sscribe_data.strings.confirm_delete || 'Delete this export file?')) {
-				return;
-			}
+			$btn.hide();
+			const $confirmWrap = $('<span class="sscribe-inline-confirm" style="display:flex;align-items:center;gap:6px;">' +
+				'<span style="font-size:12px;color:var(--sscribe-text-secondary);">' +
+				(this.escapeHtml(sscribe_data.strings && sscribe_data.strings.confirm_delete) || 'Delete this?') +
+				'</span>' +
+				'<button type="button" class="sscribe-button sscribe-button-danger sscribe-btn-xs sscribe-confirm-yes">' +
+				this.escapeHtml(sscribe_data.strings && sscribe_data.strings.close || 'Delete') +
+				'</button>' +
+				'<button type="button" class="sscribe-button sscribe-button-ghost sscribe-btn-xs sscribe-confirm-no">Cancel</button>' +
+				'</span>');
+			$btn.after($confirmWrap);
 
-			$.ajax({
-				url: sscribe_data.ajaxurl,
-				type: 'POST',
-				timeout: 30000,
-				data: {
-					action: 'sscribe_delete_export',
-					nonce: sscribe_data.download_nonce,
-					file: filename,
-				},
-				success: function (response) {
-					if (response.success) {
-						$btn.closest('.sscribe-history-row').fadeOut(300, function () {
-							$(this).remove();
-							if ($('.sscribe-history-row').length === 0) {
+			$confirmWrap.find('.sscribe-confirm-yes').on('click', function () {
+				$confirmWrap.remove();
+				$.ajax({
+					url: sscribe_data.ajaxurl,
+					type: 'POST',
+					timeout: 30000,
+					data: {
+						action: 'sscribe_delete_export',
+						nonce: sscribe_data.download_nonce,
+						file: filename,
+					},
+					success: function (response) {
+						if (response.success) {
+							$btn.closest('.sscribe-history-row').fadeOut(300, function () {
+								$(this).remove();
+								if ($('.sscribe-history-row').length === 0) {
 								const emptyMsg =
 									(sscribe_data.strings && sscribe_data.strings.history_empty) ||
 									'Your recent export packages will appear here.';
 								$('#sscribe-history-table').html(
-									'<div class="sscribe-history-empty"><em>' + emptyMsg + '</em></div>'
+									'<div class="sscribe-history-empty"><em>' + SScribe.escapeHtml(emptyMsg) + '</em></div>'
 								);
-							}
-						});
-					} else {
+								}
+							});
+							SScribe.showToast(sscribe_data.strings && sscribe_data.strings.delete_success || 'Export deleted.');
+						} else {
+							SScribe.showError(
+								response.data.message ||
+									(sscribe_data.strings && sscribe_data.strings.delete_failed) ||
+									'Failed to delete export.'
+							);
+						}
+					},
+					error: function () {
 						SScribe.showError(
-							response.data.message ||
-								(sscribe_data.strings && sscribe_data.strings.delete_failed) ||
-								'Failed to delete export.'
+							(sscribe_data.strings && sscribe_data.strings.delete_failed) || 'Failed to delete export.'
 						);
-					}
-				},
-				error: function () {
-					SScribe.showError(
-						(sscribe_data.strings && sscribe_data.strings.delete_failed) || 'Failed to delete export.'
-					);
-				},
+					},
+				});
+			});
+
+			$confirmWrap.find('.sscribe-confirm-no').on('click', function () {
+				$confirmWrap.remove();
+				$btn.show();
 			});
 		},
 
@@ -1825,6 +1919,17 @@
 			$('#sscribe-support-copy-btn').prop('disabled', true);
 		},
 
+		showToast: function (message) {
+			const $toast = $('#sscribe-toast');
+			const $msg = $('#sscribe-toast-message');
+			if (!$toast.length || !$msg.length) { return; }
+			$msg.text(message);
+			$toast.removeClass('sscribe-toast-hidden');
+			setTimeout(function () {
+				$toast.addClass('sscribe-toast-hidden');
+			}, 4000);
+		},
+
 		copySupportInfo: function (e) {
 			e.preventDefault();
 			const text = $('#sscribe-support-copy-text').val();
@@ -1835,9 +1940,7 @@
 			}
 
 			const onSuccess = function () {
-				$('#sscribe-support-feedback')
-					.removeClass('sscribe-hidden')
-					.text(strings.support_copied || 'Support information copied.');
+				SScribe.showToast(strings.support_copied || 'Support information copied.');
 			};
 
 			if (navigator.clipboard && navigator.clipboard.writeText) {
@@ -1861,7 +1964,9 @@
 				document.execCommand('copy');
 				onSuccess();
 			} catch {
-				// Intentionally empty — fallback copy method not needed.
+				$('#sscribe-support-feedback')
+					.removeClass('sscribe-hidden')
+					.text(sscribe_data.strings && sscribe_data.strings.support_copy_error || 'Copy failed. Try selecting the text manually.');
 			}
 		},
 
