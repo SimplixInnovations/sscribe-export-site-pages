@@ -7,7 +7,7 @@
  * audit trail store and the debug logger.
  *
  * @package       SScribe
- * @since         1.1.3
+ * @since         1.1.4
  */
 
 declare( strict_types=1 );
@@ -24,7 +24,7 @@ if ( ! defined( 'ABSPATH' ) ) {
  * constant on {@see SScribe_Audit_Trail} for consistent downstream
  * processing and querying.
  *
- * @since 1.1.3
+ * @since 1.1.4
  */
 class SScribe_Export_Auditor {
 
@@ -32,7 +32,7 @@ class SScribe_Export_Auditor {
 	 * Audit trail store for persistent event recording.
 	 *
 	 * @var SScribe_Audit_Trail
-	 * @since 1.1.3
+	 * @since 1.1.4
 	 */
 	private readonly SScribe_Audit_Trail $audit_trail;
 
@@ -40,14 +40,14 @@ class SScribe_Export_Auditor {
 	 * Logger instance for debug-level audit entries.
 	 *
 	 * @var SScribe_Logger_Interface
-	 * @since 1.1.3
+	 * @since 1.1.4
 	 */
 	private readonly SScribe_Logger_Interface $logger;
 
 	/**
 	 * Constructor.
 	 *
-	 * @since 1.1.3
+	 * @since 1.1.4
 	 *
 	 * @param SScribe_Audit_Trail|null      $audit_trail Audit trail store. Falls back
 	 *                                                   to a new instance if omitted.
@@ -68,7 +68,7 @@ class SScribe_Export_Auditor {
 	 * Records the event in both the persistent audit store (for security
 	 * review) and the debug log (for real-time troubleshooting).
 	 *
-	 * @since 1.1.3
+	 * @since 1.1.4
 	 *
 	 * @param string $action  Semantic action name. Mapped to an event type
 	 *                        via {@see map_action_to_event()}.
@@ -104,7 +104,7 @@ class SScribe_Export_Auditor {
 	/**
 	 * Map a semantic action name to an audit trail event type constant.
 	 *
-	 * @since 1.1.3
+	 * @since 1.1.4
 	 *
 	 * @param string $action The action name to map.
 	 *
