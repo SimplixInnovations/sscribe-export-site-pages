@@ -555,7 +555,7 @@
 					nonce: sscribe_data.nonce,
 					force: true,
 				},
-				success: function (response) {
+				success: function () {
 					self.doStartExport(language, postStatus, postType, formats);
 				},
 				error: function () {
@@ -1231,8 +1231,6 @@
 		downloadExport: function (e) {
 			const $link = $(e.currentTarget);
 			const originalHref = $link.attr('href');
-			const self = this;
-
 			// Skip if not a download link (e.g., if event bubbling from a child button).
 			if (!originalHref || !originalHref.includes('action=sscribe_download')) {
 				return;
@@ -1270,7 +1268,6 @@
 			const $btn = $(e.currentTarget);
 			const filename = $btn.data('filename');
 
-			const $row = $btn.closest('.sscribe-history-row');
 			$btn.hide();
 			const $confirmWrap = $('<span class="sscribe-inline-confirm" style="display:flex;align-items:center;gap:6px;">' +
 				'<span style="font-size:12px;color:var(--sscribe-text-secondary);">' +

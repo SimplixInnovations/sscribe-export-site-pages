@@ -304,7 +304,17 @@ class SScribe {
 	 * @return void
 	 */
 	private function init_i18n(): void {
-		// load_plugin_textdomain() is deprecated since WP 4.6 for wordpress.org hosted plugins.
-		// WordPress automatically loads translations for plugins hosted on wordpress.org.
+		// WordPress 4.6+ automatically loads translations from wp-content/languages/plugins/
+		// for plugins hosted on wordpress.org based on the Text Domain header.
+		//
+		// We still call load_plugin_textdomain() as a defensive fallback for:
+		// - Non-.org installations (private repos, enterprise distributions)
+		// - Local development environments where translations are in the plugin's /languages dir
+		// - Edge cases where the auto-loading mechanism is filtered or disabled.
+		load_plugin_textdomain(
+			'sscribe-export-site-pages',
+			false,
+			dirname( SSCRIBE_PLUGIN_BASENAME ) . '/languages'
+		);
 	}
 }
