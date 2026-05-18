@@ -7,7 +7,7 @@
  * information. These endpoints never mutate export state.
  *
  * @package       SScribe
- * @since         1.1.4
+ * @since         1.1.5
  */
 
 declare( strict_types=1 );
@@ -24,7 +24,7 @@ if ( ! defined( 'ABSPATH' ) ) {
  * support information. Requires constructor injection of the same
  * services the batch processor uses.
  *
- * @since 1.1.4
+ * @since 1.1.5
  */
 class SScribe_Export_Query_Controller {
 
@@ -32,7 +32,7 @@ class SScribe_Export_Query_Controller {
 	 * Rate limiter for endpoint protection.
 	 *
 	 * @var SScribe_Export_Rate_Limiter
-	 * @since 1.1.4
+	 * @since 1.1.5
 	 */
 	private readonly SScribe_Export_Rate_Limiter $rate_limiter;
 
@@ -40,7 +40,7 @@ class SScribe_Export_Query_Controller {
 	 * Diagnostics instance for health checks and preflight.
 	 *
 	 * @var SScribe_Diagnostics
-	 * @since 1.1.4
+	 * @since 1.1.5
 	 */
 	private readonly SScribe_Diagnostics $diagnostics;
 
@@ -48,7 +48,7 @@ class SScribe_Export_Query_Controller {
 	 * Page collector for querying pages.
 	 *
 	 * @var SScribe_Page_Collector
-	 * @since 1.1.4
+	 * @since 1.1.5
 	 */
 	private readonly SScribe_Page_Collector $collector;
 
@@ -56,7 +56,7 @@ class SScribe_Export_Query_Controller {
 	 * Logger instance.
 	 *
 	 * @var SScribe_Logger_Interface
-	 * @since 1.1.4
+	 * @since 1.1.5
 	 */
 	private readonly SScribe_Logger_Interface $logger;
 
@@ -64,7 +64,7 @@ class SScribe_Export_Query_Controller {
 	 * ZIP handler (for download URLs, export dir resolution).
 	 *
 	 * @var SScribe_Zip_Handler
-	 * @since 1.1.4
+	 * @since 1.1.5
 	 */
 	private readonly SScribe_Zip_Handler $zip_handler;
 
@@ -72,7 +72,7 @@ class SScribe_Export_Query_Controller {
 	 * Adaptive metrics for time/size estimation.
 	 *
 	 * @var SScribe_Adaptive_Metrics
-	 * @since 1.1.4
+	 * @since 1.1.5
 	 */
 	private readonly SScribe_Adaptive_Metrics $adaptive_metrics;
 
@@ -80,14 +80,14 @@ class SScribe_Export_Query_Controller {
 	 * Error handler for building diagnostics payloads.
 	 *
 	 * @var SScribe_Export_Error_Handler
-	 * @since 1.1.4
+	 * @since 1.1.5
 	 */
 	private readonly SScribe_Export_Error_Handler $error_handler;
 
 	/**
 	 * Constructor.
 	 *
-	 * @since 1.1.4
+	 * @since 1.1.5
 	 *
 	 * @param SScribe_Export_Rate_Limiter|null  $rate_limiter    Rate limiter.
 	 * @param SScribe_Diagnostics|null          $diagnostics     Diagnostics instance.
@@ -121,7 +121,7 @@ class SScribe_Export_Query_Controller {
 	 * For unauthenticated requests: returns minimal reachability check.
 	 * For authenticated requests: returns full diagnostics + boot state.
 	 *
-	 * @since 1.1.4
+	 * @since 1.1.5
 	 *
 	 * @param string $export_capability Capability required for full health
 	 *                                  data. Default 'manage_options'.
@@ -172,7 +172,7 @@ class SScribe_Export_Query_Controller {
 	/**
 	 * AJAX handler: Get page status counts for a language and post type.
 	 *
-	 * @since 1.1.4
+	 * @since 1.1.5
 	 *
 	 * @param string $export_capability Required capability. Default 'manage_options'.
 	 *
@@ -214,7 +214,7 @@ class SScribe_Export_Query_Controller {
 	/**
 	 * AJAX handler: Get export log details.
 	 *
-	 * @since 1.1.4
+	 * @since 1.1.5
 	 *
 	 * @param string $export_capability Required capability. Default 'manage_options'.
 	 *
@@ -290,7 +290,7 @@ class SScribe_Export_Query_Controller {
 	/**
 	 * AJAX handler: Run pre-flight diagnostics.
 	 *
-	 * @since 1.1.4
+	 * @since 1.1.5
 	 *
 	 * @param string $export_capability Required capability. Default 'manage_options'.
 	 *
@@ -347,7 +347,7 @@ class SScribe_Export_Query_Controller {
 	/**
 	 * AJAX handler: Get export preview data.
 	 *
-	 * @since 1.1.4
+	 * @since 1.1.5
 	 *
 	 * @param string $export_capability Required capability. Default 'manage_options'.
 	 *
@@ -466,7 +466,7 @@ class SScribe_Export_Query_Controller {
 	/**
 	 * AJAX handler: Get recent exports list.
 	 *
-	 * @since 1.1.4
+	 * @since 1.1.5
 	 *
 	 * @param string $export_capability Required capability. Default 'manage_options'.
 	 *
@@ -532,7 +532,7 @@ class SScribe_Export_Query_Controller {
 	/**
 	 * AJAX handler: Get support and debug information.
 	 *
-	 * @since 1.1.4
+	 * @since 1.1.5
 	 *
 	 * @param string $export_capability Required capability. Default 'manage_options'.
 	 *
