@@ -49,7 +49,6 @@ class SScribe_Export_Query_Controller {
 					'server_utc'  => gmdate( 'Y-m-d H:i:s' ),
 				)
 			);
-			return;
 		}
 
 		if ( ! current_user_can( $export_capability ) ) {
@@ -57,7 +56,6 @@ class SScribe_Export_Query_Controller {
 				array( 'message' => __( 'Permission denied.', 'sscribe-export-site-pages' ) ),
 				403
 			);
-			return;
 		}
 
 		if ( ! $this->rate_limiter->check_rate_limit( $export_capability ) ) {
@@ -65,7 +63,6 @@ class SScribe_Export_Query_Controller {
 				array( 'message' => __( 'Too many requests. Please wait a moment.', 'sscribe-export-site-pages' ) ),
 				429
 			);
-			return;
 		}
 
 		$diagnostics = $this->diagnostics->check_ajax_health();
@@ -84,7 +81,6 @@ class SScribe_Export_Query_Controller {
 	public function ajax_get_status_counts( string $export_capability = 'manage_options' ): void {
 		if ( ! check_ajax_referer( 'sscribe_export_nonce', 'nonce', false ) ) {
 			SScribe_AJAX_Guard::error( array( 'message' => __( 'Security check failed.', 'sscribe-export-site-pages' ) ), 403 );
-			return;
 		}
 
 		if ( ! current_user_can( $export_capability ) ) {
@@ -92,7 +88,6 @@ class SScribe_Export_Query_Controller {
 				array( 'message' => __( 'Permission denied.', 'sscribe-export-site-pages' ) ),
 				403
 			);
-			return;
 		}
 
 		if ( ! $this->rate_limiter->check_rate_limit( $export_capability ) ) {
@@ -100,7 +95,6 @@ class SScribe_Export_Query_Controller {
 				array( 'message' => __( 'Too many requests. Please wait.', 'sscribe-export-site-pages' ) ),
 				429
 			);
-			return;
 		}
 
 		$language  = isset( $_POST['language'] ) ? sanitize_text_field( wp_unslash( $_POST['language'] ) ) : '';
@@ -117,7 +111,6 @@ class SScribe_Export_Query_Controller {
 	public function ajax_get_export_log( string $export_capability = 'manage_options' ): void {
 		if ( ! check_ajax_referer( 'sscribe_download', 'nonce', false ) ) {
 			SScribe_AJAX_Guard::error( array( 'message' => __( 'Security check failed.', 'sscribe-export-site-pages' ) ), 403 );
-			return;
 		}
 
 		if ( ! current_user_can( $export_capability ) ) {
@@ -125,7 +118,6 @@ class SScribe_Export_Query_Controller {
 				array( 'message' => __( 'Permission denied.', 'sscribe-export-site-pages' ) ),
 				403
 			);
-			return;
 		}
 
 		$filename = isset( $_POST['file'] ) ? sanitize_file_name( wp_unslash( $_POST['file'] ) ) : '';
@@ -135,7 +127,6 @@ class SScribe_Export_Query_Controller {
 				array( 'message' => __( 'Invalid filename.', 'sscribe-export-site-pages' ) ),
 				400
 			);
-			return;
 		}
 
 		$exports = get_option( 'sscribe_export_index', array() );
@@ -145,7 +136,6 @@ class SScribe_Export_Query_Controller {
 				array( 'message' => __( 'Export not found.', 'sscribe-export-site-pages' ) ),
 				404
 			);
-			return;
 		}
 
 		$export_info = $exports[ $filename ];
@@ -154,7 +144,6 @@ class SScribe_Export_Query_Controller {
 				array( 'message' => __( 'Permission denied.', 'sscribe-export-site-pages' ) ),
 				403
 			);
-			return;
 		}
 
 		$log_data = SScribe_Export_Log::get_log_by_filename( $filename );
@@ -164,7 +153,6 @@ class SScribe_Export_Query_Controller {
 				array( 'message' => __( 'Log not found for this export.', 'sscribe-export-site-pages' ) ),
 				404
 			);
-			return;
 		}
 
 		$structured_errors = $this->error_handler->build_structured_errors_from_log( $log_data );
@@ -184,7 +172,6 @@ class SScribe_Export_Query_Controller {
 	public function ajax_preflight_check( string $export_capability = 'manage_options' ): void {
 		if ( ! check_ajax_referer( 'sscribe_export_nonce', 'nonce', false ) ) {
 			SScribe_AJAX_Guard::error( array( 'message' => __( 'Security check failed.', 'sscribe-export-site-pages' ) ), 403 );
-			return;
 		}
 
 		if ( ! current_user_can( $export_capability ) ) {
@@ -192,7 +179,6 @@ class SScribe_Export_Query_Controller {
 				array( 'message' => __( 'Permission denied.', 'sscribe-export-site-pages' ) ),
 				403
 			);
-			return;
 		}
 
 		if ( ! $this->rate_limiter->check_rate_limit( $export_capability ) ) {
@@ -204,7 +190,6 @@ class SScribe_Export_Query_Controller {
 				),
 				429
 			);
-			return;
 		}
 
 		// phpcs:ignore WordPress.Security.ValidatedSanitizedInput.InputNotSanitized
@@ -233,7 +218,6 @@ class SScribe_Export_Query_Controller {
 	public function ajax_get_export_preview( string $export_capability = 'manage_options' ): void {
 		if ( ! check_ajax_referer( 'sscribe_export_nonce', 'nonce', false ) ) {
 			SScribe_AJAX_Guard::error( array( 'message' => __( 'Security check failed.', 'sscribe-export-site-pages' ) ), 403 );
-			return;
 		}
 
 		if ( ! current_user_can( $export_capability ) ) {
@@ -241,7 +225,6 @@ class SScribe_Export_Query_Controller {
 				array( 'message' => __( 'Permission denied.', 'sscribe-export-site-pages' ) ),
 				403
 			);
-			return;
 		}
 
 		if ( ! $this->rate_limiter->check_rate_limit( $export_capability ) ) {
@@ -253,7 +236,6 @@ class SScribe_Export_Query_Controller {
 				),
 				429
 			);
-			return;
 		}
 
 		$language    = isset( $_POST['language'] ) ? sanitize_text_field( wp_unslash( $_POST['language'] ) ) : '';
@@ -345,7 +327,6 @@ class SScribe_Export_Query_Controller {
 	public function ajax_get_recent_exports( string $export_capability = 'manage_options' ): void {
 		if ( ! check_ajax_referer( 'sscribe_export_nonce', 'nonce', false ) ) {
 			SScribe_AJAX_Guard::error( array( 'message' => __( 'Security check failed.', 'sscribe-export-site-pages' ) ), 403 );
-			return;
 		}
 
 		if ( ! current_user_can( $export_capability ) ) {
@@ -353,7 +334,6 @@ class SScribe_Export_Query_Controller {
 				array( 'message' => __( 'Permission denied.', 'sscribe-export-site-pages' ) ),
 				403
 			);
-			return;
 		}
 
 		$exports = get_option( 'sscribe_export_index', array() );
@@ -401,7 +381,6 @@ class SScribe_Export_Query_Controller {
 	public function ajax_get_support_info( string $export_capability = 'manage_options' ): void {
 		if ( ! check_ajax_referer( 'sscribe_export_nonce', 'nonce', false ) ) {
 			SScribe_AJAX_Guard::error( array( 'message' => __( 'Security check failed.', 'sscribe-export-site-pages' ) ), 403 );
-			return;
 		}
 
 		if ( ! current_user_can( $export_capability ) ) {
@@ -409,7 +388,6 @@ class SScribe_Export_Query_Controller {
 				array( 'message' => __( 'Permission denied.', 'sscribe-export-site-pages' ) ),
 				403
 			);
-			return;
 		}
 
 		if ( ! $this->rate_limiter->check_rate_limit( $export_capability ) ) {
@@ -421,7 +399,6 @@ class SScribe_Export_Query_Controller {
 				),
 				429
 			);
-			return;
 		}
 
 		try {
