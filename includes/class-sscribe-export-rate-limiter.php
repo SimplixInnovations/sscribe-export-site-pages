@@ -25,9 +25,7 @@ if ( ! defined( 'ABSPATH' ) ) {
 /**
  * Rate limiter for export AJAX endpoints.
  *
- * Designed as a stateless utility — configuration is entirely via
- * class constants and filterable hooks, so it needs no injected
- * dependencies beyond standard WordPress API functions.
+ * Configuration is entirely via class constants and filterable hooks.
  *
  * @since 1.1.5
  */
@@ -36,12 +34,7 @@ class SScribe_Export_Rate_Limiter {
 	/**
 	 * Default maximum requests per time window.
 	 *
-	 * 200 req/min supports large batch exports where the AJAX client
-	 * polls every few seconds per page across multiple concurrent
-	 * format renders.
-	 *
 	 * @var int
-	 * @since 1.1.5
 	 */
 	private const RATE_LIMIT_MAX = 200;
 
@@ -49,25 +42,13 @@ class SScribe_Export_Rate_Limiter {
 	 * Rate limit time window in seconds.
 	 *
 	 * @var int
-	 * @since 1.1.5
 	 */
 	private const RATE_LIMIT_WINDOW = 60;
 
 	/**
 	 * Check whether the current user has exceeded the rate limit.
 	 *
-	 * Returns true if the request is within limits, false if the user
-	 * has exceeded the maximum allowed requests in the current window.
-	 * The window resets automatically after {@see RATE_LIMIT_WINDOW}
-	 * seconds from the first request.
-	 *
-	 * @since 1.1.5
-	 *
-	 * @param string $export_capability WordPress capability required to
-	 *                                  perform exports. Users holding this
-	 *                                  capability receive an elevated rate
-	 *                                  limit (default 1000/min, filterable
-	 *                                  via {@see 'sscribe_rate_limit_admin'}).
+	 * @param string $export_capability WP capability for elevated rate limit.
 	 *                                  Default 'manage_options'.
 	 *
 	 * @return bool True if within limits, false if exceeded.
@@ -75,11 +56,6 @@ class SScribe_Export_Rate_Limiter {
 	public function check_rate_limit( string $export_capability = 'manage_options' ): bool {
 		$user_id = get_current_user_id();
 
-		/*
-		 * Key selection: authenticated users are tracked by user ID to
-		 * prevent IP-based collisions behind NAT. Anonymous users use a
-		 * truncated SHA-256 of their remote address.
-		 */
 		if ( $user_id > 0 ) {
 			$transient_key = 'sscribe_rate_' . $user_id;
 		} else {
@@ -91,15 +67,6 @@ class SScribe_Export_Rate_Limiter {
 
 		$now = time();
 
-		/*
-		 * Determine rate limit: administrators (by capability) get a
-		 * higher ceiling to support large export operations without
-		 * interruption. The admin limit is filterable so hosting
-		 * providers or site owners can tune it.
-		 *
-		 * @since 1.1.5
-		 * @param int $admin_rate_limit Maximum requests per window for admins.
-		 */
 		$rate_limit = current_user_can( $export_capability )
 			? (int) apply_filters( 'sscribe_rate_limit_admin', 1000 )
 			: self::RATE_LIMIT_MAX;
@@ -113,7 +80,6 @@ class SScribe_Export_Rate_Limiter {
 			);
 		}
 
-		// Reset counter if the window has expired.
 		if ( isset( $data['reset_at'] ) && $data['reset_at'] <= $now ) {
 			$data = array(
 				'count'    => 0,
@@ -127,7 +93,6 @@ class SScribe_Export_Rate_Limiter {
 
 		++$data['count'];
 
-		// Store with a 5-second buffer to prevent premature window expiry.
 		set_transient( $transient_key, $data, self::RATE_LIMIT_WINDOW + 5 );
 
 		return true;

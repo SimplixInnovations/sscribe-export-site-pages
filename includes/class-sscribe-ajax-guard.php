@@ -6,12 +6,6 @@
  * (warnings, notices, whitespace, BOM) before sending clean JSON. All cleaned
  * content is logged with full diagnostic context for post-mortem debugging.
  *
- * Every AJAX response is protected by:
- * - Output buffer sanitisation (removes prior output that would break JSON)
- * - display_errors suppression (prevents inline error bleeding)
- * - Structured diagnostics in error payloads (_diagnostics key)
- * - Full audit trail logging of extraneous output
- *
  * @package       SScribe
  * @since         1.1.5
  */
@@ -34,8 +28,6 @@ if ( ! defined( 'ABSPATH' ) ) {
  *     // After (bulletproof):
  *     SScribe_AJAX_Guard::success( $data );
  *     SScribe_AJAX_Guard::error( $error_data, 403 );
- *
- * @since 1.1.5
  */
 class SScribe_AJAX_Guard {
 
@@ -49,19 +41,9 @@ class SScribe_AJAX_Guard {
 	/**
 	 * Send a buffer-safe JSON success response.
 	 *
-	 * Cleans all output buffer levels before delegating to
-	 * wp_send_json_success(), ensuring the response contains only valid JSON.
-	 * Any captured extraneous content is logged with full context.
-	 *
-	 * When SSCRIBE_DEBUG is true, a _debug key is injected into the response
-	 * payload with server diagnostics (PHP version, memory, timing).
-	 *
-	 * @since 1.1.5
-	 *
 	 * @param mixed    $data        Data to encode as JSON.
 	 * @param int|null $status_code Optional HTTP status code.
-	 * @param array    $context     Optional. Additional diagnostic context
-	 *                              appended to the _debug payload.
+	 * @param array    $context     Optional. Additional diagnostic context.
 	 *
 	 * @return never
 	 */
@@ -83,20 +65,9 @@ class SScribe_AJAX_Guard {
 	/**
 	 * Send a buffer-safe JSON error response with enriched diagnostics.
 	 *
-	 * Cleans all output buffer levels before delegating to
-	 * wp_send_json_error(). The response payload is automatically enriched
-	 * with a _diagnostics key containing server context (PHP version, memory,
-	 * timing, action name) to facilitate rapid troubleshooting.
-	 *
-	 * When SSCRIBE_DEBUG is true, _diagnostics also includes the caller's
-	 * additional context and a full backtrace for the error.
-	 *
-	 * @since 1.1.5
-	 *
 	 * @param mixed    $data        Data to encode as JSON.
 	 * @param int|null $status_code Optional HTTP status code.
-	 * @param array    $context     Optional. Additional diagnostic context
-	 *                              merged into the _diagnostics payload.
+	 * @param array    $context     Additional diagnostic context merged into the _diagnostics payload.
 	 *
 	 * @return never
 	 */
@@ -122,15 +93,6 @@ class SScribe_AJAX_Guard {
 
 	/**
 	 * Sanitise the PHP environment for clean JSON output.
-	 *
-	 * - Suppresses display_errors to prevent PHP from inlining warnings into
-	 *   the response body.
-	 * - Does NOT alter error_log, log_errors, or WP_DEBUG — errors are still
-	 *   written to disk for post-mortem analysis.
-	 *
-	 * @since 1.1.5
-	 *
-	 * @return void
 	 */
 	private static function sanitise_environment(): void {
 		// phpcs:ignore WordPress.PHP.IniSet.Risky -- Safe for AJAX context;
@@ -141,15 +103,10 @@ class SScribe_AJAX_Guard {
 	/**
 	 * Set a PHP INI value if the directive exists and is not read-only.
 	 *
-	 * Prevents PHP 8.1+ warnings when calling ini_set() on disabled directives
-	 * (e.g. in hosted environments that lock certain INI values).
-	 *
-	 * @since 1.1.5
-	 *
 	 * @param string $key   INI directive key.
 	 * @param string $value Value to set.
 	 *
-	 * @return bool True if set successfully, false otherwise.
+	 * @return bool True if set successfully.
 	 */
 	private static function disable_if_possible( string $key, string $value ): bool {
 		if ( function_exists( 'ini_set' ) && false === strpos( ini_get( 'disable_functions' ), 'ini_set' ) ) {
@@ -164,20 +121,7 @@ class SScribe_AJAX_Guard {
 	 * Capture and log any extraneous output from active buffer levels,
 	 * then restore buffer nesting to preserve test framework compatibility.
 	 *
-	 * Walks through every active output buffer, captures the content that
-	 * was inadvertently output before the JSON response, and logs it with
-	 * diagnostics if non-empty.
-	 *
-	 * After capture, buffer levels are restored to their original depth so
-	 * PHPUnit and other test frameworks (which rely on specific buffer levels)
-	 * continue to function correctly. The extraneous content is discarded;
-	 * only fresh (empty) buffers are re-established.
-	 *
-	 * @since 1.1.5
-	 *
 	 * @param string $type Response classification ('success' | 'error').
-	 *
-	 * @return void
 	 */
 	private static function log_cleaned_buffers( string $type ): void {
 		$start_level = ob_get_level();
@@ -190,10 +134,6 @@ class SScribe_AJAX_Guard {
 
 		$extraneous = trim( $extraneous );
 
-		// Restore buffer nesting to its original depth so PHPUnit and other
-		// test frameworks (which rely on specific buffer levels) continue to
-		// function correctly. The extraneous content has been discarded; only
-		// fresh (empty) buffers are re-established.
 		while ( ob_get_level() < $start_level ) {
 			ob_start();
 		}
@@ -205,13 +145,6 @@ class SScribe_AJAX_Guard {
 		$action = self::resolve_action_name();
 		$length = strlen( $extraneous );
 
-		/*
-		 * ── Structured log block ──
-		 * Format uses a grep-able header line followed by human-readable
-		 * details. The header enables quick counting/searches across logs:
-		 *
-		 *   grep '\[SSCRIBE\]\[AJAX_BUFFER\]' /path/to/error.log
-		 */
 		// phpcs:ignore WordPress.PHP.DevelopmentFunctions.error_log_error_log
 		error_log(
 			sprintf(
@@ -252,12 +185,7 @@ class SScribe_AJAX_Guard {
 	/**
 	 * Resolve the current AJAX action name from the request.
 	 *
-	 * Prioritises POST data (standard admin-ajax.php), falls back to GET,
-	 * and finally returns 'unknown' if the action cannot be determined.
-	 *
-	 * @since 1.1.5
-	 *
-	 * @return string Sanitised action name.
+	 * @return string Sanitised action name, or 'unknown'.
 	 */
 	private static function resolve_action_name(): string {
 		// phpcs:disable WordPress.Security.NonceVerification.Recommended
@@ -275,14 +203,6 @@ class SScribe_AJAX_Guard {
 
 	/**
 	 * Build a structured diagnostics payload for the response.
-	 *
-	 * Includes server context that aids rapid troubleshooting:
-	 * PHP version, memory usage, request timing, etc.
-	 *
-	 * When SSCRIBE_DEBUG is enabled, additional context from the caller and
-	 * a backtrace are appended.
-	 *
-	 * @since 1.1.5
 	 *
 	 * @param array $context Optional. Additional context from the caller.
 	 *
@@ -331,8 +251,6 @@ class SScribe_AJAX_Guard {
 
 	/**
 	 * Format a byte count into a human-readable string.
-	 *
-	 * @since 1.1.5
 	 *
 	 * @param int $bytes Number of bytes.
 	 *

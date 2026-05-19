@@ -19,40 +19,23 @@ if ( ! defined( 'ABSPATH' ) ) {
 /**
  * Audit trail logging for export operations.
  *
- * Provides a single entry point for recording security-relevant events
- * during the export lifecycle. Each action is mapped to a typed event
- * constant on {@see SScribe_Audit_Trail} for consistent downstream
- * processing and querying.
- *
  * @since 1.1.5
  */
 class SScribe_Export_Auditor {
 
 	/**
-	 * Audit trail store for persistent event recording.
-	 *
 	 * @var SScribe_Audit_Trail
-	 * @since 1.1.5
 	 */
 	private readonly SScribe_Audit_Trail $audit_trail;
 
 	/**
-	 * Logger instance for debug-level audit entries.
-	 *
 	 * @var SScribe_Logger_Interface
-	 * @since 1.1.5
 	 */
 	private readonly SScribe_Logger_Interface $logger;
 
 	/**
-	 * Constructor.
-	 *
-	 * @since 1.1.5
-	 *
-	 * @param SScribe_Audit_Trail|null      $audit_trail Audit trail store. Falls back
-	 *                                                   to a new instance if omitted.
-	 * @param SScribe_Logger_Interface|null $logger      Logger instance. Falls back
-	 *                                                   to the default logger if omitted.
+	 * @param SScribe_Audit_Trail|null      $audit_trail Falls back to a new instance if omitted.
+	 * @param SScribe_Logger_Interface|null $logger      Falls back to default logger if omitted.
 	 */
 	public function __construct(
 		?SScribe_Audit_Trail $audit_trail = null,
@@ -65,17 +48,8 @@ class SScribe_Export_Auditor {
 	/**
 	 * Log an action for audit trail.
 	 *
-	 * Records the event in both the persistent audit store (for security
-	 * review) and the debug log (for real-time troubleshooting).
-	 *
-	 * @since 1.1.5
-	 *
-	 * @param string $action  Semantic action name. Mapped to an event type
-	 *                        via {@see map_action_to_event()}.
-	 * @param array  $context Optional. Additional context data to include
-	 *                        in the audit log entry. Default empty array.
-	 *
-	 * @return void
+	 * @param string $action  Semantic action name.
+	 * @param array  $context Optional. Additional context data.
 	 */
 	public function log( string $action, array $context = array() ): void {
 		$user_id      = get_current_user_id();
@@ -104,12 +78,9 @@ class SScribe_Export_Auditor {
 	/**
 	 * Map a semantic action name to an audit trail event type constant.
 	 *
-	 * @since 1.1.5
-	 *
 	 * @param string $action The action name to map.
 	 *
-	 * @return string|null The event type constant, or null if the action
-	 *                     is not recognised (and therefore not auditable).
+	 * @return string|null The event type constant, or null if not recognised.
 	 */
 	private function map_action_to_event( string $action ): ?string {
 		$map = array(
