@@ -16,14 +16,14 @@ class SScribe_Result {
 
 	private readonly array $context;
 
-	private function __construct( bool $success, $data = null, ?string $error = null, array $context = array() ) {
+	private function __construct( bool $success, mixed $data = null, ?string $error = null, array $context = array() ) {
 		$this->success = $success;
 		$this->data    = $data;
 		$this->error   = $error;
 		$this->context = $context;
 	}
 
-	public static function success( $data = null ): self {
+	public static function success( mixed $data = null ): self {
 		return new self( true, $data );
 	}
 
