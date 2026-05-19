@@ -21,81 +21,55 @@ if ( ! defined( 'ABSPATH' ) ) {
  *
  * Encapsulates all non-mutating AJAX endpoints used by the admin UI
  * to display export status, health checks, preview estimates, and
- * support information. Requires constructor injection of the same
- * services the batch processor uses.
+ * support information.
  *
  * @since 1.1.5
  */
 class SScribe_Export_Query_Controller {
 
 	/**
-	 * Rate limiter for endpoint protection.
-	 *
 	 * @var SScribe_Export_Rate_Limiter
-	 * @since 1.1.5
 	 */
 	private readonly SScribe_Export_Rate_Limiter $rate_limiter;
 
 	/**
-	 * Diagnostics instance for health checks and preflight.
-	 *
 	 * @var SScribe_Diagnostics
-	 * @since 1.1.5
 	 */
 	private readonly SScribe_Diagnostics $diagnostics;
 
 	/**
-	 * Page collector for querying pages.
-	 *
 	 * @var SScribe_Page_Collector
-	 * @since 1.1.5
 	 */
 	private readonly SScribe_Page_Collector $collector;
 
 	/**
-	 * Logger instance.
-	 *
 	 * @var SScribe_Logger_Interface
-	 * @since 1.1.5
 	 */
 	private readonly SScribe_Logger_Interface $logger;
 
 	/**
-	 * ZIP handler (for download URLs, export dir resolution).
-	 *
 	 * @var SScribe_Zip_Handler
-	 * @since 1.1.5
 	 */
 	private readonly SScribe_Zip_Handler $zip_handler;
 
 	/**
-	 * Adaptive metrics for time/size estimation.
-	 *
 	 * @var SScribe_Adaptive_Metrics
-	 * @since 1.1.5
 	 */
 	private readonly SScribe_Adaptive_Metrics $adaptive_metrics;
 
 	/**
-	 * Error handler for building diagnostics payloads.
-	 *
 	 * @var SScribe_Export_Error_Handler
-	 * @since 1.1.5
 	 */
 	private readonly SScribe_Export_Error_Handler $error_handler;
 
 	/**
-	 * Constructor.
-	 *
-	 * @since 1.1.5
-	 *
-	 * @param SScribe_Export_Rate_Limiter|null  $rate_limiter    Rate limiter.
-	 * @param SScribe_Diagnostics|null          $diagnostics     Diagnostics instance.
-	 * @param SScribe_Page_Collector|null       $collector       Page collector.
-	 * @param SScribe_Logger_Interface|null     $logger          Logger instance.
-	 * @param SScribe_Zip_Handler|null          $zip_handler     ZIP handler.
-	 * @param SScribe_Adaptive_Metrics|null     $adaptive_metrics Adaptive metrics.
-	 * @param SScribe_Export_Error_Handler|null $error_handler   Error handler.
+	 * @param SScribe_Export_Rate_Limiter|null  $rate_limiter
+	 * @param SScribe_Diagnostics|null          $diagnostics
+	 * @param SScribe_Page_Collector|null       $collector
+	 * @param SScribe_Logger_Interface|null     $logger
+	 * @param SScribe_Zip_Handler|null          $zip_handler
+	 * @param SScribe_Adaptive_Metrics|null     $adaptive_metrics
+	 * @param SScribe_Export_Error_Handler|null $error_handler
 	 */
 	public function __construct(
 		?SScribe_Export_Rate_Limiter $rate_limiter = null,
@@ -106,27 +80,19 @@ class SScribe_Export_Query_Controller {
 		?SScribe_Adaptive_Metrics $adaptive_metrics = null,
 		?SScribe_Export_Error_Handler $error_handler = null
 	) {
-		$this->rate_limiter    = $rate_limiter ?? new SScribe_Export_Rate_Limiter();
-		$this->diagnostics     = $diagnostics ?? new SScribe_Diagnostics();
-		$this->collector       = $collector ?? new SScribe_Page_Collector();
-		$this->logger          = $logger ?? SScribe_Logger::instance();
-		$this->zip_handler     = $zip_handler ?? new SScribe_Zip_Handler();
+		$this->rate_limiter     = $rate_limiter ?? new SScribe_Export_Rate_Limiter();
+		$this->diagnostics      = $diagnostics ?? new SScribe_Diagnostics();
+		$this->collector        = $collector ?? new SScribe_Page_Collector();
+		$this->logger           = $logger ?? SScribe_Logger::instance();
+		$this->zip_handler      = $zip_handler ?? new SScribe_Zip_Handler();
 		$this->adaptive_metrics = $adaptive_metrics ?? new SScribe_Adaptive_Metrics();
-		$this->error_handler   = $error_handler ?? new SScribe_Export_Error_Handler();
+		$this->error_handler    = $error_handler ?? new SScribe_Export_Error_Handler();
 	}
 
 	/**
 	 * AJAX handler: System health check.
 	 *
-	 * For unauthenticated requests: returns minimal reachability check.
-	 * For authenticated requests: returns full diagnostics + boot state.
-	 *
-	 * @since 1.1.5
-	 *
-	 * @param string $export_capability Capability required for full health
-	 *                                  data. Default 'manage_options'.
-	 *
-	 * @return void
+	 * @param string $export_capability Default 'manage_options'.
 	 */
 	public function ajax_health_check( string $export_capability = 'manage_options' ): void {
 		if ( ! is_user_logged_in() ) {
@@ -170,13 +136,9 @@ class SScribe_Export_Query_Controller {
 	}
 
 	/**
-	 * AJAX handler: Get page status counts for a language and post type.
+	 * AJAX handler: Get page status counts.
 	 *
-	 * @since 1.1.5
-	 *
-	 * @param string $export_capability Required capability. Default 'manage_options'.
-	 *
-	 * @return void
+	 * @param string $export_capability Default 'manage_options'.
 	 */
 	public function ajax_get_status_counts( string $export_capability = 'manage_options' ): void {
 		if ( ! check_ajax_referer( 'sscribe_export_nonce', 'nonce', false ) ) {
@@ -214,11 +176,7 @@ class SScribe_Export_Query_Controller {
 	/**
 	 * AJAX handler: Get export log details.
 	 *
-	 * @since 1.1.5
-	 *
-	 * @param string $export_capability Required capability. Default 'manage_options'.
-	 *
-	 * @return void
+	 * @param string $export_capability Default 'manage_options'.
 	 */
 	public function ajax_get_export_log( string $export_capability = 'manage_options' ): void {
 		if ( ! check_ajax_referer( 'sscribe_download', 'nonce', false ) ) {
@@ -290,11 +248,7 @@ class SScribe_Export_Query_Controller {
 	/**
 	 * AJAX handler: Run pre-flight diagnostics.
 	 *
-	 * @since 1.1.5
-	 *
-	 * @param string $export_capability Required capability. Default 'manage_options'.
-	 *
-	 * @return void
+	 * @param string $export_capability Default 'manage_options'.
 	 */
 	public function ajax_preflight_check( string $export_capability = 'manage_options' ): void {
 		if ( ! check_ajax_referer( 'sscribe_export_nonce', 'nonce', false ) ) {
@@ -347,11 +301,7 @@ class SScribe_Export_Query_Controller {
 	/**
 	 * AJAX handler: Get export preview data.
 	 *
-	 * @since 1.1.5
-	 *
-	 * @param string $export_capability Required capability. Default 'manage_options'.
-	 *
-	 * @return void
+	 * @param string $export_capability Default 'manage_options'.
 	 */
 	public function ajax_get_export_preview( string $export_capability = 'manage_options' ): void {
 		if ( ! check_ajax_referer( 'sscribe_export_nonce', 'nonce', false ) ) {
@@ -466,11 +416,7 @@ class SScribe_Export_Query_Controller {
 	/**
 	 * AJAX handler: Get recent exports list.
 	 *
-	 * @since 1.1.5
-	 *
-	 * @param string $export_capability Required capability. Default 'manage_options'.
-	 *
-	 * @return void
+	 * @param string $export_capability Default 'manage_options'.
 	 */
 	public function ajax_get_recent_exports( string $export_capability = 'manage_options' ): void {
 		if ( ! check_ajax_referer( 'sscribe_export_nonce', 'nonce', false ) ) {
@@ -532,11 +478,7 @@ class SScribe_Export_Query_Controller {
 	/**
 	 * AJAX handler: Get support and debug information.
 	 *
-	 * @since 1.1.5
-	 *
-	 * @param string $export_capability Required capability. Default 'manage_options'.
-	 *
-	 * @return void
+	 * @param string $export_capability Default 'manage_options'.
 	 */
 	public function ajax_get_support_info( string $export_capability = 'manage_options' ): void {
 		if ( ! check_ajax_referer( 'sscribe_export_nonce', 'nonce', false ) ) {

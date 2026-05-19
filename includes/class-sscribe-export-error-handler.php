@@ -31,30 +31,17 @@ class SScribe_Export_Error_Handler {
 	/**
 	 * Maximum number of errors to retain in memory per export session.
 	 *
-	 * Beyond this limit, errors are still logged to disk but not stored
-	 * in the session array to prevent OOM on large exports (500+ pages).
-	 *
 	 * @var int
-	 * @since 1.1.5
 	 */
 	public const MAX_STORED_ERRORS = 50;
 
 	/**
-	 * Diagnostics instance for per-page error diagnosis.
-	 *
 	 * @var SScribe_Diagnostics
-	 * @since 1.1.5
 	 */
 	private readonly SScribe_Diagnostics $diagnostics;
 
 	/**
-	 * Constructor.
-	 *
-	 * @since 1.1.5
-	 *
-	 * @param SScribe_Diagnostics|null $diagnostics Diagnostics instance.
-	 *                                              Falls back to a new
-	 *                                              instance if omitted.
+	 * @param SScribe_Diagnostics|null $diagnostics Falls back to a new instance if omitted.
 	 */
 	public function __construct( ?SScribe_Diagnostics $diagnostics = null ) {
 		$this->diagnostics = $diagnostics ?? new SScribe_Diagnostics();
@@ -63,28 +50,10 @@ class SScribe_Export_Error_Handler {
 	/**
 	 * Build a user-facing diagnostics payload from structured errors.
 	 *
-	 * Aggregates per-page error entries into a flattened payload with:
-	 * - Categorised error guidance
-	 * - Deduplicated fix steps
-	 * - Aggregated technical metadata (HTML sizes, memory peaks)
-	 * - Per-entry diagnostics
+	 * @param array $structured_errors Array of per-page structured error entries.
+	 * @param array $string_errors     Flat string fallback errors for when diagnostics are empty.
 	 *
-	 * @since 1.1.5
-	 *
-	 * @param array $structured_errors Array of structured error entries,
-	 *                                 each containing 'page_id', 'errors',
-	 *                                 'diagnostics', and optional context.
-	 * @param array $string_errors     Optional. Flat string error messages
-	 *                                 for fallback when diagnostics are empty.
-	 *
-	 * @return array{
-	 *     total_errors: int,
-	 *     categories: string[],
-	 *     guidance: string,
-	 *     fix_steps: string[],
-	 *     technical: array,
-	 *     entries: array
-	 * } Diagnostics payload.
+	 * @return array Diagnostics payload.
 	 */
 	public function build_diagnostics_payload( array $structured_errors, array $string_errors = array() ): array {
 		$categories      = array();
@@ -223,11 +192,6 @@ class SScribe_Export_Error_Handler {
 	/**
 	 * Build structured error entries from export log data.
 	 *
-	 * Transforms the flat log format into the structured error array
-	 * expected by {@see build_diagnostics_payload()}.
-	 *
-	 * @since 1.1.5
-	 *
 	 * @param array $log_data Export log data containing a 'pages' key.
 	 *
 	 * @return array Array of structured error entries.
@@ -244,10 +208,7 @@ class SScribe_Export_Error_Handler {
 				? $page['formats']
 				: array();
 
-			/*
-			 * Normalise: handle both plain arrays ('docx', 'pdf') and
-			 * associative arrays ('docx' => array('success' => true, ...)).
-			 */
+			// Normalise: handle both plain arrays and associative arrays.
 			$formats = array();
 			foreach ( $formats_raw as $key => $value ) {
 				if ( is_int( $key ) && is_string( $value ) ) {
@@ -313,12 +274,9 @@ class SScribe_Export_Error_Handler {
 	/**
 	 * Get user-facing guidance text for an error category.
 	 *
-	 * @since 1.1.5
-	 *
 	 * @param string $category Error category slug.
 	 *
-	 * @return string Guidance text, translated. Returns the 'unknown'
-	 *                category guidance if the category is not recognised.
+	 * @return string Guidance text, translated. Falls back to 'unknown' guidance.
 	 */
 	public function get_guidance_for_category( string $category ): string {
 		$guidance_map = array(
