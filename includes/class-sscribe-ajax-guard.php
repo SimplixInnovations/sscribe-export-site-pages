@@ -10,7 +10,7 @@ class SScribe_AJAX_Guard {
 
 	private const LOG_PREVIEW_MAX = 2000;
 
-	public static function success( $data = null, ?int $status_code = null, array $context = array() ): never {
+	public static function success( mixed $data = null, ?int $status_code = null, array $context = array() ): never {
 		self::sanitise_environment();
 		self::log_cleaned_buffers( 'success' );
 
@@ -23,9 +23,10 @@ class SScribe_AJAX_Guard {
 		}
 
 		wp_send_json_success( $data, $status_code );
+		exit;
 	}
 
-	public static function error( $data = null, ?int $status_code = null, array $context = array() ): never {
+	public static function error( mixed $data = null, ?int $status_code = null, array $context = array() ): never {
 		self::sanitise_environment();
 		self::log_cleaned_buffers( 'error' );
 
@@ -43,6 +44,7 @@ class SScribe_AJAX_Guard {
 		}
 
 		wp_send_json_error( $data, $status_code );
+		exit;
 	}
 
 	private static function sanitise_environment(): void {
@@ -158,7 +160,7 @@ class SScribe_AJAX_Guard {
 						'%s%s(%s) called at %s:%d',
 						$frame['class'] ?? '',
 						$frame['type'] ?? '',
-						$frame['function'] ?? 'unknown',
+						$frame['function'],
 						$frame['file'] ?? 'unknown',
 						$frame['line'] ?? 0
 					);

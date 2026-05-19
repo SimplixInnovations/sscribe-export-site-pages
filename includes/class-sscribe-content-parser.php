@@ -10,7 +10,7 @@ if ( ! defined( 'ABSPATH' ) ) {
 
 class SScribe_Content_Parser {
 
-	private $upload_dir_cache = null;
+	private ?array $upload_dir_cache = null;
 
 	private function get_upload_dir(): array {
 		if ( null === $this->upload_dir_cache ) {
