@@ -2,7 +2,7 @@
 # This file is distributed under the GPL v2 or later.
 msgid ""
 msgstr ""
-"Project-Id-Version: SScribe Export Site Pages 1.1.7\n"
+"Project-Id-Version: SScribe Export Site Pages 1.1.8\n"
 "Report-Msgid-Bugs-To: https://wordpress.org/support/plugin/sscribe-export-site-pages\n"
 "Last-Translator: Simplix Innovations <info@simplixi.com>\n"
 "Language-Team: Simplix Innovations <info@simplixi.com>\n"

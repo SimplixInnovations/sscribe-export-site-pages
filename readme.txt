@@ -4,7 +4,7 @@ Donate link: https://simplixi.com
 Tags: docx, pdf, html, markdown, multilingual
 Requires at least: 6.0
 Tested up to: 6.9
-Stable tag: 1.1.7
+Stable tag: 1.1.8
 Requires PHP: 8.2
 License: GPLv2 or later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
@@ -105,6 +105,14 @@ Maximum HTML size (in bytes) passed to mPDF before truncation.
 Parameters: `(int $bytes)` — Default: 5,242,880 (5MB)
 
 == Changelog ==
+
+= 1.1.8 =
+* Fixed all PHPCS WordPress code standard violations across entire plugin
+* PHPCS: 75/75 files, 0 errors
+* Added phpcs:ignore annotations for trusted dynamic table names in $wpdb->prepare()
+* Fixed ScopeIndent, embedded PHP tags, and translators comment issues in admin partials
+* Fixed MissingTranslatorsComment for placeholder-based __() calls
+* Added WordPress.Security.EscapeOutput exclusion for pre-sanitized get_icon() SVG output
 
 = 1.1.7 =
 
