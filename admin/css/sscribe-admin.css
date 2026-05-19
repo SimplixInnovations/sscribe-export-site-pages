@@ -1183,6 +1183,20 @@
 	gap: 12px;
 }
 
+.sscribe-debug-details {
+	margin-top: 12px;
+	padding: 8px 10px;
+	background: rgba(0, 0, 0, 0.06);
+	border-radius: 4px;
+	font-size: 11px;
+	font-family: 'SF Mono', Monaco, 'Cascadia Code', 'Consolas', monospace;
+	color: #666;
+	overflow-x: auto;
+	white-space: pre-wrap;
+	word-break: break-all;
+	line-height: 1.5;
+}
+
 /* ============================================
    PHASE STEPS (Progress Indicator)
    ============================================ */

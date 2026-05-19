@@ -466,6 +466,9 @@ $sscribe_step            = 1;
 				<div id="sscribe-error-guidance" class="sscribe-error-guidance sscribe-hidden">
 					<p id="sscribe-error-guidance-text" class="sscribe-guidance-text"></p>
 				</div>
+				<div id="sscribe-error-technical-details" class="sscribe-debug-details sscribe-hidden">
+					<pre class="sscribe-debug-pre"></pre>
+				</div>
 				<div class="sscribe-error-actions">
 					<button type="button" id="sscribe-error-try-again" class="sscribe-button sscribe-button-secondary" aria-describedby="sscribe-try-again-hint">
 						<?php // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- SVG sanitized in get_icon(). ?>
