@@ -1,4 +1,9 @@
 <?php
+/**
+ * SScribe Admin
+ *
+ * @package SScribe_Export_Site_Pages
+ */
 
 declare(strict_types=1);
 
@@ -6,14 +11,39 @@ if ( ! defined( 'ABSPATH' ) ) {
 	exit;
 }
 
+/**
+ * Admin functionality for SScribe plugin.
+ */
 class SScribe_Admin {
 
+	/**
+	 * Page collector service.
+	 *
+	 * @var SScribe_Page_Collector
+	 */
 	private SScribe_Page_Collector $collector;
 
+	/**
+	 * SEO reader service.
+	 *
+	 * @var SScribe_SEO_Reader
+	 */
 	private SScribe_SEO_Reader $seo_reader;
 
+	/**
+	 * Zip handler service.
+	 *
+	 * @var SScribe_Zip_Handler
+	 */
 	private readonly SScribe_Zip_Handler $zip_handler;
 
+	/**
+	 * Initialize the admin interface.
+	 *
+	 * @param SScribe_Page_Collector|null $collector   Page collector.
+	 * @param SScribe_SEO_Reader|null     $seo_reader  SEO reader.
+	 * @param SScribe_Zip_Handler|null    $zip_handler Zip handler.
+	 */
 	public function __construct(
 		?SScribe_Page_Collector $collector = null,
 		?SScribe_SEO_Reader $seo_reader = null,
@@ -24,6 +54,9 @@ class SScribe_Admin {
 		$this->zip_handler = $zip_handler ?? new SScribe_Zip_Handler();
 	}
 
+	/**
+	 * Add the admin menu page.
+	 */
 	public function add_admin_menu(): void {
 		add_menu_page(
 			__( 'SScribe Export', 'sscribe-export-site-pages' ),
@@ -36,14 +69,27 @@ class SScribe_Admin {
 		);
 	}
 
+	/**
+	 * Get the capability required to access export functions.
+	 *
+	 * @return string Capability name.
+	 */
 	private function get_required_capability(): string {
 		return SScribe_Capabilities::get_required();
 	}
 
+	/**
+	 * Get a nonce for download actions.
+	 *
+	 * @return string Nonce value.
+	 */
 	private function get_download_nonce(): string {
 		return wp_create_nonce( 'sscribe_download' );
 	}
 
+	/**
+	 * Redirect to the plugin page after activation.
+	 */
 	public function maybe_redirect_after_activation(): void {
 		if ( wp_doing_ajax() || ! is_admin() ) {
 			return;
@@ -69,11 +115,17 @@ class SScribe_Admin {
 		$this->redirect_to_plugin_page();
 	}
 
+	/**
+	 * Redirect to the plugin's main admin page.
+	 */
 	protected function redirect_to_plugin_page(): void {
 		wp_safe_redirect( admin_url( 'admin.php?page=sscribe-export' ) );
 		exit;
 	}
 
+	/**
+	 * Send Content Security Policy headers on the export page.
+	 */
 	public function maybe_send_csp_headers(): void {
 		// phpcs:ignore WordPress.Security.NonceVerification.Recommended -- Read-only page param check.
 
@@ -106,6 +158,11 @@ class SScribe_Admin {
 		header( 'Referrer-Policy: strict-origin-when-cross-origin' );
 	}
 
+	/**
+	 * Load admin CSS and JS on the export page.
+	 *
+	 * @param string $hook_suffix Current admin page hook.
+	 */
 	public function enqueue_admin_assets( string $hook_suffix ): void {
 
 		if ( 'toplevel_page_sscribe-export' !== $hook_suffix ) {
@@ -119,7 +176,7 @@ class SScribe_Admin {
 			SSCRIBE_VERSION
 		);
 
-		$fonts_url = SSCRIBE_PLUGIN_URL . 'assets/fonts/manrope/';
+		$fonts_url     = SSCRIBE_PLUGIN_URL . 'assets/fonts/manrope/';
 		$font_face_css = ''
 			. '@font-face {'
 			. 'font-family: \'Manrope\';'
@@ -170,114 +227,117 @@ class SScribe_Admin {
 				'download_nonce' => $this->get_download_nonce(),
 				'icons_url'      => SSCRIBE_PLUGIN_URL . 'assets/icons/',
 				'strings'        => array(
-					'starting'            => __( 'Starting export...', 'sscribe-export-site-pages' ),
-					'processing'          => __( 'Processing...', 'sscribe-export-site-pages' ),
-					'complete'            => __( 'Export complete!', 'sscribe-export-site-pages' ),
-					'error'               => __( 'An error occurred. Please try again.', 'sscribe-export-site-pages' ),
-					'download'            => __( 'Download ZIP', 'sscribe-export-site-pages' ),
-					'generating'          => __( 'Generating documents...', 'sscribe-export-site-pages' ),
-					'confirm_export'      => __( 'Start exporting pages?', 'sscribe-export-site-pages' ),
-					'confirm_delete'      => __( 'Delete this export file?', 'sscribe-export-site-pages' ),
-					'auto_delete'         => __( 'This file will be automatically deleted in 72 hours for security.', 'sscribe-export-site-pages' ),
-					'cancel'              => __( 'Cancel Export', 'sscribe-export-site-pages' ),
-					'cancelling'          => __( 'Cancelling...', 'sscribe-export-site-pages' ),
-					'loading_log'         => __( 'Loading log...', 'sscribe-export-site-pages' ),
-					'log_not_found'       => __( 'Log not found.', 'sscribe-export-site-pages' ),
-					'log_load_failed'     => __( 'Failed to load log.', 'sscribe-export-site-pages' ),
-					'delete_failed'      => __( 'Failed to delete export.', 'sscribe-export-site-pages' ),
-					'delete_success'     => __( 'Export deleted.', 'sscribe-export-site-pages' ),
-					'history_empty'     => __( 'Your recent export packages will appear here.', 'sscribe-export-site-pages' ),
-					'estimated_time'      => __( 'Estimated time:', 'sscribe-export-site-pages' ),
-					'minutes'             => __( 'minutes', 'sscribe-export-site-pages' ),
-					'minute'              => __( 'minute', 'sscribe-export-site-pages' ),
-					'seconds'             => __( 'seconds', 'sscribe-export-site-pages' ),
-					'sec_remaining'       => __( 'sec remaining', 'sscribe-export-site-pages' ),
+					'starting'               => __( 'Starting export...', 'sscribe-export-site-pages' ),
+					'processing'             => __( 'Processing...', 'sscribe-export-site-pages' ),
+					'complete'               => __( 'Export complete!', 'sscribe-export-site-pages' ),
+					'error'                  => __( 'An error occurred. Please try again.', 'sscribe-export-site-pages' ),
+					'download'               => __( 'Download ZIP', 'sscribe-export-site-pages' ),
+					'generating'             => __( 'Generating documents...', 'sscribe-export-site-pages' ),
+					'confirm_export'         => __( 'Start exporting pages?', 'sscribe-export-site-pages' ),
+					'confirm_delete'         => __( 'Delete this export file?', 'sscribe-export-site-pages' ),
+					'auto_delete'            => __( 'This file will be automatically deleted in 72 hours for security.', 'sscribe-export-site-pages' ),
+					'cancel'                 => __( 'Cancel Export', 'sscribe-export-site-pages' ),
+					'cancelling'             => __( 'Cancelling...', 'sscribe-export-site-pages' ),
+					'loading_log'            => __( 'Loading log...', 'sscribe-export-site-pages' ),
+					'log_not_found'          => __( 'Log not found.', 'sscribe-export-site-pages' ),
+					'log_load_failed'        => __( 'Failed to load log.', 'sscribe-export-site-pages' ),
+					'delete_failed'          => __( 'Failed to delete export.', 'sscribe-export-site-pages' ),
+					'delete_success'         => __( 'Export deleted.', 'sscribe-export-site-pages' ),
+					'history_empty'          => __( 'Your recent export packages will appear here.', 'sscribe-export-site-pages' ),
+					'estimated_time'         => __( 'Estimated time:', 'sscribe-export-site-pages' ),
+					'minutes'                => __( 'minutes', 'sscribe-export-site-pages' ),
+					'minute'                 => __( 'minute', 'sscribe-export-site-pages' ),
+					'seconds'                => __( 'seconds', 'sscribe-export-site-pages' ),
+					'sec_remaining'          => __( 'sec remaining', 'sscribe-export-site-pages' ),
 
 					// translators: %1$d is minutes, %2$d is seconds.
-					'min_sec_remaining'   => __( '%1$d min %2$d sec remaining', 'sscribe-export-site-pages' ),
-					'hour_suffix'         => __( 'h', 'sscribe-export-site-pages' ),
-					'minute_suffix'       => __( 'm', 'sscribe-export-site-pages' ),
-					'log_total'           => __( 'Total:', 'sscribe-export-site-pages' ),
-					'log_pages'           => __( 'pages', 'sscribe-export-site-pages' ),
-					'log_success_label'   => __( 'Success:', 'sscribe-export-site-pages' ),
-					'log_failed_label'    => __( 'Failed:', 'sscribe-export-site-pages' ),
-					'log_page_details'    => __( 'Page Details', 'sscribe-export-site-pages' ),
-					'log_col_id'          => __( 'ID', 'sscribe-export-site-pages' ),
-					'log_col_title'       => __( 'Title', 'sscribe-export-site-pages' ),
-					'log_col_status'      => __( 'Status', 'sscribe-export-site-pages' ),
-					'log_col_time'        => __( 'Time', 'sscribe-export-site-pages' ),
-					'log_col_formats'     => __( 'Formats', 'sscribe-export-site-pages' ),
-					'log_unknown'         => __( 'Unknown', 'sscribe-export-site-pages' ),
-					'log_errors'          => __( 'Errors', 'sscribe-export-site-pages' ),
-					'log_seconds_suffix'  => __( 's', 'sscribe-export-site-pages' ),
-					'packaging'           => __( 'Packaging files into ZIP archive...', 'sscribe-export-site-pages' ),
-					'download_tooltip'    => __( 'Download this export', 'sscribe-export-site-pages' ),
-					'log_tooltip'         => __( 'View export log', 'sscribe-export-site-pages' ),
-					'delete_tooltip'      => __( 'Delete this export', 'sscribe-export-site-pages' ),
-					'support_title'       => __( 'Support Information', 'sscribe-export-site-pages' ),
+					'min_sec_remaining'      => __( '%1$d min %2$d sec remaining', 'sscribe-export-site-pages' ),
+					'hour_suffix'            => __( 'h', 'sscribe-export-site-pages' ),
+					'minute_suffix'          => __( 'm', 'sscribe-export-site-pages' ),
+					'log_total'              => __( 'Total:', 'sscribe-export-site-pages' ),
+					'log_pages'              => __( 'pages', 'sscribe-export-site-pages' ),
+					'log_success_label'      => __( 'Success:', 'sscribe-export-site-pages' ),
+					'log_failed_label'       => __( 'Failed:', 'sscribe-export-site-pages' ),
+					'log_page_details'       => __( 'Page Details', 'sscribe-export-site-pages' ),
+					'log_col_id'             => __( 'ID', 'sscribe-export-site-pages' ),
+					'log_col_title'          => __( 'Title', 'sscribe-export-site-pages' ),
+					'log_col_status'         => __( 'Status', 'sscribe-export-site-pages' ),
+					'log_col_time'           => __( 'Time', 'sscribe-export-site-pages' ),
+					'log_col_formats'        => __( 'Formats', 'sscribe-export-site-pages' ),
+					'log_unknown'            => __( 'Unknown', 'sscribe-export-site-pages' ),
+					'log_errors'             => __( 'Errors', 'sscribe-export-site-pages' ),
+					'log_seconds_suffix'     => __( 's', 'sscribe-export-site-pages' ),
+					'packaging'              => __( 'Packaging files into ZIP archive...', 'sscribe-export-site-pages' ),
+					'download_tooltip'       => __( 'Download this export', 'sscribe-export-site-pages' ),
+					'log_tooltip'            => __( 'View export log', 'sscribe-export-site-pages' ),
+					'delete_tooltip'         => __( 'Delete this export', 'sscribe-export-site-pages' ),
+					'support_title'          => __( 'Support Information', 'sscribe-export-site-pages' ),
 
-					'err_permission'      => __( 'Your WordPress user role does not have the required capability (manage_options). Please contact your site administrator to grant export permissions, or log in with an Administrator account.', 'sscribe-export-site-pages' ),
-					'err_session_expired' => __( 'The export session was lost — this typically happens when the PHP session or database connection timed out. Click "Try Again" to start a fresh export. If this keeps happening, ask your hosting provider to increase the PHP max_execution_time (recommended: 120s or higher).', 'sscribe-export-site-pages' ),
-					'err_data_corrupted'  => __( 'The session data in the database became invalid. This can happen if your database ran out of storage or a caching plugin (e.g., WP Rocket, W3 Total Cache) is caching wp_options. Exclude "sscribe_session_*" from object caching.', 'sscribe-export-site-pages' ),
-					'err_rate_limit'      => __( 'You have exceeded the request rate limit (200 requests per minute). Please wait about 1 minute and then try again. This limit protects your server from overload.', 'sscribe-export-site-pages' ),
-					'err_no_pages'        => __( 'No pages match the selected language and status combination. Go back and verify your selection. If using WPML, ensure the selected language has pages assigned to it.', 'sscribe-export-site-pages' ),
-					'err_zip'             => __( 'The server could not create the ZIP archive. Common causes: the uploads directory is not writable (check folder permissions, should be 755), the server ran out of disk space, or the PHP zip extension is not installed. Contact your hosting provider if this persists.', 'sscribe-export-site-pages' ),
-					'err_timeout'         => __( 'The server took too long to respond. This usually happens with large pages or slow server hardware. The plugin processes pages individually and will resume from where it left off. If this keeps happening, ask your hosting provider to increase max_execution_time to at least 120 seconds.', 'sscribe-export-site-pages' ),
-					'err_memory'          => __( 'The server ran out of PHP memory during export. Ask your hosting provider to increase the WordPress memory limit (WP_MEMORY_LIMIT) to at least 256M. You can also try exporting fewer pages at a time by selecting a specific language.', 'sscribe-export-site-pages' ),
-					'err_connection'      => __( 'The connection to your server was interrupted. Check your internet connection and try again. If you are behind a proxy or CDN (e.g., Cloudflare), ensure AJAX requests are not being blocked or cached.', 'sscribe-export-site-pages' ),
-					'err_invalid_lang'    => __( 'The selected language code is not recognized by WPML. Go back to step 1 and select a valid language. If you recently changed your WPML configuration, refresh this page first.', 'sscribe-export-site-pages' ),
-					'err_in_progress'     => __( 'A previous export session is still active. Click "Try Again" to force-clear it and start fresh.', 'sscribe-export-site-pages' ),
-					'err_500'             => __( 'Your server encountered an internal error (HTTP 500). Check your server\'s PHP error log for details. Common causes: a conflicting plugin, PHP memory limit too low, or a corrupted .htaccess file.', 'sscribe-export-site-pages' ),
-					'err_403'             => __( 'The server rejected the request (HTTP 403 Forbidden). This is usually caused by a security plugin (e.g., Wordfence, Sucuri, iThemes Security) or server-level firewall blocking AJAX requests. Whitelist the SScribe AJAX actions in your security plugin settings.', 'sscribe-export-site-pages' ),
-					'err_generic'         => __( 'Click "Try Again" to retry the export. If the problem continues: refresh the page, check your browser\'s developer console (F12), or contact your hosting provider to review PHP error logs.', 'sscribe-export-site-pages' ),
+					'err_permission'         => __( 'Your WordPress user role does not have the required capability (manage_options). Please contact your site administrator to grant export permissions, or log in with an Administrator account.', 'sscribe-export-site-pages' ),
+					'err_session_expired'    => __( 'The export session was lost — this typically happens when the PHP session or database connection timed out. Click "Try Again" to start a fresh export. If this keeps happening, ask your hosting provider to increase the PHP max_execution_time (recommended: 120s or higher).', 'sscribe-export-site-pages' ),
+					'err_data_corrupted'     => __( 'The session data in the database became invalid. This can happen if your database ran out of storage or a caching plugin (e.g., WP Rocket, W3 Total Cache) is caching wp_options. Exclude "sscribe_session_*" from object caching.', 'sscribe-export-site-pages' ),
+					'err_rate_limit'         => __( 'You have exceeded the request rate limit (200 requests per minute). Please wait about 1 minute and then try again. This limit protects your server from overload.', 'sscribe-export-site-pages' ),
+					'err_no_pages'           => __( 'No pages match the selected language and status combination. Go back and verify your selection. If using WPML, ensure the selected language has pages assigned to it.', 'sscribe-export-site-pages' ),
+					'err_zip'                => __( 'The server could not create the ZIP archive. Common causes: the uploads directory is not writable (check folder permissions, should be 755), the server ran out of disk space, or the PHP zip extension is not installed. Contact your hosting provider if this persists.', 'sscribe-export-site-pages' ),
+					'err_timeout'            => __( 'The server took too long to respond. This usually happens with large pages or slow server hardware. The plugin processes pages individually and will resume from where it left off. If this keeps happening, ask your hosting provider to increase max_execution_time to at least 120 seconds.', 'sscribe-export-site-pages' ),
+					'err_memory'             => __( 'The server ran out of PHP memory during export. Ask your hosting provider to increase the WordPress memory limit (WP_MEMORY_LIMIT) to at least 256M. You can also try exporting fewer pages at a time by selecting a specific language.', 'sscribe-export-site-pages' ),
+					'err_connection'         => __( 'The connection to your server was interrupted. Check your internet connection and try again. If you are behind a proxy or CDN (e.g., Cloudflare), ensure AJAX requests are not being blocked or cached.', 'sscribe-export-site-pages' ),
+					'err_invalid_lang'       => __( 'The selected language code is not recognized by WPML. Go back to step 1 and select a valid language. If you recently changed your WPML configuration, refresh this page first.', 'sscribe-export-site-pages' ),
+					'err_in_progress'        => __( 'A previous export session is still active. Click "Try Again" to force-clear it and start fresh.', 'sscribe-export-site-pages' ),
+					'err_500'                => __( 'Your server encountered an internal error (HTTP 500). Check your server\'s PHP error log for details. Common causes: a conflicting plugin, PHP memory limit too low, or a corrupted .htaccess file.', 'sscribe-export-site-pages' ),
+					'err_403'                => __( 'The server rejected the request (HTTP 403 Forbidden). This is usually caused by a security plugin (e.g., Wordfence, Sucuri, iThemes Security) or server-level firewall blocking AJAX requests. Whitelist the SScribe AJAX actions in your security plugin settings.', 'sscribe-export-site-pages' ),
+					'err_generic'            => __( 'Click "Try Again" to retry the export. If the problem continues: refresh the page, check your browser\'s developer console (F12), or contact your hosting provider to review PHP error logs.', 'sscribe-export-site-pages' ),
 
-					'net_connection_lost' => __( 'Connection lost — the server did not respond. Please check your internet connection and try again.', 'sscribe-export-site-pages' ),
-					'net_403'             => __( 'Access denied (HTTP 403). A security plugin or firewall may be blocking this request.', 'sscribe-export-site-pages' ),
-					'net_500'             => __( 'Internal server error (HTTP 500). The server encountered a problem — check your PHP error log for details.', 'sscribe-export-site-pages' ),
-					'net_502'             => __( 'Bad gateway (HTTP 502). Your server or reverse proxy (Nginx/Cloudflare) is unavailable. Please wait a moment and try again.', 'sscribe-export-site-pages' ),
-					'net_503'             => __( 'Service unavailable (HTTP 503). Your server is temporarily overloaded or under maintenance. Please wait a moment and try again.', 'sscribe-export-site-pages' ),
-					'net_504'             => __( 'Gateway timeout (HTTP 504). The request took too long to process. Ask your hosting provider to increase the PHP max_execution_time.', 'sscribe-export-site-pages' ),
-					'net_timeout'         => __( 'Request timed out — the server took too long to respond. This may happen with large exports. Please try again.', 'sscribe-export-site-pages' ),
+					'net_connection_lost'    => __( 'Connection lost — the server did not respond. Please check your internet connection and try again.', 'sscribe-export-site-pages' ),
+					'net_403'                => __( 'Access denied (HTTP 403). A security plugin or firewall may be blocking this request.', 'sscribe-export-site-pages' ),
+					'net_500'                => __( 'Internal server error (HTTP 500). The server encountered a problem — check your PHP error log for details.', 'sscribe-export-site-pages' ),
+					'net_502'                => __( 'Bad gateway (HTTP 502). Your server or reverse proxy (Nginx/Cloudflare) is unavailable. Please wait a moment and try again.', 'sscribe-export-site-pages' ),
+					'net_503'                => __( 'Service unavailable (HTTP 503). Your server is temporarily overloaded or under maintenance. Please wait a moment and try again.', 'sscribe-export-site-pages' ),
+					'net_504'                => __( 'Gateway timeout (HTTP 504). The request took too long to process. Ask your hosting provider to increase the PHP max_execution_time.', 'sscribe-export-site-pages' ),
+					'net_timeout'            => __( 'Request timed out — the server took too long to respond. This may happen with large exports. Please try again.', 'sscribe-export-site-pages' ),
 
 					// translators: %d is the HTTP status code.
-					'net_unknown'         => __( 'A network error occurred (HTTP %d). Please check your connection and try again.', 'sscribe-export-site-pages' ),
-					'support_loading'     => __( 'Loading support information...', 'sscribe-export-site-pages' ),
-					'support_error'       => __( 'Unable to load support information right now.', 'sscribe-export-site-pages' ),
-					'support_copy_error'  => __( 'Copy failed. Try selecting the text manually.', 'sscribe-export-site-pages' ),
-					'support_copy'        => __( 'Copy support info', 'sscribe-export-site-pages' ),
-					'support_copied'      => __( 'Support information copied.', 'sscribe-export-site-pages' ),
-					'support_refresh'     => __( 'Refresh', 'sscribe-export-site-pages' ),
-					'support_generated'   => __( 'Generated', 'sscribe-export-site-pages' ),
-					'support_debug'       => __( 'Debug mode may expose extra detail intended for administrators only.', 'sscribe-export-site-pages' ),
-					'preflight_title'      => __( 'Export Readiness Check', 'sscribe-export-site-pages' ),
-					'preflight_errors'    => __( 'Critical Issues', 'sscribe-export-site-pages' ),
-					'preflight_warnings'   => __( 'Recommendations', 'sscribe-export-site-pages' ),
-					'preflight_continue'   => __( 'Continue Anyway', 'sscribe-export-site-pages' ),
-					'preflight_cancel'     => __( 'Cancel Export', 'sscribe-export-site-pages' ),
-					'close'                => __( 'Close', 'sscribe-export-site-pages' ),
-					'generating_preview'   => __( 'Generating preview...', 'sscribe-export-site-pages' ),
-					'preview_note'         => __( 'Preview is generated from the first page and may differ from the final export.', 'sscribe-export-site-pages' ),
-					'preview_total_pages'  => __( 'Total pages:', 'sscribe-export-site-pages' ),
-					'preview_format'      => __( 'Format:', 'sscribe-export-site-pages' ),
-					'preview_language'     => __( 'Language:', 'sscribe-export-site-pages' ),
-					'preview_status'      => __( 'Status:', 'sscribe-export-site-pages' ),
+					'net_unknown'            => __( 'A network error occurred (HTTP %d). Please check your connection and try again.', 'sscribe-export-site-pages' ),
+					'support_loading'        => __( 'Loading support information...', 'sscribe-export-site-pages' ),
+					'support_error'          => __( 'Unable to load support information right now.', 'sscribe-export-site-pages' ),
+					'support_copy_error'     => __( 'Copy failed. Try selecting the text manually.', 'sscribe-export-site-pages' ),
+					'support_copy'           => __( 'Copy support info', 'sscribe-export-site-pages' ),
+					'support_copied'         => __( 'Support information copied.', 'sscribe-export-site-pages' ),
+					'support_refresh'        => __( 'Refresh', 'sscribe-export-site-pages' ),
+					'support_generated'      => __( 'Generated', 'sscribe-export-site-pages' ),
+					'support_debug'          => __( 'Debug mode may expose extra detail intended for administrators only.', 'sscribe-export-site-pages' ),
+					'preflight_title'        => __( 'Export Readiness Check', 'sscribe-export-site-pages' ),
+					'preflight_errors'       => __( 'Critical Issues', 'sscribe-export-site-pages' ),
+					'preflight_warnings'     => __( 'Recommendations', 'sscribe-export-site-pages' ),
+					'preflight_continue'     => __( 'Continue Anyway', 'sscribe-export-site-pages' ),
+					'preflight_cancel'       => __( 'Cancel Export', 'sscribe-export-site-pages' ),
+					'close'                  => __( 'Close', 'sscribe-export-site-pages' ),
+					'generating_preview'     => __( 'Generating preview...', 'sscribe-export-site-pages' ),
+					'preview_note'           => __( 'Preview is generated from the first page and may differ from the final export.', 'sscribe-export-site-pages' ),
+					'preview_total_pages'    => __( 'Total pages:', 'sscribe-export-site-pages' ),
+					'preview_format'         => __( 'Format:', 'sscribe-export-site-pages' ),
+					'preview_language'       => __( 'Language:', 'sscribe-export-site-pages' ),
+					'preview_status'         => __( 'Status:', 'sscribe-export-site-pages' ),
 					'preview_estimated_time' => __( 'Estimated time:', 'sscribe-export-site-pages' ),
-					'preview_file_size'   => __( 'Est. file size:', 'sscribe-export-site-pages' ),
-					'preview_sample_title' => __( 'Sample:', 'sscribe-export-site-pages' ),
-					'preview_fallback_note' => __( 'Only the first few pages are shown in the preview.', 'sscribe-export-site-pages' ),
-					'log_diagnostics'      => __( 'Diagnostics', 'sscribe-export-site-pages' ),
-					'technical_details'   => __( 'Technical details', 'sscribe-export-site-pages' ),
-					'fix_steps'           => __( 'Steps to fix:', 'sscribe-export-site-pages' ),
+					'preview_file_size'      => __( 'Est. file size:', 'sscribe-export-site-pages' ),
+					'preview_sample_title'   => __( 'Sample:', 'sscribe-export-site-pages' ),
+					'preview_fallback_note'  => __( 'Only the first few pages are shown in the preview.', 'sscribe-export-site-pages' ),
+					'log_diagnostics'        => __( 'Diagnostics', 'sscribe-export-site-pages' ),
+					'technical_details'      => __( 'Technical details', 'sscribe-export-site-pages' ),
+					'fix_steps'              => __( 'Steps to fix:', 'sscribe-export-site-pages' ),
 					'export_progress_prefix' => __( 'Export progress:', 'sscribe-export-site-pages' ),
-					'format_docx'         => __( 'Word Document (DOCX)', 'sscribe-export-site-pages' ),
-					'format_pdf'          => __( 'PDF Document', 'sscribe-export-site-pages' ),
-					'format_html'         => __( 'HTML Page', 'sscribe-export-site-pages' ),
-					'format_markdown'     => __( 'Markdown', 'sscribe-export-site-pages' ),
+					'format_docx'            => __( 'Word Document (DOCX)', 'sscribe-export-site-pages' ),
+					'format_pdf'             => __( 'PDF Document', 'sscribe-export-site-pages' ),
+					'format_html'            => __( 'HTML Page', 'sscribe-export-site-pages' ),
+					'format_markdown'        => __( 'Markdown', 'sscribe-export-site-pages' ),
 				),
 			)
 		);
 	}
 
+	/**
+	 * Render the main admin export page.
+	 */
 	public function render_admin_page(): void {
 
 		$cache_key        = 'sscribe_admin_page_data_v' . SSCRIBE_VERSION;
@@ -508,6 +568,12 @@ class SScribe_Admin {
 		include SSCRIBE_PLUGIN_DIR . 'admin/partials/sscribe-admin-display.php';
 	}
 
+	/**
+	 * Add quick action links to the plugin entry.
+	 *
+	 * @param array $links Existing plugin action links.
+	 * @return array Modified links array.
+	 */
 	public function add_plugin_action_links( array $links ): array {
 		$plugin_links = array(
 			'<a href="' . esc_url( admin_url( 'admin.php?page=sscribe-export' ) ) . '">' . esc_html__( 'Export Pages', 'sscribe-export-site-pages' ) . '</a>',

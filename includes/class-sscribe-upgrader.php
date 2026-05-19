@@ -1,4 +1,9 @@
 <?php
+/**
+ * SScribe Upgrader
+ *
+ * @package SScribe_Export_Site_Pages
+ */
 
 declare(strict_types=1);
 
@@ -6,10 +11,16 @@ if ( ! defined( 'ABSPATH' ) ) {
 	exit;
 }
 
+/**
+ * Handles database schema upgrades and migrations.
+ */
 class SScribe_Upgrader {
 
 	private const SCHEMA_VERSION_OPTION = 'sscribe_schema_version';
 
+	/**
+	 * Check and run any pending database migrations.
+	 */
 	public static function maybe_upgrade(): void {
 		$installed_version = get_option( self::SCHEMA_VERSION_OPTION, '0' );
 
@@ -41,6 +52,11 @@ class SScribe_Upgrader {
 		}
 	}
 
+	/**
+	 * Execute database migrations from a specific version.
+	 *
+	 * @param string $from_version Version to migrate from.
+	 */
 	private static function run_migrations( string $from_version ): void {
 		global $wpdb;
 		$charset_collate = $wpdb->get_charset_collate();
