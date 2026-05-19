@@ -218,7 +218,6 @@ class SScribe_Content_Parser {
 				return $this->parse_image( $node );
 
 			case 'a':
-
 				$href = $node->getAttribute( 'href' );
 				$text = $this->get_text_content( $node );
 				return array(
@@ -239,7 +238,6 @@ class SScribe_Content_Parser {
 			case 'aside':
 			case 'figure':
 			case 'figcaption':
-
 				$children = array();
 				foreach ( $node->childNodes as $child ) {
 					$parsed = $this->parse_node( $child, $depth );
@@ -275,7 +273,6 @@ class SScribe_Content_Parser {
 				return null;
 
 			default:
-
 				$text = trim( $node->textContent );
 				if ( ! empty( $text ) ) {
 					return array(
@@ -520,13 +517,11 @@ class SScribe_Content_Parser {
 						break;
 
 					case 'span':
-
 						$sub_runs = $this->get_inline_runs( $child );
 						$runs     = array_merge( $runs, $sub_runs );
 						break;
 
 					case 'img':
-
 						$src = $child->getAttribute( 'src' );
 						if ( $src ) {
 							$runs[] = array(
@@ -537,7 +532,6 @@ class SScribe_Content_Parser {
 						break;
 
 					default:
-
 						$sub_runs = $this->get_inline_runs( $child );
 						$runs     = array_merge( $runs, $sub_runs );
 						break;

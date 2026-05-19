@@ -126,7 +126,7 @@ class SScribe_AJAX_Guard {
 	}
 
 	private static function resolve_action_name(): string {
-		// phpcs:disable WordPress.Security.NonceVerification.Recommended
+		// phpcs:disable WordPress.Security.NonceVerification.Recommended, WordPress.Security.NonceVerification.Missing
 
 		if ( isset( $_POST['action'] ) && is_string( $_POST['action'] ) ) {
 			return sanitize_key( $_POST['action'] );
@@ -134,7 +134,8 @@ class SScribe_AJAX_Guard {
 		if ( isset( $_GET['action'] ) && is_string( $_GET['action'] ) ) {
 			return sanitize_key( $_GET['action'] );
 		}
-		// phpcs:enable
+
+		// phpcs:enable WordPress.Security.NonceVerification.Recommended, WordPress.Security.NonceVerification.Missing
 
 		return 'unknown';
 	}
@@ -177,12 +178,13 @@ class SScribe_AJAX_Guard {
 			return $bytes . ' B';
 		}
 
-		$units = array( 'KB', 'MB', 'GB', 'TB' );
-		$i     = 0;
+		$units      = array( 'KB', 'MB', 'GB', 'TB' );
+		$unit_count = count( $units );
+		$i          = 0;
 
-		while ( $bytes >= 1024 && $i < count( $units ) - 1 ) {
+		while ( $bytes >= 1024 && $i < $unit_count - 1 ) {
 			$bytes /= 1024;
-			++$i;
+			$i++;
 		}
 
 		return sprintf( '%.2f %s', $bytes, $units[ $i ] );

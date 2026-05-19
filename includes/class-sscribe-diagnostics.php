@@ -289,7 +289,6 @@ class SScribe_Diagnostics {
 		}
 		if ( in_array( 'html', $formats, true ) ) {
 			// phpcs:ignore Squiz.Operators.IncrementDecrementUsage.Found -- Float increment, not integer.
-
 			$estimate_per_page += 1;
 		}
 

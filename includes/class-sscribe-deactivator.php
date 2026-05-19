@@ -73,5 +73,4 @@ class SScribe_Deactivator {
 			delete_option( $lock->option_name );
 		}
 	}
-
 }

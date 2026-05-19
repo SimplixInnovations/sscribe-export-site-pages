@@ -67,7 +67,6 @@ class SScribe_Container {
 
 					'Circular dependency detected in container while resolving: %s',
 					$key // phpcs:ignore WordPress.Security.EscapeOutput.ExceptionNotEscaped -- Exception message, not browser output.
-
 				)
 			);
 		}
@@ -81,9 +80,10 @@ class SScribe_Container {
 		}
 
 		if ( ! is_object( $instance ) ) {
-			// phpcs:ignore WordPress.Security.EscapeOutput.ExceptionNotEscaped -- Exception message, not browser output.
-
-			throw new \RuntimeException( 'Container factory returned non-object type: ' . gettype( $instance ) );
+			throw new \RuntimeException(
+				// phpcs:ignore WordPress.Security.EscapeOutput.ExceptionNotEscaped -- Exception message, not browser output.
+				'Container factory returned non-object type: ' . gettype( $instance )
+			);
 		}
 
 		if ( isset( $this->singletons[ $key ] ) ) {

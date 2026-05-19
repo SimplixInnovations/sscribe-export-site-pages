@@ -293,7 +293,6 @@ class SScribe_Logger_Enhanced implements SScribe_Logger_Interface {
 		return $wpdb->get_results(
 			$wpdb->prepare(
 				"SELECT * FROM {$this->table_name} WHERE {$where_clause} ORDER BY timestamp DESC LIMIT %d", // phpcs:ignore WordPress.DB.PreparedSQL.NotPrepared, WordPress.DB.PreparedSQL.InterpolatedNotPrepared -- Table name from $wpdb->prefix (trusted), WHERE clause built from controlled filter keys with placeholders
-
 				...$args
 			)
 		);
@@ -313,7 +312,6 @@ class SScribe_Logger_Enhanced implements SScribe_Logger_Interface {
 		return $wpdb->query(
 			$wpdb->prepare(
 			// phpcs:ignore WordPress.DB.PreparedSQL.NotPrepared
-
 				'DELETE FROM ' . $this->table_name . ' WHERE timestamp < %s',
 				$cutoff
 			)

@@ -192,8 +192,7 @@ class SScribe_Export_Query_Controller {
 			);
 		}
 
-		// phpcs:ignore WordPress.Security.ValidatedSanitizedInput.InputNotSanitized
-
+		// phpcs:ignore WordPress.Security.ValidatedSanitizedInput.InputNotSanitized -- Sanitization via array_map on next line.
 		$formats_raw   = isset( $_POST['formats'] ) ? wp_unslash( (array) $_POST['formats'] ) : array();
 		$formats_input = array_map( 'sanitize_text_field', $formats_raw );
 		$formats       = ! empty( $formats_input ) ? $formats_input : array( 'docx' );
