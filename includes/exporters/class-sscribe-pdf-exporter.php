@@ -243,7 +243,6 @@ class SScribe_PDF_Exporter implements SScribe_Exporter_Interface {
 			if ( function_exists( 'set_time_limit' ) ) {
 
 				// phpcs:ignore Squiz.PHP.DiscouragedFunctions.Discouraged
-
 				set_time_limit( 60 );
 			}
 

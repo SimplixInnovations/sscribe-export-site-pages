@@ -85,9 +85,7 @@ class SScribe_AJAX_Guard {
 		$action = self::resolve_action_name();
 		$length = strlen( $extraneous );
 
-		// phpcs:ignore WordPress.PHP.DevelopmentFunctions.error_log_error_log
-
-		error_log(
+		error_log( // phpcs:ignore WordPress.PHP.DevelopmentFunctions.error_log_error_log
 			sprintf(
 				'[SSCRIBE][AJAX_BUFFER] Action=%s Type=%s Length=%d Levels=%d PHP=%s Memory=%s Time=%s',
 				$action,
@@ -103,10 +101,9 @@ class SScribe_AJAX_Guard {
 		if ( $length > 0 ) {
 			$preview = substr( $extraneous, 0, self::LOG_PREVIEW_MAX );
 			// phpcs:ignore WordPress.PHP.DevelopmentFunctions.error_log_error_log
-
 			error_log(
 				sprintf(
-					"[SSCRIBE][AJAX_BUFFER] \xE2\x94\x80\xE2\x94\x80 Extraneous content (%d bytes) \xE2\x94\x80\xE2\x94\x80\n%s\n\xE2\x94\x80\xE2\x94\x80 End extraneous content \xE2\x94\x80\xE2\x94\x80",
+					"[SSCRIBE][AJAX_BUFFER] ───── Extraneous content (%d bytes) ─────\n%s\n───── End extraneous content ─────",
 					$length,
 					$preview
 				)
@@ -114,9 +111,7 @@ class SScribe_AJAX_Guard {
 		}
 
 		if ( $length > self::LOG_PREVIEW_MAX ) {
-			// phpcs:ignore WordPress.PHP.DevelopmentFunctions.error_log_error_log
-
-			error_log(
+			error_log( // phpcs:ignore WordPress.PHP.DevelopmentFunctions.error_log_error_log
 				sprintf(
 					'[SSCRIBE][AJAX_BUFFER] Truncated %d excess bytes. Set SSCRIBE_AJAX_LOG_MAX to increase the preview limit.',
 					$length - self::LOG_PREVIEW_MAX

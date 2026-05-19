@@ -323,9 +323,7 @@ class SScribe_Admin {
 		$sscribe_is_debug   = defined( 'SSCRIBE_DEBUG_PUBLIC' ) && SSCRIBE_DEBUG_PUBLIC;
 
 		if ( $sscribe_is_debug ) {
-			// phpcs:ignore WordPress.PHP.DevelopmentFunctions.error_log_error_log -- Intentional debug warning.
-
-			error_log( 'SScribe: Debug mode is ENABLED. This should NOT be enabled in production environments.' );
+			error_log( 'SScribe: Debug mode is ENABLED. This should NOT be enabled in production environments.' ); // phpcs:ignore WordPress.PHP.DevelopmentFunctions.error_log_error_log -- Intentional debug warning.
 		}
 
 		if ( $sscribe_is_debug ) {

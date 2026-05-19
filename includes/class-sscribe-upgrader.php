@@ -33,9 +33,7 @@ class SScribe_Upgrader {
 			} catch ( \Throwable $e ) {
 				update_option( 'sscribe_upgrade_last_error', $e->getMessage(), false );
 				if ( defined( 'WP_DEBUG' ) && WP_DEBUG ) {
-					// phpcs:ignore WordPress.PHP.DevelopmentFunctions.error_log_error_log -- Debug-only error logging for upgrade failures
-
-					error_log( 'SScribe Upgrade Error: ' . $e->getMessage() );
+					error_log( 'SScribe Upgrade Error: ' . $e->getMessage() ); // phpcs:ignore WordPress.PHP.DevelopmentFunctions.error_log_error_log -- Debug-only error logging for upgrade failures
 				}
 			}
 		} finally {

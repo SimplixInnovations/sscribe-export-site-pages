@@ -411,12 +411,9 @@ class SScribe_Batch_Processor {
 		}
 
 		$max_time = (int) apply_filters( 'sscribe_max_execution_time', 120 );
-		if ( function_exists( 'set_time_limit' ) ) {
-
-			// phpcs:ignore Squiz.PHP.DiscouragedFunctions.Discouraged
-
-			set_time_limit( $max_time );
-		}
+if ( function_exists( 'set_time_limit' ) ) {
+				set_time_limit( $max_time ); // phpcs:ignore Squiz.PHP.DiscouragedFunctions.Discouraged
+			}
 		wp_raise_memory_limit( 'admin' );
 
 		$ob_level_before = ob_get_level();
@@ -431,9 +428,7 @@ class SScribe_Batch_Processor {
 		if ( in_array( 'pdf', $formats, true ) && function_exists( 'set_time_limit' ) ) {
 			$pdf_max_time = (int) apply_filters( 'sscribe_pdf_max_execution_time', 300 );
 
-			// phpcs:ignore Squiz.PHP.DiscouragedFunctions.Discouraged
-
-			set_time_limit( $pdf_max_time );
+			set_time_limit( $pdf_max_time ); // phpcs:ignore Squiz.PHP.DiscouragedFunctions.Discouraged
 		}
 
 		$this->logger->debug(
@@ -1241,7 +1236,6 @@ class SScribe_Batch_Processor {
 		if ( function_exists( 'set_time_limit' ) ) {
 
 			// phpcs:ignore Squiz.PHP.DiscouragedFunctions.Discouraged
-
 			set_time_limit( 300 );
 		}
 
@@ -1716,15 +1710,10 @@ class SScribe_Batch_Processor {
 			ignore_user_abort( true );
 
 			if ( function_exists( 'set_time_limit' ) ) {
-
-				// phpcs:ignore Squiz.PHP.DiscouragedFunctions.Discouraged
-
-				set_time_limit( 360 );
+				set_time_limit( 360 ); // phpcs:ignore Squiz.PHP.DiscouragedFunctions.Discouraged
 			}
 
-		// phpcs:ignore WordPress.WP.AlternativeFunctions.file_system_operations_readfile -- Direct download
-
-			$read_result = readfile( $file_path );
+		$read_result = readfile( $file_path ); // phpcs:ignore WordPress.WP.AlternativeFunctions.file_system_operations_readfile -- Direct download
 			if ( false === $read_result ) {
 				$this->logger->warning(
 					'readfile() returned false — possible partial read',
