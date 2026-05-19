@@ -7,7 +7,7 @@
  * content is logged with full diagnostic context for post-mortem debugging.
  *
  * @package       SScribe
- * @since         1.1.5
+ * @since         1.1.6
  */
 
 declare( strict_types=1 );

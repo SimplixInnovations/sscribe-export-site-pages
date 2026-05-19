@@ -7,7 +7,7 @@
  * state and carry no mutable state of their own (pure utility class).
  *
  * @package       SScribe
- * @since         1.1.5
+ * @since         1.1.6
  */
 
 declare( strict_types=1 );
@@ -22,7 +22,7 @@ if ( ! defined( 'ABSPATH' ) ) {
  * Evaluates whether the current PHP process has sufficient memory and
  * execution time remaining to safely process additional export pages.
  *
- * @since 1.1.5
+ * @since 1.1.6
  */
 class SScribe_Export_Resource_Monitor {
 

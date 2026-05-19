@@ -7,7 +7,7 @@
  * and technical context for troubleshooting.
  *
  * @package       SScribe
- * @since         1.1.5
+ * @since         1.1.6
  */
 
 declare( strict_types=1 );
@@ -24,7 +24,7 @@ if ( ! defined( 'ABSPATH' ) ) {
  * category-level guidance, deduplicated fix steps, and aggregated
  * technical metadata (memory peaks, HTML sizes, exception types).
  *
- * @since 1.1.5
+ * @since 1.1.6
  */
 class SScribe_Export_Error_Handler {
 
