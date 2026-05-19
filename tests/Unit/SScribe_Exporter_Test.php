@@ -1,9 +1,4 @@
 <?php
-/**
- * Unit tests for SScribe_Exporter class.
- *
- * @package SScribe
- */
 
 namespace SScribe\Tests\Unit;
 
@@ -35,9 +30,6 @@ class SScribe_Exporter_Test extends TestCase {
 		parent::tearDown();
 	}
 
-	/**
-	 * Generate sample page data for testing.
-	 */
 	private function get_sample_page_data(): array {
 		return array(
 			'title'          => 'Test Page',
@@ -51,41 +43,26 @@ class SScribe_Exporter_Test extends TestCase {
 		);
 	}
 
-	/**
-	 * Test that exporter can be instantiated.
-	 */
 	public function test_exporter_can_be_instantiated(): void {
 		$this->assertInstanceOf( SScribe_Exporter::class, $this->exporter );
 	}
 
-	/**
-	 * Test that exporter accepts null parser (uses default).
-	 */
 	public function test_exporter_accepts_null_parser(): void {
 		$exporter = new SScribe_Exporter( null );
 		$this->assertInstanceOf( SScribe_Exporter::class, $exporter );
 	}
 
-	/**
-	 * Test generate_docx returns false for empty page data.
-	 */
 	public function test_generate_docx_returns_false_for_empty_data(): void {
 		$result = $this->exporter->generate_docx( array(), $this->temp_dir );
 		$this->assertFalse( $result );
 	}
 
-	/**
-	 * Test generate_docx returns false for invalid directory.
-	 */
 	public function test_generate_docx_returns_false_for_invalid_dir(): void {
 		$page_data = $this->get_sample_page_data();
 		$result    = $this->exporter->generate_docx( $page_data, '/invalid/path/that/does/not/exist' );
 		$this->assertFalse( $result );
 	}
 
-	/**
-	 * Test generate_docx succeeds with minimal valid page data.
-	 */
 	public function test_generate_docx_succeeds_with_minimal_data(): void {
 		if ( ! class_exists( 'ZipArchive' ) ) {
 			$this->markTestSkipped( 'ZipArchive extension not available' );
@@ -99,9 +76,6 @@ class SScribe_Exporter_Test extends TestCase {
 		}
 	}
 
-	/**
-	 * Test generate_docx with index and total parameters.
-	 */
 	public function test_generate_docx_with_index_and_total(): void {
 		if ( ! class_exists( 'ZipArchive' ) ) {
 			$this->markTestSkipped( 'ZipArchive extension not available' );
@@ -115,9 +89,6 @@ class SScribe_Exporter_Test extends TestCase {
 		}
 	}
 
-	/**
-	 * Test generate_docx handles RTL content.
-	 */
 	public function test_generate_docx_handles_rtl_content(): void {
 		if ( ! class_exists( 'ZipArchive' ) ) {
 			$this->markTestSkipped( 'ZipArchive extension not available' );
@@ -134,9 +105,6 @@ class SScribe_Exporter_Test extends TestCase {
 		}
 	}
 
-	/**
-	 * Test generate_docx handles content with images.
-	 */
 	public function test_generate_docx_handles_images(): void {
 		if ( ! class_exists( 'ZipArchive' ) ) {
 			$this->markTestSkipped( 'ZipArchive extension not available' );
@@ -153,9 +121,6 @@ class SScribe_Exporter_Test extends TestCase {
 		}
 	}
 
-	/**
-	 * Test generate_docx handles HTML tables.
-	 */
 	public function test_generate_docx_handles_tables(): void {
 		if ( ! class_exists( 'ZipArchive' ) ) {
 			$this->markTestSkipped( 'ZipArchive extension not available' );
@@ -172,9 +137,6 @@ class SScribe_Exporter_Test extends TestCase {
 		}
 	}
 
-	/**
-	 * Test generate_docx handles HTML lists.
-	 */
 	public function test_generate_docx_handles_lists(): void {
 		if ( ! class_exists( 'ZipArchive' ) ) {
 			$this->markTestSkipped( 'ZipArchive extension not available' );
@@ -191,9 +153,6 @@ class SScribe_Exporter_Test extends TestCase {
 		}
 	}
 
-	/**
-	 * Test generate_docx with empty title.
-	 */
 	public function test_generate_docx_with_empty_title(): void {
 		if ( ! class_exists( 'ZipArchive' ) ) {
 			$this->markTestSkipped( 'ZipArchive extension not available' );
@@ -210,9 +169,6 @@ class SScribe_Exporter_Test extends TestCase {
 		}
 	}
 
-	/**
-	 * Test generate_docx with special characters in content.
-	 */
 	public function test_generate_docx_with_special_characters(): void {
 		if ( ! class_exists( 'ZipArchive' ) ) {
 			$this->markTestSkipped( 'ZipArchive extension not available' );
@@ -229,9 +185,6 @@ class SScribe_Exporter_Test extends TestCase {
 		}
 	}
 
-	/**
-	 * Test generate_docx with long content.
-	 */
 	public function test_generate_docx_with_long_content(): void {
 		if ( ! class_exists( 'ZipArchive' ) ) {
 			$this->markTestSkipped( 'ZipArchive extension not available' );
@@ -249,22 +202,16 @@ class SScribe_Exporter_Test extends TestCase {
 		}
 	}
 
-	/**
-	 * Test generate_docx sets last_error on failure.
-	 */
 	public function test_generate_docx_sets_last_error_on_failure(): void {
 		$result = $this->exporter->generate_docx( array(), $this->temp_dir );
 		$this->assertFalse( $result );
 	}
 
-	/**
-	 * Test is_rtl_document method.
-	 */
 	public function test_is_rtl_document_detects_rtl(): void {
 		$rtl_data   = array( 'title' => 'Ù…Ø±Ø­Ø¨Ø§' );
 		$ltr_data   = array( 'title' => 'Hello' );
 		$ar_data    = array( 'title' => 'Test', 'language' => 'ar' );
-		// Use reflection to test private method.
+
 		$method = new \ReflectionMethod( SScribe_Exporter::class, 'is_rtl_document' );
 
 		$this->assertTrue( $method->invoke( $this->exporter, $ar_data ) );

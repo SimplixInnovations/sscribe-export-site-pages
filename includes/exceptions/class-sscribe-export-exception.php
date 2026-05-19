@@ -1,9 +1,4 @@
 <?php
-/**
- * Export-related exception for SScribe.
- *
- * @package SScribe
- */
 
 declare(strict_types=1);
 
@@ -13,43 +8,14 @@ if ( ! defined( 'ABSPATH' ) ) {
 
 require_once SSCRIBE_PLUGIN_DIR . 'includes/exceptions/class-sscribe-exception.php';
 
-/**
- * Class SScribe_Export_Exception
- *
- * Thrown when an export operation fails.
- */
 class SScribe_Export_Exception extends SScribe_Exception {
 
-	/**
-	 * Page ID being exported when error occurred.
-	 *
-	 * @var int
-	 */
 	protected int $page_id;
 
-	/**
-	 * Export format being processed.
-	 *
-	 * @var string
-	 */
 	protected string $format;
 
-	/**
-	 * Whether the export can be retried.
-	 *
-	 * @var bool
-	 */
 	protected bool $retryable = false;
 
-	/**
-	 * Constructor.
-	 *
-	 * @param string|null    $message    Custom message.
-	 * @param int            $page_id    Page ID being exported.
-	 * @param string         $format     Export format (docx, pdf, html, markdown).
-	 * @param array          $context    Additional context.
-	 * @param Throwable|null $previous   Previous exception.
-	 */
 	public function __construct(
 		?string $message = null,
 		int $page_id = 0,
@@ -89,39 +55,18 @@ class SScribe_Export_Exception extends SScribe_Exception {
 		);
 	}
 
-	/**
-	 * Get the page ID that failed.
-	 *
-	 * @return int
-	 */
 	public function get_page_id(): int {
 		return $this->page_id;
 	}
 
-	/**
-	 * Get the export format.
-	 *
-	 * @return string
-	 */
 	public function get_format(): string {
 		return $this->format;
 	}
 
-	/**
-	 * Check if the export can be retried.
-	 *
-	 * @return bool
-	 */
 	public function is_retryable(): bool {
 		return $this->retryable;
 	}
 
-	/**
-	 * Set whether the export can be retried.
-	 *
-	 * @param bool $retryable Whether retryable.
-	 * @return self
-	 */
 	public function set_retryable( bool $retryable ): self {
 		$this->retryable = $retryable;
 		return $this;

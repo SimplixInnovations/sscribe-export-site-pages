@@ -1,14 +1,4 @@
 <?php
-/**
- * Error diagnostics and guidance for SScribe export operations.
- *
- * Aggregates structured error data from batch export processing into
- * a user-facing diagnostics payload with categorised guidance, fix steps,
- * and technical context for troubleshooting.
- *
- * @package       SScribe
- * @since         1.1.6
- */
 
 declare( strict_types=1 );
 
@@ -16,45 +6,16 @@ if ( ! defined( 'ABSPATH' ) ) {
 	exit;
 }
 
-/**
- * Error handler and diagnostics builder for export operations.
- *
- * Transforms raw structured errors (collected during batch processing)
- * into a concise diagnostics payload for the admin UI. Includes
- * category-level guidance, deduplicated fix steps, and aggregated
- * technical metadata (memory peaks, HTML sizes, exception types).
- *
- * @since 1.1.6
- */
 class SScribe_Export_Error_Handler {
 
-	/**
-	 * Maximum number of errors to retain in memory per export session.
-	 *
-	 * @var int
-	 */
 	public const MAX_STORED_ERRORS = 50;
 
-	/**
-	 * @var SScribe_Diagnostics
-	 */
 	private readonly SScribe_Diagnostics $diagnostics;
 
-	/**
-	 * @param SScribe_Diagnostics|null $diagnostics Falls back to a new instance if omitted.
-	 */
 	public function __construct( ?SScribe_Diagnostics $diagnostics = null ) {
 		$this->diagnostics = $diagnostics ?? new SScribe_Diagnostics();
 	}
 
-	/**
-	 * Build a user-facing diagnostics payload from structured errors.
-	 *
-	 * @param array $structured_errors Array of per-page structured error entries.
-	 * @param array $string_errors     Flat string fallback errors for when diagnostics are empty.
-	 *
-	 * @return array Diagnostics payload.
-	 */
 	public function build_diagnostics_payload( array $structured_errors, array $string_errors = array() ): array {
 		$categories      = array();
 		$guidance_map    = array();
@@ -189,13 +150,6 @@ class SScribe_Export_Error_Handler {
 		);
 	}
 
-	/**
-	 * Build structured error entries from export log data.
-	 *
-	 * @param array $log_data Export log data containing a 'pages' key.
-	 *
-	 * @return array Array of structured error entries.
-	 */
 	public function build_structured_errors_from_log( array $log_data ): array {
 		$structured_errors = array();
 		$pages             = isset( $log_data['pages'] ) && is_array( $log_data['pages'] )
@@ -208,7 +162,6 @@ class SScribe_Export_Error_Handler {
 				? $page['formats']
 				: array();
 
-			// Normalise: handle both plain arrays and associative arrays.
 			$formats = array();
 			foreach ( $formats_raw as $key => $value ) {
 				if ( is_int( $key ) && is_string( $value ) ) {
@@ -271,13 +224,6 @@ class SScribe_Export_Error_Handler {
 		return $structured_errors;
 	}
 
-	/**
-	 * Get user-facing guidance text for an error category.
-	 *
-	 * @param string $category Error category slug.
-	 *
-	 * @return string Guidance text, translated. Falls back to 'unknown' guidance.
-	 */
 	public function get_guidance_for_category( string $category ): string {
 		$guidance_map = array(
 			'memory_exhausted'    => __( 'The server ran out of memory during export. Large PDF renders often need a higher PHP memory limit.', 'sscribe-export-site-pages' ),

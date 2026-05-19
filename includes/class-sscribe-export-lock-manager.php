@@ -1,14 +1,4 @@
 <?php
-/**
- * Lock management for SScribe batch export processing.
- *
- * Provides transient-based distributed locking with token ownership
- * verification to prevent race conditions between concurrent AJAX
- * batch requests. Lock format: "timestamp|token".
- *
- * @package       SScribe
- * @since         1.1.6
- */
 
 declare( strict_types=1 );
 
@@ -16,39 +6,14 @@ if ( ! defined( 'ABSPATH' ) ) {
 	exit;
 }
 
-/**
- * Lock manager for batch export processing.
- *
- * Implements a token-based distributed lock using WordPress transients.
- * Each lock acquisition returns a unique token; the caller must present
- * the same token to release the lock.
- *
- * @since 1.1.6
- */
 class SScribe_Export_Lock_Manager {
 
-	/**
-	 * @var SScribe_Logger_Interface
-	 */
 	private readonly SScribe_Logger_Interface $logger;
 
-	/**
-	 * @param SScribe_Logger_Interface|null $logger Falls back to default logger if omitted.
-	 */
 	public function __construct( ?SScribe_Logger_Interface $logger = null ) {
 		$this->logger = $logger ?? SScribe_Logger::instance();
 	}
 
-	/**
-	 * Attempt to acquire a processing lock for the given session.
-	 *
-	 * @param string $session_id      The export session ID to lock.
-	 * @param int    $lock_ttl        Lock TTL in seconds. Default 45.
-	 * @param int    $stale_threshold Age in seconds after which a stale lock
-	 *                                may be taken over. Default 35.
-	 *
-	 * @return string|null Lock token on success, null on failure.
-	 */
 	public function acquire_lock(
 		string $session_id,
 		int $lock_ttl = 45,
@@ -65,7 +30,7 @@ class SScribe_Export_Lock_Manager {
 			$lock_age   = $current_time - $lock_time;
 
 			if ( $lock_age > $stale_threshold ) {
-				// Delete-then-set for atomic acquisition.
+
 				delete_transient( $lock_key );
 
 				$this->logger->debug(
@@ -109,14 +74,6 @@ class SScribe_Export_Lock_Manager {
 		return null;
 	}
 
-	/**
-	 * Release a processing lock if the caller owns it.
-	 *
-	 * @param string      $session_id The export session ID.
-	 * @param string|null $lock_token Token from acquire_lock(). Null = no-op.
-	 *
-	 * @return bool True if released, false if caller doesn't own it.
-	 */
 	public function release_lock( string $session_id, ?string $lock_token ): bool {
 		if ( null === $lock_token ) {
 			return false;
@@ -140,14 +97,6 @@ class SScribe_Export_Lock_Manager {
 		return false;
 	}
 
-	/**
-	 * Clean up locks, optionally scoped to a user.
-	 *
-	 * @param int|null    $user_id             User ID. Null = expired locks only.
-	 * @param string|null $current_session_id Session to preserve (skip deletion).
-	 *
-	 * @return array{deleted: int, preserved: int}
-	 */
 	public function cleanup_user_locks( ?int $user_id = null, ?string $current_session_id = null ): array {
 		global $wpdb;
 
@@ -158,6 +107,7 @@ class SScribe_Export_Lock_Manager {
 			$session_pattern = $wpdb->esc_like( 'sscribe_session_' ) . '%';
 
 			// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- Cleanup.
+
 			$sessions = $wpdb->get_results(
 				$wpdb->prepare(
 					"SELECT option_name, option_value FROM {$wpdb->options} WHERE option_name LIKE %s AND autoload = 'no'",
@@ -192,6 +142,7 @@ class SScribe_Export_Lock_Manager {
 			$lock_timeout_pattern = $wpdb->esc_like( '_transient_timeout_sscribe_lock_' ) . '%';
 
 			// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- Cleanup.
+
 			$expired_locks = $wpdb->get_results(
 				$wpdb->prepare(
 					"SELECT option_name FROM {$wpdb->options} WHERE option_name LIKE %s AND option_value < %d",

@@ -1,9 +1,4 @@
 <?php
-/**
- * Exporter factory tests.
- *
- * @package SScribe\Tests\Unit
- */
 
 namespace SScribe\Tests\Unit;
 

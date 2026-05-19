@@ -1,9 +1,4 @@
 <?php
-/**
- * Tests for SScribe_Page_Collector::get_post_status_counts.
- *
- * @package SScribe\Tests
- */
 
 declare(strict_types=1);
 
@@ -14,9 +9,8 @@ use SScribe_Page_Collector;
 
 final class SScribe_Page_Collector_StatusCounts_Test extends TestCase {
 
-	/**
-	 * Collector instance.
-	 */
+
+
 	private SScribe_Page_Collector $collector;
 
 	protected function setUp(): void {
@@ -58,7 +52,7 @@ final class SScribe_Page_Collector_StatusCounts_Test extends TestCase {
 	}
 
 	public function test_language_parameter_accepted(): void {
-		// With WPML not active, language parameter should still be accepted without error.
+		
 		$counts = $this->collector->get_post_status_counts( 'en' );
 		$this->assertIsArray( $counts );
 		$this->assertArrayHasKey( 'all', $counts );

@@ -1,9 +1,4 @@
 <?php
-/**
- * Unit tests for SScribe_Session class.
- *
- * @package SScribe
- */
 
 namespace SScribe\Tests\Unit;
 
@@ -81,8 +76,8 @@ class SScribe_Session_Test extends TestCase {
 	public function test_short_session_id_returns_null(): void {
 		$session = new \SScribe_Session();
 
-		// 'nonexistent-id' is 14 characters, but SESSION_ID_LENGTH=16,
-		// so the get() method returns null due to length validation, not DB lookup.
+		
+		
 		$data = $session->get( 'nonexistent-id' );
 
 		$this->assertNull( $data );
@@ -91,8 +86,8 @@ class SScribe_Session_Test extends TestCase {
 	public function test_valid_length_nonexistent_session_returns_null(): void {
 		$session = new \SScribe_Session();
 
-		// Use a 16-character hex string that doesn't exist in storage.
-		// This tests the actual database lookup path, not the length gate.
+		
+		
 		$data = $session->get( 'a1b2c3d4e5f67890' );
 
 		$this->assertNull( $data );

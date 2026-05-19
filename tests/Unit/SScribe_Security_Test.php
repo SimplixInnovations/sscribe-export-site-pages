@@ -1,9 +1,4 @@
 <?php
-/**
- * Tests for SScribe_Security helper class.
- *
- * @package SScribe\Tests
- */
 
 declare(strict_types=1);
 
@@ -14,9 +9,8 @@ use SScribe_Security;
 
 final class SScribe_Security_Test extends TestCase {
 
-	/**
-	 * Temporary directory for testing.
-	 */
+
+
 	private string $temp_dir;
 
 	protected function setUp(): void {
@@ -91,7 +85,7 @@ final class SScribe_Security_Test extends TestCase {
 	}
 
 	public function test_delete_directory_respects_depth_limit(): void {
-		// Create a shallow directory (2 levels) and verify it deletes fully.
+		
 		$target = $this->temp_dir . '/shallow';
 		mkdir( $target, 0755, true );
 		mkdir( $target . '/sub', 0755, true );

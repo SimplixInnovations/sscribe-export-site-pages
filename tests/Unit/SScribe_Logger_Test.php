@@ -1,9 +1,4 @@
 <?php
-/**
- * Logger tests.
- *
- * @package SScribe\Tests\Unit
- */
 
 declare(strict_types=1);
 

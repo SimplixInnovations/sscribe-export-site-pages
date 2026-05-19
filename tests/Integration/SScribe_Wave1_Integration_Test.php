@@ -1,9 +1,4 @@
 <?php
-/**
- * Integration tests for Wave 1 foundation components.
- *
- * @package SScribe
- */
 
 declare(strict_types=1);
 
@@ -13,9 +8,6 @@ require_once SSCRIBE_PLUGIN_DIR . 'includes/class-sscribe-rtl-helper.php';
 require_once SSCRIBE_PLUGIN_DIR . 'includes/class-sscribe-arabic-segmenter.php';
 require_once SSCRIBE_PLUGIN_DIR . 'includes/class-sscribe-image-processor.php';
 
-/**
- * Class SScribe_Wave1_Integration_Test
- */
 class SScribe_Wave1_Integration_Test extends TestCase {
 
 	protected function setUp(): void {

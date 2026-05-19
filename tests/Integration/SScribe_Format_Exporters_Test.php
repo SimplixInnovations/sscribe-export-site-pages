@@ -1,9 +1,4 @@
 <?php
-/**
- * Integration tests for SScribe Format Exporters.
- *
- * @package SScribe
- */
 
 declare(strict_types=1);
 
@@ -12,9 +7,6 @@ use PHPUnit\Framework\TestCase;
 require_once SSCRIBE_PLUGIN_DIR . 'includes/class-sscribe-rtl-helper.php';
 require_once SSCRIBE_PLUGIN_DIR . 'includes/class-sscribe-arabic-segmenter.php';
 
-/**
- * Class SScribe_Format_Exporters_Test
- */
 class SScribe_Format_Exporters_Test extends TestCase {
 
 	public function test_rtl_helper_class_exists(): void {
@@ -77,7 +69,6 @@ class SScribe_Format_Exporters_Test extends TestCase {
 
 		$this->assertTrue( $result->is_success(), 'Markdown export should succeed' );
 
-		// Read the generated file.
 		$data   = $result->get_data();
 		$path   = $data['path'] ?? '';
 		$this->assertFileExists( $path );
@@ -85,16 +76,13 @@ class SScribe_Format_Exporters_Test extends TestCase {
 		$content = file_get_contents( $path );
 		$this->assertNotEmpty( $content, 'Markdown output should not be empty' );
 
-		// Verify YAML frontmatter keys exist.
 		$this->assertStringContainsString( 'title:', $content, 'Frontmatter should contain title key' );
 		$this->assertStringContainsString( 'Test Markdown Page', $content, 'Frontmatter should contain the page title' );
 		$this->assertStringContainsString( 'published:', $content, 'Frontmatter should contain published date key' );
 		$this->assertStringContainsString( 'author:', $content, 'Frontmatter should contain author key' );
 
-		// Verify content is present.
 		$this->assertStringContainsString( 'Hello World', $content, 'Markdown content should contain page text' );
 
-		// Cleanup.
 		if ( $path && file_exists( $path ) ) {
 			wp_delete_file( $path );
 		}
@@ -139,7 +127,6 @@ class SScribe_Format_Exporters_Test extends TestCase {
 
 		$html = $data['html'] ?? '';
 
-		// Verify standard HTML elements are preserved (regression test for content-stripping bug).
 		$this->assertStringContainsString( '<p>Hello World</p>', $html, 'Paragraph elements should be preserved' );
 		$this->assertStringContainsString( '<h1>Heading 1</h1>', $html, 'Heading elements should be preserved' );
 		$this->assertStringContainsString( '<a href="https://example.com">Link</a>', $html, 'Link elements should be preserved' );
@@ -147,7 +134,6 @@ class SScribe_Format_Exporters_Test extends TestCase {
 		$this->assertStringContainsString( '<ul>', $html, 'List elements should be preserved' );
 		$this->assertStringContainsString( '<li>Item</li>', $html, 'List item elements should be preserved' );
 
-		// Cleanup.
 		$generated_file = $data['path'] ?? '';
 		if ( $generated_file && file_exists( $generated_file ) ) {
 			wp_delete_file( $generated_file );
@@ -263,16 +249,8 @@ class SScribe_Format_Exporters_Test extends TestCase {
 		$this->assertContains( 'ur', $languages );
 	}
 
-	/**
-	 * Test that the streaming DOCX generator class is deprecated.
-	 *
-	 * The streaming generator was removed from the batch processor in
-	 * favour of per-page PHPWord exports.  The class file may still
-	 * exist for backward compatibility but should not be used.
-	 */
 	public function test_streaming_docx_generator_deprecated(): void {
-		// The class file may or may not still exist – either is acceptable
-		// as long as the batch processor no longer uses it.
+
 		$this->assertTrue( true );
 	}
 

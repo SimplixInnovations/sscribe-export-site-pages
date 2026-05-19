@@ -1,9 +1,4 @@
 <?php
-/**
- * Unit tests for SScribe_Admin discoverability behaviors.
- *
- * @package SScribe
- */
 
 declare(strict_types=1);
 

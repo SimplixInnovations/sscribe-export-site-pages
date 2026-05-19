@@ -1,9 +1,5 @@
 <?php
-/**
- * Verify ZIP contents for production readiness.
- * Run: php scripts/verify-zip-contents.php
- */
-// Find the most recent dist ZIP file dynamically (same pattern as list-zip.php and check-wp-org.php).
+
 $dist_files = glob( dirname( __DIR__ ) . '/dist/sscribe-export-site-pages-*.zip' );
 if ( empty( $dist_files ) ) {
 	fwrite( STDERR, "No dist ZIP found. Run: composer build\n" );
@@ -48,14 +44,11 @@ for ($i = 0; $i < $zip->numFiles; $i++) {
     if (str_contains($name, 'assets/fonts/')) $criticalFound['assets_fonts'] = true;
     if (str_starts_with($name, 'sscribe-export-site-pages/languages/')) $criticalFound['languages_dir'] = true;
 
-    // Font tracking
     if (str_contains($name, 'ttfonts/')) {
         $fontCount++;
         $fontFiles[] = basename($name);
     }
 
-    // Bloat fonts check
-    // NOTE: XB Riyaz, Lateef, and Uthman are intentionally kept for Arabic PDF shaping support.
     $bloatPatterns = ['Sun-Ext', 'UnBatang', 'Garuda', 'Dhyana', 'KhmerOS', 'ayar.ttf', 'Padauk', 'Tharlon', 'Zawgyi', 'Abyssinica', 'Aboriginal', 'Jomolhari', 'Sundanese', 'TaiHeritage', 'Aegean', 'Aegyptus', 'Akkadian', 'Quivira', 'Eeyek', 'lannaalif', 'DBSILBR', 'SyrCOM', 'TaameyDavid', 'kaputa', 'Lohit', 'Pothana2000', 'damase'];
     foreach ($bloatPatterns as $bp) {
         if (str_contains($name, $bp)) {
@@ -65,7 +58,6 @@ for ($i = 0; $i < $zip->numFiles; $i++) {
         }
     }
 
-    // Dev files check
     $devPatterns = ['.php-cs', 'phpstan', 'phpunit.xml', 'phpcs.xml', 'ruleset.xml', 'psalm.xml', 'CREDITS.txt', '.travis.yml', '.scrutinizer.yml', 'mkdocs.yml', 'github_changelog', '/tests/', '/docs/', 'node_modules', 'coverage'];
     foreach ($devPatterns as $dp) {
         if (str_contains($name, $dp)) {
@@ -75,7 +67,6 @@ for ($i = 0; $i < $zip->numFiles; $i++) {
         }
     }
 
-    // Vendor-prefixed entries for debug
     if (str_contains($name, 'vendor-prefixed/')) {
         $vendorPrefixedEntries[] = $name;
     }
@@ -122,7 +113,6 @@ echo "  Size (compressed, filesystem): " . round(filesize($zip_file) / 1048576, 
 
 $zip->close();
 
-// Check all critical
 $allPass = true;
 foreach ($criticalFound as $k => $v) {
     if (!$v) { $allPass = false; break; }

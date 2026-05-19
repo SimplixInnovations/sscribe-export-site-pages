@@ -1,14 +1,4 @@
 <?php
-/**
- * Enterprise-grade AJAX response guard for SScribe.
- *
- * Provides buffer-safe JSON response methods that strip extraneous PHP output
- * (warnings, notices, whitespace, BOM) before sending clean JSON. All cleaned
- * content is logged with full diagnostic context for post-mortem debugging.
- *
- * @package       SScribe
- * @since         1.1.6
- */
 
 declare( strict_types=1 );
 
@@ -16,37 +6,10 @@ if ( ! defined( 'ABSPATH' ) ) {
 	exit;
 }
 
-/**
- * AJAX response guard with output buffer sanitisation and diagnostic logging.
- *
- * Usage — replace direct wp_send_json_success/error calls:
- *
- *     // Before (vulnerable to buffer contamination):
- *     wp_send_json_success( $data );
- *     wp_send_json_error( $error_data, 403 );
- *
- *     // After (bulletproof):
- *     SScribe_AJAX_Guard::success( $data );
- *     SScribe_AJAX_Guard::error( $error_data, 403 );
- */
 class SScribe_AJAX_Guard {
 
-	/**
-	 * Maximum bytes of extraneous output content to include in a single log entry.
-	 *
-	 * @var int
-	 */
 	private const LOG_PREVIEW_MAX = 2000;
 
-	/**
-	 * Send a buffer-safe JSON success response.
-	 *
-	 * @param mixed    $data        Data to encode as JSON.
-	 * @param int|null $status_code Optional HTTP status code.
-	 * @param array    $context     Optional. Additional diagnostic context.
-	 *
-	 * @return never
-	 */
 	public static function success( $data = null, ?int $status_code = null, array $context = array() ): never {
 		self::sanitise_environment();
 		self::log_cleaned_buffers( 'success' );
@@ -62,15 +25,6 @@ class SScribe_AJAX_Guard {
 		wp_send_json_success( $data, $status_code );
 	}
 
-	/**
-	 * Send a buffer-safe JSON error response with enriched diagnostics.
-	 *
-	 * @param mixed    $data        Data to encode as JSON.
-	 * @param int|null $status_code Optional HTTP status code.
-	 * @param array    $context     Additional diagnostic context merged into the _diagnostics payload.
-	 *
-	 * @return never
-	 */
 	public static function error( $data = null, ?int $status_code = null, array $context = array() ): never {
 		self::sanitise_environment();
 		self::log_cleaned_buffers( 'error' );
@@ -91,38 +45,22 @@ class SScribe_AJAX_Guard {
 		wp_send_json_error( $data, $status_code );
 	}
 
-	/**
-	 * Sanitise the PHP environment for clean JSON output.
-	 */
 	private static function sanitise_environment(): void {
-		// phpcs:ignore WordPress.PHP.IniSet.Risky -- Safe for AJAX context;
-		// only suppresses display, not logging.
+		// phpcs:ignore WordPress.PHP.IniSet.Risky
+
 		self::disable_if_possible( 'display_errors', '0' );
 	}
 
-	/**
-	 * Set a PHP INI value if the directive exists and is not read-only.
-	 *
-	 * @param string $key   INI directive key.
-	 * @param string $value Value to set.
-	 *
-	 * @return bool True if set successfully.
-	 */
 	private static function disable_if_possible( string $key, string $value ): bool {
 		if ( function_exists( 'ini_set' ) && false === strpos( ini_get( 'disable_functions' ), 'ini_set' ) ) {
 			// phpcs:ignore WordPress.PHP.IniSet.Risky
+
 			@ini_set( $key, $value );
 			return true;
 		}
 		return false;
 	}
 
-	/**
-	 * Capture and log any extraneous output from active buffer levels,
-	 * then restore buffer nesting to preserve test framework compatibility.
-	 *
-	 * @param string $type Response classification ('success' | 'error').
-	 */
 	private static function log_cleaned_buffers( string $type ): void {
 		$start_level = ob_get_level();
 		$extraneous  = '';
@@ -146,6 +84,7 @@ class SScribe_AJAX_Guard {
 		$length = strlen( $extraneous );
 
 		// phpcs:ignore WordPress.PHP.DevelopmentFunctions.error_log_error_log
+
 		error_log(
 			sprintf(
 				'[SSCRIBE][AJAX_BUFFER] Action=%s Type=%s Length=%d Levels=%d PHP=%s Memory=%s Time=%s',
@@ -162,9 +101,10 @@ class SScribe_AJAX_Guard {
 		if ( $length > 0 ) {
 			$preview = substr( $extraneous, 0, self::LOG_PREVIEW_MAX );
 			// phpcs:ignore WordPress.PHP.DevelopmentFunctions.error_log_error_log
+
 			error_log(
 				sprintf(
-					"[SSCRIBE][AJAX_BUFFER] ── Extraneous content (%d bytes) ──\n%s\n── End extraneous content ──",
+					"[SSCRIBE][AJAX_BUFFER] \xE2\x94\x80\xE2\x94\x80 Extraneous content (%d bytes) \xE2\x94\x80\xE2\x94\x80\n%s\n\xE2\x94\x80\xE2\x94\x80 End extraneous content \xE2\x94\x80\xE2\x94\x80",
 					$length,
 					$preview
 				)
@@ -173,6 +113,7 @@ class SScribe_AJAX_Guard {
 
 		if ( $length > self::LOG_PREVIEW_MAX ) {
 			// phpcs:ignore WordPress.PHP.DevelopmentFunctions.error_log_error_log
+
 			error_log(
 				sprintf(
 					'[SSCRIBE][AJAX_BUFFER] Truncated %d excess bytes. Set SSCRIBE_AJAX_LOG_MAX to increase the preview limit.',
@@ -182,15 +123,9 @@ class SScribe_AJAX_Guard {
 		}
 	}
 
-	/**
-	 * Resolve the current AJAX action name from the request.
-	 *
-	 * @return string Sanitised action name, or 'unknown'.
-	 */
 	private static function resolve_action_name(): string {
 		// phpcs:disable WordPress.Security.NonceVerification.Recommended
-		// Nonce verification is the caller's responsibility and is performed
-		// before this method is called during JSON response construction.
+
 		if ( isset( $_POST['action'] ) && is_string( $_POST['action'] ) ) {
 			return sanitize_key( $_POST['action'] );
 		}
@@ -198,24 +133,10 @@ class SScribe_AJAX_Guard {
 			return sanitize_key( $_GET['action'] );
 		}
 		// phpcs:enable
+
 		return 'unknown';
 	}
 
-	/**
-	 * Build a structured diagnostics payload for the response.
-	 *
-	 * @param array $context Optional. Additional context from the caller.
-	 *
-	 * @return array{
-	 *     php_version: string,
-	 *     memory_usage: string,
-	 *     memory_limit: string,
-	 *     request_time: string,
-	 *     action: string,
-	 *     context?: array,
-	 *     backtrace?: string[],
-	 * }
-	 */
 	private static function build_diagnostics( array $context = array() ): array {
 		$diag = array(
 			'php_version'  => PHP_VERSION,
@@ -249,13 +170,6 @@ class SScribe_AJAX_Guard {
 		return $diag;
 	}
 
-	/**
-	 * Format a byte count into a human-readable string.
-	 *
-	 * @param int $bytes Number of bytes.
-	 *
-	 * @return string Formatted size (e.g. "12.50 MB").
-	 */
 	private static function format_bytes( int $bytes ): string {
 		if ( $bytes < 1024 ) {
 			return $bytes . ' B';

@@ -1,9 +1,4 @@
 <?php
-/**
- * Unit tests for SScribe_Loader class.
- *
- * @package SScribe
- */
 
 declare(strict_types=1);
 

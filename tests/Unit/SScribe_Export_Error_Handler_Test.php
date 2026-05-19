@@ -1,9 +1,4 @@
 <?php
-/**
- * Unit tests for SScribe_Export_Error_Handler class.
- *
- * @package SScribe
- */
 
 namespace SScribe\Tests\Unit;
 
@@ -87,8 +82,6 @@ class SScribe_Export_Error_Handler_Test extends TestCase {
 	public function test_build_structured_errors_from_log_handles_plain_array_formats(): void {
 		$handler = new \SScribe_Export_Error_Handler();
 
-		// When formats are plain arrays (['docx', 'pdf']), they should be
-		// treated as successful entries and not produce errors.
 		$log_data = array(
 			'pages' => array(
 				1 => array(
