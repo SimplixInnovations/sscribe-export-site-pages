@@ -177,9 +177,7 @@ class SScribe_Logger implements SScribe_Logger_Interface {
 
 		if ( file_exists( $log_file ) && filesize( $log_file ) >= self::MAX_LOG_FILE_SIZE ) {
 			$rotated_file = $this->log_dir . '/' . $this->prefix . '_debug_' . gmdate( 'Y-m-d_H-i-s' ) . '.log';
-			// phpcs:ignore WordPress.WP.AlternativeFunctions.rename_rename -- Safe filesystem rename for log rotation.
-
-			rename( $log_file, $rotated_file );
+			rename( $log_file, $rotated_file ); // phpcs:ignore WordPress.WP.AlternativeFunctions.rename_rename -- Safe filesystem rename for log rotation.
 
 			$warning_entry = sprintf(
 				"[%s] [WARNING] Log file exceeded %s bytes — rotated to %s\n",
@@ -198,9 +196,7 @@ class SScribe_Logger implements SScribe_Logger_Interface {
 
 		$result = file_put_contents( $log_file, $content, FILE_APPEND | LOCK_EX );
 		if ( false === $result ) {
-			// phpcs:ignore WordPress.PHP.DevelopmentFunctions.error_log_error_log -- Reporting flush failure when file_put_contents fails; no better alternative in production.
-
-			error_log( 'SScribe_Logger: Failed to flush log to ' . $log_file );
+			error_log( 'SScribe_Logger: Failed to flush log to ' . $log_file ); // phpcs:ignore WordPress.PHP.DevelopmentFunctions.error_log_error_log -- Reporting flush failure when file_put_contents fails; no better alternative in production.
 		}
 
 		$this->buffer = array();

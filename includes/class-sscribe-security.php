@@ -67,9 +67,7 @@ class SScribe_Security {
 			}
 		}
 
-		// phpcs:ignore WordPress.WP.AlternativeFunctions.file_system_operations_rmdir -- Required for recursive directory deletion; path validated above.
-
-		return rmdir( $dir );
+		return rmdir( $dir ); // phpcs:ignore WordPress.WP.AlternativeFunctions.file_system_operations_rmdir -- Required for recursive directory deletion; path validated above.
 	}
 
 	private static function validate_path_scope( string $path ): void {

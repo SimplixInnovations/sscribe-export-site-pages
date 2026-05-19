@@ -119,9 +119,7 @@ class SScribe_Logger_Structured implements SScribe_Logger_Interface {
 			$this->sanitize_context( $context )
 		);
 
-		// phpcs:ignore WordPress.PHP.DevelopmentFunctions.error_log_error_log -- Structured logging output.
-
-		error_log( wp_json_encode( $entry, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES ) );
+		error_log( wp_json_encode( $entry, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES ) ); // phpcs:ignore WordPress.PHP.DevelopmentFunctions.error_log_error_log -- Structured logging output.
 	}
 
 	private function sanitize_context( array $context ): array {

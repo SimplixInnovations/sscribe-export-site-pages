@@ -208,9 +208,7 @@ class SScribe {
 
 	private function init_i18n(): void {
 
-		// phpcs:ignore PluginCheck.CodeAnalysis.DiscouragedFunctions.load_plugin_textdomainFound -- Defensive fallback for non-.org installations and local dev.
-
-		load_plugin_textdomain(
+		load_plugin_textdomain( // phpcs:ignore PluginCheck.CodeAnalysis.DiscouragedFunctions.load_plugin_textdomainFound -- Defensive fallback for non-.org installations and local dev.
 			'sscribe-export-site-pages',
 			false,
 			dirname( SSCRIBE_PLUGIN_BASENAME ) . '/languages'

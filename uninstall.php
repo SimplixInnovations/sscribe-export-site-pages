@@ -165,9 +165,7 @@ foreach ( $directories_to_clean as $dir_path ) {
 
 						$real_path = $fileinfo->getRealPath();
 						if ( $real_path && is_dir( $real_path ) ) {
-							// phpcs:ignore WordPress.WP.AlternativeFunctions.file_system_operations_rmdir -- Cleanup operation during uninstall; WP_Filesystem not available in uninstall context.
-
-							rmdir( $real_path );
+							rmdir( $real_path ); // phpcs:ignore WordPress.WP.AlternativeFunctions.file_system_operations_rmdir -- Cleanup operation during uninstall; WP_Filesystem not available in uninstall context.
 						}
 					} else {
 						// phpcs:ignore WordPress.NamingConventions.PrefixAllGlobals.NonPrefixedVariableFound -- Local variable.
@@ -183,9 +181,7 @@ foreach ( $directories_to_clean as $dir_path ) {
 			}
 
 			if ( is_dir( $dir_path ) ) {
-				// phpcs:ignore WordPress.WP.AlternativeFunctions.file_system_operations_rmdir -- Cleanup operation during uninstall; WP_Filesystem not available in uninstall context.
-
-				rmdir( $dir_path );
+				rmdir( $dir_path ); // phpcs:ignore WordPress.WP.AlternativeFunctions.file_system_operations_rmdir -- Cleanup operation during uninstall; WP_Filesystem not available in uninstall context.
 			}
 		} catch ( \Throwable $e ) {
 			continue;

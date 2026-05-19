@@ -111,9 +111,7 @@ class SScribe_Filesystem {
 		}
 
 		if ( $mode ) {
-			// phpcs:ignore WordPress.WP.AlternativeFunctions.file_system_operations_chmod -- WP_Filesystem fallback for file permissions.
-
-			if ( ! chmod( $file, $mode ) ) {
+			if ( ! chmod( $file, $mode ) ) { // phpcs:ignore WordPress.WP.AlternativeFunctions.file_system_operations_chmod -- WP_Filesystem fallback for file permissions.
 				$this->logger->warning(
 					'Failed to set file permissions',
 					array(
@@ -163,7 +161,6 @@ class SScribe_Filesystem {
 		}
 
 		// phpcs:ignore WordPress.WP.AlternativeFunctions.unlink_unlink -- WP_Filesystem fallback for file deletion.
-
 		$result = unlink( $file );
 
 		if ( ! $result ) {
@@ -214,7 +211,6 @@ class SScribe_Filesystem {
 		}
 
 		// phpcs:ignore WordPress.WP.AlternativeFunctions.file_system_operations_is_writable -- WP_Filesystem fallback.
-
 		return is_writable( $path );
 	}
 
@@ -253,9 +249,7 @@ class SScribe_Filesystem {
 		$result = copy( $source, $destination );
 
 		if ( $result && $mode && function_exists( 'chmod' ) ) {
-			// phpcs:ignore WordPress.WP.AlternativeFunctions.file_system_operations_chmod -- WP_Filesystem fallback for file permissions. Wrapped in function_exists() to safely handle environments where chmod is disabled.
-
-			chmod( $destination, $mode );
+			chmod( $destination, $mode ); // phpcs:ignore WordPress.WP.AlternativeFunctions.file_system_operations_chmod -- WP_Filesystem fallback for file permissions. Wrapped in function_exists() to safely handle environments where chmod is disabled.
 		}
 
 		return $result;
@@ -273,9 +267,7 @@ class SScribe_Filesystem {
 			return false;
 		}
 
-		// phpcs:ignore WordPress.WP.AlternativeFunctions.rename_rename -- WP_Filesystem fallback for file moving.
-
-		return rename( $source, $destination );
+		return rename( $source, $destination ); // phpcs:ignore WordPress.WP.AlternativeFunctions.rename_rename -- WP_Filesystem fallback for file moving.
 	}
 
 	public function get_last_error(): string {
