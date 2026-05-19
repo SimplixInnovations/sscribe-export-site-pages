@@ -1,9 +1,4 @@
 <?php
-/**
- * Session-related exception for SScribe.
- *
- * @package SScribe
- */
 
 declare(strict_types=1);
 
@@ -13,29 +8,10 @@ if ( ! defined( 'ABSPATH' ) ) {
 
 require_once SSCRIBE_PLUGIN_DIR . 'includes/exceptions/class-sscribe-exception.php';
 
-/**
- * Class SScribe_Session_Exception
- *
- * Thrown when a session operation fails.
- */
 class SScribe_Session_Exception extends SScribe_Exception {
 
-	/**
-	 * Session ID that caused the error.
-	 *
-	 * @var string
-	 */
 	protected string $session_id;
 
-	/**
-	 * Constructor.
-	 *
-	 * @param string|null    $message     Custom message.
-	 * @param string         $session_id  Session ID.
-	 * @param bool           $expired     Whether session is expired.
-	 * @param array          $context     Additional context.
-	 * @param Throwable|null $previous    Previous exception.
-	 */
 	public function __construct(
 		?string $message = null,
 		string $session_id = '',
@@ -70,11 +46,6 @@ class SScribe_Session_Exception extends SScribe_Exception {
 		);
 	}
 
-	/**
-	 * Get the session ID.
-	 *
-	 * @return string
-	 */
 	public function get_session_id(): string {
 		return $this->session_id;
 	}

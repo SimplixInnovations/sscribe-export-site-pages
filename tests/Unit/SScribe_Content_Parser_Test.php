@@ -1,9 +1,4 @@
 <?php
-/**
- * Unit tests for SScribe_Content_Parser class.
- *
- * @package SScribe
- */
 
 namespace SScribe\Tests\Unit;
 

@@ -1,13 +1,4 @@
 <?php
-/**
- * Compatibility aliases for local development without a generated vendor-prefixed tree.
- *
- * Maps original vendor class names to Strauss-prefixed SScribeVendor namespace.
- * In production builds, Strauss handles this automatically via composer.
- * This file provides fallback aliases for development environments.
- *
- * @package SScribe
- */
 
 declare(strict_types=1);
 
@@ -16,7 +7,7 @@ if ( ! defined( 'ABSPATH' ) ) {
 }
 
 $sscribe_vendor_aliases = array(
-	// PhpOffice\PhpWord aliases.
+
 	'SScribeVendor\\PhpOffice\\PhpWord\\PhpWord'           => 'SScribeVendor\\PhpOffice\\PhpWord\\PhpWord',
 	'SScribeVendor\\PhpOffice\\PhpWord\\IOFactory'         => 'SScribeVendor\\PhpOffice\\PhpWord\\IOFactory',
 	'SScribeVendor\\PhpOffice\\PhpWord\\Settings'          => 'SScribeVendor\\PhpOffice\\PhpWord\\Settings',

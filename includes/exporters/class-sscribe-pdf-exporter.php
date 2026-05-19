@@ -1,9 +1,4 @@
 <?php
-/**
- * PDF exporter for SScribe.
- *
- * @package SScribe
- */
 
 declare(strict_types=1);
 
@@ -13,49 +8,16 @@ if ( ! defined( 'ABSPATH' ) ) {
 
 require_once SSCRIBE_PLUGIN_DIR . 'includes/exporters/interface-sscribe-exporter.php';
 
-/**
- * Class SScribe_PDF_Exporter
- *
- * Exports pages to PDF format using mPDF.
- */
 class SScribe_PDF_Exporter implements SScribe_Exporter_Interface {
 
-	/**
-	 * HTML exporter instance.
-	 *
-	 * @var SScribe_HTML_Exporter
-	 */
 	private SScribe_HTML_Exporter $html_exporter;
 
-	/**
-	 * Logger instance.
-	 *
-	 * @var SScribe_Logger_Interface
-	 */
 	private SScribe_Logger_Interface $logger;
 
-	/**
-	 * Filesystem instance.
-	 *
-	 * @var SScribe_Filesystem
-	 */
 	private SScribe_Filesystem $filesystem;
 
-	/**
-	 * Whether the mpdf temp directory has been protected.
-	 * Set once per request to avoid redundant file_exists() checks.
-	 *
-	 * @var bool
-	 */
 	private static bool $mpdf_temp_protected = false;
 
-	/**
-	 * Constructor.
-	 *
-	 * @param SScribe_HTML_Exporter|null    $html_exporter HTML exporter instance.
-	 * @param SScribe_Logger_Interface|null $logger        Logger instance.
-	 * @param SScribe_Filesystem|null       $filesystem    Filesystem instance.
-	 */
 	public function __construct(
 		?SScribe_HTML_Exporter $html_exporter = null,
 		?SScribe_Logger_Interface $logger = null,
@@ -66,15 +28,6 @@ class SScribe_PDF_Exporter implements SScribe_Exporter_Interface {
 		$this->filesystem    = $filesystem ?? new SScribe_Filesystem();
 	}
 
-	/**
-	 * Export a single page to PDF.
-	 *
-	 * @param array  $page_data  Page data from collector.
-	 * @param string $output_dir Output directory.
-	 * @param int    $index      Page index.
-	 * @param int    $total      Total pages.
-	 * @return SScribe_Result
-	 */
 	public function export( array $page_data, string $output_dir, int $index = 0, int $total = 0 ): SScribe_Result {
 		require_once SSCRIBE_PLUGIN_DIR . 'includes/class-sscribe-rtl-helper.php';
 		require_once SSCRIBE_PLUGIN_DIR . 'includes/class-sscribe-image-processor.php';
@@ -128,8 +81,6 @@ class SScribe_PDF_Exporter implements SScribe_Exporter_Interface {
 				);
 			}
 
-			// Configurable HTML size guard — allows large documents (legal, guides) to be exported.
-			// Default 5MB; set to 0 to disable, or use apply_filters('sscribe_pdf_max_html_size').
 			$max_html_size = (int) apply_filters( 'sscribe_pdf_max_html_size', 5 * 1024 * 1024 );
 			if ( $max_html_size > 0 && $html_size > $max_html_size ) {
 				$this->logger->error(
@@ -146,6 +97,7 @@ class SScribe_PDF_Exporter implements SScribe_Exporter_Interface {
 				return SScribe_Result::failure(
 					sprintf(
 						/* translators: 1: HTML size, 2: Page title. */
+
 						__( 'PDF render skipped — HTML content is too large (%1$s). To raise the limit, use the "sscribe_pdf_max_html_size" filter. Try exporting to DOCX instead, or reduce page content complexity.', 'sscribe-export-site-pages' ),
 						size_format( $html_size )
 					),
@@ -167,8 +119,6 @@ class SScribe_PDF_Exporter implements SScribe_Exporter_Interface {
 				wp_mkdir_p( $mpdf_temp );
 			}
 
-			// Find Manrope-Regular.ttf with case-insensitive search since Linux servers
-			// may have case sensitivity issues and font files may have different casing.
 			$manrope_regular = null;
 			if ( is_dir( $manrope_dir ) ) {
 				$font_files = scandir( $manrope_dir );
@@ -180,9 +130,6 @@ class SScribe_PDF_Exporter implements SScribe_Exporter_Interface {
 				}
 			}
 
-			// Validate font directories before mPDF init — if fontDir entries don't
-			// exist, mPDF throws a generic exception that gets swallowed by the outer
-			// catch, producing a silent failure with no file written and no useful error.
 			if ( ! is_dir( $manrope_dir ) || empty( $manrope_regular ) ) {
 				$this->logger->error(
 					'PDF export failed: Manrope font files are missing',
@@ -204,12 +151,11 @@ class SScribe_PDF_Exporter implements SScribe_Exporter_Interface {
 				);
 			}
 
-			// Validate temp dir is writable — mPDF writes temporary files during
-			// rendering. If the dir is not writable, mPDF fails silently.
 			if ( ! wp_is_writable( $mpdf_temp ) ) {
 				return SScribe_Result::failure(
 					sprintf(
 						/* translators: %s: Temp directory path. */
+
 						__( 'PDF export failed: temp directory is not writable (%s).', 'sscribe-export-site-pages' ),
 						$mpdf_temp
 					),
@@ -221,23 +167,17 @@ class SScribe_PDF_Exporter implements SScribe_Exporter_Interface {
 				);
 			}
 
-			// Protect temp directory with .htaccess + index.php — guard prevents
-			// repeated file_exists() calls on every PDF page (200 checks per 100 pages).
 			if ( ! self::$mpdf_temp_protected ) {
 				SScribe_Security::protect_directory( $mpdf_temp );
 				self::$mpdf_temp_protected = true;
 			}
 
-			// Get default config to merge with. This ensures mPDF's built-in fonts (like DejaVu)
-			// and character mappings remain available as fallbacks if the custom fonts fail.
 			$default_config = ( new \SScribeVendor\Mpdf\Config\ConfigVariables() )->getDefaults();
 			$font_dirs      = $default_config['fontDir'];
 
 			$default_font_config = ( new \SScribeVendor\Mpdf\Config\FontVariables() )->getDefaults();
 			$font_data           = $default_font_config['fontdata'];
 
-			// Find Manrope font files with case-insensitive search since Linux servers
-			// may have case sensitivity issues and font files may have different casing.
 			$manrope_regular = $this->find_font_file( $manrope_dir, 'manrope[-_]?regular' ) ?? 'Manrope-Regular.ttf';
 
 			$config = array(
@@ -255,9 +195,7 @@ class SScribe_PDF_Exporter implements SScribe_Exporter_Interface {
 						'L' => $this->find_font_file( $manrope_dir, 'manrope[-_]?light' ) ?? 'Manrope-Light.ttf',
 					),
 				),
-				// fonttrans: Maps CSS font-family names to mPDF fontdata keys.
-				// DejaVu Sans is bundled with mPDF and supports Arabic without
-				// MarkGlyphSets issues — safe for all RTL PDF generation.
+
 				'fonttrans'        => array(
 					'dejavu sans'     => 'xbriyaz',
 					'dejavusans'      => 'xbriyaz',
@@ -273,9 +211,7 @@ class SScribe_PDF_Exporter implements SScribe_Exporter_Interface {
 				'useOTL'           => 0xFF,
 				'useKashida'       => 75,
 				'OTLhelper'        => true,
-				// autoLangToFont: Scans text for Arabic characters and switches to an
-				// Arabic-capable font. This is the SAFEST way to handle mixed content
-				// and ensures Arabic Unicode characters are correctly shaped.
+
 				'autoArabic'       => true,
 				'autoScriptToLang' => true,
 				'autoLangToFont'   => true,
@@ -292,49 +228,28 @@ class SScribe_PDF_Exporter implements SScribe_Exporter_Interface {
 			$mpdf = new \SScribeVendor\Mpdf\Mpdf( $config );
 			$mpdf->SetDirectionality( $is_rtl ? 'rtl' : 'ltr' );
 
-			// NOTE: RTL CSS override is now applied later (after HTML cleanup)
-			// as part of the consolidated base_css block. This ensures the CSS
-			// is applied AFTER all conflicting styles are stripped from the HTML.
-
-			// Set PDF metadata for accessibility and DMS compatibility.
 			$mpdf->SetTitle( $title );
 			$mpdf->SetAuthor( $page_data['author'] ?? '' );
 			$mpdf->SetCreator( 'SScribe Export Plugin v' . SSCRIBE_VERSION );
 			$mpdf->SetSubject( $page_data['seo']['meta_description'] ?? '' );
 			$mpdf->SetKeywords( $page_data['seo']['focus_keyword'] ?? '' );
 
-			// CRITICAL: Strip ALL <style> blocks and inline styles from HTML.
-			// The HTML exporter no longer embeds @font-face (NotoSansArabic removed in v3.7.6),
-			// but we still strip styles to prevent any CSS font-family declarations from
-			// overriding mPDF's font configuration. mPDF handles all font resolution via
-			// fontdata (dejavusans for RTL) + autoLangToFont instead.
 			$html_content = preg_replace( '/<style[^>]*>.*?<\/style>/is', '', $html_content ) ?? $html_content;
 			$html_content = preg_replace( '/\s*style="[^"]*"/i', '', $html_content ) ?? $html_content;
 			$html_content = preg_replace( "/\s*style='[^']*'/i", '', $html_content ) ?? $html_content;
 
-			// Also strip @font-face declarations that might appear outside <style> blocks
-			// (edge case: inline @font-face in HTML body). These contain HTTP URLs that
-			// cause mPDF to attempt server-side HTTP requests to itself, which fails.
 			$html_content = preg_replace( '/@font-face\s*\{[^}]+\}/isU', '', $html_content ) ?? $html_content;
 
 			if ( function_exists( 'set_time_limit' ) ) {
-				// JUSTIFICATION: mPDF rendering is CPU-intensive (~3 seconds per page for complex layouts with images and tables).
-				// Without extending the time limit, PDF exports of even moderately complex pages would timeout on shared hosting.
-				// The 60-second limit is per-page and wrapped in function_exists() for safe degradation on restrictive hosts.
+
 				// phpcs:ignore Squiz.PHP.DiscouragedFunctions.Discouraged
+
 				set_time_limit( 60 );
 			}
 
 			$filename    = \SScribe_Exporter_Factory::build_filename( $page_data, $index, $total, 'pdf' );
 			$output_path = trailingslashit( $output_dir ) . $filename;
 
-			// Write base styling CSS first (mode 1 = HEADER_CSS = CSS only).
-			// This stores the document-wide font and direction in mPDF's CSS manager
-			// before any HTML content is processed. Aggressively apply the font family
-			// to all common block and inline elements to override any inherited browser
-			// defaults that might lack Arabic glyphs.
-			// For RTL: XB Riyaz (bundled with mPDF, standard for Arabic, no MarkGlyphSets).
-			// For LTR: Manrope (custom Latin font), fall back to XB Riyaz for mixed content.
 			$font_stack = $is_rtl ? 'xbriyaz, freeserif, sans-serif' : 'manrope, xbriyaz, sans-serif';
 			$base_css   = 'html, body, div, p, span, h1, h2, h3, h4, h5, h6, table, tr, td, th, ul, ol, li, blockquote, q, cite, a { font-family: ' . $font_stack . '; }';
 
@@ -347,8 +262,6 @@ class SScribe_PDF_Exporter implements SScribe_Exporter_Interface {
 			$base_css .= ' h1, h2, h3, h4, h5, h6 { color: #122119; }';
 			$mpdf->WriteHTML( $base_css, \SScribeVendor\Mpdf\HTMLParserMode::HEADER_CSS );
 
-			// Write HTML content with DEFAULT_MODE (0) to properly parse both
-			// HTML structure and apply the CSS styles from base_css.
 			$mpdf->WriteHTML( $html_content );
 			$mpdf->Output( $output_path, \SScribeVendor\Mpdf\Output\Destination::FILE );
 
@@ -390,9 +303,7 @@ class SScribe_PDF_Exporter implements SScribe_Exporter_Interface {
 			);
 
 		} catch ( \Throwable $e ) {
-			// CRITICAL: Remove any partial file left by a failed mPDF->Output().
-			// Without this, the partial (corrupted) PDF gets included in the ZIP,
-			// corrupting the entire export package.
+
 			if ( ! empty( $output_path ) && file_exists( $output_path ) ) {
 				wp_delete_file( $output_path );
 			}
@@ -418,6 +329,7 @@ class SScribe_PDF_Exporter implements SScribe_Exporter_Interface {
 			return SScribe_Result::failure(
 				sprintf(
 					/* translators: 1: Error class, 2: Error message. */
+
 					__( 'Unable to generate PDF: %1$s — %2$s', 'sscribe-export-site-pages' ),
 					get_class( $e ),
 					$e->getMessage()
@@ -445,17 +357,11 @@ class SScribe_PDF_Exporter implements SScribe_Exporter_Interface {
 		}
 	}
 
-	/**
-	 * Collect temp image paths from processed page data for cleanup later.
-	 *
-	 * @param array $processed_page_data Page data with resolved image paths.
-	 * @return array<string> List of temp file paths to clean up.
-	 */
 	private function collect_temp_image_paths( array $processed_page_data ): array {
 		$paths = array();
 		if ( ! empty( $processed_page_data['featured_image_url'] ) ) {
 			$path = $processed_page_data['featured_image_url'];
-			// Only track temp files (not uploads dir files which are permanent).
+
 			if ( file_exists( $path ) && strpos( $path, sys_get_temp_dir() ) === 0 ) {
 				$paths[] = $path;
 			}
@@ -463,24 +369,12 @@ class SScribe_PDF_Exporter implements SScribe_Exporter_Interface {
 		return $paths;
 	}
 
-	/**
-	 * Clean up temp image files to prevent disk space accumulation.
-	 *
-	 * @param array<string> $paths List of temp file paths.
-	 * @return void
-	 */
 	private function cleanup_temp_images( array $paths ): void {
 		foreach ( $paths as $path ) {
 			SScribe_Image_Processor::cleanup( $path );
 		}
 	}
 
-	/**
-	 * Process images in page data for PDF embedding.
-	 *
-	 * @param array $page_data The page data array.
-	 * @return array Modified page data with local image paths.
-	 */
 	private function process_images_in_page_data( array $page_data ): array {
 		if ( ! empty( $page_data['featured_image_url'] ) ) {
 			$local_path = SScribe_Image_Processor::download_and_optimize( $page_data['featured_image_url'] );
@@ -492,14 +386,6 @@ class SScribe_PDF_Exporter implements SScribe_Exporter_Interface {
 		return $page_data;
 	}
 
-	/**
-	 * Find a font file in a directory using a case-insensitive regex pattern.
-	 *
-	 * @param string $dir    Directory to search.
-	 * @param string $pattern Regex pattern to match font filename (without .ttf extension).
-	 *
-	 * @return string|null Full path to found font file, or null if not found.
-	 */
 	private function find_font_file( string $dir, string $pattern ): ?string {
 		if ( ! is_dir( $dir ) ) {
 			return null;
@@ -518,11 +404,6 @@ class SScribe_PDF_Exporter implements SScribe_Exporter_Interface {
 		return null;
 	}
 
-	/**
-	 * Collect libxml errors in a serializable structure.
-	 *
-	 * @return array<int, array<string, int|string>>
-	 */
 	private function get_libxml_error_details(): array {
 		$errors  = libxml_get_errors();
 		$details = array();
@@ -542,20 +423,10 @@ class SScribe_PDF_Exporter implements SScribe_Exporter_Interface {
 		return $details;
 	}
 
-	/**
-	 * Get the file extension.
-	 *
-	 * @return string
-	 */
 	public function get_extension(): string {
 		return 'pdf';
 	}
 
-	/**
-	 * Get the mime type.
-	 *
-	 * @return string
-	 */
 	public function get_mime_type(): string {
 		return 'application/pdf';
 	}

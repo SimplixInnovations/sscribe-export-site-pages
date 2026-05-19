@@ -1,14 +1,4 @@
 <?php
-/**
- * Audit trail logging for SScribe export operations.
- *
- * Maps semantic action names (e.g. 'export_started', 'download') to
- * structured audit trail event types and logs them through both the
- * audit trail store and the debug logger.
- *
- * @package       SScribe
- * @since         1.1.6
- */
 
 declare( strict_types=1 );
 
@@ -16,27 +6,12 @@ if ( ! defined( 'ABSPATH' ) ) {
 	exit;
 }
 
-/**
- * Audit trail logging for export operations.
- *
- * @since 1.1.6
- */
 class SScribe_Export_Auditor {
 
-	/**
-	 * @var SScribe_Audit_Trail
-	 */
 	private readonly SScribe_Audit_Trail $audit_trail;
 
-	/**
-	 * @var SScribe_Logger_Interface
-	 */
 	private readonly SScribe_Logger_Interface $logger;
 
-	/**
-	 * @param SScribe_Audit_Trail|null      $audit_trail Falls back to a new instance if omitted.
-	 * @param SScribe_Logger_Interface|null $logger      Falls back to default logger if omitted.
-	 */
 	public function __construct(
 		?SScribe_Audit_Trail $audit_trail = null,
 		?SScribe_Logger_Interface $logger = null
@@ -45,12 +20,6 @@ class SScribe_Export_Auditor {
 		$this->logger      = $logger ?? SScribe_Logger::instance();
 	}
 
-	/**
-	 * Log an action for audit trail.
-	 *
-	 * @param string $action  Semantic action name.
-	 * @param array  $context Optional. Additional context data.
-	 */
 	public function log( string $action, array $context = array() ): void {
 		$user_id      = get_current_user_id();
 		$current_user = wp_get_current_user();
@@ -75,13 +44,6 @@ class SScribe_Export_Auditor {
 		}
 	}
 
-	/**
-	 * Map a semantic action name to an audit trail event type constant.
-	 *
-	 * @param string $action The action name to map.
-	 *
-	 * @return string|null The event type constant, or null if not recognised.
-	 */
 	private function map_action_to_event( string $action ): ?string {
 		$map = array(
 			'export_started'    => SScribe_Audit_Trail::EVENT_EXPORT_STARTED,

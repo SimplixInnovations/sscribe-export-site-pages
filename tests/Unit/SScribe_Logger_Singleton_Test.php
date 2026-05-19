@@ -1,9 +1,4 @@
 <?php
-/**
- * Tests for SScribe_Logger singleton pattern.
- *
- * @package SScribe\Tests
- */
 
 declare(strict_types=1);
 
@@ -15,8 +10,8 @@ use SScribe_Logger;
 final class SScribe_Logger_Singleton_Test extends TestCase {
 
 	protected function setUp(): void {
-		// Reset singleton state between tests via reflection.
-		// Note: setAccessible() is deprecated since PHP 8.1 as it's no longer needed.
+		
+		
 		$reflection = new \ReflectionClass( SScribe_Logger::class );
 		$property   = $reflection->getProperty( 'instances' );
 		$property->setValue( null, array() );

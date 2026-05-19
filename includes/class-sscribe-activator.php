@@ -1,9 +1,4 @@
 <?php
-/**
- * Fired during plugin activation.
- *
- * @package SScribe
- */
 
 declare(strict_types=1);
 
@@ -11,27 +6,14 @@ if ( ! defined( 'ABSPATH' ) ) {
 	exit;
 }
 
-/**
- * Class SScribe_Activator
- *
- * Creates the export directory, security files, and schedules cleanup cron.
- */
 class SScribe_Activator {
 
-	/**
-	 * Run activation tasks.
-	 *
-	 * @return void
-	 */
 	public static function activate(): void {
-		// Force-clean any stale options from a previous install before rebuilding.
-		// Without this, left-over sscribe_version or sscribe_export_index can
-		// block activation or cause duplicated data on reinstall.
+
 		delete_option( 'sscribe_export_index' );
 		delete_option( 'sscribe_schema_version' );
 		delete_option( 'sscribe_version' );
 
-		// If required runtime dependencies are not present, bail gracefully.
 		if ( ! file_exists( SSCRIBE_PLUGIN_DIR . 'vendor-prefixed/autoload.php' )
 			&& ! file_exists( SSCRIBE_PLUGIN_DIR . 'vendor/autoload.php' )
 		) {
@@ -40,6 +22,7 @@ class SScribe_Activator {
 				array(
 					'message' => sprintf(
 						/* translators: %s: plugin version */
+
 						__( 'Activation aborted: required runtime dependencies are missing. Run "composer install" in the plugin directory or reinstall the plugin package. Version: %s', 'sscribe-export-site-pages' ),
 						SSCRIBE_VERSION
 					),
@@ -58,11 +41,6 @@ class SScribe_Activator {
 		set_transient( 'sscribe_activation_redirect', '1', MINUTE_IN_SECONDS );
 	}
 
-	/**
-	 * Create database tables for logging and stats.
-	 *
-	 * @return void
-	 */
 	private static function create_database_tables(): void {
 		global $wpdb;
 
@@ -115,7 +93,6 @@ class SScribe_Activator {
 		dbDelta( $sql_logs );
 		dbDelta( $sql_stats );
 
-		// P-5: Dedicated session table (replaces wp_options storage for sessions).
 		$table_sessions = $wpdb->prefix . 'sscribe_sessions';
 		$sql_sessions   = "CREATE TABLE $table_sessions (
 			id BIGINT UNSIGNED NOT NULL AUTO_INCREMENT,
@@ -142,16 +119,10 @@ class SScribe_Activator {
 		) $charset_collate;";
 		dbDelta( $sql_sessions );
 
-		// Create audit log table.
 		require_once SSCRIBE_PLUGIN_DIR . 'includes/class-sscribe-audit-trail.php';
 		SScribe_Audit_Trail::create_table();
 	}
 
-	/**
-	 * Create the export directory with security files.
-	 *
-	 * @return void
-	 */
 	private static function create_export_directory(): void {
 		$upload_dir  = wp_upload_dir();
 		$export_path = untrailingslashit( $upload_dir['basedir'] ) . '/sscribe-exports';
@@ -159,11 +130,6 @@ class SScribe_Activator {
 		SScribe_Security::protect_directory( $export_path );
 	}
 
-	/**
-	 * Schedule hourly cleanup cron events.
-	 *
-	 * @return void
-	 */
 	private static function schedule_cleanup(): void {
 		$interval = apply_filters( 'sscribe_cleanup_interval', 'hourly' );
 		if ( ! wp_next_scheduled( 'sscribe_cleanup_exports' ) ) {
@@ -175,30 +141,22 @@ class SScribe_Activator {
 		}
 	}
 
-	/**
-	 * Clean up orphaned sessions and locks from previous installations.
-	 *
-	 * This ensures a clean state when reinstalling or updating the plugin.
-	 *
-	 * @return void
-	 */
 	private static function cleanup_orphaned_data(): void {
 		global $wpdb;
 
-		// Clean up legacy transient-based sessions (pre-3.5.0).
 		$session_pattern = $wpdb->esc_like( '_transient_sscribe_session_' ) . '%';
 		$lock_pattern    = $wpdb->esc_like( '_transient_sscribe_lock_' ) . '%';
 		$rate_pattern    = $wpdb->esc_like( '_transient_sscribe_rate_' ) . '%';
 
-		// Clean up raw option-based sessions (3.5.0+).
 		$session_option_pattern = $wpdb->esc_like( 'sscribe_session_' ) . '%';
 
 		$patterns = array( $session_pattern, $lock_pattern, $rate_pattern, $session_option_pattern );
 
 		foreach ( $patterns as $pattern ) {
-			// Delete in batches to avoid long-running locks on large sites.
+
 			do {
 				// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- Cleanup operation during activation.
+
 				$rows = $wpdb->query(
 					$wpdb->prepare(
 						"DELETE FROM {$wpdb->options} WHERE option_name LIKE %s LIMIT 1000",
@@ -217,6 +175,7 @@ class SScribe_Activator {
 		foreach ( $timeout_patterns as $pattern ) {
 			do {
 				// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- Cleanup operation during activation.
+
 				$rows = $wpdb->query(
 					$wpdb->prepare(
 						"DELETE FROM {$wpdb->options} WHERE option_name LIKE %s LIMIT 1000",

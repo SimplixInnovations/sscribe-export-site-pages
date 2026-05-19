@@ -1,11 +1,4 @@
 <?php
-/**
- * Export log for tracking page export status.
- *
- * Uses filesystem JSON storage to optimize performance and prevent database bloat.
- *
- * @package SScribe
- */
 
 declare(strict_types=1);
 
@@ -13,59 +6,22 @@ if ( ! defined( 'ABSPATH' ) ) {
 	exit;
 }
 
-/**
- * Class SScribe_Export_Log
- *
- * Tracks export progress and results using JSON files.
- */
 class SScribe_Export_Log {
 
-	/**
-	 * Session ID for this log.
-	 *
-	 * @var string
-	 */
 	private readonly string $session_id;
 
-	/**
-	 * Log directory path.
-	 *
-	 * @var string
-	 */
 	private readonly string $log_dir;
 
-	/**
-	 * Log file path.
-	 *
-	 * @var string
-	 */
 	private readonly string $log_file;
 
-	/**
-	 * In-memory log data buffer to reduce file I/O.
-	 *
-	 * @var array|null
-	 */
 	private ?array $data_cache = null;
 
-	/**
-	 * Whether the cache has been modified since last write.
-	 *
-	 * @var bool
-	 */
 	private bool $dirty = false;
 
-	/**
-	 * Constructor.
-	 *
-	 * @param string $session_id The session identifier.
-	 */
 	public function __construct( string $session_id ) {
 		$upload_dir    = wp_upload_dir();
 		$this->log_dir = $upload_dir['basedir'] . '/sscribe-logs';
 
-		// Validate session ID is exactly 16 hex characters (bin2hex(random_bytes(8)) format).
-		// This prevents path traversal. For invalid formats, fall back to sanitize_file_name.
 		if ( preg_match( '/^[a-f0-9]{16}$/', $session_id ) ) {
 			$this->session_id = $session_id;
 		} else {
@@ -76,11 +32,6 @@ class SScribe_Export_Log {
 		$this->init_log();
 	}
 
-	/**
-	 * Initialize the log if it doesn't exist.
-	 *
-	 * @return void
-	 */
 	private function init_log(): void {
 		if ( ! file_exists( $this->log_dir ) ) {
 			SScribe_Security::protect_directory( $this->log_dir );
@@ -103,22 +54,15 @@ class SScribe_Export_Log {
 		}
 	}
 
-	/**
-	 * Destructor to ensure buffered data is flushed to disk.
-	 */
 	public function __destruct() {
 		$this->flush();
 	}
 
-	/**
-	 * Flush any pending writes to disk.
-	 *
-	 * @return void
-	 */
 	public function flush(): void {
 		if ( $this->dirty && null !== $this->data_cache ) {
 			$json = wp_json_encode( $this->data_cache, JSON_UNESCAPED_UNICODE | JSON_PRETTY_PRINT );
 			// phpcs:ignore WordPress.WP.AlternativeFunctions.file_system_operations_file_put_contents -- Intended logging file operation.
+
 			$result = file_put_contents( $this->log_file, $json, LOCK_EX );
 			if ( false !== $result ) {
 				$this->dirty = false;
@@ -126,26 +70,12 @@ class SScribe_Export_Log {
 		}
 	}
 
-	/**
-	 * Set the total number of pages to export.
-	 *
-	 * @param int $total Total page count.
-	 * @return void
-	 */
 	public function set_total_pages( int $total ): void {
 		$data                = $this->read_log();
 		$data['total_pages'] = $total;
 		$this->write_log( $data );
 	}
 
-	/**
-	 * Log the start of a page export.
-	 *
-	 * @param int    $page_id Page ID.
-	 * @param string $title   Page title.
-	 * @param string $slug    Page slug.
-	 * @return void
-	 */
 	public function log_page_start( int $page_id, string $title, string $slug ): void {
 		$data = $this->read_log();
 
@@ -165,13 +95,6 @@ class SScribe_Export_Log {
 		$this->write_log( $data );
 	}
 
-	/**
-	 * Log successful page export.
-	 *
-	 * @param int   $page_id Page ID.
-	 * @param array $formats Formats exported.
-	 * @return void
-	 */
 	public function log_page_success( int $page_id, array $formats ): void {
 		$data = $this->read_log();
 
@@ -184,11 +107,8 @@ class SScribe_Export_Log {
 			$data['pages'][ $page_id ]['duration'] = round( $end_time - $start_time, 3 );
 			$data['pages'][ $page_id ]['memory']   = size_format( memory_get_usage( true ) );
 
-			// Merge into the associative formats array built by log_format_result().
-			// Do NOT overwrite with a plain indexed array — that breaks the
-			// build_structured_errors_from_log() consumer and the admin JS display.
 			if ( empty( $data['pages'][ $page_id ]['formats'] ) ) {
-				// Fallback: log_format_result() was never called.
+
 				foreach ( $formats as $fmt ) {
 					$data['pages'][ $page_id ]['formats'][ $fmt ] = array(
 						'success' => true,
@@ -197,7 +117,6 @@ class SScribe_Export_Log {
 					);
 				}
 			}
-			// If log_format_result() already populated the formats array, keep it.
 
 			++$data['success'];
 		}
@@ -206,14 +125,6 @@ class SScribe_Export_Log {
 		$this->write_log( $data );
 	}
 
-	/**
-	 * Log failed page export.
-	 *
-	 * @param int        $page_id       Page ID.
-	 * @param string     $error_message Error message.
-	 * @param array|null $formats       Formats attempted.
-	 * @return void
-	 */
 	public function log_page_failure( int $page_id, string $error_message, ?array $formats = null ): void {
 		$data = $this->read_log();
 
@@ -250,16 +161,6 @@ class SScribe_Export_Log {
 		$this->write_log( $data );
 	}
 
-	/**
-	 * Log format-specific result.
-	 *
-	 * @param int    $page_id   Page ID.
-	 * @param string $format    Format name.
-	 * @param bool   $success   Whether export succeeded.
-	 * @param string $file_path File path (optional).
-	 * @param string $error     Error message (optional).
-	 * @return void
-	 */
 	public function log_format_result( int $page_id, string $format, bool $success, string $file_path = '', string $error = '' ): void {
 		$data = $this->read_log();
 
@@ -273,13 +174,6 @@ class SScribe_Export_Log {
 		}
 	}
 
-	/**
-	 * Mark export as complete.
-	 *
-	 * @param string $zip_path    Path to ZIP file.
-	 * @param int    $files_in_zip Number of files in ZIP.
-	 * @return void
-	 */
 	public function mark_complete( string $zip_path = '', int $files_in_zip = 0 ): void {
 		$data                 = $this->read_log();
 		$data['status']       = 'complete';
@@ -289,20 +183,12 @@ class SScribe_Export_Log {
 		$this->write_log( $data );
 		$this->flush();
 
-		// Create transient index for O(1) ZIP filename lookup.
-		// Maps ZIP filename → session_id to avoid O(n) scan in get_log_by_filename().
 		if ( ! empty( $data['zip_file'] ) ) {
 			$index_key = 'sscribe_zip_index_' . md5( $data['zip_file'] );
 			set_transient( $index_key, $this->session_id, 30 * DAY_IN_SECONDS );
 		}
 	}
 
-	/**
-	 * Mark export as failed.
-	 *
-	 * @param string $error_message Error message.
-	 * @return void
-	 */
 	public function mark_failed( string $error_message ): void {
 		$data                 = $this->read_log();
 		$data['status']       = 'failed';
@@ -316,20 +202,10 @@ class SScribe_Export_Log {
 		$this->flush();
 	}
 
-	/**
-	 * Get the full log data.
-	 *
-	 * @return array Log data.
-	 */
 	public function get_log(): array {
 		return $this->read_log();
 	}
 
-	/**
-	 * Get a summary of the log.
-	 *
-	 * @return array Summary data.
-	 */
 	public function get_summary(): array {
 		$data = $this->read_log();
 		return array(
@@ -343,11 +219,6 @@ class SScribe_Export_Log {
 		);
 	}
 
-	/**
-	 * Read log data from filesystem or in-memory cache.
-	 *
-	 * @return array Log data or empty array.
-	 */
 	private function read_log(): array {
 		if ( null !== $this->data_cache ) {
 			return $this->data_cache;
@@ -359,6 +230,7 @@ class SScribe_Export_Log {
 		}
 
 		// phpcs:ignore WordPress.WP.AlternativeFunctions.file_get_contents_file_get_contents -- Safe filesystem read.
+
 		$json = file_get_contents( $this->log_file );
 		if ( false === $json ) {
 			$this->data_cache = array();
@@ -371,25 +243,11 @@ class SScribe_Export_Log {
 		return $this->data_cache;
 	}
 
-	/**
-	 * Write log data to in-memory buffer.
-	 *
-	 * Data is flushed to disk on explicit flush(), at end of batch,
-	 * or via the destructor.
-	 *
-	 * @param array $data Log data to write.
-	 * @return void
-	 */
 	private function write_log( array $data ): void {
 		$this->data_cache = $data;
 		$this->dirty      = true;
 	}
 
-	/**
-	 * Delete this log.
-	 *
-	 * @return void
-	 */
 	public function delete(): void {
 		$this->data_cache = null;
 		$this->dirty      = false;
@@ -398,12 +256,6 @@ class SScribe_Export_Log {
 		}
 	}
 
-	/**
-	 * Get log by session ID (static helper).
-	 *
-	 * @param string $session_id Session identifier.
-	 * @return array|null Log data or null.
-	 */
 	public static function get_log_by_session( string $session_id ): ?array {
 		$session_id = sanitize_file_name( $session_id );
 		$upload_dir = wp_upload_dir();
@@ -414,6 +266,7 @@ class SScribe_Export_Log {
 		}
 
 		// phpcs:ignore WordPress.WP.AlternativeFunctions.file_get_contents_file_get_contents -- Safe filesystem read.
+
 		$json = file_get_contents( $log_file );
 
 		if ( ! $json ) {
@@ -425,16 +278,8 @@ class SScribe_Export_Log {
 		return is_array( $data ) ? $data : null;
 	}
 
-	/**
-	 * Get log by ZIP filename (static helper).
-	 *
-	 * Uses transient index for O(1) lookup instead of scanning all log files.
-	 *
-	 * @param string $filename ZIP filename.
-	 * @return array|null Log data or null.
-	 */
 	public static function get_log_by_filename( string $filename ): ?array {
-		// Validate: must be a sanitized filename ending in .zip.
+
 		$clean = sanitize_file_name( $filename );
 		if ( $clean !== $filename || '.zip' !== substr( $filename, -4 ) ) {
 			return null;
@@ -447,7 +292,6 @@ class SScribe_Export_Log {
 			return null;
 		}
 
-		// O(1) lookup: check transient index first.
 		$index_key  = 'sscribe_zip_index_' . md5( $filename );
 		$session_id = get_transient( $index_key );
 
@@ -464,7 +308,6 @@ class SScribe_Export_Log {
 			}
 		}
 
-		// Fallback: O(n) scan for backward compatibility with pre-index logs.
 		$files = glob( $log_dir . '/export_*.json' );
 
 		if ( is_array( $files ) ) {
@@ -473,7 +316,7 @@ class SScribe_Export_Log {
 				if ( $json ) {
 					$data = json_decode( $json, true );
 					if ( is_array( $data ) && isset( $data['zip_file'] ) && $data['zip_file'] === $filename ) {
-						// Cache for future lookups.
+
 						if ( isset( $data['session_id'] ) ) {
 							set_transient( $index_key, $data['session_id'], 30 * DAY_IN_SECONDS );
 						}
@@ -486,14 +329,8 @@ class SScribe_Export_Log {
 		return null;
 	}
 
-	/**
-	 * Delete log file associated with a ZIP filename.
-	 *
-	 * @param string $filename ZIP filename.
-	 * @return bool True if log was deleted, false otherwise.
-	 */
 	public static function delete_by_filename( string $filename ): bool {
-		// Validate: must be a sanitized filename ending in .zip.
+
 		$clean = sanitize_file_name( $filename );
 		if ( $clean !== $filename || '.zip' !== substr( $filename, -4 ) ) {
 			return false;
@@ -506,7 +343,6 @@ class SScribe_Export_Log {
 			return false;
 		}
 
-		// Delete transient index.
 		$index_key = 'sscribe_zip_index_' . md5( $filename );
 		delete_transient( $index_key );
 
@@ -530,16 +366,6 @@ class SScribe_Export_Log {
 		return false;
 	}
 
-	/**
-	 * Clean up old logs.
-	 *
-	 * Skips logs with status 'started' or 'processing' — these belong to
-	 * active exports that may still be running. Only deletes logs that
-	 * are complete, failed, or cancelled.
-	 *
-	 * @param int $max_age_hours Maximum age in hours. Default 6 hours.
-	 * @return int Number of logs deleted.
-	 */
 	public static function cleanup_old_logs( int $max_age_hours = 6 ): int {
 		$upload_dir = wp_upload_dir();
 		$log_dir    = $upload_dir['basedir'] . '/sscribe-logs';
@@ -561,13 +387,13 @@ class SScribe_Export_Log {
 				}
 
 				if ( ( $now - $file_time ) > $max_age ) {
-					// Read the log to check its status — skip active exports.
+
 					$json = file_get_contents( $file );
 					if ( $json ) {
 						$data = json_decode( $json, true );
 						if ( is_array( $data ) ) {
 							$status = $data['status'] ?? '';
-							// Skip active logs — they belong to ongoing exports.
+
 							if ( in_array( $status, array( 'started', 'processing', 'finalizing' ), true ) ) {
 								continue;
 							}

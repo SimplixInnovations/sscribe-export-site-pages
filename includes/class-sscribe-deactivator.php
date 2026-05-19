@@ -1,9 +1,4 @@
 <?php
-/**
- * Fired during plugin deactivation.
- *
- * @package SScribe
- */
 
 declare(strict_types=1);
 
@@ -11,16 +6,8 @@ if ( ! defined( 'ABSPATH' ) ) {
 	exit;
 }
 
-/**
- * Class SScribe_Deactivator
- */
 class SScribe_Deactivator {
 
-	/**
-	 * Run deactivation tasks.
-	 *
-	 * @return void
-	 */
 	public static function deactivate(): void {
 		$timestamp = wp_next_scheduled( 'sscribe_cleanup_exports' );
 		if ( $timestamp ) {
@@ -32,30 +19,17 @@ class SScribe_Deactivator {
 			wp_unschedule_event( $session_timestamp, 'sscribe_cleanup_sessions' );
 		}
 
-		// NOTE: Database tables are intentionally NOT dropped on deactivation.
-		// Deactivation is often temporary (troubleshooting, staging migration).
-		// Tables are only removed on full uninstall (uninstall.php).
-		// See issue #9: Deactivator deletes export files on deactivate.
-		//
-		// Version history: Prior to 1.1.5, the deactivator dropped sscribe_sessions
-		// and sscribe_export_stats tables. This was changed in 1.1.5 to preserve
-		// data across deactivation/reactivation cycles, matching the behavior of
-		// most enterprise WordPress plugins.
 		try {
 			self::cleanup_options();
 		} catch ( \Throwable $e ) {
 			if ( defined( 'WP_DEBUG' ) && WP_DEBUG ) {
 				// phpcs:ignore WordPress.PHP.DevelopmentFunctions.error_log_error_log
+
 				error_log( 'SScribe deactivation error: ' . $e->getMessage() );
 			}
 		}
 	}
 
-	/**
-	 * Remove all plugin-specific options from wp_options.
-	 *
-	 * @return void
-	 */
 	private static function cleanup_options(): void {
 		$options_to_remove = array(
 			'sscribe_export_index',
@@ -74,6 +48,7 @@ class SScribe_Deactivator {
 
 		global $wpdb;
 		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- Deactivation cleanup.
+
 		$sessions = $wpdb->get_results(
 			$wpdb->prepare(
 				"SELECT option_name FROM {$wpdb->options} WHERE option_name LIKE %s",
@@ -86,6 +61,7 @@ class SScribe_Deactivator {
 		}
 
 		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- Deactivation cleanup.
+
 		$locks = $wpdb->get_results(
 			$wpdb->prepare(
 				"SELECT option_name FROM {$wpdb->options} WHERE option_name LIKE %s",
@@ -98,13 +74,4 @@ class SScribe_Deactivator {
 		}
 	}
 
-	/**
-	 * Remove plugin tables — REMOVED in 1.1.5.
-	 *
-	 * Previously dropped sscribe_sessions and sscribe_export_stats on deactivation.
-	 * Moved to uninstall.php only to preserve data across deactivation/reactivation.
-	 *
-	 * @deprecated 1.1.5
-	 * @return void
-	 */
 }

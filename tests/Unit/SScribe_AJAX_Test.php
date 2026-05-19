@@ -1,9 +1,4 @@
 <?php
-/**
- * Tests for AJAX handlers in SScribe_Batch_Processor.
- *
- * @package SScribe
- */
 
 namespace SScribe\Tests\Unit;
 
@@ -24,9 +19,6 @@ class SScribe_AJAX_Test extends TestCase {
 		parent::tearDown();
 	}
 
-	/**
-	 * Test ajax_get_status_counts requires capability.
-	 */
 	public function test_ajax_get_status_counts_requires_capability(): void {
 		global $sscribe_test_current_user_can;
 		$sscribe_test_current_user_can = false;
@@ -44,9 +36,6 @@ class SScribe_AJAX_Test extends TestCase {
 		}
 	}
 
-	/**
-	 * Test ajax_cancel_export requires capability.
-	 */
 	public function test_ajax_cancel_export_requires_capability(): void {
 		global $sscribe_test_current_user_can;
 		$sscribe_test_current_user_can = false;
@@ -64,9 +53,6 @@ class SScribe_AJAX_Test extends TestCase {
 		}
 	}
 
-	/**
-	 * Test ajax_delete_export requires capability.
-	 */
 	public function test_ajax_delete_export_requires_capability(): void {
 		global $sscribe_test_current_user_can;
 		$sscribe_test_current_user_can = false;
@@ -84,9 +70,6 @@ class SScribe_AJAX_Test extends TestCase {
 		}
 	}
 
-	/**
-	 * Test ajax_download requires capability.
-	 */
 	public function test_ajax_download_requires_capability(): void {
 		global $sscribe_test_current_user_can;
 		$sscribe_test_current_user_can = false;
@@ -102,14 +85,10 @@ class SScribe_AJAX_Test extends TestCase {
 		}
 	}
 
-	/**
-	 * Test ajax_get_status_counts validates nonce.
-	 */
 	public function test_ajax_get_status_counts_validates_nonce(): void {
 		global $sscribe_test_current_user_can;
 		$sscribe_test_current_user_can = true;
 
-		// No nonce set — should fail.
 		try {
 			ob_start();
 			$this->processor->ajax_get_status_counts();
@@ -123,9 +102,6 @@ class SScribe_AJAX_Test extends TestCase {
 		}
 	}
 
-	/**
-	 * Test ajax_cancel_export validates nonce.
-	 */
 	public function test_ajax_cancel_export_requires_session_id(): void {
 		global $sscribe_test_current_user_can;
 		$sscribe_test_current_user_can = true;
@@ -145,9 +121,6 @@ class SScribe_AJAX_Test extends TestCase {
 		}
 	}
 
-	/**
-	 * Test ajax_delete_export validates filename.
-	 */
 	public function test_ajax_delete_export_requires_filename(): void {
 		global $sscribe_test_current_user_can;
 		$sscribe_test_current_user_can = true;
@@ -167,9 +140,6 @@ class SScribe_AJAX_Test extends TestCase {
 		}
 	}
 
-	/**
-	 * Test ajax_download validates filename.
-	 */
 	public function test_ajax_download_validates_filename(): void {
 		global $sscribe_test_current_user_can;
 		$sscribe_test_current_user_can = true;
@@ -188,9 +158,6 @@ class SScribe_AJAX_Test extends TestCase {
 		}
 	}
 
-	/**
-	 * Test ajax_download rejects path traversal.
-	 */
 	public function test_ajax_download_rejects_path_traversal(): void {
 		global $sscribe_test_current_user_can;
 		$sscribe_test_current_user_can = true;
@@ -209,9 +176,6 @@ class SScribe_AJAX_Test extends TestCase {
 		}
 	}
 
-	/**
-	 * Test ajax_start_export validates post status.
-	 */
 	public function test_ajax_start_export_validates_post_status(): void {
 		global $sscribe_test_current_user_can;
 		$sscribe_test_current_user_can = true;
@@ -233,9 +197,6 @@ class SScribe_AJAX_Test extends TestCase {
 		}
 	}
 
-	/**
-	 * Test ajax_start_export validates post type.
-	 */
 	public function test_ajax_start_export_validates_post_type(): void {
 		global $sscribe_test_current_user_can;
 		$sscribe_test_current_user_can = true;

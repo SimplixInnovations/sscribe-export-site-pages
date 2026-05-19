@@ -1,17 +1,9 @@
 <?php
-/**
- * Unit tests for privacy storage helpers.
- *
- * @package SScribe
- */
 
 declare(strict_types=1);
 
 use PHPUnit\Framework\TestCase;
 
-/**
- * Class SScribe_Privacy_Storage_Test
- */
 class SScribe_Privacy_Storage_Test extends TestCase {
 
 	protected function setUp(): void {

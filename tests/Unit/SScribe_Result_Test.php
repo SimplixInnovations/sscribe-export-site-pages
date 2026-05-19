@@ -1,9 +1,4 @@
 <?php
-/**
- * Result pattern tests.
- *
- * @package SScribe\Tests\Unit
- */
 
 namespace SScribe\Tests\Unit;
 

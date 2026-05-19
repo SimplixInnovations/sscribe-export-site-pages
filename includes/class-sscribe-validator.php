@@ -1,9 +1,4 @@
 <?php
-/**
- * Comprehensive input validation for SScribe.
- *
- * @package SScribe
- */
 
 declare(strict_types=1);
 
@@ -11,40 +6,16 @@ if ( ! defined( 'ABSPATH' ) ) {
 	exit;
 }
 
-/**
- * Class SScribe_Validator
- *
- * Provides comprehensive validation for export inputs, page data,
- * and configuration settings.
- */
 class SScribe_Validator {
 
-	/**
-	 * Allowed export formats.
-	 */
 	public const ALLOWED_FORMATS = array( 'docx', 'pdf', 'html', 'markdown' );
 
-	/**
-	 * Maximum pages per export.
-	 */
 	public const MAX_PAGES = 5000;
 
-	/**
-	 * Minimum required memory per page (in MB).
-	 */
 	public const MEMORY_PER_PAGE_MB = 5;
 
-	/**
-	 * Minimum required disk space (in MB).
-	 */
 	public const MIN_DISK_SPACE_MB = 100;
 
-	/**
-	 * Validate export configuration.
-	 *
-	 * @param array $config Configuration array with formats, page_ids, etc.
-	 * @return array Array with 'valid' boolean and 'errors' array.
-	 */
 	public static function validate_export_config( array $config ): array {
 		$errors = array();
 
@@ -60,12 +31,6 @@ class SScribe_Validator {
 		);
 	}
 
-	/**
-	 * Validate export formats.
-	 *
-	 * @param array $formats Selected formats.
-	 * @return array Error messages.
-	 */
 	public static function validate_formats( array $formats ): array {
 		$errors = array();
 
@@ -78,6 +43,7 @@ class SScribe_Validator {
 		if ( ! empty( $invalid ) ) {
 			$errors[] = sprintf(
 				/* translators: %s: Invalid formats list. */
+
 				__( 'Invalid export format(s): %s. Allowed: docx, pdf, html, markdown.', 'sscribe-export-site-pages' ),
 				implode( ', ', $invalid )
 			);
@@ -90,12 +56,6 @@ class SScribe_Validator {
 		return $errors;
 	}
 
-	/**
-	 * Validate page selection.
-	 *
-	 * @param array $config Configuration with page_ids or selection criteria.
-	 * @return array Error messages.
-	 */
 	public static function validate_page_selection( array $config ): array {
 		$errors = array();
 
@@ -116,6 +76,7 @@ class SScribe_Validator {
 			if ( count( $page_ids ) > self::MAX_PAGES ) {
 				$errors[] = sprintf(
 					/* translators: 1: Number of pages, 2: Maximum pages. */
+
 					_n(
 						'%1$d page selected. Maximum allowed is %2$d.',
 						'%1$d pages selected. Maximum allowed is %2$d.',
@@ -131,12 +92,6 @@ class SScribe_Validator {
 		return $errors;
 	}
 
-	/**
-	 * Validate language selection.
-	 *
-	 * @param string $language Language code.
-	 * @return array Error messages.
-	 */
 	public static function validate_language( string $language ): array {
 		$errors = array();
 
@@ -150,6 +105,7 @@ class SScribe_Validator {
 			if ( ! in_array( $language, $valid_languages, true ) ) {
 				$errors[] = sprintf(
 					/* translators: %s: Language code. */
+
 					__( 'Invalid language code: %s. Select a valid language from the dropdown.', 'sscribe-export-site-pages' ),
 					esc_html( $language )
 				);
@@ -159,12 +115,6 @@ class SScribe_Validator {
 		return $errors;
 	}
 
-	/**
-	 * Validate post status.
-	 *
-	 * @param string $status Post status.
-	 * @return array Error messages.
-	 */
 	public static function validate_post_status( string $status ): array {
 		$errors = array();
 
@@ -173,6 +123,7 @@ class SScribe_Validator {
 		if ( ! in_array( $status, $allowed_statuses, true ) ) {
 			$errors[] = sprintf(
 				/* translators: %s: Post status. */
+
 				__( 'Invalid post status: %s. Allowed: publish, draft, pending, private, future, all.', 'sscribe-export-site-pages' ),
 				esc_html( $status )
 			);
@@ -181,12 +132,6 @@ class SScribe_Validator {
 		return $errors;
 	}
 
-	/**
-	 * Validate resource availability (memory, disk, time).
-	 *
-	 * @param array $config Configuration with page count and formats.
-	 * @return array Error messages.
-	 */
 	public static function validate_resource_availability( array $config ): array {
 		$errors = array();
 
@@ -202,13 +147,6 @@ class SScribe_Validator {
 		return $errors;
 	}
 
-	/**
-	 * Validate memory availability for export.
-	 *
-	 * @param int   $page_count Number of pages to export.
-	 * @param array $formats    Export formats selected.
-	 * @return array Error messages.
-	 */
 	public static function validate_memory_availability( int $page_count, array $formats ): array {
 		$errors = array();
 
@@ -238,6 +176,7 @@ class SScribe_Validator {
 
 			$errors[] = sprintf(
 				/* translators: 1: Estimated memory, 2: Available memory, 3: Recommended memory. */
+
 				__( 'Insufficient memory: Export requires ~%1$dMB but only %2$dMB available. Increase memory to %3$dMB+ or reduce export size.', 'sscribe-export-site-pages' ),
 				$estimated_mb,
 				$available_mb,
@@ -248,11 +187,6 @@ class SScribe_Validator {
 		return $errors;
 	}
 
-	/**
-	 * Validate disk space availability.
-	 *
-	 * @return array Error messages.
-	 */
 	public static function validate_disk_space(): array {
 		$errors = array();
 
@@ -264,6 +198,7 @@ class SScribe_Validator {
 
 		$export_dir = $upload_dir['basedir'] . '/sscribe-exports';
 		// phpcs:ignore WordPress.PHP.NoSilencedErrors.Discouraged -- disk_free_space returns false on failure, properly guarded.
+
 		$free_space = function_exists( 'disk_free_space' ) ? @disk_free_space( $export_dir ) : false;
 
 		if ( false !== $free_space ) {
@@ -271,6 +206,7 @@ class SScribe_Validator {
 			if ( $free_mb < self::MIN_DISK_SPACE_MB ) {
 				$errors[] = sprintf(
 					/* translators: %d: Free disk space in MB. */
+
 					__( 'Low disk space: Only %dMB free. Free up disk space before exporting.', 'sscribe-export-site-pages' ),
 					$free_mb
 				);
@@ -280,12 +216,6 @@ class SScribe_Validator {
 		return $errors;
 	}
 
-	/**
-	 * Validate page data structure.
-	 *
-	 * @param array $page_data Page data array.
-	 * @return array Array with 'valid' boolean and 'errors' array.
-	 */
 	public static function validate_page_data( array $page_data ): array {
 		$errors = array();
 
@@ -294,6 +224,7 @@ class SScribe_Validator {
 			if ( ! isset( $page_data[ $field ] ) ) {
 				$errors[] = sprintf(
 					/* translators: %s: Field name. */
+
 					__( 'Missing required field: %s', 'sscribe-export-site-pages' ),
 					$field
 				);
@@ -314,12 +245,6 @@ class SScribe_Validator {
 		);
 	}
 
-	/**
-	 * Validate DOCX file integrity.
-	 *
-	 * @param string $file_path Path to DOCX file.
-	 * @return bool True if valid DOCX structure.
-	 */
 	public static function validate_docx_integrity( string $file_path ): bool {
 		if ( ! file_exists( $file_path ) ) {
 			return false;
@@ -350,13 +275,6 @@ class SScribe_Validator {
 		return true;
 	}
 
-	/**
-	 * Sanitize and validate AJAX input.
-	 *
-	 * @param array $input    Input array (usually $_POST).
-	 * @param array $expected Expected fields with their types.
-	 * @return array Sanitized and validated data.
-	 */
 	public static function sanitize_ajax_input( array $input, array $expected ): array {
 		$sanitized = array();
 
@@ -400,12 +318,6 @@ class SScribe_Validator {
 		return $sanitized;
 	}
 
-	/**
-	 * Check if URL is safe (not javascript:, data:, vbscript:, etc.).
-	 *
-	 * @param string $url URL to check.
-	 * @return bool True if safe.
-	 */
 	public static function is_safe_url( string $url ): bool {
 		$dangerous_protocols = array( 'javascript:', 'data:', 'vbscript:', 'file:' );
 		$url_lower           = strtolower( $url );
@@ -419,12 +331,6 @@ class SScribe_Validator {
 		return true;
 	}
 
-	/**
-	 * Sanitize filename to prevent path traversal.
-	 *
-	 * @param string $filename Filename to sanitize.
-	 * @return string Sanitized filename.
-	 */
 	public static function sanitize_filename( string $filename ): string {
 		$filename = sanitize_file_name( $filename );
 

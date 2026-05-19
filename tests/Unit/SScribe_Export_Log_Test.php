@@ -1,9 +1,4 @@
 <?php
-/**
- * Tests for SScribe_Export_Log buffered write functionality.
- *
- * @package SScribe\Tests
- */
 
 declare(strict_types=1);
 
@@ -14,9 +9,8 @@ use SScribe_Export_Log;
 
 final class SScribe_Export_Log_Test extends TestCase {
 
-	/**
-	 * Temporary directory for test logs.
-	 */
+
+
 	private string $temp_dir;
 
 	protected function setUp(): void {
@@ -26,7 +20,7 @@ final class SScribe_Export_Log_Test extends TestCase {
 
 	protected function tearDown(): void {
 		if ( is_dir( $this->temp_dir ) ) {
-			// Recursively delete.
+			
 			$files = new \RecursiveIteratorIterator(
 				new \RecursiveDirectoryIterator( $this->temp_dir, \RecursiveDirectoryIterator::SKIP_DOTS ),
 				\RecursiveIteratorIterator::CHILD_FIRST
@@ -139,9 +133,8 @@ final class SScribe_Export_Log_Test extends TestCase {
 		$this->assertFileDoesNotExist( $log_file );
 	}
 
-	/**
-	 * Helper to find a log file by session ID in the standard log directory.
-	 */
+
+
 	private function find_log_file( string $session_id ): ?string {
 		$upload_dir = wp_upload_dir();
 		$log_dir    = $upload_dir['basedir'] . '/sscribe-logs';

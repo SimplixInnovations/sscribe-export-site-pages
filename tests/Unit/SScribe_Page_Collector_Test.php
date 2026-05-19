@@ -1,9 +1,4 @@
 <?php
-/**
- * Unit tests for SScribe_Page_Collector class.
- *
- * @package SScribe
- */
 
 namespace SScribe\Tests\Unit;
 

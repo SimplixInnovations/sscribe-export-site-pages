@@ -1,9 +1,4 @@
 <?php
-/**
- * Unit tests for SScribe_SEO_Reader class.
- *
- * @package SScribe
- */
 
 namespace SScribe\Tests\Unit;
 

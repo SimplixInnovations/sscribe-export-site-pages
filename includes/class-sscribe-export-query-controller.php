@@ -1,14 +1,4 @@
 <?php
-/**
- * Read-only AJAX query endpoints for SScribe export operations.
- *
- * Handles all AJAX requests that query export state, system health,
- * preflight diagnostics, preview data, recent exports, and support
- * information. These endpoints never mutate export state.
- *
- * @package       SScribe
- * @since         1.1.6
- */
 
 declare( strict_types=1 );
 
@@ -16,61 +6,22 @@ if ( ! defined( 'ABSPATH' ) ) {
 	exit;
 }
 
-/**
- * Read-only AJAX query controller for export operations.
- *
- * Encapsulates all non-mutating AJAX endpoints used by the admin UI
- * to display export status, health checks, preview estimates, and
- * support information.
- *
- * @since 1.1.6
- */
 class SScribe_Export_Query_Controller {
 
-	/**
-	 * @var SScribe_Export_Rate_Limiter
-	 */
 	private readonly SScribe_Export_Rate_Limiter $rate_limiter;
 
-	/**
-	 * @var SScribe_Diagnostics
-	 */
 	private readonly SScribe_Diagnostics $diagnostics;
 
-	/**
-	 * @var SScribe_Page_Collector
-	 */
 	private readonly SScribe_Page_Collector $collector;
 
-	/**
-	 * @var SScribe_Logger_Interface
-	 */
 	private readonly SScribe_Logger_Interface $logger;
 
-	/**
-	 * @var SScribe_Zip_Handler
-	 */
 	private readonly SScribe_Zip_Handler $zip_handler;
 
-	/**
-	 * @var SScribe_Adaptive_Metrics
-	 */
 	private readonly SScribe_Adaptive_Metrics $adaptive_metrics;
 
-	/**
-	 * @var SScribe_Export_Error_Handler
-	 */
 	private readonly SScribe_Export_Error_Handler $error_handler;
 
-	/**
-	 * @param SScribe_Export_Rate_Limiter|null  $rate_limiter
-	 * @param SScribe_Diagnostics|null          $diagnostics
-	 * @param SScribe_Page_Collector|null       $collector
-	 * @param SScribe_Logger_Interface|null     $logger
-	 * @param SScribe_Zip_Handler|null          $zip_handler
-	 * @param SScribe_Adaptive_Metrics|null     $adaptive_metrics
-	 * @param SScribe_Export_Error_Handler|null $error_handler
-	 */
 	public function __construct(
 		?SScribe_Export_Rate_Limiter $rate_limiter = null,
 		?SScribe_Diagnostics $diagnostics = null,
@@ -89,11 +40,6 @@ class SScribe_Export_Query_Controller {
 		$this->error_handler    = $error_handler ?? new SScribe_Export_Error_Handler();
 	}
 
-	/**
-	 * AJAX handler: System health check.
-	 *
-	 * @param string $export_capability Default 'manage_options'.
-	 */
 	public function ajax_health_check( string $export_capability = 'manage_options' ): void {
 		if ( ! is_user_logged_in() ) {
 			SScribe_AJAX_Guard::success(
@@ -135,11 +81,6 @@ class SScribe_Export_Query_Controller {
 		);
 	}
 
-	/**
-	 * AJAX handler: Get page status counts.
-	 *
-	 * @param string $export_capability Default 'manage_options'.
-	 */
 	public function ajax_get_status_counts( string $export_capability = 'manage_options' ): void {
 		if ( ! check_ajax_referer( 'sscribe_export_nonce', 'nonce', false ) ) {
 			SScribe_AJAX_Guard::error( array( 'message' => __( 'Security check failed.', 'sscribe-export-site-pages' ) ), 403 );
@@ -173,11 +114,6 @@ class SScribe_Export_Query_Controller {
 		SScribe_AJAX_Guard::success( array( 'counts' => $counts ) );
 	}
 
-	/**
-	 * AJAX handler: Get export log details.
-	 *
-	 * @param string $export_capability Default 'manage_options'.
-	 */
 	public function ajax_get_export_log( string $export_capability = 'manage_options' ): void {
 		if ( ! check_ajax_referer( 'sscribe_download', 'nonce', false ) ) {
 			SScribe_AJAX_Guard::error( array( 'message' => __( 'Security check failed.', 'sscribe-export-site-pages' ) ), 403 );
@@ -245,11 +181,6 @@ class SScribe_Export_Query_Controller {
 		);
 	}
 
-	/**
-	 * AJAX handler: Run pre-flight diagnostics.
-	 *
-	 * @param string $export_capability Default 'manage_options'.
-	 */
 	public function ajax_preflight_check( string $export_capability = 'manage_options' ): void {
 		if ( ! check_ajax_referer( 'sscribe_export_nonce', 'nonce', false ) ) {
 			SScribe_AJAX_Guard::error( array( 'message' => __( 'Security check failed.', 'sscribe-export-site-pages' ) ), 403 );
@@ -277,6 +208,7 @@ class SScribe_Export_Query_Controller {
 		}
 
 		// phpcs:ignore WordPress.Security.ValidatedSanitizedInput.InputNotSanitized
+
 		$formats_raw   = isset( $_POST['formats'] ) ? wp_unslash( (array) $_POST['formats'] ) : array();
 		$formats_input = array_map( 'sanitize_text_field', $formats_raw );
 		$formats       = ! empty( $formats_input ) ? $formats_input : array( 'docx' );
@@ -298,11 +230,6 @@ class SScribe_Export_Query_Controller {
 		SScribe_AJAX_Guard::success( $diagnostics );
 	}
 
-	/**
-	 * AJAX handler: Get export preview data.
-	 *
-	 * @param string $export_capability Default 'manage_options'.
-	 */
 	public function ajax_get_export_preview( string $export_capability = 'manage_options' ): void {
 		if ( ! check_ajax_referer( 'sscribe_export_nonce', 'nonce', false ) ) {
 			SScribe_AJAX_Guard::error( array( 'message' => __( 'Security check failed.', 'sscribe-export-site-pages' ) ), 403 );
@@ -352,6 +279,7 @@ class SScribe_Export_Query_Controller {
 		if ( $total_seconds < 60 ) {
 			$estimated_time = sprintf(
 			/* translators: %d: Number of seconds. */
+
 				_n( '%d second', '%d seconds', $total_seconds, 'sscribe-export-site-pages' ),
 				max( 1, ceil( $total_seconds ) )
 			);
@@ -359,6 +287,7 @@ class SScribe_Export_Query_Controller {
 			$minutes        = (int) ceil( $total_seconds / 60 );
 			$estimated_time = sprintf(
 			/* translators: %d: Number of minutes. */
+
 				_n( '%d minute', '%d minutes', $minutes, 'sscribe-export-site-pages' ),
 				$minutes
 			);
@@ -413,11 +342,6 @@ class SScribe_Export_Query_Controller {
 		SScribe_AJAX_Guard::success( $preview_data );
 	}
 
-	/**
-	 * AJAX handler: Get recent exports list.
-	 *
-	 * @param string $export_capability Default 'manage_options'.
-	 */
 	public function ajax_get_recent_exports( string $export_capability = 'manage_options' ): void {
 		if ( ! check_ajax_referer( 'sscribe_export_nonce', 'nonce', false ) ) {
 			SScribe_AJAX_Guard::error( array( 'message' => __( 'Security check failed.', 'sscribe-export-site-pages' ) ), 403 );
@@ -463,7 +387,6 @@ class SScribe_Export_Query_Controller {
 			);
 		}
 
-		// Sort by time descending (newest first).
 		$sorted = $result;
 		uasort(
 			$sorted,
@@ -475,11 +398,6 @@ class SScribe_Export_Query_Controller {
 		SScribe_AJAX_Guard::success( array( 'exports' => array_slice( array_values( $sorted ), 0, 10 ) ) );
 	}
 
-	/**
-	 * AJAX handler: Get support and debug information.
-	 *
-	 * @param string $export_capability Default 'manage_options'.
-	 */
 	public function ajax_get_support_info( string $export_capability = 'manage_options' ): void {
 		if ( ! check_ajax_referer( 'sscribe_export_nonce', 'nonce', false ) ) {
 			SScribe_AJAX_Guard::error( array( 'message' => __( 'Security check failed.', 'sscribe-export-site-pages' ) ), 403 );
