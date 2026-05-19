@@ -20,7 +20,7 @@ $sscribe_step            = 1;
 			<div class="sscribe-hero-left">
 				<div class="sscribe-hero-logo">
 				<?php // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- SVG is sanitized in get_icon() with esc_attr() on all dynamic attributes.
-?>
+				?>
 				<?php echo SScribe_Helpers::get_icon( 'file-doc', 36, 'sscribe-logo-img' ); ?>
 					<span class="screen-reader-text">SScribe</span>
 				</div>
@@ -32,10 +32,16 @@ $sscribe_step            = 1;
 			<span class="sscribe-hero-version">v<?php echo esc_html( SSCRIBE_VERSION ); ?></span>
 		</div>
 		<div class="sscribe-hero-stats">
-			<span class="sscribe-hero-stat"><?php echo SScribe_Helpers::get_icon( 'file-text', 12 ); // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- SVG sanitized in get_icon().
-?> <strong id="sscribe-stat-total-pages"><?php echo esc_html( number_format_i18n( $sscribe_total_pages_all ) ); ?></strong> <?php esc_html_e( 'pages', 'sscribe-export-site-pages' ); ?></span>
-			<span class="sscribe-hero-stat"><?php echo SScribe_Helpers::get_icon( 'clock', 12 ); // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- SVG sanitized in get_icon().
-?> <strong id="sscribe-stat-recent-exports"><?php echo esc_html( count( $sscribe_recent_exports ) ); ?></strong> <?php esc_html_e( 'exports', 'sscribe-export-site-pages' ); ?></span>
+			<span class="sscribe-hero-stat">
+			<?php
+			echo SScribe_Helpers::get_icon( 'file-text', 12 ); // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- SVG sanitized in get_icon().
+			?>
+			<strong id="sscribe-stat-total-pages"><?php echo esc_html( number_format_i18n( $sscribe_total_pages_all ) ); ?></strong> <?php esc_html_e( 'pages', 'sscribe-export-site-pages' ); ?></span>
+			<span class="sscribe-hero-stat">
+			<?php
+			echo SScribe_Helpers::get_icon( 'clock', 12 ); // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- SVG sanitized in get_icon().
+			?>
+			<strong id="sscribe-stat-recent-exports"><?php echo esc_html( count( $sscribe_recent_exports ) ); ?></strong> <?php esc_html_e( 'exports', 'sscribe-export-site-pages' ); ?></span>
 		</div>
 	</header>
 
@@ -49,18 +55,21 @@ $sscribe_step            = 1;
 	<div class="sscribe-workspace sscribe-flat-workspace" id="sscribe-main-content" role="main">
 		<nav class="sscribe-tabs-nav" role="tablist" aria-label="<?php esc_attr_e( 'Main Navigation', 'sscribe-export-site-pages' ); ?>">
 			<button type="button" class="sscribe-tab-btn sscribe-tab-active" id="sscribe-tab-btn-export" data-tab="export" role="tab" aria-selected="true" aria-controls="sscribe-tab-export">
-				<?php echo SScribe_Helpers::get_icon( 'settings', 16 ); // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped
-?>
+				<?php
+				echo SScribe_Helpers::get_icon( 'settings', 16 ); // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped
+				?>
 				<?php esc_html_e( 'Export', 'sscribe-export-site-pages' ); ?>
 			</button>
 			<button type="button" class="sscribe-tab-btn" id="sscribe-tab-btn-history" data-tab="history" role="tab" aria-selected="false" aria-controls="sscribe-tab-history">
-				<?php echo SScribe_Helpers::get_icon( 'clock', 16 ); // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped
-?>
+				<?php
+				echo SScribe_Helpers::get_icon( 'clock', 16 ); // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped
+				?>
 				<?php esc_html_e( 'History', 'sscribe-export-site-pages' ); ?>
 			</button>
 			<button type="button" class="sscribe-tab-btn" id="sscribe-tab-btn-docs" data-tab="docs" role="tab" aria-selected="false" aria-controls="sscribe-tab-docs">
-				<?php echo SScribe_Helpers::get_icon( 'info', 16 ); // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped
-?>
+				<?php
+				echo SScribe_Helpers::get_icon( 'info', 16 ); // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped
+				?>
 				<?php esc_html_e( 'Support', 'sscribe-export-site-pages' ); ?>
 			</button>
 		</nav>
@@ -71,7 +80,7 @@ $sscribe_step            = 1;
 			<div class="sscribe-panel-header">
 				<div class="sscribe-panel-title">
 					<?php // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- SVG sanitized in get_icon().
-?>
+					?>
 					<?php echo SScribe_Helpers::get_icon( 'settings', 20, 'sscribe-icon-img' ); ?>
 					<h2><?php esc_html_e( 'Export Configuration', 'sscribe-export-site-pages' ); ?></h2>
 				</div>
@@ -89,7 +98,7 @@ $sscribe_step            = 1;
 								<div class="sscribe-post-type-card-inner">
 									<div class="sscribe-post-type-icon">
 										<?php // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- SVG sanitized in get_icon().
-?>
+										?>
 										<?php echo SScribe_Helpers::get_icon( 'file-text', 22 ); ?>
 									</div>
 									<div class="sscribe-post-type-meta">
@@ -98,7 +107,7 @@ $sscribe_step            = 1;
 									</div>
 									<div class="sscribe-post-type-selector">
 										<?php // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- SVG sanitized in get_icon().
-?>
+										?>
 										<?php echo SScribe_Helpers::get_icon( 'check', 16, 'sscribe-check-icon' ); ?>
 									</div>
 								</div>
@@ -108,7 +117,7 @@ $sscribe_step            = 1;
 								<div class="sscribe-post-type-card-inner">
 									<div class="sscribe-post-type-icon">
 										<?php // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- SVG sanitized in get_icon().
-?>
+										?>
 										<?php echo SScribe_Helpers::get_icon( 'article', 22 ); ?>
 									</div>
 									<div class="sscribe-post-type-meta">
@@ -117,7 +126,7 @@ $sscribe_step            = 1;
 									</div>
 									<div class="sscribe-post-type-selector">
 										<?php // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- SVG sanitized in get_icon().
-?>
+										?>
 										<?php echo SScribe_Helpers::get_icon( 'check', 16, 'sscribe-check-icon' ); ?>
 									</div>
 								</div>
@@ -127,7 +136,7 @@ $sscribe_step            = 1;
 								<div class="sscribe-post-type-card-inner">
 									<div class="sscribe-post-type-icon">
 										<?php // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- SVG sanitized in get_icon().
-?>
+										?>
 										<?php echo SScribe_Helpers::get_icon( 'copy', 22 ); ?>
 									</div>
 									<div class="sscribe-post-type-meta">
@@ -136,7 +145,7 @@ $sscribe_step            = 1;
 									</div>
 									<div class="sscribe-post-type-selector">
 										<?php // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- SVG sanitized in get_icon().
-?>
+										?>
 										<?php echo SScribe_Helpers::get_icon( 'check', 16, 'sscribe-check-icon' ); ?>
 									</div>
 								</div>
@@ -150,7 +159,7 @@ $sscribe_step            = 1;
 						<div class="sscribe-config-section-header">
 							<span class="sscribe-step-badge"><?php echo esc_html( $sscribe_step ); ?></span>
 							<?php // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- SVG sanitized in get_icon().
-?>
+							?>
 							<?php echo SScribe_Helpers::get_icon( 'globe', 15 ); ?>
 							<span><?php esc_html_e( 'Language', 'sscribe-export-site-pages' ); ?></span>
 						</div>
@@ -161,7 +170,7 @@ $sscribe_step            = 1;
 									<div class="sscribe-lang-flag-wrapper">
 										<div class="sscribe-lang-flag-placeholder sscribe-lang-flag-all">
 											<?php // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- SVG sanitized in get_icon().
-?>
+											?>
 											<?php echo SScribe_Helpers::get_icon( 'globe', 16 ); ?>
 										</div>
 									</div>
@@ -171,7 +180,7 @@ $sscribe_step            = 1;
 									</div>
 									<div class="sscribe-lang-selector">
 										<?php // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- SVG sanitized in get_icon().
-?>
+										?>
 										<?php echo SScribe_Helpers::get_icon( 'check', 14, 'sscribe-check-icon' ); ?>
 									</div>
 								</div>
@@ -195,7 +204,7 @@ $sscribe_step            = 1;
 										</div>
 										<div class="sscribe-lang-selector">
 											<?php // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- SVG sanitized in get_icon().
-?>
+											?>
 											<?php echo SScribe_Helpers::get_icon( 'check', 14, 'sscribe-check-icon' ); ?>
 										</div>
 									</div>
@@ -239,12 +248,15 @@ $sscribe_step            = 1;
 								$sscribe_label_class = 'sscribe-status-card-label' . ( $sscribe_is_zero ? ' sscribe-status-disabled' : '' );
 								?>
 							<label class="<?php echo esc_attr( $sscribe_label_class ); ?>">
-								<input type="radio" name="sscribe_post_status" value="<?php echo esc_attr( $sscribe_status_key ); ?>" <?php checked( $sscribe_is_first ); ?><?php echo $sscribe_is_zero ? ' disabled' : ''; // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- Static attribute string.
-?>>
+								<input type="radio" name="sscribe_post_status" value="<?php echo esc_attr( $sscribe_status_key ); ?>" <?php checked( $sscribe_is_first ); ?>
+								<?php
+								echo $sscribe_is_zero ? ' disabled' : ''; // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- Static attribute string.
+								?>
+								>
 								<div class="sscribe-status-card-inner">
 									<div class="sscribe-status-icon">
 										<?php // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- SVG sanitized in get_icon().
-?>
+										?>
 										<?php echo SScribe_Helpers::get_icon( $sscribe_status_icons[ $sscribe_status_key ], 16 ); ?>
 									</div>
 									<div class="sscribe-status-meta">
@@ -253,7 +265,7 @@ $sscribe_step            = 1;
 									</div>
 									<div class="sscribe-status-selector">
 										<?php // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- SVG sanitized in get_icon().
-?>
+										?>
 										<?php echo SScribe_Helpers::get_icon( 'check', 14, 'sscribe-check-icon' ); ?>
 									</div>
 								</div>
@@ -273,7 +285,7 @@ $sscribe_step            = 1;
 								<div class="sscribe-format-card-inner">
 									<div class="sscribe-format-icon">
 										<?php // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- SVG sanitized in get_icon().
-?>
+										?>
 										<?php echo SScribe_Helpers::get_icon( 'download-package', 20 ); ?>
 									</div>
 									<div class="sscribe-format-meta">
@@ -283,7 +295,7 @@ $sscribe_step            = 1;
 									</div>
 									<div class="sscribe-format-selector">
 										<?php // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- SVG sanitized in get_icon().
-?>
+										?>
 										<?php echo SScribe_Helpers::get_icon( 'check', 14, 'sscribe-check-icon' ); ?>
 									</div>
 								</div>
@@ -318,7 +330,7 @@ $sscribe_step            = 1;
 								<div class="sscribe-format-card-inner">
 									<div class="sscribe-format-icon">
 										<?php // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- SVG sanitized in get_icon().
-?>
+										?>
 										<?php echo SScribe_Helpers::get_icon( $sscribe_format_data['icon'], 20 ); ?>
 									</div>
 									<div class="sscribe-format-meta">
@@ -327,7 +339,7 @@ $sscribe_step            = 1;
 									</div>
 									<div class="sscribe-format-selector">
 										<?php // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- SVG sanitized in get_icon().
-?>
+										?>
 										<?php echo SScribe_Helpers::get_icon( 'check', 14, 'sscribe-check-icon' ); ?>
 									</div>
 								</div>
@@ -355,7 +367,7 @@ $sscribe_step            = 1;
 					<div class="sscribe-export-bar-actions">
 						<button type="button" id="sscribe-preview-btn" class="sscribe-button sscribe-button-outline sscribe-btn-sm" disabled aria-describedby="sscribe-preview-btn-hint">
 							<?php // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- SVG sanitized in get_icon().
-?>
+							?>
 							<?php echo SScribe_Helpers::get_icon( 'eye', 15 ); ?>
 							<span><?php esc_html_e( 'Preview', 'sscribe-export-site-pages' ); ?></span>
 						</button>
@@ -373,7 +385,7 @@ $sscribe_step            = 1;
 					<div class="sscribe-modal-header">
 						<h3 id="sscribe-preview-title">
 							<?php // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- SVG sanitized in get_icon().
-?>
+							?>
 							<?php echo SScribe_Helpers::get_icon( 'eye', 16 ); ?>
 							<?php esc_html_e( 'Export Preview', 'sscribe-export-site-pages' ); ?>
 						</h3>
@@ -401,22 +413,25 @@ $sscribe_step            = 1;
 					<div class="sscribe-phase-step sscribe-phase-active" data-phase="fetching" role="listitem">
 						<span class="sscribe-phase-dot"></span>
 						<span class="sscribe-phase-label"><?php esc_html_e( 'Fetching', 'sscribe-export-site-pages' ); ?></span>
-						<?php echo SScribe_Helpers::get_icon( 'check', 12, 'sscribe-phase-check' ); // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- SVG sanitized in get_icon().
-?>
+						<?php
+						echo SScribe_Helpers::get_icon( 'check', 12, 'sscribe-phase-check' ); // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- SVG sanitized in get_icon().
+						?>
 					</div>
 					<span class="sscribe-phase-connector" aria-hidden="true"></span>
 					<div class="sscribe-phase-step" data-phase="processing" role="listitem">
 						<span class="sscribe-phase-dot"></span>
 						<span class="sscribe-phase-label"><?php esc_html_e( 'Processing', 'sscribe-export-site-pages' ); ?></span>
-						<?php echo SScribe_Helpers::get_icon( 'check', 12, 'sscribe-phase-check' ); // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- SVG sanitized in get_icon().
-?>
+						<?php
+						echo SScribe_Helpers::get_icon( 'check', 12, 'sscribe-phase-check' ); // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- SVG sanitized in get_icon().
+						?>
 					</div>
 					<span class="sscribe-phase-connector" aria-hidden="true"></span>
 					<div class="sscribe-phase-step" data-phase="packaging" role="listitem">
 						<span class="sscribe-phase-dot"></span>
 						<span class="sscribe-phase-label"><?php esc_html_e( 'Packaging', 'sscribe-export-site-pages' ); ?></span>
-						<?php echo SScribe_Helpers::get_icon( 'check', 12, 'sscribe-phase-check' ); // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- SVG sanitized in get_icon().
-?>
+						<?php
+						echo SScribe_Helpers::get_icon( 'check', 12, 'sscribe-phase-check' ); // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- SVG sanitized in get_icon().
+						?>
 					</div>
 				</div>
 				<h4 id="sscribe-status-text" class="sscribe-status-heading">
@@ -447,7 +462,7 @@ $sscribe_step            = 1;
 		<div id="sscribe-download-area" class="sscribe-status-alert sscribe-status-success sscribe-hidden" role="status" aria-live="polite">
 			<div class="sscribe-status-icon" aria-hidden="true">
 				<?php // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- SVG sanitized in get_icon().
-?>
+				?>
 				<?php echo SScribe_Helpers::get_icon( 'check-circle', 32 ); ?>
 			</div>
 			<div class="sscribe-status-info">
@@ -473,7 +488,7 @@ $sscribe_step            = 1;
 		<div id="sscribe-error-area" class="sscribe-status-alert sscribe-status-error sscribe-hidden" role="alert" aria-live="assertive">
 			<div class="sscribe-status-icon" aria-hidden="true">
 				<?php // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- SVG sanitized in get_icon().
-?>
+				?>
 				<?php echo SScribe_Helpers::get_icon( 'warning-circle', 32 ); ?>
 			</div>
 			<div class="sscribe-status-info">
@@ -490,7 +505,7 @@ $sscribe_step            = 1;
 				<div class="sscribe-error-actions">
 					<button type="button" id="sscribe-error-try-again" class="sscribe-button sscribe-button-secondary" aria-describedby="sscribe-try-again-hint">
 						<?php // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- SVG sanitized in get_icon().
-?>
+						?>
 						<?php echo SScribe_Helpers::get_icon( 'refresh-cw', 16 ); ?>
 						<?php esc_html_e( 'Try Again', 'sscribe-export-site-pages' ); ?>
 					</button>
@@ -506,7 +521,7 @@ $sscribe_step            = 1;
 					<div class="sscribe-panel-header">
 						<div class="sscribe-panel-title">
 							<?php // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- SVG sanitized in get_icon().
-?>
+							?>
 							<?php echo SScribe_Helpers::get_icon( 'clock', 20, 'sscribe-icon-img' ); ?>
 							<h2><?php esc_html_e( 'Recent Exports', 'sscribe-export-site-pages' ); ?></h2>
 						</div>
@@ -558,8 +573,7 @@ $sscribe_step            = 1;
 										<a href="<?php echo esc_url( $sscribe_export['url'] ); ?>" class="sscribe-button sscribe-button-icon sscribe-button-sm" download title="<?php esc_attr_e( 'Download this export', 'sscribe-export-site-pages' ); ?>" aria-label="<?php esc_attr_e( 'Download this export', 'sscribe-export-site-pages' ); ?>">
 											<img src="<?php echo esc_url( SScribe_Helpers::icon_url( 'download-file' ) ); ?>" width="16" height="16" alt="">
 										</a>
-										<?php /* translators: %s: export filename */
- ?>
+										<?php /* translators: %s: export filename */ ?>
 										<button type="button" class="sscribe-button sscribe-button-icon sscribe-button-sm sscribe-log-btn" data-filename="<?php echo esc_attr( $sscribe_export['filename'] ); ?>" title="<?php esc_attr_e( 'View export log', 'sscribe-export-site-pages' ); ?>" aria-label="<?php echo esc_attr( sprintf( __( 'View export log for %s', 'sscribe-export-site-pages' ), $sscribe_export['filename'] ) ); ?>">
 											<img src="<?php echo esc_url( SScribe_Helpers::icon_url( 'file-log' ) ); ?>" width="16" height="16" alt="">
 										</button>

@@ -193,6 +193,7 @@ class SScribe_Admin {
 					'seconds'             => __( 'seconds', 'sscribe-export-site-pages' ),
 					'sec_remaining'       => __( 'sec remaining', 'sscribe-export-site-pages' ),
 
+					// translators: %1$d is minutes, %2$d is seconds.
 					'min_sec_remaining'   => __( '%1$d min %2$d sec remaining', 'sscribe-export-site-pages' ),
 					'hour_suffix'         => __( 'h', 'sscribe-export-site-pages' ),
 					'minute_suffix'       => __( 'm', 'sscribe-export-site-pages' ),
@@ -238,6 +239,7 @@ class SScribe_Admin {
 					'net_504'             => __( 'Gateway timeout (HTTP 504). The request took too long to process. Ask your hosting provider to increase the PHP max_execution_time.', 'sscribe-export-site-pages' ),
 					'net_timeout'         => __( 'Request timed out — the server took too long to respond. This may happen with large exports. Please try again.', 'sscribe-export-site-pages' ),
 
+					// translators: %d is the HTTP status code.
 					'net_unknown'         => __( 'A network error occurred (HTTP %d). Please check your connection and try again.', 'sscribe-export-site-pages' ),
 					'support_loading'     => __( 'Loading support information...', 'sscribe-export-site-pages' ),
 					'support_error'       => __( 'Unable to load support information right now.', 'sscribe-export-site-pages' ),
