@@ -1,4 +1,9 @@
 <?php
+/**
+ * SScribe Enhanced Logger
+ *
+ * @package SScribe_Export_Site_Pages
+ */
 
 declare(strict_types=1);
 
@@ -9,28 +14,81 @@ if ( ! defined( 'ABSPATH' ) ) {
 require_once SSCRIBE_PLUGIN_DIR . 'includes/interfaces/interface-sscribe-logger.php';
 require_once SSCRIBE_PLUGIN_DIR . 'includes/traits/trait-sscribe-logger-common.php';
 
+/**
+ * Enhanced logger with multiple output destinations.
+ */
 class SScribe_Logger_Enhanced implements SScribe_Logger_Interface {
 
 	use SScribe_Logger_Common;
 
+	/**
+	 * Minimum log level threshold.
+	 *
+	 * @var string
+	 */
 	private string $min_level;
 
+	/**
+	 * Enable database logging.
+	 *
+	 * @var bool
+	 */
 	private bool $enable_db;
 
+	/**
+	 * Enable Query Monitor logging.
+	 *
+	 * @var bool
+	 */
 	private bool $enable_qm;
 
+	/**
+	 * Enable file logging.
+	 *
+	 * @var bool
+	 */
 	private bool $enable_file;
 
+	/**
+	 * Log message buffer.
+	 *
+	 * @var array
+	 */
 	private array $buffer = array();
 
+	/**
+	 * Log directory path.
+	 *
+	 * @var string
+	 */
 	private readonly string $log_dir;
 
+	/**
+	 * Database table name for logs.
+	 *
+	 * @var string
+	 */
 	private readonly string $table_name;
 
+	/**
+	 * Current request identifier.
+	 *
+	 * @var string
+	 */
 	private readonly string $request_id;
 
+	/**
+	 * Current session identifier.
+	 *
+	 * @var string|null
+	 */
 	private ?string $session_id = null;
 
+	/**
+	 * Log level priority mapping.
+	 *
+	 * @var array<string, int>
+	 */
 	private const LEVEL_PRIORITY = array(
 		self::LEVEL_DEBUG     => 0,
 		self::LEVEL_INFO      => 1,
@@ -42,6 +100,11 @@ class SScribe_Logger_Enhanced implements SScribe_Logger_Interface {
 		self::LEVEL_EMERGENCY => 7,
 	);
 
+	/**
+	 * Constructor.
+	 *
+	 * @param array $options Logger configuration options.
+	 */
 	public function __construct( array $options = array() ) {
 		$this->min_level   = $options['min_level'] ?? self::LEVEL_INFO;
 		$this->enable_db   = $options['enable_db'] ?? false;
@@ -58,14 +121,34 @@ class SScribe_Logger_Enhanced implements SScribe_Logger_Interface {
 		}
 	}
 
+	/**
+	 * Get request identifier.
+	 *
+	 * @return string Request ID.
+	 */
 	protected function get_request_id(): string {
 		return $this->request_id;
 	}
 
+	/**
+	 * Set session identifier for log context.
+	 *
+	 * @param string $session_id Session identifier.
+	 */
+	/**
+	 * Set session identifier for log context.
+	 *
+	 * @param string $session_id Session identifier.
+	 */
 	public function set_session_id( string $session_id ): void {
 		$this->session_id = $session_id;
 	}
 
+	/**
+	 * Get context enrichment data for log entries.
+	 *
+	 * @return array Context data.
+	 */
 	protected function get_context_enrichment(): array {
 		$context = array(
 			'plugin_version' => defined( 'SSCRIBE_VERSION' ) ? (string) SSCRIBE_VERSION : 'unknown',
@@ -81,12 +164,32 @@ class SScribe_Logger_Enhanced implements SScribe_Logger_Interface {
 		return $context;
 	}
 
+	/**
+	 * Determine if a log level should be processed.
+	 *
+	 * @param string $level Log level to check.
+	 * @return bool True if level meets threshold.
+	 */
 	private function should_log( string $level ): bool {
 		$current = self::LEVEL_PRIORITY[ $this->min_level ] ?? 1;
 		$check   = self::LEVEL_PRIORITY[ $level ] ?? 1;
 		return $check >= $current;
 	}
 
+	/**
+	 * Log a message at specified level.
+	 *
+	 * @param string $level   Log level.
+	 * @param string $message Log message.
+	 * @param array  $context Additional context data.
+	 */
+	/**
+	 * Write a log entry to the log destinations.
+	 *
+	 * @param string $level   Log level.
+	 * @param string $message Log message.
+	 * @param array  $context Additional context data.
+	 */
 	public function log( string $level, string $message, array $context = array() ): void {
 		if ( ! $this->should_log( $level ) ) {
 			return;
@@ -107,154 +210,32 @@ class SScribe_Logger_Enhanced implements SScribe_Logger_Interface {
 		}
 	}
 
-	private function format_entry( string $level, string $message, array $context ): array {
-		$timestamp = current_time( 'mysql', true );
-		$user_id   = get_current_user_id();
-
-		$sanitized_context = $this->sanitize_context( array_merge( $this->get_context_enrichment(), $context ) );
-
-		$file_entry = sprintf(
-			'[%s] [%s] %s | %s',
-			$timestamp,
-			strtoupper( $level ),
-			$message,
-			wp_json_encode( $sanitized_context, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES )
-		);
-
-		$db_entry = array(
-			'timestamp'    => $timestamp,
-			'level'        => $level,
-			'message'      => $message,
-			'context'      => wp_json_encode( $sanitized_context ),
-			'user_id'      => $user_id,
-			'request_id'   => $this->request_id,
-			'memory_usage' => size_format( memory_get_usage( true ) ),
-		);
-
-		return array(
-			'file' => $file_entry,
-			'db'   => $db_entry,
-		);
-	}
-
-	private function sanitize_context( array $context ): array {
-		$forbidden_keys = array( 'password', 'token', 'secret', 'api_key', 'auth', 'credential', 'private_key' );
-
-		foreach ( $forbidden_keys as $key ) {
-			if ( isset( $context[ $key ] ) ) {
-				$context[ $key ] = '[REDACTED]';
-			}
-		}
-
-		return $context;
-	}
-
-	private function write_to_database( array $entry ): void {
-		global $wpdb;
-
-		if ( ! $this->table_exists() ) {
-			return;
-		}
-
-		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
-
-		$wpdb->insert(
-			$this->table_name,
-			$entry,
-			array( '%s', '%s', '%s', '%s', '%d', '%s', '%s' )
-		);
-	}
-
-	private function table_exists(): bool {
-		global $wpdb;
-		static $exists = null;
-
-		if ( null === $exists ) {
-			// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
-
-			$table  = $wpdb->get_var(
-				$wpdb->prepare( 'SHOW TABLES LIKE %s', $this->table_name )
-			);
-			$exists = ( $table === $this->table_name );
-		}
-
-		return $exists;
-	}
-
-	private function write_to_query_monitor( string $level, string $message, array $context ): void {
-
-		$action = 'sscribe_qm/' . $level; // phpcs:ignore WordPress.NamingConventions.PrefixAllGlobals.DynamicHooknameFound -- Hook name prefixed with sscribe_qm/
-
-		if ( did_action( 'plugins_loaded' ) ) {
-			do_action( $action, $message, $context ); // phpcs:ignore WordPress.NamingConventions.PrefixAllGlobals.DynamicHooknameFound -- Hook name prefixed with sscribe_qm/
-
-		}
-	}
-
-	private function get_log_file(): string {
-		if ( ! file_exists( $this->log_dir ) ) {
-			SScribe_Security::protect_directory( $this->log_dir );
-		}
-		return $this->log_dir . '/sscribe_' . gmdate( 'Y-m-d' ) . '.log';
-	}
-
-	public function flush(): void {
-		if ( empty( $this->buffer ) || ! $this->enable_file ) {
-			return;
-		}
-
-		$log_file = $this->get_log_file();
-		$content  = implode( PHP_EOL, $this->buffer ) . PHP_EOL;
-
-		// phpcs:ignore WordPress.WP.AlternativeFunctions.file_system_operations_file_put_contents
-
-		$result = file_put_contents( $log_file, $content, FILE_APPEND | LOCK_EX );
-
-		if ( false !== $result ) {
-			$this->buffer = array();
-		}
-	}
-
-	public function debug( string $message, array $context = array() ): void {
-		$this->log( self::LEVEL_DEBUG, $message, $context );
-	}
-
-	public function info( string $message, array $context = array() ): void {
-		$this->log( self::LEVEL_INFO, $message, $context );
-	}
-
-	public function notice( string $message, array $context = array() ): void {
-		$this->log( self::LEVEL_NOTICE, $message, $context );
-	}
-
-	public function warning( string $message, array $context = array() ): void {
-		$this->log( self::LEVEL_WARNING, $message, $context );
-	}
-
-	public function error( string $message, array $context = array() ): void {
-		$this->log( self::LEVEL_ERROR, $message, $context );
-	}
-
-	public function critical( string $message, array $context = array() ): void {
-		$this->log( self::LEVEL_CRITICAL, 'CRITICAL: ' . $message, $context );
-	}
-
-	public function alert( string $message, array $context = array() ): void {
-		$this->log( self::LEVEL_ALERT, $message, $context );
-	}
-
-	public function emergency( string $message, array $context = array() ): void {
-		$this->log( self::LEVEL_EMERGENCY, $message, $context );
-	}
-
+	/**
+	 * Check if logger has any active output.
+	 *
+	 * @return bool True if file or database logging is enabled.
+	 */
 	public function is_enabled(): bool {
 		return $this->enable_file || $this->enable_db;
 	}
 
+	/**
+	 * Get recent log entries from database.
+	 *
+	 * @param int $limit Maximum number of entries to return.
+	 * @return array Log entries.
+	 */
 	public function get_logs( int $limit = 100 ): array {
 		return $this->get_db_logs( array(), $limit );
 	}
 
+	/**
+	 * Get log entries from database with optional filters.
+	 *
+	 * @param array $filters Filter criteria (level, user_id, date_from, date_to).
+	 * @param int   $limit   Maximum number of entries.
+	 * @return array Log entries.
+	 */
 	public function get_db_logs( array $filters = array(), int $limit = 100 ): array {
 		global $wpdb;
 
@@ -298,6 +279,12 @@ class SScribe_Logger_Enhanced implements SScribe_Logger_Interface {
 		);
 	}
 
+		/**
+		 * Delete old log entries from the database.
+		 *
+		 * @param int $days Number of days to retain.
+		 * @return int Number of rows deleted.
+		 */
 	public function cleanup_db_logs( int $days = 30 ): int {
 		global $wpdb;
 

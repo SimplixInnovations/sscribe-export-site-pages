@@ -1,4 +1,9 @@
 <?php
+/**
+ * SScribe Batch Processor
+ *
+ * @package SScribe_Export_Site_Pages
+ */
 
 declare(strict_types=1);
 
@@ -6,42 +11,133 @@ if ( ! defined( 'ABSPATH' ) ) {
 	exit;
 }
 
+/**
+ * Handles batch export processing with rate limiting and resource monitoring.
+ */
 class SScribe_Batch_Processor {
 
 	private const MAX_STORED_ERRORS = 50;
 
+	/**
+	 * Number of pages to process in each batch.
+	 *
+	 * @var int
+	 */
 	private int $batch_size = 5;
 
+	/**
+	 * Diagnostics service.
+	 *
+	 * @var SScribe_Diagnostics
+	 */
 	private SScribe_Diagnostics $diagnostics;
 
+	/**
+	 * Page collector service.
+	 *
+	 * @var \SScribe_Page_Collector
+	 */
 	private readonly \SScribe_Page_Collector $collector;
 
+	/**
+	 * Zip handler service.
+	 *
+	 * @var \SScribe_Zip_Handler
+	 */
 	private readonly \SScribe_Zip_Handler $zip_handler;
 
+	/**
+	 * Session manager.
+	 *
+	 * @var \SScribe_Session
+	 */
 	private readonly \SScribe_Session $session;
 
+	/**
+	 * Logger interface.
+	 *
+	 * @var \SScribe_Logger_Interface
+	 */
 	private readonly \SScribe_Logger_Interface $logger;
 
+	/**
+	 * Audit trail for tracking operations.
+	 *
+	 * @var \SScribe_Audit_Trail
+	 */
 	private readonly \SScribe_Audit_Trail $audit_trail;
 
+	/**
+	 * Export log instance.
+	 *
+	 * @var \SScribe_Export_Log|null
+	 */
 	private ?\SScribe_Export_Log $export_log = null;
 
+	/**
+	 * Current lock token for export operations.
+	 *
+	 * @var string|null
+	 */
 	private ?string $current_lock_token = null;
 
+	/**
+	 * Adaptive metrics collector.
+	 *
+	 * @var \SScribe_Adaptive_Metrics
+	 */
 	private readonly \SScribe_Adaptive_Metrics $adaptive_metrics;
 
+	/**
+	 * Rate limiter for export operations.
+	 *
+	 * @var SScribe_Export_Rate_Limiter
+	 */
 	private readonly SScribe_Export_Rate_Limiter $rate_limiter;
 
+	/**
+	 * Export auditor.
+	 *
+	 * @var SScribe_Export_Auditor
+	 */
 	private readonly SScribe_Export_Auditor $auditor;
 
+	/**
+	 * Resource monitor.
+	 *
+	 * @var SScribe_Export_Resource_Monitor
+	 */
 	private readonly SScribe_Export_Resource_Monitor $resource_monitor;
 
+	/**
+	 * Lock manager for concurrent operations.
+	 *
+	 * @var SScribe_Export_Lock_Manager
+	 */
 	private readonly SScribe_Export_Lock_Manager $lock_manager;
 
+	/**
+	 * Error handler for export failures.
+	 *
+	 * @var SScribe_Export_Error_Handler
+	 */
 	private readonly SScribe_Export_Error_Handler $error_handler;
 
+	/**
+	 * Query controller for database operations.
+	 *
+	 * @var SScribe_Export_Query_Controller
+	 */
 	private readonly SScribe_Export_Query_Controller $query_controller;
 
+	/**
+	 * Initialize the batch processor.
+	 *
+	 * @param SScribe_Page_Collector|null   $collector   Page collector.
+	 * @param SScribe_Zip_Handler|null      $zip_handler Zip handler.
+	 * @param SScribe_Session|null          $session     Session.
+	 * @param SScribe_Logger_Interface|null $logger      Logger.
+	 */
 	public function __construct(
 		?SScribe_Page_Collector $collector = null,
 		?SScribe_Zip_Handler $zip_handler = null,
@@ -75,30 +171,70 @@ class SScribe_Batch_Processor {
 		);
 	}
 
+	/**
+	 * Verify rate limit hasn't been exceeded.
+	 *
+	 * @return bool True if rate limit check passes.
+	 */
 	private function check_rate_limit(): bool {
 		return $this->rate_limiter->check_rate_limit( $this->get_required_capability() );
 	}
 
+	/**
+	 * Log an audit event.
+	 *
+	 * @param string $action  Action name.
+	 * @param array  $context Additional context.
+	 */
 	private function audit_log( string $action, array $context = array() ): void {
 		$this->auditor->log( $action, $context );
 	}
 
+	/**
+	 * Check if there's enough memory for processing.
+	 *
+	 * @param int $buffer_mb Additional buffer in MB.
+	 * @return bool True if memory is available.
+	 */
 	private function is_memory_available( int $buffer_mb = 10 ): bool {
 		return $this->resource_monitor->is_memory_available( $buffer_mb );
 	}
 
+	/**
+	 * Check if there's enough time remaining for batch processing.
+	 *
+	 * @param float $batch_start_time Start time of batch.
+	 * @param int   $buffer_seconds   Safety buffer in seconds.
+	 * @return bool True if time is available.
+	 */
 	private function is_time_available( float $batch_start_time, int $buffer_seconds = 10 ): bool {
 		return $this->resource_monitor->is_time_available( $batch_start_time, $buffer_seconds );
 	}
 
+	/**
+	 * Calculate remaining processing time.
+	 *
+	 * @param float $batch_start_time Start time of batch.
+	 * @return float Remaining time in seconds.
+	 */
 	private function get_remaining_time( float $batch_start_time ): float {
 		return $this->resource_monitor->get_remaining_time( $batch_start_time );
 	}
 
+	/**
+	 * Get current memory usage as percentage.
+	 *
+	 * @return float Memory usage percentage.
+	 */
 	private function get_memory_usage_percent(): float {
 		return $this->resource_monitor->get_memory_usage_percent();
 	}
 
+	/**
+	 * Adjust batch size based on available resources.
+	 *
+	 * @param array $formats Export formats being processed.
+	 */
 	private function optimize_batch_size( array $formats = array() ): void {
 		$this->batch_size = $this->resource_monitor->get_optimal_batch_size( $formats );
 
@@ -111,10 +247,22 @@ class SScribe_Batch_Processor {
 		);
 	}
 
+	/**
+	 * Get warning message if memory might be insufficient.
+	 *
+	 * @param int   $page_count Number of pages.
+	 * @param array $formats    Export formats.
+	 * @return array|null Warning array or null if okay.
+	 */
 	private function get_memory_warning( int $page_count, array $formats ): ?array {
 		return $this->resource_monitor->get_memory_warning( $page_count, $formats );
 	}
 
+	/**
+	 * Get the capability required for export operations.
+	 *
+	 * @return string Capability name.
+	 */
 	private function get_required_capability(): string {
 		$capability = apply_filters( 'sscribe_export_capability', 'manage_options' );
 
@@ -132,6 +280,13 @@ class SScribe_Batch_Processor {
 		return $capability;
 	}
 
+	/**
+	 * Verify the session belongs to the current user.
+	 *
+	 * @param array  $session   Session data.
+	 * @param string $session_id Session identifier.
+	 * @return bool True if user owns the session.
+	 */
 	private function validate_session_ownership( array $session, string $session_id ): bool {
 		$current_user_id = get_current_user_id();
 
@@ -162,6 +317,9 @@ class SScribe_Batch_Processor {
 		return true;
 	}
 
+	/**
+	 * Start a new export session via AJAX.
+	 */
 	public function ajax_start_export(): void {
 		if ( ! check_ajax_referer( 'sscribe_export_nonce', 'nonce', false ) ) {
 			SScribe_AJAX_Guard::error( array( 'message' => __( 'Security check failed.', 'sscribe-export-site-pages' ) ), 403 );
@@ -385,6 +543,9 @@ class SScribe_Batch_Processor {
 		SScribe_AJAX_Guard::success( $response );
 	}
 
+	/**
+	 * Process a batch of pages via AJAX.
+	 */
 	public function ajax_process_batch(): void {
 		if ( ! check_ajax_referer( 'sscribe_export_nonce', 'nonce', false ) ) {
 			SScribe_AJAX_Guard::error( array( 'message' => __( 'Security check failed.', 'sscribe-export-site-pages' ) ), 403 );
@@ -411,9 +572,9 @@ class SScribe_Batch_Processor {
 		}
 
 		$max_time = (int) apply_filters( 'sscribe_max_execution_time', 120 );
-if ( function_exists( 'set_time_limit' ) ) {
+		if ( function_exists( 'set_time_limit' ) ) {
 				set_time_limit( $max_time ); // phpcs:ignore Squiz.PHP.DiscouragedFunctions.Discouraged
-			}
+		}
 		wp_raise_memory_limit( 'admin' );
 
 		$ob_level_before = ob_get_level();
@@ -1130,6 +1291,11 @@ if ( function_exists( 'set_time_limit' ) ) {
 		SScribe_AJAX_Guard::success( $response );
 	}
 
+	/**
+	 * Restore output buffer level to target.
+	 *
+	 * @param int $target_level Target buffer level.
+	 */
 	private function restore_ob_level( int $target_level ): void {
 
 		while ( ob_get_level() > $target_level ) {
@@ -1143,6 +1309,9 @@ if ( function_exists( 'set_time_limit' ) ) {
 		}
 	}
 
+	/**
+	 * Finalize the export via AJAX.
+	 */
 	public function ajax_finalize_export(): void {
 		if ( ! check_ajax_referer( 'sscribe_export_nonce', 'nonce', false ) ) {
 			SScribe_AJAX_Guard::error( array( 'message' => __( 'Security check failed.', 'sscribe-export-site-pages' ) ), 403 );
@@ -1222,6 +1391,12 @@ if ( function_exists( 'set_time_limit' ) ) {
 		$this->finalize_export( $session_id, $session );
 	}
 
+	/**
+	 * Complete the export process and package files.
+	 *
+	 * @param string $session_id Export session ID.
+	 * @param array  $session    Session data.
+	 */
 	private function finalize_export( string $session_id, array $session ): void {
 
 		if ( null === $this->export_log ) {
@@ -1431,8 +1606,7 @@ if ( function_exists( 'set_time_limit' ) ) {
 			$total_files_zip = 0;
 			if ( true === $zip_open ) {
 				// phpcs:ignore WordPress.NamingConventions.ValidVariableName.UsedPropertyNotSnakeCase -- Native ZipArchive property.
-
-				$total_files_zip = $zip->numFiles;
+				$total_files_zip = $zip->numFiles; // phpcs:ignore WordPress.NamingConventions.ValidVariableName.UsedPropertyNotSnakeCase -- Native ZipArchive property.
 				$zip->close();
 			}
 
@@ -1627,10 +1801,16 @@ if ( function_exists( 'set_time_limit' ) ) {
 		}
 	}
 
+	/**
+	 * Run health check diagnostics via AJAX.
+	 */
 	public function ajax_health_check(): void {
 		$this->query_controller->ajax_health_check( $this->get_required_capability() );
 	}
 
+	/**
+	 * Handle file download via AJAX.
+	 */
 	public function ajax_download(): void {
 		if ( ! check_ajax_referer( 'sscribe_download', 'nonce', false ) ) {
 			status_header( 403 );
@@ -1713,7 +1893,7 @@ if ( function_exists( 'set_time_limit' ) ) {
 				set_time_limit( 360 ); // phpcs:ignore Squiz.PHP.DiscouragedFunctions.Discouraged
 			}
 
-		$read_result = readfile( $file_path ); // phpcs:ignore WordPress.WP.AlternativeFunctions.file_system_operations_readfile -- Direct download
+			$read_result = readfile( $file_path ); // phpcs:ignore WordPress.WP.AlternativeFunctions.file_system_operations_readfile -- Direct download
 			if ( false === $read_result ) {
 				$this->logger->warning(
 					'readfile() returned false — possible partial read',
@@ -1738,10 +1918,16 @@ if ( function_exists( 'set_time_limit' ) ) {
 		}
 	}
 
+	/**
+	 * Get export status counts via AJAX.
+	 */
 	public function ajax_get_status_counts(): void {
 		$this->query_controller->ajax_get_status_counts( $this->get_required_capability() );
 	}
 
+	/**
+	 * Cancel an ongoing export via AJAX.
+	 */
 	public function ajax_cancel_export(): void {
 		if ( ! check_ajax_referer( 'sscribe_export_nonce', 'nonce', false ) ) {
 			SScribe_AJAX_Guard::error( array( 'message' => __( 'Security check failed.', 'sscribe-export-site-pages' ) ), 403 );
@@ -1775,6 +1961,11 @@ if ( function_exists( 'set_time_limit' ) ) {
 		SScribe_AJAX_Guard::success( array( 'message' => __( 'Export cancelled.', 'sscribe-export-site-pages' ) ) );
 	}
 
+	/**
+	 * Remove temporary files after a cancelled export.
+	 *
+	 * @param array $session Session data.
+	 */
 	private function cleanup_cancelled_export( array $session ): void {
 		if ( ! empty( $session['temp_dir'] ) && is_dir( $session['temp_dir'] ) ) {
 			$this->zip_handler->delete_directory( $session['temp_dir'] );
@@ -1787,6 +1978,9 @@ if ( function_exists( 'set_time_limit' ) ) {
 		}
 	}
 
+	/**
+	 * Delete an export via AJAX.
+	 */
 	public function ajax_delete_export(): void {
 		if ( ! check_ajax_referer( 'sscribe_download', 'nonce', false ) ) {
 			SScribe_AJAX_Guard::error( array( 'message' => __( 'Security check failed.', 'sscribe-export-site-pages' ) ), 403 );
@@ -1853,14 +2047,27 @@ if ( function_exists( 'set_time_limit' ) ) {
 		SScribe_AJAX_Guard::success( array( 'message' => __( 'Export deleted.', 'sscribe-export-site-pages' ) ) );
 	}
 
+	/**
+	 * Get export log entries via AJAX.
+	 */
 	public function ajax_get_export_log(): void {
 		$this->query_controller->ajax_get_export_log( $this->get_required_capability() );
 	}
 
+	/**
+	 * Assemble diagnostics data for error responses.
+	 *
+	 * @param array $structured_errors Structured error data.
+	 * @param array $string_errors     String error data.
+	 * @return array Diagnostics payload.
+	 */
 	private function build_error_diagnostics_payload( array $structured_errors, array $string_errors = array() ): array {
 		return $this->error_handler->build_diagnostics_payload( $structured_errors, $string_errors );
 	}
 
+	/**
+	 * Clear export session via AJAX.
+	 */
 	public function ajax_clear_session(): void {
 		if ( ! check_ajax_referer( 'sscribe_export_nonce', 'nonce', false ) ) {
 			SScribe_AJAX_Guard::error( array( 'message' => __( 'Security check failed.', 'sscribe-export-site-pages' ) ), 403 );
@@ -1892,30 +2099,56 @@ if ( function_exists( 'set_time_limit' ) ) {
 		SScribe_AJAX_Guard::success( array( 'message' => __( 'Session cleared.', 'sscribe-export-site-pages' ) ) );
 	}
 
+	/**
+	 * Clean up stale locks for a user.
+	 *
+	 * @param int|null $user_id User ID.
+	 */
 	private function cleanup_user_locks( ?int $user_id = null ): void {
 		$this->lock_manager->cleanup_user_locks( $user_id );
 	}
 
+	/**
+	 * Release export lock for a session.
+	 *
+	 * @param string $session_id Session ID.
+	 * @return bool True if lock was released.
+	 */
 	private function release_lock( string $session_id ): bool {
 		return $this->lock_manager->release_lock( $session_id, $this->current_lock_token );
 	}
 
+	/**
+	 * Run preflight checks before export via AJAX.
+	 */
 	public function ajax_preflight_check(): void {
 		$this->query_controller->ajax_preflight_check( $this->get_required_capability() );
 	}
 
+	/**
+	 * Get export preview via AJAX.
+	 */
 	public function ajax_get_export_preview(): void {
 		$this->query_controller->ajax_get_export_preview( $this->get_required_capability() );
 	}
 
+	/**
+	 * Get recent exports list via AJAX.
+	 */
 	public function ajax_get_recent_exports(): void {
 		$this->query_controller->ajax_get_recent_exports( $this->get_required_capability() );
 	}
 
+	/**
+	 * Get support information via AJAX.
+	 */
 	public function ajax_get_support_info(): void {
 		$this->query_controller->ajax_get_support_info( $this->get_required_capability() );
 	}
 
+	/**
+	 * Refresh download nonce via AJAX.
+	 */
 	public function ajax_refresh_download_nonce(): void {
 		if ( ! check_ajax_referer( 'sscribe_export_nonce', 'nonce', false ) ) {
 			SScribe_AJAX_Guard::error( array( 'message' => __( 'Security check failed.', 'sscribe-export-site-pages' ) ), 403 );

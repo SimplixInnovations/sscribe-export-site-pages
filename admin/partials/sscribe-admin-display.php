@@ -1,4 +1,10 @@
 <?php
+/**
+ * SScribe Export Site Pages - Admin Display Template
+ *
+ * @package SScribe_Export_Site_Pages
+ * @subpackage Admin/Partials
+ */
 
 if ( ! defined( 'ABSPATH' ) ) {
 	exit;
@@ -154,7 +160,7 @@ $sscribe_step            = 1;
 					</div>
 
 				<?php if ( $sscribe_wpml_active && ! empty( $sscribe_languages ) ) : ?>
-					<?php $sscribe_step++; ?>
+					<?php ++$sscribe_step; ?>
 					<div class="sscribe-config-section">
 						<div class="sscribe-config-section-header">
 							<span class="sscribe-step-badge"><?php echo esc_html( $sscribe_step ); ?></span>
@@ -214,7 +220,7 @@ $sscribe_step            = 1;
 					</div>
 					<?php endif; ?>
 
-					<?php $sscribe_step++; ?>
+					<?php ++$sscribe_step; ?>
 					<div class="sscribe-config-section">
 						<div class="sscribe-section-title">
 							<span class="sscribe-step-badge"><?php echo esc_html( $sscribe_step ); ?></span>
@@ -274,7 +280,7 @@ $sscribe_step            = 1;
 						</div>
 					</div>
 
-					<?php $sscribe_step++; ?>
+					<?php ++$sscribe_step; ?>
 					<div class="sscribe-config-section">
 						<div class="sscribe-section-title">
 							<span class="sscribe-step-badge"><?php echo esc_html( $sscribe_step ); ?></span>
@@ -564,7 +570,17 @@ $sscribe_step            = 1;
 										<div class="sscribe-file-details">
 											<strong><?php echo esc_html( $sscribe_export['filename'] ); ?></strong>
 											<span>
-												<?php echo esc_html( wp_date( ( get_option( 'date_format' ) ?: 'Y-m-d' ) . ' ' . ( get_option( 'time_format' ) ?: 'H:i' ), $sscribe_export['time'] ) ); ?>
+												<?php
+												$sscribe_date_fmt = get_option( 'date_format' );
+												if ( ! $sscribe_date_fmt ) {
+													$sscribe_date_fmt = 'Y-m-d';
+												}
+												$sscribe_time_fmt = get_option( 'time_format' );
+												if ( ! $sscribe_time_fmt ) {
+													$sscribe_time_fmt = 'H:i';
+												}
+												echo esc_html( wp_date( $sscribe_date_fmt . ' ' . $sscribe_time_fmt, $sscribe_export['time'] ) );
+												?>
 												&mdash; <?php echo esc_html( size_format( $sscribe_export['size'] ) ); ?>
 											</span>
 										</div>

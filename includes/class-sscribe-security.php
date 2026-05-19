@@ -1,4 +1,9 @@
 <?php
+/**
+ * SScribe Security Handler
+ *
+ * @package SScribe_Export_Site_Pages
+ */
 
 declare(strict_types=1);
 
@@ -6,8 +11,16 @@ if ( ! defined( 'ABSPATH' ) ) {
 	exit;
 }
 
+/**
+ * Handles security operations for SScribe export files.
+ */
 class SScribe_Security {
 
+	/**
+	 * Protect a directory with .htaccess and index.php files.
+	 *
+	 * @param string $dir Directory path to protect.
+	 */
 	public static function protect_directory( string $dir ): void {
 		self::validate_path_scope( $dir );
 
@@ -28,19 +41,23 @@ class SScribe_Security {
 			$content .= "  </IfModule>\n";
 			$content .= "</Files>\n";
 
-			// phpcs:ignore WordPress.WP.AlternativeFunctions.file_system_operations_file_put_contents -- Required for directory security; path validated above.
-
-			file_put_contents( $htaccess_path, $content );
+			file_put_contents( $htaccess_path, $content ); // phpcs:ignore WordPress.WP.AlternativeFunctions.file_system_operations_file_put_contents -- Required for directory security; path validated above.
 		}
 
 		$index_path = $dir . '/index.php';
 		if ( ! file_exists( $index_path ) ) {
-			// phpcs:ignore WordPress.WP.AlternativeFunctions.file_system_operations_file_put_contents -- Required for directory security; path validated above.
-
-			file_put_contents( $index_path, "<?php\n// Silence is golden.\n" );
+			file_put_contents( $index_path, "<?php\n// Silence is golden.\n" ); // phpcs:ignore WordPress.WP.AlternativeFunctions.file_system_operations_file_put_contents -- Required for directory security; path validated above.
 		}
 	}
 
+	/**
+	 * Delete a directory and all its contents recursively.
+	 *
+	 * @param string $dir      Directory path to delete.
+	 * @param int    $max_depth Maximum recursion depth.
+	 * @param int    $depth     Current recursion depth.
+	 * @return bool True if deleted, false otherwise.
+	 */
 	public static function delete_directory( string $dir, int $max_depth = 20, int $depth = 0 ): bool {
 		if ( ! is_dir( $dir ) ) {
 			return false;
@@ -70,6 +87,12 @@ class SScribe_Security {
 		return rmdir( $dir ); // phpcs:ignore WordPress.WP.AlternativeFunctions.file_system_operations_rmdir -- Required for recursive directory deletion; path validated above.
 	}
 
+	/**
+	 * Validate that a path is within the allowed scope.
+	 *
+	 * @param string $path Path to validate.
+	 * @throws \InvalidArgumentException If path is outside allowed scope.
+	 */
 	private static function validate_path_scope( string $path ): void {
 		if ( ! self::is_path_in_scope( $path ) ) {
 			throw new \InvalidArgumentException(
@@ -81,8 +104,13 @@ class SScribe_Security {
 		}
 	}
 
+	/**
+	 * Check if a path is within the uploads directory scope.
+	 *
+	 * @param string $path Path to check.
+	 * @return bool True if path is in scope.
+	 */
 	private static function is_path_in_scope( string $path ): bool {
-
 		if ( str_contains( $path, '..' ) ) {
 			return false;
 		}

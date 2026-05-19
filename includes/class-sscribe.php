@@ -1,4 +1,9 @@
 <?php
+/**
+ * SScribe Main Plugin Class
+ *
+ * @package SScribe_Export_Site_Pages
+ */
 
 declare(strict_types=1);
 
@@ -6,17 +11,36 @@ if ( ! defined( 'ABSPATH' ) ) {
 	exit;
 }
 
+/**
+ * Main plugin class that initializes and coordinates all services.
+ */
 class SScribe {
 
+	/**
+	 * Plugin loader instance.
+	 *
+	 * @var SScribe_Loader
+	 */
 	protected SScribe_Loader $loader;
 
+	/**
+	 * Plugin version.
+	 *
+	 * @var string
+	 */
 	protected string $version;
 
+	/**
+	 * Initialize the plugin.
+	 */
 	public function __construct() {
 		$this->version = SSCRIBE_VERSION;
 		$this->loader  = new SScribe_Loader();
 	}
 
+	/**
+	 * Register plugin services in the container.
+	 */
 	private function register_services(): void {
 		$container = SScribe_Container::instance();
 		$debug     = defined( 'SSCRIBE_DEBUG' ) && SSCRIBE_DEBUG;
@@ -87,6 +111,9 @@ class SScribe {
 		);
 	}
 
+	/**
+	 * Register admin-specific hooks.
+	 */
 	private function define_admin_hooks(): void {
 		$container = SScribe_Container::instance();
 		$admin     = $container->get( SScribe_Admin::class );
@@ -100,6 +127,9 @@ class SScribe {
 		add_filter( 'plugin_action_links_' . SSCRIBE_PLUGIN_BASENAME, array( $admin, 'add_plugin_action_links' ) );
 	}
 
+	/**
+	 * Display admin notice for missing vendor dependencies.
+	 */
 	public function render_vendor_dependency_notice(): void {
 		if ( ! current_user_can( apply_filters( 'sscribe_export_capability', 'manage_options' ) ) ) {
 			return;
@@ -125,6 +155,16 @@ class SScribe {
 		echo '<div class="notice notice-error is-dismissible"><p>' . esc_html( $message ) . '</p></div>';
 	}
 
+	/**
+	 * Clear admin page cache when posts change.
+	 *
+	 * @param int $post_id Post ID that was saved.
+	 */
+	/**
+	 * Invalidate admin page cache when posts are saved.
+	 *
+	 * @param int $post_id Post ID that was saved.
+	 */
 	public function invalidate_admin_page_cache( int $post_id ): void {
 		if ( wp_is_post_autosave( $post_id ) || wp_is_post_revision( $post_id ) ) {
 			return;
@@ -139,6 +179,9 @@ class SScribe {
 		delete_transient( $cache_key );
 	}
 
+	/**
+	 * Register AJAX hooks for background processing.
+	 */
 	private function define_ajax_hooks(): void {
 		$container = SScribe_Container::instance();
 		$batch     = $container->get( SScribe_Batch_Processor::class );
@@ -161,6 +204,9 @@ class SScribe {
 		$this->loader->add_action( 'wp_ajax_nopriv_sscribe_health_check', $batch, 'ajax_health_check' );
 	}
 
+	/**
+	 * Register scheduled task hooks.
+	 */
 	private function define_cron_hooks(): void {
 		$container = SScribe_Container::instance();
 		$zip       = $container->get( SScribe_Zip_Handler::class );
@@ -169,6 +215,9 @@ class SScribe {
 		$this->loader->add_action( 'sscribe_cleanup_sessions', $this, 'cleanup_sessions' );
 	}
 
+	/**
+	 * Register privacy-related hooks for data handling.
+	 */
 	private function define_privacy_hooks(): void {
 		$privacy = new SScribe_Privacy();
 
@@ -177,6 +226,9 @@ class SScribe {
 		$this->loader->add_filter( 'wp_privacy_personal_data_erasers', $privacy, 'register_eraser' );
 	}
 
+	/**
+	 * Clean up expired sessions and old log entries.
+	 */
 	public function cleanup_sessions(): void {
 
 		if ( ! get_transient( 'sscribe_cron_sessions_lock' ) ) {
@@ -191,6 +243,9 @@ class SScribe {
 		}
 	}
 
+	/**
+	 * Start the plugin by registering all hooks and running the loader.
+	 */
 	public function run(): void {
 
 		require_once SSCRIBE_PLUGIN_DIR . 'includes/class-sscribe-upgrader.php';
@@ -206,6 +261,9 @@ class SScribe {
 		$this->loader->run();
 	}
 
+	/**
+	 * Initialize internationalization support.
+	 */
 	private function init_i18n(): void {
 
 		load_plugin_textdomain( // phpcs:ignore PluginCheck.CodeAnalysis.DiscouragedFunctions.load_plugin_textdomainFound -- Defensive fallback for non-.org installations and local dev.

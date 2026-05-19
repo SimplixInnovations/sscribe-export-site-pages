@@ -1,4 +1,9 @@
 <?php
+/**
+ * SScribe Deactivator
+ *
+ * @package SScribe_Export_Site_Pages
+ */
 
 declare(strict_types=1);
 
@@ -6,8 +11,14 @@ if ( ! defined( 'ABSPATH' ) ) {
 	exit;
 }
 
+/**
+ * Handles plugin deactivation cleanup.
+ */
 class SScribe_Deactivator {
 
+	/**
+	 * Run deactivation cleanup tasks.
+	 */
 	public static function deactivate(): void {
 		$timestamp = wp_next_scheduled( 'sscribe_cleanup_exports' );
 		if ( $timestamp ) {
@@ -28,6 +39,9 @@ class SScribe_Deactivator {
 		}
 	}
 
+	/**
+	 * Remove plugin options and transient data.
+	 */
 	private static function cleanup_options(): void {
 		$options_to_remove = array(
 			'sscribe_export_index',

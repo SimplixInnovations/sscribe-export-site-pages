@@ -1,15 +1,39 @@
 <?php
+/**
+ * SScribe AJAX Guard
+ *
+ * @package SScribe_Export_Site_Pages
+ */
 
-declare( strict_types=1 );
+declare(strict_types=1);
 
 if ( ! defined( 'ABSPATH' ) ) {
 	exit;
 }
 
+/**
+ * Guard for sanitizing AJAX responses and cleaning output buffers.
+ */
 class SScribe_AJAX_Guard {
 
 	private const LOG_PREVIEW_MAX = 2000;
 
+	/**
+	 * Send a successful AJAX response.
+	 *
+	 * @param mixed $data       Response data.
+	 * @param int   $status_code HTTP status code.
+	 * @param array $context     Additional context for diagnostics.
+	 * @return never Never returns.
+	 */
+	/**
+	 * Send a successful JSON response and terminate.
+	 *
+	 * @param mixed $data       Response data.
+	 * @param int   $status_code HTTP status code.
+	 * @param array $context    Additional context for diagnostics.
+	 * @return never Never returns.
+	 */
 	public static function success( mixed $data = null, ?int $status_code = null, array $context = array() ): never {
 		self::sanitise_environment();
 		self::log_cleaned_buffers( 'success' );
@@ -26,6 +50,14 @@ class SScribe_AJAX_Guard {
 		exit;
 	}
 
+	/**
+	 * Send an error AJAX response.
+	 *
+	 * @param mixed $data       Response data or error message.
+	 * @param int   $status_code HTTP status code.
+	 * @param array $context     Additional context for diagnostics.
+	 * @return never Never returns.
+	 */
 	public static function error( mixed $data = null, ?int $status_code = null, array $context = array() ): never {
 		self::sanitise_environment();
 		self::log_cleaned_buffers( 'error' );
@@ -47,12 +79,22 @@ class SScribe_AJAX_Guard {
 		exit;
 	}
 
+	/**
+	 * Sanitize PHP environment for AJAX responses.
+	 */
 	private static function sanitise_environment(): void {
 		// phpcs:ignore WordPress.PHP.IniSet.Risky
 
 		self::disable_if_possible( 'display_errors', '0' );
 	}
 
+	/**
+	 * Attempt to disable a PHP configuration option.
+	 *
+	 * @param string $key   Configuration key.
+	 * @param string $value Value to set.
+	 * @return bool True if successful.
+	 */
 	private static function disable_if_possible( string $key, string $value ): bool {
 		if ( function_exists( 'ini_set' ) && false === strpos( ini_get( 'disable_functions' ), 'ini_set' ) ) {
 			// phpcs:ignore WordPress.PHP.IniSet.Risky
@@ -63,6 +105,11 @@ class SScribe_AJAX_Guard {
 		return false;
 	}
 
+	/**
+	 * Log any cleaned output buffers.
+	 *
+	 * @param string $type Response type (success or error).
+	 */
 	private static function log_cleaned_buffers( string $type ): void {
 		$start_level = ob_get_level();
 		$extraneous  = '';
@@ -120,6 +167,11 @@ class SScribe_AJAX_Guard {
 		}
 	}
 
+	/**
+	 * Get the current AJAX action name from request parameters.
+	 *
+	 * @return string Action name or 'unknown'.
+	 */
 	private static function resolve_action_name(): string {
 		// phpcs:disable WordPress.Security.NonceVerification.Recommended, WordPress.Security.NonceVerification.Missing
 
@@ -135,6 +187,12 @@ class SScribe_AJAX_Guard {
 		return 'unknown';
 	}
 
+	/**
+	 * Build diagnostics array for AJAX responses.
+	 *
+	 * @param array $context Additional context data.
+	 * @return array Diagnostics data.
+	 */
 	private static function build_diagnostics( array $context = array() ): array {
 		$diag = array(
 			'php_version'  => PHP_VERSION,
@@ -149,7 +207,7 @@ class SScribe_AJAX_Guard {
 		}
 
 		if ( defined( 'SSCRIBE_DEBUG' ) && SSCRIBE_DEBUG ) {
-			$trace = debug_backtrace( DEBUG_BACKTRACE_IGNORE_ARGS, 15 );
+			$trace             = debug_backtrace( DEBUG_BACKTRACE_IGNORE_ARGS, 15 );
 			$diag['backtrace'] = array_map(
 				static function ( array $frame ): string {
 					return sprintf(
@@ -168,6 +226,12 @@ class SScribe_AJAX_Guard {
 		return $diag;
 	}
 
+	/**
+	 * Format bytes into human-readable string.
+	 *
+	 * @param int $bytes Number of bytes.
+	 * @return string Formatted string.
+	 */
 	private static function format_bytes( int $bytes ): string {
 		if ( $bytes < 1024 ) {
 			return $bytes . ' B';
@@ -179,7 +243,7 @@ class SScribe_AJAX_Guard {
 
 		while ( $bytes >= 1024 && $i < $unit_count - 1 ) {
 			$bytes /= 1024;
-			$i++;
+			++$i;
 		}
 
 		return sprintf( '%.2f %s', $bytes, $units[ $i ] );

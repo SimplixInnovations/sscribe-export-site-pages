@@ -1,4 +1,9 @@
 <?php
+/**
+ * SScribe PDF Exporter
+ *
+ * @package SScribe_Export_Site_Pages
+ */
 
 declare(strict_types=1);
 
@@ -8,16 +13,46 @@ if ( ! defined( 'ABSPATH' ) ) {
 
 require_once SSCRIBE_PLUGIN_DIR . 'includes/exporters/interface-sscribe-exporter.php';
 
+/**
+ * Exports pages as PDF documents using mPDF library.
+ */
 class SScribe_PDF_Exporter implements SScribe_Exporter_Interface {
 
+	/**
+	 * HTML exporter for generating page content.
+	 *
+	 * @var SScribe_HTML_Exporter
+	 */
 	private SScribe_HTML_Exporter $html_exporter;
 
+	/**
+	 * Logger for tracking export operations.
+	 *
+	 * @var SScribe_Logger_Interface
+	 */
 	private SScribe_Logger_Interface $logger;
 
+	/**
+	 * Filesystem handler for file operations.
+	 *
+	 * @var SScribe_Filesystem
+	 */
 	private SScribe_Filesystem $filesystem;
 
+	/**
+	 * Flag indicating if temp directory is protected.
+	 *
+	 * @var bool
+	 */
 	private static bool $mpdf_temp_protected = false;
 
+	/**
+	 * Initialize the PDF exporter.
+	 *
+	 * @param SScribe_HTML_Exporter|null    $html_exporter HTML exporter.
+	 * @param SScribe_Logger_Interface|null $logger        Logger.
+	 * @param SScribe_Filesystem|null       $filesystem    Filesystem handler.
+	 */
 	public function __construct(
 		?SScribe_HTML_Exporter $html_exporter = null,
 		?SScribe_Logger_Interface $logger = null,
@@ -28,6 +63,15 @@ class SScribe_PDF_Exporter implements SScribe_Exporter_Interface {
 		$this->filesystem    = $filesystem ?? new SScribe_Filesystem();
 	}
 
+	/**
+	 * Export a page as a PDF file.
+	 *
+	 * @param array  $page_data Page data to export.
+	 * @param string $output_dir Output directory path.
+	 * @param int    $index     Current page index.
+	 * @param int    $total     Total number of pages.
+	 * @return SScribe_Result Result of the export operation.
+	 */
 	public function export( array $page_data, string $output_dir, int $index = 0, int $total = 0 ): SScribe_Result {
 		require_once SSCRIBE_PLUGIN_DIR . 'includes/class-sscribe-rtl-helper.php';
 		require_once SSCRIBE_PLUGIN_DIR . 'includes/class-sscribe-image-processor.php';
@@ -356,6 +400,12 @@ class SScribe_PDF_Exporter implements SScribe_Exporter_Interface {
 		}
 	}
 
+	/**
+	 * Collect paths of temporary images for cleanup.
+	 *
+	 * @param array $processed_page_data Processed page data.
+	 * @return array List of image paths.
+	 */
 	private function collect_temp_image_paths( array $processed_page_data ): array {
 		$paths = array();
 		if ( ! empty( $processed_page_data['featured_image_url'] ) ) {
@@ -368,12 +418,23 @@ class SScribe_PDF_Exporter implements SScribe_Exporter_Interface {
 		return $paths;
 	}
 
+	/**
+	 * Remove temporary image files.
+	 *
+	 * @param array $paths List of file paths to remove.
+	 */
 	private function cleanup_temp_images( array $paths ): void {
 		foreach ( $paths as $path ) {
 			SScribe_Image_Processor::cleanup( $path );
 		}
 	}
 
+	/**
+	 * Process images in page data and download local copies.
+	 *
+	 * @param array $page_data Page data to process.
+	 * @return array Processed page data.
+	 */
 	private function process_images_in_page_data( array $page_data ): array {
 		if ( ! empty( $page_data['featured_image_url'] ) ) {
 			$local_path = SScribe_Image_Processor::download_and_optimize( $page_data['featured_image_url'] );
@@ -385,6 +446,13 @@ class SScribe_PDF_Exporter implements SScribe_Exporter_Interface {
 		return $page_data;
 	}
 
+	/**
+	 * Find a font file matching the pattern in a directory.
+	 *
+	 * @param string $dir      Directory to search.
+	 * @param string $pattern  Font file pattern without extension.
+	 * @return string|null Font filename or null if not found.
+	 */
 	private function find_font_file( string $dir, string $pattern ): ?string {
 		if ( ! is_dir( $dir ) ) {
 			return null;
@@ -403,6 +471,11 @@ class SScribe_PDF_Exporter implements SScribe_Exporter_Interface {
 		return null;
 	}
 
+	/**
+	 * Get detailed information about libxml errors.
+	 *
+	 * @return array Error details.
+	 */
 	private function get_libxml_error_details(): array {
 		$errors  = libxml_get_errors();
 		$details = array();
@@ -422,10 +495,20 @@ class SScribe_PDF_Exporter implements SScribe_Exporter_Interface {
 		return $details;
 	}
 
+	/**
+	 * Get the file extension for PDF files.
+	 *
+	 * @return string File extension.
+	 */
 	public function get_extension(): string {
 		return 'pdf';
 	}
 
+	/**
+	 * Get the MIME type for PDF files.
+	 *
+	 * @return string MIME type.
+	 */
 	public function get_mime_type(): string {
 		return 'application/pdf';
 	}
