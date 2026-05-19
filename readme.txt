@@ -4,7 +4,7 @@ Donate link: https://simplixi.com
 Tags: docx, pdf, html, markdown, multilingual
 Requires at least: 6.0
 Tested up to: 6.9
-Stable tag: 1.1.5
+Stable tag: 1.1.6
 Requires PHP: 8.2
 License: GPLv2 or later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
@@ -106,6 +106,13 @@ Parameters: `(int $bytes)` — Default: 5,242,880 (5MB)
 
 == Changelog ==
 
+= 1.1.6 =
+
+* Added enterprise-grade AJAX response guard to prevent server-injected HTML from corrupting JSON responses
+* Replaced all AJAX endpoints with output buffer cleaning before JSON serialization
+* Enhanced admin JavaScript error handling with structured diagnostics and toast notifications
+* Improved compatibility with host environments that emit warnings before AJAX responses
+
 = 1.1.5 =
 
 * Fixed duplicate JavaScript function definition (copyViaTextarea)
@@ -131,6 +138,10 @@ Parameters: `(int $bytes)` — Default: 5,242,880 (5MB)
 * GDPR-compliant audit trail with HMAC-SHA256 hashed IP addresses
 
 == Upgrade Notice ==
+
+= 1.1.6 =
+
+Enterprise AJAX reliability improvements and enhanced client-side error handling.
 
 = 1.1.5 =
 
