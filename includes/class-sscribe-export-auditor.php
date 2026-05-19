@@ -7,7 +7,7 @@
  * audit trail store and the debug logger.
  *
  * @package       SScribe
- * @since         1.1.5
+ * @since         1.1.6
  */
 
 declare( strict_types=1 );
@@ -19,7 +19,7 @@ if ( ! defined( 'ABSPATH' ) ) {
 /**
  * Audit trail logging for export operations.
  *
- * @since 1.1.5
+ * @since 1.1.6
  */
 class SScribe_Export_Auditor {
 

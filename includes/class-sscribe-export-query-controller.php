@@ -7,7 +7,7 @@
  * information. These endpoints never mutate export state.
  *
  * @package       SScribe
- * @since         1.1.5
+ * @since         1.1.6
  */
 
 declare( strict_types=1 );
@@ -23,7 +23,7 @@ if ( ! defined( 'ABSPATH' ) ) {
  * to display export status, health checks, preview estimates, and
  * support information.
  *
- * @since 1.1.5
+ * @since 1.1.6
  */
 class SScribe_Export_Query_Controller {
 

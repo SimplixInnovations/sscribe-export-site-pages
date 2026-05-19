@@ -202,6 +202,12 @@ if ( $canonical_version ) {
 			if ( 'sscribe-export-site-pages.php' === basename( $f ) ) {
 				continue;
 			}
+			// Skip class-sscribe-deactivator.php — version-history comments and @deprecated 1.1.x annotations
+			// document when specific behaviours were changed/removed. Those versions are factual and must
+			// not be bumped with the project version.
+			if ( 'class-sscribe-deactivator.php' === basename( $f ) ) {
+				continue;
+			}
 			$has_actual_warnings = true;
 			$unique              = array_unique( $vs );
 			foreach ( $unique as $v ) {

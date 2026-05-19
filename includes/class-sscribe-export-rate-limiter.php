@@ -13,7 +13,7 @@
  * {@see 'sscribe_rate_limit_admin'} hook.
  *
  * @package       SScribe
- * @since         1.1.5
+ * @since         1.1.6
  */
 
 declare( strict_types=1 );
@@ -27,7 +27,7 @@ if ( ! defined( 'ABSPATH' ) ) {
  *
  * Configuration is entirely via class constants and filterable hooks.
  *
- * @since 1.1.5
+ * @since 1.1.6
  */
 class SScribe_Export_Rate_Limiter {
 

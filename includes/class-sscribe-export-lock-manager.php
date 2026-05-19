@@ -7,7 +7,7 @@
  * batch requests. Lock format: "timestamp|token".
  *
  * @package       SScribe
- * @since         1.1.5
+ * @since         1.1.6
  */
 
 declare( strict_types=1 );
@@ -23,7 +23,7 @@ if ( ! defined( 'ABSPATH' ) ) {
  * Each lock acquisition returns a unique token; the caller must present
  * the same token to release the lock.
  *
- * @since 1.1.5
+ * @since 1.1.6
  */
 class SScribe_Export_Lock_Manager {
 
