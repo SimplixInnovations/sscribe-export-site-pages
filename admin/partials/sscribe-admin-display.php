@@ -377,8 +377,7 @@ $sscribe_step            = 1;
 					<span id="sscribe-preview-desc" class="screen-reader-text"><?php esc_html_e( 'Export preview showing selected configuration and estimated output', 'sscribe-export-site-pages' ); ?></span>
 				</div>
 			</div>
-		</div>
-				</section>
+		</section>
 
 		<div id="sscribe-progress-area" class="sscribe-status-alert sscribe-status-processing sscribe-hidden" role="status" aria-live="polite" aria-labelledby="sscribe-status-text">
 			<div class="sscribe-spinner" aria-hidden="true">

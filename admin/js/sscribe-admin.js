@@ -102,6 +102,9 @@
 			// Keyboard shortcuts: Ctrl+E = Export, Ctrl+P = Preview.
 			$(document).on('keydown', function (e) {
 				if (!e.ctrlKey && !e.metaKey) { return; }
+				// Don't trigger shortcuts when user is typing in an input, textarea, or contenteditable.
+				const tag = e.target.tagName;
+				if (tag === 'INPUT' || tag === 'TEXTAREA' || e.target.isContentEditable) { return; }
 				if (e.key === 'e' || e.key === 'E') {
 					e.preventDefault();
 					const $btn = $('#sscribe-export-btn');
@@ -209,9 +212,9 @@
 						}
 					},
 					error: function () {
-					$('.sscribe-status-card-label').removeClass('sscribe-loading');
-					$('#sscribe-post-count, #sscribe-both-count').removeClass('sscribe-loading-count');
-				},
+							$('.sscribe-status-card-label').removeClass('sscribe-loading');
+							$('#sscribe-post-count, #sscribe-both-count').removeClass('sscribe-loading-count');
+						},
 				});
 			});
 
