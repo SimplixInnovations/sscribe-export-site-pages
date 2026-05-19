@@ -1,4 +1,9 @@
 <?php
+/**
+ * SScribe Page Collector
+ *
+ * @package SScribe_Export_Site_Pages
+ */
 
 declare(strict_types=1);
 
@@ -417,7 +422,7 @@ class SScribe_Page_Collector {
 
 				wp_reset_postdata();
 				// phpcs:ignore WordPress.WP.GlobalVariablesOverride.Prohibited
-				$post = $original_post; // phpcs:ignore WordPress.WP.GlobalVariablesOverride.Prohibited
+				$post                           = $original_post; // phpcs:ignore WordPress.WP.GlobalVariablesOverride.Prohibited
 				$is_applying_the_content_filter = false;
 			}
 		}

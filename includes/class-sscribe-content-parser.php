@@ -1,4 +1,9 @@
 <?php
+/**
+ * SScribe Content Parser
+ *
+ * @package SScribe_Export_Site_Pages
+ */
 
 // phpcs:disable WordPress.NamingConventions.ValidVariableName.UsedPropertyNotSnakeCase
 

@@ -1,4 +1,9 @@
 <?php
+/**
+ * SScribe Markdown Exporter
+ *
+ * @package SScribe_Export_Site_Pages
+ */
 
 declare(strict_types=1);
 
@@ -345,7 +350,7 @@ class SScribe_Markdown_Exporter implements SScribe_Exporter_Interface {
 			$converted = $this->convert_list_items( $list_content, $list_type );
 
 			$html = substr_replace( $html, $converted, $matches[0][1], strlen( $matches[0][0] ) );
-			$iteration++;
+			++$iteration;
 		}
 
 		$html = preg_replace( '/<li>(.*?)<\/li>/is', '- $1' . "\n", $html ) ?? $html;
@@ -366,7 +371,7 @@ class SScribe_Markdown_Exporter implements SScribe_Exporter_Interface {
 
 				if ( 'ol' === $list_type ) {
 					$result .= $indent . $counter . '. ' . $item_content . "\n";
-					$counter++;
+					++$counter;
 				} else {
 					$result .= $indent . '- ' . $item_content . "\n";
 				}

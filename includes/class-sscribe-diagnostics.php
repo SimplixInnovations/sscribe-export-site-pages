@@ -1,4 +1,9 @@
 <?php
+/**
+ * SScribe Diagnostics
+ *
+ * @package SScribe_Export_Site_Pages
+ */
 
 declare(strict_types=1);
 
@@ -21,7 +26,7 @@ class SScribe_Diagnostics {
 		$export_dir    = trailingslashit( $upload_dir['basedir'] ) . 'sscribe-exports';
 		$log_dir       = trailingslashit( $upload_dir['basedir'] ) . 'sscribe-logs';
 		$debug_enabled = defined( 'SSCRIBE_DEBUG' ) && SSCRIBE_DEBUG;
-		$debug_logger = $debug_enabled ? SScribe_Logger::instance( true ) : null;
+		$debug_logger  = $debug_enabled ? SScribe_Logger::instance( true ) : null;
 
 		$sections = array();
 
@@ -477,7 +482,7 @@ class SScribe_Diagnostics {
 			);
 		}
 
-		$manrope_dir = SSCRIBE_PLUGIN_DIR . 'assets/fonts/manrope';
+		$manrope_dir   = SSCRIBE_PLUGIN_DIR . 'assets/fonts/manrope';
 		$manrope_fonts = is_dir( $manrope_dir ) ? glob( $manrope_dir . '/*[Rr]egular.ttf' ) : array();
 		if ( empty( $manrope_fonts ) ) {
 			return array(
@@ -516,8 +521,8 @@ class SScribe_Diagnostics {
 			if ( file_exists( $phpword_composer_file ) ) {
 				// phpcs:ignore WordPress.WP.AlternativeFunctions.file_get_contents_file_get_contents -- Safe: reading a local composer.json from plugin directory.
 
-				$raw_json = file_get_contents( $phpword_composer_file );
-				$composer_data = is_string( $raw_json ) ? json_decode( $raw_json, true ) : null;
+				$raw_json        = file_get_contents( $phpword_composer_file );
+				$composer_data   = is_string( $raw_json ) ? json_decode( $raw_json, true ) : null;
 				$bundled_version = ( is_array( $composer_data ) && isset( $composer_data['version'] ) ) ? $composer_data['version'] : 'unknown';
 				preg_match( '/^(\d+\.\d+)/', $bundled_version, $m );
 				$major_minor = $m[1] ?? '';
@@ -530,7 +535,7 @@ class SScribe_Diagnostics {
 							'PHPWord %s detected — safe_text() htmlspecialchars workaround may cause double-encoding. Version compatibility check needed.',
 							$bundled_version
 						),
-						'fix' => 'Review SScribe_Exporter::safe_text() for double-encoding with PHPWord >= 1.5',
+						'fix'     => 'Review SScribe_Exporter::safe_text() for double-encoding with PHPWord >= 1.5',
 					);
 				}
 			}

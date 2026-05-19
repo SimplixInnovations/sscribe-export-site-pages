@@ -1,4 +1,9 @@
 <?php
+/**
+ * SScribe ZIP Handler
+ *
+ * @package SScribe_Export_Site_Pages
+ */
 
 declare(strict_types=1);
 
@@ -153,10 +158,10 @@ class SScribe_Zip_Handler {
 
 		$this->delete_directory( $source_dir );
 
-		$lock_key     = 'sscribe_index_lock';
-		$locked       = false;
+		$lock_key         = 'sscribe_index_lock';
+		$locked           = false;
 		$lock_using_cache = wp_using_ext_object_cache();
-		$lock_attempts = array( 100000, 200000, 400000 );
+		$lock_attempts    = array( 100000, 200000, 400000 );
 
 		if ( false !== get_transient( $lock_key ) && ( time() - (int) get_transient( $lock_key ) ) > 30 ) {
 			if ( $lock_using_cache ) {

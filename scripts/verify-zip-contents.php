@@ -1,4 +1,9 @@
 <?php
+/**
+ * SScribe ZIP Contents Verifier
+ *
+ * @package SScribe_Export_Site_Pages
+ */
 
 $dist_files = glob( dirname( __DIR__ ) . '/dist/sscribe-export-site-pages-*.zip' );
 if ( empty( $dist_files ) ) {

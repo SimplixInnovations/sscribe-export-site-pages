@@ -1,4 +1,9 @@
 <?php
+/**
+ * SScribe Image Processor
+ *
+ * @package SScribe_Export_Site_Pages
+ */
 
 declare(strict_types=1);
 
@@ -242,7 +247,7 @@ class SScribe_Image_Processor {
 				return true;
 			}
 		);
-		$image = false;
+		$image        = false;
 		try {
 			$image = match ( $type ) {
 				IMAGETYPE_JPEG, IMAGETYPE_JPEG2000 => imagecreatefromjpeg( $path ),

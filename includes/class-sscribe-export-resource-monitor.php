@@ -1,4 +1,9 @@
 <?php
+/**
+ * SScribe Export Resource Monitor
+ *
+ * @package SScribe_Export_Site_Pages
+ */
 
 declare( strict_types=1 );
 
