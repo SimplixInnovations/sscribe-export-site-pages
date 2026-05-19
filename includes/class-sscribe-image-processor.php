@@ -223,9 +223,7 @@ class SScribe_Image_Processor {
 
 		$resized = imagecreatetruecolor( $new_width, $new_height );
 		if ( false === $resized ) {
-			// phpcs:ignore Generic.PHP.DeprecatedFunctions.Deprecated
-
-			imagedestroy( $image );
+			imagedestroy( $image ); // phpcs:ignore Generic.PHP.DeprecatedFunctions.Deprecated
 			return $path;
 		}
 
@@ -269,18 +267,15 @@ class SScribe_Image_Processor {
 		}
 
 		imagecopyresampled( $resized, $image, 0, 0, 0, 0, $new_width, $new_height, $width, $height );
-		// phpcs:ignore Generic.PHP.DeprecatedFunctions.Deprecated
-
-		imagedestroy( $image );
+		imagedestroy( $image ); // phpcs:ignore Generic.PHP.DeprecatedFunctions.Deprecated
 
 		$optimized_path = sys_get_temp_dir() . '/sscribe-opt-' . uniqid() . '.jpg';
 
 		// phpcs:ignore WordPress.WP.AlternativeFunctions.image_jpeg
 
 		$result = imagejpeg( $resized, $optimized_path, self::JPEG_QUALITY );
-		// phpcs:ignore Generic.PHP.DeprecatedFunctions.Deprecated
 
-		imagedestroy( $resized );
+		imagedestroy( $resized ); // phpcs:ignore Generic.PHP.DeprecatedFunctions.Deprecated
 
 		if ( false === $result ) {
 			return $path;

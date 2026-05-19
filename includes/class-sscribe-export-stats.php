@@ -127,7 +127,6 @@ class SScribe_Export_Stats {
 		return (int) $wpdb->get_var(
 			$wpdb->prepare(
 			// phpcs:ignore WordPress.DB.PreparedSQL.NotPrepared
-
 				'SELECT COUNT(*) FROM ' . $this->table_name . ' WHERE export_date >= %s',
 				$date_from
 			)
@@ -142,7 +141,6 @@ class SScribe_Export_Stats {
 		return (int) $wpdb->get_var(
 			$wpdb->prepare(
 			// phpcs:ignore WordPress.DB.PreparedSQL.NotPrepared
-
 				'SELECT COUNT(*) FROM ' . $this->table_name . " WHERE export_date >= %s AND status = 'completed'",
 				$date_from
 			)
@@ -157,7 +155,6 @@ class SScribe_Export_Stats {
 		return (int) $wpdb->get_var(
 			$wpdb->prepare(
 			// phpcs:ignore WordPress.DB.PreparedSQL.NotPrepared
-
 				'SELECT COUNT(*) FROM ' . $this->table_name . " WHERE export_date >= %s AND status = 'failed'",
 				$date_from
 			)
@@ -172,7 +169,6 @@ class SScribe_Export_Stats {
 		return (int) $wpdb->get_var(
 			$wpdb->prepare(
 			// phpcs:ignore WordPress.DB.PreparedSQL.NotPrepared
-
 				'SELECT SUM(total_pages) FROM ' . $this->table_name . ' WHERE export_date >= %s AND status = \'completed\'',
 				$date_from
 			)
@@ -187,7 +183,6 @@ class SScribe_Export_Stats {
 		return (float) $wpdb->get_var(
 			$wpdb->prepare(
 			// phpcs:ignore WordPress.DB.PreparedSQL.NotPrepared
-
 				'SELECT AVG(duration_seconds) FROM ' . $this->table_name . ' WHERE export_date >= %s AND status = \'completed\'',
 				$date_from
 			)
@@ -202,7 +197,6 @@ class SScribe_Export_Stats {
 		return (float) $wpdb->get_var(
 			$wpdb->prepare(
 			// phpcs:ignore WordPress.DB.PreparedSQL.NotPrepared
-
 				'SELECT SUM(file_size_mb) FROM ' . $this->table_name . ' WHERE export_date >= %s AND status = \'completed\'',
 				$date_from
 			)
@@ -217,7 +211,6 @@ class SScribe_Export_Stats {
 		$results = $wpdb->get_results(
 			$wpdb->prepare(
 			// phpcs:ignore WordPress.DB.PreparedSQL.NotPrepared
-
 				'SELECT formats FROM ' . $this->table_name . ' WHERE export_date >= %s AND status = \'completed\'',
 				$date_from
 			)
@@ -255,9 +248,7 @@ class SScribe_Export_Stats {
 			$wpdb->prepare(
 				'SELECT DATE(export_date) as date, COUNT(*) as count, SUM(total_pages) as pages
 				FROM '
-
 			// phpcs:ignore WordPress.DB.PreparedSQL.NotPrepared
-
 				. $this->table_name . '
 				WHERE export_date >= %s
 				GROUP BY DATE(export_date)
@@ -286,7 +277,6 @@ class SScribe_Export_Stats {
 		return $wpdb->get_results(
 			$wpdb->prepare(
 			// phpcs:ignore WordPress.DB.PreparedSQL.NotPrepared
-
 				'SELECT * FROM ' . $this->table_name . ' ORDER BY export_date DESC LIMIT %d',
 				$limit
 			)
@@ -305,7 +295,6 @@ class SScribe_Export_Stats {
 		return $wpdb->get_results(
 			$wpdb->prepare(
 			// phpcs:ignore WordPress.DB.PreparedSQL.NotPrepared
-
 				'SELECT * FROM ' . $this->table_name . ' WHERE user_id = %d ORDER BY export_date DESC LIMIT %d',
 				$user_id,
 				$limit
@@ -346,7 +335,6 @@ class SScribe_Export_Stats {
 		return $wpdb->query(
 			$wpdb->prepare(
 			// phpcs:ignore WordPress.DB.PreparedSQL.NotPrepared
-
 				'DELETE FROM ' . $this->table_name . ' WHERE export_date < %s',
 				$cutoff
 			)
