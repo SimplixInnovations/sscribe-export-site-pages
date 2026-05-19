@@ -1,4 +1,9 @@
 <?php
+/**
+ * SScribe Fix Prefixed Safe Script
+ *
+ * @package SScribe_Export_Site_Pages
+ */
 
 declare(strict_types=1);
 

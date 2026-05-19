@@ -1,4 +1,9 @@
 <?php
+/**
+ * SScribe PHPWord Style Deprecation Fixer
+ *
+ * @package SScribe_Export_Site_Pages
+ */
 
 $files = array(
 	__DIR__ . '/../vendor/phpoffice/phpword/src/PhpWord/Style.php',

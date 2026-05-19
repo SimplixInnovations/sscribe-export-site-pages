@@ -1,4 +1,9 @@
 <?php
+/**
+ * SScribe Arabic Segmenter
+ *
+ * @package SScribe_Export_Site_Pages
+ */
 
 declare(strict_types=1);
 

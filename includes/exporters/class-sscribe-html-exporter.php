@@ -1,4 +1,9 @@
 <?php
+/**
+ * SScribe HTML Exporter
+ *
+ * @package SScribe_Export_Site_Pages
+ */
 
 declare(strict_types=1);
 
@@ -92,8 +97,8 @@ class SScribe_HTML_Exporter implements SScribe_Exporter_Interface {
 	private function generate_html( array $page_data ): string {
 		require_once SSCRIBE_PLUGIN_DIR . 'includes/class-sscribe-rtl-helper.php';
 
-		$site_name  = get_bloginfo( 'name' );
-		$title      = esc_html( $page_data['title'] );
+		$site_name = get_bloginfo( 'name' );
+		$title     = esc_html( $page_data['title'] );
 		$language  = $page_data['language'] ?? 'en';
 		$direction = SScribe_RTL_Helper::get_direction( $language );
 		$is_rtl    = SScribe_RTL_Helper::is_rtl( $language );
@@ -180,7 +185,7 @@ class SScribe_HTML_Exporter implements SScribe_Exporter_Interface {
 			),
 		);
 
-		$full_allowed  = array_merge_recursive( wp_kses_allowed_html( 'post' ), $media_html );
+		$full_allowed     = array_merge_recursive( wp_kses_allowed_html( 'post' ), $media_html );
 		$filtered_content = wp_kses( $page_data['content'], $full_allowed );
 
 		$html = '<!DOCTYPE html>

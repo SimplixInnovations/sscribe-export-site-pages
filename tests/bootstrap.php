@@ -1,4 +1,9 @@
 <?php
+/**
+ * SScribe Tests Bootstrap
+ *
+ * @package SScribe_Export_Site_Pages
+ */
 
 if ( ! defined( 'ABSPATH' ) ) {
 	define( 'ABSPATH', dirname( __DIR__ ) . '/fake-wp/' );

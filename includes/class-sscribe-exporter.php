@@ -1,4 +1,9 @@
 <?php
+/**
+ * SScribe Exporter
+ *
+ * @package SScribe_Export_Site_Pages
+ */
 
 declare(strict_types=1);
 
@@ -105,7 +110,7 @@ class SScribe_Exporter {
 			$query    = $parsed['query'] ?? '';
 			$fragment = $parsed['fragment'] ?? '';
 
-			$safe_path = implode(
+			$safe_path  = implode(
 				'/',
 				array_map(
 					function ( $segment ) {

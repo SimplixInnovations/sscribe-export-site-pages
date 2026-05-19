@@ -1,4 +1,9 @@
 <?php
+/**
+ * SScribe List ZIP Contents
+ *
+ * @package SScribe_Export_Site_Pages
+ */
 declare(strict_types=1);
 
 $dist_files = glob( dirname( __DIR__ ) . '/dist/sscribe-export-site-pages-*.zip' );
