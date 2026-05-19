@@ -340,12 +340,12 @@ class SScribe_Batch_Processor {
 	 */
 	public function ajax_start_export(): void {
 		if ( ! check_ajax_referer( 'sscribe_export_nonce', 'nonce', false ) ) {
-			wp_send_json_error( array( 'message' => __( 'Security check failed.', 'sscribe-export-site-pages' ) ), 403 );
+			SScribe_AJAX_Guard::error( array( 'message' => __( 'Security check failed.', 'sscribe-export-site-pages' ) ), 403 );
 			return;
 		}
 
 		if ( ! current_user_can( $this->get_required_capability() ) ) {
-			wp_send_json_error(
+			SScribe_AJAX_Guard::error(
 				array(
 					'message' => __( 'You do not have permission to export pages.', 'sscribe-export-site-pages' ),
 				),
@@ -355,7 +355,7 @@ class SScribe_Batch_Processor {
 		}
 
 		if ( ! $this->check_rate_limit() ) {
-			wp_send_json_error(
+			SScribe_AJAX_Guard::error(
 				array(
 					'message'  => __( 'Too many requests. Please wait a moment and try again.', 'sscribe-export-site-pages' ),
 					'retry'    => true,
@@ -413,7 +413,7 @@ class SScribe_Batch_Processor {
 		$user_id = get_current_user_id();
 
 		if ( $this->session->has_active_session( $user_id ) ) {
-			wp_send_json_error(
+			SScribe_AJAX_Guard::error(
 				array(
 					'message' => __( 'You already have an export in progress. Please wait for it to complete or refresh the page.', 'sscribe-export-site-pages' ),
 				),
@@ -425,7 +425,7 @@ class SScribe_Batch_Processor {
 		if ( ! empty( $language ) && $this->collector->is_wpml_active() ) {
 			$valid_languages = wp_list_pluck( $this->collector->get_wpml_languages(), 'code' );
 			if ( ! in_array( $language, $valid_languages, true ) ) {
-				wp_send_json_error(
+				SScribe_AJAX_Guard::error(
 					array(
 						'message' => __( 'Invalid language code specified.', 'sscribe-export-site-pages' ),
 					),
@@ -458,7 +458,7 @@ class SScribe_Batch_Processor {
 		);
 
 		if ( 0 === $total ) {
-			wp_send_json_error(
+			SScribe_AJAX_Guard::error(
 				array(
 					'message' => __( 'No pages found matching the selected criteria.', 'sscribe-export-site-pages' ),
 				),
@@ -477,7 +477,7 @@ class SScribe_Batch_Processor {
 					'trace'     => $e->getTraceAsString(),
 				)
 			);
-			wp_send_json_error(
+			SScribe_AJAX_Guard::error(
 				array(
 					'message' => __( 'Failed to initialize export directory. Please try again.', 'sscribe-export-site-pages' ),
 				),
@@ -521,7 +521,7 @@ class SScribe_Batch_Processor {
 		);
 
 		if ( empty( $session_id ) ) {
-			wp_send_json_error(
+			SScribe_AJAX_Guard::error(
 				array(
 					'message' => __( 'Failed to create export session. Please try again.', 'sscribe-export-site-pages' ),
 				),
@@ -577,7 +577,7 @@ class SScribe_Batch_Processor {
 			);
 		}
 
-		wp_send_json_success( $response );
+		SScribe_AJAX_Guard::success( $response );
 	}
 
 	/**
@@ -587,12 +587,12 @@ class SScribe_Batch_Processor {
 	 */
 	public function ajax_process_batch(): void {
 		if ( ! check_ajax_referer( 'sscribe_export_nonce', 'nonce', false ) ) {
-			wp_send_json_error( array( 'message' => __( 'Security check failed.', 'sscribe-export-site-pages' ) ), 403 );
+			SScribe_AJAX_Guard::error( array( 'message' => __( 'Security check failed.', 'sscribe-export-site-pages' ) ), 403 );
 			return;
 		}
 
 		if ( ! current_user_can( $this->get_required_capability() ) ) {
-			wp_send_json_error(
+			SScribe_AJAX_Guard::error(
 				array(
 					'message' => __( 'Permission denied.', 'sscribe-export-site-pages' ),
 				),
@@ -602,7 +602,7 @@ class SScribe_Batch_Processor {
 		}
 
 		if ( ! $this->check_rate_limit() ) {
-			wp_send_json_error(
+			SScribe_AJAX_Guard::error(
 				array(
 					'message'  => __( 'Too many requests. Please wait a moment.', 'sscribe-export-site-pages' ),
 					'retry'    => true,
@@ -663,7 +663,7 @@ class SScribe_Batch_Processor {
 				)
 			);
 			$this->restore_ob_level( $ob_level_before );
-			wp_send_json_error(
+			SScribe_AJAX_Guard::error(
 				array(
 					'message' => __( 'Export session expired or not found. Please start again.', 'sscribe-export-site-pages' ),
 				),
@@ -683,7 +683,7 @@ class SScribe_Batch_Processor {
 		if ( null === $this->current_lock_token ) {
 			$this->logger->debug( 'Lock acquisition failed — another process holds the lock', array( 'session_id' => $session_id ) );
 			$this->restore_ob_level( $ob_level_before );
-			wp_send_json_error(
+			SScribe_AJAX_Guard::error(
 				array(
 					'status'  => 'locked',
 					'retry'   => true,
@@ -697,7 +697,7 @@ class SScribe_Batch_Processor {
 		if ( ! $this->validate_session_ownership( $session, $session_id ) ) {
 			$this->release_lock( $session_id );
 			$this->restore_ob_level( $ob_level_before );
-			wp_send_json_error(
+			SScribe_AJAX_Guard::error(
 				array(
 					'message' => __( 'Invalid session access.', 'sscribe-export-site-pages' ),
 				),
@@ -717,7 +717,7 @@ class SScribe_Batch_Processor {
 			);
 			$this->release_lock( $session_id );
 			$this->restore_ob_level( $ob_level_before );
-			wp_send_json_error(
+			SScribe_AJAX_Guard::error(
 				array(
 					'message' => __( 'Export session data corrupted. Please start again.', 'sscribe-export-site-pages' ),
 				),
@@ -732,7 +732,7 @@ class SScribe_Batch_Processor {
 			$this->cleanup_cancelled_export( $session );
 			$this->session->delete( $session_id );
 			$this->release_lock( $session_id );
-			wp_send_json_error(
+			SScribe_AJAX_Guard::error(
 				array(
 					'message'   => __( 'Export was cancelled.', 'sscribe-export-site-pages' ),
 					'cancelled' => true,
@@ -1291,7 +1291,7 @@ class SScribe_Batch_Processor {
 				$error_diagnostics = $this->build_error_diagnostics_payload( $structured_errors, $errors );
 			}
 
-			wp_send_json_success(
+			SScribe_AJAX_Guard::success(
 				array(
 					'status'            => 'finalizing',
 					'processed'         => $processed,
@@ -1371,7 +1371,7 @@ class SScribe_Batch_Processor {
 			);
 		}
 
-		wp_send_json_success( $response );
+		SScribe_AJAX_Guard::success( $response );
 	}
 
 	/**
@@ -1418,12 +1418,12 @@ class SScribe_Batch_Processor {
 	 */
 	public function ajax_finalize_export(): void {
 		if ( ! check_ajax_referer( 'sscribe_export_nonce', 'nonce', false ) ) {
-			wp_send_json_error( array( 'message' => __( 'Security check failed.', 'sscribe-export-site-pages' ) ), 403 );
+			SScribe_AJAX_Guard::error( array( 'message' => __( 'Security check failed.', 'sscribe-export-site-pages' ) ), 403 );
 			return;
 		}
 
 		if ( ! current_user_can( $this->get_required_capability() ) ) {
-			wp_send_json_error(
+			SScribe_AJAX_Guard::error(
 				array( 'message' => __( 'Permission denied.', 'sscribe-export-site-pages' ) ),
 				403
 			);
@@ -1431,7 +1431,7 @@ class SScribe_Batch_Processor {
 		}
 
 		if ( ! $this->check_rate_limit() ) {
-			wp_send_json_error(
+			SScribe_AJAX_Guard::error(
 				array(
 					'message' => __( 'Too many requests. Please wait a moment.', 'sscribe-export-site-pages' ),
 				),
@@ -1445,7 +1445,7 @@ class SScribe_Batch_Processor {
 			: '';
 
 		if ( empty( $session_id ) ) {
-			wp_send_json_error(
+			SScribe_AJAX_Guard::error(
 				array(
 					'message' => __( 'Invalid session.', 'sscribe-export-site-pages' ),
 				),
@@ -1457,7 +1457,7 @@ class SScribe_Batch_Processor {
 		$session = $this->session->get( $session_id );
 
 		if ( ! $session ) {
-			wp_send_json_error(
+			SScribe_AJAX_Guard::error(
 				array(
 					'code'    => 'not_finalizing',
 					'message' => __( 'Export session not found. Please start again.', 'sscribe-export-site-pages' ),
@@ -1468,7 +1468,7 @@ class SScribe_Batch_Processor {
 		}
 
 		if ( ! $this->validate_session_ownership( $session, $session_id ) ) {
-			wp_send_json_error(
+			SScribe_AJAX_Guard::error(
 				array(
 					'message' => __( 'Invalid session access.', 'sscribe-export-site-pages' ),
 				),
@@ -1479,7 +1479,7 @@ class SScribe_Batch_Processor {
 
 		$status = $session['status'] ?? '';
 		if ( 'finalizing' !== $status && 'completing' !== $status ) {
-			wp_send_json_error(
+			SScribe_AJAX_Guard::error(
 				array(
 					'code'    => 'not_finalizing',
 					'message' => __( 'Export is not in the finalizing state.', 'sscribe-export-site-pages' ),
@@ -1490,7 +1490,7 @@ class SScribe_Batch_Processor {
 		}
 
 		if ( 'completing' === $status ) {
-			wp_send_json_error(
+			SScribe_AJAX_Guard::error(
 				array(
 					'code'    => 'already_completing',
 					'message' => __( 'Export is already being finalized. Please wait.', 'sscribe-export-site-pages' ),
@@ -1641,7 +1641,7 @@ class SScribe_Batch_Processor {
 				$this->release_lock( $session_id );
 				$this->diagnostics->self_heal();
 
-				wp_send_json_error(
+				SScribe_AJAX_Guard::error(
 					array(
 						'message'   => __( 'No files were generated — all pages failed to export. Check the export format selected and try again.', 'sscribe-export-site-pages' ),
 						'guidance'  => __( 'If you selected PDF format, verify that the PDF export works before running a bulk export. Try exporting a single page first.', 'sscribe-export-site-pages' ),
@@ -1734,7 +1734,7 @@ class SScribe_Batch_Processor {
 					);
 				}
 
-				wp_send_json_error( $error_response, 500 ); // HTTP 500 Internal Server Error.
+				SScribe_AJAX_Guard::error( $error_response, 500 ); // HTTP 500 Internal Server Error.
 				return;
 			}
 
@@ -1775,7 +1775,7 @@ class SScribe_Batch_Processor {
 				// DO NOT delete the session so the user can retry.
 				$this->release_lock( $session_id );
 
-				wp_send_json_error(
+				SScribe_AJAX_Guard::error(
 					array(
 						'message'   => __( 'Export packaging failed — the ZIP archive was empty. Please try again.', 'sscribe-export-site-pages' ),
 						'guidance'  => __( 'This can happen if temporary export files were deleted before packaging completed. Click "Try Again" to restart the export.', 'sscribe-export-site-pages' ),
@@ -1916,7 +1916,7 @@ class SScribe_Batch_Processor {
 			// If anything above throws, the session remains intact so the client can retry.
 			$this->release_lock( $session_id );
 			$this->session->delete( $session_id );
-			wp_send_json_success( $response );
+			SScribe_AJAX_Guard::success( $response );
 		} catch ( \Throwable $e ) {
 			$this->logger->error(
 				'Finalize export crashed',
@@ -1932,7 +1932,7 @@ class SScribe_Batch_Processor {
 			// DO NOT delete the session on crash so the client can retry.
 			$this->release_lock( $session_id );
 
-			wp_send_json_error(
+			SScribe_AJAX_Guard::error(
 				array(
 					'message'   => __( 'Export finalization failed. Please try again.', 'sscribe-export-site-pages' ),
 					'guidance'  => __( 'An unexpected error occurred while packaging the export. Click "Try Again" to resume from where it left off.', 'sscribe-export-site-pages' ),
@@ -2104,30 +2104,30 @@ class SScribe_Batch_Processor {
 	 */
 	public function ajax_cancel_export(): void {
 		if ( ! check_ajax_referer( 'sscribe_export_nonce', 'nonce', false ) ) {
-			wp_send_json_error( array( 'message' => __( 'Security check failed.', 'sscribe-export-site-pages' ) ), 403 );
+			SScribe_AJAX_Guard::error( array( 'message' => __( 'Security check failed.', 'sscribe-export-site-pages' ) ), 403 );
 			return;
 		}
 
 		if ( ! current_user_can( $this->get_required_capability() ) ) {
-			wp_send_json_error( array( 'message' => __( 'Permission denied.', 'sscribe-export-site-pages' ) ), 403 );
+			SScribe_AJAX_Guard::error( array( 'message' => __( 'Permission denied.', 'sscribe-export-site-pages' ) ), 403 );
 			return;
 		}
 
 		$session_id = isset( $_POST['session_id'] ) ? sanitize_text_field( wp_unslash( $_POST['session_id'] ) ) : '';
 
 		if ( empty( $session_id ) ) {
-			wp_send_json_error( array( 'message' => __( 'Invalid session.', 'sscribe-export-site-pages' ) ), 400 );
+			SScribe_AJAX_Guard::error( array( 'message' => __( 'Invalid session.', 'sscribe-export-site-pages' ) ), 400 );
 			return;
 		}
 
 		$session = $this->session->get( $session_id );
 		if ( ! $session ) {
-			wp_send_json_error( array( 'message' => __( 'Session not found.', 'sscribe-export-site-pages' ) ), 404 );
+			SScribe_AJAX_Guard::error( array( 'message' => __( 'Session not found.', 'sscribe-export-site-pages' ) ), 404 );
 			return;
 		}
 
 		if ( ! $this->validate_session_ownership( $session, $session_id ) ) {
-			wp_send_json_error( array( 'message' => __( 'Invalid session access.', 'sscribe-export-site-pages' ) ), 403 );
+			SScribe_AJAX_Guard::error( array( 'message' => __( 'Invalid session access.', 'sscribe-export-site-pages' ) ), 403 );
 			return;
 		}
 
@@ -2137,7 +2137,7 @@ class SScribe_Batch_Processor {
 		$this->session->delete( $session_id );
 		delete_transient( 'sscribe_lock_' . $session_id );
 
-		wp_send_json_success( array( 'message' => __( 'Export cancelled.', 'sscribe-export-site-pages' ) ) );
+		SScribe_AJAX_Guard::success( array( 'message' => __( 'Export cancelled.', 'sscribe-export-site-pages' ) ) );
 	}
 
 	/**
@@ -2165,26 +2165,26 @@ class SScribe_Batch_Processor {
 	 */
 	public function ajax_delete_export(): void {
 		if ( ! check_ajax_referer( 'sscribe_download', 'nonce', false ) ) {
-			wp_send_json_error( array( 'message' => __( 'Security check failed.', 'sscribe-export-site-pages' ) ), 403 );
+			SScribe_AJAX_Guard::error( array( 'message' => __( 'Security check failed.', 'sscribe-export-site-pages' ) ), 403 );
 			return;
 		}
 
 		if ( ! current_user_can( $this->get_required_capability() ) ) {
-			wp_send_json_error( array( 'message' => __( 'Permission denied.', 'sscribe-export-site-pages' ) ), 403 );
+			SScribe_AJAX_Guard::error( array( 'message' => __( 'Permission denied.', 'sscribe-export-site-pages' ) ), 403 );
 			return;
 		}
 
 		$filename = isset( $_POST['file'] ) ? sanitize_file_name( wp_unslash( $_POST['file'] ) ) : '';
 
 		if ( empty( $filename ) ) {
-			wp_send_json_error( array( 'message' => __( 'Invalid filename.', 'sscribe-export-site-pages' ) ), 400 );
+			SScribe_AJAX_Guard::error( array( 'message' => __( 'Invalid filename.', 'sscribe-export-site-pages' ) ), 400 );
 			return;
 		}
 
 		$exports = get_option( 'sscribe_export_index', array() );
 
 		if ( ! isset( $exports[ $filename ] ) ) {
-			wp_send_json_error( array( 'message' => __( 'Export not found.', 'sscribe-export-site-pages' ) ), 404 );
+			SScribe_AJAX_Guard::error( array( 'message' => __( 'Export not found.', 'sscribe-export-site-pages' ) ), 404 );
 			return;
 		}
 
@@ -2192,7 +2192,7 @@ class SScribe_Batch_Processor {
 		$stored_user_id = isset( $export_info['user_id'] ) ? (int) (string) $export_info['user_id'] : 0;
 		if ( $stored_user_id > 0 && get_current_user_id() !== $stored_user_id ) {
 				$this->audit_log( 'delete_access_denied', array( 'filename' => $filename ) );
-				wp_send_json_error( array( 'message' => __( 'Permission denied.', 'sscribe-export-site-pages' ) ), 403 );
+				SScribe_AJAX_Guard::error( array( 'message' => __( 'Permission denied.', 'sscribe-export-site-pages' ) ), 403 );
 				return;
 		}
 
@@ -2208,7 +2208,7 @@ class SScribe_Batch_Processor {
 					'filename'  => $filename,
 				)
 			);
-			wp_send_json_error(
+			SScribe_AJAX_Guard::error(
 				array( 'message' => __( 'Server misconfiguration: export directory is invalid.', 'sscribe-export-site-pages' ) ),
 				500
 			);
@@ -2221,7 +2221,7 @@ class SScribe_Batch_Processor {
 		$real_path = realpath( $file_path );
 		$real_dir  = realpath( $export_dir );
 		if ( ! $real_path || ! $real_dir || ! str_starts_with( $real_path, $real_dir . '/' ) ) {
-			wp_send_json_error( array( 'message' => __( 'Invalid file path.', 'sscribe-export-site-pages' ) ), 400 );
+			SScribe_AJAX_Guard::error( array( 'message' => __( 'Invalid file path.', 'sscribe-export-site-pages' ) ), 400 );
 			return;
 		}
 
@@ -2237,7 +2237,7 @@ class SScribe_Batch_Processor {
 
 		$this->audit_log( 'export_deleted', array( 'filename' => $filename ) );
 
-		wp_send_json_success( array( 'message' => __( 'Export deleted.', 'sscribe-export-site-pages' ) ) );
+		SScribe_AJAX_Guard::success( array( 'message' => __( 'Export deleted.', 'sscribe-export-site-pages' ) ) );
 	}
 
 	/**
@@ -2269,12 +2269,12 @@ class SScribe_Batch_Processor {
 	 */
 	public function ajax_clear_session(): void {
 		if ( ! check_ajax_referer( 'sscribe_export_nonce', 'nonce', false ) ) {
-			wp_send_json_error( array( 'message' => __( 'Security check failed.', 'sscribe-export-site-pages' ) ), 403 );
+			SScribe_AJAX_Guard::error( array( 'message' => __( 'Security check failed.', 'sscribe-export-site-pages' ) ), 403 );
 			return;
 		}
 
 		if ( ! current_user_can( $this->get_required_capability() ) ) {
-			wp_send_json_error( array( 'message' => __( 'Permission denied.', 'sscribe-export-site-pages' ) ), 403 );
+			SScribe_AJAX_Guard::error( array( 'message' => __( 'Permission denied.', 'sscribe-export-site-pages' ) ), 403 );
 			return;
 		}
 
@@ -2297,7 +2297,7 @@ class SScribe_Batch_Processor {
 			$this->logger->debug( 'Cleared expired sessions for user', array( 'user_id' => $user_id ) );
 		}
 
-		wp_send_json_success( array( 'message' => __( 'Session cleared.', 'sscribe-export-site-pages' ) ) );
+		SScribe_AJAX_Guard::success( array( 'message' => __( 'Session cleared.', 'sscribe-export-site-pages' ) ) );
 	}
 
 	/**
@@ -2381,16 +2381,16 @@ class SScribe_Batch_Processor {
 	 */
 	public function ajax_refresh_download_nonce(): void {
 		if ( ! check_ajax_referer( 'sscribe_export_nonce', 'nonce', false ) ) {
-			wp_send_json_error( array( 'message' => __( 'Security check failed.', 'sscribe-export-site-pages' ) ), 403 );
+			SScribe_AJAX_Guard::error( array( 'message' => __( 'Security check failed.', 'sscribe-export-site-pages' ) ), 403 );
 			return;
 		}
 
 		if ( ! current_user_can( $this->get_required_capability() ) ) {
-			wp_send_json_error( array( 'message' => __( 'Permission denied.', 'sscribe-export-site-pages' ) ), 403 );
+			SScribe_AJAX_Guard::error( array( 'message' => __( 'Permission denied.', 'sscribe-export-site-pages' ) ), 403 );
 			return;
 		}
 
-		wp_send_json_success(
+		SScribe_AJAX_Guard::success(
 			array(
 				'nonce' => wp_create_nonce( 'sscribe_download' ),
 			)
