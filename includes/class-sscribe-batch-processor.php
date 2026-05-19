@@ -672,85 +672,27 @@ class SScribe_Batch_Processor {
 			return;
 		}
 
-		// Implement atomic locking with unique token to prevent race conditions.
-		$lock_key        = 'sscribe_lock_' . $session_id;
-		$lock_token      = wp_generate_password( 32, false );
-		$existing_lock   = get_transient( $lock_key );
-		$current_time    = time();
+		// Delegate lock acquisition to the Lock Manager for atomic operations.
+		// The Lock Manager handles stale lock detection, token generation, and
+		// token-based ownership verification for safe concurrent batch processing.
 		$lock_ttl        = (int) apply_filters( 'sscribe_lock_ttl', 45 );
 		$stale_threshold = (int) apply_filters( 'sscribe_lock_stale_threshold', 35 );
 
-		if ( $existing_lock ) {
-			// Parse existing lock: format is "timestamp|token" for atomic operations.
-			$lock_parts = explode( '|', $existing_lock );
-			$lock_time  = isset( $lock_parts[0] ) ? (int) $lock_parts[0] : 0;
-			$lock_age   = $current_time - $lock_time;
+		$this->current_lock_token = $this->lock_manager->acquire_lock( $session_id, $lock_ttl, $stale_threshold );
 
-			if ( $lock_age > $stale_threshold ) {
-				// Stale lock detected — delete first to force atomic INSERT on next set_transient().
-				// Without delete, set_transient() calls update_option() which is NOT atomic —
-				// two concurrent processes can both succeed and corrupt the export.
-				delete_transient( $lock_key );
-
-				$this->logger->debug(
-					'Detected stale lock, attempting atomic acquisition',
-					array(
-						'session_id' => $session_id,
-						'lock_age'   => $lock_age,
-						'lock_ttl'   => $lock_ttl,
-					)
-				);
-				// Set new lock with token for ownership verification.
-				$lock_acquired = set_transient( $lock_key, $current_time . '|' . $lock_token, $lock_ttl );
-				if ( ! $lock_acquired ) {
-					// Another process acquired the lock between our check and set.
-					$this->logger->debug( 'Lock acquisition failed - another process won', array( 'session_id' => $session_id ) );
-					$this->restore_ob_level( $ob_level_before );
-					wp_send_json_error(
-						array(
-							'status'  => 'locked',
-							'retry'   => true,
-							'message' => __( 'A batch is already processing. Please wait.', 'sscribe-export-site-pages' ),
-						),
-						429 // HTTP 429 Too Many Requests.
-					);
-					return;
-				}
-			} else {
-				// Active lock exists - reject the request.
-				$this->logger->debug( 'Batch is already processing concurrently', array( 'session_id' => $session_id ) );
-				$this->restore_ob_level( $ob_level_before );
-				wp_send_json_error(
-					array(
-						'status'  => 'locked',
-						'retry'   => true,
-						'message' => __( 'A batch is already processing. Please wait.', 'sscribe-export-site-pages' ),
-					),
-					429 // HTTP 429 Too Many Requests.
-				);
-				return;
-			}
-		} else {
-			// No existing lock - acquire atomically.
-			$lock_acquired = set_transient( $lock_key, $current_time . '|' . $lock_token, $lock_ttl );
-			if ( ! $lock_acquired ) {
-				// Transient storage unavailable - fail securely.
-				$this->logger->warning( 'Lock transient unavailable, aborting batch', array( 'session_id' => $session_id ) );
-				$this->restore_ob_level( $ob_level_before );
-				wp_send_json_error(
-					array(
-						'status'  => 'error',
-						'retry'   => true,
-						'message' => __( 'Unable to acquire processing lock. Please try again.', 'sscribe-export-site-pages' ),
-					),
-					503
-				);
-				return;
-			}
+		if ( null === $this->current_lock_token ) {
+			$this->logger->debug( 'Lock acquisition failed — another process holds the lock', array( 'session_id' => $session_id ) );
+			$this->restore_ob_level( $ob_level_before );
+			wp_send_json_error(
+				array(
+					'status'  => 'locked',
+					'retry'   => true,
+					'message' => __( 'A batch is already processing. Please wait.', 'sscribe-export-site-pages' ),
+				),
+				429 // HTTP 429 Too Many Requests.
+			);
+			return;
 		}
-
-		// Store lock token for later verification (used when releasing).
-		$this->current_lock_token = $lock_token;
 
 		if ( ! $this->validate_session_ownership( $session, $session_id ) ) {
 			$this->release_lock( $session_id );
