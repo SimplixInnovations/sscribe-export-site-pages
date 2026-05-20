@@ -266,7 +266,7 @@ class SScribe_PDF_Exporter implements SScribe_Exporter_Interface {
 				'margin_top'       => 15,
 				'margin_bottom'    => 15,
 				'tempDir'          => $mpdf_temp,
-				'debug'            => defined( 'SSCRIBE_DEBUG' ) && SSCRIBE_DEBUG,
+				'debug'            => false,
 			);
 
 			$mpdf = new \SScribeVendor\Mpdf\Mpdf( $config );
