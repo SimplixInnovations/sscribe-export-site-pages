@@ -1,11 +1,8 @@
 <?php
 /**
- * Enterprise Release Preparation Script.
+ * SScribe Release Prepare Script
  *
- * Runs all quality gates, then interactively bumps the version.
- * Usage: php scripts/release-prepare.php
- *
- * @package SScribe
+ * @package SScribe_Export_Site_Pages
  */
 
 declare(strict_types=1);
@@ -21,11 +18,9 @@ $fail_mark = "\033[31m✗\033[0m";
 $warn_mark = "\033[33m⚠\033[0m";
 $info_mark = "\033[36m→\033[0m";
 
-// ============================================================================
-// 1. GET CURRENT VERSION
-// ============================================================================
 $plugin_file = $root_dir . '/sscribe-export-site-pages.php';
 // phpcs:ignore WordPress.WP.AlternativeFunctions.file_get_contents_file_get_contents
+
 $plugin_content = file_get_contents( $plugin_file );
 if ( ! preg_match( "/define\s*\(\s*['\"]SSCRIBE_VERSION['\"]\s*,\s*['\"]([0-9.]+)['\"]/U", $plugin_content, $matches ) ) {
 	echo "{$fail_mark} Could not find SSCRIBE_VERSION constant.\n";
@@ -37,15 +32,11 @@ echo "\n{$separator}\n";
 echo "  SScribe Enterprise Release — v{$current_version}\n";
 echo "{$separator}\n\n";
 
-// ============================================================================
-// 2. RUN QUALITY GATES
-// ============================================================================
 echo "{$info_mark} Running quality gates...\n\n";
 
 $gates_passed = true;
 $results      = array();
 
-// Gate 1: Version Sync
 echo "  Version sync... ";
 $verify_cmd = sprintf( 'php %s/scripts/verify-version-sync.php', $root_dir );
 exec( $verify_cmd . ' 2>&1', $verify_output, $verify_exit );
@@ -58,11 +49,10 @@ if ( 0 === $verify_exit ) {
 	$gates_passed = false;
 }
 
-// Gate 2: PHPUnit
 echo "  PHPUnit tests... ";
 exec( 'php vendor/bin/phpunit --no-coverage --no-progress 2>&1', $test_output, $test_exit );
 if ( 0 === $test_exit ) {
-	// Confirm no failures in output.
+
 	$test_text = implode( "\n", $test_output );
 	if ( preg_match( '/OK\s*\(/', $test_text ) || preg_match( '/OK\s*\(?\d+\s*tests/', $test_text ) ) {
 		echo "{$pass_mark}\n";
@@ -72,7 +62,7 @@ if ( 0 === $test_exit ) {
 		$results['phpunit'] = false;
 		$gates_passed = false;
 	} else {
-		// Parse summary line.
+
 		if ( preg_match( '/Tests:\s*\d+.*Failures:\s*(\d+).*Errors:\s*(\d+)/', $test_text, $tm ) ) {
 			$failures = (int) $tm[1];
 			$errors   = (int) $tm[2];
@@ -86,7 +76,7 @@ if ( 0 === $test_exit ) {
 			}
 		} else {
 			echo "{$warn_mark} (could not parse output — manual check recommended)\n";
-			$results['phpunit'] = true; // Don't block on parse failure.
+			$results['phpunit'] = true;
 		}
 	}
 } else {
@@ -95,7 +85,6 @@ if ( 0 === $test_exit ) {
 	$gates_passed = false;
 }
 
-// Gate 3: PHPStan
 echo "  PHPStan analysis... ";
 exec( 'php vendor/bin/phpstan analyse --no-progress --memory-limit=512M 2>&1', $stan_output, $stan_exit );
 $stan_text = implode( "\n", $stan_output );
@@ -104,14 +93,13 @@ if ( 0 === $stan_exit && ! str_contains( $stan_text, '[ERROR]' ) ) {
 	$results['phpstan'] = true;
 } elseif ( str_contains( $stan_text, 'severe errors' ) ) {
 	echo "{$warn_mark} memory limit (CI will catch remaining issues)\n";
-	$results['phpstan'] = true; // Allow on local memory issues, CI catches it.
+	$results['phpstan'] = true;
 } else {
 	echo "{$fail_mark} FAILED\n";
 	$results['phpstan'] = false;
 	$gates_passed = false;
 }
 
-// Gate 4: PHPCS (optional — won't block).
 echo "  PHPCS standards... ";
 exec( 'php vendor/bin/phpcs -d memory_limit=512M --standard=phpcs.xml -q 2>&1', $cs_output, $cs_exit );
 if ( 0 === $cs_exit ) {
@@ -125,9 +113,6 @@ if ( 0 === $cs_exit ) {
 
 echo "\n";
 
-// ============================================================================
-// 3. GATE CHECK
-// ============================================================================
 if ( ! $gates_passed ) {
 	echo "{$fail_mark} Quality gates failed. Fix the issues above before releasing.\n\n";
 	exit( 1 );
@@ -135,9 +120,6 @@ if ( ! $gates_passed ) {
 
 echo "{$pass_mark} All quality gates passed!\n\n";
 
-// ============================================================================
-// 4. VERSION BUMP
-// ============================================================================
 $parts = explode( '.', $current_version );
 $major = (int) $parts[0];
 $minor = (int) $parts[1];
@@ -181,9 +163,6 @@ switch ( $choice ) {
 
 echo "\n{$info_mark} Bumping: v{$current_version} → v{$new_version}\n\n";
 
-// ============================================================================
-// 5. RUN BUMP SCRIPT
-// ============================================================================
 $bump_cmd = sprintf( 'php %s/scripts/bump-version.php %s', $root_dir, $new_version );
 passthru( $bump_cmd, $bump_exit );
 
@@ -192,9 +171,6 @@ if ( 0 !== $bump_exit ) {
 	exit( 1 );
 }
 
-// ============================================================================
-// 6. CHANGELOG PROMPT
-// ============================================================================
 echo "\n{$info_mark} Ready to add changelog entry?\n\n";
 echo "  Changelog section: == Changelog == in readme.txt\n";
 echo "  Upgrade notice section: == Upgrade Notice == in readme.txt\n\n";
@@ -212,9 +188,6 @@ if ( 'y' === $changelog_choice ) {
 	echo "  2. == Upgrade Notice == section (brief summary)\n\n";
 }
 
-// ============================================================================
-// 7. NEXT STEPS
-// ============================================================================
 echo "{$separator}\n";
 echo "  Release preparation complete!\n";
 echo "{$separator}\n\n";
@@ -235,4 +208,3 @@ echo "     php scripts/release-commit.php {$new_version}\n\n";
 echo "{$separator}\n";
 
 exit( 0 );
-

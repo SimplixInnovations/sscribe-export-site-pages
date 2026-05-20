@@ -1,10 +1,8 @@
 <?php
 /**
- * Security tests for SScribe.
+ * SScribe Security Test
  *
- * Tests for XSS prevention, SQL injection prevention, CSRF protection.
- *
- * @package SScribe
+ * @package SScribe_Export_Site_Pages
  */
 
 declare(strict_types=1);
@@ -14,14 +12,8 @@ use PHPUnit\Framework\TestCase;
 require_once SSCRIBE_PLUGIN_DIR . 'includes/class-sscribe-validator.php';
 require_once SSCRIBE_PLUGIN_DIR . 'includes/class-sscribe-logger-enhanced.php';
 
-/**
- * Class SScribe_Security_Test
- */
 class SScribe_Security_Test extends TestCase {
 
-	/**
-	 * Test XSS prevention in input sanitization.
-	 */
 	public function test_xss_prevention_script_tags(): void {
 		$xss_payloads = array(
 			'<script>alert("xss")</script>',
@@ -43,9 +35,6 @@ class SScribe_Security_Test extends TestCase {
 		}
 	}
 
-	/**
-	 * Test URL dangerous protocol prevention.
-	 */
 	public function test_url_dangerous_protocol_prevention(): void {
 		$dangerous_urls = array(
 			'javascript:alert(1)',
@@ -63,9 +52,6 @@ class SScribe_Security_Test extends TestCase {
 		}
 	}
 
-	/**
-	 * Test XSS prevention in format validation.
-	 */
 	public function test_xss_prevention_format_validation(): void {
 		$malicious_formats = array(
 			'<script>docx</script>',
@@ -79,9 +65,6 @@ class SScribe_Security_Test extends TestCase {
 		}
 	}
 
-	/**
-	 * Test SQL injection prevention in page IDs.
-	 */
 	public function test_sql_injection_prevention_page_ids(): void {
 		$injection_payloads = array(
 			'1; DROP TABLE wp_posts; --',
@@ -103,9 +86,6 @@ class SScribe_Security_Test extends TestCase {
 		}
 	}
 
-	/**
-	 * Test path traversal prevention.
-	 */
 	public function test_path_traversal_prevention(): void {
 		$traversal_payloads = array(
 			'../../../etc/passwd',
@@ -123,9 +103,6 @@ class SScribe_Security_Test extends TestCase {
 		}
 	}
 
-	/**
-	 * Test nonce format validation.
-	 */
 	public function test_nonce_format_validation(): void {
 		$valid_nonces = array(
 			'abc123def456',
@@ -158,9 +135,6 @@ class SScribe_Security_Test extends TestCase {
 		}
 	}
 
-	/**
-	 * Test integer overflow prevention.
-	 */
 	public function test_integer_overflow_prevention(): void {
 		$large_values = array(
 			'999999999',
@@ -178,9 +152,6 @@ class SScribe_Security_Test extends TestCase {
 		}
 	}
 
-	/**
-	 * Test URL validation and sanitization.
-	 */
 	public function test_url_sanitization(): void {
 		$safe_urls = array(
 			'https://example.com/page',
@@ -196,9 +167,6 @@ class SScribe_Security_Test extends TestCase {
 		}
 	}
 
-	/**
-	 * Test array injection prevention.
-	 */
 	public function test_array_injection_prevention(): void {
 		$input = array(
 			'page_ids' => array(
@@ -217,9 +185,6 @@ class SScribe_Security_Test extends TestCase {
 		}
 	}
 
-	/**
-	 * Test context sanitization concept.
-	 */
 	public function test_sensitive_data_sanitization_concept(): void {
 		$sensitive_data = array(
 			'password'   => 'secret123',
@@ -243,9 +208,6 @@ class SScribe_Security_Test extends TestCase {
 		$this->assertEquals( 'this is fine', $sanitized['safe_data'] );
 	}
 
-	/**
-	 * Test input length validation.
-	 */
 	public function test_input_length_limits(): void {
 		$long_string = str_repeat( 'a', 100000 );
 
@@ -256,14 +218,11 @@ class SScribe_Security_Test extends TestCase {
 		$this->assertLessThanOrEqual( strlen( $long_string ), strlen( $sanitized['field'] ) );
 	}
 
-	/**
-	 * Test unicode normalization attacks.
-	 */
 	public function test_unicode_normalization(): void {
 		$unicode_payloads = array(
-			"\u{003C}script\u{003E}", // <script>
-			"\u{FF1C}script\u{FF1E}", // Fullwidth < >
-			"\xC0\xBCscript\xC0\xBE", // Overlong UTF-8
+			"\u{003C}script\u{003E}",
+			"\u{FF1C}script\u{FF1E}",
+			"\xC0\xBCscript\xC0\xBE",
 		);
 
 		foreach ( $unicode_payloads as $payload ) {
@@ -275,9 +234,6 @@ class SScribe_Security_Test extends TestCase {
 		}
 	}
 
-	/**
-	 * Test null byte injection prevention.
-	 */
 	public function test_null_byte_injection_prevention(): void {
 		$null_byte_payloads = array(
 			"file.php\x00.txt",

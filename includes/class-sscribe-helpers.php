@@ -1,8 +1,8 @@
 <?php
 /**
- * Helper functions for SScribe.
+ * SScribe Helpers
  *
- * @package SScribe
+ * @package SScribe_Export_Site_Pages
  */
 
 declare(strict_types=1);
@@ -11,49 +11,16 @@ if ( ! defined( 'ABSPATH' ) ) {
 	exit;
 }
 
-/**
- * Class SScribe_Helpers
- *
- * Utility functions for the SScribe plugin.
- */
 class SScribe_Helpers {
 
-	/**
-	 * Icons directory relative path.
-	 *
-	 * @var string
-	 */
 	private static string $icons_dir = 'assets/icons/';
 
-	/**
-	 * SVG icon content cache.
-	 *
-	 * @var array<string, string>
-	 */
 	private static array $icon_cache = array();
 
-	/**
-	 * Get the absolute URL for an icon.
-	 *
-	 * @param string $name Icon name (without .svg extension).
-	 * @return string Absolute URL to the icon.
-	 */
 	public static function icon_url( string $name ): string {
 		return SSCRIBE_PLUGIN_URL . self::$icons_dir . $name . '.svg';
 	}
 
-	/**
-	 * Get an SVG icon as an <img> tag.
-	 *
-	 * Uses CSS filter technique for color inheritance so icons
-	 * match their parent CSS color without inline styles.
-	 * For accessibility, icons are aria-hidden by default (decorative).
-	 *
-	 * @param string $name       Icon name (without .svg extension).
-	 * @param int    $size       Icon size in pixels.
-	 * @param string $css_class  Additional CSS class.
-	 * @return string HTML <img> tag or empty string if icon not found.
-	 */
 	public static function get_icon( string $name, int $size = 20, string $css_class = '' ): string {
 		$cache_key = $name . ':' . $size . ':' . $css_class;
 		if ( isset( self::$icon_cache[ $cache_key ] ) ) {
@@ -104,13 +71,6 @@ class SScribe_Helpers {
 		return $html;
 	}
 
-	/**
-	 * Get time estimate for a single format.
-	 *
-	 * @param string $format     Export format.
-	 * @param int    $page_count Number of pages.
-	 * @return array{text: string, seconds: int}
-	 */
 	public static function get_format_time_estimate( string $format, int $page_count ): array {
 		$times = array(
 			'docx'     => 1.2,
@@ -126,6 +86,7 @@ class SScribe_Helpers {
 			return array(
 				'text'    => sprintf(
 					/* translators: %d: Estimated seconds. */
+
 					__( '~%d seconds', 'sscribe-export-site-pages' ),
 					$total_seconds
 				),
@@ -137,6 +98,7 @@ class SScribe_Helpers {
 		return array(
 			'text'    => sprintf(
 				/* translators: %d: Estimated minutes. */
+
 				_n( '~%d minute', '~%d minutes', $minutes, 'sscribe-export-site-pages' ),
 				$minutes
 			),
@@ -144,12 +106,6 @@ class SScribe_Helpers {
 		);
 	}
 
-	/**
-	 * Get time estimate for all formats.
-	 *
-	 * @param int $page_count Number of pages.
-	 * @return array{text: string, seconds: int}
-	 */
 	public static function get_all_formats_time_estimate( int $page_count ): array {
 		$total_seconds = (int) ceil( ( 1.2 + 8 + 1 + 0.5 ) * $page_count );
 		$minutes       = (int) ceil( $total_seconds / 60 );
@@ -158,6 +114,7 @@ class SScribe_Helpers {
 			return array(
 				'text'    => sprintf(
 					/* translators: %d: Estimated minutes. */
+
 					_n( '~%d minute', '~%d minutes', $minutes, 'sscribe-export-site-pages' ),
 					$minutes
 				),
@@ -169,6 +126,7 @@ class SScribe_Helpers {
 		$mins  = $minutes % 60;
 		$text  = sprintf(
 			/* translators: 1: Hours, 2: Minutes. */
+
 			__( '~%1$dh %2$dm', 'sscribe-export-site-pages' ),
 			$hours,
 			$mins
@@ -179,24 +137,10 @@ class SScribe_Helpers {
 		);
 	}
 
-	/**
-	 * Format a byte count as human-readable size.
-	 *
-	 * @param int $bytes Byte count.
-	 * @return string Formatted size.
-	 */
 	public static function format_filesize( int $bytes ): string {
 		return size_format( $bytes, 1 );
 	}
 
-	/**
-	 * Validate and sanitize a URL for use in documents.
-	 *
-	 * Uses esc_url_raw to prevent HTML entity encoding.
-	 *
-	 * @param string $url URL to validate.
-	 * @return string Valid URL or empty string.
-	 */
 	public static function validate_document_url( string $url ): string {
 		$url = esc_url_raw( $url );
 
@@ -213,11 +157,6 @@ class SScribe_Helpers {
 		return $url;
 	}
 
-	/**
-	 * Get the current client IP address.
-	 *
-	 * @return string
-	 */
 	public static function get_client_ip(): string {
 		$ip = '';
 
@@ -232,14 +171,6 @@ class SScribe_Helpers {
 		return filter_var( $ip, FILTER_VALIDATE_IP ) ? $ip : '0.0.0.0';
 	}
 
-	/**
-	 * Strip page builder inline styles, classes, and data attributes from HTML.
-	 *
-	 * Shared between SScribe_Page_Collector and SScribe_Content_Parser.
-	 *
-	 * @param string $html Raw HTML content.
-	 * @return string Cleaned HTML.
-	 */
 	public static function strip_page_builder_attributes( string $html ): string {
 		$patterns = array(
 			'/\s*style="[^"]*"/i',

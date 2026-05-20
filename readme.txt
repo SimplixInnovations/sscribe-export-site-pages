@@ -4,7 +4,7 @@ Donate link: https://simplixi.com
 Tags: docx, pdf, html, markdown, multilingual
 Requires at least: 6.0
 Tested up to: 6.9
-Stable tag: 1.1.5
+Stable tag: 1.1.1
 Requires PHP: 8.2
 License: GPLv2 or later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
@@ -106,20 +106,8 @@ Parameters: `(int $bytes)` — Default: 5,242,880 (5MB)
 
 == Changelog ==
 
-= 1.1.5 =
-
-* Fixed duplicate JavaScript function definition (copyViaTextarea)
-* Fixed JS syntax error: stray quote character in refreshStatusAndLanguageCounts method
-* Fixed unescaped HTML in history empty state (XSS prevention)
-* Fixed null safety in diagnostics PHPWord version detection
-* Fixed possessive regex quantifiers for PCRE1 compatibility (content parser)
-* Improved language code extraction to support 2-3 letter codes (WPML ZHT, ZHS)
-* Added post-type-aware adaptive metrics for more accurate time estimates
-* Removed duplicate CSS step-badge selector
-* Added missing .distignore entries for development files
-
-= 1.1.0 =
-
+= 1.1.1 =
+* Fix PHPCS warnings: proper placement of php:ignore comments across all files
 * Initial release with full feature set: DOCX, PDF, HTML, and Markdown export
 * Batch processing engine with configurable chunk sizes
 * RTL support for Arabic, Hebrew, Farsi, and Urdu
@@ -130,12 +118,12 @@ Parameters: `(int $bytes)` — Default: 5,242,880 (5MB)
 * Memory monitoring and timeout protection
 * GDPR-compliant audit trail with HMAC-SHA256 hashed IP addresses
 
+= 1.0.0 =
+
+* Initial release.
+
 == Upgrade Notice ==
 
-= 1.1.5 =
-
-Bug fixes and improvements: JavaScript syntax fix, security hardening, and better WPML language code support.
-
-= 1.1.0 =
+= 1.0.0 =
 
 Initial release. Export WordPress pages to DOCX, PDF, HTML, or Markdown with full multilingual RTL support, SEO metadata integration, and secure ZIP downloads.

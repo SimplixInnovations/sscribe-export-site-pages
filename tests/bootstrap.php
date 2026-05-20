@@ -1,51 +1,48 @@
 <?php
 /**
- * PHPUnit Test Bootstrap
+ * SScribe Tests Bootstrap
  *
- * @package SScribe
+ * @package SScribe_Export_Site_Pages
  */
 
-// Prevent direct access.
 if ( ! defined( 'ABSPATH' ) ) {
 	define( 'ABSPATH', dirname( __DIR__ ) . '/fake-wp/' );
 }
 
-// Initialize $_SESSION before any WordPress code tries to use it.
+
 if ( session_status() === PHP_SESSION_NONE && ! headers_sent() ) {
 	@session_start();
 }
 $_SESSION = $_SESSION ?? array();
 
-// Stub wp_cache_flush() for tests — SScribe_Privacy uses it.
+
 if ( ! function_exists( 'wp_cache_flush' ) ) {
 	function wp_cache_flush() {
 		return true;
 	}
 }
 
-// Stub wp_safe_redirect() for tests — SScribe_Admin redirect guard uses it.
+
 if ( ! function_exists( 'wp_safe_redirect' ) ) {
 	function wp_safe_redirect( $location, $status = 302, $x_redirect_by = 'WordPress' ) {
 		return true;
 	}
 }
 
-// Stub wp_using_ext_object_cache() for tests — session lock and ZIP index lock use it.
+
 if ( ! function_exists( 'wp_using_ext_object_cache' ) ) {
 	function wp_using_ext_object_cache(): bool {
-		return false; // Default to no-persistent-cache for test isolation.
+		return false; 
 	}
 }
 
-// Stub wp_kses_allowed_html() and kses for tests — HTML exporter content filter.
+
 if ( ! function_exists( 'wp_kses_allowed_html' ) ) {
-	/**
-	 * @param string $context The context for which to retrieve allowed HTML.
-	 * @return array<string, array<string, bool>>
-	 */
+
+
 	function wp_kses_allowed_html( string $context = 'post' ): array {
-		// Return a basic set of allowed HTML elements for test purposes.
-		// This covers standard WordPress post content elements.
+		
+		
 		$html = array(
 			'address'    => array(),
 			'a'          => array( 'href' => true, 'title' => true, 'rel' => true, 'target' => true ),
@@ -113,28 +110,18 @@ if ( ! function_exists( 'wp_kses_allowed_html' ) ) {
 			'iframe'     => array( 'allow' => true, 'height' => true, 'src' => true, 'width' => true ),
 		);
 
-		/**
-		 * Filter the allowed HTML tags.
-		 * Mimics WordPress core wp_kses_allowed_html() filter.
-		 *
-		 * @param array  $html    Allowed HTML tags and attributes.
-		 * @param string $context The context name.
-		 */
+
+
 		return apply_filters( 'wp_kses_allowed_html', $html, $context );
 	}
 }
 
 if ( ! function_exists( 'wp_kses' ) ) {
-	/**
-	 * Strip content to allowed HTML only.
-	 *
-	 * @param string $content     Content to filter.
-	 * @param array  $allowed_html Allowed HTML tags and attributes.
-	 * @return string Filtered content.
-	 */
+
+
 	function wp_kses( string $content, array $allowed_html ): string {
-		// Simple test implementation: strip tags not in allowed_html.
-		// Real wp_kses does deep attribute validation; for tests this is sufficient.
+		
+		
 		return strip_tags( $content, array_keys( $allowed_html ) );
 	}
 }
@@ -155,12 +142,12 @@ if ( ! defined( 'SSCRIBE_PLUGIN_BASENAME' ) ) {
 	define( 'SSCRIBE_PLUGIN_BASENAME', 'sscribe-export-site-pages/sscribe-export-site-pages.php' );
 }
 
-// Allow SScribe_Container::reset() to work in test context.
+
 if ( ! defined( 'SSCRIBE_TESTING' ) ) {
 	define( 'SSCRIBE_TESTING', true );
 }
 
-// Provide signing key material for session tests (S-2 security fix requires this).
+
 if ( ! defined( 'AUTH_SALT' ) ) {
 	define( 'AUTH_SALT', 'test-auth-salt-for-unit-tests-only' );
 }
@@ -173,8 +160,8 @@ if ( ! defined( 'SSCRIBE_DEBUG' ) ) {
 	define( 'SSCRIBE_DEBUG', false );
 }
 
-// SSCRIBE_FONT_ARABIC / SSCRIBE_FONT_ARABIC_BOLD removed in v3.7.6.
-// NotoSansArabic is no longer shipped — Arabic PDF uses DejaVu Sans (mPDF bundled).
+
+
 
 if ( ! defined( 'WP_CONTENT_DIR' ) ) {
 	define( 'WP_CONTENT_DIR', dirname( __DIR__ ) . '/fake-wp/wp-content' );
@@ -383,7 +370,7 @@ if ( ! function_exists( 'wp_is_writable' ) ) {
 
 if ( ! function_exists( 'check_ajax_referer' ) ) {
 	function check_ajax_referer( $action = -1, $query_arg = false, $stop = true ) {
-		// Check if a valid nonce was provided via POST.
+		
 		$nonce_field = false === $query_arg ? '_ajax_nonce' : $query_arg;
 		$nonce_value = $_POST[ $nonce_field ] ?? $_REQUEST[ $nonce_field ] ?? '';
 
@@ -394,7 +381,7 @@ if ( ! function_exists( 'check_ajax_referer' ) ) {
 			return false;
 		}
 
-		return 1; // WordPress returns 1 on success
+		return 1; 
 	}
 }
 
@@ -406,7 +393,7 @@ if ( ! function_exists( 'esc_attr' ) ) {
 
 if ( ! function_exists( 'wp_raise_memory_limit' ) ) {
 	function wp_raise_memory_limit( $context = 'admin' ) {
-		return 268435456; // 256MB in bytes
+		return 268435456; 
 	}
 }
 
@@ -417,8 +404,8 @@ if ( ! function_exists( 'wp_die' ) ) {
 	}
 }
 
-// WP_User stub for test environment — SScribe_Batch_Processor::audit_log() calls
-// $current_user->exists() on the result of wp_get_current_user().
+
+
 if ( ! class_exists( 'WP_User' ) ) {
 	class WP_User {
 		public int $ID = 0;
@@ -523,24 +510,24 @@ if ( ! function_exists( 'delete_transient' ) ) {
 
 if ( ! function_exists( 'wp_cache_delete' ) ) {
 	function wp_cache_delete( $key, $group = '' ) {
-		// No-op stub for unit tests - cache is not used in test environment.
+		
 		return true;
 	}
 }
 
-// WP_Query stub for unit tests.
+
 if ( ! class_exists( 'WP_Query' ) ) {
 	class WP_Query {
 		public array $posts = array();
 		public int $found_posts = 0;
 
 		public function __construct( $query = array() ) {
-			// Return empty results for unit tests.
+			
 		}
 	}
 }
 
-// WP_Post stub for unit tests.
+
 if ( ! class_exists( 'WP_Post' ) ) {
 	class WP_Post {
 		public int $ID = 0;
@@ -655,12 +642,12 @@ $sscribe_test_ajax_nonce_valid = true;
 					if ( '%f' === $matches[0] ) {
 						return (string) (float) $value;
 					}
-					// WordPress does not quote table/column name tokens in %s placeholders —
-					// values derived from $wpdb->prefix (e.g. wp_sscribe_export_stats) are
-					// trusted and passed through unquoted. Only quote values that look like
-					// regular string content (contain spaces, special chars, etc.).
+					
+					
+					
+					
 					if ( is_string( $value ) && preg_match( '/^[\w]+$/', $value ) ) {
-						// Looks like a table or column name — pass through unquoted.
+						
 						return $value;
 					}
 					return "'" . str_replace( "'", "''", (string) $value ) . "'";
@@ -684,8 +671,8 @@ $sscribe_test_ajax_nonce_valid = true;
 		public function get_var( $query ) {
 			global $sscribe_test_db_tables;
 
-			// Handle both quoted (old mock behavior) and unquoted (WordPress-realtime) table names.
-			// WordPress uses: SHOW TABLES LIKE 'wp_sscribe_audit_log'
+			
+			
 			if ( preg_match( "/SHOW TABLES LIKE\s+['`]([^'`]+)['`]/i", $query, $matches ) ) {
 				return array_key_exists( $matches[1], $sscribe_test_db_tables ) ? $matches[1] : null;
 			}
@@ -869,7 +856,7 @@ if ( ! function_exists( 'esc_html' ) ) {
 if ( ! function_exists( 'esc_url_raw' ) ) {
 	function esc_url_raw( $url ) {
 		$url = (string) $url;
-		// Reject dangerous protocols (javascript:, data:, etc.).
+		
 		$protocol = strtolower( (string) wp_parse_url( $url, PHP_URL_SCHEME ) );
 		if ( '' === $protocol ) {
 			return '';
@@ -1002,7 +989,7 @@ if ( ! function_exists( 'wp_list_pluck' ) ) {
 }
 
 if ( ! function_exists( 'class_exists' ) || ! class_exists( 'WP_Query' ) ) {
-	// WP_Query already defined above.
+	
 }
 
 
@@ -1182,7 +1169,7 @@ if ( ! defined( 'HOUR_IN_SECONDS' ) ) {
 
 if ( ! function_exists( 'wp_count_posts' ) ) {
 	function wp_count_posts( $post_type = 'post', $perm = 'readable' ) {
-		// Return a mock object with post status counts.
+		
 		$counts                = new \stdClass();
 		$counts->publish       = 5;
 		$counts->draft         = 2;
@@ -1201,8 +1188,8 @@ if ( file_exists( SSCRIBE_PLUGIN_DIR . 'vendor/autoload.php' ) ) {
 	if ( file_exists( SSCRIBE_PLUGIN_DIR . 'includes/sscribe-vendor-compat.php' ) ) {
 		require_once SSCRIBE_PLUGIN_DIR . 'includes/sscribe-vendor-compat.php';
 	}
-	// Fall through to vendor-prefixed autoload so SScribeVendor\Mpdf\Mpdf
-	// and other Strauss-prefixed classes are resolvable in test runtime.
+	
+	
 }
 
 if ( file_exists( SSCRIBE_PLUGIN_DIR . 'vendor-prefixed/autoload.php' ) ) {

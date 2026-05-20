@@ -1,11 +1,8 @@
 <?php
 /**
- * Version-aware upgrade system for SScribe.
+ * SScribe Upgrader
  *
- * Handles schema migrations, data transformations, and cleanup
- * when the plugin is updated between versions.
- *
- * @package SScribe
+ * @package SScribe_Export_Site_Pages
  */
 
 declare(strict_types=1);
@@ -15,24 +12,14 @@ if ( ! defined( 'ABSPATH' ) ) {
 }
 
 /**
- * Class SScribe_Upgrader
- *
- * Q-3: Manages incremental upgrades between plugin versions.
+ * Handles database schema upgrades and migrations.
  */
 class SScribe_Upgrader {
 
-	/**
-	 * Option key for storing the installed schema version.
-	 */
 	private const SCHEMA_VERSION_OPTION = 'sscribe_schema_version';
 
 	/**
-	 * Run any pending upgrades.
-	 *
-	 * Called on `plugins_loaded` to check if the installed version
-	 * differs from the code version and apply migrations.
-	 *
-	 * @return void
+	 * Check and run any pending database migrations.
 	 */
 	public static function maybe_upgrade(): void {
 		$installed_version = get_option( self::SCHEMA_VERSION_OPTION, '0' );
@@ -41,7 +28,6 @@ class SScribe_Upgrader {
 			return;
 		}
 
-		// Prevent concurrent upgrades.
 		if ( get_transient( 'sscribe_upgrade_lock' ) ) {
 			return;
 		}
@@ -50,7 +36,7 @@ class SScribe_Upgrader {
 		try {
 			try {
 				self::run_migrations( $installed_version );
-				// Clear stale transients from previous versions before updating schema.
+
 				delete_transient( 'sscribe_admin_page_data_v' . $installed_version );
 				delete_transient( 'sscribe_wpml_languages' );
 				update_option( self::SCHEMA_VERSION_OPTION, SSCRIBE_VERSION, false );
@@ -58,8 +44,7 @@ class SScribe_Upgrader {
 			} catch ( \Throwable $e ) {
 				update_option( 'sscribe_upgrade_last_error', $e->getMessage(), false );
 				if ( defined( 'WP_DEBUG' ) && WP_DEBUG ) {
-					// phpcs:ignore WordPress.PHP.DevelopmentFunctions.error_log_error_log -- Debug-only error logging for upgrade failures
-					error_log( 'SScribe Upgrade Error: ' . $e->getMessage() );
+					error_log( 'SScribe Upgrade Error: ' . $e->getMessage() ); // phpcs:ignore WordPress.PHP.DevelopmentFunctions.error_log_error_log -- Debug-only error logging for upgrade failures
 				}
 			}
 		} finally {
@@ -68,10 +53,9 @@ class SScribe_Upgrader {
 	}
 
 	/**
-	 * Run incremental migrations from the installed version to current.
+	 * Execute database migrations from a specific version.
 	 *
-	 * @param string $from_version Currently installed version.
-	 * @return void
+	 * @param string $from_version Version to migrate from.
 	 */
 	private static function run_migrations( string $from_version ): void {
 		global $wpdb;
@@ -79,9 +63,8 @@ class SScribe_Upgrader {
 
 		require_once ABSPATH . 'wp-admin/includes/upgrade.php';
 
-		// Migration: 3.35.0 — Ensure all core tables exist for upgrade paths.
 		if ( version_compare( $from_version, '3.35.0', '<' ) ) {
-			// Create export_logs table if missing.
+
 			$table_logs = $wpdb->prefix . 'sscribe_export_logs';
 			$sql_logs   = "CREATE TABLE $table_logs (
 				id BIGINT UNSIGNED NOT NULL AUTO_INCREMENT,
@@ -100,7 +83,6 @@ class SScribe_Upgrader {
 			) $charset_collate;";
 			dbDelta( $sql_logs );
 
-			// Create export_stats table if missing.
 			$table_stats = $wpdb->prefix . 'sscribe_export_stats';
 			$sql_stats   = "CREATE TABLE $table_stats (
 				id BIGINT UNSIGNED NOT NULL AUTO_INCREMENT,
@@ -125,11 +107,9 @@ class SScribe_Upgrader {
 			) $charset_collate;";
 			dbDelta( $sql_stats );
 
-			// Create audit_log table if missing.
 			SScribe_Audit_Trail::create_table();
 		}
 
-		// Migration: 3.30.13 — Add dedicated sessions table + stats index.
 		if ( version_compare( $from_version, '3.30.13', '<' ) ) {
 			$table_sessions = $wpdb->prefix . 'sscribe_sessions';
 			$sql_sessions   = "CREATE TABLE $table_sessions (
@@ -158,7 +138,6 @@ class SScribe_Upgrader {
 			dbDelta( $sql_sessions );
 		}
 
-		// Migration: 3.32.3 — Add missing idx_export_session_id index on stats table.
 		if ( version_compare( $from_version, '3.32.3', '<' ) ) {
 			try {
 				// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- Schema introspection; plugin-controlled table name.
@@ -177,17 +156,13 @@ class SScribe_Upgrader {
 			}
 		}
 
-		// Migration: 1.1.1 — Migrate adaptive metrics to post-type-aware keys.
-		// Prior to 1.1.1, metrics were keyed by format only (e.g., 'docx').
-		// From 1.1.1 onward, they use format + post_type (e.g., 'docx_page').
-		// This migrates old data to the new key format to preserve historical estimates.
 		if ( version_compare( $from_version, '1.1.1', '<' ) ) {
 			$metrics = get_option( 'sscribe_export_metrics', array() );
 			if ( isset( $metrics['formats'] ) && is_array( $metrics['formats'] ) ) {
 				$migrated      = false;
 				$known_formats = array( 'docx', 'pdf', 'html', 'markdown' );
 				foreach ( array_keys( $metrics['formats'] ) as $key ) {
-					// Old keys have no underscore (e.g., 'docx'). New keys have '_' (e.g., 'docx_page').
+
 					if ( false === strpos( $key, '_' ) && in_array( $key, $known_formats, true ) ) {
 						$new_key = $key . '_page';
 						if ( ! isset( $metrics['formats'][ $new_key ] ) ) {
@@ -202,7 +177,6 @@ class SScribe_Upgrader {
 			}
 		}
 
-		// Migration: 3.33.0 — Fix export_session_id column width (VARCHAR(12) → VARCHAR(64)).
 		if ( version_compare( $from_version, '3.33.0', '<' ) ) {
 			try {
 				// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- Schema introspection; plugin-controlled table name.
@@ -213,7 +187,7 @@ class SScribe_Upgrader {
 					)
 				);
 				$needs_modify = true;
-				// phpcs:ignore WordPress.NamingConventions.ValidVariableName.UsedPropertyNotSnakeCase -- MySQL SHOW COLUMNS result
+				// phpcs:ignore WordPress.NamingConventions.ValidVariableName.UsedPropertyNotSnakeCase -- MySQL SHOW COLUMNS result.
 				if ( $col && isset( $col->Type ) && stripos( $col->Type, 'varchar(64)' ) !== false ) {
 					$needs_modify = false;
 				}

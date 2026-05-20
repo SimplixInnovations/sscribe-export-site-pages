@@ -1,11 +1,8 @@
 <?php
 /**
- * Base exception class for SScribe.
+ * SScribe Exception
  *
- * Provides structured error handling with error codes, HTTP status,
- * and integration with WordPress WP_Error and SScribe_Error.
- *
- * @package SScribe
+ * @package SScribe_Export_Site_Pages
  */
 
 declare(strict_types=1);
@@ -14,17 +11,8 @@ if ( ! defined( 'ABSPATH' ) ) {
 	exit;
 }
 
-/**
- * Class SScribe_Exception
- *
- * Base exception for all SScribe-specific errors.
- * Follows WooCommerce's WC_Data_Exception pattern for enterprise-grade error handling.
- */
 class SScribe_Exception extends Exception {
 
-	/**
-	 * Error code constants (machine-readable).
-	 */
 	public const CODE_MEMORY_EXHAUSTED       = 'E_EXPORT_001';
 	public const CODE_PERMISSION_DENIED      = 'E_EXPORT_002';
 	public const CODE_INVALID_DATA           = 'E_EXPORT_003';
@@ -41,50 +29,16 @@ class SScribe_Exception extends Exception {
 	public const CODE_DOCX_GENERATION_FAILED = 'E_EXPORT_014';
 	public const CODE_UNEXPECTED_ERROR       = 'E_EXPORT_999';
 
-	/**
-	 * Machine-readable error code.
-	 *
-	 * @var string
-	 */
 	protected string $error_code;
 
-	/**
-	 * Additional error data/context.
-	 *
-	 * @var array
-	 */
 	protected array $error_data;
 
-	/**
-	 * HTTP status code for the error.
-	 *
-	 * @var int
-	 */
 	protected int $http_status_code;
 
-	/**
-	 * Whether this error should be logged.
-	 *
-	 * @var bool
-	 */
 	protected bool $should_log = true;
 
-	/**
-	 * Whether this error is recoverable.
-	 *
-	 * @var bool
-	 */
 	protected bool $recoverable = false;
 
-	/**
-	 * Constructor.
-	 *
-	 * @param string         $error_code       Machine-readable error code (e.g., 'E_EXPORT_001').
-	 * @param string         $message          Human-readable error message.
-	 * @param int            $http_status_code HTTP status code (default 500).
-	 * @param array          $error_data       Additional error context.
-	 * @param Throwable|null $previous         Previous exception for chaining.
-	 */
 	public function __construct(
 		string $error_code,
 		string $message,
@@ -99,20 +53,10 @@ class SScribe_Exception extends Exception {
 		parent::__construct( $message, $http_status_code, $previous );
 	}
 
-	/**
-	 * Get the machine-readable error code.
-	 *
-	 * @return string
-	 */
 	public function get_error_code(): string {
 		return $this->error_code;
 	}
 
-	/**
-	 * Get the error data/context.
-	 *
-	 * @return array
-	 */
 	public function get_error_data(): array {
 		return array_merge(
 			$this->error_data,
@@ -120,38 +64,18 @@ class SScribe_Exception extends Exception {
 		);
 	}
 
-	/**
-	 * Get the HTTP status code.
-	 *
-	 * @return int
-	 */
 	public function get_http_status_code(): int {
 		return $this->http_status_code;
 	}
 
-	/**
-	 * Check if this error should be logged.
-	 *
-	 * @return bool
-	 */
 	public function should_log(): bool {
 		return $this->should_log;
 	}
 
-	/**
-	 * Check if this error is recoverable.
-	 *
-	 * @return bool
-	 */
 	public function is_recoverable(): bool {
 		return $this->recoverable;
 	}
 
-	/**
-	 * Convert to WordPress WP_Error object.
-	 *
-	 * @return WP_Error
-	 */
 	public function to_wp_error(): \WP_Error {
 		return new \WP_Error(
 			$this->error_code,
@@ -160,11 +84,6 @@ class SScribe_Exception extends Exception {
 		);
 	}
 
-	/**
-	 * Convert to SScribe_Error object.
-	 *
-	 * @return SScribe_Error
-	 */
 	public function to_scribe_error(): \SScribe_Error {
 		return \SScribe_Error::from_template(
 			$this->error_code,
@@ -172,12 +91,6 @@ class SScribe_Exception extends Exception {
 		);
 	}
 
-	/**
-	 * Convert to array for JSON response.
-	 *
-	 * @param bool $include_details Include detailed info (debug mode).
-	 * @return array
-	 */
 	public function to_array( bool $include_details = false ): array {
 		$data = array(
 			'code'       => $this->error_code,
@@ -196,13 +109,6 @@ class SScribe_Exception extends Exception {
 		return $data;
 	}
 
-	/**
-	 * Create from an SScribe_Error template.
-	 *
-	 * @param string $error_code Error code.
-	 * @param array  $context    Context data for interpolation.
-	 * @return static
-	 */
 	public static function from_template( string $error_code, array $context = array() ): self {
 		$templates = \SScribe_Error::get_templates();
 

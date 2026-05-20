@@ -1,8 +1,8 @@
 <?php
 /**
- * HTML exporter for SScribe.
+ * SScribe HTML Exporter
  *
- * @package SScribe
+ * @package SScribe_Export_Site_Pages
  */
 
 declare(strict_types=1);
@@ -13,47 +13,17 @@ if ( ! defined( 'ABSPATH' ) ) {
 
 require_once SSCRIBE_PLUGIN_DIR . 'includes/exporters/interface-sscribe-exporter.php';
 
-/**
- * Class SScribe_HTML_Exporter
- *
- * Exports pages to standalone HTML format.
- */
 class SScribe_HTML_Exporter implements SScribe_Exporter_Interface {
 
-	/**
-	 * Logger instance.
-	 *
-	 * @var SScribe_Logger_Interface|null
-	 */
 	private ?SScribe_Logger_Interface $logger = null;
 
-	/**
-	 * Filesystem instance.
-	 *
-	 * @var SScribe_Filesystem
-	 */
 	private SScribe_Filesystem $filesystem;
 
-	/**
-	 * Constructor.
-	 *
-	 * @param SScribe_Logger_Interface|null $logger     Logger instance.
-	 * @param SScribe_Filesystem|null       $filesystem Filesystem instance.
-	 */
 	public function __construct( ?SScribe_Logger_Interface $logger = null, ?SScribe_Filesystem $filesystem = null ) {
 		$this->logger     = $logger ?? SScribe_Logger::instance( defined( 'SSCRIBE_DEBUG' ) && SSCRIBE_DEBUG );
 		$this->filesystem = $filesystem ?? new SScribe_Filesystem();
 	}
 
-	/**
-	 * Export a single page to HTML.
-	 *
-	 * @param array  $page_data  Page data from collector.
-	 * @param string $output_dir Output directory.
-	 * @param int    $index      Page index.
-	 * @param int    $total      Total pages.
-	 * @return SScribe_Result
-	 */
 	public function export( array $page_data, string $output_dir, int $index = 0, int $total = 0 ): SScribe_Result {
 		$page_id = $page_data['id'] ?? 0;
 		$title   = $page_data['title'] ?? 'Untitled';
@@ -80,6 +50,7 @@ class SScribe_HTML_Exporter implements SScribe_Exporter_Interface {
 				return SScribe_Result::failure(
 					sprintf(
 						/* translators: %s: Page title. */
+
 						__( 'Failed to write HTML file for "%s".', 'sscribe-export-site-pages' ),
 						$title
 					),
@@ -113,6 +84,7 @@ class SScribe_HTML_Exporter implements SScribe_Exporter_Interface {
 			return SScribe_Result::failure(
 				sprintf(
 					/* translators: 1: Page title, 2: Error message. */
+
 					__( 'HTML export failed for "%1$s": %2$s', 'sscribe-export-site-pages' ),
 					$title,
 					$e->getMessage()
@@ -122,22 +94,11 @@ class SScribe_HTML_Exporter implements SScribe_Exporter_Interface {
 		}
 	}
 
-	/**
-	 * Generate HTML content for a page.
-	 *
-	 * For standalone HTML exports, we apply a more permissive content filter
-	 * since the content has already been sanitized at input time via WordPress.
-	 * We extend the allowlist to include media elements appropriate for
-	 * standalone HTML files (video, audio, iframe, canvas, svg).
-	 *
-	 * @param array $page_data Page data.
-	 * @return string
-	 */
 	private function generate_html( array $page_data ): string {
 		require_once SSCRIBE_PLUGIN_DIR . 'includes/class-sscribe-rtl-helper.php';
 
-		$site_name  = get_bloginfo( 'name' );
-		$title      = esc_html( $page_data['title'] );
+		$site_name = get_bloginfo( 'name' );
+		$title     = esc_html( $page_data['title'] );
 		$language  = $page_data['language'] ?? 'en';
 		$direction = SScribe_RTL_Helper::get_direction( $language );
 		$is_rtl    = SScribe_RTL_Helper::is_rtl( $language );
@@ -153,11 +114,6 @@ class SScribe_HTML_Exporter implements SScribe_Exporter_Interface {
 		.featured-image { width: 100%; max-width: 600px; margin: 0 auto; display: block; }
 		';
 
-		// Start with full WordPress post allowlist (p, div, h1-h6, a, img, ul, ol, li,
-		// table, blockquote, strong, em, etc.) so standard page content is preserved.
-		// Then add media/embed elements that wp_kses_post() normally strips but are
-		// valid in standalone HTML files (video, audio, iframe, canvas, svg, etc.).
-		// The content was already sanitized at input time via WordPress, so this is safe.
 		$media_html = array(
 			'video'  => array(
 				'src'      => true,
@@ -229,7 +185,7 @@ class SScribe_HTML_Exporter implements SScribe_Exporter_Interface {
 			),
 		);
 
-		$full_allowed  = array_merge_recursive( wp_kses_allowed_html( 'post' ), $media_html );
+		$full_allowed     = array_merge_recursive( wp_kses_allowed_html( 'post' ), $media_html );
 		$filtered_content = wp_kses( $page_data['content'], $full_allowed );
 
 		$html = '<!DOCTYPE html>
@@ -274,6 +230,7 @@ class SScribe_HTML_Exporter implements SScribe_Exporter_Interface {
 		<p><small>' . esc_html(
 			sprintf(
 			/* translators: 1: site name, 2: date and time */
+
 				__( 'Exported from %1$s on %2$s', 'sscribe-export-site-pages' ),
 				$site_name,
 				gmdate( 'Y-m-d H:i' )
@@ -286,19 +243,8 @@ class SScribe_HTML_Exporter implements SScribe_Exporter_Interface {
 		return $html;
 	}
 
-	/**
-	 * Get featured image HTML.
-	 *
-	 * For standalone HTML exports, always use the HTTP URL so the image
-	 * is accessible when the HTML file is opened on any device/server.
-	 * The local path (featured_image_path) is only needed for PDF generation.
-	 *
-	 * @param array $page_data Page data.
-	 * @return string
-	 */
 	private function get_featured_image_html( array $page_data ): string {
-		// Use HTTP URL for standalone HTML portability.
-		// Local paths are only useful for PDF (mPDF) generation, not HTML exports.
+
 		$src = ! empty( $page_data['featured_image_url'] )
 			? $page_data['featured_image_url']
 			: '';
@@ -312,12 +258,6 @@ class SScribe_HTML_Exporter implements SScribe_Exporter_Interface {
 			class="featured-image">';
 	}
 
-	/**
-	 * Get meta information HTML.
-	 *
-	 * @param array $page_data Page data.
-	 * @return string
-	 */
 	private function get_meta_html( array $page_data ): string {
 		return '<dl class="meta">
 			<dt>' . __( 'Author', 'sscribe-export-site-pages' ) . '</dt>
@@ -331,12 +271,6 @@ class SScribe_HTML_Exporter implements SScribe_Exporter_Interface {
 		</dl>';
 	}
 
-	/**
-	 * Get SEO information HTML.
-	 *
-	 * @param array $page_data Page data.
-	 * @return string
-	 */
 	private function get_seo_html( array $page_data ): string {
 		if ( empty( $page_data['seo'] ) ) {
 			return '';
@@ -384,20 +318,10 @@ class SScribe_HTML_Exporter implements SScribe_Exporter_Interface {
 		return $html;
 	}
 
-	/**
-	 * Get the file extension.
-	 *
-	 * @return string
-	 */
 	public function get_extension(): string {
 		return 'html';
 	}
 
-	/**
-	 * Get the mime type.
-	 *
-	 * @return string
-	 */
 	public function get_mime_type(): string {
 		return 'text/html';
 	}

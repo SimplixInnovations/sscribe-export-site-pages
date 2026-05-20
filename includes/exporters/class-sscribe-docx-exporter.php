@@ -1,8 +1,8 @@
 <?php
 /**
- * DOCX exporter for SScribe.
+ * SScribe DOCX Exporter
  *
- * @package SScribe
+ * @package SScribe_Export_Site_Pages
  */
 
 declare(strict_types=1);
@@ -13,33 +13,12 @@ if ( ! defined( 'ABSPATH' ) ) {
 
 require_once SSCRIBE_PLUGIN_DIR . 'includes/exporters/interface-sscribe-exporter.php';
 
-/**
- * Class SScribe_DOCX_Exporter
- *
- * Exports pages to Microsoft Word DOCX format.
- */
 class SScribe_DOCX_Exporter implements SScribe_Exporter_Interface {
 
-	/**
-	 * Original exporter instance (for backward compatibility).
-	 *
-	 * @var SScribe_Exporter
-	 */
 	private SScribe_Exporter $exporter;
 
-	/**
-	 * Logger instance.
-	 *
-	 * @var SScribe_Logger_Interface
-	 */
 	private SScribe_Logger_Interface $logger;
 
-	/**
-	 * Constructor.
-	 *
-	 * @param SScribe_Exporter|null         $exporter DOCX exporter instance.
-	 * @param SScribe_Logger_Interface|null $logger   Logger instance.
-	 */
 	public function __construct(
 		?SScribe_Exporter $exporter = null,
 		?SScribe_Logger_Interface $logger = null
@@ -48,15 +27,6 @@ class SScribe_DOCX_Exporter implements SScribe_Exporter_Interface {
 		$this->logger   = $logger ?? SScribe_Logger::instance( defined( 'SSCRIBE_DEBUG' ) && SSCRIBE_DEBUG );
 	}
 
-	/**
-	 * Export a single page to DOCX.
-	 *
-	 * @param array  $page_data  Page data from collector.
-	 * @param string $output_dir Output directory.
-	 * @param int    $index      Page index.
-	 * @param int    $total      Total pages.
-	 * @return SScribe_Result
-	 */
 	public function export( array $page_data, string $output_dir, int $index = 0, int $total = 0 ): SScribe_Result {
 		$page_id = $page_data['id'] ?? 0;
 
@@ -67,7 +37,6 @@ class SScribe_DOCX_Exporter implements SScribe_Exporter_Interface {
 				return SScribe_Result::success( array( 'path' => $result ) );
 			}
 
-			// Provide detailed error context for debugging - memory exhaustion is the most common failure.
 			$last_error     = $this->exporter->get_last_error();
 			$memory_context = sprintf(
 				'Memory: %s / %s',
@@ -101,7 +70,7 @@ class SScribe_DOCX_Exporter implements SScribe_Exporter_Interface {
 		} catch ( \Throwable $e ) {
 			$exception_class = (string) get_class( $e );
 			$raw_message     = $e->getMessage();
-			// Include exception class name for diagnostics — many PHP/DOM errors have empty messages.
+
 			$display_message = ! empty( $raw_message )
 				? sprintf( '%s: %s', $exception_class, $raw_message )
 				: sprintf( '%s (no message)', $exception_class );
@@ -119,6 +88,7 @@ class SScribe_DOCX_Exporter implements SScribe_Exporter_Interface {
 			return SScribe_Result::failure(
 				sprintf(
 					/* translators: 1: Page ID, 2: Error message. */
+
 					__( 'DOCX export failed for page %1$d: %2$s', 'sscribe-export-site-pages' ),
 					$page_id,
 					$display_message
@@ -128,20 +98,10 @@ class SScribe_DOCX_Exporter implements SScribe_Exporter_Interface {
 		}
 	}
 
-	/**
-	 * Get the file extension.
-	 *
-	 * @return string
-	 */
 	public function get_extension(): string {
 		return 'docx';
 	}
 
-	/**
-	 * Get the mime type.
-	 *
-	 * @return string
-	 */
 	public function get_mime_type(): string {
 		return 'application/vnd.openxmlformats-officedocument.wordprocessingml.document';
 	}

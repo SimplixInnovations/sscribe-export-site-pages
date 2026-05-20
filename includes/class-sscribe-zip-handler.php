@@ -1,42 +1,22 @@
 <?php
 /**
- * Handles ZIP packaging and file cleanup.
+ * SScribe ZIP Handler
  *
- * @package SScribe
+ * @package SScribe_Export_Site_Pages
  */
 
 declare(strict_types=1);
 
-// Prevent direct access.
 if ( ! defined( 'ABSPATH' ) ) {
 	exit;
 }
 
-/**
- * Class SScribe_Zip_Handler
- *
- * Bundles export files into ZIP packages and manages automatic cleanup.
- */
 class SScribe_Zip_Handler {
 
-
-	/**
-	 * Export directory path.
-	 *
-	 * @var string
-	 */
 	private readonly string $export_dir;
 
-	/**
-	 * Logger instance.
-	 *
-	 * @var SScribe_Logger_Interface
-	 */
 	private readonly SScribe_Logger_Interface $logger;
 
-	/**
-	 * Constructor.
-	 */
 	public function __construct() {
 		$upload_dir = wp_upload_dir();
 		if ( ! empty( $upload_dir['error'] ) ) {
@@ -52,11 +32,6 @@ class SScribe_Zip_Handler {
 		$this->logger     = SScribe_Logger::instance( defined( 'SSCRIBE_DEBUG' ) && SSCRIBE_DEBUG );
 	}
 
-	/**
-	 * Get the export directory path.
-	 *
-	 * @return string
-	 */
 	public function get_export_dir(): string {
 		if ( ! file_exists( $this->export_dir ) ) {
 			SScribe_Security::protect_directory( $this->export_dir );
@@ -64,11 +39,6 @@ class SScribe_Zip_Handler {
 		return $this->export_dir;
 	}
 
-	/**
-	 * Create a temporary directory for DOCX files.
-	 *
-	 * @return string Path to temporary directory.
-	 */
 	public function create_temp_dir(): string {
 		$random_suffix = bin2hex( random_bytes( 6 ) );
 		$temp_dir      = $this->export_dir . '/temp-' . $random_suffix;
@@ -76,21 +46,6 @@ class SScribe_Zip_Handler {
 		return $temp_dir;
 	}
 
-	/**
-	 * Bundle export files from a directory into a ZIP.
-	 *
-	 * ZIP structure when multiple languages are exported:
-	 *   FORMAT/LANG/P001-Title.ext (e.g., DOCX/AR/P001-Title.docx)
-	 * ZIP structure when single language:
-	 *   FORMAT/P001-Title.ext or just P001-Title.ext (flat)
-	 *
-	 * @param string $source_dir      Directory containing export files.
-	 * @param string $zip_name        Desired ZIP filename (without extension).
-	 * @param array  $formats         Export formats used.
-	 * @param bool   $has_language    Whether a specific language was selected (false = all languages).
-	 * @param array  $lang_metadata   Language metadata: lang_code, lang_name, flag_url.
-	 * @return string|false Path to ZIP file or false on failure.
-	 */
 	public function create_zip( string $source_dir, string $zip_name = '', array $formats = array( 'docx' ), bool $has_language = true, array $lang_metadata = array() ): string|false {
 		if ( ! class_exists( 'ZipArchive' ) ) {
 			$this->logger->error( 'ZipArchive not available' );
@@ -122,7 +77,7 @@ class SScribe_Zip_Handler {
 			);
 
 			foreach ( $formats as $format ) {
-				// Finding #7 fix: Only allow known, safe extensions to prevent glob injection.
+
 				$ext = isset( $format_extensions[ $format ] ) ? $format_extensions[ $format ] : null;
 				if ( ! $ext ) {
 					continue;
@@ -140,7 +95,7 @@ class SScribe_Zip_Handler {
 			}
 
 			$use_folders = count( $formats ) > 1;
-			// When exporting all languages, organize into FORMAT/LANG/ subfolders.
+
 			$use_lang_folders = ! $has_language;
 
 			$this->logger->debug(
@@ -165,16 +120,15 @@ class SScribe_Zip_Handler {
 					$lang_code     = null;
 
 					if ( $use_lang_folders ) {
-						// Extract language code from filename: P001-Title-AR.docx → AR.
-						// Pattern: ends with -XX.ext where XX is 2-letter language code.
+
 						$lang_code = $this->extract_lang_from_filename( $basename );
 
 						if ( $lang_code ) {
-							// Remove language suffix from filename since it's in the folder path.
+
 							$clean_name    = $this->remove_lang_from_filename( $basename );
 							$archive_entry = $folder_name . '/' . $lang_code . '/' . $clean_name;
 						} else {
-							// No language code found — put in format folder directly.
+
 							$archive_entry = $folder_name . '/' . $basename;
 						}
 					} elseif ( $use_folders ) {
@@ -204,14 +158,11 @@ class SScribe_Zip_Handler {
 
 		$this->delete_directory( $source_dir );
 
-		// Acquire index lock with exponential backoff to handle transient contention.
-		// Uses wp_cache_add() on persistent cache system, set_transient() on MySQL.
-		$lock_key     = 'sscribe_index_lock'; // Global lock — export index is shared across all users.
-		$locked       = false;
+		$lock_key         = 'sscribe_index_lock';
+		$locked           = false;
 		$lock_using_cache = wp_using_ext_object_cache();
-		$lock_attempts = array( 100000, 200000, 400000 ); // 100ms, 200ms, 400ms.
+		$lock_attempts    = array( 100000, 200000, 400000 );
 
-		// Check for stale lock before attempting acquisition.
 		if ( false !== get_transient( $lock_key ) && ( time() - (int) get_transient( $lock_key ) ) > 30 ) {
 			if ( $lock_using_cache ) {
 				wp_cache_delete( $lock_key, 'transient' );
@@ -232,10 +183,6 @@ class SScribe_Zip_Handler {
 			usleep( $lock_delay );
 		}
 
-		// Always attempt to index the ZIP. If the lock succeeded, we have exclusive
-		// access. If the lock failed, we still index to prevent orphaned files that
-		// exist on disk but cannot be downloaded (worst case: a race overwrites an
-		// unrelated entry in the index — acceptable vs. invisible exports).
 		try {
 			$exports                          = get_option( 'sscribe_export_index', array() );
 			$exports[ basename( $zip_path ) ] = array(
@@ -266,59 +213,26 @@ class SScribe_Zip_Handler {
 		return file_exists( $zip_path ) ? $zip_path : false;
 	}
 
-	/**
-	 * Extract language code from a filename like P001-Title-AR.docx.
-	 *
-	 * Looks for a 2-letter uppercase language code before the file extension.
-	 * Only matches SINGLE language codes (e.g., AR, EN, FR) not compound codes.
-	 * This prevents page slugs like "SD-AR" from being misidentified as "AR" language.
-	 *
-	 * @param string $filename The filename (basename only).
-	 * @return string|null Language code (e.g., 'AR') or null if not found.
-	 */
 	private function extract_lang_from_filename( string $filename ): ?string {
-		// Match -XX.ext or -XXX.ext where XX/XXX is a 2-3 uppercase letter language code.
-		// This handles both ISO 639-1 two-letter codes (AR, EN, FR) and
-		// three-letter codes used by some WPML configurations (ZHT, ZHS).
+
 		if ( ! preg_match( '/-([A-Z]{2,3})\.[A-Za-z]+$/', $filename, $matches ) ) {
 			return null;
 		}
 
-		// Validate against known language codes from single source.
-		// Uses SScribe_RTL_Helper::get_all_known_codes() to prevent code duplication.
-		// If a new language is added there, it is automatically recognized here.
 		return in_array( $matches[1], SScribe_RTL_Helper::get_all_known_codes(), true ) ? $matches[1] : null;
 	}
 
-	/**
-	 * Remove language code suffix from a filename.
-	 *
-	 * Converts P001-Title-AR.docx → P001-Title.docx.
-	 *
-	 * @param string $filename The filename (basename only).
-	 * @return string Filename without language suffix.
-	 */
 	private function remove_lang_from_filename( string $filename ): string {
-		// Use pathinfo to safely remove -XX suffix from filename base only.
+
 		$parts = pathinfo( $filename );
 		$base  = $parts['filename'];
 		$ext   = isset( $parts['extension'] ) ? '.' . $parts['extension'] : '';
 
-		// Remove trailing -XX or -XXX ONLY when XX/XXX is a 2-3 letter language code.
-		// This prevents misinterpreting page slug segments as language codes.
-		// P001-SD-AR.docx → P001-SD-AR.docx (not P001-SD.docx).
-		// P001-Title-ZHT.docx → P001-Title.docx (3-letter code removed).
 		$clean_base = preg_replace( '/-[A-Z]{2,3}$/', '', $base ) ?? $base;
 
 		return $clean_base . $ext;
 	}
 
-	/**
-	 * Get the admin-ajax download URL.
-	 *
-	 * @param string $zip_filename The ZIP filename.
-	 * @return string AJAX download URL.
-	 */
 	public function get_ajax_download_url( string $zip_filename ): string {
 		return add_query_arg(
 			array(
@@ -330,11 +244,6 @@ class SScribe_Zip_Handler {
 		);
 	}
 
-	/**
-	 * Cleanup expired export files (older than 24 hours).
-	 *
-	 * @return int Number of files cleaned up.
-	 */
 	public function cleanup_expired(): int {
 		if ( get_transient( 'sscribe_cron_exports_lock' ) ) {
 			return 0;
@@ -355,7 +264,7 @@ class SScribe_Zip_Handler {
 
 				foreach ( $exports as $basename => $data ) {
 					$file_path = $this->export_dir . $basename;
-					// Remove orphaned index entries where the ZIP file no longer exists on disk.
+
 					if ( ! file_exists( $file_path ) ) {
 						unset( $exports[ $basename ] );
 						SScribe_Export_Log::delete_by_filename( $basename );
@@ -363,7 +272,7 @@ class SScribe_Zip_Handler {
 						++$cleaned;
 						continue;
 					}
-					// Remove expired ZIP files.
+
 					$file_time = filemtime( $file_path );
 					if ( $file_time && ( $now - $file_time ) > $max_age ) {
 						wp_delete_file( $file_path );
@@ -387,11 +296,6 @@ class SScribe_Zip_Handler {
 		}
 	}
 
-	/**
-	 * Clean up stale temporary directories older than 24 hours.
-	 *
-	 * @return int Number of directories cleaned up.
-	 */
 	private function cleanup_stale_temp_dirs(): int {
 		$cleaned = 0;
 		$max_age = 3 * DAY_IN_SECONDS;
@@ -411,12 +315,6 @@ class SScribe_Zip_Handler {
 		return $cleaned;
 	}
 
-	/**
-	 * Recursively delete a directory and its contents.
-	 *
-	 * @param string $dir Directory path.
-	 * @return bool
-	 */
 	public function delete_directory( string $dir ): bool {
 		return SScribe_Security::delete_directory( $dir );
 	}

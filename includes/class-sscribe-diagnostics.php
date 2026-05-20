@@ -1,11 +1,8 @@
 <?php
 /**
- * Comprehensive diagnostics and self-healing for SScribe.
+ * SScribe Diagnostics
  *
- * Provides preflight checks, detailed error diagnostics,
- * and automatic recovery mechanisms.
- *
- * @package SScribe
+ * @package SScribe_Export_Site_Pages
  */
 
 declare(strict_types=1);
@@ -14,48 +11,22 @@ if ( ! defined( 'ABSPATH' ) ) {
 	exit;
 }
 
-/**
- * Diagnostics and self-healing system for SScribe.
- */
 class SScribe_Diagnostics {
 
-	/**
-	 * Minimum expected mPDF bundled font file count.
-	 *
-	 * MPDF ships with ~83 font files. If fewer than this threshold are
-	 * detected, the diagnostic warns that fonts may be incomplete.
-	 * Lowered from 50 to account for future mPDF versions that may
-	 * ship fewer bundled fonts.
-	 *
-	 * @var int
-	 */
 	private const MIN_MPDF_FONT_COUNT = 40;
 
-	/**
-	 * Logger instance.
-	 *
-	 * @var SScribe_Logger_Interface
-	 */
 	private SScribe_Logger_Interface $logger;
 
-	/**
-	 * Constructor.
-	 */
 	public function __construct() {
 		$this->logger = SScribe_Logger::instance( defined( 'SSCRIBE_DEBUG' ) && SSCRIBE_DEBUG );
 	}
 
-	/**
-	 * Build support/debug information for administrators.
-	 *
-	 * @return array<string, mixed>
-	 */
 	public function get_support_info(): array {
 		$upload_dir    = wp_upload_dir();
 		$export_dir    = trailingslashit( $upload_dir['basedir'] ) . 'sscribe-exports';
 		$log_dir       = trailingslashit( $upload_dir['basedir'] ) . 'sscribe-logs';
 		$debug_enabled = defined( 'SSCRIBE_DEBUG' ) && SSCRIBE_DEBUG;
-		$debug_logger = $debug_enabled ? SScribe_Logger::instance( true ) : null;
+		$debug_logger  = $debug_enabled ? SScribe_Logger::instance( true ) : null;
 
 		$sections = array();
 
@@ -236,13 +207,6 @@ class SScribe_Diagnostics {
 		);
 	}
 
-	/**
-	 * Run comprehensive preflight checks before export.
-	 *
-	 * @param int   $page_count Number of pages to export.
-	 * @param array $formats    Export formats selected.
-	 * @return array Diagnostic results with status, checks, and recommendations.
-	 */
 	public function run_preflight( int $page_count, array $formats ): array {
 		$checks    = array();
 		$has_error = false;
@@ -278,11 +242,6 @@ class SScribe_Diagnostics {
 		);
 	}
 
-	/**
-	 * Check required vendor dependencies at runtime.
-	 *
-	 * @return array<int, string> Missing dependency class labels.
-	 */
 	public function check_vendor_dependencies(): array {
 		$missing = array();
 
@@ -297,9 +256,6 @@ class SScribe_Diagnostics {
 		return $missing;
 	}
 
-	/**
-	 * Check PHP version.
-	 */
 	private function check_php_version(): array {
 		$current  = PHP_VERSION;
 		$required = '8.2';
@@ -320,26 +276,18 @@ class SScribe_Diagnostics {
 		);
 	}
 
-	/**
-	 * Check memory for estimated export size.
-	 *
-	 * @param int   $page_count Number of pages to export.
-	 * @param array $formats    Export formats selected.
-	 * @return array Check result with status, name, and message.
-	 */
 	private function check_memory( int $page_count, array $formats ): array {
 		$memory_limit = wp_convert_hr_to_bytes( ini_get( 'memory_limit' ) );
 		$memory_mb    = round( $memory_limit / 1024 / 1024 );
 		$used_mb      = round( memory_get_usage( true ) / 1024 / 1024 );
 		$available_mb = $memory_mb - $used_mb;
 
-		// Calculate estimated memory requirement based on formats.
-		$estimate_per_page = 2; // Base 2MB for page data collection.
+		$estimate_per_page = 2;
 		if ( in_array( 'docx', $formats, true ) ) {
-			$estimate_per_page += 3; // PHPWord overhead.
+			$estimate_per_page += 3;
 		}
 		if ( in_array( 'pdf', $formats, true ) ) {
-			$estimate_per_page += 3; // mPDF overhead.
+			$estimate_per_page += 3;
 		}
 		if ( in_array( 'markdown', $formats, true ) ) {
 			$estimate_per_page += 0.5;
@@ -349,11 +297,8 @@ class SScribe_Diagnostics {
 			$estimate_per_page += 1;
 		}
 
-		// Total estimated memory for all pages (with 50MB overhead).
 		$estimated_total_mb = ( $page_count * $estimate_per_page ) + 50;
 
-		// Memory safety margin (80% of available).
-		// Finding #9 fix: Cast to int to prevent floating point precision issues.
 		$safe_available_mb = (int) ( $available_mb * 0.8 );
 
 		if ( $memory_mb < 128 ) {
@@ -365,7 +310,6 @@ class SScribe_Diagnostics {
 			);
 		}
 
-		// Check if the export will likely fail due to memory constraints.
 		if ( $available_mb <= 0 ) {
 			return array(
 				'name'    => 'Memory Forecast',
@@ -427,12 +371,6 @@ class SScribe_Diagnostics {
 		);
 	}
 
-	/**
-	 * Check execution time limits.
-	 *
-	 * @param int $page_count Number of pages to export.
-	 * @return array Check result with status, name, and message.
-	 */
 	private function check_execution_time( int $page_count ): array {
 		$max_execution = (int) ini_get( 'max_execution_time' );
 
@@ -456,9 +394,6 @@ class SScribe_Diagnostics {
 		);
 	}
 
-	/**
-	 * Check upload directory is writable.
-	 */
 	private function check_upload_directory(): array {
 		$upload_dir = wp_upload_dir();
 
@@ -486,7 +421,6 @@ class SScribe_Diagnostics {
 			);
 		}
 
-		// disk_free_space() is not available on S3, NFS, or some restricted hosting environments.
 		if ( ! function_exists( 'disk_free_space' ) ) {
 			return array(
 				'name'    => 'Disk Space',
@@ -521,9 +455,6 @@ class SScribe_Diagnostics {
 		);
 	}
 
-	/**
-	 * Check ZipArchive extension.
-	 */
 	private function check_zip_extension(): array {
 		if ( class_exists( 'ZipArchive' ) ) {
 			return array(
@@ -541,9 +472,6 @@ class SScribe_Diagnostics {
 		);
 	}
 
-	/**
-	 * Check mPDF library.
-	 */
 	private function check_mpdf(): array {
 		if ( ! class_exists( '\SScribeVendor\Mpdf\Mpdf' ) ) {
 			return array(
@@ -554,9 +482,7 @@ class SScribe_Diagnostics {
 			);
 		}
 
-		// Verify required font files exist (Manrope is the primary font).
-		// Use glob() with case-insensitive search to handle filesystem casing variations.
-		$manrope_dir = SSCRIBE_PLUGIN_DIR . 'assets/fonts/manrope';
+		$manrope_dir   = SSCRIBE_PLUGIN_DIR . 'assets/fonts/manrope';
 		$manrope_fonts = is_dir( $manrope_dir ) ? glob( $manrope_dir . '/*[Rr]egular.ttf' ) : array();
 		if ( empty( $manrope_fonts ) ) {
 			return array(
@@ -567,7 +493,6 @@ class SScribe_Diagnostics {
 			);
 		}
 
-		// Check for bundled fonts count (should be ~83 files in vendor-prefixed/mpdf/mpdf/ttfonts/).
 		$ttfonts_dir = SSCRIBE_PLUGIN_DIR . 'vendor-prefixed/mpdf/mpdf/ttfonts';
 		if ( is_dir( $ttfonts_dir ) ) {
 			$font_files = glob( $ttfonts_dir . '/*.{ttf,otf,txt}', GLOB_BRACE );
@@ -589,26 +514,19 @@ class SScribe_Diagnostics {
 		);
 	}
 
-	/**
-	 * Check PHPWord library.
-	 */
 	private function check_phpword(): array {
 		if ( class_exists( '\\SScribeVendor\\PhpOffice\\PhpWord\\PhpWord' ) ) {
-			// Verify PHPWord version is within the expected range for safe_text() encoding workaround.
-			// PHPWord < 1.5.0 does not escape
-			// &, <, >, ", ' in addText/addTitle output. SScribe_Exporter::safe_text() applies
-			// htmlspecialchars() as a workaround. If the bundled PHPWord version changes to 1.5+,
-			// the workaround would cause double-encoding and must be removed.
+
 			$phpword_composer_file = SSCRIBE_PLUGIN_DIR . 'vendor-prefixed/phpoffice/phpword/composer.json';
 			if ( file_exists( $phpword_composer_file ) ) {
 				// phpcs:ignore WordPress.WP.AlternativeFunctions.file_get_contents_file_get_contents -- Safe: reading a local composer.json from plugin directory.
-				$raw_json = file_get_contents( $phpword_composer_file );
-				$composer_data = is_string( $raw_json ) ? json_decode( $raw_json, true ) : null;
+
+				$raw_json        = file_get_contents( $phpword_composer_file );
+				$composer_data   = is_string( $raw_json ) ? json_decode( $raw_json, true ) : null;
 				$bundled_version = ( is_array( $composer_data ) && isset( $composer_data['version'] ) ) ? $composer_data['version'] : 'unknown';
 				preg_match( '/^(\d+\.\d+)/', $bundled_version, $m );
 				$major_minor = $m[1] ?? '';
-				// If PHPWord 1.5+ is detected, the htmlspecialchars workaround in safe_text()
-				// must be reviewed for double-encoding. See SScribe_Exporter::safe_text() line ~189.
+
 				if ( version_compare( $major_minor, '1.5', '>=' ) ) {
 					return array(
 						'name'    => 'PHPWord Library',
@@ -617,7 +535,7 @@ class SScribe_Diagnostics {
 							'PHPWord %s detected — safe_text() htmlspecialchars workaround may cause double-encoding. Version compatibility check needed.',
 							$bundled_version
 						),
-						'fix' => 'Review SScribe_Exporter::safe_text() for double-encoding with PHPWord >= 1.5',
+						'fix'     => 'Review SScribe_Exporter::safe_text() for double-encoding with PHPWord >= 1.5',
 					);
 				}
 			}
@@ -637,9 +555,6 @@ class SScribe_Diagnostics {
 		);
 	}
 
-	/**
-	 * Check file permissions.
-	 */
 	private function check_file_permissions(): array {
 		$plugin_dir = SSCRIBE_PLUGIN_DIR;
 		$issues     = array();
@@ -670,9 +585,6 @@ class SScribe_Diagnostics {
 		);
 	}
 
-	/**
-	 * Check WP-Cron status.
-	 */
 	private function check_wp_cron(): array {
 		$cron_disabled = defined( 'DISABLE_WP_CRON' ) && true === constant( 'DISABLE_WP_CRON' );
 
@@ -692,9 +604,6 @@ class SScribe_Diagnostics {
 		);
 	}
 
-	/**
-	 * Check for orphaned sessions.
-	 */
 	private function check_session_health(): array {
 		global $wpdb;
 
@@ -724,13 +633,6 @@ class SScribe_Diagnostics {
 		);
 	}
 
-	/**
-	 * Get recommendations based on checks.
-	 *
-	 * @param array $checks     Check results.
-	 * @param int   $page_count Number of pages to export.
-	 * @return array Recommendations with priority and message.
-	 */
 	private function get_recommendations( array $checks, int $page_count ): array {
 		$recommendations = array();
 
@@ -758,15 +660,6 @@ class SScribe_Diagnostics {
 		return $recommendations;
 	}
 
-	/**
-	 * Get detailed error information for a failed page.
-	 *
-	 * @param int    $page_id   Page ID.
-	 * @param string $format    Export format.
-	 * @param string $error     Error message.
-	 * @param array  $context   Additional context (reserved for future use).
-	 * @return array Detailed error with fix suggestions.
-	 */
 	public function diagnose_page_error( int $page_id, string $format, string $error, array $context = array() ): array {
 		$diagnosis = array(
 			'page_id'   => $page_id,
@@ -829,12 +722,6 @@ class SScribe_Diagnostics {
 		return $diagnosis;
 	}
 
-	/**
-	 * Categorize an error message.
-	 *
-	 * @param string $error Error message to categorize.
-	 * @return string Category name (memory, timeout, permission, etc.).
-	 */
 	private function categorize_error( string $error ): string {
 		$lower = strtolower( $error );
 
@@ -860,11 +747,6 @@ class SScribe_Diagnostics {
 		return 'unknown';
 	}
 
-	/**
-	 * Attempt self-healing by cleaning up orphaned data.
-	 *
-	 * @return array Actions taken.
-	 */
 	public function self_heal(): array {
 		$actions = array();
 
@@ -877,9 +759,6 @@ class SScribe_Diagnostics {
 		return $actions;
 	}
 
-	/**
-	 * Clear orphaned lock transients.
-	 */
 	private function clear_orphaned_locks(): int {
 		global $wpdb;
 
@@ -910,9 +789,6 @@ class SScribe_Diagnostics {
 		return $cleared;
 	}
 
-	/**
-	 * Clear stale sessions.
-	 */
 	private function clear_stale_sessions(): int {
 		global $wpdb;
 
@@ -929,10 +805,6 @@ class SScribe_Diagnostics {
 		foreach ( $sessions as $session ) {
 			$data = json_decode( $session->option_value, true );
 
-			// SECURITY: Skip legacy PHP-serialized sessions — do not use maybe_unserialize().
-			// Those sessions will be cleaned up by SScribe_Session::cleanup_expired() instead.
-
-			// Finding #2 fix: Validate session schema before use.
 			if ( is_array( $data ) && isset( $data['created_at'] ) ) {
 				$created_at = $data['created_at'];
 				$created    = is_numeric( $created_at ) ? (int) $created_at : strtotime( (string) $created_at );
@@ -946,9 +818,6 @@ class SScribe_Diagnostics {
 		return $cleared;
 	}
 
-	/**
-	 * Clear old temporary export files.
-	 */
 	private function clear_old_temp_files(): int {
 		$upload_dir = wp_upload_dir();
 		$export_dir = $upload_dir['basedir'] . '/sscribe-exports';
@@ -981,22 +850,10 @@ class SScribe_Diagnostics {
 		return $cleared;
 	}
 
-	/**
-	 * Recursively delete a directory.
-	 *
-	 * Uses SScribe_Security for proper symlink handling.
-	 *
-	 * @param string $dir Directory path to delete.
-	 */
 	private function delete_directory( string $dir ): void {
 		SScribe_Security::delete_directory( $dir );
 	}
 
-	/**
-	 * Get active SEO plugin names for diagnostics.
-	 *
-	 * @return array<int, string>
-	 */
 	private function get_active_seo_plugins(): array {
 		$reader  = new SScribe_SEO_Reader();
 		$plugins = $reader->get_active_seo_plugins();
@@ -1008,19 +865,9 @@ class SScribe_Diagnostics {
 		return array_values( $plugins );
 	}
 
-	/**
-	 * Run comprehensive AJAX health check to diagnose 404/network errors.
-	 *
-	 * Checks admin-ajax.php reachability, plugin hook registration,
-	 * and nonce validity. Returns actionable diagnostics for CDN/proxy
-	 * issues that commonly cause "HTTP 404" on AJAX requests.
-	 *
-	 * @return array{status: string, checks: array, summary: string, recommendations: array}
-	 */
 	public function check_ajax_health(): array {
 		$checks = array();
 
-		// Check: admin-ajax.php URL is accessible.
 		$ajax_url           = admin_url( 'admin-ajax.php' );
 		$home_url           = home_url();
 		$checks['ajax_url'] = array(
@@ -1029,7 +876,6 @@ class SScribe_Diagnostics {
 			'message' => $ajax_url,
 		);
 
-		// Check: Plugin hooks registered (nonce can be created).
 		$nonce                      = wp_create_nonce( 'sscribe_export_nonce' );
 		$checks['nonce_generation'] = array(
 			'name'    => 'Nonce Generation',
@@ -1037,7 +883,6 @@ class SScribe_Diagnostics {
 			'message' => ! empty( $nonce ) ? 'Nonces can be created' : 'Failed to generate nonce',
 		);
 
-		// Check: Current user has required capability.
 		$has_cap                   = current_user_can( apply_filters( 'sscribe_export_capability', 'manage_options' ) );
 		$checks['user_capability'] = array(
 			'name'    => 'User Permission',
@@ -1045,7 +890,6 @@ class SScribe_Diagnostics {
 			'message' => $has_cap ? 'User has export capability' : 'User lacks required capability',
 		);
 
-		// Detect CDN/proxy issues: compare home_url to site_url.
 		$site_url                  = site_url();
 		$checks['url_consistency'] = array(
 			'name'    => 'URL Configuration',
@@ -1067,7 +911,6 @@ class SScribe_Diagnostics {
 			$summary = 'AJAX health: ERRORS DETECTED';
 		}
 
-		// Add CDN/proxy-specific guidance.
 		$recommendations[] = 'If AJAX returns 404, check that admin-ajax.php is NOT excluded in CDN/WAF rules (Cloudflare, Sucuri, Wordfence).';
 		$recommendations[] = 'Ensure ModSecurity or similar WAF modules are not blocking AJAX POST requests containing HTML content.';
 		$recommendations[] = sprintf( 'Verify that the plugin files are intact in %s', SSCRIBE_PLUGIN_DIR );
@@ -1080,30 +923,17 @@ class SScribe_Diagnostics {
 		);
 	}
 
-	/**
-	 * Get diagnostic information about the plugin's boot state.
-	 *
-	 * Useful for debugging silent boot failures where the plugin loads
-	 * without errors but hooks are not registered (e.g., dependency
-	 * resolution failure caught by try/catch).
-	 *
-	 * @return array{loaded: bool, version: string, dependencies: array, hooks_registered: int, boot_errors: array}
-	 */
 	public function get_boot_diagnostics(): array {
 		$missing_deps = $this->check_vendor_dependencies();
 		$loaded       = empty( $missing_deps );
 
-		// Count hooks by verifying SScribe-specific class/method existence.
-		// Using has_action() would be misleading because WordPress core registers
-		// callbacks on hooks like 'admin_menu' regardless of SScribe loading,
-		// so has_action('admin_menu') always returns true even if SScribe failed.
 		$hooks_registered = 0;
 		if ( class_exists( 'SScribe_Loader' ) ) {
 			if ( class_exists( 'SScribe_Admin' ) ) {
-				$hooks_registered += 2; // admin_menu, admin_enqueue_scripts.
+				$hooks_registered += 2;
 			}
 			if ( class_exists( 'SScribe_Batch_Processor' ) ) {
-				$hooks_registered += 2; // wp_ajax_sscribe_start_export, wp_ajax_sscribe_process_batch.
+				$hooks_registered += 2;
 			}
 		}
 
@@ -1128,14 +958,6 @@ class SScribe_Diagnostics {
 		);
 	}
 
-	/**
-	 * Build copy-friendly support text.
-	 *
-	 * @param array<string, array{label: string, items: array<string, string>}> $sections Sections to render.
-	 * @param array<int, array<string, string|int>>                             $audit_events Recent audit events.
-	 * @param array<int, string>                                                $log_tail Recent log entries.
-	 * @return string
-	 */
 	private function build_support_copy_text( array $sections, array $audit_events, array $log_tail ): string {
 		$lines   = array();
 		$lines[] = 'SScribe Support Information';

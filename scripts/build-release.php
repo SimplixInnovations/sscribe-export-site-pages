@@ -1,17 +1,8 @@
 <?php
 /**
- * Enterprise Build Script for SScribe Export Site Pages
- * 
- * Production-ready release builder with:
- * - Pre-build validation (PHPStan/PHPCS)
- * - Auto version detection
- * - Clean dist folder (keeps only latest)
- * - SHA-256 checksums
- * - Build report
- * - WordPress.org ready
- * - Extreme bloat removal (Dev files & Obscure fonts)
- * 
- * @package SScribe
+ * SScribe Build Release Script
+ *
+ * @package SScribe_Export_Site_Pages
  */
 
 declare(strict_types=1);
@@ -23,26 +14,20 @@ echo "===========================================\n\n";
 $root       = dirname( __DIR__ );
 $start_time = microtime( true );
 
-// =============================================================================
-// CONFIGURATION
-// =============================================================================
-
 $config = array(
-	// Build settings
-	'clean_dist'       => true,           // Remove old dist folder before build
-	'keep_releases'    => 0,              // Keep only N latest releases (0 = all)
-	'run_tests'        => true,           // Run PHPUnit tests before build
-	'run_phpstan'      => true,           // Run PHPStan before build
-	'run_phpcs'        => true,           // Run PHPCS before build
-	'generate_sha256'  => true,           // Generate checksums
-	'auto_clean_root'  => true,           // Clean build folder in root before build
-	
-	// Files to include/exclude
+
+	'clean_dist'       => true,
+	'keep_releases'    => 0,
+	'run_tests'        => true,
+	'run_phpstan'      => true,
+	'run_phpcs'        => true,
+	'generate_sha256'  => true,
+	'auto_clean_root'  => true,
+
 	'mainPluginFile'   => 'sscribe-export-site-pages.php',
 	'readmeFile'       => 'readme.txt',
 	'distignore'      => '.distignore',
-	
-	// Bloat/Dev Files (Stripped from production)
+
 	'base_excludes'    => array(
 		'dist', 'vendor', '.git', '.gitignore', '.distignore', '.cache', '.phpunit.cache',
 		'.sisyphus', '.wp-env', 'wordpress', 'wordpress-tests-lib',
@@ -53,48 +38,36 @@ $config = array(
 		'composer.json', 'composer.lock', 'scratch', 'strauss.json', 'infection.json5',
 		'commit-message.txt', '.prettierrc', '.eslintrc.json', '.stylelintrc.json', '.husky',
 		'node_modules', 'screenshots', 'WPScan',
-		// Recursive dev patterns (matched in Step 4)
+
 		'phpstan-baseline.neon', 'ruleset.xml', 'CREDITS.txt', 'COPYING',
 		'.php-cs-fixer.php', '.php-cs-fixer.dist.php', 'mkdocs.yml',
 		'.travis.yml', '.scrutinizer.yml', '.github_changelog_generator',
 	),
-	
-	// Obscure Font Bloat (Pruned from mPDF to save ~60MB)
-	// XB Riyaz, Lateef, and Uthman are kept — they are mPDF's standard fallbacks for Arabic.
-	// Pruning them causes disconnected Arabic characters (shaping failure) in many environments.
+
 	'font_excludes'    => array(
-		// Rare/unused scripts
-		'Sun-ExtA.ttf', 'Sun-ExtB.ttf', 'UnBatang_0613.ttf', 'Aegyptus.otf', 
-		'Aegean.otf', 'Akkadian.otf', 'Jomolhari.ttf', 'KhmerOS.ttf', 
-		'Abyssinica_SIL.ttf', 'AboriginalSansREGULAR.ttf', 'Padauk-book.ttf', 
-		'SundaneseUnicode-1.0.5.ttf', 'SyrCOMEdessa.otf', 'TaameyDavidCLM-Medium.ttf', 
-		'Tharlon-Regular.ttf', 'ayar.ttf', 'damase_v.2.ttf', 'kaputaunicode.ttf', 
+
+		'Sun-ExtA.ttf', 'Sun-ExtB.ttf', 'UnBatang_0613.ttf', 'Aegyptus.otf',
+		'Aegean.otf', 'Akkadian.otf', 'Jomolhari.ttf', 'KhmerOS.ttf',
+		'Abyssinica_SIL.ttf', 'AboriginalSansREGULAR.ttf', 'Padauk-book.ttf',
+		'SundaneseUnicode-1.0.5.ttf', 'SyrCOMEdessa.otf', 'TaameyDavidCLM-Medium.ttf',
+		'Tharlon-Regular.ttf', 'ayar.ttf', 'damase_v.2.ttf', 'kaputaunicode.ttf',
 		'lannaalif-v1-03.ttf', 'ZawgyiOne.ttf', 'DBSILBR.ttf', 'Eeyek-Regular.ttf',
 		'Pothana2000.ttf', 'Lohit-Kannada.ttf', 'Quivira.otf', 'TaiHeritagePro.ttf',
-		// Thai
+
 		'Garuda.ttf', 'Garuda-Bold.ttf', 'Garuda-Oblique.ttf', 'Garuda-BoldOblique.ttf',
-		// Lao
+
 		'Dhyana-Regular.ttf', 'Dhyana-Bold.ttf',
-		// License/info files for removed fonts
-		'DhyanaOFL.txt', 'Jomolhari-OFL.txt', 'KhmerOFL.txt', 
+
+		'DhyanaOFL.txt', 'Jomolhari-OFL.txt', 'KhmerOFL.txt',
 		'LohitKannadaOFL.txt', 'SyrCOMEdessa_license.txt', 'TaameyDavidCLM-LICENSE.txt',
 		'TharlonOFL.txt', 'XW Zar Font Info.txt',
 	),
-	
-	// Output
-	'show_excluded'    => true,           // Show excluded files in report
+
+	'show_excluded'    => true,
 );
 
-// Helper to consolidate excludes
 $all_excludes = array_unique( array_merge( $config['base_excludes'], $config['font_excludes'] ) );
 
-// =============================================================================
-// HELPER FUNCTIONS
-// =============================================================================
-
-/**
- * Recursively remove directory.
- */
 function rrmdir( string $dir ): void {
 	if ( ! is_dir( $dir ) ) {
 		return;
@@ -114,9 +87,6 @@ function rrmdir( string $dir ): void {
 	@rmdir( $dir );
 }
 
-/**
- * Format bytes to human readable.
- */
 function format_bytes( int $bytes ): string {
 	$units = array( 'B', 'KB', 'MB', 'GB' );
 	$unit  = 0;
@@ -127,24 +97,21 @@ function format_bytes( int $bytes ): string {
 	return round( $bytes, 2 ) . ' ' . $units[ $unit ];
 }
 
-/**
- * Run PHPUnit tests.
- */
 function run_tests( string $root ): bool {
 	echo "  🧪 Running PHPUnit tests...\n";
-	
+
 	$phpunit = $root . '/vendor/bin/phpunit';
 	$config = $root . '/phpunit.xml';
-	
+
 	if ( ! file_exists( $phpunit ) || ! file_exists( $config ) ) {
 		echo "     ⚠️  PHPUnit not found - skipping\n";
 		return true;
 	}
-	
+
 	$output = array();
 	$return = 0;
 	exec( "php \"$phpunit\" --testdox 2>&1", $output, $return );
-	
+
 	if ( $return !== 0 ) {
 		$output_str = implode( "\n", $output );
 		$lines = explode( "\n", $output_str );
@@ -152,26 +119,23 @@ function run_tests( string $root ): bool {
 		echo "     ❌ PHPUnit tests failed:\n     $show\n";
 		return false;
 	}
-	
+
 	echo "     ✅ PHPUnit tests passed\n";
 	return true;
 }
 
-/**
- * Run PHPStan analysis.
- */
 function run_phpstan( string $root ): bool {
 	echo "  📊 Running PHPStan...\n";
-	
+
 	$phpstan = $root . '/vendor/bin/phpstan';
 	if ( ! file_exists( $phpstan ) ) {
 		echo "     ⚠️  PHPStan not found - skipping\n";
 		return true;
 	}
-	
+
 	$output = array();
 	$return = 0;
-	// Use 2G memory limit to prevent worker crashes on large projects.
+
 	exec( "php \"$phpstan\" analyse --no-progress --memory-limit 2G 2>&1", $output, $return );
 
 	if ( $return !== 0 ) {
@@ -181,72 +145,62 @@ function run_phpstan( string $root ): bool {
 		echo "     ❌ PHPStan found errors:\n     $show\n";
 		return false;
 	}
-	
+
 	echo "     ✅ PHPStan passed\n";
 	return true;
 }
 
-/**
- * Run PHPCS linting.
- */
 function run_phpcs( string $root ): bool {
 	echo "  📋 Running PHPCS...\n";
-	
+
 	$phpcs = $root . '/vendor/bin/phpcs';
 	$standard = $root . '/phpcs.xml';
-	
+
 	if ( ! file_exists( $phpcs ) || ! file_exists( $standard ) ) {
 		echo "     ⚠️  PHPCS not found - skipping\n";
 		return true;
 	}
-	
+
 	$output = array();
 	$return = 0;
-	// Keep the -q flag to avoid flooding build output on success.
-	// On failure, we re-run without -q to show errors.
+
 	exec( "php -d memory_limit=512M \"$phpcs\" --standard=\"$standard\" -q 2>&1", $output, $return );
-	
+
 	if ( $return !== 0 ) {
-		// Re-run without quiet flag to show detailed errors.
+
 		$error_output = array();
 		exec( "php -d memory_limit=512M \"$phpcs\" --standard=\"$standard\" 2>&1", $error_output, $return );
 		$show = implode( "\n     ", $error_output );
 		echo "     ❌ PHPCS found errors (exit code: $return):\n     $show\n";
 		return false;
 	}
-	
+
 	echo "     ✅ PHPCS passed\n";
 	return true;
 }
 
-/**
- * Get version from main plugin file.
- */
 function get_version( string $root, string $plugin_file ): string {
 	$file = $root . '/' . $plugin_file;
 	if ( ! file_exists( $file ) ) {
 		throw new RuntimeException( "Plugin file not found: $plugin_file" );
 	}
-	
+
 	$content = file_get_contents( $file );
 	if ( ! preg_match( '/Version:\s*([0-9.]+)/', $content, $match ) ) {
 		throw new RuntimeException( "Version not found in $plugin_file" );
 	}
-	
+
 	return $match[1];
 }
 
-/**
- * Read .distignore file.
- */
 function get_distignore_excludes( string $root, string $distignore ): array {
 	$file = $root . '/' . $distignore;
 	$excludes = array();
-	
+
 	if ( ! file_exists( $file ) ) {
 		return $excludes;
 	}
-	
+
 	$lines = file( $file, FILE_IGNORE_NEW_LINES | FILE_SKIP_EMPTY_LINES );
 	foreach ( $lines as $line ) {
 		$line = trim( $line );
@@ -255,22 +209,14 @@ function get_distignore_excludes( string $root, string $distignore ): array {
 		}
 		$excludes[] = trim( $line, '/' );
 	}
-	
+
 	return $excludes;
 }
 
-/**
- * Generate SHA-256 checksum.
- */
 function generate_checksum( string $file ): string {
 	return hash_file( 'sha256', $file );
 }
 
-// =============================================================================
-// BUILD PROCESS
-// =============================================================================
-
-// Step 1: Get version
 echo "  📦 Preparing build...\n";
 
 try {
@@ -281,7 +227,6 @@ try {
 	exit( 1 );
 }
 
-// Step 2: Pre-build validation
 echo "\n===========================================\n";
 echo "  PRE-BUILD VALIDATION\n";
 echo "===========================================\n\n";
@@ -307,14 +252,12 @@ if ( $config['run_phpcs'] ) {
 	}
 }
 
-// Step 3: Clean dist folder
 echo "\n===========================================\n";
 echo "  CLEANING PREVIOUS BUILDS\n";
 echo "===========================================\n\n";
 
 $dist_dir = $root . '/dist';
 
-// Auto-clean root build folder
 if ( $config['auto_clean_root'] && is_dir( $root . '/build' ) ) {
 	echo "  🧹 Cleaning root build folder...\n";
 	rrmdir( $root . '/build' );
@@ -331,7 +274,6 @@ if ( ! is_dir( $dist_dir ) ) {
 	mkdir( $dist_dir, 0755, true );
 }
 
-// Step 4: Build plugin directory
 echo "\n===========================================\n";
 echo "  BUILDING PLUGIN\n";
 echo "===========================================\n\n";
@@ -341,7 +283,6 @@ if ( ! is_dir( $plugin_dir ) ) {
 	mkdir( $plugin_dir, 0755, true );
 }
 
-// Consolidate exclusion list
 $distignore_excludes = get_distignore_excludes( $root, $config['distignore'] );
 $excludes = array_unique( array_merge( $all_excludes, $distignore_excludes ) );
 
@@ -354,7 +295,7 @@ $filter = new RecursiveCallbackFilterIterator(
 		$relative = str_replace( $root . DIRECTORY_SEPARATOR, '', $current->getPathname() );
 		$relative = str_replace( $root . '/', '', $relative );
 		$relative_norm = str_replace( '\\', '/', $relative );
-		
+
 		$segments = explode( '/', $relative_norm );
 
 		foreach ( $excludes as $exclude ) {
@@ -376,7 +317,7 @@ foreach ( $iterator as $file ) {
 	$relative = str_replace( $root . DIRECTORY_SEPARATOR, '', $file->getPathname() );
 	$relative = str_replace( $root . '/', '', $relative );
 	$dest     = $plugin_dir . '/' . $relative;
-	
+
 	if ( $file->isDir() ) {
 		if ( ! is_dir( $dest ) ) {
 			mkdir( $dest, 0755, true );
@@ -393,7 +334,6 @@ foreach ( $iterator as $file ) {
 
 echo "     ✅ Copied: $copied files\n";
 
-// Step 4.1: Extreme Size Optimization (Recursive Vendor Cleanup)
 echo "  🧹 Extreme Optimization: Stripping vendor bloat...\n";
 $vendor_dir = $plugin_dir . '/vendor-prefixed';
 if ( is_dir( $vendor_dir ) ) {
@@ -405,7 +345,7 @@ if ( is_dir( $vendor_dir ) ) {
 		'COPYING', 'COPYING.LESSER', 'LICENSE', 'LICENSE.txt',
 		'.github_changelog_generator', 'roave-bc-check.yaml',
 	);
-	
+
 	$pruned_count = 0;
 	$v_iterator = new RecursiveIteratorIterator(
 		new RecursiveDirectoryIterator( $vendor_dir, RecursiveDirectoryIterator::SKIP_DOTS ),
@@ -426,7 +366,6 @@ if ( is_dir( $vendor_dir ) ) {
 	echo "     ✅ Pruned: $pruned_count vendor development artifacts\n";
 }
 
-// Step 5: Create ZIP
 echo "\n===========================================\n";
 echo "  CREATING RELEASE PACKAGE\n";
 echo "===========================================\n\n";
@@ -459,7 +398,6 @@ if ( ! $zip->close() ) {
 	exit( 1 );
 }
 
-// Step 6: Generate checksums
 echo "\n===========================================\n";
 echo "  GENERATING CHECKSUMS\n";
 echo "===========================================\n\n";
@@ -471,7 +409,6 @@ if ( $config['generate_sha256'] ) {
 	echo "  ✅ SHA-256: $checksum\n";
 }
 
-// Step 7: Final Report
 $zip_size = filesize( $zip_file );
 $duration = round( microtime( true ) - $start_time, 2 );
 

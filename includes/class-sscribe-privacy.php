@@ -1,8 +1,8 @@
 <?php
 /**
- * Privacy integration for SScribe.
+ * SScribe Privacy
  *
- * @package SScribe
+ * @package SScribe_Export_Site_Pages
  */
 
 declare(strict_types=1);
@@ -11,46 +11,20 @@ if ( ! defined( 'ABSPATH' ) ) {
 	exit;
 }
 
-/**
- * Handles privacy policy content plus personal data export/erasure hooks.
- */
 class SScribe_Privacy {
 
-	/**
-	 * Audit trail instance.
-	 *
-	 * @var SScribe_Audit_Trail
-	 */
 	private SScribe_Audit_Trail $audit_trail;
 
-	/**
-	 * Session storage instance.
-	 *
-	 * @var SScribe_Session
-	 */
 	private SScribe_Session $session;
 
-	/**
-	 * Export statistics instance.
-	 *
-	 * @var SScribe_Export_Stats
-	 */
 	private SScribe_Export_Stats $export_stats;
 
-	/**
-	 * Constructor.
-	 */
 	public function __construct() {
 		$this->audit_trail  = new SScribe_Audit_Trail();
 		$this->session      = new SScribe_Session();
 		$this->export_stats = new SScribe_Export_Stats();
 	}
 
-	/**
-	 * Register privacy policy text.
-	 *
-	 * @return void
-	 */
 	public function register_privacy_policy(): void {
 		if ( ! function_exists( 'register_privacy_policy_content' ) ) {
 			return;
@@ -66,12 +40,6 @@ class SScribe_Privacy {
 		);
 	}
 
-	/**
-	 * Register exporter callback.
-	 *
-	 * @param array $exporters Registered exporters.
-	 * @return array
-	 */
 	public function register_exporter( array $exporters ): array {
 		$exporters['sscribe-export-site-pages'] = array(
 			'exporter_friendly_name' => esc_html__( 'SScribe export data', 'sscribe-export-site-pages' ),
@@ -81,12 +49,6 @@ class SScribe_Privacy {
 		return $exporters;
 	}
 
-	/**
-	 * Register eraser callback.
-	 *
-	 * @param array $erasers Registered erasers.
-	 * @return array
-	 */
 	public function register_eraser( array $erasers ): array {
 		$erasers['sscribe-export-site-pages'] = array(
 			'eraser_friendly_name' => esc_html__( 'SScribe export data', 'sscribe-export-site-pages' ),
@@ -96,13 +58,6 @@ class SScribe_Privacy {
 		return $erasers;
 	}
 
-	/**
-	 * Export personal data for a user.
-	 *
-	 * @param string $email_address User email address.
-	 * @param int    $page          Page number.
-	 * @return array
-	 */
 	public function export_personal_data( string $email_address, int $page = 1 ): array {
 		unset( $page );
 
@@ -225,13 +180,6 @@ class SScribe_Privacy {
 		);
 	}
 
-	/**
-	 * Erase personal data for a user.
-	 *
-	 * @param string $email_address User email address.
-	 * @param int    $page          Page number.
-	 * @return array
-	 */
 	public function erase_personal_data( string $email_address, int $page = 1 ): array {
 		unset( $page );
 

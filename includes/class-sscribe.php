@@ -1,26 +1,23 @@
 <?php
 /**
- * Core plugin orchestrator.
+ * SScribe Main Plugin Class
  *
- * @package SScribe
+ * @package SScribe_Export_Site_Pages
  */
 
 declare(strict_types=1);
 
-// Prevent direct access.
 if ( ! defined( 'ABSPATH' ) ) {
 	exit;
 }
 
 /**
- * Class SScribe
- *
- * Registers all hooks and bootstraps the plugin.
+ * Main plugin class that initializes and coordinates all services.
  */
 class SScribe {
 
 	/**
-	 * The loader that registers all hooks.
+	 * Plugin loader instance.
 	 *
 	 * @var SScribe_Loader
 	 */
@@ -34,10 +31,7 @@ class SScribe {
 	protected string $version;
 
 	/**
-	 * Constructor.
-	 *
-	 * Only assigns dependencies - no side effects.
-	 * This allows the class to be instantiated safely in tests.
+	 * Initialize the plugin.
 	 */
 	public function __construct() {
 		$this->version = SSCRIBE_VERSION;
@@ -45,9 +39,7 @@ class SScribe {
 	}
 
 	/**
-	 * Register all services in the container for dependency injection.
-	 *
-	 * @return void
+	 * Register plugin services in the container.
 	 */
 	private function register_services(): void {
 		$container = SScribe_Container::instance();
@@ -121,27 +113,11 @@ class SScribe {
 
 	/**
 	 * Register admin-specific hooks.
-	 *
-	 * @return void
 	 */
 	private function define_admin_hooks(): void {
 		$container = SScribe_Container::instance();
 		$admin     = $container->get( SScribe_Admin::class );
 
-		// NOTE: The hooks below use add_action() / add_filter() directly (not $this->loader)
-		// because:
-		// 1. These are WordPress core hooks (admin_menu, admin_init) that never need
-		// deregistration — loader's registry adds no value here.
-		// 2. The test container cannot resolve SScribe_Admin (test mock limitation),
-		// so loader-based registration would break the test suite.
-		//
-		// LOADER-BYPASSED hooks (cannot be inspected/unregistered via $this->loader):
-		// - admin_menu    → add_admin_menu
-		// - admin_init    → maybe_redirect_after_activation, maybe_send_csp_headers
-		// - admin_enqueue_scripts → enqueue_admin_assets
-		// - admin_notices → render_vendor_dependency_notice
-		// - save_post     → invalidate_admin_page_cache
-		// - plugin_action_links_{basename} → add_plugin_action_links.
 		add_action( 'admin_menu', array( $admin, 'add_admin_menu' ) );
 		add_action( 'admin_init', array( $admin, 'maybe_redirect_after_activation' ) );
 		add_action( 'admin_enqueue_scripts', array( $admin, 'enqueue_admin_assets' ) );
@@ -152,9 +128,7 @@ class SScribe {
 	}
 
 	/**
-	 * Render an admin notice when required vendor dependencies are missing.
-	 *
-	 * @return void
+	 * Display admin notice for missing vendor dependencies.
 	 */
 	public function render_vendor_dependency_notice(): void {
 		if ( ! current_user_can( apply_filters( 'sscribe_export_capability', 'manage_options' ) ) ) {
@@ -173,6 +147,7 @@ class SScribe {
 
 		$message = sprintf(
 			/* translators: %s: missing dependency class list. */
+
 			__( 'SScribe is missing required vendor dependencies: %s. Run composer install in the plugin directory to restore export functionality.', 'sscribe-export-site-pages' ),
 			implode( ', ', $missing )
 		);
@@ -181,13 +156,14 @@ class SScribe {
 	}
 
 	/**
-	 * Invalidate admin page transient cache when any post is saved/updated.
+	 * Clear admin page cache when posts change.
 	 *
-	 * This prevents the admin page from displaying stale post status counts after
-	 * pages are published, updated, or deleted.
+	 * @param int $post_id Post ID that was saved.
+	 */
+	/**
+	 * Invalidate admin page cache when posts are saved.
 	 *
-	 * @param int $post_id Post ID being saved.
-	 * @return void
+	 * @param int $post_id Post ID that was saved.
 	 */
 	public function invalidate_admin_page_cache( int $post_id ): void {
 		if ( wp_is_post_autosave( $post_id ) || wp_is_post_revision( $post_id ) ) {
@@ -204,9 +180,7 @@ class SScribe {
 	}
 
 	/**
-	 * Register AJAX hooks.
-	 *
-	 * @return void
+	 * Register AJAX hooks for background processing.
 	 */
 	private function define_ajax_hooks(): void {
 		$container = SScribe_Container::instance();
@@ -231,9 +205,7 @@ class SScribe {
 	}
 
 	/**
-	 * Register cron hooks.
-	 *
-	 * @return void
+	 * Register scheduled task hooks.
 	 */
 	private function define_cron_hooks(): void {
 		$container = SScribe_Container::instance();
@@ -244,9 +216,7 @@ class SScribe {
 	}
 
 	/**
-	 * Register privacy-related hooks.
-	 *
-	 * @return void
+	 * Register privacy-related hooks for data handling.
 	 */
 	private function define_privacy_hooks(): void {
 		$privacy = new SScribe_Privacy();
@@ -257,12 +227,10 @@ class SScribe {
 	}
 
 	/**
-	 * Cleanup expired session data from the database.
-	 *
-	 * @return void
+	 * Clean up expired sessions and old log entries.
 	 */
 	public function cleanup_sessions(): void {
-		// P-4: Prevent overlapping cron runs (uses dedicated key — separate from export cleanup).
+
 		if ( ! get_transient( 'sscribe_cron_sessions_lock' ) ) {
 			set_transient( 'sscribe_cron_sessions_lock', true, 2 * MINUTE_IN_SECONDS );
 
@@ -276,15 +244,10 @@ class SScribe {
 	}
 
 	/**
-	 * Run the loader to execute all hooks.
-	 *
-	 * This method performs all initialization and hook registration.
-	 * It should be called after instantiation to activate the plugin.
-	 *
-	 * @return void
+	 * Start the plugin by registering all hooks and running the loader.
 	 */
 	public function run(): void {
-		// Q-3: Check for pending schema upgrades before initializing.
+
 		require_once SSCRIBE_PLUGIN_DIR . 'includes/class-sscribe-upgrader.php';
 		SScribe_Upgrader::maybe_upgrade();
 
@@ -299,20 +262,11 @@ class SScribe {
 	}
 
 	/**
-	 * Initialize internationalization.
-	 *
-	 * @return void
+	 * Initialize internationalization support.
 	 */
 	private function init_i18n(): void {
-		// WordPress 4.6+ automatically loads translations from wp-content/languages/plugins/
-		// for plugins hosted on wordpress.org based on the Text Domain header.
-		//
-		// We still call load_plugin_textdomain() as a defensive fallback for:
-		// - Non-.org installations (private repos, enterprise distributions)
-		// - Local development environments where translations are in the plugin's /languages dir
-		// - Edge cases where the auto-loading mechanism is filtered or disabled.
-		// phpcs:ignore PluginCheck.CodeAnalysis.DiscouragedFunctions.load_plugin_textdomainFound -- Defensive fallback for non-.org installations and local dev.
-		load_plugin_textdomain(
+
+		load_plugin_textdomain( // phpcs:ignore PluginCheck.CodeAnalysis.DiscouragedFunctions.load_plugin_textdomainFound -- Defensive fallback for non-.org installations and local dev.
 			'sscribe-export-site-pages',
 			false,
 			dirname( SSCRIBE_PLUGIN_BASENAME ) . '/languages'

@@ -1,9 +1,11 @@
 <?php
 /**
- * Unit tests for SScribe_Export_Resource_Monitor class.
+ * SScribe Export Resource Monitor Unit Test
  *
- * @package SScribe
+ * @package SScribe_Export_Site_Pages
  */
+
+declare(strict_types=1);
 
 namespace SScribe\Tests\Unit;
 
@@ -43,7 +45,6 @@ class SScribe_Export_Resource_Monitor_Test extends TestCase {
 		$monitor = new \SScribe_Export_Resource_Monitor();
 		$result  = $monitor->get_remaining_time( microtime( true ) - 10 );
 
-		// If max_execution_time is 0 (unlimited), returns -1.0; otherwise >= 0.
 		if ( -1.0 === $result ) {
 			$this->assertEquals( -1.0, $result );
 		} else {
@@ -98,7 +99,7 @@ class SScribe_Export_Resource_Monitor_Test extends TestCase {
 	public function test_get_memory_warning_returns_array_or_null(): void {
 		$monitor = new \SScribe_Export_Resource_Monitor();
 		$result  = $monitor->get_memory_warning( 1, array( 'docx' ) );
-		// null means no warning, array means a warning was generated.
+
 		if ( null !== $result ) {
 			$this->assertArrayHasKey( 'level', $result );
 			$this->assertArrayHasKey( 'message', $result );
@@ -110,7 +111,7 @@ class SScribe_Export_Resource_Monitor_Test extends TestCase {
 
 	public function test_get_memory_warning_for_large_export_returns_warning_or_error(): void {
 		$monitor = new \SScribe_Export_Resource_Monitor();
-		// Request memory for a huge export to trigger warnings.
+
 		$result = $monitor->get_memory_warning( 5000, array( 'docx', 'pdf' ) );
 		if ( null !== $result ) {
 			$this->assertArrayHasKey( 'estimated_mb', $result );

@@ -1,8 +1,8 @@
 <?php
 /**
- * Security helper functions for SScribe.
+ * SScribe Security Handler
  *
- * @package SScribe
+ * @package SScribe_Export_Site_Pages
  */
 
 declare(strict_types=1);
@@ -12,28 +12,14 @@ if ( ! defined( 'ABSPATH' ) ) {
 }
 
 /**
- * Class SScribe_Security
- *
- * Provides reusable security methods for directory protection
- * and file system hardening with path-traversal prevention.
+ * Handles security operations for SScribe export files.
  */
 class SScribe_Security {
 
 	/**
 	 * Protect a directory with .htaccess and index.php files.
 	 *
-	 * Creates .htaccess rules to deny all direct access (both Apache 2.4+
-	 * and legacy 2.2 syntax) and an empty index.php to prevent directory
-	 * listing on servers that ignore .htaccess.
-	 *
-	 * SECURITY: Validates that the target directory resides within the
-	 * WordPress uploads directory to prevent arbitrary .htaccess
-	 * creation via path traversal.
-	 *
-	 * @param string $dir Absolute path to the directory to protect.
-	 * @return void
-	 *
-	 * @throws \InvalidArgumentException If directory is outside allowed scope.
+	 * @param string $dir Directory path to protect.
 	 */
 	public static function protect_directory( string $dir ): void {
 		self::validate_path_scope( $dir );
@@ -55,27 +41,22 @@ class SScribe_Security {
 			$content .= "  </IfModule>\n";
 			$content .= "</Files>\n";
 
-			// phpcs:ignore WordPress.WP.AlternativeFunctions.file_system_operations_file_put_contents -- Required for directory security; path validated above.
-			file_put_contents( $htaccess_path, $content );
+			file_put_contents( $htaccess_path, $content ); // phpcs:ignore WordPress.WP.AlternativeFunctions.file_system_operations_file_put_contents -- Required for directory security; path validated above.
 		}
 
 		$index_path = $dir . '/index.php';
 		if ( ! file_exists( $index_path ) ) {
-			// phpcs:ignore WordPress.WP.AlternativeFunctions.file_system_operations_file_put_contents -- Required for directory security; path validated above.
-			file_put_contents( $index_path, "<?php\n// Silence is golden.\n" );
+			file_put_contents( $index_path, "<?php\n// Silence is golden.\n" ); // phpcs:ignore WordPress.WP.AlternativeFunctions.file_system_operations_file_put_contents -- Required for directory security; path validated above.
 		}
 	}
 
 	/**
-	 * Recursively delete a directory and its contents.
+	 * Delete a directory and all its contents recursively.
 	 *
-	 * SECURITY: Checks for symlinks BEFORE recursing into directories
-	 * to prevent symlink-based path traversal attacks.
-	 *
-	 * @param string $dir        Directory path.
-	 * @param int    $max_depth  Maximum recursion depth (default 20).
-	 * @param int    $depth      Current recursion depth (internal use).
-	 * @return bool True if directory was deleted, false otherwise.
+	 * @param string $dir      Directory path to delete.
+	 * @param int    $max_depth Maximum recursion depth.
+	 * @param int    $depth     Current recursion depth.
+	 * @return bool True if deleted, false otherwise.
 	 */
 	public static function delete_directory( string $dir, int $max_depth = 20, int $depth = 0 ): bool {
 		if ( ! is_dir( $dir ) ) {
@@ -103,16 +84,13 @@ class SScribe_Security {
 			}
 		}
 
-		// phpcs:ignore WordPress.WP.AlternativeFunctions.file_system_operations_rmdir -- Required for recursive directory deletion; path validated above.
-		return rmdir( $dir );
+		return rmdir( $dir ); // phpcs:ignore WordPress.WP.AlternativeFunctions.file_system_operations_rmdir -- Required for recursive directory deletion; path validated above.
 	}
 
 	/**
-	 * Throw if the path is outside the allowed uploads scope.
+	 * Validate that a path is within the allowed scope.
 	 *
-	 * @param string $path Absolute path to validate.
-	 * @return void
-	 *
+	 * @param string $path Path to validate.
 	 * @throws \InvalidArgumentException If path is outside allowed scope.
 	 */
 	private static function validate_path_scope( string $path ): void {
@@ -127,22 +105,12 @@ class SScribe_Security {
 	}
 
 	/**
-	 * Check if a path is within the allowed uploads directory scope.
+	 * Check if a path is within the uploads directory scope.
 	 *
-	 * Uses string-prefix comparison so it works correctly in both
-	 * production (wp-content/uploads) and test (sys_get_temp_dir) environments.
-	 * Relies on wp_upload_dir() to define the valid boundary.
-	 *
-	 * SECURITY: Normalizes path separators and checks for parent-directory
-	 * traversal attacks before comparison. Paths containing ".." segments
-	 * that would escape the uploads scope are rejected.
-	 *
-	 * @param string $path Absolute path to check.
-	 * @return bool True if the path is in scope.
+	 * @param string $path Path to check.
+	 * @return bool True if path is in scope.
 	 */
 	private static function is_path_in_scope( string $path ): bool {
-		// Reject paths with parent-directory traversal sequences.
-		// This prevents /uploads/../etc/passwd from passing the scope check.
 		if ( str_contains( $path, '..' ) ) {
 			return false;
 		}

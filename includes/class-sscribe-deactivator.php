@@ -1,8 +1,8 @@
 <?php
 /**
- * Fired during plugin deactivation.
+ * SScribe Deactivator
  *
- * @package SScribe
+ * @package SScribe_Export_Site_Pages
  */
 
 declare(strict_types=1);
@@ -12,14 +12,12 @@ if ( ! defined( 'ABSPATH' ) ) {
 }
 
 /**
- * Class SScribe_Deactivator
+ * Handles plugin deactivation cleanup.
  */
 class SScribe_Deactivator {
 
 	/**
-	 * Run deactivation tasks.
-	 *
-	 * @return void
+	 * Run deactivation cleanup tasks.
 	 */
 	public static function deactivate(): void {
 		$timestamp = wp_next_scheduled( 'sscribe_cleanup_exports' );
@@ -32,29 +30,17 @@ class SScribe_Deactivator {
 			wp_unschedule_event( $session_timestamp, 'sscribe_cleanup_sessions' );
 		}
 
-		// NOTE: Database tables are intentionally NOT dropped on deactivation.
-		// Deactivation is often temporary (troubleshooting, staging migration).
-		// Tables are only removed on full uninstall (uninstall.php).
-		// See issue #9: Deactivator deletes export files on deactivate.
-		//
-		// Version history: Prior to 1.1.5, the deactivator dropped sscribe_sessions
-		// and sscribe_export_stats tables. This was changed in 1.1.5 to preserve
-		// data across deactivation/reactivation cycles, matching the behavior of
-		// most enterprise WordPress plugins.
 		try {
 			self::cleanup_options();
 		} catch ( \Throwable $e ) {
 			if ( defined( 'WP_DEBUG' ) && WP_DEBUG ) {
-				// phpcs:ignore WordPress.PHP.DevelopmentFunctions.error_log_error_log
-				error_log( 'SScribe deactivation error: ' . $e->getMessage() );
+				error_log( 'SScribe deactivation error: ' . $e->getMessage() ); // phpcs:ignore WordPress.PHP.DevelopmentFunctions.error_log_error_log
 			}
 		}
 	}
 
 	/**
-	 * Remove all plugin-specific options from wp_options.
-	 *
-	 * @return void
+	 * Remove plugin options and transient data.
 	 */
 	private static function cleanup_options(): void {
 		$options_to_remove = array(
@@ -97,14 +83,4 @@ class SScribe_Deactivator {
 			delete_option( $lock->option_name );
 		}
 	}
-
-	/**
-	 * Remove plugin tables — REMOVED in 1.1.5.
-	 *
-	 * Previously dropped sscribe_sessions and sscribe_export_stats on deactivation.
-	 * Moved to uninstall.php only to preserve data across deactivation/reactivation.
-	 *
-	 * @deprecated 1.1.5
-	 * @return void
-	 */
 }

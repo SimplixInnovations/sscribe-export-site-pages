@@ -1,7 +1,11 @@
 <?php
+/**
+ * SScribe List ZIP Contents
+ *
+ * @package SScribe_Export_Site_Pages
+ */
 declare(strict_types=1);
 
-// Find the most recent dist ZIP file dynamically.
 $dist_files = glob( dirname( __DIR__ ) . '/dist/sscribe-export-site-pages-*.zip' );
 if ( empty( $dist_files ) ) {
 	exit( "No dist ZIP found. Run: composer release\n" );

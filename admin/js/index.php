@@ -1,8 +1,8 @@
 <?php
 /**
- * Silence is golden.
+ * SScribe Admin JS Index
  *
- * @package SScribe
+ * @package SScribe_Export_Site_Pages
  */
 
 if ( ! defined( 'ABSPATH' ) ) {

@@ -1,9 +1,11 @@
 <?php
 /**
- * Result pattern tests.
+ * SScribe Result Unit Test
  *
- * @package SScribe\Tests\Unit
+ * @package SScribe_Export_Site_Pages
  */
+
+declare(strict_types=1);
 
 namespace SScribe\Tests\Unit;
 

@@ -1,9 +1,11 @@
 <?php
 /**
- * Unit tests for SScribe_Diagnostics class.
+ * SScribe Diagnostics Unit Test
  *
- * @package SScribe
+ * @package SScribe_Export_Site_Pages
  */
+
+declare(strict_types=1);
 
 namespace SScribe\Tests\Unit;
 
@@ -23,16 +25,10 @@ class SScribe_Diagnostics_Test extends TestCase {
 		parent::tearDown();
 	}
 
-	/**
-	 * Test that diagnostics can be instantiated.
-	 */
 	public function test_diagnostics_can_be_instantiated(): void {
 		$this->assertInstanceOf( SScribe_Diagnostics::class, $this->diagnostics );
 	}
 
-	/**
-	 * Test get_support_info returns array.
-	 */
 	public function test_get_support_info_returns_array(): void {
 		$result = $this->diagnostics->get_support_info();
 		$this->assertIsArray( $result );
@@ -40,9 +36,6 @@ class SScribe_Diagnostics_Test extends TestCase {
 		$this->assertArrayHasKey( 'sections', $result );
 	}
 
-	/**
-	 * Test get_support_info has required sections.
-	 */
 	public function test_get_support_info_has_required_sections(): void {
 		$result = $this->diagnostics->get_support_info();
 
@@ -53,9 +46,6 @@ class SScribe_Diagnostics_Test extends TestCase {
 		$this->assertArrayHasKey( 'health', $result['sections'] );
 	}
 
-	/**
-	 * Test get_support_info plugin section.
-	 */
 	public function test_get_support_info_plugin_section(): void {
 		$result = $this->diagnostics->get_support_info();
 		$plugin = $result['sections']['plugin']['items'];
@@ -67,9 +57,6 @@ class SScribe_Diagnostics_Test extends TestCase {
 		$this->assertArrayHasKey( 'seo_plugins', $plugin );
 	}
 
-	/**
-	 * Test get_support_info environment section.
-	 */
 	public function test_get_support_info_environment_section(): void {
 		$result      = $this->diagnostics->get_support_info();
 		$environment = $result['sections']['environment']['items'];
@@ -82,9 +69,6 @@ class SScribe_Diagnostics_Test extends TestCase {
 		$this->assertArrayHasKey( 'zip_extension', $environment );
 	}
 
-	/**
-	 * Test run_preflight returns valid structure.
-	 */
 	public function test_run_preflight_returns_valid_structure(): void {
 		$result = $this->diagnostics->run_preflight( 5, array( 'docx' ) );
 
@@ -95,9 +79,6 @@ class SScribe_Diagnostics_Test extends TestCase {
 		$this->assertArrayHasKey( 'can_proceed', $result );
 	}
 
-	/**
-	 * Test run_preflight with empty formats.
-	 */
 	public function test_run_preflight_with_empty_formats(): void {
 		$result = $this->diagnostics->run_preflight( 0, array() );
 
@@ -105,9 +86,6 @@ class SScribe_Diagnostics_Test extends TestCase {
 		$this->assertArrayHasKey( 'can_proceed', $result );
 	}
 
-	/**
-	 * Test run_preflight checks all required checks.
-	 */
 	public function test_run_preflight_runs_all_checks(): void {
 		$result = $this->diagnostics->run_preflight( 10, array( 'docx', 'pdf' ) );
 		$checks = $result['checks'];
@@ -124,18 +102,12 @@ class SScribe_Diagnostics_Test extends TestCase {
 		$this->assertArrayHasKey( 'session', $checks );
 	}
 
-	/**
-	 * Test run_preflight status is 'ok' when no errors.
-	 */
 	public function test_run_preflight_status_ok_with_good_environment(): void {
 		$result = $this->diagnostics->run_preflight( 1, array( 'docx' ) );
 
 		$this->assertContains( $result['status'], array( 'ok', 'warning', 'error' ) );
 	}
 
-	/**
-	 * Test check_vendor_dependencies with all dependencies.
-	 */
 	public function test_check_vendor_dependencies(): void {
 		$method = new \ReflectionMethod( SScribe_Diagnostics::class, 'check_vendor_dependencies' );
 
@@ -144,9 +116,6 @@ class SScribe_Diagnostics_Test extends TestCase {
 		$this->assertIsArray( $result );
 	}
 
-	/**
-	 * Test check_php_version returns valid structure.
-	 */
 	public function test_check_php_version_returns_valid(): void {
 		$method = new \ReflectionMethod( SScribe_Diagnostics::class, 'check_php_version' );
 
@@ -158,9 +127,6 @@ class SScribe_Diagnostics_Test extends TestCase {
 		$this->assertArrayHasKey( 'message', $result );
 	}
 
-	/**
-	 * Test check_memory returns valid structure.
-	 */
 	public function test_check_memory_returns_valid(): void {
 		$method = new \ReflectionMethod( SScribe_Diagnostics::class, 'check_memory' );
 
@@ -173,9 +139,6 @@ class SScribe_Diagnostics_Test extends TestCase {
 		$this->assertArrayHasKey( 'message', $result );
 	}
 
-	/**
-	 * Test check_execution_time returns valid structure.
-	 */
 	public function test_check_execution_time_returns_valid(): void {
 		$method = new \ReflectionMethod( SScribe_Diagnostics::class, 'check_execution_time' );
 
@@ -187,9 +150,6 @@ class SScribe_Diagnostics_Test extends TestCase {
 		$this->assertArrayHasKey( 'status', $result );
 	}
 
-	/**
-	 * Test check_upload_directory returns valid structure.
-	 */
 	public function test_check_upload_directory_returns_valid(): void {
 		$method = new \ReflectionMethod( SScribe_Diagnostics::class, 'check_upload_directory' );
 
@@ -200,9 +160,6 @@ class SScribe_Diagnostics_Test extends TestCase {
 		$this->assertArrayHasKey( 'status', $result );
 	}
 
-	/**
-	 * Test check_zip_extension returns valid structure.
-	 */
 	public function test_check_zip_extension_returns_valid(): void {
 		$method = new \ReflectionMethod( SScribe_Diagnostics::class, 'check_zip_extension' );
 
@@ -213,9 +170,6 @@ class SScribe_Diagnostics_Test extends TestCase {
 		$this->assertArrayHasKey( 'status', $result );
 	}
 
-	/**
-	 * Test check_file_permissions returns valid structure.
-	 */
 	public function test_check_file_permissions_returns_valid(): void {
 		$method = new \ReflectionMethod( SScribe_Diagnostics::class, 'check_file_permissions' );
 
@@ -226,9 +180,6 @@ class SScribe_Diagnostics_Test extends TestCase {
 		$this->assertArrayHasKey( 'status', $result );
 	}
 
-	/**
-	 * Test check_wp_cron returns valid structure.
-	 */
 	public function test_check_wp_cron_returns_valid(): void {
 		$method = new \ReflectionMethod( SScribe_Diagnostics::class, 'check_wp_cron' );
 
@@ -239,9 +190,6 @@ class SScribe_Diagnostics_Test extends TestCase {
 		$this->assertArrayHasKey( 'status', $result );
 	}
 
-	/**
-	 * Test check_session_health returns valid structure.
-	 */
 	public function test_check_session_health_returns_valid(): void {
 		$method = new \ReflectionMethod( SScribe_Diagnostics::class, 'check_session_health' );
 
@@ -252,9 +200,6 @@ class SScribe_Diagnostics_Test extends TestCase {
 		$this->assertArrayHasKey( 'status', $result );
 	}
 
-	/**
-	 * Test get_recommendations returns array.
-	 */
 	public function test_get_recommendations_returns_array(): void {
 		$method = new \ReflectionMethod( SScribe_Diagnostics::class, 'get_recommendations' );
 
@@ -269,9 +214,6 @@ class SScribe_Diagnostics_Test extends TestCase {
 		$this->assertIsArray( $result );
 	}
 
-	/**
-	 * Test get_active_seo_plugins returns array.
-	 */
 	public function test_get_active_seo_plugins_returns_array(): void {
 		$method = new \ReflectionMethod( SScribe_Diagnostics::class, 'get_active_seo_plugins' );
 
@@ -280,14 +222,11 @@ class SScribe_Diagnostics_Test extends TestCase {
 		$this->assertIsArray( $result );
 	}
 
-	/**
-	 * Test build_support_copy_text returns string.
-	 */
 	public function test_build_support_copy_text_returns_string(): void {
 		$method = new \ReflectionMethod( SScribe_Diagnostics::class, 'build_support_copy_text' );
 
 		$sections            = array(
-			'plugin'     => array( 'label' => 'Plugin', 'items' => array( 'version' => '1.1.5' ) ),
+			'plugin'     => array( 'label' => 'Plugin', 'items' => array( 'version' => '1.1.1' ) ),
 			'environment' => array( 'label' => 'Env', 'items' => array( 'php' => '8.2' ) ),
 		);
 		$audit              = array();
@@ -299,9 +238,6 @@ class SScribe_Diagnostics_Test extends TestCase {
 		$this->assertIsString( $result );
 	}
 
-	/**
-	 * Test build_support_copy_text includes debug warning when enabled.
-	 */
 	public function test_build_support_copy_text_includes_debug_warning(): void {
 		$method = new \ReflectionMethod( SScribe_Diagnostics::class, 'build_support_copy_text' );
 
@@ -309,7 +245,7 @@ $sections            = array(
 			'plugin' => array(
 				'label' => 'Plugin',
 				'items' => array(
-					'version'     => '1.1.5',
+					'version'     => '1.1.1',
 					'debug_mode'  => 'Enabled',
 				),
 			),
@@ -323,14 +259,3 @@ $sections            = array(
 		$this->assertStringContainsStringIgnoringCase( 'debug', $result );
 	}
 }
-
-
-
-
-
-
-
-
-
-
-

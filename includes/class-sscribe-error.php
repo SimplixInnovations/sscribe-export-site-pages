@@ -1,8 +1,8 @@
 <?php
 /**
- * Enterprise-grade error handling with actionable guidance.
+ * SScribe Error Handler
  *
- * @package SScribe
+ * @package SScribe_Export_Site_Pages
  */
 
 declare(strict_types=1);
@@ -11,116 +11,41 @@ if ( ! defined( 'ABSPATH' ) ) {
 	exit;
 }
 
-/**
- * Class SScribe_Error
- *
- * Represents a structured error with category, code, guidance, and context.
- */
 class SScribe_Error {
 
+	public const CATEGORY_SYSTEM     = 'system';
+	public const CATEGORY_PERMISSION = 'permission';
+	public const CATEGORY_RESOURCE   = 'resource';
+	public const CATEGORY_CONTENT    = 'content';
+	public const CATEGORY_EXPORT     = 'export';
+	public const CATEGORY_NETWORK    = 'network';
+	public const CATEGORY_VALIDATION = 'validation';
 
-	/**
-	 * Error categories.
-	 */
-	public const CATEGORY_SYSTEM     = 'system';    // Server configuration issues.
-	public const CATEGORY_PERMISSION = 'permission'; // Access/rights issues.
-	public const CATEGORY_RESOURCE   = 'resource';   // Memory, disk, time limits.
-	public const CATEGORY_CONTENT    = 'content';    // Page data issues.
-	public const CATEGORY_EXPORT     = 'export';     // Format-specific failures.
-	public const CATEGORY_NETWORK    = 'network';    // Connectivity issues.
-	public const CATEGORY_VALIDATION = 'validation'; // Input validation.
+	public const SEVERITY_CRITICAL = 'critical';
+	public const SEVERITY_ERROR    = 'error';
+	public const SEVERITY_WARNING  = 'warning';
+	public const SEVERITY_INFO     = 'info';
 
-	/**
-	 * Severity levels.
-	 */
-	public const SEVERITY_CRITICAL = 'critical'; // Export cannot continue.
-	public const SEVERITY_ERROR    = 'error';    // Single item failed.
-	public const SEVERITY_WARNING  = 'warning';  // May cause issues.
-	public const SEVERITY_INFO     = 'info';     // Informational.
-
-	/**
-	 * Error code.
-	 *
-	 * @var string
-	 */
 	private readonly string $code;
 
-	/**
-	 * Error category.
-	 *
-	 * @var string
-	 */
 	private readonly string $category;
 
-	/**
-	 * Error severity.
-	 *
-	 * @var string
-	 */
 	private readonly string $severity;
 
-	/**
-	 * Human-readable message.
-	 *
-	 * @var string
-	 */
 	private readonly string $message;
 
-	/**
-	 * Detailed explanation (shown in debug mode).
-	 *
-	 * @var string
-	 */
 	private readonly string $details;
 
-	/**
-	 * Actionable guidance for the user.
-	 *
-	 * @var string
-	 */
 	private readonly string $guidance;
 
-	/**
-	 * Suggested fix steps.
-	 *
-	 * @var array
-	 */
 	private readonly array $fix_steps;
 
-	/**
-	 * Documentation URL.
-	 *
-	 * @var string|null
-	 */
 	private readonly ?string $doc_url;
 
-	/**
-	 * Context data.
-	 *
-	 * @var array
-	 */
 	private readonly array $context;
 
-	/**
-	 * Timestamp.
-	 *
-	 * @var int
-	 */
 	private readonly int $timestamp;
 
-	/**
-	 * Constructor.
-	 *
-	 * @param string      $code      Error code.
-	 * @param string      $category  Error category.
-	 * @param string      $severity  Severity level.
-	 * @param string      $message   User message.
-	 * @param string      $details   Detailed explanation.
-	 * @param string      $guidance  Actionable guidance.
-	 * @param array       $fix_steps Steps to fix.
-	 * @param string|null $doc_url   Documentation URL.
-	 * @param array       $context   Context data.
-	 */
 	public function __construct(
 		string $code,
 		string $category,
@@ -144,13 +69,6 @@ class SScribe_Error {
 		$this->timestamp = time();
 	}
 
-	/**
-	 * Create from a predefined error template.
-	 *
-	 * @param string $code    Error code.
-	 * @param array  $context Context data (for interpolation).
-	 * @return self
-	 */
 	public static function from_template( string $code, array $context = array() ): self {
 		$templates = self::get_templates();
 
@@ -170,7 +88,6 @@ class SScribe_Error {
 
 		$template = $templates[ $code ];
 
-		// Interpolate context into message and details.
 		$message  = self::interpolate( $template['message'], $context );
 		$details  = self::interpolate( $template['details'] ?? '', $context );
 		$guidance = self::interpolate( $template['guidance'] ?? '', $context );
@@ -188,13 +105,6 @@ class SScribe_Error {
 		);
 	}
 
-	/**
-	 * Interpolate context values into a template string.
-	 *
-	 * @param string $template String with {placeholder}s.
-	 * @param array  $context  Context values.
-	 * @return string
-	 */
 	public static function interpolate( string $template, array $context ): string {
 		$replace = array();
 		foreach ( $context as $key => $value ) {
@@ -203,14 +113,9 @@ class SScribe_Error {
 		return strtr( $template, $replace );
 	}
 
-	/**
-	 * Get all error templates.
-	 *
-	 * @return array
-	 */
 	public static function get_templates(): array {
 		return array(
-			// System errors.
+
 			'SYSTEM_ZIP_EXTENSION_MISSING'      => array(
 				'category'  => self::CATEGORY_SYSTEM,
 				'severity'  => self::SEVERITY_CRITICAL,
@@ -248,7 +153,6 @@ class SScribe_Error {
 				),
 			),
 
-			// Resource errors.
 			'RESOURCE_MEMORY_EXHAUSTED'         => array(
 				'category'  => self::CATEGORY_RESOURCE,
 				'severity'  => self::SEVERITY_CRITICAL,
@@ -287,7 +191,6 @@ class SScribe_Error {
 				),
 			),
 
-			// Permission errors.
 			'PERMISSION_DIRECTORY_NOT_WRITABLE' => array(
 				'category'  => self::CATEGORY_PERMISSION,
 				'severity'  => self::SEVERITY_CRITICAL,
@@ -314,7 +217,6 @@ class SScribe_Error {
 				),
 			),
 
-			// Content errors.
 			'CONTENT_PAGE_DATA_FAILED'          => array(
 				'category'  => self::CATEGORY_CONTENT,
 				'severity'  => self::SEVERITY_ERROR,
@@ -352,7 +254,6 @@ class SScribe_Error {
 				),
 			),
 
-			// Export errors.
 			'EXPORT_DOCX_FAILED'                => array(
 				'category'  => self::CATEGORY_EXPORT,
 				'severity'  => self::SEVERITY_ERROR,
@@ -392,7 +293,6 @@ class SScribe_Error {
 				),
 			),
 
-			// Validation errors.
 			'VALIDATION_NO_PAGES_SELECTED'      => array(
 				'category'  => self::CATEGORY_VALIDATION,
 				'severity'  => self::SEVERITY_ERROR,
@@ -430,7 +330,6 @@ class SScribe_Error {
 				),
 			),
 
-			// Session errors.
 			'SESSION_EXPIRED'                   => array(
 				'category'  => self::CATEGORY_SYSTEM,
 				'severity'  => self::SEVERITY_ERROR,
@@ -467,7 +366,6 @@ class SScribe_Error {
 				),
 			),
 
-			// Rate limiting.
 			'RATE_LIMIT_EXCEEDED'               => array(
 				'category'  => self::CATEGORY_SYSTEM,
 				'severity'  => self::SEVERITY_WARNING,
@@ -482,104 +380,46 @@ class SScribe_Error {
 		);
 	}
 
-	// Getters.
-
-	/**
-	 * Get the error code.
-	 *
-	 * @return string
-	 */
 	public function get_code(): string {
 		return $this->code;
 	}
 
-	/**
-	 * Get the error category.
-	 *
-	 * @return string
-	 */
 	public function get_category(): string {
 		return $this->category;
 	}
 
-	/**
-	 * Get the error severity.
-	 *
-	 * @return string
-	 */
 	public function get_severity(): string {
 		return $this->severity;
 	}
 
-	/**
-	 * Get the error message.
-	 *
-	 * @return string
-	 */
 	public function get_message(): string {
 		return $this->message;
 	}
 
-	/**
-	 * Get the error details.
-	 *
-	 * @return string
-	 */
 	public function get_details(): string {
 		return $this->details;
 	}
 
-	/**
-	 * Get the guidance text.
-	 *
-	 * @return string
-	 */
 	public function get_guidance(): string {
 		return $this->guidance;
 	}
 
-	/**
-	 * Get the fix steps.
-	 *
-	 * @return array
-	 */
 	public function get_fix_steps(): array {
 		return $this->fix_steps;
 	}
 
-	/**
-	 * Get the documentation URL.
-	 *
-	 * @return string|null
-	 */
 	public function get_doc_url(): ?string {
 		return $this->doc_url;
 	}
 
-	/**
-	 * Get the error context.
-	 *
-	 * @return array
-	 */
 	public function get_context(): array {
 		return $this->context;
 	}
 
-	/**
-	 * Get the timestamp.
-	 *
-	 * @return int
-	 */
 	public function get_timestamp(): int {
 		return $this->timestamp;
 	}
 
-	/**
-	 * Convert to array for JSON response.
-	 *
-	 * @param bool $include_details Include detailed info (debug mode).
-	 * @return array
-	 */
 	public function to_array( bool $include_details = false ): array {
 		$data = array(
 			'code'     => $this->code,
@@ -606,11 +446,6 @@ class SScribe_Error {
 		return $data;
 	}
 
-	/**
-	 * Convert to user-friendly string.
-	 *
-	 * @return string
-	 */
 	public function __toString(): string {
 		$output = $this->message;
 

@@ -1,8 +1,8 @@
 <?php
 /**
- * Arabic word segmentation utility.
+ * SScribe Arabic Segmenter
  *
- * @package SScribe
+ * @package SScribe_Export_Site_Pages
  */
 
 declare(strict_types=1);
@@ -11,20 +11,8 @@ if ( ! defined( 'ABSPATH' ) ) {
 	exit;
 }
 
-/**
- * Class SScribe_Arabic_Segmenter
- *
- * Accurate word counting for Arabic and RTL languages.
- */
 class SScribe_Arabic_Segmenter {
 
-	/**
-	 * Count words in text, handling Arabic and mixed content.
-	 *
-	 * @param string $text     Text to count.
-	 * @param string $language Language code.
-	 * @return int Word count.
-	 */
 	public static function count_words( string $text, string $language = 'en' ): int {
 		if ( empty( $text ) ) {
 			return 0;
@@ -47,12 +35,6 @@ class SScribe_Arabic_Segmenter {
 		return $words ? count( array_filter( $words ) ) : 0;
 	}
 
-	/**
-	 * Count Arabic words by stripping diacritics and tatweel.
-	 *
-	 * @param string $text The Arabic text to count words in.
-	 * @return int Word count.
-	 */
 	private static function count_arabic_words( string $text ): int {
 		$text  = preg_replace( '/[\x{064B}-\x{0652}]/u', '', $text ) ?? $text;
 		$text  = preg_replace( '/\x{0640}/u', '', $text ) ?? $text;
@@ -60,13 +42,6 @@ class SScribe_Arabic_Segmenter {
 		return $words ? count( array_filter( $words ) ) : 0;
 	}
 
-	/**
-	 * Get reading time in minutes.
-	 *
-	 * @param string $text     Text to analyze.
-	 * @param string $language Language code.
-	 * @return int Reading time in minutes (minimum 1).
-	 */
 	public static function get_reading_time( string $text, string $language = 'en' ): int {
 		$word_count = self::count_words( $text, $language );
 		$wpm        = 'ar' === strtolower( $language ) ? 138 : 200;

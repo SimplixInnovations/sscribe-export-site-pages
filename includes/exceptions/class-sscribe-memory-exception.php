@@ -1,8 +1,8 @@
 <?php
 /**
- * Memory-related exception for SScribe.
+ * SScribe Memory Exception
  *
- * @package SScribe
+ * @package SScribe_Export_Site_Pages
  */
 
 declare(strict_types=1);
@@ -13,36 +13,12 @@ if ( ! defined( 'ABSPATH' ) ) {
 
 require_once SSCRIBE_PLUGIN_DIR . 'includes/exceptions/class-sscribe-exception.php';
 
-/**
- * Class SScribe_Memory_Exception
- *
- * Thrown when memory limits are exceeded during export operations.
- */
 class SScribe_Memory_Exception extends SScribe_Exception {
 
-	/**
-	 * Memory limit that was exceeded.
-	 *
-	 * @var int
-	 */
 	protected int $memory_limit;
 
-	/**
-	 * Memory used at time of exception.
-	 *
-	 * @var int
-	 */
 	protected int $memory_used;
 
-	/**
-	 * Constructor.
-	 *
-	 * @param string|null    $message       Custom message.
-	 * @param int            $memory_limit  Memory limit in bytes.
-	 * @param int            $memory_used   Memory used in bytes.
-	 * @param array          $context       Additional context.
-	 * @param Throwable|null $previous      Previous exception.
-	 */
 	public function __construct(
 		?string $message = null,
 		int $memory_limit = 0,
@@ -78,23 +54,14 @@ class SScribe_Memory_Exception extends SScribe_Exception {
 		);
 	}
 
-	/**
-	 * Get the memory limit that was exceeded.
-	 */
 	public function get_memory_limit(): int {
 		return $this->memory_limit;
 	}
 
-	/**
-	 * Get the memory used at time of exception.
-	 */
 	public function get_memory_used(): int {
 		return $this->memory_used;
 	}
 
-	/**
-	 * Get recommended memory limit based on current usage.
-	 */
 	public function get_recommended_memory_limit(): int {
 		$current_limit = $this->memory_limit;
 		$used          = $this->memory_used;

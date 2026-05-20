@@ -1,8 +1,8 @@
 <?php
 /**
- * Export statistics tracking for SScribe.
+ * SScribe Export Stats
  *
- * @package SScribe
+ * @package SScribe_Export_Site_Pages
  */
 
 declare(strict_types=1);
@@ -11,38 +11,15 @@ if ( ! defined( 'ABSPATH' ) ) {
 	exit;
 }
 
-/**
- * Class SScribe_Export_Stats
- *
- * Tracks and retrieves export statistics for monitoring dashboard.
- */
 class SScribe_Export_Stats {
 
-	/**
-	 * Table name for statistics.
-	 *
-	 * @var string
-	 */
 	private readonly string $table_name;
 
-	/**
-	 * Constructor.
-	 *
-	 * @return void
-	 */
 	public function __construct() {
 		global $wpdb;
 		$this->table_name = $wpdb->prefix . 'sscribe_export_stats';
 	}
 
-	/**
-	 * Record a new export session.
-	 *
-	 * @param string $session_id Session ID.
-	 * @param int    $user_id    User ID.
-	 * @param array  $config     Export configuration.
-	 * @return bool True if insert succeeded.
-	 */
 	public function start_export( string $session_id, int $user_id, array $config ): bool {
 		global $wpdb;
 
@@ -61,14 +38,6 @@ class SScribe_Export_Stats {
 		);
 	}
 
-	/**
-	 * Update export progress.
-	 *
-	 * @param string $session_id      Session ID.
-	 * @param int    $successful_pages Successful page count.
-	 * @param int    $failed_pages    Failed page count.
-	 * @return bool Success.
-	 */
 	public function update_progress( string $session_id, int $successful_pages, int $failed_pages = 0 ): bool {
 		global $wpdb;
 
@@ -85,13 +54,6 @@ class SScribe_Export_Stats {
 		);
 	}
 
-	/**
-	 * Complete an export session.
-	 *
-	 * @param string $session_id Session ID.
-	 * @param array  $results    Export results.
-	 * @return bool Success.
-	 */
 	public function complete_export( string $session_id, array $results = array() ): bool {
 		global $wpdb;
 
@@ -114,13 +76,6 @@ class SScribe_Export_Stats {
 		);
 	}
 
-	/**
-	 * Mark export as failed.
-	 *
-	 * @param string $session_id   Session ID.
-	 * @param string $error_message Error message.
-	 * @return bool Success.
-	 */
 	public function fail_export( string $session_id, string $error_message ): bool {
 		global $wpdb;
 
@@ -137,12 +92,6 @@ class SScribe_Export_Stats {
 		);
 	}
 
-	/**
-	 * Get export statistics for a period.
-	 *
-	 * @param string $period Period: 'today', 'week', 'month', 'year'.
-	 * @return array Statistics.
-	 */
 	public function get_stats( string $period = 'month' ): array {
 		$date_from = $this->get_period_start( $period );
 
@@ -158,12 +107,6 @@ class SScribe_Export_Stats {
 		);
 	}
 
-	/**
-	 * Get period start date.
-	 *
-	 * @param string $period Period name.
-	 * @return string MySQL date string.
-	 */
 	private function get_period_start( string $period ): string {
 		$intervals = array(
 			'today' => '-1 day',
@@ -177,16 +120,9 @@ class SScribe_Export_Stats {
 		return gmdate( 'Y-m-d H:i:s', strtotime( $interval ) );
 	}
 
-	/**
-	 * Get total exports count.
-	 *
-	 * @param string $date_from Start date.
-	 * @return int Count.
-	 */
 	private function get_total_exports( string $date_from ): int {
 		global $wpdb;
 
-		// Table name from $wpdb->prefix is trusted (not user-controlled) — safe to interpolate.
 		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
 		return (int) $wpdb->get_var(
 			$wpdb->prepare(
@@ -197,16 +133,9 @@ class SScribe_Export_Stats {
 		);
 	}
 
-	/**
-	 * Get successful exports count.
-	 *
-	 * @param string $date_from Start date.
-	 * @return int Count.
-	 */
 	private function get_successful_exports( string $date_from ): int {
 		global $wpdb;
 
-		// Table name from $wpdb->prefix is trusted (not user-controlled) — safe to interpolate.
 		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
 		return (int) $wpdb->get_var(
 			$wpdb->prepare(
@@ -217,16 +146,9 @@ class SScribe_Export_Stats {
 		);
 	}
 
-	/**
-	 * Get failed exports count.
-	 *
-	 * @param string $date_from Start date.
-	 * @return int Count.
-	 */
 	private function get_failed_exports( string $date_from ): int {
 		global $wpdb;
 
-		// Table name from $wpdb->prefix is trusted (not user-controlled) — safe to interpolate.
 		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
 		return (int) $wpdb->get_var(
 			$wpdb->prepare(
@@ -237,16 +159,9 @@ class SScribe_Export_Stats {
 		);
 	}
 
-	/**
-	 * Get total pages exported.
-	 *
-	 * @param string $date_from Start date.
-	 * @return int Count.
-	 */
 	private function get_total_pages( string $date_from ): int {
 		global $wpdb;
 
-		// Table name from $wpdb->prefix is trusted (not user-controlled) — safe to interpolate.
 		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
 		return (int) $wpdb->get_var(
 			$wpdb->prepare(
@@ -257,16 +172,9 @@ class SScribe_Export_Stats {
 		);
 	}
 
-	/**
-	 * Get average export duration.
-	 *
-	 * @param string $date_from Start date.
-	 * @return float Average seconds.
-	 */
 	private function get_avg_duration( string $date_from ): float {
 		global $wpdb;
 
-		// Table name from $wpdb->prefix is trusted (not user-controlled) — safe to interpolate.
 		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
 		return (float) $wpdb->get_var(
 			$wpdb->prepare(
@@ -277,16 +185,9 @@ class SScribe_Export_Stats {
 		);
 	}
 
-	/**
-	 * Get total export size in MB.
-	 *
-	 * @param string $date_from Start date.
-	 * @return float Total size in MB.
-	 */
 	private function get_total_size( string $date_from ): float {
 		global $wpdb;
 
-		// Table name from $wpdb->prefix is trusted (not user-controlled) — safe to interpolate.
 		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
 		return (float) $wpdb->get_var(
 			$wpdb->prepare(
@@ -297,16 +198,9 @@ class SScribe_Export_Stats {
 		);
 	}
 
-	/**
-	 * Get format breakdown.
-	 *
-	 * @param string $date_from Start date.
-	 * @return array Format counts.
-	 */
 	private function get_format_breakdown( string $date_from ): array {
 		global $wpdb;
 
-		// Table name from $wpdb->prefix is trusted (not user-controlled) — safe to interpolate.
 		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
 		$results = $wpdb->get_results(
 			$wpdb->prepare(
@@ -337,23 +231,16 @@ class SScribe_Export_Stats {
 		return $breakdown;
 	}
 
-	/**
-	 * Get daily export counts.
-	 *
-	 * @param string $date_from Start date.
-	 * @return array Daily counts.
-	 */
 	private function get_daily_exports( string $date_from ): array {
 		global $wpdb;
 
 		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
-		// Table name from $wpdb->prefix is trusted (not user-controlled) — safe to interpolate.
 		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
+
 		$results = $wpdb->get_results(
 			$wpdb->prepare(
 				'SELECT DATE(export_date) as date, COUNT(*) as count, SUM(total_pages) as pages
 				FROM '
-
 			// phpcs:ignore WordPress.DB.PreparedSQL.NotPrepared
 				. $this->table_name . '
 				WHERE export_date >= %s
@@ -375,16 +262,9 @@ class SScribe_Export_Stats {
 		return $daily;
 	}
 
-	/**
-	 * Get recent exports.
-	 *
-	 * @param int $limit Maximum results.
-	 * @return array Recent exports.
-	 */
 	public function get_recent_exports( int $limit = 10 ): array {
 		global $wpdb;
 
-		// Table name from $wpdb->prefix is trusted (not user-controlled) — safe to interpolate.
 		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
 		return $wpdb->get_results(
 			$wpdb->prepare(
@@ -395,13 +275,6 @@ class SScribe_Export_Stats {
 		);
 	}
 
-	/**
-	 * Get exports associated with a specific user.
-	 *
-	 * @param int $user_id User ID.
-	 * @param int $limit   Maximum results.
-	 * @return array
-	 */
 	public function get_exports_by_user( int $user_id, int $limit = 100 ): array {
 		if ( $user_id <= 0 ) {
 			return array();
@@ -409,7 +282,6 @@ class SScribe_Export_Stats {
 
 		global $wpdb;
 
-		// Table name from $wpdb->prefix is trusted (not user-controlled) — safe to interpolate.
 		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
 		return $wpdb->get_results(
 			$wpdb->prepare(
@@ -421,12 +293,6 @@ class SScribe_Export_Stats {
 		);
 	}
 
-	/**
-	 * Erase personal data associated with a specific user while retaining aggregate export history.
-	 *
-	 * @param int $user_id User ID.
-	 * @return int Number of updated rows.
-	 */
 	public function erase_user_data( int $user_id ): int {
 		if ( $user_id <= 0 ) {
 			return 0;
@@ -449,18 +315,11 @@ class SScribe_Export_Stats {
 		return false === $result ? 0 : (int) $result;
 	}
 
-	/**
-	 * Clean up old statistics.
-	 *
-	 * @param int $days Maximum age in days.
-	 * @return int Deleted rows.
-	 */
 	public function cleanup( int $days = 365 ): int {
 		global $wpdb;
 
 		$cutoff = gmdate( 'Y-m-d H:i:s', strtotime( "-{$days} days" ) );
 
-		// Table name from $wpdb->prefix is trusted (not user-controlled) — safe to interpolate.
 		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
 		return $wpdb->query(
 			$wpdb->prepare(

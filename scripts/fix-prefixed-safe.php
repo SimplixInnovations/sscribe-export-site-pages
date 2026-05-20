@@ -1,13 +1,8 @@
 <?php
 /**
- * Post-Strauss fix for thecodingmachine/safe generated versioned wrappers.
+ * SScribe Fix Prefixed Safe Script
  *
- * Some build environments can produce a prefixed safe package where
- * generated/<php-version>/*.php files are missing. This script backfills
- * missing versioned files by copying canonical version-specific files from
- * the non-prefixed vendor tree.
- *
- * @package SScribe
+ * @package SScribe_Export_Site_Pages
  */
 
 declare(strict_types=1);
@@ -18,12 +13,14 @@ $canonical_safe_dir = $base_dir . '/vendor/thecodingmachine/safe/generated';
 
 if ( ! is_dir( $target_safe_dir ) ) {
 	// phpcs:ignore WordPress.WP.AlternativeFunctions.file_system_operations_fwrite -- Standalone CLI maintenance script.
+
 	fwrite( STDOUT, "[fix-prefixed-safe] Skipped: {$target_safe_dir} not found.\n" );
 	exit( 0 );
 }
 
 if ( ! is_dir( $canonical_safe_dir ) ) {
 	// phpcs:ignore WordPress.WP.AlternativeFunctions.file_system_operations_fwrite -- Standalone CLI maintenance script.
+
 	fwrite( STDOUT, "[fix-prefixed-safe] Skipped: {$canonical_safe_dir} not found.\n" );
 	exit( 0 );
 }
@@ -31,6 +28,7 @@ if ( ! is_dir( $canonical_safe_dir ) ) {
 $canonical_entries = scandir( $canonical_safe_dir );
 if ( false === $canonical_entries ) {
 	// phpcs:ignore WordPress.WP.AlternativeFunctions.file_system_operations_fwrite -- Standalone CLI maintenance script.
+
 	fwrite( STDERR, "[fix-prefixed-safe] Failed to read {$canonical_safe_dir}.\n" );
 	exit( 1 );
 }
@@ -46,8 +44,10 @@ foreach ( $target_versions as $version ) {
 
 	$target_version_dir = $target_safe_dir . '/' . $version;
 	// phpcs:ignore WordPress.WP.AlternativeFunctions.file_system_operations_mkdir -- Standalone CLI maintenance script.
+
 	if ( ! is_dir( $target_version_dir ) && ! mkdir( $target_version_dir, 0755, true ) && ! is_dir( $target_version_dir ) ) {
 		// phpcs:ignore WordPress.WP.AlternativeFunctions.file_system_operations_fwrite -- Standalone CLI maintenance script.
+
 		fwrite( STDERR, "[fix-prefixed-safe] Failed to create {$target_version_dir}.\n" );
 		exit( 1 );
 	}
@@ -63,6 +63,7 @@ foreach ( $target_versions as $version ) {
 		if ( ! file_exists( $target ) ) {
 			if ( ! copy( $source, $target ) ) {
 				// phpcs:ignore WordPress.WP.AlternativeFunctions.file_system_operations_fwrite -- Standalone CLI maintenance script.
+
 				fwrite( STDERR, "[fix-prefixed-safe] Failed copying {$source} -> {$target}.\n" );
 				exit( 1 );
 			}
@@ -73,25 +74,19 @@ foreach ( $target_versions as $version ) {
 }
 
 // phpcs:ignore WordPress.WP.AlternativeFunctions.file_system_operations_fwrite -- Standalone CLI maintenance script.
+
 fwrite( STDOUT, "[fix-prefixed-safe] Completed. Files copied: {$copied}.\n" );
 
-/**
- * Backfill missing mpdf data files in vendor-prefixed.
- *
- * In mPDF v8.3+, the data directory moved from src/data/ to data/ at the
- * package root. Strauss v0.27.2 copies non-PHP assets (including data/)
- * automatically, so this is only needed as a safety net for edge cases
- * where Strauss configuration or a future version skips them.
- */
 $target_mpdf_dir    = $base_dir . '/vendor-prefixed/mpdf/mpdf/data';
 $canonical_mpdf_dir = $base_dir . '/vendor/mpdf/mpdf/data';
 
 $copied_mpdf = 0;
 $entries     = is_dir( $canonical_mpdf_dir ) ? scandir( $canonical_mpdf_dir ) : false;
 if ( false !== $entries && is_array( $entries ) ) {
-	// Ensure target dir exists.
+
 	if ( ! is_dir( $target_mpdf_dir ) ) {
 		// phpcs:ignore WordPress.WP.AlternativeFunctions.file_system_operations_mkdir -- Standalone CLI maintenance script.
+
 		mkdir( $target_mpdf_dir, 0755, true );
 	}
 	foreach ( $entries as $entry ) {
@@ -109,4 +104,5 @@ if ( false !== $entries && is_array( $entries ) ) {
 	fwrite( STDOUT, "[fix-prefixed-safe] mpdf data dir {$canonical_mpdf_dir} not found — likely handled by Strauss.\n" );
 }
 // phpcs:ignore WordPress.WP.AlternativeFunctions.file_system_operations_fwrite -- Standalone CLI maintenance script.
+
 fwrite( STDOUT, "[fix-prefixed-safe] mpdf data files backfilled: {$copied_mpdf}.\n" );

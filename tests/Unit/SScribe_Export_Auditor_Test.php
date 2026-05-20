@@ -1,9 +1,11 @@
 <?php
 /**
- * Unit tests for SScribe_Export_Auditor class.
+ * SScribe Export Auditor Unit Test
  *
- * @package SScribe
+ * @package SScribe_Export_Site_Pages
  */
+
+declare(strict_types=1);
 
 namespace SScribe\Tests\Unit;
 
