@@ -19,13 +19,12 @@ if ( ! defined( 'ABSPATH' ) ) {
  *
  * Provides a unified interface for file operations with WP_Filesystem fallback
  * when standard WordPress filesystem methods are unavailable.
- *
+ */
 class SScribe_Filesystem {
 
 	/**
 	 * WP_Filesystem instance.
 	 *
-	 
 	 * @var WP_Filesystem_Base|null
 	 */
 	private static ?WP_Filesystem_Base $fs = null;
@@ -33,7 +32,6 @@ class SScribe_Filesystem {
 	/**
 	 * Whether filesystem has been initialized.
 	 *
-	 
 	 * @var bool
 	 */
 	private static bool $initialized = false;
@@ -41,7 +39,6 @@ class SScribe_Filesystem {
 	/**
 	 * Last error message from operations.
 	 *
-	 
 	 * @var string
 	 */
 	private static string $last_error = '';
@@ -49,7 +46,6 @@ class SScribe_Filesystem {
 	/**
 	 * Logger instance for error reporting.
 	 *
-	 
 	 * @var SScribe_Logger_Interface
 	 */
 	private SScribe_Logger_Interface $logger;
@@ -59,7 +55,8 @@ class SScribe_Filesystem {
 	 *
 	 * Initializes the filesystem handler and logger.
 	 *
-	 /**
+	 * @return void
+	 */
 	public function __construct() {
 		$this->logger = SScribe_Logger::instance( defined( 'SSCRIBE_DEBUG' ) && SSCRIBE_DEBUG );
 		$this->initialize();
@@ -70,8 +67,6 @@ class SScribe_Filesystem {
 	 *
 	 * Attempts to initialize WordPress filesystem abstraction with fallback
 	 * to direct PHP filesystem operations if WP_Filesystem is unavailable.
-	 *
-	 
 	 *
 	 * @return bool True if WP_Filesystem is available, false otherwise.
 	 */
@@ -124,8 +119,6 @@ class SScribe_Filesystem {
 
 	/**
 	 * Write contents to a file.
-	 *
-	 
 	 *
 	 * @param string $file    File path to write to.
 	 * @param string $content Content to write.
@@ -191,8 +184,6 @@ class SScribe_Filesystem {
 	/**
 	 * Read contents from a file.
 	 *
-	 
-	 *
 	 * @param string $file File path to read.
 	 * @return string|false File contents or false on failure.
 	 */
@@ -221,8 +212,6 @@ class SScribe_Filesystem {
 
 	/**
 	 * Delete a file.
-	 *
-	 
 	 *
 	 * @param string $file File path to delete.
 	 * @return bool True if delete succeeded or file doesn't exist, false otherwise.
@@ -256,8 +245,6 @@ class SScribe_Filesystem {
 	/**
 	 * Create a directory.
 	 *
-	 
-	 *
 	 * @param string $path Directory path to create.
 	 * @param int    $mode Directory permissions (default: 0755).
 	 * @return bool True if directory created or exists, false otherwise.
@@ -275,8 +262,6 @@ class SScribe_Filesystem {
 	/**
 	 * Check if file exists.
 	 *
-	 
-	 *
 	 * @param string $path File or directory path.
 	 * @return bool True if exists, false otherwise.
 	 */
@@ -291,8 +276,6 @@ class SScribe_Filesystem {
 	/**
 	 * Check if path is a directory.
 	 *
-	 
-	 *
 	 * @param string $path Directory path to check.
 	 * @return bool True if is directory, false otherwise.
 	 */
@@ -306,8 +289,6 @@ class SScribe_Filesystem {
 
 	/**
 	 * Check if path is writable.
-	 *
-	 
 	 *
 	 * @param string $path Path to check.
 	 * @return bool True if writable, false otherwise.
@@ -327,8 +308,6 @@ class SScribe_Filesystem {
 
 	/**
 	 * List files in a directory.
-	 *
-	 
 	 *
 	 * @param string $path Directory path to list.
 	 * @return array|false Array of filenames or false on failure.
@@ -353,8 +332,6 @@ class SScribe_Filesystem {
 
 	/**
 	 * Copy a file.
-	 *
-	 
 	 *
 	 * @param string $source      Source file path.
 	 * @param string $destination Destination file path.
@@ -387,8 +364,6 @@ class SScribe_Filesystem {
 	/**
 	 * Move a file.
 	 *
-	 
-	 *
 	 * @param string $source      Source file path.
 	 * @param string $destination Destination file path.
 	 * @param bool   $overwrite  Whether to overwrite existing file (default: false).
@@ -412,8 +387,6 @@ class SScribe_Filesystem {
 	/**
 	 * Get last error message.
 	 *
-	 
-	 *
 	 * @return string Last error message.
 	 */
 	public function get_last_error(): string {
@@ -423,8 +396,6 @@ class SScribe_Filesystem {
 	/**
 	 * Check if WP_Filesystem is being used.
 	 *
-	 
-	 *
 	 * @return bool True if WP_Filesystem is active, false if using direct operations.
 	 */
 	public function is_wp_filesystem(): bool {
@@ -433,8 +404,6 @@ class SScribe_Filesystem {
 
 	/**
 	 * Get filesystem method name.
-	 *
-	 
 	 *
 	 * @return string Filesystem method ('direct', 'ftpext', etc.) or class name if WP_Filesystem.
 	 */
