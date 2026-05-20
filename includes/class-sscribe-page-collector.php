@@ -174,8 +174,8 @@ class SScribe_Page_Collector {
 			try {
 				if ( $this->is_wpml_active() ) {
 					$target_lang = ! empty( $language ) ? $language : 'all';
-				// phpcs:ignore WordPress.NamingConventions.PrefixAllGlobals.NonPrefixedHooknameFound -- WPML hook.
-				do_action( 'wpml_switch_language', $target_lang );
+					// phpcs:ignore WordPress.NamingConventions.PrefixAllGlobals.NonPrefixedHooknameFound -- WPML hook.
+					do_action( 'wpml_switch_language', $target_lang );
 					$args['suppress_filters'] = false;
 					$switched                 = true;
 				}

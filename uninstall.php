@@ -153,7 +153,7 @@ foreach ( $directories_to_clean as $dir_path ) {
 			);
 
 			// phpcs:ignore WordPress.NamingConventions.PrefixAllGlobals.NonPrefixedVariableFound -- Local foreach variable.
-foreach ( $iterator as $fileinfo ) {
+			foreach ( $iterator as $fileinfo ) {
 				try {
 					if ( $fileinfo->isDir() ) {
 						// phpcs:ignore WordPress.NamingConventions.PrefixAllGlobals.NonPrefixedVariableFound -- Local variable.
