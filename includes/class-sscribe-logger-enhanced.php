@@ -220,6 +220,251 @@ class SScribe_Logger_Enhanced implements SScribe_Logger_Interface {
 	}
 
 	/**
+	 * Log debug message.
+	 *
+	 * @param string $message Log message.
+	 * @param array  $context Additional context.
+	 */
+	public function debug( string $message, array $context = array() ): void {
+		$this->log( self::LEVEL_DEBUG, $message, $context );
+	}
+
+	/**
+	 * Log info message.
+	 *
+	 * @param string $message Log message.
+	 * @param array  $context Additional context.
+	 */
+	public function info( string $message, array $context = array() ): void {
+		$this->log( self::LEVEL_INFO, $message, $context );
+	}
+
+	/**
+	 * Log notice message.
+	 *
+	 * @param string $message Log message.
+	 * @param array  $context Additional context.
+	 */
+	public function notice( string $message, array $context = array() ): void {
+		$this->log( self::LEVEL_NOTICE, $message, $context );
+	}
+
+	/**
+	 * Log warning message.
+	 *
+	 * @param string $message Log message.
+	 * @param array  $context Additional context.
+	 */
+	public function warning( string $message, array $context = array() ): void {
+		$this->log( self::LEVEL_WARNING, $message, $context );
+	}
+
+	/**
+	 * Log error message.
+	 *
+	 * @param string $message Log message.
+	 * @param array  $context Additional context.
+	 */
+	public function error( string $message, array $context = array() ): void {
+		$this->log( self::LEVEL_ERROR, $message, $context );
+	}
+
+	/**
+	 * Log critical message.
+	 *
+	 * @param string $message Log message.
+	 * @param array  $context Additional context.
+	 */
+	public function critical( string $message, array $context = array() ): void {
+		$this->log( self::LEVEL_CRITICAL, $message, $context );
+	}
+
+	/**
+	 * Log alert message.
+	 *
+	 * @param string $message Log message.
+	 * @param array  $context Additional context.
+	 */
+	public function alert( string $message, array $context = array() ): void {
+		$this->log( self::LEVEL_ALERT, $message, $context );
+	}
+
+	/**
+	 * Log emergency message.
+	 *
+	 * @param string $message Log message.
+	 * @param array  $context Additional context.
+	 */
+	public function emergency( string $message, array $context = array() ): void {
+		$this->log( self::LEVEL_EMERGENCY, $message, $context );
+	}
+
+	/**
+	 * Flush log buffer to file.
+	 */
+	public function flush(): void {
+		if ( empty( $this->buffer ) ) {
+			return;
+		}
+
+		if ( ! is_dir( $this->log_dir ) ) {
+			wp_mkdir_p( $this->log_dir );
+		}
+
+		$log_file = $this->get_log_file();
+		file_put_contents( $log_file, implode( PHP_EOL, $this->buffer ) . PHP_EOL, FILE_APPEND | LOCK_EX );
+		$this->buffer = array();
+	}
+
+	/**
+	 * Format log entry for different destinations.
+	 *
+	 * @param string $level   Log level.
+	 * @param string $message Log message.
+	 * @param array  $context Additional context.
+	 * @return array Formatted entries.
+	 */
+	private function format_entry( string $level, string $message, array $context ): array {
+		$timestamp = gmdate( 'Y-m-d H:i:s' );
+		$context   = $this->sanitize_context(
+			array_merge( $this->get_context_enrichment(), $context )
+		);
+
+		return array(
+			'file' => sprintf(
+				'[%s] %s: %s %s',
+				$timestamp,
+				strtoupper( $level ),
+				$message,
+				$context ? wp_json_encode( $context ) : ''
+			),
+			'db'   => array(
+				'timestamp'  => $timestamp,
+				'level'      => $level,
+				'message'    => $message,
+				'context'    => wp_json_encode( $context ),
+				'session_id' => $this->session_id,
+				'request_id' => $this->request_id,
+			),
+		);
+	}
+
+	/**
+	 * Sanitize context array by removing forbidden keys.
+	 *
+	 * @param array $context Context array to sanitize.
+	 * @return array Sanitized context.
+	 */
+	private function sanitize_context( array $context ): array {
+		$forbidden = array( 'password', 'token', 'secret', 'auth', 'credential', 'private_key' );
+
+		foreach ( $forbidden as $key ) {
+			if ( isset( $context[ $key ] ) ) {
+				$context[ $key ] = '[REDACTED]';
+			}
+		}
+
+		return $context;
+	}
+
+	/**
+	 * Write log entry to database.
+	 *
+	 * @param array $entry Log entry data.
+	 */
+	private function write_to_database( array $entry ): void {
+		global $wpdb;
+
+		if ( ! $this->table_exists() ) {
+			$this->create_log_table();
+		}
+
+		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
+		$wpdb->insert(
+			$this->table_name,
+			array(
+				'timestamp'  => $entry['timestamp'],
+				'level'      => $entry['level'],
+				'message'    => $entry['message'],
+				'context'    => $entry['context'],
+				'session_id' => $entry['session_id'],
+				'request_id' => $entry['request_id'],
+			),
+			array( '%s', '%s', '%s', '%s', '%s', '%s' )
+		);
+	}
+
+	/**
+	 * Write log entry to Query Monitor.
+	 *
+	 * @param string $level   Log level.
+	 * @param string $message Log message.
+	 * @param array  $context Additional context.
+	 */
+	private function write_to_query_monitor( string $level, string $message, array $context ): void {
+		if ( ! class_exists( 'QM_Collector' ) || ! class_exists( 'QM_Collectors' ) ) {
+			return;
+		}
+
+		$collector = QM_Collectors::get( 'sscribe' );
+		if ( null === $collector ) {
+			return;
+		}
+
+		$collector->log( $level, $message, $context );
+	}
+
+	/**
+	 * Check if log table exists.
+	 *
+	 * @return bool True if table exists.
+	 */
+	private function table_exists(): bool {
+		global $wpdb;
+
+		$table = $this->table_name;
+		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
+		$result = $wpdb->get_var( $wpdb->prepare( 'SELECT COUNT(*) FROM %s', $table ) );
+		return null !== $result;
+	}
+
+	/**
+	 * Create log table if not exists.
+	 */
+	private function create_log_table(): void {
+		global $wpdb;
+
+		$charset_collate = $wpdb->get_charset_collate();
+
+		$sql = "CREATE TABLE IF NOT EXISTS {$this->table_name} (
+			id bigint(20) NOT NULL AUTO_INCREMENT,
+			timestamp datetime NOT NULL,
+			level varchar(20) NOT NULL,
+			message text NOT NULL,
+			context longtext,
+			session_id varchar(60) DEFAULT NULL,
+			request_id varchar(12) DEFAULT NULL,
+			user_id bigint(20) DEFAULT NULL,
+			PRIMARY KEY id (id),
+			KEY timestamp (timestamp),
+			KEY level (level)
+		) $charset_collate;";
+
+		require_once ABSPATH . 'wp-admin/includes/upgrade.php';
+		dbDelta( $sql );
+	}
+
+	/**
+	 * Get log file path.
+	 *
+	 * @return string Log file path.
+	 */
+	private function get_log_file(): string {
+		$date = gmdate( 'Y-m-d' );
+		return trailingslashit( $this->log_dir ) . "sscribe_{$date}.log";
+	}
+
+	/**
 	 * Get recent log entries from database.
 	 *
 	 * @param int $limit Maximum number of entries to return.
