@@ -49,6 +49,7 @@
         "stan": "phpstan analyse --memory-limit=512M",
         "cs": "phpcs -d memory_limit=512M --standard=phpcs.xml",
         "cs:fix": "phpcbf -d memory_limit=512M --standard=phpcs.xml",
+        "i18n:make-pot": "wp i18n make-pot . languages/sscribe-export-site-pages.pot --domain=sscribe-export-site-pages --exclude=vendor,vendor-prefixed,node_modules,tests,scripts,.github,coverage,dist,build,.cache",
         "version:check": "php scripts/verify-version-sync.php",
         "vendor:prefix": "php -d memory_limit=512M -d error_reporting=\"E_ALL & ~E_DEPRECATED\" vendor/bin/strauss && php -d memory_limit=512M scripts/fix-prefixed-safe.php && php scripts/fix-phpword-style-deprecation.php",
         "clean": "composer clean:cache && composer clean:coverage",
