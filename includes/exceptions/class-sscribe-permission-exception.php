@@ -13,12 +13,34 @@ if ( ! defined( 'ABSPATH' ) ) {
 
 require_once SSCRIBE_PLUGIN_DIR . 'includes/exceptions/class-sscribe-exception.php';
 
+/**
+ * Exception for file permission errors.
+ */
 class SScribe_Permission_Exception extends SScribe_Exception {
 
+	/**
+	 * File or directory path.
+	 *
+	 * @var string
+	 */
 	protected string $path;
 
+	/**
+	 * Permission type (read, write, execute).
+	 *
+	 * @var string
+	 */
 	protected string $permission_type;
 
+	/**
+	 * Create a new permission exception.
+	 *
+	 * @param string|null    $path            File path.
+	 * @param string|null    $message         Error message.
+	 * @param string         $permission_type Permission type.
+	 * @param array          $context         Additional context.
+	 * @param Throwable|null $previous        Previous exception.
+	 */
 	public function __construct(
 		?string $path = null,
 		?string $message = null,
@@ -52,10 +74,20 @@ class SScribe_Permission_Exception extends SScribe_Exception {
 		);
 	}
 
+	/**
+	 * Get the file path.
+	 *
+	 * @return string
+	 */
 	public function get_path(): string {
 		return $this->path;
 	}
 
+	/**
+	 * Get the permission type.
+	 *
+	 * @return string
+	 */
 	public function get_permission_type(): string {
 		return $this->permission_type;
 	}

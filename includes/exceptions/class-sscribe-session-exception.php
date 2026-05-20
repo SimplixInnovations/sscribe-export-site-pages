@@ -13,10 +13,27 @@ if ( ! defined( 'ABSPATH' ) ) {
 
 require_once SSCRIBE_PLUGIN_DIR . 'includes/exceptions/class-sscribe-exception.php';
 
+/**
+ * Exception for session-related errors.
+ */
 class SScribe_Session_Exception extends SScribe_Exception {
 
+	/**
+	 * Affected session identifier.
+	 *
+	 * @var string
+	 */
 	protected string $session_id;
 
+	/**
+	 * Create a new session exception.
+	 *
+	 * @param string|null    $message    Error message.
+	 * @param string         $session_id Session ID.
+	 * @param bool           $expired    Whether session expired.
+	 * @param array          $context    Additional context.
+	 * @param Throwable|null $previous   Previous exception.
+	 */
 	public function __construct(
 		?string $message = null,
 		string $session_id = '',
@@ -51,6 +68,11 @@ class SScribe_Session_Exception extends SScribe_Exception {
 		);
 	}
 
+	/**
+	 * Get the session ID.
+	 *
+	 * @return string
+	 */
 	public function get_session_id(): string {
 		return $this->session_id;
 	}

@@ -11,6 +11,9 @@ if ( ! defined( 'ABSPATH' ) ) {
 	exit;
 }
 
+/**
+ * Base exception class for SScribe operations.
+ */
 class SScribe_Exception extends Exception {
 
 	public const CODE_MEMORY_EXHAUSTED       = 'E_EXPORT_001';
@@ -29,16 +32,50 @@ class SScribe_Exception extends Exception {
 	public const CODE_DOCX_GENERATION_FAILED = 'E_EXPORT_014';
 	public const CODE_UNEXPECTED_ERROR       = 'E_EXPORT_999';
 
+	/**
+	 * Machine-readable error code.
+	 *
+	 * @var string
+	 */
 	protected string $error_code;
 
+	/**
+	 * Additional error context.
+	 *
+	 * @var array
+	 */
 	protected array $error_data;
 
+	/**
+	 * HTTP status code for API responses.
+	 *
+	 * @var int
+	 */
 	protected int $http_status_code;
 
+	/**
+	 * Whether this error should be logged.
+	 *
+	 * @var bool
+	 */
 	protected bool $should_log = true;
 
+	/**
+	 * Whether the operation can be retried.
+	 *
+	 * @var bool
+	 */
 	protected bool $recoverable = false;
 
+	/**
+	 * Create a new exception instance.
+	 *
+	 * @param string         $error_code     Machine-readable error code.
+	 * @param string         $message        Human-readable message.
+	 * @param int            $http_status_code HTTP status code.
+	 * @param array          $error_data     Additional context.
+	 * @param Throwable|null $previous   Previous exception.
+	 */
 	public function __construct(
 		string $error_code,
 		string $message,
@@ -53,10 +90,20 @@ class SScribe_Exception extends Exception {
 		parent::__construct( $message, $http_status_code, $previous );
 	}
 
+	/**
+	 * Get the error code.
+	 *
+	 * @return string
+	 */
 	public function get_error_code(): string {
 		return $this->error_code;
 	}
 
+	/**
+	 * Get the error data with status.
+	 *
+	 * @return array
+	 */
 	public function get_error_data(): array {
 		return array_merge(
 			$this->error_data,
@@ -64,18 +111,38 @@ class SScribe_Exception extends Exception {
 		);
 	}
 
+	/**
+	 * Get the HTTP status code.
+	 *
+	 * @return int
+	 */
 	public function get_http_status_code(): int {
 		return $this->http_status_code;
 	}
 
+	/**
+	 * Check if this error should be logged.
+	 *
+	 * @return bool
+	 */
 	public function should_log(): bool {
 		return $this->should_log;
 	}
 
+	/**
+	 * Check if the operation can be retried.
+	 *
+	 * @return bool
+	 */
 	public function is_recoverable(): bool {
 		return $this->recoverable;
 	}
 
+	/**
+	 * Convert to WordPress WP_Error.
+	 *
+	 * @return \WP_Error
+	 */
 	public function to_wp_error(): \WP_Error {
 		return new \WP_Error(
 			$this->error_code,
@@ -84,6 +151,11 @@ class SScribe_Exception extends Exception {
 		);
 	}
 
+	/**
+	 * Convert to SScribe_Error.
+	 *
+	 * @return \SScribe_Error
+	 */
 	public function to_scribe_error(): \SScribe_Error {
 		return \SScribe_Error::from_template(
 			$this->error_code,
@@ -91,6 +163,12 @@ class SScribe_Exception extends Exception {
 		);
 	}
 
+	/**
+	 * Convert to associative array.
+	 *
+	 * @param bool $include_details Include stack trace and file info.
+	 * @return array
+	 */
 	public function to_array( bool $include_details = false ): array {
 		$data = array(
 			'code'       => $this->error_code,
@@ -109,6 +187,13 @@ class SScribe_Exception extends Exception {
 		return $data;
 	}
 
+	/**
+	 * Create exception from error template.
+	 *
+	 * @param string $error_code Error template code.
+	 * @param array  $context    Template interpolation context.
+	 * @return self
+	 */
 	public static function from_template( string $error_code, array $context = array() ): self {
 		$templates = \SScribe_Error::get_templates();
 

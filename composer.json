@@ -30,6 +30,10 @@
         "classmap": [
             "includes/",
             "admin/"
+        ],
+        "exclude-from-classmap": [
+            "/vendor/league/flysystem-local/",
+            "/vendor/league/flysystem-memory/"
         ]
     },
     "autoload-dev": {

@@ -11,14 +11,35 @@ if ( ! defined( 'ABSPATH' ) ) {
 	exit;
 }
 
+/**
+ * Manages transient-based locks for concurrent export prevention.
+ */
 class SScribe_Export_Lock_Manager {
 
+	/**
+	 * Logger instance.
+	 *
+	 * @var SScribe_Logger_Interface
+	 */
 	private readonly SScribe_Logger_Interface $logger;
 
+	/**
+	 * Initialize the lock manager.
+	 *
+	 * @param SScribe_Logger_Interface|null $logger Logger instance.
+	 */
 	public function __construct( ?SScribe_Logger_Interface $logger = null ) {
 		$this->logger = $logger ?? SScribe_Logger::instance();
 	}
 
+	/**
+	 * Acquire a processing lock for a session.
+	 *
+	 * @param string $session_id       Session identifier.
+	 * @param int    $lock_ttl         Lock TTL in seconds.
+	 * @param int    $stale_threshold  Stale lock threshold in seconds.
+	 * @return string|null Lock token or null if locked.
+	 */
 	public function acquire_lock(
 		string $session_id,
 		int $lock_ttl = 45,
@@ -79,6 +100,13 @@ class SScribe_Export_Lock_Manager {
 		return null;
 	}
 
+	/**
+	 * Release a processing lock.
+	 *
+	 * @param string      $session_id Session identifier.
+	 * @param string|null $lock_token Lock token to verify.
+	 * @return bool
+	 */
 	public function release_lock( string $session_id, ?string $lock_token ): bool {
 		if ( null === $lock_token ) {
 			return false;
@@ -102,6 +130,13 @@ class SScribe_Export_Lock_Manager {
 		return false;
 	}
 
+	/**
+	 * Clean up locks for a user or expired locks globally.
+	 *
+	 * @param int|null    $user_id           User ID to clean up.
+	 * @param string|null $current_session_id Session to preserve.
+	 * @return array
+	 */
 	public function cleanup_user_locks( ?int $user_id = null, ?string $current_session_id = null ): array {
 		global $wpdb;
 

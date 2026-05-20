@@ -11,8 +11,17 @@ if ( ! defined( 'ABSPATH' ) ) {
 	exit;
 }
 
+/**
+ * Monitors memory and time availability during batch exports.
+ */
 class SScribe_Export_Resource_Monitor {
 
+	/**
+	 * Check if sufficient memory is available.
+	 *
+	 * @param int $buffer_mb Required buffer in MB.
+	 * @return bool
+	 */
 	public function is_memory_available( int $buffer_mb = 10 ): bool {
 		$limit = wp_convert_hr_to_bytes( ini_get( 'memory_limit' ) );
 
@@ -26,6 +35,13 @@ class SScribe_Export_Resource_Monitor {
 		return $available > ( $buffer_mb * 1024 * 1024 );
 	}
 
+	/**
+	 * Check if sufficient execution time remains.
+	 *
+	 * @param float $batch_start_time Batch start timestamp.
+	 * @param int   $buffer_seconds   Required buffer in seconds.
+	 * @return bool
+	 */
 	public function is_time_available( float $batch_start_time, int $buffer_seconds = 10 ): bool {
 		$max_execution = (int) ini_get( 'max_execution_time' );
 
@@ -39,6 +55,12 @@ class SScribe_Export_Resource_Monitor {
 		return $remaining > $buffer_seconds;
 	}
 
+	/**
+	 * Get remaining execution time in seconds.
+	 *
+	 * @param float $batch_start_time Batch start timestamp.
+	 * @return float
+	 */
 	public function get_remaining_time( float $batch_start_time ): float {
 		$max_execution = (int) ini_get( 'max_execution_time' );
 
@@ -52,6 +74,11 @@ class SScribe_Export_Resource_Monitor {
 		return max( 0.0, $remaining );
 	}
 
+	/**
+	 * Get current memory usage as percentage of limit.
+	 *
+	 * @return float
+	 */
 	public function get_memory_usage_percent(): float {
 		$limit = wp_convert_hr_to_bytes( ini_get( 'memory_limit' ) );
 
@@ -64,6 +91,12 @@ class SScribe_Export_Resource_Monitor {
 		return round( ( $used / $limit ) * 100, 1 );
 	}
 
+	/**
+	 * Calculate optimal batch size based on available resources.
+	 *
+	 * @param array $formats Export formats.
+	 * @return int
+	 */
 	public function get_optimal_batch_size( array $formats = array() ): int {
 		$memory_limit  = wp_convert_hr_to_bytes( ini_get( 'memory_limit' ) );
 		$current_usage = memory_get_usage( true );
@@ -86,6 +119,13 @@ class SScribe_Export_Resource_Monitor {
 		return $optimal;
 	}
 
+	/**
+	 * Calculate total memory requirement for an export.
+	 *
+	 * @param int   $page_count Number of pages.
+	 * @param array $formats    Export formats.
+	 * @return int Bytes required.
+	 */
 	public function calculate_export_memory_requirement( int $page_count, array $formats ): int {
 		$memory_per_page = 1.0;
 
@@ -104,6 +144,13 @@ class SScribe_Export_Resource_Monitor {
 		return (int) ( $total_mb * 1024 * 1024 );
 	}
 
+	/**
+	 * Get memory warning if export may exceed available memory.
+	 *
+	 * @param int   $page_count Number of pages.
+	 * @param array $formats    Export formats.
+	 * @return array|null
+	 */
 	public function get_memory_warning( int $page_count, array $formats ): ?array {
 		$memory_limit  = wp_convert_hr_to_bytes( ini_get( 'memory_limit' ) );
 		$current_usage = memory_get_usage( true );
@@ -125,8 +172,7 @@ class SScribe_Export_Resource_Monitor {
 			return array(
 				'level'          => 'error',
 				'message'        => sprintf(
-				/* translators: 1: Estimated memory needed (MB), 2: Available memory (MB), 3: Recommended memory limit (MB) */
-
+					/* translators: 1: Estimated memory needed (MB), 2: Available memory (MB), 3: Recommended memory limit (MB) */
 					__( 'Warning: Export requires ~%1$d MB but only %2$d MB available. Increase PHP memory_limit to %3$d MB+ for reliable export.', 'sscribe-export-site-pages' ),
 					$estimated_mb,
 					$available_mb,
@@ -141,8 +187,7 @@ class SScribe_Export_Resource_Monitor {
 		return array(
 			'level'        => 'warning',
 			'message'      => sprintf(
-			/* translators: 1: Estimated memory needed (MB), 2: Available memory (MB), 3: Usage percentage */
-
+				/* translators: 1: Estimated memory needed (MB), 2: Available memory (MB), 3: Usage percentage */
 				__( 'Note: Export will use ~%1$d MB of %2$d MB available (%3$d%%). Consider increasing memory for safety.', 'sscribe-export-site-pages' ),
 				$estimated_mb,
 				$available_mb,

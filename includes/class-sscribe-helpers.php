@@ -11,16 +11,43 @@ if ( ! defined( 'ABSPATH' ) ) {
 	exit;
 }
 
+/**
+ * General utility functions for the plugin.
+ */
 class SScribe_Helpers {
 
+	/**
+	 * Relative path to icon directory.
+	 *
+	 * @var string
+	 */
 	private static string $icons_dir = 'assets/icons/';
 
+	/**
+	 * Cache of rendered icon HTML.
+	 *
+	 * @var array
+	 */
 	private static array $icon_cache = array();
 
+	/**
+	 * Get the URL for an icon file.
+	 *
+	 * @param string $name Icon name without extension.
+	 * @return string
+	 */
 	public static function icon_url( string $name ): string {
 		return SSCRIBE_PLUGIN_URL . self::$icons_dir . $name . '.svg';
 	}
 
+	/**
+	 * Get an icon as inline HTML.
+	 *
+	 * @param string $name      Icon name.
+	 * @param int    $size      Icon size in pixels.
+	 * @param string $css_class Additional CSS classes.
+	 * @return string
+	 */
 	public static function get_icon( string $name, int $size = 20, string $css_class = '' ): string {
 		$cache_key = $name . ':' . $size . ':' . $css_class;
 		if ( isset( self::$icon_cache[ $cache_key ] ) ) {
@@ -71,6 +98,13 @@ class SScribe_Helpers {
 		return $html;
 	}
 
+	/**
+	 * Get time estimate for a single format export.
+	 *
+	 * @param string $format     Export format.
+	 * @param int    $page_count Number of pages.
+	 * @return array
+	 */
 	public static function get_format_time_estimate( string $format, int $page_count ): array {
 		$times = array(
 			'docx'     => 1.2,
@@ -86,7 +120,6 @@ class SScribe_Helpers {
 			return array(
 				'text'    => sprintf(
 					/* translators: %d: Estimated seconds. */
-
 					__( '~%d seconds', 'sscribe-export-site-pages' ),
 					$total_seconds
 				),
@@ -98,7 +131,6 @@ class SScribe_Helpers {
 		return array(
 			'text'    => sprintf(
 				/* translators: %d: Estimated minutes. */
-
 				_n( '~%d minute', '~%d minutes', $minutes, 'sscribe-export-site-pages' ),
 				$minutes
 			),
@@ -106,6 +138,12 @@ class SScribe_Helpers {
 		);
 	}
 
+	/**
+	 * Get time estimate for all formats combined.
+	 *
+	 * @param int $page_count Number of pages.
+	 * @return array
+	 */
 	public static function get_all_formats_time_estimate( int $page_count ): array {
 		$total_seconds = (int) ceil( ( 1.2 + 8 + 1 + 0.5 ) * $page_count );
 		$minutes       = (int) ceil( $total_seconds / 60 );
@@ -114,7 +152,6 @@ class SScribe_Helpers {
 			return array(
 				'text'    => sprintf(
 					/* translators: %d: Estimated minutes. */
-
 					_n( '~%d minute', '~%d minutes', $minutes, 'sscribe-export-site-pages' ),
 					$minutes
 				),
@@ -126,7 +163,6 @@ class SScribe_Helpers {
 		$mins  = $minutes % 60;
 		$text  = sprintf(
 			/* translators: 1: Hours, 2: Minutes. */
-
 			__( '~%1$dh %2$dm', 'sscribe-export-site-pages' ),
 			$hours,
 			$mins
@@ -137,10 +173,22 @@ class SScribe_Helpers {
 		);
 	}
 
+	/**
+	 * Format bytes to human-readable size.
+	 *
+	 * @param int $bytes File size in bytes.
+	 * @return string
+	 */
 	public static function format_filesize( int $bytes ): string {
 		return size_format( $bytes, 1 );
 	}
 
+	/**
+	 * Validate and sanitize a document URL.
+	 *
+	 * @param string $url URL to validate.
+	 * @return string Sanitized URL or empty string.
+	 */
 	public static function validate_document_url( string $url ): string {
 		$url = esc_url_raw( $url );
 
@@ -157,6 +205,11 @@ class SScribe_Helpers {
 		return $url;
 	}
 
+	/**
+	 * Get the client IP address.
+	 *
+	 * @return string
+	 */
 	public static function get_client_ip(): string {
 		$ip = '';
 
@@ -171,6 +224,12 @@ class SScribe_Helpers {
 		return filter_var( $ip, FILTER_VALIDATE_IP ) ? $ip : '0.0.0.0';
 	}
 
+	/**
+	 * Strip page builder attributes from HTML.
+	 *
+	 * @param string $html Raw HTML content.
+	 * @return string Cleaned HTML.
+	 */
 	public static function strip_page_builder_attributes( string $html ): string {
 		$patterns = array(
 			'/\s*style="[^"]*"/i',

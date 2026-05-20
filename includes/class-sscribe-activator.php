@@ -11,8 +11,14 @@ if ( ! defined( 'ABSPATH' ) ) {
 	exit;
 }
 
+/**
+ * Plugin activation routines: database tables, directories, scheduled tasks.
+ */
 class SScribe_Activator {
 
+	/**
+	 * Run activation tasks.
+	 */
 	public static function activate(): void {
 
 		delete_option( 'sscribe_export_index' );
@@ -27,7 +33,6 @@ class SScribe_Activator {
 				array(
 					'message' => sprintf(
 						/* translators: %s: plugin version */
-
 						__( 'Activation aborted: required runtime dependencies are missing. Run "composer install" in the plugin directory or reinstall the plugin package. Version: %s', 'sscribe-export-site-pages' ),
 						SSCRIBE_VERSION
 					),
@@ -46,6 +51,9 @@ class SScribe_Activator {
 		set_transient( 'sscribe_activation_redirect', '1', MINUTE_IN_SECONDS );
 	}
 
+	/**
+	 * Create plugin database tables.
+	 */
 	private static function create_database_tables(): void {
 		global $wpdb;
 
@@ -128,6 +136,9 @@ class SScribe_Activator {
 		SScribe_Audit_Trail::create_table();
 	}
 
+	/**
+	 * Create and secure the export directory.
+	 */
 	private static function create_export_directory(): void {
 		$upload_dir  = wp_upload_dir();
 		$export_path = untrailingslashit( $upload_dir['basedir'] ) . '/sscribe-exports';
@@ -135,6 +146,9 @@ class SScribe_Activator {
 		SScribe_Security::protect_directory( $export_path );
 	}
 
+	/**
+	 * Schedule cleanup cron jobs.
+	 */
 	private static function schedule_cleanup(): void {
 		$interval = apply_filters( 'sscribe_cleanup_interval', 'hourly' );
 		if ( ! wp_next_scheduled( 'sscribe_cleanup_exports' ) ) {
@@ -146,6 +160,9 @@ class SScribe_Activator {
 		}
 	}
 
+	/**
+	 * Clean up orphaned transients and options.
+	 */
 	private static function cleanup_orphaned_data(): void {
 		global $wpdb;
 
