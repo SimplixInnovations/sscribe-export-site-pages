@@ -86,7 +86,6 @@ class SScribe_Page_Collector {
 				$this->clear_status_cache( $language );
 
 				// phpcs:ignore WordPress.NamingConventions.PrefixAllGlobals.NonPrefixedHooknameFound -- WPML hook.
-
 				do_action( 'wpml_switch_language', $target_lang );
 				$args['suppress_filters'] = false;
 				$switched                 = true;
@@ -108,7 +107,6 @@ class SScribe_Page_Collector {
 		} finally {
 			if ( $switched ) {
 				// phpcs:ignore WordPress.NamingConventions.PrefixAllGlobals.NonPrefixedHooknameFound -- WPML hook.
-
 				do_action( 'wpml_switch_language', null );
 				$this->debug_log( 'WPML: Language reset' );
 			}
@@ -575,7 +573,6 @@ class SScribe_Page_Collector {
 	private function get_page_language( int $page_id ): string {
 		if ( $this->is_wpml_active() ) {
 			// phpcs:ignore WordPress.NamingConventions.PrefixAllGlobals.NonPrefixedHooknameFound -- WPML hook.
-
 			$language_details = apply_filters( 'wpml_post_language_details', null, $page_id );
 			if ( $language_details && ! is_wp_error( $language_details ) ) {
 				$code = isset( $language_details['language_code'] ) ? $language_details['language_code'] : 'en';
@@ -783,7 +780,6 @@ class SScribe_Page_Collector {
 		}
 
 		// phpcs:ignore WordPress.NamingConventions.PrefixAllGlobals.NonPrefixedHooknameFound -- WPML-documented hook.
-
 		$languages_raw = apply_filters( 'wpml_active_languages', null, array( 'skip_missing' => 0 ) );
 
 		if ( empty( $languages_raw ) && function_exists( 'wpml_get_active_languages' ) ) {
