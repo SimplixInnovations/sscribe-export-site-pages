@@ -4,7 +4,7 @@ Donate link: https://simplixi.com
 Tags: docx, pdf, html, markdown, multilingual
 Requires at least: 6.0
 Tested up to: 6.9
-Stable tag: 1.1.8
+Stable tag: 1.1.0
 Requires PHP: 8.2
 License: GPLv2 or later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
@@ -106,35 +106,7 @@ Parameters: `(int $bytes)` — Default: 5,242,880 (5MB)
 
 == Changelog ==
 
-= 1.1.8 =
-* Fixed all PHPCS WordPress code standard violations across entire plugin
-* PHPCS: 75/75 files, 0 errors
-* Added phpcs:ignore annotations for trusted dynamic table names in $wpdb->prepare()
-* Fixed ScopeIndent, embedded PHP tags, and translators comment issues in admin partials
-* Fixed MissingTranslatorsComment for placeholder-based __() calls
-* Added WordPress.Security.EscapeOutput exclusion for pre-sanitized get_icon() SVG output
-
-= 1.1.7 =
-
-* Added enterprise-grade AJAX response guard to prevent server-injected HTML from corrupting JSON responses
-* Replaced all AJAX endpoints with output buffer cleaning before JSON serialization
-* Enhanced admin JavaScript error handling with structured diagnostics and toast notifications
-* Improved compatibility with host environments that emit warnings before AJAX responses
-
-= 1.1.5 =
-
-* Fixed duplicate JavaScript function definition (copyViaTextarea)
-* Fixed JS syntax error: stray quote character in refreshStatusAndLanguageCounts method
-* Fixed unescaped HTML in history empty state (XSS prevention)
-* Fixed null safety in diagnostics PHPWord version detection
-* Fixed possessive regex quantifiers for PCRE1 compatibility (content parser)
-* Improved language code extraction to support 2-3 letter codes (WPML ZHT, ZHS)
-* Added post-type-aware adaptive metrics for more accurate time estimates
-* Removed duplicate CSS step-badge selector
-* Added missing .distignore entries for development files
-
 = 1.1.0 =
-
 * Initial release with full feature set: DOCX, PDF, HTML, and Markdown export
 * Batch processing engine with configurable chunk sizes
 * RTL support for Arabic, Hebrew, Farsi, and Urdu
@@ -145,16 +117,12 @@ Parameters: `(int $bytes)` — Default: 5,242,880 (5MB)
 * Memory monitoring and timeout protection
 * GDPR-compliant audit trail with HMAC-SHA256 hashed IP addresses
 
+= 1.0.0 =
+
+* Initial release.
+
 == Upgrade Notice ==
 
-= 1.1.7 =
-
-Enterprise AJAX reliability improvements and enhanced client-side error handling.
-
-= 1.1.5 =
-
-Bug fixes and improvements: JavaScript syntax fix, security hardening, and better WPML language code support.
-
-= 1.1.0 =
+= 1.0.0 =
 
 Initial release. Export WordPress pages to DOCX, PDF, HTML, or Markdown with full multilingual RTL support, SEO metadata integration, and secure ZIP downloads.
