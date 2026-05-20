@@ -11,6 +11,9 @@ if ( ! defined( 'ABSPATH' ) ) {
 	exit;
 }
 
+/**
+ * Supported export format enumeration.
+ */
 enum SScribe_Export_Format: string {
 
 	case DOCX     = 'docx';
@@ -18,6 +21,11 @@ enum SScribe_Export_Format: string {
 	case HTML     = 'html';
 	case MARKDOWN = 'markdown';
 
+	/**
+	 * Get all supported formats with display labels.
+	 *
+	 * @return array
+	 */
 	public static function get_supported_formats(): array {
 		return array(
 			self::DOCX->value     => __( 'Word Document (DOCX)', 'sscribe-export-site-pages' ),

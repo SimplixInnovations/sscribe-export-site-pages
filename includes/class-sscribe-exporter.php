@@ -21,20 +21,60 @@ use SScribeVendor\PhpOffice\PhpWord\Element\TextRun;
 
 class SScribe_Exporter {
 
+	/**
+	 * Last error message from export operation.
+	 *
+	 * @var string
+	 */
 	private string $last_error = '';
 
+	/**
+	 * Logger instance.
+	 *
+	 * @var SScribe_Logger_Interface|null
+	 */
 	private ?SScribe_Logger_Interface $logger = null;
 
+	/**
+	 * Content parser instance.
+	 *
+	 * @var SScribe_Content_Parser|null
+	 */
 	private ?SScribe_Content_Parser $parser = null;
 
+	/**
+	 * Whether the document is RTL.
+	 *
+	 * @var bool
+	 */
 	private bool $is_rtl = false;
 
+	/**
+	 * Primary font name.
+	 *
+	 * @var string
+	 */
 	private string $font_name = 'Arial';
 
+	/**
+	 * RTL font name.
+	 *
+	 * @var string
+	 */
 	private string $rtl_font_name = 'Arial';
 
+	/**
+	 * Base font size.
+	 *
+	 * @var int
+	 */
 	private int $font_size = 11;
 
+	/**
+	 * Color palette for document styling.
+	 *
+	 * @var array<string, string>
+	 */
 	private array $colors = array(
 		'primary'  => '4A8263',
 		'heading'  => '122119',
@@ -46,17 +86,36 @@ class SScribe_Exporter {
 		'border'   => 'CCCCCC',
 	);
 
+	/**
+	 * Initialize the exporter.
+	 *
+	 * @param SScribe_Content_Parser|null $parser Content parser.
+	 */
 	public function __construct(
 		?SScribe_Content_Parser $parser = null
 	) {
 		$this->parser = $parser ?? new SScribe_Content_Parser();
 	}
 
+	/**
+	 * Safe preg_replace wrapper.
+	 *
+	 * @param array|string $pattern     Regex pattern.
+	 * @param array|string $replacement Replacement.
+	 * @param string       $subject     Input string.
+	 * @return string
+	 */
 	private function safe_preg_replace( array|string $pattern, array|string $replacement, string $subject ): string {
 		$result = preg_replace( $pattern, $replacement, $subject );
 		return is_string( $result ) ? $result : $subject;
 	}
 
+	/**
+	 * Sanitize text for safe XML embedding.
+	 *
+	 * @param string $text Input text.
+	 * @return string Sanitized text.
+	 */
 	private function safe_text( string $text ): string {
 		$text = (string) $text;
 
@@ -88,6 +147,12 @@ class SScribe_Exporter {
 		return $text;
 	}
 
+	/**
+	 * Validate and sanitize a URL.
+	 *
+	 * @param string $url URL to validate.
+	 * @return string Sanitized URL.
+	 */
 	private function validate_url( string $url ): string {
 		if ( empty( $url ) ) {
 			return '';
@@ -139,11 +204,23 @@ class SScribe_Exporter {
 		return '';
 	}
 
+	/**
+	 * Check if page data indicates an RTL document.
+	 *
+	 * @param array $page_data Page data.
+	 * @return bool
+	 */
 	private function is_rtl_document( array $page_data ): bool {
 		require_once SSCRIBE_PLUGIN_DIR . 'includes/class-sscribe-rtl-helper.php';
 		return SScribe_RTL_Helper::is_rtl( $page_data['language'] ?? 'en' );
 	}
 
+	/**
+	 * Add complex script settings to font definition for RTL.
+	 *
+	 * @param array $font_def Font definition.
+	 * @return array Modified font definition.
+	 */
 	private function with_complex_script( array $font_def ): array {
 		if ( $this->is_rtl ) {
 			if ( ! isset( $font_def['complexScript'] ) ) {
@@ -156,6 +233,12 @@ class SScribe_Exporter {
 		return $font_def;
 	}
 
+	/**
+	 * Get paragraph style with RTL adjustments.
+	 *
+	 * @param array $base_style Base style array.
+	 * @return array Modified style.
+	 */
 	private function get_para_style( array $base_style = array() ): array {
 		if ( $this->is_rtl ) {
 			$base_style['bidi'] = true;
@@ -166,6 +249,16 @@ class SScribe_Exporter {
 		return $base_style;
 	}
 
+	/**
+	 * Generate a DOCX file from page data.
+	 *
+	 * @param array  $page_data Page data to export.
+	 * @param string $output_dir Output directory path.
+	 * @param int    $index     Current page index.
+	 * @param int    $total     Total number of pages.
+	 * @return string|false Output file path or false on failure.
+	 * @throws \RuntimeException If DOCX generation fails integrity checks.
+	 */
 	public function generate_docx( array $page_data, string $output_dir, int $index = 0, int $total = 0 ): string|false {
 		if ( empty( $page_data ) || ! is_dir( $output_dir ) ) {
 			return false;
@@ -397,6 +490,13 @@ class SScribe_Exporter {
 		}
 	}
 
+	/**
+	 * Set document metadata properties.
+	 *
+	 * @param PhpWord $php_word  PhpWord instance.
+	 * @param array   $page_data Page data.
+	 * @return void
+	 */
 	private function set_document_properties( PhpWord $php_word, array $page_data ): void {
 		$properties = $php_word->getDocInfo();
 		$properties->setCreator( 'SScribe by Simplix Innovations' );
@@ -406,10 +506,21 @@ class SScribe_Exporter {
 		$properties->setLastModifiedBy( wp_strip_all_tags( $page_data['author'] ) );
 	}
 
+	/**
+	 * Get the last error message.
+	 *
+	 * @return string
+	 */
 	public function get_last_error(): string {
 		return $this->last_error;
 	}
 
+	/**
+	 * Set default font and paragraph styles.
+	 *
+	 * @param PhpWord $php_word PhpWord instance.
+	 * @return void
+	 */
 	private function set_default_styles( PhpWord $php_word ): void {
 		$php_word->setDefaultFontName( $this->font_name );
 		$php_word->setDefaultFontSize( $this->font_size );
@@ -434,6 +545,12 @@ class SScribe_Exporter {
 		}
 	}
 
+	/**
+	 * Define custom paragraph and heading styles.
+	 *
+	 * @param PhpWord $php_word PhpWord instance.
+	 * @return void
+	 */
 	private function define_styles( PhpWord $php_word ): void {
 
 		$heading_sizes = array( 24, 20, 16, 14, 12, 11 );
@@ -489,6 +606,12 @@ class SScribe_Exporter {
 		);
 	}
 
+	/**
+	 * Get section settings for document layout.
+	 *
+	 * @param bool $is_rtl Whether RTL mode.
+	 * @return array Section settings.
+	 */
 	private function get_section_settings( bool $is_rtl = false ): array {
 		$settings = array(
 			'pageSizeW'    => Converter::inchToTwip( 8.5 ),
@@ -508,6 +631,13 @@ class SScribe_Exporter {
 		return apply_filters( 'sscribe_docx_section_settings', $settings, $is_rtl );
 	}
 
+	/**
+	 * Add cover page to the document.
+	 *
+	 * @param \SScribeVendor\PhpOffice\PhpWord\Element\Section $section   Document section.
+	 * @param array                                            $page_data Page data.
+	 * @return void
+	 */
 	private function add_cover_page( \SScribeVendor\PhpOffice\PhpWord\Element\Section $section, array $page_data ): void {
 
 		$section->addTextBreak( 2 );
@@ -727,6 +857,13 @@ class SScribe_Exporter {
 		$section->addPageBreak();
 	}
 
+	/**
+	 * Add header and footer to document section.
+	 *
+	 * @param \SScribeVendor\PhpOffice\PhpWord\Element\Section $section   Document section.
+	 * @param array                                            $page_data Page data.
+	 * @return void
+	 */
 	private function add_header_footer( \SScribeVendor\PhpOffice\PhpWord\Element\Section $section, array $page_data ): void {
 
 		$header       = $section->addHeader();
@@ -775,6 +912,13 @@ class SScribe_Exporter {
 		);
 	}
 
+	/**
+	 * Add featured image to document section.
+	 *
+	 * @param \SScribeVendor\PhpOffice\PhpWord\Element\Section $section   Document section.
+	 * @param array                                            $page_data Page data.
+	 * @return void
+	 */
 	private function add_featured_image( \SScribeVendor\PhpOffice\PhpWord\Element\Section $section, array $page_data ): void {
 		if ( empty( $page_data['featured_image_path'] ) || ! file_exists( $page_data['featured_image_path'] ) ) {
 			return;
@@ -829,6 +973,13 @@ class SScribe_Exporter {
 		}
 	}
 
+	/**
+	 * Add page information table to document.
+	 *
+	 * @param \SScribeVendor\PhpOffice\PhpWord\Element\Section $section   Document section.
+	 * @param array                                            $page_data Page data.
+	 * @return void
+	 */
 	private function add_page_info_table( \SScribeVendor\PhpOffice\PhpWord\Element\Section $section, array $page_data ): void {
 		$section->addTitle( __( 'Page Information', 'sscribe-export-site-pages' ), 2 );
 
@@ -892,6 +1043,13 @@ class SScribe_Exporter {
 		$section->addTextBreak( 1 );
 	}
 
+	/**
+	 * Add SEO information section to document.
+	 *
+	 * @param \SScribeVendor\PhpOffice\PhpWord\Element\Section $section   Document section.
+	 * @param array                                            $page_data Page data.
+	 * @return void
+	 */
 	private function add_seo_section( \SScribeVendor\PhpOffice\PhpWord\Element\Section $section, array $page_data ): void {
 		$seo_data = ! empty( $page_data['seo'] ) ? $page_data['seo'] : array();
 
@@ -962,6 +1120,13 @@ class SScribe_Exporter {
 		$section->addTextBreak( 1 );
 	}
 
+	/**
+	 * Add breadcrumbs to document.
+	 *
+	 * @param \SScribeVendor\PhpOffice\PhpWord\Element\Section $section   Document section.
+	 * @param array                                            $page_data Page data.
+	 * @return void
+	 */
 	private function add_breadcrumbs( \SScribeVendor\PhpOffice\PhpWord\Element\Section $section, array $page_data ): void {
 		if ( empty( $page_data['breadcrumbs'] ) || count( $page_data['breadcrumbs'] ) <= 1 ) {
 			return;
@@ -1000,6 +1165,13 @@ class SScribe_Exporter {
 		$section->addTextBreak( 1 );
 	}
 
+	/**
+	 * Add main content to document section.
+	 *
+	 * @param \SScribeVendor\PhpOffice\PhpWord\Element\Section $section   Document section.
+	 * @param array                                            $page_data Page data.
+	 * @return void
+	 */
 	private function add_main_content( \SScribeVendor\PhpOffice\PhpWord\Element\Section $section, array $page_data ): void {
 		$content     = $page_data['content'] ?? '';
 		$content_len = strlen( $content );
@@ -1083,6 +1255,13 @@ class SScribe_Exporter {
 		}
 	}
 
+	/**
+	 * Render a single element to the document section.
+	 *
+	 * @param \SScribeVendor\PhpOffice\PhpWord\Element\Section $section Document section.
+	 * @param array                                            $element Parsed element data.
+	 * @return void
+	 */
 	private function render_element( Section $section, array $element ): void {
 		if ( empty( $element['type'] ) ) {
 			return;
@@ -1148,6 +1327,13 @@ class SScribe_Exporter {
 		}
 	}
 
+	/**
+	 * Render a paragraph element.
+	 *
+	 * @param \SScribeVendor\PhpOffice\PhpWord\Element\Section $section Document section.
+	 * @param array                                            $element Paragraph element data.
+	 * @return void
+	 */
 	private function render_paragraph( Section $section, array $element ): void {
 		if ( empty( $element['runs'] ) ) {
 			return;
@@ -1157,6 +1343,15 @@ class SScribe_Exporter {
 		$this->render_runs( $text_run, $element['runs'] );
 	}
 
+	/**
+	 * Render inline text runs with formatting.
+	 *
+	 * @param TextRun $text_run TextRun element.
+	 * @param array   $runs     Inline runs.
+	 * @param bool    $italic   Force italic.
+	 * @param bool    $bold     Force bold.
+	 * @return void
+	 */
 	private function render_runs( TextRun $text_run, array $runs, bool $italic = false, bool $bold = false ): void {
 		foreach ( $runs as $run ) {
 			if ( ! isset( $run['text'] ) || '' === $run['text'] ) {
@@ -1231,6 +1426,13 @@ class SScribe_Exporter {
 		}
 	}
 
+	/**
+	 * Render a list element.
+	 *
+	 * @param \SScribeVendor\PhpOffice\PhpWord\Element\Section $section Document section.
+	 * @param array                                            $element List element data.
+	 * @return void
+	 */
 	private function render_list( Section $section, array $element ): void {
 		$style = isset( $element['style'] ) ? $element['style'] : 'bullet';
 
@@ -1277,6 +1479,13 @@ class SScribe_Exporter {
 		}
 	}
 
+	/**
+	 * Render a table element.
+	 *
+	 * @param \SScribeVendor\PhpOffice\PhpWord\Element\Section $section Document section.
+	 * @param array                                            $element Table element data.
+	 * @return void
+	 */
 	private function render_table( Section $section, array $element ): void {
 		if ( empty( $element['rows'] ) ) {
 			return;
@@ -1344,6 +1553,13 @@ class SScribe_Exporter {
 		$section->addTextBreak( 1 );
 	}
 
+	/**
+	 * Render a button element.
+	 *
+	 * @param \SScribeVendor\PhpOffice\PhpWord\Element\Section $section Document section.
+	 * @param array                                            $element Button element data.
+	 * @return void
+	 */
 	private function render_button( Section $section, array $element ): void {
 		$table = $section->addTable(
 			array(
@@ -1405,6 +1621,13 @@ class SScribe_Exporter {
 		$section->addTextBreak( 1 );
 	}
 
+	/**
+	 * Render an inline image element.
+	 *
+	 * @param \SScribeVendor\PhpOffice\PhpWord\Element\Section $section Document section.
+	 * @param array                                            $element Image element data.
+	 * @return void
+	 */
 	private function render_inline_image( Section $section, array $element ): void {
 		$path = ! empty( $element['local_path'] ) ? $element['local_path'] : '';
 		$src  = ! empty( $element['src'] ) ? $element['src'] : __( 'Unknown URL', 'sscribe-export-site-pages' );
@@ -1477,6 +1700,13 @@ class SScribe_Exporter {
 		$section->addTextBreak( 1 );
 	}
 
+	/**
+	 * Add child pages section to document.
+	 *
+	 * @param \SScribeVendor\PhpOffice\PhpWord\Element\Section $section   Document section.
+	 * @param array                                            $page_data Page data.
+	 * @return void
+	 */
 	private function add_child_pages( \SScribeVendor\PhpOffice\PhpWord\Element\Section $section, array $page_data ): void {
 		if ( empty( $page_data['children'] ) ) {
 			return;
@@ -1519,6 +1749,11 @@ class SScribe_Exporter {
 		}
 	}
 
+	/**
+	 * Get or create the logger instance.
+	 *
+	 * @return SScribe_Logger_Interface
+	 */
 	private function get_logger(): SScribe_Logger_Interface {
 		if ( null === $this->logger ) {
 			$this->logger = SScribe_Logger::instance( defined( 'SSCRIBE_DEBUG' ) && SSCRIBE_DEBUG );

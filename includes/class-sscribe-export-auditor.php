@@ -11,12 +11,31 @@ if ( ! defined( 'ABSPATH' ) ) {
 	exit;
 }
 
+/**
+ * Audit logging for export operations with user tracking.
+ */
 class SScribe_Export_Auditor {
 
+	/**
+	 * Audit trail instance.
+	 *
+	 * @var SScribe_Audit_Trail
+	 */
 	private readonly SScribe_Audit_Trail $audit_trail;
 
+	/**
+	 * Logger instance.
+	 *
+	 * @var SScribe_Logger_Interface
+	 */
 	private readonly SScribe_Logger_Interface $logger;
 
+	/**
+	 * Initialize the auditor.
+	 *
+	 * @param SScribe_Audit_Trail|null      $audit_trail Audit trail instance.
+	 * @param SScribe_Logger_Interface|null $logger    Logger instance.
+	 */
 	public function __construct(
 		?SScribe_Audit_Trail $audit_trail = null,
 		?SScribe_Logger_Interface $logger = null
@@ -25,6 +44,12 @@ class SScribe_Export_Auditor {
 		$this->logger      = $logger ?? SScribe_Logger::instance();
 	}
 
+	/**
+	 * Log an audit event.
+	 *
+	 * @param string $action  Action identifier.
+	 * @param array  $context Additional context.
+	 */
 	public function log( string $action, array $context = array() ): void {
 		$user_id      = get_current_user_id();
 		$current_user = wp_get_current_user();
@@ -49,6 +74,12 @@ class SScribe_Export_Auditor {
 		}
 	}
 
+	/**
+	 * Map action string to audit event constant.
+	 *
+	 * @param string $action Action identifier.
+	 * @return string|null
+	 */
 	private function map_action_to_event( string $action ): ?string {
 		$map = array(
 			'export_started'    => SScribe_Audit_Trail::EVENT_EXPORT_STARTED,

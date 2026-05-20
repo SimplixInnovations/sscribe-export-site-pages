@@ -11,16 +11,32 @@ if ( ! defined( 'ABSPATH' ) ) {
 	exit;
 }
 
+/**
+ * System diagnostics, preflight checks, and error categorization.
+ */
 class SScribe_Diagnostics {
 
 	private const MIN_MPDF_FONT_COUNT = 40;
 
+	/**
+	 * Logger instance.
+	 *
+	 * @var SScribe_Logger_Interface
+	 */
 	private SScribe_Logger_Interface $logger;
 
+	/**
+	 * Initialize diagnostics.
+	 */
 	public function __construct() {
 		$this->logger = SScribe_Logger::instance( defined( 'SSCRIBE_DEBUG' ) && SSCRIBE_DEBUG );
 	}
 
+	/**
+	 * Get comprehensive support information.
+	 *
+	 * @return array
+	 */
 	public function get_support_info(): array {
 		$upload_dir    = wp_upload_dir();
 		$export_dir    = trailingslashit( $upload_dir['basedir'] ) . 'sscribe-exports';
@@ -207,6 +223,13 @@ class SScribe_Diagnostics {
 		);
 	}
 
+	/**
+	 * Run preflight checks before export.
+	 *
+	 * @param int   $page_count Number of pages.
+	 * @param array $formats    Export formats.
+	 * @return array
+	 */
 	public function run_preflight( int $page_count, array $formats ): array {
 		$checks    = array();
 		$has_error = false;
@@ -242,6 +265,11 @@ class SScribe_Diagnostics {
 		);
 	}
 
+	/**
+	 * Check if vendor dependencies are loaded.
+	 *
+	 * @return array
+	 */
 	public function check_vendor_dependencies(): array {
 		$missing = array();
 
@@ -256,6 +284,11 @@ class SScribe_Diagnostics {
 		return $missing;
 	}
 
+	/**
+	 * Check PHP version meets minimum requirement.
+	 *
+	 * @return array
+	 */
 	private function check_php_version(): array {
 		$current  = PHP_VERSION;
 		$required = '8.2';
@@ -276,6 +309,13 @@ class SScribe_Diagnostics {
 		);
 	}
 
+	/**
+	 * Check memory availability for export.
+	 *
+	 * @param int   $page_count Number of pages.
+	 * @param array $formats    Export formats.
+	 * @return array
+	 */
 	private function check_memory( int $page_count, array $formats ): array {
 		$memory_limit = wp_convert_hr_to_bytes( ini_get( 'memory_limit' ) );
 		$memory_mb    = round( $memory_limit / 1024 / 1024 );
@@ -371,6 +411,12 @@ class SScribe_Diagnostics {
 		);
 	}
 
+	/**
+	 * Check execution time availability.
+	 *
+	 * @param int $page_count Number of pages.
+	 * @return array
+	 */
 	private function check_execution_time( int $page_count ): array {
 		$max_execution = (int) ini_get( 'max_execution_time' );
 
@@ -394,6 +440,11 @@ class SScribe_Diagnostics {
 		);
 	}
 
+	/**
+	 * Check upload directory writability.
+	 *
+	 * @return array
+	 */
 	private function check_upload_directory(): array {
 		$upload_dir = wp_upload_dir();
 
@@ -455,6 +506,11 @@ class SScribe_Diagnostics {
 		);
 	}
 
+	/**
+	 * Check ZIP extension availability.
+	 *
+	 * @return array
+	 */
 	private function check_zip_extension(): array {
 		if ( class_exists( 'ZipArchive' ) ) {
 			return array(
@@ -472,6 +528,11 @@ class SScribe_Diagnostics {
 		);
 	}
 
+	/**
+	 * Check mPDF library availability.
+	 *
+	 * @return array
+	 */
 	private function check_mpdf(): array {
 		if ( ! class_exists( '\SScribeVendor\Mpdf\Mpdf' ) ) {
 			return array(
@@ -514,6 +575,11 @@ class SScribe_Diagnostics {
 		);
 	}
 
+	/**
+	 * Check PHPWord library availability.
+	 *
+	 * @return array
+	 */
 	private function check_phpword(): array {
 		if ( class_exists( '\\SScribeVendor\\PhpOffice\\PhpWord\\PhpWord' ) ) {
 
@@ -555,6 +621,11 @@ class SScribe_Diagnostics {
 		);
 	}
 
+	/**
+	 * Check file permissions.
+	 *
+	 * @return array
+	 */
 	private function check_file_permissions(): array {
 		$plugin_dir = SSCRIBE_PLUGIN_DIR;
 		$issues     = array();
@@ -585,6 +656,11 @@ class SScribe_Diagnostics {
 		);
 	}
 
+	/**
+	 * Check WP-Cron status.
+	 *
+	 * @return array
+	 */
 	private function check_wp_cron(): array {
 		$cron_disabled = defined( 'DISABLE_WP_CRON' ) && true === constant( 'DISABLE_WP_CRON' );
 
@@ -604,6 +680,11 @@ class SScribe_Diagnostics {
 		);
 	}
 
+	/**
+	 * Check session health for orphaned sessions.
+	 *
+	 * @return array
+	 */
 	private function check_session_health(): array {
 		global $wpdb;
 
@@ -633,6 +714,13 @@ class SScribe_Diagnostics {
 		);
 	}
 
+	/**
+	 * Get recommendations based on check results.
+	 *
+	 * @param array $checks     Check results.
+	 * @param int   $page_count Number of pages.
+	 * @return array
+	 */
 	private function get_recommendations( array $checks, int $page_count ): array {
 		$recommendations = array();
 
@@ -660,6 +748,15 @@ class SScribe_Diagnostics {
 		return $recommendations;
 	}
 
+	/**
+	 * Diagnose a page-level export error.
+	 *
+	 * @param int    $page_id Page ID.
+	 * @param string $format  Export format.
+	 * @param string $error   Error message.
+	 * @param array  $context Additional context.
+	 * @return array
+	 */
 	public function diagnose_page_error( int $page_id, string $format, string $error, array $context = array() ): array {
 		$diagnosis = array(
 			'page_id'   => $page_id,
@@ -722,6 +819,12 @@ class SScribe_Diagnostics {
 		return $diagnosis;
 	}
 
+	/**
+	 * Categorize an error message.
+	 *
+	 * @param string $error Error message.
+	 * @return string
+	 */
 	private function categorize_error( string $error ): string {
 		$lower = strtolower( $error );
 
@@ -747,6 +850,11 @@ class SScribe_Diagnostics {
 		return 'unknown';
 	}
 
+	/**
+	 * Run self-healing cleanup tasks.
+	 *
+	 * @return array
+	 */
 	public function self_heal(): array {
 		$actions = array();
 
@@ -759,6 +867,11 @@ class SScribe_Diagnostics {
 		return $actions;
 	}
 
+	/**
+	 * Clear orphaned lock transients.
+	 *
+	 * @return int
+	 */
 	private function clear_orphaned_locks(): int {
 		global $wpdb;
 
@@ -789,6 +902,11 @@ class SScribe_Diagnostics {
 		return $cleared;
 	}
 
+	/**
+	 * Clear stale session options.
+	 *
+	 * @return int
+	 */
 	private function clear_stale_sessions(): int {
 		global $wpdb;
 
@@ -818,6 +936,11 @@ class SScribe_Diagnostics {
 		return $cleared;
 	}
 
+	/**
+	 * Clear old temporary files.
+	 *
+	 * @return int
+	 */
 	private function clear_old_temp_files(): int {
 		$upload_dir = wp_upload_dir();
 		$export_dir = $upload_dir['basedir'] . '/sscribe-exports';
@@ -850,10 +973,20 @@ class SScribe_Diagnostics {
 		return $cleared;
 	}
 
+	/**
+	 * Delete a directory recursively.
+	 *
+	 * @param string $dir Directory path.
+	 */
 	private function delete_directory( string $dir ): void {
 		SScribe_Security::delete_directory( $dir );
 	}
 
+	/**
+	 * Get list of active SEO plugins.
+	 *
+	 * @return array
+	 */
 	private function get_active_seo_plugins(): array {
 		$reader  = new SScribe_SEO_Reader();
 		$plugins = $reader->get_active_seo_plugins();
@@ -865,6 +998,11 @@ class SScribe_Diagnostics {
 		return array_values( $plugins );
 	}
 
+	/**
+	 * Check AJAX endpoint health.
+	 *
+	 * @return array
+	 */
 	public function check_ajax_health(): array {
 		$checks = array();
 
@@ -923,6 +1061,11 @@ class SScribe_Diagnostics {
 		);
 	}
 
+	/**
+	 * Get boot-time diagnostics.
+	 *
+	 * @return array
+	 */
 	public function get_boot_diagnostics(): array {
 		$missing_deps = $this->check_vendor_dependencies();
 		$loaded       = empty( $missing_deps );
@@ -958,6 +1101,14 @@ class SScribe_Diagnostics {
 		);
 	}
 
+	/**
+	 * Build copy-paste support text.
+	 *
+	 * @param array $sections     Info sections.
+	 * @param array $audit_events Audit events.
+	 * @param array $log_tail     Recent log entries.
+	 * @return string
+	 */
 	private function build_support_copy_text( array $sections, array $audit_events, array $log_tail ): string {
 		$lines   = array();
 		$lines[] = 'SScribe Support Information';

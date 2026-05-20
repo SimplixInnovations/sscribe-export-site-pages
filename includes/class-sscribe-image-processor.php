@@ -11,6 +11,9 @@ if ( ! defined( 'ABSPATH' ) ) {
 	exit;
 }
 
+/**
+ * Downloads, validates, and optimizes images for export.
+ */
 class SScribe_Image_Processor {
 
 	private const ALLOWED_CONTENT_TYPES = array(
@@ -28,6 +31,12 @@ class SScribe_Image_Processor {
 
 	private const JPEG_QUALITY = 85;
 
+	/**
+	 * Download and optimize an image from URL.
+	 *
+	 * @param string $url Image URL.
+	 * @return string|false
+	 */
 	public static function download_and_optimize( string $url ): string|false {
 		$url = self::normalize_url( $url );
 
@@ -57,6 +66,12 @@ class SScribe_Image_Processor {
 		return $optimized_path;
 	}
 
+	/**
+	 * Download image to temporary file.
+	 *
+	 * @param string $url Image URL.
+	 * @return string|false
+	 */
 	private static function download_to_temp( string $url ): string|false {
 		$response = wp_safe_remote_get(
 			$url,
@@ -105,6 +120,12 @@ class SScribe_Image_Processor {
 		return $temp_path;
 	}
 
+	/**
+	 * Normalize and validate URL.
+	 *
+	 * @param string $url Raw URL.
+	 * @return string
+	 */
 	private static function normalize_url( string $url ): string {
 		$url = trim( $url );
 		if ( '' === $url ) {
@@ -114,6 +135,12 @@ class SScribe_Image_Processor {
 		return esc_url_raw( $url );
 	}
 
+	/**
+	 * Check if URL is allowed for remote image download.
+	 *
+	 * @param string $url URL to check.
+	 * @return bool
+	 */
 	private static function is_allowed_remote_url( string $url ): bool {
 		if ( ! filter_var( $url, FILTER_VALIDATE_URL ) ) {
 			return false;
@@ -157,6 +184,12 @@ class SScribe_Image_Processor {
 		return in_array( $host, $allowed_hosts, true );
 	}
 
+	/**
+	 * Normalize content type string.
+	 *
+	 * @param string $content_type Raw content type.
+	 * @return string
+	 */
 	private static function normalize_content_type( string $content_type ): string {
 		if ( '' === $content_type ) {
 			return '';
@@ -165,6 +198,12 @@ class SScribe_Image_Processor {
 		return strtolower( trim( explode( ';', $content_type )[0] ) );
 	}
 
+	/**
+	 * Get file extension from content type.
+	 *
+	 * @param string $content_type MIME type.
+	 * @return string
+	 */
 	private static function extension_from_content_type( string $content_type ): string {
 		return match ( $content_type ) {
 			'image/png'  => 'png',
@@ -174,6 +213,12 @@ class SScribe_Image_Processor {
 		};
 	}
 
+	/**
+	 * Optimize a local image file.
+	 *
+	 * @param string $path File path.
+	 * @return string|false
+	 */
 	public static function optimize_local( string $path ): string|false {
 		if ( ! file_exists( $path ) ) {
 			return false;
@@ -287,6 +332,11 @@ class SScribe_Image_Processor {
 		return $optimized_path;
 	}
 
+	/**
+	 * Clean up temporary image file.
+	 *
+	 * @param string $path File path.
+	 */
 	public static function cleanup( string $path ): void {
 		if ( file_exists( $path ) && strpos( $path, sys_get_temp_dir() ) === 0 ) {
 			wp_delete_file( $path );

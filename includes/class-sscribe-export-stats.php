@@ -13,13 +13,29 @@ if ( ! defined( 'ABSPATH' ) ) {
 
 class SScribe_Export_Stats {
 
+	/**
+	 * Stats table name.
+	 *
+	 * @var string
+	 */
 	private readonly string $table_name;
 
+	/**
+	 * Initialize the stats tracker.
+	 */
 	public function __construct() {
 		global $wpdb;
 		$this->table_name = $wpdb->prefix . 'sscribe_export_stats';
 	}
 
+	/**
+	 * Record the start of an export.
+	 *
+	 * @param string $session_id Session identifier.
+	 * @param int    $user_id    User ID.
+	 * @param array  $config     Export configuration.
+	 * @return bool
+	 */
 	public function start_export( string $session_id, int $user_id, array $config ): bool {
 		global $wpdb;
 
@@ -38,6 +54,14 @@ class SScribe_Export_Stats {
 		);
 	}
 
+	/**
+	 * Update export progress.
+	 *
+	 * @param string $session_id       Session identifier.
+	 * @param int    $successful_pages Number of successful pages.
+	 * @param int    $failed_pages     Number of failed pages.
+	 * @return bool
+	 */
 	public function update_progress( string $session_id, int $successful_pages, int $failed_pages = 0 ): bool {
 		global $wpdb;
 
@@ -54,6 +78,13 @@ class SScribe_Export_Stats {
 		);
 	}
 
+	/**
+	 * Mark an export as completed.
+	 *
+	 * @param string $session_id Session identifier.
+	 * @param array  $results    Export results.
+	 * @return bool
+	 */
 	public function complete_export( string $session_id, array $results = array() ): bool {
 		global $wpdb;
 
@@ -76,6 +107,13 @@ class SScribe_Export_Stats {
 		);
 	}
 
+	/**
+	 * Mark an export as failed.
+	 *
+	 * @param string $session_id    Session identifier.
+	 * @param string $error_message Error description.
+	 * @return bool
+	 */
 	public function fail_export( string $session_id, string $error_message ): bool {
 		global $wpdb;
 
@@ -92,6 +130,12 @@ class SScribe_Export_Stats {
 		);
 	}
 
+	/**
+	 * Get aggregated export statistics.
+	 *
+	 * @param string $period Time period (today, week, month, year).
+	 * @return array
+	 */
 	public function get_stats( string $period = 'month' ): array {
 		$date_from = $this->get_period_start( $period );
 
@@ -107,6 +151,12 @@ class SScribe_Export_Stats {
 		);
 	}
 
+	/**
+	 * Get the start date for a given period.
+	 *
+	 * @param string $period Time period.
+	 * @return string
+	 */
 	private function get_period_start( string $period ): string {
 		$intervals = array(
 			'today' => '-1 day',
@@ -120,6 +170,12 @@ class SScribe_Export_Stats {
 		return gmdate( 'Y-m-d H:i:s', strtotime( $interval ) );
 	}
 
+	/**
+	 * Get total exports count since date.
+	 *
+	 * @param string $date_from Start date.
+	 * @return int
+	 */
 	private function get_total_exports( string $date_from ): int {
 		global $wpdb;
 
@@ -133,6 +189,12 @@ class SScribe_Export_Stats {
 		);
 	}
 
+	/**
+	 * Get successful exports count since date.
+	 *
+	 * @param string $date_from Start date.
+	 * @return int
+	 */
 	private function get_successful_exports( string $date_from ): int {
 		global $wpdb;
 
@@ -146,6 +208,12 @@ class SScribe_Export_Stats {
 		);
 	}
 
+	/**
+	 * Get failed exports count since date.
+	 *
+	 * @param string $date_from Start date.
+	 * @return int
+	 */
 	private function get_failed_exports( string $date_from ): int {
 		global $wpdb;
 
@@ -159,6 +227,12 @@ class SScribe_Export_Stats {
 		);
 	}
 
+	/**
+	 * Get total pages exported since date.
+	 *
+	 * @param string $date_from Start date.
+	 * @return int
+	 */
 	private function get_total_pages( string $date_from ): int {
 		global $wpdb;
 
@@ -172,6 +246,12 @@ class SScribe_Export_Stats {
 		);
 	}
 
+	/**
+	 * Get average export duration since date.
+	 *
+	 * @param string $date_from Start date.
+	 * @return float
+	 */
 	private function get_avg_duration( string $date_from ): float {
 		global $wpdb;
 
@@ -185,6 +265,12 @@ class SScribe_Export_Stats {
 		);
 	}
 
+	/**
+	 * Get total exported size since date.
+	 *
+	 * @param string $date_from Start date.
+	 * @return float
+	 */
 	private function get_total_size( string $date_from ): float {
 		global $wpdb;
 
@@ -198,6 +284,12 @@ class SScribe_Export_Stats {
 		);
 	}
 
+	/**
+	 * Get format breakdown of exports since date.
+	 *
+	 * @param string $date_from Start date.
+	 * @return array
+	 */
 	private function get_format_breakdown( string $date_from ): array {
 		global $wpdb;
 
@@ -231,6 +323,12 @@ class SScribe_Export_Stats {
 		return $breakdown;
 	}
 
+	/**
+	 * Get daily export counts since date.
+	 *
+	 * @param string $date_from Start date.
+	 * @return array
+	 */
 	private function get_daily_exports( string $date_from ): array {
 		global $wpdb;
 
@@ -260,6 +358,12 @@ class SScribe_Export_Stats {
 		return $daily;
 	}
 
+	/**
+	 * Get recent export records.
+	 *
+	 * @param int $limit Max records to return.
+	 * @return array
+	 */
 	public function get_recent_exports( int $limit = 10 ): array {
 		global $wpdb;
 
@@ -273,6 +377,13 @@ class SScribe_Export_Stats {
 		);
 	}
 
+	/**
+	 * Get exports by user ID.
+	 *
+	 * @param int $user_id User ID.
+	 * @param int $limit   Max records to return.
+	 * @return array
+	 */
 	public function get_exports_by_user( int $user_id, int $limit = 100 ): array {
 		if ( $user_id <= 0 ) {
 			return array();
@@ -291,6 +402,12 @@ class SScribe_Export_Stats {
 		);
 	}
 
+	/**
+	 * Erase user-specific export stats for GDPR compliance.
+	 *
+	 * @param int $user_id User ID.
+	 * @return int Number of affected rows.
+	 */
 	public function erase_user_data( int $user_id ): int {
 		if ( $user_id <= 0 ) {
 			return 0;
@@ -313,6 +430,12 @@ class SScribe_Export_Stats {
 		return false === $result ? 0 : (int) $result;
 	}
 
+	/**
+	 * Clean up old export stats.
+	 *
+	 * @param int $days Age threshold in days.
+	 * @return int Number of deleted rows.
+	 */
 	public function cleanup( int $days = 365 ): int {
 		global $wpdb;
 

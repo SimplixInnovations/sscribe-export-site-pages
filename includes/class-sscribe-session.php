@@ -17,22 +17,49 @@ class SScribe_Session {
 
 	private const SESSION_ID_LENGTH = 16;
 
+	/**
+	 * Cache of active sessions by user ID.
+	 *
+	 * @var array<int, bool>
+	 */
 	private static array $active_session_cache = array();
 
+	/**
+	 * Logger instance.
+	 *
+	 * @var SScribe_Logger_Interface
+	 */
 	private readonly SScribe_Logger_Interface $logger;
 
 	public const OPTION_PREFIX = 'sscribe_session_';
 
+	/**
+	 * Initialize the session handler.
+	 *
+	 * @param string $option_prefix Option name prefix.
+	 */
 	public function __construct(
 		private readonly string $option_prefix = self::OPTION_PREFIX
 	) {
 		$this->logger = SScribe_Logger::instance( defined( 'SSCRIBE_DEBUG' ) && SSCRIBE_DEBUG );
 	}
 
+	/**
+	 * Build the option name for a session ID.
+	 *
+	 * @param string $session_id Session identifier.
+	 * @return string
+	 */
 	private function get_option_name( string $session_id ): string {
 		return $this->option_prefix . $session_id;
 	}
 
+	/**
+	 * Create a new session.
+	 *
+	 * @param array $data Session data.
+	 * @return string Session ID or empty string on failure.
+	 */
 	public function create( array $data ): string {
 		$max_retries = 5;
 		$attempt     = 0;
@@ -96,6 +123,12 @@ class SScribe_Session {
 		return $session_id;
 	}
 
+	/**
+	 * Get session data by ID.
+	 *
+	 * @param string $session_id Session identifier.
+	 * @return array|null Session data or null if not found.
+	 */
 	public function get( string $session_id ): ?array {
 		$session_id = sanitize_key( $session_id );
 
@@ -172,6 +205,13 @@ class SScribe_Session {
 		return $data;
 	}
 
+	/**
+	 * Update session data.
+	 *
+	 * @param string $session_id Session identifier.
+	 * @param array  $data       Data to merge.
+	 * @return bool
+	 */
 	public function update( string $session_id, array $data ): bool {
 		$session_id = sanitize_key( $session_id );
 
@@ -267,6 +307,12 @@ class SScribe_Session {
 		}
 	}
 
+	/**
+	 * Delete a session.
+	 *
+	 * @param string $session_id Session identifier.
+	 * @return bool
+	 */
 	public function delete( string $session_id ): bool {
 		$session_id = sanitize_key( $session_id );
 
@@ -285,6 +331,12 @@ class SScribe_Session {
 		return delete_option( $option_name );
 	}
 
+	/**
+	 * Validate session data integrity.
+	 *
+	 * @param string $session_id Session identifier.
+	 * @return bool
+	 */
 	public function validate( string $session_id ): bool {
 		$data = $this->get( $session_id );
 
@@ -351,6 +403,12 @@ class SScribe_Session {
 		return true;
 	}
 
+	/**
+	 * Clean up expired sessions.
+	 *
+	 * @param int $max_age_seconds Maximum age in seconds.
+	 * @return int Number of deleted sessions.
+	 */
 	public function cleanup_expired( int $max_age_seconds = 14400 ): int {
 		global $wpdb;
 
@@ -408,6 +466,12 @@ class SScribe_Session {
 		return $deleted;
 	}
 
+	/**
+	 * Clear all sessions for a user.
+	 *
+	 * @param int $user_id User ID.
+	 * @return int Number of deleted sessions.
+	 */
 	public function clear_user_sessions( int $user_id ): int {
 		global $wpdb;
 
@@ -443,6 +507,12 @@ class SScribe_Session {
 		return $deleted;
 	}
 
+	/**
+	 * Get all sessions for a user.
+	 *
+	 * @param int $user_id User ID.
+	 * @return array
+	 */
 	public function get_sessions_for_user( int $user_id ): array {
 		if ( $user_id <= 0 ) {
 			return array();
@@ -484,10 +554,22 @@ class SScribe_Session {
 		return $sessions;
 	}
 
+	/**
+	 * Delete all sessions for a user (alias).
+	 *
+	 * @param int $user_id User ID.
+	 * @return int Number of deleted sessions.
+	 */
 	public function delete_sessions_for_user( int $user_id ): int {
 		return $this->clear_user_sessions( $user_id );
 	}
 
+	/**
+	 * Check if a user has an active session.
+	 *
+	 * @param int $user_id User ID.
+	 * @return bool
+	 */
 	public function has_active_session( int $user_id ): bool {
 		if ( isset( self::$active_session_cache[ $user_id ] ) ) {
 			return self::$active_session_cache[ $user_id ];
@@ -540,6 +622,11 @@ class SScribe_Session {
 		return $has_active;
 	}
 
+	/**
+	 * Migrate all legacy serialized sessions to JSON.
+	 *
+	 * @return int Number of migrated sessions.
+	 */
 	public function migrate_all_legacy_sessions(): int {
 		global $wpdb;
 
@@ -598,6 +685,12 @@ class SScribe_Session {
 		return $migrated;
 	}
 
+	/**
+	 * Decode a session value from JSON.
+	 *
+	 * @param mixed $raw Raw option value.
+	 * @return array|null Decoded data or null.
+	 */
 	private function decode_session_value( mixed $raw ): ?array {
 		if ( ! is_string( $raw ) ) {
 			return null;
@@ -617,6 +710,13 @@ class SScribe_Session {
 		return null;
 	}
 
+	/**
+	 * Migrate a single legacy serialized session.
+	 *
+	 * @param string $session_id Session identifier.
+	 * @param string $raw        Raw serialized data.
+	 * @return array|null Migrated data or null.
+	 */
 	private function migrate_legacy_session( string $session_id, string $raw ): ?array {
 		if ( ! preg_match( '/^a:\d+:\{/', $raw ) ) {
 			return null;
@@ -656,14 +756,32 @@ class SScribe_Session {
 		return $data;
 	}
 
+	/**
+	 * Sign a session ID with HMAC.
+	 *
+	 * @param string $session_id Session identifier.
+	 * @return string
+	 */
 	private function sign_session_id( string $session_id ): string {
 		return hash_hmac( 'sha256', $session_id, $this->get_signing_key() );
 	}
 
+	/**
+	 * Verify a session signature.
+	 *
+	 * @param string $session_id Session identifier.
+	 * @param string $signature  HMAC signature.
+	 * @return bool
+	 */
 	private function verify_session_signature( string $session_id, string $signature ): bool {
 		return hash_equals( $this->sign_session_id( $session_id ), $signature );
 	}
 
+	/**
+	 * Get the HMAC signing key.
+	 *
+	 * @return string
+	 */
 	private function get_signing_key(): string {
 		if ( defined( 'AUTH_SALT' ) && '' !== AUTH_SALT ) {
 			return AUTH_SALT;
@@ -686,6 +804,11 @@ class SScribe_Session {
 		return $secret;
 	}
 
+	/**
+	 * Get the session storage type identifier.
+	 *
+	 * @return string
+	 */
 	public function get_storage_type(): string {
 		return 'database-json';
 	}

@@ -11,8 +11,17 @@ if ( ! defined( 'ABSPATH' ) ) {
 	exit;
 }
 
+/**
+ * Reads SEO metadata from popular WordPress SEO plugins.
+ */
 class SScribe_SEO_Reader {
 
+	/**
+	 * Get SEO data for a page from the first active SEO plugin.
+	 *
+	 * @param int $page_id Post ID.
+	 * @return array
+	 */
 	public function get_seo_data( int $page_id ): array {
 		$seo_data = array(
 			'meta_title'       => '',
@@ -47,6 +56,11 @@ class SScribe_SEO_Reader {
 		return $seo_data;
 	}
 
+	/**
+	 * Check if any SEO plugin is active.
+	 *
+	 * @return bool
+	 */
 	public function has_seo_plugin(): bool {
 		return $this->is_yoast_active()
 			|| $this->is_rankmath_active()
@@ -56,6 +70,11 @@ class SScribe_SEO_Reader {
 			|| $this->is_tsf_active();
 	}
 
+	/**
+	 * Get list of active SEO plugins.
+	 *
+	 * @return array
+	 */
 	public function get_active_seo_plugins(): array {
 		$active = array();
 		if ( $this->is_yoast_active() ) {
@@ -79,6 +98,12 @@ class SScribe_SEO_Reader {
 		return $active;
 	}
 
+	/**
+	 * Read Yoast SEO metadata.
+	 *
+	 * @param int $page_id Post ID.
+	 * @return array
+	 */
 	private function read_yoast( int $page_id ): array {
 		if ( ! $this->is_yoast_active() ) {
 			return $this->empty_seo_data();
@@ -100,6 +125,12 @@ class SScribe_SEO_Reader {
 		);
 	}
 
+	/**
+	 * Read Rank Math metadata.
+	 *
+	 * @param int $page_id Post ID.
+	 * @return array
+	 */
 	private function read_rankmath( int $page_id ): array {
 		if ( ! $this->is_rankmath_active() ) {
 			return $this->empty_seo_data();
@@ -126,6 +157,12 @@ class SScribe_SEO_Reader {
 		);
 	}
 
+	/**
+	 * Read All in One SEO v4 metadata.
+	 *
+	 * @param int $page_id Post ID.
+	 * @return array
+	 */
 	private function read_aioseo_v4( int $page_id ): array {
 		if ( ! $this->is_aioseo_v4_active() ) {
 			return $this->empty_seo_data();
@@ -173,6 +210,12 @@ class SScribe_SEO_Reader {
 		);
 	}
 
+	/**
+	 * Read All in One SEO v3 metadata.
+	 *
+	 * @param int $page_id Post ID.
+	 * @return array
+	 */
 	private function read_aioseo_v3( int $page_id ): array {
 		if ( ! $this->is_aioseo_v3_active() ) {
 			return $this->empty_seo_data();
@@ -216,6 +259,12 @@ class SScribe_SEO_Reader {
 		);
 	}
 
+	/**
+	 * Read SEOPress metadata.
+	 *
+	 * @param int $page_id Post ID.
+	 * @return array
+	 */
 	private function read_seopress( int $page_id ): array {
 		if ( ! $this->is_seopress_active() ) {
 			return $this->empty_seo_data();
@@ -234,6 +283,12 @@ class SScribe_SEO_Reader {
 		);
 	}
 
+	/**
+	 * Read The SEO Framework metadata.
+	 *
+	 * @param int $page_id Post ID.
+	 * @return array
+	 */
 	private function read_tsf( int $page_id ): array {
 		if ( ! $this->is_tsf_active() ) {
 			return $this->empty_seo_data();
@@ -270,6 +325,11 @@ class SScribe_SEO_Reader {
 		);
 	}
 
+	/**
+	 * Get the primary taxonomy name for pages.
+	 *
+	 * @return string
+	 */
 	private function get_primary_taxonomy(): string {
 		$taxonomies = get_object_taxonomies( 'page', 'objects' );
 		foreach ( $taxonomies as $taxonomy ) {
@@ -280,6 +340,12 @@ class SScribe_SEO_Reader {
 		return 'category';
 	}
 
+	/**
+	 * Check if SEO data array has any populated fields.
+	 *
+	 * @param array $data SEO data.
+	 * @return bool
+	 */
 	private function has_seo_data( array $data ): bool {
 		return ! empty( $data['meta_title'] )
 			|| ! empty( $data['meta_description'] )
@@ -290,6 +356,11 @@ class SScribe_SEO_Reader {
 			|| ! empty( $data['og_image'] );
 	}
 
+	/**
+	 * Get empty SEO data structure.
+	 *
+	 * @return array
+	 */
 	private function empty_seo_data(): array {
 		return array(
 			'meta_title'       => '',
@@ -305,26 +376,56 @@ class SScribe_SEO_Reader {
 		);
 	}
 
+	/**
+	 * Check if Yoast SEO is active.
+	 *
+	 * @return bool
+	 */
 	private function is_yoast_active(): bool {
 		return defined( 'WPSEO_VERSION' );
 	}
 
+	/**
+	 * Check if Rank Math is active.
+	 *
+	 * @return bool
+	 */
 	private function is_rankmath_active(): bool {
 		return class_exists( 'RankMath' );
 	}
 
+	/**
+	 * Check if All in One SEO v4 is active.
+	 *
+	 * @return bool
+	 */
 	private function is_aioseo_v4_active(): bool {
 		return function_exists( 'aioseo' ) && defined( 'AIOSEO_VERSION' );
 	}
 
+	/**
+	 * Check if All in One SEO v3 is active.
+	 *
+	 * @return bool
+	 */
 	private function is_aioseo_v3_active(): bool {
 		return class_exists( 'All_in_One_SEO_Pack' ) && ! function_exists( 'aioseo' );
 	}
 
+	/**
+	 * Check if SEOPress is active.
+	 *
+	 * @return bool
+	 */
 	private function is_seopress_active(): bool {
 		return defined( 'SEOPRESS_VERSION' );
 	}
 
+	/**
+	 * Check if The SEO Framework is active.
+	 *
+	 * @return bool
+	 */
 	private function is_tsf_active(): bool {
 		return defined( 'THE_SEO_FRAMEWORK_VERSION' );
 	}

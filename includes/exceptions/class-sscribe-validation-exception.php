@@ -13,12 +13,34 @@ if ( ! defined( 'ABSPATH' ) ) {
 
 require_once SSCRIBE_PLUGIN_DIR . 'includes/exceptions/class-sscribe-exception.php';
 
+/**
+ * Exception for validation failures.
+ */
 class SScribe_Validation_Exception extends SScribe_Exception {
 
+	/**
+	 * Field that failed validation.
+	 *
+	 * @var string
+	 */
 	protected string $field;
 
+	/**
+	 * Validation rule that failed.
+	 *
+	 * @var string
+	 */
 	protected string $rule;
 
+	/**
+	 * Create a new validation exception.
+	 *
+	 * @param string|null    $message  Error message.
+	 * @param string         $field    Failed field name.
+	 * @param string         $rule     Failed rule name.
+	 * @param array          $context  Additional context.
+	 * @param Throwable|null $previous Previous exception.
+	 */
 	public function __construct(
 		?string $message = null,
 		string $field = '',
@@ -54,10 +76,20 @@ class SScribe_Validation_Exception extends SScribe_Exception {
 		);
 	}
 
+	/**
+	 * Get the failed field.
+	 *
+	 * @return string
+	 */
 	public function get_field(): string {
 		return $this->field;
 	}
 
+	/**
+	 * Get the failed rule.
+	 *
+	 * @return string
+	 */
 	public function get_rule(): string {
 		return $this->rule;
 	}
