@@ -97,7 +97,8 @@ class SScribe_AJAX_Guard {
 	 */
 	private static function disable_if_possible( string $key, string $value ): bool {
 		if ( function_exists( 'ini_set' ) && false === strpos( ini_get( 'disable_functions' ), 'ini_set' ) ) {
-			@ini_set( $key, $value ); // phpcs:ignore WordPress.PHP.IniSet.Risky
+			// phpcs:ignore WordPress.PHP.IniSet.Risky, Squiz.PHP.DiscouragedFunctions.Discouraged
+			@ini_set( $key, $value );
 			return true;
 		}
 		return false;

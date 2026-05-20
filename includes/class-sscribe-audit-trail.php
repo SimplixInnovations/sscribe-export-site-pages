@@ -43,7 +43,6 @@ class SScribe_Audit_Trail {
 
 		if ( null === $exists ) {
 			// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- Schema introspection, cached via static variable
-
 			$table  = $wpdb->get_var(
 				$wpdb->prepare( 'SHOW TABLES LIKE %s', $this->table_name )
 			);
@@ -68,7 +67,6 @@ class SScribe_Audit_Trail {
 		$sanitized_context = $this->sanitize_context( $context );
 
 		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- Custom table write, no caching for audit integrity
-
 		$result = $wpdb->insert(
 			$this->table_name,
 			array(

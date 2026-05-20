@@ -235,13 +235,11 @@ class SScribe_Export_Stats {
 		global $wpdb;
 
 		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
-		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
-
 		$results = $wpdb->get_results(
 			$wpdb->prepare(
 				'SELECT DATE(export_date) as date, COUNT(*) as count, SUM(total_pages) as pages
 				FROM '
-			// phpcs:ignore WordPress.DB.PreparedSQL.NotPrepared
+				// phpcs:ignore WordPress.DB.PreparedSQL.NotPrepared
 				. $this->table_name . '
 				WHERE export_date >= %s
 				GROUP BY DATE(export_date)
