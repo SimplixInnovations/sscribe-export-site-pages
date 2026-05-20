@@ -91,8 +91,7 @@ if ( ! function_exists( 'sscribe_render_boot_error_notice' ) ) {
 	/**
 	 * Render boot error notice if plugin failed to load.
 	 *
-	 * @since 1.0.0
-	 */
+	 /**
 	function sscribe_render_boot_error_notice(): void {
 		$boot_error = get_transient( 'sscribe_boot_error' );
 
