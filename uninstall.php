@@ -1,8 +1,8 @@
 <?php
 /**
- * Fired when the plugin is uninstalled.
+ * SScribe Uninstaller
  *
- * @package SScribe
+ * @package SScribe_Export_Site_Pages
  */
 
 declare(strict_types=1);
@@ -67,7 +67,6 @@ $sscribe_cleanup_site = static function (): void {
 		)
 	);
 
-	// Catch-all: delete ALL sscribe transients and their timeouts.
 	// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- Cleanup during uninstall.
 	$wpdb->query(
 		$wpdb->prepare(
@@ -77,7 +76,6 @@ $sscribe_cleanup_site = static function (): void {
 		)
 	);
 
-	// Delete known single-name transients explicitly.
 	delete_transient( 'sscribe_activation_redirect' );
 	delete_transient( 'sscribe_key_warning_shown' );
 	delete_transient( 'sscribe_boot_error' );
@@ -97,8 +95,10 @@ $sscribe_cleanup_site = static function (): void {
 
 	foreach ( $sscribe_tables as $sscribe_table_name ) {
 		// phpcs:disable WordPress.DB.PreparedSQL.NotPrepared, WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.DirectDatabaseQuery.SchemaChange -- Controlled plugin tables during uninstall. Table names are hardcoded in array above.
+
 		$wpdb->query( 'DROP TABLE IF EXISTS `' . $sscribe_table_name . '`' );
 		// phpcs:enable
+
 	}
 
 	wp_clear_scheduled_hook( 'sscribe_cleanup_exports' );
@@ -135,6 +135,7 @@ if ( is_multisite() ) {
 $sscribe_upload_dir = wp_upload_dir();
 
 // phpcs:ignore WordPress.NamingConventions.PrefixAllGlobals.NonPrefixedVariableFound -- Local file-scope variable in uninstall context, not a global.
+
 $directories_to_clean = array(
 	$sscribe_upload_dir['basedir'] . '/sscribe-exports',
 	$sscribe_upload_dir['basedir'] . '/sscribe-logs',
@@ -152,14 +153,13 @@ foreach ( $directories_to_clean as $dir_path ) {
 			);
 
 			// phpcs:ignore WordPress.NamingConventions.PrefixAllGlobals.NonPrefixedVariableFound -- Local foreach variable.
-			foreach ( $iterator as $fileinfo ) {
+foreach ( $iterator as $fileinfo ) {
 				try {
 					if ( $fileinfo->isDir() ) {
 						// phpcs:ignore WordPress.NamingConventions.PrefixAllGlobals.NonPrefixedVariableFound -- Local variable.
 						$real_path = $fileinfo->getRealPath();
 						if ( $real_path && is_dir( $real_path ) ) {
-							// phpcs:ignore WordPress.WP.AlternativeFunctions.file_system_operations_rmdir -- Cleanup operation during uninstall; WP_Filesystem not available in uninstall context.
-							rmdir( $real_path );
+							rmdir( $real_path ); // phpcs:ignore WordPress.WP.AlternativeFunctions.file_system_operations_rmdir -- Cleanup operation during uninstall; WP_Filesystem not available in uninstall context.
 						}
 					} else {
 						// phpcs:ignore WordPress.NamingConventions.PrefixAllGlobals.NonPrefixedVariableFound -- Local variable.
@@ -174,8 +174,7 @@ foreach ( $directories_to_clean as $dir_path ) {
 			}
 
 			if ( is_dir( $dir_path ) ) {
-				// phpcs:ignore WordPress.WP.AlternativeFunctions.file_system_operations_rmdir -- Cleanup operation during uninstall; WP_Filesystem not available in uninstall context.
-				rmdir( $dir_path );
+				rmdir( $dir_path ); // phpcs:ignore WordPress.WP.AlternativeFunctions.file_system_operations_rmdir -- Cleanup operation during uninstall; WP_Filesystem not available in uninstall context.
 			}
 		} catch ( \Throwable $e ) {
 			continue;

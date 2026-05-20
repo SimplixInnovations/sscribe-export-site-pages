@@ -1,8 +1,8 @@
 <?php
 /**
- * Unit tests for SScribe_Loader class.
+ * SScribe Loader Unit Test
  *
- * @package SScribe
+ * @package SScribe_Export_Site_Pages
  */
 
 declare(strict_types=1);

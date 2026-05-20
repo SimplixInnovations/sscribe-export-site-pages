@@ -1,4 +1,9 @@
 <?php
+/**
+ * SScribe Test Prefixed Script
+ *
+ * @package SScribe_Export_Site_Pages
+ */
 declare(strict_types=1);
 
 require_once dirname( __DIR__ ) . '/includes/sscribe-prefixed-runtime-shim.php';

@@ -1,8 +1,11 @@
 <?php
 /**
- * WP_Filesystem wrapper for SScribe.
+ * SScribe Filesystem Handler
  *
- * @package SScribe
+ * Provides a unified interface for file operations with WP_Filesystem fallback.
+ *
+ * @package SScribe_Export_Site_Pages
+ * @subpackage Includes
  */
 
 declare(strict_types=1);
@@ -12,10 +15,10 @@ if ( ! defined( 'ABSPATH' ) ) {
 }
 
 /**
- * Class SScribe_Filesystem
+ * Filesystem abstraction layer for SScribe plugin.
  *
- * Provides a wrapper around WP_Filesystem with fallback to direct file operations.
- * Ensures compatibility across different hosting environments.
+ * Provides a unified interface for file operations with WP_Filesystem fallback
+ * when standard WordPress filesystem methods are unavailable.
  */
 class SScribe_Filesystem {
 
@@ -27,21 +30,21 @@ class SScribe_Filesystem {
 	private static ?WP_Filesystem_Base $fs = null;
 
 	/**
-	 * Whether WP_Filesystem is initialized.
+	 * Whether filesystem has been initialized.
 	 *
 	 * @var bool
 	 */
 	private static bool $initialized = false;
 
 	/**
-	 * Last error message.
+	 * Last error message from operations.
 	 *
 	 * @var string
 	 */
 	private static string $last_error = '';
 
 	/**
-	 * Logger instance.
+	 * Logger instance for error reporting.
 	 *
 	 * @var SScribe_Logger_Interface
 	 */
@@ -49,6 +52,10 @@ class SScribe_Filesystem {
 
 	/**
 	 * Constructor.
+	 *
+	 * Initializes the filesystem handler and logger.
+	 *
+	 * @return void
 	 */
 	public function __construct() {
 		$this->logger = SScribe_Logger::instance( defined( 'SSCRIBE_DEBUG' ) && SSCRIBE_DEBUG );
@@ -56,9 +63,12 @@ class SScribe_Filesystem {
 	}
 
 	/**
-	 * Initialize WP_Filesystem.
+	 * Initialize WP_Filesystem if available.
 	 *
-	 * @return bool True if initialized successfully.
+	 * Attempts to initialize WordPress filesystem abstraction with fallback
+	 * to direct PHP filesystem operations if WP_Filesystem is unavailable.
+	 *
+	 * @return bool True if WP_Filesystem is available, false otherwise.
 	 */
 	private function initialize(): bool {
 		if ( self::$initialized ) {
@@ -108,12 +118,12 @@ class SScribe_Filesystem {
 	}
 
 	/**
-	 * Write content to a file.
+	 * Write contents to a file.
 	 *
-	 * @param string $file    File path.
+	 * @param string $file    File path to write to.
 	 * @param string $content Content to write.
-	 * @param int    $mode    File permissions (optional).
-	 * @return bool True on success, false on failure.
+	 * @param int    $mode    File permission mode (default: 0644).
+	 * @return bool True if write succeeded, false otherwise.
 	 */
 	public function put_contents( string $file, string $content, int $mode = 0644 ): bool {
 		self::$last_error = '';
@@ -157,8 +167,7 @@ class SScribe_Filesystem {
 		}
 
 		if ( $mode ) {
-			// phpcs:ignore WordPress.WP.AlternativeFunctions.file_system_operations_chmod -- WP_Filesystem fallback for file permissions.
-			if ( ! chmod( $file, $mode ) ) {
+			if ( ! chmod( $file, $mode ) ) { // phpcs:ignore WordPress.WP.AlternativeFunctions.file_system_operations_chmod -- WP_Filesystem fallback for file permissions.
 				$this->logger->warning(
 					'Failed to set file permissions',
 					array(
@@ -173,9 +182,9 @@ class SScribe_Filesystem {
 	}
 
 	/**
-	 * Read file contents.
+	 * Read contents from a file.
 	 *
-	 * @param string $file File path.
+	 * @param string $file File path to read.
 	 * @return string|false File contents or false on failure.
 	 */
 	public function get_contents( string $file ): string|false {
@@ -204,8 +213,8 @@ class SScribe_Filesystem {
 	/**
 	 * Delete a file.
 	 *
-	 * @param string $file File path.
-	 * @return bool True on success, false on failure.
+	 * @param string $file File path to delete.
+	 * @return bool True if delete succeeded or file doesn't exist, false otherwise.
 	 */
 	public function delete( string $file ): bool {
 		self::$last_error = '';
@@ -236,9 +245,9 @@ class SScribe_Filesystem {
 	/**
 	 * Create a directory.
 	 *
-	 * @param string $path Directory path.
-	 * @param int    $mode Permissions (optional).
-	 * @return bool True on success, false on failure.
+	 * @param string $path Directory path to create.
+	 * @param int    $mode Directory permissions (default: 0755).
+	 * @return bool True if directory created or exists, false otherwise.
 	 */
 	public function mkdir( string $path, int $mode = 0755 ): bool {
 		self::$last_error = '';
@@ -251,10 +260,10 @@ class SScribe_Filesystem {
 	}
 
 	/**
-	 * Check if a file exists.
+	 * Check if file exists.
 	 *
-	 * @param string $path File path.
-	 * @return bool True if exists.
+	 * @param string $path File or directory path.
+	 * @return bool True if exists, false otherwise.
 	 */
 	public function exists( string $path ): bool {
 		if ( self::$fs instanceof WP_Filesystem_Base ) {
@@ -267,8 +276,8 @@ class SScribe_Filesystem {
 	/**
 	 * Check if path is a directory.
 	 *
-	 * @param string $path Path to check.
-	 * @return bool True if directory.
+	 * @param string $path Directory path to check.
+	 * @return bool True if is directory, false otherwise.
 	 */
 	public function is_dir( string $path ): bool {
 		if ( self::$fs instanceof WP_Filesystem_Base ) {
@@ -279,10 +288,10 @@ class SScribe_Filesystem {
 	}
 
 	/**
-	 * Check if a path is writable.
+	 * Check if path is writable.
 	 *
 	 * @param string $path Path to check.
-	 * @return bool True if writable.
+	 * @return bool True if writable, false otherwise.
 	 */
 	public function is_writable( string $path ): bool {
 		if ( self::$fs instanceof WP_Filesystem_Base ) {
@@ -300,8 +309,8 @@ class SScribe_Filesystem {
 	/**
 	 * List files in a directory.
 	 *
-	 * @param string $path Directory path.
-	 * @return array|false Array of files or false on failure.
+	 * @param string $path Directory path to list.
+	 * @return array|false Array of filenames or false on failure.
 	 */
 	public function dirlist( string $path ): array|false {
 		if ( self::$fs instanceof WP_Filesystem_Base ) {
@@ -326,9 +335,9 @@ class SScribe_Filesystem {
 	 *
 	 * @param string $source      Source file path.
 	 * @param string $destination Destination file path.
-	 * @param bool   $overwrite   Whether to overwrite destination.
-	 * @param int    $mode        Permissions for destination.
-	 * @return bool True on success.
+	 * @param bool   $overwrite   Whether to overwrite existing file (default: false).
+	 * @param int    $mode        File permission mode (default: 0644).
+	 * @return bool True if copy succeeded, false otherwise.
 	 */
 	public function copy( string $source, string $destination, bool $overwrite = false, int $mode = 0644 ): bool {
 		self::$last_error = '';
@@ -346,8 +355,7 @@ class SScribe_Filesystem {
 		$result = copy( $source, $destination );
 
 		if ( $result && $mode && function_exists( 'chmod' ) ) {
-			// phpcs:ignore WordPress.WP.AlternativeFunctions.file_system_operations_chmod -- WP_Filesystem fallback for file permissions. Wrapped in function_exists() to safely handle environments where chmod is disabled.
-			chmod( $destination, $mode );
+			chmod( $destination, $mode ); // phpcs:ignore WordPress.WP.AlternativeFunctions.file_system_operations_chmod -- WP_Filesystem fallback for file permissions. Wrapped in function_exists() to safely handle environments where chmod is disabled.
 		}
 
 		return $result;
@@ -358,8 +366,8 @@ class SScribe_Filesystem {
 	 *
 	 * @param string $source      Source file path.
 	 * @param string $destination Destination file path.
-	 * @param bool   $overwrite   Whether to overwrite destination.
-	 * @return bool True on success.
+	 * @param bool   $overwrite  Whether to overwrite existing file (default: false).
+	 * @return bool True if move succeeded, false otherwise.
 	 */
 	public function move( string $source, string $destination, bool $overwrite = false ): bool {
 		self::$last_error = '';
@@ -373,14 +381,13 @@ class SScribe_Filesystem {
 			return false;
 		}
 
-		// phpcs:ignore WordPress.WP.AlternativeFunctions.rename_rename -- WP_Filesystem fallback for file moving.
-		return rename( $source, $destination );
+		return rename( $source, $destination ); // phpcs:ignore WordPress.WP.AlternativeFunctions.rename_rename -- WP_Filesystem fallback for file moving.
 	}
 
 	/**
-	 * Get the last error message.
+	 * Get last error message.
 	 *
-	 * @return string Error message.
+	 * @return string Last error message.
 	 */
 	public function get_last_error(): string {
 		return self::$last_error;
@@ -389,16 +396,16 @@ class SScribe_Filesystem {
 	/**
 	 * Check if WP_Filesystem is being used.
 	 *
-	 * @return bool True if WP_Filesystem is active.
+	 * @return bool True if WP_Filesystem is active, false if using direct operations.
 	 */
 	public function is_wp_filesystem(): bool {
 		return self::$fs instanceof WP_Filesystem_Base;
 	}
 
 	/**
-	 * Get the filesystem method being used.
+	 * Get filesystem method name.
 	 *
-	 * @return string Filesystem method name.
+	 * @return string Filesystem method ('direct', 'ftpext', etc.) or class name if WP_Filesystem.
 	 */
 	public function get_method(): string {
 		if ( self::$fs instanceof WP_Filesystem_Base ) {

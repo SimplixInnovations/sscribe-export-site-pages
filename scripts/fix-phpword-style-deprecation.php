@@ -1,18 +1,8 @@
 <?php
 /**
- * Fix PHP 8.5 deprecation in PHPWord Style::getStyle().
+ * SScribe PHPWord Style Deprecation Fixer
  *
- * PHP 8.5 deprecates using null as an array offset. PHPWord's static
- * getStyle() method calls isset(self::$styles[$styleName]) without
- * checking for null first, which triggers:
- *   "Using null as an array offset is deprecated, use an empty string instead"
- *
- * This script applies the null guard to both the raw vendor/ copy
- * (used during development) and the vendor-prefixed/ copy (shipped).
- *
- * Run: php scripts/fix-phpword-style-deprecation.php
- *
- * @package SScribe
+ * @package SScribe_Export_Site_Pages
  */
 
 $files = array(
@@ -58,7 +48,6 @@ foreach ( $files as $path ) {
 		continue;
 	}
 
-	// Check if already patched.
 	if ( str_contains( $content, 'null === $styleName' ) ) {
 		echo "OK (already patched): {$path}\n";
 		++$fixed;

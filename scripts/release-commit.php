@@ -1,11 +1,8 @@
 <?php
 /**
- * Automated release commit script.
+ * SScribe Release Commit Script
  *
- * Commits the version bump and optionally creates a tag.
- * Usage: php scripts/release-commit.php X.Y.Z [--tag]
- *
- * @package SScribe
+ * @package SScribe_Export_Site_Pages
  */
 
 declare(strict_types=1);
@@ -32,19 +29,17 @@ $root_dir = dirname( __DIR__ );
 
 echo "Committing release v{$new_version}...\n";
 
-// Stage all changes.
 exec( 'git add -A', $add_output, $add_exit );
 if ( 0 !== $add_exit ) {
 	echo "Error: git add failed.\n";
 	exit( 1 );
 }
 
-// Commit.
 $commit_msg = sprintf( 'chore: release v%s', $new_version );
 exec( sprintf( 'git commit -m "%s"', $commit_msg ), $commit_output, $commit_exit );
 
 if ( 0 !== $commit_exit ) {
-	// Check if "nothing to commit".
+
 	if ( ! empty( $commit_output ) && str_contains( implode( "\n", $commit_output ), 'nothing to commit' ) ) {
 		echo "Nothing to commit — version already bumped?\n";
 	} else {
@@ -55,7 +50,6 @@ if ( 0 !== $commit_exit ) {
 	echo "✓ Committed: {$commit_msg}\n";
 }
 
-// Push to develop.
 exec( 'git push origin develop', $push_output, $push_exit );
 if ( 0 !== $push_exit ) {
 	echo "Error: git push develop failed.\n";
@@ -63,7 +57,7 @@ if ( 0 !== $push_exit ) {
 }
 echo "✓ Pushed to develop\n";
 
-// Merge to main and push.
+
 exec( 'git checkout main', $co_output, $co_exit );
 if ( 0 !== $co_exit ) {
 	echo "Error: git checkout main failed.\n";
@@ -73,7 +67,7 @@ if ( 0 !== $co_exit ) {
 exec( 'git merge develop -m "Merge develop: release v' . $new_version . '"', $merge_output, $merge_exit );
 if ( 0 !== $merge_exit ) {
 	echo "Error: git merge develop failed — resolve conflicts manually.\n";
-	// Switch back to develop to avoid leaving repo on main in broken state.
+	
 	exec( 'git merge --abort 2>NUL', $abort_output, $abort_exit );
 	exec( 'git checkout develop', $co_back_output, $co_back_exit );
 	exit( 1 );
@@ -91,7 +85,6 @@ if ( 0 !== $co_dev_exit ) {
 	echo "Warning: git checkout develop failed.\n";
 }
 
-// Create tag if requested.
 if ( $create_tag ) {
 	$tag = 'v' . $new_version;
 	exec( sprintf( 'git tag -a %s -m "Release %s"', $tag, $tag ), $tag_output, $tag_exit );
@@ -105,4 +98,3 @@ if ( $create_tag ) {
 
 echo "\n✓ Release v{$new_version} complete!\n";
 exit( 0 );
-

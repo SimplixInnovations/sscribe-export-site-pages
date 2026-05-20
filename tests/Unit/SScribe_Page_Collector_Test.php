@@ -1,9 +1,11 @@
 <?php
 /**
- * Unit tests for SScribe_Page_Collector class.
+ * SScribe Page Collector Unit Test
  *
- * @package SScribe
+ * @package SScribe_Export_Site_Pages
  */
+
+declare(strict_types=1);
 
 namespace SScribe\Tests\Unit;
 

@@ -1,9 +1,11 @@
 <?php
 /**
- * Unit tests for SScribe_SEO_Reader class.
+ * SScribe SEO Reader Unit Test
  *
- * @package SScribe
+ * @package SScribe_Export_Site_Pages
  */
+
+declare(strict_types=1);
 
 namespace SScribe\Tests\Unit;
 

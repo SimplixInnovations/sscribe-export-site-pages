@@ -1,8 +1,8 @@
 <?php
 /**
- * Image download and optimization utility.
+ * SScribe Image Processor
  *
- * @package SScribe
+ * @package SScribe_Export_Site_Pages
  */
 
 declare(strict_types=1);
@@ -11,18 +11,8 @@ if ( ! defined( 'ABSPATH' ) ) {
 	exit;
 }
 
-/**
- * Class SScribe_Image_Processor
- *
- * Downloads and optimizes images for PDF export.
- */
 class SScribe_Image_Processor {
 
-	/**
-	 * Allowed remote content types.
-	 *
-	 * @var array<int, string>
-	 */
 	private const ALLOWED_CONTENT_TYPES = array(
 		'image/jpeg',
 		'image/png',
@@ -30,34 +20,14 @@ class SScribe_Image_Processor {
 		'image/webp',
 	);
 
-	/**
-	 * Allowed image extensions.
-	 *
-	 * @var array<int, string>
-	 */
 	private const ALLOWED_EXTENSIONS = array( 'jpg', 'jpeg', 'png', 'gif', 'webp' );
 
-	/**
-	 * Maximum remote image size in bytes.
-	 */
 	private const MAX_DOWNLOAD_BYTES = 10485760;
 
-	/**
-	 * Maximum width for images.
-	 */
 	private const MAX_WIDTH = 1200;
 
-	/**
-	 * JPEG quality (0-100).
-	 */
 	private const JPEG_QUALITY = 85;
 
-	/**
-	 * Download and optimize an image from URL.
-	 *
-	 * @param string $url Image URL.
-	 * @return string|false Local path or false on failure.
-	 */
 	public static function download_and_optimize( string $url ): string|false {
 		$url = self::normalize_url( $url );
 
@@ -87,12 +57,6 @@ class SScribe_Image_Processor {
 		return $optimized_path;
 	}
 
-	/**
-	 * Download image to temporary file.
-	 *
-	 * @param string $url Image URL.
-	 * @return string|false Temp path or false.
-	 */
 	private static function download_to_temp( string $url ): string|false {
 		$response = wp_safe_remote_get(
 			$url,
@@ -133,6 +97,7 @@ class SScribe_Image_Processor {
 		$temp_path = sys_get_temp_dir() . '/sscribe-img-' . uniqid() . '.' . $ext;
 
 		// phpcs:ignore WordPress.WP.AlternativeFunctions.file_system_operations_file_put_contents
+
 		if ( false === file_put_contents( $temp_path, $body ) ) {
 			return false;
 		}
@@ -140,12 +105,6 @@ class SScribe_Image_Processor {
 		return $temp_path;
 	}
 
-	/**
-	 * Normalize a candidate URL.
-	 *
-	 * @param string $url Candidate image URL.
-	 * @return string
-	 */
 	private static function normalize_url( string $url ): string {
 		$url = trim( $url );
 		if ( '' === $url ) {
@@ -155,12 +114,6 @@ class SScribe_Image_Processor {
 		return esc_url_raw( $url );
 	}
 
-	/**
-	 * Validate that the URL is safe and stays on the local site host.
-	 *
-	 * @param string $url Candidate image URL.
-	 * @return bool
-	 */
 	private static function is_allowed_remote_url( string $url ): bool {
 		if ( ! filter_var( $url, FILTER_VALIDATE_URL ) ) {
 			return false;
@@ -195,9 +148,6 @@ class SScribe_Image_Processor {
 			)
 		);
 
-		// Allow sites using external CDNs (Cloudinary, AWS S3, Bunny CDN, imgix)
-		// to whitelist additional image hosts via the sscribe_allowed_image_hosts filter.
-		// Without this, images from external CDNs are silently dropped in PDF exports.
 		$allowed_hosts = apply_filters( 'sscribe_allowed_image_hosts', $site_hosts );
 
 		if ( ! is_array( $allowed_hosts ) ) {
@@ -207,12 +157,6 @@ class SScribe_Image_Processor {
 		return in_array( $host, $allowed_hosts, true );
 	}
 
-	/**
-	 * Normalize a response content type.
-	 *
-	 * @param string $content_type Raw content type header.
-	 * @return string
-	 */
 	private static function normalize_content_type( string $content_type ): string {
 		if ( '' === $content_type ) {
 			return '';
@@ -221,12 +165,6 @@ class SScribe_Image_Processor {
 		return strtolower( trim( explode( ';', $content_type )[0] ) );
 	}
 
-	/**
-	 * Derive a file extension from a supported content type.
-	 *
-	 * @param string $content_type Normalized content type.
-	 * @return string
-	 */
 	private static function extension_from_content_type( string $content_type ): string {
 		return match ( $content_type ) {
 			'image/png'  => 'png',
@@ -236,18 +174,11 @@ class SScribe_Image_Processor {
 		};
 	}
 
-	/**
-	 * Optimize a local image file.
-	 *
-	 * @param string $path Local file path.
-	 * @return string|false Optimized path or false.
-	 */
 	public static function optimize_local( string $path ): string|false {
 		if ( ! file_exists( $path ) ) {
 			return false;
 		}
 
-		// Safely attempt to read image info, logging failures instead of suppressing.
 		$info = false;
 		// phpcs:ignore WordPress.PHP.DevelopmentFunctions.error_log_set_error_handler -- Production error handling for image processing.
 		$prev_handler = set_error_handler(
@@ -260,7 +191,7 @@ class SScribe_Image_Processor {
 							'error' => $errstr,
 						)
 					);
-				return true; // Suppress the warning.
+				return true;
 			}
 		);
 		try {
@@ -296,13 +227,10 @@ class SScribe_Image_Processor {
 
 		$resized = imagecreatetruecolor( $new_width, $new_height );
 		if ( false === $resized ) {
-			// phpcs:ignore Generic.PHP.DeprecatedFunctions.Deprecated
-			imagedestroy( $image );
+			imagedestroy( $image ); // phpcs:ignore Generic.PHP.DeprecatedFunctions.Deprecated
 			return $path;
 		}
 
-		// Safely create image resources with a custom error handler.
-		// These GD functions can fail on corrupt or truncated images.
 		// phpcs:ignore WordPress.PHP.DevelopmentFunctions.error_log_set_error_handler -- Production error handling for GD image loading.
 		$prev_handler = set_error_handler(
 			static function ( int $errno, string $errstr ) use ( $path ): bool {
@@ -314,10 +242,10 @@ class SScribe_Image_Processor {
 							'error' => $errstr,
 						)
 					);
-				return true; // Suppress the PHP warning.
+				return true;
 			}
 		);
-		$image = false;
+		$image        = false;
 		try {
 			$image = match ( $type ) {
 				IMAGETYPE_JPEG, IMAGETYPE_JPEG2000 => imagecreatefromjpeg( $path ),
@@ -342,15 +270,15 @@ class SScribe_Image_Processor {
 		}
 
 		imagecopyresampled( $resized, $image, 0, 0, 0, 0, $new_width, $new_height, $width, $height );
-		// phpcs:ignore Generic.PHP.DeprecatedFunctions.Deprecated
-		imagedestroy( $image );
+		imagedestroy( $image ); // phpcs:ignore Generic.PHP.DeprecatedFunctions.Deprecated
 
 		$optimized_path = sys_get_temp_dir() . '/sscribe-opt-' . uniqid() . '.jpg';
 
 		// phpcs:ignore WordPress.WP.AlternativeFunctions.image_jpeg
+
 		$result = imagejpeg( $resized, $optimized_path, self::JPEG_QUALITY );
-		// phpcs:ignore Generic.PHP.DeprecatedFunctions.Deprecated
-		imagedestroy( $resized );
+
+		imagedestroy( $resized ); // phpcs:ignore Generic.PHP.DeprecatedFunctions.Deprecated
 
 		if ( false === $result ) {
 			return $path;
@@ -359,11 +287,6 @@ class SScribe_Image_Processor {
 		return $optimized_path;
 	}
 
-	/**
-	 * Clean up temporary image files.
-	 *
-	 * @param string $path File path to clean up.
-	 */
 	public static function cleanup( string $path ): void {
 		if ( file_exists( $path ) && strpos( $path, sys_get_temp_dir() ) === 0 ) {
 			wp_delete_file( $path );

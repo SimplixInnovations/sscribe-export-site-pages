@@ -1,11 +1,8 @@
 <?php
 /**
- * Logging service for SScribe.
+ * SScribe Logger
  *
- * Uses filesystem log storage with in-memory buffering to optimize performance
- * and prevent database bloat.
- *
- * @package SScribe
+ * @package SScribe_Export_Site_Pages
  */
 
 declare(strict_types=1);
@@ -18,42 +15,35 @@ require_once SSCRIBE_PLUGIN_DIR . 'includes/interfaces/interface-sscribe-logger.
 require_once SSCRIBE_PLUGIN_DIR . 'includes/traits/trait-sscribe-logger-common.php';
 
 /**
- * Class SScribe_Logger
- *
- * Centralized logging service with buffered filesystem writes.
- *
- * Automatically upgrades to SScribe_Logger_Enhanced when:
- * - Query Monitor is active
- * - Database logging is enabled via SSCRIBE_DB_LOGGING constant
- * - Advanced logging features are requested.
+ * Main logger implementation for SScribe plugin.
  */
 class SScribe_Logger implements SScribe_Logger_Interface {
 
 	use SScribe_Logger_Common;
 
 	/**
-	 * Singleton instances keyed by prefix.
+	 * Singleton instances storage.
 	 *
-	 * @var array<string, self|SScribe_Logger_Enhanced>
+	 * @var array<string, self>
 	 */
 	private static array $instances = array();
 
 	/**
-	 * Per-request log correlation ID.
+	 * Current request ID for log correlation.
 	 *
 	 * @var string|null
 	 */
 	private static ?string $request_id = null;
 
 	/**
-	 * Export session ID for correlation in log entries.
+	 * Current session ID for log context.
 	 *
 	 * @var string|null
 	 */
 	private ?string $session_id = null;
 
 	/**
-	 * Log entries buffer.
+	 * Log message buffer.
 	 *
 	 * @var array
 	 */
@@ -67,29 +57,24 @@ class SScribe_Logger implements SScribe_Logger_Interface {
 	private readonly string $log_dir;
 
 	/**
-	 * Whether shutdown hook is registered.
+	 * Shutdown handler registration flag.
 	 *
 	 * @var bool
 	 */
 	private bool $shutdown_registered = false;
 
 	/**
-	 * Get or create singleton instance.
-	 *
-	 * Automatically returns enhanced logger when Query Monitor is active
-	 * or database logging is enabled.
+	 * Get logger instance.
 	 *
 	 * @param bool   $enabled Whether logging is enabled.
-	 * @param string $prefix  Optional log entry prefix.
-	 * @param array  $options Optional logger options (enable_db, enable_qm, etc).
+	 * @param string $prefix  Log file prefix.
+	 * @param array  $options Logger options.
 	 * @return SScribe_Logger_Interface
 	 */
 	public static function instance( bool $enabled = true, string $prefix = 'sscribe', array $options = array() ): SScribe_Logger_Interface {
-		// Use JSON for safe serialization (avoiding PHP object injection risks).
 		$key = $prefix . '_' . ( $enabled ? '1' : '0' ) . '_' . md5( wp_json_encode( $options ) );
 
 		if ( ! isset( self::$instances[ $key ] ) ) {
-			// Check if we should use enhanced logger.
 			$use_enhanced = self::should_use_enhanced();
 
 			if ( $use_enhanced && class_exists( 'SScribe_Logger_Enhanced' ) ) {
@@ -105,19 +90,17 @@ class SScribe_Logger implements SScribe_Logger_Interface {
 	/**
 	 * Determine if enhanced logger should be used.
 	 *
-	 * @return bool True if enhanced logger should be used.
+	 * @return bool True if enhanced logger should be loaded.
 	 */
 	private static function should_use_enhanced(): bool {
 		if ( class_exists( 'QM_Collector' ) && ! ( defined( 'QM_DISABLED' ) && QM_DISABLED ) && is_admin() ) {
 			return true;
 		}
 
-		// Use enhanced if database logging is explicitly enabled.
 		if ( defined( 'SSCRIBE_DB_LOGGING' ) && SSCRIBE_DB_LOGGING ) {
 			return true;
 		}
 
-		// Use enhanced in debug mode.
 		if ( defined( 'WP_DEBUG' ) && WP_DEBUG && defined( 'SSCRIBE_DEBUG' ) && SSCRIBE_DEBUG ) {
 			return true;
 		}
@@ -129,7 +112,7 @@ class SScribe_Logger implements SScribe_Logger_Interface {
 	 * Constructor.
 	 *
 	 * @param bool   $enabled Whether logging is enabled.
-	 * @param string $prefix  Optional log entry prefix.
+	 * @param string $prefix  Log file prefix.
 	 */
 	public function __construct(
 		private readonly bool $enabled = true,
@@ -145,16 +128,16 @@ class SScribe_Logger implements SScribe_Logger_Interface {
 	}
 
 	/**
-	 * Destructor to ensure buffer is flushed.
+	 * Destructor - flushes log buffer.
 	 */
 	public function __destruct() {
 		$this->flush();
 	}
 
 	/**
-	 * Get the log file path, ensuring directory exists and is protected.
+	 * Get log file path.
 	 *
-	 * @return string
+	 * @return string Full path to log file.
 	 */
 	private function get_log_file(): string {
 		if ( ! file_exists( $this->log_dir ) ) {
@@ -164,7 +147,7 @@ class SScribe_Logger implements SScribe_Logger_Interface {
 	}
 
 	/**
-	 * Check if logging is enabled.
+	 * Check if logger is enabled.
 	 *
 	 * @return bool
 	 */
@@ -173,124 +156,111 @@ class SScribe_Logger implements SScribe_Logger_Interface {
 	}
 
 	/**
-	 * Set the session ID for correlation in log entries.
+	 * Set current session ID for log context.
 	 *
-	 * When set, all subsequent log entries will include this session_id
-	 * in their context data, enabling correlation across export operations.
-	 *
-	 * @param string $session_id The export session identifier.
+	 * @param string $session_id Session identifier.
 	 */
 	public function set_session_id( string $session_id ): void {
 		$this->session_id = $session_id;
 	}
 
 	/**
-	 * Log a debug message.
+	 * Log debug message.
 	 *
 	 * @param string $message Log message.
-	 * @param array  $data    Optional data to include.
-	 * @return void
+	 * @param array  $data     Additional context data.
 	 */
 	public function debug( string $message, array $data = array() ): void {
 		$this->log_internal( 'debug', $message, $data );
 	}
 
 	/**
-	 * Log an info message.
+	 * Log info message.
 	 *
 	 * @param string $message Log message.
-	 * @param array  $data    Optional data to include.
-	 * @return void
+	 * @param array  $data     Additional context data.
 	 */
 	public function info( string $message, array $data = array() ): void {
 		$this->log_internal( 'info', $message, $data );
 	}
 
 	/**
-	 * Log a notice message.
+	 * Log notice message.
 	 *
 	 * @param string $message Log message.
-	 * @param array  $data    Optional data to include.
-	 * @return void
+	 * @param array  $data     Additional context data.
 	 */
 	public function notice( string $message, array $data = array() ): void {
 		$this->log_internal( 'notice', $message, $data );
 	}
 
 	/**
-	 * Log a warning message.
+	 * Log warning message.
 	 *
 	 * @param string $message Log message.
-	 * @param array  $data    Optional data to include.
-	 * @return void
+	 * @param array  $data     Additional context data.
 	 */
 	public function warning( string $message, array $data = array() ): void {
 		$this->log_internal( 'warning', $message, $data );
 	}
 
 	/**
-	 * Log an error message.
+	 * Log error message.
 	 *
 	 * @param string $message Log message.
-	 * @param array  $data    Optional data to include.
-	 * @return void
+	 * @param array  $data     Additional context data.
 	 */
 	public function error( string $message, array $data = array() ): void {
 		$this->log_internal( 'error', $message, $data );
 	}
 
 	/**
-	 * Log a critical message.
+	 * Log critical message.
 	 *
 	 * @param string $message Log message.
-	 * @param array  $data    Optional data to include.
-	 * @return void
+	 * @param array  $data     Additional context data.
 	 */
 	public function critical( string $message, array $data = array() ): void {
 		$this->error( 'CRITICAL: ' . $message, $data );
 	}
 
 	/**
-	 * Log an alert message.
+	 * Log alert message.
 	 *
 	 * @param string $message Log message.
-	 * @param array  $data    Optional data to include.
-	 * @return void
+	 * @param array  $data     Additional context data.
 	 */
 	public function alert( string $message, array $data = array() ): void {
 		$this->log_internal( 'alert', $message, $data );
 	}
 
 	/**
-	 * Log an emergency message.
+	 * Log emergency message.
 	 *
 	 * @param string $message Log message.
-	 * @param array  $data    Optional data to include.
-	 * @return void
+	 * @param array  $data     Additional context data.
 	 */
 	public function emergency( string $message, array $data = array() ): void {
 		$this->log_internal( 'emergency', $message, $data );
 	}
 
 	/**
-	 * Log a message with a specific level (PSR-3 compatible).
+	 * Generic log method.
 	 *
 	 * @param string $level   Log level.
-	 * @param string $message Log message.
-	 * @param array  $data    Optional data.
-	 * @return void
+	 * @param string $message  Log message.
+	 * @param array  $data     Additional context data.
 	 */
 	public function log( string $level, string $message, array $data = array() ): void {
 		$this->log_internal( $level, $message, $data );
 	}
 
 	/**
-	 * Buffer a log entry (internal method).
+	 * Internal log handler.
 	 *
 	 * @param string $level   Log level.
-	 * @param string $message Log message.
-	 * @param array  $data    Optional data.
-	 * @return void
+	 * @param string $message  Log message.
+	 * @param array  $data     Additional context data.
 	 */
 	private function log_internal( string $level, string $message, array $data = array() ): void {
 		if ( ! $this->enabled ) {
@@ -310,9 +280,9 @@ class SScribe_Logger implements SScribe_Logger_Interface {
 	}
 
 	/**
-	 * Get standard context enrichment for log entries.
+	 * Get context enrichment data.
 	 *
-	 * @return array<string, string>
+	 * @return array Context data with plugin info.
 	 */
 	private function get_context_enrichment(): array {
 		$context = array(
@@ -322,7 +292,6 @@ class SScribe_Logger implements SScribe_Logger_Interface {
 			'request_id'     => self::get_request_id(),
 		);
 
-		// Include session_id for export operation correlation.
 		if ( null !== $this->session_id ) {
 			$context['session_id'] = $this->session_id;
 		}
@@ -331,13 +300,12 @@ class SScribe_Logger implements SScribe_Logger_Interface {
 	}
 
 	/**
-	 * Get the per-request correlation ID.
+	 * Get or generate request ID.
 	 *
-	 * @return string
+	 * @return string Request identifier.
 	 */
 	private static function get_request_id(): string {
 		if ( null === self::$request_id ) {
-			// Use random_int() instead of wp_rand() for test bootstrap compatibility.
 			self::$request_id = substr( md5( microtime( true ) . (string) random_int( 0, PHP_INT_MAX ) ), 0, 12 );
 		}
 
@@ -345,13 +313,7 @@ class SScribe_Logger implements SScribe_Logger_Interface {
 	}
 
 	/**
-	 * Flush buffered logs to the filesystem.
-	 *
-	 * Implements log rotation: when the file exceeds MAX_LOG_FILE_SIZE,
-	 * the current log is renamed to a timestamped backup and a fresh
-	 * log is started. A warning entry is written to indicate truncation.
-	 *
-	 * @return void
+	 * Flush log buffer to file.
 	 */
 	public function flush(): void {
 		if ( empty( $this->buffer ) || ! $this->enabled ) {
@@ -360,43 +322,33 @@ class SScribe_Logger implements SScribe_Logger_Interface {
 
 		$log_file = $this->get_log_file();
 
-		// Log rotation: if the file exceeds MAX_LOG_FILE_SIZE, rotate it.
 		if ( file_exists( $log_file ) && filesize( $log_file ) >= self::MAX_LOG_FILE_SIZE ) {
 			$rotated_file = $this->log_dir . '/' . $this->prefix . '_debug_' . gmdate( 'Y-m-d_H-i-s' ) . '.log';
-			// phpcs:ignore WordPress.WP.AlternativeFunctions.rename_rename -- Safe filesystem rename for log rotation.
-			rename( $log_file, $rotated_file );
+			rename( $log_file, $rotated_file ); // phpcs:ignore WordPress.WP.AlternativeFunctions.rename_rename -- Safe filesystem rename for log rotation.
 
-			// Write a warning entry to the new fresh log indicating that rotation occurred.
 			$warning_entry = sprintf(
 				"[%s] [WARNING] Log file exceeded %s bytes — rotated to %s\n",
 				gmdate( 'Y-m-d H:i:s' ),
 				size_format( self::MAX_LOG_FILE_SIZE ),
 				basename( $rotated_file )
 			);
-			// phpcs:ignore WordPress.WP.AlternativeFunctions.file_system_operations_file_put_contents -- Required for debug logging per plugin requirements.
-			file_put_contents( $log_file, $warning_entry, LOCK_EX );
+			file_put_contents( $log_file, $warning_entry, LOCK_EX ); // phpcs:ignore WordPress.WP.AlternativeFunctions.file_system_operations_file_put_contents -- Required for debug logging per plugin requirements.
 		}
 
 		$content = implode( PHP_EOL, $this->buffer ) . PHP_EOL;
 
-		// phpcs:ignore WordPress.WP.AlternativeFunctions.file_system_operations_file_put_contents -- Required for debug logging per plugin requirements.
-		$result = file_put_contents( $log_file, $content, FILE_APPEND | LOCK_EX );
+		$result = file_put_contents( $log_file, $content, FILE_APPEND | LOCK_EX ); // phpcs:ignore WordPress.WP.AlternativeFunctions.file_system_operations_file_put_contents -- Required for debug logging per plugin requirements.
 		if ( false === $result ) {
-			// phpcs:ignore WordPress.PHP.DevelopmentFunctions.error_log_error_log -- Reporting flush failure when file_put_contents fails; no better alternative in production.
-			error_log( 'SScribe_Logger: Failed to flush log to ' . $log_file );
+			error_log( 'SScribe_Logger: Failed to flush log to ' . $log_file ); // phpcs:ignore WordPress.PHP.DevelopmentFunctions.error_log_error_log -- Reporting flush failure when file_put_contents fails; no better alternative in production.
 		}
 
 		$this->buffer = array();
 	}
 
 	/**
-	 * Get log entries (buffered + flushed to file).
+	 * Get all log entries.
 	 *
-	 * Returns in-memory buffered entries merged with any previously flushed
-	 * entries from the log file, so callers always see the full picture.
-	 * Returns an empty array when logging is disabled.
-	 *
-	 * @return array Log entries.
+	 * @return array Log entries from file and buffer.
 	 */
 	public function get_logs(): array {
 		if ( ! $this->enabled ) {
@@ -407,8 +359,7 @@ class SScribe_Logger implements SScribe_Logger_Interface {
 		$log_file     = $this->get_log_file();
 
 		if ( file_exists( $log_file ) ) {
-			// phpcs:ignore WordPress.WP.AlternativeFunctions.file_get_contents_file_get_contents -- Safe filesystem read.
-			$contents = file_get_contents( $log_file );
+			$contents = file_get_contents( $log_file ); // phpcs:ignore WordPress.WP.AlternativeFunctions.file_get_contents_file_get_contents -- Safe filesystem read.
 			if ( $contents ) {
 				$file_entries = explode( PHP_EOL, trim( $contents ) );
 			}
@@ -418,9 +369,7 @@ class SScribe_Logger implements SScribe_Logger_Interface {
 	}
 
 	/**
-	 * Clear log entries for the current day.
-	 *
-	 * @return void
+	 * Clear log buffer and delete log file.
 	 */
 	public function clear_logs(): void {
 		$this->buffer = array();
@@ -434,10 +383,10 @@ class SScribe_Logger implements SScribe_Logger_Interface {
 	}
 
 	/**
-	 * Clean up old log files.
+	 * Clean up log files older than specified days.
 	 *
 	 * @param int $max_age_days Maximum age in days.
-	 * @return int Number of logs cleaned.
+	 * @return int Number of files deleted.
 	 */
 	public static function cleanup_old_logs( int $max_age_days = 7 ): int {
 		$upload_dir = wp_upload_dir();

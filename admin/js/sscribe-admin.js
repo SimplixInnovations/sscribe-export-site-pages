@@ -102,6 +102,9 @@
 			// Keyboard shortcuts: Ctrl+E = Export, Ctrl+P = Preview.
 			$(document).on('keydown', function (e) {
 				if (!e.ctrlKey && !e.metaKey) { return; }
+				// Don't trigger shortcuts when user is typing in an input, textarea, or contenteditable.
+				const tag = e.target.tagName;
+				if (tag === 'INPUT' || tag === 'TEXTAREA' || e.target.isContentEditable) { return; }
 				if (e.key === 'e' || e.key === 'E') {
 					e.preventDefault();
 					const $btn = $('#sscribe-export-btn');
@@ -208,10 +211,10 @@
 								.text(total.toLocaleString());
 						}
 					},
-						error: function () {
-						$('.sscribe-status-card-label').removeClass('sscribe-loading');
-						$('#sscribe-post-count, #sscribe-both-count').removeClass('sscribe-loading-count');
-					},
+					error: function () {
+							$('.sscribe-status-card-label').removeClass('sscribe-loading');
+							$('#sscribe-post-count, #sscribe-both-count').removeClass('sscribe-loading-count');
+						},
 				});
 			});
 
@@ -318,7 +321,7 @@
 			$('#sscribe-summary-status').text(statusLabels[status] || status);
 			$('#sscribe-summary-language').text(language ? language.toUpperCase() : 'All');
 			$('#sscribe-summary-format').text(format === 'all' ? 'All' : format.toUpperCase());
-			$('#sscribe-summary-pages').text('~' + count + ' pages');
+			$('#sscribe-summary-pages').text('~' + count + ' ' + sscribe_data.strings.log_pages);
 
 			// Calculate time estimate.
 			const times = { docx: 1.5, pdf: 8, html: 1, markdown: 0.5 };
@@ -1199,14 +1202,171 @@
 			$('#sscribe-export-btn, #sscribe-preview-btn').prop('disabled', true);
 		},
 
+		/**
+		 * Log a structured AJAX error diagnostic to the browser console.
+		 *
+		 * Outputs a collapsible console group with request details, response
+		 * status, timing, and any available diagnostic metadata from the
+		 * server. This is the primary tool for support/debugging sessions.
+		 *
+		 * @param {object} requestData The data object sent in the AJAX request.
+		 * @param {jqXHR}  xhr         The jQuery XHR object.
+		 * @param {*}      exception   The exception object (if any).
+		 */
+		logAJAXError: function (requestData, xhr, exception) {
+			if (!window.console || !window.console.group) {
+				return;
+			}
+
+			const action = (requestData && requestData.action) || 'unknown';
+			const timestamp = new Date().toISOString();
+			const statusCode = xhr ? xhr.status : 0;
+			const statusText = xhr ? xhr.statusText : 'N/A';
+			const responseText = xhr && xhr.responseText ? xhr.responseText.substring(0, 500) : 'N/A';
+
+			let diagnostics = null;
+			if (xhr && xhr.responseText) {
+				try {
+					const parsed = JSON.parse(xhr.responseText);
+					if (parsed && parsed.data && parsed.data._diagnostics) {
+						diagnostics = parsed.data._diagnostics;
+					}
+				} catch (_) {
+					// Not JSON — the response body wasn't meant to be parsed, nothing to extract.
+				}
+			}
+
+			console.groupCollapsed(
+				'[SSCRIBE] AJAX Error — %s (HTTP %d %s)',
+				action,
+				statusCode,
+				statusText
+			);
+
+			console.log('Timestamp:', timestamp);
+			console.log('Action:', action);
+			console.log('HTTP Status:', statusCode, statusText);
+			console.log('Request Data:', requestData || {});
+			console.log('Response Headers:', xhr ? xhr.getAllResponseHeaders() : 'N/A');
+			console.log('Response Text (first 500):', responseText);
+			console.log('Exception:', exception || 'None');
+
+			if (diagnostics) {
+				console.log('Server Diagnostics:', diagnostics);
+			}
+
+			if (typeof SSCRIBE_DEBUG !== 'undefined' && SSCRIBE_DEBUG) {
+				console.log('Full XHR:', xhr);
+			}
+
+			console.groupEnd();
+		},
+
+		/**
+		 * Show a non-blocking toast notification.
+		 *
+		 * Auto-dismisses after the specified duration. Suitable for transient
+		 * status messages (e.g., "Export deleted", "Support info copied")
+		 * that should not block the user's workflow.
+		 *
+		 * @param {string} message  The message to display.
+		 * @param {string} type     One of 'success', 'error', 'warning', 'info'.
+		 * @param {number} duration Auto-dismiss timeout in ms (default: 4000).
+		 */
+		showToast: function (message, type, duration) {
+			type = type || 'info';
+			duration = duration || 4000;
+
+			let $container = $('#sscribe-toast-container');
+			if (!$container.length) {
+				$container = $(
+					'<div id="sscribe-toast-container" style="' +
+					'position:fixed;bottom:24px;right:24px;z-index:99999;' +
+					'display:flex;flex-direction:column;gap:8px;' +
+					'max-width:400px;' +
+					'"></div>'
+				).appendTo('body');
+			}
+
+			const icons = { success: '✓', error: '✕', warning: '⚠', info: 'ℹ' };
+			const icon = icons[type] || 'ℹ';
+			const bgColor = type === 'success' ? '#10b981' :
+				type === 'error' ? '#ef4444' :
+				type === 'warning' ? '#f59e0b' : '#3b82f6';
+
+			const $toast = $(
+				'<div style="' +
+				'display:flex;align-items:center;gap:10px;' +
+				'padding:12px 18px;border-radius:8px;' +
+				'background:' + bgColor + ';color:#fff;' +
+				'font-size:14px;font-weight:500;' +
+				'box-shadow:0 4px 16px rgba(0,0,0,0.15);' +
+				'cursor:pointer;transition:opacity 0.3s,transform 0.3s;' +
+				'opacity:0;transform:translateY(12px);' +
+				'">' +
+				'<span style="font-size:16px;font-weight:700;">' + icon + '</span>' +
+				'<span>' + this.escapeHtml(message) + '</span>' +
+				'</div>'
+			).appendTo($container);
+
+			requestAnimationFrame(function () {
+				$toast.css({ opacity: '1', transform: 'translateY(0)' });
+			});
+
+			const dismiss = function () {
+				$toast.css({ opacity: '0', transform: 'translateY(12px)' });
+				setTimeout(function () { $toast.remove(); }, 300);
+			};
+
+			$toast.on('click', dismiss);
+			setTimeout(dismiss, duration);
+		},
+
+		/**
+		 * Extract and normalize diagnostic metadata from an error response.
+		 *
+		 * The server now includes a `_diagnostics` key in every error response
+		 * via SScribe_AJAX_Guard::error(). This method safely extracts it and
+		 * formats it for display or logging.
+		 *
+		 * @param {*} errorData The raw error data from the server.
+		 * @returns {object|null} Normalized diagnostics, or null if absent.
+		 */
+		extractDiagnostics: function (errorData) {
+			if (!errorData || typeof errorData !== 'object') {
+				return null;
+			}
+
+			const raw = errorData._diagnostics || errorData.diagnostics || null;
+			if (!raw) {
+				return null;
+			}
+
+			return {
+				phpVersion: raw.php_version || 'unknown',
+				memoryUsage: raw.memory_usage || 'unknown',
+				memoryLimit: raw.memory_limit || 'unknown',
+				requestTime: raw.request_time || 'unknown',
+				action: raw.action || 'unknown',
+				context: raw.context || null,
+				backtrace: raw.backtrace || null,
+			};
+		},
+
 		showError: function (message, isCancelled, errorData) {
 			this.isProcessing = false;
 			$('#sscribe-progress-area').fadeOut(200);
 
 			let displayMessage = message;
 			let guidance = '';
+			let diagnosticInfo = null;
 
 			if (errorData) {
+				diagnosticInfo = this.extractDiagnostics(errorData);
+				if (diagnosticInfo && window.console) {
+					console.log('[SSCRIBE] Server diagnostics for this error:', diagnosticInfo);
+				}
+
 				if (errorData.code) {
 					displayMessage = '[' + errorData.code + '] ' + message;
 				}
@@ -1234,6 +1394,19 @@
 				$('#sscribe-error-guidance').addClass('sscribe-hidden');
 			}
 
+			if (diagnosticInfo && typeof SSCRIBE_DEBUG !== 'undefined' && SSCRIBE_DEBUG) {
+				var $techPre = $('#sscribe-error-technical-details .sscribe-debug-pre');
+				if ($techPre.length) {
+					$techPre.text(
+						'PHP: ' + (diagnosticInfo.phpVersion || '?') +
+						' | Memory: ' + (diagnosticInfo.memoryUsage || '?') +
+						' | Limit: ' + (diagnosticInfo.memoryLimit || '?') +
+						' | Time: ' + (diagnosticInfo.requestTime || '?')
+					);
+					$techPre.closest('.sscribe-debug-details').removeClass('sscribe-hidden');
+				}
+			}
+
 			$('#sscribe-error-area').removeClass('sscribe-hidden').hide().fadeIn(300);
 
 			const alertRegion = document.getElementById('sscribe-alert-region');
@@ -1250,7 +1423,7 @@
 
 		normalizeErrorData: function (errorData) {
 			const normalized = errorData || {};
-			const diagnostics = normalized.error_diagnostics || normalized.diagnostics || null;
+			const diagnostics = normalized._diagnostics || normalized.error_diagnostics || normalized.diagnostics || null;
 
 			if (!diagnostics) {
 				return normalized;
@@ -2198,6 +2371,35 @@
 			container.addEventListener('keydown', handler);
 		},
 	};
+
+	/**
+	 * Global AJAX error diagnostics.
+	 *
+	 * Every failed admin-ajax.php request is captured here and logged to the
+	 * browser console with structured diagnostic context (action name, HTTP
+	 * status, response body, timing, server diagnostics). This provides a
+	 * complete audit trail for support and debugging without modifying
+	 * individual AJAX callers.
+	 *
+	 * Logs are grouped under a collapsible "[SSCRIBE] AJAX Error" label for
+	 * clean DevTools output.
+	 */
+	$(document).ajaxError(function (_event, jqXHR, _settings, exception) {
+		var requestData = null;
+		if (_settings && _settings.data) {
+			if (typeof _settings.data === 'string') {
+				requestData = {};
+				_settings.data.replace(/([^&=]+)=([^&]*)/g, function (_, key, val) {
+					requestData[decodeURIComponent(key)] = decodeURIComponent(val);
+				});
+			} else {
+				requestData = _settings.data;
+			}
+		}
+		if (requestData && requestData.action && requestData.action.indexOf('sscribe_') === 0) {
+			SScribe.logAJAXError(requestData, jqXHR, exception);
+		}
+	});
 
 	$(document).ready(function () {
 		SScribe.init();

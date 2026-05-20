@@ -1,8 +1,8 @@
 <?php
 /**
- * Unit tests for SScribe_Exception classes.
+ * SScribe Exception Unit Test
  *
- * @package SScribe
+ * @package SScribe_Export_Site_Pages
  */
 
 declare(strict_types=1);
@@ -16,14 +16,8 @@ require_once SSCRIBE_PLUGIN_DIR . 'includes/exceptions/class-sscribe-validation-
 require_once SSCRIBE_PLUGIN_DIR . 'includes/exceptions/class-sscribe-export-exception.php';
 require_once SSCRIBE_PLUGIN_DIR . 'includes/exceptions/class-sscribe-session-exception.php';
 
-/**
- * Class SScribe_Exception_Test
- */
 class SScribe_Exception_Test extends TestCase {
 
-	/**
-	 * Test base exception properties.
-	 */
 	public function test_base_exception_properties(): void {
 		$exception = new SScribe_Exception(
 			'E_EXPORT_001',
@@ -38,9 +32,6 @@ class SScribe_Exception_Test extends TestCase {
 		$this->assertEquals( array( 'key' => 'value', 'status' => 500 ), $exception->get_error_data() );
 	}
 
-	/**
-	 * Test exception to array conversion.
-	 */
 	public function test_to_array(): void {
 		$exception = new SScribe_Exception(
 			'E_EXPORT_002',
@@ -57,9 +48,6 @@ class SScribe_Exception_Test extends TestCase {
 		$this->assertArrayNotHasKey( 'context', $array );
 	}
 
-	/**
-	 * Test exception to array with details.
-	 */
 	public function test_to_array_with_details(): void {
 		$exception = new SScribe_Exception(
 			'E_EXPORT_003',
@@ -75,9 +63,6 @@ class SScribe_Exception_Test extends TestCase {
 		$this->assertArrayHasKey( 'line', $array );
 	}
 
-	/**
-	 * Test memory exception.
-	 */
 	public function test_memory_exception(): void {
 		$exception = new SScribe_Memory_Exception(
 			null,
@@ -92,9 +77,6 @@ class SScribe_Exception_Test extends TestCase {
 		$this->assertGreaterThan( 0, $exception->get_recommended_memory_limit() );
 	}
 
-	/**
-	 * Test permission exception.
-	 */
 	public function test_permission_exception(): void {
 		$exception = new SScribe_Permission_Exception(
 			'/var/www/uploads',
@@ -108,9 +90,6 @@ class SScribe_Exception_Test extends TestCase {
 		$this->assertEquals( 403, $exception->get_http_status_code() );
 	}
 
-	/**
-	 * Test validation exception.
-	 */
 	public function test_validation_exception(): void {
 		$exception = new SScribe_Validation_Exception(
 			'Invalid format specified',
@@ -125,9 +104,6 @@ class SScribe_Exception_Test extends TestCase {
 		$this->assertTrue( $exception->is_recoverable() );
 	}
 
-	/**
-	 * Test export exception.
-	 */
 	public function test_export_exception(): void {
 		$exception = new SScribe_Export_Exception(
 			'Failed to generate DOCX',
@@ -140,9 +116,6 @@ class SScribe_Exception_Test extends TestCase {
 		$this->assertEquals( 'docx', $exception->get_format() );
 	}
 
-	/**
-	 * Test export exception with PDF format.
-	 */
 	public function test_export_exception_pdf(): void {
 		$exception = new SScribe_Export_Exception(
 			'Failed to generate PDF',
@@ -153,9 +126,6 @@ class SScribe_Exception_Test extends TestCase {
 		$this->assertEquals( SScribe_Exception::CODE_PDF_GENERATION_FAILED, $exception->get_error_code() );
 	}
 
-	/**
-	 * Test session exception.
-	 */
 	public function test_session_exception(): void {
 		$exception = new SScribe_Session_Exception(
 			null,
@@ -168,9 +138,6 @@ class SScribe_Exception_Test extends TestCase {
 		$this->assertEquals( 410, $exception->get_http_status_code() );
 	}
 
-	/**
-	 * Test session exception corrupted.
-	 */
 	public function test_session_exception_corrupted(): void {
 		$exception = new SScribe_Session_Exception(
 			null,
@@ -181,9 +148,6 @@ class SScribe_Exception_Test extends TestCase {
 		$this->assertEquals( SScribe_Exception::CODE_SESSION_CORRUPTED, $exception->get_error_code() );
 	}
 
-	/**
-	 * Test exception chaining.
-	 */
 	public function test_exception_chaining(): void {
 		$previous = new \RuntimeException( 'Original error' );
 
@@ -198,9 +162,6 @@ class SScribe_Exception_Test extends TestCase {
 		$this->assertSame( $previous, $exception->getPrevious() );
 	}
 
-	/**
-	 * Test retryable flag on export exception.
-	 */
 	public function test_export_exception_retryable(): void {
 		$exception = new SScribe_Export_Exception( 'Temporary error', 1, 'docx' );
 

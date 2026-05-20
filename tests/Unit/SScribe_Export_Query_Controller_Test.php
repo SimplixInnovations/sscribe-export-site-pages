@@ -1,9 +1,11 @@
 <?php
 /**
- * Unit tests for SScribe_Export_Query_Controller class.
+ * SScribe Export Query Controller Unit Test
  *
- * @package SScribe
+ * @package SScribe_Export_Site_Pages
  */
+
+declare(strict_types=1);
 
 namespace SScribe\Tests\Unit;
 

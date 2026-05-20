@@ -1,8 +1,8 @@
 <?php
 /**
- * Security audit trail for SScribe.
+ * SScribe Audit Trail
  *
- * @package SScribe
+ * @package SScribe_Export_Site_Pages
  */
 
 declare(strict_types=1);
@@ -11,16 +11,8 @@ if ( ! defined( 'ABSPATH' ) ) {
 	exit;
 }
 
-/**
- * Class SScribe_Audit_Trail
- *
- * Provides database-backed audit logging for security-sensitive operations.
- */
 class SScribe_Audit_Trail {
 
-	/**
-	 * Audit event types.
-	 */
 	public const EVENT_EXPORT_STARTED         = 'export_started';
 	public const EVENT_EXPORT_COMPLETED       = 'export_completed';
 	public const EVENT_EXPORT_FAILED          = 'export_failed';
@@ -35,40 +27,23 @@ class SScribe_Audit_Trail {
 	public const EVENT_INVALID_NONCE          = 'invalid_nonce';
 	public const EVENT_SESSION_HIJACK_ATTEMPT = 'session_hijack_attempt';
 
-	/**
-	 * Table name for audit logs.
-	 *
-	 * @var string
-	 */
 	private readonly string $table_name;
 
-	/**
-	 * Whether database logging is enabled.
-	 *
-	 * @var bool
-	 */
 	private readonly bool $enabled;
 
-	/**
-	 * Constructor.
-	 */
 	public function __construct() {
 		global $wpdb;
 		$this->table_name = $wpdb->prefix . 'sscribe_audit_log';
 		$this->enabled    = $this->table_exists();
 	}
 
-	/**
-	 * Check if the audit table exists.
-	 *
-	 * @return bool True if table exists.
-	 */
 	private function table_exists(): bool {
 		global $wpdb;
 		static $exists = null;
 
 		if ( null === $exists ) {
 			// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- Schema introspection, cached via static variable
+
 			$table  = $wpdb->get_var(
 				$wpdb->prepare( 'SHOW TABLES LIKE %s', $this->table_name )
 			);
@@ -78,13 +53,6 @@ class SScribe_Audit_Trail {
 		return $exists;
 	}
 
-	/**
-	 * Log an audit event.
-	 *
-	 * @param string $event   Event type (use constants).
-	 * @param array  $context Event context data.
-	 * @return bool True if logged successfully.
-	 */
 	public function log( string $event, array $context = array() ): bool {
 		if ( ! $this->enabled ) {
 			return false;
@@ -100,6 +68,7 @@ class SScribe_Audit_Trail {
 		$sanitized_context = $this->sanitize_context( $context );
 
 		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- Custom table write, no caching for audit integrity
+
 		$result = $wpdb->insert(
 			$this->table_name,
 			array(
@@ -118,12 +87,6 @@ class SScribe_Audit_Trail {
 		return false !== $result;
 	}
 
-	/**
-	 * Sanitize context by removing sensitive data.
-	 *
-	 * @param array $context Raw context data.
-	 * @return array Sanitized context.
-	 */
 	private function sanitize_context( array $context ): array {
 		$forbidden_keys = array(
 			'password',
@@ -151,33 +114,16 @@ class SScribe_Audit_Trail {
 		return $context;
 	}
 
-	/**
-	 * Get client IP address.
-	 *
-	 * Prioritizes REMOTE_ADDR to prevent IP spoofing via HTTP headers.
-	 *
-	 * @return string Client IP address.
-	 */
 	private function get_client_ip(): string {
 		return SScribe_Helpers::get_client_ip();
 	}
 
-	/**
-	 * Get hashed client IP for GDPR-compliant audit logging.
-	 *
-	 * @return string Hashed IP (SHA-256, first 16 chars).
-	 */
 	private function hash_client_ip(): string {
 		$raw_ip = $this->get_client_ip();
 		$salt   = defined( 'AUTH_SALT' ) && '' !== AUTH_SALT ? AUTH_SALT : 'sscribe-audit';
 		return substr( hash_hmac( 'sha256', $raw_ip, $salt ), 0, 16 );
 	}
 
-	/**
-	 * Get user agent string.
-	 *
-	 * @return string User agent or 'Unknown'.
-	 */
 	private function get_user_agent(): string {
 		if ( ! empty( $_SERVER['HTTP_USER_AGENT'] ) ) {
 			return sanitize_text_field( wp_unslash( $_SERVER['HTTP_USER_AGENT'] ) );
@@ -185,11 +131,6 @@ class SScribe_Audit_Trail {
 		return 'Unknown';
 	}
 
-	/**
-	 * Get request URI.
-	 *
-	 * @return string Request URI or empty string.
-	 */
 	private function get_request_uri(): string {
 		if ( ! empty( $_SERVER['REQUEST_URI'] ) ) {
 			return sanitize_text_field( wp_unslash( $_SERVER['REQUEST_URI'] ) );
@@ -197,14 +138,6 @@ class SScribe_Audit_Trail {
 		return '';
 	}
 
-	/**
-	 * Get audit logs with filters.
-	 *
-	 * @param array $filters Filters (event, user_id, date_from, date_to).
-	 * @param int   $limit   Maximum results.
-	 * @param int   $offset  Offset for pagination.
-	 * @return array Audit log entries.
-	 */
 	public function get_logs( array $filters = array(), int $limit = 100, int $offset = 0 ): array {
 		if ( ! $this->enabled ) {
 			return array();
@@ -249,12 +182,6 @@ class SScribe_Audit_Trail {
 		$args[]       = $limit;
 		$args[]       = $offset;
 
-		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
-		// JUSTIFICATION: The table name {$this->table_name} is derived from $wpdb->prefix (a trusted WordPress core value)
-		// and is NOT user-controlled input. The WHERE clause {$where_clause} is built from controlled filter keys
-		// (event, user_id, ip_address, date_from, date_to, session_id) using %s and %d placeholders in the $args array,
-		// which are properly escaped by $wpdb->prepare(). The table name interpolation is necessary because
-		// $wpdb->prepare() does not support table name placeholders — this is a documented WordPress limitation.
 		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, PluginCheck.Security.DirectDB.UnescapedDBParameter
 		return $wpdb->get_results(
 			// phpcs:ignore WordPress.DB.PreparedSQLPlaceholders.ReplacementsWrongNumber -- Dynamic WHERE clause placeholders counted at runtime
@@ -265,12 +192,6 @@ class SScribe_Audit_Trail {
 		);
 	}
 
-	/**
-	 * Get audit log counts by event type.
-	 *
-	 * @param array $filters Filters.
-	 * @return array Event counts.
-	 */
 	public function get_event_counts( array $filters = array() ): array {
 		if ( ! $this->enabled ) {
 			return array();
@@ -293,10 +214,6 @@ class SScribe_Audit_Trail {
 
 		$where_clause = implode( ' AND ', $where );
 
-		// JUSTIFICATION: The table name {$this->table_name} is derived from $wpdb->prefix (a trusted WordPress core value)
-		// and is NOT user-controlled input. The WHERE clause {$where_clause} is built from controlled filter keys
-		// (date_from, date_to) using %s placeholders in the $args array, which are properly escaped by $wpdb->prepare().
-		// The table name interpolation is necessary because $wpdb->prepare() does not support table name placeholders.
 		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, PluginCheck.Security.DirectDB.UnescapedDBParameter
 		return $wpdb->get_results(
 			$wpdb->prepare(
@@ -306,12 +223,6 @@ class SScribe_Audit_Trail {
 		);
 	}
 
-	/**
-	 * Clean up old audit logs.
-	 *
-	 * @param int $days Maximum age in days.
-	 * @return int Number of deleted rows.
-	 */
 	public function cleanup( int $days = 90 ): int {
 		if ( ! $this->enabled ) {
 			return 0;
@@ -321,7 +232,6 @@ class SScribe_Audit_Trail {
 
 		$cutoff = gmdate( 'Y-m-d H:i:s', strtotime( "-{$days} days" ) );
 
-		// Table name from $wpdb->prefix is trusted (not user-controlled) — safe to interpolate.
 		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
 		return $wpdb->query(
 			$wpdb->prepare(
@@ -332,12 +242,6 @@ class SScribe_Audit_Trail {
 		);
 	}
 
-	/**
-	 * Erase personal data associated with a user while retaining non-personal audit metadata.
-	 *
-	 * @param int $user_id User ID.
-	 * @return int Number of updated rows.
-	 */
 	public function erase_user_data( int $user_id ): int {
 		if ( ! $this->enabled || $user_id <= 0 ) {
 			return 0;
@@ -363,11 +267,6 @@ class SScribe_Audit_Trail {
 		return false === $result ? 0 : (int) $result;
 	}
 
-	/**
-	 * Create the audit log table.
-	 *
-	 * @return void
-	 */
 	public static function create_table(): void {
 		global $wpdb;
 

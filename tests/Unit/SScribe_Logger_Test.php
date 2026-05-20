@@ -1,8 +1,8 @@
 <?php
 /**
- * Logger tests.
+ * SScribe Logger Unit Test
  *
- * @package SScribe\Tests\Unit
+ * @package SScribe_Export_Site_Pages
  */
 
 declare(strict_types=1);

@@ -1,6 +1,10 @@
 <?php
 /**
- * Silence is golden.
+ * SScribe Traits Index
  *
- * @package SScribe
+ * @package SScribe_Export_Site_Pages
  */
+
+if ( ! defined( 'ABSPATH' ) ) {
+	exit;
+}

@@ -1,8 +1,8 @@
 <?php
 /**
- * Integration tests for SScribe Batch Export flow.
+ * SScribe Batch Integration Test
  *
- * @package SScribe
+ * @package SScribe_Export_Site_Pages
  */
 
 declare(strict_types=1);
@@ -14,14 +14,8 @@ require_once SSCRIBE_PLUGIN_DIR . 'includes/class-sscribe-validator.php';
 require_once SSCRIBE_PLUGIN_DIR . 'includes/class-sscribe-session.php';
 require_once SSCRIBE_PLUGIN_DIR . 'includes/class-sscribe-logger.php';
 
-/**
- * Class SScribe_Batch_Integration_Test
- */
 class SScribe_Batch_Integration_Test extends TestCase {
 
-	/**
-	 * Test export configuration validation flow.
-	 */
 	public function test_export_config_validation_flow(): void {
 		$config = array(
 			'formats'     => array( 'docx' ),
@@ -36,9 +30,6 @@ class SScribe_Batch_Integration_Test extends TestCase {
 		$this->assertEmpty( $result['errors'] );
 	}
 
-	/**
-	 * Test export session lifecycle.
-	 */
 	public function test_session_lifecycle(): void {
 		$session = new SScribe_Session();
 
@@ -66,9 +57,6 @@ class SScribe_Batch_Integration_Test extends TestCase {
 		$this->assertNull( $deleted );
 	}
 
-	/**
-	 * Test memory validation with realistic estimates.
-	 */
 	public function test_memory_validation_estimates(): void {
 		$errors = SScribe_Validator::validate_memory_availability( 100, array( 'docx' ) );
 		$this->assertIsArray( $errors );
@@ -80,9 +68,6 @@ class SScribe_Batch_Integration_Test extends TestCase {
 		$this->assertIsArray( $errors );
 	}
 
-	/**
-	 * Test page data validation.
-	 */
 	public function test_page_data_validation_flow(): void {
 		$valid_page = array(
 			'id'      => 1,
@@ -104,9 +89,6 @@ class SScribe_Batch_Integration_Test extends TestCase {
 		$this->assertNotEmpty( $result['errors'] );
 	}
 
-	/**
-	 * test format validation with all supported formats.
-	 */
 	public function test_all_format_validation(): void {
 		$all_formats = array( 'docx', 'pdf', 'html', 'markdown' );
 
@@ -114,9 +96,6 @@ class SScribe_Batch_Integration_Test extends TestCase {
 		$this->assertEmpty( $errors );
 	}
 
-	/**
-	 * Test DOCX integrity validation.
-	 */
 	public function test_docx_integrity_validation(): void {
 		$temp_file = sys_get_temp_dir() . '/test_invalid_' . uniqid() . '.docx';
 		file_put_contents( $temp_file, 'not a valid docx' );
@@ -130,9 +109,6 @@ class SScribe_Batch_Integration_Test extends TestCase {
 		$this->assertFalse( $result );
 	}
 
-	/**
-	 * Test AJAX input sanitization flow.
-	 */
 	public function test_ajax_input_sanitization_flow(): void {
 		$malicious_input = array(
 			'page_ids'   => array( '1', '2', 'invalid' ),
@@ -156,9 +132,6 @@ class SScribe_Batch_Integration_Test extends TestCase {
 		$this->assertEquals( '', $sanitized['redirect'] );
 	}
 
-	/**
-	 * Test batch size limits.
-	 */
 	public function test_batch_size_limits(): void {
 		$too_many_pages = range( 1, 6000 );
 
@@ -168,9 +141,6 @@ class SScribe_Batch_Integration_Test extends TestCase {
 		$this->assertStringContainsString( 'Maximum', $errors[0] );
 	}
 
-	/**
-	 * Test post status validation.
-	 */
 	public function test_post_status_validation_flow(): void {
 		$valid_statuses = array( 'publish', 'draft', 'pending', 'private', 'future', 'all' );
 
@@ -183,9 +153,6 @@ class SScribe_Batch_Integration_Test extends TestCase {
 		$this->assertNotEmpty( $errors );
 	}
 
-	/**
-	 * Test export session ownership concept.
-	 */
 	public function test_session_ownership_concept(): void {
 		$session = new SScribe_Session();
 
@@ -200,9 +167,6 @@ class SScribe_Batch_Integration_Test extends TestCase {
 		$session->delete( $session_id );
 	}
 
-	/**
-	 * Test error propagation through export flow.
-	 */
 	public function test_error_propagation(): void {
 		$invalid_config = array(
 			'formats'     => array( 'invalid_format' ),
@@ -216,9 +180,6 @@ class SScribe_Batch_Integration_Test extends TestCase {
 		$this->assertGreaterThanOrEqual( 2, count( $result['errors'] ) );
 	}
 
-	/**
-	 * Test concurrent session handling concept.
-	 */
 	public function test_concurrent_session_handling(): void {
 		$session = new SScribe_Session();
 

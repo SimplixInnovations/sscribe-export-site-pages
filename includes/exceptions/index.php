@@ -1,8 +1,10 @@
 <?php
 /**
- * Prevents direct access to the exceptions directory.
+ * SScribe Exceptions Index
  *
- * @package SScribe
+ * @package SScribe_Export_Site_Pages
  */
 
-// Silence is golden.
+if ( ! defined( 'ABSPATH' ) ) {
+	exit;
+}

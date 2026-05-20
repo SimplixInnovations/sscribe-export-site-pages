@@ -1,11 +1,8 @@
 <?php
 /**
- * Structured JSON logging for SScribe.
+ * SScribe Structured Logger
  *
- * Outputs machine-parseable JSON log entries for integration with
- * log aggregation systems (ELK, Datadog, CloudWatch, etc.).
- *
- * @package SScribe
+ * @package SScribe_Export_Site_Pages
  */
 
 declare(strict_types=1);
@@ -18,14 +15,17 @@ require_once SSCRIBE_PLUGIN_DIR . 'includes/interfaces/interface-sscribe-logger.
 require_once SSCRIBE_PLUGIN_DIR . 'includes/traits/trait-sscribe-logger-common.php';
 
 /**
- * Class SScribe_Logger_Structured
- *
- * Feature 4: Structured JSON logger for production observability.
+ * Structured JSON logger implementation.
  */
 class SScribe_Logger_Structured implements SScribe_Logger_Interface {
 
 	use SScribe_Logger_Common;
 
+	/**
+	 * Log level priority mapping.
+	 *
+	 * @var array<string, int>
+	 */
 	private const LEVEL_PRIORITY = array(
 		self::LEVEL_DEBUG     => 0,
 		self::LEVEL_INFO      => 1,
@@ -45,21 +45,21 @@ class SScribe_Logger_Structured implements SScribe_Logger_Interface {
 	private readonly string $log_dir;
 
 	/**
-	 * Minimum log level to record.
+	 * Minimum log level.
 	 *
 	 * @var string
 	 */
 	private readonly string $min_level;
 
 	/**
-	 * Per-request correlation ID.
+	 * Current request ID.
 	 *
 	 * @var string
 	 */
 	private readonly string $request_id;
 
 	/**
-	 * Export session ID for correlation in log entries.
+	 * Current session ID for context.
 	 *
 	 * @var string|null
 	 */
@@ -68,7 +68,7 @@ class SScribe_Logger_Structured implements SScribe_Logger_Interface {
 	/**
 	 * Constructor.
 	 *
-	 * @param string $min_level Minimum log level to record.
+	 * @param string $min_level Minimum log level to capture.
 	 */
 	public function __construct( string $min_level = self::LEVEL_DEBUG ) {
 		$upload_dir       = wp_upload_dir();
@@ -84,7 +84,13 @@ class SScribe_Logger_Structured implements SScribe_Logger_Interface {
 	}
 
 	/**
-	 * Log a debug message.
+	 * Log debug message.
+	 *
+	 * @param string $message Log message.
+	 * @param array  $context Additional context data.
+	 */
+	/**
+	 * Log debug message.
 	 *
 	 * @param string $message Log message.
 	 * @param array  $context Additional context data.
@@ -94,7 +100,7 @@ class SScribe_Logger_Structured implements SScribe_Logger_Interface {
 	}
 
 	/**
-	 * Log an info message.
+	 * Log info message.
 	 *
 	 * @param string $message Log message.
 	 * @param array  $context Additional context data.
@@ -104,7 +110,7 @@ class SScribe_Logger_Structured implements SScribe_Logger_Interface {
 	}
 
 	/**
-	 * Log a notice.
+	 * Log notice message.
 	 *
 	 * @param string $message Log message.
 	 * @param array  $context Additional context data.
@@ -114,7 +120,7 @@ class SScribe_Logger_Structured implements SScribe_Logger_Interface {
 	}
 
 	/**
-	 * Log a warning.
+	 * Log warning message.
 	 *
 	 * @param string $message Log message.
 	 * @param array  $context Additional context data.
@@ -124,7 +130,7 @@ class SScribe_Logger_Structured implements SScribe_Logger_Interface {
 	}
 
 	/**
-	 * Log an error.
+	 * Log error message.
 	 *
 	 * @param string $message Log message.
 	 * @param array  $context Additional context data.
@@ -134,7 +140,7 @@ class SScribe_Logger_Structured implements SScribe_Logger_Interface {
 	}
 
 	/**
-	 * Log a critical/fatal error.
+	 * Log critical message.
 	 *
 	 * @param string $message Log message.
 	 * @param array  $context Additional context data.
@@ -144,7 +150,7 @@ class SScribe_Logger_Structured implements SScribe_Logger_Interface {
 	}
 
 	/**
-	 * Log an alert message.
+	 * Log alert message.
 	 *
 	 * @param string $message Log message.
 	 * @param array  $context Additional context data.
@@ -154,7 +160,7 @@ class SScribe_Logger_Structured implements SScribe_Logger_Interface {
 	}
 
 	/**
-	 * Log an emergency message.
+	 * Log emergency message.
 	 *
 	 * @param string $message Log message.
 	 * @param array  $context Additional context data.
@@ -164,28 +170,25 @@ class SScribe_Logger_Structured implements SScribe_Logger_Interface {
 	}
 
 	/**
-	 * Check if logging is enabled.
+	 * Check if logger is enabled.
 	 *
-	 * @return bool Always true for structured logger.
+	 * @return bool True if logger is active.
 	 */
 	public function is_enabled(): bool {
 		return true;
 	}
 
 	/**
-	 * Set the session ID for correlation in log entries.
+	 * Set session ID for log context.
 	 *
-	 * When set, all subsequent log entries will include this session_id
-	 * in their context data, enabling correlation across export operations.
-	 *
-	 * @param string $session_id The export session identifier.
+	 * @param string $session_id Session identifier.
 	 */
 	public function set_session_id( string $session_id ): void {
 		$this->session_id = $session_id;
 	}
 
 	/**
-	 * Check if a level should be logged.
+	 * Check if a log level should be captured.
 	 *
 	 * @param string $level Log level to check.
 	 * @return bool True if level meets minimum threshold.
@@ -197,9 +200,9 @@ class SScribe_Logger_Structured implements SScribe_Logger_Interface {
 	}
 
 	/**
-	 * Log a message at the specified level.
+	 * Log a message at specified level.
 	 *
-	 * @param string $level Log level.
+	 * @param string $level   Log level.
 	 * @param string $message Log message.
 	 * @param array  $context Additional context data.
 	 */
@@ -222,7 +225,6 @@ class SScribe_Logger_Structured implements SScribe_Logger_Interface {
 			'wp_site_url'  => get_option( 'siteurl', '' ),
 		);
 
-		// Include session_id for export operation correlation.
 		if ( null !== $this->session_id ) {
 			$base_entry['session_id'] = $this->session_id;
 		}
@@ -232,14 +234,13 @@ class SScribe_Logger_Structured implements SScribe_Logger_Interface {
 			$this->sanitize_context( $context )
 		);
 
-		// phpcs:ignore WordPress.PHP.DevelopmentFunctions.error_log_error_log -- Structured logging output.
-		error_log( wp_json_encode( $entry, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES ) );
+		error_log( wp_json_encode( $entry, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES ) ); // phpcs:ignore WordPress.PHP.DevelopmentFunctions.error_log_error_log -- Structured logging output.
 	}
 
 	/**
-	 * Sanitize context values for safe JSON output.
+	 * Sanitize context data for logging.
 	 *
-	 * @param array $context Raw context data.
+	 * @param array $context Context data to sanitize.
 	 * @return array Sanitized context.
 	 */
 	private function sanitize_context( array $context ): array {
@@ -260,18 +261,16 @@ class SScribe_Logger_Structured implements SScribe_Logger_Interface {
 	}
 
 	/**
-	 * Flush buffered logs (no-op for this implementation).
-	 *
-	 * Structured logs are written immediately via error_log.
+	 * Flush handler on shutdown.
 	 */
 	public function flush(): void {
 	}
 
 	/**
-	 * Get log entries (not supported for structured output).
+	 * Get recent log entries.
 	 *
-	 * @param int $limit Maximum results (unused).
-	 * @return array Empty array.
+	 * @param int $limit Maximum number of entries to return.
+	 * @return array Recent log entries.
 	 */
 	public function get_logs( int $limit = 100 ): array {
 		return array();

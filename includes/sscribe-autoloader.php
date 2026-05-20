@@ -1,11 +1,8 @@
 <?php
 /**
- * Plugin-owned runtime autoloader.
+ * SScribe Autoloader
  *
- * Decouples SScribe runtime class loading from Composer so production builds
- * can load prefixed vendor dependencies without relying on raw vendor/autoload.php.
- *
- * @package SScribe
+ * @package SScribe_Export_Site_Pages
  */
 
 declare(strict_types=1);
@@ -16,7 +13,7 @@ if ( ! defined( 'ABSPATH' ) ) {
 
 spl_autoload_register(
 	static function ( string $class_name ): void {
-		// A-5: In-request cache to avoid repeated file_exists checks.
+
 		static $loaded  = array();
 		static $missing = array();
 
@@ -28,7 +25,6 @@ spl_autoload_register(
 			return;
 		}
 
-		// Explicit mapping for SScribe_Security (used by deactivator before any other class loads).
 		if ( 'SScribe_Security' === $class_name ) {
 			$file = SSCRIBE_PLUGIN_DIR . 'includes/class-sscribe-security.php';
 			if ( file_exists( $file ) ) {
@@ -40,7 +36,6 @@ spl_autoload_register(
 			return;
 		}
 
-		// Handle the core orchestrator class (no underscore).
 		if ( 'SScribe' === $class_name ) {
 			$file = SSCRIBE_PLUGIN_DIR . 'includes/class-sscribe.php';
 			if ( file_exists( $file ) ) {

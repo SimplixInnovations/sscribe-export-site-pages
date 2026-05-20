@@ -1,11 +1,8 @@
 <?php
 /**
- * Automated version bump script.
+ * SScribe Version Bumper
  *
- * Updates all version references across the entire plugin in a single atomic operation.
- * Run: php scripts/bump-version.php 1.1.0
- *
- * @package SScribe
+ * @package SScribe_Export_Site_Pages
  */
 
 declare(strict_types=1);
@@ -22,7 +19,6 @@ if ($argc < 2) {
 
 $new_version = $argv[1];
 
-// Validate version format (semver-like: major.minor.patch).
 if (!preg_match('/^\d+\.\d+\.\d+$/', $new_version)) {
 	echo "Error: Version must be in format major.minor.patch (e.g., 1.1.0)\n";
 	exit(1);
@@ -30,9 +26,9 @@ if (!preg_match('/^\d+\.\d+\.\d+$/', $new_version)) {
 
 $root_dir = dirname(__DIR__);
 
-// Detect current version from the constant.
 $plugin_file = $root_dir . '/sscribe-export-site-pages.php';
 // phpcs:ignore WordPress.WP.AlternativeFunctions.file_get_contents_file_get_contents
+
 $plugin_content = file_get_contents($plugin_file);
 if (!preg_match("/define\s*\(\s*['\"]SSCRIBE_VERSION['\"]\s*,\s*['\"]([0-9.]+)['\"]/U", $plugin_content, $matches)) {
 	echo "Error: Could not find SSCRIBE_VERSION constant.\n";
@@ -47,54 +43,50 @@ if ($old_version === $new_version) {
 
 echo "Bumping version: {$old_version} → {$new_version}\n\n";
 
-// ============================================================================
-// 1. DEFINE ALL VERSION LOCATIONS
-// ============================================================================
-// Each entry: file path, search pattern (with capture group for version), replacement callback or pattern.
 $locations = array(
-	// Core plugin file — Version header.
+
 	array(
 		'file' => $root_dir . '/sscribe-export-site-pages.php',
 		'pattern' => '/(\*\s*Version:\s*)' . preg_quote($old_version, '/') . '/',
 		'replace' => '${1}' . $new_version,
 		'label' => 'Plugin header Version',
 	),
-	// Core plugin file — SSCRIBE_VERSION constant.
+
 	array(
 		'file' => $root_dir . '/sscribe-export-site-pages.php',
 		'pattern' => "/(define\s*\(\s*['\"]SSCRIBE_VERSION['\"]\s*,\s*['\"]){$old_version}(['\"])/U",
 		'replace' => '${1}' . $new_version . '${2}',
 		'label' => 'SSCRIBE_VERSION constant',
 	),
-	// Readme — Stable tag.
+
 	array(
 		'file' => $root_dir . '/readme.txt',
 		'pattern' => '/(Stable tag:\s*)' . preg_quote($old_version, '/') . '/',
 		'replace' => '${1}' . $new_version,
 		'label' => 'Readme Stable tag',
 	),
-	// Readme — Upgrade notice heading.
+
 	array(
 		'file' => $root_dir . '/readme.txt',
 		'pattern' => '/(= )' . preg_quote($old_version, '/') . '( =)/',
 		'replace' => '${1}' . $new_version . '${2}',
 		'label' => 'Readme Upgrade notice / Changelog headings',
 	),
-	// CSS — @version.
+
 	array(
 		'file' => $root_dir . '/admin/css/sscribe-admin.css',
 		'pattern' => '/(\*\s*@version\s+)' . preg_quote($old_version, '/') . '/',
 		'replace' => '${1}' . $new_version,
 		'label' => 'CSS @version header',
 	),
-	// POT — Project-Id-Version.
+
 	array(
 		'file' => $root_dir . '/languages/sscribe-export-site-pages.pot',
 		'pattern' => '/(Project-Id-Version: SScribe Export Site Pages )' . preg_quote($old_version, '/') . '/',
 		'replace' => '${1}' . $new_version,
 		'label' => 'POT Project-Id-Version',
 	),
-	// Composer.json version (if present).
+
 	array(
 		'file' => $root_dir . '/composer.json',
 		'pattern' => '/("version":\s*")' . preg_quote($old_version, '/') . '(")/',
@@ -102,7 +94,7 @@ $locations = array(
 		'label' => 'composer.json version',
 		'optional' => true,
 	),
-	// Package.json version (if present).
+
 	array(
 		'file' => $root_dir . '/package.json',
 		'pattern' => '/("version":\s*")' . preg_quote($old_version, '/') . '(")/',
@@ -112,9 +104,6 @@ $locations = array(
 	),
 );
 
-// ============================================================================
-// 2. UPDATE ALL DEFINED LOCATIONS
-// ============================================================================
 $updated_count = 0;
 $errors = array();
 
@@ -131,6 +120,7 @@ foreach ($locations as $loc) {
 	}
 
 	// phpcs:ignore WordPress.WP.AlternativeFunctions.file_get_contents_file_get_contents
+
 	$content = file_get_contents($file);
 
 	if (!preg_match(str_replace($old_version, '(' . preg_quote($old_version, '/') . ')', $loc['pattern']), $content)) {
@@ -149,6 +139,7 @@ foreach ($locations as $loc) {
 	}
 
 	// phpcs:ignore WordPress.WP.AlternativeFunctions.file_system_operations_file_put_contents
+
 	file_put_contents($file, $new_content);
 	echo "  ✓  {$loc['label']}: {$file}\n";
 	$updated_count += $count;
@@ -156,9 +147,6 @@ foreach ($locations as $loc) {
 
 echo "\n";
 
-// ============================================================================
-// 3. DEEP SCAN — find ALL remaining stray version references in source files
-// ============================================================================
 echo "Deep scanning for stray {$old_version} references...\n";
 
 $scan_dirs = array(
@@ -207,14 +195,13 @@ foreach ($all_files as $file) {
 		continue;
 	}
 	// phpcs:ignore WordPress.WP.AlternativeFunctions.file_get_contents_file_get_contents
+
 	$file_content = file_get_contents($file);
 	if (preg_match_all($version_regex, $file_content, $v_matches)) {
 		$basename = basename($file);
 		$skip = false;
 		foreach ($skip_patterns as $pattern => $reason) {
-			// Use str_ends_with for extension patterns (e.g., '.pot'),
-			// exact match for full filenames. Avoids fnmatch() which is
-			// unavailable on Windows by default.
+
 			$match = str_starts_with($pattern, '.')
 				? str_ends_with($basename, $pattern)
 				: ($basename === $pattern);
@@ -227,11 +214,12 @@ foreach ($all_files as $file) {
 			continue;
 		}
 		$relative = str_replace($root_dir . '/', '', $file);
-		// Auto-update: replace all remaining stray references.
+
 		$replaced = str_replace($old_version, $new_version, $file_content);
 		$stray_count = count($v_matches[0]);
 		$stray_found[] = sprintf('  ↳ %s: %d reference(s) → auto-updated', $relative, $stray_count);
 		// phpcs:ignore WordPress.WP.AlternativeFunctions.file_system_operations_file_put_contents
+
 		file_put_contents($file, $replaced);
 		$updated_count += $stray_count;
 	}
@@ -248,9 +236,6 @@ if (!empty($stray_found)) {
 
 echo "\n";
 
-// ============================================================================
-// 4. VERIFY
-// ============================================================================
 echo "Verifying version sync...\n";
 
 $verify_cmd = sprintf('php %s/scripts/verify-version-sync.php', $root_dir);
@@ -263,9 +248,6 @@ if (0 !== $verify_exit) {
 	echo "   Manual review may be needed for changelog entries.\n";
 }
 
-// ============================================================================
-// 5. SUMMARY
-// ============================================================================
 if (!empty($errors)) {
 	echo "Errors:\n";
 	foreach ($errors as $e) {
@@ -285,12 +267,3 @@ echo "    4. Commit: git commit -am 'chore: bump version to v{$new_version}'\n";
 echo "═══════════════════════════════════════\n";
 
 exit(0);
-
-
-
-
-
-
-
-
-

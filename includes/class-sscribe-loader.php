@@ -1,84 +1,35 @@
 <?php
 /**
- * Register all actions and filters for the plugin.
+ * SScribe Loader
  *
- * @package SScribe
+ * @package SScribe_Export_Site_Pages
  */
 
 declare(strict_types=1);
 
-// Prevent direct access.
 if ( ! defined( 'ABSPATH' ) ) {
 	exit;
 }
 
-/**
- * Class SScribe_Loader
- *
- * Maintains a list of all hooks registered by the plugin and registers
- * them with the WordPress API when run() is called.
- */
 class SScribe_Loader {
 
-	/**
-	 * Array of actions registered with WordPress.
-	 *
-	 * @var array
-	 */
 	protected array $actions;
 
-	/**
-	 * Array of filters registered with WordPress.
-	 *
-	 * @var array
-	 */
 	protected array $filters;
 
-	/**
-	 * Initialize the collections.
-	 */
 	public function __construct() {
 		$this->actions = array();
 		$this->filters = array();
 	}
 
-	/**
-	 * Add an action to the collection.
-	 *
-	 * @param string $hook          The name of the WordPress action.
-	 * @param object $component     A reference to the instance of the object.
-	 * @param string $callback      The name of the function definition.
-	 * @param int    $priority      Optional. The priority. Default 10.
-	 * @param int    $accepted_args Optional. Number of arguments. Default 1.
-	 */
 	public function add_action( string $hook, object $component, string $callback, int $priority = 10, int $accepted_args = 1 ): void {
 		$this->actions = $this->add( $this->actions, $hook, $component, $callback, $priority, $accepted_args );
 	}
 
-	/**
-	 * Add a filter to the collection.
-	 *
-	 * @param string $hook          The name of the WordPress filter.
-	 * @param object $component     A reference to the instance of the object.
-	 * @param string $callback      The name of the function definition.
-	 * @param int    $priority      Optional. The priority. Default 10.
-	 * @param int    $accepted_args Optional. Number of arguments. Default 1.
-	 */
 	public function add_filter( string $hook, object $component, string $callback, int $priority = 10, int $accepted_args = 1 ): void {
 		$this->filters = $this->add( $this->filters, $hook, $component, $callback, $priority, $accepted_args );
 	}
 
-	/**
-	 * Utility function for registering hooks into a single collection.
-	 *
-	 * @param array  $hooks         The collection of hooks (actions or filters).
-	 * @param string $hook          The name of the WordPress hook.
-	 * @param object $component     A reference to the instance of the object.
-	 * @param string $callback      The name of the function definition.
-	 * @param int    $priority      The priority.
-	 * @param int    $accepted_args The number of arguments.
-	 * @return array The collection of hooks with the new hook added.
-	 */
 	private function add( array $hooks, string $hook, object $component, string $callback, int $priority, int $accepted_args ): array {
 		$hooks[] = array(
 			'hook'          => $hook,
@@ -90,9 +41,6 @@ class SScribe_Loader {
 		return $hooks;
 	}
 
-	/**
-	 * Register all hooks with WordPress.
-	 */
 	public function run(): void {
 		foreach ( $this->filters as $hook ) {
 			add_filter(

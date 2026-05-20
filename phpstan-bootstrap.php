@@ -1,11 +1,8 @@
 <?php
 /**
- * PHPStan bootstrap for SScribe plugin analysis.
+ * SScribe PHPStan Bootstrap
  *
- * Ensures prefixed vendor classes are discoverable during static analysis in
- * both CI (vendor-prefixed generated) and local development (raw vendor).
- *
- * @package SScribe
+ * @package SScribe_Export_Site_Pages
  */
 
 declare(strict_types=1);
@@ -14,10 +11,6 @@ $base_dir          = __DIR__;
 $vendor_autoload   = $base_dir . '/vendor/autoload.php';
 $prefixed_autoload = $base_dir . '/vendor-prefixed/autoload.php';
 
-/**
- * Prefer raw vendor autoload for PHPStan to avoid duplicate Safe\ wrappers
- * when both raw and prefixed trees are present in CI.
- */
 if ( file_exists( $vendor_autoload ) ) {
 	require_once $vendor_autoload;
 } elseif ( file_exists( $prefixed_autoload ) ) {
@@ -25,10 +18,6 @@ if ( file_exists( $vendor_autoload ) ) {
 	require_once $prefixed_autoload;
 }
 
-/**
- * Map prefixed runtime class names used by plugin code to raw vendor classes
- * so PHPStan can resolve symbols without loading both vendor trees.
- */
 $sscribe_phpstan_alias_prefixes = array(
 	'SScribeVendor\\Mpdf\\'               => 'Mpdf\\',
 	'SScribeVendor\\PhpOffice\\PhpWord\\' => 'PhpOffice\\PhpWord\\',
@@ -54,48 +43,29 @@ spl_autoload_register(
 	true
 );
 
-// Stub WordPress functions that PHPStan cannot discover.
 if ( ! function_exists( 'is_user_logged_in' ) ) {
-	/**
-	 * Check if user is logged in (PHPStan stub).
-	 *
-	 * @return bool
-	 */
+
 	function is_user_logged_in(): bool {
 		return true;
 	}
 }
 
 if ( ! function_exists( 'wp_cache_flush' ) ) {
-	/**
-	 * Flush WordPress object cache (PHPStan stub).
-	 *
-	 * @return bool
-	 */
+
 	function wp_cache_flush(): bool {
 		return true;
 	}
 }
 
 if ( ! function_exists( 'wp_is_post_autosave' ) ) {
-	/**
-	 * Check if post is an autosave (PHPStan stub).
-	 *
-	 * @param int $post_id Post ID.
-	 * @return bool
-	 */
+
 	function wp_is_post_autosave( int $post_id ): bool {
 		return false;
 	}
 }
 
 if ( ! function_exists( 'wp_is_post_revision' ) ) {
-	/**
-	 * Check if post is a revision (PHPStan stub).
-	 *
-	 * @param int $post_id Post ID.
-	 * @return bool
-	 */
+
 	function wp_is_post_revision( int $post_id ): bool {
 		return false;
 	}
