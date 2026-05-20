@@ -357,6 +357,8 @@ class SScribe_Page_Collector {
 				do_action( 'wpml_switch_language', null );
 			}
 		}
+
+		return $count;
 	}
 
 	public function get_total_pages( string $language = '' ): int {
