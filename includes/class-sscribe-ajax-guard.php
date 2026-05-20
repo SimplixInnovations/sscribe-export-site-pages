@@ -97,9 +97,7 @@ class SScribe_AJAX_Guard {
 	 */
 	private static function disable_if_possible( string $key, string $value ): bool {
 		if ( function_exists( 'ini_set' ) && false === strpos( ini_get( 'disable_functions' ), 'ini_set' ) ) {
-			// phpcs:ignore WordPress.PHP.IniSet.Risky
-
-			@ini_set( $key, $value );
+			@ini_set( $key, $value ); // phpcs:ignore WordPress.PHP.IniSet.Risky
 			return true;
 		}
 		return false;
@@ -207,6 +205,7 @@ class SScribe_AJAX_Guard {
 		}
 
 		if ( defined( 'SSCRIBE_DEBUG' ) && SSCRIBE_DEBUG ) {
+			// phpcs:ignore WordPress.PHP.DevelopmentFunctions.error_log_debug_backtrace -- Debug-only feature guarded by SSCRIBE_DEBUG constant.
 			$trace             = debug_backtrace( DEBUG_BACKTRACE_IGNORE_ARGS, 15 );
 			$diag['backtrace'] = array_map(
 				static function ( array $frame ): string {

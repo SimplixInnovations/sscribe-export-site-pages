@@ -161,7 +161,6 @@ class SScribe_Activator {
 
 			do {
 				// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- Cleanup operation during activation.
-
 				$rows = $wpdb->query(
 					$wpdb->prepare(
 						"DELETE FROM {$wpdb->options} WHERE option_name LIKE %s LIMIT 1000",
@@ -180,7 +179,6 @@ class SScribe_Activator {
 		foreach ( $timeout_patterns as $pattern ) {
 			do {
 				// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- Cleanup operation during activation.
-
 				$rows = $wpdb->query(
 					$wpdb->prepare(
 						"DELETE FROM {$wpdb->options} WHERE option_name LIKE %s LIMIT 1000",

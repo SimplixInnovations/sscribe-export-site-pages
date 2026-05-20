@@ -112,7 +112,6 @@ class SScribe_Export_Lock_Manager {
 			$session_pattern = $wpdb->esc_like( 'sscribe_session_' ) . '%';
 
 			// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- Cleanup.
-
 			$sessions = $wpdb->get_results(
 				$wpdb->prepare(
 					"SELECT option_name, option_value FROM {$wpdb->options} WHERE option_name LIKE %s AND autoload = 'no'",
@@ -147,7 +146,6 @@ class SScribe_Export_Lock_Manager {
 			$lock_timeout_pattern = $wpdb->esc_like( '_transient_timeout_sscribe_lock_' ) . '%';
 
 			// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- Cleanup.
-
 			$expired_locks = $wpdb->get_results(
 				$wpdb->prepare(
 					"SELECT option_name FROM {$wpdb->options} WHERE option_name LIKE %s AND option_value < %d",

@@ -107,7 +107,6 @@ class SScribe_Admin {
 		delete_transient( 'sscribe_activation_redirect' );
 
 		// phpcs:ignore WordPress.Security.NonceVerification.Recommended -- Redirect guard only checks activation flow markers.
-
 		if ( isset( $_GET['activate-multi'] ) && '1' === sanitize_key( (string) $_GET['activate-multi'] ) ) {
 			return;
 		}
@@ -128,7 +127,6 @@ class SScribe_Admin {
 	 */
 	public function maybe_send_csp_headers(): void {
 		// phpcs:ignore WordPress.Security.NonceVerification.Recommended -- Read-only page param check.
-
 		if ( ! isset( $_GET['page'] ) || 'sscribe-export' !== sanitize_key( $_GET['page'] ) ) {
 			return;
 		}

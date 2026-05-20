@@ -415,7 +415,6 @@ class SScribe_Batch_Processor {
 		$current_lang = 'default';
 		if ( $this->collector->is_wpml_active() ) {
 			// phpcs:ignore WordPress.NamingConventions.PrefixAllGlobals.NonPrefixedHooknameFound -- Third-party WPML hook, not our filter.
-
 			$current_lang = apply_filters( 'wpml_current_language', null );
 		}
 
