@@ -637,8 +637,22 @@ class SScribe_Admin {
 			wp_send_json_error( array( 'message' => __( 'Insufficient permissions.', 'sscribe-export-site-pages' ) ) );
 		}
 
+		$rate_limiter = new SScribe_Export_Rate_Limiter();
+		if ( ! $rate_limiter->check_rate_limit() ) {
+			wp_send_json_error( array( 'message' => __( 'Rate limit exceeded. Please wait before trying again.', 'sscribe-export-site-pages' ) ) );
+		}
+
 		$filter_level = isset( $_GET['filter_level'] ) ? sanitize_text_field( wp_unslash( $_GET['filter_level'] ) ) : 'ALL';
 		$search       = isset( $_GET['search'] ) ? sanitize_text_field( wp_unslash( $_GET['search'] ) ) : '';
+		$offset       = isset( $_GET['offset'] ) ? absint( $_GET['offset'] ) : 0;
+		$limit        = isset( $_GET['limit'] ) ? absint( $_GET['limit'] ) : 100;
+
+		if ( $limit < 1 || $limit > 500 ) {
+			$limit = 100;
+		}
+		if ( $offset < 0 ) {
+			$offset = 0;
+		}
 
 		$logger = SScribe_Logger::instance( true );
 		$logs   = $logger->get_logs();
@@ -647,8 +661,10 @@ class SScribe_Admin {
 
 		wp_send_json_success(
 			array(
-				'entries' => array_slice( $entries, 0, 100 ),
+				'entries' => array_slice( $entries, $offset, $limit ),
 				'count'   => count( $entries ),
+				'offset'  => $offset,
+				'limit'   => $limit,
 			)
 		);
 	}
@@ -661,6 +677,11 @@ class SScribe_Admin {
 
 		if ( ! current_user_can( 'manage_options' ) ) {
 			wp_send_json_error( array( 'message' => __( 'Insufficient permissions.', 'sscribe-export-site-pages' ) ) );
+		}
+
+		$rate_limiter = new SScribe_Export_Rate_Limiter();
+		if ( ! $rate_limiter->check_rate_limit() ) {
+			wp_send_json_error( array( 'message' => __( 'Rate limit exceeded. Please wait before trying again.', 'sscribe-export-site-pages' ) ) );
 		}
 
 		$logger = SScribe_Logger::instance( true );
@@ -679,6 +700,11 @@ class SScribe_Admin {
 			wp_die( esc_html__( 'Insufficient permissions.', 'sscribe-export-site-pages' ) );
 		}
 
+		$rate_limiter = new SScribe_Export_Rate_Limiter();
+		if ( ! $rate_limiter->check_rate_limit() ) {
+			wp_die( esc_html__( 'Rate limit exceeded. Please wait before trying again.', 'sscribe-export-site-pages' ) );
+		}
+
 		$filename = isset( $_GET['filename'] ) ? sanitize_text_field( wp_unslash( $_GET['filename'] ) ) : '';
 
 		if ( ! empty( $filename ) ) {
@@ -694,6 +720,15 @@ class SScribe_Admin {
 
 		$filter_level = isset( $_GET['filter_level'] ) ? sanitize_text_field( wp_unslash( $_GET['filter_level'] ) ) : 'ALL';
 		$search       = isset( $_GET['search'] ) ? sanitize_text_field( wp_unslash( $_GET['search'] ) ) : '';
+		$offset       = isset( $_GET['offset'] ) ? absint( $_GET['offset'] ) : 0;
+		$limit        = isset( $_GET['limit'] ) ? absint( $_GET['limit'] ) : 100;
+
+		if ( $limit < 1 || $limit > 500 ) {
+			$limit = 100;
+		}
+		if ( $offset < 0 ) {
+			$offset = 0;
+		}
 
 		$logger = SScribe_Logger::instance( true );
 		$logs   = $logger->get_logs();
@@ -702,7 +737,7 @@ class SScribe_Admin {
 
 		wp_send_json_success(
 			array(
-				'entries' => array_slice( $entries, 0, 100 ),
+				'entries' => array_slice( $entries, $offset, $limit ),
 				'count'   => count( $entries ),
 			)
 		);
@@ -716,6 +751,11 @@ class SScribe_Admin {
 
 		if ( ! current_user_can( 'manage_options' ) ) {
 			wp_send_json_error( array( 'message' => __( 'Insufficient permissions.', 'sscribe-export-site-pages' ) ) );
+		}
+
+		$rate_limiter = new SScribe_Export_Rate_Limiter();
+		if ( ! $rate_limiter->check_rate_limit() ) {
+			wp_send_json_error( array( 'message' => __( 'Rate limit exceeded. Please wait before trying again.', 'sscribe-export-site-pages' ) ) );
 		}
 
 		$upload_dir = wp_upload_dir();
@@ -761,10 +801,24 @@ class SScribe_Admin {
 			wp_send_json_error( array( 'message' => __( 'Insufficient permissions.', 'sscribe-export-site-pages' ) ) );
 		}
 
+		$rate_limiter = new SScribe_Export_Rate_Limiter();
+		if ( ! $rate_limiter->check_rate_limit() ) {
+			wp_send_json_error( array( 'message' => __( 'Rate limit exceeded. Please wait before trying again.', 'sscribe-export-site-pages' ) ) );
+		}
+
 		$filename = isset( $_GET['filename'] ) ? sanitize_text_field( wp_unslash( $_GET['filename'] ) ) : '';
+		$offset   = isset( $_GET['offset'] ) ? absint( $_GET['offset'] ) : 0;
+		$limit    = isset( $_GET['limit'] ) ? absint( $_GET['limit'] ) : 100;
 
 		if ( empty( $filename ) ) {
 			wp_send_json_error( array( 'message' => __( 'Filename required.', 'sscribe-export-site-pages' ) ) );
+		}
+
+		if ( $limit < 1 || $limit > 500 ) {
+			$limit = 100;
+		}
+		if ( $offset < 0 ) {
+			$offset = 0;
 		}
 
 		$upload_dir = wp_upload_dir();
@@ -780,7 +834,7 @@ class SScribe_Admin {
 
 		wp_send_json_success(
 			array(
-				'entries' => array_slice( $entries, 0, 100 ),
+				'entries' => array_slice( $entries, $offset, $limit ),
 				'count'   => count( $entries ),
 			)
 		);
@@ -794,6 +848,11 @@ class SScribe_Admin {
 
 		if ( ! current_user_can( 'manage_options' ) ) {
 			wp_send_json_error( array( 'message' => __( 'Insufficient permissions.', 'sscribe-export-site-pages' ) ) );
+		}
+
+		$rate_limiter = new SScribe_Export_Rate_Limiter();
+		if ( ! $rate_limiter->check_rate_limit() ) {
+			wp_send_json_error( array( 'message' => __( 'Rate limit exceeded. Please wait before trying again.', 'sscribe-export-site-pages' ) ) );
 		}
 
 		$filename = isset( $_POST['filename'] ) ? sanitize_text_field( wp_unslash( $_POST['filename'] ) ) : '';
