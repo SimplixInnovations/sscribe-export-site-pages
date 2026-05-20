@@ -78,6 +78,12 @@ $sscribe_step            = 1;
 				?>
 				<?php esc_html_e( 'Support', 'sscribe-export-site-pages' ); ?>
 			</button>
+			<button type="button" class="sscribe-tab-btn" id="sscribe-tab-btn-debug" data-tab="debug" role="tab" aria-selected="false" aria-controls="sscribe-tab-debug">
+				<?php
+				echo wp_kses_post( SScribe_Helpers::get_icon( 'file-search', 16 ) ); // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped
+				?>
+				<?php esc_html_e( 'Debug', 'sscribe-export-site-pages' ); ?>
+			</button>
 		</nav>
 
 		<div class="sscribe-tab-content sscribe-tab-active" id="sscribe-tab-export" role="tabpanel" aria-labelledby="sscribe-tab-btn-export">
@@ -653,7 +659,11 @@ $sscribe_step            = 1;
 	</div>
 </div>
 
-	</div><!-- .sscribe-workspace -->
+			<div class="sscribe-tab-content" id="sscribe-tab-debug" role="tabpanel" aria-labelledby="sscribe-tab-btn-debug">
+				<?php include SSCRIBE_PLUGIN_DIR . 'admin/partials/sscribe-admin-debug-tab.php'; ?>
+			</div>
+
+		</div><!-- .sscribe-workspace -->
 
 	<div id="sscribe-toast-container" class="sscribe-toast-container" aria-live="polite" aria-relevant="additions removals"></div>
 

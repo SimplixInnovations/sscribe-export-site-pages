@@ -45,4 +45,8 @@ interface SScribe_Logger_Interface {
 	public function log( string $level, string $message, array $context = array() ): void;
 
 	public function is_enabled(): bool;
+
+	public function get_logs(): array;
+
+	public function clear_logs(): void;
 }
