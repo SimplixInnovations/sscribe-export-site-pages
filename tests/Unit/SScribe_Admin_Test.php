@@ -1,4 +1,9 @@
 <?php
+/**
+ * SScribe Admin Unit Test
+ *
+ * @package SScribe_Export_Site_Pages
+ */
 
 declare(strict_types=1);
 

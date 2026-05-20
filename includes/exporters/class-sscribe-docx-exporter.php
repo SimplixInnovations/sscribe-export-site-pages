@@ -1,4 +1,9 @@
 <?php
+/**
+ * SScribe DOCX Exporter
+ *
+ * @package SScribe_Export_Site_Pages
+ */
 
 declare(strict_types=1);
 
