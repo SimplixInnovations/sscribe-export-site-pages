@@ -835,6 +835,24 @@ class SScribe_Admin {
 
 			$entry = $this->parse_log_line( $line );
 
+			// Filter by level.
+			if ( 'ALL' !== $filter_level && strtoupper( $entry['level'] ) !== $filter_level ) {
+				continue;
+			}
+
+			// Filter by search term.
+			if ( ! empty( $search ) ) {
+				$search_lower = strtolower( $search );
+				$message      = strtolower( $entry['message'] );
+				$context_json = json_encode( $entry['context'] );
+
+				if ( false === strpos( $message, $search_lower )
+					&& false === strpos( $context_json, $search_lower )
+				) {
+					continue;
+				}
+			}
+
 			$entries[] = $entry;
 		}
 

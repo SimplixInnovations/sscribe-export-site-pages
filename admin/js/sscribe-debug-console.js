@@ -100,6 +100,7 @@
 		},
 
 		loadInitialState: function() {
+			this.isAutoRefresh = this.$refreshMode.filter( ':checked' ).val() === 'auto';
 			this.fetchLogs();
 			this.fetchRotatedLogs();
 
@@ -259,7 +260,7 @@
 				html += '<div class="sscribe-debug-rotated-file">';
 				html += '<div class="sscribe-debug-rotated-file-info">';
 				html += '<span class="sscribe-debug-rotated-file-name">' + escHtml( file.name ) + '</span>';
-				html += '<span class="sscribe-debug-rotated-file-meta">' + file.size + ' - ' + file.date + '</span>';
+				html += '<span class="sscribe-debug-rotated-file-meta">' + escHtml( file.size ) + ' - ' + escHtml( file.date ) + '</span>';
 				html += '</div>';
 				html += '<div class="sscribe-debug-rotated-file-actions">';
 				html += '<button type="button" class="sscribe-button sscribe-rotated-view" data-file="' + escHtml( file.name ) + '">View</button>';
