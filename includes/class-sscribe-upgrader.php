@@ -141,7 +141,6 @@ class SScribe_Upgrader {
 		if ( version_compare( $from_version, '3.32.3', '<' ) ) {
 			try {
 				// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- Schema introspection; plugin-controlled table name.
-
 				$index_check = $wpdb->get_results(
 					$wpdb->prepare(
 						'SHOW INDEX FROM ' . $wpdb->prefix . 'sscribe_export_stats WHERE Key_name = %s',
@@ -150,7 +149,6 @@ class SScribe_Upgrader {
 				);
 				if ( empty( $index_check ) ) {
 					// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.DirectDatabaseQuery.SchemaChange, WordPress.DB.PreparedSQL.NotPrepared -- Schema change; table name is plugin-controlled constant.
-
 					$wpdb->query( 'ALTER TABLE `' . $wpdb->prefix . 'sscribe_export_stats` ADD INDEX idx_export_session_id (export_session_id)' );
 				}
 			} catch ( \Throwable $e ) {
@@ -182,7 +180,6 @@ class SScribe_Upgrader {
 		if ( version_compare( $from_version, '3.33.0', '<' ) ) {
 			try {
 				// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- Schema introspection; plugin-controlled table name.
-
 				$col          = $wpdb->get_row(
 					$wpdb->prepare(
 						'SHOW COLUMNS FROM ' . $wpdb->prefix . 'sscribe_export_stats LIKE %s',
@@ -196,7 +193,6 @@ class SScribe_Upgrader {
 				}
 				if ( $needs_modify ) {
 					// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.DirectDatabaseQuery.SchemaChange, WordPress.DB.PreparedSQL.NotPrepared -- Schema change; table name is plugin-controlled constant.
-
 					$wpdb->query( 'ALTER TABLE `' . $wpdb->prefix . 'sscribe_export_stats` MODIFY COLUMN export_session_id VARCHAR(64) NOT NULL' );
 				}
 			} catch ( \Throwable $e ) {

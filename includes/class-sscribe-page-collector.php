@@ -174,9 +174,8 @@ class SScribe_Page_Collector {
 			try {
 				if ( $this->is_wpml_active() ) {
 					$target_lang = ! empty( $language ) ? $language : 'all';
-					// phpcs:ignore WordPress.NamingConventions.PrefixAllGlobals.NonPrefixedHooknameFound -- WPML hook.
-
-					do_action( 'wpml_switch_language', $target_lang );
+				// phpcs:ignore WordPress.NamingConventions.PrefixAllGlobals.NonPrefixedHooknameFound -- WPML hook.
+				do_action( 'wpml_switch_language', $target_lang );
 					$args['suppress_filters'] = false;
 					$switched                 = true;
 				}
@@ -185,7 +184,6 @@ class SScribe_Page_Collector {
 			} finally {
 				if ( $switched ) {
 					// phpcs:ignore WordPress.NamingConventions.PrefixAllGlobals.NonPrefixedHooknameFound -- WPML hook.
-
 					do_action( 'wpml_switch_language', null );
 				}
 			}
@@ -234,7 +232,7 @@ class SScribe_Page_Collector {
 		$placeholders = implode( ',', array_fill( 0, count( $page_ids ), '%d' ) );
 		$sql          = "SELECT post_id, meta_value AS thumbnail_id FROM {$wpdb->postmeta} WHERE meta_key = '_thumbnail_id' AND post_id IN ({$placeholders})";
 		// phpcs:ignore WordPress.DB.PreparedSQL.NotPrepared, WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- Placeholders are safely generated; batch operation for featured images; caching not needed for one-time batch export.
-		$results = $wpdb->get_results( $wpdb->prepare( $sql, ...$page_ids ) ); // phpcs:ignore WordPress.DB.PreparedSQL.NotPrepared -- Placeholders safely generated
+		$results = $wpdb->get_results( $wpdb->prepare( $sql, ...$page_ids ) );
 
 		if ( $wpdb->last_error ) {
 			$this->debug_log(
@@ -261,7 +259,7 @@ class SScribe_Page_Collector {
 			$thumb_placeholders = implode( ',', array_fill( 0, count( $thumbnail_ids ), '%d' ) );
 			$sql                = "SELECT p.ID, p.guid, pm_path.meta_value AS filepath FROM {$wpdb->posts} p LEFT JOIN {$wpdb->postmeta} pm_path ON p.ID = pm_path.post_id AND pm_path.meta_key = '_wp_attached_file' WHERE p.ID IN ({$thumb_placeholders})";
 			// phpcs:ignore WordPress.DB.PreparedSQL.NotPrepared, WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- Placeholders are safely generated; batch operation for attachment paths; caching not needed for one-time batch export.
-			$attachments = $wpdb->get_results( $wpdb->prepare( $sql, ...$thumbnail_ids ) ); // phpcs:ignore WordPress.DB.PreparedSQL.NotPrepared -- Placeholders safely generated
+			$attachments = $wpdb->get_results( $wpdb->prepare( $sql, ...$thumbnail_ids ) );
 
 			if ( $wpdb->last_error ) {
 				$this->debug_log(
@@ -336,7 +334,6 @@ class SScribe_Page_Collector {
 				);
 
 				// phpcs:ignore WordPress.NamingConventions.PrefixAllGlobals.NonPrefixedHooknameFound -- WPML hook.
-
 				do_action( 'wpml_switch_language', $target_lang );
 				$args['suppress_filters'] = false;
 				$switched                 = true;
@@ -357,12 +354,9 @@ class SScribe_Page_Collector {
 		} finally {
 			if ( $switched ) {
 				// phpcs:ignore WordPress.NamingConventions.PrefixAllGlobals.NonPrefixedHooknameFound -- WPML hook.
-
 				do_action( 'wpml_switch_language', null );
 			}
 		}
-
-		return $count;
 	}
 
 	public function get_total_pages( string $language = '' ): int {
@@ -399,7 +393,6 @@ class SScribe_Page_Collector {
 				ob_start();
 
 				// phpcs:ignore WordPress.NamingConventions.PrefixAllGlobals.NonPrefixedHooknameFound -- WordPress core filter.
-
 				$content = apply_filters( 'the_content', $post->post_content );
 
 				while ( ob_get_level() > $ob_level_before ) {
@@ -465,11 +458,9 @@ class SScribe_Page_Collector {
 
 		if ( $this->is_wpml_active() && ! empty( $language ) ) {
 			// phpcs:ignore WordPress.NamingConventions.PrefixAllGlobals.NonPrefixedHooknameFound -- WPML hook.
-
 			do_action( 'wpml_switch_language', $language );
 			$permalink = get_permalink( $page_id );
 			// phpcs:ignore WordPress.NamingConventions.PrefixAllGlobals.NonPrefixedHooknameFound -- WPML hook.
-
 			do_action( 'wpml_switch_language', null );
 		} else {
 			$permalink = get_permalink( $page_id );
@@ -628,7 +619,6 @@ class SScribe_Page_Collector {
 				$ancestor_lang = $this->get_page_language( $ancestor_id );
 				if ( $this->is_wpml_active() && ! empty( $ancestor_lang ) ) {
 					// phpcs:ignore WordPress.NamingConventions.PrefixAllGlobals.NonPrefixedHooknameFound -- WPML hook.
-
 					do_action( 'wpml_switch_language', $ancestor_lang );
 				}
 
@@ -640,7 +630,6 @@ class SScribe_Page_Collector {
 
 				if ( $this->is_wpml_active() ) {
 					// phpcs:ignore WordPress.NamingConventions.PrefixAllGlobals.NonPrefixedHooknameFound -- WPML hook.
-
 					do_action( 'wpml_switch_language', null );
 				}
 			}
@@ -649,7 +638,6 @@ class SScribe_Page_Collector {
 		$page_language = $this->get_page_language( $page_id );
 		if ( $this->is_wpml_active() && ! empty( $page_language ) ) {
 			// phpcs:ignore WordPress.NamingConventions.PrefixAllGlobals.NonPrefixedHooknameFound -- WPML hook.
-
 			do_action( 'wpml_switch_language', $page_language );
 		}
 		$breadcrumbs[] = array(
@@ -658,7 +646,6 @@ class SScribe_Page_Collector {
 		);
 		if ( $this->is_wpml_active() ) {
 			// phpcs:ignore WordPress.NamingConventions.PrefixAllGlobals.NonPrefixedHooknameFound -- WPML hook.
-
 			do_action( 'wpml_switch_language', null );
 		}
 
@@ -740,7 +727,6 @@ class SScribe_Page_Collector {
 		try {
 
             // phpcs:ignore WordPress.NamingConventions.PrefixAllGlobals.NonPrefixedHooknameFound -- WPML hook.
-
 			do_action( 'wpml_switch_language', $language );
 			$args['suppress_filters'] = false;
 			$switched                 = true;
@@ -752,8 +738,7 @@ class SScribe_Page_Collector {
 			}
 		} finally {
 			if ( $switched ) {
-                // phpcs:ignore WordPress.NamingConventions.PrefixAllGlobals.NonPrefixedHooknameFound -- WPML hook.
-
+				// phpcs:ignore WordPress.NamingConventions.PrefixAllGlobals.NonPrefixedHooknameFound -- WPML hook.
 				do_action( 'wpml_switch_language', null );
 			}
 		}

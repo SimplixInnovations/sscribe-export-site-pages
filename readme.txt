@@ -4,7 +4,7 @@ Donate link: https://simplixi.com
 Tags: docx, pdf, html, markdown, multilingual
 Requires at least: 6.0
 Tested up to: 6.9
-Stable tag: 1.1.0
+Stable tag: 1.1.1
 Requires PHP: 8.2
 License: GPLv2 or later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
@@ -106,7 +106,8 @@ Parameters: `(int $bytes)` — Default: 5,242,880 (5MB)
 
 == Changelog ==
 
-= 1.1.0 =
+= 1.1.1 =
+* Fix PHPCS warnings: proper placement of php:ignore comments across all files
 * Initial release with full feature set: DOCX, PDF, HTML, and Markdown export
 * Batch processing engine with configurable chunk sizes
 * RTL support for Arabic, Hebrew, Farsi, and Urdu
