@@ -1,8 +1,13 @@
 <?php
+/**
+ * SScribe Language Filtering Test
+ *
+ * @package SScribe_Export_Site_Pages
+ */
+
+declare(strict_types=1);
 
 use PHPUnit\Framework\TestCase;
-
-
 
 class TestLanguageFiltering extends TestCase {
 

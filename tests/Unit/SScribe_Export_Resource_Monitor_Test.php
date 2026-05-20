@@ -1,4 +1,11 @@
 <?php
+/**
+ * SScribe Export Resource Monitor Unit Test
+ *
+ * @package SScribe_Export_Site_Pages
+ */
+
+declare(strict_types=1);
 
 namespace SScribe\Tests\Unit;
 
