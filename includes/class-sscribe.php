@@ -265,11 +265,15 @@ class SScribe {
 	 * Initialize internationalization support.
 	 */
 	private function init_i18n(): void {
-
-		load_plugin_textdomain( // phpcs:ignore PluginCheck.CodeAnalysis.DiscouragedFunctions.load_plugin_textdomainFound -- Defensive fallback for non-.org installations and local dev.
-			'sscribe-export-site-pages',
-			false,
-			dirname( SSCRIBE_PLUGIN_BASENAME ) . '/languages'
+		add_action(
+			'init',
+			static function () {
+				load_plugin_textdomain(
+					'sscribe-export-site-pages',
+					false,
+					dirname( SSCRIBE_PLUGIN_BASENAME ) . '/languages'
+				);
+			}
 		);
 	}
 }
