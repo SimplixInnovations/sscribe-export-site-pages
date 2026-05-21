@@ -72,7 +72,8 @@ class SScribe_Logger implements SScribe_Logger_Interface {
 	 * @return SScribe_Logger_Interface
 	 */
 	public static function instance( bool $enabled = true, string $prefix = 'sscribe', array $options = array() ): SScribe_Logger_Interface {
-		$key = $prefix . '_' . ( $enabled ? '1' : '0' ) . '_' . md5( wp_json_encode( $options ) );
+		$effective_enabled = $enabled || self::is_logging_enabled();
+		$key = $prefix . '_' . ( $effective_enabled ? '1' : '0' ) . '_' . md5( wp_json_encode( $options ) );
 
 		if ( ! isset( self::$instances[ $key ] ) ) {
 			$use_enhanced = self::should_use_enhanced();
@@ -80,11 +81,20 @@ class SScribe_Logger implements SScribe_Logger_Interface {
 			if ( $use_enhanced && class_exists( 'SScribe_Logger_Enhanced' ) ) {
 				self::$instances[ $key ] = new SScribe_Logger_Enhanced( $options );
 			} else {
-				self::$instances[ $key ] = new self( $enabled, $prefix );
+				self::$instances[ $key ] = new self( $effective_enabled, $prefix );
 			}
 		}
 
 		return self::$instances[ $key ];
+	}
+
+	/**
+	 * Check if logging is effectively enabled.
+	 *
+	 * @return bool True if logging is enabled via constant or settings option.
+	 */
+	public static function is_logging_enabled(): bool {
+		return ( defined( 'SSCRIBE_DEBUG' ) && SSCRIBE_DEBUG ) || SScribe_Settings::is_debug_enabled();
 	}
 
 	/**
@@ -101,7 +111,7 @@ class SScribe_Logger implements SScribe_Logger_Interface {
 			return true;
 		}
 
-		if ( defined( 'WP_DEBUG' ) && WP_DEBUG && defined( 'SSCRIBE_DEBUG' ) && SSCRIBE_DEBUG ) {
+		if ( ( defined( 'WP_DEBUG' ) && WP_DEBUG && defined( 'SSCRIBE_DEBUG' ) && SSCRIBE_DEBUG ) || SScribe_Settings::is_debug_enabled() ) {
 			return true;
 		}
 

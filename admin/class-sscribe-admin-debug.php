@@ -154,7 +154,7 @@ class SScribe_Admin_Debug {
 				wp_die( esc_html__( 'File not found.', 'sscribe-export-site-pages' ) );
 			}
 
-			if ( 0 === strpos( $real_file_path, $real_log_dir ) ) {
+			if ( 0 === strpos( $real_file_path, $real_log_dir . DIRECTORY_SEPARATOR ) ) {
 				$content = file_get_contents( $file_path ); // phpcs:ignore WordPress.WP.AlternativeFunctions.file_get_contents_file_get_contents
 				if ( false === $content ) {
 					wp_die( esc_html__( 'Failed to read file.', 'sscribe-export-site-pages' ) );
@@ -226,8 +226,11 @@ class SScribe_Admin_Debug {
 		if ( is_array( $files ) ) {
 			foreach ( $files as $file ) {
 				if ( is_file( $file ) ) {
-					$stat       = stat( $file );
-					$result[]   = array(
+					$stat = stat( $file );
+					if ( false === $stat ) {
+						continue;
+					}
+					$result[] = array(
 						'name' => basename( $file ),
 						'size' => size_format( $stat['size'] ),
 						'date' => wp_date( 'Y-m-d H:i:s', $stat['mtime'] ),
@@ -286,7 +289,7 @@ class SScribe_Admin_Debug {
 		$real_file_path = realpath( $file_path );
 		$real_log_dir   = realpath( $log_dir );
 
-		if ( false === $real_file_path || false === $real_log_dir || 0 !== strpos( $real_file_path, $real_log_dir ) ) {
+		if ( false === $real_file_path || false === $real_log_dir || 0 !== strpos( $real_file_path, $real_log_dir . DIRECTORY_SEPARATOR ) ) {
 			wp_send_json_error( array( 'message' => __( 'File not found.', 'sscribe-export-site-pages' ) ) );
 			return;
 		}
@@ -342,10 +345,11 @@ class SScribe_Admin_Debug {
 			return;
 		}
 
-		if ( wp_delete_file( $file_path ) ) {
-			wp_send_json_success();
-		} else {
+		wp_delete_file( $file_path );
+		if ( file_exists( $file_path ) ) {
 			wp_send_json_error( array( 'message' => __( 'Failed to delete file.', 'sscribe-export-site-pages' ) ) );
+		} else {
+			wp_send_json_success();
 		}
 	}
 
