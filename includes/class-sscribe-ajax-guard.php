@@ -19,14 +19,6 @@ class SScribe_AJAX_Guard {
 	private const LOG_PREVIEW_MAX = 2000;
 
 	/**
-	 * Send a successful AJAX response.
-	 *
-	 * @param mixed $data       Response data.
-	 * @param int   $status_code HTTP status code.
-	 * @param array $context     Additional context for diagnostics.
-	 * @return never Never returns.
-	 */
-	/**
 	 * Send a successful JSON response and terminate.
 	 *
 	 * @param mixed $data       Response data.
