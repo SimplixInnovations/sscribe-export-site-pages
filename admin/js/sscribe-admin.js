@@ -1617,7 +1617,7 @@
 				error: function () {
 					$grid.html(
 						'<div class="sscribe-support-error">' +
-						this.escapeHtml(sscribe_data.strings.support_error || 'Unable to load support information right now.') +
+						self.escapeHtml(sscribe_data.strings.support_error || 'Unable to load support information right now.') +
 						'</div>'
 					);
 				},
@@ -1753,8 +1753,8 @@
 				timeout: 30000,
 				data: {
 					action: 'sscribe_get_export_log',
-					nonce: sscribe_data.nonce,
-					filename: filename,
+					nonce: sscribe_data.download_nonce,
+					file: filename,
 				},
 				success: function (response) {
 					if (response.success && response.data && response.data.log) {

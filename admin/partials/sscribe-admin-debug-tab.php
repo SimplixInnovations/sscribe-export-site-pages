@@ -22,7 +22,7 @@ $sscribe_log_levels     = array(
 );
 ?>
 
-<div class="sscribe-debug-master">
+<div class="sscribe-debug-master" id="sscribe-admin-wrap">
 	<div class="sscribe-debug-header">
 		<div class="sscribe-debug-title-row">
 			<h2><?php esc_html_e( 'Debug Console', 'sscribe-export-site-pages' ); ?></h2>
@@ -38,7 +38,7 @@ $sscribe_log_levels     = array(
 	<div class="sscribe-debug-settings-card">
 		<div class="sscribe-debug-settings-grid">
 			<div class="sscribe-debug-toggle-section">
-				<label class="sscribe-toggle-label" for="sscribe-debug-enabled">
+				<label class="sscribe-debug-toggle-label" for="sscribe-debug-enabled">
 					<span class="sscribe-toggle-switch">
 						<input type="checkbox" id="sscribe-debug-enabled" <?php checked( $sscribe_debug_settings['debug_enabled'] ); ?>>
 						<span class="sscribe-toggle-slider"></span>
@@ -91,7 +91,7 @@ $sscribe_log_levels     = array(
 			<div class="sscribe-debug-refresh-mode">
 				<label class="sscribe-radio-label">
 					<input type="radio" name="sscribe_refresh_mode" value="auto" <?php checked( $sscribe_debug_settings['auto_refresh'] ); ?>>
-					<span class="sscribe-radio-text"><?php esc_html_e( 'Auto-refresh (2s)', 'sscribe-export-site-pages' ); ?></span>
+					<span class="sscribe-radio-text"><?php esc_html_e( 'Auto-refresh (10s)', 'sscribe-export-site-pages' ); ?></span>
 				</label>
 				<label class="sscribe-radio-label">
 					<input type="radio" name="sscribe_refresh_mode" value="manual" <?php checked( ! $sscribe_debug_settings['auto_refresh'] ); ?>>
