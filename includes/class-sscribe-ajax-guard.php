@@ -124,22 +124,6 @@ class SScribe_AJAX_Guard {
 		if ( '' === $extraneous && 0 === $start_level ) {
 			return;
 		}
-		$extraneous  = '';
-
-		while ( ob_get_level() > 0 ) {
-			$content    = ob_get_clean();
-			$extraneous = ( false !== $content ? $content : '' ) . "\n" . $extraneous;
-		}
-
-		$extraneous = trim( $extraneous );
-
-		while ( ob_get_level() < $start_level ) {
-			ob_start();
-		}
-
-		if ( '' === $extraneous && 0 === $start_level ) {
-			return;
-		}
 
 		$action = self::resolve_action_name();
 		$length = strlen( $extraneous );
@@ -178,16 +162,6 @@ class SScribe_AJAX_Guard {
 					)
 				);
 			}
-		}
-	}
-
-		if ( $length > self::LOG_PREVIEW_MAX ) {
-			error_log( // phpcs:ignore WordPress.PHP.DevelopmentFunctions.error_log_error_log
-				sprintf(
-					'[SSCRIBE][AJAX_BUFFER] Truncated %d excess bytes. Set SSCRIBE_AJAX_LOG_MAX to increase the preview limit.',
-					$length - self::LOG_PREVIEW_MAX
-				)
-			);
 		}
 	}
 

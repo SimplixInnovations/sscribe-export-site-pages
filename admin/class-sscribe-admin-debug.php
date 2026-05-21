@@ -295,33 +295,6 @@ class SScribe_Admin_Debug {
 			wp_send_json_error( array( 'message' => __( 'Insufficient permissions.', 'sscribe-export-site-pages' ) ) );
 		}
 
-		$filename = isset( $_POST['filename'] ) ? sanitize_text_field( wp_unslash( $_POST['filename'] ) ) : '';
-
-		if ( empty( $filename ) ) {
-			wp_send_json_error( array( 'message' => __( 'Filename required.', 'sscribe-export-site-pages' ) ) );
-		}
-
-		$upload_dir = wp_upload_dir();
-		$log_dir    = $upload_dir['basedir'] . '/sscribe-logs';
-		$file_path  = $log_dir . '/' . $filename;
-
-		$real_file_path = realpath( $file_path );
-		$real_log_dir   = realpath( $log_dir );
-
-		if ( false === $real_file_path || false === $real_log_dir || 0 !== strpos( $real_file_path, $real_log_dir ) ) {
-			wp_send_json_error( array( 'message' => __( 'File not found.', 'sscribe-export-site-pages' ) ) );
-		}
-
-	/**
-	 * AJAX: Delete a rotated log file.
-	 */
-	public function ajax_debug_delete_rotated(): void {
-		check_ajax_referer( 'sscribe_export_nonce', 'nonce' );
-
-		if ( ! current_user_can( 'manage_options' ) ) {
-			wp_send_json_error( array( 'message' => __( 'Insufficient permissions.', 'sscribe-export-site-pages' ) ) );
-		}
-
 		$rate_limiter = new SScribe_Export_Rate_Limiter();
 		if ( ! $rate_limiter->check_rate_limit() ) {
 			wp_send_json_error( array( 'message' => __( 'Rate limit exceeded. Please wait before trying again.', 'sscribe-export-site-pages' ) ) );
