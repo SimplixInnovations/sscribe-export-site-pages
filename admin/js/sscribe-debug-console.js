@@ -26,6 +26,10 @@
 		searchQuery: '',
 		initialized: false,
 		isViewingRotated: false,
+		currentOffset: 0,
+		isLoadingMore: false,
+		hasMoreEntries: true,
+		observer: null,
 
 		init: function() {
 			if ( this.initialized ) {
@@ -66,11 +70,17 @@
 
 			this.$filterLevel.on( 'change', function() {
 				self.currentFilter = $( this ).val();
+				self.currentOffset = 0;
+				self.hasMoreEntries = true;
+				self.destroyObserver();
 				self.fetchLogs();
 			} );
 
 			this.$searchInput.on( 'input', debounce( 300, function() {
 				self.searchQuery = self.$searchInput.val();
+				self.currentOffset = 0;
+				self.hasMoreEntries = true;
+				self.destroyObserver();
 				self.fetchLogs();
 			} ) );
 
@@ -146,6 +156,8 @@
 
 		loadInitialState: function() {
 			this.isAutoRefresh = this.$refreshMode.filter( ':checked' ).val() === 'auto';
+			this.currentOffset = 0;
+			this.hasMoreEntries = true;
 			this.fetchLogs();
 			this.fetchRotatedLogs();
 
@@ -202,27 +214,67 @@
 			} );
 		},
 
-		fetchLogs: function() {
+		fetchLogs: function( append ) {
 			const self = this;
+			const isInitialLoad = ! append;
+
+			if ( isInitialLoad ) {
+				this.currentOffset = 0;
+				this.hasMoreEntries = true;
+			}
+
+			if ( this.isLoadingMore ) {
+				return;
+			}
+
+			if ( ! this.hasMoreEntries && append ) {
+				return;
+			}
+
 			const data = {
 				action: 'sscribe_debug_fetch_logs',
 				nonce: sscribe_data.nonce,
 				filter_level: this.currentFilter,
-				search: this.searchQuery
+				search: this.searchQuery,
+				offset: this.currentOffset,
+				limit: 500
 			};
 
-			self.$entries.css( 'opacity', '0.5' );
-			self.$entryCount.text( 'Loading...' );
+			if ( isInitialLoad ) {
+				self.$entries.css( 'opacity', '0.5' );
+				self.$entryCount.text( 'Loading...' );
+			} else {
+				self.isLoadingMore = true;
+			}
 
 			$.get( sscribe_data.ajaxurl, data, function( response ) {
 				self.$entries.css( 'opacity', '1' );
+				self.isLoadingMore = false;
+
 				if ( response.success ) {
-					self.renderLogs( response.data.entries );
-					self.$entryCount.text( response.data.count + ' entries' );
+					const newEntries = response.data.entries;
+					const totalCount = response.data.count;
+
+					if ( isInitialLoad ) {
+						self.renderLogs( newEntries );
+					} else {
+						self.appendLogs( newEntries );
+					}
+
+					self.currentOffset += newEntries.length;
+					self.hasMoreEntries = self.currentOffset < totalCount;
+					self.$entryCount.text( totalCount + ' entries' );
+
+					if ( ! self.hasMoreEntries ) {
+						self.destroyObserver();
+					}
 				}
 			} ).fail( function() {
 				self.$entries.css( 'opacity', '1' );
-				self.$entryCount.text( 'Error loading logs' );
+				self.isLoadingMore = false;
+				if ( isInitialLoad ) {
+					self.$entryCount.text( 'Error loading logs' );
+				}
 			} );
 		},
 
@@ -230,6 +282,7 @@
 			if ( ! entries || entries.length === 0 ) {
 				this.$entries.empty();
 				this.$empty.show();
+				this.destroyObserver();
 				return;
 			}
 
@@ -266,6 +319,81 @@
 			} );
 
 			this.$entries.html( html );
+			this.setupObserver();
+		},
+
+		appendLogs: function( entries ) {
+			if ( ! entries || entries.length === 0 ) {
+				return;
+			}
+
+			let html = '';
+
+			entries.forEach( function( entry ) {
+				const badgeClass = entry.level.toLowerCase();
+				let contextHtml = '';
+
+				if ( entry.context ) {
+					Object.keys( entry.context ).forEach( function( key ) {
+						let value = entry.context[ key ];
+						if ( typeof value === 'object' ) {
+							value = JSON.stringify( value );
+						}
+						contextHtml += '<div class="sscribe-debug-context-row">';
+						contextHtml += '<span class="sscribe-debug-context-key">' + escHtml( key ) + ':</span>';
+						contextHtml += '<span class="sscribe-debug-context-value">' + escHtml( String( value ) ) + '</span>';
+						contextHtml += '</div>';
+					} );
+				}
+
+				html += '<div class="sscribe-debug-entry" tabindex="0" role="button" aria-label="Toggle log entry details">';
+				html += '<div class="sscribe-debug-entry-header">';
+				html += '<span class="sscribe-debug-entry-time">' + escHtml( entry.timestamp ) + '</span>';
+				html += '<span class="sscribe-debug-entry-badge ' + badgeClass + '">' + escHtml( entry.level ) + '</span>';
+				html += '<span class="sscribe-debug-entry-message">' + escHtml( entry.message ) + '</span>';
+				html += '</div>';
+				if ( contextHtml ) {
+					html += '<div class="sscribe-debug-entry-context" aria-hidden="true">' + contextHtml + '</div>';
+				}
+				html += '</div>';
+			} );
+
+			this.$entries.append( html );
+		},
+
+		setupObserver: function() {
+			if ( ! this.hasMoreEntries ) {
+				return;
+			}
+
+			const self = this;
+			const sentinel = document.createElement( 'div' );
+			sentinel.id = 'sscribe-infinite-scroll-sentinel';
+			sentinel.style.height = '1px';
+			sentinel.style.width = '100%';
+			this.$entries.after( sentinel );
+
+			this.observer = new IntersectionObserver(
+				function( entries ) {
+					if ( entries[0].isIntersecting && ! self.isLoadingMore && self.hasMoreEntries ) {
+						self.fetchLogs( true );
+					}
+				},
+				{ root: null, rootMargin: '100px', threshold: 0 }
+			);
+
+			this.observer.observe( sentinel );
+		},
+
+		destroyObserver: function() {
+			if ( this.observer ) {
+				this.observer.disconnect();
+				this.observer = null;
+			}
+			const sentinel = document.getElementById( 'sscribe-infinite-scroll-sentinel' );
+			if ( sentinel ) {
+				sentinel.remove();
+			}
 		},
 
 		clearLogs: function() {

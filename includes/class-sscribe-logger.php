@@ -379,16 +379,27 @@ class SScribe_Logger implements SScribe_Logger_Interface {
 	}
 
 	/**
-	 * Clear log buffer and delete log file.
+	 * Clear log buffer and delete all log files (including rotated).
 	 */
 	public function clear_logs(): void {
 		$this->buffer = array();
 		if ( ! $this->enabled ) {
 			return;
 		}
-		$log_file = $this->get_log_file();
-		if ( file_exists( $log_file ) ) {
-			wp_delete_file( $log_file );
+		$upload_dir = wp_upload_dir();
+		$log_dir    = $upload_dir['basedir'] . '/sscribe-logs';
+
+		if ( ! is_dir( $log_dir ) ) {
+			return;
+		}
+
+		$files = glob( $log_dir . '/*_debug_*.log' );
+		if ( is_array( $files ) ) {
+			foreach ( $files as $file ) {
+				if ( file_exists( $file ) ) {
+					wp_delete_file( $file );
+				}
+			}
 		}
 	}
 
