@@ -251,6 +251,7 @@ class SScribe {
 		require_once SSCRIBE_PLUGIN_DIR . 'includes/class-sscribe-upgrader.php';
 		SScribe_Upgrader::maybe_upgrade();
 
+		$this->init_i18n();
 		$this->register_services();
 		$this->define_admin_hooks();
 		$this->define_ajax_hooks();
@@ -258,5 +259,25 @@ class SScribe {
 		$this->define_privacy_hooks();
 
 		$this->loader->run();
+	}
+
+	/**
+	 * Initialize internationalization support.
+	 *
+	 * Note: load_plugin_textdomain() is kept for self-hosted installs.
+	 * WordPress.org-hosted plugins auto-load translations since WP 4.6.
+	 */
+	private function init_i18n(): void {
+		add_action(
+			'init',
+			static function () {
+				// phpcs:ignore PluginCheck.CodeAnalysis.DiscouragedFunctions.load_plugin_textdomainFound -- Required for self-hosted/non-WP.org installs.
+				load_plugin_textdomain(
+					'sscribe-export-site-pages',
+					false,
+					dirname( SSCRIBE_PLUGIN_BASENAME ) . '/languages'
+				);
+			}
+		);
 	}
 }
