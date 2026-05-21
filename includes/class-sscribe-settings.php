@@ -137,6 +137,10 @@ class SScribe_Settings {
 		$enabled_saved = self::set_debug_enabled( $enabled );
 		$refresh_saved = self::set_auto_refresh( $refresh );
 
-		return $level_saved && $enabled_saved && $refresh_saved;
+		if ( $level_saved && $enabled_saved && $refresh_saved ) {
+			return true;
+		}
+
+		return false;
 	}
 }
