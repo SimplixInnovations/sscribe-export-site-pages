@@ -10,8 +10,8 @@ if ( ! defined( 'ABSPATH' ) ) {
 	exit;
 }
 
-$debug_settings = SScribe_Settings::get_debug_settings();
-$log_levels     = array(
+$sscribe_debug_settings = SScribe_Settings::get_debug_settings();
+$sscribe_log_levels     = array(
 	SScribe_Settings::LEVEL_ALL,
 	SScribe_Settings::LEVEL_DEBUG,
 	SScribe_Settings::LEVEL_INFO,
@@ -40,7 +40,7 @@ $log_levels     = array(
 			<div class="sscribe-debug-toggle-section">
 				<label class="sscribe-toggle-label" for="sscribe-debug-enabled">
 					<span class="sscribe-toggle-switch">
-						<input type="checkbox" id="sscribe-debug-enabled" <?php checked( $debug_settings['debug_enabled'] ); ?>>
+						<input type="checkbox" id="sscribe-debug-enabled" <?php checked( $sscribe_debug_settings['debug_enabled'] ); ?>>
 						<span class="sscribe-toggle-slider"></span>
 					</span>
 					<span class="sscribe-toggle-text">
@@ -52,9 +52,9 @@ $log_levels     = array(
 			<div class="sscribe-debug-level-section">
 				<label for="sscribe-debug-level"><?php esc_html_e( 'Log Level', 'sscribe-export-site-pages' ); ?></label>
 				<select id="sscribe-debug-level" class="sscribe-select">
-					<?php foreach ( $log_levels as $level ) : ?>
-						<option value="<?php echo esc_attr( $level ); ?>" <?php selected( $debug_settings['log_level'], $level ); ?>>
-							<?php echo esc_html( $level ); ?>
+					<?php foreach ( $sscribe_log_levels as $sscribe_level ) : ?>
+						<option value="<?php echo esc_attr( $sscribe_level ); ?>" <?php selected( $sscribe_debug_settings['log_level'], $sscribe_level ); ?>>
+							<?php echo esc_html( $sscribe_level ); ?>
 						</option>
 					<?php endforeach; ?>
 				</select>
@@ -90,11 +90,11 @@ $log_levels     = array(
 		<div class="sscribe-debug-refresh-row">
 			<div class="sscribe-debug-refresh-mode">
 				<label class="sscribe-radio-label">
-					<input type="radio" name="sscribe_refresh_mode" value="auto" <?php checked( $debug_settings['auto_refresh'] ); ?>>
+					<input type="radio" name="sscribe_refresh_mode" value="auto" <?php checked( $sscribe_debug_settings['auto_refresh'] ); ?>>
 					<span class="sscribe-radio-text"><?php esc_html_e( 'Auto-refresh (2s)', 'sscribe-export-site-pages' ); ?></span>
 				</label>
 				<label class="sscribe-radio-label">
-					<input type="radio" name="sscribe_refresh_mode" value="manual" <?php checked( ! $debug_settings['auto_refresh'] ); ?>>
+					<input type="radio" name="sscribe_refresh_mode" value="manual" <?php checked( ! $sscribe_debug_settings['auto_refresh'] ); ?>>
 					<span class="sscribe-radio-text"><?php esc_html_e( 'Manual refresh only', 'sscribe-export-site-pages' ); ?></span>
 				</label>
 			</div>

@@ -3,7 +3,7 @@ Contributors: simplixinnovations
 Donate link: https://simplixi.com
 Tags: docx, pdf, html, markdown, multilingual
 Requires at least: 6.0
-Tested up to: 6.9
+Tested up to: 7.0
 Stable tag: 1.1.1
 Requires PHP: 8.2
 License: GPLv2 or later
