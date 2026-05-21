@@ -268,26 +268,8 @@ class SScribe_Image_Processor {
 			return $path;
 		}
 
-		$image = match ( $type ) {
-			IMAGETYPE_JPEG, IMAGETYPE_JPEG2000 => imagecreatefromjpeg( $path ),
-			IMAGETYPE_PNG                      => imagecreatefrompng( $path ),
-			IMAGETYPE_GIF                      => imagecreatefromgif( $path ),
-			IMAGETYPE_WEBP                     => imagecreatefromwebp( $path ),
-			default                            => false,
-		};
-
-		if ( false === $image ) {
-			return $path;
-		}
-
 		$new_width  = self::MAX_WIDTH;
 		$new_height = (int) ( $height * ( self::MAX_WIDTH / $width ) );
-
-		$resized = imagecreatetruecolor( $new_width, $new_height );
-		if ( false === $resized ) {
-			imagedestroy( $image ); // phpcs:ignore Generic.PHP.DeprecatedFunctions.Deprecated
-			return $path;
-		}
 
 		// phpcs:ignore WordPress.PHP.DevelopmentFunctions.error_log_set_error_handler -- Production error handling for GD image loading.
 		$prev_handler = set_error_handler(
@@ -317,6 +299,12 @@ class SScribe_Image_Processor {
 		}
 
 		if ( false === $image ) {
+			return $path;
+		}
+
+		$resized = imagecreatetruecolor( $new_width, $new_height );
+		if ( false === $resized ) {
+			imagedestroy( $image ); // phpcs:ignore Generic.PHP.DeprecatedFunctions.Deprecated
 			return $path;
 		}
 

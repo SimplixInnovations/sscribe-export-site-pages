@@ -177,9 +177,6 @@ class SScribe_Content_Parser {
 
 			return $elements;
 
-		} catch ( \Throwable $e ) {
-			throw $e;
-
 		} finally {
 
 			if ( isset( $body ) ) {
@@ -677,8 +674,8 @@ class SScribe_Content_Parser {
 
 		$relative = substr( $url, strlen( $upload_url ) );
 
-		$stripped = strtok( $relative, '?' );
-		$relative = false !== $stripped ? $stripped : $relative;
+		$stripped = explode( '?', $relative, 2 )[0];
+		$relative = '' !== $stripped ? $stripped : $relative;
 
 		$local      = $upload_path . $relative;
 		$real_local = realpath( $local );
