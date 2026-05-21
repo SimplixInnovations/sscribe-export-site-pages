@@ -946,14 +946,25 @@ class SScribe_Exporter {
 			$width_emu  = Converter::pixelToEmu( $image_info[0] );
 			$height_emu = Converter::pixelToEmu( $image_info[1] );
 
-			$ratio      = $max_width / $width_emu;
-			$width_emu  = $max_width;
-			$height_emu = (int) ( $height_emu * $ratio );
+			if ( 0 === $width_emu || 0 === $height_emu ) {
+				$this->get_logger()->debug(
+					'Featured image has zero dimensions, using original size',
+					array(
+						'path'   => $page_data['featured_image_path'],
+						'width'  => $image_info[0],
+						'height' => $image_info[1],
+					)
+				);
+			} else {
+				$ratio      = $max_width / $width_emu;
+				$width_emu  = $max_width;
+				$height_emu = (int) ( $height_emu * $ratio );
 
-			if ( $height_emu > $max_height ) {
-				$ratio      = $max_height / $height_emu;
-				$height_emu = $max_height;
-				$width_emu  = (int) ( $width_emu * $ratio );
+				if ( $height_emu > $max_height ) {
+					$ratio      = $max_height / $height_emu;
+					$height_emu = $max_height;
+					$width_emu  = (int) ( $width_emu * $ratio );
+				}
 			}
 
 			$section->addImage(
@@ -1652,9 +1663,20 @@ class SScribe_Exporter {
 				$width_emu  = Converter::pixelToEmu( $image_info[0] );
 				$height_emu = Converter::pixelToEmu( $image_info[1] );
 
-				$ratio      = $max_width / $width_emu;
-				$width_emu  = $max_width;
-				$height_emu = (int) ( $height_emu * $ratio );
+				if ( 0 === $width_emu || 0 === $height_emu ) {
+					$this->get_logger()->debug(
+						'Content image has zero dimensions, using original size',
+						array(
+							'path'   => $path,
+							'width'  => $image_info[0],
+							'height' => $image_info[1],
+						)
+					);
+				} else {
+					$ratio      = $max_width / $width_emu;
+					$width_emu  = $max_width;
+					$height_emu = (int) ( $height_emu * $ratio );
+				}
 
 				$section->addImage(
 					$path,
