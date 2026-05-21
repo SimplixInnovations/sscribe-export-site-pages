@@ -418,18 +418,6 @@
 		return div.innerHTML;
 	}
 
-	$.debounce = function( wait, fn ) {
-		let timeout;
-		return function() {
-			const context = this;
-			const args = arguments;
-			clearTimeout( timeout );
-			timeout = setTimeout( function() {
-				fn.apply( context, args );
-			}, wait );
-		};
-	};
-
 	window.SScribeDebugConsole = SScribeDebugConsole;
 
 	$( document ).ready( function() {

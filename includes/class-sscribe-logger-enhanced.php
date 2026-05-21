@@ -422,10 +422,8 @@ class SScribe_Logger_Enhanced implements SScribe_Logger_Interface {
 	private function table_exists(): bool {
 		global $wpdb;
 
-		$table = $this->table_name;
-		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
-		$result = $wpdb->get_var( $wpdb->prepare( 'SELECT COUNT(*) FROM %s', $table ) );
-		return null !== $result;
+		$result = $wpdb->get_var( $wpdb->prepare( 'SHOW TABLES LIKE %s', $this->table_name ) );
+		return $result === $this->table_name;
 	}
 
 	/**
@@ -461,7 +459,7 @@ class SScribe_Logger_Enhanced implements SScribe_Logger_Interface {
 	 */
 	private function get_log_file(): string {
 		$date = gmdate( 'Y-m-d' );
-		return trailingslashit( $this->log_dir ) . "sscribe_{$date}.log";
+		return trailingslashit( $this->log_dir ) . "sscribe_debug_{$date}.log";
 	}
 
 	/**
@@ -471,7 +469,22 @@ class SScribe_Logger_Enhanced implements SScribe_Logger_Interface {
 	 * @return array Log entries.
 	 */
 	public function get_logs( int $limit = 100 ): array {
-		return $this->get_db_logs( array(), $limit );
+		$entries = $this->get_db_logs( array(), $limit );
+
+		return array_map(
+			function ( object $row ): string {
+				$context = json_decode( $row->context, true ) ?: array();
+				$context_str = $context ? ' | ' . wp_json_encode( $context ) : '';
+				return sprintf(
+					'[%s] [%s] %s%s',
+					$row->timestamp,
+					strtoupper( $row->level ),
+					$row->message,
+					$context_str
+				);
+			},
+			$entries
+		);
 	}
 
 	/**

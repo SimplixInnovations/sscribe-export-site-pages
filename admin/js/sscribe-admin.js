@@ -125,6 +125,12 @@
 				e.preventDefault();
 				const $btn = $(this);
 				const tabId = $btn.data('tab');
+				const prevTab = $('.sscribe-tab-btn.sscribe-tab-active').data('tab');
+
+				// Stop debug console auto-refresh when leaving debug tab.
+				if ( prevTab === 'debug' && typeof window.SScribeDebugConsole !== 'undefined' ) {
+					window.SScribeDebugConsole.stopAutoRefresh();
+				}
 
 				// Update ARIA states for all tab buttons.
 				$('.sscribe-tab-btn').attr('aria-selected', 'false').removeClass('sscribe-tab-active');
