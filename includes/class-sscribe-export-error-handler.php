@@ -11,16 +11,36 @@ if ( ! defined( 'ABSPATH' ) ) {
 	exit;
 }
 
+/**
+ * Aggregates and structures export errors with diagnostic guidance.
+ */
 class SScribe_Export_Error_Handler {
 
 	public const MAX_STORED_ERRORS = 50;
 
+	/**
+	 * Diagnostics instance.
+	 *
+	 * @var SScribe_Diagnostics
+	 */
 	private readonly SScribe_Diagnostics $diagnostics;
 
+	/**
+	 * Initialize the error handler.
+	 *
+	 * @param SScribe_Diagnostics|null $diagnostics Diagnostics instance.
+	 */
 	public function __construct( ?SScribe_Diagnostics $diagnostics = null ) {
 		$this->diagnostics = $diagnostics ?? new SScribe_Diagnostics();
 	}
 
+	/**
+	 * Build diagnostics payload from structured errors.
+	 *
+	 * @param array $structured_errors Structured error entries.
+	 * @param array $string_errors     Plain string errors.
+	 * @return array
+	 */
 	public function build_diagnostics_payload( array $structured_errors, array $string_errors = array() ): array {
 		$categories      = array();
 		$guidance_map    = array();
@@ -155,6 +175,12 @@ class SScribe_Export_Error_Handler {
 		);
 	}
 
+	/**
+	 * Build structured errors from log data.
+	 *
+	 * @param array $log_data Log data array.
+	 * @return array
+	 */
 	public function build_structured_errors_from_log( array $log_data ): array {
 		$structured_errors = array();
 		$pages             = isset( $log_data['pages'] ) && is_array( $log_data['pages'] )
@@ -229,6 +255,12 @@ class SScribe_Export_Error_Handler {
 		return $structured_errors;
 	}
 
+	/**
+	 * Get user guidance for an error category.
+	 *
+	 * @param string $category Error category.
+	 * @return string
+	 */
 	public function get_guidance_for_category( string $category ): string {
 		$guidance_map = array(
 			'memory_exhausted'    => __( 'The server ran out of memory during export. Large PDF renders often need a higher PHP memory limit.', 'sscribe-export-site-pages' ),

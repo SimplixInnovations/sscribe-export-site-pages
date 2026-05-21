@@ -475,6 +475,20 @@ class SScribe_Logger_Enhanced implements SScribe_Logger_Interface {
 	}
 
 	/**
+	 * Clear all log entries from database.
+	 */
+	public function clear_logs(): void {
+		global $wpdb;
+
+		if ( ! $this->table_exists() ) {
+			return;
+		}
+
+		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.InterpolatedNotPrepared -- Table name is already escaped via esc_sql(); DELETE FROM does not support placeholders for table names.
+		$wpdb->query( 'DELETE FROM ' . esc_sql( $this->table_name ) );
+	}
+
+	/**
 	 * Get log entries from database with optional filters.
 	 *
 	 * @param array $filters Filter criteria (level, user_id, date_from, date_to).

@@ -45,6 +45,11 @@ spl_autoload_register(
 
 if ( ! function_exists( 'is_user_logged_in' ) ) {
 
+	/**
+	 * WordPress stub for PHPStan.
+	 *
+	 * @return bool Always true in test context.
+	 */
 	function is_user_logged_in(): bool {
 		return true;
 	}
@@ -52,6 +57,11 @@ if ( ! function_exists( 'is_user_logged_in' ) ) {
 
 if ( ! function_exists( 'wp_cache_flush' ) ) {
 
+	/**
+	 * WordPress stub for PHPStan.
+	 *
+	 * @return bool Always true in test context.
+	 */
 	function wp_cache_flush(): bool {
 		return true;
 	}
@@ -59,6 +69,12 @@ if ( ! function_exists( 'wp_cache_flush' ) ) {
 
 if ( ! function_exists( 'wp_is_post_autosave' ) ) {
 
+	/**
+	 * WordPress stub for PHPStan.
+	 *
+	 * @param int $post_id Post ID.
+	 * @return bool Always false in test context.
+	 */
 	function wp_is_post_autosave( int $post_id ): bool {
 		return false;
 	}
@@ -66,6 +82,12 @@ if ( ! function_exists( 'wp_is_post_autosave' ) ) {
 
 if ( ! function_exists( 'wp_is_post_revision' ) ) {
 
+	/**
+	 * WordPress stub for PHPStan.
+	 *
+	 * @param int $post_id Post ID.
+	 * @return bool Always false in test context.
+	 */
 	function wp_is_post_revision( int $post_id ): bool {
 		return false;
 	}

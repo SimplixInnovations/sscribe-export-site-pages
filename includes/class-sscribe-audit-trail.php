@@ -27,23 +27,40 @@ class SScribe_Audit_Trail {
 	public const EVENT_INVALID_NONCE          = 'invalid_nonce';
 	public const EVENT_SESSION_HIJACK_ATTEMPT = 'session_hijack_attempt';
 
+	/**
+	 * Audit log table name.
+	 *
+	 * @var string
+	 */
 	private readonly string $table_name;
 
+	/**
+	 * Whether audit logging is enabled.
+	 *
+	 * @var bool
+	 */
 	private readonly bool $enabled;
 
+	/**
+	 * Initialize the audit trail.
+	 */
 	public function __construct() {
 		global $wpdb;
 		$this->table_name = $wpdb->prefix . 'sscribe_audit_log';
 		$this->enabled    = $this->table_exists();
 	}
 
+	/**
+	 * Check if the audit table exists.
+	 *
+	 * @return bool
+	 */
 	private function table_exists(): bool {
 		global $wpdb;
 		static $exists = null;
 
 		if ( null === $exists ) {
 			// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- Schema introspection, cached via static variable
-
 			$table  = $wpdb->get_var(
 				$wpdb->prepare( 'SHOW TABLES LIKE %s', $this->table_name )
 			);
@@ -53,6 +70,13 @@ class SScribe_Audit_Trail {
 		return $exists;
 	}
 
+	/**
+	 * Log an audit event.
+	 *
+	 * @param string $event   Event identifier.
+	 * @param array  $context Event context data.
+	 * @return bool
+	 */
 	public function log( string $event, array $context = array() ): bool {
 		if ( ! $this->enabled ) {
 			return false;
@@ -68,7 +92,6 @@ class SScribe_Audit_Trail {
 		$sanitized_context = $this->sanitize_context( $context );
 
 		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- Custom table write, no caching for audit integrity
-
 		$result = $wpdb->insert(
 			$this->table_name,
 			array(
@@ -87,6 +110,12 @@ class SScribe_Audit_Trail {
 		return false !== $result;
 	}
 
+	/**
+	 * Sanitize context data by redacting sensitive keys.
+	 *
+	 * @param array $context Context data.
+	 * @return array Sanitized context.
+	 */
 	private function sanitize_context( array $context ): array {
 		$forbidden_keys = array(
 			'password',
@@ -114,16 +143,31 @@ class SScribe_Audit_Trail {
 		return $context;
 	}
 
+	/**
+	 * Get the client IP address.
+	 *
+	 * @return string
+	 */
 	private function get_client_ip(): string {
 		return SScribe_Helpers::get_client_ip();
 	}
 
+	/**
+	 * Hash the client IP for privacy.
+	 *
+	 * @return string
+	 */
 	private function hash_client_ip(): string {
 		$raw_ip = $this->get_client_ip();
 		$salt   = defined( 'AUTH_SALT' ) && '' !== AUTH_SALT ? AUTH_SALT : 'sscribe-audit';
 		return substr( hash_hmac( 'sha256', $raw_ip, $salt ), 0, 16 );
 	}
 
+	/**
+	 * Get the current user agent.
+	 *
+	 * @return string
+	 */
 	private function get_user_agent(): string {
 		if ( ! empty( $_SERVER['HTTP_USER_AGENT'] ) ) {
 			return sanitize_text_field( wp_unslash( $_SERVER['HTTP_USER_AGENT'] ) );
@@ -131,6 +175,11 @@ class SScribe_Audit_Trail {
 		return 'Unknown';
 	}
 
+	/**
+	 * Get the current request URI.
+	 *
+	 * @return string
+	 */
 	private function get_request_uri(): string {
 		if ( ! empty( $_SERVER['REQUEST_URI'] ) ) {
 			return sanitize_text_field( wp_unslash( $_SERVER['REQUEST_URI'] ) );
@@ -138,6 +187,14 @@ class SScribe_Audit_Trail {
 		return '';
 	}
 
+	/**
+	 * Get audit logs with optional filters.
+	 *
+	 * @param array $filters Filter criteria.
+	 * @param int   $limit   Max records to return.
+	 * @param int   $offset  Record offset.
+	 * @return array
+	 */
 	public function get_logs( array $filters = array(), int $limit = 100, int $offset = 0 ): array {
 		if ( ! $this->enabled ) {
 			return array();
@@ -192,6 +249,12 @@ class SScribe_Audit_Trail {
 		);
 	}
 
+	/**
+	 * Get event counts grouped by event type.
+	 *
+	 * @param array $filters Filter criteria.
+	 * @return array
+	 */
 	public function get_event_counts( array $filters = array() ): array {
 		if ( ! $this->enabled ) {
 			return array();
@@ -223,6 +286,12 @@ class SScribe_Audit_Trail {
 		);
 	}
 
+	/**
+	 * Clean up old audit log entries.
+	 *
+	 * @param int $days Age threshold in days.
+	 * @return int Number of deleted rows.
+	 */
 	public function cleanup( int $days = 90 ): int {
 		if ( ! $this->enabled ) {
 			return 0;
@@ -242,6 +311,12 @@ class SScribe_Audit_Trail {
 		);
 	}
 
+	/**
+	 * Erase user-specific audit data for GDPR compliance.
+	 *
+	 * @param int $user_id User ID.
+	 * @return int Number of affected rows.
+	 */
 	public function erase_user_data( int $user_id ): int {
 		if ( ! $this->enabled || $user_id <= 0 ) {
 			return 0;
@@ -267,6 +342,11 @@ class SScribe_Audit_Trail {
 		return false === $result ? 0 : (int) $result;
 	}
 
+	/**
+	 * Create the audit log database table.
+	 *
+	 * @return void
+	 */
 	public static function create_table(): void {
 		global $wpdb;
 

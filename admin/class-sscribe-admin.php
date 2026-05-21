@@ -38,6 +38,13 @@ class SScribe_Admin {
 	private readonly SScribe_Zip_Handler $zip_handler;
 
 	/**
+	 * Debug console handler.
+	 *
+	 * @var SScribe_Admin_Debug
+	 */
+	private SScribe_Admin_Debug $debug;
+
+	/**
 	 * Initialize the admin interface.
 	 *
 	 * @param SScribe_Page_Collector|null $collector   Page collector.
@@ -52,6 +59,9 @@ class SScribe_Admin {
 		$this->collector   = $collector ?? new SScribe_Page_Collector();
 		$this->seo_reader  = $seo_reader ?? new SScribe_SEO_Reader();
 		$this->zip_handler = $zip_handler ?? new SScribe_Zip_Handler();
+
+		$this->debug = new SScribe_Admin_Debug();
+		$this->debug->register_hooks();
 	}
 
 	/**
@@ -167,11 +177,29 @@ class SScribe_Admin {
 			return;
 		}
 
+		$debug = defined( 'SSCRIBE_DEBUG' ) && SSCRIBE_DEBUG;
+
+		$css_version = $debug
+			? filemtime( SSCRIBE_PLUGIN_DIR . 'admin/css/sscribe-admin.css' )
+			: SSCRIBE_VERSION;
+
+		$js_version = $debug
+			? filemtime( SSCRIBE_PLUGIN_DIR . 'admin/js/sscribe-admin.js' )
+			: SSCRIBE_VERSION;
+
+		$debug_css_version = $debug
+			? filemtime( SSCRIBE_PLUGIN_DIR . 'admin/css/sscribe-debug-console.css' )
+			: SSCRIBE_VERSION;
+
+		$debug_js_version = $debug
+			? filemtime( SSCRIBE_PLUGIN_DIR . 'admin/js/sscribe-debug-console.js' )
+			: SSCRIBE_VERSION;
+
 		wp_enqueue_style(
 			'sscribe-admin',
 			SSCRIBE_PLUGIN_URL . 'admin/css/sscribe-admin.css',
 			array(),
-			SSCRIBE_VERSION
+			$css_version
 		);
 
 		$fonts_url     = SSCRIBE_PLUGIN_URL . 'assets/fonts/manrope/';
@@ -212,7 +240,22 @@ class SScribe_Admin {
 			'sscribe-admin',
 			SSCRIBE_PLUGIN_URL . $js_file,
 			array( 'jquery' ),
-			SSCRIBE_VERSION,
+			$js_version,
+			true
+		);
+
+		wp_enqueue_style(
+			'sscribe-debug-console',
+			SSCRIBE_PLUGIN_URL . 'admin/css/sscribe-debug-console.css',
+			array( 'sscribe-admin' ),
+			$debug_css_version
+		);
+
+		wp_enqueue_script(
+			'sscribe-debug-console',
+			SSCRIBE_PLUGIN_URL . 'admin/js/sscribe-debug-console.js',
+			array( 'jquery', 'sscribe-admin' ),
+			$debug_js_version,
 			true
 		);
 

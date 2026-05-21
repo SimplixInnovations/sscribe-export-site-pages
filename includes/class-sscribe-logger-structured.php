@@ -275,4 +275,11 @@ class SScribe_Logger_Structured implements SScribe_Logger_Interface {
 	public function get_logs( int $limit = 100 ): array {
 		return array();
 	}
+
+	/**
+	 * Clear all log entries (not supported in structured logger).
+	 */
+	public function clear_logs(): void {
+		// Structured logger does not support clearing individual entries.
+	}
 }

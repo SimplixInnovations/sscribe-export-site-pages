@@ -11,6 +11,9 @@ if ( ! defined( 'ABSPATH' ) ) {
 	exit;
 }
 
+/**
+ * Validation utilities for export configuration and input sanitization.
+ */
 class SScribe_Validator {
 
 	public const ALLOWED_FORMATS = array( 'docx', 'pdf', 'html', 'markdown' );
@@ -21,6 +24,12 @@ class SScribe_Validator {
 
 	public const MIN_DISK_SPACE_MB = 100;
 
+	/**
+	 * Validate complete export configuration.
+	 *
+	 * @param array $config Export configuration.
+	 * @return array
+	 */
 	public static function validate_export_config( array $config ): array {
 		$errors = array();
 
@@ -36,6 +45,12 @@ class SScribe_Validator {
 		);
 	}
 
+	/**
+	 * Validate selected export formats.
+	 *
+	 * @param array $formats Format strings.
+	 * @return array
+	 */
 	public static function validate_formats( array $formats ): array {
 		$errors = array();
 
@@ -48,7 +63,6 @@ class SScribe_Validator {
 		if ( ! empty( $invalid ) ) {
 			$errors[] = sprintf(
 				/* translators: %s: Invalid formats list. */
-
 				__( 'Invalid export format(s): %s. Allowed: docx, pdf, html, markdown.', 'sscribe-export-site-pages' ),
 				implode( ', ', $invalid )
 			);
@@ -61,6 +75,12 @@ class SScribe_Validator {
 		return $errors;
 	}
 
+	/**
+	 * Validate page selection parameters.
+	 *
+	 * @param array $config Export configuration.
+	 * @return array
+	 */
 	public static function validate_page_selection( array $config ): array {
 		$errors = array();
 
@@ -81,7 +101,6 @@ class SScribe_Validator {
 			if ( count( $page_ids ) > self::MAX_PAGES ) {
 				$errors[] = sprintf(
 					/* translators: 1: Number of pages, 2: Maximum pages. */
-
 					_n(
 						'%1$d page selected. Maximum allowed is %2$d.',
 						'%1$d pages selected. Maximum allowed is %2$d.',
@@ -97,6 +116,12 @@ class SScribe_Validator {
 		return $errors;
 	}
 
+	/**
+	 * Validate language code.
+	 *
+	 * @param string $language Language code.
+	 * @return array
+	 */
 	public static function validate_language( string $language ): array {
 		$errors = array();
 
@@ -110,7 +135,6 @@ class SScribe_Validator {
 			if ( ! in_array( $language, $valid_languages, true ) ) {
 				$errors[] = sprintf(
 					/* translators: %s: Language code. */
-
 					__( 'Invalid language code: %s. Select a valid language from the dropdown.', 'sscribe-export-site-pages' ),
 					esc_html( $language )
 				);
@@ -120,6 +144,12 @@ class SScribe_Validator {
 		return $errors;
 	}
 
+	/**
+	 * Validate post status.
+	 *
+	 * @param string $status Post status.
+	 * @return array
+	 */
 	public static function validate_post_status( string $status ): array {
 		$errors = array();
 
@@ -128,7 +158,6 @@ class SScribe_Validator {
 		if ( ! in_array( $status, $allowed_statuses, true ) ) {
 			$errors[] = sprintf(
 				/* translators: %s: Post status. */
-
 				__( 'Invalid post status: %s. Allowed: publish, draft, pending, private, future, all.', 'sscribe-export-site-pages' ),
 				esc_html( $status )
 			);
@@ -137,6 +166,12 @@ class SScribe_Validator {
 		return $errors;
 	}
 
+	/**
+	 * Validate resource availability for export.
+	 *
+	 * @param array $config Export configuration.
+	 * @return array
+	 */
 	public static function validate_resource_availability( array $config ): array {
 		$errors = array();
 
@@ -152,6 +187,13 @@ class SScribe_Validator {
 		return $errors;
 	}
 
+	/**
+	 * Validate sufficient memory is available.
+	 *
+	 * @param int   $page_count Number of pages.
+	 * @param array $formats    Export formats.
+	 * @return array
+	 */
 	public static function validate_memory_availability( int $page_count, array $formats ): array {
 		$errors = array();
 
@@ -181,7 +223,6 @@ class SScribe_Validator {
 
 			$errors[] = sprintf(
 				/* translators: 1: Estimated memory, 2: Available memory, 3: Recommended memory. */
-
 				__( 'Insufficient memory: Export requires ~%1$dMB but only %2$dMB available. Increase memory to %3$dMB+ or reduce export size.', 'sscribe-export-site-pages' ),
 				$estimated_mb,
 				$available_mb,
@@ -192,6 +233,11 @@ class SScribe_Validator {
 		return $errors;
 	}
 
+	/**
+	 * Validate sufficient disk space is available.
+	 *
+	 * @return array
+	 */
 	public static function validate_disk_space(): array {
 		$errors = array();
 
@@ -211,7 +257,6 @@ class SScribe_Validator {
 			if ( $free_mb < self::MIN_DISK_SPACE_MB ) {
 				$errors[] = sprintf(
 					/* translators: %d: Free disk space in MB. */
-
 					__( 'Low disk space: Only %dMB free. Free up disk space before exporting.', 'sscribe-export-site-pages' ),
 					$free_mb
 				);
@@ -221,6 +266,12 @@ class SScribe_Validator {
 		return $errors;
 	}
 
+	/**
+	 * Validate page data structure.
+	 *
+	 * @param array $page_data Page data array.
+	 * @return array
+	 */
 	public static function validate_page_data( array $page_data ): array {
 		$errors = array();
 
@@ -229,7 +280,6 @@ class SScribe_Validator {
 			if ( ! isset( $page_data[ $field ] ) ) {
 				$errors[] = sprintf(
 					/* translators: %s: Field name. */
-
 					__( 'Missing required field: %s', 'sscribe-export-site-pages' ),
 					$field
 				);
@@ -250,6 +300,12 @@ class SScribe_Validator {
 		);
 	}
 
+	/**
+	 * Validate DOCX file integrity.
+	 *
+	 * @param string $file_path File path.
+	 * @return bool
+	 */
 	public static function validate_docx_integrity( string $file_path ): bool {
 		if ( ! file_exists( $file_path ) ) {
 			return false;
@@ -280,6 +336,13 @@ class SScribe_Validator {
 		return true;
 	}
 
+	/**
+	 * Sanitize AJAX input according to expected types.
+	 *
+	 * @param array $input    Raw input data.
+	 * @param array $expected Expected field types.
+	 * @return array
+	 */
 	public static function sanitize_ajax_input( array $input, array $expected ): array {
 		$sanitized = array();
 
@@ -323,6 +386,12 @@ class SScribe_Validator {
 		return $sanitized;
 	}
 
+	/**
+	 * Check if a URL is safe (no dangerous protocols).
+	 *
+	 * @param string $url URL to check.
+	 * @return bool
+	 */
 	public static function is_safe_url( string $url ): bool {
 		$dangerous_protocols = array( 'javascript:', 'data:', 'vbscript:', 'file:' );
 		$url_lower           = strtolower( $url );
@@ -336,6 +405,12 @@ class SScribe_Validator {
 		return true;
 	}
 
+	/**
+	 * Sanitize filename removing dangerous patterns.
+	 *
+	 * @param string $filename Raw filename.
+	 * @return string
+	 */
 	public static function sanitize_filename( string $filename ): string {
 		$filename = sanitize_file_name( $filename );
 

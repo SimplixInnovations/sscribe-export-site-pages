@@ -263,13 +263,21 @@ class SScribe {
 
 	/**
 	 * Initialize internationalization support.
+	 *
+	 * Note: load_plugin_textdomain() is kept for self-hosted installs.
+	 * WordPress.org-hosted plugins auto-load translations since WP 4.6.
 	 */
 	private function init_i18n(): void {
-
-		load_plugin_textdomain( // phpcs:ignore PluginCheck.CodeAnalysis.DiscouragedFunctions.load_plugin_textdomainFound -- Defensive fallback for non-.org installations and local dev.
-			'sscribe-export-site-pages',
-			false,
-			dirname( SSCRIBE_PLUGIN_BASENAME ) . '/languages'
+		add_action(
+			'init',
+			static function () {
+				// phpcs:ignore PluginCheck.CodeAnalysis.DiscouragedFunctions.load_plugin_textdomainFound -- Required for self-hosted/non-WP.org installs.
+				load_plugin_textdomain(
+					'sscribe-export-site-pages',
+					false,
+					dirname( SSCRIBE_PLUGIN_BASENAME ) . '/languages'
+				);
+			}
 		);
 	}
 }

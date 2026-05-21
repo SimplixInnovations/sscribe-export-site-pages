@@ -97,7 +97,8 @@ class SScribe_AJAX_Guard {
 	 */
 	private static function disable_if_possible( string $key, string $value ): bool {
 		if ( function_exists( 'ini_set' ) && false === strpos( ini_get( 'disable_functions' ), 'ini_set' ) ) {
-			@ini_set( $key, $value ); // phpcs:ignore WordPress.PHP.IniSet.Risky
+			// phpcs:ignore WordPress.PHP.IniSet.Risky, Squiz.PHP.DiscouragedFunctions.Discouraged
+			@ini_set( $key, $value );
 			return true;
 		}
 		return false;
@@ -110,6 +111,27 @@ class SScribe_AJAX_Guard {
 	 */
 	private static function log_cleaned_buffers( string $type ): void {
 		$start_level = ob_get_level();
+		$extraneous  = '';
+
+		while ( ob_get_level() > 0 ) {
+			$content    = ob_get_clean();
+			$extraneous = ( false !== $content ? $content : '' ) . "\n" . $extraneous;
+		}
+
+		$extraneous = trim( $extraneous );
+
+		while ( ob_get_level() < $start_level ) {
+			ob_start();
+		}
+
+		// Skip error_log output in test environments to avoid noisy test output.
+		if ( defined( 'WP_TESTS_DOMAIN' ) || defined( 'SSCRIBE_TESTING' ) ) {
+			return;
+		}
+
+		if ( '' === $extraneous && 0 === $start_level ) {
+			return;
+		}
 		$extraneous  = '';
 
 		while ( ob_get_level() > 0 ) {

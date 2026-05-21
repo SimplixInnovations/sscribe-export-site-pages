@@ -15,15 +15,40 @@ require_once SSCRIBE_PLUGIN_DIR . 'includes/exporters/interface-sscribe-exporter
 
 class SScribe_HTML_Exporter implements SScribe_Exporter_Interface {
 
+	/**
+	 * Logger instance.
+	 *
+	 * @var SScribe_Logger_Interface|null
+	 */
 	private ?SScribe_Logger_Interface $logger = null;
 
+	/**
+	 * Filesystem handler.
+	 *
+	 * @var SScribe_Filesystem
+	 */
 	private SScribe_Filesystem $filesystem;
 
+	/**
+	 * Initialize the HTML exporter.
+	 *
+	 * @param SScribe_Logger_Interface|null $logger     Logger.
+	 * @param SScribe_Filesystem|null       $filesystem Filesystem handler.
+	 */
 	public function __construct( ?SScribe_Logger_Interface $logger = null, ?SScribe_Filesystem $filesystem = null ) {
 		$this->logger     = $logger ?? SScribe_Logger::instance( defined( 'SSCRIBE_DEBUG' ) && SSCRIBE_DEBUG );
 		$this->filesystem = $filesystem ?? new SScribe_Filesystem();
 	}
 
+	/**
+	 * Export a page as an HTML file.
+	 *
+	 * @param array  $page_data Page data to export.
+	 * @param string $output_dir Output directory path.
+	 * @param int    $index     Current page index.
+	 * @param int    $total     Total number of pages.
+	 * @return SScribe_Result Result of the export operation.
+	 */
 	public function export( array $page_data, string $output_dir, int $index = 0, int $total = 0 ): SScribe_Result {
 		$page_id = $page_data['id'] ?? 0;
 		$title   = $page_data['title'] ?? 'Untitled';
@@ -94,6 +119,12 @@ class SScribe_HTML_Exporter implements SScribe_Exporter_Interface {
 		}
 	}
 
+	/**
+	 * Generate full HTML document from page data.
+	 *
+	 * @param array $page_data Page data.
+	 * @return string Complete HTML document.
+	 */
 	private function generate_html( array $page_data ): string {
 		require_once SSCRIBE_PLUGIN_DIR . 'includes/class-sscribe-rtl-helper.php';
 
@@ -243,6 +274,12 @@ class SScribe_HTML_Exporter implements SScribe_Exporter_Interface {
 		return $html;
 	}
 
+	/**
+	 * Get featured image HTML for the page.
+	 *
+	 * @param array $page_data Page data.
+	 * @return string Image HTML or empty string.
+	 */
 	private function get_featured_image_html( array $page_data ): string {
 
 		$src = ! empty( $page_data['featured_image_url'] )
@@ -258,6 +295,12 @@ class SScribe_HTML_Exporter implements SScribe_Exporter_Interface {
 			class="featured-image">';
 	}
 
+	/**
+	 * Get meta information HTML for the page.
+	 *
+	 * @param array $page_data Page data.
+	 * @return string Meta HTML.
+	 */
 	private function get_meta_html( array $page_data ): string {
 		return '<dl class="meta">
 			<dt>' . __( 'Author', 'sscribe-export-site-pages' ) . '</dt>
@@ -271,6 +314,12 @@ class SScribe_HTML_Exporter implements SScribe_Exporter_Interface {
 		</dl>';
 	}
 
+	/**
+	 * Get SEO metadata HTML for the page.
+	 *
+	 * @param array $page_data Page data.
+	 * @return string SEO HTML or empty string.
+	 */
 	private function get_seo_html( array $page_data ): string {
 		if ( empty( $page_data['seo'] ) ) {
 			return '';
@@ -318,10 +367,20 @@ class SScribe_HTML_Exporter implements SScribe_Exporter_Interface {
 		return $html;
 	}
 
+	/**
+	 * Get the file extension for HTML files.
+	 *
+	 * @return string
+	 */
 	public function get_extension(): string {
 		return 'html';
 	}
 
+	/**
+	 * Get the MIME type for HTML files.
+	 *
+	 * @return string
+	 */
 	public function get_mime_type(): string {
 		return 'text/html';
 	}

@@ -11,12 +11,28 @@ if ( ! defined( 'ABSPATH' ) ) {
 	exit;
 }
 
+/**
+ * Handles ZIP archive creation and cleanup for export packages.
+ */
 class SScribe_Zip_Handler {
 
+	/**
+	 * Export directory path.
+	 *
+	 * @var string
+	 */
 	private readonly string $export_dir;
 
+	/**
+	 * Logger instance.
+	 *
+	 * @var SScribe_Logger_Interface
+	 */
 	private readonly SScribe_Logger_Interface $logger;
 
+	/**
+	 * Initialize the ZIP handler.
+	 */
 	public function __construct() {
 		$upload_dir = wp_upload_dir();
 		if ( ! empty( $upload_dir['error'] ) ) {
@@ -32,6 +48,11 @@ class SScribe_Zip_Handler {
 		$this->logger     = SScribe_Logger::instance( defined( 'SSCRIBE_DEBUG' ) && SSCRIBE_DEBUG );
 	}
 
+	/**
+	 * Get the export directory, creating it if needed.
+	 *
+	 * @return string
+	 */
 	public function get_export_dir(): string {
 		if ( ! file_exists( $this->export_dir ) ) {
 			SScribe_Security::protect_directory( $this->export_dir );
@@ -39,6 +60,11 @@ class SScribe_Zip_Handler {
 		return $this->export_dir;
 	}
 
+	/**
+	 * Create a temporary working directory.
+	 *
+	 * @return string
+	 */
 	public function create_temp_dir(): string {
 		$random_suffix = bin2hex( random_bytes( 6 ) );
 		$temp_dir      = $this->export_dir . '/temp-' . $random_suffix;
@@ -46,6 +72,16 @@ class SScribe_Zip_Handler {
 		return $temp_dir;
 	}
 
+	/**
+	 * Create a ZIP archive from export files.
+	 *
+	 * @param string $source_dir    Source directory path.
+	 * @param string $zip_name      ZIP filename (auto-generated if empty).
+	 * @param array  $formats       Export formats to include.
+	 * @param bool   $has_language  Whether language metadata is available.
+	 * @param array  $lang_metadata Language metadata array.
+	 * @return string|false ZIP file path or false on failure.
+	 */
 	public function create_zip( string $source_dir, string $zip_name = '', array $formats = array( 'docx' ), bool $has_language = true, array $lang_metadata = array() ): string|false {
 		if ( ! class_exists( 'ZipArchive' ) ) {
 			$this->logger->error( 'ZipArchive not available' );
@@ -213,6 +249,12 @@ class SScribe_Zip_Handler {
 		return file_exists( $zip_path ) ? $zip_path : false;
 	}
 
+	/**
+	 * Extract language code from filename.
+	 *
+	 * @param string $filename Export filename.
+	 * @return string|null Language code or null.
+	 */
 	private function extract_lang_from_filename( string $filename ): ?string {
 
 		if ( ! preg_match( '/-([A-Z]{2,3})\.[A-Za-z]+$/', $filename, $matches ) ) {
@@ -222,6 +264,12 @@ class SScribe_Zip_Handler {
 		return in_array( $matches[1], SScribe_RTL_Helper::get_all_known_codes(), true ) ? $matches[1] : null;
 	}
 
+	/**
+	 * Remove language code from filename.
+	 *
+	 * @param string $filename Export filename.
+	 * @return string Cleaned filename.
+	 */
 	private function remove_lang_from_filename( string $filename ): string {
 
 		$parts = pathinfo( $filename );
@@ -233,6 +281,12 @@ class SScribe_Zip_Handler {
 		return $clean_base . $ext;
 	}
 
+	/**
+	 * Get the AJAX download URL for a ZIP file.
+	 *
+	 * @param string $zip_filename ZIP filename.
+	 * @return string
+	 */
 	public function get_ajax_download_url( string $zip_filename ): string {
 		return add_query_arg(
 			array(
@@ -244,6 +298,11 @@ class SScribe_Zip_Handler {
 		);
 	}
 
+	/**
+	 * Clean up expired export files.
+	 *
+	 * @return int Number of cleaned items.
+	 */
 	public function cleanup_expired(): int {
 		if ( get_transient( 'sscribe_cron_exports_lock' ) ) {
 			return 0;
@@ -296,6 +355,11 @@ class SScribe_Zip_Handler {
 		}
 	}
 
+	/**
+	 * Clean up stale temporary directories.
+	 *
+	 * @return int Number of cleaned directories.
+	 */
 	private function cleanup_stale_temp_dirs(): int {
 		$cleaned = 0;
 		$max_age = 3 * DAY_IN_SECONDS;
@@ -315,6 +379,12 @@ class SScribe_Zip_Handler {
 		return $cleaned;
 	}
 
+	/**
+	 * Delete a directory and its contents.
+	 *
+	 * @param string $dir Directory path.
+	 * @return bool
+	 */
 	public function delete_directory( string $dir ): bool {
 		return SScribe_Security::delete_directory( $dir );
 	}

@@ -15,8 +15,18 @@ if ( ! defined( 'ABSPATH' ) ) {
 
 class SScribe_Content_Parser {
 
+	/**
+	 * Cached upload directory data.
+	 *
+	 * @var array|null
+	 */
 	private ?array $upload_dir_cache = null;
 
+	/**
+	 * Get the WordPress upload directory (cached).
+	 *
+	 * @return array
+	 */
 	private function get_upload_dir(): array {
 		if ( null === $this->upload_dir_cache ) {
 			$this->upload_dir_cache = wp_upload_dir();
@@ -24,6 +34,12 @@ class SScribe_Content_Parser {
 		return $this->upload_dir_cache;
 	}
 
+	/**
+	 * Parse HTML content into structured elements.
+	 *
+	 * @param string $html HTML content.
+	 * @return array Parsed elements.
+	 */
 	public function parse( string $html ): array {
 		if ( empty( $html ) ) {
 			return array();
@@ -61,11 +77,25 @@ class SScribe_Content_Parser {
 		return $elements;
 	}
 
+	/**
+	 * Safe preg_replace wrapper that returns original on failure.
+	 *
+	 * @param array|string $pattern     Regex pattern.
+	 * @param array|string $replacement Replacement string.
+	 * @param string       $subject     Input string.
+	 * @return string
+	 */
 	private function safe_replace( array|string $pattern, array|string $replacement, string $subject ): string {
 		$result = preg_replace( $pattern, $replacement, $subject );
 		return is_string( $result ) ? $result : $subject;
 	}
 
+	/**
+	 * Normalize HTML for parsing.
+	 *
+	 * @param string $html Raw HTML.
+	 * @return string Normalized HTML.
+	 */
 	private function normalize_html( string $html ): string {
 		$html = $this->strip_all_styles( $html );
 
@@ -85,10 +115,23 @@ class SScribe_Content_Parser {
 		return trim( $html );
 	}
 
+	/**
+	 * Strip all style-related attributes from HTML.
+	 *
+	 * @param string $html HTML content.
+	 * @return string Cleaned HTML.
+	 */
 	private function strip_all_styles( string $html ): string {
 		return SScribe_Helpers::strip_page_builder_attributes( $html );
 	}
 
+	/**
+	 * Parse HTML DOM into structured elements.
+	 *
+	 * @param string $html HTML content.
+	 * @return array Parsed elements.
+	 * @throws \Throwable If DOM parsing fails.
+	 */
 	private function parse_dom( string $html ): array {
 		$elements = array();
 
@@ -151,6 +194,13 @@ class SScribe_Content_Parser {
 		}
 	}
 
+	/**
+	 * Parse a single DOM node into structured element(s).
+	 *
+	 * @param \DOMNode $node  DOM node.
+	 * @param int      $depth Nesting depth.
+	 * @return array|null Parsed element or null.
+	 */
 	private function parse_node( \DOMNode $node, int $depth = 0 ): ?array {
 		if ( XML_TEXT_NODE === $node->nodeType ) {
 			$text = trim( $node->textContent );
@@ -290,6 +340,14 @@ class SScribe_Content_Parser {
 		}
 	}
 
+	/**
+	 * Parse a list element (ul/ol) into structured format.
+	 *
+	 * @param \DOMNode $node  List DOM node.
+	 * @param string   $style List style ('bullet' or 'numbered').
+	 * @param int      $depth Nesting depth.
+	 * @return array Parsed list data.
+	 */
 	private function parse_list( \DOMNode $node, string $style, int $depth = 0 ): array {
 		$items = array();
 
@@ -338,6 +396,12 @@ class SScribe_Content_Parser {
 		);
 	}
 
+	/**
+	 * Parse a table element into structured format.
+	 *
+	 * @param \DOMNode $node Table DOM node.
+	 * @return array Parsed table data.
+	 */
 	private function parse_table( \DOMNode $node ): array {
 		$rows = array();
 
@@ -396,6 +460,12 @@ class SScribe_Content_Parser {
 		);
 	}
 
+	/**
+	 * Parse an image element into structured format.
+	 *
+	 * @param \DOMNode $node Image DOM node.
+	 * @return array|null Parsed image data or null.
+	 */
 	private function parse_image( \DOMNode $node ): ?array {
 		$src = $node->getAttribute( 'src' );
 		$alt = $node->getAttribute( 'alt' );
@@ -414,6 +484,12 @@ class SScribe_Content_Parser {
 		);
 	}
 
+	/**
+	 * Extract button elements from HTML.
+	 *
+	 * @param string $html HTML content.
+	 * @return array Button elements.
+	 */
 	private function extract_buttons_from_html( string $html ): array {
 		$buttons = array();
 
@@ -445,10 +521,23 @@ class SScribe_Content_Parser {
 		return $buttons;
 	}
 
+	/**
+	 * Merge button elements into existing elements array.
+	 *
+	 * @param array $elements Existing elements.
+	 * @param array $buttons  Button elements.
+	 * @return array Merged elements.
+	 */
 	private function merge_buttons_into_elements( array $elements, array $buttons ): array {
 		return array_merge( $elements, $buttons );
 	}
 
+	/**
+	 * Extract inline formatting runs from a DOM node.
+	 *
+	 * @param \DOMNode $node DOM node.
+	 * @return array Inline runs.
+	 */
 	private function get_inline_runs( \DOMNode $node ): array {
 		$runs = array();
 
@@ -547,10 +636,22 @@ class SScribe_Content_Parser {
 		return $runs;
 	}
 
+	/**
+	 * Get text content from a DOM node.
+	 *
+	 * @param \DOMNode $node DOM node.
+	 * @return string
+	 */
 	private function get_text_content( \DOMNode $node ): string {
 		return trim( $node->textContent );
 	}
 
+	/**
+	 * Convert inline runs to plain text.
+	 *
+	 * @param array $runs Inline runs.
+	 * @return string
+	 */
 	private function runs_to_text( array $runs ): string {
 		$text = '';
 		foreach ( $runs as $run ) {
@@ -559,6 +660,12 @@ class SScribe_Content_Parser {
 		return trim( $text );
 	}
 
+	/**
+	 * Convert a URL to a local file path.
+	 *
+	 * @param string $url URL to convert.
+	 * @return string Local path or empty string.
+	 */
 	private function url_to_local_path( string $url ): string {
 		$upload_dir  = $this->get_upload_dir();
 		$upload_url  = $upload_dir['baseurl'];
