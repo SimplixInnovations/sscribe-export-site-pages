@@ -43,7 +43,7 @@ class SScribe_Admin_Debug {
 		}
 
 		$settings = array(
-			'debug_enabled' => isset( $_POST['debug_enabled'] ) ? (bool) $_POST['debug_enabled'] : false,
+			'debug_enabled' => isset( $_POST['debug_enabled'] ) ? filter_var( wp_unslash( $_POST['debug_enabled'] ), FILTER_VALIDATE_BOOLEAN ) : false,
 			'log_level'     => isset( $_POST['log_level'] ) ? sanitize_text_field( wp_unslash( $_POST['log_level'] ) ) : 'DEBUG',
 			'auto_refresh'  => isset( $_POST['auto_refresh'] ) ? filter_var( wp_unslash( $_POST['auto_refresh'] ), FILTER_VALIDATE_BOOLEAN ) : true,
 		);
@@ -152,6 +152,9 @@ class SScribe_Admin_Debug {
 
 			if ( 0 === strpos( $real_file_path, $real_log_dir ) ) {
 				$content = file_get_contents( $file_path ); // phpcs:ignore WordPress.WP.AlternativeFunctions.file_get_contents_file_get_contents
+				if ( false === $content ) {
+					wp_die( esc_html__( 'Failed to read file.', 'sscribe-export-site-pages' ) );
+				}
 				$this->download_json( $filename, $content );
 				return;
 			} else {
@@ -177,12 +180,16 @@ class SScribe_Admin_Debug {
 
 		$entries = $this->parse_log_entries( $logs, $filter_level, $search );
 
-		wp_send_json_success(
+		$json_content = wp_json_encode(
 			array(
 				'entries' => array_slice( $entries, $offset, $limit ),
 				'count'   => count( $entries ),
+				'exported' => wp_date( 'Y-m-d H:i:s' ),
 			)
 		);
+
+		$export_filename = 'sscribe-debug-export-' . gmdate( 'Y-m-d-His' ) . '.json';
+		$this->download_json( $export_filename, $json_content );
 	}
 
 	/**
@@ -272,6 +279,7 @@ class SScribe_Admin_Debug {
 
 		if ( false === $real_file_path || false === $real_log_dir || 0 !== strpos( $real_file_path, $real_log_dir ) ) {
 			wp_send_json_error( array( 'message' => __( 'File not found.', 'sscribe-export-site-pages' ) ) );
+			return;
 		}
 
 		$content = file_get_contents( $file_path ); // phpcs:ignore WordPress.WP.AlternativeFunctions.file_get_contents_file_get_contents
@@ -315,6 +323,7 @@ class SScribe_Admin_Debug {
 
 		if ( false === $real_file_path || false === $real_log_dir || 0 !== strpos( $real_file_path, $real_log_dir ) ) {
 			wp_send_json_error( array( 'message' => __( 'File not found.', 'sscribe-export-site-pages' ) ) );
+			return;
 		}
 
 		if ( wp_delete_file( $file_path ) ) {

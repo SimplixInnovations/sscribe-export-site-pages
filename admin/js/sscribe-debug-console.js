@@ -70,7 +70,7 @@
 			} );
 
 			this.$searchInput.on( 'input', debounce( 300, function() {
-				self.searchQuery = $( this ).val();
+				self.searchQuery = self.$searchInput.val();
 				self.fetchLogs();
 			} ) );
 
@@ -85,6 +85,10 @@
 			} );
 
 			this.$refreshBtn.on( 'click', function() {
+				if ( self.isAutoRefresh ) {
+					self.stopAutoRefresh();
+					self.startAutoRefresh();
+				}
 				self.fetchLogs();
 				self.fetchRotatedLogs();
 			} );
@@ -122,6 +126,10 @@
 				if ( confirm( 'Delete this log file?' ) ) {
 					self.deleteRotatedLog( $( this ).data( 'file' ) );
 				}
+			} );
+
+			this.$container.on( 'click', '#sscribe-debug-help-btn', function() {
+				window.alert( 'SScribe Debug Console\n\nView detailed export logs, toggle debug mode, and manage rotated log files. Logs capture detailed information about export operations including processing steps, errors, and performance metrics.' );
 			} );
 		},
 
@@ -332,9 +340,9 @@
 				html += '<span class="sscribe-debug-rotated-file-meta">' + escHtml( file.size ) + ' - ' + escHtml( file.date ) + '</span>';
 				html += '</div>';
 				html += '<div class="sscribe-debug-rotated-file-actions">';
-				html += '<button type="button" class="sscribe-button sscribe-rotated-view" data-file="' + escHtml( file.name ) + '">View</button>';
-				html += '<button type="button" class="sscribe-button sscribe-rotated-export" data-file="' + escHtml( file.name ) + '">Export</button>';
-				html += '<button type="button" class="sscribe-button sscribe-button-danger sscribe-rotated-delete" data-file="' + escHtml( file.name ) + '">Delete</button>';
+				html += '<button type="button" class="sscribe-button sscribe-button-sm sscribe-button-outline sscribe-rotated-view" data-file="' + escHtml( file.name ) + '">View</button>';
+				html += '<button type="button" class="sscribe-button sscribe-button-sm sscribe-button-secondary sscribe-rotated-export" data-file="' + escHtml( file.name ) + '">Export</button>';
+				html += '<button type="button" class="sscribe-button sscribe-button-sm sscribe-button-danger sscribe-rotated-delete" data-file="' + escHtml( file.name ) + '">Delete</button>';
 				html += '</div></div>';
 			} );
 
