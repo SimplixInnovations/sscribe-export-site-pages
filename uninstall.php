@@ -135,7 +135,6 @@ if ( is_multisite() ) {
 $sscribe_upload_dir = wp_upload_dir();
 
 // phpcs:ignore WordPress.NamingConventions.PrefixAllGlobals.NonPrefixedVariableFound -- Local file-scope variable in uninstall context, not a global.
-
 $directories_to_clean = array(
 	$sscribe_upload_dir['basedir'] . '/sscribe-exports',
 	$sscribe_upload_dir['basedir'] . '/sscribe-logs',

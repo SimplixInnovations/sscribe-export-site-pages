@@ -11,8 +11,18 @@ if ( ! defined( 'ABSPATH' ) ) {
 	exit;
 }
 
+/**
+ * Factory for creating export format instances.
+ */
 class SScribe_Exporter_Factory {
 
+	/**
+	 * Validate and resolve export format enum.
+	 *
+	 * @param string $format Format string.
+	 * @return SScribe_Export_Format
+	 * @throws SScribe_Validation_Exception If format is invalid.
+	 */
 	private static function validate_format( string $format ): SScribe_Export_Format {
 		$enum_format = SScribe_Export_Format::tryFrom( $format );
 
@@ -28,6 +38,12 @@ class SScribe_Exporter_Factory {
 		return $enum_format;
 	}
 
+	/**
+	 * Create an exporter instance for the given format.
+	 *
+	 * @param string $format Export format string.
+	 * @return SScribe_Exporter_Interface|null
+	 */
 	public static function create( string $format ): ?SScribe_Exporter_Interface {
 		try {
 			$enum_format = self::validate_format( $format );
@@ -53,14 +69,35 @@ class SScribe_Exporter_Factory {
 		};
 	}
 
+	/**
+	 * Get all supported export formats.
+	 *
+	 * @return array
+	 */
 	public static function get_supported_formats(): array {
 		return SScribe_Export_Format::get_supported_formats();
 	}
 
+	/**
+	 * Check if a format is supported.
+	 *
+	 * @param string $format Format string.
+	 * @return bool
+	 */
 	public static function is_supported( string $format ): bool {
 		return null !== SScribe_Export_Format::tryFrom( $format );
 	}
 
+	/**
+	 * Build a filename for the exported page.
+	 *
+	 * @param array  $page_data     Page metadata.
+	 * @param int    $index         Current page index.
+	 * @param int    $total         Total page count.
+	 * @param string $extension     File extension.
+	 * @param bool   $include_lang  Whether to include language code.
+	 * @return string Generated filename.
+	 */
 	public static function build_filename( array $page_data, int $index = 0, int $total = 0, string $extension = 'docx', bool $include_lang = true ): string {
 		$page_id = (int) ( $page_data['id'] ?? 0 );
 

@@ -82,20 +82,18 @@
     <rule ref="Squiz.Commenting.ClassComment">
         <severity>0</severity>
     </rule>
+    <!-- Re-enabled: enforce PHPDoc on functions and variables for maintainability -->
     <rule ref="Squiz.Commenting.FunctionComment">
-        <severity>0</severity>
+        <severity>5</severity>
     </rule>
     <rule ref="Squiz.Commenting.VariableComment">
-        <severity>0</severity>
+        <severity>5</severity>
     </rule>
     <rule ref="Squiz.Commenting.InlineComment">
         <severity>0</severity>
     </rule>
 
-    <!-- Allow SScribe_Helpers::get_icon() in admin partials — returns pre-sanitized SVG with esc_attr() on all dynamic attributes -->
-    <rule ref="WordPress.Security.EscapeOutput">
-        <exclude-pattern>*/admin/partials/*</exclude-pattern>
-    </rule>
+    <!-- Admin partials: use targeted phpcs:ignore comments where pre-sanitized output is intentional. -->
 
     <!-- Allow all naming conventions for WP core properties and internal variables -->
     <rule ref="WordPress.NamingConventions.ValidVariableName">

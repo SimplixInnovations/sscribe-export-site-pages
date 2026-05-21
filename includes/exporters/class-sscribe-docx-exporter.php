@@ -15,10 +15,26 @@ require_once SSCRIBE_PLUGIN_DIR . 'includes/exporters/interface-sscribe-exporter
 
 class SScribe_DOCX_Exporter implements SScribe_Exporter_Interface {
 
+	/**
+	 * Core exporter instance.
+	 *
+	 * @var SScribe_Exporter
+	 */
 	private SScribe_Exporter $exporter;
 
+	/**
+	 * Logger instance.
+	 *
+	 * @var SScribe_Logger_Interface
+	 */
 	private SScribe_Logger_Interface $logger;
 
+	/**
+	 * Initialize the DOCX exporter.
+	 *
+	 * @param SScribe_Exporter|null         $exporter Core exporter.
+	 * @param SScribe_Logger_Interface|null $logger   Logger.
+	 */
 	public function __construct(
 		?SScribe_Exporter $exporter = null,
 		?SScribe_Logger_Interface $logger = null
@@ -27,6 +43,15 @@ class SScribe_DOCX_Exporter implements SScribe_Exporter_Interface {
 		$this->logger   = $logger ?? SScribe_Logger::instance( defined( 'SSCRIBE_DEBUG' ) && SSCRIBE_DEBUG );
 	}
 
+	/**
+	 * Export a page as a DOCX file.
+	 *
+	 * @param array  $page_data Page data to export.
+	 * @param string $output_dir Output directory path.
+	 * @param int    $index     Current page index.
+	 * @param int    $total     Total number of pages.
+	 * @return SScribe_Result Result of the export operation.
+	 */
 	public function export( array $page_data, string $output_dir, int $index = 0, int $total = 0 ): SScribe_Result {
 		$page_id = $page_data['id'] ?? 0;
 
@@ -98,10 +123,20 @@ class SScribe_DOCX_Exporter implements SScribe_Exporter_Interface {
 		}
 	}
 
+	/**
+	 * Get the file extension for DOCX files.
+	 *
+	 * @return string
+	 */
 	public function get_extension(): string {
 		return 'docx';
 	}
 
+	/**
+	 * Get the MIME type for DOCX files.
+	 *
+	 * @return string
+	 */
 	public function get_mime_type(): string {
 		return 'application/vnd.openxmlformats-officedocument.wordprocessingml.document';
 	}

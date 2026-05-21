@@ -32,3 +32,16 @@ All notable changes to this project will be documented in this file.
 - Multiple security hardening improvements (see changelog above)
 
 ## [Unreleased]
+
+### Added
+- `filemtime()` cache busting for admin CSS/JS assets in development mode
+- `composer i18n:make-pot` script for generating translation files
+- PHPDoc comment enforcement (`FunctionComment`, `VariableComment`) via PHPCS
+
+### Changed
+- `load_plugin_textdomain()` now fires on `init` hook (WordPress.org compliant)
+- Removed blanket `WordPress.Security.EscapeOutput` exclusion on admin partials
+- Test expectations updated to match actual asset enqueue count
+
+### Fixed
+- `SScribe_Admin_Test::test_enqueue_admin_assets_only_runs_for_plugin_pages` assertion count

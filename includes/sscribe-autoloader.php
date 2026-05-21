@@ -66,6 +66,8 @@ spl_autoload_register(
 			$paths[] = SSCRIBE_PLUGIN_DIR . 'includes/class-sscribe-' . $relative . '.php';
 		} elseif ( 'SScribe_Admin' === $class_name ) {
 			$paths[] = SSCRIBE_PLUGIN_DIR . 'admin/class-sscribe-admin.php';
+		} elseif ( 'SScribe_Admin_Debug' === $class_name ) {
+			$paths[] = SSCRIBE_PLUGIN_DIR . 'admin/class-sscribe-admin-debug.php';
 		} else {
 			$paths[] = SSCRIBE_PLUGIN_DIR . 'includes/class-sscribe-' . $relative . '.php';
 		}

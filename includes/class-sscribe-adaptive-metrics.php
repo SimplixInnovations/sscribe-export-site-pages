@@ -11,6 +11,9 @@ if ( ! defined( 'ABSPATH' ) ) {
 	exit;
 }
 
+/**
+ * Tracks and predicts export performance using exponential moving averages.
+ */
 class SScribe_Adaptive_Metrics {
 
 	private const EMA_ALPHA = 0.3;
@@ -31,6 +34,13 @@ class SScribe_Adaptive_Metrics {
 		'markdown' => 0.1,
 	);
 
+	/**
+	 * Get estimated seconds per page for a format.
+	 *
+	 * @param string $format    Export format.
+	 * @param string $post_type Post type.
+	 * @return float
+	 */
 	public function get_seconds_per_page( string $format, string $post_type = 'page' ): float {
 		$baseline = self::BASELINE_SECONDS[ $format ] ?? 2.0;
 
@@ -51,6 +61,13 @@ class SScribe_Adaptive_Metrics {
 		return ( $baseline * 0.2 ) + ( $historical * 0.8 );
 	}
 
+	/**
+	 * Get estimated MB per page for a format.
+	 *
+	 * @param string $format    Export format.
+	 * @param string $post_type Post type.
+	 * @return float
+	 */
 	public function get_mb_per_page( string $format, string $post_type = 'page' ): float {
 		$baseline = self::BASELINE_MB[ $format ] ?? 0.5;
 
@@ -71,6 +88,15 @@ class SScribe_Adaptive_Metrics {
 		return ( $baseline * 0.2 ) + ( $historical * 0.8 );
 	}
 
+	/**
+	 * Save export metrics and update moving averages.
+	 *
+	 * @param string $format      Export format.
+	 * @param int    $page_count  Number of pages.
+	 * @param float  $elapsed_sec Elapsed seconds.
+	 * @param float  $total_mb    Total MB.
+	 * @param string $post_type   Post type.
+	 */
 	public function save( string $format, int $page_count, float $elapsed_sec, float $total_mb, string $post_type = 'page' ): void {
 		if ( $page_count <= 0 ) {
 			return;

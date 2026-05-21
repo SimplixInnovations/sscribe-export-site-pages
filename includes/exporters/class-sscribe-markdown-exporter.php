@@ -15,15 +15,40 @@ require_once SSCRIBE_PLUGIN_DIR . 'includes/exporters/interface-sscribe-exporter
 
 class SScribe_Markdown_Exporter implements SScribe_Exporter_Interface {
 
+	/**
+	 * Logger instance.
+	 *
+	 * @var SScribe_Logger_Interface|null
+	 */
 	private ?SScribe_Logger_Interface $logger = null;
 
+	/**
+	 * Filesystem handler.
+	 *
+	 * @var SScribe_Filesystem
+	 */
 	private SScribe_Filesystem $filesystem;
 
+	/**
+	 * Initialize the Markdown exporter.
+	 *
+	 * @param SScribe_Logger_Interface|null $logger     Logger.
+	 * @param SScribe_Filesystem|null       $filesystem Filesystem handler.
+	 */
 	public function __construct( ?SScribe_Logger_Interface $logger = null, ?SScribe_Filesystem $filesystem = null ) {
 		$this->logger     = $logger ?? SScribe_Logger::instance( defined( 'SSCRIBE_DEBUG' ) && SSCRIBE_DEBUG );
 		$this->filesystem = $filesystem ?? new SScribe_Filesystem();
 	}
 
+	/**
+	 * Export a page as a Markdown file.
+	 *
+	 * @param array  $page_data Page data to export.
+	 * @param string $output_dir Output directory path.
+	 * @param int    $index     Current page index.
+	 * @param int    $total     Total number of pages.
+	 * @return SScribe_Result Result of the export operation.
+	 */
 	public function export( array $page_data, string $output_dir, int $index = 0, int $total = 0 ): SScribe_Result {
 		$page_id = $page_data['id'] ?? 0;
 		$title   = $page_data['title'] ?? 'Untitled';
@@ -93,6 +118,12 @@ class SScribe_Markdown_Exporter implements SScribe_Exporter_Interface {
 		}
 	}
 
+	/**
+	 * Generate Markdown content from page data.
+	 *
+	 * @param array $page_data Page data.
+	 * @return string Markdown content.
+	 */
 	private function generate_markdown( array $page_data ): string {
 		$md  = $this->generate_frontmatter( $page_data );
 		$md .= $this->html_to_markdown( $page_data['content'] ?? '' );
@@ -102,6 +133,13 @@ class SScribe_Markdown_Exporter implements SScribe_Exporter_Interface {
 		return $md;
 	}
 
+	/**
+	 * Add BOM prefix for RTL content.
+	 *
+	 * @param string $content   Markdown content.
+	 * @param array  $page_data Page data.
+	 * @return string Content with optional BOM.
+	 */
 	private function add_bom_if_rtl( string $content, array $page_data ): string {
 		require_once SSCRIBE_PLUGIN_DIR . 'includes/class-sscribe-rtl-helper.php';
 
@@ -114,6 +152,12 @@ class SScribe_Markdown_Exporter implements SScribe_Exporter_Interface {
 		return $content;
 	}
 
+	/**
+	 * Generate YAML frontmatter from page data.
+	 *
+	 * @param array $page_data Page data.
+	 * @return string YAML frontmatter block.
+	 */
 	private function generate_frontmatter( array $page_data ): string {
 		require_once SSCRIBE_PLUGIN_DIR . 'includes/class-sscribe-rtl-helper.php';
 
@@ -182,6 +226,12 @@ class SScribe_Markdown_Exporter implements SScribe_Exporter_Interface {
 		return $md;
 	}
 
+	/**
+	 * Convert HTML to Markdown.
+	 *
+	 * @param string $html HTML content.
+	 * @return string Markdown content.
+	 */
 	private function html_to_markdown( string $html ): string {
 		if ( empty( $html ) ) {
 			return '';
@@ -213,6 +263,12 @@ class SScribe_Markdown_Exporter implements SScribe_Exporter_Interface {
 		return trim( $md );
 	}
 
+	/**
+	 * Strip all style/script/svg elements and attributes.
+	 *
+	 * @param string $html HTML content.
+	 * @return string Cleaned HTML.
+	 */
 	private function strip_all_styles( string $html ): string {
 		$html = preg_replace( '/<style[^>]*>.*?<\/style>/is', '', $html ) ?? $html;
 		$html = preg_replace( '/<script[^>]*>.*?<\/script>/is', '', $html ) ?? $html;
@@ -230,6 +286,12 @@ class SScribe_Markdown_Exporter implements SScribe_Exporter_Interface {
 		return $html;
 	}
 
+	/**
+	 * Convert HTML tables to Markdown tables.
+	 *
+	 * @param string $html HTML content.
+	 * @return string Content with Markdown tables.
+	 */
 	private function convert_tables( string $html ): string {
 		return preg_replace_callback(
 			'/<table[^>]*>(.*?)<\/table>/is',
@@ -281,6 +343,12 @@ class SScribe_Markdown_Exporter implements SScribe_Exporter_Interface {
 		);
 	}
 
+	/**
+	 * Convert HTML headings to Markdown headings.
+	 *
+	 * @param string $html HTML content.
+	 * @return string Content with Markdown headings.
+	 */
 	private function convert_headings( string $html ): string {
 		for ( $i = 6; $i >= 1; $i-- ) {
 			$html = preg_replace(
@@ -292,6 +360,12 @@ class SScribe_Markdown_Exporter implements SScribe_Exporter_Interface {
 		return $html;
 	}
 
+	/**
+	 * Convert HTML images to Markdown image syntax.
+	 *
+	 * @param string $html HTML content.
+	 * @return string Content with Markdown images.
+	 */
 	private function convert_images( string $html ): string {
 		return preg_replace_callback(
 			'/<img[^>]*src=["\']([^"\']*)["\'][^>]*alt=["\']([^"\']*)["\'][^>]*\/?>/is',
@@ -304,6 +378,12 @@ class SScribe_Markdown_Exporter implements SScribe_Exporter_Interface {
 		);
 	}
 
+	/**
+	 * Fallback image conversion for images without alt text.
+	 *
+	 * @param string $html HTML content.
+	 * @return string Content with Markdown images.
+	 */
 	private function convert_images_fallback( string $html ): string {
 		return preg_replace_callback(
 			'/<img[^>]*src=["\']([^"\']*)["\'][^>]*>/is',
@@ -315,6 +395,12 @@ class SScribe_Markdown_Exporter implements SScribe_Exporter_Interface {
 		);
 	}
 
+	/**
+	 * Convert HTML links to Markdown link syntax.
+	 *
+	 * @param string $html HTML content.
+	 * @return string Content with Markdown links.
+	 */
 	private function convert_links( string $html ): string {
 		return preg_replace_callback(
 			'/<a[^>]*href=["\']([^"\']*)["\'][^>]*>(.*?)<\/a>/is',
@@ -331,6 +417,12 @@ class SScribe_Markdown_Exporter implements SScribe_Exporter_Interface {
 		);
 	}
 
+	/**
+	 * Convert HTML formatting (bold, italic, strikethrough) to Markdown.
+	 *
+	 * @param string $html HTML content.
+	 * @return string Content with Markdown formatting.
+	 */
 	private function convert_formatting( string $html ): string {
 		$html = preg_replace( '/<(strong|b)>(.*?)<\/\1>/is', '**$2**', $html ) ?? $html;
 		$html = preg_replace( '/<(em|i)>(.*?)<\/\1>/is', '*$2*', $html ) ?? $html;
@@ -338,6 +430,12 @@ class SScribe_Markdown_Exporter implements SScribe_Exporter_Interface {
 		return $html;
 	}
 
+	/**
+	 * Convert HTML lists to Markdown list syntax.
+	 *
+	 * @param string $html HTML content.
+	 * @return string Content with Markdown lists.
+	 */
 	private function convert_lists( string $html ): string {
 
 		$max_iterations = 500;
@@ -358,6 +456,14 @@ class SScribe_Markdown_Exporter implements SScribe_Exporter_Interface {
 		return $html;
 	}
 
+	/**
+	 * Convert HTML list items to Markdown list items.
+	 *
+	 * @param string $content   List item HTML.
+	 * @param string $list_type List type ('ul' or 'ol').
+	 * @param int    $depth     Nesting depth.
+	 * @return string Markdown list items.
+	 */
 	private function convert_list_items( string $content, string $list_type, int $depth = 0 ): string {
 		$indent  = str_repeat( '    ', $depth );
 		$counter = 1;
@@ -381,6 +487,12 @@ class SScribe_Markdown_Exporter implements SScribe_Exporter_Interface {
 		return $result;
 	}
 
+	/**
+	 * Convert HTML code blocks to Markdown code blocks.
+	 *
+	 * @param string $html HTML content.
+	 * @return string Content with Markdown code blocks.
+	 */
 	private function convert_code_blocks( string $html ): string {
 		$html = preg_replace( '/<pre[^>]*><code[^>]*>(.*?)<\/code><\/pre>/is', "\n```\n$1\n```\n", $html ) ?? $html;
 		$html = preg_replace( '/<pre[^>]*>(.*?)<\/pre>/is', "\n```\n$1\n```\n", $html ) ?? $html;
@@ -388,6 +500,12 @@ class SScribe_Markdown_Exporter implements SScribe_Exporter_Interface {
 		return $html;
 	}
 
+	/**
+	 * Convert HTML blockquotes to Markdown blockquote syntax.
+	 *
+	 * @param string $html HTML content.
+	 * @return string Content with Markdown blockquotes.
+	 */
 	private function convert_blockquotes( string $html ): string {
 		return preg_replace_callback(
 			'/<blockquote[^>]*>(.*?)<\/blockquote>/is',
@@ -407,16 +525,34 @@ class SScribe_Markdown_Exporter implements SScribe_Exporter_Interface {
 		);
 	}
 
+	/**
+	 * Convert HTML paragraphs to Markdown paragraphs.
+	 *
+	 * @param string $html HTML content.
+	 * @return string Content with Markdown paragraphs.
+	 */
 	private function convert_paragraphs( string $html ): string {
 		$html = preg_replace( '/<p[^>]*>(.*?)<\/p>/is', "\n$1\n", $html ) ?? $html;
 		$html = preg_replace( '/<br\s*\/?>/i', "\n", $html ) ?? $html;
 		return $html;
 	}
 
+	/**
+	 * Convert HTML horizontal rules to Markdown HR syntax.
+	 *
+	 * @param string $html HTML content.
+	 * @return string Content with Markdown HRs.
+	 */
 	private function convert_horizontal_rules( string $html ): string {
 		return preg_replace( '/<hr\s*\/?>/i', "\n---\n", $html ) ?? $html;
 	}
 
+	/**
+	 * Sanitize a URL for use in Markdown.
+	 *
+	 * @param string $url URL to sanitize.
+	 * @return string Sanitized URL or '#' if invalid.
+	 */
 	private function sanitize_url( string $url ): string {
 		$url = trim( $url );
 
@@ -436,6 +572,12 @@ class SScribe_Markdown_Exporter implements SScribe_Exporter_Interface {
 		return $url;
 	}
 
+	/**
+	 * Escape special Markdown characters in text.
+	 *
+	 * @param string $text Text to escape.
+	 * @return string Escaped text.
+	 */
 	private function escape_markdown( string $text ): string {
 		$chars = array( '\\', '`', '*', '_', '{', '}', '[', ']', '(', ')', '#', '+', '-', '.', '!', '|' );
 		foreach ( $chars as $char ) {
@@ -444,6 +586,12 @@ class SScribe_Markdown_Exporter implements SScribe_Exporter_Interface {
 		return $text;
 	}
 
+	/**
+	 * Escape a string for safe YAML output.
+	 *
+	 * @param string $text Text to escape.
+	 * @return string Escaped text.
+	 */
 	private function escape_yaml_string( string $text ): string {
 		$text = str_replace( '\\', '\\\\', $text );
 		$text = str_replace( '"', '\\"', $text );
@@ -452,10 +600,20 @@ class SScribe_Markdown_Exporter implements SScribe_Exporter_Interface {
 		return $text;
 	}
 
+	/**
+	 * Get the file extension for Markdown files.
+	 *
+	 * @return string
+	 */
 	public function get_extension(): string {
 		return 'md';
 	}
 
+	/**
+	 * Get the MIME type for Markdown files.
+	 *
+	 * @return string
+	 */
 	public function get_mime_type(): string {
 		return 'text/markdown';
 	}

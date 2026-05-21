@@ -11,12 +11,21 @@ if ( ! defined( 'ABSPATH' ) ) {
 	exit;
 }
 
+/**
+ * Rate limiting for export operations per user/IP.
+ */
 class SScribe_Export_Rate_Limiter {
 
 	private const RATE_LIMIT_MAX = 200;
 
 	private const RATE_LIMIT_WINDOW = 60;
 
+	/**
+	 * Check if current user/IP is within rate limits.
+	 *
+	 * @param string $export_capability Required capability.
+	 * @return bool
+	 */
 	public function check_rate_limit( string $export_capability = 'manage_options' ): bool {
 		$user_id = get_current_user_id();
 

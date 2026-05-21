@@ -13,16 +13,46 @@ if ( ! defined( 'ABSPATH' ) ) {
 
 class SScribe_Export_Log {
 
+	/**
+	 * Session identifier.
+	 *
+	 * @var string
+	 */
 	private readonly string $session_id;
 
+	/**
+	 * Log directory path.
+	 *
+	 * @var string
+	 */
 	private readonly string $log_dir;
 
+	/**
+	 * Log file path.
+	 *
+	 * @var string
+	 */
 	private readonly string $log_file;
 
+	/**
+	 * Cached log data.
+	 *
+	 * @var array|null
+	 */
 	private ?array $data_cache = null;
 
+	/**
+	 * Whether cached data has unsaved changes.
+	 *
+	 * @var bool
+	 */
 	private bool $dirty = false;
 
+	/**
+	 * Initialize the export log.
+	 *
+	 * @param string $session_id Session identifier.
+	 */
 	public function __construct( string $session_id ) {
 		$upload_dir    = wp_upload_dir();
 		$this->log_dir = $upload_dir['basedir'] . '/sscribe-logs';
@@ -37,6 +67,11 @@ class SScribe_Export_Log {
 		$this->init_log();
 	}
 
+	/**
+	 * Initialize the log file if it doesn't exist.
+	 *
+	 * @return void
+	 */
 	private function init_log(): void {
 		if ( ! file_exists( $this->log_dir ) ) {
 			SScribe_Security::protect_directory( $this->log_dir );
@@ -59,10 +94,18 @@ class SScribe_Export_Log {
 		}
 	}
 
+	/**
+	 * Flush dirty cache to disk on destruction.
+	 */
 	public function __destruct() {
 		$this->flush();
 	}
 
+	/**
+	 * Flush cached data to disk if dirty.
+	 *
+	 * @return void
+	 */
 	public function flush(): void {
 		if ( $this->dirty && null !== $this->data_cache ) {
 			$json = wp_json_encode( $this->data_cache, JSON_UNESCAPED_UNICODE | JSON_PRETTY_PRINT );
@@ -75,12 +118,26 @@ class SScribe_Export_Log {
 		}
 	}
 
+	/**
+	 * Set the total number of pages for this export.
+	 *
+	 * @param int $total Total page count.
+	 * @return void
+	 */
 	public function set_total_pages( int $total ): void {
 		$data                = $this->read_log();
 		$data['total_pages'] = $total;
 		$this->write_log( $data );
 	}
 
+	/**
+	 * Log the start of processing a page.
+	 *
+	 * @param int    $page_id Page ID.
+	 * @param string $title   Page title.
+	 * @param string $slug    Page slug.
+	 * @return void
+	 */
 	public function log_page_start( int $page_id, string $title, string $slug ): void {
 		$data = $this->read_log();
 
@@ -100,6 +157,13 @@ class SScribe_Export_Log {
 		$this->write_log( $data );
 	}
 
+	/**
+	 * Log successful processing of a page.
+	 *
+	 * @param int   $page_id Page ID.
+	 * @param array $formats Export formats.
+	 * @return void
+	 */
 	public function log_page_success( int $page_id, array $formats ): void {
 		$data = $this->read_log();
 
@@ -130,6 +194,14 @@ class SScribe_Export_Log {
 		$this->write_log( $data );
 	}
 
+	/**
+	 * Log failed processing of a page.
+	 *
+	 * @param int        $page_id       Page ID.
+	 * @param string     $error_message Error description.
+	 * @param array|null $formats   Export formats.
+	 * @return void
+	 */
 	public function log_page_failure( int $page_id, string $error_message, ?array $formats = null ): void {
 		$data = $this->read_log();
 
@@ -166,6 +238,16 @@ class SScribe_Export_Log {
 		$this->write_log( $data );
 	}
 
+	/**
+	 * Log the result of a specific format export.
+	 *
+	 * @param int    $page_id   Page ID.
+	 * @param string $format    Format identifier.
+	 * @param bool   $success   Whether the export succeeded.
+	 * @param string $file_path Output file path.
+	 * @param string $error     Error message if failed.
+	 * @return void
+	 */
 	public function log_format_result( int $page_id, string $format, bool $success, string $file_path = '', string $error = '' ): void {
 		$data = $this->read_log();
 
@@ -179,6 +261,13 @@ class SScribe_Export_Log {
 		}
 	}
 
+	/**
+	 * Mark the export as complete.
+	 *
+	 * @param string $zip_path     ZIP file path.
+	 * @param int    $files_in_zip Number of files in ZIP.
+	 * @return void
+	 */
 	public function mark_complete( string $zip_path = '', int $files_in_zip = 0 ): void {
 		$data                 = $this->read_log();
 		$data['status']       = 'complete';
@@ -194,6 +283,12 @@ class SScribe_Export_Log {
 		}
 	}
 
+	/**
+	 * Mark the export as failed.
+	 *
+	 * @param string $error_message Error description.
+	 * @return void
+	 */
 	public function mark_failed( string $error_message ): void {
 		$data                 = $this->read_log();
 		$data['status']       = 'failed';
@@ -207,10 +302,20 @@ class SScribe_Export_Log {
 		$this->flush();
 	}
 
+	/**
+	 * Get the full log data.
+	 *
+	 * @return array
+	 */
 	public function get_log(): array {
 		return $this->read_log();
 	}
 
+	/**
+	 * Get a summary of the export log.
+	 *
+	 * @return array
+	 */
 	public function get_summary(): array {
 		$data = $this->read_log();
 		return array(
@@ -224,6 +329,11 @@ class SScribe_Export_Log {
 		);
 	}
 
+	/**
+	 * Read the log file from disk (with caching).
+	 *
+	 * @return array
+	 */
 	private function read_log(): array {
 		if ( null !== $this->data_cache ) {
 			return $this->data_cache;
@@ -248,11 +358,22 @@ class SScribe_Export_Log {
 		return $this->data_cache;
 	}
 
+	/**
+	 * Write log data to cache (lazy write).
+	 *
+	 * @param array $data Log data.
+	 * @return void
+	 */
 	private function write_log( array $data ): void {
 		$this->data_cache = $data;
 		$this->dirty      = true;
 	}
 
+	/**
+	 * Delete the log file.
+	 *
+	 * @return void
+	 */
 	public function delete(): void {
 		$this->data_cache = null;
 		$this->dirty      = false;
@@ -261,6 +382,12 @@ class SScribe_Export_Log {
 		}
 	}
 
+	/**
+	 * Get log data by session ID.
+	 *
+	 * @param string $session_id Session identifier.
+	 * @return array|null
+	 */
 	public static function get_log_by_session( string $session_id ): ?array {
 		$session_id = sanitize_file_name( $session_id );
 		$upload_dir = wp_upload_dir();
@@ -283,6 +410,12 @@ class SScribe_Export_Log {
 		return is_array( $data ) ? $data : null;
 	}
 
+	/**
+	 * Get log data by ZIP filename.
+	 *
+	 * @param string $filename ZIP filename.
+	 * @return array|null
+	 */
 	public static function get_log_by_filename( string $filename ): ?array {
 
 		$clean = sanitize_file_name( $filename );
@@ -334,6 +467,12 @@ class SScribe_Export_Log {
 		return null;
 	}
 
+	/**
+	 * Delete log by ZIP filename.
+	 *
+	 * @param string $filename ZIP filename.
+	 * @return bool
+	 */
 	public static function delete_by_filename( string $filename ): bool {
 
 		$clean = sanitize_file_name( $filename );
@@ -371,6 +510,12 @@ class SScribe_Export_Log {
 		return false;
 	}
 
+	/**
+	 * Clean up old log files.
+	 *
+	 * @param int $max_age_hours Maximum age in hours.
+	 * @return int Number of deleted files.
+	 */
 	public static function cleanup_old_logs( int $max_age_hours = 6 ): int {
 		$upload_dir = wp_upload_dir();
 		$log_dir    = $upload_dir['basedir'] . '/sscribe-logs';

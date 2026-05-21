@@ -26,26 +26,89 @@ class SScribe_Error {
 	public const SEVERITY_WARNING  = 'warning';
 	public const SEVERITY_INFO     = 'info';
 
+	/**
+	 * Error code identifier.
+	 *
+	 * @var string
+	 */
 	private readonly string $code;
 
+	/**
+	 * Error category.
+	 *
+	 * @var string
+	 */
 	private readonly string $category;
 
+	/**
+	 * Error severity level.
+	 *
+	 * @var string
+	 */
 	private readonly string $severity;
 
+	/**
+	 * Human-readable error message.
+	 *
+	 * @var string
+	 */
 	private readonly string $message;
 
+	/**
+	 * Detailed error description.
+	 *
+	 * @var string
+	 */
 	private readonly string $details;
 
+	/**
+	 * User guidance for resolving the error.
+	 *
+	 * @var string
+	 */
 	private readonly string $guidance;
 
+	/**
+	 * Step-by-step fix instructions.
+	 *
+	 * @var array<string>
+	 */
 	private readonly array $fix_steps;
 
+	/**
+	 * Documentation URL for further reading.
+	 *
+	 * @var string|null
+	 */
 	private readonly ?string $doc_url;
 
+	/**
+	 * Additional error context.
+	 *
+	 * @var array
+	 */
 	private readonly array $context;
 
+	/**
+	 * Unix timestamp when the error was created.
+	 *
+	 * @var int
+	 */
 	private readonly int $timestamp;
 
+	/**
+	 * Initialize the error.
+	 *
+	 * @param string        $code      Error code identifier.
+	 * @param string        $category  Error category.
+	 * @param string        $severity  Error severity level.
+	 * @param string        $message   Human-readable message.
+	 * @param string        $details   Detailed description.
+	 * @param string        $guidance  User guidance.
+	 * @param array<string> $fix_steps Fix instructions.
+	 * @param string|null   $doc_url   Documentation URL.
+	 * @param array         $context   Additional context.
+	 */
 	public function __construct(
 		string $code,
 		string $category,
@@ -69,6 +132,13 @@ class SScribe_Error {
 		$this->timestamp = time();
 	}
 
+	/**
+	 * Create an error from a predefined template.
+	 *
+	 * @param string $code    Error code.
+	 * @param array  $context Context for template interpolation.
+	 * @return self
+	 */
 	public static function from_template( string $code, array $context = array() ): self {
 		$templates = self::get_templates();
 
@@ -105,6 +175,13 @@ class SScribe_Error {
 		);
 	}
 
+	/**
+	 * Interpolate placeholders in a template string.
+	 *
+	 * @param string $template Template with {key} placeholders.
+	 * @param array  $context  Values for interpolation.
+	 * @return string
+	 */
 	public static function interpolate( string $template, array $context ): string {
 		$replace = array();
 		foreach ( $context as $key => $value ) {
@@ -113,6 +190,11 @@ class SScribe_Error {
 		return strtr( $template, $replace );
 	}
 
+	/**
+	 * Get all predefined error templates.
+	 *
+	 * @return array
+	 */
 	public static function get_templates(): array {
 		return array(
 
@@ -380,46 +462,102 @@ class SScribe_Error {
 		);
 	}
 
+	/**
+	 * Get the error code.
+	 *
+	 * @return string
+	 */
 	public function get_code(): string {
 		return $this->code;
 	}
 
+	/**
+	 * Get the error category.
+	 *
+	 * @return string
+	 */
 	public function get_category(): string {
 		return $this->category;
 	}
 
+	/**
+	 * Get the error severity.
+	 *
+	 * @return string
+	 */
 	public function get_severity(): string {
 		return $this->severity;
 	}
 
+	/**
+	 * Get the error message.
+	 *
+	 * @return string
+	 */
 	public function get_message(): string {
 		return $this->message;
 	}
 
+	/**
+	 * Get the error details.
+	 *
+	 * @return string
+	 */
 	public function get_details(): string {
 		return $this->details;
 	}
 
+	/**
+	 * Get the error guidance.
+	 *
+	 * @return string
+	 */
 	public function get_guidance(): string {
 		return $this->guidance;
 	}
 
+	/**
+	 * Get the fix steps.
+	 *
+	 * @return array<string>
+	 */
 	public function get_fix_steps(): array {
 		return $this->fix_steps;
 	}
 
+	/**
+	 * Get the documentation URL.
+	 *
+	 * @return string|null
+	 */
 	public function get_doc_url(): ?string {
 		return $this->doc_url;
 	}
 
+	/**
+	 * Get the error context.
+	 *
+	 * @return array
+	 */
 	public function get_context(): array {
 		return $this->context;
 	}
 
+	/**
+	 * Get the error timestamp.
+	 *
+	 * @return int
+	 */
 	public function get_timestamp(): int {
 		return $this->timestamp;
 	}
 
+	/**
+	 * Convert the error to an array.
+	 *
+	 * @param bool $include_details Include detailed fields.
+	 * @return array
+	 */
 	public function to_array( bool $include_details = false ): array {
 		$data = array(
 			'code'     => $this->code,
@@ -446,6 +584,11 @@ class SScribe_Error {
 		return $data;
 	}
 
+	/**
+	 * Convert the error to a string representation.
+	 *
+	 * @return string
+	 */
 	public function __toString(): string {
 		$output = $this->message;
 

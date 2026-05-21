@@ -13,12 +13,34 @@ if ( ! defined( 'ABSPATH' ) ) {
 
 require_once SSCRIBE_PLUGIN_DIR . 'includes/exceptions/class-sscribe-exception.php';
 
+/**
+ * Exception for memory exhaustion errors.
+ */
 class SScribe_Memory_Exception extends SScribe_Exception {
 
+	/**
+	 * PHP memory limit in bytes.
+	 *
+	 * @var int
+	 */
 	protected int $memory_limit;
 
+	/**
+	 * Memory used at time of failure in bytes.
+	 *
+	 * @var int
+	 */
 	protected int $memory_used;
 
+	/**
+	 * Create a new memory exception.
+	 *
+	 * @param string|null    $message      Error message.
+	 * @param int            $memory_limit Memory limit in bytes.
+	 * @param int            $memory_used  Memory used in bytes.
+	 * @param array          $context      Additional context.
+	 * @param Throwable|null $previous     Previous exception.
+	 */
 	public function __construct(
 		?string $message = null,
 		int $memory_limit = 0,
@@ -54,14 +76,29 @@ class SScribe_Memory_Exception extends SScribe_Exception {
 		);
 	}
 
+	/**
+	 * Get the memory limit.
+	 *
+	 * @return int
+	 */
 	public function get_memory_limit(): int {
 		return $this->memory_limit;
 	}
 
+	/**
+	 * Get the memory used.
+	 *
+	 * @return int
+	 */
 	public function get_memory_used(): int {
 		return $this->memory_used;
 	}
 
+	/**
+	 * Get recommended memory limit to resolve the issue.
+	 *
+	 * @return int Recommended limit in bytes.
+	 */
 	public function get_recommended_memory_limit(): int {
 		$current_limit = $this->memory_limit;
 		$used          = $this->memory_used;
