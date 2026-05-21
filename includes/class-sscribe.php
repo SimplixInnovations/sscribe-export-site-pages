@@ -251,7 +251,6 @@ class SScribe {
 		require_once SSCRIBE_PLUGIN_DIR . 'includes/class-sscribe-upgrader.php';
 		SScribe_Upgrader::maybe_upgrade();
 
-		$this->init_i18n();
 		$this->register_services();
 		$this->define_admin_hooks();
 		$this->define_ajax_hooks();
@@ -259,21 +258,5 @@ class SScribe {
 		$this->define_privacy_hooks();
 
 		$this->loader->run();
-	}
-
-	/**
-	 * Initialize internationalization support.
-	 */
-	private function init_i18n(): void {
-		add_action(
-			'init',
-			static function () {
-				load_plugin_textdomain(
-					'sscribe-export-site-pages',
-					false,
-					dirname( SSCRIBE_PLUGIN_BASENAME ) . '/languages'
-				);
-			}
-		);
 	}
 }

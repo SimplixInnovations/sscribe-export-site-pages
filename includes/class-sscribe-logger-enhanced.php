@@ -484,8 +484,8 @@ class SScribe_Logger_Enhanced implements SScribe_Logger_Interface {
 			return;
 		}
 
-		$table = esc_sql( $this->table_name );
-		$wpdb->query( "DELETE FROM {$table}" ); // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- Audit trail deletion requires direct query with no caching.
+		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.InterpolatedNotPrepared -- Table name is already escaped via esc_sql(); DELETE FROM does not support placeholders for table names.
+		$wpdb->query( 'DELETE FROM ' . esc_sql( $this->table_name ) );
 	}
 
 	/**
