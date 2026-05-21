@@ -156,11 +156,6 @@ class SScribe {
 	}
 
 	/**
-	 * Clear admin page cache when posts change.
-	 *
-	 * @param int $post_id Post ID that was saved.
-	 */
-	/**
 	 * Invalidate admin page cache when posts are saved.
 	 *
 	 * @param int $post_id Post ID that was saved.
