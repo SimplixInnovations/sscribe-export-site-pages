@@ -1634,7 +1634,6 @@
 			const $grid = $('#sscribe-support-grid');
 			const $textarea = $('#sscribe-support-copy-text');
 			const $btn = $('#sscribe-support-copy-btn');
-			const strings = sscribe_data.strings || {};
 
 			let html = '<div class="sscribe-support-grid-inner">';
 

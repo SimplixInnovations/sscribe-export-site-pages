@@ -61,7 +61,6 @@
 .sscribe-debug-controls-card {
 	background: var(--sscribe-debug-bg-card);
 	backdrop-filter: blur(16px);
-	backdrop-filter: blur(16px);
 	border: 1px solid var(--sscribe-debug-border);
 	border-radius: 16px;
 	padding: 24px;
@@ -215,42 +214,10 @@
 	cursor: pointer;
 }
 
-.sscribe-debug-master .sscribe-button {
-	padding: 8px 16px;
-	border: 1px solid var(--sscribe-debug-border);
-	border-radius: 6px;
-	background: #fff;
-	cursor: pointer;
-	font-size: 14px;
-	display: inline-flex;
-	align-items: center;
-	gap: 6px;
-	transition: background-color 0.2s;
-}
-
-.sscribe-debug-master .sscribe-button:hover {
-	background: #f8f9fa;
-}
-
-.sscribe-debug-master .sscribe-button-primary {
-	background: #0d6efd;
-	color: #fff;
-	border-color: #0d6efd;
-}
-
-.sscribe-debug-master .sscribe-button-primary:hover {
-	background: #0b5ed7;
-}
-
-.sscribe-debug-master .sscribe-button-danger {
-	color: #dc3545;
-	border-color: #dc3545;
-}
-
-.sscribe-debug-master .sscribe-button-danger:hover {
-	background: #dc3545;
-	color: #fff;
-}
+/* ============================================
+   DEBUG CONSOLE - Uses main plugin button styles
+   Button styles inherit from sscribe-admin.css
+   ============================================ */
 
 .sscribe-debug-master .sscribe-button-icon {
 	width: 36px;
@@ -354,16 +321,39 @@
 	flex-shrink: 0;
 }
 
-.sscribe-debug-entry-badge.debug { background: var(--sscribe-debug-color-debug); color: #fff; }
-.sscribe-debug-entry-badge.info { background: var(--sscribe-debug-color-info); color: #fff; }
-.sscribe-debug-entry-badge.notice { background: var(--sscribe-debug-color-notice); color: #fff; }
-.sscribe-debug-entry-badge.warning { background: var(--sscribe-debug-color-warning); color: #000; }
-.sscribe-debug-entry-badge.error { background: var(--sscribe-debug-color-error); color: #fff; }
-.sscribe-debug-entry-badge.critical { background: var(--sscribe-debug-color-critical); color: #fff; }
+.sscribe-debug-entry-badge.debug {
+	background: var(--sscribe-debug-color-debug);
+	color: #fff;
+}
+
+.sscribe-debug-entry-badge.info {
+	background: var(--sscribe-debug-color-info);
+	color: #fff;
+}
+
+.sscribe-debug-entry-badge.notice {
+	background: var(--sscribe-debug-color-notice);
+	color: #fff;
+}
+
+.sscribe-debug-entry-badge.warning {
+	background: var(--sscribe-debug-color-warning);
+	color: #000;
+}
+
+.sscribe-debug-entry-badge.error {
+	background: var(--sscribe-debug-color-error);
+	color: #fff;
+}
+
+.sscribe-debug-entry-badge.critical {
+	background: var(--sscribe-debug-color-critical);
+	color: #fff;
+}
 
 .sscribe-debug-entry-message {
 	flex: 1;
-	word-break: break-word;
+	overflow-wrap: break-word;
 }
 
 .sscribe-debug-entry-context {
@@ -511,36 +501,6 @@
 		--sscribe-debug-bg-console: #121212;
 		--sscribe-debug-text-console: #d4d4d4;
 		--sscribe-debug-border: #333;
-	}
-
-	.sscribe-debug-master .sscribe-button {
-		background: #2d2d2d;
-		color: #d4d4d4;
-		border-color: #444;
-	}
-
-	.sscribe-debug-master .sscribe-button:hover {
-		background: #3d3d3d;
-	}
-
-	.sscribe-debug-master .sscribe-button-primary {
-		background: #0d6efd;
-		color: #fff;
-		border-color: #0d6efd;
-	}
-
-	.sscribe-debug-master .sscribe-button-primary:hover {
-		background: #0b5ed7;
-	}
-
-	.sscribe-debug-master .sscribe-button-danger {
-		color: #f87171;
-		border-color: #f87171;
-	}
-
-	.sscribe-debug-master .sscribe-button-danger:hover {
-		background: #dc3545;
-		color: #fff;
 	}
 
 	.sscribe-debug-header {
