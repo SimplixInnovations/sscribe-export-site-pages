@@ -422,6 +422,8 @@
 		};
 	};
 
+	window.SScribeDebugConsole = SScribeDebugConsole;
+
 	$( document ).ready( function() {
 		if ( $( '#sscribe-tab-debug' ).hasClass( 'sscribe-tab-active' ) ) {
 			SScribeDebugConsole.init();

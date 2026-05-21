@@ -15,55 +15,63 @@
    can access these variables.
    ============================================ */
 :root {
-	/* Primary Colors (Simplix Innovations) */
-	--sscribe-primary: #4a8263;
-	--sscribe-primary-hover: #3b6b50;
-	--sscribe-primary-light: #e8efeb;
-	--sscribe-accent: #122119;
-
+	/* Primary Colors (Premium Modern Aesthetic) */
+	--sscribe-primary: #6366f1; /* Vibrant Indigo */
+	--sscribe-primary-hover: #4f46e5;
+	--sscribe-primary-light: #e0e7ff;
+	--sscribe-accent: #ec4899; /* Vibrant Pink Accent */
+	
 	/* Semantic Colors */
-	--sscribe-success: #4a8263;
-	--sscribe-success-light: #e8efeb;
+	--sscribe-success: #10b981;
+	--sscribe-success-light: #d1fae5;
 	--sscribe-warning: #f59e0b;
 	--sscribe-warning-light: #fef3c7;
 	--sscribe-danger: #ef4444;
 	--sscribe-danger-light: #fee2e2;
-	--sscribe-info: #4a8263;
-	--sscribe-info-light: #e8efeb;
+	--sscribe-info: #3b82f6;
+	--sscribe-info-light: #dbeafe;
 
-	/* Neutral Colors */
-	--sscribe-bg: #f5f6f8;
-	--sscribe-card-bg: #fff;
-	--sscribe-border: #e2e8f0;
-	--sscribe-border-hover: #cbd5e1;
+	/* Neutral Colors with Glassmorphism support */
+	--sscribe-bg: transparent;
+	--sscribe-card-bg: rgb(255 255 255 / 75%);
+	--sscribe-card-bg-hover: rgb(255 255 255 / 90%);
+	--sscribe-border: rgb(255 255 255 / 50%);
+	--sscribe-border-hover: rgb(99 102 241 / 40%);
 
 	/* Text Colors */
-	--sscribe-text-main: #122119;
-	--sscribe-text-secondary: #495057;
+	--sscribe-text-main: #0f172a;
+	--sscribe-text-secondary: #334155;
 	--sscribe-text-muted: #64748b;
 	--sscribe-text-light: #94a3b8;
 
 	/* Spacing */
+	--sscribe-space-sm: 8px;
+	--sscribe-space-md: 16px;
+	--sscribe-space-lg: 24px;
 
 	/* Border Radius */
-	--sscribe-radius-sm: 6px;
-	--sscribe-radius-md: 10px;
-	--sscribe-radius-lg: 14px;
-	--sscribe-radius-xl: 20px;
+	--sscribe-radius-sm: 8px;
+	--sscribe-radius-md: 12px;
+	--sscribe-radius-lg: 16px;
+	--sscribe-radius-xl: 24px;
 
 	/* Shadows */
-	--sscribe-shadow-sm: 0 1px 2px rgb(0 0 0 / 5%);
-	--sscribe-shadow-md: 0 4px 6px -1px rgb(0 0 0 / 5%), 0 2px 4px -2px rgb(0 0 0 / 5%);
-	--sscribe-shadow-lg: 0 10px 15px -3px rgb(0 0 0 / 5%), 0 4px 6px -4px rgb(0 0 0 / 5%);
-	--sscribe-shadow-xl: 0 20px 25px -5px rgb(0 0 0 / 5%), 0 8px 10px -6px rgb(0 0 0 / 5%);
+	--sscribe-shadow-sm: 0 2px 4px rgb(0 0 0 / 2%);
+	--sscribe-shadow-md: 0 4px 12px rgb(0 0 0 / 5%), 0 2px 4px rgb(0 0 0 / 3%);
+	--sscribe-shadow-lg: 0 12px 24px rgb(0 0 0 / 8%), 0 4px 8px rgb(0 0 0 / 4%);
+	--sscribe-shadow-xl: 0 24px 48px rgb(0 0 0 / 12%), 0 8px 16px rgb(0 0 0 / 6%);
+
+	/* Glassmorphism Details */
+	--sscribe-glass-blur: blur(16px);
+	--sscribe-glass-border: 1px solid rgb(255 255 255 / 60%);
 
 	/* Typography */
-	--sscribe-font-family: 'Manrope', sans-serif;
+	--sscribe-font-family: 'Inter', 'Manrope', 'Segoe UI', sans-serif;
 
 	/* Transitions */
-	--sscribe-transition-fast: 150ms ease;
-	--sscribe-transition-normal: 200ms ease;
-	--sscribe-transition-slow: 300ms ease;
+	--sscribe-transition-fast: 150ms cubic-bezier(0.4, 0, 0.2, 1);
+	--sscribe-transition-normal: 250ms cubic-bezier(0.4, 0, 0.2, 1);
+	--sscribe-transition-slow: 400ms cubic-bezier(0.4, 0, 0.2, 1);
 }
 
 /* ============================================
@@ -75,14 +83,48 @@
 	box-sizing: border-box;
 	-webkit-font-smoothing: antialiased;
 	-moz-osx-font-smoothing: grayscale;
-	background: var(--sscribe-bg);
-	line-height: 1.5;
+	background: linear-gradient(120deg, #fdfbfb 0%, #ebedee 100%);
+	line-height: 1.6;
 	max-width: 1140px;
 	margin: 24px auto;
 	padding: 40px;
 	border-radius: var(--sscribe-radius-xl);
-	box-shadow: var(--sscribe-shadow-lg);
-	border: 1px solid var(--sscribe-border);
+	box-shadow: var(--sscribe-shadow-xl);
+	border: var(--sscribe-glass-border);
+	position: relative;
+	overflow: hidden;
+}
+
+/* Background animated gradient orbs for glassmorphism effect */
+.sscribe-master-container::before {
+	content: '';
+	position: absolute;
+	top: -150px;
+	left: -150px;
+	width: 400px;
+	height: 400px;
+	background: radial-gradient(circle, rgb(99 102 241 / 15%) 0%, transparent 70%);
+	border-radius: 50%;
+	z-index: 0;
+	pointer-events: none;
+}
+
+.sscribe-master-container::after {
+	content: '';
+	position: absolute;
+	bottom: -200px;
+	right: -100px;
+	width: 500px;
+	height: 500px;
+	background: radial-gradient(circle, rgb(236 72 153 / 10%) 0%, transparent 70%);
+	border-radius: 50%;
+	z-index: 0;
+	pointer-events: none;
+}
+
+.sscribe-master-container > * {
+	position: relative;
+	z-index: 1;
 }
 
 .sscribe-master-container *,
@@ -104,26 +146,40 @@
    HERO SECTION
    ============================================ */
 .sscribe-hero {
-	background: linear-gradient(135deg, var(--sscribe-primary-light) 0%, var(--sscribe-card-bg) 50%, var(--sscribe-card-bg) 100%);
+	background: linear-gradient(135deg, rgb(99 102 241 / 5%) 0%, rgb(255 255 255 / 80%) 100%);
+	backdrop-filter: var(--sscribe-glass-blur);
+	backdrop-filter: var(--sscribe-glass-blur);
 	border-radius: var(--sscribe-radius-xl);
-	padding: 28px 36px;
-	margin-bottom: 28px;
+	padding: 32px 40px;
+	margin-bottom: 32px;
 	box-shadow: var(--sscribe-shadow-md);
-	border: 1px solid var(--sscribe-border);
+	border: var(--sscribe-glass-border);
 	position: relative;
 	overflow: hidden;
+	transition: transform var(--sscribe-transition-normal), box-shadow var(--sscribe-transition-normal);
+}
+
+.sscribe-hero:hover {
+	transform: translateY(-2px);
+	box-shadow: var(--sscribe-shadow-lg);
 }
 
 .sscribe-hero::before {
 	content: '';
 	position: absolute;
-	top: -60%;
+	top: -50%;
 	right: -10%;
-	width: 300px;
-	height: 300px;
+	width: 400px;
+	height: 400px;
 	border-radius: 50%;
-	background: radial-gradient(circle, rgba(74, 130, 99, 0.06) 0%, transparent 70%);
+	background: radial-gradient(circle, rgb(99 102 241 / 8%) 0%, transparent 70%);
 	pointer-events: none;
+	animation: pulseOrb 8s ease-in-out infinite alternate;
+}
+
+@keyframes pulseOrb {
+	0% { transform: scale(1); opacity: 0.8; }
+	100% { transform: scale(1.1); opacity: 1; }
 }
 
 .sscribe-hero-stats {
@@ -228,25 +284,28 @@
    ============================================ */
 .sscribe-panel {
 	background: var(--sscribe-card-bg);
+	backdrop-filter: var(--sscribe-glass-blur);
+	backdrop-filter: var(--sscribe-glass-blur);
 	border-radius: var(--sscribe-radius-lg);
-	border: 1px solid var(--sscribe-border);
-	box-shadow: var(--sscribe-shadow-sm);
+	border: var(--sscribe-glass-border);
+	box-shadow: var(--sscribe-shadow-md);
 	margin-bottom: 24px;
 	overflow: hidden;
-	transition: box-shadow var(--sscribe-transition-normal);
+	transition: all var(--sscribe-transition-normal);
 }
 
 .sscribe-panel:hover {
-	box-shadow: var(--sscribe-shadow-md);
+	box-shadow: var(--sscribe-shadow-lg);
+	background: var(--sscribe-card-bg-hover);
 }
 
 .sscribe-panel-header {
 	padding: 20px 28px;
-	border-bottom: 1px solid var(--sscribe-border);
+	border-bottom: 1px solid rgb(0 0 0 / 5%);
 	display: flex;
 	align-items: center;
 	justify-content: space-between;
-	background: #fafafa;
+	background: rgb(255 255 255 / 40%);
 }
 
 .sscribe-panel-title {
@@ -715,7 +774,7 @@
 .sscribe-format-all .sscribe-format-card-inner {
 	border-style: dashed;
 	border-color: var(--sscribe-border-strong, #3f4e76);
-	background-color: var(--sscribe-surface-secondary, rgba(63, 78, 118, 0.05));
+	background-color: var(--sscribe-surface-secondary, rgb(63 78 118 / 5%));
 }
 
 /* ============================================
@@ -913,30 +972,30 @@
 	border-radius: var(--sscribe-radius-sm);
 	cursor: pointer;
 	text-decoration: none;
-	transition: all var(--sscribe-transition-fast);
+	transition: all var(--sscribe-transition-normal);
 	border: none;
 	line-height: 1;
 }
 
 .sscribe-button-primary {
-	background: linear-gradient(135deg, var(--sscribe-primary) 0%, #065f73 100%);
+	background: linear-gradient(135deg, var(--sscribe-primary) 0%, var(--sscribe-accent) 100%);
 	color: #fff;
 	padding: 14px 28px;
 	font-size: 15px;
 	border-radius: var(--sscribe-radius-md);
-	box-shadow: 0 4px 14px rgb(8 145 178 / 35%);
+	box-shadow: 0 4px 14px rgb(99 102 241 / 40%);
 }
 
 .sscribe-button-primary:hover {
-	background: linear-gradient(135deg, var(--sscribe-primary-hover) 0%, #0891b2 100%);
+	background: linear-gradient(135deg, var(--sscribe-primary-hover) 0%, #db2777 100%);
 	color: #fff;
-	transform: translateY(-1px);
-	box-shadow: 0 6px 20px rgb(8 145 178 / 40%);
+	transform: translateY(-2px);
+	box-shadow: 0 8px 20px rgb(99 102 241 / 50%);
 }
 
 .sscribe-button-primary:active {
 	transform: translateY(0);
-	box-shadow: 0 2px 8px rgb(8 145 178 / 30%);
+	box-shadow: 0 2px 8px rgb(99 102 241 / 30%);
 }
 
 .sscribe-button-primary:disabled {
@@ -1188,10 +1247,10 @@
 .sscribe-debug-details {
 	margin-top: 12px;
 	padding: 8px 10px;
-	background: rgba(0, 0, 0, 0.06);
+	background: rgb(0 0 0 / 6%);
 	border-radius: 4px;
 	font-size: 11px;
-	font-family: 'SF Mono', Monaco, 'Cascadia Code', 'Consolas', monospace;
+	font-family: 'SF Mono', Monaco, 'Cascadia Code', Consolas, monospace;
 	color: #666;
 	overflow-x: auto;
 	white-space: pre-wrap;
@@ -1247,7 +1306,7 @@
 .sscribe-phase-step.sscribe-phase-active .sscribe-phase-dot {
 	background: var(--sscribe-primary);
 	border-color: var(--sscribe-primary);
-	box-shadow: 0 0 0 3px rgba(74, 130, 99, 0.2);
+	box-shadow: 0 0 0 3px rgb(74 130 99 / 20%);
 	animation: sscribe-phase-pulse 2s ease-in-out infinite;
 }
 
@@ -1296,10 +1355,11 @@
 
 @keyframes sscribe-phase-pulse {
 	0%, 100% {
-		box-shadow: 0 0 0 3px rgba(74, 130, 99, 0.2);
+		box-shadow: 0 0 0 3px rgb(74 130 99 / 20%);
 	}
+
 	50% {
-		box-shadow: 0 0 0 6px rgba(74, 130, 99, 0.1);
+		box-shadow: 0 0 0 6px rgb(74 130 99 / 10%);
 	}
 }
 
@@ -2784,6 +2844,7 @@
 		opacity: 0;
 		transform: scale(0.96);
 	}
+
 	100% {
 		opacity: 1;
 		transform: scale(1);
@@ -3568,6 +3629,7 @@
 	0%, 100% {
 		opacity: 1;
 	}
+
 	50% {
 		opacity: 0.6;
 	}
@@ -3666,6 +3728,7 @@
 		opacity: 0;
 		transform: translateX(30px);
 	}
+
 	to {
 		opacity: 1;
 		transform: translateX(0);
