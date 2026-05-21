@@ -128,13 +128,13 @@
 			const self = this;
 			const data = {
 				action: 'sscribe_debug_save_settings',
-				nonce: scribe_data.nonce,
+				nonce: sscribe_data.nonce,
 				debug_enabled: this.$enabled.is( ':checked' ),
 				log_level: this.$level.val(),
 				auto_refresh: this.isAutoRefresh
 			};
 
-			$.post( scribe_data.ajaxurl, data, function( response ) {
+			$.post( sscribe_data.ajaxurl, data, function( response ) {
 				if ( response.success ) {
 					self.$saveFeedback.text( 'Saved!' ).addClass( 'success' );
 					setTimeout( function() {
@@ -153,12 +153,12 @@
 			const self = this;
 			const data = {
 				action: 'sscribe_debug_fetch_logs',
-				nonce: scribe_data.nonce,
+				nonce: sscribe_data.nonce,
 				filter_level: this.currentFilter,
 				search: this.searchQuery
 			};
 
-			$.get( scribe_data.ajaxurl, data, function( response ) {
+			$.get( sscribe_data.ajaxurl, data, function( response ) {
 				if ( response.success ) {
 					self.renderLogs( response.data.entries );
 					self.$entryCount.text( response.data.count + ' entries' );
@@ -212,10 +212,10 @@
 			const self = this;
 			const data = {
 				action: 'sscribe_debug_clear_logs',
-				nonce: scribe_data.nonce
+				nonce: sscribe_data.nonce
 			};
 
-			$.post( scribe_data.ajaxurl, data, function( response ) {
+			$.post( sscribe_data.ajaxurl, data, function( response ) {
 				if ( response.success ) {
 					self.fetchLogs();
 					self.fetchRotatedLogs();
@@ -226,22 +226,22 @@
 		exportLogs: function() {
 			const data = {
 				action: 'sscribe_debug_export_logs',
-				nonce: scribe_data.nonce,
+				nonce: sscribe_data.nonce,
 				filter_level: this.currentFilter,
 				search: this.searchQuery
 			};
 
-			window.location.href = scribe_data.ajaxurl + '?' + $.param( data );
+			window.location.href = sscribe_data.ajaxurl + '?' + $.param( data );
 		},
 
 		fetchRotatedLogs: function() {
 			const self = this;
 			const data = {
 				action: 'sscribe_debug_get_files',
-				nonce: scribe_data.nonce
+				nonce: sscribe_data.nonce
 			};
 
-			$.get( scribe_data.ajaxurl, data, function( response ) {
+			$.get( sscribe_data.ajaxurl, data, function( response ) {
 				if ( response.success ) {
 					self.renderRotatedLogs( response.data.files );
 				}
@@ -275,12 +275,12 @@
 		viewRotatedLog: function( filename ) {
 			const data = {
 				action: 'sscribe_debug_fetch_rotated',
-				nonce: scribe_data.nonce,
+				nonce: sscribe_data.nonce,
 				filename: filename
 			};
 
 			const self = this;
-			$.get( scribe_data.ajaxurl, data, function( response ) {
+			$.get( sscribe_data.ajaxurl, data, function( response ) {
 				if ( response.success ) {
 					self.renderLogs( response.data.entries );
 					self.$entryCount.text( response.data.count + ' entries (rotated)' );
@@ -291,22 +291,22 @@
 		exportRotatedLog: function( filename ) {
 			const data = {
 				action: 'sscribe_debug_export_logs',
-				nonce: scribe_data.nonce,
+				nonce: sscribe_data.nonce,
 				filename: filename
 			};
 
-			window.location.href = scribe_data.ajaxurl + '?' + $.param( data );
+			window.location.href = sscribe_data.ajaxurl + '?' + $.param( data );
 		},
 
 		deleteRotatedLog: function( filename ) {
 			const self = this;
 			const data = {
 				action: 'sscribe_debug_delete_rotated',
-				nonce: scribe_data.nonce,
+				nonce: sscribe_data.nonce,
 				filename: filename
 			};
 
-			$.post( scribe_data.ajaxurl, data, function( response ) {
+			$.post( sscribe_data.ajaxurl, data, function( response ) {
 				if ( response.success ) {
 					self.fetchRotatedLogs();
 				}
