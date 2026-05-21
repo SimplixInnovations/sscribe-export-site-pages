@@ -239,6 +239,7 @@ class SScribe_Audit_Trail {
 		$args[]       = $limit;
 		$args[]       = $offset;
 
+		// This query intentionally not cached as it returns real-time audit data for monitoring/debugging purposes.
 		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, PluginCheck.Security.DirectDB.UnescapedDBParameter
 		return $wpdb->get_results(
 			// phpcs:ignore WordPress.DB.PreparedSQLPlaceholders.ReplacementsWrongNumber -- Dynamic WHERE clause placeholders counted at runtime
@@ -260,6 +261,12 @@ class SScribe_Audit_Trail {
 			return array();
 		}
 
+		$cache_key = 'sscribe_audit_counts_' . md5( wp_json_encode( $filters ) );
+		$cached    = get_transient( $cache_key );
+		if ( false !== $cached ) {
+			return $cached;
+		}
+
 		global $wpdb;
 
 		$where = array( '1=1' );
@@ -277,13 +284,17 @@ class SScribe_Audit_Trail {
 
 		$where_clause = implode( ' AND ', $where );
 
+		// This query uses a 30-second transient cache since audit counts don't change frequently during display.
 		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, PluginCheck.Security.DirectDB.UnescapedDBParameter
-		return $wpdb->get_results(
+		$result = $wpdb->get_results(
 			$wpdb->prepare(
 				"SELECT event, COUNT(*) as count FROM {$this->table_name} WHERE {$where_clause} GROUP BY event ORDER BY count DESC", // phpcs:ignore WordPress.DB.PreparedSQL.NotPrepared, WordPress.DB.PreparedSQL.InterpolatedNotPrepared, WordPress.DB.PreparedSQLPlaceholders.UnfinishedPrepare -- Table name from $wpdb->prefix (trusted), WHERE clause built from controlled filter keys with placeholders
 				...$args
 			)
 		);
+
+		set_transient( $cache_key, $result, 30 );
+		return $result;
 	}
 
 	/**

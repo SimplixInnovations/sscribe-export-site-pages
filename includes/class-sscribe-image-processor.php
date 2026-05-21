@@ -32,6 +32,28 @@ class SScribe_Image_Processor {
 	private const JPEG_QUALITY = 85;
 
 	/**
+	 * Get allowed hostnames for image downloads (cached per request).
+	 *
+	 * @return array<string>
+	 */
+	private static function get_allowed_hosts(): array {
+		static $hosts = null;
+		if ( null === $hosts ) {
+			$upload_dir = wp_upload_dir();
+			$hosts      = array_filter(
+				array_unique(
+					array(
+						strtolower( (string) wp_parse_url( home_url(), PHP_URL_HOST ) ),
+						strtolower( (string) wp_parse_url( site_url(), PHP_URL_HOST ) ),
+						strtolower( (string) wp_parse_url( $upload_dir['baseurl'] ?? '', PHP_URL_HOST ) ),
+					)
+				)
+			);
+		}
+		return $hosts;
+	}
+
+	/**
 	 * Download and optimize an image from URL.
 	 *
 	 * @param string $url Image URL.
@@ -165,17 +187,8 @@ class SScribe_Image_Processor {
 			return false;
 		}
 
-		$site_hosts = array_filter(
-			array_unique(
-				array(
-					strtolower( (string) wp_parse_url( home_url(), PHP_URL_HOST ) ),
-					strtolower( (string) wp_parse_url( site_url(), PHP_URL_HOST ) ),
-					strtolower( (string) wp_parse_url( wp_upload_dir()['baseurl'] ?? '', PHP_URL_HOST ) ),
-				)
-			)
-		);
-
-		$allowed_hosts = apply_filters( 'sscribe_allowed_image_hosts', $site_hosts );
+		$site_hosts       = self::get_allowed_hosts();
+		$allowed_hosts   = apply_filters( 'sscribe_allowed_image_hosts', $site_hosts );
 
 		if ( ! is_array( $allowed_hosts ) ) {
 			$allowed_hosts = $site_hosts;

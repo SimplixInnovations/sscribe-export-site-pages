@@ -48,7 +48,6 @@
 			}
 			this.bindEvents();
 			this.updateConfigSummary();
-			this.toggleHistorySkeleton(false);
 
 			const defaultPostType = $('input[name="sscribe_post_type"]:checked').val() || 'page';
 			const defaultLanguage = $('input[name="sscribe_language"]:checked').val() || '';
@@ -134,6 +133,11 @@
 				// Switch the visible tab panel.
 				$('.sscribe-tab-content').removeClass('sscribe-tab-active');
 				$('#sscribe-tab-' + tabId).addClass('sscribe-tab-active');
+
+				// Initialize debug console only when debug tab is opened.
+				if ( tabId === 'debug' && typeof SScribeDebugConsole !== 'undefined' ) {
+					SScribeDebugConsole.init();
+				}
 			});
 		},
 
@@ -1378,14 +1382,6 @@
 
 			const focusableSelectors =
 				'a[href], button:not([disabled]), textarea:not([disabled]), input:not([disabled]), select:not([disabled]), [tabindex]:not([tabindex="-1"])';
-			const focusableElements = container.querySelectorAll(focusableSelectors);
-
-			if (focusableElements.length === 0) {
-				return;
-			}
-
-			const firstFocusable = focusableElements[0];
-			const lastFocusable = focusableElements[focusableElements.length - 1];
 
 			if (container._sscribeTrapHandler) {
 				container.removeEventListener('keydown', container._sscribeTrapHandler);
@@ -1393,6 +1389,10 @@
 
 			const handler = function (e) {
 				if (e.key !== 'Tab') { return; }
+				const focusableElements = container.querySelectorAll(focusableSelectors);
+				if (focusableElements.length === 0) { return; }
+				const firstFocusable = focusableElements[0];
+				const lastFocusable = focusableElements[focusableElements.length - 1];
 				if (e.shiftKey) {
 					if (document.activeElement === firstFocusable) {
 						e.preventDefault();
@@ -1609,7 +1609,7 @@
 					} else {
 						$grid.html(
 							'<div class="sscribe-support-error">' +
-							this.escapeHtml(sscribe_data.strings.support_error || 'Unable to load support information right now.') +
+							self.escapeHtml(sscribe_data.strings.support_error || 'Unable to load support information right now.') +
 							'</div>'
 						);
 					}
@@ -1637,56 +1637,26 @@
 
 			let html = '<div class="sscribe-support-grid-inner">';
 
-			const sections = [
-				{ key: 'wp_version', label: 'WordPress Version' },
-				{ key: 'php_version', label: 'PHP Version' },
-				{ key: 'plugin_version', label: 'Plugin Version' },
-				{ key: 'memory_limit', label: 'Memory Limit' },
-				{ key: 'max_execution_time', label: 'Max Execution Time' },
-				{ key: 'upload_max_filesize', label: 'Upload Max Filesize' },
-			];
-
-			sections.forEach(function (section) {
-				if (data[section.key]) {
-					html += '<div class="sscribe-support-item">';
-					html += '<span class="sscribe-support-label">' + this.escapeHtml(section.label) + ':</span>';
-					html += '<span class="sscribe-support-value">' + this.escapeHtml(String(data[section.key])) + '</span>';
-					html += '</div>';
-				}
-			}.bind(this));
-
-			if (data.wpml_active !== undefined) {
-				html += '<div class="sscribe-support-item">';
-				html += '<span class="sscribe-support-label">WPML Active:</span>';
-				html += '<span class="sscribe-support-value">' + this.escapeHtml(data.wpml_active ? 'Yes' : 'No') + '</span>';
-				html += '</div>';
-			}
-
-			if (data.languages_count !== undefined) {
-				html += '<div class="sscribe-support-item">';
-				html += '<span class="sscribe-support-label">Languages:</span>';
-				html += '<span class="sscribe-support-value">' + this.escapeHtml(String(data.languages_count)) + '</span>';
-				html += '</div>';
-			}
-
-			if (data.total_pages_all !== undefined) {
-				html += '<div class="sscribe-support-item">';
-				html += '<span class="sscribe-support-label">Total Pages:</span>';
-				html += '<span class="sscribe-support-value">' + this.escapeHtml(String(data.total_pages_all)) + '</span>';
-				html += '</div>';
+			if (data.sections) {
+				Object.keys(data.sections).forEach(function (sectionKey) {
+					const section = data.sections[sectionKey];
+					if (section && section.items) {
+						Object.keys(section.items).forEach(function (itemKey) {
+							const value = section.items[itemKey];
+							html += '<div class="sscribe-support-item">';
+							html += '<span class="sscribe-support-label">' + this.escapeHtml(itemKey) + ':</span>';
+							html += '<span class="sscribe-support-value">' + this.escapeHtml(String(value)) + '</span>';
+							html += '</div>';
+						}, this);
+					}
+				}, this);
 			}
 
 			html += '</div>';
 			$grid.html(html);
 
-			const textOutput = Object.keys(data)
-				.map(function (key) {
-					const label = this.humanizeSupportKey(key);
-					return label + ': ' + String(data[key] || 'N/A');
-				}.bind(this))
-				.join('\n');
-
-			$textarea.val(textOutput);
+			// Use the copy_text that PHP already builds in the proper format
+			$textarea.val(data.copy_text || '');
 			$btn.prop('disabled', false);
 		},
 
@@ -1762,7 +1732,7 @@
 					} else {
 						$content.html(
 							'<div class="sscribe-log-error">' +
-							this.escapeHtml(sscribe_data.strings.log_not_found || 'Log not found.') +
+							self.escapeHtml(sscribe_data.strings.log_not_found || 'Log not found.') +
 							'</div>'
 						);
 					}
@@ -1770,7 +1740,7 @@
 				error: function () {
 					$content.html(
 						'<div class="sscribe-log-error">' +
-						this.escapeHtml(sscribe_data.strings.log_load_failed || 'Failed to load log.') +
+						self.escapeHtml(sscribe_data.strings.log_load_failed || 'Failed to load log.') +
 						'</div>'
 					);
 				},
@@ -1866,7 +1836,7 @@
 			$('#sscribe-progress-area').addClass('sscribe-hidden');
 			$('#sscribe-error-area').addClass('sscribe-hidden');
 			$('#sscribe-download-area').addClass('sscribe-hidden');
-			$('#sscribe-progress-bar').css('width', '0%');
+			$('#sscribe-progress-bar').css('width', '0%').css('transform', 'scaleX(0)');
 			$('#sscribe-progress-text').text('0%');
 			$('#sscribe-status-text').text('');
 			$('#sscribe-current-page').text('').hide();
