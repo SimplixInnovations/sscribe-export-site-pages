@@ -60,12 +60,7 @@ class SScribe_Batch_Processor {
 	 */
 	private readonly \SScribe_Logger_Interface $logger;
 
-	/**
-	 * Audit trail for tracking operations.
-	 *
-	 * @var \SScribe_Audit_Trail|null
-	 */
-	private ?\SScribe_Audit_Trail $audit_trail = null;
+
 
 	/**
 	 * Export log instance.
@@ -211,15 +206,6 @@ class SScribe_Batch_Processor {
 	 */
 	private function get_diagnostics(): SScribe_Diagnostics {
 		return $this->diagnostics ??= new SScribe_Diagnostics();
-	}
-
-	/**
-	 * Get the audit trail instance (lazy-loaded).
-	 *
-	 * @return \SScribe_Audit_Trail
-	 */
-	private function get_audit_trail(): \SScribe_Audit_Trail {
-		return $this->audit_trail ??= new \SScribe_Audit_Trail();
 	}
 
 	/**
