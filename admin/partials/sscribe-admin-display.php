@@ -175,6 +175,7 @@ $sscribe_step            = 1;
 							<?php echo wp_kses_post( SScribe_Helpers::get_icon( 'globe', 15 ) ); ?>
 							<span><?php esc_html_e( 'Language', 'sscribe-export-site-pages' ); ?></span>
 						</div>
+						<div class="sscribe-language-cards-wrapper">
 						<div class="sscribe-language-cards sscribe-cards-row" id="sscribe-language-cards">
 							<label class="sscribe-lang-card-label sscribe-lang-card-all sscribe-lang-card-compact">
 								<input type="radio" name="sscribe_language" value="" checked>
@@ -552,7 +553,7 @@ $sscribe_step            = 1;
 							<button type="button" class="sscribe-button sscribe-button-sm sscribe-button-danger" id="sscribe-bulk-delete-btn" title="<?php esc_attr_e( 'Delete selected exports', 'sscribe-export-site-pages' ); ?>" aria-label="<?php esc_attr_e( 'Delete selected exports', 'sscribe-export-site-pages' ); ?>"><?php esc_html_e( 'Delete', 'sscribe-export-site-pages' ); ?></button>
 						</div>
 					</div>
-					<div class="sscribe-history-skeleton" id="sscribe-history-skeleton">
+					<div class="sscribe-history-skeleton sscribe-hidden" id="sscribe-history-skeleton">
 						<div class="sscribe-history-skeleton-row"><span class="sscribe-skeleton" style="display:inline-block;width:32px;height:32px;border-radius:6px;"></span><span class="sscribe-skeleton" style="display:inline-block;width:180px;height:14px;margin-left:12px;"></span></div>
 						<div class="sscribe-history-skeleton-row"><span class="sscribe-skeleton" style="display:inline-block;width:32px;height:32px;border-radius:6px;"></span><span class="sscribe-skeleton" style="display:inline-block;width:140px;height:14px;margin-left:12px;"></span></div>
 						<div class="sscribe-history-skeleton-row"><span class="sscribe-skeleton" style="display:inline-block;width:32px;height:32px;border-radius:6px;"></span><span class="sscribe-skeleton" style="display:inline-block;width:200px;height:14px;margin-left:12px;"></span></div>
@@ -655,8 +656,9 @@ $sscribe_step            = 1;
 				</div>
 				<div class="sscribe-hidden" id="sscribe-support-grid" aria-live="polite"></div>
 			</div>
-		</div>
-	</div>
+						</div>
+						</div>
+					</div>
 </div>
 
 			<div class="sscribe-tab-content" id="sscribe-tab-debug" role="tabpanel" aria-labelledby="sscribe-tab-btn-debug">
