@@ -519,10 +519,10 @@ class SScribe_Admin {
 	/**
 	 * Gather debug information for the admin page.
 	 *
-	 * @param bool   $wpml_active       Whether WPML is active.
-	 * @param array  $languages         Language list.
-	 * @param int    $total_pages_all   Total published pages.
-	 * @param array  $status_counts     Post status counts.
+	 * @param bool  $wpml_active       Whether WPML is active.
+	 * @param array $languages         Language list.
+	 * @param int   $total_pages_all   Total published pages.
+	 * @param array $status_counts     Post status counts.
 	 * @return array Debug information.
 	 */
 	private function gather_debug_info( bool $wpml_active, array $languages, int $total_pages_all, array $status_counts ): array {
