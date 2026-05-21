@@ -128,7 +128,7 @@ $sscribe_log_levels     = array(
 		<button type="button" class="sscribe-button sscribe-button-danger" id="sscribe-debug-clear-btn">
 			<?php esc_html_e( 'Clear Logs', 'sscribe-export-site-pages' ); ?>
 		</button>
-		<button type="button" class="sscribe-button" id="sscribe-debug-export-btn">
+		<button type="button" class="sscribe-button sscribe-button-outline" id="sscribe-debug-export-btn">
 			<?php esc_html_e( 'Export JSON', 'sscribe-export-site-pages' ); ?>
 		</button>
 	</div>

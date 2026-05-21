@@ -5,11 +5,11 @@
  */
 
 :root {
-	--sscribe-debug-color-debug: #94a3b8;
-	--sscribe-debug-color-info: #3b82f6;
+	--sscribe-debug-color-debug: var(--sscribe-text-muted);
+	--sscribe-debug-color-info: var(--sscribe-info);
 	--sscribe-debug-color-notice: #0ea5e9;
-	--sscribe-debug-color-warning: #f59e0b;
-	--sscribe-debug-color-error: #ef4444;
+	--sscribe-debug-color-warning: var(--sscribe-warning);
+	--sscribe-debug-color-error: var(--sscribe-danger);
 	--sscribe-debug-color-critical: #991b1b;
 	--sscribe-debug-bg-card: rgb(255 255 255 / 75%);
 	--sscribe-debug-bg-console: #0f172a; /* Slate 900 */
@@ -18,7 +18,7 @@
 }
 
 .sscribe-debug-master {
-	padding: 24px;
+	padding: 0;
 	max-width: 1200px;
 }
 
@@ -59,19 +59,18 @@
 
 .sscribe-debug-settings-card,
 .sscribe-debug-controls-card {
-	background: var(--sscribe-debug-bg-card);
-	backdrop-filter: blur(16px);
-	border: 1px solid var(--sscribe-debug-border);
-	border-radius: 16px;
-	padding: 24px;
-	margin-bottom: 20px;
-	box-shadow: 0 4px 12px rgb(0 0 0 / 3%);
-	transition: box-shadow 0.3s ease;
+	background: var(--sscribe-card-bg);
+	border: 1px solid var(--sscribe-border-light);
+	border-radius: var(--sscribe-radius-lg);
+	padding: var(--sscribe-space-l);
+	margin-bottom: var(--sscribe-space-l);
+	box-shadow: var(--sscribe-shadow-shallow);
+	transition: border-color var(--sscribe-transition-fast);
 }
 
 .sscribe-debug-settings-card:hover,
 .sscribe-debug-controls-card:hover {
-	box-shadow: 0 8px 24px rgb(0 0 0 / 6%);
+	border-color: var(--sscribe-primary);
 }
 
 .sscribe-debug-settings-grid {
@@ -501,6 +500,12 @@
 		--sscribe-debug-bg-console: #121212;
 		--sscribe-debug-text-console: #d4d4d4;
 		--sscribe-debug-border: #333;
+		--sscribe-debug-color-debug: #888;
+		--sscribe-debug-color-info: #60a5fa;
+		--sscribe-debug-color-notice: #38bdf8;
+		--sscribe-debug-color-warning: #fbbf24;
+		--sscribe-debug-color-error: #f87171;
+		--sscribe-debug-color-critical: #dc2626;
 	}
 
 	.sscribe-debug-header {
