@@ -24,8 +24,14 @@
 		isAutoRefresh: true,
 		currentFilter: 'ALL',
 		searchQuery: '',
+		initialized: false,
+		isViewingRotated: false,
 
 		init: function() {
+			if ( this.initialized ) {
+				return;
+			}
+			this.initialized = true;
 			this.cacheDom();
 			this.bindEvents();
 			this.bindVisibilityHandler();
@@ -95,6 +101,13 @@
 
 			this.$entries.on( 'click', '.sscribe-debug-entry', function() {
 				$( this ).toggleClass( 'expanded' );
+			} );
+
+			this.$entries.on( 'keydown', '.sscribe-debug-entry', function( e ) {
+				if ( e.key === 'Enter' || e.key === ' ' ) {
+					e.preventDefault();
+					$( this ).toggleClass( 'expanded' );
+				}
 			} );
 
 			this.$rotatedBody.on( 'click', '.sscribe-rotated-view', function() {
@@ -256,9 +269,26 @@
 
 			$.post( sscribe_data.ajaxurl, data, function( response ) {
 				if ( response.success ) {
+					self.$saveFeedback.text( 'Logs cleared' ).addClass( 'success' );
+					setTimeout( function() {
+						self.$saveFeedback.text( '' );
+						self.$saveFeedback.removeClass( 'success' );
+					}, 2000 );
 					self.fetchLogs();
 					self.fetchRotatedLogs();
+				} else {
+					self.$saveFeedback.text( 'Error' ).addClass( 'error' );
+					setTimeout( function() {
+						self.$saveFeedback.text( '' );
+						self.$saveFeedback.removeClass( 'error' );
+					}, 2000 );
 				}
+			} ).fail( function() {
+				self.$saveFeedback.text( 'Error' ).addClass( 'error' );
+				setTimeout( function() {
+					self.$saveFeedback.text( '' );
+					self.$saveFeedback.removeClass( 'error' );
+				}, 2000 );
 			} );
 		},
 
@@ -321,10 +351,28 @@
 			const self = this;
 			$.get( sscribe_data.ajaxurl, data, function( response ) {
 				if ( response.success ) {
+					self.isViewingRotated = true;
+					self.currentRotatedFilename = filename;
 					self.renderLogs( response.data.entries );
 					self.$entryCount.text( response.data.count + ' entries (rotated)' );
+					self.$entries.prepend(
+						'<div class="sscribe-debug-rotated-banner">' +
+						'<span>Viewing archived log: ' + escHtml( filename ) + '</span>' +
+						'<button type="button" class="sscribe-button sscribe-button-primary" id="sscribe-back-to-current">Back to current log</button>' +
+						'</div>'
+					);
+					self.$entries.find( '#sscribe-back-to-current' ).on( 'click', function() {
+						self.backToCurrentLog();
+					} );
 				}
 			} );
+		},
+
+		backToCurrentLog: function() {
+			this.isViewingRotated = false;
+			this.currentRotatedFilename = '';
+			this.fetchLogs();
+			this.fetchRotatedLogs();
 		},
 
 		exportRotatedLog: function( filename ) {
@@ -375,7 +423,7 @@
 	};
 
 	$( document ).ready( function() {
-		if ( $( '#sscribe-admin-wrap' ).length ) {
+		if ( $( '#sscribe-tab-debug' ).hasClass( 'sscribe-tab-active' ) ) {
 			SScribeDebugConsole.init();
 		}
 	} );

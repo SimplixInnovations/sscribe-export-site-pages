@@ -142,9 +142,21 @@ class SScribe_Admin_Debug {
 			$log_dir    = $upload_dir['basedir'] . '/sscribe-logs';
 			$file_path  = $log_dir . '/' . $filename;
 
-			if ( file_exists( $file_path ) && 0 === strpos( realpath( $file_path ), realpath( $log_dir ) ) ) {
+			$real_file_path = realpath( $file_path );
+			$real_log_dir   = realpath( $log_dir );
+
+			if ( false === $real_file_path || false === $real_log_dir ) {
+				wp_die( esc_html__( 'File not found.', 'sscribe-export-site-pages' ) );
+				return;
+			}
+
+			if ( 0 === strpos( $real_file_path, $real_log_dir ) ) {
 				$content = file_get_contents( $file_path ); // phpcs:ignore WordPress.WP.AlternativeFunctions.file_get_contents_file_get_contents
 				$this->download_json( $filename, $content );
+				return;
+			} else {
+				wp_die( esc_html__( 'File not found.', 'sscribe-export-site-pages' ) );
+				return;
 			}
 		}
 
@@ -255,7 +267,10 @@ class SScribe_Admin_Debug {
 		$log_dir    = $upload_dir['basedir'] . '/sscribe-logs';
 		$file_path  = $log_dir . '/' . $filename;
 
-		if ( ! file_exists( $file_path ) || 0 !== strpos( realpath( $file_path ), realpath( $log_dir ) ) ) {
+		$real_file_path = realpath( $file_path );
+		$real_log_dir   = realpath( $log_dir );
+
+		if ( false === $real_file_path || false === $real_log_dir || 0 !== strpos( $real_file_path, $real_log_dir ) ) {
 			wp_send_json_error( array( 'message' => __( 'File not found.', 'sscribe-export-site-pages' ) ) );
 		}
 
@@ -269,6 +284,33 @@ class SScribe_Admin_Debug {
 			)
 		);
 	}
+
+	/**
+	 * AJAX: Delete a rotated log file.
+	 */
+	public function ajax_debug_delete_rotated(): void {
+		check_ajax_referer( 'sscribe_export_nonce', 'nonce' );
+
+		if ( ! current_user_can( 'manage_options' ) ) {
+			wp_send_json_error( array( 'message' => __( 'Insufficient permissions.', 'sscribe-export-site-pages' ) ) );
+		}
+
+		$filename = isset( $_POST['filename'] ) ? sanitize_text_field( wp_unslash( $_POST['filename'] ) ) : '';
+
+		if ( empty( $filename ) ) {
+			wp_send_json_error( array( 'message' => __( 'Filename required.', 'sscribe-export-site-pages' ) ) );
+		}
+
+		$upload_dir = wp_upload_dir();
+		$log_dir    = $upload_dir['basedir'] . '/sscribe-logs';
+		$file_path  = $log_dir . '/' . $filename;
+
+		$real_file_path = realpath( $file_path );
+		$real_log_dir   = realpath( $log_dir );
+
+		if ( false === $real_file_path || false === $real_log_dir || 0 !== strpos( $real_file_path, $real_log_dir ) ) {
+			wp_send_json_error( array( 'message' => __( 'File not found.', 'sscribe-export-site-pages' ) ) );
+		}
 
 	/**
 	 * AJAX: Delete a rotated log file.
@@ -295,7 +337,10 @@ class SScribe_Admin_Debug {
 		$log_dir    = $upload_dir['basedir'] . '/sscribe-logs';
 		$file_path  = $log_dir . '/' . $filename;
 
-		if ( ! file_exists( $file_path ) || 0 !== strpos( realpath( $file_path ), realpath( $log_dir ) ) ) {
+		$real_file_path = realpath( $file_path );
+		$real_log_dir   = realpath( $log_dir );
+
+		if ( false === $real_file_path || false === $real_log_dir || 0 !== strpos( $real_file_path, $real_log_dir ) ) {
 			wp_send_json_error( array( 'message' => __( 'File not found.', 'sscribe-export-site-pages' ) ) );
 		}
 
