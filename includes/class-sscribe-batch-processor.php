@@ -63,9 +63,9 @@ class SScribe_Batch_Processor {
 	/**
 	 * Audit trail for tracking operations.
 	 *
-	 * @var \SScribe_Audit_Trail
+	 * @var \SScribe_Audit_Trail|null
 	 */
-	private readonly \SScribe_Audit_Trail $audit_trail;
+	private ?\SScribe_Audit_Trail $audit_trail = null;
 
 	/**
 	 * Export log instance.
@@ -84,51 +84,143 @@ class SScribe_Batch_Processor {
 	/**
 	 * Adaptive metrics collector.
 	 *
-	 * @var \SScribe_Adaptive_Metrics
+	 * @var \SScribe_Adaptive_Metrics|null
 	 */
-	private readonly \SScribe_Adaptive_Metrics $adaptive_metrics;
+	private ?\SScribe_Adaptive_Metrics $adaptive_metrics = null;
 
 	/**
 	 * Rate limiter for export operations.
 	 *
-	 * @var SScribe_Export_Rate_Limiter
+	 * @var SScribe_Export_Rate_Limiter|null
 	 */
-	private readonly SScribe_Export_Rate_Limiter $rate_limiter;
+	private ?SScribe_Export_Rate_Limiter $rate_limiter = null;
 
 	/**
 	 * Export auditor.
 	 *
-	 * @var SScribe_Export_Auditor
+	 * @var SScribe_Export_Auditor|null
 	 */
-	private readonly SScribe_Export_Auditor $auditor;
+	private ?SScribe_Export_Auditor $auditor = null;
 
 	/**
 	 * Resource monitor.
 	 *
-	 * @var SScribe_Export_Resource_Monitor
+	 * @var SScribe_Export_Resource_Monitor|null
 	 */
-	private readonly SScribe_Export_Resource_Monitor $resource_monitor;
+	private ?SScribe_Export_Resource_Monitor $resource_monitor = null;
 
 	/**
 	 * Lock manager for concurrent operations.
 	 *
-	 * @var SScribe_Export_Lock_Manager
+	 * @var SScribe_Export_Lock_Manager|null
 	 */
-	private readonly SScribe_Export_Lock_Manager $lock_manager;
+	private ?SScribe_Export_Lock_Manager $lock_manager = null;
 
 	/**
 	 * Error handler for export failures.
 	 *
-	 * @var SScribe_Export_Error_Handler
+	 * @var SScribe_Export_Error_Handler|null
 	 */
-	private readonly SScribe_Export_Error_Handler $error_handler;
+	private ?SScribe_Export_Error_Handler $error_handler = null;
 
 	/**
 	 * Query controller for database operations.
 	 *
-	 * @var SScribe_Export_Query_Controller
+	 * @var SScribe_Export_Query_Controller|null
 	 */
-	private readonly SScribe_Export_Query_Controller $query_controller;
+	private ?SScribe_Export_Query_Controller $query_controller = null;
+
+	/**
+	 * Get the adaptive metrics instance (lazy-loaded).
+	 *
+	 * @return \SScribe_Adaptive_Metrics
+	 */
+	private function get_adaptive_metrics(): \SScribe_Adaptive_Metrics {
+		return $this->adaptive_metrics ??= new \SScribe_Adaptive_Metrics();
+	}
+
+	/**
+	 * Get the rate limiter instance (lazy-loaded).
+	 *
+	 * @return SScribe_Export_Rate_Limiter
+	 */
+	private function get_rate_limiter(): SScribe_Export_Rate_Limiter {
+		return $this->rate_limiter ??= new SScribe_Export_Rate_Limiter();
+	}
+
+	/**
+	 * Get the auditor instance (lazy-loaded).
+	 *
+	 * @return SScribe_Export_Auditor
+	 */
+	private function get_auditor(): SScribe_Export_Auditor {
+		return $this->auditor ??= new SScribe_Export_Auditor();
+	}
+
+	/**
+	 * Get the resource monitor instance (lazy-loaded).
+	 *
+	 * @return SScribe_Export_Resource_Monitor
+	 */
+	private function get_resource_monitor(): SScribe_Export_Resource_Monitor {
+		return $this->resource_monitor ??= new SScribe_Export_Resource_Monitor();
+	}
+
+	/**
+	 * Get the lock manager instance (lazy-loaded).
+	 *
+	 * @return SScribe_Export_Lock_Manager
+	 */
+	private function get_lock_manager(): SScribe_Export_Lock_Manager {
+		return $this->lock_manager ??= new SScribe_Export_Lock_Manager();
+	}
+
+	/**
+	 * Get the error handler instance (lazy-loaded).
+	 *
+	 * @return SScribe_Export_Error_Handler
+	 */
+	private function get_error_handler(): SScribe_Export_Error_Handler {
+		return $this->error_handler ??= new SScribe_Export_Error_Handler();
+	}
+
+	/**
+	 * Get the query controller instance (lazy-loaded).
+	 *
+	 * @return SScribe_Export_Query_Controller
+	 */
+	private function get_query_controller(): SScribe_Export_Query_Controller {
+		if ( null === $this->query_controller ) {
+			$this->query_controller = new SScribe_Export_Query_Controller(
+				$this->get_rate_limiter(),
+				$this->get_diagnostics(),
+				$this->collector,
+				$this->logger,
+				$this->zip_handler,
+				$this->get_adaptive_metrics(),
+				$this->get_error_handler()
+			);
+		}
+		return $this->query_controller;
+	}
+
+	/**
+	 * Get the diagnostics instance (lazy-loaded).
+	 *
+	 * @return SScribe_Diagnostics
+	 */
+	private function get_diagnostics(): SScribe_Diagnostics {
+		return $this->diagnostics ??= new SScribe_Diagnostics();
+	}
+
+	/**
+	 * Get the audit trail instance (lazy-loaded).
+	 *
+	 * @return \SScribe_Audit_Trail
+	 */
+	private function get_audit_trail(): \SScribe_Audit_Trail {
+		return $this->audit_trail ??= new \SScribe_Audit_Trail();
+	}
 
 	/**
 	 * Initialize the batch processor.
@@ -147,28 +239,10 @@ class SScribe_Batch_Processor {
 		$this->batch_size = (int) apply_filters( 'sscribe_batch_size', 5 );
 		$this->batch_size = max( 1, min( 20, $this->batch_size ) );
 
-		$this->collector        = $collector ?? new SScribe_Page_Collector();
-		$this->zip_handler      = $zip_handler ?? new SScribe_Zip_Handler();
-		$this->session          = $session ?? new SScribe_Session();
-		$this->logger           = $logger ?? SScribe_Logger::instance( defined( 'SSCRIBE_DEBUG' ) && SSCRIBE_DEBUG );
-		$this->diagnostics      = new SScribe_Diagnostics();
-		$this->audit_trail      = new SScribe_Audit_Trail();
-		$this->adaptive_metrics = new SScribe_Adaptive_Metrics();
-
-		$this->rate_limiter     = new SScribe_Export_Rate_Limiter();
-		$this->auditor          = new SScribe_Export_Auditor();
-		$this->resource_monitor = new SScribe_Export_Resource_Monitor();
-		$this->lock_manager     = new SScribe_Export_Lock_Manager();
-		$this->error_handler    = new SScribe_Export_Error_Handler();
-		$this->query_controller = new SScribe_Export_Query_Controller(
-			$this->rate_limiter,
-			$this->diagnostics,
-			$this->collector,
-			$this->logger,
-			$this->zip_handler,
-			$this->adaptive_metrics,
-			$this->error_handler
-		);
+		$this->collector = $collector ?? new SScribe_Page_Collector();
+		$this->zip_handler = $zip_handler ?? new SScribe_Zip_Handler();
+		$this->session = $session ?? new SScribe_Session();
+		$this->logger = $logger ?? SScribe_Logger::instance( defined( 'SSCRIBE_DEBUG' ) && SSCRIBE_DEBUG );
 	}
 
 	/**
@@ -177,7 +251,7 @@ class SScribe_Batch_Processor {
 	 * @return bool True if rate limit check passes.
 	 */
 	private function check_rate_limit(): bool {
-		return $this->rate_limiter->check_rate_limit( $this->get_required_capability() );
+		return $this->get_rate_limiter()->check_rate_limit( $this->get_required_capability() );
 	}
 
 	/**
@@ -187,7 +261,7 @@ class SScribe_Batch_Processor {
 	 * @param array  $context Additional context.
 	 */
 	private function audit_log( string $action, array $context = array() ): void {
-		$this->auditor->log( $action, $context );
+		$this->get_auditor()->log( $action, $context );
 	}
 
 	/**
@@ -197,7 +271,7 @@ class SScribe_Batch_Processor {
 	 * @return bool True if memory is available.
 	 */
 	private function is_memory_available( int $buffer_mb = 10 ): bool {
-		return $this->resource_monitor->is_memory_available( $buffer_mb );
+		return $this->get_resource_monitor()->is_memory_available( $buffer_mb );
 	}
 
 	/**
@@ -208,7 +282,7 @@ class SScribe_Batch_Processor {
 	 * @return bool True if time is available.
 	 */
 	private function is_time_available( float $batch_start_time, int $buffer_seconds = 10 ): bool {
-		return $this->resource_monitor->is_time_available( $batch_start_time, $buffer_seconds );
+		return $this->get_resource_monitor()->is_time_available( $batch_start_time, $buffer_seconds );
 	}
 
 	/**
@@ -218,7 +292,7 @@ class SScribe_Batch_Processor {
 	 * @return float Remaining time in seconds.
 	 */
 	private function get_remaining_time( float $batch_start_time ): float {
-		return $this->resource_monitor->get_remaining_time( $batch_start_time );
+		return $this->get_resource_monitor()->get_remaining_time( $batch_start_time );
 	}
 
 	/**
@@ -227,7 +301,7 @@ class SScribe_Batch_Processor {
 	 * @return float Memory usage percentage.
 	 */
 	private function get_memory_usage_percent(): float {
-		return $this->resource_monitor->get_memory_usage_percent();
+		return $this->get_resource_monitor()->get_memory_usage_percent();
 	}
 
 	/**
@@ -236,7 +310,7 @@ class SScribe_Batch_Processor {
 	 * @param array $formats Export formats being processed.
 	 */
 	private function optimize_batch_size( array $formats = array() ): void {
-		$this->batch_size = $this->resource_monitor->get_optimal_batch_size( $formats );
+		$this->batch_size = $this->get_resource_monitor()->get_optimal_batch_size( $formats );
 
 		$this->logger->debug(
 			'Batch size optimized',
@@ -255,7 +329,7 @@ class SScribe_Batch_Processor {
 	 * @return array|null Warning array or null if okay.
 	 */
 	private function get_memory_warning( int $page_count, array $formats ): ?array {
-		return $this->resource_monitor->get_memory_warning( $page_count, $formats );
+		return $this->get_resource_monitor()->get_memory_warning( $page_count, $formats );
 	}
 
 	/**
@@ -345,7 +419,7 @@ class SScribe_Batch_Processor {
 			);
 		}
 
-		$this->diagnostics->self_heal();
+		$this->get_diagnostics()->self_heal();
 
 		wp_raise_memory_limit( 'admin' );
 
@@ -620,7 +694,7 @@ class SScribe_Batch_Processor {
 		$lock_ttl        = (int) apply_filters( 'sscribe_lock_ttl', 45 );
 		$stale_threshold = (int) apply_filters( 'sscribe_lock_stale_threshold', 35 );
 
-		$this->current_lock_token = $this->lock_manager->acquire_lock( $session_id, $lock_ttl, $stale_threshold );
+		$this->current_lock_token = $this->get_lock_manager()->acquire_lock( $session_id, $lock_ttl, $stale_threshold );
 
 		if ( null === $this->current_lock_token ) {
 			$this->logger->debug( 'Lock acquisition failed — another process holds the lock', array( 'session_id' => $session_id ) );
@@ -1036,7 +1110,7 @@ class SScribe_Batch_Processor {
 						$fmt       = strtolower( $format_error['format'] );
 						$err_msg   = $format_error['message'] ?? '';
 						$context   = $format_error['context'];
-						$diagnosis = $this->diagnostics->diagnose_page_error( $page_id, $fmt, $err_msg, $context );
+						$diagnosis = $this->get_diagnostics()->diagnose_page_error( $page_id, $fmt, $err_msg, $context );
 
 						if ( ! empty( $format_error['category'] ) && 'unknown' !== $format_error['category'] ) {
 							$diagnosis['category'] = $format_error['category'];
@@ -1509,7 +1583,7 @@ class SScribe_Batch_Processor {
 				}
 
 				$this->release_lock( $session_id );
-				$this->diagnostics->self_heal();
+				$this->get_diagnostics()->self_heal();
 
 				SScribe_AJAX_Guard::error(
 					array(
@@ -1548,7 +1622,7 @@ class SScribe_Batch_Processor {
 				}
 
 				$this->release_lock( $session_id );
-				$this->diagnostics->self_heal();
+				$this->get_diagnostics()->self_heal();
 
 				$zip_error = array(
 					'page_id'     => 0,
@@ -1566,7 +1640,7 @@ class SScribe_Batch_Processor {
 						),
 					),
 					'diagnostics' => array(
-						$this->diagnostics->diagnose_page_error(
+						$this->get_diagnostics()->diagnose_page_error(
 							0,
 							'zip',
 							'Failed to create ZIP package.',
@@ -1717,7 +1791,7 @@ class SScribe_Batch_Processor {
 				$total_mb        = $total_bytes / 1048576;
 
 				if ( $pages_exported > 0 && $elapsed_seconds > 0 ) {
-					$this->adaptive_metrics->save( $fmt, $pages_exported, $elapsed_seconds, $total_mb, $session_pt );
+					$this->get_adaptive_metrics()->save( $fmt, $pages_exported, $elapsed_seconds, $total_mb, $session_pt );
 				}
 			}
 
@@ -1804,7 +1878,7 @@ class SScribe_Batch_Processor {
 	 * Run health check diagnostics via AJAX.
 	 */
 	public function ajax_health_check(): void {
-		$this->query_controller->ajax_health_check( $this->get_required_capability() );
+		$this->get_query_controller()->ajax_health_check( $this->get_required_capability() );
 	}
 
 	/**
@@ -1921,7 +1995,7 @@ class SScribe_Batch_Processor {
 	 * Get export status counts via AJAX.
 	 */
 	public function ajax_get_status_counts(): void {
-		$this->query_controller->ajax_get_status_counts( $this->get_required_capability() );
+		$this->get_query_controller()->ajax_get_status_counts( $this->get_required_capability() );
 	}
 
 	/**
@@ -2050,7 +2124,7 @@ class SScribe_Batch_Processor {
 	 * Get export log entries via AJAX.
 	 */
 	public function ajax_get_export_log(): void {
-		$this->query_controller->ajax_get_export_log( $this->get_required_capability() );
+		$this->get_query_controller()->ajax_get_export_log( $this->get_required_capability() );
 	}
 
 	/**
@@ -2061,7 +2135,7 @@ class SScribe_Batch_Processor {
 	 * @return array Diagnostics payload.
 	 */
 	private function build_error_diagnostics_payload( array $structured_errors, array $string_errors = array() ): array {
-		return $this->error_handler->build_diagnostics_payload( $structured_errors, $string_errors );
+		return $this->get_error_handler()->build_diagnostics_payload( $structured_errors, $string_errors );
 	}
 
 	/**
@@ -2104,7 +2178,7 @@ class SScribe_Batch_Processor {
 	 * @param int|null $user_id User ID.
 	 */
 	private function cleanup_user_locks( ?int $user_id = null ): void {
-		$this->lock_manager->cleanup_user_locks( $user_id );
+		$this->get_lock_manager()->cleanup_user_locks( $user_id );
 	}
 
 	/**
@@ -2114,35 +2188,35 @@ class SScribe_Batch_Processor {
 	 * @return bool True if lock was released.
 	 */
 	private function release_lock( string $session_id ): bool {
-		return $this->lock_manager->release_lock( $session_id, $this->current_lock_token );
+		return $this->get_lock_manager()->release_lock( $session_id, $this->current_lock_token );
 	}
 
 	/**
 	 * Run preflight checks before export via AJAX.
 	 */
 	public function ajax_preflight_check(): void {
-		$this->query_controller->ajax_preflight_check( $this->get_required_capability() );
+		$this->get_query_controller()->ajax_preflight_check( $this->get_required_capability() );
 	}
 
 	/**
 	 * Get export preview via AJAX.
 	 */
 	public function ajax_get_export_preview(): void {
-		$this->query_controller->ajax_get_export_preview( $this->get_required_capability() );
+		$this->get_query_controller()->ajax_get_export_preview( $this->get_required_capability() );
 	}
 
 	/**
 	 * Get recent exports list via AJAX.
 	 */
 	public function ajax_get_recent_exports(): void {
-		$this->query_controller->ajax_get_recent_exports( $this->get_required_capability() );
+		$this->get_query_controller()->ajax_get_recent_exports( $this->get_required_capability() );
 	}
 
 	/**
 	 * Get support information via AJAX.
 	 */
 	public function ajax_get_support_info(): void {
-		$this->query_controller->ajax_get_support_info( $this->get_required_capability() );
+		$this->get_query_controller()->ajax_get_support_info( $this->get_required_capability() );
 	}
 
 	/**

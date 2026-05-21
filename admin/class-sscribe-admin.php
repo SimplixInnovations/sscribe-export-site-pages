@@ -421,7 +421,7 @@ class SScribe_Admin {
 		}
 
 		$sscribe_debug_info = array();
-		$sscribe_is_debug   = defined( 'SSCRIBE_DEBUG_PUBLIC' ) && SSCRIBE_DEBUG_PUBLIC;
+		$sscribe_is_debug   = defined( 'SSCRIBE_DEBUG' ) && SSCRIBE_DEBUG;
 
 		if ( $sscribe_is_debug ) {
 			error_log( 'SScribe: Debug mode is ENABLED. This should NOT be enabled in production environments.' ); // phpcs:ignore WordPress.PHP.DevelopmentFunctions.error_log_error_log -- Intentional debug warning.
@@ -433,100 +433,7 @@ class SScribe_Admin {
 			$sscribe_debug_info = get_transient( $debug_cache_key );
 
 			if ( false === $sscribe_debug_info ) {
-				$sscribe_debug_info                    = array();
-				$sscribe_debug_info['languages_count'] = count( $sscribe_languages );
-				$sscribe_debug_info['total_pages_all'] = $sscribe_total_pages_all;
-				$sscribe_debug_info['status_counts']   = $sscribe_status_counts;
-
-				if ( $sscribe_wpml_active && ! empty( $sscribe_languages ) ) {
-					$all_page_ids_by_lang = array();
-
-					foreach ( $sscribe_languages as $lang ) {
-						$lang_code = $lang['code'];
-						$sscribe_debug_info['language_details'][ $lang_code ] = array(
-							'name'             => $lang['name'],
-							'page_count'       => $lang['page_count'] ?? 0,
-							'status_breakdown' => $this->collector->get_post_status_counts( $lang_code ),
-						);
-
-						$page_ids = $this->collector->get_page_ids( $lang_code, 'publish' );
-						$sscribe_debug_info['language_details'][ $lang_code ]['published_page_ids'] = $page_ids;
-						$sscribe_debug_info['language_details'][ $lang_code ]['published_count']    = count( $page_ids );
-						$all_page_ids_by_lang[ $lang_code ] = $page_ids;
-					}
-
-					$all_slugs    = array();
-					$all_flat_ids = array();
-					foreach ( $all_page_ids_by_lang as $lang_code => $ids ) {
-						foreach ( $ids as $pid ) {
-							$all_flat_ids[] = array(
-								'id'   => $pid,
-								'lang' => $lang_code,
-							);
-						}
-					}
-
-					$all_id_list = array_column( $all_flat_ids, 'id' );
-					$posts_by_id = array();
-					if ( ! empty( $all_id_list ) ) {
-
-						$batch_posts = get_posts(
-							array(
-								'post__in'               => $all_id_list,
-								'post_type'              => 'page',
-								'post_status'            => 'any',
-								'posts_per_page'         => -1,
-								'no_found_rows'          => true,
-								'update_post_meta_cache' => false,
-								'update_post_term_cache' => false,
-								'orderby'                => 'post__in',
-							)
-						);
-
-						if ( is_array( $batch_posts ) && ! empty( $batch_posts ) ) {
-							foreach ( $batch_posts as $post ) {
-								$posts_by_id[ $post->ID ] = $post;
-							}
-						}
-					}
-
-					foreach ( $all_flat_ids as $entry ) {
-						$pid  = $entry['id'];
-						$lc   = $entry['lang'];
-						$post = $posts_by_id[ $pid ] ?? null;
-						if ( $post ) {
-							$slug = $post->post_name;
-							if ( ! isset( $all_slugs[ $slug ] ) ) {
-								$all_slugs[ $slug ] = array();
-							}
-							$all_slugs[ $slug ][] = array(
-								'id'    => $pid,
-								'lang'  => $lc,
-								'title' => $post->post_title,
-							);
-						}
-					}
-					$sscribe_debug_info['duplicate_slugs'] = array_filter(
-						$all_slugs,
-						function ( $items ) {
-							return count( $items ) > 1;
-						}
-					);
-				}
-
-				$sscribe_debug_info['server'] = array(
-					'php_version'         => PHP_VERSION,
-					'memory_limit'        => ini_get( 'memory_limit' ),
-					'max_execution_time'  => ini_get( 'max_execution_time' ),
-					'upload_max_filesize' => ini_get( 'upload_max_filesize' ),
-					'post_max_size'       => ini_get( 'post_max_size' ),
-				);
-
-				$sscribe_debug_info['wordpress'] = array(
-					'version' => get_bloginfo( 'version' ),
-					'locale'  => get_locale(),
-				);
-
+				$sscribe_debug_info = $this->gather_debug_info( $sscribe_wpml_active, $sscribe_languages, $sscribe_total_pages_all, $sscribe_status_counts );
 				set_transient( $debug_cache_key, $sscribe_debug_info, 30 );
 			}
 		}
@@ -607,6 +514,112 @@ class SScribe_Admin {
 		}
 
 		include SSCRIBE_PLUGIN_DIR . 'admin/partials/sscribe-admin-display.php';
+	}
+
+	/**
+	 * Gather debug information for the admin page.
+	 *
+	 * @param bool   $wpml_active       Whether WPML is active.
+	 * @param array  $languages         Language list.
+	 * @param int    $total_pages_all   Total published pages.
+	 * @param array  $status_counts     Post status counts.
+	 * @return array Debug information.
+	 */
+	private function gather_debug_info( bool $wpml_active, array $languages, int $total_pages_all, array $status_counts ): array {
+		$sscribe_debug_info                    = array();
+		$sscribe_debug_info['languages_count'] = count( $languages );
+		$sscribe_debug_info['total_pages_all'] = $total_pages_all;
+		$sscribe_debug_info['status_counts']   = $status_counts;
+
+		if ( $wpml_active && ! empty( $languages ) ) {
+			$all_page_ids_by_lang = array();
+
+			foreach ( $languages as $lang ) {
+				$lang_code = $lang['code'];
+				$sscribe_debug_info['language_details'][ $lang_code ] = array(
+					'name'             => $lang['name'],
+					'page_count'       => $lang['page_count'] ?? 0,
+					'status_breakdown' => $this->collector->get_post_status_counts( $lang_code ),
+				);
+
+				$page_ids = $this->collector->get_page_ids( $lang_code, 'publish' );
+				$sscribe_debug_info['language_details'][ $lang_code ]['published_page_ids'] = $page_ids;
+				$sscribe_debug_info['language_details'][ $lang_code ]['published_count']    = count( $page_ids );
+				$all_page_ids_by_lang[ $lang_code ] = $page_ids;
+			}
+
+			$all_slugs    = array();
+			$all_flat_ids = array();
+			foreach ( $all_page_ids_by_lang as $lang_code => $ids ) {
+				foreach ( $ids as $pid ) {
+					$all_flat_ids[] = array(
+						'id'   => $pid,
+						'lang' => $lang_code,
+					);
+				}
+			}
+
+			$all_id_list = array_column( $all_flat_ids, 'id' );
+			$posts_by_id = array();
+			if ( ! empty( $all_id_list ) ) {
+				$batch_posts = get_posts(
+					array(
+						'post__in'               => $all_id_list,
+						'post_type'              => 'page',
+						'post_status'            => 'any',
+						'posts_per_page'         => -1,
+						'no_found_rows'          => true,
+						'update_post_meta_cache' => false,
+						'update_post_term_cache' => false,
+						'orderby'                => 'post__in',
+					)
+				);
+
+				if ( is_array( $batch_posts ) && ! empty( $batch_posts ) ) {
+					foreach ( $batch_posts as $post ) {
+						$posts_by_id[ $post->ID ] = $post;
+					}
+				}
+			}
+
+			foreach ( $all_flat_ids as $entry ) {
+				$pid  = $entry['id'];
+				$lc   = $entry['lang'];
+				$post = $posts_by_id[ $pid ] ?? null;
+				if ( $post ) {
+					$slug = $post->post_name;
+					if ( ! isset( $all_slugs[ $slug ] ) ) {
+						$all_slugs[ $slug ] = array();
+					}
+					$all_slugs[ $slug ][] = array(
+						'id'    => $pid,
+						'lang'  => $lc,
+						'title' => $post->post_title,
+					);
+				}
+			}
+			$sscribe_debug_info['duplicate_slugs'] = array_filter(
+				$all_slugs,
+				function ( $items ) {
+					return count( $items ) > 1;
+				}
+			);
+		}
+
+		$sscribe_debug_info['server'] = array(
+			'php_version'         => PHP_VERSION,
+			'memory_limit'       => ini_get( 'memory_limit' ),
+			'max_execution_time' => ini_get( 'max_execution_time' ),
+			'upload_max_filesize' => ini_get( 'upload_max_filesize' ),
+			'post_max_size'      => ini_get( 'post_max_size' ),
+		);
+
+		$sscribe_debug_info['wordpress'] = array(
+			'version' => get_bloginfo( 'version' ),
+			'locale'  => get_locale(),
+		);
+
+		return $sscribe_debug_info;
 	}
 
 	/**

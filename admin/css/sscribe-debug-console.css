@@ -209,7 +209,7 @@
 	cursor: pointer;
 }
 
-.sscribe-button {
+.sscribe-debug-master .sscribe-button {
 	padding: 8px 16px;
 	border: 1px solid var(--sscribe-debug-border);
 	border-radius: 6px;
@@ -222,31 +222,31 @@
 	transition: background-color 0.2s;
 }
 
-.sscribe-button:hover {
+.sscribe-debug-master .sscribe-button:hover {
 	background: #f8f9fa;
 }
 
-.sscribe-button-primary {
+.sscribe-debug-master .sscribe-button-primary {
 	background: #0d6efd;
 	color: #fff;
 	border-color: #0d6efd;
 }
 
-.sscribe-button-primary:hover {
+.sscribe-debug-master .sscribe-button-primary:hover {
 	background: #0b5ed7;
 }
 
-.sscribe-button-danger {
+.sscribe-debug-master .sscribe-button-danger {
 	color: #dc3545;
 	border-color: #dc3545;
 }
 
-.sscribe-button-danger:hover {
+.sscribe-debug-master .sscribe-button-danger:hover {
 	background: #dc3545;
 	color: #fff;
 }
 
-.sscribe-button-icon {
+.sscribe-debug-master .sscribe-button-icon {
 	width: 36px;
 	height: 36px;
 	padding: 0;
@@ -476,5 +476,109 @@
 
 	.sscribe-debug-search .sscribe-input {
 		width: 100%;
+	}
+}
+
+.sscribe-debug-rotated-banner {
+	display: flex;
+	align-items: center;
+	justify-content: space-between;
+	padding: 8px 12px;
+	background: #fff3cd;
+	border: 1px solid #ffc107;
+	border-radius: 4px;
+	margin-bottom: 12px;
+	font-size: 13px;
+	color: #856404;
+}
+
+.sscribe-debug-rotated-banner .sscribe-button {
+	padding: 4px 12px;
+	font-size: 12px;
+}
+
+@media (prefers-color-scheme: dark) {
+	:root {
+		--sscribe-debug-bg-card: #1e1e1e;
+		--sscribe-debug-bg-console: #121212;
+		--sscribe-debug-text-console: #d4d4d4;
+		--sscribe-debug-border: #333;
+	}
+
+	.sscribe-debug-master .sscribe-button {
+		background: #2d2d2d;
+		color: #d4d4d4;
+		border-color: #444;
+	}
+
+	.sscribe-debug-master .sscribe-button:hover {
+		background: #3d3d3d;
+	}
+
+	.sscribe-debug-master .sscribe-button-primary {
+		background: #0d6efd;
+		color: #fff;
+		border-color: #0d6efd;
+	}
+
+	.sscribe-debug-master .sscribe-button-primary:hover {
+		background: #0b5ed7;
+	}
+
+	.sscribe-debug-master .sscribe-button-danger {
+		color: #f87171;
+		border-color: #f87171;
+	}
+
+	.sscribe-debug-master .sscribe-button-danger:hover {
+		background: #dc3545;
+		color: #fff;
+	}
+
+	.sscribe-debug-header {
+		background: #1e1e1e;
+	}
+
+	.sscribe-debug-settings-card,
+	.sscribe-debug-controls-card {
+		background: #2d2d2d;
+		border-color: #444;
+	}
+
+	.sscribe-debug-console-card {
+		background: #1e1e1e;
+		border-color: #444;
+	}
+
+	.sscribe-debug-console-header {
+		background: #2d2d2d;
+		border-color: #444;
+	}
+
+	.sscribe-debug-rotated {
+		background: #2d2d2d;
+		border-color: #444;
+	}
+
+	.sscribe-debug-empty {
+		color: #888;
+	}
+
+	.sscribe-debug-rotated-banner {
+		background: #3d3520;
+		border-color: #ffc107;
+		color: #ffc107;
+	}
+
+	.sscribe-debug-toggle-label {
+		color: #d4d4d4;
+	}
+
+	.sscribe-debug-title-row h2 {
+		color: #d4d4d4;
+	}
+
+	.sscribe-debug-description {
+		color: #888;
 	}
 }
