@@ -45,7 +45,7 @@ class SScribe_Admin_Debug {
 		$settings = array(
 			'debug_enabled' => isset( $_POST['debug_enabled'] ) ? (bool) $_POST['debug_enabled'] : false,
 			'log_level'     => isset( $_POST['log_level'] ) ? sanitize_text_field( wp_unslash( $_POST['log_level'] ) ) : 'DEBUG',
-			'auto_refresh'  => isset( $_POST['auto_refresh'] ) ? (bool) $_POST['auto_refresh'] : true,
+			'auto_refresh'  => isset( $_POST['auto_refresh'] ) ? filter_var( wp_unslash( $_POST['auto_refresh'] ), FILTER_VALIDATE_BOOLEAN ) : true,
 		);
 
 		$saved = SScribe_Settings::save_debug_settings( $settings );
@@ -84,7 +84,7 @@ class SScribe_Admin_Debug {
 			$offset = 0;
 		}
 
-		$logger = SScribe_Logger::instance( true );
+		$logger = SScribe_Logger::instance( SScribe_Settings::is_debug_enabled() );
 		$logs   = $logger->get_logs();
 
 		$entries = $this->parse_log_entries( $logs, $filter_level, $search );
@@ -114,7 +114,7 @@ class SScribe_Admin_Debug {
 			wp_send_json_error( array( 'message' => __( 'Rate limit exceeded. Please wait before trying again.', 'sscribe-export-site-pages' ) ) );
 		}
 
-		$logger = SScribe_Logger::instance( true );
+		$logger = SScribe_Logger::instance( SScribe_Settings::is_debug_enabled() );
 		$logger->clear_logs();
 
 		wp_send_json_success();
@@ -142,9 +142,21 @@ class SScribe_Admin_Debug {
 			$log_dir    = $upload_dir['basedir'] . '/sscribe-logs';
 			$file_path  = $log_dir . '/' . $filename;
 
-			if ( file_exists( $file_path ) && 0 === strpos( realpath( $file_path ), realpath( $log_dir ) ) ) {
+			$real_file_path = realpath( $file_path );
+			$real_log_dir   = realpath( $log_dir );
+
+			if ( false === $real_file_path || false === $real_log_dir ) {
+				wp_die( esc_html__( 'File not found.', 'sscribe-export-site-pages' ) );
+				return;
+			}
+
+			if ( 0 === strpos( $real_file_path, $real_log_dir ) ) {
 				$content = file_get_contents( $file_path ); // phpcs:ignore WordPress.WP.AlternativeFunctions.file_get_contents_file_get_contents
 				$this->download_json( $filename, $content );
+				return;
+			} else {
+				wp_die( esc_html__( 'File not found.', 'sscribe-export-site-pages' ) );
+				return;
 			}
 		}
 
@@ -160,7 +172,7 @@ class SScribe_Admin_Debug {
 			$offset = 0;
 		}
 
-		$logger = SScribe_Logger::instance( true );
+		$logger = SScribe_Logger::instance( SScribe_Settings::is_debug_enabled() );
 		$logs   = $logger->get_logs();
 
 		$entries = $this->parse_log_entries( $logs, $filter_level, $search );
@@ -255,7 +267,10 @@ class SScribe_Admin_Debug {
 		$log_dir    = $upload_dir['basedir'] . '/sscribe-logs';
 		$file_path  = $log_dir . '/' . $filename;
 
-		if ( ! file_exists( $file_path ) || 0 !== strpos( realpath( $file_path ), realpath( $log_dir ) ) ) {
+		$real_file_path = realpath( $file_path );
+		$real_log_dir   = realpath( $log_dir );
+
+		if ( false === $real_file_path || false === $real_log_dir || 0 !== strpos( $real_file_path, $real_log_dir ) ) {
 			wp_send_json_error( array( 'message' => __( 'File not found.', 'sscribe-export-site-pages' ) ) );
 		}
 
@@ -295,7 +310,10 @@ class SScribe_Admin_Debug {
 		$log_dir    = $upload_dir['basedir'] . '/sscribe-logs';
 		$file_path  = $log_dir . '/' . $filename;
 
-		if ( ! file_exists( $file_path ) || 0 !== strpos( realpath( $file_path ), realpath( $log_dir ) ) ) {
+		$real_file_path = realpath( $file_path );
+		$real_log_dir   = realpath( $log_dir );
+
+		if ( false === $real_file_path || false === $real_log_dir || 0 !== strpos( $real_file_path, $real_log_dir ) ) {
 			wp_send_json_error( array( 'message' => __( 'File not found.', 'sscribe-export-site-pages' ) ) );
 		}
 

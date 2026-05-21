@@ -48,7 +48,6 @@
 			}
 			this.bindEvents();
 			this.updateConfigSummary();
-			this.toggleHistorySkeleton(false);
 
 			const defaultPostType = $('input[name="sscribe_post_type"]:checked').val() || 'page';
 			const defaultLanguage = $('input[name="sscribe_language"]:checked').val() || '';
@@ -134,6 +133,11 @@
 				// Switch the visible tab panel.
 				$('.sscribe-tab-content').removeClass('sscribe-tab-active');
 				$('#sscribe-tab-' + tabId).addClass('sscribe-tab-active');
+
+				// Initialize debug console only when debug tab is opened.
+				if ( tabId === 'debug' && typeof SScribeDebugConsole !== 'undefined' ) {
+					SScribeDebugConsole.init();
+				}
 			});
 		},
 
@@ -1378,14 +1382,6 @@
 
 			const focusableSelectors =
 				'a[href], button:not([disabled]), textarea:not([disabled]), input:not([disabled]), select:not([disabled]), [tabindex]:not([tabindex="-1"])';
-			const focusableElements = container.querySelectorAll(focusableSelectors);
-
-			if (focusableElements.length === 0) {
-				return;
-			}
-
-			const firstFocusable = focusableElements[0];
-			const lastFocusable = focusableElements[focusableElements.length - 1];
 
 			if (container._sscribeTrapHandler) {
 				container.removeEventListener('keydown', container._sscribeTrapHandler);
@@ -1393,6 +1389,10 @@
 
 			const handler = function (e) {
 				if (e.key !== 'Tab') { return; }
+				const focusableElements = container.querySelectorAll(focusableSelectors);
+				if (focusableElements.length === 0) { return; }
+				const firstFocusable = focusableElements[0];
+				const lastFocusable = focusableElements[focusableElements.length - 1];
 				if (e.shiftKey) {
 					if (document.activeElement === firstFocusable) {
 						e.preventDefault();
@@ -1408,6 +1408,593 @@
 
 			container._sscribeTrapHandler = handler;
 			container.addEventListener('keydown', handler);
+		},
+
+		/**
+		 * Escape HTML special characters to prevent XSS.
+		 *
+		 * @param {string} str String to escape.
+		 * @returns {string} Escaped string.
+		 */
+		escapeHtml: function (str) {
+			if (!str) {
+				return '';
+			}
+			const div = document.createElement('div');
+			div.textContent = str;
+			return div.innerHTML;
+		},
+
+		/**
+		 * Show the export preview modal.
+		 *
+		 * @param {Event} e Click event.
+		 */
+		showPreview: function (e) {
+			e.preventDefault();
+			if (this.isProcessing) {
+				return;
+			}
+
+			const language = $('input[name="sscribe_language"]:checked').val() || '';
+			const postStatus = $('input[name="sscribe_post_status"]:checked').val() || 'publish';
+			const postType = $('input[name="sscribe_post_type"]:checked').val() || 'page';
+			const format = $('input[name="sscribe_format"]:checked').val() || 'docx';
+
+			const $panel = $('#sscribe-preview-panel');
+			const $content = $('#sscribe-preview-content');
+
+			$content.html(
+				'<div class="sscribe-preview-loading">' +
+				'<span class="sscribe-loading-spinner"></span>' +
+				'<span>' + this.escapeHtml(sscribe_data.strings.generating_preview || 'Generating preview...') + '</span>' +
+				'</div>'
+			);
+
+			$panel.removeClass('sscribe-hidden').hide().fadeIn(300);
+			this.saveFocus();
+			this.trapFocus($panel[0]);
+
+			const self = this;
+			$.ajax({
+				url: sscribe_data.ajaxurl,
+				type: 'POST',
+				timeout: 30000,
+				data: {
+					action: 'sscribe_get_export_preview',
+					nonce: sscribe_data.nonce,
+					language: language,
+					post_status: postStatus,
+					post_type: postType,
+					format: format,
+				},
+				success: function (response) {
+					if (response.success && response.data) {
+						self.renderPreview(response.data);
+					} else {
+						self.closePreview();
+						self.showToast(
+							sscribe_data.strings.preview_error || 'Failed to generate preview.',
+							'error'
+						);
+					}
+				},
+				error: function () {
+					self.closePreview();
+					self.showToast(
+						sscribe_data.strings.preview_error || 'Failed to generate preview.',
+						'error'
+					);
+				},
+			});
+		},
+
+		/**
+		 * Render the preview content in the modal.
+		 *
+		 * @param {object} data Preview data from server.
+		 */
+		renderPreview: function (data) {
+			const $content = $('#sscribe-preview-content');
+			const strings = sscribe_data.strings || {};
+
+			let html = '<div class="sscribe-preview-result">';
+
+			if (data.total_pages !== undefined) {
+				html += '<div class="sscribe-preview-stat">';
+				html += '<span class="sscribe-preview-label">' + this.escapeHtml(strings.preview_total_pages || 'Total pages:') + '</span>';
+				html += '<span class="sscribe-preview-value">' + this.escapeHtml(String(data.total_pages)) + '</span>';
+				html += '</div>';
+			}
+
+			if (data.estimated_time) {
+				html += '<div class="sscribe-preview-stat">';
+				html += '<span class="sscribe-preview-label">' + this.escapeHtml(strings.preview_estimated_time || 'Estimated time:') + '</span>';
+				html += '<span class="sscribe-preview-value">' + this.escapeHtml(data.estimated_time) + '</span>';
+				html += '</div>';
+			}
+
+			if (data.file_size_estimate) {
+				html += '<div class="sscribe-preview-stat">';
+				html += '<span class="sscribe-preview-label">' + this.escapeHtml(strings.preview_file_size || 'Est. file size:') + '</span>';
+				html += '<span class="sscribe-preview-value">' + this.escapeHtml(data.file_size_estimate) + '</span>';
+				html += '</div>';
+			}
+
+			if (data.format) {
+				const formatLabels = {
+					docx: strings.format_docx || 'Word Document (DOCX)',
+					pdf: strings.format_pdf || 'PDF Document',
+					html: strings.format_html || 'HTML Page',
+					markdown: strings.format_markdown || 'Markdown',
+				};
+				html += '<div class="sscribe-preview-stat">';
+				html += '<span class="sscribe-preview-label">' + this.escapeHtml(strings.preview_format || 'Format:') + '</span>';
+				html += '<span class="sscribe-preview-value">' + this.escapeHtml(formatLabels[data.format] || data.format) + '</span>';
+				html += '</div>';
+			}
+
+			if (data.language) {
+				html += '<div class="sscribe-preview-stat">';
+				html += '<span class="sscribe-preview-label">' + this.escapeHtml(strings.preview_language || 'Language:') + '</span>';
+				html += '<span class="sscribe-preview-value">' + this.escapeHtml(data.language) + '</span>';
+				html += '</div>';
+			}
+
+			if (data.post_status) {
+				html += '<div class="sscribe-preview-stat">';
+				html += '<span class="sscribe-preview-label">' + this.escapeHtml(strings.preview_status || 'Status:') + '</span>';
+				html += '<span class="sscribe-preview-value">' + this.escapeHtml(data.post_status) + '</span>';
+				html += '</div>';
+			}
+
+			if (data.title && data.content) {
+				html += '<div class="sscribe-preview-sample">';
+				html += '<h4>' + this.escapeHtml(strings.preview_sample_title || 'Sample:') + '</h4>';
+				html += '<p class="sscribe-preview-title">' + this.escapeHtml(data.title) + '</p>';
+				html += '<p class="sscribe-preview-excerpt">' + this.escapeHtml(data.content) + '</p>';
+				html += '</div>';
+			}
+
+			html += '<p class="sscribe-preview-note">' + this.escapeHtml(strings.preview_fallback_note || 'Only the first few pages are shown in the preview.') + '</p>';
+			html += '</div>';
+
+			$content.html(html);
+		},
+
+		/**
+		 * Close the preview modal.
+		 *
+		 * @param {Event} e Click event (optional).
+		 */
+		closePreview: function (e) {
+			if (e) {
+				e.preventDefault();
+			}
+			const $panel = $('#sscribe-preview-panel');
+			$panel.fadeOut(200, function () {
+				$panel.addClass('sscribe-hidden');
+			});
+			this.restoreFocus();
+		},
+
+		/**
+		 * Load support information from the server.
+		 */
+		loadSupportInfo: function () {
+			const $grid = $('#sscribe-support-grid');
+			const $textarea = $('#sscribe-support-copy-text');
+			const $btn = $('#sscribe-support-copy-btn');
+
+			$textarea.val('');
+			$btn.prop('disabled', true);
+			$grid.html('<div class="sscribe-support-loading">' +
+				'<span class="sscribe-loading-spinner"></span>' +
+				'<span>' + this.escapeHtml(sscribe_data.strings.support_loading || 'Loading support information...') + '</span>' +
+				'</div>'
+			);
+
+			const self = this;
+			$.ajax({
+				url: sscribe_data.ajaxurl,
+				type: 'POST',
+				timeout: 30000,
+				data: {
+					action: 'sscribe_get_support_info',
+					nonce: sscribe_data.nonce,
+				},
+				success: function (response) {
+					if (response.success && response.data) {
+						self.renderSupportInfo(response.data);
+					} else {
+						$grid.html(
+							'<div class="sscribe-support-error">' +
+							self.escapeHtml(sscribe_data.strings.support_error || 'Unable to load support information right now.') +
+							'</div>'
+						);
+					}
+				},
+				error: function () {
+					$grid.html(
+						'<div class="sscribe-support-error">' +
+						self.escapeHtml(sscribe_data.strings.support_error || 'Unable to load support information right now.') +
+						'</div>'
+					);
+				},
+			});
+		},
+
+		/**
+		 * Render support information in the UI.
+		 *
+		 * @param {object} data Support info data.
+		 */
+		renderSupportInfo: function (data) {
+			const $grid = $('#sscribe-support-grid');
+			const $textarea = $('#sscribe-support-copy-text');
+			const $btn = $('#sscribe-support-copy-btn');
+			const strings = sscribe_data.strings || {};
+
+			let html = '<div class="sscribe-support-grid-inner">';
+
+			if (data.sections) {
+				Object.keys(data.sections).forEach(function (sectionKey) {
+					const section = data.sections[sectionKey];
+					if (section && section.items) {
+						Object.keys(section.items).forEach(function (itemKey) {
+							const value = section.items[itemKey];
+							html += '<div class="sscribe-support-item">';
+							html += '<span class="sscribe-support-label">' + this.escapeHtml(itemKey) + ':</span>';
+							html += '<span class="sscribe-support-value">' + this.escapeHtml(String(value)) + '</span>';
+							html += '</div>';
+						}, this);
+					}
+				}, this);
+			}
+
+			html += '</div>';
+			$grid.html(html);
+
+			// Use the copy_text that PHP already builds in the proper format
+			$textarea.val(data.copy_text || '');
+			$btn.prop('disabled', false);
+		},
+
+		/**
+		 * Delete an export file.
+		 *
+		 * @param {Event} e Click event.
+		 */
+		deleteExport: function (e) {
+			e.preventDefault();
+			const $btn = $(e.currentTarget);
+			const filename = $btn.data('filename');
+			const $row = $btn.closest('.sscribe-history-row');
+
+			if (!filename) {
+				return;
+			}
+
+			if (!confirm(sscribe_data.strings.confirm_delete || 'Delete this export file?')) {
+				return;
+			}
+
+			$row.addClass('sscribe-row-deleting');
+			this.deleteSingleExport(filename, function () {
+				$row.fadeOut(200, function () {
+					$(this).remove();
+					SScribe.refreshRecentExports();
+				});
+			});
+		},
+
+		/**
+		 * Show export log in modal.
+		 *
+		 * @param {Event} e Click event.
+		 */
+		showExportLog: function (e) {
+			e.preventDefault();
+			const $btn = $(e.currentTarget);
+			const filename = $btn.data('filename');
+
+			if (!filename) {
+				return;
+			}
+
+			const $modal = $('#sscribe-log-modal');
+			const $content = $('#sscribe-log-content');
+
+			$content.html(
+				'<div class="sscribe-log-loading">' +
+				'<span class="sscribe-loading-spinner"></span>' +
+				'<span>' + this.escapeHtml(sscribe_data.strings.loading_log || 'Loading log...') + '</span>' +
+				'</div>'
+			);
+
+			$modal.removeClass('sscribe-hidden').hide().fadeIn(300);
+			this.saveFocus();
+			this.trapFocus($modal[0]);
+
+			const self = this;
+			$.ajax({
+				url: sscribe_data.ajaxurl,
+				type: 'POST',
+				timeout: 30000,
+				data: {
+					action: 'sscribe_get_export_log',
+					nonce: sscribe_data.download_nonce,
+					file: filename,
+				},
+				success: function (response) {
+					if (response.success && response.data && response.data.log) {
+						self.renderExportLog(response.data);
+					} else {
+						$content.html(
+							'<div class="sscribe-log-error">' +
+							self.escapeHtml(sscribe_data.strings.log_not_found || 'Log not found.') +
+							'</div>'
+						);
+					}
+				},
+				error: function () {
+					$content.html(
+						'<div class="sscribe-log-error">' +
+						self.escapeHtml(sscribe_data.strings.log_load_failed || 'Failed to load log.') +
+						'</div>'
+					);
+				},
+			});
+		},
+
+		/**
+		 * Render export log content.
+		 *
+		 * @param {object} data Log data.
+		 */
+		renderExportLog: function (data) {
+			const $content = $('#sscribe-log-content');
+			const strings = sscribe_data.strings || {};
+
+			if (!data.log || !data.log.entries) {
+				$content.html(
+					'<div class="sscribe-log-error">' +
+					this.escapeHtml(strings.log_not_found || 'Log not found.') +
+					'</div>'
+				);
+				return;
+			}
+
+			let html = '<div class="sscribe-log-entries">';
+
+			data.log.entries.forEach(function (entry) {
+				const levelClass = entry.level ? entry.level.toLowerCase() : 'info';
+				html += '<div class="sscribe-log-entry sscribe-log-entry-' + this.escapeHtml(levelClass) + '">';
+				html += '<span class="sscribe-log-time">' + this.escapeHtml(entry.timestamp || '') + '</span>';
+				html += '<span class="sscribe-log-level">[' + this.escapeHtml(entry.level || 'INFO') + ']</span>';
+				html += '<span class="sscribe-log-message">' + this.escapeHtml(entry.message || '') + '</span>';
+				html += '</div>';
+			}.bind(this));
+
+			html += '</div>';
+			$content.html(html);
+		},
+
+		/**
+		 * Close the log modal.
+		 *
+		 * @param {Event} e Click event.
+		 */
+		closeModal: function (e) {
+			if (e) {
+				e.preventDefault();
+			}
+			const $modal = $('#sscribe-log-modal');
+			$modal.fadeOut(200, function () {
+				$modal.addClass('sscribe-hidden');
+			});
+			this.restoreFocus();
+		},
+
+		/**
+		 * Download an export file.
+		 *
+		 * @param {Event} e Click event.
+		 */
+		downloadExport: function (e) {
+			const $link = $(e.currentTarget);
+			const href = $link.attr('href');
+			if (href && href !== '#') {
+				return;
+			}
+			e.preventDefault();
+			const filename = $link.data('filename') || $link.attr('href');
+			if (filename && filename !== '#') {
+				window.location.href = filename;
+			}
+		},
+
+		/**
+		 * Retry failed operation.
+		 *
+		 * @param {Event} e Click event.
+		 */
+		retry: function (e) {
+			e.preventDefault();
+			$('#sscribe-error-area').addClass('sscribe-hidden');
+			$('#sscribe-download-area').addClass('sscribe-hidden');
+			this.isProcessing = false;
+			this.resetUI();
+			this.updateExportButton();
+			$('#sscribe-export-btn').trigger('click');
+		},
+
+		/**
+		 * Reset UI to initial state.
+		 */
+		resetUI: function () {
+			$('#sscribe-progress-area').addClass('sscribe-hidden');
+			$('#sscribe-error-area').addClass('sscribe-hidden');
+			$('#sscribe-download-area').addClass('sscribe-hidden');
+			$('#sscribe-progress-bar').css('width', '0%').css('transform', 'scaleX(0)');
+			$('#sscribe-progress-text').text('0%');
+			$('#sscribe-status-text').text('');
+			$('#sscribe-current-page').text('').hide();
+			$('#sscribe-time-remaining').text('').hide();
+			this.isProcessing = false;
+			this.sessionId = null;
+			this.batchRetries = 0;
+		},
+
+		/**
+		 * Get error guidance based on error message.
+		 *
+		 * @param {string} message Error message.
+		 * @returns {string} Guidance text.
+		 */
+		getErrorGuidance: function (message) {
+			const msg = message || '';
+			if (msg.indexOf('session') !== -1 || msg.indexOf('timeout') !== -1) {
+				return sscribe_data.strings.err_session_expired || '';
+			}
+			if (msg.indexOf('memory') !== -1) {
+				return sscribe_data.strings.err_memory || '';
+			}
+			if (msg.indexOf('zip') !== -1 || msg.indexOf('archive') !== -1) {
+				return sscribe_data.strings.err_zip || '';
+			}
+			if (msg.indexOf('rate') !== -1 || msg.indexOf('limit') !== -1) {
+				return sscribe_data.strings.err_rate_limit || '';
+			}
+			return sscribe_data.strings.err_generic || '';
+		},
+
+		/**
+		 * Format guidance text for display.
+		 *
+		 * @param {string} guidance Raw guidance text.
+		 * @returns {string} HTML formatted guidance.
+		 */
+		formatGuidance: function (guidance) {
+			if (!guidance) {
+				return '';
+			}
+			return this.escapeHtml(guidance).replace(/\n/g, '<br>');
+		},
+
+		/**
+		 * Normalize error data from server response.
+		 *
+		 * @param {object} data Error data.
+		 * @returns {object} Normalized error data.
+		 */
+		normalizeErrorData: function (data) {
+			if (!data || typeof data !== 'object') {
+				return {};
+			}
+			return {
+				code: data.code || null,
+				message: data.message || null,
+				guidance: data.guidance || null,
+				fix_steps: data.fix_steps || null,
+				_diagnostics: data._diagnostics || null,
+			};
+		},
+
+		/**
+		 * Show error with user-friendly message.
+		 *
+		 * @param {string} message Error message.
+		 * @param {boolean} isCancelled Whether operation was cancelled.
+		 * @param {object} errorData Additional error data.
+		 */
+		showError: function (message, isCancelled, errorData) {
+			this.isProcessing = false;
+			$('#sscribe-progress-area').fadeOut(200);
+
+			let displayMessage = message;
+			let guidance = '';
+			let diagnosticInfo = null;
+
+			if (errorData) {
+				diagnosticInfo = this.normalizeErrorData(errorData);
+				if (diagnosticInfo && window.console) {
+					console.log('[SSCRIBE] Server diagnostics for this error:', diagnosticInfo);
+				}
+
+				if (diagnosticInfo.code) {
+					displayMessage = '[' + diagnosticInfo.code + '] ' + message;
+				}
+				if (diagnosticInfo.guidance) {
+					guidance = diagnosticInfo.guidance;
+				}
+				if (diagnosticInfo.fix_steps && diagnosticInfo.fix_steps.length > 0) {
+					guidance += (guidance ? '\n\n' : '') + (sscribe_data.strings.fix_steps || 'Steps to fix:') + '\n';
+					for (let i = 0; i < diagnosticInfo.fix_steps.length; i++) {
+						guidance += (i + 1) + '. ' + diagnosticInfo.fix_steps[i] + '\n';
+					}
+				}
+			}
+
+			if (!guidance && !isCancelled) {
+				guidance = this.getErrorGuidance(message);
+			}
+
+			$('#sscribe-error-text').text(displayMessage);
+
+			if (guidance && !isCancelled) {
+				$('#sscribe-error-guidance-text').html(this.formatGuidance(guidance));
+				$('#sscribe-error-guidance').removeClass('sscribe-hidden');
+			} else {
+				$('#sscribe-error-guidance').addClass('sscribe-hidden');
+			}
+
+			if (diagnosticInfo && typeof SSCRIBE_DEBUG !== 'undefined' && SSCRIBE_DEBUG) {
+				const $techDetails = $('#sscribe-error-technical-details');
+				const techInfo = JSON.stringify(diagnosticInfo._diagnostics || diagnosticInfo, null, 2);
+				$techDetails.find('pre').text(techInfo);
+				$techDetails.removeClass('sscribe-hidden');
+			}
+
+			$('#sscribe-error-area').removeClass('sscribe-hidden').hide().fadeIn(300);
+			$('#sscribe-export-btn, #sscribe-preview-btn').prop('disabled', false);
+		},
+
+		/**
+		 * Get user-friendly network error message.
+		 *
+		 * @param {jqXHR} xhr  The jQuery XHR object.
+		 * @param {string} action The action that failed.
+		 * @returns {string} Error message.
+		 */
+		getNetworkErrorMessage: function (xhr, action) {
+			const strings = sscribe_data.strings || {};
+			const status = xhr ? xhr.status : 0;
+
+			if (status === 0) {
+				return strings.net_connection_lost || strings.err_connection || 'Connection lost.';
+			}
+			if (status === 403) {
+				return strings.net_403 || strings.err_403 || 'Access denied (403).';
+			}
+			if (status === 500) {
+				return strings.net_500 || strings.err_500 || 'Internal server error (500).';
+			}
+			if (status === 502) {
+				return strings.net_502 || 'Bad gateway (502).';
+			}
+			if (status === 503) {
+				return strings.net_503 || 'Service unavailable (503).';
+			}
+			if (status === 504) {
+				return strings.net_504 || strings.err_timeout || 'Gateway timeout (504).';
+			}
+			if (status === 12029 || status === 12030 || status === 12031) {
+				return strings.net_connection_lost || strings.err_connection || 'Connection lost.';
+			}
+
+			const unknownMsg = strings.net_unknown || 'A network error occurred (HTTP %d).';
+			return unknownMsg.replace('%d', status);
 		},
 	};
 

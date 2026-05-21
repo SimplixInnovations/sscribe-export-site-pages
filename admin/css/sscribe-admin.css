@@ -714,6 +714,8 @@
 
 .sscribe-format-all .sscribe-format-card-inner {
 	border-style: dashed;
+	border-color: var(--sscribe-border-strong, #3f4e76);
+	background-color: var(--sscribe-surface-secondary, rgba(63, 78, 118, 0.05));
 }
 
 /* ============================================
@@ -2637,16 +2639,19 @@
 	position: relative;
 }
 
-.sscribe-config-section .sscribe-language-cards::after {
+.sscribe-config-section .sscribe-language-cards-wrapper {
+	position: relative;
+}
+
+.sscribe-config-section .sscribe-language-cards-wrapper::after {
 	content: '';
-	position: sticky;
+	position: absolute;
 	bottom: 0;
 	left: 0;
 	right: 0;
 	height: 20px;
 	background: linear-gradient(transparent, var(--sscribe-card-bg));
 	pointer-events: none;
-	flex-shrink: 0;
 }
 
 @media (width >= 782px) {

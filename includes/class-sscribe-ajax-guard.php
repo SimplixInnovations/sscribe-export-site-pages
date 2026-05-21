@@ -19,14 +19,6 @@ class SScribe_AJAX_Guard {
 	private const LOG_PREVIEW_MAX = 2000;
 
 	/**
-	 * Send a successful AJAX response.
-	 *
-	 * @param mixed $data       Response data.
-	 * @param int   $status_code HTTP status code.
-	 * @param array $context     Additional context for diagnostics.
-	 * @return never Never returns.
-	 */
-	/**
 	 * Send a successful JSON response and terminate.
 	 *
 	 * @param mixed $data       Response data.
@@ -132,58 +124,44 @@ class SScribe_AJAX_Guard {
 		if ( '' === $extraneous && 0 === $start_level ) {
 			return;
 		}
-		$extraneous  = '';
-
-		while ( ob_get_level() > 0 ) {
-			$content    = ob_get_clean();
-			$extraneous = ( false !== $content ? $content : '' ) . "\n" . $extraneous;
-		}
-
-		$extraneous = trim( $extraneous );
-
-		while ( ob_get_level() < $start_level ) {
-			ob_start();
-		}
-
-		if ( '' === $extraneous && 0 === $start_level ) {
-			return;
-		}
 
 		$action = self::resolve_action_name();
 		$length = strlen( $extraneous );
 
-		error_log( // phpcs:ignore WordPress.PHP.DevelopmentFunctions.error_log_error_log
-			sprintf(
-				'[SSCRIBE][AJAX_BUFFER] Action=%s Type=%s Length=%d Levels=%d PHP=%s Memory=%s Time=%s',
-				$action,
-				$type,
-				$length,
-				$start_level,
-				PHP_VERSION,
-				self::format_bytes( memory_get_usage( true ) ),
-				gmdate( 'Y-m-d\TH:i:s\Z' )
-			)
-		);
-
-		if ( $length > 0 ) {
-			$preview = substr( $extraneous, 0, self::LOG_PREVIEW_MAX );
-			// phpcs:ignore WordPress.PHP.DevelopmentFunctions.error_log_error_log
-			error_log(
-				sprintf(
-					"[SSCRIBE][AJAX_BUFFER] ───── Extraneous content (%d bytes) ─────\n%s\n───── End extraneous content ─────",
-					$length,
-					$preview
-				)
-			);
-		}
-
-		if ( $length > self::LOG_PREVIEW_MAX ) {
+		if ( defined( 'SSCRIBE_DEBUG' ) && SSCRIBE_DEBUG ) {
 			error_log( // phpcs:ignore WordPress.PHP.DevelopmentFunctions.error_log_error_log
 				sprintf(
-					'[SSCRIBE][AJAX_BUFFER] Truncated %d excess bytes. Set SSCRIBE_AJAX_LOG_MAX to increase the preview limit.',
-					$length - self::LOG_PREVIEW_MAX
+					'[SSCRIBE][AJAX_BUFFER] Action=%s Type=%s Length=%d Levels=%d PHP=%s Memory=%s Time=%s',
+					$action,
+					$type,
+					$length,
+					$start_level,
+					PHP_VERSION,
+					self::format_bytes( memory_get_usage( true ) ),
+					gmdate( 'Y-m-d\TH:i:s\Z' )
 				)
 			);
+
+			if ( $length > 0 ) {
+				$preview = substr( $extraneous, 0, self::LOG_PREVIEW_MAX );
+				// phpcs:ignore WordPress.PHP.DevelopmentFunctions.error_log_error_log
+				error_log(
+					sprintf(
+						"[SSCRIBE][AJAX_BUFFER] ───── Extraneous content (%d bytes) ─────\n%s\n───── End extraneous content ─────",
+						$length,
+						$preview
+					)
+				);
+			}
+
+			if ( $length > self::LOG_PREVIEW_MAX ) {
+				error_log( // phpcs:ignore WordPress.PHP.DevelopmentFunctions.error_log_error_log
+					sprintf(
+						'[SSCRIBE][AJAX_BUFFER] Truncated %d excess bytes. Set SSCRIBE_AJAX_LOG_MAX to increase the preview limit.',
+						$length - self::LOG_PREVIEW_MAX
+					)
+				);
+			}
 		}
 	}
 

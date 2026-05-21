@@ -7,15 +7,34 @@
 (function($) {
 	'use strict';
 
+	const debounce = function( wait, fn ) {
+		let timeout;
+		return function() {
+			const context = this;
+			const args = arguments;
+			clearTimeout( timeout );
+			timeout = setTimeout( function() {
+				fn.apply( context, args );
+			}, wait );
+		};
+	};
+
 	const SScribeDebugConsole = {
 		refreshInterval: null,
 		isAutoRefresh: true,
 		currentFilter: 'ALL',
 		searchQuery: '',
+		initialized: false,
+		isViewingRotated: false,
 
 		init: function() {
+			if ( this.initialized ) {
+				return;
+			}
+			this.initialized = true;
 			this.cacheDom();
 			this.bindEvents();
+			this.bindVisibilityHandler();
 			this.loadInitialState();
 		},
 
@@ -50,7 +69,7 @@
 				self.fetchLogs();
 			} );
 
-			this.$searchInput.on( 'input', $.debounce( 300, function() {
+			this.$searchInput.on( 'input', debounce( 300, function() {
 				self.searchQuery = $( this ).val();
 				self.fetchLogs();
 			} ) );
@@ -84,6 +103,13 @@
 				$( this ).toggleClass( 'expanded' );
 			} );
 
+			this.$entries.on( 'keydown', '.sscribe-debug-entry', function( e ) {
+				if ( e.key === 'Enter' || e.key === ' ' ) {
+					e.preventDefault();
+					$( this ).toggleClass( 'expanded' );
+				}
+			} );
+
 			this.$rotatedBody.on( 'click', '.sscribe-rotated-view', function() {
 				self.viewRotatedLog( $( this ).data( 'file' ) );
 			} );
@@ -95,6 +121,17 @@
 			this.$rotatedBody.on( 'click', '.sscribe-rotated-delete', function() {
 				if ( confirm( 'Delete this log file?' ) ) {
 					self.deleteRotatedLog( $( this ).data( 'file' ) );
+				}
+			} );
+		},
+
+		bindVisibilityHandler: function() {
+			const self = this;
+			$( document ).on( 'visibilitychange', function() {
+				if ( document.hidden ) {
+					self.stopAutoRefresh();
+				} else if ( self.isAutoRefresh ) {
+					self.startAutoRefresh();
 				}
 			} );
 		},
@@ -114,7 +151,7 @@
 			this.stopAutoRefresh();
 			this.refreshInterval = setInterval( function() {
 				self.fetchLogs();
-			}, 2000 );
+			}, 10000 );
 		},
 
 		stopAutoRefresh: function() {
@@ -131,7 +168,7 @@
 				nonce: sscribe_data.nonce,
 				debug_enabled: this.$enabled.is( ':checked' ),
 				log_level: this.$level.val(),
-				auto_refresh: this.isAutoRefresh
+				auto_refresh: this.isAutoRefresh ? '1' : '0'
 			};
 
 			$.post( sscribe_data.ajaxurl, data, function( response ) {
@@ -143,9 +180,17 @@
 					}, 2000 );
 				} else {
 					self.$saveFeedback.text( 'Error' ).addClass( 'error' );
+					setTimeout( function() {
+						self.$saveFeedback.text( '' );
+						self.$saveFeedback.removeClass( 'error' );
+					}, 2000 );
 				}
 			} ).fail( function() {
 				self.$saveFeedback.text( 'Error' ).addClass( 'error' );
+				setTimeout( function() {
+					self.$saveFeedback.text( '' );
+					self.$saveFeedback.removeClass( 'error' );
+				}, 2000 );
 			} );
 		},
 
@@ -158,11 +203,18 @@
 				search: this.searchQuery
 			};
 
+			self.$entries.css( 'opacity', '0.5' );
+			self.$entryCount.text( 'Loading...' );
+
 			$.get( sscribe_data.ajaxurl, data, function( response ) {
+				self.$entries.css( 'opacity', '1' );
 				if ( response.success ) {
 					self.renderLogs( response.data.entries );
 					self.$entryCount.text( response.data.count + ' entries' );
 				}
+			} ).fail( function() {
+				self.$entries.css( 'opacity', '1' );
+				self.$entryCount.text( 'Error loading logs' );
 			} );
 		},
 
@@ -193,14 +245,14 @@
 					} );
 				}
 
-				html += '<div class="sscribe-debug-entry">';
+				html += '<div class="sscribe-debug-entry" tabindex="0" role="button" aria-label="Toggle log entry details">';
 				html += '<div class="sscribe-debug-entry-header">';
 				html += '<span class="sscribe-debug-entry-time">' + escHtml( entry.timestamp ) + '</span>';
 				html += '<span class="sscribe-debug-entry-badge ' + badgeClass + '">' + escHtml( entry.level ) + '</span>';
 				html += '<span class="sscribe-debug-entry-message">' + escHtml( entry.message ) + '</span>';
 				html += '</div>';
 				if ( contextHtml ) {
-					html += '<div class="sscribe-debug-entry-context">' + contextHtml + '</div>';
+					html += '<div class="sscribe-debug-entry-context" aria-hidden="true">' + contextHtml + '</div>';
 				}
 				html += '</div>';
 			} );
@@ -217,9 +269,26 @@
 
 			$.post( sscribe_data.ajaxurl, data, function( response ) {
 				if ( response.success ) {
+					self.$saveFeedback.text( 'Logs cleared' ).addClass( 'success' );
+					setTimeout( function() {
+						self.$saveFeedback.text( '' );
+						self.$saveFeedback.removeClass( 'success' );
+					}, 2000 );
 					self.fetchLogs();
 					self.fetchRotatedLogs();
+				} else {
+					self.$saveFeedback.text( 'Error' ).addClass( 'error' );
+					setTimeout( function() {
+						self.$saveFeedback.text( '' );
+						self.$saveFeedback.removeClass( 'error' );
+					}, 2000 );
 				}
+			} ).fail( function() {
+				self.$saveFeedback.text( 'Error' ).addClass( 'error' );
+				setTimeout( function() {
+					self.$saveFeedback.text( '' );
+					self.$saveFeedback.removeClass( 'error' );
+				}, 2000 );
 			} );
 		},
 
@@ -282,10 +351,28 @@
 			const self = this;
 			$.get( sscribe_data.ajaxurl, data, function( response ) {
 				if ( response.success ) {
+					self.isViewingRotated = true;
+					self.currentRotatedFilename = filename;
 					self.renderLogs( response.data.entries );
 					self.$entryCount.text( response.data.count + ' entries (rotated)' );
+					self.$entries.prepend(
+						'<div class="sscribe-debug-rotated-banner">' +
+						'<span>Viewing archived log: ' + escHtml( filename ) + '</span>' +
+						'<button type="button" class="sscribe-button sscribe-button-primary" id="sscribe-back-to-current">Back to current log</button>' +
+						'</div>'
+					);
+					self.$entries.find( '#sscribe-back-to-current' ).on( 'click', function() {
+						self.backToCurrentLog();
+					} );
 				}
 			} );
+		},
+
+		backToCurrentLog: function() {
+			this.isViewingRotated = false;
+			this.currentRotatedFilename = '';
+			this.fetchLogs();
+			this.fetchRotatedLogs();
 		},
 
 		exportRotatedLog: function( filename ) {
@@ -336,7 +423,7 @@
 	};
 
 	$( document ).ready( function() {
-		if ( $( '#sscribe-admin-wrap' ).length ) {
+		if ( $( '#sscribe-tab-debug' ).hasClass( 'sscribe-tab-active' ) ) {
 			SScribeDebugConsole.init();
 		}
 	} );
