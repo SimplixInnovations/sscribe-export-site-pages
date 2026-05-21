@@ -40,6 +40,7 @@ class SScribe_Admin_Debug {
 
 		if ( ! current_user_can( 'manage_options' ) ) {
 			wp_send_json_error( array( 'message' => __( 'Insufficient permissions.', 'sscribe-export-site-pages' ) ) );
+			return;
 		}
 
 		$settings = array(
@@ -65,11 +66,13 @@ class SScribe_Admin_Debug {
 
 		if ( ! current_user_can( 'manage_options' ) ) {
 			wp_send_json_error( array( 'message' => __( 'Insufficient permissions.', 'sscribe-export-site-pages' ) ) );
+			return;
 		}
 
 		$rate_limiter = new SScribe_Export_Rate_Limiter();
 		if ( ! $rate_limiter->check_rate_limit() ) {
 			wp_send_json_error( array( 'message' => __( 'Rate limit exceeded. Please wait before trying again.', 'sscribe-export-site-pages' ) ) );
+			return;
 		}
 
 		$filter_level = isset( $_GET['filter_level'] ) ? sanitize_text_field( wp_unslash( $_GET['filter_level'] ) ) : 'ALL';
@@ -107,11 +110,13 @@ class SScribe_Admin_Debug {
 
 		if ( ! current_user_can( 'manage_options' ) ) {
 			wp_send_json_error( array( 'message' => __( 'Insufficient permissions.', 'sscribe-export-site-pages' ) ) );
+			return;
 		}
 
 		$rate_limiter = new SScribe_Export_Rate_Limiter();
 		if ( ! $rate_limiter->check_rate_limit() ) {
 			wp_send_json_error( array( 'message' => __( 'Rate limit exceeded. Please wait before trying again.', 'sscribe-export-site-pages' ) ) );
+			return;
 		}
 
 		$logger = SScribe_Logger::instance( SScribe_Settings::is_debug_enabled() );
@@ -147,7 +152,6 @@ class SScribe_Admin_Debug {
 
 			if ( false === $real_file_path || false === $real_log_dir ) {
 				wp_die( esc_html__( 'File not found.', 'sscribe-export-site-pages' ) );
-				return;
 			}
 
 			if ( 0 === strpos( $real_file_path, $real_log_dir ) ) {
@@ -159,7 +163,6 @@ class SScribe_Admin_Debug {
 				return;
 			} else {
 				wp_die( esc_html__( 'File not found.', 'sscribe-export-site-pages' ) );
-				return;
 			}
 		}
 
@@ -200,11 +203,13 @@ class SScribe_Admin_Debug {
 
 		if ( ! current_user_can( 'manage_options' ) ) {
 			wp_send_json_error( array( 'message' => __( 'Insufficient permissions.', 'sscribe-export-site-pages' ) ) );
+			return;
 		}
 
 		$rate_limiter = new SScribe_Export_Rate_Limiter();
 		if ( ! $rate_limiter->check_rate_limit() ) {
 			wp_send_json_error( array( 'message' => __( 'Rate limit exceeded. Please wait before trying again.', 'sscribe-export-site-pages' ) ) );
+			return;
 		}
 
 		$upload_dir = wp_upload_dir();
@@ -212,6 +217,7 @@ class SScribe_Admin_Debug {
 
 		if ( ! is_dir( $log_dir ) ) {
 			wp_send_json_success( array( 'files' => array() ) );
+			return;
 		}
 
 		$files  = glob( $log_dir . '/*_debug_*.log' );
@@ -248,11 +254,13 @@ class SScribe_Admin_Debug {
 
 		if ( ! current_user_can( 'manage_options' ) ) {
 			wp_send_json_error( array( 'message' => __( 'Insufficient permissions.', 'sscribe-export-site-pages' ) ) );
+			return;
 		}
 
 		$rate_limiter = new SScribe_Export_Rate_Limiter();
 		if ( ! $rate_limiter->check_rate_limit() ) {
 			wp_send_json_error( array( 'message' => __( 'Rate limit exceeded. Please wait before trying again.', 'sscribe-export-site-pages' ) ) );
+			return;
 		}
 
 		$filename = isset( $_GET['filename'] ) ? sanitize_text_field( wp_unslash( $_GET['filename'] ) ) : '';
@@ -261,6 +269,7 @@ class SScribe_Admin_Debug {
 
 		if ( empty( $filename ) ) {
 			wp_send_json_error( array( 'message' => __( 'Filename required.', 'sscribe-export-site-pages' ) ) );
+			return;
 		}
 
 		if ( $limit < 1 || $limit > 500 ) {
@@ -283,6 +292,10 @@ class SScribe_Admin_Debug {
 		}
 
 		$content = file_get_contents( $file_path ); // phpcs:ignore WordPress.WP.AlternativeFunctions.file_get_contents_file_get_contents
+		if ( false === $content ) {
+			wp_send_json_error( array( 'message' => __( 'Failed to read file.', 'sscribe-export-site-pages' ) ) );
+			return;
+		}
 		$entries = $this->parse_log_entries( explode( PHP_EOL, $content ), 'ALL', '' );
 
 		wp_send_json_success(
@@ -301,17 +314,20 @@ class SScribe_Admin_Debug {
 
 		if ( ! current_user_can( 'manage_options' ) ) {
 			wp_send_json_error( array( 'message' => __( 'Insufficient permissions.', 'sscribe-export-site-pages' ) ) );
+			return;
 		}
 
 		$rate_limiter = new SScribe_Export_Rate_Limiter();
 		if ( ! $rate_limiter->check_rate_limit() ) {
 			wp_send_json_error( array( 'message' => __( 'Rate limit exceeded. Please wait before trying again.', 'sscribe-export-site-pages' ) ) );
+			return;
 		}
 
 		$filename = isset( $_POST['filename'] ) ? sanitize_text_field( wp_unslash( $_POST['filename'] ) ) : '';
 
 		if ( empty( $filename ) ) {
 			wp_send_json_error( array( 'message' => __( 'Filename required.', 'sscribe-export-site-pages' ) ) );
+			return;
 		}
 
 		$upload_dir = wp_upload_dir();
