@@ -310,6 +310,10 @@ class SScribe_Page_Collector {
 			return array();
 		}
 
+		// Safeguard: cap at 100 IDs per query to prevent unbounded IN clauses.
+		$max_ids  = 100;
+		$page_ids = array_slice( $page_ids, 0, $max_ids );
+
 		global $wpdb;
 
 		$placeholders = implode( ',', array_fill( 0, count( $page_ids ), '%d' ) );

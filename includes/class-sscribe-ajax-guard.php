@@ -144,30 +144,42 @@ class SScribe_AJAX_Guard {
 		$action = self::resolve_action_name();
 		$length = strlen( $extraneous );
 
-		error_log( // phpcs:ignore WordPress.PHP.DevelopmentFunctions.error_log_error_log
-			sprintf(
-				'[SSCRIBE][AJAX_BUFFER] Action=%s Type=%s Length=%d Levels=%d PHP=%s Memory=%s Time=%s',
-				$action,
-				$type,
-				$length,
-				$start_level,
-				PHP_VERSION,
-				self::format_bytes( memory_get_usage( true ) ),
-				gmdate( 'Y-m-d\TH:i:s\Z' )
-			)
-		);
-
-		if ( $length > 0 ) {
-			$preview = substr( $extraneous, 0, self::LOG_PREVIEW_MAX );
-			// phpcs:ignore WordPress.PHP.DevelopmentFunctions.error_log_error_log
-			error_log(
+		if ( defined( 'SSCRIBE_DEBUG' ) && SSCRIBE_DEBUG ) {
+			error_log( // phpcs:ignore WordPress.PHP.DevelopmentFunctions.error_log_error_log
 				sprintf(
-					"[SSCRIBE][AJAX_BUFFER] ───── Extraneous content (%d bytes) ─────\n%s\n───── End extraneous content ─────",
+					'[SSCRIBE][AJAX_BUFFER] Action=%s Type=%s Length=%d Levels=%d PHP=%s Memory=%s Time=%s',
+					$action,
+					$type,
 					$length,
-					$preview
+					$start_level,
+					PHP_VERSION,
+					self::format_bytes( memory_get_usage( true ) ),
+					gmdate( 'Y-m-d\TH:i:s\Z' )
 				)
 			);
+
+			if ( $length > 0 ) {
+				$preview = substr( $extraneous, 0, self::LOG_PREVIEW_MAX );
+				// phpcs:ignore WordPress.PHP.DevelopmentFunctions.error_log_error_log
+				error_log(
+					sprintf(
+						"[SSCRIBE][AJAX_BUFFER] ───── Extraneous content (%d bytes) ─────\n%s\n───── End extraneous content ─────",
+						$length,
+						$preview
+					)
+				);
+			}
+
+			if ( $length > self::LOG_PREVIEW_MAX ) {
+				error_log( // phpcs:ignore WordPress.PHP.DevelopmentFunctions.error_log_error_log
+					sprintf(
+						'[SSCRIBE][AJAX_BUFFER] Truncated %d excess bytes. Set SSCRIBE_AJAX_LOG_MAX to increase the preview limit.',
+						$length - self::LOG_PREVIEW_MAX
+					)
+				);
+			}
 		}
+	}
 
 		if ( $length > self::LOG_PREVIEW_MAX ) {
 			error_log( // phpcs:ignore WordPress.PHP.DevelopmentFunctions.error_log_error_log
