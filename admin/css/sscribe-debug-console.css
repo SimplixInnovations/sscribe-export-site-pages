@@ -5,16 +5,16 @@
  */
 
 :root {
-	--sscribe-debug-color-debug: #6c757d;
-	--sscribe-debug-color-info: #0d6efd;
-	--sscribe-debug-color-notice: #17a2b8;
-	--sscribe-debug-color-warning: #ffc107;
-	--sscribe-debug-color-error: #dc3545;
-	--sscribe-debug-color-critical: #7b0000;
-	--sscribe-debug-bg-card: #ffffff;
-	--sscribe-debug-bg-console: #1e1e1e;
-	--sscribe-debug-text-console: #d4d4d4;
-	--sscribe-debug-border: #dee2e6;
+	--sscribe-debug-color-debug: #94a3b8;
+	--sscribe-debug-color-info: #3b82f6;
+	--sscribe-debug-color-notice: #0ea5e9;
+	--sscribe-debug-color-warning: #f59e0b;
+	--sscribe-debug-color-error: #ef4444;
+	--sscribe-debug-color-critical: #991b1b;
+	--sscribe-debug-bg-card: rgb(255 255 255 / 75%);
+	--sscribe-debug-bg-console: #0f172a; /* Slate 900 */
+	--sscribe-debug-text-console: #e2e8f0;
+	--sscribe-debug-border: rgb(255 255 255 / 50%);
 }
 
 .sscribe-debug-master {
@@ -60,10 +60,19 @@
 .sscribe-debug-settings-card,
 .sscribe-debug-controls-card {
 	background: var(--sscribe-debug-bg-card);
+	backdrop-filter: blur(16px);
+	backdrop-filter: blur(16px);
 	border: 1px solid var(--sscribe-debug-border);
-	border-radius: 8px;
-	padding: 20px;
-	margin-bottom: 16px;
+	border-radius: 16px;
+	padding: 24px;
+	margin-bottom: 20px;
+	box-shadow: 0 4px 12px rgb(0 0 0 / 3%);
+	transition: box-shadow 0.3s ease;
+}
+
+.sscribe-debug-settings-card:hover,
+.sscribe-debug-controls-card:hover {
+	box-shadow: 0 8px 24px rgb(0 0 0 / 6%);
 }
 
 .sscribe-debug-settings-grid {
@@ -95,10 +104,7 @@
 .sscribe-toggle-slider {
 	position: absolute;
 	cursor: pointer;
-	top: 0;
-	left: 0;
-	right: 0;
-	bottom: 0;
+	inset: 0;
 	background-color: #ccc;
 	transition: 0.3s;
 	border-radius: 24px;
@@ -254,20 +260,22 @@
 }
 
 .sscribe-debug-console-card {
-	background: var(--sscribe-debug-bg-card);
-	border: 1px solid var(--sscribe-debug-border);
-	border-radius: 8px;
+	background: var(--sscribe-debug-bg-console);
+	border: 1px solid rgb(255 255 255 / 10%);
+	border-radius: 16px;
 	overflow: hidden;
-	margin-bottom: 16px;
+	margin-bottom: 20px;
+	box-shadow: 0 12px 24px rgb(0 0 0 / 15%);
 }
 
 .sscribe-debug-console-header {
 	display: flex;
 	justify-content: space-between;
 	align-items: center;
-	padding: 12px 16px;
-	background: #f8f9fa;
-	border-bottom: 1px solid var(--sscribe-debug-border);
+	padding: 14px 20px;
+	background: rgb(0 0 0 / 20%);
+	border-bottom: 1px solid rgb(255 255 255 / 5%);
+	color: #fff;
 }
 
 .sscribe-debug-console-title {
@@ -308,7 +316,7 @@
 }
 
 .sscribe-debug-entries {
-	font-family: 'Monaco', 'Menlo', 'Ubuntu Mono', monospace;
+	font-family: Monaco, Menlo, 'Ubuntu Mono', monospace;
 	font-size: 12px;
 	line-height: 1.5;
 }
@@ -323,7 +331,7 @@
 }
 
 .sscribe-debug-entry:hover {
-	background: rgba(255, 255, 255, 0.05);
+	background: rgb(255 255 255 / 5%);
 }
 
 .sscribe-debug-entry-header {
@@ -362,7 +370,7 @@
 	display: none;
 	margin-top: 12px;
 	padding-top: 12px;
-	border-top: 1px solid rgba(255, 255, 255, 0.1);
+	border-top: 1px solid rgb(255 255 255 / 10%);
 	font-size: 11px;
 	color: #adb5bd;
 }
@@ -464,7 +472,7 @@
 	font-size: 12px;
 }
 
-@media (max-width: 768px) {
+@media (width <= 768px) {
 	.sscribe-debug-settings-grid {
 		grid-template-columns: 1fr;
 	}

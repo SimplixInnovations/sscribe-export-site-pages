@@ -135,8 +135,8 @@
 				$('#sscribe-tab-' + tabId).addClass('sscribe-tab-active');
 
 				// Initialize debug console only when debug tab is opened.
-				if ( tabId === 'debug' && typeof SScribeDebugConsole !== 'undefined' ) {
-					SScribeDebugConsole.init();
+				if ( tabId === 'debug' && typeof window.SScribeDebugConsole !== 'undefined' ) {
+					window.SScribeDebugConsole.init();
 				}
 			});
 		},
@@ -313,7 +313,6 @@
 			const language = $('input[name="sscribe_language"]:checked').val();
 			const format = $('input[name="sscribe_format"]:checked').val() || 'all';
 			const status = $selectedStatus.val() || 'publish';
-			const strings = sscribe_data.strings || {};
 
 			const postTypeLabels = { page: 'Pages', post: 'Posts', any: 'Both' };
 			const statusLabels = {
@@ -1235,11 +1234,12 @@
 					if (parsed && parsed.data && parsed.data._diagnostics) {
 						diagnostics = parsed.data._diagnostics;
 					}
-				} catch (_) {
+				} catch (e) { // eslint-disable-line no-unused-vars
 					// Not JSON — the response body wasn't meant to be parsed, nothing to extract.
 				}
 			}
 
+			/* eslint-disable no-console */
 			console.groupCollapsed(
 				'[SSCRIBE] AJAX Error — %s (HTTP %d %s)',
 				action,
@@ -1259,11 +1259,12 @@
 				console.log('Server Diagnostics:', diagnostics);
 			}
 
-			if (typeof SSCRIBE_DEBUG !== 'undefined' && SSCRIBE_DEBUG) {
+			if (typeof window.SSCRIBE_DEBUG !== 'undefined' && window.SSCRIBE_DEBUG) {
 				console.log('Full XHR:', xhr);
 			}
 
 			console.groupEnd();
+			/* eslint-enable no-console */
 		},
 
 		/**
@@ -1919,6 +1920,7 @@
 			if (errorData) {
 				diagnosticInfo = this.normalizeErrorData(errorData);
 				if (diagnosticInfo && window.console) {
+					// eslint-disable-next-line no-console
 					console.log('[SSCRIBE] Server diagnostics for this error:', diagnosticInfo);
 				}
 
@@ -1949,7 +1951,7 @@
 				$('#sscribe-error-guidance').addClass('sscribe-hidden');
 			}
 
-			if (diagnosticInfo && typeof SSCRIBE_DEBUG !== 'undefined' && SSCRIBE_DEBUG) {
+			if (diagnosticInfo && typeof window.SSCRIBE_DEBUG !== 'undefined' && window.SSCRIBE_DEBUG) {
 				const $techDetails = $('#sscribe-error-technical-details');
 				const techInfo = JSON.stringify(diagnosticInfo._diagnostics || diagnosticInfo, null, 2);
 				$techDetails.find('pre').text(techInfo);
@@ -1967,7 +1969,7 @@
 		 * @param {string} action The action that failed.
 		 * @returns {string} Error message.
 		 */
-		getNetworkErrorMessage: function (xhr, action) {
+		getNetworkErrorMessage: function (xhr, _action) {
 			const strings = sscribe_data.strings || {};
 			const status = xhr ? xhr.status : 0;
 
@@ -2011,7 +2013,7 @@
 	 * clean DevTools output.
 	 */
 	$(document).ajaxError(function (_event, jqXHR, _settings, exception) {
-		var requestData = null;
+		let requestData = null;
 		if (_settings && _settings.data) {
 			if (typeof _settings.data === 'string') {
 				requestData = {};
