@@ -2088,7 +2088,12 @@ class SScribe_Batch_Processor {
 
 		$real_path = realpath( $file_path );
 		$real_dir  = realpath( $export_dir );
-		if ( ! $real_path || ! $real_dir || ! str_starts_with( $real_path, $real_dir . '/' ) ) {
+		if ( false === $real_path || false === $real_dir ) {
+			SScribe_AJAX_Guard::error( array( 'message' => __( 'Invalid file path.', 'sscribe-export-site-pages' ) ), 400 );
+		}
+
+		$safe_dir = rtrim( $real_dir, DIRECTORY_SEPARATOR ) . DIRECTORY_SEPARATOR;
+		if ( ! str_starts_with( $real_path, $safe_dir ) ) {
 			SScribe_AJAX_Guard::error( array( 'message' => __( 'Invalid file path.', 'sscribe-export-site-pages' ) ), 400 );
 		}
 

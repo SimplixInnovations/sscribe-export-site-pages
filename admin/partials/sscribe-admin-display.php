@@ -59,7 +59,7 @@ $sscribe_step            = 1;
 	<div id="sscribe-alert-region" class="screen-reader-text" aria-live="assertive" aria-atomic="true"></div>
 
 	<div class="sscribe-workspace sscribe-flat-workspace" id="sscribe-main-content" role="main">
-		<nav class="sscribe-tabs-nav" role="tablist" aria-label="<?php esc_attr_e( 'Main Navigation', 'sscribe-export-site-pages' ); ?>">
+		<nav class="sscribe-tabs-nav" role="tablist" aria-label="<?php esc_attr_e( 'Main Navigation', 'sscribe-export-site-pages' ); ?>" aria-orientation="horizontal">
 			<button type="button" class="sscribe-tab-btn sscribe-tab-active" id="sscribe-tab-btn-export" data-tab="export" role="tab" aria-selected="true" aria-controls="sscribe-tab-export">
 				<?php
 				echo wp_kses_post( SScribe_Helpers::get_icon( 'settings', 16 ) ); // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped
@@ -393,28 +393,28 @@ $sscribe_step            = 1;
 					</div>
 				</div>
 
-				<div id="sscribe-preview-panel" class="sscribe-modal sscribe-hidden" role="dialog" aria-modal="true" aria-labelledby="sscribe-preview-title" aria-describedby="sscribe-preview-desc">
-					<div class="sscribe-modal-content" role="document" style="max-width: 800px; max-height: 85vh;">
-					<div class="sscribe-modal-header">
-						<h3 id="sscribe-preview-title">
-							<?php // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- SVG sanitized in get_icon().
-							?>
-							<?php echo wp_kses_post( SScribe_Helpers::get_icon( 'eye', 16 ) ); ?>
-							<?php esc_html_e( 'Export Preview', 'sscribe-export-site-pages' ); ?>
-						</h3>
-						<button type="button" id="sscribe-preview-close" class="sscribe-modal-close" aria-label="Close preview">
-							<span aria-hidden="true">&times;</span>
-						</button>
-					</div>
-					<div id="sscribe-preview-content" class="sscribe-modal-body">
-						<div class="sscribe-preview-loading">
-							<span class="sscribe-loading-spinner"></span>
-							<span><?php esc_html_e( 'Generating preview...', 'sscribe-export-site-pages' ); ?></span>
+				<div id="sscribe-preview-panel" class="sscribe-modal sscribe-hidden" role="dialog" aria-modal="true" aria-hidden="true" aria-labelledby="sscribe-preview-title" aria-describedby="sscribe-preview-desc" hidden>
+					<div class="sscribe-modal-content sscribe-modal-content-preview" role="document">
+						<div class="sscribe-modal-header">
+							<h3 id="sscribe-preview-title">
+								<?php // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- SVG sanitized in get_icon().
+								?>
+								<?php echo wp_kses_post( SScribe_Helpers::get_icon( 'eye', 16 ) ); ?>
+								<?php esc_html_e( 'Export Preview', 'sscribe-export-site-pages' ); ?>
+							</h3>
+							<button type="button" id="sscribe-preview-close" class="sscribe-modal-close" aria-label="Close preview">
+								<span aria-hidden="true">&times;</span>
+							</button>
 						</div>
+						<div id="sscribe-preview-content" class="sscribe-modal-body">
+							<div class="sscribe-preview-loading">
+								<span class="sscribe-loading-spinner"></span>
+								<span><?php esc_html_e( 'Generating preview...', 'sscribe-export-site-pages' ); ?></span>
+							</div>
+						</div>
+						<span id="sscribe-preview-desc" class="screen-reader-text"><?php esc_html_e( 'Export preview showing selected configuration and estimated output', 'sscribe-export-site-pages' ); ?></span>
 					</div>
-					<span id="sscribe-preview-desc" class="screen-reader-text"><?php esc_html_e( 'Export preview showing selected configuration and estimated output', 'sscribe-export-site-pages' ); ?></span>
 				</div>
-			</div>
 		</section>
 
 		<div id="sscribe-progress-area" class="sscribe-status-alert sscribe-status-processing sscribe-hidden" role="status" aria-live="polite" aria-labelledby="sscribe-status-text">
@@ -529,7 +529,7 @@ $sscribe_step            = 1;
 
 		</div>
 
-		<div class="sscribe-tab-content" id="sscribe-tab-history" role="tabpanel" aria-labelledby="sscribe-tab-btn-history">
+		<div class="sscribe-tab-content" id="sscribe-tab-history" role="tabpanel" aria-labelledby="sscribe-tab-btn-history" hidden aria-hidden="true">
 				<section class="sscribe-panel">
 					<div class="sscribe-panel-header">
 						<div class="sscribe-panel-title">
@@ -622,7 +622,7 @@ $sscribe_step            = 1;
 				</section>
 			</div>
 
-			<div class="sscribe-tab-content" id="sscribe-tab-docs" role="tabpanel" aria-labelledby="sscribe-tab-btn-docs">
+			<div class="sscribe-tab-content" id="sscribe-tab-docs" role="tabpanel" aria-labelledby="sscribe-tab-btn-docs" hidden aria-hidden="true">
 	<div class="sscribe-support-master">
 		<div class="sscribe-support-sidebar">
 			<div class="sscribe-support-header">
@@ -661,7 +661,7 @@ $sscribe_step            = 1;
 					</div>
 </div>
 
-			<div class="sscribe-tab-content" id="sscribe-tab-debug" role="tabpanel" aria-labelledby="sscribe-tab-btn-debug">
+			<div class="sscribe-tab-content" id="sscribe-tab-debug" role="tabpanel" aria-labelledby="sscribe-tab-btn-debug" hidden aria-hidden="true">
 				<?php include SSCRIBE_PLUGIN_DIR . 'admin/partials/sscribe-admin-debug-tab.php'; ?>
 			</div>
 
@@ -669,7 +669,7 @@ $sscribe_step            = 1;
 
 	<div id="sscribe-toast-container" class="sscribe-toast-container" aria-live="polite" aria-relevant="additions removals"></div>
 
-	<div id="sscribe-log-modal" class="sscribe-modal sscribe-hidden" role="dialog" aria-modal="true" aria-labelledby="sscribe-log-modal-title" aria-describedby="sscribe-log-modal-desc">
+	<div id="sscribe-log-modal" class="sscribe-modal sscribe-hidden" role="dialog" aria-modal="true" aria-hidden="true" aria-labelledby="sscribe-log-modal-title" aria-describedby="sscribe-log-modal-desc" hidden>
 	<div class="sscribe-modal-content" role="document">
 		<div class="sscribe-modal-header">
 			<h3 id="sscribe-log-modal-title"><?php esc_html_e( 'Export Log', 'sscribe-export-site-pages' ); ?></h3>

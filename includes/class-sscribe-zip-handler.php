@@ -322,7 +322,7 @@ class SScribe_Zip_Handler {
 				$modified = false;
 
 				foreach ( $exports as $basename => $data ) {
-					$file_path = $this->export_dir . $basename;
+					$file_path = $this->export_dir . '/' . ltrim( (string) $basename, '/\\' );
 
 					if ( ! file_exists( $file_path ) ) {
 						unset( $exports[ $basename ] );

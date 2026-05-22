@@ -340,7 +340,13 @@ class SScribe_Admin_Debug {
 		$real_file_path = realpath( $file_path );
 		$real_log_dir   = realpath( $log_dir );
 
-		if ( false === $real_file_path || false === $real_log_dir || 0 !== strpos( $real_file_path, $real_log_dir ) ) {
+		if ( false === $real_file_path || false === $real_log_dir ) {
+			wp_send_json_error( array( 'message' => __( 'File not found.', 'sscribe-export-site-pages' ) ) );
+			return;
+		}
+
+		$safe_log_dir = rtrim( $real_log_dir, DIRECTORY_SEPARATOR ) . DIRECTORY_SEPARATOR;
+		if ( ! str_starts_with( $real_file_path, $safe_log_dir ) ) {
 			wp_send_json_error( array( 'message' => __( 'File not found.', 'sscribe-export-site-pages' ) ) );
 			return;
 		}

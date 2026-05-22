@@ -110,6 +110,7 @@ desktop.ini
 *.log
 *.tmp
 *.bak
+test-phpcs-output.txt
 
 # Environment
 .env
