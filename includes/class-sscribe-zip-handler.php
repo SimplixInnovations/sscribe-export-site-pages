@@ -219,6 +219,16 @@ class SScribe_Zip_Handler {
 			usleep( $lock_delay );
 		}
 
+		// If lock could not be acquired, another request is likely writing.
+		// Skip indexing to prevent race condition overwriting the other request's entry.
+		if ( ! $locked ) {
+			$this->logger->warning(
+				'Export indexing skipped - could not acquire exclusive lock (concurrent finalize detected)',
+				array( 'zip' => basename( $zip_path ) )
+			);
+			return file_exists( $zip_path ) ? $zip_path : false;
+		}
+
 		try {
 			$exports                          = get_option( 'sscribe_export_index', array() );
 			$exports[ basename( $zip_path ) ] = array(
@@ -230,20 +240,11 @@ class SScribe_Zip_Handler {
 				'flag_url'   => $lang_metadata['flag_url'] ?? '',
 			);
 			update_option( 'sscribe_export_index', $exports, false );
-
-			if ( ! $locked ) {
-				$this->logger->warning(
-					'Export indexed without exclusive lock (possible race)',
-					array( 'zip' => basename( $zip_path ) )
-				);
-			}
 		} finally {
-			if ( $locked ) {
-				if ( $lock_using_cache ) {
-					wp_cache_delete( $lock_key, 'transient' );
-				}
-				delete_transient( $lock_key );
+			if ( $lock_using_cache ) {
+				wp_cache_delete( $lock_key, 'transient' );
 			}
+			delete_transient( $lock_key );
 		}
 
 		return file_exists( $zip_path ) ? $zip_path : false;
