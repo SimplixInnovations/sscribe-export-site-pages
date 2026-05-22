@@ -453,7 +453,65 @@ class SScribe_Admin {
 		$download_nonce = $this->get_download_nonce();
 
 		$export_index = get_option( 'sscribe_export_index', array() );
-		$user_id      = get_current_user_id();
+
+		$user_id = get_current_user_id();
+
+		if ( ! empty( $export_index ) ) {
+
+			uasort(
+				$export_index,
+				function ( $a, $b ) {
+					return ( $b['created_at'] ?? 0 ) <=> ( $a['created_at'] ?? 0 );
+				}
+			);
+
+			$count = 0;
+			foreach ( $export_index as $filename => $data ) {
+
+				if ( isset( $data['user_id'] ) && (int) $data['user_id'] !== $user_id ) {
+					continue;
+				}
+
+				$file_path = $export_dir . $filename;
+				if ( ! file_exists( $file_path ) ) {
+					continue;
+				}
+
+				$lang_code = $data['lang_code'] ?? 'all';
+				$lang_name = $data['lang_name'] ?? 'All Languages';
+				$flag_url  = $data['flag_url'] ?? '';
+
+				if ( empty( $lang_code ) && $sscribe_wpml_active && ! empty( $sscribe_languages ) ) {
+					foreach ( $sscribe_languages as $lang ) {
+						if ( isset( $lang['code'] ) && $lang['code'] === $lang_code ) {
+							$lang_name = $lang['name'] ?? 'All Languages';
+							$flag_url  = $lang['flag_url'] ?? '';
+							break;
+						}
+					}
+				}
+				if ( empty( $lang_code ) || 'all' === $lang_code ) {
+					$lang_name = 'All Languages';
+				}
+
+				$sscribe_recent_exports[] = array(
+					'filename'  => $filename,
+					'url'       => $this->zip_handler->get_ajax_download_url( $filename ),
+					'time'      => $data['created_at'] ?? filemtime( $file_path ),
+					'size'      => filesize( $file_path ),
+					'lang_code' => sanitize_key( $lang_code ),
+					'flag_url'  => esc_url( $flag_url ),
+					'lang_name' => esc_html( $lang_name ),
+				);
+
+				++$count;
+				if ( $count >= 10 ) {
+					break;
+				}
+			}
+		}
+
+		include SSCRIBE_PLUGIN_DIR . 'admin/partials/sscribe-admin-display.php';
 
 		if ( ! empty( $export_index ) ) {
 

@@ -114,8 +114,15 @@
 			} );
 
 			this.$clearBtn.on( 'click', function() {
-				if ( confirm( 'Clear all current log entries?' ) ) {
+				const $btn = $( this );
+				if ( $btn.data( 'confirming' ) ) {
+					$btn.data( 'confirming', false ).removeClass( 'sscribe-btn-confirming' ).text( 'Clear Logs' );
 					self.clearLogs();
+				} else {
+					$btn.data( 'confirming', true ).addClass( 'sscribe-btn-confirming' ).text( 'Click again to confirm' );
+					setTimeout( function() {
+						$btn.data( 'confirming', false ).removeClass( 'sscribe-btn-confirming' ).text( 'Clear Logs' );
+					}, 3000 );
 				}
 			} );
 
@@ -143,8 +150,16 @@
 			} );
 
 			this.$rotatedBody.on( 'click', '.sscribe-rotated-delete', function() {
-				if ( confirm( 'Delete this log file?' ) ) {
-					self.deleteRotatedLog( $( this ).data( 'file' ) );
+				const $btn = $( this );
+				const filename = $btn.data( 'file' );
+				if ( $btn.data( 'confirming' ) ) {
+					$btn.data( 'confirming', false ).removeClass( 'sscribe-btn-confirming' ).text( 'Delete' );
+					self.deleteRotatedLog( filename );
+				} else {
+					$btn.data( 'confirming', true ).addClass( 'sscribe-btn-confirming' ).text( 'Click again' );
+					setTimeout( function() {
+						$btn.data( 'confirming', false ).removeClass( 'sscribe-btn-confirming' ).text( 'Delete' );
+					}, 3000 );
 				}
 			} );
 

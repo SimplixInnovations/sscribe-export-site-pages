@@ -18,6 +18,7 @@ $sscribe_recent_exports  = $sscribe_recent_exports ?? array();
 $sscribe_debug_info      = $sscribe_debug_info ?? array();
 $sscribe_is_debug        = $sscribe_is_debug ?? false;
 $sscribe_step            = 1;
+$export_index            = $export_index ?? array();
 ?>
 
 <div class="sscribe-master-container">
@@ -364,13 +365,13 @@ $sscribe_step            = 1;
 				<div class="sscribe-export-bar">
 					<div class="sscribe-config-summary" id="sscribe-config-summary" aria-live="polite">
 						<span class="sscribe-summary-label"><?php esc_html_e( 'Config', 'sscribe-export-site-pages' ); ?>:</span>
-						<span class="sscribe-summary-chip sscribe-summary-post-type" id="sscribe-summary-post-type">—</span>
+						<span class="sscribe-summary-chip sscribe-summary-post-type" id="sscribe-summary-post-type"><?php esc_html_e( 'Pages', 'sscribe-export-site-pages' ); ?></span>
 						<span class="sscribe-summary-sep" aria-hidden="true">·</span>
-						<span class="sscribe-summary-chip sscribe-summary-status" id="sscribe-summary-status">—</span>
+						<span class="sscribe-summary-chip sscribe-summary-status" id="sscribe-summary-status"><?php esc_html_e( 'Published', 'sscribe-export-site-pages' ); ?></span>
 						<span class="sscribe-summary-sep" aria-hidden="true">·</span>
-						<span class="sscribe-summary-chip sscribe-summary-language" id="sscribe-summary-language">—</span>
+						<span class="sscribe-summary-chip sscribe-summary-language" id="sscribe-summary-language"><?php esc_html_e( 'All', 'sscribe-export-site-pages' ); ?></span>
 						<span class="sscribe-summary-sep" aria-hidden="true">·</span>
-						<span class="sscribe-summary-chip sscribe-summary-format" id="sscribe-summary-format">—</span>
+						<span class="sscribe-summary-chip sscribe-summary-format" id="sscribe-summary-format"><?php esc_html_e( 'All', 'sscribe-export-site-pages' ); ?></span>
 						<span class="sscribe-summary-sep-em" aria-hidden="true">|</span>
 						<span class="sscribe-summary-chip sscribe-summary-pages" id="sscribe-summary-pages">—</span>
 						<span class="sscribe-summary-sep" aria-hidden="true">·</span>
@@ -465,6 +466,7 @@ $sscribe_step            = 1;
 							aria-valuemin="0"
 							aria-valuemax="100"
 							aria-valuenow="0"
+							aria-valuetext=""
 							aria-labelledby="sscribe-status-text"></div>
 					</div>
 					<span id="sscribe-progress-text" class="sscribe-progress-percentage" aria-hidden="true">0%</span>
@@ -624,6 +626,11 @@ $sscribe_step            = 1;
 								</svg>
 								<em><?php esc_html_e( 'Your recent export packages will appear here.', 'sscribe-export-site-pages' ); ?></em>
 							</div>
+							<?php if ( ! empty( $export_index ) && count( $export_index ) > 10 ) : ?>
+							<div class="sscribe-history-notice">
+								<p><?php esc_html_e( 'Showing 10 most recent exports.', 'sscribe-export-site-pages' ); ?></p>
+							</div>
+							<?php endif; ?>
 						<?php endif; ?>
 					</div>
 				</section>
