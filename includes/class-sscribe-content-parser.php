@@ -490,6 +490,11 @@ class SScribe_Content_Parser {
 	private function extract_buttons_from_html( string $html ): array {
 		$buttons = array();
 
+		// Limit input size to prevent regex backtracking on large content.
+		if ( strlen( $html ) > 500000 ) {
+			$html = substr( $html, 0, 500000 );
+		}
+
 		$pattern = '/<a\s+[^>]*class=["\']([^"\']*(?:wp-block-button__link|wp-element-button|button|btn|elementor-button|et_pb_button|fl-button|vc_btn)[^"\']*)["\'][^>]*>(.*?)<\/a>/is';
 
 		$match_count = preg_match_all( $pattern, $html, $matches, PREG_SET_ORDER );

@@ -381,6 +381,20 @@ class SScribe_Exporter {
 			$writer = IOFactory::createWriter( $php_word, 'Word2007' );
 			$writer->save( $output_path );
 
+			// Lightweight integrity check: verify file size > minimum threshold.
+			$file_size = filesize( $output_path );
+			$min_size   = 100; // Minimal DOCX should be at least 100 bytes.
+			if ( $file_size < $min_size ) {
+				wp_delete_file( $output_path );
+				unset( $writer, $php_word );
+				throw new \RuntimeException( 'DOCX file size below minimum threshold' );
+			}
+
+			if ( ! defined( 'SSCRIBE_DEBUG' ) || ! SSCRIBE_DEBUG ) {
+				unset( $writer, $php_word );
+				return $output_path;
+			}
+
 			$zip_check = new \ZipArchive();
 			if ( true !== $zip_check->open( $output_path ) ) {
 				wp_delete_file( $output_path );

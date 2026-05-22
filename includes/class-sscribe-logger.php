@@ -57,13 +57,6 @@ class SScribe_Logger implements SScribe_Logger_Interface {
 	private readonly string $log_dir;
 
 	/**
-	 * Shutdown handler registration flag.
-	 *
-	 * @var bool
-	 */
-	private bool $shutdown_registered = false;
-
-	/**
 	 * Get logger instance.
 	 *
 	 * @param bool   $enabled Whether logging is enabled.
@@ -132,7 +125,6 @@ class SScribe_Logger implements SScribe_Logger_Interface {
 		$this->log_dir = $upload_dir['basedir'] . '/sscribe-logs';
 
 		if ( $this->enabled ) {
-			$this->shutdown_registered = true;
 			add_action( 'shutdown', array( $this, 'flush' ) );
 		}
 	}
