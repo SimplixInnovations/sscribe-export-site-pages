@@ -134,6 +134,11 @@ class SScribe_Admin {
 
 	/**
 	 * Send Content Security Policy headers on the export page.
+	 *
+	 * Note: Using 'unsafe-inline' for script-src and style-src significantly weakens CSP.
+	 * Ideally, scripts should use nonces and styles should use hashes for proper CSP.
+	 * This is a known limitation - fixing requires moving inline JS to separate files
+	 * with proper enqueue and adding nonce generation to the admin page.
 	 */
 	public function maybe_send_csp_headers(): void {
 		// phpcs:ignore WordPress.Security.NonceVerification.Recommended -- Read-only page param check.
@@ -145,6 +150,8 @@ class SScribe_Admin {
 			return;
 		}
 
+		// SECURITY NOTE: 'unsafe-inline' weakens CSP protection.
+		// TODO: Consider using nonces for scripts and hashes for styles when resources allow.
 		$policy = implode(
 			'; ',
 			array(
