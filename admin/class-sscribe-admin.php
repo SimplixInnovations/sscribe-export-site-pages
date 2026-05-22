@@ -98,6 +98,18 @@ class SScribe_Admin {
 	}
 
 	/**
+	 * Get a CSP nonce for inline scripts.
+	 *
+	 * Generates a per-request nonce for CSP script-src directive.
+	 * The nonce is passed to JS so dynamically created scripts can use it.
+	 *
+	 * @return string CSP nonce value.
+	 */
+	private function get_csp_nonce(): string {
+		return wp_create_nonce( 'sscribe_csp_nonce' );
+	}
+
+	/**
 	 * Redirect to the plugin page after activation.
 	 */
 	public function maybe_redirect_after_activation(): void {
@@ -135,10 +147,9 @@ class SScribe_Admin {
 	/**
 	 * Send Content Security Policy headers on the export page.
 	 *
-	 * Note: Using 'unsafe-inline' for script-src and style-src significantly weakens CSP.
-	 * Ideally, scripts should use nonces and styles should use hashes for proper CSP.
-	 * This is a known limitation - fixing requires moving inline JS to separate files
-	 * with proper enqueue and adding nonce generation to the admin page.
+	 * Uses nonce-based script allowance for improved XSS protection.
+	 * Styles keep 'unsafe-inline' as the font-face CSS is built dynamically
+	 * and hashing would require replicating the exact string assembly.
 	 */
 	public function maybe_send_csp_headers(): void {
 		// phpcs:ignore WordPress.Security.NonceVerification.Recommended -- Read-only page param check.
@@ -150,13 +161,20 @@ class SScribe_Admin {
 			return;
 		}
 
-		// SECURITY NOTE: 'unsafe-inline' weakens CSP protection.
-		// TODO: Consider using nonces for scripts and hashes for styles when resources allow.
+		$csp_nonce = $this->get_csp_nonce();
+
+		/*
+		 * Build CSP policy with nonce for scripts.
+		 *
+		 * Scripts: Use nonce so our external JS files are allowed.
+		 * Styles: Keep unsafe-inline because our inline font-face CSS is built
+		 * dynamically from variables and computing a hash would be fragile.
+		 */
 		$policy = implode(
 			'; ',
 			array(
 				"default-src 'self'",
-				"script-src 'self' 'unsafe-inline'",
+				"script-src 'self' 'nonce-" . esc_attr( $csp_nonce ) . "'",
 				"style-src 'self' 'unsafe-inline'",
 				"img-src 'self' data:",
 				"font-src 'self' data:",
@@ -273,6 +291,7 @@ class SScribe_Admin {
 				'ajaxurl'        => admin_url( 'admin-ajax.php' ),
 				'nonce'          => wp_create_nonce( 'sscribe_export_nonce' ),
 				'download_nonce' => $this->get_download_nonce(),
+				'csp_nonce'      => $this->get_csp_nonce(),
 				'icons_url'      => SSCRIBE_PLUGIN_URL . 'assets/icons/',
 				'strings'        => array(
 					'starting'               => __( 'Starting export...', 'sscribe-export-site-pages' ),
