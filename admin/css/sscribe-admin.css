@@ -115,7 +115,7 @@
 /* ============================================
    BASE STYLES
    ============================================ */
-.sscribe-master-container {
+body .sscribe-master-container {
 	font-family: var(--sscribe-font-family);
 	color: var(--sscribe-text-main);
 	box-sizing: border-box;
@@ -151,7 +151,7 @@
 /* ============================================
    HERO SECTION
    ============================================ */
-.sscribe-hero {
+body .sscribe-master-container .sscribe-hero {
 	background: var(--sscribe-card-bg);
 	border: 1px solid var(--sscribe-border-light);
 	border-radius: var(--sscribe-radius-lg);
@@ -3588,30 +3588,6 @@
 }
 
 /* ============================================
-   DARK MODE SUPPORT
-   ============================================ */
-@media (prefers-color-scheme: dark) {
-	:root {
-		--sscribe-bg: #1a1a2e;
-		--sscribe-card-bg: #16213e;
-		--sscribe-section-bg: #1a1a2e;
-		--sscribe-section-bg-alt: #16213e;
-		--sscribe-border: #2d3a4a;
-		--sscribe-border-light: #2d3a4a;
-		--sscribe-text-main: #e0e0e0;
-		--sscribe-text-heading: #f0f0f0;
-		--sscribe-text-secondary: #a0a0b0;
-		--sscribe-text-muted: #7a7a8a;
-		--sscribe-text-light: #5a5a6a;
-		--sscribe-primary-light: rgb(104 168 133 / 15%);
-		--sscribe-primary-lighter: rgb(104 168 133 / 8%);
-		--sscribe-shadow-shallow: rgb(0 0 0 / 20%) 0px 1px 8px 0px;
-		--sscribe-shadow-standard: rgb(0 0 0 / 20%) 0px 2px 6px 0px, rgb(0 0 0 / 30%) 0px 8px 19.2px 0px;
-		--sscribe-shadow-elevated: rgb(0 0 0 / 20%) 0px 4px 8px 0px, rgb(0 0 0 / 30%) 0px 24px 35.2px 0px;
-	}
-}
-
-/* ============================================
    FINALIZATION PROGRESS ANIMATION
    ============================================ */
 @keyframes sscribe-finalize-shimmer {
@@ -3725,16 +3701,456 @@
 	}
 }
 
-@media (prefers-color-scheme: dark) {
-	.sscribe-toast-success { background: var(--sscribe-primary); }
-	.sscribe-toast-error { background: var(--sscribe-danger); }
+/* ============================================
+   UX POLISH PASS (Light Theme Only)
+   ============================================ */
+.sscribe-master-container {
+	background:
+		linear-gradient(180deg, rgb(255 255 255 / 98%) 0%, rgb(248 250 249 / 98%) 100%),
+		var(--sscribe-card-bg);
+	box-shadow: 0 18px 44px rgb(16 24 40 / 6%);
+}
 
-	.sscribe-toast-warning {
-		background: var(--sscribe-warning);
-		color: #000;
+.sscribe-hero {
+	background: linear-gradient(135deg, #fff 0%, #fbfdfc 56%, var(--sscribe-section-bg) 100%);
+	box-shadow: var(--sscribe-shadow-shallow);
+}
+
+body .sscribe-master-container .sscribe-hero:hover,
+body .sscribe-master-container .sscribe-panel:hover {
+	box-shadow: var(--sscribe-shadow-standard);
+}
+
+body .sscribe-master-container .sscribe-hero-logo,
+body .sscribe-master-container .sscribe-post-type-icon,
+body .sscribe-master-container .sscribe-format-icon,
+body .sscribe-master-container .sscribe-status-icon {
+	box-shadow: inset 0 0 0 1px rgb(255 255 255 / 70%);
+}
+
+body .sscribe-master-container .sscribe-tabs-nav {
+	gap: 4px;
+	padding: 4px;
+	background: var(--sscribe-bg);
+	border: 1px solid var(--sscribe-border-light);
+	border-radius: var(--sscribe-radius-md);
+}
+
+body .sscribe-master-container .sscribe-tab-btn {
+	border: 1px solid transparent;
+	border-radius: var(--sscribe-radius-sm);
+	margin-bottom: 0;
+	min-height: 44px;
+	padding: 10px 16px;
+}
+
+body .sscribe-master-container .sscribe-tab-btn:hover {
+	background: var(--sscribe-card-bg);
+	border-color: var(--sscribe-border-light);
+}
+
+body .sscribe-master-container .sscribe-tab-btn.sscribe-tab-active,
+body .sscribe-master-container .sscribe-tab-btn[aria-selected='true'] {
+	background: var(--sscribe-card-bg);
+	border-color: rgb(104 168 133 / 28%);
+	box-shadow: var(--sscribe-shadow-shallow);
+	color: var(--sscribe-primary);
+}
+
+body .sscribe-master-container .sscribe-tab-btn:focus-visible,
+body .sscribe-master-container .sscribe-modal-close:focus-visible,
+body .sscribe-master-container .sscribe-preflight-close:focus-visible,
+body .sscribe-master-container .sscribe-toast-dismiss:focus-visible,
+body .sscribe-master-container .sscribe-status-select:focus-visible {
+	outline: 3px solid rgb(104 168 133 / 34%);
+	outline-offset: 2px;
+	box-shadow: 0 0 0 1px var(--sscribe-primary);
+}
+
+body .sscribe-master-container .sscribe-tab-content[hidden],
+body .sscribe-master-container .sscribe-modal[hidden] {
+	display: none;
+}
+
+body .sscribe-master-container .sscribe-panel {
+	box-shadow: var(--sscribe-shadow-shallow);
+}
+
+body .sscribe-master-container .sscribe-panel-header {
+	background: linear-gradient(180deg, var(--sscribe-section-bg) 0%, #fff 100%);
+}
+
+body .sscribe-master-container .sscribe-config-section {
+	padding: 24px 28px;
+}
+
+body .sscribe-master-container .sscribe-section-title,
+body .sscribe-master-container .sscribe-config-section-header {
+	margin-bottom: 16px;
+}
+
+body .sscribe-master-container .sscribe-step-badge {
+	box-shadow: 0 0 0 4px var(--sscribe-primary-lighter);
+}
+
+body .sscribe-master-container .sscribe-post-type-card,
+body .sscribe-master-container .sscribe-status-card-label,
+body .sscribe-master-container .sscribe-format-card-label,
+body .sscribe-master-container .sscribe-lang-card-label {
+	min-width: 0;
+}
+
+body .sscribe-master-container .sscribe-post-type-card-inner,
+body .sscribe-master-container .sscribe-status-card-inner,
+body .sscribe-master-container .sscribe-format-card-inner,
+body .sscribe-master-container .sscribe-lang-card-inner {
+	min-height: 64px;
+	box-shadow: 0 1px 0 rgb(16 24 40 / 3%);
+}
+
+body .sscribe-master-container .sscribe-post-type-card input[type='radio']:checked + .sscribe-post-type-card-inner,
+body .sscribe-master-container .sscribe-status-card-label input[type='radio']:checked + .sscribe-status-card-inner,
+body .sscribe-master-container .sscribe-format-card-label input[type='radio']:checked + .sscribe-format-card-inner,
+body .sscribe-master-container .sscribe-lang-card-label input[type='radio']:checked + .sscribe-lang-card-inner {
+	border-width: 1.5px;
+	box-shadow: 0 0 0 4px rgb(104 168 133 / 11%);
+}
+
+body .sscribe-master-container .sscribe-status-disabled {
+	opacity: 1;
+}
+
+body .sscribe-master-container .sscribe-status-disabled .sscribe-status-card-inner {
+	background: #f3f4f6;
+	border-color: #e5e7eb;
+	color: var(--sscribe-text-muted);
+	filter: grayscale(0.2);
+}
+
+body .sscribe-master-container .sscribe-button {
+	border: 1px solid transparent;
+	min-height: 44px;
+	white-space: nowrap;
+}
+
+body .sscribe-master-container .sscribe-button:disabled,
+body .sscribe-master-container .sscribe-button[aria-disabled='true'] {
+	background: #e5e7eb;
+	border-color: #d1d5db;
+	color: #6b7280;
+	cursor: not-allowed;
+	opacity: 1;
+	transform: none;
+}
+
+body .sscribe-master-container .sscribe-button:disabled:hover,
+body .sscribe-master-container .sscribe-button[aria-disabled='true']:hover {
+	box-shadow: none;
+	transform: none;
+}
+
+body .sscribe-master-container .sscribe-button-primary {
+	border-color: var(--sscribe-cta);
+	box-shadow: 0 8px 18px rgb(51 51 51 / 14%);
+}
+
+body .sscribe-master-container .sscribe-button-outline {
+	background: #fff;
+}
+
+body .sscribe-master-container .sscribe-button-danger {
+	background: #fff;
+}
+
+body .sscribe-master-container .sscribe-export-bar {
+	gap: 18px;
+	background: linear-gradient(180deg, #fff 0%, var(--sscribe-bg) 100%);
+}
+
+body .sscribe-master-container .sscribe-export-bar-actions {
+	align-items: flex-start;
+}
+
+body .sscribe-master-container .sscribe-export-disabled-reason {
+	flex-basis: 100%;
+	max-width: 360px;
+	min-height: 18px;
+	color: var(--sscribe-text-muted);
+}
+
+body .sscribe-master-container .sscribe-config-summary {
+	min-width: min(100%, 320px);
+}
+
+body .sscribe-master-container .sscribe-summary-chip {
+	line-height: 1.4;
+}
+
+body .sscribe-master-container .sscribe-status-alert {
+	align-items: flex-start;
+	border-left-width: 4px;
+}
+
+body .sscribe-master-container .sscribe-status-alert.sscribe-status-processing {
+	background: linear-gradient(135deg, #fff 0%, var(--sscribe-info-light) 100%);
+	border-left-color: var(--sscribe-primary);
+}
+
+body .sscribe-master-container .sscribe-status-alert.sscribe-status-success {
+	border-left-color: var(--sscribe-success);
+}
+
+body .sscribe-master-container .sscribe-status-alert.sscribe-status-error {
+	border-left-color: var(--sscribe-danger);
+}
+
+body .sscribe-master-container .sscribe-progress-tracker {
+	max-width: 560px;
+}
+
+body .sscribe-master-container .sscribe-progress-bar-container {
+	height: 12px;
+}
+
+body .sscribe-master-container .sscribe-history-row {
+	position: relative;
+}
+
+body .sscribe-master-container .sscribe-history-row.sscribe-row-selected::before {
+	content: '';
+	position: absolute;
+	inset: 0 auto 0 0;
+	width: 3px;
+	background: var(--sscribe-primary);
+}
+
+body .sscribe-master-container .sscribe-history-actions .sscribe-button-icon {
+	min-width: 40px;
+	min-height: 40px;
+}
+
+body .sscribe-master-container .sscribe-modal {
+	background: rgb(15 23 42 / 58%);
+	backdrop-filter: blur(3px);
+	/* stylelint-disable-next-line property-no-vendor-prefix */
+	-webkit-backdrop-filter: blur(3px);
+}
+
+body .sscribe-master-container .sscribe-modal-content {
+	max-height: min(82vh, 760px);
+}
+
+body .sscribe-master-container .sscribe-modal-content-preview {
+	max-width: 800px;
+	max-height: 85vh;
+}
+
+body .sscribe-master-container .sscribe-modal-close {
+	align-items: center;
+	border-radius: var(--sscribe-radius-sm);
+	display: inline-flex;
+	justify-content: center;
+	min-height: 40px;
+	min-width: 40px;
+}
+
+body .sscribe-master-container .sscribe-toast-container {
+	top: 44px;
+	gap: 10px;
+}
+
+body .sscribe-master-container .sscribe-toast {
+	border: 1px solid rgb(255 255 255 / 20%);
+	border-left-width: 4px;
+	min-height: 48px;
+}
+
+body .sscribe-master-container .sscribe-toast-success {
+	border-left-color: #047857;
+}
+
+body .sscribe-master-container .sscribe-toast-error {
+	border-left-color: #7f1d1d;
+}
+
+body .sscribe-master-container .sscribe-toast-warning {
+	border-left-color: #92400e;
+}
+
+body .sscribe-master-container .sscribe-toast-info {
+	border-left-color: #1f6b48;
+}
+
+body .sscribe-master-container .sscribe-toast-dismiss {
+	align-items: center;
+	border-radius: var(--sscribe-radius-sm);
+	display: inline-flex;
+	height: 32px;
+	justify-content: center;
+	width: 32px;
+}
+
+body .sscribe-master-container .sscribe-support-copy-text {
+	min-height: 280px;
+}
+
+@media (width <= 782px) {
+	.sscribe-master-container {
+		margin: 10px 10px 40px;
+		padding: 16px;
 	}
 
-	.sscribe-toast-info {
-		background: var(--sscribe-primary);
+	.sscribe-hero {
+		margin-bottom: 18px;
+		padding: 18px;
+	}
+
+	.sscribe-hero-left {
+		align-items: flex-start;
+	}
+
+	.sscribe-hero-logo {
+		width: 46px;
+		height: 46px;
+	}
+
+	.sscribe-hero-stats {
+		flex-wrap: wrap;
+	}
+
+	.sscribe-tabs-nav {
+		overflow-x: auto;
+		scroll-snap-type: x proximity;
+	}
+
+	.sscribe-tab-btn {
+		flex: 0 0 auto;
+		scroll-snap-align: start;
+	}
+
+	.sscribe-config-section {
+		padding: 20px 16px;
+	}
+
+	.sscribe-post-type-card,
+	.sscribe-status-card-label,
+	.sscribe-format-card-label,
+	.sscribe-lang-card-label {
+		flex-basis: 100%;
+		max-width: none;
+	}
+
+	.sscribe-config-section .sscribe-language-cards {
+		max-height: none;
+		overflow-y: visible;
+	}
+
+	.sscribe-config-section .sscribe-language-cards-wrapper::after {
+		display: none;
+	}
+
+	.sscribe-export-bar {
+		bottom: 0;
+		margin: 0 -1px -1px;
+		padding: 14px 16px calc(14px + env(safe-area-inset-bottom));
+		position: sticky;
+		z-index: 30;
+	}
+
+	.sscribe-export-bar-actions,
+	.sscribe-export-bar-actions .sscribe-button {
+		width: 100%;
+	}
+
+	.sscribe-export-disabled-reason {
+		max-width: none;
+	}
+
+	.sscribe-status-alert {
+		align-items: stretch;
+		text-align: left;
+	}
+
+	.sscribe-phase-steps {
+		align-items: flex-start;
+		flex-direction: column;
+		gap: 8px;
+	}
+
+	.sscribe-phase-connector {
+		display: none;
+	}
+
+	.sscribe-current-page {
+		white-space: normal;
+	}
+
+	.sscribe-progress-tracker {
+		align-items: stretch;
+		flex-direction: column;
+		gap: 8px;
+	}
+
+	.sscribe-progress-percentage {
+		text-align: left;
+	}
+
+	.sscribe-history-row {
+		padding: 16px;
+	}
+
+	.sscribe-history-file {
+		min-width: 0;
+		width: 100%;
+	}
+
+	.sscribe-file-details {
+		min-width: 0;
+	}
+
+	.sscribe-file-details strong {
+		overflow-wrap: anywhere;
+	}
+
+	.sscribe-history-actions {
+		width: 100%;
+	}
+
+	.sscribe-history-actions .sscribe-button {
+		flex: 1 1 0;
+	}
+
+	.sscribe-modal {
+		align-items: flex-end;
+		padding: 12px;
+	}
+
+	.sscribe-modal-content {
+		max-height: 88vh;
+		border-radius: var(--sscribe-radius-lg) var(--sscribe-radius-lg) var(--sscribe-radius-sm) var(--sscribe-radius-sm);
+	}
+
+	.sscribe-modal-header,
+	.sscribe-modal-body {
+		padding-left: 18px;
+		padding-right: 18px;
+	}
+
+	.sscribe-toast-container {
+		inset: auto 12px calc(12px + env(safe-area-inset-bottom));
+		max-width: none;
+	}
+
+	.sscribe-toast {
+		width: 100%;
+	}
+
+	.sscribe-support-master {
+		gap: 18px;
+	}
+
+	.sscribe-support-copy-text {
+		min-height: 220px;
+		padding: 16px;
 	}
 }

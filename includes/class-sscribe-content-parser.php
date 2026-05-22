@@ -680,7 +680,8 @@ class SScribe_Content_Parser {
 		$local      = $upload_path . $relative;
 		$real_local = realpath( $local );
 
-		if ( false === $real_local || strpos( $real_local, $upload_path ) !== 0 ) {
+		$safe_upload_path = rtrim( $upload_path, DIRECTORY_SEPARATOR ) . DIRECTORY_SEPARATOR;
+		if ( false === $real_local || ! str_starts_with( $real_local, $safe_upload_path ) ) {
 			return '';
 		}
 

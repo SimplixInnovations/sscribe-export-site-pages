@@ -47,6 +47,7 @@
 				return;
 			}
 			this.bindEvents();
+			this.initializeTabs();
 			this.updateConfigSummary();
 
 			const defaultPostType = $('input[name="sscribe_post_type"]:checked').val() || 'page';
@@ -98,8 +99,25 @@
 			$(document).on('click', '#sscribe-modal-close', $.proxy(this.closeModal, this));
 			$(document).on('click', '.sscribe-history-actions > a', $.proxy(this.downloadExport, this));
 
-			// Keyboard shortcuts: Ctrl+E = Export, Ctrl+P = Preview.
+			const self = this;
+
+			// Keyboard shortcuts + modal escape handling.
 			$(document).on('keydown', function (e) {
+				if (e.key === 'Escape' || e.key === 'Esc') {
+					const $previewPanel = $('#sscribe-preview-panel');
+					const $logModal = $('#sscribe-log-modal');
+					if ($previewPanel.length && !$previewPanel.hasClass('sscribe-hidden')) {
+						e.preventDefault();
+						self.closePreview();
+						return;
+					}
+					if ($logModal.length && !$logModal.hasClass('sscribe-hidden')) {
+						e.preventDefault();
+						self.closeModal();
+						return;
+					}
+				}
+
 				if (!e.ctrlKey && !e.metaKey) { return; }
 				// Don't trigger shortcuts when user is typing in an input, textarea, or contenteditable.
 				const tag = e.target.tagName;
@@ -120,30 +138,102 @@
 				}
 			});
 
-			// Tab switching logic — handles ARIA roles and aria-selected state for accessibility.
-			$('.sscribe-tab-btn').on('click', function (e) {
+		},
+
+		initializeTabs: function () {
+			const self = this;
+			const $tabs = $('.sscribe-tab-btn');
+			if (!$tabs.length) {
+				return;
+			}
+
+			let activeTabId = $tabs.filter('.sscribe-tab-active').first().data('tab');
+			if (!activeTabId) {
+				activeTabId = $tabs.first().data('tab');
+			}
+
+			this.setActiveTab(activeTabId);
+
+			$tabs.on('click', function (e) {
 				e.preventDefault();
 				const $btn = $(this);
-				const tabId = $btn.data('tab');
-				const prevTab = $('.sscribe-tab-btn.sscribe-tab-active').data('tab');
+				self.activateTab($btn.data('tab'), true);
+			});
 
-				// Stop debug console auto-refresh when leaving debug tab.
-				if ( prevTab === 'debug' && typeof window.SScribeDebugConsole !== 'undefined' ) {
-					window.SScribeDebugConsole.stopAutoRefresh();
+			$tabs.on('keydown', function (e) {
+				const key = e.key;
+				if (!['ArrowRight', 'ArrowLeft', 'Home', 'End'].includes(key)) {
+					return;
+				}
+				e.preventDefault();
+
+				const $orderedTabs = $('.sscribe-tab-btn');
+				const currentIndex = $orderedTabs.index(this);
+				if (currentIndex === -1) {
+					return;
 				}
 
-				// Update ARIA states for all tab buttons.
-				$('.sscribe-tab-btn').attr('aria-selected', 'false').removeClass('sscribe-tab-active');
-				$btn.attr('aria-selected', 'true').addClass('sscribe-tab-active');
-
-				// Switch the visible tab panel.
-				$('.sscribe-tab-content').removeClass('sscribe-tab-active');
-				$('#sscribe-tab-' + tabId).addClass('sscribe-tab-active');
-
-				// Initialize debug console only when debug tab is opened.
-				if ( tabId === 'debug' && typeof window.SScribeDebugConsole !== 'undefined' ) {
-					window.SScribeDebugConsole.init();
+				let nextIndex = currentIndex;
+				if (key === 'ArrowRight') {
+					nextIndex = (currentIndex + 1) % $orderedTabs.length;
+				} else if (key === 'ArrowLeft') {
+					nextIndex = (currentIndex - 1 + $orderedTabs.length) % $orderedTabs.length;
+				} else if (key === 'Home') {
+					nextIndex = 0;
+				} else if (key === 'End') {
+					nextIndex = $orderedTabs.length - 1;
 				}
+
+				const $nextTab = $orderedTabs.eq(nextIndex);
+				self.activateTab($nextTab.data('tab'), true);
+			});
+		},
+
+		activateTab: function (tabId, moveFocus) {
+			if (!tabId) {
+				return;
+			}
+
+			const currentTabId = $('.sscribe-tab-btn[aria-selected="true"]').data('tab');
+			if (currentTabId === tabId) {
+				if (moveFocus) {
+					$('.sscribe-tab-btn[data-tab="' + tabId + '"]').trigger('focus');
+				}
+				return;
+			}
+
+			if (currentTabId === 'debug' && typeof window.SScribeDebugConsole !== 'undefined') {
+				window.SScribeDebugConsole.stopAutoRefresh();
+			}
+
+			this.setActiveTab(tabId);
+
+			if (moveFocus) {
+				$('.sscribe-tab-btn[data-tab="' + tabId + '"]').trigger('focus');
+			}
+
+			if (tabId === 'debug' && typeof window.SScribeDebugConsole !== 'undefined') {
+				window.SScribeDebugConsole.init();
+			}
+		},
+
+		setActiveTab: function (tabId) {
+			$('.sscribe-tab-btn').each(function () {
+				const $button = $(this);
+				const isActive = $button.data('tab') === tabId;
+				$button
+					.attr('aria-selected', isActive ? 'true' : 'false')
+					.attr('tabindex', isActive ? '0' : '-1')
+					.toggleClass('sscribe-tab-active', isActive);
+			});
+
+			$('.sscribe-tab-content').each(function () {
+				const $panel = $(this);
+				const isActive = $panel.attr('id') === 'sscribe-tab-' + tabId;
+				$panel
+					.toggleClass('sscribe-tab-active', isActive)
+					.prop('hidden', !isActive)
+					.attr('aria-hidden', isActive ? 'false' : 'true');
 			});
 		},
 
@@ -1292,8 +1382,12 @@
 			const $container = $('#sscribe-toast-container');
 			if (!$container.length) { return; }
 
-			const icons = { success: '✓', error: '✕', warning: '⚠', info: 'ℹ' };
-			const icon = icons[type] || 'ℹ';
+			const icons = { success: '&#10003;', error: '&#10005;', warning: '&#9888;', info: '&#9432;' };
+			const icon = icons[type] || '&#9432;';
+			const isAssertive = type === 'error' || type === 'warning';
+			const role = isAssertive ? 'alert' : 'status';
+			const ariaLive = isAssertive ? 'assertive' : 'polite';
+			const dismissLabel = (sscribe_data.strings && sscribe_data.strings.dismiss_notification) || 'Dismiss notification';
 
 			// Cap visible toasts at 5 to prevent overflow.
 			const $existing = $container.children('.sscribe-toast');
@@ -1303,10 +1397,10 @@
 			}
 
 			const $toast = $(
-				'<div class="sscribe-toast sscribe-toast-' + type + '" role="status">' +
+				'<div class="sscribe-toast sscribe-toast-' + type + '" role="' + role + '" aria-live="' + ariaLive + '" aria-atomic="true">' +
 					'<span class="sscribe-toast-icon">' + icon + '</span>' +
 					'<span class="sscribe-toast-message">' + this.escapeHtml(message) + '</span>' +
-					'<button type="button" class="sscribe-toast-dismiss" aria-label="Dismiss">&times;</button>' +
+					'<button type="button" class="sscribe-toast-dismiss" aria-label="' + this.escapeHtml(dismissLabel) + '">&times;</button>' +
 				'</div>'
 			);
 
@@ -1376,10 +1470,15 @@
 		},
 
 		restoreFocus: function () {
-			if (this._lastFocusedElement && typeof this._lastFocusedElement.focus === 'function') {
+			if (
+				this._lastFocusedElement &&
+				typeof this._lastFocusedElement.focus === 'function' &&
+				document.contains(this._lastFocusedElement) &&
+				!this._lastFocusedElement.disabled
+			) {
 				this._lastFocusedElement.focus();
-				this._lastFocusedElement = null;
 			}
+			this._lastFocusedElement = null;
 		},
 
 		trapFocus: function (container) {
@@ -1415,6 +1514,35 @@
 
 			container._sscribeTrapHandler = handler;
 			container.addEventListener('keydown', handler);
+		},
+
+		releaseFocusTrap: function (container) {
+			if (!container || !container._sscribeTrapHandler) {
+				return;
+			}
+			container.removeEventListener('keydown', container._sscribeTrapHandler);
+			delete container._sscribeTrapHandler;
+		},
+
+		focusFirstInteractive: function (container, fallbackSelector) {
+			if (!container || typeof container.querySelector !== 'function') {
+				return;
+			}
+
+			const focusableSelector =
+				'button:not([disabled]), [href], input:not([disabled]), select:not([disabled]), textarea:not([disabled]), [tabindex]:not([tabindex="-1"])';
+			const firstFocusable = container.querySelector(focusableSelector);
+			if (firstFocusable && typeof firstFocusable.focus === 'function') {
+				firstFocusable.focus();
+				return;
+			}
+
+			if (fallbackSelector) {
+				const fallback = document.querySelector(fallbackSelector);
+				if (fallback && typeof fallback.focus === 'function') {
+					fallback.focus();
+				}
+			}
 		},
 
 		/**
@@ -1458,9 +1586,10 @@
 				'</div>'
 			);
 
-			$panel.removeClass('sscribe-hidden').hide().fadeIn(300);
+			$panel.attr('aria-hidden', 'false').removeClass('sscribe-hidden').prop('hidden', false).hide().fadeIn(300);
 			this.saveFocus();
 			this.trapFocus($panel[0]);
+			this.focusFirstInteractive($panel[0], '#sscribe-preview-close');
 
 			const self = this;
 			$.ajax({
@@ -1579,10 +1708,13 @@
 				e.preventDefault();
 			}
 			const $panel = $('#sscribe-preview-panel');
+			const panelEl = $panel[0];
+			const self = this;
 			$panel.fadeOut(200, function () {
-				$panel.addClass('sscribe-hidden');
+				$panel.attr('aria-hidden', 'true').addClass('sscribe-hidden').prop('hidden', true);
+				self.releaseFocusTrap(panelEl);
+				self.restoreFocus();
 			});
-			this.restoreFocus();
 		},
 
 		/**
@@ -1718,9 +1850,10 @@
 				'</div>'
 			);
 
-			$modal.removeClass('sscribe-hidden').hide().fadeIn(300);
+			$modal.attr('aria-hidden', 'false').removeClass('sscribe-hidden').prop('hidden', false).hide().fadeIn(300);
 			this.saveFocus();
 			this.trapFocus($modal[0]);
+			this.focusFirstInteractive($modal[0], '#sscribe-modal-close');
 
 			const self = this;
 			$.ajax({
@@ -1796,10 +1929,13 @@
 				e.preventDefault();
 			}
 			const $modal = $('#sscribe-log-modal');
+			const modalEl = $modal[0];
+			const self = this;
 			$modal.fadeOut(200, function () {
-				$modal.addClass('sscribe-hidden');
+				$modal.attr('aria-hidden', 'true').addClass('sscribe-hidden').prop('hidden', true);
+				self.releaseFocusTrap(modalEl);
+				self.restoreFocus();
 			});
-			this.restoreFocus();
 		},
 
 		/**
