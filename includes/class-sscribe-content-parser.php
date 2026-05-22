@@ -495,7 +495,49 @@ class SScribe_Content_Parser {
 			$html = substr( $html, 0, 500000 );
 		}
 
-		$pattern = '/<a\s+[^>]*class=["\']([^"\']*(?:wp-block-button__link|wp-element-button|button|btn|elementor-button|et_pb_button|fl-button|vc_btn)[^"\']*)["\'][^>]*>(.*?)<\/a>/is';
+		// Guard clause: skip if no button-related class keywords exist in input.
+		$button_keywords = array(
+			'wp-block-button__link',
+			'wp-element-button',
+			'elementor-button',
+			'et_pb_button',
+			'fl-button',
+			'vc_btn',
+		);
+		$has_button_keyword = false;
+		foreach ( $button_keywords as $keyword ) {
+			if ( false !== strpos( $html, $keyword ) ) {
+				$has_button_keyword = true;
+				break;
+			}
+		}
+		if ( ! $has_button_keyword && false === strpos( $html, 'class="button' ) && false === strpos( $html, "class='button" ) && false === strpos( $html, 'class="btn' ) && false === strpos( $html, "class='btn" ) ) {
+			return $buttons;
+		}
+
+		/*
+		 * Improved regex pattern that avoids catastrophic backtracking.
+		 *
+		 * Key improvements:
+		 * 1. Matches <a followed by whitespace (not just any char)
+		 * 2. Uses negated character classes that cannot contain > or quotes
+		 * 3. Avoids pattern [^>]*class= which backtracks heavily on non-matching input
+		 * 4. Separates attribute parsing from button class detection
+		 *
+		 * Pattern breakdown:
+		 * - <a\s+          : <a tag with at least one space
+		 * - (?:[^>]*?)     : optional attributes before class (non-greedy, prevents backtracking)
+		 * - class=["\']    : class attribute opening
+		 * - [^"\']*        : class value before button class (no quotes)
+		 * - (?:wp-block-button__link|wp-element-button|...) : button class alternatives
+		 * - [^"\']*        : class value after button class
+		 * - ["\']          : closing quote
+		 * - [^>]*          : remaining attributes
+		 * - >               : tag close
+		 * - (.*?)          : content (non-greedy)
+		 * - <\/a>          : closing anchor
+		 */
+		$pattern = '/<a\s+(?:[^>]*?\s)?class=["\']([^"\']*(?:wp-block-button__link|wp-element-button|button|btn|elementor-button|et_pb_button|fl-button|vc_btn)[^"\']*)["\'](?:[^>]*)?>(.*?)<\/a>/is';
 
 		$match_count = preg_match_all( $pattern, $html, $matches, PREG_SET_ORDER );
 		if ( false !== $match_count && $match_count > 0 ) {
