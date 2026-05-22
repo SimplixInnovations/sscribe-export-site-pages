@@ -303,8 +303,7 @@ $sscribe_step            = 1;
 									</div>
 									<div class="sscribe-format-meta">
 										<span class="sscribe-format-name"><?php esc_html_e( 'All Formats', 'sscribe-export-site-pages' ); ?></span>
-										<span class="sscribe-format-desc"><?php esc_html_e( 'DOCX, PDF, HTML, MD', 'sscribe-export-site-pages' ); ?></span>
-										<span class="sscribe-format-note"><?php esc_html_e( '~8s/page', 'sscribe-export-site-pages' ); ?></span>
+										<span class="sscribe-format-desc"><?php esc_html_e( 'DOCX + PDF + HTML + MD', 'sscribe-export-site-pages' ); ?></span>
 									</div>
 									<div class="sscribe-format-selector">
 										<?php // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- SVG sanitized in get_icon().
@@ -318,22 +317,22 @@ $sscribe_step            = 1;
 								'docx'     => array(
 									'label' => __( 'DOCX', 'sscribe-export-site-pages' ),
 									'icon'  => 'file-doc',
-									'desc'  => __( '~1.5s/page', 'sscribe-export-site-pages' ),
+									'desc'  => __( 'Editable Word document', 'sscribe-export-site-pages' ),
 								),
 								'pdf'      => array(
 									'label' => __( 'PDF', 'sscribe-export-site-pages' ),
 									'icon'  => 'file-pdf',
-									'desc'  => __( '~8s/page', 'sscribe-export-site-pages' ),
+									'desc'  => __( 'Print-ready document', 'sscribe-export-site-pages' ),
 								),
 								'html'     => array(
 									'label' => __( 'HTML', 'sscribe-export-site-pages' ),
 									'icon'  => 'file-html',
-									'desc'  => __( '~1s/page', 'sscribe-export-site-pages' ),
+									'desc'  => __( 'Single-page HTML file', 'sscribe-export-site-pages' ),
 								),
 								'markdown' => array(
 									'label' => __( 'Markdown', 'sscribe-export-site-pages' ),
 									'icon'  => 'file-md',
-									'desc'  => __( '~0.5s/page', 'sscribe-export-site-pages' ),
+									'desc'  => __( 'Portable markdown text', 'sscribe-export-site-pages' ),
 								),
 							);
 							foreach ( $sscribe_formats as $sscribe_format_key => $sscribe_format_data ) :
@@ -375,7 +374,7 @@ $sscribe_step            = 1;
 						<span class="sscribe-summary-sep-em" aria-hidden="true">|</span>
 						<span class="sscribe-summary-chip sscribe-summary-pages" id="sscribe-summary-pages">—</span>
 						<span class="sscribe-summary-sep" aria-hidden="true">·</span>
-						<span class="sscribe-summary-chip sscribe-summary-time" id="sscribe-summary-time">—</span>
+						<span class="sscribe-summary-chip sscribe-summary-time" id="sscribe-summary-time"><?php esc_html_e( 'See Preview', 'sscribe-export-site-pages' ); ?></span>
 					</div>
 					<div class="sscribe-export-bar-actions">
 						<button type="button" id="sscribe-preview-btn" class="sscribe-button sscribe-button-outline sscribe-btn-sm" disabled aria-describedby="sscribe-preview-btn-hint">
@@ -400,7 +399,7 @@ $sscribe_step            = 1;
 								<?php // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- SVG sanitized in get_icon().
 								?>
 								<?php echo wp_kses_post( SScribe_Helpers::get_icon( 'eye', 16 ) ); ?>
-								<?php esc_html_e( 'Export Preview', 'sscribe-export-site-pages' ); ?>
+								<?php esc_html_e( 'Export Readiness', 'sscribe-export-site-pages' ); ?>
 							</h3>
 							<button type="button" id="sscribe-preview-close" class="sscribe-modal-close" aria-label="Close preview">
 								<span aria-hidden="true">&times;</span>
@@ -412,7 +411,15 @@ $sscribe_step            = 1;
 								<span><?php esc_html_e( 'Generating preview...', 'sscribe-export-site-pages' ); ?></span>
 							</div>
 						</div>
-						<span id="sscribe-preview-desc" class="screen-reader-text"><?php esc_html_e( 'Export preview showing selected configuration and estimated output', 'sscribe-export-site-pages' ); ?></span>
+						<div class="sscribe-modal-footer sscribe-preview-footer">
+							<button type="button" id="sscribe-preview-start-btn" class="sscribe-button sscribe-button-primary">
+								<?php esc_html_e( 'Start Export', 'sscribe-export-site-pages' ); ?>
+							</button>
+							<button type="button" id="sscribe-preview-dismiss-btn" class="sscribe-button sscribe-button-outline">
+								<?php esc_html_e( 'Close', 'sscribe-export-site-pages' ); ?>
+							</button>
+						</div>
+						<span id="sscribe-preview-desc" class="screen-reader-text"><?php esc_html_e( 'Export readiness preview showing selected configuration and expected output', 'sscribe-export-site-pages' ); ?></span>
 					</div>
 				</div>
 		</section>
@@ -623,43 +630,42 @@ $sscribe_step            = 1;
 			</div>
 
 			<div class="sscribe-tab-content" id="sscribe-tab-docs" role="tabpanel" aria-labelledby="sscribe-tab-btn-docs" hidden aria-hidden="true">
-	<div class="sscribe-support-master">
-		<div class="sscribe-support-sidebar">
-			<div class="sscribe-support-header">
-				<?php echo wp_kses_post( SScribe_Helpers::get_icon( 'info', 28 ) ); ?>
-				<h2><?php esc_html_e( 'System Diagnostics', 'sscribe-export-site-pages' ); ?></h2>
-				<p><?php esc_html_e( 'Generate a redacted environment snapshot. Share this securely with Simplixi support to help us diagnose and resolve issues faster.', 'sscribe-export-site-pages' ); ?></p>
-			</div>
-
-			<div class="sscribe-support-actions-vertical">
-				<button type="button" class="sscribe-button sscribe-button-primary" id="sscribe-support-copy-btn" disabled>
-					<?php esc_html_e( 'Copy to Clipboard', 'sscribe-export-site-pages' ); ?>
-				</button>
-				<button type="button" class="sscribe-button sscribe-button-outline" id="sscribe-support-refresh-btn">
-					<?php esc_html_e( 'Refresh Data', 'sscribe-export-site-pages' ); ?>
-				</button>
-			</div>
-			<p class="sscribe-support-feedback sscribe-hidden" id="sscribe-support-feedback" aria-live="polite"></p>
-		</div>
-
-		<div class="sscribe-support-main">
-			<div class="sscribe-support-terminal" data-support-card>
-				<div class="sscribe-terminal-header">
-					<span class="sscribe-dot sscribe-dot-red"></span>
-					<span class="sscribe-dot sscribe-dot-yellow"></span>
-					<span class="sscribe-dot sscribe-dot-green"></span>
-					<span class="sscribe-terminal-title">system-report.log</span>
-				</div>
-				<div class="sscribe-support-copy-wrap">
-					<label class="screen-reader-text" for="sscribe-support-copy-text"><?php esc_html_e( 'Support information text', 'sscribe-export-site-pages' ); ?></label>
-					<textarea id="sscribe-support-copy-text" class="sscribe-support-copy-text" readonly inputmode="none"></textarea>
-				</div>
-				<div class="sscribe-hidden" id="sscribe-support-grid" aria-live="polite"></div>
-			</div>
+				<div class="sscribe-support-master">
+					<div class="sscribe-support-sidebar">
+						<div class="sscribe-support-header">
+							<?php echo wp_kses_post( SScribe_Helpers::get_icon( 'info', 28 ) ); ?>
+							<h2><?php esc_html_e( 'System Diagnostics', 'sscribe-export-site-pages' ); ?></h2>
+							<p><?php esc_html_e( 'Generate a redacted environment snapshot. Share this securely with Simplixi support to help us diagnose and resolve issues faster.', 'sscribe-export-site-pages' ); ?></p>
 						</div>
+
+						<div class="sscribe-support-actions-vertical">
+							<button type="button" class="sscribe-button sscribe-button-primary" id="sscribe-support-copy-btn" disabled>
+								<?php esc_html_e( 'Copy to Clipboard', 'sscribe-export-site-pages' ); ?>
+							</button>
+							<button type="button" class="sscribe-button sscribe-button-outline" id="sscribe-support-refresh-btn">
+								<?php esc_html_e( 'Refresh Data', 'sscribe-export-site-pages' ); ?>
+							</button>
+						</div>
+						<p class="sscribe-support-feedback sscribe-hidden" id="sscribe-support-feedback" aria-live="polite"></p>
+					</div>
+
+					<div class="sscribe-support-main">
+						<div class="sscribe-support-terminal" data-support-card>
+							<div class="sscribe-terminal-header">
+								<span class="sscribe-dot sscribe-dot-red"></span>
+								<span class="sscribe-dot sscribe-dot-yellow"></span>
+								<span class="sscribe-dot sscribe-dot-green"></span>
+								<span class="sscribe-terminal-title">system-report.log</span>
+							</div>
+							<div class="sscribe-support-copy-wrap">
+								<label class="screen-reader-text" for="sscribe-support-copy-text"><?php esc_html_e( 'Support information text', 'sscribe-export-site-pages' ); ?></label>
+								<textarea id="sscribe-support-copy-text" class="sscribe-support-copy-text" readonly inputmode="none"></textarea>
+							</div>
+							<div class="sscribe-hidden" id="sscribe-support-grid" aria-live="polite"></div>
 						</div>
 					</div>
-</div>
+				</div>
+			</div>
 
 			<div class="sscribe-tab-content" id="sscribe-tab-debug" role="tabpanel" aria-labelledby="sscribe-tab-btn-debug" hidden aria-hidden="true">
 				<?php include SSCRIBE_PLUGIN_DIR . 'admin/partials/sscribe-admin-debug-tab.php'; ?>
