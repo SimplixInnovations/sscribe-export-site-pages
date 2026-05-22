@@ -421,9 +421,15 @@ class SScribe_Logger_Enhanced implements SScribe_Logger_Interface {
 	 */
 	private function table_exists(): bool {
 		global $wpdb;
+		static $exists = null;
 
-		$result = $wpdb->get_var( $wpdb->prepare( 'SHOW TABLES LIKE %s', $this->table_name ) );
-		return $result === $this->table_name;
+		if ( null === $exists ) {
+			// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- Schema introspection, cached via static variable
+			$result = $wpdb->get_var( $wpdb->prepare( 'SHOW TABLES LIKE %s', $this->table_name ) );
+			$exists = ( $result === $this->table_name );
+		}
+
+		return $exists;
 	}
 
 	/**
