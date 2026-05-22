@@ -1864,7 +1864,7 @@ class SScribe_Batch_Processor {
 	 * Check for active session on page load - used to restore UI after browser reload.
 	 */
 	public function ajax_check_active_session(): void {
-		if ( ! check_ajax_referer( 'sscribe_download', 'nonce', false ) ) {
+		if ( ! check_ajax_referer( 'sscribe_export_nonce', 'nonce', false ) ) {
 			status_header( 403 );
 			wp_send_json_error(
 				array( 'message' => esc_html__( 'Security check failed.', 'sscribe-export-site-pages' ) )

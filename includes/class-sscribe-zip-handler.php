@@ -66,8 +66,9 @@ class SScribe_Zip_Handler {
 	 * @return string
 	 */
 	public function create_temp_dir(): string {
+		$export_dir    = $this->get_export_dir();
 		$random_suffix = bin2hex( random_bytes( 6 ) );
-		$temp_dir      = $this->export_dir . '/temp-' . $random_suffix;
+		$temp_dir      = $export_dir . '/temp-' . $random_suffix;
 		wp_mkdir_p( $temp_dir );
 		return $temp_dir;
 	}
