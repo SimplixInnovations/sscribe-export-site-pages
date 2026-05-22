@@ -142,7 +142,9 @@ class SScribe_Exporter {
 			$text = mb_substr( $text, 0, 200, 'UTF-8' );
 		}
 
-		$text = htmlspecialchars( $text, ENT_XML1 | ENT_QUOTES, 'UTF-8', false );
+		// NOTE: Do NOT apply htmlspecialchars() here. PHPWord performs its own
+		// XML encoding internally (PhpWord >= 1.5), so htmlspecialchars would cause
+		// double-encoding. The character-stripping logic above is sufficient.
 
 		return $text;
 	}

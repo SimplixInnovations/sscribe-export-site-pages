@@ -677,8 +677,8 @@ class SScribe_Batch_Processor {
 			);
 		}
 
-		$lock_ttl        = (int) apply_filters( 'sscribe_lock_ttl', 45 );
-		$stale_threshold = (int) apply_filters( 'sscribe_lock_stale_threshold', 35 );
+		$lock_ttl        = (int) apply_filters( 'sscribe_lock_ttl', 150 );
+		$stale_threshold = (int) apply_filters( 'sscribe_lock_stale_threshold', 120 );
 
 		$this->current_lock_token = $this->get_lock_manager()->acquire_lock( $session_id, $lock_ttl, $stale_threshold );
 
