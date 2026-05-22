@@ -1855,6 +1855,17 @@ body .sscribe-master-container .sscribe-hero {
 	color: var(--sscribe-text-muted);
 }
 
+.sscribe-history-notice {
+	padding: 8px 16px;
+	text-align: center;
+	color: var(--sscribe-text-muted);
+	font-size: 13px;
+}
+
+.sscribe-history-notice p {
+	margin: 0;
+}
+
 .sscribe-empty-illustration {
 	display: block;
 	margin: 0 auto 12px;

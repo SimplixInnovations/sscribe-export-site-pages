@@ -48,6 +48,7 @@
 			}
 			this.bindEvents();
 			this.initializeTabs();
+			this.adjustToastContainerPosition();
 			this.updateConfigSummary();
 
 			const defaultPostType = $('input[name="sscribe_post_type"]:checked').val() || 'page';
@@ -318,10 +319,17 @@
 								.text(total.toLocaleString());
 						}
 					},
-					error: function () {
-							$('.sscribe-status-card-label').removeClass('sscribe-loading');
-							$('#sscribe-post-count, #sscribe-both-count').removeClass('sscribe-loading-count');
-						},
+error: function () {
+					$('.sscribe-status-card-label').removeClass('sscribe-loading');
+					$('#sscribe-post-count, #sscribe-both-count').removeClass('sscribe-loading-count');
+					const $warning = $('<span class="sscribe-count-error" style="color: var(--sscribe-text-error); font-size: 12px; margin-left: 8px;"><?php esc_attr_e( 'Counts unavailable', 'sscribe-export-site-pages' ); ?></span>');
+					$('#sscribe-post-count, #sscribe-both-count').each(function() {
+						if (!$(this).next('.sscribe-count-error').length) {
+							$(this).after($warning.clone());
+						}
+					});
+					console.warn('SScribe: Failed to refresh status counts');
+				},
 				});
 			});
 
@@ -758,7 +766,7 @@
 						SScribe.batchRetries = 0;
 						const data = response.data;
 
-						SScribe.updateProgress(data.percentage);
+						SScribe.updateProgress(data.percentage, data.current_page, data.total_pages);
 						SScribe.updateStatus(data.message);
 						if (data.status === 'processing') {
 							SScribe.updatePhase('processing');
@@ -1220,7 +1228,7 @@
 			this.deleteSingleExport(filename, $.proxy(this.processBulkDelete, this));
 		},
 
-		updateProgress: function (percentage) {
+		updateProgress: function (percentage, currentPage, totalPages) {
 			percentage = Number(percentage);
 			if (!isFinite(percentage)) {
 				percentage = 0;
@@ -1231,6 +1239,9 @@
 			if (progressBar) {
 				progressBar.style.transform = 'scaleX(' + percentage / 100 + ')';
 				progressBar.setAttribute('aria-valuenow', percentage);
+				if (typeof currentPage === 'number' && typeof totalPages === 'number' && totalPages > 0) {
+					progressBar.setAttribute('aria-valuetext', 'Processing ' + currentPage + ' of ' + totalPages + ' pages');
+				}
 			} else {
 				$('#sscribe-progress-bar').css('width', percentage + '%');
 			}
@@ -1362,6 +1373,14 @@
 		 * @param {string} type     One of 'success', 'error', 'warning', 'info'.
 		 * @param {number} duration Auto-dismiss timeout in ms (default: 4000).
 		 */
+		adjustToastContainerPosition: function () {
+			const $container = $('#sscribe-toast-container');
+			if (!$container.length) { return; }
+			const $wpadminbar = $('#wpadminbar');
+			const adminBarHeight = $wpadminbar.length ? $wpadminbar.outerHeight() : 0;
+			$container.css('top', Math.max(adminBarHeight, 32) + 'px');
+		},
+
 		showToast: function (message, type, duration) {
 			type = type || 'info';
 			duration = (typeof duration === 'number') ? duration : 4000;
