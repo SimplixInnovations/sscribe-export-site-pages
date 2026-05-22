@@ -77,11 +77,12 @@ class SScribe_Admin_Debug {
 
 		$filter_level = isset( $_GET['filter_level'] ) ? sanitize_text_field( wp_unslash( $_GET['filter_level'] ) ) : 'ALL';
 		$search       = isset( $_GET['search'] ) ? sanitize_text_field( wp_unslash( $_GET['search'] ) ) : '';
+		$session_id   = isset( $_GET['session_id'] ) ? sanitize_text_field( wp_unslash( $_GET['session_id'] ) ) : '';
 		$offset       = isset( $_GET['offset'] ) ? absint( $_GET['offset'] ) : 0;
-		$limit        = isset( $_GET['limit'] ) ? absint( $_GET['limit'] ) : 100;
+		$limit        = isset( $_GET['limit'] ) ? absint( $_GET['limit'] ) : 500;
 
 		if ( $limit < 1 || $limit > 500 ) {
-			$limit = 100;
+			$limit = 500;
 		}
 		if ( $offset < 0 ) {
 			$offset = 0;
@@ -90,7 +91,7 @@ class SScribe_Admin_Debug {
 		$logger = SScribe_Logger::instance( SScribe_Settings::is_debug_enabled() );
 		$logs   = $logger->get_logs();
 
-		$entries = $this->parse_log_entries( $logs, $filter_level, $search );
+		$entries = $this->parse_log_entries( $logs, $filter_level, $search, $session_id );
 
 		wp_send_json_success(
 			array(
@@ -365,9 +366,10 @@ class SScribe_Admin_Debug {
 	 * @param array  $lines        Raw log lines.
 	 * @param string $filter_level Level filter.
 	 * @param string $search       Search query.
+	 * @param string $session_id    Session ID filter.
 	 * @return array Parsed entries.
 	 */
-	private function parse_log_entries( array $lines, string $filter_level, string $search ): array {
+	private function parse_log_entries( array $lines, string $filter_level, string $search, string $session_id = '' ): array {
 		$entries = array();
 
 		foreach ( $lines as $line ) {
@@ -379,6 +381,13 @@ class SScribe_Admin_Debug {
 
 			if ( 'ALL' !== $filter_level && strtoupper( $entry['level'] ) !== $filter_level ) {
 				continue;
+			}
+
+			if ( ! empty( $session_id ) ) {
+				$entry_session = $entry['context']['session_id'] ?? '';
+				if ( false === strpos( $entry_session, $session_id ) ) {
+					continue;
+				}
 			}
 
 			if ( ! empty( $search ) ) {

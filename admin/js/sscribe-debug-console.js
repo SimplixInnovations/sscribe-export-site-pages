@@ -24,6 +24,7 @@
 		isAutoRefresh: true,
 		currentFilter: 'ALL',
 		searchQuery: '',
+		sessionFilter: '',
 		initialized: false,
 		isViewingRotated: false,
 		currentOffset: 0,
@@ -50,6 +51,7 @@
 			this.$saveFeedback = $( '#sscribe-debug-save-feedback' );
 			this.$filterLevel = $( '#sscribe-debug-filter-level' );
 			this.$searchInput = $( '#sscribe-debug-search' );
+			this.$sessionInput = $( '#sscribe-debug-session-id' );
 			this.$refreshMode = $( 'input[name="sscribe_refresh_mode"]' );
 			this.$refreshBtn = $( '#sscribe-debug-refresh-btn' );
 			this.$consoleBody = $( '#sscribe-debug-console-body' );
@@ -78,6 +80,14 @@
 
 			this.$searchInput.on( 'input', debounce( 300, function() {
 				self.searchQuery = self.$searchInput.val();
+				self.currentOffset = 0;
+				self.hasMoreEntries = true;
+				self.destroyObserver();
+				self.fetchLogs();
+			} ) );
+
+			this.$sessionInput.on( 'input', debounce( 300, function() {
+				self.sessionFilter = self.$sessionInput.val().trim();
 				self.currentOffset = 0;
 				self.hasMoreEntries = true;
 				self.destroyObserver();
@@ -236,6 +246,7 @@
 				nonce: sscribe_data.nonce,
 				filter_level: this.currentFilter,
 				search: this.searchQuery,
+				session_id: this.sessionFilter,
 				offset: this.currentOffset,
 				limit: 500
 			};
