@@ -226,6 +226,9 @@ class SScribe_Session {
 		$lock_ttl      = 10;
 		$using_cache   = wp_using_ext_object_cache();
 
+		// Use exponential back-off: 100ms, 200ms, 400ms, 800ms, 1600ms
+		$base_delay = 100000; // 100ms in microseconds
+
 		for ( $lock_attempt = 1; $lock_attempt <= 5; ++$lock_attempt ) {
 			if ( $using_cache ) {
 				if ( wp_cache_add( $lock_key, time(), 'transient', $lock_ttl ) ) {
@@ -237,7 +240,9 @@ class SScribe_Session {
 				break;
 			}
 
-			usleep( 100000 );
+			// Exponential back-off: base_delay * 2^(attempt-1)
+			$delay = $base_delay * ( 2 ** ( $lock_attempt - 1 ) );
+			usleep( $delay );
 		}
 
 		if ( ! $lock_acquired ) {
