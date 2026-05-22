@@ -125,6 +125,7 @@ class SScribe {
 		add_action( 'admin_notices', array( $this, 'render_vendor_dependency_notice' ) );
 		add_action( 'save_post', array( $this, 'invalidate_admin_page_cache' ) );
 		add_filter( 'plugin_action_links_' . SSCRIBE_PLUGIN_BASENAME, array( $admin, 'add_plugin_action_links' ) );
+		add_filter( 'script_loader_tag', array( $admin, 'add_nonce_to_script_tags' ), 10, 3 );
 	}
 
 	/**
