@@ -84,11 +84,11 @@ class SScribe_Admin_Debug {
 			return;
 		}
 
-		$filter_level = isset( $_GET['filter_level'] ) ? sanitize_text_field( wp_unslash( $_GET['filter_level'] ) ) : 'ALL';
-		$search       = isset( $_GET['search'] ) ? sanitize_text_field( wp_unslash( $_GET['search'] ) ) : '';
-		$session_id   = isset( $_GET['session_id'] ) ? sanitize_text_field( wp_unslash( $_GET['session_id'] ) ) : '';
-		$offset       = isset( $_GET['offset'] ) ? absint( $_GET['offset'] ) : 0;
-		$limit        = isset( $_GET['limit'] ) ? absint( $_GET['limit'] ) : 500;
+		$filter_level = isset( $_POST['filter_level'] ) ? sanitize_text_field( wp_unslash( $_POST['filter_level'] ) ) : 'ALL';
+		$search       = isset( $_POST['search'] ) ? sanitize_text_field( wp_unslash( $_POST['search'] ) ) : '';
+		$session_id   = isset( $_POST['session_id'] ) ? sanitize_text_field( wp_unslash( $_POST['session_id'] ) ) : '';
+		$offset       = isset( $_POST['offset'] ) ? absint( $_POST['offset'] ) : 0;
+		$limit        = isset( $_POST['limit'] ) ? absint( $_POST['limit'] ) : 500;
 
 		if ( $limit < 1 || $limit > 500 ) {
 			$limit = 500;
@@ -142,15 +142,15 @@ class SScribe_Admin_Debug {
 		check_ajax_referer( 'sscribe_export_nonce', 'nonce' );
 
 		if ( ! current_user_can( $this->get_export_capability() ) ) {
-			wp_die( esc_html__( 'Insufficient permissions.', 'sscribe-export-site-pages' ) );
+			SScribe_AJAX_Guard::error( array( 'message' => __( 'Insufficient permissions.', 'sscribe-export-site-pages' ) ), 403 );
 		}
 
 		$rate_limiter = new SScribe_Export_Rate_Limiter();
 		if ( ! $rate_limiter->check_rate_limit( $this->get_export_capability() ) ) {
-			wp_die( esc_html__( 'Rate limit exceeded. Please wait before trying again.', 'sscribe-export-site-pages' ) );
+			SScribe_AJAX_Guard::error( array( 'message' => __( 'Rate limit exceeded. Please wait before trying again.', 'sscribe-export-site-pages' ) ), 429 );
 		}
 
-		$filename = isset( $_GET['filename'] ) ? sanitize_text_field( wp_unslash( $_GET['filename'] ) ) : '';
+		$filename = isset( $_POST['filename'] ) ? sanitize_text_field( wp_unslash( $_POST['filename'] ) ) : '';
 
 		if ( ! empty( $filename ) ) {
 			$upload_dir = wp_upload_dir();
@@ -161,25 +161,25 @@ class SScribe_Admin_Debug {
 			$real_log_dir   = realpath( $log_dir );
 
 			if ( false === $real_file_path || false === $real_log_dir ) {
-				wp_die( esc_html__( 'File not found.', 'sscribe-export-site-pages' ) );
+				SScribe_AJAX_Guard::error( array( 'message' => __( 'File not found.', 'sscribe-export-site-pages' ) ), 404 );
 			}
 
 			if ( 0 === strpos( $real_file_path, $real_log_dir . DIRECTORY_SEPARATOR ) ) {
 				$content = file_get_contents( $file_path ); // phpcs:ignore WordPress.WP.AlternativeFunctions.file_get_contents_file_get_contents
 				if ( false === $content ) {
-					wp_die( esc_html__( 'Failed to read file.', 'sscribe-export-site-pages' ) );
+					SScribe_AJAX_Guard::error( array( 'message' => __( 'Failed to read file.', 'sscribe-export-site-pages' ) ), 500 );
 				}
 				$this->download_json( $filename, $content );
 				return;
 			} else {
-				wp_die( esc_html__( 'File not found.', 'sscribe-export-site-pages' ) );
+				SScribe_AJAX_Guard::error( array( 'message' => __( 'File not found.', 'sscribe-export-site-pages' ) ), 404 );
 			}
 		}
 
-		$filter_level = isset( $_GET['filter_level'] ) ? sanitize_text_field( wp_unslash( $_GET['filter_level'] ) ) : 'ALL';
-		$search       = isset( $_GET['search'] ) ? sanitize_text_field( wp_unslash( $_GET['search'] ) ) : '';
-		$offset       = isset( $_GET['offset'] ) ? absint( $_GET['offset'] ) : 0;
-		$limit        = isset( $_GET['limit'] ) ? absint( $_GET['limit'] ) : 100;
+		$filter_level = isset( $_POST['filter_level'] ) ? sanitize_text_field( wp_unslash( $_POST['filter_level'] ) ) : 'ALL';
+		$search       = isset( $_POST['search'] ) ? sanitize_text_field( wp_unslash( $_POST['search'] ) ) : '';
+		$offset       = isset( $_POST['offset'] ) ? absint( $_POST['offset'] ) : 0;
+		$limit        = isset( $_POST['limit'] ) ? absint( $_POST['limit'] ) : 100;
 
 		if ( $limit < 1 || $limit > 500 ) {
 			$limit = 100;
@@ -276,9 +276,9 @@ class SScribe_Admin_Debug {
 			return;
 		}
 
-		$filename = isset( $_GET['filename'] ) ? sanitize_text_field( wp_unslash( $_GET['filename'] ) ) : '';
-		$offset   = isset( $_GET['offset'] ) ? absint( $_GET['offset'] ) : 0;
-		$limit    = isset( $_GET['limit'] ) ? absint( $_GET['limit'] ) : 100;
+		$filename = isset( $_POST['filename'] ) ? sanitize_text_field( wp_unslash( $_POST['filename'] ) ) : '';
+		$offset   = isset( $_POST['offset'] ) ? absint( $_POST['offset'] ) : 0;
+		$limit    = isset( $_POST['limit'] ) ? absint( $_POST['limit'] ) : 100;
 
 		if ( empty( $filename ) ) {
 			wp_send_json_error( array( 'message' => __( 'Filename required.', 'sscribe-export-site-pages' ) ) );
@@ -463,9 +463,16 @@ class SScribe_Admin_Debug {
 	 * @param string $content  JSON content.
 	 */
 	private function download_json( string $filename, string $content ): void {
+		// Sanitize filename: remove any \r\n to prevent header injection, strip quotes
+		$safe_filename = preg_replace( '/[\r\n"]/', '', $filename );
+		$safe_filename = sanitize_file_name( $safe_filename );
+		if ( empty( $safe_filename ) ) {
+			$safe_filename = 'export.json';
+		}
+
 		header( 'Content-Type: application/json' );
-		header( 'Content-Disposition: attachment; filename="' . $filename . '"' );
-		header( 'Content-Length: ' . strlen( $content ) );
+		header( 'Content-Disposition: attachment; filename="' . $safe_filename . '"' );
+		header( 'Content-Length: ' . mb_strlen( $content, '8bit' ) );
 		header( 'Cache-Control: no-cache' );
 
 		echo $content; // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped

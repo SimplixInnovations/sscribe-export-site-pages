@@ -118,6 +118,18 @@ class SScribe_Security {
 		$upload_dir = wp_upload_dir();
 		$base_dir   = trailingslashit( $upload_dir['basedir'] );
 
-		return str_starts_with( str_replace( '\\', '/', $path ), str_replace( '\\', '/', $base_dir ) );
+		// Use realpath for canonical path to prevent symlink bypass
+		$real_path     = realpath( $path );
+		$real_base_dir = realpath( $base_dir );
+
+		if ( false === $real_path || false === $real_base_dir ) {
+			return false;
+		}
+
+		// Normalize slashes for cross-platform comparison
+		$real_path     = str_replace( '\\', '/', $real_path );
+		$real_base_dir = str_replace( '\\', '/', $real_base_dir );
+
+		return str_starts_with( $real_path, $real_base_dir . '/' );
 	}
 }
