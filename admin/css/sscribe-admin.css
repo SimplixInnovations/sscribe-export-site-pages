@@ -43,24 +43,6 @@
 	--sscribe-info: #68A885;
 	--sscribe-info-light: rgb(104 168 133 / 8%);
 
-	/* Feature Icon Semantic Colors */
-	--sscribe-feature-page-title-bg: #dbeafe;
-	--sscribe-feature-page-title: #2563eb;
-	--sscribe-feature-page-content-bg: #d1fae5;
-	--sscribe-feature-page-content: #059669;
-	--sscribe-feature-seo-bg: #ede9fe;
-	--sscribe-feature-seo: #7c3aed;
-	--sscribe-feature-permalink-bg: #cffafe;
-	--sscribe-feature-permalink: #0891b2;
-	--sscribe-feature-author-bg: #fee2e2;
-	--sscribe-feature-author: #dc2626;
-	--sscribe-feature-dates-bg: #fef3c7;
-	--sscribe-feature-dates: #d97706;
-	--sscribe-feature-parent-bg: #e0f2fe;
-	--sscribe-feature-parent: #0284c7;
-	--sscribe-feature-image-bg: #fce7f3;
-	--sscribe-feature-image: #db2777;
-
 	/* Neutral / Surface Colors */
 	--sscribe-bg: #F8F9FA;               /* Neutral Background */
 	--sscribe-card-bg: #FFF;
@@ -306,15 +288,8 @@ body .sscribe-master-container .sscribe-hero {
 	margin: 0;
 }
 
-.sscribe-p-md {
-	padding: var(--sscribe-space-l) var(--sscribe-space-l);
-}
-
-.sscribe-description {
-	color: var(--sscribe-text-secondary);
-	font-size: 14px;
-	line-height: 1.6;
-	margin-bottom: var(--sscribe-space-ml);
+.sscribe-panel-body {
+	padding: var(--sscribe-space-lg, 24px);
 }
 
 /* ============================================
@@ -338,23 +313,11 @@ body .sscribe-master-container .sscribe-hero {
 	padding: var(--sscribe-space-lg, 24px);
 }
 
-.sscribe-panel-body.sscribe-p-md {
-	padding: var(--sscribe-space-md, 16px);
-}
-
 .sscribe-status-icon .sscribe-icon {
 	color: var(--sscribe-text-muted);
 }
 
-.sscribe-format-card .sscribe-icon {
-	color: var(--sscribe-text-muted);
-}
-
 .sscribe-history-file .sscribe-icon {
-	color: var(--sscribe-text-muted);
-}
-
-.sscribe-sidebar-section .sscribe-icon {
 	color: var(--sscribe-text-muted);
 }
 
@@ -421,30 +384,6 @@ body .sscribe-master-container .sscribe-hero {
 		opacity: 1;
 		transform: translateY(0);
 	}
-}
-
-/* ============================================
-   FIELDSETS
-   ============================================ */
-.sscribe-fieldset {
-	border: none;
-	margin: 0 0 20px;
-	padding: 0;
-}
-
-.sscribe-fieldset-legend {
-	display: flex;
-	align-items: center;
-	gap: 8px;
-	font-weight: 600;
-	font-size: 14px;
-	color: var(--sscribe-text-main);
-	margin-bottom: 14px;
-	padding: 0;
-}
-
-.sscribe-fieldset-legend svg {
-	color: var(--sscribe-primary);
 }
 
 /* ============================================
@@ -565,80 +504,6 @@ body .sscribe-master-container .sscribe-hero {
 }
 
 /* ============================================
-   FORMAT SELECTION (Checkbox Style)
-   ============================================ */
-.sscribe-format-selection {
-	display: flex;
-	flex-wrap: wrap;
-	gap: 12px;
-}
-
-.sscribe-format-option {
-	display: block;
-	cursor: pointer;
-	flex: 1 1 180px;
-	max-width: 220px;
-}
-
-.sscribe-format-option input[type='checkbox'] {
-	position: absolute;
-	width: 1px;
-	height: 1px;
-	padding: 0;
-	margin: -1px;
-	overflow: hidden;
-	clip: rect(0, 0, 0, 0);
-	white-space: nowrap;
-	border: 0;
-}
-
-.sscribe-format-card {
-	display: flex;
-	align-items: center;
-	background: var(--sscribe-card-bg);
-	border: 1px solid var(--sscribe-border-light);
-	border-radius: var(--sscribe-radius-md);
-	padding: 12px 16px;
-	gap: 12px;
-	transition: all var(--sscribe-transition-normal);
-	height: 100%;
-	cursor: pointer;
-}
-
-.sscribe-format-option:hover .sscribe-format-card {
-	border-color: var(--sscribe-primary);
-	box-shadow: var(--sscribe-shadow-shallow);
-	transform: translateY(-1px);
-}
-
-.sscribe-format-option input[type='checkbox']:checked + .sscribe-format-card {
-	border-color: var(--sscribe-primary);
-	background: var(--sscribe-primary-light);
-	box-shadow: 0 0 0 3px rgb(104 168 133 / 10%);
-}
-
-.sscribe-format-card svg {
-	flex-shrink: 0;
-	width: 18px;
-	height: 18px;
-	color: var(--sscribe-text-muted);
-	transition: color var(--sscribe-transition-fast);
-}
-
-.sscribe-format-option input[type='checkbox']:checked + .sscribe-format-card svg {
-	color: var(--sscribe-primary);
-}
-
-.sscribe-format-label {
-	font-weight: 600;
-	font-size: 13px;
-	color: var(--sscribe-text-main);
-	white-space: nowrap;
-	overflow: hidden;
-	text-overflow: ellipsis;
-}
-
-/* ============================================
    FORMAT CARDS (Radio Style)
    ============================================ */
 .sscribe-format-cards {
@@ -728,19 +593,10 @@ body .sscribe-master-container .sscribe-hero {
 	text-overflow: ellipsis;
 }
 
-.sscribe-format-desc,
-.sscribe-format-time {
+.sscribe-format-desc {
 	font-size: 11px;
 	color: var(--sscribe-text-muted);
 	font-weight: 500;
-}
-
-.sscribe-format-note {
-	display: block;
-	font-size: 11px;
-	color: var(--sscribe-warning);
-	font-weight: 600;
-	margin-top: 2px;
 }
 
 .sscribe-format-selector .sscribe-check-icon {
@@ -888,65 +744,8 @@ body .sscribe-master-container .sscribe-hero {
 }
 
 /* ============================================
-   STATUS FILTER
-   ============================================ */
-.sscribe-status-filter {
-	display: flex;
-	align-items: center;
-	gap: var(--sscribe-space-sm);
-	margin-bottom: var(--sscribe-space-ml);
-	padding: 14px 18px;
-	background: var(--sscribe-primary-light);
-	border-radius: var(--sscribe-radius-sm);
-	border: 1px solid rgb(104 168 133 / 20%);
-}
-
-.sscribe-status-label {
-	display: flex;
-	align-items: center;
-	gap: var(--sscribe-space-s);
-	font-weight: 600;
-	color: var(--sscribe-text-heading);
-	font-size: 14px;
-}
-
-.sscribe-status-label svg {
-	color: var(--sscribe-primary);
-}
-
-.sscribe-status-select {
-	flex: 1;
-	max-width: 200px;
-	padding: 10px 14px;
-	font-size: 14px;
-	font-weight: 500;
-	color: var(--sscribe-text-main);
-	background: var(--sscribe-card-bg);
-	border: 1px solid var(--sscribe-border-light);
-	border-radius: var(--sscribe-radius-sm);
-	cursor: pointer;
-	transition: border-color var(--sscribe-transition-fast), box-shadow var(--sscribe-transition-fast);
-	font-family: inherit;
-}
-
-.sscribe-status-select:hover {
-	border-color: var(--sscribe-primary);
-}
-
-.sscribe-status-select:focus {
-	outline: none;
-	border-color: var(--sscribe-primary);
-	box-shadow: 0 0 0 3px rgb(104 168 133 / 10%);
-}
-
-/* ============================================
    BUTTONS
    ============================================ */
-.sscribe-action-row {
-	padding-top: 20px;
-	border-top: 1px solid var(--sscribe-border);
-}
-
 .sscribe-button {
 	display: inline-flex;
 	align-items: center;
@@ -1419,19 +1218,16 @@ body .sscribe-master-container .sscribe-hero {
 	transform: scaleX(0);
 }
 
-.sscribe-post-type-count,
-.sscribe-lang-card-count {
+.sscribe-post-type-count {
 	transition: opacity 0.2s ease;
 }
 
-.sscribe-post-type-count.sscribe-loading-count,
-.sscribe-lang-card-count.sscribe-loading-count {
+.sscribe-post-type-count.sscribe-loading-count {
 	color: transparent;
 	position: relative;
 }
 
-.sscribe-post-type-count.sscribe-loading-count::after,
-.sscribe-lang-card-count.sscribe-loading-count::after {
+.sscribe-post-type-count.sscribe-loading-count::after {
 	content: '';
 	position: absolute;
 	inset: 0;
@@ -1456,132 +1252,6 @@ body .sscribe-master-container .sscribe-hero {
 	font-size: 14px;
 	min-width: 40px;
 	text-align: right;
-}
-
-/* ============================================
-   GRID LAYOUT
-   ============================================ */
-.sscribe-grid-layout {
-	display: grid;
-	grid-template-columns: minmax(0, 2fr) minmax(0, 1fr);
-	gap: 28px;
-	align-items: start;
-}
-
-@media (width <= 1200px) {
-	.sscribe-grid-layout {
-		grid-template-columns: 1fr;
-	}
-}
-
-/* ============================================
-   FEATURES GRID
-   ============================================ */
-.sscribe-features-grid {
-	display: grid;
-	grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
-	gap: 20px;
-}
-
-.sscribe-feature-item {
-	display: flex;
-	align-items: flex-start;
-	gap: 14px;
-}
-
-.sscribe-feature-icon {
-	flex-shrink: 0;
-	width: 44px;
-	height: 44px;
-	border-radius: var(--sscribe-radius-md);
-	display: flex;
-	align-items: center;
-	justify-content: center;
-}
-
-.sscribe-feature-icon[data-feature='page-title'] {
-	background-color: var(--sscribe-feature-page-title-bg);
-	color: var(--sscribe-feature-page-title);
-}
-
-.sscribe-feature-icon[data-feature='page-content'] {
-	background-color: var(--sscribe-feature-page-content-bg);
-	color: var(--sscribe-feature-page-content);
-}
-
-.sscribe-feature-icon[data-feature='seo-metadata'] {
-	background-color: var(--sscribe-feature-seo-bg);
-	color: var(--sscribe-feature-seo);
-}
-
-.sscribe-feature-icon[data-feature='url-permalink'] {
-	background-color: var(--sscribe-feature-permalink-bg);
-	color: var(--sscribe-feature-permalink);
-}
-
-.sscribe-feature-icon[data-feature='author-info'] {
-	background-color: var(--sscribe-feature-author-bg);
-	color: var(--sscribe-feature-author);
-}
-
-.sscribe-feature-icon[data-feature='dates'] {
-	background-color: var(--sscribe-feature-dates-bg);
-	color: var(--sscribe-feature-dates);
-}
-
-.sscribe-feature-icon[data-feature='parent-page'] {
-	background-color: var(--sscribe-feature-parent-bg);
-	color: var(--sscribe-feature-parent);
-}
-
-.sscribe-feature-icon[data-feature='featured-image'] {
-	background-color: var(--sscribe-feature-image-bg);
-	color: var(--sscribe-feature-image);
-}
-
-.sscribe-feature-text h4 {
-	font-size: 14px;
-	font-weight: 600;
-	color: var(--sscribe-text-main);
-	margin-bottom: 4px;
-	line-height: 1.3;
-}
-
-.sscribe-feature-text p {
-	font-size: 12px;
-	color: var(--sscribe-text-muted);
-	line-height: 1.5;
-	margin: 0;
-}
-
-/* ============================================
-   PROMO LAYOUT (Docs in Export Tab)
-   ============================================ */
-.sscribe-promo-layout {
-	display: grid;
-	grid-template-columns: 2fr 1fr;
-	gap: 24px;
-	margin-bottom: 32px;
-}
-
-@media (width <= 992px) {
-	.sscribe-promo-layout {
-		grid-template-columns: 1fr;
-	}
-}
-
-.sscribe-promo-main .sscribe-panel {
-	height: 100%;
-}
-
-.sscribe-promo-sidebar {
-	display: flex;
-	flex-direction: column;
-	gap: 24px;
-}
-
-.sscribe-promo-sidebar .sscribe-panel {
-	flex: 1;
 }
 
 /* ============================================
@@ -1893,196 +1563,6 @@ body .sscribe-master-container .sscribe-hero {
 	border-color: var(--sscribe-danger);
 }
 
-.sscribe-delete-icon {
-	opacity: 0.7;
-}
-
-.sscribe-delete-btn:hover .sscribe-delete-icon {
-	opacity: 1;
-}
-
-/* ============================================
-   SIDEBAR LISTS & CALLOUTS
-   ============================================ */
-.sscribe-check-list {
-	list-style: none;
-	margin: 0;
-	padding: 0;
-}
-
-.sscribe-check-list li {
-	position: relative;
-	padding: 10px 0 10px 28px;
-	font-size: 13px;
-	color: var(--sscribe-text-main);
-	border-bottom: 1px solid var(--sscribe-border-light);
-}
-
-.sscribe-check-list li:last-child {
-	border-bottom: none;
-	padding-bottom: 0;
-}
-
-.sscribe-check-list li:first-child {
-	padding-top: 0;
-}
-
-.sscribe-check-list li::before {
-	content: '';
-	position: absolute;
-	left: 0;
-	top: 12px;
-	width: 16px;
-	height: 16px;
-	background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 24 24' fill='none' stroke='%2310B981' stroke-width='3' stroke-linecap='round' stroke-linejoin='round' xmlns='http://www.w3.org/2000/svg'%3E%3Cpolyline points='20 6 9 17 4 12'%3E%3C/polyline%3E%3C/svg%3E");
-	background-size: contain;
-	background-repeat: no-repeat;
-}
-
-.sscribe-check-list li:first-child::before {
-	top: 2px;
-}
-
-.sscribe-check-list li:last-child::before {
-	top: 12px;
-}
-
-.sscribe-callout {
-	background: var(--sscribe-card-bg);
-	border: 1px solid var(--sscribe-border-light);
-	border-radius: var(--sscribe-radius-lg);
-	padding: 20px;
-	box-shadow: var(--sscribe-shadow-shallow);
-}
-
-.sscribe-callout-header {
-	display: flex;
-	align-items: center;
-	gap: 10px;
-	color: var(--sscribe-text-main);
-	margin-bottom: 10px;
-}
-
-.sscribe-callout-header strong {
-	font-size: 14px;
-}
-
-.sscribe-callout-body p {
-	font-size: 13px;
-	color: var(--sscribe-text-muted);
-	margin-bottom: 10px;
-	line-height: 1.6;
-}
-
-.sscribe-callout-body p:last-child {
-	margin-bottom: 0;
-}
-
-.sscribe-support-card {
-	display: flex;
-	flex-direction: column;
-	gap: var(--sscribe-space-l);
-	background: var(--sscribe-card-bg);
-	padding: var(--sscribe-space-xl);
-	border-radius: var(--sscribe-radius-lg);
-	box-shadow: var(--sscribe-shadow-standard);
-	border: 1px solid var(--sscribe-border-light);
-}
-
-.sscribe-support-actions {
-	display: flex;
-	gap: var(--sscribe-space-m);
-	flex-wrap: wrap;
-	padding-top: var(--sscribe-space-l);
-	border-top: 1px solid var(--sscribe-border-light);
-}
-
-.sscribe-support-grid {
-	display: grid;
-	grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
-	gap: 16px;
-}
-
-.sscribe-support-section {
-	border: 1px solid var(--sscribe-border-light);
-	border-left-width: 4px;
-	border-left-color: var(--sscribe-primary);
-	background: var(--sscribe-section-bg);
-	padding: var(--sscribe-space-l);
-	border-radius: var(--sscribe-radius-md);
-	box-shadow: var(--sscribe-shadow-shallow);
-}
-
-.sscribe-support-section-title {
-	font-size: 14px;
-	font-weight: 700;
-	color: var(--sscribe-text-main);
-	margin-bottom: 12px;
-}
-
-.sscribe-support-list {
-	margin: 0;
-	padding: 0;
-}
-
-.sscribe-support-list-row {
-	display: grid;
-	grid-template-columns: minmax(0, 120px) minmax(0, 1fr);
-	gap: 8px;
-	padding: 8px 0;
-	border-bottom: 1px solid var(--sscribe-border);
-}
-
-.sscribe-support-list-row:last-child {
-	border-bottom: none;
-	padding-bottom: 0;
-}
-
-.sscribe-support-list-row dt {
-	font-size: 12px;
-	font-weight: 600;
-	color: var(--sscribe-text-muted);
-	margin: 0;
-}
-
-.sscribe-support-list-row dd {
-	font-size: 12px;
-	font-weight: 500;
-	color: var(--sscribe-text-main);
-	margin: 0;
-	word-break: break-all;
-}
-
-.sscribe-support-events {
-	list-style: none;
-	margin: 0;
-	padding: 0;
-	display: flex;
-	flex-direction: column;
-	gap: 10px;
-}
-
-.sscribe-support-events li {
-	display: flex;
-	justify-content: space-between;
-	align-items: center;
-	gap: 12px;
-	font-size: 12px;
-	color: var(--sscribe-text-main);
-	padding-bottom: 10px;
-	border-bottom: 1px solid var(--sscribe-border);
-}
-
-.sscribe-support-events li:last-child {
-	padding-bottom: 0;
-	border-bottom: none;
-}
-
-.sscribe-support-events span {
-	color: var(--sscribe-text-muted);
-	white-space: nowrap;
-}
-
 .sscribe-support-copy-wrap {
 	display: flex;
 	flex-direction: column;
@@ -2115,10 +1595,6 @@ body .sscribe-master-container .sscribe-hero {
 	color: var(--sscribe-danger);
 }
 
-.sscribe-support-callout {
-	margin: 0;
-}
-
 /* ============================================
    RESPONSIVE BREAKPOINTS
    ============================================ */
@@ -2128,10 +1604,6 @@ body .sscribe-master-container .sscribe-hero {
 		align-items: flex-start;
 		padding: 20px 16px;
 		gap: 16px;
-	}
-
-	.sscribe-hero-right {
-		align-items: flex-start;
 	}
 
 	.sscribe-language-cards {
@@ -2168,15 +1640,6 @@ body .sscribe-master-container .sscribe-hero {
 
 	.sscribe-bulk-left {
 		width: 100%;
-	}
-
-	.sscribe-support-events li {
-		flex-direction: column;
-		align-items: flex-start;
-	}
-
-	.sscribe-support-list-row {
-		grid-template-columns: 1fr;
 	}
 
 	.sscribe-panel-header {
@@ -2483,12 +1946,6 @@ body .sscribe-master-container .sscribe-hero {
 	display: block;
 }
 
-.sscribe-legend-icon {
-	vertical-align: middle;
-	margin-right: 4px;
-	opacity: 0.7;
-}
-
 /* ============================================
    CONFIG SUMMARY BAR
    ============================================ */
@@ -2565,16 +2022,14 @@ body .sscribe-master-container .sscribe-hero {
 
 .sscribe-status-card-label:focus-within .sscribe-status-card-inner,
 .sscribe-lang-card-label:focus-within .sscribe-lang-card-inner,
-.sscribe-format-card-label:focus-within .sscribe-format-card-inner,
-.sscribe-format-option:focus-within .sscribe-format-card {
+.sscribe-format-card-label:focus-within .sscribe-format-card-inner {
 	outline: 2px solid var(--sscribe-primary);
 	outline-offset: 2px;
 }
 
 .sscribe-status-card-label input[type='radio']:focus-visible + .sscribe-status-card-inner,
 .sscribe-lang-card-label input[type='radio']:focus-visible + .sscribe-lang-card-inner,
-.sscribe-format-card-label input[type='radio']:focus-visible + .sscribe-format-card-inner,
-.sscribe-format-option input[type='checkbox']:focus-visible + .sscribe-format-card {
+.sscribe-format-card-label input[type='radio']:focus-visible + .sscribe-format-card-inner {
 	outline: 2px solid var(--sscribe-primary);
 	outline-offset: 2px;
 }
@@ -2834,34 +2289,6 @@ body .sscribe-master-container .sscribe-hero {
 	height: 18px;
 }
 
-.sscribe-lang-card-selected .sscribe-lang-card-inner {
-	border-color: var(--sscribe-primary);
-	background: var(--sscribe-primary-light);
-}
-
-.sscribe-lang-card-selected .sscribe-lang-card-inner .sscribe-lang-name {
-	color: var(--sscribe-primary);
-	font-weight: 600;
-}
-
-.sscribe-lang-card-selected .sscribe-lang-selector .sscribe-check-icon {
-	opacity: 1;
-}
-
-.sscribe-format-card-selected .sscribe-format-card-inner {
-	border-color: var(--sscribe-primary);
-	background: var(--sscribe-primary-light);
-}
-
-.sscribe-format-card-selected .sscribe-format-card-inner .sscribe-format-name {
-	color: var(--sscribe-primary);
-	font-weight: 600;
-}
-
-.sscribe-format-card-selected .sscribe-format-selector .sscribe-check-icon {
-	opacity: 1;
-}
-
 .sscribe-export-bar {
 	display: flex;
 	align-items: center;
@@ -2948,20 +2375,6 @@ body .sscribe-master-container .sscribe-hero {
 	flex-direction: row-reverse;
 }
 
-[dir='rtl'] .sscribe-fieldset-legend {
-	flex-direction: row-reverse;
-}
-
-[dir='rtl'] .sscribe-check-list li {
-	padding-left: 0;
-	padding-right: 28px;
-}
-
-[dir='rtl'] .sscribe-check-list li::before {
-	left: auto;
-	right: 0;
-}
-
 [dir='rtl'] .sscribe-history-row {
 	flex-direction: row-reverse;
 }
@@ -2974,29 +2387,9 @@ body .sscribe-master-container .sscribe-hero {
 	flex-direction: row-reverse;
 }
 
-[dir='rtl'] .sscribe-status-filter {
-	flex-direction: row-reverse;
-}
-
-[dir='rtl'] .sscribe-status-card-inner,
-[dir='rtl'] .sscribe-lang-card-inner,
-[dir='rtl'] .sscribe-format-card-inner,
-[dir='rtl'] .sscribe-format-card {
-	flex-direction: row-reverse;
-}
-
 [dir='rtl'] .sscribe-log-table th,
 [dir='rtl'] .sscribe-log-table td {
 	text-align: right;
-}
-
-[dir='rtl'] .sscribe-legend-icon {
-	margin-right: 0;
-	margin-left: 4px;
-}
-
-[dir='rtl'] .sscribe-callout-header {
-	flex-direction: row-reverse;
 }
 
 [dir='rtl'] .sscribe-time-remaining {
@@ -3339,74 +2732,6 @@ body .sscribe-master-container .sscribe-hero {
 	background: var(--sscribe-bg);
 }
 
-/* Tooltips */
-.sscribe-tooltip-trigger {
-	position: relative;
-	cursor: help;
-	border-bottom: 1px dashed var(--sscribe-text-muted);
-}
-
-.sscribe-tooltip-trigger:hover::after,
-.sscribe-tooltip-trigger:focus::after {
-	content: attr(data-tooltip);
-	position: absolute;
-	bottom: calc(100% + 8px);
-	left: 50%;
-	transform: translateX(-50%);
-	background: var(--sscribe-text-main);
-	color: var(--sscribe-text-inverse);
-	padding: 8px 12px;
-	border-radius: var(--sscribe-radius-sm);
-	font-size: 12px;
-	line-height: 1.4;
-	white-space: normal;
-	width: max-content;
-	max-width: 280px;
-	z-index: 1000;
-	pointer-events: none;
-	box-shadow: var(--sscribe-shadow-elevated);
-}
-
-.sscribe-tooltip-trigger:hover::before,
-.sscribe-tooltip-trigger:focus::before {
-	content: '';
-	position: absolute;
-	bottom: calc(100% + 2px);
-	left: 50%;
-	transform: translateX(-50%);
-	border: 6px solid transparent;
-	border-top-color: var(--sscribe-text-main);
-	z-index: 1000;
-	pointer-events: none;
-}
-
-/* Copy Error Button */
-.sscribe-copy-error {
-	display: inline-flex;
-	align-items: center;
-	gap: 6px;
-	background: var(--sscribe-bg);
-	border: 1px solid var(--sscribe-border);
-	border-radius: var(--sscribe-radius-sm);
-	padding: 6px 12px;
-	font-size: 12px;
-	color: var(--sscribe-text-secondary);
-	cursor: pointer;
-	transition: all var(--sscribe-transition-fast);
-	margin-top: 8px;
-}
-
-.sscribe-copy-error:hover {
-	background: var(--sscribe-border);
-	color: var(--sscribe-text-main);
-}
-
-.sscribe-copy-error.copied {
-	background: var(--sscribe-success-light);
-	border-color: var(--sscribe-success);
-	color: var(--sscribe-success);
-}
-
 /* Loading Indicators */
 .sscribe-loading-spinner {
 	display: inline-block;
@@ -3452,29 +2777,6 @@ body .sscribe-master-container .sscribe-hero {
 	border-bottom: 2px solid var(--sscribe-primary);
 }
 
-.sscribe-preview-sample .sscribe-preview-meta {
-	display: grid;
-	grid-template-columns: repeat(auto-fill, minmax(140px, 1fr));
-	gap: 8px;
-	margin-top: 16px;
-	padding-top: 16px;
-	border-top: 1px solid var(--sscribe-border);
-}
-
-.sscribe-preview-meta-item {
-	font-size: 12px;
-	color: var(--sscribe-text-secondary);
-}
-
-.sscribe-preview-meta-item strong {
-	display: block;
-	color: var(--sscribe-text-main);
-	font-size: 11px;
-	text-transform: uppercase;
-	letter-spacing: 0.5px;
-	margin-bottom: 2px;
-}
-
 .sscribe-preview-note {
 	margin-top: 12px;
 	padding: 10px 14px;
@@ -3487,33 +2789,6 @@ body .sscribe-master-container .sscribe-hero {
 /* ============================================
    CONSISTENT LOADING STATES
    ============================================ */
-
-.sscribe-loading-overlay {
-	position: absolute;
-	inset: 0;
-	background: rgb(255 255 255 / 80%);
-	display: flex;
-	align-items: center;
-	justify-content: center;
-	z-index: 10;
-	border-radius: inherit;
-	backdrop-filter: blur(2px);
-	/* stylelint-disable-next-line property-no-vendor-prefix */
-	-webkit-backdrop-filter: blur(2px); /* Safari 9+, iOS 9+ */
-}
-
-.sscribe-loading-overlay .sscribe-loading-spinner {
-	width: 24px;
-	height: 24px;
-	border-width: 3px;
-	margin-right: 0;
-}
-
-.sscribe-loading-text {
-	color: var(--sscribe-text-muted);
-	font-size: 14px;
-	margin-left: 12px;
-}
 
 .sscribe-button.sscribe-loading {
 	position: relative;
@@ -3851,8 +3126,7 @@ body .sscribe-master-container .sscribe-tab-btn[aria-selected='true'] {
 body .sscribe-master-container .sscribe-tab-btn:focus-visible,
 body .sscribe-master-container .sscribe-modal-close:focus-visible,
 body .sscribe-master-container .sscribe-preflight-close:focus-visible,
-body .sscribe-master-container .sscribe-toast-dismiss:focus-visible,
-body .sscribe-master-container .sscribe-status-select:focus-visible {
+body .sscribe-master-container .sscribe-toast-dismiss:focus-visible {
 	outline: 3px solid rgb(104 168 133 / 34%);
 	outline-offset: 2px;
 	box-shadow: 0 0 0 1px var(--sscribe-primary);
