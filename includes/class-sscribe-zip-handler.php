@@ -232,19 +232,42 @@ class SScribe_Zip_Handler {
 			update_option( 'sscribe_export_index', $exports, false );
 
 			if ( ! $locked ) {
-				$this->logger->warning(
-					'Export indexed without exclusive lock (possible race)',
-					array( 'zip' => basename( $zip_path ) )
-				);
-			}
-		} finally {
-			if ( $locked ) {
-				if ( $lock_using_cache ) {
-					wp_cache_delete( $lock_key, 'transient' );
-				}
-				delete_transient( $lock_key );
-			}
+			$this->logger->warning(
+				'Export indexed without exclusive lock (possible race)',
+				array( 'zip' => basename( $zip_path ) )
+			);
 		}
+
+		$zip_basename = basename( $zip_path );
+
+		// If we couldn't get the lock, another request may be writing.
+		// Check if our entry already exists as a safeguard against lost writes.
+		$exports = get_option( 'sscribe_export_index', array() );
+		if ( ! $locked && isset( $exports[ $zip_basename ] ) ) {
+			$this->logger->warning(
+				'Skipping duplicate index write - entry already exists',
+				array( 'zip' => $zip_basename )
+			);
+			return file_exists( $zip_path ) ? $zip_path : false;
+		}
+
+		$exports[ $zip_basename ] = array(
+			'created_at' => time(),
+			'user_id'    => get_current_user_id(),
+			'formats'    => $formats,
+			'lang_code'  => $lang_metadata['lang_code'] ?? '',
+			'lang_name'  => $lang_metadata['lang_name'] ?? '',
+			'flag_url'   => $lang_metadata['flag_url'] ?? '',
+		);
+		update_option( 'sscribe_export_index', $exports, false );
+	} finally {
+		if ( $locked ) {
+			if ( $lock_using_cache ) {
+				wp_cache_delete( $lock_key, 'transient' );
+			}
+			delete_transient( $lock_key );
+		}
+	}
 
 		return file_exists( $zip_path ) ? $zip_path : false;
 	}

@@ -550,7 +550,9 @@ class SScribe_Admin {
 					'status_breakdown' => $this->collector->get_post_status_counts( $lang_code ),
 				);
 
+				// Limit to 50 IDs per language to prevent expensive queries on large multilingual sites.
 				$page_ids = $this->collector->get_page_ids( $lang_code, 'publish' );
+				$page_ids = array_slice( $page_ids, 0, 50 );
 				$sscribe_debug_info['language_details'][ $lang_code ]['published_page_ids'] = $page_ids;
 				$sscribe_debug_info['language_details'][ $lang_code ]['published_count']    = count( $page_ids );
 				$all_page_ids_by_lang[ $lang_code ] = $page_ids;
