@@ -98,14 +98,8 @@ class SScribe_Export_Query_Controller {
 	 * @return void
 	 */
 	public function ajax_health_check( string $export_capability = 'manage_options' ): void {
-		if ( ! is_user_logged_in() ) {
-			SScribe_AJAX_Guard::success(
-				array(
-					'status'      => 'ok',
-					'server_time' => current_time( 'mysql' ),
-					'server_utc'  => gmdate( 'Y-m-d H:i:s' ),
-				)
-			);
+		if ( ! check_ajax_referer( 'sscribe_export_nonce', 'nonce', false ) ) {
+			SScribe_AJAX_Guard::error( array( 'message' => __( 'Security check failed.', 'sscribe-export-site-pages' ) ), 403 );
 		}
 
 		if ( ! current_user_can( $export_capability ) ) {
@@ -347,24 +341,22 @@ class SScribe_Export_Query_Controller {
 
 		if ( $total_seconds < 60 ) {
 			$estimated_time = sprintf(
-			/* translators: %d: Number of seconds. */
-
+				/* translators: %d: Number of seconds. */
 				_n( '%d second', '%d seconds', $total_seconds, 'sscribe-export-site-pages' ),
 				max( 1, ceil( $total_seconds ) )
 			);
 		} elseif ( $total_seconds < 3600 ) {
 			$minutes        = (int) ceil( $total_seconds / 60 );
 			$estimated_time = sprintf(
-			/* translators: %d: Number of minutes. */
-
+				/* translators: %d: Number of minutes. */
 				_n( '%d minute', '%d minutes', $minutes, 'sscribe-export-site-pages' ),
 				$minutes
 			);
 		} else {
 			$hours   = (int) floor( $total_seconds / 3600 );
 			$minutes = (int) ceil( ( $total_seconds % 3600 ) / 60 );
-			/* translators: 1: Hours. 2: Minutes. */
 			$estimated_time = sprintf(
+				/* translators: 1: Hours. 2: Minutes. */
 				__( '%1$d hr %2$d min', 'sscribe-export-site-pages' ),
 				max( 1, $hours ),
 				max( 1, $minutes )

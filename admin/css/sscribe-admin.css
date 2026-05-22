@@ -221,24 +221,24 @@ body .sscribe-master-container .sscribe-hero {
 }
 
 .sscribe-hero-title {
-	color: var(--sscribe-text-heading) !important;
-	font-size: 24px !important;
-	font-weight: 700 !important;
-	letter-spacing: -0.02em !important;
-	margin: 0 !important;
-	padding: 0 !important;
-	line-height: 1.2 !important;
-	border: none !important;
+	color: var(--sscribe-text-heading);
+	font-size: 24px;
+	font-weight: 700;
+	letter-spacing: 0;
+	margin: 0;
+	padding: 0;
+	line-height: 1.2;
+	border: none;
 }
 
 .sscribe-hero-subtitle {
-	color: var(--sscribe-text-secondary) !important;
-	font-size: 14px !important;
-	font-weight: 400 !important;
+	color: var(--sscribe-text-secondary);
+	font-size: 14px;
+	font-weight: 400;
 	max-width: 480px;
-	line-height: 1.5 !important;
-	margin: 4px 0 0 !important;
-	padding: 0 !important;
+	line-height: 1.5;
+	margin: 4px 0 0;
+	padding: 0;
 }
 
 .sscribe-hero-version {
@@ -300,10 +300,10 @@ body .sscribe-master-container .sscribe-hero {
 
 .sscribe-panel-title h2,
 .sscribe-panel-title h3 {
-	font-size: 16px !important;
-	font-weight: 600 !important;
-	color: var(--sscribe-text-heading) !important;
-	margin: 0 !important;
+	font-size: 16px;
+	font-weight: 600;
+	color: var(--sscribe-text-heading);
+	margin: 0;
 }
 
 .sscribe-p-md {
@@ -311,10 +311,10 @@ body .sscribe-master-container .sscribe-hero {
 }
 
 .sscribe-description {
-	color: var(--sscribe-text-secondary) !important;
-	font-size: 14px !important;
-	line-height: 1.6 !important;
-	margin-bottom: var(--sscribe-space-ml) !important;
+	color: var(--sscribe-text-secondary);
+	font-size: 14px;
+	line-height: 1.6;
+	margin-bottom: var(--sscribe-space-ml);
 }
 
 /* ============================================
@@ -362,6 +362,7 @@ body .sscribe-master-container .sscribe-hero {
    UTILITY CLASSES
    ============================================ */
 .sscribe-hidden {
+	/* stylelint-disable-next-line declaration-no-important -- Utility state must override component display rules. */
 	display: none !important;
 }
 
@@ -1101,14 +1102,14 @@ body .sscribe-master-container .sscribe-hero {
 }
 
 .sscribe-btn-sm {
-	padding: 8px 16px !important;
-	font-size: 13px !important;
+	padding: 8px 16px;
+	font-size: 13px;
 }
 
 .sscribe-btn-lg {
-	padding: 12px 28px !important;
-	font-size: 15px !important;
-	font-weight: 700 !important;
+	padding: 12px 28px;
+	font-size: 15px;
+	font-weight: 700;
 }
 
 /* Icon Button */
@@ -1190,9 +1191,9 @@ body .sscribe-master-container .sscribe-hero {
 }
 
 .sscribe-status-heading {
-	font-size: 16px !important;
-	font-weight: 700 !important;
-	margin-bottom: 6px !important;
+	font-size: 16px;
+	font-weight: 700;
+	margin-bottom: 6px;
 }
 
 .sscribe-status-success .sscribe-status-heading {
@@ -1204,18 +1205,18 @@ body .sscribe-master-container .sscribe-hero {
 }
 
 .sscribe-status-desc {
-	font-size: 14px !important;
-	margin-bottom: 0 !important;
+	font-size: 14px;
+	margin-bottom: 0;
 }
 
 .sscribe-status-success .sscribe-status-desc {
 	color: var(--sscribe-text-main);
-	margin-bottom: 16px !important;
+	margin-bottom: 16px;
 }
 
 .sscribe-status-error .sscribe-status-desc {
 	color: var(--sscribe-text-main);
-	margin-bottom: 16px !important;
+	margin-bottom: 16px;
 }
 
 .sscribe-error-guidance {
@@ -1228,10 +1229,10 @@ body .sscribe-master-container .sscribe-hero {
 }
 
 .sscribe-guidance-text {
-	color: #7A5C00 !important;
-	font-size: 13px !important;
-	line-height: 1.6 !important;
-	margin: 0 !important;
+	color: #7A5C00;
+	font-size: 13px;
+	line-height: 1.6;
+	margin: 0;
 }
 
 .sscribe-success-actions,
@@ -1360,9 +1361,9 @@ body .sscribe-master-container .sscribe-hero {
 
 /* Progress Details */
 .sscribe-current-page {
-	font-size: 13px !important;
-	color: var(--sscribe-text-muted) !important;
-	margin-bottom: 12px !important;
+	font-size: 13px;
+	color: var(--sscribe-text-muted);
+	margin-bottom: 12px;
 	max-width: 400px;
 	white-space: nowrap;
 	overflow: hidden;
@@ -1539,18 +1540,18 @@ body .sscribe-master-container .sscribe-hero {
 }
 
 .sscribe-feature-text h4 {
-	font-size: 14px !important;
-	font-weight: 600 !important;
-	color: var(--sscribe-text-main) !important;
-	margin-bottom: 4px !important;
-	line-height: 1.3 !important;
+	font-size: 14px;
+	font-weight: 600;
+	color: var(--sscribe-text-main);
+	margin-bottom: 4px;
+	line-height: 1.3;
 }
 
 .sscribe-feature-text p {
-	font-size: 12px !important;
-	color: var(--sscribe-text-muted) !important;
-	line-height: 1.5 !important;
-	margin: 0 !important;
+	font-size: 12px;
+	color: var(--sscribe-text-muted);
+	line-height: 1.5;
+	margin: 0;
 }
 
 /* ============================================
@@ -1882,14 +1883,14 @@ body .sscribe-master-container .sscribe-hero {
 }
 
 .sscribe-delete-btn {
-	border-color: var(--sscribe-danger-light) !important;
-	color: var(--sscribe-danger) !important;
+	border-color: var(--sscribe-danger-light);
+	color: var(--sscribe-danger);
 }
 
 .sscribe-delete-btn:hover {
-	background: var(--sscribe-danger) !important;
-	color: #fff !important;
-	border-color: var(--sscribe-danger) !important;
+	background: var(--sscribe-danger);
+	color: #fff;
+	border-color: var(--sscribe-danger);
 }
 
 .sscribe-delete-icon {
@@ -1905,8 +1906,8 @@ body .sscribe-master-container .sscribe-hero {
    ============================================ */
 .sscribe-check-list {
 	list-style: none;
-	margin: 0 !important;
-	padding: 0 !important;
+	margin: 0;
+	padding: 0;
 }
 
 .sscribe-check-list li {
@@ -1967,14 +1968,14 @@ body .sscribe-master-container .sscribe-hero {
 }
 
 .sscribe-callout-body p {
-	font-size: 13px !important;
-	color: var(--sscribe-text-muted) !important;
-	margin-bottom: 10px !important;
-	line-height: 1.6 !important;
+	font-size: 13px;
+	color: var(--sscribe-text-muted);
+	margin-bottom: 10px;
+	line-height: 1.6;
 }
 
 .sscribe-callout-body p:last-child {
-	margin-bottom: 0 !important;
+	margin-bottom: 0;
 }
 
 .sscribe-support-card {
@@ -2013,10 +2014,10 @@ body .sscribe-master-container .sscribe-hero {
 }
 
 .sscribe-support-section-title {
-	font-size: 14px !important;
-	font-weight: 700 !important;
+	font-size: 14px;
+	font-weight: 700;
 	color: var(--sscribe-text-main);
-	margin-bottom: 12px !important;
+	margin-bottom: 12px;
 }
 
 .sscribe-support-list {
@@ -2097,8 +2098,8 @@ body .sscribe-master-container .sscribe-hero {
 	font-family: 'Fira Code', Consolas, Monaco, monospace;
 	font-size: 13px;
 	line-height: 1.7;
-	background: #0f172a !important;
-	color: #38bdf8 !important;
+	background: #0f172a;
+	color: #38bdf8;
 	resize: vertical;
 	box-shadow: inset 0 2px 4px rgb(0 0 0 / 20%);
 }
@@ -2222,10 +2223,10 @@ body .sscribe-master-container .sscribe-hero {
 }
 
 .sscribe-modal-header h3 {
-	font-size: 16px !important;
-	font-weight: 600 !important;
+	font-size: 16px;
+	font-weight: 600;
 	color: var(--sscribe-text-main);
-	margin: 0 !important;
+	margin: 0;
 }
 
 .sscribe-modal-close {
@@ -2358,9 +2359,9 @@ body .sscribe-master-container .sscribe-hero {
 }
 
 .sscribe-log-pages h4 {
-	font-size: 13px !important;
-	font-weight: 600 !important;
-	margin-bottom: 10px !important;
+	font-size: 13px;
+	font-weight: 600;
+	margin-bottom: 10px;
 	color: var(--sscribe-text-main);
 }
 
@@ -2409,16 +2410,16 @@ body .sscribe-master-container .sscribe-hero {
 }
 
 .sscribe-log-errors h4 {
-	font-size: 13px !important;
-	font-weight: 600 !important;
+	font-size: 13px;
+	font-weight: 600;
 	color: var(--sscribe-danger);
-	margin-bottom: 10px !important;
+	margin-bottom: 10px;
 }
 
 .sscribe-log-errors ul {
 	list-style: none;
-	margin: 0 !important;
-	padding: 0 !important;
+	margin: 0;
+	padding: 0;
 }
 
 .sscribe-log-errors li {
@@ -2695,7 +2696,7 @@ body .sscribe-master-container .sscribe-hero {
 }
 
 .sscribe-flat-body {
-	padding: 0 !important;
+	padding: 0;
 }
 
 .sscribe-config-grid {
@@ -3023,10 +3024,12 @@ body .sscribe-master-container .sscribe-hero {
 	*,
 	*::before,
 	*::after {
+		/* stylelint-disable declaration-no-important -- User reduced-motion preference must override component animations. */
 		animation-duration: 0.01ms !important;
 		animation-iteration-count: 1 !important;
 		transition-duration: 0.01ms !important;
 		scroll-behavior: auto !important;
+		/* stylelint-enable declaration-no-important */
 	}
 
 	.sscribe-loading-spinner,
@@ -3117,11 +3120,13 @@ body .sscribe-master-container .sscribe-hero {
 	padding: 0;
 	position: absolute;
 	width: 1px;
+	/* stylelint-disable-next-line declaration-no-important -- Matches WordPress accessibility pattern for hidden text. */
 	word-wrap: normal !important;
 }
 
 .screen-reader-text:focus {
 	background-color: var(--sscribe-card-bg);
+	/* stylelint-disable-next-line declaration-no-important -- Focused skip links must become visible over hidden state. */
 	clip: auto !important;
 	clip-path: none;
 	color: var(--sscribe-text-main);
@@ -3595,18 +3600,18 @@ body .sscribe-master-container .sscribe-hero {
 }
 
 .sscribe-support-header h2 {
-	font-size: 18px !important;
-	font-weight: 700 !important;
-	color: var(--sscribe-text-main) !important;
-	margin: 0 !important;
-	line-height: 1.3 !important;
+	font-size: 18px;
+	font-weight: 700;
+	color: var(--sscribe-text-main);
+	margin: 0;
+	line-height: 1.3;
 }
 
 .sscribe-support-header p {
-	font-size: 13px !important;
-	color: var(--sscribe-text-secondary) !important;
-	line-height: 1.5 !important;
-	margin: 0 !important;
+	font-size: 13px;
+	color: var(--sscribe-text-secondary);
+	line-height: 1.5;
+	margin: 0;
 }
 
 .sscribe-support-actions-vertical {

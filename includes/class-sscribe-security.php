@@ -111,25 +111,73 @@ class SScribe_Security {
 	 * @return bool True if path is in scope.
 	 */
 	private static function is_path_in_scope( string $path ): bool {
-		if ( str_contains( $path, '..' ) ) {
+		if ( '' === trim( $path ) || str_contains( $path, '..' ) ) {
 			return false;
 		}
 
 		$upload_dir = wp_upload_dir();
 		$base_dir   = trailingslashit( $upload_dir['basedir'] );
 
-		// Use realpath for canonical path to prevent symlink bypass
-		$real_path     = realpath( $path );
+		// Use realpath for canonical path to prevent symlink bypass when the target exists.
 		$real_base_dir = realpath( $base_dir );
-
-		if ( false === $real_path || false === $real_base_dir ) {
+		if ( false === $real_base_dir ) {
 			return false;
 		}
 
-		// Normalize slashes for cross-platform comparison
-		$real_path     = str_replace( '\\', '/', $real_path );
-		$real_base_dir = str_replace( '\\', '/', $real_base_dir );
+		$real_path = realpath( $path );
+		if ( false !== $real_path ) {
+			return self::path_starts_with( $real_path, $real_base_dir );
+		}
 
-		return str_starts_with( $real_path, $real_base_dir . '/' );
+		$parent = dirname( $path );
+		while ( ! file_exists( $parent ) && dirname( $parent ) !== $parent ) {
+			$parent = dirname( $parent );
+		}
+
+		$real_parent = realpath( $parent );
+		if ( false === $real_parent || ! self::path_starts_with( $real_parent, $real_base_dir, true ) ) {
+			return false;
+		}
+
+		$normalized_path = self::normalize_path_for_compare( $path );
+		$normalized_base = rtrim( self::normalize_path_for_compare( $real_base_dir ), '/' );
+
+		return str_starts_with( $normalized_path, $normalized_base . '/' );
+	}
+
+	/**
+	 * Check whether a path is inside a base directory.
+	 *
+	 * @param string $path Path to check.
+	 * @param string $base Base directory.
+	 * @param bool   $allow_equal Whether the base directory itself is allowed.
+	 * @return bool True if path is inside base.
+	 */
+	private static function path_starts_with( string $path, string $base, bool $allow_equal = false ): bool {
+		$path = self::normalize_path_for_compare( $path );
+		$base = rtrim( self::normalize_path_for_compare( $base ), '/' );
+
+		if ( $allow_equal && $path === $base ) {
+			return true;
+		}
+
+		return $path !== $base && str_starts_with( $path, $base . '/' );
+	}
+
+	/**
+	 * Normalize paths for safe cross-platform comparisons.
+	 *
+	 * @param string $path Path to normalize.
+	 * @return string Normalized path.
+	 */
+	private static function normalize_path_for_compare( string $path ): string {
+		$path = str_replace( '\\', '/', $path );
+		$path = rtrim( $path, '/' );
+
+		if ( 'Windows' === PHP_OS_FAMILY ) {
+			$path = strtolower( $path );
+		}
+
+		return $path;
 	}
 }

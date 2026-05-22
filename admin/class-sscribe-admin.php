@@ -446,140 +446,108 @@ class SScribe_Admin {
 			}
 		}
 
-		$sscribe_recent_exports = array();
-		$upload_dir             = wp_upload_dir();
-		$export_dir             = trailingslashit( $upload_dir['basedir'] ) . 'sscribe-exports/';
-
-		$download_nonce = $this->get_download_nonce();
+		$upload_dir = wp_upload_dir();
+		$export_dir = trailingslashit( $upload_dir['basedir'] ) . 'sscribe-exports/';
 
 		$export_index = get_option( 'sscribe_export_index', array() );
+		if ( ! is_array( $export_index ) ) {
+			$export_index = array();
+		}
 
-		$user_id = get_current_user_id();
+		$sscribe_recent_exports = ! empty( $export_index )
+			? $this->build_recent_exports( $export_index, $export_dir, $sscribe_wpml_active, $sscribe_languages, get_current_user_id() )
+			: array();
 
-		if ( ! empty( $export_index ) ) {
+		include SSCRIBE_PLUGIN_DIR . 'admin/partials/sscribe-admin-display.php';
+	}
 
-			uasort(
-				$export_index,
-				function ( $a, $b ) {
-					return ( $b['created_at'] ?? 0 ) <=> ( $a['created_at'] ?? 0 );
-				}
+	/**
+	 * Build recent export data for the admin history table.
+	 *
+	 * @param array  $export_index Export index option value.
+	 * @param string $export_dir Export directory path.
+	 * @param bool   $wpml_active Whether WPML is active.
+	 * @param array  $languages WPML language metadata.
+	 * @param int    $user_id Current user ID.
+	 * @return array Recent export rows.
+	 */
+	private function build_recent_exports( array $export_index, string $export_dir, bool $wpml_active, array $languages, int $user_id ): array {
+		uasort(
+			$export_index,
+			static function ( $a, $b ): int {
+				$a_time = is_array( $a ) ? (int) ( $a['created_at'] ?? 0 ) : 0;
+				$b_time = is_array( $b ) ? (int) ( $b['created_at'] ?? 0 ) : 0;
+
+				return $b_time <=> $a_time;
+			}
+		);
+
+		$language_map = array();
+		foreach ( $languages as $language ) {
+			if ( ! is_array( $language ) || empty( $language['code'] ) ) {
+				continue;
+			}
+			$language_map[ sanitize_key( (string) $language['code'] ) ] = $language;
+		}
+
+		$recent_exports = array();
+
+		foreach ( $export_index as $filename => $data ) {
+			if ( ! is_array( $data ) ) {
+				continue;
+			}
+
+			if ( isset( $data['user_id'] ) && (int) $data['user_id'] !== $user_id ) {
+				continue;
+			}
+
+			$filename = sanitize_file_name( (string) $filename );
+			if ( '' === $filename || 'zip' !== strtolower( pathinfo( $filename, PATHINFO_EXTENSION ) ) ) {
+				continue;
+			}
+
+			$file_path = trailingslashit( $export_dir ) . $filename;
+			if ( ! file_exists( $file_path ) ) {
+				continue;
+			}
+
+			$lang_code = sanitize_key( (string) ( $data['lang_code'] ?? '' ) );
+			if ( '' === $lang_code && $wpml_active && preg_match( '/-([A-Z]{2,3})(?:-[A-Z]+)?\.zip$/', $filename, $matches ) ) {
+				$lang_code = sanitize_key( strtolower( $matches[1] ) );
+			}
+
+			if ( '' === $lang_code ) {
+				$lang_code = 'all';
+			}
+
+			$lang_name = sanitize_text_field( (string) ( $data['lang_name'] ?? '' ) );
+			$flag_url  = esc_url_raw( (string) ( $data['flag_url'] ?? '' ) );
+
+			if ( 'all' === $lang_code ) {
+				$lang_name = __( 'All Languages', 'sscribe-export-site-pages' );
+			} elseif ( $wpml_active && isset( $language_map[ $lang_code ] ) ) {
+				$lang_name = sanitize_text_field( (string) ( $language_map[ $lang_code ]['name'] ?? strtoupper( $lang_code ) ) );
+				$flag_url  = esc_url_raw( (string) ( $language_map[ $lang_code ]['flag_url'] ?? $flag_url ) );
+			} elseif ( '' === $lang_name || __( 'All Languages', 'sscribe-export-site-pages' ) === $lang_name ) {
+				$lang_name = strtoupper( $lang_code );
+			}
+
+			$recent_exports[] = array(
+				'filename'  => $filename,
+				'url'       => $this->zip_handler->get_ajax_download_url( $filename ),
+				'time'      => (int) ( $data['created_at'] ?? filemtime( $file_path ) ),
+				'size'      => (int) filesize( $file_path ),
+				'lang_code' => $lang_code,
+				'flag_url'  => $flag_url,
+				'lang_name' => $lang_name,
 			);
 
-			$count = 0;
-			foreach ( $export_index as $filename => $data ) {
-
-				if ( isset( $data['user_id'] ) && (int) $data['user_id'] !== $user_id ) {
-					continue;
-				}
-
-				$file_path = $export_dir . $filename;
-				if ( ! file_exists( $file_path ) ) {
-					continue;
-				}
-
-				$lang_code = $data['lang_code'] ?? 'all';
-				$lang_name = $data['lang_name'] ?? 'All Languages';
-				$flag_url  = $data['flag_url'] ?? '';
-
-				if ( empty( $lang_code ) && $sscribe_wpml_active && ! empty( $sscribe_languages ) ) {
-					foreach ( $sscribe_languages as $lang ) {
-						if ( isset( $lang['code'] ) && $lang['code'] === $lang_code ) {
-							$lang_name = $lang['name'] ?? 'All Languages';
-							$flag_url  = $lang['flag_url'] ?? '';
-							break;
-						}
-					}
-				}
-				if ( empty( $lang_code ) || 'all' === $lang_code ) {
-					$lang_name = 'All Languages';
-				}
-
-				$sscribe_recent_exports[] = array(
-					'filename'  => $filename,
-					'url'       => $this->zip_handler->get_ajax_download_url( $filename ),
-					'time'      => $data['created_at'] ?? filemtime( $file_path ),
-					'size'      => filesize( $file_path ),
-					'lang_code' => sanitize_key( $lang_code ),
-					'flag_url'  => esc_url( $flag_url ),
-					'lang_name' => esc_html( $lang_name ),
-				);
-
-				++$count;
-				if ( $count >= 10 ) {
-					break;
-				}
+			if ( count( $recent_exports ) >= 10 ) {
+				break;
 			}
 		}
 
-		include SSCRIBE_PLUGIN_DIR . 'admin/partials/sscribe-admin-display.php';
-
-		if ( ! empty( $export_index ) ) {
-
-			uasort(
-				$export_index,
-				function ( $a, $b ) {
-					return ( $b['created_at'] ?? 0 ) <=> ( $a['created_at'] ?? 0 );
-				}
-			);
-
-			$count = 0;
-			foreach ( $export_index as $filename => $data ) {
-
-				if ( isset( $data['user_id'] ) && (int) $data['user_id'] !== $user_id ) {
-					continue;
-				}
-
-				$file_path = $export_dir . $filename;
-				if ( ! file_exists( $file_path ) ) {
-					continue;
-				}
-
-				$lang_code = $data['lang_code'] ?? 'all';
-				$lang_name = $data['lang_name'] ?? 'All Languages';
-				$flag_url  = $data['flag_url'] ?? '';
-
-				if ( empty( $lang_code ) && $sscribe_wpml_active && ! empty( $sscribe_languages ) ) {
-
-					if ( preg_match( '/-([A-Z]{2,3})-[A-Z]+\.zip$/', $filename, $matches ) ) {
-						$lang_code = strtolower( $matches[1] );
-					} else {
-						$lang_code = 'all';
-					}
-				}
-
-				if ( empty( $lang_name ) || 'All Languages' === $lang_name ) {
-					if ( $sscribe_wpml_active && ! empty( $sscribe_languages ) && 'all' !== $lang_code ) {
-						foreach ( $sscribe_languages as $l ) {
-							if ( $l['code'] === $lang_code ) {
-								$lang_name = $l['name'] ?? strtoupper( $lang_code );
-								$flag_url  = $l['flag_url'] ?? $flag_url;
-								break;
-							}
-						}
-					}
-					if ( empty( $lang_name ) || 'All Languages' === $lang_name ) {
-						$lang_name = 'all' === $lang_code ? 'All Languages' : strtoupper( $lang_code );
-					}
-				}
-
-				$sscribe_recent_exports[] = array(
-					'filename'  => $filename,
-					'url'       => $this->zip_handler->get_ajax_download_url( $filename ),
-					'time'      => $data['created_at'] ?? filemtime( $file_path ),
-					'size'      => filesize( $file_path ),
-					'lang_code' => sanitize_key( $lang_code ),
-					'flag_url'  => esc_url( $flag_url ),
-					'lang_name' => esc_html( $lang_name ),
-				);
-
-				++$count;
-				if ( $count >= 10 ) {
-					break;
-				}
-			}
-		}
-
-		include SSCRIBE_PLUGIN_DIR . 'admin/partials/sscribe-admin-display.php';
+		return $recent_exports;
 	}
 
 	/**

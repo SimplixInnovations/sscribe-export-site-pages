@@ -15,11 +15,15 @@ class SScribe_Session_Test extends TestCase {
 
 	protected function setUp(): void {
 		parent::setUp();
-		$GLOBALS['sscribe_test_options'] = array();
+		$GLOBALS['sscribe_test_options']    = array();
+		$GLOBALS['sscribe_test_transients'] = array();
+		$this->reset_active_session_cache();
 	}
 
 	protected function tearDown(): void {
-		$GLOBALS['sscribe_test_options'] = array();
+		$GLOBALS['sscribe_test_options']    = array();
+		$GLOBALS['sscribe_test_transients'] = array();
+		$this->reset_active_session_cache();
 		parent::tearDown();
 	}
 
@@ -104,5 +108,19 @@ class SScribe_Session_Test extends TestCase {
 		$session = new \SScribe_Session();
 
 		$this->assertEquals( 'database-json', $session->get_storage_type() );
+	}
+
+	public function test_has_active_session_ignores_stale_cached_session_id(): void {
+		$session = new \SScribe_Session();
+
+		set_transient( 'sscribe_active_sid_42', 'deadbeefdeadbeef', 300 );
+
+		$this->assertFalse( $session->has_active_session( 42 ) );
+		$this->assertSame( '0', get_transient( 'sscribe_active_sid_42' ) );
+	}
+
+	private function reset_active_session_cache(): void {
+		$property = new \ReflectionProperty( \SScribe_Session::class, 'active_session_cache' );
+		$property->setValue( null, array() );
 	}
 }
