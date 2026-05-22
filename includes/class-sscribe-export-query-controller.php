@@ -322,10 +322,14 @@ class SScribe_Export_Query_Controller {
 		$post_status = isset( $_POST['post_status'] ) ? sanitize_text_field( wp_unslash( $_POST['post_status'] ) ) : 'publish';
 		$format      = isset( $_POST['format'] ) ? sanitize_text_field( wp_unslash( $_POST['format'] ) ) : 'docx';
 
-		$allowed_formats = array( 'docx', 'pdf', 'html', 'markdown' );
+		$allowed_formats = array( 'all', 'docx', 'pdf', 'html', 'markdown' );
 		if ( ! in_array( $format, $allowed_formats, true ) ) {
 			$format = 'docx';
 		}
+
+		$formats = 'all' === $format
+			? array( 'docx', 'pdf', 'html', 'markdown' )
+			: array( $format );
 
 		$post_type = isset( $_POST['post_type'] ) ? sanitize_text_field( wp_unslash( $_POST['post_type'] ) ) : 'page';
 		if ( ! in_array( $post_type, array( 'page', 'post', 'any' ), true ) ) {
@@ -335,8 +339,11 @@ class SScribe_Export_Query_Controller {
 		$pages      = $this->collector->get_page_ids( $language, $post_status, $post_type );
 		$page_count = count( $pages );
 
-		$seconds_per_page = $this->adaptive_metrics->get_seconds_per_page( $format, $post_type );
-		$total_seconds    = (int) ( $page_count * $seconds_per_page );
+		$seconds_per_page = 0.0;
+		foreach ( $formats as $selected_format ) {
+			$seconds_per_page += $this->adaptive_metrics->get_seconds_per_page( $selected_format, $post_type );
+		}
+		$total_seconds = (int) ceil( $page_count * $seconds_per_page );
 
 		if ( $total_seconds < 60 ) {
 			$estimated_time = sprintf(
@@ -345,7 +352,7 @@ class SScribe_Export_Query_Controller {
 				_n( '%d second', '%d seconds', $total_seconds, 'sscribe-export-site-pages' ),
 				max( 1, ceil( $total_seconds ) )
 			);
-		} else {
+		} elseif ( $total_seconds < 3600 ) {
 			$minutes        = (int) ceil( $total_seconds / 60 );
 			$estimated_time = sprintf(
 			/* translators: %d: Number of minutes. */
@@ -353,10 +360,22 @@ class SScribe_Export_Query_Controller {
 				_n( '%d minute', '%d minutes', $minutes, 'sscribe-export-site-pages' ),
 				$minutes
 			);
+		} else {
+			$hours   = (int) floor( $total_seconds / 3600 );
+			$minutes = (int) ceil( ( $total_seconds % 3600 ) / 60 );
+			/* translators: 1: Hours. 2: Minutes. */
+			$estimated_time = sprintf(
+				__( '%1$d hr %2$d min', 'sscribe-export-site-pages' ),
+				max( 1, $hours ),
+				max( 1, $minutes )
+			);
 		}
 
-		$megabytes_per_page = $this->adaptive_metrics->get_mb_per_page( $format, $post_type );
-		$size_mb            = $page_count * $megabytes_per_page;
+		$megabytes_per_page = 0.0;
+		foreach ( $formats as $selected_format ) {
+			$megabytes_per_page += $this->adaptive_metrics->get_mb_per_page( $selected_format, $post_type );
+		}
+		$size_mb = $page_count * $megabytes_per_page;
 
 		if ( $size_mb < 1 ) {
 			$file_size_estimate = round( $size_mb * 1024 ) . ' KB';
@@ -391,6 +410,7 @@ class SScribe_Export_Query_Controller {
 		$preview_data = array(
 			'total_pages'        => $page_count,
 			'format'             => $format,
+			'formats'            => $formats,
 			'estimated_time'     => $estimated_time,
 			'file_size_estimate' => $file_size_estimate,
 			'language'           => $language_display,
