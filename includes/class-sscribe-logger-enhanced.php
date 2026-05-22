@@ -510,9 +510,12 @@ class SScribe_Logger_Enhanced implements SScribe_Logger_Interface {
 	/**
 	 * Get log entries from database with optional filters.
 	 *
+	 * Note: This method returns raw database row objects, not formatted strings.
+	 * For formatted string output, use get_logs() which calls this method internally.
+	 *
 	 * @param array $filters Filter criteria (level, user_id, date_from, date_to).
 	 * @param int   $limit   Maximum number of entries.
-	 * @return array Log entries.
+	 * @return object[] Array of raw database row objects with timestamp, level, message, context, session_id, request_id properties.
 	 */
 	public function get_db_logs( array $filters = array(), int $limit = 100 ): array {
 		global $wpdb;
