@@ -569,8 +569,53 @@ class SScribe_Session {
 		return $this->clear_user_sessions( $user_id );
 	}
 
+/**
+	 * Get active session data for a user (if any).
+	 *
+	 * @param int $user_id User ID.
+	 * @return array|null Session data array or null if no active session.
+	 */
+	public function get_active_session_data( int $user_id ): ?array {
+		global $wpdb;
+
+		$pattern = $wpdb->esc_like( $this->option_prefix ) . '%';
+
+		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- Lightweight check for active session restoration.
+		$options = $wpdb->get_results(
+			$wpdb->prepare(
+				"SELECT option_name, option_value FROM {$wpdb->options} WHERE option_name LIKE %s AND autoload = 'no'",
+				$pattern
+			)
+		);
+
+		foreach ( $options as $option ) {
+			$data = $this->decode_session_value( $option->option_value ?? '' );
+
+			if ( ! is_array( $data ) ) {
+				continue;
+			}
+
+			if ( isset( $data['user_id'] ) && (int) $data['user_id'] === $user_id ) {
+				$status = $data['status'] ?? '';
+				if ( in_array( $status, array( 'processing', 'pending', 'finalizing' ), true ) ) {
+					$processed = (int) ( $data['processed'] ?? 0 );
+					$total     = (int) ( $data['total'] ?? 0 );
+					if ( $processed < $total && empty( $data['cancelled'] ) ) {
+						// Return session data including the option_name for cancellation support.
+						$data['option_name'] = $option->option_name;
+						return $data;
+					}
+				}
+			}
+		}
+
+		return null;
+	}
+
 	/**
-	 * Check if a user has an active session.
+	 * Check if user has active session and return its data.
+	 *
+	 * @deprecated Use get_active_session_data() instead. Kept for backward compatibility.
 	 *
 	 * @param int $user_id User ID.
 	 * @return bool

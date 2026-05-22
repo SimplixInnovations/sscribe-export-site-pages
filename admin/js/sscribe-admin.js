@@ -55,6 +55,9 @@
 			const defaultLanguage = $('input[name="sscribe_language"]:checked').val() || '';
 			this.refreshStatusAndLanguageCounts(defaultPostType, defaultLanguage);
 
+			// Check for active session on page load - restore UI if one exists.
+			this.checkActiveSession();
+
 			const self = this;
 			let supportTriggered = false;
 			const observer = new IntersectionObserver(
@@ -319,42 +322,29 @@
 								.text(total.toLocaleString());
 						}
 					},
-error: function () {
-					$('.sscribe-status-card-label').removeClass('sscribe-loading');
-					$('#sscribe-post-count, #sscribe-both-count').removeClass('sscribe-loading-count');
-					const $warning = $('<span class="sscribe-count-error" style="color: var(--sscribe-text-error); font-size: 12px; margin-left: 8px;"><?php esc_attr_e( 'Counts unavailable', 'sscribe-export-site-pages' ); ?></span>');
-					$('#sscribe-post-count, #sscribe-both-count').each(function() {
-						if (!$(this).next('.sscribe-count-error').length) {
-							$(this).after($warning.clone());
-						}
-					});
-					console.warn('SScribe: Failed to refresh status counts');
-				},
 				});
 			});
+		},
 
+		checkActiveSession: function () {
 			$.ajax({
 				url: sscribe_data.ajaxurl,
 				type: 'POST',
-				timeout: 15000,
+				timeout: 10000,
 				data: {
-					action: 'sscribe_get_status_counts',
+					action: 'sscribe_check_active_session',
 					nonce: sscribe_data.nonce,
-					language: '',
-					post_type: postType,
 				},
 				success: function (response) {
-					if (response.success && response.data.counts) {
-						const total = self.parseLocalizedInt(response.data.counts.all) || 0;
-						$('input[name="sscribe_language"][value=""]')
-							.closest('.sscribe-lang-card-label')
-							.find('.sscribe-lang-count')
-							.text(total.toLocaleString());
+					if (response.success && response.data && response.data.has_active) {
+						SScribe.sessionId = response.data.session_id;
+						SScribe.isProcessing = true;
+						SScribe.updateProgress(response.data.percentage);
+						SScribe.updatePhase(response.data.status);
+						$('#sscribe-cancel-btn').prop('disabled', false).text(sscribe_data.strings.cancel || 'Cancel Export');
+						$('#sscribe-export-btn, #sscribe-preview-btn').prop('disabled', true);
+						$('#sscribe-progress-area').show();
 					}
-				},
-				error: function () {
-					$('.sscribe-status-card-label').removeClass('sscribe-loading');
-					$('#sscribe-post-count, #sscribe-both-count').removeClass('sscribe-loading-count');
 				},
 			});
 		},
