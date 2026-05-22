@@ -1861,6 +1861,62 @@ class SScribe_Batch_Processor {
 	}
 
 	/**
+	 * Check for active session on page load - used to restore UI after browser reload.
+	 */
+	public function ajax_check_active_session(): void {
+		if ( ! check_ajax_referer( 'sscribe_download', 'nonce', false ) ) {
+			status_header( 403 );
+			wp_send_json_error(
+				array( 'message' => esc_html__( 'Security check failed.', 'sscribe-export-site-pages' ) )
+			);
+			return;
+		}
+
+		if ( ! current_user_can( $this->get_required_capability() ) ) {
+			status_header( 403 );
+			wp_send_json_error(
+				array( 'message' => esc_html__( 'Permission denied.', 'sscribe-export-site-pages' ) )
+			);
+			return;
+		}
+
+		$user_id = get_current_user_id();
+		if ( $user_id <= 0 ) {
+			wp_send_json_success(
+				array(
+					'has_active' => false,
+				)
+			);
+			return;
+		}
+
+		$session_data = $this->session->get_active_session_data( $user_id );
+
+		if ( null === $session_data ) {
+			wp_send_json_success(
+				array(
+					'has_active' => false,
+				)
+			);
+			return;
+		}
+
+		// Return active session info for UI restoration.
+		wp_send_json_success(
+			array(
+				'has_active'  => true,
+				'session_id'  => $session_data['session_id'] ?? '',
+				'status'      => $session_data['status'] ?? '',
+				'processed'   => (int) ( $session_data['processed'] ?? 0 ),
+				'total'      => (int) ( $session_data['total'] ?? 0 ),
+				'percentage'  => $session_data['total'] > 0
+					? (int) ( ( $session_data['processed'] / $session_data['total'] ) * 100 )
+					: 0,
+			)
+		);
+	}
+
+	/**
 	 * Run health check diagnostics via AJAX.
 	 */
 	public function ajax_health_check(): void {
