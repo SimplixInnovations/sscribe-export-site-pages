@@ -82,6 +82,10 @@ $sscribe_log_levels     = array(
 					<option value="CRITICAL">CRITICAL</option>
 				</select>
 			</div>
+			<div class="sscribe-debug-session-filter">
+				<label for="sscribe-debug-session-id" class="screen-reader-text"><?php esc_html_e( 'Filter by session:', 'sscribe-export-site-pages' ); ?></label>
+				<input type="text" id="sscribe-debug-session-id" class="sscribe-input" placeholder="<?php esc_attr_e( 'Session ID...', 'sscribe-export-site-pages' ); ?>" maxlength="64">
+			</div>
 			<div class="sscribe-debug-search">
 				<label for="sscribe-debug-search" class="screen-reader-text"><?php esc_html_e( 'Search logs:', 'sscribe-export-site-pages' ); ?></label>
 				<input type="text" id="sscribe-debug-search" class="sscribe-input" placeholder="<?php esc_attr_e( 'Search logs...', 'sscribe-export-site-pages' ); ?>">
