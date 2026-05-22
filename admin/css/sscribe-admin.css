@@ -115,6 +115,15 @@
 /* ============================================
    BASE STYLES
    ============================================ */
+body.toplevel_page_sscribe-export #wpcontent {
+	padding-left: 0;
+}
+
+body.toplevel_page_sscribe-export #wpbody-content {
+	box-sizing: border-box;
+	padding: 0 20px 24px;
+}
+
 body .sscribe-master-container {
 	font-family: var(--sscribe-font-family);
 	color: var(--sscribe-text-main);
@@ -124,6 +133,7 @@ body .sscribe-master-container {
 	background: var(--sscribe-card-bg);
 	line-height: 1.6;
 	max-width: 1440px;
+	width: min(1440px, 100%);
 	margin: 20px auto 60px;
 	padding: var(--sscribe-space-xl);
 	border: 1px solid var(--sscribe-border-light);
@@ -158,11 +168,6 @@ body .sscribe-master-container .sscribe-hero {
 	padding: var(--sscribe-space-l) var(--sscribe-space-xl);
 	margin-bottom: var(--sscribe-space-xl);
 	position: relative;
-	transition: box-shadow var(--sscribe-transition-normal);
-}
-
-.sscribe-hero:hover {
-	box-shadow: var(--sscribe-shadow-elevated);
 }
 
 .sscribe-hero-stats {
@@ -2242,6 +2247,68 @@ body .sscribe-master-container .sscribe-hero {
 	background: var(--sscribe-card-bg, #fff);
 }
 
+.sscribe-modal-footer {
+	display: flex;
+	align-items: center;
+	justify-content: flex-end;
+	gap: 10px;
+	padding: 14px 24px;
+	border-top: 1px solid var(--sscribe-border-light);
+	background: var(--sscribe-section-bg);
+}
+
+.sscribe-preview-footer .sscribe-button {
+	min-width: 120px;
+}
+
+.sscribe-preview-result {
+	display: grid;
+	gap: 16px;
+}
+
+.sscribe-preview-grid {
+	display: grid;
+	gap: 12px;
+	grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+}
+
+.sscribe-preview-stat {
+	display: flex;
+	flex-direction: column;
+	gap: 6px;
+	padding: 12px;
+	background: var(--sscribe-bg);
+	border: 1px solid var(--sscribe-border-light);
+	border-radius: var(--sscribe-radius-sm);
+}
+
+.sscribe-preview-label {
+	font-size: 11px;
+	font-weight: 600;
+	letter-spacing: 0.05em;
+	text-transform: uppercase;
+	color: var(--sscribe-text-muted);
+}
+
+.sscribe-preview-value {
+	font-size: 14px;
+	font-weight: 600;
+	color: var(--sscribe-text-main);
+}
+
+.sscribe-preview-empty {
+	padding: 16px;
+	border-radius: var(--sscribe-radius-sm);
+	background: var(--sscribe-warning-light);
+	color: #9a6700;
+	font-size: 13px;
+}
+
+.sscribe-preview-context {
+	font-size: 12px;
+	color: var(--sscribe-text-secondary);
+}
+
 /* ============================================
    LOG DISPLAY
    ============================================ */
@@ -2358,6 +2425,15 @@ body .sscribe-master-container .sscribe-hero {
 	padding: 40px;
 	text-align: center;
 	color: var(--sscribe-text-muted);
+}
+
+.sscribe-log-error {
+	padding: 16px;
+	border: 1px solid rgb(207 46 46 / 20%);
+	border-radius: var(--sscribe-radius-sm);
+	background: var(--sscribe-danger-light);
+	color: var(--sscribe-danger);
+	font-size: 13px;
 }
 
 /* ============================================
@@ -3716,7 +3792,6 @@ body .sscribe-master-container .sscribe-hero {
 	box-shadow: var(--sscribe-shadow-shallow);
 }
 
-body .sscribe-master-container .sscribe-hero:hover,
 body .sscribe-master-container .sscribe-panel:hover {
 	box-shadow: var(--sscribe-shadow-standard);
 }
@@ -3995,6 +4070,10 @@ body .sscribe-master-container .sscribe-support-copy-text {
 }
 
 @media (width <= 782px) {
+	body.toplevel_page_sscribe-export #wpbody-content {
+		padding: 0 10px 20px;
+	}
+
 	.sscribe-master-container {
 		margin: 10px 10px 40px;
 		padding: 16px;
@@ -4134,6 +4213,17 @@ body .sscribe-master-container .sscribe-support-copy-text {
 	.sscribe-modal-body {
 		padding-left: 18px;
 		padding-right: 18px;
+	}
+
+	.sscribe-modal-footer {
+		padding-left: 18px;
+		padding-right: 18px;
+		flex-wrap: wrap;
+		justify-content: stretch;
+	}
+
+	.sscribe-preview-footer .sscribe-button {
+		flex: 1 1 0;
 	}
 
 	.sscribe-toast-container {

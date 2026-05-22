@@ -191,6 +191,25 @@
 			}
 		},
 
+		getResponseMessage: function( response, fallback ) {
+			if ( response && response.data && response.data.message ) {
+				return response.data.message;
+			}
+			return fallback;
+		},
+
+		showConsoleError: function( message ) {
+			this.$empty.hide();
+			this.$entries.html(
+				'<div class="sscribe-debug-entry">' +
+				'<div class="sscribe-debug-entry-header">' +
+				'<span class="sscribe-debug-entry-badge error">ERROR</span>' +
+				'<span class="sscribe-debug-entry-message">' + escHtml( message ) + '</span>' +
+				'</div>' +
+				'</div>'
+			);
+		},
+
 		saveSettings: function() {
 			const self = this;
 			const data = {
@@ -209,7 +228,7 @@
 						self.$saveFeedback.removeClass( 'success' );
 					}, 2000 );
 				} else {
-					self.$saveFeedback.text( 'Error' ).addClass( 'error' );
+					self.$saveFeedback.text( self.getResponseMessage( response, 'Error' ) ).addClass( 'error' );
 					setTimeout( function() {
 						self.$saveFeedback.text( '' );
 						self.$saveFeedback.removeClass( 'error' );
@@ -279,12 +298,17 @@
 					if ( ! self.hasMoreEntries ) {
 						self.destroyObserver();
 					}
+				} else {
+					self.destroyObserver();
+					self.$entryCount.text( 'Error' );
+					self.showConsoleError( self.getResponseMessage( response, 'Unable to load debug logs.' ) );
 				}
 			} ).fail( function() {
 				self.$entries.css( 'opacity', '1' );
 				self.isLoadingMore = false;
 				if ( isInitialLoad ) {
-					self.$entryCount.text( 'Error loading logs' );
+					self.$entryCount.text( 'Error' );
+					self.showConsoleError( 'Error loading logs' );
 				}
 			} );
 		},
@@ -424,7 +448,7 @@
 					self.fetchLogs();
 					self.fetchRotatedLogs();
 				} else {
-					self.$saveFeedback.text( 'Error' ).addClass( 'error' );
+					self.$saveFeedback.text( self.getResponseMessage( response, 'Error' ) ).addClass( 'error' );
 					setTimeout( function() {
 						self.$saveFeedback.text( '' );
 						self.$saveFeedback.removeClass( 'error' );
@@ -460,7 +484,19 @@
 			$.get( sscribe_data.ajaxurl, data, function( response ) {
 				if ( response.success ) {
 					self.renderRotatedLogs( response.data.files );
+				} else {
+					self.$rotatedBody.html(
+						'<div class="sscribe-debug-rotated-empty">' +
+						escHtml( self.getResponseMessage( response, 'Unable to load rotated logs.' ) ) +
+						'</div>'
+					);
 				}
+			} ).fail( function() {
+				self.$rotatedBody.html(
+					'<div class="sscribe-debug-rotated-empty">' +
+					escHtml( 'Unable to load rotated logs.' ) +
+					'</div>'
+				);
 			} );
 		},
 
@@ -511,7 +547,13 @@
 					self.$entries.find( '#sscribe-back-to-current' ).on( 'click', function() {
 						self.backToCurrentLog();
 					} );
+				} else {
+					self.$entryCount.text( 'Error' );
+					self.showConsoleError( self.getResponseMessage( response, 'Unable to open rotated log.' ) );
 				}
+			} ).fail( function() {
+				self.$entryCount.text( 'Error' );
+				self.showConsoleError( 'Unable to open rotated log.' );
 			} );
 		},
 
@@ -543,7 +585,19 @@
 			$.post( sscribe_data.ajaxurl, data, function( response ) {
 				if ( response.success ) {
 					self.fetchRotatedLogs();
+				} else {
+					self.$saveFeedback.text( self.getResponseMessage( response, 'Error' ) ).addClass( 'error' );
+					setTimeout( function() {
+						self.$saveFeedback.text( '' );
+						self.$saveFeedback.removeClass( 'error' );
+					}, 2000 );
 				}
+			} ).fail( function() {
+				self.$saveFeedback.text( 'Error' ).addClass( 'error' );
+				setTimeout( function() {
+					self.$saveFeedback.text( '' );
+					self.$saveFeedback.removeClass( 'error' );
+				}, 2000 );
 			} );
 		}
 	};
