@@ -45,6 +45,7 @@ class SScribe_Activator {
 
 		self::create_export_directory();
 		self::create_database_tables();
+		self::register_settings();
 		self::schedule_cleanup();
 		self::cleanup_orphaned_data();
 		update_option( 'sscribe_version', SSCRIBE_VERSION, false );
@@ -137,7 +138,43 @@ class SScribe_Activator {
 	}
 
 	/**
-	 * Create and secure the export directory.
+	 * Register WordPress settings via register_setting().
+	 * Required for WordPress Plugin Review compliance.
+	 */
+	private static function register_settings(): void {
+		register_setting(
+			'sscribe_settings',
+			'sscribe_debug_enabled',
+			array(
+				'type'              => 'boolean',
+				'sanitize_callback' => 'rest_sanitize_boolean',
+				'default'           => false,
+			)
+		);
+
+		register_setting(
+			'sscribe_settings',
+			'sscribe_debug_log_level',
+			array(
+				'type'              => 'string',
+				'sanitize_callback' => 'sanitize_text_field',
+				'default'           => 'DEBUG',
+			)
+		);
+
+		register_setting(
+			'sscribe_settings',
+			'sscribe_debug_auto_refresh',
+			array(
+				'type'              => 'boolean',
+				'sanitize_callback' => 'rest_sanitize_boolean',
+				'default'           => true,
+			)
+		);
+	}
+
+	/**
+	 * Schedule cleanup cron jobs.
 	 */
 	private static function create_export_directory(): void {
 		$upload_dir  = wp_upload_dir();
