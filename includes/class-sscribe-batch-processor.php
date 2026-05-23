@@ -414,6 +414,11 @@ class SScribe_Batch_Processor {
 
 		$language    = isset( $_POST['language'] ) ? sanitize_text_field( wp_unslash( $_POST['language'] ) ) : '';
 		$post_status = isset( $_POST['post_status'] ) ? sanitize_text_field( wp_unslash( $_POST['post_status'] ) ) : 'publish';
+		// Validate post_status against allowlist to prevent exporting trash/auto-draft content.
+		$allowed_statuses = array( 'publish', 'private', 'draft', 'pending' );
+		if ( ! in_array( $post_status, $allowed_statuses, true ) ) {
+			$post_status = 'publish';
+		}
 		// phpcs:ignore WordPress.Security.ValidatedSanitizedInput.InputNotSanitized -- Sanitization via array_map on next line.
 		$formats_raw   = isset( $_POST['formats'] ) ? wp_unslash( (array) $_POST['formats'] ) : array();
 		$formats_input = array_map( 'sanitize_text_field', $formats_raw );
@@ -431,7 +436,7 @@ class SScribe_Batch_Processor {
 		}
 
 		$post_type        = isset( $_POST['post_type'] ) ? sanitize_text_field( wp_unslash( $_POST['post_type'] ) ) : 'page';
-		$valid_post_types = array( 'page', 'post', 'any' );
+		$valid_post_types = array( 'page', 'post' );
 		if ( ! in_array( $post_type, $valid_post_types, true ) ) {
 			$post_type = 'page';
 		}
@@ -748,7 +753,23 @@ class SScribe_Batch_Processor {
 		$structured_errors = isset( $session['structured_errors'] ) && is_array( $session['structured_errors'] ) ? $session['structured_errors'] : array();
 		$start_time        = isset( $session['start_time'] ) ? $session['start_time'] : time();
 		$formats           = isset( $session['formats'] ) ? $session['formats'] : array( 'docx' );
-		$session_id        = $session['session_id'] ?? '';
+		// NOTE: Do NOT overwrite $session_id from session data - the POST value is canonical.
+		// Using the POST value prevents session data tampering attacks.
+
+		// Validate temp_dir is within allowed uploads directory to prevent path traversal attacks.
+		$upload_dir        = wp_upload_dir();
+		$allowed_temp_base = trailingslashit( $upload_dir['basedir'] ) . 'sscribe-temp';
+		$real_temp_dir     = realpath( $temp_dir ) ?: $temp_dir;
+		if ( 0 !== strpos( $real_temp_dir, $allowed_temp_base ) ) {
+			$this->release_lock( $session_id );
+			$this->restore_ob_level( $ob_level_before );
+			SScribe_AJAX_Guard::error(
+				array(
+					'message' => __( 'Export session corrupted (invalid temp directory path). Please start again.', 'sscribe-export-site-pages' ),
+				),
+				500
+			);
+		}
 
 		$this->export_log = new SScribe_Export_Log( $session_id );
 
@@ -768,7 +789,9 @@ class SScribe_Batch_Processor {
 
 		$batch = array_slice( $page_ids, $processed, $this->batch_size );
 
-		if ( ! empty( $batch ) ) {
+		// Only prefetch images/child pages for batches of 3+ pages to avoid
+		// disproportionate overhead for tiny final batches.
+		if ( count( $batch ) >= 3 ) {
 			$this->collector->get_featured_images_batch( $batch );
 			$this->collector->get_child_pages_batch( $batch );
 		}
@@ -949,6 +972,8 @@ class SScribe_Batch_Processor {
 							$file_path = $result->get_data()['path'] ?? '';
 							$file_size = $result->get_data()['size'] ?? 0;
 
+							// Clear stat cache to get accurate filesize after file was just written.
+							clearstatcache( true, $file_path );
 							$actual_size = ( ! empty( $file_path ) && file_exists( $file_path ) ) ? (int) filesize( $file_path ) : 0;
 							$min_sizes   = array(
 								'docx'     => 4096,
@@ -1048,7 +1073,7 @@ class SScribe_Batch_Processor {
 							'page_id'         => $page_id,
 							'page_title'      => $page_data['title'] ?? '',
 							'exception_class' => get_class( $e ),
-							'exception_file'  => basename( $e->getFile() ) . ':' . $e->getLine(),
+							// NOTE: exception_file/line removed from frontend response - only keep in server logs.
 							'memory_usage'    => memory_get_usage( true ),
 							'memory_peak'     => memory_get_peak_usage( true ),
 							'memory_limit'    => ini_get( 'memory_limit' ),
@@ -1139,13 +1164,12 @@ class SScribe_Batch_Processor {
 					clean_post_cache( $page_id );
 				}
 
-				$page_data = null;
-				$exporter  = null;
+				$exporter = null;
 
 				++$processed;
 				++$processed_in_this_batch;
 
-				if ( 0 === $processed % 3 && function_exists( 'gc_collect_cycles' ) ) {
+				if ( 0 === $processed % 10 && function_exists( 'gc_collect_cycles' ) ) {
 					gc_collect_cycles();
 				}
 
@@ -1197,18 +1221,18 @@ class SScribe_Batch_Processor {
 			if ( $errors_trimmed ) {
 				$trimmed_count = $total_errors - self::MAX_STORED_ERRORS;
 				$errors        = array_slice( $errors, 0, self::MAX_STORED_ERRORS );
+				// Append trim notification as last error so user knows more errors occurred.
+				$errors[] = sprintf(
+					/* translators: %d: Number of additional errors not stored. */
+					__( '... and %d more errors occurred (see export log for full details).', 'sscribe-export-site-pages' ),
+					$trimmed_count
+				);
 				$this->logger->warning(
 					'Error array capped to prevent memory exhaustion',
 					array(
 						'stored'  => self::MAX_STORED_ERRORS,
 						'trimmed' => $trimmed_count,
 						'total'   => $total_errors,
-						'message' => sprintf(
-							/* translators: %d: Number of additional errors not stored. */
-
-							__( '... and %d more errors occurred (see export log for full details).', 'sscribe-export-site-pages' ),
-							$trimmed_count
-						),
 					)
 				);
 			}
@@ -1216,6 +1240,19 @@ class SScribe_Batch_Processor {
 			if ( $structured_errors_trimmed ) {
 				$trimmed_count = $total_structured_errors - self::MAX_STORED_ERRORS;
 				$structured_errors = array_slice( $structured_errors, 0, self::MAX_STORED_ERRORS );
+				// Append trim notification so frontend knows more errors were dropped.
+				$structured_errors[] = array(
+					'page_id'    => 0,
+					'page_title' => '...',
+					'message'    => sprintf(
+						/* translators: %d: Number of additional errors not stored. */
+						__( '... and %d more errors occurred.', 'sscribe-export-site-pages' ),
+						$trimmed_count
+					),
+					'errors'     => array(),
+					'diagnostics' => array(),
+					'time'        => current_time( 'mysql' ),
+				);
 				$this->logger->warning(
 					'Structured error array capped to prevent memory exhaustion',
 					array(
