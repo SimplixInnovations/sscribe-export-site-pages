@@ -92,3 +92,30 @@ if ( ! function_exists( 'wp_is_post_revision' ) ) {
 		return false;
 	}
 }
+
+if ( ! function_exists( 'register_setting' ) ) {
+
+	/**
+	 * WordPress stub for PHPStan.
+	 *
+	 * @param string $option_group Option group.
+	 * @param string $option_name Option name.
+	 * @param array  $args       Optional. Data used to describe the setting when registered with register_setting().
+	 * @return bool Always true in test context.
+	 */
+	function register_setting( string $option_group, string $option_name, array $args = array() ): bool {
+		return true;
+	}
+}
+
+if ( ! function_exists( 'get_current_blog_id' ) ) {
+
+	/**
+	 * WordPress stub for PHPStan.
+	 *
+	 * @return int Always returns 1 in single site context.
+	 */
+	function get_current_blog_id(): int {
+		return 1;
+	}
+}

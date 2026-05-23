@@ -141,13 +141,11 @@ class SScribe_Admin_Debug {
 
 		if ( ! current_user_can( $this->get_export_capability() ) ) {
 			SScribe_AJAX_Guard::error( array( 'message' => __( 'Insufficient permissions.', 'sscribe-export-site-pages' ) ), 403 );
-			return;
 		}
 
 		$rate_limiter = new SScribe_Export_Rate_Limiter();
 		if ( ! $rate_limiter->check_rate_limit( 'debug_write' ) ) {
 			SScribe_AJAX_Guard::error( array( 'message' => __( 'Rate limit exceeded. Please wait before trying again.', 'sscribe-export-site-pages' ) ), 429 );
-			return;
 		}
 
 		$filename = isset( $_POST['filename'] ) ? sanitize_text_field( wp_unslash( $_POST['filename'] ) ) : '';
@@ -162,26 +160,21 @@ class SScribe_Admin_Debug {
 
 			if ( false === $real_file_path || false === $real_log_dir ) {
 				SScribe_AJAX_Guard::error( array( 'message' => __( 'File not found.', 'sscribe-export-site-pages' ) ), 404 );
-				return;
 			}
 
 			// Validate file extension to prevent reading non-log files.
 			if ( ! preg_match( '/\.(log|json)$/', $filename ) ) {
 				SScribe_AJAX_Guard::error( array( 'message' => __( 'Invalid file type.', 'sscribe-export-site-pages' ) ), 400 );
-				return;
 			}
 
 			if ( 0 === strpos( $real_file_path, $real_log_dir . DIRECTORY_SEPARATOR ) ) {
 				$content = file_get_contents( $file_path ); // phpcs:ignore WordPress.WP.AlternativeFunctions.file_get_contents_file_get_contents
 				if ( false === $content ) {
 					SScribe_AJAX_Guard::error( array( 'message' => __( 'Failed to read file.', 'sscribe-export-site-pages' ) ), 500 );
-					return;
 				}
 				$this->download_json( $filename, $content );
-				return;
 			} else {
 				SScribe_AJAX_Guard::error( array( 'message' => __( 'File not found.', 'sscribe-export-site-pages' ) ), 404 );
-				return;
 			}
 		}
 
