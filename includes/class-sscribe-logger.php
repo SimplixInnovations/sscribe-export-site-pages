@@ -29,13 +29,6 @@ class SScribe_Logger implements SScribe_Logger_Interface {
 	private static array $instances = array();
 
 	/**
-	 * Current request ID for log correlation.
-	 *
-	 * @var string|null
-	 */
-	private static ?string $request_id = null;
-
-	/**
 	 * Current session ID for log context.
 	 *
 	 * @var string|null
@@ -295,7 +288,7 @@ class SScribe_Logger implements SScribe_Logger_Interface {
 			'plugin_version' => defined( 'SSCRIBE_VERSION' ) ? (string) SSCRIBE_VERSION : 'unknown',
 			'php_version'    => PHP_VERSION,
 			'memory_usage'   => size_format( memory_get_usage( true ) ),
-			'request_id'     => self::get_request_id(),
+			'request_id'     => $this->get_request_id(),
 		);
 
 		if ( null !== $this->session_id ) {
@@ -303,19 +296,6 @@ class SScribe_Logger implements SScribe_Logger_Interface {
 		}
 
 		return $context;
-	}
-
-	/**
-	 * Get or generate request ID.
-	 *
-	 * @return string Request identifier.
-	 */
-	private static function get_request_id(): string {
-		if ( null === self::$request_id ) {
-			self::$request_id = substr( md5( microtime( true ) . (string) random_int( 0, PHP_INT_MAX ) ), 0, 12 );
-		}
-
-		return self::$request_id;
 	}
 
 	/**
