@@ -114,7 +114,7 @@ class SScribe_Admin {
 	 *
 	 * @return string CSP nonce value.
 	 */
-	private function get_csp_nonce(): string {
+	public function get_csp_nonce(): string {
 		if ( empty( $this->csp_nonce ) ) {
 			$this->csp_nonce = bin2hex( random_bytes( 16 ) );
 		}
@@ -140,12 +140,13 @@ class SScribe_Admin {
 			return $tag;
 		}
 
-		if ( empty( $this->csp_nonce ) ) {
+		$nonce = $this->get_csp_nonce();
+		if ( empty( $nonce ) ) {
 			return $tag;
 		}
 
 		// Add nonce attribute to script tag.
-		return str_replace( '<script ', '<script nonce="' . esc_attr( $this->csp_nonce ) . '" ', $tag );
+		return str_replace( '<script ', '<script nonce="' . esc_attr( $nonce ) . '" ', $tag );
 	}
 
 	/**
