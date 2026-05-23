@@ -17,7 +17,7 @@ if ( ! defined( 'ABSPATH' ) ) {
 class SScribe_Batch_Processor {
 
 	private const MAX_STORED_ERRORS = 50;
-	private const DEFAULT_FORMATS = array( 'docx', 'pdf', 'html', 'markdown' );
+	private const DEFAULT_FORMATS = array( 'docx' );
 	private const MAX_RETRIES = 2;
 	private const RETRY_TRANSIENT_CATEGORIES = array( 'network', 'timeout', 'rate_limit', 'temporary' );
 
@@ -142,12 +142,10 @@ class SScribe_Batch_Processor {
 	 *
 	 * @param object $result   Export result object.
 	 * @param string $format   Export format.
-	 * @param string $file_path File path.
-	 * @param int    $file_size Reported file size.
-	 * @param int    $page_id   Page ID.
+	 * @param int    $page_id  Page ID.
 	 * @return array Result with keys: is_valid, error, category, context.
 	 */
-	private function validate_export_result( object $result, string $format, string $file_path, int $file_size, int $page_id ): array {
+	private function validate_export_result( object $result, string $format, int $page_id ): array {
 		$min_sizes = array(
 			'docx'     => 4096,
 			'pdf'      => 4096,
@@ -167,6 +165,8 @@ class SScribe_Batch_Processor {
 		}
 
 		$file_path  = $result->get_data()['path'] ?? '';
+		$file_size = $result->get_data()['size'] ?? 0;
+		clearstatcache( true, $file_path );
 		$actual_size = ( ! empty( $file_path ) && file_exists( $file_path ) ) ? (int) filesize( $file_path ) : 0;
 
 		if ( $actual_size < $min_size ) {
@@ -230,7 +230,6 @@ class SScribe_Batch_Processor {
 
 			$attempt = 0;
 			$result  = null;
-			$retry_result = null;
 
 			while ( $attempt <= self::MAX_RETRIES ) {
 				$result = $exporter->export( $page_data, $temp_dir, $page_index, $total );
@@ -253,7 +252,6 @@ class SScribe_Batch_Processor {
 
 			// Free exporter immediately after use to prevent memory buildup across format iterations.
 			$exporter = null;
-			unset( $exporter );
 
 			$format_elapsed         = microtime( true ) - $format_start;
 			$format_key             = 'format_time_' . $format;
@@ -263,7 +261,7 @@ class SScribe_Batch_Processor {
 			$file_size = $result->get_data()['size'] ?? 0;
 			clearstatcache( true, $file_path );
 
-			$validation = $this->validate_export_result( $result, $format, $file_path, $file_size, $page_id );
+			$validation = $this->validate_export_result( $result, $format, $page_id );
 
 			if ( ! $validation['is_valid'] ) {
 				$export_errors[] = array(
@@ -1362,6 +1360,10 @@ class SScribe_Batch_Processor {
 				);
 			}
 
+			// Derive $paused_reason inside finally BEFORE building $update_data
+			// so the hint is correctly persisted for the next batch call.
+			$paused_reason = $memory_paused ? 'memory' : ( $timeout_paused ? 'timeout' : '' );
+
 			$update_data = array(
 				'processed'         => $processed,
 				'errors'            => $errors,
@@ -1443,13 +1445,6 @@ class SScribe_Batch_Processor {
 			);
 		}
 
-		$paused_reason = '';
-		if ( $memory_paused ) {
-			$paused_reason = 'memory';
-		} elseif ( $timeout_paused ) {
-			$paused_reason = 'timeout';
-		}
-
 		$response = $this->build_batch_response(
 			$processed,
 			$total,
@@ -1457,7 +1452,6 @@ class SScribe_Batch_Processor {
 			$avg_time_per_page,
 			$memory_paused,
 			$timeout_paused,
-			$paused_reason,
 			$structured_errors,
 			$errors,
 			$batch_duration,
@@ -1476,14 +1470,13 @@ class SScribe_Batch_Processor {
 	 * @param float  $avg_time_per_page Average time per page.
 	 * @param bool   $memory_paused     Whether paused due to memory.
 	 * @param bool   $timeout_paused    Whether paused due to timeout.
-	 * @param string $paused_reason     Reason for pause.
 	 * @param array  $structured_errors Structured errors array.
 	 * @param array  $errors            Simple errors array.
 	 * @param float  $batch_duration    Duration of batch in seconds.
 	 * @param float  $batch_start_time  Start time of batch.
 	 * @return array Response array.
 	 */
-	private function build_batch_response( int $processed, int $total, string $current_page_title, float $avg_time_per_page, bool $memory_paused, bool $timeout_paused, string $paused_reason, array $structured_errors, array $errors, float $batch_duration, float $batch_start_time ): array {
+	private function build_batch_response( int $processed, int $total, string $current_page_title, float $avg_time_per_page, bool $memory_paused, bool $timeout_paused, array $structured_errors, array $errors, float $batch_duration, float $batch_start_time ): array {
 		$percentage = ( $total > 0 ) ? round( ( $processed / $total ) * 100 ) : 100;
 		$remaining_pages = $total - $processed;
 		$time_remaining  = round( $avg_time_per_page * $remaining_pages );
@@ -1563,15 +1556,8 @@ class SScribe_Batch_Processor {
 	 * @param int $target_level Target buffer level.
 	 */
 	private function restore_ob_level( int $target_level ): void {
-
 		while ( ob_get_level() > $target_level ) {
 			ob_end_clean();
-		}
-
-		if ( headers_sent() && ob_get_level() > $target_level ) {
-			while ( ob_get_level() > $target_level ) {
-				ob_end_clean();
-			}
 		}
 	}
 
@@ -1873,9 +1859,28 @@ class SScribe_Batch_Processor {
 			$zip_open        = $zip->open( $zip_path );
 			$total_files_zip = 0;
 			if ( true === $zip_open ) {
-				// phpcs:ignore WordPress.NamingConventions.ValidVariableName.UsedPropertyNotSnakeCase -- Native ZipArchive property.
-				$total_files_zip = $zip->numFiles; // phpcs:ignore WordPress.NamingConventions.ValidVariableName.UsedPropertyNotSnakeCase -- Native ZipArchive property.
+				// Count only actual file entries (not directory entries which end with '/').
+				$total_files_zip = 0;
+				for ( $i = 0; $i < $zip->numFiles; $i++ ) {
+					$stat = $zip->statIndex( $i );
+					if ( $stat && substr( $stat['name'], -1 ) !== '/' ) {
+						++$total_files_zip;
+					}
+				}
 				$zip->close();
+			}
+
+			// Cross-check: warn if ZIP has fewer files than expected from temp dir.
+			$expected_file_count = array_sum( $files_before );
+			if ( $expected_file_count > 0 && $total_files_zip < $expected_file_count ) {
+				$this->logger->warning(
+					'ZIP may be incomplete',
+					array(
+						'expected_files' => $expected_file_count,
+						'actual_files'   => $total_files_zip,
+						'zip_path'        => $zip_path,
+					)
+				);
 			}
 
 			if ( $total_files_zip <= 0 ) {
@@ -1942,10 +1947,11 @@ class SScribe_Batch_Processor {
 			$duration     = time() - ( $session['start_time'] ?? time() );
 			$zip_size     = function_exists( 'wp_filesize' ) && file_exists( $zip_path ) ? (int) wp_filesize( $zip_path ) : 0;
 			$error_count  = count( $session['errors'] ?? array() );
+			$successful_pages = max( 0, ( $session['total'] ?? 0 ) - $error_count );
 			$export_stats->complete_export(
 				$session_id,
 				array(
-					'successful_pages' => $session['total'],
+					'successful_pages' => $successful_pages,
 					'failed_pages'     => $error_count,
 					'duration'         => $duration,
 					'file_size_mb'     => $zip_size / 1048576,
@@ -2074,27 +2080,30 @@ class SScribe_Batch_Processor {
 	 */
 	public function ajax_check_active_session(): void {
 		if ( ! check_ajax_referer( 'sscribe_export_nonce', 'nonce', false ) ) {
-			status_header( 403 );
-			wp_send_json_error(
-				array( 'message' => esc_html__( 'Security check failed.', 'sscribe-export-site-pages' ) )
+			SScribe_AJAX_Guard::error(
+				array(
+					'message' => __( 'Security check failed.', 'sscribe-export-site-pages' ),
+				),
+				403
 			);
-			return;
 		}
 
 		if ( ! current_user_can( $this->get_required_capability() ) ) {
-			status_header( 403 );
-			wp_send_json_error(
-				array( 'message' => esc_html__( 'Permission denied.', 'sscribe-export-site-pages' ) )
+			SScribe_AJAX_Guard::error(
+				array(
+					'message' => __( 'Permission denied.', 'sscribe-export-site-pages' ),
+				),
+				403
 			);
-			return;
 		}
 
 		if ( ! $this->check_rate_limit() ) {
-			status_header( 429 );
-			wp_send_json_error(
-				array( 'message' => esc_html__( 'Rate limit exceeded. Please wait before trying again.', 'sscribe-export-site-pages' ) )
+			SScribe_AJAX_Guard::error(
+				array(
+					'message' => __( 'Rate limit exceeded. Please wait before trying again.', 'sscribe-export-site-pages' ),
+				),
+				429
 			);
-			return;
 		}
 
 		$user_id = get_current_user_id();
@@ -2125,9 +2134,9 @@ class SScribe_Batch_Processor {
 				'session_id'  => $session_data['session_id'] ?? '',
 				'status'      => $session_data['status'] ?? '',
 				'processed'   => (int) ( $session_data['processed'] ?? 0 ),
-				'total'      => (int) ( $session_data['total'] ?? 0 ),
+				'total'       => (int) ( $session_data['total'] ?? 0 ),
 				'percentage'  => $session_data['total'] > 0
-					? (int) ( ( $session_data['processed'] / $session_data['total'] ) * 100 )
+					? round( ( $session_data['processed'] / $session_data['total'] ) * 100 )
 					: 0,
 			)
 		);

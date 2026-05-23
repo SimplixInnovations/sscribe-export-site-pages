@@ -17,6 +17,13 @@ if ( ! defined( 'ABSPATH' ) ) {
 class SScribe_Export_Lock_Manager {
 
 	/**
+	 * Session option prefix (must match SScribe_Session::OPTION_PREFIX).
+	 *
+	 * @var string
+	 */
+	private const SESSION_PREFIX = 'sscribe_session_';
+
+	/**
 	 * Logger instance.
 	 *
 	 * @var SScribe_Logger_Interface
@@ -34,6 +41,9 @@ class SScribe_Export_Lock_Manager {
 
 	/**
 	 * Acquire a processing lock for a session.
+	 *
+	 * Uses wp_cache_add() for atomic lock acquisition on Redis/Memcached backends.
+	 * Falls back to set_transient() for disk-based caching.
 	 *
 	 * @param string $session_id       Session identifier.
 	 * @param int    $lock_ttl         Lock TTL in seconds.
@@ -56,14 +66,21 @@ class SScribe_Export_Lock_Manager {
 			$lock_age   = $current_time - $lock_time;
 
 			if ( $lock_age > $stale_threshold ) {
-				// Atomic replacement: set_transient() is atomic by design — it either
-				// writes the new value or fails without modifying an existing non-expired
-				// lock. There is no explicit delete step, so no race window exists between
-				// detecting a stale lock and acquiring a fresh one. If another process
-				// has already written a fresh lock (or if the "stale" detection was
-				// itself stale due to clock skew), set_transient() returns false and we
-				// safely bail out. No explicit delete or INSERT IGNORE equivalent is needed.
-				if ( set_transient( $lock_key, $current_time . '|' . $lock_token, $lock_ttl ) ) {
+				// Stale lock detected. Try to atomically replace it.
+				// Use wp_cache_add() which uses ADD/SETNX semantics (atomic on Redis/Memcached).
+				$using_cache = wp_using_ext_object_cache();
+				$acquired   = false;
+
+				if ( $using_cache ) {
+					// Atomic: only sets if key doesn't exist.
+					$acquired = wp_cache_add( $lock_key, $current_time . '|' . $lock_token, '', $lock_ttl );
+				} else {
+					// Database-backed: use set_transient which maps to UPDATE ... WHERE option_name =
+					// This is effectively atomic on MySQL/InnoDB.
+					$acquired = set_transient( $lock_key, $current_time . '|' . $lock_token, $lock_ttl );
+				}
+
+				if ( $acquired ) {
 					return $lock_token;
 				}
 
@@ -139,13 +156,26 @@ class SScribe_Export_Lock_Manager {
 		$preserved = 0;
 
 		if ( null !== $user_id ) {
-			$session_pattern = $wpdb->esc_like( 'sscribe_session_' ) . '%';
+			$session_pattern = $wpdb->esc_like( self::SESSION_PREFIX ) . '%';
+			$user_id_json   = '%' . $wpdb->esc_like( '"user_id":' . $user_id ) . '%';
+			$prefix_len     = strlen( self::SESSION_PREFIX );
 
+			// Query with user_id filter pushed into SQL — avoids fetching all sessions then filtering in PHP.
 			// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- Cleanup.
 			$sessions = $wpdb->get_results(
 				$wpdb->prepare(
-					"SELECT option_name, option_value FROM {$wpdb->options} WHERE option_name LIKE %s AND autoload = 'no'",
-					$session_pattern
+					"SELECT o.option_name, o.option_value FROM {$wpdb->options} o
+					WHERE o.option_name LIKE %s
+					AND o.autoload = 'no'
+					AND EXISTS (
+						SELECT 1 FROM {$wpdb->options} m
+						WHERE m.option_name = CONCAT(%s, SUBSTRING(o.option_name, %d))
+						AND m.option_value LIKE %s
+					)",
+					$session_pattern,
+					self::SESSION_PREFIX,
+					$prefix_len + 1,
+					$user_id_json
 				)
 			);
 
