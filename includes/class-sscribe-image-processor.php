@@ -304,7 +304,7 @@ class SScribe_Image_Processor {
 
 		$resized = imagecreatetruecolor( $new_width, $new_height );
 		if ( false === $resized ) {
-			imagedestroy( $image ); // phpcs:ignore Generic.PHP.DeprecatedFunctions.Deprecated
+			unset( $image );
 			return $path;
 		}
 
@@ -316,7 +316,7 @@ class SScribe_Image_Processor {
 		}
 
 		imagecopyresampled( $resized, $image, 0, 0, 0, 0, $new_width, $new_height, $width, $height );
-		imagedestroy( $image ); // phpcs:ignore Generic.PHP.DeprecatedFunctions.Deprecated
+		unset( $image );
 
 		$optimized_path = sys_get_temp_dir() . '/sscribe-opt-' . uniqid() . '.jpg';
 
@@ -324,7 +324,7 @@ class SScribe_Image_Processor {
 
 		$result = imagejpeg( $resized, $optimized_path, self::JPEG_QUALITY );
 
-		imagedestroy( $resized ); // phpcs:ignore Generic.PHP.DeprecatedFunctions.Deprecated
+		unset( $resized );
 
 		if ( false === $result ) {
 			return $path;

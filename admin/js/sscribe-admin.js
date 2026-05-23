@@ -344,6 +344,8 @@
 						$('#sscribe-cancel-btn').prop('disabled', false).text(sscribe_data.strings.cancel || 'Cancel Export');
 						$('#sscribe-export-btn, #sscribe-preview-btn').prop('disabled', true);
 						$('#sscribe-progress-area').show();
+						// Resume polling — user may have reloaded during an active export.
+						SScribe.processBatch();
 					}
 				},
 			});

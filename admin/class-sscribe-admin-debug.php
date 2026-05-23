@@ -463,7 +463,10 @@ class SScribe_Admin_Debug {
 	 * @param string $content  JSON content.
 	 */
 	private function download_json( string $filename, string $content ): void {
-		// Sanitize filename: remove any \r\n to prevent header injection, strip quotes
+		while ( ob_get_level() > 0 ) {
+			ob_end_clean();
+		}
+
 		$safe_filename = preg_replace( '/[\r\n"]/', '', $filename );
 		$safe_filename = sanitize_file_name( $safe_filename );
 		if ( empty( $safe_filename ) ) {
