@@ -138,6 +138,8 @@ class SScribe_Exporter {
 
 		$text = str_replace( "\x0C", '', $text );
 
+		// Truncate extremely long strings without spaces (e.g., URLs, hashes, encoded data)
+		// to prevent oversized XML elements in DOCX. Threshold is 200 Unicode chars.
 		if ( mb_strlen( $text, 'UTF-8' ) > 200 && false === mb_strpos( $text, ' ', 0, 'UTF-8' ) ) {
 			$text = mb_substr( $text, 0, 200, 'UTF-8' );
 		}
@@ -390,11 +392,7 @@ class SScribe_Exporter {
 				throw new \RuntimeException( 'DOCX file size below minimum threshold' );
 			}
 
-			if ( ! defined( 'SSCRIBE_DEBUG' ) || ! SSCRIBE_DEBUG ) {
-				unset( $writer, $php_word );
-				return $output_path;
-			}
-
+			// Structural integrity check: always run in production to catch corrupted files.
 			$zip_check = new \ZipArchive();
 			if ( true !== $zip_check->open( $output_path ) ) {
 				wp_delete_file( $output_path );
@@ -403,10 +401,26 @@ class SScribe_Exporter {
 			}
 			$has_document = false !== $zip_check->locateName( 'word/document.xml' );
 			$has_types    = false !== $zip_check->locateName( '[Content_Types].xml' );
+			$zip_check->close();
+			unset( $zip_check );
 
+			if ( ! $has_document || ! $has_types ) {
+				wp_delete_file( $output_path );
+				unset( $writer, $php_word );
+				throw new \RuntimeException( 'DOCX missing required archive members' );
+			}
+
+			if ( ! defined( 'SSCRIBE_DEBUG' ) || ! SSCRIBE_DEBUG ) {
+				unset( $writer, $php_word );
+				return $output_path;
+			}
+
+			// Deep XML validation — only in debug mode.
 			$xml_valid = true;
 			if ( $has_document ) {
-				$doc_xml = $zip_check->getFromName( 'word/document.xml' );
+				$zip_xml = new \ZipArchive();
+				$zip_xml->open( $output_path );
+				$doc_xml = $zip_xml->getFromName( 'word/document.xml' );
 				if ( false !== $doc_xml && ! empty( $doc_xml ) ) {
 					$prev_xml_errors = libxml_use_internal_errors( true );
 					$test_doc        = new \DOMDocument();
@@ -432,12 +446,12 @@ class SScribe_Exporter {
 					if ( false === $parse_result ) {
 						$xml_valid = false;
 					}
-					unset( $test_doc, $doc_xml );
+					unset( $test_doc, $doc_xml, $zip_xml );
 				}
 			}
 
-			$zip_check->close();
-			if ( ! $has_document || ! $has_types || ! $xml_valid ) {
+			$final_valid = $has_document && $has_types && $xml_valid;
+			if ( ! $final_valid ) {
 				wp_delete_file( $output_path );
 				unset( $writer, $php_word );
 				$missing = array();

@@ -245,19 +245,19 @@ class SScribe_Admin {
 		$debug = defined( 'SSCRIBE_DEBUG' ) && SSCRIBE_DEBUG;
 
 		$css_version = $debug
-			? filemtime( SSCRIBE_PLUGIN_DIR . 'admin/css/sscribe-admin.css' )
+			? ( file_exists( SSCRIBE_PLUGIN_DIR . 'admin/css/sscribe-admin.css' ) ? filemtime( SSCRIBE_PLUGIN_DIR . 'admin/css/sscribe-admin.css' ) : SSCRIBE_VERSION )
 			: SSCRIBE_VERSION;
 
 		$js_version = $debug
-			? filemtime( SSCRIBE_PLUGIN_DIR . 'admin/js/sscribe-admin.js' )
+			? ( file_exists( SSCRIBE_PLUGIN_DIR . 'admin/js/sscribe-admin.js' ) ? filemtime( SSCRIBE_PLUGIN_DIR . 'admin/js/sscribe-admin.js' ) : SSCRIBE_VERSION )
 			: SSCRIBE_VERSION;
 
 		$debug_css_version = $debug
-			? filemtime( SSCRIBE_PLUGIN_DIR . 'admin/css/sscribe-debug-console.css' )
+			? ( file_exists( SSCRIBE_PLUGIN_DIR . 'admin/css/sscribe-debug-console.css' ) ? filemtime( SSCRIBE_PLUGIN_DIR . 'admin/css/sscribe-debug-console.css' ) : SSCRIBE_VERSION )
 			: SSCRIBE_VERSION;
 
 		$debug_js_version = $debug
-			? filemtime( SSCRIBE_PLUGIN_DIR . 'admin/js/sscribe-debug-console.js' )
+			? ( file_exists( SSCRIBE_PLUGIN_DIR . 'admin/js/sscribe-debug-console.js' ) ? filemtime( SSCRIBE_PLUGIN_DIR . 'admin/js/sscribe-debug-console.js' ) : SSCRIBE_VERSION )
 			: SSCRIBE_VERSION;
 
 		wp_enqueue_style(
@@ -657,6 +657,9 @@ class SScribe_Admin {
 			}
 
 			$all_id_list = array_column( $all_flat_ids, 'id' );
+			if ( count( $all_id_list ) > 200 ) {
+				$all_id_list = array_slice( $all_id_list, 0, 200 );
+			}
 			$posts_by_id = array();
 			if ( ! empty( $all_id_list ) ) {
 				$batch_posts = get_posts(

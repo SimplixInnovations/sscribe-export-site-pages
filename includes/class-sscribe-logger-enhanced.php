@@ -115,11 +115,19 @@ class SScribe_Logger_Enhanced implements SScribe_Logger_Interface {
 		$this->log_dir    = $upload_dir['basedir'] . '/sscribe-logs';
 		$this->table_name = $GLOBALS['wpdb']->prefix . 'sscribe_export_logs';
 		$this->request_id = substr( md5( microtime( true ) . (string) random_int( 0, PHP_INT_MAX ) ), 0, 12 );
+		$this->table_exists_cache = null;
 
 		if ( $this->enable_file || $this->enable_db ) {
 			add_action( 'shutdown', array( $this, 'flush' ) );
 		}
 	}
+
+	/**
+	 * Cached table existence result.
+	 *
+	 * @var bool|null
+	 */
+	private ?bool $table_exists_cache = null;
 
 	/**
 	 * Get request identifier.
@@ -421,15 +429,14 @@ class SScribe_Logger_Enhanced implements SScribe_Logger_Interface {
 	 */
 	private function table_exists(): bool {
 		global $wpdb;
-		static $exists = null;
 
-		if ( null === $exists ) {
-			// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- Schema introspection, cached via static variable
+		if ( null === $this->table_exists_cache ) {
+			// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- Schema introspection, cached via instance property
 			$result = $wpdb->get_var( $wpdb->prepare( 'SHOW TABLES LIKE %s', $this->table_name ) );
-			$exists = ( $result === $this->table_name );
+			$this->table_exists_cache = ( $result === $this->table_name );
 		}
 
-		return $exists;
+		return $this->table_exists_cache;
 	}
 
 	/**
