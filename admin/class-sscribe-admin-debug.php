@@ -61,7 +61,7 @@ class SScribe_Admin_Debug {
 		$saved = SScribe_Settings::save_debug_settings( $settings );
 
 		if ( $saved ) {
-			wp_send_json_success();
+			wp_send_json_success( SScribe_Settings::get_debug_settings() );
 		} else {
 			wp_send_json_error( array( 'message' => __( 'Failed to save settings.', 'sscribe-export-site-pages' ) ) );
 		}
@@ -79,7 +79,7 @@ class SScribe_Admin_Debug {
 		}
 
 		$rate_limiter = new SScribe_Export_Rate_Limiter();
-		if ( ! $rate_limiter->check_rate_limit( $this->get_export_capability() ) ) {
+		if ( ! $rate_limiter->check_rate_limit( 'debug_read' ) ) {
 			wp_send_json_error( array( 'message' => __( 'Rate limit exceeded. Please wait before trying again.', 'sscribe-export-site-pages' ) ) );
 			return;
 		}
@@ -93,14 +93,12 @@ class SScribe_Admin_Debug {
 		if ( $limit < 1 || $limit > 500 ) {
 			$limit = 500;
 		}
-		if ( $offset < 0 ) {
-			$offset = 0;
-		}
 
-		$logger = SScribe_Logger::instance( SScribe_Settings::is_debug_enabled() );
+		// Always pass true when reading logs - user is authenticated and authorized to view them.
+		$logger = SScribe_Logger::instance( true );
 		$logs   = $logger->get_logs();
 
-		$entries = $this->parse_log_entries( $logs, $filter_level, $search, $session_id );
+		$entries = $this->parse_log_entries( $logs, $filter_level, $search, $session_id, true );
 
 		wp_send_json_success(
 			array(
@@ -124,12 +122,12 @@ class SScribe_Admin_Debug {
 		}
 
 		$rate_limiter = new SScribe_Export_Rate_Limiter();
-		if ( ! $rate_limiter->check_rate_limit( $this->get_export_capability() ) ) {
+		if ( ! $rate_limiter->check_rate_limit( 'debug_write' ) ) {
 			wp_send_json_error( array( 'message' => __( 'Rate limit exceeded. Please wait before trying again.', 'sscribe-export-site-pages' ) ) );
 			return;
 		}
 
-		$logger = SScribe_Logger::instance( SScribe_Settings::is_debug_enabled() );
+		$logger = SScribe_Logger::instance( true );
 		$logger->clear_logs();
 
 		wp_send_json_success();
@@ -143,11 +141,13 @@ class SScribe_Admin_Debug {
 
 		if ( ! current_user_can( $this->get_export_capability() ) ) {
 			SScribe_AJAX_Guard::error( array( 'message' => __( 'Insufficient permissions.', 'sscribe-export-site-pages' ) ), 403 );
+			return;
 		}
 
 		$rate_limiter = new SScribe_Export_Rate_Limiter();
-		if ( ! $rate_limiter->check_rate_limit( $this->get_export_capability() ) ) {
+		if ( ! $rate_limiter->check_rate_limit( 'debug_write' ) ) {
 			SScribe_AJAX_Guard::error( array( 'message' => __( 'Rate limit exceeded. Please wait before trying again.', 'sscribe-export-site-pages' ) ), 429 );
+			return;
 		}
 
 		$filename = isset( $_POST['filename'] ) ? sanitize_text_field( wp_unslash( $_POST['filename'] ) ) : '';
@@ -162,17 +162,26 @@ class SScribe_Admin_Debug {
 
 			if ( false === $real_file_path || false === $real_log_dir ) {
 				SScribe_AJAX_Guard::error( array( 'message' => __( 'File not found.', 'sscribe-export-site-pages' ) ), 404 );
+				return;
+			}
+
+			// Validate file extension to prevent reading non-log files.
+			if ( ! preg_match( '/\.(log|json)$/', $filename ) ) {
+				SScribe_AJAX_Guard::error( array( 'message' => __( 'Invalid file type.', 'sscribe-export-site-pages' ) ), 400 );
+				return;
 			}
 
 			if ( 0 === strpos( $real_file_path, $real_log_dir . DIRECTORY_SEPARATOR ) ) {
 				$content = file_get_contents( $file_path ); // phpcs:ignore WordPress.WP.AlternativeFunctions.file_get_contents_file_get_contents
 				if ( false === $content ) {
 					SScribe_AJAX_Guard::error( array( 'message' => __( 'Failed to read file.', 'sscribe-export-site-pages' ) ), 500 );
+					return;
 				}
 				$this->download_json( $filename, $content );
 				return;
 			} else {
 				SScribe_AJAX_Guard::error( array( 'message' => __( 'File not found.', 'sscribe-export-site-pages' ) ), 404 );
+				return;
 			}
 		}
 
@@ -188,10 +197,10 @@ class SScribe_Admin_Debug {
 			$offset = 0;
 		}
 
-		$logger = SScribe_Logger::instance( SScribe_Settings::is_debug_enabled() );
+		$logger = SScribe_Logger::instance( true );
 		$logs   = $logger->get_logs();
 
-		$entries = $this->parse_log_entries( $logs, $filter_level, $search );
+		$entries = $this->parse_log_entries( $logs, $filter_level, $search, '', true );
 
 		$json_content = wp_json_encode(
 			array(
@@ -217,7 +226,7 @@ class SScribe_Admin_Debug {
 		}
 
 		$rate_limiter = new SScribe_Export_Rate_Limiter();
-		if ( ! $rate_limiter->check_rate_limit( $this->get_export_capability() ) ) {
+		if ( ! $rate_limiter->check_rate_limit( 'debug_read' ) ) {
 			wp_send_json_error( array( 'message' => __( 'Rate limit exceeded. Please wait before trying again.', 'sscribe-export-site-pages' ) ) );
 			return;
 		}
@@ -230,7 +239,7 @@ class SScribe_Admin_Debug {
 			return;
 		}
 
-		$files  = glob( $log_dir . '/*_debug_*.log' );
+		$files  = glob( $log_dir . '/*.log' );
 		$result = array();
 
 		if ( is_array( $files ) ) {
@@ -271,7 +280,7 @@ class SScribe_Admin_Debug {
 		}
 
 		$rate_limiter = new SScribe_Export_Rate_Limiter();
-		if ( ! $rate_limiter->check_rate_limit( $this->get_export_capability() ) ) {
+		if ( ! $rate_limiter->check_rate_limit( 'debug_read' ) ) {
 			wp_send_json_error( array( 'message' => __( 'Rate limit exceeded. Please wait before trying again.', 'sscribe-export-site-pages' ) ) );
 			return;
 		}
@@ -309,7 +318,7 @@ class SScribe_Admin_Debug {
 			wp_send_json_error( array( 'message' => __( 'Failed to read file.', 'sscribe-export-site-pages' ) ) );
 			return;
 		}
-		$entries = $this->parse_log_entries( explode( PHP_EOL, $content ), 'ALL', '' );
+		$entries = $this->parse_log_entries( explode( PHP_EOL, $content ), 'ALL', '', '', false );
 
 		wp_send_json_success(
 			array(
@@ -331,7 +340,7 @@ class SScribe_Admin_Debug {
 		}
 
 		$rate_limiter = new SScribe_Export_Rate_Limiter();
-		if ( ! $rate_limiter->check_rate_limit( $this->get_export_capability() ) ) {
+		if ( ! $rate_limiter->check_rate_limit( 'debug_write' ) ) {
 			wp_send_json_error( array( 'message' => __( 'Rate limit exceeded. Please wait before trying again.', 'sscribe-export-site-pages' ) ) );
 			return;
 		}
@@ -375,10 +384,11 @@ class SScribe_Admin_Debug {
 	 * @param array  $lines        Raw log lines.
 	 * @param string $filter_level Level filter.
 	 * @param string $search       Search query.
-	 * @param string $session_id    Session ID filter.
+	 * @param string $session_id   Session ID filter.
+	 * @param bool   $reverse      Whether to reverse entries (newest first).
 	 * @return array Parsed entries.
 	 */
-	private function parse_log_entries( array $lines, string $filter_level, string $search, string $session_id = '' ): array {
+	private function parse_log_entries( array $lines, string $filter_level, string $search, string $session_id = '', bool $reverse = true ): array {
 		$entries = array();
 
 		foreach ( $lines as $line ) {
@@ -414,7 +424,7 @@ class SScribe_Admin_Debug {
 			$entries[] = $entry;
 		}
 
-		return array_reverse( $entries );
+		return $reverse ? array_reverse( $entries ) : $entries;
 	}
 
 	/**

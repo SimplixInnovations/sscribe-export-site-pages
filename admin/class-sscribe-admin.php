@@ -184,11 +184,11 @@ class SScribe_Admin {
 	}
 
 	/**
-	 * Send Content Security Policy headers on the export page.
+	 * Send security headers on the export page.
 	 *
-	 * Uses nonce-based script allowance for improved XSS protection.
-	 * Styles keep 'unsafe-inline' as the font-face CSS is built dynamically
-	 * and hashing would require replicating the exact string assembly.
+	 * Note: Content-Security-Policy is not sent as it would interfere with
+	 * WordPress admin scripts and other plugin scripts that do not have our nonce.
+	 * WordPress core manages its own CSP headers.
 	 */
 	public function maybe_send_csp_headers(): void {
 		// phpcs:ignore WordPress.Security.NonceVerification.Recommended -- Read-only page param check.
@@ -200,32 +200,6 @@ class SScribe_Admin {
 			return;
 		}
 
-		$csp_nonce = $this->get_csp_nonce();
-		$this->csp_nonce = $csp_nonce;
-
-		/*
-		 * Build CSP policy with nonce for scripts.
-		 *
-		 * Scripts: Use nonce so our external JS files are allowed.
-		 * Styles: Keep unsafe-inline because our inline font-face CSS is built
-		 * dynamically from variables and computing a hash would be fragile.
-		 */
-		$policy = implode(
-			'; ',
-			array(
-				"default-src 'self'",
-				"script-src 'self' 'nonce-" . esc_attr( $csp_nonce ) . "'",
-				"style-src 'self' 'unsafe-inline'",
-				"img-src 'self' data:",
-				"font-src 'self' data:",
-				"object-src 'none'",
-				"frame-ancestors 'self'",
-				"base-uri 'self'",
-				"form-action 'self'",
-			)
-		);
-
-		header( 'Content-Security-Policy: ' . $policy );
 		header( 'X-Frame-Options: SAMEORIGIN' );
 		header( 'X-Content-Type-Options: nosniff' );
 		header( 'Referrer-Policy: strict-origin-when-cross-origin' );
@@ -331,7 +305,6 @@ class SScribe_Admin {
 				'ajaxurl'        => admin_url( 'admin-ajax.php' ),
 				'nonce'          => wp_create_nonce( 'sscribe_export_nonce' ),
 				'download_nonce' => $this->get_download_nonce(),
-				'csp_nonce'      => empty( $this->csp_nonce ) ? $this->get_csp_nonce() : $this->csp_nonce,
 				'icons_url'      => SSCRIBE_PLUGIN_URL . 'assets/icons/',
 				'strings'        => array(
 					'starting'               => __( 'Starting export...', 'sscribe-export-site-pages' ),
@@ -448,7 +421,7 @@ class SScribe_Admin {
 	 */
 	public function render_admin_page(): void {
 
-		$cache_key        = 'sscribe_admin_page_data_v' . SSCRIBE_VERSION;
+		$cache_key = 'sscribe_admin_page_data_v' . SSCRIBE_VERSION . '_' . get_current_blog_id();
 		$cached_page_data = get_transient( $cache_key );
 
 		if ( is_array( $cached_page_data ) ) {
@@ -489,6 +462,9 @@ class SScribe_Admin {
 
 		$sscribe_debug_info = array();
 		$sscribe_is_debug   = defined( 'SSCRIBE_DEBUG' ) && SSCRIBE_DEBUG;
+		if ( ! $sscribe_is_debug ) {
+			$sscribe_is_debug = SScribe_Settings::is_debug_enabled();
+		}
 
 		if ( $sscribe_is_debug ) {
 			if ( defined( 'WP_DEBUG' ) && WP_DEBUG ) {
@@ -567,13 +543,13 @@ class SScribe_Admin {
 				continue;
 			}
 
-			$file_path = trailingslashit( $export_dir ) . $filename;
+			$file_path = $export_dir . $filename;
 			if ( ! file_exists( $file_path ) ) {
 				continue;
 			}
 
 			$lang_code = sanitize_key( (string) ( $data['lang_code'] ?? '' ) );
-			if ( '' === $lang_code && $wpml_active && preg_match( '/-([A-Z]{2,3})(?:-[A-Z]+)?\.zip$/', $filename, $matches ) ) {
+			if ( '' === $lang_code && $wpml_active && preg_match( '/-([A-Za-z]{2,3})(?:-[A-Za-z]+)?\.zip$/i', $filename, $matches ) ) {
 				$lang_code = sanitize_key( strtolower( $matches[1] ) );
 			}
 
@@ -625,6 +601,7 @@ class SScribe_Admin {
 		$sscribe_debug_info['languages_count'] = count( $languages );
 		$sscribe_debug_info['total_pages_all'] = $total_pages_all;
 		$sscribe_debug_info['status_counts']   = $status_counts;
+		$sscribe_debug_info['duplicate_slugs'] = array();
 
 		if ( $wpml_active && ! empty( $languages ) ) {
 			$all_page_ids_by_lang = array();
@@ -667,7 +644,7 @@ class SScribe_Admin {
 						'post__in'               => $all_id_list,
 						'post_type'              => 'page',
 						'post_status'            => 'any',
-						'posts_per_page'         => -1,
+						'posts_per_page'         => 200,
 						'no_found_rows'          => true,
 						'update_post_meta_cache' => false,
 						'update_post_term_cache' => false,
