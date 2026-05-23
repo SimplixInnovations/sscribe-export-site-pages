@@ -215,7 +215,8 @@ class SScribe_Zip_Handler {
 		$lock_using_cache = wp_using_ext_object_cache();
 		$lock_attempts    = array( 100000, 200000, 400000 );
 
-		if ( false !== get_transient( $lock_key ) && ( time() - (int) get_transient( $lock_key ) ) > 30 ) {
+		$existing_lock = get_transient( $lock_key );
+		if ( false !== $existing_lock && ( time() - (int) $existing_lock ) > 30 ) {
 			if ( $lock_using_cache ) {
 				wp_cache_delete( $lock_key, 'transient' );
 			}

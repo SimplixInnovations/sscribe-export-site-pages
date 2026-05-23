@@ -178,10 +178,12 @@ class SScribe_Exception extends Exception {
 
 		if ( $include_details ) {
 			$data['context']     = $this->error_data;
-			$data['file']        = $this->getFile();
+			$data['file']        = basename( $this->getFile() );
 			$data['line']        = $this->getLine();
-			$data['trace']       = $this->getTraceAsString();
 			$data['recoverable'] = $this->recoverable;
+			if ( defined( 'SSCRIBE_DEBUG' ) && SSCRIBE_DEBUG ) {
+				$data['trace'] = $this->getTraceAsString();
+			}
 		}
 
 		return $data;

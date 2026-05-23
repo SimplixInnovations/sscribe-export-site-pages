@@ -478,6 +478,23 @@
 			} );
 		},
 
+		downloadViaForm: function(url, data) {
+			const form = document.createElement('form');
+			form.method = 'POST';
+			form.action = url;
+			form.style.display = 'none';
+			for (const key in data) {
+				const input = document.createElement('input');
+				input.type = 'hidden';
+				input.name = key;
+				input.value = data[key];
+				form.appendChild(input);
+			}
+			document.body.appendChild(form);
+			form.submit();
+			document.body.removeChild(form);
+		},
+
 		exportLogs: function() {
 			const data = {
 				action: 'sscribe_debug_export_logs',
@@ -486,7 +503,7 @@
 				search: this.searchQuery
 			};
 
-			window.location.href = sscribe_data.ajaxurl + '?' + $.param( data );
+			this.downloadViaForm(sscribe_data.ajaxurl, data);
 		},
 
 		fetchRotatedLogs: function() {
@@ -586,7 +603,7 @@
 				filename: filename
 			};
 
-			window.location.href = sscribe_data.ajaxurl + '?' + $.param( data );
+			this.downloadViaForm(sscribe_data.ajaxurl, data);
 		},
 
 		deleteRotatedLog: function( filename ) {

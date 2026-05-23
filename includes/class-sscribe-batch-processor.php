@@ -1213,6 +1213,19 @@ class SScribe_Batch_Processor {
 				);
 			}
 
+			if ( $structured_errors_trimmed ) {
+				$trimmed_count = $total_structured_errors - self::MAX_STORED_ERRORS;
+				$structured_errors = array_slice( $structured_errors, 0, self::MAX_STORED_ERRORS );
+				$this->logger->warning(
+					'Structured error array capped to prevent memory exhaustion',
+					array(
+						'stored'  => self::MAX_STORED_ERRORS,
+						'trimmed' => $trimmed_count,
+						'total'   => $total_structured_errors,
+					)
+				);
+			}
+
 			$update_data = array(
 				'processed'         => $processed,
 				'errors'            => $errors,

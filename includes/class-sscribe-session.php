@@ -191,7 +191,7 @@ class SScribe_Session {
 				'Legacy session loaded without signature',
 				array( 'session_id' => $session_id )
 			);
-			return $data;
+			return null;
 		}
 
 		if ( ! is_string( $data['_sig'] ) || ! $this->verify_session_signature( $session_id, $data['_sig'] ) ) {

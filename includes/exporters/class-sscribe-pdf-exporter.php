@@ -240,7 +240,7 @@ class SScribe_PDF_Exporter implements SScribe_Exporter_Interface {
 					),
 				),
 
-				'fonttrans'        => array(
+				'fonttrans'        => $is_rtl ? array(
 					'dejavu sans'     => 'xbriyaz',
 					'dejavusans'      => 'xbriyaz',
 					'arial'           => 'xbriyaz',
@@ -249,7 +249,7 @@ class SScribe_PDF_Exporter implements SScribe_Exporter_Interface {
 					'times new roman' => 'xbriyaz',
 					'serif'           => 'xbriyaz',
 					'sans-serif'      => 'xbriyaz',
-				),
+				) : array(),
 				'mode'             => 'utf-8',
 				'default_font'     => $is_rtl ? 'xbriyaz' : 'manrope',
 				'useOTL'           => 0xFF,

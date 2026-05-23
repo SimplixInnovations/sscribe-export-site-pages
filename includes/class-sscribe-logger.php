@@ -66,7 +66,7 @@ class SScribe_Logger implements SScribe_Logger_Interface {
 	 */
 	public static function instance( bool $enabled = true, string $prefix = 'sscribe', array $options = array() ): SScribe_Logger_Interface {
 		$effective_enabled = $enabled || self::is_logging_enabled();
-		$key = $prefix . '_' . ( $effective_enabled ? '1' : '0' ) . '_' . md5( wp_json_encode( $options ) );
+		$key = $prefix . '_' . ( $effective_enabled ? '1' : '0' );
 
 		if ( ! isset( self::$instances[ $key ] ) ) {
 			$use_enhanced = self::should_use_enhanced();
@@ -75,6 +75,10 @@ class SScribe_Logger implements SScribe_Logger_Interface {
 				self::$instances[ $key ] = new SScribe_Logger_Enhanced( $options );
 			} else {
 				self::$instances[ $key ] = new self( $effective_enabled, $prefix );
+			}
+
+			if ( count( self::$instances ) > 10 ) {
+				array_shift( self::$instances );
 			}
 		}
 
