@@ -267,6 +267,7 @@ class SScribe_Export_Query_Controller {
 		$formats_raw   = isset( $_POST['formats'] ) ? wp_unslash( (array) $_POST['formats'] ) : array();
 		$formats_input = array_map( 'sanitize_text_field', $formats_raw );
 		$formats       = ! empty( $formats_input ) ? $formats_input : array( 'docx' );
+		// Use a constant for the default format.
 
 		$page_count = isset( $_POST['page_count'] ) ? absint( $_POST['page_count'] ) : 0;
 
