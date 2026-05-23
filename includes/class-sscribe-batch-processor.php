@@ -17,6 +17,7 @@ if ( ! defined( 'ABSPATH' ) ) {
 class SScribe_Batch_Processor {
 
 	private const MAX_STORED_ERRORS = 50;
+	private const DEFAULT_FORMATS = self::DEFAULT_FORMATS;
 
 	/**
 	 * Number of pages to process in each batch.
@@ -293,16 +294,18 @@ class SScribe_Batch_Processor {
 	/**
 	 * Adjust batch size based on available resources.
 	 *
-	 * @param array $formats Export formats being processed.
+	 * @param array  $formats Export formats being processed.
+	 * @param string $hint    Optional hint from previous batch ('memory', 'timeout').
 	 */
-	private function optimize_batch_size( array $formats = array() ): void {
-		$this->batch_size = $this->get_resource_monitor()->get_optimal_batch_size( $formats );
+	private function optimize_batch_size( array $formats = array(), string $hint = '' ): void {
+		$this->batch_size = $this->get_resource_monitor()->get_optimal_batch_size( $formats, $hint );
 
 		$this->logger->debug(
 			'Batch size optimized',
 			array(
 				'formats'        => $formats,
 				'optimized_size' => $this->batch_size,
+				'pause_hint'     => $hint,
 			)
 		);
 	}
@@ -422,7 +425,7 @@ class SScribe_Batch_Processor {
 		// phpcs:ignore WordPress.Security.ValidatedSanitizedInput.InputNotSanitized -- Sanitization via array_map on next line.
 		$formats_raw   = isset( $_POST['formats'] ) ? wp_unslash( (array) $_POST['formats'] ) : array();
 		$formats_input = array_map( 'sanitize_text_field', $formats_raw );
-		$formats       = ! empty( $formats_input ) ? $formats_input : array( 'docx' );
+		$formats       = ! empty( $formats_input ) ? $formats_input : self::DEFAULT_FORMATS;
 
 		$formats = array_filter(
 			$formats,
@@ -432,7 +435,7 @@ class SScribe_Batch_Processor {
 		);
 
 		if ( empty( $formats ) ) {
-			$formats = array( 'docx' );
+			$formats = self::DEFAULT_FORMATS;
 		}
 
 		$post_type        = isset( $_POST['post_type'] ) ? sanitize_text_field( wp_unslash( $_POST['post_type'] ) ) : 'page';
@@ -635,6 +638,9 @@ class SScribe_Batch_Processor {
 			);
 		}
 
+		// Clean up orphaned sessions/locks from crashed batches before processing.
+		$this->get_diagnostics()->self_heal();
+
 		$max_time = (int) apply_filters( 'sscribe_max_execution_time', 120 );
 		if ( function_exists( 'set_time_limit' ) ) {
 				set_time_limit( $max_time ); // phpcs:ignore Squiz.PHP.DiscouragedFunctions.Discouraged
@@ -647,8 +653,10 @@ class SScribe_Batch_Processor {
 		$session_id = isset( $_POST['session_id'] ) ? sanitize_text_field( wp_unslash( $_POST['session_id'] ) ) : '';
 		$session    = $this->session->get( $session_id );
 
-		$formats = isset( $session['formats'] ) ? $session['formats'] : array( 'docx' );
-		$this->optimize_batch_size( $formats );
+		$formats = isset( $session['formats'] ) ? $session['formats'] : self::DEFAULT_FORMATS;
+		// Get pause hint from previous batch to adjust batch size accordingly.
+		$pause_hint = isset( $session['last_pause_reason'] ) ? $session['last_pause_reason'] : '';
+		$this->optimize_batch_size( $formats, $pause_hint );
 
 		if ( in_array( 'pdf', $formats, true ) && function_exists( 'set_time_limit' ) ) {
 			$pdf_max_time = (int) apply_filters( 'sscribe_pdf_max_execution_time', 150 );
@@ -752,7 +760,7 @@ class SScribe_Batch_Processor {
 		$errors            = isset( $session['errors'] ) ? $session['errors'] : array();
 		$structured_errors = isset( $session['structured_errors'] ) && is_array( $session['structured_errors'] ) ? $session['structured_errors'] : array();
 		$start_time        = isset( $session['start_time'] ) ? $session['start_time'] : time();
-		$formats           = isset( $session['formats'] ) ? $session['formats'] : array( 'docx' );
+		$formats           = isset( $session['formats'] ) ? $session['formats'] : self::DEFAULT_FORMATS;
 		// NOTE: Do NOT overwrite $session_id from session data - the POST value is canonical.
 		// Using the POST value prevents session data tampering attacks.
 
@@ -964,6 +972,10 @@ class SScribe_Batch_Processor {
 
 						$result = $exporter->export( $page_data, $temp_dir, $page_index, $total );
 
+						// Free exporter immediately after use to prevent memory buildup across format iterations.
+						$exporter = null;
+						unset( $exporter );
+
 						$format_elapsed         = microtime( true ) - $format_start;
 						$format_key             = 'format_time_' . $format;
 						$session[ $format_key ] = ( $session[ $format_key ] ?? 0 ) + $format_elapsed;
@@ -1164,7 +1176,7 @@ class SScribe_Batch_Processor {
 					clean_post_cache( $page_id );
 				}
 
-				$exporter = null;
+				$page_data = null;
 
 				++$processed;
 				++$processed_in_this_batch;
@@ -1268,6 +1280,7 @@ class SScribe_Batch_Processor {
 				'errors'            => $errors,
 				'structured_errors' => $structured_errors,
 				'start_time'        => $start_time,
+				'last_pause_reason' => $paused_reason,
 			);
 
 			$format_keys = array( 'format_time_docx', 'format_time_pdf', 'format_time_html', 'format_time_markdown', 'format_size_docx', 'format_size_pdf', 'format_size_html', 'format_size_markdown', 'format_pages_docx', 'format_pages_pdf', 'format_pages_html', 'format_pages_markdown' );
@@ -1576,7 +1589,7 @@ class SScribe_Batch_Processor {
 				'flag_url'  => $flag_url,
 			);
 
-			$formats = isset( $session['formats'] ) ? $session['formats'] : array( 'docx' );
+			$formats = isset( $session['formats'] ) ? $session['formats'] : self::DEFAULT_FORMATS;
 
 			$format_suffix = count( $formats ) > 1 ? 'ALL-FORMATS' : strtoupper( $formats[0] );
 			$timestamp     = gmdate( 'Y-m-d-His' );
@@ -1828,7 +1841,7 @@ class SScribe_Batch_Processor {
 				)
 			);
 
-			$formats    = isset( $session['formats'] ) ? $session['formats'] : array( 'docx' );
+			$formats    = isset( $session['formats'] ) ? $session['formats'] : self::DEFAULT_FORMATS;
 			$session_pt = $session['post_type'] ?? 'page';
 			foreach ( $formats as $fmt ) {
 				$format_time_key  = 'format_time_' . $fmt;
