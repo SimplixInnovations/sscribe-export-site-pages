@@ -109,6 +109,10 @@ class SScribe_Export_Log {
 	public function flush(): void {
 		if ( $this->dirty && null !== $this->data_cache ) {
 			$json = wp_json_encode( $this->data_cache, JSON_UNESCAPED_UNICODE | JSON_PRETTY_PRINT );
+			if ( false === $json ) {
+				$this->dirty = false;
+				return;
+			}
 			// phpcs:ignore WordPress.WP.AlternativeFunctions.file_system_operations_file_put_contents -- Intended logging file operation.
 
 			$result = file_put_contents( $this->log_file, $json, LOCK_EX );

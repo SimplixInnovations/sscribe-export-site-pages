@@ -136,11 +136,16 @@ class SScribe_Exporter_Factory {
 		$pad_length = $total > 0 ? strlen( (string) $total ) : 3;
 		$pad_length = max( 3, $pad_length );
 
+		// Include page_id in filename to prevent collisions when multiple pages
+		// share the same title but have different IDs and/or indices.
+		$id_suffix = $page_id > 0 ? '-' . $page_id : '';
+
 		return sprintf(
-			'P%0' . $pad_length . 'd-%s%s.%s',
-			$index > 0 ? $index : $page_id,
+			'P%0' . $pad_length . 'd-%s%s%s.%s',
+			$index > 0 ? $index : 1,
 			$page_title,
 			$lang_code,
+			$id_suffix,
 			strtolower( $extension )
 		);
 	}

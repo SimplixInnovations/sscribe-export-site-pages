@@ -61,6 +61,7 @@ class SScribe_RTL_Helper {
 	 */
 	public static function get_all_known_codes(): array {
 		return array(
+			// 2-letter codes (primary)
 			'AR',
 			'EN',
 			'FR',
@@ -107,6 +108,51 @@ class SScribe_RTL_Helper {
 			'YI',
 			'IW',
 			'JI',
+			// 3-letter codes (ISO 639-2)
+			'ARB', // Arabic
+			'ENG', // English
+			'FRA', // French
+			'DEU', // German
+			'SPA', // Spanish
+			'ITA', // Italian
+			'POR', // Portuguese
+			'NLD', // Dutch
+			'RUS', // Russian
+			'ZHO', // Chinese
+			'JPN', // Japanese
+			'KOR', // Korean
+			'HEB', // Hebrew
+			'FAS', // Persian
+			'URD', // Urdu
+			'TUR', // Turkish
+			'POL', // Polish
+			'SWE', // Swedish
+			'DAN', // Danish
+			'FIN', // Finnish
+			'NOR', // Norwegian (Bokmål)
+			'CES', // Czech
+			'SLK', // Slovak
+			'HUN', // Hungarian
+			'RON', // Romanian
+			'BUL', // Bulgarian
+			'HRV', // Croatian
+			'SRP', // Serbian
+			'UKR', // Ukrainian
+			'VIE', // Vietnamese
+			'THA', // Thai
+			'IND', // Indonesian
+			'MSA', // Malay
+			'ELL', // Greek
+			'HIN', // Hindi
+			'BEN', // Bengali
+			'LIT', // Lithuanian
+			'LAV', // Latvian
+			'EST', // Estonian
+			'SLV', // Slovenian
+			'PSH', // Pashto
+			'KUR', // Kurdish
+			'SAD', // Sindhi
+			'YID', // Yiddish
 		);
 	}
 

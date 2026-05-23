@@ -28,9 +28,9 @@ class SScribe_Batch_Processor {
 	/**
 	 * Diagnostics service.
 	 *
-	 * @var SScribe_Diagnostics
+	 * @var SScribe_Diagnostics|null
 	 */
-	private SScribe_Diagnostics $diagnostics;
+	private ?SScribe_Diagnostics $diagnostics = null;
 
 	/**
 	 * Page collector service.
@@ -646,7 +646,7 @@ class SScribe_Batch_Processor {
 		$this->optimize_batch_size( $formats );
 
 		if ( in_array( 'pdf', $formats, true ) && function_exists( 'set_time_limit' ) ) {
-			$pdf_max_time = (int) apply_filters( 'sscribe_pdf_max_execution_time', 300 );
+			$pdf_max_time = (int) apply_filters( 'sscribe_pdf_max_execution_time', 150 );
 
 			set_time_limit( $pdf_max_time ); // phpcs:ignore Squiz.PHP.DiscouragedFunctions.Discouraged
 		}
@@ -1172,69 +1172,70 @@ class SScribe_Batch_Processor {
 				)
 			);
 		} finally {
+			// Persist session state BEFORE releasing lock to prevent race condition.
+			// Between lock release and session update, another process could acquire
+			// the lock and read stale session data, causing duplicate processing.
+			$batch_duration = microtime( true ) - $batch_start_time;
+
+			$this->logger->debug(
+				'Batch completed',
+				array(
+					'processed_now'      => $processed - $session['processed'],
+					'batch_duration_sec' => round( $batch_duration, 3 ),
+					'total_processed'    => $processed,
+					'total_errors'       => count( $errors ),
+					'memory_usage'       => size_format( memory_get_usage( true ) ),
+					'memory_peak'        => size_format( memory_get_peak_usage( true ) ),
+				)
+			);
+
+			$total_errors              = count( $errors );
+			$total_structured_errors   = count( $structured_errors );
+			$errors_trimmed            = $total_errors > self::MAX_STORED_ERRORS;
+			$structured_errors_trimmed = $total_structured_errors > self::MAX_STORED_ERRORS;
+
+			if ( $errors_trimmed ) {
+				$trimmed_count = $total_errors - self::MAX_STORED_ERRORS;
+				$errors        = array_slice( $errors, 0, self::MAX_STORED_ERRORS );
+				$this->logger->warning(
+					'Error array capped to prevent memory exhaustion',
+					array(
+						'stored'  => self::MAX_STORED_ERRORS,
+						'trimmed' => $trimmed_count,
+						'total'   => $total_errors,
+						'message' => sprintf(
+							/* translators: %d: Number of additional errors not stored. */
+
+							__( '... and %d more errors occurred (see export log for full details).', 'sscribe-export-site-pages' ),
+							$trimmed_count
+						),
+					)
+				);
+			}
+
+			$update_data = array(
+				'processed'         => $processed,
+				'errors'            => $errors,
+				'structured_errors' => $structured_errors,
+				'start_time'        => $start_time,
+			);
+
+			$format_keys = array( 'format_time_docx', 'format_time_pdf', 'format_time_html', 'format_time_markdown', 'format_size_docx', 'format_size_pdf', 'format_size_html', 'format_size_markdown', 'format_pages_docx', 'format_pages_pdf', 'format_pages_html', 'format_pages_markdown' );
+			foreach ( $format_keys as $key ) {
+				if ( isset( $session[ $key ] ) ) {
+					$update_data[ $key ] = $session[ $key ];
+				}
+			}
+
+			$this->session->update( $session_id, $update_data );
+
+			if ( $this->export_log ) {
+				$this->export_log->flush();
+			}
+
 			$this->release_lock( $session_id );
 			$this->restore_ob_level( $ob_level_before );
 			$this->collector->clear_page_caches();
-		}
-
-		$batch_duration = microtime( true ) - $batch_start_time;
-
-		$this->logger->debug(
-			'Batch completed',
-			array(
-				'processed_now'      => $processed - $session['processed'],
-				'batch_duration_sec' => round( $batch_duration, 3 ),
-				'total_processed'    => $processed,
-				'total_errors'       => count( $errors ),
-				'memory_usage'       => size_format( memory_get_usage( true ) ),
-				'memory_peak'        => size_format( memory_get_peak_usage( true ) ),
-			)
-		);
-
-		$total_errors              = count( $errors );
-		$total_structured_errors   = count( $structured_errors );
-		$errors_trimmed            = $total_errors > self::MAX_STORED_ERRORS;
-		$structured_errors_trimmed = $total_structured_errors > self::MAX_STORED_ERRORS;
-
-		if ( $errors_trimmed ) {
-			$trimmed_count = $total_errors - self::MAX_STORED_ERRORS;
-			$errors        = array_slice( $errors, 0, self::MAX_STORED_ERRORS );
-			$this->logger->warning(
-				'Error array capped to prevent memory exhaustion',
-				array(
-					'stored'  => self::MAX_STORED_ERRORS,
-					'trimmed' => $trimmed_count,
-					'total'   => $total_errors,
-					'message' => sprintf(
-						/* translators: %d: Number of additional errors not stored. */
-
-						__( '... and %d more errors occurred (see export log for full details).', 'sscribe-export-site-pages' ),
-						$trimmed_count
-					),
-				)
-			);
-		}
-
-		$update_data = array(
-			'processed'         => $processed,
-			'errors'            => $errors,
-			'structured_errors' => $structured_errors,
-			'start_time'        => $start_time,
-		);
-
-		$format_keys = array( 'format_time_docx', 'format_time_pdf', 'format_time_html', 'format_time_markdown', 'format_size_docx', 'format_size_pdf', 'format_size_html', 'format_size_markdown', 'format_pages_docx', 'format_pages_pdf', 'format_pages_html', 'format_pages_markdown' );
-		foreach ( $format_keys as $key ) {
-			if ( isset( $session[ $key ] ) ) {
-				$update_data[ $key ] = $session[ $key ];
-			}
-		}
-
-		$update_result = $this->session->update( $session_id, $update_data );
-
-		$this->logger->debug( 'Session update result', array( 'success' => $update_result ) );
-
-		if ( $this->export_log ) {
-			$this->export_log->flush();
 		}
 
 		$percentage = ( $total > 0 ) ? round( ( $processed / $total ) * 100 ) : 100;
@@ -1876,6 +1877,14 @@ class SScribe_Batch_Processor {
 			status_header( 403 );
 			wp_send_json_error(
 				array( 'message' => esc_html__( 'Permission denied.', 'sscribe-export-site-pages' ) )
+			);
+			return;
+		}
+
+		if ( ! $this->check_rate_limit() ) {
+			status_header( 429 );
+			wp_send_json_error(
+				array( 'message' => esc_html__( 'Rate limit exceeded. Please wait before trying again.', 'sscribe-export-site-pages' ) )
 			);
 			return;
 		}

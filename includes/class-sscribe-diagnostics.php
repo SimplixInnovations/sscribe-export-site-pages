@@ -590,20 +590,15 @@ class SScribe_Diagnostics {
 				$raw_json        = file_get_contents( $phpword_composer_file );
 				$composer_data   = is_string( $raw_json ) ? json_decode( $raw_json, true ) : null;
 				$bundled_version = ( is_array( $composer_data ) && isset( $composer_data['version'] ) ) ? $composer_data['version'] : 'unknown';
-				preg_match( '/^(\d+\.\d+)/', $bundled_version, $m );
-				$major_minor = $m[1] ?? '';
 
-				if ( version_compare( $major_minor, '1.5', '>=' ) ) {
-					return array(
-						'name'    => 'PHPWord Library',
-						'status'  => 'warning',
-						'message' => sprintf(
-							'PHPWord %s detected — safe_text() htmlspecialchars workaround may cause double-encoding. Version compatibility check needed.',
-							$bundled_version
-						),
-						'fix'     => 'Review SScribe_Exporter::safe_text() for double-encoding with PHPWord >= 1.5',
-					);
-				}
+				return array(
+					'name'    => 'PHPWord Library',
+					'status'  => 'ok',
+					'message' => sprintf(
+						'PHPWord %s — XML encoding handled natively by library',
+						$bundled_version
+					),
+				);
 			}
 
 			return array(

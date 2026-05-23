@@ -52,12 +52,27 @@ class SScribe_Zip_Handler {
 	 * Get the export directory, creating it if needed.
 	 *
 	 * @return string
+	 * @throws \InvalidArgumentException When export directory is unavailable.
 	 */
 	public function get_export_dir(): string {
+		if ( '' === $this->export_dir ) {
+			throw new \InvalidArgumentException(
+				__( 'Export directory unavailable: wp_upload_dir() failed during initialization.', 'sscribe-export-site-pages' )
+			);
+		}
 		if ( ! file_exists( $this->export_dir ) ) {
 			SScribe_Security::protect_directory( $this->export_dir );
 		}
 		return $this->export_dir;
+	}
+
+	/**
+	 * Check if the export directory is available.
+	 *
+	 * @return bool True if the export directory was successfully initialized.
+	 */
+	public function is_available(): bool {
+		return '' !== $this->export_dir;
 	}
 
 	/**
@@ -337,10 +352,12 @@ class SScribe_Zip_Handler {
 					$file_time = filemtime( $file_path );
 					if ( $file_time && ( $now - $file_time ) > $max_age ) {
 						wp_delete_file( $file_path );
-						unset( $exports[ $basename ] );
-						SScribe_Export_Log::delete_by_filename( $basename );
-						$modified = true;
-						++$cleaned;
+						if ( ! file_exists( $file_path ) ) {
+							unset( $exports[ $basename ] );
+							SScribe_Export_Log::delete_by_filename( $basename );
+							$modified = true;
+							++$cleaned;
+						}
 					}
 				}
 

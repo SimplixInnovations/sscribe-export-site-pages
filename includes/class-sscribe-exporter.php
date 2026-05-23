@@ -383,7 +383,7 @@ class SScribe_Exporter {
 
 			// Lightweight integrity check: verify file size > minimum threshold.
 			$file_size = filesize( $output_path );
-			$min_size   = 100; // Minimal DOCX should be at least 100 bytes.
+			$min_size   = 4096; // Minimal DOCX should be at least 4KB to avoid empty/corrupted files.
 			if ( $file_size < $min_size ) {
 				wp_delete_file( $output_path );
 				unset( $writer, $php_word );
@@ -1246,7 +1246,7 @@ class SScribe_Exporter {
 					'page_id'         => $page_data['id'] ?? 0,
 					'page_title'      => $page_data['title'] ?? 'unknown',
 					'content_len'     => $content_len,
-					'content_preview' => substr( $content, 0, 500 ),
+					'content_preview' => mb_strcut( $content, 0, 500 ),
 				)
 			);
 		}

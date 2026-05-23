@@ -107,13 +107,18 @@ class SScribe_Admin {
 	/**
 	 * Get a CSP nonce for inline scripts.
 	 *
-	 * Generates a per-request nonce for CSP script-src directive.
-	 * The nonce is passed to JS so dynamically created scripts can use it.
+	 * Generates a per-request cryptographic nonce for CSP script-src directive.
+	 * The nonce is generated once on first call (lazy-init) and reused for all
+	 * subsequent calls. This ensures the same nonce value is used in both the
+	 * CSP header and when enqueueing scripts.
 	 *
 	 * @return string CSP nonce value.
 	 */
 	private function get_csp_nonce(): string {
-		return wp_create_nonce( 'sscribe_csp_nonce' );
+		if ( empty( $this->csp_nonce ) ) {
+			$this->csp_nonce = bin2hex( random_bytes( 16 ) );
+		}
+		return $this->csp_nonce;
 	}
 
 	/**
@@ -326,7 +331,7 @@ class SScribe_Admin {
 				'ajaxurl'        => admin_url( 'admin-ajax.php' ),
 				'nonce'          => wp_create_nonce( 'sscribe_export_nonce' ),
 				'download_nonce' => $this->get_download_nonce(),
-				'csp_nonce'      => $this->get_csp_nonce(),
+				'csp_nonce'      => empty( $this->csp_nonce ) ? $this->get_csp_nonce() : $this->csp_nonce,
 				'icons_url'      => SSCRIBE_PLUGIN_URL . 'assets/icons/',
 				'strings'        => array(
 					'starting'               => __( 'Starting export...', 'sscribe-export-site-pages' ),
