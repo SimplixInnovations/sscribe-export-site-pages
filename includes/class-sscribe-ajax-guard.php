@@ -214,7 +214,7 @@ class SScribe_AJAX_Guard {
 						$frame['class'] ?? '',
 						$frame['type'] ?? '',
 						$frame['function'],
-						$frame['file'] ?? 'unknown',
+						basename( $frame['file'] ?? 'unknown' ),
 						$frame['line'] ?? 0
 					);
 				},

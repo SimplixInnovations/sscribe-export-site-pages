@@ -41,7 +41,7 @@ class SScribe_Export_Rate_Limiter {
 		$now = time();
 
 		$rate_limit = current_user_can( $export_capability )
-			? (int) apply_filters( 'sscribe_rate_limit_admin', 1000 )
+			? (int) apply_filters( 'sscribe_rate_limit_admin', 100 )
 			: self::RATE_LIMIT_MAX;
 
 		$data = get_transient( $transient_key );

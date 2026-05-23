@@ -38,7 +38,7 @@ class SScribe_Export_Resource_Monitor {
 	/**
 	 * Check if sufficient execution time remains.
 	 *
-	 * @param float $batch_start_time Batch start timestamp.
+	 * @param float $batch_start_time Batch start timestamp (from microtime(true)).
 	 * @param int   $buffer_seconds   Required buffer in seconds.
 	 * @return bool
 	 */
@@ -58,7 +58,7 @@ class SScribe_Export_Resource_Monitor {
 	/**
 	 * Get remaining execution time in seconds.
 	 *
-	 * @param float $batch_start_time Batch start timestamp.
+	 * @param float $batch_start_time Batch start timestamp (from microtime(true)).
 	 * @return float
 	 */
 	public function get_remaining_time( float $batch_start_time ): float {
@@ -105,8 +105,6 @@ class SScribe_Export_Resource_Monitor {
 
 		$memory_per_page = 5 * 1024 * 1024;
 
-		// If previous batch hit memory pressure, halve the estimated available memory
-		// to give more buffer room for the current batch.
 		if ( 'memory' === $hint ) {
 			$available = $available * 0.5;
 		}
@@ -123,8 +121,7 @@ class SScribe_Export_Resource_Monitor {
 			$optimal = 2;
 		}
 
-		// If memory hint was given, cap even lower for safety.
-		if ( 'memory' === $hint && $optimal > 1 ) {
+		if ( 'memory' === $hint ) {
 			$optimal = 1;
 		}
 
@@ -146,6 +143,9 @@ class SScribe_Export_Resource_Monitor {
 		}
 		if ( in_array( 'pdf', $formats, true ) ) {
 			$memory_per_page += 3.0;
+		}
+		if ( in_array( 'html', $formats, true ) ) {
+			$memory_per_page += 1.5;
 		}
 		if ( in_array( 'markdown', $formats, true ) ) {
 			$memory_per_page += 0.5;
