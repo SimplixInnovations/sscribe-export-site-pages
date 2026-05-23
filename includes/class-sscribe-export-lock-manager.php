@@ -56,18 +56,9 @@ class SScribe_Export_Lock_Manager {
 			$lock_age   = $current_time - $lock_time;
 
 			if ( $lock_age > $stale_threshold ) {
-
-				delete_transient( $lock_key );
-
-				$this->logger->debug(
-					'Detected stale lock, attempting atomic acquisition',
-					array(
-						'session_id' => $session_id,
-						'lock_age'   => $lock_age,
-						'lock_ttl'   => $lock_ttl,
-					)
-				);
-
+				// Replace stale lock directly - set_transient is atomic and will
+				// fail if a non-expired lock exists, preventing the race condition
+				// that would occur if we explicitly deleted before setting.
 				if ( set_transient( $lock_key, $current_time . '|' . $lock_token, $lock_ttl ) ) {
 					return $lock_token;
 				}

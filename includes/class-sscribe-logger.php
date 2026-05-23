@@ -418,7 +418,8 @@ class SScribe_Logger implements SScribe_Logger_Interface {
 			foreach ( $files as $file ) {
 				$file_time = filemtime( $file );
 				if ( $file_time && ( $now - $file_time ) > $max_age ) {
-					if ( wp_delete_file( $file ) ) {
+					wp_delete_file( $file );
+					if ( ! file_exists( $file ) ) {
 						++$deleted;
 					}
 				}

@@ -5,7 +5,7 @@
  * WCAG 2.1 AA compliant, accessible, and professional.
  *
  * @package SScribe
- * @version 1.1.1
+ * @lastcommit BUILD_HASH_PLACEHOLDER
  */
 
 /* ============================================
@@ -312,10 +312,6 @@ body .sscribe-master-container .sscribe-hero {
 /* ============================================
     INLINE SVG ICON STYLING
     ============================================ */
-
-.sscribe-panel-body {
-	padding: var(--sscribe-space-lg, 24px);
-}
 
 .sscribe-status-icon .sscribe-icon {
 	color: var(--sscribe-text-muted);

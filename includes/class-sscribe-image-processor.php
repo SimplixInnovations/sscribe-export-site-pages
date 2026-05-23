@@ -239,7 +239,7 @@ class SScribe_Image_Processor {
 
 		$info = false;
 		// phpcs:ignore WordPress.PHP.DevelopmentFunctions.error_log_set_error_handler -- Production error handling for image processing.
-		$prev_handler = set_error_handler(
+		set_error_handler(
 			static function ( int $errno, string $errstr ) use ( $path ): bool {
 				SScribe_Logger::instance( defined( 'SSCRIBE_DEBUG' ) && SSCRIBE_DEBUG )
 					->warning(
@@ -272,7 +272,7 @@ class SScribe_Image_Processor {
 		$new_height = (int) ( $height * ( self::MAX_WIDTH / $width ) );
 
 		// phpcs:ignore WordPress.PHP.DevelopmentFunctions.error_log_set_error_handler -- Production error handling for GD image loading.
-		$prev_handler = set_error_handler(
+		set_error_handler(
 			static function ( int $errno, string $errstr ) use ( $path ): bool {
 				SScribe_Logger::instance( defined( 'SSCRIBE_DEBUG' ) && SSCRIBE_DEBUG )
 					->warning(
@@ -285,7 +285,7 @@ class SScribe_Image_Processor {
 				return true;
 			}
 		);
-		$image        = false;
+		$image = false;
 		try {
 			$image = match ( $type ) {
 				IMAGETYPE_JPEG, IMAGETYPE_JPEG2000 => imagecreatefromjpeg( $path ),
