@@ -309,6 +309,10 @@ body .sscribe-master-container .sscribe-hero {
 	color: var(--sscribe-primary);
 }
 
+/* ============================================
+    INLINE SVG ICON STYLING
+    ============================================ */
+
 .sscribe-panel-body {
 	padding: var(--sscribe-space-lg, 24px);
 }
