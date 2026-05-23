@@ -2,6 +2,7 @@
  * SScribe Debug Console JavaScript
  *
  * @package SScribe_Export_Site_Pages
+ * @version 1.1.1
  */
 
 (function($) {
