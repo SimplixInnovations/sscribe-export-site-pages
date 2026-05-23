@@ -216,6 +216,7 @@
 
 			if (currentTabId === 'debug' && typeof window.SScribeDebugConsole !== 'undefined') {
 				window.SScribeDebugConsole.stopAutoRefresh();
+				window.SScribeDebugConsole.initialized = false;
 			}
 
 			this.setActiveTab(tabId);

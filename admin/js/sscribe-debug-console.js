@@ -34,7 +34,10 @@
 		observer: null,
 
 		init: function() {
-			if ( this.initialized ) {
+			if ( this.initialized && this.initialized === true ) {
+				return;
+			}
+			if ( ! this.hasRequiredDom() ) {
 				return;
 			}
 			this.initialized = true;
@@ -42,6 +45,12 @@
 			this.bindEvents();
 			this.bindVisibilityHandler();
 			this.loadInitialState();
+		},
+
+		hasRequiredDom: function() {
+			return document.getElementById( 'sscribe-admin-wrap' ) !== null
+				&& document.getElementById( 'sscribe-debug-entries' ) !== null
+				&& document.getElementById( 'sscribe-debug-console-body' ) !== null;
 		},
 
 		cacheDom: function() {
