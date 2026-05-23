@@ -69,7 +69,7 @@ class SScribe_Validator {
 		}
 
 		if ( in_array( 'pdf', $formats, true ) && ! class_exists( '\\SScribeVendor\\Mpdf\\Mpdf' ) ) {
-			$errors[] = __( 'PDF format selected but mPDF library is not installed. Run composer install.', 'sscribe-export-site-pages' );
+			$errors[] = __( 'PDF export is not available on this server. Please contact your hosting provider or site administrator.', 'sscribe-export-site-pages' );
 		}
 
 		return $errors;

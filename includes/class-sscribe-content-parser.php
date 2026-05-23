@@ -348,6 +348,14 @@ class SScribe_Content_Parser {
 	private function parse_list( \DOMNode $node, string $style, int $depth = 0 ): array {
 		$items = array();
 
+		if ( $depth >= 10 ) {
+			return array(
+				'type'  => 'list',
+				'style' => $style,
+				'items' => $items,
+			);
+		}
+
 		foreach ( $node->childNodes as $child ) {
 			if ( XML_ELEMENT_NODE !== $child->nodeType || 'li' !== strtolower( $child->nodeName ) ) {
 				continue;

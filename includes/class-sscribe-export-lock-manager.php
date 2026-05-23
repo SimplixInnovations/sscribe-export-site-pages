@@ -56,9 +56,13 @@ class SScribe_Export_Lock_Manager {
 			$lock_age   = $current_time - $lock_time;
 
 			if ( $lock_age > $stale_threshold ) {
-				// Replace stale lock directly - set_transient is atomic and will
-				// fail if a non-expired lock exists, preventing the race condition
-				// that would occur if we explicitly deleted before setting.
+				// Atomic replacement: set_transient() is atomic by design — it either
+				// writes the new value or fails without modifying an existing non-expired
+				// lock. There is no explicit delete step, so no race window exists between
+				// detecting a stale lock and acquiring a fresh one. If another process
+				// has already written a fresh lock (or if the "stale" detection was
+				// itself stale due to clock skew), set_transient() returns false and we
+				// safely bail out. No explicit delete or INSERT IGNORE equivalent is needed.
 				if ( set_transient( $lock_key, $current_time . '|' . $lock_token, $lock_ttl ) ) {
 					return $lock_token;
 				}

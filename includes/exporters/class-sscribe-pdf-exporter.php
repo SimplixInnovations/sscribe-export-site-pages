@@ -40,13 +40,6 @@ class SScribe_PDF_Exporter implements SScribe_Exporter_Interface {
 	private SScribe_Filesystem $filesystem;
 
 	/**
-	 * Flag indicating if temp directory is protected.
-	 *
-	 * @var bool
-	 */
-	private static bool $mpdf_temp_protected = false;
-
-	/**
 	 * Initialize the PDF exporter.
 	 *
 	 * @param SScribe_HTML_Exporter|null    $html_exporter HTML exporter.
@@ -211,9 +204,8 @@ class SScribe_PDF_Exporter implements SScribe_Exporter_Interface {
 				);
 			}
 
-			if ( ! self::$mpdf_temp_protected ) {
+			if ( ! file_exists( $mpdf_temp . '/.htaccess' ) ) {
 				SScribe_Security::protect_directory( $mpdf_temp );
-				self::$mpdf_temp_protected = true;
 			}
 
 			$default_config = ( new \SScribeVendor\Mpdf\Config\ConfigVariables() )->getDefaults();

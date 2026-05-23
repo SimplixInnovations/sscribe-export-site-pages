@@ -1240,7 +1240,16 @@ class SScribe_Batch_Processor {
 				}
 			}
 
-			$this->session->update( $session_id, $update_data );
+			$update_result = $this->session->update( $session_id, $update_data );
+			if ( ! $update_result ) {
+				$this->logger->error(
+					'Session update failed',
+					array(
+						'session_id' => $session_id,
+						'data_keys'  => array_keys( $update_data ),
+					)
+				);
+			}
 
 			if ( $this->export_log ) {
 				$this->export_log->flush();
@@ -1275,7 +1284,9 @@ class SScribe_Batch_Processor {
 			$update_data['errors']            = $errors;
 			$update_data['structured_errors'] = $structured_errors;
 			$update_data['status']            = 'finalizing';
-			$this->session->update( $session_id, $update_data );
+			if ( ! $this->session->update( $session_id, $update_data ) ) {
+				$this->logger->error( 'Final session update failed', array( 'session_id' => $session_id ) );
+			}
 
 			$error_diagnostics = array();
 			if ( ! empty( $structured_errors ) ) {
@@ -1476,7 +1487,9 @@ class SScribe_Batch_Processor {
 			$this->export_log = new SScribe_Export_Log( $session_id );
 		}
 
-		$this->session->update( $session_id, array( 'status' => 'completing' ) );
+		if ( ! $this->session->update( $session_id, array( 'status' => 'completing' ) ) ) {
+			$this->logger->warning( 'Session status update failed', array( 'session_id' => $session_id ) );
+		}
 		$session['status'] = 'completing';
 
 		$this->logger->set_session_id( $session_id );

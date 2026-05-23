@@ -270,7 +270,7 @@ class SScribe_Page_Collector {
 		$cache_key = 'sscribe_status_counts_' . md5( $language );
 		delete_transient( $cache_key );
 
-		foreach ( array( 'publish', 'draft', 'private', 'future', 'pending', 'all' ) as $status ) {
+		foreach ( array( 'publish', 'draft', 'private', 'future', 'pending', 'all', 'any' ) as $status ) {
 			$key = 'sscribe_page_count_' . md5( $language . '_' . $status );
 			delete_transient( $key );
 		}
@@ -850,7 +850,7 @@ class SScribe_Page_Collector {
 		$statuses = $this->get_valid_post_statuses();
 		$counts   = array_fill_keys( array_keys( $statuses ), 0 );
 
-		if ( ! $this->is_wpml_active() || empty( $language ) ) {
+		if ( ! $this->is_wpml_active() && empty( $language ) ) {
 			if ( 'any' === $post_type ) {
 				$count_page = wp_count_posts( 'page' );
 				$count_post = wp_count_posts( 'post' );
