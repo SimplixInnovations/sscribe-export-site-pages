@@ -274,7 +274,7 @@ class SScribe_Exporter {
 
 		try {
 			if ( ! class_exists( 'ZipArchive' ) ) {
-				throw new \RuntimeException( __( 'The ZipArchive PHP extension is required to generate DOCX files.', 'sscribe-export-site-pages' ) );
+				throw new \RuntimeException( 'The ZipArchive PHP extension is required to generate DOCX files.' );
 			}
 
 			if ( class_exists( '\SScribeVendor\PhpOffice\PhpWord\Settings' ) ) {
