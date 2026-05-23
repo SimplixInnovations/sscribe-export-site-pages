@@ -17,7 +17,9 @@ if ( ! defined( 'ABSPATH' ) ) {
 class SScribe_Batch_Processor {
 
 	private const MAX_STORED_ERRORS = 50;
-	private const DEFAULT_FORMATS = self::DEFAULT_FORMATS;
+	private const DEFAULT_FORMATS = array( 'docx', 'pdf', 'html', 'markdown' );
+	private const MAX_RETRIES = 2;
+	private const RETRY_TRANSIENT_CATEGORIES = array( 'network', 'timeout', 'rate_limit', 'temporary' );
 
 	/**
 	 * Number of pages to process in each batch.
@@ -133,6 +135,192 @@ class SScribe_Batch_Processor {
 	 */
 	private function get_adaptive_metrics(): \SScribe_Adaptive_Metrics {
 		return $this->adaptive_metrics ??= new \SScribe_Adaptive_Metrics();
+	}
+
+	/**
+	 * Validate export result and check file integrity.
+	 *
+	 * @param object $result   Export result object.
+	 * @param string $format   Export format.
+	 * @param string $file_path File path.
+	 * @param int    $file_size Reported file size.
+	 * @param int    $page_id   Page ID.
+	 * @return array Result with keys: is_valid, error, category, context.
+	 */
+	private function validate_export_result( object $result, string $format, string $file_path, int $file_size, int $page_id ): array {
+		$min_sizes = array(
+			'docx'     => 4096,
+			'pdf'      => 4096,
+			'html'     => 100,
+			'markdown' => 50,
+		);
+		$min_size = $min_sizes[ $format ] ?? 100;
+
+		if ( ! $result->is_success() ) {
+			$result_data = $result->get_data();
+			return array(
+				'is_valid'  => false,
+				'error'     => $result->get_error(),
+				'category'  => $result_data['error_category'] ?? 'unknown',
+				'context'   => is_array( $result_data ) ? $result_data : array(),
+			);
+		}
+
+		$file_path  = $result->get_data()['path'] ?? '';
+		$actual_size = ( ! empty( $file_path ) && file_exists( $file_path ) ) ? (int) filesize( $file_path ) : 0;
+
+		if ( $actual_size < $min_size ) {
+			$size_error = sprintf(
+			/* translators: 1: Format, 2: Actual size, 3: Minimum size. */
+
+				__( '%1$s file appears empty or corrupted (size: %2$d bytes, minimum: %3$d bytes).', 'sscribe-export-site-pages' ),
+				strtoupper( $format ),
+				$actual_size,
+				$min_size
+			);
+			return array(
+				'is_valid' => false,
+				'error'    => $size_error,
+				'category' => 'empty_file',
+				'context'  => array(
+					'file_path'     => $file_path,
+					'actual_size'   => $actual_size,
+					'reported_size' => $file_size,
+				),
+			);
+		}
+
+		return array(
+			'is_valid'  => true,
+			'error'     => null,
+			'category'  => 'success',
+			'context'   => array(
+				'file_path'   => $file_path,
+				'actual_size' => $actual_size,
+			),
+		);
+	}
+
+	/**
+	 * Dispatch export to all formats for a single page.
+	 *
+	 * @param array  $page_data   Page data from collector.
+	 * @param string $temp_dir    Temporary directory path.
+	 * @param int    $page_index  Page index in export order.
+	 * @param int    $total       Total pages.
+	 * @param array  $formats     Formats to export.
+	 * @param string $session_id  Session ID.
+	 * @param array  &$session    Session array (passed by reference for tracking).
+	 * @param int    $page_id     Page ID.
+	 * @return array Results with keys: export_success, successful_formats, export_errors.
+	 */
+	private function dispatch_formats( array $page_data, string $temp_dir, int $page_index, int $total, array $formats, string $session_id, array &$session, int $page_id ): array {
+		$export_success     = false;
+		$successful_formats = array();
+		$export_errors      = array();
+
+		foreach ( $formats as $format ) {
+			$format_start = microtime( true );
+			$exporter     = \SScribe_Exporter_Factory::create( $format );
+
+			if ( ! $exporter ) {
+				$this->logger->warning( 'Unsupported export format skipped during batch processing', array( 'format' => $format ) );
+				continue;
+			}
+
+			$attempt = 0;
+			$result  = null;
+			$retry_result = null;
+
+			while ( $attempt <= self::MAX_RETRIES ) {
+				$result = $exporter->export( $page_data, $temp_dir, $page_index, $total );
+
+				$is_transient = false;
+				if ( ! $result->is_success() ) {
+					$result_data = $result->get_data();
+					$error_category = $result_data['error_category'] ?? 'unknown';
+					$is_transient = in_array( $error_category, self::RETRY_TRANSIENT_CATEGORIES, true );
+				}
+
+				if ( $result->is_success() || ! $is_transient || $attempt >= self::MAX_RETRIES ) {
+					break;
+				}
+
+				$delay_ms = 100 * ( 2 ** $attempt );
+				usleep( $delay_ms * 1000 );
+				++$attempt;
+			}
+
+			// Free exporter immediately after use to prevent memory buildup across format iterations.
+			$exporter = null;
+			unset( $exporter );
+
+			$format_elapsed         = microtime( true ) - $format_start;
+			$format_key             = 'format_time_' . $format;
+			$session[ $format_key ] = ( $session[ $format_key ] ?? 0 ) + $format_elapsed;
+
+			$file_path = $result->get_data()['path'] ?? '';
+			$file_size = $result->get_data()['size'] ?? 0;
+			clearstatcache( true, $file_path );
+
+			$validation = $this->validate_export_result( $result, $format, $file_path, $file_size, $page_id );
+
+			if ( ! $validation['is_valid'] ) {
+				$export_errors[] = array(
+					'format'   => strtoupper( $format ),
+					'message'  => $validation['error'],
+					'category' => $validation['category'],
+					'context'  => $validation['context'],
+				);
+
+				if ( $this->export_log ) {
+					$this->export_log->log_format_result( $page_id, $format, false, '', $validation['error'] );
+				}
+
+				if ( 'empty_file' !== $validation['category'] ) {
+					$this->logger->error(
+						ucfirst( $format ) . ' export produced empty/corrupted file',
+						array(
+							'page_id'       => $page_id,
+							'file_path'     => $file_path,
+							'actual_size'   => $validation['context']['actual_size'] ?? 0,
+							'reported_size' => $file_size,
+							'min_size'      => 100,
+						)
+					);
+				}
+			} else {
+				$export_success       = true;
+				$successful_formats[] = $format;
+
+				$format_size_key             = 'format_size_' . $format;
+				$session[ $format_size_key ] = ( $session[ $format_size_key ] ?? 0 ) + ( $validation['context']['actual_size'] ?? 0 );
+
+				$format_pages_key             = 'format_pages_' . $format;
+				$session[ $format_pages_key ] = ( $session[ $format_pages_key ] ?? 0 ) + 1;
+
+				if ( $this->export_log ) {
+					$this->export_log->log_format_result( $page_id, $format, true, $file_path );
+				}
+
+				$this->logger->debug(
+					ucfirst( $format ) . ' generated successfully',
+					array(
+						'file'        => basename( $file_path ),
+						'page_id'     => $page_id,
+						'format'      => $format,
+						'actual_size' => $validation['context']['actual_size'] ?? 0,
+						'duration'    => round( $format_elapsed, 3 ),
+					)
+				);
+			}
+		}
+
+		return array(
+			'export_success'     => $export_success,
+			'successful_formats' => $successful_formats,
+			'export_errors'      => $export_errors,
+		);
 	}
 
 	/**
@@ -508,6 +696,8 @@ class SScribe_Batch_Processor {
 			);
 		}
 
+		$paused_reason = ''; // Initialize before try block so finally can access it
+
 		try {
 			$temp_dir = $this->zip_handler->create_temp_dir();
 		} catch ( \Throwable $e ) {
@@ -827,6 +1017,7 @@ class SScribe_Batch_Processor {
 		$timeout_paused          = false;
 		$processed_in_this_batch = 0;
 		$current_batch_page_id   = null;
+		$paused_reason           = '';
 
 		try {
 			foreach ( $batch as $page_id ) {
@@ -961,114 +1152,10 @@ class SScribe_Batch_Processor {
 				}
 
 				try {
-					foreach ( $formats as $format ) {
-						$format_start = microtime( true );
-						$exporter     = \SScribe_Exporter_Factory::create( $format );
-
-						if ( ! $exporter ) {
-							$this->logger->warning( 'Unsupported export format skipped during batch processing', array( 'format' => $format ) );
-							continue;
-						}
-
-						$result = $exporter->export( $page_data, $temp_dir, $page_index, $total );
-
-						// Free exporter immediately after use to prevent memory buildup across format iterations.
-						$exporter = null;
-						unset( $exporter );
-
-						$format_elapsed         = microtime( true ) - $format_start;
-						$format_key             = 'format_time_' . $format;
-						$session[ $format_key ] = ( $session[ $format_key ] ?? 0 ) + $format_elapsed;
-
-						if ( $result->is_success() ) {
-							$file_path = $result->get_data()['path'] ?? '';
-							$file_size = $result->get_data()['size'] ?? 0;
-
-							// Clear stat cache to get accurate filesize after file was just written.
-							clearstatcache( true, $file_path );
-							$actual_size = ( ! empty( $file_path ) && file_exists( $file_path ) ) ? (int) filesize( $file_path ) : 0;
-							$min_sizes   = array(
-								'docx'     => 4096,
-								'pdf'      => 4096,
-								'html'     => 100,
-								'markdown' => 50,
-							);
-							$min_size    = $min_sizes[ $format ] ?? 100;
-
-							if ( $actual_size < $min_size ) {
-
-								$size_error = sprintf(
-								/* translators: 1: Format, 2: Actual size, 3: Minimum size. */
-
-									__( '%1$s file appears empty or corrupted (size: %2$d bytes, minimum: %3$d bytes).', 'sscribe-export-site-pages' ),
-									strtoupper( $format ),
-									$actual_size,
-									$min_size
-								);
-								$export_errors[] = array(
-									'format'   => strtoupper( $format ),
-									'message'  => $size_error,
-									'category' => 'empty_file',
-									'context'  => array(
-										'file_path'     => $file_path,
-										'actual_size'   => $actual_size,
-										'reported_size' => $file_size,
-									),
-								);
-
-								if ( $this->export_log ) {
-									$this->export_log->log_format_result( $page_id, $format, false, '', $size_error );
-								}
-
-								$this->logger->error(
-									ucfirst( $format ) . ' export produced empty/corrupted file',
-									array(
-										'page_id'       => $page_id,
-										'file_path'     => $file_path,
-										'actual_size'   => $actual_size,
-										'reported_size' => $file_size,
-										'min_size'      => $min_size,
-									)
-								);
-							} else {
-								$export_success       = true;
-								$successful_formats[] = $format;
-
-								$format_size_key             = 'format_size_' . $format;
-								$session[ $format_size_key ] = ( $session[ $format_size_key ] ?? 0 ) + $actual_size;
-
-								$format_pages_key             = 'format_pages_' . $format;
-								$session[ $format_pages_key ] = ( $session[ $format_pages_key ] ?? 0 ) + 1;
-
-								if ( $this->export_log ) {
-									$this->export_log->log_format_result( $page_id, $format, true, $file_path );
-								}
-
-								$this->logger->debug(
-									ucfirst( $format ) . ' generated successfully',
-									array(
-										'file'        => basename( $file_path ),
-										'page_id'     => $page_id,
-										'format'      => $format,
-										'actual_size' => $actual_size,
-										'duration'    => round( $format_elapsed, 3 ),
-									)
-								);
-							}
-						} else {
-							$result_data     = $result->get_data();
-							$export_errors[] = array(
-								'format'   => strtoupper( $format ),
-								'message'  => $result->get_error(),
-								'category' => $result_data['error_category'] ?? 'unknown',
-								'context'  => is_array( $result_data ) ? $result_data : array(),
-							);
-
-							if ( $this->export_log ) {
-								$this->export_log->log_format_result( $page_id, $format, false, '', $result->get_error() );
-							}
-						}
-					}
+					$dispatch_result = $this->dispatch_formats( $page_data, $temp_dir, $page_index, $total, $formats, $session_id, $session, $page_id );
+					$export_success     = $dispatch_result['export_success'];
+					$successful_formats = $dispatch_result['successful_formats'];
+					$export_errors      = $dispatch_result['export_errors'];
 				} catch ( \Throwable $e ) {
 
 					$error_msg = sprintf(
@@ -1363,6 +1450,51 @@ class SScribe_Batch_Processor {
 			$paused_reason = 'timeout';
 		}
 
+		$response = $this->build_batch_response(
+			$processed,
+			$total,
+			$current_page_title,
+			$avg_time_per_page,
+			$memory_paused,
+			$timeout_paused,
+			$paused_reason,
+			$structured_errors,
+			$errors,
+			$batch_duration,
+			$batch_start_time
+		);
+
+		SScribe_AJAX_Guard::success( $response );
+	}
+
+	/**
+	 * Build the batch progress response array.
+	 *
+	 * @param int    $processed         Number of pages processed.
+	 * @param int    $total             Total pages.
+	 * @param string $current_page_title Current page title.
+	 * @param float  $avg_time_per_page Average time per page.
+	 * @param bool   $memory_paused     Whether paused due to memory.
+	 * @param bool   $timeout_paused    Whether paused due to timeout.
+	 * @param string $paused_reason     Reason for pause.
+	 * @param array  $structured_errors Structured errors array.
+	 * @param array  $errors            Simple errors array.
+	 * @param float  $batch_duration    Duration of batch in seconds.
+	 * @param float  $batch_start_time  Start time of batch.
+	 * @return array Response array.
+	 */
+	private function build_batch_response( int $processed, int $total, string $current_page_title, float $avg_time_per_page, bool $memory_paused, bool $timeout_paused, string $paused_reason, array $structured_errors, array $errors, float $batch_duration, float $batch_start_time ): array {
+		$percentage = ( $total > 0 ) ? round( ( $processed / $total ) * 100 ) : 100;
+		$remaining_pages = $total - $processed;
+		$time_remaining  = round( $avg_time_per_page * $remaining_pages );
+
+		$paused_reason_text = '';
+		if ( $memory_paused ) {
+			$paused_reason_text = 'memory';
+		} elseif ( $timeout_paused ) {
+			$paused_reason_text = 'timeout';
+		}
+
 		$response = array(
 			'status'         => 'processing',
 			'processed'      => $processed,
@@ -1372,7 +1504,7 @@ class SScribe_Batch_Processor {
 			'time_remaining' => $time_remaining,
 			'memory_paused'  => $memory_paused,
 			'timeout_paused' => $timeout_paused,
-			'paused_reason'  => $paused_reason,
+			'paused_reason'  => $paused_reason_text,
 			'message'        => $memory_paused
 				? sprintf(
 					/* translators: 1: Current page number, 2: Total pages. */
@@ -1422,7 +1554,7 @@ class SScribe_Batch_Processor {
 			);
 		}
 
-		SScribe_AJAX_Guard::success( $response );
+		return $response;
 	}
 
 	/**
