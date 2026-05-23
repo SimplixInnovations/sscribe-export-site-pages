@@ -1851,7 +1851,7 @@
 				confirmBtn.removeData('confirm-time');
 			}, 3000);
 
-			confirmBtn.one('click', function(e) {
+			confirmBtn.one('click', (function(e) {
 				e.preventDefault();
 				e.stopPropagation();
 				clearTimeout(timeoutId);
@@ -1864,13 +1864,13 @@
 
 				confirmBtn.removeData('confirm-time');
 				$row.addClass('sscribe-row-deleting');
-				this.deleteSingleExport(filename, function () {
+				SScribe.deleteSingleExport(filename, function () {
 					$row.fadeOut(200, function () {
 						$(this).remove();
 						SScribe.refreshRecentExports();
 					});
 				});
-			});
+			})(this));
 		},
 
 		/**
