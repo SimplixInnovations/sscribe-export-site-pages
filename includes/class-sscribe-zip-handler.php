@@ -57,7 +57,7 @@ class SScribe_Zip_Handler {
 	public function get_export_dir(): string {
 		if ( '' === $this->export_dir ) {
 			throw new \InvalidArgumentException(
-				__( 'Export directory unavailable: wp_upload_dir() failed during initialization.', 'sscribe-export-site-pages' )
+				'Export directory unavailable: wp_upload_dir() failed during initialization.'
 			);
 		}
 		if ( ! file_exists( $this->export_dir ) ) {
@@ -353,12 +353,10 @@ class SScribe_Zip_Handler {
 					$file_time = filemtime( $file_path );
 					if ( $file_time && ( $now - $file_time ) > $max_age ) {
 						wp_delete_file( $file_path );
-						if ( ! file_exists( $file_path ) ) {
-							unset( $exports[ $basename ] );
-							SScribe_Export_Log::delete_by_filename( $basename );
-							$modified = true;
-							++$cleaned;
-						}
+						unset( $exports[ $basename ] );
+						SScribe_Export_Log::delete_by_filename( $basename );
+						$modified = true;
+						++$cleaned;
 					}
 				}
 

@@ -450,21 +450,12 @@ class SScribe_Exporter {
 				}
 			}
 
-			$final_valid = $has_document && $has_types && $xml_valid;
-			if ( ! $final_valid ) {
+			// $has_document and $has_types guaranteed true here (early throw above).
+			// Only $xml_valid may be false when debug mode is enabled.
+			if ( ! $xml_valid ) {
 				wp_delete_file( $output_path );
 				unset( $writer, $php_word );
-				$missing = array();
-				if ( ! $has_document ) {
-					$missing[] = 'word/document.xml';
-				}
-				if ( ! $has_types ) {
-					$missing[] = '[Content_Types].xml';
-				}
-				if ( ! $xml_valid ) {
-					$missing[] = 'valid XML content';
-				}
-				throw new \RuntimeException( 'DOCX integrity check failed: missing ' . implode( ', ', $missing ) );
+				throw new \RuntimeException( 'DOCX integrity check failed: XML validation error' );
 			}
 
 			unset( $writer, $php_word );
