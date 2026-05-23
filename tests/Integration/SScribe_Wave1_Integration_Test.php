@@ -143,12 +143,13 @@ class SScribe_Wave1_Integration_Test extends TestCase {
 
 		$filename = SScribe_Exporter_Factory::build_filename( $page_data, 1, 10, 'docx' );
 
+		// pad_length = max(3, strlen("10")) = max(3, 2) = 3, so index=1 becomes "001"
 		$this->assertMatchesRegularExpression(
-			'/^P\d{3}-.+?-AR\.docx$/',
+			'/^P\d{3}-.+?-AR-\d+\.docx$/',
 			$filename,
-			'Filename should match format: P{number}-{title}-{lang}.docx'
+			'Filename should match format: P{index:pad3}-{title}-{lang}-{id}.docx'
 		);
-		$this->assertStringContainsString( '-AR.', $filename );
+		$this->assertStringContainsString( '-AR-', $filename );
 		$this->assertStringEndsWith( '.docx', $filename );
 	}
 }

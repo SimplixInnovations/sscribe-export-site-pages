@@ -325,6 +325,17 @@ if ( ! function_exists( 'did_action' ) ) {
 	}
 }
 
+if ( ! function_exists( 'do_action' ) ) {
+	function do_action( $hook_name, ...$args ) {
+		global $sscribe_test_actions;
+		foreach ( $sscribe_test_actions as $action ) {
+			if ( $action['hook'] === $hook_name && is_callable( $action['callback'] ) ) {
+				call_user_func_array( $action['callback'], $args );
+			}
+		}
+	}
+}
+
 if ( ! function_exists( 'get_locale' ) ) {
 	function get_locale() {
 		return 'en_US';
