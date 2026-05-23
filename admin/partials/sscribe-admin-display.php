@@ -18,7 +18,7 @@ $sscribe_recent_exports  = $sscribe_recent_exports ?? array();
 $sscribe_debug_info      = $sscribe_debug_info ?? array();
 $sscribe_is_debug        = $sscribe_is_debug ?? false;
 $sscribe_step            = 1;
-$export_index            = $export_index ?? array();
+$sscribe_export_index    = $sscribe_export_index ?? array();
 ?>
 
 <div class="sscribe-master-container">
@@ -626,7 +626,7 @@ $export_index            = $export_index ?? array();
 								</svg>
 								<em><?php esc_html_e( 'Your recent export packages will appear here.', 'sscribe-export-site-pages' ); ?></em>
 							</div>
-							<?php if ( ! empty( $export_index ) && count( $export_index ) > 10 ) : ?>
+							<?php if ( ! empty( $sscribe_export_index ) && count( $sscribe_export_index ) > 10 ) : ?>
 							<div class="sscribe-history-notice">
 								<p><?php esc_html_e( 'Showing 10 most recent exports.', 'sscribe-export-site-pages' ); ?></p>
 							</div>
