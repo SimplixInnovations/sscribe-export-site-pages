@@ -47,7 +47,7 @@ class SScribe_Content_Parser {
 			return array();
 		}
 
-		$logger = SScribe_Logger::instance( defined( 'SSCRIBE_DEBUG' ) && SSCRIBE_DEBUG );
+		$logger = SScribe_Logger::instance( SSCRIBE_DEBUG );
 
 		$logger->debug(
 			'Content parser: parse() called',

@@ -458,7 +458,7 @@ class SScribe_Batch_Processor {
 		$this->collector = $collector ?? new SScribe_Page_Collector();
 		$this->zip_handler = $zip_handler ?? new SScribe_Zip_Handler();
 		$this->session = $session ?? new SScribe_Session();
-		$this->logger = $logger ?? SScribe_Logger::instance( defined( 'SSCRIBE_DEBUG' ) && SSCRIBE_DEBUG );
+		$this->logger = $logger ?? SScribe_Logger::instance( SSCRIBE_DEBUG );
 		$this->file_handler = $file_handler ?? new SScribe_Batch_File_Handler(
 			new SScribe_Export_Rate_Limiter(),
 			$this->zip_handler,
@@ -837,7 +837,7 @@ class SScribe_Batch_Processor {
 			),
 		);
 
-		$sscribe_is_debug = defined( 'SSCRIBE_DEBUG' ) && SSCRIBE_DEBUG;
+		$sscribe_is_debug = SSCRIBE_DEBUG;
 		if ( $sscribe_is_debug ) {
 			$response['debug_info'] = array(
 				'page_ids_count'    => $total,
@@ -1591,7 +1591,7 @@ class SScribe_Batch_Processor {
 			$response['resume_guidance'] = __( 'The export paused briefly to prevent a server timeout. It will resume automatically. No action needed.', 'sscribe-export-site-pages' );
 		}
 
-		$sscribe_is_debug = defined( 'SSCRIBE_DEBUG' ) && SSCRIBE_DEBUG;
+		$sscribe_is_debug = SSCRIBE_DEBUG;
 		if ( $sscribe_is_debug ) {
 			$response['debug_info'] = array(
 				'batch_size'          => $this->batch_size,
@@ -1901,7 +1901,7 @@ class SScribe_Batch_Processor {
 					'error_diagnostics' => $error_diagnostics,
 				);
 
-				$sscribe_is_debug = defined( 'SSCRIBE_DEBUG' ) && SSCRIBE_DEBUG;
+				$sscribe_is_debug = SSCRIBE_DEBUG;
 				if ( $sscribe_is_debug ) {
 					$error_response['debug_info'] = array(
 						'temp_dir_exists' => is_dir( $session['temp_dir'] ),
@@ -2089,7 +2089,7 @@ class SScribe_Batch_Processor {
 				) : '' ),
 			);
 
-			$sscribe_is_debug = defined( 'SSCRIBE_DEBUG' ) && SSCRIBE_DEBUG;
+			$sscribe_is_debug = SSCRIBE_DEBUG;
 			if ( $sscribe_is_debug && file_exists( $zip_path ) ) {
 				$response['debug_info'] = array(
 					'files_in_temp_count' => count( $files_before ),

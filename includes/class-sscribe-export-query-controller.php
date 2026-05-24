@@ -275,7 +275,7 @@ class SScribe_Export_Query_Controller {
 
 		$diagnostics = $this->diagnostics->run_preflight( $page_count, $formats );
 
-		$sscribe_is_debug = defined( 'SSCRIBE_DEBUG' ) && SSCRIBE_DEBUG;
+		$sscribe_is_debug = SSCRIBE_DEBUG;
 		if ( $sscribe_is_debug ) {
 			$diagnostics['debug_info'] = array(
 				'php_version'   => PHP_VERSION,
