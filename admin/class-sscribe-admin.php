@@ -3,6 +3,8 @@
  * SScribe Admin
  *
  * @package SScribe_Export_Site_Pages
+ * @license GPL v2 or later
+ * @link    https://www.gnu.org/licenses/gpl-2.0.html
  */
 
 declare(strict_types=1);
@@ -422,7 +424,7 @@ class SScribe_Admin {
 	 */
 	public function render_admin_page(): void {
 
-		$cache_key = 'sscribe_admin_page_data_v' . SSCRIBE_VERSION . '_' . get_current_blog_id();
+		$cache_key = 'sscribe_admin_page_data_v' . SSCRIBE_VERSION . '_' . get_current_blog_id() . '_' . get_current_user_id();
 		$cached_page_data = get_transient( $cache_key );
 
 		if ( is_array( $cached_page_data ) ) {
@@ -539,13 +541,23 @@ class SScribe_Admin {
 				continue;
 			}
 
-			$filename = sanitize_file_name( (string) $filename );
+			$filename = basename( sanitize_file_name( (string) $filename ) );
 			if ( '' === $filename || 'zip' !== strtolower( pathinfo( $filename, PATHINFO_EXTENSION ) ) ) {
 				continue;
 			}
 
 			$file_path = $export_dir . $filename;
 			if ( ! file_exists( $file_path ) ) {
+				continue;
+			}
+
+			$real_path = realpath( $file_path );
+			$real_dir  = realpath( $export_dir );
+			if ( false === $real_path || false === $real_dir ) {
+				continue;
+			}
+			$safe_dir = rtrim( $real_dir, DIRECTORY_SEPARATOR ) . DIRECTORY_SEPARATOR;
+			if ( ! str_starts_with( $real_path, $safe_dir ) ) {
 				continue;
 			}
 
