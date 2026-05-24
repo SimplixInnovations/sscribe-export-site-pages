@@ -280,7 +280,7 @@ class SScribe_PDF_Exporter implements SScribe_Exporter_Interface {
 
 			if ( function_exists( 'set_time_limit' ) && (int) ini_get( 'max_execution_time' ) > 0 ) {
 				$max_exec = (int) ini_get( 'max_execution_time' );
-				@set_time_limit( max( 60, $max_exec ) ); // phpcs:ignore WordPress.PHP.NoSilencedErrors
+				@set_time_limit( max( 60, $max_exec ) ); // phpcs:ignore WordPress.PHP.NoSilencedErrors, Squiz.PHP.DiscouragedFunctions.Discouraged
 			}
 
 			// Pre-render time check.
