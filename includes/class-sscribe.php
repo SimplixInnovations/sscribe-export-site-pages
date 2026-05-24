@@ -45,7 +45,7 @@ class SScribe {
 	 */
 	private function register_services(): void {
 		$container = SScribe_Container::instance();
-		$debug     = defined( 'SSCRIBE_DEBUG' ) && SSCRIBE_DEBUG;
+		$debug     = SSCRIBE_DEBUG;
 
 		$container->singleton( SScribe_Logger::class, fn() => SScribe_Logger::instance( $debug ) );
 		$container->singleton( SScribe_Content_Parser::class, fn() => new SScribe_Content_Parser() );
