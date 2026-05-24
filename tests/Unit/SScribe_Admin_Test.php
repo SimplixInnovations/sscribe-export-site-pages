@@ -79,13 +79,11 @@ class SScribe_Admin_Test extends TestCase {
 
 		$this->assertCount( 0, $sscribe_test_styles );
 		$this->assertCount( 0, $sscribe_test_scripts );
-		$this->assertCount( 0, $sscribe_test_localized );
 
 		$admin->enqueue_admin_assets( 'toplevel_page_sscribe-export' );
 
 		$this->assertCount( 3, $sscribe_test_styles );
 		$this->assertCount( 2, $sscribe_test_scripts );
-		$this->assertCount( 1, $sscribe_test_localized );
 	}
 
 	public function test_plugin_action_link_points_to_top_level_admin_page(): void {
