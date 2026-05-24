@@ -89,6 +89,9 @@ $sscribe_cleanup_site = static function (): void {
 	delete_option( 'sscribe_debug_enabled' );
 	delete_option( 'sscribe_debug_log_level' );
 	delete_option( 'sscribe_debug_auto_refresh' );
+	delete_option( 'sscribe_upgrade_last_error' );
+	delete_option( 'sscribe_settings' );
+	delete_option( 'sscribe_active_languages' );
 
 	$sscribe_tables = array(
 		$wpdb->prefix . 'sscribe_export_logs',

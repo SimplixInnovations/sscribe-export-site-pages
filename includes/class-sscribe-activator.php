@@ -20,8 +20,14 @@ class SScribe_Activator {
 
 	/**
 	 * Run activation tasks.
+	 *
+	 * Handles both single-site and multisite network activation.
+	 * WordPress passes $network_wide as a second parameter to the
+	 * callback registered via register_activation_hook().
+	 *
+	 * @param bool $network_wide Whether the plugin is being activated network-wide.
 	 */
-	public static function activate(): void {
+	public static function activate( bool $network_wide = false ): void {
 
 		delete_option( 'sscribe_export_index' );
 		delete_option( 'sscribe_schema_version' );
@@ -45,13 +51,61 @@ class SScribe_Activator {
 			return;
 		}
 
+		if ( $network_wide && is_multisite() ) {
+			self::activate_network_wide();
+		} else {
+			self::activate_single_site();
+		}
+
+		set_transient( 'sscribe_activation_redirect', '1', MINUTE_IN_SECONDS );
+	}
+
+	/**
+	 * Activate plugin for all sites in a multisite network.
+	 */
+	private static function activate_network_wide(): void {
+		if ( ! function_exists( 'get_sites' ) ) {
+			self::activate_single_site();
+			return;
+		}
+
+		$number  = 100;
+		$offset  = 0;
+		$blog_id = 0;
+
+		while ( true ) {
+			$sites = get_sites(
+				array(
+					'number' => $number,
+					'offset' => $offset,
+					'fields' => 'ids',
+				)
+			);
+
+			if ( empty( $sites ) ) {
+				break;
+			}
+
+			foreach ( $sites as $blog_id ) {
+				switch_to_blog( (int) $blog_id );
+				self::activate_single_site();
+				restore_current_blog();
+			}
+
+			$offset += $number;
+		}
+	}
+
+	/**
+	 * Activate plugin for the current site.
+	 */
+	private static function activate_single_site(): void {
 		self::create_export_directory();
 		self::create_database_tables();
 		self::register_settings();
 		self::schedule_cleanup();
 		self::cleanup_orphaned_data();
 		update_option( 'sscribe_version', SSCRIBE_VERSION, false );
-		set_transient( 'sscribe_activation_redirect', '1', MINUTE_IN_SECONDS );
 	}
 
 	/**
@@ -196,6 +250,11 @@ class SScribe_Activator {
 
 		if ( ! wp_next_scheduled( 'sscribe_cleanup_sessions' ) ) {
 			wp_schedule_event( time(), $interval, 'sscribe_cleanup_sessions' );
+		}
+
+		$audit_interval = apply_filters( 'sscribe_audit_cleanup_interval', 'daily' );
+		if ( ! wp_next_scheduled( 'sscribe_cleanup_audit_trail' ) ) {
+			wp_schedule_event( time(), $audit_interval, 'sscribe_cleanup_audit_trail' );
 		}
 	}
 
