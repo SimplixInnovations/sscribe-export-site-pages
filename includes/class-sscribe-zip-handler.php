@@ -39,7 +39,7 @@ class SScribe_Zip_Handler {
 		$upload_dir = wp_upload_dir();
 		if ( ! empty( $upload_dir['error'] ) ) {
 			$this->export_dir = '';
-			$this->logger     = SScribe_Logger::instance( defined( 'SSCRIBE_DEBUG' ) && SSCRIBE_DEBUG );
+			$this->logger     = SScribe_Logger::instance( SSCRIBE_DEBUG );
 			$this->logger->warning(
 				'wp_upload_dir() returned an error — export directory unavailable',
 				array( 'error' => $upload_dir['error'] )
@@ -47,7 +47,7 @@ class SScribe_Zip_Handler {
 			return;
 		}
 		$this->export_dir = $upload_dir['basedir'] . '/sscribe-exports';
-		$this->logger     = SScribe_Logger::instance( defined( 'SSCRIBE_DEBUG' ) && SSCRIBE_DEBUG );
+		$this->logger     = SScribe_Logger::instance( SSCRIBE_DEBUG );
 	}
 
 	/**
