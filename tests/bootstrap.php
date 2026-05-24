@@ -1119,6 +1119,17 @@ if ( ! function_exists( 'wp_doing_ajax' ) ) {
 	}
 }
 
+if ( ! function_exists( 'wp_doing_cron' ) ) {
+	function wp_doing_cron() {
+		global $sscribe_test_doing_cron;
+		return (bool) ( $sscribe_test_doing_cron ?? false );
+	}
+}
+
+if ( ! defined( 'WP_CLI' ) ) {
+	define( 'WP_CLI', false );
+}
+
 if ( ! function_exists( 'admin_url' ) ) {
 	function admin_url( $path = '' ) {
 		return 'http://example.org/wp-admin/' . ltrim( (string) $path, '/' );
