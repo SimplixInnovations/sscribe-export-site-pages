@@ -193,6 +193,7 @@ class SScribe_Admin_Debug {
 
 		$filter_level = isset( $_POST['filter_level'] ) ? sanitize_text_field( wp_unslash( $_POST['filter_level'] ) ) : 'ALL';
 		$search       = isset( $_POST['search'] ) ? sanitize_text_field( wp_unslash( $_POST['search'] ) ) : '';
+		$session_id   = isset( $_POST['session_id'] ) ? sanitize_text_field( wp_unslash( $_POST['session_id'] ) ) : '';
 		$offset       = isset( $_POST['offset'] ) ? absint( $_POST['offset'] ) : 0;
 		$limit        = isset( $_POST['limit'] ) ? absint( $_POST['limit'] ) : 100;
 
@@ -206,7 +207,7 @@ class SScribe_Admin_Debug {
 		$logger = SScribe_Logger::instance( true );
 		$logs   = $logger->get_logs();
 
-		$entries = $this->parse_log_entries( $logs, $filter_level, $search, '', true );
+		$entries = $this->parse_log_entries( $logs, $filter_level, $search, $session_id, true );
 
 		$json_content = wp_json_encode(
 			array(
@@ -248,22 +249,22 @@ class SScribe_Admin_Debug {
 			return;
 		}
 
-		$files  = glob( $log_dir . '/*.log' );
-		$result = array();
+		$log_files  = glob( $log_dir . '/*.log' ) ?: array();
+		$json_files = glob( $log_dir . '/*.json' ) ?: array();
+		$files      = array_merge( $log_files, $json_files );
+		$result     = array();
 
-		if ( is_array( $files ) ) {
-			foreach ( $files as $file ) {
-				if ( is_file( $file ) ) {
-					$stat = stat( $file );
-					if ( false === $stat ) {
-						continue;
-					}
-					$result[] = array(
-						'name' => basename( $file ),
-						'size' => size_format( $stat['size'] ),
-						'date' => wp_date( 'Y-m-d H:i:s', $stat['mtime'] ),
-					);
+		foreach ( $files as $file ) {
+			if ( is_file( $file ) ) {
+				$stat = stat( $file );
+				if ( false === $stat ) {
+					continue;
 				}
+				$result[] = array(
+					'name' => basename( $file ),
+					'size' => size_format( $stat['size'] ),
+					'date' => wp_date( 'Y-m-d H:i:s', $stat['mtime'] ),
+				);
 			}
 		}
 

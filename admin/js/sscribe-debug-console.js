@@ -187,10 +187,23 @@
 				}, 300)
 			);
 
-			document.querySelector('.sscribe-debug-rotated').addEventListener('toggle', function (e) {
-				if (e.newState === 'open') {
-					self.fetchRotatedLogs();
-				}
+			const rotatedEl = document.querySelector('.sscribe-debug-rotated');
+			if (rotatedEl) {
+				rotatedEl.addEventListener('toggle', function (e) {
+					if (e.newState === 'open') {
+						self.fetchRotatedLogs();
+					}
+				});
+			}
+
+			this.$rotatedBody.on('click', '.sscribe-rotated-view', function () {
+				self.viewRotatedLog($(this).data('file'));
+			});
+			this.$rotatedBody.on('click', '.sscribe-rotated-export', function () {
+				self.exportRotatedLog($(this).data('file'));
+			});
+			this.$rotatedBody.on('click', '.sscribe-rotated-delete', function () {
+				self.deleteRotatedLog($(this).data('file'));
 			});
 		},
 
@@ -486,6 +499,7 @@
 				nonce: sscribe_data.nonce,
 				filter_level: this.currentFilter,
 				search: this.searchQuery,
+				session_id: this.sessionFilter,
 			};
 
 			this.downloadViaForm(sscribe_data.ajaxurl, data);
