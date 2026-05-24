@@ -436,7 +436,7 @@ class SScribe_Exporter {
 				throw new \RuntimeException( 'DOCX missing required archive members' );
 			}
 
-			if ( ! defined( 'SSCRIBE_DEBUG' ) || ! SSCRIBE_DEBUG ) {
+			if ( ! SSCRIBE_DEBUG ) {
 				unset( $writer, $php_word );
 				return $output_path;
 			}
@@ -1277,7 +1277,7 @@ class SScribe_Exporter {
 	 */
 	private function get_logger(): SScribe_Logger_Interface {
 		if ( null === $this->logger ) {
-			$this->logger = SScribe_Logger::instance( defined( 'SSCRIBE_DEBUG' ) && SSCRIBE_DEBUG );
+			$this->logger = SScribe_Logger::instance( SSCRIBE_DEBUG );
 		}
 		return $this->logger;
 	}
