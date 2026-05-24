@@ -101,3 +101,6 @@ AUDIT-REPORT*.md
 # Test references (not part of plugin)
 WPScan/
 WordPress-Core/
+
+# Audit output files (contains full local filesystem paths)
+test-phpcs-output.txt
