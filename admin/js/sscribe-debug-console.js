@@ -48,13 +48,13 @@
 		},
 
 		hasRequiredDom: function() {
-			return document.getElementById( 'sscribe-admin-wrap' ) !== null
+			return document.getElementById( 'sscribe-debug-root' ) !== null
 				&& document.getElementById( 'sscribe-debug-entries' ) !== null
 				&& document.getElementById( 'sscribe-debug-console-body' ) !== null;
 		},
 
 		cacheDom: function() {
-			this.$container = $( '#sscribe-admin-wrap' );
+			this.$container = $( '#sscribe-debug-root' );
 			this.$enabled = $( '#sscribe-debug-enabled' );
 			this.$level = $( '#sscribe-debug-level' );
 			this.$saveSettings = $( '#sscribe-debug-save-settings' );
@@ -136,46 +136,21 @@
 				}
 			} );
 
-			this.$exportBtn.on( 'click', function() {
+this.$exportBtn.on( 'click', function() {
 				self.exportLogs();
 			} );
 
-			this.$entries.on( 'click', '.sscribe-debug-entry', function() {
-				$( this ).toggleClass( 'expanded' );
+			this.$filterLevel.on( 'change', function() {
+				self.updateExportButtonScope();
 			} );
 
-			this.$entries.on( 'keydown', '.sscribe-debug-entry', function( e ) {
-				if ( e.key === 'Enter' || e.key === ' ' ) {
-					e.preventDefault();
-					$( this ).toggleClass( 'expanded' );
-				}
-			} );
+			this.$searchInput.on( 'input', debounce( 300, function() {
+				self.updateExportButtonScope();
+			} ) );
 
-			this.$rotatedBody.on( 'click', '.sscribe-rotated-view', function() {
-				self.viewRotatedLog( $( this ).data( 'file' ) );
-			} );
-
-			this.$rotatedBody.on( 'click', '.sscribe-rotated-export', function() {
-				self.exportRotatedLog( $( this ).data( 'file' ) );
-			} );
-
-			this.$rotatedBody.on( 'click', '.sscribe-rotated-delete', function() {
-				const $btn = $( this );
-				const filename = $btn.data( 'file' );
-				if ( $btn.data( 'confirming' ) ) {
-					$btn.data( 'confirming', false ).removeClass( 'sscribe-btn-confirming' ).text( 'Delete' );
-					self.deleteRotatedLog( filename );
-				} else {
-					$btn.data( 'confirming', true ).addClass( 'sscribe-btn-confirming' ).text( 'Click again' );
-					setTimeout( function() {
-						$btn.data( 'confirming', false ).removeClass( 'sscribe-btn-confirming' ).text( 'Delete' );
-					}, 3000 );
-				}
-			} );
-
-			this.$container.on( 'click', '#sscribe-debug-help-btn', function() {
-				window.alert( 'SScribe Debug Console\n\nView detailed export logs, toggle debug mode, and manage rotated log files. Logs capture detailed information about export operations including processing steps, errors, and performance metrics.' );
-			} );
+			this.$sessionInput.on( 'input', debounce( 300, function() {
+				self.updateExportButtonScope();
+			} ) );
 		},
 
 		bindVisibilityHandler: function() {
@@ -221,6 +196,11 @@
 				return response.data.message;
 			}
 			return fallback;
+		},
+
+		updateExportButtonScope: function() {
+			const hasFilter = this.currentFilter !== 'ALL' || this.searchQuery !== '' || this.sessionFilter !== '';
+			this.$exportBtn.find( '.sscribe-export-btn-scope' ).text( hasFilter ? ' (filtered)' : ' (all)' );
 		},
 
 		showConsoleError: function( message ) {
@@ -298,12 +278,14 @@
 			if ( isInitialLoad ) {
 				self.$entries.css( 'opacity', '0.5' );
 				self.$entryCount.text( 'Loading...' );
+				self.$consoleBody.addClass( 'is-loading' );
 			} else {
 				self.isLoadingMore = true;
 			}
 
 			$.get( sscribe_data.ajaxurl, data, function( response ) {
 				self.$entries.css( 'opacity', '1' );
+				self.$consoleBody.removeClass( 'is-loading' );
 				self.isLoadingMore = false;
 
 				if ( response.success ) {

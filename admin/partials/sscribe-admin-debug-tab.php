@@ -22,7 +22,7 @@ $sscribe_log_levels     = array(
 );
 ?>
 
-<div class="sscribe-debug-master" id="sscribe-admin-wrap">
+<div class="sscribe-debug-master" id="sscribe-debug-root">
 	<div class="sscribe-debug-header">
 		<div class="sscribe-debug-title-row">
 			<h2><?php esc_html_e( 'Debug Console', 'sscribe-export-site-pages' ); ?></h2>
@@ -38,7 +38,7 @@ $sscribe_log_levels     = array(
 	<div class="sscribe-debug-settings-card">
 		<div class="sscribe-debug-settings-grid">
 			<div class="sscribe-debug-toggle-section">
-				<label class="sscribe-debug-toggle-label" for="sscribe-debug-enabled">
+				<label class="sscribe-debug-toggle-label">
 					<span class="sscribe-toggle-switch">
 						<input type="checkbox" id="sscribe-debug-enabled" <?php checked( $sscribe_debug_settings['debug_enabled'] ); ?>>
 						<span class="sscribe-toggle-slider"></span>
@@ -83,7 +83,7 @@ $sscribe_log_levels     = array(
 				</select>
 			</div>
 			<div class="sscribe-debug-session-filter">
-				<label for="sscribe-debug-session-id" class="screen-reader-text"><?php esc_html_e( 'Filter by session:', 'sscribe-export-site-pages' ); ?></label>
+				<label for="sscribe-debug-session-id"><?php esc_html_e( 'Session ID:', 'sscribe-export-site-pages' ); ?></label>
 				<input type="text" id="sscribe-debug-session-id" class="sscribe-input" placeholder="<?php esc_attr_e( 'e.g. abc123de45678901', 'sscribe-export-site-pages' ); ?>" title="<?php esc_attr_e( 'Found in export log filenames', 'sscribe-export-site-pages' ); ?>" maxlength="64">
 			</div>
 			<div class="sscribe-debug-search">
@@ -133,7 +133,10 @@ $sscribe_log_levels     = array(
 			<?php esc_html_e( 'Clear Logs', 'sscribe-export-site-pages' ); ?>
 		</button>
 		<button type="button" class="sscribe-button sscribe-button-outline" id="sscribe-debug-export-btn">
-			<?php esc_html_e( 'Export JSON', 'sscribe-export-site-pages' ); ?>
+			<?php
+			esc_html_e( 'Export JSON', 'sscribe-export-site-pages' );
+			?>
+			<span class="sscribe-export-btn-scope" id="sscribe-export-btn-scope"></span>
 		</button>
 	</div>
 

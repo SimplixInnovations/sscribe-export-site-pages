@@ -45,7 +45,10 @@ class SScribe_Admin_Debug {
 	 * AJAX: Save debug settings.
 	 */
 	public function ajax_debug_save_settings(): void {
-		check_ajax_referer( 'sscribe_export_nonce', 'nonce' );
+		if ( ! check_ajax_referer( 'sscribe_export_nonce', 'nonce', false ) ) {
+			wp_send_json_error( array( 'message' => __( 'Invalid security token.', 'sscribe-export-site-pages' ) ) );
+			return;
+		}
 
 		if ( ! current_user_can( $this->get_export_capability() ) ) {
 			wp_send_json_error( array( 'message' => __( 'Insufficient permissions.', 'sscribe-export-site-pages' ) ) );
@@ -71,7 +74,10 @@ class SScribe_Admin_Debug {
 	 * AJAX: Fetch debug logs.
 	 */
 	public function ajax_debug_fetch_logs(): void {
-		check_ajax_referer( 'sscribe_export_nonce', 'nonce' );
+		if ( ! check_ajax_referer( 'sscribe_export_nonce', 'nonce', false ) ) {
+			wp_send_json_error( array( 'message' => __( 'Invalid security token.', 'sscribe-export-site-pages' ) ) );
+			return;
+		}
 
 		if ( ! current_user_can( $this->get_export_capability() ) ) {
 			wp_send_json_error( array( 'message' => __( 'Insufficient permissions.', 'sscribe-export-site-pages' ) ) );
@@ -79,7 +85,7 @@ class SScribe_Admin_Debug {
 		}
 
 		$rate_limiter = new SScribe_Export_Rate_Limiter();
-		if ( ! $rate_limiter->check_rate_limit( 'debug_read' ) ) {
+		if ( ! $rate_limiter->check_rate_limit( $this->get_export_capability() ) ) {
 			wp_send_json_error( array( 'message' => __( 'Rate limit exceeded. Please wait before trying again.', 'sscribe-export-site-pages' ) ) );
 			return;
 		}
@@ -114,7 +120,10 @@ class SScribe_Admin_Debug {
 	 * AJAX: Clear debug logs.
 	 */
 	public function ajax_debug_clear_logs(): void {
-		check_ajax_referer( 'sscribe_export_nonce', 'nonce' );
+		if ( ! check_ajax_referer( 'sscribe_export_nonce', 'nonce', false ) ) {
+			wp_send_json_error( array( 'message' => __( 'Invalid security token.', 'sscribe-export-site-pages' ) ) );
+			return;
+		}
 
 		if ( ! current_user_can( $this->get_export_capability() ) ) {
 			wp_send_json_error( array( 'message' => __( 'Insufficient permissions.', 'sscribe-export-site-pages' ) ) );
@@ -122,7 +131,7 @@ class SScribe_Admin_Debug {
 		}
 
 		$rate_limiter = new SScribe_Export_Rate_Limiter();
-		if ( ! $rate_limiter->check_rate_limit( 'debug_write' ) ) {
+		if ( ! $rate_limiter->check_rate_limit( $this->get_export_capability() ) ) {
 			wp_send_json_error( array( 'message' => __( 'Rate limit exceeded. Please wait before trying again.', 'sscribe-export-site-pages' ) ) );
 			return;
 		}
@@ -137,14 +146,17 @@ class SScribe_Admin_Debug {
 	 * AJAX: Export logs as JSON.
 	 */
 	public function ajax_debug_export_logs(): void {
-		check_ajax_referer( 'sscribe_export_nonce', 'nonce' );
+		if ( ! check_ajax_referer( 'sscribe_export_nonce', 'nonce', false ) ) {
+			wp_send_json_error( array( 'message' => __( 'Invalid security token.', 'sscribe-export-site-pages' ) ) );
+			return;
+		}
 
 		if ( ! current_user_can( $this->get_export_capability() ) ) {
 			SScribe_AJAX_Guard::error( array( 'message' => __( 'Insufficient permissions.', 'sscribe-export-site-pages' ) ), 403 );
 		}
 
 		$rate_limiter = new SScribe_Export_Rate_Limiter();
-		if ( ! $rate_limiter->check_rate_limit( 'debug_write' ) ) {
+		if ( ! $rate_limiter->check_rate_limit( $this->get_export_capability() ) ) {
 			SScribe_AJAX_Guard::error( array( 'message' => __( 'Rate limit exceeded. Please wait before trying again.', 'sscribe-export-site-pages' ) ), 429 );
 		}
 
@@ -162,13 +174,12 @@ class SScribe_Admin_Debug {
 				SScribe_AJAX_Guard::error( array( 'message' => __( 'File not found.', 'sscribe-export-site-pages' ) ), 404 );
 			}
 
-			// Validate file extension to prevent reading non-log files.
 			if ( ! preg_match( '/\.(log|json)$/', $filename ) ) {
 				SScribe_AJAX_Guard::error( array( 'message' => __( 'Invalid file type.', 'sscribe-export-site-pages' ) ), 400 );
 			}
 
 			if ( 0 === strpos( $real_file_path, $real_log_dir . DIRECTORY_SEPARATOR ) ) {
-				$content = file_get_contents( $file_path ); // phpcs:ignore WordPress.WP.AlternativeFunctions.file_get_contents_file_get_contents
+				$content = file_get_contents( $file_path ); // phpcs:ignore WordPress.WP.AlternativeFunctions.file_get_contents_file_get_contents -- Reading local log file for download.
 				if ( false === $content ) {
 					SScribe_AJAX_Guard::error( array( 'message' => __( 'Failed to read file.', 'sscribe-export-site-pages' ) ), 500 );
 				}
@@ -197,8 +208,8 @@ class SScribe_Admin_Debug {
 
 		$json_content = wp_json_encode(
 			array(
-				'entries' => array_slice( $entries, $offset, $limit ),
-				'count'   => count( $entries ),
+				'entries'  => array_slice( $entries, $offset, $limit ),
+				'count'    => count( $entries ),
 				'exported' => wp_date( 'Y-m-d H:i:s' ),
 			)
 		);
@@ -211,7 +222,10 @@ class SScribe_Admin_Debug {
 	 * AJAX: Get rotated log files list.
 	 */
 	public function ajax_debug_get_files(): void {
-		check_ajax_referer( 'sscribe_export_nonce', 'nonce' );
+		if ( ! check_ajax_referer( 'sscribe_export_nonce', 'nonce', false ) ) {
+			wp_send_json_error( array( 'message' => __( 'Invalid security token.', 'sscribe-export-site-pages' ) ) );
+			return;
+		}
 
 		if ( ! current_user_can( $this->get_export_capability() ) ) {
 			wp_send_json_error( array( 'message' => __( 'Insufficient permissions.', 'sscribe-export-site-pages' ) ) );
@@ -219,7 +233,7 @@ class SScribe_Admin_Debug {
 		}
 
 		$rate_limiter = new SScribe_Export_Rate_Limiter();
-		if ( ! $rate_limiter->check_rate_limit( 'debug_read' ) ) {
+		if ( ! $rate_limiter->check_rate_limit( $this->get_export_capability() ) ) {
 			wp_send_json_error( array( 'message' => __( 'Rate limit exceeded. Please wait before trying again.', 'sscribe-export-site-pages' ) ) );
 			return;
 		}
@@ -265,7 +279,10 @@ class SScribe_Admin_Debug {
 	 * AJAX: Fetch content of a rotated log.
 	 */
 	public function ajax_debug_fetch_rotated(): void {
-		check_ajax_referer( 'sscribe_export_nonce', 'nonce' );
+		if ( ! check_ajax_referer( 'sscribe_export_nonce', 'nonce', false ) ) {
+			wp_send_json_error( array( 'message' => __( 'Invalid security token.', 'sscribe-export-site-pages' ) ) );
+			return;
+		}
 
 		if ( ! current_user_can( $this->get_export_capability() ) ) {
 			wp_send_json_error( array( 'message' => __( 'Insufficient permissions.', 'sscribe-export-site-pages' ) ) );
@@ -273,7 +290,7 @@ class SScribe_Admin_Debug {
 		}
 
 		$rate_limiter = new SScribe_Export_Rate_Limiter();
-		if ( ! $rate_limiter->check_rate_limit( 'debug_read' ) ) {
+		if ( ! $rate_limiter->check_rate_limit( $this->get_export_capability() ) ) {
 			wp_send_json_error( array( 'message' => __( 'Rate limit exceeded. Please wait before trying again.', 'sscribe-export-site-pages' ) ) );
 			return;
 		}
@@ -284,6 +301,11 @@ class SScribe_Admin_Debug {
 
 		if ( empty( $filename ) ) {
 			wp_send_json_error( array( 'message' => __( 'Filename required.', 'sscribe-export-site-pages' ) ) );
+			return;
+		}
+
+		if ( ! preg_match( '/\.(log|json)$/', $filename ) ) {
+			wp_send_json_error( array( 'message' => __( 'Invalid file type.', 'sscribe-export-site-pages' ) ) );
 			return;
 		}
 
@@ -306,7 +328,7 @@ class SScribe_Admin_Debug {
 			return;
 		}
 
-		$content = file_get_contents( $file_path ); // phpcs:ignore WordPress.WP.AlternativeFunctions.file_get_contents_file_get_contents
+		$content = file_get_contents( $file_path ); // phpcs:ignore WordPress.WP.AlternativeFunctions.file_get_contents_file_get_contents -- Reading local rotated log file.
 		if ( false === $content ) {
 			wp_send_json_error( array( 'message' => __( 'Failed to read file.', 'sscribe-export-site-pages' ) ) );
 			return;
@@ -325,7 +347,10 @@ class SScribe_Admin_Debug {
 	 * AJAX: Delete a rotated log file.
 	 */
 	public function ajax_debug_delete_rotated(): void {
-		check_ajax_referer( 'sscribe_export_nonce', 'nonce' );
+		if ( ! check_ajax_referer( 'sscribe_export_nonce', 'nonce', false ) ) {
+			wp_send_json_error( array( 'message' => __( 'Invalid security token.', 'sscribe-export-site-pages' ) ) );
+			return;
+		}
 
 		if ( ! current_user_can( $this->get_export_capability() ) ) {
 			wp_send_json_error( array( 'message' => __( 'Insufficient permissions.', 'sscribe-export-site-pages' ) ) );
@@ -333,7 +358,7 @@ class SScribe_Admin_Debug {
 		}
 
 		$rate_limiter = new SScribe_Export_Rate_Limiter();
-		if ( ! $rate_limiter->check_rate_limit( 'debug_write' ) ) {
+		if ( ! $rate_limiter->check_rate_limit( $this->get_export_capability() ) ) {
 			wp_send_json_error( array( 'message' => __( 'Rate limit exceeded. Please wait before trying again.', 'sscribe-export-site-pages' ) ) );
 			return;
 		}
@@ -342,6 +367,11 @@ class SScribe_Admin_Debug {
 
 		if ( empty( $filename ) ) {
 			wp_send_json_error( array( 'message' => __( 'Filename required.', 'sscribe-export-site-pages' ) ) );
+			return;
+		}
+
+		if ( ! preg_match( '/\.(log|json)$/', $filename ) ) {
+			wp_send_json_error( array( 'message' => __( 'Invalid file type.', 'sscribe-export-site-pages' ) ) );
 			return;
 		}
 
@@ -358,7 +388,7 @@ class SScribe_Admin_Debug {
 		}
 
 		$safe_log_dir = rtrim( $real_log_dir, DIRECTORY_SEPARATOR ) . DIRECTORY_SEPARATOR;
-		if ( ! str_starts_with( $real_file_path, $safe_log_dir ) ) {
+		if ( 0 !== strpos( $real_file_path, $safe_log_dir ) ) {
 			wp_send_json_error( array( 'message' => __( 'File not found.', 'sscribe-export-site-pages' ) ) );
 			return;
 		}
@@ -405,7 +435,7 @@ class SScribe_Admin_Debug {
 			if ( ! empty( $search ) ) {
 				$search_lower = strtolower( $search );
 				$message      = strtolower( $entry['message'] );
-				$context_json = json_encode( $entry['context'] );
+				$context_json = wp_json_encode( $entry['context'] );
 
 				if ( false === strpos( $message, $search_lower )
 					&& false === strpos( $context_json, $search_lower )
