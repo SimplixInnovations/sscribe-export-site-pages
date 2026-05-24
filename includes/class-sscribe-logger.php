@@ -87,7 +87,7 @@ class SScribe_Logger implements SScribe_Logger_Interface {
 	 * @return bool True if logging is enabled via constant or settings option.
 	 */
 	public static function is_logging_enabled(): bool {
-		return ( defined( 'SSCRIBE_DEBUG' ) && SSCRIBE_DEBUG ) || SScribe_Settings::is_debug_enabled();
+		return ( SSCRIBE_DEBUG ) || SScribe_Settings::is_debug_enabled();
 	}
 
 	/**
@@ -104,7 +104,7 @@ class SScribe_Logger implements SScribe_Logger_Interface {
 			return true;
 		}
 
-		if ( ( defined( 'WP_DEBUG' ) && WP_DEBUG && defined( 'SSCRIBE_DEBUG' ) && SSCRIBE_DEBUG ) || SScribe_Settings::is_debug_enabled() ) {
+		if ( ( defined( 'WP_DEBUG' ) && WP_DEBUG && SSCRIBE_DEBUG ) || SScribe_Settings::is_debug_enabled() ) {
 			return true;
 		}
 

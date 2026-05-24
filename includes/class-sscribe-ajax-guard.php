@@ -32,7 +32,7 @@ class SScribe_AJAX_Guard {
 		self::sanitise_environment();
 		self::log_cleaned_buffers( 'success' );
 
-		if ( defined( 'SSCRIBE_DEBUG' ) && SSCRIBE_DEBUG && ( is_array( $data ) || is_object( $data ) ) ) {
+		if ( SSCRIBE_DEBUG && ( is_array( $data ) || is_object( $data ) ) ) {
 			if ( is_array( $data ) ) {
 				$data['_debug'] = self::build_diagnostics( $context );
 			} elseif ( is_object( $data ) ) {
@@ -130,7 +130,7 @@ class SScribe_AJAX_Guard {
 		$action = self::resolve_action_name();
 		$length = strlen( $extraneous );
 
-		if ( defined( 'SSCRIBE_DEBUG' ) && SSCRIBE_DEBUG ) {
+		if ( SSCRIBE_DEBUG ) {
 			error_log( // phpcs:ignore WordPress.PHP.DevelopmentFunctions.error_log_error_log
 				sprintf(
 					'[SSCRIBE][AJAX_BUFFER] Action=%s Type=%s Length=%d Levels=%d PHP=%s Memory=%s Time=%s',
@@ -206,7 +206,7 @@ class SScribe_AJAX_Guard {
 			$diag['context'] = $context;
 		}
 
-		if ( defined( 'SSCRIBE_DEBUG' ) && SSCRIBE_DEBUG ) {
+		if ( SSCRIBE_DEBUG ) {
 			// phpcs:ignore WordPress.PHP.DevelopmentFunctions.error_log_debug_backtrace -- Debug-only feature guarded by SSCRIBE_DEBUG constant.
 			$trace             = debug_backtrace( DEBUG_BACKTRACE_IGNORE_ARGS, 15 );
 			$diag['backtrace'] = array_map(
