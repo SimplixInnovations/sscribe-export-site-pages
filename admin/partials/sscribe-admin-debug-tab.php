@@ -20,7 +20,17 @@ $sscribe_log_levels     = array(
 	SScribe_Settings::LEVEL_ERROR,
 	SScribe_Settings::LEVEL_CRITICAL,
 );
+$show_wp_debug_notice   = ( defined( 'WP_DEBUG' ) && WP_DEBUG );
 ?>
+
+<?php if ( $show_wp_debug_notice ) : ?>
+	<div class="sscribe-debug-wp-debug-notice">
+		<svg width="16" height="16" viewBox="0 0 16 16" fill="currentColor" aria-hidden="true">
+			<path d="M8 1a7 7 0 1 0 0 14A7 7 0 0 0 8 1zm0 13a1 1 0 1 1 0-2 1 1 0 0 1 0 2zm1-4.293a1 1 0 1 1-2 0V7.707l-2.146 2.147a1 1 0 0 1-1.414-1.414l3-3A1 1 0 0 1 9 7.586V8a1 1 0 0 1 2 0z"/>
+		</svg>
+		<span><?php esc_html_e( 'WP_DEBUG is enabled. Debug logs may contain sensitive information. Disable on production sites.', 'sscribe-export-site-pages' ); ?></span>
+	</div>
+<?php endif; ?>
 
 <div class="sscribe-debug-master" id="sscribe-debug-root">
 	<div class="sscribe-debug-header">
