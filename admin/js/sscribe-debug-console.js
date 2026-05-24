@@ -120,8 +120,14 @@
 				} else {
 					self.stopAutoRefresh();
 				}
-				self.saveSettings();
 			});
+
+			this.$refreshMode.on(
+				'change',
+				debounce(function () {
+					self.saveSettings();
+				}, 500)
+			);
 
 			this.$refreshBtn.on('click', function () {
 				if (self.isAutoRefresh) {
@@ -357,7 +363,15 @@
 			});
 		},
 
-		renderLogs: function (entries) {
+		buildLogsHtml: function (entries) {
+			let html = '';
+			entries.forEach(function (entry) {
+				html += buildEntryHtml(entry);
+			});
+			return html;
+		},
+
+		renderLogs: function (entries, skipObserver) {
 			if (!entries || entries.length === 0) {
 				this.$entries.empty();
 				this.$empty.show();
@@ -366,14 +380,11 @@
 			}
 
 			this.$empty.hide();
-			let html = '';
-
-			entries.forEach(function (entry) {
-				html += buildEntryHtml(entry);
-			});
-
+			const html = this.buildLogsHtml(entries);
 			this.$entries.html(html);
-			this.setupObserver();
+			if (!skipObserver) {
+				this.setupObserver();
+			}
 		},
 
 		appendLogs: function (entries) {
@@ -381,12 +392,7 @@
 				return;
 			}
 
-			let html = '';
-
-			entries.forEach(function (entry) {
-				html += buildEntryHtml(entry);
-			});
-
+			const html = this.buildLogsHtml(entries);
 			this.$entries.append(html);
 		},
 
@@ -562,7 +568,7 @@
 				if (response.success) {
 					self.isViewingRotated = true;
 					self.currentRotatedFilename = filename;
-					self.renderLogs(response.data.entries);
+					self.renderLogs(response.data.entries, true);
 					self.$entryCount.text(response.data.count + ' entries (rotated)');
 					self.$entries.prepend(
 						'<div class="sscribe-debug-rotated-banner">' +
