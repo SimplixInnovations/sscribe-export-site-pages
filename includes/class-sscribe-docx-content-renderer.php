@@ -77,7 +77,7 @@ class SScribe_DOCX_Content_Renderer {
 	/**
 	 * Initialize the content renderer.
 	 *
-	 * @param SScribe_Content_Parser|null  $parser   Content parser.
+	 * @param SScribe_Content_Parser|null   $parser   Content parser.
 	 * @param SScribe_Logger_Interface|null $logger   Logger.
 	 * @param array<string, string>         $colors   Color palette.
 	 * @param bool                          $is_rtl   RTL flag.

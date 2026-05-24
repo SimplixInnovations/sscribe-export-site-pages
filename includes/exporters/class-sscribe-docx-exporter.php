@@ -15,6 +15,9 @@ if ( ! defined( 'ABSPATH' ) ) {
 
 require_once SSCRIBE_PLUGIN_DIR . 'includes/exporters/interface-sscribe-exporter.php';
 
+/**
+ * Exports pages as Word (DOCX) documents.
+ */
 class SScribe_DOCX_Exporter implements SScribe_Exporter_Interface {
 
 	/**
