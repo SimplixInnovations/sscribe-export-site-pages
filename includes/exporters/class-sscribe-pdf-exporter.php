@@ -54,7 +54,7 @@ class SScribe_PDF_Exporter implements SScribe_Exporter_Interface {
 		?SScribe_Filesystem $filesystem = null
 	) {
 		$this->html_exporter = $html_exporter ?? new SScribe_HTML_Exporter();
-		$this->logger        = $logger ?? SScribe_Logger::instance( defined( 'SSCRIBE_DEBUG' ) && SSCRIBE_DEBUG );
+		$this->logger        = $logger ?? SScribe_Logger::instance( SSCRIBE_DEBUG );
 		$this->filesystem    = $filesystem ?? new SScribe_Filesystem();
 	}
 

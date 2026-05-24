@@ -219,7 +219,7 @@ class SScribe_Admin {
 			return;
 		}
 
-		$debug = defined( 'SSCRIBE_DEBUG' ) && SSCRIBE_DEBUG;
+		$debug = SSCRIBE_DEBUG;
 
 		$css_version = $debug
 			? ( file_exists( SSCRIBE_PLUGIN_DIR . 'admin/css/sscribe-admin.css' ) ? filemtime( SSCRIBE_PLUGIN_DIR . 'admin/css/sscribe-admin.css' ) : SSCRIBE_VERSION )
@@ -486,7 +486,7 @@ class SScribe_Admin {
 		}
 
 		$sscribe_debug_info = array();
-		$sscribe_is_debug   = defined( 'SSCRIBE_DEBUG' ) && SSCRIBE_DEBUG;
+		$sscribe_is_debug   = SSCRIBE_DEBUG;
 		if ( ! $sscribe_is_debug ) {
 			$sscribe_is_debug = SScribe_Settings::is_debug_enabled();
 		}
@@ -600,7 +600,7 @@ class SScribe_Admin {
 			} elseif ( $wpml_active && isset( $language_map[ $lang_code ] ) ) {
 				$lang_name = sanitize_text_field( (string) ( $language_map[ $lang_code ]['name'] ?? strtoupper( $lang_code ) ) );
 				$flag_url  = esc_url_raw( (string) ( $language_map[ $lang_code ]['flag_url'] ?? $flag_url ) );
-			} elseif ( 'all' === $lang_code || '' === $lang_name ) {
+			} elseif ( '' === $lang_name ) {
 				$lang_name = strtoupper( $lang_code );
 			}
 

@@ -31,7 +31,7 @@ class SScribe_Diagnostics {
 	 * Initialize diagnostics.
 	 */
 	public function __construct() {
-		$this->logger = SScribe_Logger::instance( defined( 'SSCRIBE_DEBUG' ) && SSCRIBE_DEBUG );
+		$this->logger = SScribe_Logger::instance( SSCRIBE_DEBUG );
 	}
 
 	/**
@@ -43,7 +43,7 @@ class SScribe_Diagnostics {
 		$upload_dir    = wp_upload_dir();
 		$export_dir    = trailingslashit( $upload_dir['basedir'] ) . 'sscribe-exports';
 		$log_dir       = trailingslashit( $upload_dir['basedir'] ) . 'sscribe-logs';
-		$debug_enabled = defined( 'SSCRIBE_DEBUG' ) && SSCRIBE_DEBUG;
+		$debug_enabled = SSCRIBE_DEBUG;
 
 		// Use container-managed singletons where available to avoid duplicate instances.
 		$container     = SScribe_Container::instance();

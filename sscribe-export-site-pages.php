@@ -45,7 +45,7 @@ if ( ! defined( 'SSCRIBE_DEBUG' ) ) {
 }
 
 if ( ! defined( 'SSCRIBE_DEBUG_PUBLIC' ) ) {
-	define( 'SSCRIBE_DEBUG_PUBLIC', defined( 'SSCRIBE_DEBUG' ) && SSCRIBE_DEBUG );
+	define( 'SSCRIBE_DEBUG_PUBLIC', SSCRIBE_DEBUG );
 }
 
 define( 'SSCRIBE_PLUGIN_DIR', plugin_dir_path( __FILE__ ) );
