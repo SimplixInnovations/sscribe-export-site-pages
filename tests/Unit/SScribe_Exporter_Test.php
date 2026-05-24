@@ -341,7 +341,7 @@ class SScribe_Exporter_Test extends TestCase {
 
 		$reflector = new \ReflectionClass( $exporter );
 		$prop = $reflector->getProperty( 'is_rtl' );
-		$prop->setAccessible( true );
+
 		$prop->setValue( $exporter, true );
 
 		$font_def = array( 'name' => 'Arial', 'size' => 11 );
@@ -359,7 +359,7 @@ class SScribe_Exporter_Test extends TestCase {
 
 		$reflector = new \ReflectionClass( $exporter );
 		$prop = $reflector->getProperty( 'is_rtl' );
-		$prop->setAccessible( true );
+
 		$prop->setValue( $exporter, true );
 
 		$font_def = array( 'name' => 'Arial', 'size' => 11, 'complexScript' => false );
@@ -375,7 +375,7 @@ class SScribe_Exporter_Test extends TestCase {
 
 		$reflector = new \ReflectionClass( $exporter );
 		$prop = $reflector->getProperty( 'is_rtl' );
-		$prop->setAccessible( true );
+
 		$prop->setValue( $exporter, true );
 
 		$result = $method->invoke( $exporter, array() );
@@ -390,7 +390,7 @@ class SScribe_Exporter_Test extends TestCase {
 
 		$reflector = new \ReflectionClass( $exporter );
 		$prop = $reflector->getProperty( 'is_rtl' );
-		$prop->setAccessible( true );
+
 		$prop->setValue( $exporter, true );
 
 		$result = $method->invoke( $exporter, array() );
@@ -404,7 +404,7 @@ class SScribe_Exporter_Test extends TestCase {
 
 		$reflector = new \ReflectionClass( $exporter );
 		$prop = $reflector->getProperty( 'is_rtl' );
-		$prop->setAccessible( true );
+
 		$prop->setValue( $exporter, true );
 
 		$base_style = array( 'alignment' => 'center' );
@@ -432,7 +432,7 @@ class SScribe_Exporter_Test extends TestCase {
 
 		$reflector = new \ReflectionClass( $exporter );
 		$prop = $reflector->getProperty( 'is_rtl' );
-		$prop->setAccessible( true );
+
 		$prop->setValue( $exporter, true );
 
 		$result = $method->invoke( $exporter, true );
