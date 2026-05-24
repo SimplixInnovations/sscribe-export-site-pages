@@ -1051,7 +1051,7 @@ class SScribe_Batch_Processor {
 
 		// Validate temp_dir is within allowed uploads directory to prevent path traversal attacks.
 		$upload_dir        = wp_upload_dir();
-		$allowed_temp_base = trailingslashit( $upload_dir['basedir'] ) . 'sscribe-temp';
+		$allowed_temp_base = trailingslashit( $upload_dir['basedir'] ) . 'sscribe-exports';
 		$real_temp_dir     = realpath( $temp_dir ) ?: $temp_dir;
 		if ( 0 !== strpos( $real_temp_dir, $allowed_temp_base ) ) {
 			$this->release_lock( $session_id );
@@ -1270,8 +1270,8 @@ class SScribe_Batch_Processor {
 							'page_title'      => $page_data['title'] ?? '',
 							'exception_class' => get_class( $e ),
 							// NOTE: exception_file/line removed from frontend response - only keep in server logs.
-							'memory_usage'    => memory_get_usage( true ),
-							'memory_peak'     => memory_get_peak_usage( true ),
+							'memory_usage'    => size_format( memory_get_usage( true ) ),
+							'memory_peak'     => size_format( memory_get_peak_usage( true ) ),
 							'memory_limit'    => ini_get( 'memory_limit' ),
 						),
 					);

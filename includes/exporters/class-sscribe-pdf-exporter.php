@@ -127,8 +127,8 @@ class SScribe_PDF_Exporter implements SScribe_Exporter_Interface {
 					array(
 						'page_id'      => $page_id,
 						'html_size'    => $html_size,
-						'memory_usage' => memory_get_usage( true ),
-						'memory_peak'  => memory_get_peak_usage( true ),
+						'memory_usage' => size_format( memory_get_usage( true ) ),
+						'memory_peak'  => size_format( memory_get_peak_usage( true ) ),
 						'memory_limit' => ini_get( 'memory_limit' ),
 					)
 				);
@@ -376,8 +376,8 @@ class SScribe_PDF_Exporter implements SScribe_Exporter_Interface {
 					'file'          => $e->getFile(),
 					'line'          => $e->getLine(),
 					'html_size'     => $html_size,
-					'memory_usage'  => memory_get_usage( true ),
-					'memory_peak'   => memory_get_peak_usage( true ),
+					'memory_usage'  => size_format( memory_get_usage( true ) ),
+					'memory_peak'   => size_format( memory_get_peak_usage( true ) ),
 					'memory_limit'  => ini_get( 'memory_limit' ),
 					'libxml_errors' => $libxml_errors,
 				)
@@ -398,8 +398,8 @@ class SScribe_PDF_Exporter implements SScribe_Exporter_Interface {
 					'language'        => $language,
 					'is_rtl'          => $is_rtl,
 					'html_size'       => $html_size,
-					'memory_usage'    => memory_get_usage( true ),
-					'memory_peak'     => memory_get_peak_usage( true ),
+					'memory_usage'    => size_format( memory_get_usage( true ) ),
+					'memory_peak'     => size_format( memory_get_peak_usage( true ) ),
 					'memory_limit'    => ini_get( 'memory_limit' ),
 					'mpdf_available'  => true,
 					'libxml_errors'   => $libxml_errors,
