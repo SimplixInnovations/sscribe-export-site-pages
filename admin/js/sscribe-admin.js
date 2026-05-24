@@ -50,6 +50,12 @@
 			this.bindEvents();
 			this.initializeTabs();
 			this.adjustToastContainerPosition();
+
+			// Set initial disabled-reason text while AJAX counts load.
+			$('#sscribe-export-disabled-reason').text(
+				sscribe_data.strings && sscribe_data.strings.loading_counts || 'Loading page counts...'
+			);
+
 			this.updateConfigSummary();
 
 			const defaultPostType = $('input[name="sscribe_post_type"]:checked').val() || 'page';
@@ -83,7 +89,7 @@
 			$(document).on('click', '#sscribe-preview-close', $.proxy(this.closePreview, this));
 			$(document).on('click', '#sscribe-preview-dismiss-btn', $.proxy(this.closePreview, this));
 			$(document).on('click', '#sscribe-preview-start-btn', $.proxy(this.startExportFromPreview, this));
-			$(document).on('click', '#sscribe-retry-btn, #sscribe-error-try-again', $.proxy(this.retry, this));
+			$(document).on('click', '#sscribe-new-export-btn, #sscribe-error-try-again', $.proxy(this.retry, this));
 			$(document).on('click', '#sscribe-cancel-btn', $.proxy(this.cancelExport, this));
 
 			$('.sscribe-lang-card-label').on('click', function () {
@@ -431,6 +437,12 @@
 			$('#sscribe-summary-format').text(format === 'all' ? 'All' : format.toUpperCase());
 			$('#sscribe-summary-pages').text('~' + count + ' ' + sscribe_data.strings.log_pages);
 			$('#sscribe-summary-time').text(sscribe_data.strings.summary_time_hint || 'See Preview');
+
+			// Announce config change via dedicated live region instead of relying on parent aria-live.
+			const liveRegion = document.getElementById('sscribe-live-region');
+			if (liveRegion && count > 0) {
+				liveRegion.textContent = count + ' ' + (sscribe_data.strings.log_pages || 'pages') + ' ready for export';
+			}
 
 			this.updateExportButton();
 		},
@@ -860,6 +872,13 @@
 			if (progressFill) {
 				progressFill.classList.remove('sscribe-progress-bar-fill-finalizing');
 			}
+
+			// Announce completion to screen readers via polite live region.
+			const liveRegion = document.getElementById('sscribe-live-region');
+			if (liveRegion) {
+				liveRegion.textContent = (sscribe_data.strings && sscribe_data.strings.complete) || 'Export complete!';
+			}
+
 			$('#sscribe-progress-area').slideUp(300, function () {
 				$('#sscribe-download-area').removeClass('sscribe-hidden').hide().fadeIn(400);
 				$('#sscribe-download-btn').attr('href', data.download_url);
@@ -2093,6 +2112,11 @@
 			$('#sscribe-status-text').text('');
 			$('#sscribe-current-page').text('').hide();
 			$('#sscribe-time-remaining').text('').hide();
+			const progressBar = document.getElementById('sscribe-progress-bar');
+			if (progressBar) {
+				progressBar.setAttribute('aria-valuetext', '');
+				progressBar.setAttribute('aria-valuenow', '0');
+			}
 			this.isProcessing = false;
 			this.sessionId = null;
 			this.batchRetries = 0;
@@ -2163,6 +2187,12 @@
 		showError: function (message, isCancelled, errorData) {
 			this.isProcessing = false;
 			$('#sscribe-progress-area').fadeOut(200);
+
+			// Announce error to screen readers via assertive live region.
+			const alertRegion = document.getElementById('sscribe-alert-region');
+			if (alertRegion) {
+				alertRegion.textContent = message || (sscribe_data.strings && sscribe_data.strings.error) || 'Export failed.';
+			}
 
 			let displayMessage = message;
 			let guidance = '';

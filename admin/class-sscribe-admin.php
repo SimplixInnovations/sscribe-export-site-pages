@@ -423,6 +423,7 @@ class SScribe_Admin {
 				'preview_sample_title'   => __( 'Sample:', 'sscribe-export-site-pages' ),
 				'preview_fallback_note'  => __( 'Only the first few pages are shown in the preview.', 'sscribe-export-site-pages' ),
 				'summary_time_hint'      => __( 'See Preview for adaptive estimate', 'sscribe-export-site-pages' ),
+				'loading_counts'         => __( 'Loading page counts...', 'sscribe-export-site-pages' ),
 				'log_diagnostics'        => __( 'Diagnostics', 'sscribe-export-site-pages' ),
 				'technical_details'      => __( 'Technical details', 'sscribe-export-site-pages' ),
 				'fix_steps'              => __( 'Steps to fix:', 'sscribe-export-site-pages' ),
