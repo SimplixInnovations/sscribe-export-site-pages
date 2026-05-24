@@ -1,8 +1,10 @@
 <?php
 /**
- * SScribe Vendor Compatibility
+ * SScribe Vendor Compatibility Shim
  *
  * @package SScribe_Export_Site_Pages
+ * @license GPL v2 or later
+ * @link    https://www.gnu.org/licenses/gpl-2.0.html
  */
 
 declare(strict_types=1);
