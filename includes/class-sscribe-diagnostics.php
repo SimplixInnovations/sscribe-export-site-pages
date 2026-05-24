@@ -42,7 +42,10 @@ class SScribe_Diagnostics {
 		$export_dir    = trailingslashit( $upload_dir['basedir'] ) . 'sscribe-exports';
 		$log_dir       = trailingslashit( $upload_dir['basedir'] ) . 'sscribe-logs';
 		$debug_enabled = defined( 'SSCRIBE_DEBUG' ) && SSCRIBE_DEBUG;
-		$debug_logger  = $debug_enabled ? SScribe_Logger::instance( true ) : null;
+
+		// Use container-managed singletons where available to avoid duplicate instances.
+		$container     = SScribe_Container::instance();
+		$debug_logger  = $debug_enabled ? $container->get( SScribe_Logger::class ) : null;
 
 		$sections = array();
 
@@ -57,7 +60,7 @@ class SScribe_Diagnostics {
 		}
 
 		try {
-			$collector     = new SScribe_Page_Collector();
+			$collector     = $container->get( SScribe_Page_Collector::class );
 			$status_counts = $collector->get_post_status_counts( '' );
 		} catch ( \Throwable $e ) {
 			$status_counts = array();
@@ -86,7 +89,7 @@ class SScribe_Diagnostics {
 		}
 
 		try {
-			$support_logger = new SScribe_Logger( $debug_enabled );
+			$support_logger = $debug_enabled ? $container->get( SScribe_Logger::class ) : new SScribe_Logger( $debug_enabled );
 			$logger_entries = $support_logger->get_logs();
 		} catch ( \Throwable $e ) {
 			$logger_entries = array();
@@ -101,7 +104,7 @@ class SScribe_Diagnostics {
 		}
 
 		try {
-			$wpml_active = ( new SScribe_Page_Collector() )->is_wpml_active();
+			$wpml_active = $container->get( SScribe_Page_Collector::class )->is_wpml_active();
 		} catch ( \Throwable $e ) {
 			$wpml_active = false;
 			if ( $debug_logger ) {
@@ -119,7 +122,7 @@ class SScribe_Diagnostics {
 		}
 
 		try {
-			$session         = new SScribe_Session();
+			$session         = $container->get( SScribe_Session::class );
 			$session_storage = $session->get_storage_type();
 		} catch ( \Throwable $e ) {
 			$session_storage = 'unknown';
