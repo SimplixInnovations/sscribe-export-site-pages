@@ -59,7 +59,7 @@ class SScribe_Helpers {
 		$file_path = SSCRIBE_PLUGIN_DIR . self::$icons_dir . $name . '.svg';
 
 		if ( ! file_exists( $file_path ) ) {
-			if ( defined( 'SSCRIBE_DEBUG' ) && SSCRIBE_DEBUG ) {
+			if ( SSCRIBE_DEBUG ) {
 				$logger = SScribe_Logger::instance( true );
 				$logger->warning(
 					'Icon file not found',
