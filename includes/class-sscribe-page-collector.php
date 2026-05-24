@@ -3,6 +3,8 @@
  * SScribe Page Collector
  *
  * @package SScribe_Export_Site_Pages
+ * @license GPL v2 or later
+ * @link    https://www.gnu.org/licenses/gpl-2.0.html
  */
 
 declare(strict_types=1);
@@ -270,7 +272,7 @@ class SScribe_Page_Collector {
 		$cache_key = 'sscribe_status_counts_' . md5( $language );
 		delete_transient( $cache_key );
 
-		foreach ( array( 'publish', 'draft', 'private', 'future', 'pending', 'all' ) as $status ) {
+		foreach ( array( 'publish', 'draft', 'private', 'future', 'pending', 'all', 'any' ) as $status ) {
 			$key = 'sscribe_page_count_' . md5( $language . '_' . $status );
 			delete_transient( $key );
 		}
@@ -310,35 +312,37 @@ class SScribe_Page_Collector {
 			return array();
 		}
 
-		// Safeguard: cap at 100 IDs per query to prevent unbounded IN clauses.
-		$max_ids  = 100;
-		$page_ids = array_slice( $page_ids, 0, $max_ids );
-
 		global $wpdb;
 
-		$placeholders = implode( ',', array_fill( 0, count( $page_ids ), '%d' ) );
-		$sql          = "SELECT post_id, meta_value AS thumbnail_id FROM {$wpdb->postmeta} WHERE meta_key = '_thumbnail_id' AND post_id IN ({$placeholders})";
-		// phpcs:ignore WordPress.DB.PreparedSQL.NotPrepared, WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- Placeholders are safely generated; batch operation for featured images; caching not needed for one-time batch export.
-		$results = $wpdb->get_results( $wpdb->prepare( $sql, ...$page_ids ) );
+		// Process in chunks of 100 to prevent unbounded IN clauses while handling large batches.
+		$chunk_size = 100;
+		$chunks     = array_chunk( $page_ids, $chunk_size );
 
-		if ( $wpdb->last_error ) {
-			$this->debug_log(
-				'Database query failed for featured images',
-				array(
-					'error' => $wpdb->last_error,
-					'query' => $wpdb->last_query,
-				)
-			);
-			return array();
-		}
+		$thumbnail_ids  = array();
+		$page_to_thumb  = array();
 
-		$thumbnail_ids = array();
-		$page_to_thumb = array();
+		foreach ( $chunks as $chunk ) {
+			$placeholders = implode( ',', array_fill( 0, count( $chunk ), '%d' ) );
+			$sql           = "SELECT post_id, meta_value AS thumbnail_id FROM {$wpdb->postmeta} WHERE meta_key = '_thumbnail_id' AND post_id IN ({$placeholders})";
+			// phpcs:ignore WordPress.DB.PreparedSQL.NotPrepared, WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- Placeholders are safely generated; chunked batch operation; caching not needed for one-time batch export.
+			$results = $wpdb->get_results( $wpdb->prepare( $sql, ...$chunk ) );
 
-		foreach ( $results as $row ) {
-			$thumb_id                             = (int) $row->thumbnail_id;
-			$thumbnail_ids[]                      = $thumb_id;
-			$page_to_thumb[ (int) $row->post_id ] = $thumb_id;
+			if ( $wpdb->last_error ) {
+				$this->debug_log(
+					'Database query failed for featured images',
+					array(
+						'error' => $wpdb->last_error,
+						'query' => $wpdb->last_query,
+					)
+				);
+				continue;
+			}
+
+			foreach ( $results as $row ) {
+				$thumb_id                               = (int) $row->thumbnail_id;
+				$thumbnail_ids[]                        = $thumb_id;
+				$page_to_thumb[ (int) $row->post_id ] = $thumb_id;
+			}
 		}
 
 		$attachment_data = array();
@@ -473,6 +477,11 @@ class SScribe_Page_Collector {
 
 	/**
 	 * Get full page data by ID.
+	 *
+	 * Note: Uses a static guard to prevent nested the_content filter calls.
+	 * If a fatal OOM occurs during content filtering, subsequent calls in the
+	 * same PHP process will skip apply_filters('the_content') silently. The
+	 * finally block resets the guard, but an OOM kill skips the finally block.
 	 *
 	 * @param int $page_id Page ID.
 	 * @return array|false Page data or false.
@@ -848,7 +857,7 @@ class SScribe_Page_Collector {
 		$statuses = $this->get_valid_post_statuses();
 		$counts   = array_fill_keys( array_keys( $statuses ), 0 );
 
-		if ( ! $this->is_wpml_active() || empty( $language ) ) {
+		if ( ! $this->is_wpml_active() && empty( $language ) ) {
 			if ( 'any' === $post_type ) {
 				$count_page = wp_count_posts( 'page' );
 				$count_post = wp_count_posts( 'post' );

@@ -3,6 +3,8 @@
  * SScribe Audit Trail
  *
  * @package SScribe_Export_Site_Pages
+ * @license GPL v2 or later
+ * @link    https://www.gnu.org/licenses/gpl-2.0.html
  */
 
 declare(strict_types=1);
@@ -47,8 +49,16 @@ class SScribe_Audit_Trail {
 	public function __construct() {
 		global $wpdb;
 		$this->table_name = $wpdb->prefix . 'sscribe_audit_log';
+		$this->table_exists_cache = null;
 		$this->enabled    = $this->table_exists();
 	}
+
+	/**
+	 * Cached table existence result.
+	 *
+	 * @var bool|null
+	 */
+	private ?bool $table_exists_cache = null;
 
 	/**
 	 * Check if the audit table exists.
@@ -57,17 +67,16 @@ class SScribe_Audit_Trail {
 	 */
 	private function table_exists(): bool {
 		global $wpdb;
-		static $exists = null;
 
-		if ( null === $exists ) {
-			// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- Schema introspection, cached via static variable
+		if ( null === $this->table_exists_cache ) {
+			// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- Schema introspection, cached via instance property
 			$table  = $wpdb->get_var(
 				$wpdb->prepare( 'SHOW TABLES LIKE %s', $this->table_name )
 			);
-			$exists = ( $table === $this->table_name );
+			$this->table_exists_cache = ( $table === $this->table_name );
 		}
 
-		return $exists;
+		return $this->table_exists_cache;
 	}
 
 	/**

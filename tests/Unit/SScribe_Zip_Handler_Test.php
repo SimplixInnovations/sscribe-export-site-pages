@@ -189,4 +189,35 @@ class SScribe_Zip_Handler_Test extends TestCase {
 			unlink( $zip_path );
 		}
 	}
+
+	public function test_cleanup_expired_keeps_index_for_existing_zip_files(): void {
+		$export_dir = $this->handler->get_export_dir();
+		$filename   = 'sscribe-cleanup-test-' . uniqid() . '.zip';
+		$file_path  = $export_dir . '/' . $filename;
+
+		file_put_contents( $file_path, 'zip-fixture' );
+
+		$exports              = get_option( 'sscribe_export_index', array() );
+		$exports[ $filename ] = array(
+			'created_at' => time(),
+			'user_id'    => 1,
+			'formats'    => array( 'docx' ),
+			'lang_code'  => '',
+			'lang_name'  => '',
+			'flag_url'   => '',
+		);
+		update_option( 'sscribe_export_index', $exports, false );
+
+		delete_transient( 'sscribe_cron_exports_lock' );
+		$this->handler->cleanup_expired();
+
+		$updated_exports = get_option( 'sscribe_export_index', array() );
+		$this->assertArrayHasKey( $filename, $updated_exports );
+
+		if ( file_exists( $file_path ) ) {
+			unlink( $file_path );
+		}
+		unset( $updated_exports[ $filename ] );
+		update_option( 'sscribe_export_index', $updated_exports, false );
+	}
 }

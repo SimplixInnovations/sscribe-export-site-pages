@@ -3,6 +3,8 @@
  * SScribe Helpers
  *
  * @package SScribe_Export_Site_Pages
+ * @license GPL v2 or later
+ * @link    https://www.gnu.org/licenses/gpl-2.0.html
  */
 
 declare(strict_types=1);
@@ -211,17 +213,30 @@ class SScribe_Helpers {
 	 * @return string
 	 */
 	public static function get_client_ip(): string {
-		$ip = '';
+		$trusted_headers = apply_filters( 'sscribe_trusted_ip_headers', array() );
 
-		if ( ! empty( $_SERVER['REMOTE_ADDR'] ) ) {
-			$ip = sanitize_text_field( wp_unslash( $_SERVER['REMOTE_ADDR'] ) );
+		foreach ( $trusted_headers as $header ) {
+			$header_key = 'HTTP_' . strtoupper( str_replace( '-', '_', $header ) );
+			if ( ! empty( $_SERVER[ $header_key ] ) ) {
+				$ip = explode( ',', sanitize_text_field( wp_unslash( $_SERVER[ $header_key ] ) ) );
+				$ip = trim( $ip[0] );
+				if ( filter_var( $ip, FILTER_VALIDATE_IP ) ) {
+					return $ip;
+				}
+			}
 		}
+
+		$remote_addr = filter_input( INPUT_SERVER, 'REMOTE_ADDR', FILTER_DEFAULT );
+		if ( false === $remote_addr || null === $remote_addr ) {
+			return '0.0.0.0';
+		}
+		$ip = filter_var( sanitize_text_field( wp_unslash( (string) $remote_addr ) ), FILTER_VALIDATE_IP );
 
 		if ( empty( $ip ) ) {
 			return '0.0.0.0';
 		}
 
-		return filter_var( $ip, FILTER_VALIDATE_IP ) ? $ip : '0.0.0.0';
+		return $ip;
 	}
 
 	/**

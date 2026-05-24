@@ -3,6 +3,8 @@
  * SScribe Main Plugin Class
  *
  * @package SScribe_Export_Site_Pages
+ * @license GPL v2 or later
+ * @link    https://www.gnu.org/licenses/gpl-2.0.html
  */
 
 declare(strict_types=1);
@@ -101,12 +103,36 @@ class SScribe {
 		);
 
 		$container->singleton(
+			SScribe_Batch_File_Handler::class,
+			fn( SScribe_Container $c ) => new SScribe_Batch_File_Handler(
+				new SScribe_Export_Rate_Limiter(),
+				$c->get( SScribe_Zip_Handler::class ),
+				$c->get( SScribe_Logger::class ),
+				new SScribe_Export_Auditor()
+			)
+		);
+
+		$container->singleton(
+			SScribe_Batch_Session_Handler::class,
+			fn( SScribe_Container $c ) => new SScribe_Batch_Session_Handler(
+				$c->get( SScribe_Session::class ),
+				$c->get( SScribe_Zip_Handler::class ),
+				$c->get( SScribe_Logger::class ),
+				new SScribe_Export_Auditor(),
+				new SScribe_Export_Rate_Limiter(),
+				new SScribe_Export_Lock_Manager( $c->get( SScribe_Logger::class ) )
+			)
+		);
+
+		$container->singleton(
 			SScribe_Batch_Processor::class,
 			fn( SScribe_Container $c ) => new SScribe_Batch_Processor(
 				$c->get( SScribe_Page_Collector::class ),
 				$c->get( SScribe_Zip_Handler::class ),
 				$c->get( SScribe_Session::class ),
-				$c->get( SScribe_Logger::class )
+				$c->get( SScribe_Logger::class ),
+				$c->get( SScribe_Batch_File_Handler::class ),
+				$c->get( SScribe_Batch_Session_Handler::class )
 			)
 		);
 	}
@@ -125,6 +151,7 @@ class SScribe {
 		add_action( 'admin_notices', array( $this, 'render_vendor_dependency_notice' ) );
 		add_action( 'save_post', array( $this, 'invalidate_admin_page_cache' ) );
 		add_filter( 'plugin_action_links_' . SSCRIBE_PLUGIN_BASENAME, array( $admin, 'add_plugin_action_links' ) );
+		add_filter( 'script_loader_tag', array( $admin, 'add_nonce_to_script_tags' ), 10, 3 );
 	}
 
 	/**
@@ -196,7 +223,7 @@ class SScribe {
 		$this->loader->add_action( 'wp_ajax_sscribe_get_recent_exports', $batch, 'ajax_get_recent_exports' );
 		$this->loader->add_action( 'wp_ajax_sscribe_get_support_info', $batch, 'ajax_get_support_info' );
 		$this->loader->add_action( 'wp_ajax_sscribe_health_check', $batch, 'ajax_health_check' );
-		$this->loader->add_action( 'wp_ajax_nopriv_sscribe_health_check', $batch, 'ajax_health_check' );
+		$this->loader->add_action( 'wp_ajax_sscribe_check_active_session', $batch, 'ajax_check_active_session' );
 	}
 
 	/**

@@ -3,6 +3,8 @@
  * SScribe AJAX Guard
  *
  * @package SScribe_Export_Site_Pages
+ * @license GPL v2 or later
+ * @link    https://www.gnu.org/licenses/gpl-2.0.html
  */
 
 declare(strict_types=1);
@@ -214,7 +216,7 @@ class SScribe_AJAX_Guard {
 						$frame['class'] ?? '',
 						$frame['type'] ?? '',
 						$frame['function'],
-						$frame['file'] ?? 'unknown',
+						basename( $frame['file'] ?? 'unknown' ),
 						$frame['line'] ?? 0
 					);
 				},

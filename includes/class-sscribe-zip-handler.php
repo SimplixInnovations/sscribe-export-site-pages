@@ -3,6 +3,8 @@
  * SScribe ZIP Handler
  *
  * @package SScribe_Export_Site_Pages
+ * @license GPL v2 or later
+ * @link    https://www.gnu.org/licenses/gpl-2.0.html
  */
 
 declare(strict_types=1);
@@ -52,12 +54,27 @@ class SScribe_Zip_Handler {
 	 * Get the export directory, creating it if needed.
 	 *
 	 * @return string
+	 * @throws \InvalidArgumentException When export directory is unavailable.
 	 */
 	public function get_export_dir(): string {
+		if ( '' === $this->export_dir ) {
+			throw new \InvalidArgumentException(
+				'Export directory unavailable: wp_upload_dir() failed during initialization.'
+			);
+		}
 		if ( ! file_exists( $this->export_dir ) ) {
 			SScribe_Security::protect_directory( $this->export_dir );
 		}
 		return $this->export_dir;
+	}
+
+	/**
+	 * Check if the export directory is available.
+	 *
+	 * @return bool True if the export directory was successfully initialized.
+	 */
+	public function is_available(): bool {
+		return '' !== $this->export_dir;
 	}
 
 	/**
@@ -66,8 +83,9 @@ class SScribe_Zip_Handler {
 	 * @return string
 	 */
 	public function create_temp_dir(): string {
+		$export_dir    = $this->get_export_dir();
 		$random_suffix = bin2hex( random_bytes( 6 ) );
-		$temp_dir      = $this->export_dir . '/temp-' . $random_suffix;
+		$temp_dir      = $export_dir . '/temp-' . $random_suffix;
 		wp_mkdir_p( $temp_dir );
 		return $temp_dir;
 	}
@@ -199,7 +217,8 @@ class SScribe_Zip_Handler {
 		$lock_using_cache = wp_using_ext_object_cache();
 		$lock_attempts    = array( 100000, 200000, 400000 );
 
-		if ( false !== get_transient( $lock_key ) && ( time() - (int) get_transient( $lock_key ) ) > 30 ) {
+		$existing_lock = get_transient( $lock_key );
+		if ( false !== $existing_lock && ( time() - (int) $existing_lock ) > 30 ) {
 			if ( $lock_using_cache ) {
 				wp_cache_delete( $lock_key, 'transient' );
 			}
@@ -219,6 +238,16 @@ class SScribe_Zip_Handler {
 			usleep( $lock_delay );
 		}
 
+		// If lock could not be acquired, another request is likely writing.
+		// Skip indexing to prevent race condition overwriting the other request's entry.
+		if ( ! $locked ) {
+			$this->logger->warning(
+				'Export indexing skipped - could not acquire exclusive lock (concurrent finalize detected)',
+				array( 'zip' => basename( $zip_path ) )
+			);
+			return file_exists( $zip_path ) ? $zip_path : false;
+		}
+
 		try {
 			$exports                          = get_option( 'sscribe_export_index', array() );
 			$exports[ basename( $zip_path ) ] = array(
@@ -230,20 +259,11 @@ class SScribe_Zip_Handler {
 				'flag_url'   => $lang_metadata['flag_url'] ?? '',
 			);
 			update_option( 'sscribe_export_index', $exports, false );
-
-			if ( ! $locked ) {
-				$this->logger->warning(
-					'Export indexed without exclusive lock (possible race)',
-					array( 'zip' => basename( $zip_path ) )
-				);
-			}
 		} finally {
-			if ( $locked ) {
-				if ( $lock_using_cache ) {
-					wp_cache_delete( $lock_key, 'transient' );
-				}
-				delete_transient( $lock_key );
+			if ( $lock_using_cache ) {
+				wp_cache_delete( $lock_key, 'transient' );
 			}
+			delete_transient( $lock_key );
 		}
 
 		return file_exists( $zip_path ) ? $zip_path : false;
@@ -322,7 +342,7 @@ class SScribe_Zip_Handler {
 				$modified = false;
 
 				foreach ( $exports as $basename => $data ) {
-					$file_path = $this->export_dir . $basename;
+					$file_path = $this->export_dir . '/' . ltrim( (string) $basename, '/\\' );
 
 					if ( ! file_exists( $file_path ) ) {
 						unset( $exports[ $basename ] );

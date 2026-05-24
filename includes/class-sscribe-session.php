@@ -3,6 +3,8 @@
  * SScribe Session
  *
  * @package SScribe_Export_Site_Pages
+ * @license GPL v2 or later
+ * @link    https://www.gnu.org/licenses/gpl-2.0.html
  */
 
 declare(strict_types=1);
@@ -191,7 +193,7 @@ class SScribe_Session {
 				'Legacy session loaded without signature',
 				array( 'session_id' => $session_id )
 			);
-			return $data;
+			return null;
 		}
 
 		if ( ! is_string( $data['_sig'] ) || ! $this->verify_session_signature( $session_id, $data['_sig'] ) ) {
@@ -226,7 +228,10 @@ class SScribe_Session {
 		$lock_ttl      = 10;
 		$using_cache   = wp_using_ext_object_cache();
 
-		for ( $lock_attempt = 1; $lock_attempt <= 5; ++$lock_attempt ) {
+		// Use exponential back-off: 50ms, 100ms, 200ms, 400ms (750ms max total).
+		$base_delay = 50000; // 50ms in microseconds
+
+		for ( $lock_attempt = 1; $lock_attempt <= 4; ++$lock_attempt ) {
 			if ( $using_cache ) {
 				if ( wp_cache_add( $lock_key, time(), 'transient', $lock_ttl ) ) {
 					$lock_acquired = true;
@@ -237,7 +242,9 @@ class SScribe_Session {
 				break;
 			}
 
-			usleep( 100000 );
+			// Exponential back-off: base_delay * 2^(attempt-1)
+			$delay = $base_delay * ( 2 ** ( $lock_attempt - 1 ) );
+			usleep( $delay );
 		}
 
 		if ( ! $lock_acquired ) {
@@ -261,7 +268,19 @@ class SScribe_Session {
 				return false;
 			}
 
-			$merged               = array_merge( $existing, $data );
+			$merged = $existing;
+			foreach ( $data as $key => $value ) {
+				if ( isset( $existing[ $key ] ) && is_array( $existing[ $key ] ) && is_array( $value ) ) {
+					$append_keys = array( 'structured_errors', 'page_log', 'error_categories' );
+					if ( in_array( $key, $append_keys, true ) ) {
+						$merged[ $key ] = array_merge( $existing[ $key ], $value );
+					} else {
+						$merged[ $key ] = $value;
+					}
+				} else {
+					$merged[ $key ] = $value;
+				}
+			}
 			$merged['_sig']       = $this->sign_session_id( $session_id );
 			$merged['updated_at'] = time();
 
@@ -412,13 +431,19 @@ class SScribe_Session {
 	public function cleanup_expired( int $max_age_seconds = 14400 ): int {
 		global $wpdb;
 
-		$pattern = $wpdb->esc_like( $this->option_prefix ) . '%';
-		$now     = time();
+		$pattern    = $wpdb->esc_like( $this->option_prefix ) . '%';
+		$now        = time();
+		$start_time = microtime( true );
+		$max_seconds = 30; // Safety limit to prevent cron timeout.
 
 		$deleted = 0;
 		$cursor  = '';
 
 		do {
+			// Enforce time limit — resume on next cron run if needed.
+			if ( ( microtime( true ) - $start_time ) > $max_seconds ) {
+				break;
+			}
 			// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- Cleanup operation scans session options in bounded batches; caching not applicable.
 			$options = $wpdb->get_results(
 				$wpdb->prepare(
@@ -565,33 +590,35 @@ class SScribe_Session {
 	}
 
 	/**
-	 * Check if a user has an active session.
+	 * Get active session data for a user (if any).
 	 *
 	 * @param int $user_id User ID.
-	 * @return bool
+	 * @return array|null Session data array or null if no active session.
 	 */
-	public function has_active_session( int $user_id ): bool {
-		if ( isset( self::$active_session_cache[ $user_id ] ) ) {
-			return self::$active_session_cache[ $user_id ];
-		}
-
-		$cache_key = 'sscribe_active_sid_' . $user_id;
-		$cached    = get_transient( $cache_key );
-		if ( false !== $cached ) {
-			self::$active_session_cache[ $user_id ] = ! empty( $cached );
-			return self::$active_session_cache[ $user_id ];
-		}
-
+	public function get_active_session_data( int $user_id ): ?array {
 		global $wpdb;
+
+		$cache_key  = 'sscribe_active_sid_' . $user_id;
+		$cached_sid = get_transient( $cache_key );
+
+		if ( false !== $cached_sid && is_string( $cached_sid ) && '0' !== $cached_sid ) {
+			$saved_sid = $cached_sid;
+			$data      = $this->get( $saved_sid );
+
+			if ( is_array( $data ) && $this->is_active_session_data( $data ) ) {
+				$data['option_name'] = $this->get_option_name( $saved_sid );
+				return $data;
+			}
+
+			delete_transient( $cache_key );
+		}
 
 		$pattern = $wpdb->esc_like( $this->option_prefix ) . '%';
 
-		$has_active = false;
-
-		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- Session check scans all options; caching not applicable for existence check.
+		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- Lightweight check for active session restoration.
 		$options = $wpdb->get_results(
 			$wpdb->prepare(
-				"SELECT option_value FROM {$wpdb->options} WHERE option_name LIKE %s AND autoload = 'no'",
+				"SELECT option_name, option_value FROM {$wpdb->options} WHERE option_name LIKE %s AND autoload = 'no'",
 				$pattern
 			)
 		);
@@ -604,22 +631,82 @@ class SScribe_Session {
 			}
 
 			if ( isset( $data['user_id'] ) && (int) $data['user_id'] === $user_id ) {
-				$status = $data['status'] ?? '';
-				if ( in_array( $status, array( 'processing', 'pending', 'finalizing' ), true ) ) {
-					$processed = (int) ( $data['processed'] ?? 0 );
-					$total     = (int) ( $data['total'] ?? 0 );
-					if ( $processed < $total && empty( $data['cancelled'] ) ) {
-						$has_active = true;
-						break;
+				if ( $this->is_active_session_data( $data ) ) {
+					$sid = $data['session_id'] ?? '';
+					if ( '' !== $sid ) {
+						set_transient( $cache_key, $sid, 5 );
 					}
+					$data['option_name'] = $option->option_name;
+					return $data;
 				}
 			}
 		}
 
-		self::$active_session_cache[ $user_id ] = $has_active;
-		set_transient( $cache_key, $has_active ? '1' : '0', 5 );
+		set_transient( $cache_key, '0', 5 );
 
-		return $has_active;
+		return null;
+	}
+
+	/**
+	 * Check if user has active session and return its data.
+	 *
+	 * @deprecated Use get_active_session_data() instead. Kept for backward compatibility.
+	 *
+	 * @param int $user_id User ID.
+	 * @return bool
+	 */
+	public function has_active_session( int $user_id ): bool {
+		if ( isset( self::$active_session_cache[ $user_id ] ) ) {
+			return self::$active_session_cache[ $user_id ];
+		}
+
+		$cache_key = 'sscribe_active_sid_' . $user_id;
+		$cached    = get_transient( $cache_key );
+		if ( false !== $cached ) {
+			if ( '0' === $cached ) {
+				self::$active_session_cache[ $user_id ] = false;
+				return false;
+			}
+
+			$cached_session = is_string( $cached ) ? $this->get( $cached ) : null;
+			if ( is_array( $cached_session ) && $this->is_active_session_data( $cached_session ) ) {
+				self::$active_session_cache[ $user_id ] = true;
+				return true;
+			}
+
+			delete_transient( $cache_key );
+			self::$active_session_cache[ $user_id ] = false;
+		}
+
+		$active_session = $this->get_active_session_data( $user_id );
+		if ( null !== $active_session ) {
+			self::$active_session_cache[ $user_id ] = true;
+			set_transient( $cache_key, (string) $active_session['session_id'], 5 );
+			return self::$active_session_cache[ $user_id ];
+		}
+
+		self::$active_session_cache[ $user_id ] = false;
+		set_transient( $cache_key, '0', 5 );
+
+		return false;
+	}
+
+	/**
+	 * Determine whether decoded session data still represents active work.
+	 *
+	 * @param array $data Session data.
+	 * @return bool True if the session is active.
+	 */
+	private function is_active_session_data( array $data ): bool {
+		$status = $data['status'] ?? '';
+		if ( ! in_array( $status, array( 'processing', 'pending', 'finalizing' ), true ) ) {
+			return false;
+		}
+
+		$processed = (int) ( $data['processed'] ?? 0 );
+		$total     = (int) ( $data['total'] ?? 0 );
+
+		return $processed < $total && empty( $data['cancelled'] );
 	}
 
 	/**

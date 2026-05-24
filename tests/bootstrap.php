@@ -325,6 +325,17 @@ if ( ! function_exists( 'did_action' ) ) {
 	}
 }
 
+if ( ! function_exists( 'do_action' ) ) {
+	function do_action( $hook_name, ...$args ) {
+		global $sscribe_test_actions;
+		foreach ( $sscribe_test_actions as $action ) {
+			if ( $action['hook'] === $hook_name && is_callable( $action['callback'] ) ) {
+				call_user_func_array( $action['callback'], $args );
+			}
+		}
+	}
+}
+
 if ( ! function_exists( 'get_locale' ) ) {
 	function get_locale() {
 		return 'en_US';
@@ -642,14 +653,7 @@ $sscribe_test_ajax_nonce_valid = true;
 					if ( '%f' === $matches[0] ) {
 						return (string) (float) $value;
 					}
-					
-					
-					
-					
-					if ( is_string( $value ) && preg_match( '/^[\w]+$/', $value ) ) {
-						
-						return $value;
-					}
+
 					return "'" . str_replace( "'", "''", (string) $value ) . "'";
 				},
 				$query
@@ -672,12 +676,28 @@ $sscribe_test_ajax_nonce_valid = true;
 			global $sscribe_test_db_tables;
 
 			
-			
+
 			if ( preg_match( "/SHOW TABLES LIKE\s+['`]([^'`]+)['`]/i", $query, $matches ) ) {
-				return array_key_exists( $matches[1], $sscribe_test_db_tables ) ? $matches[1] : null;
+				return array_key_exists( $matches[1], (array) $sscribe_test_db_tables ) ? $matches[1] : null;
 			}
 
 			return null;
+		}
+
+		public function query( $query ) {
+			global $sscribe_test_db_tables;
+
+			if ( preg_match( '/DELETE\s+FROM\s+(\w+)/i', $query, $matches ) ) {
+				$table = $matches[1];
+				if ( isset( $sscribe_test_db_tables[ $table ] ) && is_array( $sscribe_test_db_tables[ $table ] ) ) {
+					$count = count( $sscribe_test_db_tables[ $table ] );
+					$sscribe_test_db_tables[ $table ] = array();
+					return $count;
+				}
+				return 0;
+			}
+
+			return 0;
 		}
 
 		public function get_results( $query ) {
@@ -722,6 +742,44 @@ $sscribe_test_ajax_nonce_valid = true;
 			}
 
 			return array();
+		}
+
+		public function insert( $table, $data, $format = null ) {
+			global $sscribe_test_db_tables;
+
+			if ( ! isset( $sscribe_test_db_tables[ $table ] ) || ! is_array( $sscribe_test_db_tables[ $table ] ) ) {
+				return false;
+			}
+
+			$sscribe_test_db_tables[ $table ][] = $data;
+			return 1;
+		}
+
+		public function delete( $table, $where, $where_format = null ) {
+			global $sscribe_test_db_tables;
+
+			if ( ! isset( $sscribe_test_db_tables[ $table ] ) || ! is_array( $sscribe_test_db_tables[ $table ] ) ) {
+				return false;
+			}
+
+			$count = 0;
+			$remaining = array();
+			foreach ( $sscribe_test_db_tables[ $table ] as $row ) {
+				$matches = true;
+				foreach ( $where as $key => $value ) {
+					if ( array_key_exists( $key, $row ) && (string) $row[ $key ] === (string) $value ) {
+						$matches = false;
+						++$count;
+						break;
+					}
+				}
+				if ( $matches ) {
+					$remaining[] = $row;
+				}
+			}
+			$sscribe_test_db_tables[ $table ] = $remaining;
+
+			return $count;
 		}
 
 		public function update( $table, $data, $where, $format = null, $where_format = null ) {

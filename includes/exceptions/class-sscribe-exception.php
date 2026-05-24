@@ -3,6 +3,8 @@
  * SScribe Exception
  *
  * @package SScribe_Export_Site_Pages
+ * @license GPL v2 or later
+ * @link    https://www.gnu.org/licenses/gpl-2.0.html
  */
 
 declare(strict_types=1);
@@ -178,10 +180,12 @@ class SScribe_Exception extends Exception {
 
 		if ( $include_details ) {
 			$data['context']     = $this->error_data;
-			$data['file']        = $this->getFile();
+			$data['file']        = basename( $this->getFile() );
 			$data['line']        = $this->getLine();
-			$data['trace']       = $this->getTraceAsString();
 			$data['recoverable'] = $this->recoverable;
+			if ( defined( 'SSCRIBE_DEBUG' ) && SSCRIBE_DEBUG ) {
+				$data['trace'] = $this->getTraceAsString();
+			}
 		}
 
 		return $data;

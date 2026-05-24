@@ -3,6 +3,8 @@
  * SScribe Image Processor
  *
  * @package SScribe_Export_Site_Pages
+ * @license GPL v2 or later
+ * @link    https://www.gnu.org/licenses/gpl-2.0.html
  */
 
 declare(strict_types=1);
@@ -239,7 +241,7 @@ class SScribe_Image_Processor {
 
 		$info = false;
 		// phpcs:ignore WordPress.PHP.DevelopmentFunctions.error_log_set_error_handler -- Production error handling for image processing.
-		$prev_handler = set_error_handler(
+		set_error_handler(
 			static function ( int $errno, string $errstr ) use ( $path ): bool {
 				SScribe_Logger::instance( defined( 'SSCRIBE_DEBUG' ) && SSCRIBE_DEBUG )
 					->warning(
@@ -272,7 +274,7 @@ class SScribe_Image_Processor {
 		$new_height = (int) ( $height * ( self::MAX_WIDTH / $width ) );
 
 		// phpcs:ignore WordPress.PHP.DevelopmentFunctions.error_log_set_error_handler -- Production error handling for GD image loading.
-		$prev_handler = set_error_handler(
+		set_error_handler(
 			static function ( int $errno, string $errstr ) use ( $path ): bool {
 				SScribe_Logger::instance( defined( 'SSCRIBE_DEBUG' ) && SSCRIBE_DEBUG )
 					->warning(
@@ -285,7 +287,7 @@ class SScribe_Image_Processor {
 				return true;
 			}
 		);
-		$image        = false;
+		$image = false;
 		try {
 			$image = match ( $type ) {
 				IMAGETYPE_JPEG, IMAGETYPE_JPEG2000 => imagecreatefromjpeg( $path ),
@@ -304,7 +306,7 @@ class SScribe_Image_Processor {
 
 		$resized = imagecreatetruecolor( $new_width, $new_height );
 		if ( false === $resized ) {
-			imagedestroy( $image ); // phpcs:ignore Generic.PHP.DeprecatedFunctions.Deprecated
+			unset( $image );
 			return $path;
 		}
 
@@ -316,7 +318,7 @@ class SScribe_Image_Processor {
 		}
 
 		imagecopyresampled( $resized, $image, 0, 0, 0, 0, $new_width, $new_height, $width, $height );
-		imagedestroy( $image ); // phpcs:ignore Generic.PHP.DeprecatedFunctions.Deprecated
+		unset( $image );
 
 		$optimized_path = sys_get_temp_dir() . '/sscribe-opt-' . uniqid() . '.jpg';
 
@@ -324,7 +326,7 @@ class SScribe_Image_Processor {
 
 		$result = imagejpeg( $resized, $optimized_path, self::JPEG_QUALITY );
 
-		imagedestroy( $resized ); // phpcs:ignore Generic.PHP.DeprecatedFunctions.Deprecated
+		unset( $resized );
 
 		if ( false === $result ) {
 			return $path;

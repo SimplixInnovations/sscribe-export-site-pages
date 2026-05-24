@@ -41,7 +41,7 @@ if ( version_compare( PHP_VERSION, '8.2', '<' ) ) {
 }
 
 if ( ! defined( 'SSCRIBE_DEBUG' ) ) {
-	define( 'SSCRIBE_DEBUG', defined( 'WP_DEBUG' ) && WP_DEBUG );
+	define( 'SSCRIBE_DEBUG', false );
 }
 
 if ( ! defined( 'SSCRIBE_DEBUG_PUBLIC' ) ) {

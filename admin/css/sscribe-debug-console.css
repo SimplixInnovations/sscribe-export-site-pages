@@ -2,14 +2,15 @@
  * SScribe Debug Console Styles
  *
  * @package SScribe_Export_Site_Pages
+ * @version 1.1.1
  */
 
 :root {
-	--sscribe-debug-color-debug: #94a3b8;
-	--sscribe-debug-color-info: #3b82f6;
+	--sscribe-debug-color-debug: var(--sscribe-text-muted);
+	--sscribe-debug-color-info: var(--sscribe-info);
 	--sscribe-debug-color-notice: #0ea5e9;
-	--sscribe-debug-color-warning: #f59e0b;
-	--sscribe-debug-color-error: #ef4444;
+	--sscribe-debug-color-warning: var(--sscribe-warning);
+	--sscribe-debug-color-error: var(--sscribe-danger);
 	--sscribe-debug-color-critical: #991b1b;
 	--sscribe-debug-bg-card: rgb(255 255 255 / 75%);
 	--sscribe-debug-bg-console: #0f172a; /* Slate 900 */
@@ -18,8 +19,25 @@
 }
 
 .sscribe-debug-master {
-	padding: 24px;
+	padding: 0;
 	max-width: 1200px;
+}
+
+.sscribe-debug-wp-debug-notice {
+	display: flex;
+	align-items: center;
+	gap: 8px;
+	padding: 10px 16px;
+	background: #fff3cd;
+	border: 1px solid #ffc107;
+	border-radius: 6px;
+	margin-bottom: 16px;
+	color: #856404;
+	font-size: 13px;
+}
+
+.sscribe-debug-wp-debug-notice svg {
+	flex-shrink: 0;
 }
 
 .sscribe-debug-header {
@@ -59,20 +77,18 @@
 
 .sscribe-debug-settings-card,
 .sscribe-debug-controls-card {
-	background: var(--sscribe-debug-bg-card);
-	backdrop-filter: blur(16px);
-	backdrop-filter: blur(16px);
-	border: 1px solid var(--sscribe-debug-border);
-	border-radius: 16px;
-	padding: 24px;
-	margin-bottom: 20px;
-	box-shadow: 0 4px 12px rgb(0 0 0 / 3%);
-	transition: box-shadow 0.3s ease;
+	background: var(--sscribe-card-bg);
+	border: 1px solid var(--sscribe-border-light);
+	border-radius: var(--sscribe-radius-lg);
+	padding: var(--sscribe-space-l);
+	margin-bottom: var(--sscribe-space-l);
+	box-shadow: var(--sscribe-shadow-shallow);
+	transition: border-color var(--sscribe-transition-fast);
 }
 
 .sscribe-debug-settings-card:hover,
 .sscribe-debug-controls-card:hover {
-	box-shadow: 0 8px 24px rgb(0 0 0 / 6%);
+	border-color: var(--sscribe-primary);
 }
 
 .sscribe-debug-settings-grid {
@@ -215,42 +231,10 @@
 	cursor: pointer;
 }
 
-.sscribe-debug-master .sscribe-button {
-	padding: 8px 16px;
-	border: 1px solid var(--sscribe-debug-border);
-	border-radius: 6px;
-	background: #fff;
-	cursor: pointer;
-	font-size: 14px;
-	display: inline-flex;
-	align-items: center;
-	gap: 6px;
-	transition: background-color 0.2s;
-}
-
-.sscribe-debug-master .sscribe-button:hover {
-	background: #f8f9fa;
-}
-
-.sscribe-debug-master .sscribe-button-primary {
-	background: #0d6efd;
-	color: #fff;
-	border-color: #0d6efd;
-}
-
-.sscribe-debug-master .sscribe-button-primary:hover {
-	background: #0b5ed7;
-}
-
-.sscribe-debug-master .sscribe-button-danger {
-	color: #dc3545;
-	border-color: #dc3545;
-}
-
-.sscribe-debug-master .sscribe-button-danger:hover {
-	background: #dc3545;
-	color: #fff;
-}
+/* ============================================
+   DEBUG CONSOLE - Uses main plugin button styles
+   Button styles inherit from sscribe-admin.css
+   ============================================ */
 
 .sscribe-debug-master .sscribe-button-icon {
 	width: 36px;
@@ -354,16 +338,39 @@
 	flex-shrink: 0;
 }
 
-.sscribe-debug-entry-badge.debug { background: var(--sscribe-debug-color-debug); color: #fff; }
-.sscribe-debug-entry-badge.info { background: var(--sscribe-debug-color-info); color: #fff; }
-.sscribe-debug-entry-badge.notice { background: var(--sscribe-debug-color-notice); color: #fff; }
-.sscribe-debug-entry-badge.warning { background: var(--sscribe-debug-color-warning); color: #000; }
-.sscribe-debug-entry-badge.error { background: var(--sscribe-debug-color-error); color: #fff; }
-.sscribe-debug-entry-badge.critical { background: var(--sscribe-debug-color-critical); color: #fff; }
+.sscribe-debug-entry-badge.debug {
+	background: var(--sscribe-debug-color-debug);
+	color: #fff;
+}
+
+.sscribe-debug-entry-badge.info {
+	background: var(--sscribe-debug-color-info);
+	color: #fff;
+}
+
+.sscribe-debug-entry-badge.notice {
+	background: var(--sscribe-debug-color-notice);
+	color: #fff;
+}
+
+.sscribe-debug-entry-badge.warning {
+	background: var(--sscribe-debug-color-warning);
+	color: #000;
+}
+
+.sscribe-debug-entry-badge.error {
+	background: var(--sscribe-debug-color-error);
+	color: #fff;
+}
+
+.sscribe-debug-entry-badge.critical {
+	background: var(--sscribe-debug-color-critical);
+	color: #fff;
+}
 
 .sscribe-debug-entry-message {
 	flex: 1;
-	word-break: break-word;
+	overflow-wrap: break-word;
 }
 
 .sscribe-debug-entry-context {
@@ -511,36 +518,12 @@
 		--sscribe-debug-bg-console: #121212;
 		--sscribe-debug-text-console: #d4d4d4;
 		--sscribe-debug-border: #333;
-	}
-
-	.sscribe-debug-master .sscribe-button {
-		background: #2d2d2d;
-		color: #d4d4d4;
-		border-color: #444;
-	}
-
-	.sscribe-debug-master .sscribe-button:hover {
-		background: #3d3d3d;
-	}
-
-	.sscribe-debug-master .sscribe-button-primary {
-		background: #0d6efd;
-		color: #fff;
-		border-color: #0d6efd;
-	}
-
-	.sscribe-debug-master .sscribe-button-primary:hover {
-		background: #0b5ed7;
-	}
-
-	.sscribe-debug-master .sscribe-button-danger {
-		color: #f87171;
-		border-color: #f87171;
-	}
-
-	.sscribe-debug-master .sscribe-button-danger:hover {
-		background: #dc3545;
-		color: #fff;
+		--sscribe-debug-color-debug: #888;
+		--sscribe-debug-color-info: #60a5fa;
+		--sscribe-debug-color-notice: #38bdf8;
+		--sscribe-debug-color-warning: #fbbf24;
+		--sscribe-debug-color-error: #f87171;
+		--sscribe-debug-color-critical: #dc2626;
 	}
 
 	.sscribe-debug-header {
@@ -589,4 +572,32 @@
 	.sscribe-debug-description {
 		color: #888;
 	}
+}
+
+.sscribe-debug-console-body.is-loading {
+	position: relative;
+}
+
+.sscribe-debug-console-body.is-loading::after {
+	content: '';
+	position: absolute;
+	top: 50%;
+	left: 50%;
+	width: 24px;
+	height: 24px;
+	margin: -12px 0 0 -12px;
+	border: 3px solid rgb(255 255 255 / 20%);
+	border-top-color: #fff;
+	border-radius: 50%;
+	animation: sscribe-console-spin 0.8s linear infinite;
+}
+
+@keyframes sscribe-console-spin {
+	to { transform: rotate( 360deg ); }
+}
+
+.sscribe-export-btn-scope {
+	font-size: 11px;
+	opacity: 0.7;
+	margin-left: 4px;
 }

@@ -3,6 +3,8 @@
  * SScribe Export Resource Monitor
  *
  * @package SScribe_Export_Site_Pages
+ * @license GPL v2 or later
+ * @link    https://www.gnu.org/licenses/gpl-2.0.html
  */
 
 declare( strict_types=1 );
@@ -38,7 +40,7 @@ class SScribe_Export_Resource_Monitor {
 	/**
 	 * Check if sufficient execution time remains.
 	 *
-	 * @param float $batch_start_time Batch start timestamp.
+	 * @param float $batch_start_time Batch start timestamp (from microtime(true)).
 	 * @param int   $buffer_seconds   Required buffer in seconds.
 	 * @return bool
 	 */
@@ -58,7 +60,7 @@ class SScribe_Export_Resource_Monitor {
 	/**
 	 * Get remaining execution time in seconds.
 	 *
-	 * @param float $batch_start_time Batch start timestamp.
+	 * @param float $batch_start_time Batch start timestamp (from microtime(true)).
 	 * @return float
 	 */
 	public function get_remaining_time( float $batch_start_time ): float {
@@ -94,15 +96,20 @@ class SScribe_Export_Resource_Monitor {
 	/**
 	 * Calculate optimal batch size based on available resources.
 	 *
-	 * @param array $formats Export formats.
+	 * @param array  $formats Export formats.
+	 * @param string $hint     Optional hint from previous batch ('memory', 'timeout').
 	 * @return int
 	 */
-	public function get_optimal_batch_size( array $formats = array() ): int {
+	public function get_optimal_batch_size( array $formats = array(), string $hint = '' ): int {
 		$memory_limit  = wp_convert_hr_to_bytes( ini_get( 'memory_limit' ) );
 		$current_usage = memory_get_usage( true );
 		$available     = $memory_limit - $current_usage;
 
 		$memory_per_page = 5 * 1024 * 1024;
+
+		if ( 'memory' === $hint ) {
+			$available = $available * 0.5;
+		}
 
 		$safe_available = $available * 0.8;
 
@@ -114,6 +121,10 @@ class SScribe_Export_Resource_Monitor {
 
 		if ( in_array( 'pdf', $formats, true ) && $optimal > 2 ) {
 			$optimal = 2;
+		}
+
+		if ( 'memory' === $hint ) {
+			$optimal = 1;
 		}
 
 		return $optimal;
@@ -134,6 +145,9 @@ class SScribe_Export_Resource_Monitor {
 		}
 		if ( in_array( 'pdf', $formats, true ) ) {
 			$memory_per_page += 3.0;
+		}
+		if ( in_array( 'html', $formats, true ) ) {
+			$memory_per_page += 1.5;
 		}
 		if ( in_array( 'markdown', $formats, true ) ) {
 			$memory_per_page += 0.5;
