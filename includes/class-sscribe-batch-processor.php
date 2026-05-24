@@ -298,7 +298,6 @@ class SScribe_Batch_Processor {
 
 			$file_path = $result->get_data()['path'] ?? '';
 			$file_size = $result->get_data()['size'] ?? 0;
-			clearstatcache( true, $file_path );
 
 			$validation = $this->validate_export_result( $result, $format, $page_id );
 
@@ -314,7 +313,7 @@ class SScribe_Batch_Processor {
 					$this->export_log->log_format_result( $page_id, $format, false, '', $validation['error'] );
 				}
 
-				if ( 'empty_file' !== $validation['category'] ) {
+				if ( 'empty_file' === $validation['category'] ) {
 					$this->logger->error(
 						ucfirst( $format ) . ' export produced empty/corrupted file',
 						array(
@@ -735,7 +734,7 @@ class SScribe_Batch_Processor {
 				'total'              => $total,
 				'language_requested' => $language,
 				'post_status'        => $post_status,
-				'current_wpml_lang'  => $current_lang,
+				'current_wpml_lang'  => $current_lang ?? 'n/a',
 				'ids_sample'         => array_slice( $page_ids, 0, 10 ),
 				'memory_usage'       => size_format( memory_get_usage( true ) ),
 				'memory_peak'        => size_format( memory_get_peak_usage( true ) ),
@@ -757,7 +756,7 @@ class SScribe_Batch_Processor {
 			$temp_dir = $this->zip_handler->create_temp_dir();
 		} catch ( \Throwable $e ) {
 			$this->logger->error(
-				'Failed to create temp directory (random_bytes/permission issue)',
+				'Failed to create temp directory',
 				array(
 					'exception' => $e->getMessage(),
 					'trace'     => $e->getTraceAsString(),
@@ -799,12 +798,44 @@ class SScribe_Batch_Processor {
 		);
 
 		if ( empty( $session_id ) ) {
+			// Clean up orphaned temp directory that was created before session failed.
+			if ( ! empty( $temp_dir ) && is_dir( $temp_dir ) ) {
+				$this->zip_handler->delete_directory( $temp_dir );
+			}
 			SScribe_AJAX_Guard::error(
 				array(
 					'message' => __( 'Failed to create export session. Please try again.', 'sscribe-export-site-pages' ),
 				),
 				500
 			);
+		}
+
+		// Post-creation TOCTOU defence: verify OUR session is the one tracked as active.
+		// If a concurrent request created another session for the same user between
+		// has_active_session() and create(), the transient will point to the other
+		// session. In that case, clean up and reject instead of proceeding with both.
+		if ( $user_id ) {
+			$active_sid = get_transient( 'sscribe_active_sid_' . $user_id );
+			if ( $active_sid !== $session_id && is_string( $active_sid ) && '0' !== $active_sid ) {
+				$this->logger->warning(
+					'Concurrent session creation detected — cleaning up duplicate',
+					array(
+						'user_id'       => $user_id,
+						'our_session'   => $session_id,
+						'winning_session' => $active_sid,
+					)
+				);
+				$this->session->delete( $session_id );
+				if ( ! empty( $temp_dir ) && is_dir( $temp_dir ) ) {
+					$this->zip_handler->delete_directory( $temp_dir );
+				}
+				SScribe_AJAX_Guard::error(
+					array(
+						'message' => __( 'Another export was started. Please try again.', 'sscribe-export-site-pages' ),
+					),
+					409
+				);
+			}
 		}
 
 		$this->export_log = new SScribe_Export_Log( $session_id );
@@ -883,8 +914,14 @@ class SScribe_Batch_Processor {
 			);
 		}
 
-		// Clean up orphaned sessions/locks from crashed batches before processing.
-		$this->get_diagnostics()->self_heal();
+		// Self-heal at most once per minute (not on every batch) to avoid
+		// expensive DB queries (clear_orphaned_locks, clear_stale_sessions)
+		// and filesystem scans (clear_old_temp_files) on every batch iteration.
+		$last_heal = get_transient( 'sscribe_last_self_heal' );
+		if ( ! $last_heal || time() - (int) $last_heal > 60 ) {
+			$this->get_diagnostics()->self_heal();
+			set_transient( 'sscribe_last_self_heal', time(), 120 );
+		}
 
 		$max_time = (int) apply_filters( 'sscribe_max_execution_time', 120 );
 		if ( function_exists( 'set_time_limit' ) ) {
@@ -938,23 +975,10 @@ class SScribe_Batch_Processor {
 		$lock_ttl        = (int) apply_filters( 'sscribe_lock_ttl', 150 );
 		$stale_threshold = (int) apply_filters( 'sscribe_lock_stale_threshold', 120 );
 
-		$this->current_lock_token = $this->get_lock_manager()->acquire_lock( $session_id, $lock_ttl, $stale_threshold );
-
-		if ( null === $this->current_lock_token ) {
-			$this->logger->debug( 'Lock acquisition failed — another process holds the lock', array( 'session_id' => $session_id ) );
-			$this->restore_ob_level( $ob_level_before );
-			SScribe_AJAX_Guard::error(
-				array(
-					'status'  => 'locked',
-					'retry'   => true,
-					'message' => __( 'A batch is already processing. Please wait.', 'sscribe-export-site-pages' ),
-				),
-				429
-			);
-		}
-
+		// Validate ownership and session integrity BEFORE acquiring lock.
+		// This avoids a false-lock window where the lock is held but the batch
+		// is rejected — another process would unnecessarily back off.
 		if ( ! $this->validate_session_ownership( $session, $session_id ) ) {
-			$this->release_lock( $session_id );
 			$this->restore_ob_level( $ob_level_before );
 			SScribe_AJAX_Guard::error(
 				array(
@@ -973,7 +997,6 @@ class SScribe_Batch_Processor {
 					'total'          => $session['total'] ?? 'not set',
 				)
 			);
-			$this->release_lock( $session_id );
 			$this->restore_ob_level( $ob_level_before );
 			SScribe_AJAX_Guard::error(
 				array(
@@ -983,8 +1006,25 @@ class SScribe_Batch_Processor {
 			);
 		}
 
+		$this->current_lock_token = $this->get_lock_manager()->acquire_lock( $session_id, $lock_ttl, $stale_threshold );
+
+		if ( null === $this->current_lock_token ) {
+			$this->logger->debug( 'Lock acquisition failed — another process holds the lock', array( 'session_id' => $session_id ) );
+			$this->restore_ob_level( $ob_level_before );
+			SScribe_AJAX_Guard::error(
+				array(
+					'status'  => 'locked',
+					'retry'   => true,
+					'message' => __( 'A batch is already processing. Please wait.', 'sscribe-export-site-pages' ),
+				),
+				429
+			);
+		}
+
 		if ( ! empty( $session['cancelled'] ) ) {
 			$this->logger->debug( 'Export was cancelled' );
+			$export_stats = new SScribe_Export_Stats();
+			$export_stats->fail_export( $session_id, 'Export cancelled by user' );
 			$this->restore_ob_level( $ob_level_before );
 			$this->cleanup_cancelled_export( $session );
 			$this->session->delete( $session_id );
@@ -1024,7 +1064,9 @@ class SScribe_Batch_Processor {
 			);
 		}
 
-		$this->export_log = new SScribe_Export_Log( $session_id );
+		if ( null === $this->export_log ) {
+			$this->export_log = new SScribe_Export_Log( $session_id );
+		}
 
 		$this->logger->set_session_id( $session_id );
 
@@ -1130,7 +1172,7 @@ class SScribe_Batch_Processor {
 					}
 				}
 
-				do_action( 'sscribe_before_export_page', $page_id, $session['language'] );
+				do_action( 'sscribe_before_export_page', $page_id, $session['language'] ?? '' );
 
 				$page_data = $this->collector->get_page_data( $page_id );
 
