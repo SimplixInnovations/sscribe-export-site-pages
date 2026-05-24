@@ -60,10 +60,10 @@ $sscribe_log_levels     = array(
 				</select>
 			</div>
 			<div class="sscribe-debug-save-section">
-				<button type="button" class="sscribe-button sscribe-button-primary" id="sscribe-debug-save-settings">
+				<button type="button" class="sscribe-button sscribe-button-primary" id="sscribe-debug-save-settings" aria-describedby="sscribe-debug-save-feedback">
 					<?php esc_html_e( 'Save Settings', 'sscribe-export-site-pages' ); ?>
 				</button>
-				<span class="sscribe-debug-save-feedback" id="sscribe-debug-save-feedback"></span>
+				<span class="sscribe-debug-save-feedback" id="sscribe-debug-save-feedback" aria-live="polite"></span>
 			</div>
 		</div>
 	</div>
@@ -149,4 +149,15 @@ $sscribe_log_levels     = array(
 			<div class="sscribe-debug-rotated-empty"><?php esc_html_e( 'No rotated log files.', 'sscribe-export-site-pages' ); ?></div>
 		</div>
 	</details>
+
+	<div id="sscribe-debug-help-content" hidden>
+		<h3><?php esc_html_e( 'Debug Console Help', 'sscribe-export-site-pages' ); ?></h3>
+		<p><?php esc_html_e( 'View detailed export logs, toggle debug mode, and manage rotated log files. Logs capture detailed information about export operations including processing steps, errors, and performance metrics.', 'sscribe-export-site-pages' ); ?></p>
+		<h4><?php esc_html_e( 'Auto-refresh', 'sscribe-export-site-pages' ); ?></h4>
+		<p><?php esc_html_e( 'When enabled, logs refresh automatically every 10 seconds. Manual mode gives you full control over when to refresh.', 'sscribe-export-site-pages' ); ?></p>
+		<h4><?php esc_html_e( 'Filters', 'sscribe-export-site-pages' ); ?></h4>
+		<p><?php esc_html_e( 'Use the filter dropdown, session ID input, or search box to narrow down log entries. Filtered views are reflected in the Export JSON button label.', 'sscribe-export-site-pages' ); ?></p>
+		<h4><?php esc_html_e( 'Rotated Logs', 'sscribe-export-site-pages' ); ?></h4>
+		<p><?php esc_html_e( 'Rotated log files are older logs that have been archived. Click to expand, then View, Export, or Delete individual files.', 'sscribe-export-site-pages' ); ?></p>
+	</div>
 </div>
