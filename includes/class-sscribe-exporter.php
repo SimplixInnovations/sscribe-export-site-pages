@@ -98,7 +98,7 @@ class SScribe_Exporter {
 	/**
 	 * Initialize the exporter.
 	 *
-	 * @param SScribe_Content_Parser|null     $parser           Content parser.
+	 * @param SScribe_Content_Parser|null        $parser           Content parser.
 	 * @param SScribe_DOCX_Content_Renderer|null $content_renderer Content renderer.
 	 */
 	public function __construct(
