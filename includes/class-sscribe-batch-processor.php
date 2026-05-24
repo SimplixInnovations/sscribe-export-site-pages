@@ -63,6 +63,20 @@ class SScribe_Batch_Processor {
 	 */
 	private readonly \SScribe_Logger_Interface $logger;
 
+	/**
+	 * Batch file handler for download/delete/nonce operations.
+	 *
+	 * @var SScribe_Batch_File_Handler
+	 */
+	private readonly SScribe_Batch_File_Handler $file_handler;
+
+	/**
+	 * Batch session handler for session lifecycle operations.
+	 *
+	 * @var SScribe_Batch_Session_Handler
+	 */
+	private readonly SScribe_Batch_Session_Handler $session_handler;
+
 
 
 	/**
@@ -421,16 +435,20 @@ class SScribe_Batch_Processor {
 	/**
 	 * Initialize the batch processor.
 	 *
-	 * @param SScribe_Page_Collector|null   $collector   Page collector.
-	 * @param SScribe_Zip_Handler|null      $zip_handler Zip handler.
-	 * @param SScribe_Session|null          $session     Session.
-	 * @param SScribe_Logger_Interface|null $logger      Logger.
+	 * @param SScribe_Page_Collector|null   $collector      Page collector.
+	 * @param SScribe_Zip_Handler|null      $zip_handler    Zip handler.
+	 * @param SScribe_Session|null          $session         Session.
+	 * @param SScribe_Logger_Interface|null $logger          Logger.
+	 * @param SScribe_Batch_File_Handler|null   $file_handler   File handler.
+	 * @param SScribe_Batch_Session_Handler|null $session_handler Session handler.
 	 */
 	public function __construct(
 		?SScribe_Page_Collector $collector = null,
 		?SScribe_Zip_Handler $zip_handler = null,
 		?SScribe_Session $session = null,
-		?SScribe_Logger_Interface $logger = null
+		?SScribe_Logger_Interface $logger = null,
+		?SScribe_Batch_File_Handler $file_handler = null,
+		?SScribe_Batch_Session_Handler $session_handler = null
 	) {
 		$this->batch_size = (int) apply_filters( 'sscribe_batch_size', 5 );
 		$this->batch_size = max( 1, min( 20, $this->batch_size ) );
@@ -439,6 +457,20 @@ class SScribe_Batch_Processor {
 		$this->zip_handler = $zip_handler ?? new SScribe_Zip_Handler();
 		$this->session = $session ?? new SScribe_Session();
 		$this->logger = $logger ?? SScribe_Logger::instance( defined( 'SSCRIBE_DEBUG' ) && SSCRIBE_DEBUG );
+		$this->file_handler = $file_handler ?? new SScribe_Batch_File_Handler(
+			new SScribe_Export_Rate_Limiter(),
+			$this->zip_handler,
+			$this->logger,
+			new SScribe_Export_Auditor()
+		);
+		$this->session_handler = $session_handler ?? new SScribe_Batch_Session_Handler(
+			$this->session,
+			$this->zip_handler,
+			$this->logger,
+			new SScribe_Export_Auditor(),
+			new SScribe_Export_Rate_Limiter(),
+			new SScribe_Export_Lock_Manager( $this->logger )
+		);
 	}
 
 	/**
@@ -2107,68 +2139,7 @@ class SScribe_Batch_Processor {
 	 * Check for active session on page load - used to restore UI after browser reload.
 	 */
 	public function ajax_check_active_session(): void {
-		if ( ! check_ajax_referer( 'sscribe_export_nonce', 'nonce', false ) ) {
-			SScribe_AJAX_Guard::error(
-				array(
-					'message' => __( 'Security check failed.', 'sscribe-export-site-pages' ),
-				),
-				403
-			);
-		}
-
-		if ( ! current_user_can( $this->get_required_capability() ) ) {
-			SScribe_AJAX_Guard::error(
-				array(
-					'message' => __( 'Permission denied.', 'sscribe-export-site-pages' ),
-				),
-				403
-			);
-		}
-
-		if ( ! $this->check_rate_limit() ) {
-			// Return empty success to avoid disrupting the page-load check flow.
-			wp_send_json_success(
-				array(
-					'has_active' => false,
-				)
-			);
-			return;
-		}
-
-		$user_id = get_current_user_id();
-		if ( $user_id <= 0 ) {
-			wp_send_json_success(
-				array(
-					'has_active' => false,
-				)
-			);
-			return;
-		}
-
-		$session_data = $this->session->get_active_session_data( $user_id );
-
-		if ( null === $session_data ) {
-			wp_send_json_success(
-				array(
-					'has_active' => false,
-				)
-			);
-			return;
-		}
-
-		// Return active session info for UI restoration.
-		wp_send_json_success(
-			array(
-				'has_active'  => true,
-				'session_id'  => $session_data['session_id'] ?? '',
-				'status'      => $session_data['status'] ?? '',
-				'processed'   => (int) ( $session_data['processed'] ?? 0 ),
-				'total'       => (int) ( $session_data['total'] ?? 0 ),
-				'percentage'  => $session_data['total'] > 0
-					? round( ( $session_data['processed'] / $session_data['total'] ) * 100 )
-					: 0,
-			)
-		);
+		$this->session_handler->ajax_check_active_session();
 	}
 
 	/**
@@ -2182,110 +2153,7 @@ class SScribe_Batch_Processor {
 	 * Handle file download via AJAX.
 	 */
 	public function ajax_download(): void {
-		if ( ! check_ajax_referer( 'sscribe_download', 'nonce', false ) ) {
-			status_header( 403 );
-			wp_die( esc_html__( 'Security check failed. The download link may have expired — please refresh the page and try again.', 'sscribe-export-site-pages' ) );
-		}
-
-		if ( ! current_user_can( $this->get_required_capability() ) ) {
-			status_header( 403 );
-			wp_die( esc_html__( 'Permission denied.', 'sscribe-export-site-pages' ) );
-		}
-
-		if ( ! $this->check_rate_limit() ) {
-			status_header( 429 );
-			wp_die( esc_html__( 'Too many requests. Please wait a moment and try again.', 'sscribe-export-site-pages' ) );
-		}
-
-		$filename = isset( $_GET['file'] ) ? sanitize_file_name( wp_unslash( $_GET['file'] ) ) : '';
-
-		$export_dir = '';
-
-		try {
-			$export_dir = $this->zip_handler->get_export_dir();
-
-			$file_path = $export_dir . '/' . $filename;
-
-			if ( empty( $filename ) || ! file_exists( $file_path ) ) {
-				status_header( 404 );
-				wp_die( esc_html__( 'File not found or has expired. Please generate a new export.', 'sscribe-export-site-pages' ) );
-			}
-
-			$real_path = realpath( $file_path );
-			$real_dir  = realpath( $export_dir );
-
-			$safe_dir = false !== $real_dir ? rtrim( $real_dir, DIRECTORY_SEPARATOR ) . DIRECTORY_SEPARATOR : '';
-			if ( false === $real_path || false === $real_dir || ! str_starts_with( $real_path, $safe_dir ) || 'zip' !== pathinfo( $filename, PATHINFO_EXTENSION ) ) {
-				status_header( 400 );
-				wp_die( esc_html__( 'Invalid file request.', 'sscribe-export-site-pages' ) );
-			}
-
-			$exports = get_option( 'sscribe_export_index', array() );
-			if ( ! isset( $exports[ $filename ] ) || ! is_array( $exports[ $filename ] ) ) {
-				$this->audit_log( 'download_orphaned_denied', array( 'filename' => $filename ) );
-				status_header( 403 );
-				wp_die( esc_html__( 'Invalid file access.', 'sscribe-export-site-pages' ) );
-			}
-
-			$export_info = $exports[ $filename ];
-			if ( isset( $export_info['user_id'] ) && get_current_user_id() !== (int) $export_info['user_id'] ) {
-				$this->audit_log( 'download_access_denied', array( 'filename' => $filename ) );
-				status_header( 403 );
-				wp_die( esc_html__( 'Invalid file access.', 'sscribe-export-site-pages' ) );
-			}
-
-			$ascii_filename = preg_replace( '/[^a-zA-Z0-9._-]/', '_', $filename ) ?? $filename;
-
-			header( 'Content-Type: application/zip' );
-			header( 'Content-Disposition: attachment; filename="' . $ascii_filename . '"; filename*=UTF-8\'\'' . rawurlencode( $filename ) );
-			header( 'Content-Length: ' . filesize( $file_path ) );
-			header( 'Cache-Control: no-cache, no-store, must-revalidate' );
-			header( 'Pragma: no-cache' );
-			header( 'Expires: 0' );
-			header( 'X-Content-Type-Options: nosniff' );
-
-			while ( ob_get_level() ) {
-				ob_end_clean();
-			}
-
-			$this->audit_log( 'download', array( 'filename' => $filename ) );
-
-			if ( ! file_exists( $file_path ) || ! is_readable( $file_path ) ) {
-				status_header( 404 );
-				wp_die( esc_html__( 'File no longer available. Please regenerate the export.', 'sscribe-export-site-pages' ) );
-			}
-
-			flush();
-
-			ignore_user_abort( true );
-
-			if ( function_exists( 'set_time_limit' ) ) {
-				set_time_limit( 360 ); // phpcs:ignore Squiz.PHP.DiscouragedFunctions.Discouraged
-			}
-
-			$read_result = readfile( $file_path ); // phpcs:ignore WordPress.WP.AlternativeFunctions.file_system_operations_readfile -- Direct download
-			if ( false === $read_result ) {
-				$this->logger->warning(
-					'readfile() returned false — possible partial read',
-					array(
-						'filename' => $filename,
-						'path'     => $file_path,
-					)
-				);
-			}
-			ignore_user_abort( false );
-			exit;
-		} catch ( \InvalidArgumentException $e ) {
-			$this->logger->error(
-				'Export directory access failed during download',
-				array(
-					'exception' => $e->getMessage(),
-					'filename'  => $filename,
-				)
-			);
-			status_header( 500 );
-			wp_die( esc_html__( 'Server misconfiguration: export directory is invalid or inaccessible.', 'sscribe-export-site-pages' ) );
-		}
+		$this->file_handler->ajax_download();
 	}
 
 	/**
@@ -2299,36 +2167,7 @@ class SScribe_Batch_Processor {
 	 * Cancel an ongoing export via AJAX.
 	 */
 	public function ajax_cancel_export(): void {
-		if ( ! check_ajax_referer( 'sscribe_export_nonce', 'nonce', false ) ) {
-			SScribe_AJAX_Guard::error( array( 'message' => __( 'Security check failed.', 'sscribe-export-site-pages' ) ), 403 );
-		}
-
-		if ( ! current_user_can( $this->get_required_capability() ) ) {
-			SScribe_AJAX_Guard::error( array( 'message' => __( 'Permission denied.', 'sscribe-export-site-pages' ) ), 403 );
-		}
-
-		$session_id = isset( $_POST['session_id'] ) ? sanitize_text_field( wp_unslash( $_POST['session_id'] ) ) : '';
-
-		if ( empty( $session_id ) ) {
-			SScribe_AJAX_Guard::error( array( 'message' => __( 'Invalid session.', 'sscribe-export-site-pages' ) ), 400 );
-		}
-
-		$session = $this->session->get( $session_id );
-		if ( ! $session ) {
-			SScribe_AJAX_Guard::error( array( 'message' => __( 'Session not found.', 'sscribe-export-site-pages' ) ), 404 );
-		}
-
-		if ( ! $this->validate_session_ownership( $session, $session_id ) ) {
-			SScribe_AJAX_Guard::error( array( 'message' => __( 'Invalid session access.', 'sscribe-export-site-pages' ) ), 403 );
-		}
-
-		$session['cancelled'] = true;
-		$this->session->update( $session_id, $session );
-		$this->cleanup_cancelled_export( $session );
-		$this->session->delete( $session_id );
-		delete_transient( 'sscribe_lock_' . $session_id );
-
-		SScribe_AJAX_Guard::success( array( 'message' => __( 'Export cancelled.', 'sscribe-export-site-pages' ) ) );
+		$this->session_handler->ajax_cancel_export();
 	}
 
 	/**
@@ -2352,74 +2191,7 @@ class SScribe_Batch_Processor {
 	 * Delete an export via AJAX.
 	 */
 	public function ajax_delete_export(): void {
-		if ( ! check_ajax_referer( 'sscribe_download', 'nonce', false ) ) {
-			SScribe_AJAX_Guard::error( array( 'message' => __( 'Security check failed.', 'sscribe-export-site-pages' ) ), 403 );
-		}
-
-		if ( ! current_user_can( $this->get_required_capability() ) ) {
-			SScribe_AJAX_Guard::error( array( 'message' => __( 'Permission denied.', 'sscribe-export-site-pages' ) ), 403 );
-		}
-
-		$filename = isset( $_POST['file'] ) ? sanitize_file_name( wp_unslash( $_POST['file'] ) ) : '';
-
-		if ( empty( $filename ) ) {
-			SScribe_AJAX_Guard::error( array( 'message' => __( 'Invalid filename.', 'sscribe-export-site-pages' ) ), 400 );
-		}
-
-		$exports = get_option( 'sscribe_export_index', array() );
-
-		if ( ! isset( $exports[ $filename ] ) ) {
-			SScribe_AJAX_Guard::error( array( 'message' => __( 'Export not found.', 'sscribe-export-site-pages' ) ), 404 );
-		}
-
-		$export_info    = $exports[ $filename ] ?? array();
-		$stored_user_id = isset( $export_info['user_id'] ) ? (int) (string) $export_info['user_id'] : 0;
-		if ( $stored_user_id > 0 && get_current_user_id() !== $stored_user_id ) {
-				$this->audit_log( 'delete_access_denied', array( 'filename' => $filename ) );
-				SScribe_AJAX_Guard::error( array( 'message' => __( 'Permission denied.', 'sscribe-export-site-pages' ) ), 403 );
-		}
-
-		try {
-			$export_dir = $this->zip_handler->get_export_dir();
-		} catch ( \InvalidArgumentException $e ) {
-			$this->logger->error(
-				'Export directory access failed during delete',
-				array(
-					'exception' => $e->getMessage(),
-					'filename'  => $filename,
-				)
-			);
-			SScribe_AJAX_Guard::error(
-				array( 'message' => __( 'Server misconfiguration: export directory is invalid.', 'sscribe-export-site-pages' ) ),
-				500
-			);
-		}
-
-		$file_path = $export_dir . '/' . $filename;
-
-		$real_path = realpath( $file_path );
-		$real_dir  = realpath( $export_dir );
-		if ( false === $real_path || false === $real_dir ) {
-			SScribe_AJAX_Guard::error( array( 'message' => __( 'Invalid file path.', 'sscribe-export-site-pages' ) ), 400 );
-		}
-
-		$safe_dir = rtrim( $real_dir, DIRECTORY_SEPARATOR ) . DIRECTORY_SEPARATOR;
-		if ( ! str_starts_with( $real_path, $safe_dir ) ) {
-			SScribe_AJAX_Guard::error( array( 'message' => __( 'Invalid file path.', 'sscribe-export-site-pages' ) ), 400 );
-		}
-
-		if ( file_exists( $file_path ) ) {
-			wp_delete_file( $file_path );
-		}
-
-		unset( $exports[ $filename ] );
-		update_option( 'sscribe_export_index', $exports, false );
-
-		SScribe_Export_Log::delete_by_filename( $filename );
-
-		$this->audit_log( 'export_deleted', array( 'filename' => $filename ) );
-
-		SScribe_AJAX_Guard::success( array( 'message' => __( 'Export deleted.', 'sscribe-export-site-pages' ) ) );
+		$this->file_handler->ajax_delete_export();
 	}
 
 	/**
@@ -2444,43 +2216,7 @@ class SScribe_Batch_Processor {
 	 * Clear export session via AJAX.
 	 */
 	public function ajax_clear_session(): void {
-		if ( ! check_ajax_referer( 'sscribe_export_nonce', 'nonce', false ) ) {
-			SScribe_AJAX_Guard::error( array( 'message' => __( 'Security check failed.', 'sscribe-export-site-pages' ) ), 403 );
-		}
-
-		if ( ! current_user_can( $this->get_required_capability() ) ) {
-			SScribe_AJAX_Guard::error( array( 'message' => __( 'Permission denied.', 'sscribe-export-site-pages' ) ), 403 );
-		}
-
-		$user_id = get_current_user_id();
-		$force   = isset( $_POST['force'] ) && filter_var( wp_unslash( $_POST['force'] ), FILTER_VALIDATE_BOOLEAN );
-
-		if ( $force ) {
-			$deleted = $this->session->clear_user_sessions( $user_id );
-			$this->logger->debug(
-				'Force cleared all sessions for user',
-				array(
-					'user_id'       => $user_id,
-					'deleted_count' => $deleted,
-				)
-			);
-
-			$this->cleanup_user_locks( $user_id );
-		} else {
-			$this->session->cleanup_expired( 60 );
-			$this->logger->debug( 'Cleared expired sessions for user', array( 'user_id' => $user_id ) );
-		}
-
-		SScribe_AJAX_Guard::success( array( 'message' => __( 'Session cleared.', 'sscribe-export-site-pages' ) ) );
-	}
-
-	/**
-	 * Clean up stale locks for a user.
-	 *
-	 * @param int|null $user_id User ID.
-	 */
-	private function cleanup_user_locks( ?int $user_id = null ): void {
-		$this->get_lock_manager()->cleanup_user_locks( $user_id );
+		$this->session_handler->ajax_clear_session();
 	}
 
 	/**
@@ -2525,18 +2261,6 @@ class SScribe_Batch_Processor {
 	 * Refresh download nonce via AJAX.
 	 */
 	public function ajax_refresh_download_nonce(): void {
-		if ( ! check_ajax_referer( 'sscribe_export_nonce', 'nonce', false ) ) {
-			SScribe_AJAX_Guard::error( array( 'message' => __( 'Security check failed.', 'sscribe-export-site-pages' ) ), 403 );
-		}
-
-		if ( ! current_user_can( $this->get_required_capability() ) ) {
-			SScribe_AJAX_Guard::error( array( 'message' => __( 'Permission denied.', 'sscribe-export-site-pages' ) ), 403 );
-		}
-
-		SScribe_AJAX_Guard::success(
-			array(
-				'nonce' => wp_create_nonce( 'sscribe_download' ),
-			)
-		);
+		$this->file_handler->ajax_refresh_download_nonce();
 	}
 }

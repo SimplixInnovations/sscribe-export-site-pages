@@ -101,12 +101,36 @@ class SScribe {
 		);
 
 		$container->singleton(
+			SScribe_Batch_File_Handler::class,
+			fn( SScribe_Container $c ) => new SScribe_Batch_File_Handler(
+				new SScribe_Export_Rate_Limiter(),
+				$c->get( SScribe_Zip_Handler::class ),
+				$c->get( SScribe_Logger::class ),
+				new SScribe_Export_Auditor()
+			)
+		);
+
+		$container->singleton(
+			SScribe_Batch_Session_Handler::class,
+			fn( SScribe_Container $c ) => new SScribe_Batch_Session_Handler(
+				$c->get( SScribe_Session::class ),
+				$c->get( SScribe_Zip_Handler::class ),
+				$c->get( SScribe_Logger::class ),
+				new SScribe_Export_Auditor(),
+				new SScribe_Export_Rate_Limiter(),
+				new SScribe_Export_Lock_Manager( $c->get( SScribe_Logger::class ) )
+			)
+		);
+
+		$container->singleton(
 			SScribe_Batch_Processor::class,
 			fn( SScribe_Container $c ) => new SScribe_Batch_Processor(
 				$c->get( SScribe_Page_Collector::class ),
 				$c->get( SScribe_Zip_Handler::class ),
 				$c->get( SScribe_Session::class ),
-				$c->get( SScribe_Logger::class )
+				$c->get( SScribe_Logger::class ),
+				$c->get( SScribe_Batch_File_Handler::class ),
+				$c->get( SScribe_Batch_Session_Handler::class )
 			)
 		);
 	}
