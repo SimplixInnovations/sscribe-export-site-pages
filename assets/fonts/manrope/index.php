@@ -1,6 +1,6 @@
 <?php
 /**
- * SScribe Assets Index
+ * SScribe Assets Fonts Manrope Index
  *
  * @package SScribe_Export_Site_Pages
  * @license GPL v2 or later
