@@ -32,8 +32,8 @@ class SScribe_Exporter_Factory_Test extends TestCase {
 	}
 
 	public function test_create_returns_null_for_invalid_format() {
-		$exporter = \SScribe_Exporter_Factory::create( 'invalid' );
-		$this->assertNull( $exporter );
+		$this->expectException( \SScribe_Validation_Exception::class );
+		\SScribe_Exporter_Factory::create( 'invalid' );
 	}
 
 	public function test_get_supported_formats_returns_array() {

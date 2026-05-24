@@ -283,25 +283,44 @@ class SScribe_Content_Parser {
 					),
 				);
 
-			case 'div':
-			case 'section':
-			case 'article':
-			case 'main':
-			case 'aside':
 			case 'figure':
-			case 'figcaption':
-				$children = array();
+				$img_node     = null;
+				$caption_node = null;
+
 				foreach ( $node->childNodes as $child ) {
-					$parsed = $this->parse_node( $child, $depth );
-					if ( $parsed ) {
-						if ( isset( $parsed['type'] ) ) {
-							$children[] = $parsed;
-						} else {
-							$children = array_merge( $children, $parsed );
+					if ( $child instanceof DOMElement ) {
+						if ( 'img' === $child->tagName ) {
+							$img_node = $child;
+						} elseif ( 'figcaption' === $child->tagName ) {
+							$caption_node = $child;
 						}
 					}
 				}
-				return ! empty( $children ) ? $children : null;
+
+				$output = '';
+				if ( null !== $img_node ) {
+					$src = $img_node->getAttribute( 'src' );
+					$alt = $img_node->getAttribute( 'alt' );
+					$alt = str_replace( array( '[', ']' ), array( '\[', '\]' ), $alt );
+					$output .= '![' . $alt . '](' . $src . ')';
+				}
+				if ( null !== $caption_node ) {
+					$caption_text = trim( $caption_node->textContent );
+					if ( '' !== $caption_text ) {
+						$output .= '\n\n*' . $caption_text . '*';
+					}
+				}
+
+				return array(
+					'type'    => 'figure',
+					'content' => $output,
+				);
+
+			case 'figcaption':
+				return array(
+					'type'    => 'figcaption',
+					'content' => trim( $node->textContent ),
+				);
 
 			case 'br':
 				return array(

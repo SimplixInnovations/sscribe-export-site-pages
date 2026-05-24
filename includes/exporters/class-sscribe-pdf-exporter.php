@@ -276,10 +276,30 @@ class SScribe_PDF_Exporter implements SScribe_Exporter_Interface {
 
 			$html_content = preg_replace( '/@font-face\s*\{[^}]+\}/isU', '', $html_content ) ?? $html_content;
 
-			if ( function_exists( 'set_time_limit' ) ) {
+			if ( function_exists( 'set_time_limit' ) && (int) ini_get( 'max_execution_time' ) > 0 ) {
+				$max_exec = (int) ini_get( 'max_execution_time' );
+				@set_time_limit( max( 60, $max_exec ) ); // phpcs:ignore WordPress.PHP.NoSilencedErrors
+			}
 
-				// phpcs:ignore Squiz.PHP.DiscouragedFunctions.Discouraged
-				set_time_limit( 60 );
+			// Pre-render time check.
+			if ( function_exists( 'microtime' ) ) {
+				$max_exec = (int) ini_get( 'max_execution_time' );
+				if ( $max_exec > 0 ) {
+					$elapsed  = microtime( true ) - ( $page_data['_batch_start_time'] ?? microtime( true ) );
+					$remaining = $max_exec - $elapsed;
+					if ( $remaining < 20 ) {
+						$this->cleanup_temp_images( $temp_image_paths );
+						return SScribe_Result::failure(
+							__( 'Insufficient time remaining to render PDF.', 'sscribe-export-site-pages' ),
+							array(
+								'error_category' => 'timeout',
+								'page_id'        => $page_id,
+								'page_title'     => $title,
+								'language'       => $language,
+							)
+						);
+					}
+				}
 			}
 
 			$filename    = \SScribe_Exporter_Factory::build_filename( $page_data, $index, $total, 'pdf' );

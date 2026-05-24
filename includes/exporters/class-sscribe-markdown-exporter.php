@@ -169,8 +169,8 @@ class SScribe_Markdown_Exporter implements SScribe_Exporter_Interface {
 
 		$md .= "---\n";
 		$md .= 'title: "' . $this->escape_yaml_string( $title ) . "\"\n";
-		$md .= 'url: ' . ( $page_data['permalink'] ?? '' ) . "\n";
-		$md .= 'slug: ' . ( $page_data['slug'] ?? '' ) . "\n";
+		$md .= 'url: "' . $this->escape_yaml_string( $page_data['permalink'] ?? '' ) . "\"\n";
+		$md .= 'slug: "' . $this->escape_yaml_string( $page_data['slug'] ?? '' ) . "\"\n";
 		$md .= 'author: "' . $this->escape_yaml_string( $page_data['author'] ?? 'Unknown' ) . "\"\n";
 		$md .= 'published: ' . ( $page_data['date_published'] ?? '' ) . "\n";
 		$md .= 'modified: ' . ( $page_data['date_modified'] ?? '' ) . "\n";

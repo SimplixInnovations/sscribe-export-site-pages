@@ -66,29 +66,15 @@ class SScribe_Export_Lock_Manager {
 			$lock_age   = $current_time - $lock_time;
 
 			if ( $lock_age > $stale_threshold ) {
-				// Stale lock detected. Try to atomically replace it.
-				// Use wp_cache_add() which uses ADD/SETNX semantics (atomic on Redis/Memcached).
-				$using_cache = wp_using_ext_object_cache();
-				$acquired   = false;
-
-				if ( $using_cache ) {
-					// Atomic: only sets if key doesn't exist.
-					$acquired = wp_cache_add( $lock_key, $current_time . '|' . $lock_token, '', $lock_ttl );
-				} else {
-					// Database-backed: use set_transient which maps to UPDATE ... WHERE option_name =
-					// This is effectively atomic on MySQL/InnoDB.
-					$acquired = set_transient( $lock_key, $current_time . '|' . $lock_token, $lock_ttl );
-				}
-
-				if ( $acquired ) {
+				// Stale lock detected — delete then atomically replace.
+				delete_transient( $lock_key );
+				if ( set_transient( $lock_key, $current_time . '|' . $lock_token, $lock_ttl ) ) {
 					return $lock_token;
 				}
-
 				$this->logger->debug(
 					'Lock acquisition failed — another process won the race',
 					array( 'session_id' => $session_id )
 				);
-
 				return null;
 			}
 
@@ -96,7 +82,6 @@ class SScribe_Export_Lock_Manager {
 				'Batch is already processing concurrently',
 				array( 'session_id' => $session_id )
 			);
-
 			return null;
 		}
 
@@ -108,7 +93,6 @@ class SScribe_Export_Lock_Manager {
 			'Lock transient unavailable, aborting batch',
 			array( 'session_id' => $session_id )
 		);
-
 		return null;
 	}
 
@@ -125,21 +109,22 @@ class SScribe_Export_Lock_Manager {
 		}
 
 		$lock_key = 'sscribe_lock_' . $session_id;
-		$lock     = get_transient( $lock_key );
+		$raw      = get_transient( $lock_key );
 
-		if ( ! $lock ) {
+		if ( false === $raw ) {
 			return true;
 		}
 
-		$lock_parts   = explode( '|', $lock );
-		$stored_token = $lock_parts[1] ?? '';
+		$parts  = explode( '|', $raw );
+		$stored = $parts[1] ?? '';
 
-		if ( $lock_token === $stored_token ) {
-			delete_transient( $lock_key );
-			return true;
+		if ( ! hash_equals( $lock_token, $stored ) ) {
+			return false;
 		}
 
-		return false;
+		delete_transient( $lock_key );
+
+		return true;
 	}
 
 	/**

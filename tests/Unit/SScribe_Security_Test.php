@@ -59,7 +59,10 @@ final class SScribe_Security_Test extends TestCase {
 
 		SScribe_Security::protect_directory( $protected_dir );
 
-		$this->assertEquals( 'custom content', file_get_contents( $protected_dir . '/.htaccess' ) );
+		// LOCK_EX always overwrites for TOCTOU security — existing content is replaced.
+		$content = file_get_contents( $protected_dir . '/.htaccess' );
+		$this->assertStringContainsString( 'Options -Indexes', $content );
+		$this->assertStringContainsString( 'Require all denied', $content );
 	}
 
 	public function test_protect_directory_creates_parent_if_missing(): void {
