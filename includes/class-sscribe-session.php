@@ -266,7 +266,19 @@ class SScribe_Session {
 				return false;
 			}
 
-			$merged               = array_merge( $existing, $data );
+			$merged = $existing;
+			foreach ( $data as $key => $value ) {
+				if ( isset( $existing[ $key ] ) && is_array( $existing[ $key ] ) && is_array( $value ) ) {
+					$append_keys = array( 'structured_errors', 'page_log', 'error_categories' );
+					if ( in_array( $key, $append_keys, true ) ) {
+						$merged[ $key ] = array_merge( $existing[ $key ], $value );
+					} else {
+						$merged[ $key ] = $value;
+					}
+				} else {
+					$merged[ $key ] = $value;
+				}
+			}
 			$merged['_sig']       = $this->sign_session_id( $session_id );
 			$merged['updated_at'] = time();
 
@@ -578,6 +590,21 @@ class SScribe_Session {
 	public function get_active_session_data( int $user_id ): ?array {
 		global $wpdb;
 
+		$cache_key  = 'sscribe_active_sid_' . $user_id;
+		$cached_sid = get_transient( $cache_key );
+
+		if ( false !== $cached_sid && is_string( $cached_sid ) && '0' !== $cached_sid ) {
+			$saved_sid = $cached_sid;
+			$data      = $this->get( $saved_sid );
+
+			if ( is_array( $data ) && $this->is_active_session_data( $data ) ) {
+				$data['option_name'] = $this->get_option_name( $saved_sid );
+				return $data;
+			}
+
+			delete_transient( $cache_key );
+		}
+
 		$pattern = $wpdb->esc_like( $this->option_prefix ) . '%';
 
 		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- Lightweight check for active session restoration.
@@ -597,12 +624,17 @@ class SScribe_Session {
 
 			if ( isset( $data['user_id'] ) && (int) $data['user_id'] === $user_id ) {
 				if ( $this->is_active_session_data( $data ) ) {
-					// Return session data including the option_name for cancellation support.
+					$sid = $data['session_id'] ?? '';
+					if ( '' !== $sid ) {
+						set_transient( $cache_key, $sid, 5 );
+					}
 					$data['option_name'] = $option->option_name;
 					return $data;
 				}
 			}
 		}
+
+		set_transient( $cache_key, '0', 5 );
 
 		return null;
 	}

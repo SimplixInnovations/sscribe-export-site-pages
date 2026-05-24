@@ -29,20 +29,18 @@ class SScribe_Security {
 		}
 
 		$htaccess_path = $dir . '/.htaccess';
-		if ( ! file_exists( $htaccess_path ) ) {
-			$content  = "Options -Indexes\n";
-			$content .= "<Files \"*\">\n";
-			$content .= "  <IfModule mod_authz_core.c>\n";
-			$content .= "    Require all denied\n";
-			$content .= "  </IfModule>\n";
-			$content .= "  <IfModule !mod_authz_core.c>\n";
-			$content .= "    Order Allow,Deny\n";
-			$content .= "    Deny from all\n";
-			$content .= "  </IfModule>\n";
-			$content .= "</Files>\n";
+		$content      = "Options -Indexes\n";
+		$content     .= "<Files \"*\">\n";
+		$content     .= "  <IfModule mod_authz_core.c>\n";
+		$content     .= "    Require all denied\n";
+		$content     .= "  </IfModule>\n";
+		$content     .= "  <IfModule !mod_authz_core.c>\n";
+		$content     .= "    Order Allow,Deny\n";
+		$content     .= "    Deny from all\n";
+		$content     .= "  </IfModule>\n";
+		$content     .= "</Files>\n";
 
-			file_put_contents( $htaccess_path, $content ); // phpcs:ignore WordPress.WP.AlternativeFunctions.file_system_operations_file_put_contents -- Required for directory security; path validated above.
-		}
+		file_put_contents( $htaccess_path, $content, LOCK_EX ); // phpcs:ignore WordPress.WP.AlternativeFunctions.file_system_operations_file_put_contents -- Required for directory security; path validated above.
 
 		$index_path = $dir . '/index.php';
 		if ( ! file_exists( $index_path ) ) {

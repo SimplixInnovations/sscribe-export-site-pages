@@ -138,6 +138,25 @@ class SScribe_Batch_Processor {
 	}
 
 	/**
+	 * Get minimum file size thresholds for export validation.
+	 *
+	 * Filterable via 'sscribe_min_export_file_sizes' to allow host-specific adjustment.
+	 *
+	 * @return array<string, int> Format => minimum size in bytes.
+	 */
+	private function get_min_file_sizes(): array {
+		return apply_filters(
+			'sscribe_min_export_file_sizes',
+			array(
+				'docx'     => 4096,
+				'pdf'      => 4096,
+				'html'     => 512,
+				'markdown' => 50,
+			)
+		);
+	}
+
+	/**
 	 * Validate export result and check file integrity.
 	 *
 	 * @param object $result   Export result object.
@@ -146,13 +165,8 @@ class SScribe_Batch_Processor {
 	 * @return array Result with keys: is_valid, error, category, context.
 	 */
 	private function validate_export_result( object $result, string $format, int $page_id ): array {
-		$min_sizes = array(
-			'docx'     => 4096,
-			'pdf'      => 4096,
-			'html'     => 100,
-			'markdown' => 50,
-		);
-		$min_size = $min_sizes[ $format ] ?? 100;
+		$min_sizes = $this->get_min_file_sizes();
+		$min_size  = $min_sizes[ $format ] ?? 100;
 
 		if ( ! $result->is_success() ) {
 			$result_data = $result->get_data();
@@ -221,10 +235,19 @@ class SScribe_Batch_Processor {
 
 		foreach ( $formats as $format ) {
 			$format_start = microtime( true );
-			$exporter     = \SScribe_Exporter_Factory::create( $format );
 
-			if ( ! $exporter ) {
-				$this->logger->warning( 'Unsupported export format skipped during batch processing', array( 'format' => $format ) );
+			$exporter = null;
+			try {
+				$exporter = \SScribe_Exporter_Factory::create( $format );
+			} catch ( SScribe_Validation_Exception $e ) {
+				$this->logger->error( 'Invalid export format requested', array( 'format' => $format ) );
+				$export_errors[] = array(
+					'page_id'   => $page_id,
+					'format'    => $format,
+					'message'   => 'Invalid format: ' . $format,
+					'category'  => 'configuration',
+					'retryable' => false,
+				);
 				continue;
 			}
 

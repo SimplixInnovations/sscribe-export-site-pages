@@ -42,14 +42,11 @@ class SScribe_Exporter_Factory {
 	 * Create an exporter instance for the given format.
 	 *
 	 * @param string $format Export format string.
-	 * @return SScribe_Exporter_Interface|null
+	 * @return SScribe_Exporter_Interface
+	 * @throws SScribe_Validation_Exception If format is invalid.
 	 */
-	public static function create( string $format ): ?SScribe_Exporter_Interface {
-		try {
-			$enum_format = self::validate_format( $format );
-		} catch ( SScribe_Validation_Exception $e ) {
-			return null;
-		}
+	public static function create( string $format ): SScribe_Exporter_Interface {
+		$enum_format = self::validate_format( $format );
 
 		$container = SScribe_Container::instance();
 
