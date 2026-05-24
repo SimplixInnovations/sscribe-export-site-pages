@@ -158,13 +158,21 @@ class SScribe_Export_Query_Controller {
 
 		$language  = isset( $_POST['language'] ) ? sanitize_text_field( wp_unslash( $_POST['language'] ) ) : '';
 		$post_type = isset( $_POST['post_type'] ) ? sanitize_text_field( wp_unslash( $_POST['post_type'] ) ) : 'page';
-		if ( ! in_array( $post_type, array( 'page', 'post' ), true ) ) {
+		if ( ! in_array( $post_type, array( 'page', 'post', 'any' ), true ) ) {
 			$post_type = 'page';
 		}
-		// NOTE: Removed 'any' from allowed post_types to prevent mass-export of all CPTs.
-		// If 'any' behavior is needed, add a confirmation UI step.
 
-		$counts = $this->collector->get_post_status_counts( $language, $post_type );
+		if ( 'any' === $post_type ) {
+			$page_counts = $this->collector->get_post_status_counts( $language, 'page' );
+			$post_counts = $this->collector->get_post_status_counts( $language, 'post' );
+			$counts      = array();
+			$all_keys    = array_unique( array_merge( array_keys( $page_counts ), array_keys( $post_counts ) ) );
+			foreach ( $all_keys as $key ) {
+				$counts[ $key ] = ( $page_counts[ $key ] ?? 0 ) + ( $post_counts[ $key ] ?? 0 );
+			}
+		} else {
+			$counts = $this->collector->get_post_status_counts( $language, $post_type );
+		}
 
 		SScribe_AJAX_Guard::success( array( 'counts' => $counts ) );
 	}
