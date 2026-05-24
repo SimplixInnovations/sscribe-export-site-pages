@@ -1,15 +1,15 @@
 === SScribe Export Site Pages ===
 Contributors: simplixinnovations
 Donate link: https://simplixi.com
-Tags: export, docx, pdf, html, markdown, pages, multilingual, rtl, wpml
+Tags: export, docx, pdf, html, markdown
 Requires at least: 6.0
-Tested up to: 6.7
+Tested up to: 7.0
 Stable tag: 1.1.1
 Requires PHP: 8.2
 License: GPLv2 or later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
 
-Export WordPress pages and posts to professional DOCX, PDF, HTML, or Markdown files with multilingual RTL support, SEO metadata, and secure ZIP download.
+Export WordPress pages to professional DOCX, PDF, HTML, or Markdown files with multilingual RTL support and secure ZIP download.
 
 == Description ==
 
