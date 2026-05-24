@@ -43,6 +43,13 @@ class SScribe_Exporter {
 	private ?SScribe_Content_Parser $parser = null;
 
 	/**
+	 * Content renderer for DOCX elements.
+	 *
+	 * @var SScribe_DOCX_Content_Renderer
+	 */
+	private SScribe_DOCX_Content_Renderer $content_renderer;
+
+	/**
 	 * Whether the document is RTL.
 	 *
 	 * @var bool
@@ -89,12 +96,22 @@ class SScribe_Exporter {
 	/**
 	 * Initialize the exporter.
 	 *
-	 * @param SScribe_Content_Parser|null $parser Content parser.
+	 * @param SScribe_Content_Parser|null     $parser           Content parser.
+	 * @param SScribe_DOCX_Content_Renderer|null $content_renderer Content renderer.
 	 */
 	public function __construct(
-		?SScribe_Content_Parser $parser = null
+		?SScribe_Content_Parser $parser = null,
+		?SScribe_DOCX_Content_Renderer $content_renderer = null
 	) {
 		$this->parser = $parser ?? new SScribe_Content_Parser();
+		$this->content_renderer = $content_renderer ?? new SScribe_DOCX_Content_Renderer(
+			$this->parser,
+			null,
+			$this->colors,
+			$this->is_rtl,
+			$this->font_name,
+			$this->font_size
+		);
 	}
 
 	/**
@@ -292,6 +309,13 @@ class SScribe_Exporter {
 				$this->font_name = $this->rtl_font_name;
 			}
 
+			$this->content_renderer->sync_config(
+				$this->colors,
+				$this->is_rtl,
+				$this->font_name,
+				$this->font_size
+			);
+
 			$this->set_document_properties( $php_word, $page_data );
 
 			$this->set_default_styles( $php_word );
@@ -363,7 +387,7 @@ class SScribe_Exporter {
 				);
 			}
 
-			$this->add_main_content( $content_section, $page_data );
+			$this->content_renderer->add_main_content( $content_section, $page_data );
 
 			try {
 				$this->add_child_pages( $content_section, $page_data );
@@ -1188,552 +1212,6 @@ class SScribe_Exporter {
 					'italic' => true,
 					'color'  => $this->colors['body'],
 				)
-			),
-			$this->get_para_style()
-		);
-
-		$section->addTextBreak( 1 );
-	}
-
-	/**
-	 * Add main content to document section.
-	 *
-	 * @param \SScribeVendor\PhpOffice\PhpWord\Element\Section $section   Document section.
-	 * @param array                                            $page_data Page data.
-	 * @return void
-	 */
-	private function add_main_content( \SScribeVendor\PhpOffice\PhpWord\Element\Section $section, array $page_data ): void {
-		$content     = $page_data['content'] ?? '';
-		$content_len = strlen( $content );
-
-		if ( empty( $content ) ) {
-			$this->get_logger()->warning(
-				'Main content skipped: content is empty',
-				array(
-					'page_id'    => $page_data['id'] ?? 0,
-					'page_title' => $page_data['title'] ?? 'unknown',
-					'word_count' => $page_data['word_count'] ?? 0,
-				)
-			);
-			return;
-		}
-
-		$this->get_logger()->debug(
-			'Parsing content for DOCX',
-			array(
-				'page_id'     => $page_data['id'] ?? 0,
-				'content_len' => $content_len,
-				'word_count'  => $page_data['word_count'] ?? 0,
-			)
-		);
-
-		$section->addTitle( __( 'Content', 'sscribe-export-site-pages' ), 1 );
-
-		$elements = $this->parser->parse( $content );
-
-		$element_count = count( $elements );
-
-		$this->get_logger()->debug(
-			'Content parsed into elements',
-			array(
-				'page_id'       => $page_data['id'] ?? 0,
-				'element_count' => $element_count,
-				'content_len'   => $content_len,
-			)
-		);
-
-		if ( 0 === $element_count && $content_len > 0 ) {
-			$this->get_logger()->error(
-				'CRITICAL: Content parser returned zero elements',
-				array(
-					'page_id'         => $page_data['id'] ?? 0,
-					'page_title'      => $page_data['title'] ?? 'unknown',
-					'content_len'     => $content_len,
-					'content_preview' => mb_strcut( $content, 0, 500 ),
-				)
-			);
-		}
-
-		foreach ( $elements as $element_index => $element ) {
-			try {
-				$this->render_element( $section, $element );
-			} catch ( \Throwable $e ) {
-
-				$ex_class         = get_class( $e );
-				$ex_message       = $e->getMessage();
-				$this->last_error = sprintf(
-					'Element %d (%s) failed: %s%s',
-					$element_index,
-					$element['type'] ?? 'unknown',
-					$ex_class,
-					! empty( $ex_message ) ? ': ' . $ex_message : ' (no message)'
-				);
-				$this->get_logger()->warning(
-					'Element render failed',
-					array(
-						'page_id'                 => $page_data['id'] ?? 0,
-						'element_index'           => $element_index,
-						'element_type'            => $element['type'] ?? 'unknown',
-						'element_content_preview' => substr( $element['content'] ?? '', 0, 100 ),
-						'error_class'             => $ex_class,
-						'error_message'           => $ex_message,
-						'error_file'              => basename( $e->getFile() ) . ':' . $e->getLine(),
-					)
-				);
-
-			}
-		}
-	}
-
-	/**
-	 * Render a single element to the document section.
-	 *
-	 * @param \SScribeVendor\PhpOffice\PhpWord\Element\Section $section Document section.
-	 * @param array                                            $element Parsed element data.
-	 * @return void
-	 */
-	private function render_element( Section $section, array $element ): void {
-		if ( empty( $element['type'] ) ) {
-			return;
-		}
-
-		switch ( $element['type'] ) {
-			case 'heading':
-				$level = isset( $element['level'] ) ? min( $element['level'], 6 ) : 2;
-				$section->addTitle( $this->safe_text( $element['content'] ), $level );
-				break;
-
-			case 'paragraph':
-				$this->render_paragraph( $section, $element );
-				break;
-
-			case 'list':
-				$this->render_list( $section, $element );
-				break;
-
-			case 'blockquote':
-				$text_run = $section->addTextRun( $this->get_para_style( array( 'styleName' => 'Blockquote' ) ) );
-				$this->render_runs( $text_run, $element['runs'], true );
-				break;
-
-			case 'code':
-				$section->addText(
-					$this->safe_text( $element['content'] ),
-					array(
-						'name'  => 'Courier New',
-						'size'  => 9,
-						'color' => $this->colors['heading'],
-					),
-					$this->get_para_style( array( 'styleName' => 'CodeBlock' ) )
-				);
-				break;
-
-			case 'table':
-				$this->render_table( $section, $element );
-				break;
-
-			case 'image':
-				$this->render_inline_image( $section, $element );
-				break;
-
-			case 'button':
-				$this->render_button( $section, $element );
-				break;
-
-			case 'break':
-				$section->addTextBreak();
-				break;
-
-			case 'horizontal_rule':
-				$section->addText(
-					str_repeat( '—', 60 ),
-					array(
-						'size'  => 8,
-						'color' => $this->colors['border'],
-					),
-					$this->get_para_style( array( 'alignment' => Jc::CENTER ) )
-				);
-				break;
-		}
-	}
-
-	/**
-	 * Render a paragraph element.
-	 *
-	 * @param \SScribeVendor\PhpOffice\PhpWord\Element\Section $section Document section.
-	 * @param array                                            $element Paragraph element data.
-	 * @return void
-	 */
-	private function render_paragraph( Section $section, array $element ): void {
-		if ( empty( $element['runs'] ) ) {
-			return;
-		}
-
-		$text_run = $section->addTextRun( $this->get_para_style() );
-		$this->render_runs( $text_run, $element['runs'] );
-	}
-
-	/**
-	 * Render inline text runs with formatting.
-	 *
-	 * @param TextRun $text_run TextRun element.
-	 * @param array   $runs     Inline runs.
-	 * @param bool    $italic   Force italic.
-	 * @param bool    $bold     Force bold.
-	 * @return void
-	 */
-	private function render_runs( TextRun $text_run, array $runs, bool $italic = false, bool $bold = false ): void {
-		foreach ( $runs as $run ) {
-			if ( ! isset( $run['text'] ) || '' === $run['text'] ) {
-				continue;
-			}
-
-			if ( isset( $run['break'] ) && $run['break'] ) {
-				$text_run->addTextBreak();
-				continue;
-			}
-
-			$font_style = array(
-				'name'  => $this->font_name,
-				'size'  => $this->font_size,
-				'color' => $this->colors['body'],
-			);
-
-			if ( $this->is_rtl ) {
-				$font_style['bidi']          = true;
-				$font_style['rtl']           = true;
-				$font_style['complexScript'] = true;
-			}
-
-			if ( ! empty( $run['bold'] ) || $bold ) {
-				$font_style['bold'] = true;
-			}
-			if ( ! empty( $run['italic'] ) || $italic ) {
-				$font_style['italic'] = true;
-			}
-			if ( ! empty( $run['underline'] ) ) {
-				$font_style['underline'] = 'single';
-			}
-			if ( ! empty( $run['strikethrough'] ) ) {
-				$font_style['strikethrough'] = true;
-			}
-			if ( ! empty( $run['code'] ) ) {
-				$font_style['name'] = 'Courier New';
-				$font_style['size'] = 9;
-			}
-
-			$text_content = $this->safe_text( $run['text'] );
-
-			if ( ! empty( $run['link'] ) ) {
-				$link_url = $this->validate_url( $run['link'] );
-				if ( ! empty( $link_url ) ) {
-					$font_style['color'] = $this->colors['link'];
-					$text_run->addLink(
-						$link_url,
-						$text_content,
-						$font_style
-					);
-					$display_url      = urldecode( $link_url );
-					$url_path_decoded = trim( wp_parse_url( $display_url, PHP_URL_PATH ), '/' );
-					if ( $text_content !== $url_path_decoded && $text_content !== $link_url ) {
-						$text_run->addText(
-							' (' . $this->safe_text( $display_url ) . ')',
-							$this->with_complex_script(
-								array(
-									'name'  => $this->font_name,
-									'size'  => 8,
-									'color' => $this->colors['body'],
-								)
-							)
-						);
-					}
-				} else {
-					$text_run->addText( $text_content, $font_style );
-				}
-			} else {
-				$text_run->addText( $text_content, $font_style );
-			}
-		}
-	}
-
-	/**
-	 * Render a list element.
-	 *
-	 * @param \SScribeVendor\PhpOffice\PhpWord\Element\Section $section Document section.
-	 * @param array                                            $element List element data.
-	 * @return void
-	 */
-	private function render_list( Section $section, array $element ): void {
-		$style = isset( $element['style'] ) ? $element['style'] : 'bullet';
-
-		if ( ! isset( $element['items'] ) ) {
-			return;
-		}
-
-		$list_type = ( 'numbered' === $style )
-			? \SScribeVendor\PhpOffice\PhpWord\Style\ListItem::TYPE_NUMBER
-			: \SScribeVendor\PhpOffice\PhpWord\Style\ListItem::TYPE_BULLET_FILLED;
-
-		foreach ( $element['items'] as $item ) {
-			$depth = isset( $item['depth'] ) ? $item['depth'] : 0;
-
-			$list_font_style = array(
-				'name'  => $this->font_name,
-				'size'  => $this->font_size,
-				'color' => $this->colors['body'],
-			);
-			if ( $this->is_rtl ) {
-				$list_font_style['bidi']          = true;
-				$list_font_style['rtl']           = true;
-				$list_font_style['complexScript'] = true;
-			}
-
-			$section->addListItem(
-				$this->safe_text( $item['content'] ),
-				$depth,
-				$list_font_style,
-				array_merge( array( 'listType' => $list_type ), $this->get_para_style() )
-			);
-
-			if ( ! empty( $item['children'] ) ) {
-				foreach ( $item['children'] as $child ) {
-					$child_depth = isset( $child['depth'] ) ? $child['depth'] : $depth + 1;
-					$section->addListItem(
-						$this->safe_text( $child['content'] ),
-						$child_depth,
-						$list_font_style,
-						array_merge( array( 'listType' => $list_type ), $this->get_para_style() )
-					);
-				}
-			}
-		}
-	}
-
-	/**
-	 * Render a table element.
-	 *
-	 * @param \SScribeVendor\PhpOffice\PhpWord\Element\Section $section Document section.
-	 * @param array                                            $element Table element data.
-	 * @return void
-	 */
-	private function render_table( Section $section, array $element ): void {
-		if ( empty( $element['rows'] ) ) {
-			return;
-		}
-
-		$col_count = ! empty( $element['rows'][0]['cells'] )
-			? count( $element['rows'][0]['cells'] )
-			: 0;
-
-		if ( 0 === $col_count ) {
-			return;
-		}
-
-		$total_width_twip = Converter::inchToTwip( 6.5 );
-		$cell_width       = (int) ( $total_width_twip / $col_count );
-
-		$table_unit = \SScribeVendor\PhpOffice\PhpWord\SimpleType\TblWidth::TWIP;
-
-		$table_style = array(
-			'borderSize'  => 1,
-			'borderColor' => $this->colors['border'],
-			'cellMargin'  => Converter::cmToTwip( 0.1 ),
-			'unit'        => $table_unit,
-			'width'       => $total_width_twip,
-		);
-
-		$table = $section->addTable( $table_style );
-
-		foreach ( $element['rows'] as $row ) {
-			$table->addRow();
-			foreach ( $row['cells'] as $cell ) {
-				$cell_style = array();
-				$font_style = array(
-					'name'  => $this->font_name,
-					'size'  => 10,
-					'color' => $this->colors['body'],
-				);
-
-				if ( $this->is_rtl ) {
-					$font_style['bidi']          = true;
-					$font_style['rtl']           = true;
-					$font_style['complexScript'] = true;
-				}
-
-				if ( ! empty( $cell['is_header'] ) ) {
-					$cell_style['bgColor'] = $this->colors['light_bg'];
-					$font_style['bold']    = true;
-					$font_style['color']   = $this->colors['heading'];
-				}
-
-				$cell_obj = $table->addCell( $cell_width, $cell_style );
-				if ( ! empty( $cell['runs'] ) ) {
-					$text_run = $cell_obj->addTextRun( $this->get_para_style() );
-					$this->render_runs( $text_run, $cell['runs'], false, ! empty( $cell['is_header'] ) );
-				} else {
-					$cell_obj->addText(
-						$this->safe_text( $cell['content'] ),
-						$font_style,
-						$this->get_para_style()
-					);
-				}
-			}
-		}
-
-		$section->addTextBreak( 1 );
-	}
-
-	/**
-	 * Render a button element.
-	 *
-	 * @param \SScribeVendor\PhpOffice\PhpWord\Element\Section $section Document section.
-	 * @param array                                            $element Button element data.
-	 * @return void
-	 */
-	private function render_button( Section $section, array $element ): void {
-		$table = $section->addTable(
-			array(
-				'borderSize'  => 6,
-				'borderColor' => $this->colors['primary'],
-				'cellMargin'  => Converter::cmToTwip( 0.2 ),
-				'alignment'   => Jc::CENTER,
-			)
-		);
-
-		$table->addRow();
-		$cell = $table->addCell( Converter::inchToTwip( 5 ), array( 'bgColor' => $this->colors['light_bg'] ) );
-
-		$cell->addText(
-			'[ACTION BUTTON] ' . $this->safe_text( ! empty( $element['content'] ) ? $element['content'] : __( 'Click Here', 'sscribe-export-site-pages' ) ),
-			array(
-				'name'  => $this->font_name,
-				'size'  => 10,
-				'bold'  => true,
-				'color' => $this->colors['primary'],
-			),
-			$this->get_para_style( array( 'alignment' => Jc::CENTER ) )
-		);
-
-		if ( ! empty( $element['url'] ) ) {
-
-			$validated_url = $this->validate_url( $element['url'] );
-
-			if ( ! empty( $validated_url ) ) {
-				$cell->addText(
-					__( 'DESTINATION URL:', 'sscribe-export-site-pages' ),
-					array(
-						'name'  => $this->font_name,
-						'size'  => 8,
-						'bold'  => true,
-						'color' => $this->colors['heading'],
-					),
-					$this->get_para_style(
-						array(
-							'alignment'   => Jc::CENTER,
-							'spaceBefore' => Converter::pointToTwip( 6 ),
-						)
-					)
-				);
-				$cell->addLink(
-					$validated_url,
-					$this->safe_text( $element['url'] ),
-					array(
-						'name'      => $this->font_name,
-						'size'      => 9,
-						'color'     => $this->colors['link'],
-						'underline' => 'single',
-					),
-					$this->get_para_style( array( 'alignment' => Jc::CENTER ) )
-				);
-			}
-		}
-
-		$section->addTextBreak( 1 );
-	}
-
-	/**
-	 * Render an inline image element.
-	 *
-	 * @param \SScribeVendor\PhpOffice\PhpWord\Element\Section $section Document section.
-	 * @param array                                            $element Image element data.
-	 * @return void
-	 */
-	private function render_inline_image( Section $section, array $element ): void {
-		$path = ! empty( $element['local_path'] ) ? $element['local_path'] : '';
-		$src  = ! empty( $element['src'] ) ? $element['src'] : __( 'Unknown URL', 'sscribe-export-site-pages' );
-
-		if ( empty( $path ) || ! file_exists( $path ) ) {
-
-			$alt = ! empty( $element['alt'] ) ? $element['alt'] : __( 'No Alt Text Provided', 'sscribe-export-site-pages' );
-			$section->addText(
-				__( '[MISSING IMAGE] ', 'sscribe-export-site-pages' ) . $this->safe_text( $alt ),
-				array(
-					'name'   => $this->font_name,
-					'size'   => 9,
-					'italic' => true,
-					'color'  => 'EF4444',
-				),
-				$this->get_para_style( array( 'alignment' => Jc::CENTER ) )
-			);
-		} elseif ( is_readable( $path ) ) {
-			$image_info = getimagesize( $path );
-			if ( $image_info ) {
-				$max_width  = Converter::inchToEmu( 5.5 );
-				$width_emu  = Converter::pixelToEmu( $image_info[0] );
-				$height_emu = Converter::pixelToEmu( $image_info[1] );
-
-				if ( 0 === $width_emu || 0 === $height_emu ) {
-					$this->get_logger()->debug(
-						'Content image has zero dimensions, using original size',
-						array(
-							'path'   => $path,
-							'width'  => $image_info[0],
-							'height' => $image_info[1],
-						)
-					);
-				} else {
-					$ratio      = $max_width / $width_emu;
-					$width_emu  = $max_width;
-					$height_emu = (int) ( $height_emu * $ratio );
-				}
-
-				$section->addImage(
-					$path,
-					array(
-						'width'     => Converter::emuToPixel( $width_emu ),
-						'height'    => Converter::emuToPixel( $height_emu ),
-						'alignment' => Jc::CENTER,
-					)
-				);
-			}
-		}
-
-		$table = $section->addTable(
-			array(
-				'borderSize'  => 4,
-				'borderColor' => $this->colors['border'],
-				'cellMargin'  => Converter::cmToTwip( 0.1 ),
-				'alignment'   => Jc::CENTER,
-			)
-		);
-		$table->addRow();
-		$cell = $table->addCell( Converter::inchToTwip( 5.5 ), array( 'bgColor' => 'F8FAFC' ) );
-		$cell->addText(
-			__( 'IMAGE ASSET SOURCE URL:', 'sscribe-export-site-pages' ),
-			array(
-				'name'  => $this->font_name,
-				'size'  => 7,
-				'bold'  => true,
-				'color' => $this->colors['heading'],
-			),
-			$this->get_para_style()
-		);
-		$cell->addText(
-			$this->safe_text( $src ),
-			array(
-				'name'  => 'Courier New',
-				'size'  => 8,
-				'color' => $this->colors['link'],
 			),
 			$this->get_para_style()
 		);
