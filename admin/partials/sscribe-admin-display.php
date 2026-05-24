@@ -587,11 +587,11 @@ $sscribe_export_index    = $sscribe_export_index ?? array();
 											<strong><?php echo esc_html( $sscribe_export['filename'] ); ?></strong>
 											<span>
 												<?php
-												$sscribe_date_fmt = get_option( 'date_format' );
+												$sscribe_date_fmt = sanitize_text_field( (string) get_option( 'date_format', 'Y-m-d' ) );
 												if ( ! $sscribe_date_fmt ) {
 													$sscribe_date_fmt = 'Y-m-d';
 												}
-												$sscribe_time_fmt = get_option( 'time_format' );
+												$sscribe_time_fmt = sanitize_text_field( (string) get_option( 'time_format', 'H:i' ) );
 												if ( ! $sscribe_time_fmt ) {
 													$sscribe_time_fmt = 'H:i';
 												}

@@ -2004,14 +2004,19 @@ class SScribe_Batch_Processor {
 
 			$formats    = isset( $session['formats'] ) ? $session['formats'] : self::DEFAULT_FORMATS;
 			$session_pt = $session['post_type'] ?? 'page';
+
+			// Re-read session from DB to get latest format_time values in case batch
+			// request timed out before persisting but finalize is running now.
+			$fresh_session = $this->session->get( $session_id );
+
 			foreach ( $formats as $fmt ) {
 				$format_time_key  = 'format_time_' . $fmt;
 				$format_size_key  = 'format_size_' . $fmt;
 				$format_pages_key = 'format_pages_' . $fmt;
 
-				$elapsed_seconds = (float) ( $session[ $format_time_key ] ?? 0 );
-				$total_bytes     = (int) ( $session[ $format_size_key ] ?? 0 );
-				$pages_exported  = (int) ( $session[ $format_pages_key ] ?? 0 );
+				$elapsed_seconds = (float) ( $fresh_session[ $format_time_key ] ?? $session[ $format_time_key ] ?? 0 );
+				$total_bytes     = (int) ( $fresh_session[ $format_size_key ] ?? $session[ $format_size_key ] ?? 0 );
+				$pages_exported  = (int) ( $fresh_session[ $format_pages_key ] ?? $session[ $format_pages_key ] ?? 0 );
 				$total_mb        = $total_bytes / 1048576;
 
 				if ( $pages_exported > 0 && $elapsed_seconds > 0 ) {
@@ -2121,12 +2126,13 @@ class SScribe_Batch_Processor {
 		}
 
 		if ( ! $this->check_rate_limit() ) {
-			SScribe_AJAX_Guard::error(
+			// Return empty success to avoid disrupting the page-load check flow.
+			wp_send_json_success(
 				array(
-					'message' => __( 'Rate limit exceeded. Please wait before trying again.', 'sscribe-export-site-pages' ),
-				),
-				429
+					'has_active' => false,
+				)
 			);
+			return;
 		}
 
 		$user_id = get_current_user_id();

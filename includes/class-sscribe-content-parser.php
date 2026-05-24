@@ -518,8 +518,9 @@ class SScribe_Content_Parser {
 		$buttons = array();
 
 		// Limit input size to prevent regex backtracking on large content.
-		if ( strlen( $html ) > 500000 ) {
-			$html = substr( $html, 0, 500000 );
+		// Use mb_strcut to avoid splitting multi-byte UTF-8 characters.
+		if ( mb_strlen( $html, '8bit' ) > 500000 ) {
+			$html = mb_strcut( $html, 0, 500000, 'UTF-8' );
 		}
 
 		// Guard clause: skip if no button-related class keywords exist in input.

@@ -226,10 +226,10 @@ class SScribe_Session {
 		$lock_ttl      = 10;
 		$using_cache   = wp_using_ext_object_cache();
 
-		// Use exponential back-off: 100ms, 200ms, 400ms, 800ms, 1600ms
-		$base_delay = 100000; // 100ms in microseconds
+		// Use exponential back-off: 50ms, 100ms, 200ms, 400ms (750ms max total).
+		$base_delay = 50000; // 50ms in microseconds
 
-		for ( $lock_attempt = 1; $lock_attempt <= 5; ++$lock_attempt ) {
+		for ( $lock_attempt = 1; $lock_attempt <= 4; ++$lock_attempt ) {
 			if ( $using_cache ) {
 				if ( wp_cache_add( $lock_key, time(), 'transient', $lock_ttl ) ) {
 					$lock_acquired = true;
@@ -429,13 +429,19 @@ class SScribe_Session {
 	public function cleanup_expired( int $max_age_seconds = 14400 ): int {
 		global $wpdb;
 
-		$pattern = $wpdb->esc_like( $this->option_prefix ) . '%';
-		$now     = time();
+		$pattern    = $wpdb->esc_like( $this->option_prefix ) . '%';
+		$now        = time();
+		$start_time = microtime( true );
+		$max_seconds = 30; // Safety limit to prevent cron timeout.
 
 		$deleted = 0;
 		$cursor  = '';
 
 		do {
+			// Enforce time limit — resume on next cron run if needed.
+			if ( ( microtime( true ) - $start_time ) > $max_seconds ) {
+				break;
+			}
 			// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- Cleanup operation scans session options in bounded batches; caching not applicable.
 			$options = $wpdb->get_results(
 				$wpdb->prepare(

@@ -500,7 +500,7 @@ class SScribe_Admin_Debug {
 			ob_end_clean();
 		}
 
-		$safe_filename = preg_replace( '/[\r\n"]/', '', $filename );
+		$safe_filename = preg_replace( '/[\r\n"\x00]/', '', $filename );
 		$safe_filename = sanitize_file_name( $safe_filename );
 		if ( empty( $safe_filename ) ) {
 			$safe_filename = 'export.json';
