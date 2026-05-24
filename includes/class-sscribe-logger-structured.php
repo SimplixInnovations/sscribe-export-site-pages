@@ -70,7 +70,7 @@ class SScribe_Logger_Structured implements SScribe_Logger_Interface {
 	 *
 	 * @param string $min_level Minimum log level to capture.
 	 */
-	public function __construct( string $min_level = self::LEVEL_DEBUG ) {
+	public function __construct( string $min_level = self::LEVEL_ERROR ) {
 		$upload_dir       = wp_upload_dir();
 		$this->log_dir    = $upload_dir['basedir'] . '/sscribe-logs';
 		$this->min_level  = $min_level;

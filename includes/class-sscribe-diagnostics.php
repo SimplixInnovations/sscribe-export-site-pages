@@ -955,10 +955,11 @@ class SScribe_Diagnostics {
 			$full_path = $export_dir . '/' . $file;
 			$mtime     = filemtime( $full_path );
 
-			if ( $mtime && time() - $mtime > 86400 ) {
-				if ( is_dir( $full_path ) ) {
+			if ( $mtime && time() - $mtime > 3 * DAY_IN_SECONDS ) {
+				// Only delete if no active session is using this directory.
+				if ( is_dir( $full_path ) && ! $this->is_temp_dir_in_use( $full_path ) ) {
 					$this->delete_directory( $full_path );
-				} else {
+				} elseif ( ! is_dir( $full_path ) ) {
 					wp_delete_file( $full_path );
 				}
 				++$cleared;
@@ -975,6 +976,29 @@ class SScribe_Diagnostics {
 	 */
 	private function delete_directory( string $dir ): void {
 		SScribe_Security::delete_directory( $dir );
+	}
+
+	/**
+	 * Check if a temp directory is currently in use by an active session.
+	 *
+	 * Prevents self-heal from deleting temp dirs belonging to ongoing exports.
+	 *
+	 * @param string $dir Directory path to check.
+	 * @return bool True if directory is in use by an active session.
+	 */
+	private function is_temp_dir_in_use( string $dir ): bool {
+		if ( ! class_exists( 'SScribe_Session' ) ) {
+			return false;
+		}
+
+		$session = new SScribe_Session();
+		$data     = $session->get_active_session_data( get_current_user_id() );
+
+		if ( null === $data ) {
+			return false;
+		}
+
+		return ! empty( $data['temp_dir'] ) && 0 === strpos( $data['temp_dir'], $dir );
 	}
 
 	/**

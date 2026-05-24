@@ -460,8 +460,6 @@ class SScribe_Exporter {
 
 			unset( $writer, $php_word );
 
-			gc_collect_cycles();
-
 			return $output_path;
 
 		} catch ( \Throwable $e ) {

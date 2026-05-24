@@ -566,7 +566,7 @@ class SScribe_Admin {
 			} elseif ( $wpml_active && isset( $language_map[ $lang_code ] ) ) {
 				$lang_name = sanitize_text_field( (string) ( $language_map[ $lang_code ]['name'] ?? strtoupper( $lang_code ) ) );
 				$flag_url  = esc_url_raw( (string) ( $language_map[ $lang_code ]['flag_url'] ?? $flag_url ) );
-			} elseif ( '' === $lang_name || __( 'All Languages', 'sscribe-export-site-pages' ) === $lang_name ) {
+			} elseif ( 'all' === $lang_code || '' === $lang_name ) {
 				$lang_name = strtoupper( $lang_code );
 			}
 

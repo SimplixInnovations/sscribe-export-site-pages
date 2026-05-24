@@ -66,9 +66,12 @@ class SScribe_Export_Lock_Manager {
 			$lock_age   = $current_time - $lock_time;
 
 			if ( $lock_age > $stale_threshold ) {
-				// Stale lock detected — delete then atomically replace.
-				delete_transient( $lock_key );
+				// Stale lock detected — overwrite directly (last writer wins).
 				if ( set_transient( $lock_key, $current_time . '|' . $lock_token, $lock_ttl ) ) {
+					$this->logger->debug(
+						'Overwrote stale lock',
+						array( 'session_id' => $session_id, 'lock_age' => $lock_age )
+					);
 					return $lock_token;
 				}
 				$this->logger->debug(

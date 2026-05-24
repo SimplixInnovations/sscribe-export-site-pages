@@ -476,6 +476,11 @@ class SScribe_Page_Collector {
 	/**
 	 * Get full page data by ID.
 	 *
+	 * Note: Uses a static guard to prevent nested the_content filter calls.
+	 * If a fatal OOM occurs during content filtering, subsequent calls in the
+	 * same PHP process will skip apply_filters('the_content') silently. The
+	 * finally block resets the guard, but an OOM kill skips the finally block.
+	 *
 	 * @param int $page_id Page ID.
 	 * @return array|false Page data or false.
 	 */
