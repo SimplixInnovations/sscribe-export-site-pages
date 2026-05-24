@@ -2818,6 +2818,20 @@ body .sscribe-master-container .sscribe-hero {
 	border-radius: var(--sscribe-radius-sm);
 }
 
+.sscribe-skeleton-icon {
+	display: inline-block;
+	width: 32px;
+	height: 32px;
+	border-radius: 6px;
+}
+
+.sscribe-skeleton-title {
+	display: inline-block;
+	width: 180px;
+	height: 14px;
+	margin-left: 12px;
+}
+
 .sscribe-history-skeleton {
 	padding: 4px 0;
 }

@@ -369,9 +369,25 @@ $sscribe_export_index    = $sscribe_export_index ?? array();
 						<span class="sscribe-summary-label"><?php esc_html_e( 'Config', 'sscribe-export-site-pages' ); ?>:</span>
 						<span class="sscribe-summary-chip sscribe-summary-post-type" id="sscribe-summary-post-type"><?php esc_html_e( 'Pages', 'sscribe-export-site-pages' ); ?></span>
 						<span class="sscribe-summary-sep" aria-hidden="true">·</span>
-						<span class="sscribe-summary-chip sscribe-summary-status" id="sscribe-summary-status"><?php esc_html_e( 'Published', 'sscribe-export-site-pages' ); ?></span>
+						<span class="sscribe-summary-chip sscribe-summary-status" id="sscribe-summary-status">
+							<?php
+							// Detect which status is actually pre-selected by PHP, rather than hardcoding 'Published'.
+							$sscribe_selected_status_label = __( 'Published', 'sscribe-export-site-pages' );
+							$sscribe_first_found           = true;
+							foreach ( $sscribe_status_labels as $sscribe_s_key => $sscribe_s_label ) {
+								$sscribe_s_count  = isset( $sscribe_status_counts[ $sscribe_s_key ] ) ? intval( $sscribe_status_counts[ $sscribe_s_key ] ) : 0;
+								if ( $sscribe_first_found && $sscribe_s_count > 0 ) {
+									$sscribe_selected_status_label = $sscribe_s_label;
+									$sscribe_first_found           = false;
+								}
+							}
+							echo esc_html( $sscribe_selected_status_label );
+							?>
+						</span>
+						<?php if ( $sscribe_wpml_active && ! empty( $sscribe_languages ) ) : ?>
 						<span class="sscribe-summary-sep" aria-hidden="true">·</span>
 						<span class="sscribe-summary-chip sscribe-summary-language" id="sscribe-summary-language"><?php esc_html_e( 'All', 'sscribe-export-site-pages' ); ?></span>
+						<?php endif; ?>
 						<span class="sscribe-summary-sep" aria-hidden="true">·</span>
 						<span class="sscribe-summary-chip sscribe-summary-format" id="sscribe-summary-format"><?php esc_html_e( 'All', 'sscribe-export-site-pages' ); ?></span>
 						<span class="sscribe-summary-sep-em" aria-hidden="true">|</span>
@@ -404,7 +420,7 @@ $sscribe_export_index    = $sscribe_export_index ?? array();
 								<?php echo wp_kses_post( SScribe_Helpers::get_icon( 'eye', 16 ) ); ?>
 								<?php esc_html_e( 'Export Readiness', 'sscribe-export-site-pages' ); ?>
 							</h3>
-							<button type="button" id="sscribe-preview-close" class="sscribe-modal-close" aria-label="Close preview">
+							<button type="button" id="sscribe-preview-close" class="sscribe-modal-close" aria-label="<?php esc_attr_e( 'Close preview', 'sscribe-export-site-pages' ); ?>">
 								<span aria-hidden="true">&times;</span>
 							</button>
 						</div>
@@ -468,13 +484,13 @@ $sscribe_export_index    = $sscribe_export_index ?? array();
 							aria-valuemin="0"
 							aria-valuemax="100"
 							aria-valuenow="0"
-							aria-valuetext=""
+							aria-valuetext="<?php esc_attr_e( 'Starting...', 'sscribe-export-site-pages' ); ?>"
 							aria-labelledby="sscribe-status-text"></div>
 					</div>
 					<span id="sscribe-progress-text" class="sscribe-progress-percentage" aria-hidden="true">0%</span>
 				</div>
 				<div class="sscribe-progress-meta">
-					<span id="sscribe-time-remaining" class="sscribe-time-remaining" aria-live="off"></span>
+					<span id="sscribe-time-remaining" class="sscribe-time-remaining" aria-live="polite"></span>
 				</div>
 				<button type="button" id="sscribe-cancel-btn" class="sscribe-button sscribe-button-cancel" aria-describedby="sscribe-cancel-hint">
 					<?php esc_html_e( 'Cancel Export', 'sscribe-export-site-pages' ); ?>
@@ -501,10 +517,10 @@ $sscribe_export_index    = $sscribe_export_index ?? array();
 						<?php esc_html_e( 'Download ZIP File', 'sscribe-export-site-pages' ); ?>
 					</a>
 					<span id="sscribe-download-hint" class="screen-reader-text"><?php esc_html_e( 'Download the exported ZIP file to your computer', 'sscribe-export-site-pages' ); ?></span>
-					<button type="button" id="sscribe-retry-btn" class="sscribe-button sscribe-button-ghost" aria-describedby="sscribe-retry-hint">
+					<button type="button" id="sscribe-new-export-btn" class="sscribe-button sscribe-button-ghost" aria-describedby="sscribe-new-export-hint">
 						<?php esc_html_e( 'Start New Export', 'sscribe-export-site-pages' ); ?>
 					</button>
-					<span id="sscribe-retry-hint" class="screen-reader-text"><?php esc_html_e( 'Clear current export and start a new one', 'sscribe-export-site-pages' ); ?></span>
+					<span id="sscribe-new-export-hint" class="screen-reader-text"><?php esc_html_e( 'Clear current export and start a new one', 'sscribe-export-site-pages' ); ?></span>
 				</div>
 			</div>
 		</div>
@@ -524,7 +540,7 @@ $sscribe_export_index    = $sscribe_export_index ?? array();
 					<p id="sscribe-error-guidance-text" class="sscribe-guidance-text"></p>
 				</div>
 				<div id="sscribe-error-technical-details" class="sscribe-debug-details sscribe-hidden">
-					<pre class="sscribe-debug-pre"></pre>
+					<pre class="sscribe-debug-pre" aria-label="<?php esc_attr_e( 'Technical error details', 'sscribe-export-site-pages' ); ?>"></pre>
 				</div>
 				<div class="sscribe-error-actions">
 					<button type="button" id="sscribe-error-try-again" class="sscribe-button sscribe-button-secondary" aria-describedby="sscribe-try-again-hint">
@@ -565,9 +581,9 @@ $sscribe_export_index    = $sscribe_export_index ?? array();
 						</div>
 					</div>
 					<div class="sscribe-history-skeleton sscribe-hidden" id="sscribe-history-skeleton">
-						<div class="sscribe-history-skeleton-row"><span class="sscribe-skeleton" style="display:inline-block;width:32px;height:32px;border-radius:6px;"></span><span class="sscribe-skeleton" style="display:inline-block;width:180px;height:14px;margin-left:12px;"></span></div>
-						<div class="sscribe-history-skeleton-row"><span class="sscribe-skeleton" style="display:inline-block;width:32px;height:32px;border-radius:6px;"></span><span class="sscribe-skeleton" style="display:inline-block;width:140px;height:14px;margin-left:12px;"></span></div>
-						<div class="sscribe-history-skeleton-row"><span class="sscribe-skeleton" style="display:inline-block;width:32px;height:32px;border-radius:6px;"></span><span class="sscribe-skeleton" style="display:inline-block;width:200px;height:14px;margin-left:12px;"></span></div>
+						<div class="sscribe-history-skeleton-row"><span class="sscribe-skeleton sscribe-skeleton-icon"></span><span class="sscribe-skeleton sscribe-skeleton-title"></span></div>
+						<div class="sscribe-history-skeleton-row"><span class="sscribe-skeleton sscribe-skeleton-icon"></span><span class="sscribe-skeleton sscribe-skeleton-title" style="width:140px;"></span></div>
+						<div class="sscribe-history-skeleton-row"><span class="sscribe-skeleton sscribe-skeleton-icon"></span><span class="sscribe-skeleton sscribe-skeleton-title" style="width:200px;"></span></div>
 					</div>
 					<div class="sscribe-history-table" id="sscribe-history-table">
 						<?php if ( ! empty( $sscribe_recent_exports ) ) : ?>
