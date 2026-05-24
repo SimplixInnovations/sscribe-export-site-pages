@@ -4,6 +4,8 @@
  *
  * @package SScribe_Export_Site_Pages
  * @subpackage Admin/Partials
+ * @license GPL v2 or later
+ * @link    https://www.gnu.org/licenses/gpl-2.0.html
  */
 
 if ( ! defined( 'ABSPATH' ) ) {
@@ -20,9 +22,19 @@ $sscribe_log_levels     = array(
 	SScribe_Settings::LEVEL_ERROR,
 	SScribe_Settings::LEVEL_CRITICAL,
 );
+$show_wp_debug_notice   = ( defined( 'WP_DEBUG' ) && WP_DEBUG );
 ?>
 
-<div class="sscribe-debug-master" id="sscribe-admin-wrap">
+<?php if ( $show_wp_debug_notice ) : ?>
+	<div class="sscribe-debug-wp-debug-notice">
+		<svg width="16" height="16" viewBox="0 0 16 16" fill="currentColor" aria-hidden="true">
+			<path d="M8 1a7 7 0 1 0 0 14A7 7 0 0 0 8 1zm0 13a1 1 0 1 1 0-2 1 1 0 0 1 0 2zm1-4.293a1 1 0 1 1-2 0V7.707l-2.146 2.147a1 1 0 0 1-1.414-1.414l3-3A1 1 0 0 1 9 7.586V8a1 1 0 0 1 2 0z"/>
+		</svg>
+		<span><?php esc_html_e( 'WP_DEBUG is enabled. Debug logs may contain sensitive information. Disable on production sites.', 'sscribe-export-site-pages' ); ?></span>
+	</div>
+<?php endif; ?>
+
+<div class="sscribe-debug-master" id="sscribe-debug-root">
 	<div class="sscribe-debug-header">
 		<div class="sscribe-debug-title-row">
 			<h2><?php esc_html_e( 'Debug Console', 'sscribe-export-site-pages' ); ?></h2>
@@ -38,7 +50,7 @@ $sscribe_log_levels     = array(
 	<div class="sscribe-debug-settings-card">
 		<div class="sscribe-debug-settings-grid">
 			<div class="sscribe-debug-toggle-section">
-				<label class="sscribe-debug-toggle-label" for="sscribe-debug-enabled">
+				<label class="sscribe-debug-toggle-label">
 					<span class="sscribe-toggle-switch">
 						<input type="checkbox" id="sscribe-debug-enabled" <?php checked( $sscribe_debug_settings['debug_enabled'] ); ?>>
 						<span class="sscribe-toggle-slider"></span>
@@ -60,10 +72,10 @@ $sscribe_log_levels     = array(
 				</select>
 			</div>
 			<div class="sscribe-debug-save-section">
-				<button type="button" class="sscribe-button sscribe-button-primary" id="sscribe-debug-save-settings">
+				<button type="button" class="sscribe-button sscribe-button-primary" id="sscribe-debug-save-settings" aria-describedby="sscribe-debug-save-feedback">
 					<?php esc_html_e( 'Save Settings', 'sscribe-export-site-pages' ); ?>
 				</button>
-				<span class="sscribe-debug-save-feedback" id="sscribe-debug-save-feedback"></span>
+				<span class="sscribe-debug-save-feedback" id="sscribe-debug-save-feedback" aria-live="polite"></span>
 			</div>
 		</div>
 	</div>
@@ -81,6 +93,10 @@ $sscribe_log_levels     = array(
 					<option value="ERROR">ERROR</option>
 					<option value="CRITICAL">CRITICAL</option>
 				</select>
+			</div>
+			<div class="sscribe-debug-session-filter">
+				<label for="sscribe-debug-session-id"><?php esc_html_e( 'Session ID:', 'sscribe-export-site-pages' ); ?></label>
+				<input type="text" id="sscribe-debug-session-id" class="sscribe-input" placeholder="<?php esc_attr_e( 'e.g. abc123de45678901', 'sscribe-export-site-pages' ); ?>" title="<?php esc_attr_e( 'Found in export log filenames', 'sscribe-export-site-pages' ); ?>" maxlength="64">
 			</div>
 			<div class="sscribe-debug-search">
 				<label for="sscribe-debug-search" class="screen-reader-text"><?php esc_html_e( 'Search logs:', 'sscribe-export-site-pages' ); ?></label>
@@ -109,7 +125,7 @@ $sscribe_log_levels     = array(
 	<div class="sscribe-debug-console-card" role="log" aria-live="polite" aria-label="<?php esc_attr_e( 'Debug log entries', 'sscribe-export-site-pages' ); ?>">
 		<div class="sscribe-debug-console-header">
 			<span class="sscribe-debug-console-title"><?php esc_html_e( 'Console Output', 'sscribe-export-site-pages' ); ?></span>
-			<span class="sscribe-debug-console-count" id="sscribe-debug-entry-count"></span>
+			<span class="sscribe-debug-console-count" id="sscribe-debug-entry-count" aria-live="polite"></span>
 		</div>
 		<div class="sscribe-debug-console-body" id="sscribe-debug-console-body">
 			<div class="sscribe-debug-empty" id="sscribe-debug-empty">
@@ -128,8 +144,11 @@ $sscribe_log_levels     = array(
 		<button type="button" class="sscribe-button sscribe-button-danger" id="sscribe-debug-clear-btn">
 			<?php esc_html_e( 'Clear Logs', 'sscribe-export-site-pages' ); ?>
 		</button>
-		<button type="button" class="sscribe-button" id="sscribe-debug-export-btn">
-			<?php esc_html_e( 'Export JSON', 'sscribe-export-site-pages' ); ?>
+		<button type="button" class="sscribe-button sscribe-button-outline" id="sscribe-debug-export-btn">
+			<?php
+			esc_html_e( 'Export JSON', 'sscribe-export-site-pages' );
+			?>
+			<span class="sscribe-export-btn-scope" id="sscribe-export-btn-scope"></span>
 		</button>
 	</div>
 
@@ -142,4 +161,15 @@ $sscribe_log_levels     = array(
 			<div class="sscribe-debug-rotated-empty"><?php esc_html_e( 'No rotated log files.', 'sscribe-export-site-pages' ); ?></div>
 		</div>
 	</details>
+
+	<div id="sscribe-debug-help-content" hidden>
+		<h3><?php esc_html_e( 'Debug Console Help', 'sscribe-export-site-pages' ); ?></h3>
+		<p><?php esc_html_e( 'View detailed export logs, toggle debug mode, and manage rotated log files. Logs capture detailed information about export operations including processing steps, errors, and performance metrics.', 'sscribe-export-site-pages' ); ?></p>
+		<h4><?php esc_html_e( 'Auto-refresh', 'sscribe-export-site-pages' ); ?></h4>
+		<p><?php esc_html_e( 'When enabled, logs refresh automatically every 10 seconds. Manual mode gives you full control over when to refresh.', 'sscribe-export-site-pages' ); ?></p>
+		<h4><?php esc_html_e( 'Filters', 'sscribe-export-site-pages' ); ?></h4>
+		<p><?php esc_html_e( 'Use the filter dropdown, session ID input, or search box to narrow down log entries. Filtered views are reflected in the Export JSON button label.', 'sscribe-export-site-pages' ); ?></p>
+		<h4><?php esc_html_e( 'Rotated Logs', 'sscribe-export-site-pages' ); ?></h4>
+		<p><?php esc_html_e( 'Rotated log files are older logs that have been archived. Click to expand, then View, Export, or Delete individual files.', 'sscribe-export-site-pages' ); ?></p>
+	</div>
 </div>

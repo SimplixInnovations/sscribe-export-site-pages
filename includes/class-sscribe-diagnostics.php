@@ -3,6 +3,8 @@
  * SScribe Diagnostics
  *
  * @package SScribe_Export_Site_Pages
+ * @license GPL v2 or later
+ * @link    https://www.gnu.org/licenses/gpl-2.0.html
  */
 
 declare(strict_types=1);
@@ -42,7 +44,10 @@ class SScribe_Diagnostics {
 		$export_dir    = trailingslashit( $upload_dir['basedir'] ) . 'sscribe-exports';
 		$log_dir       = trailingslashit( $upload_dir['basedir'] ) . 'sscribe-logs';
 		$debug_enabled = defined( 'SSCRIBE_DEBUG' ) && SSCRIBE_DEBUG;
-		$debug_logger  = $debug_enabled ? SScribe_Logger::instance( true ) : null;
+
+		// Use container-managed singletons where available to avoid duplicate instances.
+		$container     = SScribe_Container::instance();
+		$debug_logger  = $debug_enabled ? $container->get( SScribe_Logger::class ) : null;
 
 		$sections = array();
 
@@ -57,7 +62,7 @@ class SScribe_Diagnostics {
 		}
 
 		try {
-			$collector     = new SScribe_Page_Collector();
+			$collector     = $container->get( SScribe_Page_Collector::class );
 			$status_counts = $collector->get_post_status_counts( '' );
 		} catch ( \Throwable $e ) {
 			$status_counts = array();
@@ -86,7 +91,7 @@ class SScribe_Diagnostics {
 		}
 
 		try {
-			$support_logger = new SScribe_Logger( $debug_enabled );
+			$support_logger = $debug_enabled ? $container->get( SScribe_Logger::class ) : new SScribe_Logger( $debug_enabled );
 			$logger_entries = $support_logger->get_logs();
 		} catch ( \Throwable $e ) {
 			$logger_entries = array();
@@ -101,7 +106,7 @@ class SScribe_Diagnostics {
 		}
 
 		try {
-			$wpml_active = ( new SScribe_Page_Collector() )->is_wpml_active();
+			$wpml_active = $container->get( SScribe_Page_Collector::class )->is_wpml_active();
 		} catch ( \Throwable $e ) {
 			$wpml_active = false;
 			if ( $debug_logger ) {
@@ -119,7 +124,7 @@ class SScribe_Diagnostics {
 		}
 
 		try {
-			$session         = new SScribe_Session();
+			$session         = $container->get( SScribe_Session::class );
 			$session_storage = $session->get_storage_type();
 		} catch ( \Throwable $e ) {
 			$session_storage = 'unknown';
@@ -590,20 +595,15 @@ class SScribe_Diagnostics {
 				$raw_json        = file_get_contents( $phpword_composer_file );
 				$composer_data   = is_string( $raw_json ) ? json_decode( $raw_json, true ) : null;
 				$bundled_version = ( is_array( $composer_data ) && isset( $composer_data['version'] ) ) ? $composer_data['version'] : 'unknown';
-				preg_match( '/^(\d+\.\d+)/', $bundled_version, $m );
-				$major_minor = $m[1] ?? '';
 
-				if ( version_compare( $major_minor, '1.5', '>=' ) ) {
-					return array(
-						'name'    => 'PHPWord Library',
-						'status'  => 'warning',
-						'message' => sprintf(
-							'PHPWord %s detected — safe_text() htmlspecialchars workaround may cause double-encoding. Version compatibility check needed.',
-							$bundled_version
-						),
-						'fix'     => 'Review SScribe_Exporter::safe_text() for double-encoding with PHPWord >= 1.5',
-					);
-				}
+				return array(
+					'name'    => 'PHPWord Library',
+					'status'  => 'ok',
+					'message' => sprintf(
+						'PHPWord %s — XML encoding handled natively by library',
+						$bundled_version
+					),
+				);
 			}
 
 			return array(
@@ -960,10 +960,11 @@ class SScribe_Diagnostics {
 			$full_path = $export_dir . '/' . $file;
 			$mtime     = filemtime( $full_path );
 
-			if ( $mtime && time() - $mtime > 86400 ) {
-				if ( is_dir( $full_path ) ) {
+			if ( $mtime && time() - $mtime > 3 * DAY_IN_SECONDS ) {
+				// Only delete if no active session is using this directory.
+				if ( is_dir( $full_path ) && ! $this->is_temp_dir_in_use( $full_path ) ) {
 					$this->delete_directory( $full_path );
-				} else {
+				} elseif ( ! is_dir( $full_path ) ) {
 					wp_delete_file( $full_path );
 				}
 				++$cleared;
@@ -980,6 +981,29 @@ class SScribe_Diagnostics {
 	 */
 	private function delete_directory( string $dir ): void {
 		SScribe_Security::delete_directory( $dir );
+	}
+
+	/**
+	 * Check if a temp directory is currently in use by an active session.
+	 *
+	 * Prevents self-heal from deleting temp dirs belonging to ongoing exports.
+	 *
+	 * @param string $dir Directory path to check.
+	 * @return bool True if directory is in use by an active session.
+	 */
+	private function is_temp_dir_in_use( string $dir ): bool {
+		if ( ! class_exists( 'SScribe_Session' ) ) {
+			return false;
+		}
+
+		$session = new SScribe_Session();
+		$data     = $session->get_active_session_data( get_current_user_id() );
+
+		if ( null === $data ) {
+			return false;
+		}
+
+		return ! empty( $data['temp_dir'] ) && 0 === strpos( $data['temp_dir'], $dir );
 	}
 
 	/**

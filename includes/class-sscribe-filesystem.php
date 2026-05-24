@@ -1,11 +1,10 @@
 <?php
 /**
- * SScribe Filesystem Handler
- *
- * Provides a unified interface for file operations with WP_Filesystem fallback.
+ * SScribe Filesystem
  *
  * @package SScribe_Export_Site_Pages
- * @subpackage Includes
+ * @license GPL v2 or later
+ * @link    https://www.gnu.org/licenses/gpl-2.0.html
  */
 
 declare(strict_types=1);

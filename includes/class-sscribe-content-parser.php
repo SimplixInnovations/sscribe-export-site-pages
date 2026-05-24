@@ -3,6 +3,8 @@
  * SScribe Content Parser
  *
  * @package SScribe_Export_Site_Pages
+ * @license GPL v2 or later
+ * @link    https://www.gnu.org/licenses/gpl-2.0.html
  */
 
 // phpcs:disable WordPress.NamingConventions.ValidVariableName.UsedPropertyNotSnakeCase
@@ -283,25 +285,44 @@ class SScribe_Content_Parser {
 					),
 				);
 
-			case 'div':
-			case 'section':
-			case 'article':
-			case 'main':
-			case 'aside':
 			case 'figure':
-			case 'figcaption':
-				$children = array();
+				$img_node     = null;
+				$caption_node = null;
+
 				foreach ( $node->childNodes as $child ) {
-					$parsed = $this->parse_node( $child, $depth );
-					if ( $parsed ) {
-						if ( isset( $parsed['type'] ) ) {
-							$children[] = $parsed;
-						} else {
-							$children = array_merge( $children, $parsed );
+					if ( $child instanceof DOMElement ) {
+						if ( 'img' === $child->tagName ) {
+							$img_node = $child;
+						} elseif ( 'figcaption' === $child->tagName ) {
+							$caption_node = $child;
 						}
 					}
 				}
-				return ! empty( $children ) ? $children : null;
+
+				$output = '';
+				if ( null !== $img_node ) {
+					$src = $img_node->getAttribute( 'src' );
+					$alt = $img_node->getAttribute( 'alt' );
+					$alt = str_replace( array( '[', ']' ), array( '\[', '\]' ), $alt );
+					$output .= '![' . $alt . '](' . $src . ')';
+				}
+				if ( null !== $caption_node ) {
+					$caption_text = trim( $caption_node->textContent );
+					if ( '' !== $caption_text ) {
+						$output .= '\n\n*' . $caption_text . '*';
+					}
+				}
+
+				return array(
+					'type'    => 'figure',
+					'content' => $output,
+				);
+
+			case 'figcaption':
+				return array(
+					'type'    => 'figcaption',
+					'content' => trim( $node->textContent ),
+				);
 
 			case 'br':
 				return array(
@@ -347,6 +368,14 @@ class SScribe_Content_Parser {
 	 */
 	private function parse_list( \DOMNode $node, string $style, int $depth = 0 ): array {
 		$items = array();
+
+		if ( $depth >= 10 ) {
+			return array(
+				'type'  => 'list',
+				'style' => $style,
+				'items' => $items,
+			);
+		}
 
 		foreach ( $node->childNodes as $child ) {
 			if ( XML_ELEMENT_NODE !== $child->nodeType || 'li' !== strtolower( $child->nodeName ) ) {
@@ -490,7 +519,55 @@ class SScribe_Content_Parser {
 	private function extract_buttons_from_html( string $html ): array {
 		$buttons = array();
 
-		$pattern = '/<a\s+[^>]*class=["\']([^"\']*(?:wp-block-button__link|wp-element-button|button|btn|elementor-button|et_pb_button|fl-button|vc_btn)[^"\']*)["\'][^>]*>(.*?)<\/a>/is';
+		// Limit input size to prevent regex backtracking on large content.
+		// Use mb_strcut to avoid splitting multi-byte UTF-8 characters.
+		if ( mb_strlen( $html, '8bit' ) > 500000 ) {
+			$html = mb_strcut( $html, 0, 500000, 'UTF-8' );
+		}
+
+		// Guard clause: skip if no button-related class keywords exist in input.
+		$button_keywords = array(
+			'wp-block-button__link',
+			'wp-element-button',
+			'elementor-button',
+			'et_pb_button',
+			'fl-button',
+			'vc_btn',
+		);
+		$has_button_keyword = false;
+		foreach ( $button_keywords as $keyword ) {
+			if ( false !== strpos( $html, $keyword ) ) {
+				$has_button_keyword = true;
+				break;
+			}
+		}
+		if ( ! $has_button_keyword && false === strpos( $html, 'class="button' ) && false === strpos( $html, "class='button" ) && false === strpos( $html, 'class="btn' ) && false === strpos( $html, "class='btn" ) ) {
+			return $buttons;
+		}
+
+		/*
+		 * Improved regex pattern that avoids catastrophic backtracking.
+		 *
+		 * Key improvements:
+		 * 1. Matches <a followed by whitespace (not just any char)
+		 * 2. Uses negated character classes that cannot contain > or quotes
+		 * 3. Avoids pattern [^>]*class= which backtracks heavily on non-matching input
+		 * 4. Separates attribute parsing from button class detection
+		 *
+		 * Pattern breakdown:
+		 * - <a\s+          : <a tag with at least one space
+		 * - (?:[^>]*?)     : optional attributes before class (non-greedy, prevents backtracking)
+		 * - class=["\']    : class attribute opening
+		 * - [^"\']*        : class value before button class (no quotes)
+		 * - (?:wp-block-button__link|wp-element-button|...) : button class alternatives
+		 * - [^"\']*        : class value after button class
+		 * - ["\']          : closing quote
+		 * - [^>]*          : remaining attributes
+		 * - >               : tag close
+		 * - (.*?)          : content (non-greedy)
+		 * - <\/a>          : closing anchor
+		 */
+		$pattern = '/<a\s+(?:[^>]*?\s)?class=["\']([^"\']*(?:wp-block-button__link|wp-element-button|button|btn|elementor-button|et_pb_button|fl-button|vc_btn)[^"\']*)["\'](?:[^>]*)?>(.*?)<\/a>/is';
 
 		$match_count = preg_match_all( $pattern, $html, $matches, PREG_SET_ORDER );
 		if ( false !== $match_count && $match_count > 0 ) {
@@ -680,7 +757,8 @@ class SScribe_Content_Parser {
 		$local      = $upload_path . $relative;
 		$real_local = realpath( $local );
 
-		if ( false === $real_local || strpos( $real_local, $upload_path ) !== 0 ) {
+		$safe_upload_path = rtrim( $upload_path, DIRECTORY_SEPARATOR ) . DIRECTORY_SEPARATOR;
+		if ( false === $real_local || ! str_starts_with( $real_local, $safe_upload_path ) ) {
 			return '';
 		}
 

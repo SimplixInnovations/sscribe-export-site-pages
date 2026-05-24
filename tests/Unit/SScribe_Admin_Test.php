@@ -28,7 +28,7 @@ class SScribe_Admin_Test extends TestCase {
 		parent::setUp();
 
 		global $sscribe_test_filters, $sscribe_test_menu_pages, $sscribe_test_styles, $sscribe_test_scripts, $sscribe_test_localized;
-		global $sscribe_test_transients, $sscribe_test_current_user_can, $sscribe_test_is_admin, $sscribe_test_doing_ajax;
+		global $sscribe_test_transients, $sscribe_test_options, $sscribe_test_current_user_can, $sscribe_test_is_admin, $sscribe_test_doing_ajax;
 
 		$sscribe_test_filters          = array();
 		$sscribe_test_menu_pages       = array();
@@ -36,6 +36,7 @@ class SScribe_Admin_Test extends TestCase {
 		$sscribe_test_scripts          = array();
 		$sscribe_test_localized        = array();
 		$sscribe_test_transients       = array();
+		$sscribe_test_options          = array();
 		$sscribe_test_current_user_can = true;
 		$sscribe_test_is_admin         = true;
 		$sscribe_test_doing_ajax       = false;
@@ -118,5 +119,69 @@ class SScribe_Admin_Test extends TestCase {
 		$this->assertTrue( $admin->redirect_called );
 		$this->assertSame( 'http://example.org/wp-admin/admin.php?page=sscribe-export', $admin->redirect_target );
 		$this->assertArrayNotHasKey( 'sscribe_activation_redirect', $sscribe_test_transients );
+	}
+
+	public function test_build_recent_exports_sanitizes_filters_and_maps_language_data(): void {
+		$upload_dir = wp_upload_dir();
+		$export_dir = trailingslashit( $upload_dir['basedir'] ) . 'sscribe-exports/';
+		wp_mkdir_p( $export_dir );
+
+		$valid_file = 'valid-export-FR.zip';
+		file_put_contents( $export_dir . $valid_file, 'zip bytes' );
+
+		$zip_handler = new class() extends \SScribe_Zip_Handler {
+			public function __construct() {}
+
+			public function get_ajax_download_url( string $zip_filename ): string {
+				return 'https://example.org/download?file=' . rawurlencode( $zip_filename );
+			}
+		};
+
+		$admin  = new SScribe_Admin( null, null, $zip_handler );
+		$method = new \ReflectionMethod( $admin, 'build_recent_exports' );
+
+		$rows = $method->invoke(
+			$admin,
+			array(
+				$valid_file              => array(
+					'created_at' => 200,
+					'user_id'    => 1,
+					'lang_code'  => 'fr',
+				),
+				'../../invalid.zip'      => array(
+					'created_at' => 300,
+					'user_id'    => 1,
+					'lang_code'  => 'en',
+				),
+				'not-an-export.txt'      => array(
+					'created_at' => 400,
+					'user_id'    => 1,
+				),
+				'other-user-export.zip'  => array(
+					'created_at' => 500,
+					'user_id'    => 2,
+				),
+				'broken-export.zip'      => 'not-an-array',
+			),
+			$export_dir,
+			true,
+			array(
+				array(
+					'code'     => 'fr',
+					'name'     => 'French',
+					'flag_url' => 'https://example.org/fr.svg',
+				),
+			),
+			1
+		);
+
+		$this->assertCount( 1, $rows );
+		$this->assertSame( $valid_file, $rows[0]['filename'] );
+		$this->assertSame( 'fr', $rows[0]['lang_code'] );
+		$this->assertSame( 'French', $rows[0]['lang_name'] );
+		$this->assertSame( 'https://example.org/fr.svg', $rows[0]['flag_url'] );
+		$this->assertSame( 'https://example.org/download?file=valid-export-FR.zip', $rows[0]['url'] );
+
+		wp_delete_file( $export_dir . $valid_file );
 	}
 }

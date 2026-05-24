@@ -3,6 +3,8 @@
  * SScribe Validator
  *
  * @package SScribe_Export_Site_Pages
+ * @license GPL v2 or later
+ * @link    https://www.gnu.org/licenses/gpl-2.0.html
  */
 
 declare(strict_types=1);
@@ -69,7 +71,7 @@ class SScribe_Validator {
 		}
 
 		if ( in_array( 'pdf', $formats, true ) && ! class_exists( '\\SScribeVendor\\Mpdf\\Mpdf' ) ) {
-			$errors[] = __( 'PDF format selected but mPDF library is not installed. Run composer install.', 'sscribe-export-site-pages' );
+			$errors[] = __( 'PDF export is not available on this server. Please contact your hosting provider or site administrator.', 'sscribe-export-site-pages' );
 		}
 
 		return $errors;

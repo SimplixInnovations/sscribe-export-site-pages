@@ -3,6 +3,8 @@
  * SScribe Settings
  *
  * @package SScribe_Export_Site_Pages
+ * @license GPL v2 or later
+ * @link    https://www.gnu.org/licenses/gpl-2.0.html
  */
 
 declare( strict_types=1 );
@@ -50,11 +52,12 @@ class SScribe_Settings {
 	 * @return bool
 	 */
 	public static function set_debug_enabled( bool $enabled ): bool {
-		$current = (bool) get_option( self::OPT_DEBUG_ENABLED, false );
-		if ( $current === $enabled ) {
+		$current = get_option( self::OPT_DEBUG_ENABLED, false );
+		if ( (bool) $current === $enabled ) {
 			return true;
 		}
-		return update_option( self::OPT_DEBUG_ENABLED, $enabled );
+		$result = update_option( self::OPT_DEBUG_ENABLED, $enabled );
+		return $result || (bool) get_option( self::OPT_DEBUG_ENABLED, false ) === $enabled;
 	}
 
 	/**
@@ -91,7 +94,8 @@ class SScribe_Settings {
 		if ( $current === $level ) {
 			return true;
 		}
-		return update_option( self::OPT_DEBUG_LOG_LEVEL, $level );
+		$result = update_option( self::OPT_DEBUG_LOG_LEVEL, $level );
+		return $result || (string) get_option( self::OPT_DEBUG_LOG_LEVEL, self::LEVEL_DEBUG ) === $level;
 	}
 
 	/**
@@ -110,11 +114,12 @@ class SScribe_Settings {
 	 * @return bool
 	 */
 	public static function set_auto_refresh( bool $enabled ): bool {
-		$current = (bool) get_option( self::OPT_DEBUG_AUTO_REFRESH, true );
-		if ( $current === $enabled ) {
+		$current = get_option( self::OPT_DEBUG_AUTO_REFRESH, true );
+		if ( (bool) $current === $enabled ) {
 			return true;
 		}
-		return update_option( self::OPT_DEBUG_AUTO_REFRESH, $enabled );
+		$result = update_option( self::OPT_DEBUG_AUTO_REFRESH, $enabled );
+		return $result || (bool) get_option( self::OPT_DEBUG_AUTO_REFRESH, true ) === $enabled;
 	}
 
 	/**

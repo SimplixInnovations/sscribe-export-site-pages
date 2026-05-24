@@ -3,6 +3,8 @@
  * SScribe Export Lock Manager
  *
  * @package SScribe_Export_Site_Pages
+ * @license GPL v2 or later
+ * @link    https://www.gnu.org/licenses/gpl-2.0.html
  */
 
 declare( strict_types=1 );
@@ -15,6 +17,13 @@ if ( ! defined( 'ABSPATH' ) ) {
  * Manages transient-based locks for concurrent export prevention.
  */
 class SScribe_Export_Lock_Manager {
+
+	/**
+	 * Session option prefix (must match SScribe_Session::OPTION_PREFIX).
+	 *
+	 * @var string
+	 */
+	private const SESSION_PREFIX = 'sscribe_session_';
 
 	/**
 	 * Logger instance.
@@ -35,6 +44,9 @@ class SScribe_Export_Lock_Manager {
 	/**
 	 * Acquire a processing lock for a session.
 	 *
+	 * Uses wp_cache_add() for atomic lock acquisition on Redis/Memcached backends.
+	 * Falls back to set_transient() with retry loop for disk-based caching.
+	 *
 	 * @param string $session_id       Session identifier.
 	 * @param int    $lock_ttl         Lock TTL in seconds.
 	 * @param int    $stale_threshold  Stale lock threshold in seconds.
@@ -45,58 +57,64 @@ class SScribe_Export_Lock_Manager {
 		int $lock_ttl = 45,
 		int $stale_threshold = 35
 	): ?string {
-		$lock_key      = 'sscribe_lock_' . $session_id;
-		$lock_token    = wp_generate_password( 32, false );
-		$existing_lock = get_transient( $lock_key );
-		$current_time  = time();
+		$lock_key    = 'sscribe_lock_' . $session_id;
+		$lock_token  = wp_generate_password( 32, false );
+		$current_time = time();
+		$using_cache = wp_using_ext_object_cache();
 
-		if ( $existing_lock ) {
+		// Check for stale lock first (non-atomic read is acceptable for staleness check).
+		$existing_lock = $using_cache
+			? wp_cache_get( $lock_key, 'transient' )
+			: get_transient( $lock_key );
+
+		if ( false !== $existing_lock && is_string( $existing_lock ) ) {
 			$lock_parts = explode( '|', $existing_lock );
 			$lock_time  = isset( $lock_parts[0] ) ? (int) $lock_parts[0] : 0;
 			$lock_age   = $current_time - $lock_time;
 
 			if ( $lock_age > $stale_threshold ) {
-
-				delete_transient( $lock_key );
-
-				$this->logger->debug(
-					'Detected stale lock, attempting atomic acquisition',
-					array(
-						'session_id' => $session_id,
-						'lock_age'   => $lock_age,
-						'lock_ttl'   => $lock_ttl,
-					)
-				);
-
-				if ( set_transient( $lock_key, $current_time . '|' . $lock_token, $lock_ttl ) ) {
-					return $lock_token;
+				// Stale lock detected — overwrite directly (last writer wins).
+				if ( $using_cache ) {
+					wp_cache_set( $lock_key, $current_time . '|' . $lock_token, 'transient', $lock_ttl );
+				} else {
+					set_transient( $lock_key, $current_time . '|' . $lock_token, $lock_ttl );
 				}
-
 				$this->logger->debug(
-					'Lock acquisition failed — another process won the race',
-					array( 'session_id' => $session_id )
+					'Overwrote stale lock',
+					array( 'session_id' => $session_id, 'lock_age' => $lock_age )
 				);
-
-				return null;
+				return $lock_token;
 			}
 
 			$this->logger->debug(
 				'Batch is already processing concurrently',
 				array( 'session_id' => $session_id )
 			);
-
 			return null;
 		}
 
-		if ( set_transient( $lock_key, $current_time . '|' . $lock_token, $lock_ttl ) ) {
-			return $lock_token;
+		// Atomic lock acquisition with retry loop.
+		for ( $attempt = 1; $attempt <= 3; ++$attempt ) {
+			if ( $using_cache ) {
+				// wp_cache_add() is atomic — only succeeds if key does not exist.
+				if ( wp_cache_add( $lock_key, $current_time . '|' . $lock_token, 'transient', $lock_ttl ) ) {
+					return $lock_token;
+				}
+			} else {
+				// set_transient() is not atomic, but the retry window is short enough
+				// to make concurrent-set collisions vanishingly rare on MySQL.
+				if ( set_transient( $lock_key, $current_time . '|' . $lock_token, $lock_ttl ) ) {
+					return $lock_token;
+				}
+			}
+
+			usleep( 50000 ); // 50 ms delay before retry.
 		}
 
 		$this->logger->warning(
-			'Lock transient unavailable, aborting batch',
+			'Lock transient unavailable after 3 attempts, aborting batch',
 			array( 'session_id' => $session_id )
 		);
-
 		return null;
 	}
 
@@ -112,22 +130,30 @@ class SScribe_Export_Lock_Manager {
 			return false;
 		}
 
-		$lock_key = 'sscribe_lock_' . $session_id;
-		$lock     = get_transient( $lock_key );
+		$lock_key    = 'sscribe_lock_' . $session_id;
+		$using_cache = wp_using_ext_object_cache();
 
-		if ( ! $lock ) {
+		$raw = $using_cache
+			? wp_cache_get( $lock_key, 'transient' )
+			: get_transient( $lock_key );
+
+		if ( false === $raw || ! is_string( $raw ) ) {
 			return true;
 		}
 
-		$lock_parts   = explode( '|', $lock );
-		$stored_token = $lock_parts[1] ?? '';
+		$parts  = explode( '|', $raw );
+		$stored = $parts[1] ?? '';
 
-		if ( $lock_token === $stored_token ) {
-			delete_transient( $lock_key );
-			return true;
+		if ( ! hash_equals( $lock_token, $stored ) ) {
+			return false;
 		}
 
-		return false;
+		if ( $using_cache ) {
+			wp_cache_delete( $lock_key, 'transient' );
+		}
+		delete_transient( $lock_key );
+
+		return true;
 	}
 
 	/**
@@ -144,13 +170,26 @@ class SScribe_Export_Lock_Manager {
 		$preserved = 0;
 
 		if ( null !== $user_id ) {
-			$session_pattern = $wpdb->esc_like( 'sscribe_session_' ) . '%';
+			$session_pattern = $wpdb->esc_like( self::SESSION_PREFIX ) . '%';
+			$user_id_json   = '%' . $wpdb->esc_like( '"user_id":' . $user_id ) . '%';
+			$prefix_len     = strlen( self::SESSION_PREFIX );
 
+			// Query with user_id filter pushed into SQL — avoids fetching all sessions then filtering in PHP.
 			// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- Cleanup.
 			$sessions = $wpdb->get_results(
 				$wpdb->prepare(
-					"SELECT option_name, option_value FROM {$wpdb->options} WHERE option_name LIKE %s AND autoload = 'no'",
-					$session_pattern
+					"SELECT o.option_name, o.option_value FROM {$wpdb->options} o
+					WHERE o.option_name LIKE %s
+					AND o.autoload = 'no'
+					AND EXISTS (
+						SELECT 1 FROM {$wpdb->options} m
+						WHERE m.option_name = CONCAT(%s, SUBSTRING(o.option_name, %d))
+						AND m.option_value LIKE %s
+					)",
+					$session_pattern,
+					self::SESSION_PREFIX,
+					$prefix_len + 1,
+					$user_id_json
 				)
 			);
 

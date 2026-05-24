@@ -3,6 +3,8 @@
  * SScribe Logger
  *
  * @package SScribe_Export_Site_Pages
+ * @license GPL v2 or later
+ * @link    https://www.gnu.org/licenses/gpl-2.0.html
  */
 
 declare(strict_types=1);
@@ -29,13 +31,6 @@ class SScribe_Logger implements SScribe_Logger_Interface {
 	private static array $instances = array();
 
 	/**
-	 * Current request ID for log correlation.
-	 *
-	 * @var string|null
-	 */
-	private static ?string $request_id = null;
-
-	/**
 	 * Current session ID for log context.
 	 *
 	 * @var string|null
@@ -57,13 +52,6 @@ class SScribe_Logger implements SScribe_Logger_Interface {
 	private readonly string $log_dir;
 
 	/**
-	 * Shutdown handler registration flag.
-	 *
-	 * @var bool
-	 */
-	private bool $shutdown_registered = false;
-
-	/**
 	 * Get logger instance.
 	 *
 	 * @param bool   $enabled Whether logging is enabled.
@@ -72,7 +60,9 @@ class SScribe_Logger implements SScribe_Logger_Interface {
 	 * @return SScribe_Logger_Interface
 	 */
 	public static function instance( bool $enabled = true, string $prefix = 'sscribe', array $options = array() ): SScribe_Logger_Interface {
-		$key = $prefix . '_' . ( $enabled ? '1' : '0' ) . '_' . md5( wp_json_encode( $options ) );
+		$effective_enabled = $enabled || self::is_logging_enabled();
+		$encoded_options   = wp_json_encode( $options );
+		$key               = $prefix . '_' . ( $effective_enabled ? '1' : '0' ) . '_' . md5( false !== $encoded_options ? $encoded_options : '' );
 
 		if ( ! isset( self::$instances[ $key ] ) ) {
 			$use_enhanced = self::should_use_enhanced();
@@ -80,11 +70,24 @@ class SScribe_Logger implements SScribe_Logger_Interface {
 			if ( $use_enhanced && class_exists( 'SScribe_Logger_Enhanced' ) ) {
 				self::$instances[ $key ] = new SScribe_Logger_Enhanced( $options );
 			} else {
-				self::$instances[ $key ] = new self( $enabled, $prefix );
+				self::$instances[ $key ] = new self( $effective_enabled, $prefix );
+			}
+
+			if ( count( self::$instances ) > 10 ) {
+				array_shift( self::$instances );
 			}
 		}
 
 		return self::$instances[ $key ];
+	}
+
+	/**
+	 * Check if logging is effectively enabled.
+	 *
+	 * @return bool True if logging is enabled via constant or settings option.
+	 */
+	public static function is_logging_enabled(): bool {
+		return ( defined( 'SSCRIBE_DEBUG' ) && SSCRIBE_DEBUG ) || SScribe_Settings::is_debug_enabled();
 	}
 
 	/**
@@ -101,7 +104,7 @@ class SScribe_Logger implements SScribe_Logger_Interface {
 			return true;
 		}
 
-		if ( defined( 'WP_DEBUG' ) && WP_DEBUG && defined( 'SSCRIBE_DEBUG' ) && SSCRIBE_DEBUG ) {
+		if ( ( defined( 'WP_DEBUG' ) && WP_DEBUG && defined( 'SSCRIBE_DEBUG' ) && SSCRIBE_DEBUG ) || SScribe_Settings::is_debug_enabled() ) {
 			return true;
 		}
 
@@ -122,7 +125,6 @@ class SScribe_Logger implements SScribe_Logger_Interface {
 		$this->log_dir = $upload_dir['basedir'] . '/sscribe-logs';
 
 		if ( $this->enabled ) {
-			$this->shutdown_registered = true;
 			add_action( 'shutdown', array( $this, 'flush' ) );
 		}
 	}
@@ -289,7 +291,7 @@ class SScribe_Logger implements SScribe_Logger_Interface {
 			'plugin_version' => defined( 'SSCRIBE_VERSION' ) ? (string) SSCRIBE_VERSION : 'unknown',
 			'php_version'    => PHP_VERSION,
 			'memory_usage'   => size_format( memory_get_usage( true ) ),
-			'request_id'     => self::get_request_id(),
+			'request_id'     => $this->get_request_id(),
 		);
 
 		if ( null !== $this->session_id ) {
@@ -297,19 +299,6 @@ class SScribe_Logger implements SScribe_Logger_Interface {
 		}
 
 		return $context;
-	}
-
-	/**
-	 * Get or generate request ID.
-	 *
-	 * @return string Request identifier.
-	 */
-	private static function get_request_id(): string {
-		if ( null === self::$request_id ) {
-			self::$request_id = substr( md5( microtime( true ) . (string) random_int( 0, PHP_INT_MAX ) ), 0, 12 );
-		}
-
-		return self::$request_id;
 	}
 
 	/**
@@ -369,16 +358,27 @@ class SScribe_Logger implements SScribe_Logger_Interface {
 	}
 
 	/**
-	 * Clear log buffer and delete log file.
+	 * Clear log buffer and delete all log files (including rotated).
 	 */
 	public function clear_logs(): void {
 		$this->buffer = array();
 		if ( ! $this->enabled ) {
 			return;
 		}
-		$log_file = $this->get_log_file();
-		if ( file_exists( $log_file ) ) {
-			wp_delete_file( $log_file );
+		$upload_dir = wp_upload_dir();
+		$log_dir    = $upload_dir['basedir'] . '/sscribe-logs';
+
+		if ( ! is_dir( $log_dir ) ) {
+			return;
+		}
+
+		$files = glob( $log_dir . '/*_debug_*.log' );
+		if ( is_array( $files ) ) {
+			foreach ( $files as $file ) {
+				if ( file_exists( $file ) ) {
+					wp_delete_file( $file );
+				}
+			}
 		}
 	}
 
@@ -405,7 +405,8 @@ class SScribe_Logger implements SScribe_Logger_Interface {
 			foreach ( $files as $file ) {
 				$file_time = filemtime( $file );
 				if ( $file_time && ( $now - $file_time ) > $max_age ) {
-					if ( wp_delete_file( $file ) ) {
+					wp_delete_file( $file );
+					if ( ! file_exists( $file ) ) {
 						++$deleted;
 					}
 				}

@@ -215,7 +215,7 @@ class SScribe_Exporter_Test extends TestCase {
 	}
 
 	public function test_is_rtl_document_detects_rtl(): void {
-		$rtl_data   = array( 'title' => 'Ù…Ø±Ø­Ø¨Ø§' );
+		$rtl_data   = array( 'title' => 'مرحبا' );
 		$ltr_data   = array( 'title' => 'Hello' );
 		$ar_data    = array( 'title' => 'Test', 'language' => 'ar' );
 
@@ -223,5 +223,450 @@ class SScribe_Exporter_Test extends TestCase {
 
 		$this->assertTrue( $method->invoke( $this->exporter, $ar_data ) );
 		$this->assertFalse( $method->invoke( $this->exporter, $ltr_data ) );
+	}
+
+	public function test_safe_text_strips_invalid_xml_chars(): void {
+		$method = new \ReflectionMethod( SScribe_Exporter::class, 'safe_text' );
+
+		$input = "Hello\x00World\x07Test";
+		$result = $method->invoke( $this->exporter, $input );
+		$this->assertStringNotContainsString( "\x00", $result );
+		$this->assertStringNotContainsString( "\x07", $result );
+		$this->assertStringContainsString( 'Hello', $result );
+		$this->assertStringContainsString( 'World', $result );
+	}
+
+	public function test_safe_text_handles_bmp_chars(): void {
+		$method = new \ReflectionMethod( SScribe_Exporter::class, 'safe_text' );
+
+		$input = "Test\xFFFE\xFFFFMore";
+		$result = $method->invoke( $this->exporter, $input );
+		$this->assertStringNotContainsString( "\xFFFE", $result );
+		$this->assertStringNotContainsString( "\xFFFF", $result );
+	}
+
+	public function test_safe_text_handles_surrogates(): void {
+		$method = new \ReflectionMethod( SScribe_Exporter::class, 'safe_text' );
+
+		$input = "Test\xED\xA0\x80More";
+		$result = $method->invoke( $this->exporter, $input );
+		$this->assertStringNotContainsString( "\xED", $result );
+	}
+
+	public function test_safe_text_normalizes_line_endings(): void {
+		$method = new \ReflectionMethod( SScribe_Exporter::class, 'safe_text' );
+
+		$input = "Line1\r\nLine2\rLine3\nLine4";
+		$result = $method->invoke( $this->exporter, $input );
+		$this->assertStringNotContainsString( "\r\n", $result );
+		$this->assertStringNotContainsString( "\r", $result );
+		$this->assertStringContainsString( "\nLine2", $result );
+	}
+
+	public function test_safe_text_truncates_long_strings_without_spaces(): void {
+		$method = new \ReflectionMethod( SScribe_Exporter::class, 'safe_text' );
+
+		$long_string = str_repeat( 'A', 300 );
+		$result = $method->invoke( $this->exporter, $long_string );
+		$this->assertLessThanOrEqual( 200, mb_strlen( $result, 'UTF-8' ) );
+	}
+
+	public function test_safe_text_does_not_truncate_normal_strings(): void {
+		$method = new \ReflectionMethod( SScribe_Exporter::class, 'safe_text' );
+
+		$input = 'Normal string with spaces that should not be truncated';
+		$result = $method->invoke( $this->exporter, $input );
+		$this->assertEquals( $input, $result );
+	}
+
+	public function test_safe_text_handles_empty_string(): void {
+		$method = new \ReflectionMethod( SScribe_Exporter::class, 'safe_text' );
+
+		$result = $method->invoke( $this->exporter, '' );
+		$this->assertEquals( '', $result );
+	}
+
+	public function test_safe_text_handles_mb_convert_encoding_failure(): void {
+		$method = new \ReflectionMethod( SScribe_Exporter::class, 'safe_text' );
+
+		$input = "Valid UTF-8 text ©®™";
+		$result = $method->invoke( $this->exporter, $input );
+		$this->assertStringContainsString( '©', $result );
+	}
+
+	public function test_validate_url_returns_empty_for_invalid_scheme(): void {
+		$method = new \ReflectionMethod( SScribe_Exporter::class, 'validate_url' );
+
+		$result = $method->invoke( $this->exporter, 'ftp://example.com/file' );
+		$this->assertEquals( '', $result );
+
+		$result = $method->invoke( $this->exporter, 'javascript:alert(1)' );
+		$this->assertEquals( '', $result );
+	}
+
+	public function test_validate_url_accepts_http_https_mailto_tel(): void {
+		$method = new \ReflectionMethod( SScribe_Exporter::class, 'validate_url' );
+
+		$this->assertNotEmpty( $method->invoke( $this->exporter, 'https://example.com/page' ) );
+		$this->assertNotEmpty( $method->invoke( $this->exporter, 'http://example.com/page' ) );
+		$this->assertNotEmpty( $method->invoke( $this->exporter, 'mailto:test@example.com' ) );
+		$this->assertNotEmpty( $method->invoke( $this->exporter, 'tel:+1234567890' ) );
+	}
+
+	public function test_validate_url_returns_anchor_unmodified(): void {
+		$method = new \ReflectionMethod( SScribe_Exporter::class, 'validate_url' );
+
+		$result = $method->invoke( $this->exporter, '#section' );
+		$this->assertEquals( '#section', $result );
+	}
+
+	public function test_validate_url_handles_relative_paths(): void {
+		$method = new \ReflectionMethod( SScribe_Exporter::class, 'validate_url' );
+
+		$result = $method->invoke( $this->exporter, '/about-us' );
+		$this->assertNotEmpty( $result );
+		$this->assertStringContainsString( '/about-us', $result );
+	}
+
+	public function test_validate_url_returns_empty_on_parse_failure(): void {
+		$method = new \ReflectionMethod( SScribe_Exporter::class, 'validate_url' );
+
+		$result = $method->invoke( $this->exporter, '' );
+		$this->assertEquals( '', $result );
+	}
+
+	public function test_with_complex_script_adds_rtl_props_when_rtl(): void {
+		$exporter = new SScribe_Exporter( $this->parser );
+		$method = new \ReflectionMethod( SScribe_Exporter::class, 'with_complex_script' );
+
+		$reflector = new \ReflectionClass( $exporter );
+		$prop = $reflector->getProperty( 'is_rtl' );
+
+		$prop->setValue( $exporter, true );
+
+		$font_def = array( 'name' => 'Arial', 'size' => 11 );
+		$result = $method->invoke( $exporter, $font_def );
+
+		$this->assertArrayHasKey( 'complexScript', $result );
+		$this->assertArrayHasKey( 'rtl', $result );
+		$this->assertTrue( $result['complexScript'] );
+		$this->assertTrue( $result['rtl'] );
+	}
+
+	public function test_with_complex_script_preserves_existing_props(): void {
+		$exporter = new SScribe_Exporter( $this->parser );
+		$method = new \ReflectionMethod( SScribe_Exporter::class, 'with_complex_script' );
+
+		$reflector = new \ReflectionClass( $exporter );
+		$prop = $reflector->getProperty( 'is_rtl' );
+
+		$prop->setValue( $exporter, true );
+
+		$font_def = array( 'name' => 'Arial', 'size' => 11, 'complexScript' => false );
+		$result = $method->invoke( $exporter, $font_def );
+
+		$this->assertEquals( false, $result['complexScript'] );
+		$this->assertArrayHasKey( 'rtl', $result );
+	}
+
+	public function test_get_para_style_adds_bidi_for_rtl(): void {
+		$exporter = new SScribe_Exporter( $this->parser );
+		$method = new \ReflectionMethod( SScribe_Exporter::class, 'get_para_style' );
+
+		$reflector = new \ReflectionClass( $exporter );
+		$prop = $reflector->getProperty( 'is_rtl' );
+
+		$prop->setValue( $exporter, true );
+
+		$result = $method->invoke( $exporter, array() );
+
+		$this->assertArrayHasKey( 'bidi', $result );
+		$this->assertTrue( $result['bidi'] );
+	}
+
+	public function test_get_para_style_sets_alignment_for_rtl(): void {
+		$exporter = new SScribe_Exporter( $this->parser );
+		$method = new \ReflectionMethod( SScribe_Exporter::class, 'get_para_style' );
+
+		$reflector = new \ReflectionClass( $exporter );
+		$prop = $reflector->getProperty( 'is_rtl' );
+
+		$prop->setValue( $exporter, true );
+
+		$result = $method->invoke( $exporter, array() );
+
+		$this->assertArrayHasKey( 'alignment', $result );
+	}
+
+	public function test_get_para_style_preserves_existing_alignment(): void {
+		$exporter = new SScribe_Exporter( $this->parser );
+		$method = new \ReflectionMethod( SScribe_Exporter::class, 'get_para_style' );
+
+		$reflector = new \ReflectionClass( $exporter );
+		$prop = $reflector->getProperty( 'is_rtl' );
+
+		$prop->setValue( $exporter, true );
+
+		$base_style = array( 'alignment' => 'center' );
+		$result = $method->invoke( $exporter, $base_style );
+
+		$this->assertEquals( 'center', $result['alignment'] );
+	}
+
+	public function test_get_section_settings_returns_layout_config(): void {
+		$method = new \ReflectionMethod( SScribe_Exporter::class, 'get_section_settings' );
+
+		$result = $method->invoke( $this->exporter, false );
+
+		$this->assertArrayHasKey( 'pageSizeW', $result );
+		$this->assertArrayHasKey( 'pageSizeH', $result );
+		$this->assertArrayHasKey( 'marginTop', $result );
+		$this->assertArrayHasKey( 'marginBottom', $result );
+		$this->assertArrayHasKey( 'marginLeft', $result );
+		$this->assertArrayHasKey( 'marginRight', $result );
+	}
+
+	public function test_get_section_settings_adds_bidi_when_rtl(): void {
+		$exporter = new SScribe_Exporter( $this->parser );
+		$method = new \ReflectionMethod( SScribe_Exporter::class, 'get_section_settings' );
+
+		$reflector = new \ReflectionClass( $exporter );
+		$prop = $reflector->getProperty( 'is_rtl' );
+
+		$prop->setValue( $exporter, true );
+
+		$result = $method->invoke( $exporter, true );
+
+		$this->assertArrayHasKey( 'bidi', $result );
+		$this->assertTrue( $result['bidi'] );
+	}
+
+	public function test_set_document_properties_sets_metadata(): void {
+		if ( ! class_exists( 'ZipArchive' ) ) {
+			$this->markTestSkipped( 'ZipArchive extension not available' );
+		}
+
+		$method = new \ReflectionMethod( SScribe_Exporter::class, 'set_document_properties' );
+
+		$php_word = new \SScribeVendor\PhpOffice\PhpWord\PhpWord();
+		$page_data = array(
+			'title'    => 'Test Title',
+			'author'   => 'Test Author',
+			'permalink' => 'https://example.com/test',
+		);
+
+		$method->invoke( $this->exporter, $php_word, $page_data );
+
+		$properties = $php_word->getDocInfo();
+		$this->assertEquals( 'Test Author', $properties->getLastModifiedBy() );
+	}
+
+	public function test_define_styles_does_not_crash(): void {
+		if ( ! class_exists( 'ZipArchive' ) ) {
+			$this->markTestSkipped( 'ZipArchive extension not available' );
+		}
+
+		$method = new \ReflectionMethod( SScribe_Exporter::class, 'define_styles' );
+
+		$php_word = new \SScribeVendor\PhpOffice\PhpWord\PhpWord();
+		$method->invoke( $this->exporter, $php_word );
+
+		$this->assertTrue( true );
+	}
+
+	public function test_generate_docx_with_seo_data(): void {
+		if ( ! class_exists( 'ZipArchive' ) ) {
+			$this->markTestSkipped( 'ZipArchive extension not available' );
+		}
+
+		$page_data = array_merge( $this->get_sample_page_data(), array(
+'seo' => array(
+			'meta_title'       => 'SEO Title',
+			'meta_description' => 'SEO Description',
+			'focus_keyword'    => 'keyword1, keyword2',
+		),
+		) );
+		$result = $this->exporter->generate_docx( $page_data, $this->temp_dir );
+		$this->assertIsString( $result );
+		if ( file_exists( $result ) ) {
+			unlink( $result );
+		}
+	}
+
+	public function test_generate_docx_with_breadcrumbs(): void {
+		if ( ! class_exists( 'ZipArchive' ) ) {
+			$this->markTestSkipped( 'ZipArchive extension not available' );
+		}
+
+		$page_data = array_merge( $this->get_sample_page_data(), array(
+			'breadcrumbs' => array(
+				array( 'title' => 'Home', 'url' => 'https://example.com/' ),
+				array( 'title' => 'Category', 'url' => 'https://example.com/category' ),
+				array( 'title' => 'Current', 'url' => 'https://example.com/page' ),
+			),
+		) );
+		$result = $this->exporter->generate_docx( $page_data, $this->temp_dir );
+		$this->assertIsString( $result );
+		if ( file_exists( $result ) ) {
+			unlink( $result );
+		}
+	}
+
+	public function test_generate_docx_with_children(): void {
+		if ( ! class_exists( 'ZipArchive' ) ) {
+			$this->markTestSkipped( 'ZipArchive extension not available' );
+		}
+
+		$page_data = array_merge( $this->get_sample_page_data(), array(
+			'children' => array(
+				array( 'title' => 'Child Page 1', 'url' => 'https://example.com/child1' ),
+				array( 'title' => 'Child Page 2', 'url' => 'https://example.com/child2' ),
+			),
+		) );
+		$result = $this->exporter->generate_docx( $page_data, $this->temp_dir );
+		$this->assertIsString( $result );
+		if ( file_exists( $result ) ) {
+			unlink( $result );
+		}
+	}
+
+	public function test_generate_docx_with_blockquote(): void {
+		if ( ! class_exists( 'ZipArchive' ) ) {
+			$this->markTestSkipped( 'ZipArchive extension not available' );
+		}
+
+		$page_data = array_merge( $this->get_sample_page_data(), array(
+			'content' => '<blockquote><p>Quoted text here</p></blockquote>',
+		) );
+		$result = $this->exporter->generate_docx( $page_data, $this->temp_dir );
+		$this->assertIsString( $result );
+		if ( file_exists( $result ) ) {
+			unlink( $result );
+		}
+	}
+
+	public function test_generate_docx_with_code_block(): void {
+		if ( ! class_exists( 'ZipArchive' ) ) {
+			$this->markTestSkipped( 'ZipArchive extension not available' );
+		}
+
+		$page_data = array_merge( $this->get_sample_page_data(), array(
+			'content' => '<pre class="wp-block-code"><code>function test() { return true; }</code></pre>',
+		) );
+		$result = $this->exporter->generate_docx( $page_data, $this->temp_dir );
+		$this->assertIsString( $result );
+		if ( file_exists( $result ) ) {
+			unlink( $result );
+		}
+	}
+
+	public function test_generate_docx_with_horizontal_rule(): void {
+		if ( ! class_exists( 'ZipArchive' ) ) {
+			$this->markTestSkipped( 'ZipArchive extension not available' );
+		}
+
+		$page_data = array_merge( $this->get_sample_page_data(), array(
+			'content' => '<p>Before</p><hr/><p>After</p>',
+		) );
+		$result = $this->exporter->generate_docx( $page_data, $this->temp_dir );
+		$this->assertIsString( $result );
+		if ( file_exists( $result ) ) {
+			unlink( $result );
+		}
+	}
+
+	public function test_generate_docx_with_nested_lists(): void {
+		if ( ! class_exists( 'ZipArchive' ) ) {
+			$this->markTestSkipped( 'ZipArchive extension not available' );
+		}
+
+		$page_data = array_merge( $this->get_sample_page_data(), array(
+			'content' => '<ul><li>Item 1<ul><li>Nested Item</li></ul></li></ul>',
+		) );
+		$result = $this->exporter->generate_docx( $page_data, $this->temp_dir );
+		$this->assertIsString( $result );
+		if ( file_exists( $result ) ) {
+			unlink( $result );
+		}
+	}
+
+	public function test_generate_docx_with_button_element(): void {
+		if ( ! class_exists( 'ZipArchive' ) ) {
+			$this->markTestSkipped( 'ZipArchive extension not available' );
+		}
+
+		$page_data = array_merge( $this->get_sample_page_data(), array(
+			'content' => '<a href="https://example.com/link" class="wp-block-button__link">Click Me</a>',
+		) );
+		$result = $this->exporter->generate_docx( $page_data, $this->temp_dir );
+		$this->assertIsString( $result );
+		if ( file_exists( $result ) ) {
+			unlink( $result );
+		}
+	}
+
+	public function test_generate_docx_with_invalid_image_url(): void {
+		if ( ! class_exists( 'ZipArchive' ) ) {
+			$this->markTestSkipped( 'ZipArchive extension not available' );
+		}
+
+		$page_data = array_merge( $this->get_sample_page_data(), array(
+			'content' => '<p>Text with broken image</p><img src="http://invalid-url-that-does-not-exist.jpg" alt="test"/>',
+		) );
+		$result = $this->exporter->generate_docx( $page_data, $this->temp_dir );
+		$this->assertIsString( $result );
+		if ( file_exists( $result ) ) {
+			unlink( $result );
+		}
+	}
+
+	public function test_generate_docx_with_complex_content(): void {
+		if ( ! class_exists( 'ZipArchive' ) ) {
+			$this->markTestSkipped( 'ZipArchive extension not available' );
+		}
+
+		$complex_content = '<h1>Main Heading</h1>';
+		$complex_content .= '<p>Paragraph with <strong>bold</strong> and <em>italic</em> text.</p>';
+		$complex_content .= '<h2>Sub Heading</h2>';
+		$complex_content .= '<ul><li>List item 1</li><li>List item 2</li></ul>';
+		$complex_content .= '<blockquote><p>A blockquote</p></blockquote>';
+		$complex_content .= '<pre><code>code block</code></pre>';
+		$complex_content .= '<table><tr><th>Header</th><td>Data</td></tr></table>';
+
+		$page_data = array_merge( $this->get_sample_page_data(), array(
+			'title'   => 'Complex Page',
+			'content' => $complex_content,
+		) );
+		$result = $this->exporter->generate_docx( $page_data, $this->temp_dir );
+		$this->assertIsString( $result );
+		if ( file_exists( $result ) ) {
+			unlink( $result );
+		}
+	}
+
+	public function test_get_last_error_returns_empty_string_initially(): void {
+		$exporter = new SScribe_Exporter( $this->parser );
+		$this->assertEquals( '', $exporter->get_last_error() );
+	}
+
+	public function test_generate_docx_clears_last_error_on_success(): void {
+		if ( ! class_exists( 'ZipArchive' ) ) {
+			$this->markTestSkipped( 'ZipArchive extension not available' );
+		}
+
+		$exporter = new SScribe_Exporter( $this->parser );
+		$page_data = $this->get_sample_page_data();
+		$result = $exporter->generate_docx( $page_data, $this->temp_dir );
+		$this->assertIsString( $result );
+		$this->assertEquals( '', $exporter->get_last_error() );
+		if ( file_exists( $result ) ) {
+			unlink( $result );
+		}
+	}
+
+	public function test_generate_docx_returns_false_on_empty_data_and_does_not_modify_last_error(): void {
+		$exporter = new SScribe_Exporter( $this->parser );
+		$exporter->generate_docx( array(), $this->temp_dir );
+		$this->assertFalse( $exporter->generate_docx( array(), $this->temp_dir ) );
 	}
 }

@@ -3,6 +3,8 @@
  * SScribe Markdown Exporter
  *
  * @package SScribe_Export_Site_Pages
+ * @license GPL v2 or later
+ * @link    https://www.gnu.org/licenses/gpl-2.0.html
  */
 
 declare(strict_types=1);
@@ -169,8 +171,8 @@ class SScribe_Markdown_Exporter implements SScribe_Exporter_Interface {
 
 		$md .= "---\n";
 		$md .= 'title: "' . $this->escape_yaml_string( $title ) . "\"\n";
-		$md .= 'url: ' . ( $page_data['permalink'] ?? '' ) . "\n";
-		$md .= 'slug: ' . ( $page_data['slug'] ?? '' ) . "\n";
+		$md .= 'url: "' . $this->escape_yaml_string( $page_data['permalink'] ?? '' ) . "\"\n";
+		$md .= 'slug: "' . $this->escape_yaml_string( $page_data['slug'] ?? '' ) . "\"\n";
 		$md .= 'author: "' . $this->escape_yaml_string( $page_data['author'] ?? 'Unknown' ) . "\"\n";
 		$md .= 'published: ' . ( $page_data['date_published'] ?? '' ) . "\n";
 		$md .= 'modified: ' . ( $page_data['date_modified'] ?? '' ) . "\n";
@@ -459,6 +461,8 @@ class SScribe_Markdown_Exporter implements SScribe_Exporter_Interface {
 	/**
 	 * Convert HTML list items to Markdown list items.
 	 *
+	 * Handles nested lists by recursively processing them with increased depth.
+	 *
 	 * @param string $content   List item HTML.
 	 * @param string $list_type List type ('ul' or 'ol').
 	 * @param int    $depth     Nesting depth.
@@ -470,8 +474,20 @@ class SScribe_Markdown_Exporter implements SScribe_Exporter_Interface {
 
 		$result = "\n";
 
+		/*
+		 * Process list items. This regex matches each <li>...</li> including any nested lists.
+		 * The key improvement is that we DON'T strip tags before processing - we handle
+		 * nested lists recursively before stripping.
+		 */
 		if ( preg_match_all( '/<li>(.*?)<\/li>/is', $content, $matches ) ) {
 			foreach ( $matches[1] as $item_content ) {
+				/*
+				 * Before processing this list item, check if it contains nested lists.
+				 * If so, recursively convert them with increased depth.
+				 */
+				$item_content = $this->convert_nested_lists_in_content( $item_content, $depth + 1 );
+
+				// Now strip remaining HTML tags and normalize whitespace.
 				$item_content = wp_strip_all_tags( $item_content );
 				$item_content = trim( preg_replace( '/\s+/', ' ', $item_content ) );
 
@@ -485,6 +501,35 @@ class SScribe_Markdown_Exporter implements SScribe_Exporter_Interface {
 		}
 
 		return $result;
+	}
+
+	/**
+	 * Recursively convert nested lists within list item content.
+	 *
+	 * This handles cases like:
+	 *   <li>Item 1
+	 *     <ul><li>Nested Item</li></ul>
+	 *   </li>
+	 *
+	 * @param string $content HTML content that may contain nested lists.
+	 * @param int    $depth   Current nesting depth.
+	 * @return string Content with nested lists converted to Markdown.
+	 */
+	private function convert_nested_lists_in_content( string $content, int $depth ): string {
+		$max_nested_iterations = 100;
+		$iteration             = 0;
+
+		// Keep processing while there are nested list patterns.
+		while ( preg_match( '/<(ul|ol)>(.*?)<\/\1>/is', $content, $matches, PREG_OFFSET_CAPTURE ) && $iteration < $max_nested_iterations ) {
+			$nested_list_type    = $matches[1][0];
+			$nested_list_content = $matches[2][0];
+			$nested_converted    = $this->convert_list_items( $nested_list_content, $nested_list_type, $depth );
+
+			$content = substr_replace( $content, $nested_converted, $matches[0][1], strlen( $matches[0][0] ) );
+			++$iteration;
+		}
+
+		return $content;
 	}
 
 	/**

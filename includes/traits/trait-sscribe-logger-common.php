@@ -3,6 +3,8 @@
  * SScribe Logger Common Trait
  *
  * @package SScribe_Export_Site_Pages
+ * @license GPL v2 or later
+ * @link    https://www.gnu.org/licenses/gpl-2.0.html
  */
 
 declare(strict_types=1);
@@ -15,6 +17,13 @@ if ( ! defined( 'ABSPATH' ) ) {
  * Shared logging utilities for logger implementations.
  */
 trait SScribe_Logger_Common {
+
+	/**
+	 * Cached request ID for this request.
+	 *
+	 * @var string|null
+	 */
+	private ?string $cached_request_id = null;
 
 	/**
 	 * Enrich log context with runtime metadata.
@@ -31,11 +40,14 @@ trait SScribe_Logger_Common {
 	}
 
 	/**
-	 * Generate a unique request identifier.
+	 * Generate a unique request identifier (cached per request).
 	 *
 	 * @return string 12-character hex request ID.
 	 */
 	protected function get_request_id(): string {
-		return substr( md5( microtime( true ) . (string) random_int( 0, PHP_INT_MAX ) ), 0, 12 );
+		if ( null === $this->cached_request_id ) {
+			$this->cached_request_id = substr( md5( microtime( true ) . (string) random_int( 0, PHP_INT_MAX ) ), 0, 12 );
+		}
+		return $this->cached_request_id;
 	}
 }

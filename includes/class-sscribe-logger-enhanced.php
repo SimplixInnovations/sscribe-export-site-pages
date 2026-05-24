@@ -1,8 +1,10 @@
 <?php
 /**
- * SScribe Enhanced Logger
+ * SScribe Logger Enhanced
  *
  * @package SScribe_Export_Site_Pages
+ * @license GPL v2 or later
+ * @link    https://www.gnu.org/licenses/gpl-2.0.html
  */
 
 declare(strict_types=1);
@@ -115,11 +117,19 @@ class SScribe_Logger_Enhanced implements SScribe_Logger_Interface {
 		$this->log_dir    = $upload_dir['basedir'] . '/sscribe-logs';
 		$this->table_name = $GLOBALS['wpdb']->prefix . 'sscribe_export_logs';
 		$this->request_id = substr( md5( microtime( true ) . (string) random_int( 0, PHP_INT_MAX ) ), 0, 12 );
+		$this->table_exists_cache = null;
 
 		if ( $this->enable_file || $this->enable_db ) {
 			add_action( 'shutdown', array( $this, 'flush' ) );
 		}
 	}
+
+	/**
+	 * Cached table existence result.
+	 *
+	 * @var bool|null
+	 */
+	private ?bool $table_exists_cache = null;
 
 	/**
 	 * Get request identifier.
@@ -422,10 +432,13 @@ class SScribe_Logger_Enhanced implements SScribe_Logger_Interface {
 	private function table_exists(): bool {
 		global $wpdb;
 
-		$table = $this->table_name;
-		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
-		$result = $wpdb->get_var( $wpdb->prepare( 'SELECT COUNT(*) FROM %s', $table ) );
-		return null !== $result;
+		if ( null === $this->table_exists_cache ) {
+			// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- Schema introspection, cached via instance property
+			$result = $wpdb->get_var( $wpdb->prepare( 'SHOW TABLES LIKE %s', $this->table_name ) );
+			$this->table_exists_cache = ( $result === $this->table_name );
+		}
+
+		return $this->table_exists_cache;
 	}
 
 	/**
@@ -461,7 +474,7 @@ class SScribe_Logger_Enhanced implements SScribe_Logger_Interface {
 	 */
 	private function get_log_file(): string {
 		$date = gmdate( 'Y-m-d' );
-		return trailingslashit( $this->log_dir ) . "sscribe_{$date}.log";
+		return trailingslashit( $this->log_dir ) . "sscribe_debug_{$date}.log";
 	}
 
 	/**
@@ -471,7 +484,22 @@ class SScribe_Logger_Enhanced implements SScribe_Logger_Interface {
 	 * @return array Log entries.
 	 */
 	public function get_logs( int $limit = 100 ): array {
-		return $this->get_db_logs( array(), $limit );
+		$entries = $this->get_db_logs( array(), $limit );
+
+		return array_map(
+			function ( object $row ): string {
+				$context = json_decode( $row->context, true ) ?: array();
+				$context_str = $context ? ' | ' . wp_json_encode( $context ) : '';
+				return sprintf(
+					'[%s] [%s] %s%s',
+					$row->timestamp,
+					strtoupper( $row->level ),
+					$row->message,
+					$context_str
+				);
+			},
+			$entries
+		);
 	}
 
 	/**
@@ -491,9 +519,12 @@ class SScribe_Logger_Enhanced implements SScribe_Logger_Interface {
 	/**
 	 * Get log entries from database with optional filters.
 	 *
+	 * Note: This method returns raw database row objects, not formatted strings.
+	 * For formatted string output, use get_logs() which calls this method internally.
+	 *
 	 * @param array $filters Filter criteria (level, user_id, date_from, date_to).
 	 * @param int   $limit   Maximum number of entries.
-	 * @return array Log entries.
+	 * @return object[] Array of raw database row objects with timestamp, level, message, context, session_id, request_id properties.
 	 */
 	public function get_db_logs( array $filters = array(), int $limit = 100 ): array {
 		global $wpdb;

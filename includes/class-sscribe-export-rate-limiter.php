@@ -3,6 +3,8 @@
  * SScribe Export Rate Limiter
  *
  * @package SScribe_Export_Site_Pages
+ * @license GPL v2 or later
+ * @link    https://www.gnu.org/licenses/gpl-2.0.html
  */
 
 declare( strict_types=1 );
@@ -23,6 +25,8 @@ class SScribe_Export_Rate_Limiter {
 	/**
 	 * Check if current user/IP is within rate limits.
 	 *
+	 * Uses micro-lock pattern to prevent race conditions on concurrent requests.
+	 *
 	 * @param string $export_capability Required capability.
 	 * @return bool
 	 */
@@ -38,11 +42,33 @@ class SScribe_Export_Rate_Limiter {
 			$transient_key = 'sscribe_rate_anon_' . substr( hash( 'sha256', $remote_ip ), 0, 12 );
 		}
 
-		$now = time();
+		$now       = time();
+		$lock_key  = $transient_key . '_lock';
 
 		$rate_limit = current_user_can( $export_capability )
-			? (int) apply_filters( 'sscribe_rate_limit_admin', 1000 )
+			? (int) apply_filters( 'sscribe_rate_limit_admin', 100 )
 			: self::RATE_LIMIT_MAX;
+
+		// Acquire micro-lock with retries.
+		$locked = false;
+		for ( $i = 0; $i < 3; $i++ ) {
+			if ( wp_using_ext_object_cache() ) {
+				$locked = wp_cache_add( $lock_key, 1, '', 2 );
+			} else {
+				$existing_lock = get_transient( $lock_key );
+				if ( false === $existing_lock ) {
+					$locked = set_transient( $lock_key, 1, 2 );
+				}
+			}
+			if ( $locked ) {
+				break;
+			}
+			usleep( 50000 );
+		}
+
+		if ( ! $locked ) {
+			return false;
+		}
 
 		$data = get_transient( $transient_key );
 
@@ -61,12 +87,23 @@ class SScribe_Export_Rate_Limiter {
 		}
 
 		if ( $data['count'] >= $rate_limit ) {
+			if ( wp_using_ext_object_cache() ) {
+				wp_cache_delete( $lock_key, '' );
+			} else {
+				delete_transient( $lock_key );
+			}
 			return false;
 		}
 
 		++$data['count'];
 
 		set_transient( $transient_key, $data, self::RATE_LIMIT_WINDOW + 5 );
+
+		if ( wp_using_ext_object_cache() ) {
+			wp_cache_delete( $lock_key, '' );
+		} else {
+			delete_transient( $lock_key );
+		}
 
 		return true;
 	}

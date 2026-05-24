@@ -21,6 +21,7 @@ composer.lock
 
 # Testing
 tests/
+fake-wp/
 phpunit.xml*
 phpstan.neon*
 phpstan-baseline.neon
@@ -110,6 +111,7 @@ desktop.ini
 *.log
 *.tmp
 *.bak
+test-phpcs-output.txt
 
 # Environment
 .env

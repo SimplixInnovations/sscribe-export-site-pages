@@ -23,7 +23,7 @@ for ( $i = 0; $i < $zip->numFiles; $i++ ) {
 echo "=== WordPress.org Submission Checklist ===\n\n";
 
 $checks = array(
-	'LICENSE file'          => 'sscribe-export-site-pages/LICENSE',
+	'license.txt'           => 'sscribe-export-site-pages/license.txt',
 	'readme.txt'            => 'sscribe-export-site-pages/readme.txt',
 	'Main plugin file'      => 'sscribe-export-site-pages/sscribe-export-site-pages.php',
 	'uninstall.php'         => 'sscribe-export-site-pages/uninstall.php',

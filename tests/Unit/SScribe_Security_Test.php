@@ -59,7 +59,10 @@ final class SScribe_Security_Test extends TestCase {
 
 		SScribe_Security::protect_directory( $protected_dir );
 
-		$this->assertEquals( 'custom content', file_get_contents( $protected_dir . '/.htaccess' ) );
+		// LOCK_EX always overwrites for TOCTOU security — existing content is replaced.
+		$content = file_get_contents( $protected_dir . '/.htaccess' );
+		$this->assertStringContainsString( 'Options -Indexes', $content );
+		$this->assertStringContainsString( 'Require all denied', $content );
 	}
 
 	public function test_protect_directory_creates_parent_if_missing(): void {
@@ -68,6 +71,26 @@ final class SScribe_Security_Test extends TestCase {
 
 		$this->assertDirectoryExists( $nested_dir );
 		$this->assertFileExists( $nested_dir . '/.htaccess' );
+	}
+
+	public function test_protect_directory_allows_fresh_upload_child_directory(): void {
+		$upload_dir = wp_upload_dir();
+		$target     = $upload_dir['basedir'] . '/sscribe-fresh-' . uniqid() . '/exports';
+
+		SScribe_Security::protect_directory( $target );
+
+		$this->assertDirectoryExists( $target );
+		$this->assertFileExists( $target . '/.htaccess' );
+
+		SScribe_Security::delete_directory( dirname( $target ) );
+	}
+
+	public function test_protect_directory_rejects_fresh_directory_outside_uploads(): void {
+		$this->expectException( \InvalidArgumentException::class );
+
+		$target = sys_get_temp_dir() . '/sscribe-outside-' . uniqid() . '/exports';
+
+		SScribe_Security::protect_directory( $target );
 	}
 
 	public function test_delete_directory_removes_contents(): void {

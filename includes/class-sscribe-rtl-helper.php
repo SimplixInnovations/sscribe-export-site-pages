@@ -3,6 +3,8 @@
  * SScribe RTL Helper
  *
  * @package SScribe_Export_Site_Pages
+ * @license GPL v2 or later
+ * @link    https://www.gnu.org/licenses/gpl-2.0.html
  */
 
 declare(strict_types=1);
@@ -24,14 +26,14 @@ class SScribe_RTL_Helper {
 	private static array $rtl_languages = array(
 		'ar' => true,
 		'he' => true,
+		'iw' => true, // Legacy ISO 639-1 code for Hebrew (same as 'he', used by some older WPML versions)
 		'fa' => true,
 		'ur' => true,
 		'ps' => true,
 		'ku' => true,
 		'sd' => true,
 		'yi' => true,
-		'iw' => true,
-		'ji' => true,
+		'ji' => true, // Legacy ISO 639-1 code for Yiddish (same as 'yi')
 	);
 
 	/**
@@ -61,6 +63,7 @@ class SScribe_RTL_Helper {
 	 */
 	public static function get_all_known_codes(): array {
 		return array(
+			// 2-letter codes (primary)
 			'AR',
 			'EN',
 			'FR',
@@ -107,6 +110,58 @@ class SScribe_RTL_Helper {
 			'YI',
 			'IW',
 			'JI',
+			// 3-letter codes (ISO 639-2)
+			'ARB', // Arabic
+			'ENG', // English
+			'FRA', // French
+			'DEU', // German
+			'SPA', // Spanish
+			'ITA', // Italian
+			'POR', // Portuguese
+			'NLD', // Dutch
+			'RUS', // Russian
+			'ZHO', // Chinese
+			'JPN', // Japanese
+			'KOR', // Korean
+			'HEB', // Hebrew
+			'FAS', // Persian
+			'URD', // Urdu
+			'TUR', // Turkish
+			'POL', // Polish
+			'SWE', // Swedish
+			'DAN', // Danish
+			'FIN', // Finnish
+			'NOR', // Norwegian (Bokmål)
+			'CES', // Czech
+			'SLK', // Slovak
+			'HUN', // Hungarian
+			'RON', // Romanian
+			'BUL', // Bulgarian
+			'HRV', // Croatian
+			'SRP', // Serbian
+			'UKR', // Ukrainian
+			'VIE', // Vietnamese
+			'THA', // Thai
+			'IND', // Indonesian
+			'MSA', // Malay
+			'ELL', // Greek
+			'HIN', // Hindi
+			'BEN', // Bengali
+			'LIT', // Lithuanian
+			'LAV', // Latvian
+			'EST', // Estonian
+			'SLV', // Slovenian
+			'PSH', // Pashto
+			'KUR', // Kurdish
+			'SAD', // Sindhi
+			'YID', // Yiddish
+			// Additional 3-letter codes (WPML and common variants)
+			'ZHT', // Traditional Chinese (WPML)
+			'ZHS', // Simplified Chinese
+			'AZE', // Azerbaijani
+			'KAZ', // Kazakh
+			'UZB', // Uzbek
+			'TGL', // Tagalog
 		);
 	}
 
