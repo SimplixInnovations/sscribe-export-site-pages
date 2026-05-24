@@ -86,6 +86,30 @@ class SScribe_Session {
 				return '';
 			}
 
+			// Atomic duplicate-session guard: check user's active-session transient
+			// BEFORE writing the new option. This closes the TOCTOU window between
+			// has_active_session() (called earlier) and actual option creation here.
+			if ( isset( $data['user_id'] ) ) {
+				$transient_key = 'sscribe_active_sid_' . $data['user_id'];
+				$existing      = get_transient( $transient_key );
+				if ( false !== $existing && '0' !== $existing && is_string( $existing ) ) {
+					$existing_data = $this->get( $existing );
+					if ( $existing_data && $this->is_active_session_data( $existing_data ) ) {
+						$this->logger->warning(
+							'Blocked duplicate session creation — user has active session',
+							array(
+								'user_id'           => $data['user_id'],
+								'existing_session'  => $existing,
+								'blocked_attempt'   => $session_id,
+							)
+						);
+						continue;
+					}
+					// Stale transient pointing to expired session — clear it.
+					delete_transient( $transient_key );
+				}
+			}
+
 			$result = add_option( $option_name, $encoded_data, '', 'no' );
 
 			if ( $result ) {
