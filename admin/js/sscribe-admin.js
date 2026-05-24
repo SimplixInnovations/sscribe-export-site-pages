@@ -21,6 +21,7 @@
 		pollBackoffMax: 30000,
 		pollJitter: 200,
 		finalizePollInterval: 2000,
+		_originalTitle: '',
 
 		/**
 		 * Parse a localized integer from text (handles comma/period separators).
@@ -47,6 +48,7 @@
 			if (typeof sscribe_data === 'undefined' || !sscribe_data) {
 				return;
 			}
+			this._originalTitle = document.title;
 			this.bindEvents();
 			this.initializeTabs();
 			this.adjustToastContainerPosition();
@@ -714,8 +716,10 @@
 					}
 				},
 				error: function (xhr) {
-					const msg = SScribe.getNetworkErrorMessage(xhr, 'start_export');
-					SScribe.showError(msg);
+					const serverMsg = SScribe.parseServerError(xhr);
+					const msg = serverMsg || SScribe.getNetworkErrorMessage(xhr, 'start_export');
+					const errData = (xhr.responseJSON && xhr.responseJSON.data) ? xhr.responseJSON.data : {};
+					SScribe.showError(msg, false, SScribe.normalizeErrorData(errData));
 				},
 			});
 		},
@@ -827,8 +831,10 @@
 					if (SScribe.batchRetries <= SScribe.maxBatchRetries) {
 						SScribe.scheduleNextBatch();
 					} else {
-						const msg = SScribe.getNetworkErrorMessage(xhr, 'process_batch');
-						SScribe.showError(msg);
+						const serverMsg = SScribe.parseServerError(xhr);
+						const msg = serverMsg || SScribe.getNetworkErrorMessage(xhr, 'process_batch');
+						const errData = (xhr.responseJSON && xhr.responseJSON.data) ? xhr.responseJSON.data : {};
+						SScribe.showError(msg, false, SScribe.normalizeErrorData(errData));
 					}
 				},
 			});
@@ -873,6 +879,11 @@
 				progressFill.classList.remove('sscribe-progress-bar-fill-finalizing');
 			}
 
+			// Restore original page title.
+			if (this._originalTitle) {
+				document.title = this._originalTitle;
+			}
+
 			// Announce completion to screen readers via polite live region.
 			const liveRegion = document.getElementById('sscribe-live-region');
 			if (liveRegion) {
@@ -884,14 +895,6 @@
 				$('#sscribe-download-btn').attr('href', data.download_url);
 
 				$('html, body').animate({ scrollTop: $('#sscribe-download-area').offset().top - 20 }, 300);
-
-				const $iframe = $('<iframe>').css({ display: 'none', width: 0, height: 0 });
-				$('body').append($iframe);
-				$iframe.attr('src', data.download_url);
-
-				setTimeout(function () {
-					$iframe.remove();
-				}, 30000);
 
 				SScribe.refreshRecentExports();
 			});
@@ -976,7 +979,7 @@
 						}
 
 						if (attempt < maxAttempts) {
-							self.pollFinalize(sessionId, attempt + 1, 2000);
+							self.pollFinalize(sessionId, attempt + 1, self.finalizePollInterval || 2000);
 						} else {
 							self.isProcessing = false;
 							self.showError('Export finalization timed out. Please try again.', false, {});
@@ -998,7 +1001,7 @@
 
 						// For 500 and other errors, retry up to maxAttempts.
 						if (attempt < maxAttempts) {
-							self.pollFinalize(sessionId, attempt + 1, 2000);
+							self.pollFinalize(sessionId, attempt + 1, self.finalizePollInterval || 2000);
 						} else {
 							self.isProcessing = false;
 							const msg = self.getNetworkErrorMessage(xhr, 'finalize_export');
@@ -1221,12 +1224,14 @@
 		bulkDownload: function () {
 			const $checks = $('.sscribe-history-check:checked');
 			if ($checks.length === 0) { return; }
-			$checks.each(function () {
+			$checks.each(function (i) {
 				const $row = $(this).closest('.sscribe-history-row');
 				const $downloadLink = $row.find('.sscribe-history-actions > a');
 				if ($downloadLink.length) {
-					const link = $downloadLink[0];
-					link.click();
+					// Stagger each download to avoid browser popup blocking.
+					setTimeout(function () {
+						$downloadLink[0].click();
+					}, i * 800);
 				}
 			});
 		},
@@ -1861,28 +1866,11 @@
 				return;
 			}
 
-			const originalText = $btn.text();
-			$btn.text(sscribe_data.strings.click_again || 'Click again').prop('disabled', false);
-			$btn.data('confirm-time', Date.now());
-
-			const confirmBtn = $btn;
-			const timeoutId = setTimeout(function() {
-				confirmBtn.text(originalText);
-				confirmBtn.removeData('confirm-time');
-			}, 3000);
-
-			confirmBtn.one('click', (function(e) {
-				e.preventDefault();
-				e.stopPropagation();
-				clearTimeout(timeoutId);
-
-				if (!confirmBtn.data('confirm-time') || Date.now() - confirmBtn.data('confirm-time') > 3000) {
-					confirmBtn.text(originalText);
-					confirmBtn.removeData('confirm-time');
-					return;
-				}
-
-				confirmBtn.removeData('confirm-time');
+			// Check for double-click confirmation.
+			if ($btn.data('sscribe-confirming')) {
+				// Second click — actually delete.
+				$btn.removeData('sscribe-confirming');
+				clearTimeout($btn.data('sscribe-confirm-timeout'));
 				$row.addClass('sscribe-row-deleting');
 				SScribe.deleteSingleExport(filename, function () {
 					$row.fadeOut(200, function () {
@@ -1890,7 +1878,19 @@
 						SScribe.refreshRecentExports();
 					});
 				});
-			})(this));
+				return;
+			}
+
+			// First click — ask for confirmation.
+			const originalText = $btn.text();
+			$btn.data('sscribe-confirming', true).text(sscribe_data.strings.click_again || 'Click again').prop('disabled', false);
+
+			const tid = setTimeout(function () {
+				if ($btn.data('sscribe-confirming')) {
+					$btn.removeData('sscribe-confirming').text(originalText);
+				}
+			}, 3000);
+			$btn.data('sscribe-confirm-timeout', tid);
 		},
 
 		/**
@@ -2186,6 +2186,12 @@
 		 */
 		showError: function (message, isCancelled, errorData) {
 			this.isProcessing = false;
+
+			// Restore original page title.
+			if (this._originalTitle) {
+				document.title = this._originalTitle;
+			}
+
 			$('#sscribe-progress-area').fadeOut(200);
 
 			// Announce error to screen readers via assertive live region.
@@ -2250,6 +2256,36 @@
 		 * @param {string} action The action that failed.
 		 * @returns {string} Error message.
 		 */
+		/**
+		 * Parse server error message from a failed AJAX response.
+		 *
+		 * Server errors (HTTP 4xx/5xx) typically still send JSON with a
+		 * data.message field. This extracts it so the user sees the real
+		 * error instead of a generic status code string.
+		 *
+		 * @param {jqXHR} xhr The jQuery XHR object.
+		 * @returns {string|null} Server message or null.
+		 */
+		parseServerError: function (xhr) {
+			if (!xhr) {
+				return null;
+			}
+			try {
+				if (xhr.responseJSON && xhr.responseJSON.data && xhr.responseJSON.data.message) {
+					return xhr.responseJSON.data.message;
+				}
+				if (xhr.responseText) {
+					const parsed = JSON.parse(xhr.responseText);
+					if (parsed && parsed.data && parsed.data.message) {
+						return parsed.data.message;
+					}
+				}
+			} catch (e) {
+				return null;
+			}
+			return null;
+		},
+
 		getNetworkErrorMessage: function (xhr, _action) {
 			const strings = sscribe_data.strings || {};
 			const status = xhr ? xhr.status : 0;
