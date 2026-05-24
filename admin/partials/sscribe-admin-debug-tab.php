@@ -123,7 +123,7 @@ $show_wp_debug_notice   = ( defined( 'WP_DEBUG' ) && WP_DEBUG );
 	<div class="sscribe-debug-console-card" role="log" aria-live="polite" aria-label="<?php esc_attr_e( 'Debug log entries', 'sscribe-export-site-pages' ); ?>">
 		<div class="sscribe-debug-console-header">
 			<span class="sscribe-debug-console-title"><?php esc_html_e( 'Console Output', 'sscribe-export-site-pages' ); ?></span>
-			<span class="sscribe-debug-console-count" id="sscribe-debug-entry-count"></span>
+			<span class="sscribe-debug-console-count" id="sscribe-debug-entry-count" aria-live="polite"></span>
 		</div>
 		<div class="sscribe-debug-console-body" id="sscribe-debug-console-body">
 			<div class="sscribe-debug-empty" id="sscribe-debug-empty">
