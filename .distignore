@@ -21,6 +21,7 @@ composer.lock
 
 # Testing
 tests/
+fake-wp/
 phpunit.xml*
 phpstan.neon*
 phpstan-baseline.neon
