@@ -41,7 +41,7 @@ class SScribe_Markdown_Exporter implements SScribe_Exporter_Interface {
 	 * @param SScribe_Filesystem|null       $filesystem Filesystem handler.
 	 */
 	public function __construct( ?SScribe_Logger_Interface $logger = null, ?SScribe_Filesystem $filesystem = null ) {
-		$this->logger     = $logger ?? SScribe_Logger::instance( defined( 'SSCRIBE_DEBUG' ) && SSCRIBE_DEBUG );
+		$this->logger     = $logger ?? SScribe_Logger::instance( SSCRIBE_DEBUG );
 		$this->filesystem = $filesystem ?? new SScribe_Filesystem();
 	}
 
