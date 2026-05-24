@@ -136,6 +136,23 @@
 				}
 			} );
 
+			this.$container.on( 'click', '#sscribe-debug-help-btn', function() {
+				const helpContent = document.getElementById( 'sscribe-debug-help-content' );
+				if ( helpContent ) {
+					const overlay = document.createElement( 'div' );
+					overlay.style.cssText = 'position:fixed;inset:0;background:rgb(0 0 0 / 50%);z-index:999998;';
+					const dialog = document.createElement( 'div' );
+					dialog.style.cssText = 'position:fixed;top:50%;left:50%;transform:translate(-50%,-50%);background:#fff;color:#333;padding:24px;border-radius:8px;max-width:400px;z-index:999999;box-shadow:0 8px 32px rgb(0 0 0 / 30%);font-size:14px;line-height:1.6;' ;
+					dialog.innerHTML = helpContent.innerHTML;
+					overlay.addEventListener( 'click', function() {
+						document.body.removeChild( overlay );
+						document.body.removeChild( dialog );
+					} );
+					document.body.appendChild( overlay );
+					document.body.appendChild( dialog );
+				}
+			} );
+
 this.$exportBtn.on( 'click', function() {
 				self.exportLogs();
 			} );
@@ -151,6 +168,12 @@ this.$exportBtn.on( 'click', function() {
 			this.$sessionInput.on( 'input', debounce( 300, function() {
 				self.updateExportButtonScope();
 			} ) );
+
+			document.querySelector( '.sscribe-debug-rotated' ).addEventListener( 'toggle', function( e ) {
+				if ( e.newState === 'open' ) {
+					self.fetchRotatedLogs();
+				}
+			} );
 		},
 
 		bindVisibilityHandler: function() {
