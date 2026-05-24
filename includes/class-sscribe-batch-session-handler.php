@@ -65,12 +65,12 @@ class SScribe_Batch_Session_Handler {
 	/**
 	 * Initialize the session handler.
 	 *
-	 * @param SScribe_Session|null                $session      Session manager.
-	 * @param SScribe_Zip_Handler|null            $zip_handler  ZIP handler.
-	 * @param SScribe_Logger_Interface|null       $logger       Logger.
-	 * @param SScribe_Export_Auditor|null         $auditor      Export auditor.
-	 * @param SScribe_Export_Rate_Limiter|null    $rate_limiter Rate limiter.
-	 * @param SScribe_Export_Lock_Manager|null    $lock_manager Lock manager.
+	 * @param SScribe_Session|null             $session      Session manager.
+	 * @param SScribe_Zip_Handler|null         $zip_handler  ZIP handler.
+	 * @param SScribe_Logger_Interface|null    $logger       Logger.
+	 * @param SScribe_Export_Auditor|null      $auditor      Export auditor.
+	 * @param SScribe_Export_Rate_Limiter|null $rate_limiter Rate limiter.
+	 * @param SScribe_Export_Lock_Manager|null $lock_manager Lock manager.
 	 */
 	public function __construct(
 		?SScribe_Session $session = null,

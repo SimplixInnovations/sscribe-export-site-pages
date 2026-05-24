@@ -235,6 +235,7 @@ class SScribe {
 		$this->loader->add_action( 'sscribe_cleanup_exports', $zip, 'cleanup_expired' );
 
 		$this->loader->add_action( 'sscribe_cleanup_sessions', $this, 'cleanup_sessions' );
+		$this->loader->add_action( 'sscribe_cleanup_audit_trail', $this, 'cleanup_audit_trail' );
 	}
 
 	/**
@@ -262,6 +263,23 @@ class SScribe {
 			SScribe_Logger::cleanup_old_logs( 7 );
 
 			delete_transient( 'sscribe_cron_sessions_lock' );
+		}
+	}
+
+	/**
+	 * Clean up old audit trail entries on a daily cron schedule.
+	 *
+	 * Removes entries older than 90 days to prevent unbounded table growth.
+	 */
+	public function cleanup_audit_trail(): void {
+		require_once SSCRIBE_PLUGIN_DIR . 'includes/class-sscribe-audit-trail.php';
+		$audit_trail = new SScribe_Audit_Trail();
+		$deleted     = $audit_trail->cleanup( 90 );
+
+		if ( defined( 'WP_DEBUG' ) && WP_DEBUG && $deleted > 0 ) {
+			error_log( // phpcs:ignore WordPress.PHP.DevelopmentFunctions.error_log_error_log
+				sprintf( 'SScribe: Cleaned up %d old audit trail entries.', $deleted )
+			);
 		}
 	}
 

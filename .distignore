@@ -24,6 +24,7 @@ tests/
 fake-wp/
 phpunit.xml*
 phpstan.neon*
+phpstan-bootstrap.php
 phpstan-baseline.neon
 phpcs.xml*
 psalm.xml

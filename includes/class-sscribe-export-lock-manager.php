@@ -81,7 +81,10 @@ class SScribe_Export_Lock_Manager {
 				}
 				$this->logger->debug(
 					'Overwrote stale lock',
-					array( 'session_id' => $session_id, 'lock_age' => $lock_age )
+					array(
+						'session_id' => $session_id,
+						'lock_age' => $lock_age,
+					)
 				);
 				return $lock_token;
 			}
@@ -100,12 +103,8 @@ class SScribe_Export_Lock_Manager {
 				if ( wp_cache_add( $lock_key, $current_time . '|' . $lock_token, 'transient', $lock_ttl ) ) {
 					return $lock_token;
 				}
-			} else {
-				// set_transient() is not atomic, but the retry window is short enough
-				// to make concurrent-set collisions vanishingly rare on MySQL.
-				if ( set_transient( $lock_key, $current_time . '|' . $lock_token, $lock_ttl ) ) {
-					return $lock_token;
-				}
+			} elseif ( set_transient( $lock_key, $current_time . '|' . $lock_token, $lock_ttl ) ) {
+				return $lock_token;
 			}
 
 			usleep( 50000 ); // 50 ms delay before retry.

@@ -437,11 +437,11 @@ class SScribe_Batch_Processor {
 	/**
 	 * Initialize the batch processor.
 	 *
-	 * @param SScribe_Page_Collector|null   $collector      Page collector.
-	 * @param SScribe_Zip_Handler|null      $zip_handler    Zip handler.
-	 * @param SScribe_Session|null          $session         Session.
-	 * @param SScribe_Logger_Interface|null $logger          Logger.
-	 * @param SScribe_Batch_File_Handler|null   $file_handler   File handler.
+	 * @param SScribe_Page_Collector|null        $collector      Page collector.
+	 * @param SScribe_Zip_Handler|null           $zip_handler    Zip handler.
+	 * @param SScribe_Session|null               $session         Session.
+	 * @param SScribe_Logger_Interface|null      $logger          Logger.
+	 * @param SScribe_Batch_File_Handler|null    $file_handler   File handler.
 	 * @param SScribe_Batch_Session_Handler|null $session_handler Session handler.
 	 */
 	public function __construct(
