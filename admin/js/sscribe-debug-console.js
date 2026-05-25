@@ -120,14 +120,8 @@
 				} else {
 					self.stopAutoRefresh();
 				}
+				self.saveSettings();
 			});
-
-			this.$refreshMode.on(
-				'change',
-				debounce(function () {
-					self.saveSettings();
-				}, 500)
-			);
 
 			this.$refreshBtn.on('click', function () {
 				if (self.isAutoRefresh) {
@@ -156,16 +150,55 @@
 				if (helpContent) {
 					const overlay = document.createElement('div');
 					overlay.style.cssText = 'position:fixed;inset:0;background:rgb(0 0 0 / 50%);z-index:999998;';
+					overlay.setAttribute('aria-hidden', 'true');
 					const dialog = document.createElement('div');
 					dialog.style.cssText =
 						'position:fixed;top:50%;left:50%;transform:translate(-50%,-50%);background:#fff;color:#333;padding:24px;border-radius:8px;max-width:400px;z-index:999999;box-shadow:0 8px 32px rgb(0 0 0 / 30%);font-size:14px;line-height:1.6;';
-					dialog.innerHTML = helpContent.innerHTML;
-					overlay.addEventListener('click', function () {
-						document.body.removeChild(overlay);
-						document.body.removeChild(dialog);
-					});
+					dialog.setAttribute('role', 'dialog');
+					dialog.setAttribute('aria-modal', 'true');
+					dialog.setAttribute('aria-labelledby', 'sscribe-debug-help-title');
+					dialog.innerHTML = '<h2 id="sscribe-debug-help-title" style="margin:0 0 12px;font-size:16px;">Debug Console Help</h2>' + helpContent.innerHTML;
+					const priorFocus = document.activeElement;
+					const focusableSelectors =
+						'a[href], button:not([disabled]), textarea:not([disabled]), input:not([disabled]), select:not([disabled]), [tabindex]:not([tabindex="-1"])';
+					const focusableElements = Array.from(dialog.querySelectorAll(focusableSelectors));
+					const closeDialog = function () {
+						if (document.body.contains(overlay)) {
+							document.body.removeChild(overlay);
+						}
+						if (document.body.contains(dialog)) {
+							document.body.removeChild(dialog);
+						}
+						document.removeEventListener('keydown', keyHandler);
+						if (priorFocus && typeof priorFocus.focus === 'function') {
+							priorFocus.focus();
+						}
+					};
+					const keyHandler = function (e) {
+						if (e.key === 'Escape' || e.key === 'Esc') {
+							e.preventDefault();
+							closeDialog();
+							return;
+						}
+						if (e.key === 'Tab') {
+							const first = focusableElements[0];
+							const last = focusableElements[focusableElements.length - 1];
+							if (e.shiftKey && document.activeElement === first) {
+								e.preventDefault();
+								last.focus();
+							} else if (!e.shiftKey && document.activeElement === last) {
+								e.preventDefault();
+								first.focus();
+							}
+						}
+					};
+					overlay.addEventListener('click', closeDialog);
 					document.body.appendChild(overlay);
 					document.body.appendChild(dialog);
+					document.addEventListener('keydown', keyHandler);
+					if (focusableElements.length > 0) {
+						focusableElements[0].focus();
+					}
 				}
 			});
 
@@ -204,6 +237,19 @@
 			});
 			this.$rotatedBody.on('click', '.sscribe-rotated-delete', function () {
 				self.deleteRotatedLog($(this).data('file'));
+			});
+
+			this.$entries.on('keydown', '.sscribe-debug-entry', function (e) {
+				if (e.key === 'Enter' || e.key === ' ') {
+					e.preventDefault();
+					const $entry = $(this);
+					const $context = $entry.find('.sscribe-debug-entry-context');
+					if ($context.length) {
+						const isVisible = !$context.hasClass('sscribe-hidden');
+						$context.toggleClass('sscribe-hidden', isVisible);
+						$entry.attr('aria-expanded', String(!isVisible));
+					}
+				}
 			});
 		},
 
@@ -339,7 +385,7 @@
 				self.isLoadingMore = true;
 			}
 
-			$.get(sscribe_data.ajaxurl, data, function (response) {
+			$.post(sscribe_data.ajaxurl, data, function (response) {
 				self.$entries.css('opacity', '1');
 				self.$consoleBody.removeClass('is-loading');
 				self.isLoadingMore = false;
@@ -495,7 +541,9 @@
 			}
 			document.body.appendChild(form);
 			form.submit();
-			document.body.removeChild(form);
+			setTimeout(function () {
+				form.remove();
+			}, 100);
 		},
 
 		exportLogs: function () {
@@ -517,7 +565,7 @@
 				nonce: sscribe_data.nonce,
 			};
 
-			$.get(sscribe_data.ajaxurl, data, function (response) {
+			$.post(sscribe_data.ajaxurl, data, function (response) {
 				if (response.success) {
 					self.renderRotatedLogs(response.data.files);
 				} else {
@@ -583,7 +631,7 @@
 			this.hasMoreEntries = false;
 			this.destroyObserver();
 
-			$.get(sscribe_data.ajaxurl, data, function (response) {
+			$.post(sscribe_data.ajaxurl, data, function (response) {
 				if (response.success) {
 					self.isViewingRotated = true;
 					self.currentRotatedFilename = filename;

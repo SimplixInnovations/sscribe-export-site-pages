@@ -36,10 +36,7 @@
 			if (!text || typeof text !== 'string') {
 				return 0;
 			}
-			// Strip all dots and commas — this handles both English (1,000) and
-			// European (1.000) thousands separators. Decimal precision is irrelevant
-			// for page counts, so we treat both as thousands separators.
-			const cleaned = text.replace(/[.,]/g, '');
+			const cleaned = text.replace(/[.,](?=\d{3})/g, '');
 			const num = parseInt(cleaned, 10);
 			return isNaN(num) ? 0 : num;
 		},
@@ -337,11 +334,13 @@
 								.text(total.toLocaleString());
 						}
 					},
+					error: function () {},
 				});
 			});
 		},
 
 		checkActiveSession: function () {
+			this.isProcessing = true;
 			$.ajax({
 				url: sscribe_data.ajaxurl,
 				type: 'POST',
@@ -353,7 +352,6 @@
 				success: function (response) {
 					if (response.success && response.data && response.data.has_active) {
 						SScribe.sessionId = response.data.session_id;
-						SScribe.isProcessing = true;
 						SScribe.updateProgress(response.data.percentage);
 						SScribe.updatePhase(response.data.status);
 						$('#sscribe-cancel-btn')
@@ -361,9 +359,13 @@
 							.text(sscribe_data.strings.cancel || 'Cancel Export');
 						$('#sscribe-export-btn, #sscribe-preview-btn').prop('disabled', true);
 						$('#sscribe-progress-area').show();
-						// Resume polling — user may have reloaded during an active export.
 						SScribe.processBatch();
+					} else {
+						SScribe.isProcessing = false;
 					}
+				},
+				error: function () {
+					SScribe.isProcessing = false;
 				},
 			});
 		},
@@ -481,9 +483,13 @@
 			});
 
 			const liveRegion = document.getElementById('sscribe-live-region');
-			if (liveRegion && count > 0) {
-				liveRegion.textContent =
-					count + ' ' + (sscribe_data.strings.log_pages || 'pages') + ' ready for export';
+			if (liveRegion) {
+				if (count > 0) {
+					liveRegion.textContent =
+						count + ' ' + (sscribe_data.strings.log_pages || 'pages') + ' ready for export';
+				} else {
+					liveRegion.textContent = 'No pages match selected options. Export button is disabled.';
+				}
 			}
 
 			this.updateExportButton();
@@ -517,6 +523,8 @@
 					$reason.text('Select a format');
 				} else if (!hasPostType) {
 					$reason.text('Select a post type');
+				} else if (!hasLanguage) {
+					$reason.text('Select a language');
 				} else {
 					$reason.text('');
 				}
@@ -673,6 +681,14 @@
 			$('.sscribe-workspace').prepend(bannerHtml);
 
 			const $banner = $('.sscribe-preflight-banner');
+			$banner.attr('role', 'alert');
+
+			const $firstFocusable = $banner.find('.sscribe-preflight-close');
+			if ($firstFocusable.length && typeof $firstFocusable[0].focus === 'function') {
+				setTimeout(function () {
+					$firstFocusable[0].focus();
+				}, 100);
+			}
 
 			$banner.on('click.sscribe-preflight', '.sscribe-preflight-proceed', function () {
 				$banner.fadeOut(200, function () {
@@ -688,6 +704,10 @@
 				SScribe.isProcessing = false;
 				SScribe.resetUI();
 				SScribe.updateExportButton();
+				SScribe.refreshStatusAndLanguageCounts(
+					$('input[name="sscribe_post_type"]:checked').val() || 'page',
+					$('input[name="sscribe_language"]:checked').val() || ''
+				);
 			});
 
 			$banner.on('click.sscribe-preflight', '.sscribe-preflight-close', function () {
@@ -697,6 +717,10 @@
 				SScribe.isProcessing = false;
 				SScribe.resetUI();
 				SScribe.updateExportButton();
+				SScribe.refreshStatusAndLanguageCounts(
+					$('input[name="sscribe_post_type"]:checked').val() || 'page',
+					$('input[name="sscribe_language"]:checked').val() || ''
+				);
 			});
 
 			const bannerOffset = $banner.offset();
@@ -707,13 +731,6 @@
 					},
 					300
 				);
-			}
-
-			const $firstFocusable = $banner.find('.sscribe-preflight-close');
-			if ($firstFocusable.length && typeof $firstFocusable[0].focus === 'function') {
-				setTimeout(function () {
-					$firstFocusable[0].focus();
-				}, 100);
 			}
 		},
 
@@ -809,7 +826,7 @@
 
 			const jitter = Math.floor(Math.random() * (self.pollJitter * 2 + 1)) - self.pollJitter;
 			delay = Math.max(0, delay + jitter);
-			delay = Math.max(300, delay);
+			delay = Math.max(1500, delay);
 
 			setTimeout(function () {
 				self.processBatch();
@@ -931,8 +948,12 @@
 				success: function () {
 					SScribe.isProcessing = false;
 					SScribe.sessionId = null;
+					SScribe._batchInProgress = false;
 					SScribe.resetUI();
 					SScribe.updateExportButton();
+					$('#sscribe-cancel-btn')
+						.prop('disabled', false)
+						.text(sscribe_data.strings.cancel || 'Cancel Export');
 					SScribe.showToast(sscribe_data.strings.export_cancelled || 'Export cancelled.', 'info');
 				},
 				error: function () {
@@ -944,19 +965,17 @@
 			});
 		},
 
-		exportComplete: function (data) {
+		exportComplete: function (data, isAutoDownload) {
 			this.isProcessing = false;
 			const progressFill = document.getElementById('sscribe-progress-bar');
 			if (progressFill) {
 				progressFill.classList.remove('sscribe-progress-bar-fill-finalizing');
 			}
 
-			// Restore original page title.
 			if (this._originalTitle) {
 				document.title = this._originalTitle;
 			}
 
-			// Announce completion to screen readers via polite live region.
 			const liveRegion = document.getElementById('sscribe-live-region');
 			if (liveRegion) {
 				liveRegion.textContent = (sscribe_data.strings && sscribe_data.strings.complete) || 'Export complete!';
@@ -970,15 +989,24 @@
 					.fadeIn(400, function () {
 						if (data.download_url) {
 							$('#sscribe-download-btn').attr('href', data.download_url);
+							if (isAutoDownload !== false) {
+								const iframe = document.createElement('iframe');
+								iframe.style.display = 'none';
+								iframe.src = data.download_url;
+								document.body.appendChild(iframe);
+								setTimeout(function () {
+									iframe.remove();
+								}, 5000);
+							}
 						} else {
 							$('#sscribe-download-btn').removeAttr('href');
 							self.showToast(
-								sscribe_data.strings.download_unavailable || 'Download link unavailable.',
+								sscribe_data.strings.download_unavailable || 'Download unavailable.',
 								'warning'
 							);
 						}
 
-						$('html, body').animate({ scrollTop: $('#sscribe-download-area').offset().top - 20 }, 300);
+						$('html, body').animate({ scrollTop: 0 }, 300);
 
 						SScribe.refreshRecentExports();
 					});
@@ -1026,7 +1054,18 @@
 		pollFinalize: function (sessionId, attempt, delay) {
 			this.isProcessing = true;
 
-			$('#sscribe-status-text').text(sscribe_data.strings.packaging || 'Packaging files into ZIP archive...');
+			const maxAttempts = 180;
+			if (attempt === 0) {
+				this._finalizeStartTime = Date.now();
+			}
+
+			const elapsedSec = Math.floor((Date.now() - (this._finalizeStartTime || Date.now())) / 1000);
+			const min = Math.floor(elapsedSec / 60);
+			const sec = elapsedSec % 60;
+			const timeStr = min > 0 ? min + 'm ' + sec + 's' : sec + 's';
+			$('#sscribe-status-text').text(
+				(sscribe_data.strings.packaging || 'Packaging files into ZIP archive...') + ' (' + timeStr + ')'
+			);
 			SScribe.updatePhase('packaging');
 
 			const progressFill = document.getElementById('sscribe-progress-bar');
@@ -1034,7 +1073,6 @@
 				progressFill.classList.add('sscribe-progress-bar-fill-finalizing');
 			}
 
-			const maxAttempts = 180;
 			const self = this;
 
 			setTimeout(function () {
@@ -1063,7 +1101,7 @@
 									matched.processed = 0;
 									matched.total = 0;
 									self.updateProgress(100);
-									self.exportComplete(matched);
+									self.exportComplete(matched, false);
 								} else {
 									self.isProcessing = false;
 									self.showError(
@@ -1085,8 +1123,6 @@
 					},
 					error: function (xhr) {
 						const response = xhr.responseJSON || {};
-						// HTTP 404 = session was deleted (session cleanup on failure).
-						// Stop retrying and show error — the session is gone so retry is futile.
 						if (xhr.status === 404) {
 							self.isProcessing = false;
 							const resultData = {
@@ -1099,7 +1135,7 @@
 									matched.processed = 0;
 									matched.total = 0;
 									self.updateProgress(100);
-									self.exportComplete(matched);
+									self.exportComplete(matched, false);
 								} else {
 									self.showError(
 										sscribe_data.strings.err_zip ||
@@ -1758,6 +1794,8 @@
 				return;
 			}
 
+			this._previewTrigger = e.currentTarget;
+
 			const language = $('input[name="sscribe_language"]:checked').val() || '';
 			const postStatus = $('input[name="sscribe_post_status"]:checked').val() || 'publish';
 			const postType = $('input[name="sscribe_post_type"]:checked').val() || 'page';
@@ -1936,7 +1974,16 @@
 			$panel.fadeOut(200, function () {
 				$panel.attr('aria-hidden', 'true').addClass('sscribe-hidden').prop('hidden', true);
 				self.releaseFocusTrap(panelEl);
-				self.restoreFocus();
+				const trigger = self._previewTrigger;
+				if (
+					trigger &&
+					typeof trigger.focus === 'function' &&
+					document.contains(trigger) &&
+					!trigger.disabled
+				) {
+					trigger.focus();
+				}
+				self._previewTrigger = null;
 			});
 		},
 

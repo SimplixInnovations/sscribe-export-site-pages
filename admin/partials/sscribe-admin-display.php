@@ -570,7 +570,7 @@ $sscribe_export_index    = $sscribe_export_index ?? array();
 					<div class="sscribe-bulk-bar sscribe-hidden" id="sscribe-bulk-bar">
 						<div class="sscribe-bulk-left">
 							<label class="sscribe-bulk-select-all">
-								<input type="checkbox" id="sscribe-bulk-select-all">
+								<input type="checkbox" id="sscribe-bulk-select-all" aria-label="<?php esc_attr_e( 'Select all exports', 'sscribe-export-site-pages' ); ?>">
 								<span class="sscribe-check-visual"></span>
 							</label>
 							<span class="sscribe-bulk-count" id="sscribe-bulk-count">0 <?php esc_html_e( 'selected', 'sscribe-export-site-pages' ); ?></span>
