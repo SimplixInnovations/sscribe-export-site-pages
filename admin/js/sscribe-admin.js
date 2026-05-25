@@ -257,7 +257,7 @@
 				$panel
 					.toggleClass('sscribe-tab-active', isActive)
 					.prop('hidden', !isActive)
-					.attr('aria-hidden', isActive ? 'false' : 'true');
+					.attr('aria-hidden', isActive ? 'true' : 'false');
 			});
 		},
 
@@ -278,7 +278,10 @@
 			$('.sscribe-status-card-label').addClass('sscribe-loading');
 			$('#sscribe-post-count, #sscribe-both-count').addClass('sscribe-loading-count');
 
-			$.ajax({
+			if (self._countsXHR && self._countsXHR.abort) {
+				self._countsXHR.abort();
+			}
+			self._countsXHR = $.ajax({
 				url: sscribe_data.ajaxurl,
 				type: 'POST',
 				timeout: 30000,
@@ -452,7 +455,10 @@
 			$('#sscribe-summary-pages').text('~' + count + ' ' + sscribe_data.strings.log_pages);
 			$('#sscribe-summary-time').text(sscribe_data.strings.calculating_time || 'Calculating...');
 
-			$.ajax({
+			if (this._configSummaryXHR && this._configSummaryXHR.abort) {
+				this._configSummaryXHR.abort();
+			}
+			this._configSummaryXHR = $.ajax({
 				url: sscribe_data.ajaxurl,
 				type: 'POST',
 				timeout: 15000,
@@ -508,6 +514,12 @@
 					$reason.text(
 						(sscribe_data.strings && sscribe_data.strings.err_no_pages) || 'No pages match selected options'
 					);
+				} else if (!hasStatus) {
+					$reason.text('Select a post status');
+				} else if (!hasFormat) {
+					$reason.text('Select a format');
+				} else if (!hasPostType) {
+					$reason.text('Select a post type');
 				} else {
 					$reason.text('');
 				}
@@ -699,6 +711,13 @@
 					300
 				);
 			}
+
+			const $firstFocusable = $banner.find('.sscribe-preflight-close');
+			if ($firstFocusable.length && typeof $firstFocusable[0].focus === 'function') {
+				setTimeout(function () {
+					$firstFocusable[0].focus();
+				}, 100);
+			}
 		},
 
 		proceedWithExport: function (language, postStatus, postType, formats) {
@@ -780,9 +799,10 @@
 				delay = Math.max(0, Math.floor(retryInMs));
 				self.pollBackoff = 0;
 			} else if (isRetry) {
-				const base = self.pollBackoffBase * Math.pow(2, Math.max(0, self.pollBackoff));
+				const backoffMultiplier = Math.pow(2, Math.max(0, self.pollBackoff));
+				const base = self.pollBackoffBase * backoffMultiplier;
 				delay = Math.min(self.pollBackoffMax, Math.floor(base));
-				if (self.pollBackoffBase * Math.pow(2, self.pollBackoff) < self.pollBackoffMax) {
+				if (backoffMultiplier < self.pollBackoffMax / self.pollBackoffBase) {
 					self.pollBackoff++;
 				}
 			} else {
@@ -876,10 +896,11 @@
 					}
 				},
 				error: function (xhr) {
-					SScribe._batchInProgress = false;
+					self._batchInProgress = false;
 					SScribe.batchRetries++;
 					if (SScribe.batchRetries <= SScribe.maxBatchRetries) {
-						SScribe.scheduleNextBatch();
+						// Retry with exponential backoff.
+						SScribe.scheduleNextBatch(undefined, true);
 					} else {
 						const serverMsg = SScribe.parseServerError(xhr);
 						const msg = serverMsg || SScribe.getNetworkErrorMessage(xhr, 'process_batch');
@@ -944,22 +965,26 @@
 				liveRegion.textContent = (sscribe_data.strings && sscribe_data.strings.complete) || 'Export complete!';
 			}
 
+			const self = this;
 			$('#sscribe-progress-area').slideUp(300, function () {
-				$('#sscribe-download-area').removeClass('sscribe-hidden').hide().fadeIn(400);
+				$('#sscribe-download-area')
+					.removeClass('sscribe-hidden')
+					.hide()
+					.fadeIn(400, function () {
+						if (data.download_url) {
+							$('#sscribe-download-btn').attr('href', data.download_url);
+						} else {
+							$('#sscribe-download-btn').removeAttr('href');
+							self.showToast(
+								sscribe_data.strings.download_unavailable || 'Download link unavailable.',
+								'warning'
+							);
+						}
 
-				if (data.download_url) {
-					$('#sscribe-download-btn').attr('href', data.download_url);
-				} else {
-					$('#sscribe-download-btn').removeAttr('href');
-					self.showToast(
-						sscribe_data.strings.download_unavailable || 'Download link unavailable.',
-						'warning'
-					);
-				}
+						$('html, body').animate({ scrollTop: $('#sscribe-download-area').offset().top - 20 }, 300);
 
-				$('html, body').animate({ scrollTop: $('#sscribe-download-area').offset().top - 20 }, 300);
-
-				SScribe.refreshRecentExports();
+						SScribe.refreshRecentExports();
+					});
 			});
 		},
 
@@ -1096,7 +1121,7 @@
 						} else {
 							self.isProcessing = false;
 							const msg = self.getNetworkErrorMessage(xhr, 'finalize_export');
-							self.showError(msg);
+							self.showError(msg, false, {});
 						}
 					},
 				});
@@ -1307,6 +1332,9 @@
 		},
 
 		bulkDeleteSelected: function () {
+			if (this.isProcessing) {
+				return;
+			}
 			const $checks = $('.sscribe-history-check:checked');
 			if ($checks.length === 0) {
 				return;
@@ -1324,6 +1352,9 @@
 		},
 
 		bulkDownload: function () {
+			if (this.isProcessing) {
+				return;
+			}
 			const $checks = $('.sscribe-history-check:checked');
 			if ($checks.length === 0) {
 				return;
@@ -2287,6 +2318,8 @@
 			$('#sscribe-error-area').addClass('sscribe-hidden');
 			$('#sscribe-download-area').addClass('sscribe-hidden');
 			this.isProcessing = false;
+			this.pollBackoff = 0;
+			this._batchInProgress = false;
 			this.resetUI();
 			this.updateExportButton();
 			$('#sscribe-export-btn').trigger('click');
