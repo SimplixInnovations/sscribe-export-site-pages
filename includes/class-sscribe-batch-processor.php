@@ -1895,7 +1895,7 @@ class SScribe_Batch_Processor {
 				);
 			}
 
-			$zip_path = $this->zip_handler->create_zip( $session['temp_dir'], $zip_name, $formats, $has_language, $lang_metadata );
+			$zip_path = $this->zip_handler->create_zip( $session['temp_dir'], $zip_name, $formats, $has_language, $lang_metadata, $session_id );
 
 			if ( ! $zip_path ) {
 				$this->logger->debug(
@@ -2130,6 +2130,8 @@ class SScribe_Batch_Processor {
 				'errors'            => $session['errors'] ?? array(),
 				'error_diagnostics' => $error_diagnostics,
 				'log_summary'       => $log_summary,
+				'session_id'        => $session_id,
+				'created_at'        => $session['start_time'] ?? time(),
 				'message'           => sprintf(
 					/* translators: %d: Number of pages exported. */
 
