@@ -100,7 +100,7 @@ class SScribe_Zip_Handler {
 	 * @param array  $lang_metadata Language metadata array.
 	 * @return string|false ZIP file path or false on failure.
 	 */
-	public function create_zip( string $source_dir, string $zip_name = '', array $formats = array( 'docx' ), bool $has_language = true, array $lang_metadata = array() ): string|false {
+	public function create_zip( string $source_dir, string $zip_name = '', array $formats = array( 'docx' ), bool $has_language = true, array $lang_metadata = array(), string $session_id = '' ): string|false {
 		if ( ! class_exists( 'ZipArchive' ) ) {
 			$this->logger->error( 'ZipArchive not available' );
 			$this->delete_directory( $source_dir );
@@ -257,6 +257,7 @@ class SScribe_Zip_Handler {
 				'lang_code'  => $lang_metadata['lang_code'] ?? '',
 				'lang_name'  => $lang_metadata['lang_name'] ?? '',
 				'flag_url'   => $lang_metadata['flag_url'] ?? '',
+				'session_id' => $session_id ?? '',
 			);
 			update_option( 'sscribe_export_index', $exports, false );
 		} finally {

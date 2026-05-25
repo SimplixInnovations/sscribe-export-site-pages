@@ -438,9 +438,34 @@
 			$('#sscribe-summary-language').text(language ? language.toUpperCase() : 'All');
 			$('#sscribe-summary-format').text(format === 'all' ? 'All' : format.toUpperCase());
 			$('#sscribe-summary-pages').text('~' + count + ' ' + sscribe_data.strings.log_pages);
-			$('#sscribe-summary-time').text(sscribe_data.strings.summary_time_hint || 'See Preview');
+			$('#sscribe-summary-time').text(sscribe_data.strings.calculating_time || 'Calculating...');
 
-			// Announce config change via dedicated live region instead of relying on parent aria-live.
+			const self = this;
+			$.ajax({
+				url: sscribe_data.ajaxurl,
+				type: 'POST',
+				timeout: 15000,
+				data: {
+					action: 'sscribe_get_export_preview',
+					nonce: sscribe_data.nonce,
+					language: language || '',
+					post_status: status,
+					post_type: postType,
+					format: format,
+					formats: format === 'all' ? ['docx', 'pdf', 'html', 'markdown'] : [format],
+				},
+				success: function (response) {
+					if (response.success && response.data && response.data.estimated_time) {
+						$('#sscribe-summary-time').text(response.data.estimated_time);
+					} else {
+						$('#sscribe-summary-time').text(sscribe_data.strings.summary_time_hint || 'See Preview');
+					}
+				},
+				error: function () {
+					$('#sscribe-summary-time').text(sscribe_data.strings.summary_time_hint || 'See Preview');
+				},
+			});
+
 			const liveRegion = document.getElementById('sscribe-live-region');
 			if (liveRegion && count > 0) {
 				liveRegion.textContent = count + ' ' + (sscribe_data.strings.log_pages || 'pages') + ' ready for export';
@@ -686,7 +711,15 @@
 					if (attempt < maxAttempts - 1) {
 						self.clearSessionWithRetry(language, postStatus, postType, formats, attempt + 1);
 					} else {
-						self.doStartExport(language, postStatus, postType, formats);
+						// All cleanup attempts exhausted — do not proceed, as a stale
+						// session ghost may remain and conflict with a new export.
+						self.isProcessing = false;
+						self.showError(
+							sscribe_data.strings.err_clear_session ||
+								'Could not clear the previous export session. Please try again in a moment.',
+							false,
+							{}
+						);
 					}
 				},
 			});
@@ -716,6 +749,7 @@
 					}
 				},
 				error: function (xhr) {
+					SScribe.isProcessing = false;
 					const serverMsg = SScribe.parseServerError(xhr);
 					const msg = serverMsg || SScribe.getNetworkErrorMessage(xhr, 'start_export');
 					const errData = (xhr.responseJSON && xhr.responseJSON.data) ? xhr.responseJSON.data : {};
@@ -874,6 +908,7 @@
 		},
 
 		exportComplete: function (data) {
+			this.isProcessing = false;
 			const progressFill = document.getElementById('sscribe-progress-bar');
 			if (progressFill) {
 				progressFill.classList.remove('sscribe-progress-bar-fill-finalizing');
@@ -897,6 +932,39 @@
 				$('html, body').animate({ scrollTop: $('#sscribe-download-area').offset().top - 20 }, 300);
 
 				SScribe.refreshRecentExports();
+			});
+		},
+
+		findExportInRecentExports: function (resultData, callback) {
+			const selfSessionId = resultData.session_id || null;
+			const selfStartTime = resultData.created_at || 0;
+			$.ajax({
+				url: sscribe_data.ajaxurl,
+				type: 'POST',
+				timeout: 15000,
+				data: { action: 'sscribe_get_recent_exports', nonce: sscribe_data.nonce },
+				success: function (recentResp) {
+					if (recentResp.success && recentResp.data && recentResp.data.exports && recentResp.data.exports.length > 0) {
+						let matched = null;
+						for (let i = 0; i < recentResp.data.exports.length; i++) {
+							const exp = recentResp.data.exports[i];
+							if (selfSessionId && exp.session_id === selfSessionId) {
+								matched = exp;
+								break;
+							}
+							if (selfStartTime && exp.time >= selfStartTime - 5 && exp.time <= selfStartTime + 60) {
+								matched = exp;
+								break;
+							}
+						}
+						callback(matched || recentResp.data.exports[0]);
+					} else {
+						callback(null);
+					}
+				},
+				error: function () {
+					callback(null);
+				},
 			});
 		},
 
@@ -933,47 +1001,22 @@
 						}
 
 						if (response.data && response.data.code === 'not_finalizing') {
-							// Session gone but ZIP may have been created. Check recent exports before failing.
-							$.ajax({
-								url: sscribe_data.ajaxurl,
-								type: 'POST',
-								timeout: 15000,
-								data: { action: 'sscribe_get_recent_exports', nonce: sscribe_data.nonce },
-								success: function (recentResp) {
-									if (
-										recentResp.success &&
-										recentResp.data &&
-										recentResp.data.exports &&
-										recentResp.data.exports.length > 0
-									) {
-										const latest = recentResp.data.exports[0];
-										const resultData = {
-											download_url: latest.url,
-											filename: latest.filename,
-											percentage: 100,
-											processed: 0,
-											total: 0,
-										};
-										self.isProcessing = false;
-										self.updateProgress(100);
-										self.exportComplete(resultData);
-									} else {
-										self.isProcessing = false;
-										self.showError(
-											response.data.message || 'Export failed to finalize. Please try again.',
-											false,
-											{}
-										);
-									}
-								},
-								error: function () {
+							const resultData = { session_id: sessionId, created_at: response.data.created_at || 0 };
+							self.findExportInRecentExports(resultData, function (matched) {
+								if (matched) {
+									matched.percentage = 100;
+									matched.processed = 0;
+									matched.total = 0;
+									self.updateProgress(100);
+									self.exportComplete(matched);
+								} else {
 									self.isProcessing = false;
 									self.showError(
 										response.data.message || 'Export failed to finalize. Please try again.',
 										false,
 										{}
 									);
-								},
+								}
 							});
 							return;
 						}
@@ -990,12 +1033,23 @@
 						// Stop retrying and show error — the session is gone so retry is futile.
 						if (xhr.status === 404) {
 							self.isProcessing = false;
-							self.showError(
-								sscribe_data.strings.err_zip ||
-									'Export failed: no files were generated. Please check your format selection and try again.',
-								false,
-								{}
-							);
+							const resultData = { session_id: sessionId, created_at: response.data && response.data.created_at ? response.data.created_at : 0 };
+							self.findExportInRecentExports(resultData, function (matched) {
+								if (matched) {
+									matched.percentage = 100;
+									matched.processed = 0;
+									matched.total = 0;
+									self.updateProgress(100);
+									self.exportComplete(matched);
+								} else {
+									self.showError(
+										sscribe_data.strings.err_zip ||
+											'Export failed: no files were generated. Please check your format selection and try again.',
+										false,
+										{}
+									);
+								}
+							});
 							return;
 						}
 
