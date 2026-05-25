@@ -400,6 +400,7 @@
 
 			if (!currentStillValid && firstAvailable) {
 				firstAvailable.prop('checked', true);
+				this.updateConfigSummary();
 			}
 		},
 
@@ -771,19 +772,22 @@
 			});
 		},
 
-		scheduleNextBatch: function (retryInMs) {
+		scheduleNextBatch: function (retryInMs, isRetry) {
 			const self = this;
 			let delay = 0;
 
 			if (typeof retryInMs === 'number' && isFinite(retryInMs) && retryInMs > 0) {
 				delay = Math.max(0, Math.floor(retryInMs));
 				self.pollBackoff = 0;
-			} else {
+			} else if (isRetry) {
 				const base = self.pollBackoffBase * Math.pow(2, Math.max(0, self.pollBackoff));
 				delay = Math.min(self.pollBackoffMax, Math.floor(base));
 				if (self.pollBackoffBase * Math.pow(2, self.pollBackoff) < self.pollBackoffMax) {
 					self.pollBackoff++;
 				}
+			} else {
+				delay = Math.min(self.pollBackoffMax, Math.floor(self.pollBackoffBase));
+				self.pollBackoff = 0;
 			}
 
 			const jitter = Math.floor(Math.random() * (self.pollJitter * 2 + 1)) - self.pollJitter;
@@ -856,12 +860,12 @@
 							SScribe.pollFinalize(SScribe.sessionId, 0, finalizeDelay);
 						} else {
 							SScribe.pollBackoff = 0;
-							SScribe.scheduleNextBatch();
+							SScribe.scheduleNextBatch(0, false);
 						}
 					} else {
 						const isCancelled = response.data.cancelled === true;
 						if (response.data.retry === true) {
-							SScribe.scheduleNextBatch(response.data && response.data.retry_in);
+							SScribe.scheduleNextBatch(response.data && response.data.retry_in, true);
 						} else {
 							SScribe.showError(
 								response.data.message,
@@ -909,6 +913,9 @@
 				success: function () {
 					SScribe.isProcessing = false;
 					SScribe.sessionId = null;
+					SScribe.resetUI();
+					SScribe.updateExportButton();
+					SScribe.showToast(sscribe_data.strings.export_cancelled || 'Export cancelled.', 'info');
 				},
 				error: function () {
 					SScribe.isProcessing = false;
@@ -939,7 +946,16 @@
 
 			$('#sscribe-progress-area').slideUp(300, function () {
 				$('#sscribe-download-area').removeClass('sscribe-hidden').hide().fadeIn(400);
-				$('#sscribe-download-btn').attr('href', data.download_url);
+
+				if (data.download_url) {
+					$('#sscribe-download-btn').attr('href', data.download_url);
+				} else {
+					$('#sscribe-download-btn').removeAttr('href');
+					self.showToast(
+						sscribe_data.strings.download_unavailable || 'Download link unavailable.',
+						'warning'
+					);
+				}
 
 				$('html, body').animate({ scrollTop: $('#sscribe-download-area').offset().top - 20 }, 300);
 
@@ -1509,9 +1525,10 @@
 			// Cap visible toasts at 5 to prevent overflow.
 			const $existing = $container.children('.sscribe-toast');
 			if ($existing.length >= 5) {
-				$existing.last().addClass('sscribe-toast-removing');
+				const $oldest = $existing.first();
+				$oldest.addClass('sscribe-toast-removing');
 				setTimeout(function () {
-					$existing.last().remove();
+					$oldest.remove();
 				}, 200);
 			}
 
@@ -1694,7 +1711,7 @@
 		 * @returns {string} Escaped string.
 		 */
 		escapeHtml: function (str) {
-			if (!str) {
+			if (str === null || str === undefined) {
 				return '';
 			}
 			const div = document.createElement('div');
