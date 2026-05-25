@@ -1439,7 +1439,7 @@
 					if (parsed && parsed.data && parsed.data._diagnostics) {
 						diagnostics = parsed.data._diagnostics;
 					}
-				} catch (_e) {
+				} catch {
 					// Not JSON — the response body wasn't meant to be parsed, nothing to extract.
 				}
 			}
@@ -2456,7 +2456,7 @@
 						return parsed.data.message;
 					}
 				}
-			} catch (_e) {
+			} catch {
 				return null;
 			}
 			return null;
