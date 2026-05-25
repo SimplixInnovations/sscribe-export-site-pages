@@ -288,17 +288,20 @@ class SScribe_PDF_Exporter implements SScribe_Exporter_Interface {
 			$mpdf->SetKeywords( esc_html( $page_data['seo']['focus_keyword'] ?? '' ) );
 
 			$html_content = preg_replace( '/<style[^>]*>.*?<\/style>/is', '', $html_content ) ?? $html_content;
-			$html_content = preg_replace(
-				'/\s*style="([^"]*)"/i',
-				function ( $matches ) use ( $is_rtl ) {
-					$style = $matches[1];
-					if ( $is_rtl && preg_match( '/direction\s*:\s*rtl/i', $style ) ) {
-						return ' style="direction:rtl"';
-					}
-					return '';
-				},
-				$html_content
-			) ?? $html_content;
+			if ( $is_rtl ) {
+				$html_content = (string) preg_replace_callback(
+					'/\s*style="([^"]*)"/i',
+					static function ( array $matches ): string {
+						if ( preg_match( '/direction\s*:\s*rtl/i', $matches[1] ) ) {
+							return ' style="direction:rtl"';
+						}
+						return '';
+					},
+					$html_content
+				);
+			} else {
+				$html_content = preg_replace( '/\s*style="([^"]*)"/i', '', $html_content ) ?? $html_content;
+			}
 			$html_content = preg_replace( "/\s*style='[^']*'/i", '', $html_content ) ?? $html_content;
 
 			$html_content = preg_replace( '/@font-face\s*\{[^}]+\}/isU', '', $html_content ) ?? $html_content;
