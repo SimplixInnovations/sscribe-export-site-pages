@@ -254,10 +254,7 @@
 			$('.sscribe-tab-content').each(function () {
 				const $panel = $(this);
 				const isActive = $panel.attr('id') === 'sscribe-tab-' + tabId;
-				$panel
-					.toggleClass('sscribe-tab-active', isActive)
-					.prop('hidden', !isActive)
-					.attr('aria-hidden', isActive ? 'true' : 'false');
+				$panel.toggleClass('sscribe-tab-active', isActive).prop('hidden', !isActive);
 			});
 		},
 
