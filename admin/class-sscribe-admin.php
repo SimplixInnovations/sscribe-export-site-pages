@@ -447,7 +447,7 @@ class SScribe_Admin {
 	 */
 	public function render_admin_page(): void {
 
-		$cache_key = 'sscribe_admin_page_data_v' . SSCRIBE_VERSION . '_' . get_current_blog_id() . '_' . get_current_user_id();
+		$cache_key        = 'sscribe_admin_page_data_v' . SSCRIBE_VERSION . '_' . get_current_blog_id() . '_' . get_current_user_id();
 		$cached_page_data = get_transient( $cache_key );
 
 		if ( is_array( $cached_page_data ) ) {
@@ -721,10 +721,10 @@ class SScribe_Admin {
 
 		$sscribe_debug_info['server'] = array(
 			'php_version'         => PHP_VERSION,
-			'memory_limit'       => ini_get( 'memory_limit' ),
-			'max_execution_time' => ini_get( 'max_execution_time' ),
+			'memory_limit'        => ini_get( 'memory_limit' ),
+			'max_execution_time'  => ini_get( 'max_execution_time' ),
 			'upload_max_filesize' => ini_get( 'upload_max_filesize' ),
-			'post_max_size'      => ini_get( 'post_max_size' ),
+			'post_max_size'       => ini_get( 'post_max_size' ),
 		);
 
 		$sscribe_debug_info['wordpress'] = array(

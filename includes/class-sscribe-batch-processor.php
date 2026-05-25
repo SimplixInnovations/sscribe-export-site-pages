@@ -9,6 +9,11 @@
 
 declare(strict_types=1);
 
+/*
+ * phpcs:disable WordPress.NamingConventions.ValidVariableName.PropertyNotSnakeCase
+ * Reason: ZipArchive is PHP built-in with camelCase properties like numFiles.
+ */
+
 if ( ! defined( 'ABSPATH' ) ) {
 	exit;
 }
@@ -18,9 +23,9 @@ if ( ! defined( 'ABSPATH' ) ) {
  */
 class SScribe_Batch_Processor {
 
-	private const MAX_STORED_ERRORS = 50;
-	private const DEFAULT_FORMATS = array( 'docx' );
-	private const MAX_RETRIES = 2;
+	private const MAX_STORED_ERRORS          = 50;
+	private const DEFAULT_FORMATS            = array( 'docx' );
+	private const MAX_RETRIES                = 2;
 	private const RETRY_TRANSIENT_CATEGORIES = array( 'network', 'timeout', 'rate_limit', 'temporary' );
 
 	/**
@@ -187,14 +192,14 @@ class SScribe_Batch_Processor {
 		if ( ! $result->is_success() ) {
 			$result_data = $result->get_data();
 			return array(
-				'is_valid'  => false,
-				'error'     => $result->get_error(),
-				'category'  => $result_data['error_category'] ?? 'unknown',
-				'context'   => is_array( $result_data ) ? $result_data : array(),
+				'is_valid' => false,
+				'error'    => $result->get_error(),
+				'category' => $result_data['error_category'] ?? 'unknown',
+				'context'  => is_array( $result_data ) ? $result_data : array(),
 			);
 		}
 
-		$file_path  = $result->get_data()['path'] ?? '';
+		$file_path = $result->get_data()['path'] ?? '';
 		$file_size = $result->get_data()['size'] ?? 0;
 		clearstatcache( true, $file_path );
 		$actual_size = ( ! empty( $file_path ) && file_exists( $file_path ) ) ? (int) filesize( $file_path ) : 0;
@@ -221,10 +226,10 @@ class SScribe_Batch_Processor {
 		}
 
 		return array(
-			'is_valid'  => true,
-			'error'     => null,
-			'category'  => 'success',
-			'context'   => array(
+			'is_valid' => true,
+			'error'    => null,
+			'category' => 'success',
+			'context'  => array(
 				'file_path'   => $file_path,
 				'actual_size' => $actual_size,
 			),
@@ -275,9 +280,9 @@ class SScribe_Batch_Processor {
 
 				$is_transient = false;
 				if ( ! $result->is_success() ) {
-					$result_data = $result->get_data();
+					$result_data    = $result->get_data();
 					$error_category = $result_data['error_category'] ?? 'unknown';
-					$is_transient = in_array( $error_category, self::RETRY_TRANSIENT_CATEGORIES, true );
+					$is_transient   = in_array( $error_category, self::RETRY_TRANSIENT_CATEGORIES, true );
 				}
 
 				if ( $result->is_success() || ! $is_transient || $attempt >= self::MAX_RETRIES ) {
@@ -454,11 +459,11 @@ class SScribe_Batch_Processor {
 		$this->batch_size = (int) apply_filters( 'sscribe_batch_size', 5 );
 		$this->batch_size = max( 1, min( 20, $this->batch_size ) );
 
-		$this->collector = $collector ?? new SScribe_Page_Collector();
-		$this->zip_handler = $zip_handler ?? new SScribe_Zip_Handler();
-		$this->session = $session ?? new SScribe_Session();
-		$this->logger = $logger ?? SScribe_Logger::instance( SSCRIBE_DEBUG );
-		$this->file_handler = $file_handler ?? new SScribe_Batch_File_Handler(
+		$this->collector       = $collector ?? new SScribe_Page_Collector();
+		$this->zip_handler     = $zip_handler ?? new SScribe_Zip_Handler();
+		$this->session         = $session ?? new SScribe_Session();
+		$this->logger          = $logger ?? SScribe_Logger::instance( SSCRIBE_DEBUG );
+		$this->file_handler    = $file_handler ?? new SScribe_Batch_File_Handler(
 			new SScribe_Export_Rate_Limiter(),
 			$this->zip_handler,
 			$this->logger,
@@ -762,7 +767,7 @@ class SScribe_Batch_Processor {
 			);
 		}
 
-		$paused_reason = ''; // Initialize before try block so finally can access it
+		$paused_reason = ''; // Initialize before try block so finally can access it.
 
 		try {
 			$temp_dir = $this->zip_handler->create_temp_dir();
@@ -832,8 +837,8 @@ class SScribe_Batch_Processor {
 				$this->logger->warning(
 					'Concurrent session creation detected — cleaning up duplicate',
 					array(
-						'user_id'       => $user_id,
-						'our_session'   => $session_id,
+						'user_id'         => $user_id,
+						'our_session'     => $session_id,
 						'winning_session' => $active_sid,
 					)
 				);
@@ -1064,7 +1069,7 @@ class SScribe_Batch_Processor {
 		// Validate temp_dir is within allowed uploads directory to prevent path traversal attacks.
 		$upload_dir        = wp_upload_dir();
 		$allowed_temp_base = trailingslashit( $upload_dir['basedir'] ) . 'sscribe-exports';
-		$real_temp_dir     = realpath( $temp_dir ) ?: $temp_dir;
+		$real_temp_dir     = realpath( $temp_dir ) ? realpath( $temp_dir ) : $temp_dir;
 		if ( 0 !== strpos( $real_temp_dir, $allowed_temp_base ) ) {
 			$this->release_lock( $session_id );
 			$this->restore_ob_level( $ob_level_before );
@@ -1267,10 +1272,10 @@ class SScribe_Batch_Processor {
 
 				try {
 					$page_data['_batch_start_time'] = $batch_start_time;
-				$dispatch_result = $this->dispatch_formats( $page_data, $temp_dir, $page_index, $total, $formats, $session_id, $session, $page_id );
-					$export_success     = $dispatch_result['export_success'];
-					$successful_formats = $dispatch_result['successful_formats'];
-					$export_errors      = $dispatch_result['export_errors'];
+					$dispatch_result                = $this->dispatch_formats( $page_data, $temp_dir, $page_index, $total, $formats, $session_id, $session, $page_id );
+					$export_success                 = $dispatch_result['export_success'];
+					$successful_formats             = $dispatch_result['successful_formats'];
+					$export_errors                  = $dispatch_result['export_errors'];
 				} catch ( \Throwable $e ) {
 
 					$error_msg = sprintf(
@@ -1452,18 +1457,18 @@ class SScribe_Batch_Processor {
 			}
 
 			if ( $structured_errors_trimmed ) {
-				$trimmed_count = $total_structured_errors - self::MAX_STORED_ERRORS;
+				$trimmed_count     = $total_structured_errors - self::MAX_STORED_ERRORS;
 				$structured_errors = array_slice( $structured_errors, 0, self::MAX_STORED_ERRORS );
 				// Append trim notification so frontend knows more errors were dropped.
 				$structured_errors[] = array(
-					'page_id'    => 0,
-					'page_title' => '...',
-					'message'    => sprintf(
+					'page_id'     => 0,
+					'page_title'  => '...',
+					'message'     => sprintf(
 						/* translators: %d: Number of additional errors not stored. */
 						__( '... and %d more errors occurred.', 'sscribe-export-site-pages' ),
 						$trimmed_count
 					),
-					'errors'     => array(),
+					'errors'      => array(),
 					'diagnostics' => array(),
 					'time'        => current_time( 'mysql' ),
 				);
@@ -1594,7 +1599,7 @@ class SScribe_Batch_Processor {
 	 * @return array Response array.
 	 */
 	private function build_batch_response( int $processed, int $total, string $current_page_title, float $avg_time_per_page, bool $memory_paused, bool $timeout_paused, array $structured_errors, array $errors, float $batch_duration, float $batch_start_time ): array {
-		$percentage = ( $total > 0 ) ? round( ( $processed / $total ) * 100 ) : 100;
+		$percentage      = ( $total > 0 ) ? round( ( $processed / $total ) * 100 ) : 100;
 		$remaining_pages = $total - $processed;
 		$time_remaining  = round( $avg_time_per_page * $remaining_pages );
 
@@ -1994,7 +1999,8 @@ class SScribe_Batch_Processor {
 			if ( true === $zip_open ) {
 				// Count only actual file entries (not directory entries which end with '/').
 				$total_files_zip = 0;
-				for ( $i = 0; $i < $zip->numFiles; $i++ ) {
+				$zip_file_count  = $zip->numFiles; // phpcs:disable WordPress.NamingConventions.ValidVariableName.PropertyNotSnakeCase
+				for ( $i = 0; $i < $zip_file_count; $i++ ) {
 					$stat = $zip->statIndex( $i );
 					if ( $stat && substr( $stat['name'], -1 ) !== '/' ) {
 						++$total_files_zip;
@@ -2011,7 +2017,7 @@ class SScribe_Batch_Processor {
 					array(
 						'expected_files' => $expected_file_count,
 						'actual_files'   => $total_files_zip,
-						'zip_path'        => $zip_path,
+						'zip_path'       => $zip_path,
 					)
 				);
 			}
@@ -2076,10 +2082,10 @@ class SScribe_Batch_Processor {
 				$this->export_log->flush();
 			}
 
-			$export_stats = new SScribe_Export_Stats();
-			$duration     = time() - ( $session['start_time'] ?? time() );
-			$zip_size     = function_exists( 'wp_filesize' ) && file_exists( $zip_path ) ? (int) wp_filesize( $zip_path ) : 0;
-			$error_count  = count( $session['errors'] ?? array() );
+			$export_stats     = new SScribe_Export_Stats();
+			$duration         = time() - ( $session['start_time'] ?? time() );
+			$zip_size         = function_exists( 'wp_filesize' ) && file_exists( $zip_path ) ? (int) wp_filesize( $zip_path ) : 0;
+			$error_count      = count( $session['errors'] ?? array() );
 			$successful_pages = max( 0, ( $session['total'] ?? 0 ) - $error_count );
 			$export_stats->complete_export(
 				$session_id,
