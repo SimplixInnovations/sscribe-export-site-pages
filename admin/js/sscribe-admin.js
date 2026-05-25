@@ -55,7 +55,7 @@
 
 			// Set initial disabled-reason text while AJAX counts load.
 			$('#sscribe-export-disabled-reason').text(
-				sscribe_data.strings && sscribe_data.strings.loading_counts || 'Loading page counts...'
+				(sscribe_data.strings && sscribe_data.strings.loading_counts) || 'Loading page counts...'
 			);
 
 			this.updateConfigSummary();
@@ -138,10 +138,14 @@
 					}
 				}
 
-				if (!e.ctrlKey && !e.metaKey) { return; }
+				if (!e.ctrlKey && !e.metaKey) {
+					return;
+				}
 				// Don't trigger shortcuts when user is typing in an input, textarea, or contenteditable.
 				const tag = e.target.tagName;
-				if (tag === 'INPUT' || tag === 'TEXTAREA' || e.target.isContentEditable) { return; }
+				if (tag === 'INPUT' || tag === 'TEXTAREA' || e.target.isContentEditable) {
+					return;
+				}
 				if (e.key === 'e' || e.key === 'E') {
 					e.preventDefault();
 					const $btn = $('#sscribe-export-btn');
@@ -157,7 +161,6 @@
 					}
 				}
 			});
-
 		},
 
 		initializeTabs: function () {
@@ -311,7 +314,9 @@
 
 			$('input[name="sscribe_language"]').each(function () {
 				const langCode = $(this).val();
-				if (!langCode) { return; }
+				if (!langCode) {
+					return;
+				}
 
 				$.ajax({
 					url: sscribe_data.ajaxurl,
@@ -351,7 +356,9 @@
 						SScribe.isProcessing = true;
 						SScribe.updateProgress(response.data.percentage);
 						SScribe.updatePhase(response.data.status);
-						$('#sscribe-cancel-btn').prop('disabled', false).text(sscribe_data.strings.cancel || 'Cancel Export');
+						$('#sscribe-cancel-btn')
+							.prop('disabled', false)
+							.text(sscribe_data.strings.cancel || 'Cancel Export');
 						$('#sscribe-export-btn, #sscribe-preview-btn').prop('disabled', true);
 						$('#sscribe-progress-area').show();
 						// Resume polling — user may have reloaded during an active export.
@@ -429,8 +436,12 @@
 
 			const postTypeLabels = { page: 'Pages', post: 'Posts', any: 'Both' };
 			const statusLabels = {
-				publish: 'Published', draft: 'Draft', private: 'Private',
-				future: 'Scheduled', pending: 'Pending', all: 'All',
+				publish: 'Published',
+				draft: 'Draft',
+				private: 'Private',
+				future: 'Scheduled',
+				pending: 'Pending',
+				all: 'All',
 			};
 
 			$('#sscribe-summary-post-type').text(postTypeLabels[postType] || postType);
@@ -440,7 +451,6 @@
 			$('#sscribe-summary-pages').text('~' + count + ' ' + sscribe_data.strings.log_pages);
 			$('#sscribe-summary-time').text(sscribe_data.strings.calculating_time || 'Calculating...');
 
-			const self = this;
 			$.ajax({
 				url: sscribe_data.ajaxurl,
 				type: 'POST',
@@ -468,7 +478,8 @@
 
 			const liveRegion = document.getElementById('sscribe-live-region');
 			if (liveRegion && count > 0) {
-				liveRegion.textContent = count + ' ' + (sscribe_data.strings.log_pages || 'pages') + ' ready for export';
+				liveRegion.textContent =
+					count + ' ' + (sscribe_data.strings.log_pages || 'pages') + ' ready for export';
 			}
 
 			this.updateExportButton();
@@ -493,7 +504,9 @@
 			const $reason = $('#sscribe-export-disabled-reason');
 			if (!canExport) {
 				if (!hasPages) {
-					$reason.text(sscribe_data.strings && sscribe_data.strings.err_no_pages || 'No pages match selected options');
+					$reason.text(
+						(sscribe_data.strings && sscribe_data.strings.err_no_pages) || 'No pages match selected options'
+					);
 				} else {
 					$reason.text('');
 				}
@@ -752,7 +765,7 @@
 					SScribe.isProcessing = false;
 					const serverMsg = SScribe.parseServerError(xhr);
 					const msg = serverMsg || SScribe.getNetworkErrorMessage(xhr, 'start_export');
-					const errData = (xhr.responseJSON && xhr.responseJSON.data) ? xhr.responseJSON.data : {};
+					const errData = xhr.responseJSON && xhr.responseJSON.data ? xhr.responseJSON.data : {};
 					SScribe.showError(msg, false, SScribe.normalizeErrorData(errData));
 				},
 			});
@@ -826,10 +839,9 @@
 							const strings = sscribe_data.strings || {};
 							let timeStr = '';
 							if (minutes > 0) {
-								timeStr =
-									strings.min_sec_remaining
-										? strings.min_sec_remaining.replace( '%1$d', minutes ).replace( '%2$d', seconds )
-										: minutes + ' min ' + seconds + ' sec remaining';
+								timeStr = strings.min_sec_remaining
+									? strings.min_sec_remaining.replace('%1$d', minutes).replace('%2$d', seconds)
+									: minutes + ' min ' + seconds + ' sec remaining';
 							} else {
 								timeStr = seconds + ' ' + (strings.sec_remaining || 'sec remaining');
 							}
@@ -867,7 +879,7 @@
 					} else {
 						const serverMsg = SScribe.parseServerError(xhr);
 						const msg = serverMsg || SScribe.getNetworkErrorMessage(xhr, 'process_batch');
-						const errData = (xhr.responseJSON && xhr.responseJSON.data) ? xhr.responseJSON.data : {};
+						const errData = xhr.responseJSON && xhr.responseJSON.data ? xhr.responseJSON.data : {};
 						SScribe.showError(msg, false, SScribe.normalizeErrorData(errData));
 					}
 				},
@@ -944,7 +956,12 @@
 				timeout: 15000,
 				data: { action: 'sscribe_get_recent_exports', nonce: sscribe_data.nonce },
 				success: function (recentResp) {
-					if (recentResp.success && recentResp.data && recentResp.data.exports && recentResp.data.exports.length > 0) {
+					if (
+						recentResp.success &&
+						recentResp.data &&
+						recentResp.data.exports &&
+						recentResp.data.exports.length > 0
+					) {
 						let matched = null;
 						for (let i = 0; i < recentResp.data.exports.length; i++) {
 							const exp = recentResp.data.exports[i];
@@ -1029,11 +1046,15 @@
 						}
 					},
 					error: function (xhr) {
+						const response = xhr.responseJSON || {};
 						// HTTP 404 = session was deleted (session cleanup on failure).
 						// Stop retrying and show error — the session is gone so retry is futile.
 						if (xhr.status === 404) {
 							self.isProcessing = false;
-							const resultData = { session_id: sessionId, created_at: response.data && response.data.created_at ? response.data.created_at : 0 };
+							const resultData = {
+								session_id: sessionId,
+								created_at: response.data && response.data.created_at ? response.data.created_at : 0,
+							};
 							self.findExportInRecentExports(resultData, function (matched) {
 								if (matched) {
 									matched.percentage = 100;
@@ -1069,7 +1090,9 @@
 		toggleHistorySkeleton: function (show) {
 			const $skel = $('#sscribe-history-skeleton');
 			const $table = $('#sscribe-history-table');
-			if (!$skel.length) { return; }
+			if (!$skel.length) {
+				return;
+			}
 			if (show) {
 				$skel.removeClass('sscribe-hidden');
 				$table.addClass('sscribe-hidden');
@@ -1241,7 +1264,10 @@
 				},
 				success: function (response) {
 					if (response.success) {
-						SScribe.showToast(sscribe_data.strings && sscribe_data.strings.delete_success || 'Export deleted.', 'success');
+						SScribe.showToast(
+							(sscribe_data.strings && sscribe_data.strings.delete_success) || 'Export deleted.',
+							'success'
+						);
 					} else {
 						SScribe.showError(
 							response.data.message ||
@@ -1249,20 +1275,26 @@
 								'Failed to delete export.'
 						);
 					}
-					if (typeof callback === 'function') { callback(); }
+					if (typeof callback === 'function') {
+						callback();
+					}
 				},
 				error: function () {
 					SScribe.showError(
 						(sscribe_data.strings && sscribe_data.strings.delete_failed) || 'Failed to delete export.'
 					);
-					if (typeof callback === 'function') { callback(); }
+					if (typeof callback === 'function') {
+						callback();
+					}
 				},
 			});
 		},
 
 		bulkDeleteSelected: function () {
 			const $checks = $('.sscribe-history-check:checked');
-			if ($checks.length === 0) { return; }
+			if ($checks.length === 0) {
+				return;
+			}
 			const filenames = [];
 			$checks.each(function () {
 				filenames.push($(this).val());
@@ -1277,7 +1309,9 @@
 
 		bulkDownload: function () {
 			const $checks = $('.sscribe-history-check:checked');
-			if ($checks.length === 0) { return; }
+			if ($checks.length === 0) {
+				return;
+			}
 			$checks.each(function (i) {
 				const $row = $(this).closest('.sscribe-history-row');
 				const $downloadLink = $row.find('.sscribe-history-actions > a');
@@ -1312,7 +1346,10 @@
 				progressBar.style.transform = 'scaleX(' + percentage / 100 + ')';
 				progressBar.setAttribute('aria-valuenow', percentage);
 				if (typeof currentPage === 'number' && typeof totalPages === 'number' && totalPages > 0) {
-					progressBar.setAttribute('aria-valuetext', 'Processing ' + currentPage + ' of ' + totalPages + ' pages');
+					progressBar.setAttribute(
+						'aria-valuetext',
+						'Processing ' + currentPage + ' of ' + totalPages + ' pages'
+					);
 				}
 			} else {
 				$('#sscribe-progress-bar').css('width', percentage + '%');
@@ -1330,7 +1367,9 @@
 
 		updatePhase: function (phase) {
 			const $steps = $('.sscribe-phase-step');
-			if (!$steps.length) { return; }
+			if (!$steps.length) {
+				return;
+			}
 
 			let found = false;
 			$steps.each(function () {
@@ -1400,18 +1439,13 @@
 					if (parsed && parsed.data && parsed.data._diagnostics) {
 						diagnostics = parsed.data._diagnostics;
 					}
-				} catch (e) { // eslint-disable-line no-unused-vars
+				} catch (_e) {
 					// Not JSON — the response body wasn't meant to be parsed, nothing to extract.
 				}
 			}
 
 			/* eslint-disable no-console */
-			console.groupCollapsed(
-				'[SSCRIBE] AJAX Error — %s (HTTP %d %s)',
-				action,
-				statusCode,
-				statusText
-			);
+			console.groupCollapsed('[SSCRIBE] AJAX Error — %s (HTTP %d %s)', action, statusCode, statusText);
 
 			console.log('Timestamp:', timestamp);
 			console.log('Action:', action);
@@ -1447,7 +1481,9 @@
 		 */
 		adjustToastContainerPosition: function () {
 			const $container = $('#sscribe-toast-container');
-			if (!$container.length) { return; }
+			if (!$container.length) {
+				return;
+			}
 			const $wpadminbar = $('#wpadminbar');
 			const adminBarHeight = $wpadminbar.length ? $wpadminbar.outerHeight() : 0;
 			$container.css('top', Math.max(adminBarHeight, 32) + 'px');
@@ -1455,44 +1491,65 @@
 
 		showToast: function (message, type, duration) {
 			type = type || 'info';
-			duration = (typeof duration === 'number') ? duration : 4000;
+			duration = typeof duration === 'number' ? duration : 4000;
 
 			const $container = $('#sscribe-toast-container');
-			if (!$container.length) { return; }
+			if (!$container.length) {
+				return;
+			}
 
 			const icons = { success: '&#10003;', error: '&#10005;', warning: '&#9888;', info: '&#9432;' };
 			const icon = icons[type] || '&#9432;';
 			const isAssertive = type === 'error' || type === 'warning';
 			const role = isAssertive ? 'alert' : 'status';
 			const ariaLive = isAssertive ? 'assertive' : 'polite';
-			const dismissLabel = (sscribe_data.strings && sscribe_data.strings.dismiss_notification) || 'Dismiss notification';
+			const dismissLabel =
+				(sscribe_data.strings && sscribe_data.strings.dismiss_notification) || 'Dismiss notification';
 
 			// Cap visible toasts at 5 to prevent overflow.
 			const $existing = $container.children('.sscribe-toast');
 			if ($existing.length >= 5) {
 				$existing.last().addClass('sscribe-toast-removing');
-				setTimeout(function () { $existing.last().remove(); }, 200);
+				setTimeout(function () {
+					$existing.last().remove();
+				}, 200);
 			}
 
 			const $toast = $(
-				'<div class="sscribe-toast sscribe-toast-' + type + '" role="' + role + '" aria-live="' + ariaLive + '" aria-atomic="true">' +
-					'<span class="sscribe-toast-icon">' + icon + '</span>' +
-					'<span class="sscribe-toast-message">' + this.escapeHtml(message) + '</span>' +
-					'<button type="button" class="sscribe-toast-dismiss" aria-label="' + this.escapeHtml(dismissLabel) + '">&times;</button>' +
-				'</div>'
+				'<div class="sscribe-toast sscribe-toast-' +
+					type +
+					'" role="' +
+					role +
+					'" aria-live="' +
+					ariaLive +
+					'" aria-atomic="true">' +
+					'<span class="sscribe-toast-icon">' +
+					icon +
+					'</span>' +
+					'<span class="sscribe-toast-message">' +
+					this.escapeHtml(message) +
+					'</span>' +
+					'<button type="button" class="sscribe-toast-dismiss" aria-label="' +
+					this.escapeHtml(dismissLabel) +
+					'">&times;</button>' +
+					'</div>'
 			);
 
 			$container.append($toast);
 
 			$toast.find('.sscribe-toast-dismiss').on('click', function () {
 				$toast.addClass('sscribe-toast-removing');
-				setTimeout(function () { $toast.remove(); }, 200);
+				setTimeout(function () {
+					$toast.remove();
+				}, 200);
 			});
 
 			if (duration > 0) {
 				setTimeout(function () {
 					$toast.addClass('sscribe-toast-removing');
-					setTimeout(function () { $toast.remove(); }, 200);
+					setTimeout(function () {
+						$toast.remove();
+					}, 200);
 				}, duration);
 			}
 		},
@@ -1533,7 +1590,10 @@
 			} catch {
 				$('#sscribe-support-feedback')
 					.removeClass('sscribe-hidden')
-					.text(sscribe_data.strings && sscribe_data.strings.support_copy_error || 'Copy failed. Try selecting the text manually.');
+					.text(
+						(sscribe_data.strings && sscribe_data.strings.support_copy_error) ||
+							'Copy failed. Try selecting the text manually.'
+					);
 			}
 		},
 
@@ -1572,9 +1632,13 @@
 			}
 
 			const handler = function (e) {
-				if (e.key !== 'Tab') { return; }
+				if (e.key !== 'Tab') {
+					return;
+				}
 				const focusableElements = container.querySelectorAll(focusableSelectors);
-				if (focusableElements.length === 0) { return; }
+				if (focusableElements.length === 0) {
+					return;
+				}
 				const firstFocusable = focusableElements[0];
 				const lastFocusable = focusableElements[focusableElements.length - 1];
 				if (e.shiftKey) {
@@ -1661,9 +1725,11 @@
 
 			$content.html(
 				'<div class="sscribe-preview-loading">' +
-				'<span class="sscribe-loading-spinner"></span>' +
-				'<span>' + this.escapeHtml(sscribe_data.strings.generating_preview || 'Generating preview...') + '</span>' +
-				'</div>'
+					'<span class="sscribe-loading-spinner"></span>' +
+					'<span>' +
+					this.escapeHtml(sscribe_data.strings.generating_preview || 'Generating preview...') +
+					'</span>' +
+					'</div>'
 			);
 			$startBtn.prop('disabled', true);
 
@@ -1691,18 +1757,12 @@
 						self.renderPreview(response.data);
 					} else {
 						self.closePreview();
-						self.showToast(
-							sscribe_data.strings.preview_error || 'Failed to generate preview.',
-							'error'
-						);
+						self.showToast(sscribe_data.strings.preview_error || 'Failed to generate preview.', 'error');
 					}
 				},
 				error: function () {
 					self.closePreview();
-					self.showToast(
-						sscribe_data.strings.preview_error || 'Failed to generate preview.',
-						'error'
-					);
+					self.showToast(sscribe_data.strings.preview_error || 'Failed to generate preview.', 'error');
 				},
 			});
 		},
@@ -1737,39 +1797,59 @@
 			html += '<div class="sscribe-preview-grid">';
 
 			html += '<div class="sscribe-preview-stat">';
-			html += '<span class="sscribe-preview-label">' + this.escapeHtml(strings.preview_total_pages || 'Total pages:') + '</span>';
+			html +=
+				'<span class="sscribe-preview-label">' +
+				this.escapeHtml(strings.preview_total_pages || 'Total pages:') +
+				'</span>';
 			html += '<span class="sscribe-preview-value">' + this.escapeHtml(String(totalPages)) + '</span>';
 			html += '</div>';
 
 			html += '<div class="sscribe-preview-stat">';
-			html += '<span class="sscribe-preview-label">' + this.escapeHtml(strings.preview_format || 'Format:') + '</span>';
+			html +=
+				'<span class="sscribe-preview-label">' +
+				this.escapeHtml(strings.preview_format || 'Format:') +
+				'</span>';
 			html += '<span class="sscribe-preview-value">' + this.escapeHtml(formatText || 'N/A') + '</span>';
 			html += '</div>';
 
 			html += '<div class="sscribe-preview-stat">';
-			html += '<span class="sscribe-preview-label">' + this.escapeHtml(strings.preview_language || 'Language:') + '</span>';
+			html +=
+				'<span class="sscribe-preview-label">' +
+				this.escapeHtml(strings.preview_language || 'Language:') +
+				'</span>';
 			html += '<span class="sscribe-preview-value">' + this.escapeHtml(data.language || 'All') + '</span>';
 			html += '</div>';
 
 			html += '<div class="sscribe-preview-stat">';
-			html += '<span class="sscribe-preview-label">' + this.escapeHtml(strings.preview_status || 'Status:') + '</span>';
+			html +=
+				'<span class="sscribe-preview-label">' +
+				this.escapeHtml(strings.preview_status || 'Status:') +
+				'</span>';
 			html += '<span class="sscribe-preview-value">' + this.escapeHtml(data.post_status || 'publish') + '</span>';
 			html += '</div>';
 
 			html += '<div class="sscribe-preview-stat">';
-			html += '<span class="sscribe-preview-label">' + this.escapeHtml(strings.preview_estimated_time || 'Estimated time:') + '</span>';
+			html +=
+				'<span class="sscribe-preview-label">' +
+				this.escapeHtml(strings.preview_estimated_time || 'Estimated time:') +
+				'</span>';
 			html += '<span class="sscribe-preview-value">' + this.escapeHtml(data.estimated_time || 'N/A') + '</span>';
 			html += '</div>';
 
 			html += '<div class="sscribe-preview-stat">';
-			html += '<span class="sscribe-preview-label">' + this.escapeHtml(strings.preview_file_size || 'Est. file size:') + '</span>';
-			html += '<span class="sscribe-preview-value">' + this.escapeHtml(data.file_size_estimate || 'N/A') + '</span>';
+			html +=
+				'<span class="sscribe-preview-label">' +
+				this.escapeHtml(strings.preview_file_size || 'Est. file size:') +
+				'</span>';
+			html +=
+				'<span class="sscribe-preview-value">' + this.escapeHtml(data.file_size_estimate || 'N/A') + '</span>';
 			html += '</div>';
 
 			html += '</div>';
 
 			if (totalPages === 0) {
-				html += '<div class="sscribe-preview-empty">' +
+				html +=
+					'<div class="sscribe-preview-empty">' +
 					this.escapeHtml(sscribe_data.strings.err_no_pages || 'No pages match selected options.') +
 					'</div>';
 			}
@@ -1782,8 +1862,14 @@
 				html += '</div>';
 			}
 
-			html += '<p class="sscribe-preview-note">' + this.escapeHtml(strings.preview_fallback_note || 'Only the first few pages are shown in the preview.') + '</p>';
-			html += '<p class="sscribe-preview-context">' + this.escapeHtml(strings.summary_time_hint || 'See Preview') + '</p>';
+			html +=
+				'<p class="sscribe-preview-note">' +
+				this.escapeHtml(strings.preview_fallback_note || 'Only the first few pages are shown in the preview.') +
+				'</p>';
+			html +=
+				'<p class="sscribe-preview-context">' +
+				this.escapeHtml(strings.summary_time_hint || 'See Preview') +
+				'</p>';
 			html += '</div>';
 
 			$content.html(html);
@@ -1834,10 +1920,13 @@
 
 			$textarea.val('');
 			$btn.prop('disabled', true);
-			$grid.html('<div class="sscribe-support-loading">' +
-				'<span class="sscribe-loading-spinner"></span>' +
-				'<span>' + this.escapeHtml(sscribe_data.strings.support_loading || 'Loading support information...') + '</span>' +
-				'</div>'
+			$grid.html(
+				'<div class="sscribe-support-loading">' +
+					'<span class="sscribe-loading-spinner"></span>' +
+					'<span>' +
+					this.escapeHtml(sscribe_data.strings.support_loading || 'Loading support information...') +
+					'</span>' +
+					'</div>'
 			);
 
 			const self = this;
@@ -1855,16 +1944,21 @@
 					} else {
 						$grid.html(
 							'<div class="sscribe-support-error">' +
-							self.escapeHtml(sscribe_data.strings.support_error || 'Unable to load support information right now.') +
-							'</div>'
+								self.escapeHtml(
+									sscribe_data.strings.support_error ||
+										'Unable to load support information right now.'
+								) +
+								'</div>'
 						);
 					}
 				},
 				error: function () {
 					$grid.html(
 						'<div class="sscribe-support-error">' +
-						self.escapeHtml(sscribe_data.strings.support_error || 'Unable to load support information right now.') +
-						'</div>'
+							self.escapeHtml(
+								sscribe_data.strings.support_error || 'Unable to load support information right now.'
+							) +
+							'</div>'
 					);
 				},
 			});
@@ -1937,7 +2031,9 @@
 
 			// First click — ask for confirmation.
 			const originalText = $btn.text();
-			$btn.data('sscribe-confirming', true).text(sscribe_data.strings.click_again || 'Click again').prop('disabled', false);
+			$btn.data('sscribe-confirming', true)
+				.text(sscribe_data.strings.click_again || 'Click again')
+				.prop('disabled', false);
 
 			const tid = setTimeout(function () {
 				if ($btn.data('sscribe-confirming')) {
@@ -1966,9 +2062,11 @@
 
 			$content.html(
 				'<div class="sscribe-log-loading">' +
-				'<span class="sscribe-loading-spinner"></span>' +
-				'<span>' + this.escapeHtml(sscribe_data.strings.loading_log || 'Loading log...') + '</span>' +
-				'</div>'
+					'<span class="sscribe-loading-spinner"></span>' +
+					'<span>' +
+					this.escapeHtml(sscribe_data.strings.loading_log || 'Loading log...') +
+					'</span>' +
+					'</div>'
 			);
 
 			$modal.attr('aria-hidden', 'false').removeClass('sscribe-hidden').prop('hidden', false).hide().fadeIn(300);
@@ -1991,23 +2089,17 @@
 						self.renderExportLog(response.data);
 					} else {
 						const message =
-							response &&
-							response.data &&
-							response.data.message
+							response && response.data && response.data.message
 								? response.data.message
 								: sscribe_data.strings.log_not_found || 'Log not found.';
-						$content.html(
-							'<div class="sscribe-log-error">' +
-							self.escapeHtml(message) +
-							'</div>'
-						);
+						$content.html('<div class="sscribe-log-error">' + self.escapeHtml(message) + '</div>');
 					}
 				},
 				error: function () {
 					$content.html(
 						'<div class="sscribe-log-error">' +
-						self.escapeHtml(sscribe_data.strings.log_load_failed || 'Failed to load log.') +
-						'</div>'
+							self.escapeHtml(sscribe_data.strings.log_load_failed || 'Failed to load log.') +
+							'</div>'
 					);
 				},
 			});
@@ -2025,8 +2117,8 @@
 			if (!log || typeof log !== 'object') {
 				$content.html(
 					'<div class="sscribe-log-error">' +
-					this.escapeHtml(strings.log_not_found || 'Log not found.') +
-					'</div>'
+						this.escapeHtml(strings.log_not_found || 'Log not found.') +
+						'</div>'
 				);
 				return;
 			}
@@ -2038,9 +2130,24 @@
 			const errors = Array.isArray(log.errors) ? log.errors : [];
 
 			let html = '<div class="sscribe-log-summary">';
-			html += '<div class="sscribe-log-stat"><strong>' + this.escapeHtml(strings.log_total || 'Total:') + '</strong> ' + this.escapeHtml(String(log.total_pages || 0)) + '</div>';
-			html += '<div class="sscribe-log-stat sscribe-log-success"><strong>' + this.escapeHtml(strings.log_success_label || 'Success:') + '</strong> ' + this.escapeHtml(String(log.success || 0)) + '</div>';
-			html += '<div class="sscribe-log-stat sscribe-log-failed"><strong>' + this.escapeHtml(strings.log_failed_label || 'Failed:') + '</strong> ' + this.escapeHtml(String(log.failed || 0)) + '</div>';
+			html +=
+				'<div class="sscribe-log-stat"><strong>' +
+				this.escapeHtml(strings.log_total || 'Total:') +
+				'</strong> ' +
+				this.escapeHtml(String(log.total_pages || 0)) +
+				'</div>';
+			html +=
+				'<div class="sscribe-log-stat sscribe-log-success"><strong>' +
+				this.escapeHtml(strings.log_success_label || 'Success:') +
+				'</strong> ' +
+				this.escapeHtml(String(log.success || 0)) +
+				'</div>';
+			html +=
+				'<div class="sscribe-log-stat sscribe-log-failed"><strong>' +
+				this.escapeHtml(strings.log_failed_label || 'Failed:') +
+				'</strong> ' +
+				this.escapeHtml(String(log.failed || 0)) +
+				'</div>';
 			html += '</div>';
 
 			if (pages.length > 0) {
@@ -2055,47 +2162,61 @@
 				html += '<th>' + this.escapeHtml(strings.log_col_formats || 'Formats') + '</th>';
 				html += '</tr></thead><tbody>';
 
-				pages.forEach(function (page) {
-					const pageId = page.id || '-';
-					const title = page.title || strings.log_unknown || 'Unknown';
-					const status = page.status || strings.log_unknown || 'Unknown';
-					const duration = page.duration !== null && page.duration !== undefined
-						? String(page.duration) + (strings.log_seconds_suffix || 's')
-						: '-';
+				pages.forEach(
+					function (page) {
+						const pageId = page.id || '-';
+						const title = page.title || strings.log_unknown || 'Unknown';
+						const status = page.status || strings.log_unknown || 'Unknown';
+						const duration =
+							page.duration !== null && page.duration !== undefined
+								? String(page.duration) + (strings.log_seconds_suffix || 's')
+								: '-';
 
-					let formatText = '-';
-					if (page.formats && typeof page.formats === 'object') {
-						const formatKeys = Object.keys(page.formats).filter(function (fmt) {
-							return page.formats[fmt] && page.formats[fmt].success;
-						});
-						if (formatKeys.length > 0) {
-							formatText = formatKeys.join(', ');
+						let formatText = '-';
+						if (page.formats && typeof page.formats === 'object') {
+							const formatKeys = Object.keys(page.formats).filter(function (fmt) {
+								return page.formats[fmt] && page.formats[fmt].success;
+							});
+							if (formatKeys.length > 0) {
+								formatText = formatKeys.join(', ');
+							}
 						}
-					}
 
-					const statusClass = status === 'success' ? 'sscribe-log-status-success' : (status === 'failed' ? 'sscribe-log-status-failed' : '');
-					html += '<tr>';
-					html += '<td>' + this.escapeHtml(String(pageId)) + '</td>';
-					html += '<td>' + this.escapeHtml(title) + '</td>';
-					html += '<td class="' + this.escapeHtml(statusClass) + '">' + this.escapeHtml(status) + '</td>';
-					html += '<td>' + this.escapeHtml(duration) + '</td>';
-					html += '<td>' + this.escapeHtml(formatText) + '</td>';
-					html += '</tr>';
-				}.bind(this));
+						const statusClass =
+							status === 'success'
+								? 'sscribe-log-status-success'
+								: status === 'failed'
+									? 'sscribe-log-status-failed'
+									: '';
+						html += '<tr>';
+						html += '<td>' + this.escapeHtml(String(pageId)) + '</td>';
+						html += '<td>' + this.escapeHtml(title) + '</td>';
+						html += '<td class="' + this.escapeHtml(statusClass) + '">' + this.escapeHtml(status) + '</td>';
+						html += '<td>' + this.escapeHtml(duration) + '</td>';
+						html += '<td>' + this.escapeHtml(formatText) + '</td>';
+						html += '</tr>';
+					}.bind(this)
+				);
 
 				html += '</tbody></table></div>';
 			} else {
-				html += '<div class="sscribe-log-empty">' + this.escapeHtml(strings.log_not_found || 'Log not found.') + '</div>';
+				html +=
+					'<div class="sscribe-log-empty">' +
+					this.escapeHtml(strings.log_not_found || 'Log not found.') +
+					'</div>';
 			}
 
 			if (errors.length > 0) {
 				html += '<div class="sscribe-log-errors">';
 				html += '<h4>' + this.escapeHtml(strings.log_errors || 'Errors') + '</h4>';
 				html += '<ul>';
-				errors.forEach(function (errorEntry) {
-					const message = errorEntry && errorEntry.message ? errorEntry.message : (strings.log_unknown || 'Unknown');
-					html += '<li>' + this.escapeHtml(message) + '</li>';
-				}.bind(this));
+				errors.forEach(
+					function (errorEntry) {
+						const message =
+							errorEntry && errorEntry.message ? errorEntry.message : strings.log_unknown || 'Unknown';
+						html += '<li>' + this.escapeHtml(message) + '</li>';
+					}.bind(this)
+				);
 				html += '</ul></div>';
 			}
 
@@ -2251,7 +2372,8 @@
 			// Announce error to screen readers via assertive live region.
 			const alertRegion = document.getElementById('sscribe-alert-region');
 			if (alertRegion) {
-				alertRegion.textContent = message || (sscribe_data.strings && sscribe_data.strings.error) || 'Export failed.';
+				alertRegion.textContent =
+					message || (sscribe_data.strings && sscribe_data.strings.error) || 'Export failed.';
 			}
 
 			let displayMessage = message;
@@ -2274,7 +2396,7 @@
 				if (diagnosticInfo.fix_steps && diagnosticInfo.fix_steps.length > 0) {
 					guidance += (guidance ? '\n\n' : '') + (sscribe_data.strings.fix_steps || 'Steps to fix:') + '\n';
 					for (let i = 0; i < diagnosticInfo.fix_steps.length; i++) {
-						guidance += (i + 1) + '. ' + diagnosticInfo.fix_steps[i] + '\n';
+						guidance += i + 1 + '. ' + diagnosticInfo.fix_steps[i] + '\n';
 					}
 				}
 			}
@@ -2334,7 +2456,7 @@
 						return parsed.data.message;
 					}
 				}
-			} catch (e) {
+			} catch (_e) {
 				return null;
 			}
 			return null;

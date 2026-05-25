@@ -98,6 +98,7 @@ class SScribe_Zip_Handler {
 	 * @param array  $formats       Export formats to include.
 	 * @param bool   $has_language  Whether language metadata is available.
 	 * @param array  $lang_metadata Language metadata array.
+	 * @param string $session_id    Session identifier for locking.
 	 * @return string|false ZIP file path or false on failure.
 	 */
 	public function create_zip( string $source_dir, string $zip_name = '', array $formats = array( 'docx' ), bool $has_language = true, array $lang_metadata = array(), string $session_id = '' ): string|false {
