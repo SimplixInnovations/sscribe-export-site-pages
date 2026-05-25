@@ -281,13 +281,17 @@ class SScribe_PDF_Exporter implements SScribe_Exporter_Interface {
 			$mpdf->SetKeywords( esc_html( $page_data['seo']['focus_keyword'] ?? '' ) );
 
 			$html_content = preg_replace( '/<style[^>]*>.*?<\/style>/is', '', $html_content ) ?? $html_content;
-			$html_content = preg_replace( '/\s*style="([^"]*)"/i', function ( $matches ) use ( $is_rtl ) {
-				$style = $matches[1];
-				if ( $is_rtl && preg_match( '/direction\s*:\s*rtl/i', $style ) ) {
-					return ' style="direction:rtl"';
-				}
-				return '';
-			}, $html_content ) ?? $html_content;
+			$html_content = preg_replace(
+				'/\s*style="([^"]*)"/i',
+				function ( $matches ) use ( $is_rtl ) {
+					$style = $matches[1];
+					if ( $is_rtl && preg_match( '/direction\s*:\s*rtl/i', $style ) ) {
+						return ' style="direction:rtl"';
+					}
+					return '';
+				},
+				$html_content
+			) ?? $html_content;
 			$html_content = preg_replace( "/\s*style='[^']*'/i", '', $html_content ) ?? $html_content;
 
 			$html_content = preg_replace( '/@font-face\s*\{[^}]+\}/isU', '', $html_content ) ?? $html_content;
@@ -301,7 +305,7 @@ class SScribe_PDF_Exporter implements SScribe_Exporter_Interface {
 			if ( function_exists( 'microtime' ) ) {
 				$max_exec = (int) ini_get( 'max_execution_time' );
 				if ( $max_exec > 0 ) {
-					$elapsed  = microtime( true ) - ( $page_data['_batch_start_time'] ?? microtime( true ) );
+					$elapsed   = microtime( true ) - ( $page_data['_batch_start_time'] ?? microtime( true ) );
 					$remaining = $max_exec - $elapsed;
 					if ( $remaining < 20 ) {
 						$this->cleanup_temp_images( $temp_image_paths );
@@ -479,7 +483,7 @@ class SScribe_PDF_Exporter implements SScribe_Exporter_Interface {
 		foreach ( $files as $file ) {
 			if ( is_file( $file ) ) {
 				$mtime = filemtime( $file );
-				if ( $mtime !== false && ( $now - $mtime ) > $max_age ) {
+				if ( false !== $mtime && ( $now - $mtime ) > $max_age ) {
 					SScribe_Image_Processor::cleanup( $file );
 				}
 			}
