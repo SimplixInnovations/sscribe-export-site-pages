@@ -98,7 +98,7 @@ class SScribe_Security {
 			throw new \InvalidArgumentException(
 				sprintf(
 					'Directory "%s" is outside the allowed uploads scope.',
-					esc_html( basename( $path ) )
+					basename( $path )
 				)
 			);
 		}

@@ -92,6 +92,7 @@ class SScribe_PDF_Exporter implements SScribe_Exporter_Interface {
 		$libxml_errors = array();
 		$prev_errors   = libxml_use_internal_errors( true );
 		$output_path   = '';
+		$mpdf_temp     = '';
 
 		try {
 			if ( ! class_exists( '\\SScribeVendor\\Mpdf\\Mpdf' ) ) {
@@ -136,7 +137,6 @@ class SScribe_PDF_Exporter implements SScribe_Exporter_Interface {
 				return SScribe_Result::failure(
 					sprintf(
 						/* translators: 1: HTML size, 2: Page title. */
-
 						__( 'PDF render skipped — HTML content is too large (%1$s). To raise the limit, use the "sscribe_pdf_max_html_size" filter. Try exporting to DOCX instead, or reduce page content complexity.', 'sscribe-export-site-pages' ),
 						size_format( $html_size )
 					),
@@ -218,6 +218,14 @@ class SScribe_PDF_Exporter implements SScribe_Exporter_Interface {
 
 			$manrope_regular = $this->find_font_file( $manrope_dir, 'manrope[-_]?regular' ) ?? 'Manrope-Regular.ttf';
 
+			$xbriyaz_available = false;
+			foreach ( $font_dirs as $font_dir_path ) {
+				if ( file_exists( trailingslashit( $font_dir_path ) . 'xbriyaz.ttf' ) ) {
+					$xbriyaz_available = true;
+					break;
+				}
+			}
+
 			$config = array(
 				'fontDir'          => array_merge(
 					$font_dirs,
@@ -235,17 +243,17 @@ class SScribe_PDF_Exporter implements SScribe_Exporter_Interface {
 				),
 
 				'fonttrans'        => $is_rtl ? array(
-					'dejavu sans'     => 'xbriyaz',
-					'dejavusans'      => 'xbriyaz',
-					'arial'           => 'xbriyaz',
-					'xbriyaz'         => 'xbriyaz',
-					'lateef'          => 'xbriyaz',
-					'times new roman' => 'xbriyaz',
-					'serif'           => 'xbriyaz',
-					'sans-serif'      => 'xbriyaz',
+					'dejavu sans'     => $xbriyaz_available ? 'xbriyaz' : 'freeserif',
+					'dejavusans'      => $xbriyaz_available ? 'xbriyaz' : 'freeserif',
+					'arial'           => $xbriyaz_available ? 'xbriyaz' : 'freeserif',
+					'xbriyaz'         => $xbriyaz_available ? 'xbriyaz' : 'freeserif',
+					'lateef'          => $xbriyaz_available ? 'xbriyaz' : 'freeserif',
+					'times new roman' => $xbriyaz_available ? 'xbriyaz' : 'freeserif',
+					'serif'           => $xbriyaz_available ? 'xbriyaz' : 'freeserif',
+					'sans-serif'      => $xbriyaz_available ? 'xbriyaz' : 'freeserif',
 				) : array(),
 				'mode'             => 'utf-8',
-				'default_font'     => $is_rtl ? 'xbriyaz' : 'manrope',
+				'default_font'     => $is_rtl ? ( $xbriyaz_available ? 'xbriyaz' : 'freeserif' ) : 'manrope',
 				'useOTL'           => 0xFF,
 				'useKashida'       => 75,
 				'OTLhelper'        => true,
@@ -260,7 +268,7 @@ class SScribe_PDF_Exporter implements SScribe_Exporter_Interface {
 				'margin_top'       => 15,
 				'margin_bottom'    => 15,
 				'tempDir'          => $mpdf_temp,
-				'debug'            => false,
+				'debug'            => ( defined( 'SSCRIBE_DEBUG' ) && SSCRIBE_DEBUG ),
 			);
 
 			$mpdf = new \SScribeVendor\Mpdf\Mpdf( $config );
@@ -269,18 +277,24 @@ class SScribe_PDF_Exporter implements SScribe_Exporter_Interface {
 			$mpdf->SetTitle( $title );
 			$mpdf->SetAuthor( $page_data['author'] ?? '' );
 			$mpdf->SetCreator( 'SScribe Export Plugin v' . SSCRIBE_VERSION );
-			$mpdf->SetSubject( $page_data['seo']['meta_description'] ?? '' );
-			$mpdf->SetKeywords( $page_data['seo']['focus_keyword'] ?? '' );
+			$mpdf->SetSubject( esc_html( $page_data['seo']['meta_description'] ?? '' ) );
+			$mpdf->SetKeywords( esc_html( $page_data['seo']['focus_keyword'] ?? '' ) );
 
 			$html_content = preg_replace( '/<style[^>]*>.*?<\/style>/is', '', $html_content ) ?? $html_content;
-			$html_content = preg_replace( '/\s*style="[^"]*"/i', '', $html_content ) ?? $html_content;
+			$html_content = preg_replace( '/\s*style="([^"]*)"/i', function ( $matches ) use ( $is_rtl ) {
+				$style = $matches[1];
+				if ( $is_rtl && preg_match( '/direction\s*:\s*rtl/i', $style ) ) {
+					return ' style="direction:rtl"';
+				}
+				return '';
+			}, $html_content ) ?? $html_content;
 			$html_content = preg_replace( "/\s*style='[^']*'/i", '', $html_content ) ?? $html_content;
 
 			$html_content = preg_replace( '/@font-face\s*\{[^}]+\}/isU', '', $html_content ) ?? $html_content;
 
 			if ( function_exists( 'set_time_limit' ) && (int) ini_get( 'max_execution_time' ) > 0 ) {
 				$max_exec = (int) ini_get( 'max_execution_time' );
-				@set_time_limit( max( 60, $max_exec ) ); // phpcs:ignore WordPress.PHP.NoSilencedErrors, Squiz.PHP.DiscouragedFunctions.Discouraged
+				set_time_limit( max( 60, $max_exec ) ); // phpcs:ignore Squiz.PHP.DiscouragedFunctions.Discouraged
 			}
 
 			// Pre-render time check.
@@ -307,7 +321,7 @@ class SScribe_PDF_Exporter implements SScribe_Exporter_Interface {
 			$filename    = \SScribe_Exporter_Factory::build_filename( $page_data, $index, $total, 'pdf' );
 			$output_path = trailingslashit( $output_dir ) . $filename;
 
-			$font_stack = $is_rtl ? 'xbriyaz, freeserif, sans-serif' : 'manrope, xbriyaz, sans-serif';
+			$font_stack = $is_rtl ? ( $xbriyaz_available ? 'xbriyaz, freeserif, sans-serif' : 'freeserif, sans-serif' ) : 'manrope, freeserif, sans-serif';
 			$base_css   = 'html, body, div, p, span, h1, h2, h3, h4, h5, h6, table, tr, td, th, ul, ol, li, blockquote, q, cite, a { font-family: ' . $font_stack . '; }';
 
 			if ( $is_rtl ) {
@@ -409,6 +423,7 @@ class SScribe_PDF_Exporter implements SScribe_Exporter_Interface {
 			);
 		} finally {
 			$this->cleanup_temp_images( $temp_image_paths );
+			$this->cleanup_mpdf_temp( $mpdf_temp );
 			libxml_clear_errors();
 			libxml_use_internal_errors( $prev_errors );
 		}
@@ -440,6 +455,34 @@ class SScribe_PDF_Exporter implements SScribe_Exporter_Interface {
 	private function cleanup_temp_images( array $paths ): void {
 		foreach ( $paths as $path ) {
 			SScribe_Image_Processor::cleanup( $path );
+		}
+	}
+
+	/**
+	 * Clean up mPDF temp directory by removing old files.
+	 *
+	 * @param string $mpdf_temp Path to mPDF temp directory.
+	 */
+	private function cleanup_mpdf_temp( string $mpdf_temp ): void {
+		if ( empty( $mpdf_temp ) || ! is_dir( $mpdf_temp ) ) {
+			return;
+		}
+
+		$files = glob( trailingslashit( $mpdf_temp ) . '*' );
+		if ( empty( $files ) ) {
+			return;
+		}
+
+		$max_age = 60 * 60;
+		$now     = time();
+
+		foreach ( $files as $file ) {
+			if ( is_file( $file ) ) {
+				$mtime = filemtime( $file );
+				if ( $mtime !== false && ( $now - $mtime ) > $max_age ) {
+					SScribe_Image_Processor::cleanup( $file );
+				}
+			}
 		}
 	}
 

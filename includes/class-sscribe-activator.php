@@ -29,9 +29,15 @@ class SScribe_Activator {
 	 */
 	public static function activate( bool $network_wide = false ): void {
 
-		delete_option( 'sscribe_export_index' );
-		delete_option( 'sscribe_schema_version' );
-		delete_option( 'sscribe_version' );
+		// Only wipe the export index and schema on a FRESH install (not on updates).
+		// WordPress re-runs the activation hook on plugin update, so checking
+		// get_option() first prevents accidental data loss on upgrade.
+		$existing_version = get_option( 'sscribe_version', null );
+		if ( null === $existing_version ) {
+			delete_option( 'sscribe_export_index' );
+			delete_option( 'sscribe_schema_version' );
+			delete_option( 'sscribe_version' );
+		}
 
 		if ( ! file_exists( SSCRIBE_PLUGIN_DIR . 'vendor-prefixed/autoload.php' )
 			&& ! file_exists( SSCRIBE_PLUGIN_DIR . 'vendor/autoload.php' )
