@@ -104,7 +104,14 @@ class SScribe_Export_Lock_Manager {
 					return $lock_token;
 				}
 			} elseif ( set_transient( $lock_key, $current_time . '|' . $lock_token, $lock_ttl ) ) {
-				return $lock_token;
+				// Verify we actually own the lock: set_transient() on non-cache
+				// backends uses INSERT...ON DUPLICATE KEY UPDATE, which ALWAYS
+				// overwrites — so two concurrent processes both get `true`.
+				// Re-read to confirm OUR value was stored.
+				$stored = get_transient( $lock_key );
+				if ( is_string( $stored ) && $stored === $current_time . '|' . $lock_token ) {
+					return $lock_token;
+				}
 			}
 
 			usleep( 50000 ); // 50 ms delay before retry.

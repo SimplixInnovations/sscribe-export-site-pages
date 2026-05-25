@@ -116,6 +116,20 @@ class SScribe_Session {
 
 				if ( isset( $data['user_id'] ) ) {
 					set_transient( 'sscribe_active_sid_' . $data['user_id'], $session_id, 300 );
+					// Verify the transient was actually stored. If not, the session
+					// would be invisible to has_active_session(), allowing concurrent
+					// exports to start. Delete the orphaned option and retry.
+					if ( get_transient( 'sscribe_active_sid_' . $data['user_id'] ) !== $session_id ) {
+						$this->logger->error(
+							'Active-session transient verification failed — rolling back',
+							array(
+								'user_id'    => $data['user_id'],
+								'session_id' => $session_id,
+							)
+						);
+						delete_option( $option_name );
+						continue;
+					}
 				}
 
 				break;

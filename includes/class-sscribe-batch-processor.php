@@ -681,9 +681,21 @@ class SScribe_Batch_Processor {
 		}
 
 		$post_type        = isset( $_POST['post_type'] ) ? sanitize_text_field( wp_unslash( $_POST['post_type'] ) ) : 'page';
-		$valid_post_types = array( 'page', 'post' );
+		$valid_post_types = array_values( get_post_types( array( 'public' => true ) ) );
+		$valid_post_types = array_merge( $valid_post_types, array( 'any' ) );
+		// Remove post types that don't make sense for content export.
+		$valid_post_types = array_values( array_diff( $valid_post_types, array( 'attachment' ) ) );
 		if ( ! in_array( $post_type, $valid_post_types, true ) ) {
-			$post_type = 'page';
+			SScribe_AJAX_Guard::error(
+				array(
+					'message' => sprintf(
+						/* translators: %s: Submitted post type. */
+						__( 'Invalid post type "%s".', 'sscribe-export-site-pages' ),
+						$post_type
+					),
+				),
+				400
+			);
 		}
 
 		$this->logger->debug(
@@ -1103,8 +1115,13 @@ class SScribe_Batch_Processor {
 		if ( empty( $batch ) ) {
 			$this->logger->debug( 'Batch empty, finalizing export' );
 			$this->restore_ob_level( $ob_level_before );
-			$this->release_lock( $session_id );
-			$this->finalize_export( $session_id, $session );
+			// Finalize UNDER lock to prevent a concurrent process from also
+			// detecting an empty batch and racing to finalize the same session.
+			try {
+				$this->finalize_export( $session_id, $session );
+			} finally {
+				$this->release_lock( $session_id );
+			}
 			return;
 		}
 

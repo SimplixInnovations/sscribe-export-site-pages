@@ -1136,6 +1136,12 @@ if ( ! function_exists( 'admin_url' ) ) {
 	}
 }
 
+if ( ! function_exists( 'get_post_types' ) ) {
+	function get_post_types( array $args = array(), string $output = 'names', string $operator = 'and' ): array {
+		return array( 'page', 'post' );
+	}
+}
+
 if ( ! function_exists( 'wp_create_nonce' ) ) {
 	function wp_create_nonce( $action = -1 ) {
 		return 'nonce-' . md5( (string) $action );
