@@ -218,6 +218,10 @@ class SScribe_PDF_Exporter implements SScribe_Exporter_Interface {
 
 			$manrope_regular = $this->find_font_file( $manrope_dir, 'manrope[-_]?regular' ) ?? 'Manrope-Regular.ttf';
 
+			$manrope_bold   = $this->find_font_file( $manrope_dir, 'manrope[-_]?bold' ) ?? 'Manrope-Bold.ttf';
+			$manrope_medium = $this->find_font_file( $manrope_dir, 'manrope[-_]?medium' ) ?? 'Manrope-Medium.ttf';
+			$manrope_light  = $this->find_font_file( $manrope_dir, 'manrope[-_]?light' ) ?? 'Manrope-Light.ttf';
+
 			$xbriyaz_available = false;
 			foreach ( $font_dirs as $font_dir_path ) {
 				if ( file_exists( trailingslashit( $font_dir_path ) . 'xbriyaz.ttf' ) ) {
@@ -233,13 +237,16 @@ class SScribe_PDF_Exporter implements SScribe_Exporter_Interface {
 						$manrope_dir,
 					)
 				),
-				'fontdata'         => $font_data + array(
-					'manrope' => array(
-						'R' => $manrope_regular,
-						'B' => $this->find_font_file( $manrope_dir, 'manrope[-_]?bold' ) ?? 'Manrope-Bold.ttf',
-						'M' => $this->find_font_file( $manrope_dir, 'manrope[-_]?medium' ) ?? 'Manrope-Medium.ttf',
-						'L' => $this->find_font_file( $manrope_dir, 'manrope[-_]?light' ) ?? 'Manrope-Light.ttf',
-					),
+				'fontdata'         => array_replace(
+					$font_data,
+					array(
+						'manrope' => array(
+							'R' => $manrope_regular,
+							'B' => $manrope_bold,
+							'M' => $manrope_medium,
+							'L' => $manrope_light,
+						),
+					)
 				),
 
 				'fonttrans'        => $is_rtl ? array(
