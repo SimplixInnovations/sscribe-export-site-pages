@@ -46,7 +46,7 @@ class SScribe_Export_Rate_Limiter {
 		$lock_key  = $transient_key . '_lock';
 
 		$rate_limit = current_user_can( $export_capability )
-			? (int) apply_filters( 'sscribe_rate_limit_admin', 100 )
+			? (int) apply_filters( 'sscribe_rate_limit_admin', 500 )
 			: self::RATE_LIMIT_MAX;
 
 		// Acquire micro-lock with retries.

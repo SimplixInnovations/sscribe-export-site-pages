@@ -245,7 +245,11 @@ class SScribe_Zip_Handler {
 				'Export indexing skipped - could not acquire exclusive lock (concurrent finalize detected)',
 				array( 'zip' => basename( $zip_path ) )
 			);
-			return file_exists( $zip_path ) ? $zip_path : false;
+			// Clean up the orphaned ZIP since it won't be tracked and cleaned up by cleanup_expired().
+			if ( file_exists( $zip_path ) ) {
+				wp_delete_file( $zip_path );
+			}
+			return false;
 		}
 
 		try {

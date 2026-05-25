@@ -197,7 +197,7 @@ class SScribe {
 			return;
 		}
 
-		$cache_key = 'sscribe_admin_page_data_v' . SSCRIBE_VERSION;
+		$cache_key = 'sscribe_admin_page_data_v' . SSCRIBE_VERSION . '_' . get_current_blog_id() . '_' . get_current_user_id();
 		delete_transient( $cache_key );
 	}
 

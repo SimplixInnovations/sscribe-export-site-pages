@@ -660,7 +660,7 @@ class SScribe_Batch_Processor {
 		$language    = isset( $_POST['language'] ) ? sanitize_text_field( wp_unslash( $_POST['language'] ) ) : '';
 		$post_status = isset( $_POST['post_status'] ) ? sanitize_text_field( wp_unslash( $_POST['post_status'] ) ) : 'publish';
 		// Validate post_status against allowlist to prevent exporting trash/auto-draft content.
-		$allowed_statuses = array( 'publish', 'private', 'draft', 'pending' );
+		$allowed_statuses = array( 'publish', 'private', 'draft', 'pending', 'future' );
 		if ( ! in_array( $post_status, $allowed_statuses, true ) ) {
 			$post_status = 'publish';
 		}
@@ -1266,7 +1266,8 @@ class SScribe_Batch_Processor {
 				}
 
 				try {
-					$dispatch_result = $this->dispatch_formats( $page_data, $temp_dir, $page_index, $total, $formats, $session_id, $session, $page_id );
+					$page_data['_batch_start_time'] = $batch_start_time;
+				$dispatch_result = $this->dispatch_formats( $page_data, $temp_dir, $page_index, $total, $formats, $session_id, $session, $page_id );
 					$export_success     = $dispatch_result['export_success'];
 					$successful_formats = $dispatch_result['successful_formats'];
 					$export_errors      = $dispatch_result['export_errors'];
@@ -1746,6 +1747,21 @@ class SScribe_Batch_Processor {
 			);
 		}
 
+		// Re-acquire the processing lock to serialize concurrent finalize requests.
+		// Both requests will race to acquire the lock; only the first succeeds and proceeds.
+		$lock_token = $this->get_lock_manager()->acquire_lock( $session_id, 45, 35 );
+		if ( null === $lock_token ) {
+			$this->logger->debug( 'Finalize race detected — another request holds the lock', array( 'session_id' => $session_id ) );
+			SScribe_AJAX_Guard::error(
+				array(
+					'code'    => 'race_detected',
+					'message' => __( 'Export is being finalized by another request. Please wait.', 'sscribe-export-site-pages' ),
+				),
+				409
+			);
+		}
+		$this->current_lock_token = $lock_token;
+
 		if ( 'completing' === $status ) {
 			SScribe_AJAX_Guard::error(
 				array(
@@ -1830,11 +1846,12 @@ class SScribe_Batch_Processor {
 			$lang_suffix   = $has_language ? strtoupper( $lang_code ) : 'ALL-LANGS';
 
 			$zip_name = sprintf(
-				'%s-%s-%s-%s',
+				'%s-%s-%s-%s-%s',
 				$site_slug,
 				$timestamp,
 				$lang_suffix,
-				$format_suffix
+				$format_suffix,
+				substr( bin2hex( random_bytes( 3 ) ), 0, 6 )
 			);
 
 			$this->logger->debug(

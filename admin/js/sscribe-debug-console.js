@@ -393,11 +393,16 @@
 			}
 
 			this.$empty.hide();
+			this.cleanupBeforeRender();
 			const html = this.buildLogsHtml(entries);
 			this.$entries.html(html);
 			if (!skipObserver) {
 				this.setupObserver();
 			}
+		},
+
+		cleanupBeforeRender: function () {
+			this.destroyObserver();
 		},
 
 		appendLogs: function (entries) {

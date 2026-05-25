@@ -437,7 +437,7 @@ class SScribe_Admin {
 
 		?>
 		<script nonce="<?php echo esc_attr( $nonce ); ?>">
-		var sscribe_data = <?php echo wp_json_encode( $data ); ?>;
+		var sscribe_data = <?php echo wp_json_encode( $data, JSON_HEX_TAG | JSON_HEX_AMP ); ?>;
 		</script>
 		<?php
 	}
