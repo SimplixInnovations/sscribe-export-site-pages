@@ -99,6 +99,7 @@
 					self.hasMoreEntries = true;
 					self.destroyObserver();
 					self.fetchLogs();
+					self.updateExportButtonScope();
 				}, 300)
 			);
 
@@ -110,6 +111,7 @@
 					self.hasMoreEntries = true;
 					self.destroyObserver();
 					self.fetchLogs();
+					self.updateExportButtonScope();
 				}, 300)
 			);
 
@@ -205,20 +207,6 @@
 			this.$exportBtn.on('click', function () {
 				self.exportLogs();
 			});
-
-			this.$searchInput.on(
-				'input',
-				debounce(function () {
-					self.updateExportButtonScope();
-				}, 300)
-			);
-
-			this.$sessionInput.on(
-				'input',
-				debounce(function () {
-					self.updateExportButtonScope();
-				}, 300)
-			);
 
 			const rotatedEl = document.querySelector('.sscribe-debug-rotated');
 			if (rotatedEl) {

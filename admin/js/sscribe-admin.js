@@ -761,6 +761,8 @@
 						// All cleanup attempts exhausted — do not proceed, as a stale
 						// session ghost may remain and conflict with a new export.
 						self.isProcessing = false;
+						self.resetUI();
+						self.updateExportButton();
 						self.showError(
 							sscribe_data.strings.err_clear_session ||
 								'Could not clear the previous export session. Please try again in a moment.',
