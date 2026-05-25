@@ -262,7 +262,7 @@ class SScribe_Zip_Handler {
 				'lang_code'  => $lang_metadata['lang_code'] ?? '',
 				'lang_name'  => $lang_metadata['lang_name'] ?? '',
 				'flag_url'   => $lang_metadata['flag_url'] ?? '',
-				'session_id' => $session_id ?? '',
+				'session_id' => $session_id,
 			);
 			update_option( 'sscribe_export_index', $exports, false );
 		} finally {
