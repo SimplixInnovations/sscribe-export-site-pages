@@ -514,7 +514,8 @@ class SScribe_Admin_Debug {
 		header( 'Content-Type: application/json' );
 		header( 'Content-Disposition: attachment; filename="' . $safe_filename . '"' );
 		header( 'Content-Length: ' . mb_strlen( $content, '8bit' ) );
-		header( 'Cache-Control: no-cache' );
+		header( 'Cache-Control: no-store, no-cache, must-revalidate' );
+		header( 'Pragma: no-cache' );
 
 		echo $content; // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped
 		wp_die();
