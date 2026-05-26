@@ -125,104 +125,135 @@ class SScribe_HTML_Exporter implements SScribe_Exporter_Interface {
 	}
 
 	/**
+	 * Get the strict archival allowlist for exported HTML.
+	 *
+	 * This disallows all active/remote content (iframes, embeds, scripts, etc.)
+	 * to ensure the exported HTML is a safe archival snapshot with no live
+	 * network dependencies or executable content.
+	 *
+	 * @return array Archival-safe HTML allowlist for wp_kses().
+	 */
+	private function get_archival_allowlist(): array {
+		// Text structure
+		$allowlist['p']          = array(
+			'lang' => true,
+			'dir' => true,
+		);
+		$allowlist['br']          = array();
+		$allowlist['hr']          = array();
+		$allowlist['blockquote']  = array( 'cite' => true );
+		$allowlist['pre']         = array();
+		$allowlist['code']        = array();
+		// Headings
+		$allowlist['h1']          = array();
+		$allowlist['h2']          = array();
+		$allowlist['h3']          = array();
+		$allowlist['h4']          = array();
+		$allowlist['h5']          = array();
+		$allowlist['h6']          = array();
+		// Inline
+		$allowlist['strong']      = array();
+		$allowlist['b']           = array();
+		$allowlist['em']          = array();
+		$allowlist['i']           = array();
+		$allowlist['s']           = array();
+		$allowlist['del']         = array();
+		$allowlist['mark']        = array();
+		$allowlist['small']       = array();
+		$allowlist['sub']         = array();
+		$allowlist['sup']         = array();
+		$allowlist['u']           = array();
+		// Links — href only, no JS schemes
+		$allowlist['a']           = array(
+			'href' => true,
+			'title' => true,
+			'rel' => true,
+		);
+		// Images — src/alt/dimensions only, no script hooks
+		$allowlist['img']         = array(
+			'src'    => true,
+			'alt'    => true,
+			'width'  => true,
+			'height' => true,
+			'loading' => true,
+		);
+		// Lists
+		$allowlist['ul']          = array();
+		$allowlist['ol']          = array(
+			'start' => true,
+			'type' => true,
+		);
+		$allowlist['li']          = array();
+		$allowlist['dl']          = array();
+		$allowlist['dt']          = array();
+		$allowlist['dd']          = array();
+		// Tables
+		$allowlist['table']       = array();
+		$allowlist['thead']       = array();
+		$allowlist['tbody']       = array();
+		$allowlist['tfoot']       = array();
+		$allowlist['tr']          = array();
+		$allowlist['th']          = array(
+			'scope'    => true,
+			'colspan'  => true,
+			'rowspan'  => true,
+		);
+		$allowlist['td']          = array(
+			'colspan'  => true,
+			'rowspan'  => true,
+		);
+		$allowlist['caption']     = array();
+		$allowlist['colgroup']    = array();
+		$allowlist['col']         = array(
+			'span' => true,
+			'width' => true,
+		);
+		// Semantic
+		$allowlist['figure']      = array();
+		$allowlist['figcaption']  = array();
+		$allowlist['details']     = array();
+		$allowlist['summary']     = array();
+		$allowlist['abbr']        = array( 'title' => true );
+		$allowlist['cite']        = array();
+		$allowlist['time']        = array( 'datetime' => true );
+		$allowlist['address']     = array();
+		$allowlist['article']     = array();
+		$allowlist['aside']      = array();
+		$allowlist['section']     = array();
+		$allowlist['header']     = array();
+		$allowlist['footer']     = array();
+		$allowlist['nav']        = array();
+		$allowlist['main']       = array();
+		$allowlist['div']        = array(
+			'lang' => true,
+			'dir' => true,
+		);
+		$allowlist['span']       = array();
+		// NO: iframe, embed, object, param, canvas, svg, script, style,
+		//     video, audio, source, track, img with on* attributes
+		return $allowlist;
+	}
+
+	/**
 	 * Generate full HTML document from page data.
 	 *
 	 * @param array $page_data Page data.
 	 * @return string Complete HTML document.
 	 */
 	private function generate_html( array $page_data ): string {
-		require_once SSCRIBE_PLUGIN_DIR . 'includes/class-sscribe-rtl-helper.php';
-
 		$site_name = get_bloginfo( 'name' );
 		$title     = esc_html( $page_data['title'] );
 		$language  = $page_data['language'] ?? 'en';
+
+		if ( ! class_exists( 'SScribe_RTL_Helper' ) ) {
+			require_once SSCRIBE_PLUGIN_DIR . 'includes/class-sscribe-rtl-helper.php';
+		}
 		$direction = SScribe_RTL_Helper::get_direction( $language );
 		$is_rtl    = SScribe_RTL_Helper::is_rtl( $language );
 
-		$rtl_extra = $is_rtl ?
-			'
-		html, body { direction: rtl; font-family: system-ui, -apple-system, sans-serif; }
-		h1 { text-align: center; }
-		.featured-image { width: 100%; max-width: 600px; margin: 0 auto; display: block; }
-		' :
-			'
-		h1 { text-align: center; }
-		.featured-image { width: 100%; max-width: 600px; margin: 0 auto; display: block; }
-		';
+		$filtered_content = wp_kses( $page_data['content'], $this->get_archival_allowlist() );
 
-		$media_html = array(
-			'video'  => array(
-				'src'      => true,
-				'controls' => true,
-				'width'    => true,
-				'height'   => true,
-				'loop'     => true,
-				'muted'    => true,
-				'poster'   => true,
-				'preload'  => true,
-			),
-			'audio'  => array(
-				'src'      => true,
-				'controls' => true,
-				'loop'     => true,
-				'muted'    => true,
-				'preload'  => true,
-			),
-			'iframe' => array(
-				'src'             => true,
-				'width'           => true,
-				'height'          => true,
-				'frameborder'     => true,
-				'allow'           => true,
-				'allowfullscreen' => true,
-				'loading'         => true,
-			),
-			'canvas' => array(
-				'width'  => true,
-				'height' => true,
-				'id'     => true,
-			),
-			'svg'    => array(
-				'xmlns'        => true,
-				'viewbox'      => true,
-				'width'        => true,
-				'height'       => true,
-				'fill'         => true,
-				'stroke'       => true,
-				'stroke-width' => true,
-			),
-			'source' => array(
-				'src'   => true,
-				'type'  => true,
-				'media' => true,
-			),
-			'track'  => array(
-				'kind'    => true,
-				'src'     => true,
-				'srclang' => true,
-				'label'   => true,
-				'default' => true,
-			),
-			'embed'  => array(
-				'src'    => true,
-				'type'   => true,
-				'width'  => true,
-				'height' => true,
-			),
-			'object' => array(
-				'data'   => true,
-				'type'   => true,
-				'width'  => true,
-				'height' => true,
-			),
-			'param'  => array(
-				'name'  => true,
-				'value' => true,
-			),
-		);
-
-		$full_allowed     = array_merge_recursive( wp_kses_allowed_html( 'post' ), $media_html );
-		$filtered_content = wp_kses( $page_data['content'], $full_allowed );
+		$direction_css = $is_rtl ? 'html, body { direction: rtl; }' : '';
 
 		$html = '<!DOCTYPE html>
 <html lang="' . esc_attr( $language ) . '" dir="' . esc_attr( $direction ) . '">
@@ -232,9 +263,9 @@ class SScribe_HTML_Exporter implements SScribe_Exporter_Interface {
 	<title>' . $title . ' | ' . esc_html( $site_name ) . '</title>
 	<style>
 		* { margin: 0; padding: 0; box-sizing: border-box; }
-		body { font-family: \'Manrope\', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Arial, sans-serif; max-width: 800px; margin: 0 auto; padding: 30px 20px; line-height: 1.6; color: #333; }
+		body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Arial, sans-serif; max-width: 800px; margin: 0 auto; padding: 30px 20px; line-height: 1.6; color: #333; }
 		header { border-bottom: 2px solid #4A8263; padding-bottom: 20px; margin-bottom: 30px; }
-		h1 { font-size: 2em; color: #122119; margin-bottom: 10px; }
+		h1 { font-size: 2em; color: #122119; margin-bottom: 10px; text-align: center; }
 		h2, h3, h4 { color: #122119; margin: 20px 0 10px; }
 		.meta { background: #E8EFEB; padding: 15px 20px; border-radius: 4px; margin-bottom: 20px; }
 		.meta dt { font-weight: bold; margin-top: 10px; }
@@ -246,7 +277,7 @@ class SScribe_HTML_Exporter implements SScribe_Exporter_Interface {
 		a { color: #2C6E8A; text-decoration: none; }
 		a:hover { text-decoration: underline; }
 		footer { margin-top: 40px; padding-top: 20px; border-top: 1px solid #ddd; color: #666; font-size: 0.9em; }
-		' . $rtl_extra . '
+		' . $direction_css . '
 	</style>
 </head>
 <body lang="' . esc_attr( $language ) . '" dir="' . esc_attr( $direction ) . '">
@@ -286,7 +317,6 @@ class SScribe_HTML_Exporter implements SScribe_Exporter_Interface {
 	 * @return string Image HTML or empty string.
 	 */
 	private function get_featured_image_html( array $page_data ): string {
-
 		$src = ! empty( $page_data['featured_image_url'] )
 			? $page_data['featured_image_url']
 			: '';
@@ -295,28 +325,53 @@ class SScribe_HTML_Exporter implements SScribe_Exporter_Interface {
 			return '';
 		}
 
-		return '<img src="' . esc_url( $src ) . '"
-			alt="' . esc_attr( $page_data['title'] ) . '"
-			class="featured-image">';
+		$width  = (int) ( $page_data['featured_image_width'] ?? 0 );
+		$height = (int) ( $page_data['featured_image_height'] ?? 0 );
+		$alt    = esc_attr( $page_data['title'] ?? '' );
+
+		$dimensions = ( $width && $height )
+			? sprintf( ' width="%d" height="%d"', $width, $height )
+			: '';
+
+		return sprintf(
+			'<img src="%s" alt="%s" class="featured-image" loading="eager"%s>',
+			esc_url( $src ),
+			$alt,
+			$dimensions
+		);
 	}
 
 	/**
 	 * Get meta information HTML for the page.
 	 *
 	 * @param array $page_data Page data.
-	 * @return string Meta HTML.
+	 * @return string Meta HTML or empty string.
 	 */
 	private function get_meta_html( array $page_data ): string {
-		return '<dl class="meta">
-			<dt>' . __( 'Author', 'sscribe-export-site-pages' ) . '</dt>
-			<dd>' . esc_html( $page_data['author'] ?? '' ) . '</dd>
-			<dt>' . __( 'Published', 'sscribe-export-site-pages' ) . '</dt>
-			<dd>' . esc_html( $page_data['date_published'] ?? '' ) . '</dd>
-			<dt>' . __( 'Last Modified', 'sscribe-export-site-pages' ) . '</dt>
-			<dd>' . esc_html( $page_data['date_modified'] ?? '' ) . '</dd>
-			<dt>' . __( 'Word Count', 'sscribe-export-site-pages' ) . '</dt>
-			<dd>' . number_format_i18n( $page_data['word_count'] ?? 0 ) . '</dd>
-		</dl>';
+		$rows = array();
+
+		if ( ! empty( $page_data['author'] ) ) {
+			$rows[] = '<dt>' . __( 'Author', 'sscribe-export-site-pages' ) . '</dt>'
+				. '<dd>' . esc_html( $page_data['author'] ) . '</dd>';
+		}
+		if ( ! empty( $page_data['date_published'] ) ) {
+			$rows[] = '<dt>' . __( 'Published', 'sscribe-export-site-pages' ) . '</dt>'
+				. '<dd>' . esc_html( $page_data['date_published'] ) . '</dd>';
+		}
+		if ( ! empty( $page_data['date_modified'] ) ) {
+			$rows[] = '<dt>' . __( 'Last Modified', 'sscribe-export-site-pages' ) . '</dt>'
+				. '<dd>' . esc_html( $page_data['date_modified'] ) . '</dd>';
+		}
+		if ( isset( $page_data['word_count'] ) ) {
+			$rows[] = '<dt>' . __( 'Word Count', 'sscribe-export-site-pages' ) . '</dt>'
+				. '<dd>' . number_format_i18n( $page_data['word_count'] ) . '</dd>';
+		}
+
+		if ( empty( $rows ) ) {
+			return '';
+		}
+
+		return '<dl class="meta">' . implode( '', $rows ) . '</dl>';
 	}
 
 	/**

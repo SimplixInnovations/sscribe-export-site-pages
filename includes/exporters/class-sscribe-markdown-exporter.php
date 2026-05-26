@@ -146,9 +146,11 @@ class SScribe_Markdown_Exporter implements SScribe_Exporter_Interface {
 	 * @return string Content with optional BOM.
 	 */
 	private function add_bom_if_rtl( string $content, array $page_data ): string {
-		require_once SSCRIBE_PLUGIN_DIR . 'includes/class-sscribe-rtl-helper.php';
-
 		$language = $page_data['language'] ?? 'en';
+
+		if ( ! class_exists( 'SScribe_RTL_Helper' ) ) {
+			require_once SSCRIBE_PLUGIN_DIR . 'includes/class-sscribe-rtl-helper.php';
+		}
 
 		if ( SScribe_RTL_Helper::is_rtl( $language ) ) {
 			return "\xEF\xBB\xBF" . $content;
@@ -164,10 +166,12 @@ class SScribe_Markdown_Exporter implements SScribe_Exporter_Interface {
 	 * @return string YAML frontmatter block.
 	 */
 	private function generate_frontmatter( array $page_data ): string {
-		require_once SSCRIBE_PLUGIN_DIR . 'includes/class-sscribe-rtl-helper.php';
-
 		$title     = $page_data['title'] ?? 'Untitled';
 		$language  = $page_data['language'] ?? 'en';
+
+		if ( ! class_exists( 'SScribe_RTL_Helper' ) ) {
+			require_once SSCRIBE_PLUGIN_DIR . 'includes/class-sscribe-rtl-helper.php';
+		}
 		$direction = SScribe_RTL_Helper::get_direction( $language );
 		$md        = '# ' . $this->escape_markdown( $title ) . "\n\n";
 		$md       .= '> ' . ( $page_data['permalink'] ?? '' ) . "\n\n";
@@ -177,15 +181,15 @@ class SScribe_Markdown_Exporter implements SScribe_Exporter_Interface {
 		$md .= 'url: "' . $this->escape_yaml_string( $page_data['permalink'] ?? '' ) . "\"\n";
 		$md .= 'slug: "' . $this->escape_yaml_string( $page_data['slug'] ?? '' ) . "\"\n";
 		$md .= 'author: "' . $this->escape_yaml_string( $page_data['author'] ?? 'Unknown' ) . "\"\n";
-		$md .= 'published: ' . ( $page_data['date_published'] ?? '' ) . "\n";
-		$md .= 'modified: ' . ( $page_data['date_modified'] ?? '' ) . "\n";
-		$md .= 'word_count: ' . ( $page_data['word_count'] ?? 0 ) . "\n";
-		$md .= 'reading_time: ' . ( $page_data['reading_time'] ?? 1 ) . " minutes\n";
-		$md .= 'language: ' . $language . "\n";
-		$md .= 'direction: ' . $direction . "\n";
+		$md .= 'published: "' . $this->escape_yaml_string( $page_data['date_published'] ?? '' ) . "\"\n";
+		$md .= 'modified: "' . $this->escape_yaml_string( $page_data['date_modified'] ?? '' ) . "\"\n";
+		$md .= 'word_count: ' . (int) ( $page_data['word_count'] ?? 0 ) . "\n";
+		$md .= 'reading_time: ' . (int) ( $page_data['reading_time'] ?? 1 ) . "\n";
+		$md .= 'language: "' . $this->escape_yaml_string( $language ) . "\"\n";
+		$md .= 'direction: "' . $this->escape_yaml_string( $direction ) . "\"\n";
 
 		if ( ! empty( $page_data['featured_image_url'] ) ) {
-			$md .= 'featured_image: ' . $page_data['featured_image_url'] . "\n";
+			$md .= 'featured_image: "' . $this->escape_yaml_string( $page_data['featured_image_url'] ) . "\"\n";
 		}
 
 		if ( ! empty( $page_data['seo'] ) ) {
@@ -200,7 +204,7 @@ class SScribe_Markdown_Exporter implements SScribe_Exporter_Interface {
 				$md .= 'seo_focus_keyword: "' . $this->escape_yaml_string( $seo['focus_keyword'] ) . "\"\n";
 			}
 			if ( ! empty( $seo['canonical_url'] ) ) {
-				$md .= 'canonical_url: ' . $seo['canonical_url'] . "\n";
+				$md .= 'canonical_url: "' . $this->escape_yaml_string( $seo['canonical_url'] ) . "\"\n";
 			}
 			if ( ! empty( $seo['og_title'] ) ) {
 				$md .= 'og_title: "' . $this->escape_yaml_string( $seo['og_title'] ) . "\"\n";
@@ -209,7 +213,7 @@ class SScribe_Markdown_Exporter implements SScribe_Exporter_Interface {
 				$md .= 'og_description: "' . $this->escape_yaml_string( $seo['og_description'] ) . "\"\n";
 			}
 			if ( ! empty( $seo['source'] ) ) {
-				$md .= 'seo_source: ' . $seo['source'] . "\n";
+				$md .= 'seo_source: "' . $this->escape_yaml_string( $seo['source'] ) . "\"\n";
 			}
 		}
 
@@ -249,7 +253,6 @@ class SScribe_Markdown_Exporter implements SScribe_Exporter_Interface {
 		$md = $this->convert_tables( $md );
 		$md = $this->convert_headings( $md );
 		$md = $this->convert_images( $md );
-		$md = $this->convert_images_fallback( $md );
 		$md = $this->convert_links( $md );
 		$md = $this->convert_formatting( $md );
 		$md = $this->convert_lists( $md );
@@ -269,7 +272,7 @@ class SScribe_Markdown_Exporter implements SScribe_Exporter_Interface {
 	}
 
 	/**
-	 * Strip all style/script/svg elements and attributes.
+	 * Strip all style/script elements and attributes, replacing SVGs with placeholders.
 	 *
 	 * @param string $html HTML content.
 	 * @return string Cleaned HTML.
@@ -278,7 +281,20 @@ class SScribe_Markdown_Exporter implements SScribe_Exporter_Interface {
 		$html = preg_replace( '/<style[^>]*>.*?<\/style>/is', '', $html ) ?? $html;
 		$html = preg_replace( '/<script[^>]*>.*?<\/script>/is', '', $html ) ?? $html;
 		$html = preg_replace( '/<noscript[^>]*>.*?<\/noscript>/is', '', $html ) ?? $html;
-		$html = preg_replace( '/<svg[^>]*>.*?<\/svg>/is', '', $html ) ?? $html;
+
+		// Replace SVGs with a text placeholder to preserve intent.
+		$html = preg_replace_callback(
+			'/<svg[^>]*>.*?<\/svg>/is',
+			function ( $matches ) {
+				// Try to extract a title child element as alt text.
+				if ( preg_match( '/<title[^>]*>(.*?)<\/title>/is', $matches[0], $t ) ) {
+					$label = trim( wp_strip_all_tags( $t[1] ) );
+					return $label ? '[SVG: ' . $label . ']' : '[SVG image]';
+				}
+				return '[SVG image]';
+			},
+			$html
+		) ?? $html;
 
 		$html = preg_replace( '/\s*style="[^"]*"/i', '', $html ) ?? $html;
 		$html = preg_replace( "/\s*style='[^']*'/i", '', $html ) ?? $html;
@@ -368,36 +384,40 @@ class SScribe_Markdown_Exporter implements SScribe_Exporter_Interface {
 	/**
 	 * Convert HTML images to Markdown image syntax.
 	 *
+	 * Uses a two-pass attribute extraction to handle any attribute order
+	 * (alt before src, multiple classes, etc.) instead of positional regex.
+	 *
 	 * @param string $html HTML content.
 	 * @return string Content with Markdown images.
 	 */
 	private function convert_images( string $html ): string {
 		return preg_replace_callback(
-			'/<img[^>]*src=["\']([^"\']*)["\'][^>]*alt=["\']([^"\']*)["\'][^>]*\/?>/is',
+			'/<img\s[^>]*>/is',
 			function ( $matches ) {
-				$url = $this->sanitize_url( $matches[1] );
-				$alt = $matches[2];
-				return '![' . $alt . '](' . $url . ')';
+				$tag = $matches[0];
+				$src = $this->extract_attribute( $tag, 'src' );
+				if ( empty( $src ) ) {
+					return '';
+				}
+				$alt = $this->extract_attribute( $tag, 'alt' );
+				return '![' . ( '' !== $alt ? $alt : 'image' ) . '](' . $this->sanitize_url( $src ) . ')';
 			},
 			$html
 		);
 	}
 
 	/**
-	 * Fallback image conversion for images without alt text.
+	 * Extract an attribute value from an HTML tag string.
 	 *
-	 * @param string $html HTML content.
-	 * @return string Content with Markdown images.
+	 * @param string $tag  Full HTML tag string.
+	 * @param string $attr Attribute name to extract.
+	 * @return string Attribute value or empty string.
 	 */
-	private function convert_images_fallback( string $html ): string {
-		return preg_replace_callback(
-			'/<img[^>]*src=["\']([^"\']*)["\'][^>]*>/is',
-			function ( $matches ) {
-				$url = $this->sanitize_url( $matches[1] );
-				return '![image](' . $url . ')';
-			},
-			$html
-		);
+	private function extract_attribute( string $tag, string $attr ): string {
+		if ( preg_match( '/' . preg_quote( $attr, '/' ) . '=["\']([^"\']*)["\']/', $tag, $m ) ) {
+			return $m[1];
+		}
+		return '';
 	}
 
 	/**
@@ -614,6 +634,13 @@ class SScribe_Markdown_Exporter implements SScribe_Exporter_Interface {
 		$allowed_schemes = array( 'http', 'https', 'mailto', 'tel' );
 
 		if ( ! empty( $scheme ) && ! in_array( $scheme, $allowed_schemes, true ) ) {
+			$this->logger->warning(
+				'Sanitized disallowed URL scheme in Markdown export',
+				array(
+					'url' => substr( $url, 0, 100 ),
+					'scheme' => $scheme,
+				)
+			);
 			return '#';
 		}
 
@@ -623,11 +650,16 @@ class SScribe_Markdown_Exporter implements SScribe_Exporter_Interface {
 	/**
 	 * Escape special Markdown characters in text.
 	 *
+	 * Only escapes characters that have special meaning in Markdown contexts.
+	 * Note: '.' and '-' are NOT escaped globally — '.' only needs escaping before
+	 * digits (e.g., "2." for ordered lists) and '-' only at line-start as list
+	 * markers; escaping them everywhere produces ugly output like "anti\-pattern".
+	 *
 	 * @param string $text Text to escape.
 	 * @return string Escaped text.
 	 */
 	private function escape_markdown( string $text ): string {
-		$chars = array( '\\', '`', '*', '_', '{', '}', '[', ']', '(', ')', '#', '+', '-', '.', '!', '|' );
+		$chars = array( '\\', '`', '*', '_', '{', '}', '[', ']', '(', ')', '#', '+', '!', '|' );
 		foreach ( $chars as $char ) {
 			$text = str_replace( $char, '\\' . $char, $text );
 		}

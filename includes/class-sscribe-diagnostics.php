@@ -91,7 +91,7 @@ class SScribe_Diagnostics {
 		}
 
 		try {
-			$support_logger = $debug_enabled ? $container->get( SScribe_Logger::class ) : new SScribe_Logger( $debug_enabled );
+			$support_logger = SScribe_Logger::instance( $debug_enabled );
 			$logger_entries = $support_logger->get_logs();
 		} catch ( \Throwable $e ) {
 			$logger_entries = array();

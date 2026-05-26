@@ -64,7 +64,13 @@ class SScribe_DOCX_Exporter implements SScribe_Exporter_Interface {
 			$result = $this->exporter->generate_docx( $page_data, $output_dir, $index, $total );
 
 			if ( $result ) {
-				return SScribe_Result::success( array( 'path' => $result ) );
+				return SScribe_Result::success(
+					array(
+						'path'         => $result,
+						'page_id'      => $page_id,
+						'memory_after' => size_format( memory_get_usage( true ) ),
+					)
+				);
 			}
 
 			$last_error     = $this->exporter->get_last_error();

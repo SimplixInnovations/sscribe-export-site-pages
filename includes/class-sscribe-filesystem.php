@@ -141,7 +141,7 @@ class SScribe_Filesystem {
 				);
 			}
 
-			return $result;
+			return (bool) $result;
 		}
 
 		$dir = dirname( $file );
