@@ -55,9 +55,9 @@ class SScribe_Page_Collector {
 	/**
 	 * Add an entry to a cache with LRU eviction when max size is exceeded.
 	 *
-	 * @param array  &$cache Cache reference.
-	 * @param int    $key    Cache key.
-	 * @param mixed  $value  Cache value.
+	 * @param array &$cache Cache reference.
+	 * @param int   $key    Cache key.
+	 * @param mixed $value  Cache value.
 	 * @return void
 	 */
 	private function cache_add( array &$cache, int $key, mixed $value ): void {
@@ -947,18 +947,28 @@ class SScribe_Page_Collector {
 
 			// phpcs:disable WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- Single optimized count query for performance; caching handled by transient below.
 			if ( is_array( $args['post_type'] ) ) {
-				$sql = $wpdb->prepare(
-					"SELECT post_status, COUNT(*) as count FROM {$wpdb->posts} WHERE post_type IN ({$post_type_placeholders}) AND post_status IN ({$post_type_placeholders}) GROUP BY post_status",
-					array_merge( $args['post_type'], array_keys( $statuses ) )
+				$post_type_count       = count( $args['post_type'] );
+				$status_count          = count( $statuses );
+				$post_type_placeholders = implode( ',', array_fill( 0, $post_type_count, '%s' ) );
+				$status_placeholders    = implode( ',', array_fill( 0, $status_count, '%s' ) );
+				$results = $wpdb->get_results(
+					$wpdb->prepare(
+						"SELECT post_status, COUNT(*) as count FROM {$wpdb->posts} WHERE post_type IN ({$post_type_placeholders}) AND post_status IN ({$status_placeholders}) GROUP BY post_status", // phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared
+						array_merge( $args['post_type'], array_keys( $statuses ) )
+					),
+					ARRAY_A
 				);
 			} else {
-				$sql = $wpdb->prepare(
-					"SELECT post_status, COUNT(*) as count FROM {$wpdb->posts} WHERE post_type = %s AND post_status IN ({$post_type_placeholders}) GROUP BY post_status",
-					$args['post_type'],
-					array_keys( $statuses )
+				$status_count         = count( $statuses );
+				$status_placeholders  = implode( ',', array_fill( 0, $status_count, '%s' ) );
+				$results = $wpdb->get_results(
+					$wpdb->prepare(
+						"SELECT post_status, COUNT(*) as count FROM {$wpdb->posts} WHERE post_type = %s AND post_status IN ({$status_placeholders}) GROUP BY post_status", // phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared
+						array_merge( array( $args['post_type'] ), array_keys( $statuses ) )
+					),
+					ARRAY_A
 				);
 			}
-			$results = $wpdb->get_results( $sql, ARRAY_A ); // phpcs:ignore WordPress.DB.RestrictedFunctions.GlobalReplacement -- WordPress global constant for fetch mode; $wpdb->prepare() is used above so input is safe.
 			// phpcs:enable
 
 			// Initialize all counts to 0.

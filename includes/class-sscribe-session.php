@@ -635,6 +635,7 @@ class SScribe_Session {
 				)
 			);
 
+			$option_count = count( $options );
 			foreach ( $options as $option ) {
 				$session_id = str_replace( $this->option_prefix, '', $option->option_name );
 				$data       = $this->decode_session_value( $option->option_value ?? '', $session_id );
@@ -648,7 +649,7 @@ class SScribe_Session {
 				}
 				$cursor = $option->option_name;
 			}
-		} while ( count( $options ) === $limit );
+		} while ( $option_count === $limit );
 
 		usort(
 			$sessions,
@@ -854,7 +855,7 @@ class SScribe_Session {
 	/**
 	 * Decode a session value from JSON.
 	 *
-	 * @param mixed    $raw       Raw option value.
+	 * @param mixed       $raw       Raw option value.
 	 * @param string|null $session_id Session ID (optional, needed for legacy migration).
 	 * @return array|null Decoded data or null.
 	 */

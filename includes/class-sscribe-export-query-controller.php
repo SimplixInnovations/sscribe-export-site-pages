@@ -470,8 +470,8 @@ class SScribe_Export_Query_Controller {
 			$result[] = array(
 				'filename'       => $filename,
 				'url'            => $this->zip_handler->get_ajax_download_url( $filename ),
-				'size'           => $file_size !== false ? $file_size : 0,
-				'size_formatted' => $file_size !== false ? size_format( $file_size ) : '0 B',
+				'size'           => false !== $file_size ? $file_size : 0,
+				'size_formatted' => false !== $file_size ? size_format( $file_size ) : '0 B',
 				'time'           => $data['created_at'] ?? $file_mtime,
 				'date'           => wp_date(
 					( get_option( 'date_format' ) ? get_option( 'date_format' ) : 'Y-m-d' ) . ' ' . ( get_option( 'time_format' ) ? get_option( 'time_format' ) : 'H:i' ),

@@ -268,7 +268,10 @@ class SScribe_Exporter {
 			if ( $host && $this->is_ip_blocked( $host ) ) {
 				$this->logger->warning(
 					'Blocked SSRF attempt: internal IP range',
-					array( 'url' => $url, 'host' => $host )
+					array(
+						'url' => $url,
+						'host' => $host,
+					)
 				);
 				return '';
 			}

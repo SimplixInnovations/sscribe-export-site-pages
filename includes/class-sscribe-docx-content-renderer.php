@@ -618,11 +618,11 @@ class SScribe_DOCX_Content_Renderer {
 	/**
 	 * Recursively render list items with nested children.
 	 *
-	 * @param Section                              $section       Document section.
-	 * @param array                                $items         List items to render.
-	 * @param array                                $list_font_style Base font style.
-	 * @param int                                  $list_type     List type constant.
-	 * @param int                                  $default_depth Default depth offset.
+	 * @param Section $section       Document section.
+	 * @param array   $items         List items to render.
+	 * @param array   $list_font_style Base font style.
+	 * @param int     $list_type     List type constant.
+	 * @param int     $default_depth Default depth offset.
 	 */
 	private function render_list_items( Section $section, array $items, array $list_font_style, int $list_type, int $default_depth ): void {
 		foreach ( $items as $item ) {
@@ -883,7 +883,10 @@ class SScribe_DOCX_Content_Renderer {
 			if ( in_array( $ext, array( 'webp', 'avif' ), true ) ) {
 				$this->get_logger()->debug(
 					'Skipping unsupported image format, rendering alt text',
-					array( 'path' => $path, 'extension' => $ext )
+					array(
+						'path' => $path,
+						'extension' => $ext,
+					)
 				);
 				if ( ! empty( $element['alt'] ) ) {
 					$section->addText(
