@@ -56,7 +56,7 @@ class SScribe_Admin_Debug {
 		}
 
 		$rate_limiter = new SScribe_Export_Rate_Limiter();
-		if ( ! $rate_limiter->check_rate_limit( $this->get_export_capability() ) ) {
+		if ( ! $rate_limiter->check_rate_limit( $this->get_export_capability(), 'debug' ) ) {
 			SScribe_AJAX_Guard::error( array( 'message' => __( 'Rate limit exceeded. Please wait before trying again.', 'sscribe-export-site-pages' ) ) );
 		}
 
@@ -88,7 +88,7 @@ class SScribe_Admin_Debug {
 		}
 
 		$rate_limiter = new SScribe_Export_Rate_Limiter();
-		if ( ! $rate_limiter->check_rate_limit( $this->get_export_capability() ) ) {
+		if ( ! $rate_limiter->check_rate_limit( $this->get_export_capability(), 'debug' ) ) {
 			SScribe_AJAX_Guard::error( array( 'message' => __( 'Rate limit exceeded. Please wait before trying again.', 'sscribe-export-site-pages' ) ) );
 		}
 
@@ -140,7 +140,7 @@ class SScribe_Admin_Debug {
 		}
 
 		$rate_limiter = new SScribe_Export_Rate_Limiter();
-		if ( ! $rate_limiter->check_rate_limit( $this->get_export_capability() ) ) {
+		if ( ! $rate_limiter->check_rate_limit( $this->get_export_capability(), 'debug' ) ) {
 			SScribe_AJAX_Guard::error( array( 'message' => __( 'Rate limit exceeded. Please wait before trying again.', 'sscribe-export-site-pages' ) ) );
 		}
 
@@ -163,7 +163,7 @@ class SScribe_Admin_Debug {
 		}
 
 		$rate_limiter = new SScribe_Export_Rate_Limiter();
-		if ( ! $rate_limiter->check_rate_limit( $this->get_export_capability() ) ) {
+		if ( ! $rate_limiter->check_rate_limit( $this->get_export_capability(), 'debug' ) ) {
 			SScribe_AJAX_Guard::error( array( 'message' => __( 'Rate limit exceeded. Please wait before trying again.', 'sscribe-export-site-pages' ) ), 429 );
 		}
 
@@ -240,7 +240,7 @@ class SScribe_Admin_Debug {
 		}
 
 		$rate_limiter = new SScribe_Export_Rate_Limiter();
-		if ( ! $rate_limiter->check_rate_limit( $this->get_export_capability() ) ) {
+		if ( ! $rate_limiter->check_rate_limit( $this->get_export_capability(), 'debug' ) ) {
 			SScribe_AJAX_Guard::error( array( 'message' => __( 'Rate limit exceeded. Please wait before trying again.', 'sscribe-export-site-pages' ) ) );
 		}
 
@@ -294,7 +294,7 @@ class SScribe_Admin_Debug {
 		}
 
 		$rate_limiter = new SScribe_Export_Rate_Limiter();
-		if ( ! $rate_limiter->check_rate_limit( $this->get_export_capability() ) ) {
+		if ( ! $rate_limiter->check_rate_limit( $this->get_export_capability(), 'debug' ) ) {
 			SScribe_AJAX_Guard::error( array( 'message' => __( 'Rate limit exceeded. Please wait before trying again.', 'sscribe-export-site-pages' ) ) );
 		}
 
@@ -355,7 +355,7 @@ class SScribe_Admin_Debug {
 		}
 
 		$rate_limiter = new SScribe_Export_Rate_Limiter();
-		if ( ! $rate_limiter->check_rate_limit( $this->get_export_capability() ) ) {
+		if ( ! $rate_limiter->check_rate_limit( $this->get_export_capability(), 'debug' ) ) {
 			SScribe_AJAX_Guard::error( array( 'message' => __( 'Rate limit exceeded. Please wait before trying again.', 'sscribe-export-site-pages' ) ) );
 		}
 
