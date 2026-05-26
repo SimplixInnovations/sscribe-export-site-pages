@@ -77,20 +77,14 @@ class SScribe_PDF_Exporter implements SScribe_Exporter_Interface {
 		$is_rtl   = SScribe_RTL_Helper::is_rtl( $language );
 
 		$processed_page_data = $this->process_images_in_page_data( $page_data );
-		$temp_image_paths    = $this->collect_temp_image_paths( $processed_page_data );
+		$temp_image_paths   = $this->collect_temp_image_paths( $processed_page_data );
 
-		$html_result = $this->html_exporter->export( $processed_page_data, $output_dir, $index, $total );
-
-		if ( $html_result->is_failure() ) {
-			$this->cleanup_temp_images( $temp_image_paths );
-			return $html_result;
-		}
-
-		$html_content = $html_result->get_data()['html'] ?? '';
+		// Use generate_html_string() — avoids .html file side-effect from export().
+		$html_content = $this->html_exporter->generate_html_string( $processed_page_data );
 		$html_size    = strlen( $html_content );
 
 		$libxml_errors = array();
-		$prev_errors   = libxml_use_internal_errors( true );
+		$prev_errors   = null;
 		$output_path   = '';
 		$mpdf_temp     = '';
 
@@ -99,9 +93,9 @@ class SScribe_PDF_Exporter implements SScribe_Exporter_Interface {
 				$this->logger->error(
 					'PDF export failed: mPDF class not found',
 					array(
-						'page_id'           => $page_id,
-						'class_check'       => '\\SScribeVendor\\Mpdf\\Mpdf',
-						'available_classes' => get_declared_classes(),
+						'page_id'               => $page_id,
+						'class_check'           => '\\SScribeVendor\\Mpdf\\Mpdf',
+						'vendor_autoload_exists' => file_exists( SSCRIBE_PLUGIN_DIR . 'vendor/autoload.php' ),
 					)
 				);
 
@@ -149,134 +143,16 @@ class SScribe_PDF_Exporter implements SScribe_Exporter_Interface {
 				);
 			}
 
-			$font_dir    = trailingslashit( SSCRIBE_PLUGIN_DIR ) . 'assets/fonts/';
-			$manrope_dir = $font_dir . 'manrope/';
-			$upload_dir  = wp_upload_dir();
-			$mpdf_temp   = trailingslashit( $upload_dir['basedir'] ) . 'sscribe/mpdf-tmp/';
+			// libxml state must be captured AFTER the early-return checks so that
+			// the finally block always restores the correct prior state.
+			$prev_errors = libxml_use_internal_errors( true );
 
-			if ( ! is_dir( $mpdf_temp ) ) {
-				wp_mkdir_p( $mpdf_temp );
+			$mpdf_config = $this->build_mpdf_config( $is_rtl, $page_id );
+			if ( $mpdf_config instanceof SScribe_Result ) {
+				return $mpdf_config;
 			}
 
-			$manrope_regular = null;
-			if ( is_dir( $manrope_dir ) ) {
-				$font_files = scandir( $manrope_dir );
-				foreach ( $font_files as $font_file ) {
-					if ( preg_match( '/^manrope[-_]?regular\.ttf$/i', $font_file ) ) {
-						$manrope_regular = $manrope_dir . $font_file;
-						break;
-					}
-				}
-			}
-
-			if ( ! is_dir( $manrope_dir ) || empty( $manrope_regular ) ) {
-				$this->logger->error(
-					'PDF export failed: Manrope font files are missing',
-					array(
-						'manrope_dir'     => $manrope_dir,
-						'dir_exists'      => is_dir( $manrope_dir ),
-						'manrope_regular' => $manrope_regular,
-						'dir_contents'    => is_dir( $manrope_dir ) ? scandir( $manrope_dir ) : array(),
-					)
-				);
-
-				return SScribe_Result::failure(
-					__( 'PDF export failed: Manrope font files are missing. Reinstall the plugin.', 'sscribe-export-site-pages' ),
-					array(
-						'error_category' => 'pdf_missing_library',
-						'page_id'        => $page_id,
-						'missing_dir'    => $manrope_dir,
-					)
-				);
-			}
-
-			if ( ! wp_is_writable( $mpdf_temp ) ) {
-				return SScribe_Result::failure(
-					sprintf(
-						/* translators: %s: Temp directory path. */
-
-						__( 'PDF export failed: temp directory is not writable (%s).', 'sscribe-export-site-pages' ),
-						$mpdf_temp
-					),
-					array(
-						'error_category' => 'pdf_filesystem',
-						'page_id'        => $page_id,
-						'temp_dir'       => $mpdf_temp,
-					)
-				);
-			}
-
-			if ( ! file_exists( $mpdf_temp . '/.htaccess' ) ) {
-				SScribe_Security::protect_directory( $mpdf_temp );
-			}
-
-			$default_config = ( new \SScribeVendor\Mpdf\Config\ConfigVariables() )->getDefaults();
-			$font_dirs      = $default_config['fontDir'];
-
-			$default_font_config = ( new \SScribeVendor\Mpdf\Config\FontVariables() )->getDefaults();
-			$font_data           = $default_font_config['fontdata'];
-
-			$manrope_regular = $this->find_font_file( $manrope_dir, 'manrope[-_]?regular' ) ?? 'Manrope-Regular.ttf';
-
-			$manrope_bold   = $this->find_font_file( $manrope_dir, 'manrope[-_]?bold' ) ?? 'Manrope-Bold.ttf';
-			$manrope_medium = $this->find_font_file( $manrope_dir, 'manrope[-_]?medium' ) ?? 'Manrope-Medium.ttf';
-			$manrope_light  = $this->find_font_file( $manrope_dir, 'manrope[-_]?light' ) ?? 'Manrope-Light.ttf';
-
-			$xbriyaz_available = false;
-			foreach ( $font_dirs as $font_dir_path ) {
-				if ( file_exists( trailingslashit( $font_dir_path ) . 'xbriyaz.ttf' ) ) {
-					$xbriyaz_available = true;
-					break;
-				}
-			}
-
-			$config = array(
-				'fontDir'          => array_merge(
-					$font_dirs,
-					array(
-						$manrope_dir,
-					)
-				),
-				'fontdata'         => array_replace(
-					$font_data,
-					array(
-						'manrope' => array(
-							'R' => $manrope_regular,
-							'B' => $manrope_bold,
-							'M' => $manrope_medium,
-							'L' => $manrope_light,
-						),
-					)
-				),
-
-				'fonttrans'        => $is_rtl ? array(
-					'dejavu sans'     => $xbriyaz_available ? 'xbriyaz' : 'freeserif',
-					'dejavusans'      => $xbriyaz_available ? 'xbriyaz' : 'freeserif',
-					'arial'           => $xbriyaz_available ? 'xbriyaz' : 'freeserif',
-					'xbriyaz'         => $xbriyaz_available ? 'xbriyaz' : 'freeserif',
-					'lateef'          => $xbriyaz_available ? 'xbriyaz' : 'freeserif',
-					'times new roman' => $xbriyaz_available ? 'xbriyaz' : 'freeserif',
-					'serif'           => $xbriyaz_available ? 'xbriyaz' : 'freeserif',
-					'sans-serif'      => $xbriyaz_available ? 'xbriyaz' : 'freeserif',
-				) : array(),
-				'mode'             => 'utf-8',
-				'default_font'     => $is_rtl ? ( $xbriyaz_available ? 'xbriyaz' : 'freeserif' ) : 'manrope',
-				'useOTL'           => 0xFF,
-				'useKashida'       => 75,
-				'OTLhelper'        => true,
-
-				'autoArabic'       => true,
-				'autoScriptToLang' => true,
-				'autoLangToFont'   => true,
-				'orientation'      => 'P',
-				'format'           => 'A4',
-				'margin_left'      => 15,
-				'margin_right'     => 15,
-				'margin_top'       => 15,
-				'margin_bottom'    => 15,
-				'tempDir'          => $mpdf_temp,
-				'debug'            => ( defined( 'SSCRIBE_DEBUG' ) && SSCRIBE_DEBUG ),
-			);
+			list( 'config' => $config, 'mpdf_temp' => $mpdf_temp ) = $mpdf_config;
 
 			$mpdf = new \SScribeVendor\Mpdf\Mpdf( $config );
 			$mpdf->SetDirectionality( $is_rtl ? 'rtl' : 'ltr' );
@@ -287,24 +163,7 @@ class SScribe_PDF_Exporter implements SScribe_Exporter_Interface {
 			$mpdf->SetSubject( esc_html( $page_data['seo']['meta_description'] ?? '' ) );
 			$mpdf->SetKeywords( esc_html( $page_data['seo']['focus_keyword'] ?? '' ) );
 
-			$html_content = preg_replace( '/<style[^>]*>.*?<\/style>/is', '', $html_content ) ?? $html_content;
-			if ( $is_rtl ) {
-				$html_content = (string) preg_replace_callback(
-					'/\s*style="([^"]*)"/i',
-					static function ( array $matches ): string {
-						if ( preg_match( '/direction\s*:\s*rtl/i', $matches[1] ) ) {
-							return ' style="direction:rtl"';
-						}
-						return '';
-					},
-					$html_content
-				);
-			} else {
-				$html_content = preg_replace( '/\s*style="([^"]*)"/i', '', $html_content ) ?? $html_content;
-			}
-			$html_content = preg_replace( "/\s*style='[^']*'/i", '', $html_content ) ?? $html_content;
-
-			$html_content = preg_replace( '/@font-face\s*\{[^}]+\}/isU', '', $html_content ) ?? $html_content;
+			$html_content = $this->prepare_html_for_mpdf( $html_content, $is_rtl );
 
 			if ( function_exists( 'set_time_limit' ) && (int) ini_get( 'max_execution_time' ) > 0 ) {
 				$max_exec = (int) ini_get( 'max_execution_time' );
@@ -313,9 +172,10 @@ class SScribe_PDF_Exporter implements SScribe_Exporter_Interface {
 
 			// Pre-render time check.
 			if ( function_exists( 'microtime' ) ) {
-				$max_exec = (int) ini_get( 'max_execution_time' );
-				if ( $max_exec > 0 ) {
-					$elapsed   = microtime( true ) - ( $page_data['_batch_start_time'] ?? microtime( true ) );
+				$max_exec   = (int) ini_get( 'max_execution_time' );
+				$batch_start = $page_data['_batch_start_time'] ?? 0.0;
+				if ( $batch_start > 0.0 && $max_exec > 0 ) {
+					$elapsed   = microtime( true ) - $batch_start;
 					$remaining = $max_exec - $elapsed;
 					if ( $remaining < 20 ) {
 						$this->cleanup_temp_images( $temp_image_paths );
@@ -329,13 +189,22 @@ class SScribe_PDF_Exporter implements SScribe_Exporter_Interface {
 							)
 						);
 					}
+				} elseif ( 0.0 === $batch_start ) {
+					$this->logger->warning(
+						'PDF time guard skipped: _batch_start_time not set in page_data',
+						array(
+							'page_id' => $page_id,
+						)
+					);
 				}
 			}
 
 			$filename    = \SScribe_Exporter_Factory::build_filename( $page_data, $index, $total, 'pdf' );
 			$output_path = trailingslashit( $output_dir ) . $filename;
 
-			$font_stack = $is_rtl ? ( $xbriyaz_available ? 'xbriyaz, freeserif, sans-serif' : 'freeserif, sans-serif' ) : 'manrope, freeserif, sans-serif';
+			$font_stack = $is_rtl
+				? ( $config['xbriyaz_available'] ? 'xbriyaz, freeserif, sans-serif' : 'freeserif, sans-serif' )
+				: 'manrope, freeserif, sans-serif';
 			$base_css   = 'html, body, div, p, span, h1, h2, h3, h4, h5, h6, table, tr, td, th, ul, ol, li, blockquote, q, cite, a { font-family: ' . $font_stack . '; }';
 
 			if ( $is_rtl ) {
@@ -439,7 +308,12 @@ class SScribe_PDF_Exporter implements SScribe_Exporter_Interface {
 			$this->cleanup_temp_images( $temp_image_paths );
 			$this->cleanup_mpdf_temp( $mpdf_temp );
 			libxml_clear_errors();
-			libxml_use_internal_errors( $prev_errors );
+			// Only restore if libxml state was captured (inside the try block).
+			// If an early return was taken before entering the try, $prev_errors
+			// is still null and there is no prior state to restore.
+			if ( null !== $prev_errors ) {
+				libxml_use_internal_errors( $prev_errors );
+			}
 		}
 	}
 
@@ -451,13 +325,24 @@ class SScribe_PDF_Exporter implements SScribe_Exporter_Interface {
 	 */
 	private function collect_temp_image_paths( array $processed_page_data ): array {
 		$paths = array();
+
+		// Primary source: _temp_image_paths set by process_images_in_page_data().
+		if ( ! empty( $processed_page_data['_temp_image_paths'] ) && is_array( $processed_page_data['_temp_image_paths'] ) ) {
+			foreach ( $processed_page_data['_temp_image_paths'] as $path ) {
+				if ( file_exists( $path ) && strpos( $path, sys_get_temp_dir() ) === 0 ) {
+					$paths[] = $path;
+				}
+			}
+		}
+
+		// Fallback: featured_image_url if set and within temp directory.
 		if ( ! empty( $processed_page_data['featured_image_url'] ) ) {
 			$path = $processed_page_data['featured_image_url'];
-
-			if ( file_exists( $path ) && strpos( $path, sys_get_temp_dir() ) === 0 ) {
+			if ( file_exists( $path ) && strpos( $path, sys_get_temp_dir() ) === 0 && ! in_array( $path, $paths, true ) ) {
 				$paths[] = $path;
 			}
 		}
+
 		return $paths;
 	}
 
@@ -494,7 +379,7 @@ class SScribe_PDF_Exporter implements SScribe_Exporter_Interface {
 			if ( is_file( $file ) ) {
 				$mtime = filemtime( $file );
 				if ( false !== $mtime && ( $now - $mtime ) > $max_age ) {
-					SScribe_Image_Processor::cleanup( $file );
+					wp_delete_file( $file );
 				}
 			}
 		}
@@ -507,14 +392,187 @@ class SScribe_PDF_Exporter implements SScribe_Exporter_Interface {
 	 * @return array Processed page data.
 	 */
 	private function process_images_in_page_data( array $page_data ): array {
+		$temp_paths = array();
+
 		if ( ! empty( $page_data['featured_image_url'] ) ) {
 			$local_path = SScribe_Image_Processor::download_and_optimize( $page_data['featured_image_url'] );
 			if ( $local_path && file_exists( $local_path ) ) {
 				$page_data['featured_image_url'] = $local_path;
+				$temp_paths[]                    = $local_path;
 			}
 		}
 
+		// Track all temp paths so collect_temp_image_paths() can find them.
+		$page_data['_temp_image_paths'] = $temp_paths;
+
 		return $page_data;
+	}
+
+	/**
+	 * Find a font file matching the pattern in a directory.
+	 *
+	 * @param string $dir      Directory to search.
+	 * @param string $pattern  Font file pattern without extension.
+	 * @return string|null Font filename or null if not found.
+	 */
+	/**
+	 * Build mPDF configuration array and validate prerequisites.
+	 *
+	 * Extracted from export() to keep the method focused on the rendering pipeline.
+	 *
+	 * @param bool $is_rtl Whether the page is RTL.
+	 * @param int  $page_id Page ID for error context.
+	 * @return array{config: array, mpdf_temp: string}|SScribe_Result Config array on success, failure Result on error.
+	 */
+	private function build_mpdf_config( bool $is_rtl, int $page_id ): array|SScribe_Result {
+		$font_dir    = trailingslashit( SSCRIBE_PLUGIN_DIR ) . 'assets/fonts/';
+		$manrope_dir = $font_dir . 'manrope/';
+		$upload_dir  = wp_upload_dir();
+		$mpdf_temp   = trailingslashit( $upload_dir['basedir'] ) . 'sscribe/mpdf-tmp/';
+
+		if ( ! is_dir( $mpdf_temp ) ) {
+			wp_mkdir_p( $mpdf_temp );
+		}
+
+		if ( ! is_dir( $manrope_dir ) ) {
+			$this->logger->error(
+				'PDF export failed: Manrope font files are missing',
+				array(
+					'manrope_dir'  => $manrope_dir,
+					'dir_exists'   => false,
+				)
+			);
+
+			return SScribe_Result::failure(
+				__( 'PDF export failed: Manrope font files are missing. Reinstall the plugin.', 'sscribe-export-site-pages' ),
+				array(
+					'error_category' => 'pdf_missing_library',
+					'page_id'        => $page_id,
+					'missing_dir'    => $manrope_dir,
+				)
+			);
+		}
+
+		if ( ! wp_is_writable( $mpdf_temp ) ) {
+			return SScribe_Result::failure(
+				sprintf(
+					/* translators: %s: Temp directory path. */
+
+					__( 'PDF export failed: temp directory is not writable (%s).', 'sscribe-export-site-pages' ),
+					$mpdf_temp
+				),
+				array(
+					'error_category' => 'pdf_filesystem',
+					'page_id'        => $page_id,
+					'temp_dir'       => $mpdf_temp,
+				)
+			);
+		}
+
+		if ( ! file_exists( $mpdf_temp . '/.htaccess' ) ) {
+			SScribe_Security::protect_directory( $mpdf_temp );
+		}
+
+		$default_config = ( new \SScribeVendor\Mpdf\Config\ConfigVariables() )->getDefaults();
+		$font_dirs      = $default_config['fontDir'];
+
+		$default_font_config = ( new \SScribeVendor\Mpdf\Config\FontVariables() )->getDefaults();
+		$font_data           = $default_font_config['fontdata'];
+
+		$manrope_regular = $this->find_font_file( $manrope_dir, 'manrope[-_]?regular' ) ?? 'Manrope-Regular.ttf';
+		$manrope_bold    = $this->find_font_file( $manrope_dir, 'manrope[-_]?bold' ) ?? 'Manrope-Bold.ttf';
+		$manrope_medium  = $this->find_font_file( $manrope_dir, 'manrope[-_]?medium' ) ?? 'Manrope-Medium.ttf';
+		$manrope_light   = $this->find_font_file( $manrope_dir, 'manrope[-_]?light' ) ?? 'Manrope-Light.ttf';
+
+		$xbriyaz_available = false;
+		foreach ( $font_dirs as $font_dir_path ) {
+			if ( file_exists( trailingslashit( $font_dir_path ) . 'xbriyaz.ttf' ) ) {
+				$xbriyaz_available = true;
+				break;
+			}
+		}
+
+		$config                    = array(
+			'fontDir'   => array_merge( $font_dirs, array( $manrope_dir ) ),
+			'fontdata'  => array_replace(
+				$font_data,
+				array(
+					'manrope' => array(
+						'R' => $manrope_regular,
+						'B' => $manrope_bold,
+						'M' => $manrope_medium,
+						'L' => $manrope_light,
+					),
+				)
+			),
+			'fonttrans' => $is_rtl ? array(
+				'dejavu sans'     => $xbriyaz_available ? 'xbriyaz' : 'freeserif',
+				'dejavusans'      => $xbriyaz_available ? 'xbriyaz' : 'freeserif',
+				'arial'           => $xbriyaz_available ? 'xbriyaz' : 'freeserif',
+				'xbriyaz'         => $xbriyaz_available ? 'xbriyaz' : 'freeserif',
+				'lateef'          => $xbriyaz_available ? 'xbriyaz' : 'freeserif',
+				'times new roman' => $xbriyaz_available ? 'xbriyaz' : 'freeserif',
+				'serif'           => $xbriyaz_available ? 'xbriyaz' : 'freeserif',
+				'sans-serif'      => $xbriyaz_available ? 'xbriyaz' : 'freeserif',
+			) : array(),
+			'mode'             => 'utf-8',
+			'default_font'     => $is_rtl ? ( $xbriyaz_available ? 'xbriyaz' : 'freeserif' ) : 'manrope',
+			'useOTL'           => 0xFF,
+			'useKashida'       => 75,
+			'OTLhelper'        => true,
+			'autoArabic'       => true,
+			'autoScriptToLang' => true,
+			'autoLangToFont'   => true,
+			'orientation'      => 'P',
+			'format'           => 'A4',
+			'margin_left'      => 15,
+			'margin_right'     => 15,
+			'margin_top'       => 15,
+			'margin_bottom'    => 15,
+			'tempDir'          => $mpdf_temp,
+			'debug'            => ( defined( 'SSCRIBE_DEBUG' ) && SSCRIBE_DEBUG ),
+			'xbriyaz_available' => $xbriyaz_available,
+		);
+
+		return array(
+			'config'   => $config,
+			'mpdf_temp' => $mpdf_temp,
+		);
+	}
+
+	/**
+	 * Prepare HTML content for mPDF rendering.
+	 *
+	 * Strips embedded styles, normalises RTL direction attributes, and removes
+	 *
+	 * @font-face declarations that could interfere with the PDF rendering pipeline.
+	 *
+	 * @param string $html_content Raw HTML content.
+	 * @param bool   $is_rtl      Whether the page is RTL.
+	 * @return string Cleaned HTML content.
+	 */
+	private function prepare_html_for_mpdf( string $html_content, bool $is_rtl ): string {
+		$html_content = preg_replace( '/<style[^>]*>.*?<\/style>/is', '', $html_content ) ?? $html_content;
+
+		if ( $is_rtl ) {
+			$html_content = (string) preg_replace_callback(
+				'/\s*style="([^"]*)"/i',
+				static function ( array $matches ): string {
+					if ( preg_match( '/direction\s*:\s*rtl/i', $matches[1] ) ) {
+						return ' style="direction:rtl"';
+					}
+					return '';
+				},
+				$html_content
+			);
+		} else {
+			$html_content = preg_replace( '/\s*style="([^"]*)"/i', '', $html_content ) ?? $html_content;
+		}
+
+		$html_content = preg_replace( "/\s*style='[^']*'/i", '', $html_content ) ?? $html_content;
+		$html_content = preg_replace( '/@font-face\s*\{[^}]+\}/isU', '', $html_content ) ?? $html_content;
+
+		return $html_content;
 	}
 
 	/**
