@@ -1127,7 +1127,7 @@ class SScribe_Batch_Processor {
 			// Finalize UNDER lock to prevent a concurrent process from also
 			// detecting an empty batch and racing to finalize the same session.
 			try {
-				$this->finalize_export( $session_id, $session );
+				$this->finalize_export( $session_id, $session, $lock_token );
 			} finally {
 				$this->release_lock( $session_id, $lock_token );
 			}
@@ -1791,17 +1791,17 @@ class SScribe_Batch_Processor {
 			// completing_since is too old (> 2 minutes), treat as stale and allow retry.
 		}
 
-		$this->finalize_export( $session_id, $session );
+		$this->finalize_export( $session_id, $session, $lock_token );
 	}
 
 	/**
 	 * Complete the export process and package files.
 	 *
-	 * @param string $session_id Export session ID.
-	 * @param array  $session    Session data.
+	 * @param string      $session_id Export session ID.
+	 * @param array       $session    Session data.
+	 * @param string|null $lock_token Optional lock token to release on completion.
 	 */
-	private function finalize_export( string $session_id, array $session ): void {
-		$lock_token = null; // Initialize for PHPStan; always overwritten below before release_lock().
+	private function finalize_export( string $session_id, array $session, ?string $lock_token = null ): void {
 
 		if ( null === $this->export_log ) {
 			$this->export_log = new SScribe_Export_Log( $session_id );
