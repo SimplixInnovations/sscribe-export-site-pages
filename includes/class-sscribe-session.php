@@ -620,12 +620,12 @@ class SScribe_Session {
 
 		$pattern = $wpdb->esc_like( $this->option_prefix ) . '%';
 
-		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- Privacy export needs a complete scan of session options.
 		$sessions = array();
 		$cursor   = '';
 		$limit    = 500;
 
 		do {
+			// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- Privacy export needs a complete scan of session options.
 			$options = $wpdb->get_results(
 				$wpdb->prepare(
 					"SELECT option_name, option_value FROM {$wpdb->options} WHERE option_name LIKE %s AND autoload = 'no' AND option_name > %s ORDER BY option_name ASC LIMIT %d",

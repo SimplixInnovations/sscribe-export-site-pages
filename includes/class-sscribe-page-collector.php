@@ -951,23 +951,27 @@ class SScribe_Page_Collector {
 				$status_count          = count( $statuses );
 				$post_type_placeholders = implode( ',', array_fill( 0, $post_type_count, '%s' ) );
 				$status_placeholders    = implode( ',', array_fill( 0, $status_count, '%s' ) );
+				// phpcs:disable WordPress.DB.PreparedSQLPlaceholders.UnfinishedPrepare, WordPress.DB.PreparedSQL.InterpolatedNotPrepared -- Dynamic IN clause placeholders built from safe array_fill() of %s only.
 				$results = $wpdb->get_results(
 					$wpdb->prepare(
-						"SELECT post_status, COUNT(*) as count FROM {$wpdb->posts} WHERE post_type IN ({$post_type_placeholders}) AND post_status IN ({$status_placeholders}) GROUP BY post_status", // phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared
+						"SELECT post_status, COUNT(*) as count FROM {$wpdb->posts} WHERE post_type IN ({$post_type_placeholders}) AND post_status IN ({$status_placeholders}) GROUP BY post_status",
 						array_merge( $args['post_type'], array_keys( $statuses ) )
 					),
 					ARRAY_A
 				);
+				// phpcs:enable
 			} else {
 				$status_count         = count( $statuses );
 				$status_placeholders  = implode( ',', array_fill( 0, $status_count, '%s' ) );
+				// phpcs:disable WordPress.DB.PreparedSQLPlaceholders.UnfinishedPrepare, WordPress.DB.PreparedSQL.InterpolatedNotPrepared -- Dynamic IN clause placeholders built from safe array_fill() of %s only.
 				$results = $wpdb->get_results(
 					$wpdb->prepare(
-						"SELECT post_status, COUNT(*) as count FROM {$wpdb->posts} WHERE post_type = %s AND post_status IN ({$status_placeholders}) GROUP BY post_status", // phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared
+						"SELECT post_status, COUNT(*) as count FROM {$wpdb->posts} WHERE post_type = %s AND post_status IN ({$status_placeholders}) GROUP BY post_status",
 						array_merge( array( $args['post_type'] ), array_keys( $statuses ) )
 					),
 					ARRAY_A
 				);
+				// phpcs:enable
 			}
 			// phpcs:enable
 

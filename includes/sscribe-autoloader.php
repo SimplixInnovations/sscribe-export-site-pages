@@ -9,7 +9,7 @@
 
 declare(strict_types=1);
 
-if ( ! defined( 'ABSPATH' ) || ! defined( 'WPINC' ) ) {
+if ( ! defined( 'ABSPATH' ) ) {
 	exit;
 }
 
