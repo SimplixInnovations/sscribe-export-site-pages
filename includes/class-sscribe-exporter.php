@@ -169,7 +169,7 @@ class SScribe_Exporter {
 		return is_string( $result ) ? $result : $subject;
 	}
 
-/**
+	/**
 	 * Sanitize text for safe XML embedding.
 	 *
 	 * @param string $text Input text.
