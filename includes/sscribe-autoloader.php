@@ -75,7 +75,9 @@ spl_autoload_register(
 		}
 
 		foreach ( $paths as $path ) {
-			if ( file_exists( $path ) ) {
+			// Security: Ensure the resolved path stays within the plugin directory
+			// to prevent path traversal via malicious class names
+			if ( file_exists( $path ) && str_starts_with( realpath( $path ), SSCRIBE_PLUGIN_DIR ) ) {
 				require_once $path;
 				$loaded[ $class_name ] = true;
 				return;

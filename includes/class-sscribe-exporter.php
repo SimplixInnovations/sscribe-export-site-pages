@@ -117,6 +117,25 @@ class SScribe_Exporter {
 		 */
 		$this->colors = apply_filters( 'sscribe_docx_colors', $this->colors );
 
+		// Validate required color keys exist after filter application
+		// to prevent undefined index errors from third-party mutations
+		$required_colors = array( 'primary', 'heading', 'body', 'light_bg', 'link', 'code_bg', 'white', 'border' );
+		foreach ( $required_colors as $key ) {
+			if ( ! isset( $this->colors[ $key ] ) || ! is_string( $this->colors[ $key ] ) ) {
+				$this->colors[ $key ] = match ( $key ) {
+					'primary'   => '4A8263',
+					'heading'   => '122119',
+					'body'      => '495057',
+					'light_bg'  => 'E8EFEB',
+					'link'      => '2C6E8A',
+					'code_bg'   => 'F5F6F8',
+					'white'     => 'FFFFFF',
+					'border'    => 'CCCCCC',
+					default     => '000000',
+				};
+			}
+		}
+
 		$this->content_renderer = $content_renderer ?? new SScribe_DOCX_Content_Renderer(
 			$this->parser,
 			null,
@@ -222,7 +241,9 @@ class SScribe_Exporter {
 			);
 			$safe_query = '';
 			if ( ! empty( $query ) ) {
-				$safe_query = '?' . rawurlencode( $query );
+				$params = array();
+				parse_str( $query, $params );
+				$safe_query = '?' . http_build_query( $params, '', '&', PHP_QUERY_RFC3986 );
 			}
 			$safe_fragment = ! empty( $fragment ) ? '#' . rawurlencode( $fragment ) : '';
 
@@ -233,10 +254,44 @@ class SScribe_Exporter {
 		$scheme        = strtolower( ( false === $parsed_scheme || null === $parsed_scheme ) ? '' : $parsed_scheme );
 
 		if ( in_array( $scheme, array( 'http', 'https', 'mailto', 'tel' ), true ) ) {
+			// SSRF protection: validate URL doesn't point to internal/private IP ranges
+			$host = wp_parse_url( $url, PHP_URL_HOST );
+			if ( $host && $this->is_ip_blocked( $host ) ) {
+				$this->logger->warning(
+					'Blocked SSRF attempt: internal IP range',
+					array( 'url' => $url, 'host' => $host )
+				);
+				return '';
+			}
 			return esc_url_raw( $url );
 		}
 
 		return '';
+	}
+
+	/**
+	 * Check if host is a blocked internal/private IP address.
+	 *
+	 * @param string $host Hostname or IP to check.
+	 * @return bool True if blocked.
+	 */
+	private function is_ip_blocked( string $host ): bool {
+		// Check for IPv4
+		if ( filter_var( $host, FILTER_VALIDATE_IP, FILTER_FLAG_NO_PRIV_RANGE | FILTER_FLAG_NO_RES_RANGE ) === false ) {
+			// Could be private IP or hostname that resolves to private IP
+			// Check if it's a reserved/private range
+			$ip = gethostbyname( $host );
+			if ( $ip !== $host ) {
+				// Host resolved to IP
+				if ( filter_var( $ip, FILTER_VALIDATE_IP, FILTER_FLAG_NO_PRIV_RANGE | FILTER_FLAG_NO_RES_RANGE ) === false ) {
+					return true;
+				}
+			} else {
+				// Could not resolve - block hostname that might be internal
+				return true;
+			}
+		}
+		return false;
 	}
 
 	/**
@@ -454,38 +509,52 @@ class SScribe_Exporter {
 
 			// Deep XML validation — only in debug mode.
 			$xml_valid = true;
+			$zip_xml   = null;
 			if ( $has_document ) {
 				$zip_xml = new \ZipArchive();
-				$zip_xml->open( $output_path );
-				$doc_xml = $zip_xml->getFromName( 'word/document.xml' );
-				if ( false !== $doc_xml && ! empty( $doc_xml ) ) {
-					$prev_xml_errors = libxml_use_internal_errors( true );
-					$test_doc        = new \DOMDocument();
-					$parse_result    = $test_doc->loadXML( $doc_xml );
-					$xml_errors      = libxml_get_errors();
-					libxml_clear_errors();
-					libxml_use_internal_errors( $prev_xml_errors );
+				if ( true !== $zip_xml->open( $output_path ) ) {
+					$zip_xml = null;
+					$xml_valid = false;
+				} else {
+					$doc_xml = $zip_xml->getFromName( 'word/document.xml' );
+					if ( false !== $doc_xml && ! empty( $doc_xml ) ) {
+						$prev_xml_errors = libxml_use_internal_errors( true );
+						$test_doc        = new \DOMDocument();
+						$parse_result    = $test_doc->loadXML( $doc_xml );
+						$xml_errors      = libxml_get_errors();
+						libxml_clear_errors();
+						libxml_use_internal_errors( $prev_xml_errors );
 
-					foreach ( $xml_errors as $xml_error ) {
-						if ( LIBXML_ERR_FATAL === $xml_error->level ) {
+						foreach ( $xml_errors as $xml_error ) {
+							if ( LIBXML_ERR_FATAL === $xml_error->level ) {
+								$xml_valid = false;
+								$this->get_logger()->error(
+									'DOCX XML validation failed',
+									array(
+										'page_id'   => $page_data['id'] ?? 0,
+										'xml_error' => trim( $xml_error->message ),
+										'xml_line'  => $xml_error->line,
+									)
+								);
+								break;
+if ( null !== $this->content_renderer ) {
+			$this->content_renderer->sync_config(
+				$this->colors,
+				$this->is_rtl,
+				$this->font_name,
+				$this->font_size
+			);
+		}
+	}
+						if ( false === $parse_result ) {
 							$xml_valid = false;
-							$this->get_logger()->error(
-								'DOCX XML validation failed',
-								array(
-									'page_id'   => $page_data['id'] ?? 0,
-									'xml_error' => trim( $xml_error->message ),
-									'xml_line'  => $xml_error->line,
-								)
-							);
-							break;
 						}
+						unset( $test_doc, $doc_xml );
 					}
-					if ( false === $parse_result ) {
-						$xml_valid = false;
-					}
-					unset( $test_doc, $doc_xml );
+				}
+				if ( null !== $zip_xml ) {
 					$zip_xml->close();
-					unset( $zip_xml );
+					$zip_xml = null;
 				}
 			}
 
@@ -667,14 +736,19 @@ class SScribe_Exporter {
 
 		$php_word->addParagraphStyle( 'Blockquote', $this->get_para_style( $blockquote_style ) );
 
-		$php_word->addParagraphStyle(
-			'CodeBlock',
-			array(
-				'indentation' => array( 'left' => Converter::cmToTwip( 0.5 ) ),
-				'spaceBefore' => Converter::pointToTwip( 6 ),
-				'spaceAfter'  => Converter::pointToTwip( 6 ),
-			)
+		$codeblock_style = array(
+			'spaceBefore' => Converter::pointToTwip( 6 ),
+			'spaceAfter'  => Converter::pointToTwip( 6 ),
 		);
+
+		if ( $this->is_rtl ) {
+			$codeblock_style['bidi']               = true;
+			$codeblock_style['indentation']     = array( 'right' => Converter::cmToTwip( 0.5 ) );
+		} else {
+			$codeblock_style['indentation']     = array( 'left' => Converter::cmToTwip( 0.5 ) );
+		}
+
+		$php_word->addParagraphStyle( 'CodeBlock', $this->get_para_style( $codeblock_style ) );
 	}
 
 	/**
@@ -748,14 +822,14 @@ class SScribe_Exporter {
 
 		$section->addTextBreak( 4 );
 
-		$cover_title = (string) $page_data['title'];
+		$cover_title = $this->safe_text( (string) ( $page_data['title'] ?? '' ) );
 		if ( ! $this->is_rtl ) {
 			$cover_title = function_exists( 'mb_strtoupper' )
 				? mb_strtoupper( $cover_title, 'UTF-8' )
 				: strtoupper( $cover_title );
 		}
 		$section->addText(
-			$this->safe_text( $cover_title ),
+			$cover_title,
 			$this->with_complex_script(
 				array(
 					'name'  => $this->font_name,
@@ -835,7 +909,7 @@ class SScribe_Exporter {
 				' > ',
 				array_map(
 					function ( $c ) {
-						return $c['title'];
+						return $this->safe_text( $c['title'] ?? '' );
 					},
 					$page_data['breadcrumbs']
 				)
@@ -957,7 +1031,7 @@ class SScribe_Exporter {
 				'color'  => $this->colors['body'],
 				'italic' => true,
 			),
-			array( 'alignment' => Jc::START )
+			array( 'alignment' => $this->is_rtl ? Jc::START : Jc::END )
 		);
 
 		$footer       = $section->addFooter();
@@ -979,7 +1053,7 @@ class SScribe_Exporter {
 				'size'  => 7,
 				'color' => $this->colors['body'],
 			),
-			array( 'alignment' => Jc::START )
+			array( 'alignment' => $this->is_rtl ? Jc::START : Jc::END )
 		);
 	}
 
@@ -997,7 +1071,7 @@ class SScribe_Exporter {
 
 		try {
 			$path = $page_data['featured_image_path'];
-			if ( ! file_exists( $path ) || ! is_readable( $path ) ) {
+			if ( ! is_readable( $path ) ) {
 				return;
 			}
 			$image_info = getimagesize( $path );
@@ -1278,7 +1352,7 @@ class SScribe_Exporter {
 			);
 			$text_run->addLink(
 				$child_url,
-				$this->safe_text( $child['title'] ),
+				$this->safe_text( $child['title'] ?? '' ),
 				array(
 					'name'  => $this->font_name,
 					'size'  => $this->font_size,

@@ -275,6 +275,24 @@ class SScribe_DOCX_Content_Renderer {
 	 * @param int                   $font_size Font size.
 	 */
 	public function sync_config( array $colors, bool $is_rtl, string $font_name, int $font_size ): void {
+		// Validate required color keys exist after filter application
+		// to prevent undefined index errors from third-party mutations
+		$required_colors = array( 'primary', 'heading', 'body', 'light_bg', 'link', 'code_bg', 'white', 'border' );
+		foreach ( $required_colors as $key ) {
+			if ( ! isset( $colors[ $key ] ) || ! is_string( $colors[ $key ] ) ) {
+				$colors[ $key ] = match ( $key ) {
+					'primary'   => '4A8263',
+					'heading'   => '122119',
+					'body'      => '495057',
+					'light_bg'  => 'E8EFEB',
+					'link'      => '2C6E8A',
+					'code_bg'   => 'F5F6F8',
+					'white'     => 'FFFFFF',
+					'border'    => 'CCCCCC',
+					default     => '000000',
+				};
+			}
+		}
 		$this->colors    = $colors;
 		$this->is_rtl    = $is_rtl;
 		$this->font_name = $font_name;
@@ -802,6 +820,17 @@ class SScribe_DOCX_Content_Renderer {
 				$this->get_para_style( array( 'alignment' => Jc::CENTER ) )
 			);
 		} elseif ( is_readable( $path ) ) {
+			// Block unsupported image formats that PHPWord cannot process
+			// PHPWord does not support WEBP/AVIF natively
+			$ext = strtolower( pathinfo( $path, PATHINFO_EXTENSION ) );
+			if ( in_array( $ext, array( 'webp', 'avif' ), true ) ) {
+				$this->get_logger()->debug(
+					'Skipping unsupported image format in content',
+					array( 'path' => $path, 'extension' => $ext )
+				);
+				return;
+			}
+
 			$image_info = getimagesize( $path );
 			if ( $image_info ) {
 				$max_width  = Converter::inchToEmu( 5.5 );
