@@ -140,7 +140,8 @@ class SScribe_DOCX_Content_Renderer {
 	private function safe_text( string $text ): string {
 		$text = (string) $text;
 
-		$cleaned = mb_convert_encoding( $text, 'UTF-8', 'UTF-8' );
+		// Use iconv for UTF-8 sanitization - compatible with PHP 8.2+ (mb_convert_encoding deprecation)
+		$cleaned = @iconv( 'UTF-8', 'UTF-8//IGNORE', $text );
 		if ( false !== $cleaned ) {
 			$text = $cleaned;
 		}
@@ -154,8 +155,11 @@ class SScribe_DOCX_Content_Renderer {
 		$text = str_replace( array( "\r\n", "\r" ), "\n", $text );
 		$text = str_replace( "\x0C", '', $text );
 
-		if ( mb_strlen( $text, 'UTF-8' ) > 200 && false === mb_strpos( $text, ' ', 0, 'UTF-8' ) ) {
-			$text = mb_substr( $text, 0, 200, 'UTF-8' );
+		// Truncate extremely long strings without spaces (e.g., long hashes, encoded data)
+		// to prevent oversized XML elements in DOCX. Threshold is 2048 Unicode chars
+		// to accommodate long URLs, CDNs, and affiliate links while still protecting DOCX integrity.
+		if ( mb_strlen( $text, 'UTF-8' ) > 2048 && false === mb_strpos( $text, ' ', 0, 'UTF-8' ) ) {
+			$text = mb_substr( $text, 0, 2048, 'UTF-8' );
 		}
 
 		return $text;
@@ -199,7 +203,7 @@ class SScribe_DOCX_Content_Renderer {
 			);
 			$safe_query = '';
 			if ( ! empty( $query ) ) {
-				$safe_query = '?' . $query;
+				$safe_query = '?' . rawurlencode( $query );
 			}
 			$safe_fragment = ! empty( $fragment ) ? '#' . rawurlencode( $fragment ) : '';
 

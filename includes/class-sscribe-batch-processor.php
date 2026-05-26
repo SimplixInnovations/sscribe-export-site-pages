@@ -169,8 +169,8 @@ class SScribe_Batch_Processor {
 		return apply_filters(
 			'sscribe_min_export_file_sizes',
 			array(
-				'docx'     => 4096,
-				'pdf'      => 4096,
+				'docx'     => 8192,
+				'pdf'      => 8192,
 				'html'     => 512,
 				'markdown' => 50,
 			)
