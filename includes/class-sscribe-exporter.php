@@ -497,7 +497,7 @@ class SScribe_Exporter {
 			$writer->save( $output_path );
 
 			// Lightweight integrity check: verify file size > minimum threshold.
-			$file_size = filesize( $output_path );
+			$file_size = @filesize( $output_path );
 			$min_size   = 8192; // Minimal DOCX should be at least 8KB to avoid empty/corrupted files.
 
 			$this->get_logger()->debug(
