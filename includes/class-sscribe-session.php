@@ -494,10 +494,10 @@ class SScribe_Session {
 			);
 
 			foreach ( $options as $option ) {
-				$data = $this->decode_session_value( $option->option_value );
+				$session_id = str_replace( $this->option_prefix, '', $option->option_name );
+				$data       = $this->decode_session_value( $option->option_value, $session_id );
 
 				if ( ! is_array( $data ) ) {
-
 					if ( is_string( $option->option_value ) && str_starts_with( $option->option_value, 'a:' ) ) {
 						delete_option( $option->option_name );
 						++$deleted;
@@ -552,7 +552,8 @@ class SScribe_Session {
 		$deleted = 0;
 
 		foreach ( $options as $option ) {
-			$data = $this->decode_session_value( $option->option_value );
+			$session_id = str_replace( $this->option_prefix, '', $option->option_name );
+			$data       = $this->decode_session_value( $option->option_value, $session_id );
 
 			if ( ! is_array( $data ) ) {
 				continue;
@@ -602,7 +603,8 @@ class SScribe_Session {
 			);
 
 			foreach ( $options as $option ) {
-				$data = $this->decode_session_value( $option->option_value ?? '' );
+				$session_id = str_replace( $this->option_prefix, '', $option->option_name );
+				$data       = $this->decode_session_value( $option->option_value ?? '', $session_id );
 
 				if ( ! is_array( $data ) ) {
 					continue;
@@ -670,7 +672,8 @@ class SScribe_Session {
 		);
 
 		foreach ( $options as $option ) {
-			$data = $this->decode_session_value( $option->option_value ?? '' );
+			$session_id = str_replace( $this->option_prefix, '', $option->option_name );
+			$data       = $this->decode_session_value( $option->option_value ?? '', $session_id );
 
 			if ( ! is_array( $data ) ) {
 				continue;
@@ -815,10 +818,11 @@ class SScribe_Session {
 	/**
 	 * Decode a session value from JSON.
 	 *
-	 * @param mixed $raw Raw option value.
+	 * @param mixed    $raw       Raw option value.
+	 * @param string|null $session_id Session ID (optional, needed for legacy migration).
 	 * @return array|null Decoded data or null.
 	 */
-	public function decode_session_value( mixed $raw ): ?array {
+	public function decode_session_value( mixed $raw, ?string $session_id = null ): ?array {
 		if ( ! is_string( $raw ) ) {
 			return null;
 		}
@@ -827,6 +831,14 @@ class SScribe_Session {
 
 		if ( is_array( $data ) ) {
 			return $data;
+		}
+
+		// Attempt legacy PHP serialization migration if session_id is available.
+		if ( null !== $session_id && preg_match( '/^a:\d+:\{/', $raw ) ) {
+			$migrated = $this->migrate_legacy_session( $session_id, $raw );
+			if ( null !== $migrated ) {
+				return $migrated;
+			}
 		}
 
 		$this->logger->warning(

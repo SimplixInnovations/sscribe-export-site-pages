@@ -40,6 +40,22 @@ if ( version_compare( PHP_VERSION, '8.2', '<' ) ) {
 	return;
 }
 
+global $wp_version;
+if ( version_compare( $wp_version, '6.0', '<' ) ) {
+	add_action(
+		'admin_notices',
+		function () {
+			global $wp_version;
+			printf(
+				'<div class="error"><p>%s %s</p></div>',
+				esc_html__( 'SScribe Export Site Pages requires WordPress 6.0 or higher. Please upgrade your WordPress installation. Your current version is:', 'sscribe-export-site-pages' ),
+				esc_html( $wp_version )
+			);
+		}
+	);
+	return;
+}
+
 if ( ! defined( 'SSCRIBE_DEBUG' ) ) {
 	define( 'SSCRIBE_DEBUG', false );
 }

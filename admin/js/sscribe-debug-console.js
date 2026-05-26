@@ -34,17 +34,19 @@
 		observer: null,
 
 		init: function () {
-			if (this.initialized && this.initialized === true) {
+			if (this.initialized) {
 				return;
 			}
 			if (!this.hasRequiredDom()) {
 				return;
 			}
-			this.initialized = true;
+			this.stopAutoRefresh();
 			this.cacheDom();
+			this.unbindEvents();
 			this.bindEvents();
 			this.bindVisibilityHandler();
 			this.loadInitialState();
+			this.initialized = true;
 		},
 
 		hasRequiredDom: function () {
@@ -73,6 +75,28 @@
 			this.$clearBtn = $('#sscribe-debug-clear-btn');
 			this.$exportBtn = $('#sscribe-debug-export-btn');
 			this.$rotatedBody = $('#sscribe-debug-rotated-body');
+		},
+
+		unbindEvents: function () {
+			this.$saveSettings.off();
+			this.$filterLevel.off();
+			this.$searchInput.off();
+			this.$sessionInput.off();
+			this.$refreshMode.off();
+			this.$refreshBtn.off();
+			this.$clearBtn.off();
+			this.$exportBtn.off();
+			this.$rotatedBody.off();
+			this.$entries.off();
+			this.$container.off();
+			this.unbindVisibilityHandler();
+		},
+
+		unbindVisibilityHandler: function () {
+			if (this._visibilityHandler) {
+				$(document).off('visibilitychange', this._visibilityHandler);
+				this._visibilityHandler = null;
+			}
 		},
 
 		bindEvents: function () {
@@ -243,13 +267,14 @@
 
 		bindVisibilityHandler: function () {
 			const self = this;
-			$(document).on('visibilitychange', function () {
+			this._visibilityHandler = function () {
 				if (document.hidden) {
 					self.stopAutoRefresh();
 				} else if (self.isAutoRefresh) {
 					self.startAutoRefresh();
 				}
-			});
+			};
+			$(document).on('visibilitychange', this._visibilityHandler);
 		},
 
 		loadInitialState: function () {
@@ -641,6 +666,7 @@
 					self.showConsoleError(self.getResponseMessage(response, 'Unable to open rotated log.'));
 				}
 			}).fail(function () {
+				self.isViewingRotated = false;
 				self.$entryCount.text('Error');
 				self.showConsoleError('Unable to open rotated log.');
 			});

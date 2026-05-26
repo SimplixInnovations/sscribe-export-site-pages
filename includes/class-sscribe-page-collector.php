@@ -572,9 +572,12 @@ class SScribe_Page_Collector {
 		if ( $this->is_wpml_active() && ! empty( $language ) ) {
 			// phpcs:ignore WordPress.NamingConventions.PrefixAllGlobals.NonPrefixedHooknameFound -- WPML hook.
 			do_action( 'wpml_switch_language', $language );
-			$permalink = get_permalink( $page_id );
-			// phpcs:ignore WordPress.NamingConventions.PrefixAllGlobals.NonPrefixedHooknameFound -- WPML hook.
-			do_action( 'wpml_switch_language', null );
+			try {
+				$permalink = get_permalink( $page_id );
+			} finally {
+				// phpcs:ignore WordPress.NamingConventions.PrefixAllGlobals.NonPrefixedHooknameFound -- WPML hook.
+				do_action( 'wpml_switch_language', null );
+			}
 		} else {
 			$permalink = get_permalink( $page_id );
 		}
@@ -764,22 +767,26 @@ class SScribe_Page_Collector {
 
 			// For each unique language, switch once and fetch all titles/urls.
 			foreach ( $ancestors_by_lang as $lang => $lang_ancestors ) {
+				$switched = false;
 				if ( $this->is_wpml_active() && ! empty( $lang ) ) {
 					// phpcs:ignore WordPress.NamingConventions.PrefixAllGlobals.NonPrefixedHooknameFound -- WPML hook.
 					do_action( 'wpml_switch_language', $lang );
+					$switched = true;
 				}
 
-				foreach ( $lang_ancestors as $ancestor_id ) {
-					$ancestor_post = $ancestor_map[ $ancestor_id ];
-					$breadcrumbs[] = array(
-						'title' => html_entity_decode( $ancestor_post->post_title, ENT_QUOTES | ENT_HTML5, 'UTF-8' ),
-						'url'   => get_permalink( $ancestor_id ),
-					);
-				}
-
-				if ( $this->is_wpml_active() ) {
-					// phpcs:ignore WordPress.NamingConventions.PrefixAllGlobals.NonPrefixedHooknameFound -- WPML hook.
-					do_action( 'wpml_switch_language', null );
+				try {
+					foreach ( $lang_ancestors as $ancestor_id ) {
+						$ancestor_post = $ancestor_map[ $ancestor_id ];
+						$breadcrumbs[] = array(
+							'title' => html_entity_decode( $ancestor_post->post_title, ENT_QUOTES | ENT_HTML5, 'UTF-8' ),
+							'url'   => get_permalink( $ancestor_id ),
+						);
+					}
+				} finally {
+					if ( $switched ) {
+						// phpcs:ignore WordPress.NamingConventions.PrefixAllGlobals.NonPrefixedHooknameFound -- WPML hook.
+						do_action( 'wpml_switch_language', null );
+					}
 				}
 			}
 		}
