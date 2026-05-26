@@ -14,6 +14,7 @@ if ( ! defined( 'ABSPATH' ) ) {
 }
 
 require_once SSCRIBE_PLUGIN_DIR . 'includes/exporters/interface-sscribe-exporter.php';
+require_once SSCRIBE_PLUGIN_DIR . 'includes/class-sscribe-rtl-helper.php';
 
 /**
  * Exports pages as standalone HTML documents.
@@ -43,6 +44,19 @@ class SScribe_HTML_Exporter implements SScribe_Exporter_Interface {
 	public function __construct( ?SScribe_Logger_Interface $logger = null, ?SScribe_Filesystem $filesystem = null ) {
 		$this->logger     = $logger ?? SScribe_Logger::instance( SSCRIBE_DEBUG );
 		$this->filesystem = $filesystem ?? new SScribe_Filesystem();
+	}
+
+	/**
+	 * Generate HTML string for a page without writing to disk.
+	 *
+	 * Used by the PDF exporter to obtain the HTML content for mPDF rendering
+	 * without creating a .html side-effect file.
+	 *
+	 * @param array $page_data Page data.
+	 * @return string HTML document string.
+	 */
+	public function generate_html_string( array $page_data ): string {
+		return $this->generate_html( $page_data );
 	}
 
 	/**
@@ -163,11 +177,13 @@ class SScribe_HTML_Exporter implements SScribe_Exporter_Interface {
 		$allowlist['sub']         = array();
 		$allowlist['sup']         = array();
 		$allowlist['u']           = array();
-		// Links — href only, no JS schemes
+		// Links — href restricted to safe protocols only; javascript:/data: blocked
 		$allowlist['a']           = array(
-			'href' => true,
+			'href'  => array(
+				'protocols' => array( 'http', 'https', 'mailto', 'tel' ),
+			),
 			'title' => true,
-			'rel' => true,
+			'rel'   => true,
 		);
 		// Images — src/alt/dimensions only, no script hooks
 		$allowlist['img']         = array(
@@ -244,16 +260,15 @@ class SScribe_HTML_Exporter implements SScribe_Exporter_Interface {
 		$site_name = get_bloginfo( 'name' );
 		$title     = esc_html( $page_data['title'] );
 		$language  = $page_data['language'] ?? 'en';
-
-		if ( ! class_exists( 'SScribe_RTL_Helper' ) ) {
-			require_once SSCRIBE_PLUGIN_DIR . 'includes/class-sscribe-rtl-helper.php';
-		}
 		$direction = SScribe_RTL_Helper::get_direction( $language );
 		$is_rtl    = SScribe_RTL_Helper::is_rtl( $language );
 
 		$filtered_content = wp_kses( $page_data['content'], $this->get_archival_allowlist() );
 
 		$direction_css = $is_rtl ? 'html, body { direction: rtl; }' : '';
+
+		// SEO block is opt-in via filter — not shown by default in reader-facing exports.
+		$show_seo = (bool) apply_filters( 'sscribe_html_export_show_seo', false, $page_data );
 
 		$html = '<!DOCTYPE html>
 <html lang="' . esc_attr( $language ) . '" dir="' . esc_attr( $direction ) . '">
@@ -289,7 +304,7 @@ class SScribe_HTML_Exporter implements SScribe_Exporter_Interface {
 	<main class="content">
 		' . $this->get_featured_image_html( $page_data ) . '
 		' . $this->get_meta_html( $page_data ) . '
-		' . $this->get_seo_html( $page_data ) . '
+		' . ( $show_seo ? $this->get_seo_html( $page_data ) : '' ) . '
 		' . $filtered_content . '
 	</main>
 

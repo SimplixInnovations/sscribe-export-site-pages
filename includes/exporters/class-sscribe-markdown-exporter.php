@@ -14,6 +14,7 @@ if ( ! defined( 'ABSPATH' ) ) {
 }
 
 require_once SSCRIBE_PLUGIN_DIR . 'includes/exporters/interface-sscribe-exporter.php';
+require_once SSCRIBE_PLUGIN_DIR . 'includes/class-sscribe-rtl-helper.php';
 
 /**
  * Exports pages as Markdown files with YAML front matter.
@@ -148,10 +149,6 @@ class SScribe_Markdown_Exporter implements SScribe_Exporter_Interface {
 	private function add_bom_if_rtl( string $content, array $page_data ): string {
 		$language = $page_data['language'] ?? 'en';
 
-		if ( ! class_exists( 'SScribe_RTL_Helper' ) ) {
-			require_once SSCRIBE_PLUGIN_DIR . 'includes/class-sscribe-rtl-helper.php';
-		}
-
 		if ( SScribe_RTL_Helper::is_rtl( $language ) ) {
 			return "\xEF\xBB\xBF" . $content;
 		}
@@ -168,15 +165,10 @@ class SScribe_Markdown_Exporter implements SScribe_Exporter_Interface {
 	private function generate_frontmatter( array $page_data ): string {
 		$title     = $page_data['title'] ?? 'Untitled';
 		$language  = $page_data['language'] ?? 'en';
-
-		if ( ! class_exists( 'SScribe_RTL_Helper' ) ) {
-			require_once SSCRIBE_PLUGIN_DIR . 'includes/class-sscribe-rtl-helper.php';
-		}
 		$direction = SScribe_RTL_Helper::get_direction( $language );
-		$md        = '# ' . $this->escape_markdown( $title ) . "\n\n";
-		$md       .= '> ' . ( $page_data['permalink'] ?? '' ) . "\n\n";
 
-		$md .= "---\n";
+		// YAML front matter block FIRST — byte zero for Hugo/Jekyll/Obsidian compatibility.
+		$md  = "---\n";
 		$md .= 'title: "' . $this->escape_yaml_string( $title ) . "\"\n";
 		$md .= 'url: "' . $this->escape_yaml_string( $page_data['permalink'] ?? '' ) . "\"\n";
 		$md .= 'slug: "' . $this->escape_yaml_string( $page_data['slug'] ?? '' ) . "\"\n";
@@ -231,6 +223,10 @@ class SScribe_Markdown_Exporter implements SScribe_Exporter_Interface {
 		}
 
 		$md .= "---\n\n";
+
+		// Human-readable header AFTER front matter — not part of YAML document.
+		$md .= '# ' . $this->escape_markdown( $title ) . "\n\n";
+		$md .= '> ' . ( $page_data['permalink'] ?? '' ) . "\n\n";
 
 		return $md;
 	}
@@ -449,9 +445,12 @@ class SScribe_Markdown_Exporter implements SScribe_Exporter_Interface {
 	 * @return string Content with Markdown formatting.
 	 */
 	private function convert_formatting( string $html ): string {
-		$html = preg_replace( '/<(strong|b)>(.*?)<\/\1>/is', '**$2**', $html ) ?? $html;
-		$html = preg_replace( '/<(em|i)>(.*?)<\/\1>/is', '*$2*', $html ) ?? $html;
-		$html = preg_replace( '/<(s|strike|del)>(.*?)<\/\1>/is', '~~$2~~', $html ) ?? $html;
+		// Remove /s flag: without it, . does not cross newlines, preventing the regex
+		// from consuming entire paragraphs or skipping across block-level tag boundaries
+		// when tags are nested (e.g. <strong>Bold and <em>italic</em> text</strong>).
+		$html = preg_replace( '/<(strong|b)>(.*?)<\/\1>/i', '**$2**', $html ) ?? $html;
+		$html = preg_replace( '/<(em|i)>(.*?)<\/\1>/i', '*$2*', $html ) ?? $html;
+		$html = preg_replace( '/<(s|strike|del)>(.*?)<\/\1>/i', '~~$2~~', $html ) ?? $html;
 		return $html;
 	}
 
@@ -474,6 +473,16 @@ class SScribe_Markdown_Exporter implements SScribe_Exporter_Interface {
 
 			$html = substr_replace( $html, $converted, $matches[0][1], strlen( $matches[0][0] ) );
 			++$iteration;
+		}
+
+		if ( $iteration >= $max_iterations ) {
+			$this->logger->warning(
+				'Markdown list conversion hit iteration cap — output may be incomplete',
+				array(
+					'iteration_cap' => $max_iterations,
+					'html_excerpt'  => substr( $html, 0, 200 ),
+				)
+			);
 		}
 
 		$html = preg_replace( '/<li>(.*?)<\/li>/is', '- $1' . "\n", $html ) ?? $html;
@@ -552,6 +561,16 @@ class SScribe_Markdown_Exporter implements SScribe_Exporter_Interface {
 			++$iteration;
 		}
 
+		if ( $iteration >= $max_nested_iterations ) {
+			$this->logger->warning(
+				'Markdown nested list conversion hit depth cap — nested output may be incomplete',
+				array(
+					'nested_cap' => $max_nested_iterations,
+					'depth'       => $depth,
+				)
+			);
+		}
+
 		return $content;
 	}
 
@@ -562,8 +581,22 @@ class SScribe_Markdown_Exporter implements SScribe_Exporter_Interface {
 	 * @return string Content with Markdown code blocks.
 	 */
 	private function convert_code_blocks( string $html ): string {
-		$html = preg_replace( '/<pre[^>]*><code[^>]*>(.*?)<\/code><\/pre>/is', "\n```\n$1\n```\n", $html ) ?? $html;
-		$html = preg_replace( '/<pre[^>]*>(.*?)<\/pre>/is', "\n```\n$1\n```\n", $html ) ?? $html;
+		// Decode HTML entities at capture time so that code containing
+		// e.g. &lt; or &amp; is correctly rendered in the fenced block.
+		$html = preg_replace_callback(
+			'/<pre[^>]*><code[^>]*>(.*?)<\/code><\/pre>/is',
+			function ( $m ): string {
+				return "\n```\n" . html_entity_decode( $m[1], ENT_QUOTES | ENT_HTML5, 'UTF-8' ) . "\n```\n";
+			},
+			$html
+		) ?? $html;
+		$html = preg_replace_callback(
+			'/<pre[^>]*>(.*?)<\/pre>/is',
+			function ( $m ): string {
+				return "\n```\n" . html_entity_decode( $m[1], ENT_QUOTES | ENT_HTML5, 'UTF-8' ) . "\n```\n";
+			},
+			$html
+		) ?? $html;
 		$html = preg_replace( '/<code>(.*?)<\/code>/is', '`$1`', $html ) ?? $html;
 		return $html;
 	}
