@@ -119,3 +119,11 @@ if ( ! function_exists( 'get_current_blog_id' ) ) {
 		return 1;
 	}
 }
+
+if ( ! defined( 'FS_CHMOD_FILE' ) ) {
+	/**
+	 * WordPress filesystem constant stub for PHPStan.
+	 * Default WordPress value is 0644 (owner read/write, world readable).
+	 */
+	define( 'FS_CHMOD_FILE', 0644 );
+}
