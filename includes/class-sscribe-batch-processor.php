@@ -1443,8 +1443,7 @@ class SScribe_Batch_Processor {
 
 			if ( $errors_trimmed ) {
 				$trimmed_count = $total_errors - self::MAX_STORED_ERRORS;
-				$errors        = array_slice( $errors, 0, self::MAX_STORED_ERRORS );
-				// Append trim notification as last error so user knows more errors occurred.
+				$errors        = array_slice( $errors, 0, self::MAX_STORED_ERRORS - 1 );
 				$errors[] = sprintf(
 					/* translators: %d: Number of additional errors not stored. */
 					__( '... and %d more errors occurred (see export log for full details).', 'sscribe-export-site-pages' ),
@@ -1462,8 +1461,7 @@ class SScribe_Batch_Processor {
 
 			if ( $structured_errors_trimmed ) {
 				$trimmed_count     = $total_structured_errors - self::MAX_STORED_ERRORS;
-				$structured_errors = array_slice( $structured_errors, 0, self::MAX_STORED_ERRORS );
-				// Append trim notification so frontend knows more errors were dropped.
+				$structured_errors = array_slice( $structured_errors, 0, self::MAX_STORED_ERRORS - 1 );
 				$structured_errors[] = array(
 					'page_id'     => 0,
 					'page_title'  => '...',

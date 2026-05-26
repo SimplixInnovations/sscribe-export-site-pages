@@ -293,7 +293,10 @@
 			const self = this;
 			this.stopAutoRefresh();
 			this.refreshInterval = setInterval(function () {
-				self.fetchLogs();
+				// Don't refresh while viewing a rotated/archived log.
+				if (!self.isViewingRotated) {
+					self.fetchLogs();
+				}
 			}, 10000);
 		},
 

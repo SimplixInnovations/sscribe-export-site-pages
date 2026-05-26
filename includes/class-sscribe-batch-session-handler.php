@@ -111,10 +111,12 @@ class SScribe_Batch_Session_Handler {
 		}
 
 		if ( ! $this->check_rate_limit() ) {
-			// Return empty success to avoid disrupting the page-load check flow.
+			// Return empty success with rate_limited flag so UI knows the check
+			// was skipped due to rate limiting and cannot restore the session.
 			wp_send_json_success(
 				array(
-					'has_active' => false,
+					'has_active'  => false,
+					'rate_limited' => true,
 				)
 			);
 			return;

@@ -103,6 +103,9 @@ class SScribe_Session {
 								'blocked_attempt'   => $session_id,
 							)
 						);
+						// Increment attempt to prevent infinite loop if concurrent
+						// session keeps being detected.
+						++$attempt;
 						continue;
 					}
 					// Stale transient pointing to expired session — clear it.

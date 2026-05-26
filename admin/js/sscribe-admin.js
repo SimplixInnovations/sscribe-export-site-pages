@@ -353,10 +353,13 @@
 			if (!this._langCountsXHRs) {
 				this._langCountsXHRs = [];
 			}
-			for (let i = 0; i < this._langCountsXHRs.length; i++) {
-				this._langCountsXHRs[i].abort();
-			}
+			const pending = this._langCountsXHRs.slice();
 			this._langCountsXHRs = [];
+			pending.forEach(function (xhr) {
+				if (xhr && xhr.abort) {
+					xhr.abort();
+				}
+			});
 
 			$('input[name="sscribe_language"]').each(function () {
 				const langCode = $(this).val();
@@ -513,30 +516,34 @@
 			if (this._configSummaryXHR && this._configSummaryXHR.abort) {
 				this._configSummaryXHR.abort();
 			}
-			this._configSummaryXHR = $.ajax({
-				url: sscribe_data.ajaxurl,
-				type: 'POST',
-				timeout: 15000,
-				data: {
-					action: 'sscribe_get_export_preview',
-					nonce: sscribe_data.nonce,
-					language: language || '',
-					post_status: status,
-					post_type: postType,
-					format: format,
-					formats: format === 'all' ? ['docx', 'pdf', 'html', 'markdown'] : [format],
-				},
-				success: function (response) {
-					if (response.success && response.data && response.data.estimated_time) {
-						$('#sscribe-summary-time').text(response.data.estimated_time);
-					} else {
+			const self = this;
+			clearTimeout(this._configSummaryDebounceTimer);
+			this._configSummaryDebounceTimer = setTimeout(function () {
+				self._configSummaryXHR = $.ajax({
+					url: sscribe_data.ajaxurl,
+					type: 'POST',
+					timeout: 15000,
+					data: {
+						action: 'sscribe_get_export_preview',
+						nonce: sscribe_data.nonce,
+						language: language || '',
+						post_status: status,
+						post_type: postType,
+						format: format,
+						formats: format === 'all' ? ['docx', 'pdf', 'html', 'markdown'] : [format],
+					},
+					success: function (response) {
+						if (response.success && response.data && response.data.estimated_time) {
+							$('#sscribe-summary-time').text(response.data.estimated_time);
+						} else {
+							$('#sscribe-summary-time').text(sscribe_data.strings.summary_time_hint || 'See Preview');
+						}
+					},
+					error: function () {
 						$('#sscribe-summary-time').text(sscribe_data.strings.summary_time_hint || 'See Preview');
-					}
-				},
-				error: function () {
-					$('#sscribe-summary-time').text(sscribe_data.strings.summary_time_hint || 'See Preview');
-				},
-			});
+					},
+				});
+			}, 300);
 
 			const liveRegion = document.getElementById('sscribe-live-region');
 			if (liveRegion) {
