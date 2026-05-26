@@ -322,7 +322,15 @@ class SScribe_Logger_Enhanced implements SScribe_Logger_Interface {
 		}
 
 		$log_file = $this->get_log_file();
-		file_put_contents( $log_file, implode( PHP_EOL, $this->buffer ) . PHP_EOL, FILE_APPEND | LOCK_EX );
+		$result   = file_put_contents( $log_file, implode( PHP_EOL, $this->buffer ) . PHP_EOL, FILE_APPEND | LOCK_EX );
+
+		if ( false === $result ) {
+			// Log to PHP error log since our logger may not be in a valid state.
+			error_log( // phpcs:ignore WordPress.PHP.DevelopmentFunctions.error_log_error_log -- Reporting flush failure; no better alternative in production.
+				'SScribe_Logger_Enhanced: flush() failed to write to ' . $log_file
+			);
+		}
+
 		$this->buffer = array();
 	}
 
