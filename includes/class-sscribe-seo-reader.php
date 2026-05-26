@@ -255,7 +255,7 @@ class SScribe_SEO_Reader {
 		$meta_robots_noindex = get_post_meta( $page_id, '_aioseop_noindex', true );
 		if ( 'on' === $meta_robots_noindex ) {
 			$noindex = true;
-}
+		}
 
 		$meta_robots_nofollow = get_post_meta( $page_id, '_aioseop_nofollow', true );
 		if ( 'on' === $meta_robots_nofollow ) {

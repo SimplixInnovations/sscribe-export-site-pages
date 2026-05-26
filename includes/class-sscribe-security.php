@@ -82,7 +82,7 @@ class SScribe_Security {
 			if ( is_link( $path ) ) {
 				// Symlinks are deleted as files — validate target is in scope before deletion.
 				$target = readlink( $path );
-				if ( $target !== false && self::is_path_in_scope( $target ) ) {
+				if ( false !== $target && self::is_path_in_scope( $target ) ) {
 					wp_delete_file( $path );
 				}
 			} elseif ( is_dir( $path ) ) {

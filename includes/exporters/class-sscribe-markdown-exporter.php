@@ -525,13 +525,20 @@ class SScribe_Markdown_Exporter implements SScribe_Exporter_Interface {
 	 * @param string   $original Original HTML for fallback.
 	 * @return string Markdown content.
 	 */
+	/**
+	 * Convert DOM lists using DOMDocument tree traversal.
+	 *
+	 * @param \DOMNode $node     DOM node to process.
+	 * @param string   $original Original HTML for fallback.
+	 * @return string Markdown content.
+	 */
 	private function convert_dom_lists( \DOMNode $node, string $original ): string {
 		$out = '';
-		foreach ( $node->childNodes as $child ) {
-			if ( XML_ELEMENT_NODE !== $child->nodeType ) {
+		foreach ( $node->childNodes as $child ) { // phpcs:ignore WordPress.NamingConventions.ValidVariableName.UsedPropertyNotSnakeCase
+			if ( XML_ELEMENT_NODE !== $child->nodeType ) { // phpcs:ignore WordPress.NamingConventions.ValidVariableName.UsedPropertyNotSnakeCase
 				continue;
 			}
-			$tag = strtolower( $child->nodeName );
+			$tag = strtolower( $child->nodeName ); // phpcs:ignore WordPress.NamingConventions.ValidVariableName.UsedPropertyNotSnakeCase
 			if ( 'ul' === $tag || 'ol' === $tag ) {
 				$out .= $this->convert_single_list( $child, $tag );
 			} else {
@@ -550,8 +557,8 @@ class SScribe_Markdown_Exporter implements SScribe_Exporter_Interface {
 	 */
 	private function get_inner_html( \DOMNode $node ): string {
 		$out = '';
-		foreach ( $node->childNodes as $child ) {
-			$out .= $node->ownerDocument->saveHTML( $child );
+		foreach ( $node->childNodes as $child ) { // phpcs:ignore WordPress.NamingConventions.ValidVariableName.UsedPropertyNotSnakeCase
+			$out .= $node->ownerDocument->saveHTML( $child ); // phpcs:ignore WordPress.NamingConventions.ValidVariableName.UsedPropertyNotSnakeCase
 		}
 		return $out;
 	}
@@ -566,8 +573,8 @@ class SScribe_Markdown_Exporter implements SScribe_Exporter_Interface {
 	private function convert_single_list( \DOMNode $list_node, string $list_tag ): string {
 		$result = "\n";
 		$counter = 1;
-		foreach ( $list_node->childNodes as $li ) {
-			if ( XML_ELEMENT_NODE !== $li->nodeType || 'li' !== strtolower( $li->nodeName ) ) {
+		foreach ( $list_node->childNodes as $li ) { // phpcs:ignore WordPress.NamingConventions.ValidVariableName.UsedPropertyNotSnakeCase
+			if ( XML_ELEMENT_NODE !== $li->nodeType || 'li' !== strtolower( $li->nodeName ) ) { // phpcs:ignore WordPress.NamingConventions.ValidVariableName.UsedPropertyNotSnakeCase
 				continue;
 			}
 			$item_html = $this->get_inner_html( $li );
@@ -575,7 +582,6 @@ class SScribe_Markdown_Exporter implements SScribe_Exporter_Interface {
 			$item_html = preg_replace( '/<(ul|ol)[^>]*>(.*?)<\/\1>/is', '', $item_html ) ?? $item_html;
 			$item_text = wp_strip_all_tags( $item_html );
 			$item_text = trim( preg_replace( '/\s+/', ' ', $item_text ) );
-			$indent = '';
 			if ( 'ol' === $list_tag ) {
 				$result .= $counter . '. ' . $item_text . "\n";
 				++$counter;
@@ -585,6 +591,7 @@ class SScribe_Markdown_Exporter implements SScribe_Exporter_Interface {
 		}
 		return $result . "\n";
 	}
+	/* phpcs:enable WordPress.NamingConventions.ValidVariableName.UsedPropertyNotSnakeCase */
 
 	/**
 	 * Convert HTML list items to Markdown list items.

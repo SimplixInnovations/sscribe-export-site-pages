@@ -70,7 +70,7 @@ class SScribe_Export_Rate_Limiter {
 					// even on MySQL INSERT ON DUPLICATE KEY UPDATE, so we must read back.
 					if ( $locked ) {
 						$verified = get_transient( $lock_key );
-						$locked = $verified !== false && (int) $verified === 1;
+						$locked = false !== $verified && 1 === (int) $verified;
 					}
 				}
 			}

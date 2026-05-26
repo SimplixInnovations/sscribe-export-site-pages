@@ -1810,7 +1810,13 @@ class SScribe_Batch_Processor {
 			$this->export_log = new SScribe_Export_Log( $session_id );
 		}
 
-		if ( ! $this->session->update( $session_id, array( 'status' => 'completing', 'completing_since' => time() ) ) ) {
+		if ( ! $this->session->update(
+			$session_id,
+			array(
+				'status' => 'completing',
+				'completing_since' => time(),
+			)
+		) ) {
 			$this->logger->warning( 'Session status update failed', array( 'session_id' => $session_id ) );
 		}
 		$session['status'] = 'completing';

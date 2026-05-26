@@ -221,7 +221,7 @@ class SScribe_Validator {
 		foreach ( $formats as $format ) {
 			$mb = $metrics
 				? $metrics->get_mb_per_page( $format )
-				: (self::BASELINE_MB_PER_PAGE[ $format ] ?? self::MEMORY_PER_PAGE_MB);
+				: ( self::BASELINE_MB_PER_PAGE[ $format ] ?? self::MEMORY_PER_PAGE_MB );
 			$total_mb_per_page += $mb;
 		}
 
