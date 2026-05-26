@@ -108,12 +108,21 @@ class SScribe_Admin_Debug {
 
 		$entries = $this->parse_log_entries( $logs, $filter_level, $search, $session_id, true );
 
+		// Determine log file existence for status reporting.
+		$upload_dir  = wp_upload_dir();
+		$log_dir     = $upload_dir['basedir'] . '/sscribe-logs';
+		$log_file    = $log_dir . '/sscribe_debug_' . gmdate( 'Y-m-d' ) . '.log';
+		$log_exists  = file_exists( $log_file );
+		$debug_enabled = SScribe_Settings::is_debug_enabled() || ( defined( 'SSCRIBE_DEBUG' ) && SSCRIBE_DEBUG );
+
 		wp_send_json_success(
 			array(
-				'entries' => array_slice( $entries, $offset, $limit ),
-				'count'   => count( $entries ),
-				'offset'  => $offset,
-				'limit'   => $limit,
+				'entries'       => array_slice( $entries, $offset, $limit ),
+				'count'         => count( $entries ),
+				'offset'        => $offset,
+				'limit'         => $limit,
+				'status'        => $log_exists ? 'ok' : 'no_log_file',
+				'debug_enabled'  => $debug_enabled,
 			)
 		);
 	}
@@ -182,6 +191,7 @@ class SScribe_Admin_Debug {
 					SScribe_AJAX_Guard::error( array( 'message' => __( 'Failed to read file.', 'sscribe-export-site-pages' ) ), 500 );
 				}
 				$this->download_json( $filename, $content );
+				return; // Defense in depth: prevent fallthrough to second download block.
 			} else {
 				SScribe_AJAX_Guard::error( array( 'message' => __( 'File not found.', 'sscribe-export-site-pages' ) ), 404 );
 			}

@@ -45,7 +45,7 @@ class SScribe_DOCX_Exporter implements SScribe_Exporter_Interface {
 		?SScribe_Logger_Interface $logger = null
 	) {
 		$this->exporter = $exporter ?? new SScribe_Exporter();
-		$this->logger   = $logger ?? SScribe_Logger::instance( SSCRIBE_DEBUG );
+		$this->logger   = $logger ?? SScribe_Logger::instance( SScribe_Logger::is_logging_enabled() );
 	}
 
 	/**

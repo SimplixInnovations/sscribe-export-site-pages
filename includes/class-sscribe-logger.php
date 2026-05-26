@@ -82,6 +82,26 @@ class SScribe_Logger implements SScribe_Logger_Interface {
 	}
 
 	/**
+	 * Reset the singleton instance.
+	 *
+	 * Use this after changing debug settings to ensure a fresh logger
+	 * is created with the updated enabled state.
+	 *
+	 * @param string $prefix Optional prefix to reset specific instance.
+	 */
+	public static function reset_instance( string $prefix = '' ): void {
+		if ( '' === $prefix ) {
+			self::$instances = array();
+		} else {
+			foreach ( array_keys( self::$instances ) as $key ) {
+				if ( str_starts_with( $key, $prefix . '_' ) ) {
+					unset( self::$instances[ $key ] );
+				}
+			}
+		}
+	}
+
+	/**
 	 * Check if logging is effectively enabled.
 	 *
 	 * @return bool True if logging is enabled via constant or settings option.
@@ -353,7 +373,10 @@ class SScribe_Logger implements SScribe_Logger_Interface {
 		if ( file_exists( $log_file ) ) {
 			$contents = file_get_contents( $log_file ); // phpcs:ignore WordPress.WP.AlternativeFunctions.file_get_contents_file_get_contents -- Safe filesystem read.
 			if ( $contents ) {
-				$file_entries = explode( PHP_EOL, trim( $contents ) );
+				// Normalize line endings: handle both Unix (\n) and Windows (\r\n) line endings.
+				$contents = str_replace( "\r\n", "\n", $contents );
+				$contents = str_replace( "\r", "\n", $contents );
+				$file_entries = explode( "\n", trim( $contents ) );
 			}
 		}
 

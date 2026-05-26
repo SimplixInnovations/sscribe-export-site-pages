@@ -57,7 +57,7 @@ class SScribe_Filesystem {
 	 * @return void
 	 */
 	public function __construct() {
-		$this->logger = SScribe_Logger::instance( SSCRIBE_DEBUG );
+		$this->logger = SScribe_Logger::instance( SScribe_Logger::is_logging_enabled() );
 		$this->initialize();
 	}
 

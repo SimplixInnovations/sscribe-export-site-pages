@@ -262,7 +262,7 @@ class SScribe_DOCX_Content_Renderer {
 	 */
 	private function get_logger(): SScribe_Logger_Interface {
 		if ( null === $this->logger ) {
-			$this->logger = SScribe_Logger::instance( SSCRIBE_DEBUG );
+			$this->logger = SScribe_Logger::instance( SScribe_Logger::is_logging_enabled() );
 		}
 		return $this->logger;
 	}
