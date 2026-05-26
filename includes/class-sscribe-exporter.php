@@ -537,15 +537,7 @@ class SScribe_Exporter {
 									)
 								);
 								break;
-if ( null !== $this->content_renderer ) {
-			$this->content_renderer->sync_config(
-				$this->colors,
-				$this->is_rtl,
-				$this->font_name,
-				$this->font_size
-			);
-		}
-	}
+						}
 						if ( false === $parse_result ) {
 							$xml_valid = false;
 						}
