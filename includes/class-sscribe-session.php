@@ -714,8 +714,11 @@ class SScribe_Session {
 
 	/**
 	 * Check if user has active session and return its data.
-
-
+	 *
+	 * @param int $user_id User ID.
+	 * @return bool True if user has an active session.
+	 */
+	public function has_active_session( int $user_id ): bool {
 		$cache_key = 'sscribe_active_sid_' . $user_id;
 		$cached    = get_transient( $cache_key );
 		if ( false !== $cached ) {

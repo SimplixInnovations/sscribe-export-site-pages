@@ -250,14 +250,16 @@ class SScribe_SEO_Reader {
 		$meta_robots_noindex = get_post_meta( $page_id, '_aioseop_noindex', true );
 		if ( 'on' === $meta_robots_noindex ) {
 			$noindex = true;
-		}
+}
 
 		$meta_robots_nofollow = get_post_meta( $page_id, '_aioseop_nofollow', true );
 		if ( 'on' === $meta_robots_nofollow ) {
 			$nofollow = true;
 		}
 
-return array(
+		$focus_keyword = (string) get_post_meta( $page_id, '_aioseop_keywords', true );
+
+		return array(
 			'meta_title'       => wp_strip_all_tags( (string) get_post_meta( $page_id, '_aioseop_title', true ) ),
 			'meta_description' => wp_strip_all_tags( (string) get_post_meta( $page_id, '_aioseop_description', true ) ),
 			'focus_keyword'    => wp_strip_all_tags( $focus_keyword ),
