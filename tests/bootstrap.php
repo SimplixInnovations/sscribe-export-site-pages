@@ -120,9 +120,10 @@ if ( ! function_exists( 'wp_kses' ) ) {
 
 
 	function wp_kses( string $content, array $allowed_html ): string {
-		
-		
-		return strip_tags( $content, array_keys( $allowed_html ) );
+		// Properly strip tags while preserving allowed ones and their attributes.
+		$tag_names = array_keys( $allowed_html );
+		$tag_list  = '<' . implode( '><', $tag_names ) . '>';
+		return strip_tags( $content, $tag_list );
 	}
 }
 
@@ -700,7 +701,7 @@ $sscribe_test_ajax_nonce_valid = true;
 			return 0;
 		}
 
-		public function get_results( $query ) {
+		public function get_results( $query, $output = null ) {
 			global $sscribe_test_options, $sscribe_test_db_tables;
 
 			if ( false !== strpos( $query, $this->options ) && preg_match( "/LIKE '([^']+)'/i", $query, $matches ) ) {
@@ -1236,6 +1237,10 @@ if ( ! function_exists( 'wp_delete_file' ) ) {
 
 if ( ! defined( 'DAY_IN_SECONDS' ) ) {
 	define( 'DAY_IN_SECONDS', 86400 );
+}
+
+if ( ! defined( 'ARRAY_A' ) ) {
+	define( 'ARRAY_A', 'ARRAY_A' );
 }
 
 if ( ! defined( 'HOUR_IN_SECONDS' ) ) {

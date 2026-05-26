@@ -33,6 +33,13 @@ class SScribe_Zip_Handler {
 	private readonly SScribe_Logger_Interface $logger;
 
 	/**
+	 * Cached download nonce for the current request context.
+	 *
+	 * @var string|null
+	 */
+	private ?string $cached_nonce = null;
+
+	/**
 	 * Initialize the ZIP handler.
 	 */
 	public function __construct() {
@@ -323,11 +330,14 @@ class SScribe_Zip_Handler {
 	 * @return string
 	 */
 	public function get_ajax_download_url( string $zip_filename ): string {
+		if ( null === $this->cached_nonce ) {
+			$this->cached_nonce = wp_create_nonce( 'sscribe_download' );
+		}
 		return add_query_arg(
 			array(
 				'action' => 'sscribe_download',
 				'file'   => sanitize_file_name( $zip_filename ),
-				'nonce'  => wp_create_nonce( 'sscribe_download' ),
+				'nonce'  => $this->cached_nonce,
 			),
 			admin_url( 'admin-ajax.php' )
 		);
@@ -347,42 +357,55 @@ class SScribe_Zip_Handler {
 		try {
 			$cleaned = 0;
 			$files   = glob( $this->export_dir . '/*.zip' );
+			$max_age = 3 * DAY_IN_SECONDS;
+			$now     = time();
+			$exports = get_option( 'sscribe_export_index', array() );
+			$modified = false;
 
-			if ( empty( $files ) ) {
-				$cleaned = $this->cleanup_stale_temp_dirs();
-			} else {
-				$max_age  = 3 * DAY_IN_SECONDS;
-				$now      = time();
-				$exports  = get_option( 'sscribe_export_index', array() );
-				$modified = false;
+			// Clean up ZIPs that are in the index first.
+			foreach ( $exports as $basename => $data ) {
+				$file_path = $this->export_dir . '/' . ltrim( (string) $basename, '/\\' );
 
-				foreach ( $exports as $basename => $data ) {
-					$file_path = $this->export_dir . '/' . ltrim( (string) $basename, '/\\' );
-
-					if ( ! file_exists( $file_path ) ) {
-						unset( $exports[ $basename ] );
-						SScribe_Export_Log::delete_by_filename( $basename );
-						$modified = true;
-						++$cleaned;
-						continue;
-					}
-
-					$file_time = filemtime( $file_path );
-					if ( $file_time && ( $now - $file_time ) > $max_age ) {
-						wp_delete_file( $file_path );
-						unset( $exports[ $basename ] );
-						SScribe_Export_Log::delete_by_filename( $basename );
-						$modified = true;
-						++$cleaned;
-					}
+				if ( ! file_exists( $file_path ) ) {
+					unset( $exports[ $basename ] );
+					SScribe_Export_Log::delete_by_filename( $basename );
+					$modified = true;
+					++$cleaned;
+					continue;
 				}
 
-				if ( $modified ) {
-					update_option( 'sscribe_export_index', $exports, false );
+				$file_time = filemtime( $file_path );
+				if ( $file_time && ( $now - $file_time ) > $max_age ) {
+					wp_delete_file( $file_path );
+					unset( $exports[ $basename ] );
+					SScribe_Export_Log::delete_by_filename( $basename );
+					$modified = true;
+					++$cleaned;
 				}
-
-				$cleaned += $this->cleanup_stale_temp_dirs();
 			}
+
+			// Clean up ZIPs that exist on disk but are NOT in the index (orphaned files).
+			if ( ! empty( $files ) ) {
+				$indexed_basenames = array_keys( $exports );
+				foreach ( $files as $file_path ) {
+					$basename = basename( $file_path );
+					// If basename is not in the index, it's orphaned and should be cleaned up.
+					if ( ! in_array( $basename, $indexed_basenames, true ) ) {
+						$file_time = filemtime( $file_path );
+						if ( $file_time && ( $now - $file_time ) > $max_age ) {
+							wp_delete_file( $file_path );
+							SScribe_Export_Log::delete_by_filename( $basename );
+							++$cleaned;
+						}
+					}
+				}
+			}
+
+			if ( $modified ) {
+				update_option( 'sscribe_export_index', $exports, false );
+			}
+
+			$cleaned += $this->cleanup_stale_temp_dirs();
 
 			return $cleaned;
 		} finally {

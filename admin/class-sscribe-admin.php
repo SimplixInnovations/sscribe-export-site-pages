@@ -447,7 +447,7 @@ class SScribe_Admin {
 	 */
 	public function render_admin_page(): void {
 
-		$cache_key        = 'sscribe_admin_page_data_v' . SSCRIBE_VERSION . '_' . get_current_blog_id() . '_' . get_current_user_id();
+		$cache_key        = 'sscribe_admin_page_data_v' . SSCRIBE_VERSION . '_' . get_current_blog_id();
 		$cached_page_data = get_transient( $cache_key );
 
 		if ( is_array( $cached_page_data ) ) {
@@ -556,6 +556,15 @@ class SScribe_Admin {
 
 		$recent_exports = array();
 
+		// Pre-collect existing files to avoid O(n) file_exists() calls on slow filesystems.
+		$existing_files = array();
+		if ( is_dir( $export_dir ) ) {
+			$glob_files = glob( trailingslashit( $export_dir ) . '*.zip' ) ?: array();
+			foreach ( $glob_files as $f ) {
+				$existing_files[ basename( $f ) ] = true;
+			}
+		}
+
 		foreach ( $export_index as $filename => $data ) {
 			if ( ! is_array( $data ) ) {
 				continue;
@@ -571,7 +580,7 @@ class SScribe_Admin {
 			}
 
 			$file_path = $export_dir . $filename;
-			if ( ! file_exists( $file_path ) ) {
+			if ( ! isset( $existing_files[ $filename ] ) ) {
 				continue;
 			}
 

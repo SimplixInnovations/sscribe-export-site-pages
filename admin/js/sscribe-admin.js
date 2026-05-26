@@ -39,7 +39,31 @@
 			if (!text || typeof text !== 'string') {
 				return 0;
 			}
-			const cleaned = text.replace(/[.,](?=\d{3})/g, '');
+			// Use Intl.NumberFormat for locale-aware parsing if available,
+			// falling back to a conservative approach that strips locale-specific
+			// grouping separators (comma, period, space, apostrophe) before parsing.
+			let cleaned = text.trim();
+			if (typeof Intl !== 'undefined' && Intl.NumberFormat) {
+				try {
+					const nf = new Intl.NumberFormat();
+					// Parse via localized string -> number using grouping preferences.
+					// Strip any non-digit characters except those that could be decimal/grouping.
+					const localeCleaned = cleaned.replace(/[^\d.,\- ]/g, '');
+					// Parse by replacing locale groupers with empty string.
+					const normalised = localeCleaned.replace(/[\u00A0\u202F\u2000-\u206F ,.]+/g, function(match) {
+						// Keep period/comma only if it's a decimal separator (appears only once, not in group positions).
+						return '';
+					});
+					const parsed = parseInt(normalised.replace(/[^\d\-]/g, ''), 10);
+					if (!isNaN(parsed)) {
+						return parsed;
+					}
+				} catch (e) {
+					// Fall through to conservative approach.
+				}
+			}
+			// Conservative approach: remove common locale grouping separators.
+			cleaned = cleaned.replace(/[.,' ]/g, '');
 			const num = parseInt(cleaned, 10);
 			return isNaN(num) ? 0 : num;
 		},
@@ -86,34 +110,42 @@
 		},
 
 		bindEvents: function () {
-			$(document).on('click', '#sscribe-export-btn', $.proxy(this.startExport, this));
-			$(document).on('click', '#sscribe-preview-btn', $.proxy(this.showPreview, this));
-			$(document).on('click', '#sscribe-preview-close', $.proxy(this.closePreview, this));
-			$(document).on('click', '#sscribe-preview-dismiss-btn', $.proxy(this.closePreview, this));
-			$(document).on('click', '#sscribe-preview-start-btn', $.proxy(this.startExportFromPreview, this));
-			$(document).on('click', '#sscribe-new-export-btn, #sscribe-error-try-again', $.proxy(this.retry, this));
-			$(document).on('click', '#sscribe-cancel-btn', $.proxy(this.cancelExport, this));
+			// Unbind any previously bound namespaced events to prevent duplicates.
+			$(document).off('.sscribe');
+			$('.sscribe-lang-card-label').off('.sscribe');
+			$('input[name="sscribe_post_type"]').off('.sscribe');
+			$('input[name="sscribe_language"]').off('.sscribe');
+			$('input[name="sscribe_post_status"]').off('.sscribe');
+			$('input[name="sscribe_format"]').off('.sscribe');
 
-			$('.sscribe-lang-card-label').on('click', function () {
+			$(document).on('click.sscribe', '#sscribe-export-btn', $.proxy(this.startExport, this));
+			$(document).on('click.sscribe', '#sscribe-preview-btn', $.proxy(this.showPreview, this));
+			$(document).on('click.sscribe', '#sscribe-preview-close', $.proxy(this.closePreview, this));
+			$(document).on('click.sscribe', '#sscribe-preview-dismiss-btn', $.proxy(this.closePreview, this));
+			$(document).on('click.sscribe', '#sscribe-preview-start-btn', $.proxy(this.startExportFromPreview, this));
+			$(document).on('click.sscribe', '#sscribe-new-export-btn, #sscribe-error-try-again', $.proxy(this.retry, this));
+			$(document).on('click.sscribe', '#sscribe-cancel-btn', $.proxy(this.cancelExport, this));
+
+			$('.sscribe-lang-card-label').on('click.sscribe', function () {
 				$(this).find('input[type="radio"]').prop('checked', true);
 			});
 
-			$('input[name="sscribe_post_type"]').on('change', $.proxy(this.onPostTypeChange, this));
-			$('input[name="sscribe_language"]').on('change', $.proxy(this.onLanguageChange, this));
-			$('input[name="sscribe_post_status"]').on('change', $.proxy(this.updateConfigSummary, this));
-			$('input[name="sscribe_format"]').on('change', $.proxy(this.onFormatChange, this));
+			$('input[name="sscribe_post_type"]').on('change.sscribe', $.proxy(this.onPostTypeChange, this));
+			$('input[name="sscribe_language"]').on('change.sscribe', $.proxy(this.onLanguageChange, this));
+			$('input[name="sscribe_post_status"]').on('change.sscribe', $.proxy(this.updateConfigSummary, this));
+			$('input[name="sscribe_format"]').on('change.sscribe', $.proxy(this.onFormatChange, this));
 
-			$(document).on('click', '.sscribe-delete-btn', $.proxy(this.deleteExport, this));
-			$(document).on('click', '.sscribe-log-btn', $.proxy(this.showExportLog, this));
-			$(document).on('change', '.sscribe-history-check', $.proxy(this.updateBulkBar, this));
-			$(document).on('change', '#sscribe-bulk-select-all', $.proxy(this.toggleSelectAll, this));
-			$(document).on('click', '#sscribe-bulk-delete-btn', $.proxy(this.bulkDeleteSelected, this));
-			$(document).on('click', '#sscribe-bulk-download-btn', $.proxy(this.bulkDownload, this));
-			$(document).on('click', '#sscribe-support-refresh-btn', $.proxy(this.loadSupportInfo, this));
-			$(document).on('click', '#sscribe-support-copy-btn', $.proxy(this.copySupportInfo, this));
-			$(document).on('click', '#sscribe-modal-close', $.proxy(this.closeModal, this));
-			$(document).on('click', '.sscribe-history-actions > a', $.proxy(this.downloadExport, this));
-			$(document).on('click', '#sscribe-preview-panel', function (e) {
+			$(document).on('click.sscribe', '.sscribe-delete-btn', $.proxy(this.deleteExport, this));
+			$(document).on('click.sscribe', '.sscribe-log-btn', $.proxy(this.showExportLog, this));
+			$(document).on('change.sscribe', '.sscribe-history-check', $.proxy(this.updateBulkBar, this));
+			$(document).on('change.sscribe', '#sscribe-bulk-select-all', $.proxy(this.toggleSelectAll, this));
+			$(document).on('click.sscribe', '#sscribe-bulk-delete-btn', $.proxy(this.bulkDeleteSelected, this));
+			$(document).on('click.sscribe', '#sscribe-bulk-download-btn', $.proxy(this.bulkDownload, this));
+			$(document).on('click.sscribe', '#sscribe-support-refresh-btn', $.proxy(this.loadSupportInfo, this));
+			$(document).on('click.sscribe', '#sscribe-support-copy-btn', $.proxy(this.copySupportInfo, this));
+			$(document).on('click.sscribe', '#sscribe-modal-close', $.proxy(this.closeModal, this));
+			$(document).on('click.sscribe', '.sscribe-history-actions > a', $.proxy(this.downloadExport, this));
+			$(document).on('click.sscribe', '#sscribe-preview-panel', function (e) {
 				if (e.target === this) {
 					SScribe.closePreview();
 				}
@@ -122,7 +154,7 @@
 			const self = this;
 
 			// Keyboard shortcuts + modal escape handling.
-			$(document).on('keydown', function (e) {
+			$(document).on('keydown.sscribe', function (e) {
 				if (e.key === 'Escape' || e.key === 'Esc') {
 					const $previewPanel = $('#sscribe-preview-panel');
 					const $logModal = $('#sscribe-log-modal');
@@ -1099,7 +1131,7 @@
 				this._finalizeStartTime = Date.now();
 			}
 
-			const elapsedSec = Math.floor((Date.now() - (this._finalizeStartTime || Date.now())) / 1000);
+			const elapsedSec = Math.floor((Date.now() - (this._finalizeStartTime ?? Date.now())) / 1000);
 			const min = Math.floor(elapsedSec / 60);
 			const sec = elapsedSec % 60;
 			const timeStr = min > 0 ? min + 'm ' + sec + 's' : sec + 's';
@@ -1242,6 +1274,15 @@
 		renderRecentExports: function (exports) {
 			const $table = $('#sscribe-history-table');
 			const strings = sscribe_data.strings || {};
+
+			// Cancel any pending confirmation timers before replacing the DOM.
+			$table.find('.sscribe-delete-btn').each(function () {
+				const $btn = $(this);
+				if ($btn.data('sscribe-confirm-timeout')) {
+					clearTimeout($btn.data('sscribe-confirm-timeout'));
+					$btn.removeData('sscribe-confirming').removeData('sscribe-confirm-timeout');
+				}
+			});
 
 			if (!exports || exports.length === 0) {
 				$table.html(

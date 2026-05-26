@@ -90,10 +90,13 @@ class SScribe_AJAX_Guard {
 	 * @return bool True if successful.
 	 */
 	private static function disable_if_possible( string $key, string $value ): bool {
-		if ( function_exists( 'ini_set' ) && false === strpos( ini_get( 'disable_functions' ), 'ini_set' ) ) {
-			// phpcs:ignore WordPress.PHP.IniSet.Risky, Squiz.PHP.DiscouragedFunctions.Discouraged
-			@ini_set( $key, $value );
-			return true;
+		if ( function_exists( 'ini_set' ) ) {
+			$disabled_functions = explode( ',', ini_get( 'disable_functions' ) );
+			if ( ! in_array( 'ini_set', $disabled_functions, true ) ) {
+				// phpcs:ignore WordPress.PHP.IniSet.Risky, Squiz.PHP.DiscouragedFunctions.Discouraged
+				@ini_set( $key, $value );
+				return true;
+			}
 		}
 		return false;
 	}

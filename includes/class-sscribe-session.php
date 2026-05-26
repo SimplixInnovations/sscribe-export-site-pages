@@ -43,7 +43,7 @@ class SScribe_Session {
 	public function __construct(
 		private readonly string $option_prefix = self::OPTION_PREFIX
 	) {
-		$this->logger = SScribe_Logger::instance( SSCRIBE_DEBUG );
+		$this->logger = SScribe_Logger::instance( SSCRIBE_DEBUG, 'sscribe_session' );
 	}
 
 	/**
@@ -587,26 +587,33 @@ class SScribe_Session {
 		$pattern = $wpdb->esc_like( $this->option_prefix ) . '%';
 
 		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- Privacy export needs a complete scan of session options.
-		$options = $wpdb->get_results(
-			$wpdb->prepare(
-				"SELECT option_name, option_value FROM {$wpdb->options} WHERE option_name LIKE %s AND autoload = 'no'",
-				$pattern
-			)
-		);
-
 		$sessions = array();
+		$cursor   = '';
+		$limit    = 500;
 
-		foreach ( $options as $option ) {
-			$data = $this->decode_session_value( $option->option_value ?? '' );
+		do {
+			$options = $wpdb->get_results(
+				$wpdb->prepare(
+					"SELECT option_name, option_value FROM {$wpdb->options} WHERE option_name LIKE %s AND autoload = 'no' AND option_name > %s ORDER BY option_name ASC LIMIT %d",
+					$pattern,
+					$cursor,
+					$limit
+				)
+			);
 
-			if ( ! is_array( $data ) ) {
-				continue;
+			foreach ( $options as $option ) {
+				$data = $this->decode_session_value( $option->option_value ?? '' );
+
+				if ( ! is_array( $data ) ) {
+					continue;
+				}
+
+				if ( isset( $data['user_id'] ) && (int) $data['user_id'] === $user_id ) {
+					$sessions[] = $data;
+				}
+				$cursor = $option->option_name;
 			}
-
-			if ( isset( $data['user_id'] ) && (int) $data['user_id'] === $user_id ) {
-				$sessions[] = $data;
-			}
-		}
+		} while ( count( $options ) === $limit );
 
 		usort(
 			$sessions,
@@ -688,16 +695,7 @@ class SScribe_Session {
 
 	/**
 	 * Check if user has active session and return its data.
-	 *
-	 * @deprecated Use get_active_session_data() instead. Kept for backward compatibility.
-	 *
-	 * @param int $user_id User ID.
-	 * @return bool
-	 */
-	public function has_active_session( int $user_id ): bool {
-		if ( isset( self::$active_session_cache[ $user_id ] ) ) {
-			return self::$active_session_cache[ $user_id ];
-		}
+
 
 		$cache_key = 'sscribe_active_sid_' . $user_id;
 		$cached    = get_transient( $cache_key );
@@ -820,7 +818,7 @@ class SScribe_Session {
 	 * @param mixed $raw Raw option value.
 	 * @return array|null Decoded data or null.
 	 */
-	private function decode_session_value( mixed $raw ): ?array {
+	public function decode_session_value( mixed $raw ): ?array {
 		if ( ! is_string( $raw ) ) {
 			return null;
 		}

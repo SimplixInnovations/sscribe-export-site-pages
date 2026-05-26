@@ -96,6 +96,42 @@
 }
 
 /* ============================================
+   DARK MODE (prefers-color-scheme: dark)
+   ============================================ */
+@media (prefers-color-scheme: dark) {
+	:root {
+		/* Alert Colors */
+		--sscribe-alert-error-bg: rgb(239 68 68 / 15%);
+		--sscribe-alert-error-border: rgb(239 68 68 / 40%);
+		--sscribe-alert-warning-bg: rgb(234 179 8 / 12%);
+		--sscribe-alert-warning-border: rgb(234 179 8 / 35%);
+
+		/* Neutral / Surface Colors */
+		--sscribe-bg: #0f1117;
+		--sscribe-card-bg: #1a1d27;
+		--sscribe-card-bg-hover: #232736;
+		--sscribe-section-bg: #1a1d27;
+		--sscribe-section-bg-alt: #161924;
+		--sscribe-border: #2d3142;
+		--sscribe-border-light: #252836;
+
+		/* Text Colors */
+		--sscribe-text-main: #c9cdd4;
+		--sscribe-text-heading: #e8eaed;
+		--sscribe-text-secondary: #8b939f;
+		--sscribe-text-muted: #6b7280;
+		--sscribe-text-light: #4b5563;
+
+		/* Shadows */
+		--sscribe-shadow-flat: none;
+		--sscribe-shadow-shallow: rgb(0 0 0 / 20%) 0px 1px 8px 0px;
+		--sscribe-shadow-standard: rgb(0 0 0 / 25%) 0px 2px 6px 0px, rgb(0 0 0 / 20%) 0px 8px 19.2px 0px;
+		--sscribe-shadow-elevated: rgb(0 0 0 / 30%) 0px 4px 8px 0px, rgb(0 0 0 / 25%) 0px 24px 35.2px 0px;
+		--sscribe-shadow-floating: rgb(0 0 0 / 30%) 0px 1px 5px 0px;
+	}
+}
+
+/* ============================================
    BASE STYLES
    ============================================ */
 body.toplevel_page_sscribe-export #wpcontent {

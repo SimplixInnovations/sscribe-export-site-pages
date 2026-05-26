@@ -321,10 +321,18 @@ class SScribe_Markdown_Exporter implements SScribe_Exporter_Interface {
 
 				$rows         = array();
 				$is_first_row = true;
+				$has_th       = false;
 
 				foreach ( $row_matches[1] as $row_html ) {
 					$cells        = array();
 					$cell_pattern = '/<t[dh][^>]*>(.*?)<\/t[dh]>/is';
+
+					// Check if this row contains header cells (<th>).
+					$has_header_cells = (bool) preg_match( '/<th[^>]*>/is', $row_html );
+
+					if ( $is_first_row && $has_header_cells ) {
+						$has_th = true;
+					}
 
 					if ( preg_match_all( $cell_pattern, $row_html, $cell_matches ) ) {
 						foreach ( $cell_matches[1] as $cell_content ) {
@@ -337,8 +345,11 @@ class SScribe_Markdown_Exporter implements SScribe_Exporter_Interface {
 					if ( ! empty( $cells ) ) {
 						$rows[] = $cells;
 
-						if ( $is_first_row ) {
+						// Only add divider after first row if it contains <th> header cells.
+						if ( $is_first_row && $has_th ) {
 							$rows[]       = array_fill( 0, count( $cells ), '---' );
+							$is_first_row = false;
+						} elseif ( $is_first_row ) {
 							$is_first_row = false;
 						}
 					}
@@ -462,7 +473,7 @@ class SScribe_Markdown_Exporter implements SScribe_Exporter_Interface {
 	 */
 	private function convert_lists( string $html ): string {
 
-		$max_iterations = 500;
+		$max_iterations = 5000;
 		$iteration      = 0;
 
 		while ( preg_match( '/<(ul|ol)>(.*?)<\/\1>/is', $html, $matches, PREG_OFFSET_CAPTURE ) && $iteration < $max_iterations ) {
@@ -476,8 +487,8 @@ class SScribe_Markdown_Exporter implements SScribe_Exporter_Interface {
 		}
 
 		if ( $iteration >= $max_iterations ) {
-			$this->logger->warning(
-				'Markdown list conversion hit iteration cap — output may be incomplete',
+			$this->logger->error(
+				'Markdown list conversion hit iteration cap — output is incomplete',
 				array(
 					'iteration_cap' => $max_iterations,
 					'html_excerpt'  => substr( $html, 0, 200 ),
@@ -706,12 +717,13 @@ class SScribe_Markdown_Exporter implements SScribe_Exporter_Interface {
 	 * @return string Escaped text.
 	 */
 	private function escape_yaml_string( string $text ): string {
-		// Strip non-printable control characters (except \t=\x09 and \n=\x0A which are handled below).
+		// Strip non-printable control characters (except \t=\x09, \n=\x0A, and \r=\x0D which are handled below).
 		$text = preg_replace( '/[\x00-\x08\x0B\x0C\x0E-\x1F\x7F]/', '', $text );
 		$text = str_replace( '\\', '\\\\', $text );
 		$text = str_replace( '"', '\\"', $text );
 		$text = str_replace( "\n", '\\n', $text );
 		$text = str_replace( "\t", '\\t', $text );
+		$text = str_replace( "\r", '\\r', $text );
 		return $text;
 	}
 

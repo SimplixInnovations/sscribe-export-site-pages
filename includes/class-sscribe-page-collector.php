@@ -110,6 +110,12 @@ class SScribe_Page_Collector {
 	private function get_page_ids_direct( string $language, string $post_status, string $post_type ): array {
 		$post_status = $this->validate_post_status( $post_status );
 
+		$cache_key = "sscribe_page_ids_v2_{$post_status}_" . md5( "{$language}_{$post_type}" );
+		$cached    = get_transient( $cache_key );
+		if ( false !== $cached && is_array( $cached ) ) {
+			return $cached;
+		}
+
 		$args = array(
 			'post_type'      => $this->resolve_post_type_for_query( $post_type ),
 			'post_status'    => $post_status,
@@ -160,6 +166,8 @@ class SScribe_Page_Collector {
 				$this->debug_log( 'WPML: Language reset' );
 			}
 		}
+
+		set_transient( $cache_key, $page_ids, 5 * MINUTE_IN_SECONDS );
 
 		return $page_ids;
 	}
@@ -258,22 +266,6 @@ class SScribe_Page_Collector {
 
 			++$page;
 		} while ( $page <= $query->max_num_pages );
-	}
-
-	/**
-	 * Clear post status cache.
-	 *
-	 * @param string $language Language code.
-	 * @return void
-	 */
-	private function clear_status_cache( string $language = '' ): void {
-		$cache_key = 'sscribe_status_counts_' . md5( $language );
-		delete_transient( $cache_key );
-
-		foreach ( array( 'publish', 'draft', 'private', 'future', 'pending', 'all', 'any' ) as $status ) {
-			$key = 'sscribe_page_count_' . md5( $language . '_' . $status );
-			delete_transient( $key );
-		}
 	}
 
 	/**
@@ -784,11 +776,11 @@ class SScribe_Page_Collector {
 						'url'   => get_permalink( $ancestor_id ),
 					);
 				}
-			}
 
-			if ( $this->is_wpml_active() ) {
-				// phpcs:ignore WordPress.NamingConventions.PrefixAllGlobals.NonPrefixedHooknameFound -- WPML hook.
-				do_action( 'wpml_switch_language', null );
+				if ( $this->is_wpml_active() ) {
+					// phpcs:ignore WordPress.NamingConventions.PrefixAllGlobals.NonPrefixedHooknameFound -- WPML hook.
+					do_action( 'wpml_switch_language', null );
+				}
 			}
 		}
 
@@ -797,13 +789,16 @@ class SScribe_Page_Collector {
 			// phpcs:ignore WordPress.NamingConventions.PrefixAllGlobals.NonPrefixedHooknameFound -- WPML hook.
 			do_action( 'wpml_switch_language', $page_language );
 		}
-		$breadcrumbs[] = array(
-			'title' => html_entity_decode( get_the_title( $page_id ), ENT_QUOTES | ENT_HTML5, 'UTF-8' ),
-			'url'   => get_permalink( $page_id ),
-		);
-		if ( $this->is_wpml_active() ) {
-			// phpcs:ignore WordPress.NamingConventions.PrefixAllGlobals.NonPrefixedHooknameFound -- WPML hook.
-			do_action( 'wpml_switch_language', null );
+		try {
+			$breadcrumbs[] = array(
+				'title' => html_entity_decode( get_the_title( $page_id ), ENT_QUOTES | ENT_HTML5, 'UTF-8' ),
+				'url'   => get_permalink( $page_id ),
+			);
+		} finally {
+			if ( $this->is_wpml_active() ) {
+				// phpcs:ignore WordPress.NamingConventions.PrefixAllGlobals.NonPrefixedHooknameFound -- WPML hook.
+				do_action( 'wpml_switch_language', null );
+			}
 		}
 
 		$this->breadcrumb_cache[ $page_id ] = $breadcrumbs;
@@ -913,15 +908,25 @@ class SScribe_Page_Collector {
 
 			// Optimize: Use a single query with GROUP BY instead of one query per status.
 			global $wpdb;
-			$post_type_sql = is_array( $args['post_type'] )
-				? " IN ('" . implode( "','", array_map( 'esc_sql', $args['post_type'] ) ) . "') "
-				: " = '" . esc_sql( $args['post_type'] ) . "' ";
 
-			$status_list = "'" . implode( "','", array_map( 'esc_sql', array_keys( $statuses ) ) ) . "'";
+			$post_type_placeholders = is_array( $args['post_type'] )
+				? '(' . implode( ',', array_fill( 0, count( $args['post_type'] ), '%s' ) ) . ')'
+				: '%s';
 
 			// phpcs:disable WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- Single optimized count query for performance; caching handled by transient below.
-			$sql = "SELECT post_status, COUNT(*) as count FROM {$wpdb->posts} WHERE post_type {$post_type_sql} AND post_status IN ({$status_list}) GROUP BY post_status";
-			$results = $wpdb->get_results( $sql, ARRAY_A ); // phpcs:ignore WordPress.DB.PreparedSQL.NotPrepared -- $post_type_sql and $status_list are safely escaped above.
+			if ( is_array( $args['post_type'] ) ) {
+				$sql = $wpdb->prepare(
+					"SELECT post_status, COUNT(*) as count FROM {$wpdb->posts} WHERE post_type IN ({$post_type_placeholders}) AND post_status IN ({$post_type_placeholders}) GROUP BY post_status",
+					array_merge( $args['post_type'], array_keys( $statuses ) )
+				);
+			} else {
+				$sql = $wpdb->prepare(
+					"SELECT post_status, COUNT(*) as count FROM {$wpdb->posts} WHERE post_type = %s AND post_status IN ({$post_type_placeholders}) GROUP BY post_status",
+					$args['post_type'],
+					array_keys( $statuses )
+				);
+			}
+			$results = $wpdb->get_results( $sql, ARRAY_A ); // phpcs:ignore WordPress.DB.RestrictedFunctions.GlobalReplacement -- WordPress global constant for fetch mode; $wpdb->prepare() is used above so input is safe.
 			// phpcs:enable
 
 			// Initialize all counts to 0.

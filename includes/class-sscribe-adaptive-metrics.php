@@ -104,43 +104,57 @@ class SScribe_Adaptive_Metrics {
 			return;
 		}
 
-		$metrics = get_option( 'sscribe_export_metrics', array() );
-		$key     = $format . '_' . $post_type;
-		if ( ! isset( $metrics['formats'] ) ) {
-			$metrics['formats'] = array();
-		}
-		if ( ! isset( $metrics['formats'][ $key ] ) ) {
-			$metrics['formats'][ $key ] = array(
-				'avg_seconds_per_page' => 0,
-				'avg_mb_per_page'      => 0,
-				'sample_count'         => 0,
-			);
+		$lock_key = 'sscribe_metrics_save_lock';
+		$lock_ttl = 5;
+
+		// Acquire lock using wp_cache_add (atomic on object cache) or fall back to non-atomic skip.
+		$acquired = wp_cache_add( $lock_key, 1, '', $lock_ttl );
+		if ( ! $acquired ) {
+			// Another process is saving metrics — skip this update rather than racing.
+			return;
 		}
 
-		$new_seconds = $elapsed_sec / $page_count;
-		$new_mb      = $total_mb / $page_count;
+		try {
+			$metrics = get_option( 'sscribe_export_metrics', array() );
+			$key     = $format . '_' . $post_type;
+			if ( ! isset( $metrics['formats'] ) ) {
+				$metrics['formats'] = array();
+			}
+			if ( ! isset( $metrics['formats'][ $key ] ) ) {
+				$metrics['formats'][ $key ] = array(
+					'avg_seconds_per_page' => 0,
+					'avg_mb_per_page'      => 0,
+					'sample_count'         => 0,
+				);
+			}
 
-		$existing_seconds = (float) ( $metrics['formats'][ $key ]['avg_seconds_per_page'] ?? 0 );
-		$existing_mb      = (float) ( $metrics['formats'][ $key ]['avg_mb_per_page'] ?? 0 );
-		$samples          = (int) ( $metrics['formats'][ $key ]['sample_count'] ?? 0 );
+			$new_seconds = $elapsed_sec / $page_count;
+			$new_mb      = $total_mb / $page_count;
 
-		if ( 0 === $samples ) {
-			$metrics['formats'][ $key ]['avg_seconds_per_page'] = $new_seconds;
-			$metrics['formats'][ $key ]['avg_mb_per_page']      = $new_mb;
-		} else {
-			$metrics['formats'][ $key ]['avg_seconds_per_page'] = round(
-				( $existing_seconds * ( 1 - self::EMA_ALPHA ) ) + ( $new_seconds * self::EMA_ALPHA ),
-				4
-			);
-			$metrics['formats'][ $key ]['avg_mb_per_page']      = round(
-				( $existing_mb * ( 1 - self::EMA_ALPHA ) ) + ( $new_mb * self::EMA_ALPHA ),
-				4
-			);
+			$existing_seconds = (float) ( $metrics['formats'][ $key ]['avg_seconds_per_page'] ?? 0 );
+			$existing_mb      = (float) ( $metrics['formats'][ $key ]['avg_mb_per_page'] ?? 0 );
+			$samples          = (int) ( $metrics['formats'][ $key ]['sample_count'] ?? 0 );
+
+			if ( 0 === $samples ) {
+				$metrics['formats'][ $key ]['avg_seconds_per_page'] = $new_seconds;
+				$metrics['formats'][ $key ]['avg_mb_per_page']      = $new_mb;
+			} else {
+				$metrics['formats'][ $key ]['avg_seconds_per_page'] = round(
+					( $existing_seconds * ( 1 - self::EMA_ALPHA ) ) + ( $new_seconds * self::EMA_ALPHA ),
+					4
+				);
+				$metrics['formats'][ $key ]['avg_mb_per_page']      = round(
+					( $existing_mb * ( 1 - self::EMA_ALPHA ) ) + ( $new_mb * self::EMA_ALPHA ),
+					4
+				);
+			}
+
+			++$metrics['formats'][ $key ]['sample_count'];
+			$metrics['last_export'] = current_time( 'mysql' );
+
+			update_option( 'sscribe_export_metrics', $metrics, false );
+		} finally {
+			wp_cache_delete( $lock_key, '' );
 		}
-
-		++$metrics['formats'][ $key ]['sample_count'];
-		$metrics['last_export'] = current_time( 'mysql' );
-
-		update_option( 'sscribe_export_metrics', $metrics, false );
 	}
 }

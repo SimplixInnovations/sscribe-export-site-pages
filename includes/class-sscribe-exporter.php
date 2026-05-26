@@ -13,6 +13,8 @@ if ( ! defined( 'ABSPATH' ) ) {
 	exit;
 }
 
+require_once SSCRIBE_PLUGIN_DIR . 'includes/class-sscribe-rtl-helper.php';
+
 use SScribeVendor\PhpOffice\PhpWord\PhpWord;
 use SScribeVendor\PhpOffice\PhpWord\IOFactory;
 use SScribeVendor\PhpOffice\PhpWord\Style\Font;
@@ -22,11 +24,6 @@ use SScribeVendor\PhpOffice\PhpWord\Element\Section;
 use SScribeVendor\PhpOffice\PhpWord\Element\TextRun;
 
 class SScribe_Exporter {
-
-	/**
-	 * RTL helper class.
-	 */
-	require_once SSCRIBE_PLUGIN_DIR . 'includes/class-sscribe-rtl-helper.php';
 
 	/**
 	 * Last error message from export operation.

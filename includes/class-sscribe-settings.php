@@ -146,18 +146,14 @@ class SScribe_Settings {
 	 * @return bool
 	 */
 	public static function save_debug_settings( array $settings ): bool {
-		$enabled = isset( $settings['debug_enabled'] ) ? (bool) $settings['debug_enabled'] : false;
-		$level   = isset( $settings['log_level'] ) ? (string) $settings['log_level'] : self::LEVEL_DEBUG;
-		$refresh = isset( $settings['auto_refresh'] ) ? (bool) $settings['auto_refresh'] : true;
+		$enabled = (bool) ( $settings['debug_enabled'] ?? false );
+		$level   = (string) ( $settings['log_level'] ?? self::LEVEL_DEBUG );
+		$refresh = (bool) ( $settings['auto_refresh'] ?? true );
 
 		$level_saved   = self::set_debug_log_level( $level );
 		$enabled_saved = self::set_debug_enabled( $enabled );
 		$refresh_saved = self::set_auto_refresh( $refresh );
 
-		if ( $level_saved && $enabled_saved && $refresh_saved ) {
-			return true;
-		}
-
-		return false;
+		return $level_saved && $enabled_saved && $refresh_saved;
 	}
 }
