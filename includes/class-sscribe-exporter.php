@@ -24,6 +24,11 @@ use SScribeVendor\PhpOffice\PhpWord\Element\TextRun;
 class SScribe_Exporter {
 
 	/**
+	 * RTL helper class.
+	 */
+	require_once SSCRIBE_PLUGIN_DIR . 'includes/class-sscribe-rtl-helper.php';
+
+	/**
 	 * Last error message from export operation.
 	 *
 	 * @var string
@@ -70,7 +75,7 @@ class SScribe_Exporter {
 	 *
 	 * @var string
 	 */
-	private string $rtl_font_name = 'Arial';
+	private string $rtl_font_name = 'Arial Unicode MS';
 
 	/**
 	 * Base font size.
@@ -106,6 +111,15 @@ class SScribe_Exporter {
 		?SScribe_DOCX_Content_Renderer $content_renderer = null
 	) {
 		$this->parser = $parser ?? new SScribe_Content_Parser();
+
+		/**
+		 * Filter the DOCX color palette.
+		 *
+		 * @since 1.1.1
+		 * @param array<string, string> $colors Color palette array.
+		 */
+		$this->colors = apply_filters( 'sscribe_docx_colors', $this->colors );
+
 		$this->content_renderer = $content_renderer ?? new SScribe_DOCX_Content_Renderer(
 			$this->parser,
 			null,
@@ -129,7 +143,7 @@ class SScribe_Exporter {
 		return is_string( $result ) ? $result : $subject;
 	}
 
-	/**
+/**
 	 * Sanitize text for safe XML embedding.
 	 *
 	 * @param string $text Input text.
@@ -138,7 +152,8 @@ class SScribe_Exporter {
 	private function safe_text( string $text ): string {
 		$text = (string) $text;
 
-		$cleaned = mb_convert_encoding( $text, 'UTF-8', 'UTF-8' );
+		// Use iconv for UTF-8 sanitization - compatible with PHP 8.2+ (mb_convert_encoding deprecation)
+		$cleaned = @iconv( 'UTF-8', 'UTF-8//IGNORE', $text );
 		if ( false !== $cleaned ) {
 			$text = $cleaned;
 		}
@@ -157,10 +172,11 @@ class SScribe_Exporter {
 
 		$text = str_replace( "\x0C", '', $text );
 
-		// Truncate extremely long strings without spaces (e.g., URLs, hashes, encoded data)
-		// to prevent oversized XML elements in DOCX. Threshold is 200 Unicode chars.
-		if ( mb_strlen( $text, 'UTF-8' ) > 200 && false === mb_strpos( $text, ' ', 0, 'UTF-8' ) ) {
-			$text = mb_substr( $text, 0, 200, 'UTF-8' );
+		// Truncate extremely long strings without spaces (e.g., long hashes, encoded data)
+		// to prevent oversized XML elements in DOCX. Threshold is 2048 Unicode chars
+		// to accommodate long URLs, CDNs, and affiliate links while still protecting DOCX integrity.
+		if ( mb_strlen( $text, 'UTF-8' ) > 2048 && false === mb_strpos( $text, ' ', 0, 'UTF-8' ) ) {
+			$text = mb_substr( $text, 0, 2048, 'UTF-8' );
 		}
 
 		// NOTE: Do NOT apply htmlspecialchars() here. PHPWord performs its own
@@ -209,8 +225,7 @@ class SScribe_Exporter {
 			);
 			$safe_query = '';
 			if ( ! empty( $query ) ) {
-
-				$safe_query = '?' . $query;
+				$safe_query = '?' . rawurlencode( $query );
 			}
 			$safe_fragment = ! empty( $fragment ) ? '#' . rawurlencode( $fragment ) : '';
 
@@ -234,7 +249,6 @@ class SScribe_Exporter {
 	 * @return bool
 	 */
 	private function is_rtl_document( array $page_data ): bool {
-		require_once SSCRIBE_PLUGIN_DIR . 'includes/class-sscribe-rtl-helper.php';
 		return SScribe_RTL_Helper::is_rtl( $page_data['language'] ?? 'en' );
 	}
 
@@ -411,7 +425,7 @@ class SScribe_Exporter {
 
 			// Lightweight integrity check: verify file size > minimum threshold.
 			$file_size = filesize( $output_path );
-			$min_size   = 4096; // Minimal DOCX should be at least 4KB to avoid empty/corrupted files.
+			$min_size   = 8192; // Minimal DOCX should be at least 8KB to avoid empty/corrupted files.
 			if ( $file_size < $min_size ) {
 				wp_delete_file( $output_path );
 				unset( $writer, $php_word );
@@ -472,7 +486,9 @@ class SScribe_Exporter {
 					if ( false === $parse_result ) {
 						$xml_valid = false;
 					}
-					unset( $test_doc, $doc_xml, $zip_xml );
+					unset( $test_doc, $doc_xml );
+					$zip_xml->close();
+					unset( $zip_xml );
 				}
 			}
 
@@ -545,10 +561,22 @@ class SScribe_Exporter {
 	private function set_document_properties( PhpWord $php_word, array $page_data ): void {
 		$properties = $php_word->getDocInfo();
 		$properties->setCreator( 'SScribe by Simplix Innovations' );
-		$properties->setCompany( html_entity_decode( get_bloginfo( 'name' ), ENT_QUOTES | ENT_HTML5, 'UTF-8' ) );
-		$properties->setTitle( html_entity_decode( $page_data['title'], ENT_QUOTES | ENT_HTML5, 'UTF-8' ) );
-		$properties->setDescription( 'Exported from ' . esc_url_raw( $page_data['permalink'] ) );
-		$properties->setLastModifiedBy( wp_strip_all_tags( $page_data['author'] ) );
+
+		$blog_name = get_bloginfo( 'name' );
+		$blog_name_decoded = html_entity_decode( ( is_string( $blog_name ) ? $blog_name : '' ), ENT_QUOTES | ENT_HTML5, 'UTF-8' );
+		$properties->setCompany( $blog_name_decoded );
+
+		$title = $page_data['title'] ?? '';
+		$title_decoded = html_entity_decode( ( is_string( $title ) ? $title : '' ), ENT_QUOTES | ENT_HTML5, 'UTF-8' );
+		$properties->setTitle( $title_decoded );
+
+		$permalink = $page_data['permalink'] ?? '';
+		$permalink_safe = is_string( $permalink ) ? esc_url_raw( $permalink ) : '';
+		$properties->setDescription( 'Exported from ' . $permalink_safe );
+
+		$author = $page_data['author'] ?? '';
+		$author_stripped = is_string( $author ) ? wp_strip_all_tags( $author ) : '';
+		$properties->setLastModifiedBy( $author_stripped );
 	}
 
 	/**
@@ -630,6 +658,7 @@ class SScribe_Exporter {
 		);
 
 		if ( $this->is_rtl ) {
+			$blockquote_style['bidi']                = true;
 			$blockquote_style['indentation']      = array( 'right' => Converter::cmToTwip( 1 ) );
 			$blockquote_style['borderRightSize']  = 12;
 			$blockquote_style['borderRightColor'] = $this->colors['primary'];
