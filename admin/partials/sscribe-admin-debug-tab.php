@@ -148,11 +148,11 @@ $sscribe_show_wp_debug_notice = ( defined( 'WP_DEBUG' ) && WP_DEBUG );
 			<?php
 			esc_html_e( 'Export JSON', 'sscribe-export-site-pages' );
 			?>
-			<span class="sscribe-export-btn-scope" id="sscribe-export-btn-scope"></span>
+			<span class="sscribe-export-btn-scope"></span>
 		</button>
 	</div>
 
-	<details class="sscribe-debug-rotated">
+	<details class="sscribe-debug-rotated" id="sscribe-debug-rotated-details">
 		<summary>
 			<span class="sscribe-debug-rotated-title"><?php esc_html_e( 'Rotated Logs', 'sscribe-export-site-pages' ); ?></span>
 			<span class="sscribe-debug-rotated-hint"><?php esc_html_e( 'Click to expand', 'sscribe-export-site-pages' ); ?></span>

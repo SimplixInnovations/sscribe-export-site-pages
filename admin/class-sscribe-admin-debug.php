@@ -60,9 +60,23 @@ class SScribe_Admin_Debug {
 			SScribe_AJAX_Guard::error( array( 'message' => __( 'Rate limit exceeded. Please wait before trying again.', 'sscribe-export-site-pages' ) ) );
 		}
 
+		$allowed_levels = array(
+			SScribe_Settings::LEVEL_ALL,
+			SScribe_Settings::LEVEL_DEBUG,
+			SScribe_Settings::LEVEL_INFO,
+			SScribe_Settings::LEVEL_NOTICE,
+			SScribe_Settings::LEVEL_WARNING,
+			SScribe_Settings::LEVEL_ERROR,
+			SScribe_Settings::LEVEL_CRITICAL,
+		);
+		$log_level = isset( $_POST['log_level'] ) ? sanitize_text_field( wp_unslash( $_POST['log_level'] ) ) : 'DEBUG';
+		if ( ! in_array( $log_level, $allowed_levels, true ) ) {
+			$log_level = 'DEBUG';
+		}
+
 		$settings = array(
 			'debug_enabled' => isset( $_POST['debug_enabled'] ) ? filter_var( wp_unslash( $_POST['debug_enabled'] ), FILTER_VALIDATE_BOOLEAN ) : false,
-			'log_level'     => isset( $_POST['log_level'] ) ? sanitize_text_field( wp_unslash( $_POST['log_level'] ) ) : 'DEBUG',
+			'log_level'     => $log_level,
 			'auto_refresh'  => isset( $_POST['auto_refresh'] ) ? filter_var( wp_unslash( $_POST['auto_refresh'] ), FILTER_VALIDATE_BOOLEAN ) : true,
 		);
 
@@ -200,15 +214,6 @@ class SScribe_Admin_Debug {
 		$filter_level = isset( $_POST['filter_level'] ) ? sanitize_text_field( wp_unslash( $_POST['filter_level'] ) ) : 'ALL';
 		$search       = isset( $_POST['search'] ) ? sanitize_text_field( wp_unslash( $_POST['search'] ) ) : '';
 		$session_id   = isset( $_POST['session_id'] ) ? sanitize_text_field( wp_unslash( $_POST['session_id'] ) ) : '';
-		$offset       = isset( $_POST['offset'] ) ? absint( $_POST['offset'] ) : 0;
-		$limit        = isset( $_POST['limit'] ) ? absint( $_POST['limit'] ) : 100;
-
-		if ( $limit < 1 || $limit > 500 ) {
-			$limit = 100;
-		}
-		if ( $offset < 0 ) {
-			$offset = 0;
-		}
 
 		$logger = SScribe_Logger::instance( true );
 		$logs   = $logger->get_logs();
@@ -217,7 +222,7 @@ class SScribe_Admin_Debug {
 
 		$json_content = wp_json_encode(
 			array(
-				'entries'  => array_slice( $entries, $offset, $limit ),
+				'entries'  => $entries,
 				'count'    => count( $entries ),
 				'exported' => wp_date( 'Y-m-d H:i:s' ),
 			)
@@ -256,6 +261,7 @@ class SScribe_Admin_Debug {
 		$json_files = glob( $log_dir . '/*.json' ) ?: array();
 		$files      = array_merge( $log_files, $json_files );
 		$result     = array();
+		$current_log = 'sscribe_debug_' . gmdate( 'Y-m-d' ) . '.log';
 
 		foreach ( $files as $file ) {
 			if ( is_file( $file ) ) {
@@ -263,8 +269,12 @@ class SScribe_Admin_Debug {
 				if ( false === $stat ) {
 					continue;
 				}
+				$basename = basename( $file );
+				if ( $basename === $current_log ) {
+					continue;
+				}
 				$result[] = array(
-					'name' => basename( $file ),
+					'name' => $basename,
 					'size' => size_format( $stat['size'] ),
 					'date' => wp_date( 'Y-m-d H:i:s', $stat['mtime'] ),
 				);
@@ -273,9 +283,7 @@ class SScribe_Admin_Debug {
 
 		usort(
 			$result,
-			function ( $a, $b ) {
-				return strcmp( $b['date'], $a['date'] );
-			}
+			fn($a, $b) => $b['date'] <=> $a['date']
 		);
 
 		wp_send_json_success( array( 'files' => $result ) );
@@ -426,11 +434,12 @@ class SScribe_Admin_Debug {
 
 			if ( ! empty( $search ) ) {
 				$search_lower = strtolower( $search );
-				$message      = strtolower( $entry['message'] );
-				$context_json = wp_json_encode( $entry['context'] );
+				$message     = strtolower( $entry['message'] );
+				$context_json = wp_json_encode( $entry['context'] ) ?: '';
+				$context_lower = strtolower( $context_json );
 
 				if ( false === strpos( $message, $search_lower )
-					&& false === strpos( $context_json, $search_lower )
+					&& false === strpos( $context_lower, $search_lower )
 				) {
 					continue;
 				}
