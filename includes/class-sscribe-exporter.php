@@ -318,14 +318,10 @@ class SScribe_Exporter {
 	 * @return string|null Resolved IP or null on timeout/failure.
 	 */
 	private function resolve_host_with_timeout( string $hostname ): ?string {
-		// Try gethostbyname first (fastest, but no timeout control)
-		$ip = gethostbyname( $hostname );
-		if ( $ip !== $hostname ) {
-			return $ip;
-		}
-
-		// Fallback: use DNS-over-HTTP via wp_safe_remote_get for timeout control
-		// This handles cases where gethostbyname hangs on blocked DNS
+		// Try DNS-over-HTTP first with a short timeout (3s).
+		// This is the primary resolution path because gethostbyname()
+		// has no timeout control and can block for 30+ seconds on
+		// slow/blocked DNS servers.
 		$response = wp_safe_remote_get(
 			'https://dns.google/resolve?name=' . rawurlencode( $hostname ) . '&type=A',
 			array(
@@ -334,24 +330,25 @@ class SScribe_Exporter {
 			)
 		);
 
-		if ( is_wp_error( $response ) ) {
-			return null;
-		}
-
-		$body = wp_remote_retrieve_body( $response );
-		if ( empty( $body ) ) {
-			return null;
-		}
-
-		$data = json_decode( $body, true );
-		if ( ! is_array( $data ) || empty( $data['Answer'] ) ) {
-			return null;
-		}
-
-		foreach ( $data['Answer'] as $answer ) {
-			if ( isset( $answer['data'] ) && filter_var( $answer['data'], FILTER_VALIDATE_IP ) ) {
-				return $answer['data'];
+		if ( ! is_wp_error( $response ) ) {
+			$body = wp_remote_retrieve_body( $response );
+			if ( ! empty( $body ) ) {
+				$data = json_decode( $body, true );
+				if ( is_array( $data ) && ! empty( $data['Answer'] ) ) {
+					foreach ( $data['Answer'] as $answer ) {
+						if ( isset( $answer['data'] ) && filter_var( $answer['data'], FILTER_VALIDATE_IP ) ) {
+							return $answer['data'];
+						}
+					}
+				}
 			}
+		}
+
+		// Fallback: gethostbyname() has no timeout but is fast when it works.
+		// Only use as fallback since it can hang on broken DNS.
+		$ip = gethostbyname( $hostname );
+		if ( $ip !== $hostname ) {
+			return $ip;
 		}
 
 		return null;
@@ -404,7 +401,28 @@ class SScribe_Exporter {
 	/**
 	 * Generate a DOCX file from page data.
 	 *
-	 * @param array  $page_data Page data to export.
+	 * @param array  $page_data {
+	 *     Page data array with the following keys:
+	 *     @type int       $id                  Page ID.
+	 *     @type string    $title               Page title (HTML-decoded).
+	 *     @type string    $content             Processed HTML content.
+	 *     @type string    $raw_content         Raw post content.
+	 *     @type string    $excerpt             Page excerpt.
+	 *     @type string    $permalink           Full permalink URL.
+	 *     @type string    $slug                URL-friendly slug.
+	 *     @type string    $author              Author display name.
+	 *     @type string    $date_published      Formatted publish date.
+	 *     @type string    $date_modified       Formatted last modified date.
+	 *     @type string    $featured_image_url  Featured image URL.
+	 *     @type string    $featured_image_path Local path to featured image.
+	 *     @type int       $word_count          Word count estimate.
+	 *     @type float     $reading_time       Reading time in minutes.
+	 *     @type array     $breadcrumbs         Breadcrumb trail array.
+	 *     @type array     $children            Child page data array.
+	 *     @type string    $language            Language code (e.g. 'en').
+	 *     @type int       $parent_id          Parent page ID.
+	 *     @type array     $seo                SEO data array from SEO_Reader.
+	 * }
 	 * @param string $output_dir Output directory path.
 	 * @param int    $index     Current page index.
 	 * @param int    $total     Total number of pages.
@@ -1144,7 +1162,8 @@ class SScribe_Exporter {
 		);
 		$cell = $footer_table->addCell( Converter::inchToTwip( 2.5 ) );
 		$cell->addPreserveText(
-			__( 'Page', 'sscribe-export-site-pages' ) . ' {PAGE} / {NUMPAGES}',
+			/* translators: %s: page number field (e.g. "Page 1 / 10") */
+			sprintf( __( 'Page %s', 'sscribe-export-site-pages' ), '{PAGE} / {NUMPAGES}' ),
 			array(
 				'name'  => $this->font_name,
 				'size'  => 7,
