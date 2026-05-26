@@ -672,6 +672,15 @@ class SScribe_Markdown_Exporter implements SScribe_Exporter_Interface {
 			return '#';
 		}
 
+		// Reject relative paths to prevent open redirect vulnerabilities.
+		if ( str_starts_with( $url, '/' ) ) {
+			$this->logger->warning(
+				'Sanitized relative URL path in Markdown export',
+				array( 'url' => substr( $url, 0, 100 ) )
+			);
+			return '#';
+		}
+
 		$parsed = wp_parse_url( $url );
 		$scheme = isset( $parsed['scheme'] ) ? strtolower( $parsed['scheme'] ) : '';
 

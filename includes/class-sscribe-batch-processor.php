@@ -1038,6 +1038,8 @@ class SScribe_Batch_Processor {
 			);
 		}
 
+		$lock_token = $this->current_lock_token;
+
 		if ( ! empty( $session['cancelled'] ) ) {
 			$this->logger->debug( 'Export was cancelled' );
 			$export_stats = new SScribe_Export_Stats();
@@ -1045,7 +1047,7 @@ class SScribe_Batch_Processor {
 			$this->restore_ob_level( $ob_level_before );
 			$this->cleanup_cancelled_export( $session );
 			$this->session->delete( $session_id );
-			$this->release_lock( $session_id );
+			$this->release_lock( $session_id, $lock_token );
 			SScribe_AJAX_Guard::error(
 				array(
 					'message'   => __( 'Export was cancelled.', 'sscribe-export-site-pages' ),
@@ -1073,7 +1075,7 @@ class SScribe_Batch_Processor {
 		// Reject unresolved paths to prevent path traversal attacks.
 		// realpath() returns false if the path doesn't exist or can't be resolved.
 		if ( false === $real_temp_dir || 0 !== strpos( $real_temp_dir, $allowed_temp_base ) ) {
-			$this->release_lock( $session_id );
+			$this->release_lock( $session_id, $lock_token );
 			$this->restore_ob_level( $ob_level_before );
 			SScribe_AJAX_Guard::error(
 				array(
@@ -1127,7 +1129,7 @@ class SScribe_Batch_Processor {
 			try {
 				$this->finalize_export( $session_id, $session );
 			} finally {
-				$this->release_lock( $session_id );
+				$this->release_lock( $session_id, $lock_token );
 			}
 			return;
 		}
@@ -1518,7 +1520,7 @@ class SScribe_Batch_Processor {
 				$this->export_log->flush();
 			}
 
-			$this->release_lock( $session_id );
+			$this->release_lock( $session_id, $lock_token );
 			$this->restore_ob_level( $ob_level_before );
 			$this->collector->clear_page_caches();
 		}
@@ -1741,6 +1743,7 @@ class SScribe_Batch_Processor {
 				),
 				403
 			);
+			return;
 		}
 
 		$status = $session['status'] ?? '';
@@ -1752,6 +1755,7 @@ class SScribe_Batch_Processor {
 				),
 				409
 			);
+			return;
 		}
 
 		// Re-acquire the processing lock to serialize concurrent finalize requests.
@@ -1767,8 +1771,8 @@ class SScribe_Batch_Processor {
 				),
 				409
 			);
+			return;
 		}
-		$this->current_lock_token = $lock_token;
 
 		if ( 'completing' === $status ) {
 			// Check if the completing timestamp is too old - if so, the previous
@@ -1782,6 +1786,7 @@ class SScribe_Batch_Processor {
 					),
 					409
 				);
+				return;
 			}
 			// completing_since is too old (> 2 minutes), treat as stale and allow retry.
 		}
@@ -1796,6 +1801,7 @@ class SScribe_Batch_Processor {
 	 * @param array  $session    Session data.
 	 */
 	private function finalize_export( string $session_id, array $session ): void {
+		$lock_token = null; // Initialize for PHPStan; always overwritten below before release_lock().
 
 		if ( null === $this->export_log ) {
 			$this->export_log = new SScribe_Export_Log( $session_id );
@@ -1911,7 +1917,7 @@ class SScribe_Batch_Processor {
 					$this->zip_handler->delete_directory( $session['temp_dir'] );
 				}
 
-				$this->release_lock( $session_id );
+				$this->release_lock( $session_id, $lock_token );
 				$this->get_diagnostics()->self_heal();
 
 				SScribe_AJAX_Guard::error(
@@ -1950,7 +1956,7 @@ class SScribe_Batch_Processor {
 					$this->zip_handler->delete_directory( $session['temp_dir'] );
 				}
 
-				$this->release_lock( $session_id );
+				$this->release_lock( $session_id, $lock_token );
 				$this->get_diagnostics()->self_heal();
 
 				$zip_error = array(
@@ -2054,7 +2060,7 @@ class SScribe_Batch_Processor {
 					$this->zip_handler->delete_directory( $session['temp_dir'] );
 				}
 
-				$this->release_lock( $session_id );
+				$this->release_lock( $session_id, $lock_token );
 
 				SScribe_AJAX_Guard::error(
 					array(
@@ -2200,7 +2206,7 @@ class SScribe_Batch_Processor {
 				);
 			}
 
-			$this->release_lock( $session_id );
+			$this->release_lock( $session_id, $lock_token );
 			$this->session->delete( $session_id );
 			SScribe_AJAX_Guard::success( $response );
 		} catch ( \Throwable $e ) {
@@ -2215,7 +2221,7 @@ class SScribe_Batch_Processor {
 				)
 			);
 
-			$this->release_lock( $session_id );
+			$this->release_lock( $session_id, $lock_token );
 
 			SScribe_AJAX_Guard::error(
 				array(
@@ -2318,11 +2324,12 @@ class SScribe_Batch_Processor {
 	/**
 	 * Release export lock for a session.
 	 *
-	 * @param string $session_id Session ID.
+	 * @param string      $session_id Session ID.
+	 * @param string|null $lock_token Lock token to release.
 	 * @return bool True if lock was released.
 	 */
-	private function release_lock( string $session_id ): bool {
-		return $this->get_lock_manager()->release_lock( $session_id, $this->current_lock_token );
+	private function release_lock( string $session_id, ?string $lock_token = null ): bool {
+		return $this->get_lock_manager()->release_lock( $session_id, $lock_token ?? $this->current_lock_token );
 	}
 
 	/**
