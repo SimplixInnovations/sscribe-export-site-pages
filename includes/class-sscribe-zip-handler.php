@@ -281,12 +281,14 @@ class SScribe_Zip_Handler {
 				'ZIP verification failed before return',
 				array( 'zip_path' => $zip_path )
 			);
+			if ( $lock_using_cache ) {
+				wp_cache_delete( $lock_key, 'transient' );
+			}
+			delete_transient( $lock_key );
 			return false;
 		}
 
-		return file_exists( $zip_path ) ? $zip_path : false;
-	}
-
+		// Update the export index with the new ZIP.
 		try {
 			$exports = get_option( 'sscribe_export_index', array() );
 			$exports[ basename( $zip_path ) ] = array(
