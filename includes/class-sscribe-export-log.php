@@ -482,8 +482,13 @@ class SScribe_Export_Log {
 		$files = glob( $log_dir . '/export_*.json' );
 
 		if ( is_array( $files ) && count( $files ) > 200 ) {
-			error_log(
-				'SScribe_Export_Log: O(n) log scan triggered for ' . $filename . ' — ' . count( $files ) . ' files in directory. Consider running cleanup.'
+			$logger = SScribe_Logger::instance( SScribe_Logger::is_logging_enabled() );
+			$logger->warning(
+				'O(n) log scan triggered — directory has ' . count( $files ) . ' files. Consider running cleanup.',
+				array(
+					'filename'  => $filename,
+					'filecount' => count( $files ),
+				)
 			);
 		}
 
