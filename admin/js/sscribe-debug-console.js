@@ -520,13 +520,13 @@
 			form.method = 'POST';
 			form.action = url;
 			form.style.display = 'none';
-			for (const key in data) {
+			Object.keys(data).forEach(function (key) {
 				const input = document.createElement('input');
 				input.type = 'hidden';
 				input.name = key;
 				input.value = data[key];
 				form.appendChild(input);
-			}
+			});
 			document.body.appendChild(form);
 			form.submit();
 			setTimeout(function () {
@@ -554,7 +554,7 @@
 			};
 
 			$.post(sscribe_data.ajaxurl, data, function (response) {
-				if (response.success) {
+				if (response.success && response.data && Array.isArray(response.data.files)) {
 					self.renderRotatedLogs(response.data.files);
 				} else {
 					self.$rotatedBody.html(
@@ -707,7 +707,7 @@
 	 * @returns {string} HTML string for the entry.
 	 */
 	function buildEntryHtml(entry) {
-		const badgeClass = entry.level.toLowerCase();
+		const badgeClass = (entry.level && typeof entry.level === 'string') ? entry.level.toLowerCase() : 'info';
 		let contextHtml = '';
 
 		if (entry.context) {
