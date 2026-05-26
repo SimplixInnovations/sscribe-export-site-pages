@@ -1039,6 +1039,13 @@
 			});
 		},
 
+		showExportCompleteNotice: function () {
+			const msg = sscribe_data.strings && sscribe_data.strings.export_complete_notice
+				? sscribe_data.strings.export_complete_notice
+				: 'Export complete! You can start a new export now.';
+			this.showToast(msg, 'success', 6000);
+		},
+
 		exportComplete: function (data, isAutoDownload) {
 			this.isProcessing = false;
 			const progressFill = document.getElementById('sscribe-progress-bar');
@@ -1084,6 +1091,12 @@
 						$('html, body').animate({ scrollTop: 0 }, 300);
 
 						SScribe.refreshRecentExports();
+
+						if (typeof window.SScribeDebugConsole !== 'undefined' && window.SScribeDebugConsole.initialized) {
+							window.SScribeDebugConsole.fetchLogs();
+						}
+
+						self.showExportCompleteNotice();
 					});
 			});
 		},

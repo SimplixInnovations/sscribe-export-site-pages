@@ -36,18 +36,21 @@ class SScribe_Export_Rate_Limiter {
 	 * scenarios, but is acceptable for rate-limiting UX purposes.
 	 *
 	 * @param string $export_capability Required capability.
+	 * @param string $bucket            Rate limit bucket name (default: 'export').
+	 *                                 Use 'debug' for debug console actions to keep
+	 *                                 them in a separate bucket from export actions.
 	 * @return bool
 	 */
-	public function check_rate_limit( string $export_capability = 'manage_options' ): bool {
+	public function check_rate_limit( string $export_capability = 'manage_options', string $bucket = 'export' ): bool {
 		$user_id = get_current_user_id();
 
 		if ( $user_id > 0 ) {
-			$transient_key = 'sscribe_rate_' . $user_id;
+			$transient_key = 'sscribe_rate_' . $bucket . '_' . $user_id;
 		} else {
 			$remote_ip     = isset( $_SERVER['REMOTE_ADDR'] )
 				? sanitize_text_field( wp_unslash( $_SERVER['REMOTE_ADDR'] ) )
 				: '0.0.0.0';
-			$transient_key = 'sscribe_rate_anon_' . substr( hash( 'sha256', $remote_ip ), 0, 12 );
+			$transient_key = 'sscribe_rate_' . $bucket . '_anon_' . substr( hash( 'sha256', $remote_ip ), 0, 12 );
 		}
 
 		$now       = time();
