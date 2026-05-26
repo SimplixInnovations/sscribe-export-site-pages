@@ -18,6 +18,13 @@ if ( ! defined( 'ABSPATH' ) ) {
 class SScribe_Content_Parser {
 
 	/**
+	 * Logger instance.
+	 *
+	 * @var SScribe_Logger_Interface|null
+	 */
+	private ?SScribe_Logger_Interface $logger = null;
+
+	/**
 	 * KSES allowed HTML elements for content export.
 	 * Extends wp_kses_post with additional elements needed for rich content.
 	 *
@@ -472,7 +479,7 @@ class SScribe_Content_Parser {
 				'content'  => '',
 				'runs'     => array(),
 				'children' => array(),
-				'depth'    => min( $depth, 2 ),
+				'depth'    => min( $depth, 8 ),
 			);
 
 			foreach ( $child->childNodes as $li_child ) {
@@ -627,7 +634,8 @@ class SScribe_Content_Parser {
 		// Limit input size to prevent regex backtracking on large content.
 		// Use mb_strcut to avoid splitting multi-byte UTF-8 characters.
 		if ( mb_strlen( $html, '8bit' ) > 500000 ) {
-			$this->logger->warning(
+			$logger = SScribe_Logger::instance( SSCRIBE_DEBUG );
+			$logger->warning(
 				'Large HTML content truncated for button extraction — content past 500KB limit skipped',
 				array(
 					'original_length' => mb_strlen( $html, '8bit' ),
@@ -671,7 +679,7 @@ class SScribe_Content_Parser {
 
 				$url = '';
 				if ( preg_match( '/href=["\']([^"\']+)/', $match[0], $url_match ) ) {
-					$url = $url_match[1];
+					$url = esc_url_raw( $url_match[1] );
 				}
 
 				if ( ! empty( $content ) ) {
@@ -791,6 +799,38 @@ class SScribe_Content_Parser {
 						}
 						break;
 
+					case 'sup':
+						$sub_runs = $this->get_inline_runs( $child );
+						foreach ( $sub_runs as $key => $run ) {
+							$sub_runs[ $key ]['superScript'] = true;
+						}
+						$runs = array_merge( $runs, $sub_runs );
+						break;
+
+					case 'sub':
+						$sub_runs = $this->get_inline_runs( $child );
+						foreach ( $sub_runs as $key => $run ) {
+							$sub_runs[ $key ]['subScript'] = true;
+						}
+						$runs = array_merge( $runs, $sub_runs );
+						break;
+
+					case 'mark':
+						$sub_runs = $this->get_inline_runs( $child );
+						foreach ( $sub_runs as $key => $run ) {
+							$sub_runs[ $key ]['highlight'] = 'yellow';
+						}
+						$runs = array_merge( $runs, $sub_runs );
+						break;
+
+					case 'ins':
+						$sub_runs = $this->get_inline_runs( $child );
+						foreach ( $sub_runs as $key => $run ) {
+							$sub_runs[ $key ]['underline'] = true;
+						}
+						$runs = array_merge( $runs, $sub_runs );
+						break;
+
 					default:
 						$sub_runs = $this->get_inline_runs( $child );
 						$runs     = array_merge( $runs, $sub_runs );
@@ -855,7 +895,8 @@ class SScribe_Content_Parser {
 		}
 
 		$extension = strtolower( pathinfo( $real_local, PATHINFO_EXTENSION ) );
-		if ( ! in_array( $extension, array( 'jpg', 'jpeg', 'png', 'gif', 'webp', 'bmp', 'svg', 'avif' ), true ) ) {
+		// WEBP and AVIF are not supported by PHPWord — exclude them to prevent exceptions.
+		if ( ! in_array( $extension, array( 'jpg', 'jpeg', 'png', 'gif', 'bmp', 'svg' ), true ) ) {
 			return '';
 		}
 

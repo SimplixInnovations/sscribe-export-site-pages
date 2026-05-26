@@ -277,10 +277,11 @@ class SScribe_Session {
 		$lock_ttl      = 10;
 		$using_cache   = wp_using_ext_object_cache();
 
-		// Use exponential back-off: 50ms, 100ms, 200ms, 400ms (750ms max total).
+		// Use exponential back-off: 50ms, 100ms, 200ms, 400ms, 600ms, 800ms (~2.65s max total).
 		$base_delay = 50000; // 50ms in microseconds
+		$max_attempts = 6;
 
-		for ( $lock_attempt = 1; $lock_attempt <= 4; ++$lock_attempt ) {
+		for ( $lock_attempt = 1; $lock_attempt <= $max_attempts; ++$lock_attempt ) {
 			if ( $using_cache ) {
 				if ( wp_cache_add( $lock_key, time(), 'transient', $lock_ttl ) ) {
 					$lock_acquired = true;
@@ -291,9 +292,10 @@ class SScribe_Session {
 				break;
 			}
 
-			// Exponential back-off: base_delay * 2^(attempt-1)
+			// Exponential back-off with jitter: base_delay * 2^(attempt-1) + random jitter.
 			$delay = $base_delay * ( 2 ** ( $lock_attempt - 1 ) );
-			usleep( $delay );
+			$jitter = wp_rand( 0, (int) ( $delay * 0.1 ) ); // 10% jitter.
+			usleep( $delay + $jitter );
 		}
 
 		if ( ! $lock_acquired ) {
@@ -373,6 +375,13 @@ class SScribe_Session {
 				);
 			}
 
+			$this->logger->error(
+				'Session update failed after max retries — session may be in inconsistent state',
+				array(
+					'session_id' => $session_id,
+					'option_name' => $option_name,
+				)
+			);
 			return false;
 
 		} finally {
@@ -526,8 +535,13 @@ class SScribe_Session {
 				}
 
 				$last_activity = isset( $data['updated_at'] )
-					? max( $data['created_at'], $data['updated_at'] )
-					: $data['created_at'];
+					? max( (int) $data['created_at'], (int) $data['updated_at'] )
+					: (int) $data['created_at'];
+
+				// Guard against corrupted session data with zero/negative timestamps.
+				if ( $last_activity <= 0 || $last_activity > $now ) {
+					$last_activity = 0;
+				}
 
 				$status = $data['status'] ?? '';
 				$age    = $now - $last_activity;
@@ -536,7 +550,7 @@ class SScribe_Session {
 					continue;
 				}
 
-				if ( isset( $data['created_at'] ) && ( $now - $last_activity ) > $max_age_seconds ) {
+				if ( isset( $data['created_at'] ) && $last_activity > 0 && ( $now - $last_activity ) > $max_age_seconds ) {
 					if ( delete_option( $option->option_name ) ) {
 						++$deleted;
 					}

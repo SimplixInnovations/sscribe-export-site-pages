@@ -1047,9 +1047,7 @@ if ( ! function_exists( 'wp_list_pluck' ) ) {
 	}
 }
 
-if ( ! function_exists( 'class_exists' ) || ! class_exists( 'WP_Query' ) ) {
-	
-}
+// Mock stubs only needed in non-WP environments — WP_Query available via bootstrap
 
 
 if ( ! function_exists( 'add_action' ) ) {
