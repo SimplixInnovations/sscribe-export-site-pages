@@ -144,6 +144,16 @@ class SScribe_Exporter {
 			$this->font_name,
 			$this->font_size
 		);
+
+		// Sync config for injected content_renderer to ensure RTL and colors are up-to-date
+		if ( null !== $this->content_renderer ) {
+			$this->content_renderer->sync_config(
+				$this->colors,
+				$this->is_rtl,
+				$this->font_name,
+				$this->font_size
+			);
+		}
 	}
 
 	/**
