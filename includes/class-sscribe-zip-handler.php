@@ -46,7 +46,7 @@ class SScribe_Zip_Handler {
 		$upload_dir = wp_upload_dir();
 		if ( ! empty( $upload_dir['error'] ) ) {
 			$this->export_dir = '';
-			$this->logger     = SScribe_Logger::instance( SSCRIBE_DEBUG );
+			$this->logger     = SScribe_Logger::instance( SScribe_Logger::is_logging_enabled() );
 			$this->logger->warning(
 				'wp_upload_dir() returned an error — export directory unavailable',
 				array( 'error' => $upload_dir['error'] )
@@ -54,7 +54,7 @@ class SScribe_Zip_Handler {
 			return;
 		}
 		$this->export_dir = $upload_dir['basedir'] . '/sscribe-exports';
-		$this->logger     = SScribe_Logger::instance( SSCRIBE_DEBUG );
+		$this->logger     = SScribe_Logger::instance( SScribe_Logger::is_logging_enabled() );
 	}
 
 	/**
@@ -180,7 +180,7 @@ class SScribe_Zip_Handler {
 
 				foreach ( $files as $file ) {
 					$basename      = basename( $file );
-					$archive_entry = $basename;
+					$archive_entry = sanitize_file_name( $basename );
 					$lang_code     = null;
 
 					if ( $use_lang_folders ) {
@@ -190,13 +190,13 @@ class SScribe_Zip_Handler {
 						if ( $lang_code ) {
 
 							$clean_name    = $this->remove_lang_from_filename( $basename );
-							$archive_entry = $folder_name . '/' . $lang_code . '/' . $clean_name;
+							$archive_entry = $folder_name . '/' . $lang_code . '/' . sanitize_file_name( $clean_name );
 						} else {
 
-							$archive_entry = $folder_name . '/' . $basename;
+							$archive_entry = $folder_name . '/' . sanitize_file_name( $basename );
 						}
 					} elseif ( $use_folders ) {
-						$archive_entry = $folder_name . '/' . $basename;
+						$archive_entry = $folder_name . '/' . sanitize_file_name( $basename );
 					}
 
 					if ( ! $zip->addFile( $file, $archive_entry ) ) {
@@ -276,7 +276,7 @@ class SScribe_Zip_Handler {
 		}
 
 		try {
-			$exports                          = get_option( 'sscribe_export_index', array() );
+			$exports = get_option( 'sscribe_export_index', array() );
 			$exports[ basename( $zip_path ) ] = array(
 				'created_at' => time(),
 				'user_id'    => get_current_user_id(),
@@ -286,6 +286,12 @@ class SScribe_Zip_Handler {
 				'flag_url'   => $lang_metadata['flag_url'] ?? '',
 				'session_id' => $session_id,
 			);
+
+			// Cap index at 50 entries to prevent wp_options bloat.
+			if ( count( $exports ) > 50 ) {
+				$exports = array_slice( $exports, -50, 50, true );
+			}
+
 			update_option( 'sscribe_export_index', $exports, false );
 		} finally {
 			if ( $lock_using_cache ) {

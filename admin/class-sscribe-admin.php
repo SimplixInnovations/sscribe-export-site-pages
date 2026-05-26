@@ -286,20 +286,23 @@ class SScribe_Admin {
 			true
 		);
 
-		wp_enqueue_style(
-			'sscribe-debug-console',
-			SSCRIBE_PLUGIN_URL . 'admin/css/sscribe-debug-console.css',
-			array( 'sscribe-admin' ),
-			$debug_css_version
-		);
+		// Only enqueue debug console assets when debug mode is enabled.
+		if ( $debug ) {
+			wp_enqueue_style(
+				'sscribe-debug-console',
+				SSCRIBE_PLUGIN_URL . 'admin/css/sscribe-debug-console.css',
+				array( 'sscribe-admin' ),
+				$debug_css_version
+			);
 
-		wp_enqueue_script(
-			'sscribe-debug-console',
-			SSCRIBE_PLUGIN_URL . 'admin/js/sscribe-debug-console.js',
-			array( 'jquery', 'sscribe-admin' ),
-			$debug_js_version,
-			true
-		);
+			wp_enqueue_script(
+				'sscribe-debug-console',
+				SSCRIBE_PLUGIN_URL . 'admin/js/sscribe-debug-console.js',
+				array( 'jquery', 'sscribe-admin' ),
+				$debug_js_version,
+				true
+			);
+		}
 
 		add_action( 'admin_print_footer_scripts', array( $this, 'print_localized_data' ), 0 );
 	}

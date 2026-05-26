@@ -382,6 +382,15 @@ class SScribe_Exporter {
 
 			$php_word = new PhpWord();
 
+			$this->get_logger()->debug(
+				'DOCX generation started',
+				array(
+					'page_id'       => $page_data['id'] ?? 0,
+					'page_title'   => $page_data['title'] ?? 'unknown',
+					'memory_before' => size_format( memory_get_usage( true ) ),
+				)
+			);
+
 			$this->font_name = 'Arial';
 			$this->is_rtl    = $this->is_rtl_document( $page_data );
 
@@ -490,6 +499,17 @@ class SScribe_Exporter {
 			// Lightweight integrity check: verify file size > minimum threshold.
 			$file_size = filesize( $output_path );
 			$min_size   = 8192; // Minimal DOCX should be at least 8KB to avoid empty/corrupted files.
+
+			$this->get_logger()->debug(
+				'DOCX saved to disk',
+				array(
+					'page_id'     => $page_data['id'] ?? 0,
+					'output_path' => $output_path,
+					'file_size'   => size_format( $file_size ),
+					'memory_now'  => size_format( memory_get_usage( true ) ),
+				)
+			);
+
 			if ( $file_size < $min_size ) {
 				wp_delete_file( $output_path );
 				unset( $writer, $php_word );
@@ -1073,16 +1093,37 @@ class SScribe_Exporter {
 	 */
 	private function add_featured_image( \SScribeVendor\PhpOffice\PhpWord\Element\Section $section, array $page_data ): void {
 		if ( empty( $page_data['featured_image_path'] ) || ! file_exists( $page_data['featured_image_path'] ) ) {
+			$this->get_logger()->warning(
+				'Featured image skipped: file not found',
+				array(
+					'page_id' => $page_data['id'] ?? 0,
+					'path'    => $page_data['featured_image_path'] ?? 'empty',
+				)
+			);
 			return;
 		}
 
 		try {
 			$path = $page_data['featured_image_path'];
 			if ( ! is_readable( $path ) ) {
+				$this->get_logger()->warning(
+					'Featured image skipped: not readable',
+					array(
+						'page_id' => $page_data['id'] ?? 0,
+						'path'    => $path,
+					)
+				);
 				return;
 			}
 			$image_info = getimagesize( $path );
 			if ( ! $image_info ) {
+				$this->get_logger()->warning(
+					'Featured image skipped: getimagesize failed',
+					array(
+						'page_id' => $page_data['id'] ?? 0,
+						'path'    => $path,
+					)
+				);
 				return;
 			}
 
@@ -1384,7 +1425,7 @@ class SScribe_Exporter {
 	 */
 	private function get_logger(): SScribe_Logger_Interface {
 		if ( null === $this->logger ) {
-			$this->logger = SScribe_Logger::instance( SSCRIBE_DEBUG );
+			$this->logger = SScribe_Logger::instance( SScribe_Logger::is_logging_enabled() );
 		}
 		return $this->logger;
 	}

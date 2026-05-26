@@ -43,7 +43,7 @@ class SScribe_Session {
 	public function __construct(
 		private readonly string $option_prefix = self::OPTION_PREFIX
 	) {
-		$this->logger = SScribe_Logger::instance( SSCRIBE_DEBUG, 'sscribe_session' );
+		$this->logger = SScribe_Logger::instance( SScribe_Logger::is_logging_enabled(), 'sscribe_session' );
 	}
 
 	/**

@@ -247,7 +247,7 @@ class SScribe_Image_Processor {
 		// phpcs:ignore WordPress.PHP.DevelopmentFunctions.error_log_set_error_handler -- Production error handling for image processing.
 		set_error_handler(
 			static function ( int $errno, string $errstr ) use ( $path ): bool {
-				SScribe_Logger::instance( SSCRIBE_DEBUG )
+				SScribe_Logger::instance( SScribe_Logger::is_logging_enabled() )
 					->warning(
 						'getimagesize failed for local image',
 						array(
@@ -280,7 +280,7 @@ class SScribe_Image_Processor {
 		// phpcs:ignore WordPress.PHP.DevelopmentFunctions.error_log_set_error_handler -- Production error handling for GD image loading.
 		set_error_handler(
 			static function ( int $errno, string $errstr ) use ( $path ): bool {
-				SScribe_Logger::instance( SSCRIBE_DEBUG )
+				SScribe_Logger::instance( SScribe_Logger::is_logging_enabled() )
 					->warning(
 						'Image loading failed',
 						array(

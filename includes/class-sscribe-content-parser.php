@@ -172,7 +172,7 @@ class SScribe_Content_Parser {
 			return array();
 		}
 
-		$logger = SScribe_Logger::instance( SSCRIBE_DEBUG );
+		$logger = SScribe_Logger::instance( SScribe_Logger::is_logging_enabled() );
 
 		$logger->debug(
 			'Content parser: parse() called',
@@ -668,7 +668,7 @@ class SScribe_Content_Parser {
 		// Limit input size to prevent regex backtracking on large content.
 		// Use mb_strcut to avoid splitting multi-byte UTF-8 characters.
 		if ( mb_strlen( $html, '8bit' ) > 500000 ) {
-			$logger = SScribe_Logger::instance( SSCRIBE_DEBUG );
+			$logger = SScribe_Logger::instance( SScribe_Logger::is_logging_enabled() );
 			$logger->warning(
 				'Large HTML content truncated for button extraction — content past 500KB limit skipped',
 				array(

@@ -462,7 +462,7 @@ class SScribe_Batch_Processor {
 		$this->collector       = $collector ?? new SScribe_Page_Collector();
 		$this->zip_handler     = $zip_handler ?? new SScribe_Zip_Handler();
 		$this->session         = $session ?? new SScribe_Session();
-		$this->logger          = $logger ?? SScribe_Logger::instance( SSCRIBE_DEBUG );
+		$this->logger          = $logger ?? SScribe_Logger::instance( SScribe_Logger::is_logging_enabled() );
 		$this->file_handler    = $file_handler ?? new SScribe_Batch_File_Handler(
 			new SScribe_Export_Rate_Limiter(),
 			$this->zip_handler,
@@ -1418,6 +1418,12 @@ class SScribe_Batch_Processor {
 					'memory_used' => size_format( memory_get_usage( true ) ),
 				)
 			);
+			// Always log to PHP error_log as fallback regardless of logger state.
+			if ( SScribe_Logger::is_logging_enabled() ) {
+				error_log( // phpcs:ignore WordPress.PHP.DevelopmentFunctions.error_log_error_log -- Fallback error logging when logger is available.
+					'SScribe batch error: ' . $e->getMessage() . ' | Page: ' . ( $current_batch_page_id ?? 'unknown' )
+				);
+			}
 		} finally {
 			// Persist session state BEFORE releasing lock to prevent race condition.
 			// Between lock release and session update, another process could acquire

@@ -154,6 +154,11 @@ class SScribe_Settings {
 		$enabled_saved = self::set_debug_enabled( $enabled );
 		$refresh_saved = self::set_auto_refresh( $refresh );
 
+		// Reset logger singleton so next call gets fresh instance with updated state.
+		if ( class_exists( 'SScribe_Logger' ) ) {
+			SScribe_Logger::reset_instance();
+		}
+
 		return $level_saved && $enabled_saved && $refresh_saved;
 	}
 }
