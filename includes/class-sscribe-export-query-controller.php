@@ -221,6 +221,17 @@ class SScribe_Export_Query_Controller {
 			);
 		}
 
+		if ( ! $this->rate_limiter->check_rate_limit( $export_capability ) ) {
+			SScribe_AJAX_Guard::error(
+				array(
+					'message'  => __( 'Too many requests. Please wait a moment.', 'sscribe-export-site-pages' ),
+					'retry'    => true,
+					'retry_in' => 60000,
+				),
+				429
+			);
+		}
+
 		$log_data = SScribe_Export_Log::get_log_by_filename( $filename );
 
 		if ( ! $log_data ) {
@@ -446,6 +457,17 @@ class SScribe_Export_Query_Controller {
 			SScribe_AJAX_Guard::error(
 				array( 'message' => __( 'Permission denied.', 'sscribe-export-site-pages' ) ),
 				403
+			);
+		}
+
+		if ( ! $this->rate_limiter->check_rate_limit( $export_capability ) ) {
+			SScribe_AJAX_Guard::error(
+				array(
+					'message'  => __( 'Too many requests. Please wait a moment.', 'sscribe-export-site-pages' ),
+					'retry'    => true,
+					'retry_in' => 60000,
+				),
+				429
 			);
 		}
 

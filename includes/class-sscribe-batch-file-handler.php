@@ -190,6 +190,17 @@ class SScribe_Batch_File_Handler {
 			SScribe_AJAX_Guard::error( array( 'message' => __( 'Permission denied.', 'sscribe-export-site-pages' ) ), 403 );
 		}
 
+		if ( ! $this->check_rate_limit() ) {
+			SScribe_AJAX_Guard::error(
+				array(
+					'message'  => __( 'Too many requests. Please wait a moment.', 'sscribe-export-site-pages' ),
+					'retry'    => true,
+					'retry_in' => 60000,
+				),
+				429
+			);
+		}
+
 		$filename = isset( $_POST['file'] ) ? sanitize_file_name( wp_unslash( $_POST['file'] ) ) : '';
 
 		if ( empty( $filename ) ) {
@@ -262,6 +273,17 @@ class SScribe_Batch_File_Handler {
 
 		if ( ! current_user_can( $this->get_required_capability() ) ) {
 			SScribe_AJAX_Guard::error( array( 'message' => __( 'Permission denied.', 'sscribe-export-site-pages' ) ), 403 );
+		}
+
+		if ( ! $this->check_rate_limit() ) {
+			SScribe_AJAX_Guard::error(
+				array(
+					'message'  => __( 'Too many requests. Please wait a moment.', 'sscribe-export-site-pages' ),
+					'retry'    => true,
+					'retry_in' => 60000,
+				),
+				429
+			);
 		}
 
 		SScribe_AJAX_Guard::success(
