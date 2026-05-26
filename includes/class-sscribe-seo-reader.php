@@ -209,14 +209,18 @@ class SScribe_SEO_Reader {
 				$keyphrases     = isset( $aioseo_post->keyphrases ) ? json_decode( $aioseo_post->keyphrases, true ) : array();
 				if ( ! empty( $keyphrases['focus']['keyphrase'] ) ) {
 					$keyword = $keyphrases['focus']['keyphrase'];
+					// Handle array (multiple keywords) by joining with comma.
+					if ( is_array( $keyword ) ) {
+						$keyword = implode( ', ', $keyword );
+					}
 				}
 			}
 		}
 
 		return array(
-			'meta_title'       => wp_strip_all_tags( $title ),
-			'meta_description' => wp_strip_all_tags( $description ),
-			'focus_keyword'    => wp_strip_all_tags( $keyword ),
+			'meta_title'       => wp_strip_all_tags( html_entity_decode( $title, ENT_QUOTES | ENT_HTML5, 'UTF-8' ) ),
+			'meta_description' => wp_strip_all_tags( html_entity_decode( $description, ENT_QUOTES | ENT_HTML5, 'UTF-8' ) ),
+			'focus_keyword'    => wp_strip_all_tags( html_entity_decode( $keyword, ENT_QUOTES | ENT_HTML5, 'UTF-8' ) ),
 			'canonical_url'    => $canonical_url,
 			'og_title'         => $og_title,
 			'og_description'   => $og_description,

@@ -271,9 +271,21 @@ class SScribe_Zip_Handler {
 				'Export indexing skipped - could not acquire exclusive lock (concurrent finalize detected)',
 				array( 'zip' => basename( $zip_path ) )
 			);
-			// Return the path anyway so the caller has access to the successfully created ZIP.
+		// Return the path anyway so the caller has access to the successfully created ZIP.
 			return file_exists( $zip_path ) ? $zip_path : false;
 		}
+
+		// Final integrity verification before returning.
+		if ( ! $this->verify_zip_integrity( $zip_path ) ) {
+			$this->logger->error(
+				'ZIP verification failed before return',
+				array( 'zip_path' => $zip_path )
+			);
+			return false;
+		}
+
+		return file_exists( $zip_path ) ? $zip_path : false;
+	}
 
 		try {
 			$exports = get_option( 'sscribe_export_index', array() );
@@ -301,6 +313,47 @@ class SScribe_Zip_Handler {
 		}
 
 		return file_exists( $zip_path ) ? $zip_path : false;
+	}
+
+	/**
+	 * Verify ZIP file integrity after creation.
+	 *
+	 * @param string $zip_path Path to the ZIP file.
+	 * @return bool True if ZIP is valid and readable.
+	 */
+	private function verify_zip_integrity( string $zip_path ): bool {
+		if ( ! file_exists( $zip_path ) || ! is_readable( $zip_path ) ) {
+			return false;
+		}
+
+		$zip = new ZipArchive();
+		$result = $zip->open( $zip_path, ZipArchive::READONLY );
+		if ( true !== $result ) {
+			$this->logger->error(
+				'ZIP integrity verification failed',
+				array(
+					'zip_path' => $zip_path,
+					'error'   => $zip->getStatusString(),
+				)
+			);
+			return false;
+		}
+
+		// Verify the ZIP contains at least one file.
+		$num_files = $zip->numFiles;
+		$zip->close();
+
+		if ( $num_files < 1 ) {
+			$this->logger->error(
+				'ZIP contains no files',
+				array(
+					'zip_path' => $zip_path,
+				)
+			);
+			return false;
+		}
+
+		return true;
 	}
 
 	/**

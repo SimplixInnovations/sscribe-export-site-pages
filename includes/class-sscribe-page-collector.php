@@ -1021,7 +1021,9 @@ class SScribe_Page_Collector {
 	 * @return string Validated status.
 	 */
 	public function validate_post_status( string $status ): string {
-		$valid = array_keys( $this->get_valid_post_statuses() );
+		// Sanitize the input to prevent injection and handle whitespace issues.
+		$status = sanitize_text_field( $status );
+		$valid  = array_keys( $this->get_valid_post_statuses() );
 
 		if ( 'all' === $status ) {
 			return 'any';

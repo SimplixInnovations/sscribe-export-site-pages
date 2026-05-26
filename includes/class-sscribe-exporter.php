@@ -284,26 +284,77 @@ class SScribe_Exporter {
 	/**
 	 * Check if host is a blocked internal/private IP address.
 	 *
+	 * Uses a timeout-aware DNS resolution to prevent hanging on slow/-blocking DNS servers.
+	 *
 	 * @param string $host Hostname or IP to check.
 	 * @return bool True if blocked.
 	 */
 	private function is_ip_blocked( string $host ): bool {
-		// Check for IPv4
-		if ( filter_var( $host, FILTER_VALIDATE_IP, FILTER_FLAG_NO_PRIV_RANGE | FILTER_FLAG_NO_RES_RANGE ) === false ) {
-			// Could be private IP or hostname that resolves to private IP
-			// Check if it's a reserved/private range
-			$ip = gethostbyname( $host );
-			if ( $ip !== $host ) {
-				// Host resolved to IP
-				if ( filter_var( $ip, FILTER_VALIDATE_IP, FILTER_FLAG_NO_PRIV_RANGE | FILTER_FLAG_NO_RES_RANGE ) === false ) {
-					return true;
-				}
-			} else {
-				// Could not resolve - block hostname that might be internal
-				return true;
+		// Check if it's already a valid public IP
+		if ( filter_var( $host, FILTER_VALIDATE_IP, FILTER_FLAG_NO_PRIV_RANGE | FILTER_FLAG_NO_RES_RANGE ) !== false ) {
+			return false;
+		}
+
+		// It's either a hostname or a private IP - hostname that resolves to private should be blocked.
+		// Use DNS lookup with timeout to prevent hanging.
+		$ip = $this->resolve_host_with_timeout( $host );
+		if ( null === $ip ) {
+			// Could not resolve within timeout - block hostname that might be internal
+			return true;
+		}
+
+		// Check if resolved IP is private/reserved
+		if ( filter_var( $ip, FILTER_VALIDATE_IP, FILTER_FLAG_NO_PRIV_RANGE | FILTER_FLAG_NO_RES_RANGE ) === false ) {
+			return true;
+		}
+
+		return false;
+	}
+
+	/**
+	 * Resolve hostname with timeout to prevent DNS hanging.
+	 *
+	 * @param string $hostname Hostname to resolve.
+	 * @return string|null Resolved IP or null on timeout/failure.
+	 */
+	private function resolve_host_with_timeout( string $hostname ): ?string {
+		// Try gethostbyname first (fastest, but no timeout control)
+		$ip = gethostbyname( $hostname );
+		if ( $ip !== $hostname ) {
+			return $ip;
+		}
+
+		// Fallback: use DNS-over-HTTP via wp_safe_remote_get for timeout control
+		// This handles cases where gethostbyname hangs on blocked DNS
+		$response = wp_safe_remote_get(
+			'https://dns.google/resolve?name=' . rawurlencode( $hostname ) . '&type=A',
+			array(
+				'timeout'    => 3,
+				'user-agent' => 'SScribe-Blocklist/1.0',
+			)
+		);
+
+		if ( is_wp_error( $response ) ) {
+			return null;
+		}
+
+		$body = wp_remote_retrieve_body( $response );
+		if ( empty( $body ) ) {
+			return null;
+		}
+
+		$data = json_decode( $body, true );
+		if ( ! is_array( $data ) || empty( $data['Answer'] ) ) {
+			return null;
+		}
+
+		foreach ( $data['Answer'] as $answer ) {
+			if ( isset( $answer['data'] ) && filter_var( $answer['data'], FILTER_VALIDATE_IP ) ) {
+				return $answer['data'];
 			}
 		}
-		return false;
+
+		return null;
 	}
 
 	/**
@@ -362,6 +413,19 @@ class SScribe_Exporter {
 	 */
 	public function generate_docx( array $page_data, string $output_dir, int $index = 0, int $total = 0 ): string|false {
 		if ( empty( $page_data ) || ! is_dir( $output_dir ) ) {
+			return false;
+		}
+
+		// Verify output directory is writable before attempting file creation.
+		if ( ! is_writable( $output_dir ) ) {
+			$this->last_error = 'Output directory is not writable: ' . $output_dir;
+			$this->get_logger()->error(
+				'DOCX generation failed: output directory not writable',
+				array(
+					'page_id'    => $page_data['id'] ?? 0,
+					'output_dir' => $output_dir,
+				)
+			);
 			return false;
 		}
 
@@ -775,6 +839,12 @@ class SScribe_Exporter {
 			$codeblock_style['indentation']     = array( 'left' => Converter::cmToTwip( 0.5 ) );
 		}
 
+		// CodeBlock needs explicit complexScript and rtl for proper RTL code display.
+		if ( $this->is_rtl ) {
+			$codeblock_style['complexScript'] = true;
+			$codeblock_style['rtl']           = true;
+		}
+
 		$php_word->addParagraphStyle( 'CodeBlock', $this->get_para_style( $codeblock_style ) );
 	}
 
@@ -829,7 +899,7 @@ class SScribe_Exporter {
 					/* translators: %s: site name */
 
 					__( '%s | EXTERNAL AUDIT AND DOCUMENTATION', 'sscribe-export-site-pages' ),
-					html_entity_decode( get_bloginfo( 'name' ), ENT_QUOTES | ENT_HTML5, 'UTF-8' )
+					html_entity_decode( (string) get_bloginfo( 'name' ), ENT_QUOTES | ENT_HTML5, 'UTF-8' )
 				)
 			),
 			array(
@@ -1042,7 +1112,7 @@ class SScribe_Exporter {
 		$header_table = $header->addTable();
 		$header_table->addRow();
 		$header_table->addCell( Converter::inchToTwip( 3.25 ) )->addText(
-			$this->safe_text( html_entity_decode( get_bloginfo( 'name' ), ENT_QUOTES | ENT_HTML5, 'UTF-8' ) ),
+			$this->safe_text( html_entity_decode( (string) get_bloginfo( 'name' ), ENT_QUOTES | ENT_HTML5, 'UTF-8' ) ),
 			array(
 				'name'  => $this->font_name,
 				'size'  => 8,
@@ -1092,19 +1162,19 @@ class SScribe_Exporter {
 	 * @return void
 	 */
 	private function add_featured_image( \SScribeVendor\PhpOffice\PhpWord\Element\Section $section, array $page_data ): void {
-		if ( empty( $page_data['featured_image_path'] ) || ! file_exists( $page_data['featured_image_path'] ) ) {
+		if ( empty( $page_data['featured_image_path'] ) ) {
 			$this->get_logger()->warning(
-				'Featured image skipped: file not found',
+				'Featured image skipped: path not provided',
 				array(
 					'page_id' => $page_data['id'] ?? 0,
-					'path'    => $page_data['featured_image_path'] ?? 'empty',
 				)
 			);
 			return;
 		}
 
+		$path = $page_data['featured_image_path'];
+
 		try {
-			$path = $page_data['featured_image_path'];
 			if ( ! is_readable( $path ) ) {
 				$this->get_logger()->warning(
 					'Featured image skipped: not readable',
@@ -1226,7 +1296,7 @@ class SScribe_Exporter {
 				__( 'Reading Time', 'sscribe-export-site-pages' ),
 				/* translators: %d: number of minutes */
 
-				sprintf( _n( '%d minute', '%d minutes', (int) ( $page_data['reading_time'] ?? 0 ), 'sscribe-export-site-pages' ), (int) ( $page_data['reading_time'] ?? 0 ) ),
+				sprintf( _n( '%d minute', '%d minutes', (int) ceil( (float) ( $page_data['reading_time'] ?? 0 ) ), 'sscribe-export-site-pages' ), (int) ceil( (float) ( $page_data['reading_time'] ?? 0 ) ) ),
 			),
 		);
 

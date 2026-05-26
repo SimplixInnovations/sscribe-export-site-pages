@@ -162,9 +162,10 @@ class SScribe_Logger implements SScribe_Logger_Interface {
 	 * @return string Full path to log file.
 	 */
 	private function get_log_file(): string {
-		if ( ! file_exists( $this->log_dir ) ) {
-			SScribe_Security::protect_directory( $this->log_dir );
-		}
+		// Always ensure the log directory is protected, even if it already exists.
+		// This handles cases where the directory was created by an older version
+		// or without proper protection.
+		SScribe_Security::protect_directory( $this->log_dir );
 		return $this->log_dir . '/' . $this->prefix . '_debug_' . gmdate( 'Y-m-d' ) . '.log';
 	}
 
@@ -330,8 +331,14 @@ class SScribe_Logger implements SScribe_Logger_Interface {
 		}
 
 		$log_file = $this->get_log_file();
+		$content  = implode( PHP_EOL, $this->buffer ) . PHP_EOL;
 
-		if ( file_exists( $log_file ) && filesize( $log_file ) >= self::MAX_LOG_FILE_SIZE ) {
+		// Check file size AFTER content is ready to write, so we account for the actual write size.
+		// This prevents writing oversized files when buffer content exceeds the limit.
+		$current_size = file_exists( $log_file ) ? filesize( $log_file ) : 0;
+		$content_size = strlen( $content );
+
+		if ( $current_size > 0 && ( $current_size + $content_size ) > self::MAX_LOG_FILE_SIZE ) {
 			$rotated_file = $this->log_dir . '/' . $this->prefix . '_debug_' . gmdate( 'Y-m-d_H-i-s' ) . '.log';
 			$rotated = rename( $log_file, $rotated_file ); // phpcs:ignore WordPress.WP.AlternativeFunctions.rename_rename -- Safe filesystem rename for log rotation.
 			if ( $rotated ) {
@@ -343,11 +350,9 @@ class SScribe_Logger implements SScribe_Logger_Interface {
 				);
 				file_put_contents( $log_file, $warning_entry, LOCK_EX ); // phpcs:ignore WordPress.WP.AlternativeFunctions.file_system_operations_file_put_contents -- Required for debug logging per plugin requirements.
 			}
-			// If rename failed (e.g., file locked), fall through — the log file will be written
-			// as-is and the size check will trigger again on the next flush.
+			// If rename failed (e.g., file locked), fall through — the log entry will be
+			// written to the existing file even if it exceeds the size limit.
 		}
-
-		$content = implode( PHP_EOL, $this->buffer ) . PHP_EOL;
 
 		$result = file_put_contents( $log_file, $content, FILE_APPEND | LOCK_EX ); // phpcs:ignore WordPress.WP.AlternativeFunctions.file_system_operations_file_put_contents -- Required for debug logging per plugin requirements.
 		if ( false === $result ) {

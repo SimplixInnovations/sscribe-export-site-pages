@@ -446,6 +446,14 @@ class SScribe_Content_Parser {
 				return $figure_data;
 
 			case 'figcaption':
+				// Return figcaption as separate element only when it appears outside of a figure.
+				// When inside a figure, the caption is extracted by the figure case above
+				// to prevent duplicate captions in the output.
+				// Check if parent is a figure element by traversing up.
+				$parent = $node->parentNode;
+				if ( $parent instanceof DOMElement && 'figure' === strtolower( $parent->nodeName ) ) {
+					return null; // figcaption handled by figure case
+				}
 				return array(
 					'type'    => 'figcaption',
 					'content' => trim( $node->textContent ),
@@ -523,8 +531,8 @@ class SScribe_Content_Parser {
 
 					$nested_style = ( 'ul' === $li_tag ) ? 'bullet' : 'numbered';
 					$nested       = $this->parse_list( $li_child, $nested_style, $depth + 1 );
-					if ( isset( $nested['items'] ) ) {
-						$item['children'] = $nested['items'];
+					if ( isset( $nested['items'] ) && ! empty( $nested['items'] ) ) {
+						$item['children'] = array_merge( $item['children'], $nested['items'] );
 					}
 				} elseif ( XML_TEXT_NODE === $li_child->nodeType ) {
 
@@ -707,8 +715,9 @@ class SScribe_Content_Parser {
 		if ( false !== $match_count && $match_count > 0 ) {
 			foreach ( $matches as $match ) {
 				$classes = $match[1];
-				$content = wp_strip_all_tags( $match[2] );
-				$content = html_entity_decode( $content, ENT_QUOTES | ENT_HTML5, 'UTF-8' );
+				// Decode HTML entities BEFORE stripping tags to handle encoded content properly.
+				$content = html_entity_decode( $match[2], ENT_QUOTES | ENT_HTML5, 'UTF-8' );
+				$content = wp_strip_all_tags( $content );
 				$content = trim( $content );
 
 				$url = '';
@@ -930,7 +939,7 @@ class SScribe_Content_Parser {
 
 		$extension = strtolower( pathinfo( $real_local, PATHINFO_EXTENSION ) );
 		// WEBP and AVIF are not supported by PHPWord — exclude them to prevent exceptions.
-		if ( ! in_array( $extension, array( 'jpg', 'jpeg', 'png', 'gif', 'bmp', 'svg' ), true ) ) {
+		if ( ! in_array( $extension, array( 'jpg', 'jpeg', 'png', 'gif', 'bmp', 'svg', 'webp', 'avif' ), true ) ) {
 			return '';
 		}
 
