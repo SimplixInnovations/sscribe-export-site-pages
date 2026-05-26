@@ -225,18 +225,23 @@ class SScribe_Content_Parser {
 
 		$prev_use_errors = libxml_use_internal_errors( true );
 
+		// Disable external entity loading globally before any parsing
+		$prev_entity_loader = libxml_disable_entity_loader( true );
+
 		try {
 
-			$html = mb_encode_numericentity(
-				$html,
-				array( 0x80, 0x10FFFF, 0, 0x1FFFFF ),
-				'UTF-8'
-			);
+			// Sanitize control characters while preserving valid whitespace
+			// Using preg_replace instead of mb_encode_numericentity to avoid
+			// DOMPurify bypass via encoded malicious content
+			$html = preg_replace( '/[\x00-\x08\x0B\x0C\x0E-\x1F\x7F]/', '', $html );
 
 			$wrapped = '<!DOCTYPE html><html><head>'
 				. '<meta http-equiv="Content-Type" content="text/html; charset=UTF-8">'
 				. '</head><body>' . $html . '</body></html>';
-			$dom->loadHTML( $wrapped, LIBXML_HTML_NOIMPLIED | LIBXML_HTML_NODEFDTD );
+			$dom->loadHTML(
+				$wrapped,
+				LIBXML_HTML_NOIMPLIED | LIBXML_HTML_NODEFDTD | LIBXML_NONET
+			);
 
 			libxml_clear_errors();
 
@@ -274,6 +279,9 @@ class SScribe_Content_Parser {
 			}
 			libxml_clear_errors();
 			libxml_use_internal_errors( $prev_use_errors );
+			if ( $prev_entity_loader !== null ) {
+				libxml_disable_entity_loader( $prev_entity_loader );
+			}
 		}
 	}
 
