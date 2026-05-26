@@ -48,10 +48,15 @@ class SScribe_SEO_Reader {
 		);
 
 		foreach ( $readers as $plugin_name => $method ) {
-			$result = $this->$method( $page_id );
-			if ( $this->has_seo_data( $result ) ) {
-				$result['source'] = $plugin_name;
-				return $result;
+			try {
+				$result = $this->$method( $page_id );
+				if ( $this->has_seo_data( $result ) ) {
+					$result['source'] = $plugin_name;
+					return $result;
+				}
+			} catch ( \Throwable $e ) {
+				// Third-party SEO plugin threw an exception — skip and try next plugin.
+				continue;
 			}
 		}
 

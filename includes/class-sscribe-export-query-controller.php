@@ -464,15 +464,18 @@ class SScribe_Export_Query_Controller {
 				continue;
 			}
 
+			clearstatcache( true, $file_path );
+			$file_size = @filesize( $file_path );
+			$file_mtime = @filemtime( $file_path );
 			$result[] = array(
 				'filename'       => $filename,
 				'url'            => $this->zip_handler->get_ajax_download_url( $filename ),
-				'size'           => filesize( $file_path ),
-				'size_formatted' => size_format( filesize( $file_path ) ),
-				'time'           => $data['created_at'] ?? filemtime( $file_path ),
+				'size'           => $file_size !== false ? $file_size : 0,
+				'size_formatted' => $file_size !== false ? size_format( $file_size ) : '0 B',
+				'time'           => $data['created_at'] ?? $file_mtime,
 				'date'           => wp_date(
 					( get_option( 'date_format' ) ? get_option( 'date_format' ) : 'Y-m-d' ) . ' ' . ( get_option( 'time_format' ) ? get_option( 'time_format' ) : 'H:i' ),
-					$data['created_at'] ?? filemtime( $file_path ),
+					$data['created_at'] ?? $file_mtime,
 				),
 				'lang_code'      => $data['lang_code'] ?? '',
 				'lang_name'      => $data['lang_name'] ?? '',

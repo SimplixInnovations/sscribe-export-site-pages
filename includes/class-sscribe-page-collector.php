@@ -16,6 +16,11 @@ if ( ! defined( 'ABSPATH' ) ) {
 class SScribe_Page_Collector {
 
 	/**
+	 * Maximum cache entries before LRU eviction.
+	 */
+	private const CACHE_MAX_SIZE = 500;
+
+	/**
 	 * Cached featured images by page ID.
 	 *
 	 * @var array<int, array>
@@ -45,6 +50,22 @@ class SScribe_Page_Collector {
 		$this->featured_images_cache = array();
 		$this->child_pages_cache     = array();
 		$this->breadcrumb_cache      = array();
+	}
+
+	/**
+	 * Add an entry to a cache with LRU eviction when max size is exceeded.
+	 *
+	 * @param array  &$cache Cache reference.
+	 * @param int    $key    Cache key.
+	 * @param mixed  $value  Cache value.
+	 * @return void
+	 */
+	private function cache_add( array &$cache, int $key, mixed $value ): void {
+		if ( count( $cache ) >= self::CACHE_MAX_SIZE ) {
+			// Evict oldest entry (first key) to maintain bounded size.
+			array_shift( $cache );
+		}
+		$cache[ $key ] = $value;
 	}
 
 	/**
@@ -379,7 +400,9 @@ class SScribe_Page_Collector {
 			}
 		}
 
-		$this->featured_images_cache = array_merge( $this->featured_images_cache, $featured_images );
+		foreach ( $featured_images as $k => $v ) {
+			$this->cache_add( $this->featured_images_cache, $k, $v );
+		}
 
 		return $featured_images;
 	}
@@ -658,7 +681,9 @@ class SScribe_Page_Collector {
 			);
 		}
 
-		$this->child_pages_cache = array_merge( $this->child_pages_cache, $children_by_parent );
+		foreach ( $children_by_parent as $k => $v ) {
+			$this->cache_add( $this->child_pages_cache, $k, $v );
+		}
 
 		return $children_by_parent;
 	}
@@ -808,7 +833,7 @@ class SScribe_Page_Collector {
 			}
 		}
 
-		$this->breadcrumb_cache[ $page_id ] = $breadcrumbs;
+		$this->cache_add( $this->breadcrumb_cache, $page_id, $breadcrumbs );
 		return $breadcrumbs;
 	}
 

@@ -1499,7 +1499,12 @@ class SScribe_Batch_Processor {
 			$format_keys = array( 'format_time_docx', 'format_time_pdf', 'format_time_html', 'format_time_markdown', 'format_size_docx', 'format_size_pdf', 'format_size_html', 'format_size_markdown', 'format_pages_docx', 'format_pages_pdf', 'format_pages_html', 'format_pages_markdown' );
 			foreach ( $format_keys as $key ) {
 				if ( isset( $session[ $key ] ) ) {
-					$update_data[ $key ] = $session[ $key ];
+					// Coerce to expected type: format_time/size are float, format_pages is int.
+					if ( str_starts_with( $key, 'format_time_' ) || str_starts_with( $key, 'format_size_' ) ) {
+						$update_data[ $key ] = (float) ( $session[ $key ] ?? 0 );
+					} else {
+						$update_data[ $key ] = (int) ( $session[ $key ] ?? 0 );
+					}
 				}
 			}
 
@@ -1523,7 +1528,7 @@ class SScribe_Batch_Processor {
 			$this->collector->clear_page_caches();
 		}
 
-		$percentage = ( $total > 0 ) ? round( ( $processed / $total ) * 100 ) : 100;
+		$percentage = ( $total > 0 && $processed > 0 ) ? round( ( $processed / $total ) * 100 ) : 0;
 		$is_done    = ( $processed >= $total );
 
 		$this->logger->debug(
@@ -1601,7 +1606,7 @@ class SScribe_Batch_Processor {
 	 * @return array Response array.
 	 */
 	private function build_batch_response( int $processed, int $total, string $current_page_title, float $avg_time_per_page, bool $memory_paused, bool $timeout_paused, array $structured_errors, array $errors, float $batch_duration, float $batch_start_time ): array {
-		$percentage      = ( $total > 0 ) ? round( ( $processed / $total ) * 100 ) : 100;
+		$percentage      = ( $total > 0 && $processed > 0 ) ? round( ( $processed / $total ) * 100 ) : 0;
 		$remaining_pages = $total - $processed;
 		$time_remaining  = round( $avg_time_per_page * $remaining_pages );
 

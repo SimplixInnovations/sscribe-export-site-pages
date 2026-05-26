@@ -472,11 +472,30 @@ class SScribe_Markdown_Exporter implements SScribe_Exporter_Interface {
 	 * @return string Content with Markdown lists.
 	 */
 	private function convert_lists( string $html ): string {
+		// Use DOMDocument for safe list parsing instead of regex to avoid
+		// catastrophic backtracking (ReDoS) on deeply nested or crafted HTML.
+		$dom = new DOMDocument( '1.0', 'UTF-8' );
+		$prev_use_errors = libxml_use_internal_errors( true );
+		try {
+			@$dom->loadHTML( '<!DOCTYPE html><html><body>' . $html . '</body></html>', LIBXML_HTML_NOIMPLIED | LIBXML_HTML_NODEFDTD );
+			libxml_clear_errors();
 
+			$converted = $this->convert_dom_lists( $dom->getElementsByTagName( 'body' )->item( 0 ), $html );
+			return $converted;
+		} catch ( \Throwable $e ) {
+			$this->logger->warning(
+				'DOMDocument list conversion failed, falling back to regex',
+				array( 'error' => $e->getMessage() )
+			);
+		} finally {
+			libxml_use_internal_errors( $prev_use_errors );
+		}
+
+		// Fallback: bounded regex for environments where DOMDocument is unavailable.
 		$max_iterations = 5000;
 		$iteration      = 0;
 
-		while ( preg_match( '/<(ul|ol)>(.*?)<\/\1>/is', $html, $matches, PREG_OFFSET_CAPTURE ) && $iteration < $max_iterations ) {
+		while ( preg_match( '/<(ul|ol)[^>]*>(.*?)<\/\1>/is', $html, $matches, PREG_OFFSET_CAPTURE ) && $iteration < $max_iterations ) {
 			$list_type    = $matches[1][0];
 			$list_content = $matches[2][0];
 
@@ -496,9 +515,75 @@ class SScribe_Markdown_Exporter implements SScribe_Exporter_Interface {
 			);
 		}
 
-		$html = preg_replace( '/<li>(.*?)<\/li>/is', '- $1' . "\n", $html ) ?? $html;
-
 		return $html;
+	}
+
+	/**
+	 * Convert lists using DOMDocument tree traversal (safe, no ReDoS).
+	 *
+	 * @param \DOMNode $node     DOM node to process.
+	 * @param string   $original Original HTML for fallback.
+	 * @return string Markdown content.
+	 */
+	private function convert_dom_lists( \DOMNode $node, string $original ): string {
+		$out = '';
+		foreach ( $node->childNodes as $child ) {
+			if ( XML_ELEMENT_NODE !== $child->nodeType ) {
+				continue;
+			}
+			$tag = strtolower( $child->nodeName );
+			if ( 'ul' === $tag || 'ol' === $tag ) {
+				$out .= $this->convert_single_list( $child, $tag );
+			} else {
+				$inner_html = $this->get_inner_html( $child );
+				$out .= $inner_html;
+			}
+		}
+		return $out;
+	}
+
+	/**
+	 * Get inner HTML of a DOM node.
+	 *
+	 * @param \DOMNode $node DOM node.
+	 * @return string Inner HTML.
+	 */
+	private function get_inner_html( \DOMNode $node ): string {
+		$out = '';
+		foreach ( $node->childNodes as $child ) {
+			$out .= $node->ownerDocument->saveHTML( $child );
+		}
+		return $out;
+	}
+
+	/**
+	 * Convert a single DOM list element to Markdown.
+	 *
+	 * @param \DOMNode $list_node List element node.
+	 * @param string   $list_tag 'ul' or 'ol'.
+	 * @return string Markdown list.
+	 */
+	private function convert_single_list( \DOMNode $list_node, string $list_tag ): string {
+		$result = "\n";
+		$counter = 1;
+		foreach ( $list_node->childNodes as $li ) {
+			if ( XML_ELEMENT_NODE !== $li->nodeType || 'li' !== strtolower( $li->nodeName ) ) {
+				continue;
+			}
+			$item_html = $this->get_inner_html( $li );
+			// Recursively convert any nested lists.
+			$item_html = preg_replace( '/<(ul|ol)[^>]*>(.*?)<\/\1>/is', '', $item_html ) ?? $item_html;
+			$item_text = wp_strip_all_tags( $item_html );
+			$item_text = trim( preg_replace( '/\s+/', ' ', $item_text ) );
+			$indent = '';
+			if ( 'ol' === $list_tag ) {
+				$result .= $counter . '. ' . $item_text . "\n";
+				++$counter;
+			} else {
+				$result .= '- ' . $item_text . "\n";
+			}
+		}
+		return $result . "\n";
 	}
 
 	/**

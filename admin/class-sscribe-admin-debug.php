@@ -55,6 +55,11 @@ class SScribe_Admin_Debug {
 			SScribe_AJAX_Guard::error( array( 'message' => __( 'Insufficient permissions.', 'sscribe-export-site-pages' ) ) );
 		}
 
+		$rate_limiter = new SScribe_Export_Rate_Limiter();
+		if ( ! $rate_limiter->check_rate_limit( $this->get_export_capability() ) ) {
+			SScribe_AJAX_Guard::error( array( 'message' => __( 'Rate limit exceeded. Please wait before trying again.', 'sscribe-export-site-pages' ) ) );
+		}
+
 		$settings = array(
 			'debug_enabled' => isset( $_POST['debug_enabled'] ) ? filter_var( wp_unslash( $_POST['debug_enabled'] ), FILTER_VALIDATE_BOOLEAN ) : false,
 			'log_level'     => isset( $_POST['log_level'] ) ? sanitize_text_field( wp_unslash( $_POST['log_level'] ) ) : 'DEBUG',
@@ -447,8 +452,8 @@ class SScribe_Admin_Debug {
 		// Parse non-JSON log lines: [timestamp] [level] message | {context_json}
 		// - Removed /s modifier to prevent . from matching newlines
 		// - Changed .+? to [^\n]+? to prevent newline matching without /s
-		// - Changed {.+} to \{[^\n]+\} with length cap to prevent greedy brace matching
-		if ( preg_match( '/^\[([^\]]+)\]\s+\[([^\]]+)\]\s+([^\n]+?)(?:\s*\|\s*(\{[^\n]{0,5000}\}))?$/', $line, $matches ) ) {
+		// - Changed {.+} to \{[^\n]+\} without length cap to prevent backtracking on crafted input
+		if ( preg_match( '/^\[([^\]]+)\]\s+\[([^\]]+)\]\s+([^\n]+?)(?:\s*\|\s*(\{[^\n]+\}))?$/', $line, $matches ) ) {
 			$context = array();
 			if ( ! empty( $matches[4] ) ) {
 				$context = json_decode( $matches[4], true ) ?: array();

@@ -183,7 +183,14 @@ class SScribe_HTML_Exporter implements SScribe_Exporter_Interface {
 				'protocols' => array( 'http', 'https', 'mailto', 'tel' ),
 			),
 			'title' => true,
-			'rel'   => true,
+			'rel'   => array(
+				'nofollow'  => true,
+				'noopener'  => true,
+				'noreferrer' => true,
+				'sponsored' => true,
+				'ugc'       => true,
+				'tag'       => true,
+			),
 		);
 		// Images — src/alt/dimensions only, no script hooks
 		$allowlist['img']         = array(
