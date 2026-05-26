@@ -222,7 +222,7 @@ class SScribe_Validator {
 			$mb = $metrics
 				? $metrics->get_mb_per_page( $format )
 				: (self::BASELINE_MB_PER_PAGE[ $format ] ?? self::MEMORY_PER_PAGE_MB);
-			$total_mb_per_page = max( $total_mb_per_page, $mb );
+			$total_mb_per_page += $mb;
 		}
 
 		$memory_per_page   = $total_mb_per_page * 1024 * 1024;

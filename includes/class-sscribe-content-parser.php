@@ -225,8 +225,10 @@ class SScribe_Content_Parser {
 
 		$prev_use_errors = libxml_use_internal_errors( true );
 
-		// Disable external entity loading globally before any parsing
-		$prev_entity_loader = libxml_disable_entity_loader( true );
+		// Note: libxml_disable_entity_loader() is deprecated in PHP 8.0+ and
+		// entity loading is disabled by default in libxml2 ≥ 2.9.0 (PHP 8+).
+		// Additionally, LIBXML_NONET flag is used in loadHTML() below, providing
+		// defense-in-depth against XXE and external entity attacks.
 
 		try {
 
@@ -279,9 +281,6 @@ class SScribe_Content_Parser {
 			}
 			libxml_clear_errors();
 			libxml_use_internal_errors( $prev_use_errors );
-			if ( $prev_entity_loader !== null ) {
-				libxml_disable_entity_loader( $prev_entity_loader );
-			}
 		}
 	}
 
@@ -606,13 +605,6 @@ class SScribe_Content_Parser {
 	private function extract_buttons_from_html( string $html ): array {
 		$buttons = array();
 
-		// Limit input size to prevent regex backtracking on large content.
-		// Use mb_strcut to avoid splitting multi-byte UTF-8 characters.
-		if ( mb_strlen( $html, '8bit' ) > 500000 ) {
-			$html = mb_strcut( $html, 0, 500000, 'UTF-8' );
-		}
-
-		// Guard clause: skip if no button-related class keywords exist in input.
 		$button_keywords = array(
 			'wp-block-button__link',
 			'wp-element-button',
@@ -630,6 +622,19 @@ class SScribe_Content_Parser {
 		}
 		if ( ! $has_button_keyword && false === strpos( $html, 'class="button' ) && false === strpos( $html, "class='button" ) && false === strpos( $html, 'class="btn' ) && false === strpos( $html, "class='btn" ) ) {
 			return $buttons;
+		}
+
+		// Limit input size to prevent regex backtracking on large content.
+		// Use mb_strcut to avoid splitting multi-byte UTF-8 characters.
+		if ( mb_strlen( $html, '8bit' ) > 500000 ) {
+			$this->logger->warning(
+				'Large HTML content truncated for button extraction — content past 500KB limit skipped',
+				array(
+					'original_length' => mb_strlen( $html, '8bit' ),
+					'truncated_to'   => 500000,
+				)
+			);
+			$html = mb_strcut( $html, 0, 500000, 'UTF-8' );
 		}
 
 		/*

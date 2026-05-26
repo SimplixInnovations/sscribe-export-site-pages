@@ -529,27 +529,30 @@ class SScribe_Exporter {
 					$doc_xml = $zip_xml->getFromName( 'word/document.xml' );
 					if ( false !== $doc_xml && ! empty( $doc_xml ) ) {
 						$prev_xml_errors = libxml_use_internal_errors( true );
-						$test_doc        = new \DOMDocument();
-						$parse_result    = $test_doc->loadXML( $doc_xml );
-						$xml_errors      = libxml_get_errors();
-						libxml_clear_errors();
-						libxml_use_internal_errors( $prev_xml_errors );
-
-						foreach ( $xml_errors as $xml_error ) {
-							if ( LIBXML_ERR_FATAL === $xml_error->level ) {
+						try {
+							$test_doc        = new \DOMDocument();
+							$parse_result    = $test_doc->loadXML( $doc_xml );
+							$xml_errors      = libxml_get_errors();
+							foreach ( $xml_errors as $xml_error ) {
+								if ( LIBXML_ERR_FATAL === $xml_error->level ) {
+									$xml_valid = false;
+									$this->get_logger()->error(
+										'DOCX XML validation failed',
+										array(
+											'page_id'   => $page_data['id'] ?? 0,
+											'xml_error' => trim( $xml_error->message ),
+											'xml_line'  => $xml_error->line,
+										)
+									);
+									break;
+								}
+							}
+							if ( false === $parse_result ) {
 								$xml_valid = false;
-								$this->get_logger()->error(
-									'DOCX XML validation failed',
-									array(
-										'page_id'   => $page_data['id'] ?? 0,
-										'xml_error' => trim( $xml_error->message ),
-										'xml_line'  => $xml_error->line,
-									)
-								);
-								break;
-						}
-						if ( false === $parse_result ) {
-							$xml_valid = false;
+							}
+						} finally {
+							libxml_clear_errors();
+							libxml_use_internal_errors( $prev_xml_errors );
 						}
 						unset( $test_doc, $doc_xml );
 					}
