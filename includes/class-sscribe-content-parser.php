@@ -287,36 +287,31 @@ class SScribe_Content_Parser {
 
 			case 'figure':
 				$img_node     = null;
-				$caption_node = null;
+				$caption_text = '';
 
 				foreach ( $node->childNodes as $child ) {
 					if ( $child instanceof DOMElement ) {
 						if ( 'img' === $child->tagName ) {
 							$img_node = $child;
 						} elseif ( 'figcaption' === $child->tagName ) {
-							$caption_node = $child;
+							$caption_text = trim( $child->textContent );
 						}
 					}
 				}
 
-				$output = '';
-				if ( null !== $img_node ) {
-					$src = $img_node->getAttribute( 'src' );
-					$alt = $img_node->getAttribute( 'alt' );
-					$alt = str_replace( array( '[', ']' ), array( '\[', '\]' ), $alt );
-					$output .= '![' . $alt . '](' . $src . ')';
-				}
-				if ( null !== $caption_node ) {
-					$caption_text = trim( $caption_node->textContent );
-					if ( '' !== $caption_text ) {
-						$output .= '\n\n*' . $caption_text . '*';
-					}
-				}
+				$src = null !== $img_node ? $img_node->getAttribute( 'src' ) : null;
+				$alt = null !== $img_node ? $img_node->getAttribute( 'alt' ) : '';
+				$local_path = null !== $src ? $this->url_to_local_path( $src ) : '';
 
-				return array(
-					'type'    => 'figure',
-					'content' => $output,
+				$figure_data = array(
+					'type'       => 'figure',
+					'src'        => $src,
+					'alt'        => $alt,
+					'caption'    => $caption_text,
+					'local_path' => $local_path,
 				);
+
+				return $figure_data;
 
 			case 'figcaption':
 				return array(

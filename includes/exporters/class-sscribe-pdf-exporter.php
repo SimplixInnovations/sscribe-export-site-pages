@@ -152,7 +152,7 @@ class SScribe_PDF_Exporter implements SScribe_Exporter_Interface {
 				return $mpdf_config;
 			}
 
-			list( 'config' => $config, 'mpdf_temp' => $mpdf_temp ) = $mpdf_config;
+			list( 'config' => $config, 'mpdf_temp' => $mpdf_temp, 'xbriyaz_available' => $xbriyaz_available ) = $mpdf_config;
 
 			$mpdf = new \SScribeVendor\Mpdf\Mpdf( $config );
 			$mpdf->SetDirectionality( $is_rtl ? 'rtl' : 'ltr' );
@@ -367,7 +367,12 @@ class SScribe_PDF_Exporter implements SScribe_Exporter_Interface {
 			return;
 		}
 
-		$files = glob( trailingslashit( $mpdf_temp ) . '*' );
+		// glob('*') doesn't match hidden files (starting with .), so we need two globs.
+		$files = array_merge(
+			glob( trailingslashit( $mpdf_temp ) . '*' ) ?: array(),
+			glob( trailingslashit( $mpdf_temp ) . '.*' ) ?: array()
+		);
+
 		if ( empty( $files ) ) {
 			return;
 		}
@@ -376,6 +381,10 @@ class SScribe_PDF_Exporter implements SScribe_Exporter_Interface {
 		$now     = time();
 
 		foreach ( $files as $file ) {
+			// Skip . and .. directory entries.
+			if ( basename( $file ) === '.' || basename( $file ) === '..' ) {
+				continue;
+			}
 			if ( is_file( $file ) ) {
 				$mtime = filemtime( $file );
 				if ( false !== $mtime && ( $now - $mtime ) > $max_age ) {
@@ -531,12 +540,12 @@ class SScribe_PDF_Exporter implements SScribe_Exporter_Interface {
 			'margin_bottom'    => 15,
 			'tempDir'          => $mpdf_temp,
 			'debug'            => ( defined( 'SSCRIBE_DEBUG' ) && SSCRIBE_DEBUG ),
-			'xbriyaz_available' => $xbriyaz_available,
 		);
 
 		return array(
 			'config'   => $config,
 			'mpdf_temp' => $mpdf_temp,
+			'xbriyaz_available' => $xbriyaz_available,
 		);
 	}
 

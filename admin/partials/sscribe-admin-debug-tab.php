@@ -96,7 +96,7 @@ $sscribe_show_wp_debug_notice = ( defined( 'WP_DEBUG' ) && WP_DEBUG );
 			</div>
 			<div class="sscribe-debug-session-filter">
 				<label for="sscribe-debug-session-id"><?php esc_html_e( 'Session ID:', 'sscribe-export-site-pages' ); ?></label>
-				<input type="text" id="sscribe-debug-session-id" class="sscribe-input" placeholder="<?php esc_attr_e( 'e.g. abc123de45678901', 'sscribe-export-site-pages' ); ?>" title="<?php esc_attr_e( 'Found in export log filenames', 'sscribe-export-site-pages' ); ?>" maxlength="64">
+				<input type="text" id="sscribe-debug-session-id" class="sscribe-input" placeholder="<?php esc_attr_e( 'e.g. abc123de45678901', 'sscribe-export-site-pages' ); ?>" title="<?php esc_attr_e( 'Found in export log filenames', 'sscribe-export-site-pages' ); ?>" maxlength="16" pattern="[a-f0-9]{16}">
 			</div>
 			<div class="sscribe-debug-search">
 				<label for="sscribe-debug-search" class="screen-reader-text"><?php esc_html_e( 'Search logs:', 'sscribe-export-site-pages' ); ?></label>

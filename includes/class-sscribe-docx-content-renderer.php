@@ -436,6 +436,15 @@ class SScribe_DOCX_Content_Renderer {
 					$this->get_para_style( array( 'alignment' => Jc::CENTER ) )
 				);
 				break;
+
+			case 'figure':
+				$this->render_figure( $section, $element );
+				break;
+
+			case 'figcaption':
+				// Figcaption is rendered as part of figure, not as standalone.
+				// Silently ignore to prevent duplicate rendering.
+				break;
 		}
 	}
 
@@ -722,6 +731,49 @@ class SScribe_DOCX_Content_Renderer {
 					$this->get_para_style( array( 'alignment' => Jc::CENTER ) )
 				);
 			}
+		}
+
+		$section->addTextBreak( 1 );
+	}
+
+	/**
+	 * Render a figure element with image and optional caption.
+	 *
+	 * @param Section $section Document section.
+	 * @param array   $element Figure element data with 'src', 'alt', 'caption'.
+	 */
+	private function render_figure( Section $section, array $element ): void {
+		$src     = $element['src'] ?? null;
+		$alt     = $element['alt'] ?? '';
+		$caption = $element['caption'] ?? '';
+
+		if ( empty( $src ) ) {
+			return;
+		}
+
+		// Build an image element for the figure's image.
+		$image_element = array(
+			'type'       => 'image',
+			'src'        => $src,
+			'alt'        => $alt,
+			'local_path' => $element['local_path'] ?? '',
+		);
+
+		// Render the image first.
+		$this->render_inline_image( $section, $image_element );
+
+		// Render caption if present.
+		if ( '' !== trim( $caption ) ) {
+			$section->addText(
+				$this->safe_text( $caption ),
+				array(
+					'name'   => $this->font_name,
+					'size'   => 9,
+					'italic' => true,
+					'color'  => $this->colors['body'],
+				),
+				$this->get_para_style( array( 'alignment' => Jc::CENTER ) )
+			);
 		}
 
 		$section->addTextBreak( 1 );

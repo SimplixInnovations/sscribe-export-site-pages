@@ -134,8 +134,6 @@ class SScribe_Page_Collector {
 					)
 				);
 
-				$this->clear_status_cache( $language );
-
 				// phpcs:ignore WordPress.NamingConventions.PrefixAllGlobals.NonPrefixedHooknameFound -- WPML hook.
 				do_action( 'wpml_switch_language', $target_lang );
 				$args['suppress_filters'] = false;
@@ -759,27 +757,38 @@ class SScribe_Page_Collector {
 				$ancestor_map[ $ancestor_post->ID ] = $ancestor_post;
 			}
 
+			// Group ancestors by language to minimize WPML language switches.
+			$ancestors_by_lang = array();
 			foreach ( $ancestors as $ancestor_id ) {
 				if ( ! isset( $ancestor_map[ $ancestor_id ] ) ) {
 					continue;
 				}
-
 				$ancestor_lang = $this->get_page_language( $ancestor_id );
-				if ( $this->is_wpml_active() && ! empty( $ancestor_lang ) ) {
+				if ( ! isset( $ancestors_by_lang[ $ancestor_lang ] ) ) {
+					$ancestors_by_lang[ $ancestor_lang ] = array();
+				}
+				$ancestors_by_lang[ $ancestor_lang ][] = $ancestor_id;
+			}
+
+			// For each unique language, switch once and fetch all titles/urls.
+			foreach ( $ancestors_by_lang as $lang => $lang_ancestors ) {
+				if ( $this->is_wpml_active() && ! empty( $lang ) ) {
 					// phpcs:ignore WordPress.NamingConventions.PrefixAllGlobals.NonPrefixedHooknameFound -- WPML hook.
-					do_action( 'wpml_switch_language', $ancestor_lang );
+					do_action( 'wpml_switch_language', $lang );
 				}
 
-				$ancestor_post = $ancestor_map[ $ancestor_id ];
-				$breadcrumbs[] = array(
-					'title' => html_entity_decode( $ancestor_post->post_title, ENT_QUOTES | ENT_HTML5, 'UTF-8' ),
-					'url'   => get_permalink( $ancestor_id ),
-				);
-
-				if ( $this->is_wpml_active() ) {
-					// phpcs:ignore WordPress.NamingConventions.PrefixAllGlobals.NonPrefixedHooknameFound -- WPML hook.
-					do_action( 'wpml_switch_language', null );
+				foreach ( $lang_ancestors as $ancestor_id ) {
+					$ancestor_post = $ancestor_map[ $ancestor_id ];
+					$breadcrumbs[] = array(
+						'title' => html_entity_decode( $ancestor_post->post_title, ENT_QUOTES | ENT_HTML5, 'UTF-8' ),
+						'url'   => get_permalink( $ancestor_id ),
+					);
 				}
+			}
+
+			if ( $this->is_wpml_active() ) {
+				// phpcs:ignore WordPress.NamingConventions.PrefixAllGlobals.NonPrefixedHooknameFound -- WPML hook.
+				do_action( 'wpml_switch_language', null );
 			}
 		}
 
@@ -897,15 +906,37 @@ class SScribe_Page_Collector {
 
 		try {
 
-            // phpcs:ignore WordPress.NamingConventions.PrefixAllGlobals.NonPrefixedHooknameFound -- WPML hook.
+			// phpcs:ignore WordPress.NamingConventions.PrefixAllGlobals.NonPrefixedHooknameFound -- WPML hook.
 			do_action( 'wpml_switch_language', $language );
 			$args['suppress_filters'] = false;
-			$switched                 = true;
+			$switched = true;
 
+			// Optimize: Use a single query with GROUP BY instead of one query per status.
+			global $wpdb;
+			$post_type_sql = is_array( $args['post_type'] )
+				? " IN ('" . implode( "','", array_map( 'esc_sql', $args['post_type'] ) ) . "') "
+				: " = '" . esc_sql( $args['post_type'] ) . "' ";
+
+			$status_list = "'" . implode( "','", array_map( 'esc_sql', array_keys( $statuses ) ) ) . "'";
+
+			// phpcs:disable WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- Single optimized count query for performance; caching handled by transient below.
+			$sql = "SELECT post_status, COUNT(*) as count FROM {$wpdb->posts} WHERE post_type {$post_type_sql} AND post_status IN ({$status_list}) GROUP BY post_status";
+			$results = $wpdb->get_results( $sql, ARRAY_A ); // phpcs:ignore WordPress.DB.PreparedSQL.NotPrepared -- $post_type_sql and $status_list are safely escaped above.
+			// phpcs:enable
+
+			// Initialize all counts to 0.
 			foreach ( $statuses as $status => $label ) {
-				$args['post_status'] = $status;
-				$query               = new WP_Query( $args );
-				$counts[ $status ]   = (int) $query->found_posts;
+				$counts[ $status ] = 0;
+			}
+
+			// Map SQL results to counts array.
+			if ( is_array( $results ) ) {
+				foreach ( $results as $row ) {
+					$status = $row['post_status'];
+					if ( isset( $counts[ $status ] ) ) {
+						$counts[ $status ] = (int) $row['count'];
+					}
+				}
 			}
 		} finally {
 			if ( $switched ) {

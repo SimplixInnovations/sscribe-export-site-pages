@@ -190,7 +190,17 @@ class SScribe_Zip_Handler {
 						$archive_entry = $folder_name . '/' . $basename;
 					}
 
-					$zip->addFile( $file, $archive_entry );
+					if ( ! $zip->addFile( $file, $archive_entry ) ) {
+						$this->logger->warning(
+							'Failed to add file to ZIP',
+							array(
+								'file'   => $file,
+								'entry'  => $archive_entry,
+								'zip'    => basename( $zip_path ),
+							)
+						);
+						continue;
+					}
 					$zip_entries[] = array(
 						'source'    => $basename,
 						'zip_path'  => $archive_entry,
@@ -240,17 +250,16 @@ class SScribe_Zip_Handler {
 		}
 
 		// If lock could not be acquired, another request is likely writing.
-		// Skip indexing to prevent race condition overwriting the other request's entry.
+		// Skip indexing but DO NOT delete the ZIP - it was successfully created
+		// and deleting it causes silent data loss. The ZIP will be cleaned up
+		// by cleanup_expired() or the user can access it directly.
 		if ( ! $locked ) {
 			$this->logger->warning(
 				'Export indexing skipped - could not acquire exclusive lock (concurrent finalize detected)',
 				array( 'zip' => basename( $zip_path ) )
 			);
-			// Clean up the orphaned ZIP since it won't be tracked and cleaned up by cleanup_expired().
-			if ( file_exists( $zip_path ) ) {
-				wp_delete_file( $zip_path );
-			}
-			return false;
+			// Return the path anyway so the caller has access to the successfully created ZIP.
+			return file_exists( $zip_path ) ? $zip_path : false;
 		}
 
 		try {

@@ -706,6 +706,8 @@ class SScribe_Markdown_Exporter implements SScribe_Exporter_Interface {
 	 * @return string Escaped text.
 	 */
 	private function escape_yaml_string( string $text ): string {
+		// Strip non-printable control characters (except \t=\x09 and \n=\x0A which are handled below).
+		$text = preg_replace( '/[\x00-\x08\x0B\x0C\x0E-\x1F\x7F]/', '', $text );
 		$text = str_replace( '\\', '\\\\', $text );
 		$text = str_replace( '"', '\\"', $text );
 		$text = str_replace( "\n", '\\n', $text );

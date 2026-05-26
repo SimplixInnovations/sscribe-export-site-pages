@@ -49,7 +49,6 @@ class SScribe_Audit_Trail {
 	public function __construct() {
 		global $wpdb;
 		$this->table_name = $wpdb->prefix . 'sscribe_audit_log';
-		$this->table_exists_cache = null;
 		$this->enabled    = $this->table_exists();
 	}
 
@@ -137,14 +136,18 @@ class SScribe_Audit_Trail {
 			'nonce',
 		);
 
-		foreach ( $forbidden_keys as $key ) {
-			if ( isset( $context[ $key ] ) ) {
-				$context[ $key ] = '[REDACTED]';
-			}
-		}
-
 		foreach ( $context as $key => $value ) {
-			if ( is_array( $value ) || is_object( $value ) ) {
+			// Check if any forbidden word appears in the key name (substring match).
+			$is_sensitive = false;
+			foreach ( $forbidden_keys as $forbidden ) {
+				if ( stripos( (string) $key, $forbidden ) !== false ) {
+					$is_sensitive = true;
+					break;
+				}
+			}
+			if ( $is_sensitive ) {
+				$context[ $key ] = '[REDACTED]';
+			} elseif ( is_array( $value ) || is_object( $value ) ) {
 				$context[ $key ] = wp_json_encode( $value );
 			}
 		}

@@ -262,6 +262,10 @@ class SScribe {
 
 			SScribe_Logger::cleanup_old_logs( 7 );
 
+			// Clean up old export JSON log files.
+			require_once SSCRIBE_PLUGIN_DIR . 'includes/class-sscribe-export-log.php';
+			SScribe_Export_Log::cleanup_old_logs( 24 );
+
 			delete_transient( 'sscribe_cron_sessions_lock' );
 		}
 	}

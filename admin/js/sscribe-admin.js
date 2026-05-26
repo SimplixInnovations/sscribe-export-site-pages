@@ -1837,6 +1837,11 @@
 				return;
 			}
 
+			// Abort any existing preview AJAX request to prevent race conditions.
+			if (this._previewXHR && this._previewXHR.abort) {
+				this._previewXHR.abort();
+			}
+
 			this._previewTrigger = e.currentTarget;
 
 			const language = $('input[name="sscribe_language"]:checked').val() || '';
@@ -1865,7 +1870,7 @@
 			this.focusFirstInteractive($panel[0], '#sscribe-preview-close');
 
 			const self = this;
-			$.ajax({
+			this._previewXHR = $.ajax({
 				url: sscribe_data.ajaxurl,
 				type: 'POST',
 				timeout: 30000,
@@ -2010,6 +2015,10 @@
 		closePreview: function (e) {
 			if (e) {
 				e.preventDefault();
+			}
+			// Abort any pending preview AJAX request when closing.
+			if (this._previewXHR && this._previewXHR.abort) {
+				this._previewXHR.abort();
 			}
 			const $panel = $('#sscribe-preview-panel');
 			const panelEl = $panel[0];

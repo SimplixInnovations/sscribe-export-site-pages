@@ -284,8 +284,13 @@ class SScribe_Export_Log {
 		$this->flush();
 
 		if ( ! empty( $data['zip_file'] ) ) {
+			// Set transient for fast lookup (30 day expiry).
 			$index_key = 'sscribe_zip_index_' . md5( $data['zip_file'] );
 			set_transient( $index_key, $this->session_id, 30 * DAY_IN_SECONDS );
+
+			// Also set a persistent option-based reverse index for fallback when transient expires.
+			// This prevents O(n) file scans when the transient is cleared.
+			update_option( 'sscribe_log_zip_' . md5( $data['zip_file'] ), $this->session_id, false );
 		}
 	}
 
@@ -436,6 +441,7 @@ class SScribe_Export_Log {
 			return null;
 		}
 
+		// First try transient cache for fast lookup.
 		$index_key  = 'sscribe_zip_index_' . md5( $filename );
 		$session_id = get_transient( $index_key );
 
@@ -452,6 +458,27 @@ class SScribe_Export_Log {
 			}
 		}
 
+		// Fall back to persistent option-based index to avoid O(n) file scan.
+		$option_key = 'sscribe_log_zip_' . md5( $filename );
+		$session_id = get_option( $option_key, false );
+
+		if ( false !== $session_id && is_string( $session_id ) ) {
+			// Restore transient for faster subsequent lookups.
+			set_transient( $index_key, $session_id, 30 * DAY_IN_SECONDS );
+
+			$log_file = $log_dir . '/export_' . sanitize_file_name( $session_id ) . '.json';
+			if ( file_exists( $log_file ) ) {
+				$json = file_get_contents( $log_file );
+				if ( $json ) {
+					$data = json_decode( $json, true );
+					if ( is_array( $data ) && isset( $data['zip_file'] ) && $data['zip_file'] === $filename ) {
+						return $data;
+					}
+				}
+			}
+		}
+
+		// Last resort: linear scan of all log files (only if both cache layers missed).
 		$files = glob( $log_dir . '/export_*.json' );
 
 		if ( is_array( $files ) ) {
@@ -462,7 +489,9 @@ class SScribe_Export_Log {
 					if ( is_array( $data ) && isset( $data['zip_file'] ) && $data['zip_file'] === $filename ) {
 
 						if ( isset( $data['session_id'] ) ) {
+							// Rebuild both cache layers for future lookups.
 							set_transient( $index_key, $data['session_id'], 30 * DAY_IN_SECONDS );
+							update_option( $option_key, $data['session_id'], false );
 						}
 						return $data;
 					}
@@ -495,6 +524,9 @@ class SScribe_Export_Log {
 
 		$index_key = 'sscribe_zip_index_' . md5( $filename );
 		delete_transient( $index_key );
+
+		// Also delete persistent option-based index.
+		delete_option( 'sscribe_log_zip_' . md5( $filename ) );
 
 		$files = glob( $log_dir . '/export_*.json' );
 
