@@ -22,6 +22,9 @@
 		pollJitter: 200,
 		finalizePollInterval: 2000,
 		_originalTitle: '',
+		_batchXHR: null,
+		_finalizingXHR: null,
+		_langCountsXHRs: null,
 
 		/**
 		 * Parse a localized integer from text (handles comma/period separators).
@@ -123,6 +126,12 @@
 				if (e.key === 'Escape' || e.key === 'Esc') {
 					const $previewPanel = $('#sscribe-preview-panel');
 					const $logModal = $('#sscribe-log-modal');
+					const $preflight = $('.sscribe-preflight-banner');
+					if ($preflight.length) {
+						e.preventDefault();
+						$preflight.find('.sscribe-preflight-close').trigger('click');
+						return;
+					}
 					if ($previewPanel.length && !$previewPanel.hasClass('sscribe-hidden')) {
 						e.preventDefault();
 						self.closePreview();
@@ -309,13 +318,21 @@
 				},
 			});
 
+			if (!this._langCountsXHRs) {
+				this._langCountsXHRs = [];
+			}
+			for (let i = 0; i < this._langCountsXHRs.length; i++) {
+				this._langCountsXHRs[i].abort();
+			}
+			this._langCountsXHRs = [];
+
 			$('input[name="sscribe_language"]').each(function () {
 				const langCode = $(this).val();
 				if (!langCode) {
 					return;
 				}
 
-				$.ajax({
+				const xhr = $.ajax({
 					url: sscribe_data.ajaxurl,
 					type: 'POST',
 					timeout: 15000,
@@ -335,7 +352,14 @@
 						}
 					},
 					error: function () {},
+					complete: function () {
+						const idx = self._langCountsXHRs.indexOf(xhr);
+						if (idx > -1) {
+							self._langCountsXHRs.splice(idx, 1);
+						}
+					},
 				});
+				self._langCountsXHRs.push(xhr);
 			});
 		},
 
@@ -848,10 +872,10 @@
 
 			const self = this;
 
-			$.ajax({
+			this._batchXHR = $.ajax({
 				url: sscribe_data.ajaxurl,
 				type: 'POST',
-				timeout: 180000, // Must exceed PHP set_time_limit (120s) to prevent false network errors. 180s = 60s grace over PHP's 120s.
+				timeout: 180000,
 				data: {
 					action: 'sscribe_process_batch',
 					nonce: sscribe_data.nonce,
@@ -859,6 +883,7 @@
 				},
 				success: function (response) {
 					self._batchInProgress = false;
+					self._batchXHR = null;
 					if (response.success) {
 						SScribe.batchRetries = 0;
 						const data = response.data;
@@ -891,7 +916,6 @@
 						if (data.status === 'complete') {
 							SScribe.exportComplete(data);
 						} else if (data.status === 'finalizing') {
-							// All pages processed; now polling for ZIP finalization.
 							const finalizeDelay = SScribe.finalizePollInterval || 2000;
 							SScribe.pollFinalize(SScribe.sessionId, 0, finalizeDelay);
 						} else {
@@ -913,9 +937,9 @@
 				},
 				error: function (xhr) {
 					self._batchInProgress = false;
+					self._batchXHR = null;
 					SScribe.batchRetries++;
 					if (SScribe.batchRetries <= SScribe.maxBatchRetries) {
-						// Retry with exponential backoff.
 						SScribe.scheduleNextBatch(undefined, true);
 					} else {
 						const serverMsg = SScribe.parseServerError(xhr);
@@ -932,6 +956,15 @@
 
 			if (!this.sessionId) {
 				return;
+			}
+
+			if (this._batchXHR) {
+				this._batchXHR.abort();
+				this._batchXHR = null;
+			}
+			if (this._finalizingXHR) {
+				this._finalizingXHR.abort();
+				this._finalizingXHR = null;
 			}
 
 			$('#sscribe-cancel-btn')
@@ -992,13 +1025,14 @@
 						if (data.download_url) {
 							$('#sscribe-download-btn').attr('href', data.download_url);
 							if (isAutoDownload !== false) {
-								const iframe = document.createElement('iframe');
-								iframe.style.display = 'none';
-								iframe.src = data.download_url;
-								document.body.appendChild(iframe);
+								const a = document.createElement('a');
+								a.href = data.download_url;
+								a.download = '';
+								document.body.appendChild(a);
+								a.click();
 								setTimeout(function () {
-									iframe.remove();
-								}, 5000);
+									a.remove();
+								}, 1000);
 							}
 						} else {
 							$('#sscribe-download-btn').removeAttr('href');
@@ -1054,6 +1088,10 @@
 		},
 
 		pollFinalize: function (sessionId, attempt, delay) {
+			if (this._finalizingXHR) {
+				return;
+			}
+
 			this.isProcessing = true;
 
 			const maxAttempts = 180;
@@ -1078,7 +1116,7 @@
 			const self = this;
 
 			setTimeout(function () {
-				$.ajax({
+				self._finalizingXHR = $.ajax({
 					url: sscribe_data.ajaxurl,
 					type: 'POST',
 					timeout: 120000,
@@ -1088,6 +1126,7 @@
 						session_id: sessionId,
 					},
 					success: function (response) {
+						self._finalizingXHR = null;
 						if (response.success) {
 							self.isProcessing = false;
 							self.updateProgress(100);
@@ -1124,6 +1163,7 @@
 						}
 					},
 					error: function (xhr) {
+						self._finalizingXHR = null;
 						const response = xhr.responseJSON || {};
 						if (xhr.status === 404) {
 							self.isProcessing = false;
@@ -1150,7 +1190,6 @@
 							return;
 						}
 
-						// For 500 and other errors, retry up to maxAttempts.
 						if (attempt < maxAttempts) {
 							self.pollFinalize(sessionId, attempt + 1, self.finalizePollInterval || 2000);
 						} else {
@@ -1214,8 +1253,10 @@
 				return;
 			}
 
+			const maxRows = 50;
+			const totalExports = exports.length;
 			let html = '';
-			for (let i = 0; i < exports.length; i++) {
+			for (let i = 0; i < Math.min(totalExports, maxRows); i++) {
 				const exp = exports[i];
 				html += '<div class="sscribe-history-row" data-filename="' + this.escapeHtml(exp.filename) + '">';
 				html +=

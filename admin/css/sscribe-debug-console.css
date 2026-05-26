@@ -126,6 +126,11 @@
 	border-radius: 24px;
 }
 
+.sscribe-toggle-slider:focus-visible {
+	outline: 2px solid var(--sscribe-primary);
+	outline-offset: 2px;
+}
+
 .sscribe-toggle-slider::before {
 	position: absolute;
 	content: '';
