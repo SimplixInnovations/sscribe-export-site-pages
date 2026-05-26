@@ -119,20 +119,19 @@ class SScribe_Exporter {
 
 		// Validate required color keys exist after filter application
 		// to prevent undefined index errors from third-party mutations
-		$required_colors = array( 'primary', 'heading', 'body', 'light_bg', 'link', 'code_bg', 'white', 'border' );
-		foreach ( $required_colors as $key ) {
+		$defaults = array(
+			'primary'  => '4A8263',
+			'heading'  => '122119',
+			'body'     => '495057',
+			'light_bg' => 'E8EFEB',
+			'link'     => '2C6E8A',
+			'code_bg'  => 'F5F6F8',
+			'white'    => 'FFFFFF',
+			'border'   => 'CCCCCC',
+		);
+		foreach ( $defaults as $key => $default_value ) {
 			if ( ! isset( $this->colors[ $key ] ) || ! is_string( $this->colors[ $key ] ) ) {
-				$this->colors[ $key ] = match ( $key ) {
-					'primary'   => '4A8263',
-					'heading'   => '122119',
-					'body'      => '495057',
-					'light_bg'  => 'E8EFEB',
-					'link'      => '2C6E8A',
-					'code_bg'   => 'F5F6F8',
-					'white'     => 'FFFFFF',
-					'border'    => 'CCCCCC',
-					default     => '000000',
-				};
+				$this->colors[ $key ] = $default_value;
 			}
 		}
 
