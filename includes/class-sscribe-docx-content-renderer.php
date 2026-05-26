@@ -278,23 +278,19 @@ class SScribe_DOCX_Content_Renderer {
 	public function sync_config( array $colors, bool $is_rtl, string $font_name, int $font_size ): void {
 		// Validate required color keys exist after filter application
 		// to prevent undefined index errors from third-party mutations
-		$required_colors = array( 'primary', 'heading', 'body', 'light_bg', 'link', 'code_bg', 'white', 'border' );
-		foreach ( $required_colors as $key ) {
-			if ( ! isset( $colors[ $key ] ) || ! is_string( $colors[ $key ] ) ) {
-				$colors[ $key ] = match ( $key ) {
-					'primary'   => '4A8263',
-					'heading'   => '122119',
-					'body'      => '495057',
-					'light_bg'  => 'E8EFEB',
-					'link'      => '2C6E8A',
-					'code_bg'   => 'F5F6F8',
-					'white'     => 'FFFFFF',
-					'border'    => 'CCCCCC',
-					default     => '000000',
-				};
-			}
-		}
-		$this->colors    = $colors;
+		$defaults = array(
+			'primary'  => '4A8263',
+			'heading'  => '122119',
+			'body'     => '495057',
+			'light_bg' => 'E8EFEB',
+			'link'     => '2C6E8A',
+			'code_bg'  => 'F5F6F8',
+			'white'    => 'FFFFFF',
+			'border'   => 'CCCCCC',
+		);
+		// Filter out invalid values, then merge defaults to fill any gaps.
+		$sanitized = array_filter( $colors, 'is_string' );
+		$this->colors = array_merge( $defaults, $sanitized );
 		$this->is_rtl    = $is_rtl;
 		$this->font_name = $font_name;
 		// Clamp font_size to a sane range to prevent invalid PHPWord XML.

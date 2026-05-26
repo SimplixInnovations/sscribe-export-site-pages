@@ -18,13 +18,6 @@ if ( ! defined( 'ABSPATH' ) ) {
 class SScribe_Content_Parser {
 
 	/**
-	 * Logger instance.
-	 *
-	 * @var SScribe_Logger_Interface|null
-	 */
-	private ?SScribe_Logger_Interface $logger = null;
-
-	/**
 	 * KSES allowed HTML elements for content export.
 	 * Extends wp_kses_post with additional elements needed for rich content.
 	 *
