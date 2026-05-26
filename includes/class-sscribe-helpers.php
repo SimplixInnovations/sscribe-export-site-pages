@@ -90,7 +90,7 @@ class SScribe_Helpers {
 		$icon_url = esc_url( SSCRIBE_PLUGIN_URL . self::$icons_dir . $name . '.svg' );
 
 		$html                           = sprintf(
-			'<img src="%s" width="%d" height="%d" class="%s" aria-hidden="true" focusable="false">',
+			'<img src="%s" width="%d" height="%d" class="%s" aria-hidden="true">',
 			$icon_url,
 			absint( $size ),
 			absint( $size ),

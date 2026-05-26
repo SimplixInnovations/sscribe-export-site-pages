@@ -58,6 +58,12 @@ class SScribe_Export_Rate_Limiter {
 				$existing_lock = get_transient( $lock_key );
 				if ( false === $existing_lock ) {
 					$locked = set_transient( $lock_key, 1, 2 );
+					// Verify lock was actually acquired - set_transient returns true
+					// even on MySQL INSERT ON DUPLICATE KEY UPDATE, so we must read back.
+					if ( $locked ) {
+						$verified = get_transient( $lock_key );
+						$locked = $verified !== false && (int) $verified === 1;
+					}
 				}
 			}
 			if ( $locked ) {

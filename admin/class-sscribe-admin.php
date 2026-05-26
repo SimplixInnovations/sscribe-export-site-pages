@@ -437,7 +437,7 @@ class SScribe_Admin {
 
 		?>
 		<script nonce="<?php echo esc_attr( $nonce ); ?>">
-		var sscribe_data = <?php echo wp_json_encode( $data, JSON_HEX_TAG | JSON_HEX_AMP ); ?>;
+		var sscribe_data = <?php echo wp_json_encode( $data, JSON_HEX_TAG | JSON_HEX_AMP | JSON_HEX_QUOT | JSON_HEX_APOS ); ?>;
 		</script>
 		<?php
 	}
@@ -499,8 +499,9 @@ class SScribe_Admin {
 		}
 
 		if ( $sscribe_is_debug ) {
-
-			$debug_cache_key    = 'sscribe_debug_info_' . get_current_user_id();
+			// Include blog ID in cache key for multisite compatibility.
+			$blog_id         = is_multisite() ? get_current_blog_id() : 0;
+			$debug_cache_key = 'sscribe_debug_info_' . $blog_id . '_' . get_current_user_id();
 			$sscribe_debug_info = get_transient( $debug_cache_key );
 
 			if ( false === $sscribe_debug_info ) {
@@ -651,10 +652,11 @@ class SScribe_Admin {
 				);
 
 				// Limit to 50 IDs per language to prevent expensive queries on large multilingual sites.
+				// Use get_page_count_only() for the total count, and only fetch IDs when needed for slug checks.
+				$sscribe_debug_info['language_details'][ $lang_code ]['published_count'] = $this->collector->get_page_count_only( $lang_code, 'publish' );
 				$page_ids = $this->collector->get_page_ids( $lang_code, 'publish' );
 				$page_ids = array_slice( $page_ids, 0, 50 );
 				$sscribe_debug_info['language_details'][ $lang_code ]['published_page_ids'] = $page_ids;
-				$sscribe_debug_info['language_details'][ $lang_code ]['published_count']    = count( $page_ids );
 				$all_page_ids_by_lang[ $lang_code ] = $page_ids;
 			}
 

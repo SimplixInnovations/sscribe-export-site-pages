@@ -117,7 +117,6 @@ class SScribe_Logger_Enhanced implements SScribe_Logger_Interface {
 		$this->log_dir    = $upload_dir['basedir'] . '/sscribe-logs';
 		$this->table_name = $GLOBALS['wpdb']->prefix . 'sscribe_export_logs';
 		$this->request_id = substr( md5( microtime( true ) . (string) random_int( 0, PHP_INT_MAX ) ), 0, 12 );
-		$this->table_exists_cache = null;
 
 		if ( $this->enable_file || $this->enable_db ) {
 			add_action( 'shutdown', array( $this, 'flush' ) );

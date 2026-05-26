@@ -299,8 +299,9 @@ class SScribe_Session {
 			$existing = $this->get( $session_id );
 
 			if ( null === $existing ) {
-				$this->logger->error(
-					'Failed to read existing session for update',
+				// This is expected during cancellation - not an error condition.
+				$this->logger->debug(
+					'Session no longer exists during update — may have been cancelled',
 					array( 'session_id' => $session_id )
 				);
 				return false;
@@ -737,7 +738,10 @@ class SScribe_Session {
 	 */
 	private function is_active_session_data( array $data ): bool {
 		$status = $data['status'] ?? '';
-		if ( ! in_array( $status, array( 'processing', 'pending', 'finalizing' ), true ) ) {
+		// 'completing' is added because finalize_export() sets status to 'completing'
+		// before writing the ZIP. If the process crashes here, the session is stuck
+		// in 'completing' but should still be treated as active to prevent a new export.
+		if ( ! in_array( $status, array( 'processing', 'pending', 'finalizing', 'completing' ), true ) ) {
 			return false;
 		}
 

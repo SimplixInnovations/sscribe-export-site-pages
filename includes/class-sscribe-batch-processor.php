@@ -715,7 +715,7 @@ class SScribe_Batch_Processor {
 
 		$user_id = get_current_user_id();
 
-		if ( $this->session->has_active_session( $user_id ) ) {
+		if ( null !== $this->session->get_active_session_data( $user_id ) ) {
 			SScribe_AJAX_Guard::error(
 				array(
 					'message' => __( 'You already have an export in progress. Please wait for it to complete or refresh the page.', 'sscribe-export-site-pages' ),
@@ -1069,8 +1069,10 @@ class SScribe_Batch_Processor {
 		// Validate temp_dir is within allowed uploads directory to prevent path traversal attacks.
 		$upload_dir        = wp_upload_dir();
 		$allowed_temp_base = trailingslashit( $upload_dir['basedir'] ) . 'sscribe-exports';
-		$real_temp_dir     = realpath( $temp_dir ) ? realpath( $temp_dir ) : $temp_dir;
-		if ( 0 !== strpos( $real_temp_dir, $allowed_temp_base ) ) {
+		$real_temp_dir     = realpath( $temp_dir );
+		// Reject unresolved paths to prevent path traversal attacks.
+		// realpath() returns false if the path doesn't exist or can't be resolved.
+		if ( false === $real_temp_dir || 0 !== strpos( $real_temp_dir, $allowed_temp_base ) ) {
 			$this->release_lock( $session_id );
 			$this->restore_ob_level( $ob_level_before );
 			SScribe_AJAX_Guard::error(
@@ -1768,13 +1770,19 @@ class SScribe_Batch_Processor {
 		$this->current_lock_token = $lock_token;
 
 		if ( 'completing' === $status ) {
-			SScribe_AJAX_Guard::error(
-				array(
-					'code'    => 'already_completing',
-					'message' => __( 'Export is already being finalized. Please wait.', 'sscribe-export-site-pages' ),
-				),
-				409
-			);
+			// Check if the completing timestamp is too old - if so, the previous
+			// finalize may have crashed and we should allow retry.
+			$completing_since = $session['completing_since'] ?? 0;
+			if ( $completing_since > 0 && ( time() - $completing_since ) < 120 ) {
+				SScribe_AJAX_Guard::error(
+					array(
+						'code'    => 'already_completing',
+						'message' => __( 'Export is already being finalized. Please wait.', 'sscribe-export-site-pages' ),
+					),
+					409
+				);
+			}
+			// completing_since is too old (> 2 minutes), treat as stale and allow retry.
 		}
 
 		$this->finalize_export( $session_id, $session );
@@ -1792,10 +1800,11 @@ class SScribe_Batch_Processor {
 			$this->export_log = new SScribe_Export_Log( $session_id );
 		}
 
-		if ( ! $this->session->update( $session_id, array( 'status' => 'completing' ) ) ) {
+		if ( ! $this->session->update( $session_id, array( 'status' => 'completing', 'completing_since' => time() ) ) ) {
 			$this->logger->warning( 'Session status update failed', array( 'session_id' => $session_id ) );
 		}
 		$session['status'] = 'completing';
+		$session['completing_since'] = time();
 
 		$this->logger->set_session_id( $session_id );
 

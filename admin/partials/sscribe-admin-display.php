@@ -693,7 +693,7 @@ $sscribe_export_index    = $sscribe_export_index ?? array();
 			</div>
 
 			<div class="sscribe-tab-content" id="sscribe-tab-debug" role="tabpanel" aria-labelledby="sscribe-tab-btn-debug" hidden aria-hidden="true">
-				<?php include SSCRIBE_PLUGIN_DIR . 'admin/partials/sscribe-admin-debug-tab.php'; ?>
+				<?php require_once SSCRIBE_PLUGIN_DIR . 'admin/partials/sscribe-admin-debug-tab.php'; ?>
 			</div>
 
 		</div><!-- .sscribe-workspace -->
