@@ -190,6 +190,7 @@ class SScribe_Export_Lock_Manager {
 					AND EXISTS (
 						SELECT 1 FROM {$wpdb->options} m
 						WHERE m.option_name = CONCAT(%s, SUBSTRING(o.option_name, %d))
+						AND m.autoload = 'no'
 						AND m.option_value LIKE %s
 					)",
 					$session_pattern,

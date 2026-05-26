@@ -992,18 +992,36 @@ class SScribe_Diagnostics {
 	 * @return bool True if directory is in use by an active session.
 	 */
 	private function is_temp_dir_in_use( string $dir ): bool {
+		global $wpdb;
+
 		if ( ! class_exists( 'SScribe_Session' ) ) {
 			return false;
 		}
 
 		$session = new SScribe_Session();
-		$data     = $session->get_active_session_data( get_current_user_id() );
+		$pattern = $wpdb->esc_like( SScribe_Session::OPTION_PREFIX ) . '%';
 
-		if ( null === $data ) {
-			return false;
+		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- Lightweight check for active session temp_dir.
+		$options = $wpdb->get_results(
+			$wpdb->prepare(
+				"SELECT option_value FROM {$wpdb->options} WHERE option_name LIKE %s AND autoload = 'no'",
+				$pattern
+			)
+		);
+
+		foreach ( $options as $option ) {
+			$data = $session->decode_session_value( $option->option_value ?? '' );
+
+			if ( ! is_array( $data ) ) {
+				continue;
+			}
+
+			if ( ! empty( $data['temp_dir'] ) && 0 === strpos( $data['temp_dir'], $dir ) ) {
+				return true;
+			}
 		}
 
-		return ! empty( $data['temp_dir'] ) && 0 === strpos( $data['temp_dir'], $dir );
+		return false;
 	}
 
 	/**

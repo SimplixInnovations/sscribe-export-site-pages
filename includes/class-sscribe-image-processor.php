@@ -239,6 +239,10 @@ class SScribe_Image_Processor {
 			return false;
 		}
 
+		if ( ! extension_loaded( 'gd' ) ) {
+			return $path;
+		}
+
 		$info = false;
 		// phpcs:ignore WordPress.PHP.DevelopmentFunctions.error_log_set_error_handler -- Production error handling for image processing.
 		set_error_handler(

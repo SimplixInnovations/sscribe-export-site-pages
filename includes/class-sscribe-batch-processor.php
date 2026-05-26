@@ -1756,7 +1756,8 @@ class SScribe_Batch_Processor {
 
 		// Re-acquire the processing lock to serialize concurrent finalize requests.
 		// Both requests will race to acquire the lock; only the first succeeds and proceeds.
-		$lock_token = $this->get_lock_manager()->acquire_lock( $session_id, 45, 35 );
+		// Lock TTL of 300 seconds matches the set_time_limit in finalize_export.
+		$lock_token = $this->get_lock_manager()->acquire_lock( $session_id, 300, 260 );
 		if ( null === $lock_token ) {
 			$this->logger->debug( 'Finalize race detected — another request holds the lock', array( 'session_id' => $session_id ) );
 			SScribe_AJAX_Guard::error(

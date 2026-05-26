@@ -313,15 +313,18 @@ class SScribe_Logger implements SScribe_Logger_Interface {
 
 		if ( file_exists( $log_file ) && filesize( $log_file ) >= self::MAX_LOG_FILE_SIZE ) {
 			$rotated_file = $this->log_dir . '/' . $this->prefix . '_debug_' . gmdate( 'Y-m-d_H-i-s' ) . '.log';
-			rename( $log_file, $rotated_file ); // phpcs:ignore WordPress.WP.AlternativeFunctions.rename_rename -- Safe filesystem rename for log rotation.
-
-			$warning_entry = sprintf(
-				"[%s] [WARNING] Log file exceeded %s bytes — rotated to %s\n",
-				gmdate( 'Y-m-d H:i:s' ),
-				size_format( self::MAX_LOG_FILE_SIZE ),
-				basename( $rotated_file )
-			);
-			file_put_contents( $log_file, $warning_entry, LOCK_EX ); // phpcs:ignore WordPress.WP.AlternativeFunctions.file_system_operations_file_put_contents -- Required for debug logging per plugin requirements.
+			$rotated = rename( $log_file, $rotated_file ); // phpcs:ignore WordPress.WP.AlternativeFunctions.rename_rename -- Safe filesystem rename for log rotation.
+			if ( $rotated ) {
+				$warning_entry = sprintf(
+					"[%s] [WARNING] Log file exceeded %s bytes — rotated to %s\n",
+					gmdate( 'Y-m-d H:i:s' ),
+					size_format( self::MAX_LOG_FILE_SIZE ),
+					basename( $rotated_file )
+				);
+				file_put_contents( $log_file, $warning_entry, LOCK_EX ); // phpcs:ignore WordPress.WP.AlternativeFunctions.file_system_operations_file_put_contents -- Required for debug logging per plugin requirements.
+			}
+			// If rename failed (e.g., file locked), fall through — the log file will be written
+			// as-is and the size check will trigger again on the next flush.
 		}
 
 		$content = implode( PHP_EOL, $this->buffer ) . PHP_EOL;
@@ -372,7 +375,7 @@ class SScribe_Logger implements SScribe_Logger_Interface {
 			return;
 		}
 
-		$files = glob( $log_dir . '/*_debug_*.log' );
+		$files = glob( $log_dir . '/' . $this->prefix . '_debug_*.log' );
 		if ( is_array( $files ) ) {
 			foreach ( $files as $file ) {
 				if ( file_exists( $file ) ) {
@@ -396,7 +399,7 @@ class SScribe_Logger implements SScribe_Logger_Interface {
 			return 0;
 		}
 
-		$files   = glob( $log_dir . '/*_debug_*.log' );
+		$files   = glob( $log_dir . '/sscribe_debug_*.log' );
 		$deleted = 0;
 		$max_age = $max_age_days * DAY_IN_SECONDS;
 		$now     = time();

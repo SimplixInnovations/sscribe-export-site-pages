@@ -71,7 +71,11 @@ class SScribe_Security {
 			return false;
 		}
 
-		$files = array_diff( scandir( $dir ), array( '.', '..' ) );
+		$scanned = scandir( $dir );
+		if ( false === $scanned ) {
+			return false;
+		}
+		$files = array_diff( $scanned, array( '.', '..' ) );
 		foreach ( $files as $file ) {
 			$path = $dir . '/' . $file;
 

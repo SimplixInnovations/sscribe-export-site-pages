@@ -18,6 +18,90 @@ if ( ! defined( 'ABSPATH' ) ) {
 class SScribe_Content_Parser {
 
 	/**
+	 * KSES allowed HTML elements for content export.
+	 * Extends wp_kses_post with additional elements needed for rich content.
+	 *
+	 * @var array
+	 */
+	private const KSES_ALLOWED_HTML = array(
+		'a'          => array(
+			'href'   => true,
+			'title'  => true,
+			'target' => true,
+			'rel'    => true,
+			'class'  => true,
+			'id'     => true,
+		),
+		'abbr'       => array( 'title' => true, 'class' => true ),
+		'acronym'    => array( 'title' => true ),
+		'b'          => array( 'class' => true ),
+		'blockquote' => array( 'cite' => true, 'class' => true ),
+		'br'         => array(),
+		'code'       => array( 'class' => true ),
+		'del'        => array( 'datetime' => true ),
+		'dd'         => array(),
+		'dl'         => array(),
+		'dt'         => array(),
+		'em'         => array( 'class' => true ),
+		'i'          => array( 'class' => true ),
+		'img'        => array(
+			'src'    => true,
+			'alt'    => true,
+			'width'  => true,
+			'height' => true,
+			'class'  => true,
+			'id'     => true,
+			'loading' => true,
+		),
+		'li'         => array( 'class' => true, 'value' => true ),
+		'ol'         => array( 'class' => true, 'start' => true, 'type' => true ),
+		'p'          => array( 'class' => true ),
+		'pre'        => array( 'class' => true ),
+		'q'          => array( 'cite' => true ),
+		's'          => array(),
+		'strike'     => array(),
+		'strong'     => array( 'class' => true ),
+		'sub'        => array(),
+		'sup'        => array(),
+		'table'      => array(
+			'class'    => true,
+			'id'       => true,
+			'border'   => true,
+			'cellpadding' => true,
+			'cellspacing' => true,
+		),
+		'tbody'      => array(),
+		'td'         => array(
+			'class' => true,
+			'colspan' => true,
+			'rowspan' => true,
+		),
+		'tfoot'      => array(),
+		'th'         => array(
+			'class'    => true,
+			'colspan'  => true,
+			'rowspan'  => true,
+			'scope'    => true,
+		),
+		'thead'      => array(),
+		'tr'         => array( 'class' => true ),
+		'ul'         => array( 'class' => true, 'type' => true ),
+		'div'        => array( 'class' => true, 'id' => true, 'align' => true ),
+		'span'       => array( 'class' => true, 'id' => true ),
+		'h1'         => array( 'class' => true, 'id' => true ),
+		'h2'         => array( 'class' => true, 'id' => true ),
+		'h3'         => array( 'class' => true, 'id' => true ),
+		'h4'         => array( 'class' => true, 'id' => true ),
+		'h5'         => array( 'class' => true, 'id' => true ),
+		'h6'         => array( 'class' => true, 'id' => true ),
+		'figure'     => array( 'class' => true ),
+		'figcaption' => array(),
+		'small'      => array(),
+		'mark'       => array(),
+		'ins'        => array( 'datetime' => true ),
+	);
+
+	/**
 	 * Cached upload directory data.
 	 *
 	 * @var array|null
@@ -108,7 +192,7 @@ class SScribe_Content_Parser {
 		$html = $this->safe_replace( '/:root\s*\{[^}]*\}/s', '', $html );
 		$html = $this->safe_replace( '/\.elementor-[a-zA-Z0-9_-]+\s*\{[^}]*\}/s', '', $html );
 
-		$html = wp_kses_post( $html );
+		$html = wp_kses( $html, self::KSES_ALLOWED_HTML );
 
 		$html = $this->safe_replace( '/>\s+</', '><', $html );
 

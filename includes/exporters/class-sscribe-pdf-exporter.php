@@ -203,7 +203,7 @@ class SScribe_PDF_Exporter implements SScribe_Exporter_Interface {
 			$output_path = trailingslashit( $output_dir ) . $filename;
 
 			$font_stack = $is_rtl
-				? ( $config['xbriyaz_available'] ? 'xbriyaz, freeserif, sans-serif' : 'freeserif, sans-serif' )
+				? ( $xbriyaz_available ? 'xbriyaz, freeserif, sans-serif' : 'freeserif, sans-serif' )
 				: 'manrope, freeserif, sans-serif';
 			$base_css   = 'html, body, div, p, span, h1, h2, h3, h4, h5, h6, table, tr, td, th, ul, ol, li, blockquote, q, cite, a { font-family: ' . $font_stack . '; }';
 
@@ -367,11 +367,10 @@ class SScribe_PDF_Exporter implements SScribe_Exporter_Interface {
 			return;
 		}
 
-		// glob('*') doesn't match hidden files (starting with .), so we need two globs.
-		$files = array_merge(
-			glob( trailingslashit( $mpdf_temp ) . '*' ) ?: array(),
-			glob( trailingslashit( $mpdf_temp ) . '.*' ) ?: array()
-		);
+		$prefix = trailingslashit( $mpdf_temp );
+		$files  = glob( $prefix . '*', GLOB_NOSORT ) ?: array();
+		$hidden = glob( $prefix . '.[!.]*', GLOB_NOSORT ) ?: array();
+		$files  = array_merge( $files, $hidden );
 
 		if ( empty( $files ) ) {
 			return;
@@ -381,10 +380,6 @@ class SScribe_PDF_Exporter implements SScribe_Exporter_Interface {
 		$now     = time();
 
 		foreach ( $files as $file ) {
-			// Skip . and .. directory entries.
-			if ( basename( $file ) === '.' || basename( $file ) === '..' ) {
-				continue;
-			}
 			if ( is_file( $file ) ) {
 				$mtime = filemtime( $file );
 				if ( false !== $mtime && ( $now - $mtime ) > $max_age ) {
@@ -431,7 +426,7 @@ class SScribe_PDF_Exporter implements SScribe_Exporter_Interface {
 	 *
 	 * @param bool $is_rtl Whether the page is RTL.
 	 * @param int  $page_id Page ID for error context.
-	 * @return array{config: array, mpdf_temp: string}|SScribe_Result Config array on success, failure Result on error.
+	 * @return array{config: array, mpdf_temp: string, xbriyaz_available: bool}|SScribe_Result Config array on success, failure Result on error.
 	 */
 	private function build_mpdf_config( bool $is_rtl, int $page_id ): array|SScribe_Result {
 		$font_dir    = trailingslashit( SSCRIBE_PLUGIN_DIR ) . 'assets/fonts/';

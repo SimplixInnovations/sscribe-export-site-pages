@@ -27,6 +27,14 @@ class SScribe_Export_Rate_Limiter {
 	 *
 	 * Uses micro-lock pattern to prevent race conditions on concurrent requests.
 	 *
+	 * Note: The micro-lock (lines 52-77) uses a best-effort approach with retries
+	 * and verification read-back. A narrow race window exists between when the lock
+	 * transient is set and when it's verified (lines 60-66). Additionally, the
+	 * rate limit counter increment (lines 79-106) has a TOCTOU race: two concurrent
+	 * requests can read the same count before either writes the incremented value.
+	 * This may allow slightly more requests than the strict limit in high-concurrency
+	 * scenarios, but is acceptable for rate-limiting UX purposes.
+	 *
 	 * @param string $export_capability Required capability.
 	 * @return bool
 	 */

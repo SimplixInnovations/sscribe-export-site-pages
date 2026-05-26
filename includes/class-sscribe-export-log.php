@@ -481,6 +481,12 @@ class SScribe_Export_Log {
 		// Last resort: linear scan of all log files (only if both cache layers missed).
 		$files = glob( $log_dir . '/export_*.json' );
 
+		if ( is_array( $files ) && count( $files ) > 200 ) {
+			error_log(
+				'SScribe_Export_Log: O(n) log scan triggered for ' . $filename . ' — ' . count( $files ) . ' files in directory. Consider running cleanup.'
+			);
+		}
+
 		if ( is_array( $files ) ) {
 			foreach ( $files as $file ) {
 				$json = file_get_contents( $file );
