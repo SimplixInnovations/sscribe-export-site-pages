@@ -173,6 +173,14 @@ class SScribe_Session {
 		$session_id = sanitize_key( $session_id );
 
 		if ( empty( $session_id ) || self::SESSION_ID_LENGTH !== strlen( $session_id ) ) {
+			$this->logger->debug(
+				'Session lookup failed: invalid session_id length',
+				array(
+					'session_id'  => $session_id,
+					'expected_len' => self::SESSION_ID_LENGTH,
+					'actual_len'   => strlen( $session_id ),
+				)
+			);
 			return null;
 		}
 
@@ -312,7 +320,12 @@ class SScribe_Session {
 				if ( isset( $existing[ $key ] ) && is_array( $existing[ $key ] ) && is_array( $value ) ) {
 					$append_keys = array( 'structured_errors', 'page_log', 'error_categories' );
 					if ( in_array( $key, $append_keys, true ) ) {
-						$merged[ $key ] = array_merge( $existing[ $key ], $value );
+						// Cap append-only arrays at 500 entries to prevent wp_options
+						// bloat that causes slow DB queries and max-packet errors.
+						$merged[ $key ] = array_slice(
+							array_merge( $existing[ $key ], $value ),
+							-500
+						);
 					} else {
 						$merged[ $key ] = $value;
 					}
@@ -335,7 +348,10 @@ class SScribe_Session {
 
 			for ( $attempt = 1; $attempt <= 2; ++$attempt ) {
 				if ( update_option( $option_name, $encoded_data, false ) ) {
-					if ( isset( $merged['user_id'] ) ) {
+					// Only delete the active-session transient when the session reaches a
+					// terminal state (complete/failed/cancelled) to avoid breaking status polling.
+					// Intermediate updates (processed count, progress) must preserve the transient.
+					if ( isset( $merged['user_id'] ) && isset( $merged['status'] ) && in_array( $merged['status'], array( 'complete', 'failed', 'cancelled' ), true ) ) {
 						unset( self::$active_session_cache[ (int) $merged['user_id'] ] );
 						delete_transient( 'sscribe_active_sid_' . (int) $merged['user_id'] );
 					}

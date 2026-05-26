@@ -203,7 +203,8 @@ class SScribe_DOCX_Content_Renderer {
 			);
 			$safe_query = '';
 			if ( ! empty( $query ) ) {
-				$safe_query = '?' . rawurlencode( $query );
+				parse_str( $query, $query_parts );
+				$safe_query = '?' . http_build_query( $query_parts, '', '&', PHP_QUERY_RFC3986 );
 			}
 			$safe_fragment = ! empty( $fragment ) ? '#' . rawurlencode( $fragment ) : '';
 
@@ -272,7 +273,7 @@ class SScribe_DOCX_Content_Renderer {
 	 * @param array<string, string> $colors   Color palette.
 	 * @param bool                  $is_rtl   RTL flag.
 	 * @param string                $font_name Font name.
-	 * @param int                   $font_size Font size.
+	 * @param int                   $font_size Font size (clamped to 6–72pt range).
 	 */
 	public function sync_config( array $colors, bool $is_rtl, string $font_name, int $font_size ): void {
 		// Validate required color keys exist after filter application
@@ -296,7 +297,8 @@ class SScribe_DOCX_Content_Renderer {
 		$this->colors    = $colors;
 		$this->is_rtl    = $is_rtl;
 		$this->font_name = $font_name;
-		$this->font_size = $font_size;
+		// Clamp font_size to a sane range to prevent invalid PHPWord XML.
+		$this->font_size = max( 6, min( 72, $font_size ) );
 	}
 
 	/**
@@ -330,8 +332,6 @@ class SScribe_DOCX_Content_Renderer {
 			)
 		);
 
-		$section->addTitle( __( 'Content', 'sscribe-export-site-pages' ), 1 );
-
 		$elements = $this->parser->parse( $content );
 
 		$element_count = count( $elements );
@@ -355,7 +355,13 @@ class SScribe_DOCX_Content_Renderer {
 					'content_preview' => mb_strcut( $content, 0, 500 ),
 				)
 			);
+			return;
 		}
+
+		// Only add the "Content" section heading when there are actual elements to render.
+		// Adding it before parsing meant a non-empty page with zero parsed elements
+		// would produce a floating H1 with nothing beneath it.
+		$section->addTitle( __( 'Content', 'sscribe-export-site-pages' ), 2 );
 
 		foreach ( $elements as $element_index => $element ) {
 			try {
@@ -420,9 +426,10 @@ class SScribe_DOCX_Content_Renderer {
 				$section->addText(
 					$this->safe_text( $element['content'] ),
 					array(
-						'name'  => 'Courier New',
-						'size'  => 9,
-						'color' => $this->colors['heading'],
+						'name'    => 'Courier New',
+						'size'    => 9,
+						'color'   => $this->colors['body'],
+						'bgColor' => $this->colors['code_bg'],
 					),
 					$this->get_para_style( array( 'styleName' => 'CodeBlock' ) )
 				);
@@ -445,13 +452,15 @@ class SScribe_DOCX_Content_Renderer {
 				break;
 
 			case 'horizontal_rule':
-				$section->addText(
-					str_repeat( '—', 60 ),
+				// Use a proper paragraph border instead of em-dash repetition.
+				// borderBottom produces a real DOCX horizontal rule.
+				$section->addTextRun(
 					array(
-						'size'  => 8,
-						'color' => $this->colors['border'],
-					),
-					$this->get_para_style( array( 'alignment' => Jc::CENTER ) )
+						'borderBottomSize'  => 6,
+						'borderBottomColor' => $this->colors['border'],
+						'spaceBefore'       => Converter::pointToTwip( 6 ),
+						'spaceAfter'        => Converter::pointToTwip( 6 ),
+					)
 				);
 				break;
 
@@ -461,7 +470,14 @@ class SScribe_DOCX_Content_Renderer {
 
 			case 'figcaption':
 				// Figcaption is rendered as part of figure, not as standalone.
-				// Silently ignore to prevent duplicate rendering.
+				// Log standalone figcaption to aid debugging of parser edge cases.
+				$this->get_logger()->debug(
+					'Standalone figcaption element skipped (expected within figure)',
+					array(
+						'element_type' => 'figcaption',
+						'content'      => substr( $element['content'] ?? '', 0, 100 ),
+					)
+				);
 				break;
 		}
 	}
@@ -473,7 +489,10 @@ class SScribe_DOCX_Content_Renderer {
 	 * @param array   $element Paragraph element data.
 	 */
 	private function render_paragraph( Section $section, array $element ): void {
+		// Empty paragraphs serve as visual spacers in HTML — preserve
+		// the spacing by adding a text break rather than dropping silently.
 		if ( empty( $element['runs'] ) ) {
+			$section->addTextBreak();
 			return;
 		}
 
@@ -519,14 +538,15 @@ class SScribe_DOCX_Content_Renderer {
 				$font_style['italic'] = true;
 			}
 			if ( ! empty( $run['underline'] ) ) {
-				$font_style['underline'] = 'single';
+				$font_style['underline'] = \SScribeVendor\PhpOffice\PhpWord\Style\Font::UNDERLINE_SINGLE;
 			}
 			if ( ! empty( $run['strikethrough'] ) ) {
-				$font_style['strikethrough'] = true;
+				$font_style['strikeThrough'] = true;
 			}
 			if ( ! empty( $run['code'] ) ) {
-				$font_style['name'] = 'Courier New';
-				$font_style['size'] = 9;
+				$font_style['name']   = 'Courier New';
+				$font_style['size']   = 9;
+				$font_style['bgColor'] = $this->colors['code_bg'];
 			}
 
 			$text_content = $this->safe_text( $run['text'] );
@@ -541,8 +561,13 @@ class SScribe_DOCX_Content_Renderer {
 						$font_style
 					);
 					$display_url      = urldecode( $link_url );
-					$url_path_decoded = trim( wp_parse_url( $display_url, PHP_URL_PATH ), '/' );
-					if ( $text_content !== $url_path_decoded && $text_content !== $link_url ) {
+					// Only append URL suffix when link text itself looks like a URL
+					// (not when it's a meaningful human label like "Click here")
+					$text_is_url     = filter_var( $text_content, FILTER_VALIDATE_URL ) !== false;
+					$text_is_path    = preg_match( '/^[\/\.]?[a-zA-Z0-9_\-\/]+$/u', $text_content ) === 1
+						&& strlen( $text_content ) < 80
+						&& strpos( $text_content, ' ' ) === false;
+					if ( $text_is_url || $text_is_path ) {
 						$text_run->addText(
 							' (' . $this->safe_text( $display_url ) . ')',
 							$this->with_complex_script(
@@ -580,19 +605,32 @@ class SScribe_DOCX_Content_Renderer {
 			? \SScribeVendor\PhpOffice\PhpWord\Style\ListItem::TYPE_NUMBER
 			: \SScribeVendor\PhpOffice\PhpWord\Style\ListItem::TYPE_BULLET_FILLED;
 
-		foreach ( $element['items'] as $item ) {
-			$depth = isset( $item['depth'] ) ? $item['depth'] : 0;
+		$list_font_style = array(
+			'name'  => $this->font_name,
+			'size'  => $this->font_size,
+			'color' => $this->colors['body'],
+		);
+		if ( $this->is_rtl ) {
+			$list_font_style['bidi']          = true;
+			$list_font_style['rtl']           = true;
+			$list_font_style['complexScript'] = true;
+		}
 
-			$list_font_style = array(
-				'name'  => $this->font_name,
-				'size'  => $this->font_size,
-				'color' => $this->colors['body'],
-			);
-			if ( $this->is_rtl ) {
-				$list_font_style['bidi']          = true;
-				$list_font_style['rtl']           = true;
-				$list_font_style['complexScript'] = true;
-			}
+		$this->render_list_items( $section, $element['items'], $list_font_style, $list_type, 0 );
+	}
+
+	/**
+	 * Recursively render list items with nested children.
+	 *
+	 * @param Section                              $section       Document section.
+	 * @param array                                $items         List items to render.
+	 * @param array                                $list_font_style Base font style.
+	 * @param int                                  $list_type     List type constant.
+	 * @param int                                  $default_depth Default depth offset.
+	 */
+	private function render_list_items( Section $section, array $items, array $list_font_style, int $list_type, int $default_depth ): void {
+		foreach ( $items as $item ) {
+			$depth = isset( $item['depth'] ) ? $item['depth'] : $default_depth;
 
 			$section->addListItem(
 				$this->safe_text( $item['content'] ),
@@ -602,15 +640,7 @@ class SScribe_DOCX_Content_Renderer {
 			);
 
 			if ( ! empty( $item['children'] ) ) {
-				foreach ( $item['children'] as $child ) {
-					$child_depth = isset( $child['depth'] ) ? $child['depth'] : $depth + 1;
-					$section->addListItem(
-						$this->safe_text( $child['content'] ),
-						$child_depth,
-						$list_font_style,
-						array_merge( array( 'listType' => $list_type ), $this->get_para_style() )
-					);
-				}
+				$this->render_list_items( $section, $item['children'], $list_font_style, $list_type, $depth + 1 );
 			}
 		}
 	}
@@ -626,16 +656,22 @@ class SScribe_DOCX_Content_Renderer {
 			return;
 		}
 
-		$col_count = ! empty( $element['rows'][0]['cells'] )
-			? count( $element['rows'][0]['cells'] )
-			: 0;
+		// Derive column count as the maximum cell count across ALL rows,
+		// not just the first row, to handle tables where subsequent rows
+		// have more cells than the header row.
+		$col_count = max(
+			array_map(
+				fn( $row ) => count( $row['cells'] ?? array() ),
+				$element['rows']
+			)
+		);
 
 		if ( 0 === $col_count ) {
 			return;
 		}
 
 		$total_width_twip = Converter::inchToTwip( 6.5 );
-		$cell_width       = (int) ( $total_width_twip / $col_count );
+		$cell_width      = (int) ( $total_width_twip / $col_count );
 
 		$table_unit = \SScribeVendor\PhpOffice\PhpWord\SimpleType\TblWidth::TWIP;
 
@@ -646,6 +682,11 @@ class SScribe_DOCX_Content_Renderer {
 			'unit'        => $table_unit,
 			'width'       => $total_width_twip,
 		);
+
+		// bidiVisual is required for RTL tables to render correctly in Word.
+		if ( $this->is_rtl ) {
+			$table_style['bidiVisual'] = true;
+		}
 
 		$table = $section->addTable( $table_style );
 
@@ -671,7 +712,11 @@ class SScribe_DOCX_Content_Renderer {
 					$font_style['color']   = $this->colors['heading'];
 				}
 
-				$cell_obj = $table->addCell( $cell_width, $cell_style );
+				// Apply colspan if present to multiply effective cell width.
+				$colspan = isset( $cell['colspan'] ) ? max( 1, (int) $cell['colspan'] ) : 1;
+				$effective_width = $cell_width * $colspan;
+
+				$cell_obj = $table->addCell( $effective_width, $cell_style );
 				if ( ! empty( $cell['runs'] ) ) {
 					$text_run = $cell_obj->addTextRun( $this->get_para_style() );
 					$this->render_runs( $text_run, $cell['runs'], false, ! empty( $cell['is_header'] ) );
@@ -737,7 +782,11 @@ class SScribe_DOCX_Content_Renderer {
 						)
 					)
 				);
-				$cell->addLink(
+				// PHPWord Cell does not have addLink() — add TextRun first, then addLink on it.
+				$link_run = $cell->addTextRun(
+					$this->get_para_style( array( 'alignment' => Jc::CENTER ) )
+				);
+				$link_run->addLink(
 					$validated_url,
 					$this->safe_text( $element['url'] ),
 					array(
@@ -745,8 +794,7 @@ class SScribe_DOCX_Content_Renderer {
 						'size'      => 9,
 						'color'     => $this->colors['link'],
 						'underline' => 'single',
-					),
-					$this->get_para_style( array( 'alignment' => Jc::CENTER ) )
+					)
 				);
 			}
 		}
@@ -769,6 +817,18 @@ class SScribe_DOCX_Content_Renderer {
 			return;
 		}
 
+		// Only accept absolute URLs (http/https) or absolute local paths.
+		// Reject relative paths (e.g., ../wp-content/...) which would cause failures downstream.
+		$is_absolute_url = str_starts_with( $src, 'http://' ) || str_starts_with( $src, 'https://' );
+		$is_absolute_path = str_starts_with( $src, '/' ) && file_exists( $src );
+		if ( ! $is_absolute_url && ! $is_absolute_path ) {
+			$this->get_logger()->debug(
+				'Skipping figure with non-resolvable src',
+				array( 'src' => $src )
+			);
+			return;
+		}
+
 		// Build an image element for the figure's image.
 		$image_element = array(
 			'type'       => 'image',
@@ -780,7 +840,7 @@ class SScribe_DOCX_Content_Renderer {
 		// Render the image first.
 		$this->render_inline_image( $section, $image_element );
 
-		// Render caption if present.
+		// Render caption if present (trim to catch whitespace-only captions).
 		if ( '' !== trim( $caption ) ) {
 			$section->addText(
 				$this->safe_text( $caption ),
@@ -820,14 +880,28 @@ class SScribe_DOCX_Content_Renderer {
 				$this->get_para_style( array( 'alignment' => Jc::CENTER ) )
 			);
 		} elseif ( is_readable( $path ) ) {
-			// Block unsupported image formats that PHPWord cannot process
-			// PHPWord does not support WEBP/AVIF natively
+			// Block unsupported image formats that PHPWord cannot process.
+			// For unsupported formats, render the alt text as an italicized paragraph
+			// instead of silently dropping the image.
 			$ext = strtolower( pathinfo( $path, PATHINFO_EXTENSION ) );
 			if ( in_array( $ext, array( 'webp', 'avif' ), true ) ) {
 				$this->get_logger()->debug(
-					'Skipping unsupported image format in content',
+					'Skipping unsupported image format, rendering alt text',
 					array( 'path' => $path, 'extension' => $ext )
 				);
+				if ( ! empty( $element['alt'] ) ) {
+					$section->addText(
+						'[Image: ' . $this->safe_text( $element['alt'] ) . ']',
+						array(
+							'name'   => $this->font_name,
+							'size'   => 9,
+							'italic' => true,
+							'color'  => $this->colors['body'],
+						),
+						$this->get_para_style( array( 'alignment' => Jc::CENTER ) )
+					);
+				}
+				$section->addTextBreak( 1 );
 				return;
 			}
 

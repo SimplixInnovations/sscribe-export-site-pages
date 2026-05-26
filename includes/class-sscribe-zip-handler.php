@@ -123,12 +123,14 @@ class SScribe_Zip_Handler {
 		$zip_path = $this->export_dir . '/' . sanitize_file_name( $zip_name ) . '.zip';
 
 		$zip = new ZipArchive();
+		$zip_opened = false;
 		try {
 			if ( $zip->open( $zip_path, ZipArchive::CREATE | ZipArchive::OVERWRITE ) !== true ) {
 				$this->logger->error( 'Failed to create ZIP file', array( 'zip_path' => $zip_path ) );
 				$this->delete_directory( $source_dir );
 				return false;
 			}
+			$zip_opened = true;
 
 			$all_files         = array();
 			$format_extensions = array(
@@ -225,7 +227,11 @@ class SScribe_Zip_Handler {
 				)
 			);
 		} finally {
-			$zip->close();
+			// Only call close() if open() actually succeeded.
+			// Calling close() on a never-opened ZipArchive throws warnings on some PHP versions.
+			if ( $zip_opened ) {
+				$zip->close();
+			}
 		}
 
 		$this->delete_directory( $source_dir );
