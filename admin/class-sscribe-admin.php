@@ -70,9 +70,9 @@ class SScribe_Admin {
 		$this->zip_handler = $zip_handler ?? new SScribe_Zip_Handler();
 
 		$this->debug = new SScribe_Admin_Debug();
-		if ( SSCRIBE_DEBUG || SScribe_Settings::is_debug_enabled() ) {
-			$this->debug->register_hooks();
-		}
+		// Always register debug AJAX hooks so the debug tab can toggle
+		// settings even when debug logging is currently disabled.
+		$this->debug->register_hooks();
 	}
 
 	/**
@@ -288,23 +288,22 @@ class SScribe_Admin {
 			true
 		);
 
-		// Only enqueue debug console assets when debug mode is enabled.
-		if ( $debug ) {
-			wp_enqueue_style(
-				'sscribe-debug-console',
-				SSCRIBE_PLUGIN_URL . 'admin/css/sscribe-debug-console.css',
-				array( 'sscribe-admin' ),
-				$debug_css_version
-			);
+		// Always enqueue debug console assets so the debug tab is functional
+		// even when debug logging is currently disabled (users need the UI to enable it).
+		wp_enqueue_style(
+			'sscribe-debug-console',
+			SSCRIBE_PLUGIN_URL . 'admin/css/sscribe-debug-console.css',
+			array( 'sscribe-admin' ),
+			$debug_css_version
+		);
 
-			wp_enqueue_script(
-				'sscribe-debug-console',
-				SSCRIBE_PLUGIN_URL . 'admin/js/sscribe-debug-console.js',
-				array( 'jquery', 'sscribe-admin' ),
-				$debug_js_version,
-				true
-			);
-		}
+		wp_enqueue_script(
+			'sscribe-debug-console',
+			SSCRIBE_PLUGIN_URL . 'admin/js/sscribe-debug-console.js',
+			array( 'jquery', 'sscribe-admin' ),
+			$debug_js_version,
+			true
+		);
 
 		add_action( 'admin_print_footer_scripts', array( $this, 'print_localized_data' ), 0 );
 	}
@@ -492,18 +491,18 @@ class SScribe_Admin {
 		}
 
 		$sscribe_debug_info = array();
-		$sscribe_is_debug   = SSCRIBE_DEBUG;
-		if ( ! $sscribe_is_debug ) {
-			$sscribe_is_debug = SScribe_Settings::is_debug_enabled();
-		}
+		// Always show the debug tab so users can toggle debug on/off.
+		// The debug *logging* is still controlled by the setting.
+		$sscribe_is_debug   = true;
+		$sscribe_debug_logging_active = SSCRIBE_DEBUG || SScribe_Settings::is_debug_enabled();
 
-		if ( $sscribe_is_debug ) {
+		if ( $sscribe_debug_logging_active ) {
 			if ( defined( 'WP_DEBUG' ) && WP_DEBUG ) {
 				error_log( 'SScribe: Debug mode is ENABLED. This should NOT be enabled in production environments.' ); // phpcs:ignore WordPress.PHP.DevelopmentFunctions.error_log_error_log -- Intentional debug warning.
 			}
 		}
 
-		if ( $sscribe_is_debug ) {
+		if ( $sscribe_debug_logging_active ) {
 			// Include blog ID in cache key for multisite compatibility.
 			$blog_id         = is_multisite() ? get_current_blog_id() : 0;
 			$debug_cache_key = 'sscribe_debug_info_' . $blog_id . '_' . get_current_user_id();
