@@ -5,6 +5,8 @@
  * @package SScribe_Export_Site_Pages
  * @license GPL v2 or later
  * @link    https://www.gnu.org/licenses/gpl-2.0.html
+ *
+ * @phpcs:disable WordPress.PHP.DevelopmentFunctions.error_log_error_log -- Intentional debug logging gated behind WP_DEBUG_LOG.
  */
 
 declare(strict_types=1);
