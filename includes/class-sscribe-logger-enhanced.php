@@ -462,7 +462,7 @@ class SScribe_Logger_Enhanced implements SScribe_Logger_Interface {
 	 */
 	private function get_log_file(): string {
 		$date = gmdate( 'Y-m-d' );
-		return trailingslashit( $this->log_dir ) . "sscribe_enhanced_{$date}.log";
+		return trailingslashit( $this->log_dir ) . "{$this->prefix}_{$date}.log";
 	}
 
 	/**
