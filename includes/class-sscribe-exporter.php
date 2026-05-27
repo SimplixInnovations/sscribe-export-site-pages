@@ -485,6 +485,7 @@ class SScribe_Exporter {
 											}
 										}
 									}
+									// phpcs:ignore WordPress.WP.AlternativeFunctions.file_system_operations_rmdir
 									@rmdir( $temp_file );
 								}
 							}
