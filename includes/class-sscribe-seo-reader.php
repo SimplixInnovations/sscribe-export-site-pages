@@ -266,12 +266,14 @@ class SScribe_SEO_Reader {
 			$nofollow = true;
 		}
 
-		$focus_keyword = (string) get_post_meta( $page_id, '_aioseop_keywords', true );
-		if ( is_serialized( $focus_keyword, true ) ) {
-			$focus_keyword = (string) maybe_unserialize( $focus_keyword );
+		$focus_keyword = get_post_meta( $page_id, '_aioseop_keywords', true );
+		if ( is_string( $focus_keyword ) && function_exists( 'is_serialized' ) && is_serialized( $focus_keyword, true ) ) {
+			$focus_keyword = maybe_unserialize( $focus_keyword );
 		}
 		if ( is_array( $focus_keyword ) ) {
 			$focus_keyword = implode( ', ', $focus_keyword );
+		} else {
+			$focus_keyword = (string) $focus_keyword;
 		}
 
 		return array(
