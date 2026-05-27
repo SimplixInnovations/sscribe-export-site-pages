@@ -46,8 +46,16 @@ class SScribe_Diagnostics {
 		$debug_enabled = SSCRIBE_DEBUG;
 
 		// Use container-managed singletons where available to avoid duplicate instances.
-		$container     = SScribe_Container::instance();
-		$debug_logger  = $debug_enabled ? $container->get( SScribe_Logger::class ) : null;
+		$container    = SScribe_Container::instance();
+		$debug_logger = null;
+
+		if ( $debug_enabled ) {
+			try {
+				$debug_logger = $container->get( SScribe_Logger::class );
+			} catch ( \Throwable $e ) {
+				$debug_logger = null;
+			}
+		}
 
 		$sections = array();
 
@@ -91,7 +99,7 @@ class SScribe_Diagnostics {
 		}
 
 		try {
-			$logger_entries = $debug_logger instanceof SScribe_Logger ? $debug_logger->get_logs() : array();
+			$logger_entries = $debug_logger instanceof SScribe_Logger ? $debug_logger->get_logs( 5 ) : array();
 		} catch ( \Throwable $e ) {
 			$logger_entries = array();
 			if ( $debug_logger ) {
@@ -99,10 +107,7 @@ class SScribe_Diagnostics {
 			}
 		}
 
-		$recent_log_tail = array();
-		if ( count( $logger_entries ) > 0 ) {
-			$recent_log_tail = array_slice( $logger_entries, -5 );
-		}
+		$recent_log_tail = $logger_entries;
 
 		try {
 			$wpml_active = $container->get( SScribe_Page_Collector::class )->is_wpml_active();
@@ -214,12 +219,18 @@ class SScribe_Diagnostics {
 			);
 		}
 
+		try {
+			$copy_text = $this->build_support_copy_text( $sections, $recent_audit_summary, $recent_log_tail );
+		} catch ( \Throwable $e ) {
+			$copy_text = '';
+		}
+
 		return array(
 			'generated_at'   => gmdate( 'Y-m-d H:i:s' ),
 			'sections'       => $sections,
 			'audit_events'   => $recent_audit_summary,
 			'log_tail'       => array_values( $recent_log_tail ),
-			'copy_text'      => $this->build_support_copy_text( $sections, $recent_audit_summary, $recent_log_tail ),
+			'copy_text'      => $copy_text,
 			'has_debug_mode' => $debug_enabled,
 			'storage'        => array(
 				'session_storage' => $session_storage,
@@ -251,10 +262,10 @@ class SScribe_Diagnostics {
 		$checks['session']     = $this->check_session_health();
 
 		foreach ( $checks as $check ) {
-			if ( 'error' === $check['status'] ) {
+			if ( isset( $check['status'] ) && 'error' === $check['status'] ) {
 				$has_error = true;
 			}
-			if ( 'warning' === $check['status'] ) {
+			if ( isset( $check['status'] ) && 'warning' === $check['status'] ) {
 				$warnings[] = $check['message'];
 			}
 		}
@@ -343,17 +354,6 @@ class SScribe_Diagnostics {
 
 		$estimated_total_mb = ( $page_count * $estimate_per_page ) + 50;
 
-		$safe_available_mb = (int) ( $available_mb * 0.8 );
-
-		if ( $memory_mb < 128 ) {
-			return array(
-				'name'    => 'Memory Limit',
-				'status'  => 'error',
-				'message' => sprintf( 'Memory limit: %dMB. Minimum required: 128MB. Increase memory_limit in php.ini.', $memory_mb ),
-				'fix'     => 'Add define( "WP_MEMORY_LIMIT", "256M" ); to wp-config.php',
-			);
-		}
-
 		if ( $available_mb <= 0 ) {
 			return array(
 				'name'    => 'Memory Forecast',
@@ -363,6 +363,17 @@ class SScribe_Diagnostics {
 					$memory_mb,
 					$used_mb
 				),
+				'fix'     => 'Add define( "WP_MEMORY_LIMIT", "256M" ); to wp-config.php',
+			);
+		}
+
+		$safe_available_mb = (int) ( $available_mb * 0.8 );
+
+		if ( $memory_mb < 128 ) {
+			return array(
+				'name'    => 'Memory Limit',
+				'status'  => 'error',
+				'message' => sprintf( 'Memory limit: %dMB. Minimum required: 128MB. Increase memory_limit in php.ini.', $memory_mb ),
 				'fix'     => 'Add define( "WP_MEMORY_LIMIT", "256M" ); to wp-config.php',
 			);
 		}
@@ -470,6 +481,22 @@ class SScribe_Diagnostics {
 					'status'  => 'error',
 					'message' => 'Export directory could not be created: ' . $export_dir,
 					'fix'     => 'Check that wp-content/uploads is writable (chmod 755)',
+				);
+			}
+
+			// Write guard files to prevent direct web access to export files.
+			$index_file = $export_dir . '/index.php';
+			if ( ! file_exists( $index_file ) ) {
+				// phpcs:ignore WordPress.WP.AlternativeFunctions.file_system_operations_file_put_contents -- Guard file creation during diagnostic check.
+				file_put_contents( $index_file, '<?php // Silence is golden.' . PHP_EOL );
+			}
+
+			$htaccess_file = $export_dir . '/.htaccess';
+			if ( ! file_exists( $htaccess_file ) ) {
+				// phpcs:ignore WordPress.WP.AlternativeFunctions.file_system_operations_file_put_contents -- Guard file creation during diagnostic check.
+				file_put_contents(
+					$htaccess_file,
+					'Options -Indexes' . PHP_EOL . 'Deny from all' . PHP_EOL
 				);
 			}
 		}
@@ -595,9 +622,8 @@ class SScribe_Diagnostics {
 		if ( class_exists( '\\SScribeVendor\\PhpOffice\\PhpWord\\PhpWord' ) ) {
 
 			$phpword_composer_file = SSCRIBE_PLUGIN_DIR . 'vendor-prefixed/phpoffice/phpword/composer.json';
-			if ( file_exists( $phpword_composer_file ) ) {
+if ( file_exists( $phpword_composer_file ) && is_readable( $phpword_composer_file ) ) {
 				// phpcs:ignore WordPress.WP.AlternativeFunctions.file_get_contents_file_get_contents -- Safe: reading a local composer.json from plugin directory.
-
 				$raw_json        = file_get_contents( $phpword_composer_file );
 				$composer_data   = is_string( $raw_json ) ? json_decode( $raw_json, true ) : null;
 				$bundled_version = ( is_array( $composer_data ) && isset( $composer_data['version'] ) ) ? $composer_data['version'] : 'unknown';
@@ -644,6 +670,21 @@ class SScribe_Diagnostics {
 		$js_file = $plugin_dir . 'admin/js/sscribe-admin.js';
 		if ( ! is_readable( $js_file ) ) {
 			$issues[] = 'JS file not readable';
+		}
+
+		$main_file = $plugin_dir . 'sscribe-export-site-pages.php';
+		if ( ! is_readable( $main_file ) ) {
+			$issues[] = 'Main plugin file not readable';
+		}
+
+		$exporter_file = $plugin_dir . 'includes/class-sscribe-exporter.php';
+		if ( ! is_readable( $exporter_file ) ) {
+			$issues[] = 'Exporter file not readable';
+		}
+
+		$autoloader_file = $plugin_dir . 'includes/sscribe-autoloader.php';
+		if ( ! is_readable( $autoloader_file ) ) {
+			$issues[] = 'Autoloader file not readable';
 		}
 
 		if ( ! empty( $issues ) ) {
@@ -704,7 +745,7 @@ class SScribe_Diagnostics {
 			)
 		);
 
-		if ( $orphaned > 0 ) {
+		if ( (int) $orphaned > 0 ) {
 			return array(
 				'name'    => 'Session Health',
 				'status'  => 'warning',

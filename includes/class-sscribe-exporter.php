@@ -458,6 +458,26 @@ class SScribe_Exporter {
 			return false;
 		}
 
+		// Register shutdown handler to clean up temp files on fatal error/OOM.
+		$temp_dir_for_shutdown = $output_dir;
+		$page_id_for_shutdown  = $page_data['id'] ?? 0;
+		register_shutdown_function(
+			static function () use ( $temp_dir_for_shutdown, $page_id_for_shutdown ): void {
+				$error = error_get_last();
+				if ( $error && E_ERROR === $error['type'] ) {
+					$temp_pattern = sys_get_temp_dir() . '/phpword_*.tmp';
+					$temp_files   = glob( $temp_pattern );
+					if ( is_array( $temp_files ) ) {
+						foreach ( $temp_files as $temp_file ) {
+							if ( is_file( $temp_file ) && is_writable( $temp_file ) ) {
+								@unlink( $temp_file );
+							}
+						}
+					}
+				}
+			}
+		);
+
 		// Verify output directory is writable before attempting file creation.
 		if ( ! is_writable( $output_dir ) ) {
 			$this->last_error = 'Output directory is not writable: ' . $output_dir;
