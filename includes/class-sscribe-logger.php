@@ -393,7 +393,7 @@ class SScribe_Logger implements SScribe_Logger_Interface {
 	 *
 	 * @return array Log entries from file and buffer.
 	 */
-	public function get_logs(): array {
+	public function get_logs( int $limit = -1 ): array {
 		if ( ! $this->enabled ) {
 			return array();
 		}
@@ -404,14 +404,19 @@ class SScribe_Logger implements SScribe_Logger_Interface {
 		if ( file_exists( $log_file ) ) {
 			$contents = file_get_contents( $log_file ); // phpcs:ignore WordPress.WP.AlternativeFunctions.file_get_contents_file_get_contents -- Safe filesystem read.
 			if ( $contents ) {
-				// Normalize line endings: handle both Unix (\n) and Windows (\r\n) line endings.
 				$contents = str_replace( "\r\n", "\n", $contents );
 				$contents = str_replace( "\r", "\n", $contents );
 				$file_entries = explode( "\n", trim( $contents ) );
 			}
 		}
 
-		return array_merge( $file_entries, $this->buffer );
+		$all_entries = array_merge( $file_entries, $this->buffer );
+
+		if ( $limit > 0 && count( $all_entries ) > $limit ) {
+			return array_slice( $all_entries, -$limit );
+		}
+
+		return $all_entries;
 	}
 
 	/**

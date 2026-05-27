@@ -1200,6 +1200,10 @@ class SScribe_Batch_Processor {
 
 				do_action( 'sscribe_before_export_page', $page_id, $session['language'] ?? '' );
 
+				if ( $this->export_log ) {
+					$this->export_log->update_page_status( $page_id, 'processing' );
+				}
+
 				$page_data = $this->collector->get_page_data( $page_id );
 
 				if ( ! $page_data ) {
@@ -1249,7 +1253,7 @@ class SScribe_Batch_Processor {
 				$export_errors      = array();
 				$successful_formats = array();
 
-				$pre_export_memory_mb = (int) apply_filters( 'sscribe_pre_export_memory_threshold_mb', 5 );
+				$pre_export_memory_mb = (int) apply_filters( 'sscribe_min_memory_per_page_mb', 64 );
 				if ( ! $this->is_memory_available( $pre_export_memory_mb ) ) {
 					$error_msg = sprintf(
 					/* translators: %d: Page ID. */

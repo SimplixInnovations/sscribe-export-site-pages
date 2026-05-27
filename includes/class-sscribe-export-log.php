@@ -163,6 +163,27 @@ class SScribe_Export_Log {
 		$this->write_log( $data );
 	}
 
+	public function update_page_status( int $page_id, string $status ): void {
+		$data = $this->read_log();
+
+		if ( isset( $data['pages'][ $page_id ] ) ) {
+			$data['pages'][ $page_id ]['status'] = $status;
+		} else {
+			$data['pages'][ $page_id ] = array(
+				'id'         => $page_id,
+				'status'     => $status,
+				'start_time' => microtime( true ),
+				'end_time'   => null,
+				'duration'   => null,
+				'formats'    => array(),
+				'error'      => null,
+				'memory'     => size_format( memory_get_usage( true ) ),
+			);
+		}
+
+		$this->write_log( $data );
+	}
+
 	/**
 	 * Log successful processing of a page.
 	 *

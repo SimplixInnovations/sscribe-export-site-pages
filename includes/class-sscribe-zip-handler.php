@@ -183,6 +183,10 @@ class SScribe_Zip_Handler {
 					$archive_entry = sanitize_file_name( $basename );
 					$lang_code     = null;
 
+					if ( in_array( $basename, array( 'index.php', '.htaccess' ), true ) ) {
+						continue;
+					}
+
 					if ( $use_lang_folders ) {
 
 						$lang_code = $this->extract_lang_from_filename( $basename );

@@ -124,9 +124,9 @@ class SScribe_SEO_Reader {
 		}
 
 		return array(
-			'meta_title'       => wp_strip_all_tags( (string) get_post_meta( $page_id, '_yoast_wpseo_title', true ) ),
-			'meta_description' => wp_strip_all_tags( (string) get_post_meta( $page_id, '_yoast_wpseo_metadesc', true ) ),
-			'focus_keyword'    => wp_strip_all_tags( (string) $focus_kw ),
+			'meta_title'       => wp_strip_all_tags( strip_shortcodes( (string) get_post_meta( $page_id, '_yoast_wpseo_title', true ) ) ),
+			'meta_description' => wp_strip_all_tags( strip_shortcodes( (string) get_post_meta( $page_id, '_yoast_wpseo_metadesc', true ) ) ),
+			'focus_keyword'    => wp_strip_all_tags( strip_shortcodes( (string) $focus_kw ) ),
 			'canonical_url'    => (string) get_post_meta( $page_id, '_yoast_wpseo_canonical', true ),
 			'og_title'         => (string) get_post_meta( $page_id, '_yoast_wpseo_opengraph-title', true ),
 			'og_description'   => (string) get_post_meta( $page_id, '_yoast_wpseo_opengraph-description', true ),
@@ -161,9 +161,9 @@ class SScribe_SEO_Reader {
 		}
 
 		return array(
-			'meta_title'       => wp_strip_all_tags( (string) get_post_meta( $page_id, 'rank_math_title', true ) ),
-			'meta_description' => wp_strip_all_tags( (string) get_post_meta( $page_id, 'rank_math_description', true ) ),
-			'focus_keyword'    => wp_strip_all_tags( (string) $focus_kw ),
+			'meta_title'       => wp_strip_all_tags( strip_shortcodes( (string) get_post_meta( $page_id, 'rank_math_title', true ) ) ),
+			'meta_description' => wp_strip_all_tags( strip_shortcodes( (string) get_post_meta( $page_id, 'rank_math_description', true ) ) ),
+			'focus_keyword'    => wp_strip_all_tags( strip_shortcodes( (string) $focus_kw ) ),
 			'canonical_url'    => (string) get_post_meta( $page_id, 'rank_math_canonical_url', true ),
 			'og_title'         => (string) get_post_meta( $page_id, 'rank_math_facebook_title', true ),
 			'og_description'   => (string) get_post_meta( $page_id, 'rank_math_facebook_description', true ),
@@ -267,11 +267,17 @@ class SScribe_SEO_Reader {
 		}
 
 		$focus_keyword = (string) get_post_meta( $page_id, '_aioseop_keywords', true );
+		if ( is_serialized( $focus_keyword, true ) ) {
+			$focus_keyword = (string) maybe_unserialize( $focus_keyword );
+		}
+		if ( is_array( $focus_keyword ) ) {
+			$focus_keyword = implode( ', ', $focus_keyword );
+		}
 
 		return array(
-			'meta_title'       => wp_strip_all_tags( (string) get_post_meta( $page_id, '_aioseop_title', true ) ),
-			'meta_description' => wp_strip_all_tags( (string) get_post_meta( $page_id, '_aioseop_description', true ) ),
-			'focus_keyword'    => wp_strip_all_tags( $focus_keyword ),
+			'meta_title'       => wp_strip_all_tags( strip_shortcodes( (string) get_post_meta( $page_id, '_aioseop_title', true ) ) ),
+			'meta_description' => wp_strip_all_tags( strip_shortcodes( (string) get_post_meta( $page_id, '_aioseop_description', true ) ) ),
+			'focus_keyword'    => wp_strip_all_tags( strip_shortcodes( $focus_keyword ) ),
 			'canonical_url'    => (string) get_post_meta( $page_id, '_aioseop_custom_link', true ),
 			'og_title'         => (string) get_post_meta( $page_id, '_aioseop_opengraph_title', true ),
 			'og_description'   => (string) get_post_meta( $page_id, '_aioseop_opengraph_description', true ),
@@ -297,9 +303,9 @@ class SScribe_SEO_Reader {
 			$focus_kw = implode( ', ', $focus_kw );
 		}
 		return array(
-			'meta_title'       => wp_strip_all_tags( (string) get_post_meta( $page_id, '_seopress_titles_title', true ) ),
-			'meta_description' => wp_strip_all_tags( (string) get_post_meta( $page_id, '_seopress_titles_desc', true ) ),
-			'focus_keyword'    => wp_strip_all_tags( (string) $focus_kw ),
+			'meta_title'       => wp_strip_all_tags( strip_shortcodes( (string) get_post_meta( $page_id, '_seopress_titles_title', true ) ) ),
+			'meta_description' => wp_strip_all_tags( strip_shortcodes( (string) get_post_meta( $page_id, '_seopress_titles_desc', true ) ) ),
+			'focus_keyword'    => wp_strip_all_tags( strip_shortcodes( (string) $focus_kw ) ),
 			'canonical_url'    => (string) get_post_meta( $page_id, '_seopress_robots_canonical', true ),
 			'og_title'         => (string) get_post_meta( $page_id, '_seopress_social_fb_title', true ),
 			'og_description'   => (string) get_post_meta( $page_id, '_seopress_social_fb_desc', true ),
@@ -339,9 +345,9 @@ class SScribe_SEO_Reader {
 		$nofollow = '1' === get_post_meta( $page_id, '_genesis_nofollow', true );
 
 		return array(
-			'meta_title'       => wp_strip_all_tags( (string) get_post_meta( $page_id, '_genesis_title', true ) ),
-			'meta_description' => wp_strip_all_tags( (string) get_post_meta( $page_id, '_genesis_description', true ) ),
-			'focus_keyword'    => wp_strip_all_tags( $focus_keyword ),
+			'meta_title'       => wp_strip_all_tags( strip_shortcodes( (string) get_post_meta( $page_id, '_genesis_title', true ) ) ),
+			'meta_description' => wp_strip_all_tags( strip_shortcodes( (string) get_post_meta( $page_id, '_genesis_description', true ) ) ),
+			'focus_keyword'    => wp_strip_all_tags( strip_shortcodes( $focus_keyword ) ),
 			'canonical_url'    => (string) get_post_meta( $page_id, '_genesis_canonical_uri', true ),
 			'og_title'         => (string) get_post_meta( $page_id, '_open_graph_title', true ),
 			'og_description'   => (string) get_post_meta( $page_id, '_open_graph_description', true ),
