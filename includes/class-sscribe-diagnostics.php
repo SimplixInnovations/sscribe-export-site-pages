@@ -478,7 +478,7 @@ class SScribe_Diagnostics {
 
 		$estimated_seconds = $page_count * 2;
 
-		if ( $max_execution > 0 && $max_execution < 30 ) {
+		if ( $max_execution > 0 && ( $max_execution < 30 || $estimated_seconds > $max_execution ) ) {
 			return array(
 				'name'    => 'Execution Time',
 				'status'  => 'warning',
@@ -525,21 +525,9 @@ class SScribe_Diagnostics {
 				);
 			}
 
-			// Write guard files to prevent direct web access to export files.
-			$index_file = $export_dir . '/index.php';
-			if ( ! file_exists( $index_file ) ) {
-				// phpcs:ignore WordPress.WP.AlternativeFunctions.file_system_operations_file_put_contents -- Guard file creation during diagnostic check.
-				file_put_contents( $index_file, '<?php // Silence is golden.' . PHP_EOL );
-			}
-
-			$htaccess_file = $export_dir . '/.htaccess';
-			if ( ! file_exists( $htaccess_file ) ) {
-				// phpcs:ignore WordPress.WP.AlternativeFunctions.file_system_operations_file_put_contents -- Guard file creation during diagnostic check.
-				file_put_contents(
-					$htaccess_file,
-					'Options -Indexes' . PHP_EOL . 'Deny from all' . PHP_EOL
-				);
-			}
+			// Guard files are the activator's responsibility, not a diagnostic's.
+			// Use the centralized security utility so guard file creation is consistent.
+			SScribe_Security::protect_directory( $export_dir );
 		}
 
 		if ( ! wp_is_writable( $export_dir ) ) {
@@ -776,16 +764,24 @@ class SScribe_Diagnostics {
 		global $wpdb;
 
 		$option_prefix = SScribe_Session::OPTION_PREFIX;
+
 		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
-		$orphaned = $wpdb->get_var(
+		$options = $wpdb->get_results(
 			$wpdb->prepare(
-				"SELECT COUNT(*) FROM {$wpdb->options} WHERE option_name LIKE %s AND option_value LIKE %s",
-				$wpdb->esc_like( $option_prefix ) . '%',
-				'%' . $wpdb->esc_like( '"processing"' ) . '%'
+				"SELECT option_name, option_value FROM {$wpdb->options} WHERE option_name LIKE %s AND autoload = 'no'",
+				$wpdb->esc_like( $option_prefix ) . '%'
 			)
 		);
 
-		if ( (int) $orphaned > 0 ) {
+		$orphaned = 0;
+		foreach ( $options as $option ) {
+			$decoded = is_string( $option->option_value ) ? json_decode( $option->option_value, true ) : null;
+			if ( is_array( $decoded ) && ( $decoded['status'] ?? '' ) === 'processing' ) {
+				++$orphaned;
+			}
+		}
+
+		if ( $orphaned > 0 ) {
 			return array(
 				'name'    => 'Session Health',
 				'status'  => 'warning',
@@ -903,7 +899,7 @@ class SScribe_Diagnostics {
 			);
 		}
 
-		$warning_categories = array( 'timeout', 'pdf_generation' );
+		$warning_categories = array( 'timeout' );
 		$diagnosis['severity'] = in_array( $diagnosis['category'], $warning_categories, true ) ? 'warning' : 'error';
 
 		return $diagnosis;
@@ -1055,10 +1051,11 @@ class SScribe_Diagnostics {
 				// Only delete if no active session is using this directory.
 				if ( is_dir( $full_path ) && ! $this->is_temp_dir_in_use( $full_path ) ) {
 					$this->delete_directory( $full_path );
+					++$cleared;
 				} elseif ( ! is_dir( $full_path ) ) {
 					wp_delete_file( $full_path );
+					++$cleared;
 				}
-				++$cleared;
 			}
 		}
 
@@ -1206,12 +1203,20 @@ class SScribe_Diagnostics {
 		$loaded       = empty( $missing_deps );
 
 		$hooks_registered = 0;
-		if ( class_exists( 'SScribe_Loader' ) ) {
-			if ( class_exists( 'SScribe_Admin' ) ) {
-				$hooks_registered += 2;
+		global $wp_filter;
+		foreach ( (array) $wp_filter as $hook_obj ) {
+			if ( ! is_object( $hook_obj ) ) {
+				continue;
 			}
-			if ( class_exists( 'SScribe_Batch_Processor' ) ) {
-				$hooks_registered += 2;
+			foreach ( $hook_obj as $callbacks ) {
+				foreach ( $callbacks as $callback ) {
+					if ( is_array( $callback ) && isset( $callback[0] ) && is_object( $callback[0] ) ) {
+						$class_name = get_class( $callback[0] );
+						if ( strpos( $class_name, 'SScribe' ) !== false ) {
+							++$hooks_registered;
+						}
+					}
+				}
 			}
 		}
 
@@ -1253,6 +1258,9 @@ class SScribe_Diagnostics {
 			$lines[] = '';
 			$lines[] = '[' . $section['label'] . ']';
 			foreach ( $section['items'] as $key => $value ) {
+				if ( is_array( $value ) ) {
+					$value = wp_json_encode( $value );
+				}
 				$lines[] = $key . ': ' . $value;
 			}
 		}
