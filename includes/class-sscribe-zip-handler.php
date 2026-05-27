@@ -275,7 +275,7 @@ class SScribe_Zip_Handler {
 				'Export indexing skipped - could not acquire exclusive lock (concurrent finalize detected)',
 				array( 'zip' => basename( $zip_path ) )
 			);
-		// Return the path anyway so the caller has access to the successfully created ZIP.
+			// Return the path anyway so the caller has access to the successfully created ZIP.
 			return file_exists( $zip_path ) ? $zip_path : false;
 		}
 
@@ -346,7 +346,7 @@ class SScribe_Zip_Handler {
 		}
 
 		// Verify the ZIP contains at least one file.
-		$num_files = $zip->numFiles;
+		$num_files = $zip->numFiles; // phpcs:ignore WordPress.NamingConventions.ValidVariableName.UsedPropertyNotSnakeCase
 		$zip->close();
 
 		if ( $num_files < 1 ) {

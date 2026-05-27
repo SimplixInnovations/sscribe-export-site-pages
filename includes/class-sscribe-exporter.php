@@ -24,6 +24,8 @@ use SScribeVendor\PhpOffice\PhpWord\Element\Section;
 use SScribeVendor\PhpOffice\PhpWord\Element\TextRun;
 
 /**
+ * SScribe Exporter — generates DOCX, PDF, HTML, and Markdown exports.
+ *
  * @phpstan-type SScribePageData array{
  *     id: int,
  *     title: string,
@@ -429,9 +431,8 @@ class SScribe_Exporter {
 	/**
 	 * Generate a DOCX file from page data.
 	 *
-	 * @param array  $page_data {
-	 *     Page data array with the following keys:
-	 *     @type int       $id                  Page ID.
+	 * @param array  $page_data Page data array. See SScribePageData type.
+	 * @type int       $id                  Page ID.
 	 *     @type string    $title               Page title (HTML-decoded).
 	 *     @type string    $content             Processed HTML content.
 	 *     @type string    $raw_content         Raw post content.
