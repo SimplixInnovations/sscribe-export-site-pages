@@ -68,6 +68,8 @@ class SScribe_Logger implements SScribe_Logger_Interface {
 			$use_enhanced = self::should_use_enhanced();
 
 			if ( $use_enhanced && class_exists( 'SScribe_Logger_Enhanced' ) ) {
+				$options['enabled'] = $effective_enabled;
+				$options['prefix']  = $prefix;
 				self::$instances[ $key ] = new SScribe_Logger_Enhanced( $options );
 			} else {
 				self::$instances[ $key ] = new self( $effective_enabled, $prefix );

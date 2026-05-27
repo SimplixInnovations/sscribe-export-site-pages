@@ -73,6 +73,13 @@ class SScribe_Logger_Enhanced implements SScribe_Logger_Interface {
 	private readonly string $table_name;
 
 	/**
+	 * Log file prefix.
+	 *
+	 * @var string
+	 */
+	private readonly string $prefix;
+
+	/**
 	 * Current session identifier.
 	 *
 	 * @var string|null
@@ -101,10 +108,19 @@ class SScribe_Logger_Enhanced implements SScribe_Logger_Interface {
 	 * @param array $options Logger configuration options.
 	 */
 	public function __construct( array $options = array() ) {
-		$this->min_level   = $options['min_level'] ?? self::LEVEL_INFO;
-		$this->enable_db   = $options['enable_db'] ?? false;
-		$this->enable_qm   = $options['enable_qm'] ?? true;
-		$this->enable_file = $options['enable_file'] ?? true;
+		$this->min_level = $options['min_level'] ?? self::LEVEL_INFO;
+		$this->enable_qm = $options['enable_qm'] ?? true;
+		$this->prefix    = $options['prefix'] ?? 'sscribe';
+
+		// If 'enabled' is explicitly false, disable file and DB logging.
+		// Otherwise use individual enable flags with defaults.
+		if ( isset( $options['enabled'] ) && false === $options['enabled'] ) {
+			$this->enable_file = false;
+			$this->enable_db   = false;
+		} else {
+			$this->enable_db   = $options['enable_db'] ?? false;
+			$this->enable_file = $options['enable_file'] ?? true;
+		}
 
 		$upload_dir       = wp_upload_dir();
 		$this->log_dir    = $upload_dir['basedir'] . '/sscribe-logs';
