@@ -257,6 +257,7 @@ class SScribe_Admin_Debug {
 	/**
 	 * AJAX: Get rotated log files list.
 	 */
+	public function ajax_debug_get_rotated_log_files(): void {
 		if ( ! check_ajax_referer( 'sscribe_export_nonce', 'nonce', false ) ) {
 			wp_send_json_error( array( 'message' => __( 'Invalid security token.', 'sscribe-export-site-pages' ) ), 403 );
 			return;
