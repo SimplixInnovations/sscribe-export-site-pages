@@ -436,10 +436,11 @@ class SScribe_Content_Parser {
 				$local_path = null !== $src ? $this->url_to_local_path( $src ) : '';
 
 				$figure_data = array(
-					'type'       => 'figure',
-					'src'        => $src,
-					'alt'        => $alt,
-					'caption'    => $caption_text,
+					'type'    => 'figure',
+					'content' => trim( $alt . ( $caption_text ? ' - ' . $caption_text : '' ) ),
+					'src'     => $src,
+					'alt'     => $alt,
+					'caption' => $caption_text,
 					'local_path' => $local_path,
 				);
 

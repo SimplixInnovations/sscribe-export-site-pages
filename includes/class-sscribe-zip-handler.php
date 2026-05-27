@@ -333,7 +333,7 @@ class SScribe_Zip_Handler {
 		}
 
 		$zip = new ZipArchive();
-		$result = $zip->open( $zip_path, ZipArchive::READONLY );
+		$result = $zip->open( $zip_path, defined( 'ZipArchive::READONLY' ) ? ZipArchive::READONLY : 1 );
 		if ( true !== $result ) {
 			$this->logger->error(
 				'ZIP integrity verification failed',
