@@ -14,7 +14,8 @@ if ( ! defined( 'ABSPATH' ) ) {
 }
 
 require_once SSCRIBE_PLUGIN_DIR . 'includes/interfaces/interface-sscribe-logger.php';
-require_once SSCRIBE_PLUGIN_DIR . 'includes/traits/trait-sscribe-logger-common.php';
+	require_once SSCRIBE_PLUGIN_DIR . 'includes/traits/trait-sscribe-logger-common.php';
+	require_once SSCRIBE_PLUGIN_DIR . 'includes/class-sscribe-settings.php';
 
 /**
  * Main logger implementation for SScribe plugin.
@@ -134,7 +135,7 @@ class SScribe_Logger implements SScribe_Logger_Interface {
 	 * @return bool True if enhanced logger should be loaded.
 	 */
 	private static function should_use_enhanced(): bool {
-		if ( class_exists( 'QM_Collector' ) && ! ( defined( 'QM_DISABLED' ) && QM_DISABLED ) && is_admin() ) {
+		if ( class_exists( 'QM_Collector' ) && ! ( defined( 'QM_DISABLED' ) && QM_DISABLED ) && ( is_admin() || wp_doing_ajax() ) ) {
 			return true;
 		}
 
@@ -162,9 +163,10 @@ class SScribe_Logger implements SScribe_Logger_Interface {
 		$upload_dir    = wp_upload_dir();
 		$this->log_dir = $upload_dir['basedir'] . '/sscribe-logs';
 
-		if ( $this->enabled ) {
-			add_action( 'shutdown', array( $this, 'flush' ) );
-		}
+		// Always register shutdown hook — flush() gates on empty buffer and $this->enabled internally.
+		// This ensures logs are written even if the logger was disabled at construction but
+		// became enabled mid-request (e.g., after settings toggle via AJAX).
+		add_action( 'shutdown', array( $this, 'flush' ) );
 	}
 
 	/**
@@ -308,11 +310,25 @@ class SScribe_Logger implements SScribe_Logger_Interface {
 			return;
 		}
 
-		$entry = $this->format_entry( $level, $message, $data );
-
-		if ( null === $this->buffer ) {
-			$this->buffer = array();
+		// Apply log level filtering if configured.
+		$configured_level = SScribe_Settings::get_debug_log_level();
+		if ( 'ALL' !== $configured_level && defined( 'SScribe_Settings::LEVEL_PRIORITY' ) ) {
+			$priorities = array(
+				'DEBUG'   => 0,
+				'INFO'    => 1,
+				'NOTICE'  => 2,
+				'WARNING' => 3,
+				'ERROR'   => 4,
+				'CRITICAL' => 5,
+			);
+			$configured_priority = $priorities[ $configured_level ] ?? 0;
+			$entry_priority       = $priorities[ strtoupper( $level ) ] ?? 0;
+			if ( $entry_priority < $configured_priority ) {
+				return;
+			}
 		}
+
+		$entry = $this->format_entry( $level, $message, $data );
 
 		$this->buffer[] = $entry;
 
@@ -395,9 +411,9 @@ class SScribe_Logger implements SScribe_Logger_Interface {
 	 * @return array Log entries from file and buffer.
 	 */
 	public function get_logs( int $limit = -1 ): array {
-		if ( ! $this->enabled ) {
-			return array();
-		}
+		// Do NOT gate on $this->enabled — log files may exist from previous sessions
+		// where logging was enabled. The debug tab needs to show historical logs even
+		// if the logger is currently disabled.
 
 		$file_entries = array();
 		$log_file     = $this->get_log_file();
@@ -455,9 +471,8 @@ class SScribe_Logger implements SScribe_Logger_Interface {
 	 */
 	public function clear_logs(): void {
 		$this->buffer = array();
-		if ( ! $this->enabled ) {
-			return;
-		}
+		// Always delete files regardless of enabled state — users expect files gone
+		// when they click "Clear Logs", even if logging is currently disabled.
 		$upload_dir = wp_upload_dir();
 		$log_dir    = $upload_dir['basedir'] . '/sscribe-logs';
 
@@ -489,7 +504,7 @@ class SScribe_Logger implements SScribe_Logger_Interface {
 			return 0;
 		}
 
-		$files   = glob( $log_dir . '/sscribe_debug_*.log' );
+		$files   = glob( $log_dir . '/*_debug_*.log' );
 		$deleted = 0;
 		$max_age = $max_age_days * DAY_IN_SECONDS;
 		$now     = time();
