@@ -167,12 +167,6 @@ class SScribe_Admin_Debug {
 		$logger = SScribe_Logger::instance( true );
 		$logger->clear_logs();
 
-		// Also clear enhanced logger (DB) if it exists.
-		if ( class_exists( 'SScribe_Logger_Enhanced' ) ) {
-			$enhanced = SScribe_Logger_Enhanced::instance( true );
-			$enhanced->clear_logs();
-		}
-
 		wp_send_json_success();
 	}
 
@@ -363,7 +357,7 @@ class SScribe_Admin_Debug {
 		$real_file_path = realpath( $file_path );
 		$real_log_dir   = realpath( $log_dir );
 
-		$safe_log_dir = rtrim( $real_log_dir ?? '', DIRECTORY_SEPARATOR ) . DIRECTORY_SEPARATOR;
+		$safe_log_dir = rtrim( (string) $real_log_dir, DIRECTORY_SEPARATOR ) . DIRECTORY_SEPARATOR;
 		if ( false === $real_file_path || false === $real_log_dir || 0 !== strpos( $real_file_path, $safe_log_dir ) ) {
 			wp_send_json_error( array( 'message' => __( 'File not found.', 'sscribe-export-site-pages' ) ), 404 );
 			return;
