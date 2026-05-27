@@ -94,7 +94,8 @@ class SScribe_Export_Rate_Limiter_Test extends TestCase {
 			$limiter->check_rate_limit();
 		}
 
-		$data = get_transient( 'sscribe_rate_1' );
+		// Key format: sscribe_rate_{bucket}_{user_id} — bucket defaults to 'export', user_id is 1.
+		$data = get_transient( 'sscribe_rate_export_1' );
 		$this->assertIsArray( $data );
 		$this->assertEquals( 50, $data['count'] );
 	}
@@ -107,7 +108,10 @@ class SScribe_Export_Rate_Limiter_Test extends TestCase {
 
 		$limiter->check_rate_limit();
 
-		$data = get_transient( 'sscribe_rate_1' );
+		// Anonymous user transient key uses IP hash, not numeric user ID.
+		$ip        = isset( $_SERVER['REMOTE_ADDR'] ) ? sanitize_text_field( wp_unslash( $_SERVER['REMOTE_ADDR'] ) ) : '0.0.0.0';
+		$anon_key  = 'sscribe_rate_export_anon_' . substr( hash( 'sha256', $ip ), 0, 12 );
+		$data      = get_transient( $anon_key );
 		$this->assertIsArray( $data );
 		$this->assertArrayHasKey( 'count', $data );
 	}

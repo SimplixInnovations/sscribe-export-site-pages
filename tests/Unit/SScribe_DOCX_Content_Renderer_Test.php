@@ -281,7 +281,17 @@ class SScribe_DOCX_Content_Renderer_Test extends TestCase {
 
 	public function test_sync_config_updates_colors(): void {
 		$renderer = new \SScribe_DOCX_Content_Renderer();
-		$colors   = array( 'primary' => 'AAAAAA', 'body' => 'BBBBBB' );
+		// sync_config merges provided colors with defaults, so all 8 keys are always present.
+		$colors = array(
+			'primary'  => 'AAAAAA',
+			'body'     => 'BBBBBB',
+			'heading'  => '122119',
+			'light_bg' => 'E8EFEB',
+			'link'     => '2C6E8A',
+			'code_bg'  => 'F5F6F8',
+			'white'    => 'FFFFFF',
+			'border'   => 'CCCCCC',
+		);
 		$renderer->sync_config( $colors, false, 'Arial', 11 );
 
 		$refl = new \ReflectionClass( $renderer );
