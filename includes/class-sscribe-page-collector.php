@@ -951,7 +951,7 @@ class SScribe_Page_Collector {
 				$status_count          = count( $statuses );
 				$post_type_placeholders = implode( ',', array_fill( 0, $post_type_count, '%s' ) );
 				$status_placeholders    = implode( ',', array_fill( 0, $status_count, '%s' ) );
-				// phpcs:disable WordPress.DB.PreparedSQLPlaceholders.UnfinishedPrepare, WordPress.DB.PreparedSQL.InterpolatedNotPrepared -- Dynamic IN clause placeholders built from safe array_fill() of %s only.
+				// phpcs:disable WordPress.DB.PreparedSQLPlaceholders.UnfinishedPrepare, WordPress.DB.PreparedSQL.InterpolatedNotPrepared, WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, PluginCheck.Security.DirectDB.UnescapedDBParameter -- Dynamic IN clause placeholders built from safe array_fill() of %s only; query is fully prepared.
 				$results = $wpdb->get_results(
 					$wpdb->prepare(
 						"SELECT post_status, COUNT(*) as count FROM {$wpdb->posts} WHERE post_type IN ({$post_type_placeholders}) AND post_status IN ({$status_placeholders}) GROUP BY post_status",
@@ -963,7 +963,7 @@ class SScribe_Page_Collector {
 			} else {
 				$status_count         = count( $statuses );
 				$status_placeholders  = implode( ',', array_fill( 0, $status_count, '%s' ) );
-				// phpcs:disable WordPress.DB.PreparedSQLPlaceholders.UnfinishedPrepare, WordPress.DB.PreparedSQL.InterpolatedNotPrepared -- Dynamic IN clause placeholders built from safe array_fill() of %s only.
+				// phpcs:disable WordPress.DB.PreparedSQLPlaceholders.UnfinishedPrepare, WordPress.DB.PreparedSQL.InterpolatedNotPrepared, WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, PluginCheck.Security.DirectDB.UnescapedDBParameter -- Dynamic IN clause placeholders built from safe array_fill() of %s only; query is fully prepared.
 				$results = $wpdb->get_results(
 					$wpdb->prepare(
 						"SELECT post_status, COUNT(*) as count FROM {$wpdb->posts} WHERE post_type = %s AND post_status IN ({$status_placeholders}) GROUP BY post_status",

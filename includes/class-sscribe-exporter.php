@@ -472,8 +472,8 @@ class SScribe_Exporter {
 					$temp_files   = glob( $temp_pattern );
 					if ( is_array( $temp_files ) ) {
 						foreach ( $temp_files as $temp_file ) {
-							if ( is_file( $temp_file ) && is_writable( $temp_file ) ) {
-								@unlink( $temp_file );
+							if ( is_file( $temp_file ) && is_writable( $temp_file ) ) { // phpcs:ignore WordPress.WP.AlternativeFunctions.file_system_operations_is_writable
+								wp_delete_file( $temp_file );
 							}
 						}
 					}
@@ -482,7 +482,7 @@ class SScribe_Exporter {
 		);
 
 		// Verify output directory is writable before attempting file creation.
-		if ( ! is_writable( $output_dir ) ) {
+		if ( ! is_writable( $output_dir ) ) { // phpcs:ignore WordPress.WP.AlternativeFunctions.file_system_operations_is_writable
 			$this->last_error = 'Output directory is not writable: ' . $output_dir;
 			$this->get_logger()->error(
 				'DOCX generation failed: output directory not writable',
@@ -790,8 +790,8 @@ class SScribe_Exporter {
 
 		if ( is_array( $temp_files ) ) {
 			foreach ( $temp_files as $temp_file ) {
-				if ( is_file( $temp_file ) && is_writable( $temp_file ) ) {
-					@unlink( $temp_file );
+				if ( is_file( $temp_file ) && is_writable( $temp_file ) ) { // phpcs:ignore WordPress.WP.AlternativeFunctions.file_system_operations_is_writable
+					wp_delete_file( $temp_file );
 				}
 			}
 		}

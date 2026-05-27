@@ -295,7 +295,7 @@ class SScribe_Logger_Enhanced implements SScribe_Logger_Interface {
 
 		if ( file_exists( $log_file ) && filesize( $log_file ) > self::MAX_LOG_FILE_SIZE ) {
 			$rotated_file = $this->log_dir . '/' . $this->prefix . '_' . gmdate( 'Y-m-d_H-i-s' ) . '.log';
-			$rotated = rename( $log_file, $rotated_file );
+			$rotated = rename( $log_file, $rotated_file ); // phpcs:ignore WordPress.WP.AlternativeFunctions.rename_rename
 			if ( $rotated ) {
 				$warning_entry = sprintf(
 					"[%s] [WARNING] Log file exceeded %s bytes — rotated to %s\n",
@@ -310,7 +310,7 @@ class SScribe_Logger_Enhanced implements SScribe_Logger_Interface {
 		$result = file_put_contents( $log_file, $content, FILE_APPEND | LOCK_EX );
 
 		if ( false === $result ) {
-			error_log(
+			error_log( // phpcs:ignore WordPress.PHP.DevelopmentFunctions.error_log_error_log
 				'SScribe_Logger_Enhanced: flush() failed to write to ' . $log_file
 			);
 		}
@@ -562,7 +562,7 @@ class SScribe_Logger_Enhanced implements SScribe_Logger_Interface {
 		$where_clause = implode( ' AND ', $where );
 		$args[]       = $limit;
 
-		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
+		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, PluginCheck.Security.DirectDB.UnescapedDBParameter
 		return $wpdb->get_results(
 			$wpdb->prepare(
 				"SELECT id, timestamp, level, message, context, session_id, request_id, user_id FROM {$this->table_name} WHERE {$where_clause} ORDER BY timestamp DESC LIMIT %d", // phpcs:ignore WordPress.DB.PreparedSQL.NotPrepared, WordPress.DB.PreparedSQL.InterpolatedNotPrepared -- Table name from $wpdb->prefix (trusted), WHERE clause built from controlled filter keys with placeholders
