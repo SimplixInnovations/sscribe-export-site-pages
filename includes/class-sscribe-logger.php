@@ -312,7 +312,7 @@ class SScribe_Logger implements SScribe_Logger_Interface {
 
 		// Apply log level filtering if configured.
 		$configured_level = SScribe_Settings::get_debug_log_level();
-		if ( 'ALL' !== $configured_level && defined( 'SScribe_Settings::LEVEL_PRIORITY' ) ) {
+		if ( 'ALL' !== $configured_level ) {
 			$priorities = array(
 				'DEBUG'   => 0,
 				'INFO'    => 1,

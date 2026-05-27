@@ -123,7 +123,8 @@
 			$(document).on('click.sscribe', '#sscribe-preview-close', $.proxy(this.closePreview, this));
 			$(document).on('click.sscribe', '#sscribe-preview-dismiss-btn', $.proxy(this.closePreview, this));
 			$(document).on('click.sscribe', '#sscribe-preview-start-btn', $.proxy(this.startExportFromPreview, this));
-			$(document).on('click.sscribe', '#sscribe-new-export-btn, #sscribe-error-try-again', $.proxy(this.retry, this));
+			$(document).on('click.sscribe', '#sscribe-new-export-btn', $.proxy(this.resetUI, this));
+			$(document).on('click.sscribe', '#sscribe-error-try-again', $.proxy(this.retry, this));
 			$(document).on('click.sscribe', '#sscribe-cancel-btn', $.proxy(this.cancelExport, this));
 
 			$('.sscribe-lang-card-label').on('click.sscribe', function () {
@@ -215,11 +216,6 @@
 
 			this.setActiveTab(activeTabId);
 
-			// Initialize debug console if debug tab is the default active tab.
-			if (activeTabId === 'debug' && typeof window.SScribeDebugConsole !== 'undefined') {
-				window.SScribeDebugConsole.init();
-			}
-
 			$tabs.on('click', function (e) {
 				e.preventDefault();
 				const $btn = $(this);
@@ -272,11 +268,6 @@
 
 			if (moveFocus) {
 				$('.sscribe-tab-btn[data-tab="' + tabId + '"]').trigger('focus');
-			}
-
-			const $activePanel = $('#sscribe-tab-' + tabId);
-			if ($activePanel.length) {
-				this.trapFocus($activePanel[0]);
 			}
 
 			if (tabId === 'debug' && typeof window.SScribeDebugConsole !== 'undefined') {
@@ -454,6 +445,7 @@
 				},
 				error: function () {
 					SScribe.isProcessing = false;
+					SScribe.updateExportButton();
 				},
 			});
 		},

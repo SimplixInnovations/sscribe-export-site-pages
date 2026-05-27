@@ -70,7 +70,9 @@ class SScribe_Admin {
 		$this->zip_handler = $zip_handler ?? new SScribe_Zip_Handler();
 
 		$this->debug = new SScribe_Admin_Debug();
-		$this->debug->register_hooks();
+		if ( SSCRIBE_DEBUG || SScribe_Settings::is_debug_enabled() ) {
+			$this->debug->register_hooks();
+		}
 	}
 
 	/**
@@ -219,7 +221,7 @@ class SScribe_Admin {
 			return;
 		}
 
-		$debug = SSCRIBE_DEBUG;
+		$debug = SSCRIBE_DEBUG || SScribe_Settings::is_debug_enabled();
 
 		$css_version = $debug
 			? ( file_exists( SSCRIBE_PLUGIN_DIR . 'admin/css/sscribe-admin.css' ) ? filemtime( SSCRIBE_PLUGIN_DIR . 'admin/css/sscribe-admin.css' ) : SSCRIBE_VERSION )
