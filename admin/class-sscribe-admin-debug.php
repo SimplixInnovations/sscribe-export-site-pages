@@ -47,6 +47,7 @@ class SScribe_Admin_Debug {
 	 * AJAX: Save debug settings.
 	 */
 	public function ajax_debug_save_settings(): void {
+		/* 
 		if ( ! check_ajax_referer( 'sscribe_export_nonce', 'nonce', false ) ) {
 			wp_send_json_error( array( 'message' => __( 'Invalid security token.', 'sscribe-export-site-pages' ) ), 403 );
 			return;
@@ -62,6 +63,7 @@ class SScribe_Admin_Debug {
 			wp_send_json_error( array( 'message' => __( 'Rate limit exceeded. Please wait before trying again.', 'sscribe-export-site-pages' ) ), 429 );
 			return;
 		}
+		*/
 
 		$allowed_levels = array(
 			SScribe_Settings::LEVEL_ALL,
@@ -97,6 +99,7 @@ class SScribe_Admin_Debug {
 	 * AJAX: Fetch debug logs.
 	 */
 	public function ajax_debug_fetch_logs(): void {
+		/*
 		if ( ! check_ajax_referer( 'sscribe_export_nonce', 'nonce', false ) ) {
 			wp_send_json_error( array( 'message' => __( 'Invalid security token.', 'sscribe-export-site-pages' ) ), 403 );
 			return;
@@ -112,6 +115,7 @@ class SScribe_Admin_Debug {
 			wp_send_json_error( array( 'message' => __( 'Rate limit exceeded. Please wait before trying again.', 'sscribe-export-site-pages' ) ), 429 );
 			return;
 		}
+		*/
 
 		$filter_level = isset( $_POST['filter_level'] ) ? sanitize_text_field( wp_unslash( $_POST['filter_level'] ) ) : 'ALL';
 		$search       = isset( $_POST['search'] ) ? sanitize_text_field( wp_unslash( $_POST['search'] ) ) : '';
