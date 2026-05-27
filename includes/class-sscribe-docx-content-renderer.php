@@ -401,8 +401,13 @@ class SScribe_DOCX_Content_Renderer {
 
 		switch ( $element['type'] ) {
 			case 'heading':
+				// Skip empty heading nodes (common in Gutenberg when heading block is added but not filled).
+				$text = trim( $element['content'] ?? '' );
+				if ( '' === $text ) {
+					return;
+				}
 				$level = isset( $element['level'] ) ? min( $element['level'], 6 ) : 2;
-				$section->addTitle( $this->safe_text( $element['content'] ), $level );
+				$section->addTitle( $this->safe_text( $text ), $level );
 				break;
 
 			case 'paragraph':
@@ -505,15 +510,22 @@ class SScribe_DOCX_Content_Renderer {
 	 * @param bool    $bold     Force bold.
 	 */
 	private function render_runs( TextRun $text_run, array $runs, bool $italic = false, bool $bold = false ): void {
+		$prev_was_break = false;
 		foreach ( $runs as $run ) {
 			if ( ! isset( $run['text'] ) || '' === $run['text'] ) {
 				continue;
 			}
 
 			if ( isset( $run['break'] ) && $run['break'] ) {
+				// Collapse consecutive <br> tags into a single paragraph break.
+				if ( $prev_was_break ) {
+					continue;
+				}
 				$text_run->addTextBreak();
+				$prev_was_break = true;
 				continue;
 			}
+			$prev_was_break = false;
 
 			$font_style = array(
 				'name'  => $this->font_name,
@@ -551,9 +563,18 @@ class SScribe_DOCX_Content_Renderer {
 				$link_url = $this->validate_url( $run['link'] );
 				if ( ! empty( $link_url ) ) {
 					$font_style['color'] = $this->colors['link'];
+
+					// Truncate long URLs used as link text to prevent layout issues.
+					$display_text = $text_content;
+					if ( '' === trim( $display_text ) || $display_text === $link_url ) {
+						$display_text = mb_strlen( $link_url, 'UTF-8' ) > 60
+							? mb_substr( $link_url, 0, 60, 'UTF-8' ) . '…'
+							: $link_url;
+					}
+
 					$text_run->addLink(
 						$link_url,
-						$text_content,
+						$this->safe_text( $display_text ),
 						$font_style
 					);
 					$display_url      = urldecode( $link_url );
@@ -710,7 +731,13 @@ class SScribe_DOCX_Content_Renderer {
 
 				// Apply colspan if present to multiply effective cell width.
 				$colspan = isset( $cell['colspan'] ) ? max( 1, (int) $cell['colspan'] ) : 1;
-				$effective_width = $cell_width * $colspan;
+
+				// Use explicit cell width from HTML attribute if available, otherwise distribute evenly.
+				if ( isset( $cell['width'] ) && is_numeric( $cell['width'] ) && (int) $cell['width'] > 0 ) {
+					$effective_width = Converter::pixelToTwip( (int) $cell['width'] ) * $colspan;
+				} else {
+					$effective_width = $cell_width * $colspan;
+				}
 
 				$cell_obj = $table->addCell( $effective_width, $cell_style );
 				if ( ! empty( $cell['runs'] ) ) {

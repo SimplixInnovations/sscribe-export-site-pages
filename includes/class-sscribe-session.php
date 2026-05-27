@@ -317,6 +317,21 @@ class SScribe_Session {
 				return false;
 			}
 
+			// Validate that the current user owns this session to prevent
+			// unauthorized session modification by other admin users.
+			$current_user_id = get_current_user_id();
+			if ( $current_user_id > 0 && isset( $existing['user_id'] ) && (int) $existing['user_id'] !== $current_user_id ) {
+				$this->logger->warning(
+					'Session update denied: user ID mismatch',
+					array(
+						'session_id'       => $session_id,
+						'session_owner'    => $existing['user_id'],
+						'current_user'     => $current_user_id,
+					)
+				);
+				return false;
+			}
+
 			$merged = $existing;
 			foreach ( $data as $key => $value ) {
 				if ( isset( $existing[ $key ] ) && is_array( $existing[ $key ] ) && is_array( $value ) ) {

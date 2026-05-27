@@ -510,6 +510,35 @@ class SScribe_Page_Collector {
 			return false;
 		}
 
+		// Skip password-protected posts - export only title and note.
+		if ( ! empty( $post_object->post_password ) ) {
+			return array(
+				'id'                  => $page_id,
+				'title'               => html_entity_decode(
+					get_the_title( $page_id ) ? get_the_title( $page_id ) : sprintf( 'Untitled Page %d', $page_id ),
+					ENT_QUOTES | ENT_HTML5,
+					'UTF-8'
+				),
+				'content'             => '<p>' . __( '[Password Protected Content]', 'sscribe-export-site-pages' ) . '</p>',
+				'raw_content'         => '',
+				'excerpt'             => '',
+				'permalink'           => get_permalink( $page_id ),
+				'slug'                => $post_object->post_name,
+				'author'              => get_the_author_meta( 'display_name', $post_object->post_author ) ?: __( 'Unknown', 'sscribe-export-site-pages' ),
+				'date_published'      => get_the_date( 'F j, Y', $page_id ),
+				'date_modified'       => get_the_modified_date( 'F j, Y', $page_id ),
+				'featured_image_url'  => '',
+				'featured_image_path' => '',
+				'word_count'          => 0,
+				'reading_time'        => 0,
+				'breadcrumbs'         => array(),
+				'children'            => array(),
+				'language'            => $this->get_page_language( $page_id ),
+				'parent_id'           => $post_object->post_parent,
+				'seo'                 => array(),
+			);
+		}
+
 		static $is_applying_the_content_filter = false;
 
 		if ( $is_applying_the_content_filter ) {
@@ -566,6 +595,9 @@ class SScribe_Page_Collector {
 		$reading_time = SScribe_Arabic_Segmenter::get_reading_time( $content, $language );
 
 		$author = get_the_author_meta( 'display_name', $post_object->post_author );
+		if ( empty( $author ) ) {
+			$author = __( 'Unknown', 'sscribe-export-site-pages' );
+		}
 
 		if ( isset( $this->featured_images_cache[ $page_id ] ) ) {
 			$cached_image        = $this->featured_images_cache[ $page_id ];
@@ -603,6 +635,12 @@ class SScribe_Page_Collector {
 			}
 		} else {
 			$permalink = get_permalink( $page_id );
+		}
+
+		// For non-published posts, get_permalink() returns a preview URL with ?p=ID.
+		// Use a placeholder instead of exposing internal admin URLs in exported documents.
+		if ( ! in_array( $post_object->post_status, array( 'publish', 'private' ), true ) ) {
+			$permalink = __( '[Draft - Not Published]', 'sscribe-export-site-pages' );
 		}
 
 		$filtered = apply_filters(
@@ -758,6 +796,21 @@ class SScribe_Page_Collector {
 		$breadcrumbs = array();
 		$ancestors   = get_post_ancestors( $page_id );
 
+		// Guard against circular parent relationships by deduplicating ancestor IDs.
+		if ( $ancestors ) {
+			$seen      = array( $page_id => true );
+			$filtered  = array();
+			foreach ( $ancestors as $ancestor_id ) {
+				if ( isset( $seen[ $ancestor_id ] ) ) {
+					// Circular reference detected - break the chain.
+					break;
+				}
+				$seen[ $ancestor_id ] = true;
+				$filtered[]           = $ancestor_id;
+			}
+			$ancestors = $filtered;
+		}
+
 		if ( $ancestors ) {
 			$ancestors = array_reverse( $ancestors );
 
@@ -856,6 +909,13 @@ class SScribe_Page_Collector {
 		if ( 'any' === $post_type ) {
 			return array( 'page', 'post' );
 		}
+
+		// Validate post_type against allowed list to prevent injection of arbitrary types.
+		$allowed_types = array( 'page', 'post' );
+		if ( ! in_array( $post_type, $allowed_types, true ) ) {
+			return 'page';
+		}
+
 		return $post_type;
 	}
 

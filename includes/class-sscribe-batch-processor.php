@@ -1142,6 +1142,10 @@ class SScribe_Batch_Processor {
 		$current_batch_page_id   = null;
 		$paused_reason           = '';
 
+		// Suspend cache invalidation during bulk processing to avoid flooding
+		// the object cache layer with clean_post_cache() calls on every page.
+		wp_suspend_cache_invalidation( true );
+
 		try {
 			foreach ( $batch as $page_id ) {
 				$current_batch_page_id = $page_id;
@@ -1429,6 +1433,9 @@ class SScribe_Batch_Processor {
 				);
 			}
 		} finally {
+			// Restore cache invalidation after bulk processing.
+			wp_suspend_cache_invalidation( false );
+
 			// Persist session state BEFORE releasing lock to prevent race condition.
 			// Between lock release and session update, another process could acquire
 			// the lock and read stale session data, causing duplicate processing.

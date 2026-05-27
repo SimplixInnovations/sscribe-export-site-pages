@@ -61,6 +61,9 @@ spl_autoload_register(
 			$interface = strtolower( str_replace( '_', '-', substr( $class_name, 8, -10 ) ) );
 			$paths[]   = SSCRIBE_PLUGIN_DIR . 'includes/interfaces/interface-sscribe-' . $interface . '.php';
 			$paths[]   = SSCRIBE_PLUGIN_DIR . 'includes/exporters/interface-sscribe-' . $interface . '.php';
+		} elseif ( str_ends_with( $class_name, '_Trait' ) ) {
+			$trait   = strtolower( str_replace( '_', '-', substr( $class_name, 8, -6 ) ) );
+			$paths[] = SSCRIBE_PLUGIN_DIR . 'includes/traits/trait-sscribe-' . $trait . '.php';
 		} elseif ( str_contains( $class_name, '_Exception' ) || 'SScribe_Exception' === $class_name ) {
 			$paths[] = SSCRIBE_PLUGIN_DIR . 'includes/exceptions/class-sscribe-' . $relative . '.php';
 		} elseif ( str_ends_with( $class_name, '_Exporter' ) || str_contains( $class_name, '_Exporter_' ) ) {

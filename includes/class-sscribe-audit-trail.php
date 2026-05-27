@@ -212,6 +212,11 @@ class SScribe_Audit_Trail {
 			return array();
 		}
 
+		// Access control: only users with manage_options can view audit logs.
+		if ( ! current_user_can( 'manage_options' ) ) {
+			return array();
+		}
+
 		global $wpdb;
 
 		$where = array( '1=1' );
