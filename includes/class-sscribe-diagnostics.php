@@ -28,6 +28,13 @@ class SScribe_Diagnostics {
 	private SScribe_Logger_Interface $logger;
 
 	/**
+	 * Track errors encountered during support info collection.
+	 *
+	 * @var array<string>
+	 */
+	private array $support_errors = array();
+
+	/**
 	 * Initialize diagnostics.
 	 */
 	public function __construct() {
@@ -64,9 +71,14 @@ class SScribe_Diagnostics {
 			$monthly_stats = $export_stats->get_stats( 'month' );
 		} catch ( \Throwable $e ) {
 			$monthly_stats = array();
+			// Always log — if $debug_logger is null (debug disabled), fall back to PHP error_log.
+			if ( defined( 'WP_DEBUG_LOG' ) && WP_DEBUG_LOG ) {
+				error_log( 'SScribe Diagnostics: monthly_stats failed — ' . $e->getMessage() );
+			}
 			if ( $debug_logger ) {
 				$debug_logger->warning( 'Support info: monthly_stats unavailable', array( 'error' => $e->getMessage() ) );
 			}
+			$this->support_errors[] = 'monthly_stats: ' . $e->getMessage();
 		}
 
 		try {
@@ -74,18 +86,26 @@ class SScribe_Diagnostics {
 			$status_counts = $collector->get_post_status_counts( '' );
 		} catch ( \Throwable $e ) {
 			$status_counts = array();
+			if ( defined( 'WP_DEBUG_LOG' ) && WP_DEBUG_LOG ) {
+				error_log( 'SScribe Diagnostics: status_counts failed — ' . $e->getMessage() );
+			}
 			if ( $debug_logger ) {
 				$debug_logger->warning( 'Support info: status_counts unavailable', array( 'error' => $e->getMessage() ) );
 			}
+			$this->support_errors[] = 'status_counts: ' . $e->getMessage();
 		}
 
 		try {
 			$session_check = $this->check_session_health();
 		} catch ( \Throwable $e ) {
 			$session_check = array( 'message' => __( 'Unavailable', 'sscribe-export-site-pages' ) );
+			if ( defined( 'WP_DEBUG_LOG' ) && WP_DEBUG_LOG ) {
+				error_log( 'SScribe Diagnostics: session_check failed — ' . $e->getMessage() );
+			}
 			if ( $debug_logger ) {
 				$debug_logger->warning( 'Support info: session_check unavailable', array( 'error' => $e->getMessage() ) );
 			}
+			$this->support_errors[] = 'session_check: ' . $e->getMessage();
 		}
 
 		try {
@@ -93,18 +113,26 @@ class SScribe_Diagnostics {
 			$recent_audit_logs = $audit_trail->get_logs( array(), 5, 0 );
 		} catch ( \Throwable $e ) {
 			$recent_audit_logs = array();
+			if ( defined( 'WP_DEBUG_LOG' ) && WP_DEBUG_LOG ) {
+				error_log( 'SScribe Diagnostics: recent_audit_logs failed — ' . $e->getMessage() );
+			}
 			if ( $debug_logger ) {
 				$debug_logger->warning( 'Support info: recent_audit_logs unavailable', array( 'error' => $e->getMessage() ) );
 			}
+			$this->support_errors[] = 'recent_audit_logs: ' . $e->getMessage();
 		}
 
 		try {
 			$logger_entries = $debug_logger instanceof SScribe_Logger ? $debug_logger->get_logs( 5 ) : array();
 		} catch ( \Throwable $e ) {
 			$logger_entries = array();
+			if ( defined( 'WP_DEBUG_LOG' ) && WP_DEBUG_LOG ) {
+				error_log( 'SScribe Diagnostics: logger_entries failed — ' . $e->getMessage() );
+			}
 			if ( $debug_logger ) {
 				$debug_logger->warning( 'Support info: logger_entries unavailable', array( 'error' => $e->getMessage() ) );
 			}
+			$this->support_errors[] = 'logger_entries: ' . $e->getMessage();
 		}
 
 		$recent_log_tail = $logger_entries;
@@ -113,18 +141,26 @@ class SScribe_Diagnostics {
 			$wpml_active = $container->get( SScribe_Page_Collector::class )->is_wpml_active();
 		} catch ( \Throwable $e ) {
 			$wpml_active = false;
+			if ( defined( 'WP_DEBUG_LOG' ) && WP_DEBUG_LOG ) {
+				error_log( 'SScribe Diagnostics: wpml_active failed — ' . $e->getMessage() );
+			}
 			if ( $debug_logger ) {
 				$debug_logger->warning( 'Support info: wpml_active check failed', array( 'error' => $e->getMessage() ) );
 			}
+			$this->support_errors[] = 'wpml_active: ' . $e->getMessage();
 		}
 
 		try {
 			$seo_plugins = implode( ', ', $this->get_active_seo_plugins() );
 		} catch ( \Throwable $e ) {
 			$seo_plugins = __( 'Unavailable', 'sscribe-export-site-pages' );
+			if ( defined( 'WP_DEBUG_LOG' ) && WP_DEBUG_LOG ) {
+				error_log( 'SScribe Diagnostics: seo_plugins failed — ' . $e->getMessage() );
+			}
 			if ( $debug_logger ) {
 				$debug_logger->warning( 'Support info: seo_plugins unavailable', array( 'error' => $e->getMessage() ) );
 			}
+			$this->support_errors[] = 'seo_plugins: ' . $e->getMessage();
 		}
 
 		try {
@@ -132,9 +168,13 @@ class SScribe_Diagnostics {
 			$session_storage = $session->get_storage_type();
 		} catch ( \Throwable $e ) {
 			$session_storage = 'unknown';
+			if ( defined( 'WP_DEBUG_LOG' ) && WP_DEBUG_LOG ) {
+				error_log( 'SScribe Diagnostics: session_storage failed — ' . $e->getMessage() );
+			}
 			if ( $debug_logger ) {
 				$debug_logger->warning( 'Support info: session_storage unavailable', array( 'error' => $e->getMessage() ) );
 			}
+			$this->support_errors[] = 'session_storage: ' . $e->getMessage();
 		}
 
 		$sections['plugin'] = array(
@@ -235,6 +275,7 @@ class SScribe_Diagnostics {
 			'storage'        => array(
 				'session_storage' => $session_storage,
 			),
+			'errors'         => array_values( $this->support_errors ),
 		);
 	}
 
@@ -620,9 +661,8 @@ class SScribe_Diagnostics {
 	 */
 	private function check_phpword(): array {
 		if ( class_exists( '\\SScribeVendor\\PhpOffice\\PhpWord\\PhpWord' ) ) {
-
 			$phpword_composer_file = SSCRIBE_PLUGIN_DIR . 'vendor-prefixed/phpoffice/phpword/composer.json';
-if ( file_exists( $phpword_composer_file ) && is_readable( $phpword_composer_file ) ) {
+			if ( file_exists( $phpword_composer_file ) && is_readable( $phpword_composer_file ) ) {
 				// phpcs:ignore WordPress.WP.AlternativeFunctions.file_get_contents_file_get_contents -- Safe: reading a local composer.json from plugin directory.
 				$raw_json        = file_get_contents( $phpword_composer_file );
 				$composer_data   = is_string( $raw_json ) ? json_decode( $raw_json, true ) : null;
