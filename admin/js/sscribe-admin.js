@@ -268,6 +268,14 @@
 				return;
 			}
 
+			// Release focus trap from the previously active panel.
+			if (currentTabId) {
+				const $prevPanel = $('#sscribe-tab-' + currentTabId);
+				if ($prevPanel.length) {
+					this.releaseFocusTrap($prevPanel[0]);
+				}
+			}
+
 			if (currentTabId === 'debug' && typeof window.SScribeDebugConsole !== 'undefined') {
 				window.SScribeDebugConsole.stopAutoRefresh();
 				window.SScribeDebugConsole.initialized = false;
@@ -277,6 +285,13 @@
 
 			if (moveFocus) {
 				$('.sscribe-tab-btn[data-tab="' + tabId + '"]').trigger('focus');
+			}
+
+			// Apply focus trap to the newly active panel so keyboard users
+			// cannot tab outside the panel while it is active.
+			const $activePanel = $('#sscribe-tab-' + tabId);
+			if ($activePanel.length) {
+				this.trapFocus($activePanel[0]);
 			}
 
 			if (tabId === 'debug' && typeof window.SScribeDebugConsole !== 'undefined') {
