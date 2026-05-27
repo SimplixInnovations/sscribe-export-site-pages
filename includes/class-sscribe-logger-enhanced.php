@@ -149,26 +149,6 @@ class SScribe_Logger_Enhanced implements SScribe_Logger_Interface {
 	}
 
 	/**
-	 * Get context enrichment data for log entries.
-	 *
-	 * @return array Context data.
-	 */
-	protected function get_context_enrichment(): array {
-		$context = array(
-			'plugin_version' => defined( 'SSCRIBE_VERSION' ) ? (string) SSCRIBE_VERSION : 'unknown',
-			'php_version'    => PHP_VERSION,
-			'memory_usage'   => size_format( memory_get_usage( true ) ),
-			'request_id'     => $this->get_request_id(),
-		);
-
-		if ( null !== $this->session_id ) {
-			$context['session_id'] = $this->session_id;
-		}
-
-		return $context;
-	}
-
-	/**
 	 * Determine if a log level should be processed.
 	 *
 	 * @param string $level Log level to check.
