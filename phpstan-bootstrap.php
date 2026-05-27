@@ -108,6 +108,19 @@ if ( ! function_exists( 'register_setting' ) ) {
 	}
 }
 
+if ( ! function_exists( 'wp_suspend_cache_invalidation' ) ) {
+
+	/**
+	 * WordPress stub for PHPStan.
+	 *
+	 * @param bool $suspend Whether to suspend or resume cache invalidation.
+	 * @return bool Always returns true.
+	 */
+	function wp_suspend_cache_invalidation( bool $suspend = true ): bool {
+		return true;
+	}
+}
+
 if ( ! function_exists( 'get_current_blog_id' ) ) {
 
 	/**
