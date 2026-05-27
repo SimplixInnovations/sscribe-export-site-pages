@@ -103,10 +103,7 @@ class SScribe_Session {
 								'blocked_attempt'   => $session_id,
 							)
 						);
-						// Increment attempt to prevent infinite loop if concurrent
-						// session keeps being detected.
-						++$attempt;
-						continue;
+						return '';
 					}
 					// Stale transient pointing to expired session — clear it.
 					delete_transient( $transient_key );
@@ -388,8 +385,9 @@ class SScribe_Session {
 
 			if ( $using_cache ) {
 				wp_cache_delete( $lock_key, 'transient' );
+			} else {
+				delete_transient( $lock_key );
 			}
-			delete_transient( $lock_key );
 		}
 	}
 
@@ -444,6 +442,9 @@ class SScribe_Session {
 			}
 		}
 
+		// Normalize types locally. Note: this does NOT persist back to storage.
+		// Callers that need typed values should cast on read, or call update()
+		// after validate() if persistence is required.
 		$data['total']     = (int) $data['total'];
 		$data['processed'] = (int) $data['processed'];
 
@@ -554,6 +555,9 @@ class SScribe_Session {
 					if ( delete_option( $option->option_name ) ) {
 						++$deleted;
 					}
+				} elseif ( ! isset( $data['created_at'] ) ) {
+					delete_option( $option->option_name );
+					++$deleted;
 				}
 
 				$cursor = $option->option_name;
@@ -755,16 +759,10 @@ class SScribe_Session {
 			self::$active_session_cache[ $user_id ] = false;
 		}
 
-		$active_session = $this->get_active_session_data( $user_id );
-		if ( null !== $active_session ) {
-			self::$active_session_cache[ $user_id ] = true;
-			set_transient( $cache_key, (string) $active_session['session_id'], 5 );
-			return self::$active_session_cache[ $user_id ];
-		}
-
+		// No need to call get_active_session_data() here — it re-checks the same transient.
+		// Fall through to DB scan via the standard path by returning false and letting
+		// the caller (e.g. get_active_session_data()) handle the full check.
 		self::$active_session_cache[ $user_id ] = false;
-		set_transient( $cache_key, '0', 5 );
-
 		return false;
 	}
 

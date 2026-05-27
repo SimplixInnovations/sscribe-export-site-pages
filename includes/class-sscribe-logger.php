@@ -391,6 +391,7 @@ class SScribe_Logger implements SScribe_Logger_Interface {
 	/**
 	 * Get all log entries.
 	 *
+	 * @param int $limit Maximum number of lines to return (from tail). -1 for all.
 	 * @return array Log entries from file and buffer.
 	 */
 	public function get_logs( int $limit = -1 ): array {
@@ -402,11 +403,41 @@ class SScribe_Logger implements SScribe_Logger_Interface {
 		$log_file     = $this->get_log_file();
 
 		if ( file_exists( $log_file ) ) {
-			$contents = file_get_contents( $log_file ); // phpcs:ignore WordPress.WP.AlternativeFunctions.file_get_contents_file_get_contents -- Safe filesystem read.
-			if ( $contents ) {
-				$contents = str_replace( "\r\n", "\n", $contents );
-				$contents = str_replace( "\r", "\n", $contents );
-				$file_entries = explode( "\n", trim( $contents ) );
+			if ( $limit > 0 ) {
+				// Use SplFileObject to read only the tail of the file without loading
+				// the entire file into memory. This prevents OOM on large log files.
+				try {
+					$file = new SplFileObject( $log_file, 'r' );
+					$file->seek( PHP_INT_MAX );
+					$total_lines = $file->key();
+
+					$start = $total_lines > $limit ? $total_lines - $limit + 1 : 0;
+					$file->seek( $start );
+
+					while ( ! $file->eof() ) {
+						$line = $file->current();
+						$file->next();
+						if ( '' !== trim( $line ) ) {
+							$file_entries[] = rtrim( $line, "\r\n" );
+						}
+					}
+					unset( $file );
+				} catch ( Exception $e ) {
+					// Fallback to full read if SplFileObject fails.
+					$contents = file_get_contents( $log_file ); // phpcs:ignore WordPress.WP.AlternativeFunctions.file_get_contents_file_get_contents
+					if ( $contents ) {
+						$contents       = str_replace( "\r\n", "\n", $contents );
+						$contents       = str_replace( "\r", "\n", $contents );
+						$file_entries   = explode( "\n", trim( $contents ) );
+					}
+				}
+			} else {
+				$contents = file_get_contents( $log_file ); // phpcs:ignore WordPress.WP.AlternativeFunctions.file_get_contents_file_get_contents -- Safe filesystem read.
+				if ( $contents ) {
+					$contents = str_replace( "\r\n", "\n", $contents );
+					$contents = str_replace( "\r", "\n", $contents );
+					$file_entries = explode( "\n", trim( $contents ) );
+				}
 			}
 		}
 
