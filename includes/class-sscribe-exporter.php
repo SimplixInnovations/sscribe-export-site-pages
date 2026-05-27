@@ -278,7 +278,7 @@ class SScribe_Exporter {
 				parse_str( $query, $params );
 				$safe_query = '?' . http_build_query( $params, '', '&', PHP_QUERY_RFC3986 );
 			}
-			$safe_fragment = ! empty( $fragment ) ? '#' . rawurlencode( $fragment ) : '';
+			$safe_fragment = ! empty( $fragment ) ? '#' . rawurlencode( rawurldecode( $fragment ) ) : '';
 
 			return $scheme . '://' . $host . $port . $safe_path . $safe_query . $safe_fragment;
 		}
@@ -323,8 +323,12 @@ class SScribe_Exporter {
 		// Use DNS lookup with timeout to prevent hanging.
 		$ip = $this->resolve_host_with_timeout( $host );
 		if ( null === $ip ) {
-			// Could not resolve within timeout - block hostname that might be internal
-			return true;
+			// Could not resolve within timeout or DNS failure.
+			// Do NOT block - unresolvable hostnames are not internal.
+			// Blocking valid CDN hostnames during DNS outages would cause
+			// silent content stripping. Only block if we positively detect
+			// a private IP after resolution.
+			return false;
 		}
 
 		// Check if resolved IP is private/reserved
@@ -662,7 +666,7 @@ class SScribe_Exporter {
 				throw new \RuntimeException( 'DOCX missing required archive members' );
 			}
 
-			if ( ! SSCRIBE_DEBUG ) {
+			if ( ! ( defined( 'SSCRIBE_DEBUG' ) && SSCRIBE_DEBUG ) ) {
 				unset( $writer, $php_word );
 				return $output_path;
 			}
@@ -1329,6 +1333,15 @@ class SScribe_Exporter {
 			$section->addTextBreak( 1 );
 
 		} catch ( \Throwable $e ) {
+			$this->get_logger()->warning(
+				'Featured image skipped due to error',
+				array(
+					'page_id'   => $page_data['id'] ?? 0,
+					'path'      => $path,
+					'exception' => get_class( $e ),
+					'message'  => $e->getMessage(),
+				)
+			);
 
 			return;
 		}
