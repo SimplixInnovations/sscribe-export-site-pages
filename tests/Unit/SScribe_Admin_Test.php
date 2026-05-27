@@ -82,11 +82,11 @@ class SScribe_Admin_Test extends TestCase {
 
 		$admin->enqueue_admin_assets( 'toplevel_page_sscribe-export' );
 
-		// SSCRIBE_DEBUG is false in test bootstrap, so debug console assets are not enqueued.
-		// Styles: sscribe-admin + inline font-face CSS = 2.
-		// Scripts: sscribe-admin = 1.
-		$this->assertCount( 2, $sscribe_test_styles );
-		$this->assertCount( 1, $sscribe_test_scripts );
+		// Debug console assets are now always enqueued for the debug tab UI.
+		// Styles: sscribe-admin + inline font-face CSS + sscribe-debug-console = 3.
+		// Scripts: sscribe-admin + sscribe-debug-console = 2.
+		$this->assertCount( 3, $sscribe_test_styles );
+		$this->assertCount( 2, $sscribe_test_scripts );
 	}
 
 	public function test_plugin_action_link_points_to_top_level_admin_page(): void {
