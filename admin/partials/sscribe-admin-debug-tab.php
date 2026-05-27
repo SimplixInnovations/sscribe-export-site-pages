@@ -106,11 +106,11 @@ $sscribe_show_wp_debug_notice = ( defined( 'WP_DEBUG' ) && WP_DEBUG );
 		<div class="sscribe-debug-refresh-row">
 			<div class="sscribe-debug-refresh-mode">
 				<label class="sscribe-radio-label">
-					<input type="radio" name="sscribe_refresh_mode" value="auto" <?php checked( $sscribe_debug_settings['auto_refresh'] ); ?>>
+					<input type="radio" name="sscribe_refresh_mode" value="auto" <?php checked( true, (bool) $sscribe_debug_settings['auto_refresh'] ); ?>>
 					<span class="sscribe-radio-text"><?php esc_html_e( 'Auto-refresh (10s)', 'sscribe-export-site-pages' ); ?></span>
 				</label>
 				<label class="sscribe-radio-label">
-					<input type="radio" name="sscribe_refresh_mode" value="manual" <?php checked( ! $sscribe_debug_settings['auto_refresh'] ); ?>>
+					<input type="radio" name="sscribe_refresh_mode" value="manual" <?php checked( false, (bool) $sscribe_debug_settings['auto_refresh'] ); ?>>
 					<span class="sscribe-radio-text"><?php esc_html_e( 'Manual refresh only', 'sscribe-export-site-pages' ); ?></span>
 				</label>
 			</div>

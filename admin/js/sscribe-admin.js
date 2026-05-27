@@ -215,6 +215,11 @@
 
 			this.setActiveTab(activeTabId);
 
+			// Initialize debug console if debug tab is the default active tab.
+			if (activeTabId === 'debug' && typeof window.SScribeDebugConsole !== 'undefined') {
+				window.SScribeDebugConsole.init();
+			}
+
 			$tabs.on('click', function (e) {
 				e.preventDefault();
 				const $btn = $(this);
@@ -292,7 +297,10 @@
 			$('.sscribe-tab-content').each(function () {
 				const $panel = $(this);
 				const isActive = $panel.attr('id') === 'sscribe-tab-' + tabId;
-				$panel.toggleClass('sscribe-tab-active', isActive).prop('hidden', !isActive);
+				$panel
+					.toggleClass('sscribe-tab-active', isActive)
+					.prop('hidden', !isActive)
+					.attr('aria-hidden', isActive ? 'false' : 'true');
 			});
 		},
 

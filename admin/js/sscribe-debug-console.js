@@ -39,6 +39,9 @@
 			if (this.initialized) {
 				return;
 			}
+			if (typeof sscribe_data === 'undefined' || !scribe_data) {
+				return;
+			}
 			if (!this.hasRequiredDom()) {
 				return;
 			}
@@ -796,9 +799,4 @@
 
 	window.SScribeDebugConsole = SScribeDebugConsole;
 
-	$(document).ready(function () {
-		if ($('#sscribe-tab-debug').hasClass('sscribe-tab-active')) {
-			SScribeDebugConsole.init();
-		}
-	});
 })(jQuery);
