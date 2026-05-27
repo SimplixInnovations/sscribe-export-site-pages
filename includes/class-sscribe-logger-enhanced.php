@@ -140,12 +140,7 @@ class SScribe_Logger_Enhanced implements SScribe_Logger_Interface {
 	}
 
 	/**
-	 * Set session identifier for log context.
-	 *
-	 * @param string $session_id Session identifier.
-	 */
-	/**
-	 * Set session identifier for log context.
+	 * Set session ID for log context.
 	 *
 	 * @param string $session_id Session identifier.
 	 */
@@ -185,13 +180,6 @@ class SScribe_Logger_Enhanced implements SScribe_Logger_Interface {
 		return $check >= $current;
 	}
 
-	/**
-	 * Log a message at specified level.
-	 *
-	 * @param string $level   Log level.
-	 * @param string $message Log message.
-	 * @param array  $context Additional context data.
-	 */
 	/**
 	 * Write a log entry to the log destinations.
 	 *
@@ -318,6 +306,7 @@ class SScribe_Logger_Enhanced implements SScribe_Logger_Interface {
 
 		if ( ! is_dir( $this->log_dir ) ) {
 			wp_mkdir_p( $this->log_dir );
+			SScribe_Security::protect_directory( $this->log_dir );
 		}
 
 		$log_file = $this->get_log_file();
@@ -375,13 +364,20 @@ class SScribe_Logger_Enhanced implements SScribe_Logger_Interface {
 	private function sanitize_context( array $context ): array {
 		$forbidden = array( 'password', 'token', 'secret', 'auth', 'credential', 'private_key' );
 
-		foreach ( $forbidden as $key ) {
-			if ( isset( $context[ $key ] ) ) {
-				$context[ $key ] = '[REDACTED]';
+		$sanitized = array();
+		foreach ( $context as $key => $value ) {
+			$sanitized_key = sanitize_key( (string) $key );
+
+			if ( in_array( $sanitized_key, $forbidden, true ) ) {
+				$sanitized[ $sanitized_key ] = '[REDACTED]';
+			} elseif ( is_array( $value ) ) {
+				$sanitized[ $sanitized_key ] = $this->sanitize_context( $value );
+			} else {
+				$sanitized[ $sanitized_key ] = $value;
 			}
 		}
 
-		return $context;
+		return $sanitized;
 	}
 
 	/**
@@ -406,8 +402,9 @@ class SScribe_Logger_Enhanced implements SScribe_Logger_Interface {
 				'context'    => $entry['context'],
 				'session_id' => $entry['session_id'],
 				'request_id' => $entry['request_id'],
+				'user_id'    => get_current_user_id(),
 			),
-			array( '%s', '%s', '%s', '%s', '%s', '%s' )
+			array( '%s', '%s', '%s', '%s', '%s', '%s', '%d' )
 		);
 	}
 
@@ -472,6 +469,9 @@ class SScribe_Logger_Enhanced implements SScribe_Logger_Interface {
 
 		require_once ABSPATH . 'wp-admin/includes/upgrade.php';
 		dbDelta( $sql );
+
+		// Update cache since table now exists.
+		$this->table_exists_cache = true;
 	}
 
 	/**
@@ -481,7 +481,7 @@ class SScribe_Logger_Enhanced implements SScribe_Logger_Interface {
 	 */
 	private function get_log_file(): string {
 		$date = gmdate( 'Y-m-d' );
-		return trailingslashit( $this->log_dir ) . "sscribe_debug_{$date}.log";
+		return trailingslashit( $this->log_dir ) . "sscribe_enhanced_{$date}.log";
 	}
 
 	/**
@@ -569,7 +569,7 @@ class SScribe_Logger_Enhanced implements SScribe_Logger_Interface {
 		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, PluginCheck.Security.DirectDB.UnescapedDBParameter
 		return $wpdb->get_results(
 			$wpdb->prepare(
-				"SELECT * FROM {$this->table_name} WHERE {$where_clause} ORDER BY timestamp DESC LIMIT %d", // phpcs:ignore WordPress.DB.PreparedSQL.NotPrepared, WordPress.DB.PreparedSQL.InterpolatedNotPrepared -- Table name from $wpdb->prefix (trusted), WHERE clause built from controlled filter keys with placeholders
+				"SELECT id, timestamp, level, message, context, session_id, request_id, user_id FROM {$this->table_name} WHERE {$where_clause} ORDER BY timestamp DESC LIMIT %d", // phpcs:ignore WordPress.DB.PreparedSQL.NotPrepared, WordPress.DB.PreparedSQL.InterpolatedNotPrepared -- Table name from $wpdb->prefix (trusted), WHERE clause built from controlled filter keys with placeholders
 				...$args
 			)
 		);
@@ -588,12 +588,12 @@ class SScribe_Logger_Enhanced implements SScribe_Logger_Interface {
 			return 0;
 		}
 
-		$cutoff = gmdate( 'Y-m-d H:i:s', strtotime( "-{$days} days" ) );
+		$cutoff = gmdate( 'Y-m-d H:i:s', strtotime( '-' . max( 1, abs( (int) $days ) ) . ' days' ) );
 
 		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
 		return $wpdb->query(
 			$wpdb->prepare(
-			// phpcs:ignore WordPress.DB.PreparedSQL.NotPrepared
+				// phpcs:ignore WordPress.DB.PreparedSQL.NotPrepared
 				'DELETE FROM ' . $this->table_name . ' WHERE timestamp < %s',
 				$cutoff
 			)

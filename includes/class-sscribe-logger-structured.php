@@ -91,12 +91,6 @@ class SScribe_Logger_Structured implements SScribe_Logger_Interface {
 	 * @param string $message Log message.
 	 * @param array  $context Additional context data.
 	 */
-	/**
-	 * Log debug message.
-	 *
-	 * @param string $message Log message.
-	 * @param array  $context Additional context data.
-	 */
 	public function debug( string $message, array $context = array() ): void {
 		$this->log( self::LEVEL_DEBUG, $message, $context );
 	}

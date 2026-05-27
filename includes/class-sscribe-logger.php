@@ -208,13 +208,26 @@ class SScribe_Logger implements SScribe_Logger_Interface {
 	}
 
 	/**
-	 * Log notice message.
+	 * Get logger instance.
 	 *
-	 * @param string $message Log message.
-	 * @param array  $data     Additional context data.
+	 * @param string $level Optional log level. Defaults to 'error'.
+	 * @return SScribe_Logger Logger instance.
 	 */
-	public function notice( string $message, array $data = array() ): void {
-		$this->log_internal( 'notice', $message, $data );
+	public static function instance( string $level = self::LEVEL_ERROR ): self {
+		if ( null === self::$instances ) {
+			self::$instances = array();
+		}
+
+		if ( ! isset( self::$instances[ $level ] ) ) {
+			self::$instances[ $level ] = new self( $level );
+		}
+
+		// Prevent unbounded memory growth with hard limit of 3 instances.
+		if ( count( self::$instances ) > 3 ) {
+			array_shift( self::$instances );
+		}
+
+		return self::$instances[ $level ];
 	}
 
 	/**
@@ -244,7 +257,7 @@ class SScribe_Logger implements SScribe_Logger_Interface {
 	 * @param array  $data     Additional context data.
 	 */
 	public function critical( string $message, array $data = array() ): void {
-		$this->error( 'CRITICAL: ' . $message, $data );
+		$this->log_internal( 'critical', $message, $data );
 	}
 
 	/**
@@ -279,16 +292,35 @@ class SScribe_Logger implements SScribe_Logger_Interface {
 	}
 
 	/**
-	 * Internal log handler.
+	 * Internal logging method with buffering.
 	 *
 	 * @param string $level   Log level.
-	 * @param string $message  Log message.
-	 * @param array  $data     Additional context data.
+	 * @param string $message Log message.
+	 * @param array  $data    Additional context data.
 	 */
 	private function log_internal( string $level, string $message, array $data = array() ): void {
-		if ( ! $this->enabled ) {
+		if ( ! $this->is_enabled() ) {
 			return;
 		}
+
+		$entry = $this->format_entry( $level, $message, $data );
+
+		if ( null === $this->buffer ) {
+			$this->buffer = array();
+		}
+
+		$this->buffer[] = $entry;
+
+		// Flush when buffer reaches 50 entries to prevent memory bloat.
+		if ( count( $this->buffer ) >= 50 ) {
+			$this->flush();
+		}
+
+		// Also flush on critical and above to ensure important logs aren't lost.
+		if ( self::LEVEL_PRIORITY[ $level ] >= self::LEVEL_PRIORITY[ self::LEVEL_CRITICAL ] ) {
+			$this->flush();
+		}
+	}
 
 		$data        = array_merge( $this->get_context_enrichment(), $data );
 		$timestamp   = gmdate( 'Y-m-d H:i:s' );
@@ -300,26 +332,6 @@ class SScribe_Logger implements SScribe_Logger_Interface {
 		}
 
 		$this->buffer[] = $entry;
-	}
-
-	/**
-	 * Get context enrichment data.
-	 *
-	 * @return array Context data with plugin info.
-	 */
-	private function get_context_enrichment(): array {
-		$context = array(
-			'plugin_version' => defined( 'SSCRIBE_VERSION' ) ? (string) SSCRIBE_VERSION : 'unknown',
-			'php_version'    => PHP_VERSION,
-			'memory_usage'   => size_format( memory_get_usage( true ) ),
-			'request_id'     => $this->get_request_id(),
-		);
-
-		if ( null !== $this->session_id ) {
-			$context['session_id'] = $this->session_id;
-		}
-
-		return $context;
 	}
 
 	/**
