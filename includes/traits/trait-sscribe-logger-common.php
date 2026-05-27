@@ -39,7 +39,7 @@ trait SScribe_Logger_Common {
 		);
 
 		// Add session_id if available (subclasses should set this property).
-		if ( property_exists( $this, 'session_id' ) && null !== $this->session_id ) {
+		if ( isset( $this->session_id ) && null !== $this->session_id ) {
 			$context['session_id'] = $this->session_id;
 		}
 
