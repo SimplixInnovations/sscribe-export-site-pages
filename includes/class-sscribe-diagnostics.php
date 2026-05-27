@@ -123,7 +123,7 @@ class SScribe_Diagnostics {
 		}
 
 		try {
-			$logger_entries = $debug_logger instanceof SScribe_Logger ? $debug_logger->get_logs( 5 ) : array();
+			$logger_entries = null !== $debug_logger ? $debug_logger->get_logs( 5 ) : array(); // @phpstan-ignore notIdentical.alwaysFalse
 		} catch ( \Throwable $e ) {
 			$logger_entries = array();
 			if ( defined( 'WP_DEBUG_LOG' ) && WP_DEBUG_LOG ) {
@@ -269,7 +269,7 @@ class SScribe_Diagnostics {
 			'generated_at'   => gmdate( 'Y-m-d H:i:s' ),
 			'sections'       => $sections,
 			'audit_events'   => $recent_audit_summary,
-			'log_tail'       => array_values( $recent_log_tail ),
+			'log_tail'       => $recent_log_tail,
 			'copy_text'      => $copy_text,
 			'has_debug_mode' => $debug_enabled,
 			'storage'        => array(

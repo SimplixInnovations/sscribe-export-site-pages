@@ -463,10 +463,8 @@ class SScribe_Exporter {
 		}
 
 		// Register shutdown handler to clean up temp files on fatal error/OOM.
-		$temp_dir_for_shutdown = $output_dir;
-		$page_id_for_shutdown  = $page_data['id'] ?? 0;
 		register_shutdown_function(
-			static function () use ( $temp_dir_for_shutdown, $page_id_for_shutdown ): void {
+			static function (): void {
 				$error = error_get_last();
 				if ( $error && E_ERROR === $error['type'] ) {
 					$temp_pattern = sys_get_temp_dir() . '/phpword_*.tmp';

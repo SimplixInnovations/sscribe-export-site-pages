@@ -181,7 +181,7 @@ class SScribe_Logger implements SScribe_Logger_Interface {
 	 *
 	 * @return string Full path to log file.
 	 */
-	private function get_log_file(): string {
+	public function get_log_file(): string {
 		// Always ensure the log directory is protected, even if it already exists.
 		// This handles cases where the directory was created by an older version
 		// or without proper protection.
