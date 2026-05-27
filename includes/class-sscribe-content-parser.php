@@ -874,6 +874,15 @@ class SScribe_Content_Parser {
 						$runs = array_merge( $runs, $sub_runs );
 						break;
 
+					case 'table':
+						$nested_text = $this->extract_nested_table_text( $child );
+						if ( '' !== $nested_text ) {
+							$runs[] = array(
+								'text' => $nested_text,
+							);
+						}
+						break;
+
 					default:
 						$sub_runs = $this->get_inline_runs( $child );
 						$runs     = array_merge( $runs, $sub_runs );
@@ -883,6 +892,37 @@ class SScribe_Content_Parser {
 		}
 
 		return $runs;
+	}
+
+	/**
+	 * Extract text content from a nested table.
+	 *
+	 * When a table is found inside a <td>, extract all cell text
+	 * and format as newline-separated plain text.
+	 *
+	 * @param \DOMNode $table Table element.
+	 * @return string Extracted table text.
+	 */
+	private function extract_nested_table_text( \DOMNode $table ): string {
+		$cellTexts = array();
+
+		foreach ( $table->getElementsByTagName( 'td' ) as $td ) {
+			$cellText = trim( $td->textContent );
+			if ( '' !== $cellText ) {
+				$cellTexts[] = $cellText;
+			}
+		}
+
+		if ( empty( $cellTexts ) ) {
+			foreach ( $table->getElementsByTagName( 'th' ) as $th ) {
+				$cellText = trim( $th->textContent );
+				if ( '' !== $cellText ) {
+					$cellTexts[] = $cellText;
+				}
+			}
+		}
+
+		return implode( "\n", $cellTexts );
 	}
 
 	/**

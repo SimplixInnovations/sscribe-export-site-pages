@@ -91,8 +91,7 @@ class SScribe_Diagnostics {
 		}
 
 		try {
-			$support_logger = SScribe_Logger::instance( $debug_enabled );
-			$logger_entries = $support_logger->get_logs();
+			$logger_entries = $debug_logger instanceof SScribe_Logger ? $debug_logger->get_logs() : array();
 		} catch ( \Throwable $e ) {
 			$logger_entries = array();
 			if ( $debug_logger ) {
@@ -441,7 +440,7 @@ class SScribe_Diagnostics {
 			'status'  => 'ok',
 			'message' => $max_execution > 0
 				? sprintf( 'max_execution_time: %ds (estimated need: %ds)', $max_execution, $estimated_seconds )
-				: 'max_execution_time: unlimited',
+				: sprintf( 'max_execution_time: unlimited (estimated need: %ds)', $estimated_seconds ),
 		);
 	}
 
@@ -465,7 +464,14 @@ class SScribe_Diagnostics {
 		$export_dir = $upload_dir['basedir'] . '/sscribe-exports';
 
 		if ( ! is_dir( $export_dir ) ) {
-			wp_mkdir_p( $export_dir );
+			if ( ! wp_mkdir_p( $export_dir ) ) {
+				return array(
+					'name'    => 'Upload Directory',
+					'status'  => 'error',
+					'message' => 'Export directory could not be created: ' . $export_dir,
+					'fix'     => 'Check that wp-content/uploads is writable (chmod 755)',
+				);
+			}
 		}
 
 		if ( ! wp_is_writable( $export_dir ) ) {
@@ -694,7 +700,7 @@ class SScribe_Diagnostics {
 			$wpdb->prepare(
 				"SELECT COUNT(*) FROM {$wpdb->options} WHERE option_name LIKE %s AND option_value LIKE %s",
 				$wpdb->esc_like( $option_prefix ) . '%',
-				'%"processing"%'
+				'%' . $wpdb->esc_like( '"processing"' ) . '%'
 			)
 		);
 
@@ -816,6 +822,9 @@ class SScribe_Diagnostics {
 			);
 		}
 
+		$warning_categories = array( 'timeout', 'pdf_generation' );
+		$diagnosis['severity'] = in_array( $diagnosis['category'], $warning_categories, true ) ? 'warning' : 'error';
+
 		return $diagnosis;
 	}
 
@@ -920,13 +929,14 @@ class SScribe_Diagnostics {
 		);
 
 		$cleared = 0;
+		$session_ttl = apply_filters( 'sscribe_session_ttl', DAY_IN_SECONDS );
 		foreach ( $sessions as $session ) {
 			$data = json_decode( $session->option_value, true );
 
 			if ( is_array( $data ) && isset( $data['created_at'] ) ) {
 				$created_at = $data['created_at'];
 				$created    = is_numeric( $created_at ) ? (int) $created_at : strtotime( (string) $created_at );
-				if ( $created && time() - $created > 3600 ) {
+				if ( $created && time() - $created > $session_ttl ) {
 					delete_option( $session->option_name );
 					++$cleared;
 				}
@@ -1016,7 +1026,9 @@ class SScribe_Diagnostics {
 				continue;
 			}
 
-			if ( ! empty( $data['temp_dir'] ) && 0 === strpos( $data['temp_dir'], $dir ) ) {
+			// $dir is the export session temp directory being checked.
+			// $data['temp_dir'] is the path stored in the session - check if session temp_dir starts with $dir.
+			if ( ! empty( $data['temp_dir'] ) && str_starts_with( $data['temp_dir'], $dir ) ) {
 				return true;
 			}
 		}
@@ -1181,7 +1193,7 @@ class SScribe_Diagnostics {
 			$lines[] = '';
 			$lines[] = '[Recent Log Tail]';
 			foreach ( $log_tail as $entry ) {
-				$lines[] = $entry;
+				$lines[] = is_string( $entry ) ? $entry : wp_json_encode( $entry );
 			}
 		}
 

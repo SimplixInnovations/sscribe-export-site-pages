@@ -23,6 +23,30 @@ use SScribeVendor\PhpOffice\PhpWord\Shared\Converter;
 use SScribeVendor\PhpOffice\PhpWord\Element\Section;
 use SScribeVendor\PhpOffice\PhpWord\Element\TextRun;
 
+/**
+ * @phpstan-type SScribePageData array{
+ *     id: int,
+ *     title: string,
+ *     content: string,
+ *     raw_content: string,
+ *     excerpt: string,
+ *     permalink: string,
+ *     slug: string,
+ *     author: string,
+ *     date_published: string,
+ *     date_modified: string,
+ *     featured_image_url: string,
+ *     featured_image_path: string,
+ *     word_count: int,
+ *     reading_time: float,
+ *     breadcrumbs: array<array{title: string, url: string}>,
+ *     children: array<int, array>,
+ *     language: string,
+ *     parent_id: int,
+ *     seo: array{title: string, description: string, keywords: string}
+ * }
+ */
+
 class SScribe_Exporter {
 
 	/**
@@ -578,6 +602,8 @@ class SScribe_Exporter {
 			$writer = IOFactory::createWriter( $php_word, 'Word2007' );
 			$writer->save( $output_path );
 
+			$this->cleanup_phpword_temp_files();
+
 			// Lightweight integrity check: verify file size > minimum threshold.
 			$file_size = @filesize( $output_path );
 			$min_size   = 8192; // Minimal DOCX should be at least 8KB to avoid empty/corrupted files.
@@ -680,6 +706,7 @@ class SScribe_Exporter {
 			return $output_path;
 
 		} catch ( \Throwable $e ) {
+			$this->cleanup_phpword_temp_files();
 
 			if ( isset( $writer ) ) {
 				unset( $writer );
@@ -723,6 +750,27 @@ class SScribe_Exporter {
 			$this->last_error = $error_message;
 
 			return false;
+		}
+	}
+
+	/**
+	 * Clean up PHPWord temporary files.
+	 *
+	 * PHPWord creates temp files during document saving that can persist
+	 * if a fatal error occurs mid-write.
+	 *
+	 * @return void
+	 */
+	private function cleanup_phpword_temp_files(): void {
+		$temp_pattern = sys_get_temp_dir() . '/phpword_*.tmp';
+		$temp_files   = glob( $temp_pattern );
+
+		if ( is_array( $temp_files ) ) {
+			foreach ( $temp_files as $temp_file ) {
+				if ( is_file( $temp_file ) && is_writable( $temp_file ) ) {
+					@unlink( $temp_file );
+				}
+			}
 		}
 	}
 
