@@ -163,6 +163,12 @@ class SScribe_Export_Log {
 		$this->write_log( $data );
 	}
 
+	/**
+	 * Update the status of a page in the export log.
+	 *
+	 * @param int    $page_id Page ID.
+	 * @param string $status  New status.
+	 */
 	public function update_page_status( int $page_id, string $status ): void {
 		$data = $this->read_log();
 

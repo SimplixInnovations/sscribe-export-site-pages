@@ -309,7 +309,7 @@ class SScribe_Admin_Debug {
 
 		usort(
 			$result,
-			fn($a, $b) => $b['mtime'] <=> $a['mtime']
+			fn( $a, $b ) => $b['mtime'] <=> $a['mtime']
 		);
 
 		foreach ( $result as &$file_info ) {
