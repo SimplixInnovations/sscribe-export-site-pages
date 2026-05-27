@@ -933,6 +933,29 @@ class SScribe_Content_Parser {
 	 * @return string
 	 */
 	private function get_text_content( \DOMNode $node ): string {
+		// If node has only element children (no direct text nodes), iterate
+		// and join with space to prevent "HelloWorld" concatenation.
+		$has_text_children = false;
+		foreach ( $node->childNodes as $child ) {
+			if ( XML_TEXT_NODE === $child->nodeType && '' !== trim( $child->nodeValue ) ) {
+				$has_text_children = true;
+				break;
+			}
+		}
+
+		if ( ! $has_text_children && $node->childNodes->length > 0 ) {
+			$parts = array();
+			foreach ( $node->childNodes as $child ) {
+				if ( XML_ELEMENT_NODE === $child->nodeType ) {
+					$child_text = trim( $child->textContent );
+					if ( '' !== $child_text ) {
+						$parts[] = $child_text;
+					}
+				}
+			}
+			return implode( ' ', $parts );
+		}
+
 		return trim( $node->textContent );
 	}
 

@@ -300,7 +300,8 @@
 				$panel
 					.toggleClass('sscribe-tab-active', isActive)
 					.prop('hidden', !isActive)
-					.attr('aria-hidden', isActive ? 'false' : 'true');
+					.attr('aria-hidden', isActive ? 'false' : 'true')
+					.attr('tabindex', isActive ? '0' : '-1');
 			});
 		},
 

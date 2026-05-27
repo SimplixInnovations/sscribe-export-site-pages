@@ -89,7 +89,7 @@ $sscribe_export_index    = $sscribe_export_index ?? array();
 			</button>
 		</nav>
 
-		<div class="sscribe-tab-content sscribe-tab-active" id="sscribe-tab-export" role="tabpanel" aria-labelledby="sscribe-tab-btn-export">
+		<div class="sscribe-tab-content sscribe-tab-active" id="sscribe-tab-export" role="tabpanel" aria-labelledby="sscribe-tab-btn-export" aria-hidden="false">
 
 <section class="sscribe-panel sscribe-config-panel">
 			<div class="sscribe-panel-header">
@@ -263,7 +263,7 @@ $sscribe_export_index    = $sscribe_export_index ?? array();
 								}
 								$sscribe_label_class = 'sscribe-status-card-label' . ( $sscribe_is_zero ? ' sscribe-status-disabled' : '' );
 								?>
-							<label class="<?php echo esc_attr( $sscribe_label_class ); ?>">
+							<label class="<?php echo esc_attr( $sscribe_label_class ); ?>"<?php echo $sscribe_is_zero ? ' aria-disabled="true"' : ''; ?>>
 								<input type="radio" name="sscribe_post_status" value="<?php echo esc_attr( $sscribe_status_key ); ?>" <?php checked( $sscribe_is_first ); ?>
 								<?php
 								echo $sscribe_is_zero ? ' disabled' : ''; // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- Static attribute string.
@@ -556,7 +556,7 @@ $sscribe_export_index    = $sscribe_export_index ?? array();
 
 		</div>
 
-		<div class="sscribe-tab-content" id="sscribe-tab-history" role="tabpanel" aria-labelledby="sscribe-tab-btn-history" hidden>
+		<div class="sscribe-tab-content" id="sscribe-tab-history" role="tabpanel" aria-labelledby="sscribe-tab-btn-history" aria-hidden="true" tabindex="-1" hidden>
 				<section class="sscribe-panel">
 					<div class="sscribe-panel-header">
 						<div class="sscribe-panel-title">
@@ -654,7 +654,7 @@ $sscribe_export_index    = $sscribe_export_index ?? array();
 				</section>
 			</div>
 
-			<div class="sscribe-tab-content" id="sscribe-tab-docs" role="tabpanel" aria-labelledby="sscribe-tab-btn-docs" hidden>
+			<div class="sscribe-tab-content" id="sscribe-tab-docs" role="tabpanel" aria-labelledby="sscribe-tab-btn-docs" aria-hidden="true" tabindex="-1" hidden>
 				<div class="sscribe-support-master">
 					<div class="sscribe-support-sidebar">
 						<div class="sscribe-support-header">
@@ -692,7 +692,7 @@ $sscribe_export_index    = $sscribe_export_index ?? array();
 				</div>
 			</div>
 
-			<div class="sscribe-tab-content" id="sscribe-tab-debug" role="tabpanel" aria-labelledby="sscribe-tab-btn-debug" hidden>
+			<div class="sscribe-tab-content" id="sscribe-tab-debug" role="tabpanel" aria-labelledby="sscribe-tab-btn-debug" aria-hidden="true" tabindex="-1" hidden>
 				<?php require_once SSCRIBE_PLUGIN_DIR . 'admin/partials/sscribe-admin-debug-tab.php'; ?>
 			</div>
 

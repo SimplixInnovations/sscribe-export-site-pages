@@ -459,27 +459,45 @@ class SScribe_Exporter {
 	 * @throws \RuntimeException If DOCX generation fails integrity checks.
 	 */
 	public function generate_docx( array $page_data, string $output_dir, int $index = 0, int $total = 0 ): string|false {
-		if ( empty( $page_data ) || ! is_dir( $output_dir ) ) {
-			return false;
-		}
-
-		// Register shutdown handler to clean up temp files on fatal error/OOM.
+		// Register shutdown handler FIRST to clean up temp files on fatal error/OOM
+		// or any early return path where PHPWord may have initialized temp files.
 		register_shutdown_function(
 			static function (): void {
 				$error = error_get_last();
 				if ( $error && E_ERROR === $error['type'] ) {
-					$temp_pattern = sys_get_temp_dir() . '/phpword_*.tmp';
-					$temp_files   = glob( $temp_pattern );
-					if ( is_array( $temp_files ) ) {
-						foreach ( $temp_files as $temp_file ) {
-							if ( is_file( $temp_file ) && is_writable( $temp_file ) ) { // phpcs:ignore WordPress.WP.AlternativeFunctions.file_system_operations_is_writable
-								wp_delete_file( $temp_file );
+					$temp_patterns = array(
+						sys_get_temp_dir() . '/phpword_*.tmp',
+						sys_get_temp_dir() . '/PhpWord*',
+					);
+					foreach ( $temp_patterns as $temp_pattern ) {
+						$temp_files = glob( $temp_pattern );
+						if ( is_array( $temp_files ) ) {
+							foreach ( $temp_files as $temp_file ) {
+								if ( is_file( $temp_file ) && is_writable( $temp_file ) ) { // phpcs:ignore WordPress.WP.AlternativeFunctions.file_system_operations_is_writable
+									wp_delete_file( $temp_file );
+								} elseif ( is_dir( $temp_file ) ) {
+									// Clean up PhpWord temp directories.
+									$dir_files = glob( $temp_file . '/*' );
+									if ( is_array( $dir_files ) ) {
+										foreach ( $dir_files as $dir_file ) {
+											if ( is_file( $dir_file ) ) {
+												wp_delete_file( $dir_file );
+											}
+										}
+									}
+									@rmdir( $temp_file );
+								}
 							}
 						}
 					}
 				}
 			}
 		);
+
+		if ( empty( $page_data ) || ! is_dir( $output_dir ) ) {
+			$this->cleanup_phpword_temp_files();
+			return false;
+		}
 
 		// Verify output directory is writable before attempting file creation.
 		if ( ! is_writable( $output_dir ) ) { // phpcs:ignore WordPress.WP.AlternativeFunctions.file_system_operations_is_writable
@@ -491,6 +509,7 @@ class SScribe_Exporter {
 					'output_dir' => $output_dir,
 				)
 			);
+			$this->cleanup_phpword_temp_files();
 			return false;
 		}
 
@@ -935,6 +954,18 @@ class SScribe_Exporter {
 		}
 
 		$php_word->addParagraphStyle( 'CodeBlock', $this->get_para_style( $codeblock_style ) );
+
+		// Define ListBullet and ListNumber styles to ensure consistent sizing with the rest of the document.
+		$list_style = array(
+			'spaceBefore' => Converter::pointToTwip( 2 ),
+			'spaceAfter'  => Converter::pointToTwip( 2 ),
+			'lineHeight'  => 1.15,
+		);
+		if ( $this->is_rtl ) {
+			$list_style['bidi'] = true;
+		}
+		$php_word->addParagraphStyle( 'ListBullet', $this->get_para_style( $list_style ) );
+		$php_word->addParagraphStyle( 'ListNumber', $this->get_para_style( $list_style ) );
 	}
 
 	/**
@@ -1117,6 +1148,19 @@ class SScribe_Exporter {
 				),
 				$this->get_para_style( array( 'alignment' => Jc::CENTER ) )
 			);
+		}
+
+		// Skip TOC if page content is minimal (single section or very few headings).
+		// A table of contents with a single entry is pointless and wastes a page.
+		$content      = $page_data['content'] ?? '';
+		$word_count   = $page_data['word_count'] ?? 0;
+		$heading_count = 0;
+		if ( function_exists( 'preg_match_all' ) ) {
+			preg_match_all( '/<h[1-6][^>]*>/i', $content, $heading_matches );
+			$heading_count = count( $heading_matches[0] );
+		}
+		if ( $heading_count <= 1 || $word_count < 150 ) {
+			return;
 		}
 
 		$section->addPageBreak();
@@ -1390,7 +1434,7 @@ class SScribe_Exporter {
 			array( __( 'Author', 'sscribe-export-site-pages' ), $page_data['author'] ?? '' ),
 			array( __( 'Published', 'sscribe-export-site-pages' ), $page_data['date_published'] ?? '' ),
 			array( __( 'Last Modified', 'sscribe-export-site-pages' ), $page_data['date_modified'] ?? '' ),
-			array( __( 'Word Count', 'sscribe-export-site-pages' ), number_format( $page_data['word_count'] ) ),
+			array( __( 'Word Count', 'sscribe-export-site-pages' ), number_format( (int) ( $page_data['word_count'] ?? 0 ) ) ),
 			array(
 				__( 'Reading Time', 'sscribe-export-site-pages' ),
 				/* translators: %d: number of minutes */
@@ -1553,14 +1597,49 @@ class SScribe_Exporter {
 		$section->addTextBreak( 1 );
 		$section->addTitle( __( 'Child Pages', 'sscribe-export-site-pages' ), 2 );
 
-		foreach ( $page_data['children'] as $child ) {
+		// Cap at 3 levels deep and limit total children to prevent abnormally long lists.
+		$max_depth  = 3;
+		$max_children = 50;
+		$this->render_child_pages( $section, $page_data['children'], 0, $max_depth, $max_children, 0 );
+	}
+
+	/**
+	 * Render child pages recursively with depth limit.
+	 *
+	 * @param \SScribeVendor\PhpOffice\PhpWord\Element\Section $section      Document section.
+	 * @param array                                            $children     Children array.
+	 * @param int                                              $depth        Current depth.
+	 * @param int                                              $max_depth    Maximum depth allowed.
+	 * @param int                                              $max_children Maximum total children to render.
+	 * @param int                                              $rendered     Count of rendered children.
+	 * @return int Total rendered count.
+	 */
+	private function render_child_pages(
+		\SScribeVendor\PhpOffice\PhpWord\Element\Section $section,
+		array $children,
+		int $depth,
+		int $max_depth,
+		int $max_children,
+		int $rendered
+	): int {
+		if ( $depth >= $max_depth || $rendered >= $max_children ) {
+			return $rendered;
+		}
+
+		foreach ( $children as $child ) {
+			if ( $rendered >= $max_children ) {
+				break;
+			}
+
 			$child_url = $this->validate_url( $child['url'] ?? '' );
 			if ( empty( $child_url ) ) {
 				continue;
 			}
-			$text_run = $section->addTextRun( $this->get_para_style() );
+
+			$indent    = str_repeat( '  ', $depth );
+			$text_run  = $section->addTextRun( $this->get_para_style() );
 			$text_run->addText(
-				'> ',
+				$indent . '> ',
 				array(
 					'size'  => 10,
 					'bold'  => true,
@@ -1584,7 +1663,15 @@ class SScribe_Exporter {
 					'color' => $this->colors['body'],
 				)
 			);
+			$rendered++;
+
+			// Recursively render grandchildren.
+			if ( ! empty( $child['children'] ) && is_array( $child['children'] ) ) {
+				$rendered = $this->render_child_pages( $section, $child['children'], $depth + 1, $max_depth, $max_children, $rendered );
+			}
 		}
+
+		return $rendered;
 	}
 
 	/**
