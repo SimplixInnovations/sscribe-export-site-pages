@@ -73,13 +73,6 @@ class SScribe_Logger_Enhanced implements SScribe_Logger_Interface {
 	private readonly string $table_name;
 
 	/**
-	 * Current request identifier.
-	 *
-	 * @var string
-	 */
-	private readonly string $request_id;
-
-	/**
 	 * Current session identifier.
 	 *
 	 * @var string|null
@@ -116,7 +109,6 @@ class SScribe_Logger_Enhanced implements SScribe_Logger_Interface {
 		$upload_dir       = wp_upload_dir();
 		$this->log_dir    = $upload_dir['basedir'] . '/sscribe-logs';
 		$this->table_name = $GLOBALS['wpdb']->prefix . 'sscribe_export_logs';
-		$this->request_id = substr( md5( microtime( true ) . (string) random_int( 0, PHP_INT_MAX ) ), 0, 12 );
 
 		if ( $this->enable_file || $this->enable_db ) {
 			add_action( 'shutdown', array( $this, 'flush' ) );
@@ -129,15 +121,6 @@ class SScribe_Logger_Enhanced implements SScribe_Logger_Interface {
 	 * @var bool|null
 	 */
 	private ?bool $table_exists_cache = null;
-
-	/**
-	 * Get request identifier.
-	 *
-	 * @return string Request ID.
-	 */
-	protected function get_request_id(): string {
-		return $this->request_id;
-	}
 
 	/**
 	 * Set session ID for log context.
@@ -285,8 +268,10 @@ class SScribe_Logger_Enhanced implements SScribe_Logger_Interface {
 		}
 
 		if ( ! is_dir( $this->log_dir ) ) {
-			wp_mkdir_p( $this->log_dir );
-			SScribe_Security::protect_directory( $this->log_dir );
+			$result = wp_mkdir_p( $this->log_dir );
+			if ( $result ) {
+				SScribe_Security::protect_directory( $this->log_dir );
+			}
 		}
 
 		$log_file = $this->get_log_file();
@@ -330,7 +315,7 @@ class SScribe_Logger_Enhanced implements SScribe_Logger_Interface {
 				'message'    => $message,
 				'context'    => wp_json_encode( $context ),
 				'session_id' => $this->session_id,
-				'request_id' => $this->request_id,
+				'request_id' => $this->get_request_id(),
 			),
 		);
 	}
@@ -442,7 +427,7 @@ class SScribe_Logger_Enhanced implements SScribe_Logger_Interface {
 			session_id varchar(60) DEFAULT NULL,
 			request_id varchar(12) DEFAULT NULL,
 			user_id bigint(20) DEFAULT NULL,
-			PRIMARY KEY id (id),
+			PRIMARY KEY (id),
 			KEY timestamp (timestamp),
 			KEY level (level)
 		) $charset_collate;";
@@ -546,7 +531,7 @@ class SScribe_Logger_Enhanced implements SScribe_Logger_Interface {
 		$where_clause = implode( ' AND ', $where );
 		$args[]       = $limit;
 
-		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, PluginCheck.Security.DirectDB.UnescapedDBParameter
+		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
 		return $wpdb->get_results(
 			$wpdb->prepare(
 				"SELECT id, timestamp, level, message, context, session_id, request_id, user_id FROM {$this->table_name} WHERE {$where_clause} ORDER BY timestamp DESC LIMIT %d", // phpcs:ignore WordPress.DB.PreparedSQL.NotPrepared, WordPress.DB.PreparedSQL.InterpolatedNotPrepared -- Table name from $wpdb->prefix (trusted), WHERE clause built from controlled filter keys with placeholders
@@ -555,12 +540,12 @@ class SScribe_Logger_Enhanced implements SScribe_Logger_Interface {
 		);
 	}
 
-		/**
-		 * Delete old log entries from the database.
-		 *
-		 * @param int $days Number of days to retain.
-		 * @return int Number of rows deleted.
-		 */
+	/**
+	 * Delete old log entries from the database.
+	 *
+	 * @param int $days Number of days to retain.
+	 * @return int Number of rows deleted.
+	 */
 	public function cleanup_db_logs( int $days = 30 ): int {
 		global $wpdb;
 
@@ -573,8 +558,7 @@ class SScribe_Logger_Enhanced implements SScribe_Logger_Interface {
 		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
 		return $wpdb->query(
 			$wpdb->prepare(
-				// phpcs:ignore WordPress.DB.PreparedSQL.NotPrepared
-				'DELETE FROM ' . $this->table_name . ' WHERE timestamp < %s',
+				'DELETE FROM ' . esc_sql( $this->table_name ) . ' WHERE timestamp < %s',
 				$cutoff
 			)
 		);
