@@ -1242,6 +1242,31 @@ class SScribe_Diagnostics {
 	}
 
 	/**
+	 * Format a support info value for safe public display.
+	 *
+	 * @param string $key   Field key.
+	 * @param string $value Raw field value.
+	 * @return string Formatted value safe for public sharing.
+	 */
+	private function format_support_value( string $key, string $value ): string {
+		// Round PHP version to minor release (e.g. 8.2.17 → 8.2.x).
+		if ( 'php_version' === $key ) {
+			$parts = explode( '.', $value );
+			if ( count( $parts ) >= 2 ) {
+				return $parts[0] . '.' . $parts[1] . '.x';
+			}
+			return $value;
+		}
+
+		// Redact exact server resource limits.
+		if ( in_array( $key, array( 'memory_limit', 'max_execution_time' ), true ) ) {
+			return '[REDACTED]';
+		}
+
+		return $value;
+	}
+
+	/**
 	 * Build copy-paste support text.
 	 *
 	 * @param array $sections     Info sections.
@@ -1261,6 +1286,7 @@ class SScribe_Diagnostics {
 				if ( is_array( $value ) ) {
 					$value = wp_json_encode( $value );
 				}
+				$value = $this->format_support_value( $key, (string) $value );
 				$lines[] = $key . ': ' . $value;
 			}
 		}
