@@ -52,6 +52,22 @@ class SScribe_Logger implements SScribe_Logger_Interface {
 	private readonly string $log_dir;
 
 	/**
+	 * Log level priority mapping.
+	 *
+	 * @var array<string, int>
+	 */
+	private const LEVEL_PRIORITY = array(
+		self::LEVEL_DEBUG     => 0,
+		self::LEVEL_INFO      => 1,
+		self::LEVEL_NOTICE    => 2,
+		self::LEVEL_WARNING   => 3,
+		self::LEVEL_ERROR     => 4,
+		self::LEVEL_CRITICAL  => 5,
+		self::LEVEL_ALERT     => 6,
+		self::LEVEL_EMERGENCY => 7,
+	);
+
+	/**
 	 * Get logger instance.
 	 *
 	 * @param bool   $enabled Whether logging is enabled.
@@ -210,26 +226,13 @@ class SScribe_Logger implements SScribe_Logger_Interface {
 	}
 
 	/**
-	 * Get logger instance.
+	 * Log notice message.
 	 *
-	 * @param string $level Optional log level. Defaults to 'error'.
-	 * @return SScribe_Logger Logger instance.
+	 * @param string $message Log message.
+	 * @param array  $data     Additional context data.
 	 */
-	public static function instance( string $level = self::LEVEL_ERROR ): self {
-		if ( null === self::$instances ) {
-			self::$instances = array();
-		}
-
-		if ( ! isset( self::$instances[ $level ] ) ) {
-			self::$instances[ $level ] = new self( $level );
-		}
-
-		// Prevent unbounded memory growth with hard limit of 3 instances.
-		if ( count( self::$instances ) > 3 ) {
-			array_shift( self::$instances );
-		}
-
-		return self::$instances[ $level ];
+	public function notice( string $message, array $data = array() ): void {
+		$this->log_internal( 'notice', $message, $data );
 	}
 
 	/**
@@ -324,6 +327,15 @@ class SScribe_Logger implements SScribe_Logger_Interface {
 		}
 	}
 
+	/**
+	 * Format log entry.
+	 *
+	 * @param string $level   Log level.
+	 * @param string $message Log message.
+	 * @param array  $data    Additional context data.
+	 * @return string Formatted log entry.
+	 */
+	private function format_entry( string $level, string $message, array $data = array() ): string {
 		$data        = array_merge( $this->get_context_enrichment(), $data );
 		$timestamp   = gmdate( 'Y-m-d H:i:s' );
 		$level_upper = strtoupper( $level );
@@ -333,7 +345,7 @@ class SScribe_Logger implements SScribe_Logger_Interface {
 			$entry .= ' | ' . wp_json_encode( $data, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES );
 		}
 
-		$this->buffer[] = $entry;
+		return $entry;
 	}
 
 	/**
