@@ -39,30 +39,8 @@
 			if (!text || typeof text !== 'string') {
 				return 0;
 			}
-			// Use Intl.NumberFormat for locale-aware parsing if available,
-			// falling back to a conservative approach that strips locale-specific
-			// grouping separators (comma, period, space, apostrophe) before parsing.
-			let cleaned = text.trim();
-			if (typeof Intl !== 'undefined' && Intl.NumberFormat) {
-				try {
-					const nf = new Intl.NumberFormat();
-					// Parse via localized string -> number using grouping preferences.
-					// Strip any non-digit characters except those that could be decimal/grouping.
-					const localeCleaned = cleaned.replace(/[^\d.,\- ]/g, '');
-					// Parse by replacing locale groupers with empty string.
-					const normalised = localeCleaned.replace(/[\u00A0\u202F\u2000-\u206F ,.]+/g, function(match) {
-						// Keep period/comma only if it's a decimal separator (appears only once, not in group positions).
-						return '';
-					});
-					const parsed = parseInt(normalised.replace(/[^\d\-]/g, ''), 10);
-					if (!isNaN(parsed)) {
-						return parsed;
-					}
-				} catch (e) {
-					// Fall through to conservative approach.
-				}
-			}
 			// Conservative approach: remove common locale grouping separators.
+			let cleaned = text.trim();
 			cleaned = cleaned.replace(/[.,' ]/g, '');
 			const num = parseInt(cleaned, 10);
 			return isNaN(num) ? 0 : num;
@@ -123,7 +101,10 @@
 			$(document).on('click.sscribe', '#sscribe-preview-close', $.proxy(this.closePreview, this));
 			$(document).on('click.sscribe', '#sscribe-preview-dismiss-btn', $.proxy(this.closePreview, this));
 			$(document).on('click.sscribe', '#sscribe-preview-start-btn', $.proxy(this.startExportFromPreview, this));
-			$(document).on('click.sscribe', '#sscribe-new-export-btn', $.proxy(this.resetUI, this));
+			$(document).on('click.sscribe', '#sscribe-new-export-btn', function(e) {
+				e.preventDefault();
+				window.location.reload();
+			});
 			$(document).on('click.sscribe', '#sscribe-error-try-again', $.proxy(this.retry, this));
 			$(document).on('click.sscribe', '#sscribe-cancel-btn', $.proxy(this.cancelExport, this));
 
