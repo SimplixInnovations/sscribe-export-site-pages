@@ -291,11 +291,26 @@ class SScribe_Logger_Enhanced implements SScribe_Logger_Interface {
 		}
 
 		$log_file = $this->get_log_file();
-		$result   = file_put_contents( $log_file, implode( PHP_EOL, $this->buffer ) . PHP_EOL, FILE_APPEND | LOCK_EX );
+		$content  = implode( PHP_EOL, $this->buffer ) . PHP_EOL;
+
+		if ( file_exists( $log_file ) && filesize( $log_file ) > self::MAX_LOG_FILE_SIZE ) {
+			$rotated_file = $this->log_dir . '/' . $this->prefix . '_' . gmdate( 'Y-m-d_H-i-s' ) . '.log';
+			$rotated = rename( $log_file, $rotated_file );
+			if ( $rotated ) {
+				$warning_entry = sprintf(
+					"[%s] [WARNING] Log file exceeded %s bytes — rotated to %s\n",
+					gmdate( 'Y-m-d H:i:s' ),
+					size_format( self::MAX_LOG_FILE_SIZE ),
+					basename( $rotated_file )
+				);
+				file_put_contents( $log_file, $warning_entry, LOCK_EX );
+			}
+		}
+
+		$result = file_put_contents( $log_file, $content, FILE_APPEND | LOCK_EX );
 
 		if ( false === $result ) {
-			// Log to PHP error log since our logger may not be in a valid state.
-			error_log( // phpcs:ignore WordPress.PHP.DevelopmentFunctions.error_log_error_log -- Reporting flush failure; no better alternative in production.
+			error_log(
 				'SScribe_Logger_Enhanced: flush() failed to write to ' . $log_file
 			);
 		}
