@@ -1285,8 +1285,8 @@ class SScribe_Exporter {
 			}
 
 			$ext = strtolower( pathinfo( $path, PATHINFO_EXTENSION ) );
-			if ( 'svg' === $ext ) {
-				$this->get_logger()->debug( 'Skipping SVG featured image', array( 'path' => $path ) );
+			if ( in_array( $ext, array( 'svg', 'webp', 'avif', 'heic', 'heif' ), true ) ) {
+				$this->get_logger()->debug( 'Skipping unsupported image format', array( 'ext' => $ext ) );
 				return;
 			}
 
@@ -1374,10 +1374,10 @@ class SScribe_Exporter {
 		$table = $section->addTable( $table_style );
 
 		$info_rows = array(
-			array( __( 'URL', 'sscribe-export-site-pages' ), $page_data['permalink'] ),
-			array( __( 'Author', 'sscribe-export-site-pages' ), $page_data['author'] ),
-			array( __( 'Published', 'sscribe-export-site-pages' ), $page_data['date_published'] ),
-			array( __( 'Last Modified', 'sscribe-export-site-pages' ), $page_data['date_modified'] ),
+			array( __( 'URL', 'sscribe-export-site-pages' ), $page_data['permalink'] ?? '' ),
+			array( __( 'Author', 'sscribe-export-site-pages' ), $page_data['author'] ?? '' ),
+			array( __( 'Published', 'sscribe-export-site-pages' ), $page_data['date_published'] ?? '' ),
+			array( __( 'Last Modified', 'sscribe-export-site-pages' ), $page_data['date_modified'] ?? '' ),
 			array( __( 'Word Count', 'sscribe-export-site-pages' ), number_format( $page_data['word_count'] ) ),
 			array(
 				__( 'Reading Time', 'sscribe-export-site-pages' ),
@@ -1497,7 +1497,7 @@ class SScribe_Exporter {
 			' > ',
 			array_map(
 				function ( $crumb ) {
-					return $crumb['title'];
+					return $this->safe_text( $crumb['title'] ?? '' );
 				},
 				$page_data['breadcrumbs']
 			)
