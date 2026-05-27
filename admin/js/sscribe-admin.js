@@ -268,27 +268,12 @@
 				return;
 			}
 
-			// Release focus trap from the previously active panel.
-			if (currentTabId) {
-				const $prevPanel = $('#sscribe-tab-' + currentTabId);
-				if ($prevPanel.length) {
-					this.releaseFocusTrap($prevPanel[0]);
-				}
-			}
-
-			if (currentTabId === 'debug' && typeof window.SScribeDebugConsole !== 'undefined') {
-				window.SScribeDebugConsole.stopAutoRefresh();
-				window.SScribeDebugConsole.initialized = false;
-			}
-
 			this.setActiveTab(tabId);
 
 			if (moveFocus) {
 				$('.sscribe-tab-btn[data-tab="' + tabId + '"]').trigger('focus');
 			}
 
-			// Apply focus trap to the newly active panel so keyboard users
-			// cannot tab outside the panel while it is active.
 			const $activePanel = $('#sscribe-tab-' + tabId);
 			if ($activePanel.length) {
 				this.trapFocus($activePanel[0]);
@@ -296,10 +281,15 @@
 
 			if (tabId === 'debug' && typeof window.SScribeDebugConsole !== 'undefined') {
 				window.SScribeDebugConsole.init();
+			} else if (currentTabId === 'debug' && typeof window.SScribeDebugConsole !== 'undefined') {
+				window.SScribeDebugConsole.stopAutoRefresh();
+				window.SScribeDebugConsole.initialized = false;
 			}
 		},
 
 		setActiveTab: function (tabId) {
+			const self = this;
+
 			$('.sscribe-tab-btn').each(function () {
 				const $button = $(this);
 				const isActive = $button.data('tab') === tabId;
@@ -312,11 +302,26 @@
 			$('.sscribe-tab-content').each(function () {
 				const $panel = $(this);
 				const isActive = $panel.attr('id') === 'sscribe-tab-' + tabId;
-				$panel
-					.toggleClass('sscribe-tab-active', isActive)
-					.prop('hidden', !isActive)
-					.attr('aria-hidden', isActive ? 'false' : 'true')
-					.attr('tabindex', isActive ? '0' : '-1');
+
+				$panel.find(':focus').trigger('blur');
+
+				if (isActive) {
+					$panel
+						.addClass('sscribe-tab-active')
+						.removeAttr('aria-hidden')
+						.attr('tabindex', '0')
+						.removeAttr('hidden')
+						.prop('hidden', false);
+				} else {
+					$panel
+						.removeClass('sscribe-tab-active')
+						.attr('aria-hidden', 'true')
+						.attr('tabindex', '-1')
+						.attr('hidden', 'hidden')
+						.prop('hidden', true);
+
+					self.releaseFocusTrap($panel[0]);
+				}
 			});
 		},
 
@@ -563,7 +568,10 @@
 							$('#sscribe-summary-time').text(sscribe_data.strings.summary_time_hint || 'See Preview');
 						}
 					},
-					error: function () {
+					error: function (xhr, status) {
+						if (status === 'abort') {
+							return;
+						}
 						$('#sscribe-summary-time').text(sscribe_data.strings.summary_time_hint || 'See Preview');
 					},
 				});
