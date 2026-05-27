@@ -122,9 +122,10 @@ interface SScribe_Logger_Interface {
 	/**
 	 * Retrieve all logged entries.
 	 *
+	 * @param int $limit Maximum number of lines to return (from tail). -1 for all.
 	 * @return array Array of log entries.
 	 */
-	public function get_logs(): array;
+	public function get_logs( int $limit = -1 ): array;
 
 	/**
 	 * Clear all log entries.

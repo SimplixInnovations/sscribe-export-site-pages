@@ -1,4 +1,4 @@
-/**
+﻿/**
  * SScribe Debug Console JavaScript
  *
  * @package SScribe_Export_Site_Pages
@@ -39,7 +39,7 @@
 			if (this.initialized) {
 				return;
 			}
-			if (typeof sscribe_data === 'undefined' || !scribe_data) {
+			if (typeof sscribe_data === 'undefined' || !sscribe_data) {
 				return;
 			}
 			if (!this.hasRequiredDom()) {
@@ -227,6 +227,7 @@
 					var closeBtn = document.createElement('button');
 					closeBtn.type = 'button';
 					closeBtn.textContent = '\u00D7';
+					closeBtn.setAttribute('aria-label', 'Close dialog');
 					closeBtn.style.cssText = 'position:absolute;top:12px;right:12px;background:none;border:none;font-size:18px;cursor:pointer;';
 					closeBtn.addEventListener('click', closeDialog);
 					dialog.style.position = 'relative';
@@ -273,6 +274,7 @@
 					if ($context.length) {
 						var isVisible = !$context.hasClass('sscribe-hidden');
 						$context.toggleClass('sscribe-hidden', isVisible);
+						$entry.toggleClass('expanded', !isVisible);
 						$entry.attr('aria-expanded', String(!isVisible));
 					}
 				}
@@ -283,6 +285,7 @@
 				var $context = $entry.find('.sscribe-debug-entry-context');
 				var isVisible = !$context.hasClass('sscribe-hidden');
 				$context.toggleClass('sscribe-hidden', isVisible);
+				$entry.toggleClass('expanded', !isVisible);
 				$entry.attr('aria-expanded', String(!isVisible));
 			});
 		},
@@ -293,7 +296,10 @@
 				if (document.hidden) {
 					self.stopAutoRefresh();
 				} else if (self.isAutoRefresh) {
-					self.startAutoRefresh();
+					var $debugTab = $('#sscribe-tab-debug');
+					if ($debugTab.hasClass('sscribe-tab-active') || $debugTab.attr('aria-hidden') === 'false') {
+						self.startAutoRefresh();
+					}
 				}
 			};
 			$(document).on('visibilitychange', this._visibilityHandler);
@@ -376,7 +382,9 @@
 					setTimeout(function () {
 						self.$saveFeedback.text('');
 						self.$saveFeedback.removeClass('success');
-					}, 2000);
+						// Reload page so debug console JS/CSS loads/unloads based on new setting.
+						window.location.reload();
+					}, 1000);
 				} else {
 					self.$saveFeedback.text(self.getResponseMessage(response, 'Error')).addClass('error');
 					setTimeout(function () {
@@ -384,8 +392,11 @@
 						self.$saveFeedback.removeClass('error');
 					}, 2000);
 				}
-			}).fail(function () {
+			}).fail(function (xhr) {
 				self.saveSettingsRequest = null;
+				if (xhr.statusText === 'abort' || xhr.status === 0) {
+					return;
+				}
 				self.$saveFeedback.text('Error').addClass('error');
 				setTimeout(function () {
 					self.$saveFeedback.text('');
@@ -527,7 +538,7 @@
 						self.fetchLogs(true);
 					}
 				},
-				{ root: null, rootMargin: '100px', threshold: 0 }
+				{ root: document.getElementById('sscribe-debug-console-body'), rootMargin: '50px', threshold: 0 }
 			);
 
 			this.observer.observe(sentinel);

@@ -81,12 +81,14 @@ $sscribe_export_index    = $sscribe_export_index ?? array();
 				?>
 				<?php esc_html_e( 'Support', 'sscribe-export-site-pages' ); ?>
 			</button>
+			<?php if ( $sscribe_is_debug ) : ?>
 			<button type="button" class="sscribe-tab-btn" id="sscribe-tab-btn-debug" data-tab="debug" role="tab" aria-selected="false" aria-controls="sscribe-tab-debug">
 				<?php
 				echo wp_kses_post( SScribe_Helpers::get_icon( 'file-search', 16 ) ); // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped
 				?>
 				<?php esc_html_e( 'Debug', 'sscribe-export-site-pages' ); ?>
 			</button>
+			<?php endif; ?>
 		</nav>
 
 		<div class="sscribe-tab-content sscribe-tab-active" id="sscribe-tab-export" role="tabpanel" aria-labelledby="sscribe-tab-btn-export" aria-hidden="false">
@@ -692,9 +694,11 @@ $sscribe_export_index    = $sscribe_export_index ?? array();
 				</div>
 			</div>
 
+			<?php if ( $sscribe_is_debug ) : ?>
 			<div class="sscribe-tab-content" id="sscribe-tab-debug" role="tabpanel" aria-labelledby="sscribe-tab-btn-debug" aria-hidden="true" tabindex="-1" hidden>
 				<?php require_once SSCRIBE_PLUGIN_DIR . 'admin/partials/sscribe-admin-debug-tab.php'; ?>
 			</div>
+			<?php endif; ?>
 
 		</div><!-- .sscribe-workspace -->
 

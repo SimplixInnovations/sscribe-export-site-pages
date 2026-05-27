@@ -38,7 +38,7 @@ class SScribe_Admin_Debug {
 		add_action( 'wp_ajax_sscribe_debug_fetch_logs', array( $this, 'ajax_debug_fetch_logs' ) );
 		add_action( 'wp_ajax_sscribe_debug_clear_logs', array( $this, 'ajax_debug_clear_logs' ) );
 		add_action( 'wp_ajax_sscribe_debug_export_logs', array( $this, 'ajax_debug_export_logs' ) );
-		add_action( 'wp_ajax_sscribe_debug_get_files', array( $this, 'ajax_debug_get_files' ) );
+		add_action( 'wp_ajax_sscribe_debug_get_files', array( $this, 'ajax_debug_get_rotated_log_files' ) );
 		add_action( 'wp_ajax_sscribe_debug_fetch_rotated', array( $this, 'ajax_debug_fetch_rotated' ) );
 		add_action( 'wp_ajax_sscribe_debug_delete_rotated', array( $this, 'ajax_debug_delete_rotated' ) );
 	}
@@ -117,15 +117,11 @@ class SScribe_Admin_Debug {
 		$search       = isset( $_POST['search'] ) ? sanitize_text_field( wp_unslash( $_POST['search'] ) ) : '';
 		$session_id   = isset( $_POST['session_id'] ) ? sanitize_text_field( wp_unslash( $_POST['session_id'] ) ) : '';
 		$offset       = isset( $_POST['offset'] ) ? absint( $_POST['offset'] ) : 0;
-		$limit        = isset( $_POST['limit'] ) ? absint( $_POST['limit'] ) : 500;
-
-		if ( $limit < 1 || $limit > 500 ) {
-			$limit = 500;
-		}
+		$limit        = max( 1, min( 500, absint( $_POST['limit'] ?? 500 ) ) );
 
 		// Always pass true when reading logs - user is authenticated and authorized to view them.
 		$logger = SScribe_Logger::instance( true );
-		$logs   = $logger->get_logs();
+		$logs   = $logger->get_logs( -1 );
 
 		$entries = $this->parse_log_entries( $logs, $filter_level, $search, $session_id, true );
 
@@ -170,6 +166,12 @@ class SScribe_Admin_Debug {
 
 		$logger = SScribe_Logger::instance( true );
 		$logger->clear_logs();
+
+		// Also clear enhanced logger (DB) if it exists.
+		if ( class_exists( 'SScribe_Logger_Enhanced' ) ) {
+			$enhanced = SScribe_Logger_Enhanced::instance( true );
+			$enhanced->clear_logs();
+		}
 
 		wp_send_json_success();
 	}
@@ -342,7 +344,7 @@ class SScribe_Admin_Debug {
 
 		$filename = isset( $_POST['filename'] ) ? sanitize_text_field( wp_unslash( $_POST['filename'] ) ) : '';
 		$offset   = absint( $_POST['offset'] ?? 0 );
-		$limit    = absint( $_POST['limit'] ?? 100 );
+		$limit    = max( 1, min( 500, absint( $_POST['limit'] ?? 500 ) ) );
 
 		if ( empty( $filename ) ) {
 			wp_send_json_error( array( 'message' => __( 'Filename required.', 'sscribe-export-site-pages' ) ), 400 );
@@ -354,10 +356,6 @@ class SScribe_Admin_Debug {
 			return;
 		}
 
-		if ( $limit < 1 || $limit > 500 ) {
-			$limit = 100;
-		}
-
 		$upload_dir = wp_upload_dir();
 		$log_dir    = $upload_dir['basedir'] . '/sscribe-logs';
 		$file_path  = $log_dir . '/' . $filename;
@@ -365,7 +363,8 @@ class SScribe_Admin_Debug {
 		$real_file_path = realpath( $file_path );
 		$real_log_dir   = realpath( $log_dir );
 
-		if ( false === $real_file_path || false === $real_log_dir || 0 !== strpos( $real_file_path, $real_log_dir . DIRECTORY_SEPARATOR ) ) {
+		$safe_log_dir = rtrim( $real_log_dir ?? '', DIRECTORY_SEPARATOR ) . DIRECTORY_SEPARATOR;
+		if ( false === $real_file_path || false === $real_log_dir || 0 !== strpos( $real_file_path, $safe_log_dir ) ) {
 			wp_send_json_error( array( 'message' => __( 'File not found.', 'sscribe-export-site-pages' ) ), 404 );
 			return;
 		}
@@ -470,6 +469,18 @@ class SScribe_Admin_Debug {
 	private function parse_log_entries( array $lines, string $filter_level, string $search, string $session_id = '', bool $reverse = true ): array {
 		$entries = array();
 
+		$priorities = array(
+			'DEBUG'     => 0,
+			'INFO'      => 1,
+			'NOTICE'    => 2,
+			'WARNING'   => 3,
+			'ERROR'     => 4,
+			'CRITICAL'  => 5,
+			'ALERT'     => 6,
+			'EMERGENCY' => 7,
+		);
+		$filter_priority = $priorities[ $filter_level ] ?? null;
+
 		foreach ( $lines as $line ) {
 			if ( empty( trim( $line ) ) ) {
 				continue;
@@ -477,8 +488,11 @@ class SScribe_Admin_Debug {
 
 			$entry = $this->parse_log_line( $line );
 
-			if ( 'ALL' !== $filter_level && strtoupper( $entry['level'] ) !== $filter_level ) {
-				continue;
+			if ( 'ALL' !== $filter_level && null !== $filter_priority ) {
+				$entry_priority = $priorities[ strtoupper( $entry['level'] ) ] ?? 0;
+				if ( $entry_priority < $filter_priority ) {
+					continue;
+				}
 			}
 
 			if ( ! empty( $session_id ) ) {
@@ -573,7 +587,6 @@ class SScribe_Admin_Debug {
 		header( 'Cache-Control: no-store, no-cache, must-revalidate' );
 		header( 'Pragma: no-cache' );
 		header( 'X-Content-Type-Options: nosniff' );
-		header( "Content-Security-Policy: default-src 'none'" );
 
 		echo $content; // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped
 		wp_die();
