@@ -188,7 +188,7 @@
 					dialog.setAttribute('role', 'dialog');
 					dialog.setAttribute('aria-modal', 'true');
 					dialog.setAttribute('aria-labelledby', 'sscribe-debug-help-title');
-					dialog.innerHTML = '<h2 id="sscribe-debug-help-title" style="margin:0 0 12px;font-size:16px;">Debug Console Help</h2>' + helpContent.innerHTML;
+					dialog.innerHTML = helpContent.innerHTML;
 					const priorFocus = document.activeElement;
 					const focusableSelectors =
 						'a[href], button:not([disabled]), textarea:not([disabled]), input:not([disabled]), select:not([disabled]), [tabindex]:not([tabindex="-1"])';
@@ -312,6 +312,7 @@
 			this.hasMoreEntries = true;
 			this.fetchLogs();
 			this.fetchRotatedLogs();
+			this.updateExportButtonScope();
 
 			if (this.isAutoRefresh) {
 				this.startAutoRefresh();
@@ -448,6 +449,7 @@
 				self.$consoleBody.addClass('is-loading');
 			} else {
 				self.isLoadingMore = true;
+				self.showAppendLoading();
 			}
 
 			if (this.currentRequest) {
@@ -464,9 +466,10 @@
 					const totalCount = response.data.count;
 
 					if (isInitialLoad) {
-						self.renderLogs(newEntries);
+						self.renderLogs(newEntries, false, response.data);
 					} else {
 						self.appendLogs(newEntries);
+						self.hideAppendLoading();
 					}
 
 					self.currentOffset += newEntries.length;
@@ -482,8 +485,13 @@
 					self.showConsoleError(self.getResponseMessage(response, 'Unable to load debug logs.'));
 				}
 			}).fail(function (xhr) {
+				if (xhr.statusText === 'abort' || xhr.status === 0) {
+					return;
+				}
 				self.currentRequest = null;
 				self.$entries.css('opacity', '1');
+				self.$consoleBody.removeClass('is-loading');
+				self.hideAppendLoading();
 				self.isLoadingMore = false;
 				if (isInitialLoad) {
 					self.$entryCount.text('Error');
@@ -509,18 +517,25 @@
 			return html;
 		},
 
-		renderLogs: function (entries, skipObserver) {
+		renderLogs: function (entries, skipObserver, extraData) {
 			if (!entries || entries.length === 0) {
 				this.$entries.empty();
 				this.$empty.show();
 				this.destroyObserver();
+
+				if (extraData) {
+					if (extraData.debug_enabled === false) {
+						this.$empty.find('p').text('Debug logging is disabled. Enable it in Settings above to capture logs.');
+					} else if (extraData.status === 'no_log_file' && extraData.debug_enabled) {
+						this.$empty.find('p').text('Debug is enabled but no log file exists yet. Run an export to generate logs.');
+					}
+				}
 				return;
 			}
 
 			this.$empty.hide();
 			this.cleanupBeforeRender();
-			const html = this.buildLogsHtml(entries);
-			this.$entries.html(html);
+			this.$entries.html(this.buildLogsHtml(entries));
 			if (!skipObserver) {
 				this.setupObserver();
 			}
@@ -537,6 +552,14 @@
 
 			const html = this.buildLogsHtml(entries);
 			this.$entries.append(html);
+		},
+
+		showAppendLoading: function () {
+			this.$entries.append('<div class="sscribe-debug-append-loading">Loading more entries...</div>');
+		},
+
+		hideAppendLoading: function () {
+			this.$entries.find('.sscribe-debug-append-loading').remove();
 		},
 
 		setupObserver: function () {
@@ -731,11 +754,12 @@
 					self.$entryCount.text('Error');
 					self.showConsoleError(self.getResponseMessage(response, 'Unable to open rotated log.'));
 				}
-			}).fail(function () {
-				self.isViewingRotated = false;
-				self.$entryCount.text('Error');
-				self.showConsoleError('Unable to open rotated log.');
-			});
+}).fail(function () {
+	self.isViewingRotated = false;
+	self.$entryCount.text('Error');
+	self.showConsoleError('Unable to open rotated log.');
+	self.fetchLogs();
+});
 		},
 
 		backToCurrentLog: function () {

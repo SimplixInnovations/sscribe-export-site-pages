@@ -116,8 +116,8 @@ class SScribe_Admin_Debug {
 		$filter_level = isset( $_POST['filter_level'] ) ? sanitize_text_field( wp_unslash( $_POST['filter_level'] ) ) : 'ALL';
 		$search       = isset( $_POST['search'] ) ? sanitize_text_field( wp_unslash( $_POST['search'] ) ) : '';
 		$session_id   = isset( $_POST['session_id'] ) ? sanitize_text_field( wp_unslash( $_POST['session_id'] ) ) : '';
-		$offset       = isset( $_POST['offset'] ) ? absint( $_POST['offset'] ) : 0;
-		$limit        = max( 1, min( 500, absint( $_POST['limit'] ?? 500 ) ) );
+		$offset       = isset( $_POST['offset'] ) ? absint( wp_unslash( $_POST['offset'] ) ) : 0;
+		$limit        = max( 1, min( 500, absint( wp_unslash( $_POST['limit'] ?? 500 ) ) ) );
 
 		// Always pass true when reading logs - user is authenticated and authorized to view them.
 		$logger = SScribe_Logger::instance( true );
@@ -280,11 +280,10 @@ class SScribe_Admin_Debug {
 
 		$log_files   = glob( $log_dir . '/*.log' );
 		$log_files   = is_array( $log_files ) ? $log_files : array();
-		$json_files  = glob( $log_dir . '/*.json' );
-		$json_files  = is_array( $json_files ) ? $json_files : array();
-		$files       = array_merge( $log_files, $json_files );
+		// Exclude .json files - they are export session records, not debug logs.
+		$files       = $log_files;
 		$result      = array();
-		$current_log = 'sscribe_debug_' . gmdate( 'Y-m-d' ) . '.log';
+		$current_log = $this->get_logger_log_file();
 
 		foreach ( $files as $file ) {
 			if ( is_file( $file ) ) {
@@ -439,7 +438,8 @@ class SScribe_Admin_Debug {
 
 		// Prevent deletion of the active (non-rotated) log file.
 		$logger = SScribe_Logger::instance( true );
-		if ( $logger instanceof SScribe_Logger && realpath( $logger->get_log_file() ) === $real_file_path ) {
+		$active_log = method_exists( $logger, 'get_log_file' ) ? $logger->get_log_file() : '';
+		if ( $active_log && realpath( $active_log ) === $real_file_path ) {
 			wp_send_json_error( array( 'message' => __( 'Cannot delete the active log file.', 'sscribe-export-site-pages' ) ), 403 );
 			return;
 		}
@@ -588,5 +588,19 @@ class SScribe_Admin_Debug {
 
 		echo $content; // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped
 		wp_die();
+	}
+
+	/**
+	 * Get the current logger's log file path.
+	 *
+	 * Used to identify the active log file that should be excluded from
+	 * the rotated logs list and protected from deletion.
+	 *
+	 * @return string Basename of the current log file.
+	 */
+	private function get_logger_log_file(): string {
+		$logger = SScribe_Logger::instance( true );
+		$log_file_path = $logger->get_log_file();
+		return basename( $log_file_path );
 	}
 }

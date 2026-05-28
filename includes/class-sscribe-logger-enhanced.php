@@ -475,18 +475,27 @@ class SScribe_Logger_Enhanced implements SScribe_Logger_Interface {
 	 *
 	 * @return string Log file path.
 	 */
-	private function get_log_file(): string {
+	public function get_log_file(): string {
 		$date = gmdate( 'Y-m-d' );
-		return trailingslashit( $this->log_dir ) . "{$this->prefix}_{$date}.log";
+		return trailingslashit( $this->log_dir ) . "{$this->prefix}_debug_{$date}.log";
 	}
 
 	/**
-	 * Get recent log entries from database.
+	 * Get recent log entries.
+	 *
+	 * When DB logging is disabled, falls back to reading from the file log
+	 * to ensure the debug console can display logs even when database
+	 * logging is not active.
 	 *
 	 * @param int $limit Maximum number of entries to return.
 	 * @return array Log entries.
 	 */
 	public function get_logs( int $limit = 100 ): array {
+		// Fall back to file log when DB is disabled.
+		if ( ! $this->enable_db ) {
+			return $this->get_file_logs( $limit );
+		}
+
 		$entries = $this->get_db_logs( array(), $limit );
 
 		return array_map(
@@ -507,17 +516,55 @@ class SScribe_Logger_Enhanced implements SScribe_Logger_Interface {
 	}
 
 	/**
-	 * Clear all log entries from database.
+	 * Get log entries from file (fallback when DB is disabled).
+	 *
+	 * @param int $limit Maximum number of entries to return.
+	 * @return array Log entries.
+	 */
+	private function get_file_logs( int $limit = 100 ): array {
+		$log_file = $this->get_log_file();
+
+		if ( ! file_exists( $log_file ) ) {
+			return array();
+		}
+
+		$content = file_get_contents( $log_file ); // phpcs:ignore WordPress.WP.AlternativeFunctions.file_get_contents_file_get_contents
+		if ( ! $content ) {
+			return array();
+		}
+
+		$lines = array_filter( explode( "\n", str_replace( "\r\n", "\n", trim( $content ) ) ), fn( $line ) => '' !== trim( $line ) );
+
+		if ( $limit > 0 && count( $lines ) > $limit ) {
+			$lines = array_slice( $lines, -$limit );
+		}
+
+		return $lines;
+	}
+
+	/**
+	 * Clear all log entries from database and file.
 	 */
 	public function clear_logs(): void {
 		global $wpdb;
 
-		if ( ! $this->table_exists() ) {
-			return;
+		// Clear database logs.
+		if ( $this->table_exists() ) {
+			// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.InterpolatedNotPrepared -- Table name is already escaped via esc_sql(); DELETE FROM does not support placeholders for table names.
+			$wpdb->query( 'DELETE FROM ' . esc_sql( $this->table_name ) );
 		}
 
-		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.InterpolatedNotPrepared -- Table name is already escaped via esc_sql(); DELETE FROM does not support placeholders for table names.
-		$wpdb->query( 'DELETE FROM ' . esc_sql( $this->table_name ) );
+		// Clear file logs when file logging is enabled.
+		if ( $this->enable_file ) {
+			$files = glob( $this->log_dir . '/' . $this->prefix . '_debug_*.log' );
+			if ( is_array( $files ) ) {
+				foreach ( $files as $file ) {
+					if ( file_exists( $file ) ) {
+						wp_delete_file( $file );
+					}
+				}
+			}
+		}
 	}
 
 	/**

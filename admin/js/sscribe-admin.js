@@ -250,10 +250,13 @@
 			}
 
 			if (tabId === 'debug' && typeof window.SScribeDebugConsole !== 'undefined') {
-				window.SScribeDebugConsole.init();
+				if (!window.SScribeDebugConsole.initialized) {
+					window.SScribeDebugConsole.init();
+				} else {
+					window.SScribeDebugConsole.startAutoRefresh();
+				}
 			} else if (currentTabId === 'debug' && typeof window.SScribeDebugConsole !== 'undefined') {
 				window.SScribeDebugConsole.stopAutoRefresh();
-				window.SScribeDebugConsole.initialized = false;
 			}
 		},
 
