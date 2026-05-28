@@ -123,7 +123,7 @@ class SScribe_Admin_Debug {
 		$saved = SScribe_Settings::save_debug_settings( $settings );
 
 		if ( $saved ) {
-			$response = SScribe_Settings::get_debug_settings();
+			$response          = SScribe_Settings::get_debug_settings();
 			$response['nonce'] = wp_create_nonce( 'sscribe_export_nonce' );
 			wp_send_json_success( $response );
 		} else {
@@ -151,7 +151,7 @@ class SScribe_Admin_Debug {
 
 		$logger = SScribe_Logger::instance( true );
 		// Fetch all logs to get accurate total count, then paginate in PHP.
-		$logs   = $logger->get_logs();
+		$logs = $logger->get_logs();
 
 		$entries = $this->parse_log_entries( $logs, $filter_level, $search, $session_id, true );
 		$total   = count( $entries );
@@ -188,10 +188,12 @@ class SScribe_Admin_Debug {
 		$logger = SScribe_Logger::instance( true );
 		$logger->clear_logs();
 
-		wp_send_json_success( array(
-			'message' => __( 'Logs cleared.', 'sscribe-export-site-pages' ),
-			'nonce'   => wp_create_nonce( 'sscribe_export_nonce' ),
-		) );
+		wp_send_json_success(
+			array(
+				'message' => __( 'Logs cleared.', 'sscribe-export-site-pages' ),
+				'nonce'   => wp_create_nonce( 'sscribe_export_nonce' ),
+			)
+		);
 	}
 
 	/**
@@ -283,10 +285,10 @@ class SScribe_Admin_Debug {
 			return;
 		}
 
-		$log_files = glob( $log_dir . '/*.log' );
-		$log_files = is_array( $log_files ) ? $log_files : array();
-		$files     = $log_files;
-		$result    = array();
+		$log_files   = glob( $log_dir . '/*.log' );
+		$log_files   = is_array( $log_files ) ? $log_files : array();
+		$files       = $log_files;
+		$result      = array();
 		$current_log = $this->get_logger_log_file();
 
 		foreach ( $files as $file ) {
@@ -314,7 +316,7 @@ class SScribe_Admin_Debug {
 		);
 
 		// Cap the number of files returned to prevent performance issues.
-		$max_files = 50;
+		$max_files   = 50;
 		$total_count = count( $result );
 		if ( $total_count > $max_files ) {
 			$result = array_slice( $result, 0, $max_files );
@@ -329,10 +331,12 @@ class SScribe_Admin_Debug {
 			$result
 		);
 
-		wp_send_json_success( array(
-			'files'       => $result,
-			'total_count' => $total_count,
-		) );
+		wp_send_json_success(
+			array(
+				'files'       => $result,
+				'total_count' => $total_count,
+			)
+		);
 	}
 
 	/**
@@ -449,10 +453,12 @@ class SScribe_Admin_Debug {
 		if ( file_exists( $file_path ) ) {
 			wp_send_json_error( array( 'message' => __( 'Failed to delete file.', 'sscribe-export-site-pages' ) ), 500 );
 		} else {
-			wp_send_json_success( array(
-				'message' => __( 'File deleted.', 'sscribe-export-site-pages' ),
-				'nonce'   => wp_create_nonce( 'sscribe_export_nonce' ),
-			) );
+			wp_send_json_success(
+				array(
+					'message' => __( 'File deleted.', 'sscribe-export-site-pages' ),
+					'nonce'   => wp_create_nonce( 'sscribe_export_nonce' ),
+				)
+			);
 		}
 	}
 
@@ -640,8 +646,8 @@ class SScribe_Admin_Debug {
 			return $this->cached_log_filename;
 		}
 
-		$logger              = SScribe_Logger::instance( true );
-		$log_file_path       = $logger->get_log_file();
+		$logger                    = SScribe_Logger::instance( true );
+		$log_file_path             = $logger->get_log_file();
 		$this->cached_log_filename = basename( $log_file_path );
 		return $this->cached_log_filename;
 	}
