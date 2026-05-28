@@ -12,8 +12,8 @@ if ( ! defined( 'ABSPATH' ) ) {
 	exit;
 }
 
-$sscribe_debug_settings = SScribe_Settings::get_debug_settings();
-$sscribe_log_levels     = array(
+$sscribe_debug_settings       = SScribe_Settings::get_debug_settings();
+$sscribe_log_levels           = array(
 	SScribe_Settings::LEVEL_ALL,
 	SScribe_Settings::LEVEL_DEBUG,
 	SScribe_Settings::LEVEL_INFO,

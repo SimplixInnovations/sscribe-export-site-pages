@@ -295,7 +295,7 @@ class SScribe_Logger_Enhanced implements SScribe_Logger_Interface {
 
 		if ( file_exists( $log_file ) && filesize( $log_file ) > self::MAX_LOG_FILE_SIZE ) {
 			$rotated_file = $this->log_dir . '/' . $this->prefix . '_' . gmdate( 'Y-m-d_H-i-s' ) . '.log';
-			$rotated = rename( $log_file, $rotated_file ); // phpcs:ignore WordPress.WP.AlternativeFunctions.rename_rename
+			$rotated      = rename( $log_file, $rotated_file ); // phpcs:ignore WordPress.WP.AlternativeFunctions.rename_rename
 			if ( $rotated ) {
 				$warning_entry = sprintf(
 					"[%s] [WARNING] Log file exceeded %s bytes — rotated to %s\n",
@@ -434,7 +434,7 @@ class SScribe_Logger_Enhanced implements SScribe_Logger_Interface {
 
 		if ( null === $this->table_exists_cache ) {
 			// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- Schema introspection, cached via instance property
-			$result = $wpdb->get_var( $wpdb->prepare( 'SHOW TABLES LIKE %s', $this->table_name ) );
+			$result                   = $wpdb->get_var( $wpdb->prepare( 'SHOW TABLES LIKE %s', $this->table_name ) );
 			$this->table_exists_cache = ( $result === $this->table_name );
 		}
 
@@ -491,8 +491,9 @@ class SScribe_Logger_Enhanced implements SScribe_Logger_Interface {
 
 		return array_map(
 			function ( object $row ): string {
-				$context = json_decode( $row->context, true ) ?: array();
-				$context_str = $context ? ' | ' . wp_json_encode( $context ) : '';
+				$context_decoded = json_decode( $row->context, true );
+				$context         = is_array( $context_decoded ) ? $context_decoded : array();
+				$context_str     = $context ? ' | ' . wp_json_encode( $context ) : '';
 				return sprintf(
 					'[%s] [%s] %s%s',
 					$row->timestamp,
