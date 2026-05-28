@@ -487,6 +487,33 @@ class SScribe_Content_Parser {
 			case 'head':
 				return null;
 
+			case 'div':
+			case 'section':
+			case 'article':
+			case 'aside':
+			case 'main':
+			case 'header':
+			case 'footer':
+				$elements = array();
+				foreach ( $node->childNodes as $child ) {
+					if ( XML_ELEMENT_NODE === $child->nodeType ) {
+						$parsed = $this->parse_node( $child, $depth );
+						if ( null !== $parsed ) {
+							if ( isset( $parsed[0] ) && is_array( $parsed[0] ) ) {
+								foreach ( $parsed as $p ) {
+									$elements[] = $p;
+								}
+							} else {
+								$elements[] = $parsed;
+							}
+						}
+					}
+				}
+				if ( empty( $elements ) ) {
+					return null;
+				}
+				return $elements;
+
 			default:
 				$text = trim( $node->textContent );
 				if ( ! empty( $text ) ) {

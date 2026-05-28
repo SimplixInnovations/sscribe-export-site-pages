@@ -52,11 +52,11 @@ class SScribe_Settings {
 	 * @return bool
 	 */
 	public static function set_debug_enabled( bool $enabled ): bool {
-		$current = get_option( self::OPT_DEBUG_ENABLED, false );
-		if ( (bool) $current === $enabled ) {
+		$current = get_option( self::OPT_DEBUG_ENABLED );
+		if ( false !== $current && (bool) $current === $enabled ) {
 			return true;
 		}
-		$result = update_option( self::OPT_DEBUG_ENABLED, $enabled );
+		$result = update_option( self::OPT_DEBUG_ENABLED, $enabled, 'no' );
 		return $result || (bool) get_option( self::OPT_DEBUG_ENABLED, false ) === $enabled;
 	}
 
@@ -90,12 +90,12 @@ class SScribe_Settings {
 			$level = self::LEVEL_DEBUG;
 		}
 
-		$current = (string) get_option( self::OPT_DEBUG_LOG_LEVEL, self::LEVEL_DEBUG );
-		if ( $current === $level ) {
+		$current = get_option( self::OPT_DEBUG_LOG_LEVEL );
+		if ( false !== $current && $current === $level ) {
 			return true;
 		}
-		$result = update_option( self::OPT_DEBUG_LOG_LEVEL, $level );
-		return $result || (string) get_option( self::OPT_DEBUG_LOG_LEVEL, self::LEVEL_DEBUG ) === $level;
+		$result = update_option( self::OPT_DEBUG_LOG_LEVEL, $level, 'no' );
+		return $result || get_option( self::OPT_DEBUG_LOG_LEVEL, self::LEVEL_DEBUG ) === $level;
 	}
 
 	/**
@@ -114,11 +114,18 @@ class SScribe_Settings {
 	 * @return bool
 	 */
 	public static function set_auto_refresh( bool $enabled ): bool {
-		$current = get_option( self::OPT_DEBUG_AUTO_REFRESH, true );
-		if ( (bool) $current === $enabled ) {
+		$current = get_option( self::OPT_DEBUG_AUTO_REFRESH );
+		if ( false !== $current && (bool) $current === $enabled ) {
 			return true;
 		}
-		$result = update_option( self::OPT_DEBUG_AUTO_REFRESH, $enabled );
+		// Special case: option doesn't exist in DB and we want to store false.
+		// update_option returns false when old and new value are identical,
+		// so we need add_option for this specific case.
+		if ( false === $current && false === $enabled ) {
+			$result = add_option( self::OPT_DEBUG_AUTO_REFRESH, false, '', 'no' );
+			return (bool) get_option( self::OPT_DEBUG_AUTO_REFRESH, false ) === $enabled;
+		}
+		$result = update_option( self::OPT_DEBUG_AUTO_REFRESH, $enabled, 'no' );
 		return $result || (bool) get_option( self::OPT_DEBUG_AUTO_REFRESH, true ) === $enabled;
 	}
 

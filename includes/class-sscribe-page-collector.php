@@ -104,40 +104,47 @@ class SScribe_Page_Collector {
 	 * @param string $post_type   Post type.
 	 * @return array<int>
 	 */
-	public function get_page_ids( string $language = '', string $post_status = 'publish', string $post_type = 'page' ): array {
+	public function get_page_ids( string $language = '', string $post_status = 'publish', string $post_type = 'page', int $limit = -1 ): array {
 
 		$filter_value = apply_filters( 'sscribe_use_chunked_page_ids', null );
 		if ( null !== $filter_value && false === $filter_value ) {
 
-			return $this->get_page_ids_direct( $language, $post_status, $post_type );
+			return $this->get_page_ids_direct( $language, $post_status, $post_type, $limit );
 		}
 
 		$estimated_count = $this->estimate_page_count( $language, $post_status, $post_type );
-		$use_chunked     = $estimated_count > 500;
+		$use_chunked     = $estimated_count > 500 || $limit > 0;
 
 		if ( $filter_value || $use_chunked ) {
 			$all_ids = array();
 			foreach ( $this->get_page_ids_chunked( $language, $post_status, $post_type, 500 ) as $chunk ) {
 				$all_ids = array_merge( $all_ids, $chunk );
+				if ( $limit > 0 && count( $all_ids ) >= $limit ) {
+					break;
+				}
+			}
+			if ( $limit > 0 ) {
+				$all_ids = array_slice( $all_ids, 0, $limit );
 			}
 			return $all_ids;
 		}
 
-		return $this->get_page_ids_direct( $language, $post_status, $post_type );
+		return $this->get_page_ids_direct( $language, $post_status, $post_type, $limit );
 	}
 
 	/**
 	 * Get page IDs directly via WP_Query.
 	 *
 	 * @param string $language    Language code.
-	 * @param string $post_status Post status.
-	 * @param string $post_type   Post type.
+	 * @param string $post_status  Post status.
+	 * @param string $post_type    Post type.
+	 * @param int    $limit        Maximum number of IDs to return (-1 for all).
 	 * @return array<int>
 	 */
-	private function get_page_ids_direct( string $language, string $post_status, string $post_type ): array {
+	private function get_page_ids_direct( string $language, string $post_status, string $post_type, int $limit = -1 ): array {
 		$post_status = $this->validate_post_status( $post_status );
 
-		$cache_key = "sscribe_page_ids_v2_{$post_status}_" . md5( "{$language}_{$post_type}" );
+		$cache_key = "sscribe_page_ids_v2_{$post_status}_" . md5( "{$language}_{$post_type}_{$limit}" );
 		$cached    = get_transient( $cache_key );
 		if ( false !== $cached && is_array( $cached ) ) {
 			return $cached;
@@ -146,7 +153,7 @@ class SScribe_Page_Collector {
 		$args = array(
 			'post_type'      => $this->resolve_post_type_for_query( $post_type ),
 			'post_status'    => $post_status,
-			'posts_per_page' => -1,
+			'posts_per_page' => $limit > 0 ? $limit : -1,
 			'fields'         => 'ids',
 			'orderby'        => 'menu_order title',
 			'order'          => 'ASC',
