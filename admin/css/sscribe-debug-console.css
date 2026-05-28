@@ -238,9 +238,9 @@
 }
 
 /* ============================================
-   DEBUG CONSOLE - Uses main plugin button styles
-   Button styles inherit from sscribe-admin.css
-   ============================================ */
+	DEBUG CONSOLE - Uses main plugin button styles
+	Button styles inherit from sscribe-admin.css
+	============================================ */
 
 .sscribe-debug-master .sscribe-button-icon {
 	width: 36px;

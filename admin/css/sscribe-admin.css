@@ -9,11 +9,11 @@
  */
 
 /* ============================================
-   CSS CUSTOM PROPERTIES (Design Tokens)
-   Global scope so all elements — including
-   modals rendered outside .sscribe-master-container —
-   can access these variables.
-   ============================================ */
+	CSS CUSTOM PROPERTIES (Design Tokens)
+	Global scope so all elements — including
+	modals rendered outside .sscribe-master-container —
+	can access these variables.
+	============================================ */
 :root {
 	/* === DESIGN SYSTEM TOKENS (per DESIGN.md) === */
 
@@ -96,8 +96,8 @@
 }
 
 /* ============================================
-   DARK MODE (prefers-color-scheme: dark)
-   ============================================ */
+	DARK MODE (prefers-color-scheme: dark)
+	============================================ */
 @media (prefers-color-scheme: dark) {
 	:root {
 		/* Alert Colors */
@@ -132,8 +132,8 @@
 }
 
 /* ============================================
-   BASE STYLES
-   ============================================ */
+	BASE STYLES
+	============================================ */
 body.toplevel_page_sscribe-export #wpcontent {
 	padding-left: 0;
 }
@@ -178,8 +178,8 @@ body .sscribe-master-container {
 }
 
 /* ============================================
-   HERO SECTION
-   ============================================ */
+	HERO SECTION
+	============================================ */
 body .sscribe-master-container .sscribe-hero {
 	background: var(--sscribe-card-bg);
 	border: 1px solid var(--sscribe-border-light);
@@ -287,8 +287,8 @@ body .sscribe-master-container .sscribe-hero {
 }
 
 /* ============================================
-   PANELS & CARDS
-   ============================================ */
+	PANELS & CARDS
+	============================================ */
 .sscribe-panel {
 	background: var(--sscribe-card-bg);
 	border: 1px solid var(--sscribe-border-light);
@@ -330,8 +330,8 @@ body .sscribe-master-container .sscribe-hero {
 }
 
 /* ============================================
-   INLINE SVG ICON STYLING
-   ============================================ */
+	INLINE SVG ICON STYLING
+	============================================ */
 .sscribe-icon {
 	display: inline-block;
 	vertical-align: middle;
@@ -347,8 +347,8 @@ body .sscribe-master-container .sscribe-hero {
 }
 
 /* ============================================
-    INLINE SVG ICON STYLING
-    ============================================ */
+	INLINE SVG ICON STYLING
+	============================================ */
 
 .sscribe-status-icon .sscribe-icon {
 	color: var(--sscribe-text-muted);
@@ -359,16 +359,16 @@ body .sscribe-master-container .sscribe-hero {
 }
 
 /* ============================================
-   UTILITY CLASSES
-   ============================================ */
+	UTILITY CLASSES
+	============================================ */
 .sscribe-hidden {
 	/* stylelint-disable-next-line declaration-no-important -- Utility state must override component display rules. */
 	display: none !important;
 }
 
 /* ============================================
-   TABS NAVIGATION
-   ============================================ */
+	TABS NAVIGATION
+	============================================ */
 .sscribe-tabs-nav {
 	display: flex;
 	gap: var(--sscribe-space-s);
@@ -426,8 +426,8 @@ body .sscribe-master-container .sscribe-hero {
 }
 
 /* ============================================
-   STATUS CARDS (Card-based selector)
-   ============================================ */
+	STATUS CARDS (Card-based selector)
+	============================================ */
 .sscribe-status-cards {
 	display: flex;
 	flex-wrap: wrap;
@@ -543,8 +543,8 @@ body .sscribe-master-container .sscribe-hero {
 }
 
 /* ============================================
-   FORMAT CARDS (Radio Style)
-   ============================================ */
+	FORMAT CARDS (Radio Style)
+	============================================ */
 .sscribe-format-cards {
 	display: flex;
 	flex-wrap: wrap;
@@ -658,8 +658,8 @@ body .sscribe-master-container .sscribe-hero {
 }
 
 /* ============================================
-   LANGUAGE SELECTION
-   ============================================ */
+	LANGUAGE SELECTION
+	============================================ */
 .sscribe-language-cards {
 	display: flex;
 	flex-wrap: wrap;
@@ -783,8 +783,8 @@ body .sscribe-master-container .sscribe-hero {
 }
 
 /* ============================================
-   BUTTONS
-   ============================================ */
+	BUTTONS
+	============================================ */
 .sscribe-button {
 	display: inline-flex;
 	align-items: center;
@@ -807,8 +807,8 @@ body .sscribe-master-container .sscribe-hero {
 }
 
 /* ============================================
-   BUTTON VARIANTS
-   ============================================ */
+	BUTTON VARIANTS
+	============================================ */
 
 /* Primary CTA (#333333) */
 .sscribe-button-primary {
@@ -991,8 +991,8 @@ body .sscribe-master-container .sscribe-hero {
 }
 
 /* ============================================
-   STATUS ALERTS (Progress/Success/Error)
-   ============================================ */
+	STATUS ALERTS (Progress/Success/Error)
+	============================================ */
 .sscribe-status-alert {
 	margin-top: var(--sscribe-space-ml);
 	padding: var(--sscribe-space-ml) var(--sscribe-space-l);
@@ -1097,8 +1097,8 @@ body .sscribe-master-container .sscribe-hero {
 }
 
 /* ============================================
-   PHASE STEPS (Progress Indicator)
-   ============================================ */
+	PHASE STEPS (Progress Indicator)
+	============================================ */
 .sscribe-phase-steps {
 	display: flex;
 	align-items: center;
@@ -1298,8 +1298,8 @@ body .sscribe-master-container .sscribe-hero {
 }
 
 /* ============================================
-   HISTORY TABLE
-   ============================================ */
+	HISTORY TABLE
+	============================================ */
 .sscribe-badge {
 	background: var(--sscribe-primary);
 	color: var(--sscribe-text-inverse);
@@ -1337,8 +1337,8 @@ body .sscribe-master-container .sscribe-hero {
 }
 
 /* ============================================
-   BULK ACTIONS BAR
-   ============================================ */
+	BULK ACTIONS BAR
+	============================================ */
 .sscribe-bulk-bar {
 	display: flex;
 	align-items: center;
@@ -1675,8 +1675,8 @@ body .sscribe-master-container .sscribe-hero {
 }
 
 /* ============================================
-   RESPONSIVE BREAKPOINTS
-   ============================================ */
+	RESPONSIVE BREAKPOINTS
+	============================================ */
 @media (width <= 782px) {
 	.sscribe-hero-content {
 		flex-direction: column;
@@ -1729,8 +1729,8 @@ body .sscribe-master-container .sscribe-hero {
 }
 
 /* ============================================
-   MODAL
-   ============================================ */
+	MODAL
+	============================================ */
 .sscribe-modal {
 	position: fixed;
 	inset: 0;
@@ -1864,8 +1864,8 @@ body .sscribe-master-container .sscribe-hero {
 }
 
 /* ============================================
-   LOG DISPLAY
-   ============================================ */
+	LOG DISPLAY
+	============================================ */
 .sscribe-log-loading {
 	display: flex;
 	align-items: center;
@@ -1991,8 +1991,8 @@ body .sscribe-master-container .sscribe-hero {
 }
 
 /* ============================================
-   SPINNER ANIMATION
-   ============================================ */
+	SPINNER ANIMATION
+	============================================ */
 .sscribe-spinner {
 	display: flex;
 	align-items: center;
@@ -2014,8 +2014,8 @@ body .sscribe-master-container .sscribe-hero {
 }
 
 /* ============================================
-   ICON STYLES
-   ============================================ */
+	ICON STYLES
+	============================================ */
 .sscribe-icon-img {
 	display: inline-block;
 	vertical-align: middle;
@@ -2026,8 +2026,8 @@ body .sscribe-master-container .sscribe-hero {
 }
 
 /* ============================================
-   CONFIG SUMMARY BAR
-   ============================================ */
+	CONFIG SUMMARY BAR
+	============================================ */
 .sscribe-config-summary {
 	display: flex;
 	align-items: center;
@@ -2081,8 +2081,8 @@ body .sscribe-master-container .sscribe-hero {
 }
 
 /* ============================================
-   WORKSPACE
-   ============================================ */
+	WORKSPACE
+	============================================ */
 .sscribe-workspace {
 	max-width: 1280px;
 }
@@ -2092,8 +2092,8 @@ body .sscribe-master-container .sscribe-hero {
 }
 
 /* ============================================
-   FOCUS STATES (Accessibility)
-   ============================================ */
+	FOCUS STATES (Accessibility)
+	============================================ */
 .sscribe-button:focus-visible {
 	outline: 2px solid var(--sscribe-primary);
 	outline-offset: 2px;
@@ -2114,8 +2114,8 @@ body .sscribe-master-container .sscribe-hero {
 }
 
 /* ============================================
-   POST TYPE SELECTION CARDS
-   ============================================ */
+	POST TYPE SELECTION CARDS
+	============================================ */
 .sscribe-post-type-cards {
 	display: flex;
 	flex-wrap: wrap;
@@ -2223,8 +2223,8 @@ body .sscribe-master-container .sscribe-hero {
 }
 
 /* ============================================
-   FLAT SINGLE-PAGE DASHBOARD LAYOUT
-   ============================================ */
+	FLAT SINGLE-PAGE DASHBOARD LAYOUT
+	============================================ */
 .sscribe-flat-workspace {
 	padding-bottom: 40px;
 }
@@ -2436,8 +2436,8 @@ body .sscribe-master-container .sscribe-hero {
 }
 
 /* ============================================
-   RTL SUPPORT
-   ============================================ */
+	RTL SUPPORT
+	============================================ */
 [dir='rtl'] .sscribe-hero-content {
 	flex-direction: row-reverse;
 }
@@ -2490,8 +2490,8 @@ body .sscribe-master-container .sscribe-hero {
 }
 
 /* ============================================
-   REDUCED MOTION (Accessibility)
-   ============================================ */
+	REDUCED MOTION (Accessibility)
+	============================================ */
 @media (prefers-reduced-motion: reduce) {
 	*,
 	*::before,
@@ -2515,12 +2515,12 @@ body .sscribe-master-container .sscribe-hero {
 }
 
 /* ============================================
-   HIGH CONTRAST MODE (Accessibility)
-   ============================================ */
+	HIGH CONTRAST MODE (Accessibility)
+	============================================ */
 
 /* ============================================
-   ACCESSIBILITY ENHANCEMENTS (WCAG 2.1 AA)
-   ============================================ */
+	ACCESSIBILITY ENHANCEMENTS (WCAG 2.1 AA)
+	============================================ */
 
 /* Skip Link for Keyboard Navigation */
 .sscribe-skip-link {
@@ -2866,8 +2866,8 @@ body .sscribe-master-container .sscribe-hero {
 }
 
 /* ============================================
-   CONSISTENT LOADING STATES
-   ============================================ */
+	CONSISTENT LOADING STATES
+	============================================ */
 
 .sscribe-button.sscribe-loading {
 	position: relative;
@@ -2945,8 +2945,8 @@ body .sscribe-master-container .sscribe-hero {
 }
 
 /* ============================================
-   SUPPORT TAB LAYOUT (System Diagnostics)
-   ============================================ */
+	SUPPORT TAB LAYOUT (System Diagnostics)
+	============================================ */
 .sscribe-support-master {
 	display: flex;
 	gap: 24px;
@@ -3048,8 +3048,8 @@ body .sscribe-master-container .sscribe-hero {
 }
 
 /* ============================================
-   FINALIZATION PROGRESS ANIMATION
-   ============================================ */
+	FINALIZATION PROGRESS ANIMATION
+	============================================ */
 @keyframes sscribe-finalize-shimmer {
 	0%,
 	100% {
@@ -3066,8 +3066,8 @@ body .sscribe-master-container .sscribe-hero {
 }
 
 /* ============================================
-   TOAST NOTIFICATIONS (Stacked)
-   ============================================ */
+	TOAST NOTIFICATIONS (Stacked)
+	============================================ */
 .sscribe-toast-container {
 	position: fixed;
 	top: 32px;
@@ -3165,8 +3165,8 @@ body .sscribe-master-container .sscribe-hero {
 }
 
 /* ============================================
-   UX POLISH PASS (Light Theme Only)
-   ============================================ */
+	UX POLISH PASS (Light Theme Only)
+	============================================ */
 .sscribe-master-container {
 	background: linear-gradient(180deg, rgb(255 255 255 / 98%) 0%, rgb(248 250 249 / 98%) 100%), var(--sscribe-card-bg);
 	box-shadow: 0 18px 44px rgb(16 24 40 / 6%);
