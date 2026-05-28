@@ -63,10 +63,10 @@ class SScribe_Result {
 	 * @param array  $warnings Warnings collected during execution.
 	 */
 	private function __construct( bool $success, mixed $data = null, ?string $error = null, array $context = array(), array $warnings = array() ) {
-		$this->success = $success;
-		$this->data    = $data;
-		$this->error   = $error;
-		$this->context = $context;
+		$this->success  = $success;
+		$this->data     = $data;
+		$this->error    = $error;
+		$this->context  = $context;
 		$this->warnings = $warnings;
 	}
 

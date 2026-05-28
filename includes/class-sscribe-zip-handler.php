@@ -122,7 +122,7 @@ class SScribe_Zip_Handler {
 
 		$zip_path = $this->export_dir . '/' . sanitize_file_name( $zip_name ) . '.zip';
 
-		$zip = new ZipArchive();
+		$zip        = new ZipArchive();
 		$zip_opened = false;
 		try {
 			if ( $zip->open( $zip_path, ZipArchive::CREATE | ZipArchive::OVERWRITE ) !== true ) {
@@ -207,9 +207,9 @@ class SScribe_Zip_Handler {
 						$this->logger->warning(
 							'Failed to add file to ZIP',
 							array(
-								'file'   => $file,
-								'entry'  => $archive_entry,
-								'zip'    => basename( $zip_path ),
+								'file'  => $file,
+								'entry' => $archive_entry,
+								'zip'   => basename( $zip_path ),
 							)
 						);
 						continue;
@@ -294,7 +294,7 @@ class SScribe_Zip_Handler {
 
 		// Update the export index with the new ZIP.
 		try {
-			$exports = get_option( 'sscribe_export_index', array() );
+			$exports                          = get_option( 'sscribe_export_index', array() );
 			$exports[ basename( $zip_path ) ] = array(
 				'created_at' => time(),
 				'user_id'    => get_current_user_id(),
@@ -332,14 +332,14 @@ class SScribe_Zip_Handler {
 			return false;
 		}
 
-		$zip = new ZipArchive();
+		$zip    = new ZipArchive();
 		$result = $zip->open( $zip_path, defined( 'ZipArchive::READONLY' ) ? ZipArchive::READONLY : 1 );
 		if ( true !== $result ) {
 			$this->logger->error(
 				'ZIP integrity verification failed',
 				array(
 					'zip_path' => $zip_path,
-					'error'   => $zip->getStatusString(),
+					'error'    => $zip->getStatusString(),
 				)
 			);
 			return false;
@@ -426,11 +426,11 @@ class SScribe_Zip_Handler {
 		set_transient( 'sscribe_cron_exports_lock', true, 2 * MINUTE_IN_SECONDS );
 
 		try {
-			$cleaned = 0;
-			$files   = glob( $this->export_dir . '/*.zip' );
-			$max_age = 3 * DAY_IN_SECONDS;
-			$now     = time();
-			$exports = get_option( 'sscribe_export_index', array() );
+			$cleaned  = 0;
+			$files    = glob( $this->export_dir . '/*.zip' );
+			$max_age  = 3 * DAY_IN_SECONDS;
+			$now      = time();
+			$exports  = get_option( 'sscribe_export_index', array() );
 			$modified = false;
 
 			// Clean up ZIPs that are in the index first.

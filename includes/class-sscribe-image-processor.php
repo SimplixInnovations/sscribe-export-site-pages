@@ -189,8 +189,8 @@ class SScribe_Image_Processor {
 			return false;
 		}
 
-		$site_hosts       = self::get_allowed_hosts();
-		$allowed_hosts   = apply_filters( 'sscribe_allowed_image_hosts', $site_hosts );
+		$site_hosts    = self::get_allowed_hosts();
+		$allowed_hosts = apply_filters( 'sscribe_allowed_image_hosts', $site_hosts );
 
 		if ( ! is_array( $allowed_hosts ) ) {
 			$allowed_hosts = $site_hosts;

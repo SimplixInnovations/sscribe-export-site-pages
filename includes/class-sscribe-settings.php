@@ -21,20 +21,20 @@ class SScribe_Settings {
 	/**
 	 * Option keys.
 	 */
-	public const OPT_DEBUG_ENABLED     = 'sscribe_debug_enabled';
-	public const OPT_DEBUG_LOG_LEVEL  = 'sscribe_debug_log_level';
+	public const OPT_DEBUG_ENABLED      = 'sscribe_debug_enabled';
+	public const OPT_DEBUG_LOG_LEVEL    = 'sscribe_debug_log_level';
 	public const OPT_DEBUG_AUTO_REFRESH = 'sscribe_debug_auto_refresh';
 
 	/**
 	 * Log levels.
 	 */
-	public const LEVEL_DEBUG     = 'DEBUG';
+	public const LEVEL_DEBUG    = 'DEBUG';
 	public const LEVEL_INFO     = 'INFO';
 	public const LEVEL_NOTICE   = 'NOTICE';
 	public const LEVEL_WARNING  = 'WARNING';
 	public const LEVEL_ERROR    = 'ERROR';
 	public const LEVEL_CRITICAL = 'CRITICAL';
-	public const LEVEL_ALL     = 'ALL';
+	public const LEVEL_ALL      = 'ALL';
 
 	/**
 	 * Get debug enabled setting.

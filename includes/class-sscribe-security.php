@@ -110,7 +110,7 @@ class SScribe_Security {
 				require_once ABSPATH . 'wp-admin/includes/file.php';
 			}
 			if ( ! WP_Filesystem( request_filesystem_credentials( 'admin.php', '', false, false, null ) ) ) {
-				// Fallback to rmdir if WP Filesystem fails
+				// Fallback to rmdir if WP Filesystem fails.
 				// phpcs:ignore WordPress.WP.AlternativeFunctions.file_system_operations_rmdir
 				return @rmdir( $dir );
 			}
@@ -135,7 +135,7 @@ class SScribe_Security {
 				require_once ABSPATH . 'wp-admin/includes/file.php';
 			}
 			if ( ! WP_Filesystem( request_filesystem_credentials( 'admin.php', '', false, false, null ) ) ) {
-				// Fallback to direct file_put_contents with proper locking
+				// Fallback to direct file_put_contents with proper locking.
 				// phpcs:ignore WordPress.WP.AlternativeFunctions.file_system_operations_file_put_contents
 				return false !== file_put_contents( $file_path, $content, LOCK_EX );
 			}

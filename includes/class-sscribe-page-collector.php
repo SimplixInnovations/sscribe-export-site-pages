@@ -1,6 +1,6 @@
 <?php
 /**
- * SScribe Page Collector
+ * SScribe Page Collector.
  *
  * @package SScribe_Export_Site_Pages
  * @license GPL v2 or later
@@ -13,6 +13,12 @@ if ( ! defined( 'ABSPATH' ) ) {
 	exit;
 }
 
+/**
+ * Page collection and filtering.
+ *
+ * @package SScribe_Export_Site_Pages
+ * @subpackage Collector
+ */
 class SScribe_Page_Collector {
 
 	/**
@@ -329,12 +335,12 @@ class SScribe_Page_Collector {
 		$chunk_size = 100;
 		$chunks     = array_chunk( $page_ids, $chunk_size );
 
-		$thumbnail_ids  = array();
-		$page_to_thumb  = array();
+		$thumbnail_ids = array();
+		$page_to_thumb = array();
 
 		foreach ( $chunks as $chunk ) {
 			$placeholders = implode( ',', array_fill( 0, count( $chunk ), '%d' ) );
-			$sql           = "SELECT post_id, meta_value AS thumbnail_id FROM {$wpdb->postmeta} WHERE meta_key = '_thumbnail_id' AND post_id IN ({$placeholders})";
+			$sql          = "SELECT post_id, meta_value AS thumbnail_id FROM {$wpdb->postmeta} WHERE meta_key = '_thumbnail_id' AND post_id IN ({$placeholders})";
 			// phpcs:ignore WordPress.DB.PreparedSQL.NotPrepared, WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- Placeholders are safely generated; chunked batch operation; caching not needed for one-time batch export.
 			$results = $wpdb->get_results( $wpdb->prepare( $sql, ...$chunk ) );
 
@@ -350,8 +356,8 @@ class SScribe_Page_Collector {
 			}
 
 			foreach ( $results as $row ) {
-				$thumb_id                               = (int) $row->thumbnail_id;
-				$thumbnail_ids[]                        = $thumb_id;
+				$thumb_id                             = (int) $row->thumbnail_id;
+				$thumbnail_ids[]                      = $thumb_id;
 				$page_to_thumb[ (int) $row->post_id ] = $thumb_id;
 			}
 		}
@@ -524,7 +530,7 @@ class SScribe_Page_Collector {
 				'excerpt'             => '',
 				'permalink'           => get_permalink( $page_id ),
 				'slug'                => $post_object->post_name,
-				'author'              => get_the_author_meta( 'display_name', $post_object->post_author ) ?: __( 'Unknown', 'sscribe-export-site-pages' ),
+				'author'              => get_the_author_meta( 'display_name', $post_object->post_author ) ?? __( 'Unknown', 'sscribe-export-site-pages' ),
 				'date_published'      => get_the_date( 'F j, Y', $page_id ),
 				'date_modified'       => get_the_modified_date( 'F j, Y', $page_id ),
 				'featured_image_url'  => '',
@@ -798,8 +804,8 @@ class SScribe_Page_Collector {
 
 		// Guard against circular parent relationships by deduplicating ancestor IDs.
 		if ( $ancestors ) {
-			$seen      = array( $page_id => true );
-			$filtered  = array();
+			$seen     = array( $page_id => true );
+			$filtered = array();
 			foreach ( $ancestors as $ancestor_id ) {
 				if ( isset( $seen[ $ancestor_id ] ) ) {
 					// Circular reference detected - break the chain.
@@ -996,7 +1002,7 @@ class SScribe_Page_Collector {
 			// phpcs:ignore WordPress.NamingConventions.PrefixAllGlobals.NonPrefixedHooknameFound -- WPML hook.
 			do_action( 'wpml_switch_language', $language );
 			$args['suppress_filters'] = false;
-			$switched = true;
+			$switched                 = true;
 
 			// Optimize: Use a single query with GROUP BY instead of one query per status.
 			global $wpdb;
@@ -1007,8 +1013,8 @@ class SScribe_Page_Collector {
 
 			// phpcs:disable WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- Single optimized count query for performance; caching handled by transient below.
 			if ( is_array( $args['post_type'] ) ) {
-				$post_type_count       = count( $args['post_type'] );
-				$status_count          = count( $statuses );
+				$post_type_count        = count( $args['post_type'] );
+				$status_count           = count( $statuses );
 				$post_type_placeholders = implode( ',', array_fill( 0, $post_type_count, '%s' ) );
 				$status_placeholders    = implode( ',', array_fill( 0, $status_count, '%s' ) );
 				// phpcs:disable WordPress.DB.PreparedSQLPlaceholders.UnfinishedPrepare, WordPress.DB.PreparedSQL.InterpolatedNotPrepared, WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, PluginCheck.Security.DirectDB.UnescapedDBParameter -- Dynamic IN clause placeholders built from safe array_fill() of %s only; query is fully prepared.
@@ -1021,8 +1027,8 @@ class SScribe_Page_Collector {
 				);
 				// phpcs:enable
 			} else {
-				$status_count         = count( $statuses );
-				$status_placeholders  = implode( ',', array_fill( 0, $status_count, '%s' ) );
+				$status_count        = count( $statuses );
+				$status_placeholders = implode( ',', array_fill( 0, $status_count, '%s' ) );
 				// phpcs:disable WordPress.DB.PreparedSQLPlaceholders.UnfinishedPrepare, WordPress.DB.PreparedSQL.InterpolatedNotPrepared, WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, PluginCheck.Security.DirectDB.UnescapedDBParameter -- Dynamic IN clause placeholders built from safe array_fill() of %s only; query is fully prepared.
 				$results = $wpdb->get_results(
 					$wpdb->prepare(

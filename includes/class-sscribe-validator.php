@@ -216,18 +216,18 @@ class SScribe_Validator {
 		$memory_available = $memory_limit - $memory_used;
 
 		// Calibrate per-page memory using adaptive metrics (historical averages) when available.
-		$metrics = class_exists( 'SScribe_Adaptive_Metrics' ) ? new SScribe_Adaptive_Metrics() : null;
+		$metrics           = class_exists( 'SScribe_Adaptive_Metrics' ) ? new SScribe_Adaptive_Metrics() : null;
 		$total_mb_per_page = 0.0;
 		foreach ( $formats as $format ) {
-			$mb = $metrics
+			$mb                 = $metrics
 				? $metrics->get_mb_per_page( $format )
 				: ( self::BASELINE_MB_PER_PAGE[ $format ] ?? self::MEMORY_PER_PAGE_MB );
 			$total_mb_per_page += $mb;
 		}
 
-		$memory_per_page   = $total_mb_per_page * 1024 * 1024;
-		$estimated_need   = ( $page_count * $memory_per_page ) + ( 50 * 1024 * 1024 );
-		$safe_available   = $memory_available * 0.8;
+		$memory_per_page = $total_mb_per_page * 1024 * 1024;
+		$estimated_need  = ( $page_count * $memory_per_page ) + ( 50 * 1024 * 1024 );
+		$safe_available  = $memory_available * 0.8;
 
 		if ( $estimated_need > $memory_available ) {
 			$estimated_mb   = round( $estimated_need / 1024 / 1024 );

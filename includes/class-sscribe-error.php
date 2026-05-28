@@ -1,6 +1,6 @@
 <?php
 /**
- * SScribe Error
+ * SScribe Error.
  *
  * @package SScribe_Export_Site_Pages
  * @license GPL v2 or later
@@ -13,6 +13,12 @@ if ( ! defined( 'ABSPATH' ) ) {
 	exit;
 }
 
+/**
+ * Error handling and exception classes.
+ *
+ * @package SScribe_Export_Site_Pages
+ * @subpackage Error
+ */
 class SScribe_Error {
 
 	public const CATEGORY_SYSTEM     = 'system';

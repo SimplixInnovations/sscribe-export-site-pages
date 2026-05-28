@@ -148,112 +148,112 @@ class SScribe_HTML_Exporter implements SScribe_Exporter_Interface {
 	 * @return array Archival-safe HTML allowlist for wp_kses().
 	 */
 	private function get_archival_allowlist(): array {
-		// Text structure
+		// Text structure.
 		$allowlist['p']          = array(
 			'lang' => true,
-			'dir' => true,
+			'dir'  => true,
 		);
-		$allowlist['br']          = array();
-		$allowlist['hr']          = array();
-		$allowlist['blockquote']  = array( 'cite' => true );
-		$allowlist['pre']         = array();
-		$allowlist['code']        = array();
-		// Headings
-		$allowlist['h1']          = array();
-		$allowlist['h2']          = array();
-		$allowlist['h3']          = array();
-		$allowlist['h4']          = array();
-		$allowlist['h5']          = array();
-		$allowlist['h6']          = array();
-		// Inline
-		$allowlist['strong']      = array();
-		$allowlist['b']           = array();
-		$allowlist['em']          = array();
-		$allowlist['i']           = array();
-		$allowlist['s']           = array();
-		$allowlist['del']         = array();
-		$allowlist['mark']        = array();
-		$allowlist['small']       = array();
-		$allowlist['sub']         = array();
-		$allowlist['sup']         = array();
-		$allowlist['u']           = array();
-		// Links — href restricted to safe protocols only; javascript:/data: blocked
-		$allowlist['a']           = array(
+		$allowlist['br']         = array();
+		$allowlist['hr']         = array();
+		$allowlist['blockquote'] = array( 'cite' => true );
+		$allowlist['pre']        = array();
+		$allowlist['code']       = array();
+		// Headings.
+		$allowlist['h1'] = array();
+		$allowlist['h2'] = array();
+		$allowlist['h3'] = array();
+		$allowlist['h4'] = array();
+		$allowlist['h5'] = array();
+		$allowlist['h6'] = array();
+		// Inline.
+		$allowlist['strong'] = array();
+		$allowlist['b']      = array();
+		$allowlist['em']     = array();
+		$allowlist['i']      = array();
+		$allowlist['s']      = array();
+		$allowlist['del']    = array();
+		$allowlist['mark']   = array();
+		$allowlist['small']  = array();
+		$allowlist['sub']    = array();
+		$allowlist['sup']    = array();
+		$allowlist['u']      = array();
+		// Links - href restricted to safe protocols only; javascript:/data: blocked.
+		$allowlist['a'] = array(
 			'href'  => array(
 				'protocols' => array( 'http', 'https', 'mailto', 'tel' ),
 			),
 			'title' => true,
 			'rel'   => array(
-				'nofollow'  => true,
-				'noopener'  => true,
+				'nofollow'   => true,
+				'noopener'   => true,
 				'noreferrer' => true,
-				'sponsored' => true,
-				'ugc'       => true,
-				'tag'       => true,
+				'sponsored'  => true,
+				'ugc'        => true,
+				'tag'        => true,
 			),
 		);
-		// Images — src/alt/dimensions only, no script hooks
-		$allowlist['img']         = array(
-			'src'    => true,
-			'alt'    => true,
-			'width'  => true,
-			'height' => true,
+		// Images - src/alt/dimensions only, no script hooks.
+		$allowlist['img'] = array(
+			'src'     => true,
+			'alt'     => true,
+			'width'   => true,
+			'height'  => true,
 			'loading' => true,
 		);
-		// Lists
-		$allowlist['ul']          = array();
-		$allowlist['ol']          = array(
+		// Lists.
+		$allowlist['ul'] = array();
+		$allowlist['ol'] = array(
 			'start' => true,
-			'type' => true,
+			'type'  => true,
 		);
-		$allowlist['li']          = array();
-		$allowlist['dl']          = array();
-		$allowlist['dt']          = array();
-		$allowlist['dd']          = array();
-		// Tables
-		$allowlist['table']       = array();
-		$allowlist['thead']       = array();
-		$allowlist['tbody']       = array();
-		$allowlist['tfoot']       = array();
-		$allowlist['tr']          = array();
-		$allowlist['th']          = array(
-			'scope'    => true,
-			'colspan'  => true,
-			'rowspan'  => true,
+		$allowlist['li'] = array();
+		$allowlist['dl'] = array();
+		$allowlist['dt'] = array();
+		$allowlist['dd'] = array();
+		// Tables.
+		$allowlist['table']    = array();
+		$allowlist['thead']    = array();
+		$allowlist['tbody']    = array();
+		$allowlist['tfoot']    = array();
+		$allowlist['tr']       = array();
+		$allowlist['th']       = array(
+			'scope'   => true,
+			'colspan' => true,
+			'rowspan' => true,
 		);
-		$allowlist['td']          = array(
-			'colspan'  => true,
-			'rowspan'  => true,
+		$allowlist['td']       = array(
+			'colspan' => true,
+			'rowspan' => true,
 		);
-		$allowlist['caption']     = array();
-		$allowlist['colgroup']    = array();
-		$allowlist['col']         = array(
-			'span' => true,
+		$allowlist['caption']  = array();
+		$allowlist['colgroup'] = array();
+		$allowlist['col']      = array(
+			'span'  => true,
 			'width' => true,
 		);
-		// Semantic
-		$allowlist['figure']      = array();
-		$allowlist['figcaption']  = array();
-		$allowlist['details']     = array();
-		$allowlist['summary']     = array();
-		$allowlist['abbr']        = array( 'title' => true );
-		$allowlist['cite']        = array();
-		$allowlist['time']        = array( 'datetime' => true );
-		$allowlist['address']     = array();
-		$allowlist['article']     = array();
+		// Semantic.
+		$allowlist['figure']     = array();
+		$allowlist['figcaption'] = array();
+		$allowlist['details']    = array();
+		$allowlist['summary']    = array();
+		$allowlist['abbr']       = array( 'title' => true );
+		$allowlist['cite']       = array();
+		$allowlist['time']       = array( 'datetime' => true );
+		$allowlist['address']    = array();
+		$allowlist['article']    = array();
 		$allowlist['aside']      = array();
-		$allowlist['section']     = array();
+		$allowlist['section']    = array();
 		$allowlist['header']     = array();
 		$allowlist['footer']     = array();
 		$allowlist['nav']        = array();
 		$allowlist['main']       = array();
 		$allowlist['div']        = array(
 			'lang' => true,
-			'dir' => true,
+			'dir'  => true,
 		);
 		$allowlist['span']       = array();
 		// NO: iframe, embed, object, param, canvas, svg, script, style,
-		//     video, audio, source, track, img with on* attributes
+		// video, audio, source, track, img with on* attributes.
 		return $allowlist;
 	}
 

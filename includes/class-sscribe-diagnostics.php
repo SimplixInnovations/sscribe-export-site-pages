@@ -901,7 +901,7 @@ class SScribe_Diagnostics {
 			);
 		}
 
-		$warning_categories = array( 'timeout' );
+		$warning_categories    = array( 'timeout' );
 		$diagnosis['severity'] = in_array( $diagnosis['category'], $warning_categories, true ) ? 'warning' : 'error';
 
 		return $diagnosis;
@@ -1007,7 +1007,7 @@ class SScribe_Diagnostics {
 			)
 		);
 
-		$cleared = 0;
+		$cleared     = 0;
 		$session_ttl = apply_filters( 'sscribe_session_ttl', DAY_IN_SECONDS );
 		foreach ( $sessions as $session ) {
 			$data = json_decode( $session->option_value, true );
@@ -1288,7 +1288,7 @@ class SScribe_Diagnostics {
 				if ( is_array( $value ) ) {
 					$value = wp_json_encode( $value );
 				}
-				$value = $this->format_support_value( $key, (string) $value );
+				$value   = $this->format_support_value( $key, (string) $value );
 				$lines[] = $key . ': ' . $value;
 			}
 		}

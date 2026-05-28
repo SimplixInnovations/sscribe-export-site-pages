@@ -1,6 +1,6 @@
 <?php
 /**
- * SScribe Export Query Controller
+ * SScribe Export Query Controller.
  *
  * @package SScribe_Export_Site_Pages
  * @license GPL v2 or later
@@ -13,6 +13,12 @@ if ( ! defined( 'ABSPATH' ) ) {
 	exit;
 }
 
+/**
+ * REST API query controller.
+ *
+ * @package SScribe_Export_Site_Pages
+ * @subpackage API
+ */
 class SScribe_Export_Query_Controller {
 
 	/**
@@ -379,8 +385,8 @@ class SScribe_Export_Query_Controller {
 				$minutes
 			);
 		} else {
-			$hours   = (int) floor( $total_seconds / 3600 );
-			$minutes = (int) ceil( ( $total_seconds % 3600 ) / 60 );
+			$hours          = (int) floor( $total_seconds / 3600 );
+			$minutes        = (int) ceil( ( $total_seconds % 3600 ) / 60 );
 			$estimated_time = sprintf(
 				/* translators: 1: Hours. 2: Minutes. */
 				__( '%1$d hr %2$d min', 'sscribe-export-site-pages' ),
@@ -487,9 +493,9 @@ class SScribe_Export_Query_Controller {
 			}
 
 			clearstatcache( true, $file_path );
-			$file_size = @filesize( $file_path );
+			$file_size  = @filesize( $file_path );
 			$file_mtime = @filemtime( $file_path );
-			$result[] = array(
+			$result[]   = array(
 				'filename'       => $filename,
 				'url'            => $this->zip_handler->get_ajax_download_url( $filename ),
 				'size'           => false !== $file_size ? $file_size : 0,

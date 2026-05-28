@@ -1,6 +1,6 @@
 <?php
 /**
- * SScribe Exporter
+ * SScribe Exporter.
  *
  * @package SScribe_Export_Site_Pages
  * @license GPL v2 or later
@@ -13,42 +13,12 @@ if ( ! defined( 'ABSPATH' ) ) {
 	exit;
 }
 
-require_once SSCRIBE_PLUGIN_DIR . 'includes/class-sscribe-rtl-helper.php';
-
-use SScribeVendor\PhpOffice\PhpWord\PhpWord;
-use SScribeVendor\PhpOffice\PhpWord\IOFactory;
-use SScribeVendor\PhpOffice\PhpWord\Style\Font;
-use SScribeVendor\PhpOffice\PhpWord\SimpleType\Jc;
-use SScribeVendor\PhpOffice\PhpWord\Shared\Converter;
-use SScribeVendor\PhpOffice\PhpWord\Element\Section;
-use SScribeVendor\PhpOffice\PhpWord\Element\TextRun;
-
 /**
- * SScribe Exporter — generates DOCX, PDF, HTML, and Markdown exports.
+ * Export orchestration and format routing.
  *
- * @phpstan-type SScribePageData array{
- *     id: int,
- *     title: string,
- *     content: string,
- *     raw_content: string,
- *     excerpt: string,
- *     permalink: string,
- *     slug: string,
- *     author: string,
- *     date_published: string,
- *     date_modified: string,
- *     featured_image_url: string,
- *     featured_image_path: string,
- *     word_count: int,
- *     reading_time: float,
- *     breadcrumbs: array<array{title: string, url: string}>,
- *     children: array<int, array>,
- *     language: string,
- *     parent_id: int,
- *     seo: array{title: string, description: string, keywords: string}
- * }
+ * @package SScribe_Export_Site_Pages
+ * @subpackage Exporters
  */
-
 class SScribe_Exporter {
 
 	/**
@@ -143,8 +113,8 @@ class SScribe_Exporter {
 		 */
 		$this->colors = apply_filters( 'sscribe_docx_colors', $this->colors );
 
-		// Validate required color keys exist after filter application
-		// to prevent undefined index errors from third-party mutations
+		// Validate required color keys exist after filter application.
+		// To prevent undefined index errors from third-party mutations.
 		$defaults = array(
 			'primary'  => '4A8263',
 			'heading'  => '122119',
@@ -170,7 +140,7 @@ class SScribe_Exporter {
 			$this->font_size
 		);
 
-		// Sync config for injected content_renderer to ensure RTL and colors are up-to-date
+		// Sync config for injected content_renderer to ensure RTL and colors are up-to-date.
 		if ( null !== $this->content_renderer ) {
 			$this->content_renderer->sync_config(
 				$this->colors,
@@ -203,7 +173,7 @@ class SScribe_Exporter {
 	private function safe_text( string $text ): string {
 		$text = (string) $text;
 
-		// Use iconv for UTF-8 sanitization - compatible with PHP 8.2+ (mb_convert_encoding deprecation)
+		// Use iconv for UTF-8 sanitization - compatible with PHP 8.2+ (mb_convert_encoding deprecation).
 		$cleaned = @iconv( 'UTF-8', 'UTF-8//IGNORE', $text );
 		if ( false !== $cleaned ) {
 			$text = $cleaned;
@@ -289,13 +259,13 @@ class SScribe_Exporter {
 		$scheme        = strtolower( ( false === $parsed_scheme || null === $parsed_scheme ) ? '' : $parsed_scheme );
 
 		if ( in_array( $scheme, array( 'http', 'https', 'mailto', 'tel' ), true ) ) {
-			// SSRF protection: validate URL doesn't point to internal/private IP ranges
+			// SSRF protection: validate URL doesn't point to internal/private IP ranges.
 			$host = wp_parse_url( $url, PHP_URL_HOST );
 			if ( $host && $this->is_ip_blocked( $host ) ) {
 				$this->logger->warning(
 					'Blocked SSRF attempt: internal IP range',
 					array(
-						'url' => $url,
+						'url'  => $url,
 						'host' => $host,
 					)
 				);
@@ -316,7 +286,7 @@ class SScribe_Exporter {
 	 * @return bool True if blocked.
 	 */
 	private function is_ip_blocked( string $host ): bool {
-		// Check if it's already a valid public IP
+		// Check if it's already a valid public IP.
 		if ( filter_var( $host, FILTER_VALIDATE_IP, FILTER_FLAG_NO_PRIV_RANGE | FILTER_FLAG_NO_RES_RANGE ) !== false ) {
 			return false;
 		}
@@ -333,7 +303,7 @@ class SScribe_Exporter {
 			return false;
 		}
 
-		// Check if resolved IP is private/reserved
+		// Check if resolved IP is private/reserved.
 		if ( filter_var( $ip, FILTER_VALIDATE_IP, FILTER_FLAG_NO_PRIV_RANGE | FILTER_FLAG_NO_RES_RANGE ) === false ) {
 			return true;
 		}
@@ -535,7 +505,7 @@ class SScribe_Exporter {
 				'DOCX generation started',
 				array(
 					'page_id'       => $page_data['id'] ?? 0,
-					'page_title'   => $page_data['title'] ?? 'unknown',
+					'page_title'    => $page_data['title'] ?? 'unknown',
 					'memory_before' => size_format( memory_get_usage( true ) ),
 				)
 			);
@@ -649,7 +619,7 @@ class SScribe_Exporter {
 
 			// Lightweight integrity check: verify file size > minimum threshold.
 			$file_size = @filesize( $output_path );
-			$min_size   = 8192; // Minimal DOCX should be at least 8KB to avoid empty/corrupted files.
+			$min_size  = 8192; // Minimal DOCX should be at least 8KB to avoid empty/corrupted files.
 
 			$this->get_logger()->debug(
 				'DOCX saved to disk',
@@ -696,16 +666,16 @@ class SScribe_Exporter {
 			if ( $has_document ) {
 				$zip_xml = new \ZipArchive();
 				if ( true !== $zip_xml->open( $output_path ) ) {
-					$zip_xml = null;
+					$zip_xml   = null;
 					$xml_valid = false;
 				} else {
 					$doc_xml = $zip_xml->getFromName( 'word/document.xml' );
 					if ( false !== $doc_xml && ! empty( $doc_xml ) ) {
 						$prev_xml_errors = libxml_use_internal_errors( true );
 						try {
-							$test_doc        = new \DOMDocument();
-							$parse_result    = $test_doc->loadXML( $doc_xml );
-							$xml_errors      = libxml_get_errors();
+							$test_doc     = new \DOMDocument();
+							$parse_result = $test_doc->loadXML( $doc_xml );
+							$xml_errors   = libxml_get_errors();
 							foreach ( $xml_errors as $xml_error ) {
 								if ( LIBXML_ERR_FATAL === $xml_error->level ) {
 									$xml_valid = false;
@@ -828,19 +798,19 @@ class SScribe_Exporter {
 		$properties = $php_word->getDocInfo();
 		$properties->setCreator( 'SScribe by Simplix Innovations' );
 
-		$blog_name = get_bloginfo( 'name' );
+		$blog_name         = get_bloginfo( 'name' );
 		$blog_name_decoded = html_entity_decode( ( is_string( $blog_name ) ? $blog_name : '' ), ENT_QUOTES | ENT_HTML5, 'UTF-8' );
 		$properties->setCompany( $blog_name_decoded );
 
-		$title = $page_data['title'] ?? '';
+		$title         = $page_data['title'] ?? '';
 		$title_decoded = html_entity_decode( ( is_string( $title ) ? $title : '' ), ENT_QUOTES | ENT_HTML5, 'UTF-8' );
 		$properties->setTitle( $title_decoded );
 
-		$permalink = $page_data['permalink'] ?? '';
+		$permalink      = $page_data['permalink'] ?? '';
 		$permalink_safe = is_string( $permalink ) ? esc_url_raw( $permalink ) : '';
 		$properties->setDescription( 'Exported from ' . $permalink_safe );
 
-		$author = $page_data['author'] ?? '';
+		$author          = $page_data['author'] ?? '';
 		$author_stripped = is_string( $author ) ? wp_strip_all_tags( $author ) : '';
 		$properties->setLastModifiedBy( $author_stripped );
 	}
@@ -924,7 +894,7 @@ class SScribe_Exporter {
 		);
 
 		if ( $this->is_rtl ) {
-			$blockquote_style['bidi']                = true;
+			$blockquote_style['bidi']             = true;
 			$blockquote_style['indentation']      = array( 'right' => Converter::cmToTwip( 1 ) );
 			$blockquote_style['borderRightSize']  = 12;
 			$blockquote_style['borderRightColor'] = $this->colors['primary'];
@@ -942,10 +912,10 @@ class SScribe_Exporter {
 		);
 
 		if ( $this->is_rtl ) {
-			$codeblock_style['bidi']               = true;
-			$codeblock_style['indentation']     = array( 'right' => Converter::cmToTwip( 0.5 ) );
+			$codeblock_style['bidi']        = true;
+			$codeblock_style['indentation'] = array( 'right' => Converter::cmToTwip( 0.5 ) );
 		} else {
-			$codeblock_style['indentation']     = array( 'left' => Converter::cmToTwip( 0.5 ) );
+			$codeblock_style['indentation'] = array( 'left' => Converter::cmToTwip( 0.5 ) );
 		}
 
 		// CodeBlock needs explicit complexScript and rtl for proper RTL code display.
@@ -1153,8 +1123,8 @@ class SScribe_Exporter {
 
 		// Skip TOC if page content is minimal (single section or very few headings).
 		// A table of contents with a single entry is pointless and wastes a page.
-		$content      = $page_data['content'] ?? '';
-		$word_count   = $page_data['word_count'] ?? 0;
+		$content       = $page_data['content'] ?? '';
+		$word_count    = $page_data['word_count'] ?? 0;
 		$heading_count = 0;
 		if ( function_exists( 'preg_match_all' ) ) {
 			preg_match_all( '/<h[1-6][^>]*>/i', $content, $heading_matches );
@@ -1383,7 +1353,7 @@ class SScribe_Exporter {
 					'page_id'   => $page_data['id'] ?? 0,
 					'path'      => $path,
 					'exception' => get_class( $e ),
-					'message'  => $e->getMessage(),
+					'message'   => $e->getMessage(),
 				)
 			);
 
@@ -1599,7 +1569,7 @@ class SScribe_Exporter {
 		$section->addTitle( __( 'Child Pages', 'sscribe-export-site-pages' ), 2 );
 
 		// Cap at 3 levels deep and limit total children to prevent abnormally long lists.
-		$max_depth  = 3;
+		$max_depth    = 3;
 		$max_children = 50;
 		$this->render_child_pages( $section, $page_data['children'], 0, $max_depth, $max_children, 0 );
 	}
@@ -1637,8 +1607,8 @@ class SScribe_Exporter {
 				continue;
 			}
 
-			$indent    = str_repeat( '  ', $depth );
-			$text_run  = $section->addTextRun( $this->get_para_style() );
+			$indent   = str_repeat( '  ', $depth );
+			$text_run = $section->addTextRun( $this->get_para_style() );
 			$text_run->addText(
 				$indent . '> ',
 				array(
@@ -1664,7 +1634,7 @@ class SScribe_Exporter {
 					'color' => $this->colors['body'],
 				)
 			);
-			$rendered++;
+			++$rendered;
 
 			// Recursively render grandchildren.
 			if ( ! empty( $child['children'] ) && is_array( $child['children'] ) ) {

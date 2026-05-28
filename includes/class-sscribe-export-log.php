@@ -1,6 +1,6 @@
 <?php
 /**
- * SScribe Export Log
+ * SScribe Export Log.
  *
  * @package SScribe_Export_Site_Pages
  * @license GPL v2 or later
@@ -13,6 +13,12 @@ if ( ! defined( 'ABSPATH' ) ) {
 	exit;
 }
 
+/**
+ * Export log management.
+ *
+ * @package SScribe_Export_Site_Pages
+ * @subpackage Log
+ */
 class SScribe_Export_Log {
 
 	/**

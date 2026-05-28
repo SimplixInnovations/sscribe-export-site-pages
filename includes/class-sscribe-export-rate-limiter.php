@@ -53,8 +53,8 @@ class SScribe_Export_Rate_Limiter {
 			$transient_key = 'sscribe_rate_' . $bucket . '_anon_' . substr( hash( 'sha256', $remote_ip ), 0, 12 );
 		}
 
-		$now       = time();
-		$lock_key  = $transient_key . '_lock';
+		$now      = time();
+		$lock_key = $transient_key . '_lock';
 
 		$rate_limit = current_user_can( $export_capability )
 			? (int) apply_filters( 'sscribe_rate_limit_admin', 500 )
@@ -73,7 +73,7 @@ class SScribe_Export_Rate_Limiter {
 					// even on MySQL INSERT ON DUPLICATE KEY UPDATE, so we must read back.
 					if ( $locked ) {
 						$verified = get_transient( $lock_key );
-						$locked = false !== $verified && 1 === (int) $verified;
+						$locked   = false !== $verified && 1 === (int) $verified;
 					}
 				}
 			}

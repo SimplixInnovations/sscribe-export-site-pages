@@ -57,10 +57,10 @@ class SScribe_Export_Lock_Manager {
 		int $lock_ttl = 45,
 		int $stale_threshold = 35
 	): ?string {
-		$lock_key    = 'sscribe_lock_' . $session_id;
-		$lock_token  = wp_generate_password( 32, false );
+		$lock_key     = 'sscribe_lock_' . $session_id;
+		$lock_token   = wp_generate_password( 32, false );
 		$current_time = time();
-		$using_cache = wp_using_ext_object_cache();
+		$using_cache  = wp_using_ext_object_cache();
 
 		// Check for stale lock first (non-atomic read is acceptable for staleness check).
 		$existing_lock = $using_cache
@@ -83,7 +83,7 @@ class SScribe_Export_Lock_Manager {
 					'Overwrote stale lock',
 					array(
 						'session_id' => $session_id,
-						'lock_age' => $lock_age,
+						'lock_age'   => $lock_age,
 					)
 				);
 				return $lock_token;
@@ -177,8 +177,8 @@ class SScribe_Export_Lock_Manager {
 
 		if ( null !== $user_id ) {
 			$session_pattern = $wpdb->esc_like( self::SESSION_PREFIX ) . '%';
-			$user_id_json   = '%' . $wpdb->esc_like( '"user_id":' . $user_id ) . '%';
-			$prefix_len     = strlen( self::SESSION_PREFIX );
+			$user_id_json    = '%' . $wpdb->esc_like( '"user_id":' . $user_id ) . '%';
+			$prefix_len      = strlen( self::SESSION_PREFIX );
 
 			// Query with user_id filter pushed into SQL — avoids fetching all sessions then filtering in PHP.
 			// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- Cleanup.
