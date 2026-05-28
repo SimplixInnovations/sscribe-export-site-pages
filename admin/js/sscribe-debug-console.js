@@ -387,7 +387,6 @@
 			this.currentOffset  = 0;
 			this.hasMoreEntries = true;
 			this.fetchLogs();
-			this.fetchRotatedLogs();
 			this.updateExportButtonScope();
 
 			if (this.isAutoRefresh) {
