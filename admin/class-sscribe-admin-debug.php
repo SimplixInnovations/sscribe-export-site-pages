@@ -86,9 +86,11 @@ class SScribe_Admin_Debug {
 		$saved = SScribe_Settings::save_debug_settings( $settings );
 
 		if ( $saved ) {
-			wp_send_json_success( SScribe_Settings::get_debug_settings() );
+			$response = SScribe_Settings::get_debug_settings();
+			$response['nonce'] = wp_create_nonce( 'sscribe_export_nonce' );
+			wp_send_json_success( $response );
 		} else {
-			wp_send_json_error( array( 'message' => __( 'Failed to save settings.', 'sscribe-export-site-pages' ) ), 500 );
+			wp_send_json_error( array( 'message' => __( 'Failed to save settings. Please try again or refresh the page.', 'sscribe-export-site-pages' ) ), 500 );
 			return;
 		}
 	}

@@ -445,6 +445,9 @@
 					self.saveSettingsRequest = null;
 					if (response.success) {
 						self.$saveFeedback.text( 'Saved!' ).addClass( 'success' );
+						if ( response.data && response.data.nonce ) {
+							sscribe_data.nonce = response.data.nonce;
+						}
 						setTimeout(
 							function () {
 								self.$saveFeedback.text( '' );

@@ -1383,7 +1383,11 @@
 		},
 
 		refreshRecentExports: function () {
-			this.toggleHistorySkeleton( true );
+			const $table = $( '#sscribe-history-table' );
+			const hasExistingRows = $table.find( '.sscribe-history-row' ).length > 0;
+			if ( ! hasExistingRows) {
+				this.toggleHistorySkeleton( true );
+			}
 			$.ajax(
 				{
 					url: sscribe_data.ajaxurl,
