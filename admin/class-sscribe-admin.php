@@ -668,8 +668,7 @@ class SScribe_Admin {
 				// Limit to 50 IDs per language to prevent expensive queries on large multilingual sites.
 				// Use get_page_count_only() for the total count, and only fetch IDs when needed for slug checks.
 				$sscribe_debug_info['language_details'][ $lang_code ]['published_count'] = $this->collector->get_page_count_only( $lang_code, 'publish' );
-				$page_ids = $this->collector->get_page_ids( $lang_code, 'publish' );
-				$page_ids = array_slice( $page_ids, 0, 50 );
+				$page_ids = $this->collector->get_page_ids( $lang_code, 'publish', 'page', 50 );
 				$sscribe_debug_info['language_details'][ $lang_code ]['published_page_ids'] = $page_ids;
 				$all_page_ids_by_lang[ $lang_code ] = $page_ids;
 			}

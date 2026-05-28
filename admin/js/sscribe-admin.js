@@ -1252,7 +1252,7 @@
 				this._finalizeStartTime = Date.now();
 			}
 
-			const elapsedSec = Math.floor( (Date.now() - (this._finalizeStartTime ? ? Date.now())) / 1000 );
+			const elapsedSec = Math.floor( (Date.now() - (this._finalizeStartTime ?? Date.now())) / 1000 );
 			const min        = Math.floor( elapsedSec / 60 );
 			const sec        = elapsedSec % 60;
 			const timeStr    = min > 0 ? min + 'm ' + sec + 's' : sec + 's';

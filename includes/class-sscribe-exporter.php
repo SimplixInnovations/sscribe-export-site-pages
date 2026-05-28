@@ -102,6 +102,20 @@ class SScribe_Exporter {
 	);
 
 	/**
+	 * DNS resolution cache.
+	 *
+	 * @var array<string, string|null>
+	 */
+	private static array $dns_cache = array();
+
+	/**
+	 * Shutdown handler registration flag.
+	 *
+	 * @var bool
+	 */
+	private static bool $shutdown_registered = false;
+
+	/**
 	 * Initialize the exporter.
 	 *
 	 * @param SScribe_Content_Parser|null        $parser           Content parser.
@@ -294,24 +308,25 @@ class SScribe_Exporter {
 	 * @return bool True if blocked.
 	 */
 	private function is_ip_blocked( string $host ): bool {
-		// Check if it's already a valid public IP.
 		if ( filter_var( $host, FILTER_VALIDATE_IP, FILTER_FLAG_NO_PRIV_RANGE | FILTER_FLAG_NO_RES_RANGE ) !== false ) {
 			return false;
 		}
 
-		// It's either a hostname or a private IP - hostname that resolves to private should be blocked.
-		// Use DNS lookup with timeout to prevent hanging.
+		if ( array_key_exists( $host, self::$dns_cache ) ) {
+			$cached = self::$dns_cache[ $host ];
+			if ( null === $cached ) {
+				return false;
+			}
+			return filter_var( $cached, FILTER_VALIDATE_IP, FILTER_FLAG_NO_PRIV_RANGE | FILTER_FLAG_NO_RES_RANGE ) === false;
+		}
+
 		$ip = $this->resolve_host_with_timeout( $host );
+		self::$dns_cache[ $host ] = $ip;
+
 		if ( null === $ip ) {
-			// Could not resolve within timeout or DNS failure.
-			// Do NOT block - unresolvable hostnames are not internal.
-			// Blocking valid CDN hostnames during DNS outages would cause
-			// silent content stripping. Only block if we positively detect
-			// a private IP after resolution.
 			return false;
 		}
 
-		// Check if resolved IP is private/reserved.
 		if ( filter_var( $ip, FILTER_VALIDATE_IP, FILTER_FLAG_NO_PRIV_RANGE | FILTER_FLAG_NO_RES_RANGE ) === false ) {
 			return true;
 		}
@@ -437,41 +452,41 @@ class SScribe_Exporter {
 	 * @throws \RuntimeException If DOCX generation fails integrity checks.
 	 */
 	public function generate_docx( array $page_data, string $output_dir, int $index = 0, int $total = 0 ): string|false {
-		// Register shutdown handler FIRST to clean up temp files on fatal error/OOM
-		// or any early return path where PHPWord may have initialized temp files.
-		register_shutdown_function(
-			static function (): void {
-				$error = error_get_last();
-				if ( $error && E_ERROR === $error['type'] ) {
-					$temp_patterns = array(
-						sys_get_temp_dir() . '/phpword_*.tmp',
-						sys_get_temp_dir() . '/PhpWord*',
-					);
-					foreach ( $temp_patterns as $temp_pattern ) {
-						$temp_files = glob( $temp_pattern );
-						if ( is_array( $temp_files ) ) {
-							foreach ( $temp_files as $temp_file ) {
-								if ( is_file( $temp_file ) && is_writable( $temp_file ) ) { // phpcs:ignore WordPress.WP.AlternativeFunctions.file_system_operations_is_writable
-									wp_delete_file( $temp_file );
-								} elseif ( is_dir( $temp_file ) ) {
-									// Clean up PhpWord temp directories.
-									$dir_files = glob( $temp_file . '/*' );
-									if ( is_array( $dir_files ) ) {
-										foreach ( $dir_files as $dir_file ) {
-											if ( is_file( $dir_file ) ) {
-												wp_delete_file( $dir_file );
+		if ( ! self::$shutdown_registered ) {
+			self::$shutdown_registered = true;
+			register_shutdown_function(
+				static function (): void {
+					$error = error_get_last();
+					if ( $error && E_ERROR === $error['type'] ) {
+						$temp_patterns = array(
+							sys_get_temp_dir() . '/phpword_*.tmp',
+							sys_get_temp_dir() . '/PhpWord*',
+						);
+						foreach ( $temp_patterns as $temp_pattern ) {
+							$temp_files = glob( $temp_pattern );
+							if ( is_array( $temp_files ) ) {
+								foreach ( $temp_files as $temp_file ) {
+									if ( is_file( $temp_file ) && is_writable( $temp_file ) ) { // phpcs:ignore WordPress.WP.AlternativeFunctions.file_system_operations_is_writable
+										wp_delete_file( $temp_file );
+									} elseif ( is_dir( $temp_file ) ) {
+										$dir_files = glob( $temp_file . '/*' );
+										if ( is_array( $dir_files ) ) {
+											foreach ( $dir_files as $dir_file ) {
+												if ( is_file( $dir_file ) ) {
+													wp_delete_file( $dir_file );
+												}
 											}
 										}
+										// phpcs:ignore WordPress.WP.AlternativeFunctions.file_system_operations_rmdir
+										@rmdir( $temp_file );
 									}
-									// phpcs:ignore WordPress.WP.AlternativeFunctions.file_system_operations_rmdir
-									@rmdir( $temp_file );
 								}
 							}
 						}
 					}
 				}
-			}
-		);
+			);
+		}
 
 		if ( empty( $page_data ) || ! is_dir( $output_dir ) ) {
 			$this->cleanup_phpword_temp_files();

@@ -53,6 +53,13 @@ class SScribe_Logger implements SScribe_Logger_Interface {
 	private readonly string $log_dir;
 
 	/**
+	 * Whether the log directory has been protected.
+	 *
+	 * @var bool
+	 */
+	private static bool $log_dir_protected = false;
+
+	/**
 	 * Log level priority mapping.
 	 *
 	 * @var array<string, int>
@@ -181,10 +188,10 @@ class SScribe_Logger implements SScribe_Logger_Interface {
 	 * @return string Full path to log file.
 	 */
 	public function get_log_file(): string {
-		// Always ensure the log directory is protected, even if it already exists.
-		// This handles cases where the directory was created by an older version
-		// or without proper protection.
-		SScribe_Security::protect_directory( $this->log_dir );
+		if ( ! self::$log_dir_protected ) {
+			self::$log_dir_protected = true;
+			SScribe_Security::protect_directory( $this->log_dir );
+		}
 		return $this->log_dir . '/' . $this->prefix . '_debug_' . gmdate( 'Y-m-d' ) . '.log';
 	}
 

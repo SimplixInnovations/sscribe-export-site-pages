@@ -338,8 +338,8 @@ class SScribe_Admin_Debug {
 		}
 
 		$filename = isset( $_POST['filename'] ) ? sanitize_text_field( wp_unslash( $_POST['filename'] ) ) : '';
-		$offset   = absint( $_POST['offset'] ?? 0 );
-		$limit    = max( 1, min( 500, absint( $_POST['limit'] ?? 500 ) ) );
+		$offset   = absint( wp_unslash( $_POST['offset'] ?? 0 ) );
+		$limit    = max( 1, min( 500, absint( wp_unslash( $_POST['limit'] ?? 500 ) ) ) );
 
 		if ( empty( $filename ) ) {
 			wp_send_json_error( array( 'message' => __( 'Filename required.', 'sscribe-export-site-pages' ) ), 400 );

@@ -162,13 +162,14 @@
 			this.$refreshMode.on(
 				'change',
 				function () {
+					const previousAutoRefresh = self.isAutoRefresh;
 					self.isAutoRefresh = $( this ).val() === 'auto';
 					if (self.isAutoRefresh) {
 						self.startAutoRefresh();
 					} else {
 						self.stopAutoRefresh();
 					}
-					self.saveSettings();
+					self.saveSettings( previousAutoRefresh );
 				}
 			);
 
@@ -423,15 +424,16 @@
 			);
 		},
 
-		saveSettings: function () {
+		saveSettings: function ( previousAutoRefresh ) {
 			const self = this;
 			if (this.saveSettingsRequest) {
 				this.saveSettingsRequest.abort();
 			}
+			const sentDebugEnabled = this.$enabled.is( ':checked' );
 			const data = {
 				action: 'sscribe_debug_save_settings',
 				nonce: sscribe_data.nonce,
-				debug_enabled: this.$enabled.is( ':checked' ),
+				debug_enabled: sentDebugEnabled,
 				log_level: this.$level.val(),
 				auto_refresh: this.isAutoRefresh ? '1' : '0',
 			};
@@ -447,12 +449,18 @@
 							function () {
 								self.$saveFeedback.text( '' );
 								self.$saveFeedback.removeClass( 'success' );
-								// Reload page so debug console JS/CSS loads/unloads based on new setting.
-								window.location.reload();
+								if ( response.data && response.data.debug_enabled !== undefined && response.data.debug_enabled !== sentDebugEnabled ) {
+									window.location.reload();
+								}
 							},
 							1000
 						);
 					} else {
+						if ( previousAutoRefresh !== undefined ) {
+							self.isAutoRefresh = previousAutoRefresh;
+							const targetValue = previousAutoRefresh ? 'auto' : 'manual';
+							self.$refreshMode.filter( '[value="' + targetValue + '"]' ).prop( 'checked', true );
+						}
 						self.$saveFeedback.text( self.getResponseMessage( response, 'Error' ) ).addClass( 'error' );
 						setTimeout(
 							function () {
