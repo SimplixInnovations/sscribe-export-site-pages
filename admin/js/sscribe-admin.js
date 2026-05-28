@@ -272,7 +272,7 @@
 			if (tabId === 'debug' && typeof window.SScribeDebugConsole !== 'undefined') {
 				if ( ! window.SScribeDebugConsole.initialized) {
 					window.SScribeDebugConsole.init();
-				} else {
+				} else if (window.SScribeDebugConsole.isAutoRefresh) {
 					window.SScribeDebugConsole.startAutoRefresh();
 				}
 			} else if (currentTabId === 'debug' && typeof window.SScribeDebugConsole !== 'undefined') {

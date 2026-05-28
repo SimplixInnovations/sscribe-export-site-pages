@@ -403,6 +403,7 @@
 					if ( ! self.isViewingRotated && self.currentOffset === 0) {
 						self.fetchLogs();
 					}
+					self.fetchRotatedLogs();
 				},
 				10000
 			);
@@ -461,13 +462,16 @@
 				auto_refresh: this.isAutoRefresh ? '1' : '0',
 			};
 
+			self.$saveSettings.prop( 'disabled', true );
+
 			this.saveSettingsRequest = $.post(
 				sscribe_data.ajaxurl,
 				data,
 				function (response) {
 					self.saveSettingsRequest = null;
+					self.$saveSettings.prop( 'disabled', false );
 					if (response.success) {
-						self.$saveFeedback.text( 'Saved!' ).addClass( 'success' );
+						self.$saveFeedback.removeClass( 'success error' ).text( 'Saved!' ).addClass( 'success' );
 						if ( response.data && response.data.nonce ) {
 							sscribe_data.nonce = response.data.nonce;
 						}
@@ -493,8 +497,13 @@
 							self.isAutoRefresh = previousAutoRefresh;
 							const targetValue  = previousAutoRefresh ? 'auto' : 'manual';
 							self.$refreshMode.filter( '[value="' + targetValue + '"]' ).prop( 'checked', true );
+							if (previousAutoRefresh) {
+								self.startAutoRefresh();
+							} else {
+								self.stopAutoRefresh();
+							}
 						}
-						self.$saveFeedback.text( self.getResponseMessage( response, 'Error' ) ).addClass( 'error' );
+						self.$saveFeedback.removeClass( 'success error' ).text( self.getResponseMessage( response, 'Error' ) ).addClass( 'error' );
 						setTimeout(
 							function () {
 								self.$saveFeedback.text( '' );
@@ -507,6 +516,7 @@
 			).fail(
 				function (xhr) {
 					self.saveSettingsRequest = null;
+					self.$saveSettings.prop( 'disabled', false );
 					if (xhr.statusText === 'abort') {
 						return;
 					}
@@ -672,7 +682,20 @@
 
 			this.$empty.hide();
 			this.cleanupBeforeRender();
+
+			// Preserve scroll position during auto-refresh updates.
+			const consoleBody = document.getElementById( 'sscribe-debug-console-body' );
+			const scrollTop   = consoleBody ? consoleBody.scrollTop : 0;
+			const wasAtBottom = consoleBody ? (consoleBody.scrollHeight - consoleBody.scrollTop - consoleBody.clientHeight < 50) : false;
+
 			this.$entries.html( this.buildLogsHtml( entries ) );
+
+			if (wasAtBottom && consoleBody) {
+				consoleBody.scrollTop = consoleBody.scrollHeight;
+			} else if (consoleBody) {
+				consoleBody.scrollTop = scrollTop;
+			}
+
 			if ( ! skipObserver) {
 				this.setupObserver();
 			}
@@ -1042,29 +1065,41 @@
 						}
 						self.fetchRotatedLogs();
 					} else {
-						self.$saveFeedback.text( self.getResponseMessage( response, 'Error' ) ).addClass( 'error' );
-						setTimeout(
-							function () {
-								self.$saveFeedback.text( '' );
-								self.$saveFeedback.removeClass( 'error' );
-							},
-							2000
-						);
+						if ($btn) {
+							const $row = $btn.closest( '.sscribe-debug-rotated-file' );
+							if ($row.length) {
+								$row.find( '.sscribe-debug-rotated-file-actions' ).after(
+									'<div class="sscribe-rotated-error" style="color:red;font-size:12px;margin-top:4px;">' +
+									escHtml( self.getResponseMessage( response, 'Error' ) ) +
+									'</div>'
+								);
+								setTimeout(
+									function () {
+										$row.find( '.sscribe-rotated-error' ).remove();
+									},
+									3000
+								);
+							}
+						}
 					}
 				}
 			).fail(
 				function () {
 					if ($btn) {
 						$btn.prop( 'disabled', false );
+						const $row = $btn.closest( '.sscribe-debug-rotated-file' );
+						if ($row.length) {
+							$row.find( '.sscribe-debug-rotated-file-actions' ).after(
+								'<div class="sscribe-rotated-error" style="color:red;font-size:12px;margin-top:4px;">Error</div>'
+							);
+							setTimeout(
+								function () {
+									$row.find( '.sscribe-rotated-error' ).remove();
+								},
+								3000
+							);
+						}
 					}
-					self.$saveFeedback.text( 'Error' ).addClass( 'error' );
-					setTimeout(
-						function () {
-							self.$saveFeedback.text( '' );
-							self.$saveFeedback.removeClass( 'error' );
-						},
-						2000
-					);
 				}
 			);
 		},
