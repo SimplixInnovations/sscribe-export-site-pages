@@ -278,8 +278,8 @@ class SScribe_Admin_Debug {
 			return;
 		}
 
-		$log_files   = glob( $log_dir . '/*.log' );
-		$log_files   = is_array( $log_files ) ? $log_files : array();
+		$log_files = glob( $log_dir . '/*.log' );
+		$log_files = is_array( $log_files ) ? $log_files : array();
 		// Exclude .json files - they are export session records, not debug logs.
 		$files       = $log_files;
 		$result      = array();
@@ -599,7 +599,7 @@ class SScribe_Admin_Debug {
 	 * @return string Basename of the current log file.
 	 */
 	private function get_logger_log_file(): string {
-		$logger = SScribe_Logger::instance( true );
+		$logger        = SScribe_Logger::instance( true );
 		$log_file_path = $logger->get_log_file();
 		return basename( $log_file_path );
 	}
