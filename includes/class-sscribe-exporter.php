@@ -976,7 +976,7 @@ class SScribe_Exporter {
 	 * Add cover page to the document.
 	 *
 	 * @param Section $section   Document section.
-	 * @param array                                            $page_data Page data.
+	 * @param array   $page_data Page data.
 	 * @return void
 	 */
 	private function add_cover_page( Section $section, array $page_data ): void {
@@ -1215,7 +1215,7 @@ class SScribe_Exporter {
 	 * Add header and footer to document section.
 	 *
 	 * @param Section $section   Document section.
-	 * @param array                                            $page_data Page data.
+	 * @param array   $page_data Page data.
 	 * @return void
 	 */
 	private function add_header_footer( Section $section, array $page_data ): void {
@@ -1271,7 +1271,7 @@ class SScribe_Exporter {
 	 * Add featured image to document section.
 	 *
 	 * @param Section $section   Document section.
-	 * @param array                                            $page_data Page data.
+	 * @param array   $page_data Page data.
 	 * @return void
 	 */
 	private function add_featured_image( Section $section, array $page_data ): void {
@@ -1373,7 +1373,7 @@ class SScribe_Exporter {
 	 * Add page information table to document.
 	 *
 	 * @param Section $section   Document section.
-	 * @param array                                            $page_data Page data.
+	 * @param array   $page_data Page data.
 	 * @return void
 	 */
 	private function add_page_info_table( Section $section, array $page_data ): void {
@@ -1443,7 +1443,7 @@ class SScribe_Exporter {
 	 * Add SEO information section to document.
 	 *
 	 * @param Section $section   Document section.
-	 * @param array                                            $page_data Page data.
+	 * @param array   $page_data Page data.
 	 * @return void
 	 */
 	private function add_seo_section( Section $section, array $page_data ): void {
@@ -1520,7 +1520,7 @@ class SScribe_Exporter {
 	 * Add breadcrumbs to document.
 	 *
 	 * @param Section $section   Document section.
-	 * @param array                                            $page_data Page data.
+	 * @param array   $page_data Page data.
 	 * @return void
 	 */
 	private function add_breadcrumbs( Section $section, array $page_data ): void {
@@ -1565,7 +1565,7 @@ class SScribe_Exporter {
 	 * Add child pages section to document.
 	 *
 	 * @param Section $section   Document section.
-	 * @param array                                            $page_data Page data.
+	 * @param array   $page_data Page data.
 	 * @return void
 	 */
 	private function add_child_pages( Section $section, array $page_data ): void {
@@ -1586,11 +1586,11 @@ class SScribe_Exporter {
 	 * Render child pages recursively with depth limit.
 	 *
 	 * @param Section $section      Document section.
-	 * @param array                                            $children     Children array.
-	 * @param int                                              $depth        Current depth.
-	 * @param int                                              $max_depth    Maximum depth allowed.
-	 * @param int                                              $max_children Maximum total children to render.
-	 * @param int                                              $rendered     Count of rendered children.
+	 * @param array   $children     Children array.
+	 * @param int     $depth        Current depth.
+	 * @param int     $max_depth    Maximum depth allowed.
+	 * @param int     $max_children Maximum total children to render.
+	 * @param int     $rendered     Count of rendered children.
 	 * @return int Total rendered count.
 	 */
 	private function render_child_pages(
