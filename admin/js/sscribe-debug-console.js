@@ -163,7 +163,7 @@
 				'change',
 				function () {
 					const previousAutoRefresh = self.isAutoRefresh;
-					self.isAutoRefresh = $( this ).val() === 'auto';
+					self.isAutoRefresh        = $( this ).val() === 'auto';
 					if (self.isAutoRefresh) {
 						self.startAutoRefresh();
 					} else {
@@ -430,7 +430,7 @@
 				this.saveSettingsRequest.abort();
 			}
 			const sentDebugEnabled = this.$enabled.is( ':checked' );
-			const data = {
+			const data             = {
 				action: 'sscribe_debug_save_settings',
 				nonce: sscribe_data.nonce,
 				debug_enabled: sentDebugEnabled,
@@ -458,7 +458,7 @@
 					} else {
 						if ( previousAutoRefresh !== undefined ) {
 							self.isAutoRefresh = previousAutoRefresh;
-							const targetValue = previousAutoRefresh ? 'auto' : 'manual';
+							const targetValue  = previousAutoRefresh ? 'auto' : 'manual';
 							self.$refreshMode.filter( '[value="' + targetValue + '"]' ).prop( 'checked', true );
 						}
 						self.$saveFeedback.text( self.getResponseMessage( response, 'Error' ) ).addClass( 'error' );

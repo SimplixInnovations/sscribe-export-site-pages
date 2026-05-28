@@ -1040,6 +1040,21 @@ class SScribe_Batch_Processor {
 
 		$lock_token = $this->current_lock_token;
 
+		// Re-read session after acquiring lock to get fresh data.
+		// The initial read at line 953 may have stale data if another
+		// process was mid-update when we read it.
+		$session = $this->session->get( $session_id );
+		if ( null === $session ) {
+			$this->get_lock_manager()->release_lock( $session_id, $lock_token );
+			$this->restore_ob_level( $ob_level_before );
+			SScribe_AJAX_Guard::error(
+				array(
+					'message' => __( 'Export session expired during lock acquisition.', 'sscribe-export-site-pages' ),
+				),
+				404
+			);
+		}
+
 		if ( ! empty( $session['cancelled'] ) ) {
 			$this->logger->debug( 'Export was cancelled' );
 			$export_stats = new SScribe_Export_Stats();
