@@ -72,7 +72,7 @@ class SScribe_Admin_Debug {
 			SScribe_Settings::LEVEL_ERROR,
 			SScribe_Settings::LEVEL_CRITICAL,
 		);
-		$log_level = isset( $_POST['log_level'] ) ? sanitize_text_field( wp_unslash( $_POST['log_level'] ) ) : 'DEBUG';
+		$log_level      = isset( $_POST['log_level'] ) ? sanitize_text_field( wp_unslash( $_POST['log_level'] ) ) : 'DEBUG';
 		if ( ! in_array( $log_level, $allowed_levels, true ) ) {
 			$log_level = 'DEBUG';
 		}
@@ -126,10 +126,10 @@ class SScribe_Admin_Debug {
 		$entries = $this->parse_log_entries( $logs, $filter_level, $search, $session_id, true );
 
 		// Determine log file existence for status reporting.
-		$upload_dir  = wp_upload_dir();
-		$log_dir     = $upload_dir['basedir'] . '/sscribe-logs';
-		$log_file    = $log_dir . '/sscribe_debug_' . gmdate( 'Y-m-d' ) . '.log';
-		$log_exists  = file_exists( $log_file );
+		$upload_dir    = wp_upload_dir();
+		$log_dir       = $upload_dir['basedir'] . '/sscribe-logs';
+		$log_file      = $log_dir . '/sscribe_debug_' . gmdate( 'Y-m-d' ) . '.log';
+		$log_exists    = file_exists( $log_file );
 		$debug_enabled = SScribe_Settings::is_debug_enabled() || ( defined( 'SSCRIBE_DEBUG' ) && SSCRIBE_DEBUG );
 
 		wp_send_json_success(
@@ -139,7 +139,7 @@ class SScribe_Admin_Debug {
 				'offset'        => $offset,
 				'limit'         => $limit,
 				'status'        => $log_exists ? 'ok' : 'no_log_file',
-				'debug_enabled'  => $debug_enabled,
+				'debug_enabled' => $debug_enabled,
 			)
 		);
 	}
@@ -278,12 +278,12 @@ class SScribe_Admin_Debug {
 			return;
 		}
 
-		$log_files  = glob( $log_dir . '/*.log' );
-		$log_files  = is_array( $log_files ) ? $log_files : array();
-		$json_files = glob( $log_dir . '/*.json' );
-		$json_files = is_array( $json_files ) ? $json_files : array();
-		$files      = array_merge( $log_files, $json_files );
-		$result     = array();
+		$log_files   = glob( $log_dir . '/*.log' );
+		$log_files   = is_array( $log_files ) ? $log_files : array();
+		$json_files  = glob( $log_dir . '/*.json' );
+		$json_files  = is_array( $json_files ) ? $json_files : array();
+		$files       = array_merge( $log_files, $json_files );
+		$result      = array();
 		$current_log = 'sscribe_debug_' . gmdate( 'Y-m-d' ) . '.log';
 
 		foreach ( $files as $file ) {
@@ -297,9 +297,9 @@ class SScribe_Admin_Debug {
 					continue;
 				}
 				$result[] = array(
-					'name' => $basename,
-					'size' => size_format( $stat['size'] ),
-					'date' => wp_date( 'Y-m-d H:i:s', $stat['mtime'] ),
+					'name'  => $basename,
+					'size'  => size_format( $stat['size'] ),
+					'date'  => wp_date( 'Y-m-d H:i:s', $stat['mtime'] ),
 					'mtime' => $stat['mtime'],
 				);
 			}
@@ -465,7 +465,7 @@ class SScribe_Admin_Debug {
 	private function parse_log_entries( array $lines, string $filter_level, string $search, string $session_id = '', bool $reverse = true ): array {
 		$entries = array();
 
-		$priorities = array(
+		$priorities      = array(
 			'DEBUG'     => 0,
 			'INFO'      => 1,
 			'NOTICE'    => 2,
@@ -499,10 +499,10 @@ class SScribe_Admin_Debug {
 			}
 
 			if ( ! empty( $search ) ) {
-				$search_lower = strtolower( $search );
-				$message     = strtolower( $entry['message'] );
-				$context_json = wp_json_encode( $entry['context'] );
-				$context_json = ( false === $context_json ) ? '' : $context_json;
+				$search_lower  = strtolower( $search );
+				$message       = strtolower( $entry['message'] );
+				$context_json  = wp_json_encode( $entry['context'] );
+				$context_json  = ( false === $context_json ) ? '' : $context_json;
 				$context_lower = strtolower( $context_json );
 
 				if ( false === strpos( $message, $search_lower )
@@ -543,7 +543,7 @@ class SScribe_Admin_Debug {
 			$context = array();
 			if ( ! empty( $matches[4] ) ) {
 				$context_json_decoded = json_decode( $matches[4], true );
-				$context = is_array( $context_json_decoded ) ? $context_json_decoded : array();
+				$context              = is_array( $context_json_decoded ) ? $context_json_decoded : array();
 			}
 
 			return array(

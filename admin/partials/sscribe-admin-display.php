@@ -377,7 +377,7 @@ $sscribe_export_index    = $sscribe_export_index ?? array();
 							$sscribe_selected_status_label = __( 'Published', 'sscribe-export-site-pages' );
 							$sscribe_first_found           = true;
 							foreach ( $sscribe_status_labels as $sscribe_s_key => $sscribe_s_label ) {
-								$sscribe_s_count  = isset( $sscribe_status_counts[ $sscribe_s_key ] ) ? intval( $sscribe_status_counts[ $sscribe_s_key ] ) : 0;
+								$sscribe_s_count = isset( $sscribe_status_counts[ $sscribe_s_key ] ) ? intval( $sscribe_status_counts[ $sscribe_s_key ] ) : 0;
 								if ( $sscribe_first_found && $sscribe_s_count > 0 ) {
 									$sscribe_selected_status_label = $sscribe_s_label;
 									$sscribe_first_found           = false;

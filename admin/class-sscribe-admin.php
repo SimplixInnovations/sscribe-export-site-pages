@@ -493,7 +493,7 @@ class SScribe_Admin {
 		$sscribe_debug_info = array();
 		// Always show the debug tab so users can toggle debug on/off.
 		// The debug *logging* is still controlled by the setting.
-		$sscribe_is_debug   = true;
+		$sscribe_is_debug             = true;
 		$sscribe_debug_logging_active = SSCRIBE_DEBUG || SScribe_Settings::is_debug_enabled();
 
 		if ( $sscribe_debug_logging_active ) {
@@ -504,8 +504,8 @@ class SScribe_Admin {
 
 		if ( $sscribe_debug_logging_active ) {
 			// Include blog ID in cache key for multisite compatibility.
-			$blog_id         = is_multisite() ? get_current_blog_id() : 0;
-			$debug_cache_key = 'sscribe_debug_info_' . $blog_id . '_' . get_current_user_id();
+			$blog_id            = is_multisite() ? get_current_blog_id() : 0;
+			$debug_cache_key    = 'sscribe_debug_info_' . $blog_id . '_' . get_current_user_id();
 			$sscribe_debug_info = get_transient( $debug_cache_key );
 
 			if ( false === $sscribe_debug_info ) {
@@ -563,7 +563,8 @@ class SScribe_Admin {
 		// Pre-collect existing files to avoid O(n) file_exists() calls on slow filesystems.
 		$existing_files = array();
 		if ( is_dir( $export_dir ) ) {
-			$glob_files = glob( trailingslashit( $export_dir ) . '*.zip' ) ?: array();
+			$glob_files = glob( trailingslashit( $export_dir ) . '*.zip' );
+			$glob_files = is_array( $glob_files ) ? $glob_files : array();
 			foreach ( $glob_files as $f ) {
 				$existing_files[ basename( $f ) ] = true;
 			}

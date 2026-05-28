@@ -85,8 +85,8 @@ class SScribe_Logger implements SScribe_Logger_Interface {
 			$use_enhanced = self::should_use_enhanced();
 
 			if ( $use_enhanced && class_exists( 'SScribe_Logger_Enhanced' ) ) {
-				$options['enabled'] = $effective_enabled;
-				$options['prefix']  = $prefix;
+				$options['enabled']      = $effective_enabled;
+				$options['prefix']       = $prefix;
 				self::$instances[ $key ] = new SScribe_Logger_Enhanced( $options );
 			} else {
 				self::$instances[ $key ] = new self( $effective_enabled, $prefix );
@@ -313,16 +313,16 @@ class SScribe_Logger implements SScribe_Logger_Interface {
 		// Apply log level filtering if configured.
 		$configured_level = SScribe_Settings::get_debug_log_level();
 		if ( 'ALL' !== $configured_level ) {
-			$priorities = array(
-				'DEBUG'   => 0,
-				'INFO'    => 1,
-				'NOTICE'  => 2,
-				'WARNING' => 3,
-				'ERROR'   => 4,
+			$priorities          = array(
+				'DEBUG'    => 0,
+				'INFO'     => 1,
+				'NOTICE'   => 2,
+				'WARNING'  => 3,
+				'ERROR'    => 4,
 				'CRITICAL' => 5,
 			);
 			$configured_priority = $priorities[ $configured_level ] ?? 0;
-			$entry_priority       = $priorities[ strtoupper( $level ) ] ?? 0;
+			$entry_priority      = $priorities[ strtoupper( $level ) ] ?? 0;
 			if ( $entry_priority < $configured_priority ) {
 				return;
 			}
@@ -382,7 +382,7 @@ class SScribe_Logger implements SScribe_Logger_Interface {
 
 		if ( $current_size > 0 && ( $current_size + $content_size ) > self::MAX_LOG_FILE_SIZE ) {
 			$rotated_file = $this->log_dir . '/' . $this->prefix . '_debug_' . gmdate( 'Y-m-d_H-i-s' ) . '.log';
-			$rotated = rename( $log_file, $rotated_file ); // phpcs:ignore WordPress.WP.AlternativeFunctions.rename_rename -- Safe filesystem rename for log rotation.
+			$rotated      = rename( $log_file, $rotated_file ); // phpcs:ignore WordPress.WP.AlternativeFunctions.rename_rename -- Safe filesystem rename for log rotation.
 			if ( $rotated ) {
 				$warning_entry = sprintf(
 					"[%s] [WARNING] Log file exceeded %s bytes — rotated to %s\n",
@@ -442,16 +442,16 @@ class SScribe_Logger implements SScribe_Logger_Interface {
 					// Fallback to full read if SplFileObject fails.
 					$contents = file_get_contents( $log_file ); // phpcs:ignore WordPress.WP.AlternativeFunctions.file_get_contents_file_get_contents
 					if ( $contents ) {
-						$contents       = str_replace( "\r\n", "\n", $contents );
-						$contents       = str_replace( "\r", "\n", $contents );
-						$file_entries   = explode( "\n", trim( $contents ) );
+						$contents     = str_replace( "\r\n", "\n", $contents );
+						$contents     = str_replace( "\r", "\n", $contents );
+						$file_entries = explode( "\n", trim( $contents ) );
 					}
 				}
 			} else {
 				$contents = file_get_contents( $log_file ); // phpcs:ignore WordPress.WP.AlternativeFunctions.file_get_contents_file_get_contents -- Safe filesystem read.
 				if ( $contents ) {
-					$contents = str_replace( "\r\n", "\n", $contents );
-					$contents = str_replace( "\r", "\n", $contents );
+					$contents     = str_replace( "\r\n", "\n", $contents );
+					$contents     = str_replace( "\r", "\n", $contents );
 					$file_entries = explode( "\n", trim( $contents ) );
 				}
 			}
