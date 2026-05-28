@@ -37,6 +37,7 @@
 		observer: null,
 		currentRequest: null,
 		saveSettingsRequest: null,
+		rotatedRequest: null,
 
 		init: function () {
 			if (this.initialized) {
@@ -223,7 +224,6 @@
 						const priorFocus         = document.activeElement;
 						const focusableSelectors =
 						'a[href], button:not([disabled]), textarea:not([disabled]), input:not([disabled]), select:not([disabled]), [tabindex]:not([tabindex="-1"])';
-						const focusableElements  = Array.from( dialog.querySelectorAll( focusableSelectors ) );
 						const closeDialog        = function () {
 							if (document.body.contains( overlay )) {
 								document.body.removeChild( overlay );
@@ -243,6 +243,7 @@
 								return;
 							}
 							if (e.key === 'Tab') {
+								const focusableElements = Array.from( dialog.querySelectorAll( focusableSelectors ) );
 								const first = focusableElements[0];
 								const last  = focusableElements[focusableElements.length - 1];
 								if (e.shiftKey && document.activeElement === first) {
@@ -268,6 +269,7 @@
 						document.body.appendChild( overlay );
 						document.body.appendChild( dialog );
 						document.addEventListener( 'keydown', keyHandler );
+						const focusableElements = Array.from( dialog.querySelectorAll( focusableSelectors ) );
 						if (focusableElements.length > 0) {
 							focusableElements[0].focus();
 						}
@@ -426,6 +428,12 @@
 
 		saveSettings: function ( previousAutoRefresh ) {
 			const self = this;
+
+			// Guard against missing DOM elements.
+			if ( ! this.$enabled.length || ! this.$level.length) {
+				return;
+			}
+
 			if (this.saveSettingsRequest) {
 				this.saveSettingsRequest.abort();
 			}
@@ -526,7 +534,7 @@
 				search: this.searchQuery,
 				session_id: this.sessionFilter,
 				offset: this.currentOffset,
-				limit: 500,
+				limit: 200,
 			};
 
 			if (isInitialLoad) {
@@ -698,10 +706,13 @@
 				nonce: sscribe_data.nonce,
 			};
 
+			self.$clearBtn.prop( 'disabled', true );
+
 			$.post(
 				sscribe_data.ajaxurl,
 				data,
 				function (response) {
+					self.$clearBtn.prop( 'disabled', false );
 					if (response.success) {
 						self.$saveFeedback.text( 'Logs cleared' ).addClass( 'success' );
 						setTimeout(
@@ -726,6 +737,7 @@
 				}
 			).fail(
 				function () {
+					self.$clearBtn.prop( 'disabled', false );
 					self.$saveFeedback.text( 'Error' ).addClass( 'error' );
 					setTimeout(
 						function () {
@@ -763,6 +775,7 @@
 		},
 
 		exportLogs: function () {
+			const self = this;
 			const data = {
 				action: 'sscribe_debug_export_logs',
 				nonce: sscribe_data.nonce,
@@ -771,7 +784,14 @@
 				session_id: this.sessionFilter,
 			};
 
+			self.$exportBtn.prop( 'disabled', true );
 			this.downloadViaForm( sscribe_data.ajaxurl, data );
+			setTimeout(
+				function () {
+					self.$exportBtn.prop( 'disabled', false );
+				},
+				2000
+			);
 		},
 
 		fetchRotatedLogs: function () {
@@ -781,10 +801,15 @@
 				nonce: sscribe_data.nonce,
 			};
 
-			$.post(
+			if (this.rotatedRequest) {
+				this.rotatedRequest.abort();
+			}
+
+			this.rotatedRequest = $.post(
 				sscribe_data.ajaxurl,
 				data,
 				function (response) {
+					self.rotatedRequest = null;
 					if (response.success && response.data && Array.isArray( response.data.files )) {
 						self.renderRotatedLogs( response.data.files );
 					} else {
@@ -796,7 +821,11 @@
 					}
 				}
 			).fail(
-				function () {
+				function (xhr) {
+					if (xhr.statusText === 'abort' || xhr.status === 0) {
+						return;
+					}
+					self.rotatedRequest = null;
 					self.$rotatedBody.html(
 						'<div class="sscribe-debug-rotated-empty">' + escHtml( 'Unable to load rotated logs.' ) + '</div>'
 					);

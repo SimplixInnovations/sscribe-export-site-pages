@@ -29,6 +29,13 @@ class SScribe_Admin_Debug {
 	private ?string $cached_log_filename = null;
 
 	/**
+	 * Whether hooks have been registered.
+	 *
+	 * @var bool
+	 */
+	private static bool $hooks_registered = false;
+
+	/**
 	 * Get required capability for debug actions.
 	 *
 	 * @return string
@@ -42,9 +49,10 @@ class SScribe_Admin_Debug {
 	 *
 	 * Calls wp_send_json_error and returns false on failure.
 	 *
+	 * @param string $rate_bucket Rate limit bucket identifier.
 	 * @return bool True if authorized.
 	 */
-	private function verify_request_authorization(): bool {
+	private function verify_request_authorization( string $rate_bucket = 'debug' ): bool {
 		if ( ! check_ajax_referer( 'sscribe_export_nonce', 'nonce', false ) ) {
 			wp_send_json_error( array( 'message' => __( 'Invalid security token.', 'sscribe-export-site-pages' ) ), 403 );
 			return false;
@@ -56,7 +64,7 @@ class SScribe_Admin_Debug {
 		}
 
 		$rate_limiter = new SScribe_Export_Rate_Limiter();
-		if ( ! $rate_limiter->check_rate_limit( self::get_export_capability(), 'debug' ) ) {
+		if ( ! $rate_limiter->check_rate_limit( self::get_export_capability(), $rate_bucket ) ) {
 			wp_send_json_error( array( 'message' => __( 'Rate limit exceeded. Please wait before trying again.', 'sscribe-export-site-pages' ) ), 429 );
 			return false;
 		}
@@ -68,6 +76,11 @@ class SScribe_Admin_Debug {
 	 * Register all debug AJAX hooks.
 	 */
 	public function register_hooks(): void {
+		if ( self::$hooks_registered ) {
+			return;
+		}
+		self::$hooks_registered = true;
+
 		add_action( 'wp_ajax_sscribe_debug_save_settings', array( $this, 'ajax_debug_save_settings' ) );
 		add_action( 'wp_ajax_sscribe_debug_fetch_logs', array( $this, 'ajax_debug_fetch_logs' ) );
 		add_action( 'wp_ajax_sscribe_debug_clear_logs', array( $this, 'ajax_debug_clear_logs' ) );
@@ -125,7 +138,7 @@ class SScribe_Admin_Debug {
 	 * @internal
 	 */
 	public function ajax_debug_fetch_logs(): void {
-		if ( ! $this->verify_request_authorization() ) {
+		if ( ! $this->verify_request_authorization( 'debug_read' ) ) {
 			return;
 		}
 
@@ -136,7 +149,8 @@ class SScribe_Admin_Debug {
 		$limit        = isset( $_POST['limit'] ) ? max( 1, min( 200, absint( wp_unslash( $_POST['limit'] ) ) ) ) : 200;
 
 		$logger = SScribe_Logger::instance( true );
-		$logs   = $logger->get_logs( -1 );
+		// Fetch only the needed window to avoid loading entire file into memory.
+		$logs   = $logger->get_logs( $offset + $limit );
 
 		$entries = $this->parse_log_entries( $logs, $filter_level, $search, $session_id, true );
 
@@ -251,7 +265,7 @@ class SScribe_Admin_Debug {
 	 * @internal
 	 */
 	public function ajax_debug_get_rotated_log_files(): void {
-		if ( ! $this->verify_request_authorization() ) {
+		if ( ! $this->verify_request_authorization( 'debug_read' ) ) {
 			return;
 		}
 
@@ -293,6 +307,13 @@ class SScribe_Admin_Debug {
 			fn( $a, $b ) => $b['mtime'] <=> $a['mtime']
 		);
 
+		// Cap the number of files returned to prevent performance issues.
+		$max_files = 50;
+		$total_count = count( $result );
+		if ( $total_count > $max_files ) {
+			$result = array_slice( $result, 0, $max_files );
+		}
+
 		$result = array_map(
 			fn( $f ) => array(
 				'name' => $f['name'],
@@ -302,7 +323,10 @@ class SScribe_Admin_Debug {
 			$result
 		);
 
-		wp_send_json_success( array( 'files' => $result ) );
+		wp_send_json_success( array(
+			'files'       => $result,
+			'total_count' => $total_count,
+		) );
 	}
 
 	/**
@@ -471,14 +495,14 @@ class SScribe_Admin_Debug {
 			}
 
 			if ( ! empty( $search ) ) {
-				$search_lower  = strtolower( $search );
-				$message       = strtolower( $entry['message'] );
+				$search_lower  = mb_strtolower( $search, 'UTF-8' );
+				$message       = mb_strtolower( $entry['message'], 'UTF-8' );
 				$context_json  = wp_json_encode( $entry['context'] );
 				$context_json  = ( false === $context_json ) ? '' : $context_json;
-				$context_lower = strtolower( $context_json );
+				$context_lower = mb_strtolower( $context_json, 'UTF-8' );
 
-				if ( false === strpos( $message, $search_lower )
-					&& false === strpos( $context_lower, $search_lower )
+				if ( false === mb_strpos( $message, $search_lower, 0, 'UTF-8' )
+					&& false === mb_strpos( $context_lower, $search_lower, 0, 'UTF-8' )
 				) {
 					continue;
 				}
@@ -497,6 +521,16 @@ class SScribe_Admin_Debug {
 	 * @return array Parsed entry.
 	 */
 	private function parse_log_line( string $line ): array {
+		// Guard against extremely long lines (malformed/binary content).
+		if ( mb_strlen( $line ) > 10000 ) {
+			return array(
+				'timestamp' => '',
+				'level'     => 'RAW',
+				'message'   => mb_substr( $line, 0, 200 ) . '... [truncated]',
+				'context'   => array(),
+			);
+		}
+
 		$json = json_decode( $line, true );
 		if ( is_array( $json ) ) {
 			return array(
@@ -508,35 +542,35 @@ class SScribe_Admin_Debug {
 		}
 
 		// Parse non-JSON log lines: [timestamp] [level] message | {context_json}.
-		// Split on last ' | {' to avoid regex backtracking on lines with many pipes.
-		$last_pipe = strrpos( $line, ' | {' );
-		if ( false !== $last_pipe && '}' === substr( $line, -1 ) ) {
-			$before = substr( $line, 0, $last_pipe );
-			$after  = substr( $line, $last_pipe + 3 );
-
-			if ( preg_match( '/^\[([^\]]+)\]\s+\[([^\]]+)\]\s+(.+)$/', $before, $matches ) ) {
-				$context = array();
-				$context_json_decoded = json_decode( $after, true );
-				if ( is_array( $context_json_decoded ) ) {
-					$context = $context_json_decoded;
-				}
-
-				return array(
-					'timestamp' => $matches[1],
-					'level'     => $matches[2],
-					'message'   => $matches[3],
-					'context'   => $context,
-				);
-			}
-		}
-
-		// Try simple [timestamp] [level] message format.
+		// Try to match the pattern [timestamp] [level] first, then split message from context.
 		if ( preg_match( '/^\[([^\]]+)\]\s+\[([^\]]+)\]\s+(.+)$/', $line, $matches ) ) {
+			$timestamp = $matches[1];
+			$level     = $matches[2];
+			$rest      = $matches[3];
+
+			// Check if the rest ends with a JSON context: message | {"key":"value"}
+			// Find the last ' | {' that is followed by valid JSON ending with }
+			$context      = array();
+			$message_part = $rest;
+
+			// Look for ' | {' pattern from the end, validate the JSON after it
+			$last_sep = strrpos( $rest, ' | {' );
+			if ( false !== $last_sep ) {
+				$potential_json = substr( $rest, $last_sep + 3 );
+				if ( ! empty( $potential_json ) && '}' === substr( $potential_json, -1 ) ) {
+					$decoded = json_decode( $potential_json, true );
+					if ( is_array( $decoded ) ) {
+						$context      = $decoded;
+						$message_part = substr( $rest, 0, $last_sep );
+					}
+				}
+			}
+
 			return array(
-				'timestamp' => $matches[1],
-				'level'     => $matches[2],
-				'message'   => $matches[3],
-				'context'   => array(),
+				'timestamp' => $timestamp,
+				'level'     => $level,
+				'message'   => $message_part,
+				'context'   => $context,
 			);
 		}
 
@@ -573,6 +607,7 @@ class SScribe_Admin_Debug {
 
 		header( 'Content-Type: application/json' );
 		header( 'Content-Disposition: attachment; filename="' . $safe_filename . '"' );
+		header( 'Content-Encoding: none' );
 		header( 'Content-Length: ' . mb_strlen( $content, '8bit' ) );
 		header( 'Cache-Control: no-store, no-cache, must-revalidate' );
 		header( 'Pragma: no-cache' );
@@ -587,6 +622,8 @@ class SScribe_Admin_Debug {
 	 *
 	 * Used to identify the active log file that should be excluded from
 	 * the rotated logs list and protected from deletion.
+	 *
+	 * Cache is valid for request lifetime only (new instance per request in standard WordPress).
 	 *
 	 * @return string Basename of the current log file.
 	 */
