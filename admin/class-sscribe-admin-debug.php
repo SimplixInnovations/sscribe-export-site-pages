@@ -168,6 +168,7 @@ class SScribe_Admin_Debug {
 				'limit'         => $limit,
 				'status'        => $log_exists ? 'ok' : 'no_log_file',
 				'debug_enabled' => $debug_enabled,
+				'nonce'         => wp_create_nonce( 'sscribe_export_nonce' ),
 			)
 		);
 	}

@@ -38,6 +38,7 @@
 		currentRequest: null,
 		saveSettingsRequest: null,
 		rotatedRequest: null,
+		viewRotatedRequest: null,
 
 		init: function () {
 			if (this.initialized) {
@@ -314,7 +315,7 @@
 				'click',
 				'.sscribe-rotated-delete',
 				function () {
-					self.deleteRotatedLog( $( this ).data( 'file' ) );
+					self.deleteRotatedLog( $( this ).data( 'file' ), $( this ) );
 				}
 			);
 
@@ -357,7 +358,7 @@
 					self.stopAutoRefresh();
 				} else if (self.isAutoRefresh) {
 					const $debugTab = $( '#sscribe-tab-debug' );
-					if ($debugTab.hasClass( 'sscribe-tab-active' ) || $debugTab.attr( 'aria-hidden' ) === 'false') {
+					if ( ! $debugTab.length || $debugTab.hasClass( 'sscribe-tab-active' ) || $debugTab.attr( 'aria-hidden' ) === 'false') {
 						self.startAutoRefresh();
 					}
 				}
@@ -384,7 +385,7 @@
 			this.stopAutoRefresh();
 			this.refreshInterval = setInterval(
 				function () {
-					if ( ! self.isViewingRotated) {
+					if ( ! self.isViewingRotated && self.currentOffset === 0) {
 						self.fetchLogs();
 					}
 					self.fetchRotatedLogs();
@@ -456,16 +457,23 @@
 						if ( response.data && response.data.nonce ) {
 							sscribe_data.nonce = response.data.nonce;
 						}
-						setTimeout(
-							function () {
-								self.$saveFeedback.text( '' );
-								self.$saveFeedback.removeClass( 'success' );
-								if ( response.data && response.data.debug_enabled !== undefined && response.data.debug_enabled !== sentDebugEnabled ) {
+						if ( response.data && response.data.debug_enabled !== undefined && response.data.debug_enabled !== sentDebugEnabled ) {
+							self.$saveFeedback.text( 'Debug mode changed — reloading\u2026' ).addClass( 'success' );
+							setTimeout(
+								function () {
 									window.location.reload();
-								}
-							},
-							1000
-						);
+								},
+								1500
+							);
+						} else {
+							setTimeout(
+								function () {
+									self.$saveFeedback.text( '' );
+									self.$saveFeedback.removeClass( 'success' );
+								},
+								1000
+							);
+						}
 					} else {
 						if ( previousAutoRefresh !== undefined ) {
 							self.isAutoRefresh = previousAutoRefresh;
@@ -561,6 +569,10 @@
 					if (response.success) {
 						const newEntries = response.data.entries;
 						const totalCount = response.data.count;
+
+						if ( response.data.nonce ) {
+							sscribe_data.nonce = response.data.nonce;
+						}
 
 						if (isInitialLoad) {
 							self.renderLogs( newEntries, false, response.data );
@@ -674,7 +686,7 @@
 			sentinel.id           = 'sscribe-infinite-scroll-sentinel';
 			sentinel.style.height = '1px';
 			sentinel.style.width  = '100%';
-			this.$entries.after( sentinel );
+			this.$entries.append( sentinel );
 
 			this.observer = new IntersectionObserver(
 				function (entries) {
@@ -693,10 +705,7 @@
 				this.observer.disconnect();
 				this.observer = null;
 			}
-			const sentinel = document.getElementById( 'sscribe-infinite-scroll-sentinel' );
-			if (sentinel) {
-				sentinel.remove();
-			}
+			this.$entries.find( '#sscribe-infinite-scroll-sentinel' ).remove();
 		},
 
 		clearLogs: function () {
@@ -723,7 +732,6 @@
 							2000
 						);
 						self.fetchLogs();
-						self.fetchRotatedLogs();
 					} else {
 						self.$saveFeedback.text( self.getResponseMessage( response, 'Error' ) ).addClass( 'error' );
 						setTimeout(
@@ -768,7 +776,9 @@
 			form.submit();
 			setTimeout(
 				function () {
-					form.remove();
+					if (form.parentNode) {
+						form.remove();
+					}
 				},
 				100
 			);
@@ -854,17 +864,17 @@
 					'</span>';
 					html += '</div>';
 					html += '<div class="sscribe-debug-rotated-file-actions">';
-					html +=
+				html +=
 					'<button type="button" class="sscribe-button sscribe-button-sm sscribe-button-outline sscribe-rotated-view" data-file="' +
-					escHtml( file.name ) +
+					escAttr( file.name ) +
 					'">View</button>';
-					html +=
+				html +=
 					'<button type="button" class="sscribe-button sscribe-button-sm sscribe-button-secondary sscribe-rotated-export" data-file="' +
-					escHtml( file.name ) +
+					escAttr( file.name ) +
 					'">Export</button>';
-					html +=
+				html +=
 					'<button type="button" class="sscribe-button sscribe-button-sm sscribe-button-danger sscribe-rotated-delete" data-file="' +
-					escHtml( file.name ) +
+					escAttr( file.name ) +
 					'">Delete</button>';
 					html += '</div></div>';
 				}
@@ -874,20 +884,26 @@
 		},
 
 		viewRotatedLog: function (filename) {
+			const self = this;
+
+			if (this.viewRotatedRequest) {
+				this.viewRotatedRequest.abort();
+			}
+
 			const data = {
 				action: 'sscribe_debug_fetch_rotated',
 				nonce: sscribe_data.nonce,
 				filename: filename,
 			};
 
-			const self          = this;
 			this.hasMoreEntries = false;
 			this.destroyObserver();
 
-			$.post(
+			this.viewRotatedRequest = $.post(
 				sscribe_data.ajaxurl,
 				data,
 				function (response) {
+					self.viewRotatedRequest = null;
 					if (response.success) {
 						self.isViewingRotated       = true;
 						self.currentRotatedFilename = filename;
@@ -913,11 +929,20 @@
 					}
 				}
 			).fail(
-				function () {
-						self.isViewingRotated = false;
-						self.$entryCount.text( 'Error' );
-						self.showConsoleError( 'Unable to open rotated log.' );
-						self.fetchLogs();
+				function (xhr) {
+					if (xhr.statusText === 'abort' || xhr.status === 0) {
+						return;
+					}
+					self.viewRotatedRequest = null;
+					self.isViewingRotated = false;
+					self.$entryCount.text( 'Error' );
+					self.showConsoleError( 'Unable to open rotated log.' );
+					setTimeout(
+						function () {
+							self.fetchLogs();
+						},
+						2000
+					);
 				}
 			);
 		},
@@ -927,6 +952,8 @@
 			this.currentRotatedFilename = '';
 			this.hasMoreEntries         = true;
 			this.currentOffset          = 0;
+			this.$entries.empty();
+			this.$entryCount.text( 'Loading...' );
 			this.fetchLogs();
 			this.fetchRotatedLogs();
 		},
@@ -941,18 +968,41 @@
 			this.downloadViaForm( sscribe_data.ajaxurl, data );
 		},
 
-		deleteRotatedLog: function (filename) {
+		deleteRotatedLog: function (filename, $btn) {
 			const self = this;
+
+			if ($btn && $btn.data( 'confirming' )) {
+				$btn.data( 'confirming', false ).removeClass( 'sscribe-btn-confirming' ).text( 'Delete' );
+			} else if ($btn) {
+				$btn.data( 'confirming', true ).addClass( 'sscribe-btn-confirming' ).text( 'Click to confirm' );
+				setTimeout(
+					function () {
+						if ($btn.data( 'confirming' )) {
+							$btn.data( 'confirming', false ).removeClass( 'sscribe-btn-confirming' ).text( 'Delete' );
+						}
+					},
+					3000
+				);
+				return;
+			}
+
 			const data = {
 				action: 'sscribe_debug_delete_rotated',
 				nonce: sscribe_data.nonce,
 				filename: filename,
 			};
 
+			if ($btn) {
+				$btn.prop( 'disabled', true );
+			}
+
 			$.post(
 				sscribe_data.ajaxurl,
 				data,
 				function (response) {
+					if ($btn) {
+						$btn.prop( 'disabled', false );
+					}
 					if (response.success) {
 						self.fetchRotatedLogs();
 					} else {
@@ -968,6 +1018,9 @@
 				}
 			).fail(
 				function () {
+					if ($btn) {
+						$btn.prop( 'disabled', false );
+					}
 					self.$saveFeedback.text( 'Error' ).addClass( 'error' );
 					setTimeout(
 						function () {
@@ -982,17 +1035,30 @@
 	};
 
 	function escHtml(str) {
-		if ( ! str) {
+		if (str === null || str === undefined) {
 			return '';
 		}
 		const div       = document.createElement( 'div' );
-		div.textContent = str;
+		div.textContent = String( str );
 		return div.innerHTML;
 	}
 
+	function escAttr(str) {
+		if (str === null || str === undefined) {
+			return '';
+		}
+		return String( str )
+			.replace( /&/g, '&amp;' )
+			.replace( /"/g, '&quot;' )
+			.replace( /</g, '&lt;' )
+			.replace( />/g, '&gt;' );
+	}
+
 	function buildEntryHtml(entry) {
-		const badgeClass = (entry.level && typeof entry.level === 'string') ? entry.level.toLowerCase() : 'info';
-		let contextHtml  = '';
+		const allowedLevels = ['all', 'debug', 'info', 'notice', 'warning', 'error', 'critical', 'alert', 'emergency', 'raw'];
+		const entryLevel    = (entry.level && typeof entry.level === 'string') ? entry.level.toLowerCase() : 'info';
+		const badgeClass    = allowedLevels.includes( entryLevel ) ? entryLevel : 'info';
+		let contextHtml     = '';
 
 		if (entry.context && Object.keys( entry.context ).length > 0) {
 			let contextRows = '';
