@@ -638,6 +638,11 @@ $sscribe_export_index    = $sscribe_export_index ?? array();
 									</div>
 								</div>
 							<?php endforeach; ?>
+							<?php if ( ! empty( $sscribe_export_index ) && count( $sscribe_export_index ) > 10 ) : ?>
+							<div class="sscribe-history-notice">
+								<p><?php esc_html_e( 'Showing 10 most recent exports.', 'sscribe-export-site-pages' ); ?></p>
+							</div>
+							<?php endif; ?>
 						<?php else : ?>
 							<div class="sscribe-history-empty">
 								<svg class="sscribe-empty-illustration" width="64" height="64" viewBox="0 0 64 64" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
@@ -649,11 +654,6 @@ $sscribe_export_index    = $sscribe_export_index ?? array();
 								</svg>
 								<em><?php esc_html_e( 'Your recent export packages will appear here.', 'sscribe-export-site-pages' ); ?></em>
 							</div>
-							<?php if ( ! empty( $sscribe_export_index ) && count( $sscribe_export_index ) > 10 ) : ?>
-							<div class="sscribe-history-notice">
-								<p><?php esc_html_e( 'Showing 10 most recent exports.', 'sscribe-export-site-pages' ); ?></p>
-							</div>
-							<?php endif; ?>
 						<?php endif; ?>
 					</div>
 				</section>

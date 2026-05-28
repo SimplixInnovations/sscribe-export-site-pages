@@ -44,13 +44,13 @@
 			if (this.initialized) {
 				return;
 			}
-			if (typeof sscribe_data === 'undefined' || ! sscribe_data) {
+			if (typeof sscribe_data === 'undefined' || ! scribe_data) {
 				return;
 			}
 			if ( ! this.hasRequiredDom()) {
+				console.error( 'SScribe Debug: Required DOM elements missing.' );
 				return;
 			}
-			this.stopAutoRefresh();
 			this.cacheDom();
 			this.unbindEvents();
 			this.bindEvents();
@@ -363,8 +363,8 @@
 				if (document.hidden) {
 					self.stopAutoRefresh();
 				} else if (self.isAutoRefresh) {
-					const $debugTab = $( '#sscribe-tab-debug' );
-					if ( $debugTab.length && ( $debugTab.hasClass( 'sscribe-tab-active' ) || $debugTab.attr( 'aria-selected' ) === 'true' ) ) {
+					const $debugTabBtn = $( '#sscribe-tab-btn-debug' );
+					if ( $debugTabBtn.length && $debugTabBtn.attr( 'aria-selected' ) === 'true' ) {
 						self.startAutoRefresh();
 					}
 				}
@@ -606,6 +606,8 @@
 			).fail(
 				function (xhr) {
 					if (xhr.statusText === 'abort' || xhr.status === 0) {
+						self.isLoadingMore = false;
+						self.hideAppendLoading();
 						return;
 					}
 					self.currentRequest = null;
