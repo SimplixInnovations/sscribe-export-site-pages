@@ -77,7 +77,7 @@ class SScribe_PDF_Exporter implements SScribe_Exporter_Interface {
 		$is_rtl   = SScribe_RTL_Helper::is_rtl( $language );
 
 		$processed_page_data = $this->process_images_in_page_data( $page_data );
-		$temp_image_paths   = $this->collect_temp_image_paths( $processed_page_data );
+		$temp_image_paths    = $this->collect_temp_image_paths( $processed_page_data );
 
 		// Use generate_html_string() — avoids .html file side-effect from export().
 		$html_content = $this->html_exporter->generate_html_string( $processed_page_data );
@@ -93,8 +93,8 @@ class SScribe_PDF_Exporter implements SScribe_Exporter_Interface {
 				$this->logger->error(
 					'PDF export failed: mPDF class not found',
 					array(
-						'page_id'               => $page_id,
-						'class_check'           => '\\SScribeVendor\\Mpdf\\Mpdf',
+						'page_id'                => $page_id,
+						'class_check'            => '\\SScribeVendor\\Mpdf\\Mpdf',
 						'vendor_autoload_exists' => file_exists( SSCRIBE_PLUGIN_DIR . 'vendor/autoload.php' ),
 					)
 				);
@@ -172,7 +172,7 @@ class SScribe_PDF_Exporter implements SScribe_Exporter_Interface {
 
 			// Pre-render time check.
 			if ( function_exists( 'microtime' ) ) {
-				$max_exec   = (int) ini_get( 'max_execution_time' );
+				$max_exec    = (int) ini_get( 'max_execution_time' );
 				$batch_start = $page_data['_batch_start_time'] ?? 0.0;
 				if ( $batch_start > 0.0 && $max_exec > 0 ) {
 					$elapsed   = microtime( true ) - $batch_start;
@@ -368,8 +368,10 @@ class SScribe_PDF_Exporter implements SScribe_Exporter_Interface {
 		}
 
 		$prefix = trailingslashit( $mpdf_temp );
-		$files  = glob( $prefix . '*', GLOB_NOSORT ) ?: array();
-		$hidden = glob( $prefix . '.[!.]*', GLOB_NOSORT ) ?: array();
+		$files  = glob( $prefix . '*', GLOB_NOSORT );
+		$files  = is_array( $files ) ? $files : array();
+		$hidden = glob( $prefix . '.[!.]*', GLOB_NOSORT );
+		$hidden = is_array( $hidden ) ? $hidden : array();
 		$files  = array_merge( $files, $hidden );
 
 		if ( empty( $files ) ) {
@@ -442,8 +444,8 @@ class SScribe_PDF_Exporter implements SScribe_Exporter_Interface {
 			$this->logger->error(
 				'PDF export failed: Manrope font files are missing',
 				array(
-					'manrope_dir'  => $manrope_dir,
-					'dir_exists'   => false,
+					'manrope_dir' => $manrope_dir,
+					'dir_exists'  => false,
 				)
 			);
 
@@ -496,9 +498,9 @@ class SScribe_PDF_Exporter implements SScribe_Exporter_Interface {
 			}
 		}
 
-		$config                    = array(
-			'fontDir'   => array_merge( $font_dirs, array( $manrope_dir ) ),
-			'fontdata'  => array_replace(
+		$config = array(
+			'fontDir'          => array_merge( $font_dirs, array( $manrope_dir ) ),
+			'fontdata'         => array_replace(
 				$font_data,
 				array(
 					'manrope' => array(
@@ -509,7 +511,7 @@ class SScribe_PDF_Exporter implements SScribe_Exporter_Interface {
 					),
 				)
 			),
-			'fonttrans' => $is_rtl ? array(
+			'fonttrans'        => $is_rtl ? array(
 				'dejavu sans'     => $xbriyaz_available ? 'xbriyaz' : 'freeserif',
 				'dejavusans'      => $xbriyaz_available ? 'xbriyaz' : 'freeserif',
 				'arial'           => $xbriyaz_available ? 'xbriyaz' : 'freeserif',
@@ -538,8 +540,8 @@ class SScribe_PDF_Exporter implements SScribe_Exporter_Interface {
 		);
 
 		return array(
-			'config'   => $config,
-			'mpdf_temp' => $mpdf_temp,
+			'config'            => $config,
+			'mpdf_temp'         => $mpdf_temp,
 			'xbriyaz_available' => $xbriyaz_available,
 		);
 	}

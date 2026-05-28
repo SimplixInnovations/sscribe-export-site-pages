@@ -474,7 +474,7 @@ class SScribe_Markdown_Exporter implements SScribe_Exporter_Interface {
 	private function convert_lists( string $html ): string {
 		// Use DOMDocument for safe list parsing instead of regex to avoid
 		// catastrophic backtracking (ReDoS) on deeply nested or crafted HTML.
-		$dom = new DOMDocument( '1.0', 'UTF-8' );
+		$dom             = new DOMDocument( '1.0', 'UTF-8' );
 		$prev_use_errors = libxml_use_internal_errors( true );
 		try {
 			@$dom->loadHTML( '<!DOCTYPE html><html><body>' . $html . '</body></html>', LIBXML_HTML_NOIMPLIED | LIBXML_HTML_NODEFDTD );
@@ -543,7 +543,7 @@ class SScribe_Markdown_Exporter implements SScribe_Exporter_Interface {
 				$out .= $this->convert_single_list( $child, $tag );
 			} else {
 				$inner_html = $this->get_inner_html( $child );
-				$out .= $inner_html;
+				$out       .= $inner_html;
 			}
 		}
 		return $out;
@@ -571,7 +571,7 @@ class SScribe_Markdown_Exporter implements SScribe_Exporter_Interface {
 	 * @return string Markdown list.
 	 */
 	private function convert_single_list( \DOMNode $list_node, string $list_tag ): string {
-		$result = "\n";
+		$result  = "\n";
 		$counter = 1;
 		foreach ( $list_node->childNodes as $li ) { // phpcs:ignore WordPress.NamingConventions.ValidVariableName.UsedPropertyNotSnakeCase
 			if ( XML_ELEMENT_NODE !== $li->nodeType || 'li' !== strtolower( $li->nodeName ) ) { // phpcs:ignore WordPress.NamingConventions.ValidVariableName.UsedPropertyNotSnakeCase
@@ -669,7 +669,7 @@ class SScribe_Markdown_Exporter implements SScribe_Exporter_Interface {
 				'Markdown nested list conversion hit depth cap — nested output may be incomplete',
 				array(
 					'nested_cap' => $max_nested_iterations,
-					'depth'       => $depth,
+					'depth'      => $depth,
 				)
 			);
 		}
@@ -785,7 +785,7 @@ class SScribe_Markdown_Exporter implements SScribe_Exporter_Interface {
 			$this->logger->warning(
 				'Sanitized disallowed URL scheme in Markdown export',
 				array(
-					'url' => substr( $url, 0, 100 ),
+					'url'    => substr( $url, 0, 100 ),
 					'scheme' => $scheme,
 				)
 			);

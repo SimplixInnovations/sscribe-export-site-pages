@@ -1,6 +1,6 @@
 <?php
 /**
- * SScribe Session
+ * SScribe Session.
  *
  * @package SScribe_Export_Site_Pages
  * @license GPL v2 or later
@@ -13,6 +13,12 @@ if ( ! defined( 'ABSPATH' ) ) {
 	exit;
 }
 
+/**
+ * Session management.
+ *
+ * @package SScribe_Export_Site_Pages
+ * @subpackage Session
+ */
 class SScribe_Session {
 
 	private const SESSION_CLEANUP_BATCH = 100;
@@ -98,9 +104,9 @@ class SScribe_Session {
 						$this->logger->warning(
 							'Blocked duplicate session creation — user has active session',
 							array(
-								'user_id'           => $data['user_id'],
-								'existing_session'  => $existing,
-								'blocked_attempt'   => $session_id,
+								'user_id'          => $data['user_id'],
+								'existing_session' => $existing,
+								'blocked_attempt'  => $session_id,
 							)
 						);
 						return '';
@@ -176,7 +182,7 @@ class SScribe_Session {
 			$this->logger->debug(
 				'Session lookup failed: invalid session_id length',
 				array(
-					'session_id'  => $session_id,
+					'session_id'   => $session_id,
 					'expected_len' => self::SESSION_ID_LENGTH,
 					'actual_len'   => strlen( $session_id ),
 				)
@@ -275,7 +281,7 @@ class SScribe_Session {
 		$using_cache   = wp_using_ext_object_cache();
 
 		// Use exponential back-off: 50ms, 100ms, 200ms, 400ms, 600ms, 800ms (~2.65s max total).
-		$base_delay = 50000; // 50ms in microseconds
+		$base_delay   = 50000; // 50ms in microseconds
 		$max_attempts = 6;
 
 		for ( $lock_attempt = 1; $lock_attempt <= $max_attempts; ++$lock_attempt ) {
@@ -290,7 +296,7 @@ class SScribe_Session {
 			}
 
 			// Exponential back-off with jitter: base_delay * 2^(attempt-1) + random jitter.
-			$delay = $base_delay * ( 2 ** ( $lock_attempt - 1 ) );
+			$delay  = $base_delay * ( 2 ** ( $lock_attempt - 1 ) );
 			$jitter = wp_rand( 0, (int) ( $delay * 0.1 ) ); // 10% jitter.
 			usleep( $delay + $jitter );
 		}
@@ -324,9 +330,9 @@ class SScribe_Session {
 				$this->logger->warning(
 					'Session update denied: user ID mismatch',
 					array(
-						'session_id'       => $session_id,
-						'session_owner'    => $existing['user_id'],
-						'current_user'     => $current_user_id,
+						'session_id'    => $session_id,
+						'session_owner' => $existing['user_id'],
+						'current_user'  => $current_user_id,
 					)
 				);
 				return false;
@@ -390,7 +396,7 @@ class SScribe_Session {
 			$this->logger->error(
 				'Session update failed after max retries — session may be in inconsistent state',
 				array(
-					'session_id' => $session_id,
+					'session_id'  => $session_id,
 					'option_name' => $option_name,
 				)
 			);
@@ -514,9 +520,9 @@ class SScribe_Session {
 	public function cleanup_expired( int $max_age_seconds = 14400 ): int {
 		global $wpdb;
 
-		$pattern    = $wpdb->esc_like( $this->option_prefix ) . '%';
-		$now        = time();
-		$start_time = microtime( true );
+		$pattern     = $wpdb->esc_like( $this->option_prefix ) . '%';
+		$now         = time();
+		$start_time  = microtime( true );
 		$max_seconds = 30; // Safety limit to prevent cron timeout.
 
 		$deleted = 0;

@@ -1,6 +1,6 @@
 <?php
 /**
- * SScribe Content Parser
+ * SScribe Content Parser.
  *
  * @package SScribe_Export_Site_Pages
  * @license GPL v2 or later
@@ -15,6 +15,12 @@ if ( ! defined( 'ABSPATH' ) ) {
 	exit;
 }
 
+/**
+ * HTML content parsing and sanitization.
+ *
+ * @package SScribe_Export_Site_Pages
+ * @subpackage Content
+ */
 class SScribe_Content_Parser {
 
 	/**
@@ -39,7 +45,7 @@ class SScribe_Content_Parser {
 		'acronym'    => array( 'title' => true ),
 		'b'          => array( 'class' => true ),
 		'blockquote' => array(
-			'cite' => true,
+			'cite'  => true,
 			'class' => true,
 		),
 		'br'         => array(),
@@ -51,12 +57,12 @@ class SScribe_Content_Parser {
 		'em'         => array( 'class' => true ),
 		'i'          => array( 'class' => true ),
 		'img'        => array(
-			'src'    => true,
-			'alt'    => true,
-			'width'  => true,
-			'height' => true,
-			'class'  => true,
-			'id'     => true,
+			'src'     => true,
+			'alt'     => true,
+			'width'   => true,
+			'height'  => true,
+			'class'   => true,
+			'id'      => true,
 			'loading' => true,
 		),
 		'li'         => array(
@@ -66,7 +72,7 @@ class SScribe_Content_Parser {
 		'ol'         => array(
 			'class' => true,
 			'start' => true,
-			'type' => true,
+			'type'  => true,
 		),
 		'p'          => array( 'class' => true ),
 		'pre'        => array( 'class' => true ),
@@ -77,63 +83,63 @@ class SScribe_Content_Parser {
 		'sub'        => array(),
 		'sup'        => array(),
 		'table'      => array(
-			'class'    => true,
-			'id'       => true,
-			'border'   => true,
+			'class'       => true,
+			'id'          => true,
+			'border'      => true,
 			'cellpadding' => true,
 			'cellspacing' => true,
 		),
 		'tbody'      => array(),
 		'td'         => array(
-			'class' => true,
+			'class'   => true,
 			'colspan' => true,
 			'rowspan' => true,
 		),
 		'tfoot'      => array(),
 		'th'         => array(
-			'class'    => true,
-			'colspan'  => true,
-			'rowspan'  => true,
-			'scope'    => true,
+			'class'   => true,
+			'colspan' => true,
+			'rowspan' => true,
+			'scope'   => true,
 		),
 		'thead'      => array(),
 		'tr'         => array( 'class' => true ),
 		'ul'         => array(
 			'class' => true,
-			'type' => true,
+			'type'  => true,
 		),
 		'div'        => array(
 			'class' => true,
-			'id' => true,
+			'id'    => true,
 			'align' => true,
 		),
 		'span'       => array(
 			'class' => true,
-			'id' => true,
+			'id'    => true,
 		),
 		'h1'         => array(
 			'class' => true,
-			'id' => true,
+			'id'    => true,
 		),
 		'h2'         => array(
 			'class' => true,
-			'id' => true,
+			'id'    => true,
 		),
 		'h3'         => array(
 			'class' => true,
-			'id' => true,
+			'id'    => true,
 		),
 		'h4'         => array(
 			'class' => true,
-			'id' => true,
+			'id'    => true,
 		),
 		'h5'         => array(
 			'class' => true,
-			'id' => true,
+			'id'    => true,
 		),
 		'h6'         => array(
 			'class' => true,
-			'id' => true,
+			'id'    => true,
 		),
 		'figure'     => array( 'class' => true ),
 		'figcaption' => array(),
@@ -273,9 +279,9 @@ class SScribe_Content_Parser {
 
 		try {
 
-			// Sanitize control characters while preserving valid whitespace
-			// Using preg_replace instead of mb_encode_numericentity to avoid
-			// DOMPurify bypass via encoded malicious content
+			// Sanitize control characters while preserving valid whitespace.
+			// Using preg_replace instead of mb_encode_numericentity to avoid.
+			// DOMPurify bypass via encoded malicious content.
 			$html = preg_replace( '/[\x00-\x08\x0B\x0C\x0E-\x1F\x7F]/', '', $html );
 
 			$wrapped = '<!DOCTYPE html><html><head>'
@@ -431,16 +437,16 @@ class SScribe_Content_Parser {
 					}
 				}
 
-				$src = null !== $img_node ? $img_node->getAttribute( 'src' ) : null;
-				$alt = null !== $img_node ? $img_node->getAttribute( 'alt' ) : '';
+				$src        = null !== $img_node ? $img_node->getAttribute( 'src' ) : null;
+				$alt        = null !== $img_node ? $img_node->getAttribute( 'alt' ) : '';
 				$local_path = null !== $src ? $this->url_to_local_path( $src ) : '';
 
 				$figure_data = array(
-					'type'    => 'figure',
-					'content' => trim( $alt . ( $caption_text ? ' - ' . $caption_text : '' ) ),
-					'src'     => $src,
-					'alt'     => $alt,
-					'caption' => $caption_text,
+					'type'       => 'figure',
+					'content'    => trim( $alt . ( $caption_text ? ' - ' . $caption_text : '' ) ),
+					'src'        => $src,
+					'alt'        => $alt,
+					'caption'    => $caption_text,
 					'local_path' => $local_path,
 				);
 
@@ -453,7 +459,7 @@ class SScribe_Content_Parser {
 				// Check if parent is a figure element by traversing up.
 				$parent = $node->parentNode;
 				if ( $parent instanceof DOMElement && 'figure' === strtolower( $parent->nodeName ) ) {
-					return null; // figcaption handled by figure case
+					return null; // Figcaption handled by figure case.
 				}
 				return array(
 					'type'    => 'figcaption',
@@ -655,7 +661,7 @@ class SScribe_Content_Parser {
 	private function extract_buttons_from_html( string $html ): array {
 		$buttons = array();
 
-		$button_keywords = array(
+		$button_keywords    = array(
 			'wp-block-button__link',
 			'wp-element-button',
 			'elementor-button',
@@ -682,7 +688,7 @@ class SScribe_Content_Parser {
 				'Large HTML content truncated for button extraction — content past 500KB limit skipped',
 				array(
 					'original_length' => mb_strlen( $html, '8bit' ),
-					'truncated_to'   => 500000,
+					'truncated_to'    => 500000,
 				)
 			);
 			$html = mb_strcut( $html, 0, 500000, 'UTF-8' );
@@ -905,25 +911,25 @@ class SScribe_Content_Parser {
 	 * @return string Extracted table text.
 	 */
 	private function extract_nested_table_text( \DOMNode $table ): string {
-		$cellTexts = array();
+		$cell_texts = array();
 
 		foreach ( $table->getElementsByTagName( 'td' ) as $td ) {
-			$cellText = trim( $td->textContent );
-			if ( '' !== $cellText ) {
-				$cellTexts[] = $cellText;
+			$cell_text = trim( $td->textContent );
+			if ( '' !== $cell_text ) {
+				$cell_texts[] = $cell_text;
 			}
 		}
 
-		if ( empty( $cellTexts ) ) {
+		if ( empty( $cell_texts ) ) {
 			foreach ( $table->getElementsByTagName( 'th' ) as $th ) {
-				$cellText = trim( $th->textContent );
-				if ( '' !== $cellText ) {
-					$cellTexts[] = $cellText;
+				$cell_text = trim( $th->textContent );
+				if ( '' !== $cell_text ) {
+					$cell_texts[] = $cell_text;
 				}
 			}
 		}
 
-		return implode( "\n", $cellTexts );
+		return implode( "\n", $cell_texts );
 	}
 
 	/**

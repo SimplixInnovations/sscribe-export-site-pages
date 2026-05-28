@@ -1,6 +1,6 @@
 <?php
 /**
- * SScribe Export Stats
+ * SScribe Export Stats.
  *
  * @package SScribe_Export_Site_Pages
  * @license GPL v2 or later
@@ -13,6 +13,12 @@ if ( ! defined( 'ABSPATH' ) ) {
 	exit;
 }
 
+/**
+ * Export statistics tracking.
+ *
+ * @package SScribe_Export_Site_Pages
+ * @subpackage Stats
+ */
 class SScribe_Export_Stats {
 
 	/**

@@ -1461,7 +1461,7 @@ class SScribe_Batch_Processor {
 			if ( $errors_trimmed ) {
 				$trimmed_count = $total_errors - self::MAX_STORED_ERRORS;
 				$errors        = array_slice( $errors, 0, self::MAX_STORED_ERRORS - 1 );
-				$errors[] = sprintf(
+				$errors[]      = sprintf(
 					/* translators: %d: Number of additional errors not stored. */
 					__( '... and %d more errors occurred (see export log for full details).', 'sscribe-export-site-pages' ),
 					$trimmed_count
@@ -1477,8 +1477,8 @@ class SScribe_Batch_Processor {
 			}
 
 			if ( $structured_errors_trimmed ) {
-				$trimmed_count     = $total_structured_errors - self::MAX_STORED_ERRORS;
-				$structured_errors = array_slice( $structured_errors, 0, self::MAX_STORED_ERRORS - 1 );
+				$trimmed_count       = $total_structured_errors - self::MAX_STORED_ERRORS;
+				$structured_errors   = array_slice( $structured_errors, 0, self::MAX_STORED_ERRORS - 1 );
 				$structured_errors[] = array(
 					'page_id'     => 0,
 					'page_title'  => '...',
@@ -1830,13 +1830,13 @@ class SScribe_Batch_Processor {
 		if ( ! $this->session->update(
 			$session_id,
 			array(
-				'status' => 'completing',
+				'status'           => 'completing',
 				'completing_since' => time(),
 			)
 		) ) {
 			$this->logger->warning( 'Session status update failed', array( 'session_id' => $session_id ) );
 		}
-		$session['status'] = 'completing';
+		$session['status']           = 'completing';
 		$session['completing_since'] = time();
 
 		$this->logger->set_session_id( $session_id );
@@ -2041,7 +2041,7 @@ class SScribe_Batch_Processor {
 			if ( true === $zip_open ) {
 				// Count only actual file entries (not directory entries which end with '/').
 				$total_files_zip = 0;
-				$zip_file_count  = $zip->numFiles; // phpcs:disable WordPress.NamingConventions.ValidVariableName.PropertyNotSnakeCase
+				$zip_file_count = $zip->numFiles; // phpcs:ignore WordPress.NamingConventions.ValidVariableName.PropertyNotSnakeCase
 				for ( $i = 0; $i < $zip_file_count; $i++ ) {
 					$stat = $zip->statIndex( $i );
 					if ( $stat && substr( $stat['name'], -1 ) !== '/' ) {

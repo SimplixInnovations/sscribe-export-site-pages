@@ -140,7 +140,7 @@ class SScribe_DOCX_Content_Renderer {
 	private function safe_text( string $text ): string {
 		$text = (string) $text;
 
-		// Use iconv for UTF-8 sanitization - compatible with PHP 8.2+ (mb_convert_encoding deprecation)
+		// Use iconv for UTF-8 sanitization - compatible with PHP 8.2+ (mb_convert_encoding deprecation).
 		$cleaned = @iconv( 'UTF-8', 'UTF-8//IGNORE', $text );
 		if ( false !== $cleaned ) {
 			$text = $cleaned;
@@ -276,8 +276,8 @@ class SScribe_DOCX_Content_Renderer {
 	 * @param int                   $font_size Font size (clamped to 6–72pt range).
 	 */
 	public function sync_config( array $colors, bool $is_rtl, string $font_name, int $font_size ): void {
-		// Validate required color keys exist after filter application
-		// to prevent undefined index errors from third-party mutations
+		// Validate required color keys exist after filter application.
+		// To prevent undefined index errors from third-party mutations.
 		$defaults = array(
 			'primary'  => '4A8263',
 			'heading'  => '122119',
@@ -289,8 +289,8 @@ class SScribe_DOCX_Content_Renderer {
 			'border'   => 'CCCCCC',
 		);
 		// Filter out invalid values, then merge defaults to fill any gaps.
-		$sanitized = array_filter( $colors, 'is_string' );
-		$this->colors = array_merge( $defaults, $sanitized );
+		$sanitized       = array_filter( $colors, 'is_string' );
+		$this->colors    = array_merge( $defaults, $sanitized );
 		$this->is_rtl    = $is_rtl;
 		$this->font_name = $font_name;
 		// Clamp font_size to a sane range to prevent invalid PHPWord XML.
@@ -552,8 +552,8 @@ class SScribe_DOCX_Content_Renderer {
 				$font_style['strikeThrough'] = true;
 			}
 			if ( ! empty( $run['code'] ) ) {
-				$font_style['name']   = 'Courier New';
-				$font_style['size']   = 9;
+				$font_style['name']    = 'Courier New';
+				$font_style['size']    = 9;
 				$font_style['bgColor'] = $this->colors['code_bg'];
 			}
 
@@ -577,11 +577,11 @@ class SScribe_DOCX_Content_Renderer {
 						$this->safe_text( $display_text ),
 						$font_style
 					);
-					$display_url      = urldecode( $link_url );
-					// Only append URL suffix when link text itself looks like a URL
-					// (not when it's a meaningful human label like "Click here")
-					$text_is_url     = filter_var( $text_content, FILTER_VALIDATE_URL ) !== false;
-					$text_is_path    = preg_match( '/^[\/\.]?[a-zA-Z0-9_\-\/]+$/u', $text_content ) === 1
+					$display_url = urldecode( $link_url );
+					// Only append URL suffix when link text itself looks like a URL.
+					// Not when it's a meaningful human label like "Click here".
+					$text_is_url  = filter_var( $text_content, FILTER_VALIDATE_URL ) !== false;
+					$text_is_path = preg_match( '/^[\/\.]?[a-zA-Z0-9_\-\/]+$/u', $text_content ) === 1
 						&& strlen( $text_content ) < 80
 						&& strpos( $text_content, ' ' ) === false;
 					if ( $text_is_url || $text_is_path ) {
@@ -688,7 +688,7 @@ class SScribe_DOCX_Content_Renderer {
 		}
 
 		$total_width_twip = Converter::inchToTwip( 6.5 );
-		$cell_width      = (int) ( $total_width_twip / $col_count );
+		$cell_width       = (int) ( $total_width_twip / $col_count );
 
 		$table_unit = \SScribeVendor\PhpOffice\PhpWord\SimpleType\TblWidth::TWIP;
 
@@ -842,7 +842,7 @@ class SScribe_DOCX_Content_Renderer {
 
 		// Only accept absolute URLs (http/https) or absolute local paths.
 		// Reject relative paths (e.g., ../wp-content/...) which would cause failures downstream.
-		$is_absolute_url = str_starts_with( $src, 'http://' ) || str_starts_with( $src, 'https://' );
+		$is_absolute_url  = str_starts_with( $src, 'http://' ) || str_starts_with( $src, 'https://' );
 		$is_absolute_path = str_starts_with( $src, '/' ) && file_exists( $src );
 		if ( ! $is_absolute_url && ! $is_absolute_path ) {
 			$this->get_logger()->debug(
@@ -911,7 +911,7 @@ class SScribe_DOCX_Content_Renderer {
 				$this->get_logger()->debug(
 					'Skipping unsupported image format, rendering alt text',
 					array(
-						'path' => $path,
+						'path'      => $path,
 						'extension' => $ext,
 					)
 				);

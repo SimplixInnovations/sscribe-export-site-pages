@@ -1,4 +1,4 @@
-﻿/**
+/**
  * SScribe Debug Console JavaScript
  *
  * @package SScribe_Export_Site_Pages
@@ -397,7 +397,17 @@
 				if (xhr.statusText === 'abort' || xhr.status === 0) {
 					return;
 				}
-				self.$saveFeedback.text('Error').addClass('error');
+				var errorMsg = 'Error ' + xhr.status;
+				if (xhr.responseText) {
+					try {
+						var parsed = JSON.parse(xhr.responseText);
+						errorMsg = parsed.data && parsed.data.message ? parsed.data.message : errorMsg;
+					} catch(e) {
+						errorMsg += ' (Server error, see console)';
+						console.error('AJAX Error Response:', xhr.responseText);
+					}
+				}
+				self.$saveFeedback.text(errorMsg).addClass('error');
 				setTimeout(function () {
 					self.$saveFeedback.text('');
 					self.$saveFeedback.removeClass('error');
@@ -471,13 +481,22 @@
 					self.$entryCount.text('Error');
 					self.showConsoleError(self.getResponseMessage(response, 'Unable to load debug logs.'));
 				}
-			}).fail(function () {
+			}).fail(function (xhr) {
 				self.currentRequest = null;
 				self.$entries.css('opacity', '1');
 				self.isLoadingMore = false;
 				if (isInitialLoad) {
 					self.$entryCount.text('Error');
-					self.showConsoleError('Error loading logs');
+					var errorMsg = 'HTTP ' + xhr.status;
+					if (xhr.responseText) {
+						try {
+							var parsed = JSON.parse(xhr.responseText);
+							errorMsg = parsed.data && parsed.data.message ? parsed.data.message : errorMsg;
+						} catch(e) {
+							errorMsg += ' - ' + xhr.responseText.substring(0, 100);
+						}
+					}
+					self.showConsoleError('Server Error: ' + errorMsg);
 				}
 			});
 		},

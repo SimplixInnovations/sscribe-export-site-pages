@@ -1,6 +1,6 @@
 <?php
 /**
- * SScribe Audit Trail
+ * SScribe Audit Trail.
  *
  * @package SScribe_Export_Site_Pages
  * @license GPL v2 or later
@@ -13,6 +13,12 @@ if ( ! defined( 'ABSPATH' ) ) {
 	exit;
 }
 
+/**
+ * Audit trail event logger.
+ *
+ * @package SScribe_Export_Site_Pages
+ * @subpackage Audit
+ */
 class SScribe_Audit_Trail {
 
 	public const EVENT_EXPORT_STARTED         = 'export_started';
@@ -69,7 +75,7 @@ class SScribe_Audit_Trail {
 
 		if ( null === $this->table_exists_cache ) {
 			// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- Schema introspection, cached via instance property
-			$table  = $wpdb->get_var(
+			$table                    = $wpdb->get_var(
 				$wpdb->prepare( 'SHOW TABLES LIKE %s', $this->table_name )
 			);
 			$this->table_exists_cache = ( $table === $this->table_name );
