@@ -107,6 +107,10 @@
 				$( document ).off( 'visibilitychange', this._visibilityHandler );
 				this._visibilityHandler = null;
 			}
+			if (this._beforeUnloadHandler) {
+				window.removeEventListener( 'beforeunload', this._beforeUnloadHandler );
+				this._beforeUnloadHandler = null;
+			}
 		},
 
 		bindEvents: function () {
@@ -115,7 +119,7 @@
 			this.$saveSettings.on(
 				'click',
 				function () {
-					self.saveSettings( self.isAutoRefresh );
+					self.saveSettings( undefined );
 				}
 			);
 
@@ -370,6 +374,11 @@
 				}
 			};
 			$( document ).on( 'visibilitychange', this._visibilityHandler );
+
+			this._beforeUnloadHandler = function () {
+				self.stopAutoRefresh();
+			};
+			window.addEventListener( 'beforeunload', this._beforeUnloadHandler );
 		},
 
 		loadInitialState: function () {
@@ -498,11 +507,13 @@
 			).fail(
 				function (xhr) {
 					self.saveSettingsRequest = null;
-					if (xhr.statusText === 'abort' || xhr.status === 0) {
+					if (xhr.statusText === 'abort') {
 						return;
 					}
 					var errorMsg = 'Error ' + xhr.status;
-					if (xhr.responseText) {
+					if (xhr.status === 0) {
+						errorMsg = 'Network error. Please check your connection.';
+					} else if (xhr.responseText) {
 						try {
 							var parsed = JSON.parse( xhr.responseText );
 							errorMsg   = parsed.data && parsed.data.message ? parsed.data.message : errorMsg;

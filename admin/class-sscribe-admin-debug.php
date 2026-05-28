@@ -143,16 +143,18 @@ class SScribe_Admin_Debug {
 		}
 
 		$filter_level = isset( $_POST['filter_level'] ) ? sanitize_text_field( wp_unslash( $_POST['filter_level'] ) ) : 'ALL';
+		$filter_level = strtoupper( $filter_level );
 		$search       = isset( $_POST['search'] ) ? sanitize_text_field( wp_unslash( $_POST['search'] ) ) : '';
 		$session_id   = isset( $_POST['session_id'] ) ? sanitize_text_field( wp_unslash( $_POST['session_id'] ) ) : '';
 		$offset       = isset( $_POST['offset'] ) ? absint( wp_unslash( $_POST['offset'] ) ) : 0;
 		$limit        = isset( $_POST['limit'] ) ? max( 1, min( 200, absint( wp_unslash( $_POST['limit'] ) ) ) ) : 200;
 
 		$logger = SScribe_Logger::instance( true );
-		// Fetch only the needed window to avoid loading entire file into memory.
-		$logs   = $logger->get_logs( $offset + $limit );
+		// Fetch all logs to get accurate total count, then paginate in PHP.
+		$logs   = $logger->get_logs();
 
 		$entries = $this->parse_log_entries( $logs, $filter_level, $search, $session_id, true );
+		$total   = count( $entries );
 
 		$upload_dir    = wp_upload_dir();
 		$log_dir       = $upload_dir['basedir'] . '/sscribe-logs';
@@ -163,7 +165,7 @@ class SScribe_Admin_Debug {
 		wp_send_json_success(
 			array(
 				'entries'       => array_slice( $entries, $offset, $limit ),
-				'count'         => count( $entries ),
+				'count'         => $total,
 				'offset'        => $offset,
 				'limit'         => $limit,
 				'status'        => $log_exists ? 'ok' : 'no_log_file',
