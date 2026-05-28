@@ -29,11 +29,11 @@ class SScribe_Admin_Debug {
 	private ?string $cached_log_filename = null;
 
 	/**
-	 * Whether hooks have been registered.
+	 * Whether hooks have been registered for this instance.
 	 *
 	 * @var bool
 	 */
-	private static bool $hooks_registered = false;
+	private bool $hooks_registered = false;
 
 	/**
 	 * Get required capability for debug actions.
@@ -76,10 +76,10 @@ class SScribe_Admin_Debug {
 	 * Register all debug AJAX hooks.
 	 */
 	public function register_hooks(): void {
-		if ( self::$hooks_registered ) {
+		if ( $this->hooks_registered ) {
 			return;
 		}
-		self::$hooks_registered = true;
+		$this->hooks_registered = true;
 
 		add_action( 'wp_ajax_sscribe_debug_save_settings', array( $this, 'ajax_debug_save_settings' ) );
 		add_action( 'wp_ajax_sscribe_debug_fetch_logs', array( $this, 'ajax_debug_fetch_logs' ) );
@@ -186,7 +186,10 @@ class SScribe_Admin_Debug {
 		$logger = SScribe_Logger::instance( true );
 		$logger->clear_logs();
 
-		wp_send_json_success( array( 'message' => __( 'Logs cleared.', 'sscribe-export-site-pages' ) ) );
+		wp_send_json_success( array(
+			'message' => __( 'Logs cleared.', 'sscribe-export-site-pages' ),
+			'nonce'   => wp_create_nonce( 'sscribe_export_nonce' ),
+		) );
 	}
 
 	/**
@@ -444,7 +447,10 @@ class SScribe_Admin_Debug {
 		if ( file_exists( $file_path ) ) {
 			wp_send_json_error( array( 'message' => __( 'Failed to delete file.', 'sscribe-export-site-pages' ) ), 500 );
 		} else {
-			wp_send_json_success( array( 'message' => __( 'File deleted.', 'sscribe-export-site-pages' ) ) );
+			wp_send_json_success( array(
+				'message' => __( 'File deleted.', 'sscribe-export-site-pages' ),
+				'nonce'   => wp_create_nonce( 'sscribe_export_nonce' ),
+			) );
 		}
 	}
 
@@ -554,11 +560,10 @@ class SScribe_Admin_Debug {
 			$context      = array();
 			$message_part = $rest;
 
-			// Look for ' | {' pattern from the end, validate the JSON after it
 			$last_sep = strrpos( $rest, ' | {' );
 			if ( false !== $last_sep ) {
 				$potential_json = substr( $rest, $last_sep + 3 );
-				if ( ! empty( $potential_json ) && '}' === substr( $potential_json, -1 ) ) {
+				if ( ! empty( $potential_json ) ) {
 					$decoded = json_decode( $potential_json, true );
 					if ( is_array( $decoded ) ) {
 						$context      = $decoded;
