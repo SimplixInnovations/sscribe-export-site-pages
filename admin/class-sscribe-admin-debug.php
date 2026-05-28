@@ -47,7 +47,6 @@ class SScribe_Admin_Debug {
 	 * AJAX: Save debug settings.
 	 */
 	public function ajax_debug_save_settings(): void {
-		/* 
 		if ( ! check_ajax_referer( 'sscribe_export_nonce', 'nonce', false ) ) {
 			wp_send_json_error( array( 'message' => __( 'Invalid security token.', 'sscribe-export-site-pages' ) ), 403 );
 			return;
@@ -63,7 +62,6 @@ class SScribe_Admin_Debug {
 			wp_send_json_error( array( 'message' => __( 'Rate limit exceeded. Please wait before trying again.', 'sscribe-export-site-pages' ) ), 429 );
 			return;
 		}
-		*/
 
 		$allowed_levels = array(
 			SScribe_Settings::LEVEL_ALL,
@@ -99,7 +97,6 @@ class SScribe_Admin_Debug {
 	 * AJAX: Fetch debug logs.
 	 */
 	public function ajax_debug_fetch_logs(): void {
-		/*
 		if ( ! check_ajax_referer( 'sscribe_export_nonce', 'nonce', false ) ) {
 			wp_send_json_error( array( 'message' => __( 'Invalid security token.', 'sscribe-export-site-pages' ) ), 403 );
 			return;
@@ -115,7 +112,6 @@ class SScribe_Admin_Debug {
 			wp_send_json_error( array( 'message' => __( 'Rate limit exceeded. Please wait before trying again.', 'sscribe-export-site-pages' ) ), 429 );
 			return;
 		}
-		*/
 
 		$filter_level = isset( $_POST['filter_level'] ) ? sanitize_text_field( wp_unslash( $_POST['filter_level'] ) ) : 'ALL';
 		$search       = isset( $_POST['search'] ) ? sanitize_text_field( wp_unslash( $_POST['search'] ) ) : '';
@@ -282,8 +278,10 @@ class SScribe_Admin_Debug {
 			return;
 		}
 
-		$log_files  = glob( $log_dir . '/*.log' ) ?: array();
-		$json_files = glob( $log_dir . '/*.json' ) ?: array();
+		$log_files  = glob( $log_dir . '/*.log' );
+		$log_files  = is_array( $log_files ) ? $log_files : array();
+		$json_files = glob( $log_dir . '/*.json' );
+		$json_files = is_array( $json_files ) ? $json_files : array();
 		$files      = array_merge( $log_files, $json_files );
 		$result     = array();
 		$current_log = 'sscribe_debug_' . gmdate( 'Y-m-d' ) . '.log';
@@ -503,7 +501,8 @@ class SScribe_Admin_Debug {
 			if ( ! empty( $search ) ) {
 				$search_lower = strtolower( $search );
 				$message     = strtolower( $entry['message'] );
-				$context_json = wp_json_encode( $entry['context'] ) ?: '';
+				$context_json = wp_json_encode( $entry['context'] );
+				$context_json = ( false === $context_json ) ? '' : $context_json;
 				$context_lower = strtolower( $context_json );
 
 				if ( false === strpos( $message, $search_lower )
@@ -536,14 +535,15 @@ class SScribe_Admin_Debug {
 			);
 		}
 
-		// Parse non-JSON log lines: [timestamp] [level] message | {context_json}
-		// - Removed /s modifier to prevent . from matching newlines
-		// - Changed .+? to [^\n]+? to prevent newline matching without /s
-		// - Changed {.+} to \{[^\n]+\} without length cap to prevent backtracking on crafted input
+		// Parse non-JSON log lines: [timestamp] [level] message | {context_json}.
+		// Removed /s modifier to prevent . from matching newlines.
+		// Changed .+? to [^\n]+? to prevent newline matching without /s.
+		// Changed {.+} to \{[^\n]+\} without length cap to prevent backtracking on crafted input.
 		if ( preg_match( '/^\[([^\]]+)\]\s+\[([^\]]+)\]\s+([^\n]+?)(?:\s*\|\s*(\{[^\n]+\}))?$/', $line, $matches ) ) {
 			$context = array();
 			if ( ! empty( $matches[4] ) ) {
-				$context = json_decode( $matches[4], true ) ?: array();
+				$context_json_decoded = json_decode( $matches[4], true );
+				$context = is_array( $context_json_decoded ) ? $context_json_decoded : array();
 			}
 
 			return array(
