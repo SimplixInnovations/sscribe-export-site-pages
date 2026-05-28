@@ -285,6 +285,7 @@ class SScribe_Zip_Handler {
 				'ZIP verification failed before return',
 				array( 'zip_path' => $zip_path )
 			);
+			wp_delete_file( $zip_path );
 			if ( $lock_using_cache ) {
 				wp_cache_delete( $lock_key, 'transient' );
 			}

@@ -150,8 +150,8 @@ class SScribe_Admin_Debug {
 		$limit        = isset( $_POST['limit'] ) ? max( 1, min( 200, absint( wp_unslash( $_POST['limit'] ) ) ) ) : 200;
 
 		$logger = SScribe_Logger::instance( true );
-		// Fetch all logs to get accurate total count, then paginate in PHP.
-		$logs = $logger->get_logs();
+		// Fetch enough logs for current page plus buffer for accurate total count.
+		$logs = $logger->get_logs( $offset + $limit + 1000 );
 
 		$entries = $this->parse_log_entries( $logs, $filter_level, $search, $session_id, true );
 		$total   = count( $entries );
