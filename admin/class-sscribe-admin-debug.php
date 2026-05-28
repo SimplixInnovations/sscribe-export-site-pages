@@ -298,7 +298,7 @@ class SScribe_Admin_Debug {
 					continue;
 				}
 				$basename = basename( $file );
-				if ( $basename === $current_log ) {
+				if ( ! empty( $current_log ) && $basename === $current_log ) {
 					continue;
 				}
 				$result[] = array(
