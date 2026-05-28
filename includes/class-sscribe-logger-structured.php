@@ -278,4 +278,16 @@ class SScribe_Logger_Structured implements SScribe_Logger_Interface {
 	public function clear_logs(): void {
 		// Structured logger does not support clearing individual entries.
 	}
+
+	/**
+	 * Get the current log file path.
+	 *
+	 * Structured logger writes to error_log rather than files,
+	 * so this returns empty string.
+	 *
+	 * @return string Empty string (no file-based log).
+	 */
+	public function get_log_file(): string {
+		return '';
+	}
 }

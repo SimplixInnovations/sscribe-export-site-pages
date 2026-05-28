@@ -437,8 +437,8 @@ class SScribe_Admin_Debug {
 		}
 
 		// Prevent deletion of the active (non-rotated) log file.
-		$logger = SScribe_Logger::instance( true );
-		$active_log = method_exists( $logger, 'get_log_file' ) ? $logger->get_log_file() : '';
+		$logger     = SScribe_Logger::instance( true );
+		$active_log = $logger->get_log_file();
 		if ( $active_log && realpath( $active_log ) === $real_file_path ) {
 			wp_send_json_error( array( 'message' => __( 'Cannot delete the active log file.', 'sscribe-export-site-pages' ) ), 403 );
 			return;
