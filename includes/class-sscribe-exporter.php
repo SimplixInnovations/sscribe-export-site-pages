@@ -13,6 +13,14 @@ if ( ! defined( 'ABSPATH' ) ) {
 	exit;
 }
 
+use PhpOffice\PhpWord\Element\Section;
+use PhpOffice\PhpWord\Element\TextRun;
+use PhpOffice\PhpWord\PhpWord;
+use PhpOffice\PhpWord\Settings;
+use PhpOffice\PhpWord\SimpleType\Jc;
+use PhpOffice\PhpWord\Shared\Converter;
+use PhpOffice\PhpWord\IOFactory;
+
 /**
  * Export orchestration and format routing.
  *
@@ -967,11 +975,11 @@ class SScribe_Exporter {
 	/**
 	 * Add cover page to the document.
 	 *
-	 * @param \SScribeVendor\PhpOffice\PhpWord\Element\Section $section   Document section.
+	 * @param Section $section   Document section.
 	 * @param array                                            $page_data Page data.
 	 * @return void
 	 */
-	private function add_cover_page( \SScribeVendor\PhpOffice\PhpWord\Element\Section $section, array $page_data ): void {
+	private function add_cover_page( Section $section, array $page_data ): void {
 
 		$section->addTextBreak( 2 );
 
@@ -1206,11 +1214,11 @@ class SScribe_Exporter {
 	/**
 	 * Add header and footer to document section.
 	 *
-	 * @param \SScribeVendor\PhpOffice\PhpWord\Element\Section $section   Document section.
+	 * @param Section $section   Document section.
 	 * @param array                                            $page_data Page data.
 	 * @return void
 	 */
-	private function add_header_footer( \SScribeVendor\PhpOffice\PhpWord\Element\Section $section, array $page_data ): void {
+	private function add_header_footer( Section $section, array $page_data ): void {
 
 		$header       = $section->addHeader();
 		$header_table = $header->addTable();
@@ -1262,11 +1270,11 @@ class SScribe_Exporter {
 	/**
 	 * Add featured image to document section.
 	 *
-	 * @param \SScribeVendor\PhpOffice\PhpWord\Element\Section $section   Document section.
+	 * @param Section $section   Document section.
 	 * @param array                                            $page_data Page data.
 	 * @return void
 	 */
-	private function add_featured_image( \SScribeVendor\PhpOffice\PhpWord\Element\Section $section, array $page_data ): void {
+	private function add_featured_image( Section $section, array $page_data ): void {
 		if ( empty( $page_data['featured_image_path'] ) ) {
 			$this->get_logger()->warning(
 				'Featured image skipped: path not provided',
@@ -1364,11 +1372,11 @@ class SScribe_Exporter {
 	/**
 	 * Add page information table to document.
 	 *
-	 * @param \SScribeVendor\PhpOffice\PhpWord\Element\Section $section   Document section.
+	 * @param Section $section   Document section.
 	 * @param array                                            $page_data Page data.
 	 * @return void
 	 */
-	private function add_page_info_table( \SScribeVendor\PhpOffice\PhpWord\Element\Section $section, array $page_data ): void {
+	private function add_page_info_table( Section $section, array $page_data ): void {
 		$section->addTitle( __( 'Page Information', 'sscribe-export-site-pages' ), 2 );
 
 		$table_style = array(
@@ -1434,11 +1442,11 @@ class SScribe_Exporter {
 	/**
 	 * Add SEO information section to document.
 	 *
-	 * @param \SScribeVendor\PhpOffice\PhpWord\Element\Section $section   Document section.
+	 * @param Section $section   Document section.
 	 * @param array                                            $page_data Page data.
 	 * @return void
 	 */
-	private function add_seo_section( \SScribeVendor\PhpOffice\PhpWord\Element\Section $section, array $page_data ): void {
+	private function add_seo_section( Section $section, array $page_data ): void {
 		$seo_data = ! empty( $page_data['seo'] ) ? $page_data['seo'] : array();
 
 		if ( empty( $seo_data['meta_title'] ) && empty( $seo_data['meta_description'] ) && empty( $seo_data['focus_keyword'] ) ) {
@@ -1511,11 +1519,11 @@ class SScribe_Exporter {
 	/**
 	 * Add breadcrumbs to document.
 	 *
-	 * @param \SScribeVendor\PhpOffice\PhpWord\Element\Section $section   Document section.
+	 * @param Section $section   Document section.
 	 * @param array                                            $page_data Page data.
 	 * @return void
 	 */
-	private function add_breadcrumbs( \SScribeVendor\PhpOffice\PhpWord\Element\Section $section, array $page_data ): void {
+	private function add_breadcrumbs( Section $section, array $page_data ): void {
 		if ( empty( $page_data['breadcrumbs'] ) || count( $page_data['breadcrumbs'] ) <= 1 ) {
 			return;
 		}
@@ -1556,11 +1564,11 @@ class SScribe_Exporter {
 	/**
 	 * Add child pages section to document.
 	 *
-	 * @param \SScribeVendor\PhpOffice\PhpWord\Element\Section $section   Document section.
+	 * @param Section $section   Document section.
 	 * @param array                                            $page_data Page data.
 	 * @return void
 	 */
-	private function add_child_pages( \SScribeVendor\PhpOffice\PhpWord\Element\Section $section, array $page_data ): void {
+	private function add_child_pages( Section $section, array $page_data ): void {
 		if ( empty( $page_data['children'] ) ) {
 			return;
 		}
@@ -1577,7 +1585,7 @@ class SScribe_Exporter {
 	/**
 	 * Render child pages recursively with depth limit.
 	 *
-	 * @param \SScribeVendor\PhpOffice\PhpWord\Element\Section $section      Document section.
+	 * @param Section $section      Document section.
 	 * @param array                                            $children     Children array.
 	 * @param int                                              $depth        Current depth.
 	 * @param int                                              $max_depth    Maximum depth allowed.
@@ -1586,7 +1594,7 @@ class SScribe_Exporter {
 	 * @return int Total rendered count.
 	 */
 	private function render_child_pages(
-		\SScribeVendor\PhpOffice\PhpWord\Element\Section $section,
+		Section $section,
 		array $children,
 		int $depth,
 		int $max_depth,
