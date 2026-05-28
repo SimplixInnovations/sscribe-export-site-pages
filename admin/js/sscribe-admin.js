@@ -39,9 +39,7 @@
 			if (!text || typeof text !== 'string') {
 				return 0;
 			}
-			// Conservative approach: remove common locale grouping separators.
-			let cleaned = text.trim();
-			cleaned = cleaned.replace(/[.,' ]/g, '');
+			const cleaned = text.trim().replace(/[.,' ]/g, '');
 			const num = parseInt(cleaned, 10);
 			return isNaN(num) ? 0 : num;
 		},
