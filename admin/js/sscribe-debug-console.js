@@ -115,7 +115,7 @@
 			this.$saveSettings.on(
 				'click',
 				function () {
-					self.saveSettings();
+					self.saveSettings( self.isAutoRefresh );
 				}
 			);
 
@@ -364,7 +364,7 @@
 					self.stopAutoRefresh();
 				} else if (self.isAutoRefresh) {
 					const $debugTab = $( '#sscribe-tab-debug' );
-					if ( ! $debugTab.length || $debugTab.hasClass( 'sscribe-tab-active' ) || $debugTab.attr( 'aria-hidden' ) === 'false') {
+					if ( $debugTab.length && ( $debugTab.hasClass( 'sscribe-tab-active' ) || $debugTab.attr( 'aria-selected' ) === 'true' ) ) {
 						self.startAutoRefresh();
 					}
 				}
@@ -394,7 +394,6 @@
 					if ( ! self.isViewingRotated && self.currentOffset === 0) {
 						self.fetchLogs();
 					}
-					self.fetchRotatedLogs();
 				},
 				10000
 			);
@@ -573,6 +572,10 @@
 					self.isLoadingMore = false;
 
 					if (response.success) {
+						if ( ! response.data || ! Array.isArray( response.data.entries )) {
+							self.showConsoleError( 'Invalid response from server.' );
+							return;
+						}
 						const newEntries = response.data.entries;
 						const totalCount = response.data.count;
 
@@ -729,7 +732,11 @@
 				data,
 				function (response) {
 					self.$clearBtn.prop( 'disabled', false );
+					self.$clearBtn.siblings( '.sscribe-feedback' ).remove();
 					if (response.success) {
+						if ( response.data && response.data.nonce ) {
+							sscribe_data.nonce = response.data.nonce;
+						}
 						self.$clearBtn.after( '<span class="sscribe-feedback sscribe-feedback-success">Cleared!</span>' );
 						setTimeout(
 							function () {
@@ -956,6 +963,7 @@
 			this.currentRotatedFilename = '';
 			this.hasMoreEntries         = true;
 			this.currentOffset          = 0;
+			this.isLoadingMore          = false;
 			this.$entries.empty();
 			this.$entryCount.text( 'Loading...' );
 			this.$consoleBody.addClass( 'is-loading' );
@@ -978,6 +986,8 @@
 
 			if ($btn && $btn.data( 'confirming' )) {
 				$btn.data( 'confirming', false ).removeClass( 'sscribe-btn-confirming' ).text( 'Delete' );
+				self._executeDeleteRotatedLog( filename, $btn );
+				return;
 			} else if ($btn) {
 				$btn.data( 'confirming', true ).addClass( 'sscribe-btn-confirming' ).text( 'Click to confirm' );
 				setTimeout(
@@ -991,6 +1001,11 @@
 				return;
 			}
 
+			self._executeDeleteRotatedLog( filename, $btn );
+		},
+
+		_executeDeleteRotatedLog: function (filename, $btn) {
+			const self = this;
 			const data = {
 				action: 'sscribe_debug_delete_rotated',
 				nonce: sscribe_data.nonce,
@@ -1009,6 +1024,9 @@
 						$btn.prop( 'disabled', false );
 					}
 					if (response.success) {
+						if ( response.data && response.data.nonce ) {
+							sscribe_data.nonce = response.data.nonce;
+						}
 						self.fetchRotatedLogs();
 					} else {
 						self.$saveFeedback.text( self.getResponseMessage( response, 'Error' ) ).addClass( 'error' );
