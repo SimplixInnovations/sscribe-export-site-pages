@@ -493,7 +493,7 @@ class SScribe_Admin {
 		$sscribe_debug_info = array();
 		// Always show the debug tab so users can toggle debug on/off.
 		// The debug *logging* is still controlled by the setting.
-		$show_debug_tab             = true;
+		$show_debug_tab               = true;
 		$sscribe_debug_logging_active = SSCRIBE_DEBUG || SScribe_Settings::is_debug_enabled();
 
 		if ( $sscribe_debug_logging_active ) {

@@ -102,6 +102,7 @@ class SScribe_Page_Collector {
 	 * @param string $language    Language code.
 	 * @param string $post_status Post status.
 	 * @param string $post_type   Post type.
+	 * @param int    $limit       Maximum number of IDs to return (-1 for all).
 	 * @return array<int>
 	 */
 	public function get_page_ids( string $language = '', string $post_status = 'publish', string $post_type = 'page', int $limit = -1 ): array {
