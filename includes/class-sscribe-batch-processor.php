@@ -10,7 +10,7 @@
 declare(strict_types=1);
 
 /*
- * phpcs:disable WordPress.NamingConventions.ValidVariableName.PropertyNotSnakeCase
+ * phpcs:disable WordPress.NamingConventions.ValidVariableName
  * Reason: ZipArchive is PHP built-in with camelCase properties like numFiles.
  */
 
@@ -2041,7 +2041,8 @@ class SScribe_Batch_Processor {
 			if ( true === $zip_open ) {
 				// Count only actual file entries (not directory entries which end with '/').
 				$total_files_zip = 0;
-				$zip_file_count = $zip->numFiles; // phpcs:ignore WordPress.NamingConventions.ValidVariableName.PropertyNotSnakeCase
+				// phpcs:ignore WordPress.NamingConventions.ValidVariableName.PropertyNotSnakeCase
+				$zip_file_count = $zip->numFiles;
 				for ( $i = 0; $i < $zip_file_count; $i++ ) {
 					$stat = $zip->statIndex( $i );
 					if ( $stat && substr( $stat['name'], -1 ) !== '/' ) {
