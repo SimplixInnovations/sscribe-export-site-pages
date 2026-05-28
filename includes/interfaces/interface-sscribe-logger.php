@@ -131,4 +131,14 @@ interface SScribe_Logger_Interface {
 	 * Clear all log entries.
 	 */
 	public function clear_logs(): void;
+
+	/**
+	 * Get the current log file path.
+	 *
+	 * Used by the debug console to verify it reads the correct log file,
+	 * and to protect active log files from deletion.
+	 *
+	 * @return string Full path to the log file.
+	 */
+	public function get_log_file(): string;
 }

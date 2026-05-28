@@ -135,15 +135,14 @@ class SScribe_Logger implements SScribe_Logger_Interface {
 	 * @return bool True if enhanced logger should be loaded.
 	 */
 	private static function should_use_enhanced(): bool {
+		// Enhanced logger is only for QueryMonitor or explicit DB logging.
+		// NOT for UI debug toggle - that uses base file logger to ensure
+		// the debug console (which reads via get_log_file()) works correctly.
 		if ( class_exists( 'QM_Collector' ) && ! ( defined( 'QM_DISABLED' ) && QM_DISABLED ) && ( is_admin() || wp_doing_ajax() ) ) {
 			return true;
 		}
 
 		if ( defined( 'SSCRIBE_DB_LOGGING' ) && SSCRIBE_DB_LOGGING ) {
-			return true;
-		}
-
-		if ( ( defined( 'WP_DEBUG' ) && WP_DEBUG && SSCRIBE_DEBUG ) || SScribe_Settings::is_debug_enabled() ) {
 			return true;
 		}
 
@@ -427,7 +426,7 @@ class SScribe_Logger implements SScribe_Logger_Interface {
 					$file->seek( PHP_INT_MAX );
 					$total_lines = $file->key();
 
-					$start = $total_lines > $limit ? $total_lines - $limit + 1 : 0;
+					$start = $total_lines > $limit ? $total_lines - $limit : 0;
 					$file->seek( $start );
 
 					while ( ! $file->eof() ) {

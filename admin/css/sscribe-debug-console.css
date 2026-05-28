@@ -208,7 +208,8 @@
 }
 
 .sscribe-debug-filter,
-.sscribe-debug-search {
+.sscribe-debug-search,
+.sscribe-debug-session-filter {
 	display: flex;
 	align-items: center;
 	gap: 8px;
@@ -613,4 +614,16 @@
 	background-color: #ffc107;
 	border-color: #ffc107;
 	color: #000;
+}
+
+.sscribe-debug-entry-toggle {
+	flex-shrink: 0;
+	margin-left: auto;
+	transition: transform 0.2s ease;
+	font-size: 10px;
+	color: #6c757d;
+}
+
+.sscribe-debug-entry.expanded .sscribe-debug-entry-toggle {
+	transform: rotate(90deg);
 }
