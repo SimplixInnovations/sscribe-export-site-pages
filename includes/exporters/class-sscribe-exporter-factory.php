@@ -101,7 +101,7 @@ class SScribe_Exporter_Factory {
 		$page_id = (int) ( $page_data['id'] ?? 0 );
 
 		$raw_title  = isset( $page_data['title'] ) && '' !== $page_data['title']
-			? sanitize_file_name( trim( $page_data['title'] ) )
+			? sanitize_file_name( function_exists( 'remove_accents' ) ? remove_accents( trim( $page_data['title'] ) ) : trim( $page_data['title'] ) )
 			: '';
 		$raw_slug   = isset( $page_data['slug'] ) && '' !== $page_data['slug']
 			? sanitize_file_name( trim( $page_data['slug'] ) )

@@ -512,6 +512,11 @@ class SScribe_Export_Log {
 		}
 
 		// Last resort: linear scan of all log files (only if both cache layers missed).
+		// Allow disabling full scan for sites with many exports where O(n) is unacceptable.
+		if ( ! apply_filters( 'sscribe_enable_log_full_scan', true ) ) {
+			return null;
+		}
+
 		$files = glob( $log_dir . '/export_*.json' );
 
 		if ( is_array( $files ) && count( $files ) > 200 ) {

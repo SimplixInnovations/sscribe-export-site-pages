@@ -117,7 +117,7 @@ class SScribe_Admin_Debug {
 		$search       = isset( $_POST['search'] ) ? sanitize_text_field( wp_unslash( $_POST['search'] ) ) : '';
 		$session_id   = isset( $_POST['session_id'] ) ? sanitize_text_field( wp_unslash( $_POST['session_id'] ) ) : '';
 		$offset       = isset( $_POST['offset'] ) ? absint( wp_unslash( $_POST['offset'] ) ) : 0;
-		$limit        = max( 1, min( 500, absint( wp_unslash( $_POST['limit'] ?? 500 ) ) ) );
+		$limit        = isset( $_POST['limit'] ) ? max( 1, min( 500, absint( wp_unslash( $_POST['limit'] ) ) ) ) : 500;
 
 		// Always pass true when reading logs - user is authenticated and authorized to view them.
 		$logger = SScribe_Logger::instance( true );

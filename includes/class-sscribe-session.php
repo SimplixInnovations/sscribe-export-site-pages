@@ -339,12 +339,11 @@ class SScribe_Session {
 			}
 
 			$merged = $existing;
+			$max_keys = array( 'processed', 'success', 'failed' );
 			foreach ( $data as $key => $value ) {
 				if ( isset( $existing[ $key ] ) && is_array( $existing[ $key ] ) && is_array( $value ) ) {
 					$append_keys = array( 'structured_errors', 'page_log', 'error_categories' );
 					if ( in_array( $key, $append_keys, true ) ) {
-						// Cap append-only arrays at 500 entries to prevent wp_options
-						// bloat that causes slow DB queries and max-packet errors.
 						$merged[ $key ] = array_slice(
 							array_merge( $existing[ $key ], $value ),
 							-500
@@ -352,6 +351,8 @@ class SScribe_Session {
 					} else {
 						$merged[ $key ] = $value;
 					}
+				} elseif ( in_array( $key, $max_keys, true ) && is_int( $value ) && isset( $existing[ $key ] ) && is_int( $existing[ $key ] ) ) {
+					$merged[ $key ] = max( $existing[ $key ], $value );
 				} else {
 					$merged[ $key ] = $value;
 				}

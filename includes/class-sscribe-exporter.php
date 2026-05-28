@@ -320,7 +320,7 @@ class SScribe_Exporter {
 			return filter_var( $cached, FILTER_VALIDATE_IP, FILTER_FLAG_NO_PRIV_RANGE | FILTER_FLAG_NO_RES_RANGE ) === false;
 		}
 
-		$ip = $this->resolve_host_with_timeout( $host );
+		$ip                       = $this->resolve_host_with_timeout( $host );
 		self::$dns_cache[ $host ] = $ip;
 
 		if ( null === $ip ) {
