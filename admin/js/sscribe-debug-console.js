@@ -122,9 +122,11 @@
 			this.$filterLevel.on(
 				'change',
 				function () {
-					self.currentFilter  = $( this ).val();
-					self.currentOffset  = 0;
-					self.hasMoreEntries = true;
+					self.currentFilter        = $( this ).val();
+					self.currentOffset        = 0;
+					self.hasMoreEntries       = true;
+					self.isViewingRotated     = false;
+					self.currentRotatedFilename = '';
 					self.destroyObserver();
 					self.fetchLogs();
 					self.updateExportButtonScope();
@@ -135,9 +137,11 @@
 				'input',
 				debounce(
 					function () {
-						self.searchQuery    = self.$searchInput.val();
-						self.currentOffset  = 0;
-						self.hasMoreEntries = true;
+						self.searchQuery          = self.$searchInput.val();
+						self.currentOffset        = 0;
+						self.hasMoreEntries       = true;
+						self.isViewingRotated     = false;
+						self.currentRotatedFilename = '';
 						self.destroyObserver();
 						self.fetchLogs();
 						self.updateExportButtonScope();
@@ -150,9 +154,11 @@
 				'input',
 				debounce(
 					function () {
-						self.sessionFilter  = self.$sessionInput.val().trim();
-						self.currentOffset  = 0;
-						self.hasMoreEntries = true;
+						self.sessionFilter        = self.$sessionInput.val().trim();
+						self.currentOffset        = 0;
+						self.hasMoreEntries       = true;
+						self.isViewingRotated     = false;
+						self.currentRotatedFilename = '';
 						self.destroyObserver();
 						self.fetchLogs();
 						self.updateExportButtonScope();
@@ -604,6 +610,7 @@
 					self.$consoleBody.removeClass( 'is-loading' );
 					self.hideAppendLoading();
 					self.isLoadingMore = false;
+					self.destroyObserver();
 					if (isInitialLoad) {
 						self.$entryCount.text( 'Error' );
 						var errorMsg = 'HTTP ' + xhr.status;
@@ -723,21 +730,19 @@
 				function (response) {
 					self.$clearBtn.prop( 'disabled', false );
 					if (response.success) {
-						self.$saveFeedback.text( 'Logs cleared' ).addClass( 'success' );
+						self.$clearBtn.after( '<span class="sscribe-feedback sscribe-feedback-success">Cleared!</span>' );
 						setTimeout(
 							function () {
-								self.$saveFeedback.text( '' );
-								self.$saveFeedback.removeClass( 'success' );
+								self.$clearBtn.siblings( '.sscribe-feedback' ).remove();
 							},
 							2000
 						);
 						self.fetchLogs();
 					} else {
-						self.$saveFeedback.text( self.getResponseMessage( response, 'Error' ) ).addClass( 'error' );
+						self.$clearBtn.after( '<span class="sscribe-feedback sscribe-feedback-error">' + escHtml( self.getResponseMessage( response, 'Error' ) ) + '</span>' );
 						setTimeout(
 							function () {
-								self.$saveFeedback.text( '' );
-								self.$saveFeedback.removeClass( 'error' );
+								self.$clearBtn.siblings( '.sscribe-feedback' ).remove();
 							},
 							2000
 						);
@@ -746,11 +751,10 @@
 			).fail(
 				function () {
 					self.$clearBtn.prop( 'disabled', false );
-					self.$saveFeedback.text( 'Error' ).addClass( 'error' );
+					self.$clearBtn.after( '<span class="sscribe-feedback sscribe-feedback-error">Error</span>' );
 					setTimeout(
 						function () {
-							self.$saveFeedback.text( '' );
-							self.$saveFeedback.removeClass( 'error' );
+							self.$clearBtn.siblings( '.sscribe-feedback' ).remove();
 						},
 						2000
 					);
@@ -954,6 +958,7 @@
 			this.currentOffset          = 0;
 			this.$entries.empty();
 			this.$entryCount.text( 'Loading...' );
+			this.$consoleBody.addClass( 'is-loading' );
 			this.fetchLogs();
 			this.fetchRotatedLogs();
 		},
