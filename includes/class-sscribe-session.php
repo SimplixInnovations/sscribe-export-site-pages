@@ -338,7 +338,7 @@ class SScribe_Session {
 				return false;
 			}
 
-			$merged = $existing;
+			$merged   = $existing;
 			$max_keys = array( 'processed', 'success', 'failed' );
 			foreach ( $data as $key => $value ) {
 				if ( isset( $existing[ $key ] ) && is_array( $existing[ $key ] ) && is_array( $value ) ) {
