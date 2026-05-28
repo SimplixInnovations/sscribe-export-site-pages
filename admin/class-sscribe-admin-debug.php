@@ -96,7 +96,7 @@ class SScribe_Admin_Debug {
 	 * @internal
 	 */
 	public function ajax_debug_save_settings(): void {
-		if ( ! $this->verify_request_authorization() ) {
+		if ( ! $this->verify_request_authorization( 'debug_settings' ) ) {
 			return;
 		}
 
