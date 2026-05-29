@@ -147,6 +147,7 @@
 					self.hasMoreEntries       = true;
 					self.isViewingRotated     = false;
 					self.currentRotatedFilename = '';
+					self.hidePausedIndicator();
 					self.destroyObserver();
 					self.fetchLogs();
 					self.updateExportButtonScope();
@@ -162,6 +163,7 @@
 						self.hasMoreEntries       = true;
 						self.isViewingRotated     = false;
 						self.currentRotatedFilename = '';
+						self.hidePausedIndicator();
 						self.destroyObserver();
 						self.fetchLogs();
 						self.updateExportButtonScope();
@@ -179,6 +181,7 @@
 						self.hasMoreEntries       = true;
 						self.isViewingRotated     = false;
 						self.currentRotatedFilename = '';
+						self.hidePausedIndicator();
 						self.destroyObserver();
 						self.fetchLogs();
 						self.updateExportButtonScope();
@@ -550,7 +553,7 @@
 								self.currentRequest.abort();
 								self.currentRequest = null;
 							}
-							self.$saveFeedback.text( 'Debug mode changed — reloading\u2026' ).addClass( 'success' );
+							self.$saveFeedback.removeClass( 'success error' ).text( 'Debug mode changed — reloading\u2026' ).addClass( 'success' );
 							setTimeout(
 								function () {
 									window.location.reload();
@@ -816,7 +819,7 @@
 					consoleBody.scrollTop = consoleBody.scrollHeight;
 				} else {
 					const heightDelta = consoleBody.scrollHeight - scrollHeightBefore;
-					consoleBody.scrollTop = scrollTop + heightDelta;
+					consoleBody.scrollTop = Math.max( 0, scrollTop + heightDelta );
 				}
 			}
 
@@ -916,6 +919,8 @@
 						self.destroyObserver();
 						self.fetchLogs();
 					} else {
+						const originalText = self.$clearBtn.data('original-text') || 'Clear Logs';
+						self.$clearBtn.text( originalText );
 						self.$clearBtn.after( '<span class="sscribe-feedback sscribe-feedback-error">' + escHtml( self.getResponseMessage( response, 'Error' ) ) + '</span>' );
 						setTimeout(
 							function () {
@@ -1056,15 +1061,15 @@
 				html +=
 					'<button type="button" class="sscribe-button sscribe-button-sm sscribe-button-outline sscribe-rotated-view" data-file="' +
 					escAttr( file.name ) +
-					'">View</button>';
+					'" aria-label="View rotated log ' + escAttr( file.name ) + '">View</button>';
 				html +=
 					'<button type="button" class="sscribe-button sscribe-button-sm sscribe-button-secondary sscribe-rotated-export" data-file="' +
 					escAttr( file.name ) +
-					'">Export</button>';
+					'" aria-label="Export rotated log ' + escAttr( file.name ) + '">Export</button>';
 				html +=
 					'<button type="button" class="sscribe-button sscribe-button-sm sscribe-button-danger sscribe-rotated-delete" data-file="' +
 					escAttr( file.name ) +
-					'">Delete</button>';
+					'" aria-label="Delete rotated log ' + escAttr( file.name ) + '">Delete</button>';
 					html += '</div></div>';
 				}
 			);
@@ -1143,7 +1148,6 @@
 			this.hasMoreEntries         = true;
 			this.currentOffset          = 0;
 			this.isLoadingMore          = false;
-			this.$entries.find( '.sscribe-debug-rotated-banner' ).remove();
 			this.$entries.empty();
 			this.$entryCount.text( 'Loading...' );
 			this.$consoleBody.addClass( 'is-loading' );
