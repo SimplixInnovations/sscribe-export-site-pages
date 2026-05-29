@@ -47,9 +47,7 @@ class SScribe_Export_Rate_Limiter {
 		if ( $user_id > 0 ) {
 			$transient_key = 'sscribe_rate_' . $bucket . '_' . $user_id;
 		} else {
-			$remote_ip     = isset( $_SERVER['REMOTE_ADDR'] )
-				? sanitize_text_field( wp_unslash( $_SERVER['REMOTE_ADDR'] ) )
-				: '0.0.0.0';
+			$remote_ip = $this->get_client_ip();
 			$transient_key = 'sscribe_rate_' . $bucket . '_anon_' . substr( hash( 'sha256', $remote_ip ), 0, 12 );
 		}
 
@@ -60,27 +58,18 @@ class SScribe_Export_Rate_Limiter {
 			? (int) apply_filters( 'sscribe_rate_limit_admin', 500 )
 			: self::RATE_LIMIT_MAX;
 
-		// Acquire micro-lock with retries.
 		$locked = false;
-		for ( $i = 0; $i < 3; $i++ ) {
-			if ( wp_using_ext_object_cache() ) {
-				$locked = wp_cache_add( $lock_key, 1, '', 2 );
-			} else {
-				$existing_lock = get_transient( $lock_key );
-				if ( false === $existing_lock ) {
-					$locked = set_transient( $lock_key, 1, 2 );
-					// Verify lock was actually acquired - set_transient returns true
-					// even on MySQL INSERT ON DUPLICATE KEY UPDATE, so we must read back.
-					if ( $locked ) {
-						$verified = get_transient( $lock_key );
-						$locked   = false !== $verified && 1 === (int) $verified;
-					}
+		if ( wp_using_ext_object_cache() ) {
+			$locked = wp_cache_add( $lock_key, 1, '', 2 );
+		} else {
+			$existing_lock = get_transient( $lock_key );
+			if ( false === $existing_lock ) {
+				$locked = set_transient( $lock_key, 1, 2 );
+				if ( $locked ) {
+					$verified = get_transient( $lock_key );
+					$locked   = false !== $verified && 1 === (int) $verified;
 				}
 			}
-			if ( $locked ) {
-				break;
-			}
-			usleep( 50000 );
 		}
 
 		if ( ! $locked ) {
@@ -123,5 +112,17 @@ class SScribe_Export_Rate_Limiter {
 		}
 
 		return true;
+	}
+
+	private function get_client_ip(): string {
+		$ip = '';
+		if ( isset( $_SERVER['HTTP_CF_CONNECTING_IP'] ) ) {
+			$ip = $_SERVER['HTTP_CF_CONNECTING_IP'];
+		} elseif ( isset( $_SERVER['HTTP_X_FORWARDED_FOR'] ) && preg_match( '/^([0-9.]+,?)+$/i', $_SERVER['HTTP_X_FORWARDED_FOR'] ) ) {
+			$ip = trim( explode( ',', $_SERVER['HTTP_X_FORWARDED_FOR'] )[0] );
+		} elseif ( isset( $_SERVER['REMOTE_ADDR'] ) ) {
+			$ip = $_SERVER['REMOTE_ADDR'];
+		}
+		return $ip ? sanitize_text_field( wp_unslash( $ip ) ) : '0.0.0.0';
 	}
 }

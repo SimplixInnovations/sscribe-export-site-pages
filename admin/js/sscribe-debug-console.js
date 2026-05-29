@@ -256,7 +256,7 @@
 						dialog.setAttribute( 'role', 'dialog' );
 						dialog.setAttribute( 'aria-modal', 'true' );
 						dialog.setAttribute( 'aria-labelledby', 'sscribe-debug-help-title' );
-						dialog.innerHTML         = helpContent.innerHTML;
+						dialog.appendChild( helpContent.cloneNode( true ) );
 						const priorFocus         = document.activeElement;
 						const focusableSelectors =
 						'a[href], button:not([disabled]), textarea:not([disabled]), input:not([disabled]), select:not([disabled]), [tabindex]:not([tabindex="-1"])';
@@ -383,6 +383,14 @@
 					$entry.attr( 'aria-expanded', String( ! isVisible ) );
 				}
 			);
+
+			this.$entries.on(
+				'click',
+				'.sscribe-debug-retry-append',
+				function () {
+					self.retryAppend();
+				}
+			);
 		},
 
 		bindVisibilityHandler: function () {
@@ -434,11 +442,14 @@
 						self.isRefreshing = false;
 						self.isRefreshingSince = null;
 					}
-					if ( self.isRefreshing || self.isViewingRotated || self.currentOffset !== 0 ) {
+					if ( self.isRefreshing || self.isViewingRotated ) {
+						return;
+					}
+					if ( self.currentOffset !== 0 ) {
+						self.showPausedIndicator( 'Auto-refresh paused — scrolled into history' );
 						return;
 					}
 					self.fetchLogs();
-					// Only fetch rotated logs if the details section is open.
 					const rotatedEl = document.getElementById( 'sscribe-debug-rotated-details' );
 					if ( rotatedEl && rotatedEl.open ) {
 						self.fetchRotatedLogs();
@@ -582,8 +593,6 @@
 					self.$saveSettings.prop( 'disabled', false );
 					self.$refreshMode.prop( 'disabled', false );
 					if (xhr.statusText === 'abort') {
-						self.$saveSettings.prop( 'disabled', false );
-						self.$refreshMode.prop( 'disabled', false );
 						return;
 					}
 					let errorMsg = 'Error ' + xhr.status;
@@ -740,7 +749,7 @@
 						self.$entries.find( '.sscribe-debug-append-error' ).remove();
 						self.$entries.append(
 							'<div class="sscribe-debug-append-error" style="padding:8px 12px;color:#dc3545;font-size:13px;">' +
-							'Failed to load more entries. <button type="button" class="sscribe-button sscribe-button-sm" onclick="SScribeDebugConsole.retryAppend()">Retry</button>' +
+							'Failed to load more entries. <button type="button" class="sscribe-button sscribe-button-sm sscribe-debug-retry-append">Retry</button>' +
 							'</div>'
 						);
 					}
@@ -777,7 +786,11 @@
 						this.$empty.find( 'p' ).text( 'Debug is enabled but no log file exists yet. Run an export to generate logs.' );
 					} else if (extraData.status === 'rotated') {
 						this.$empty.find( 'p' ).text( 'This rotated log file is empty.' );
+					} else {
+						this.$empty.find( 'p' ).text( this.defaultEmptyMessage );
 					}
+				} else {
+					this.$empty.find( 'p' ).text( this.defaultEmptyMessage );
 				}
 				return;
 			}
@@ -813,6 +826,7 @@
 		},
 
 		cleanupBeforeRender: function () {
+			this.isLoadingMore = false;
 			this.destroyObserver();
 		},
 
@@ -913,7 +927,8 @@
 				}
 			).fail(
 				function () {
-					self.$clearBtn.prop( 'disabled', false );
+					const originalText = self.$clearBtn.data('original-text') || 'Clear Logs';
+					self.$clearBtn.prop( 'disabled', false ).text( originalText );
 					self.$clearBtn.after( '<span class="sscribe-feedback sscribe-feedback-error">Error</span>' );
 					setTimeout(
 						function () {
@@ -962,13 +977,11 @@
 				session_id: this.sessionFilter,
 			};
 
-			const EXPORT_LABEL = 'Export JSON';
 			self.$exportBtn.prop( 'disabled', true );
 			self.$exportBtn.find( '.sscribe-export-btn-scope' ).text( ' (downloading...)' );
 			this.downloadViaForm( sscribe_data.ajaxurl, data );
 			setTimeout(
 				function () {
-					self.$exportBtn.find( '.sscribe-export-btn-scope' ).text( '' );
 					self.$exportBtn.prop( 'disabled', false );
 					self.updateExportButtonScope();
 				},
@@ -1184,7 +1197,7 @@
 			};
 
 			if ($btn) {
-				$btn.prop( 'disabled', true );
+				$btn.prop( 'disabled', true ).text( 'Deleting...' );
 			}
 
 			$.post(
@@ -1192,7 +1205,7 @@
 				data,
 				function (response) {
 					if ($btn) {
-						$btn.prop( 'disabled', false );
+						$btn.prop( 'disabled', false ).text( 'Delete' );
 					}
 					if (response.success) {
 						if ( response.data && response.data.nonce ) {
@@ -1221,7 +1234,7 @@
 			).fail(
 				function () {
 					if ($btn) {
-						$btn.prop( 'disabled', false );
+						$btn.prop( 'disabled', false ).text( 'Delete' );
 						const $row = $btn.closest( '.sscribe-debug-rotated-file' );
 						if ($row.length) {
 							$row.find( '.sscribe-debug-rotated-file-actions' ).after(
