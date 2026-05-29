@@ -41,6 +41,7 @@
 		rotatedRequest: null,
 		viewRotatedRequest: null,
 		isRefreshing: false,
+		isRefreshingSince: null,
 
 		init: function () {
 			if (this.initialized) {
@@ -416,6 +417,11 @@
 			this.stopAutoRefresh();
 			this.refreshInterval = setInterval(
 				function () {
+					// Safety valve: force-reset isRefreshing if it has been stuck for more than 30s.
+					if ( self.isRefreshing && self.isRefreshingSince && ( Date.now() - self.isRefreshingSince > 30000 ) ) {
+						self.isRefreshing = false;
+						self.isRefreshingSince = null;
+					}
 					if ( self.isRefreshing || self.isViewingRotated || self.currentOffset !== 0 ) {
 						return;
 					}
@@ -552,17 +558,23 @@
 					self.$saveSettings.prop( 'disabled', false );
 					self.$refreshMode.prop( 'disabled', false );
 					if (xhr.statusText === 'abort') {
+						self.$saveSettings.prop( 'disabled', false );
+						self.$refreshMode.prop( 'disabled', false );
 						return;
 					}
 					let errorMsg = 'Error ' + xhr.status;
 					if (xhr.status === 0) {
 						errorMsg = 'Network error. Please check your connection.';
 					} else if (xhr.responseText) {
-						const parsed = JSON.parse( xhr.responseText );
-						if ( parsed.data && parsed.data.message ) {
-							errorMsg = parsed.data.message;
-						} else {
-							errorMsg += ' (Server error, see console)';
+						try {
+							const parsed = JSON.parse( xhr.responseText );
+							if ( parsed.data && parsed.data.message ) {
+								errorMsg = parsed.data.message;
+							} else {
+								errorMsg += ' (Server error, see console)';
+							}
+						} catch (e) {
+							errorMsg += ' (unparseable response)';
 						}
 					}
 					self.$saveFeedback.text( errorMsg ).addClass( 'error' );
@@ -606,6 +618,7 @@
 
 			if (isInitialLoad) {
 				this.isRefreshing = true;
+				this.isRefreshingSince = Date.now();
 				self.$entries.css( 'opacity', '0.5' );
 				self.$entryCount.text( 'Loading...' );
 				self.$consoleBody.addClass( 'is-loading' );
@@ -627,6 +640,7 @@
 					self.isLoadingMore = false;
 					if (isInitialLoad) {
 						self.isRefreshing = false;
+						self.isRefreshingSince = null;
 					}
 
 					if (response.success) {
@@ -663,22 +677,21 @@
 				}
 			).fail(
 				function (xhr) {
-					if (xhr.statusText === 'abort' || xhr.status === 0) {
+					if (xhr.statusText === 'abort') {
 						self.currentRequest = null;
 						self.isLoadingMore = false;
-						self.$entries.css( 'opacity', '1' );
-						self.$consoleBody.removeClass( 'is-loading' );
 						self.hideAppendLoading();
 						return;
 					}
 					self.currentRequest = null;
 					self.$entries.css( 'opacity', '1' );
 					self.$consoleBody.removeClass( 'is-loading' );
-					self.hideAppendLoading();
 					self.isLoadingMore = false;
+					self.isRefreshing = false;
+					self.isRefreshingSince = null;
+					self.hideAppendLoading();
 					self.destroyObserver();
 					if (isInitialLoad) {
-						self.isRefreshing = false;
 						self.$entryCount.text( 'Error' );
 						let errorMsg = 'Server Error';
 						if (xhr.status === 0) {
@@ -686,11 +699,15 @@
 						} else {
 							errorMsg = 'HTTP ' + xhr.status;
 							if (xhr.responseText) {
-								const parsed = JSON.parse( xhr.responseText );
-								if ( parsed.data && parsed.data.message ) {
-									errorMsg = parsed.data.message;
-								} else {
-									errorMsg += ' - ' + xhr.responseText.substring( 0, 100 );
+								try {
+									const parsed = JSON.parse( xhr.responseText );
+									if ( parsed.data && parsed.data.message ) {
+										errorMsg = parsed.data.message;
+									} else {
+										errorMsg += ' - ' + xhr.responseText.substring( 0, 100 );
+									}
+								} catch (e) {
+									errorMsg += ' (unparseable response)';
 								}
 							}
 						}
@@ -731,15 +748,23 @@
 
 			// Preserve scroll position during auto-refresh updates.
 			const consoleBody = document.getElementById( 'sscribe-debug-console-body' );
-			const scrollTop   = consoleBody ? consoleBody.scrollTop : 0;
+			let scrollTop = 0;
+			let scrollHeightBefore = 0;
 			const wasAtBottom = consoleBody ? (consoleBody.scrollHeight - consoleBody.scrollTop - consoleBody.clientHeight < 50) : false;
+			if (consoleBody) {
+				scrollTop = consoleBody.scrollTop;
+				scrollHeightBefore = consoleBody.scrollHeight;
+			}
 
 			this.$entries.html( this.buildLogsHtml( entries ) );
 
-			if (wasAtBottom && consoleBody) {
-				consoleBody.scrollTop = consoleBody.scrollHeight;
-			} else if (consoleBody) {
-				consoleBody.scrollTop = scrollTop;
+			if (consoleBody) {
+				if (wasAtBottom) {
+					consoleBody.scrollTop = consoleBody.scrollHeight;
+				} else {
+					const heightDelta = consoleBody.scrollHeight - scrollHeightBefore;
+					consoleBody.scrollTop = scrollTop + heightDelta;
+				}
 			}
 
 			if ( ! skipObserver) {
@@ -894,12 +919,17 @@
 			};
 
 			self.$exportBtn.prop( 'disabled', true );
+			self.$exportBtn.data( 'original-text', self.$exportBtn.clone().children().remove().end().text() );
+			self.$exportBtn.find( '.sscribe-export-btn-scope' ).text( ' (downloading...)' );
 			this.downloadViaForm( sscribe_data.ajaxurl, data );
 			setTimeout(
 				function () {
+					const origText = self.$exportBtn.data( 'original-text' ) || 'Export JSON';
+					self.$exportBtn.contents().filter(function() { return this.nodeType === 3; }).first().replaceWith( origText.trim() );
+					self.$exportBtn.find( '.sscribe-export-btn-scope' ).text( '' );
 					self.$exportBtn.prop( 'disabled', false );
 				},
-				2000
+				5000
 			);
 		},
 
@@ -1016,7 +1046,7 @@
 							'<button type="button" class="sscribe-button sscribe-button-primary" id="sscribe-back-to-current">Back to current log</button>' +
 							'</div>'
 						);
-						self.$entries.find( '#sscribe-back-to-current' ).on(
+						self.$entries.find( '#sscribe-back-to-current' ).off( 'click' ).on(
 							'click',
 							function () {
 								self.backToCurrentLog();
@@ -1075,24 +1105,21 @@
 				return;
 			}
 
-			if ($btn && $btn.data( 'confirming' )) {
+			if ($btn.data( 'confirming' )) {
 				$btn.data( 'confirming', false ).removeClass( 'sscribe-btn-confirming' ).text( 'Delete' );
 				self._executeDeleteRotatedLog( filename, $btn );
 				return;
-			} else if ($btn) {
-				$btn.data( 'confirming', true ).addClass( 'sscribe-btn-confirming' ).text( 'Click to confirm' );
-				setTimeout(
-					function () {
-						if ($btn.data( 'confirming' )) {
-							$btn.data( 'confirming', false ).removeClass( 'sscribe-btn-confirming' ).text( 'Delete' );
-						}
-					},
-					3000
-				);
-				return;
 			}
 
-			self._executeDeleteRotatedLog( filename, $btn );
+			$btn.data( 'confirming', true ).addClass( 'sscribe-btn-confirming' ).text( 'Click to confirm' );
+			setTimeout(
+				function () {
+					if ($btn.data( 'confirming' )) {
+						$btn.data( 'confirming', false ).removeClass( 'sscribe-btn-confirming' ).text( 'Delete' );
+					}
+				},
+				3000
+			);
 		},
 
 		_executeDeleteRotatedLog: function (filename, $btn) {
