@@ -952,6 +952,7 @@
 			form.method        = 'POST';
 			form.action        = url;
 			form.target        = '_blank';
+			form.rel           = 'noopener';
 			form.style.display = 'none';
 			Object.keys( data ).forEach(
 				function (key) {
