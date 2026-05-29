@@ -50,7 +50,6 @@
 				return;
 			}
 			if ( ! this.hasRequiredDom()) {
-				console.error( 'SScribe Debug: Required DOM elements missing.' );
 				return;
 			}
 			this.cacheDom();
@@ -555,16 +554,15 @@
 					if (xhr.statusText === 'abort') {
 						return;
 					}
-					var errorMsg = 'Error ' + xhr.status;
+					let errorMsg = 'Error ' + xhr.status;
 					if (xhr.status === 0) {
 						errorMsg = 'Network error. Please check your connection.';
 					} else if (xhr.responseText) {
-						try {
-							var parsed = JSON.parse( xhr.responseText );
-							errorMsg   = parsed.data && parsed.data.message ? parsed.data.message : errorMsg;
-						} catch (e) {
+						const parsed = JSON.parse( xhr.responseText );
+						if ( parsed.data && parsed.data.message ) {
+							errorMsg = parsed.data.message;
+						} else {
 							errorMsg += ' (Server error, see console)';
-							console.error( 'AJAX Error Response:', xhr.responseText );
 						}
 					}
 					self.$saveFeedback.text( errorMsg ).addClass( 'error' );
@@ -682,16 +680,16 @@
 					if (isInitialLoad) {
 						self.isRefreshing = false;
 						self.$entryCount.text( 'Error' );
-						var errorMsg = 'Server Error';
+						let errorMsg = 'Server Error';
 						if (xhr.status === 0) {
 							errorMsg = 'Network error. Please check your connection.';
 						} else {
 							errorMsg = 'HTTP ' + xhr.status;
 							if (xhr.responseText) {
-								try {
-									var parsed = JSON.parse( xhr.responseText );
-									errorMsg   = parsed.data && parsed.data.message ? parsed.data.message : errorMsg;
-								} catch (e) {
+								const parsed = JSON.parse( xhr.responseText );
+								if ( parsed.data && parsed.data.message ) {
+									errorMsg = parsed.data.message;
+								} else {
 									errorMsg += ' - ' + xhr.responseText.substring( 0, 100 );
 								}
 							}
