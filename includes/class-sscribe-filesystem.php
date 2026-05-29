@@ -121,10 +121,10 @@ class SScribe_Filesystem {
 	 *
 	 * @param string $file    File path to write to.
 	 * @param string $content Content to write.
-	 * @param int    $mode    File permission mode (default: 0644).
+	 * @param int    $mode    File permission mode (default: 0600).
 	 * @return bool True if write succeeded, false otherwise.
 	 */
-	public function put_contents( string $file, string $content, int $mode = 0644 ): bool {
+	public function put_contents( string $file, string $content, int $mode = 0600 ): bool {
 		self::$last_error = '';
 
 		if ( self::$fs instanceof WP_Filesystem_Base ) {
@@ -193,7 +193,7 @@ class SScribe_Filesystem {
 			return self::$fs->get_contents( $file );
 		}
 
-		if ( ! file_exists( $file ) ) {
+		if ( ! is_file( $file ) ) {
 			self::$last_error = 'File does not exist';
 			return false;
 		}
@@ -255,7 +255,17 @@ class SScribe_Filesystem {
 			return self::$fs->mkdir( $path, $mode );
 		}
 
-		return wp_mkdir_p( $path );
+		if ( ! is_dir( $path ) ) {
+			if ( ! wp_mkdir_p( $path ) ) {
+				return false;
+			}
+			// Apply the requested permissions if wp_mkdir_p created the directory.
+			if ( $mode && function_exists( 'chmod' ) ) {
+				chmod( $path, $mode );
+			}
+		}
+
+		return true;
 	}
 
 	/**
