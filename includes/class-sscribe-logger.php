@@ -452,7 +452,7 @@ class SScribe_Logger implements SScribe_Logger_Interface {
 						$contents     = str_replace( "\r", "\n", $contents );
 						$file_entries = explode( "\n", trim( $contents ) );
 						// Apply limit to prevent memory issues on large files.
-						if ( $limit > 0 && count( $file_entries ) > $limit ) {
+						if ( count( $file_entries ) > $limit ) {
 							$file_entries = array_slice( $file_entries, -$limit );
 						}
 					}
