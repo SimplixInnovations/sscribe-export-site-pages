@@ -226,6 +226,28 @@
 	gap: 16px;
 }
 
+.sscribe-debug-refresh-paused {
+	display: inline-flex;
+	align-items: center;
+	gap: 6px;
+	color: #f0ad4e;
+	font-size: 12px;
+	font-weight: 500;
+	padding: 2px 8px;
+	border-radius: 3px;
+	background: rgba( 240, 173, 78, 0.15 );
+	border: 1px solid rgba( 240, 173, 78, 0.4 );
+}
+
+.sscribe-debug-refresh-paused::before {
+	content: '';
+	display: inline-block;
+	width: 6px;
+	height: 6px;
+	border-radius: 50%;
+	background: #f0ad4e;
+}
+
 .sscribe-radio-label {
 	display: flex;
 	align-items: center;
@@ -582,6 +604,12 @@
 
 	.sscribe-debug-description {
 		color: #888;
+	}
+
+	.sscribe-debug-refresh-paused {
+		background: rgba( 240, 173, 78, 0.2 );
+		border-color: rgba( 240, 173, 78, 0.5 );
+		color: #f0ad4e;
 	}
 }
 
