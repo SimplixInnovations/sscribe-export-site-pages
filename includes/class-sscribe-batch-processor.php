@@ -1865,7 +1865,7 @@ class SScribe_Batch_Processor {
 					),
 					409
 				);
-				return;
+				// No return needed — Guard::error() always exits.
 			}
 			// completing_since is too old (> 2 minutes), treat as stale and allow retry.
 		}
