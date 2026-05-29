@@ -961,6 +961,7 @@ class SScribe_DOCX_Content_Renderer {
 					)
 				);
 			}
+		}
 
 		/**
 		 * Filter whether to append the image source URL table to inline images.
@@ -971,34 +972,34 @@ class SScribe_DOCX_Content_Renderer {
 		 */
 		if ( apply_filters( 'sscribe_docx_append_image_url', true, $src ) ) {
 			$table = $section->addTable(
-			array(
-				'borderSize'  => 4,
-				'borderColor' => $this->colors['border'],
-				'cellMargin'  => Converter::cmToTwip( 0.1 ),
-				'alignment'   => Jc::CENTER,
-			)
-		);
-		$table->addRow();
-		$cell = $table->addCell( Converter::inchToTwip( 5.5 ), array( 'bgColor' => 'F8FAFC' ) );
-		$cell->addText(
-			__( 'IMAGE ASSET SOURCE URL:', 'sscribe-export-site-pages' ),
-			array(
-				'name'  => $this->font_name,
-				'size'  => 7,
-				'bold'  => true,
-				'color' => $this->colors['heading'],
-			),
-			$this->get_para_style()
-		);
-		$cell->addText(
-			$this->safe_text( $src ),
-			array(
-				'name'  => 'Courier New',
-				'size'  => 8,
-				'color' => $this->colors['link'],
-			),
-			$this->get_para_style()
-		);
+				array(
+					'borderSize'  => 4,
+					'borderColor' => $this->colors['border'],
+					'cellMargin'  => Converter::cmToTwip( 0.1 ),
+					'alignment'   => Jc::CENTER,
+				)
+			);
+			$table->addRow();
+			$cell = $table->addCell( Converter::inchToTwip( 5.5 ), array( 'bgColor' => 'F8FAFC' ) );
+			$cell->addText(
+				__( 'IMAGE ASSET SOURCE URL:', 'sscribe-export-site-pages' ),
+				array(
+					'name'  => $this->font_name,
+					'size'  => 7,
+					'bold'  => true,
+					'color' => $this->colors['heading'],
+				),
+				$this->get_para_style()
+			);
+			$cell->addText(
+				$this->safe_text( $src ),
+				array(
+					'name'  => 'Courier New',
+					'size'  => 8,
+					'color' => $this->colors['link'],
+				),
+				$this->get_para_style()
+			);
 		}
 
 		$section->addTextBreak( 1 );
