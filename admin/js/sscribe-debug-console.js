@@ -34,6 +34,7 @@
 		currentOffset: 0,
 		isLoadingMore: false,
 		hasMoreEntries: true,
+		currentRotatedFilename: '',
 		observer: null,
 		currentRequest: null,
 		saveSettingsRequest: null,
@@ -130,7 +131,7 @@
 			this.$saveSettings.on(
 				'click',
 				function () {
-					self.saveSettings( undefined );
+					self.saveSettings( self.isAutoRefresh );
 				}
 			);
 
@@ -213,13 +214,18 @@
 				function () {
 					const $btn = $( this );
 					if ($btn.data( 'confirming' )) {
-						$btn.data( 'confirming', false ).removeClass( 'sscribe-btn-confirming' ).text( 'Clear Logs' );
+						const originalText = $btn.data( 'original-text' ) || 'Clear Logs';
+						$btn.data( 'confirming', false ).removeClass( 'sscribe-btn-confirming' ).text( originalText );
 						self.clearLogs();
 					} else {
+						if ( ! $btn.data( 'original-text' )) {
+							$btn.data( 'original-text', $btn.text() );
+						}
 						$btn.data( 'confirming', true ).addClass( 'sscribe-btn-confirming' ).text( 'Click again to confirm' );
 						setTimeout(
 							function () {
-								$btn.data( 'confirming', false ).removeClass( 'sscribe-btn-confirming' ).text( 'Clear Logs' );
+								const originalText = $btn.data( 'original-text' ) || 'Clear Logs';
+								$btn.data( 'confirming', false ).removeClass( 'sscribe-btn-confirming' ).text( originalText );
 							},
 							3000
 						);
@@ -288,8 +294,9 @@
 						dialog.appendChild( closeBtn );
 
 						overlay.addEventListener( 'click', closeDialog );
-						document.body.appendChild( overlay );
-						document.body.appendChild( dialog );
+						const wpWrap = document.getElementById( 'wpwrap' ) || document.body;
+						wpWrap.appendChild( overlay );
+						wpWrap.appendChild( dialog );
 						document.addEventListener( 'keydown', keyHandler );
 						const focusableElements = Array.from( dialog.querySelectorAll( focusableSelectors ) );
 						if (focusableElements.length > 0) {
@@ -644,7 +651,10 @@
 			).fail(
 				function (xhr) {
 					if (xhr.statusText === 'abort' || xhr.status === 0) {
+						self.currentRequest = null;
 						self.isLoadingMore = false;
+						self.$entries.css( 'opacity', '1' );
+						self.$consoleBody.removeClass( 'is-loading' );
 						self.hideAppendLoading();
 						return;
 					}
