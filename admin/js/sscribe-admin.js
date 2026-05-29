@@ -2776,7 +2776,7 @@
 			if (errorData) {
 				diagnosticInfo = this.normalizeErrorData( errorData );
 				if (diagnosticInfo && window.console) {
-					// eslint-disable-next-line no-console.
+					// eslint-disable-next-line no-console
 					console.log( '[SSCRIBE] Server diagnostics for this error:', diagnosticInfo );
 				}
 
