@@ -97,7 +97,7 @@ class SScribe_DOCX_Content_Renderer {
 		$this->colors    = ! empty( $colors ) ? $colors : $this->default_colors();
 		$this->is_rtl    = $is_rtl;
 		$this->font_name = $font_name;
-		$this->font_size = $font_size;
+		$this->font_size = max( 6, min( 72, $font_size ) );
 	}
 
 	/**
@@ -957,13 +957,20 @@ class SScribe_DOCX_Content_Renderer {
 					array(
 						'width'     => Converter::emuToPixel( $width_emu ),
 						'height'    => Converter::emuToPixel( $height_emu ),
-						'alignment' => Jc::CENTER,
-					)
-				);
-			}
+					'alignment' => Jc::CENTER,
+				)
+			);
 		}
 
-		$table = $section->addTable(
+		/**
+		 * Filter whether to append the image source URL table to inline images.
+		 *
+		 * @since 1.1.1
+		 * @param bool   $append Whether to append the URL table. Default true.
+		 * @param string $src    The image source URL.
+		 */
+		if ( apply_filters( 'sscribe_docx_append_image_url', true, $src ) ) {
+			$table = $section->addTable(
 			array(
 				'borderSize'  => 4,
 				'borderColor' => $this->colors['border'],
@@ -992,6 +999,7 @@ class SScribe_DOCX_Content_Renderer {
 			),
 			$this->get_para_style()
 		);
+		}
 
 		$section->addTextBreak( 1 );
 	}

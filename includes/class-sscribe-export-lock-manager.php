@@ -73,20 +73,33 @@ class SScribe_Export_Lock_Manager {
 			$lock_age   = $current_time - $lock_time;
 
 			if ( $lock_age > $stale_threshold ) {
-				// Stale lock detected — overwrite directly (last writer wins).
+				// Stale lock detected — overwrite and verify ownership.
+				$new_value = $current_time . '|' . $lock_token;
 				if ( $using_cache ) {
-					wp_cache_set( $lock_key, $current_time . '|' . $lock_token, 'transient', $lock_ttl );
+					wp_cache_set( $lock_key, $new_value, 'transient', $lock_ttl );
 				} else {
-					set_transient( $lock_key, $current_time . '|' . $lock_token, $lock_ttl );
+					set_transient( $lock_key, $new_value, $lock_ttl );
 				}
+				// Re-read to confirm OUR value was stored (reduces race condition window).
+				$stored = $using_cache
+					? wp_cache_get( $lock_key, 'transient' )
+					: get_transient( $lock_key );
+				if ( is_string( $stored ) && $stored === $new_value ) {
+					$this->logger->debug(
+						'Overwrote stale lock',
+						array(
+							'session_id' => $session_id,
+							'lock_age'   => $lock_age,
+						)
+					);
+					return $lock_token;
+				}
+				// Another process overwrote us — they win.
 				$this->logger->debug(
-					'Overwrote stale lock',
-					array(
-						'session_id' => $session_id,
-						'lock_age'   => $lock_age,
-					)
+					'Stale lock overwrite lost race',
+					array( 'session_id' => $session_id )
 				);
-				return $lock_token;
+				return null;
 			}
 
 			$this->logger->debug(

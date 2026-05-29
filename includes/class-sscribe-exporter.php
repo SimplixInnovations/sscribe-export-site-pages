@@ -102,13 +102,6 @@ class SScribe_Exporter {
 	);
 
 	/**
-	 * DNS resolution cache.
-	 *
-	 * @var array<string, string|null>
-	 */
-	private static array $dns_cache = array();
-
-	/**
 	 * Shutdown handler registration flag.
 	 *
 	 * @var bool
@@ -302,79 +295,23 @@ class SScribe_Exporter {
 	/**
 	 * Check if host is a blocked internal/private IP address.
 	 *
-	 * Uses a timeout-aware DNS resolution to prevent hanging on slow/-blocking DNS servers.
+	 * For document generation, URLs are only added as text links and never fetched.
+	 * Therefore, we only block explicit private/reserved IPs without DNS resolution.
+	 * External DNS lookups (e.g., Google DNS) would be disproportionate for this use case.
 	 *
 	 * @param string $host Hostname or IP to check.
 	 * @return bool True if blocked.
 	 */
 	private function is_ip_blocked( string $host ): bool {
-		if ( filter_var( $host, FILTER_VALIDATE_IP, FILTER_FLAG_NO_PRIV_RANGE | FILTER_FLAG_NO_RES_RANGE ) !== false ) {
-			return false;
+		// If it's already an IP, check if it's private/reserved.
+		if ( filter_var( $host, FILTER_VALIDATE_IP ) !== false ) {
+			// Block private and reserved IP ranges.
+			return filter_var( $host, FILTER_VALIDATE_IP, FILTER_FLAG_NO_PRIV_RANGE | FILTER_FLAG_NO_RES_RANGE ) === false;
 		}
 
-		if ( array_key_exists( $host, self::$dns_cache ) ) {
-			$cached = self::$dns_cache[ $host ];
-			if ( null === $cached ) {
-				return false;
-			}
-			return filter_var( $cached, FILTER_VALIDATE_IP, FILTER_FLAG_NO_PRIV_RANGE | FILTER_FLAG_NO_RES_RANGE ) === false;
-		}
-
-		$ip                       = $this->resolve_host_with_timeout( $host );
-		self::$dns_cache[ $host ] = $ip;
-
-		if ( null === $ip ) {
-			return false;
-		}
-
-		if ( filter_var( $ip, FILTER_VALIDATE_IP, FILTER_FLAG_NO_PRIV_RANGE | FILTER_FLAG_NO_RES_RANGE ) === false ) {
-			return true;
-		}
-
+		// For hostnames, we don't resolve DNS since URLs in documents are just text, not fetched.
+		// The SSRF risk is negligible for text-only URLs.
 		return false;
-	}
-
-	/**
-	 * Resolve hostname with timeout to prevent DNS hanging.
-	 *
-	 * @param string $hostname Hostname to resolve.
-	 * @return string|null Resolved IP or null on timeout/failure.
-	 */
-	private function resolve_host_with_timeout( string $hostname ): ?string {
-		// Try DNS-over-HTTP first with a short timeout (3s).
-		// This is the primary resolution path because gethostbyname()
-		// has no timeout control and can block for 30+ seconds on
-		// slow/blocked DNS servers.
-		$response = wp_safe_remote_get(
-			'https://dns.google/resolve?name=' . rawurlencode( $hostname ) . '&type=A',
-			array(
-				'timeout'    => 3,
-				'user-agent' => 'SScribe-Blocklist/1.0',
-			)
-		);
-
-		if ( ! is_wp_error( $response ) ) {
-			$body = wp_remote_retrieve_body( $response );
-			if ( ! empty( $body ) ) {
-				$data = json_decode( $body, true );
-				if ( is_array( $data ) && ! empty( $data['Answer'] ) ) {
-					foreach ( $data['Answer'] as $answer ) {
-						if ( isset( $answer['data'] ) && filter_var( $answer['data'], FILTER_VALIDATE_IP ) ) {
-							return $answer['data'];
-						}
-					}
-				}
-			}
-		}
-
-		// Fallback: gethostbyname() has no timeout but is fast when it works.
-		// Only use as fallback since it can hang on broken DNS.
-		$ip = gethostbyname( $hostname );
-		if ( $ip !== $hostname ) {
-			return $ip;
-		}
-
-		return null;
 	}
 
 	/**

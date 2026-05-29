@@ -436,6 +436,15 @@ class SScribe_Admin {
 				'format_pdf'             => __( 'PDF Document', 'sscribe-export-site-pages' ),
 				'format_html'            => __( 'HTML Page', 'sscribe-export-site-pages' ),
 				'format_markdown'        => __( 'Markdown', 'sscribe-export-site-pages' ),
+				'err_clear_session'      => __( 'Failed to clear the export session after multiple attempts. Please refresh the page and try again.', 'sscribe-export-site-pages' ),
+				'export_cancelled'       => __( 'Export cancelled.', 'sscribe-export-site-pages' ),
+				'export_complete_notice' => __( 'Export complete! You can start a new export now.', 'sscribe-export-site-pages' ),
+				'click_again'            => __( 'Click again', 'sscribe-export-site-pages' ),
+				'selected'               => __( 'selected', 'sscribe-export-site-pages' ),
+				'calculating_time'       => __( 'Calculating...', 'sscribe-export-site-pages' ),
+				'dismiss_notification'   => __( 'Dismiss notification', 'sscribe-export-site-pages' ),
+				'preview_error'          => __( 'Failed to generate preview.', 'sscribe-export-site-pages' ),
+				'download_unavailable'   => __( 'Download unavailable.', 'sscribe-export-site-pages' ),
 			),
 		);
 
@@ -623,7 +632,7 @@ class SScribe_Admin {
 			$recent_exports[] = array(
 				'filename'  => $filename,
 				'url'       => $this->zip_handler->get_ajax_download_url( $filename ),
-				'time'      => (int) ( $data['created_at'] ?? filemtime( $file_path ) ),
+				'time'      => (int) ( $data['created_at'] ?? 0 ) ?: (int) filemtime( $file_path ),
 				'size'      => (int) filesize( $file_path ),
 				'lang_code' => $lang_code,
 				'flag_url'  => $flag_url,

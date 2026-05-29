@@ -1260,11 +1260,6 @@ class SScribe_Diagnostics {
 			return $value;
 		}
 
-		// Redact exact server resource limits.
-		if ( in_array( $key, array( 'memory_limit', 'max_execution_time' ), true ) ) {
-			return '[REDACTED]';
-		}
-
 		return $value;
 	}
 

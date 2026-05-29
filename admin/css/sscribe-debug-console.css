@@ -374,6 +374,11 @@
 	color: #fff;
 }
 
+.sscribe-debug-entry-badge.raw {
+	background: #888;
+	color: #fff;
+}
+
 .sscribe-debug-entry-message {
 	flex: 1;
 	overflow-wrap: break-word;

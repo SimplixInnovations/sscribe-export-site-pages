@@ -128,13 +128,6 @@ class SScribe_Settings {
 		if ( false !== $current && (bool) $current === $enabled ) {
 			return true;
 		}
-		// Special case: option doesn't exist in DB and we want to store false.
-		// update_option returns false when old and new value are identical,
-		// so we need add_option for this specific case.
-		if ( false === $current && false === $enabled ) {
-			add_option( self::OPT_DEBUG_AUTO_REFRESH, false, '', 'no' );
-			return (bool) get_option( self::OPT_DEBUG_AUTO_REFRESH ) === $enabled;
-		}
 		$result = update_option( self::OPT_DEBUG_AUTO_REFRESH, $enabled, 'no' );
 		if ( ! $result ) {
 			// Verify actual DB value regardless of update_option return.

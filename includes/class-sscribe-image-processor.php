@@ -65,6 +65,12 @@ class SScribe_Image_Processor {
 		$url = self::normalize_url( $url );
 
 		if ( '' === $url || ! self::is_allowed_remote_url( $url ) ) {
+			if ( '' !== $url ) {
+				$host = strtolower( (string) ( wp_parse_url( $url, PHP_URL_HOST ) ?? '' ) );
+				if ( defined( 'SSCRIBE_DEBUG' ) && SSCRIBE_DEBUG ) {
+					error_log( sprintf( 'SScribe: Image blocked - host "%s" not in allowed hosts list. Use sscribe_allowed_image_hosts filter to add external hosts.', $host ) ); // phpcs:ignore WordPress.PHP.DevelopmentFunctions.error_log_error_log
+				}
+			}
 			return false;
 		}
 
