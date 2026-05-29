@@ -909,6 +909,8 @@
 						if ( response.data && response.data.nonce ) {
 							sscribe_data.nonce = response.data.nonce;
 						}
+						const originalText = self.$clearBtn.data('original-text') || 'Clear Logs';
+						self.$clearBtn.text( originalText );
 						self.$clearBtn.after( '<span class="sscribe-feedback sscribe-feedback-success">Cleared!</span>' );
 						setTimeout(
 							function () {
