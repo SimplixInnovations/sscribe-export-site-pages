@@ -378,7 +378,7 @@ class SScribe_PDF_Exporter implements SScribe_Exporter_Interface {
 			return;
 		}
 
-		$max_age = 60 * 60;
+		$max_age = 5 * 60;
 		$now     = time();
 
 		foreach ( $files as $file ) {

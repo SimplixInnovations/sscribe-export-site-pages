@@ -185,15 +185,25 @@ class SScribe_Admin_Debug {
 			return;
 		}
 
-		$logger = SScribe_Logger::instance( true );
-		$logger->clear_logs();
+		try {
+			$logger = SScribe_Logger::instance( true );
+			$logger->clear_logs();
 
-		wp_send_json_success(
-			array(
-				'message' => __( 'Logs cleared.', 'sscribe-export-site-pages' ),
-				'nonce'   => wp_create_nonce( 'sscribe_export_nonce' ),
-			)
-		);
+			wp_send_json_success(
+				array(
+					'message' => __( 'Logs cleared.', 'sscribe-export-site-pages' ),
+					'nonce'   => wp_create_nonce( 'sscribe_export_nonce' ),
+				)
+			);
+		} catch ( \Throwable $e ) {
+			wp_send_json_error(
+				array(
+					'message' => __( 'Failed to clear logs. Please try again.', 'sscribe-export-site-pages' ),
+					'nonce'   => wp_create_nonce( 'sscribe_export_nonce' ),
+				),
+				500
+			);
+		}
 	}
 
 	/**

@@ -940,7 +940,7 @@ class SScribe_Batch_Processor {
 			set_transient( 'sscribe_last_self_heal', time(), 120 );
 		}
 
-		$max_time = (int) apply_filters( 'sscribe_max_execution_time', 120 );
+		$max_time = (int) apply_filters( 'sscribe_max_execution_time', 150 );
 		if ( function_exists( 'set_time_limit' ) ) {
 				set_time_limit( $max_time ); // phpcs:ignore Squiz.PHP.DiscouragedFunctions.Discouraged
 		}
@@ -953,9 +953,6 @@ class SScribe_Batch_Processor {
 		$session    = $this->session->get( $session_id );
 
 		$formats = isset( $session['formats'] ) ? $session['formats'] : self::DEFAULT_FORMATS;
-		// Get pause hint from previous batch to adjust batch size accordingly.
-		$pause_hint = isset( $session['last_pause_reason'] ) ? $session['last_pause_reason'] : '';
-		$this->optimize_batch_size( $formats, $pause_hint );
 
 		if ( in_array( 'pdf', $formats, true ) && function_exists( 'set_time_limit' ) ) {
 			$pdf_max_time = (int) apply_filters( 'sscribe_pdf_max_execution_time', 150 );
@@ -989,8 +986,8 @@ class SScribe_Batch_Processor {
 			);
 		}
 
-		$lock_ttl        = (int) apply_filters( 'sscribe_lock_ttl', 150 );
-		$stale_threshold = (int) apply_filters( 'sscribe_lock_stale_threshold', 120 );
+		$lock_ttl        = (int) apply_filters( 'sscribe_lock_ttl', 180 );
+		$stale_threshold = (int) apply_filters( 'sscribe_lock_stale_threshold', 140 );
 
 		// Validate ownership and session integrity BEFORE acquiring lock.
 		// This avoids a false-lock window where the lock is held but the batch
@@ -1080,6 +1077,9 @@ class SScribe_Batch_Processor {
 		$structured_errors = isset( $session['structured_errors'] ) && is_array( $session['structured_errors'] ) ? $session['structured_errors'] : array();
 		$start_time        = isset( $session['start_time'] ) ? $session['start_time'] : time();
 		$formats           = isset( $session['formats'] ) ? $session['formats'] : self::DEFAULT_FORMATS;
+		// Get pause hint from previous batch to adjust batch size accordingly.
+		$pause_hint = isset( $session['last_pause_reason'] ) ? $session['last_pause_reason'] : '';
+		$this->optimize_batch_size( $formats, $pause_hint );
 		// NOTE: Do NOT overwrite $session_id from session data - the POST value is canonical.
 		// Using the POST value prevents session data tampering attacks.
 
@@ -1842,6 +1842,8 @@ class SScribe_Batch_Processor {
 			$this->export_log = new SScribe_Export_Log( $session_id );
 		}
 
+		$export_stats = new SScribe_Export_Stats();
+
 		if ( ! $this->session->update(
 			$session_id,
 			array(
@@ -1951,7 +1953,6 @@ class SScribe_Batch_Processor {
 					$this->export_log->flush();
 				}
 
-				$export_stats = new SScribe_Export_Stats();
 				$export_stats->fail_export( $session_id, 'No files generated' );
 
 				if ( ! empty( $session['temp_dir'] ) && is_dir( $session['temp_dir'] ) ) {
@@ -1990,7 +1991,6 @@ class SScribe_Batch_Processor {
 					$this->export_log->flush();
 				}
 
-				$export_stats = new SScribe_Export_Stats();
 				$export_stats->fail_export( $session_id, 'Failed to create ZIP package' );
 
 				if ( ! empty( $session['temp_dir'] ) && is_dir( $session['temp_dir'] ) ) {
@@ -2140,7 +2140,6 @@ class SScribe_Batch_Processor {
 				$this->export_log->flush();
 			}
 
-			$export_stats     = new SScribe_Export_Stats();
 			$duration         = time() - ( $session['start_time'] ?? time() );
 			$zip_size         = function_exists( 'wp_filesize' ) && file_exists( $zip_path ) ? (int) wp_filesize( $zip_path ) : 0;
 			$error_count      = count( $session['errors'] ?? array() );

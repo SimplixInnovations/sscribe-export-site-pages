@@ -1000,7 +1000,7 @@
 				{
 					url: sscribe_data.ajaxurl,
 					type: 'POST',
-					timeout: 180000,
+					timeout: 200000,
 					data: {
 						action: 'sscribe_process_batch',
 						nonce: sscribe_data.nonce,

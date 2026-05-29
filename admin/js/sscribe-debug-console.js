@@ -44,7 +44,7 @@
 			if (this.initialized) {
 				return;
 			}
-			if (typeof sscribe_data === 'undefined' || ! scribe_data) {
+			if (typeof sscribe_data === 'undefined' || ! sscribe_data) {
 				return;
 			}
 			if ( ! this.hasRequiredDom()) {
@@ -100,6 +100,7 @@
 			this.$entries.off();
 			this.$container.off();
 			this.unbindVisibilityHandler();
+			this.unbindToggleHandler();
 		},
 
 		unbindVisibilityHandler: function () {
@@ -110,6 +111,16 @@
 			if (this._beforeUnloadHandler) {
 				window.removeEventListener( 'beforeunload', this._beforeUnloadHandler );
 				this._beforeUnloadHandler = null;
+			}
+		},
+
+		unbindToggleHandler: function () {
+			if (this._toggleHandler) {
+				const rotatedEl = document.getElementById( 'sscribe-debug-rotated-details' );
+				if (rotatedEl) {
+					rotatedEl.removeEventListener( 'toggle', this._toggleHandler );
+				}
+				this._toggleHandler = null;
 			}
 		},
 
@@ -297,14 +308,12 @@
 
 			const rotatedEl = document.getElementById( 'sscribe-debug-rotated-details' );
 			if (rotatedEl) {
-				rotatedEl.addEventListener(
-					'toggle',
-					function () {
-						if (rotatedEl.open) {
-							self.fetchRotatedLogs();
-						}
+				this._toggleHandler = function () {
+					if (rotatedEl.open) {
+						self.fetchRotatedLogs();
 					}
-				);
+				};
+				rotatedEl.addEventListener( 'toggle', this._toggleHandler );
 			}
 
 			this.$rotatedBody.on(
@@ -402,7 +411,11 @@
 					if ( ! self.isViewingRotated && self.currentOffset === 0) {
 						self.fetchLogs();
 					}
-					self.fetchRotatedLogs();
+					// Only fetch rotated logs if the details section is open.
+					const rotatedEl = document.getElementById( 'sscribe-debug-rotated-details' );
+					if ( rotatedEl && rotatedEl.open ) {
+						self.fetchRotatedLogs();
+					}
 				},
 				10000
 			);
@@ -475,6 +488,11 @@
 							sscribe_data.nonce = response.data.nonce;
 						}
 						if ( response.data && response.data.debug_enabled !== undefined && response.data.debug_enabled !== sentDebugEnabled ) {
+							self.stopAutoRefresh();
+							if ( self.currentRequest ) {
+								self.currentRequest.abort();
+								self.currentRequest = null;
+							}
 							self.$saveFeedback.text( 'Debug mode changed — reloading\u2026' ).addClass( 'success' );
 							setTimeout(
 								function () {
