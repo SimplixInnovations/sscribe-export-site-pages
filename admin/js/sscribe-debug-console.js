@@ -588,7 +588,7 @@
 									self.$saveFeedback.text( '' );
 									self.$saveFeedback.removeClass( 'success' );
 								},
-								1000
+								2500
 							);
 						}
 					} else {
