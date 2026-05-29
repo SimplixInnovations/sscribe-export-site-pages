@@ -25,7 +25,7 @@ class SScribe_Batch_Processor {
 
 	private const MAX_STORED_ERRORS          = 50;
 	private const DEFAULT_FORMATS            = array( 'docx' );
-	private const MAX_RETRIES                = 2;
+	private const MAX_RETRIES                = 3;
 	private const RETRY_TRANSIENT_CATEGORIES = array( 'network', 'timeout', 'rate_limit', 'temporary' );
 
 	/**
@@ -1537,7 +1537,24 @@ class SScribe_Batch_Processor {
 				'last_pause_reason' => $paused_reason,
 			);
 
+			// Preserve cancelled flag if set (mid-batch cancellation at line 1431 breaks
+			// from loop but finally still runs - must not clear the flag on next batch call).
+			if ( ! empty( $session['cancelled'] ) ) {
+				$update_data['cancelled'] = true;
+			}
+
 			$format_keys = array( 'format_time_docx', 'format_time_pdf', 'format_time_html', 'format_time_markdown', 'format_size_docx', 'format_size_pdf', 'format_size_html', 'format_size_markdown', 'format_pages_docx', 'format_pages_pdf', 'format_pages_html', 'format_pages_markdown' );
+			// Also persist any custom format keys that are not in the hardcoded list
+			// (e.g. format_time_epub) to ensure custom formats are preserved across batches.
+			foreach ( $session as $key => $value ) {
+				if ( is_string( $key ) && ( str_starts_with( $key, 'format_time_' ) || str_starts_with( $key, 'format_size_' ) || str_starts_with( $key, 'format_pages_' ) ) && ! in_array( $key, $format_keys, true ) ) {
+					if ( str_starts_with( $key, 'format_time_' ) || str_starts_with( $key, 'format_size_' ) ) {
+						$update_data[ $key ] = (float) ( $value ?? 0 );
+					} else {
+						$update_data[ $key ] = (int) ( $value ?? 0 );
+					}
+				}
+			}
 			foreach ( $format_keys as $key ) {
 				if ( isset( $session[ $key ] ) ) {
 					// Coerce to expected type: format_time/size are float, format_pages is int.
@@ -1602,6 +1619,7 @@ class SScribe_Batch_Processor {
 				$error_diagnostics = $this->build_error_diagnostics_payload( $structured_errors, $errors );
 			}
 
+			$this->restore_ob_level( $ob_level_before );
 			SScribe_AJAX_Guard::success(
 				array(
 					'status'            => 'finalizing',
@@ -1613,6 +1631,7 @@ class SScribe_Batch_Processor {
 					'error_diagnostics' => $error_diagnostics ? $error_diagnostics : null,
 				)
 			);
+			return; // Ensure no further code executes after success response.
 		}
 
 		$response = $this->build_batch_response(
@@ -1823,6 +1842,7 @@ class SScribe_Batch_Processor {
 			// finalize may have crashed and we should allow retry.
 			$completing_since = $session['completing_since'] ?? 0;
 			if ( $completing_since > 0 && ( time() - $completing_since ) < 120 ) {
+				$this->release_lock( $session_id, $lock_token );
 				SScribe_AJAX_Guard::error(
 					array(
 						'code'    => 'already_completing',
@@ -1924,8 +1944,23 @@ class SScribe_Batch_Processor {
 				$timestamp,
 				$lang_suffix,
 				$format_suffix,
-				substr( bin2hex( random_bytes( 3 ) ), 0, 6 )
+				substr( bin2hex( self::secure_random_bytes( 3 ) ), 0, 6 )
 			);
+
+			/**
+			 * Generate cryptographically secure random bytes with fallback.
+			 *
+			 * @param int $length Number of bytes.
+			 * @return string Raw binary bytes.
+			 */
+			private static function secure_random_bytes( int $length ): string {
+				try {
+					return random_bytes( $length );
+				} catch ( \Throwable $e ) {
+					// Fallback for environments where random_bytes() fails.
+					return openssl_random_pseudo_bytes( $length ) ?: wp_generate_password( $length, false );
+				}
+			}
 
 			$this->logger->debug(
 				'Creating ZIP',
@@ -2256,8 +2291,10 @@ class SScribe_Batch_Processor {
 				);
 			}
 
-			$this->release_lock( $session_id, $lock_token );
+			// Delete session BEFORE releasing lock to prevent another process
+			// from acquiring the lock and reading a deleted session.
 			$this->session->delete( $session_id );
+			$this->release_lock( $session_id, $lock_token );
 			SScribe_AJAX_Guard::success( $response );
 		} catch ( \Throwable $e ) {
 			$this->logger->error(
