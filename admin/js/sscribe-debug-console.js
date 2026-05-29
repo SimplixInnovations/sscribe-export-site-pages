@@ -87,6 +87,7 @@
 			this.defaultEmptyMessage = this.$empty.find( 'p' ).text().trim();
 			this.$entryCount   = $( '#sscribe-debug-entry-count' );
 			this.$clearBtn     = $( '#sscribe-debug-clear-btn' );
+			this.clearBtnOriginalText = this.$clearBtn.text();
 			this.$exportBtn    = $( '#sscribe-debug-export-btn' );
 			this.$rotatedBody  = $( '#sscribe-debug-rotated-body' );
 			this.$refreshPaused = $( '#sscribe-debug-refresh-paused' );
@@ -234,7 +235,7 @@
 						setTimeout(
 							function () {
 								if ($btn.data( 'confirming' )) {
-									const originalText = $btn.data( 'original-text' ) || 'Clear Logs';
+									const originalText = $btn.data( 'original-text' ) || self.clearBtnOriginalText;
 									$btn.data( 'confirming', false ).removeClass( 'sscribe-btn-confirming' ).text( originalText );
 								}
 							},
@@ -629,6 +630,10 @@
 			const self          = this;
 			const isInitialLoad = ! append;
 
+			if (this.isRefreshing) {
+				return;
+			}
+
 			if (isInitialLoad) {
 				this.currentOffset  = 0;
 				this.hasMoreEntries = true;
@@ -716,6 +721,9 @@
 					if (xhr.statusText === 'abort') {
 						self.currentRequest = null;
 						self.isLoadingMore = false;
+						self.isRefreshing = false;
+						self.isRefreshingSince = null;
+						self.$consoleBody.removeClass( 'is-loading' );
 						self.hideAppendLoading();
 						return;
 					}
@@ -818,8 +826,7 @@
 				if (wasAtBottom) {
 					consoleBody.scrollTop = consoleBody.scrollHeight;
 				} else {
-					const heightDelta = consoleBody.scrollHeight - scrollHeightBefore;
-					consoleBody.scrollTop = Math.max( 0, scrollTop + heightDelta );
+					consoleBody.scrollTop = scrollTop;
 				}
 			}
 
@@ -909,7 +916,7 @@
 						if ( response.data && response.data.nonce ) {
 							sscribe_data.nonce = response.data.nonce;
 						}
-						const originalText = self.$clearBtn.data('original-text') || 'Clear Logs';
+						const originalText = self.$clearBtn.data('original-text') || self.clearBtnOriginalText;
 						self.$clearBtn.text( originalText );
 						self.$clearBtn.after( '<span class="sscribe-feedback sscribe-feedback-success">Cleared!</span>' );
 						setTimeout(
@@ -921,7 +928,7 @@
 						self.destroyObserver();
 						self.fetchLogs();
 					} else {
-						const originalText = self.$clearBtn.data('original-text') || 'Clear Logs';
+						const originalText = self.$clearBtn.data('original-text') || self.clearBtnOriginalText;
 						self.$clearBtn.text( originalText );
 						self.$clearBtn.after( '<span class="sscribe-feedback sscribe-feedback-error">' + escHtml( self.getResponseMessage( response, 'Error' ) ) + '</span>' );
 						setTimeout(
@@ -934,7 +941,7 @@
 				}
 			).fail(
 				function () {
-					const originalText = self.$clearBtn.data('original-text') || 'Clear Logs';
+					const originalText = self.$clearBtn.data('original-text') || self.clearBtnOriginalText;
 					self.$clearBtn.prop( 'disabled', false ).text( originalText );
 					self.$clearBtn.after( '<span class="sscribe-feedback sscribe-feedback-error">Error</span>' );
 					setTimeout(
@@ -952,7 +959,6 @@
 			form.method        = 'POST';
 			form.action        = url;
 			form.target        = '_blank';
-			form.rel           = 'noopener';
 			form.style.display = 'none';
 			Object.keys( data ).forEach(
 				function (key) {
@@ -1276,6 +1282,7 @@
 		return String( str )
 			.replace( /&/g, '&amp;' )
 			.replace( /"/g, '&quot;' )
+			.replace( /'/g, '&#39;' )
 			.replace( /</g, '&lt;' )
 			.replace( />/g, '&gt;' );
 	}
@@ -1306,7 +1313,7 @@
 		const hasContext = contextHtml !== '';
 
 		return '<div class="sscribe-debug-entry' + (hasContext ? ' has-context' : '') + '"' +
-			(hasContext ? ' tabindex="0" role="button" aria-expanded="false"' : '') + '>' +
+			(hasContext ? ' tabindex="0" role="button" aria-expanded="false" aria-label="Toggle context for: ' + escAttr( ( entry.message || '' ).substring( 0, 50 ) ) + '"' : '') + '>' +
 			'<div class="sscribe-debug-entry-header">' +
 			'<span class="sscribe-debug-entry-badge ' + escHtml( badgeClass ) + '">' + escHtml( entry.level || 'INFO' ) + '</span>' +
 			'<span class="sscribe-debug-entry-time">' + escHtml( entry.timestamp || '' ) + '</span>' +
@@ -1318,5 +1325,13 @@
 	}
 
 	window.SScribeDebugConsole = SScribeDebugConsole;
+
+	jQuery( document ).ready(
+		function () {
+			if ( window.SScribeDebugConsole ) {
+				window.SScribeDebugConsole.init();
+			}
+		}
+	);
 
 })( jQuery );

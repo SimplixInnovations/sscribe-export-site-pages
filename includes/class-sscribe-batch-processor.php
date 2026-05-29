@@ -275,8 +275,16 @@ class SScribe_Batch_Processor {
 			$attempt = 0;
 			$result  = null;
 
-			while ( $attempt <= self::MAX_RETRIES ) {
-				$result = $exporter->export( $page_data, $temp_dir, $page_index, $total );
+			while ( $attempt < self::MAX_RETRIES ) {
+				try {
+					$result = $exporter->export( $page_data, $temp_dir, $page_index, $total );
+				} catch ( \Throwable $e ) {
+					$result_data    = array(
+						'error_category' => 'transient',
+						'error_message'  => $e->getMessage(),
+					);
+					$result = new SScribe_Export_Result( false, $result_data );
+				}
 
 				$is_transient = false;
 				if ( ! $result->is_success() ) {
@@ -546,6 +554,7 @@ class SScribe_Batch_Processor {
 	 */
 	private function optimize_batch_size( array $formats = array(), string $hint = '' ): void {
 		$this->batch_size = $this->get_resource_monitor()->get_optimal_batch_size( $formats, $hint );
+		$this->batch_size = max( 1, min( 20, $this->batch_size ) );
 
 		$this->logger->debug(
 			'Batch size optimized',
@@ -602,7 +611,7 @@ class SScribe_Batch_Processor {
 
 		if ( ! isset( $session['user_id'] ) ) {
 			$this->audit_log(
-				'session_hijack',
+				'session_missing_user_id',
 				array(
 					'session_id'      => $session_id,
 					'reason'          => 'missing_user_id',
