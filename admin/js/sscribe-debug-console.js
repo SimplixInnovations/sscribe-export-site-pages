@@ -40,6 +40,7 @@
 		saveSettingsRequest: null,
 		rotatedRequest: null,
 		viewRotatedRequest: null,
+		isRefreshing: false,
 
 		init: function () {
 			if (this.initialized) {
@@ -64,7 +65,8 @@
 			return (
 				document.getElementById( 'sscribe-debug-root' ) !== null &&
 				document.getElementById( 'sscribe-debug-entries' ) !== null &&
-				document.getElementById( 'sscribe-debug-console-body' ) !== null
+				document.getElementById( 'sscribe-debug-console-body' ) !== null &&
+				document.getElementById( 'sscribe-debug-rotated-body' ) !== null
 			);
 		},
 
@@ -415,9 +417,10 @@
 			this.stopAutoRefresh();
 			this.refreshInterval = setInterval(
 				function () {
-					if ( ! self.isViewingRotated && self.currentOffset === 0) {
-						self.fetchLogs();
+					if ( self.isRefreshing || self.isViewingRotated || self.currentOffset !== 0 ) {
+						return;
 					}
+					self.fetchLogs();
 					// Only fetch rotated logs if the details section is open.
 					const rotatedEl = document.getElementById( 'sscribe-debug-rotated-details' );
 					if ( rotatedEl && rotatedEl.open ) {
@@ -436,8 +439,13 @@
 		},
 
 		getResponseMessage: function (response, fallback) {
-			if (response && response.data && response.data.message) {
-				return response.data.message;
+			if (response && response.data) {
+				if (typeof response.data === 'string' && response.data) {
+					return response.data;
+				}
+				if (response.data.message) {
+					return response.data.message;
+				}
 			}
 			return fallback;
 		},
@@ -482,6 +490,7 @@
 			};
 
 			self.$saveSettings.prop( 'disabled', true );
+			self.$refreshMode.prop( 'disabled', true );
 
 			this.saveSettingsRequest = $.post(
 				sscribe_data.ajaxurl,
@@ -489,6 +498,7 @@
 				function (response) {
 					self.saveSettingsRequest = null;
 					self.$saveSettings.prop( 'disabled', false );
+					self.$refreshMode.prop( 'disabled', false );
 					if (response.success) {
 						self.$saveFeedback.removeClass( 'success error' ).text( 'Saved!' ).addClass( 'success' );
 						if ( response.data && response.data.nonce ) {
@@ -541,6 +551,7 @@
 				function (xhr) {
 					self.saveSettingsRequest = null;
 					self.$saveSettings.prop( 'disabled', false );
+					self.$refreshMode.prop( 'disabled', false );
 					if (xhr.statusText === 'abort') {
 						return;
 					}
@@ -596,6 +607,7 @@
 			};
 
 			if (isInitialLoad) {
+				this.isRefreshing = true;
 				self.$entries.css( 'opacity', '0.5' );
 				self.$entryCount.text( 'Loading...' );
 				self.$consoleBody.addClass( 'is-loading' );
@@ -615,6 +627,9 @@
 					self.$entries.css( 'opacity', '1' );
 					self.$consoleBody.removeClass( 'is-loading' );
 					self.isLoadingMore = false;
+					if (isInitialLoad) {
+						self.isRefreshing = false;
+					}
 
 					if (response.success) {
 						if ( ! response.data || ! Array.isArray( response.data.entries )) {
@@ -665,17 +680,23 @@
 					self.isLoadingMore = false;
 					self.destroyObserver();
 					if (isInitialLoad) {
+						self.isRefreshing = false;
 						self.$entryCount.text( 'Error' );
-						var errorMsg = 'HTTP ' + xhr.status;
-						if (xhr.responseText) {
-							try {
-								var parsed = JSON.parse( xhr.responseText );
-								errorMsg   = parsed.data && parsed.data.message ? parsed.data.message : errorMsg;
-							} catch (e) {
-								errorMsg += ' - ' + xhr.responseText.substring( 0, 100 );
+						var errorMsg = 'Server Error';
+						if (xhr.status === 0) {
+							errorMsg = 'Network error. Please check your connection.';
+						} else {
+							errorMsg = 'HTTP ' + xhr.status;
+							if (xhr.responseText) {
+								try {
+									var parsed = JSON.parse( xhr.responseText );
+									errorMsg   = parsed.data && parsed.data.message ? parsed.data.message : errorMsg;
+								} catch (e) {
+									errorMsg += ' - ' + xhr.responseText.substring( 0, 100 );
+								}
 							}
 						}
-						self.showConsoleError( 'Server Error: ' + errorMsg );
+						self.showConsoleError( errorMsg );
 					}
 				}
 			);
@@ -737,8 +758,12 @@
 				return;
 			}
 
+			this.destroyObserver();
+
 			const html = this.buildLogsHtml( entries );
 			this.$entries.append( html );
+
+			this.setupObserver();
 		},
 
 		showAppendLoading: function () {
@@ -759,6 +784,7 @@
 			sentinel.id           = 'sscribe-infinite-scroll-sentinel';
 			sentinel.style.height = '1px';
 			sentinel.style.width  = '100%';
+			this.$entries.find( '#sscribe-infinite-scroll-sentinel' ).remove();
 			this.$entries.append( sentinel );
 
 			this.observer = new IntersectionObserver(
@@ -767,7 +793,7 @@
 						self.fetchLogs( true );
 					}
 				},
-				{ root: document.getElementById( 'sscribe-debug-console-body' ), rootMargin: '50px', threshold: 0 }
+				{ root: this.$consoleBody[0], rootMargin: '50px', threshold: 0 }
 			);
 
 			this.observer.observe( sentinel );
@@ -807,6 +833,7 @@
 							},
 							2000
 						);
+						self.destroyObserver();
 						self.fetchLogs();
 					} else {
 						self.$clearBtn.after( '<span class="sscribe-feedback sscribe-feedback-error">' + escHtml( self.getResponseMessage( response, 'Error' ) ) + '</span>' );
@@ -1031,7 +1058,6 @@
 			this.$entryCount.text( 'Loading...' );
 			this.$consoleBody.addClass( 'is-loading' );
 			this.fetchLogs();
-			this.fetchRotatedLogs();
 		},
 
 		exportRotatedLog: function (filename) {
@@ -1046,6 +1072,10 @@
 
 		deleteRotatedLog: function (filename, $btn) {
 			const self = this;
+
+			if ( ! $btn) {
+				return;
+			}
 
 			if ($btn && $btn.data( 'confirming' )) {
 				$btn.data( 'confirming', false ).removeClass( 'sscribe-btn-confirming' ).text( 'Delete' );
