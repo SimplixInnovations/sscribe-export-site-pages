@@ -957,10 +957,10 @@ class SScribe_DOCX_Content_Renderer {
 					array(
 						'width'     => Converter::emuToPixel( $width_emu ),
 						'height'    => Converter::emuToPixel( $height_emu ),
-					'alignment' => Jc::CENTER,
-				)
-			);
-		}
+						'alignment' => Jc::CENTER,
+					)
+				);
+			}
 
 		/**
 		 * Filter whether to append the image source URL table to inline images.

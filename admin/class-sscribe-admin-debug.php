@@ -1,4 +1,5 @@
 <?php
+// phpcs:disable WordPress.Security.NonceVerification.Missing -- Nonce verified centrally in verify_request_authorization().
 /**
  * SScribe Admin Debug Console
  *
@@ -126,7 +127,7 @@ class SScribe_Admin_Debug {
 			$response          = SScribe_Settings::get_debug_settings();
 			$response['nonce'] = wp_create_nonce( 'sscribe_export_nonce' );
 			wp_send_json_success( $response );
-} else {
+		} else {
 			wp_send_json_error(
 				array(
 					'message' => __( 'Failed to save settings. Please try again or refresh the page.', 'sscribe-export-site-pages' ),
