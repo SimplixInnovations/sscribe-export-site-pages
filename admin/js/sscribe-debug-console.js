@@ -84,6 +84,7 @@
 			this.$consoleBody  = $( '#sscribe-debug-console-body' );
 			this.$entries      = $( '#sscribe-debug-entries' );
 			this.$empty        = $( '#sscribe-debug-empty' );
+			this.defaultEmptyMessage = this.$empty.find( 'p' ).text().trim();
 			this.$entryCount   = $( '#sscribe-debug-entry-count' );
 			this.$clearBtn     = $( '#sscribe-debug-clear-btn' );
 			this.$exportBtn    = $( '#sscribe-debug-export-btn' );
@@ -218,10 +219,9 @@
 				'click',
 				function () {
 					const $btn = $( this );
-					$btn.prop( 'disabled', true );
 					if ($btn.data( 'confirming' )) {
-						const originalText = $btn.data( 'original-text' ) || 'Clear Logs';
-						$btn.data( 'confirming', false ).removeClass( 'sscribe-btn-confirming' ).text( originalText );
+						$btn.data( 'confirming', false ).removeClass( 'sscribe-btn-confirming' ).text( 'Clearing...' );
+						$btn.prop( 'disabled', true );
 						self.clearLogs();
 					} else {
 						if ( ! $btn.data( 'original-text' )) {
@@ -230,9 +230,10 @@
 						$btn.data( 'confirming', true ).addClass( 'sscribe-btn-confirming' ).text( 'Click again to confirm' );
 						setTimeout(
 							function () {
-								const originalText = $btn.data( 'original-text' ) || 'Clear Logs';
-								$btn.data( 'confirming', false ).removeClass( 'sscribe-btn-confirming' ).text( originalText );
-								$btn.prop( 'disabled', false );
+								if ($btn.data( 'confirming' )) {
+									const originalText = $btn.data( 'original-text' ) || 'Clear Logs';
+									$btn.data( 'confirming', false ).removeClass( 'sscribe-btn-confirming' ).text( originalText );
+								}
 							},
 							3000
 						);
@@ -392,7 +393,7 @@
 					self.showPausedIndicator( 'Paused — tab inactive' );
 				} else if (self.isAutoRefresh) {
 					const $debugTabBtn = $( '#sscribe-tab-btn-debug' );
-					if ( $debugTabBtn.length && $debugTabBtn.attr( 'aria-selected' ) === 'true' ) {
+					if ( !$debugTabBtn.length || $debugTabBtn.attr( 'aria-selected' ) === 'true' ) {
 						self.startAutoRefresh();
 						self.hidePausedIndicator();
 					}
@@ -413,6 +414,11 @@
 			this.hasMoreEntries = true;
 			this.fetchLogs();
 			this.updateExportButtonScope();
+
+			const rotatedEl = document.getElementById( 'sscribe-debug-rotated-details' );
+			if ( rotatedEl && rotatedEl.open ) {
+				this.fetchRotatedLogs();
+			}
 
 			if (this.isAutoRefresh) {
 				this.startAutoRefresh();
@@ -730,9 +736,22 @@
 							}
 						}
 						self.showConsoleError( errorMsg );
+					} else {
+						self.$entries.find( '.sscribe-debug-append-error' ).remove();
+						self.$entries.append(
+							'<div class="sscribe-debug-append-error" style="padding:8px 12px;color:#dc3545;font-size:13px;">' +
+							'Failed to load more entries. <button type="button" class="sscribe-button sscribe-button-sm" onclick="SScribeDebugConsole.retryAppend()">Retry</button>' +
+							'</div>'
+						);
 					}
 				}
 			);
+		},
+
+		retryAppend: function () {
+			this.$entries.find( '.sscribe-debug-append-error' ).remove();
+			this.isLoadingMore = false;
+			this.fetchLogs( true );
 		},
 
 		buildLogsHtml: function (entries) {
@@ -756,13 +775,15 @@
 						this.$empty.find( 'p' ).text( 'Debug logging is disabled. Enable it in Settings above to capture logs.' );
 					} else if (extraData.status === 'no_log_file' && extraData.debug_enabled) {
 						this.$empty.find( 'p' ).text( 'Debug is enabled but no log file exists yet. Run an export to generate logs.' );
+					} else if (extraData.status === 'rotated') {
+						this.$empty.find( 'p' ).text( 'This rotated log file is empty.' );
 					}
 				}
 				return;
 			}
 
 			this.$empty.hide();
-			this.$empty.find( 'p' ).text( '' );
+			this.$empty.find( 'p' ).text( this.defaultEmptyMessage );
 			this.cleanupBeforeRender();
 
 			// Preserve scroll position during auto-refresh updates.
@@ -908,6 +929,7 @@
 			const form         = document.createElement( 'form' );
 			form.method        = 'POST';
 			form.action        = url;
+			form.target        = '_blank';
 			form.style.display = 'none';
 			Object.keys( data ).forEach(
 				function (key) {
@@ -940,16 +962,15 @@
 				session_id: this.sessionFilter,
 			};
 
+			const EXPORT_LABEL = 'Export JSON';
 			self.$exportBtn.prop( 'disabled', true );
-			self.$exportBtn.data( 'original-text', self.$exportBtn.clone().children().remove().end().text() );
 			self.$exportBtn.find( '.sscribe-export-btn-scope' ).text( ' (downloading...)' );
 			this.downloadViaForm( sscribe_data.ajaxurl, data );
 			setTimeout(
 				function () {
-					const origText = self.$exportBtn.data( 'original-text' ) || 'Export JSON';
-					self.$exportBtn.contents().filter(function() { return this.nodeType === 3; }).first().replaceWith( origText.trim() );
 					self.$exportBtn.find( '.sscribe-export-btn-scope' ).text( '' );
 					self.$exportBtn.prop( 'disabled', false );
+					self.updateExportButtonScope();
 				},
 				5000
 			);
@@ -983,12 +1004,16 @@
 				}
 			).fail(
 				function (xhr) {
-					if (xhr.statusText === 'abort' || xhr.status === 0) {
+					if (xhr.statusText === 'abort') {
 						return;
 					}
 					self.rotatedRequest = null;
+					let errMsg = 'Unable to load rotated logs.';
+					if (xhr.status === 0) {
+						errMsg = 'Network error — could not load rotated logs.';
+					}
 					self.$rotatedBody.html(
-						'<div class="sscribe-debug-rotated-empty">' + escHtml( 'Unable to load rotated logs.' ) + '</div>'
+						'<div class="sscribe-debug-rotated-empty">' + escHtml( errMsg ) + '</div>'
 					);
 				}
 			);
@@ -1059,7 +1084,7 @@
 						self.isViewingRotated       = true;
 						self.currentRotatedFilename = filename;
 						self.$entries.find( '.sscribe-debug-rotated-banner' ).remove();
-						self.renderLogs( response.data.entries, true );
+						self.renderLogs( response.data.entries, true, { status: 'rotated', count: response.data.count } );
 						self.$entryCount.text( ( 1 === response.data.count ? '1 entry' : response.data.count + ' entries' ) + ' (rotated)' );
 						self.$entries.prepend(
 							'<div class="sscribe-debug-rotated-banner">' +
@@ -1082,7 +1107,7 @@
 				}
 			).fail(
 				function (xhr) {
-					if (xhr.statusText === 'abort' || xhr.status === 0) {
+					if (xhr.statusText === 'abort') {
 						return;
 					}
 					self.viewRotatedRequest = null;
@@ -1105,10 +1130,10 @@
 			this.hasMoreEntries         = true;
 			this.currentOffset          = 0;
 			this.isLoadingMore          = false;
+			this.$entries.find( '.sscribe-debug-rotated-banner' ).remove();
 			this.$entries.empty();
 			this.$entryCount.text( 'Loading...' );
 			this.$consoleBody.addClass( 'is-loading' );
-			this.$entries.find( '.sscribe-debug-rotated-banner' ).remove();
 			this.fetchLogs();
 			if ( this.isAutoRefresh ) {
 				this.startAutoRefresh();
@@ -1134,6 +1159,7 @@
 
 			if ($btn.data( 'confirming' )) {
 				$btn.data( 'confirming', false ).removeClass( 'sscribe-btn-confirming' ).text( 'Delete' );
+				$btn.prop( 'disabled', true );
 				self._executeDeleteRotatedLog( filename, $btn );
 				return;
 			}
@@ -1238,7 +1264,7 @@
 		const allowedLevels = ['all', 'debug', 'info', 'notice', 'warning', 'error', 'critical', 'alert', 'emergency', 'raw'];
 		const entryLevel    = (entry.level && typeof entry.level === 'string') ? entry.level.toLowerCase() : 'info';
 		const badgeClass    = allowedLevels.includes( entryLevel ) ? entryLevel : 'info';
-		let contextHtml     = '';
+		let contextHtml = '';
 
 		if (entry.context && Object.keys( entry.context ).length > 0) {
 			let contextRows = '';
