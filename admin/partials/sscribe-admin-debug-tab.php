@@ -105,6 +105,7 @@ $sscribe_show_wp_debug_notice = ( defined( 'WP_DEBUG' ) && WP_DEBUG );
 		</div>
 		<div class="sscribe-debug-refresh-row">
 			<div class="sscribe-debug-refresh-mode">
+				<span class="sscribe-debug-refresh-paused" id="sscribe-debug-refresh-paused" style="display:none;">Paused — tab inactive</span>
 				<label class="sscribe-radio-label">
 					<input type="radio" name="sscribe_refresh_mode" value="auto" <?php checked( true, (bool) $sscribe_debug_settings['auto_refresh'] ); ?>>
 					<span class="sscribe-radio-text"><?php esc_html_e( 'Auto-refresh (10s)', 'sscribe-export-site-pages' ); ?></span>

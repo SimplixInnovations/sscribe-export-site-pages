@@ -88,6 +88,7 @@
 			this.$clearBtn     = $( '#sscribe-debug-clear-btn' );
 			this.$exportBtn    = $( '#sscribe-debug-export-btn' );
 			this.$rotatedBody  = $( '#sscribe-debug-rotated-body' );
+			this.$refreshPaused = $( '#sscribe-debug-refresh-paused' );
 		},
 
 		unbindEvents: function () {
@@ -192,8 +193,10 @@
 					self.isAutoRefresh        = $( this ).val() === 'auto';
 					if (self.isAutoRefresh) {
 						self.startAutoRefresh();
+						self.hidePausedIndicator();
 					} else {
 						self.stopAutoRefresh();
+						self.showPausedIndicator( 'Manual mode — auto-refresh off' );
 					}
 					self.saveSettings( previousAutoRefresh );
 				}
@@ -215,6 +218,7 @@
 				'click',
 				function () {
 					const $btn = $( this );
+					$btn.prop( 'disabled', true );
 					if ($btn.data( 'confirming' )) {
 						const originalText = $btn.data( 'original-text' ) || 'Clear Logs';
 						$btn.data( 'confirming', false ).removeClass( 'sscribe-btn-confirming' ).text( originalText );
@@ -228,6 +232,7 @@
 							function () {
 								const originalText = $btn.data( 'original-text' ) || 'Clear Logs';
 								$btn.data( 'confirming', false ).removeClass( 'sscribe-btn-confirming' ).text( originalText );
+								$btn.prop( 'disabled', false );
 							},
 							3000
 						);
@@ -242,11 +247,11 @@
 					const helpContent = document.getElementById( 'sscribe-debug-help-content' );
 					if (helpContent) {
 						const overlay         = document.createElement( 'div' );
-						overlay.style.cssText = 'position:fixed;inset:0;background:rgb(0 0 0 / 50%);z-index:999998;';
+						overlay.style.cssText = 'position:fixed;inset:0;background:rgb(0 0 0 / 50%);z-index:9999998;';
 						overlay.setAttribute( 'aria-hidden', 'true' );
 						const dialog         = document.createElement( 'div' );
 						dialog.style.cssText =
-						'position:fixed;top:50%;left:50%;transform:translate(-50%,-50%);background:#fff;color:#333;padding:24px;border-radius:8px;max-width:400px;z-index:999999;box-shadow:0 8px 32px rgb(0 0 0 / 30%);font-size:14px;line-height:1.6;';
+						'position:fixed;top:50%;left:50%;transform:translate(-50%,-50%);background:#fff;color:#333;padding:24px;border-radius:8px;max-width:400px;z-index:9999999;box-shadow:0 8px 32px rgb(0 0 0 / 30%);font-size:14px;line-height:1.6;';
 						dialog.setAttribute( 'role', 'dialog' );
 						dialog.setAttribute( 'aria-modal', 'true' );
 						dialog.setAttribute( 'aria-labelledby', 'sscribe-debug-help-title' );
@@ -384,10 +389,12 @@
 			this._visibilityHandler = function () {
 				if (document.hidden) {
 					self.stopAutoRefresh();
+					self.showPausedIndicator( 'Paused — tab inactive' );
 				} else if (self.isAutoRefresh) {
 					const $debugTabBtn = $( '#sscribe-tab-btn-debug' );
 					if ( $debugTabBtn.length && $debugTabBtn.attr( 'aria-selected' ) === 'true' ) {
 						self.startAutoRefresh();
+						self.hidePausedIndicator();
 					}
 				}
 			};
@@ -417,7 +424,6 @@
 			this.stopAutoRefresh();
 			this.refreshInterval = setInterval(
 				function () {
-					// Safety valve: force-reset isRefreshing if it has been stuck for more than 30s.
 					if ( self.isRefreshing && self.isRefreshingSince && ( Date.now() - self.isRefreshingSince > 30000 ) ) {
 						self.isRefreshing = false;
 						self.isRefreshingSince = null;
@@ -440,6 +446,18 @@
 			if (this.refreshInterval) {
 				clearInterval( this.refreshInterval );
 				this.refreshInterval = null;
+			}
+		},
+
+		showPausedIndicator: function (message) {
+			if (this.$refreshPaused) {
+				this.$refreshPaused.text( message ).show();
+			}
+		},
+
+		hidePausedIndicator: function () {
+			if (this.$refreshPaused) {
+				this.$refreshPaused.hide();
 			}
 		},
 
@@ -664,7 +682,7 @@
 
 						self.currentOffset += newEntries.length;
 						self.hasMoreEntries = self.currentOffset < totalCount;
-						self.$entryCount.text( totalCount + ' entries' );
+						self.$entryCount.text( ( 1 === totalCount ? '1 entry' : totalCount + ' entries' ) );
 
 						if ( ! self.hasMoreEntries) {
 							self.destroyObserver();
@@ -744,6 +762,7 @@
 			}
 
 			this.$empty.hide();
+			this.$empty.find( 'p' ).text( '' );
 			this.cleanupBeforeRender();
 
 			// Preserve scroll position during auto-refresh updates.
@@ -799,6 +818,9 @@
 
 		setupObserver: function () {
 			if ( ! this.hasMoreEntries) {
+				return;
+			}
+			if ( ! this.$consoleBody[0]) {
 				return;
 			}
 
@@ -1036,8 +1058,9 @@
 					if (response.success) {
 						self.isViewingRotated       = true;
 						self.currentRotatedFilename = filename;
+						self.$entries.find( '.sscribe-debug-rotated-banner' ).remove();
 						self.renderLogs( response.data.entries, true );
-						self.$entryCount.text( response.data.count + ' entries (rotated)' );
+						self.$entryCount.text( ( 1 === response.data.count ? '1 entry' : response.data.count + ' entries' ) + ' (rotated)' );
 						self.$entries.prepend(
 							'<div class="sscribe-debug-rotated-banner">' +
 							'<span>Viewing archived log: ' +
@@ -1085,7 +1108,11 @@
 			this.$entries.empty();
 			this.$entryCount.text( 'Loading...' );
 			this.$consoleBody.addClass( 'is-loading' );
+			this.$entries.find( '.sscribe-debug-rotated-banner' ).remove();
 			this.fetchLogs();
+			if ( this.isAutoRefresh ) {
+				this.startAutoRefresh();
+			}
 		},
 
 		exportRotatedLog: function (filename) {
