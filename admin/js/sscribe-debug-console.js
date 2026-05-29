@@ -23,6 +23,27 @@
 		};
 	};
 
+	function escHtml(str) {
+		if (str === null || str === undefined) {
+			return '';
+		}
+		const div       = document.createElement( 'div' );
+		div.textContent = String( str );
+		return div.innerHTML;
+	}
+
+	function escAttr(str) {
+		if (str === null || str === undefined) {
+			return '';
+		}
+		return String( str )
+			.replace( /&/g, '&amp;' )
+			.replace( /"/g, '&quot;' )
+			.replace( /'/g, '&#39;' )
+			.replace( /</g, '&lt;' )
+			.replace( />/g, '&gt;' );
+	}
+
 	const SScribeDebugConsole = {
 		refreshInterval: null,
 		isAutoRefresh: true,
@@ -1265,27 +1286,6 @@
 			);
 		},
 	};
-
-	function escHtml(str) {
-		if (str === null || str === undefined) {
-			return '';
-		}
-		const div       = document.createElement( 'div' );
-		div.textContent = String( str );
-		return div.innerHTML;
-	}
-
-	function escAttr(str) {
-		if (str === null || str === undefined) {
-			return '';
-		}
-		return String( str )
-			.replace( /&/g, '&amp;' )
-			.replace( /"/g, '&quot;' )
-			.replace( /'/g, '&#39;' )
-			.replace( /</g, '&lt;' )
-			.replace( />/g, '&gt;' );
-	}
 
 	function buildEntryHtml(entry) {
 		const allowedLevels = ['all', 'debug', 'info', 'notice', 'warning', 'error', 'critical', 'alert', 'emergency', 'raw'];
