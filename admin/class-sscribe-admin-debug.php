@@ -126,9 +126,14 @@ class SScribe_Admin_Debug {
 			$response          = SScribe_Settings::get_debug_settings();
 			$response['nonce'] = wp_create_nonce( 'sscribe_export_nonce' );
 			wp_send_json_success( $response );
-		} else {
-			wp_send_json_error( array( 'message' => __( 'Failed to save settings. Please try again or refresh the page.', 'sscribe-export-site-pages' ) ), 500 );
-			return;
+} else {
+			wp_send_json_error(
+				array(
+					'message' => __( 'Failed to save settings. Please try again or refresh the page.', 'sscribe-export-site-pages' ),
+					'nonce'   => wp_create_nonce( 'sscribe_export_nonce' ),
+				),
+				500
+			);
 		}
 	}
 
@@ -227,24 +232,48 @@ class SScribe_Admin_Debug {
 			$real_log_dir   = realpath( $log_dir );
 
 			if ( false === $real_file_path || false === $real_log_dir ) {
-				wp_send_json_error( array( 'message' => __( 'File not found.', 'sscribe-export-site-pages' ) ), 404 );
+				wp_send_json_error(
+					array(
+						'message' => __( 'File not found.', 'sscribe-export-site-pages' ),
+						'nonce'   => wp_create_nonce( 'sscribe_export_nonce' ),
+					),
+					404
+				);
 				return;
 			}
 
 			if ( ! preg_match( '/\.(log|json)$/', $filename ) ) {
-				wp_send_json_error( array( 'message' => __( 'Invalid file type.', 'sscribe-export-site-pages' ) ), 400 );
+				wp_send_json_error(
+					array(
+						'message' => __( 'Invalid file type.', 'sscribe-export-site-pages' ),
+						'nonce'   => wp_create_nonce( 'sscribe_export_nonce' ),
+					),
+					400
+				);
 				return;
 			}
 
 			$safe_log_dir = rtrim( $real_log_dir, DIRECTORY_SEPARATOR ) . DIRECTORY_SEPARATOR;
 			if ( 0 !== strpos( $real_file_path, $safe_log_dir ) ) {
-				wp_send_json_error( array( 'message' => __( 'File not found.', 'sscribe-export-site-pages' ) ), 404 );
+				wp_send_json_error(
+					array(
+						'message' => __( 'File not found.', 'sscribe-export-site-pages' ),
+						'nonce'   => wp_create_nonce( 'sscribe_export_nonce' ),
+					),
+					404
+				);
 				return;
 			}
 
 			$content = file_get_contents( $file_path ); // phpcs:ignore WordPress.WP.AlternativeFunctions.file_get_contents_file_get_contents -- Reading local log file for download.
 			if ( false === $content ) {
-				wp_send_json_error( array( 'message' => __( 'Failed to read file.', 'sscribe-export-site-pages' ) ), 500 );
+				wp_send_json_error(
+					array(
+						'message' => __( 'Failed to read file.', 'sscribe-export-site-pages' ),
+						'nonce'   => wp_create_nonce( 'sscribe_export_nonce' ),
+					),
+					500
+				);
 				return;
 			}
 			$this->download_json( $filename, $content );
@@ -269,7 +298,13 @@ class SScribe_Admin_Debug {
 		);
 
 		if ( false === $json_content ) {
-			wp_send_json_error( array( 'message' => __( 'Failed to encode log data.', 'sscribe-export-site-pages' ) ), 500 );
+			wp_send_json_error(
+				array(
+					'message' => __( 'Failed to encode log data.', 'sscribe-export-site-pages' ),
+					'nonce'   => wp_create_nonce( 'sscribe_export_nonce' ),
+				),
+				500
+			);
 			return;
 		}
 
@@ -364,12 +399,24 @@ class SScribe_Admin_Debug {
 		$limit    = isset( $_POST['limit'] ) ? max( 1, min( 200, absint( wp_unslash( $_POST['limit'] ) ) ) ) : 200;
 
 		if ( empty( $filename ) ) {
-			wp_send_json_error( array( 'message' => __( 'Filename required.', 'sscribe-export-site-pages' ) ), 400 );
+			wp_send_json_error(
+				array(
+					'message' => __( 'Filename required.', 'sscribe-export-site-pages' ),
+					'nonce'   => wp_create_nonce( 'sscribe_export_nonce' ),
+				),
+				400
+			);
 			return;
 		}
 
 		if ( ! preg_match( '/\.(log|json)$/', $filename ) ) {
-			wp_send_json_error( array( 'message' => __( 'Invalid file type.', 'sscribe-export-site-pages' ) ), 400 );
+			wp_send_json_error(
+				array(
+					'message' => __( 'Invalid file type.', 'sscribe-export-site-pages' ),
+					'nonce'   => wp_create_nonce( 'sscribe_export_nonce' ),
+				),
+				400
+			);
 			return;
 		}
 
@@ -382,13 +429,25 @@ class SScribe_Admin_Debug {
 
 		$safe_log_dir = rtrim( (string) $real_log_dir, DIRECTORY_SEPARATOR ) . DIRECTORY_SEPARATOR;
 		if ( false === $real_file_path || false === $real_log_dir || 0 !== strpos( $real_file_path, $safe_log_dir ) ) {
-			wp_send_json_error( array( 'message' => __( 'File not found.', 'sscribe-export-site-pages' ) ), 404 );
+			wp_send_json_error(
+				array(
+					'message' => __( 'File not found.', 'sscribe-export-site-pages' ),
+					'nonce'   => wp_create_nonce( 'sscribe_export_nonce' ),
+				),
+				404
+			);
 			return;
 		}
 
 		$content = file_get_contents( $file_path ); // phpcs:ignore WordPress.WP.AlternativeFunctions.file_get_contents_file_get_contents -- Reading local rotated log file.
 		if ( false === $content ) {
-			wp_send_json_error( array( 'message' => __( 'Failed to read file.', 'sscribe-export-site-pages' ) ), 500 );
+			wp_send_json_error(
+				array(
+					'message' => __( 'Failed to read file.', 'sscribe-export-site-pages' ),
+					'nonce'   => wp_create_nonce( 'sscribe_export_nonce' ),
+				),
+				500
+			);
 			return;
 		}
 
@@ -424,12 +483,24 @@ class SScribe_Admin_Debug {
 		$filename = isset( $_POST['filename'] ) ? sanitize_text_field( wp_unslash( $_POST['filename'] ) ) : '';
 
 		if ( empty( $filename ) ) {
-			wp_send_json_error( array( 'message' => __( 'Filename required.', 'sscribe-export-site-pages' ) ), 400 );
+			wp_send_json_error(
+				array(
+					'message' => __( 'Filename required.', 'sscribe-export-site-pages' ),
+					'nonce'   => wp_create_nonce( 'sscribe_export_nonce' ),
+				),
+				400
+			);
 			return;
 		}
 
 		if ( ! preg_match( '/\.(log|json)$/', $filename ) ) {
-			wp_send_json_error( array( 'message' => __( 'Invalid file type.', 'sscribe-export-site-pages' ) ), 400 );
+			wp_send_json_error(
+				array(
+					'message' => __( 'Invalid file type.', 'sscribe-export-site-pages' ),
+					'nonce'   => wp_create_nonce( 'sscribe_export_nonce' ),
+				),
+				400
+			);
 			return;
 		}
 
@@ -441,13 +512,25 @@ class SScribe_Admin_Debug {
 		$real_log_dir   = realpath( $log_dir );
 
 		if ( false === $real_file_path || false === $real_log_dir ) {
-			wp_send_json_error( array( 'message' => __( 'File not found.', 'sscribe-export-site-pages' ) ), 404 );
+			wp_send_json_error(
+				array(
+					'message' => __( 'File not found.', 'sscribe-export-site-pages' ),
+					'nonce'   => wp_create_nonce( 'sscribe_export_nonce' ),
+				),
+				404
+			);
 			return;
 		}
 
 		$safe_log_dir = rtrim( $real_log_dir, DIRECTORY_SEPARATOR ) . DIRECTORY_SEPARATOR;
 		if ( 0 !== strpos( $real_file_path, $safe_log_dir ) ) {
-			wp_send_json_error( array( 'message' => __( 'File not found.', 'sscribe-export-site-pages' ) ), 404 );
+			wp_send_json_error(
+				array(
+					'message' => __( 'File not found.', 'sscribe-export-site-pages' ),
+					'nonce'   => wp_create_nonce( 'sscribe_export_nonce' ),
+				),
+				404
+			);
 			return;
 		}
 
@@ -455,13 +538,25 @@ class SScribe_Admin_Debug {
 		$logger     = SScribe_Logger::instance( true );
 		$active_log = $logger->get_log_file();
 		if ( $active_log && realpath( $active_log ) === $real_file_path ) {
-			wp_send_json_error( array( 'message' => __( 'Cannot delete the active log file.', 'sscribe-export-site-pages' ) ), 403 );
+			wp_send_json_error(
+				array(
+					'message' => __( 'Cannot delete the active log file.', 'sscribe-export-site-pages' ),
+					'nonce'   => wp_create_nonce( 'sscribe_export_nonce' ),
+				),
+				403
+			);
 			return;
 		}
 
 		wp_delete_file( $file_path );
 		if ( file_exists( $file_path ) ) {
-			wp_send_json_error( array( 'message' => __( 'Failed to delete file.', 'sscribe-export-site-pages' ) ), 500 );
+			wp_send_json_error(
+				array(
+					'message' => __( 'Failed to delete file.', 'sscribe-export-site-pages' ),
+					'nonce'   => wp_create_nonce( 'sscribe_export_nonce' ),
+				),
+				500
+			);
 		} else {
 			wp_send_json_success(
 				array(
