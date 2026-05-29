@@ -150,6 +150,21 @@ class SScribe_Batch_Processor {
 	private ?SScribe_Export_Query_Controller $query_controller = null;
 
 	/**
+	 * Generate cryptographically secure random bytes with fallback.
+	 *
+	 * @param int $length Number of bytes.
+	 * @return string Raw binary bytes.
+	 */
+	private static function secure_random_bytes( int $length ): string {
+		try {
+			return random_bytes( $length );
+		} catch ( \Throwable $e ) {
+			// Fallback for environments where random_bytes() fails.
+			return openssl_random_pseudo_bytes( $length ) ?: wp_generate_password( $length, false );
+		}
+	}
+
+	/**
 	 * Get the adaptive metrics instance (lazy-loaded).
 	 *
 	 * @return \SScribe_Adaptive_Metrics
@@ -1946,21 +1961,6 @@ class SScribe_Batch_Processor {
 				$format_suffix,
 				substr( bin2hex( self::secure_random_bytes( 3 ) ), 0, 6 )
 			);
-
-			/**
-			 * Generate cryptographically secure random bytes with fallback.
-			 *
-			 * @param int $length Number of bytes.
-			 * @return string Raw binary bytes.
-			 */
-			private static function secure_random_bytes( int $length ): string {
-				try {
-					return random_bytes( $length );
-				} catch ( \Throwable $e ) {
-					// Fallback for environments where random_bytes() fails.
-					return openssl_random_pseudo_bytes( $length ) ?: wp_generate_password( $length, false );
-				}
-			}
 
 			$this->logger->debug(
 				'Creating ZIP',
