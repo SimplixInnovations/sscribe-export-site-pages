@@ -246,6 +246,11 @@ class SScribe_Markdown_Exporter implements SScribe_Exporter_Interface {
 
 		$md = $html;
 
+		// Decode HTML entities BEFORE Markdown conversion to prevent double-decoding
+		// issues where entities inside Markdown syntax (e.g. **Bold &amp; Text**) would
+		// be incorrectly decoded after the Markdown formatting is applied.
+		$md = html_entity_decode( $md, ENT_QUOTES | ENT_HTML5, 'UTF-8' );
+
 		$md = $this->convert_tables( $md );
 		$md = $this->convert_headings( $md );
 		$md = $this->convert_images( $md );
@@ -258,8 +263,6 @@ class SScribe_Markdown_Exporter implements SScribe_Exporter_Interface {
 		$md = $this->convert_horizontal_rules( $md );
 
 		$md = wp_strip_all_tags( $md );
-
-		$md = html_entity_decode( $md, ENT_QUOTES | ENT_HTML5, 'UTF-8' );
 
 		$md = preg_replace( '/\n{3,}/', "\n\n", $md );
 		$md = preg_replace( '/[ \t]+$/m', '', $md );
@@ -519,14 +522,7 @@ class SScribe_Markdown_Exporter implements SScribe_Exporter_Interface {
 	}
 
 	/**
-	 * Convert lists using DOMDocument tree traversal (safe, no ReDoS).
-	 *
-	 * @param \DOMNode $node     DOM node to process.
-	 * @param string   $original Original HTML for fallback.
-	 * @return string Markdown content.
-	 */
-	/**
-	 * Convert DOM lists using DOMDocument tree traversal.
+	 * Convert DOM lists using DOMDocument tree traversal (safe, no ReDoS).
 	 *
 	 * @param \DOMNode $node     DOM node to process.
 	 * @param string   $original Original HTML for fallback.
@@ -684,19 +680,20 @@ class SScribe_Markdown_Exporter implements SScribe_Exporter_Interface {
 	 * @return string Content with Markdown code blocks.
 	 */
 	private function convert_code_blocks( string $html ): string {
-		// Decode HTML entities at capture time so that code containing
-		// e.g. &lt; or &amp; is correctly rendered in the fenced block.
+		// HTML entities are decoded globally at the top of html_to_markdown() before
+		// any conversion runs, so code content here is already decoded. Captured content
+		// is wrapped in fenced code blocks as-is to preserve the original characters.
 		$html = preg_replace_callback(
 			'/<pre[^>]*><code[^>]*>(.*?)<\/code><\/pre>/is',
 			function ( $m ): string {
-				return "\n```\n" . html_entity_decode( $m[1], ENT_QUOTES | ENT_HTML5, 'UTF-8' ) . "\n```\n";
+				return "\n```\n" . $m[1] . "\n```\n";
 			},
 			$html
 		) ?? $html;
 		$html = preg_replace_callback(
 			'/<pre[^>]*>(.*?)<\/pre>/is',
 			function ( $m ): string {
-				return "\n```\n" . html_entity_decode( $m[1], ENT_QUOTES | ENT_HTML5, 'UTF-8' ) . "\n```\n";
+				return "\n```\n" . $m[1] . "\n```\n";
 			},
 			$html
 		) ?? $html;
