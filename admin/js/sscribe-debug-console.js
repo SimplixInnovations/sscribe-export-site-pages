@@ -1114,29 +1114,15 @@
 			files.forEach(
 				function (file) {
 					html += '<div class="sscribe-debug-rotated-file">';
-					html += '<div class="sscribe-debug-rotated-file-info">';
-					html += '<span class="sscribe-debug-rotated-file-name">' + escHtml( file.name ) + '</span>';
-					html +=
-					'<span class="sscribe-debug-rotated-file-meta">' +
-					escHtml( file.size ) +
-					' - ' +
-					escHtml( file.date ) +
-					'</span>';
-					html += '</div>';
-					html += '<div class="sscribe-debug-rotated-file-actions">';
-				html +=
-					'<button type="button" class="sscribe-button sscribe-button-sm sscribe-button-outline sscribe-rotated-view" data-file="' +
-					escAttr( file.name ) +
-					'" aria-label="View rotated log ' + escAttr( file.name ) + '">View</button>';
-				html +=
-					'<button type="button" class="sscribe-button sscribe-button-sm sscribe-button-secondary sscribe-rotated-export" data-file="' +
-					escAttr( file.name ) +
-					'" aria-label="Export rotated log ' + escAttr( file.name ) + '">Export</button>';
-				html +=
-					'<button type="button" class="sscribe-button sscribe-button-sm sscribe-button-danger sscribe-rotated-delete" data-file="' +
-					escAttr( file.name ) +
-					'" aria-label="Delete rotated log ' + escAttr( file.name ) + '">Delete</button>';
-					html += '</div></div>';
+				html += '<div class="sscribe-debug-rotated-file-info">';
+				html += '<span class="sscribe-debug-rotated-file-name">' + escHtml( file.name ) + '</span>';
+				html += '<span class="sscribe-debug-rotated-file-meta">' + escHtml( file.size ) + ' - ' + escHtml( file.date ) + '</span>';
+				html += '</div>';
+				html += '<div class="sscribe-debug-rotated-file-actions">';
+				html += '<button type="button" class="sscribe-button sscribe-button-sm sscribe-button-outline sscribe-rotated-view" data-file="' + escAttr( file.name ) + '" aria-label="View rotated log ' + escAttr( file.name ) + '">View</button>';
+				html += '<button type="button" class="sscribe-button sscribe-button-sm sscribe-button-secondary sscribe-rotated-export" data-file="' + escAttr( file.name ) + '" aria-label="Export rotated log ' + escAttr( file.name ) + '">Export</button>';
+				html += '<button type="button" class="sscribe-button sscribe-button-sm sscribe-button-danger sscribe-rotated-delete" data-file="' + escAttr( file.name ) + '" aria-label="Delete rotated log ' + escAttr( file.name ) + '">Delete</button>';
+				html += '</div></div>';
 				}
 			);
 
