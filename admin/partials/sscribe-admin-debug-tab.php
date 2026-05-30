@@ -28,7 +28,7 @@ $sscribe_show_wp_debug_notice = ( defined( 'WP_DEBUG' ) && WP_DEBUG );
 <?php if ( $sscribe_show_wp_debug_notice ) : ?>
 	<div class="sscribe-debug-wp-debug-notice">
 		<svg width="16" height="16" viewBox="0 0 16 16" fill="currentColor" aria-hidden="true">
-			<path d="M8 1a7 7 0 1 0 0 14A7 7 0 0 0 8 1zm0 13a1 1 0 1 1 0-2 1 1 0 0 1 0 2zm1-4.293a1 1 0 1 1-2 0V7.707l-2.146 2.147a1 1 0 0 1-1.414-1.414l3-3A1 1 0 0 1 9 7.586V8a1 1 0 0 1 2 0z"/>
+			<path d="M8 0a8 8 0 1 0 0 16A8 8 0 0 0 8 0zm.75 4.5a.75.75 0 1 1-1.5 0 .75.75 0 0 1 1.5 0zM7.25 7h1.5v5h-1.5V7z"/>
 		</svg>
 		<span><?php esc_html_e( 'WP_DEBUG is enabled. Debug logs may contain sensitive information. Disable on production sites.', 'sscribe-export-site-pages' ); ?></span>
 	</div>
@@ -96,16 +96,17 @@ $sscribe_show_wp_debug_notice = ( defined( 'WP_DEBUG' ) && WP_DEBUG );
 			</div>
 			<div class="sscribe-debug-session-filter">
 				<label for="sscribe-debug-session-id"><?php esc_html_e( 'Session ID:', 'sscribe-export-site-pages' ); ?></label>
-				<input type="text" id="sscribe-debug-session-id" class="sscribe-input" placeholder="<?php esc_attr_e( 'e.g. abc123de or full ID', 'sscribe-export-site-pages' ); ?>" title="<?php esc_attr_e( 'Matches partial session ID', 'sscribe-export-site-pages' ); ?>">
+				<input type="text" id="sscribe-debug-session-id" class="sscribe-input" placeholder="<?php esc_attr_e( 'e.g. abc123de or full ID', 'sscribe-export-site-pages' ); ?>" maxlength="64" aria-describedby="sscribe-session-id-desc">
+				<span id="sscribe-session-id-desc" class="screen-reader-text"><?php esc_html_e( 'Enter a full or partial session ID to filter logs. Matching is partial (contains).', 'sscribe-export-site-pages' ); ?></span>
 			</div>
 			<div class="sscribe-debug-search">
 				<label for="sscribe-debug-search" class="screen-reader-text"><?php esc_html_e( 'Search logs:', 'sscribe-export-site-pages' ); ?></label>
-				<input type="text" id="sscribe-debug-search" class="sscribe-input" placeholder="<?php esc_attr_e( 'Search logs...', 'sscribe-export-site-pages' ); ?>">
+				<input type="text" id="sscribe-debug-search" class="sscribe-input" maxlength="200" placeholder="<?php esc_attr_e( 'Search logs...', 'sscribe-export-site-pages' ); ?>">
 			</div>
 		</div>
 		<div class="sscribe-debug-refresh-row">
 			<div class="sscribe-debug-refresh-mode">
-				<span class="sscribe-debug-refresh-paused" id="sscribe-debug-refresh-paused" style="display:none;">Paused — tab inactive</span>
+				<span class="sscribe-debug-refresh-paused sscribe-hidden" id="sscribe-debug-refresh-paused">Paused — tab inactive</span>
 				<label class="sscribe-radio-label">
 					<input type="radio" name="sscribe_refresh_mode" value="auto" <?php checked( true, (bool) $sscribe_debug_settings['auto_refresh'] ); ?>>
 					<span class="sscribe-radio-text"><?php esc_html_e( 'Auto-refresh (10s)', 'sscribe-export-site-pages' ); ?></span>
@@ -123,13 +124,13 @@ $sscribe_show_wp_debug_notice = ( defined( 'WP_DEBUG' ) && WP_DEBUG );
 		</div>
 	</div>
 
-	<div class="sscribe-debug-console-card" role="log" aria-live="polite" aria-label="<?php esc_attr_e( 'Debug log entries', 'sscribe-export-site-pages' ); ?>">
+	<div class="sscribe-debug-console-card" role="log" aria-label="<?php esc_attr_e( 'Debug log entries', 'sscribe-export-site-pages' ); ?>">
 		<div class="sscribe-debug-console-header">
 			<span class="sscribe-debug-console-title"><?php esc_html_e( 'Console Output', 'sscribe-export-site-pages' ); ?></span>
 			<span class="sscribe-debug-console-count" id="sscribe-debug-entry-count" aria-live="polite"></span>
 		</div>
 		<div class="sscribe-debug-console-body" id="sscribe-debug-console-body">
-			<div class="sscribe-debug-empty" id="sscribe-debug-empty">
+			<div class="sscribe-debug-empty" id="sscribe-debug-empty" style="display:none;">
 				<svg width="48" height="48" viewBox="0 0 48 48" fill="none" aria-hidden="true">
 					<rect x="8" y="12" width="32" height="28" rx="2" stroke="currentColor" stroke-width="2" fill="none" opacity="0.3"/>
 					<path d="M8 18h32M16 24h8M16 30h16" stroke="currentColor" stroke-width="2" opacity="0.3"/>
@@ -147,7 +148,7 @@ $sscribe_show_wp_debug_notice = ( defined( 'WP_DEBUG' ) && WP_DEBUG );
 		</button>
 		<button type="button" class="sscribe-button sscribe-button-outline" id="sscribe-debug-export-btn">
 			<?php
-			esc_html_e( 'Export JSON', 'sscribe-export-site-pages' );
+			esc_html_e( 'Export as JSON', 'sscribe-export-site-pages' );
 			?>
 			<span class="sscribe-export-btn-scope"></span>
 		</button>

@@ -15,7 +15,11 @@
 	--sscribe-debug-bg-card: rgb(255 255 255 / 75%);
 	--sscribe-debug-bg-console: #0f172a; /* Slate 900 */
 	--sscribe-debug-text-console: #e2e8f0;
-	--sscribe-debug-border: rgb(255 255 255 / 50%);
+	--sscribe-debug-border: rgb(0 0 0 / 12%);
+}
+
+.sscribe-hidden {
+	display: none;
 }
 
 .sscribe-debug-master {
@@ -297,14 +301,15 @@
 
 .sscribe-debug-console-count {
 	font-size: 12px;
-	color: #6c757d;
+	color: #94a3b8;
 }
 
 .sscribe-debug-console-body {
 	background: var(--sscribe-debug-bg-console);
-	max-height: 400px;
+	max-height: max(400px, calc(100vh - 480px));
 	overflow-y: auto;
 	padding: 12px;
+	scroll-behavior: smooth;
 }
 
 .sscribe-debug-empty {
@@ -339,6 +344,11 @@
 	color: #dc3545;
 	font-size: 13px;
 }
+
+.sscribe-rotated-error {
+	color: var(--sscribe-danger, #dc3545);
+	font-size: 12px;
+	margin-top: 4px;
 }
 
 .sscribe-debug-empty p {
@@ -357,8 +367,15 @@
 	padding: 8px 12px;
 	border-radius: 4px;
 	margin-bottom: 4px;
-	cursor: pointer;
+	min-height: 32px;
+	display: flex;
+	align-items: flex-start;
+	cursor: default;
 	transition: background-color 0.15s;
+}
+
+.sscribe-debug-entry.has-context {
+	cursor: pointer;
 }
 
 .sscribe-debug-entry:hover {
@@ -372,7 +389,7 @@
 }
 
 .sscribe-debug-entry-time {
-	color: #6c757d;
+	color: var(--sscribe-text-muted, #6c757d);
 	flex-shrink: 0;
 }
 
@@ -415,9 +432,24 @@
 	color: #fff;
 }
 
+.sscribe-debug-entry-badge.alert {
+	background: #dc2626;
+	color: #fff;
+}
+
+.sscribe-debug-entry-badge.emergency {
+	background: #7f1d1d;
+	color: #fff;
+}
+
 .sscribe-debug-entry-badge.raw {
 	background: #888;
 	color: #fff;
+}
+
+.sscribe-debug-entry:focus-visible {
+	outline: 2px solid #4f9cf9;
+	outline-offset: -2px;
 }
 
 .sscribe-debug-entry-message {
@@ -454,6 +486,11 @@
 	word-break: break-all;
 }
 
+.sscribe-debug-context-val pre {
+	white-space: pre-wrap;
+	word-break: break-all;
+}
+
 .sscribe-debug-actions {
 	display: flex;
 	gap: 12px;
@@ -467,6 +504,7 @@
 }
 
 .sscribe-debug-rotated summary {
+	list-style: none;
 	padding: 12px 16px;
 	cursor: pointer;
 	display: flex;
@@ -531,7 +569,7 @@
 	font-size: 12px;
 }
 
-@media (width <= 768px) {
+@media (width <= 900px) {
 	.sscribe-debug-settings-grid {
 		grid-template-columns: 1fr;
 	}
@@ -565,7 +603,7 @@
 }
 
 @media (prefers-color-scheme: dark) {
-	:root {
+:root {
 		--sscribe-debug-bg-card: #1e1e1e;
 		--sscribe-debug-bg-console: #121212;
 		--sscribe-debug-text-console: #d4d4d4;
@@ -678,4 +716,10 @@
 
 .sscribe-debug-entry.expanded .sscribe-debug-entry-toggle {
 	transform: rotate(90deg);
+}
+
+@media (prefers-reduced-motion: reduce) {
+	.sscribe-debug-console-body {
+		scroll-behavior: auto;
+	}
 }
