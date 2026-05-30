@@ -512,10 +512,14 @@ class SScribe_Session {
 			}
 		}
 
-		// page_ids is stored in a separate transient — verify it exists and is non-empty.
+		// page_ids may be stored in a separate transient OR embedded inline in the
+		// session data. Check the transient first, then fall back to session data.
 		$page_ids = $this->get_page_ids( $session_id );
 		if ( empty( $page_ids ) ) {
-			$this->logger->error( 'Session validation failed: page_ids transient not found or empty', array( 'session_id' => $session_id ) );
+			$page_ids = $data['page_ids'] ?? array();
+		}
+		if ( empty( $page_ids ) ) {
+			$this->logger->error( 'Session validation failed: page_ids not found', array( 'session_id' => $session_id ) );
 			return false;
 		}
 
