@@ -217,6 +217,13 @@ class SScribe_PDF_Exporter implements SScribe_Exporter_Interface {
 			$mpdf->WriteHTML( $base_css, \SScribeVendor\Mpdf\HTMLParserMode::HEADER_CSS );
 
 			$mpdf->WriteHTML( $html_content );
+
+			// Discard any accidental output from WordPress hooks or other plugins
+			// before writing the PDF binary to prevent file corruption.
+			while ( ob_get_level() ) {
+				ob_end_clean();
+			}
+
 			$mpdf->Output( $output_path, \SScribeVendor\Mpdf\Output\Destination::FILE );
 
 			if ( ! file_exists( $output_path ) ) {
@@ -511,6 +518,7 @@ class SScribe_PDF_Exporter implements SScribe_Exporter_Interface {
 					),
 				)
 			),
+			'isRemoteEnabled'  => true,
 			'fonttrans'        => $is_rtl ? array(
 				'dejavu sans'     => $xbriyaz_available ? 'xbriyaz' : 'freeserif',
 				'dejavusans'      => $xbriyaz_available ? 'xbriyaz' : 'freeserif',
@@ -549,9 +557,9 @@ class SScribe_PDF_Exporter implements SScribe_Exporter_Interface {
 	/**
 	 * Prepare HTML content for mPDF rendering.
 	 *
-	 * Strips embedded styles, normalises RTL direction attributes, and removes
-	 *
-	 * @font-face declarations that could interfere with the PDF rendering pipeline.
+	 * Strips embedded <style> blocks, removes @font-face declarations that could
+	 * interfere with the PDF font pipeline, and (for RTL pages) normalises inline
+	 * style attributes by keeping only the direction:rtl rule.
 	 *
 	 * @param string $html_content Raw HTML content.
 	 * @param bool   $is_rtl      Whether the page is RTL.

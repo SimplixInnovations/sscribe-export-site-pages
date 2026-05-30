@@ -124,12 +124,18 @@ class SScribe_Exporter_Factory {
 			$page_title = mb_substr( $page_title, 0, 60 );
 
 			$page_title = rtrim( $page_title, '- _' );
+
+			// Re-sanitize after truncation to ensure no problematic characters remain.
+			$page_title = sanitize_file_name( $page_title );
 		}
 
 		$lang_code = '';
 		if ( $include_lang && ! empty( $page_data['language'] ) ) {
 			$lang      = substr( $page_data['language'], 0, 2 );
-			$lang_code = '-' . strtoupper( sanitize_key( $lang ) );
+			$sanitized = sanitize_key( $lang );
+			if ( '' !== $lang && '' !== $sanitized ) {
+				$lang_code = '-' . strtoupper( $sanitized );
+			}
 		}
 
 		$pad_length = $total > 0 ? strlen( (string) $total ) : 3;
@@ -139,9 +145,22 @@ class SScribe_Exporter_Factory {
 		// share the same title but have different IDs and/or indices.
 		$id_suffix = $page_id > 0 ? '-' . $page_id : '';
 
+		// Default $index of 0 maps to 1 (first page). Guard against accidental
+		// misuse when $total > 1 by logging a debug message.
+		$page_index = $index > 0 ? $index : 1;
+		if ( 0 === $index && $total > 1 ) {
+			// This is a calling-code bug — log it for debugging.
+			error_log( // phpcs:ignore WordPress.PHP.DevelopmentFunctions
+				sprintf(
+					'SScribe: build_filename called with index=0 for a multi-page export (%d pages). Filename will use P001.',
+					$total
+				)
+			);
+		}
+
 		return sprintf(
 			'P%0' . $pad_length . 'd-%s%s%s.%s',
-			$index > 0 ? $index : 1,
+			$page_index,
 			$page_title,
 			$lang_code,
 			$id_suffix,
