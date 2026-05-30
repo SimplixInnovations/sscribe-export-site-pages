@@ -18,6 +18,10 @@ if ( ! defined( 'ABSPATH' ) ) {
 	exit;
 }
 
+require_once __DIR__ . '/class-sscribe-result.php';
+
+use SScribe_Result as SScribe_Export_Result;
+
 /**
  * Handles batch export processing with rate limiting and resource monitoring.
  */
@@ -308,7 +312,12 @@ class SScribe_Batch_Processor {
 					$is_transient   = in_array( $error_category, self::RETRY_TRANSIENT_CATEGORIES, true );
 				}
 
-				if ( $result->is_success() || ! $is_transient || $attempt >= self::MAX_RETRIES ) {
+				if ( $result->is_success() || ! $is_transient ) {
+					break;
+				}
+
+				// Do not retry after the final attempt — accept current result as-is.
+				if ( $attempt >= self::MAX_RETRIES - 1 ) {
 					break;
 				}
 
