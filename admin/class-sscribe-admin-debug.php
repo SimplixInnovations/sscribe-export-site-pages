@@ -109,6 +109,7 @@ class SScribe_Admin_Debug {
 		add_action( 'wp_ajax_sscribe_debug_get_files', array( $this, 'ajax_debug_get_rotated_log_files' ) );
 		add_action( 'wp_ajax_sscribe_debug_fetch_rotated', array( $this, 'ajax_debug_fetch_rotated' ) );
 		add_action( 'wp_ajax_sscribe_debug_delete_rotated', array( $this, 'ajax_debug_delete_rotated' ) );
+		add_action( 'wp_ajax_sscribe_debug_refresh_nonce', array( $this, 'ajax_debug_refresh_nonce' ) );
 	}
 
 	/**
@@ -331,6 +332,22 @@ class SScribe_Admin_Debug {
 
 		$export_filename = 'sscribe-debug-export-' . gmdate( 'Y-m-d-His' ) . '.json';
 		$this->download_json( $export_filename, $json_content );
+	}
+
+	/**
+	 * AJAX: Refresh the export nonce (call after form-based exports).
+	 *
+	 * @internal
+	 */
+	public function ajax_debug_refresh_nonce(): void {
+		if ( ! $this->verify_request_authorization() ) {
+			return;
+		}
+		wp_send_json_success(
+			array(
+				'nonce' => wp_create_nonce( 'sscribe_export_nonce' ),
+			)
+		);
 	}
 
 	/**

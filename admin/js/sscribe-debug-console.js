@@ -69,6 +69,13 @@
 				return;
 			}
 			if (typeof sscribe_data === 'undefined' || ! sscribe_data) {
+				if (this.initRetryCount === undefined) {
+					this.initRetryCount = 0;
+				}
+				if (this.initRetryCount < 3) {
+					this.initRetryCount++;
+					setTimeout(this.init.bind(this), 100);
+				}
 				return;
 			}
 			if ( ! this.hasRequiredDom()) {
@@ -115,17 +122,17 @@
 		},
 
 		unbindEvents: function () {
-			this.$saveSettings.off();
-			this.$filterLevel.off();
-			this.$searchInput.off();
-			this.$sessionInput.off();
-			this.$refreshMode.off();
-			this.$refreshBtn.off();
-			this.$clearBtn.off();
-			this.$exportBtn.off();
-			this.$rotatedBody.off();
-			this.$entries.off();
-			this.$container.off();
+			this.$saveSettings.off( '.sscribe' );
+			this.$filterLevel.off( '.sscribe' );
+			this.$searchInput.off( '.sscribe' );
+			this.$sessionInput.off( '.sscribe' );
+			this.$refreshMode.off( '.sscribe' );
+			this.$refreshBtn.off( '.sscribe' );
+			this.$clearBtn.off( '.sscribe' );
+			this.$exportBtn.off( '.sscribe' );
+			this.$rotatedBody.off( '.sscribe' );
+			this.$entries.off( '.sscribe' );
+			this.$container.off( '.sscribe' );
 			this.unbindVisibilityHandler();
 			this.unbindToggleHandler();
 		},
@@ -155,14 +162,14 @@
 			const self = this;
 
 			this.$saveSettings.on(
-				'click',
+				'click.sscribe',
 				function () {
 					self.saveSettings( self.isAutoRefresh );
 				}
 			);
 
 			this.$filterLevel.on(
-				'change',
+				'change.sscribe',
 				function () {
 					self.currentFilter        = $( this ).val();
 					self.currentOffset        = 0;
@@ -177,7 +184,7 @@
 			);
 
 			this.$searchInput.on(
-				'input',
+				'input.sscribe',
 				debounce(
 					function () {
 						self.searchQuery          = self.$searchInput.val();
@@ -195,7 +202,7 @@
 			);
 
 			this.$sessionInput.on(
-				'input',
+				'input.sscribe',
 				debounce(
 					function () {
 						self.sessionFilter        = self.$sessionInput.val().trim();
@@ -213,7 +220,7 @@
 			);
 
 			this.$refreshMode.on(
-				'change',
+				'change.sscribe',
 				function () {
 					const previousAutoRefresh = self.isAutoRefresh;
 					self.isAutoRefresh        = $( this ).val() === 'auto';
@@ -229,7 +236,7 @@
 			);
 
 			this.$refreshBtn.on(
-				'click',
+				'click.sscribe',
 				function () {
 					if (self.isAutoRefresh) {
 						self.stopAutoRefresh();
@@ -241,7 +248,7 @@
 			);
 
 			this.$clearBtn.on(
-				'click',
+				'click.sscribe',
 				function () {
 					const $btn = $( this );
 					if ($btn.data( 'confirming' )) {
@@ -267,7 +274,7 @@
 			);
 
 			this.$container.on(
-				'click',
+				'click.sscribe',
 				'#sscribe-debug-help-btn',
 				function () {
 					const helpContent = document.getElementById( 'sscribe-debug-help-content' );
@@ -339,7 +346,7 @@
 			);
 
 			this.$exportBtn.on(
-				'click',
+				'click.sscribe',
 				function () {
 					self.exportLogs();
 				}
@@ -360,21 +367,21 @@
 			}
 
 			this.$rotatedBody.on(
-				'click',
+				'click.sscribe',
 				'.sscribe-rotated-view',
 				function () {
 					self.viewRotatedLog( $( this ).data( 'file' ) );
 				}
 			);
 			this.$rotatedBody.on(
-				'click',
+				'click.sscribe',
 				'.sscribe-rotated-export',
 				function () {
 					self.exportRotatedLog( $( this ).data( 'file' ) );
 				}
 			);
 			this.$rotatedBody.on(
-				'click',
+				'click.sscribe',
 				'.sscribe-rotated-delete',
 				function () {
 					self.deleteRotatedLog( $( this ).data( 'file' ), $( this ) );
@@ -382,7 +389,7 @@
 			);
 
 			this.$entries.on(
-				'keydown',
+				'keydown.sscribe',
 				'.sscribe-debug-entry',
 				function (e) {
 					if (e.key === 'Enter' || e.key === ' ') {
@@ -402,7 +409,7 @@
 			);
 
 			this.$entries.on(
-				'click',
+				'click.sscribe',
 				'.sscribe-debug-entry.has-context',
 				function () {
 					const $entry   = $( this );
@@ -416,7 +423,7 @@
 			);
 
 			this.$entries.on(
-				'click',
+				'click.sscribe',
 				'.sscribe-debug-retry-append',
 				function () {
 					self.retryAppend();
@@ -480,6 +487,7 @@
 						self.showPausedIndicator( 'Auto-refresh paused — scrolled into history' );
 						return;
 					}
+					self.hidePausedIndicator();
 					self.fetchLogs();
 					const rotatedEl = document.getElementById( 'sscribe-debug-rotated-details' );
 					if ( rotatedEl && rotatedEl.open ) {
@@ -561,6 +569,7 @@
 			};
 
 			self.$saveSettings.prop( 'disabled', true );
+			self.$refreshMode.prop( 'disabled', true );
 
 			this.saveSettingsRequest = $.post(
 				sscribe_data.ajaxurl,
@@ -568,6 +577,7 @@
 				function (response) {
 					self.saveSettingsRequest = null;
 					self.$saveSettings.prop( 'disabled', false );
+					self.$refreshMode.prop( 'disabled', false );
 					if (response.success) {
 						self.$saveFeedback.removeClass( 'success error' ).text( 'Saved!' ).addClass( 'success' );
 						if ( response.data && response.data.nonce ) {
@@ -623,6 +633,16 @@
 					self.$refreshMode.prop( 'disabled', false );
 					if (xhr.statusText === 'abort') {
 						return;
+					}
+					if ( previousAutoRefresh !== undefined ) {
+						self.isAutoRefresh = previousAutoRefresh;
+						const targetValue  = previousAutoRefresh ? 'auto' : 'manual';
+						self.$refreshMode.filter( '[value="' + targetValue + '"]' ).prop( 'checked', true );
+						if (previousAutoRefresh) {
+							self.startAutoRefresh();
+						} else {
+							self.stopAutoRefresh();
+						}
 					}
 					let errorMsg = 'Error ' + xhr.status;
 					if (xhr.status === 0) {
@@ -838,11 +858,9 @@
 			// Preserve scroll position during auto-refresh updates.
 			const consoleBody = document.getElementById( 'sscribe-debug-console-body' );
 			let scrollTop = 0;
-			let scrollHeightBefore = 0;
 			const wasAtBottom = consoleBody ? (consoleBody.scrollHeight - consoleBody.scrollTop - consoleBody.clientHeight < 50) : false;
 			if (consoleBody) {
 				scrollTop = consoleBody.scrollTop;
-				scrollHeightBefore = consoleBody.scrollHeight;
 			}
 
 			this.$entries.html( this.buildLogsHtml( entries ) );
@@ -968,6 +986,7 @@
 				function () {
 					const originalText = self.$clearBtn.data('original-text') || self.clearBtnOriginalText;
 					self.$clearBtn.prop( 'disabled', false ).text( originalText );
+					self.$clearBtn.data( 'confirming', false ).removeClass( 'sscribe-btn-confirming' );
 					self.$clearBtn.after( '<span class="sscribe-feedback sscribe-feedback-error">Error</span>' );
 					setTimeout(
 						function () {
@@ -1008,6 +1027,9 @@
 
 		exportLogs: function () {
 			const self = this;
+			if ( ! this.hasRequiredDom() || ! sscribe_data || ! sscribe_data.nonce ) {
+				return;
+			}
 			const data = {
 				action: 'sscribe_debug_export_logs',
 				nonce: sscribe_data.nonce,
@@ -1025,6 +1047,16 @@
 					self.updateExportButtonScope();
 				},
 				5000
+			);
+
+			$.get(
+				sscribe_data.ajaxurl,
+				{ action: 'sscribe_debug_refresh_nonce', nonce: sscribe_data.nonce },
+				function (response) {
+					if ( response && response.success && response.data && response.data.nonce ) {
+						sscribe_data.nonce = response.data.nonce;
+					}
+				}
 			);
 		},
 
@@ -1137,8 +1169,9 @@
 						self.currentRotatedFilename = filename;
 						self.$entries.find( '.sscribe-debug-rotated-banner' ).remove();
 						const entries = Array.isArray( response.data.entries ) ? response.data.entries : [];
-						self.renderLogs( entries, true, { status: 'rotated', count: response.data.count } );
-						self.$entryCount.text( ( 1 === response.data.count ? '1 entry' : response.data.count + ' entries' ) + ' (rotated)' );
+						const rotatedCount = parseInt( response.data.count, 10 ) || 0;
+						self.renderLogs( entries, true, { status: 'rotated', count: rotatedCount } );
+						self.$entryCount.text( ( 1 === rotatedCount ? '1 entry' : rotatedCount + ' entries' ) + ' (rotated)' );
 						self.$entries.prepend(
 							'<div class="sscribe-debug-rotated-banner">' +
 							'<span>Viewing archived log: ' +
@@ -1306,7 +1339,11 @@
 				function (key) {
 					let value = entry.context[key];
 					if (typeof value === 'object') {
-						value = JSON.stringify( value, null, 2 );
+						try {
+							value = JSON.stringify( value, null, 2 );
+						} catch (e) {
+							value = '[unserializable object]';
+						}
 					}
 					contextRows += '<div class="sscribe-debug-context-row">' +
 					'<span class="sscribe-debug-context-key">' + escHtml( String( key ) ) + '</span>' +
@@ -1320,9 +1357,9 @@
 		const hasContext = contextHtml !== '';
 
 		return '<div class="sscribe-debug-entry' + (hasContext ? ' has-context' : '') + '"' +
-			(hasContext ? ' tabindex="0" role="button" aria-expanded="false" aria-label="Toggle context for: ' + escAttr( ( entry.message || '' ).substring( 0, 50 ) ) + '"' : '') + '>' +
+			(hasContext ? ' tabindex="0" role="button" aria-expanded="false" aria-label="Toggle context for: ' + escAttr( String( entry.message || '' ).substring( 0, 50 ) ) + '"' : '') + '>' +
 			'<div class="sscribe-debug-entry-header">' +
-			'<span class="sscribe-debug-entry-badge ' + escHtml( badgeClass ) + '">' + escHtml( entry.level || 'INFO' ) + '</span>' +
+			'<span class="sscribe-debug-entry-badge ' + escAttr( badgeClass ) + '">' + escHtml( entry.level || 'INFO' ) + '</span>' +
 			'<span class="sscribe-debug-entry-time">' + escHtml( entry.timestamp || '' ) + '</span>' +
 			'<span class="sscribe-debug-entry-message">' + escHtml( entry.message || '' ) + '</span>' +
 			(hasContext ? '<span class="sscribe-debug-entry-toggle" aria-hidden="true">\u25B6</span>' : '') +

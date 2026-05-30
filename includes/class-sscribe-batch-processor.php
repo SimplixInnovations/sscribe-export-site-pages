@@ -105,6 +105,34 @@ class SScribe_Batch_Processor {
 	private ?string $current_lock_token = null;
 
 	/**
+	 * Static flag to ensure shutdown cleanup is registered only once.
+	 *
+	 * @var bool
+	 */
+	private static bool $shutdown_registered = false;
+
+	/**
+	 * Active temp directory for shutdown cleanup (static to survive object destruction).
+	 *
+	 * @var string|null
+	 */
+	private static ?string $cleanup_temp_dir = null;
+
+	/**
+	 * Zip handler for shutdown cleanup.
+	 *
+	 * @var SScribe_Zip_Handler|null
+	 */
+	private static ?SScribe_Zip_Handler $cleanup_zip_handler = null;
+
+	/**
+	 * Logger for shutdown cleanup.
+	 *
+	 * @var SScribe_Logger_Interface|null
+	 */
+	private static ?SScribe_Logger_Interface $cleanup_logger = null;
+
+	/**
 	 * Adaptive metrics collector.
 	 *
 	 * @var \SScribe_Adaptive_Metrics|null
@@ -509,6 +537,13 @@ class SScribe_Batch_Processor {
 			new SScribe_Export_Rate_Limiter(),
 			new SScribe_Export_Lock_Manager( $this->logger )
 		);
+
+		if ( ! self::$shutdown_registered ) {
+			self::$shutdown_registered = true;
+			register_shutdown_function(
+				array( self::class, 'shutdown_cleanup' )
+			);
+		}
 	}
 
 	/**
@@ -800,10 +835,11 @@ class SScribe_Batch_Processor {
 			);
 		}
 
-		$paused_reason = ''; // Initialize before try block so finally can access it.
-
 		try {
 			$temp_dir = $this->zip_handler->create_temp_dir();
+			self::$cleanup_temp_dir    = $temp_dir;
+			self::$cleanup_zip_handler = $this->zip_handler;
+			self::$cleanup_logger      = $this->logger;
 		} catch ( \Throwable $e ) {
 			$this->logger->error(
 				'Failed to create temp directory',
@@ -822,7 +858,6 @@ class SScribe_Batch_Processor {
 
 		$session_id = $this->session->create(
 			array(
-				'page_ids'          => $page_ids,
 				'temp_dir'          => $temp_dir,
 				'total'             => $total,
 				'processed'         => 0,
@@ -838,6 +873,9 @@ class SScribe_Batch_Processor {
 				'user_id'           => $user_id,
 			)
 		);
+
+		// Store page_ids in separate transient to avoid bloating session autoload.
+		$this->session->set_page_ids( $session_id, $page_ids );
 
 		$this->logger->debug(
 			'Session created',
@@ -1102,7 +1140,7 @@ class SScribe_Batch_Processor {
 			);
 		}
 
-		$page_ids          = $session['page_ids'];
+		$page_ids          = $this->session->get_page_ids( $session_id );
 		$processed         = $session['processed'];
 		$total             = $session['total'];
 		$temp_dir          = $session['temp_dir'];
@@ -1890,6 +1928,10 @@ class SScribe_Batch_Processor {
 	 * @param string|null $lock_token Optional lock token to release on completion.
 	 */
 	private function finalize_export( string $session_id, array $session, ?string $lock_token = null ): void {
+		// Clear shutdown cleanup tracking — finalize_export handles temp_dir cleanup itself.
+		self::$cleanup_temp_dir    = null;
+		self::$cleanup_zip_handler = null;
+		self::$cleanup_logger      = null;
 
 		if ( null === $this->export_log ) {
 			$this->export_log = new SScribe_Export_Log( $session_id );
@@ -2461,5 +2503,36 @@ class SScribe_Batch_Processor {
 	 */
 	public function ajax_refresh_download_nonce(): void {
 		$this->file_handler->ajax_refresh_download_nonce();
+	}
+
+	/**
+	 * Static shutdown handler — cleans up any orphaned temp directory if the
+	 * export was interrupted before finalize_export() could run.
+	 *
+	 * Registered once per process via register_shutdown_function() in __construct.
+	 */
+	public static function shutdown_cleanup(): void {
+		$temp_dir = self::$cleanup_temp_dir;
+		if ( null === $temp_dir || ! is_dir( $temp_dir ) ) {
+			self::$cleanup_temp_dir    = null;
+			self::$cleanup_zip_handler = null;
+			self::$cleanup_logger      = null;
+			return;
+		}
+
+		$zip_handler = self::$cleanup_zip_handler;
+		$logger     = self::$cleanup_logger;
+
+		self::$cleanup_temp_dir    = null;
+		self::$cleanup_zip_handler = null;
+		self::$cleanup_logger      = null;
+
+		if ( $zip_handler && $logger ) {
+			$zip_handler->delete_directory( $temp_dir );
+			$logger->debug(
+				'Shutdown cleanup removed orphaned temp directory',
+				array( 'temp_dir' => $temp_dir )
+			);
+		}
 	}
 }

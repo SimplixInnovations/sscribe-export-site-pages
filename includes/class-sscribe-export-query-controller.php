@@ -344,6 +344,11 @@ class SScribe_Export_Query_Controller {
 
 		$language    = isset( $_POST['language'] ) ? sanitize_text_field( wp_unslash( $_POST['language'] ) ) : '';
 		$post_status = isset( $_POST['post_status'] ) ? sanitize_text_field( wp_unslash( $_POST['post_status'] ) ) : 'publish';
+
+		// Ignore language filter if WPML is not active.
+		if ( ! $this->collector->is_wpml_active() ) {
+			$language = '';
+		}
 		$format      = isset( $_POST['format'] ) ? sanitize_text_field( wp_unslash( $_POST['format'] ) ) : 'docx';
 
 		$allowed_formats = array( 'all', 'docx', 'pdf', 'html', 'markdown' );
