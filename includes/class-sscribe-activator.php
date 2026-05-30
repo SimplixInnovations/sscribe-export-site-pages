@@ -236,7 +236,7 @@ class SScribe_Activator {
 	}
 
 	/**
-	 * Schedule cleanup cron jobs.
+	 * Create and protect the export directory.
 	 */
 	private static function create_export_directory(): void {
 		$upload_dir  = wp_upload_dir();

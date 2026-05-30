@@ -46,6 +46,26 @@ class SScribe_Admin_Debug {
 	}
 
 	/**
+	 * Convert a UTC timestamp string to the site's local timezone.
+	 *
+	 * @param string $utc_timestamp Timestamp in 'Y-m-d H:i:s' format from gmdate().
+	 * @return string Converted timestamp in 'Y-m-d H:i:s' format, or original if conversion fails.
+	 */
+	private function convert_utc_timestamp_to_site_timezone( string $utc_timestamp ): string {
+		if ( empty( $utc_timestamp ) ) {
+			return '';
+		}
+
+		try {
+			$utc = new DateTimeImmutable( $utc_timestamp, new DateTimeZone( 'UTC' ) );
+			$site_tz = wp_timezone(); // Returns DateTimeZone for site's timezone setting.
+			return $utc->setTimezone( $site_tz )->format( 'Y-m-d H:i:s' );
+		} catch ( Exception $e ) {
+			return $utc_timestamp; // Fallback: return as-is if conversion fails.
+		}
+	}
+
+	/**
 	 * Verify request authorization (nonce, capability, rate limit).
 	 *
 	 * Calls wp_send_json_error and returns false on failure.
@@ -654,8 +674,9 @@ class SScribe_Admin_Debug {
 
 		$json = json_decode( $line, true );
 		if ( is_array( $json ) ) {
+			$raw_timestamp = $json['timestamp'] ?? $json['time'] ?? '';
 			return array(
-				'timestamp' => $json['timestamp'] ?? $json['time'] ?? '',
+				'timestamp' => $this->convert_utc_timestamp_to_site_timezone( $raw_timestamp ),
 				'level'     => $json['level'] ?? 'INFO',
 				'message'   => $json['message'] ?? '',
 				'context'   => $json['context'] ?? array(),
@@ -687,7 +708,7 @@ class SScribe_Admin_Debug {
 			}
 
 			return array(
-				'timestamp' => $timestamp,
+				'timestamp' => $this->convert_utc_timestamp_to_site_timezone( $timestamp ),
 				'level'     => $level,
 				'message'   => $message_part,
 				'context'   => $context,

@@ -323,7 +323,6 @@
 						closeBtn.setAttribute( 'aria-label', 'Close dialog' );
 						closeBtn.style.cssText = 'position:absolute;top:12px;right:12px;background:none;border:none;font-size:18px;cursor:pointer;';
 						closeBtn.addEventListener( 'click', closeDialog );
-						dialog.style.position = 'relative';
 						dialog.appendChild( closeBtn );
 
 						overlay.addEventListener( 'click', closeDialog );
@@ -349,6 +348,10 @@
 			const rotatedEl = document.getElementById( 'sscribe-debug-rotated-details' );
 			if (rotatedEl) {
 				this._toggleHandler = function () {
+					const $hint = document.querySelector( '.sscribe-debug-rotated-hint' );
+					if ( $hint ) {
+						$hint.textContent = rotatedEl.open ? 'Click to collapse' : 'Click to expand';
+					}
 					if (rotatedEl.open) {
 						self.fetchRotatedLogs();
 					}
@@ -384,13 +387,15 @@
 				function (e) {
 					if (e.key === 'Enter' || e.key === ' ') {
 						e.preventDefault();
-						const $entry   = $( this );
+						const $entry = $( this );
 						const $context = $entry.find( '.sscribe-debug-entry-context' );
 						if ($context.length) {
-							const isVisible = ! $context.hasClass( 'sscribe-hidden' );
-							$context.toggleClass( 'sscribe-hidden', isVisible );
-							$entry.toggleClass( 'expanded', ! isVisible );
-							$entry.attr( 'aria-expanded', String( ! isVisible ) );
+							// Toggle .expanded on the parent — the CSS rule
+							// .sscribe-debug-entry.expanded .sscribe-debug-entry-context { display: block }
+							// handles visibility. No need for .sscribe-hidden on the context element.
+							const isExpanded = $entry.hasClass( 'expanded' );
+							$entry.toggleClass( 'expanded', ! isExpanded );
+							$entry.attr( 'aria-expanded', String( ! isExpanded ) );
 						}
 					}
 				}
@@ -400,12 +405,13 @@
 				'click',
 				'.sscribe-debug-entry.has-context',
 				function () {
-					const $entry    = $( this );
-					const $context  = $entry.find( '.sscribe-debug-entry-context' );
-					const isVisible = ! $context.hasClass( 'sscribe-hidden' );
-					$context.toggleClass( 'sscribe-hidden', isVisible );
-					$entry.toggleClass( 'expanded', ! isVisible );
-					$entry.attr( 'aria-expanded', String( ! isVisible ) );
+					const $entry   = $( this );
+					const $context = $entry.find( '.sscribe-debug-entry-context' );
+					if ( $context.length ) {
+						const isExpanded = $entry.hasClass( 'expanded' );
+						$entry.toggleClass( 'expanded', ! isExpanded );
+						$entry.attr( 'aria-expanded', String( ! isExpanded ) );
+					}
 				}
 			);
 
@@ -555,7 +561,6 @@
 			};
 
 			self.$saveSettings.prop( 'disabled', true );
-			self.$refreshMode.prop( 'disabled', true );
 
 			this.saveSettingsRequest = $.post(
 				sscribe_data.ajaxurl,
@@ -563,7 +568,6 @@
 				function (response) {
 					self.saveSettingsRequest = null;
 					self.$saveSettings.prop( 'disabled', false );
-					self.$refreshMode.prop( 'disabled', false );
 					if (response.success) {
 						self.$saveFeedback.removeClass( 'success error' ).text( 'Saved!' ).addClass( 'success' );
 						if ( response.data && response.data.nonce ) {
@@ -780,7 +784,7 @@
 					} else {
 						self.$entries.find( '.sscribe-debug-append-error' ).remove();
 						self.$entries.append(
-							'<div class="sscribe-debug-append-error" style="padding:8px 12px;color:#dc3545;font-size:13px;">' +
+							'<div class="sscribe-debug-append-error">' +
 							'Failed to load more entries. <button type="button" class="sscribe-button sscribe-button-sm sscribe-debug-retry-append">Retry</button>' +
 							'</div>'
 						);
@@ -1132,7 +1136,8 @@
 						self.isViewingRotated       = true;
 						self.currentRotatedFilename = filename;
 						self.$entries.find( '.sscribe-debug-rotated-banner' ).remove();
-						self.renderLogs( response.data.entries, true, { status: 'rotated', count: response.data.count } );
+						const entries = Array.isArray( response.data.entries ) ? response.data.entries : [];
+						self.renderLogs( entries, true, { status: 'rotated', count: response.data.count } );
 						self.$entryCount.text( ( 1 === response.data.count ? '1 entry' : response.data.count + ' entries' ) + ' (rotated)' );
 						self.$entries.prepend(
 							'<div class="sscribe-debug-rotated-banner">' +
@@ -1178,6 +1183,8 @@
 			this.hasMoreEntries         = true;
 			this.currentOffset          = 0;
 			this.isLoadingMore          = false;
+			this.isRefreshing           = false;
+			this.isRefreshingSince      = null;
 			this.$entries.empty();
 			this.$entryCount.text( 'Loading...' );
 			this.$consoleBody.addClass( 'is-loading' );
@@ -1251,7 +1258,7 @@
 							const $row = $btn.closest( '.sscribe-debug-rotated-file' );
 							if ($row.length) {
 								$row.find( '.sscribe-debug-rotated-file-actions' ).after(
-									'<div class="sscribe-rotated-error" style="color:red;font-size:12px;margin-top:4px;">' +
+									'<div class="sscribe-rotated-error">' +
 									escHtml( self.getResponseMessage( response, 'Error' ) ) +
 									'</div>'
 								);
@@ -1272,7 +1279,7 @@
 						const $row = $btn.closest( '.sscribe-debug-rotated-file' );
 						if ($row.length) {
 							$row.find( '.sscribe-debug-rotated-file-actions' ).after(
-								'<div class="sscribe-rotated-error" style="color:red;font-size:12px;margin-top:4px;">Error</div>'
+								'<div class="sscribe-rotated-error">Error</div>'
 							);
 							setTimeout(
 								function () {
@@ -1303,11 +1310,11 @@
 					}
 					contextRows += '<div class="sscribe-debug-context-row">' +
 					'<span class="sscribe-debug-context-key">' + escHtml( String( key ) ) + '</span>' +
-					'<span class="sscribe-debug-context-val"><pre>' + escHtml( String( value ) ) + '</pre></span>' +
+					'<div class="sscribe-debug-context-val"><pre>' + escHtml( String( value ) ) + '</pre></div>' +
 					'</div>';
 				}
 			);
-			contextHtml = '<div class="sscribe-debug-entry-context sscribe-hidden">' + contextRows + '</div>';
+			contextHtml = '<div class="sscribe-debug-entry-context">' + contextRows + '</div>';
 		}
 
 		const hasContext = contextHtml !== '';
