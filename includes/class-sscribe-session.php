@@ -692,6 +692,14 @@ class SScribe_Session {
 	 * @param int $user_id User ID.
 	 * @return array
 	 */
+	/**
+	 * Get all sessions for a user with cursor-based pagination to avoid loading
+	 * all sessions into memory at once (lazy-load pattern). Each batch fetches up
+	 * to 500 sessions and iterates until all matching sessions are retrieved.
+	 *
+	 * @param int $user_id User ID.
+	 * @return array Array of session data arrays.
+	 */
 	public function get_sessions_for_user( int $user_id ): array {
 		if ( $user_id <= 0 ) {
 			return array();

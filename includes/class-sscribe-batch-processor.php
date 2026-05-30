@@ -145,6 +145,8 @@ class SScribe_Batch_Processor {
 	 * @var SScribe_Export_Rate_Limiter|null
 	 */
 	private ?SScribe_Export_Rate_Limiter $rate_limiter = null;
+	/** @var string|null Cached capability to avoid repeated filter/validation calls per request. */
+	private ?string $cached_required_capability = null;
 
 	/**
 	 * Export auditor.
@@ -192,7 +194,13 @@ class SScribe_Batch_Processor {
 			return random_bytes( $length );
 		} catch ( \Throwable $e ) {
 			// Fallback for environments where random_bytes() fails.
-			return openssl_random_pseudo_bytes( $length ) ?: wp_generate_password( $length, false );
+			// Check crypto_strong to ensure openssl fallback is cryptographically secure.
+			$strong = false;
+			$bytes  = openssl_random_pseudo_bytes( $length, $strong );
+			if ( $bytes && $strong ) {
+				return $bytes;
+			}
+			return wp_generate_password( $length, false );
 		}
 	}
 
@@ -272,6 +280,23 @@ class SScribe_Batch_Processor {
 			);
 		}
 
+		// Warn if reported size differs from actual size by more than 10% — possible truncation or metadata issue.
+		if ( $file_size > 0 ) {
+			$size_diff_ratio = abs( $actual_size - $file_size ) / $file_size;
+			if ( $size_diff_ratio > 0.10 ) {
+				$this->logger->warning(
+					'Export file size mismatch',
+					array(
+						'format'        => $format,
+						'page_id'       => $page_id,
+						'reported_size' => $file_size,
+						'actual_size'   => $actual_size,
+						'diff_ratio'    => round( $size_diff_ratio * 100, 1 ) . '%',
+					)
+				);
+			}
+		}
+
 		return array(
 			'is_valid' => true,
 			'error'    => null,
@@ -304,7 +329,6 @@ class SScribe_Batch_Processor {
 		foreach ( $formats as $format ) {
 			$format_start = microtime( true );
 
-			$exporter = null;
 			try {
 				$exporter = \SScribe_Exporter_Factory::create( $format );
 			} catch ( SScribe_Validation_Exception $e ) {
@@ -352,6 +376,14 @@ class SScribe_Batch_Processor {
 				$delay_ms = 100 * ( 2 ** $attempt );
 				usleep( $delay_ms * 1000 );
 				++$attempt;
+
+				// Recreate exporter for clean state on next attempt.
+				try {
+					$exporter = \SScribe_Exporter_Factory::create( $format );
+				} catch ( SScribe_Validation_Exception $e ) {
+					$this->logger->error( 'Invalid export format on retry', array( 'format' => $format ) );
+					break;
+				}
 			}
 
 			// Free exporter immediately after use to prevent memory buildup across format iterations.
@@ -359,7 +391,7 @@ class SScribe_Batch_Processor {
 
 			$format_elapsed         = microtime( true ) - $format_start;
 			$format_key             = 'format_time_' . $format;
-			$session[ $format_key ] = ( $session[ $format_key ] ?? 0 ) + $format_elapsed;
+			$session[ $format_key ] = min( 3600, ( $session[ $format_key ] ?? 0 ) + $format_elapsed );
 
 			$file_path = $result->get_data()['path'] ?? '';
 			$file_size = $result->get_data()['size'] ?? 0;
@@ -395,10 +427,10 @@ class SScribe_Batch_Processor {
 				$successful_formats[] = $format;
 
 				$format_size_key             = 'format_size_' . $format;
-				$session[ $format_size_key ] = ( $session[ $format_size_key ] ?? 0 ) + ( $validation['context']['actual_size'] ?? 0 );
+				$session[ $format_size_key ] = min( 1073741824, ( $session[ $format_size_key ] ?? 0 ) + ( $validation['context']['actual_size'] ?? 0 ) );
 
 				$format_pages_key             = 'format_pages_' . $format;
-				$session[ $format_pages_key ] = ( $session[ $format_pages_key ] ?? 0 ) + 1;
+				$session[ $format_pages_key ] = min( 10000, ( $session[ $format_pages_key ] ?? 0 ) + 1 );
 
 				if ( $this->export_log ) {
 					$this->export_log->log_format_result( $page_id, $format, true, $file_path );
@@ -457,7 +489,7 @@ class SScribe_Batch_Processor {
 	 * @return SScribe_Export_Lock_Manager
 	 */
 	private function get_lock_manager(): SScribe_Export_Lock_Manager {
-		return $this->lock_manager ??= new SScribe_Export_Lock_Manager();
+		return $this->lock_manager ??= new SScribe_Export_Lock_Manager( $this->logger );
 	}
 
 	/**
@@ -524,7 +556,7 @@ class SScribe_Batch_Processor {
 		$this->session         = $session ?? new SScribe_Session();
 		$this->logger          = $logger ?? SScribe_Logger::instance( SScribe_Logger::is_logging_enabled() );
 		$this->file_handler    = $file_handler ?? new SScribe_Batch_File_Handler(
-			new SScribe_Export_Rate_Limiter(),
+			$this->get_rate_limiter(),
 			$this->zip_handler,
 			$this->logger,
 			new SScribe_Export_Auditor()
@@ -534,7 +566,7 @@ class SScribe_Batch_Processor {
 			$this->zip_handler,
 			$this->logger,
 			new SScribe_Export_Auditor(),
-			new SScribe_Export_Rate_Limiter(),
+			$this->get_rate_limiter(),
 			new SScribe_Export_Lock_Manager( $this->logger )
 		);
 
@@ -613,7 +645,6 @@ class SScribe_Batch_Processor {
 	 */
 	private function optimize_batch_size( array $formats = array(), string $hint = '' ): void {
 		$this->batch_size = $this->get_resource_monitor()->get_optimal_batch_size( $formats, $hint );
-		$this->batch_size = max( 1, min( 20, $this->batch_size ) );
 
 		$this->logger->debug(
 			'Batch size optimized',
@@ -642,6 +673,9 @@ class SScribe_Batch_Processor {
 	 * @return string Capability name.
 	 */
 	private function get_required_capability(): string {
+		if ( null !== $this->cached_required_capability ) {
+			return $this->cached_required_capability;
+		}
 		$capability = apply_filters( 'sscribe_export_capability', 'manage_options' );
 
 		if ( ! SScribe_Capabilities::is_allowed( $capability ) ) {
@@ -652,10 +686,12 @@ class SScribe_Batch_Processor {
 					'fallback'             => 'manage_options',
 				)
 			);
-			return 'manage_options';
+			$this->cached_required_capability = 'manage_options';
+			return $this->cached_required_capability;
 		}
 
-		return $capability;
+		$this->cached_required_capability = $capability;
+		return $this->cached_required_capability;
 	}
 
 	/**
@@ -725,7 +761,8 @@ class SScribe_Batch_Processor {
 
 		$this->get_diagnostics()->self_heal();
 
-		wp_raise_memory_limit( 'admin' );
+		$memoryRaised = wp_raise_memory_limit( 'admin' );
+		$this->logger->debug( 'Memory limit raised', array( 'result' => $memoryRaised ) );
 
 		$this->audit_log( 'export_started' );
 		$this->logger->debug( '=== START EXPORT ===' );
