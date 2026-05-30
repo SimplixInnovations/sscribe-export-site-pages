@@ -48,6 +48,7 @@ parameters:
         - '#Function has_action not found\.#'
         - '#Function esc_sql not found\.#'
         - '#Function (is_multisite|switch_to_blog|restore_current_blog) not found\.#'
+        - '#Function wp_timezone not found\.#'
         # PHPStan cannot resolve private static self:: calls within same class (false positive).
         - '#Call to an undefined static method SScribe_Deactivator::cleanup_transients\(\)\.#'
         # Level 6: iterable value types for WordPress API arrays are impractical to annotate.
