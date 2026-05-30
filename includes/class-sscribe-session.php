@@ -434,7 +434,56 @@ class SScribe_Session {
 			unset( self::$active_session_cache[ (int) $data['user_id'] ] );
 		}
 
+		$this->delete_page_ids( $session_id );
 		return delete_option( $option_name );
+	}
+
+	/**
+	 * Store page_ids in a separate transient to avoid bloating the session
+	 * autoload with large page ID arrays.
+	 *
+	 * @param string $session_id Session identifier.
+	 * @param array  $page_ids   Array of page IDs.
+	 * @return bool True on success.
+	 */
+	public function set_page_ids( string $session_id, array $page_ids ): bool {
+		$session_id = sanitize_key( $session_id );
+		if ( empty( $session_id ) ) {
+			return false;
+		}
+		$transient_key = 'sscribe_page_ids_' . $session_id;
+		return set_transient( $transient_key, $page_ids, 72 * HOUR_IN_SECONDS );
+	}
+
+	/**
+	 * Retrieve page_ids from the separate transient.
+	 *
+	 * @param string $session_id Session identifier.
+	 * @return array Empty array if not found.
+	 */
+	public function get_page_ids( string $session_id ): array {
+		$session_id = sanitize_key( $session_id );
+		if ( empty( $session_id ) ) {
+			return array();
+		}
+		$transient_key = 'sscribe_page_ids_' . $session_id;
+		$result = get_transient( $transient_key );
+		return is_array( $result ) ? $result : array();
+	}
+
+	/**
+	 * Delete the page_ids transient.
+	 *
+	 * @param string $session_id Session identifier.
+	 * @return bool True on success.
+	 */
+	public function delete_page_ids( string $session_id ): bool {
+		$session_id = sanitize_key( $session_id );
+		if ( empty( $session_id ) ) {
+			return false;
+		}
+		$transient_key = 'sscribe_page_ids_' . $session_id;
+		return delete_transient( $transient_key );
 	}
 
 	/**
@@ -451,7 +500,6 @@ class SScribe_Session {
 		}
 
 		$required = array(
-			'page_ids'   => 'is_array',
 			'total'      => 'is_numeric',
 			'processed'  => 'is_numeric',
 			'session_id' => 'is_string',
@@ -462,6 +510,13 @@ class SScribe_Session {
 				$this->logger->error( "Session validation failed for key: {$key}", array( 'session_id' => $session_id ) );
 				return false;
 			}
+		}
+
+		// page_ids is stored in a separate transient — verify it exists and is non-empty.
+		$page_ids = $this->get_page_ids( $session_id );
+		if ( empty( $page_ids ) ) {
+			$this->logger->error( 'Session validation failed: page_ids transient not found or empty', array( 'session_id' => $session_id ) );
+			return false;
 		}
 
 		// Normalize types locally. Note: this does NOT persist back to storage.
@@ -482,7 +537,7 @@ class SScribe_Session {
 			return false;
 		}
 
-		if ( $data['session_id'] !== $session_id ) {
+		if ( ! hash_equals( (string) $data['session_id'], (string) $session_id ) ) {
 			$this->logger->error(
 				'Session ID mismatch',
 				array(
