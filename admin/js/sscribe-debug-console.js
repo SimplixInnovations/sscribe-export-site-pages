@@ -488,10 +488,15 @@
 			this.stopAutoRefresh();
 			// Respect the user-specified interval. A value of 0 means "disabled"
 			// and should be treated as a stop signal, not silently overridden to 5s.
-			const interval = parseFloat( self.$refreshInterval.val() );
+			// Default to 10 seconds if the interval input is not present in the template.
+			const interval = this.$refreshInterval && this.$refreshInterval.length
+				? parseFloat( this.$refreshInterval.val() )
+				: 10;
 			if ( isNaN( interval ) || interval <= 0 ) {
 				return;
 			}
+			// Enforce 2-second minimum to prevent server flooding.
+			const safeInterval = Math.max( interval, 2 );
 			this.refreshInterval = setInterval(
 				function () {
 					if ( self.isRefreshing && self.isRefreshingSince && ( Date.now() - self.isRefreshingSince > 30000 ) ) {
@@ -507,12 +512,8 @@
 					}
 					self.hidePausedIndicator();
 					self.fetchLogs();
-					const rotatedEl = document.getElementById( 'sscribe-debug-rotated-details' );
-					if ( rotatedEl && rotatedEl.open ) {
-						self.fetchRotatedLogs();
-					}
 				},
-				interval * 1000
+				safeInterval * 1000
 			);
 		},
 
@@ -703,7 +704,7 @@
 				this.hasMoreEntries = true;
 			}
 
-			if (this.isLoadingMore) {
+			if (append && this.isLoadingMore) {
 				return;
 			}
 
@@ -1136,15 +1137,15 @@
 			files.forEach(
 				function (file) {
 					html += '<div class="sscribe-debug-rotated-file">';
-				html += '<div class="sscribe-debug-rotated-file-info">';
-				html += '<span class="sscribe-debug-rotated-file-name">' + escHtml( file.name ) + '</span>';
-				html += '<span class="sscribe-debug-rotated-file-meta">' + escHtml( file.size ) + ' - ' + escHtml( file.date ) + '</span>';
-				html += '</div>';
-				html += '<div class="sscribe-debug-rotated-file-actions">';
-				html += '<button type="button" class="sscribe-button sscribe-button-sm sscribe-button-outline sscribe-rotated-view" data-file="' + escAttr( file.name ) + '" aria-label="View rotated log ' + escAttr( file.name ) + '">View</button>';
-				html += '<button type="button" class="sscribe-button sscribe-button-sm sscribe-button-secondary sscribe-rotated-export" data-file="' + escAttr( file.name ) + '" aria-label="Export rotated log ' + escAttr( file.name ) + '">Export</button>';
-				html += '<button type="button" class="sscribe-button sscribe-button-sm sscribe-button-danger sscribe-rotated-delete" data-file="' + escAttr( file.name ) + '" aria-label="Delete rotated log ' + escAttr( file.name ) + '">Delete</button>';
-				html += '</div></div>';
+					html += '<div class="sscribe-debug-rotated-file-info">';
+					html += '<span class="sscribe-debug-rotated-file-name">' + escHtml( file.name ) + '</span>';
+					html += '<span class="sscribe-debug-rotated-file-meta">' + escHtml( file.size ) + ' - ' + escHtml( file.date ) + '</span>';
+					html += '</div>';
+					html += '<div class="sscribe-debug-rotated-file-actions">';
+					html += '<button type="button" class="sscribe-button sscribe-button-sm sscribe-button-outline sscribe-rotated-view" data-file="' + escAttr( file.name ) + '" aria-label="View rotated log ' + escAttr( file.name ) + '">View</button>';
+					html += '<button type="button" class="sscribe-button sscribe-button-sm sscribe-button-secondary sscribe-rotated-export" data-file="' + escAttr( file.name ) + '" aria-label="Export rotated log ' + escAttr( file.name ) + '">Export</button>';
+					html += '<button type="button" class="sscribe-button sscribe-button-sm sscribe-button-danger sscribe-rotated-delete" data-file="' + escAttr( file.name ) + '" aria-label="Delete rotated log ' + escAttr( file.name ) + '">Delete</button>';
+					html += '</div></div>';
 				}
 			);
 
@@ -1218,6 +1219,11 @@
 					self.isViewingRotated = false;
 					self.$entryCount.text( 'Error' );
 					self.showConsoleError( 'Unable to open rotated log.' );
+					// Clean URL state on failure.
+					const cleanUrl = new URL( window.location.href );
+					cleanUrl.searchParams.delete( 'view' );
+					cleanUrl.searchParams.delete( 'file' );
+					history.replaceState( {}, '', cleanUrl.toString() );
 					setTimeout(
 						function () {
 							self.fetchLogs();

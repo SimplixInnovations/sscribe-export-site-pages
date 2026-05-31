@@ -91,6 +91,9 @@ class SScribe_Filesystem {
 			return false;
 		}
 
+		// Note: request_filesystem_credentials() can trigger an HTML form for FTP credentials
+		// in some WordPress configurations. This is a known WordPress core behavior.
+		// In runtime context, this should be handled by the calling code (e.g., admin pages).
 		$credentials = request_filesystem_credentials( admin_url(), '', false, false, null );
 
 		if ( false === $credentials ) {
@@ -350,7 +353,18 @@ class SScribe_Filesystem {
 			return false;
 		}
 
-		return array_diff( $files, array( '.', '..' ) );
+		$result = array();
+		foreach ( array_diff( $files, array( '.', '..' ) ) as $name ) {
+			$full          = trailingslashit( $path ) . $name;
+			$result[ $name ] = array(
+				'name'         => $name,
+				'type'         => is_dir( $full ) ? 'd' : 'f',
+				'size'         => is_file( $full ) ? filesize( $full ) : 0,
+				'lastmodified' => filemtime( $full ),
+			);
+		}
+
+		return $result;
 	}
 
 	/**
@@ -359,10 +373,10 @@ class SScribe_Filesystem {
 	 * @param string $source      Source file path.
 	 * @param string $destination Destination file path.
 	 * @param bool   $overwrite   Whether to overwrite existing file (default: false).
-	 * @param int    $mode        File permission mode (default: 0644).
+	 * @param int    $mode        File permission mode (default: 0600).
 	 * @return bool True if copy succeeded, false otherwise.
 	 */
-	public function copy( string $source, string $destination, bool $overwrite = false, int $mode = 0644 ): bool {
+	public function copy( string $source, string $destination, bool $overwrite = false, int $mode = 0600 ): bool {
 		self::$last_error = '';
 
 		if ( self::$fs instanceof WP_Filesystem_Base ) {

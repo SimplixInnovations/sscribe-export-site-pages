@@ -433,7 +433,6 @@
 		},
 
 		checkActiveSession: function () {
-			this.isProcessing = true;
 			$.ajax(
 				{
 					url: sscribe_data.ajaxurl,
@@ -445,6 +444,7 @@
 					},
 					success: function (response) {
 						if (response.success && response.data && response.data.has_active) {
+							SScribe.isProcessing = true;
 							SScribe.sessionId = response.data.session_id;
 							SScribe.updateProgress( response.data.percentage );
 							SScribe.updatePhase( response.data.status );
@@ -628,13 +628,13 @@
 						(sscribe_data.strings && sscribe_data.strings.err_no_pages) || 'No pages match selected options'
 					);
 				} else if ( ! hasStatus) {
-					$reason.text( 'Select a post status' );
+					$reason.text( sscribe_data.strings.select_status || 'Select a post status' );
 				} else if ( ! hasFormat) {
-					$reason.text( 'Select a format' );
+					$reason.text( sscribe_data.strings.select_format || 'Select a format' );
 				} else if ( ! hasPostType) {
-					$reason.text( 'Select a post type' );
+					$reason.text( sscribe_data.strings.select_post_type || 'Select a post type' );
 				} else if ( ! hasLanguage) {
-					$reason.text( 'Select a language' );
+					$reason.text( sscribe_data.strings.select_language || 'Select a language' );
 				} else {
 					$reason.text( '' );
 				}
@@ -648,6 +648,12 @@
 
 			if (this.isProcessing) {
 				return;
+			}
+
+			// Clear any pending config summary debounce timer.
+			clearTimeout( this._configSummaryDebounceTimer );
+			if (this._configSummaryXHR && this._configSummaryXHR.abort) {
+				this._configSummaryXHR.abort();
 			}
 
 			this.isProcessing = true;

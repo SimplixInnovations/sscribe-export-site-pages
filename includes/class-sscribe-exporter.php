@@ -172,8 +172,8 @@ class SScribe_Exporter {
 			$this->font_size
 		);
 
-		// Sync config for injected content_renderer to ensure RTL and colors are up-to-date.
-		if ( null !== $this->content_renderer ) {
+		// Sync config only for injected content_renderer (not newly created ones).
+		if ( null !== $content_renderer ) {
 			$this->content_renderer->sync_config(
 				$this->colors,
 				$this->is_rtl,
@@ -238,7 +238,6 @@ class SScribe_Exporter {
 				array(
 					'original_length' => $original_length,
 					'truncated_to'    => 2048,
-					'page_id'        => $this->page_id ?? 0,
 				)
 			);
 		}
@@ -305,7 +304,7 @@ class SScribe_Exporter {
 			// SSRF protection: validate URL doesn't point to internal/private IP ranges.
 			$host = wp_parse_url( $url, PHP_URL_HOST );
 			if ( $host && $this->is_ip_blocked( $host ) ) {
-				$this->logger->warning(
+				$this->get_logger()->warning(
 					'Blocked SSRF attempt: internal IP range',
 					array(
 						'url'  => $url,
@@ -349,6 +348,12 @@ class SScribe_Exporter {
 	 * @return bool
 	 */
 	private function is_rtl_document( array $page_data ): bool {
+		if ( ! isset( $page_data['language'] ) ) {
+			$this->get_logger()->warning(
+				'Missing language key in page_data, defaulting to LTR',
+				array( 'page_id' => $page_data['id'] ?? 0 )
+			);
+		}
 		return SScribe_RTL_Helper::is_rtl( $page_data['language'] ?? 'en' );
 	}
 
