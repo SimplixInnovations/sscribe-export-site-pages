@@ -58,17 +58,23 @@ class SScribe_Deactivator {
 	private static function cleanup_transients(): void {
 		global $wpdb;
 
+		// Clean up database transients for locks, rate limits, and active sessions.
 		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- Deactivation cleanup.
-		$locks = $wpdb->get_results(
+		$transients = $wpdb->get_results(
 			$wpdb->prepare(
-				"SELECT option_name FROM {$wpdb->options} WHERE option_name LIKE %s",
-				$wpdb->esc_like( '_transient_sscribe_lock_' ) . '%'
+				"SELECT option_name FROM {$wpdb->options} WHERE option_name LIKE %s OR option_name LIKE %s OR option_name LIKE %s",
+				$wpdb->esc_like( '_transient_sscribe_lock_' ) . '%',
+				$wpdb->esc_like( '_transient_sscribe_rate_' ) . '%',
+				$wpdb->esc_like( '_transient_sscribe_active_sid_' ) . '%'
 			)
 		);
 
-		foreach ( $locks as $lock ) {
-			delete_option( $lock->option_name );
+		foreach ( $transients as $t ) {
+			delete_option( $t->option_name );
 		}
+
+		// Clean up upgrade locks.
+		delete_transient( 'sscribe_upgrade_lock' );
 	}
 
 	/**
