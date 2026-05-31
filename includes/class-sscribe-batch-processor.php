@@ -914,7 +914,7 @@ class SScribe_Batch_Processor {
 				'formats'           => $formats,
 				'errors'            => array(),
 				'structured_errors' => array(),
-				'start_time'        => time(),
+				'start_time'        => microtime( true ),
 				'cancelled'         => false,
 				'user_id'           => $user_id,
 			)
@@ -1199,7 +1199,7 @@ class SScribe_Batch_Processor {
 			$temp_dir          = $session['temp_dir'];
 			$errors            = isset( $session['errors'] ) ? $session['errors'] : array();
 			$structured_errors = isset( $session['structured_errors'] ) && is_array( $session['structured_errors'] ) ? $session['structured_errors'] : array();
-			$start_time        = isset( $session['start_time'] ) ? $session['start_time'] : time();
+			$start_time        = isset( $session['start_time'] ) ? $session['start_time'] : microtime( true );
 			$formats           = isset( $session['formats'] ) ? $session['formats'] : self::DEFAULT_FORMATS;
 			// Get pause hint from previous batch to adjust batch size accordingly.
 			$pause_hint = isset( $session['last_pause_reason'] ) ? $session['last_pause_reason'] : '';
@@ -1739,7 +1739,7 @@ class SScribe_Batch_Processor {
 				)
 			);
 
-			$elapsed           = time() - $start_time;
+			$elapsed           = microtime( true ) - $start_time;
 			$avg_time_per_page = $processed > 0 ? $elapsed / $processed : 0;
 			$remaining_pages   = $total - $processed;
 
@@ -2320,7 +2320,7 @@ class SScribe_Batch_Processor {
 				$this->export_log->flush();
 			}
 
-			$duration         = time() - ( $session['start_time'] ?? time() );
+			$duration         = microtime( true ) - ( $session['start_time'] ?? microtime( true ) );
 			$zip_size         = function_exists( 'wp_filesize' ) && file_exists( $zip_path ) ? (int) wp_filesize( $zip_path ) : 0;
 			// Use the pre-trimmed error count stored in the session to avoid off-by-one
 			// errors from the synthetic "... and N more" message appended after trimming.
@@ -2343,7 +2343,7 @@ class SScribe_Batch_Processor {
 				'Export complete',
 				array(
 					'download_url'   => $download_url,
-					'total_time_sec' => time() - ( $session['start_time'] ?? time() ),
+					'total_time_sec' => microtime( true ) - ( $session['start_time'] ?? microtime( true ) ),
 				)
 			);
 
@@ -2353,7 +2353,7 @@ class SScribe_Batch_Processor {
 					'total_pages'  => $session['total'],
 					'errors'       => $error_count,
 					'filename'     => basename( $zip_path ),
-					'duration_sec' => time() - ( $session['start_time'] ?? time() ),
+					'duration_sec' => microtime( true ) - ( $session['start_time'] ?? microtime( true ) ),
 				)
 			);
 
@@ -2407,7 +2407,7 @@ class SScribe_Batch_Processor {
 				'error_diagnostics' => $error_diagnostics,
 				'log_summary'       => $log_summary,
 				'session_id'        => $session_id,
-				'created_at'        => $session['start_time'] ?? time(),
+				'created_at'        => $session['start_time'] ?? microtime( true ),
 				'message'           => sprintf(
 					/* translators: %d: Number of pages exported. */
 
@@ -2438,7 +2438,7 @@ class SScribe_Batch_Processor {
 					'errors_count'        => $error_count,
 					'language'            => $session['language'] ?? '',
 					'post_status'         => $session['post_status'] ?? '',
-					'total_time_sec'      => time() - ( $session['start_time'] ?? time() ),
+					'total_time_sec'      => microtime( true ) - ( $session['start_time'] ?? microtime( true ) ),
 					'memory_peak'         => size_format( memory_get_peak_usage( true ) ),
 					'zip_size'            => function_exists( 'wp_filesize' )
 						? size_format( wp_filesize( $zip_path ) )

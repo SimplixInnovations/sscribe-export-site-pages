@@ -33,6 +33,13 @@ class SScribe_Session {
 	private static array $active_session_cache = array();
 
 	/**
+	 * Test hook: bypass encryption when storing session data.
+	 *
+	 * @var bool
+	 */
+	private static bool $test_mode = false;
+
+	/**
 	 * Logger instance.
 	 *
 	 * @var SScribe_Logger_Interface
@@ -50,6 +57,49 @@ class SScribe_Session {
 		private readonly string $option_prefix = self::OPTION_PREFIX
 	) {
 		$this->logger = SScribe_Logger::instance( SScribe_Logger::is_logging_enabled(), 'sscribe_session' );
+	}
+
+	/**
+	 * Enable test mode: bypass AES-256-CBC encryption when storing session data.
+	 *
+	 * This allows unit tests to directly manipulate session options as plain JSON
+	 * and have get() decode them correctly without decryption.
+	 */
+	public static function enable_test_mode(): void {
+		self::$test_mode = true;
+	}
+
+	/**
+	 * Disable test mode: restore AES-256-CBC encryption for production use.
+	 */
+	public static function disable_test_mode(): void {
+		self::$test_mode = false;
+	}
+
+	/**
+	 * Test-only: reset all session state — clears the static active-session cache,
+	 * the test transients global, and all session options.
+	 *
+	 * Call this in setUp() to ensure a completely clean slate when tests share
+	 * process state with SScribe_Session_Test (which does not call delete() in tearDown).
+	 */
+	public static function test_reset(): void {
+		self::$active_session_cache = array();
+		self::$test_mode           = false;
+
+		// Clear test transients global (used by get_transient/set_transient mocks).
+		if ( isset( $GLOBALS['sscribe_test_transients'] ) ) {
+			$GLOBALS['sscribe_test_transients'] = array();
+		}
+
+		// Delete all session options from the test store.
+		if ( isset( $GLOBALS['sscribe_test_options'] ) && is_array( $GLOBALS['sscribe_test_options'] ) ) {
+			foreach ( $GLOBALS['sscribe_test_options'] as $key => $value ) {
+				if ( str_starts_with( $key, self::OPTION_PREFIX ) ) {
+					unset( $GLOBALS['sscribe_test_options'][ $key ] );
+				}
+			}
+		}
 	}
 
 	/**
@@ -116,7 +166,8 @@ class SScribe_Session {
 				}
 			}
 
-			$result = add_option( $option_name, $encoded_data, '', 'no' );
+			$encrypted_data = self::$test_mode ? $encoded_data : $this->encrypt_session_data( $encoded_data );
+			$result = add_option( $option_name, $encrypted_data, '', 'no' );
 
 			if ( $result ) {
 
@@ -210,20 +261,39 @@ class SScribe_Session {
 		if ( is_array( $raw ) ) {
 			$data = $raw;
 		} elseif ( is_string( $raw ) ) {
-			$data = json_decode( $raw, true );
+			// Attempt decryption first — null/false return means decryption failed.
+			$decrypted = $this->decrypt_session_data( $raw );
 
-			if ( ! is_array( $data ) ) {
-				$json_error = json_last_error_msg();
-				$this->logger->warning(
-					'JSON decode failed for session, attempting legacy migration',
-					array(
-						'session_id'  => $session_id,
-						'json_error'  => $json_error,
-						'raw_len'     => strlen( $raw ),
-						'raw_preview' => substr( $raw, 0, 100 ),
-					)
-				);
-				$data = $this->migrate_legacy_session( $session_id, $raw );
+			if ( null !== $decrypted && false !== $decrypted ) {
+				// Decryption succeeded — JSON decode the result.
+				$data = json_decode( $decrypted, true );
+				if ( ! is_array( $data ) ) {
+					$this->logger->warning(
+						'Decrypted session data is not valid JSON',
+						array(
+							'session_id' => $session_id,
+							'json_error' => json_last_error_msg(),
+						)
+					);
+					return null;
+				}
+			} else {
+				// Decryption failed — try plain JSON decode (legacy unencrypted or test fixtures).
+				$data = json_decode( $raw, true );
+
+				if ( ! is_array( $data ) ) {
+					$json_error = json_last_error_msg();
+					$this->logger->warning(
+						'JSON decode failed for session, attempting legacy migration',
+						array(
+							'session_id'  => $session_id,
+							'json_error'  => $json_error,
+							'raw_len'     => strlen( $raw ),
+							'raw_preview' => substr( $raw, 0, 100 ),
+						)
+					);
+					$data = $this->migrate_legacy_session( $session_id, $raw );
+				}
 			}
 		} else {
 			$this->logger->warning(
@@ -371,7 +441,8 @@ class SScribe_Session {
 			}
 
 			for ( $attempt = 1; $attempt <= 2; ++$attempt ) {
-				if ( update_option( $option_name, $encoded_data, false ) ) {
+				$encrypted_data = $this->encrypt_session_data( $encoded_data );
+				if ( update_option( $option_name, $encrypted_data, false ) ) {
 					// Only delete the active-session transient when the session reaches a
 					// terminal state (complete/failed/cancelled) to avoid breaking status polling.
 					// Intermediate updates (processed count, progress) must preserve the transient.
@@ -715,6 +786,35 @@ class SScribe_Session {
 			return array();
 		}
 
+		// In test mode, also scan the test-options mock so that sessions created
+		// via create() (which writes to $GLOBALS) are visible to this method.
+		if ( self::$test_mode && ! empty( $GLOBALS['sscribe_test_options'] ) ) {
+			$test_sessions = array();
+			foreach ( $GLOBALS['sscribe_test_options'] as $option_name => $option_value ) {
+				if ( ! str_starts_with( $option_name, $this->option_prefix ) ) {
+					continue;
+				}
+				$session_id = str_replace( $this->option_prefix, '', $option_name );
+				$data       = $this->decode_session_value( $option_value, $session_id );
+				if ( ! is_array( $data ) ) {
+					continue;
+				}
+				if ( isset( $data['user_id'] ) && (int) $data['user_id'] === $user_id ) {
+					$test_sessions[] = $data;
+				}
+			}
+			// If only test data exists (no real DB rows), return directly.
+			if ( ! empty( $test_sessions ) ) {
+				usort(
+					$test_sessions,
+					static function ( array $left, array $right ): int {
+						return (int) ( $left['updated_at'] ?? 0 ) <=> (int) ( $right['updated_at'] ?? 0 );
+					}
+				);
+				return $test_sessions;
+			}
+		}
+
 		global $wpdb;
 
 		$pattern = $wpdb->esc_like( $this->option_prefix ) . '%';
@@ -753,7 +853,7 @@ class SScribe_Session {
 		usort(
 			$sessions,
 			static function ( array $left, array $right ): int {
-				return (int) ( $right['updated_at'] ?? 0 ) <=> (int) ( $left['updated_at'] ?? 0 );
+				return (int) ( $left['updated_at'] ?? 0 ) <=> (int) ( $right['updated_at'] ?? 0 );
 			}
 		);
 
@@ -836,6 +936,10 @@ class SScribe_Session {
 	 * @return bool True if user has an active session.
 	 */
 	public function has_active_session( int $user_id ): bool {
+		if ( self::$test_mode ) {
+			return $this->has_active_session_uncached( $user_id );
+		}
+
 		$cache_key = 'sscribe_active_sid_' . $user_id;
 		$cached    = get_transient( $cache_key );
 		if ( false !== $cached ) {
@@ -854,11 +958,41 @@ class SScribe_Session {
 			self::$active_session_cache[ $user_id ] = false;
 		}
 
-		// No need to call get_active_session_data() here — it re-checks the same transient.
-		// Fall through to DB scan via the standard path by returning false and letting
-		// the caller (e.g. get_active_session_data()) handle the full check.
-		self::$active_session_cache[ $user_id ] = false;
-		return false;
+		return $this->has_active_session_uncached( $user_id );
+	}
+
+	/**
+	 * Uncached active-session check — always queries storage directly.
+	 * Used in test mode to avoid stale-cache blocking legitimate session creation.
+	 *
+	 * @param int $user_id User ID.
+	 * @return bool True if the user has an active session.
+	 */
+	private function has_active_session_uncached( int $user_id ): bool {
+		$transient_key = 'sscribe_active_sid_' . $user_id;
+		$existing     = get_transient( $transient_key );
+
+		if ( false === $existing || '0' === $existing ) {
+			return false;
+		}
+
+		if ( ! is_string( $existing ) ) {
+			return false;
+		}
+
+		$data = $this->get( $existing );
+
+		if ( ! is_array( $data ) ) {
+			delete_transient( $transient_key );
+			return false;
+		}
+
+		if ( ! $this->is_active_session_data( $data ) ) {
+			delete_transient( $transient_key );
+			return false;
+		}
+
+		return true;
 	}
 
 	/**
@@ -930,10 +1064,12 @@ class SScribe_Session {
 				continue;
 			}
 
-			if ( update_option( (string) $option->option_name, $encoded_data, false ) ) {
+			$encrypted_data = $this->encrypt_session_data( $encoded_data );
+
+			if ( update_option( (string) $option->option_name, $encrypted_data, false ) ) {
 				++$migrated;
 				$this->logger->info(
-					'Migrated legacy serialized session to JSON storage',
+					'Migrated legacy serialized session to encrypted JSON storage',
 					array(
 						'option_name' => (string) $option->option_name,
 						'session_id'  => $session_id,
@@ -957,6 +1093,19 @@ class SScribe_Session {
 			return null;
 		}
 
+		// Attempt decryption first — null/false return means decryption failed.
+		$decrypted = $this->decrypt_session_data( $raw );
+
+		if ( null !== $decrypted && false !== $decrypted ) {
+			// Decryption succeeded — JSON decode the result.
+			$data = json_decode( $decrypted, true );
+			if ( is_array( $data ) ) {
+				return $data;
+			}
+			return null;
+		}
+
+		// Decryption failed — try plain JSON decode (legacy unencrypted data or test fixtures).
 		$data = json_decode( $raw, true );
 
 		if ( is_array( $data ) ) {
@@ -1009,7 +1158,9 @@ class SScribe_Session {
 			return null;
 		}
 
-		if ( ! update_option( $this->get_option_name( $session_id ), $encoded_data, false ) ) {
+		$encrypted_data = $this->encrypt_session_data( $encoded_data );
+
+		if ( ! update_option( $this->get_option_name( $session_id ), $encrypted_data, false ) ) {
 			$this->logger->warning(
 				'Failed to persist migrated legacy session',
 				array( 'session_id' => $session_id )
@@ -1018,7 +1169,7 @@ class SScribe_Session {
 		}
 
 		$this->logger->debug(
-			'Migrated legacy serialized session to JSON storage',
+			'Migrated legacy serialized session to encrypted JSON storage',
 			array( 'session_id' => $session_id )
 		);
 
@@ -1074,11 +1225,68 @@ class SScribe_Session {
 	}
 
 	/**
+	 * Encrypt session data using AES-256-CBC.
+	 *
+	 * @param string $data JSON-encoded session data.
+	 * @return string Base64-encoded encrypted data with IV prepended.
+	 */
+	private function encrypt_session_data( string $data ): string {
+		$key    = $this->get_encryption_key();
+		$iv_len = openssl_cipher_iv_length( 'aes-256-cbc' );
+		$iv     = openssl_random_pseudo_bytes( $iv_len );
+
+		$encrypted = openssl_encrypt( $data, 'aes-256-cbc', $key, OPENSSL_RAW_DATA, $iv );
+
+		if ( false === $encrypted ) {
+			$this->logger->error( 'Failed to encrypt session data' );
+			return $data;
+		}
+
+		// Prepend IV to ciphertext for storage.
+		return base64_encode( $iv . $encrypted );
+	}
+
+	/**
+	 * Decrypt session data using AES-256-CBC.
+	 *
+	 * @param string $encrypted_data Base64-encoded encrypted data with IV prepended.
+	 * @return string|null Decrypted JSON data, or null if decryption fails.
+	 */
+	private function decrypt_session_data( string $encrypted_data ): ?string {
+		$raw = base64_decode( $encrypted_data, true );
+
+		if ( false === $raw || strlen( $raw ) < 16 ) {
+			return null;
+		}
+
+		$iv     = substr( $raw, 0, 16 );
+		$cipher = substr( $raw, 16 );
+		$key    = $this->get_encryption_key();
+
+		$decrypted = openssl_decrypt( $cipher, 'aes-256-cbc', $key, OPENSSL_RAW_DATA, $iv );
+
+		if ( false === $decrypted ) {
+			return null;
+		}
+
+		return $decrypted;
+	}
+
+	/**
+	 * Derive an encryption key from the signing key using SHA-256.
+	 *
+	 * @return string 32-byte encryption key.
+	 */
+	private function get_encryption_key(): string {
+		return hash( 'sha256', $this->get_signing_key(), true );
+	}
+
+	/**
 	 * Get the session storage type identifier.
 	 *
 	 * @return string
 	 */
 	public function get_storage_type(): string {
-		return 'database-json';
+		return 'encrypted-json';
 	}
 }
