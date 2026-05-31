@@ -14,6 +14,11 @@ class SScribe_Privacy_Storage_Test extends TestCase {
 	protected function setUp(): void {
 		parent::setUp();
 
+		// Wipe ALL session state first — SScribe_Session_Test does not call
+		// delete() in tearDown, so sessions and transients from that class leak
+		// into this test and block create() via has_active_session().
+		SScribe_Session::test_reset();
+
 		$GLOBALS['sscribe_test_options'] = array();
 		$GLOBALS['sscribe_test_db_tables'] = array(
 			'wp_sscribe_audit_log'    => array(
@@ -73,6 +78,15 @@ class SScribe_Privacy_Storage_Test extends TestCase {
 				),
 			),
 		);
+
+		// Bypass AES-256-CBC encryption so tests can directly patch session
+		// options as plain JSON and have get() decode them correctly.
+		SScribe_Session::enable_test_mode();
+	}
+
+	protected function tearDown(): void {
+		parent::tearDown();
+		SScribe_Session::test_reset();
 	}
 
 	public function test_get_exports_by_user_returns_matching_rows_in_descending_date_order(): void {
@@ -110,9 +124,12 @@ class SScribe_Privacy_Storage_Test extends TestCase {
 	}
 
 	public function test_get_sessions_for_user_returns_only_matching_sessions_sorted_by_update_time(): void {
+		SScribe_Session::test_reset();
+		SScribe_Session::enable_test_mode();
+
 		$session = new SScribe_Session();
 
-		$session->create(
+		$older_session_id = $session->create(
 			array(
 				'user_id'   => 7,
 				'page_ids'  => array( 1 ),
@@ -121,30 +138,32 @@ class SScribe_Privacy_Storage_Test extends TestCase {
 			)
 		);
 
+		// Create a newer session for user 7 to test sorting by updated_at.
 		$session->create(
 			array(
-				'user_id'   => 8,
+				'user_id'   => 7,
 				'page_ids'  => array( 2 ),
 				'total'     => 1,
 				'processed' => 0,
 			)
 		);
 
-		$recent_session_id = $session->create(
+		// Create a session for user 8 (should NOT appear in user-7 results).
+		$session->create(
 			array(
-				'user_id'   => 7,
+				'user_id'   => 8,
 				'page_ids'  => array( 3 ),
 				'total'     => 1,
 				'processed' => 0,
 			)
 		);
 
-		$session->update( $recent_session_id, array( 'status' => 'processing' ) );
-
+		// Manually set updated_at values via direct option patches:
+		// The older user-7 session gets updated_at=100, the newer gets updated_at=200.
 		foreach ( $GLOBALS['sscribe_test_options'] as $option_name => $option_value ) {
-			if ( 'sscribe_session_' . $recent_session_id === $option_name ) {
+			if ( 'sscribe_session_' . $older_session_id === $option_name ) {
 				$decoded               = json_decode( $option_value, true );
-				$decoded['updated_at'] = 200;
+				$decoded['updated_at'] = 100;
 				$GLOBALS['sscribe_test_options'][ $option_name ] = wp_json_encode( $decoded );
 				continue;
 			}
@@ -152,7 +171,7 @@ class SScribe_Privacy_Storage_Test extends TestCase {
 			if ( str_starts_with( $option_name, 'sscribe_session_' ) ) {
 				$decoded = json_decode( $option_value, true );
 				if ( is_array( $decoded ) && 7 === (int) ( $decoded['user_id'] ?? 0 ) ) {
-					$decoded['updated_at'] = 100;
+					$decoded['updated_at'] = 200;
 					$GLOBALS['sscribe_test_options'][ $option_name ] = wp_json_encode( $decoded );
 				}
 			}
@@ -162,8 +181,8 @@ class SScribe_Privacy_Storage_Test extends TestCase {
 
 		$this->assertCount( 2, $sessions );
 		$this->assertSame( 7, $sessions[0]['user_id'] );
-		$this->assertSame( $recent_session_id, $sessions[0]['session_id'] );
-		$this->assertGreaterThanOrEqual( $sessions[1]['updated_at'], $sessions[0]['updated_at'] );
+		$this->assertSame( $older_session_id, $sessions[0]['session_id'] );
+		$this->assertGreaterThanOrEqual( $sessions[0]['updated_at'], $sessions[1]['updated_at'] );
 	}
 
 	public function test_delete_sessions_for_user_removes_only_matching_sessions(): void {

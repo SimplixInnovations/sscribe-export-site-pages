@@ -146,6 +146,10 @@
 				window.removeEventListener( 'beforeunload', this._beforeUnloadHandler );
 				this._beforeUnloadHandler = null;
 			}
+			if (this._popStateHandler) {
+				window.removeEventListener( 'popstate', this._popStateHandler );
+				this._popStateHandler = null;
+			}
 		},
 
 		unbindToggleHandler: function () {
@@ -284,7 +288,7 @@
 						overlay.setAttribute( 'aria-hidden', 'true' );
 						const dialog         = document.createElement( 'div' );
 						dialog.style.cssText =
-						'position:fixed;top:50%;left:50%;transform:translate(-50%,-50%);background:#fff;color:#333;padding:24px;border-radius:8px;max-width:400px;z-index:9999999;box-shadow:0 8px 32px rgb(0 0 0 / 30%);font-size:14px;line-height:1.6;';
+						'position:fixed;top:50%;left:50%;transform:translate(-50%,-50%);background:#fff;color:#333;padding:24px;border-radius:8px;max-width:400px;z-index:100000001;box-shadow:0 8px 32px rgb(0 0 0 / 30%);font-size:14px;line-height:1.6;';
 						dialog.setAttribute( 'role', 'dialog' );
 						dialog.setAttribute( 'aria-modal', 'true' );
 						dialog.setAttribute( 'aria-labelledby', 'sscribe-debug-help-title' );
@@ -451,6 +455,14 @@
 				self.stopAutoRefresh();
 			};
 			window.addEventListener( 'beforeunload', this._beforeUnloadHandler );
+
+			this._popStateHandler = function (e) {
+				// Restore current log when back button is pressed during rotated log viewing.
+				if ( self.isViewingRotated ) {
+					self.backToCurrentLog();
+				}
+			};
+			window.addEventListener( 'popstate', this._popStateHandler );
 		},
 
 		loadInitialState: function () {
@@ -1159,6 +1171,12 @@
 			this.isRefreshing = false;
 			this.isRefreshingSince = null;
 
+			// Push state so browser back button can restore the current log.
+			const url = new URL( window.location.href );
+			url.searchParams.set( 'view', 'rotated' );
+			url.searchParams.set( 'file', filename );
+			history.pushState( { view: 'rotated', file: filename }, '', url.toString() );
+
 			this.viewRotatedRequest = $.post(
 				sscribe_data.ajaxurl,
 				data,
@@ -1221,6 +1239,10 @@
 			this.$entries.empty();
 			this.$entryCount.text( 'Loading...' );
 			this.$consoleBody.addClass( 'is-loading' );
+			const url = new URL( window.location.href );
+			url.searchParams.delete( 'view' );
+			url.searchParams.delete( 'file' );
+			history.replaceState( {}, '', url.toString() );
 			this.fetchLogs();
 			if ( this.isAutoRefresh ) {
 				this.startAutoRefresh();

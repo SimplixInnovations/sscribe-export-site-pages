@@ -107,7 +107,7 @@ class SScribe_Session_Test extends TestCase {
 	public function test_get_storage_type(): void {
 		$session = new \SScribe_Session();
 
-		$this->assertEquals( 'database-json', $session->get_storage_type() );
+		$this->assertEquals( 'encrypted-json', $session->get_storage_type() );
 	}
 
 	private function reset_active_session_cache(): void {
