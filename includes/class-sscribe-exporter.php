@@ -86,6 +86,20 @@ class SScribe_Exporter {
 	private int $font_size = 11;
 
 	/**
+	 * Cached WordPress date format to avoid repeated get_option() calls.
+	 *
+	 * @var string
+	 */
+	private string $cached_date_format = '';
+
+	/**
+	 * Cached WordPress time format to avoid repeated get_option() calls.
+	 *
+	 * @var string
+	 */
+	private string $cached_time_format = '';
+
+	/**
 	 * Color palette for document styling.
 	 *
 	 * @var array<string, string>
@@ -113,12 +127,15 @@ class SScribe_Exporter {
 	 *
 	 * @param SScribe_Content_Parser|null        $parser           Content parser.
 	 * @param SScribe_DOCX_Content_Renderer|null $content_renderer Content renderer.
+	 * @param SScribe_Logger_Interface|null      $logger           Logger instance.
 	 */
 	public function __construct(
 		?SScribe_Content_Parser $parser = null,
-		?SScribe_DOCX_Content_Renderer $content_renderer = null
+		?SScribe_DOCX_Content_Renderer $content_renderer = null,
+		?SScribe_Logger_Interface $logger = null
 	) {
 		$this->parser = $parser ?? new SScribe_Content_Parser();
+		$this->logger = $logger;
 
 		/**
 		 * Filter the DOCX color palette.
@@ -211,8 +228,19 @@ class SScribe_Exporter {
 		// Truncate extremely long strings without spaces (e.g., long hashes, encoded data)
 		// to prevent oversized XML elements in DOCX. Threshold is 2048 Unicode chars
 		// to accommodate long URLs, CDNs, and affiliate links while still protecting DOCX integrity.
+		// This silently truncates strings without spaces, including long Arabic/RTL text.
+		// Log a warning so operators can detect problematic content patterns.
 		if ( mb_strlen( $text, 'UTF-8' ) > 2048 && false === mb_strpos( $text, ' ', 0, 'UTF-8' ) ) {
+			$original_length = mb_strlen( $text, 'UTF-8' );
 			$text = mb_substr( $text, 0, 2048, 'UTF-8' );
+			$this->get_logger()->warning(
+				'Text truncated in safe_text — long no-space string detected',
+				array(
+					'original_length' => $original_length,
+					'truncated_to'    => 2048,
+					'page_id'        => $this->page_id ?? 0,
+				)
+			);
 		}
 
 		// NOTE: Do NOT apply htmlspecialchars() here. PHPWord performs its own
@@ -494,7 +522,10 @@ class SScribe_Exporter {
 
 			$this->define_styles( $php_word );
 
-			$cover = $php_word->addSection( $this->get_section_settings( $this->is_rtl ) );
+			// Cover page: vertically center content for better visual balance.
+			$cover_settings              = $this->get_section_settings( $this->is_rtl );
+			$cover_settings['vAlign']    = 'center';
+			$cover = $php_word->addSection( $cover_settings );
 			try {
 				$this->add_cover_page( $cover, $page_data );
 			} catch ( \Throwable $e ) {
@@ -673,7 +704,9 @@ class SScribe_Exporter {
 			// $has_document and $has_types guaranteed true here (early throw above).
 			// Only $xml_valid may be false when debug mode is enabled.
 			if ( ! $xml_valid ) {
-				wp_delete_file( $output_path );
+				// Do NOT call wp_delete_file() here — the outer catch (\Throwable $e) at
+				// line 685 handles file cleanup with a file_exists() guard. Calling it here
+				// would result in a redundant delete attempt on an already-deleted file.
 				unset( $writer, $php_word );
 				throw new \RuntimeException( 'DOCX integrity check failed: XML validation error' );
 			}
@@ -826,11 +859,18 @@ class SScribe_Exporter {
 	 */
 	private function define_styles( PhpWord $php_word ): void {
 
-		$heading_sizes = array( 24, 20, 16, 14, 12, 11 );
+		$heading_sizes = array(
+			1 => 24,
+			2 => 20,
+			3 => 16,
+			4 => 14,
+			5 => 12,
+			6 => 11,
+		);
 		for ( $i = 1; $i <= 6; $i++ ) {
 			$heading_font = array(
 				'name'  => $this->font_name,
-				'size'  => $heading_sizes[ $i - 1 ],
+				'size'  => $heading_sizes[ $i ],
 				'bold'  => true,
 				'color' => $this->colors['heading'],
 			);
@@ -860,11 +900,11 @@ class SScribe_Exporter {
 		if ( $this->is_rtl ) {
 			$blockquote_style['bidi']             = true;
 			$blockquote_style['indentation']      = array( 'right' => Converter::cmToTwip( 1 ) );
-			$blockquote_style['borderRightSize']  = 12;
+			$blockquote_style['borderRightSize']  = 12;  // 12 = 1.5pt (PHPWord uses 1/8th-point units for border sizes).
 			$blockquote_style['borderRightColor'] = $this->colors['primary'];
 		} else {
 			$blockquote_style['indentation']     = array( 'left' => Converter::cmToTwip( 1 ) );
-			$blockquote_style['borderLeftSize']  = 12;
+			$blockquote_style['borderLeftSize']  = 12;  // 12 = 1.5pt.
 			$blockquote_style['borderLeftColor'] = $this->colors['primary'];
 		}
 
@@ -915,9 +955,21 @@ class SScribe_Exporter {
 	 * @return array Section settings.
 	 */
 	private function get_section_settings( bool $is_rtl = false ): array {
+		// Detect page size based on locale: default to A4 for non-US locales.
+		// US, Canada, Mexico, and Philippines use US Letter (8.5×11 inches).
+		// Most of the rest of the world uses A4 (210×297mm).
+		$locale       = get_locale();
+		$us_like_locales = array( 'en_US', 'en_CA', 'en_MX', 'fil_PH' );
+		$is_us_letter    = in_array( $locale, $us_like_locales, true )
+			|| str_starts_with( $locale, 'en_US' ); // en_US, en_US.UTF-8, etc.
+
+		// phpcs:ignore WordPress.WP.AlternativeFunctions.file_system_operations_is_dir
+		$page_w = $is_us_letter ? Converter::inchToTwip( 8.5 ) : Converter::inchToTwip( 8.27 ); // 210mm
+		$page_h = $is_us_letter ? Converter::inchToTwip( 11 ) : Converter::inchToTwip( 11.69 ); // 297mm
+
 		$settings = array(
-			'pageSizeW'    => Converter::inchToTwip( 8.5 ),
-			'pageSizeH'    => Converter::inchToTwip( 11 ),
+			'pageSizeW'    => $page_w,
+			'pageSizeH'    => $page_h,
 			'marginTop'    => Converter::inchToTwip( 1 ),
 			'marginBottom' => Converter::inchToTwip( 1 ),
 			'marginLeft'   => Converter::inchToTwip( 1 ),
@@ -944,7 +996,12 @@ class SScribe_Exporter {
 
 		$section->addTextBreak( 2 );
 
-		$table = $section->addTable( array( 'borderSize' => 0 ) );
+		$table = $section->addTable(
+			array(
+				'borderSize' => 0,
+				'width'      => Converter::inchToTwip( 6.5 ),
+			)
+		);
 		$table->addRow();
 		$cell = $table->addCell(
 			Converter::inchToTwip( 6.5 ),
@@ -980,21 +1037,18 @@ class SScribe_Exporter {
 		$section->addTextBreak( 4 );
 
 		$cover_title = $this->safe_text( (string) ( $page_data['title'] ?? '' ) );
-		if ( ! $this->is_rtl ) {
-			$cover_title = function_exists( 'mb_strtoupper' )
-				? mb_strtoupper( $cover_title, 'UTF-8' )
-				: strtoupper( $cover_title );
-		}
+		// Use Word's allCaps style instead of destructively uppercasing the string,
+		// which corrupts non-ASCII characters and is irreversible in the document.
+		$cover_title_font = array(
+			'name'    => $this->font_name,
+			'size'    => 28,
+			'bold'    => true,
+			'color'   => $this->colors['heading'],
+			'allCaps' => ! $this->is_rtl, // Uppercase via style for non-RTL; RTL uses original case.
+		);
 		$section->addText(
 			$cover_title,
-			$this->with_complex_script(
-				array(
-					'name'  => $this->font_name,
-					'size'  => 28,
-					'bold'  => true,
-					'color' => $this->colors['heading'],
-				)
-			),
+			$this->with_complex_script( $cover_title_font ),
 			$this->get_para_style( array( 'alignment' => Jc::CENTER ) )
 		);
 
@@ -1050,9 +1104,11 @@ class SScribe_Exporter {
 			$this->get_para_style( array( 'alignment' => Jc::CENTER ) )
 		);
 		$meta_cell->addText(
-			/* translators: %s: export date */
-
-			sprintf( __( 'Extracted Date: %s', 'sscribe-export-site-pages' ), wp_date( ( get_option( 'date_format' ) ? get_option( 'date_format' ) : 'Y-m-d' ) . ' ' . ( get_option( 'time_format' ) ? get_option( 'time_format' ) : 'H:i' ) ) ),
+			sprintf(
+				/* translators: %s: export date */
+				__( 'Extracted Date: %s', 'sscribe-export-site-pages' ),
+				wp_date( $this->get_wp_datetime_formats()['date_format'] . ' ' . $this->get_wp_datetime_formats()['time_format'] )
+			),
 			array(
 				'name'  => $this->font_name,
 				'size'  => 10,
@@ -1153,9 +1209,9 @@ class SScribe_Exporter {
 
 		try {
 			$section->addText(
-				/* translators: This appears below the TOC placeholder in DOCX files. */
+				/* translators: Instructions for updating the Table of Contents field in Microsoft Word and LibreOffice. */
 
-				__( 'Right-click above and select "Update Field" to generate the Table of Contents.', 'sscribe-export-site-pages' ),
+				__( 'To update the Table of Contents: Microsoft Word — right-click → Update Field. LibreOffice — press F9 or select Tools → Update → All Fields.', 'sscribe-export-site-pages' ),
 				array(
 					'name'   => $this->font_name,
 					'size'   => 9,
@@ -1180,9 +1236,10 @@ class SScribe_Exporter {
 	 * @return void
 	 */
 	private function add_header_footer( Section $section, array $page_data ): void {
+		$table_width = Converter::inchToTwip( 6.5 );
 
 		$header       = $section->addHeader();
-		$header_table = $header->addTable();
+		$header_table = $header->addTable( array( 'width' => $table_width ) );
 		$header_table->addRow();
 		$header_table->addCell( Converter::inchToTwip( 3.25 ) )->addText(
 			$this->safe_text( html_entity_decode( (string) get_bloginfo( 'name' ), ENT_QUOTES | ENT_HTML5, 'UTF-8' ) ),
@@ -1205,7 +1262,7 @@ class SScribe_Exporter {
 		);
 
 		$footer       = $section->addFooter();
-		$footer_table = $footer->addTable();
+		$footer_table = $footer->addTable( array( 'width' => $table_width ) );
 		$footer_table->addRow();
 		$footer_table->addCell( Converter::inchToTwip( 4 ) )->addText(
 			$this->safe_text( rawurldecode( $page_data['permalink'] ) ),
@@ -1224,6 +1281,7 @@ class SScribe_Exporter {
 				'size'  => 7,
 				'color' => $this->colors['body'],
 			),
+			// LTR: right-align (Jc::END), RTL: left-align (Jc::START).
 			array( 'alignment' => $this->is_rtl ? Jc::START : Jc::END )
 		);
 	}
@@ -1304,8 +1362,25 @@ class SScribe_Exporter {
 				}
 			}
 
+			// Reject oversized images before addImage() to prevent memory exhaustion.
+			// A 50MB RAW JPEG would cause a fatal OOM before the outer catch could handle it.
+			$max_image_bytes = (int) apply_filters( 'sscribe_max_featured_image_bytes', 5 * 1024 * 1024 );
+			$image_bytes     = @filesize( $path );
+			if ( false !== $image_bytes && $image_bytes > $max_image_bytes ) {
+				$this->get_logger()->warning(
+					'Featured image skipped: file too large',
+					array(
+						'page_id'      => $page_data['id'] ?? 0,
+						'path'         => $path,
+						'file_size'    => size_format( $image_bytes ),
+						'max_allowed'  => size_format( $max_image_bytes ),
+					)
+				);
+				return;
+			}
+
 			$section->addImage(
-				$page_data['featured_image_path'],
+				$path,
 				array(
 					'width'     => Converter::emuToPixel( $width_emu ),
 					'height'    => Converter::emuToPixel( $height_emu ),
@@ -1458,9 +1533,9 @@ class SScribe_Exporter {
 		$table = $section->addTable( $table_style );
 
 		$seo_rows = array(
-			array( __( 'Meta Title', 'sscribe-export-site-pages' ), $seo_data['meta_title'] ),
-			array( __( 'Meta Description', 'sscribe-export-site-pages' ), $seo_data['meta_description'] ),
-			array( __( 'Focus Keyword', 'sscribe-export-site-pages' ), $seo_data['focus_keyword'] ),
+			array( __( 'Meta Title', 'sscribe-export-site-pages' ), $seo_data['meta_title'] ?? '' ),
+			array( __( 'Meta Description', 'sscribe-export-site-pages' ), $seo_data['meta_description'] ?? '' ),
+			array( __( 'Focus Keyword', 'sscribe-export-site-pages' ), $seo_data['focus_keyword'] ?? '' ),
 		);
 
 		foreach ( $seo_rows as $row ) {
@@ -1600,14 +1675,6 @@ class SScribe_Exporter {
 					'color' => $this->colors['link'],
 				)
 			);
-			$text_run->addText(
-				' — ' . $this->safe_text( $child['url'] ),
-				array(
-					'name'  => $this->font_name,
-					'size'  => 8,
-					'color' => $this->colors['body'],
-				)
-			);
 			++$rendered;
 
 			// Recursively render grandchildren.
@@ -1629,5 +1696,21 @@ class SScribe_Exporter {
 			$this->logger = SScribe_Logger::instance( SScribe_Logger::is_logging_enabled() );
 		}
 		return $this->logger;
+	}
+
+	/**
+	 * Get cached WordPress date and time formats, populating cache on first call.
+	 *
+	 * @return array{date_format: string, time_format: string}
+	 */
+	private function get_wp_datetime_formats(): array {
+		if ( '' === $this->cached_date_format ) {
+			$this->cached_date_format = (string) get_option( 'date_format', 'Y-m-d' );
+			$this->cached_time_format = (string) get_option( 'time_format', 'H:i' );
+		}
+		return array(
+			'date_format' => $this->cached_date_format,
+			'time_format' => $this->cached_time_format,
+		);
 	}
 }
