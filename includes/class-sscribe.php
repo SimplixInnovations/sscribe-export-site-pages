@@ -161,7 +161,7 @@ class SScribe {
 	 * Display admin notice for missing vendor dependencies.
 	 */
 	public function render_vendor_dependency_notice(): void {
-		if ( ! current_user_can( apply_filters( 'sscribe_export_capability', 'manage_options' ) ) ) {
+		if ( ! current_user_can( SScribe_Capabilities::get_required() ) ) {
 			return;
 		}
 
@@ -270,6 +270,11 @@ class SScribe {
 			// Clean up old export JSON log files.
 			require_once SSCRIBE_PLUGIN_DIR . 'includes/class-sscribe-export-log.php';
 			SScribe_Export_Log::cleanup_old_logs( 24 );
+
+			// Clean up expired/orphaned transients (locks, rate limits) that may have
+			// been left behind by crashed processes or failed exports.
+			$lock_manager = SScribe_Container::instance()->get( SScribe_Export_Lock_Manager::class );
+			$lock_manager->cleanup_user_locks( null, null );
 
 			delete_transient( 'sscribe_cron_sessions_lock' );
 		}

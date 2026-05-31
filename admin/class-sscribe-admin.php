@@ -379,7 +379,7 @@ class SScribe_Admin {
 				'log_tooltip'            => __( 'View export log', 'sscribe-export-site-pages' ),
 				'delete_tooltip'         => __( 'Delete this export', 'sscribe-export-site-pages' ),
 				'support_title'          => __( 'Support Information', 'sscribe-export-site-pages' ),
-				'err_permission'         => __( 'Your WordPress user role does not have the required capability (manage_options). Please contact your site administrator to grant export permissions, or log in with an Administrator account.', 'sscribe-export-site-pages' ),
+				'err_permission'         => __( 'Your WordPress user role does not have the required capability (sscribe_export). Please contact your site administrator to grant export permissions, or log in with an Administrator account.', 'sscribe-export-site-pages' ),
 				'err_session_expired'    => __( 'The export session was lost — this typically happens when the PHP session or database connection timed out. Click "Try Again" to start a fresh export. If this keeps happening, ask your hosting provider to increase the PHP max_execution_time (recommended: 120s or higher).', 'sscribe-export-site-pages' ),
 				'err_data_corrupted'     => __( 'The session data in the database became invalid. This can happen if your database ran out of storage or a caching plugin (e.g., WP Rocket, W3 Total Cache) is caching wp_options. Exclude "sscribe_session_*" from object caching.', 'sscribe-export-site-pages' ),
 				'err_rate_limit'         => __( 'You have exceeded the request rate limit (200 requests per minute). Please wait about 1 minute and then try again. This limit protects your server from overload.', 'sscribe-export-site-pages' ),

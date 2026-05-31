@@ -93,6 +93,15 @@ $sscribe_cleanup_site = static function (): void {
 	delete_option( 'sscribe_settings' );
 	delete_option( 'sscribe_active_languages' );
 
+	// Revoke the scribe_export capability from all roles.
+	$sscribe_roles = new \WP_Roles();
+	foreach ( $sscribe_roles->roles as $sscribe_role_name => $sscribe_role_data ) {
+		$sscribe_role = get_role( $sscribe_role_name );
+		if ( $sscribe_role && $sscribe_role->has_cap( 'sscribe_export' ) ) {
+			$sscribe_role->remove_cap( 'sscribe_export' );
+		}
+	}
+
 	$sscribe_tables = array(
 		$wpdb->prefix . 'sscribe_export_logs',
 		$wpdb->prefix . 'sscribe_export_stats',

@@ -106,12 +106,13 @@ class SScribe_Exporter_Factory {
 		$raw_slug   = isset( $page_data['slug'] ) && '' !== $page_data['slug']
 			? sanitize_file_name( trim( $page_data['slug'] ) )
 			: '';
-		$page_title = '' !== $raw_title ? $raw_title : ( '' !== $raw_slug ? $raw_slug : 'page' );
+		$page_title = '' !== $raw_title ? $raw_title : ( '' !== $raw_slug ? $raw_slug : (string) $page_id );
 
 		if ( '' === $raw_title && isset( $page_data['title'] ) && '' !== $page_data['title'] && function_exists( 'do_action' ) ) {
+			$fallback = '' !== $raw_slug ? $raw_slug : (string) $page_id;
 			do_action(
 				'sscribe_debug_log',
-				'build_filename: title stripped to empty by sanitize_file_name — falling back to slug',
+				'build_filename: title stripped to empty by sanitize_file_name — falling back to ' . $fallback,
 				array(
 					'page_id' => $page_data['id'] ?? 0,
 					'title'   => $page_data['title'],
