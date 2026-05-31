@@ -378,6 +378,12 @@ class SScribe_Session {
 					if ( isset( $merged['user_id'] ) && isset( $merged['status'] ) && in_array( $merged['status'], array( 'complete', 'failed', 'cancelled' ), true ) ) {
 						unset( self::$active_session_cache[ (int) $merged['user_id'] ] );
 						delete_transient( 'sscribe_active_sid_' . (int) $merged['user_id'] );
+					} elseif ( isset( $merged['user_id'] ) ) {
+						// Refresh the active-session transient TTL so that polling clients
+						// don't cause unnecessary DB fallback queries when the user has an
+						// active export in progress (M-03 fix). Only refresh when user_id
+						// is present; anonymous sessions are not tracked via this transient.
+						set_transient( 'sscribe_active_sid_' . (int) $merged['user_id'], $session_id, 300 );
 					}
 					return true;
 				}

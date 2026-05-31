@@ -134,26 +134,14 @@ class SScribe_Markdown_Exporter implements SScribe_Exporter_Interface {
 		$md  = $this->generate_frontmatter( $page_data );
 		$md .= $this->html_to_markdown( $page_data['content'] ?? '' );
 
-		$md = $this->add_bom_if_rtl( $md, $page_data );
+		// NOTE: BOM is intentionally NOT prepended here. The YAML frontmatter
+		// already contains a `direction` field (set by generate_frontmatter()) which
+		// static site generators (Hugo, Jekyll, Obsidian) read to determine text
+		// direction. Prepending a UTF-8 BOM (\xEF\xBB\xBF) before the YAML ---
+		// delimiter would place the BOM bytes BEFORE the document start marker,
+		// causing YAML parsers to reject the front matter entirely.
 
 		return $md;
-	}
-
-	/**
-	 * Add BOM prefix for RTL content.
-	 *
-	 * @param string $content   Markdown content.
-	 * @param array  $page_data Page data.
-	 * @return string Content with optional BOM.
-	 */
-	private function add_bom_if_rtl( string $content, array $page_data ): string {
-		$language = $page_data['language'] ?? 'en';
-
-		if ( SScribe_RTL_Helper::is_rtl( $language ) ) {
-			return "\xEF\xBB\xBF" . $content;
-		}
-
-		return $content;
 	}
 
 	/**
@@ -255,11 +243,13 @@ class SScribe_Markdown_Exporter implements SScribe_Exporter_Interface {
 		$md = $this->convert_horizontal_rules( $md );
 		$md = $this->convert_details( $md );
 
-		// Decode HTML entities AFTER code blocks are wrapped in fences so that
-		// entities inside code (e.g. <div>) are not decoded before fences are applied.
-		$md = html_entity_decode( $md, ENT_QUOTES | ENT_HTML5, 'UTF-8' );
-
+		// Decode HTML entities AFTER stripping all tags so that any HTML-like
+		// characters that resulted from decoding (e.g. a literal <div> string)
+		// cannot be misinterpreted as HTML tags by wp_strip_all_tags().
+		// Code block content is already protected by triple-backtick fences at
+		// this point; html_entity_decode() only affects the remaining content.
 		$md = wp_strip_all_tags( $md );
+		$md = html_entity_decode( $md, ENT_QUOTES | ENT_HTML5, 'UTF-8' );
 
 		// Escape Markdown syntax characters at line-start positions in body content
 		// to prevent literal characters from being interpreted as Markdown.
@@ -366,7 +356,7 @@ class SScribe_Markdown_Exporter implements SScribe_Exporter_Interface {
 				return $md_table;
 			},
 			$html
-		);
+		) ?? $html;
 	}
 
 	/**
@@ -386,7 +376,7 @@ class SScribe_Markdown_Exporter implements SScribe_Exporter_Interface {
 					return "\n" . str_repeat( '#', $i ) . ' ' . $inner . "\n";
 				},
 				$html
-			);
+			) ?? $html;
 		}
 		return $html;
 	}
@@ -448,8 +438,25 @@ class SScribe_Markdown_Exporter implements SScribe_Exporter_Interface {
 		return preg_replace_callback(
 			'/<a[^>]*href=["\']([^"\']*)["\'][^>]*>(.*?)<\/a>/is',
 			function ( $matches ) {
-				$url  = $this->sanitize_url( $matches[1] );
-				$text = wp_strip_all_tags( $matches[2] );
+				$url        = $this->sanitize_url( $matches[1] );
+				$inner_html = $matches[2];
+
+				// If the link contains only an <img> tag, convert to an inline image
+				// inside a link: [![alt](src)](url) format.
+				if ( preg_match( '/<img\s[^>]*>/is', $inner_html ) ) {
+					// Extract src and alt from the first <img> using our extract_attribute helper.
+					$img_tag = preg_match( '/<img\s[^>]*>/is', $inner_html, $img_match ) ? $img_match[0] : '';
+					$img_src = $this->extract_attribute( $img_tag, 'src' );
+					$img_alt = $this->extract_attribute( $img_tag, 'alt' );
+					if ( empty( $img_src ) ) {
+						return '[' . $url . '](' . $url . ')';
+					}
+					$img_markdown = '![' . ( '' !== $img_alt ? $img_alt : 'image' ) . '](' . $this->sanitize_url( $img_src ) . ')';
+					$url_encoded = str_replace( array( '(', ')' ), array( '%28', '%29' ), $url );
+					return '[' . $img_markdown . '](' . $url_encoded . ')';
+				}
+
+				$text = wp_strip_all_tags( $inner_html );
 				$text = trim( preg_replace( '/\s+/', ' ', $text ) );
 				if ( empty( $text ) ) {
 					$text = $url;
@@ -470,13 +477,17 @@ class SScribe_Markdown_Exporter implements SScribe_Exporter_Interface {
 	 * @return string Content with Markdown formatting.
 	 */
 	private function convert_formatting( string $html ): string {
-		// Use /s flag so . matches newlines in multi-line bold/italic content.
-		// Use [^<]* instead of .*? to prevent consuming block-level content —
-		// [^<]* stops at any < character, including closing tags, so it cannot
-		// accidentally span across paragraph or div boundaries.
-		$html = preg_replace( '/<(strong|b)>([^<]*)<\/\1>/is', '**$2**', $html ) ?? $html;
-		$html = preg_replace( '/<(em|i)>([^<]*)<\/\1>/is', '*$2*', $html ) ?? $html;
-		$html = preg_replace( '/<(s|strike|del)>([^<]*)<\/\1>/is', '~~$2~~', $html ) ?? $html;
+		// Process innermost tags FIRST (strong>em, b>i, etc.) so that nested
+		// inline elements like <strong><em>text</em></strong> are fully collapsed
+		// before the outer tag is processed, preventing partial matches.
+		// Use (.*?) with /s flag for non-greedy matching across nested tags.
+		// Handle strong>em and b>i combinations first.
+		$html = preg_replace( '/<(strong|b)><(em|i)>(.*?)<\/\2><\/\1>/is', '***$3***', $html ) ?? $html;
+		$html = preg_replace( '/<(em|i)><(strong|b)>(.*?)<\/\2><\/\1>/is', '***$3***', $html ) ?? $html;
+		// Now handle simple (non-nested) formatting.
+		$html = preg_replace( '/<(strong|b)>(.*?)<\/\1>/is', '**$2**', $html ) ?? $html;
+		$html = preg_replace( '/<(em|i)>(.*?)<\/\1>/is', '*$2*', $html ) ?? $html;
+		$html = preg_replace( '/<(s|strike|del)>(.*?)<\/\1>/is', '~~$2~~', $html ) ?? $html;
 		return $html;
 	}
 
@@ -492,7 +503,21 @@ class SScribe_Markdown_Exporter implements SScribe_Exporter_Interface {
 		$dom             = new DOMDocument( '1.0', 'UTF-8' );
 		$prev_use_errors = libxml_use_internal_errors( true );
 		try {
-			@$dom->loadHTML( '<!DOCTYPE html><html><body>' . $html . '</body></html>', LIBXML_HTML_NOIMPLIED | LIBXML_HTML_NODEFDTD );
+			// NOTE: The @ operator was intentionally removed. Errors are captured via
+			// libxml_use_internal_errors(true) above, and libxml_get_errors() can be
+			// inspected after loadHTML() to detect and log parse failures without
+			// silently swallowing fatal libxml errors that could indicate corruption.
+			$dom->loadHTML( '<!DOCTYPE html><html><body>' . $html . '</body></html>', LIBXML_HTML_NOIMPLIED | LIBXML_HTML_NODEFDTD );
+			$libxml_errors = libxml_get_errors();
+			if ( ! empty( $libxml_errors ) ) {
+				$this->logger->debug(
+					'DOMDocument loadHTML had non-fatal libxml errors, continuing',
+					array(
+						'error_count' => count( $libxml_errors ),
+						'first_error'  => $libxml_errors[0]->message ?? 'unknown',
+					)
+				);
+			}
 			libxml_clear_errors();
 
 			$converted = $this->convert_dom_lists( $dom->getElementsByTagName( 'body' )->item( 0 ), $html );
@@ -548,25 +573,14 @@ class SScribe_Markdown_Exporter implements SScribe_Exporter_Interface {
 			}
 			$tag = strtolower( $child->nodeName ); // phpcs:ignore WordPress.NamingConventions.ValidVariableName.UsedPropertyNotSnakeCase
 			if ( 'ul' === $tag || 'ol' === $tag ) {
-				$out .= $this->convert_single_list( $child, $tag );
+				$out .= $this->convert_single_list( $child, $tag, 1 );
 			} else {
-				$inner_html = $this->get_inner_html( $child );
-				$out       .= $inner_html;
+				// Use saveHTML($child) to preserve the outer tag so that subsequent
+				// converters (convert_paragraphs, etc.) can still find and process it.
+				// get_inner_html() previously stripped the tag, leaving bare text that
+				// subsequent regex-based converters would skip.
+				$out .= $child->ownerDocument->saveHTML( $child ); // phpcs:ignore WordPress.NamingConventions.ValidVariableName.UsedPropertyNotSnakeCase
 			}
-		}
-		return $out;
-	}
-
-	/**
-	 * Get inner HTML of a DOM node.
-	 *
-	 * @param \DOMNode $node DOM node.
-	 * @return string Inner HTML.
-	 */
-	private function get_inner_html( \DOMNode $node ): string {
-		$out = '';
-		foreach ( $node->childNodes as $child ) { // phpcs:ignore WordPress.NamingConventions.ValidVariableName.UsedPropertyNotSnakeCase
-			$out .= $node->ownerDocument->saveHTML( $child ); // phpcs:ignore WordPress.NamingConventions.ValidVariableName.UsedPropertyNotSnakeCase
 		}
 		return $out;
 	}
@@ -575,12 +589,15 @@ class SScribe_Markdown_Exporter implements SScribe_Exporter_Interface {
 	 * Convert a single DOM list element to Markdown.
 	 *
 	 * @param \DOMNode $list_node List element node.
-	 * @param string   $list_tag 'ul' or 'ol'.
+	 * @param string   $list_tag  'ul' or 'ol'.
+	 * @param int      $depth     Nesting depth (default 1 for top-level, increments for nested).
 	 * @return string Markdown list.
 	 */
-	private function convert_single_list( \DOMNode $list_node, string $list_tag ): string {
+	private function convert_single_list( \DOMNode $list_node, string $list_tag, int $depth = 1 ): string {
 		$result  = "\n";
 		$counter = 1;
+		// 2 spaces per nesting level (matches the convert_list_items regex fallback).
+		$indent = str_repeat( '  ', $depth );
 		foreach ( $list_node->childNodes as $li ) { // phpcs:ignore WordPress.NamingConventions.ValidVariableName.UsedPropertyNotSnakeCase
 			if ( XML_ELEMENT_NODE !== $li->nodeType || 'li' !== strtolower( $li->nodeName ) ) { // phpcs:ignore WordPress.NamingConventions.ValidVariableName.UsedPropertyNotSnakeCase
 				continue;
@@ -590,10 +607,19 @@ class SScribe_Markdown_Exporter implements SScribe_Exporter_Interface {
 			foreach ( $li->childNodes as $child ) { // phpcs:ignore WordPress.NamingConventions.ValidVariableName.UsedPropertyNotSnakeCase
 				$child_tag = strtolower( $child->nodeName ); // phpcs:ignore WordPress.NamingConventions.ValidVariableName.UsedPropertyNotSnakeCase
 				if ( 'ul' === $child_tag || 'ol' === $child_tag ) {
-					// Recursively convert nested lists instead of stripping them.
-					$item_text_parts[] = $this->convert_single_list( $child, $child_tag );
+					// Recursively convert nested lists with increased depth.
+					$item_text_parts[] = $this->convert_single_list( $child, $child_tag, $depth + 1 );
 				} elseif ( XML_ELEMENT_NODE === $child->nodeType ) { // phpcs:ignore WordPress.NamingConventions.ValidVariableName.UsedPropertyNotSnakeCase
-					$item_text_parts[] = wp_strip_all_tags( $this->get_inner_html( $child ) );
+					// Call convert_dom_lists() instead of wp_strip_all_tags() so that
+					// inline formatting (<strong>, <em>, <code>) inside <li> items goes
+					// through the full conversion pipeline (convert_formatting,
+					// convert_links, convert_code_blocks, etc.) instead of being
+					// prematurely stripped. Normalize resulting whitespace afterward.
+					$item_text_parts[] = preg_replace(
+						'/\s+/',
+						' ',
+						$this->convert_dom_lists( $child, '' )
+					);
 				} else {
 					$item_text_parts[] = $child->textContent; // phpcs:ignore WordPress.NamingConventions.ValidVariableName.UsedPropertyNotSnakeCase
 				}
@@ -601,10 +627,10 @@ class SScribe_Markdown_Exporter implements SScribe_Exporter_Interface {
 
 			$item_text = trim( preg_replace( '/\s+/', ' ', implode( ' ', $item_text_parts ) ) );
 			if ( 'ol' === $list_tag ) {
-				$result .= $counter . '. ' . $item_text . "\n";
+				$result .= $indent . $counter . '. ' . $item_text . "\n";
 				++$counter;
 			} else {
-				$result .= '- ' . $item_text . "\n";
+				$result .= $indent . '- ' . $item_text . "\n";
 			}
 		}
 		return $result . "\n";
@@ -750,7 +776,7 @@ class SScribe_Markdown_Exporter implements SScribe_Exporter_Interface {
 				return $result . "\n";
 			},
 			$html
-		);
+		) ?? $html;
 	}
 
 	/**
@@ -792,8 +818,8 @@ class SScribe_Markdown_Exporter implements SScribe_Exporter_Interface {
 		// Strip only the 'open' attribute from <details> since Markdown doesn't
 		// support the boolean open attribute — the element will render closed by
 		// default in most Markdown renderers, which is the safe fallback.
-		$html = preg_replace( '/<details([^>]*)open([^>]*)>/i', '<details$1$2>', $html );
-		$html = preg_replace( '/<details(\s[^>]*)?>/i', '<details>', $html );
+		$html = preg_replace( '/<details([^>]*)open([^>]*)>/i', '<details$1$2>', $html ) ?? $html;
+		$html = preg_replace( '/<details(\s[^>]*)?>/i', '<details>', $html ) ?? $html;
 
 		return $html;
 	}
@@ -878,6 +904,9 @@ class SScribe_Markdown_Exporter implements SScribe_Exporter_Interface {
 	 * @return string Content with line-start Markdown chars escaped.
 	 */
 	private function escape_markdown_body( string $text ): string {
+		// NOTE: Heading markers (#) are intentionally NOT escaped at line start,
+		// because convert_headings() has already produced valid Markdown headings
+		// (e.g. "## Section") by this point. Escaping # would corrupt them.
 		$lines = explode( "\n", $text );
 		foreach ( $lines as $index => $line ) {
 			$trimmed = ltrim( $line );
@@ -885,8 +914,9 @@ class SScribe_Markdown_Exporter implements SScribe_Exporter_Interface {
 				continue;
 			}
 			$first_char = $trimmed[0];
-			// Escape Markdown special chars at line start.
-			if ( in_array( $first_char, array( '#', '-', '*', '>', '|' ), true ) ) {
+			// Escape Markdown special chars at line start — but NOT # (headings)
+			// since headings have already been converted before this runs.
+			if ( in_array( $first_char, array( '-', '*', '>', '|' ), true ) ) {
 				$lines[ $index ] = ltrim( substr( $line, 0, -strlen( $trimmed ) ) ) . '\\' . $trimmed;
 			}
 		}

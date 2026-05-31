@@ -296,10 +296,7 @@ class SScribe_Content_Parser {
 
 			$body = $dom->getElementsByTagName( 'body' )->item( 0 );
 			if ( ! $body ) {
-
-				unset( $body );
-				$dom = null;
-				unset( $dom );
+				// No cleanup needed here — the finally block below handles $body and $dom.
 				return $elements;
 			}
 
@@ -322,10 +319,10 @@ class SScribe_Content_Parser {
 			if ( isset( $body ) ) {
 				unset( $body );
 			}
-			if ( isset( $dom ) ) {
-				$dom = null;
-				unset( $dom );
-			}
+			// These variables are always set when finally runs because the assignments
+			// occur before any code that could throw. isset() here silences PHPStan
+			// but the variables are unconditionally cleaned up.
+			unset( $dom );
 			libxml_clear_errors();
 			libxml_use_internal_errors( $prev_use_errors );
 		}

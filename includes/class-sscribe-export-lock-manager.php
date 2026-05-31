@@ -191,8 +191,13 @@ class SScribe_Export_Lock_Manager {
 		// Detect fatal errors by checking if shutdown was triggered by one.
 		$last_error = error_get_last();
 		if ( null !== $last_error && in_array( $last_error['type'], array( E_ERROR, E_PARSE, E_CORE_ERROR, E_COMPILE_ERROR, E_USER_ERROR ), true ) ) {
-			// Fatal error occurred — release the lock.
-			$lock_key = 'sscribe_lock_' . $session_id;
+			// Fatal error occurred — release the lock using the same approach as release_lock():
+			// try both wp_cache_delete (for Redis/Memcached) and delete_transient (for DB fallback).
+			$lock_key     = 'sscribe_lock_' . $session_id;
+			$using_cache = wp_using_ext_object_cache();
+			if ( $using_cache ) {
+				wp_cache_delete( $lock_key, 'transient' );
+			}
 			delete_transient( $lock_key );
 		}
 

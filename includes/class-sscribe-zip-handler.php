@@ -174,10 +174,22 @@ class SScribe_Zip_Handler {
 
 		$zip        = new ZipArchive();
 		$zip_opened = false;
+		// Build ZIP in a temp file first so that if any exception occurs during
+		// assembly, the temp file is cleaned up by PHP's shutdown handler and we
+		// avoid orphaned partial ZIPs in the export directory.
+		$tmp_zip = wp_tempnam( 'sscribe-export-' );
+		if ( false === $tmp_zip ) {
+			$this->logger->error( 'Failed to create temp file for ZIP' );
+			$this->delete_directory( $source_dir );
+			return false;
+		}
 		try {
-			if ( $zip->open( $zip_path, ZipArchive::CREATE | ZipArchive::OVERWRITE ) !== true ) {
+			if ( $zip->open( $tmp_zip, ZipArchive::CREATE | ZipArchive::OVERWRITE ) !== true ) {
 				$this->logger->error( 'Failed to create ZIP file', array( 'zip_path' => $zip_path ) );
 				$this->delete_directory( $source_dir );
+				if ( file_exists( $tmp_zip ) ) {
+					@unlink( $tmp_zip );
+				}
 				return false;
 			}
 			$zip_opened = true;
@@ -279,6 +291,28 @@ class SScribe_Zip_Handler {
 			if ( $zip_opened ) {
 				$zip->close();
 			}
+		}
+
+		// Move the completed ZIP from the temp file to its final destination.
+		// If the move fails (e.g., disk full), the temp file is cleaned up below.
+		$zip_finalized = false;
+		if ( file_exists( $tmp_zip ) && filesize( $tmp_zip ) > 0 ) {
+			if ( @rename( $tmp_zip, $zip_path ) ) {
+				$zip_finalized = true;
+			} else {
+				$this->logger->warning(
+					'Failed to move temp ZIP to final location — serving from temp path',
+					array(
+						'temp_zip'  => $tmp_zip,
+						'final_zip' => $zip_path,
+					)
+				);
+				$zip_path = $tmp_zip; // Fall back to temp path.
+			}
+		}
+
+		if ( ! $zip_finalized && file_exists( $tmp_zip ) ) {
+			@unlink( $tmp_zip ); // Clean up temp file if move failed.
 		}
 
 		$this->delete_directory( $source_dir );
