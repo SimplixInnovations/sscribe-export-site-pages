@@ -18,6 +18,7 @@ parameters:
         - '#Property .* has unknown class WP_Filesystem_Base as its type\.#'
         - '#Instantiated class WP_Query not found\.#'
         - '#Instantiated class WP_Roles not found\.#'
+        - '#Access to property \$.+ on an unknown class WP_Roles\.#'
         - '#Access to .+ property WP_Query::\$max_num_pages#'
         - '#Function aioseo not found\.#'
         - '#Call to an undefined method DOMNode::#'
