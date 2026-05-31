@@ -145,7 +145,12 @@ class SScribe_Batch_Processor {
 	 * @var SScribe_Export_Rate_Limiter|null
 	 */
 	private ?SScribe_Export_Rate_Limiter $rate_limiter = null;
-	/** @var string|null Cached capability to avoid repeated filter/validation calls per request. */
+
+	/**
+	 * Cached capability to avoid repeated filter/validation calls per request.
+	 *
+	 * @var string|null
+	 */
 	private ?string $cached_required_capability = null;
 
 	/**
