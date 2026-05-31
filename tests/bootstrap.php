@@ -283,6 +283,12 @@ if ( ! function_exists( 'wp_mkdir_p' ) ) {
 	}
 }
 
+if ( ! function_exists( 'wp_tempnam' ) ) {
+	function wp_tempnam( $prefix = 'tmp' ) {
+		return tempnam( sys_get_temp_dir(), $prefix );
+	}
+}
+
 if ( ! function_exists( 'wp_generate_password' ) ) {
 	function wp_generate_password( $sscribe_length = 12, $sscribe_special_chars = true, $sscribe_extra_special_chars = false ) {
 		$sscribe_chars = 'abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789';

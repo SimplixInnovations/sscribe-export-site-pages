@@ -68,7 +68,7 @@
 			if (this.initialized) {
 				return;
 			}
-			if (typeof sscribe_data === 'undefined' || ! sscribe_data) {
+			if (typeof sscribe_data === 'undefined' || ! sscribe_data || ! sscribe_data.ajaxurl || ! sscribe_data.nonce) {
 				if (this.initRetryCount === undefined) {
 					this.initRetryCount = 0;
 				}
@@ -865,9 +865,10 @@
 			// Preserve scroll position during auto-refresh updates.
 			const consoleBody = document.getElementById( 'sscribe-debug-console-body' );
 			let scrollTop = 0;
-			const wasAtBottom = consoleBody ? (consoleBody.scrollHeight - consoleBody.scrollTop - consoleBody.clientHeight < 50) : false;
+			let wasAtBottom = false;
 			if (consoleBody) {
 				scrollTop = consoleBody.scrollTop;
+				wasAtBottom = (consoleBody.scrollHeight - consoleBody.scrollTop - consoleBody.clientHeight) < 50;
 			}
 
 			this.$entries.html( this.buildLogsHtml( entries ) );

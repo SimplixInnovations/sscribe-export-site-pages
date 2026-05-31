@@ -397,6 +397,7 @@ class SScribe_Logger implements SScribe_Logger_Interface {
 					basename( $rotated_file )
 				);
 				file_put_contents( $log_file, $warning_entry, LOCK_EX ); // phpcs:ignore WordPress.WP.AlternativeFunctions.file_system_operations_file_put_contents -- Required for debug logging per plugin requirements.
+				chmod( $log_file, 0600 ); // phpcs:ignore WordPress.WP.AlternativeFunctions.file_system_operations_chmod -- Setting 0600 for log file security.
 			}
 			// If rename failed (e.g., file locked), fall through — the log entry will be
 			// written to the existing file even if it exceeds the size limit.
@@ -406,6 +407,11 @@ class SScribe_Logger implements SScribe_Logger_Interface {
 		if ( false === $result ) {
 			error_log( 'SScribe_Logger: Failed to flush log to ' . $log_file ); // phpcs:ignore WordPress.PHP.DevelopmentFunctions.error_log_error_log -- Reporting flush failure when file_put_contents fails; no better alternative in production.
 		}
+
+		// Set restrictive 0600 permissions (owner read/write only) so debug logs
+		// containing post content and internal paths are not world-readable.
+		// chmod is safe to call on every write — no-op if permissions already 0600.
+		chmod( $log_file, 0600 ); // phpcs:ignore WordPress.WP.AlternativeFunctions.file_system_operations_chmod -- Setting 0600 for log file security; only effective on Unix-like systems where debug logs are stored.
 
 		$this->buffer = array();
 	}

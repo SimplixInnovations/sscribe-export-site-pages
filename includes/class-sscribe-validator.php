@@ -374,11 +374,17 @@ class SScribe_Validator {
 					$sanitized[ $field ] = sanitize_text_field( $value );
 					break;
 				case 'array_int':
-					$value               = (array) $value;
+					if ( ! is_array( $value ) ) {
+						$sanitized[ $field ] = array();
+						break;
+					}
 					$sanitized[ $field ] = array_filter( array_map( 'absint', $value ) );
 					break;
 				case 'array_string':
-					$value               = (array) $value;
+					if ( ! is_array( $value ) ) {
+						$sanitized[ $field ] = array();
+						break;
+					}
 					$sanitized[ $field ] = array_map( 'sanitize_text_field', $value );
 					break;
 				case 'key':
