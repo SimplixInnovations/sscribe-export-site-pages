@@ -294,7 +294,7 @@ class SScribe_Zip_Handler {
 		}
 
 		// Move the completed ZIP from the temp file to its final destination.
-		// If the move fails (e.g., disk full), the temp file is cleaned up below.
+		// If the move fails (e.g., disk full), fall back to the temp path.
 		$zip_finalized = false;
 		if ( file_exists( $tmp_zip ) && filesize( $tmp_zip ) > 0 ) {
 			if ( @rename( $tmp_zip, $zip_path ) ) {
@@ -307,12 +307,10 @@ class SScribe_Zip_Handler {
 						'final_zip' => $zip_path,
 					)
 				);
-				$zip_path = $tmp_zip; // Fall back to temp path.
+				$zip_path = $tmp_zip;
 			}
-		}
-
-		if ( ! $zip_finalized && file_exists( $tmp_zip ) ) {
-			@unlink( $tmp_zip ); // Clean up temp file if move failed.
+		} elseif ( isset( $tmp_zip ) && file_exists( $tmp_zip ) ) {
+			@unlink( $tmp_zip );
 		}
 
 		$this->delete_directory( $source_dir );

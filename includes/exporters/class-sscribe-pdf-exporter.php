@@ -212,6 +212,8 @@ class SScribe_PDF_Exporter implements SScribe_Exporter_Interface {
 				$base_css .= ' table { direction: rtl; border-collapse: collapse; }';
 			}
 			$base_css .= ' img { max-width: 100%; height: auto; }';
+			$base_css .= ' table { width: 100% !important; table-layout: fixed; word-wrap: break-word; }';
+			$base_css .= ' td, th { word-wrap: break-word; overflow-wrap: break-word; }';
 			$base_css .= ' a { color: #2C6E8A; text-decoration: none; }';
 			$base_css .= ' h1, h2, h3, h4, h5, h6 { color: #122119; }';
 			$mpdf->WriteHTML( $base_css, \SScribeVendor\Mpdf\HTMLParserMode::HEADER_CSS );
