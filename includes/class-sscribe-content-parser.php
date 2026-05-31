@@ -466,6 +466,61 @@ class SScribe_Content_Parser {
 					'content' => trim( $node->textContent ),
 				);
 
+			case 'details':
+				// Parse <details>/<summary> collapsible sections.
+				// <summary> is extracted as a label; remaining children form the
+				// collapsible body. Both are recursively parsed for nested content.
+				$summary_text = '';
+				$body_elements = array();
+				$is_summary_found = false;
+
+				foreach ( $node->childNodes as $child ) {
+					if ( $child instanceof DOMElement && 'summary' === strtolower( $child->tagName ) ) {
+						$summary_text = trim( $child->textContent );
+						$is_summary_found = true;
+					} elseif ( $is_summary_found || 'summary' !== strtolower( $child->tagName ) ) {
+						// After summary has been seen, collect remaining children.
+						// Also collect non-summary children before the first summary.
+						$parsed = $this->parse_node( $child, $depth + 1 );
+						if ( null !== $parsed ) {
+							if ( is_array( $parsed ) && isset( $parsed[0] ) ) {
+								foreach ( $parsed as $p ) {
+									if ( null !== $p ) {
+										$body_elements[] = $p;
+									}
+								}
+							} elseif ( null !== $parsed ) {
+								$body_elements[] = $parsed;
+							}
+						}
+					}
+				}
+
+				return array(
+					'type'    => 'details',
+					'summary' => $summary_text,
+					'content' => $body_elements,
+				);
+
+			case 'summary':
+				// Return summary as separate element only when it appears outside of details.
+				// When inside details, the summary is extracted by the details case above
+				// to prevent duplicate output.
+				$parent = $node->parentNode;
+				if ( $parent instanceof DOMElement && 'details' === strtolower( $parent->nodeName ) ) {
+					return null; // Summary handled by details case.
+				}
+				return array(
+					'type'    => 'paragraph',
+					'content' => trim( $node->textContent ),
+					'runs'    => array(
+						array(
+							'text' => trim( $node->textContent ),
+							'bold' => true,
+						),
+					),
+				);
+
 			case 'br':
 				return array(
 					'type'    => 'break',
@@ -1038,6 +1093,29 @@ class SScribe_Content_Parser {
 		// WEBP and AVIF are not supported by PHPWord — exclude them to prevent exceptions.
 		if ( ! in_array( $extension, array( 'jpg', 'jpeg', 'png', 'gif', 'bmp', 'svg', 'webp', 'avif' ), true ) ) {
 			return '';
+		}
+
+		// Validate actual MIME type matches expected image MIME for the extension.
+		// This prevents malicious files with disguised extensions from being processed.
+		if ( function_exists( 'getimagesize' ) ) {
+			$image_info = @getimagesize( $real_local );
+			if ( false === $image_info || ! isset( $image_info['mime'] ) ) {
+				return '';
+			}
+			$mime = $image_info['mime'];
+			$expected_mimes = array(
+				'jpg'  => 'image/jpeg',
+				'jpeg' => 'image/jpeg',
+				'png'  => 'image/png',
+				'gif'  => 'image/gif',
+				'bmp'  => 'image/bmp',
+				'svg'  => 'image/svg+xml',
+				'webp' => 'image/webp',
+				'avif' => 'image/avif',
+			);
+			if ( isset( $expected_mimes[ $extension ] ) && $mime !== $expected_mimes[ $extension ] ) {
+				return '';
+			}
 		}
 
 		return $real_local;
