@@ -888,6 +888,11 @@ class SScribe_Exporter {
 			$codeblock_style['rtl']           = true;
 		}
 
+		// Light gray background shading to visually distinguish code blocks.
+		$codeblock_style['shading'] = array(
+			'fill' => 'F2F2F2',
+		);
+
 		$php_word->addParagraphStyle( 'CodeBlock', $this->get_para_style( $codeblock_style ) );
 
 		// Define ListBullet and ListNumber styles to ensure consistent sizing with the rest of the document.
@@ -1370,12 +1375,17 @@ class SScribe_Exporter {
 			array( __( 'Published', 'sscribe-export-site-pages' ), $page_data['date_published'] ?? '' ),
 			array( __( 'Last Modified', 'sscribe-export-site-pages' ), $page_data['date_modified'] ?? '' ),
 			array( __( 'Word Count', 'sscribe-export-site-pages' ), number_format( (int) ( $page_data['word_count'] ?? 0 ) ) ),
-			array(
-				__( 'Reading Time', 'sscribe-export-site-pages' ),
-				/* translators: %d: number of minutes */
-
-				sprintf( _n( '%d minute', '%d minutes', (int) ceil( (float) ( $page_data['reading_time'] ?? 0 ) ), 'sscribe-export-site-pages' ), (int) ceil( (float) ( $page_data['reading_time'] ?? 0 ) ) ),
-			),
+		);
+		$reading_time_value = (float) ( $page_data['reading_time'] ?? 0 );
+		$info_rows[] = array(
+			__( 'Reading Time', 'sscribe-export-site-pages' ),
+			$reading_time_value > 0
+				? sprintf(
+					/* translators: %d: number of minutes */
+					_n( '%d minute', '%d minutes', (int) ceil( $reading_time_value ), 'sscribe-export-site-pages' ),
+					(int) ceil( $reading_time_value )
+				)
+				: __( '< 1 minute', 'sscribe-export-site-pages' ),
 		);
 
 		foreach ( $info_rows as $row ) {
