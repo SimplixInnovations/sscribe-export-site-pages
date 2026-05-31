@@ -106,7 +106,7 @@ class SScribe_Image_Processor {
 		$response = wp_safe_remote_get(
 			$url,
 			array(
-				'timeout'             => 15,
+				'timeout'             => 10,
 				'user-agent'          => 'SScribe Export Plugin',
 				'reject_unsafe_urls'  => true,
 				'limit_response_size' => self::MAX_DOWNLOAD_BYTES,

@@ -469,6 +469,10 @@ class SScribe_DOCX_Content_Renderer {
 				$this->render_figure( $section, $element );
 				break;
 
+			case 'details':
+				$this->render_details( $section, $element );
+				break;
+
 			case 'figcaption':
 				// Figcaption is rendered as part of figure, not as standalone.
 				// Log standalone figcaption to aid debugging of parser edge cases.
@@ -933,7 +937,8 @@ class SScribe_DOCX_Content_Renderer {
 
 			$image_info = getimagesize( $path );
 			if ( $image_info ) {
-				$max_width  = Converter::inchToEmu( 5.5 );
+				// 8.33 inches at 96 DPI = 800px max width as specified by the audit.
+				$max_width  = Converter::inchToEmu( 8.33 );
 				$width_emu  = Converter::pixelToEmu( $image_info[0] );
 				$height_emu = Converter::pixelToEmu( $image_info[1] );
 
@@ -1000,6 +1005,109 @@ class SScribe_DOCX_Content_Renderer {
 				),
 				$this->get_para_style()
 			);
+		}
+
+		$section->addTextBreak( 1 );
+	}
+
+	/**
+	 * Render a details/summary collapsible element.
+	 *
+	 * DOCX has no native collapsible content support, so the summary is
+	 * rendered as a bold prefixed paragraph and the body content is
+	 * indented below it.
+	 *
+	 * @param Section $section Document section.
+	 * @param array   $element Details element data with 'summary' and 'content'.
+	 */
+	private function render_details( Section $section, array $element ): void {
+		$summary = trim( $element['summary'] ?? '' );
+
+		// Render the summary line with a visual indicator prefix.
+		if ( '' !== $summary ) {
+			$section->addText(
+				'[+] ' . $this->safe_text( $summary ),
+				array(
+					'bold' => true,
+					'name' => $this->font_name,
+					'size' => $this->font_size + 1,
+					'color' => $this->colors['heading'],
+				),
+				$this->get_para_style()
+			);
+		}
+
+		// Render the collapsible body with a left indent.
+		$body_elements = $element['content'] ?? array();
+		if ( ! empty( $body_elements ) ) {
+			// Use a subtle left border + indent to visually indicate the collapsed region.
+			$indent_style = array(
+				'indentLeft' => Converter::inchToTwip( 0.25 ),
+				'borderLeftSize' => 4,
+				'borderLeftColor' => $this->colors['border'],
+			);
+
+			foreach ( $body_elements as $body_element ) {
+				if ( empty( $body_element['type'] ) ) {
+					continue;
+				}
+				switch ( $body_element['type'] ) {
+					case 'paragraph':
+						$text_run = $section->addTextRun( $this->get_para_style( $indent_style ) );
+						$this->render_runs( $text_run, $body_element['runs'] ?? array(), false );
+						break;
+					case 'heading':
+						$text = trim( $body_element['content'] ?? '' );
+						if ( '' !== $text ) {
+							$level = isset( $body_element['level'] ) ? min( $body_element['level'], 6 ) : 2;
+							$section->addTitle( $this->safe_text( $text ), $level );
+						}
+						break;
+					case 'list':
+						$this->render_list( $section, $body_element );
+						break;
+					case 'blockquote':
+						$text_run = $section->addTextRun( $this->get_para_style( array( 'styleName' => 'Blockquote' ) ) );
+						$this->render_runs( $text_run, $body_element['runs'] ?? array(), true );
+						break;
+					case 'code':
+						$section->addText(
+							$this->safe_text( $body_element['content'] ?? '' ),
+							array(
+								'name'    => 'Courier New',
+								'size'    => 9,
+								'color'   => $this->colors['body'],
+								'bgColor' => $this->colors['code_bg'],
+							),
+							$this->get_para_style( $indent_style )
+						);
+						break;
+					case 'break':
+						$section->addTextBreak();
+						break;
+					case 'image':
+						$this->render_inline_image( $section, $body_element );
+						break;
+					case 'table':
+						$this->render_table( $section, $body_element );
+						break;
+					default:
+						// Render unknown body elements as plain text.
+						$text = trim( $body_element['content'] ?? '' );
+						if ( '' !== $text ) {
+							$section->addText(
+								$this->safe_text( $text ),
+								array(
+									'name' => $this->font_name,
+									'size' => $this->font_size,
+									'color' => $this->colors['body'],
+								),
+								$this->get_para_style( $indent_style )
+							);
+						}
+						break;
+				}
+			}
 		}
 
 		$section->addTextBreak( 1 );

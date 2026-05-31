@@ -253,6 +253,7 @@ class SScribe_Markdown_Exporter implements SScribe_Exporter_Interface {
 		$md = $this->convert_paragraphs( $md );
 		$md = $this->convert_blockquotes( $md );
 		$md = $this->convert_horizontal_rules( $md );
+		$md = $this->convert_details( $md );
 
 		// Decode HTML entities AFTER code blocks are wrapped in fences so that
 		// entities inside code (e.g. <div>) are not decoded before fences are applied.
@@ -776,6 +777,25 @@ class SScribe_Markdown_Exporter implements SScribe_Exporter_Interface {
 	 */
 	private function convert_horizontal_rules( string $html ): string {
 		return preg_replace( '/<hr\s*\/?>/i', "\n---\n", $html ) ?? $html;
+	}
+
+	/**
+	 * Preserve <details>/<summary> collapsible sections as raw HTML in Markdown.
+	 *
+	 * Markdown parsers (including GitHub Flavored Markdown) support raw HTML
+	 * within Markdown documents, so we preserve the HTML structure as-is.
+	 *
+	 * @param string $html HTML content.
+	 * @return string HTML with details/summary elements preserved.
+	 */
+	private function convert_details( string $html ): string {
+		// Strip only the 'open' attribute from <details> since Markdown doesn't
+		// support the boolean open attribute — the element will render closed by
+		// default in most Markdown renderers, which is the safe fallback.
+		$html = preg_replace( '/<details([^>]*)open([^>]*)>/i', '<details$1$2>', $html );
+		$html = preg_replace( '/<details(\s[^>]*)?>/i', '<details>', $html );
+
+		return $html;
 	}
 
 	/**

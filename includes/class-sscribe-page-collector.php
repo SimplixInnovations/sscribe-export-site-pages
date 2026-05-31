@@ -151,10 +151,14 @@ class SScribe_Page_Collector {
 			return $cached;
 		}
 
+		// Cap posts_per_page at 10000 to prevent memory exhaustion on sites with
+		// thousands of pages, while still allowing explicit per-page limits.
+		$effective_limit = $limit > 0 ? min( $limit, 10000 ) : 10000;
+
 		$args = array(
 			'post_type'      => $this->resolve_post_type_for_query( $post_type ),
 			'post_status'    => $post_status,
-			'posts_per_page' => $limit > 0 ? $limit : -1,
+			'posts_per_page' => $effective_limit,
 			'fields'         => 'ids',
 			'orderby'        => 'menu_order title',
 			'order'          => 'ASC',
