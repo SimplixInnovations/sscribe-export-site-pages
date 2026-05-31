@@ -474,6 +474,12 @@
 		startAutoRefresh: function () {
 			const self = this;
 			this.stopAutoRefresh();
+			// Respect the user-specified interval. A value of 0 means "disabled"
+			// and should be treated as a stop signal, not silently overridden to 5s.
+			const interval = parseFloat( self.$refreshInterval.val() );
+			if ( isNaN( interval ) || interval <= 0 ) {
+				return;
+			}
 			this.refreshInterval = setInterval(
 				function () {
 					if ( self.isRefreshing && self.isRefreshingSince && ( Date.now() - self.isRefreshingSince > 30000 ) ) {
@@ -494,7 +500,7 @@
 						self.fetchRotatedLogs();
 					}
 				},
-				10000
+				interval * 1000
 			);
 		},
 
@@ -1040,14 +1046,16 @@
 			};
 
 			self.$exportBtn.prop( 'disabled', true );
-			self.$exportBtn.find( '.sscribe-export-btn-scope' ).text( ' (downloading...)' );
+			self.$exportBtn.find( '.sscribe-export-btn-scope' ).text( ' (exporting...)' );
+			this.showPausedIndicator( 'Export in progress — download should begin shortly' );
 			this.downloadViaForm( sscribe_data.ajaxurl, data );
 			setTimeout(
 				function () {
 					self.$exportBtn.prop( 'disabled', false );
 					self.updateExportButtonScope();
+					self.hidePausedIndicator();
 				},
-				5000
+				10000
 			);
 
 			$.get(
@@ -1171,8 +1179,8 @@
 							'<button type="button" class="sscribe-button sscribe-button-primary" id="sscribe-back-to-current">Back to current log</button>' +
 							'</div>'
 						);
-						self.$entries.find( '#sscribe-back-to-current' ).off( 'click' ).on(
-							'click',
+						self.$entries.find( '#sscribe-back-to-current' ).off( 'click.sscribe' ).on(
+							'click.sscribe',
 							function () {
 								self.backToCurrentLog();
 							}

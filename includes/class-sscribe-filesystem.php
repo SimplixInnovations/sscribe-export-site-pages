@@ -91,7 +91,7 @@ class SScribe_Filesystem {
 			return false;
 		}
 
-		$credentials = request_filesystem_credentials( '', '', false, false, null );
+		$credentials = request_filesystem_credentials( admin_url(), '', false, false, null );
 
 		if ( false === $credentials ) {
 			$this->logger->debug( 'Could not get filesystem credentials, using direct file operations' );
@@ -139,9 +139,23 @@ class SScribe_Filesystem {
 						'size' => strlen( $content ),
 					)
 				);
+				return false;
 			}
 
-			return (bool) $result;
+			// WP_Filesystem implementations (FTP/SSH) may silently ignore the
+			// $mode parameter in put_contents(). Apply chmod explicitly as a
+			// separate step to ensure correct permissions on all filesystems.
+			if ( $mode && self::$fs->chmod( $file, $mode ) === false ) {
+				$this->logger->warning(
+					'WP_Filesystem chmod failed — file may have unexpected permissions',
+					array(
+						'file' => $file,
+						'mode' => decoct( $mode ),
+					)
+				);
+			}
+
+			return true;
 		}
 
 		$dir = dirname( $file );
@@ -190,7 +204,7 @@ class SScribe_Filesystem {
 		self::$last_error = '';
 
 		if ( self::$fs instanceof WP_Filesystem_Base ) {
-			return self::$fs->get_contents( $file );
+			return self::$fs->get_contents( $file ) ?: false;
 		}
 
 		if ( ! is_file( $file ) ) {
