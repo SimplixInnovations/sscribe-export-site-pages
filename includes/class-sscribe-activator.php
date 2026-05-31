@@ -111,6 +111,7 @@ class SScribe_Activator {
 		self::register_settings();
 		self::schedule_cleanup();
 		self::cleanup_orphaned_data();
+		self::grant_export_capability();
 		update_option( 'sscribe_version', SSCRIBE_VERSION, false );
 	}
 
@@ -307,6 +308,20 @@ class SScribe_Activator {
 					)
 				);
 			} while ( false !== $rows && $rows > 0 );
+		}
+	}
+
+	/**
+	 * Grant the scribe_export capability to the Administrator role.
+	 *
+	 * This allows administrators to access export functionality by default.
+	 * Other roles can be granted access via the scribe_export_capability filter
+	 * or by manually assigning the capability.
+	 */
+	private static function grant_export_capability(): void {
+		$admin_role = get_role( 'administrator' );
+		if ( $admin_role && ! $admin_role->has_cap( 'sscribe_export' ) ) {
+			$admin_role->add_cap( 'sscribe_export' );
 		}
 	}
 }

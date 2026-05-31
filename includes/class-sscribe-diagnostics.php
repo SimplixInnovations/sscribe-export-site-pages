@@ -198,6 +198,8 @@ class SScribe_Diagnostics {
 				'memory_limit'       => (string) ini_get( 'memory_limit' ),
 				'max_execution_time' => (string) ini_get( 'max_execution_time' ),
 				'zip_extension'      => class_exists( 'ZipArchive' ) ? __( 'Available', 'sscribe-export-site-pages' ) : __( 'Missing', 'sscribe-export-site-pages' ),
+				'dom_extension'     => class_exists( 'DOMDocument' ) ? __( 'Available', 'sscribe-export-site-pages' ) : __( 'Missing', 'sscribe-export-site-pages' ),
+				'mbstring'           => function_exists( 'mb_convert_encoding' ) ? __( 'Available', 'sscribe-export-site-pages' ) : __( 'Missing', 'sscribe-export-site-pages' ),
 				'mpdf'               => class_exists( '\SScribeVendor\Mpdf\Mpdf' ) ? __( 'Available', 'sscribe-export-site-pages' ) : __( 'Missing', 'sscribe-export-site-pages' ),
 				'phpword'            => class_exists( '\SScribeVendor\PhpOffice\PhpWord\PhpWord' ) ? __( 'Available', 'sscribe-export-site-pages' ) : __( 'Missing', 'sscribe-export-site-pages' ),
 			),
@@ -1155,7 +1157,7 @@ class SScribe_Diagnostics {
 			'message' => ! empty( $nonce ) ? 'Nonces can be created' : 'Failed to generate nonce',
 		);
 
-		$has_cap                   = current_user_can( apply_filters( 'sscribe_export_capability', 'manage_options' ) );
+		$has_cap                   = current_user_can( SScribe_Capabilities::get_required() );
 		$checks['user_capability'] = array(
 			'name'    => 'User Permission',
 			'status'  => $has_cap ? 'ok' : 'error',

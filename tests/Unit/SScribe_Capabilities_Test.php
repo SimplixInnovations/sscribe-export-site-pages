@@ -19,6 +19,7 @@ class SScribe_Capabilities_Test extends TestCase {
 	 * @var array
 	 */
 	private const ALLOWED = array(
+		'sscribe_export',
 		'manage_options',
 		'edit_pages',
 		'edit_posts',
@@ -45,7 +46,7 @@ class SScribe_Capabilities_Test extends TestCase {
 	public function test_get_allowed_list_returns_all(): void {
 		$list = \SScribe_Capabilities::get_allowed_list();
 		$this->assertIsArray( $list );
-		$this->assertCount( 8, $list );
+		$this->assertCount( 9, $list );
 		foreach ( self::ALLOWED as $cap ) {
 			$this->assertContains( $cap, $list );
 		}
@@ -53,7 +54,7 @@ class SScribe_Capabilities_Test extends TestCase {
 
 	public function test_get_required_returns_default(): void {
 		$cap = \SScribe_Capabilities::get_required();
-		$this->assertEquals( 'manage_options', $cap );
+		$this->assertEquals( 'sscribe_export', $cap );
 	}
 
 	public function test_get_required_respects_filter(): void {
@@ -83,7 +84,7 @@ class SScribe_Capabilities_Test extends TestCase {
 		);
 
 		$cap = \SScribe_Capabilities::get_required();
-		$this->assertEquals( 'manage_options', $cap );
+		$this->assertEquals( 'sscribe_export', $cap );
 
 		array_pop( $GLOBALS['sscribe_test_filters'] );
 	}

@@ -676,21 +676,8 @@ class SScribe_Batch_Processor {
 		if ( null !== $this->cached_required_capability ) {
 			return $this->cached_required_capability;
 		}
-		$capability = apply_filters( 'sscribe_export_capability', 'manage_options' );
 
-		if ( ! SScribe_Capabilities::is_allowed( $capability ) ) {
-			$this->audit_log(
-				'invalid_capability_blocked',
-				array(
-					'requested_capability' => $capability,
-					'fallback'             => 'manage_options',
-				)
-			);
-			$this->cached_required_capability = 'manage_options';
-			return $this->cached_required_capability;
-		}
-
-		$this->cached_required_capability = $capability;
+		$this->cached_required_capability = SScribe_Capabilities::get_required();
 		return $this->cached_required_capability;
 	}
 
@@ -1264,6 +1251,14 @@ class SScribe_Batch_Processor {
 		$processed_in_this_batch = 0;
 		$current_batch_page_id   = null;
 		$paused_reason           = '';
+
+		// Reset time limit immediately before batch work starts (not just at function
+		// entry) so that any setup overhead (session reads, image prefetch, etc.)
+		// does not eat into the per-batch budget.
+		$batch_time_limit = (int) apply_filters( 'sscribe_max_execution_time', 150 );
+		if ( function_exists( 'set_time_limit' ) ) {
+			set_time_limit( $batch_time_limit ); // phpcs:ignore Squiz.PHP.DiscouragedFunctions.Discouraged
+		}
 
 		// Suspend cache invalidation during bulk processing to avoid flooding
 		// the object cache layer with clean_post_cache() calls on every page.

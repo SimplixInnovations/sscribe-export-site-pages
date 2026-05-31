@@ -51,7 +51,7 @@ class SScribe_Admin_Test extends TestCase {
 
 		$this->assertCount( 1, $sscribe_test_menu_pages );
 		$this->assertSame( 'sscribe-export', $sscribe_test_menu_pages[0]['menu_slug'] );
-		$this->assertSame( 'manage_options', $sscribe_test_menu_pages[0]['capability'] );
+		$this->assertSame( 'sscribe_export', $sscribe_test_menu_pages[0]['capability'] );
 		$this->assertSame( 'dashicons-media-document', $sscribe_test_menu_pages[0]['icon_url'] );
 	}
 

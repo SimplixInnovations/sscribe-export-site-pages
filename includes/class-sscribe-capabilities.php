@@ -19,6 +19,7 @@ if ( ! defined( 'ABSPATH' ) ) {
 class SScribe_Capabilities {
 
 	private const ALLOWED = array(
+		'sscribe_export',
 		'manage_options',
 		'edit_pages',
 		'edit_posts',
@@ -35,8 +36,8 @@ class SScribe_Capabilities {
 	 * @return string
 	 */
 	public static function get_required(): string {
-		$cap = (string) apply_filters( 'sscribe_export_capability', 'manage_options' );
-		return self::is_allowed( $cap ) ? $cap : 'manage_options';
+		$cap = (string) apply_filters( 'sscribe_export_capability', 'sscribe_export' );
+		return self::is_allowed( $cap ) ? $cap : 'sscribe_export';
 	}
 
 	/**

@@ -280,7 +280,7 @@
 					const helpContent = document.getElementById( 'sscribe-debug-help-content' );
 					if (helpContent) {
 						const overlay         = document.createElement( 'div' );
-						overlay.style.cssText = 'position:fixed;inset:0;background:rgb(0 0 0 / 50%);z-index:9999998;';
+						overlay.style.cssText = 'position:fixed;inset:0;background:rgb(0 0 0 / 50%);z-index:100000000;';
 						overlay.setAttribute( 'aria-hidden', 'true' );
 						const dialog         = document.createElement( 'div' );
 						dialog.style.cssText =
@@ -648,15 +648,16 @@
 					if (xhr.status === 0) {
 						errorMsg = 'Network error. Please check your connection.';
 					} else if (xhr.responseText) {
+						let parsed;
 						try {
-							const parsed = JSON.parse( xhr.responseText );
-							if ( parsed.data && parsed.data.message ) {
-								errorMsg = parsed.data.message;
-							} else {
-								errorMsg += ' (Server error, see console)';
-							}
+							parsed = JSON.parse( xhr.responseText );
 						} catch (e) {
-							errorMsg += ' (unparseable response)';
+							parsed = null;
+						}
+						if ( parsed && parsed.data && parsed.data.message ) {
+							errorMsg = parsed.data.message;
+						} else {
+							errorMsg += ' (Server error, see console)';
 						}
 					}
 					self.$saveFeedback.text( errorMsg ).addClass( 'error' );
@@ -908,7 +909,7 @@
 			if ( ! this.hasMoreEntries) {
 				return;
 			}
-			if ( ! this.$consoleBody[0]) {
+			if ( ! this.$consoleBody || ! this.$consoleBody[0]) {
 				return;
 			}
 
@@ -1144,6 +1145,10 @@
 
 			this.hasMoreEntries = false;
 			this.destroyObserver();
+			// Reset isRefreshing so that auto-refresh can resume when the user
+			// goes back to the current log (isRefreshing blocks startAutoRefresh).
+			this.isRefreshing = false;
+			this.isRefreshingSince = null;
 
 			this.viewRotatedRequest = $.post(
 				sscribe_data.ajaxurl,

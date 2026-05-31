@@ -41,7 +41,7 @@ class SScribe_Export_Rate_Limiter {
 	 *                                 them in a separate bucket from export actions.
 	 * @return bool
 	 */
-	public function check_rate_limit( string $export_capability = 'manage_options', string $bucket = 'export' ): bool {
+	public function check_rate_limit( string $export_capability = 'sscribe_export', string $bucket = 'export' ): bool {
 		$user_id = get_current_user_id();
 
 		if ( $user_id > 0 ) {

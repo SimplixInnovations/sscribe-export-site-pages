@@ -126,6 +126,7 @@ class SScribe_Export_Log {
 			$result = file_put_contents( $this->log_file, $json, LOCK_EX );
 			if ( false !== $result ) {
 				$this->dirty = false;
+				chmod( $this->log_file, 0600 );
 			}
 		}
 	}

@@ -319,20 +319,7 @@ class SScribe_Batch_Session_Handler {
 	 * @return string Capability name.
 	 */
 	private function get_required_capability(): string {
-		$capability = apply_filters( 'sscribe_export_capability', 'manage_options' );
-
-		if ( ! SScribe_Capabilities::is_allowed( $capability ) ) {
-			$this->auditor->log(
-				'invalid_capability_blocked',
-				array(
-					'requested_capability' => $capability,
-					'fallback'             => 'manage_options',
-				)
-			);
-			return 'manage_options';
-		}
-
-		return $capability;
+		return SScribe_Capabilities::get_required();
 	}
 
 	/**
