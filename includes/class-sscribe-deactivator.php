@@ -79,11 +79,7 @@ class SScribe_Deactivator {
 	 * on deactivation to keep the role database clean.
 	 */
 	private static function revoke_export_capability(): void {
-		global $wp_roles;
-
-		if ( ! isset( $wp_roles ) ) {
-			$wp_roles = new \WP_Roles();
-		}
+		$wp_roles = new \WP_Roles();
 
 		foreach ( $wp_roles->roles as $role_name => $role_data ) {
 			$role = get_role( $role_name );

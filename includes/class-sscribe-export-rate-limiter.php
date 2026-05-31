@@ -114,15 +114,26 @@ class SScribe_Export_Rate_Limiter {
 		return true;
 	}
 
+	/**
+	 * Get the best available client IP address, preferring trusted proxies.
+	 *
+	 * @return string Sanitized IP address or '0.0.0.0' as fallback.
+	 */
 	private function get_client_ip(): string {
 		$ip = '';
 		if ( isset( $_SERVER['HTTP_CF_CONNECTING_IP'] ) ) {
-			$ip = $_SERVER['HTTP_CF_CONNECTING_IP'];
-		} elseif ( isset( $_SERVER['HTTP_X_FORWARDED_FOR'] ) && preg_match( '/^([0-9.]+,?)+$/i', $_SERVER['HTTP_X_FORWARDED_FOR'] ) ) {
-			$ip = trim( explode( ',', $_SERVER['HTTP_X_FORWARDED_FOR'] )[0] );
+			$raw_ip = sanitize_text_field( wp_unslash( $_SERVER['HTTP_CF_CONNECTING_IP'] ) );
+			if ( $raw_ip ) {
+				$ip = $raw_ip;
+			}
+		} elseif ( isset( $_SERVER['HTTP_X_FORWARDED_FOR'] ) ) {
+			$raw_forwarded = sanitize_text_field( wp_unslash( $_SERVER['HTTP_X_FORWARDED_FOR'] ) );
+			if ( $raw_forwarded && preg_match( '/^([0-9.]+,?)+$/i', $raw_forwarded ) ) {
+				$ip = trim( explode( ',', $raw_forwarded )[0] );
+			}
 		} elseif ( isset( $_SERVER['REMOTE_ADDR'] ) ) {
-			$ip = $_SERVER['REMOTE_ADDR'];
+			$ip = sanitize_text_field( wp_unslash( $_SERVER['REMOTE_ADDR'] ) );
 		}
-		return $ip ? sanitize_text_field( wp_unslash( $ip ) ) : '0.0.0.0';
+		return $ip ? $ip : '0.0.0.0';
 	}
 }

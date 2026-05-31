@@ -592,7 +592,7 @@ class SScribe_Markdown_Exporter implements SScribe_Exporter_Interface {
 				if ( 'ul' === $child_tag || 'ol' === $child_tag ) {
 					// Recursively convert nested lists instead of stripping them.
 					$item_text_parts[] = $this->convert_single_list( $child, $child_tag );
-				} elseif ( XML_ELEMENT_NODE === $child->nodeType ) {
+				} elseif ( XML_ELEMENT_NODE === $child->nodeType ) { // phpcs:ignore WordPress.NamingConventions.ValidVariableName.UsedPropertyNotSnakeCase
 					$item_text_parts[] = wp_strip_all_tags( $this->get_inner_html( $child ) );
 				} else {
 					$item_text_parts[] = $child->textContent; // phpcs:ignore WordPress.NamingConventions.ValidVariableName.UsedPropertyNotSnakeCase
