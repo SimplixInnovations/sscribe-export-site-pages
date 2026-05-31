@@ -478,18 +478,20 @@ class SScribe_Content_Parser {
 					if ( $child instanceof DOMElement && 'summary' === strtolower( $child->tagName ) ) {
 						$summary_text = trim( $child->textContent );
 						$is_summary_found = true;
-					} elseif ( $is_summary_found || 'summary' !== strtolower( $child->tagName ) ) {
+					} elseif ( $is_summary_found || 'summary' !== strtolower( ( $child instanceof \DOMElement ? $child->tagName : '' ) ) ) {
 						// After summary has been seen, collect remaining children.
 						// Also collect non-summary children before the first summary.
 						$parsed = $this->parse_node( $child, $depth + 1 );
 						if ( null !== $parsed ) {
-							if ( is_array( $parsed ) && isset( $parsed[0] ) ) {
+							// parse_node returns ?array — isset($parsed[0]) distinguishes
+							// a flat array of elements (multiple) from a single element.
+							if ( isset( $parsed[0] ) ) {
 								foreach ( $parsed as $p ) {
 									if ( null !== $p ) {
 										$body_elements[] = $p;
 									}
 								}
-							} elseif ( null !== $parsed ) {
+							} else {
 								$body_elements[] = $parsed;
 							}
 						}
