@@ -98,28 +98,19 @@ class SScribe_Exporter_Factory {
 	 * @return string Generated filename.
 	 */
 	public static function build_filename( array $page_data, int $index = 0, int $total = 0, string $extension = 'docx', bool $include_lang = true ): string {
-		$page_id = (int) ( $page_data['id'] ?? 0 );
+		$page_id = $page_data['id'] ?? 0;
 
-		$raw_title  = isset( $page_data['title'] ) && '' !== $page_data['title']
-			? sanitize_file_name( function_exists( 'remove_accents' ) ? remove_accents( trim( $page_data['title'] ) ) : trim( $page_data['title'] ) )
-			: '';
-		$raw_slug   = isset( $page_data['slug'] ) && '' !== $page_data['slug']
-			? sanitize_file_name( trim( $page_data['slug'] ) )
-			: '';
-		$page_title = '' !== $raw_title ? $raw_title : ( '' !== $raw_slug ? $raw_slug : (string) $page_id );
-
-		if ( '' === $raw_title && isset( $page_data['title'] ) && '' !== $page_data['title'] && function_exists( 'do_action' ) ) {
-			$fallback = '' !== $raw_slug ? $raw_slug : (string) $page_id;
-			do_action(
-				'sscribe_debug_log',
-				'build_filename: title stripped to empty by sanitize_file_name — falling back to ' . $fallback,
-				array(
-					'page_id' => $page_data['id'] ?? 0,
-					'title'   => $page_data['title'],
-					'slug'    => $raw_slug,
-				)
-			);
+		$raw_title  = $page_data['title'] ?? '';
+		if ( '' !== $raw_title ) {
+			$raw_title = self::sanitize_filename_preserve_unicode( trim( $raw_title ) );
 		}
+
+		$raw_slug   = $page_data['slug'] ?? '';
+		if ( '' !== $raw_slug ) {
+			$raw_slug = self::sanitize_filename_preserve_unicode( trim( $raw_slug ) );
+		}
+
+		$page_title = '' !== $raw_title ? $raw_title : ( '' !== $raw_slug ? $raw_slug : (string) $page_id );
 
 		if ( mb_strlen( $page_title ) > 60 ) {
 			$page_title = mb_substr( $page_title, 0, 60 );
@@ -127,7 +118,7 @@ class SScribe_Exporter_Factory {
 			$page_title = rtrim( $page_title, '- _' );
 
 			// Re-sanitize after truncation to ensure no problematic characters remain.
-			$page_title = sanitize_file_name( $page_title );
+			$page_title = self::sanitize_filename_preserve_unicode( $page_title );
 		}
 
 		$lang_code = '';
@@ -167,5 +158,48 @@ class SScribe_Exporter_Factory {
 			$id_suffix,
 			strtolower( $extension )
 		);
+	}
+
+	/**
+	 * Sanitize a filename while preserving Unicode characters (non-Latin scripts).
+	 *
+	 * Unlike WordPress's sanitize_file_name(), this does NOT call remove_accents()
+	 * which destroys CJK, Arabic, Hebrew, Thai, Cyrillic, etc. characters.
+	 * Only strips characters that are genuinely invalid in filenames across
+	 * modern OS filesystems (null bytes, path separators, and a short list
+	 * of filesystemreserved names).
+	 *
+	 * @param string $filename Raw filename.
+	 * @return string Sanitized filename safe for filesystem use.
+	 */
+	private static function sanitize_filename_preserve_unicode( string $filename ): string {
+		// Replace directory separators with hyphens so the filename stays as one component.
+		$filename = str_replace( array( '/', '\\' ), '-', $filename );
+
+		// Remove null bytes (always invalid in filenames).
+		$filename = str_replace( "\0", '', $filename );
+
+		// Strip characters that are illegal on Windows (and generally problematic).
+		// These are: < > : " | ? and non-ASCII control characters.
+		$filename = preg_replace( '/[\x00-\x1f\x7f<>:\"\/\\\\|?]/', '', $filename );
+
+		// Windows reserved names (device names): CON, PRN, AUX, NUL, COM1-9, LPT1-9.
+		// Handle edge cases like "COM1" or "NUL" (case-insensitive on Windows).
+		if ( preg_match( '/^(con|prn|aux|nul|com[1-9]|lpt[1-9])(\\.|$)/i', $filename ) ) {
+			$filename = '_' . $filename;
+		}
+
+		// Collapse multiple hyphens/stubs to a single hyphen.
+		$filename = preg_replace( '/-+/', '-', $filename );
+
+		// Remove leading/trailing hyphens and dots (hidden files on Windows).
+		$filename = trim( $filename, '.-' );
+
+		// Enforce max length (255 bytes is the filesystem limit for most OS).
+		if ( strlen( $filename ) > 200 ) {
+			$filename = substr( $filename, 0, 200 );
+		}
+
+		return '' !== $filename ? $filename : '_';
 	}
 }
