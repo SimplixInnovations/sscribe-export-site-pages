@@ -378,8 +378,13 @@ class SScribe_Batch_Processor {
 					break;
 				}
 
-				$delay_ms = 100 * ( 2 ** $attempt );
-				usleep( $delay_ms * 1000 );
+				// Retry delay: capped at 100ms to avoid blocking the FPM worker for
+				// extended periods. Skip delay on attempt 0 to fail fast on genuine errors.
+				// Attempt 0: no delay (fail fast), Attempt 1: 100ms, Attempt 2: 100ms.
+				$delay_ms = min( 100, 100 * ( 2 ** $attempt ) );
+				if ( $attempt > 0 ) {
+					usleep( $delay_ms * 1000 );
+				}
 				++$attempt;
 
 				// Recreate exporter for clean state on next attempt.
@@ -720,6 +725,16 @@ class SScribe_Batch_Processor {
 			return false;
 		}
 
+		// Log successful session access for complete audit trail.
+		$this->audit_log(
+			'session_access_ok',
+			array(
+				'session_id'      => $session_id,
+				'session_user'    => $session['user_id'],
+				'attempting_user' => $current_user_id,
+			)
+		);
+
 		return true;
 	}
 
@@ -978,7 +993,6 @@ class SScribe_Batch_Processor {
 			'session_id'     => $session_id,
 			'total'          => $total,
 			'batch_size'     => $this->batch_size,
-			'memory_warning' => $memory_warning,
 			'message'        => sprintf(
 				/* translators: %d: Number of pages found. */
 
@@ -986,6 +1000,9 @@ class SScribe_Batch_Processor {
 				$total
 			),
 		);
+		if ( null !== $memory_warning ) {
+			$response['memory_warning'] = $memory_warning;
+		}
 
 		$sscribe_is_debug = SSCRIBE_DEBUG;
 		if ( $sscribe_is_debug ) {
@@ -1050,6 +1067,11 @@ class SScribe_Batch_Processor {
 
 		$ob_level_before = ob_get_level();
 		ob_start();
+		// Initialize batch timing variables BEFORE the try block so they are always
+		// defined when build_batch_response() is called (even if an exception fires
+		// before $batch_start_time = microtime(true) inside the try).
+		$batch_start_time = microtime( true );
+		$batch_duration  = 0.0;
 		try {
 			$session_id = isset( $_POST['session_id'] ) ? sanitize_text_field( wp_unslash( $_POST['session_id'] ) ) : '';
 			$session    = $this->session->get( $session_id );
@@ -1525,7 +1547,9 @@ class SScribe_Batch_Processor {
 					++$processed;
 					++$processed_in_this_batch;
 
-					if ( 0 === $processed % 10 && function_exists( 'gc_collect_cycles' ) ) {
+					// Run garbage collection after every page to reclaim memory promptly,
+					// not only every 10 pages as before.
+					if ( function_exists( 'gc_collect_cycles' ) ) {
 						gc_collect_cycles();
 					}
 
@@ -1569,7 +1593,7 @@ class SScribe_Batch_Processor {
 				$this->logger->debug(
 					'Batch completed',
 					array(
-						'processed_now'      => $processed - $session['processed'],
+						'processed_now'      => max( 0, $processed - $session['processed'] ),
 						'batch_duration_sec' => round( $batch_duration, 3 ),
 						'total_processed'    => $processed,
 						'total_errors'       => count( $errors ),
@@ -1636,6 +1660,10 @@ class SScribe_Batch_Processor {
 					'structured_errors' => $structured_errors,
 					'start_time'        => $start_time,
 					'last_pause_reason' => $paused_reason,
+					// Store exact counts BEFORE trim to avoid off-by-one errors when the
+					// synthetic "... and N more" message is appended to the errors array.
+					'error_count'        => $total_errors,
+					'structured_count'   => $total_structured_errors,
 				);
 
 				// Preserve cancelled flag if set (mid-batch cancellation at line 1431 breaks
@@ -1690,6 +1718,17 @@ class SScribe_Batch_Processor {
 			$percentage = ( $total > 0 && $processed > 0 ) ? round( ( $processed / $total ) * 100 ) : 0;
 			$is_done    = ( $processed >= $total );
 
+			// Detect mid-batch cancellation: re-read session to check if cancelled flag was
+			// set during the foreach loop. If so, return cancelled=true so the frontend
+			// stops polling immediately instead of scheduling another batch request.
+			$mid_batch_cancelled = false;
+			if ( ! $is_done ) {
+				$session_snapshot = $this->session->get( $session_id );
+				if ( ! empty( $session_snapshot['cancelled'] ) ) {
+					$mid_batch_cancelled = true;
+				}
+			}
+
 			$this->logger->debug(
 				'Progress check',
 				array(
@@ -1703,7 +1742,6 @@ class SScribe_Batch_Processor {
 			$elapsed           = time() - $start_time;
 			$avg_time_per_page = $processed > 0 ? $elapsed / $processed : 0;
 			$remaining_pages   = $total - $processed;
-			$time_remaining    = round( $avg_time_per_page * $remaining_pages );
 
 			if ( $is_done ) {
 				$this->logger->debug( 'All pages processed, finalizing' );
@@ -1747,6 +1785,11 @@ class SScribe_Batch_Processor {
 				$batch_duration,
 				$batch_start_time
 			);
+
+			// Notify frontend when export was cancelled mid-batch so it stops polling.
+			if ( $mid_batch_cancelled ) {
+				$response['cancelled'] = true;
+			}
 
 			SScribe_AJAX_Guard::success( $response );
 		} finally {
@@ -2279,7 +2322,9 @@ class SScribe_Batch_Processor {
 
 			$duration         = time() - ( $session['start_time'] ?? time() );
 			$zip_size         = function_exists( 'wp_filesize' ) && file_exists( $zip_path ) ? (int) wp_filesize( $zip_path ) : 0;
-			$error_count      = count( $session['errors'] ?? array() );
+			// Use the pre-trimmed error count stored in the session to avoid off-by-one
+			// errors from the synthetic "... and N more" message appended after trimming.
+			$error_count      = (int) ( $session['error_count'] ?? count( $session['errors'] ?? array() ) );
 			$successful_pages = max( 0, ( $session['total'] ?? 0 ) - $error_count );
 			$export_stats->complete_export(
 				$session_id,
@@ -2340,6 +2385,17 @@ class SScribe_Batch_Processor {
 			$log_summary       = $this->export_log ? $this->export_log->get_summary() : array();
 			$error_diagnostics = $this->build_error_diagnostics_payload( $structured_errors, $session['errors'] ?? array() );
 
+			// Surface ZIP file count mismatch to frontend so the user sees a warning.
+			$zip_warning = '';
+			if ( $expected_file_count > 0 && $total_files_zip < $expected_file_count ) {
+				$zip_warning = sprintf(
+					/* translators: 1: Number of files in ZIP, 2: Number of expected files. */
+					__( 'Warning: ZIP may be incomplete — expected %1$d files, found %2$d in archive.', 'sscribe-export-site-pages' ),
+					$total_files_zip,
+					$expected_file_count
+				);
+			}
+
 			$response = array(
 				'status'            => 'complete',
 				'processed'         => $session['total'],
@@ -2369,6 +2425,9 @@ class SScribe_Batch_Processor {
 					$error_count
 				) : '' ),
 			);
+			if ( $zip_warning ) {
+				$response['zip_warning'] = $zip_warning;
+			}
 
 			$sscribe_is_debug = SSCRIBE_DEBUG;
 			if ( $sscribe_is_debug && file_exists( $zip_path ) ) {
@@ -2469,6 +2528,9 @@ class SScribe_Batch_Processor {
 					'temp_dir' => $session['temp_dir'],
 				)
 			);
+		}
+		if ( $this->export_log ) {
+			$this->export_log->delete();
 		}
 	}
 
