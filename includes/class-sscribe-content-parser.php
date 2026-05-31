@@ -1098,6 +1098,8 @@ class SScribe_Content_Parser {
 		// Validate actual MIME type matches expected image MIME for the extension.
 		// This prevents malicious files with disguised extensions from being processed.
 		if ( function_exists( 'getimagesize' ) ) {
+			// Suppress warnings — treat false/missing as invalid (returns empty).
+			// phpcs:ignore WordPress.PHP.NoSilencedErrors.Discouraged -- getimagesize returns false for invalid images; we check this and return empty.
 			$image_info = @getimagesize( $real_local );
 			if ( false === $image_info || ! isset( $image_info['mime'] ) ) {
 				return '';
