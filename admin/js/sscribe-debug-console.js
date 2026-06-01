@@ -377,13 +377,13 @@
 					self.viewRotatedLog( $( this ).data( 'file' ) );
 				}
 			);
-			this.$rotatedBody.on(
-				'click.sscribe',
-				'.sscribe-rotated-export',
-				function () {
-					self.exportRotatedLog( $( this ).data( 'file' ) );
-				}
-			);
+		this.$rotatedBody.on(
+			'click.sscribe',
+			'.sscribe-rotated-export',
+			function () {
+				self.exportRotatedLog( $( this ).data( 'file' ), $( this ) );
+			}
+		);
 			this.$rotatedBody.on(
 				'click.sscribe',
 				'.sscribe-rotated-delete',
@@ -486,12 +486,10 @@
 		startAutoRefresh: function () {
 			const self = this;
 			this.stopAutoRefresh();
-			// Respect the user-specified interval. A value of 0 means "disabled"
-			// and should be treated as a stop signal, not silently overridden to 5s.
-			// Default to 10 seconds if the interval input is not present in the template.
-			const interval = this.$refreshInterval && this.$refreshInterval.length
-				? parseFloat( this.$refreshInterval.val() )
-				: 10;
+			// Auto-refresh interval is fixed at 10 seconds.
+			// A value of 0 means "disabled" and should be treated as a stop signal,
+			// not silently overridden to 5s.
+			const interval = 10;
 			if ( isNaN( interval ) || interval <= 0 ) {
 				return;
 			}
@@ -1353,13 +1351,14 @@
 				$btn.prop( 'disabled', true ).text( 'Deleting...' );
 			}
 
-			$.post(
-				sscribe_data.ajaxurl,
-				data,
-				function (response) {
-					if ($btn) {
-						$btn.prop( 'disabled', false ).text( 'Delete' );
-					}
+		$.post(
+			sscribe_data.ajaxurl,
+			data,
+			function (response) {
+				if ($btn) {
+					const originalText = $btn.data( 'original-text' ) || 'Delete';
+					$btn.prop( 'disabled', false ).text( originalText );
+				}
 					if (response.success) {
 						if ( response.data && response.data.nonce ) {
 							sscribe_data.nonce = response.data.nonce;
@@ -1387,7 +1386,8 @@
 			).fail(
 				function () {
 					if ($btn) {
-						$btn.prop( 'disabled', false ).text( 'Delete' );
+						const originalText = $btn.data( 'original-text' ) || 'Delete';
+						$btn.prop( 'disabled', false ).text( originalText );
 						const $row = $btn.closest( '.sscribe-debug-rotated-file' );
 						if ($row.length) {
 							$row.find( '.sscribe-debug-rotated-file-actions' ).after(
