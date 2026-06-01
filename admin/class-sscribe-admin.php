@@ -632,7 +632,7 @@ class SScribe_Admin {
 			$recent_exports[] = array(
 				'filename'  => $filename,
 				'url'       => $this->zip_handler->get_ajax_download_url( $filename ),
-				'time' => ( (int) ( $data['created_at'] ?? 0 ) ) ? (int) ( $data['created_at'] ?? 0 ) : (int) filemtime( $file_path ),
+				'time' => isset( $data['created_at'] ) ? (int) $data['created_at'] : (int) filemtime( $file_path ),
 				'size'      => (int) filesize( $file_path ),
 				'lang_code' => $lang_code,
 				'flag_url'  => $flag_url,
