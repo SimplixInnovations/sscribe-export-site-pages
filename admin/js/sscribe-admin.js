@@ -2609,8 +2609,9 @@
 			if (errorData) {
 				diagnosticInfo = this.normalizeErrorData(errorData);
 				if (diagnosticInfo && window.console) {
-					// eslint-disable-next-line no-console
+					/* eslint-disable no-console */
 					console.log('[SSCRIBE] Server diagnostics for this error:', diagnosticInfo);
+					/* eslint-enable no-console */
 				}
 
 				if (diagnosticInfo.code) {

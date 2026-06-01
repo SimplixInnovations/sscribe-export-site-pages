@@ -527,7 +527,7 @@ class SScribe_Zip_Handler {
 
 		try {
 			$cleaned  = 0;
-			$files    = glob( $this->export_dir . '/*.zip' ) ?: array();
+			$files    = glob( $this->export_dir . '/*.zip' ) ? glob( $this->export_dir . '/*.zip' ) : array();
 			$max_age  = 3 * DAY_IN_SECONDS;
 			$now      = time();
 			$exports  = get_option( 'sscribe_export_index', array() );
@@ -594,7 +594,7 @@ class SScribe_Zip_Handler {
 		$max_age = 3 * DAY_IN_SECONDS;
 		$now     = time();
 
-		$temp_dirs = glob( $this->export_dir . '/temp-*', GLOB_ONLYDIR ) ?: array();
+		$temp_dirs = glob( $this->export_dir . '/temp-*', GLOB_ONLYDIR ) ? glob( $this->export_dir . '/temp-*', GLOB_ONLYDIR ) : array();
 		if ( ! empty( $temp_dirs ) ) {
 			foreach ( $temp_dirs as $temp_dir ) {
 				$dir_time = filemtime( $temp_dir );
