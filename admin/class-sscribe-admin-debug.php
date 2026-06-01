@@ -1,5 +1,4 @@
 <?php
-// phpcs:disable WordPress.Security.NonceVerification.Missing -- Nonce verified centrally in verify_request_authorization().
 /**
  * SScribe Admin Debug Console
  *
@@ -10,6 +9,8 @@
  * @license GPL v2 or later
  * @link    https://www.gnu.org/licenses/gpl-2.0.html
  */
+
+// phpcs:disable WordPress.Security.NonceVerification.Missing -- Nonce verified centrally in verify_request_authorization().
 
 declare(strict_types=1);
 
@@ -708,7 +709,7 @@ class SScribe_Admin_Debug {
 			$rest      = $matches[3];
 
 			// Check if the rest ends with a JSON context: message | {"key":"value"}
-			// Find the last ' | {' that is followed by valid JSON ending with }
+			// Find the last ' | {' that is followed by valid JSON ending with }.
 			$context      = array();
 			$message_part = $rest;
 
