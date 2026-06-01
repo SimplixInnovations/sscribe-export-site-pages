@@ -91,10 +91,11 @@ class SScribe_Filesystem {
 			return false;
 		}
 
-		// Note: request_filesystem_credentials() can trigger an HTML form for FTP credentials
-		// in some WordPress configurations. This is a known WordPress core behavior.
-		// In runtime context, this should be handled by the calling code (e.g., admin pages).
+		// Use output buffering to prevent request_filesystem_credentials() from
+		// outputting HTML forms during AJAX requests.
+		ob_start();
 		$credentials = request_filesystem_credentials( admin_url(), '', false, false, null );
+		ob_end_clean();
 
 		if ( false === $credentials ) {
 			$this->logger->debug( 'Could not get filesystem credentials, using direct file operations' );

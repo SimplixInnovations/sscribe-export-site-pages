@@ -456,7 +456,7 @@
 			};
 			window.addEventListener( 'beforeunload', this._beforeUnloadHandler );
 
-			this._popStateHandler = function (e) {
+			this._popStateHandler = function () {
 				// Restore current log when back button is pressed during rotated log viewing.
 				if ( self.isViewingRotated ) {
 					self.backToCurrentLog();
@@ -1015,6 +1015,25 @@
 						},
 						2000
 					);
+					// Attempt to refresh nonce on failure.
+					self.refreshNonce();
+				}
+			);
+		},
+
+		refreshNonce: function () {
+			const self = this;
+			$.get(
+				sscribe_data.ajaxurl,
+				{ action: 'sscribe_debug_refresh_nonce', nonce: sscribe_data.nonce },
+				function (response) {
+					if ( response && response.success && response.data && response.data.nonce ) {
+						sscribe_data.nonce = response.data.nonce;
+					}
+				}
+			).fail(
+				function () {
+					self.showConsoleError( 'Nonce refresh failed. Please reload the page.' );
 				}
 			);
 		},
@@ -1079,6 +1098,10 @@
 					if ( response && response.success && response.data && response.data.nonce ) {
 						sscribe_data.nonce = response.data.nonce;
 					}
+				}
+			).fail(
+				function () {
+					self.showConsoleError( 'Nonce refresh failed. Please reload the page.' );
 				}
 			);
 		},
@@ -1235,6 +1258,11 @@
 		},
 
 		backToCurrentLog: function () {
+			// Abort any in-flight rotated log request.
+			if (this.viewRotatedRequest) {
+				this.viewRotatedRequest.abort();
+				this.viewRotatedRequest = null;
+			}
 			this.isViewingRotated       = false;
 			this.currentRotatedFilename = '';
 			this.hasMoreEntries         = true;
@@ -1255,14 +1283,32 @@
 			}
 		},
 
-		exportRotatedLog: function (filename) {
+		exportRotatedLog: function (filename, $btn) {
+			const self = this;
 			const data = {
 				action: 'sscribe_debug_export_logs',
 				nonce: sscribe_data.nonce,
 				filename: filename,
 			};
 
+			if ($btn) {
+				$btn.prop( 'disabled', true ).text( 'Downloading...' );
+				setTimeout(
+					function () {
+						$btn.prop( 'disabled', false ).text( 'Export' );
+					},
+					5000
+				);
+			}
+
+			self.showPausedIndicator( 'Exporting rotated log...' );
 			this.downloadViaForm( sscribe_data.ajaxurl, data );
+			setTimeout(
+				function () {
+					self.hidePausedIndicator();
+				},
+				3000
+			);
 		},
 
 		deleteRotatedLog: function (filename, $btn) {
@@ -1273,17 +1319,22 @@
 			}
 
 			if ($btn.data( 'confirming' )) {
-				$btn.data( 'confirming', false ).removeClass( 'sscribe-btn-confirming' ).text( 'Delete' );
+				const originalText = $btn.data( 'original-text' ) || 'Delete';
+				$btn.data( 'confirming', false ).removeClass( 'sscribe-btn-confirming' ).text( originalText );
 				$btn.prop( 'disabled', true );
 				self._executeDeleteRotatedLog( filename, $btn );
 				return;
 			}
 
+			if ( ! $btn.data( 'original-text' )) {
+				$btn.data( 'original-text', $btn.text() );
+			}
 			$btn.data( 'confirming', true ).addClass( 'sscribe-btn-confirming' ).text( 'Click to confirm' );
 			setTimeout(
 				function () {
 					if ($btn.data( 'confirming' )) {
-						$btn.data( 'confirming', false ).removeClass( 'sscribe-btn-confirming' ).text( 'Delete' );
+						const originalText = $btn.data( 'original-text' ) || 'Delete';
+						$btn.data( 'confirming', false ).removeClass( 'sscribe-btn-confirming' ).text( originalText );
 					}
 				},
 				3000
