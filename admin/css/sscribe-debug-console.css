@@ -239,8 +239,8 @@
 	font-weight: 500;
 	padding: 2px 8px;
 	border-radius: 3px;
-	background: rgba( 240, 173, 78, 0.15 );
-	border: 1px solid rgba( 240, 173, 78, 0.4 );
+	background: rgba(240, 173, 78, 0.15);
+	border: 1px solid rgba(240, 173, 78, 0.4);
 }
 
 .sscribe-debug-refresh-paused::before {
@@ -603,7 +603,7 @@
 }
 
 @media (prefers-color-scheme: dark) {
-:root {
+	:root {
 		--sscribe-debug-bg-card: #1e1e1e;
 		--sscribe-debug-bg-console: #121212;
 		--sscribe-debug-text-console: #d4d4d4;
@@ -664,8 +664,8 @@
 	}
 
 	.sscribe-debug-refresh-paused {
-		background: rgba( 240, 173, 78, 0.2 );
-		border-color: rgba( 240, 173, 78, 0.5 );
+		background: rgba(240, 173, 78, 0.2);
+		border-color: rgba(240, 173, 78, 0.5);
 		color: #f0ad4e;
 	}
 }
