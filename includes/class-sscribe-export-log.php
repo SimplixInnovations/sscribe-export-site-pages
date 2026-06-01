@@ -122,7 +122,7 @@ class SScribe_Export_Log {
 				return;
 			}
 			// phpcs:ignore WordPress.WP.AlternativeFunctions.file_system_operations_file_put_contents -- Intended logging file operation.
-
+			// phpcs:ignore WordPress.WP.AlternativeFunctions.file_system_operations_chmod -- Intended logging file permission (0600).
 			$result = file_put_contents( $this->log_file, $json, LOCK_EX );
 			if ( false !== $result ) {
 				$this->dirty = false;
