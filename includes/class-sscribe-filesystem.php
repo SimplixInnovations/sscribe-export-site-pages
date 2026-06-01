@@ -278,6 +278,7 @@ class SScribe_Filesystem {
 				return false;
 			}
 			// Apply the requested permissions if wp_mkdir_p created the directory.
+			// phpcs:ignore WordPress.WP.AlternativeFunctions.file_system_operations_chmod -- Fallback when WP_Filesystem unavailable.
 			if ( $mode && function_exists( 'chmod' ) ) {
 				chmod( $path, $mode );
 			}

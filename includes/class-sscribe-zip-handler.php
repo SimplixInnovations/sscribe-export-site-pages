@@ -187,8 +187,9 @@ class SScribe_Zip_Handler {
 			if ( $zip->open( $tmp_zip, ZipArchive::CREATE | ZipArchive::OVERWRITE ) !== true ) {
 				$this->logger->error( 'Failed to create ZIP file', array( 'zip_path' => $zip_path ) );
 				$this->delete_directory( $source_dir );
+				// Use wp_delete_file() for temp file cleanup (WP-recommended).
 				if ( file_exists( $tmp_zip ) ) {
-					@unlink( $tmp_zip );
+					wp_delete_file( $tmp_zip );
 				}
 				return false;
 			}
@@ -297,6 +298,7 @@ class SScribe_Zip_Handler {
 		// If the move fails (e.g., disk full), fall back to the temp path.
 		$zip_finalized = false;
 		if ( file_exists( $tmp_zip ) && filesize( $tmp_zip ) > 0 ) {
+			// phpcs:ignore WordPress.WP.AlternativeFunctions.rename_rename -- Fallback when WP_Filesystem unavailable; zip finalization.
 			if ( @rename( $tmp_zip, $zip_path ) ) {
 				$zip_finalized = true;
 			} else {
@@ -309,8 +311,9 @@ class SScribe_Zip_Handler {
 				);
 				$zip_path = $tmp_zip;
 			}
+			// Use wp_delete_file() for temp file cleanup (WP-recommended).
 		} elseif ( isset( $tmp_zip ) && file_exists( $tmp_zip ) ) {
-			@unlink( $tmp_zip );
+			wp_delete_file( $tmp_zip );
 		}
 
 		$this->delete_directory( $source_dir );
