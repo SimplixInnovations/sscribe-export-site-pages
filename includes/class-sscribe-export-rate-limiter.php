@@ -55,20 +55,27 @@ class SScribe_Export_Rate_Limiter {
 		$lock_key = $transient_key . '_lock';
 
 		$rate_limit = current_user_can( $export_capability )
-			? (int) apply_filters( 'sscribe_rate_limit_admin', 500 )
+			? max( 1, (int) apply_filters( 'sscribe_rate_limit_admin', 500 ) )
 			: self::RATE_LIMIT_MAX;
 
 		$locked = false;
-		if ( wp_using_ext_object_cache() ) {
-			$locked = wp_cache_add( $lock_key, 1, '', 2 );
-		} else {
-			$existing_lock = get_transient( $lock_key );
-			if ( false === $existing_lock ) {
-				$locked = set_transient( $lock_key, 1, 2 );
-				if ( $locked ) {
-					$verified = get_transient( $lock_key );
-					$locked   = false !== $verified && 1 === (int) $verified;
+		$attempts = 0;
+		while ( ! $locked && $attempts < 2 ) {
+			if ( wp_using_ext_object_cache() ) {
+				$locked = wp_cache_add( $lock_key, 1, '', 2 );
+			} else {
+				$existing_lock = get_transient( $lock_key );
+				if ( false === $existing_lock ) {
+					$locked = set_transient( $lock_key, 1, 2 );
+					if ( $locked ) {
+						$verified = get_transient( $lock_key );
+						$locked   = false !== $verified && 1 === (int) $verified;
+					}
 				}
+			}
+			++$attempts;
+			if ( ! $locked && $attempts < 2 ) {
+				usleep( 50000 );
 			}
 		}
 

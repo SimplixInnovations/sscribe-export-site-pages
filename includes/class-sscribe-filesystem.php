@@ -208,7 +208,8 @@ class SScribe_Filesystem {
 		self::$last_error = '';
 
 		if ( self::$fs instanceof WP_Filesystem_Base ) {
-			return self::$fs->get_contents( $file ) ? self::$fs->get_contents( $file ) : false;
+			$content = self::$fs->get_contents( $file );
+		return $content !== false ? $content : false;
 		}
 
 		if ( ! is_file( $file ) ) {

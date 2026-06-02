@@ -226,8 +226,13 @@
 					self.stopAutoRefresh();
 					self.startAutoRefresh();
 				}
-				self.fetchLogs();
-				self.fetchRotatedLogs();
+				if (!self.isViewingRotated) {
+					self.fetchLogs();
+				}
+				const rotatedEl = document.getElementById('sscribe-debug-rotated-details');
+				if (rotatedEl && rotatedEl.open) {
+					self.fetchRotatedLogs();
+				}
 			});
 
 			this.$clearBtn.on('click.sscribe', function () {
@@ -243,9 +248,9 @@
 					}
 					$btn.data('confirming', true).addClass('sscribe-btn-confirming').text('Click again to confirm');
 					setTimeout(function () {
-						if ($btn.data('confirming')) {
-							const originalText = $btn.data('original-text') || self.clearBtnOriginalText;
-							$btn.data('confirming', false).removeClass('sscribe-btn-confirming').text(originalText);
+						if (self.$clearBtn) {
+							self.$clearBtn.data('confirming', false).removeClass('sscribe-btn-confirming').text(self.$clearBtn.data('original-text') || self.clearBtnOriginalText);
+							self.$clearBtn.removeData('original-text');
 						}
 					}, 3000);
 				}
@@ -255,11 +260,11 @@
 				const helpContent = document.getElementById('sscribe-debug-help-content');
 				if (helpContent) {
 					const overlay = document.createElement('div');
-					overlay.style.cssText = 'position:fixed;inset:0;background:rgb(0 0 0 / 50%);z-index:100000000;';
+					overlay.style.cssText = 'position:fixed;inset:0;background:rgb(0 0 0 / 50%);z-index:9999998;';
 					overlay.setAttribute('aria-hidden', 'true');
 					const dialog = document.createElement('div');
 					dialog.style.cssText =
-						'position:fixed;top:50%;left:50%;transform:translate(-50%,-50%);background:#fff;color:#333;padding:24px;border-radius:8px;max-width:400px;z-index:100000001;box-shadow:0 8px 32px rgb(0 0 0 / 30%);font-size:14px;line-height:1.6;';
+						'position:fixed;top:50%;left:50%;transform:translate(-50%,-50%);background:#fff;color:#333;padding:24px;border-radius:8px;max-width:400px;z-index:9999999;box-shadow:0 8px 32px rgb(0 0 0 / 30%);font-size:14px;line-height:1.6;';
 					dialog.setAttribute('role', 'dialog');
 					dialog.setAttribute('aria-modal', 'true');
 					dialog.setAttribute('aria-labelledby', 'sscribe-debug-help-title');
