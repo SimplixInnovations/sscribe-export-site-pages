@@ -13,10 +13,13 @@
 		return function () {
 			const context = this;
 			const args = arguments;
-			clearTimeout(timeout);
-			timeout = setTimeout(function () {
-				fn.apply(context, args);
-			}, wait);
+			clearTimeout( timeout );
+			timeout = setTimeout(
+				function () {
+					fn.apply( context, args );
+				},
+				wait
+			);
 		};
 	};
 
@@ -24,8 +27,8 @@
 		if (str === null || str === undefined) {
 			return '';
 		}
-		const div = document.createElement('div');
-		div.textContent = String(str);
+		const div = document.createElement( 'div' );
+		div.textContent = String( str );
 		return div.innerHTML;
 	}
 
@@ -33,12 +36,12 @@
 		if (str === null || str === undefined) {
 			return '';
 		}
-		return String(str)
-			.replace(/&/g, '&amp;')
-			.replace(/"/g, '&quot;')
-			.replace(/'/g, '&#39;')
-			.replace(/</g, '&lt;')
-			.replace(/>/g, '&gt;');
+		return String( str )
+			.replace( /&/g, '&amp;' )
+			.replace( /"/g, '&quot;' )
+			.replace( /'/g, '&#39;' )
+			.replace( /</g, '&lt;' )
+			.replace( />/g, '&gt;' );
 	}
 
 	const SScribeDebugConsole = {
@@ -65,17 +68,17 @@
 			if (this.initialized) {
 				return;
 			}
-			if (typeof sscribe_data === 'undefined' || !sscribe_data || !sscribe_data.ajaxurl || !sscribe_data.nonce) {
+			if (typeof sscribe_data === 'undefined' || ! sscribe_data || ! sscribe_data.ajaxurl || ! sscribe_data.nonce) {
 				if (this.initRetryCount === undefined) {
 					this.initRetryCount = 0;
 				}
 				if (this.initRetryCount < 3) {
 					this.initRetryCount++;
-					setTimeout(this.init.bind(this), 100);
+					setTimeout( this.init.bind( this ), 100 );
 				}
 				return;
 			}
-			if (!this.hasRequiredDom()) {
+			if ( ! this.hasRequiredDom()) {
 				return;
 			}
 			this.cacheDom();
@@ -88,72 +91,72 @@
 
 		hasRequiredDom: function () {
 			return (
-				document.getElementById('sscribe-debug-root') !== null &&
-				document.getElementById('sscribe-debug-entries') !== null &&
-				document.getElementById('sscribe-debug-console-body') !== null &&
-				document.getElementById('sscribe-debug-rotated-body') !== null
+				document.getElementById( 'sscribe-debug-root' ) !== null &&
+				document.getElementById( 'sscribe-debug-entries' ) !== null &&
+				document.getElementById( 'sscribe-debug-console-body' ) !== null &&
+				document.getElementById( 'sscribe-debug-rotated-body' ) !== null
 			);
 		},
 
 		cacheDom: function () {
-			this.$container = $('#sscribe-debug-root');
-			this.$enabled = $('#sscribe-debug-enabled');
-			this.$level = $('#sscribe-debug-level');
-			this.$saveSettings = $('#sscribe-debug-save-settings');
-			this.$saveFeedback = $('#sscribe-debug-save-feedback');
-			this.$filterLevel = $('#sscribe-debug-filter-level');
-			this.$searchInput = $('#sscribe-debug-search');
-			this.$sessionInput = $('#sscribe-debug-session-id');
-			this.$refreshMode = $('input[name="sscribe_refresh_mode"]');
-			this.$refreshBtn = $('#sscribe-debug-refresh-btn');
-			this.$consoleBody = $('#sscribe-debug-console-body');
-			this.$entries = $('#sscribe-debug-entries');
-			this.$empty = $('#sscribe-debug-empty');
-			this.defaultEmptyMessage = this.$empty.find('p').text().trim();
-			this.$entryCount = $('#sscribe-debug-entry-count');
-			this.$clearBtn = $('#sscribe-debug-clear-btn');
+			this.$container = $( '#sscribe-debug-root' );
+			this.$enabled = $( '#sscribe-debug-enabled' );
+			this.$level = $( '#sscribe-debug-level' );
+			this.$saveSettings = $( '#sscribe-debug-save-settings' );
+			this.$saveFeedback = $( '#sscribe-debug-save-feedback' );
+			this.$filterLevel = $( '#sscribe-debug-filter-level' );
+			this.$searchInput = $( '#sscribe-debug-search' );
+			this.$sessionInput = $( '#sscribe-debug-session-id' );
+			this.$refreshMode = $( 'input[name="sscribe_refresh_mode"]' );
+			this.$refreshBtn = $( '#sscribe-debug-refresh-btn' );
+			this.$consoleBody = $( '#sscribe-debug-console-body' );
+			this.$entries = $( '#sscribe-debug-entries' );
+			this.$empty = $( '#sscribe-debug-empty' );
+			this.defaultEmptyMessage = this.$empty.find( 'p' ).text().trim();
+			this.$entryCount = $( '#sscribe-debug-entry-count' );
+			this.$clearBtn = $( '#sscribe-debug-clear-btn' );
 			this.clearBtnOriginalText = this.$clearBtn.text();
-			this.$exportBtn = $('#sscribe-debug-export-btn');
-			this.$rotatedBody = $('#sscribe-debug-rotated-body');
-			this.$refreshPaused = $('#sscribe-debug-refresh-paused');
+			this.$exportBtn = $( '#sscribe-debug-export-btn' );
+			this.$rotatedBody = $( '#sscribe-debug-rotated-body' );
+			this.$refreshPaused = $( '#sscribe-debug-refresh-paused' );
 		},
 
 		unbindEvents: function () {
-			this.$saveSettings.off('.sscribe');
-			this.$filterLevel.off('.sscribe');
-			this.$searchInput.off('.sscribe');
-			this.$sessionInput.off('.sscribe');
-			this.$refreshMode.off('.sscribe');
-			this.$refreshBtn.off('.sscribe');
-			this.$clearBtn.off('.sscribe');
-			this.$exportBtn.off('.sscribe');
-			this.$rotatedBody.off('.sscribe');
-			this.$entries.off('.sscribe');
-			this.$container.off('.sscribe');
+			this.$saveSettings.off( '.sscribe' );
+			this.$filterLevel.off( '.sscribe' );
+			this.$searchInput.off( '.sscribe' );
+			this.$sessionInput.off( '.sscribe' );
+			this.$refreshMode.off( '.sscribe' );
+			this.$refreshBtn.off( '.sscribe' );
+			this.$clearBtn.off( '.sscribe' );
+			this.$exportBtn.off( '.sscribe' );
+			this.$rotatedBody.off( '.sscribe' );
+			this.$entries.off( '.sscribe' );
+			this.$container.off( '.sscribe' );
 			this.unbindVisibilityHandler();
 			this.unbindToggleHandler();
 		},
 
 		unbindVisibilityHandler: function () {
 			if (this._visibilityHandler) {
-				$(document).off('visibilitychange', this._visibilityHandler);
+				$( document ).off( 'visibilitychange', this._visibilityHandler );
 				this._visibilityHandler = null;
 			}
 			if (this._beforeUnloadHandler) {
-				window.removeEventListener('beforeunload', this._beforeUnloadHandler);
+				window.removeEventListener( 'beforeunload', this._beforeUnloadHandler );
 				this._beforeUnloadHandler = null;
 			}
 			if (this._popStateHandler) {
-				window.removeEventListener('popstate', this._popStateHandler);
+				window.removeEventListener( 'popstate', this._popStateHandler );
 				this._popStateHandler = null;
 			}
 		},
 
 		unbindToggleHandler: function () {
 			if (this._toggleHandler) {
-				const rotatedEl = document.getElementById('sscribe-debug-rotated-details');
+				const rotatedEl = document.getElementById( 'sscribe-debug-rotated-details' );
 				if (rotatedEl) {
-					rotatedEl.removeEventListener('toggle', this._toggleHandler);
+					rotatedEl.removeEventListener( 'toggle', this._toggleHandler );
 				}
 				this._toggleHandler = null;
 			}
@@ -162,26 +165,17 @@
 		bindEvents: function () {
 			const self = this;
 
-			this.$saveSettings.on('click.sscribe', function () {
-				self.saveSettings(self.isAutoRefresh);
-			});
+			this.$saveSettings.on(
+				'click.sscribe',
+				function () {
+					self.saveSettings( self.isAutoRefresh );
+				}
+			);
 
-			this.$filterLevel.on('change.sscribe', function () {
-				self.currentFilter = $(this).val();
-				self.currentOffset = 0;
-				self.hasMoreEntries = true;
-				self.isViewingRotated = false;
-				self.currentRotatedFilename = '';
-				self.hidePausedIndicator();
-				self.destroyObserver();
-				self.fetchLogs();
-				self.updateExportButtonScope();
-			});
-
-			this.$searchInput.on(
-				'input.sscribe',
-				debounce(function () {
-					self.searchQuery = self.$searchInput.val();
+			this.$filterLevel.on(
+				'change.sscribe',
+				function () {
+					self.currentFilter = $( this ).val();
 					self.currentOffset = 0;
 					self.hasMoreEntries = true;
 					self.isViewingRotated = false;
@@ -190,143 +184,183 @@
 					self.destroyObserver();
 					self.fetchLogs();
 					self.updateExportButtonScope();
-				}, 300)
+				}
+			);
+
+			this.$searchInput.on(
+				'input.sscribe',
+				debounce(
+					function () {
+						self.searchQuery = self.$searchInput.val();
+						self.currentOffset = 0;
+						self.hasMoreEntries = true;
+						self.isViewingRotated = false;
+						self.currentRotatedFilename = '';
+						self.hidePausedIndicator();
+						self.destroyObserver();
+						self.fetchLogs();
+						self.updateExportButtonScope();
+					},
+					300
+				)
 			);
 
 			this.$sessionInput.on(
 				'input.sscribe',
-				debounce(function () {
-					self.sessionFilter = self.$sessionInput.val().trim();
-					self.currentOffset = 0;
-					self.hasMoreEntries = true;
-					self.isViewingRotated = false;
-					self.currentRotatedFilename = '';
-					self.hidePausedIndicator();
-					self.destroyObserver();
-					self.fetchLogs();
-					self.updateExportButtonScope();
-				}, 300)
+				debounce(
+					function () {
+						self.sessionFilter = self.$sessionInput.val().trim();
+						self.currentOffset = 0;
+						self.hasMoreEntries = true;
+						self.isViewingRotated = false;
+						self.currentRotatedFilename = '';
+						self.hidePausedIndicator();
+						self.destroyObserver();
+						self.fetchLogs();
+						self.updateExportButtonScope();
+					},
+					300
+				)
 			);
 
-			this.$refreshMode.on('change.sscribe', function () {
-				const previousAutoRefresh = self.isAutoRefresh;
-				self.isAutoRefresh = $(this).val() === 'auto';
-				if (self.isAutoRefresh) {
-					self.startAutoRefresh();
-					self.hidePausedIndicator();
-				} else {
-					self.stopAutoRefresh();
-					self.showPausedIndicator('Manual mode — auto-refresh off');
-				}
-				self.saveSettings(previousAutoRefresh);
-			});
-
-			this.$refreshBtn.on('click.sscribe', function () {
-				if (self.isAutoRefresh) {
-					self.stopAutoRefresh();
-					self.startAutoRefresh();
-				}
-				self.fetchLogs();
-				self.fetchRotatedLogs();
-			});
-
-			this.$clearBtn.on('click.sscribe', function () {
-				const $btn = $(this);
-				if ($btn.data('confirming')) {
-					$btn.data('confirming', false).removeClass('sscribe-btn-confirming').text('Clearing...');
-					$btn.prop('disabled', true);
-					self.clearLogs();
-				} else {
-					if (!$btn.data('original-text')) {
-						$btn.data('original-text', $btn.text());
+			this.$refreshMode.on(
+				'change.sscribe',
+				function () {
+					const previousAutoRefresh = self.isAutoRefresh;
+					self.isAutoRefresh = $( this ).val() === 'auto';
+					if (self.isAutoRefresh) {
+						self.startAutoRefresh();
+						self.hidePausedIndicator();
+					} else {
+						self.stopAutoRefresh();
+						self.showPausedIndicator( 'Manual mode — auto-refresh off' );
 					}
-					$btn.data('confirming', true).addClass('sscribe-btn-confirming').text('Click again to confirm');
-					setTimeout(function () {
-						if ($btn.data('confirming')) {
-							const originalText = $btn.data('original-text') || self.clearBtnOriginalText;
-							$btn.data('confirming', false).removeClass('sscribe-btn-confirming').text(originalText);
-						}
-					}, 3000);
+					self.saveSettings( previousAutoRefresh );
 				}
-			});
+			);
 
-			this.$container.on('click.sscribe', '#sscribe-debug-help-btn', function () {
-				const helpContent = document.getElementById('sscribe-debug-help-content');
-				if (helpContent) {
-					const overlay = document.createElement('div');
-					overlay.style.cssText = 'position:fixed;inset:0;background:rgb(0 0 0 / 50%);z-index:100000000;';
-					overlay.setAttribute('aria-hidden', 'true');
-					const dialog = document.createElement('div');
-					dialog.style.cssText =
+			this.$refreshBtn.on(
+				'click.sscribe',
+				function () {
+					if (self.isAutoRefresh) {
+						self.stopAutoRefresh();
+						self.startAutoRefresh();
+					}
+					self.fetchLogs();
+					self.fetchRotatedLogs();
+				}
+			);
+
+			this.$clearBtn.on(
+				'click.sscribe',
+				function () {
+					const $btn = $( this );
+					if ($btn.data( 'confirming' )) {
+						$btn.data( 'confirming', false ).removeClass( 'sscribe-btn-confirming' ).text( 'Clearing...' );
+						$btn.prop( 'disabled', true );
+						self.clearLogs();
+					} else {
+						if ( ! $btn.data( 'original-text' )) {
+							$btn.data( 'original-text', $btn.text() );
+						}
+						$btn.data( 'confirming', true ).addClass( 'sscribe-btn-confirming' ).text( 'Click again to confirm' );
+						setTimeout(
+							function () {
+								if ($btn.data( 'confirming' )) {
+									const originalText = $btn.data( 'original-text' ) || self.clearBtnOriginalText;
+									$btn.data( 'confirming', false ).removeClass( 'sscribe-btn-confirming' ).text( originalText );
+								}
+							},
+							3000
+						);
+					}
+				}
+			);
+
+			this.$container.on(
+				'click.sscribe',
+				'#sscribe-debug-help-btn',
+				function () {
+					const helpContent = document.getElementById( 'sscribe-debug-help-content' );
+					if (helpContent) {
+						const overlay = document.createElement( 'div' );
+						overlay.style.cssText = 'position:fixed;inset:0;background:rgb(0 0 0 / 50%);z-index:100000000;';
+						overlay.setAttribute( 'aria-hidden', 'true' );
+						const dialog = document.createElement( 'div' );
+						dialog.style.cssText =
 						'position:fixed;top:50%;left:50%;transform:translate(-50%,-50%);background:#fff;color:#333;padding:24px;border-radius:8px;max-width:400px;z-index:100000001;box-shadow:0 8px 32px rgb(0 0 0 / 30%);font-size:14px;line-height:1.6;';
-					dialog.setAttribute('role', 'dialog');
-					dialog.setAttribute('aria-modal', 'true');
-					dialog.setAttribute('aria-labelledby', 'sscribe-debug-help-title');
-					dialog.appendChild(helpContent.cloneNode(true));
-					const priorFocus = document.activeElement;
-					const focusableSelectors =
+						dialog.setAttribute( 'role', 'dialog' );
+						dialog.setAttribute( 'aria-modal', 'true' );
+						dialog.setAttribute( 'aria-labelledby', 'sscribe-debug-help-title' );
+						dialog.appendChild( helpContent.cloneNode( true ) );
+						const priorFocus = document.activeElement;
+						const focusableSelectors =
 						'a[href], button:not([disabled]), textarea:not([disabled]), input:not([disabled]), select:not([disabled]), [tabindex]:not([tabindex="-1"])';
-					const closeDialog = function () {
-						if (document.body.contains(overlay)) {
-							document.body.removeChild(overlay);
-						}
-						if (document.body.contains(dialog)) {
-							document.body.removeChild(dialog);
-						}
-						document.removeEventListener('keydown', keyHandler);
-						if (priorFocus && typeof priorFocus.focus === 'function') {
-							priorFocus.focus();
-						}
-					};
-					const keyHandler = function (e) {
-						if (e.key === 'Escape' || e.key === 'Esc') {
-							e.preventDefault();
-							closeDialog();
-							return;
-						}
-						if (e.key === 'Tab') {
-							const focusableElements = Array.from(dialog.querySelectorAll(focusableSelectors));
-							const first = focusableElements[0];
-							const last = focusableElements[focusableElements.length - 1];
-							if (e.shiftKey && document.activeElement === first) {
-								e.preventDefault();
-								last.focus();
-							} else if (!e.shiftKey && document.activeElement === last) {
-								e.preventDefault();
-								first.focus();
+						const closeDialog = function () {
+							if (document.body.contains( overlay )) {
+								document.body.removeChild( overlay );
 							}
-						}
-					};
+							if (document.body.contains( dialog )) {
+								document.body.removeChild( dialog );
+							}
+							document.removeEventListener( 'keydown', keyHandler );
+							if (priorFocus && typeof priorFocus.focus === 'function') {
+								priorFocus.focus();
+							}
+						};
+						const keyHandler = function (e) {
+							if (e.key === 'Escape' || e.key === 'Esc') {
+								e.preventDefault();
+								closeDialog();
+								return;
+							}
+							if (e.key === 'Tab') {
+								const focusableElements = Array.from( dialog.querySelectorAll( focusableSelectors ) );
+								const first = focusableElements[0];
+								const last = focusableElements[focusableElements.length - 1];
+								if (e.shiftKey && document.activeElement === first) {
+									e.preventDefault();
+									last.focus();
+								} else if ( ! e.shiftKey && document.activeElement === last) {
+									e.preventDefault();
+									first.focus();
+								}
+							}
+						};
 
-					const closeBtn = document.createElement('button');
-					closeBtn.type = 'button';
-					closeBtn.textContent = '\u00D7';
-					closeBtn.setAttribute('aria-label', 'Close dialog');
-					closeBtn.style.cssText =
+						const closeBtn = document.createElement( 'button' );
+						closeBtn.type = 'button';
+						closeBtn.textContent = '\u00D7';
+						closeBtn.setAttribute( 'aria-label', 'Close dialog' );
+						closeBtn.style.cssText =
 						'position:absolute;top:12px;right:12px;background:none;border:none;font-size:18px;cursor:pointer;';
-					closeBtn.addEventListener('click', closeDialog);
-					dialog.appendChild(closeBtn);
+						closeBtn.addEventListener( 'click', closeDialog );
+						dialog.appendChild( closeBtn );
 
-					overlay.addEventListener('click', closeDialog);
-					const wpWrap = document.getElementById('wpwrap') || document.body;
-					wpWrap.appendChild(overlay);
-					wpWrap.appendChild(dialog);
-					document.addEventListener('keydown', keyHandler);
-					const focusableElements = Array.from(dialog.querySelectorAll(focusableSelectors));
-					if (focusableElements.length > 0) {
-						focusableElements[0].focus();
+						overlay.addEventListener( 'click', closeDialog );
+						const wpWrap = document.getElementById( 'wpwrap' ) || document.body;
+						wpWrap.appendChild( overlay );
+						wpWrap.appendChild( dialog );
+						document.addEventListener( 'keydown', keyHandler );
+						const focusableElements = Array.from( dialog.querySelectorAll( focusableSelectors ) );
+						if (focusableElements.length > 0) {
+							focusableElements[0].focus();
+						}
 					}
 				}
-			});
+			);
 
-			this.$exportBtn.on('click.sscribe', function () {
-				self.exportLogs();
-			});
+			this.$exportBtn.on(
+				'click.sscribe',
+				function () {
+					self.exportLogs();
+				}
+			);
 
-			const rotatedEl = document.getElementById('sscribe-debug-rotated-details');
+			const rotatedEl = document.getElementById( 'sscribe-debug-rotated-details' );
 			if (rotatedEl) {
 				this._toggleHandler = function () {
-					const $hint = document.querySelector('.sscribe-debug-rotated-hint');
+					const $hint = document.querySelector( '.sscribe-debug-rotated-hint' );
 					if ($hint) {
 						$hint.textContent = rotatedEl.open ? 'Click to collapse' : 'Click to expand';
 					}
@@ -334,48 +368,72 @@
 						self.fetchRotatedLogs();
 					}
 				};
-				rotatedEl.addEventListener('toggle', this._toggleHandler);
+				rotatedEl.addEventListener( 'toggle', this._toggleHandler );
 			}
 
-			this.$rotatedBody.on('click.sscribe', '.sscribe-rotated-view', function () {
-				self.viewRotatedLog($(this).data('file'));
-			});
-			this.$rotatedBody.on('click.sscribe', '.sscribe-rotated-export', function () {
-				self.exportRotatedLog($(this).data('file'), $(this));
-			});
-			this.$rotatedBody.on('click.sscribe', '.sscribe-rotated-delete', function () {
-				self.deleteRotatedLog($(this).data('file'), $(this));
-			});
+			this.$rotatedBody.on(
+				'click.sscribe',
+				'.sscribe-rotated-view',
+				function () {
+					self.viewRotatedLog( $( this ).data( 'file' ) );
+				}
+			);
+			this.$rotatedBody.on(
+				'click.sscribe',
+				'.sscribe-rotated-export',
+				function () {
+					self.exportRotatedLog( $( this ).data( 'file' ), $( this ) );
+				}
+			);
+			this.$rotatedBody.on(
+				'click.sscribe',
+				'.sscribe-rotated-delete',
+				function () {
+					self.deleteRotatedLog( $( this ).data( 'file' ), $( this ) );
+				}
+			);
 
-			this.$entries.on('keydown.sscribe', '.sscribe-debug-entry', function (e) {
-				if (e.key === 'Enter' || e.key === ' ') {
-					e.preventDefault();
-					const $entry = $(this);
-					const $context = $entry.find('.sscribe-debug-entry-context');
-					if ($context.length) {
-						// Toggle .expanded on the parent — the CSS rule
-						// .sscribe-debug-entry.expanded .sscribe-debug-entry-context { display: block }
-						// handles visibility. No need for .sscribe-hidden on the context element.
-						const isExpanded = $entry.hasClass('expanded');
-						$entry.toggleClass('expanded', !isExpanded);
-						$entry.attr('aria-expanded', String(!isExpanded));
+			this.$entries.on(
+				'keydown.sscribe',
+				'.sscribe-debug-entry',
+				function (e) {
+					if (e.key === 'Enter' || e.key === ' ') {
+						e.preventDefault();
+						const $entry = $( this );
+						const $context = $entry.find( '.sscribe-debug-entry-context' );
+						if ($context.length) {
+							// Toggle .expanded on the parent — the CSS rule
+							// .sscribe-debug-entry.expanded .sscribe-debug-entry-context { display: block }
+							// handles visibility. No need for .sscribe-hidden on the context element.
+							const isExpanded = $entry.hasClass( 'expanded' );
+							$entry.toggleClass( 'expanded', ! isExpanded );
+							$entry.attr( 'aria-expanded', String( ! isExpanded ) );
+						}
 					}
 				}
-			});
+			);
 
-			this.$entries.on('click.sscribe', '.sscribe-debug-entry.has-context', function () {
-				const $entry = $(this);
-				const $context = $entry.find('.sscribe-debug-entry-context');
-				if ($context.length) {
-					const isExpanded = $entry.hasClass('expanded');
-					$entry.toggleClass('expanded', !isExpanded);
-					$entry.attr('aria-expanded', String(!isExpanded));
+			this.$entries.on(
+				'click.sscribe',
+				'.sscribe-debug-entry.has-context',
+				function () {
+					const $entry = $( this );
+					const $context = $entry.find( '.sscribe-debug-entry-context' );
+					if ($context.length) {
+						const isExpanded = $entry.hasClass( 'expanded' );
+						$entry.toggleClass( 'expanded', ! isExpanded );
+						$entry.attr( 'aria-expanded', String( ! isExpanded ) );
+					}
 				}
-			});
+			);
 
-			this.$entries.on('click.sscribe', '.sscribe-debug-retry-append', function () {
-				self.retryAppend();
-			});
+			this.$entries.on(
+				'click.sscribe',
+				'.sscribe-debug-retry-append',
+				function () {
+					self.retryAppend();
+				}
+			);
 		},
 
 		bindVisibilityHandler: function () {
@@ -383,21 +441,21 @@
 			this._visibilityHandler = function () {
 				if (document.hidden) {
 					self.stopAutoRefresh();
-					self.showPausedIndicator('Paused — tab inactive');
+					self.showPausedIndicator( 'Paused — tab inactive' );
 				} else if (self.isAutoRefresh) {
-					const $debugTabBtn = $('#sscribe-tab-btn-debug');
-					if (!$debugTabBtn.length || $debugTabBtn.attr('aria-selected') === 'true') {
+					const $debugTabBtn = $( '#sscribe-tab-btn-debug' );
+					if ( ! $debugTabBtn.length || $debugTabBtn.attr( 'aria-selected' ) === 'true') {
 						self.startAutoRefresh();
 						self.hidePausedIndicator();
 					}
 				}
 			};
-			$(document).on('visibilitychange', this._visibilityHandler);
+			$( document ).on( 'visibilitychange', this._visibilityHandler );
 
 			this._beforeUnloadHandler = function () {
 				self.stopAutoRefresh();
 			};
-			window.addEventListener('beforeunload', this._beforeUnloadHandler);
+			window.addEventListener( 'beforeunload', this._beforeUnloadHandler );
 
 			this._popStateHandler = function () {
 				// Restore current log when back button is pressed during rotated log viewing.
@@ -405,18 +463,18 @@
 					self.backToCurrentLog();
 				}
 			};
-			window.addEventListener('popstate', this._popStateHandler);
+			window.addEventListener( 'popstate', this._popStateHandler );
 		},
 
 		loadInitialState: function () {
-			const checkedVal = this.$refreshMode.filter(':checked').val();
+			const checkedVal = this.$refreshMode.filter( ':checked' ).val();
 			this.isAutoRefresh = checkedVal !== undefined ? checkedVal === 'auto' : true;
 			this.currentOffset = 0;
 			this.hasMoreEntries = true;
 			this.fetchLogs();
 			this.updateExportButtonScope();
 
-			const rotatedEl = document.getElementById('sscribe-debug-rotated-details');
+			const rotatedEl = document.getElementById( 'sscribe-debug-rotated-details' );
 			if (rotatedEl && rotatedEl.open) {
 				this.fetchRotatedLogs();
 			}
@@ -433,38 +491,41 @@
 			// A value of 0 means "disabled" and should be treated as a stop signal,
 			// not silently overridden to 5s.
 			const interval = 10;
-			if (isNaN(interval) || interval <= 0) {
+			if (isNaN( interval ) || interval <= 0) {
 				return;
 			}
 			// Enforce 2-second minimum to prevent server flooding.
-			const safeInterval = Math.max(interval, 2);
-			this.refreshInterval = setInterval(function () {
-				if (self.isRefreshing && self.isRefreshingSince && Date.now() - self.isRefreshingSince > 30000) {
-					self.isRefreshing = false;
-					self.isRefreshingSince = null;
-				}
-				if (self.isRefreshing || self.isViewingRotated) {
-					return;
-				}
-				if (self.currentOffset !== 0) {
-					self.showPausedIndicator('Auto-refresh paused — scrolled into history');
-					return;
-				}
-				self.hidePausedIndicator();
-				self.fetchLogs();
-			}, safeInterval * 1000);
+			const safeInterval = Math.max( interval, 2 );
+			this.refreshInterval = setInterval(
+				function () {
+					if (self.isRefreshing && self.isRefreshingSince && Date.now() - self.isRefreshingSince > 30000) {
+						self.isRefreshing = false;
+						self.isRefreshingSince = null;
+					}
+					if (self.isRefreshing || self.isViewingRotated) {
+						return;
+					}
+					if (self.currentOffset !== 0) {
+						self.showPausedIndicator( 'Auto-refresh paused — scrolled into history' );
+						return;
+					}
+					self.hidePausedIndicator();
+					self.fetchLogs();
+				},
+				safeInterval * 1000
+			);
 		},
 
 		stopAutoRefresh: function () {
 			if (this.refreshInterval) {
-				clearInterval(this.refreshInterval);
+				clearInterval( this.refreshInterval );
 				this.refreshInterval = null;
 			}
 		},
 
 		showPausedIndicator: function (message) {
 			if (this.$refreshPaused) {
-				this.$refreshPaused.text(message).show();
+				this.$refreshPaused.text( message ).show();
 			}
 		},
 
@@ -488,7 +549,7 @@
 
 		updateExportButtonScope: function () {
 			const hasFilter = this.currentFilter !== 'ALL' || this.searchQuery !== '' || this.sessionFilter !== '';
-			this.$exportBtn.find('.sscribe-export-btn-scope').text(hasFilter ? ' (filtered)' : ' (all)');
+			this.$exportBtn.find( '.sscribe-export-btn-scope' ).text( hasFilter ? ' (filtered)' : ' (all)' );
 		},
 
 		showConsoleError: function (message) {
@@ -498,7 +559,7 @@
 					'<div class="sscribe-debug-entry-header">' +
 					'<span class="sscribe-debug-entry-badge error">ERROR</span>' +
 					'<span class="sscribe-debug-entry-message">' +
-					escHtml(message) +
+					escHtml( message ) +
 					'</span>' +
 					'</div>' +
 					'</div>'
@@ -509,14 +570,14 @@
 			const self = this;
 
 			// Guard against missing DOM elements.
-			if (!this.$enabled.length || !this.$level.length) {
+			if ( ! this.$enabled.length || ! this.$level.length) {
 				return;
 			}
 
 			if (this.saveSettingsRequest) {
 				this.saveSettingsRequest.abort();
 			}
-			const sentDebugEnabled = this.$enabled.is(':checked');
+			const sentDebugEnabled = this.$enabled.is( ':checked' );
 			const data = {
 				action: 'sscribe_debug_save_settings',
 				nonce: sscribe_data.nonce,
@@ -525,105 +586,123 @@
 				auto_refresh: this.isAutoRefresh ? '1' : '0',
 			};
 
-			self.$saveSettings.prop('disabled', true);
-			self.$refreshMode.prop('disabled', true);
+			self.$saveSettings.prop( 'disabled', true );
+			self.$refreshMode.prop( 'disabled', true );
 
-			this.saveSettingsRequest = $.post(sscribe_data.ajaxurl, data, function (response) {
-				self.saveSettingsRequest = null;
-				self.$saveSettings.prop('disabled', false);
-				self.$refreshMode.prop('disabled', false);
-				if (response.success) {
-					self.$saveFeedback.removeClass('success error').text('Saved!').addClass('success');
-					if (response.data && response.data.nonce) {
-						sscribe_data.nonce = response.data.nonce;
-					}
-					if (
+			this.saveSettingsRequest = $.post(
+				sscribe_data.ajaxurl,
+				data,
+				function (response) {
+					self.saveSettingsRequest = null;
+					self.$saveSettings.prop( 'disabled', false );
+					self.$refreshMode.prop( 'disabled', false );
+					if (response.success) {
+						self.$saveFeedback.removeClass( 'success error' ).text( 'Saved!' ).addClass( 'success' );
+						if (response.data && response.data.nonce) {
+							sscribe_data.nonce = response.data.nonce;
+						}
+						if (
 						response.data &&
 						response.data.debug_enabled !== undefined &&
 						response.data.debug_enabled !== sentDebugEnabled
-					) {
-						self.stopAutoRefresh();
-						if (self.currentRequest) {
-							self.currentRequest.abort();
-							self.currentRequest = null;
+						) {
+							self.stopAutoRefresh();
+							if (self.currentRequest) {
+								self.currentRequest.abort();
+								self.currentRequest = null;
+							}
+							self.$saveFeedback
+							.removeClass( 'success error' )
+							.text( 'Debug mode changed — reloading\u2026' )
+							.addClass( 'success' );
+							setTimeout(
+								function () {
+									window.location.reload();
+								},
+								1500
+							);
+						} else {
+							setTimeout(
+								function () {
+									self.$saveFeedback.text( '' );
+									self.$saveFeedback.removeClass( 'success' );
+								},
+								2500
+							);
+						}
+					} else {
+						if (previousAutoRefresh !== undefined) {
+							self.isAutoRefresh = previousAutoRefresh;
+							const targetValue = previousAutoRefresh ? 'auto' : 'manual';
+							self.$refreshMode.filter( '[value="' + targetValue + '"]' ).prop( 'checked', true );
+							if (previousAutoRefresh) {
+								self.startAutoRefresh();
+							} else {
+								self.stopAutoRefresh();
+							}
 						}
 						self.$saveFeedback
-							.removeClass('success error')
-							.text('Debug mode changed — reloading\u2026')
-							.addClass('success');
-						setTimeout(function () {
-							window.location.reload();
-						}, 1500);
-					} else {
-						setTimeout(function () {
-							self.$saveFeedback.text('');
-							self.$saveFeedback.removeClass('success');
-						}, 2500);
+						.removeClass( 'success error' )
+						.text( self.getResponseMessage( response, 'Error' ) )
+						.addClass( 'error' );
+						setTimeout(
+							function () {
+								self.$saveFeedback.text( '' );
+								self.$saveFeedback.removeClass( 'error' );
+							},
+							2000
+						);
 					}
-				} else {
+				}
+			).fail(
+				function (xhr) {
+					self.saveSettingsRequest = null;
+					self.$saveSettings.prop( 'disabled', false );
+					self.$refreshMode.prop( 'disabled', false );
+					if (xhr.statusText === 'abort') {
+						return;
+					}
 					if (previousAutoRefresh !== undefined) {
 						self.isAutoRefresh = previousAutoRefresh;
 						const targetValue = previousAutoRefresh ? 'auto' : 'manual';
-						self.$refreshMode.filter('[value="' + targetValue + '"]').prop('checked', true);
+						self.$refreshMode.filter( '[value="' + targetValue + '"]' ).prop( 'checked', true );
 						if (previousAutoRefresh) {
 							self.startAutoRefresh();
 						} else {
 							self.stopAutoRefresh();
 						}
 					}
-					self.$saveFeedback
-						.removeClass('success error')
-						.text(self.getResponseMessage(response, 'Error'))
-						.addClass('error');
-					setTimeout(function () {
-						self.$saveFeedback.text('');
-						self.$saveFeedback.removeClass('error');
-					}, 2000);
-				}
-			}).fail(function (xhr) {
-				self.saveSettingsRequest = null;
-				self.$saveSettings.prop('disabled', false);
-				self.$refreshMode.prop('disabled', false);
-				if (xhr.statusText === 'abort') {
-					return;
-				}
-				if (previousAutoRefresh !== undefined) {
-					self.isAutoRefresh = previousAutoRefresh;
-					const targetValue = previousAutoRefresh ? 'auto' : 'manual';
-					self.$refreshMode.filter('[value="' + targetValue + '"]').prop('checked', true);
-					if (previousAutoRefresh) {
-						self.startAutoRefresh();
-					} else {
-						self.stopAutoRefresh();
+					let errorMsg = 'Error ' + xhr.status;
+					if (xhr.status === 0) {
+						errorMsg = 'Network error. Please check your connection.';
+					} else if (xhr.responseText) {
+						let parsed;
+						try {
+							parsed = JSON.parse( xhr.responseText );
+						} catch (e) {
+							parsed = null;
+						}
+						if (parsed && parsed.data && parsed.data.message) {
+							errorMsg = parsed.data.message;
+						} else {
+							errorMsg += ' (Server error, see console)';
+						}
 					}
+					self.$saveFeedback.text( errorMsg ).addClass( 'error' );
+					setTimeout(
+						function () {
+							self.$saveFeedback.text( '' );
+							self.$saveFeedback.removeClass( 'error' );
+						},
+						2000
+					);
 				}
-				let errorMsg = 'Error ' + xhr.status;
-				if (xhr.status === 0) {
-					errorMsg = 'Network error. Please check your connection.';
-				} else if (xhr.responseText) {
-					let parsed;
-					try {
-						parsed = JSON.parse(xhr.responseText);
-					} catch (e) {
-						parsed = null;
-					}
-					if (parsed && parsed.data && parsed.data.message) {
-						errorMsg = parsed.data.message;
-					} else {
-						errorMsg += ' (Server error, see console)';
-					}
-				}
-				self.$saveFeedback.text(errorMsg).addClass('error');
-				setTimeout(function () {
-					self.$saveFeedback.text('');
-					self.$saveFeedback.removeClass('error');
-				}, 2000);
-			});
+			);
 		},
 
 		fetchLogs: function (append) {
 			const self = this;
-			const isInitialLoad = !append;
+			const isInitialLoad = ! append;
 
 			if (this.isRefreshing) {
 				return;
@@ -638,7 +717,7 @@
 				return;
 			}
 
-			if (!this.hasMoreEntries && append) {
+			if ( ! this.hasMoreEntries && append) {
 				return;
 			}
 
@@ -655,9 +734,9 @@
 			if (isInitialLoad) {
 				this.isRefreshing = true;
 				this.isRefreshingSince = Date.now();
-				self.$entries.css('opacity', '0.5');
-				self.$entryCount.text('Loading...');
-				self.$consoleBody.addClass('is-loading');
+				self.$entries.css( 'opacity', '0.5' );
+				self.$entryCount.text( 'Loading...' );
+				self.$consoleBody.addClass( 'is-loading' );
 			} else {
 				self.isLoadingMore = true;
 				self.showAppendLoading();
@@ -666,113 +745,121 @@
 			if (this.currentRequest) {
 				this.currentRequest.abort();
 			}
-			this.currentRequest = $.post(sscribe_data.ajaxurl, data, function (response) {
-				self.currentRequest = null;
-				self.$entries.css('opacity', '1');
-				self.$consoleBody.removeClass('is-loading');
-				self.isLoadingMore = false;
-				if (isInitialLoad) {
-					self.isRefreshing = false;
-					self.isRefreshingSince = null;
-				}
+			this.currentRequest = $.post(
+				sscribe_data.ajaxurl,
+				data,
+				function (response) {
+					self.currentRequest = null;
+					self.$entries.css( 'opacity', '1' );
+					self.$consoleBody.removeClass( 'is-loading' );
+					self.isLoadingMore = false;
+					if (isInitialLoad) {
+						self.isRefreshing = false;
+						self.isRefreshingSince = null;
+					}
 
-				if (response.success) {
-					if (!response.data || !Array.isArray(response.data.entries)) {
-						self.showConsoleError('Invalid response from server.');
+					if (response.success) {
+						if ( ! response.data || ! Array.isArray( response.data.entries )) {
+							self.showConsoleError( 'Invalid response from server.' );
+							return;
+						}
+						const newEntries = response.data.entries;
+						const totalCount = response.data.count;
+
+						if (response.data.nonce) {
+							sscribe_data.nonce = response.data.nonce;
+						}
+
+						if (isInitialLoad) {
+							self.renderLogs( newEntries, false, response.data );
+						} else {
+							self.appendLogs( newEntries );
+							self.hideAppendLoading();
+						}
+
+						self.currentOffset += newEntries.length;
+						self.hasMoreEntries = self.currentOffset < totalCount;
+						self.$entryCount.text( 1 === totalCount ? '1 entry' : totalCount + ' entries' );
+
+						if ( ! self.hasMoreEntries) {
+							self.destroyObserver();
+						}
+					} else {
+						self.destroyObserver();
+						self.$entryCount.text( 'Error' );
+						self.showConsoleError( self.getResponseMessage( response, 'Unable to load debug logs.' ) );
+					}
+				}
+			).fail(
+				function (xhr) {
+					if (xhr.statusText === 'abort') {
+						self.currentRequest = null;
+						self.isLoadingMore = false;
+						self.isRefreshing = false;
+						self.isRefreshingSince = null;
+						self.$consoleBody.removeClass( 'is-loading' );
+						self.hideAppendLoading();
 						return;
 					}
-					const newEntries = response.data.entries;
-					const totalCount = response.data.count;
-
-					if (response.data.nonce) {
-						sscribe_data.nonce = response.data.nonce;
-					}
-
-					if (isInitialLoad) {
-						self.renderLogs(newEntries, false, response.data);
-					} else {
-						self.appendLogs(newEntries);
-						self.hideAppendLoading();
-					}
-
-					self.currentOffset += newEntries.length;
-					self.hasMoreEntries = self.currentOffset < totalCount;
-					self.$entryCount.text(1 === totalCount ? '1 entry' : totalCount + ' entries');
-
-					if (!self.hasMoreEntries) {
-						self.destroyObserver();
-					}
-				} else {
-					self.destroyObserver();
-					self.$entryCount.text('Error');
-					self.showConsoleError(self.getResponseMessage(response, 'Unable to load debug logs.'));
-				}
-			}).fail(function (xhr) {
-				if (xhr.statusText === 'abort') {
 					self.currentRequest = null;
+					self.$entries.css( 'opacity', '1' );
+					self.$consoleBody.removeClass( 'is-loading' );
 					self.isLoadingMore = false;
 					self.isRefreshing = false;
 					self.isRefreshingSince = null;
-					self.$consoleBody.removeClass('is-loading');
 					self.hideAppendLoading();
-					return;
-				}
-				self.currentRequest = null;
-				self.$entries.css('opacity', '1');
-				self.$consoleBody.removeClass('is-loading');
-				self.isLoadingMore = false;
-				self.isRefreshing = false;
-				self.isRefreshingSince = null;
-				self.hideAppendLoading();
-				self.destroyObserver();
-				if (isInitialLoad) {
-					self.$entryCount.text('Error');
-					let errorMsg = 'Server Error';
-					if (xhr.status === 0) {
-						errorMsg = 'Network error. Please check your connection.';
-					} else {
-						errorMsg = 'HTTP ' + xhr.status;
-						if (xhr.responseText) {
-							try {
-								const parsed = JSON.parse(xhr.responseText);
-								if (parsed.data && parsed.data.message) {
-									errorMsg = parsed.data.message;
-								} else {
-									errorMsg += ' - ' + xhr.responseText.substring(0, 100);
+					self.destroyObserver();
+					if (isInitialLoad) {
+						self.$entryCount.text( 'Error' );
+						let errorMsg = 'Server Error';
+						if (xhr.status === 0) {
+							errorMsg = 'Network error. Please check your connection.';
+						} else {
+							errorMsg = 'HTTP ' + xhr.status;
+							if (xhr.responseText) {
+								try {
+									const parsed = JSON.parse( xhr.responseText );
+									if (parsed.data && parsed.data.message) {
+										errorMsg = parsed.data.message;
+									} else {
+										errorMsg += ' - ' + xhr.responseText.substring( 0, 100 );
+									}
+								} catch (e) {
+									errorMsg += ' (unparseable response)';
 								}
-							} catch (e) {
-								errorMsg += ' (unparseable response)';
 							}
 						}
-					}
-					self.showConsoleError(errorMsg);
-				} else {
-					self.$entries.find('.sscribe-debug-append-error').remove();
-					self.$entries.append(
-						'<div class="sscribe-debug-append-error">' +
+						self.showConsoleError( errorMsg );
+					} else {
+						self.$entries.find( '.sscribe-debug-append-error' ).remove();
+						self.$entries.append(
+							'<div class="sscribe-debug-append-error">' +
 							'Failed to load more entries. <button type="button" class="sscribe-button sscribe-button-sm sscribe-debug-retry-append">Retry</button>' +
 							'</div>'
-					);
+						);
+					}
 				}
-			});
+			);
 		},
 
 		retryAppend: function () {
-			this.$entries.find('.sscribe-debug-append-error').remove();
+			this.$entries.find( '.sscribe-debug-append-error' ).remove();
 			this.isLoadingMore = false;
-			this.fetchLogs(true);
+			this.fetchLogs( true );
 		},
 
 		buildLogsHtml: function (entries) {
 			let html = '';
-			entries.forEach(function (entry) {
-				html += buildEntryHtml(entry);
-			});
+			entries.forEach(
+				function (entry) {
+					html += buildEntryHtml( entry );
+				}
+			);
 			return html;
 		},
 
 		renderLogs: function (entries, skipObserver, extraData) {
-			if (!entries || entries.length === 0) {
+			if ( ! entries || entries.length === 0) {
 				this.$entries.empty();
 				this.$empty.show();
 				this.destroyObserver();
@@ -780,29 +867,29 @@
 				if (extraData) {
 					if (extraData.debug_enabled === false) {
 						this.$empty
-							.find('p')
-							.text('Debug logging is disabled. Enable it in Settings above to capture logs.');
+							.find( 'p' )
+							.text( 'Debug logging is disabled. Enable it in Settings above to capture logs.' );
 					} else if (extraData.status === 'no_log_file' && extraData.debug_enabled) {
 						this.$empty
-							.find('p')
-							.text('Debug is enabled but no log file exists yet. Run an export to generate logs.');
+							.find( 'p' )
+							.text( 'Debug is enabled but no log file exists yet. Run an export to generate logs.' );
 					} else if (extraData.status === 'rotated') {
-						this.$empty.find('p').text('This rotated log file is empty.');
+						this.$empty.find( 'p' ).text( 'This rotated log file is empty.' );
 					} else {
-						this.$empty.find('p').text(this.defaultEmptyMessage);
+						this.$empty.find( 'p' ).text( this.defaultEmptyMessage );
 					}
 				} else {
-					this.$empty.find('p').text(this.defaultEmptyMessage);
+					this.$empty.find( 'p' ).text( this.defaultEmptyMessage );
 				}
 				return;
 			}
 
 			this.$empty.hide();
-			this.$empty.find('p').text(this.defaultEmptyMessage);
+			this.$empty.find( 'p' ).text( this.defaultEmptyMessage );
 			this.cleanupBeforeRender();
 
 			// Preserve scroll position during auto-refresh updates.
-			const consoleBody = document.getElementById('sscribe-debug-console-body');
+			const consoleBody = document.getElementById( 'sscribe-debug-console-body' );
 			let scrollTop = 0;
 			let wasAtBottom = false;
 			if (consoleBody) {
@@ -810,7 +897,7 @@
 				wasAtBottom = consoleBody.scrollHeight - consoleBody.scrollTop - consoleBody.clientHeight < 50;
 			}
 
-			this.$entries.html(this.buildLogsHtml(entries));
+			this.$entries.html( this.buildLogsHtml( entries ) );
 
 			if (consoleBody) {
 				if (wasAtBottom) {
@@ -820,7 +907,7 @@
 				}
 			}
 
-			if (!skipObserver) {
+			if ( ! skipObserver) {
 				this.setupObserver();
 			}
 		},
@@ -831,52 +918,52 @@
 		},
 
 		appendLogs: function (entries) {
-			if (!entries || entries.length === 0) {
+			if ( ! entries || entries.length === 0) {
 				return;
 			}
 
 			this.destroyObserver();
 
-			const html = this.buildLogsHtml(entries);
-			this.$entries.append(html);
+			const html = this.buildLogsHtml( entries );
+			this.$entries.append( html );
 
 			this.setupObserver();
 		},
 
 		showAppendLoading: function () {
-			this.$entries.append('<div class="sscribe-debug-append-loading">Loading more entries...</div>');
+			this.$entries.append( '<div class="sscribe-debug-append-loading">Loading more entries...</div>' );
 		},
 
 		hideAppendLoading: function () {
-			this.$entries.find('.sscribe-debug-append-loading').remove();
+			this.$entries.find( '.sscribe-debug-append-loading' ).remove();
 		},
 
 		setupObserver: function () {
-			if (!this.hasMoreEntries) {
+			if ( ! this.hasMoreEntries) {
 				return;
 			}
-			if (!this.$consoleBody || !this.$consoleBody[0]) {
+			if ( ! this.$consoleBody || ! this.$consoleBody[0]) {
 				return;
 			}
 
 			const self = this;
-			const sentinel = document.createElement('div');
+			const sentinel = document.createElement( 'div' );
 			sentinel.id = 'sscribe-infinite-scroll-sentinel';
 			sentinel.style.height = '1px';
 			sentinel.style.width = '100%';
-			this.$entries.find('#sscribe-infinite-scroll-sentinel').remove();
-			this.$entries.append(sentinel);
+			this.$entries.find( '#sscribe-infinite-scroll-sentinel' ).remove();
+			this.$entries.append( sentinel );
 
 			this.observer = new IntersectionObserver(
 				function (entries) {
-					if (entries[0].isIntersecting && !self.isLoadingMore && self.hasMoreEntries) {
-						self.fetchLogs(true);
+					if (entries[0].isIntersecting && ! self.isLoadingMore && self.hasMoreEntries) {
+						self.fetchLogs( true );
 					}
 				},
 				{ root: this.$consoleBody[0], rootMargin: '50px', threshold: 0 }
 			);
 
-			this.observer.observe(sentinel);
+			this.observer.observe( sentinel );
 		},
 
 		destroyObserver: function () {
@@ -884,7 +971,7 @@
 				this.observer.disconnect();
 				this.observer = null;
 			}
-			this.$entries.find('#sscribe-infinite-scroll-sentinel').remove();
+			this.$entries.find( '#sscribe-infinite-scroll-sentinel' ).remove();
 		},
 
 		clearLogs: function () {
@@ -894,46 +981,61 @@
 				nonce: sscribe_data.nonce,
 			};
 
-			self.$clearBtn.prop('disabled', true);
+			self.$clearBtn.prop( 'disabled', true );
 
-			$.post(sscribe_data.ajaxurl, data, function (response) {
-				self.$clearBtn.prop('disabled', false);
-				self.$clearBtn.siblings('.sscribe-feedback').remove();
-				if (response.success) {
-					if (response.data && response.data.nonce) {
-						sscribe_data.nonce = response.data.nonce;
-					}
-					const originalText = self.$clearBtn.data('original-text') || self.clearBtnOriginalText;
-					self.$clearBtn.text(originalText);
-					self.$clearBtn.after('<span class="sscribe-feedback sscribe-feedback-success">Cleared!</span>');
-					setTimeout(function () {
-						self.$clearBtn.siblings('.sscribe-feedback').remove();
-					}, 2000);
-					self.destroyObserver();
-					self.fetchLogs();
-				} else {
-					const originalText = self.$clearBtn.data('original-text') || self.clearBtnOriginalText;
-					self.$clearBtn.text(originalText);
-					self.$clearBtn.after(
-						'<span class="sscribe-feedback sscribe-feedback-error">' +
-							escHtml(self.getResponseMessage(response, 'Error')) +
+			$.post(
+				sscribe_data.ajaxurl,
+				data,
+				function (response) {
+					self.$clearBtn.prop( 'disabled', false );
+					self.$clearBtn.siblings( '.sscribe-feedback' ).remove();
+					if (response.success) {
+						if (response.data && response.data.nonce) {
+							sscribe_data.nonce = response.data.nonce;
+						}
+						const originalText = self.$clearBtn.data( 'original-text' ) || self.clearBtnOriginalText;
+						self.$clearBtn.text( originalText );
+						self.$clearBtn.after( '<span class="sscribe-feedback sscribe-feedback-success">Cleared!</span>' );
+						setTimeout(
+							function () {
+								self.$clearBtn.siblings( '.sscribe-feedback' ).remove();
+							},
+							2000
+						);
+						self.destroyObserver();
+						self.fetchLogs();
+					} else {
+						const originalText = self.$clearBtn.data( 'original-text' ) || self.clearBtnOriginalText;
+						self.$clearBtn.text( originalText );
+						self.$clearBtn.after(
+							'<span class="sscribe-feedback sscribe-feedback-error">' +
+							escHtml( self.getResponseMessage( response, 'Error' ) ) +
 							'</span>'
-					);
-					setTimeout(function () {
-						self.$clearBtn.siblings('.sscribe-feedback').remove();
-					}, 2000);
+						);
+						setTimeout(
+							function () {
+								self.$clearBtn.siblings( '.sscribe-feedback' ).remove();
+							},
+							2000
+						);
+					}
 				}
-			}).fail(function () {
-				const originalText = self.$clearBtn.data('original-text') || self.clearBtnOriginalText;
-				self.$clearBtn.prop('disabled', false).text(originalText);
-				self.$clearBtn.data('confirming', false).removeClass('sscribe-btn-confirming');
-				self.$clearBtn.after('<span class="sscribe-feedback sscribe-feedback-error">Error</span>');
-				setTimeout(function () {
-					self.$clearBtn.siblings('.sscribe-feedback').remove();
-				}, 2000);
-				// Attempt to refresh nonce on failure.
-				self.refreshNonce();
-			});
+			).fail(
+				function () {
+					const originalText = self.$clearBtn.data( 'original-text' ) || self.clearBtnOriginalText;
+					self.$clearBtn.prop( 'disabled', false ).text( originalText );
+					self.$clearBtn.data( 'confirming', false ).removeClass( 'sscribe-btn-confirming' );
+					self.$clearBtn.after( '<span class="sscribe-feedback sscribe-feedback-error">Error</span>' );
+					setTimeout(
+						function () {
+							self.$clearBtn.siblings( '.sscribe-feedback' ).remove();
+						},
+						2000
+					);
+					// Attempt to refresh nonce on failure.
+					self.refreshNonce();
+				}
+			);
 		},
 
 		refreshNonce: function () {
@@ -946,36 +1048,43 @@
 						sscribe_data.nonce = response.data.nonce;
 					}
 				}
-			).fail(function () {
-				self.showConsoleError('Nonce refresh failed. Please reload the page.');
-			});
+			).fail(
+				function () {
+					self.showConsoleError( 'Nonce refresh failed. Please reload the page.' );
+				}
+			);
 		},
 
 		downloadViaForm: function (url, data) {
-			const form = document.createElement('form');
+			const form = document.createElement( 'form' );
 			form.method = 'POST';
 			form.action = url;
 			form.target = '_blank';
 			form.style.display = 'none';
-			Object.keys(data).forEach(function (key) {
-				const input = document.createElement('input');
-				input.type = 'hidden';
-				input.name = key;
-				input.value = data[key];
-				form.appendChild(input);
-			});
-			document.body.appendChild(form);
-			form.submit();
-			setTimeout(function () {
-				if (form.parentNode) {
-					form.remove();
+			Object.keys( data ).forEach(
+				function (key) {
+					const input = document.createElement( 'input' );
+					input.type = 'hidden';
+					input.name = key;
+					input.value = data[key];
+					form.appendChild( input );
 				}
-			}, 100);
+			);
+			document.body.appendChild( form );
+			form.submit();
+			setTimeout(
+				function () {
+					if (form.parentNode) {
+						form.remove();
+					}
+				},
+				100
+			);
 		},
 
 		exportLogs: function () {
 			const self = this;
-			if (!this.hasRequiredDom() || !sscribe_data || !sscribe_data.nonce) {
+			if ( ! this.hasRequiredDom() || ! sscribe_data || ! sscribe_data.nonce) {
 				return;
 			}
 			const data = {
@@ -986,15 +1095,18 @@
 				session_id: this.sessionFilter,
 			};
 
-			self.$exportBtn.prop('disabled', true);
-			self.$exportBtn.find('.sscribe-export-btn-scope').text(' (exporting...)');
-			this.showPausedIndicator('Export in progress — download should begin shortly');
-			this.downloadViaForm(sscribe_data.ajaxurl, data);
-			setTimeout(function () {
-				self.$exportBtn.prop('disabled', false);
-				self.updateExportButtonScope();
-				self.hidePausedIndicator();
-			}, 10000);
+			self.$exportBtn.prop( 'disabled', true );
+			self.$exportBtn.find( '.sscribe-export-btn-scope' ).text( ' (exporting...)' );
+			this.showPausedIndicator( 'Export in progress — download should begin shortly' );
+			this.downloadViaForm( sscribe_data.ajaxurl, data );
+			setTimeout(
+				function () {
+					self.$exportBtn.prop( 'disabled', false );
+					self.updateExportButtonScope();
+					self.hidePausedIndicator();
+				},
+				10000
+			);
 
 			$.get(
 				sscribe_data.ajaxurl,
@@ -1004,9 +1116,11 @@
 						sscribe_data.nonce = response.data.nonce;
 					}
 				}
-			).fail(function () {
-				self.showConsoleError('Nonce refresh failed. Please reload the page.');
-			});
+			).fail(
+				function () {
+					self.showConsoleError( 'Nonce refresh failed. Please reload the page.' );
+				}
+			);
 		},
 
 		fetchRotatedLogs: function () {
@@ -1020,72 +1134,80 @@
 				this.rotatedRequest.abort();
 			}
 
-			this.rotatedRequest = $.post(sscribe_data.ajaxurl, data, function (response) {
-				self.rotatedRequest = null;
-				if (response.success && response.data && Array.isArray(response.data.files)) {
-					self.renderRotatedLogs(response.data.files);
-				} else {
-					self.$rotatedBody.html(
-						'<div class="sscribe-debug-rotated-empty">' +
-							escHtml(self.getResponseMessage(response, 'Unable to load rotated logs.')) +
+			this.rotatedRequest = $.post(
+				sscribe_data.ajaxurl,
+				data,
+				function (response) {
+					self.rotatedRequest = null;
+					if (response.success && response.data && Array.isArray( response.data.files )) {
+						self.renderRotatedLogs( response.data.files );
+					} else {
+						self.$rotatedBody.html(
+							'<div class="sscribe-debug-rotated-empty">' +
+							escHtml( self.getResponseMessage( response, 'Unable to load rotated logs.' ) ) +
 							'</div>'
-					);
+						);
+					}
 				}
-			}).fail(function (xhr) {
-				if (xhr.statusText === 'abort') {
-					return;
+			).fail(
+				function (xhr) {
+					if (xhr.statusText === 'abort') {
+						return;
+					}
+					self.rotatedRequest = null;
+					let errMsg = 'Unable to load rotated logs.';
+					if (xhr.status === 0) {
+						errMsg = 'Network error — could not load rotated logs.';
+					}
+					self.$rotatedBody.html( '<div class="sscribe-debug-rotated-empty">' + escHtml( errMsg ) + '</div>' );
 				}
-				self.rotatedRequest = null;
-				let errMsg = 'Unable to load rotated logs.';
-				if (xhr.status === 0) {
-					errMsg = 'Network error — could not load rotated logs.';
-				}
-				self.$rotatedBody.html('<div class="sscribe-debug-rotated-empty">' + escHtml(errMsg) + '</div>');
-			});
+			);
 		},
 
 		renderRotatedLogs: function (files) {
-			if (!files || files.length === 0) {
-				this.$rotatedBody.html('<div class="sscribe-debug-rotated-empty">No rotated log files.</div>');
+			if ( ! files || files.length === 0) {
+				this.$rotatedBody.html( '<div class="sscribe-debug-rotated-empty">No rotated log files.</div>' );
 				return;
 			}
 
 			let html = '';
 
-			files.forEach(function (file) {
-				html += '<div class="sscribe-debug-rotated-file">';
-				html += '<div class="sscribe-debug-rotated-file-info">';
-				html += '<span class="sscribe-debug-rotated-file-name">' + escHtml(file.name) + '</span>';
-				html +=
+			files.forEach(
+				function (file) {
+					html += '<div class="sscribe-debug-rotated-file">';
+					html += '<div class="sscribe-debug-rotated-file-info">';
+					html += '<span class="sscribe-debug-rotated-file-name">' + escHtml( file.name ) + '</span>';
+					html +=
 					'<span class="sscribe-debug-rotated-file-meta">' +
-					escHtml(file.size) +
+					escHtml( file.size ) +
 					' - ' +
-					escHtml(file.date) +
+					escHtml( file.date ) +
 					'</span>';
-				html += '</div>';
-				html += '<div class="sscribe-debug-rotated-file-actions">';
-				html +=
+					html += '</div>';
+					html += '<div class="sscribe-debug-rotated-file-actions">';
+					html +=
 					'<button type="button" class="sscribe-button sscribe-button-sm sscribe-button-outline sscribe-rotated-view" data-file="' +
-					escAttr(file.name) +
+					escAttr( file.name ) +
 					'" aria-label="View rotated log ' +
-					escAttr(file.name) +
+					escAttr( file.name ) +
 					'">View</button>';
-				html +=
+					html +=
 					'<button type="button" class="sscribe-button sscribe-button-sm sscribe-button-secondary sscribe-rotated-export" data-file="' +
-					escAttr(file.name) +
+					escAttr( file.name ) +
 					'" aria-label="Export rotated log ' +
-					escAttr(file.name) +
+					escAttr( file.name ) +
 					'">Export</button>';
-				html +=
+					html +=
 					'<button type="button" class="sscribe-button sscribe-button-sm sscribe-button-danger sscribe-rotated-delete" data-file="' +
-					escAttr(file.name) +
+					escAttr( file.name ) +
 					'" aria-label="Delete rotated log ' +
-					escAttr(file.name) +
+					escAttr( file.name ) +
 					'">Delete</button>';
-				html += '</div></div>';
-			});
+					html += '</div></div>';
+				}
+			);
 
-			this.$rotatedBody.html(html);
+			this.$rotatedBody.html( html );
 		},
 
 		viewRotatedLog: function (filename) {
@@ -1109,56 +1231,68 @@
 			this.isRefreshingSince = null;
 
 			// Push state so browser back button can restore the current log.
-			const url = new URL(window.location.href);
-			url.searchParams.set('view', 'rotated');
-			url.searchParams.set('file', filename);
-			history.pushState({ view: 'rotated', file: filename }, '', url.toString());
+			const url = new URL( window.location.href );
+			url.searchParams.set( 'view', 'rotated' );
+			url.searchParams.set( 'file', filename );
+			history.pushState( { view: 'rotated', file: filename }, '', url.toString() );
 
-			this.viewRotatedRequest = $.post(sscribe_data.ajaxurl, data, function (response) {
-				self.viewRotatedRequest = null;
-				if (response.success) {
-					self.isViewingRotated = true;
-					self.currentRotatedFilename = filename;
-					self.$entries.find('.sscribe-debug-rotated-banner').remove();
-					const entries = Array.isArray(response.data.entries) ? response.data.entries : [];
-					const rotatedCount = parseInt(response.data.count, 10) || 0;
-					self.renderLogs(entries, true, { status: 'rotated', count: rotatedCount });
-					self.$entryCount.text((1 === rotatedCount ? '1 entry' : rotatedCount + ' entries') + ' (rotated)');
-					self.$entries.prepend(
-						'<div class="sscribe-debug-rotated-banner">' +
+			this.viewRotatedRequest = $.post(
+				sscribe_data.ajaxurl,
+				data,
+				function (response) {
+					self.viewRotatedRequest = null;
+					if (response.success) {
+						self.isViewingRotated = true;
+						self.currentRotatedFilename = filename;
+						self.$entries.find( '.sscribe-debug-rotated-banner' ).remove();
+						const entries = Array.isArray( response.data.entries ) ? response.data.entries : [];
+						const rotatedCount = parseInt( response.data.count, 10 ) || 0;
+						self.renderLogs( entries, true, { status: 'rotated', count: rotatedCount } );
+						self.$entryCount.text( (1 === rotatedCount ? '1 entry' : rotatedCount + ' entries') + ' (rotated)' );
+						self.$entries.prepend(
+							'<div class="sscribe-debug-rotated-banner">' +
 							'<span>Viewing archived log: ' +
-							escHtml(filename) +
+							escHtml( filename ) +
 							'</span>' +
 							'<button type="button" class="sscribe-button sscribe-button-primary" id="sscribe-back-to-current">Back to current log</button>' +
 							'</div>'
+						);
+						self.$entries
+							.find( '#sscribe-back-to-current' )
+							.off( 'click.sscribe' )
+							.on(
+								'click.sscribe',
+								function () {
+									self.backToCurrentLog();
+								}
+							);
+					} else {
+						self.$entryCount.text( 'Error' );
+						self.showConsoleError( self.getResponseMessage( response, 'Unable to open rotated log.' ) );
+					}
+				}
+			).fail(
+				function (xhr) {
+					if (xhr.statusText === 'abort') {
+						return;
+					}
+					self.viewRotatedRequest = null;
+					self.isViewingRotated = false;
+					self.$entryCount.text( 'Error' );
+					self.showConsoleError( 'Unable to open rotated log.' );
+					// Clean URL state on failure.
+					const cleanUrl = new URL( window.location.href );
+					cleanUrl.searchParams.delete( 'view' );
+					cleanUrl.searchParams.delete( 'file' );
+					history.replaceState( {}, '', cleanUrl.toString() );
+					setTimeout(
+						function () {
+							self.fetchLogs();
+						},
+						2000
 					);
-					self.$entries
-						.find('#sscribe-back-to-current')
-						.off('click.sscribe')
-						.on('click.sscribe', function () {
-							self.backToCurrentLog();
-						});
-				} else {
-					self.$entryCount.text('Error');
-					self.showConsoleError(self.getResponseMessage(response, 'Unable to open rotated log.'));
 				}
-			}).fail(function (xhr) {
-				if (xhr.statusText === 'abort') {
-					return;
-				}
-				self.viewRotatedRequest = null;
-				self.isViewingRotated = false;
-				self.$entryCount.text('Error');
-				self.showConsoleError('Unable to open rotated log.');
-				// Clean URL state on failure.
-				const cleanUrl = new URL(window.location.href);
-				cleanUrl.searchParams.delete('view');
-				cleanUrl.searchParams.delete('file');
-				history.replaceState({}, '', cleanUrl.toString());
-				setTimeout(function () {
-					self.fetchLogs();
-				}, 2000);
-			});
+			);
 		},
 
 		backToCurrentLog: function () {
@@ -1175,12 +1309,12 @@
 			this.isRefreshing = false;
 			this.isRefreshingSince = null;
 			this.$entries.empty();
-			this.$entryCount.text('Loading...');
-			this.$consoleBody.addClass('is-loading');
-			const url = new URL(window.location.href);
-			url.searchParams.delete('view');
-			url.searchParams.delete('file');
-			history.replaceState({}, '', url.toString());
+			this.$entryCount.text( 'Loading...' );
+			this.$consoleBody.addClass( 'is-loading' );
+			const url = new URL( window.location.href );
+			url.searchParams.delete( 'view' );
+			url.searchParams.delete( 'file' );
+			history.replaceState( {}, '', url.toString() );
 			this.fetchLogs();
 			if (this.isAutoRefresh) {
 				this.startAutoRefresh();
@@ -1196,44 +1330,53 @@
 			};
 
 			if ($btn) {
-				$btn.prop('disabled', true).text('Downloading...');
-				setTimeout(function () {
-					$btn.prop('disabled', false).text('Export');
-				}, 5000);
+				$btn.prop( 'disabled', true ).text( 'Downloading...' );
+				setTimeout(
+					function () {
+						$btn.prop( 'disabled', false ).text( 'Export' );
+					},
+					5000
+				);
 			}
 
-			self.showPausedIndicator('Exporting rotated log...');
-			this.downloadViaForm(sscribe_data.ajaxurl, data);
-			setTimeout(function () {
-				self.hidePausedIndicator();
-			}, 3000);
+			self.showPausedIndicator( 'Exporting rotated log...' );
+			this.downloadViaForm( sscribe_data.ajaxurl, data );
+			setTimeout(
+				function () {
+					self.hidePausedIndicator();
+				},
+				3000
+			);
 		},
 
 		deleteRotatedLog: function (filename, $btn) {
 			const self = this;
 
-			if (!$btn) {
+			if ( ! $btn) {
 				return;
 			}
 
-			if ($btn.data('confirming')) {
-				const originalText = $btn.data('original-text') || 'Delete';
-				$btn.data('confirming', false).removeClass('sscribe-btn-confirming').text(originalText);
-				$btn.prop('disabled', true);
-				self._executeDeleteRotatedLog(filename, $btn);
+			if ($btn.data( 'confirming' )) {
+				const originalText = $btn.data( 'original-text' ) || 'Delete';
+				$btn.data( 'confirming', false ).removeClass( 'sscribe-btn-confirming' ).text( originalText );
+				$btn.prop( 'disabled', true );
+				self._executeDeleteRotatedLog( filename, $btn );
 				return;
 			}
 
-			if (!$btn.data('original-text')) {
-				$btn.data('original-text', $btn.text());
+			if ( ! $btn.data( 'original-text' )) {
+				$btn.data( 'original-text', $btn.text() );
 			}
-			$btn.data('confirming', true).addClass('sscribe-btn-confirming').text('Click to confirm');
-			setTimeout(function () {
-				if ($btn.data('confirming')) {
-					const originalText = $btn.data('original-text') || 'Delete';
-					$btn.data('confirming', false).removeClass('sscribe-btn-confirming').text(originalText);
-				}
-			}, 3000);
+			$btn.data( 'confirming', true ).addClass( 'sscribe-btn-confirming' ).text( 'Click to confirm' );
+			setTimeout(
+				function () {
+					if ($btn.data( 'confirming' )) {
+						const originalText = $btn.data( 'original-text' ) || 'Delete';
+						$btn.data( 'confirming', false ).removeClass( 'sscribe-btn-confirming' ).text( originalText );
+					}
+				},
+				3000
+			);
 		},
 
 		_executeDeleteRotatedLog: function (filename, $btn) {
@@ -1245,49 +1388,61 @@
 			};
 
 			if ($btn) {
-				$btn.prop('disabled', true).text('Deleting...');
+				$btn.prop( 'disabled', true ).text( 'Deleting...' );
 			}
 
-			$.post(sscribe_data.ajaxurl, data, function (response) {
-				if ($btn) {
-					const originalText = $btn.data('original-text') || 'Delete';
-					$btn.prop('disabled', false).text(originalText);
-				}
-				if (response.success) {
-					if (response.data && response.data.nonce) {
-						sscribe_data.nonce = response.data.nonce;
-					}
-					self.fetchRotatedLogs();
-				} else {
+			$.post(
+				sscribe_data.ajaxurl,
+				data,
+				function (response) {
 					if ($btn) {
-						const $row = $btn.closest('.sscribe-debug-rotated-file');
-						if ($row.length) {
-							$row.find('.sscribe-debug-rotated-file-actions').after(
-								'<div class="sscribe-rotated-error">' +
-									escHtml(self.getResponseMessage(response, 'Error')) +
+						const originalText = $btn.data( 'original-text' ) || 'Delete';
+						$btn.prop( 'disabled', false ).text( originalText );
+					}
+					if (response.success) {
+						if (response.data && response.data.nonce) {
+							sscribe_data.nonce = response.data.nonce;
+						}
+						self.fetchRotatedLogs();
+					} else {
+						if ($btn) {
+							const $row = $btn.closest( '.sscribe-debug-rotated-file' );
+							if ($row.length) {
+								$row.find( '.sscribe-debug-rotated-file-actions' ).after(
+									'<div class="sscribe-rotated-error">' +
+									escHtml( self.getResponseMessage( response, 'Error' ) ) +
 									'</div>'
-							);
-							setTimeout(function () {
-								$row.find('.sscribe-rotated-error').remove();
-							}, 3000);
+								);
+								setTimeout(
+									function () {
+										$row.find( '.sscribe-rotated-error' ).remove();
+									},
+									3000
+								);
+							}
 						}
 					}
 				}
-			}).fail(function () {
-				if ($btn) {
-					const originalText = $btn.data('original-text') || 'Delete';
-					$btn.prop('disabled', false).text(originalText);
-					const $row = $btn.closest('.sscribe-debug-rotated-file');
-					if ($row.length) {
-						$row.find('.sscribe-debug-rotated-file-actions').after(
-							'<div class="sscribe-rotated-error">Error</div>'
-						);
-						setTimeout(function () {
-							$row.find('.sscribe-rotated-error').remove();
-						}, 3000);
+			).fail(
+				function () {
+					if ($btn) {
+						const originalText = $btn.data( 'original-text' ) || 'Delete';
+						$btn.prop( 'disabled', false ).text( originalText );
+						const $row = $btn.closest( '.sscribe-debug-rotated-file' );
+						if ($row.length) {
+							$row.find( '.sscribe-debug-rotated-file-actions' ).after(
+								'<div class="sscribe-rotated-error">Error</div>'
+							);
+							setTimeout(
+								function () {
+									$row.find( '.sscribe-rotated-error' ).remove();
+								},
+								3000
+							);
+						}
 					}
 				}
-			});
+			);
 		},
 	};
 
@@ -1305,30 +1460,32 @@
 			'raw',
 		];
 		const entryLevel = entry.level && typeof entry.level === 'string' ? entry.level.toLowerCase() : 'info';
-		const badgeClass = allowedLevels.includes(entryLevel) ? entryLevel : 'info';
+		const badgeClass = allowedLevels.includes( entryLevel ) ? entryLevel : 'info';
 		let contextHtml = '';
 
-		if (entry.context && Object.keys(entry.context).length > 0) {
+		if (entry.context && Object.keys( entry.context ).length > 0) {
 			let contextRows = '';
-			Object.keys(entry.context).forEach(function (key) {
-				let value = entry.context[key];
-				if (typeof value === 'object') {
-					try {
-						value = JSON.stringify(value, null, 2);
-					} catch (e) {
-						value = '[unserializable object]';
+			Object.keys( entry.context ).forEach(
+				function (key) {
+					let value = entry.context[key];
+					if (typeof value === 'object') {
+						try {
+							value = JSON.stringify( value, null, 2 );
+						} catch (e) {
+							value = '[unserializable object]';
+						}
 					}
-				}
-				contextRows +=
+					contextRows +=
 					'<div class="sscribe-debug-context-row">' +
 					'<span class="sscribe-debug-context-key">' +
-					escHtml(String(key)) +
+					escHtml( String( key ) ) +
 					'</span>' +
 					'<div class="sscribe-debug-context-val"><pre>' +
-					escHtml(String(value)) +
+					escHtml( String( value ) ) +
 					'</pre></div>' +
 					'</div>';
-			});
+				}
+			);
 			contextHtml = '<div class="sscribe-debug-entry-context">' + contextRows + '</div>';
 		}
 
@@ -1340,21 +1497,21 @@
 			'"' +
 			(hasContext
 				? ' tabindex="0" role="button" aria-expanded="false" aria-label="Toggle context for: ' +
-					escAttr(String(entry.message || '').substring(0, 50)) +
+					escAttr( String( entry.message || '' ).substring( 0, 50 ) ) +
 					'"'
 				: '') +
 			'>' +
 			'<div class="sscribe-debug-entry-header">' +
 			'<span class="sscribe-debug-entry-badge ' +
-			escAttr(badgeClass) +
+			escAttr( badgeClass ) +
 			'">' +
-			escHtml(entry.level || 'INFO') +
+			escHtml( entry.level || 'INFO' ) +
 			'</span>' +
 			'<span class="sscribe-debug-entry-time">' +
-			escHtml(entry.timestamp || '') +
+			escHtml( entry.timestamp || '' ) +
 			'</span>' +
 			'<span class="sscribe-debug-entry-message">' +
-			escHtml(entry.message || '') +
+			escHtml( entry.message || '' ) +
 			'</span>' +
 			(hasContext ? '<span class="sscribe-debug-entry-toggle" aria-hidden="true">\u25B6</span>' : '') +
 			'</div>' +
@@ -1365,9 +1522,11 @@
 
 	window.SScribeDebugConsole = SScribeDebugConsole;
 
-	jQuery(document).ready(function () {
-		if (window.SScribeDebugConsole) {
-			window.SScribeDebugConsole.init();
+	jQuery( document ).ready(
+		function () {
+			if (window.SScribeDebugConsole) {
+				window.SScribeDebugConsole.init();
+			}
 		}
-	});
-})(jQuery);
+	);
+})( jQuery );
