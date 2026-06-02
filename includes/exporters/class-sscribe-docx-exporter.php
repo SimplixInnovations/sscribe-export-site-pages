@@ -60,7 +60,7 @@ class SScribe_DOCX_Exporter implements SScribe_Exporter_Interface {
 	public function export( array $page_data, string $output_dir, int $index = 0, int $total = 0 ): SScribe_Result {
 		$page_id = $page_data['id'] ?? 0;
 
-		if ( ! class_exists( '\PhpOffice\PhpWord\PhpWord' ) ) {
+		if ( ! class_exists( '\SScribeVendor\PhpOffice\PhpWord\PhpWord' ) ) {
 			$this->logger->error(
 				'PhpWord library not available — vendor/ directory missing or autoloader not loaded',
 				array( 'page_id' => $page_id )
