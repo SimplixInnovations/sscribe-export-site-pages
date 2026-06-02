@@ -159,7 +159,14 @@ class SScribe_Zip_Handler {
 			}
 		}
 		$total_source_size = array_sum( array_map( 'filesize', $all_file_paths ) );
-		$available_space  = @disk_free_space( $this->export_dir );
+		$available_space = false;
+		if ( function_exists( 'disk_free_space' ) ) {
+			try {
+				$available_space = @disk_free_space( $this->export_dir );
+			} catch ( \Throwable $e ) {
+				$available_space = false;
+			}
+		}
 		if ( false !== $available_space && $total_source_size > ( $available_space * 0.95 ) ) {
 			$this->logger->error(
 				'Insufficient disk space to create ZIP archive',

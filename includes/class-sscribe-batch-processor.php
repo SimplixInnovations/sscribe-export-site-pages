@@ -1989,6 +1989,29 @@ class SScribe_Batch_Processor {
 		}
 
 		$status = $session['status'] ?? '';
+		$temp_dir = $session['temp_dir'] ?? '';
+
+		// Handle stuck sessions: if status is 'pending' but the temp directory no longer
+		// exists (cleaned up after a crash), auto-reset the session and return 410 Gone
+		// instead of a confusing 409 Conflict.
+		if ( 'pending' === $status && ! empty( $temp_dir ) && ! is_dir( $temp_dir ) ) {
+			$this->session->update(
+				$session_id,
+				array(
+					'status' => 'failed',
+					'error'  => 'Previous export failed and was automatically cleared.',
+				)
+			);
+			SScribe_AJAX_Guard::error(
+				array(
+					'code'    => 'session_cleared',
+					'message' => __( 'Previous export failed and was cleared. Please try again.', 'sscribe-export-site-pages' ),
+				),
+				410
+			);
+			return;
+		}
+
 		if ( 'finalizing' !== $status && 'completing' !== $status ) {
 			SScribe_AJAX_Guard::error(
 				array(
