@@ -2000,10 +2000,14 @@ class SScribe_Batch_Processor {
 			return;
 		}
 
-		// Re-acquire the processing lock to serialize concurrent finalize requests.
-		// Both requests will race to acquire the lock; only the first succeeds and proceeds.
-		// Lock TTL of 300 seconds matches the set_time_limit in finalize_export.
-		$lock_token = $this->get_lock_manager()->acquire_lock( $session_id, 300, 260 );
+		// Lock TTL: use dynamic value based on file count in temp dir.
+			// Large exports with many files need more time for ZIP creation.
+			// 2 seconds per file with 120s minimum and 600s maximum.
+			$file_count_raw = glob( trailingslashit( $session['temp_dir'] ) . '*' );
+			$file_count     = is_array( $file_count_raw ) ? count( $file_count_raw ) : 0;
+			$lock_ttl      = max( 120, min( 600, $file_count * 2 ) );
+
+			$lock_token = $this->get_lock_manager()->acquire_lock( $session_id, $lock_ttl, (int) ( $lock_ttl * 0.85 ) );
 		if ( null === $lock_token ) {
 			$this->logger->debug( 'Finalize race detected — another request holds the lock', array( 'session_id' => $session_id ) );
 			SScribe_AJAX_Guard::error(
@@ -2020,7 +2024,7 @@ class SScribe_Batch_Processor {
 			// Check if the completing timestamp is too old - if so, the previous
 			// finalize may have crashed and we should allow retry.
 			$completing_since = $session['completing_since'] ?? 0;
-			if ( $completing_since > 0 && ( time() - $completing_since ) < 120 ) {
+			if ( $completing_since > 0 && ( time() - $completing_since ) < $lock_ttl ) {
 				$this->release_lock( $session_id, $lock_token );
 				SScribe_AJAX_Guard::error(
 					array(
@@ -2031,10 +2035,30 @@ class SScribe_Batch_Processor {
 				);
 				// No return needed — Guard::error() always exits.
 			}
-			// completing_since is too old (> 2 minutes), treat as stale and allow retry.
+			// completing_since is too old (> lock_ttl), treat as stale and allow retry.
 		}
 
-		$this->finalize_export( $session_id, $session, $lock_token );
+		try {
+			$this->finalize_export( $session_id, $session, $lock_token );
+		} catch ( \Throwable $e ) {
+			$this->logger->error(
+				'Finalize export threw exception',
+				array(
+					'session_id'      => $session_id,
+					'error'           => $e->getMessage(),
+					'exception_class' => get_class( $e ),
+					'file'            => basename( $e->getFile() ) . ':' . $e->getLine(),
+				)
+			);
+			$this->release_lock( $session_id, $lock_token );
+			SScribe_AJAX_Guard::error(
+				array(
+					'code'    => 'finalize_exception',
+					'message' => __( 'Export finalization failed. Please try again.', 'sscribe-export-site-pages' ),
+				),
+				500
+			);
+		}
 	}
 
 	/**
