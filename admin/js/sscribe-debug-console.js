@@ -237,6 +237,7 @@
 					$btn.prop('disabled', true);
 					self.clearLogs();
 				} else {
+					$btn.prop('disabled', true);
 					if (!$btn.data('original-text')) {
 						$btn.data('original-text', $btn.text());
 					}
@@ -308,9 +309,8 @@
 					dialog.appendChild(closeBtn);
 
 					overlay.addEventListener('click', closeDialog);
-					const wpWrap = document.getElementById('wpwrap') || document.body;
-					wpWrap.appendChild(overlay);
-					wpWrap.appendChild(dialog);
+					document.body.appendChild(overlay);
+					document.body.appendChild(dialog);
 					document.addEventListener('keydown', keyHandler);
 					const focusableElements = Array.from(dialog.querySelectorAll(focusableSelectors));
 					if (focusableElements.length > 0) {
@@ -387,6 +387,7 @@
 				} else if (self.isAutoRefresh) {
 					const $debugTabBtn = $('#sscribe-tab-btn-debug');
 					if (!$debugTabBtn.length || $debugTabBtn.attr('aria-selected') === 'true') {
+						self.fetchLogs();
 						self.startAutoRefresh();
 						self.hidePausedIndicator();
 					}
@@ -766,6 +767,7 @@
 		renderLogs: function (entries, skipObserver, extraData) {
 			if (!entries || entries.length === 0) {
 				this.$entries.empty();
+				this.$empty.find('p').text(this.defaultEmptyMessage);
 				this.$empty.show();
 				this.destroyObserver();
 
@@ -1000,7 +1002,7 @@
 			this.showPausedIndicator('Export in progress — download should begin shortly');
 			this.downloadViaForm(sscribe_data.ajaxurl, data);
 			setTimeout(function () {
-				self.$exportBtn.prop('disabled', false);
+				self.$exportBtn.prop('disabled', false).text('Export');
 				self.updateExportButtonScope();
 				self.hidePausedIndicator();
 			}, 10000);
@@ -1181,6 +1183,7 @@
 			this.fetchLogs();
 			if (this.isAutoRefresh) {
 				this.startAutoRefresh();
+				this.hidePausedIndicator();
 			}
 		},
 
