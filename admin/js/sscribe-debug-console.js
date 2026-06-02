@@ -399,9 +399,10 @@
 			};
 			window.addEventListener('beforeunload', this._beforeUnloadHandler);
 
-			this._popStateHandler = function () {
-				// Restore current log when back button is pressed during rotated log viewing.
-				if (self.isViewingRotated) {
+			this._popStateHandler = function (event) {
+				if (event.state && event.state.view === 'rotated' && event.state.file) {
+					self.viewRotatedLog(event.state.file);
+				} else if (self.isViewingRotated) {
 					self.backToCurrentLog();
 				}
 			};
@@ -429,21 +430,12 @@
 		startAutoRefresh: function () {
 			const self = this;
 			this.stopAutoRefresh();
-			// Auto-refresh interval is fixed at 10 seconds.
-			// A value of 0 means "disabled" and should be treated as a stop signal,
-			// not silently overridden to 5s.
-			const interval = 10;
-			if (isNaN(interval) || interval <= 0) {
-				return;
-			}
-			// Enforce 2-second minimum to prevent server flooding.
-			const safeInterval = Math.max(interval, 2);
 			this.refreshInterval = setInterval(function () {
 				if (self.isRefreshing && self.isRefreshingSince && Date.now() - self.isRefreshingSince > 30000) {
 					self.isRefreshing = false;
 					self.isRefreshingSince = null;
 				}
-				if (self.isRefreshing || self.isViewingRotated) {
+				if (self.isRefreshing || self.isLoadingMore || self.isViewingRotated) {
 					return;
 				}
 				if (self.currentOffset !== 0) {
@@ -452,7 +444,7 @@
 				}
 				self.hidePausedIndicator();
 				self.fetchLogs();
-			}, safeInterval * 1000);
+			}, 10000);
 		},
 
 		stopAutoRefresh: function () {
@@ -947,7 +939,7 @@
 					}
 				}
 			).fail(function () {
-				self.showConsoleError('Nonce refresh failed. Please reload the page.');
+				self.showPausedIndicator('Nonce refresh failed — you may need to reload the page.');
 			});
 		},
 
@@ -978,6 +970,23 @@
 			if (!this.hasRequiredDom() || !sscribe_data || !sscribe_data.nonce) {
 				return;
 			}
+
+			$.get(
+				sscribe_data.ajaxurl,
+				{ action: 'sscribe_debug_refresh_nonce', nonce: sscribe_data.nonce },
+				function (response) {
+					if (response && response.success && response.data && response.data.nonce) {
+						sscribe_data.nonce = response.data.nonce;
+					}
+					self.doExportLogs();
+				}
+			).fail(function () {
+				self.showPausedIndicator('Export failed — you may need to reload the page.');
+			});
+		},
+
+		doExportLogs: function () {
+			const self = this;
 			const data = {
 				action: 'sscribe_debug_export_logs',
 				nonce: sscribe_data.nonce,
@@ -995,18 +1004,6 @@
 				self.updateExportButtonScope();
 				self.hidePausedIndicator();
 			}, 10000);
-
-			$.get(
-				sscribe_data.ajaxurl,
-				{ action: 'sscribe_debug_refresh_nonce', nonce: sscribe_data.nonce },
-				function (response) {
-					if (response && response.success && response.data && response.data.nonce) {
-						sscribe_data.nonce = response.data.nonce;
-					}
-				}
-			).fail(function () {
-				self.showConsoleError('Nonce refresh failed. Please reload the page.');
-			});
 		},
 
 		fetchRotatedLogs: function () {
