@@ -1213,6 +1213,9 @@ class SScribe_Batch_Processor {
 			// realpath() resolves symlinks and normalizes paths. Both base and temp must be
 			// resolved to ensure the strpos comparison works on servers with symlinked dirs
 			// (common on ServerAvatar, Cloudflare, OpenLiteSpeed, and managed hosting).
+			// NOTE: If the allowed base directory doesn't exist yet, realpath() returns false.
+			// In that case, we fall back to ensuring the temp_dir starts with the non-resolved
+			// allowed_base path. This is safe because we create the dir via wp_mkdir_p() below.
 			$real_allowed_base = realpath( $allowed_temp_base );
 			// Recreate temp dir if it was deleted between batches (e.g., crashed PHP process).
 			// This prevents false "corrupted session" errors on valid sessions.
@@ -1223,10 +1226,26 @@ class SScribe_Batch_Processor {
 			// Reject unresolved paths to prevent path traversal attacks.
 			// realpath() returns false if the path doesn't exist or can't be resolved.
 			// Use trailing DIRECTORY_SEPARATOR to prevent /sscribe-exports-evil passing as /sscribe-exports.
-			if ( false === $real_temp_dir
-				|| false === $real_allowed_base
-				|| 0 !== strpos( $real_temp_dir, rtrim( $real_allowed_base, DIRECTORY_SEPARATOR ) . DIRECTORY_SEPARATOR )
-			) {
+			// If real_allowed_base is false (directory doesn't exist yet), use safe fallback comparison.
+			$path_valid = true;
+			if ( false === $real_temp_dir ) {
+				// temp_dir doesn't exist and couldn't be created - this is a genuine error.
+				$path_valid = false;
+			} elseif ( false !== $real_allowed_base ) {
+				// Both resolved - check containment with trailing separator.
+				$safe_base = rtrim( $real_allowed_base, DIRECTORY_SEPARATOR ) . DIRECTORY_SEPARATOR;
+				if ( 0 !== strpos( $real_temp_dir, $safe_base ) ) {
+					$path_valid = false;
+				}
+			} else {
+				// real_allowed_base is false - directory doesn't exist yet.
+				// Fall back to non-resolved path comparison (safe because we use DIRECTORY_SEPARATOR boundary).
+				$safe_base = rtrim( $allowed_temp_base, DIRECTORY_SEPARATOR ) . DIRECTORY_SEPARATOR;
+				if ( 0 !== strpos( $real_temp_dir, $safe_base ) ) {
+					$path_valid = false;
+				}
+			}
+			if ( ! $path_valid ) {
 				$this->release_lock( $session_id, $lock_token );
 				$this->restore_ob_level( $ob_level_before );
 				SScribe_AJAX_Guard::error(
