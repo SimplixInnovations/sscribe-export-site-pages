@@ -755,7 +755,8 @@ class SScribe_Batch_Processor {
 			);
 		}
 
-		if ( ! $this->check_rate_limit() ) {
+		$rate_check = $this->check_rate_limit();
+		if ( false === $rate_check ) {
 			SScribe_AJAX_Guard::error(
 				array(
 					'message'  => __( 'Too many requests. Please wait a moment and try again.', 'sscribe-export-site-pages' ),
@@ -1039,7 +1040,8 @@ class SScribe_Batch_Processor {
 			);
 		}
 
-		if ( ! $this->check_rate_limit() ) {
+		$rate_check = $this->check_rate_limit();
+		if ( false === $rate_check ) {
 			SScribe_AJAX_Guard::error(
 				array(
 					'message'  => __( 'Too many requests. Please wait a moment.', 'sscribe-export-site-pages' ),
@@ -1151,9 +1153,10 @@ class SScribe_Batch_Processor {
 				$this->restore_ob_level( $ob_level_before );
 				SScribe_AJAX_Guard::error(
 					array(
-						'status'  => 'locked',
-						'retry'   => true,
-						'message' => __( 'A batch is already processing. Please wait.', 'sscribe-export-site-pages' ),
+						'status'   => 'locked',
+						'retry'    => true,
+						'retry_in' => 60000,
+						'message'  => __( 'A batch is already processing. Please wait.', 'sscribe-export-site-pages' ),
 					),
 					429
 				);
@@ -1944,10 +1947,13 @@ class SScribe_Batch_Processor {
 			);
 		}
 
-		if ( ! $this->check_rate_limit() ) {
+		$rate_check = $this->check_rate_limit();
+		if ( false === $rate_check ) {
 			SScribe_AJAX_Guard::error(
 				array(
-					'message' => __( 'Too many requests. Please wait a moment.', 'sscribe-export-site-pages' ),
+					'message'  => __( 'Too many requests. Please wait a moment.', 'sscribe-export-site-pages' ),
+					'retry'    => true,
+					'retry_in' => 60000,
 				),
 				429
 			);

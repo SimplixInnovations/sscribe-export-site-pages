@@ -126,6 +126,7 @@ class SScribe_Export_Log {
 			$result = file_put_contents( $this->log_file, $json, LOCK_EX );
 			if ( false !== $result ) {
 				$this->dirty = false;
+				// phpcs:ignore WordPress.WP.AlternativeFunctions.file_system_operations_chmod -- Setting 0600 for log file security; only effective on Unix-like systems.
 				chmod( $this->log_file, 0600 );
 			}
 		}

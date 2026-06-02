@@ -117,7 +117,8 @@ class SScribe_Export_Query_Controller {
 			);
 		}
 
-		if ( ! $this->rate_limiter->check_rate_limit( $export_capability ) ) {
+		$rate_check = $this->rate_limiter->check_rate_limit( $export_capability );
+		if ( false === $rate_check ) {
 			SScribe_AJAX_Guard::error(
 				array( 'message' => __( 'Too many requests. Please wait a moment.', 'sscribe-export-site-pages' ) ),
 				429
@@ -155,7 +156,8 @@ class SScribe_Export_Query_Controller {
 			);
 		}
 
-		if ( ! $this->rate_limiter->check_rate_limit( $export_capability ) ) {
+		$rate_check = $this->rate_limiter->check_rate_limit( $export_capability );
+		if ( false === $rate_check ) {
 			SScribe_AJAX_Guard::error(
 				array( 'message' => __( 'Too many requests. Please wait.', 'sscribe-export-site-pages' ) ),
 				429
@@ -227,7 +229,8 @@ class SScribe_Export_Query_Controller {
 			);
 		}
 
-		if ( ! $this->rate_limiter->check_rate_limit( $export_capability ) ) {
+		$rate_check = $this->rate_limiter->check_rate_limit( $export_capability );
+		if ( false === $rate_check ) {
 			SScribe_AJAX_Guard::error(
 				array(
 					'message'  => __( 'Too many requests. Please wait a moment.', 'sscribe-export-site-pages' ),
@@ -331,7 +334,8 @@ class SScribe_Export_Query_Controller {
 			);
 		}
 
-		if ( ! $this->rate_limiter->check_rate_limit( $export_capability ) ) {
+		$rate_check = $this->rate_limiter->check_rate_limit( $export_capability );
+		if ( false === $rate_check ) {
 			SScribe_AJAX_Guard::error(
 				array(
 					'message'  => __( 'Too many requests. Please wait a moment.', 'sscribe-export-site-pages' ),
@@ -471,7 +475,8 @@ class SScribe_Export_Query_Controller {
 			);
 		}
 
-		if ( ! $this->rate_limiter->check_rate_limit( $export_capability ) ) {
+		$rate_check = $this->rate_limiter->check_rate_limit( $export_capability );
+		if ( false === $rate_check ) {
 			SScribe_AJAX_Guard::error(
 				array(
 					'message'  => __( 'Too many requests. Please wait a moment.', 'sscribe-export-site-pages' ),
@@ -545,7 +550,8 @@ class SScribe_Export_Query_Controller {
 			);
 		}
 
-		if ( ! $this->rate_limiter->check_rate_limit( $export_capability ) ) {
+		$rate_check = $this->rate_limiter->check_rate_limit( $export_capability );
+		if ( false === $rate_check ) {
 			SScribe_AJAX_Guard::error(
 				array(
 					'message'  => __( 'Too many requests. Please wait a moment.', 'sscribe-export-site-pages' ),

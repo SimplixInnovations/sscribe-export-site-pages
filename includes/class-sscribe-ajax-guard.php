@@ -237,19 +237,24 @@ class SScribe_AJAX_Guard {
 	 * @return string Formatted string.
 	 */
 	private static function format_bytes( int $bytes ): string {
+		$bytes = max( 0, $bytes );
 		if ( $bytes < 1024 ) {
 			return $bytes . ' B';
 		}
 
-		$units      = array( 'KB', 'MB', 'GB', 'TB' );
-		$unit_count = count( $units );
-		$i          = 0;
+		$units = array( 'KB', 'MB', 'GB', 'TB' );
+		$value = (float) $bytes;
+		$i     = 0;
 
-		while ( $bytes >= 1024 && $i < $unit_count - 1 ) {
-			$bytes /= 1024;
+		while ( $value >= 1024.0 && $i < count( $units ) - 1 ) {
+			$value /= 1024.0;
 			++$i;
 		}
 
-		return sprintf( '%.2f %s', $bytes, $units[ $i ] );
+		if ( $i >= 3 && $value > 64.0 ) {
+			return 'N/A (overflow)';
+		}
+
+		return sprintf( '%.2f %s', $value, $units[ $i ] );
 	}
 }

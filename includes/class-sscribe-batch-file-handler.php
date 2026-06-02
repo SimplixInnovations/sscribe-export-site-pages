@@ -82,7 +82,8 @@ class SScribe_Batch_File_Handler {
 			wp_die( esc_html__( 'Permission denied.', 'sscribe-export-site-pages' ) );
 		}
 
-		if ( ! $this->check_rate_limit() ) {
+		$rate_check = $this->check_rate_limit();
+		if ( false === $rate_check ) {
 			status_header( 429 );
 			wp_die( esc_html__( 'Too many requests. Please wait a moment and try again.', 'sscribe-export-site-pages' ) );
 		}
@@ -190,7 +191,8 @@ class SScribe_Batch_File_Handler {
 			SScribe_AJAX_Guard::error( array( 'message' => __( 'Permission denied.', 'sscribe-export-site-pages' ) ), 403 );
 		}
 
-		if ( ! $this->check_rate_limit() ) {
+		$rate_check = $this->check_rate_limit();
+		if ( false === $rate_check ) {
 			SScribe_AJAX_Guard::error(
 				array(
 					'message'  => __( 'Too many requests. Please wait a moment.', 'sscribe-export-site-pages' ),
@@ -275,7 +277,8 @@ class SScribe_Batch_File_Handler {
 			SScribe_AJAX_Guard::error( array( 'message' => __( 'Permission denied.', 'sscribe-export-site-pages' ) ), 403 );
 		}
 
-		if ( ! $this->check_rate_limit() ) {
+		$rate_check = $this->check_rate_limit();
+		if ( false === $rate_check ) {
 			SScribe_AJAX_Guard::error(
 				array(
 					'message'  => __( 'Too many requests. Please wait a moment.', 'sscribe-export-site-pages' ),

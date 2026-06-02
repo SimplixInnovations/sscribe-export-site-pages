@@ -110,9 +110,11 @@ class SScribe_Batch_Session_Handler {
 			);
 		}
 
-		if ( ! $this->check_rate_limit() ) {
+		$rate_check = $this->check_rate_limit();
+		if ( $rate_check === false || null === $rate_check ) {
 			// Return empty success with rate_limited flag so UI knows the check
-			// was skipped due to rate limiting and cannot restore the session.
+			// was skipped due to rate limiting (false) or lock contention (null)
+			// and cannot restore the session.
 			wp_send_json_success(
 				array(
 					'has_active'   => false,
@@ -185,7 +187,8 @@ class SScribe_Batch_Session_Handler {
 			SScribe_AJAX_Guard::error( array( 'message' => __( 'Invalid session access.', 'sscribe-export-site-pages' ) ), 403 );
 		}
 
-		if ( ! $this->check_rate_limit() ) {
+		$rate_check = $this->check_rate_limit();
+		if ( false === $rate_check ) {
 			SScribe_AJAX_Guard::error(
 				array(
 					'message'  => __( 'Too many requests. Please wait a moment.', 'sscribe-export-site-pages' ),
@@ -217,7 +220,8 @@ class SScribe_Batch_Session_Handler {
 			SScribe_AJAX_Guard::error( array( 'message' => __( 'Permission denied.', 'sscribe-export-site-pages' ) ), 403 );
 		}
 
-		if ( ! $this->check_rate_limit() ) {
+		$rate_check = $this->check_rate_limit();
+		if ( false === $rate_check ) {
 			SScribe_AJAX_Guard::error(
 				array(
 					'message'  => __( 'Too many requests. Please wait a moment.', 'sscribe-export-site-pages' ),
