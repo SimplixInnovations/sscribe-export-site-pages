@@ -39,9 +39,9 @@ class SScribe_Export_Rate_Limiter {
 	 * @param string $bucket            Rate limit bucket name (default: 'export').
 	 *                                 Use 'debug' for debug console actions to keep
 	 *                                 them in a separate bucket from export actions.
-	 * @return bool
+	 * @return bool|null true = allowed, false = rate limit exceeded, null = lock contention (allow through)
 	 */
-	public function check_rate_limit( string $export_capability = 'sscribe_export', string $bucket = 'export' ): bool {
+	public function check_rate_limit( string $export_capability = 'sscribe_export', string $bucket = 'export' ): ?bool {
 		$user_id = get_current_user_id();
 
 		if ( $user_id > 0 ) {
@@ -80,7 +80,7 @@ class SScribe_Export_Rate_Limiter {
 		}
 
 		if ( ! $locked ) {
-			return false;
+			return null;
 		}
 
 		$data = get_transient( $transient_key );

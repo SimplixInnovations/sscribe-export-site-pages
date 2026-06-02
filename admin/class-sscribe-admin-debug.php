@@ -86,7 +86,8 @@ class SScribe_Admin_Debug {
 		}
 
 		$rate_limiter = new SScribe_Export_Rate_Limiter();
-		if ( ! $rate_limiter->check_rate_limit( self::get_export_capability(), $rate_bucket ) ) {
+		$rate_check = $rate_limiter->check_rate_limit( self::get_export_capability(), $rate_bucket );
+		if ( false === $rate_check ) {
 			wp_send_json_error( array( 'message' => __( 'Rate limit exceeded. Please wait before trying again.', 'sscribe-export-site-pages' ) ), 429 );
 			return false;
 		}
