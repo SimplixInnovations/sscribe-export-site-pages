@@ -496,7 +496,7 @@ class SScribe_Exporter {
 				throw new \RuntimeException( 'The PhpWord library is required to generate DOCX files.' );
 			}
 
-			$php_word = new PhpWord();
+			$php_word = new \SScribeVendor\PhpOffice\PhpWord\PhpWord();
 
 			$this->get_logger()->debug(
 				'DOCX generation started',
