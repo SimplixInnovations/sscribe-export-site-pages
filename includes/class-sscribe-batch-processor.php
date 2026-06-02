@@ -1210,10 +1210,23 @@ class SScribe_Batch_Processor {
 			// Validate temp_dir is within allowed uploads directory to prevent path traversal attacks.
 			$upload_dir        = wp_upload_dir();
 			$allowed_temp_base = trailingslashit( $upload_dir['basedir'] ) . 'sscribe-exports';
-			$real_temp_dir     = realpath( $temp_dir );
+			// realpath() resolves symlinks and normalizes paths. Both base and temp must be
+			// resolved to ensure the strpos comparison works on servers with symlinked dirs
+			// (common on ServerAvatar, Cloudflare, OpenLiteSpeed, and managed hosting).
+			$real_allowed_base = realpath( $allowed_temp_base );
+			// Recreate temp dir if it was deleted between batches (e.g., crashed PHP process).
+			// This prevents false "corrupted session" errors on valid sessions.
+			if ( ! empty( $temp_dir ) && ! is_dir( $temp_dir ) ) {
+				wp_mkdir_p( $temp_dir );
+			}
+			$real_temp_dir = realpath( $temp_dir );
 			// Reject unresolved paths to prevent path traversal attacks.
 			// realpath() returns false if the path doesn't exist or can't be resolved.
-			if ( false === $real_temp_dir || 0 !== strpos( $real_temp_dir, $allowed_temp_base ) ) {
+			// Use trailing DIRECTORY_SEPARATOR to prevent /sscribe-exports-evil passing as /sscribe-exports.
+			if ( false === $real_temp_dir
+				|| false === $real_allowed_base
+				|| 0 !== strpos( $real_temp_dir, rtrim( $real_allowed_base, DIRECTORY_SEPARATOR ) . DIRECTORY_SEPARATOR )
+			) {
 				$this->release_lock( $session_id, $lock_token );
 				$this->restore_ob_level( $ob_level_before );
 				SScribe_AJAX_Guard::error(
