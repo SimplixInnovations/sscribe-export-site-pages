@@ -2543,6 +2543,7 @@ class SScribe_Batch_Processor {
 			);
 
 			$this->release_lock( $session_id, $lock_token );
+			$this->session->update( $session_id, array( 'status' => 'finalizing' ) );
 
 			SScribe_AJAX_Guard::error(
 				array(

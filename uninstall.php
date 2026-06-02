@@ -119,6 +119,7 @@ $sscribe_cleanup_site = static function (): void {
 
 	wp_clear_scheduled_hook( 'sscribe_cleanup_exports' );
 	wp_clear_scheduled_hook( 'sscribe_cleanup_sessions' );
+	wp_clear_scheduled_hook( 'sscribe_cleanup_audit_trail' );
 };
 
 if ( is_multisite() ) {

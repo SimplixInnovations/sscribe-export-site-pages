@@ -209,7 +209,7 @@ class SScribe_Filesystem {
 
 		if ( self::$fs instanceof WP_Filesystem_Base ) {
 			$content = self::$fs->get_contents( $file );
-		return $content !== false ? $content : false;
+			return false !== $content ? $content : false;
 		}
 
 		if ( ! is_file( $file ) ) {
