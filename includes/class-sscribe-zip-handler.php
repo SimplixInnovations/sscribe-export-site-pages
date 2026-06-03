@@ -182,9 +182,11 @@ class SScribe_Zip_Handler {
 		$zip        = new ZipArchive();
 		$zip_opened = false;
 		// Build ZIP in a temp file first so that if any exception occurs during
-		// assembly, the temp file is cleaned up by PHP's shutdown handler and we
-		// avoid orphaned partial ZIPs in the export directory.
-		$tmp_zip = wp_tempnam( 'sscribe-export-' );
+		// assembly, the temp file is cleaned up by the catch/finally below.
+		// PHP does NOT auto-delete temp files on exception, so we have to do it
+		// ourselves to avoid orphaned partial ZIPs.
+		$tmp_zip          = wp_tempnam( 'sscribe-export-' );
+		$assembly_failed  = false;
 		if ( false === $tmp_zip ) {
 			$this->logger->error( 'Failed to create temp file for ZIP' );
 			$this->delete_directory( $source_dir );
@@ -293,11 +295,20 @@ class SScribe_Zip_Handler {
 					'entry_count' => count( $zip_entries ),
 				)
 			);
+		} catch ( \Throwable $e ) {
+			$assembly_failed = true;
+			throw $e;
 		} finally {
 			// Only call close() if open() actually succeeded.
 			// Calling close() on a never-opened ZipArchive throws warnings on some PHP versions.
 			if ( $zip_opened ) {
 				$zip->close();
+			}
+			// If the assembly failed partway, delete the orphaned partial ZIP.
+			// On success the temp file is still needed for the rename step
+			// below — only delete when we know assembly didn't complete.
+			if ( $assembly_failed && file_exists( $tmp_zip ) ) {
+				wp_delete_file( $tmp_zip );
 			}
 		}
 
