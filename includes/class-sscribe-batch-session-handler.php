@@ -110,11 +110,15 @@ class SScribe_Batch_Session_Handler {
 			);
 		}
 
-		if ( ! $this->check_rate_limit() ) {
-			// Return empty success to avoid disrupting the page-load check flow.
+		$rate_check = $this->check_rate_limit();
+		if ( $rate_check === false || null === $rate_check ) {
+			// Return empty success with rate_limited flag so UI knows the check
+			// was skipped due to rate limiting (false) or lock contention (null)
+			// and cannot restore the session.
 			wp_send_json_success(
 				array(
-					'has_active' => false,
+					'has_active'   => false,
+					'rate_limited' => true,
 				)
 			);
 			return;
@@ -183,6 +187,18 @@ class SScribe_Batch_Session_Handler {
 			SScribe_AJAX_Guard::error( array( 'message' => __( 'Invalid session access.', 'sscribe-export-site-pages' ) ), 403 );
 		}
 
+		$rate_check = $this->check_rate_limit();
+		if ( false === $rate_check ) {
+			SScribe_AJAX_Guard::error(
+				array(
+					'message'  => __( 'Too many requests. Please wait a moment.', 'sscribe-export-site-pages' ),
+					'retry'    => true,
+					'retry_in' => 60000,
+				),
+				429
+			);
+		}
+
 		$session['cancelled'] = true;
 		$this->session->update( $session_id, $session );
 		$this->cleanup_cancelled_export( $session );
@@ -202,6 +218,18 @@ class SScribe_Batch_Session_Handler {
 
 		if ( ! current_user_can( $this->get_required_capability() ) ) {
 			SScribe_AJAX_Guard::error( array( 'message' => __( 'Permission denied.', 'sscribe-export-site-pages' ) ), 403 );
+		}
+
+		$rate_check = $this->check_rate_limit();
+		if ( false === $rate_check ) {
+			SScribe_AJAX_Guard::error(
+				array(
+					'message'  => __( 'Too many requests. Please wait a moment.', 'sscribe-export-site-pages' ),
+					'retry'    => true,
+					'retry_in' => 60000,
+				),
+				429
+			);
 		}
 
 		$user_id = get_current_user_id();
@@ -295,20 +323,7 @@ class SScribe_Batch_Session_Handler {
 	 * @return string Capability name.
 	 */
 	private function get_required_capability(): string {
-		$capability = apply_filters( 'sscribe_export_capability', 'manage_options' );
-
-		if ( ! SScribe_Capabilities::is_allowed( $capability ) ) {
-			$this->auditor->log(
-				'invalid_capability_blocked',
-				array(
-					'requested_capability' => $capability,
-					'fallback'             => 'manage_options',
-				)
-			);
-			return 'manage_options';
-		}
-
-		return $capability;
+		return SScribe_Capabilities::get_required();
 	}
 
 	/**

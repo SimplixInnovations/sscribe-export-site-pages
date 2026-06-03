@@ -45,7 +45,7 @@ class SScribe_DOCX_Exporter implements SScribe_Exporter_Interface {
 		?SScribe_Logger_Interface $logger = null
 	) {
 		$this->exporter = $exporter ?? new SScribe_Exporter();
-		$this->logger   = $logger ?? SScribe_Logger::instance( SSCRIBE_DEBUG );
+		$this->logger   = $logger ?? SScribe_Logger::instance( SScribe_Logger::is_logging_enabled() );
 	}
 
 	/**
@@ -60,11 +60,28 @@ class SScribe_DOCX_Exporter implements SScribe_Exporter_Interface {
 	public function export( array $page_data, string $output_dir, int $index = 0, int $total = 0 ): SScribe_Result {
 		$page_id = $page_data['id'] ?? 0;
 
+		if ( ! class_exists( '\SScribeVendor\PhpOffice\PhpWord\PhpWord' ) ) {
+			$this->logger->error(
+				'PhpWord library not available — vendor/ directory missing or autoloader not loaded',
+				array( 'page_id' => $page_id )
+			);
+			return SScribe_Result::failure(
+				__( 'DOCX export is unavailable: the required PhpWord library is not installed. Run `composer install` in the plugin directory.', 'sscribe-export-site-pages' ),
+				array( 'page_id' => $page_id )
+			);
+		}
+
 		try {
 			$result = $this->exporter->generate_docx( $page_data, $output_dir, $index, $total );
 
 			if ( $result ) {
-				return SScribe_Result::success( array( 'path' => $result ) );
+				return SScribe_Result::success(
+					array(
+						'path'         => $result,
+						'page_id'      => $page_id,
+						'memory_after' => size_format( memory_get_usage( true ) ),
+					)
+				);
 			}
 
 			$last_error     = $this->exporter->get_last_error();

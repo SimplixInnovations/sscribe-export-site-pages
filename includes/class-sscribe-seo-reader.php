@@ -48,10 +48,15 @@ class SScribe_SEO_Reader {
 		);
 
 		foreach ( $readers as $plugin_name => $method ) {
-			$result = $this->$method( $page_id );
-			if ( $this->has_seo_data( $result ) ) {
-				$result['source'] = $plugin_name;
-				return $result;
+			try {
+				$result = $this->$method( $page_id );
+				if ( $this->has_seo_data( $result ) ) {
+					$result['source'] = $plugin_name;
+					return $result;
+				}
+			} catch ( \Throwable $e ) {
+				// Third-party SEO plugin threw an exception — skip and try next plugin.
+				continue;
 			}
 		}
 
@@ -113,10 +118,15 @@ class SScribe_SEO_Reader {
 		$robots_noindex  = get_post_meta( $page_id, '_yoast_wpseo_meta-robots-noindex', true );
 		$robots_nofollow = get_post_meta( $page_id, '_yoast_wpseo_meta-robots-nofollow', true );
 
+		$focus_kw = get_post_meta( $page_id, '_yoast_wpseo_focuskw', true );
+		if ( is_array( $focus_kw ) ) {
+			$focus_kw = implode( ', ', $focus_kw );
+		}
+
 		return array(
-			'meta_title'       => (string) get_post_meta( $page_id, '_yoast_wpseo_title', true ),
-			'meta_description' => (string) get_post_meta( $page_id, '_yoast_wpseo_metadesc', true ),
-			'focus_keyword'    => (string) get_post_meta( $page_id, '_yoast_wpseo_focuskw', true ),
+			'meta_title'       => wp_strip_all_tags( strip_shortcodes( (string) get_post_meta( $page_id, '_yoast_wpseo_title', true ) ) ),
+			'meta_description' => wp_strip_all_tags( strip_shortcodes( (string) get_post_meta( $page_id, '_yoast_wpseo_metadesc', true ) ) ),
+			'focus_keyword'    => wp_strip_all_tags( strip_shortcodes( (string) $focus_kw ) ),
 			'canonical_url'    => (string) get_post_meta( $page_id, '_yoast_wpseo_canonical', true ),
 			'og_title'         => (string) get_post_meta( $page_id, '_yoast_wpseo_opengraph-title', true ),
 			'og_description'   => (string) get_post_meta( $page_id, '_yoast_wpseo_opengraph-description', true ),
@@ -145,10 +155,15 @@ class SScribe_SEO_Reader {
 			$nofollow = in_array( 'nofollow', $robots, true );
 		}
 
+		$focus_kw = get_post_meta( $page_id, 'rank_math_focus_keyword', true );
+		if ( is_array( $focus_kw ) ) {
+			$focus_kw = implode( ', ', $focus_kw );
+		}
+
 		return array(
-			'meta_title'       => (string) get_post_meta( $page_id, 'rank_math_title', true ),
-			'meta_description' => (string) get_post_meta( $page_id, 'rank_math_description', true ),
-			'focus_keyword'    => (string) get_post_meta( $page_id, 'rank_math_focus_keyword', true ),
+			'meta_title'       => wp_strip_all_tags( strip_shortcodes( (string) get_post_meta( $page_id, 'rank_math_title', true ) ) ),
+			'meta_description' => wp_strip_all_tags( strip_shortcodes( (string) get_post_meta( $page_id, 'rank_math_description', true ) ) ),
+			'focus_keyword'    => wp_strip_all_tags( strip_shortcodes( (string) $focus_kw ) ),
 			'canonical_url'    => (string) get_post_meta( $page_id, 'rank_math_canonical_url', true ),
 			'og_title'         => (string) get_post_meta( $page_id, 'rank_math_facebook_title', true ),
 			'og_description'   => (string) get_post_meta( $page_id, 'rank_math_facebook_description', true ),
@@ -194,14 +209,18 @@ class SScribe_SEO_Reader {
 				$keyphrases     = isset( $aioseo_post->keyphrases ) ? json_decode( $aioseo_post->keyphrases, true ) : array();
 				if ( ! empty( $keyphrases['focus']['keyphrase'] ) ) {
 					$keyword = $keyphrases['focus']['keyphrase'];
+					// Handle array (multiple keywords) by joining with comma.
+					if ( is_array( $keyword ) ) {
+						$keyword = implode( ', ', $keyword );
+					}
 				}
 			}
 		}
 
 		return array(
-			'meta_title'       => $title,
-			'meta_description' => $description,
-			'focus_keyword'    => $keyword,
+			'meta_title'       => wp_strip_all_tags( html_entity_decode( $title, ENT_QUOTES | ENT_HTML5, 'UTF-8' ) ),
+			'meta_description' => wp_strip_all_tags( html_entity_decode( $description, ENT_QUOTES | ENT_HTML5, 'UTF-8' ) ),
+			'focus_keyword'    => wp_strip_all_tags( html_entity_decode( $keyword, ENT_QUOTES | ENT_HTML5, 'UTF-8' ) ),
 			'canonical_url'    => $canonical_url,
 			'og_title'         => $og_title,
 			'og_description'   => $og_description,
@@ -247,10 +266,20 @@ class SScribe_SEO_Reader {
 			$nofollow = true;
 		}
 
+		$focus_keyword = get_post_meta( $page_id, '_aioseop_keywords', true );
+		if ( is_string( $focus_keyword ) && function_exists( 'is_serialized' ) && is_serialized( $focus_keyword, true ) ) {
+			$focus_keyword = maybe_unserialize( $focus_keyword );
+		}
+		if ( is_array( $focus_keyword ) ) {
+			$focus_keyword = implode( ', ', $focus_keyword );
+		} else {
+			$focus_keyword = (string) $focus_keyword;
+		}
+
 		return array(
-			'meta_title'       => (string) get_post_meta( $page_id, '_aioseop_title', true ),
-			'meta_description' => (string) get_post_meta( $page_id, '_aioseop_description', true ),
-			'focus_keyword'    => (string) get_post_meta( $page_id, '_aioseop_keywords', true ),
+			'meta_title'       => wp_strip_all_tags( strip_shortcodes( (string) get_post_meta( $page_id, '_aioseop_title', true ) ) ),
+			'meta_description' => wp_strip_all_tags( strip_shortcodes( (string) get_post_meta( $page_id, '_aioseop_description', true ) ) ),
+			'focus_keyword'    => wp_strip_all_tags( strip_shortcodes( $focus_keyword ) ),
 			'canonical_url'    => (string) get_post_meta( $page_id, '_aioseop_custom_link', true ),
 			'og_title'         => (string) get_post_meta( $page_id, '_aioseop_opengraph_title', true ),
 			'og_description'   => (string) get_post_meta( $page_id, '_aioseop_opengraph_description', true ),
@@ -271,10 +300,14 @@ class SScribe_SEO_Reader {
 		if ( ! $this->is_seopress_active() ) {
 			return $this->empty_seo_data();
 		}
+		$focus_kw = get_post_meta( $page_id, '_seopress_analysis_target_kw', true );
+		if ( is_array( $focus_kw ) ) {
+			$focus_kw = implode( ', ', $focus_kw );
+		}
 		return array(
-			'meta_title'       => (string) get_post_meta( $page_id, '_seopress_titles_title', true ),
-			'meta_description' => (string) get_post_meta( $page_id, '_seopress_titles_desc', true ),
-			'focus_keyword'    => (string) get_post_meta( $page_id, '_seopress_analysis_target_kw', true ),
+			'meta_title'       => wp_strip_all_tags( strip_shortcodes( (string) get_post_meta( $page_id, '_seopress_titles_title', true ) ) ),
+			'meta_description' => wp_strip_all_tags( strip_shortcodes( (string) get_post_meta( $page_id, '_seopress_titles_desc', true ) ) ),
+			'focus_keyword'    => wp_strip_all_tags( strip_shortcodes( (string) $focus_kw ) ),
 			'canonical_url'    => (string) get_post_meta( $page_id, '_seopress_robots_canonical', true ),
 			'og_title'         => (string) get_post_meta( $page_id, '_seopress_social_fb_title', true ),
 			'og_description'   => (string) get_post_meta( $page_id, '_seopress_social_fb_desc', true ),
@@ -314,9 +347,9 @@ class SScribe_SEO_Reader {
 		$nofollow = '1' === get_post_meta( $page_id, '_genesis_nofollow', true );
 
 		return array(
-			'meta_title'       => (string) get_post_meta( $page_id, '_genesis_title', true ),
-			'meta_description' => (string) get_post_meta( $page_id, '_genesis_description', true ),
-			'focus_keyword'    => $focus_keyword,
+			'meta_title'       => wp_strip_all_tags( strip_shortcodes( (string) get_post_meta( $page_id, '_genesis_title', true ) ) ),
+			'meta_description' => wp_strip_all_tags( strip_shortcodes( (string) get_post_meta( $page_id, '_genesis_description', true ) ) ),
+			'focus_keyword'    => wp_strip_all_tags( strip_shortcodes( $focus_keyword ) ),
 			'canonical_url'    => (string) get_post_meta( $page_id, '_genesis_canonical_uri', true ),
 			'og_title'         => (string) get_post_meta( $page_id, '_open_graph_title', true ),
 			'og_description'   => (string) get_post_meta( $page_id, '_open_graph_description', true ),

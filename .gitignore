@@ -102,5 +102,8 @@ AUDIT-REPORT*.md
 WPScan/
 WordPress-Core/
 
+# PHPStan / unit test WordPress stub (CI-only, never ships in plugin)
+fake-wp/
+
 # Audit output files (contains full local filesystem paths)
 test-phpcs-output.txt

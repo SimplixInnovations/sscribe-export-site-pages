@@ -82,7 +82,8 @@ class SScribe_Batch_File_Handler {
 			wp_die( esc_html__( 'Permission denied.', 'sscribe-export-site-pages' ) );
 		}
 
-		if ( ! $this->check_rate_limit() ) {
+		$rate_check = $this->check_rate_limit();
+		if ( false === $rate_check ) {
 			status_header( 429 );
 			wp_die( esc_html__( 'Too many requests. Please wait a moment and try again.', 'sscribe-export-site-pages' ) );
 		}
@@ -190,6 +191,18 @@ class SScribe_Batch_File_Handler {
 			SScribe_AJAX_Guard::error( array( 'message' => __( 'Permission denied.', 'sscribe-export-site-pages' ) ), 403 );
 		}
 
+		$rate_check = $this->check_rate_limit();
+		if ( false === $rate_check ) {
+			SScribe_AJAX_Guard::error(
+				array(
+					'message'  => __( 'Too many requests. Please wait a moment.', 'sscribe-export-site-pages' ),
+					'retry'    => true,
+					'retry_in' => 60000,
+				),
+				429
+			);
+		}
+
 		$filename = isset( $_POST['file'] ) ? sanitize_file_name( wp_unslash( $_POST['file'] ) ) : '';
 
 		if ( empty( $filename ) ) {
@@ -264,6 +277,18 @@ class SScribe_Batch_File_Handler {
 			SScribe_AJAX_Guard::error( array( 'message' => __( 'Permission denied.', 'sscribe-export-site-pages' ) ), 403 );
 		}
 
+		$rate_check = $this->check_rate_limit();
+		if ( false === $rate_check ) {
+			SScribe_AJAX_Guard::error(
+				array(
+					'message'  => __( 'Too many requests. Please wait a moment.', 'sscribe-export-site-pages' ),
+					'retry'    => true,
+					'retry_in' => 60000,
+				),
+				429
+			);
+		}
+
 		SScribe_AJAX_Guard::success(
 			array(
 				'nonce' => wp_create_nonce( 'sscribe_download' ),
@@ -277,20 +302,7 @@ class SScribe_Batch_File_Handler {
 	 * @return string Capability name.
 	 */
 	private function get_required_capability(): string {
-		$capability = apply_filters( 'sscribe_export_capability', 'manage_options' );
-
-		if ( ! SScribe_Capabilities::is_allowed( $capability ) ) {
-			$this->auditor->log(
-				'invalid_capability_blocked',
-				array(
-					'requested_capability' => $capability,
-					'fallback'             => 'manage_options',
-				)
-			);
-			return 'manage_options';
-		}
-
-		return $capability;
+		return SScribe_Capabilities::get_required();
 	}
 
 	/**

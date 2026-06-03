@@ -120,9 +120,10 @@ if ( ! function_exists( 'wp_kses' ) ) {
 
 
 	function wp_kses( string $content, array $allowed_html ): string {
-		
-		
-		return strip_tags( $content, array_keys( $allowed_html ) );
+		// Properly strip tags while preserving allowed ones and their attributes.
+		$tag_names = array_keys( $allowed_html );
+		$tag_list  = '<' . implode( '><', $tag_names ) . '>';
+		return strip_tags( $content, $tag_list );
 	}
 }
 
@@ -279,6 +280,12 @@ if ( ! function_exists( 'wp_mkdir_p' ) ) {
 			mkdir( $sscribe_dir, 0755, true );
 		}
 		return true;
+	}
+}
+
+if ( ! function_exists( 'wp_tempnam' ) ) {
+	function wp_tempnam( $prefix = 'tmp' ) {
+		return tempnam( sys_get_temp_dir(), $prefix );
 	}
 }
 
@@ -521,8 +528,32 @@ if ( ! function_exists( 'delete_transient' ) ) {
 
 if ( ! function_exists( 'wp_cache_delete' ) ) {
 	function wp_cache_delete( $key, $group = '' ) {
-		
+		unset( $GLOBALS['sscribe_test_wp_cache'][ $key ] );
 		return true;
+	}
+}
+
+if ( ! function_exists( 'wp_cache_add' ) ) {
+	function wp_cache_add( $key, $value, $group = '', $expire = 0 ) {
+		if ( ! isset( $GLOBALS['sscribe_test_wp_cache'] ) ) {
+			$GLOBALS['sscribe_test_wp_cache'] = array();
+		}
+		if ( isset( $GLOBALS['sscribe_test_wp_cache'][ $key ] ) ) {
+			return false;
+		}
+		$GLOBALS['sscribe_test_wp_cache'][ $key ] = $value;
+		return true;
+	}
+}
+
+if ( ! function_exists( 'wp_cache_get' ) ) {
+	function wp_cache_get( $key, $group = '', $force = false, &$found = null ) {
+		if ( ! isset( $GLOBALS['sscribe_test_wp_cache'][ $key ] ) ) {
+			$found = false;
+			return false;
+		}
+		$found = true;
+		return $GLOBALS['sscribe_test_wp_cache'][ $key ];
 	}
 }
 
@@ -556,7 +587,7 @@ if ( ! class_exists( 'WP_Post' ) ) {
 
 if ( ! function_exists( 'get_current_user_id' ) ) {
 	function get_current_user_id() {
-		return 1;
+		return isset( $GLOBALS['sscribe_test_current_user_id'] ) ? (int) $GLOBALS['sscribe_test_current_user_id'] : 1;
 	}
 }
 
@@ -642,6 +673,10 @@ $sscribe_test_ajax_nonce_valid = true;
 		}
 
 		public function prepare( $query, ...$args ) {
+			// WordPress prepare() accepts either variadic args or a single array.
+			if ( count( $args ) === 1 && is_array( $args[0] ) ) {
+				$args = $args[0];
+			}
 			$index = 0;
 			return preg_replace_callback(
 				'/%(?:d|s|f)/',
@@ -700,7 +735,7 @@ $sscribe_test_ajax_nonce_valid = true;
 			return 0;
 		}
 
-		public function get_results( $query ) {
+		public function get_results( $query, $output = null ) {
 			global $sscribe_test_options, $sscribe_test_db_tables;
 
 			if ( false !== strpos( $query, $this->options ) && preg_match( "/LIKE '([^']+)'/i", $query, $matches ) ) {
@@ -1046,9 +1081,7 @@ if ( ! function_exists( 'wp_list_pluck' ) ) {
 	}
 }
 
-if ( ! function_exists( 'class_exists' ) || ! class_exists( 'WP_Query' ) ) {
-	
-}
+// Mock stubs only needed in non-WP environments — WP_Query available via bootstrap
 
 
 if ( ! function_exists( 'add_action' ) ) {
@@ -1133,6 +1166,12 @@ if ( ! defined( 'WP_CLI' ) ) {
 if ( ! function_exists( 'admin_url' ) ) {
 	function admin_url( $path = '' ) {
 		return 'http://example.org/wp-admin/' . ltrim( (string) $path, '/' );
+	}
+}
+
+if ( ! function_exists( 'get_post_types' ) ) {
+	function get_post_types( array $args = array(), string $output = 'names', string $operator = 'and' ): array {
+		return array( 'page', 'post' );
 	}
 }
 
@@ -1230,6 +1269,10 @@ if ( ! function_exists( 'wp_delete_file' ) ) {
 
 if ( ! defined( 'DAY_IN_SECONDS' ) ) {
 	define( 'DAY_IN_SECONDS', 86400 );
+}
+
+if ( ! defined( 'ARRAY_A' ) ) {
+	define( 'ARRAY_A', 'ARRAY_A' );
 }
 
 if ( ! defined( 'HOUR_IN_SECONDS' ) ) {

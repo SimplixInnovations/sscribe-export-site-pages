@@ -57,7 +57,7 @@ class SScribe_Filesystem {
 	 * @return void
 	 */
 	public function __construct() {
-		$this->logger = SScribe_Logger::instance( SSCRIBE_DEBUG );
+		$this->logger = SScribe_Logger::instance( SScribe_Logger::is_logging_enabled() );
 		$this->initialize();
 	}
 
@@ -91,7 +91,11 @@ class SScribe_Filesystem {
 			return false;
 		}
 
-		$credentials = request_filesystem_credentials( '', '', false, false, null );
+		// Use output buffering to prevent request_filesystem_credentials() from
+		// outputting HTML forms during AJAX requests.
+		ob_start();
+		$credentials = request_filesystem_credentials( admin_url(), '', false, false, null );
+		ob_end_clean();
 
 		if ( false === $credentials ) {
 			$this->logger->debug( 'Could not get filesystem credentials, using direct file operations' );
@@ -121,10 +125,10 @@ class SScribe_Filesystem {
 	 *
 	 * @param string $file    File path to write to.
 	 * @param string $content Content to write.
-	 * @param int    $mode    File permission mode (default: 0644).
+	 * @param int    $mode    File permission mode (default: 0600).
 	 * @return bool True if write succeeded, false otherwise.
 	 */
-	public function put_contents( string $file, string $content, int $mode = 0644 ): bool {
+	public function put_contents( string $file, string $content, int $mode = 0600 ): bool {
 		self::$last_error = '';
 
 		if ( self::$fs instanceof WP_Filesystem_Base ) {
@@ -139,9 +143,23 @@ class SScribe_Filesystem {
 						'size' => strlen( $content ),
 					)
 				);
+				return false;
 			}
 
-			return $result;
+			// WP_Filesystem implementations (FTP/SSH) may silently ignore the
+			// $mode parameter in put_contents(). Apply chmod explicitly as a
+			// separate step to ensure correct permissions on all filesystems.
+			if ( $mode && self::$fs->chmod( $file, $mode ) === false ) {
+				$this->logger->warning(
+					'WP_Filesystem chmod failed — file may have unexpected permissions',
+					array(
+						'file' => $file,
+						'mode' => decoct( $mode ),
+					)
+				);
+			}
+
+			return true;
 		}
 
 		$dir = dirname( $file );
@@ -190,10 +208,11 @@ class SScribe_Filesystem {
 		self::$last_error = '';
 
 		if ( self::$fs instanceof WP_Filesystem_Base ) {
-			return self::$fs->get_contents( $file );
+			$content = self::$fs->get_contents( $file );
+			return false !== $content ? $content : false;
 		}
 
-		if ( ! file_exists( $file ) ) {
+		if ( ! is_file( $file ) ) {
 			self::$last_error = 'File does not exist';
 			return false;
 		}
@@ -255,7 +274,18 @@ class SScribe_Filesystem {
 			return self::$fs->mkdir( $path, $mode );
 		}
 
-		return wp_mkdir_p( $path );
+		if ( ! is_dir( $path ) ) {
+			if ( ! wp_mkdir_p( $path ) ) {
+				return false;
+			}
+			// Apply the requested permissions if wp_mkdir_p created the directory.
+			if ( $mode && function_exists( 'chmod' ) ) {
+				// phpcs:ignore WordPress.WP.AlternativeFunctions.file_system_operations_chmod -- Fallback when WP_Filesystem unavailable.
+				chmod( $path, $mode );
+			}
+		}
+
+		return true;
 	}
 
 	/**
@@ -326,7 +356,18 @@ class SScribe_Filesystem {
 			return false;
 		}
 
-		return array_diff( $files, array( '.', '..' ) );
+		$result = array();
+		foreach ( array_diff( $files, array( '.', '..' ) ) as $name ) {
+			$full          = trailingslashit( $path ) . $name;
+			$result[ $name ] = array(
+				'name'         => $name,
+				'type'         => is_dir( $full ) ? 'd' : 'f',
+				'size'         => is_file( $full ) ? filesize( $full ) : 0,
+				'lastmodified' => filemtime( $full ),
+			);
+		}
+
+		return $result;
 	}
 
 	/**
@@ -335,10 +376,10 @@ class SScribe_Filesystem {
 	 * @param string $source      Source file path.
 	 * @param string $destination Destination file path.
 	 * @param bool   $overwrite   Whether to overwrite existing file (default: false).
-	 * @param int    $mode        File permission mode (default: 0644).
+	 * @param int    $mode        File permission mode (default: 0600).
 	 * @return bool True if copy succeeded, false otherwise.
 	 */
-	public function copy( string $source, string $destination, bool $overwrite = false, int $mode = 0644 ): bool {
+	public function copy( string $source, string $destination, bool $overwrite = false, int $mode = 0600 ): bool {
 		self::$last_error = '';
 
 		if ( self::$fs instanceof WP_Filesystem_Base ) {

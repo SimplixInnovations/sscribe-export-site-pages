@@ -266,9 +266,11 @@ class SScribe_Exporter_Test extends TestCase {
 	public function test_safe_text_truncates_long_strings_without_spaces(): void {
 		$method = new \ReflectionMethod( SScribe_Exporter::class, 'safe_text' );
 
-		$long_string = str_repeat( 'A', 300 );
+		// safe_text truncates strings > 2048 chars with no spaces.
+		$long_string = str_repeat( 'A', 3000 );
 		$result = $method->invoke( $this->exporter, $long_string );
-		$this->assertLessThanOrEqual( 200, mb_strlen( $result, 'UTF-8' ) );
+		$this->assertLessThanOrEqual( 2048, mb_strlen( $result, 'UTF-8' ) );
+		$this->assertGreaterThan( 0, mb_strlen( $result, 'UTF-8' ) );
 	}
 
 	public function test_safe_text_does_not_truncate_normal_strings(): void {

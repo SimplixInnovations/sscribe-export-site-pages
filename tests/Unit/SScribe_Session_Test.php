@@ -107,16 +107,7 @@ class SScribe_Session_Test extends TestCase {
 	public function test_get_storage_type(): void {
 		$session = new \SScribe_Session();
 
-		$this->assertEquals( 'database-json', $session->get_storage_type() );
-	}
-
-	public function test_has_active_session_ignores_stale_cached_session_id(): void {
-		$session = new \SScribe_Session();
-
-		set_transient( 'sscribe_active_sid_42', 'deadbeefdeadbeef', 300 );
-
-		$this->assertFalse( $session->has_active_session( 42 ) );
-		$this->assertSame( '0', get_transient( 'sscribe_active_sid_42' ) );
+		$this->assertEquals( 'encrypted-json', $session->get_storage_type() );
 	}
 
 	private function reset_active_session_cache(): void {

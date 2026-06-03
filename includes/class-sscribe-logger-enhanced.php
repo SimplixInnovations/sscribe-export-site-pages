@@ -73,11 +73,11 @@ class SScribe_Logger_Enhanced implements SScribe_Logger_Interface {
 	private readonly string $table_name;
 
 	/**
-	 * Current request identifier.
+	 * Log file prefix.
 	 *
 	 * @var string
 	 */
-	private readonly string $request_id;
+	private readonly string $prefix;
 
 	/**
 	 * Current session identifier.
@@ -108,16 +108,23 @@ class SScribe_Logger_Enhanced implements SScribe_Logger_Interface {
 	 * @param array $options Logger configuration options.
 	 */
 	public function __construct( array $options = array() ) {
-		$this->min_level   = $options['min_level'] ?? self::LEVEL_INFO;
-		$this->enable_db   = $options['enable_db'] ?? false;
-		$this->enable_qm   = $options['enable_qm'] ?? true;
-		$this->enable_file = $options['enable_file'] ?? true;
+		$this->min_level = $options['min_level'] ?? self::LEVEL_INFO;
+		$this->enable_qm = $options['enable_qm'] ?? true;
+		$this->prefix    = $options['prefix'] ?? 'sscribe';
+
+		// If 'enabled' is explicitly false, disable file and DB logging.
+		// Otherwise use individual enable flags with defaults.
+		if ( isset( $options['enabled'] ) && false === $options['enabled'] ) {
+			$this->enable_file = false;
+			$this->enable_db   = false;
+		} else {
+			$this->enable_db   = $options['enable_db'] ?? false;
+			$this->enable_file = $options['enable_file'] ?? true;
+		}
 
 		$upload_dir       = wp_upload_dir();
 		$this->log_dir    = $upload_dir['basedir'] . '/sscribe-logs';
 		$this->table_name = $GLOBALS['wpdb']->prefix . 'sscribe_export_logs';
-		$this->request_id = substr( md5( microtime( true ) . (string) random_int( 0, PHP_INT_MAX ) ), 0, 12 );
-		$this->table_exists_cache = null;
 
 		if ( $this->enable_file || $this->enable_db ) {
 			add_action( 'shutdown', array( $this, 'flush' ) );
@@ -132,46 +139,12 @@ class SScribe_Logger_Enhanced implements SScribe_Logger_Interface {
 	private ?bool $table_exists_cache = null;
 
 	/**
-	 * Get request identifier.
-	 *
-	 * @return string Request ID.
-	 */
-	protected function get_request_id(): string {
-		return $this->request_id;
-	}
-
-	/**
-	 * Set session identifier for log context.
-	 *
-	 * @param string $session_id Session identifier.
-	 */
-	/**
-	 * Set session identifier for log context.
+	 * Set session ID for log context.
 	 *
 	 * @param string $session_id Session identifier.
 	 */
 	public function set_session_id( string $session_id ): void {
 		$this->session_id = $session_id;
-	}
-
-	/**
-	 * Get context enrichment data for log entries.
-	 *
-	 * @return array Context data.
-	 */
-	protected function get_context_enrichment(): array {
-		$context = array(
-			'plugin_version' => defined( 'SSCRIBE_VERSION' ) ? (string) SSCRIBE_VERSION : 'unknown',
-			'php_version'    => PHP_VERSION,
-			'memory_usage'   => size_format( memory_get_usage( true ) ),
-			'request_id'     => $this->get_request_id(),
-		);
-
-		if ( null !== $this->session_id ) {
-			$context['session_id'] = $this->session_id;
-		}
-
-		return $context;
 	}
 
 	/**
@@ -186,13 +159,6 @@ class SScribe_Logger_Enhanced implements SScribe_Logger_Interface {
 		return $check >= $current;
 	}
 
-	/**
-	 * Log a message at specified level.
-	 *
-	 * @param string $level   Log level.
-	 * @param string $message Log message.
-	 * @param array  $context Additional context data.
-	 */
 	/**
 	 * Write a log entry to the log destinations.
 	 *
@@ -318,11 +284,37 @@ class SScribe_Logger_Enhanced implements SScribe_Logger_Interface {
 		}
 
 		if ( ! is_dir( $this->log_dir ) ) {
-			wp_mkdir_p( $this->log_dir );
+			$result = wp_mkdir_p( $this->log_dir );
+			if ( $result ) {
+				SScribe_Security::protect_directory( $this->log_dir );
+			}
 		}
 
 		$log_file = $this->get_log_file();
-		file_put_contents( $log_file, implode( PHP_EOL, $this->buffer ) . PHP_EOL, FILE_APPEND | LOCK_EX );
+		$content  = implode( PHP_EOL, $this->buffer ) . PHP_EOL;
+
+		if ( file_exists( $log_file ) && filesize( $log_file ) > self::MAX_LOG_FILE_SIZE ) {
+			$rotated_file = $this->log_dir . '/' . $this->prefix . '_' . gmdate( 'Y-m-d_H-i-s' ) . '.log';
+			$rotated      = rename( $log_file, $rotated_file ); // phpcs:ignore WordPress.WP.AlternativeFunctions.rename_rename
+			if ( $rotated ) {
+				$warning_entry = sprintf(
+					"[%s] [WARNING] Log file exceeded %s bytes — rotated to %s\n",
+					gmdate( 'Y-m-d H:i:s' ),
+					size_format( self::MAX_LOG_FILE_SIZE ),
+					basename( $rotated_file )
+				);
+				file_put_contents( $log_file, $warning_entry, LOCK_EX );
+			}
+		}
+
+		$result = file_put_contents( $log_file, $content, FILE_APPEND | LOCK_EX );
+
+		if ( false === $result ) {
+			error_log( // phpcs:ignore WordPress.PHP.DevelopmentFunctions.error_log_error_log
+				'SScribe_Logger_Enhanced: flush() failed to write to ' . $log_file
+			);
+		}
+
 		$this->buffer = array();
 	}
 
@@ -354,7 +346,7 @@ class SScribe_Logger_Enhanced implements SScribe_Logger_Interface {
 				'message'    => $message,
 				'context'    => wp_json_encode( $context ),
 				'session_id' => $this->session_id,
-				'request_id' => $this->request_id,
+				'request_id' => $this->get_request_id(),
 			),
 		);
 	}
@@ -368,13 +360,20 @@ class SScribe_Logger_Enhanced implements SScribe_Logger_Interface {
 	private function sanitize_context( array $context ): array {
 		$forbidden = array( 'password', 'token', 'secret', 'auth', 'credential', 'private_key' );
 
-		foreach ( $forbidden as $key ) {
-			if ( isset( $context[ $key ] ) ) {
-				$context[ $key ] = '[REDACTED]';
+		$sanitized = array();
+		foreach ( $context as $key => $value ) {
+			$sanitized_key = sanitize_key( (string) $key );
+
+			if ( in_array( $sanitized_key, $forbidden, true ) ) {
+				$sanitized[ $sanitized_key ] = '[REDACTED]';
+			} elseif ( is_array( $value ) ) {
+				$sanitized[ $sanitized_key ] = $this->sanitize_context( $value );
+			} else {
+				$sanitized[ $sanitized_key ] = $value;
 			}
 		}
 
-		return $context;
+		return $sanitized;
 	}
 
 	/**
@@ -399,8 +398,9 @@ class SScribe_Logger_Enhanced implements SScribe_Logger_Interface {
 				'context'    => $entry['context'],
 				'session_id' => $entry['session_id'],
 				'request_id' => $entry['request_id'],
+				'user_id'    => get_current_user_id(),
 			),
-			array( '%s', '%s', '%s', '%s', '%s', '%s' )
+			array( '%s', '%s', '%s', '%s', '%s', '%s', '%d' )
 		);
 	}
 
@@ -434,7 +434,7 @@ class SScribe_Logger_Enhanced implements SScribe_Logger_Interface {
 
 		if ( null === $this->table_exists_cache ) {
 			// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- Schema introspection, cached via instance property
-			$result = $wpdb->get_var( $wpdb->prepare( 'SHOW TABLES LIKE %s', $this->table_name ) );
+			$result                   = $wpdb->get_var( $wpdb->prepare( 'SHOW TABLES LIKE %s', $this->table_name ) );
 			$this->table_exists_cache = ( $result === $this->table_name );
 		}
 
@@ -458,13 +458,16 @@ class SScribe_Logger_Enhanced implements SScribe_Logger_Interface {
 			session_id varchar(60) DEFAULT NULL,
 			request_id varchar(12) DEFAULT NULL,
 			user_id bigint(20) DEFAULT NULL,
-			PRIMARY KEY id (id),
+			PRIMARY KEY (id),
 			KEY timestamp (timestamp),
 			KEY level (level)
 		) $charset_collate;";
 
 		require_once ABSPATH . 'wp-admin/includes/upgrade.php';
 		dbDelta( $sql );
+
+		// Update cache since table now exists.
+		$this->table_exists_cache = true;
 	}
 
 	/**
@@ -472,24 +475,34 @@ class SScribe_Logger_Enhanced implements SScribe_Logger_Interface {
 	 *
 	 * @return string Log file path.
 	 */
-	private function get_log_file(): string {
+	public function get_log_file(): string {
 		$date = gmdate( 'Y-m-d' );
-		return trailingslashit( $this->log_dir ) . "sscribe_debug_{$date}.log";
+		return trailingslashit( $this->log_dir ) . "{$this->prefix}_debug_{$date}.log";
 	}
 
 	/**
-	 * Get recent log entries from database.
+	 * Get recent log entries.
+	 *
+	 * When DB logging is disabled, falls back to reading from the file log
+	 * to ensure the debug console can display logs even when database
+	 * logging is not active.
 	 *
 	 * @param int $limit Maximum number of entries to return.
 	 * @return array Log entries.
 	 */
 	public function get_logs( int $limit = 100 ): array {
+		// Fall back to file log when DB is disabled.
+		if ( ! $this->enable_db ) {
+			return $this->get_file_logs( $limit );
+		}
+
 		$entries = $this->get_db_logs( array(), $limit );
 
 		return array_map(
 			function ( object $row ): string {
-				$context = json_decode( $row->context, true ) ?: array();
-				$context_str = $context ? ' | ' . wp_json_encode( $context ) : '';
+				$context_decoded = json_decode( $row->context, true );
+				$context         = is_array( $context_decoded ) ? $context_decoded : array();
+				$context_str     = $context ? ' | ' . wp_json_encode( $context ) : '';
 				return sprintf(
 					'[%s] [%s] %s%s',
 					$row->timestamp,
@@ -503,17 +516,55 @@ class SScribe_Logger_Enhanced implements SScribe_Logger_Interface {
 	}
 
 	/**
-	 * Clear all log entries from database.
+	 * Get log entries from file (fallback when DB is disabled).
+	 *
+	 * @param int $limit Maximum number of entries to return.
+	 * @return array Log entries.
+	 */
+	private function get_file_logs( int $limit = 100 ): array {
+		$log_file = $this->get_log_file();
+
+		if ( ! file_exists( $log_file ) ) {
+			return array();
+		}
+
+		$content = file_get_contents( $log_file ); // phpcs:ignore WordPress.WP.AlternativeFunctions.file_get_contents_file_get_contents
+		if ( ! $content ) {
+			return array();
+		}
+
+		$lines = array_filter( explode( "\n", str_replace( "\r\n", "\n", trim( $content ) ) ), fn( $line ) => '' !== trim( $line ) );
+
+		if ( $limit > 0 && count( $lines ) > $limit ) {
+			$lines = array_slice( $lines, -$limit );
+		}
+
+		return $lines;
+	}
+
+	/**
+	 * Clear all log entries from database and file.
 	 */
 	public function clear_logs(): void {
 		global $wpdb;
 
-		if ( ! $this->table_exists() ) {
-			return;
+		// Clear database logs.
+		if ( $this->table_exists() ) {
+			// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.InterpolatedNotPrepared -- Table name is already escaped via esc_sql(); DELETE FROM does not support placeholders for table names.
+			$wpdb->query( 'DELETE FROM ' . esc_sql( $this->table_name ) );
 		}
 
-		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.InterpolatedNotPrepared -- Table name is already escaped via esc_sql(); DELETE FROM does not support placeholders for table names.
-		$wpdb->query( 'DELETE FROM ' . esc_sql( $this->table_name ) );
+		// Clear file logs when file logging is enabled.
+		if ( $this->enable_file ) {
+			$files = glob( $this->log_dir . '/' . $this->prefix . '_debug_*.log' );
+			if ( is_array( $files ) ) {
+				foreach ( $files as $file ) {
+					if ( file_exists( $file ) ) {
+						wp_delete_file( $file );
+					}
+				}
+			}
+		}
 	}
 
 	/**
@@ -562,18 +613,18 @@ class SScribe_Logger_Enhanced implements SScribe_Logger_Interface {
 		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, PluginCheck.Security.DirectDB.UnescapedDBParameter
 		return $wpdb->get_results(
 			$wpdb->prepare(
-				"SELECT * FROM {$this->table_name} WHERE {$where_clause} ORDER BY timestamp DESC LIMIT %d", // phpcs:ignore WordPress.DB.PreparedSQL.NotPrepared, WordPress.DB.PreparedSQL.InterpolatedNotPrepared -- Table name from $wpdb->prefix (trusted), WHERE clause built from controlled filter keys with placeholders
+				"SELECT id, timestamp, level, message, context, session_id, request_id, user_id FROM {$this->table_name} WHERE {$where_clause} ORDER BY timestamp DESC LIMIT %d", // phpcs:ignore WordPress.DB.PreparedSQL.NotPrepared, WordPress.DB.PreparedSQL.InterpolatedNotPrepared -- Table name from $wpdb->prefix (trusted), WHERE clause built from controlled filter keys with placeholders
 				...$args
 			)
 		);
 	}
 
-		/**
-		 * Delete old log entries from the database.
-		 *
-		 * @param int $days Number of days to retain.
-		 * @return int Number of rows deleted.
-		 */
+	/**
+	 * Delete old log entries from the database.
+	 *
+	 * @param int $days Number of days to retain.
+	 * @return int Number of rows deleted.
+	 */
 	public function cleanup_db_logs( int $days = 30 ): int {
 		global $wpdb;
 
@@ -581,13 +632,12 @@ class SScribe_Logger_Enhanced implements SScribe_Logger_Interface {
 			return 0;
 		}
 
-		$cutoff = gmdate( 'Y-m-d H:i:s', strtotime( "-{$days} days" ) );
+		$cutoff = gmdate( 'Y-m-d H:i:s', strtotime( '-' . max( 1, abs( (int) $days ) ) . ' days' ) );
 
 		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
 		return $wpdb->query(
 			$wpdb->prepare(
-			// phpcs:ignore WordPress.DB.PreparedSQL.NotPrepared
-				'DELETE FROM ' . $this->table_name . ' WHERE timestamp < %s',
+				'DELETE FROM ' . esc_sql( $this->table_name ) . ' WHERE timestamp < %s',
 				$cutoff
 			)
 		);

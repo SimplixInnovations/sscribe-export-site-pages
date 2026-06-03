@@ -55,12 +55,15 @@ class SScribe {
 		$container->singleton( SScribe_Session::class, fn() => new SScribe_Session() );
 		$container->singleton( SScribe_Filesystem::class, fn() => new SScribe_Filesystem() );
 
-		$container->singleton(
+		// Exporters are registered as factories (bind) rather than singletons because
+		// each export request needs a fresh instance to avoid state pollution between
+		// concurrent batch exports (e.g., DOCX PhpWord object state, HTML parser buffers).
+		$container->bind(
 			SScribe_Exporter::class,
 			fn( SScribe_Container $c ) => new SScribe_Exporter( $c->get( SScribe_Content_Parser::class ) )
 		);
 
-		$container->singleton(
+		$container->bind(
 			SScribe_HTML_Exporter::class,
 			fn( SScribe_Container $c ) => new SScribe_HTML_Exporter(
 				$c->get( SScribe_Logger::class ),
@@ -68,7 +71,7 @@ class SScribe {
 			)
 		);
 
-		$container->singleton(
+		$container->bind(
 			SScribe_DOCX_Exporter::class,
 			fn( SScribe_Container $c ) => new SScribe_DOCX_Exporter(
 				$c->get( SScribe_Exporter::class ),
@@ -76,7 +79,7 @@ class SScribe {
 			)
 		);
 
-		$container->singleton(
+		$container->bind(
 			SScribe_PDF_Exporter::class,
 			fn( SScribe_Container $c ) => new SScribe_PDF_Exporter(
 				$c->get( SScribe_HTML_Exporter::class ),
@@ -85,7 +88,7 @@ class SScribe {
 			)
 		);
 
-		$container->singleton(
+		$container->bind(
 			SScribe_Markdown_Exporter::class,
 			fn( SScribe_Container $c ) => new SScribe_Markdown_Exporter(
 				$c->get( SScribe_Logger::class ),
@@ -144,21 +147,21 @@ class SScribe {
 		$container = SScribe_Container::instance();
 		$admin     = $container->get( SScribe_Admin::class );
 
-		add_action( 'admin_menu', array( $admin, 'add_admin_menu' ) );
-		add_action( 'admin_init', array( $admin, 'maybe_redirect_after_activation' ) );
-		add_action( 'admin_enqueue_scripts', array( $admin, 'enqueue_admin_assets' ) );
-		add_action( 'admin_init', array( $admin, 'maybe_send_csp_headers' ) );
-		add_action( 'admin_notices', array( $this, 'render_vendor_dependency_notice' ) );
-		add_action( 'save_post', array( $this, 'invalidate_admin_page_cache' ) );
-		add_filter( 'plugin_action_links_' . SSCRIBE_PLUGIN_BASENAME, array( $admin, 'add_plugin_action_links' ) );
-		add_filter( 'script_loader_tag', array( $admin, 'add_nonce_to_script_tags' ), 10, 3 );
+		$this->loader->add_action( 'admin_menu', $admin, 'add_admin_menu' );
+		$this->loader->add_action( 'admin_init', $admin, 'maybe_redirect_after_activation' );
+		$this->loader->add_action( 'admin_enqueue_scripts', $admin, 'enqueue_admin_assets' );
+		$this->loader->add_action( 'admin_init', $admin, 'maybe_send_csp_headers' );
+		$this->loader->add_action( 'admin_notices', $this, 'render_vendor_dependency_notice' );
+		$this->loader->add_action( 'save_post', $this, 'invalidate_admin_page_cache' );
+		$this->loader->add_filter( 'plugin_action_links_' . SSCRIBE_PLUGIN_BASENAME, $admin, 'add_plugin_action_links' );
+		$this->loader->add_filter( 'script_loader_tag', $admin, 'add_nonce_to_script_tags', 10, 3 );
 	}
 
 	/**
 	 * Display admin notice for missing vendor dependencies.
 	 */
 	public function render_vendor_dependency_notice(): void {
-		if ( ! current_user_can( apply_filters( 'sscribe_export_capability', 'manage_options' ) ) ) {
+		if ( ! current_user_can( SScribe_Capabilities::get_required() ) ) {
 			return;
 		}
 
@@ -197,7 +200,9 @@ class SScribe {
 			return;
 		}
 
-		$cache_key = 'sscribe_admin_page_data_v' . SSCRIBE_VERSION;
+		// Cache is per-blog (not per-user) since the cached data (page counts, languages)
+		// is system-wide, not user-specific.
+		$cache_key = 'sscribe_admin_page_data_v' . SSCRIBE_VERSION . '_' . get_current_blog_id();
 		delete_transient( $cache_key );
 	}
 
@@ -261,6 +266,15 @@ class SScribe {
 			$session->cleanup_expired( 24 * HOUR_IN_SECONDS );
 
 			SScribe_Logger::cleanup_old_logs( 7 );
+
+			// Clean up old export JSON log files.
+			require_once SSCRIBE_PLUGIN_DIR . 'includes/class-sscribe-export-log.php';
+			SScribe_Export_Log::cleanup_old_logs( 24 );
+
+			// Clean up expired/orphaned transients (locks, rate limits) that may have
+			// been left behind by crashed processes or failed exports.
+			$lock_manager = SScribe_Container::instance()->get( SScribe_Export_Lock_Manager::class );
+			$lock_manager->cleanup_user_locks( null, null );
 
 			delete_transient( 'sscribe_cron_sessions_lock' );
 		}

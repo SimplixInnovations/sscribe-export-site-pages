@@ -31,12 +31,19 @@ trait SScribe_Logger_Common {
 	 * @return array Enriched context array.
 	 */
 	protected function get_context_enrichment(): array {
-		return array(
+		$context = array(
 			'plugin_version' => defined( 'SSCRIBE_VERSION' ) ? (string) SSCRIBE_VERSION : 'unknown',
 			'php_version'    => PHP_VERSION,
 			'memory_usage'   => size_format( memory_get_usage( true ) ),
 			'request_id'     => $this->get_request_id(),
 		);
+
+		// Add session_id if available (subclasses should set this property).
+		if ( isset( $this->session_id ) && null !== $this->session_id ) {
+			$context['session_id'] = $this->session_id;
+		}
+
+		return $context;
 	}
 
 	/**

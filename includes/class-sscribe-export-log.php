@@ -1,6 +1,6 @@
 <?php
 /**
- * SScribe Export Log
+ * SScribe Export Log.
  *
  * @package SScribe_Export_Site_Pages
  * @license GPL v2 or later
@@ -13,6 +13,12 @@ if ( ! defined( 'ABSPATH' ) ) {
 	exit;
 }
 
+/**
+ * Export log management.
+ *
+ * @package SScribe_Export_Site_Pages
+ * @subpackage Log
+ */
 class SScribe_Export_Log {
 
 	/**
@@ -116,10 +122,12 @@ class SScribe_Export_Log {
 				return;
 			}
 			// phpcs:ignore WordPress.WP.AlternativeFunctions.file_system_operations_file_put_contents -- Intended logging file operation.
-
+			// phpcs:ignore WordPress.WP.AlternativeFunctions.file_system_operations_chmod -- Intended logging file permission (0600).
 			$result = file_put_contents( $this->log_file, $json, LOCK_EX );
 			if ( false !== $result ) {
 				$this->dirty = false;
+				// phpcs:ignore WordPress.WP.AlternativeFunctions.file_system_operations_chmod -- Setting 0600 for log file security; only effective on Unix-like systems.
+				chmod( $this->log_file, 0600 );
 			}
 		}
 	}
@@ -159,6 +167,33 @@ class SScribe_Export_Log {
 			'error'      => null,
 			'memory'     => size_format( memory_get_usage( true ) ),
 		);
+
+		$this->write_log( $data );
+	}
+
+	/**
+	 * Update the status of a page in the export log.
+	 *
+	 * @param int    $page_id Page ID.
+	 * @param string $status  New status.
+	 */
+	public function update_page_status( int $page_id, string $status ): void {
+		$data = $this->read_log();
+
+		if ( isset( $data['pages'][ $page_id ] ) ) {
+			$data['pages'][ $page_id ]['status'] = $status;
+		} else {
+			$data['pages'][ $page_id ] = array(
+				'id'         => $page_id,
+				'status'     => $status,
+				'start_time' => microtime( true ),
+				'end_time'   => null,
+				'duration'   => null,
+				'formats'    => array(),
+				'error'      => null,
+				'memory'     => size_format( memory_get_usage( true ) ),
+			);
+		}
 
 		$this->write_log( $data );
 	}
@@ -284,8 +319,13 @@ class SScribe_Export_Log {
 		$this->flush();
 
 		if ( ! empty( $data['zip_file'] ) ) {
+			// Set transient for fast lookup (30 day expiry).
 			$index_key = 'sscribe_zip_index_' . md5( $data['zip_file'] );
 			set_transient( $index_key, $this->session_id, 30 * DAY_IN_SECONDS );
+
+			// Also set a persistent option-based reverse index for fallback when transient expires.
+			// This prevents O(n) file scans when the transient is cleared.
+			update_option( 'sscribe_log_zip_' . md5( $data['zip_file'] ), $this->session_id, false );
 		}
 	}
 
@@ -436,6 +476,7 @@ class SScribe_Export_Log {
 			return null;
 		}
 
+		// First try transient cache for fast lookup.
 		$index_key  = 'sscribe_zip_index_' . md5( $filename );
 		$session_id = get_transient( $index_key );
 
@@ -452,7 +493,44 @@ class SScribe_Export_Log {
 			}
 		}
 
+		// Fall back to persistent option-based index to avoid O(n) file scan.
+		$option_key = 'sscribe_log_zip_' . md5( $filename );
+		$session_id = get_option( $option_key, false );
+
+		if ( false !== $session_id && is_string( $session_id ) ) {
+			// Restore transient for faster subsequent lookups.
+			set_transient( $index_key, $session_id, 30 * DAY_IN_SECONDS );
+
+			$log_file = $log_dir . '/export_' . sanitize_file_name( $session_id ) . '.json';
+			if ( file_exists( $log_file ) ) {
+				$json = file_get_contents( $log_file );
+				if ( $json ) {
+					$data = json_decode( $json, true );
+					if ( is_array( $data ) && isset( $data['zip_file'] ) && $data['zip_file'] === $filename ) {
+						return $data;
+					}
+				}
+			}
+		}
+
+		// Last resort: linear scan of all log files (only if both cache layers missed).
+		// Allow disabling full scan for sites with many exports where O(n) is unacceptable.
+		if ( ! apply_filters( 'sscribe_enable_log_full_scan', true ) ) {
+			return null;
+		}
+
 		$files = glob( $log_dir . '/export_*.json' );
+
+		if ( is_array( $files ) && count( $files ) > 200 ) {
+			$logger = SScribe_Logger::instance( SScribe_Logger::is_logging_enabled() );
+			$logger->warning(
+				'O(n) log scan triggered — directory has ' . count( $files ) . ' files. Consider running cleanup.',
+				array(
+					'filename'  => $filename,
+					'filecount' => count( $files ),
+				)
+			);
+		}
 
 		if ( is_array( $files ) ) {
 			foreach ( $files as $file ) {
@@ -462,7 +540,9 @@ class SScribe_Export_Log {
 					if ( is_array( $data ) && isset( $data['zip_file'] ) && $data['zip_file'] === $filename ) {
 
 						if ( isset( $data['session_id'] ) ) {
+							// Rebuild both cache layers for future lookups.
 							set_transient( $index_key, $data['session_id'], 30 * DAY_IN_SECONDS );
+							update_option( $option_key, $data['session_id'], false );
 						}
 						return $data;
 					}
@@ -495,6 +575,9 @@ class SScribe_Export_Log {
 
 		$index_key = 'sscribe_zip_index_' . md5( $filename );
 		delete_transient( $index_key );
+
+		// Also delete persistent option-based index.
+		delete_option( 'sscribe_log_zip_' . md5( $filename ) );
 
 		$files = glob( $log_dir . '/export_*.json' );
 
