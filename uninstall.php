@@ -120,6 +120,44 @@ $sscribe_cleanup_site = static function (): void {
 	wp_clear_scheduled_hook( 'sscribe_cleanup_exports' );
 	wp_clear_scheduled_hook( 'sscribe_cleanup_sessions' );
 	wp_clear_scheduled_hook( 'sscribe_cleanup_audit_trail' );
+
+	// Clean up per-site upload directories while still switched to this blog.
+	$sscribe_upload_dir = wp_upload_dir();
+	$sscribe_dirs       = array(
+		$sscribe_upload_dir['basedir'] . '/sscribe-exports',
+		$sscribe_upload_dir['basedir'] . '/sscribe-logs',
+		$sscribe_upload_dir['basedir'] . '/sscribe/mpdf-tmp',
+	);
+	foreach ( $sscribe_dirs as $dir_path ) {
+		if ( is_dir( $dir_path ) ) {
+			try {
+				$iterator = new RecursiveIteratorIterator(
+					new RecursiveDirectoryIterator( $dir_path, RecursiveDirectoryIterator::SKIP_DOTS ),
+					RecursiveIteratorIterator::CHILD_FIRST
+				);
+				foreach ( $iterator as $fileinfo ) {
+					try {
+						$real_path = $fileinfo->getRealPath();
+						if ( ! $real_path ) {
+							continue;
+						}
+						if ( $fileinfo->isDir() ) {
+							rmdir( $real_path ); // phpcs:ignore WordPress.WP.AlternativeFunctions.file_system_operations_rmdir -- Cleanup during uninstall.
+						} else {
+							wp_delete_file( $real_path );
+						}
+					} catch ( \Throwable $e ) {
+						continue;
+					}
+				}
+				if ( is_dir( $dir_path ) ) {
+					rmdir( $dir_path ); // phpcs:ignore WordPress.WP.AlternativeFunctions.file_system_operations_rmdir -- Cleanup during uninstall.
+				}
+			} catch ( \Throwable $e ) {
+				continue;
+			}
+		}
+	}
 };
 
 if ( is_multisite() ) {
@@ -147,53 +185,4 @@ if ( is_multisite() ) {
 	}
 } else {
 	$sscribe_cleanup_site();
-}
-
-$sscribe_upload_dir = wp_upload_dir();
-
-// phpcs:ignore WordPress.NamingConventions.PrefixAllGlobals.NonPrefixedVariableFound -- Local file-scope variable in uninstall context, not a global.
-$directories_to_clean = array(
-	$sscribe_upload_dir['basedir'] . '/sscribe-exports',
-	$sscribe_upload_dir['basedir'] . '/sscribe-logs',
-	$sscribe_upload_dir['basedir'] . '/sscribe/mpdf-tmp',
-);
-
-// phpcs:ignore WordPress.NamingConventions.PrefixAllGlobals.NonPrefixedVariableFound -- Local foreach variable.
-foreach ( $directories_to_clean as $dir_path ) {
-	if ( is_dir( $dir_path ) ) {
-		try {
-			// phpcs:ignore WordPress.NamingConventions.PrefixAllGlobals.NonPrefixedVariableFound -- Local variable.
-			$iterator = new RecursiveIteratorIterator(
-				new RecursiveDirectoryIterator( $dir_path, RecursiveDirectoryIterator::SKIP_DOTS ),
-				RecursiveIteratorIterator::CHILD_FIRST
-			);
-
-			// phpcs:ignore WordPress.NamingConventions.PrefixAllGlobals.NonPrefixedVariableFound -- Local foreach variable.
-			foreach ( $iterator as $fileinfo ) {
-				try {
-					if ( $fileinfo->isDir() ) {
-						// phpcs:ignore WordPress.NamingConventions.PrefixAllGlobals.NonPrefixedVariableFound -- Local variable.
-						$real_path = $fileinfo->getRealPath();
-						if ( $real_path && is_dir( $real_path ) ) {
-							rmdir( $real_path ); // phpcs:ignore WordPress.WP.AlternativeFunctions.file_system_operations_rmdir -- Cleanup operation during uninstall; WP_Filesystem not available in uninstall context.
-						}
-					} else {
-						// phpcs:ignore WordPress.NamingConventions.PrefixAllGlobals.NonPrefixedVariableFound -- Local variable.
-						$real_path = $fileinfo->getRealPath();
-						if ( $real_path ) {
-							wp_delete_file( $real_path );
-						}
-					}
-				} catch ( \Throwable $e ) {
-					continue;
-				}
-			}
-
-			if ( is_dir( $dir_path ) ) {
-				rmdir( $dir_path ); // phpcs:ignore WordPress.WP.AlternativeFunctions.file_system_operations_rmdir -- Cleanup operation during uninstall; WP_Filesystem not available in uninstall context.
-			}
-		} catch ( \Throwable $e ) {
-			continue;
-		}
-	}
 }
