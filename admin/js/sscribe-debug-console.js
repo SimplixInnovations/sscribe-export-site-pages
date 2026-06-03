@@ -115,6 +115,7 @@
 			this.$clearBtn = $('#sscribe-debug-clear-btn');
 			this.clearBtnOriginalText = this.$clearBtn.text();
 			this.$exportBtn = $('#sscribe-debug-export-btn');
+			this.exportBtnOriginalHtml = this.$exportBtn.html();
 			this.$rotatedBody = $('#sscribe-debug-rotated-body');
 			this.$refreshPaused = $('#sscribe-debug-refresh-paused');
 		},
@@ -247,7 +248,9 @@
 					$btn.prop('disabled', true);
 					self.clearLogs();
 				} else {
-					$btn.prop('disabled', true);
+					// First click: prompt for confirmation. Do NOT disable the button —
+					// the user MUST be able to click it again to confirm within 3s,
+					// otherwise the confirm flow is dead on arrival.
 					if (!$btn.data('original-text')) {
 						$btn.data('original-text', $btn.text());
 					}
@@ -257,10 +260,12 @@
 							self.$clearBtn
 								.data('confirming', false)
 								.removeClass('sscribe-btn-confirming')
-								.prop('disabled', false)
 								.text(self.$clearBtn.data('original-text') || self.clearBtnOriginalText);
 							self.$clearBtn.removeData('original-text');
 						}
+						// Null the timeout ID so the next first-click correctly
+						// detects "no pending timeout" without clearing a stale ID.
+						self.clearBtnTimeout = null;
 					}, 3000);
 				}
 			});
@@ -400,11 +405,18 @@
 					self.showPausedIndicator('Paused — tab inactive');
 				} else if (self.isAutoRefresh) {
 					const $debugTabBtn = $('#sscribe-tab-btn-debug');
-					if (!$debugTabBtn.length || $debugTabBtn.attr('aria-selected') === 'true') {
+					const isOnDebugTab =
+						!$debugTabBtn.length || $debugTabBtn.attr('aria-selected') === 'true';
+					if (isOnDebugTab) {
 						self.fetchLogs();
-						self.startAutoRefresh();
-						self.hidePausedIndicator();
 					}
+					// Resume polling regardless of which plugin tab is active —
+					// startAutoRefresh() polls in the background and the paused
+					// indicator must clear when the tab becomes visible again.
+					self.startAutoRefresh();
+					self.hidePausedIndicator();
+				} else {
+					self.hidePausedIndicator();
 				}
 			};
 			$(document).on('visibilitychange', this._visibilityHandler);
@@ -748,9 +760,14 @@
 				self.destroyObserver();
 				if (isInitialLoad) {
 					self.$entryCount.text('Error');
-					let errorMsg = 'Server Error';
+					let errorMsg;
 					if (xhr.status === 0) {
 						errorMsg = 'Network error. Please check your connection.';
+					} else if (xhr.status === 403) {
+						// Nonce/session expired — the most common cause on long admin
+						// sessions. Tell the user clearly so they know to reload.
+						errorMsg = 'Session expired. Please reload the page to continue.';
+						self.refreshNonce();
 					} else {
 						errorMsg = 'HTTP ' + xhr.status;
 						if (xhr.responseText) {
@@ -1030,13 +1047,13 @@
 			};
 
 			self.$exportBtn.prop('disabled', true);
-			self.$exportBtn.find('.sscribe-export-btn-scope').text(' (exporting...)');
+			self.$exportBtn.find('.sscribe-export-btn-scope').text(' — exporting…');
 			this.showPausedIndicator('Export in progress — download should begin shortly');
 			this.downloadViaForm(sscribe_data.ajaxurl, data);
 			setTimeout(function () {
 				self.$exportBtn
 					.prop('disabled', false)
-					.html('Export <span class="sscribe-export-btn-scope"></span>');
+					.html(self.exportBtnOriginalHtml);
 				self.updateExportButtonScope();
 				self.hidePausedIndicator();
 			}, 10000);
