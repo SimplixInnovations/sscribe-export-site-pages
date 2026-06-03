@@ -27,47 +27,60 @@ class SScribe_Export_Rate_Limiter {
 	 *
 	 * Uses micro-lock pattern to prevent race conditions on concurrent requests.
 	 *
+	 * Note: The micro-lock (lines 52-77) uses a best-effort approach with retries
+	 * and verification read-back. A narrow race window exists between when the lock
+	 * transient is set and when it's verified (lines 60-66). Additionally, the
+	 * rate limit counter increment (lines 79-106) has a TOCTOU race: two concurrent
+	 * requests can read the same count before either writes the incremented value.
+	 * This may allow slightly more requests than the strict limit in high-concurrency
+	 * scenarios, but is acceptable for rate-limiting UX purposes.
+	 *
 	 * @param string $export_capability Required capability.
-	 * @return bool
+	 * @param string $bucket            Rate limit bucket name (default: 'export').
+	 *                                 Use 'debug' for debug console actions to keep
+	 *                                 them in a separate bucket from export actions.
+	 * @return bool|null true = allowed, false = rate limit exceeded, null = lock contention (allow through)
 	 */
-	public function check_rate_limit( string $export_capability = 'manage_options' ): bool {
+	public function check_rate_limit( string $export_capability = 'sscribe_export', string $bucket = 'export' ): ?bool {
 		$user_id = get_current_user_id();
 
 		if ( $user_id > 0 ) {
-			$transient_key = 'sscribe_rate_' . $user_id;
+			$transient_key = 'sscribe_rate_' . $bucket . '_' . $user_id;
 		} else {
-			$remote_ip     = isset( $_SERVER['REMOTE_ADDR'] )
-				? sanitize_text_field( wp_unslash( $_SERVER['REMOTE_ADDR'] ) )
-				: '0.0.0.0';
-			$transient_key = 'sscribe_rate_anon_' . substr( hash( 'sha256', $remote_ip ), 0, 12 );
+			$remote_ip = $this->get_client_ip();
+			$transient_key = 'sscribe_rate_' . $bucket . '_anon_' . substr( hash( 'sha256', $remote_ip ), 0, 12 );
 		}
 
-		$now       = time();
-		$lock_key  = $transient_key . '_lock';
+		$now      = time();
+		$lock_key = $transient_key . '_lock';
 
 		$rate_limit = current_user_can( $export_capability )
-			? (int) apply_filters( 'sscribe_rate_limit_admin', 100 )
+			? max( 1, (int) apply_filters( 'sscribe_rate_limit_admin', 500 ) )
 			: self::RATE_LIMIT_MAX;
 
-		// Acquire micro-lock with retries.
 		$locked = false;
-		for ( $i = 0; $i < 3; $i++ ) {
+		$attempts = 0;
+		while ( ! $locked && $attempts < 2 ) {
 			if ( wp_using_ext_object_cache() ) {
 				$locked = wp_cache_add( $lock_key, 1, '', 2 );
 			} else {
 				$existing_lock = get_transient( $lock_key );
 				if ( false === $existing_lock ) {
 					$locked = set_transient( $lock_key, 1, 2 );
+					if ( $locked ) {
+						$verified = get_transient( $lock_key );
+						$locked   = false !== $verified && 1 === (int) $verified;
+					}
 				}
 			}
-			if ( $locked ) {
-				break;
+			++$attempts;
+			if ( ! $locked && $attempts < 2 ) {
+				usleep( 50000 );
 			}
-			usleep( 50000 );
 		}
 
 		if ( ! $locked ) {
-			return false;
+			return null;
 		}
 
 		$data = get_transient( $transient_key );
@@ -106,5 +119,28 @@ class SScribe_Export_Rate_Limiter {
 		}
 
 		return true;
+	}
+
+	/**
+	 * Get the best available client IP address, preferring trusted proxies.
+	 *
+	 * @return string Sanitized IP address or '0.0.0.0' as fallback.
+	 */
+	private function get_client_ip(): string {
+		$ip = '';
+		if ( isset( $_SERVER['HTTP_CF_CONNECTING_IP'] ) ) {
+			$raw_ip = sanitize_text_field( wp_unslash( $_SERVER['HTTP_CF_CONNECTING_IP'] ) );
+			if ( $raw_ip ) {
+				$ip = $raw_ip;
+			}
+		} elseif ( isset( $_SERVER['HTTP_X_FORWARDED_FOR'] ) ) {
+			$raw_forwarded = sanitize_text_field( wp_unslash( $_SERVER['HTTP_X_FORWARDED_FOR'] ) );
+			if ( $raw_forwarded && preg_match( '/^([0-9.]+,?)+$/i', $raw_forwarded ) ) {
+				$ip = trim( explode( ',', $raw_forwarded )[0] );
+			}
+		} elseif ( isset( $_SERVER['REMOTE_ADDR'] ) ) {
+			$ip = sanitize_text_field( wp_unslash( $_SERVER['REMOTE_ADDR'] ) );
+		}
+		return $ip ? $ip : '0.0.0.0';
 	}
 }

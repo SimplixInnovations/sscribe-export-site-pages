@@ -65,6 +65,12 @@ class SScribe_Image_Processor {
 		$url = self::normalize_url( $url );
 
 		if ( '' === $url || ! self::is_allowed_remote_url( $url ) ) {
+			if ( '' !== $url ) {
+				$host = strtolower( (string) ( wp_parse_url( $url, PHP_URL_HOST ) ?? '' ) );
+				if ( defined( 'SSCRIBE_DEBUG' ) && SSCRIBE_DEBUG ) {
+					error_log( sprintf( 'SScribe: Image blocked - host "%s" not in allowed hosts list. Use sscribe_allowed_image_hosts filter to add external hosts.', $host ) ); // phpcs:ignore WordPress.PHP.DevelopmentFunctions.error_log_error_log
+				}
+			}
 			return false;
 		}
 
@@ -100,7 +106,7 @@ class SScribe_Image_Processor {
 		$response = wp_safe_remote_get(
 			$url,
 			array(
-				'timeout'             => 15,
+				'timeout'             => 10,
 				'user-agent'          => 'SScribe Export Plugin',
 				'reject_unsafe_urls'  => true,
 				'limit_response_size' => self::MAX_DOWNLOAD_BYTES,
@@ -189,8 +195,8 @@ class SScribe_Image_Processor {
 			return false;
 		}
 
-		$site_hosts       = self::get_allowed_hosts();
-		$allowed_hosts   = apply_filters( 'sscribe_allowed_image_hosts', $site_hosts );
+		$site_hosts    = self::get_allowed_hosts();
+		$allowed_hosts = apply_filters( 'sscribe_allowed_image_hosts', $site_hosts );
 
 		if ( ! is_array( $allowed_hosts ) ) {
 			$allowed_hosts = $site_hosts;
@@ -239,11 +245,15 @@ class SScribe_Image_Processor {
 			return false;
 		}
 
+		if ( ! extension_loaded( 'gd' ) ) {
+			return $path;
+		}
+
 		$info = false;
 		// phpcs:ignore WordPress.PHP.DevelopmentFunctions.error_log_set_error_handler -- Production error handling for image processing.
 		set_error_handler(
 			static function ( int $errno, string $errstr ) use ( $path ): bool {
-				SScribe_Logger::instance( SSCRIBE_DEBUG )
+				SScribe_Logger::instance( SScribe_Logger::is_logging_enabled() )
 					->warning(
 						'getimagesize failed for local image',
 						array(
@@ -276,7 +286,7 @@ class SScribe_Image_Processor {
 		// phpcs:ignore WordPress.PHP.DevelopmentFunctions.error_log_set_error_handler -- Production error handling for GD image loading.
 		set_error_handler(
 			static function ( int $errno, string $errstr ) use ( $path ): bool {
-				SScribe_Logger::instance( SSCRIBE_DEBUG )
+				SScribe_Logger::instance( SScribe_Logger::is_logging_enabled() )
 					->warning(
 						'Image loading failed',
 						array(

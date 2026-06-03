@@ -61,6 +61,9 @@ spl_autoload_register(
 			$interface = strtolower( str_replace( '_', '-', substr( $class_name, 8, -10 ) ) );
 			$paths[]   = SSCRIBE_PLUGIN_DIR . 'includes/interfaces/interface-sscribe-' . $interface . '.php';
 			$paths[]   = SSCRIBE_PLUGIN_DIR . 'includes/exporters/interface-sscribe-' . $interface . '.php';
+		} elseif ( str_ends_with( $class_name, '_Trait' ) ) {
+			$trait   = strtolower( str_replace( '_', '-', substr( $class_name, 8, -6 ) ) );
+			$paths[] = SSCRIBE_PLUGIN_DIR . 'includes/traits/trait-sscribe-' . $trait . '.php';
 		} elseif ( str_contains( $class_name, '_Exception' ) || 'SScribe_Exception' === $class_name ) {
 			$paths[] = SSCRIBE_PLUGIN_DIR . 'includes/exceptions/class-sscribe-' . $relative . '.php';
 		} elseif ( str_ends_with( $class_name, '_Exporter' ) || str_contains( $class_name, '_Exporter_' ) ) {
@@ -75,7 +78,12 @@ spl_autoload_register(
 		}
 
 		foreach ( $paths as $path ) {
-			if ( file_exists( $path ) ) {
+			// Security: Ensure the resolved path stays within the plugin directory
+			// to prevent path traversal via malicious class names.
+			// Use realpath on both sides to resolve symlinks and normalize paths.
+			$real_plugin_dir = realpath( SSCRIBE_PLUGIN_DIR );
+			$real_path       = realpath( $path );
+			if ( $real_path && $real_plugin_dir && str_starts_with( $real_path, $real_plugin_dir . DIRECTORY_SEPARATOR ) ) {
 				require_once $path;
 				$loaded[ $class_name ] = true;
 				return;

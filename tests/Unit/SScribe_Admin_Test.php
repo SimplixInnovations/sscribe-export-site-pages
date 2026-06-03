@@ -51,7 +51,7 @@ class SScribe_Admin_Test extends TestCase {
 
 		$this->assertCount( 1, $sscribe_test_menu_pages );
 		$this->assertSame( 'sscribe-export', $sscribe_test_menu_pages[0]['menu_slug'] );
-		$this->assertSame( 'manage_options', $sscribe_test_menu_pages[0]['capability'] );
+		$this->assertSame( 'sscribe_export', $sscribe_test_menu_pages[0]['capability'] );
 		$this->assertSame( 'dashicons-media-document', $sscribe_test_menu_pages[0]['icon_url'] );
 	}
 
@@ -82,6 +82,9 @@ class SScribe_Admin_Test extends TestCase {
 
 		$admin->enqueue_admin_assets( 'toplevel_page_sscribe-export' );
 
+		// Debug console assets are now always enqueued for the debug tab UI.
+		// Styles: sscribe-admin + inline font-face CSS + sscribe-debug-console = 3.
+		// Scripts: sscribe-admin + sscribe-debug-console = 2.
 		$this->assertCount( 3, $sscribe_test_styles );
 		$this->assertCount( 2, $sscribe_test_scripts );
 	}

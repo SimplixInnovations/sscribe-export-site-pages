@@ -1,6 +1,6 @@
 <?php
 /**
- * SScribe Exporter
+ * SScribe Exporter.
  *
  * @package SScribe_Export_Site_Pages
  * @license GPL v2 or later
@@ -13,14 +13,20 @@ if ( ! defined( 'ABSPATH' ) ) {
 	exit;
 }
 
-use SScribeVendor\PhpOffice\PhpWord\PhpWord;
-use SScribeVendor\PhpOffice\PhpWord\IOFactory;
-use SScribeVendor\PhpOffice\PhpWord\Style\Font;
-use SScribeVendor\PhpOffice\PhpWord\SimpleType\Jc;
-use SScribeVendor\PhpOffice\PhpWord\Shared\Converter;
-use SScribeVendor\PhpOffice\PhpWord\Element\Section;
-use SScribeVendor\PhpOffice\PhpWord\Element\TextRun;
+use PhpOffice\PhpWord\Element\Section;
+use PhpOffice\PhpWord\Element\TextRun;
+use PhpOffice\PhpWord\PhpWord;
+use PhpOffice\PhpWord\Settings;
+use PhpOffice\PhpWord\SimpleType\Jc;
+use PhpOffice\PhpWord\Shared\Converter;
+use PhpOffice\PhpWord\IOFactory;
 
+/**
+ * Export orchestration and format routing.
+ *
+ * @package SScribe_Export_Site_Pages
+ * @subpackage Exporters
+ */
 class SScribe_Exporter {
 
 	/**
@@ -70,7 +76,7 @@ class SScribe_Exporter {
 	 *
 	 * @var string
 	 */
-	private string $rtl_font_name = 'Arial';
+	private string $rtl_font_name = 'Arial Unicode MS';
 
 	/**
 	 * Base font size.
@@ -78,6 +84,20 @@ class SScribe_Exporter {
 	 * @var int
 	 */
 	private int $font_size = 11;
+
+	/**
+	 * Cached WordPress date format to avoid repeated get_option() calls.
+	 *
+	 * @var string
+	 */
+	private string $cached_date_format = '';
+
+	/**
+	 * Cached WordPress time format to avoid repeated get_option() calls.
+	 *
+	 * @var string
+	 */
+	private string $cached_time_format = '';
 
 	/**
 	 * Color palette for document styling.
@@ -96,16 +116,53 @@ class SScribe_Exporter {
 	);
 
 	/**
+	 * Shutdown handler registration flag.
+	 *
+	 * @var bool
+	 */
+	private static bool $shutdown_registered = false;
+
+	/**
 	 * Initialize the exporter.
 	 *
 	 * @param SScribe_Content_Parser|null        $parser           Content parser.
 	 * @param SScribe_DOCX_Content_Renderer|null $content_renderer Content renderer.
+	 * @param SScribe_Logger_Interface|null      $logger           Logger instance.
 	 */
 	public function __construct(
 		?SScribe_Content_Parser $parser = null,
-		?SScribe_DOCX_Content_Renderer $content_renderer = null
+		?SScribe_DOCX_Content_Renderer $content_renderer = null,
+		?SScribe_Logger_Interface $logger = null
 	) {
 		$this->parser = $parser ?? new SScribe_Content_Parser();
+		$this->logger = $logger;
+
+		/**
+		 * Filter the DOCX color palette.
+		 *
+		 * @since 1.1.1
+		 * @param array<string, string> $colors Color palette array.
+		 */
+		$this->colors = apply_filters( 'sscribe_docx_colors', $this->colors );
+
+		// Validate required color keys exist after filter application.
+		// To prevent undefined index errors from third-party mutations.
+		$defaults = array(
+			'primary'  => '4A8263',
+			'heading'  => '122119',
+			'body'     => '495057',
+			'light_bg' => 'E8EFEB',
+			'link'     => '2C6E8A',
+			'code_bg'  => 'F5F6F8',
+			'white'    => 'FFFFFF',
+			'border'   => 'CCCCCC',
+		);
+		foreach ( $defaults as $key => $default_value ) {
+			if ( ! isset( $this->colors[ $key ] ) || ! is_string( $this->colors[ $key ] ) ) {
+				$this->colors[ $key ] = $default_value;
+			}
+		}
+
 		$this->content_renderer = $content_renderer ?? new SScribe_DOCX_Content_Renderer(
 			$this->parser,
 			null,
@@ -114,6 +171,16 @@ class SScribe_Exporter {
 			$this->font_name,
 			$this->font_size
 		);
+
+		// Sync config only for injected content_renderer (not newly created ones).
+		if ( null !== $content_renderer ) {
+			$this->content_renderer->sync_config(
+				$this->colors,
+				$this->is_rtl,
+				$this->font_name,
+				$this->font_size
+			);
+		}
 	}
 
 	/**
@@ -138,7 +205,8 @@ class SScribe_Exporter {
 	private function safe_text( string $text ): string {
 		$text = (string) $text;
 
-		$cleaned = mb_convert_encoding( $text, 'UTF-8', 'UTF-8' );
+		// Use iconv for UTF-8 sanitization - compatible with PHP 8.2+ (mb_convert_encoding deprecation).
+		$cleaned = @iconv( 'UTF-8', 'UTF-8//IGNORE', $text );
 		if ( false !== $cleaned ) {
 			$text = $cleaned;
 		}
@@ -157,10 +225,21 @@ class SScribe_Exporter {
 
 		$text = str_replace( "\x0C", '', $text );
 
-		// Truncate extremely long strings without spaces (e.g., URLs, hashes, encoded data)
-		// to prevent oversized XML elements in DOCX. Threshold is 200 Unicode chars.
-		if ( mb_strlen( $text, 'UTF-8' ) > 200 && false === mb_strpos( $text, ' ', 0, 'UTF-8' ) ) {
-			$text = mb_substr( $text, 0, 200, 'UTF-8' );
+		// Truncate extremely long strings without spaces (e.g., long hashes, encoded data)
+		// to prevent oversized XML elements in DOCX. Threshold is 2048 Unicode chars
+		// to accommodate long URLs, CDNs, and affiliate links while still protecting DOCX integrity.
+		// This silently truncates strings without spaces, including long Arabic/RTL text.
+		// Log a warning so operators can detect problematic content patterns.
+		if ( mb_strlen( $text, 'UTF-8' ) > 2048 && false === mb_strpos( $text, ' ', 0, 'UTF-8' ) ) {
+			$original_length = mb_strlen( $text, 'UTF-8' );
+			$text = mb_substr( $text, 0, 2048, 'UTF-8' );
+			$this->get_logger()->warning(
+				'Text truncated in safe_text — long no-space string detected',
+				array(
+					'original_length' => $original_length,
+					'truncated_to'    => 2048,
+				)
+			);
 		}
 
 		// NOTE: Do NOT apply htmlspecialchars() here. PHPWord performs its own
@@ -209,10 +288,11 @@ class SScribe_Exporter {
 			);
 			$safe_query = '';
 			if ( ! empty( $query ) ) {
-
-				$safe_query = '?' . $query;
+				$params = array();
+				parse_str( $query, $params );
+				$safe_query = '?' . http_build_query( $params, '', '&', PHP_QUERY_RFC3986 );
 			}
-			$safe_fragment = ! empty( $fragment ) ? '#' . rawurlencode( $fragment ) : '';
+			$safe_fragment = ! empty( $fragment ) ? '#' . rawurlencode( rawurldecode( $fragment ) ) : '';
 
 			return $scheme . '://' . $host . $port . $safe_path . $safe_query . $safe_fragment;
 		}
@@ -221,10 +301,44 @@ class SScribe_Exporter {
 		$scheme        = strtolower( ( false === $parsed_scheme || null === $parsed_scheme ) ? '' : $parsed_scheme );
 
 		if ( in_array( $scheme, array( 'http', 'https', 'mailto', 'tel' ), true ) ) {
+			// SSRF protection: validate URL doesn't point to internal/private IP ranges.
+			$host = wp_parse_url( $url, PHP_URL_HOST );
+			if ( $host && $this->is_ip_blocked( $host ) ) {
+				$this->get_logger()->warning(
+					'Blocked SSRF attempt: internal IP range',
+					array(
+						'url'  => $url,
+						'host' => $host,
+					)
+				);
+				return '';
+			}
 			return esc_url_raw( $url );
 		}
 
 		return '';
+	}
+
+	/**
+	 * Check if host is a blocked internal/private IP address.
+	 *
+	 * For document generation, URLs are only added as text links and never fetched.
+	 * Therefore, we only block explicit private/reserved IPs without DNS resolution.
+	 * External DNS lookups (e.g., Google DNS) would be disproportionate for this use case.
+	 *
+	 * @param string $host Hostname or IP to check.
+	 * @return bool True if blocked.
+	 */
+	private function is_ip_blocked( string $host ): bool {
+		// If it's already an IP, check if it's private/reserved.
+		if ( filter_var( $host, FILTER_VALIDATE_IP ) !== false ) {
+			// Block private and reserved IP ranges.
+			return filter_var( $host, FILTER_VALIDATE_IP, FILTER_FLAG_NO_PRIV_RANGE | FILTER_FLAG_NO_RES_RANGE ) === false;
+		}
+
+		// For hostnames, we don't resolve DNS since URLs in documents are just text, not fetched.
+		// The SSRF risk is negligible for text-only URLs.
+		return false;
 	}
 
 	/**
@@ -234,7 +348,12 @@ class SScribe_Exporter {
 	 * @return bool
 	 */
 	private function is_rtl_document( array $page_data ): bool {
-		require_once SSCRIBE_PLUGIN_DIR . 'includes/class-sscribe-rtl-helper.php';
+		if ( ! isset( $page_data['language'] ) ) {
+			$this->get_logger()->warning(
+				'Missing language key in page_data, defaulting to LTR',
+				array( 'page_id' => $page_data['id'] ?? 0 )
+			);
+		}
 		return SScribe_RTL_Helper::is_rtl( $page_data['language'] ?? 'en' );
 	}
 
@@ -275,7 +394,27 @@ class SScribe_Exporter {
 	/**
 	 * Generate a DOCX file from page data.
 	 *
-	 * @param array  $page_data Page data to export.
+	 * @param array  $page_data Page data array. See SScribePageData type.
+	 * @type int       $id                  Page ID.
+	 *     @type string    $title               Page title (HTML-decoded).
+	 *     @type string    $content             Processed HTML content.
+	 *     @type string    $raw_content         Raw post content.
+	 *     @type string    $excerpt             Page excerpt.
+	 *     @type string    $permalink           Full permalink URL.
+	 *     @type string    $slug                URL-friendly slug.
+	 *     @type string    $author              Author display name.
+	 *     @type string    $date_published      Formatted publish date.
+	 *     @type string    $date_modified       Formatted last modified date.
+	 *     @type string    $featured_image_url  Featured image URL.
+	 *     @type string    $featured_image_path Local path to featured image.
+	 *     @type int       $word_count          Word count estimate.
+	 *     @type float     $reading_time       Reading time in minutes.
+	 *     @type array     $breadcrumbs         Breadcrumb trail array.
+	 *     @type array     $children            Child page data array.
+	 *     @type string    $language            Language code (e.g. 'en').
+	 *     @type int       $parent_id          Parent page ID.
+	 *     @type array     $seo                SEO data array from SEO_Reader.
+	 * }
 	 * @param string $output_dir Output directory path.
 	 * @param int    $index     Current page index.
 	 * @param int    $total     Total number of pages.
@@ -283,7 +422,58 @@ class SScribe_Exporter {
 	 * @throws \RuntimeException If DOCX generation fails integrity checks.
 	 */
 	public function generate_docx( array $page_data, string $output_dir, int $index = 0, int $total = 0 ): string|false {
+		if ( ! self::$shutdown_registered ) {
+			self::$shutdown_registered = true;
+			register_shutdown_function(
+				static function (): void {
+					$error = error_get_last();
+					if ( $error && E_ERROR === $error['type'] ) {
+						$temp_patterns = array(
+							sys_get_temp_dir() . '/phpword_*.tmp',
+							sys_get_temp_dir() . '/PhpWord*',
+						);
+						foreach ( $temp_patterns as $temp_pattern ) {
+							$temp_files = glob( $temp_pattern );
+							if ( is_array( $temp_files ) ) {
+								foreach ( $temp_files as $temp_file ) {
+									if ( is_file( $temp_file ) && is_writable( $temp_file ) ) { // phpcs:ignore WordPress.WP.AlternativeFunctions.file_system_operations_is_writable
+										wp_delete_file( $temp_file );
+									} elseif ( is_dir( $temp_file ) ) {
+										$dir_files = glob( $temp_file . '/*' );
+										if ( is_array( $dir_files ) ) {
+											foreach ( $dir_files as $dir_file ) {
+												if ( is_file( $dir_file ) ) {
+													wp_delete_file( $dir_file );
+												}
+											}
+										}
+										// phpcs:ignore WordPress.WP.AlternativeFunctions.file_system_operations_rmdir
+										@rmdir( $temp_file );
+									}
+								}
+							}
+						}
+					}
+				}
+			);
+		}
+
 		if ( empty( $page_data ) || ! is_dir( $output_dir ) ) {
+			$this->cleanup_phpword_temp_files();
+			return false;
+		}
+
+		// Verify output directory is writable before attempting file creation.
+		if ( ! is_writable( $output_dir ) ) { // phpcs:ignore WordPress.WP.AlternativeFunctions.file_system_operations_is_writable
+			$this->last_error = 'Output directory is not writable: ' . $output_dir;
+			$this->get_logger()->error(
+				'DOCX generation failed: output directory not writable',
+				array(
+					'page_id'    => $page_data['id'] ?? 0,
+					'output_dir' => $output_dir,
+				)
+			);
+			$this->cleanup_phpword_temp_files();
 			return false;
 		}
 
@@ -302,7 +492,20 @@ class SScribe_Exporter {
 				);
 			}
 
-			$php_word = new PhpWord();
+			if ( ! class_exists( '\SScribeVendor\PhpOffice\PhpWord\PhpWord' ) ) {
+				throw new \RuntimeException( 'The PhpWord library is required to generate DOCX files.' );
+			}
+
+			$php_word = new \SScribeVendor\PhpOffice\PhpWord\PhpWord();
+
+			$this->get_logger()->debug(
+				'DOCX generation started',
+				array(
+					'page_id'       => $page_data['id'] ?? 0,
+					'page_title'    => $page_data['title'] ?? 'unknown',
+					'memory_before' => size_format( memory_get_usage( true ) ),
+				)
+			);
 
 			$this->font_name = 'Arial';
 			$this->is_rtl    = $this->is_rtl_document( $page_data );
@@ -324,7 +527,10 @@ class SScribe_Exporter {
 
 			$this->define_styles( $php_word );
 
-			$cover = $php_word->addSection( $this->get_section_settings( $this->is_rtl ) );
+			// Cover page: vertically center content for better visual balance.
+			$cover_settings              = $this->get_section_settings( $this->is_rtl );
+			$cover_settings['vAlign']    = 'center';
+			$cover = $php_word->addSection( $cover_settings );
 			try {
 				$this->add_cover_page( $cover, $page_data );
 			} catch ( \Throwable $e ) {
@@ -409,9 +615,22 @@ class SScribe_Exporter {
 			$writer = IOFactory::createWriter( $php_word, 'Word2007' );
 			$writer->save( $output_path );
 
+			$this->cleanup_phpword_temp_files();
+
 			// Lightweight integrity check: verify file size > minimum threshold.
-			$file_size = filesize( $output_path );
-			$min_size   = 4096; // Minimal DOCX should be at least 4KB to avoid empty/corrupted files.
+			$file_size = @filesize( $output_path );
+			$min_size  = 8192; // Minimal DOCX should be at least 8KB to avoid empty/corrupted files.
+
+			$this->get_logger()->debug(
+				'DOCX saved to disk',
+				array(
+					'page_id'     => $page_data['id'] ?? 0,
+					'output_path' => $output_path,
+					'file_size'   => size_format( $file_size ),
+					'memory_now'  => size_format( memory_get_usage( true ) ),
+				)
+			);
+
 			if ( $file_size < $min_size ) {
 				wp_delete_file( $output_path );
 				unset( $writer, $php_word );
@@ -436,50 +655,63 @@ class SScribe_Exporter {
 				throw new \RuntimeException( 'DOCX missing required archive members' );
 			}
 
-			if ( ! SSCRIBE_DEBUG ) {
+			if ( ! ( defined( 'SSCRIBE_DEBUG' ) && SSCRIBE_DEBUG ) ) {
 				unset( $writer, $php_word );
 				return $output_path;
 			}
 
 			// Deep XML validation — only in debug mode.
 			$xml_valid = true;
+			$zip_xml   = null;
 			if ( $has_document ) {
 				$zip_xml = new \ZipArchive();
-				$zip_xml->open( $output_path );
-				$doc_xml = $zip_xml->getFromName( 'word/document.xml' );
-				if ( false !== $doc_xml && ! empty( $doc_xml ) ) {
-					$prev_xml_errors = libxml_use_internal_errors( true );
-					$test_doc        = new \DOMDocument();
-					$parse_result    = $test_doc->loadXML( $doc_xml );
-					$xml_errors      = libxml_get_errors();
-					libxml_clear_errors();
-					libxml_use_internal_errors( $prev_xml_errors );
-
-					foreach ( $xml_errors as $xml_error ) {
-						if ( LIBXML_ERR_FATAL === $xml_error->level ) {
-							$xml_valid = false;
-							$this->get_logger()->error(
-								'DOCX XML validation failed',
-								array(
-									'page_id'   => $page_data['id'] ?? 0,
-									'xml_error' => trim( $xml_error->message ),
-									'xml_line'  => $xml_error->line,
-								)
-							);
-							break;
+				if ( true !== $zip_xml->open( $output_path ) ) {
+					$zip_xml   = null;
+					$xml_valid = false;
+				} else {
+					$doc_xml = $zip_xml->getFromName( 'word/document.xml' );
+					if ( false !== $doc_xml && ! empty( $doc_xml ) ) {
+						$prev_xml_errors = libxml_use_internal_errors( true );
+						try {
+							$test_doc     = new \DOMDocument();
+							$parse_result = $test_doc->loadXML( $doc_xml );
+							$xml_errors   = libxml_get_errors();
+							foreach ( $xml_errors as $xml_error ) {
+								if ( LIBXML_ERR_FATAL === $xml_error->level ) {
+									$xml_valid = false;
+									$this->get_logger()->error(
+										'DOCX XML validation failed',
+										array(
+											'page_id'   => $page_data['id'] ?? 0,
+											'xml_error' => trim( $xml_error->message ),
+											'xml_line'  => $xml_error->line,
+										)
+									);
+									break;
+								}
+							}
+							if ( false === $parse_result ) {
+								$xml_valid = false;
+							}
+						} finally {
+							libxml_clear_errors();
+							libxml_use_internal_errors( $prev_xml_errors );
 						}
+						unset( $test_doc, $doc_xml );
 					}
-					if ( false === $parse_result ) {
-						$xml_valid = false;
-					}
-					unset( $test_doc, $doc_xml, $zip_xml );
+				}
+				if ( null !== $zip_xml ) {
+					$zip_xml->close();
+					$zip_xml = null;
 				}
 			}
 
 			// $has_document and $has_types guaranteed true here (early throw above).
 			// Only $xml_valid may be false when debug mode is enabled.
 			if ( ! $xml_valid ) {
-				wp_delete_file( $output_path );
+				// Do NOT call wp_delete_file() here — the outer catch (\Throwable $e) at
+				// line 685 handles file cleanup with a file_exists() guard. Calling it here
+				// would result in a redundant delete attempt on an already-deleted file.
 				unset( $writer, $php_word );
 				throw new \RuntimeException( 'DOCX integrity check failed: XML validation error' );
 			}
@@ -489,6 +721,7 @@ class SScribe_Exporter {
 			return $output_path;
 
 		} catch ( \Throwable $e ) {
+			$this->cleanup_phpword_temp_files();
 
 			if ( isset( $writer ) ) {
 				unset( $writer );
@@ -536,6 +769,27 @@ class SScribe_Exporter {
 	}
 
 	/**
+	 * Clean up PHPWord temporary files.
+	 *
+	 * PHPWord creates temp files during document saving that can persist
+	 * if a fatal error occurs mid-write.
+	 *
+	 * @return void
+	 */
+	private function cleanup_phpword_temp_files(): void {
+		$temp_pattern = sys_get_temp_dir() . '/phpword_*.tmp';
+		$temp_files   = glob( $temp_pattern );
+
+		if ( is_array( $temp_files ) ) {
+			foreach ( $temp_files as $temp_file ) {
+				if ( is_file( $temp_file ) && is_writable( $temp_file ) ) { // phpcs:ignore WordPress.WP.AlternativeFunctions.file_system_operations_is_writable
+					wp_delete_file( $temp_file );
+				}
+			}
+		}
+	}
+
+	/**
 	 * Set document metadata properties.
 	 *
 	 * @param PhpWord $php_word  PhpWord instance.
@@ -545,10 +799,22 @@ class SScribe_Exporter {
 	private function set_document_properties( PhpWord $php_word, array $page_data ): void {
 		$properties = $php_word->getDocInfo();
 		$properties->setCreator( 'SScribe by Simplix Innovations' );
-		$properties->setCompany( html_entity_decode( get_bloginfo( 'name' ), ENT_QUOTES | ENT_HTML5, 'UTF-8' ) );
-		$properties->setTitle( html_entity_decode( $page_data['title'], ENT_QUOTES | ENT_HTML5, 'UTF-8' ) );
-		$properties->setDescription( 'Exported from ' . esc_url_raw( $page_data['permalink'] ) );
-		$properties->setLastModifiedBy( wp_strip_all_tags( $page_data['author'] ) );
+
+		$blog_name         = get_bloginfo( 'name' );
+		$blog_name_decoded = html_entity_decode( ( is_string( $blog_name ) ? $blog_name : '' ), ENT_QUOTES | ENT_HTML5, 'UTF-8' );
+		$properties->setCompany( $blog_name_decoded );
+
+		$title         = $page_data['title'] ?? '';
+		$title_decoded = html_entity_decode( ( is_string( $title ) ? $title : '' ), ENT_QUOTES | ENT_HTML5, 'UTF-8' );
+		$properties->setTitle( $title_decoded );
+
+		$permalink      = $page_data['permalink'] ?? '';
+		$permalink_safe = is_string( $permalink ) ? esc_url_raw( $permalink ) : '';
+		$properties->setDescription( 'Exported from ' . $permalink_safe );
+
+		$author          = $page_data['author'] ?? '';
+		$author_stripped = is_string( $author ) ? wp_strip_all_tags( $author ) : '';
+		$properties->setLastModifiedBy( $author_stripped );
 	}
 
 	/**
@@ -598,11 +864,18 @@ class SScribe_Exporter {
 	 */
 	private function define_styles( PhpWord $php_word ): void {
 
-		$heading_sizes = array( 24, 20, 16, 14, 12, 11 );
+		$heading_sizes = array(
+			1 => 24,
+			2 => 20,
+			3 => 16,
+			4 => 14,
+			5 => 12,
+			6 => 11,
+		);
 		for ( $i = 1; $i <= 6; $i++ ) {
 			$heading_font = array(
 				'name'  => $this->font_name,
-				'size'  => $heading_sizes[ $i - 1 ],
+				'size'  => $heading_sizes[ $i ],
 				'bold'  => true,
 				'color' => $this->colors['heading'],
 			);
@@ -630,25 +903,54 @@ class SScribe_Exporter {
 		);
 
 		if ( $this->is_rtl ) {
+			$blockquote_style['bidi']             = true;
 			$blockquote_style['indentation']      = array( 'right' => Converter::cmToTwip( 1 ) );
-			$blockquote_style['borderRightSize']  = 12;
+			$blockquote_style['borderRightSize']  = 12;  // 12 = 1.5pt (PHPWord uses 1/8th-point units for border sizes).
 			$blockquote_style['borderRightColor'] = $this->colors['primary'];
 		} else {
 			$blockquote_style['indentation']     = array( 'left' => Converter::cmToTwip( 1 ) );
-			$blockquote_style['borderLeftSize']  = 12;
+			$blockquote_style['borderLeftSize']  = 12;  // 12 = 1.5pt.
 			$blockquote_style['borderLeftColor'] = $this->colors['primary'];
 		}
 
 		$php_word->addParagraphStyle( 'Blockquote', $this->get_para_style( $blockquote_style ) );
 
-		$php_word->addParagraphStyle(
-			'CodeBlock',
-			array(
-				'indentation' => array( 'left' => Converter::cmToTwip( 0.5 ) ),
-				'spaceBefore' => Converter::pointToTwip( 6 ),
-				'spaceAfter'  => Converter::pointToTwip( 6 ),
-			)
+		$codeblock_style = array(
+			'spaceBefore' => Converter::pointToTwip( 6 ),
+			'spaceAfter'  => Converter::pointToTwip( 6 ),
 		);
+
+		if ( $this->is_rtl ) {
+			$codeblock_style['bidi']        = true;
+			$codeblock_style['indentation'] = array( 'right' => Converter::cmToTwip( 0.5 ) );
+		} else {
+			$codeblock_style['indentation'] = array( 'left' => Converter::cmToTwip( 0.5 ) );
+		}
+
+		// CodeBlock needs explicit complexScript and rtl for proper RTL code display.
+		if ( $this->is_rtl ) {
+			$codeblock_style['complexScript'] = true;
+			$codeblock_style['rtl']           = true;
+		}
+
+		// Light gray background shading to visually distinguish code blocks.
+		$codeblock_style['shading'] = array(
+			'fill' => 'F2F2F2',
+		);
+
+		$php_word->addParagraphStyle( 'CodeBlock', $this->get_para_style( $codeblock_style ) );
+
+		// Define ListBullet and ListNumber styles to ensure consistent sizing with the rest of the document.
+		$list_style = array(
+			'spaceBefore' => Converter::pointToTwip( 2 ),
+			'spaceAfter'  => Converter::pointToTwip( 2 ),
+			'lineHeight'  => 1.15,
+		);
+		if ( $this->is_rtl ) {
+			$list_style['bidi'] = true;
+		}
+		$php_word->addParagraphStyle( 'ListBullet', $this->get_para_style( $list_style ) );
+		$php_word->addParagraphStyle( 'ListNumber', $this->get_para_style( $list_style ) );
 	}
 
 	/**
@@ -658,9 +960,21 @@ class SScribe_Exporter {
 	 * @return array Section settings.
 	 */
 	private function get_section_settings( bool $is_rtl = false ): array {
+		// Detect page size based on locale: default to A4 for non-US locales.
+		// US, Canada, Mexico, and Philippines use US Letter (8.5×11 inches).
+		// Most of the rest of the world uses A4 (210×297mm).
+		$locale       = get_locale();
+		$us_like_locales = array( 'en_US', 'en_CA', 'en_MX', 'fil_PH' );
+		$is_us_letter    = in_array( $locale, $us_like_locales, true )
+			|| str_starts_with( $locale, 'en_US' ); // en_US, en_US.UTF-8, etc.
+
+		// phpcs:ignore WordPress.WP.AlternativeFunctions.file_system_operations_is_dir
+		$page_w = $is_us_letter ? Converter::inchToTwip( 8.5 ) : Converter::inchToTwip( 8.27 ); // 210mm
+		$page_h = $is_us_letter ? Converter::inchToTwip( 11 ) : Converter::inchToTwip( 11.69 ); // 297mm
+
 		$settings = array(
-			'pageSizeW'    => Converter::inchToTwip( 8.5 ),
-			'pageSizeH'    => Converter::inchToTwip( 11 ),
+			'pageSizeW'    => $page_w,
+			'pageSizeH'    => $page_h,
 			'marginTop'    => Converter::inchToTwip( 1 ),
 			'marginBottom' => Converter::inchToTwip( 1 ),
 			'marginLeft'   => Converter::inchToTwip( 1 ),
@@ -679,15 +993,20 @@ class SScribe_Exporter {
 	/**
 	 * Add cover page to the document.
 	 *
-	 * @param \SScribeVendor\PhpOffice\PhpWord\Element\Section $section   Document section.
-	 * @param array                                            $page_data Page data.
+	 * @param Section $section   Document section.
+	 * @param array   $page_data Page data.
 	 * @return void
 	 */
-	private function add_cover_page( \SScribeVendor\PhpOffice\PhpWord\Element\Section $section, array $page_data ): void {
+	private function add_cover_page( Section $section, array $page_data ): void {
 
 		$section->addTextBreak( 2 );
 
-		$table = $section->addTable( array( 'borderSize' => 0 ) );
+		$table = $section->addTable(
+			array(
+				'borderSize' => 0,
+				'width'      => Converter::inchToTwip( 6.5 ),
+			)
+		);
 		$table->addRow();
 		$cell = $table->addCell(
 			Converter::inchToTwip( 6.5 ),
@@ -702,7 +1021,7 @@ class SScribe_Exporter {
 					/* translators: %s: site name */
 
 					__( '%s | EXTERNAL AUDIT AND DOCUMENTATION', 'sscribe-export-site-pages' ),
-					html_entity_decode( get_bloginfo( 'name' ), ENT_QUOTES | ENT_HTML5, 'UTF-8' )
+					html_entity_decode( (string) get_bloginfo( 'name' ), ENT_QUOTES | ENT_HTML5, 'UTF-8' )
 				)
 			),
 			array(
@@ -722,22 +1041,19 @@ class SScribe_Exporter {
 
 		$section->addTextBreak( 4 );
 
-		$cover_title = (string) $page_data['title'];
-		if ( ! $this->is_rtl ) {
-			$cover_title = function_exists( 'mb_strtoupper' )
-				? mb_strtoupper( $cover_title, 'UTF-8' )
-				: strtoupper( $cover_title );
-		}
+		$cover_title = $this->safe_text( (string) ( $page_data['title'] ?? '' ) );
+		// Use Word's allCaps style instead of destructively uppercasing the string,
+		// which corrupts non-ASCII characters and is irreversible in the document.
+		$cover_title_font = array(
+			'name'    => $this->font_name,
+			'size'    => 28,
+			'bold'    => true,
+			'color'   => $this->colors['heading'],
+			'allCaps' => ! $this->is_rtl, // Uppercase via style for non-RTL; RTL uses original case.
+		);
 		$section->addText(
-			$this->safe_text( $cover_title ),
-			$this->with_complex_script(
-				array(
-					'name'  => $this->font_name,
-					'size'  => 28,
-					'bold'  => true,
-					'color' => $this->colors['heading'],
-				)
-			),
+			$cover_title,
+			$this->with_complex_script( $cover_title_font ),
 			$this->get_para_style( array( 'alignment' => Jc::CENTER ) )
 		);
 
@@ -793,9 +1109,11 @@ class SScribe_Exporter {
 			$this->get_para_style( array( 'alignment' => Jc::CENTER ) )
 		);
 		$meta_cell->addText(
-			/* translators: %s: export date */
-
-			sprintf( __( 'Extracted Date: %s', 'sscribe-export-site-pages' ), wp_date( ( get_option( 'date_format' ) ? get_option( 'date_format' ) : 'Y-m-d' ) . ' ' . ( get_option( 'time_format' ) ? get_option( 'time_format' ) : 'H:i' ) ) ),
+			sprintf(
+				/* translators: %s: export date */
+				__( 'Extracted Date: %s', 'sscribe-export-site-pages' ),
+				wp_date( $this->get_wp_datetime_formats()['date_format'] . ' ' . $this->get_wp_datetime_formats()['time_format'] )
+			),
 			array(
 				'name'  => $this->font_name,
 				'size'  => 10,
@@ -809,7 +1127,7 @@ class SScribe_Exporter {
 				' > ',
 				array_map(
 					function ( $c ) {
-						return $c['title'];
+						return $this->safe_text( $c['title'] ?? '' );
 					},
 					$page_data['breadcrumbs']
 				)
@@ -831,6 +1149,19 @@ class SScribe_Exporter {
 				),
 				$this->get_para_style( array( 'alignment' => Jc::CENTER ) )
 			);
+		}
+
+		// Skip TOC if page content is minimal (single section or very few headings).
+		// A table of contents with a single entry is pointless and wastes a page.
+		$content       = $page_data['content'] ?? '';
+		$word_count    = $page_data['word_count'] ?? 0;
+		$heading_count = 0;
+		if ( function_exists( 'preg_match_all' ) ) {
+			preg_match_all( '/<h[1-6][^>]*>/i', $content, $heading_matches );
+			$heading_count = count( $heading_matches[0] );
+		}
+		if ( $heading_count <= 1 || $word_count < 150 ) {
+			return;
 		}
 
 		$section->addPageBreak();
@@ -883,9 +1214,9 @@ class SScribe_Exporter {
 
 		try {
 			$section->addText(
-				/* translators: This appears below the TOC placeholder in DOCX files. */
+				/* translators: Instructions for updating the Table of Contents field in Microsoft Word and LibreOffice. */
 
-				__( 'Right-click above and select "Update Field" to generate the Table of Contents.', 'sscribe-export-site-pages' ),
+				__( 'To update the Table of Contents: Microsoft Word — right-click → Update Field. LibreOffice — press F9 or select Tools → Update → All Fields.', 'sscribe-export-site-pages' ),
 				array(
 					'name'   => $this->font_name,
 					'size'   => 9,
@@ -905,17 +1236,18 @@ class SScribe_Exporter {
 	/**
 	 * Add header and footer to document section.
 	 *
-	 * @param \SScribeVendor\PhpOffice\PhpWord\Element\Section $section   Document section.
-	 * @param array                                            $page_data Page data.
+	 * @param Section $section   Document section.
+	 * @param array   $page_data Page data.
 	 * @return void
 	 */
-	private function add_header_footer( \SScribeVendor\PhpOffice\PhpWord\Element\Section $section, array $page_data ): void {
+	private function add_header_footer( Section $section, array $page_data ): void {
+		$table_width = Converter::inchToTwip( 6.5 );
 
 		$header       = $section->addHeader();
-		$header_table = $header->addTable();
+		$header_table = $header->addTable( array( 'width' => $table_width ) );
 		$header_table->addRow();
 		$header_table->addCell( Converter::inchToTwip( 3.25 ) )->addText(
-			$this->safe_text( html_entity_decode( get_bloginfo( 'name' ), ENT_QUOTES | ENT_HTML5, 'UTF-8' ) ),
+			$this->safe_text( html_entity_decode( (string) get_bloginfo( 'name' ), ENT_QUOTES | ENT_HTML5, 'UTF-8' ) ),
 			array(
 				'name'  => $this->font_name,
 				'size'  => 8,
@@ -931,11 +1263,11 @@ class SScribe_Exporter {
 				'color'  => $this->colors['body'],
 				'italic' => true,
 			),
-			array( 'alignment' => Jc::START )
+			array( 'alignment' => $this->is_rtl ? Jc::START : Jc::END )
 		);
 
 		$footer       = $section->addFooter();
-		$footer_table = $footer->addTable();
+		$footer_table = $footer->addTable( array( 'width' => $table_width ) );
 		$footer_table->addRow();
 		$footer_table->addCell( Converter::inchToTwip( 4 ) )->addText(
 			$this->safe_text( rawurldecode( $page_data['permalink'] ) ),
@@ -947,41 +1279,64 @@ class SScribe_Exporter {
 		);
 		$cell = $footer_table->addCell( Converter::inchToTwip( 2.5 ) );
 		$cell->addPreserveText(
-			__( 'Page', 'sscribe-export-site-pages' ) . ' {PAGE} / {NUMPAGES}',
+			/* translators: %s: page number field (e.g. "Page 1 / 10") */
+			sprintf( __( 'Page %s', 'sscribe-export-site-pages' ), '{PAGE} / {NUMPAGES}' ),
 			array(
 				'name'  => $this->font_name,
 				'size'  => 7,
 				'color' => $this->colors['body'],
 			),
-			array( 'alignment' => Jc::START )
+			// LTR: right-align (Jc::END), RTL: left-align (Jc::START).
+			array( 'alignment' => $this->is_rtl ? Jc::START : Jc::END )
 		);
 	}
 
 	/**
 	 * Add featured image to document section.
 	 *
-	 * @param \SScribeVendor\PhpOffice\PhpWord\Element\Section $section   Document section.
-	 * @param array                                            $page_data Page data.
+	 * @param Section $section   Document section.
+	 * @param array   $page_data Page data.
 	 * @return void
 	 */
-	private function add_featured_image( \SScribeVendor\PhpOffice\PhpWord\Element\Section $section, array $page_data ): void {
-		if ( empty( $page_data['featured_image_path'] ) || ! file_exists( $page_data['featured_image_path'] ) ) {
+	private function add_featured_image( Section $section, array $page_data ): void {
+		if ( empty( $page_data['featured_image_path'] ) ) {
+			$this->get_logger()->warning(
+				'Featured image skipped: path not provided',
+				array(
+					'page_id' => $page_data['id'] ?? 0,
+				)
+			);
 			return;
 		}
 
+		$path = $page_data['featured_image_path'];
+
 		try {
-			$path = $page_data['featured_image_path'];
-			if ( ! file_exists( $path ) || ! is_readable( $path ) ) {
+			if ( ! is_readable( $path ) ) {
+				$this->get_logger()->warning(
+					'Featured image skipped: not readable',
+					array(
+						'page_id' => $page_data['id'] ?? 0,
+						'path'    => $path,
+					)
+				);
 				return;
 			}
 			$image_info = getimagesize( $path );
 			if ( ! $image_info ) {
+				$this->get_logger()->warning(
+					'Featured image skipped: getimagesize failed',
+					array(
+						'page_id' => $page_data['id'] ?? 0,
+						'path'    => $path,
+					)
+				);
 				return;
 			}
 
 			$ext = strtolower( pathinfo( $path, PATHINFO_EXTENSION ) );
-			if ( 'svg' === $ext ) {
-				$this->get_logger()->debug( 'Skipping SVG featured image', array( 'path' => $path ) );
+			if ( in_array( $ext, array( 'svg', 'webp', 'avif', 'heic', 'heif' ), true ) ) {
+				$this->get_logger()->debug( 'Skipping unsupported image format', array( 'ext' => $ext ) );
 				return;
 			}
 
@@ -1012,8 +1367,25 @@ class SScribe_Exporter {
 				}
 			}
 
+			// Reject oversized images before addImage() to prevent memory exhaustion.
+			// A 50MB RAW JPEG would cause a fatal OOM before the outer catch could handle it.
+			$max_image_bytes = (int) apply_filters( 'sscribe_max_featured_image_bytes', 5 * 1024 * 1024 );
+			$image_bytes     = @filesize( $path );
+			if ( false !== $image_bytes && $image_bytes > $max_image_bytes ) {
+				$this->get_logger()->warning(
+					'Featured image skipped: file too large',
+					array(
+						'page_id'      => $page_data['id'] ?? 0,
+						'path'         => $path,
+						'file_size'    => size_format( $image_bytes ),
+						'max_allowed'  => size_format( $max_image_bytes ),
+					)
+				);
+				return;
+			}
+
 			$section->addImage(
-				$page_data['featured_image_path'],
+				$path,
 				array(
 					'width'     => Converter::emuToPixel( $width_emu ),
 					'height'    => Converter::emuToPixel( $height_emu ),
@@ -1024,6 +1396,15 @@ class SScribe_Exporter {
 			$section->addTextBreak( 1 );
 
 		} catch ( \Throwable $e ) {
+			$this->get_logger()->warning(
+				'Featured image skipped due to error',
+				array(
+					'page_id'   => $page_data['id'] ?? 0,
+					'path'      => $path,
+					'exception' => get_class( $e ),
+					'message'   => $e->getMessage(),
+				)
+			);
 
 			return;
 		}
@@ -1032,11 +1413,11 @@ class SScribe_Exporter {
 	/**
 	 * Add page information table to document.
 	 *
-	 * @param \SScribeVendor\PhpOffice\PhpWord\Element\Section $section   Document section.
-	 * @param array                                            $page_data Page data.
+	 * @param Section $section   Document section.
+	 * @param array   $page_data Page data.
 	 * @return void
 	 */
-	private function add_page_info_table( \SScribeVendor\PhpOffice\PhpWord\Element\Section $section, array $page_data ): void {
+	private function add_page_info_table( Section $section, array $page_data ): void {
 		$section->addTitle( __( 'Page Information', 'sscribe-export-site-pages' ), 2 );
 
 		$table_style = array(
@@ -1069,17 +1450,22 @@ class SScribe_Exporter {
 		$table = $section->addTable( $table_style );
 
 		$info_rows = array(
-			array( __( 'URL', 'sscribe-export-site-pages' ), $page_data['permalink'] ),
-			array( __( 'Author', 'sscribe-export-site-pages' ), $page_data['author'] ),
-			array( __( 'Published', 'sscribe-export-site-pages' ), $page_data['date_published'] ),
-			array( __( 'Last Modified', 'sscribe-export-site-pages' ), $page_data['date_modified'] ),
-			array( __( 'Word Count', 'sscribe-export-site-pages' ), number_format( $page_data['word_count'] ) ),
-			array(
-				__( 'Reading Time', 'sscribe-export-site-pages' ),
-				/* translators: %d: number of minutes */
-
-				sprintf( _n( '%d minute', '%d minutes', (int) ( $page_data['reading_time'] ?? 0 ), 'sscribe-export-site-pages' ), (int) ( $page_data['reading_time'] ?? 0 ) ),
-			),
+			array( __( 'URL', 'sscribe-export-site-pages' ), $page_data['permalink'] ?? '' ),
+			array( __( 'Author', 'sscribe-export-site-pages' ), $page_data['author'] ?? '' ),
+			array( __( 'Published', 'sscribe-export-site-pages' ), $page_data['date_published'] ?? '' ),
+			array( __( 'Last Modified', 'sscribe-export-site-pages' ), $page_data['date_modified'] ?? '' ),
+			array( __( 'Word Count', 'sscribe-export-site-pages' ), number_format( (int) ( $page_data['word_count'] ?? 0 ) ) ),
+		);
+		$reading_time_value = (float) ( $page_data['reading_time'] ?? 0 );
+		$info_rows[] = array(
+			__( 'Reading Time', 'sscribe-export-site-pages' ),
+			$reading_time_value > 0
+				? sprintf(
+					/* translators: %d: number of minutes */
+					_n( '%d minute', '%d minutes', (int) ceil( $reading_time_value ), 'sscribe-export-site-pages' ),
+					(int) ceil( $reading_time_value )
+				)
+				: __( '< 1 minute', 'sscribe-export-site-pages' ),
 		);
 
 		foreach ( $info_rows as $row ) {
@@ -1102,11 +1488,11 @@ class SScribe_Exporter {
 	/**
 	 * Add SEO information section to document.
 	 *
-	 * @param \SScribeVendor\PhpOffice\PhpWord\Element\Section $section   Document section.
-	 * @param array                                            $page_data Page data.
+	 * @param Section $section   Document section.
+	 * @param array   $page_data Page data.
 	 * @return void
 	 */
-	private function add_seo_section( \SScribeVendor\PhpOffice\PhpWord\Element\Section $section, array $page_data ): void {
+	private function add_seo_section( Section $section, array $page_data ): void {
 		$seo_data = ! empty( $page_data['seo'] ) ? $page_data['seo'] : array();
 
 		if ( empty( $seo_data['meta_title'] ) && empty( $seo_data['meta_description'] ) && empty( $seo_data['focus_keyword'] ) ) {
@@ -1152,9 +1538,9 @@ class SScribe_Exporter {
 		$table = $section->addTable( $table_style );
 
 		$seo_rows = array(
-			array( __( 'Meta Title', 'sscribe-export-site-pages' ), $seo_data['meta_title'] ),
-			array( __( 'Meta Description', 'sscribe-export-site-pages' ), $seo_data['meta_description'] ),
-			array( __( 'Focus Keyword', 'sscribe-export-site-pages' ), $seo_data['focus_keyword'] ),
+			array( __( 'Meta Title', 'sscribe-export-site-pages' ), $seo_data['meta_title'] ?? '' ),
+			array( __( 'Meta Description', 'sscribe-export-site-pages' ), $seo_data['meta_description'] ?? '' ),
+			array( __( 'Focus Keyword', 'sscribe-export-site-pages' ), $seo_data['focus_keyword'] ?? '' ),
 		);
 
 		foreach ( $seo_rows as $row ) {
@@ -1179,11 +1565,11 @@ class SScribe_Exporter {
 	/**
 	 * Add breadcrumbs to document.
 	 *
-	 * @param \SScribeVendor\PhpOffice\PhpWord\Element\Section $section   Document section.
-	 * @param array                                            $page_data Page data.
+	 * @param Section $section   Document section.
+	 * @param array   $page_data Page data.
 	 * @return void
 	 */
-	private function add_breadcrumbs( \SScribeVendor\PhpOffice\PhpWord\Element\Section $section, array $page_data ): void {
+	private function add_breadcrumbs( Section $section, array $page_data ): void {
 		if ( empty( $page_data['breadcrumbs'] ) || count( $page_data['breadcrumbs'] ) <= 1 ) {
 			return;
 		}
@@ -1192,7 +1578,7 @@ class SScribe_Exporter {
 			' > ',
 			array_map(
 				function ( $crumb ) {
-					return $crumb['title'];
+					return $this->safe_text( $crumb['title'] ?? '' );
 				},
 				$page_data['breadcrumbs']
 			)
@@ -1224,11 +1610,11 @@ class SScribe_Exporter {
 	/**
 	 * Add child pages section to document.
 	 *
-	 * @param \SScribeVendor\PhpOffice\PhpWord\Element\Section $section   Document section.
-	 * @param array                                            $page_data Page data.
+	 * @param Section $section   Document section.
+	 * @param array   $page_data Page data.
 	 * @return void
 	 */
-	private function add_child_pages( \SScribeVendor\PhpOffice\PhpWord\Element\Section $section, array $page_data ): void {
+	private function add_child_pages( Section $section, array $page_data ): void {
 		if ( empty( $page_data['children'] ) ) {
 			return;
 		}
@@ -1236,14 +1622,49 @@ class SScribe_Exporter {
 		$section->addTextBreak( 1 );
 		$section->addTitle( __( 'Child Pages', 'sscribe-export-site-pages' ), 2 );
 
-		foreach ( $page_data['children'] as $child ) {
+		// Cap at 3 levels deep and limit total children to prevent abnormally long lists.
+		$max_depth    = 3;
+		$max_children = 50;
+		$this->render_child_pages( $section, $page_data['children'], 0, $max_depth, $max_children, 0 );
+	}
+
+	/**
+	 * Render child pages recursively with depth limit.
+	 *
+	 * @param Section $section      Document section.
+	 * @param array   $children     Children array.
+	 * @param int     $depth        Current depth.
+	 * @param int     $max_depth    Maximum depth allowed.
+	 * @param int     $max_children Maximum total children to render.
+	 * @param int     $rendered     Count of rendered children.
+	 * @return int Total rendered count.
+	 */
+	private function render_child_pages(
+		Section $section,
+		array $children,
+		int $depth,
+		int $max_depth,
+		int $max_children,
+		int $rendered
+	): int {
+		if ( $depth >= $max_depth || $rendered >= $max_children ) {
+			return $rendered;
+		}
+
+		foreach ( $children as $child ) {
+			if ( $rendered >= $max_children ) {
+				break;
+			}
+
 			$child_url = $this->validate_url( $child['url'] ?? '' );
 			if ( empty( $child_url ) ) {
 				continue;
 			}
+
+			$indent   = str_repeat( '  ', $depth );
 			$text_run = $section->addTextRun( $this->get_para_style() );
 			$text_run->addText(
-				'> ',
+				$indent . '> ',
 				array(
 					'size'  => 10,
 					'bold'  => true,
@@ -1252,22 +1673,22 @@ class SScribe_Exporter {
 			);
 			$text_run->addLink(
 				$child_url,
-				$this->safe_text( $child['title'] ),
+				$this->safe_text( $child['title'] ?? '' ),
 				array(
 					'name'  => $this->font_name,
 					'size'  => $this->font_size,
 					'color' => $this->colors['link'],
 				)
 			);
-			$text_run->addText(
-				' — ' . $this->safe_text( $child['url'] ),
-				array(
-					'name'  => $this->font_name,
-					'size'  => 8,
-					'color' => $this->colors['body'],
-				)
-			);
+			++$rendered;
+
+			// Recursively render grandchildren.
+			if ( ! empty( $child['children'] ) && is_array( $child['children'] ) ) {
+				$rendered = $this->render_child_pages( $section, $child['children'], $depth + 1, $max_depth, $max_children, $rendered );
+			}
 		}
+
+		return $rendered;
 	}
 
 	/**
@@ -1277,8 +1698,24 @@ class SScribe_Exporter {
 	 */
 	private function get_logger(): SScribe_Logger_Interface {
 		if ( null === $this->logger ) {
-			$this->logger = SScribe_Logger::instance( SSCRIBE_DEBUG );
+			$this->logger = SScribe_Logger::instance( SScribe_Logger::is_logging_enabled() );
 		}
 		return $this->logger;
+	}
+
+	/**
+	 * Get cached WordPress date and time formats, populating cache on first call.
+	 *
+	 * @return array{date_format: string, time_format: string}
+	 */
+	private function get_wp_datetime_formats(): array {
+		if ( '' === $this->cached_date_format ) {
+			$this->cached_date_format = (string) get_option( 'date_format', 'Y-m-d' );
+			$this->cached_time_format = (string) get_option( 'time_format', 'H:i' );
+		}
+		return array(
+			'date_format' => $this->cached_date_format,
+			'time_format' => $this->cached_time_format,
+		);
 	}
 }

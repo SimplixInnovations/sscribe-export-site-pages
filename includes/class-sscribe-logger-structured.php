@@ -91,12 +91,6 @@ class SScribe_Logger_Structured implements SScribe_Logger_Interface {
 	 * @param string $message Log message.
 	 * @param array  $context Additional context data.
 	 */
-	/**
-	 * Log debug message.
-	 *
-	 * @param string $message Log message.
-	 * @param array  $context Additional context data.
-	 */
 	public function debug( string $message, array $context = array() ): void {
 		$this->log( self::LEVEL_DEBUG, $message, $context );
 	}
@@ -221,8 +215,8 @@ class SScribe_Logger_Structured implements SScribe_Logger_Interface {
 			'version'      => defined( 'SSCRIBE_VERSION' ) ? SSCRIBE_VERSION : 'unknown',
 			'request_id'   => $this->request_id,
 			'php_version'  => PHP_VERSION,
-			'memory_usage' => memory_get_usage( true ),
-			'memory_peak'  => memory_get_peak_usage( true ),
+			'memory_usage' => size_format( memory_get_usage( true ) ),
+			'memory_peak'  => size_format( memory_get_peak_usage( true ) ),
 			'user_id'      => get_current_user_id(),
 			'wp_site_url'  => get_option( 'siteurl', '' ),
 		);
@@ -283,5 +277,17 @@ class SScribe_Logger_Structured implements SScribe_Logger_Interface {
 	 */
 	public function clear_logs(): void {
 		// Structured logger does not support clearing individual entries.
+	}
+
+	/**
+	 * Get the current log file path.
+	 *
+	 * Structured logger writes to error_log rather than files,
+	 * so this returns empty string.
+	 *
+	 * @return string Empty string (no file-based log).
+	 */
+	public function get_log_file(): string {
+		return '';
 	}
 }

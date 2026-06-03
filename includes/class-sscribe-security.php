@@ -31,22 +31,22 @@ class SScribe_Security {
 		}
 
 		$htaccess_path = $dir . '/.htaccess';
-		$content      = "Options -Indexes\n";
-		$content     .= "<Files \"*\">\n";
-		$content     .= "  <IfModule mod_authz_core.c>\n";
-		$content     .= "    Require all denied\n";
-		$content     .= "  </IfModule>\n";
-		$content     .= "  <IfModule !mod_authz_core.c>\n";
-		$content     .= "    Order Allow,Deny\n";
-		$content     .= "    Deny from all\n";
-		$content     .= "  </IfModule>\n";
-		$content     .= "</Files>\n";
+		$content       = "Options -Indexes\n";
+		$content      .= "<Files \"*\">\n";
+		$content      .= "  <IfModule mod_authz_core.c>\n";
+		$content      .= "    Require all denied\n";
+		$content      .= "  </IfModule>\n";
+		$content      .= "  <IfModule !mod_authz_core.c>\n";
+		$content      .= "    Order Allow,Deny\n";
+		$content      .= "    Deny from all\n";
+		$content      .= "  </IfModule>\n";
+		$content      .= "</Files>\n";
 
-		file_put_contents( $htaccess_path, $content, LOCK_EX ); // phpcs:ignore WordPress.WP.AlternativeFunctions.file_system_operations_file_put_contents -- Required for directory security; path validated above.
+		self::write_file( $htaccess_path, $content );
 
 		$index_path = $dir . '/index.php';
 		if ( ! file_exists( $index_path ) ) {
-			file_put_contents( $index_path, "<?php\n// Silence is golden.\n" ); // phpcs:ignore WordPress.WP.AlternativeFunctions.file_system_operations_file_put_contents -- Required for directory security; path validated above.
+			self::write_file( $index_path, "<?php\n// Silence is golden.\n", 0444 );
 		}
 	}
 
@@ -71,20 +71,84 @@ class SScribe_Security {
 			return false;
 		}
 
-		$files = array_diff( scandir( $dir ), array( '.', '..' ) );
+		$scanned = scandir( $dir );
+		if ( false === $scanned ) {
+			return false;
+		}
+		$files = array_diff( $scanned, array( '.', '..' ) );
 		foreach ( $files as $file ) {
 			$path = $dir . '/' . $file;
 
 			if ( is_link( $path ) ) {
-				wp_delete_file( $path );
+				// Symlinks are deleted as files — validate target is in scope before deletion.
+				$target = readlink( $path );
+				if ( false !== $target && self::is_path_in_scope( $target ) ) {
+					wp_delete_file( $path );
+				}
 			} elseif ( is_dir( $path ) ) {
+				// Follow directory — scope check happens in recursive call.
 				self::delete_directory( $path, $max_depth, $depth + 1 );
 			} else {
 				wp_delete_file( $path );
 			}
 		}
 
-		return rmdir( $dir ); // phpcs:ignore WordPress.WP.AlternativeFunctions.file_system_operations_rmdir -- Required for recursive directory deletion; path validated above.
+		return self::remove_directory( $dir );
+	}
+
+	/**
+	 * Remove an empty directory using WP Filesystem API.
+	 *
+	 * @param string $dir Directory path to remove.
+	 * @return bool True if removed, false otherwise.
+	 */
+	private static function remove_directory( string $dir ): bool {
+		global $wp_filesystem;
+
+		if ( empty( $wp_filesystem ) ) {
+			if ( ! function_exists( 'WP_Filesystem' ) ) {
+				require_once ABSPATH . 'wp-admin/includes/file.php';
+			}
+			if ( ! WP_Filesystem( request_filesystem_credentials( 'admin.php', '', false, false, null ) ) ) {
+				// Fallback to rmdir if WP Filesystem fails.
+				// phpcs:ignore WordPress.WP.AlternativeFunctions.file_system_operations_rmdir
+				return @rmdir( $dir );
+			}
+		}
+
+		// phpcs:ignore WordPress.WP.AlternativeFunctions.file_system_operations_rmdir
+		return $wp_filesystem->rmdir( $dir );
+	}
+
+	/**
+	 * Write content to a file using WP Filesystem API with fallback.
+	 *
+	 * @param string $file_path File path to write to.
+	 * @param string $content   Content to write.
+	 * @param int    $chmod     Optional chmod mode. Defaults to FS_CHMOD_FILE.
+	 * @return bool True on success, false on failure.
+	 */
+	private static function write_file( string $file_path, string $content, int $chmod = FS_CHMOD_FILE ): bool {
+		global $wp_filesystem;
+
+		if ( empty( $wp_filesystem ) ) {
+			if ( ! function_exists( 'WP_Filesystem' ) ) {
+				require_once ABSPATH . 'wp-admin/includes/file.php';
+			}
+			if ( ! WP_Filesystem( request_filesystem_credentials( 'admin.php', '', false, false, null ) ) ) {
+				// Fallback to direct file_put_contents with proper locking.
+				// phpcs:ignore WordPress.WP.AlternativeFunctions.file_system_operations_file_put_contents
+				if ( false === file_put_contents( $file_path, $content, LOCK_EX ) ) {
+					return false;
+				}
+				// Apply chmod after write (LOCK_EX ensures atomic write so this is safe).
+				// phpcs:ignore WordPress.WP.AlternativeFunctions.file_system_operations_chmod
+				chmod( $file_path, $chmod );
+				return true;
+			}
+		}
+
+		return $wp_filesystem->put_contents( $file_path, $content, $chmod );
 	}
 
 	/**
@@ -111,14 +175,13 @@ class SScribe_Security {
 	 * @return bool True if path is in scope.
 	 */
 	private static function is_path_in_scope( string $path ): bool {
-		if ( '' === trim( $path ) || str_contains( $path, '..' ) ) {
+		if ( '' === trim( $path ) ) {
 			return false;
 		}
 
 		$upload_dir = wp_upload_dir();
 		$base_dir   = trailingslashit( $upload_dir['basedir'] );
 
-		// Use realpath for canonical path to prevent symlink bypass when the target exists.
 		$real_base_dir = realpath( $base_dir );
 		if ( false === $real_base_dir ) {
 			return false;

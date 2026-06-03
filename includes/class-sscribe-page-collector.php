@@ -1,6 +1,6 @@
 <?php
 /**
- * SScribe Page Collector
+ * SScribe Page Collector.
  *
  * @package SScribe_Export_Site_Pages
  * @license GPL v2 or later
@@ -13,7 +13,18 @@ if ( ! defined( 'ABSPATH' ) ) {
 	exit;
 }
 
+/**
+ * Page collection and filtering.
+ *
+ * @package SScribe_Export_Site_Pages
+ * @subpackage Collector
+ */
 class SScribe_Page_Collector {
+
+	/**
+	 * Maximum cache entries before LRU eviction.
+	 */
+	private const CACHE_MAX_SIZE = 500;
 
 	/**
 	 * Cached featured images by page ID.
@@ -48,6 +59,22 @@ class SScribe_Page_Collector {
 	}
 
 	/**
+	 * Add an entry to a cache with LRU eviction when max size is exceeded.
+	 *
+	 * @param array &$cache Cache reference.
+	 * @param int   $key    Cache key.
+	 * @param mixed $value  Cache value.
+	 * @return void
+	 */
+	private function cache_add( array &$cache, int $key, mixed $value ): void {
+		if ( count( $cache ) >= self::CACHE_MAX_SIZE ) {
+			// Evict oldest entry (first key) to maintain bounded size.
+			array_shift( $cache );
+		}
+		$cache[ $key ] = $value;
+	}
+
+	/**
 	 * SEO reader instance.
 	 *
 	 * @var SScribe_SEO_Reader
@@ -66,7 +93,7 @@ class SScribe_Page_Collector {
 	 */
 	public function __construct() {
 		$this->seo_reader = new SScribe_SEO_Reader();
-		$this->logger     = SScribe_Logger::instance( SSCRIBE_DEBUG );
+		$this->logger     = SScribe_Logger::instance( SScribe_Logger::is_logging_enabled() );
 	}
 
 	/**
@@ -75,45 +102,63 @@ class SScribe_Page_Collector {
 	 * @param string $language    Language code.
 	 * @param string $post_status Post status.
 	 * @param string $post_type   Post type.
+	 * @param int    $limit       Maximum number of IDs to return (-1 for all).
 	 * @return array<int>
 	 */
-	public function get_page_ids( string $language = '', string $post_status = 'publish', string $post_type = 'page' ): array {
+	public function get_page_ids( string $language = '', string $post_status = 'publish', string $post_type = 'page', int $limit = -1 ): array {
 
 		$filter_value = apply_filters( 'sscribe_use_chunked_page_ids', null );
 		if ( null !== $filter_value && false === $filter_value ) {
 
-			return $this->get_page_ids_direct( $language, $post_status, $post_type );
+			return $this->get_page_ids_direct( $language, $post_status, $post_type, $limit );
 		}
 
 		$estimated_count = $this->estimate_page_count( $language, $post_status, $post_type );
-		$use_chunked     = $estimated_count > 500;
+		$use_chunked     = $estimated_count > 500 || $limit > 0;
 
 		if ( $filter_value || $use_chunked ) {
 			$all_ids = array();
 			foreach ( $this->get_page_ids_chunked( $language, $post_status, $post_type, 500 ) as $chunk ) {
 				$all_ids = array_merge( $all_ids, $chunk );
+				if ( $limit > 0 && count( $all_ids ) >= $limit ) {
+					break;
+				}
+			}
+			if ( $limit > 0 ) {
+				$all_ids = array_slice( $all_ids, 0, $limit );
 			}
 			return $all_ids;
 		}
 
-		return $this->get_page_ids_direct( $language, $post_status, $post_type );
+		return $this->get_page_ids_direct( $language, $post_status, $post_type, $limit );
 	}
 
 	/**
 	 * Get page IDs directly via WP_Query.
 	 *
 	 * @param string $language    Language code.
-	 * @param string $post_status Post status.
-	 * @param string $post_type   Post type.
+	 * @param string $post_status  Post status.
+	 * @param string $post_type    Post type.
+	 * @param int    $limit        Maximum number of IDs to return (-1 for all).
 	 * @return array<int>
 	 */
-	private function get_page_ids_direct( string $language, string $post_status, string $post_type ): array {
+	private function get_page_ids_direct( string $language, string $post_status, string $post_type, int $limit = -1 ): array {
 		$post_status = $this->validate_post_status( $post_status );
+
+		$cache_key = "sscribe_page_ids_v2_{$post_status}_" . md5( "{$language}_{$post_type}_{$limit}" );
+		$cached    = get_transient( $cache_key );
+		if ( false !== $cached && is_array( $cached ) ) {
+			return $cached;
+		}
+
+		// Cap posts_per_page at 10000 to prevent memory exhaustion on sites with
+		// thousands of pages, while still allowing explicit per-page limits.
+		$effective_limit = $limit > 0 ? min( $limit, 10000 ) : 10000;
 
 		$args = array(
 			'post_type'      => $this->resolve_post_type_for_query( $post_type ),
 			'post_status'    => $post_status,
-			'posts_per_page' => -1,
+			'posts_per_page' => $effective_limit,
 			'fields'         => 'ids',
 			'orderby'        => 'menu_order title',
 			'order'          => 'ASC',
@@ -133,8 +178,6 @@ class SScribe_Page_Collector {
 						'target_lang'        => $target_lang,
 					)
 				);
-
-				$this->clear_status_cache( $language );
 
 				// phpcs:ignore WordPress.NamingConventions.PrefixAllGlobals.NonPrefixedHooknameFound -- WPML hook.
 				do_action( 'wpml_switch_language', $target_lang );
@@ -162,6 +205,8 @@ class SScribe_Page_Collector {
 				$this->debug_log( 'WPML: Language reset' );
 			}
 		}
+
+		set_transient( $cache_key, $page_ids, 5 * MINUTE_IN_SECONDS );
 
 		return $page_ids;
 	}
@@ -263,22 +308,6 @@ class SScribe_Page_Collector {
 	}
 
 	/**
-	 * Clear post status cache.
-	 *
-	 * @param string $language Language code.
-	 * @return void
-	 */
-	private function clear_status_cache( string $language = '' ): void {
-		$cache_key = 'sscribe_status_counts_' . md5( $language );
-		delete_transient( $cache_key );
-
-		foreach ( array( 'publish', 'draft', 'private', 'future', 'pending', 'all', 'any' ) as $status ) {
-			$key = 'sscribe_page_count_' . md5( $language . '_' . $status );
-			delete_transient( $key );
-		}
-	}
-
-	/**
 	 * Log debug message.
 	 *
 	 * @param string $message Debug message.
@@ -318,12 +347,12 @@ class SScribe_Page_Collector {
 		$chunk_size = 100;
 		$chunks     = array_chunk( $page_ids, $chunk_size );
 
-		$thumbnail_ids  = array();
-		$page_to_thumb  = array();
+		$thumbnail_ids = array();
+		$page_to_thumb = array();
 
 		foreach ( $chunks as $chunk ) {
 			$placeholders = implode( ',', array_fill( 0, count( $chunk ), '%d' ) );
-			$sql           = "SELECT post_id, meta_value AS thumbnail_id FROM {$wpdb->postmeta} WHERE meta_key = '_thumbnail_id' AND post_id IN ({$placeholders})";
+			$sql          = "SELECT post_id, meta_value AS thumbnail_id FROM {$wpdb->postmeta} WHERE meta_key = '_thumbnail_id' AND post_id IN ({$placeholders})";
 			// phpcs:ignore WordPress.DB.PreparedSQL.NotPrepared, WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- Placeholders are safely generated; chunked batch operation; caching not needed for one-time batch export.
 			$results = $wpdb->get_results( $wpdb->prepare( $sql, ...$chunk ) );
 
@@ -339,8 +368,8 @@ class SScribe_Page_Collector {
 			}
 
 			foreach ( $results as $row ) {
-				$thumb_id                               = (int) $row->thumbnail_id;
-				$thumbnail_ids[]                        = $thumb_id;
+				$thumb_id                             = (int) $row->thumbnail_id;
+				$thumbnail_ids[]                      = $thumb_id;
 				$page_to_thumb[ (int) $row->post_id ] = $thumb_id;
 			}
 		}
@@ -389,7 +418,9 @@ class SScribe_Page_Collector {
 			}
 		}
 
-		$this->featured_images_cache = array_merge( $this->featured_images_cache, $featured_images );
+		foreach ( $featured_images as $k => $v ) {
+			$this->cache_add( $this->featured_images_cache, $k, $v );
+		}
 
 		return $featured_images;
 	}
@@ -497,6 +528,35 @@ class SScribe_Page_Collector {
 			return false;
 		}
 
+		// Skip password-protected posts - export only title and note.
+		if ( ! empty( $post_object->post_password ) ) {
+			return array(
+				'id'                  => $page_id,
+				'title'               => html_entity_decode(
+					get_the_title( $page_id ) ? get_the_title( $page_id ) : sprintf( 'Untitled Page %d', $page_id ),
+					ENT_QUOTES | ENT_HTML5,
+					'UTF-8'
+				),
+				'content'             => '<p>' . __( '[Password Protected Content]', 'sscribe-export-site-pages' ) . '</p>',
+				'raw_content'         => '',
+				'excerpt'             => '',
+				'permalink'           => get_permalink( $page_id ),
+				'slug'                => $post_object->post_name,
+				'author'              => get_the_author_meta( 'display_name', $post_object->post_author ) ?? __( 'Unknown', 'sscribe-export-site-pages' ),
+				'date_published'      => get_the_date( 'F j, Y', $page_id ),
+				'date_modified'       => get_the_modified_date( 'F j, Y', $page_id ),
+				'featured_image_url'  => '',
+				'featured_image_path' => '',
+				'word_count'          => 0,
+				'reading_time'        => 0,
+				'breadcrumbs'         => array(),
+				'children'            => array(),
+				'language'            => $this->get_page_language( $page_id ),
+				'parent_id'           => $post_object->post_parent,
+				'seo'                 => array(),
+			);
+		}
+
 		static $is_applying_the_content_filter = false;
 
 		if ( $is_applying_the_content_filter ) {
@@ -553,6 +613,9 @@ class SScribe_Page_Collector {
 		$reading_time = SScribe_Arabic_Segmenter::get_reading_time( $content, $language );
 
 		$author = get_the_author_meta( 'display_name', $post_object->post_author );
+		if ( empty( $author ) ) {
+			$author = __( 'Unknown', 'sscribe-export-site-pages' );
+		}
 
 		if ( isset( $this->featured_images_cache[ $page_id ] ) ) {
 			$cached_image        = $this->featured_images_cache[ $page_id ];
@@ -582,11 +645,20 @@ class SScribe_Page_Collector {
 		if ( $this->is_wpml_active() && ! empty( $language ) ) {
 			// phpcs:ignore WordPress.NamingConventions.PrefixAllGlobals.NonPrefixedHooknameFound -- WPML hook.
 			do_action( 'wpml_switch_language', $language );
-			$permalink = get_permalink( $page_id );
-			// phpcs:ignore WordPress.NamingConventions.PrefixAllGlobals.NonPrefixedHooknameFound -- WPML hook.
-			do_action( 'wpml_switch_language', null );
+			try {
+				$permalink = get_permalink( $page_id );
+			} finally {
+				// phpcs:ignore WordPress.NamingConventions.PrefixAllGlobals.NonPrefixedHooknameFound -- WPML hook.
+				do_action( 'wpml_switch_language', null );
+			}
 		} else {
 			$permalink = get_permalink( $page_id );
+		}
+
+		// For non-published posts, get_permalink() returns a preview URL with ?p=ID.
+		// Use a placeholder instead of exposing internal admin URLs in exported documents.
+		if ( ! in_array( $post_object->post_status, array( 'publish', 'private' ), true ) ) {
+			$permalink = __( '[Draft - Not Published]', 'sscribe-export-site-pages' );
 		}
 
 		$filtered = apply_filters(
@@ -665,7 +737,9 @@ class SScribe_Page_Collector {
 			);
 		}
 
-		$this->child_pages_cache = array_merge( $this->child_pages_cache, $children_by_parent );
+		foreach ( $children_by_parent as $k => $v ) {
+			$this->cache_add( $this->child_pages_cache, $k, $v );
+		}
 
 		return $children_by_parent;
 	}
@@ -740,6 +814,21 @@ class SScribe_Page_Collector {
 		$breadcrumbs = array();
 		$ancestors   = get_post_ancestors( $page_id );
 
+		// Guard against circular parent relationships by deduplicating ancestor IDs.
+		if ( $ancestors ) {
+			$seen     = array( $page_id => true );
+			$filtered = array();
+			foreach ( $ancestors as $ancestor_id ) {
+				if ( isset( $seen[ $ancestor_id ] ) ) {
+					// Circular reference detected - break the chain.
+					break;
+				}
+				$seen[ $ancestor_id ] = true;
+				$filtered[]           = $ancestor_id;
+			}
+			$ancestors = $filtered;
+		}
+
 		if ( $ancestors ) {
 			$ancestors = array_reverse( $ancestors );
 
@@ -759,26 +848,41 @@ class SScribe_Page_Collector {
 				$ancestor_map[ $ancestor_post->ID ] = $ancestor_post;
 			}
 
+			// Group ancestors by language to minimize WPML language switches.
+			$ancestors_by_lang = array();
 			foreach ( $ancestors as $ancestor_id ) {
 				if ( ! isset( $ancestor_map[ $ancestor_id ] ) ) {
 					continue;
 				}
-
 				$ancestor_lang = $this->get_page_language( $ancestor_id );
-				if ( $this->is_wpml_active() && ! empty( $ancestor_lang ) ) {
+				if ( ! isset( $ancestors_by_lang[ $ancestor_lang ] ) ) {
+					$ancestors_by_lang[ $ancestor_lang ] = array();
+				}
+				$ancestors_by_lang[ $ancestor_lang ][] = $ancestor_id;
+			}
+
+			// For each unique language, switch once and fetch all titles/urls.
+			foreach ( $ancestors_by_lang as $lang => $lang_ancestors ) {
+				$switched = false;
+				if ( $this->is_wpml_active() && ! empty( $lang ) ) {
 					// phpcs:ignore WordPress.NamingConventions.PrefixAllGlobals.NonPrefixedHooknameFound -- WPML hook.
-					do_action( 'wpml_switch_language', $ancestor_lang );
+					do_action( 'wpml_switch_language', $lang );
+					$switched = true;
 				}
 
-				$ancestor_post = $ancestor_map[ $ancestor_id ];
-				$breadcrumbs[] = array(
-					'title' => html_entity_decode( $ancestor_post->post_title, ENT_QUOTES | ENT_HTML5, 'UTF-8' ),
-					'url'   => get_permalink( $ancestor_id ),
-				);
-
-				if ( $this->is_wpml_active() ) {
-					// phpcs:ignore WordPress.NamingConventions.PrefixAllGlobals.NonPrefixedHooknameFound -- WPML hook.
-					do_action( 'wpml_switch_language', null );
+				try {
+					foreach ( $lang_ancestors as $ancestor_id ) {
+						$ancestor_post = $ancestor_map[ $ancestor_id ];
+						$breadcrumbs[] = array(
+							'title' => html_entity_decode( $ancestor_post->post_title, ENT_QUOTES | ENT_HTML5, 'UTF-8' ),
+							'url'   => get_permalink( $ancestor_id ),
+						);
+					}
+				} finally {
+					if ( $switched ) {
+						// phpcs:ignore WordPress.NamingConventions.PrefixAllGlobals.NonPrefixedHooknameFound -- WPML hook.
+						do_action( 'wpml_switch_language', null );
+					}
 				}
 			}
 		}
@@ -788,16 +892,19 @@ class SScribe_Page_Collector {
 			// phpcs:ignore WordPress.NamingConventions.PrefixAllGlobals.NonPrefixedHooknameFound -- WPML hook.
 			do_action( 'wpml_switch_language', $page_language );
 		}
-		$breadcrumbs[] = array(
-			'title' => html_entity_decode( get_the_title( $page_id ), ENT_QUOTES | ENT_HTML5, 'UTF-8' ),
-			'url'   => get_permalink( $page_id ),
-		);
-		if ( $this->is_wpml_active() ) {
-			// phpcs:ignore WordPress.NamingConventions.PrefixAllGlobals.NonPrefixedHooknameFound -- WPML hook.
-			do_action( 'wpml_switch_language', null );
+		try {
+			$breadcrumbs[] = array(
+				'title' => html_entity_decode( get_the_title( $page_id ), ENT_QUOTES | ENT_HTML5, 'UTF-8' ),
+				'url'   => get_permalink( $page_id ),
+			);
+		} finally {
+			if ( $this->is_wpml_active() ) {
+				// phpcs:ignore WordPress.NamingConventions.PrefixAllGlobals.NonPrefixedHooknameFound -- WPML hook.
+				do_action( 'wpml_switch_language', null );
+			}
 		}
 
-		$this->breadcrumb_cache[ $page_id ] = $breadcrumbs;
+		$this->cache_add( $this->breadcrumb_cache, $page_id, $breadcrumbs );
 		return $breadcrumbs;
 	}
 
@@ -820,6 +927,13 @@ class SScribe_Page_Collector {
 		if ( 'any' === $post_type ) {
 			return array( 'page', 'post' );
 		}
+
+		// Validate post_type against allowed list to prevent injection of arbitrary types.
+		$allowed_types = array( 'page', 'post' );
+		if ( ! in_array( $post_type, $allowed_types, true ) ) {
+			return 'page';
+		}
+
 		return $post_type;
 	}
 
@@ -897,15 +1011,61 @@ class SScribe_Page_Collector {
 
 		try {
 
-            // phpcs:ignore WordPress.NamingConventions.PrefixAllGlobals.NonPrefixedHooknameFound -- WPML hook.
+			// phpcs:ignore WordPress.NamingConventions.PrefixAllGlobals.NonPrefixedHooknameFound -- WPML hook.
 			do_action( 'wpml_switch_language', $language );
 			$args['suppress_filters'] = false;
 			$switched                 = true;
 
+			// Optimize: Use a single query with GROUP BY instead of one query per status.
+			global $wpdb;
+
+			$post_type_placeholders = is_array( $args['post_type'] )
+				? '(' . implode( ',', array_fill( 0, count( $args['post_type'] ), '%s' ) ) . ')'
+				: '%s';
+
+			// phpcs:disable WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- Single optimized count query for performance; caching handled by transient below.
+			if ( is_array( $args['post_type'] ) ) {
+				$post_type_count        = count( $args['post_type'] );
+				$status_count           = count( $statuses );
+				$post_type_placeholders = implode( ',', array_fill( 0, $post_type_count, '%s' ) );
+				$status_placeholders    = implode( ',', array_fill( 0, $status_count, '%s' ) );
+				// phpcs:disable WordPress.DB.PreparedSQLPlaceholders.UnfinishedPrepare, WordPress.DB.PreparedSQL.InterpolatedNotPrepared, WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, PluginCheck.Security.DirectDB.UnescapedDBParameter -- Dynamic IN clause placeholders built from safe array_fill() of %s only; query is fully prepared.
+				$results = $wpdb->get_results(
+					$wpdb->prepare(
+						"SELECT post_status, COUNT(*) as count FROM {$wpdb->posts} WHERE post_type IN ({$post_type_placeholders}) AND post_status IN ({$status_placeholders}) GROUP BY post_status",
+						array_merge( $args['post_type'], array_keys( $statuses ) )
+					),
+					ARRAY_A
+				);
+				// phpcs:enable
+			} else {
+				$status_count        = count( $statuses );
+				$status_placeholders = implode( ',', array_fill( 0, $status_count, '%s' ) );
+				// phpcs:disable WordPress.DB.PreparedSQLPlaceholders.UnfinishedPrepare, WordPress.DB.PreparedSQL.InterpolatedNotPrepared, WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, PluginCheck.Security.DirectDB.UnescapedDBParameter -- Dynamic IN clause placeholders built from safe array_fill() of %s only; query is fully prepared.
+				$results = $wpdb->get_results(
+					$wpdb->prepare(
+						"SELECT post_status, COUNT(*) as count FROM {$wpdb->posts} WHERE post_type = %s AND post_status IN ({$status_placeholders}) GROUP BY post_status",
+						array_merge( array( $args['post_type'] ), array_keys( $statuses ) )
+					),
+					ARRAY_A
+				);
+				// phpcs:enable
+			}
+			// phpcs:enable
+
+			// Initialize all counts to 0.
 			foreach ( $statuses as $status => $label ) {
-				$args['post_status'] = $status;
-				$query               = new WP_Query( $args );
-				$counts[ $status ]   = (int) $query->found_posts;
+				$counts[ $status ] = 0;
+			}
+
+			// Map SQL results to counts array.
+			if ( is_array( $results ) ) {
+				foreach ( $results as $row ) {
+					$status = $row['post_status'];
+					if ( isset( $counts[ $status ] ) ) {
+						$counts[ $status ] = (int) $row['count'];
+					}
+				}
 			}
 		} finally {
 			if ( $switched ) {
@@ -939,7 +1099,9 @@ class SScribe_Page_Collector {
 	 * @return string Validated status.
 	 */
 	public function validate_post_status( string $status ): string {
-		$valid = array_keys( $this->get_valid_post_statuses() );
+		// Sanitize the input to prevent injection and handle whitespace issues.
+		$status = sanitize_text_field( $status );
+		$valid  = array_keys( $this->get_valid_post_statuses() );
 
 		if ( 'all' === $status ) {
 			return 'any';

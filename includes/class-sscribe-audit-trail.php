@@ -1,6 +1,6 @@
 <?php
 /**
- * SScribe Audit Trail
+ * SScribe Audit Trail.
  *
  * @package SScribe_Export_Site_Pages
  * @license GPL v2 or later
@@ -13,6 +13,12 @@ if ( ! defined( 'ABSPATH' ) ) {
 	exit;
 }
 
+/**
+ * Audit trail event logger.
+ *
+ * @package SScribe_Export_Site_Pages
+ * @subpackage Audit
+ */
 class SScribe_Audit_Trail {
 
 	public const EVENT_EXPORT_STARTED         = 'export_started';
@@ -49,7 +55,6 @@ class SScribe_Audit_Trail {
 	public function __construct() {
 		global $wpdb;
 		$this->table_name = $wpdb->prefix . 'sscribe_audit_log';
-		$this->table_exists_cache = null;
 		$this->enabled    = $this->table_exists();
 	}
 
@@ -70,7 +75,7 @@ class SScribe_Audit_Trail {
 
 		if ( null === $this->table_exists_cache ) {
 			// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- Schema introspection, cached via instance property
-			$table  = $wpdb->get_var(
+			$table                    = $wpdb->get_var(
 				$wpdb->prepare( 'SHOW TABLES LIKE %s', $this->table_name )
 			);
 			$this->table_exists_cache = ( $table === $this->table_name );
@@ -137,14 +142,18 @@ class SScribe_Audit_Trail {
 			'nonce',
 		);
 
-		foreach ( $forbidden_keys as $key ) {
-			if ( isset( $context[ $key ] ) ) {
-				$context[ $key ] = '[REDACTED]';
-			}
-		}
-
 		foreach ( $context as $key => $value ) {
-			if ( is_array( $value ) || is_object( $value ) ) {
+			// Check if any forbidden word appears in the key name (substring match).
+			$is_sensitive = false;
+			foreach ( $forbidden_keys as $forbidden ) {
+				if ( stripos( (string) $key, $forbidden ) !== false ) {
+					$is_sensitive = true;
+					break;
+				}
+			}
+			if ( $is_sensitive ) {
+				$context[ $key ] = '[REDACTED]';
+			} elseif ( is_array( $value ) || is_object( $value ) ) {
 				$context[ $key ] = wp_json_encode( $value );
 			}
 		}
@@ -206,6 +215,11 @@ class SScribe_Audit_Trail {
 	 */
 	public function get_logs( array $filters = array(), int $limit = 100, int $offset = 0 ): array {
 		if ( ! $this->enabled ) {
+			return array();
+		}
+
+		// Access control: only users with manage_options can view audit logs.
+		if ( ! current_user_can( 'manage_options' ) ) {
 			return array();
 		}
 

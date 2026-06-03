@@ -104,8 +104,6 @@ class SScribe_Privacy {
 	 * @return array
 	 */
 	public function export_personal_data( string $email_address, int $page = 1 ): array {
-		unset( $page );
-
 		$user = get_user_by( 'email', sanitize_email( $email_address ) );
 		if ( ! $user || empty( $user->ID ) ) {
 			return array(
@@ -116,8 +114,11 @@ class SScribe_Privacy {
 
 		$user_id      = (int) $user->ID;
 		$export_items = array();
+		$items_limit = 500;
+		$offset      = ( $page - 1 ) * $items_limit;
 
-		foreach ( $this->audit_trail->get_logs( array( 'user_id' => $user_id ), 500, 0 ) as $log ) {
+		// Paginate audit logs so users with large audit histories get all data exported.
+		foreach ( $this->audit_trail->get_logs( array( 'user_id' => $user_id ), $items_limit, $offset ) as $log ) {
 			$export_items[] = array(
 				'group_id'    => 'sscribe-audit-events',
 				'group_label' => esc_html__( 'SScribe audit trail', 'sscribe-export-site-pages' ),
@@ -151,77 +152,84 @@ class SScribe_Privacy {
 			);
 		}
 
-		foreach ( $this->export_stats->get_exports_by_user( $user_id, 500 ) as $stat ) {
-			$export_items[] = array(
-				'group_id'    => 'sscribe-export-stats',
-				'group_label' => esc_html__( 'SScribe export statistics', 'sscribe-export-site-pages' ),
-				'item_id'     => 'sscribe-export-stat-' . absint( $stat->id ),
-				'data'        => array(
-					array(
-						'name'  => esc_html__( 'Export session ID', 'sscribe-export-site-pages' ),
-						'value' => $stat->export_session_id,
+		// Export stats and sessions only on the first page (they are small datasets).
+		// Audit logs use pagination because they can be very large.
+		if ( 1 === $page ) {
+			foreach ( $this->export_stats->get_exports_by_user( $user_id ) as $stat ) {
+				$export_items[] = array(
+					'group_id'    => 'sscribe-export-stats',
+					'group_label' => esc_html__( 'SScribe export statistics', 'sscribe-export-site-pages' ),
+					'item_id'     => 'sscribe-export-stat-' . absint( $stat->id ),
+					'data'        => array(
+						array(
+							'name'  => esc_html__( 'Export session ID', 'sscribe-export-site-pages' ),
+							'value' => $stat->export_session_id,
+						),
+						array(
+							'name'  => esc_html__( 'Export date', 'sscribe-export-site-pages' ),
+							'value' => $stat->export_date,
+						),
+						array(
+							'name'  => esc_html__( 'Status', 'sscribe-export-site-pages' ),
+							'value' => $stat->status,
+						),
+						array(
+							'name'  => esc_html__( 'Total pages', 'sscribe-export-site-pages' ),
+							'value' => (string) $stat->total_pages,
+						),
+						array(
+							'name'  => esc_html__( 'Successful pages', 'sscribe-export-site-pages' ),
+							'value' => (string) $stat->successful_pages,
+						),
+						array(
+							'name'  => esc_html__( 'Failed pages', 'sscribe-export-site-pages' ),
+							'value' => (string) $stat->failed_pages,
+						),
+						array(
+							'name'  => esc_html__( 'Formats', 'sscribe-export-site-pages' ),
+							'value' => (string) $stat->formats,
+						),
+						array(
+							'name'  => esc_html__( 'Error message', 'sscribe-export-site-pages' ),
+							'value' => (string) $stat->error_message,
+						),
 					),
-					array(
-						'name'  => esc_html__( 'Export date', 'sscribe-export-site-pages' ),
-						'value' => $stat->export_date,
+				);
+			}
+
+			foreach ( $this->session->get_sessions_for_user( $user_id ) as $session ) {
+				$export_items[] = array(
+					'group_id'    => 'sscribe-export-sessions',
+					'group_label' => esc_html__( 'SScribe export sessions', 'sscribe-export-site-pages' ),
+					'item_id'     => 'sscribe-session-' . sanitize_key( $session['session_id'] ?? uniqid( 'session-', true ) ),
+					'data'        => array(
+						array(
+							'name'  => esc_html__( 'Session ID', 'sscribe-export-site-pages' ),
+							'value' => (string) ( $session['session_id'] ?? '' ),
+						),
+						array(
+							'name'  => esc_html__( 'Created at', 'sscribe-export-site-pages' ),
+							'value' => isset( $session['created_at'] ) ? gmdate( 'Y-m-d H:i:s', (int) $session['created_at'] ) : '',
+						),
+						array(
+							'name'  => esc_html__( 'Updated at', 'sscribe-export-site-pages' ),
+							'value' => isset( $session['updated_at'] ) ? gmdate( 'Y-m-d H:i:s', (int) $session['updated_at'] ) : '',
+						),
+						array(
+							'name'  => esc_html__( 'Status', 'sscribe-export-site-pages' ),
+							'value' => (string) ( $session['status'] ?? '' ),
+						),
 					),
-					array(
-						'name'  => esc_html__( 'Status', 'sscribe-export-site-pages' ),
-						'value' => $stat->status,
-					),
-					array(
-						'name'  => esc_html__( 'Total pages', 'sscribe-export-site-pages' ),
-						'value' => (string) $stat->total_pages,
-					),
-					array(
-						'name'  => esc_html__( 'Successful pages', 'sscribe-export-site-pages' ),
-						'value' => (string) $stat->successful_pages,
-					),
-					array(
-						'name'  => esc_html__( 'Failed pages', 'sscribe-export-site-pages' ),
-						'value' => (string) $stat->failed_pages,
-					),
-					array(
-						'name'  => esc_html__( 'Formats', 'sscribe-export-site-pages' ),
-						'value' => (string) $stat->formats,
-					),
-					array(
-						'name'  => esc_html__( 'Error message', 'sscribe-export-site-pages' ),
-						'value' => (string) $stat->error_message,
-					),
-				),
-			);
+				);
+			}
 		}
 
-		foreach ( $this->session->get_sessions_for_user( $user_id ) as $session ) {
-			$export_items[] = array(
-				'group_id'    => 'sscribe-export-sessions',
-				'group_label' => esc_html__( 'SScribe export sessions', 'sscribe-export-site-pages' ),
-				'item_id'     => 'sscribe-session-' . sanitize_key( $session['session_id'] ?? uniqid( 'session-', true ) ),
-				'data'        => array(
-					array(
-						'name'  => esc_html__( 'Session ID', 'sscribe-export-site-pages' ),
-						'value' => (string) ( $session['session_id'] ?? '' ),
-					),
-					array(
-						'name'  => esc_html__( 'Created at', 'sscribe-export-site-pages' ),
-						'value' => isset( $session['created_at'] ) ? gmdate( 'Y-m-d H:i:s', (int) $session['created_at'] ) : '',
-					),
-					array(
-						'name'  => esc_html__( 'Updated at', 'sscribe-export-site-pages' ),
-						'value' => isset( $session['updated_at'] ) ? gmdate( 'Y-m-d H:i:s', (int) $session['updated_at'] ) : '',
-					),
-					array(
-						'name'  => esc_html__( 'Status', 'sscribe-export-site-pages' ),
-						'value' => (string) ( $session['status'] ?? '' ),
-					),
-				),
-			);
-		}
+		// If we got fewer than $items_limit logs, we've reached the end.
+		$has_more = count( $export_items ) >= $items_limit;
 
 		return array(
 			'data' => $export_items,
-			'done' => true,
+			'done' => ! $has_more,
 		);
 	}
 
@@ -233,8 +241,6 @@ class SScribe_Privacy {
 	 * @return array
 	 */
 	public function erase_personal_data( string $email_address, int $page = 1 ): array {
-		unset( $page );
-
 		$user = get_user_by( 'email', sanitize_email( $email_address ) );
 		if ( ! $user || empty( $user->ID ) ) {
 			return array(
@@ -245,10 +251,12 @@ class SScribe_Privacy {
 			);
 		}
 
-		$user_id       = (int) $user->ID;
-		$removed_items = 0;
+		$user_id = (int) $user->ID;
 
-		$removed_items += $this->audit_trail->erase_user_data( $user_id );
+		// Erase all data for this user across all three data stores.
+		// audit_trail->erase_user_data() anonymizes (user_id→0, clears IP/UA)
+		// rather than deleting, so this handles all records in one operation.
+		$removed_items  = $this->audit_trail->erase_user_data( $user_id );
 		$removed_items += $this->export_stats->erase_user_data( $user_id );
 		$removed_items += $this->session->delete_sessions_for_user( $user_id );
 

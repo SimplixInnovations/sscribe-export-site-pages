@@ -29,9 +29,15 @@ class SScribe_Activator {
 	 */
 	public static function activate( bool $network_wide = false ): void {
 
-		delete_option( 'sscribe_export_index' );
-		delete_option( 'sscribe_schema_version' );
-		delete_option( 'sscribe_version' );
+		// Only wipe the export index and schema on a FRESH install (not on updates).
+		// WordPress re-runs the activation hook on plugin update, so checking
+		// get_option() first prevents accidental data loss on upgrade.
+		$existing_version = get_option( 'sscribe_version', null );
+		if ( null === $existing_version ) {
+			delete_option( 'sscribe_export_index' );
+			delete_option( 'sscribe_schema_version' );
+			delete_option( 'sscribe_version' );
+		}
 
 		if ( ! file_exists( SSCRIBE_PLUGIN_DIR . 'vendor-prefixed/autoload.php' )
 			&& ! file_exists( SSCRIBE_PLUGIN_DIR . 'vendor/autoload.php' )
@@ -105,6 +111,7 @@ class SScribe_Activator {
 		self::register_settings();
 		self::schedule_cleanup();
 		self::cleanup_orphaned_data();
+		self::grant_export_capability();
 		update_option( 'sscribe_version', SSCRIBE_VERSION, false );
 	}
 
@@ -230,7 +237,7 @@ class SScribe_Activator {
 	}
 
 	/**
-	 * Schedule cleanup cron jobs.
+	 * Create and protect the export directory.
 	 */
 	private static function create_export_directory(): void {
 		$upload_dir  = wp_upload_dir();
@@ -301,6 +308,20 @@ class SScribe_Activator {
 					)
 				);
 			} while ( false !== $rows && $rows > 0 );
+		}
+	}
+
+	/**
+	 * Grant the scribe_export capability to the Administrator role.
+	 *
+	 * This allows administrators to access export functionality by default.
+	 * Other roles can be granted access via the scribe_export_capability filter
+	 * or by manually assigning the capability.
+	 */
+	private static function grant_export_capability(): void {
+		$admin_role = get_role( 'administrator' );
+		if ( $admin_role && ! $admin_role->has_cap( 'sscribe_export' ) ) {
+			$admin_role->add_cap( 'sscribe_export' );
 		}
 	}
 }

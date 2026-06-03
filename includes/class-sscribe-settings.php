@@ -21,20 +21,20 @@ class SScribe_Settings {
 	/**
 	 * Option keys.
 	 */
-	public const OPT_DEBUG_ENABLED     = 'sscribe_debug_enabled';
-	public const OPT_DEBUG_LOG_LEVEL  = 'sscribe_debug_log_level';
+	public const OPT_DEBUG_ENABLED      = 'sscribe_debug_enabled';
+	public const OPT_DEBUG_LOG_LEVEL    = 'sscribe_debug_log_level';
 	public const OPT_DEBUG_AUTO_REFRESH = 'sscribe_debug_auto_refresh';
 
 	/**
 	 * Log levels.
 	 */
-	public const LEVEL_DEBUG     = 'DEBUG';
+	public const LEVEL_DEBUG    = 'DEBUG';
 	public const LEVEL_INFO     = 'INFO';
 	public const LEVEL_NOTICE   = 'NOTICE';
 	public const LEVEL_WARNING  = 'WARNING';
 	public const LEVEL_ERROR    = 'ERROR';
 	public const LEVEL_CRITICAL = 'CRITICAL';
-	public const LEVEL_ALL     = 'ALL';
+	public const LEVEL_ALL      = 'ALL';
 
 	/**
 	 * Get debug enabled setting.
@@ -52,12 +52,17 @@ class SScribe_Settings {
 	 * @return bool
 	 */
 	public static function set_debug_enabled( bool $enabled ): bool {
-		$current = get_option( self::OPT_DEBUG_ENABLED, false );
-		if ( (bool) $current === $enabled ) {
+		$current = get_option( self::OPT_DEBUG_ENABLED );
+		if ( false !== $current && (bool) $current === $enabled ) {
 			return true;
 		}
-		$result = update_option( self::OPT_DEBUG_ENABLED, $enabled );
-		return $result || (bool) get_option( self::OPT_DEBUG_ENABLED, false ) === $enabled;
+		$result = update_option( self::OPT_DEBUG_ENABLED, $enabled, 'no' );
+		if ( ! $result ) {
+			// Verify actual DB value regardless of update_option return.
+			// update_option returns false for "no change" which is not a failure.
+			return (bool) get_option( self::OPT_DEBUG_ENABLED ) === $enabled;
+		}
+		return true;
 	}
 
 	/**
@@ -90,12 +95,17 @@ class SScribe_Settings {
 			$level = self::LEVEL_DEBUG;
 		}
 
-		$current = (string) get_option( self::OPT_DEBUG_LOG_LEVEL, self::LEVEL_DEBUG );
-		if ( $current === $level ) {
+		$current = get_option( self::OPT_DEBUG_LOG_LEVEL );
+		if ( false !== $current && $current === $level ) {
 			return true;
 		}
-		$result = update_option( self::OPT_DEBUG_LOG_LEVEL, $level );
-		return $result || (string) get_option( self::OPT_DEBUG_LOG_LEVEL, self::LEVEL_DEBUG ) === $level;
+		$result = update_option( self::OPT_DEBUG_LOG_LEVEL, $level, 'no' );
+		if ( ! $result ) {
+			// Verify actual DB value regardless of update_option return.
+			// update_option returns false for "no change" which is not a failure.
+			return get_option( self::OPT_DEBUG_LOG_LEVEL ) === $level;
+		}
+		return true;
 	}
 
 	/**
@@ -114,12 +124,17 @@ class SScribe_Settings {
 	 * @return bool
 	 */
 	public static function set_auto_refresh( bool $enabled ): bool {
-		$current = get_option( self::OPT_DEBUG_AUTO_REFRESH, true );
-		if ( (bool) $current === $enabled ) {
+		$current = get_option( self::OPT_DEBUG_AUTO_REFRESH );
+		if ( false !== $current && (bool) $current === $enabled ) {
 			return true;
 		}
-		$result = update_option( self::OPT_DEBUG_AUTO_REFRESH, $enabled );
-		return $result || (bool) get_option( self::OPT_DEBUG_AUTO_REFRESH, true ) === $enabled;
+		$result = update_option( self::OPT_DEBUG_AUTO_REFRESH, $enabled, 'no' );
+		if ( ! $result ) {
+			// Verify actual DB value regardless of update_option return.
+			// update_option returns false for "no change" which is not a failure.
+			return (bool) get_option( self::OPT_DEBUG_AUTO_REFRESH ) === $enabled;
+		}
+		return true;
 	}
 
 	/**
@@ -146,18 +161,35 @@ class SScribe_Settings {
 	 * @return bool
 	 */
 	public static function save_debug_settings( array $settings ): bool {
-		$enabled = isset( $settings['debug_enabled'] ) ? (bool) $settings['debug_enabled'] : false;
-		$level   = isset( $settings['log_level'] ) ? (string) $settings['log_level'] : self::LEVEL_DEBUG;
-		$refresh = isset( $settings['auto_refresh'] ) ? (bool) $settings['auto_refresh'] : true;
+		$enabled = (bool) ( $settings['debug_enabled'] ?? false );
+		$level   = (string) ( $settings['log_level'] ?? self::LEVEL_DEBUG );
+		$refresh = (bool) ( $settings['auto_refresh'] ?? true );
 
 		$level_saved   = self::set_debug_log_level( $level );
 		$enabled_saved = self::set_debug_enabled( $enabled );
 		$refresh_saved = self::set_auto_refresh( $refresh );
 
-		if ( $level_saved && $enabled_saved && $refresh_saved ) {
-			return true;
+		// Log specific failures for debugging.
+		if ( ! $level_saved || ! $enabled_saved || ! $refresh_saved ) {
+			if ( class_exists( 'SScribe_Logger' ) ) {
+				$logger = SScribe_Logger::instance( true );
+				$logger->warning(
+					'Debug settings save: partial failure',
+					array(
+						'level_saved'   => $level_saved,
+						'enabled_saved' => $enabled_saved,
+						'refresh_saved' => $refresh_saved,
+					)
+				);
+			}
+			return false;
 		}
 
-		return false;
+		// Reset logger singleton so next call gets fresh instance with updated state.
+		if ( class_exists( 'SScribe_Logger' ) ) {
+			SScribe_Logger::reset_instance();
+		}
+
+		return true;
 	}
 }

@@ -26,6 +26,14 @@ class SScribe_Validator {
 
 	public const MIN_DISK_SPACE_MB = 100;
 
+	// Fallback per-format memory baselines (MB) when adaptive metrics are unavailable.
+	public const BASELINE_MB_PER_PAGE = array(
+		'docx'     => 1.5,
+		'pdf'      => 5.0,
+		'html'     => 0.8,
+		'markdown' => 0.5,
+	);
+
 	/**
 	 * Validate complete export configuration.
 	 *
@@ -207,16 +215,19 @@ class SScribe_Validator {
 		$memory_used      = memory_get_usage( true );
 		$memory_available = $memory_limit - $memory_used;
 
-		$memory_per_page = self::MEMORY_PER_PAGE_MB * 1024 * 1024;
-		if ( in_array( 'pdf', $formats, true ) ) {
-			$memory_per_page += 3 * 1024 * 1024;
-		}
-		if ( in_array( 'docx', $formats, true ) ) {
-			$memory_per_page += 2 * 1024 * 1024;
+		// Calibrate per-page memory using adaptive metrics (historical averages) when available.
+		$metrics           = class_exists( 'SScribe_Adaptive_Metrics' ) ? new SScribe_Adaptive_Metrics() : null;
+		$total_mb_per_page = 0.0;
+		foreach ( $formats as $format ) {
+			$mb                 = $metrics
+				? $metrics->get_mb_per_page( $format )
+				: ( self::BASELINE_MB_PER_PAGE[ $format ] ?? self::MEMORY_PER_PAGE_MB );
+			$total_mb_per_page += $mb;
 		}
 
-		$estimated_need = ( $page_count * $memory_per_page ) + ( 50 * 1024 * 1024 );
-		$safe_available = $memory_available * 0.8;
+		$memory_per_page = $total_mb_per_page * 1024 * 1024;
+		$estimated_need  = ( $page_count * $memory_per_page ) + ( 50 * 1024 * 1024 );
+		$safe_available  = $memory_available * 0.8;
 
 		if ( $estimated_need > $memory_available ) {
 			$estimated_mb   = round( $estimated_need / 1024 / 1024 );
@@ -363,11 +374,17 @@ class SScribe_Validator {
 					$sanitized[ $field ] = sanitize_text_field( $value );
 					break;
 				case 'array_int':
-					$value               = (array) $value;
+					if ( ! is_array( $value ) ) {
+						$sanitized[ $field ] = array();
+						break;
+					}
 					$sanitized[ $field ] = array_filter( array_map( 'absint', $value ) );
 					break;
 				case 'array_string':
-					$value               = (array) $value;
+					if ( ! is_array( $value ) ) {
+						$sanitized[ $field ] = array();
+						break;
+					}
 					$sanitized[ $field ] = array_map( 'sanitize_text_field', $value );
 					break;
 				case 'key':

@@ -1,6 +1,6 @@
 <?php
 /**
- * SScribe Export Query Controller
+ * SScribe Export Query Controller.
  *
  * @package SScribe_Export_Site_Pages
  * @license GPL v2 or later
@@ -13,6 +13,12 @@ if ( ! defined( 'ABSPATH' ) ) {
 	exit;
 }
 
+/**
+ * REST API query controller.
+ *
+ * @package SScribe_Export_Site_Pages
+ * @subpackage API
+ */
 class SScribe_Export_Query_Controller {
 
 	/**
@@ -99,7 +105,7 @@ class SScribe_Export_Query_Controller {
 	 * @param string $export_capability Required capability.
 	 * @return void
 	 */
-	public function ajax_health_check( string $export_capability = 'manage_options' ): void {
+	public function ajax_health_check( string $export_capability = 'sscribe_export' ): void {
 		if ( ! check_ajax_referer( 'sscribe_export_nonce', 'nonce', false ) ) {
 			SScribe_AJAX_Guard::error( array( 'message' => __( 'Security check failed.', 'sscribe-export-site-pages' ) ), 403 );
 		}
@@ -111,7 +117,8 @@ class SScribe_Export_Query_Controller {
 			);
 		}
 
-		if ( ! $this->rate_limiter->check_rate_limit( $export_capability ) ) {
+		$rate_check = $this->rate_limiter->check_rate_limit( $export_capability );
+		if ( false === $rate_check ) {
 			SScribe_AJAX_Guard::error(
 				array( 'message' => __( 'Too many requests. Please wait a moment.', 'sscribe-export-site-pages' ) ),
 				429
@@ -137,7 +144,7 @@ class SScribe_Export_Query_Controller {
 	 * @param string $export_capability Required capability.
 	 * @return void
 	 */
-	public function ajax_get_status_counts( string $export_capability = 'manage_options' ): void {
+	public function ajax_get_status_counts( string $export_capability = 'sscribe_export' ): void {
 		if ( ! check_ajax_referer( 'sscribe_export_nonce', 'nonce', false ) ) {
 			SScribe_AJAX_Guard::error( array( 'message' => __( 'Security check failed.', 'sscribe-export-site-pages' ) ), 403 );
 		}
@@ -149,7 +156,8 @@ class SScribe_Export_Query_Controller {
 			);
 		}
 
-		if ( ! $this->rate_limiter->check_rate_limit( $export_capability ) ) {
+		$rate_check = $this->rate_limiter->check_rate_limit( $export_capability );
+		if ( false === $rate_check ) {
 			SScribe_AJAX_Guard::error(
 				array( 'message' => __( 'Too many requests. Please wait.', 'sscribe-export-site-pages' ) ),
 				429
@@ -183,7 +191,7 @@ class SScribe_Export_Query_Controller {
 	 * @param string $export_capability Required capability.
 	 * @return void
 	 */
-	public function ajax_get_export_log( string $export_capability = 'manage_options' ): void {
+	public function ajax_get_export_log( string $export_capability = 'sscribe_export' ): void {
 		if ( ! check_ajax_referer( 'sscribe_download', 'nonce', false ) ) {
 			SScribe_AJAX_Guard::error( array( 'message' => __( 'Security check failed.', 'sscribe-export-site-pages' ) ), 403 );
 		}
@@ -221,6 +229,18 @@ class SScribe_Export_Query_Controller {
 			);
 		}
 
+		$rate_check = $this->rate_limiter->check_rate_limit( $export_capability );
+		if ( false === $rate_check ) {
+			SScribe_AJAX_Guard::error(
+				array(
+					'message'  => __( 'Too many requests. Please wait a moment.', 'sscribe-export-site-pages' ),
+					'retry'    => true,
+					'retry_in' => 60000,
+				),
+				429
+			);
+		}
+
 		$log_data = SScribe_Export_Log::get_log_by_filename( $filename );
 
 		if ( ! $log_data ) {
@@ -250,7 +270,7 @@ class SScribe_Export_Query_Controller {
 	 * @param string $export_capability Required capability.
 	 * @return void
 	 */
-	public function ajax_preflight_check( string $export_capability = 'manage_options' ): void {
+	public function ajax_preflight_check( string $export_capability = 'sscribe_export' ): void {
 		if ( ! check_ajax_referer( 'sscribe_export_nonce', 'nonce', false ) ) {
 			SScribe_AJAX_Guard::error( array( 'message' => __( 'Security check failed.', 'sscribe-export-site-pages' ) ), 403 );
 		}
@@ -302,7 +322,7 @@ class SScribe_Export_Query_Controller {
 	 * @param string $export_capability Required capability.
 	 * @return void
 	 */
-	public function ajax_get_export_preview( string $export_capability = 'manage_options' ): void {
+	public function ajax_get_export_preview( string $export_capability = 'sscribe_export' ): void {
 		if ( ! check_ajax_referer( 'sscribe_export_nonce', 'nonce', false ) ) {
 			SScribe_AJAX_Guard::error( array( 'message' => __( 'Security check failed.', 'sscribe-export-site-pages' ) ), 403 );
 		}
@@ -314,7 +334,8 @@ class SScribe_Export_Query_Controller {
 			);
 		}
 
-		if ( ! $this->rate_limiter->check_rate_limit( $export_capability ) ) {
+		$rate_check = $this->rate_limiter->check_rate_limit( $export_capability );
+		if ( false === $rate_check ) {
 			SScribe_AJAX_Guard::error(
 				array(
 					'message'  => __( 'Too many requests. Please wait a moment.', 'sscribe-export-site-pages' ),
@@ -327,6 +348,11 @@ class SScribe_Export_Query_Controller {
 
 		$language    = isset( $_POST['language'] ) ? sanitize_text_field( wp_unslash( $_POST['language'] ) ) : '';
 		$post_status = isset( $_POST['post_status'] ) ? sanitize_text_field( wp_unslash( $_POST['post_status'] ) ) : 'publish';
+
+		// Ignore language filter if WPML is not active.
+		if ( ! $this->collector->is_wpml_active() ) {
+			$language = '';
+		}
 		$format      = isset( $_POST['format'] ) ? sanitize_text_field( wp_unslash( $_POST['format'] ) ) : 'docx';
 
 		$allowed_formats = array( 'all', 'docx', 'pdf', 'html', 'markdown' );
@@ -368,8 +394,8 @@ class SScribe_Export_Query_Controller {
 				$minutes
 			);
 		} else {
-			$hours   = (int) floor( $total_seconds / 3600 );
-			$minutes = (int) ceil( ( $total_seconds % 3600 ) / 60 );
+			$hours          = (int) floor( $total_seconds / 3600 );
+			$minutes        = (int) ceil( ( $total_seconds % 3600 ) / 60 );
 			$estimated_time = sprintf(
 				/* translators: 1: Hours. 2: Minutes. */
 				__( '%1$d hr %2$d min', 'sscribe-export-site-pages' ),
@@ -437,7 +463,7 @@ class SScribe_Export_Query_Controller {
 	 * @param string $export_capability Required capability.
 	 * @return void
 	 */
-	public function ajax_get_recent_exports( string $export_capability = 'manage_options' ): void {
+	public function ajax_get_recent_exports( string $export_capability = 'sscribe_export' ): void {
 		if ( ! check_ajax_referer( 'sscribe_export_nonce', 'nonce', false ) ) {
 			SScribe_AJAX_Guard::error( array( 'message' => __( 'Security check failed.', 'sscribe-export-site-pages' ) ), 403 );
 		}
@@ -446,6 +472,18 @@ class SScribe_Export_Query_Controller {
 			SScribe_AJAX_Guard::error(
 				array( 'message' => __( 'Permission denied.', 'sscribe-export-site-pages' ) ),
 				403
+			);
+		}
+
+		$rate_check = $this->rate_limiter->check_rate_limit( $export_capability );
+		if ( false === $rate_check ) {
+			SScribe_AJAX_Guard::error(
+				array(
+					'message'  => __( 'Too many requests. Please wait a moment.', 'sscribe-export-site-pages' ),
+					'retry'    => true,
+					'retry_in' => 60000,
+				),
+				429
 			);
 		}
 
@@ -464,15 +502,18 @@ class SScribe_Export_Query_Controller {
 				continue;
 			}
 
-			$result[] = array(
+			clearstatcache( true, $file_path );
+			$file_size  = @filesize( $file_path );
+			$file_mtime = @filemtime( $file_path );
+			$result[]   = array(
 				'filename'       => $filename,
 				'url'            => $this->zip_handler->get_ajax_download_url( $filename ),
-				'size'           => filesize( $file_path ),
-				'size_formatted' => size_format( filesize( $file_path ) ),
-				'time'           => $data['created_at'] ?? filemtime( $file_path ),
+				'size'           => false !== $file_size ? $file_size : 0,
+				'size_formatted' => false !== $file_size ? size_format( $file_size ) : '0 B',
+				'time'           => $data['created_at'] ?? $file_mtime,
 				'date'           => wp_date(
 					( get_option( 'date_format' ) ? get_option( 'date_format' ) : 'Y-m-d' ) . ' ' . ( get_option( 'time_format' ) ? get_option( 'time_format' ) : 'H:i' ),
-					$data['created_at'] ?? filemtime( $file_path ),
+					$data['created_at'] ?? $file_mtime,
 				),
 				'lang_code'      => $data['lang_code'] ?? '',
 				'lang_name'      => $data['lang_name'] ?? '',
@@ -497,7 +538,7 @@ class SScribe_Export_Query_Controller {
 	 * @param string $export_capability Required capability.
 	 * @return void
 	 */
-	public function ajax_get_support_info( string $export_capability = 'manage_options' ): void {
+	public function ajax_get_support_info( string $export_capability = 'sscribe_export' ): void {
 		if ( ! check_ajax_referer( 'sscribe_export_nonce', 'nonce', false ) ) {
 			SScribe_AJAX_Guard::error( array( 'message' => __( 'Security check failed.', 'sscribe-export-site-pages' ) ), 403 );
 		}
@@ -509,7 +550,8 @@ class SScribe_Export_Query_Controller {
 			);
 		}
 
-		if ( ! $this->rate_limiter->check_rate_limit( $export_capability ) ) {
+		$rate_check = $this->rate_limiter->check_rate_limit( $export_capability );
+		if ( false === $rate_check ) {
 			SScribe_AJAX_Guard::error(
 				array(
 					'message'  => __( 'Too many requests. Please wait a moment.', 'sscribe-export-site-pages' ),

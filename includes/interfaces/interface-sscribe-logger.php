@@ -120,14 +120,28 @@ interface SScribe_Logger_Interface {
 	public function is_enabled(): bool;
 
 	/**
-	 * Retrieve all logged entries.
+	 * Retrieve all logged entries as formatted strings.
 	 *
-	 * @return array Array of log entries.
+	 * Returns an array of formatted log lines (e.g., "[timestamp] [LEVEL] message | {context}").
+	 * Use SScribe_Logger_Enhanced::get_db_logs() for raw database row objects.
+	 *
+	 * @param int $limit Maximum number of lines to return (from tail). -1 for all.
+	 * @return string[] Array of formatted log entry strings.
 	 */
-	public function get_logs(): array;
+	public function get_logs( int $limit = -1 ): array;
 
 	/**
 	 * Clear all log entries.
 	 */
 	public function clear_logs(): void;
+
+	/**
+	 * Get the current log file path.
+	 *
+	 * Used by the debug console to verify it reads the correct log file,
+	 * and to protect active log files from deletion.
+	 *
+	 * @return string Full path to the log file.
+	 */
+	public function get_log_file(): string;
 }

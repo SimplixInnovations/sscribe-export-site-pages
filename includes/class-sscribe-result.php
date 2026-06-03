@@ -47,28 +47,38 @@ class SScribe_Result {
 	private readonly array $context;
 
 	/**
+	 * Warnings collected during the operation.
+	 *
+	 * @var array
+	 */
+	private readonly array $warnings;
+
+	/**
 	 * Create a new result instance.
 	 *
-	 * @param bool   $success Whether operation succeeded.
-	 * @param mixed  $data    Operation payload.
-	 * @param string $error   Error message on failure.
-	 * @param array  $context Additional context.
+	 * @param bool   $success  Whether operation succeeded.
+	 * @param mixed  $data     Operation payload.
+	 * @param string $error    Error message on failure.
+	 * @param array  $context  Additional context.
+	 * @param array  $warnings Warnings collected during execution.
 	 */
-	private function __construct( bool $success, mixed $data = null, ?string $error = null, array $context = array() ) {
-		$this->success = $success;
-		$this->data    = $data;
-		$this->error   = $error;
-		$this->context = $context;
+	public function __construct( bool $success, mixed $data = null, ?string $error = null, array $context = array(), array $warnings = array() ) {
+		$this->success  = $success;
+		$this->data     = $data;
+		$this->error    = $error;
+		$this->context  = $context;
+		$this->warnings = $warnings;
 	}
 
 	/**
 	 * Create a successful result.
 	 *
-	 * @param mixed $data Optional payload.
+	 * @param mixed $data     Optional payload.
+	 * @param array $warnings Optional warnings collected during execution.
 	 * @return self
 	 */
-	public static function success( mixed $data = null ): self {
-		return new self( true, $data );
+	public static function success( mixed $data = null, array $warnings = array() ): self {
+		return new self( true, $data, null, array(), $warnings );
 	}
 
 	/**
@@ -125,5 +135,23 @@ class SScribe_Result {
 	 */
 	public function get_context(): array {
 		return $this->context;
+	}
+
+	/**
+	 * Get warnings collected during the operation.
+	 *
+	 * @return array
+	 */
+	public function get_warnings(): array {
+		return $this->warnings;
+	}
+
+	/**
+	 * Check if there are any warnings.
+	 *
+	 * @return bool
+	 */
+	public function has_warnings(): bool {
+		return ! empty( $this->warnings );
 	}
 }

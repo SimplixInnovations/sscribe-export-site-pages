@@ -1,6 +1,6 @@
 <?php
 /**
- * SScribe Content Parser
+ * SScribe Content Parser.
  *
  * @package SScribe_Export_Site_Pages
  * @license GPL v2 or later
@@ -15,7 +15,138 @@ if ( ! defined( 'ABSPATH' ) ) {
 	exit;
 }
 
+/**
+ * HTML content parsing and sanitization.
+ *
+ * @package SScribe_Export_Site_Pages
+ * @subpackage Content
+ */
 class SScribe_Content_Parser {
+
+	/**
+	 * KSES allowed HTML elements for content export.
+	 * Extends wp_kses_post with additional elements needed for rich content.
+	 *
+	 * @var array
+	 */
+	private const KSES_ALLOWED_HTML = array(
+		'a'          => array(
+			'href'   => true,
+			'title'  => true,
+			'target' => true,
+			'rel'    => true,
+			'class'  => true,
+			'id'     => true,
+		),
+		'abbr'       => array(
+			'title' => true,
+			'class' => true,
+		),
+		'acronym'    => array( 'title' => true ),
+		'b'          => array( 'class' => true ),
+		'blockquote' => array(
+			'cite'  => true,
+			'class' => true,
+		),
+		'br'         => array(),
+		'code'       => array( 'class' => true ),
+		'del'        => array( 'datetime' => true ),
+		'dd'         => array(),
+		'dl'         => array(),
+		'dt'         => array(),
+		'em'         => array( 'class' => true ),
+		'i'          => array( 'class' => true ),
+		'img'        => array(
+			'src'     => true,
+			'alt'     => true,
+			'width'   => true,
+			'height'  => true,
+			'class'   => true,
+			'id'      => true,
+			'loading' => true,
+		),
+		'li'         => array(
+			'class' => true,
+			'value' => true,
+		),
+		'ol'         => array(
+			'class' => true,
+			'start' => true,
+			'type'  => true,
+		),
+		'p'          => array( 'class' => true ),
+		'pre'        => array( 'class' => true ),
+		'q'          => array( 'cite' => true ),
+		's'          => array(),
+		'strike'     => array(),
+		'strong'     => array( 'class' => true ),
+		'sub'        => array(),
+		'sup'        => array(),
+		'table'      => array(
+			'class'       => true,
+			'id'          => true,
+			'border'      => true,
+			'cellpadding' => true,
+			'cellspacing' => true,
+		),
+		'tbody'      => array(),
+		'td'         => array(
+			'class'   => true,
+			'colspan' => true,
+			'rowspan' => true,
+		),
+		'tfoot'      => array(),
+		'th'         => array(
+			'class'   => true,
+			'colspan' => true,
+			'rowspan' => true,
+			'scope'   => true,
+		),
+		'thead'      => array(),
+		'tr'         => array( 'class' => true ),
+		'ul'         => array(
+			'class' => true,
+			'type'  => true,
+		),
+		'div'        => array(
+			'class' => true,
+			'id'    => true,
+			'align' => true,
+		),
+		'span'       => array(
+			'class' => true,
+			'id'    => true,
+		),
+		'h1'         => array(
+			'class' => true,
+			'id'    => true,
+		),
+		'h2'         => array(
+			'class' => true,
+			'id'    => true,
+		),
+		'h3'         => array(
+			'class' => true,
+			'id'    => true,
+		),
+		'h4'         => array(
+			'class' => true,
+			'id'    => true,
+		),
+		'h5'         => array(
+			'class' => true,
+			'id'    => true,
+		),
+		'h6'         => array(
+			'class' => true,
+			'id'    => true,
+		),
+		'figure'     => array( 'class' => true ),
+		'figcaption' => array(),
+		'small'      => array(),
+		'mark'       => array(),
+		'ins'        => array( 'datetime' => true ),
+	);
 
 	/**
 	 * Cached upload directory data.
@@ -47,7 +178,7 @@ class SScribe_Content_Parser {
 			return array();
 		}
 
-		$logger = SScribe_Logger::instance( SSCRIBE_DEBUG );
+		$logger = SScribe_Logger::instance( SScribe_Logger::is_logging_enabled() );
 
 		$logger->debug(
 			'Content parser: parse() called',
@@ -108,7 +239,7 @@ class SScribe_Content_Parser {
 		$html = $this->safe_replace( '/:root\s*\{[^}]*\}/s', '', $html );
 		$html = $this->safe_replace( '/\.elementor-[a-zA-Z0-9_-]+\s*\{[^}]*\}/s', '', $html );
 
-		$html = wp_kses_post( $html );
+		$html = wp_kses( $html, self::KSES_ALLOWED_HTML );
 
 		$html = $this->safe_replace( '/>\s+</', '><', $html );
 
@@ -141,27 +272,31 @@ class SScribe_Content_Parser {
 
 		$prev_use_errors = libxml_use_internal_errors( true );
 
+		// Note: libxml_disable_entity_loader() is deprecated in PHP 8.0+ and
+		// entity loading is disabled by default in libxml2 ≥ 2.9.0 (PHP 8+).
+		// Additionally, LIBXML_NONET flag is used in loadHTML() below, providing
+		// defense-in-depth against XXE and external entity attacks.
+
 		try {
 
-			$html = mb_encode_numericentity(
-				$html,
-				array( 0x80, 0x10FFFF, 0, 0x1FFFFF ),
-				'UTF-8'
-			);
+			// Sanitize control characters while preserving valid whitespace.
+			// Using preg_replace instead of mb_encode_numericentity to avoid.
+			// DOMPurify bypass via encoded malicious content.
+			$html = preg_replace( '/[\x00-\x08\x0B\x0C\x0E-\x1F\x7F]/', '', $html );
 
 			$wrapped = '<!DOCTYPE html><html><head>'
 				. '<meta http-equiv="Content-Type" content="text/html; charset=UTF-8">'
 				. '</head><body>' . $html . '</body></html>';
-			$dom->loadHTML( $wrapped, LIBXML_HTML_NOIMPLIED | LIBXML_HTML_NODEFDTD );
+			$dom->loadHTML(
+				$wrapped,
+				LIBXML_HTML_NOIMPLIED | LIBXML_HTML_NODEFDTD | LIBXML_NONET
+			);
 
 			libxml_clear_errors();
 
 			$body = $dom->getElementsByTagName( 'body' )->item( 0 );
 			if ( ! $body ) {
-
-				unset( $body );
-				$dom = null;
-				unset( $dom );
+				// No cleanup needed here — the finally block below handles $body and $dom.
 				return $elements;
 			}
 
@@ -184,10 +319,10 @@ class SScribe_Content_Parser {
 			if ( isset( $body ) ) {
 				unset( $body );
 			}
-			if ( isset( $dom ) ) {
-				$dom = null;
-				unset( $dom );
-			}
+			// These variables are always set when finally runs because the assignments
+			// occur before any code that could throw. isset() here silences PHPStan
+			// but the variables are unconditionally cleaned up.
+			unset( $dom );
 			libxml_clear_errors();
 			libxml_use_internal_errors( $prev_use_errors );
 		}
@@ -287,41 +422,102 @@ class SScribe_Content_Parser {
 
 			case 'figure':
 				$img_node     = null;
-				$caption_node = null;
+				$caption_text = '';
 
 				foreach ( $node->childNodes as $child ) {
 					if ( $child instanceof DOMElement ) {
 						if ( 'img' === $child->tagName ) {
 							$img_node = $child;
 						} elseif ( 'figcaption' === $child->tagName ) {
-							$caption_node = $child;
+							$caption_text = trim( $child->textContent );
 						}
 					}
 				}
 
-				$output = '';
-				if ( null !== $img_node ) {
-					$src = $img_node->getAttribute( 'src' );
-					$alt = $img_node->getAttribute( 'alt' );
-					$alt = str_replace( array( '[', ']' ), array( '\[', '\]' ), $alt );
-					$output .= '![' . $alt . '](' . $src . ')';
+				$src        = null !== $img_node ? $img_node->getAttribute( 'src' ) : null;
+				$alt        = null !== $img_node ? $img_node->getAttribute( 'alt' ) : '';
+				$local_path = null !== $src ? $this->url_to_local_path( $src ) : '';
+
+				$figure_data = array(
+					'type'       => 'figure',
+					'content'    => trim( $alt . ( $caption_text ? ' - ' . $caption_text : '' ) ),
+					'src'        => $src,
+					'alt'        => $alt,
+					'caption'    => $caption_text,
+					'local_path' => $local_path,
+				);
+
+				return $figure_data;
+
+			case 'figcaption':
+				// Return figcaption as separate element only when it appears outside of a figure.
+				// When inside a figure, the caption is extracted by the figure case above
+				// to prevent duplicate captions in the output.
+				// Check if parent is a figure element by traversing up.
+				$parent = $node->parentNode;
+				if ( $parent instanceof DOMElement && 'figure' === strtolower( $parent->nodeName ) ) {
+					return null; // Figcaption handled by figure case.
 				}
-				if ( null !== $caption_node ) {
-					$caption_text = trim( $caption_node->textContent );
-					if ( '' !== $caption_text ) {
-						$output .= '\n\n*' . $caption_text . '*';
+				return array(
+					'type'    => 'figcaption',
+					'content' => trim( $node->textContent ),
+				);
+
+			case 'details':
+				// Parse <details>/<summary> collapsible sections.
+				// <summary> is extracted as a label; remaining children form the
+				// collapsible body. Both are recursively parsed for nested content.
+				$summary_text = '';
+				$body_elements = array();
+				$is_summary_found = false;
+
+				foreach ( $node->childNodes as $child ) {
+					if ( $child instanceof DOMElement && 'summary' === strtolower( $child->tagName ) ) {
+						$summary_text = trim( $child->textContent );
+						$is_summary_found = true;
+					} elseif ( $is_summary_found || 'summary' !== strtolower( ( $child instanceof \DOMElement ? $child->tagName : '' ) ) ) {
+						// After summary has been seen, collect remaining children.
+						// Also collect non-summary children before the first summary.
+						$parsed = $this->parse_node( $child, $depth + 1 );
+						if ( null !== $parsed ) {
+							// parse_node returns ?array — isset($parsed[0]) distinguishes
+							// a flat array of elements (multiple) from a single element.
+							if ( isset( $parsed[0] ) ) {
+								foreach ( $parsed as $p ) {
+									if ( null !== $p ) {
+										$body_elements[] = $p;
+									}
+								}
+							} else {
+								$body_elements[] = $parsed;
+							}
+						}
 					}
 				}
 
 				return array(
-					'type'    => 'figure',
-					'content' => $output,
+					'type'    => 'details',
+					'summary' => $summary_text,
+					'content' => $body_elements,
 				);
 
-			case 'figcaption':
+			case 'summary':
+				// Return summary as separate element only when it appears outside of details.
+				// When inside details, the summary is extracted by the details case above
+				// to prevent duplicate output.
+				$parent = $node->parentNode;
+				if ( $parent instanceof DOMElement && 'details' === strtolower( $parent->nodeName ) ) {
+					return null; // Summary handled by details case.
+				}
 				return array(
-					'type'    => 'figcaption',
+					'type'    => 'paragraph',
 					'content' => trim( $node->textContent ),
+					'runs'    => array(
+						array(
+							'text' => trim( $node->textContent ),
+							'bold' => true,
+						),
+					),
 				);
 
 			case 'br':
@@ -344,6 +540,33 @@ class SScribe_Content_Parser {
 			case 'link':
 			case 'head':
 				return null;
+
+			case 'div':
+			case 'section':
+			case 'article':
+			case 'aside':
+			case 'main':
+			case 'header':
+			case 'footer':
+				$elements = array();
+				foreach ( $node->childNodes as $child ) {
+					if ( XML_ELEMENT_NODE === $child->nodeType ) {
+						$parsed = $this->parse_node( $child, $depth );
+						if ( null !== $parsed ) {
+							if ( isset( $parsed[0] ) && is_array( $parsed[0] ) ) {
+								foreach ( $parsed as $p ) {
+									$elements[] = $p;
+								}
+							} else {
+								$elements[] = $parsed;
+							}
+						}
+					}
+				}
+				if ( empty( $elements ) ) {
+					return null;
+				}
+				return $elements;
 
 			default:
 				$text = trim( $node->textContent );
@@ -386,7 +609,7 @@ class SScribe_Content_Parser {
 				'content'  => '',
 				'runs'     => array(),
 				'children' => array(),
-				'depth'    => min( $depth, 2 ),
+				'depth'    => min( $depth, 8 ),
 			);
 
 			foreach ( $child->childNodes as $li_child ) {
@@ -396,8 +619,8 @@ class SScribe_Content_Parser {
 
 					$nested_style = ( 'ul' === $li_tag ) ? 'bullet' : 'numbered';
 					$nested       = $this->parse_list( $li_child, $nested_style, $depth + 1 );
-					if ( isset( $nested['items'] ) ) {
-						$item['children'] = $nested['items'];
+					if ( isset( $nested['items'] ) && ! empty( $nested['items'] ) ) {
+						$item['children'] = array_merge( $item['children'], $nested['items'] );
 					}
 				} elseif ( XML_TEXT_NODE === $li_child->nodeType ) {
 
@@ -519,14 +742,7 @@ class SScribe_Content_Parser {
 	private function extract_buttons_from_html( string $html ): array {
 		$buttons = array();
 
-		// Limit input size to prevent regex backtracking on large content.
-		// Use mb_strcut to avoid splitting multi-byte UTF-8 characters.
-		if ( mb_strlen( $html, '8bit' ) > 500000 ) {
-			$html = mb_strcut( $html, 0, 500000, 'UTF-8' );
-		}
-
-		// Guard clause: skip if no button-related class keywords exist in input.
-		$button_keywords = array(
+		$button_keywords    = array(
 			'wp-block-button__link',
 			'wp-element-button',
 			'elementor-button',
@@ -543,6 +759,20 @@ class SScribe_Content_Parser {
 		}
 		if ( ! $has_button_keyword && false === strpos( $html, 'class="button' ) && false === strpos( $html, "class='button" ) && false === strpos( $html, 'class="btn' ) && false === strpos( $html, "class='btn" ) ) {
 			return $buttons;
+		}
+
+		// Limit input size to prevent regex backtracking on large content.
+		// Use mb_strcut to avoid splitting multi-byte UTF-8 characters.
+		if ( mb_strlen( $html, '8bit' ) > 500000 ) {
+			$logger = SScribe_Logger::instance( SScribe_Logger::is_logging_enabled() );
+			$logger->warning(
+				'Large HTML content truncated for button extraction — content past 500KB limit skipped',
+				array(
+					'original_length' => mb_strlen( $html, '8bit' ),
+					'truncated_to'    => 500000,
+				)
+			);
+			$html = mb_strcut( $html, 0, 500000, 'UTF-8' );
 		}
 
 		/*
@@ -573,13 +803,14 @@ class SScribe_Content_Parser {
 		if ( false !== $match_count && $match_count > 0 ) {
 			foreach ( $matches as $match ) {
 				$classes = $match[1];
-				$content = wp_strip_all_tags( $match[2] );
-				$content = html_entity_decode( $content, ENT_QUOTES | ENT_HTML5, 'UTF-8' );
+				// Decode HTML entities BEFORE stripping tags to handle encoded content properly.
+				$content = html_entity_decode( $match[2], ENT_QUOTES | ENT_HTML5, 'UTF-8' );
+				$content = wp_strip_all_tags( $content );
 				$content = trim( $content );
 
 				$url = '';
 				if ( preg_match( '/href=["\']([^"\']+)/', $match[0], $url_match ) ) {
-					$url = $url_match[1];
+					$url = esc_url_raw( $url_match[1] );
 				}
 
 				if ( ! empty( $content ) ) {
@@ -699,6 +930,47 @@ class SScribe_Content_Parser {
 						}
 						break;
 
+					case 'sup':
+						$sub_runs = $this->get_inline_runs( $child );
+						foreach ( $sub_runs as $key => $run ) {
+							$sub_runs[ $key ]['superScript'] = true;
+						}
+						$runs = array_merge( $runs, $sub_runs );
+						break;
+
+					case 'sub':
+						$sub_runs = $this->get_inline_runs( $child );
+						foreach ( $sub_runs as $key => $run ) {
+							$sub_runs[ $key ]['subScript'] = true;
+						}
+						$runs = array_merge( $runs, $sub_runs );
+						break;
+
+					case 'mark':
+						$sub_runs = $this->get_inline_runs( $child );
+						foreach ( $sub_runs as $key => $run ) {
+							$sub_runs[ $key ]['highlight'] = 'yellow';
+						}
+						$runs = array_merge( $runs, $sub_runs );
+						break;
+
+					case 'ins':
+						$sub_runs = $this->get_inline_runs( $child );
+						foreach ( $sub_runs as $key => $run ) {
+							$sub_runs[ $key ]['underline'] = true;
+						}
+						$runs = array_merge( $runs, $sub_runs );
+						break;
+
+					case 'table':
+						$nested_text = $this->extract_nested_table_text( $child );
+						if ( '' !== $nested_text ) {
+							$runs[] = array(
+								'text' => $nested_text,
+							);
+						}
+						break;
+
 					default:
 						$sub_runs = $this->get_inline_runs( $child );
 						$runs     = array_merge( $runs, $sub_runs );
@@ -711,12 +983,66 @@ class SScribe_Content_Parser {
 	}
 
 	/**
+	 * Extract text content from a nested table.
+	 *
+	 * When a table is found inside a <td>, extract all cell text
+	 * and format as newline-separated plain text.
+	 *
+	 * @param \DOMNode $table Table element.
+	 * @return string Extracted table text.
+	 */
+	private function extract_nested_table_text( \DOMNode $table ): string {
+		$cell_texts = array();
+
+		foreach ( $table->getElementsByTagName( 'td' ) as $td ) {
+			$cell_text = trim( $td->textContent );
+			if ( '' !== $cell_text ) {
+				$cell_texts[] = $cell_text;
+			}
+		}
+
+		if ( empty( $cell_texts ) ) {
+			foreach ( $table->getElementsByTagName( 'th' ) as $th ) {
+				$cell_text = trim( $th->textContent );
+				if ( '' !== $cell_text ) {
+					$cell_texts[] = $cell_text;
+				}
+			}
+		}
+
+		return implode( "\n", $cell_texts );
+	}
+
+	/**
 	 * Get text content from a DOM node.
 	 *
 	 * @param \DOMNode $node DOM node.
 	 * @return string
 	 */
 	private function get_text_content( \DOMNode $node ): string {
+		// If node has only element children (no direct text nodes), iterate
+		// and join with space to prevent "HelloWorld" concatenation.
+		$has_text_children = false;
+		foreach ( $node->childNodes as $child ) {
+			if ( XML_TEXT_NODE === $child->nodeType && '' !== trim( $child->nodeValue ) ) {
+				$has_text_children = true;
+				break;
+			}
+		}
+
+		if ( ! $has_text_children && $node->childNodes->length > 0 ) {
+			$parts = array();
+			foreach ( $node->childNodes as $child ) {
+				if ( XML_ELEMENT_NODE === $child->nodeType ) {
+					$child_text = trim( $child->textContent );
+					if ( '' !== $child_text ) {
+						$parts[] = $child_text;
+					}
+				}
+			}
+			return implode( ' ', $parts );
+		}
+
 		return trim( $node->textContent );
 	}
 
@@ -763,8 +1089,34 @@ class SScribe_Content_Parser {
 		}
 
 		$extension = strtolower( pathinfo( $real_local, PATHINFO_EXTENSION ) );
-		if ( ! in_array( $extension, array( 'jpg', 'jpeg', 'png', 'gif', 'webp', 'bmp', 'svg', 'avif' ), true ) ) {
+		// WEBP and AVIF are not supported by PHPWord — exclude them to prevent exceptions.
+		if ( ! in_array( $extension, array( 'jpg', 'jpeg', 'png', 'gif', 'bmp', 'svg', 'webp', 'avif' ), true ) ) {
 			return '';
+		}
+
+		// Validate actual MIME type matches expected image MIME for the extension.
+		// This prevents malicious files with disguised extensions from being processed.
+		if ( function_exists( 'getimagesize' ) ) {
+			// Suppress warnings — treat false/missing as invalid (returns empty).
+			// phpcs:ignore WordPress.PHP.NoSilencedErrors.Discouraged -- getimagesize returns false for invalid images; we check this and return empty.
+			$image_info = @getimagesize( $real_local );
+			if ( false === $image_info || ! isset( $image_info['mime'] ) ) {
+				return '';
+			}
+			$mime = $image_info['mime'];
+			$expected_mimes = array(
+				'jpg'  => 'image/jpeg',
+				'jpeg' => 'image/jpeg',
+				'png'  => 'image/png',
+				'gif'  => 'image/gif',
+				'bmp'  => 'image/bmp',
+				'svg'  => 'image/svg+xml',
+				'webp' => 'image/webp',
+				'avif' => 'image/avif',
+			);
+			if ( isset( $expected_mimes[ $extension ] ) && $mime !== $expected_mimes[ $extension ] ) {
+				return '';
+			}
 		}
 
 		return $real_local;

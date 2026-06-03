@@ -1,6 +1,6 @@
 <?php
 /**
- * SScribe Container
+ * SScribe Container.
  *
  * @package SScribe_Export_Site_Pages
  * @license GPL v2 or later
@@ -13,6 +13,12 @@ if ( ! defined( 'ABSPATH' ) ) {
 	exit;
 }
 
+/**
+ * Dependency injection container.
+ *
+ * @package SScribe_Export_Site_Pages
+ * @subpackage Container
+ */
 class SScribe_Container {
 
 	/**
