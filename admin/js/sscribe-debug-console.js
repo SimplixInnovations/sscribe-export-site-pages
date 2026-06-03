@@ -60,6 +60,7 @@
 		viewRotatedRequest: null,
 		isRefreshing: false,
 		isRefreshingSince: null,
+		clearBtnTimeout: null,
 
 		init: function () {
 			if (this.initialized) {
@@ -238,6 +239,10 @@
 			this.$clearBtn.on('click.sscribe', function () {
 				const $btn = $(this);
 				if ($btn.data('confirming')) {
+					if (self.clearBtnTimeout) {
+						clearTimeout(self.clearBtnTimeout);
+						self.clearBtnTimeout = null;
+					}
 					$btn.data('confirming', false).removeClass('sscribe-btn-confirming').text('Clearing...');
 					$btn.prop('disabled', true);
 					self.clearLogs();
@@ -247,7 +252,7 @@
 						$btn.data('original-text', $btn.text());
 					}
 					$btn.data('confirming', true).addClass('sscribe-btn-confirming').text('Click again to confirm');
-					setTimeout(function () {
+					self.clearBtnTimeout = setTimeout(function () {
 						if (self.$clearBtn) {
 							self.$clearBtn
 								.data('confirming', false)
@@ -1009,7 +1014,8 @@
 					self.doExportLogs();
 				}
 			).fail(function () {
-				self.showPausedIndicator('Export failed — you may need to reload the page.');
+				self.showPausedIndicator('Nonce refresh failed — attempting export anyway.');
+				self.doExportLogs();
 			});
 		},
 
@@ -1029,9 +1035,9 @@
 			this.downloadViaForm(sscribe_data.ajaxurl, data);
 			setTimeout(function () {
 				self.$exportBtn
-				.prop('disabled', false)
-				.html('Export <span class="sscribe-export-btn-scope"></span>');
-			self.updateExportButtonScope();
+					.prop('disabled', false)
+					.html('Export <span class="sscribe-export-btn-scope"></span>');
+				self.updateExportButtonScope();
 				self.hidePausedIndicator();
 			}, 10000);
 		},
@@ -1258,6 +1264,7 @@
 				if ($btn.data('confirming')) {
 					const originalText = $btn.data('original-text') || 'Delete';
 					$btn.data('confirming', false).removeClass('sscribe-btn-confirming').text(originalText);
+					$btn.prop('disabled', false);
 				}
 			}, 3000);
 		},
