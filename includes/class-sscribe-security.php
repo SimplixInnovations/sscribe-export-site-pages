@@ -46,7 +46,7 @@ class SScribe_Security {
 
 		$index_path = $dir . '/index.php';
 		if ( ! file_exists( $index_path ) ) {
-			self::write_file( $index_path, "<?php\n// Silence is golden.\n" );
+			self::write_file( $index_path, "<?php\n// Silence is golden.\n", 0444 );
 		}
 	}
 
@@ -125,9 +125,10 @@ class SScribe_Security {
 	 *
 	 * @param string $file_path File path to write to.
 	 * @param string $content   Content to write.
+	 * @param int    $chmod     Optional chmod mode. Defaults to FS_CHMOD_FILE.
 	 * @return bool True on success, false on failure.
 	 */
-	private static function write_file( string $file_path, string $content ): bool {
+	private static function write_file( string $file_path, string $content, int $chmod = FS_CHMOD_FILE ): bool {
 		global $wp_filesystem;
 
 		if ( empty( $wp_filesystem ) ) {
@@ -137,11 +138,17 @@ class SScribe_Security {
 			if ( ! WP_Filesystem( request_filesystem_credentials( 'admin.php', '', false, false, null ) ) ) {
 				// Fallback to direct file_put_contents with proper locking.
 				// phpcs:ignore WordPress.WP.AlternativeFunctions.file_system_operations_file_put_contents
-				return false !== file_put_contents( $file_path, $content, LOCK_EX );
+				if ( false === file_put_contents( $file_path, $content, LOCK_EX ) ) {
+					return false;
+				}
+				// Apply chmod after write (LOCK_EX ensures atomic write so this is safe).
+				// phpcs:ignore WordPress.WP.AlternativeFunctions.file_system_operations_chmod
+				chmod( $file_path, $chmod );
+				return true;
 			}
 		}
 
-		return $wp_filesystem->put_contents( $file_path, $content, FS_CHMOD_FILE );
+		return $wp_filesystem->put_contents( $file_path, $content, $chmod );
 	}
 
 	/**

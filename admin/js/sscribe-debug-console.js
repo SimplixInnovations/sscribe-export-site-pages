@@ -249,7 +249,11 @@
 					$btn.data('confirming', true).addClass('sscribe-btn-confirming').text('Click again to confirm');
 					setTimeout(function () {
 						if (self.$clearBtn) {
-							self.$clearBtn.data('confirming', false).removeClass('sscribe-btn-confirming').text(self.$clearBtn.data('original-text') || self.clearBtnOriginalText);
+							self.$clearBtn
+								.data('confirming', false)
+								.removeClass('sscribe-btn-confirming')
+								.prop('disabled', false)
+								.text(self.$clearBtn.data('original-text') || self.clearBtnOriginalText);
 							self.$clearBtn.removeData('original-text');
 						}
 					}, 3000);
@@ -663,6 +667,10 @@
 
 			if (this.currentRequest) {
 				this.currentRequest.abort();
+				this.currentRequest = null;
+			}
+			if (isInitialLoad) {
+				self.hideAppendLoading();
 			}
 			this.currentRequest = $.post(sscribe_data.ajaxurl, data, function (response) {
 				self.currentRequest = null;
@@ -691,6 +699,11 @@
 					} else {
 						self.appendLogs(newEntries);
 						self.hideAppendLoading();
+						if (newEntries.length === 0) {
+							self.hasMoreEntries = false;
+							self.destroyObserver();
+							return;
+						}
 					}
 
 					self.currentOffset += newEntries.length;
@@ -826,6 +839,7 @@
 
 		cleanupBeforeRender: function () {
 			this.isLoadingMore = false;
+			this.hideAppendLoading();
 			this.destroyObserver();
 		},
 
@@ -898,6 +912,7 @@
 			$.post(sscribe_data.ajaxurl, data, function (response) {
 				self.$clearBtn.prop('disabled', false);
 				self.$clearBtn.siblings('.sscribe-feedback').remove();
+				self.$clearBtn.data('confirming', false).removeClass('sscribe-btn-confirming');
 				if (response.success) {
 					if (response.data && response.data.nonce) {
 						sscribe_data.nonce = response.data.nonce;
@@ -913,6 +928,7 @@
 				} else {
 					const originalText = self.$clearBtn.data('original-text') || self.clearBtnOriginalText;
 					self.$clearBtn.text(originalText);
+					self.$clearBtn.data('confirming', false).removeClass('sscribe-btn-confirming');
 					self.$clearBtn.after(
 						'<span class="sscribe-feedback sscribe-feedback-error">' +
 							escHtml(self.getResponseMessage(response, 'Error')) +
@@ -1007,8 +1023,10 @@
 			this.showPausedIndicator('Export in progress — download should begin shortly');
 			this.downloadViaForm(sscribe_data.ajaxurl, data);
 			setTimeout(function () {
-				self.$exportBtn.prop('disabled', false).text('Export');
-				self.updateExportButtonScope();
+				self.$exportBtn
+				.prop('disabled', false)
+				.html('Export <span class="sscribe-export-btn-scope"></span>');
+			self.updateExportButtonScope();
 				self.hidePausedIndicator();
 			}, 10000);
 		},
@@ -1112,17 +1130,15 @@
 			this.isRefreshing = false;
 			this.isRefreshingSince = null;
 
-			// Push state so browser back button can restore the current log.
-			const url = new URL(window.location.href);
-			url.searchParams.set('view', 'rotated');
-			url.searchParams.set('file', filename);
-			history.pushState({ view: 'rotated', file: filename }, '', url.toString());
-
 			this.viewRotatedRequest = $.post(sscribe_data.ajaxurl, data, function (response) {
 				self.viewRotatedRequest = null;
 				if (response.success) {
 					self.isViewingRotated = true;
 					self.currentRotatedFilename = filename;
+					const url = new URL(window.location.href);
+					url.searchParams.set('view', 'rotated');
+					url.searchParams.set('file', filename);
+					history.pushState({ view: 'rotated', file: filename }, '', url.toString());
 					self.$entries.find('.sscribe-debug-rotated-banner').remove();
 					const entries = Array.isArray(response.data.entries) ? response.data.entries : [];
 					const rotatedCount = parseInt(response.data.count, 10) || 0;
@@ -1345,7 +1361,7 @@
 			'"' +
 			(hasContext
 				? ' tabindex="0" role="button" aria-expanded="false" aria-label="Toggle context for: ' +
-					escAttr(String(entry.message || '').substring(0, 50)) +
+					escAttr(String(entry.message || '').substring(0, 50) + (entry.message && entry.message.length > 50 ? '\u2026' : '')) +
 					'"'
 				: '') +
 			'>' +
