@@ -420,6 +420,11 @@
 		},
 
 		loadInitialState: function () {
+			if (!this.$refreshMode || !this.$refreshMode.length) {
+				this.isAutoRefresh = true;
+				this.fetchLogs();
+				return;
+			}
 			const checkedVal = this.$refreshMode.filter(':checked').val();
 			this.isAutoRefresh = checkedVal !== undefined ? checkedVal === 'auto' : true;
 			this.currentOffset = 0;
@@ -953,7 +958,7 @@
 
 		refreshNonce: function () {
 			const self = this;
-			$.get(
+			$.post(
 				sscribe_data.ajaxurl,
 				{ action: 'sscribe_debug_refresh_nonce', nonce: sscribe_data.nonce },
 				function (response) {
@@ -994,7 +999,7 @@
 				return;
 			}
 
-			$.get(
+			$.post(
 				sscribe_data.ajaxurl,
 				{ action: 'sscribe_debug_refresh_nonce', nonce: sscribe_data.nonce },
 				function (response) {
