@@ -223,29 +223,25 @@ class SScribe_Admin {
 
 		$debug = SSCRIBE_DEBUG || SScribe_Settings::is_debug_enabled();
 
-		$css_version = ( defined( 'SCRIPT_DEBUG' ) && SCRIPT_DEBUG )
-			? ( file_exists( SSCRIBE_PLUGIN_DIR . 'admin/css/sscribe-admin.css' ) ? filemtime( SSCRIBE_PLUGIN_DIR . 'admin/css/sscribe-admin.css' ) : SSCRIBE_VERSION )
-			: ( file_exists( SSCRIBE_PLUGIN_DIR . 'admin/css/sscribe-admin.min.css' ) ? filemtime( SSCRIBE_PLUGIN_DIR . 'admin/css/sscribe-admin.min.css' ) : SSCRIBE_VERSION );
+		$css_version = file_exists( SSCRIBE_PLUGIN_DIR . 'admin/css/sscribe-admin.css' )
+			? filemtime( SSCRIBE_PLUGIN_DIR . 'admin/css/sscribe-admin.css' )
+			: SSCRIBE_VERSION;
 
-		$js_version = ( defined( 'SCRIPT_DEBUG' ) && SCRIPT_DEBUG )
-			? ( file_exists( SSCRIBE_PLUGIN_DIR . 'admin/js/sscribe-admin.js' ) ? filemtime( SSCRIBE_PLUGIN_DIR . 'admin/js/sscribe-admin.js' ) : SSCRIBE_VERSION )
-			: ( file_exists( SSCRIBE_PLUGIN_DIR . 'admin/js/sscribe-admin.min.js' ) ? filemtime( SSCRIBE_PLUGIN_DIR . 'admin/js/sscribe-admin.min.js' ) : SSCRIBE_VERSION );
+		$js_version = file_exists( SSCRIBE_PLUGIN_DIR . 'admin/js/sscribe-admin.js' )
+			? filemtime( SSCRIBE_PLUGIN_DIR . 'admin/js/sscribe-admin.js' )
+			: SSCRIBE_VERSION;
 
-		$debug_css_version = ( defined( 'SCRIPT_DEBUG' ) && SCRIPT_DEBUG )
-			? ( file_exists( SSCRIBE_PLUGIN_DIR . 'admin/css/sscribe-debug-console.css' ) ? filemtime( SSCRIBE_PLUGIN_DIR . 'admin/css/sscribe-debug-console.css' ) : SSCRIBE_VERSION )
-			: ( file_exists( SSCRIBE_PLUGIN_DIR . 'admin/css/sscribe-debug-console.min.css' ) ? filemtime( SSCRIBE_PLUGIN_DIR . 'admin/css/sscribe-debug-console.min.css' ) : SSCRIBE_VERSION );
+		$debug_css_version = file_exists( SSCRIBE_PLUGIN_DIR . 'admin/css/sscribe-debug-console.css' )
+			? filemtime( SSCRIBE_PLUGIN_DIR . 'admin/css/sscribe-debug-console.css' )
+			: SSCRIBE_VERSION;
 
-		$debug_js_version = ( defined( 'SCRIPT_DEBUG' ) && SCRIPT_DEBUG )
-			? ( file_exists( SSCRIBE_PLUGIN_DIR . 'admin/js/sscribe-debug-console.js' ) ? filemtime( SSCRIBE_PLUGIN_DIR . 'admin/js/sscribe-debug-console.js' ) : SSCRIBE_VERSION )
-			: ( file_exists( SSCRIBE_PLUGIN_DIR . 'admin/js/sscribe-debug-console.min.js' ) ? filemtime( SSCRIBE_PLUGIN_DIR . 'admin/js/sscribe-debug-console.min.js' ) : SSCRIBE_VERSION );
-
-		$css_file = ( defined( 'SCRIPT_DEBUG' ) && SCRIPT_DEBUG )
-			? 'admin/css/sscribe-admin.css'
-			: 'admin/css/sscribe-admin.min.css';
+		$debug_js_version = file_exists( SSCRIBE_PLUGIN_DIR . 'admin/js/sscribe-debug-console.js' )
+			? filemtime( SSCRIBE_PLUGIN_DIR . 'admin/js/sscribe-debug-console.js' )
+			: SSCRIBE_VERSION;
 
 		wp_enqueue_style(
 			'sscribe-admin',
-			SSCRIBE_PLUGIN_URL . $css_file,
+			SSCRIBE_PLUGIN_URL . 'admin/css/sscribe-admin.css',
 			array(),
 			$css_version
 		);
@@ -282,14 +278,9 @@ class SScribe_Admin {
 			. '}';
 		wp_add_inline_style( 'sscribe-admin', $font_face_css );
 
-		// Use minified JS in production; unminified in development (SCRIPT_DEBUG).
-		$js_file = ( defined( 'SCRIPT_DEBUG' ) && SCRIPT_DEBUG )
-			? 'admin/js/sscribe-admin.js'
-			: 'admin/js/sscribe-admin.min.js';
-
 		wp_enqueue_script(
 			'sscribe-admin',
-			SSCRIBE_PLUGIN_URL . $js_file,
+			SSCRIBE_PLUGIN_URL . 'admin/js/sscribe-admin.js',
 			array( 'jquery' ),
 			$js_version,
 			true
@@ -297,24 +288,16 @@ class SScribe_Admin {
 
 		// Always enqueue debug console assets so the debug tab is functional
 		// even when debug logging is currently disabled (users need the UI to enable it).
-		// Use minified assets in production; unminified when SCRIPT_DEBUG is enabled.
-		$debug_css_file = ( defined( 'SCRIPT_DEBUG' ) && SCRIPT_DEBUG )
-			? 'admin/css/sscribe-debug-console.css'
-			: 'admin/css/sscribe-debug-console.min.css';
-		$debug_js_file = ( defined( 'SCRIPT_DEBUG' ) && SCRIPT_DEBUG )
-			? 'admin/js/sscribe-debug-console.js'
-			: 'admin/js/sscribe-debug-console.min.js';
-
 		wp_enqueue_style(
 			'sscribe-debug-console',
-			SSCRIBE_PLUGIN_URL . $debug_css_file,
+			SSCRIBE_PLUGIN_URL . 'admin/css/sscribe-debug-console.css',
 			array( 'sscribe-admin' ),
 			$debug_css_version
 		);
 
 		wp_enqueue_script(
 			'sscribe-debug-console',
-			SSCRIBE_PLUGIN_URL . $debug_js_file,
+			SSCRIBE_PLUGIN_URL . 'admin/js/sscribe-debug-console.js',
 			array( 'jquery', 'sscribe-admin' ),
 			$debug_js_version,
 			true
