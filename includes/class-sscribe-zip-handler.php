@@ -109,6 +109,9 @@ class SScribe_Zip_Handler {
 	 * @param array  $lang_metadata Language metadata array.
 	 * @param string $session_id    Session identifier for locking.
 	 * @return string|false ZIP file path or false on failure.
+	 * @throws \Throwable Re-thrown from the assembly try/catch when ZIP
+	 *                   creation fails after a successful open; the caller
+	 *                   is responsible for cleaning up the temp file.
 	 */
 	public function create_zip( string $source_dir, string $zip_name = '', array $formats = array( 'docx' ), bool $has_language = true, array $lang_metadata = array(), string $session_id = '' ): string|false {
 		if ( ! class_exists( 'ZipArchive' ) ) {
