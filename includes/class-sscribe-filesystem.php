@@ -29,13 +29,6 @@ class SScribe_Filesystem {
 	private static ?WP_Filesystem_Base $fs = null;
 
 	/**
-	 * Whether filesystem has been initialized.
-	 *
-	 * @var bool
-	 */
-	private static bool $initialized = false;
-
-	/**
 	 * Last error message from operations.
 	 *
 	 * @var string
@@ -67,14 +60,16 @@ class SScribe_Filesystem {
 	 * Attempts to initialize WordPress filesystem abstraction with fallback
 	 * to direct PHP filesystem operations if WP_Filesystem is unavailable.
 	 *
+	 * Only marks the cache as initialized when initialization SUCCEEDS, so
+	 * a request that initializes too early (before credentials are available)
+	 * can still retry on the next instantiation once the runtime is ready.
+	 *
 	 * @return bool True if WP_Filesystem is available, false otherwise.
 	 */
 	private function initialize(): bool {
-		if ( self::$initialized ) {
-			return null !== self::$fs;
+		if ( self::$fs instanceof WP_Filesystem_Base ) {
+			return true;
 		}
-
-		self::$initialized = true;
 
 		if ( ! function_exists( 'WP_Filesystem' ) ) {
 			$file_path = ABSPATH . 'wp-admin/includes/file.php';
@@ -263,11 +258,17 @@ class SScribe_Filesystem {
 	/**
 	 * Create a directory.
 	 *
+	 * Default permission is 0700 (owner-only). The .htaccess guard file
+	 * written by SScribe_Security::protect_directory() blocks HTTP access
+	 * regardless, but a tighter default on the filesystem itself limits
+	 * the blast radius of any other plugin/user reading the log/exports
+	 * directory out-of-band.
+	 *
 	 * @param string $path Directory path to create.
-	 * @param int    $mode Directory permissions (default: 0755).
+	 * @param int    $mode Directory permissions (default: 0700).
 	 * @return bool True if directory created or exists, false otherwise.
 	 */
-	public function mkdir( string $path, int $mode = 0755 ): bool {
+	public function mkdir( string $path, int $mode = 0700 ): bool {
 		self::$last_error = '';
 
 		if ( self::$fs instanceof WP_Filesystem_Base ) {
@@ -358,6 +359,13 @@ class SScribe_Filesystem {
 
 		$result = array();
 		foreach ( array_diff( $files, array( '.', '..' ) ) as $name ) {
+			// Skip dotfiles and the guard index.php so the listing matches
+			// the shape callers get from WP_Filesystem::dirlist() and so
+			// .htaccess / index.php don't appear in the rotated log list.
+			// (Audit #23)
+			if ( '' === $name || '.' === $name[0] || 'index.php' === $name ) {
+				continue;
+			}
 			$full          = trailingslashit( $path ) . $name;
 			$result[ $name ] = array(
 				'name'         => $name,
