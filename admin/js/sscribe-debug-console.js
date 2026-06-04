@@ -41,6 +41,31 @@
 			.replace(/>/g, '&gt;');
 	}
 
+	// Format a Y-m-d H:i:s string (already converted to the site's
+	// timezone on the server side) using the browser's locale. Parses
+	// explicitly with a regex + Date constructor to avoid the
+	// implementation-defined behaviour of `new Date('Y-m-d H:i:s')`
+	// (some browsers treat it as UTC, others as local). Falls back to
+	// the raw string on any parse failure. (Audit #22)
+	function formatLocalTimestamp( raw ) {
+		if ( ! raw || typeof raw !== 'string' ) {
+			return '';
+		}
+		const m = raw.match( /^(\d{4})-(\d{2})-(\d{2}) (\d{2}):(\d{2}):(\d{2})$/ );
+		if ( ! m ) {
+			return raw;
+		}
+		const d = new Date( +m[1], +m[2] - 1, +m[3], +m[4], +m[5], +m[6] );
+		if ( isNaN( d.getTime() ) ) {
+			return raw;
+		}
+		try {
+			return d.toLocaleString();
+		} catch ( e ) {
+			return raw;
+		}
+	}
+
 	// Truncate a string by visible code points, not UTF-16 code units.
 	// Audit #6: `String.prototype.substring(0, n)` splits surrogate pairs in
 	// emoji and supplementary-plane characters, which produces malformed
@@ -58,6 +83,11 @@
 
 	const SScribeDebugConsole = {
 		refreshInterval: null,
+		// Timeout ID for the exportRotatedLog() paused-indicator auto-hide.
+		// Stored so viewRotatedLog() / backToCurrentLog() can cancel it
+		// when the user navigates to a rotated view before the 5s window
+		// expires. (Audit #8)
+		exportHintTimeout: null,
 		isAutoRefresh: true,
 		currentFilter: 'ALL',
 		searchQuery: '',
@@ -131,12 +161,15 @@
 			this.$consoleBody = $('#sscribe-debug-console-body');
 			this.$entries = $('#sscribe-debug-entries');
 			this.$empty = $('#sscribe-debug-empty');
-			this.defaultEmptyMessage = this.$empty.find('p').text().trim();
+			// Hardcoded fallback for the case where the PHP template's
+			// <p> renders empty (e.g. a translation override or a custom
+			// child theme) — without this, renderLogs() would blank the
+			// empty-state copy on every refresh. (Audit #10)
+			this.defaultEmptyMessage = this.$empty.find('p').text().trim() || 'No log entries found.';
 			this.$entryCount = $('#sscribe-debug-entry-count');
 			this.$clearBtn = $('#sscribe-debug-clear-btn');
 			this.clearBtnOriginalText = this.$clearBtn.text();
 			this.$exportBtn = $('#sscribe-debug-export-btn');
-			this.exportBtnOriginalHtml = this.$exportBtn.html();
 			this.$rotatedBody = $('#sscribe-debug-rotated-body');
 			this.$refreshPaused = $('#sscribe-debug-refresh-paused');
 		},
@@ -486,6 +519,10 @@
 		startAutoRefresh: function () {
 			const self = this;
 			this.stopAutoRefresh();
+			// Honor a PHP-provided override; fall back to 10000ms to keep
+			// behaviour identical if the key is missing (e.g. an older
+			// sscribe_data shape from a cached page). (Audit #19)
+			const refreshMs = Number( sscribe_data && sscribe_data.refresh_interval ) || 10000;
 			this.refreshInterval = setInterval(function () {
 				if (self.isRefreshing && self.isRefreshingSince && Date.now() - self.isRefreshingSince > 30000) {
 					self.isRefreshing = false;
@@ -500,7 +537,7 @@
 				}
 				self.hidePausedIndicator();
 				self.fetchLogs();
-			}, 10000);
+			}, refreshMs);
 		},
 
 		stopAutoRefresh: function () {
@@ -1083,15 +1120,25 @@
 				search: this.searchQuery,
 				session_id: this.sessionFilter,
 			};
+			// When the user is viewing a rotated log, the export POST must
+			// include the filename so the server returns THAT file, not
+			// a fresh export built from the current filter state.
+			// (Audit #18)
+			if (this.isViewingRotated && this.currentRotatedFilename) {
+				data.filename = this.currentRotatedFilename;
+			}
 
 			self.$exportBtn.prop('disabled', true);
 			self.$exportBtn.find('.sscribe-export-btn-scope').text(' — exporting…');
 			this.showPausedIndicator('Export in progress — download should begin shortly');
 			this.downloadViaForm(sscribe_data.ajaxurl, data);
 			setTimeout(function () {
-				self.$exportBtn
-					.prop('disabled', false)
-					.html(self.exportBtnOriginalHtml);
+				// Restore only the scope span text rather than the entire
+				// button HTML — the init-time exportBtnOriginalHtml captured
+				// a snapshot of the scope that may not match the current
+				// filter state, which would flash " (all)" for one frame
+				// before updateExportButtonScope() corrected it. (Audit #7)
+				self.$exportBtn.prop('disabled', false);
 				self.updateExportButtonScope();
 				self.hidePausedIndicator();
 			}, 10000);
@@ -1107,6 +1154,16 @@
 			if (this.rotatedRequest) {
 				this.rotatedRequest.abort();
 			}
+
+			// Show a loading hint immediately so the panel isn't blank
+			// while the AJAX is in flight; the success / fail handlers
+			// below replace this with the actual file list.
+			// (Audit #24)
+			this.$rotatedBody.html(
+				'<div class="sscribe-debug-rotated-empty sscribe-debug-rotated-loading">' +
+					escHtml('Loading rotated logs...') +
+					'</div>'
+			);
 
 			this.rotatedRequest = $.post(sscribe_data.ajaxurl, data, function (response) {
 				self.rotatedRequest = null;
@@ -1179,6 +1236,15 @@
 		viewRotatedLog: function (filename) {
 			const self = this;
 
+			// Cancel any pending "Exporting rotated log..." auto-hide so the
+			// indicator from a just-completed export doesn't get pulled out
+			// from under the rotated view the user is now looking at.
+			// (Audit #8)
+			if (this.exportHintTimeout) {
+				clearTimeout(this.exportHintTimeout);
+				this.exportHintTimeout = null;
+			}
+
 			if (this.viewRotatedRequest) {
 				this.viewRotatedRequest.abort();
 			}
@@ -1204,7 +1270,23 @@
 					const url = new URL(window.location.href);
 					url.searchParams.set('view', 'rotated');
 					url.searchParams.set('file', filename);
-					history.pushState({ view: 'rotated', file: filename }, '', url.toString());
+					const newState = { view: 'rotated', file: filename };
+					// Rapid clicks on the same file would otherwise stack duplicate
+					// history entries (the second click aborts the first request,
+					// but the first's success handler never runs so only the
+					// second pushState lands — repeated n times = n entries that
+					// all point at the same view). If we're already on this exact
+					// state, replace the current entry instead of stacking a new
+					// one. (Audit #20)
+					if (
+						history.state &&
+						history.state.view === newState.view &&
+						history.state.file === newState.file
+					) {
+						history.replaceState(newState, '', url.toString());
+					} else {
+						history.pushState(newState, '', url.toString());
+					}
 					self.$entries.find('.sscribe-debug-rotated-banner').remove();
 					const entries = Array.isArray(response.data.entries) ? response.data.entries : [];
 					const rotatedCount = parseInt(response.data.count, 10) || 0;
@@ -1253,6 +1335,13 @@
 				this.viewRotatedRequest.abort();
 				this.viewRotatedRequest = null;
 			}
+			// Cancel any pending export hint auto-hide from a previous
+			// exportRotatedLog() call so the indicator doesn't get yanked
+			// out mid-navigation. (Audit #8)
+			if (this.exportHintTimeout) {
+				clearTimeout(this.exportHintTimeout);
+				this.exportHintTimeout = null;
+			}
 			this.isViewingRotated = false;
 			this.currentRotatedFilename = '';
 			this.hasMoreEntries = true;
@@ -1298,8 +1387,15 @@
 
 			self.showPausedIndicator('Exporting rotated log...');
 			this.downloadViaForm(sscribe_data.ajaxurl, data);
-			setTimeout(function () {
+			// Cancel any previous pending hide so back-to-back exports
+			// don't collapse to a no-op (the older timer would fire and
+			// clear the newer one).
+			if (self.exportHintTimeout) {
+				clearTimeout(self.exportHintTimeout);
+			}
+			self.exportHintTimeout = setTimeout(function () {
 				self.hidePausedIndicator();
+				self.exportHintTimeout = null;
 			}, ROTATED_EXPORT_TIMEOUT_MS);
 		},
 
@@ -1443,10 +1539,15 @@
 			'<span class="sscribe-debug-entry-badge ' +
 			escAttr(badgeClass) +
 			'">' +
-			escHtml(entry.level || 'INFO') +
+			// Normalize display to uppercase to match the class. The
+			// server can return 'warning' / 'Warning' / 'WARNING' depending
+			// on source; the badge class is already lowercased, so the
+			// text needs explicit normalization to stay consistent.
+			// (Audit #11)
+			escHtml((entry.level || 'INFO').toUpperCase()) +
 			'</span>' +
 			'<span class="sscribe-debug-entry-time">' +
-			escHtml(entry.timestamp || '') +
+			escHtml(formatLocalTimestamp(entry.timestamp)) +
 			'</span>' +
 			'<span class="sscribe-debug-entry-message">' +
 			escHtml(entry.message || '') +
