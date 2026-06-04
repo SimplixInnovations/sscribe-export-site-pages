@@ -1279,6 +1279,32 @@ if ( ! defined( 'HOUR_IN_SECONDS' ) ) {
 	define( 'HOUR_IN_SECONDS', 3600 );
 }
 
+// WordPress schema helpers normally live in wp-admin/includes/upgrade.php
+// which the unit suite does not load. The upgrader/activator call
+// require_once ABSPATH . 'wp-admin/includes/upgrade.php' (which then warns
+// in this environment) and immediately invoke dbDelta(); provide a no-op
+// shim so the migration bookkeeping runs to completion and the test
+// assertions on sscribe_schema_version / sscribe_version can succeed.
+if ( ! function_exists( 'dbDelta' ) ) {
+	function dbDelta( $queries = '', $execute = true ) {
+		unset( $queries, $execute );
+		return array();
+	}
+}
+
+if ( ! function_exists( 'maybe_create_table' ) ) {
+	function maybe_create_table( $table_name, $create_ddl ) {
+		unset( $table_name, $create_ddl );
+		return true;
+	}
+}
+
+if ( ! function_exists( 'wp_should_upgrade_global_tables' ) ) {
+	function wp_should_upgrade_global_tables() {
+		return false;
+	}
+}
+
 if ( ! function_exists( 'wp_count_posts' ) ) {
 	function wp_count_posts( $post_type = 'post', $perm = 'readable' ) {
 		
