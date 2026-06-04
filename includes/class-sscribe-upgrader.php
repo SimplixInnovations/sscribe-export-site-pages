@@ -63,7 +63,14 @@ class SScribe_Upgrader {
 		global $wpdb;
 		$charset_collate = $wpdb->get_charset_collate();
 
-		require_once ABSPATH . 'wp-admin/includes/upgrade.php';
+		// dbDelta() lives in wp-admin/includes/upgrade.php. Wrap the require
+		// so a missing file (e.g. during partial plugin installs or unit
+		// tests) produces a warning instead of a fatal that aborts the rest
+		// of the migration. dbDelta() is a no-op without that file anyway.
+		$upgrade_functions = ABSPATH . 'wp-admin/includes/upgrade.php';
+		if ( file_exists( $upgrade_functions ) ) {
+			require_once $upgrade_functions;
+		}
 
 		if ( version_compare( $from_version, '3.35.0', '<' ) ) {
 

@@ -463,7 +463,14 @@ class SScribe_Logger_Enhanced implements SScribe_Logger_Interface {
 			KEY level (level)
 		) $charset_collate;";
 
-		require_once ABSPATH . 'wp-admin/includes/upgrade.php';
+		// Guard the wp-admin include the same way SScribe_Upgrader and
+		// SScribe_Audit_Trail do, so a runtime that lacks the upgrade
+		// helpers (unit tests, partial installs) does not abort the
+		// flush with a fatal.
+		$upgrade_functions = ABSPATH . 'wp-admin/includes/upgrade.php';
+		if ( file_exists( $upgrade_functions ) ) {
+			require_once $upgrade_functions;
+		}
 		dbDelta( $sql );
 
 		// Update cache since table now exists.

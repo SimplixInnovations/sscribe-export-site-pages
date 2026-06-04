@@ -405,7 +405,13 @@ class SScribe_Audit_Trail {
 			KEY idx_session_id (session_id)
 		) $charset_collate;";
 
-		require_once ABSPATH . 'wp-admin/includes/upgrade.php';
+		// Guard the wp-admin include the same way SScribe_Upgrader does so
+		// partial installs and the unit-test suite (where WordPress runtime
+		// is not loaded) do not raise a warning that aborts the migration.
+		$upgrade_functions = ABSPATH . 'wp-admin/includes/upgrade.php';
+		if ( file_exists( $upgrade_functions ) ) {
+			require_once $upgrade_functions;
+		}
 		dbDelta( $sql );
 	}
 }
