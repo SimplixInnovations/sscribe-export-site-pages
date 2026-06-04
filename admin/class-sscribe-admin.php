@@ -328,10 +328,15 @@ class SScribe_Admin {
 		}
 
 		$data = array(
-			'ajaxurl'        => admin_url( 'admin-ajax.php' ),
-			'nonce'          => wp_create_nonce( 'sscribe_export_nonce' ),
-			'download_nonce' => $this->get_download_nonce(),
-			'icons_url'      => SSCRIBE_PLUGIN_URL . 'assets/icons/',
+			'ajaxurl'         => admin_url( 'admin-ajax.php' ),
+			'nonce'           => wp_create_nonce( 'sscribe_export_nonce' ),
+			'download_nonce'  => $this->get_download_nonce(),
+			'icons_url'       => SSCRIBE_PLUGIN_URL . 'assets/icons/',
+			// Auto-refresh interval for the debug console. Filterable so a
+			// site admin can throttle it down on slow servers or up on
+			// fast ones. Default 10000ms matches the prior hardcoded JS
+			// value. (Audit #19)
+			'refresh_interval' => (int) apply_filters( 'sscribe_debug_refresh_interval_ms', 10000 ),
 			'strings'        => array(
 				'starting'               => __( 'Starting export...', 'sscribe-export-site-pages' ),
 				'processing'             => __( 'Processing...', 'sscribe-export-site-pages' ),
