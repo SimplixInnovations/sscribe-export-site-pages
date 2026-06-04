@@ -41,6 +41,21 @@
 			.replace(/>/g, '&gt;');
 	}
 
+	// Truncate a string by visible code points, not UTF-16 code units.
+	// Audit #6: `String.prototype.substring(0, n)` splits surrogate pairs in
+	// emoji and supplementary-plane characters, which produces malformed
+	// UTF-16 in aria-labels. Iterating with the spread operator exposes
+	// code points, so a slice of 50 yields at most 50 user-perceived
+	// characters and never lands mid-pair.
+	function truncateForAriaLabel(str, maxChars) {
+		const text = String(str || '');
+		const codePoints = Array.from(text);
+		if (codePoints.length <= maxChars) {
+			return text;
+		}
+		return codePoints.slice(0, maxChars).join('') + '\u2026';
+	}
+
 	const SScribeDebugConsole = {
 		refreshInterval: null,
 		isAutoRefresh: true,
@@ -61,6 +76,12 @@
 		isRefreshing: false,
 		isRefreshingSince: null,
 		clearBtnTimeout: null,
+		// True while a filter/search/session change is in flight to fetchLogs.
+		// renderLogs() consults this so a filter-triggered re-render scrolls
+		// to the top of the (now-shorter) entry list, instead of carrying
+		// the old "wasAtBottom" heuristic over and jumping to the bottom
+		// of a list the user never scrolled into. Audit #7.
+		_filterChangeInProgress: false,
 
 		init: function () {
 			if (this.initialized) {
@@ -174,6 +195,7 @@
 				self.hasMoreEntries = true;
 				self.isViewingRotated = false;
 				self.currentRotatedFilename = '';
+				self._filterChangeInProgress = true;
 				self.hidePausedIndicator();
 				self.destroyObserver();
 				self.fetchLogs();
@@ -188,6 +210,7 @@
 					self.hasMoreEntries = true;
 					self.isViewingRotated = false;
 					self.currentRotatedFilename = '';
+					self._filterChangeInProgress = true;
 					self.hidePausedIndicator();
 					self.destroyObserver();
 					self.fetchLogs();
@@ -203,6 +226,7 @@
 					self.hasMoreEntries = true;
 					self.isViewingRotated = false;
 					self.currentRotatedFilename = '';
+					self._filterChangeInProgress = true;
 					self.hidePausedIndicator();
 					self.destroyObserver();
 					self.fetchLogs();
@@ -809,7 +833,13 @@
 			return html;
 		},
 
-		renderLogs: function (entries, skipObserver, extraData) {
+		renderLogs: function (entries, skipObserver, extraData, scrollToTop) {
+			// Consume the filter-change flag at the very top so an early return
+			// for empty entries still clears the pending state — otherwise the
+			// next non-filter render would also force-scroll to the top.
+			const forceScrollTop = scrollToTop === true || this._filterChangeInProgress === true;
+			this._filterChangeInProgress = false;
+
 			if (!entries || entries.length === 0) {
 				this.$entries.empty();
 				this.$empty.find('p').text(this.defaultEmptyMessage);
@@ -840,8 +870,14 @@
 			this.$empty.find('p').text(this.defaultEmptyMessage);
 			this.cleanupBeforeRender();
 
-			// Preserve scroll position during auto-refresh updates.
+			// Preserve scroll position during auto-refresh updates. The
+			// filter change path (forceScrollTop) scrolls to the top of the
+			// (now-shorter) entry list instead of carrying the old
+			// "wasAtBottom" heuristic over — a smaller filtered list would
+			// otherwise jump to the bottom of content the user never scrolled
+			// into. Audit #7.
 			const consoleBody = document.getElementById('sscribe-debug-console-body');
+
 			let scrollTop = 0;
 			let wasAtBottom = false;
 			if (consoleBody) {
@@ -852,7 +888,9 @@
 			this.$entries.html(this.buildLogsHtml(entries));
 
 			if (consoleBody) {
-				if (wasAtBottom) {
+				if (forceScrollTop) {
+					consoleBody.scrollTop = 0;
+				} else if (wasAtBottom) {
 					consoleBody.scrollTop = consoleBody.scrollHeight;
 				} else {
 					consoleBody.scrollTop = scrollTop;
@@ -1170,7 +1208,7 @@
 					self.$entries.find('.sscribe-debug-rotated-banner').remove();
 					const entries = Array.isArray(response.data.entries) ? response.data.entries : [];
 					const rotatedCount = parseInt(response.data.count, 10) || 0;
-					self.renderLogs(entries, true, { status: 'rotated', count: rotatedCount });
+					self.renderLogs(entries, true, { status: 'rotated', count: rotatedCount }, true);
 					self.$entryCount.text((1 === rotatedCount ? '1 entry' : rotatedCount + ' entries') + ' (rotated)');
 					self.$entries.prepend(
 						'<div class="sscribe-debug-rotated-banner">' +
@@ -1244,18 +1282,25 @@
 				filename: filename,
 			};
 
+			// Bump the export button out of the way and surface a status hint.
+			// Both timeouts (button re-enable + indicator hide) are aligned to
+			// 5s — the previous 3s/5s split left a 2-second window with no
+			// status message while the button was still disabled, which
+			// confused users (audit #2). Use a single constant so the two
+			// values cannot drift apart again.
+			const ROTATED_EXPORT_TIMEOUT_MS = 5000;
 			if ($btn) {
 				$btn.prop('disabled', true).text('Downloading...');
 				setTimeout(function () {
 					$btn.prop('disabled', false).text('Export');
-				}, 5000);
+				}, ROTATED_EXPORT_TIMEOUT_MS);
 			}
 
 			self.showPausedIndicator('Exporting rotated log...');
 			this.downloadViaForm(sscribe_data.ajaxurl, data);
 			setTimeout(function () {
 				self.hidePausedIndicator();
-			}, 3000);
+			}, ROTATED_EXPORT_TIMEOUT_MS);
 		},
 
 		deleteRotatedLog: function (filename, $btn) {
@@ -1390,7 +1435,7 @@
 			'"' +
 			(hasContext
 				? ' tabindex="0" role="button" aria-expanded="false" aria-label="Toggle context for: ' +
-					escAttr(String(entry.message || '').substring(0, 50) + (entry.message && entry.message.length > 50 ? '\u2026' : '')) +
+					escAttr(truncateForAriaLabel(String(entry.message || ''), 50)) +
 					'"'
 				: '') +
 			'>' +
