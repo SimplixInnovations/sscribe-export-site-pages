@@ -245,8 +245,9 @@ class SScribe_AJAX_Guard {
 		$units = array( 'KB', 'MB', 'GB', 'TB' );
 		$value = (float) $bytes;
 		$i     = 0;
+		$max_i = count( $units ) - 1;
 
-		while ( $value >= 1024.0 && $i < count( $units ) - 1 ) {
+		while ( $value >= 1024.0 && $i < $max_i ) {
 			$value /= 1024.0;
 			++$i;
 		}

@@ -111,10 +111,9 @@ class SScribe_Batch_Session_Handler {
 		}
 
 		$rate_check = $this->check_rate_limit();
-		if ( $rate_check === false || null === $rate_check ) {
-			// Return empty success with rate_limited flag so UI knows the check
-			// was skipped due to rate limiting (false) or lock contention (null)
-			// and cannot restore the session.
+		if ( false === $rate_check ) {
+			// Rate limit tripped — signal the UI to skip the restore rather
+			// than show a stale "session active" banner.
 			wp_send_json_success(
 				array(
 					'has_active'   => false,
