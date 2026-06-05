@@ -603,6 +603,20 @@ if ( ! function_exists( 'current_time' ) ) {
 	}
 }
 
+if ( ! function_exists( 'wp_date' ) ) {
+	function wp_date( $format, $timestamp = null, $timezone = null ) {
+		if ( null === $timestamp ) {
+			$timestamp = time();
+		}
+		if ( $timezone instanceof \DateTimeZone ) {
+			$dt = new \DateTime( '@' . $timestamp );
+			$dt->setTimezone( $timezone );
+			return $dt->format( $format );
+		}
+		return gmdate( $format, $timestamp );
+	}
+}
+
 if ( ! function_exists( 'esc_sql' ) ) {
 	function esc_sql( $data ) {
 		global $wpdb;

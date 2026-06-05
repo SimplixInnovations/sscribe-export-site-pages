@@ -417,6 +417,56 @@ class SScribe_PDF_Exporter implements SScribe_Exporter_Interface {
 			}
 		}
 
+		// Also download content <img src="..."> tags and rewrite the HTML so
+		// mPDF can render the image from a local file rather than fetching
+		// it at render time (which fails for auth-protected, CDN-signed, or
+		// Cloudflare-Access-gated URLs and adds significant render time on
+		// slow hosting). Capped at sscribe_pdf_max_content_images
+		// (default 20) to prevent unbounded I/O on long pages.
+		$content = isset( $page_data['content'] ) ? (string) $page_data['content'] : '';
+		if ( '' !== $content ) {
+			$max_content_images = (int) apply_filters( 'sscribe_pdf_max_content_images', 20 );
+			if ( $max_content_images < 0 ) {
+				$max_content_images = 0;
+			}
+
+			if ( $max_content_images > 0 ) {
+				$downloads            = 0;
+				$page_data['content'] = (string) preg_replace_callback(
+					'/<img\b[^>]*\bsrc=("([^"]*)"|\'([^\']*)\')[^>]*>/i',
+					function ( array $matches ) use ( &$downloads, $max_content_images, &$temp_paths ): string {
+						$url = '' !== $matches[2] ? $matches[2] : $matches[3];
+						if ( '' === $url || $downloads >= $max_content_images ) {
+							return $matches[0];
+						}
+
+						// Skip data: / fragment / file:// sources — they are
+						// already inline or not fetchable.
+						if ( str_starts_with( $url, 'data:' ) || str_starts_with( $url, '#' ) || str_starts_with( $url, 'file://' ) ) {
+							return $matches[0];
+						}
+
+						$local_path = SScribe_Image_Processor::download_and_optimize( $url );
+						if ( $local_path && file_exists( $local_path ) ) {
+							$temp_paths[] = $local_path;
+							++$downloads;
+							// Rewrite only the src value, preserving the
+							// original attribute quoting style.
+							$replacement = str_replace(
+								array( '"' . $url . '"', "'" . $url . "'" ),
+								array( '"' . $local_path . '"', "'" . $local_path . "'" ),
+								$matches[0]
+							);
+							return $replacement;
+						}
+
+						return $matches[0];
+					},
+					$content
+				);
+			}
+		}
+
 		// Track all temp paths so collect_temp_image_paths() can find them.
 		$page_data['_temp_image_paths'] = $temp_paths;
 
@@ -486,6 +536,24 @@ class SScribe_PDF_Exporter implements SScribe_Exporter_Interface {
 
 		if ( ! file_exists( $mpdf_temp . '/.htaccess' ) ) {
 			SScribe_Security::protect_directory( $mpdf_temp );
+		}
+
+		// Nginx hosting note: protect_directory() writes both .htaccess (Apache)
+		// and an index.php file (the "Silence is golden" fallback that works on
+		// any web server). However, .htaccess is silently ignored on Nginx, so
+		// operators on Nginx hosts should add an equivalent deny rule to their
+		// server config. Surface this as a one-time debug warning so the issue
+		// is visible without being noisy on every export.
+		$server_software = isset( $_SERVER['SERVER_SOFTWARE'] ) ? sanitize_text_field( wp_unslash( (string) $_SERVER['SERVER_SOFTWARE'] ) ) : '';
+		if ( '' !== $server_software && false !== stripos( $server_software, 'nginx' ) ) {
+			$this->logger->debug(
+				'PDF export temp directory: Nginx host detected — verify Nginx config denies direct access to mpdf-tmp/ (the .htaccess is Apache-only; index.php is the cross-platform fallback).',
+				array(
+					'server_software'   => $server_software,
+					'temp_dir'          => $mpdf_temp,
+					'index_html_exists' => file_exists( $mpdf_temp . '/index.php' ),
+				)
+			);
 		}
 
 		$default_config = ( new \SScribeVendor\Mpdf\Config\ConfigVariables() )->getDefaults();
@@ -560,8 +628,15 @@ class SScribe_PDF_Exporter implements SScribe_Exporter_Interface {
 	 * Prepare HTML content for mPDF rendering.
 	 *
 	 * Strips embedded <style> blocks, removes @font-face declarations that could
-	 * interfere with the PDF font pipeline, and (for RTL pages) normalises inline
-	 * style attributes by keeping only the direction:rtl rule.
+	 * interfere with the PDF font pipeline, and (for both RTL and LTR pages)
+	 * filters inline style attributes through a whitelist of properties that
+	 * affect document semantics: text-align, page-break-*, break-*, color,
+	 * background-color, border, width, height, and (for RTL only) direction.
+	 *
+	 * Handles BOTH single- and double-quoted style attributes via the unified
+	 * filter_style_attribute() helper, so single-quoted styles (e.g.
+	 * style='direction:rtl' or style="text-align:center") are preserved
+	 * according to the same rules.
 	 *
 	 * @param string $html_content Raw HTML content.
 	 * @param bool   $is_rtl      Whether the page is RTL.
@@ -570,25 +645,103 @@ class SScribe_PDF_Exporter implements SScribe_Exporter_Interface {
 	private function prepare_html_for_mpdf( string $html_content, bool $is_rtl ): string {
 		$html_content = preg_replace( '/<style[^>]*>.*?<\/style>/is', '', $html_content ) ?? $html_content;
 
-		if ( $is_rtl ) {
-			$html_content = (string) preg_replace_callback(
-				'/\s*style="([^"]*)"/i',
-				static function ( array $matches ): string {
-					if ( preg_match( '/direction\s*:\s*rtl/i', $matches[1] ) ) {
-						return ' style="direction:rtl"';
-					}
-					return '';
-				},
-				$html_content
-			);
-		} else {
-			$html_content = preg_replace( '/\s*style="([^"]*)"/i', '', $html_content ) ?? $html_content;
-		}
+		$html_content = (string) preg_replace_callback(
+			'/\s*style=("([^"]*)"|\'([^\']*)\')/i',
+			function ( array $matches ) use ( $is_rtl ): string {
+				$declarations = '' !== $matches[2] ? $matches[2] : $matches[3];
+				$filtered     = $this->filter_style_attribute( $declarations, $is_rtl );
+				return '' !== $filtered ? ' style="' . $filtered . '"' : '';
+			},
+			$html_content
+		);
 
-		$html_content = preg_replace( "/\s*style='[^']*'/i", '', $html_content ) ?? $html_content;
 		$html_content = preg_replace( '/@font-face\s*\{[^}]+\}/isU', '', $html_content ) ?? $html_content;
 
 		return $html_content;
+	}
+
+	/**
+	 * Filter a style attribute's declarations through the whitelist.
+	 *
+	 * Properties kept:
+	 *  - direction (preserved always; if RTL, the page-level CSS already sets
+	 *    direction:rtl, so this is a no-op for RTL pages but still useful for
+	 *    LTR pages that contain a single RTL element).
+	 *  - text-align, vertical-align — content alignment.
+	 *  - page-break-before, page-break-after, break-before, break-after — page
+	 *    break hints (CSS Paged Media).
+	 *  - color, background-color, background — text and cell coloring.
+	 *  - border, border-*, border-width, border-color, border-style — table
+	 *    cell borders (used in pricing tables and similar layouts).
+	 *  - width, height, min-width, max-width, min-height, max-height — cell
+	 *    sizing (used for image dimensions and column widths).
+	 *  - float, clear — table cell alignment.
+	 *
+	 * @param string $declarations Raw CSS declarations (e.g. "color:red; width:100%").
+	 * @param bool   $is_rtl       Whether the page is RTL.
+	 * @return string Filtered declarations (semicolon-terminated), or '' if none survive.
+	 */
+	private function filter_style_attribute( string $declarations, bool $is_rtl ): string {
+		$declarations = trim( $declarations );
+		if ( '' === $declarations ) {
+			return '';
+		}
+
+		$allowed = array(
+			'direction',
+			'text-align',
+			'vertical-align',
+			'page-break-before',
+			'page-break-after',
+			'break-before',
+			'break-after',
+			'break-inside',
+			'color',
+			'background',
+			'background-color',
+			'border',
+			'border-top',
+			'border-right',
+			'border-bottom',
+			'border-left',
+			'border-width',
+			'border-color',
+			'border-style',
+			'border-collapse',
+			'border-spacing',
+			'width',
+			'height',
+			'min-width',
+			'max-width',
+			'min-height',
+			'max-height',
+			'float',
+			'clear',
+		);
+
+		$kept  = array();
+		$parts = explode( ';', $declarations );
+		foreach ( $parts as $part ) {
+			$part = trim( $part );
+			if ( '' === $part ) {
+				continue;
+			}
+			$colon = strpos( $part, ':' );
+			if ( false === $colon ) {
+				continue;
+			}
+			$property = strtolower( trim( substr( $part, 0, $colon ) ) );
+			$value    = trim( substr( $part, $colon + 1 ) );
+			if ( in_array( $property, $allowed, true ) && '' !== $value ) {
+				$kept[] = $property . ':' . $value;
+			}
+		}
+
+		if ( empty( $kept ) ) {
+			return '';
+		}
+
+		return implode( ';', $kept ) . ';';
 	}
 
 	/**

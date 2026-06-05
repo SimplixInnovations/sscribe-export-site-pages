@@ -159,7 +159,7 @@ $sscribe_show_wp_debug_notice = ( defined( 'WP_DEBUG' ) && WP_DEBUG );
 			<span class="sscribe-debug-rotated-title"><?php esc_html_e( 'Rotated Logs', 'sscribe-export-site-pages' ); ?></span>
 			<span class="sscribe-debug-rotated-hint"><?php esc_html_e( 'Click to expand', 'sscribe-export-site-pages' ); ?></span>
 		</summary>
-		<div class="sscribe-debug-rotated-body" id="sscribe-debug-rotated-body">
+		<div class="sscribe-debug-rotated-body" id="sscribe-debug-rotated-body" aria-live="polite" aria-atomic="false">
 			<div class="sscribe-debug-rotated-empty"><?php esc_html_e( 'No rotated log files.', 'sscribe-export-site-pages' ); ?></div>
 		</div>
 	</details>

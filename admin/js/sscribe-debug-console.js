@@ -598,6 +598,11 @@
 				return;
 			}
 
+			if (this.saveFeedbackTimeout) {
+				clearTimeout(this.saveFeedbackTimeout);
+				this.saveFeedbackTimeout = null;
+			}
+
 			if (this.saveSettingsRequest) {
 				this.saveSettingsRequest.abort();
 			}
@@ -636,11 +641,13 @@
 							.removeClass('success error')
 							.text('Debug mode changed — reloading\u2026')
 							.addClass('success');
-						setTimeout(function () {
+						self.saveFeedbackTimeout = setTimeout(function () {
+							self.saveFeedbackTimeout = null;
 							window.location.reload();
 						}, 1500);
 					} else {
-						setTimeout(function () {
+						self.saveFeedbackTimeout = setTimeout(function () {
+							self.saveFeedbackTimeout = null;
 							self.$saveFeedback.text('');
 							self.$saveFeedback.removeClass('success');
 						}, 2500);
@@ -660,7 +667,8 @@
 						.removeClass('success error')
 						.text(self.getResponseMessage(response, 'Error'))
 						.addClass('error');
-					setTimeout(function () {
+					self.saveFeedbackTimeout = setTimeout(function () {
+						self.saveFeedbackTimeout = null;
 						self.$saveFeedback.text('');
 						self.$saveFeedback.removeClass('error');
 					}, 2000);
@@ -699,7 +707,8 @@
 					}
 				}
 				self.$saveFeedback.text(errorMsg).addClass('error');
-				setTimeout(function () {
+				self.saveFeedbackTimeout = setTimeout(function () {
+					self.saveFeedbackTimeout = null;
 					self.$saveFeedback.text('');
 					self.$saveFeedback.removeClass('error');
 				}, 2000);
@@ -828,7 +837,11 @@
 						// Nonce/session expired — the most common cause on long admin
 						// sessions. Tell the user clearly so they know to reload.
 						errorMsg = 'Session expired. Please reload the page to continue.';
-						self.refreshNonce();
+						self.refreshNonce(function () {
+							if (isInitialLoad) {
+								self.fetchLogs();
+							}
+						});
 					} else {
 						errorMsg = 'HTTP ' + xhr.status;
 						if (xhr.responseText) {
@@ -1040,11 +1053,19 @@
 						self.$clearBtn.siblings('.sscribe-feedback').remove();
 					}, 2000);
 				}
-			}).fail(function () {
+			}).fail(function (xhr) {
 				const originalText = self.$clearBtn.data('original-text') || self.clearBtnOriginalText;
 				self.$clearBtn.prop('disabled', false).text(originalText);
 				self.$clearBtn.data('confirming', false).removeClass('sscribe-btn-confirming');
-				self.$clearBtn.after('<span class="sscribe-feedback sscribe-feedback-error">Error</span>');
+				let errorMsg = 'Error';
+				if (xhr && xhr.status === 0) {
+					errorMsg = 'Network error. Please check your connection.';
+				} else if (xhr && xhr.status === 403) {
+					errorMsg = 'Session expired. Please reload the page to continue.';
+				} else if (xhr && xhr.status) {
+					errorMsg = 'HTTP ' + xhr.status;
+				}
+				self.$clearBtn.after('<span class="sscribe-feedback sscribe-feedback-error">' + escHtml(errorMsg) + '</span>');
 				setTimeout(function () {
 					self.$clearBtn.siblings('.sscribe-feedback').remove();
 				}, 2000);
@@ -1053,7 +1074,7 @@
 			});
 		},
 
-		refreshNonce: function () {
+		refreshNonce: function (retryAction) {
 			const self = this;
 			$.post(
 				sscribe_data.ajaxurl,
@@ -1061,6 +1082,9 @@
 				function (response) {
 					if (response && response.success && response.data && response.data.nonce) {
 						sscribe_data.nonce = response.data.nonce;
+						if (typeof retryAction === 'function') {
+							retryAction();
+						}
 					}
 				}
 			).fail(function () {
@@ -1096,6 +1120,22 @@
 				return;
 			}
 
+			// Stop auto-refresh during the nonce refresh + form POST so a
+			// concurrent fetchLogs() tick cannot overwrite sscribe_data.nonce
+			// between this refresh response and the export form consuming it.
+			const wasAutoRefresh = this.isAutoRefresh;
+			if (wasAutoRefresh) {
+				this.stopAutoRefresh();
+			}
+
+			const resumeAutoRefresh = function () {
+				if (wasAutoRefresh) {
+					setTimeout(function () {
+						self.startAutoRefresh();
+					}, 0);
+				}
+			};
+
 			$.post(
 				sscribe_data.ajaxurl,
 				{ action: 'sscribe_debug_refresh_nonce', nonce: sscribe_data.nonce },
@@ -1104,10 +1144,12 @@
 						sscribe_data.nonce = response.data.nonce;
 					}
 					self.doExportLogs();
+					resumeAutoRefresh();
 				}
 			).fail(function () {
 				self.showPausedIndicator('Nonce refresh failed — attempting export anyway.');
 				self.doExportLogs();
+				resumeAutoRefresh();
 			});
 		},
 
@@ -1289,7 +1331,8 @@
 					}
 					self.$entries.find('.sscribe-debug-rotated-banner').remove();
 					const entries = Array.isArray(response.data.entries) ? response.data.entries : [];
-					const rotatedCount = parseInt(response.data.count, 10) || 0;
+					const parsedCount = parseInt(response.data.count, 10);
+					const rotatedCount = !isNaN(parsedCount) && parsedCount > 0 ? parsedCount : entries.length;
 					self.renderLogs(entries, true, { status: 'rotated', count: rotatedCount }, true);
 					self.$entryCount.text((1 === rotatedCount ? '1 entry' : rotatedCount + ' entries') + ' (rotated)');
 					self.$entries.prepend(
@@ -1507,7 +1550,8 @@
 					try {
 						value = JSON.stringify(value, null, 2);
 					} catch (e) {
-						value = '[unserializable object]';
+						const detail = e && e.message ? e.message : (typeof value);
+						value = '[unserializable: ' + detail + ']';
 					}
 				}
 				contextRows +=
