@@ -60,6 +60,17 @@ if ( ! defined( 'SSCRIBE_DEBUG' ) ) {
 	define( 'SSCRIBE_DEBUG', false );
 }
 
+/**
+ * Public debug panel flag.
+ *
+ * When set to true in wp-config.php (before plugins are loaded), exposes the
+ * debug tab to non-admin user roles. Separate from SSCRIBE_DEBUG to allow
+ * internal-only debugging without making the panel publicly visible.
+ *
+ * Defaults to SSCRIBE_DEBUG.
+ *
+ * @since 1.1.0
+ */
 if ( ! defined( 'SSCRIBE_DEBUG_PUBLIC' ) ) {
 	define( 'SSCRIBE_DEBUG_PUBLIC', SSCRIBE_DEBUG );
 }
