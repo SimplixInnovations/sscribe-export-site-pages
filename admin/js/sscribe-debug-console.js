@@ -46,7 +46,7 @@
 	// explicitly with a regex + Date constructor to avoid the
 	// implementation-defined behaviour of `new Date('Y-m-d H:i:s')`
 	// (some browsers treat it as UTC, others as local). Falls back to
-	// the raw string on any parse failure. (Audit #22)
+	// the raw string on any parse failure.
 	function formatLocalTimestamp( raw ) {
 		if ( ! raw || typeof raw !== 'string' ) {
 			return '';
@@ -61,14 +61,14 @@
 		}
 		try {
 			return d.toLocaleString();
-		} catch ( e ) {
+		} catch ( _e ) {
 			return raw;
 		}
 	}
 
 	// Truncate a string by visible code points, not UTF-16 code units.
-	// Audit #6: `String.prototype.substring(0, n)` splits surrogate pairs in
-	// emoji and supplementary-plane characters, which produces malformed
+	// `String.prototype.substring(0, n)` splits surrogate pairs in emoji
+	// and supplementary-plane characters, which produces malformed
 	// UTF-16 in aria-labels. Iterating with the spread operator exposes
 	// code points, so a slice of 50 yields at most 50 user-perceived
 	// characters and never lands mid-pair.
@@ -86,7 +86,7 @@
 		// Timeout ID for the exportRotatedLog() paused-indicator auto-hide.
 		// Stored so viewRotatedLog() / backToCurrentLog() can cancel it
 		// when the user navigates to a rotated view before the 5s window
-		// expires. (Audit #8)
+		// expires.
 		exportHintTimeout: null,
 		isAutoRefresh: true,
 		currentFilter: 'ALL',
@@ -110,7 +110,7 @@
 		// renderLogs() consults this so a filter-triggered re-render scrolls
 		// to the top of the (now-shorter) entry list, instead of carrying
 		// the old "wasAtBottom" heuristic over and jumping to the bottom
-		// of a list the user never scrolled into. Audit #7.
+		// of a list the user never scrolled into.
 		_filterChangeInProgress: false,
 
 		init: function () {
@@ -164,7 +164,7 @@
 			// Hardcoded fallback for the case where the PHP template's
 			// <p> renders empty (e.g. a translation override or a custom
 			// child theme) — without this, renderLogs() would blank the
-			// empty-state copy on every refresh. (Audit #10)
+			// empty-state copy on every refresh.
 			this.defaultEmptyMessage = this.$empty.find('p').text().trim() || 'No log entries found.';
 			this.$entryCount = $('#sscribe-debug-entry-count');
 			this.$clearBtn = $('#sscribe-debug-clear-btn');
@@ -521,7 +521,7 @@
 			this.stopAutoRefresh();
 			// Honor a PHP-provided override; fall back to 10000ms to keep
 			// behaviour identical if the key is missing (e.g. an older
-			// sscribe_data shape from a cached page). (Audit #19)
+			// sscribe_data shape from a cached page).
 			const refreshMs = Number( sscribe_data && sscribe_data.refresh_interval ) || 10000;
 			this.refreshInterval = setInterval(function () {
 				if (self.isRefreshing && self.isRefreshingSince && Date.now() - self.isRefreshingSince > 30000) {
@@ -697,7 +697,7 @@
 					let parsed;
 					try {
 						parsed = JSON.parse(xhr.responseText);
-					} catch (e) {
+					} catch (_e) {
 						parsed = null;
 					}
 					if (parsed && parsed.data && parsed.data.message) {
@@ -852,7 +852,7 @@
 								} else {
 									errorMsg += ' - ' + xhr.responseText.substring(0, 100);
 								}
-							} catch (e) {
+							} catch (_e) {
 								errorMsg += ' (unparseable response)';
 							}
 						}
@@ -860,6 +860,16 @@
 					self.showConsoleError(errorMsg);
 				} else {
 					self.$entries.find('.sscribe-debug-append-error').remove();
+					// Audit N-6: on 403 (nonce expired) we must refresh the
+					// nonce first, otherwise the Retry button would 403 again
+					// for the same reason. The isInitialLoad path above already
+					// does this; mirror the same behavior for the append path.
+					if (xhr.status === 403) {
+						self.refreshNonce(function () {
+							self.fetchLogs(true);
+						});
+						return;
+					}
 					self.$entries.append(
 						'<div class="sscribe-debug-append-error">' +
 							'Failed to load more entries. <button type="button" class="sscribe-button sscribe-button-sm sscribe-debug-retry-append">Retry</button>' +
@@ -925,7 +935,7 @@
 			// (now-shorter) entry list instead of carrying the old
 			// "wasAtBottom" heuristic over — a smaller filtered list would
 			// otherwise jump to the bottom of content the user never scrolled
-			// into. Audit #7.
+			// into.
 			const consoleBody = document.getElementById('sscribe-debug-console-body');
 
 			let scrollTop = 0;
@@ -1114,6 +1124,104 @@
 			}, 100);
 		},
 
+		/**
+		 * Trigger a download using fetch + blob.
+		 *
+		 * Unlike downloadViaForm() (which uses a hidden <form> with target="_blank"),
+		 * this approach lets us detect server-side failures (HTTP 4xx/5xx, fatal
+		 * errors, nonces) and surface them to the user instead of silently opening
+		 * a blank tab. We rely on response.ok to distinguish success from error.
+		 *
+		 * Filename is extracted from the Content-Disposition response header when
+		 * present, falling back to the caller-supplied default.
+		 *
+		 * @param {string} url         Endpoint URL (e.g. admin-ajax.php).
+		 * @param {Object} data        POST payload (form-urlencoded).
+		 * @param {Object} callbacks   onSuccess(filename), onError(message).
+		 */
+		downloadViaFetch: function (url, data, callbacks) {
+			const self = this;
+			callbacks = callbacks || {};
+			const onSuccess = typeof callbacks.onSuccess === 'function' ? callbacks.onSuccess : function () {};
+			const onError = typeof callbacks.onError === 'function' ? callbacks.onError : function () {};
+
+			const body = new URLSearchParams();
+			Object.keys(data).forEach(function (key) {
+				body.append(key, data[key]);
+			});
+
+			fetch(url, {
+				method: 'POST',
+				credentials: 'same-origin',
+				headers: {
+					'Content-Type': 'application/x-www-form-urlencoded; charset=UTF-8',
+					'X-Requested-With': 'XMLHttpRequest',
+				},
+				body: body.toString(),
+			})
+				.then(function (response) {
+					// Extract filename from Content-Disposition before consuming body.
+					let filename = '';
+					const disposition = response.headers.get('Content-Disposition') || '';
+					const match = disposition.match(/filename\*?=(?:UTF-8'')?"?([^";]+)"?/i);
+					if (match && match[1]) {
+						try {
+							filename = decodeURIComponent(match[1]);
+						} catch (_e) {
+							filename = match[1];
+						}
+					}
+
+					if (!response.ok) {
+						// Try to parse the error JSON so we can show a useful message.
+						return response.text().then(function (text) {
+							let message = 'HTTP ' + response.status;
+							try {
+								const parsed = JSON.parse(text);
+								if (parsed && parsed.data && parsed.data.message) {
+									message = parsed.data.message;
+								} else if (text) {
+									message += ' - ' + text.substring(0, 200);
+								}
+							} catch (_e) {
+								if (text) {
+									message += ' - ' + text.substring(0, 200);
+								}
+							}
+							throw new Error(message);
+						});
+					}
+
+					return response.blob().then(function (blob) {
+						if (!blob || blob.size === 0) {
+							throw new Error('Empty response from server.');
+						}
+						const blobUrl = URL.createObjectURL(blob);
+						const a = document.createElement('a');
+						a.href = blobUrl;
+						a.download = filename || 'export.json';
+						a.style.display = 'none';
+						document.body.appendChild(a);
+						a.click();
+						// Defer cleanup so the browser has time to start the download.
+						setTimeout(function () {
+							if (a.parentNode) {
+								a.remove();
+							}
+							URL.revokeObjectURL(blobUrl);
+						}, 100);
+						onSuccess(filename);
+					});
+				})
+				.catch(function (err) {
+					const message = err && err.message ? err.message : 'Unknown error';
+					if (self && typeof self.showPausedIndicator === 'function') {
+						self.showPausedIndicator('Export failed: ' + message);
+					}
+					onError(message);
+				});
+		},
+
 		exportLogs: function () {
 			const self = this;
 			if (!this.hasRequiredDom() || !sscribe_data || !sscribe_data.nonce) {
@@ -1165,7 +1273,6 @@
 			// When the user is viewing a rotated log, the export POST must
 			// include the filename so the server returns THAT file, not
 			// a fresh export built from the current filter state.
-			// (Audit #18)
 			if (this.isViewingRotated && this.currentRotatedFilename) {
 				data.filename = this.currentRotatedFilename;
 			}
@@ -1173,17 +1280,22 @@
 			self.$exportBtn.prop('disabled', true);
 			self.$exportBtn.find('.sscribe-export-btn-scope').text(' — exporting…');
 			this.showPausedIndicator('Export in progress — download should begin shortly');
-			this.downloadViaForm(sscribe_data.ajaxurl, data);
-			setTimeout(function () {
-				// Restore only the scope span text rather than the entire
-				// button HTML — the init-time exportBtnOriginalHtml captured
-				// a snapshot of the scope that may not match the current
-				// filter state, which would flash " (all)" for one frame
-				// before updateExportButtonScope() corrected it. (Audit #7)
-				self.$exportBtn.prop('disabled', false);
-				self.updateExportButtonScope();
-				self.hidePausedIndicator();
-			}, 10000);
+			// fetch+blob (not form POST) so server errors surface to the user.
+			// Audit N-5: form POST opened a blank tab on every failure mode.
+			this.downloadViaFetch(sscribe_data.ajaxurl, data, {
+				onSuccess: function () {
+					self.$exportBtn.prop('disabled', false);
+					self.updateExportButtonScope();
+					self.hidePausedIndicator();
+				},
+				onError: function () {
+					// downloadViaFetch already shows the error; just restore the
+					// button so the user can retry without waiting for a timer.
+					self.$exportBtn.prop('disabled', false);
+					self.updateExportButtonScope();
+					self.hidePausedIndicator();
+				},
+			});
 		},
 
 		fetchRotatedLogs: function () {
@@ -1200,7 +1312,6 @@
 			// Show a loading hint immediately so the panel isn't blank
 			// while the AJAX is in flight; the success / fail handlers
 			// below replace this with the actual file list.
-			// (Audit #24)
 			this.$rotatedBody.html(
 				'<div class="sscribe-debug-rotated-empty sscribe-debug-rotated-loading">' +
 					escHtml('Loading rotated logs...') +
@@ -1281,7 +1392,6 @@
 			// Cancel any pending "Exporting rotated log..." auto-hide so the
 			// indicator from a just-completed export doesn't get pulled out
 			// from under the rotated view the user is now looking at.
-			// (Audit #8)
 			if (this.exportHintTimeout) {
 				clearTimeout(this.exportHintTimeout);
 				this.exportHintTimeout = null;
@@ -1319,7 +1429,7 @@
 					// second pushState lands — repeated n times = n entries that
 					// all point at the same view). If we're already on this exact
 					// state, replace the current entry instead of stacking a new
-					// one. (Audit #20)
+					// one.
 					if (
 						history.state &&
 						history.state.view === newState.view &&
@@ -1380,7 +1490,7 @@
 			}
 			// Cancel any pending export hint auto-hide from a previous
 			// exportRotatedLog() call so the indicator doesn't get yanked
-			// out mid-navigation. (Audit #8)
+			// out mid-navigation.
 			if (this.exportHintTimeout) {
 				clearTimeout(this.exportHintTimeout);
 				this.exportHintTimeout = null;
@@ -1394,7 +1504,9 @@
 			this.isRefreshingSince = null;
 			this.$entries.empty();
 			this.$entryCount.text('Loading...');
-			this.$consoleBody.addClass('is-loading');
+			// fetchLogs() will add the is-loading class on the initial-load
+			// path and remove it in its success/fail handlers — adding it
+			// here as well is redundant and would survive a fetch abort.
 			const url = new URL(window.location.href);
 			url.searchParams.delete('view');
 			url.searchParams.delete('file');
@@ -1421,25 +1533,41 @@
 			// confused users (audit #2). Use a single constant so the two
 			// values cannot drift apart again.
 			const ROTATED_EXPORT_TIMEOUT_MS = 5000;
+
+			const restoreBtn = function () {
+				if ($btn) {
+					$btn.prop('disabled', false).text('Export');
+				}
+			};
 			if ($btn) {
 				$btn.prop('disabled', true).text('Downloading...');
-				setTimeout(function () {
-					$btn.prop('disabled', false).text('Export');
-				}, ROTATED_EXPORT_TIMEOUT_MS);
 			}
 
 			self.showPausedIndicator('Exporting rotated log...');
-			this.downloadViaForm(sscribe_data.ajaxurl, data);
-			// Cancel any previous pending hide so back-to-back exports
-			// don't collapse to a no-op (the older timer would fire and
-			// clear the newer one).
-			if (self.exportHintTimeout) {
-				clearTimeout(self.exportHintTimeout);
-			}
-			self.exportHintTimeout = setTimeout(function () {
-				self.hidePausedIndicator();
-				self.exportHintTimeout = null;
-			}, ROTATED_EXPORT_TIMEOUT_MS);
+			// fetch+blob so server errors (file not found, nonce expiry,
+			// permission denied) are reported instead of opening a blank tab.
+			this.downloadViaFetch(sscribe_data.ajaxurl, data, {
+				onSuccess: function () {
+					restoreBtn();
+					self.hidePausedIndicator();
+					if (self.exportHintTimeout) {
+						clearTimeout(self.exportHintTimeout);
+						self.exportHintTimeout = null;
+					}
+				},
+				onError: function () {
+					restoreBtn();
+					// downloadViaFetch already surfaces the error to the
+					// paused indicator; just make sure the hint hides.
+					if (self.exportHintTimeout) {
+						clearTimeout(self.exportHintTimeout);
+					}
+					self.exportHintTimeout = setTimeout(function () {
+						self.hidePausedIndicator();
+						self.exportHintTimeout = null;
+					}, ROTATED_EXPORT_TIMEOUT_MS);
+				},
+			});
 		},
 
 		deleteRotatedLog: function (filename, $btn) {
@@ -1587,7 +1715,6 @@
 			// server can return 'warning' / 'Warning' / 'WARNING' depending
 			// on source; the badge class is already lowercased, so the
 			// text needs explicit normalization to stay consistent.
-			// (Audit #11)
 			escHtml((entry.level || 'INFO').toUpperCase()) +
 			'</span>' +
 			'<span class="sscribe-debug-entry-time">' +

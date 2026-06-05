@@ -88,8 +88,6 @@ class SScribe_Batch_Processor {
 	 */
 	private readonly SScribe_Batch_Session_Handler $session_handler;
 
-
-
 	/**
 	 * Export log instance.
 	 *

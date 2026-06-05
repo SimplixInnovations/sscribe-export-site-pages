@@ -190,6 +190,47 @@ class SScribe_Zip_Handler_Test extends TestCase {
 		}
 	}
 
+	/**
+	 * Regression test for Audit N-3: verify_zip_integrity() must NOT reject
+	 * a valid multi-format ZIP where the first entry is a directory entry.
+	 *
+	 * The old check rejected any ZIP whose first statIndex() entry had size 0
+	 * — but directory entries always have size 0 by design, so any multi-format
+	 * export (DOCX/, PDF/, etc.) starting with a directory entry was falsely
+	 * flagged as "truncated or corrupted".
+	 */
+	public function test_verify_zip_integrity_accepts_zip_starting_with_directory_entry(): void {
+		if ( ! class_exists( 'ZipArchive' ) ) {
+			$this->markTestSkipped( 'ZipArchive extension not available' );
+		}
+
+		$export_dir = $this->handler->get_export_dir();
+		$zip_path   = $export_dir . '/sscribe-dir-entry-test-' . uniqid() . '.zip';
+
+		// Build a ZIP whose first entry is an explicit directory entry,
+		// followed by a real file. This is the exact shape multi-format
+		// exports produce when DOCX/ or PDF/ directory entries come first.
+		$zip = new \ZipArchive();
+		$this->assertTrue( $zip->open( $zip_path, \ZipArchive::CREATE | \ZipArchive::OVERWRITE ) );
+		$zip->addEmptyDir( 'DOCX' );
+		$zip->addFromString( 'DOCX/P001-Test.docx', 'docx content' );
+		$zip->close();
+
+		$this->assertFileExists( $zip_path );
+
+		$method = new \ReflectionMethod( SScribe_Zip_Handler::class, 'verify_zip_integrity' );
+		$result = $method->invoke( $this->handler, $zip_path );
+
+		$this->assertTrue(
+			$result,
+			'verify_zip_integrity() must accept a valid ZIP that begins with a directory entry (size 0).'
+		);
+
+		if ( file_exists( $zip_path ) ) {
+			unlink( $zip_path );
+		}
+	}
+
 	public function test_cleanup_expired_keeps_index_for_existing_zip_files(): void {
 		$export_dir = $this->handler->get_export_dir();
 		$filename   = 'sscribe-cleanup-test-' . uniqid() . '.zip';

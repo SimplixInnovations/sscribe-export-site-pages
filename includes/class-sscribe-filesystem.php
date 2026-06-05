@@ -359,10 +359,9 @@ class SScribe_Filesystem {
 
 		$result = array();
 		foreach ( array_diff( $files, array( '.', '..' ) ) as $name ) {
-			// Skip dotfiles and the guard index.php so the listing matches
-			// the shape callers get from WP_Filesystem::dirlist() and so
-			// .htaccess / index.php don't appear in the rotated log list.
-			// (Audit #23)
+			// Skip dotfiles and the guard index.php — this matches what
+			// WP_Filesystem::dirlist() returns and keeps .htaccess /
+			// index.php out of the rotated log list.
 			if ( '' === $name || '.' === $name[0] || 'index.php' === $name ) {
 				continue;
 			}

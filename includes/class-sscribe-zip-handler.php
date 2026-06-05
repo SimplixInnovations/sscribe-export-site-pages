@@ -466,15 +466,45 @@ class SScribe_Zip_Handler {
 			return false;
 		}
 
-		$first_entry = $zip->statIndex( 0 );
+		// Find the first ACTUAL file entry (skip directory entries which
+		// have size === 0 by design). For multi-format exports (DOCX/, PDF/,
+		// etc.) the first index is often a directory entry — checking it
+		// for size > 0 would falsely flag the archive as truncated.
+		$first_file_entry = null;
+		for ( $i = 0; $i < $num_files; $i++ ) {
+			$entry = $zip->statIndex( $i );
+			if ( ! $entry || empty( $entry['name'] ) ) {
+				continue;
+			}
+			// Directory entries end with '/'. Skip them — they have size 0
+			// by design, not because the archive is corrupted.
+			if ( substr( $entry['name'], -1 ) === '/' ) {
+				continue;
+			}
+			$first_file_entry = $entry;
+			break;
+		}
 		$zip->close();
 
-		if ( ! $first_entry || empty( $first_entry['name'] ) || 0 === $first_entry['size'] ) {
+		if ( ! $first_file_entry ) {
 			$this->logger->error(
-				'ZIP appears truncated or corrupted',
+				'ZIP appears truncated or corrupted — no readable file entries found',
 				array(
-					'zip_path'     => $zip_path,
-					'first_entry'  => $first_entry,
+					'zip_path'    => $zip_path,
+					'total_index' => $num_files,
+				)
+			);
+			return false;
+		}
+
+		// First file entry must have content (size > 0) to be considered valid.
+		if ( 0 === $first_file_entry['size'] ) {
+			$this->logger->error(
+				'ZIP appears truncated or corrupted — first file entry is empty',
+				array(
+					'zip_path'      => $zip_path,
+					'first_entry'   => $first_file_entry,
+					'total_index'   => $num_files,
 				)
 			);
 			return false;
@@ -551,7 +581,7 @@ class SScribe_Zip_Handler {
 
 		try {
 			$cleaned  = 0;
-			$files    = glob( $this->export_dir . '/*.zip' ) ? glob( $this->export_dir . '/*.zip' ) : array();
+			$files    = glob( $this->export_dir . '/*.zip' ) ?: array();
 			$max_age  = 3 * DAY_IN_SECONDS;
 			$now      = time();
 			$exports  = get_option( 'sscribe_export_index', array() );
@@ -618,7 +648,7 @@ class SScribe_Zip_Handler {
 		$max_age = 3 * DAY_IN_SECONDS;
 		$now     = time();
 
-		$temp_dirs = glob( $this->export_dir . '/temp-*', GLOB_ONLYDIR ) ? glob( $this->export_dir . '/temp-*', GLOB_ONLYDIR ) : array();
+		$temp_dirs = glob( $this->export_dir . '/temp-*', GLOB_ONLYDIR ) ?: array();
 		if ( ! empty( $temp_dirs ) ) {
 			foreach ( $temp_dirs as $temp_dir ) {
 				$dir_time = filemtime( $temp_dir );
