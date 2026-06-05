@@ -37,6 +37,17 @@ if ( version_compare( PHP_VERSION, '8.2', '<' ) ) {
 			);
 		}
 	);
+	// Self-deactivate so the DB does not retain a broken "active" marker for an
+	// incompatible PHP runtime. The admin notice above explains the reason.
+	add_action(
+		'admin_init',
+		static function () {
+			if ( ! function_exists( 'deactivate_plugins' ) ) {
+				return;
+			}
+			deactivate_plugins( plugin_basename( __FILE__ ) );
+		}
+	);
 	return;
 }
 
@@ -51,6 +62,15 @@ if ( version_compare( $wp_version, '6.0', '<' ) ) {
 				esc_html__( 'SScribe Export Site Pages requires WordPress 6.0 or higher. Please upgrade your WordPress installation. Your current version is:', 'sscribe-export-site-pages' ),
 				esc_html( $wp_version )
 			);
+		}
+	);
+	add_action(
+		'admin_init',
+		static function () {
+			if ( ! function_exists( 'deactivate_plugins' ) ) {
+				return;
+			}
+			deactivate_plugins( plugin_basename( __FILE__ ) );
 		}
 	);
 	return;
@@ -155,9 +175,7 @@ add_action(
 				MINUTE_IN_SECONDS * 10
 			);
 
-			if ( defined( 'WP_DEBUG' ) && WP_DEBUG ) {
-				error_log( 'SScribe Fatal Error Prevented: ' . $e->getMessage() ); // phpcs:ignore WordPress.PHP.DevelopmentFunctions.error_log_error_log
-			}
+			error_log( 'SScribe Fatal Error Prevented: ' . $e->getMessage() ); // phpcs:ignore WordPress.PHP.DevelopmentFunctions.error_log_error_log
 		}
 	}
 );
