@@ -292,7 +292,6 @@ class SScribe_PDF_Exporter implements SScribe_Exporter_Interface {
 			return SScribe_Result::failure(
 				sprintf(
 					/* translators: 1: Error class, 2: Error message. */
-
 					__( 'Unable to generate PDF: %1$s — %2$s', 'sscribe-export-site-pages' ),
 					get_class( $e ),
 					$e->getMessage()
@@ -522,7 +521,6 @@ class SScribe_PDF_Exporter implements SScribe_Exporter_Interface {
 			return SScribe_Result::failure(
 				sprintf(
 					/* translators: %s: Temp directory path. */
-
 					__( 'PDF export failed: temp directory is not writable (%s).', 'sscribe-export-site-pages' ),
 					$mpdf_temp
 				),

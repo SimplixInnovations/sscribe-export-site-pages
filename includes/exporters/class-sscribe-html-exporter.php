@@ -94,7 +94,6 @@ class SScribe_HTML_Exporter implements SScribe_Exporter_Interface {
 				return SScribe_Result::failure(
 					sprintf(
 						/* translators: %s: Page title. */
-
 						__( 'Failed to write HTML file for "%s".', 'sscribe-export-site-pages' ),
 						$title
 					),
@@ -128,7 +127,6 @@ class SScribe_HTML_Exporter implements SScribe_Exporter_Interface {
 			return SScribe_Result::failure(
 				sprintf(
 					/* translators: 1: Page title, 2: Error message. */
-
 					__( 'HTML export failed for "%1$s": %2$s', 'sscribe-export-site-pages' ),
 					$title,
 					$e->getMessage()
@@ -318,8 +316,7 @@ class SScribe_HTML_Exporter implements SScribe_Exporter_Interface {
 	<footer>
 		<p><small>' . esc_html(
 			sprintf(
-			/* translators: 1: site name, 2: date and time */
-
+				/* translators: 1: site name, 2: date and time */
 				__( 'Exported from %1$s on %2$s', 'sscribe-export-site-pages' ),
 				$site_name,
 				wp_date( 'Y-m-d H:i' )

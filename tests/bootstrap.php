@@ -241,6 +241,12 @@ if ( ! function_exists( 'trailingslashit' ) ) {
 	}
 }
 
+if ( ! function_exists( 'untrailingslashit' ) ) {
+	function untrailingslashit( $sscribe_string ) {
+		return rtrim( $sscribe_string, '/\\' );
+	}
+}
+
 if ( ! function_exists( 'get_bloginfo' ) ) {
 	function get_bloginfo( $show = '', $filter = 'raw' ) {
 		$site_name = 'Test Site';
@@ -526,6 +532,116 @@ if ( ! function_exists( 'delete_transient' ) ) {
 	}
 }
 
+if ( ! function_exists( 'register_setting' ) ) {
+	function register_setting( $option_group, $option_name, $args = array() ) {
+		global $sscribe_test_registered_settings;
+		$sscribe_test_registered_settings[ $option_name ] = array(
+			'group' => $option_group,
+			'args'  => $args,
+		);
+		return true;
+	}
+}
+
+if ( ! function_exists( 'wp_next_scheduled' ) ) {
+	function wp_next_scheduled( $hook, $args = array() ) {
+		global $sscribe_test_scheduled_events;
+		unset( $args );
+		return $sscribe_test_scheduled_events[ $hook ]['timestamp'] ?? false;
+	}
+}
+
+if ( ! function_exists( 'wp_schedule_event' ) ) {
+	function wp_schedule_event( $timestamp, $recurrence, $hook, $args = array(), $wp_error = false ) {
+		global $sscribe_test_scheduled_events;
+		unset( $args, $wp_error );
+		$sscribe_test_scheduled_events[ $hook ] = array(
+			'timestamp'  => $timestamp,
+			'recurrence' => $recurrence,
+		);
+		return true;
+	}
+}
+
+if ( ! function_exists( 'is_multisite' ) ) {
+	function is_multisite() {
+		return false;
+	}
+}
+
+if ( ! function_exists( 'switch_to_blog' ) ) {
+	function switch_to_blog( $blog_id ) {
+		unset( $blog_id );
+		return true;
+	}
+}
+
+if ( ! function_exists( 'restore_current_blog' ) ) {
+	function restore_current_blog() {
+		return true;
+	}
+}
+
+if ( ! function_exists( 'get_sites' ) ) {
+	function get_sites( $args = array() ) {
+		unset( $args );
+		return array();
+	}
+}
+
+if ( ! class_exists( 'WP_Role' ) ) {
+	class WP_Role {
+		public string $name;
+		public array $capabilities = array();
+
+		public function __construct( string $name, array $capabilities = array() ) {
+			$this->name         = $name;
+			$this->capabilities = $capabilities;
+		}
+
+		public function has_cap( string $capability ): bool {
+			return ! empty( $this->capabilities[ $capability ] );
+		}
+
+		public function add_cap( string $capability, bool $grant = true ): void {
+			$this->capabilities[ $capability ] = $grant;
+		}
+
+		public function remove_cap( string $capability ): void {
+			unset( $this->capabilities[ $capability ] );
+		}
+	}
+}
+
+if ( ! class_exists( 'WP_Roles' ) ) {
+	class WP_Roles {
+		public array $roles = array();
+
+		public function __construct() {
+			$this->roles = array(
+				'administrator' => array(
+					'name'         => 'Administrator',
+					'capabilities' => array( 'manage_options' => true ),
+				),
+			);
+		}
+	}
+}
+
+if ( ! function_exists( 'get_role' ) ) {
+	function get_role( $role ) {
+		static $roles = null;
+
+		if ( null === $roles ) {
+			$roles = array(
+				'administrator' => new WP_Role( 'administrator', array( 'manage_options' => true ) ),
+			);
+		}
+
+		return $roles[ $role ] ?? null;
+	}
+}
+
 if ( ! function_exists( 'wp_cache_delete' ) ) {
 	function wp_cache_delete( $key, $group = '' ) {
 		unset( $GLOBALS['sscribe_test_wp_cache'][ $key ] );
@@ -668,6 +784,8 @@ $sscribe_test_db_tables = array(
 $sscribe_test_http_response = array();
 $sscribe_test_filters       = array();
 $sscribe_test_actions       = array();
+$sscribe_test_registered_settings = array();
+$sscribe_test_scheduled_events    = array();
 $sscribe_test_menu_pages    = array();
 $sscribe_test_styles        = array();
 $sscribe_test_scripts       = array();
@@ -1335,18 +1453,14 @@ if ( ! function_exists( 'wp_count_posts' ) ) {
 	}
 }
 
-if ( file_exists( SSCRIBE_PLUGIN_DIR . 'vendor/autoload.php' ) ) {
+if ( file_exists( SSCRIBE_PLUGIN_DIR . 'vendor-prefixed/autoload.php' ) ) {
+	require_once SSCRIBE_PLUGIN_DIR . 'vendor-prefixed/autoload.php';
+	require_once SSCRIBE_PLUGIN_DIR . 'includes/sscribe-prefixed-runtime-shim.php';
+} elseif ( file_exists( SSCRIBE_PLUGIN_DIR . 'vendor/autoload.php' ) ) {
 	require_once SSCRIBE_PLUGIN_DIR . 'vendor/autoload.php';
 	if ( file_exists( SSCRIBE_PLUGIN_DIR . 'includes/sscribe-vendor-compat.php' ) ) {
 		require_once SSCRIBE_PLUGIN_DIR . 'includes/sscribe-vendor-compat.php';
 	}
-	
-	
-}
-
-if ( file_exists( SSCRIBE_PLUGIN_DIR . 'vendor-prefixed/autoload.php' ) ) {
-	require_once SSCRIBE_PLUGIN_DIR . 'includes/sscribe-prefixed-runtime-shim.php';
-	require_once SSCRIBE_PLUGIN_DIR . 'vendor-prefixed/autoload.php';
 }
 
 require_once SSCRIBE_PLUGIN_DIR . 'includes/sscribe-autoloader.php';

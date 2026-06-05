@@ -6,20 +6,43 @@
  */
 declare(strict_types=1);
 
-require_once dirname( __DIR__ ) . '/includes/sscribe-prefixed-runtime-shim.php';
-require_once dirname( __DIR__ ) . '/vendor-prefixed/autoload.php';
-echo "Autoload OK\n";
+$root = dirname( __DIR__ );
 
-if ( class_exists( '\SScribeVendor\Dompdf\Dompdf' ) ) {
-	echo "Dompdf: OK\n";
-} else {
-	echo "Dompdf: MISSING\n";
+if ( ! defined( 'ABSPATH' ) ) {
+	define( 'ABSPATH', $root . '/fake-wp/' );
 }
 
-if ( class_exists( '\SScribeVendor\PhpOffice\PhpWord\PhpWord' ) ) {
-	echo "PhpWord: OK\n";
-} else {
-	echo "PhpWord: MISSING\n";
+require_once $root . '/vendor-prefixed/autoload.php';
+require_once $root . '/includes/sscribe-prefixed-runtime-shim.php';
+
+$required_classes = array(
+	'SScribeVendor\\Mpdf\\Mpdf',
+	'SScribeVendor\\Mpdf\\HTMLParserMode',
+	'SScribeVendor\\Mpdf\\Output\\Destination',
+	'SScribeVendor\\PhpOffice\\PhpWord\\PhpWord',
+	'SScribeVendor\\PhpOffice\\PhpWord\\IOFactory',
+	'SScribeVendor\\PhpOffice\\PhpWord\\Element\\Section',
+	'SScribeVendor\\PhpOffice\\PhpWord\\Element\\TextRun',
+	'PhpOffice\\PhpWord\\IOFactory',
+);
+
+$missing = array();
+foreach ( $required_classes as $class_name ) {
+	if ( ! class_exists( $class_name ) ) {
+		$missing[] = $class_name;
+	}
 }
 
-echo "Total prefixed classes: " . count( require dirname( __DIR__ ) . '/vendor-prefixed/autoload-classmap.php' ) . "\n";
+if ( $missing ) {
+	fwrite( STDERR, "Missing prefixed runtime classes:\n  " . implode( "\n  ", $missing ) . "\n" );
+	exit( 1 );
+}
+
+$classmap = array();
+$classmap_path = $root . '/vendor-prefixed/composer/autoload_classmap.php';
+if ( file_exists( $classmap_path ) ) {
+	$classmap = require $classmap_path;
+}
+
+echo "Prefixed runtime OK\n";
+echo 'Total prefixed classes: ' . count( $classmap ) . "\n";

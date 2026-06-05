@@ -13,10 +13,10 @@ if ( ! defined( 'ABSPATH' ) ) {
 	exit;
 }
 
-use PhpOffice\PhpWord\Element\Section;
-use PhpOffice\PhpWord\Element\TextRun;
-use PhpOffice\PhpWord\Shared\Converter;
-use PhpOffice\PhpWord\SimpleType\Jc;
+use SScribeVendor\PhpOffice\PhpWord\Element\Section;
+use SScribeVendor\PhpOffice\PhpWord\Element\TextRun;
+use SScribeVendor\PhpOffice\PhpWord\Shared\Converter;
+use SScribeVendor\PhpOffice\PhpWord\SimpleType\Jc;
 
 /**
  * Renders HTML-like content elements into DOCX document sections.
@@ -550,7 +550,7 @@ class SScribe_DOCX_Content_Renderer {
 				$font_style['italic'] = true;
 			}
 			if ( ! empty( $run['underline'] ) ) {
-				$font_style['underline'] = \PhpOffice\PhpWord\Style\Font::UNDERLINE_SINGLE;
+				$font_style['underline'] = \SScribeVendor\PhpOffice\PhpWord\Style\Font::UNDERLINE_SINGLE;
 			}
 			if ( ! empty( $run['strikethrough'] ) ) {
 				$font_style['strikeThrough'] = true;
@@ -623,8 +623,8 @@ class SScribe_DOCX_Content_Renderer {
 		}
 
 		$list_type = ( 'numbered' === $style )
-			? \PhpOffice\PhpWord\Style\ListItem::TYPE_NUMBER
-			: \PhpOffice\PhpWord\Style\ListItem::TYPE_BULLET_FILLED;
+			? \SScribeVendor\PhpOffice\PhpWord\Style\ListItem::TYPE_NUMBER
+			: \SScribeVendor\PhpOffice\PhpWord\Style\ListItem::TYPE_BULLET_FILLED;
 
 		$list_font_style = array(
 			'name'  => $this->font_name,
@@ -694,7 +694,7 @@ class SScribe_DOCX_Content_Renderer {
 		$total_width_twip = Converter::inchToTwip( 6.5 );
 		$cell_width       = (int) ( $total_width_twip / $col_count );
 
-		$table_unit = \PhpOffice\PhpWord\SimpleType\TblWidth::TWIP;
+		$table_unit = \SScribeVendor\PhpOffice\PhpWord\SimpleType\TblWidth::TWIP;
 
 		$table_style = array(
 			'borderSize'  => 1,

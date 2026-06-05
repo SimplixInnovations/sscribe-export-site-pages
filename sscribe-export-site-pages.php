@@ -32,7 +32,7 @@ if ( version_compare( PHP_VERSION, '8.2', '<' ) ) {
 		function () {
 			printf(
 				'<div class="error"><p>%s %s</p></div>',
-				esc_html__( 'SScribe Export Site Pages requires PHP 8.2 or higher to run. Please upgrade your PHP version to benefit from enterprise-level performance and features. Your current version is:', 'sscribe-export-site-pages' ),
+				esc_html__( 'SScribe Export Site Pages requires PHP 8.2 or higher. Your current version is:', 'sscribe-export-site-pages' ),
 				esc_html( PHP_VERSION )
 			);
 		}
@@ -60,17 +60,6 @@ if ( ! defined( 'SSCRIBE_DEBUG' ) ) {
 	define( 'SSCRIBE_DEBUG', false );
 }
 
-/**
- * Public debug panel flag.
- *
- * When set to true in wp-config.php (before plugins are loaded), exposes the
- * debug tab to non-admin user roles. Separate from SSCRIBE_DEBUG to allow
- * internal-only debugging without making the panel publicly visible.
- *
- * Defaults to SSCRIBE_DEBUG.
- *
- * @since 1.1.0
- */
 if ( ! defined( 'SSCRIBE_DEBUG_PUBLIC' ) ) {
 	define( 'SSCRIBE_DEBUG_PUBLIC', SSCRIBE_DEBUG );
 }
@@ -89,8 +78,8 @@ register_deactivation_hook( __FILE__, array( 'SScribe_Deactivator', 'deactivate'
 $sscribe_has_dependencies = false;
 
 if ( file_exists( SSCRIBE_PLUGIN_DIR . 'vendor-prefixed/autoload.php' ) ) {
-	require_once SSCRIBE_PLUGIN_DIR . 'includes/sscribe-prefixed-runtime-shim.php';
 	require_once SSCRIBE_PLUGIN_DIR . 'vendor-prefixed/autoload.php';
+	require_once SSCRIBE_PLUGIN_DIR . 'includes/sscribe-prefixed-runtime-shim.php';
 	$sscribe_has_dependencies = true;
 } elseif ( file_exists( SSCRIBE_PLUGIN_DIR . 'vendor/autoload.php' ) ) {
 	require_once SSCRIBE_PLUGIN_DIR . 'vendor/autoload.php';
@@ -158,7 +147,6 @@ add_action(
 				array(
 					'message' => sprintf(
 						/* translators: %s: error message */
-
 						__( 'The plugin bootstrap failed before the admin menu could be registered: %s', 'sscribe-export-site-pages' ),
 						$e->getMessage()
 					),

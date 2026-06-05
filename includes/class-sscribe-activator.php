@@ -165,7 +165,22 @@ class SScribe_Activator {
 			KEY idx_status (status)
 		) $charset_collate;";
 
-		require_once ABSPATH . 'wp-admin/includes/upgrade.php';
+		$upgrade_functions = ABSPATH . 'wp-admin/includes/upgrade.php';
+		if ( file_exists( $upgrade_functions ) ) {
+			require_once $upgrade_functions;
+		}
+
+		if ( ! function_exists( 'dbDelta' ) ) {
+			set_transient(
+				'sscribe_boot_error',
+				array(
+					'message' => __( 'Activation could not create database tables because the WordPress upgrade functions are unavailable.', 'sscribe-export-site-pages' ),
+					'time'    => gmdate( 'Y-m-d H:i:s \\U\\T\\C' ),
+				),
+				MINUTE_IN_SECONDS * 10
+			);
+			return;
+		}
 
 		dbDelta( $sql_logs );
 		dbDelta( $sql_stats );

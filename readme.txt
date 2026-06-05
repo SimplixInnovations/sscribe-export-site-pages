@@ -17,10 +17,10 @@ SScribe transforms WordPress pages into professional documents for client handov
 
 **Export Formats:**
 
-* **DOCX** — Microsoft Word, Google Docs, LibreOffice compatible
-* **PDF** — Portable format for universal viewing
-* **HTML** — Self-contained files with embedded styles
-* **Markdown** — Clean output with YAML frontmatter
+* **DOCX** - Microsoft Word, Google Docs, LibreOffice compatible
+* **PDF** - Portable format for universal viewing
+* **HTML** - Self-contained files with embedded styles
+* **Markdown** - Clean output with YAML frontmatter
 
 **Key Features:**
 
@@ -100,22 +100,22 @@ Initial release. Export WordPress pages to DOCX, PDF, HTML, or Markdown with ful
 = `sscribe_max_execution_time` =
 Override the maximum PHP execution time for batch exports.
 
-Parameters: `(int $seconds)` — Default: 120
+Parameters: `(int $seconds)` - Default: 120
 
 = `sscribe_pdf_max_execution_time` =
 Override the maximum PHP execution time for PDF-heavy exports.
 
-Parameters: `(int $seconds)` — Default: 150
+Parameters: `(int $seconds)` - Default: 150
 
 = `sscribe_pdf_max_html_size` =
 Maximum HTML size (in bytes) passed to mPDF before truncation.
 
-Parameters: `(int $bytes)` — Default: 5,242,880 (5MB)
+Parameters: `(int $bytes)` - Default: 5,242,880 (5MB)
 
 = `sscribe_use_chunked_page_ids` =
 Force enable or disable chunked page ID loading for sites with very large numbers of pages.
 
-Parameters: `(bool)` — Default: null (auto-detect based on page count)
+Parameters: `(bool)` - Default: null (auto-detect based on page count)
 
 == Actions ==
 
@@ -130,7 +130,7 @@ Fires after a page has been exported during batch processing.
 Parameters: `(int $page_id, array $formats, bool $export_success)`
 
 = `sscribe_cleanup_exports` =
-Cron hook for cleaning up expired export files. Triggered daily.
+Cron hook for cleaning up expired export files. Triggered hourly by default.
 
 = `sscribe_cleanup_sessions` =
-Cron hook for cleaning up stale export sessions. Triggered daily.
+Cron hook for cleaning up stale export sessions. Triggered hourly by default.
