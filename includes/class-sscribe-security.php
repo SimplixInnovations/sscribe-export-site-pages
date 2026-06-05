@@ -109,7 +109,10 @@ class SScribe_Security {
 			if ( ! function_exists( 'WP_Filesystem' ) ) {
 				require_once ABSPATH . 'wp-admin/includes/file.php';
 			}
-			if ( ! WP_Filesystem( request_filesystem_credentials( 'admin.php', '', false, false, null ) ) ) {
+			// Avoid using request_filesystem_credentials() here because it is not available
+			// during activation or cron. Initialize WP_Filesystem without credentials so it
+			// uses direct access if possible, or fall back to php's native functions.
+			if ( ! WP_Filesystem() ) {
 				// Fallback to rmdir if WP Filesystem fails.
 				// phpcs:ignore WordPress.WP.AlternativeFunctions.file_system_operations_rmdir
 				return @rmdir( $dir );
@@ -136,7 +139,10 @@ class SScribe_Security {
 				require_once ABSPATH . 'wp-admin/includes/file.php';
 			}
 			$chmod = null === $chmod ? ( defined( 'FS_CHMOD_FILE' ) ? FS_CHMOD_FILE : 0644 ) : $chmod;
-			if ( ! WP_Filesystem( request_filesystem_credentials( 'admin.php', '', false, false, null ) ) ) {
+			// Avoid using request_filesystem_credentials() here because it is not available
+			// during activation or cron. Initialize WP_Filesystem without credentials so it
+			// uses direct access if possible, or fall back to php's native functions.
+			if ( ! WP_Filesystem() ) {
 				// Fallback to direct file_put_contents with proper locking.
 				// phpcs:ignore WordPress.WP.AlternativeFunctions.file_system_operations_file_put_contents
 				if ( false === file_put_contents( $file_path, $content, LOCK_EX ) ) {

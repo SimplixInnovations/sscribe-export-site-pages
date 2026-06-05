@@ -54,6 +54,10 @@ class SScribe {
 		$container->singleton( SScribe_Page_Collector::class, fn() => new SScribe_Page_Collector() );
 		$container->singleton( SScribe_Session::class, fn() => new SScribe_Session() );
 		$container->singleton( SScribe_Filesystem::class, fn() => new SScribe_Filesystem() );
+		$container->singleton(
+			SScribe_Export_Lock_Manager::class,
+			fn( SScribe_Container $c ) => new SScribe_Export_Lock_Manager( $c->get( SScribe_Logger::class ) )
+		);
 
 		// Exporters are registered as factories (bind) rather than singletons because
 		// each export request needs a fresh instance to avoid state pollution between
@@ -123,7 +127,7 @@ class SScribe {
 				$c->get( SScribe_Logger::class ),
 				new SScribe_Export_Auditor(),
 				new SScribe_Export_Rate_Limiter(),
-				new SScribe_Export_Lock_Manager( $c->get( SScribe_Logger::class ) )
+				$c->get( SScribe_Export_Lock_Manager::class )
 			)
 		);
 
