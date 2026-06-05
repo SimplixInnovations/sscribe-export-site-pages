@@ -264,8 +264,7 @@ class SScribe_Batch_Processor {
 
 		if ( $actual_size < $min_size ) {
 			$size_error = sprintf(
-			/* translators: 1: Format, 2: Actual size, 3: Minimum size. */
-
+				/* translators: 1: Format, 2: Actual size, 3: Minimum size. */
 				__( '%1$s file appears empty or corrupted (size: %2$d bytes, minimum: %3$d bytes).', 'sscribe-export-site-pages' ),
 				strtoupper( $format ),
 				$actual_size,
@@ -994,7 +993,6 @@ class SScribe_Batch_Processor {
 			'batch_size'     => $this->batch_size,
 			'message'        => sprintf(
 				/* translators: %d: Number of pages found. */
-
 				__( 'Found %d pages. Starting export...', 'sscribe-export-site-pages' ),
 				$total
 			),
@@ -1392,8 +1390,7 @@ class SScribe_Batch_Processor {
 
 					if ( ! $page_data ) {
 						$error_msg = sprintf(
-						/* translators: %d: Page ID. */
-
+							/* translators: %d: Page ID. */
 							__( 'Failed to collect data for page ID %d.', 'sscribe-export-site-pages' ),
 							$page_id
 						);
@@ -1440,8 +1437,7 @@ class SScribe_Batch_Processor {
 					$pre_export_memory_mb = (int) apply_filters( 'sscribe_min_memory_per_page_mb', 64 );
 					if ( ! $this->is_memory_available( $pre_export_memory_mb ) ) {
 						$error_msg = sprintf(
-						/* translators: %d: Page ID. */
-
+							/* translators: %d: Page ID. */
 							__( 'Skipped page %d - insufficient memory to proceed.', 'sscribe-export-site-pages' ),
 							$page_id
 						);
@@ -1471,8 +1467,7 @@ class SScribe_Batch_Processor {
 					} catch ( \Throwable $e ) {
 
 						$error_msg = sprintf(
-						/* translators: %s: Error message. */
-
+							/* translators: %s: Error message. */
 							__( 'Critical error: %s', 'sscribe-export-site-pages' ),
 							$e->getMessage()
 						);
@@ -1507,8 +1502,7 @@ class SScribe_Batch_Processor {
 					if ( ! $export_success ) {
 						$string_export_errors = array();
 						$error_msg            = sprintf(
-						/* translators: %s: Page title. */
-
+							/* translators: %s: Page title. */
 							__( 'Failed to generate exports for "%s".', 'sscribe-export-site-pages' ),
 							$page_data['title']
 						);
@@ -1870,7 +1864,6 @@ class SScribe_Batch_Processor {
 			'message'        => $memory_paused
 				? sprintf(
 					/* translators: 1: Current page number, 2: Total pages. */
-
 					__( 'Processing %1$d of %2$d pages... (Paused briefly to manage memory - will resume automatically)', 'sscribe-export-site-pages' ),
 					$processed,
 					$total
@@ -1878,14 +1871,12 @@ class SScribe_Batch_Processor {
 				: ( $timeout_paused
 					? sprintf(
 						/* translators: 1: Current page number, 2: Total pages. */
-
 						__( 'Processing %1$d of %2$d pages... (Paused to prevent timeout - will resume automatically)', 'sscribe-export-site-pages' ),
 						$processed,
 						$total
 					)
 					: sprintf(
 						/* translators: 1: Current page number, 2: Total pages. */
-
 						__( 'Processing %1$d of %2$d pages...', 'sscribe-export-site-pages' ),
 						$processed,
 						$total
@@ -2493,7 +2484,6 @@ class SScribe_Batch_Processor {
 				'created_at'        => $session['start_time'] ?? microtime( true ),
 				'message'           => sprintf(
 					/* translators: %d: Number of pages exported. */
-
 					_n(
 						'Export complete! %d page exported successfully.',
 						'Export complete! %d pages exported successfully.',
@@ -2503,7 +2493,6 @@ class SScribe_Batch_Processor {
 					$session['total']
 				) . ( $error_count > 0 ? sprintf(
 					/* translators: %d: Number of errors. */
-
 					' ' . _n( '(%d error)', '(%d errors)', $error_count, 'sscribe-export-site-pages' ),
 					$error_count
 				) : '' ),

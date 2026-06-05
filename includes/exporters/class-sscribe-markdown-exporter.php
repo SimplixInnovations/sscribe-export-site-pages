@@ -81,7 +81,6 @@ class SScribe_Markdown_Exporter implements SScribe_Exporter_Interface {
 				return SScribe_Result::failure(
 					sprintf(
 						/* translators: %s: Page title. */
-
 						__( 'Failed to write Markdown file for "%s".', 'sscribe-export-site-pages' ),
 						$title
 					),
@@ -114,7 +113,6 @@ class SScribe_Markdown_Exporter implements SScribe_Exporter_Interface {
 			return SScribe_Result::failure(
 				sprintf(
 					/* translators: 1: Page title, 2: Error message. */
-
 					__( 'Markdown export failed for "%1$s": %2$s', 'sscribe-export-site-pages' ),
 					$title,
 					$e->getMessage()

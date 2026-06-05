@@ -26,6 +26,11 @@ $sscribe_vendor_aliases = array(
 	'PhpOffice\\PhpWord\\Shared\\Converter'    => 'SScribeVendor\\PhpOffice\\PhpWord\\Shared\\Converter',
 	'PhpOffice\\PhpWord\\Element\\Section'     => 'SScribeVendor\\PhpOffice\\PhpWord\\Element\\Section',
 	'PhpOffice\\PhpWord\\Element\\TextRun'     => 'SScribeVendor\\PhpOffice\\PhpWord\\Element\\TextRun',
+	'Mpdf\\Mpdf'                               => 'SScribeVendor\\Mpdf\\Mpdf',
+	'Mpdf\\HTMLParserMode'                     => 'SScribeVendor\\Mpdf\\HTMLParserMode',
+	'Mpdf\\Output\\Destination'                => 'SScribeVendor\\Mpdf\\Output\\Destination',
+	'Mpdf\\Config\\ConfigVariables'            => 'SScribeVendor\\Mpdf\\Config\\ConfigVariables',
+	'Mpdf\\Config\\FontVariables'              => 'SScribeVendor\\Mpdf\\Config\\FontVariables',
 );
 
 foreach ( $sscribe_vendor_aliases as $sscribe_source => $sscribe_target ) {

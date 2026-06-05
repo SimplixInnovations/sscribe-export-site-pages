@@ -177,7 +177,6 @@ class SScribe {
 
 		$message = sprintf(
 			/* translators: %s: missing dependency class list. */
-
 			__( 'SScribe is missing required vendor dependencies: %s. Run composer install in the plugin directory to restore export functionality.', 'sscribe-export-site-pages' ),
 			implode( ', ', $missing )
 		);

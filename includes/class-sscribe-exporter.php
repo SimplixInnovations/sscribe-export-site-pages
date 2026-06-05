@@ -13,13 +13,13 @@ if ( ! defined( 'ABSPATH' ) ) {
 	exit;
 }
 
-use PhpOffice\PhpWord\Element\Section;
-use PhpOffice\PhpWord\Element\TextRun;
-use PhpOffice\PhpWord\PhpWord;
-use PhpOffice\PhpWord\Settings;
-use PhpOffice\PhpWord\SimpleType\Jc;
-use PhpOffice\PhpWord\Shared\Converter;
-use PhpOffice\PhpWord\IOFactory;
+use SScribeVendor\PhpOffice\PhpWord\Element\Section;
+use SScribeVendor\PhpOffice\PhpWord\Element\TextRun;
+use SScribeVendor\PhpOffice\PhpWord\IOFactory;
+use SScribeVendor\PhpOffice\PhpWord\PhpWord;
+use SScribeVendor\PhpOffice\PhpWord\Settings;
+use SScribeVendor\PhpOffice\PhpWord\Shared\Converter;
+use SScribeVendor\PhpOffice\PhpWord\SimpleType\Jc;
 
 /**
  * Export orchestration and format routing.
@@ -1019,7 +1019,6 @@ class SScribe_Exporter {
 			$this->safe_text(
 				sprintf(
 					/* translators: %s: site name */
-
 					__( '%s | EXTERNAL AUDIT AND DOCUMENTATION', 'sscribe-export-site-pages' ),
 					html_entity_decode( (string) get_bloginfo( 'name' ), ENT_QUOTES | ENT_HTML5, 'UTF-8' )
 				)
@@ -1099,7 +1098,6 @@ class SScribe_Exporter {
 		$lang_display = ! empty( $page_data['language'] ) ? strtoupper( $page_data['language'] ) : __( 'All Languages', 'sscribe-export-site-pages' );
 		$meta_cell->addText(
 			/* translators: %s: language code */
-
 			sprintf( __( 'Target Language: %s', 'sscribe-export-site-pages' ), $lang_display ),
 			array(
 				'name'  => $this->font_name,
@@ -1136,7 +1134,6 @@ class SScribe_Exporter {
 			$meta_cell->addText(
 				$this->safe_text(
 					/* translators: %s: breadcrumb path */
-
 					sprintf( __( 'Site Path: %s', 'sscribe-export-site-pages' ), $breadcrumb_text )
 				),
 				$this->with_complex_script(
@@ -1461,7 +1458,7 @@ class SScribe_Exporter {
 			__( 'Reading Time', 'sscribe-export-site-pages' ),
 			$reading_time_value > 0
 				? sprintf(
-					/* translators: %d: number of minutes */
+					/* translators: %d: Number of minutes. */
 					_n( '%d minute', '%d minutes', (int) ceil( $reading_time_value ), 'sscribe-export-site-pages' ),
 					(int) ceil( $reading_time_value )
 				)
@@ -1504,7 +1501,6 @@ class SScribe_Exporter {
 		if ( ! empty( $seo_data['source'] ) ) {
 			$section->addText(
 				/* translators: %s: SEO plugin name */
-
 				sprintf( __( 'Source: %s', 'sscribe-export-site-pages' ), $seo_data['source'] ),
 				array(
 					'name'   => $this->font_name,
@@ -1588,7 +1584,6 @@ class SScribe_Exporter {
 			$this->safe_text(
 				sprintf(
 					/* translators: %s: breadcrumb path */
-
 					__( 'Path: %s', 'sscribe-export-site-pages' ),
 					$breadcrumb_text
 				)

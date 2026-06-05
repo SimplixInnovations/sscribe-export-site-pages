@@ -8,7 +8,7 @@
 declare(strict_types=1);
 
 echo "\n===========================================\n";
-echo "  SSCRIBE EXPORT - ENTERPRISE BUILD\n";
+echo "  SSCRIBE EXPORT BUILD\n";
 echo "===========================================\n\n";
 
 $root       = dirname( __DIR__ );
@@ -334,7 +334,7 @@ foreach ( $iterator as $file ) {
 
 echo "     ✅ Copied: $copied files\n";
 
-echo "  🧹 Extreme Optimization: Stripping vendor bloat...\n";
+echo "  Pruning vendor development files...\n";
 $vendor_dir = $plugin_dir . '/vendor-prefixed';
 if ( is_dir( $vendor_dir ) ) {
 	$prune_patterns = array(
@@ -427,4 +427,4 @@ echo "\n===========================================\n";
 echo "  READY FOR WORDPRESS.ORG\n";
 echo "===========================================\n\n";
 
-echo "✅ Build successful! No development files or obscure fonts included.\n\n";
+echo "Build successful. No development files or unused fonts included.\n\n";

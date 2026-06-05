@@ -29,7 +29,7 @@ if ( ! preg_match( "/define\s*\(\s*['\"]SSCRIBE_VERSION['\"]\s*,\s*['\"]([0-9.]+
 $current_version = $matches[1];
 
 echo "\n{$separator}\n";
-echo "  SScribe Enterprise Release — v{$current_version}\n";
+echo "  SScribe Release - v{$current_version}\n";
 echo "{$separator}\n\n";
 
 echo "{$info_mark} Running quality gates...\n\n";

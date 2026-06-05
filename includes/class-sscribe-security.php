@@ -123,18 +123,19 @@ class SScribe_Security {
 	/**
 	 * Write content to a file using WP Filesystem API with fallback.
 	 *
-	 * @param string $file_path File path to write to.
-	 * @param string $content   Content to write.
-	 * @param int    $chmod     Optional chmod mode. Defaults to FS_CHMOD_FILE.
+	 * @param string   $file_path File path to write to.
+	 * @param string   $content   Content to write.
+	 * @param int|null $chmod     Optional chmod mode.
 	 * @return bool True on success, false on failure.
 	 */
-	private static function write_file( string $file_path, string $content, int $chmod = FS_CHMOD_FILE ): bool {
+	private static function write_file( string $file_path, string $content, ?int $chmod = null ): bool {
 		global $wp_filesystem;
 
 		if ( empty( $wp_filesystem ) ) {
 			if ( ! function_exists( 'WP_Filesystem' ) ) {
 				require_once ABSPATH . 'wp-admin/includes/file.php';
 			}
+			$chmod = null === $chmod ? ( defined( 'FS_CHMOD_FILE' ) ? FS_CHMOD_FILE : 0644 ) : $chmod;
 			if ( ! WP_Filesystem( request_filesystem_credentials( 'admin.php', '', false, false, null ) ) ) {
 				// Fallback to direct file_put_contents with proper locking.
 				// phpcs:ignore WordPress.WP.AlternativeFunctions.file_system_operations_file_put_contents
@@ -147,6 +148,8 @@ class SScribe_Security {
 				return true;
 			}
 		}
+
+		$chmod = null === $chmod ? ( defined( 'FS_CHMOD_FILE' ) ? FS_CHMOD_FILE : 0644 ) : $chmod;
 
 		return $wp_filesystem->put_contents( $file_path, $content, $chmod );
 	}
