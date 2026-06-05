@@ -886,7 +886,7 @@
 
 		scheduleNextBatch: function (retryInMs, isRetry) {
 			const self = this;
-			let delay = 0;
+			let delay;
 
 			if (typeof retryInMs === 'number' && isFinite(retryInMs) && retryInMs > 0) {
 				delay = Math.max(0, Math.floor(retryInMs));
@@ -955,7 +955,7 @@
 							const minutes = Math.floor(data.time_remaining / 60);
 							const seconds = data.time_remaining % 60;
 							const strings = sscribe_data.strings || {};
-							let timeStr = '';
+							let timeStr;
 							if (minutes > 0) {
 								timeStr = strings.min_sec_remaining
 									? strings.min_sec_remaining.replace('%1$d', minutes).replace('%2$d', seconds)
