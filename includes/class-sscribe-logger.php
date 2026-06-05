@@ -14,8 +14,8 @@ if ( ! defined( 'ABSPATH' ) ) {
 }
 
 require_once SSCRIBE_PLUGIN_DIR . 'includes/interfaces/interface-sscribe-logger.php';
-	require_once SSCRIBE_PLUGIN_DIR . 'includes/traits/trait-sscribe-logger-common.php';
-	require_once SSCRIBE_PLUGIN_DIR . 'includes/class-sscribe-settings.php';
+require_once SSCRIBE_PLUGIN_DIR . 'includes/traits/trait-sscribe-logger-common.php';
+require_once SSCRIBE_PLUGIN_DIR . 'includes/class-sscribe-settings.php';
 
 /**
  * Main logger implementation for SScribe plugin.

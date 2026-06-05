@@ -239,8 +239,8 @@
 	font-weight: 500;
 	padding: 2px 8px;
 	border-radius: 3px;
-	background: rgba(240, 173, 78, 0.15);
-	border: 1px solid rgba(240, 173, 78, 0.4);
+	background: rgb(240 173 78 / 15%);
+	border: 1px solid rgb(240 173 78 / 40%);
 }
 
 .sscribe-debug-refresh-paused::before {
@@ -327,11 +327,6 @@
 	opacity: 0.5;
 }
 
-.sscribe-debug-empty p {
-	font-size: 14px;
-	line-height: 1.5;
-}
-
 .sscribe-debug-append-loading {
 	padding: 8px 12px;
 	color: var(--sscribe-debug-text-console);
@@ -354,6 +349,8 @@
 .sscribe-debug-empty p {
 	margin: 0;
 	opacity: 0.7;
+	font-size: 14px;
+	line-height: 1.5;
 }
 
 .sscribe-debug-entries {
@@ -664,8 +661,8 @@
 	}
 
 	.sscribe-debug-refresh-paused {
-		background: rgba(240, 173, 78, 0.2);
-		border-color: rgba(240, 173, 78, 0.5);
+		background: rgb(240 173 78 / 20%);
+		border-color: rgb(240 173 78 / 50%);
 		color: #f0ad4e;
 	}
 }
