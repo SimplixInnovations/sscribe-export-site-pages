@@ -322,7 +322,7 @@ class SScribe_HTML_Exporter implements SScribe_Exporter_Interface {
 
 				__( 'Exported from %1$s on %2$s', 'sscribe-export-site-pages' ),
 				$site_name,
-				gmdate( 'Y-m-d H:i' )
+				wp_date( 'Y-m-d H:i' )
 			)
 		) . '</small></p>
 	</footer>

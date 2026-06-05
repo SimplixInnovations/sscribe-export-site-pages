@@ -180,7 +180,12 @@ class SScribe_Admin_Debug {
 
 		$logger = SScribe_Logger::instance( true );
 		// Fetch enough logs for current page plus buffer for accurate total count.
-		$logs = $logger->get_logs( $offset + $limit + 1000 );
+		// Cap fetch count at 5000 lines to prevent unbounded reads on huge log files.
+		// SplFileObject tail-reading prevents file-level OOM, but the resulting array
+		// of entries still occupies memory proportional to the fetch count.
+		$fetch_count = $offset + $limit + 1000;
+		$fetch_count = min( $fetch_count, 5000 );
+		$logs        = $logger->get_logs( $fetch_count );
 
 		$entries = $this->parse_log_entries( $logs, $filter_level, $search, $session_id, true );
 		$total   = count( $entries );
@@ -756,7 +761,8 @@ class SScribe_Admin_Debug {
 
 		// Disable zlib compression to ensure Content-Length is accurate.
 		if ( function_exists( 'ini_set' ) ) {
-			@ini_set( 'zlib.output_compression', 'Off' ); // phpcs:ignore WordPress.PHP.DiscouragedPHPFunctions.runtime_configuration_ini_set
+			// phpcs:ignore WordPress.PHP.IniSet.Risky, Squiz.PHP.DiscouragedFunctions.Discouraged
+			@ini_set( 'zlib.output_compression', 'Off' );
 		}
 
 		$safe_filename = preg_replace( '/[\r\n"\x00]/', '', $filename );

@@ -89,6 +89,9 @@ SScribe uses a session tracking system with crash recovery. If your browser clos
 
 == Upgrade Notice ==
 
+= 1.1.1 =
+Maintenance release: batch processing reliability improvements, crash recovery for interrupted exports, RTL formatting enhancements, and AJAX/security hardening.
+
 = 1.0.0 =
 Initial release. Export WordPress pages to DOCX, PDF, HTML, or Markdown with full multilingual RTL support, SEO metadata integration, and secure ZIP downloads.
 
