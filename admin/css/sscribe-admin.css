@@ -449,7 +449,7 @@ body .sscribe-master-container .sscribe-hero {
 	padding: 0;
 	margin: -1px;
 	overflow: hidden;
-	clip: rect(0, 0, 0, 0);
+	clip-path: inset(50%);
 	white-space: nowrap;
 	border: 0;
 }
@@ -566,7 +566,7 @@ body .sscribe-master-container .sscribe-hero {
 	padding: 0;
 	margin: -1px;
 	overflow: hidden;
-	clip: rect(0, 0, 0, 0);
+	clip-path: inset(50%);
 	white-space: nowrap;
 	border: 0;
 }
@@ -682,7 +682,7 @@ body .sscribe-master-container .sscribe-hero {
 	padding: 0;
 	margin: -1px;
 	overflow: hidden;
-	clip: rect(0, 0, 0, 0);
+	clip-path: inset(50%);
 	white-space: nowrap;
 	border: 0;
 }
@@ -2138,7 +2138,7 @@ body .sscribe-master-container .sscribe-hero {
 	padding: 0;
 	margin: -1px;
 	overflow: hidden;
-	clip: rect(0, 0, 0, 0);
+	clip-path: inset(50%);
 	white-space: nowrap;
 	border: 0;
 }
@@ -2577,7 +2577,7 @@ body .sscribe-master-container .sscribe-hero {
 	padding: 0;
 	margin: -1px;
 	overflow: hidden;
-	clip: rect(0, 0, 0, 0);
+	clip-path: inset(50%);
 	white-space: nowrap;
 	border: 0;
 }
@@ -2585,7 +2585,6 @@ body .sscribe-master-container .sscribe-hero {
 /* Screen Reader Only Content */
 .screen-reader-text {
 	border: 0;
-	clip: rect(1px, 1px, 1px, 1px);
 	clip-path: inset(50%);
 	height: 1px;
 	margin: -1px;
@@ -2594,14 +2593,13 @@ body .sscribe-master-container .sscribe-hero {
 	position: absolute;
 	width: 1px;
 	/* stylelint-disable-next-line declaration-no-important -- Matches WordPress accessibility pattern for hidden text. */
-	word-wrap: normal !important;
+	overflow-wrap: normal !important;
 }
 
 .screen-reader-text:focus {
 	background-color: var(--sscribe-card-bg);
 	/* stylelint-disable-next-line declaration-no-important -- Focused skip links must become visible over hidden state. */
-	clip: auto !important;
-	clip-path: none;
+	clip-path: none !important;
 	color: var(--sscribe-text-main);
 	display: block;
 	font-size: 14px;
