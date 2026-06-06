@@ -448,7 +448,7 @@ $sscribe_export_index    = $sscribe_export_index ?? array();
 				</div>
 		</section>
 
-		<div id="sscribe-progress-area" class="sscribe-status-alert sscribe-status-processing sscribe-hidden" role="status" aria-live="polite" aria-labelledby="sscribe-status-text" hidden>
+		<div id="sscribe-progress-area" class="sscribe-status-alert sscribe-status-processing sscribe-hidden" role="status" aria-live="polite" aria-labelledby="sscribe-status-text">
 			<div class="sscribe-spinner" aria-hidden="true">
 				<img src="<?php echo esc_url( SScribe_Helpers::icon_url( 'loader' ) ); ?>" width="40" height="40" alt="" class="sscribe-spinner-img">
 			</div>
@@ -504,7 +504,7 @@ $sscribe_export_index    = $sscribe_export_index ?? array();
 			</div>
 		</div>
 
-		<div id="sscribe-download-area" class="sscribe-status-alert sscribe-status-success sscribe-hidden" role="status" aria-live="polite" hidden>
+		<div id="sscribe-download-area" class="sscribe-status-alert sscribe-status-success sscribe-hidden" role="status" aria-live="polite">
 			<div class="sscribe-status-icon" aria-hidden="true">
 				<?php // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- SVG sanitized in get_icon().
 				?>
@@ -530,7 +530,7 @@ $sscribe_export_index    = $sscribe_export_index ?? array();
 			</div>
 		</div>
 
-		<div id="sscribe-error-area" class="sscribe-status-alert sscribe-status-error sscribe-hidden" role="alert" aria-live="assertive" hidden>
+		<div id="sscribe-error-area" class="sscribe-status-alert sscribe-status-error sscribe-hidden" role="alert" aria-live="assertive">
 			<div class="sscribe-status-icon" aria-hidden="true">
 				<?php // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- SVG sanitized in get_icon().
 				?>
@@ -541,10 +541,10 @@ $sscribe_export_index    = $sscribe_export_index ?? array();
 					<?php esc_html_e( 'Export Failed', 'sscribe-export-site-pages' ); ?>
 				</h4>
 				<p id="sscribe-error-text" class="sscribe-status-desc"></p>
-				<div id="sscribe-error-guidance" class="sscribe-error-guidance sscribe-hidden" hidden>
+				<div id="sscribe-error-guidance" class="sscribe-error-guidance sscribe-hidden">
 					<p id="sscribe-error-guidance-text" class="sscribe-guidance-text"></p>
 				</div>
-				<div id="sscribe-error-technical-details" class="sscribe-debug-details sscribe-hidden" hidden>
+				<div id="sscribe-error-technical-details" class="sscribe-debug-details sscribe-hidden">
 					<pre class="sscribe-debug-pre" aria-label="<?php esc_attr_e( 'Technical error details', 'sscribe-export-site-pages' ); ?>"></pre>
 				</div>
 				<div class="sscribe-error-actions">
@@ -572,7 +572,7 @@ $sscribe_export_index    = $sscribe_export_index ?? array();
 						</div>
 						<span class="sscribe-badge"><?php esc_html_e( 'Auto-deletes in 72 hours', 'sscribe-export-site-pages' ); ?></span>
 					</div>
-					<div class="sscribe-bulk-bar sscribe-hidden" id="sscribe-bulk-bar" hidden>
+					<div class="sscribe-bulk-bar sscribe-hidden" id="sscribe-bulk-bar">
 						<div class="sscribe-bulk-left">
 							<label class="sscribe-bulk-select-all">
 								<input type="checkbox" id="sscribe-bulk-select-all" aria-label="<?php esc_attr_e( 'Select all exports', 'sscribe-export-site-pages' ); ?>">
@@ -585,7 +585,7 @@ $sscribe_export_index    = $sscribe_export_index ?? array();
 							<button type="button" class="sscribe-button sscribe-button-sm sscribe-button-danger" id="sscribe-bulk-delete-btn" title="<?php esc_attr_e( 'Delete selected exports', 'sscribe-export-site-pages' ); ?>" aria-label="<?php esc_attr_e( 'Delete selected exports', 'sscribe-export-site-pages' ); ?>"><?php esc_html_e( 'Delete', 'sscribe-export-site-pages' ); ?></button>
 						</div>
 					</div>
-					<div class="sscribe-history-skeleton sscribe-hidden" id="sscribe-history-skeleton" hidden>
+					<div class="sscribe-history-skeleton sscribe-hidden" id="sscribe-history-skeleton">
 						<div class="sscribe-history-skeleton-row"><span class="sscribe-skeleton sscribe-skeleton-icon"></span><span class="sscribe-skeleton sscribe-skeleton-title"></span></div>
 						<div class="sscribe-history-skeleton-row"><span class="sscribe-skeleton sscribe-skeleton-icon"></span><span class="sscribe-skeleton sscribe-skeleton-title" style="width:140px;"></span></div>
 						<div class="sscribe-history-skeleton-row"><span class="sscribe-skeleton sscribe-skeleton-icon"></span><span class="sscribe-skeleton sscribe-skeleton-title" style="width:200px;"></span></div>
@@ -676,7 +676,7 @@ $sscribe_export_index    = $sscribe_export_index ?? array();
 								<?php esc_html_e( 'Refresh Data', 'sscribe-export-site-pages' ); ?>
 							</button>
 						</div>
-						<p class="sscribe-support-feedback sscribe-hidden" id="sscribe-support-feedback" aria-live="polite" hidden></p>
+						<p class="sscribe-support-feedback sscribe-hidden" id="sscribe-support-feedback" aria-live="polite"></p>
 					</div>
 
 					<div class="sscribe-support-main">
@@ -691,7 +691,7 @@ $sscribe_export_index    = $sscribe_export_index ?? array();
 								<label class="screen-reader-text" for="sscribe-support-copy-text"><?php esc_html_e( 'Support information text', 'sscribe-export-site-pages' ); ?></label>
 								<textarea id="sscribe-support-copy-text" class="sscribe-support-copy-text" readonly inputmode="none"></textarea>
 							</div>
-							<div class="sscribe-hidden" id="sscribe-support-grid" aria-live="polite" hidden></div>
+							<div class="sscribe-hidden" id="sscribe-support-grid" aria-live="polite"></div>
 						</div>
 					</div>
 				</div>
