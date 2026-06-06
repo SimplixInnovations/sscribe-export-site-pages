@@ -2170,7 +2170,7 @@
 
 			$textarea.val('');
 			$btn.prop('disabled', true);
-			$grid.html(
+			$grid.removeClass('sscribe-hidden').html(
 				'<div class="sscribe-support-loading">' +
 					'<span class="sscribe-loading-spinner"></span>' +
 					'<span>' +

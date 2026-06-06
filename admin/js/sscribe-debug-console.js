@@ -342,7 +342,14 @@
 					dialog.setAttribute('role', 'dialog');
 					dialog.setAttribute('aria-modal', 'true');
 					dialog.setAttribute('aria-labelledby', 'sscribe-debug-help-title');
-					dialog.appendChild(helpContent.cloneNode(true));
+					// The source element is `hidden` in the template (so it
+					// doesn't render inline). Strip `hidden` from the clone so the
+					// dialog body isn't caught by the UA `[hidden]` stylesheet.
+					const helpClone = helpContent.cloneNode(true);
+					if (helpClone && helpClone.removeAttribute) {
+						helpClone.removeAttribute('hidden');
+					}
+					dialog.appendChild(helpClone);
 					const priorFocus = document.activeElement;
 					const focusableSelectors =
 						'a[href], button:not([disabled]), textarea:not([disabled]), input:not([disabled]), select:not([disabled]), [tabindex]:not([tabindex="-1"])';
