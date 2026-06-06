@@ -289,7 +289,7 @@
 						.removeClass('sscribe-tab-active')
 						.attr('aria-hidden', 'true')
 						.attr('tabindex', '-1')
-						.removeAttr('hidden');
+						.prop('hidden', true);
 
 					self.releaseFocusTrap($panel[0]);
 				}
