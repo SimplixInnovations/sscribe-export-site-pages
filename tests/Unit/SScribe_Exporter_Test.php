@@ -671,4 +671,86 @@ class SScribe_Exporter_Test extends TestCase {
 		$exporter->generate_docx( array(), $this->temp_dir );
 		$this->assertFalse( $exporter->generate_docx( array(), $this->temp_dir ) );
 	}
+
+	/**
+	 * Regression test: DOCX must open in Word without a repair dialog.
+	 * Exercises the full pipeline: table, nested list, and special characters
+	 * including &, <, >, ", em-dash, en-dash, smart quotes, RTL Arabic.
+	 */
+	public function test_generate_docx_with_table_list_and_special_chars_is_valid(): void {
+		if ( ! class_exists( 'ZipArchive' ) ) {
+			$this->markTestSkipped( 'ZipArchive extension not available' );
+		}
+
+		$exporter = new SScribe_Exporter( $this->parser );
+
+		$page_data = array(
+			'title'          => 'Test & <Page> "with quotes" — em-dash – en-dash ‘smart’ “quotes”',
+			'content'        => '<h1>Heading with &amp; &lt;chars&gt;</h1>'
+				. '<p>Body with <strong>bold</strong>, <em>italic</em>, and a <a href="https://example.com/?a=1&b=2">link</a>.</p>'
+				. '<table><thead><tr><th>Col 1 &amp; Name</th><th>Col 2</th></tr></thead>'
+				. '<tbody><tr><td>Value "A"</td><td>Value \'B\'</td></tr>'
+				. '<tr><td>Long-dash — em</td><td>Short-dash – en</td></tr></tbody></table>'
+				. '<ul><li>Item 1<ul><li>Nested 1.1</li><li>Nested 1.2</li></ul></li><li>Item 2</li></ul>'
+				. '<blockquote>Quote with "embedded" — special — chars.</blockquote>'
+				. '<pre><code>if (x &lt; 10 &amp;&amp; y &gt; 0) { return "ok"; }</code></pre>'
+				. '<p dir="rtl">النص العربي مع علامات &amp; الرموز الخاصة &lt;html&gt; tags</p>',
+			'url'            => 'https://example.com/test?lang=en&page=1',
+			'permalink'      => 'https://example.com/test',
+			'author'         => 'Author & Co.',
+			'date_published' => '2024-01-15',
+			'date_modified'  => '2024-02-20',
+			'word_count'     => 100,
+			'language'       => 'en',
+			'seo'            => array(
+				'meta_description' => 'A test page with &amp; special <chars> — all',
+				'focus_keyword'    => 'test & keyword',
+				'source'           => 'Yoast & Co.',
+			),
+		);
+
+		$result = $exporter->generate_docx( $page_data, $this->temp_dir );
+
+		$this->assertIsString( $result, 'DOCX generation should succeed' );
+		$this->assertFileExists( $result );
+		$this->assertGreaterThan( 0, filesize( $result ), 'DOCX should be non-empty' );
+
+		// Verify DOCX is a valid ZIP archive.
+		$zip = new \ZipArchive();
+		$opened = $zip->open( $result );
+		$this->assertTrue( $opened === true, 'Generated file must be a valid ZIP archive' );
+		$this->assertNotFalse( $zip->locateName( 'word/document.xml' ), 'DOCX must contain word/document.xml' );
+		$zip->close();
+
+		// Extract and inspect document.xml to confirm special chars survived sanitization.
+		$zip = new \ZipArchive();
+		$zip->open( $result );
+		$xml = $zip->getFromName( 'word/document.xml' );
+		$zip->close();
+
+		$this->assertIsString( $xml );
+		$this->assertStringContainsString( '<w:document', $xml, 'document.xml must be a valid OOXML document' );
+		$this->assertStringContainsString( 'Heading with', $xml, 'Heading text must be present' );
+		$this->assertStringContainsString( 'bold', $xml, 'Bold text must be present' );
+		$this->assertStringContainsString( 'Nested 1.1', $xml, 'Nested list items must be rendered' );
+		$this->assertStringContainsString( 'Col 1', $xml, 'Table headers must be rendered' );
+		$this->assertStringContainsString( '&quot;A&quot;', $xml, 'Quoted table cell must be XML-escaped' );
+		$this->assertStringContainsString( '&amp;', $xml, 'Ampersands must be XML-escaped' );
+		$this->assertStringContainsString( '&lt;', $xml, 'Less-than must be XML-escaped' );
+		$this->assertStringContainsString( 'em', $xml, 'Em-dash content must be rendered' );
+		$this->assertStringContainsString( 'return ', $xml, 'Code block content must be rendered' );
+		$this->assertStringNotContainsString( "\x00", $xml, 'Null bytes must be stripped' );
+		$this->assertStringNotContainsString( "\x07", $xml, 'Control chars must be stripped' );
+
+		// Verify no broken XML (would indicate invalid encoding).
+		libxml_use_internal_errors( true );
+		$doc  = new \DOMDocument();
+		$loaded = $doc->loadXML( $xml );
+		libxml_clear_errors();
+		$this->assertTrue( $loaded, 'document.xml must be valid XML' );
+
+		if ( file_exists( $result ) ) {
+			unlink( $result );
+		}
+	}
 }

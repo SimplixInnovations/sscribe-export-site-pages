@@ -242,9 +242,9 @@ class SScribe_Exporter {
 			);
 		}
 
-		// NOTE: Do NOT apply htmlspecialchars() here. PHPWord performs its own
-		// XML encoding internally (PhpWord >= 1.5), so htmlspecialchars would cause
-		// double-encoding. The character-stripping logic above is sufficient.
+		// PHPWord's output escaping is enabled in generate_docx() (Settings::setOutputEscapingEnabled(true)),
+		// so we do not pre-escape XML entities here. Pre-escaping would cause double-encoding
+		// (e.g. "&amp;" becoming "&amp;amp;") and break Word's display of legitimate ampersands.
 
 		return $text;
 	}
@@ -495,6 +495,8 @@ class SScribe_Exporter {
 			if ( ! class_exists( '\SScribeVendor\PhpOffice\PhpWord\PhpWord' ) ) {
 				throw new \RuntimeException( 'The PhpWord library is required to generate DOCX files.' );
 			}
+
+			\SScribeVendor\PhpOffice\PhpWord\Settings::setOutputEscapingEnabled( true );
 
 			$php_word = new \SScribeVendor\PhpOffice\PhpWord\PhpWord();
 
@@ -1097,8 +1099,10 @@ class SScribe_Exporter {
 		);
 		$lang_display = ! empty( $page_data['language'] ) ? strtoupper( $page_data['language'] ) : __( 'All Languages', 'sscribe-export-site-pages' );
 		$meta_cell->addText(
-			/* translators: %s: language code */
-			sprintf( __( 'Target Language: %s', 'sscribe-export-site-pages' ), $lang_display ),
+			$this->safe_text(
+				/* translators: %s: language code */
+				sprintf( __( 'Target Language: %s', 'sscribe-export-site-pages' ), $lang_display )
+			),
 			array(
 				'name'  => $this->font_name,
 				'size'  => 10,
@@ -1500,13 +1504,15 @@ class SScribe_Exporter {
 
 		if ( ! empty( $seo_data['source'] ) ) {
 			$section->addText(
-				/* translators: %s: SEO plugin name */
-				sprintf( __( 'Source: %s', 'sscribe-export-site-pages' ), $seo_data['source'] ),
+				$this->safe_text(
+					/* translators: %s: SEO plugin name */
+					sprintf( __( 'Source: %s', 'sscribe-export-site-pages' ), $seo_data['source'] )
+				),
 				array(
 					'name'   => $this->font_name,
 					'size'   => 9,
 					'italic' => true,
-					'color'  => $this->colors['body'],
+					'color' => $this->colors['body'],
 				),
 				$this->get_para_style()
 			);
