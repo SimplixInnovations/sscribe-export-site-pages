@@ -171,6 +171,9 @@
 			this.clearBtnOriginalText = this.$clearBtn.text();
 			this.$exportBtn = $('#sscribe-debug-export-btn');
 			this.$rotatedBody = $('#sscribe-debug-rotated-body');
+			this.$rotatedDetails = $('#sscribe-debug-rotated-details');
+			this.$rotatedHint = $('.sscribe-debug-rotated-hint');
+			this.$helpContent = $('#sscribe-debug-help-content');
 			this.$refreshPaused = $('#sscribe-debug-refresh-paused');
 		},
 
@@ -207,7 +210,7 @@
 
 		unbindToggleHandler: function () {
 			if (this._toggleHandler) {
-				const rotatedEl = document.getElementById('sscribe-debug-rotated-details');
+				const rotatedEl = this.$rotatedDetails && this.$rotatedDetails[0];
 				if (rotatedEl) {
 					rotatedEl.removeEventListener('toggle', this._toggleHandler);
 				}
@@ -288,7 +291,7 @@
 				if (!self.isViewingRotated) {
 					self.fetchLogs();
 				}
-				const rotatedEl = document.getElementById('sscribe-debug-rotated-details');
+				const rotatedEl = self.$rotatedDetails && self.$rotatedDetails[0];
 				if (rotatedEl && rotatedEl.open) {
 					self.fetchRotatedLogs();
 				}
@@ -328,7 +331,7 @@
 			});
 
 			this.$container.on('click.sscribe', '#sscribe-debug-help-btn', function () {
-				const helpContent = document.getElementById('sscribe-debug-help-content');
+				const helpContent = self.$helpContent && self.$helpContent[0];
 				if (helpContent) {
 					const overlay = document.createElement('div');
 					overlay.style.cssText = 'position:fixed;inset:0;background:rgb(0 0 0 / 50%);z-index:9999998;';
@@ -399,10 +402,10 @@
 				self.exportLogs();
 			});
 
-			const rotatedEl = document.getElementById('sscribe-debug-rotated-details');
+			const rotatedEl = this.$rotatedDetails && this.$rotatedDetails[0];
 			if (rotatedEl) {
 				this._toggleHandler = function () {
-					const $hint = document.querySelector('.sscribe-debug-rotated-hint');
+					const $hint = self.$rotatedHint && self.$rotatedHint[0];
 					if ($hint) {
 						$hint.textContent = rotatedEl.open ? 'Click to collapse' : 'Click to expand';
 					}
@@ -506,7 +509,7 @@
 			this.fetchLogs();
 			this.updateExportButtonScope();
 
-			const rotatedEl = document.getElementById('sscribe-debug-rotated-details');
+			const rotatedEl = this.$rotatedDetails && this.$rotatedDetails[0];
 			if (rotatedEl && rotatedEl.open) {
 				this.fetchRotatedLogs();
 			}
@@ -936,7 +939,7 @@
 			// "wasAtBottom" heuristic over — a smaller filtered list would
 			// otherwise jump to the bottom of content the user never scrolled
 			// into.
-			const consoleBody = document.getElementById('sscribe-debug-console-body');
+			const consoleBody = this.$consoleBody && this.$consoleBody[0];
 
 			let scrollTop = 0;
 			let wasAtBottom = false;
