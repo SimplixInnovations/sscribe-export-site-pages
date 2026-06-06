@@ -313,7 +313,7 @@
 			const self = this;
 
 			$('.sscribe-status-card-label').addClass('sscribe-loading');
-			$('#sscribe-post-count, #sscribe-both-count').addClass('sscribe-loading-count');
+			$('#sscribe-page-count, #sscribe-post-count, #sscribe-both-count').addClass('sscribe-loading-count');
 
 			if (self._countsXHR && self._countsXHR.abort) {
 				self._countsXHR.abort();
@@ -329,26 +329,32 @@
 					post_type: postType,
 				},
 				success: function (response) {
-					if (response.success && response.data.counts) {
-						self.updateStatusCounts(response.data.counts);
+					if (response.success && response.data) {
+						const allCounts = response.data.counts || {};
+						const pageCounts = response.data.counts_page || allCounts;
+						const postCounts = response.data.counts_post || {};
+						const anyCounts = response.data.counts_any || {};
+
+						self.updateStatusCounts(allCounts);
+
+						const pageTotal = self.parseLocalizedInt(pageCounts.all) || 0;
+						const postTotal = self.parseLocalizedInt(postCounts.all) || 0;
+						const anyTotal = self.parseLocalizedInt(anyCounts.all) || 0;
+
+						$('#sscribe-page-count').text(pageTotal.toLocaleString());
+						$('#sscribe-post-count').text(postTotal.toLocaleString());
+						$('#sscribe-both-count').text(anyTotal.toLocaleString());
+
+						self._countsLoaded = true;
 						self.updateConfigSummary();
 						self.updateExportButton();
-
-						const total = self.parseLocalizedInt(response.data.counts.all) || 0;
-						if (postType === 'page') {
-							$('#sscribe-page-count').text(total.toLocaleString());
-						} else if (postType === 'post') {
-							$('#sscribe-post-count').text(total.toLocaleString());
-						} else if (postType === 'any') {
-							$('#sscribe-both-count').text(total.toLocaleString());
-						}
 					}
 					$('.sscribe-status-card-label').removeClass('sscribe-loading');
-					$('#sscribe-post-count, #sscribe-both-count').removeClass('sscribe-loading-count');
+					$('#sscribe-page-count, #sscribe-post-count, #sscribe-both-count').removeClass('sscribe-loading-count');
 				},
 				error: function () {
 					$('.sscribe-status-card-label').removeClass('sscribe-loading');
-					$('#sscribe-post-count, #sscribe-both-count').removeClass('sscribe-loading-count');
+					$('#sscribe-page-count, #sscribe-post-count, #sscribe-both-count').removeClass('sscribe-loading-count');
 				},
 			});
 
@@ -369,6 +375,13 @@
 					return;
 				}
 
+				if (self._langXHRsByCode && self._langXHRsByCode[langCode] && self._langXHRsByCode[langCode].abort) {
+					self._langXHRsByCode[langCode].abort();
+				}
+				if (!self._langXHRsByCode) {
+					self._langXHRsByCode = {};
+				}
+
 				const xhr = $.ajax({
 					url: sscribe_data.ajaxurl,
 					type: 'POST',
@@ -380,12 +393,21 @@
 						post_type: postType,
 					},
 					success: function (response) {
-						if (response.success && response.data.counts) {
-							const total = self.parseLocalizedInt(response.data.counts.all) || 0;
-							$('input[name="sscribe_language"][value="' + langCode + '"]')
-								.closest('.sscribe-lang-card-label')
-								.find('.sscribe-lang-count')
-								.text(total.toLocaleString());
+						if (response.success && response.data) {
+							const pageCounts = response.data.counts_page || response.data.counts || {};
+							const postCounts = response.data.counts_post || {};
+							const anyCounts = response.data.counts_any || {};
+
+							const pageTotal = self.parseLocalizedInt(pageCounts.all) || 0;
+							const postTotal = self.parseLocalizedInt(postCounts.all) || 0;
+							const anyTotal = self.parseLocalizedInt(anyCounts.all) || 0;
+
+							const $langLabel = $('input[name="sscribe_language"][value="' + langCode + '"]')
+								.closest('.sscribe-lang-card-label');
+							$langLabel.find('.sscribe-lang-count').text(anyTotal.toLocaleString());
+							$langLabel.attr('data-count-page', pageTotal);
+							$langLabel.attr('data-count-post', postTotal);
+							$langLabel.attr('data-count-any', anyTotal);
 						}
 					},
 					error: function () {},
@@ -397,6 +419,7 @@
 					},
 				});
 				self._langCountsXHRs.push(xhr);
+				self._langXHRsByCode[langCode] = xhr;
 			});
 		},
 
@@ -521,6 +544,10 @@
 			}
 			const self = this;
 			clearTimeout(this._configSummaryDebounceTimer);
+			if (!this._countsLoaded || count === 0) {
+				$('#sscribe-summary-time').text(sscribe_data.strings.summary_time_hint || 'See Preview');
+				return;
+			}
 			this._configSummaryDebounceTimer = setTimeout(function () {
 				self._configSummaryXHR = $.ajax({
 					url: sscribe_data.ajaxurl,
@@ -2081,10 +2108,6 @@
 			html +=
 				'<p class="sscribe-preview-note">' +
 				this.escapeHtml(strings.preview_fallback_note || 'Only the first few pages are shown in the preview.') +
-				'</p>';
-			html +=
-				'<p class="sscribe-preview-context">' +
-				this.escapeHtml(strings.summary_time_hint || 'See Preview') +
 				'</p>';
 			html += '</div>';
 

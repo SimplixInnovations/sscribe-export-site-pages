@@ -497,16 +497,6 @@ class SScribe_Page_Collector {
 	}
 
 	/**
-	 * Get total pages count (alias).
-	 *
-	 * @param string $language Language code.
-	 * @return int
-	 */
-	public function get_total_pages( string $language = '' ): int {
-		return $this->get_page_count_only( $language );
-	}
-
-	/**
 	 * Get full page data by ID.
 	 *
 	 * Note: Uses a static guard to prevent nested the_content filter calls.
