@@ -282,16 +282,12 @@
 					$panel
 						.addClass('sscribe-tab-active')
 						.removeAttr('aria-hidden')
-						.attr('tabindex', '0')
-						.removeAttr('hidden')
-						.prop('hidden', false);
+						.attr('tabindex', '0');
 				} else {
 					$panel
 						.removeClass('sscribe-tab-active')
 						.attr('aria-hidden', 'true')
-						.attr('tabindex', '-1')
-						.attr('hidden', 'hidden')
-						.prop('hidden', true);
+						.attr('tabindex', '-1');
 
 					self.releaseFocusTrap($panel[0]);
 				}
@@ -402,9 +398,14 @@
 							const postTotal = self.parseLocalizedInt(postCounts.all) || 0;
 							const anyTotal = self.parseLocalizedInt(anyCounts.all) || 0;
 
+							const currentPostType = $('input[name="sscribe_post_type"]:checked').val() || 'page';
+							const displayTotal = 'post' === currentPostType
+								? postTotal
+								: ( 'any' === currentPostType ? anyTotal : pageTotal );
+
 							const $langLabel = $('input[name="sscribe_language"][value="' + langCode + '"]')
 								.closest('.sscribe-lang-card-label');
-							$langLabel.find('.sscribe-lang-count').text(anyTotal.toLocaleString());
+							$langLabel.find('.sscribe-lang-count').text(displayTotal.toLocaleString());
 							$langLabel.attr('data-count-page', pageTotal);
 							$langLabel.attr('data-count-post', postTotal);
 							$langLabel.attr('data-count-any', anyTotal);
