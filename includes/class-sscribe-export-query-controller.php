@@ -170,19 +170,29 @@ class SScribe_Export_Query_Controller {
 			$post_type = 'page';
 		}
 
-		if ( 'any' === $post_type ) {
-			$page_counts = $this->collector->get_post_status_counts( $language, 'page' );
-			$post_counts = $this->collector->get_post_status_counts( $language, 'post' );
-			$counts      = array();
-			$all_keys    = array_unique( array_merge( array_keys( $page_counts ), array_keys( $post_counts ) ) );
-			foreach ( $all_keys as $key ) {
-				$counts[ $key ] = ( $page_counts[ $key ] ?? 0 ) + ( $post_counts[ $key ] ?? 0 );
-			}
-		} else {
-			$counts = $this->collector->get_post_status_counts( $language, $post_type );
+		// Always return counts for ALL post types so the JS side can keep all three
+		// counters (page, post, any) in sync without firing a second AJAX call.
+		$page_counts = $this->collector->get_post_status_counts( $language, 'page' );
+		$post_counts = $this->collector->get_post_status_counts( $language, 'post' );
+
+		$any_counts = array();
+		$all_keys   = array_unique( array_merge( array_keys( $page_counts ), array_keys( $post_counts ) ) );
+		foreach ( $all_keys as $key ) {
+			$any_counts[ $key ] = ( $page_counts[ $key ] ?? 0 ) + ( $post_counts[ $key ] ?? 0 );
 		}
 
-		SScribe_AJAX_Guard::success( array( 'counts' => $counts ) );
+		// The "active" counts (for the currently selected post type) keep the
+		// existing single-status structure so legacy status-card logic still works.
+		$counts = 'any' === $post_type ? $any_counts : ( 'page' === $post_type ? $page_counts : $post_counts );
+
+		SScribe_AJAX_Guard::success(
+			array(
+				'counts'      => $counts,
+				'counts_page' => $page_counts,
+				'counts_post' => $post_counts,
+				'counts_any'  => $any_counts,
+			)
+		);
 	}
 
 	/**

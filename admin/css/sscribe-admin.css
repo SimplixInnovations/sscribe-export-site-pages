@@ -1859,11 +1859,6 @@ body .sscribe-master-container .sscribe-hero {
 	font-size: 13px;
 }
 
-.sscribe-preview-context {
-	font-size: 12px;
-	color: var(--sscribe-text-secondary);
-}
-
 /* ============================================
 	LOG DISPLAY
 	============================================ */

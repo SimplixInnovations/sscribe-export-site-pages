@@ -241,13 +241,13 @@ class SScribe_Markdown_Exporter implements SScribe_Exporter_Interface {
 		$md = $this->convert_horizontal_rules( $md );
 		$md = $this->convert_details( $md );
 
-		// Decode HTML entities AFTER stripping all tags so that any HTML-like
-		// characters that resulted from decoding (e.g. a literal <div> string)
-		// cannot be misinterpreted as HTML tags by wp_strip_all_tags().
-		// Code block content is already protected by triple-backtick fences at
-		// this point; html_entity_decode() only affects the remaining content.
-		$md = wp_strip_all_tags( $md );
+		// Decode HTML entities BEFORE stripping tags so the tag stripper does
+		// not mis-handle multibyte UTF-8 sequences (e.g. Arabic) that were
+		// entity-encoded. The stripper internally calls html_entity_decode()
+		// with its own charset, which can corrupt UTF-8 strings if it runs
+		// before we decode with an explicit 'UTF-8' encoding.
 		$md = html_entity_decode( $md, ENT_QUOTES | ENT_HTML5, 'UTF-8' );
+		$md = wp_strip_all_tags( $md );
 
 		// Escape Markdown syntax characters at line-start positions in body content
 		// to prevent literal characters from being interpreted as Markdown.
@@ -505,7 +505,17 @@ class SScribe_Markdown_Exporter implements SScribe_Exporter_Interface {
 			// libxml_use_internal_errors(true) above, and libxml_get_errors() can be
 			// inspected after loadHTML() to detect and log parse failures without
 			// silently swallowing fatal libxml errors that could indicate corruption.
-			$dom->loadHTML( '<!DOCTYPE html><html><body>' . $html . '</body></html>', LIBXML_HTML_NOIMPLIED | LIBXML_HTML_NODEFDTD );
+			// The <meta charset> tag ensures DOMDocument interprets the input as UTF-8
+			// and does not fall back to ISO-8859-1 (which would corrupt multibyte
+			// characters like Arabic, Hebrew, CJK). The LIBXML_NONET flag prevents
+			// any network access during parsing.
+			$wrapped = '<!DOCTYPE html><html><head>'
+				. '<meta http-equiv="Content-Type" content="text/html; charset=UTF-8">'
+				. '</head><body>' . $html . '</body></html>';
+			$dom->loadHTML(
+				$wrapped,
+				LIBXML_HTML_NOIMPLIED | LIBXML_HTML_NODEFDTD | LIBXML_NONET
+			);
 			$libxml_errors = libxml_get_errors();
 			if ( ! empty( $libxml_errors ) ) {
 				$this->logger->debug(
