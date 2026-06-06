@@ -135,4 +135,86 @@ class SScribe_Export_Rate_Limiter_Test extends TestCase {
 
 		$this->assertFalse( $limiter->check_rate_limit(), '201st request should be denied' );
 	}
+
+	/**
+	 * Regression: HTTP_CF_CONNECTING_IP must be validated as a real IP.
+	 * Before the fix, the header was used after only sanitize_text_field(),
+	 * allowing a non-IP string to bypass per-IP rate limiting via header
+	 * spoofing when the server was not actually behind Cloudflare.
+	 */
+	public function test_get_client_ip_rejects_invalid_cf_header(): void {
+		$limiter  = new \SScribe_Export_Rate_Limiter();
+		$method   = new \ReflectionMethod( \SScribe_Export_Rate_Limiter::class, 'get_client_ip' );
+		$method->setAccessible( true );
+
+		$original_cf  = $_SERVER['HTTP_CF_CONNECTING_IP']  ?? null;
+		$original_xf  = $_SERVER['HTTP_X_FORWARDED_FOR']   ?? null;
+		$original_ra  = $_SERVER['REMOTE_ADDR']           ?? null;
+
+		$_SERVER['HTTP_CF_CONNECTING_IP'] = '<script>alert(1)</script>';
+		$_SERVER['HTTP_X_FORWARDED_FOR']  = 'not-an-ip';
+		$_SERVER['REMOTE_ADDR']           = '203.0.113.5';
+
+		try {
+			$ip = $method->invoke( $limiter );
+			$this->assertSame( '203.0.113.5', $ip, 'Malformed CF/XF headers must fall through to REMOTE_ADDR' );
+		} finally {
+			if ( null === $original_cf ) {
+				unset( $_SERVER['HTTP_CF_CONNECTING_IP'] );
+			} else {
+				$_SERVER['HTTP_CF_CONNECTING_IP'] = $original_cf;
+			}
+			if ( null === $original_xf ) {
+				unset( $_SERVER['HTTP_X_FORWARDED_FOR'] );
+			} else {
+				$_SERVER['HTTP_X_FORWARDED_FOR'] = $original_xf;
+			}
+			if ( null === $original_ra ) {
+				unset( $_SERVER['REMOTE_ADDR'] );
+			} else {
+				$_SERVER['REMOTE_ADDR'] = $original_ra;
+			}
+		}
+	}
+
+	/**
+	 * Regression: HTTP_X_FORWARDED_FOR must accept IPv6 addresses.
+	 * Before the fix, the regex /^([0-9.]+,?)+$/i only matched IPv4,
+	 * so all IPv6 clients behind a proxy fell through to REMOTE_ADDR
+	 * and were bucketed into a single rate-limit group.
+	 */
+	public function test_get_client_ip_accepts_ipv6_in_x_forwarded_for(): void {
+		$limiter  = new \SScribe_Export_Rate_Limiter();
+		$method   = new \ReflectionMethod( \SScribe_Export_Rate_Limiter::class, 'get_client_ip' );
+		$method->setAccessible( true );
+
+		$original_cf  = $_SERVER['HTTP_CF_CONNECTING_IP']  ?? null;
+		$original_xf  = $_SERVER['HTTP_X_FORWARDED_FOR']   ?? null;
+		$original_ra  = $_SERVER['REMOTE_ADDR']           ?? null;
+
+		$_SERVER['HTTP_CF_CONNECTING_IP'] = '2001:db8::1';
+		$_SERVER['HTTP_X_FORWARDED_FOR']  = '2001:db8::dead:beef';
+		$_SERVER['REMOTE_ADDR']           = '127.0.0.1';
+
+		try {
+			$ip = $method->invoke( $limiter );
+			$this->assertSame( '2001:db8::1', $ip, 'CF takes precedence when valid IPv6' );
+		} finally {
+			if ( null === $original_cf ) {
+				unset( $_SERVER['HTTP_CF_CONNECTING_IP'] );
+			} else {
+				$_SERVER['HTTP_CF_CONNECTING_IP'] = $original_cf;
+			}
+			if ( null === $original_xf ) {
+				unset( $_SERVER['HTTP_X_FORWARDED_FOR'] );
+			} else {
+				$_SERVER['HTTP_X_FORWARDED_FOR'] = $original_xf;
+			}
+			if ( null === $original_ra ) {
+				unset( $_SERVER['REMOTE_ADDR'] );
+			} else {
+				$_SERVER['REMOTE_ADDR'] = $original_ra;
+			}
+		}
+	}
 }

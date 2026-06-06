@@ -130,15 +130,26 @@ class SScribe_Export_Rate_Limiter {
 		$ip = '';
 		if ( isset( $_SERVER['HTTP_CF_CONNECTING_IP'] ) ) {
 			$raw_ip = sanitize_text_field( wp_unslash( $_SERVER['HTTP_CF_CONNECTING_IP'] ) );
-			if ( $raw_ip ) {
+			// filter_var with FILTER_VALIDATE_IP accepts both IPv4 and IPv6 and
+			// rejects arbitrary strings, preventing header-spoofing when the
+			// server is not actually behind Cloudflare.
+			if ( $raw_ip && filter_var( $raw_ip, FILTER_VALIDATE_IP ) ) {
 				$ip = $raw_ip;
 			}
-		} elseif ( isset( $_SERVER['HTTP_X_FORWARDED_FOR'] ) ) {
+		}
+		if ( '' === $ip && isset( $_SERVER['HTTP_X_FORWARDED_FOR'] ) ) {
 			$raw_forwarded = sanitize_text_field( wp_unslash( $_SERVER['HTTP_X_FORWARDED_FOR'] ) );
-			if ( $raw_forwarded && preg_match( '/^([0-9.]+,?)+$/i', $raw_forwarded ) ) {
-				$ip = trim( explode( ',', $raw_forwarded )[0] );
+			if ( $raw_forwarded ) {
+				$first = trim( explode( ',', $raw_forwarded )[0] );
+				// FILTER_VALIDATE_IP (no flag) accepts both IPv4 and IPv6, so
+				// IPv6 clients behind a proxy are no longer bucketed with
+				// REMOTE_ADDR.
+				if ( $first && filter_var( $first, FILTER_VALIDATE_IP ) ) {
+					$ip = $first;
+				}
 			}
-		} elseif ( isset( $_SERVER['REMOTE_ADDR'] ) ) {
+		}
+		if ( '' === $ip && isset( $_SERVER['REMOTE_ADDR'] ) ) {
 			$ip = sanitize_text_field( wp_unslash( $_SERVER['REMOTE_ADDR'] ) );
 		}
 		return $ip ? $ip : '0.0.0.0';

@@ -146,6 +146,12 @@ class SScribe_Content_Parser {
 		'small'      => array(),
 		'mark'       => array(),
 		'ins'        => array( 'datetime' => true ),
+		'hr'         => array( 'class' => true ),
+		'details'    => array(
+			'class' => true,
+			'open'  => true,
+		),
+		'summary'    => array( 'class' => true ),
 	);
 
 	/**
@@ -465,32 +471,35 @@ class SScribe_Content_Parser {
 
 			case 'details':
 				// Parse <details>/<summary> collapsible sections.
-				// <summary> is extracted as a label; remaining children form the
-				// collapsible body. Both are recursively parsed for nested content.
-				$summary_text = '';
-				$body_elements = array();
+				// <summary> is extracted as a label; only children that appear
+				// AFTER the <summary> form the collapsible body. Pre-summary
+				// content is intentionally skipped — in well-formed HTML,
+				// <summary> is the first child; pre-summary nodes usually
+				// indicate malformed markup and including them would duplicate
+				// the body content next to the summary.
+				$summary_text     = '';
+				$body_elements    = array();
 				$is_summary_found = false;
 
 				foreach ( $node->childNodes as $child ) {
-					if ( $child instanceof DOMElement && 'summary' === strtolower( $child->tagName ) ) {
-						$summary_text = trim( $child->textContent );
+					if ( ! $is_summary_found && $child instanceof DOMElement && 'summary' === strtolower( $child->tagName ) ) {
+						$summary_text     = trim( $child->textContent );
 						$is_summary_found = true;
-					} elseif ( $is_summary_found || 'summary' !== strtolower( ( $child instanceof \DOMElement ? $child->tagName : '' ) ) ) {
-						// After summary has been seen, collect remaining children.
-						// Also collect non-summary children before the first summary.
-						$parsed = $this->parse_node( $child, $depth + 1 );
-						if ( null !== $parsed ) {
-							// parse_node returns ?array — isset($parsed[0]) distinguishes
-							// a flat array of elements (multiple) from a single element.
-							if ( isset( $parsed[0] ) ) {
-								foreach ( $parsed as $p ) {
-									if ( null !== $p ) {
-										$body_elements[] = $p;
-									}
+						continue;
+					}
+					if ( ! $is_summary_found ) {
+						continue;
+					}
+					$parsed = $this->parse_node( $child, $depth + 1 );
+					if ( null !== $parsed ) {
+						if ( isset( $parsed[0] ) ) {
+							foreach ( $parsed as $p ) {
+								if ( null !== $p ) {
+									$body_elements[] = $p;
 								}
-							} else {
-								$body_elements[] = $parsed;
 							}
+						} else {
+							$body_elements[] = $parsed;
 						}
 					}
 				}
@@ -561,6 +570,15 @@ class SScribe_Content_Parser {
 								$elements[] = $parsed;
 							}
 						}
+					} elseif ( XML_TEXT_NODE === $child->nodeType ) {
+						$text = trim( $child->textContent );
+						if ( '' !== $text ) {
+							$elements[] = array(
+								'type'    => 'paragraph',
+								'content' => $text,
+								'runs'    => array( array( 'text' => $text ) ),
+							);
+						}
 					}
 				}
 				if ( empty( $elements ) ) {
@@ -629,8 +647,19 @@ class SScribe_Content_Parser {
 						$item['runs'][] = array( 'text' => $text );
 					}
 				} elseif ( XML_ELEMENT_NODE === $li_child->nodeType ) {
-					$inline_runs  = $this->get_inline_runs( $li_child );
-					$item['runs'] = array_merge( $item['runs'], $inline_runs );
+					if ( 'a' === $li_tag ) {
+						$href     = $li_child->getAttribute( 'href' );
+						$sub_runs = $this->get_inline_runs( $li_child );
+						if ( '' !== $href ) {
+							foreach ( $sub_runs as $key => $run ) {
+								$sub_runs[ $key ]['link'] = $href;
+							}
+						}
+						$item['runs'] = array_merge( $item['runs'], $sub_runs );
+					} else {
+						$inline_runs  = $this->get_inline_runs( $li_child );
+						$item['runs'] = array_merge( $item['runs'], $inline_runs );
+					}
 				}
 			}
 
@@ -1070,6 +1099,15 @@ class SScribe_Content_Parser {
 		$upload_dir  = $this->get_upload_dir();
 		$upload_url  = $upload_dir['baseurl'];
 		$upload_path = realpath( $upload_dir['basedir'] );
+
+		// Normalize protocol-relative URLs (//example.com/path) by prepending
+		// the same scheme the upload URL uses, so the stripos check below
+		// can match correctly. Without this, //cdn.example.com/wp-content/...
+		// would never match the upload URL.
+		if ( str_starts_with( $url, '//' ) ) {
+			$scheme = (string) wp_parse_url( $upload_url, PHP_URL_SCHEME );
+			$url    = ( '' !== $scheme ? $scheme : 'https' ) . ':' . $url;
+		}
 
 		if ( empty( $upload_path ) || stripos( $url, $upload_url ) !== 0 ) {
 			return '';
