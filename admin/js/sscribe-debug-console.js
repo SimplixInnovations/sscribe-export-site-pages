@@ -1581,6 +1581,11 @@
 			}
 
 			if ($btn.data('confirming')) {
+				const pendingTimeout = $btn.data('delete-timeout');
+				if (pendingTimeout) {
+					clearTimeout(pendingTimeout);
+					$btn.removeData('delete-timeout');
+				}
 				const originalText = $btn.data('original-text') || 'Delete';
 				$btn.data('confirming', false).removeClass('sscribe-btn-confirming').text(originalText);
 				$btn.prop('disabled', true);
@@ -1592,13 +1597,15 @@
 				$btn.data('original-text', $btn.text());
 			}
 			$btn.data('confirming', true).addClass('sscribe-btn-confirming').text('Click to confirm');
-			setTimeout(function () {
+			const revertTimeout = setTimeout(function () {
+				$btn.removeData('delete-timeout');
 				if ($btn.data('confirming')) {
 					const originalText = $btn.data('original-text') || 'Delete';
 					$btn.data('confirming', false).removeClass('sscribe-btn-confirming').text(originalText);
 					$btn.prop('disabled', false);
 				}
 			}, 3000);
+			$btn.data('delete-timeout', revertTimeout);
 		},
 
 		_executeDeleteRotatedLog: function (filename, $btn) {
@@ -1638,7 +1645,10 @@
 						}
 					}
 				}
-			}).fail(function () {
+			}).fail(function (xhr) {
+				if (xhr && xhr.status === 403) {
+					self.refreshNonce();
+				}
 				if ($btn) {
 					const originalText = $btn.data('original-text') || 'Delete';
 					$btn.prop('disabled', false).text(originalText);
@@ -1680,6 +1690,9 @@
 				if (typeof value === 'object') {
 					try {
 						value = JSON.stringify(value, null, 2);
+						if (typeof value === 'string' && value.length > 5000) {
+							value = value.substring(0, 5000) + '\n... [truncated]';
+						}
 					} catch (e) {
 						const detail = e && e.message ? e.message : (typeof value);
 						value = '[unserializable: ' + detail + ']';
