@@ -561,7 +561,7 @@ $sscribe_export_index    = $sscribe_export_index ?? array();
 
 		</div>
 
-		<div class="sscribe-tab-content" id="sscribe-tab-history" role="tabpanel" aria-labelledby="sscribe-tab-btn-history" aria-hidden="true" tabindex="-1" hidden>
+		<div class="sscribe-tab-content" id="sscribe-tab-history" role="tabpanel" aria-labelledby="sscribe-tab-btn-history" aria-hidden="true" tabindex="-1">
 				<section class="sscribe-panel">
 					<div class="sscribe-panel-header">
 						<div class="sscribe-panel-title">
@@ -659,7 +659,7 @@ $sscribe_export_index    = $sscribe_export_index ?? array();
 				</section>
 			</div>
 
-			<div class="sscribe-tab-content" id="sscribe-tab-docs" role="tabpanel" aria-labelledby="sscribe-tab-btn-docs" aria-hidden="true" tabindex="-1" hidden>
+			<div class="sscribe-tab-content" id="sscribe-tab-docs" role="tabpanel" aria-labelledby="sscribe-tab-btn-docs" aria-hidden="true" tabindex="-1">
 				<div class="sscribe-support-master">
 					<div class="sscribe-support-sidebar">
 						<div class="sscribe-support-header">
@@ -698,7 +698,7 @@ $sscribe_export_index    = $sscribe_export_index ?? array();
 			</div>
 
 			<?php if ( $sscribe_is_debug ) : ?>
-			<div class="sscribe-tab-content" id="sscribe-tab-debug" role="tabpanel" aria-labelledby="sscribe-tab-btn-debug" aria-hidden="true" tabindex="-1" hidden>
+			<div class="sscribe-tab-content" id="sscribe-tab-debug" role="tabpanel" aria-labelledby="sscribe-tab-btn-debug" aria-hidden="true" tabindex="-1">
 				<?php require_once SSCRIBE_PLUGIN_DIR . 'admin/partials/sscribe-admin-debug-tab.php'; ?>
 			</div>
 			<?php endif; ?>

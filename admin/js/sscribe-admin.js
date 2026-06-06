@@ -282,12 +282,14 @@
 					$panel
 						.addClass('sscribe-tab-active')
 						.removeAttr('aria-hidden')
-						.attr('tabindex', '0');
+						.attr('tabindex', '0')
+						.removeAttr('hidden');
 				} else {
 					$panel
 						.removeClass('sscribe-tab-active')
 						.attr('aria-hidden', 'true')
-						.attr('tabindex', '-1');
+						.attr('tabindex', '-1')
+						.removeAttr('hidden');
 
 					self.releaseFocusTrap($panel[0]);
 				}

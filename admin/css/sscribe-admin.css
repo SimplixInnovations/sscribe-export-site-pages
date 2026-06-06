@@ -3226,10 +3226,6 @@ body .sscribe-master-container .sscribe-toast-dismiss:focus-visible {
 	box-shadow: 0 0 0 1px var(--sscribe-primary);
 }
 
-body .sscribe-master-container .sscribe-tab-content[hidden] {
-	display: none;
-}
-
 body .sscribe-master-container .sscribe-modal[hidden] {
 	display: none;
 }
