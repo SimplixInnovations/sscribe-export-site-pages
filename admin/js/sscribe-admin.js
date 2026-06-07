@@ -369,9 +369,6 @@
 
 			$('input[name="sscribe_language"]').each(function () {
 				const langCode = $(this).val();
-				if (!langCode) {
-					return;
-				}
 
 				if (self._langXHRsByCode && self._langXHRsByCode[langCode] && self._langXHRsByCode[langCode].abort) {
 					self._langXHRsByCode[langCode].abort();
