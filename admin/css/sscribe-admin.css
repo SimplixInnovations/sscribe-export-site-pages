@@ -455,8 +455,6 @@ body .sscribe-master-container .sscribe-hero {
 
 .sscribe-status-card-label:hover .sscribe-status-card-inner {
 	border-color: var(--sscribe-primary);
-	box-shadow: var(--sscribe-shadow-shallow);
-	transform: translateY(-1px);
 }
 
 .sscribe-status-card-label input[type='radio']:checked + .sscribe-status-card-inner {
@@ -573,8 +571,6 @@ body .sscribe-master-container .sscribe-hero {
 
 .sscribe-format-card-label:hover .sscribe-format-card-inner {
 	border-color: var(--sscribe-primary);
-	box-shadow: var(--sscribe-shadow-shallow);
-	transform: translateY(-1px);
 }
 
 .sscribe-format-card-label input[type='radio']:checked + .sscribe-format-card-inner {
@@ -689,8 +685,6 @@ body .sscribe-master-container .sscribe-hero {
 
 .sscribe-lang-card-label:hover .sscribe-lang-card-inner {
 	border-color: var(--sscribe-primary);
-	box-shadow: var(--sscribe-shadow-shallow);
-	transform: translateY(-1px);
 }
 
 .sscribe-lang-card-label input[type='radio']:checked + .sscribe-lang-card-inner {
@@ -807,7 +801,6 @@ body .sscribe-master-container .sscribe-hero {
 .sscribe-button-primary:hover {
 	background: var(--sscribe-cta-hover);
 	color: var(--sscribe-text-inverse);
-	box-shadow: rgb(0 0 0 / 10%) 0 2px 6px 0;
 }
 
 .sscribe-button-primary:active {
@@ -2139,8 +2132,6 @@ body .sscribe-master-container .sscribe-hero {
 
 .sscribe-post-type-card:hover .sscribe-post-type-card-inner {
 	border-color: var(--sscribe-primary);
-	box-shadow: var(--sscribe-shadow-shallow);
-	transform: translateY(-1px);
 }
 
 .sscribe-post-type-card input[type='radio']:checked + .sscribe-post-type-card-inner {
