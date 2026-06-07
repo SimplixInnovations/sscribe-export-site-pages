@@ -1001,8 +1001,15 @@ class SScribe_Page_Collector {
 
 		try {
 
+			// Map empty language to 'all' for WPML consistency with
+			// get_page_ids_direct/get_page_ids_chunked/get_page_count_only
+			// (line 172, 287, 461). Without this, wpml_switch_language('')
+			// silently filters to the current active language instead of
+			// all languages, making "All Languages" status counts show only
+			// the default language's numbers.
+			$target_lang = ! empty( $language ) ? $language : 'all';
 			// phpcs:ignore WordPress.NamingConventions.PrefixAllGlobals.NonPrefixedHooknameFound -- WPML hook.
-			do_action( 'wpml_switch_language', $language );
+			do_action( 'wpml_switch_language', $target_lang );
 			$args['suppress_filters'] = false;
 			$switched                 = true;
 
