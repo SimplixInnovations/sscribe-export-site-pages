@@ -310,6 +310,14 @@
 		refreshStatusAndLanguageCounts: function (postType, language) {
 			const self = this;
 
+			// Reset to loading state: export/preview buttons must disable
+			// while the in-flight request is pending, otherwise the user
+			// can click Export with a count that doesn't match the current
+			// filter state (the previous fetch's count is still active).
+			self.selectedPageCount = 0;
+			self._countsLoaded = false;
+			self.updateExportButton();
+
 			$('.sscribe-status-card-label').addClass('sscribe-loading');
 			$('#sscribe-page-count, #sscribe-post-count, #sscribe-both-count').addClass('sscribe-loading-count');
 
