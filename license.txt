@@ -18,3 +18,14 @@ with this program; if not, write to the Free Software Foundation, Inc.,
 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
 
 Full license text: https://www.gnu.org/licenses/old-licenses/gpl-2.0.html
+
+Third-Party Assets
+==================
+
+This plugin bundles the Manrope font family (assets/fonts/manrope/),
+copyright (c) 2018 The Manrope Project Authors
+(https://github.com/sharanda/manrope). The Manrope fonts are licensed
+under the SIL Open Font License, Version 1.1. A copy of the OFL is
+included in assets/fonts/manrope/OFL.txt. The OFL is compatible with
+the GPL v2; the font may be redistributed with this plugin under the
+terms of the OFL.
