@@ -45,14 +45,18 @@ class SScribe_AJAX_Guard_Test extends TestCase {
 		\SScribe_AJAX_Guard::error( 'Simple error message' );
 	}
 
-	public function test_error_includes_diagnostics(): void {
+	public function test_error_omits_diagnostics_in_production(): void {
+		if ( defined( 'SSCRIBE_DEBUG' ) && SSCRIBE_DEBUG ) {
+			$this->markTestSkipped( 'SSCRIBE_DEBUG is enabled; this test verifies diagnostics are omitted in production responses.' );
+		}
 		try {
 			ob_start();
 			\SScribe_AJAX_Guard::error( array( 'message' => 'fail' ), 403, array( 'ctx' => 'val' ) );
 		} catch ( \RuntimeException $e ) {
 			$output = ob_get_clean();
-			$expected = '{"success":false,"data":{"message":"fail","_diagnostics":{"php_version":"';
-			$this->assertStringContainsString( $expected, $output );
+			$this->assertStringNotContainsString( '_diagnostics', $output );
+			$this->assertStringNotContainsString( 'php_version', $output );
+			$this->assertStringNotContainsString( 'memory_limit', $output );
 		}
 	}
 

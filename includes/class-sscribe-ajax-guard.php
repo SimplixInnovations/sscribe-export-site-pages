@@ -56,17 +56,19 @@ class SScribe_AJAX_Guard {
 		self::sanitise_environment();
 		self::log_cleaned_buffers( 'error' );
 
-		$diagnostics = self::build_diagnostics( $context );
+		if ( SSCRIBE_DEBUG ) {
+			$diagnostics = self::build_diagnostics( $context );
 
-		if ( is_array( $data ) ) {
-			$data['_diagnostics'] = $diagnostics;
-		} elseif ( is_object( $data ) ) {
-			$data->_diagnostics = $diagnostics;
-		} else {
-			$data = array(
-				'message'      => (string) $data,
-				'_diagnostics' => $diagnostics,
-			);
+			if ( is_array( $data ) ) {
+				$data['_diagnostics'] = $diagnostics;
+			} elseif ( is_object( $data ) ) {
+				$data->_diagnostics = $diagnostics;
+			} else {
+				$data = array(
+					'message'      => (string) $data,
+					'_diagnostics' => $diagnostics,
+				);
+			}
 		}
 
 		wp_send_json_error( $data, $status_code );
@@ -91,7 +93,7 @@ class SScribe_AJAX_Guard {
 	 */
 	private static function disable_if_possible( string $key, string $value ): bool {
 		if ( function_exists( 'ini_set' ) ) {
-			$disabled_functions = explode( ',', ini_get( 'disable_functions' ) );
+			$disabled_functions = array_map( 'trim', explode( ',', (string) ini_get( 'disable_functions' ) ) );
 			if ( ! in_array( 'ini_set', $disabled_functions, true ) ) {
 				// phpcs:ignore WordPress.PHP.IniSet.Risky, Squiz.PHP.DiscouragedFunctions.Discouraged
 				@ini_set( $key, $value );
@@ -117,6 +119,11 @@ class SScribe_AJAX_Guard {
 
 		$extraneous = trim( $extraneous );
 
+		// Restore output buffer levels that were active when this method
+		// was called, so that downstream code (and test harnesses) can
+		// continue capturing or inspecting the response. The buffers are
+		// created empty; their purpose is to preserve the nesting depth
+		// any enclosing code expected to find.
 		while ( ob_get_level() < $start_level ) {
 			ob_start();
 		}
