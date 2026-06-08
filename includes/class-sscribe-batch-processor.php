@@ -203,6 +203,13 @@ class SScribe_Batch_Processor {
 			if ( $bytes && $strong ) {
 				return $bytes;
 			}
+			// Last-resort fallback. wp_generate_password() uses WP's own
+			// randomization (which internally prefers random_bytes() and
+			// falls back to mt_rand). This is NOT a CSPRNG, but it only
+			// fires when BOTH random_bytes() and openssl strong random have
+			// failed -- an extremely rare environment condition. Used here
+			// only for non-cryptographic random suffixes (e.g. ZIP
+			// filenames); never for security tokens.
 			return wp_generate_password( $length, false );
 		}
 	}
@@ -566,13 +573,13 @@ class SScribe_Batch_Processor {
 			$this->get_rate_limiter(),
 			$this->zip_handler,
 			$this->logger,
-			new SScribe_Export_Auditor()
+			$this->get_auditor()
 		);
 		$this->session_handler = $session_handler ?? new SScribe_Batch_Session_Handler(
 			$this->session,
 			$this->zip_handler,
 			$this->logger,
-			new SScribe_Export_Auditor(),
+			$this->get_auditor(),
 			$this->get_rate_limiter(),
 			new SScribe_Export_Lock_Manager( $this->logger )
 		);
@@ -766,8 +773,8 @@ class SScribe_Batch_Processor {
 
 		$this->get_diagnostics()->self_heal();
 
-		$memoryRaised = wp_raise_memory_limit( 'admin' );
-		$this->logger->debug( 'Memory limit raised', array( 'result' => $memoryRaised ) );
+		$memory_raised = wp_raise_memory_limit( 'admin' );
+		$this->logger->debug( 'Memory limit raised', array( 'result' => $memory_raised ) );
 
 		$this->audit_log( 'export_started' );
 		$this->logger->debug( '=== START EXPORT ===' );
