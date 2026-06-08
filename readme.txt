@@ -74,6 +74,12 @@ Yes. You can export pages by individual language or all languages simultaneously
 
 SScribe uses a session tracking system with crash recovery. If your browser closes during an export, you can resume it from the admin panel without losing progress.
 
+== License ==
+
+This plugin is free software: you can redistribute it and/or modify it under the terms of the GNU General Public License as published by the Free Software Foundation, either version 2 of the License, or (at your option) any later version.
+
+The bundled Manrope font family (assets/fonts/manrope/) is licensed under the SIL Open Font License v1.1, which is compatible with GPL v2. See assets/fonts/manrope/OFL.txt for the full license text.
+
 == Changelog ==
 
 = 1.1.1 =
