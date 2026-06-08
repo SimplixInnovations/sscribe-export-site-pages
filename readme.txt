@@ -37,6 +37,8 @@ SScribe transforms WordPress pages into professional documents for client handov
 1. Export dashboard with language and format selection
 2. Real-time batch progress with per-page status
 3. Generated ZIP download with all four formats
+4. Language and post-type filtering
+5. Export history and download management
 
 **Requirements:**
 
