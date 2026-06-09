@@ -25,7 +25,7 @@ SScribe transforms WordPress pages into professional documents for client handov
 **Key Features:**
 
 * Batch processing for sites of any size
-* RTL support for Arabic, Hebrew, Farsi, Urdu, and other RTL languages
+* RTL support for Arabic, Farsi, Urdu, and other Arabic-script languages
 * WPML integration with language-specific exports
 * SEO metadata from Yoast, Rank Math, All in One SEO, SEOPress, The SEO Framework
 * Professional document formatting: cover page, headings, tables, lists, code blocks
@@ -56,7 +56,7 @@ SScribe transforms WordPress pages into professional documents for client handov
 
 = Does SScribe support RTL languages? =
 
-Yes. Arabic, Hebrew, Farsi, Urdu, and other RTL languages are fully supported in DOCX, PDF, HTML, and Markdown exports. The plugin automatically detects RTL content and applies appropriate styling.
+Yes. Arabic, Farsi, Urdu, and other Arabic-script RTL languages are fully supported in DOCX, PDF, HTML, and Markdown exports. The plugin automatically detects RTL content and applies appropriate styling.
 
 = Which WordPress page builders are supported? =
 
@@ -93,7 +93,7 @@ The bundled Manrope font family (assets/fonts/manrope/) is licensed under the SI
 * Initial release
 * DOCX, PDF, HTML, and Markdown export support
 * Batch processing engine with configurable chunk sizes
-* RTL support for Arabic, Hebrew, Farsi, and Urdu
+* RTL support for Arabic, Farsi, and Urdu
 * WPML integration for language-specific exports
 * SEO metadata integration with Yoast, Rank Math, All in One SEO, SEOPress, The SEO Framework
 * Secure ZIP downloads with automatic 72-hour cleanup

@@ -1,11 +1,14 @@
 # Development files
 .git/
 
-# WordPress.org SVN assets (not in plugin ZIP)
+# WordPress.org SVN assets (not in plugin ZIP — uploaded to /assets/ in SVN)
 screenshots/
 .github/
 .gitignore
 .agent/
+banner-1544x500.png
+icon-128x128.png
+icon-256x256.png
 
 # Build & deploy
 build/
@@ -83,6 +86,11 @@ vendor-prefixed/*/ruleset.xml
 
 # PCLZip conflict (WordPress.org requirement)
 vendor-prefixed/phpoffice/phpword/src/PhpWord/Shared/PCLZip/
+
+# PhpWord template config — .dist extension is flagged by WordPress.org plugin-check
+# scanner. Settings::loadConfig() is never called in SScribe code, so this file
+# is dead weight in the dist archive. Remove it to avoid a reviewer flag.
+vendor-prefixed/phpoffice/phpword/phpword.ini.dist
 
 # Vendor-prefixed dev files (exact-name segment-level)
 composer.json
