@@ -442,7 +442,7 @@ class SScribe_Content_Parser {
 
 				$src        = null !== $img_node ? $img_node->getAttribute( 'src' ) : null;
 				$alt        = null !== $img_node ? $img_node->getAttribute( 'alt' ) : '';
-				$local_path = null !== $src ? $this->url_to_local_path( $src ) : '';
+				$local_path = null !== $src ? $this->resolve_image_to_local( $src ) : '';
 
 				$figure_data = array(
 					'type'       => 'figure',
@@ -752,7 +752,7 @@ class SScribe_Content_Parser {
 			return null;
 		}
 
-		$local_path = $this->url_to_local_path( $src );
+		$local_path = $this->resolve_image_to_local( $src );
 
 		return array(
 			'type'       => 'image',
@@ -1158,5 +1158,82 @@ class SScribe_Content_Parser {
 		}
 
 		return $real_local;
+	}
+
+	/**
+	 * Resolve a URL to a local image file path, downloading remote
+	 * images if needed.
+	 *
+	 * The plain `url_to_local_path()` only handles URLs that already
+	 * live inside the WP uploads directory. This wrapper adds a fallback:
+	 * for image URLs that are external (CDN, third-party host), it
+	 * delegates to SScribe_Image_Processor::download_and_optimize() to
+	 * fetch the image into a temp file, returning its local path.
+	 *
+	 * The download is gated by the existing `sscribe_allowed_image_hosts`
+	 * filter — only whitelisted hosts will be fetched. Anything else
+	 * returns an empty string, which exporters treat as a missing image
+	 * (DOCX renders `[MISSING IMAGE]`, PDF skips the element).
+	 *
+	 * Security: path-traversal attempts in the URL (e.g.
+	 * `/uploads/../sibling/file.png`) share the same host as the upload
+	 * directory but resolve to a path outside it. We must NOT treat
+	 * these as legitimate remote images — `url_to_local_path()` already
+	 * rejects them, and we also skip the download fallback for any URL
+	 * whose host matches the upload host. This prevents accidentally
+	 * fetching a same-host URL that was constructed to escape the
+	 * uploads directory.
+	 *
+	 * Returns an empty string for non-image URLs, blocked hosts, or
+	 * download failures — never throws.
+	 *
+	 * @param string $url Image URL (local or remote).
+	 * @return string Local file path, or empty string on failure.
+	 */
+	public function resolve_image_to_local( string $url ): string {
+		$url = trim( $url );
+		if ( '' === $url ) {
+			return '';
+		}
+
+		// Try the fast path first: is this an uploads-dir URL we can map
+		// to a real local file?
+		$local = $this->url_to_local_path( $url );
+		if ( '' !== $local && file_exists( $local ) ) {
+			return $local;
+		}
+
+		// Only attempt remote download for http(s) URLs — file://, data:,
+		// javascript: are blocked by SScribe_Image_Processor anyway.
+		$scheme = strtolower( (string) wp_parse_url( $url, PHP_URL_SCHEME ) );
+		if ( 'http' !== $scheme && 'https' !== $scheme ) {
+			return '';
+		}
+
+		// Reject URLs that share the upload host. Path-traversal attempts
+		// (e.g. /uploads/../sibling/file.png) pass the http(s) scheme check
+		// but would expose files outside the uploads directory if fetched.
+		// Treating "same host as uploads" as local-only matches the security
+		// guarantee of url_to_local_path() above.
+		$upload_dir = $this->get_upload_dir();
+		$upload_host = strtolower( (string) wp_parse_url( $upload_dir['baseurl'] ?? '', PHP_URL_HOST ) );
+		$url_host    = strtolower( (string) wp_parse_url( $url, PHP_URL_HOST ) );
+		if ( '' !== $upload_host && $upload_host === $url_host ) {
+			return '';
+		}
+
+		// Delegate to the image processor, which enforces the
+		// sscribe_allowed_image_hosts filter and is the single source of
+		// truth for what counts as a fetchable image.
+		if ( ! class_exists( 'SScribe_Image_Processor' ) ) {
+			require_once SSCRIBE_PLUGIN_DIR . 'includes/class-sscribe-image-processor.php';
+		}
+
+		$downloaded = \SScribe_Image_Processor::download_and_optimize( $url );
+		if ( false === $downloaded || ! file_exists( $downloaded ) ) {
+			return '';
+		}
+
+		return $downloaded;
 	}
 }

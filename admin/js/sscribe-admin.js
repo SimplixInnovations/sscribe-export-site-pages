@@ -25,6 +25,15 @@
 		_batchXHR: null,
 		_finalizingXHR: null,
 		_langCountsXHRs: null,
+		/**
+		 * In-flight nonce refresh request. Used to coalesce concurrent 403
+		 * responses — if two AJAX calls fail with 403 simultaneously, only
+		 * one refresh request is sent; the second waits for the first's
+		 * completion before retrying its original request.
+		 *
+		 * @type {Promise<string|null>|null}
+		 */
+		_nonceRefreshInFlight: null,
 
 		/**
 		 * Parse a localized integer from text (handles comma/period separators).
@@ -44,6 +53,100 @@
 			return isNaN(num) ? 0 : num;
 		},
 
+		/**
+		 * Refresh the export nonce from the server.
+		 *
+		 * Long-running batch exports can outlive the WP nonce lifetime
+		 * (default 12h). When the JS detects a 403, it calls this method
+		 * to fetch a fresh nonce, updates sscribe_data.nonce, and the
+		 * caller retries the original request.
+		 *
+		 * @returns {Promise<string|null>} The new nonce, or null on failure.
+		 */
+		refreshNonce: function () {
+			const self = this;
+			if (self._nonceRefreshInFlight) {
+				return self._nonceRefreshInFlight;
+			}
+			const promise = new Promise(function (resolve) {
+				$.ajax({
+					url: sscribe_data.ajaxurl,
+					type: 'POST',
+					timeout: 15000,
+					data: {
+						action: 'sscribe_refresh_nonce',
+						nonce: sscribe_data.nonce,
+					},
+					success: function (response) {
+						if (response && response.success && response.data && response.data.nonce) {
+							sscribe_data.nonce = response.data.nonce;
+							resolve(response.data.nonce);
+						} else {
+							resolve(null);
+						}
+					},
+					error: function () {
+						resolve(null);
+					},
+				});
+			});
+			// Clear the in-flight marker once the request resolves so the
+			// next 403 can trigger another refresh.
+			self._nonceRefreshInFlight = promise;
+			promise.finally(function () {
+				if (self._nonceRefreshInFlight === promise) {
+					self._nonceRefreshInFlight = null;
+				}
+			});
+			return promise;
+		},
+
+		/**
+		 * Wrap a $.ajax options object so that on 403 (nonce expired) the
+		 * nonce is refreshed and the request is retried once.
+		 *
+		 * Mutates the passed options object's `data.nonce` field on retry.
+		 * The wrapper preserves the original success/error callbacks.
+		 *
+		 * @param {object} options jQuery $.ajax options.
+		 * @returns {object} The jQuery XHR object (caller can .abort()).
+		 */
+		ajaxWithNonceRefresh: function (options) {
+			const self = this;
+			const dataNonceKey = options.data && options.data.nonce ? true : false;
+			const originalError = options.error;
+			let retried = false;
+
+			// Wrap error so that 403 triggers a refresh + retry.
+			options.error = function (xhr, status, thrown) {
+				const isNonceFailure =
+					xhr && xhr.status === 403 ||
+					(status === 'error' && xhr && xhr.status === 403);
+
+				if (!retried && isNonceFailure && dataNonceKey) {
+					retried = true;
+					self.refreshNonce().then(function (newNonce) {
+						if (newNonce && options.data) {
+							options.data.nonce = newNonce;
+							$.ajax(options);
+						} else {
+							// Refresh failed — fall through to original error.
+							if (typeof originalError === 'function') {
+								originalError(xhr, status, thrown);
+							}
+						}
+					});
+					return;
+				}
+
+				if (typeof originalError === 'function') {
+					originalError(xhr, status, thrown);
+				}
+			};
+
+			return $.ajax(options);
+		},
+
 		init: function () {
 			if (typeof sscribe_data === 'undefined' || !sscribe_data) {
 				return;
@@ -59,6 +162,7 @@
 			);
 
 			this.updateConfigSummary();
+			this.updateFormatOptionPanels();
 
 			const defaultPostType = $('input[name="sscribe_post_type"]:checked').val() || 'page';
 			const defaultLanguage = $('input[name="sscribe_language"]:checked').val() || '';
@@ -511,6 +615,69 @@
 		onFormatChange: function () {
 			this.updateConfigSummary();
 			this.updateExportButton();
+			this.updateFormatOptionPanels();
+		},
+
+		/**
+		 * Show the option panel for the currently selected export format and
+		 * hide the others. The "all" format shows no per-format panel.
+		 *
+		 * The "all" radio card and the panels are siblings in the DOM; the
+		 * panels live in #sscribe-format-options. Hiding is done via the
+		 * `hidden` HTML attribute (so screen readers and CSS both see it)
+		 * and the wrapper's `.sscribe-hidden` class is toggled for the
+		 * case where no panel is visible (e.g., "all" selected).
+		 */
+		updateFormatOptionPanels: function () {
+			const format = $('input[name="sscribe_format"]:checked').val() || 'all';
+			const $wrapper = $('#sscribe-format-options');
+			const $panels = $wrapper.find('.sscribe-format-option-panel');
+
+			let anyVisible = false;
+			$panels.each(function () {
+				const $panel = $(this);
+				const matches = $panel.attr('data-format') === format;
+				if (matches) {
+					$panel.removeAttr('hidden');
+					anyVisible = true;
+				} else {
+					$panel.attr('hidden', 'hidden');
+				}
+			});
+
+			if (anyVisible) {
+				$wrapper.removeClass('sscribe-hidden');
+			} else {
+				$wrapper.addClass('sscribe-hidden');
+			}
+		},
+
+		/**
+		 * Collect the per-format option values from the option panels.
+		 * Returned as a flat object suitable for sending in an AJAX
+		 * request. Checkboxes that are unchecked are included with value
+		 * "0" so the server can distinguish "user unchecked it" from
+		 * "field not present".
+		 *
+		 * @returns {object} Map of option name → value.
+		 */
+		collectFormatOptions: function () {
+			const options = {};
+			$('#sscribe-format-options')
+				.find('input, select, textarea')
+				.each(function () {
+					const $field = $(this);
+					const name = $field.attr('name');
+					if (!name) {
+						return;
+					}
+					if ($field.attr('type') === 'checkbox') {
+						options[name] = $field.is(':checked') ? '1' : '0';
+					} else {
+						options[name] = $field.val();
+					}
+				});
+			return options;
 		},
 
 		updateConfigSummary: function () {
@@ -898,6 +1065,11 @@
 					post_status: postStatus,
 					post_type: postType,
 					formats: formats,
+					// Per-format options from the visible option panel.
+					// Server-side validation should treat unknown option
+					// names as a no-op so future formats can add their
+					// own without breaking older clients.
+					format_options: this.collectFormatOptions(),
 				},
 				success: function (response) {
 					if (response.success) {
