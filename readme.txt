@@ -131,6 +131,35 @@ Force enable or disable chunked page ID loading for sites with very large number
 
 Parameters: `(bool)` - Default: null (auto-detect based on page count)
 
+= `sscribe_export_options_{$format}` =
+Fires inside `SScribe_Batch_Processor::dispatch_formats()` for each selected format (`pdf`, `docx`, `markdown`, `html`). Receives the per-format options collected from the admin UI and returns the (possibly modified) options map the exporter should use. This is the supported extension point for adding new per-format options. See `docs/extension-points.md` for a full example and the full list of option keys.
+
+Parameters: `(array $format_options, int $page_id, string $session_id)`
+
+= `sscribe_batch_size` =
+Filters the number of pages per AJAX chunk in a batch export. Return an `int` between 1 and 20; lower values reduce per-request memory but increase the number of HTTP round trips.
+
+Parameters: `(int $pages)` - Default: 5
+
+= `sscribe_rate_limit_admin` =
+Filters the per-hour export request cap for users with the `manage_options` capability. Return an `int`.
+
+Parameters: `(int $requests)` - Default: 1000
+
+= `sscribe_pdf_memory_soft_margin_bytes` /
+When remaining memory drops below this, the mPDF exporter triggers a `gc_collect_cycles()` and continues. Default: `32 * MB_IN_BYTES`.
+
+= `sscribe_pdf_memory_hard_margin_bytes` =
+When remaining memory drops below this, the mPDF exporter aborts with a `SScribe_Result::failure`. Default: `8 * MB_IN_BYTES`.
+
+== Public classes ==
+
+The following classes are part of the public API and may be used by extension plugins:
+
+* `SScribe_Export_All_Formats_Wrapper` — static `export_page()` for fan-out exports to every supported format in a single call, with per-format error isolation. See `docs/extension-points.md` for usage.
+* `SScribe_Exporter_Factory` — `create( string $format )` to construct a specific exporter.
+* `SScribe_Exporter_Interface` — the contract every exporter implements; third-party exporters can plug in by extending the factory.
+
 == Actions ==
 
 = `sscribe_before_export_page` =

@@ -123,6 +123,17 @@ class SScribe_Exporter {
 	private static bool $shutdown_registered = false;
 
 	/**
+	 * Per-export format options forwarded by SScribe_DOCX_Exporter.
+	 *
+	 * The DOCX exporter calls set_format_options() with the resolved
+	 * options map; methods like add_cover_page() and add_featured_image()
+	 * read keys like `sscribe_docx_template` from this map.
+	 *
+	 * @var array<string, mixed>
+	 */
+	private array $format_options = array();
+
+	/**
 	 * Initialize the exporter.
 	 *
 	 * @param SScribe_Content_Parser|null        $parser           Content parser.
@@ -181,6 +192,32 @@ class SScribe_Exporter {
 				$this->font_size
 			);
 		}
+	}
+
+	/**
+	 * Set per-format options forwarded by SScribe_DOCX_Exporter.
+	 *
+	 * Called once per export with the resolved options map (already filtered
+	 * through `sscribe_export_options_docx`). Stored in the instance so
+	 * conditional methods (cover page, featured image, TOC) can read it.
+	 *
+	 * @param array<string, mixed> $options Sanitized options map.
+	 * @return void
+	 */
+	public function set_format_options( array $options ): void {
+		$this->format_options = $options;
+	}
+
+	/**
+	 * Read a format option with a default. Treats checkbox values as
+	 * strings ("1" / ""), so callers should compare to "1".
+	 *
+	 * @param string $key     Option key.
+	 * @param mixed  $default Default when key is absent.
+	 * @return mixed
+	 */
+	private function get_format_option( string $key, $default = null ) {
+		return array_key_exists( $key, $this->format_options ) ? $this->format_options[ $key ] : $default;
 	}
 
 	/**
@@ -529,20 +566,26 @@ class SScribe_Exporter {
 
 			$this->define_styles( $php_word );
 
-			// Cover page: vertically center content for better visual balance.
-			$cover_settings              = $this->get_section_settings( $this->is_rtl );
-			$cover_settings['vAlign']    = 'center';
-			$cover = $php_word->addSection( $cover_settings );
-			try {
-				$this->add_cover_page( $cover, $page_data );
-			} catch ( \Throwable $e ) {
-				$this->get_logger()->warning(
-					'Cover page skipped',
-					array(
-						'page_id'   => $page_data['id'] ?? 0,
-						'exception' => get_class( $e ),
-					)
-				);
+			// sscribe_docx_template: 'minimal' skips the cover page (and the
+			// TOC rendered inside it). The content section below becomes the
+			// first section in the document.
+			$template = (string) $this->get_format_option( 'sscribe_docx_template', 'default' );
+			if ( 'minimal' !== $template ) {
+				// Cover page: vertically center content for better visual balance.
+				$cover_settings              = $this->get_section_settings( $this->is_rtl );
+				$cover_settings['vAlign']    = 'center';
+				$cover = $php_word->addSection( $cover_settings );
+				try {
+					$this->add_cover_page( $cover, $page_data );
+				} catch ( \Throwable $e ) {
+					$this->get_logger()->warning(
+						'Cover page skipped',
+						array(
+							'page_id'   => $page_data['id'] ?? 0,
+							'exception' => get_class( $e ),
+						)
+					);
+				}
 			}
 
 			$content_section = $php_word->addSection( $this->get_section_settings( $this->is_rtl ) );
@@ -1152,6 +1195,13 @@ class SScribe_Exporter {
 			);
 		}
 
+		// sscribe_docx_include_toc=false: user opted out of the TOC entirely.
+		// Skipping it here also avoids the page break above, so the cover
+		// flows straight into the next section.
+		if ( '1' !== (string) $this->get_format_option( 'sscribe_docx_include_toc', '1' ) ) {
+			return;
+		}
+
 		// Skip TOC if page content is minimal (single section or very few headings).
 		// A table of contents with a single entry is pointless and wastes a page.
 		$content       = $page_data['content'] ?? '';
@@ -1300,6 +1350,13 @@ class SScribe_Exporter {
 	 * @return void
 	 */
 	private function add_featured_image( Section $section, array $page_data ): void {
+		// sscribe_docx_include_images=false: opt out of the embedded featured
+		// image. The image is still downloaded by the caller (so removing this
+		// guard does not leave temp files behind).
+		if ( '1' !== (string) $this->get_format_option( 'sscribe_docx_include_images', '1' ) ) {
+			return;
+		}
+
 		if ( empty( $page_data['featured_image_path'] ) ) {
 			$this->get_logger()->warning(
 				'Featured image skipped: path not provided',

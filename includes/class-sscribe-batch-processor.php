@@ -338,11 +338,13 @@ class SScribe_Batch_Processor {
 		foreach ( $formats as $format ) {
 			$format_start = microtime( true );
 
-			// Expose per-format options to the exporter via filter. This
-			// is a zero-impact hook for exporters that don't care — they
-			// can simply not register a listener. The filter is dynamic
-			// (one per format) so third-party integrations can opt in
-			// without modifying the plugin.
+			// Resolve the per-format options for this page. Exposed via the
+			// dynamic `sscribe_export_options_{$format}` filter so third-party
+			// integrations can opt in without modifying the plugin. Then push
+			// the resolved options onto the exporter instance — built-in
+			// exporters implement apply_format_options(); method_exists()
+			// keeps third-party exporters that don't yet support it working.
+			$format_options = array();
 			if ( ! empty( $session['format_options'] ) ) {
 				$format_options = (array) $session['format_options'];
 				// phpcs:ignore WordPress.NamingConventions.PrefixAllGlobals.NonPrefixedHooknameFound -- Per-format dynamic hook, third-party integrations may register listeners.
@@ -361,6 +363,14 @@ class SScribe_Batch_Processor {
 					'retryable' => false,
 				);
 				continue;
+			}
+
+			// Forward the resolved options to the exporter. Built-in
+			// exporters (PDF, DOCX, Markdown, HTML) implement this method;
+			// method_exists() keeps third-party exporters that don't yet
+			// support it working — they fall back to their defaults.
+			if ( method_exists( $exporter, 'apply_format_options' ) ) {
+				$exporter->apply_format_options( $format_options );
 			}
 
 			$attempt = 0;

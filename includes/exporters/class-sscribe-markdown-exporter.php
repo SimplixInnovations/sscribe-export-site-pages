@@ -36,6 +36,16 @@ class SScribe_Markdown_Exporter implements SScribe_Exporter_Interface {
 	private SScribe_Filesystem $filesystem;
 
 	/**
+	 * Per-export format options set by the batch processor.
+	 *
+	 * Keys are format-prefixed option names (e.g. `sscribe_md_include_frontmatter`).
+	 * Populated via apply_format_options() before export() is called.
+	 *
+	 * @var array<string, mixed>
+	 */
+	private array $format_options = array();
+
+	/**
 	 * Initialize the Markdown exporter.
 	 *
 	 * @param SScribe_Logger_Interface|null $logger     Logger.
@@ -44,6 +54,31 @@ class SScribe_Markdown_Exporter implements SScribe_Exporter_Interface {
 	public function __construct( ?SScribe_Logger_Interface $logger = null, ?SScribe_Filesystem $filesystem = null ) {
 		$this->logger     = $logger ?? SScribe_Logger::instance( SScribe_Logger::is_logging_enabled() );
 		$this->filesystem = $filesystem ?? new SScribe_Filesystem();
+	}
+
+	/**
+	 * Apply per-format options to this exporter instance.
+	 *
+	 * The batch processor calls this after running the
+	 * `sscribe_export_options_markdown` filter and before export().
+	 *
+	 * @param array<string, mixed> $options Sanitized options map.
+	 * @return void
+	 */
+	public function apply_format_options( array $options ): void {
+		$this->format_options = $options;
+	}
+
+	/**
+	 * Read a format option with a default. Treats checkbox values as
+	 * strings ("1" / ""), so callers should compare to "1".
+	 *
+	 * @param string $key     Option key.
+	 * @param mixed  $default Default when key is absent.
+	 * @return mixed
+	 */
+	private function get_format_option( string $key, $default = null ) {
+		return array_key_exists( $key, $this->format_options ) ? $this->format_options[ $key ] : $default;
 	}
 
 	/**
@@ -129,7 +164,9 @@ class SScribe_Markdown_Exporter implements SScribe_Exporter_Interface {
 	 * @return string Markdown content.
 	 */
 	private function generate_markdown( array $page_data ): string {
-		$md  = $this->generate_frontmatter( $page_data );
+		$include_frontmatter = '1' === (string) $this->get_format_option( 'sscribe_md_include_frontmatter', '1' );
+
+		$md  = $include_frontmatter ? $this->generate_frontmatter( $page_data ) : '';
 		$md .= $this->html_to_markdown( $page_data['content'] ?? '' );
 
 		// NOTE: BOM is intentionally NOT prepended here. The YAML frontmatter
@@ -153,6 +190,8 @@ class SScribe_Markdown_Exporter implements SScribe_Exporter_Interface {
 		$language  = $page_data['language'] ?? 'en';
 		$direction = SScribe_RTL_Helper::get_direction( $language );
 
+		$include_featured_image = '1' === (string) $this->get_format_option( 'sscribe_md_include_featured_image', '1' );
+
 		// YAML front matter block FIRST — byte zero for Hugo/Jekyll/Obsidian compatibility.
 		$md  = "---\n";
 		$md .= 'title: "' . $this->escape_yaml_string( $title ) . "\"\n";
@@ -166,7 +205,7 @@ class SScribe_Markdown_Exporter implements SScribe_Exporter_Interface {
 		$md .= 'language: "' . $this->escape_yaml_string( $language ) . "\"\n";
 		$md .= 'direction: "' . $this->escape_yaml_string( $direction ) . "\"\n";
 
-		if ( ! empty( $page_data['featured_image_url'] ) ) {
+		if ( $include_featured_image && ! empty( $page_data['featured_image_url'] ) ) {
 			$md .= 'featured_image: "' . $this->escape_yaml_string( $page_data['featured_image_url'] ) . "\"\n";
 		}
 
@@ -894,6 +933,13 @@ class SScribe_Markdown_Exporter implements SScribe_Exporter_Interface {
 		}
 
 		if ( str_starts_with( $url, '/' ) ) {
+			// sscribe_md_absolute_urls=false: keep relative URLs as-is so the
+			// markdown stays portable for sites hosted at varying base URLs.
+			$use_absolute = '1' === (string) $this->get_format_option( 'sscribe_md_absolute_urls', '1' );
+			if ( ! $use_absolute ) {
+				return $url;
+			}
+
 			$absolute_url = esc_url_raw( home_url( $url ) );
 			if ( ! empty( $absolute_url ) && str_starts_with( $absolute_url, home_url() ) ) {
 				return $absolute_url;

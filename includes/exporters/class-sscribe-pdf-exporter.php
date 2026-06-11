@@ -42,6 +42,16 @@ class SScribe_PDF_Exporter implements SScribe_Exporter_Interface {
 	private SScribe_Filesystem $filesystem;
 
 	/**
+	 * Per-export format options set by the batch processor.
+	 *
+	 * Keys are format-prefixed option names (e.g. `sscribe_pdf_page_size`).
+	 * Populated via apply_format_options() before export() is called.
+	 *
+	 * @var array<string, mixed>
+	 */
+	private array $format_options = array();
+
+	/**
 	 * Initialize the PDF exporter.
 	 *
 	 * @param SScribe_HTML_Exporter|null    $html_exporter HTML exporter.
@@ -56,6 +66,31 @@ class SScribe_PDF_Exporter implements SScribe_Exporter_Interface {
 		$this->html_exporter = $html_exporter ?? new SScribe_HTML_Exporter();
 		$this->logger        = $logger ?? SScribe_Logger::instance( SScribe_Logger::is_logging_enabled() );
 		$this->filesystem    = $filesystem ?? new SScribe_Filesystem();
+	}
+
+	/**
+	 * Apply per-format options to this exporter instance.
+	 *
+	 * The batch processor calls this after running the
+	 * `sscribe_export_options_pdf` filter and before export().
+	 *
+	 * @param array<string, mixed> $options Sanitized options map.
+	 * @return void
+	 */
+	public function apply_format_options( array $options ): void {
+		$this->format_options = $options;
+	}
+
+	/**
+	 * Read a format option with a default. Treats checkbox values as
+	 * strings ("1" / ""), so callers should compare to "1".
+	 *
+	 * @param string $key     Option key.
+	 * @param mixed  $default Default when key is absent.
+	 * @return mixed
+	 */
+	private function get_format_option( string $key, $default = null ) {
+		return array_key_exists( $key, $this->format_options ) ? $this->format_options[ $key ] : $default;
 	}
 
 	/**
@@ -76,7 +111,10 @@ class SScribe_PDF_Exporter implements SScribe_Exporter_Interface {
 		$language = $page_data['language'] ?? 'en';
 		$is_rtl   = SScribe_RTL_Helper::is_rtl( $language );
 
-		$processed_page_data = $this->process_images_in_page_data( $page_data );
+		$include_images = '1' === (string) $this->get_format_option( 'sscribe_pdf_include_images', '1' );
+		$processed_page_data = $include_images
+			? $this->process_images_in_page_data( $page_data )
+			: $page_data;
 		$temp_image_paths    = $this->collect_temp_image_paths( $processed_page_data );
 
 		// Use generate_html_string() — avoids .html file side-effect from export().
@@ -166,6 +204,13 @@ class SScribe_PDF_Exporter implements SScribe_Exporter_Interface {
 
 			$mpdf = new \SScribeVendor\Mpdf\Mpdf( $config );
 			$mpdf->SetDirectionality( $is_rtl ? 'rtl' : 'ltr' );
+
+			// sscribe_pdf_include_page_numbers: render "{PAGENO}/{nb}" in the
+			// bottom-center of every page. mPDF's footer placeholders expand at
+			// render time, so this is a no-op when the option is off.
+			if ( '1' === (string) $this->get_format_option( 'sscribe_pdf_include_page_numbers', '1' ) ) {
+				$mpdf->SetFooter( '{PAGENO}/{nb}' );
+			}
 
 			$mpdf->SetTitle( $title );
 			$mpdf->SetAuthor( $page_data['author'] ?? '' );
@@ -570,6 +615,20 @@ class SScribe_PDF_Exporter implements SScribe_Exporter_Interface {
 	}
 
 	/**
+	 * Resolve the configured PDF page size to an mPDF format string.
+	 *
+	 * Falls back to A4 when the user-selected value is empty or unknown,
+	 * so a corrupt/legacy value can never crash the export pipeline.
+	 *
+	 * @return string One of A4, A3, Letter, Legal.
+	 */
+	private function resolve_pdf_page_size(): string {
+		$allowed = array( 'A4', 'A3', 'Letter', 'Legal' );
+		$value   = (string) $this->get_format_option( 'sscribe_pdf_page_size', 'A4' );
+		return in_array( $value, $allowed, true ) ? $value : 'A4';
+	}
+
+	/**
 	 * Find a font file matching the pattern in a directory.
 	 *
 	 * @param string $dir      Directory to search.
@@ -703,7 +762,7 @@ class SScribe_PDF_Exporter implements SScribe_Exporter_Interface {
 			'autoScriptToLang' => true,
 			'autoLangToFont'   => true,
 			'orientation'      => 'P',
-			'format'           => 'A4',
+			'format'           => $this->resolve_pdf_page_size(),
 			'margin_left'      => 15,
 			'margin_right'     => 15,
 			'margin_top'       => 15,

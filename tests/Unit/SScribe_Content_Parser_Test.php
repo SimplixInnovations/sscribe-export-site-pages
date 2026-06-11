@@ -131,14 +131,23 @@ public function test_url_to_local_path_rejects_sibling_upload_directories(): voi
         ob_start();
         imagepng( $im );
         $png_bytes = ob_get_clean();
-        imagedestroy( $im );
+        // imagedestroy() is deprecated in PHP 8.5+ (no effect since 8.0).
+        // GD resources are released automatically when the test ends.
         file_put_contents( $relative_image, $png_bytes );
 
         $method = new \ReflectionMethod( \SScribe_Content_Parser::class, 'url_to_local_path' );
-        $method->setAccessible( true );
+        // setAccessible(true) is deprecated in PHP 8.1+. Use Closure::bind
+        // to read the value via a scoped callable instead.
+        $ref = \Closure::bind(
+            function ( $parser, $url ) {
+                return $parser->url_to_local_path( $url );
+            },
+            null,
+            \SScribe_Content_Parser::class
+        );
 
         try {
-            $resolved = $method->invoke( $this->parser, $protocol_relative_url );
+            $resolved = $ref( $this->parser, $protocol_relative_url );
             $this->assertSame(
                 realpath( $relative_image ),
                 $resolved,
