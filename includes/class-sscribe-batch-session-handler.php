@@ -13,12 +13,16 @@ if ( ! defined( 'ABSPATH' ) ) {
 	exit;
 }
 
+require_once SSCRIBE_PLUGIN_DIR . 'includes/traits/trait-sscribe-batch-session-helpers.php';
+
 /**
  * Handles session lifecycle AJAX requests: check active, clear, cancel.
  *
  * Extracted from SScribe_Batch_Processor to reduce file complexity.
  */
 class SScribe_Batch_Session_Handler {
+
+	use SScribe_Batch_Session_Helpers;
 
 	/**
 	 * Session manager.
@@ -317,20 +321,11 @@ class SScribe_Batch_Session_Handler {
 	}
 
 	/**
-	 * Get the capability required for export operations.
+	 * Get the rate limiter (used by the shared SScribe_Batch_Session_Helpers trait).
 	 *
-	 * @return string Capability name.
+	 * @return SScribe_Export_Rate_Limiter
 	 */
-	private function get_required_capability(): string {
-		return SScribe_Capabilities::get_required();
-	}
-
-	/**
-	 * Verify rate limit hasn't been exceeded.
-	 *
-	 * @return bool True if rate limit check passes.
-	 */
-	private function check_rate_limit(): bool {
-		return $this->rate_limiter->check_rate_limit( $this->get_required_capability() );
+	private function get_rate_limiter(): SScribe_Export_Rate_Limiter {
+		return $this->rate_limiter;
 	}
 }

@@ -338,6 +338,17 @@ class SScribe_Batch_Processor {
 		foreach ( $formats as $format ) {
 			$format_start = microtime( true );
 
+			// Expose per-format options to the exporter via filter. This
+			// is a zero-impact hook for exporters that don't care — they
+			// can simply not register a listener. The filter is dynamic
+			// (one per format) so third-party integrations can opt in
+			// without modifying the plugin.
+			if ( ! empty( $session['format_options'] ) ) {
+				$format_options = (array) $session['format_options'];
+				// phpcs:ignore WordPress.NamingConventions.PrefixAllGlobals.NonPrefixedHooknameFound -- Per-format dynamic hook, third-party integrations may register listeners.
+				$format_options = apply_filters( "sscribe_export_options_{$format}", $format_options, $page_id, $session_id );
+			}
+
 			try {
 				$exporter = \SScribe_Exporter_Factory::create( $format );
 			} catch ( SScribe_Validation_Exception $e ) {
@@ -477,6 +488,47 @@ class SScribe_Batch_Processor {
 	 */
 	private function get_rate_limiter(): SScribe_Export_Rate_Limiter {
 		return $this->rate_limiter ??= new SScribe_Export_Rate_Limiter();
+	}
+
+	/**
+	 * Parse and sanitize the per-format options payload from the request.
+	 *
+	 * Accepts any keys (future formats can add their own) but enforces
+	 * scalar / scalar-array values to prevent object/array injection into
+	 * the session store. Keys are passed through `sanitize_key()` so they
+	 * are always safe to use as session keys.
+	 *
+	 * Extracted from `ajax_start_export()` so the parsing rules can be
+	 * unit-tested in isolation without bringing up the full AJAX stack.
+	 *
+	 * @param mixed $raw Raw $_POST['format_options'] value.
+	 * @return array Sanitized options (always an array, possibly empty).
+	 */
+	public static function parse_format_options( $raw ): array {
+		if ( ! is_array( $raw ) ) {
+			return array();
+		}
+
+		$cleaned = array();
+		foreach ( $raw as $sscribe_opt_name => $sscribe_opt_value ) {
+			$sscribe_opt_name = sanitize_key( (string) $sscribe_opt_name );
+			if ( '' === $sscribe_opt_name ) {
+				continue;
+			}
+			if ( is_array( $sscribe_opt_value ) ) {
+				$sscribe_opt_value = array_map(
+					static function ( $sscribe_v ): string {
+						return (string) ( is_scalar( $sscribe_v ) ? $sscribe_v : '' );
+					},
+					$sscribe_opt_value
+				);
+			} else {
+				$sscribe_opt_value = (string) ( is_scalar( $sscribe_opt_value ) ? $sscribe_opt_value : '' );
+			}
+			$cleaned[ $sscribe_opt_name ] = $sscribe_opt_value;
+		}
+
+		return $cleaned;
 	}
 
 	/**
@@ -684,6 +736,9 @@ class SScribe_Batch_Processor {
 	/**
 	 * Get the capability required for export operations.
 	 *
+	 * Cached on first call to avoid repeated `get_required()` lookups
+	 * across the 200+ AJAX calls a single batch export makes.
+	 *
 	 * @return string Capability name.
 	 */
 	private function get_required_capability(): string {
@@ -805,6 +860,14 @@ class SScribe_Batch_Processor {
 		}
 
 		$post_type        = isset( $_POST['post_type'] ) ? sanitize_text_field( wp_unslash( $_POST['post_type'] ) ) : 'page';
+
+		// Per-format options from the admin UI panels. Stored in the session
+		// and re-exposed via the `sscribe_export_options_{$format}` filter so
+		// individual exporters can opt in to reading them without changing
+		// their public API. Unknown option names are accepted (future
+		// formats can add their own) but values are sanitized to scalar
+		// strings to prevent object/array injection.
+		$format_options = self::parse_format_options( $_POST['format_options'] ?? array() );
 		$valid_post_types = array_values( get_post_types( array( 'public' => true ) ) );
 		$valid_post_types = array_merge( $valid_post_types, array( 'any' ) );
 		// Remove post types that don't make sense for content export.
@@ -922,6 +985,7 @@ class SScribe_Batch_Processor {
 				'start_time'        => microtime( true ),
 				'cancelled'         => false,
 				'user_id'           => $user_id,
+				'format_options'    => $format_options,
 			)
 		);
 
@@ -2690,6 +2754,27 @@ class SScribe_Batch_Processor {
 	 */
 	public function ajax_refresh_download_nonce(): void {
 		$this->file_handler->ajax_refresh_download_nonce();
+	}
+
+	/**
+	 * Refresh the main export nonce via AJAX.
+	 *
+	 * Long-running batch exports can outlive the WP nonce lifetime (default
+	 * 12h, default 24h on some sites). Without a refresh hook the front-end
+	 * JS would 403 on every subsequent batch step. The JS calls this on a
+	 * 403 response, then retries the original request.
+	 */
+	public function ajax_refresh_nonce(): void {
+		if ( ! current_user_can( $this->get_required_capability() ) ) {
+			wp_send_json_error( array( 'message' => __( 'Permission denied.', 'sscribe-export-site-pages' ) ), 403 );
+			return;
+		}
+
+		wp_send_json_success(
+			array(
+				'nonce' => wp_create_nonce( 'sscribe_export_nonce' ),
+			)
+		);
 	}
 
 	/**
