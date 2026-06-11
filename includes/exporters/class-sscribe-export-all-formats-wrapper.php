@@ -1,0 +1,126 @@
+<?php
+/**
+ * SScribe Export All Formats Wrapper
+ *
+ * @package SScribe_Export_Site_Pages
+ * @license GPL v2 or later
+ * @link    https://www.gnu.org/licenses/gpl-2.0.html
+ */
+
+declare(strict_types=1);
+
+if ( ! defined( 'ABSPATH' ) ) {
+	exit;
+}
+
+/**
+ * "Export all formats" wrapper.
+ *
+ * Convenience dispatcher that fans an export out to every supported
+ * format with per-format error isolation. A failure in one format
+ * never aborts the others — each format's outcome is returned in
+ * the result array keyed by format string.
+ *
+ * The wrapper is a pure utility: it does not own session state, file
+ * handles, or retry logic. The existing SScribe_Batch_Processor's
+ * dispatch_formats() continues to own the production path; this
+ * wrapper is a lighter, easier-to-test entry point for callers that
+ * want a single "give me everything" call.
+ */
+class SScribe_Export_All_Formats_Wrapper {
+
+	/**
+	 * Export a single page to every supported (or explicitly-listed) format.
+	 *
+	 * @param array       $page_data  Page content + metadata.
+	 * @param string      $output_dir Output directory for the produced files.
+	 * @param int         $index      1-based page index.
+	 * @param int         $total      Total page count.
+	 * @param array|null  $formats    Optional format whitelist. Defaults to
+	 *                                every format returned by
+	 *                                SScribe_Export_Format::get_supported_formats().
+	 * @return array<string, array{success: bool, result: SScribe_Result, error: ?string}>
+	 *                Per-format results keyed by format string.
+	 */
+	public static function export_page(
+		array $page_data,
+		string $output_dir,
+		int $index = 1,
+		int $total = 1,
+		?array $formats = null
+	): array {
+		if ( null === $formats || empty( $formats ) ) {
+			$formats = array_keys( SScribe_Export_Format::get_supported_formats() );
+		}
+
+		$results = array();
+
+		foreach ( $formats as $format ) {
+			$format = (string) $format;
+
+			if ( ! SScribe_Exporter_Factory::is_supported( $format ) ) {
+				$results[ $format ] = array(
+					'success' => false,
+					'result'  => SScribe_Result::failure(
+						sprintf( 'Unsupported export format: %s', $format )
+					),
+					'error'   => sprintf( 'Unsupported export format: %s', $format ),
+				);
+				continue;
+			}
+
+			try {
+				$exporter = SScribe_Exporter_Factory::create( $format );
+				$result   = $exporter->export( $page_data, $output_dir, $index, $total );
+			} catch ( \Throwable $e ) {
+				$result = SScribe_Result::failure(
+					$e->getMessage(),
+					array( 'exception' => get_class( $e ) )
+				);
+			}
+
+			$results[ $format ] = array(
+				'success' => $result->is_success(),
+				'result'  => $result,
+				'error'   => $result->is_failure() ? $result->get_error() : null,
+			);
+		}
+
+		return $results;
+	}
+
+	/**
+	 * Get a flat list of formats that succeeded in a wrapper result set.
+	 *
+	 * Convenience for callers that want to ask "which formats produced
+	 * output" without walking the full result map.
+	 *
+	 * @param array $results Wrapper output from export_page().
+	 * @return array<string> Format strings that returned success.
+	 */
+	public static function successful_formats( array $results ): array {
+		$successes = array();
+		foreach ( $results as $format => $entry ) {
+			if ( ! empty( $entry['success'] ) ) {
+				$successes[] = (string) $format;
+			}
+		}
+		return $successes;
+	}
+
+	/**
+	 * Get a flat list of formats that failed in a wrapper result set.
+	 *
+	 * @param array $results Wrapper output from export_page().
+	 * @return array<string, string> Map of failed format → error message.
+	 */
+	public static function failed_formats( array $results ): array {
+		$failures = array();
+		foreach ( $results as $format => $entry ) {
+			if ( empty( $entry['success'] ) ) {
+				$failures[ (string) $format ] = (string) ( $entry['error'] ?? 'unknown error' );
+			}
+		}
+		return $failures;
+	}
+}

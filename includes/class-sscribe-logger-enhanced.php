@@ -139,24 +139,16 @@ class SScribe_Logger_Enhanced implements SScribe_Logger_Interface {
 	private ?bool $table_exists_cache = null;
 
 	/**
-	 * Set session ID for log context.
-	 *
-	 * @param string $session_id Session identifier.
-	 */
-	public function set_session_id( string $session_id ): void {
-		$this->session_id = $session_id;
-	}
-
-	/**
 	 * Determine if a log level should be processed.
+	 *
+	 * Delegates to the shared `SScribe_Logger_Common::level_meets_threshold()`
+	 * helper so the priority comparison lives in one place.
 	 *
 	 * @param string $level Log level to check.
 	 * @return bool True if level meets threshold.
 	 */
 	private function should_log( string $level ): bool {
-		$current = self::LEVEL_PRIORITY[ $this->min_level ] ?? 1;
-		$check   = self::LEVEL_PRIORITY[ $level ] ?? 1;
-		return $check >= $current;
+		return self::level_meets_threshold( $level, $this->min_level );
 	}
 
 	/**
@@ -193,86 +185,6 @@ class SScribe_Logger_Enhanced implements SScribe_Logger_Interface {
 	 */
 	public function is_enabled(): bool {
 		return $this->enable_file || $this->enable_db;
-	}
-
-	/**
-	 * Log debug message.
-	 *
-	 * @param string $message Log message.
-	 * @param array  $context Additional context.
-	 */
-	public function debug( string $message, array $context = array() ): void {
-		$this->log( self::LEVEL_DEBUG, $message, $context );
-	}
-
-	/**
-	 * Log info message.
-	 *
-	 * @param string $message Log message.
-	 * @param array  $context Additional context.
-	 */
-	public function info( string $message, array $context = array() ): void {
-		$this->log( self::LEVEL_INFO, $message, $context );
-	}
-
-	/**
-	 * Log notice message.
-	 *
-	 * @param string $message Log message.
-	 * @param array  $context Additional context.
-	 */
-	public function notice( string $message, array $context = array() ): void {
-		$this->log( self::LEVEL_NOTICE, $message, $context );
-	}
-
-	/**
-	 * Log warning message.
-	 *
-	 * @param string $message Log message.
-	 * @param array  $context Additional context.
-	 */
-	public function warning( string $message, array $context = array() ): void {
-		$this->log( self::LEVEL_WARNING, $message, $context );
-	}
-
-	/**
-	 * Log error message.
-	 *
-	 * @param string $message Log message.
-	 * @param array  $context Additional context.
-	 */
-	public function error( string $message, array $context = array() ): void {
-		$this->log( self::LEVEL_ERROR, $message, $context );
-	}
-
-	/**
-	 * Log critical message.
-	 *
-	 * @param string $message Log message.
-	 * @param array  $context Additional context.
-	 */
-	public function critical( string $message, array $context = array() ): void {
-		$this->log( self::LEVEL_CRITICAL, $message, $context );
-	}
-
-	/**
-	 * Log alert message.
-	 *
-	 * @param string $message Log message.
-	 * @param array  $context Additional context.
-	 */
-	public function alert( string $message, array $context = array() ): void {
-		$this->log( self::LEVEL_ALERT, $message, $context );
-	}
-
-	/**
-	 * Log emergency message.
-	 *
-	 * @param string $message Log message.
-	 * @param array  $context Additional context.
-	 */
-	public function emergency( string $message, array $context = array() ): void {
-		$this->log( self::LEVEL_EMERGENCY, $message, $context );
 	}
 
 	/**

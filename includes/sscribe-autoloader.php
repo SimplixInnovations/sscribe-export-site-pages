@@ -49,6 +49,17 @@ spl_autoload_register(
 			return;
 		}
 
+		if ( 'SScribe_Export_All_Formats_Wrapper' === $class_name ) {
+			$file = SSCRIBE_PLUGIN_DIR . 'includes/exporters/class-sscribe-export-all-formats-wrapper.php';
+			if ( file_exists( $file ) ) {
+				require_once $file;
+				$loaded[ $class_name ] = true;
+			} else {
+				$missing[ $class_name ] = true;
+			}
+			return;
+		}
+
 		if ( 0 !== strpos( $class_name, 'SScribe_' ) ) {
 			$missing[ $class_name ] = true;
 			return;
