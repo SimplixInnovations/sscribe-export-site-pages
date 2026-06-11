@@ -170,6 +170,10 @@ class SScribe_Markdown_Exporter implements SScribe_Exporter_Interface {
 			$md .= 'featured_image: "' . $this->escape_yaml_string( $page_data['featured_image_url'] ) . "\"\n";
 		}
 
+		if ( ! empty( $page_data['excerpt'] ) ) {
+			$md .= 'excerpt: "' . $this->escape_yaml_string( $page_data['excerpt'] ) . "\"\n";
+		}
+
 		if ( ! empty( $page_data['seo'] ) ) {
 			$seo = $page_data['seo'];
 			if ( ! empty( $seo['meta_title'] ) ) {
@@ -226,6 +230,13 @@ class SScribe_Markdown_Exporter implements SScribe_Exporter_Interface {
 		}
 
 		$html = $this->strip_all_styles( $html );
+
+		// Strip any remaining unexpanded shortcodes ([caption], [gallery],
+		// [embed], custom plugin shortcodes) so they don't leak into the
+		// exported .md file as raw shortcode syntax. Gutenberg block
+		// delimiters (<!-- wp:... -->) are already removed by
+		// strip_all_styles() via the <!-- --> comment strip.
+		$html = $this->strip_shortcodes( $html );
 
 		$md = $html;
 
@@ -291,6 +302,37 @@ class SScribe_Markdown_Exporter implements SScribe_Exporter_Interface {
 		$html = preg_replace( '/\s*data-[a-z-]+="[^"]*"/i', '', $html ) ?? $html;
 		$html = preg_replace( "/\s*data-[a-z-]+='[^']*'/i", '', $html ) ?? $html;
 		$html = preg_replace( '/<!--.*?-->/s', '', $html ) ?? $html;
+
+		return $html;
+	}
+
+	/**
+	 * Strip unexpanded shortcodes from content.
+	 *
+	 * WordPress shortcodes that survive in the post_content when
+	 * `the_content` filter is bypassed (page builder content, custom
+	 * plugin shortcodes, [caption]/[gallery]/[embed] from the media
+	 * library) would otherwise leak into the exported Markdown as raw
+	 * `[shortcode]...[/shortcode]` syntax. This pass removes both
+	 * self-closing and paired shortcodes.
+	 *
+	 * Uses WordPress's strip_shortcodes() if available (it relies on
+	 * the registered shortcode tag list), and additionally applies a
+	 * regex fallback to catch unregistered tags.
+	 *
+	 * @param string $html HTML content.
+	 * @return string Content with shortcodes removed.
+	 */
+	private function strip_shortcodes( string $html ): string {
+		if ( function_exists( 'strip_shortcodes' ) ) {
+			$html = strip_shortcodes( $html );
+		}
+
+		// Regex fallback for any shortcode that wasn't registered with
+		// add_shortcode() (so strip_shortcodes() above wouldn't have
+		// known about it). Matches both self-closing and paired forms,
+		// and tolerates whitespace/newlines inside the tag attributes.
+		$html = preg_replace( '/\[[a-zA-Z_][a-zA-Z0-9_-]*(?:\s+[^\]]*)?\/?\][\s\S]*?(?:\[\/[a-zA-Z_][a-zA-Z0-9_-]*\])?/s', '', $html ) ?? $html;
 
 		return $html;
 	}

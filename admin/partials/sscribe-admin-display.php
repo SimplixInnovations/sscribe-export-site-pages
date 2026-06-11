@@ -366,6 +366,88 @@ $sscribe_export_index    = $sscribe_export_index ?? array();
 					</div>
 				</div>
 
+				<div id="sscribe-format-options" class="sscribe-format-options sscribe-hidden" aria-live="polite">
+					<div class="sscribe-format-options-inner">
+
+						<div class="sscribe-format-option-panel" data-format="pdf" hidden>
+							<h4 class="sscribe-format-option-title"><?php esc_html_e( 'PDF Options', 'sscribe-export-site-pages' ); ?></h4>
+							<div class="sscribe-format-option-grid">
+								<label class="sscribe-format-option-field">
+									<span class="sscribe-format-option-label"><?php esc_html_e( 'Page size', 'sscribe-export-site-pages' ); ?></span>
+									<select name="sscribe_pdf_page_size" id="sscribe-pdf-page-size">
+										<option value="A4"><?php esc_html_e( 'A4 (210 × 297 mm)', 'sscribe-export-site-pages' ); ?></option>
+										<option value="Letter"><?php esc_html_e( 'Letter (8.5 × 11 in)', 'sscribe-export-site-pages' ); ?></option>
+										<option value="Legal"><?php esc_html_e( 'Legal (8.5 × 14 in)', 'sscribe-export-site-pages' ); ?></option>
+										<option value="A3"><?php esc_html_e( 'A3 (297 × 420 mm)', 'sscribe-export-site-pages' ); ?></option>
+									</select>
+								</label>
+								<label class="sscribe-format-option-field sscribe-format-option-checkbox">
+									<input type="checkbox" name="sscribe_pdf_include_images" id="sscribe-pdf-include-images" value="1" checked>
+									<span><?php esc_html_e( 'Embed images', 'sscribe-export-site-pages' ); ?></span>
+								</label>
+								<label class="sscribe-format-option-field sscribe-format-option-checkbox">
+									<input type="checkbox" name="sscribe_pdf_include_page_numbers" id="sscribe-pdf-include-page-numbers" value="1" checked>
+									<span><?php esc_html_e( 'Include page numbers', 'sscribe-export-site-pages' ); ?></span>
+								</label>
+							</div>
+						</div>
+
+						<div class="sscribe-format-option-panel" data-format="docx" hidden>
+							<h4 class="sscribe-format-option-title"><?php esc_html_e( 'DOCX Options', 'sscribe-export-site-pages' ); ?></h4>
+							<div class="sscribe-format-option-grid">
+								<label class="sscribe-format-option-field">
+									<span class="sscribe-format-option-label"><?php esc_html_e( 'Template', 'sscribe-export-site-pages' ); ?></span>
+									<select name="sscribe_docx_template" id="sscribe-docx-template">
+										<option value="default"><?php esc_html_e( 'Default (with cover & TOC)', 'sscribe-export-site-pages' ); ?></option>
+										<option value="minimal"><?php esc_html_e( 'Minimal (body only)', 'sscribe-export-site-pages' ); ?></option>
+									</select>
+								</label>
+								<label class="sscribe-format-option-field sscribe-format-option-checkbox">
+									<input type="checkbox" name="sscribe_docx_include_images" id="sscribe-docx-include-images" value="1" checked>
+									<span><?php esc_html_e( 'Embed images', 'sscribe-export-site-pages' ); ?></span>
+								</label>
+								<label class="sscribe-format-option-field sscribe-format-option-checkbox">
+									<input type="checkbox" name="sscribe_docx_include_toc" id="sscribe-docx-include-toc" value="1" checked>
+									<span><?php esc_html_e( 'Include table of contents', 'sscribe-export-site-pages' ); ?></span>
+								</label>
+							</div>
+						</div>
+
+						<div class="sscribe-format-option-panel" data-format="markdown" hidden>
+							<h4 class="sscribe-format-option-title"><?php esc_html_e( 'Markdown Options', 'sscribe-export-site-pages' ); ?></h4>
+							<div class="sscribe-format-option-grid">
+								<label class="sscribe-format-option-field sscribe-format-option-checkbox">
+									<input type="checkbox" name="sscribe_md_include_frontmatter" id="sscribe-md-include-frontmatter" value="1" checked>
+									<span><?php esc_html_e( 'Include YAML frontmatter', 'sscribe-export-site-pages' ); ?></span>
+								</label>
+								<label class="sscribe-format-option-field sscribe-format-option-checkbox">
+									<input type="checkbox" name="sscribe_md_include_featured_image" id="sscribe-md-include-featured-image" value="1" checked>
+									<span><?php esc_html_e( 'Include featured image', 'sscribe-export-site-pages' ); ?></span>
+								</label>
+								<label class="sscribe-format-option-field sscribe-format-option-checkbox">
+									<input type="checkbox" name="sscribe_md_absolute_urls" id="sscribe-md-absolute-urls" value="1" checked>
+									<span><?php esc_html_e( 'Use absolute image URLs', 'sscribe-export-site-pages' ); ?></span>
+								</label>
+							</div>
+						</div>
+
+						<div class="sscribe-format-option-panel" data-format="html" hidden>
+							<h4 class="sscribe-format-option-title"><?php esc_html_e( 'HTML Options', 'sscribe-export-site-pages' ); ?></h4>
+							<div class="sscribe-format-option-grid">
+								<label class="sscribe-format-option-field sscribe-format-option-checkbox">
+									<input type="checkbox" name="sscribe_html_include_css" id="sscribe-html-include-css" value="1" checked>
+									<span><?php esc_html_e( 'Inline CSS styles', 'sscribe-export-site-pages' ); ?></span>
+								</label>
+								<label class="sscribe-format-option-field sscribe-format-option-checkbox">
+									<input type="checkbox" name="sscribe_html_responsive_images" id="sscribe-html-responsive-images" value="1" checked>
+									<span><?php esc_html_e( 'Responsive image markup', 'sscribe-export-site-pages' ); ?></span>
+								</label>
+							</div>
+						</div>
+
+					</div>
+				</div>
+
 				<div class="sscribe-export-bar">
 					<div class="sscribe-config-summary" id="sscribe-config-summary" aria-live="polite">
 						<span class="sscribe-summary-label"><?php esc_html_e( 'Config', 'sscribe-export-site-pages' ); ?>:</span>
