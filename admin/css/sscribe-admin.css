@@ -3599,3 +3599,69 @@ body .sscribe-master-container .sscribe-support-copy-text {
 		padding: 16px;
 	}
 }
+
+
+/* Per-format option panels (PDF / DOCX / Markdown / HTML) */
+.sscribe-format-options {
+	margin: 16px 0 0 0;
+	padding: 16px;
+	border: 1px solid var(--sscribe-border, #e2e8f0);
+	border-radius: 8px;
+	background: var(--sscribe-card-bg, #fff);
+}
+
+.sscribe-format-options-inner {
+	display: flex;
+	flex-direction: column;
+	gap: 0;
+}
+
+.sscribe-format-option-panel {
+	display: block;
+}
+
+.sscribe-format-option-panel[hidden] {
+	display: none;
+}
+
+.sscribe-format-option-title {
+	margin: 0 0 12px 0;
+	font-size: 14px;
+	font-weight: 600;
+	color: var(--sscribe-text, #122119);
+}
+
+.sscribe-format-option-grid {
+	display: grid;
+	grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+	gap: 12px;
+}
+
+.sscribe-format-option-field {
+	display: flex;
+	flex-direction: column;
+	gap: 4px;
+	font-size: 13px;
+	color: var(--sscribe-text, #122119);
+}
+
+.sscribe-format-option-field select {
+	padding: 6px 10px;
+	border: 1px solid var(--sscribe-border, #e2e8f0);
+	border-radius: 6px;
+	background: var(--sscribe-card-bg, #fff);
+	color: var(--sscribe-text, #122119);
+	font-size: 13px;
+}
+
+.sscribe-format-option-checkbox {
+	flex-direction: row;
+	align-items: center;
+	gap: 8px;
+	cursor: pointer;
+}
+
+.sscribe-format-option-checkbox input[type='checkbox'] {
+	margin: 0;
+	cursor: pointer;
+}
