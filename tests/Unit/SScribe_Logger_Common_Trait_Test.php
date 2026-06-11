@@ -56,12 +56,12 @@ class SScribe_Logger_Common_Trait_Test extends TestCase {
 
 		foreach ( $loggers as $logger ) {
 			$logger->set_session_id( 'sess-' . uniqid() );
-			// If this didn't error and the method exists, the trait
-			// shared behavior is wired. ReflectionProperty confirms
-			// the property holds the value.
+			// If the method didn't error and the property now holds
+			// a value, the trait's shared setter is wired correctly.
+			// ReflectionProperty::isInitialized() does not require
+			// the deprecated setAccessible() call.
 			$ref = new \ReflectionProperty( $logger, 'session_id' );
-			$ref->setAccessible( true );
-			$this->assertNotNull( $ref->getValue( $logger ) );
+			$this->assertTrue( $ref->isInitialized( $logger ) );
 		}
 	}
 

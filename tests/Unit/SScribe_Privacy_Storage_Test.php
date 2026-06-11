@@ -109,10 +109,6 @@ class SScribe_Privacy_Storage_Test extends TestCase {
 	}
 
 	public function test_audit_trail_erase_user_data_redacts_personal_fields_only_for_matching_user(): void {
-		$this->markTestSkipped(
-			'Mock wpdb does not support audit_log SELECT/UPDATE operations — test passes on real WordPress.'
-		);
-
 		$audit   = new SScribe_Audit_Trail();
 		$updated = $audit->erase_user_data( 7 );
 

@@ -36,6 +36,16 @@ class SScribe_HTML_Exporter implements SScribe_Exporter_Interface {
 	private SScribe_Filesystem $filesystem;
 
 	/**
+	 * Per-export format options set by the batch processor.
+	 *
+	 * Keys are format-prefixed option names (e.g. `sscribe_html_include_css`).
+	 * Populated via apply_format_options() before export() is called.
+	 *
+	 * @var array<string, mixed>
+	 */
+	private array $format_options = array();
+
+	/**
 	 * Initialize the HTML exporter.
 	 *
 	 * @param SScribe_Logger_Interface|null $logger     Logger.
@@ -44,6 +54,31 @@ class SScribe_HTML_Exporter implements SScribe_Exporter_Interface {
 	public function __construct( ?SScribe_Logger_Interface $logger = null, ?SScribe_Filesystem $filesystem = null ) {
 		$this->logger     = $logger ?? SScribe_Logger::instance( SScribe_Logger::is_logging_enabled() );
 		$this->filesystem = $filesystem ?? new SScribe_Filesystem();
+	}
+
+	/**
+	 * Apply per-format options to this exporter instance.
+	 *
+	 * The batch processor calls this after running the
+	 * `sscribe_export_options_html` filter and before export().
+	 *
+	 * @param array<string, mixed> $options Sanitized options map.
+	 * @return void
+	 */
+	public function apply_format_options( array $options ): void {
+		$this->format_options = $options;
+	}
+
+	/**
+	 * Read a format option with a default. Treats checkbox values as
+	 * strings ("1" / ""), so callers should compare to "1".
+	 *
+	 * @param string $key     Option key.
+	 * @param mixed  $default Default when key is absent.
+	 * @return mixed
+	 */
+	private function get_format_option( string $key, $default = null ) {
+		return array_key_exists( $key, $this->format_options ) ? $this->format_options[ $key ] : $default;
 	}
 
 	/**
@@ -275,30 +310,16 @@ class SScribe_HTML_Exporter implements SScribe_Exporter_Interface {
 		// SEO block is opt-in via filter — not shown by default in reader-facing exports.
 		$show_seo = (bool) apply_filters( 'sscribe_html_export_show_seo', false, $page_data );
 
+		$include_css = '1' === (string) $this->get_format_option( 'sscribe_html_include_css', '1' );
+		$style_block = $include_css ? $this->get_style_block( $direction_css ) : '';
+
 		$html = '<!DOCTYPE html>
 <html lang="' . esc_attr( $language ) . '" dir="' . esc_attr( $direction ) . '">
 <head>
 	<meta charset="UTF-8">
 	<meta name="viewport" content="width=device-width, initial-scale=1.0">
 	<title>' . $title . ' | ' . esc_html( $site_name ) . '</title>
-	<style>
-		* { margin: 0; padding: 0; box-sizing: border-box; }
-		body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Arial, sans-serif; max-width: 800px; margin: 0 auto; padding: 30px 20px; line-height: 1.6; color: #333; }
-		header { border-bottom: 2px solid #4A8263; padding-bottom: 20px; margin-bottom: 30px; }
-		h1 { font-size: 2em; color: #122119; margin-bottom: 10px; text-align: center; }
-		h2, h3, h4 { color: #122119; margin: 20px 0 10px; }
-		.meta { background: #E8EFEB; padding: 15px 20px; border-radius: 4px; margin-bottom: 20px; }
-		.meta dt { font-weight: bold; margin-top: 10px; }
-		.meta dd { margin: 0; color: #495057; }
-		.content { margin-top: 20px; }
-		.seo { background: #f5f5f5; padding: 15px 20px; border-radius: 4px; margin-top: 20px; }
-		.featured-image { width: 100%; max-width: 600px; height: auto; margin-bottom: 20px; border-radius: 4px; display: block; margin-left: auto; margin-right: auto; }
-		img { max-width: 100%; height: auto; display: block; margin: 8px auto; }
-		a { color: #2C6E8A; text-decoration: none; }
-		a:hover { text-decoration: underline; }
-		footer { margin-top: 40px; padding-top: 20px; border-top: 1px solid #ddd; color: #666; font-size: 0.9em; }
-		' . $direction_css . '
-	</style>
+	' . $style_block . '
 </head>
 <body lang="' . esc_attr( $language ) . '" dir="' . esc_attr( $direction ) . '">
 	<header>
@@ -330,6 +351,37 @@ class SScribe_HTML_Exporter implements SScribe_Exporter_Interface {
 	}
 
 	/**
+	 * Build the inline `<style>` block for the exported document.
+	 *
+	 * Extracted from generate_html() so the sscribe_html_include_css
+	 * option can suppress the entire block without breaking the
+	 * surrounding string concatenation.
+	 *
+	 * @param string $direction_css Direction-specific CSS to append.
+	 * @return string Complete `<style>...</style>` block (including tags).
+	 */
+	private function get_style_block( string $direction_css ): string {
+		return '<style>
+		* { margin: 0; padding: 0; box-sizing: border-box; }
+		body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Arial, sans-serif; max-width: 800px; margin: 0 auto; padding: 30px 20px; line-height: 1.6; color: #333; }
+		header { border-bottom: 2px solid #4A8263; padding-bottom: 20px; margin-bottom: 30px; }
+		h1 { font-size: 2em; color: #122119; margin-bottom: 10px; text-align: center; }
+		h2, h3, h4 { color: #122119; margin: 20px 0 10px; }
+		.meta { background: #E8EFEB; padding: 15px 20px; border-radius: 4px; margin-bottom: 20px; }
+		.meta dt { font-weight: bold; margin-top: 10px; }
+		.meta dd { margin: 0; color: #495057; }
+		.content { margin-top: 20px; }
+		.seo { background: #f5f5f5; padding: 15px 20px; border-radius: 4px; margin-top: 20px; }
+		.featured-image { width: 100%; max-width: 600px; height: auto; margin-bottom: 20px; border-radius: 4px; display: block; margin-left: auto; margin-right: auto; }
+		img { max-width: 100%; height: auto; display: block; margin: 8px auto; }
+		a { color: #2C6E8A; text-decoration: none; }
+		a:hover { text-decoration: underline; }
+		footer { margin-top: 40px; padding-top: 20px; border-top: 1px solid #ddd; color: #666; font-size: 0.9em; }
+		' . $direction_css . '
+	</style>';
+	}
+
+	/**
 	 * Get featured image HTML for the page.
 	 *
 	 * @param array $page_data Page data.
@@ -348,14 +400,20 @@ class SScribe_HTML_Exporter implements SScribe_Exporter_Interface {
 		$height = (int) ( $page_data['featured_image_height'] ?? 0 );
 		$alt    = esc_attr( $page_data['title'] ?? '' );
 
-		$dimensions = ( $width && $height )
+		// sscribe_html_responsive_images: lazy + intrinsic size vs eager + fixed
+		// dimensions. Defaults to responsive (matches what most browsers want
+		// for archival HTML, where fixed pixel sizes can be jarring).
+		$responsive = '1' === (string) $this->get_format_option( 'sscribe_html_responsive_images', '1' );
+		$loading    = $responsive ? 'lazy' : 'eager';
+		$dimensions = ( $width && $height && ! $responsive )
 			? sprintf( ' width="%d" height="%d"', $width, $height )
 			: '';
 
 		return sprintf(
-			'<img src="%s" alt="%s" class="featured-image" loading="eager"%s>',
+			'<img src="%s" alt="%s" class="featured-image" loading="%s"%s>',
 			esc_url( $src ),
 			$alt,
+			$loading,
 			$dimensions
 		);
 	}

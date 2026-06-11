@@ -144,8 +144,15 @@ class SScribe_Export_Rate_Limiter_Test extends TestCase {
 	 */
 	public function test_get_client_ip_rejects_invalid_cf_header(): void {
 		$limiter  = new \SScribe_Export_Rate_Limiter();
-		$method   = new \ReflectionMethod( \SScribe_Export_Rate_Limiter::class, 'get_client_ip' );
-		$method->setAccessible( true );
+		// setAccessible(true) is deprecated in PHP 8.1+. Use Closure::bind
+		// to invoke the private method via a scoped callable.
+		$method   = \Closure::bind(
+			function ( $limiter ) {
+				return $limiter->get_client_ip();
+			},
+			null,
+			\SScribe_Export_Rate_Limiter::class
+		);
 
 		$original_cf  = $_SERVER['HTTP_CF_CONNECTING_IP']  ?? null;
 		$original_xf  = $_SERVER['HTTP_X_FORWARDED_FOR']   ?? null;
@@ -156,7 +163,7 @@ class SScribe_Export_Rate_Limiter_Test extends TestCase {
 		$_SERVER['REMOTE_ADDR']           = '203.0.113.5';
 
 		try {
-			$ip = $method->invoke( $limiter );
+			$ip = $method( $limiter );
 			$this->assertSame( '203.0.113.5', $ip, 'Malformed CF/XF headers must fall through to REMOTE_ADDR' );
 		} finally {
 			if ( null === $original_cf ) {
@@ -185,8 +192,15 @@ class SScribe_Export_Rate_Limiter_Test extends TestCase {
 	 */
 	public function test_get_client_ip_accepts_ipv6_in_x_forwarded_for(): void {
 		$limiter  = new \SScribe_Export_Rate_Limiter();
-		$method   = new \ReflectionMethod( \SScribe_Export_Rate_Limiter::class, 'get_client_ip' );
-		$method->setAccessible( true );
+		// setAccessible(true) is deprecated in PHP 8.1+. Use Closure::bind
+		// to invoke the private method via a scoped callable.
+		$method   = \Closure::bind(
+			function ( $limiter ) {
+				return $limiter->get_client_ip();
+			},
+			null,
+			\SScribe_Export_Rate_Limiter::class
+		);
 
 		$original_cf  = $_SERVER['HTTP_CF_CONNECTING_IP']  ?? null;
 		$original_xf  = $_SERVER['HTTP_X_FORWARDED_FOR']   ?? null;
@@ -197,7 +211,7 @@ class SScribe_Export_Rate_Limiter_Test extends TestCase {
 		$_SERVER['REMOTE_ADDR']           = '127.0.0.1';
 
 		try {
-			$ip = $method->invoke( $limiter );
+			$ip = $method( $limiter );
 			$this->assertSame( '2001:db8::1', $ip, 'CF takes precedence when valid IPv6' );
 		} finally {
 			if ( null === $original_cf ) {
