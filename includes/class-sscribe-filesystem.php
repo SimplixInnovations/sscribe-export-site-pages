@@ -116,6 +116,77 @@ class SScribe_Filesystem {
 	}
 
 	/**
+	 * Sanitize a file path to prevent traversal attacks.
+	 *
+	 * Defense in depth: callers should sanitize user-controlled filenames
+	 * (e.g. page titles) before constructing paths, but this guard prevents
+	 * path traversal if a future caller forgets. The full path is normalized
+	 * to collapse any embedded ".." or "." segments; the basename itself
+	 * is NOT modified (so legitimate filenames with spaces, Unicode, etc.
+	 * pass through unchanged).
+	 *
+	 * If the input path contains no traversal segments, it is returned
+	 * as-is (after separator normalization). This preserves backward
+	 * compatibility with existing callers that construct paths from
+	 * trusted upload-dir constants and a sanitized basename.
+	 *
+	 * @param string $file Original file path.
+	 * @return string Path with traversal segments collapsed, or original
+	 *                 path if it contains none.
+	 */
+	public static function sanitize_path( string $file ): string {
+		if ( '' === $file ) {
+			return $file;
+		}
+
+		// Fast path: no traversal segments or null bytes present, no change needed.
+		// Null bytes can break filename handling on some filesystems (CWE-22).
+		if ( false === strpos( $file, '..' ) && false === strpos( $file, "\0" ) ) {
+			return $file;
+		}
+
+		// If only a null byte is present (no traversal), strip it and return.
+		if ( false === strpos( $file, '..' ) ) {
+			return str_replace( "\0", '', $file );
+		}
+
+		// Detect a leading absolute-path marker (Unix / or Windows drive letter)
+		// so we can re-attach it after the normalization that strips empty segments.
+		$is_unix_absolute = '/' === $file[0];
+
+		// Normalize separators: convert backslashes to forward slashes and
+		// collapse duplicate separators. Mirrors WordPress's wp_normalize_path()
+		// without depending on it (so this is testable without WP loaded).
+		$normalized = str_replace( '\\', '/', $file );
+		$normalized = preg_replace( '#/+#', '/', $normalized );
+
+		// Split on /, drop any empty or ".." segments, rejoin.
+		$segments = explode( '/', $normalized );
+		$cleaned  = array();
+		foreach ( $segments as $segment ) {
+			if ( '' === $segment || '.' === $segment || '..' === $segment ) {
+				continue;
+			}
+			$cleaned[] = $segment;
+		}
+
+		if ( empty( $cleaned ) ) {
+			return '';
+		}
+
+		$reassembled = implode( '/', $cleaned );
+
+		// Re-attach the absolute-path marker that was consumed by the
+		// segment loop, since "leading empty segment" is what marks
+		// an absolute path on Unix.
+		if ( $is_unix_absolute && '/' !== $reassembled[0] ) {
+			$reassembled = '/' . $reassembled;
+		}
+
+		return $reassembled;
+	}
+
+	/**
 	 * Write contents to a file.
 	 *
 	 * @param string $file    File path to write to.
@@ -125,6 +196,9 @@ class SScribe_Filesystem {
 	 */
 	public function put_contents( string $file, string $content, int $mode = 0600 ): bool {
 		self::$last_error = '';
+
+		// Defense in depth: strip any path traversal in the basename before write.
+		$file = self::sanitize_path( $file );
 
 		if ( self::$fs instanceof WP_Filesystem_Base ) {
 			$result = self::$fs->put_contents( $file, $content, $mode );
@@ -201,6 +275,9 @@ class SScribe_Filesystem {
 	 */
 	public function get_contents( string $file ): string|false {
 		self::$last_error = '';
+
+		// Defense in depth: strip any path traversal in the basename before read.
+		$file = self::sanitize_path( $file );
 
 		if ( self::$fs instanceof WP_Filesystem_Base ) {
 			$content = self::$fs->get_contents( $file );

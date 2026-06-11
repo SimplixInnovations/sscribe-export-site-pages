@@ -143,6 +143,16 @@ class SScribe_PDF_Exporter implements SScribe_Exporter_Interface {
 				);
 			}
 
+			// Memory pressure guard: bail out before allocating mPDF if the
+			// process is already too close to memory_limit. Without this,
+			// large multi-page exports accumulate per-page allocations and
+			// hit OOM mid-render, producing truncated/corrupt PDFs.
+			$memory_pressure = $this->check_memory_pressure();
+			if ( $memory_pressure instanceof SScribe_Result ) {
+				$this->cleanup_temp_images( $temp_image_paths );
+				return $memory_pressure;
+			}
+
 			// libxml state must be captured AFTER the early-return checks so that
 			// the finally block always restores the correct prior state.
 			$prev_errors = libxml_use_internal_errors( true );
@@ -323,6 +333,93 @@ class SScribe_PDF_Exporter implements SScribe_Exporter_Interface {
 				libxml_use_internal_errors( $prev_errors );
 			}
 		}
+	}
+
+	/**
+	 * Check current memory usage against PHP memory_limit and either
+	 * trigger garbage collection or return a failure result if the
+	 * process is too close to the limit to safely render another PDF.
+	 *
+	 * Two thresholds, both configurable via the
+	 * `sscribe_pdf_memory_soft_margin_bytes` (default 32MB) and
+	 * `sscribe_pdf_memory_hard_margin_bytes` (default 8MB) filters:
+	 *
+	 *  - Soft margin: trigger gc_collect_cycles() and log a warning.
+	 *  - Hard margin: abort the export with a graceful failure result.
+	 *
+	 * The hard margin prevents OOM mid-render, which would produce
+	 * truncated or corrupt PDF output. The soft margin gives the runtime
+	 * a chance to reclaim memory between pages in a long batch.
+	 *
+	 * @return null|SScribe_Result Null if memory is OK; SScribe_Result
+	 *                            failure if the export must abort.
+	 */
+	private function check_memory_pressure() {
+		$memory_limit_str = (string) ini_get( 'memory_limit' );
+		if ( '' === $memory_limit_str || '-1' === $memory_limit_str ) {
+			// No limit set — nothing to check.
+			return null;
+		}
+
+		$memory_limit = wp_convert_hr_to_bytes( $memory_limit_str );
+		if ( $memory_limit <= 0 ) {
+			return null;
+		}
+
+		$memory_used    = memory_get_usage( true );
+		$memory_peak    = memory_get_peak_usage( true );
+		$memory_free    = $memory_limit - $memory_used;
+
+		$soft_margin = (int) apply_filters( 'sscribe_pdf_memory_soft_margin_bytes', 32 * 1024 * 1024 );
+		$hard_margin = (int) apply_filters( 'sscribe_pdf_memory_hard_margin_bytes', 8 * 1024 * 1024 );
+
+		// Hard limit: too close to OOM, must abort.
+		if ( $memory_free <= $hard_margin ) {
+			$this->logger->error(
+				'PDF export aborted: memory pressure too high to render safely',
+				array(
+					'memory_used'   => size_format( $memory_used ),
+					'memory_peak'   => size_format( $memory_peak ),
+					'memory_limit'  => size_format( $memory_limit ),
+					'memory_free'   => size_format( max( 0, $memory_free ) ),
+					'hard_margin'   => size_format( $hard_margin ),
+				)
+			);
+
+			return SScribe_Result::failure(
+				sprintf(
+					/* translators: 1: Free memory, 2: Memory limit. */
+					__( 'PDF export aborted — only %1$s free of %2$s PHP memory limit. Try exporting to DOCX instead, or increase the memory_limit.', 'sscribe-export-site-pages' ),
+					size_format( max( 0, $memory_free ) ),
+					size_format( $memory_limit )
+				),
+				array(
+					'error_category' => 'pdf_memory_pressure',
+					'memory_free'    => max( 0, $memory_free ),
+					'memory_limit'   => $memory_limit,
+				)
+			);
+		}
+
+		// Soft limit: warn and try to free memory before continuing.
+		if ( $memory_free <= $soft_margin ) {
+			$this->logger->warning(
+				'PDF export memory pressure: soft margin reached, forcing GC',
+				array(
+					'memory_used'  => size_format( $memory_used ),
+					'memory_peak'  => size_format( $memory_peak ),
+					'memory_limit' => size_format( $memory_limit ),
+					'memory_free'  => size_format( max( 0, $memory_free ) ),
+					'soft_margin'  => size_format( $soft_margin ),
+				)
+			);
+
+			if ( function_exists( 'gc_collect_cycles' ) ) {
+				gc_collect_cycles();
+			}
+		}
+
+		return null;
 	}
 
 	/**
