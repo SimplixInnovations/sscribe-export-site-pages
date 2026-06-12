@@ -284,17 +284,20 @@ class SScribe_PDF_Exporter implements SScribe_Exporter_Interface {
 			// capture the level before WriteHTML and clean up after Output(),
 			// instead of tearing down all PHP output buffers globally (which
 			// would also discard anything queued by parent callers and the
-			// wider request).
+			// wider request). The cleanup runs AFTER Output() specifically so
+			// any output buffer mPDF opens internally during its render
+			// pipeline is also discarded — leaving it dangling would corrupt
+			// output for the next request handled by the same PHP-FPM worker.
 			$ob_level_before_render = ob_get_level();
 			$mpdf->WriteHTML( $base_css, \SScribeVendor\Mpdf\HTMLParserMode::HEADER_CSS );
 
 			$mpdf->WriteHTML( $html_content );
 
+			$mpdf->Output( $output_path, \SScribeVendor\Mpdf\Output\Destination::FILE );
+
 			while ( ob_get_level() > $ob_level_before_render ) {
 				ob_end_clean();
 			}
-
-			$mpdf->Output( $output_path, \SScribeVendor\Mpdf\Output\Destination::FILE );
 
 			if ( ! file_exists( $output_path ) ) {
 				$fs_error  = $this->filesystem->get_last_error();
@@ -589,7 +592,11 @@ class SScribe_PDF_Exporter implements SScribe_Exporter_Interface {
 				$page_data['content'] = (string) preg_replace_callback(
 					'/<img\b[^>]*\bsrc=("([^"]*)"|\'([^\']*)\')[^>]*>/i',
 					function ( array $matches ) use ( &$downloads, $max_content_images, &$temp_paths ): string {
-						$url = '' !== $matches[2] ? $matches[2] : $matches[3];
+						// Use null coalescing — the alternative group is
+						// simply not captured when the matched src used the
+						// other quote style, so $matches[2] or $matches[3]
+						// can be undefined on PHP 8+ with strict notices.
+						$url = $matches[2] ?? ( $matches[3] ?? '' );
 						if ( '' === $url || $downloads >= $max_content_images ) {
 							return $matches[0];
 						}
@@ -642,13 +649,6 @@ class SScribe_PDF_Exporter implements SScribe_Exporter_Interface {
 	}
 
 	/**
-	 * Find a font file matching the pattern in a directory.
-	 *
-	 * @param string $dir      Directory to search.
-	 * @param string $pattern  Font file pattern without extension.
-	 * @return string|null Font filename or null if not found.
-	 */
-	/**
 	 * Build mPDF configuration array and validate prerequisites.
 	 *
 	 * Extracted from export() to keep the method focused on the rendering pipeline.
@@ -661,10 +661,21 @@ class SScribe_PDF_Exporter implements SScribe_Exporter_Interface {
 		$font_dir    = trailingslashit( SSCRIBE_PLUGIN_DIR ) . 'assets/fonts/';
 		$manrope_dir = $font_dir . 'manrope/';
 		$upload_dir  = wp_upload_dir();
-		$mpdf_temp   = trailingslashit( $upload_dir['basedir'] ) . 'sscribe/mpdf-tmp/';
+		$sscribe_dir = trailingslashit( $upload_dir['basedir'] ) . 'sscribe/';
+		$mpdf_temp   = $sscribe_dir . 'mpdf-tmp/';
 
 		if ( ! is_dir( $mpdf_temp ) ) {
 			wp_mkdir_p( $mpdf_temp );
+		}
+
+		// Protect the parent sscribe/ directory as well as the mpdf-tmp/
+		// subdirectory. On multisite, the uploads dir is per-site, so the
+		// parent sscribe/ folder may not be covered by the standard WordPress
+		// uploads .htaccess — site 1's mpdf-tmp/.htaccess does not protect
+		// site 2's sscribe/ parent. Apache picks up the .htaccess on each
+		// request, so the protection is verified before the first export.
+		if ( ! file_exists( $sscribe_dir . '.htaccess' ) ) {
+			SScribe_Security::protect_directory( $sscribe_dir );
 		}
 
 		if ( ! is_dir( $manrope_dir ) ) {
@@ -734,9 +745,14 @@ class SScribe_PDF_Exporter implements SScribe_Exporter_Interface {
 		$manrope_medium  = $this->find_font_file( $manrope_dir, 'manrope[-_]?medium' ) ?? 'Manrope-Medium.ttf';
 		$manrope_light   = $this->find_font_file( $manrope_dir, 'manrope[-_]?light' ) ?? 'Manrope-Light.ttf';
 
+		// xbriyaz detection must include the plugin's own font directory.
+		// The merged fontDir list is built AFTER this check, so scanning only
+		// mPDF's default fontDirs would miss an xbriyaz.ttf shipped with the
+		// plugin or dropped into assets/fonts/ by a site operator.
 		$xbriyaz_available = false;
-		foreach ( $font_dirs as $font_dir_path ) {
-			if ( file_exists( trailingslashit( $font_dir_path ) . 'xbriyaz.ttf' ) ) {
+		$xbriyaz_search_dirs = array_merge( array( $font_dir, $manrope_dir ), $font_dirs );
+		foreach ( $xbriyaz_search_dirs as $xbriyaz_dir_path ) {
+			if ( file_exists( trailingslashit( $xbriyaz_dir_path ) . 'xbriyaz.ttf' ) ) {
 				$xbriyaz_available = true;
 				break;
 			}

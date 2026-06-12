@@ -388,6 +388,22 @@ class SScribe_Markdown_Exporter implements SScribe_Exporter_Interface {
 			function ( $matches ) {
 				$table_html = $matches[1];
 
+				// Tables that use colspan or rowspan cannot be losslessly
+				// converted to GitHub Flavored Markdown — GFM tables have no
+				// concept of merged cells, and a row with <td colspan="2">
+				// would produce a 1-cell row while the next row produces
+				// 2 cells, misaligning the GFM separator and producing
+				// broken output in any GFM renderer. Emit an HTML comment
+				// placeholder so the user (or downstream tooling) knows the
+				// table needs manual review, and preserve the cell text in
+				// a plain-text block so the content is not lost.
+				if ( preg_match( '/<(td|th)\b[^>]*\b(colspan|rowspan)\s*=\s*["\']?[2-9]/is', $table_html ) ) {
+					$plain = trim( wp_strip_all_tags( $table_html ) );
+					$plain = preg_replace( '/\s+/', ' ', $plain );
+					return "\n<!-- SScribe: HTML table with merged cells preserved as text (GFM has no colspan/rowspan support) -->\n"
+						. $plain . "\n\n";
+				}
+
 				if ( ! preg_match_all( '/<tr[^>]*>(.*?)<\/tr>/is', $table_html, $row_matches ) ) {
 					return '';
 				}
@@ -750,10 +766,14 @@ class SScribe_Markdown_Exporter implements SScribe_Exporter_Interface {
 
 		/*
 		 * Process list items. This regex matches each <li>...</li> including any nested lists.
+		 * The [^>]*> allows <li> with attributes (e.g., <li class="item">, <li id="x">) to
+		 * be picked up — without it, attribute-bearing items are silently dropped in the
+		 * regex fallback path (when DOMDocument is unavailable). This matches the parent
+		 * <ul>/<ol> regex's attribute handling at the top of convert_lists().
 		 * The key improvement is that we DON'T strip tags before processing - we handle
 		 * nested lists recursively before stripping.
 		 */
-		if ( preg_match_all( '/<li>(.*?)<\/li>/is', $content, $matches ) ) {
+		if ( preg_match_all( '/<li[^>]*>(.*?)<\/li>/is', $content, $matches ) ) {
 			foreach ( $matches[1] as $item_content ) {
 				/*
 				 * Before processing this list item, check if it contains nested lists.
@@ -794,7 +814,7 @@ class SScribe_Markdown_Exporter implements SScribe_Exporter_Interface {
 		$iteration             = 0;
 
 		// Keep processing while there are nested list patterns.
-		while ( preg_match( '/<(ul|ol)>(.*?)<\/\1>/is', $content, $matches, PREG_OFFSET_CAPTURE ) && $iteration < $max_nested_iterations ) {
+		while ( preg_match( '/<(ul|ol)[^>]*>(.*?)<\/\1>/is', $content, $matches, PREG_OFFSET_CAPTURE ) && $iteration < $max_nested_iterations ) {
 			$nested_list_type    = $matches[1][0];
 			$nested_list_content = $matches[2][0];
 			$nested_converted    = $this->convert_list_items( $nested_list_content, $nested_list_type, $depth );
