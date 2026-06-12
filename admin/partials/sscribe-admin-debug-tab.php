@@ -87,7 +87,11 @@ $sscribe_show_wp_debug_notice = ( defined( 'WP_DEBUG' ) && WP_DEBUG );
 				<select id="sscribe-debug-filter-level" class="sscribe-select">
 					<option value="ALL"><?php esc_html_e( 'All Levels', 'sscribe-export-site-pages' ); ?></option>
 					<?php foreach ( $sscribe_log_levels as $sscribe_level ) : ?>
-						<?php if ( SScribe_Settings::LEVEL_ALL === $sscribe_level ) { continue; } ?>
+						<?php
+						if ( SScribe_Settings::LEVEL_ALL === $sscribe_level ) {
+							continue;
+						}
+						?>
 						<option value="<?php echo esc_attr( $sscribe_level ); ?>"><?php echo esc_html( $sscribe_level ); ?></option>
 					<?php endforeach; ?>
 				</select>
