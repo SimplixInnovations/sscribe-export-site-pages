@@ -283,4 +283,44 @@ public function test_url_to_local_path_rejects_sibling_upload_directories(): voi
         $body_texts = array_column( $body, 'content' );
         $this->assertNotContains( 'orphan-before', $body_texts );
     }
+
+    /**
+     * Regression: colspan/rowspan attributes from HTML tables must be
+     * preserved in the parsed cell data so the DOCX renderer can size
+     * cells correctly. Before the fix, the parser dropped these attributes.
+     */
+    public function test_parse_table_preserves_colspan_and_rowspan(): void {
+        $html = '<table>'
+            . '<tr><th colspan="2" rowspan="2">Header</th><th>Other</th></tr>'
+            . '<tr><td>Data 1</td><td>Data 2</td></tr>'
+            . '</table>';
+        $result = $this->parser->parse( $html );
+
+        $this->assertNotEmpty( $result );
+        $this->assertSame( 'table', $result[0]['type'] );
+
+        $first_row_cells = $result[0]['rows'][0]['cells'];
+        $this->assertSame( 2, $first_row_cells[0]['colspan'], 'colspan must be preserved on the first cell' );
+        $this->assertSame( 2, $first_row_cells[0]['rowspan'], 'rowspan must be preserved on the first cell' );
+        $this->assertSame( 1, $first_row_cells[1]['colspan'], 'Cells without colspan default to 1' );
+    }
+
+    /**
+     * Regression: a Gutenberg-style <figure> that wraps the <img> inside an
+     * extra container (e.g. <div class="wp-block-image__container">) must
+     * still extract the image, not silently drop it.
+     */
+    public function test_parse_figure_finds_img_in_nested_wrapper(): void {
+        $html = '<figure class="wp-block-image">'
+            . '<div class="wp-block-image__container"><img src="nested.png" alt="Nested image"/></div>'
+            . '<figcaption>A nested caption</figcaption>'
+            . '</figure>';
+        $result = $this->parser->parse( $html );
+
+        $this->assertNotEmpty( $result );
+        $this->assertSame( 'figure', $result[0]['type'] );
+        $this->assertSame( 'nested.png', $result[0]['src'] );
+        $this->assertSame( 'Nested image', $result[0]['alt'] );
+        $this->assertSame( 'A nested caption', $result[0]['caption'] );
+    }
 }

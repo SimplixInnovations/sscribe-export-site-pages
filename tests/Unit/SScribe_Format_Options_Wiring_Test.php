@@ -281,4 +281,68 @@ class SScribe_Format_Options_Wiring_Test extends TestCase {
 			$overrides
 		);
 	}
+
+	/**
+	 * Regression: escape_markdown_body must preserve the full trimmed content
+	 * after prefixing the escaped char. Before the fix, a negative substr offset
+	 * truncated the line and dropped trailing characters.
+	 */
+	public function test_markdown_escape_body_preserves_full_trimmed_content(): void {
+		$exporter = new \SScribe_Markdown_Exporter();
+
+		$method = \Closure::bind(
+			function ( $exporter, $text ) {
+				return $exporter->escape_markdown_body( $text );
+			},
+			null,
+			\SScribe_Markdown_Exporter::class
+		);
+
+		$out = $method( $exporter, "- important bullet point with trailing text" );
+		$this->assertSame( "\\- important bullet point with trailing text", $out );
+		$this->assertStringEndsWith( 'with trailing text', $out );
+	}
+
+	/**
+	 * Regression: leading whitespace on a line that starts with a Markdown
+	 * special char must be preserved verbatim. Before the fix, a negative
+	 * substr offset could also lose the indentation.
+	 */
+	public function test_markdown_escape_body_preserves_leading_whitespace(): void {
+		$exporter = new \SScribe_Markdown_Exporter();
+
+		$method = \Closure::bind(
+			function ( $exporter, $text ) {
+				return $exporter->escape_markdown_body( $text );
+			},
+			null,
+			\SScribe_Markdown_Exporter::class
+		);
+
+		$out = $method( $exporter, "    > indented quote" );
+		$this->assertStringStartsWith( '    \\>', $out );
+		$this->assertStringContainsString( 'indented quote', $out );
+	}
+
+	/**
+	 * Regression: extract_attribute must recognise HTML5 unquoted attribute
+	 * values, e.g. <img src=foo.png alt=bar>. Before the fix, only quoted forms
+	 * were matched, so image src was lost during Markdown export.
+	 */
+	public function test_markdown_extract_attribute_reads_unquoted_value(): void {
+		$exporter = new \SScribe_Markdown_Exporter();
+
+		$method = \Closure::bind(
+			function ( $exporter, $tag, $attr ) {
+				return $exporter->extract_attribute( $tag, $attr );
+			},
+			null,
+			\SScribe_Markdown_Exporter::class
+		);
+
+		$tag = '<img src=photo.png alt="A photo" width=200>';
+		$this->assertSame( 'photo.png', $method( $exporter, $tag, 'src' ) );
+		$this->assertSame( 'A photo', $method( $exporter, $tag, 'alt' ) );
+		$this->assertSame( '200', $method( $exporter, $tag, 'width' ) );
+	}
 }

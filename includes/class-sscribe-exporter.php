@@ -265,13 +265,16 @@ class SScribe_Exporter {
 		// Truncate extremely long strings without spaces (e.g., long hashes, encoded data)
 		// to prevent oversized XML elements in DOCX. Threshold is 2048 Unicode chars
 		// to accommodate long URLs, CDNs, and affiliate links while still protecting DOCX integrity.
-		// This silently truncates strings without spaces, including long Arabic/RTL text.
-		// Log a warning so operators can detect problematic content patterns.
-		if ( mb_strlen( $text, 'UTF-8' ) > 2048 && false === mb_strpos( $text, ' ', 0, 'UTF-8' ) ) {
+		//
+		// CRITICAL: Do NOT apply this to scripts that don't use spaces — Arabic, Hebrew,
+		// Thai, Chinese, Japanese, Korean, and other CJK/non-space-delimited text would
+		// be silently truncated. Only truncate when the string is clearly a no-space
+		// "machine-style" payload: contains a space OR has high ASCII/digit density.
+		if ( mb_strlen( $text, 'UTF-8' ) > 2048 && $this->is_machine_style_string( $text ) ) {
 			$original_length = mb_strlen( $text, 'UTF-8' );
 			$text = mb_substr( $text, 0, 2048, 'UTF-8' );
 			$this->get_logger()->warning(
-				'Text truncated in safe_text — long no-space string detected',
+				'Text truncated in safe_text — long machine-style string detected',
 				array(
 					'original_length' => $original_length,
 					'truncated_to'    => 2048,
@@ -284,6 +287,49 @@ class SScribe_Exporter {
 		// (e.g. "&amp;" becoming "&amp;amp;") and break Word's display of legitimate ampersands.
 
 		return $text;
+	}
+
+	/**
+	 * Heuristic: does this string look like a machine-generated payload
+	 * (URL, base64 blob, hash) that should be truncated, rather than natural
+	 * human text in a script that does not use spaces (Arabic, Hebrew, CJK)?
+	 *
+	 * Signals that increase the score: contains a space, contains a high
+	 * proportion of ASCII letters/digits/symbols, or contains a URL scheme
+	 * (http://, https://, data:). Returns true only if the string is
+	 * predominantly Latin/machine content.
+	 *
+	 * @param string $text Text to test.
+	 * @return bool True if it looks like a machine-style string suitable for truncation.
+	 */
+	private function is_machine_style_string( string $text ): bool {
+		// Whitespace separation = natural text. Don't truncate.
+		if ( false !== mb_strpos( $text, ' ', 0, 'UTF-8' ) ) {
+			return true;
+		}
+
+		// URL scheme = machine content. Don't truncate.
+		if ( preg_match( '#^[a-z][a-z0-9+.\-]*://#i', $text ) ) {
+			return true;
+		}
+
+		// Quick path: if the string has no characters above U+007F, it's
+		// pure ASCII and safe to truncate.
+		if ( 0 === mb_strlen( $text, 'UTF-8' ) - mb_strlen( $text, 'ASCII' ) ) {
+			return true;
+		}
+
+		// Heuristic: count ASCII alnum + common machine symbols (=/+-_:.;?&%)
+		// as a fraction of total length. If > 60% it's a machine payload.
+		$ascii_machine_count = preg_match_all( '/[A-Za-z0-9=\/\+_\-:.;?&%@#]/', $text );
+		$total_length        = mb_strlen( $text, 'UTF-8' );
+
+		if ( $total_length > 0 && ( $ascii_machine_count / $total_length ) > 0.6 ) {
+			return true;
+		}
+
+		// Otherwise: assume human text in a non-Latin script — do NOT truncate.
+		return false;
 	}
 
 	/**

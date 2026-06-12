@@ -488,8 +488,10 @@ class SScribe_Markdown_Exporter implements SScribe_Exporter_Interface {
 	/**
 	 * Extract an attribute value from an HTML tag string.
 	 *
-	 * Uses two alternating patterns to handle both double and single quoted values
-	 * correctly, including mixed-quote edge cases.
+	 * Uses three alternating patterns to handle double-quoted, single-quoted,
+	 * and unquoted values (legal in HTML5 for attributes without spaces, quotes,
+	 * or = signs in the value). Without unquoted-attribute support, optimized
+	 * HTML produced by some page builders loses its images during Markdown export.
 	 *
 	 * @param string $tag  Full HTML tag string.
 	 * @param string $attr Attribute name to extract.
@@ -502,6 +504,10 @@ class SScribe_Markdown_Exporter implements SScribe_Exporter_Interface {
 		}
 		// Then single-quoted value.
 		if ( preg_match( '/' . preg_quote( $attr, '/' ) . '=\'([^\']*)\'/', $tag, $m ) ) {
+			return $m[1];
+		}
+		// Then unquoted value (HTML5 legal form: no whitespace, ", ', =, `, <, or >).
+		if ( preg_match( '/' . preg_quote( $attr, '/' ) . '=([^\s"\'=`<>]+)/', $tag, $m ) ) {
 			return $m[1];
 		}
 		return '';
@@ -1005,15 +1011,20 @@ class SScribe_Markdown_Exporter implements SScribe_Exporter_Interface {
 		// (e.g. "## Section") by this point. Escaping # would corrupt them.
 		$lines = explode( "\n", $text );
 		foreach ( $lines as $index => $line ) {
-			$trimmed = ltrim( $line );
+			$leading_ws_len = strlen( $line ) - strlen( ltrim( $line ) );
+			$trimmed        = ltrim( $line );
 			if ( '' === $trimmed ) {
 				continue;
 			}
 			$first_char = $trimmed[0];
 			// Escape Markdown special chars at line start — but NOT # (headings)
 			// since headings have already been converted before this runs.
+			// Preserve leading whitespace by slicing from the start, not by
+			// negative-offset substr (which truncates trailing characters when
+			// the trimmed length differs from the offset).
 			if ( in_array( $first_char, array( '-', '*', '>', '|' ), true ) ) {
-				$lines[ $index ] = ltrim( substr( $line, 0, -strlen( $trimmed ) ) ) . '\\' . $trimmed;
+				$leading_ws       = substr( $line, 0, $leading_ws_len );
+				$lines[ $index ]  = $leading_ws . '\\' . $trimmed;
 			}
 		}
 		return implode( "\n", $lines );

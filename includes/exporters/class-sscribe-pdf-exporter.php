@@ -137,6 +137,8 @@ class SScribe_PDF_Exporter implements SScribe_Exporter_Interface {
 					)
 				);
 
+				$this->cleanup_temp_images( $temp_image_paths );
+
 				return SScribe_Result::failure(
 					__( 'PDF export is not available — mPDF library is missing. Please reinstall the plugin.', 'sscribe-export-site-pages' ),
 					array(
@@ -165,6 +167,8 @@ class SScribe_PDF_Exporter implements SScribe_Exporter_Interface {
 						'memory_limit' => ini_get( 'memory_limit' ),
 					)
 				);
+
+				$this->cleanup_temp_images( $temp_image_paths );
 
 				return SScribe_Result::failure(
 					sprintf(
@@ -197,6 +201,7 @@ class SScribe_PDF_Exporter implements SScribe_Exporter_Interface {
 
 			$mpdf_config = $this->build_mpdf_config( $is_rtl, $page_id );
 			if ( $mpdf_config instanceof SScribe_Result ) {
+				$this->cleanup_temp_images( $temp_image_paths );
 				return $mpdf_config;
 			}
 
@@ -276,8 +281,14 @@ class SScribe_PDF_Exporter implements SScribe_Exporter_Interface {
 			$mpdf->WriteHTML( $html_content );
 
 			// Discard any accidental output from WordPress hooks or other plugins
-			// before writing the PDF binary to prevent file corruption.
-			while ( ob_get_level() ) {
+			// that occurred *during this export's render* (mPDF may echo notices
+			// to stdout if display_errors is on), so the PDF binary is not
+			// contaminated. Scope the cleanup to the render window only — we
+			// capture the level before render and restore it after, instead of
+			// tearing down all PHP output buffers globally (which would also
+			// discard anything queued by parent callers and the wider request).
+			$ob_level_before_render = ob_get_level();
+			while ( ob_get_level() > $ob_level_before_render ) {
 				ob_end_clean();
 			}
 
@@ -902,7 +913,10 @@ class SScribe_PDF_Exporter implements SScribe_Exporter_Interface {
 	 * Find a font file matching the pattern in a directory.
 	 *
 	 * @param string $dir      Directory to search.
-	 * @param string $pattern  Font file pattern without extension.
+	 * @param string $pattern  Font file pattern (treated as a literal substring
+	 *                         of the filename — we preg_quote it before
+	 *                         matching to defend against any future caller
+	 *                         passing regex metacharacters in the pattern).
 	 * @return string|null Font filename or null if not found.
 	 */
 	private function find_font_file( string $dir, string $pattern ): ?string {
@@ -914,8 +928,14 @@ class SScribe_PDF_Exporter implements SScribe_Exporter_Interface {
 		if ( false === $files ) {
 			return null;
 		}
+		// preg_quote() defends against future maintainers adding regex
+		// metacharacters (e.g. ".", "(", "+") to the pattern, which would
+		// otherwise produce a preg_match compile warning or silently match
+		// unintended files. The current patterns (manrope[-_]?regular etc.)
+		// are safe either way.
+		$quoted = preg_quote( $pattern, '/' );
 		foreach ( $files as $file ) {
-			if ( preg_match( '/^' . $pattern . '\.ttf$/i', $file ) ) {
+			if ( preg_match( '/^' . $quoted . '\.ttf$/i', $file ) ) {
 				return $file;
 			}
 		}
