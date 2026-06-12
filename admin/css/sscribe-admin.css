@@ -1233,6 +1233,7 @@ body .sscribe-master-container .sscribe-hero {
 }
 
 .sscribe-progress-bar-fill {
+	width: 100%;
 	height: 100%;
 	background: var(--sscribe-primary);
 	border-radius: 10px;

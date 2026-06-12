@@ -69,6 +69,13 @@ $config = array(
 
 		'Garuda.ttf', 'Garuda-Bold.ttf', 'Garuda-Oblique.ttf', 'Garuda-BoldOblique.ttf',
 
+		// XB Riyaz Arabic — only the Regular face is wired into mPDF's fontdata
+		// (see class-sscribe-pdf-exporter.php::build_mpdf_config). The Bold,
+		// Italic, and BoldItalic variants are present in the mPDF ttfonts dir
+		// but never registered, so mPDF would synthetic-bold the Regular face
+		// anyway. Drop the unreferenced variants to save ~3.37 MB.
+		'XB RiyazBd.ttf', 'XB RiyazIt.ttf', 'XB RiyazBdIt.ttf',
+
 		'Dhyana-Regular.ttf', 'Dhyana-Bold.ttf',
 
 		'DhyanaOFL.txt', 'Jomolhari-OFL.txt', 'KhmerOFL.txt',

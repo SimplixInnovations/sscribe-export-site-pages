@@ -381,8 +381,16 @@ class SScribe_Export_Query_Controller {
 		// NOTE: Removed 'any' from allowed post_types to prevent mass-export of all CPTs.
 		// If 'any' behavior is needed, add a confirmation UI step.
 
-		$pages      = $this->collector->get_page_ids( $language, $post_status, $post_type );
-		$page_count = count( $pages );
+		// Use get_page_count_only() instead of counting get_page_ids() so the
+		// preview reflects the true total on sites with >10,000 pages. The
+		// collector's get_page_ids() silently caps posts_per_page at 10000 to
+		// protect against memory exhaustion; using its count verbatim would
+		// truncate the displayed "Total pages" to 10,000 even when more match.
+		$page_count = $this->collector->get_page_count_only( $language, $post_status, $post_type );
+
+		// Fetch a single sample page for the preview modal — the full list is
+		// not needed and would re-introduce the 10K cap we're trying to avoid.
+		$pages = $this->collector->get_page_ids( $language, $post_status, $post_type, 1 );
 
 		$seconds_per_page = 0.0;
 		foreach ( $formats as $selected_format ) {
