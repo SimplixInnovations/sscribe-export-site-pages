@@ -2711,7 +2711,12 @@
 			$('#sscribe-progress-area').addClass('sscribe-hidden');
 			$('#sscribe-error-area').addClass('sscribe-hidden');
 			$('#sscribe-download-area').addClass('sscribe-hidden');
-			$('#sscribe-progress-bar').css('width', '0%').css('transform', 'scaleX(0)');
+			// Reset transform only — the bar's CSS gives it width: 100% so
+			// scaleX() has something to scale. Setting width: 0% here would
+			// collapse the box and the subsequent updateProgress() (which
+			// only writes transform) would scale a zero-width element,
+			// leaving the bar invisible.
+			$('#sscribe-progress-bar').css('transform', 'scaleX(0)');
 			$('#sscribe-progress-text').text('0%');
 			$('#sscribe-status-text').text('');
 			$('#sscribe-current-page').text('').hide();
