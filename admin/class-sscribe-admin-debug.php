@@ -38,6 +38,14 @@ class SScribe_Admin_Debug {
 	private bool $hooks_registered = false;
 
 	/**
+	 * Maximum log lines fetched in a single request.
+	 *
+	 * Bounded to keep memory use predictable on large log files.
+	 * Used by ajax_debug_fetch_logs() and ajax_debug_export_logs().
+	 */
+	private const MAX_FETCH_LINES = 5000;
+
+	/**
 	 * Get required capability for debug actions.
 	 *
 	 * @return string
@@ -164,6 +172,22 @@ class SScribe_Admin_Debug {
 	/**
 	 * AJAX: Fetch debug logs.
 	 *
+	 * Pagination model: tail-read a fixed window of the most recent log
+	 * lines, parse + filter, and slice the window into the requested page.
+	 *
+	 * The previous implementation scaled the tail-read window with `$offset`
+	 * (fetch_count = $offset + $limit + 1000). That made different pages read
+	 * different windows from the file, so a new log line written between two
+	 * requests would shift every later page's contents by one row — entries
+	 * could appear twice or be skipped entirely. We now always read the same
+	 * `MAX_FETCH` window (capped at 5000 lines) and slice that single window
+	 * by `$offset`. This is the same model as `tail -n | less` and is the
+	 * best a tail-only reader can offer without byte-offset cursors.
+	 *
+	 * The response includes a `has_more` flag (true when the window hit the
+	 * cap — there *may* be older entries beyond it) so the JS infinite-scroll
+	 * observer knows whether to keep asking for the next page.
+	 *
 	 * @internal
 	 */
 	public function ajax_debug_fetch_logs(): void {
@@ -173,22 +197,45 @@ class SScribe_Admin_Debug {
 
 		$filter_level = isset( $_POST['filter_level'] ) ? sanitize_text_field( wp_unslash( $_POST['filter_level'] ) ) : 'ALL';
 		$filter_level = strtoupper( $filter_level );
+		// Validate against the known level set + ALL. An unknown level
+		// (typo, tampered value, removed constant) would otherwise fall
+		// through parse_log_entries() with $filter_priority = null and
+		// silently bypass level filtering entirely.
+		$allowed_levels = array(
+			'ALL',
+			'DEBUG',
+			'INFO',
+			'NOTICE',
+			'WARNING',
+			'ERROR',
+			'CRITICAL',
+			'ALERT',
+			'EMERGENCY',
+		);
+		if ( ! in_array( $filter_level, $allowed_levels, true ) ) {
+			$filter_level = 'ALL';
+		}
 		$search       = isset( $_POST['search'] ) ? sanitize_text_field( wp_unslash( $_POST['search'] ) ) : '';
 		$session_id   = isset( $_POST['session_id'] ) ? sanitize_text_field( wp_unslash( $_POST['session_id'] ) ) : '';
 		$offset       = isset( $_POST['offset'] ) ? absint( wp_unslash( $_POST['offset'] ) ) : 0;
 		$limit        = isset( $_POST['limit'] ) ? max( 1, min( 200, absint( wp_unslash( $_POST['limit'] ) ) ) ) : 200;
 
 		$logger = SScribe_Logger::instance( true );
-		// Fetch enough logs for current page plus buffer for accurate total count.
-		// Cap fetch count at 5000 lines to prevent unbounded reads on huge log files.
-		// SplFileObject tail-reading prevents file-level OOM, but the resulting array
-		// of entries still occupies memory proportional to the fetch count.
-		$fetch_count = $offset + $limit + 1000;
-		$fetch_count = min( $fetch_count, 5000 );
-		$logs        = $logger->get_logs( $fetch_count );
+
+		// Always tail-read the same window regardless of $offset, so the
+		// window the user is paging through is identical between requests
+		// (modulo new lines being written). MAX_FETCH caps memory use on
+		// very large log files.
+		$logs = $logger->get_logs( self::MAX_FETCH_LINES );
 
 		$entries = $this->parse_log_entries( $logs, $filter_level, $search, $session_id, true );
 		$total   = count( $entries );
+
+		// has_more = true when the tail-read hit MAX_FETCH_LINES. The window
+		// we held was the LAST 5000 lines of the file, so older entries may
+		// exist beyond the window. JS should stop paginating at this point
+		// (or surface a "showing latest 5000 entries" notice).
+		$has_more = count( $logs ) >= self::MAX_FETCH_LINES;
 
 		$upload_dir    = wp_upload_dir();
 		$log_dir       = $upload_dir['basedir'] . '/sscribe-logs';
@@ -202,6 +249,8 @@ class SScribe_Admin_Debug {
 				'count'         => $total,
 				'offset'        => $offset,
 				'limit'         => $limit,
+				'has_more'      => $has_more,
+				'window_cap'    => self::MAX_FETCH_LINES,
 				'status'        => $log_exists ? 'ok' : 'no_log_file',
 				'debug_enabled' => $debug_enabled,
 				'nonce'         => wp_create_nonce( 'sscribe_export_nonce' ),
@@ -314,7 +363,9 @@ class SScribe_Admin_Debug {
 		$session_id   = isset( $_POST['session_id'] ) ? sanitize_text_field( wp_unslash( $_POST['session_id'] ) ) : '';
 
 		$logger = SScribe_Logger::instance( true );
-		$logs   = $logger->get_logs();
+		// Cap the export at MAX_FETCH_LINES to prevent OOM on sites with
+		// months of accumulated debug logs. Same cap as ajax_debug_fetch_logs().
+		$logs = $logger->get_logs( self::MAX_FETCH_LINES );
 
 		$entries = $this->parse_log_entries( $logs, $filter_level, $search, $session_id, true );
 
