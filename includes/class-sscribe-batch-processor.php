@@ -862,6 +862,12 @@ class SScribe_Batch_Processor {
 		$formats_raw   = isset( $_POST['formats'] ) ? wp_unslash( (array) $_POST['formats'] ) : array();
 		$formats_input = array_map( 'sanitize_text_field', $formats_raw );
 		$formats       = ! empty( $formats_input ) ? $formats_input : self::DEFAULT_FORMATS;
+		if ( empty( $formats_input ) ) {
+			$this->logger->debug(
+				'No formats supplied in AJAX request — falling back to DEFAULT_FORMATS',
+				array( 'default_formats' => self::DEFAULT_FORMATS )
+			);
+		}
 
 		$formats = array_values(
 			array_filter(
@@ -873,6 +879,13 @@ class SScribe_Batch_Processor {
 		);
 
 		if ( empty( $formats ) ) {
+			$this->logger->debug(
+				'All requested formats failed is_supported() check — falling back to DEFAULT_FORMATS',
+				array(
+					'rejected_input' => $formats_input,
+					'default_formats' => self::DEFAULT_FORMATS,
+				)
+			);
 			$formats = self::DEFAULT_FORMATS;
 		}
 
@@ -1021,6 +1034,11 @@ class SScribe_Batch_Processor {
 			// Clean up orphaned temp directory that was created before session failed.
 			if ( ! empty( $temp_dir ) && is_dir( $temp_dir ) ) {
 				$this->zip_handler->delete_directory( $temp_dir );
+				// Clear the shutdown-cleanup tracking so the shutdown
+				// handler does not later try to delete a now-nonexistent
+				// directory (the handler's is_dir() guard would catch
+				// it, but clearing the static keeps the state honest).
+				self::$cleanup_temp_dir = null;
 			}
 			SScribe_AJAX_Guard::error(
 				array(
@@ -1048,6 +1066,10 @@ class SScribe_Batch_Processor {
 				$this->session->delete( $session_id );
 				if ( ! empty( $temp_dir ) && is_dir( $temp_dir ) ) {
 					$this->zip_handler->delete_directory( $temp_dir );
+					// Same as above — keep the shutdown handler state in
+					// sync so it does not try to clean up an already-gone
+					// temp dir.
+					self::$cleanup_temp_dir = null;
 				}
 				SScribe_AJAX_Guard::error(
 					array(
@@ -1162,13 +1184,12 @@ class SScribe_Batch_Processor {
 			$session_id = isset( $_POST['session_id'] ) ? sanitize_text_field( wp_unslash( $_POST['session_id'] ) ) : '';
 			$session    = $this->session->get( $session_id );
 
-			$formats = isset( $session['formats'] ) ? $session['formats'] : self::DEFAULT_FORMATS;
-
-			if ( in_array( 'pdf', $formats, true ) && function_exists( 'set_time_limit' ) ) {
-				$pdf_max_time = (int) apply_filters( 'sscribe_pdf_max_execution_time', 150 );
-
-				set_time_limit( $pdf_max_time ); // phpcs:ignore Squiz.PHP.DiscouragedFunctions.Discouraged
-			}
+			// NOTE: do NOT use the pre-lock $session['formats'] for any
+			// side-effecting call (set_time_limit, etc.). The session is
+			// re-read after the lock is acquired (see below) to pick up
+			// fresh formats in case another process updated the session
+			// between the reads. Side-effecting calls based on the stale
+			// read would persist for the rest of the request.
 
 			$this->logger->debug(
 				'Process batch called',
@@ -1288,6 +1309,16 @@ class SScribe_Batch_Processor {
 			$structured_errors = isset( $session['structured_errors'] ) && is_array( $session['structured_errors'] ) ? $session['structured_errors'] : array();
 			$start_time        = isset( $session['start_time'] ) ? $session['start_time'] : microtime( true );
 			$formats           = isset( $session['formats'] ) ? $session['formats'] : self::DEFAULT_FORMATS;
+
+			// Apply the PDF-specific time limit here, AFTER the post-lock
+			// re-read. Doing it earlier (against the pre-lock $formats) is
+			// wrong if another process mutated the session's formats
+			// between the two reads.
+			if ( in_array( 'pdf', $formats, true ) && function_exists( 'set_time_limit' ) ) {
+				$pdf_max_time = (int) apply_filters( 'sscribe_pdf_max_execution_time', 150 );
+
+				set_time_limit( $pdf_max_time ); // phpcs:ignore Squiz.PHP.DiscouragedFunctions.Discouraged
+			}
 			// Get pause hint from previous batch to adjust batch size accordingly.
 			$pause_hint = isset( $session['last_pause_reason'] ) ? $session['last_pause_reason'] : '';
 			$this->optimize_batch_size( $formats, $pause_hint );
@@ -1412,6 +1443,26 @@ class SScribe_Batch_Processor {
 			// the object cache layer with clean_post_cache() calls on every page.
 			wp_suspend_cache_invalidation( true );
 
+			// Read the export log ONCE per batch, not once per page. The
+			// per-page $log_data lookup below is a read-only crash-detection
+			// hint (logs a debug message if a page was mid-processing when
+			// the previous batch died) and the data does not change during
+			// the batch, so a single read is sufficient. Cuts O(pages)
+			// get_log() calls down to O(1) per batch.
+			$batch_log_data = $this->export_log ? $this->export_log->get_log() : null;
+
+			// Snapshot the session once per batch for the cancellation
+			// check. Previously the per-page loop did
+			// $this->session->get($session_id) on every iteration, which
+			// is O(pages) transient reads per batch — on a 500-page
+			// export with batch size 20 that was 25 transients per batch
+			// times 25 batches = 625 transients for cancellation polling
+			// alone. The snapshot is good enough for the cancellation
+			// signal: any cancellation that fires during the batch is
+			// picked up at the next batch boundary, which the frontend
+			// already polls on a short interval.
+			$batch_session_snapshot = $this->session->get( $session_id );
+
 			try {
 				foreach ( $batch as $page_id ) {
 					$current_batch_page_id = $page_id;
@@ -1455,17 +1506,14 @@ class SScribe_Batch_Processor {
 						)
 					);
 
-					if ( $this->export_log ) {
-						$log_data = $this->export_log->get_log();
-						if ( isset( $log_data['pages'][ $page_id ] ) && 'processing' === $log_data['pages'][ $page_id ]['status'] ) {
-							$this->logger->debug(
-								"Retrying page {$page_id} after previous crash",
-								array(
-									'page_id'   => $page_id,
-									'memory_mb' => round( memory_get_usage( true ) / 1024 / 1024 ),
-								)
-							);
-						}
+					if ( null !== $batch_log_data && isset( $batch_log_data['pages'][ $page_id ] ) && 'processing' === $batch_log_data['pages'][ $page_id ]['status'] ) {
+						$this->logger->debug(
+							"Retrying page {$page_id} after previous crash",
+							array(
+								'page_id'   => $page_id,
+								'memory_mb' => round( memory_get_usage( true ) / 1024 / 1024 ),
+							)
+						);
 					}
 
 					do_action( 'sscribe_before_export_page', $page_id, $session['language'] ?? '' );
@@ -1653,9 +1701,13 @@ class SScribe_Batch_Processor {
 
 					do_action( 'sscribe_after_export_page', $page_id, $formats, $export_success );
 
-					if ( function_exists( 'clean_post_cache' ) ) {
-						clean_post_cache( $page_id );
-					}
+					// NOTE: do NOT call clean_post_cache($page_id) here.
+					// wp_suspend_cache_invalidation(true) is in effect during
+					// the entire batch loop (see the top of the foreach
+					// block), so a clean_post_cache() call would be a no-op
+					// and waste a function call per page. Cache invalidation
+					// is restored in the finally block below, and any stale
+					// post caches are naturally refreshed on next read.
 
 					$page_data = null;
 
@@ -1668,8 +1720,14 @@ class SScribe_Batch_Processor {
 						gc_collect_cycles();
 					}
 
-					$current_session = $this->session->get( $session_id );
-					if ( ! empty( $current_session['cancelled'] ) ) {
+					// Check cancellation against the cached session snapshot
+					// (refreshed once per batch above) instead of doing a
+					// fresh get_transient() on every page. The next batch
+					// will pick up any cancellation that fires during this
+					// batch, which is acceptable since the frontend polls
+					// status every few seconds and the batch boundary
+					// typically completes within one polling interval.
+					if ( ! empty( $batch_session_snapshot['cancelled'] ) ) {
 						$this->logger->debug(
 							'Mid-batch cancellation detected',
 							array(
@@ -2139,7 +2197,11 @@ class SScribe_Batch_Processor {
 					),
 					409
 				);
-				// No return needed — Guard::error() always exits.
+				// Guard::error() is typed `: never` and always exits, but
+				// be explicit so a future refactor that drops the never
+				// return type (e.g., returning early in test mode) cannot
+				// accidentally fall through into finalize_export().
+				return;
 			}
 			// completing_since is too old (> lock_ttl), treat as stale and allow retry.
 		}
@@ -2551,10 +2613,10 @@ class SScribe_Batch_Processor {
 			$zip_warning = '';
 			if ( $expected_file_count > 0 && $total_files_zip < $expected_file_count ) {
 				$zip_warning = sprintf(
-					/* translators: 1: Number of files in ZIP, 2: Number of expected files. */
+					/* translators: 1: Number of files expected, 2: Number of files found in the ZIP archive. */
 					__( 'Warning: ZIP may be incomplete — expected %1$d files, found %2$d in archive.', 'sscribe-export-site-pages' ),
-					$total_files_zip,
-					$expected_file_count
+					$expected_file_count,
+					$total_files_zip
 				);
 			}
 
