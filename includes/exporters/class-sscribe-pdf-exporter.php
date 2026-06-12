@@ -276,18 +276,20 @@ class SScribe_PDF_Exporter implements SScribe_Exporter_Interface {
 			$base_css .= ' td, th { word-wrap: break-word; overflow-wrap: break-word; }';
 			$base_css .= ' a { color: #2C6E8A; text-decoration: none; }';
 			$base_css .= ' h1, h2, h3, h4, h5, h6 { color: #122119; }';
-			$mpdf->WriteHTML( $base_css, \SScribeVendor\Mpdf\HTMLParserMode::HEADER_CSS );
-
-			$mpdf->WriteHTML( $html_content );
 
 			// Discard any accidental output from WordPress hooks or other plugins
 			// that occurred *during this export's render* (mPDF may echo notices
 			// to stdout if display_errors is on), so the PDF binary is not
 			// contaminated. Scope the cleanup to the render window only — we
-			// capture the level before render and restore it after, instead of
-			// tearing down all PHP output buffers globally (which would also
-			// discard anything queued by parent callers and the wider request).
+			// capture the level before WriteHTML and clean up after Output(),
+			// instead of tearing down all PHP output buffers globally (which
+			// would also discard anything queued by parent callers and the
+			// wider request).
 			$ob_level_before_render = ob_get_level();
+			$mpdf->WriteHTML( $base_css, \SScribeVendor\Mpdf\HTMLParserMode::HEADER_CSS );
+
+			$mpdf->WriteHTML( $html_content );
+
 			while ( ob_get_level() > $ob_level_before_render ) {
 				ob_end_clean();
 			}
@@ -792,24 +794,22 @@ class SScribe_PDF_Exporter implements SScribe_Exporter_Interface {
 	/**
 	 * Prepare HTML content for mPDF rendering.
 	 *
-	 * Strips embedded <style> blocks, removes @font-face declarations that could
-	 * interfere with the PDF font pipeline, and (for both RTL and LTR pages)
-	 * filters inline style attributes through a whitelist of properties that
-	 * affect document semantics: text-align, page-break-*, break-*, color,
-	 * background-color, border, width, height, and (for RTL only) direction.
+	 * Preserves page-level <style> blocks (Gutenberg block CSS, layout rules,
+	 * media queries) so structured layouts render in PDF. Strips only the
+	 * declarations that interfere with the PDF font pipeline: @font-face
+	 * rules (which would override mPDF's font selection) and @import
+	 * directives (which have no meaning in PDF context).
 	 *
-	 * Handles BOTH single- and double-quoted style attributes via the unified
-	 * filter_style_attribute() helper, so single-quoted styles (e.g.
-	 * style='direction:rtl' or style="text-align:center") are preserved
-	 * according to the same rules.
+	 * Also filters inline style attributes through a whitelist of properties
+	 * that affect document semantics: text-align, page-break-*, break-*,
+	 * color, background-color, border, width, height, and (for RTL only)
+	 * direction. Handles BOTH single- and double-quoted style attributes.
 	 *
 	 * @param string $html_content Raw HTML content.
-	 * @param bool   $is_rtl      Whether the page is RTL.
+	 * @param bool   $is_rtl       Whether the page is RTL.
 	 * @return string Cleaned HTML content.
 	 */
 	private function prepare_html_for_mpdf( string $html_content, bool $is_rtl ): string {
-		$html_content = preg_replace( '/<style[^>]*>.*?<\/style>/is', '', $html_content ) ?? $html_content;
-
 		$html_content = (string) preg_replace_callback(
 			'/\s*style=("([^"]*)"|\'([^\']*)\')/i',
 			function ( array $matches ) use ( $is_rtl ): string {
@@ -821,6 +821,7 @@ class SScribe_PDF_Exporter implements SScribe_Exporter_Interface {
 		);
 
 		$html_content = preg_replace( '/@font-face\s*\{[^}]+\}/isU', '', $html_content ) ?? $html_content;
+		$html_content = preg_replace( '/@import\s+[^;]+;/isU', '', $html_content ) ?? $html_content;
 
 		return $html_content;
 	}
@@ -912,12 +913,18 @@ class SScribe_PDF_Exporter implements SScribe_Exporter_Interface {
 	/**
 	 * Find a font file matching the pattern in a directory.
 	 *
-	 * @param string $dir      Directory to search.
-	 * @param string $pattern  Font file pattern (treated as a literal substring
-	 *                         of the filename — we preg_quote it before
-	 *                         matching to defend against any future caller
-	 *                         passing regex metacharacters in the pattern).
-	 * @return string|null Font filename or null if not found.
+	 * The $pattern is a PCRE fragment matched against the basename
+	 * (case-insensitive) followed by ".ttf". Patterns are hard-coded
+	 * by the caller in this class, so they are trusted — do not pass
+	 * untrusted user input here.
+	 *
+	 * Example: pattern "manrope[-_]?regular" matches
+	 * "Manrope-Regular.ttf", "Manrope_Regular.ttf", and
+	 * "manrope-regular.ttf", but not "Manrope-Bold.ttf".
+	 *
+	 * @param string $dir     Directory to search.
+	 * @param string $pattern PCRE fragment (no anchors, no extension).
+	 * @return string|null Matching filename, or null if none found.
 	 */
 	private function find_font_file( string $dir, string $pattern ): ?string {
 		if ( ! is_dir( $dir ) ) {
@@ -928,14 +935,9 @@ class SScribe_PDF_Exporter implements SScribe_Exporter_Interface {
 		if ( false === $files ) {
 			return null;
 		}
-		// preg_quote() defends against future maintainers adding regex
-		// metacharacters (e.g. ".", "(", "+") to the pattern, which would
-		// otherwise produce a preg_match compile warning or silently match
-		// unintended files. The current patterns (manrope[-_]?regular etc.)
-		// are safe either way.
-		$quoted = preg_quote( $pattern, '/' );
+
 		foreach ( $files as $file ) {
-			if ( preg_match( '/^' . $quoted . '\.ttf$/i', $file ) ) {
+			if ( preg_match( '/^' . $pattern . '\.ttf$/i', $file ) ) {
 				return $file;
 			}
 		}
