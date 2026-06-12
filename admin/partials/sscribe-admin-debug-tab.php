@@ -38,7 +38,7 @@ $sscribe_show_wp_debug_notice = ( defined( 'WP_DEBUG' ) && WP_DEBUG );
 	<div class="sscribe-debug-header">
 		<div class="sscribe-debug-title-row">
 			<h2><?php esc_html_e( 'Debug Console', 'sscribe-export-site-pages' ); ?></h2>
-			<button type="button" class="sscribe-button sscribe-button-icon" id="sscribe-debug-help-btn" aria-label="<?php esc_attr_e( 'Help', 'sscribe-export-site-pages' ); ?>">
+			<button type="button" class="sscribe-button sscribe-button-icon" id="sscribe-debug-help-btn" aria-label="<?php esc_attr_e( 'Help', 'sscribe-export-site-pages' ); ?>" aria-controls="sscribe-debug-help-content" aria-expanded="false">
 				<span aria-hidden="true">?</span>
 			</button>
 		</div>
@@ -86,12 +86,10 @@ $sscribe_show_wp_debug_notice = ( defined( 'WP_DEBUG' ) && WP_DEBUG );
 				<label for="sscribe-debug-filter-level"><?php esc_html_e( 'Filter:', 'sscribe-export-site-pages' ); ?></label>
 				<select id="sscribe-debug-filter-level" class="sscribe-select">
 					<option value="ALL"><?php esc_html_e( 'All Levels', 'sscribe-export-site-pages' ); ?></option>
-					<option value="DEBUG">DEBUG</option>
-					<option value="INFO">INFO</option>
-					<option value="NOTICE">NOTICE</option>
-					<option value="WARNING">WARNING</option>
-					<option value="ERROR">ERROR</option>
-					<option value="CRITICAL">CRITICAL</option>
+					<?php foreach ( $sscribe_log_levels as $sscribe_level ) : ?>
+						<?php if ( SScribe_Settings::LEVEL_ALL === $sscribe_level ) { continue; } ?>
+						<option value="<?php echo esc_attr( $sscribe_level ); ?>"><?php echo esc_html( $sscribe_level ); ?></option>
+					<?php endforeach; ?>
 				</select>
 			</div>
 			<div class="sscribe-debug-session-filter">
@@ -106,7 +104,7 @@ $sscribe_show_wp_debug_notice = ( defined( 'WP_DEBUG' ) && WP_DEBUG );
 		</div>
 		<div class="sscribe-debug-refresh-row">
 			<div class="sscribe-debug-refresh-mode">
-				<span class="sscribe-debug-refresh-paused sscribe-hidden" id="sscribe-debug-refresh-paused">Paused — tab inactive</span>
+				<span class="sscribe-debug-refresh-paused sscribe-hidden" id="sscribe-debug-refresh-paused"><?php esc_html_e( 'Paused — tab inactive', 'sscribe-export-site-pages' ); ?></span>
 				<label class="sscribe-radio-label">
 					<input type="radio" name="sscribe_refresh_mode" value="auto" <?php checked( true, (bool) $sscribe_debug_settings['auto_refresh'] ); ?>>
 					<span class="sscribe-radio-text"><?php esc_html_e( 'Auto-refresh (10s)', 'sscribe-export-site-pages' ); ?></span>
@@ -127,10 +125,10 @@ $sscribe_show_wp_debug_notice = ( defined( 'WP_DEBUG' ) && WP_DEBUG );
 	<div class="sscribe-debug-console-card" role="log" aria-label="<?php esc_attr_e( 'Debug log entries', 'sscribe-export-site-pages' ); ?>">
 		<div class="sscribe-debug-console-header">
 			<span class="sscribe-debug-console-title"><?php esc_html_e( 'Console Output', 'sscribe-export-site-pages' ); ?></span>
-			<span class="sscribe-debug-console-count" id="sscribe-debug-entry-count" aria-live="polite" aria-atomic="true"></span>
+			<span class="sscribe-debug-console-count" id="sscribe-debug-entry-count" aria-live="polite" aria-atomic="true"><?php esc_html_e( 'Loading...', 'sscribe-export-site-pages' ); ?></span>
 		</div>
 		<div class="sscribe-debug-console-body" id="sscribe-debug-console-body">
-			<div class="sscribe-debug-empty" id="sscribe-debug-empty" style="display:none;">
+			<div class="sscribe-debug-empty sscribe-hidden" id="sscribe-debug-empty">
 				<svg width="48" height="48" viewBox="0 0 48 48" fill="none" aria-hidden="true">
 					<rect x="8" y="12" width="32" height="28" rx="2" stroke="currentColor" stroke-width="2" fill="none" opacity="0.3"/>
 					<path d="M8 18h32M16 24h8M16 30h16" stroke="currentColor" stroke-width="2" opacity="0.3"/>
@@ -150,7 +148,7 @@ $sscribe_show_wp_debug_notice = ( defined( 'WP_DEBUG' ) && WP_DEBUG );
 			<?php
 			esc_html_e( 'Export as JSON', 'sscribe-export-site-pages' );
 			?>
-			<span class="sscribe-export-btn-scope"></span>
+			<span class="sscribe-export-btn-scope"><?php esc_html_e( '(all entries)', 'sscribe-export-site-pages' ); ?></span>
 		</button>
 	</div>
 

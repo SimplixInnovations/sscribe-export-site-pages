@@ -1464,3 +1464,16 @@ if ( file_exists( SSCRIBE_PLUGIN_DIR . 'vendor-prefixed/autoload.php' ) ) {
 }
 
 require_once SSCRIBE_PLUGIN_DIR . 'includes/sscribe-autoloader.php';
+
+if ( ! function_exists( 'wp_timezone' ) ) {
+	function wp_timezone() {
+		$tz_string = get_option( 'timezone_string' );
+		if ( ! empty( $tz_string ) ) {
+			return new \DateTimeZone( $tz_string );
+		}
+		$offset = (float) get_option( 'gmt_offset' );
+		$hours  = (int) $offset;
+		$mins   = (int) ( ( $offset - $hours ) * 60 );
+		return new \DateTimeZone( sprintf( '%+03d:%02d', -$hours, -$mins ) );
+	}
+}
