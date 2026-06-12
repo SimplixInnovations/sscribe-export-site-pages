@@ -42,6 +42,14 @@ $config = array(
 		'phpstan-baseline.neon', 'ruleset.xml', 'CREDITS.txt', 'COPYING',
 		'.php-cs-fixer.php', '.php-cs-fixer.dist.php', 'mkdocs.yml',
 		'.travis.yml', '.scrutinizer.yml', '.github_changelog_generator',
+
+		// AI tooling (Claude Code, OpenCode, Aider, Cursor, Windsurf, Continue, Codeium)
+		// These contain user-local settings and prompt history that must never ship
+		// in the production plugin. WordPress.org plugin-check flags them as
+		// "ai_instruction_directory" warnings if present.
+		'.claude', '.opencode', '.agent', '.aider', '.aider.chat.history',
+		'.aider.model.settings.json', '.aider.input.history', '.cursor', '.windsurf',
+		'.continue', '.codeium', '.github/copilot', '.cody',
 	),
 
 	'font_excludes'    => array(

@@ -11,6 +11,19 @@
 # Agent/Skills (embedded git repo)
 .agent/
 
+# AI tooling — user-local settings + prompt history must never be committed.
+# WordPress.org plugin-check flags these as "ai_instruction_directory" warnings
+# if present in the production plugin ZIP.
+.claude/
+.aider*
+.aider.chat.history*
+.aider.input.history*
+.aider.model.settings.json
+.cursor/
+.windsurf/
+.continue/
+.codeium/
+
 # IDE/Tool configs
 opencode.json
 .idea/

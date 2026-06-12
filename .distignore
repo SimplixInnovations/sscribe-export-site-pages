@@ -144,6 +144,18 @@ infection.json5.dist
 opencode.json
 .opencode/
 
+# AI tooling (Claude Code, OpenCode, Aider, Cursor, Windsurf, etc.)
+# WordPress.org plugin-check flags these as "ai_instruction_directory"
+# warnings if present in the production ZIP.
+.claude/
+.opencode/
+.agent/
+.aider*
+.cursor/
+.windsurf/
+.continue/
+.codeium/
+
 # Husky git hooks
 .husky/
 
