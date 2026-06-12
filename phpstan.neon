@@ -2,6 +2,12 @@ parameters:
     level: 6
     bootstrapFiles:
         - phpstan-bootstrap.php
+    scanFiles:
+        # WordPress core function signatures — used for static analysis only.
+        # Loaded only by PHPStan (not bundled in the production plugin).
+        # The runtime plugin never includes this file; WordPress itself
+        # provides the real implementations.
+        - stubs/wordpress-functions.php
     paths:
         - includes
         - admin
