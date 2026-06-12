@@ -106,6 +106,10 @@
 		isRefreshing: false,
 		isRefreshingSince: null,
 		clearBtnTimeout: null,
+		// Set when a refresh has been pending for >5s so we can show a
+		// "refresh taking longer than expected..." indicator. Cleared on
+		// fetch success/failure.
+		slowRefreshNoticeSince: null,
 		// True while a filter/search/session change is in flight to fetchLogs.
 		// renderLogs() consults this so a filter-triggered re-render scrolls
 		// to the top of the (now-shorter) entry list, instead of carrying
@@ -342,6 +346,11 @@
 					dialog.setAttribute('role', 'dialog');
 					dialog.setAttribute('aria-modal', 'true');
 					dialog.setAttribute('aria-labelledby', 'sscribe-debug-help-title');
+					// tabindex="-1" makes the dialog focusable as a fallback when
+					// its body has no focusable children (e.g. pure text help).
+					// Without it, screen readers won't announce the dialog opened
+					// because focus stayed on the button that launched it.
+					dialog.setAttribute('tabindex', '-1');
 					// The source element is `hidden` in the template (so it
 					// doesn't render inline). Strip `hidden` from the clone so the
 					// dialog body isn't caught by the UA `[hidden]` stylesheet.
@@ -398,9 +407,14 @@
 					document.body.appendChild(overlay);
 					document.body.appendChild(dialog);
 					document.addEventListener('keydown', keyHandler);
+					// Move focus to the first focusable element. If the dialog has
+					// none (pure-text help), fall back to focusing the dialog
+					// itself so screen readers still announce the dialog opened.
 					const focusableElements = Array.from(dialog.querySelectorAll(focusableSelectors));
 					if (focusableElements.length > 0) {
 						focusableElements[0].focus();
+					} else {
+						dialog.focus();
 					}
 				}
 			});
@@ -534,9 +548,23 @@
 			// sscribe_data shape from a cached page).
 			const refreshMs = Number( sscribe_data && sscribe_data.refresh_interval ) || 10000;
 			this.refreshInterval = setInterval(function () {
-				if (self.isRefreshing && self.isRefreshingSince && Date.now() - self.isRefreshingSince > 30000) {
-					self.isRefreshing = false;
-					self.isRefreshingSince = null;
+				// Stale-lock recovery: if a fetch has been pending for >10s
+				// (down from 30s — 30s left the user staring at a frozen
+				// console for too long), assume the request hung and reset
+				// the lock so the next tick can retry. Surface a "slow
+				// refresh" notice after 5s so the user knows the console
+				// hasn't actually stopped working.
+				if (self.isRefreshing && self.isRefreshingSince) {
+					const pendingMs = Date.now() - self.isRefreshingSince;
+					if (pendingMs > 5000 && !self.slowRefreshNoticeSince) {
+						self.slowRefreshNoticeSince = self.isRefreshingSince + 5000;
+						self.showPausedIndicator('Refresh taking longer than expected…');
+					}
+					if (pendingMs > 10000) {
+						self.isRefreshing = false;
+						self.isRefreshingSince = null;
+						self.slowRefreshNoticeSince = null;
+					}
 				}
 				if (self.isRefreshing || self.isLoadingMore || self.isViewingRotated) {
 					return;
@@ -546,6 +574,7 @@
 					return;
 				}
 				self.hidePausedIndicator();
+				self.slowRefreshNoticeSince = null;
 				self.fetchLogs();
 			}, refreshMs);
 		},
@@ -782,6 +811,7 @@
 				if (isInitialLoad) {
 					self.isRefreshing = false;
 					self.isRefreshingSince = null;
+					self.slowRefreshNoticeSince = null;
 				}
 
 				if (response.success) {
@@ -826,6 +856,7 @@
 					self.isLoadingMore = false;
 					self.isRefreshing = false;
 					self.isRefreshingSince = null;
+					self.slowRefreshNoticeSince = null;
 					self.$consoleBody.removeClass('is-loading');
 					self.hideAppendLoading();
 					return;
@@ -836,6 +867,7 @@
 				self.isLoadingMore = false;
 				self.isRefreshing = false;
 				self.isRefreshingSince = null;
+				self.slowRefreshNoticeSince = null;
 				self.hideAppendLoading();
 				self.destroyObserver();
 				if (isInitialLoad) {
@@ -1512,6 +1544,7 @@
 			this.isLoadingMore = false;
 			this.isRefreshing = false;
 			this.isRefreshingSince = null;
+			this.slowRefreshNoticeSince = null;
 			this.$entries.empty();
 			this.$entryCount.text('Loading...');
 			// fetchLogs() will add the is-loading class on the initial-load

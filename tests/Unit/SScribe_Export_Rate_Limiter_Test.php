@@ -231,4 +231,44 @@ class SScribe_Export_Rate_Limiter_Test extends TestCase {
 			}
 		}
 	}
+
+	/**
+	 * Regression (audit #23): different buckets must be tracked independently.
+	 *
+	 * Before the fix, batch continuation calls and the initial export start
+	 * shared the same 'export' counter, so a 1000-page export's 200 batch
+	 * calls could exhaust the 200/min "start a new export" budget mid-flight
+	 * and rate-limit the export's own continuation. The fix added an
+	 * 'export_batch' bucket so the two concerns don't share a counter.
+	 */
+	public function test_buckets_are_independent(): void {
+		// Earlier test_anonymous_user_gets_different_transient_key sets
+		// current_user_id=0 and does not reset it. Reset here so the keys
+		// in this test are the documented `_1` / `_batch_1` form.
+		$GLOBALS['sscribe_test_current_user_id']  = 1;
+		$GLOBALS['sscribe_test_current_user_can'] = null;
+		$GLOBALS['sscribe_test_filters']          = array();
+
+		$limiter = new \SScribe_Export_Rate_Limiter();
+
+		// Exhaust the 'export' bucket.
+		for ( $i = 0; $i < 200; $i++ ) {
+			$this->assertTrue( $limiter->check_rate_limit( 'sscribe_export', 'export' ) );
+		}
+		$this->assertFalse( $limiter->check_rate_limit( 'sscribe_export', 'export' ), 'export bucket should now be exhausted' );
+
+		// The 'export_batch' bucket is a fresh counter — must still allow.
+		$this->assertTrue(
+			$limiter->check_rate_limit( 'sscribe_export', 'export_batch' ),
+			'exhausted export bucket must not affect export_batch bucket'
+		);
+
+		// Both buckets expose their counters under their own transient keys.
+		$export_count        = get_transient( 'sscribe_rate_export_1' );
+		$export_batch_count  = get_transient( 'sscribe_rate_export_batch_1' );
+		$this->assertIsArray( $export_count );
+		$this->assertIsArray( $export_batch_count );
+		$this->assertSame( 200, $export_count['count'] );
+		$this->assertSame( 1, $export_batch_count['count'] );
+	}
 }
