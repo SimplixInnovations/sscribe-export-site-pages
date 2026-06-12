@@ -177,6 +177,12 @@ class SScribe_Export_Lock_Manager {
 	 * It checks whether the script exited normally or due to a fatal error by comparing
 	 * the last error against known fatal error patterns.
 	 *
+	 * Token verification: before deleting the lock we re-read the stored value
+	 * and confirm OUR token still owns it. If a different process has since
+	 * taken over the lock (e.g. a stale-claim after our TTL expired), we must
+	 * NOT delete it — that would wipe the legitimate holder's lock and open
+	 * a window for duplicate concurrent processing.
+	 *
 	 * @return void
 	 */
 	public static function shutdown_cleanup_handler(): void {
@@ -188,14 +194,31 @@ class SScribe_Export_Lock_Manager {
 			return;
 		}
 
-		// Always release the lock on shutdown. The normal completion path already
-		// releases the lock explicitly and clears the static state, so this handler
-		// only fires when the lock was NOT explicitly released (i.e., an unclean
-		// shutdown: fatal error, uncaught exception, timeout, or early exit).
-		// Using both wp_cache_delete (Redis/Memcached) and delete_transient (DB)
-		// ensures the lock is cleared regardless of the backend in use.
-		$lock_key     = 'sscribe_lock_' . $session_id;
+		$lock_key    = 'sscribe_lock_' . $session_id;
 		$using_cache = wp_using_ext_object_cache();
+
+		// Verify the stored lock still belongs to THIS shutdown's token before
+		// deleting. The lock may have been claimed by a new process if our TTL
+		// expired before PHP actually shut down.
+		$raw = $using_cache
+			? wp_cache_get( $lock_key, 'transient' )
+			: get_transient( $lock_key );
+
+		if ( is_string( $raw ) ) {
+			$parts  = explode( '|', $raw );
+			$stored = $parts[1] ?? '';
+			if ( ! hash_equals( $lock_token, $stored ) ) {
+				// Different process owns the lock now — leave it alone.
+				self::$shutdown_session_id = null;
+				self::$shutdown_lock_token = null;
+				return;
+			}
+		}
+
+		// Safe to delete: either the stored value is missing/expired, or it
+		// still matches our token. Using both wp_cache_delete (Redis/Memcached)
+		// and delete_transient (DB) ensures the lock is cleared regardless of
+		// the backend in use.
 		if ( $using_cache ) {
 			wp_cache_delete( $lock_key, 'transient' );
 		}

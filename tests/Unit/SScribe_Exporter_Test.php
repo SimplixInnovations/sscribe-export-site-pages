@@ -273,6 +273,34 @@ class SScribe_Exporter_Test extends TestCase {
 		$this->assertGreaterThan( 0, mb_strlen( $result, 'UTF-8' ) );
 	}
 
+	/**
+	 * Regression: a 3000-char Arabic word (no spaces, no ASCII) must NOT be
+	 * truncated — Arabic does not use spaces and the 2048-char safety net
+	 * is for machine payloads, not human non-Latin text.
+	 */
+	public function test_safe_text_does_not_truncate_long_arabic_strings(): void {
+		$method = new \ReflectionMethod( SScribe_Exporter::class, 'safe_text' );
+
+		// Arabic letter "ا" (U+0627), 3000 copies — no spaces, no Latin chars.
+		$long_arabic = str_repeat( 'ا', 3000 );
+		$result      = $method->invoke( $this->exporter, $long_arabic );
+
+		$this->assertSame( 3000, mb_strlen( $result, 'UTF-8' ) );
+	}
+
+	/**
+	 * Regression: a 3000-char CJK string (no spaces, no ASCII) must NOT be
+	 * truncated.
+	 */
+	public function test_safe_text_does_not_truncate_long_cjk_strings(): void {
+		$method = new \ReflectionMethod( SScribe_Exporter::class, 'safe_text' );
+
+		$long_cjk = str_repeat( '中', 3000 );
+		$result   = $method->invoke( $this->exporter, $long_cjk );
+
+		$this->assertSame( 3000, mb_strlen( $result, 'UTF-8' ) );
+	}
+
 	public function test_safe_text_does_not_truncate_normal_strings(): void {
 		$method = new \ReflectionMethod( SScribe_Exporter::class, 'safe_text' );
 

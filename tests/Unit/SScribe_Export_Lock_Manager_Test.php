@@ -103,4 +103,51 @@ class SScribe_Export_Lock_Manager_Test extends TestCase {
 		$this->assertNotNull( $token_b );
 		$this->assertNotEquals( $token_a, $token_b );
 	}
+
+	public function test_shutdown_handler_does_not_delete_lock_owned_by_different_token(): void {
+		// Simulate the race: this request acquired the lock, then a stale-claim
+		// by another process overwrote it with a different token before our
+		// shutdown handler ran. The handler must NOT delete the new holder's lock.
+		$manager = new \SScribe_Export_Lock_Manager();
+
+		$token_a = $manager->acquire_lock( 'test-shutdown-race' );
+		$this->assertNotNull( $token_a );
+
+		// Simulate a new process overwriting the lock with a different token
+		// (e.g. our TTL expired, another process took over).
+		$new_holder_token = 'token-of-new-holder';
+		$current_time     = time();
+		$GLOBALS['sscribe_test_transients']['sscribe_lock_test-shutdown-race'] = $current_time . '|' . $new_holder_token;
+
+		// Run the shutdown handler — it must not wipe the new holder's lock.
+		\SScribe_Export_Lock_Manager::shutdown_cleanup_handler();
+
+		$lock_data = get_transient( 'sscribe_lock_test-shutdown-race' );
+		$this->assertNotFalse( $lock_data, 'Shutdown handler must not delete a lock owned by a different token' );
+		$this->assertStringContainsString( $new_holder_token, $lock_data );
+	}
+
+	public function test_shutdown_handler_deletes_lock_owned_by_own_token(): void {
+		// The normal case: shutdown handler is called for a lock we still own.
+		$manager = new \SScribe_Export_Lock_Manager();
+
+		$token = $manager->acquire_lock( 'test-shutdown-own' );
+		$this->assertNotNull( $token );
+
+		\SScribe_Export_Lock_Manager::shutdown_cleanup_handler();
+
+		$lock_data = get_transient( 'sscribe_lock_test-shutdown-own' );
+		$this->assertFalse( $lock_data, 'Shutdown handler must delete a lock we still own' );
+	}
+
+	public function test_shutdown_handler_is_noop_when_no_lock_acquired(): void {
+		// No lock has been acquired — static state is null. The handler must
+		// not throw and must not touch any transients.
+		$marker = 'sscribe_lock_test-shutdown-noop';
+		$GLOBALS['sscribe_test_transients'][ $marker ] = 'should-stay-intact';
+
+		\SScribe_Export_Lock_Manager::shutdown_cleanup_handler();
+
+		$this->assertSame( 'should-stay-intact', get_transient( $marker ) );
+	}
 }

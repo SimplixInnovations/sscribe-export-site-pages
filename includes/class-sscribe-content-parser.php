@@ -430,6 +430,10 @@ class SScribe_Content_Parser {
 				$img_node     = null;
 				$caption_text = '';
 
+				// Walk direct children first, but fall back to a descendant
+				// search for the <img> if the page builder wrapped it in a
+				// container (e.g. Gutenberg's <figure class="wp-block-image">
+				// sometimes nests <img> inside an extra <div> for layout).
 				foreach ( $node->childNodes as $child ) {
 					if ( $child instanceof DOMElement ) {
 						if ( 'img' === $child->tagName ) {
@@ -437,6 +441,17 @@ class SScribe_Content_Parser {
 						} elseif ( 'figcaption' === $child->tagName ) {
 							$caption_text = trim( $child->textContent );
 						}
+					}
+				}
+
+				// Descendant fallback for the <img>. We intentionally do not
+				// recurse to find a <figcaption> — captions must be a direct
+				// child per the HTML5 spec, so any deeper match would be
+				// noise from a nested figure.
+				if ( null === $img_node ) {
+					$descendant_imgs = $node->getElementsByTagName( 'img' );
+					if ( $descendant_imgs->length > 0 ) {
+						$img_node = $descendant_imgs->item( 0 );
 					}
 				}
 
@@ -716,10 +731,25 @@ class SScribe_Content_Parser {
 				}
 				$cell_tag = strtolower( $td->nodeName );
 				if ( 'td' === $cell_tag || 'th' === $cell_tag ) {
+					// Extract colspan / rowspan from the cell attributes so the
+					// DOCX renderer can multiply cell widths and skip cells
+					// already consumed by a previous rowspan. Without this,
+					// merged-cell tables export as a flat row of equal cells
+					// and the visual structure is lost.
+					$colspan_attr = $td->getAttribute( 'colspan' );
+					$rowspan_attr = $td->getAttribute( 'rowspan' );
+					$colspan      = is_numeric( $colspan_attr ) ? max( 1, (int) $colspan_attr ) : 1;
+					$rowspan      = is_numeric( $rowspan_attr ) ? max( 1, (int) $rowspan_attr ) : 1;
+
+					$width_attr = $td->getAttribute( 'width' );
+
 					$cells[] = array(
 						'content'   => trim( $td->textContent ),
 						'runs'      => $this->get_inline_runs( $td ),
 						'is_header' => ( 'th' === $cell_tag || $section['is_header'] ),
+						'colspan'   => $colspan,
+						'rowspan'   => $rowspan,
+						'width'     => is_numeric( $width_attr ) ? (int) $width_attr : null,
 					);
 				}
 			}
