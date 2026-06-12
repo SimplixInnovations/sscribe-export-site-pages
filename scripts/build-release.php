@@ -50,6 +50,11 @@ $config = array(
 		'.claude', '.opencode', '.agent', '.aider', '.aider.chat.history',
 		'.aider.model.settings.json', '.aider.input.history', '.cursor', '.windsurf',
 		'.continue', '.codeium', '.github/copilot', '.cody',
+
+		// PHPStan + Intelephense stubs (WordPress function signatures for static
+		// analysis). Not part of the production plugin — the real WordPress
+		// runtime provides these functions.
+		'stubs', '.stubs',
 	),
 
 	'font_excludes'    => array(

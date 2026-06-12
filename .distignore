@@ -156,6 +156,10 @@ opencode.json
 .continue/
 .codeium/
 
+# IDE / IDE assistant (stubs file used by PHPStan + Intelephense, not shipped)
+.stubs/
+stubs/
+
 # Husky git hooks
 .husky/
 

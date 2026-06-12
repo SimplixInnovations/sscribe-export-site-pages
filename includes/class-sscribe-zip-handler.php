@@ -333,7 +333,7 @@ class SScribe_Zip_Handler {
 				$zip_path = $tmp_zip;
 			}
 			// Use wp_delete_file() for temp file cleanup (WP-recommended).
-		} elseif ( isset( $tmp_zip ) && file_exists( $tmp_zip ) ) {
+		} elseif ( file_exists( $tmp_zip ) ) {
 			wp_delete_file( $tmp_zip );
 		}
 
