@@ -32,13 +32,13 @@ class SScribe_Export_All_Formats_Wrapper {
 	/**
 	 * Export a single page to every supported (or explicitly-listed) format.
 	 *
-	 * @param array       $page_data  Page content + metadata.
-	 * @param string      $output_dir Output directory for the produced files.
-	 * @param int         $index      1-based page index.
-	 * @param int         $total      Total page count.
-	 * @param array|null  $formats    Optional format whitelist. Defaults to
-	 *                                every format returned by
-	 *                                SScribe_Export_Format::get_supported_formats().
+	 * @param array      $page_data  Page content + metadata.
+	 * @param string     $output_dir Output directory for the produced files.
+	 * @param int        $index      1-based page index.
+	 * @param int        $total      Total page count.
+	 * @param array|null $formats    Optional format whitelist. Defaults to
+	 *                               every format returned by
+	 *                               SScribe_Export_Format::get_supported_formats().
 	 * @return array<string, array{success: bool, result: SScribe_Result, error: ?string}>
 	 *                Per-format results keyed by format string.
 	 */

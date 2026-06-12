@@ -897,7 +897,8 @@ class SScribe_Batch_Processor {
 		// their public API. Unknown option names are accepted (future
 		// formats can add their own) but values are sanitized to scalar
 		// strings to prevent object/array injection.
-		$format_options = self::parse_format_options( $_POST['format_options'] ?? array() );
+		// phpcs:ignore WordPress.Security.ValidatedSanitizedInput.InputNotSanitized -- parse_format_options() sanitizes per-key (sanitize_key) and per-value (string cast).
+		$format_options = self::parse_format_options( wp_unslash( $_POST['format_options'] ?? array() ) );
 		$valid_post_types = array_values( get_post_types( array( 'public' => true ) ) );
 		$valid_post_types = array_merge( $valid_post_types, array( 'any' ) );
 		// Remove post types that don't make sense for content export.
