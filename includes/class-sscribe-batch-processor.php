@@ -657,10 +657,17 @@ class SScribe_Batch_Processor {
 	/**
 	 * Verify rate limit hasn't been exceeded.
 	 *
+	 * @param string $bucket Rate-limit bucket name. Use 'export' for starting
+	 *                      a new export and 'export_batch' for batch
+	 *                      continuation / finalize steps. The two-bucket split
+	 *                      prevents a single long export from rate-limiting its
+	 *                      own continuation steps: a 1000-page export that
+	 *                      issues 200 batch calls should not also count
+	 *                      against the 200/min "start a new export" budget.
 	 * @return bool True if rate limit check passes.
 	 */
-	private function check_rate_limit(): bool {
-		return $this->get_rate_limiter()->check_rate_limit( $this->get_required_capability() );
+	private function check_rate_limit( string $bucket = 'export' ): bool {
+		return $this->get_rate_limiter()->check_rate_limit( $this->get_required_capability(), $bucket );
 	}
 
 	/**
@@ -1117,7 +1124,7 @@ class SScribe_Batch_Processor {
 			);
 		}
 
-		$rate_check = $this->check_rate_limit();
+		$rate_check = $this->check_rate_limit( 'export_batch' );
 		if ( false === $rate_check ) {
 			SScribe_AJAX_Guard::error(
 				array(
@@ -2017,7 +2024,7 @@ class SScribe_Batch_Processor {
 			);
 		}
 
-		$rate_check = $this->check_rate_limit();
+		$rate_check = $this->check_rate_limit( 'export_batch' );
 		if ( false === $rate_check ) {
 			SScribe_AJAX_Guard::error(
 				array(
