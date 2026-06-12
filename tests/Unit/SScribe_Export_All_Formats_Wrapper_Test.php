@@ -144,6 +144,106 @@ class SScribe_Export_All_Formats_Wrapper_Test extends TestCase {
 	}
 
 	/**
+	 * Regression: duplicate format keys in the input list must be
+	 * collapsed before dispatch. Before the fix, a filter returning
+	 * ['docx', 'docx', 'pdf'] would attempt 'docx' twice and write
+	 * over its own output file.
+	 */
+	public function test_export_page_deduplicates_format_list(): void {
+		$tmp = $this->make_tmp_dir();
+
+		$results = \SScribe_Export_All_Formats_Wrapper::export_page(
+			$this->make_page_data(),
+			$tmp,
+			1,
+			1,
+			array( 'html', 'html', 'html' )
+		);
+
+		$this->cleanup_tmp_dir( $tmp );
+
+		$this->assertSame( array( 'html' ), array_keys( $results ) );
+	}
+
+	/**
+	 * Regression: when the output directory is empty, the wrapper must
+	 * short-circuit with a clear failure for every format instead of
+	 * letting each exporter produce a cryptic filesystem error.
+	 */
+	public function test_export_page_fails_clearly_when_output_dir_empty(): void {
+		$results = \SScribe_Export_All_Formats_Wrapper::export_page(
+			$this->make_page_data(),
+			'',
+			1,
+			1,
+			array( 'html' )
+		);
+
+		$this->assertArrayHasKey( 'html', $results );
+		$this->assertFalse( $results['html']['success'] );
+		$this->assertStringContainsString( 'output directory', $results['html']['error'] );
+	}
+
+	/**
+	 * Regression: when the output directory does not exist, the wrapper
+	 * must short-circuit with a clear failure for every format.
+	 */
+	public function test_export_page_fails_clearly_when_output_dir_missing(): void {
+		$nonexistent = sys_get_temp_dir() . '/sscribe-wrapper-does-not-exist-' . uniqid();
+
+		$results = \SScribe_Export_All_Formats_Wrapper::export_page(
+			$this->make_page_data(),
+			$nonexistent,
+			1,
+			1,
+			array( 'html' )
+		);
+
+		$this->assertArrayHasKey( 'html', $results );
+		$this->assertFalse( $results['html']['success'] );
+		$this->assertStringContainsString( 'does not exist', $results['html']['error'] );
+		$this->assertStringContainsString( $nonexistent, $results['html']['error'] );
+	}
+
+	/**
+	 * Regression: when the output directory is not writable, the wrapper
+	 * must short-circuit with a clear failure for every format.
+	 */
+	public function test_export_page_fails_clearly_when_output_dir_unwritable(): void {
+		$tmp = $this->make_tmp_dir();
+
+		// Strip all write permissions — wrapper must catch this before
+		// the per-export dispatch.
+		// phpcs:ignore WordPress.WP.AlternativeFunctions.file_system_operations_chmod
+		chmod( $tmp, 0500 );
+
+		$results = \SScribe_Export_All_Formats_Wrapper::export_page(
+			$this->make_page_data(),
+			$tmp,
+			1,
+			1,
+			array( 'html' )
+		);
+
+		// Restore permissions before cleanup runs.
+		// phpcs:ignore WordPress.WP.AlternativeFunctions.file_system_operations_chmod
+		chmod( $tmp, 0700 );
+		$this->cleanup_tmp_dir( $tmp );
+
+		// On some test environments (notably running as root), chmod 0500
+		// still permits writes, in which case the directory *is* writable
+		// from PHP's perspective. Skip the assertion in that case to keep
+		// the test portable.
+		if ( ! is_dir( $tmp ) || ( isset( $results['html'] ) && $results['html']['success'] ) ) {
+			$this->markTestSkipped( 'Running as root or filesystem does not enforce chmod — cannot simulate unwritable dir.' );
+		}
+
+		$this->assertArrayHasKey( 'html', $results );
+		$this->assertFalse( $results['html']['success'] );
+		$this->assertStringContainsString( 'not writable', $results['html']['error'] );
+	}
+
+	/**
 	 * Build a tmp dir for one test, isolated by uniqid() so parallel runs
 	 * don't collide. Recursively removed in cleanup_tmp_dir().
 	 */
