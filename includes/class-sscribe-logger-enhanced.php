@@ -87,22 +87,6 @@ class SScribe_Logger_Enhanced implements SScribe_Logger_Interface {
 	private ?string $session_id = null;
 
 	/**
-	 * Log level priority mapping.
-	 *
-	 * @var array<string, int>
-	 */
-	private const LEVEL_PRIORITY = array(
-		self::LEVEL_DEBUG     => 0,
-		self::LEVEL_INFO      => 1,
-		self::LEVEL_NOTICE    => 2,
-		self::LEVEL_WARNING   => 3,
-		self::LEVEL_ERROR     => 4,
-		self::LEVEL_CRITICAL  => 5,
-		self::LEVEL_ALERT     => 6,
-		self::LEVEL_EMERGENCY => 7,
-	);
-
-	/**
 	 * Constructor.
 	 *
 	 * @param array $options Logger configuration options.

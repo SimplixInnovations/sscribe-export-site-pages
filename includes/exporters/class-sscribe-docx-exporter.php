@@ -72,21 +72,9 @@ class SScribe_DOCX_Exporter implements SScribe_Exporter_Interface {
 	 */
 	public function apply_format_options( array $options ): void {
 		$this->format_options = $options;
-		if ( method_exists( $this->exporter, 'set_format_options' ) ) {
-			$this->exporter->set_format_options( $options );
-		}
-	}
-
-	/**
-	 * Read a format option with a default. Treats checkbox values as
-	 * strings ("1" / ""), so callers should compare to "1".
-	 *
-	 * @param string $key     Option key.
-	 * @param mixed  $default Default when key is absent.
-	 * @return mixed
-	 */
-	private function get_format_option( string $key, $default = null ) {
-		return array_key_exists( $key, $this->format_options ) ? $this->format_options[ $key ] : $default;
+		// SScribe_Exporter is a concrete class typed in the constructor, so
+		// set_format_options() is always available. No defensive check needed.
+		$this->exporter->set_format_options( $options );
 	}
 
 	/**

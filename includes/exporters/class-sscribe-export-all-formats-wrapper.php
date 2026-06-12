@@ -53,7 +53,46 @@ class SScribe_Export_All_Formats_Wrapper {
 			$formats = array_keys( SScribe_Export_Format::get_supported_formats() );
 		}
 
+		// Deduplicate — if a filter hook returned the same format key twice,
+		// the second pass would overwrite the first format's file and double
+		// the per-page I/O for no reason.
+		$formats = array_values( array_unique( array_map( 'strval', $formats ) ) );
+
 		$results = array();
+
+		// Pre-flight: bail out cleanly if the output directory vanished or
+		// became unwritable between export start and this call (e.g. a
+		// cleanup cron job ran, the disk filled up, or the user revoked
+		// write permissions). Each format would otherwise fail with a
+		// cryptic filesystem error rather than a clear "directory
+		// missing/unwritable" message.
+		if ( '' === $output_dir || ! is_dir( $output_dir ) || ! wp_is_writable( $output_dir ) ) {
+			$reason = '' === $output_dir
+				? 'output directory path is empty'
+				: (
+					! is_dir( $output_dir )
+						? sprintf( 'output directory does not exist: %s', $output_dir )
+						: sprintf( 'output directory is not writable: %s', $output_dir )
+				);
+
+			$shared_failure = SScribe_Result::failure(
+				sprintf( 'Cannot export to any format — %s.', $reason ),
+				array(
+					'error_category' => 'output_dir_unavailable',
+					'output_dir'     => $output_dir,
+				)
+			);
+
+			foreach ( $formats as $format ) {
+				$results[ $format ] = array(
+					'success' => false,
+					'result'  => $shared_failure,
+					'error'   => $shared_failure->get_error(),
+				);
+			}
+
+			return $results;
+		}
 
 		foreach ( $formats as $format ) {
 			$format = (string) $format;
@@ -73,6 +112,20 @@ class SScribe_Export_All_Formats_Wrapper {
 				$exporter = SScribe_Exporter_Factory::create( $format );
 				$result   = $exporter->export( $page_data, $output_dir, $index, $total );
 			} catch ( \Throwable $e ) {
+				// Log the per-format failure so it shows up in the debug
+				// console even when the batch processor ignores the
+				// per-format failure entry below.
+				if ( class_exists( 'SScribe_Logger', false ) ) {
+					SScribe_Logger::instance()->error(
+						sprintf( 'All-formats wrapper: %s export failed', $format ),
+						array(
+							'format'    => $format,
+							'exception' => get_class( $e ),
+							'message'   => $e->getMessage(),
+							'file'      => basename( (string) $e->getFile() ) . ':' . $e->getLine(),
+						)
+					);
+				}
 				$result = SScribe_Result::failure(
 					$e->getMessage(),
 					array( 'exception' => get_class( $e ) )

@@ -334,7 +334,10 @@ class SScribe_Admin {
 			'icons_url'       => SSCRIBE_PLUGIN_URL . 'assets/icons/',
 			// Auto-refresh interval (ms) for the debug console. Filterable so
 			// admins can throttle it down on slow servers or up on fast ones.
-			'refresh_interval' => (int) apply_filters( 'sscribe_debug_refresh_interval_ms', 10000 ),
+			// Enforce a hard minimum of 5 seconds (5000ms) here so a buggy or
+			// malicious filter returning 0/negative cannot create a tight
+			// infinite loop hammering the AJAX endpoint.
+			'refresh_interval' => max( 5000, (int) apply_filters( 'sscribe_debug_refresh_interval_ms', 10000 ) ),
 			'strings'        => array(
 				'starting'               => __( 'Starting export...', 'sscribe-export-site-pages' ),
 				'processing'             => __( 'Processing...', 'sscribe-export-site-pages' ),

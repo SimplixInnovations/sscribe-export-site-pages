@@ -131,13 +131,10 @@ class SScribe_Logger_Enhanced_Test extends TestCase {
 		$this->assertIsCallable( array( $this->logger, 'flush' ) );
 	}
 
-	public function test_level_priority_constant(): void {
-		$reflection = new \ReflectionClass( SScribe_Logger_Enhanced::class );
-		$priority   = $reflection->getConstant( 'LEVEL_PRIORITY' );
-		$this->assertIsArray( $priority );
-		$this->assertArrayHasKey( 'debug', $priority );
-		$this->assertArrayHasKey( 'error', $priority );
-	}
+	// Note: SScribe_Logger_Enhanced previously had a private LEVEL_PRIORITY
+	// constant that was unused (PHPStan classConstant.unused). The canonical
+	// priority map now lives in the SScribe_Logger_Common trait's
+	// get_level_priority_map() helper — see SScribe_Logger_Common_Trait_Test.
 
 	public function test_should_log_respects_min_level(): void {
 		$method = new \ReflectionMethod( SScribe_Logger_Enhanced::class, 'should_log' );
