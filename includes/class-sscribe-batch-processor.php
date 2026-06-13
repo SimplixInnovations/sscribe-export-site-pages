@@ -782,6 +782,36 @@ class SScribe_Batch_Processor {
 	}
 
 	/**
+	 * Recursively count the export output files in a temp dir.
+	 *
+	 * Files are written one level deeper under the per-language layout
+	 * (e.g. `<temp>/AR/P001-foo.docx`), so a flat `glob()` would only
+	 * see the language subdirs and drastically under-count (or zero out)
+	 * the file total. The recursive walk matches the layout that
+	 * `SScribe_Zip_Handler::create_zip()` consumes.
+	 *
+	 * @param string $temp_dir Absolute path to the export's temp dir.
+	 * @return int Number of regular files inside (any depth).
+	 */
+	private function count_temp_dir_files( string $temp_dir ): int {
+		if ( '' === $temp_dir || ! is_dir( $temp_dir ) ) {
+			return 0;
+		}
+
+		$count    = 0;
+		$iterator = new \RecursiveIteratorIterator(
+			new \RecursiveDirectoryIterator( $temp_dir, \FilesystemIterator::SKIP_DOTS ),
+			\RecursiveIteratorIterator::LEAVES_ONLY
+		);
+		foreach ( $iterator as $entry ) {
+			if ( $entry->isFile() ) {
+				++$count;
+			}
+		}
+		return $count;
+	}
+
+	/**
 	 * Verify the session belongs to the current user.
 	 *
 	 * @param array  $session   Session data.
@@ -2180,11 +2210,12 @@ class SScribe_Batch_Processor {
 		}
 
 		// Lock TTL: use dynamic value based on file count in temp dir.
-			// Large exports with many files need more time for ZIP creation.
-			// 2 seconds per file with 120s minimum and 600s maximum.
-			$file_count_raw = glob( trailingslashit( $session['temp_dir'] ) . '*' );
-			$file_count     = is_array( $file_count_raw ) ? count( $file_count_raw ) : 0;
-			$lock_ttl      = max( 120, min( 600, $file_count * 2 ) );
+		// Large exports with many files need more time for ZIP creation.
+		// 2 seconds per file with 120s minimum and 600s maximum.
+		// Files live one level deeper under the per-language layout
+		// ($temp_dir/$LANG/*.ext), so recurse to count actual output files.
+		$file_count = $this->count_temp_dir_files( $session['temp_dir'] );
+		$lock_ttl   = max( 120, min( 600, $file_count * 2 ) );
 
 			$lock_token = $this->get_lock_manager()->acquire_lock( $session_id, $lock_ttl, (int) ( $lock_ttl * 0.85 ) );
 		if ( null === $lock_token ) {
@@ -2350,7 +2381,9 @@ class SScribe_Batch_Processor {
 			$files_before = array();
 			foreach ( $formats as $format ) {
 				$ext   = 'markdown' === $format ? 'md' : $format;
-				$found = glob( trailingslashit( $session['temp_dir'] ) . '*.' . $ext );
+				// Files live one level deeper under the per-language layout
+				// ($temp_dir/$LANG/*.ext); a flat glob would miss them all.
+				$found = glob( trailingslashit( $session['temp_dir'] ) . '*/*.' . $ext );
 				if ( $found ) {
 					$files_before[ $format ] = count( $found );
 				}

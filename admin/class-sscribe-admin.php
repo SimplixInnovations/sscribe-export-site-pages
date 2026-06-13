@@ -246,37 +246,9 @@ class SScribe_Admin {
 			$css_version
 		);
 
-		$fonts_url     = SSCRIBE_PLUGIN_URL . 'assets/fonts/manrope/';
-		$font_face_css = ''
-			. '@font-face {'
-			. 'font-family: \'Manrope\';'
-			. 'src: url(\'' . $fonts_url . 'Manrope-Regular.ttf\') format(\'truetype\');'
-			. 'font-weight: 400;'
-			. 'font-style: normal;'
-			. 'font-display: swap;'
-			. '}'
-			. '@font-face {'
-			. 'font-family: \'Manrope\';'
-			. 'src: url(\'' . $fonts_url . 'Manrope-Bold.ttf\') format(\'truetype\');'
-			. 'font-weight: 700;'
-			. 'font-style: normal;'
-			. 'font-display: swap;'
-			. '}'
-			. '@font-face {'
-			. 'font-family: \'Manrope\';'
-			. 'src: url(\'' . $fonts_url . 'Manrope-Medium.ttf\') format(\'truetype\');'
-			. 'font-weight: 500;'
-			. 'font-style: normal;'
-			. 'font-display: swap;'
-			. '}'
-			. '@font-face {'
-			. 'font-family: \'Manrope\';'
-			. 'src: url(\'' . $fonts_url . 'Manrope-Light.ttf\') format(\'truetype\');'
-			. 'font-weight: 300;'
-			. 'font-style: normal;'
-			. 'font-display: swap;'
-			. '}';
-		wp_add_inline_style( 'sscribe-admin', $font_face_css );
+		// Manrope was removed; the admin UI now uses the system font stack
+		// (declared in --sscribe-font-family in sscribe-admin.css). No
+		// @font-face declarations are needed here.
 
 		wp_enqueue_script(
 			'sscribe-admin',
@@ -613,9 +585,11 @@ class SScribe_Admin {
 			}
 
 			$lang_code = sanitize_key( (string) ( $data['lang_code'] ?? '' ) );
-			if ( '' === $lang_code && $wpml_active && preg_match( '/-([A-Za-z]{2,3})(?:-[A-Za-z]+)?\.zip$/i', $filename, $matches ) ) {
-				$lang_code = sanitize_key( strtolower( $matches[1] ) );
-			}
+			// lang_code is populated for every new export by the batch
+			// processor. The filename no longer carries a `-LANG` suffix
+			// (the language is communicated by the per-language subdir
+			// inside the ZIP), so a regex-based fallback would either
+			// be dead code or mis-parse format tokens. Trust the index.
 
 			if ( '' === $lang_code ) {
 				$lang_code = 'all';

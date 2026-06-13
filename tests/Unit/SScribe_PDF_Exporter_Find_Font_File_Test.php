@@ -149,4 +149,21 @@ class SScribe_PDF_Exporter_Find_Font_File_Test extends TestCase {
 
 		$this->assertNull( $result );
 	}
+
+	/**
+	 * Coverage: the production call site in build_mpdf_config() passes
+	 * `amiri[-_]?regular` and `amiri[-_]?bold`. This pins the behavior
+	 * against the actual filenames shipped in assets/fonts/amiri/ so a
+	 * future refactor that changes the production pattern is caught.
+	 */
+	public function test_find_font_file_matches_amiri_production_filenames(): void {
+		$this->touch_font_file( 'Amiri-Regular.ttf' );
+		$this->touch_font_file( 'Amiri-Bold.ttf' );
+
+		$regular = $this->call_find_font_file( $this->font_dir, 'amiri[-_]?regular' );
+		$bold    = $this->call_find_font_file( $this->font_dir, 'amiri[-_]?bold' );
+
+		$this->assertSame( 'Amiri-Regular.ttf', $regular );
+		$this->assertSame( 'Amiri-Bold.ttf', $bold );
+	}
 }

@@ -83,9 +83,11 @@ class SScribe_Admin_Test extends TestCase {
 		$admin->enqueue_admin_assets( 'toplevel_page_sscribe-export' );
 
 		// Debug console assets are now always enqueued for the debug tab UI.
-		// Styles: sscribe-admin + inline font-face CSS + sscribe-debug-console = 3.
+		// Styles: sscribe-admin + sscribe-debug-console = 2.
+		//   (The inline @font-face CSS for Manrope was removed along with
+		//   the font itself — the admin UI uses the system font stack now.)
 		// Scripts: sscribe-admin + sscribe-debug-console = 2.
-		$this->assertCount( 3, $sscribe_test_styles );
+		$this->assertCount( 2, $sscribe_test_styles );
 		$this->assertCount( 2, $sscribe_test_scripts );
 	}
 

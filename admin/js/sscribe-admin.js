@@ -65,7 +65,9 @@
 		 * @returns {string} Human-readable language label.
 		 */
 		getLanguageLabel: function (code) {
-			if (!code) {
+			// `!code` would treat a non-empty value like '0' as "all
+			// languages", which is wrong — use a strict empty check.
+			if (code === '' || code === null || code === undefined) {
 				return 'All';
 			}
 			const labels = {
@@ -90,6 +92,7 @@
 				da: 'Danish',
 				fi: 'Finnish',
 				no: 'Norwegian',
+				nb: 'Norwegian (Bokmål)',
 				cs: 'Czech',
 				sk: 'Slovak',
 				hu: 'Hungarian',
@@ -109,6 +112,12 @@
 				lv: 'Latvian',
 				et: 'Estonian',
 				sl: 'Slovenian',
+				ps: 'Pashto',
+				ku: 'Kurdish',
+				sd: 'Sindhi',
+				yi: 'Yiddish',
+				iw: 'Hebrew', // legacy ISO 639-1 alias for he.
+				ji: 'Yiddish', // legacy ISO 639-1 alias for yi.
 			};
 			const normalized = String(code).toLowerCase();
 			return labels[normalized] || normalized.toUpperCase();
@@ -609,13 +618,20 @@
 					if (response.success && response.data && response.data.has_active) {
 						SScribe.isProcessing = true;
 						SScribe.sessionId = response.data.session_id;
-						SScribe.updateProgress(response.data.percentage);
-						SScribe.updatePhase(response.data.status);
 						$('#sscribe-cancel-btn')
 							.prop('disabled', false)
 							.text(sscribe_data.strings.cancel || 'Cancel Export');
 						$('#sscribe-export-btn, #sscribe-preview-btn').prop('disabled', true);
+						// If the server hasn't computed a real percentage
+						// yet, show the indeterminate stripe state. The
+						// first updateProgress(>= 1) will clear the class.
+						const restoredPct = Number(response.data.percentage) || 0;
+						if (restoredPct < 1) {
+							$('#sscribe-progress-bar').addClass('sscribe-progress-initializing');
+						}
 						$('#sscribe-progress-area').show();
+						SScribe.updateProgress(restoredPct);
+						SScribe.updatePhase(response.data.status);
 						SScribe.processBatch();
 					} else {
 						SScribe.isProcessing = false;
@@ -1314,6 +1330,12 @@
 				},
 				error: function () {
 					SScribe.isProcessing = false;
+					// Defensive: if the cancel AJAX fails, we don't know
+					// whether the server is still processing. Reset the UI
+					// so the user can try again — otherwise the progress
+					// area (with its indeterminate stripes) stays visible
+					// and the user is stuck.
+					SScribe.resetUI();
 					$('#sscribe-cancel-btn')
 						.prop('disabled', false)
 						.text(sscribe_data.strings.cancel || 'Cancel Export');
@@ -1819,13 +1841,15 @@
 
 			const progressBar = document.getElementById('sscribe-progress-bar');
 			if (progressBar) {
-				// The first real percentage after the initial showProgress()
-				// indeterminate state should drop the stripe animation and
-				// resume normal scaleX behavior. Done unconditionally on
-				// every update — the classList.remove is a no-op once the
-				// class is gone, and the bar may legitimately receive more
-				// than one update per export.
-				progressBar.classList.remove('sscribe-progress-initializing');
+				// The first real percentage (>= 1) after the initial
+				// showProgress() indeterminate state should drop the stripe
+				// animation and resume normal scaleX behavior. We only drop
+				// the class on a real percentage so the showProgress()
+				// fadeIn-callback's updateProgress(0) doesn't immediately
+				// remove the stripes the user is supposed to see.
+				if (percentage >= 1) {
+					progressBar.classList.remove('sscribe-progress-initializing');
+				}
 				progressBar.style.transform = 'scaleX(' + percentage / 100 + ')';
 				progressBar.setAttribute('aria-valuenow', percentage);
 				if (typeof currentPage === 'number' && typeof totalPages === 'number' && totalPages > 0) {
