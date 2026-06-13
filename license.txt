@@ -22,10 +22,10 @@ Full license text: https://www.gnu.org/licenses/old-licenses/gpl-2.0.html
 Third-Party Assets
 ==================
 
-This plugin bundles the Manrope font family (assets/fonts/manrope/),
-copyright (c) 2018 The Manrope Project Authors
-(https://github.com/sharanda/manrope). The Manrope fonts are licensed
+This plugin bundles the Amiri font family (assets/fonts/amiri/),
+copyright 2010-2022 The Amiri Project Authors
+(https://github.com/aliftype/amiri). The Amiri fonts are licensed
 under the SIL Open Font License, Version 1.1. A copy of the OFL is
-included in assets/fonts/manrope/OFL.txt. The OFL is compatible with
+included in assets/fonts/amiri/OFL.txt. The OFL is compatible with
 the GPL v2; the font may be redistributed with this plugin under the
 terms of the OFL.

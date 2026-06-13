@@ -23,8 +23,9 @@ class SScribe_Font_Helper {
 	 *
 	 * Resolves the bundled Amiri font from `assets/fonts/amiri/`. Amiri is
 	 * the OFL-licensed classical Naskh face we ship for RTL/Arabic PDF
-	 * rendering. It replaces XB Riyaz (which was pulled from mPDF's vendor
-	 * default font directory and never actually wired into our fontdata).
+	 * rendering. When Amiri is missing, `SScribe_PDF_Exporter` falls back
+	 * to mPDF's vendor-default XB Riyaz (which is also detected and wired
+	 * into fontdata as a secondary fallback).
 	 *
 	 * @param bool $bold Whether to return bold variant.
 	 * @return string Font file path.

@@ -614,13 +614,16 @@ class SScribe_Diagnostics {
 			);
 		}
 
-		$manrope_dir   = SSCRIBE_PLUGIN_DIR . 'assets/fonts/manrope';
-		$manrope_fonts = is_dir( $manrope_dir ) ? glob( $manrope_dir . '/*[Rr]egular.ttf' ) : array();
-		if ( empty( $manrope_fonts ) ) {
+		// Manrope was removed; the plugin's Arabic PDF rendering now relies
+		// on the bundled Amiri font (assets/fonts/amiri/Amiri-*.ttf). Check
+		// for that instead so a missing Amiri triggers the warning.
+		$amiri_dir   = SSCRIBE_PLUGIN_DIR . 'assets/fonts/amiri';
+		$amiri_fonts = is_dir( $amiri_dir ) ? glob( $amiri_dir . '/Amiri-*.ttf' ) : array();
+		if ( empty( $amiri_fonts ) ) {
 			return array(
 				'name'    => 'mPDF Library',
 				'status'  => 'warning',
-				'message' => 'mPDF loaded, but Manrope font files missing',
+				'message' => 'mPDF loaded, but Amiri font files missing',
 				'fix'     => 'Reinstall the plugin to restore font files',
 			);
 		}
