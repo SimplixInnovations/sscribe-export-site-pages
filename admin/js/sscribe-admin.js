@@ -338,14 +338,24 @@
 				if (tag === 'INPUT' || tag === 'TEXTAREA' || e.target.isContentEditable) {
 					return;
 				}
-				if (e.key === 'e' || e.key === 'E') {
+				if ((e.key === 'e' || e.key === 'E') && e.shiftKey) {
+					// Ctrl+Shift+E (Cmd+Shift+E on macOS) — same
+					// rationale as the P binding: avoid stepping on
+					// browser-native shortcuts. Ctrl+E is empty in
+					// most browsers, but Cmd+E is "Use Selection for
+					// Find" in Safari/Firefox.
 					e.preventDefault();
 					const $btn = $('#sscribe-export-btn');
 					if (!$btn.prop('disabled')) {
 						$btn.trigger('click');
 					}
 				}
-				if (e.key === 'p' || e.key === 'P') {
+				if ((e.key === 'p' || e.key === 'P') && e.shiftKey) {
+					// Ctrl+Shift+P (Cmd+Shift+P on macOS) — using a
+					// multi-modifier binding to avoid clobbering the
+					// browser's native Ctrl/Cmd+P print dialog. A user
+					// who hits plain Ctrl+P expects the print dialog
+					// to open, not a side-panel preview.
 					e.preventDefault();
 					const $btn = $('#sscribe-preview-btn');
 					if (!$btn.prop('disabled')) {
