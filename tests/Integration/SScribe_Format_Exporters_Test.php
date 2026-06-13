@@ -236,12 +236,12 @@ class SScribe_Format_Exporters_Test extends TestCase {
 		$this->assertGreaterThan( 0, $time );
 	}
 
-	public function test_font_helper_returns_xbriyaz(): void {
+	public function test_font_helper_returns_amiri(): void {
 		$regular = SScribe_Font_Helper::get_arabic_font_path();
 		$bold    = SScribe_Font_Helper::get_arabic_font_path( true );
 
-		$this->assertStringContainsString( 'XB Riyaz.ttf', $regular );
-		$this->assertStringContainsString( 'XB RiyazBd.ttf', $bold );
+		$this->assertStringContainsString( 'Amiri-Regular.ttf', $regular );
+		$this->assertStringContainsString( 'Amiri-Bold.ttf', $bold );
 	}
 
 	public function test_rtl_helper_get_languages(): void {

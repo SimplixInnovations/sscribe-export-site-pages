@@ -29,9 +29,9 @@ class SScribe_Wave1_Integration_Test extends TestCase {
 		$this->assertTrue( class_exists( 'SScribe_Font_Helper' ), 'SScribe_Font_Helper class should exist' );
 	}
 
-	public function test_font_helper_returns_xbriyaz(): void {
+	public function test_font_helper_returns_amiri(): void {
 		$path = SScribe_Font_Helper::get_arabic_font_path();
-		$this->assertStringContainsString( 'XB Riyaz.ttf', $path, 'Font helper should return XB Riyaz' );
+		$this->assertStringContainsString( 'Amiri-Regular.ttf', $path, 'Font helper should return Amiri' );
 	}
 
 	public function test_rtl_helper_arabic(): void {
@@ -143,13 +143,19 @@ class SScribe_Wave1_Integration_Test extends TestCase {
 
 		$filename = SScribe_Exporter_Factory::build_filename( $page_data, 1, 10, 'docx' );
 
-		// pad_length = max(3, strlen("10")) = max(3, 2) = 3, so index=1 becomes "001"
+		// pad_length = max(3, strlen("10")) = max(3, 2) = 3, so index=1 becomes "001".
+		// Language is now communicated via the output directory, NOT the
+		// filename — so the format is P{index:pad3}-{title}-{id}.docx.
 		$this->assertMatchesRegularExpression(
-			'/^P\d{3}-.+?-AR-\d+\.docx$/',
+			'/^P\d{3}-.+?-\d+\.docx$/',
 			$filename,
-			'Filename should match format: P{index:pad3}-{title}-{lang}-{id}.docx'
+			'Filename should match format: P{index:pad3}-{title}-{id}.docx (no language suffix)'
 		);
-		$this->assertStringContainsString( '-AR-', $filename );
+		$this->assertDoesNotMatchRegularExpression(
+			'/-AR-/',
+			$filename,
+			'Filename should NOT carry a language suffix anymore'
+		);
 		$this->assertStringEndsWith( '.docx', $filename );
 	}
 }

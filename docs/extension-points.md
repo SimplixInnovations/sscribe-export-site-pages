@@ -169,8 +169,8 @@ $logger = SScribe_Logger::instance();        // default settings
 $logger = SScribe_Logger::instance( true, 'my_prefix' );
 ```
 
-All three logger implementations (`SScribe_Logger`,
-`SScribe_Logger_Enhanced`, `SScribe_Logger_Structured`) implement
+Both logger implementations (`SScribe_Logger`,
+`SScribe_Logger_Enhanced`) implement
 `SScribe_Logger_Interface` and expose the standard PSR-3-style level
 methods (`debug`, `info`, `notice`, `warning`, `error`, `critical`,
 `alert`, `emergency`) plus the generic `log( $level, $message, $context )`.

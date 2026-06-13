@@ -15,13 +15,13 @@ class SScribe_Font_Helper_Test extends TestCase {
 
 	public function test_get_arabic_font_path_regular(): void {
 		$path = \SScribe_Font_Helper::get_arabic_font_path();
-		$this->assertStringContainsString( 'XB Riyaz.ttf', $path );
-		$this->assertStringContainsString( 'vendor-prefixed/mpdf/mpdf/ttfonts/', $path );
+		$this->assertStringContainsString( 'Amiri-Regular.ttf', $path );
+		$this->assertStringContainsString( 'assets/fonts/amiri/', $path );
 	}
 
 	public function test_get_arabic_font_path_bold(): void {
 		$path = \SScribe_Font_Helper::get_arabic_font_path( true );
-		$this->assertStringContainsString( 'XB RiyazBd.ttf', $path );
+		$this->assertStringContainsString( 'Amiri-Bold.ttf', $path );
 	}
 
 	public function test_get_arabic_font_path_with_plugin_dir(): void {

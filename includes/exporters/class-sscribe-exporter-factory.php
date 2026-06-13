@@ -90,11 +90,19 @@ class SScribe_Exporter_Factory {
 	/**
 	 * Build a filename for the exported page.
 	 *
+	 * Language is no longer encoded in the filename. The batch processor
+	 * now writes each page into a per-language output subdirectory
+	 * (e.g. `temp-xxx/AR/P001-foo.pdf`), and the ZIP handler derives the
+	 * language from the parent directory name. The `$include_lang`
+	 * parameter is preserved for backward compatibility with any
+	 * third-party callers but is now a no-op.
+	 *
 	 * @param array  $page_data     Page metadata.
 	 * @param int    $index         Current page index.
 	 * @param int    $total         Total page count.
 	 * @param string $extension     File extension.
-	 * @param bool   $include_lang  Whether to include language code.
+	 * @param bool   $include_lang  Deprecated — language is communicated
+	 *                              via the output directory, not the filename.
 	 * @return string Generated filename.
 	 */
 	public static function build_filename( array $page_data, int $index = 0, int $total = 0, string $extension = 'docx', bool $include_lang = true ): string {
@@ -121,14 +129,8 @@ class SScribe_Exporter_Factory {
 			$page_title = self::sanitize_filename_preserve_unicode( $page_title );
 		}
 
-		$lang_code = '';
-		if ( $include_lang && ! empty( $page_data['language'] ) ) {
-			$lang      = substr( $page_data['language'], 0, 2 );
-			$sanitized = sanitize_key( $lang );
-			if ( '' !== $lang && '' !== $sanitized ) {
-				$lang_code = '-' . strtoupper( $sanitized );
-			}
-		}
+		// $include_lang is intentionally ignored — see the docblock.
+		unset( $include_lang );
 
 		$pad_length = $total > 0 ? strlen( (string) $total ) : 3;
 		$pad_length = max( 3, $pad_length );
@@ -151,10 +153,9 @@ class SScribe_Exporter_Factory {
 		}
 
 		return sprintf(
-			'P%0' . $pad_length . 'd-%s%s%s.%s',
+			'P%0' . $pad_length . 'd-%s%s.%s',
 			$page_index,
 			$page_title,
-			$lang_code,
 			$id_suffix,
 			strtolower( $extension )
 		);

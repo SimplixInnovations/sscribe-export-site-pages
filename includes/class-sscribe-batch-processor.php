@@ -376,9 +376,23 @@ class SScribe_Batch_Processor {
 			$attempt = 0;
 			$result  = null;
 
+			// Per-page output directory: write each page into
+			// `$temp_dir/$LANG/` so the ZIP handler can place files into
+			// `FORMAT/LANG/page.ext` directly, with no filename-suffix
+			// gymnastics. `ALL` is the catch-all for pages with no
+			// detectable language — the ZIP handler treats it like any
+			// other lang code (no special validation).
+			$page_lang_raw = isset( $page_data['language'] ) ? (string) $page_data['language'] : '';
+			$page_lang_key = '' !== $page_lang_raw ? sanitize_key( substr( $page_lang_raw, 0, 2 ) ) : '';
+			$page_lang     = '' !== $page_lang_key ? strtoupper( $page_lang_key ) : 'ALL';
+			$page_dir      = trailingslashit( $temp_dir ) . $page_lang;
+			if ( ! is_dir( $page_dir ) ) {
+				wp_mkdir_p( $page_dir );
+			}
+
 			while ( $attempt < self::MAX_RETRIES ) {
 				try {
-					$result = $exporter->export( $page_data, $temp_dir, $page_index, $total );
+					$result = $exporter->export( $page_data, $page_dir, $page_index, $total );
 				} catch ( \Throwable $e ) {
 					$result_data    = array(
 						'error_category' => 'transient',

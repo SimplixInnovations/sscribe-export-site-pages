@@ -205,7 +205,7 @@ class SScribe_PDF_Exporter implements SScribe_Exporter_Interface {
 				return $mpdf_config;
 			}
 
-			list( 'config' => $config, 'mpdf_temp' => $mpdf_temp, 'xbriyaz_available' => $xbriyaz_available ) = $mpdf_config;
+			list( 'config' => $config, 'mpdf_temp' => $mpdf_temp, 'xbriyaz_available' => $xbriyaz_available, 'amiri_available' => $amiri_available ) = $mpdf_config;
 
 			$mpdf = new \SScribeVendor\Mpdf\Mpdf( $config );
 			$mpdf->SetDirectionality( $is_rtl ? 'rtl' : 'ltr' );
@@ -262,9 +262,15 @@ class SScribe_PDF_Exporter implements SScribe_Exporter_Interface {
 			$filename    = \SScribe_Exporter_Factory::build_filename( $page_data, $index, $total, 'pdf' );
 			$output_path = trailingslashit( $output_dir ) . $filename;
 
+			// RTL: prefer Amiri (shipped), then xbriyaz (mPDF vendor default),
+			// then freeserif. LTR: mPDF's freeserif gives us a clean Latin
+			// baseline without a 380 KB bundled font.
 			$font_stack = $is_rtl
-				? ( $xbriyaz_available ? 'xbriyaz, freeserif, sans-serif' : 'freeserif, sans-serif' )
-				: 'manrope, freeserif, sans-serif';
+				? ( $amiri_available
+					? 'amiri, freeserif, sans-serif'
+					: ( $xbriyaz_available ? 'xbriyaz, freeserif, sans-serif' : 'freeserif, sans-serif' )
+				)
+				: 'freeserif, sans-serif';
 			$base_css   = 'html, body, div, p, span, h1, h2, h3, h4, h5, h6, table, tr, td, th, ul, ol, li, blockquote, q, cite, a { font-family: ' . $font_stack . '; }';
 
 			if ( $is_rtl ) {
@@ -655,14 +661,14 @@ class SScribe_PDF_Exporter implements SScribe_Exporter_Interface {
 	 *
 	 * @param bool $is_rtl Whether the page is RTL.
 	 * @param int  $page_id Page ID for error context.
-	 * @return array{config: array, mpdf_temp: string, xbriyaz_available: bool}|SScribe_Result Config array on success, failure Result on error.
+	 * @return array{config: array, mpdf_temp: string, xbriyaz_available: bool, amiri_available: bool}|SScribe_Result Config array on success, failure Result on error.
 	 */
 	private function build_mpdf_config( bool $is_rtl, int $page_id ): array|SScribe_Result {
-		$font_dir    = trailingslashit( SSCRIBE_PLUGIN_DIR ) . 'assets/fonts/';
-		$manrope_dir = $font_dir . 'manrope/';
-		$upload_dir  = wp_upload_dir();
+		$font_dir   = trailingslashit( SSCRIBE_PLUGIN_DIR ) . 'assets/fonts/';
+		$amiri_dir  = $font_dir . 'amiri/';
+		$upload_dir = wp_upload_dir();
 		$sscribe_dir = trailingslashit( $upload_dir['basedir'] ) . 'sscribe/';
-		$mpdf_temp   = $sscribe_dir . 'mpdf-tmp/';
+		$mpdf_temp  = $sscribe_dir . 'mpdf-tmp/';
 
 		if ( ! is_dir( $mpdf_temp ) ) {
 			wp_mkdir_p( $mpdf_temp );
@@ -678,21 +684,20 @@ class SScribe_PDF_Exporter implements SScribe_Exporter_Interface {
 			SScribe_Security::protect_directory( $sscribe_dir );
 		}
 
-		if ( ! is_dir( $manrope_dir ) ) {
-			$this->logger->error(
-				'PDF export failed: Manrope font files are missing',
+		// Amiri is the only Arabic font the plugin ships. If the TTF is
+		// missing, the fontdata entry below falls back to a literal filename
+		// that mPDF can't resolve and the rest of the pipeline silently uses
+		// the next font in the stack (freeserif, then sans-serif). We log
+		// a warning so site operators can spot a broken install, but we do
+		// NOT hard-fail the export — losing the custom Arabic face is a
+		// graceful degradation, not a stop-the-world error.
+		$amiri_available = is_dir( $amiri_dir ) && file_exists( $amiri_dir . 'Amiri-Regular.ttf' );
+		if ( ! $amiri_available ) {
+			$this->logger->warning(
+				'PDF export: Amiri font files not found, falling back to mPDF default Arabic font',
 				array(
-					'manrope_dir' => $manrope_dir,
-					'dir_exists'  => false,
-				)
-			);
-
-			return SScribe_Result::failure(
-				__( 'PDF export failed: Manrope font files are missing. Reinstall the plugin.', 'sscribe-export-site-pages' ),
-				array(
-					'error_category' => 'pdf_missing_library',
-					'page_id'        => $page_id,
-					'missing_dir'    => $manrope_dir,
+					'amiri_dir'  => $amiri_dir,
+					'dir_exists' => is_dir( $amiri_dir ),
 				)
 			);
 		}
@@ -740,17 +745,15 @@ class SScribe_PDF_Exporter implements SScribe_Exporter_Interface {
 		$default_font_config = ( new \SScribeVendor\Mpdf\Config\FontVariables() )->getDefaults();
 		$font_data           = $default_font_config['fontdata'];
 
-		$manrope_regular = $this->find_font_file( $manrope_dir, 'manrope[-_]?regular' ) ?? 'Manrope-Regular.ttf';
-		$manrope_bold    = $this->find_font_file( $manrope_dir, 'manrope[-_]?bold' ) ?? 'Manrope-Bold.ttf';
-		$manrope_medium  = $this->find_font_file( $manrope_dir, 'manrope[-_]?medium' ) ?? 'Manrope-Medium.ttf';
-		$manrope_light   = $this->find_font_file( $manrope_dir, 'manrope[-_]?light' ) ?? 'Manrope-Light.ttf';
+		$amiri_regular = $this->find_font_file( $amiri_dir, 'amiri[-_]?regular' ) ?? 'Amiri-Regular.ttf';
+		$amiri_bold    = $this->find_font_file( $amiri_dir, 'amiri[-_]?bold' ) ?? 'Amiri-Bold.ttf';
 
 		// xbriyaz detection must include the plugin's own font directory.
 		// The merged fontDir list is built AFTER this check, so scanning only
 		// mPDF's default fontDirs would miss an xbriyaz.ttf shipped with the
 		// plugin or dropped into assets/fonts/ by a site operator.
 		$xbriyaz_available = false;
-		$xbriyaz_search_dirs = array_merge( array( $font_dir, $manrope_dir ), $font_dirs );
+		$xbriyaz_search_dirs = array_merge( array( $font_dir, $amiri_dir ), $font_dirs );
 		foreach ( $xbriyaz_search_dirs as $xbriyaz_dir_path ) {
 			if ( file_exists( trailingslashit( $xbriyaz_dir_path ) . 'xbriyaz.ttf' ) ) {
 				$xbriyaz_available = true;
@@ -758,32 +761,39 @@ class SScribe_PDF_Exporter implements SScribe_Exporter_Interface {
 			}
 		}
 
+		// RTL Arabic font resolution: prefer Amiri (shipped), then xbriyaz
+		// (mPDF vendor default — can be dropped in by site operators), then
+		// freeserif (always present). The Amiri file lookup above is always
+		// executed (cheap scandir) so its filename flows into fontdata even
+		// when the file is missing; mPDF will skip the entry and use the
+		// next family in the CSS stack.
+		$rtl_arabic_font = $amiri_available ? 'amiri' : ( $xbriyaz_available ? 'xbriyaz' : 'freeserif' );
+
 		$config = array(
-			'fontDir'          => array_merge( $font_dirs, array( $manrope_dir ) ),
+			'fontDir'          => array_merge( $font_dirs, array( $amiri_dir ) ),
 			'fontdata'         => array_replace(
 				$font_data,
 				array(
-					'manrope' => array(
-						'R' => $manrope_regular,
-						'B' => $manrope_bold,
-						'M' => $manrope_medium,
-						'L' => $manrope_light,
+					'amiri' => array(
+						'R' => $amiri_regular,
+						'B' => $amiri_bold,
 					),
 				)
 			),
 			'isRemoteEnabled'  => true,
 			'fonttrans'        => $is_rtl ? array(
-				'dejavu sans'     => $xbriyaz_available ? 'xbriyaz' : 'freeserif',
-				'dejavusans'      => $xbriyaz_available ? 'xbriyaz' : 'freeserif',
-				'arial'           => $xbriyaz_available ? 'xbriyaz' : 'freeserif',
-				'xbriyaz'         => $xbriyaz_available ? 'xbriyaz' : 'freeserif',
-				'lateef'          => $xbriyaz_available ? 'xbriyaz' : 'freeserif',
-				'times new roman' => $xbriyaz_available ? 'xbriyaz' : 'freeserif',
-				'serif'           => $xbriyaz_available ? 'xbriyaz' : 'freeserif',
-				'sans-serif'      => $xbriyaz_available ? 'xbriyaz' : 'freeserif',
+				'dejavu sans'     => $rtl_arabic_font,
+				'dejavusans'      => $rtl_arabic_font,
+				'arial'           => $rtl_arabic_font,
+				'amiri'           => $rtl_arabic_font,
+				'xbriyaz'         => $xbriyaz_available ? 'xbriyaz' : $rtl_arabic_font,
+				'lateef'          => $rtl_arabic_font,
+				'times new roman' => $rtl_arabic_font,
+				'serif'           => $rtl_arabic_font,
+				'sans-serif'      => $rtl_arabic_font,
 			) : array(),
 			'mode'             => 'utf-8',
-			'default_font'     => $is_rtl ? ( $xbriyaz_available ? 'xbriyaz' : 'freeserif' ) : 'manrope',
+			'default_font'     => $is_rtl ? $rtl_arabic_font : 'freeserif',
 			'useOTL'           => 0xFF,
 			'useKashida'       => 75,
 			'OTLhelper'        => true,
@@ -804,6 +814,7 @@ class SScribe_PDF_Exporter implements SScribe_Exporter_Interface {
 			'config'            => $config,
 			'mpdf_temp'         => $mpdf_temp,
 			'xbriyaz_available' => $xbriyaz_available,
+			'amiri_available'   => $amiri_available,
 		);
 	}
 
@@ -934,9 +945,9 @@ class SScribe_PDF_Exporter implements SScribe_Exporter_Interface {
 	 * by the caller in this class, so they are trusted — do not pass
 	 * untrusted user input here.
 	 *
-	 * Example: pattern "manrope[-_]?regular" matches
-	 * "Manrope-Regular.ttf", "Manrope_Regular.ttf", and
-	 * "manrope-regular.ttf", but not "Manrope-Bold.ttf".
+	 * Example: pattern "amiri[-_]?regular" matches
+	 * "Amiri-Regular.ttf", "Amiri_Regular.ttf", and
+	 * "amiri-regular.ttf", but not "Amiri-Bold.ttf".
 	 *
 	 * @param string $dir     Directory to search.
 	 * @param string $pattern PCRE fragment (no anchors, no extension).

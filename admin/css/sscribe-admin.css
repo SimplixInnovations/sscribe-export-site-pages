@@ -60,9 +60,9 @@
 	--sscribe-text-light: #94a3b8;
 	--sscribe-text-inverse: #fff;
 
-	/* Typography */
+	/* Typography — system stack, no bundled UI font (saves ~380 KB). */
 	--sscribe-font-family:
-		'Manrope', -apple-system, blinkmacsystemfont, 'Segoe UI', roboto, 'Helvetica Neue', arial, sans-serif;
+		-apple-system, blinkmacsystemfont, 'Segoe UI', roboto, 'Helvetica Neue', arial, sans-serif;
 
 	/* Spacing Scale (8px base unit) */
 	--sscribe-space-xs: 4px;
@@ -3036,6 +3036,38 @@ body .sscribe-master-container .sscribe-hero {
 
 .sscribe-progress-bar-fill-finalizing {
 	animation: sscribe-finalize-shimmer 1.5s ease-in-out infinite;
+}
+
+/* ============================================
+   INDETERMINATE PROGRESS (initial state, before
+   the first batch response arrives). JS adds
+   .sscribe-progress-initializing in the fadeIn
+   callback so the bar is visible during the
+   render-time window and removed as soon as a
+   real percentage is written via updateProgress.
+   ============================================ */
+@keyframes sscribe-progress-stripes {
+	0% {
+		background-position: 0 0;
+	}
+
+	100% {
+		background-position: 40px 0;
+	}
+}
+
+.sscribe-progress-initializing {
+	/* stylelint-disable-next-line declaration-no-important -- Override the bar's width: 100% / scaleX(0) so the stripes are visible while the percentage is unknown. */
+	width: 100% !important;
+	background: repeating-linear-gradient(
+		-45deg,
+		var(--sscribe-primary) 0 10px,
+		rgb(104 168 133 / 60%) 10px 20px
+	);
+	background-size: 40px 40px;
+	animation: sscribe-progress-stripes 1s linear infinite;
+	/* stylelint-disable-next-line declaration-no-important -- Override the JS's transform: scaleX(0) so the bar is visible while indeterminate. */
+	transform: scaleX(1) !important;
 }
 
 /* ============================================
