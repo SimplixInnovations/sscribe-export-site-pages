@@ -3,9 +3,9 @@
  * SScribe Logger Common Trait unit test
  *
  * Locks in the shared level dispatch + session-id + threshold helpers
- * that all 3 logger implementations now inherit via the trait. If a
- * future refactor changes these semantics, this test fails before the
- * real loggers do.
+ * that the two logger implementations (SScribe_Logger and
+ * SScribe_Logger_Enhanced) inherit via the trait. If a future refactor
+ * changes these semantics, this test fails before the real loggers do.
  *
  * @package SScribe_Export_Site_Pages
  */
@@ -20,14 +20,13 @@ use SScribe_Logger_Interface;
 class SScribe_Logger_Common_Trait_Test extends TestCase {
 
 	/**
-	 * Each of the 3 logger implementations should expose the same 8
-	 * PSR-3-style level methods (inherited from the trait).
+	 * Both logger implementations should expose the same 8 PSR-3-style
+	 * level methods (inherited from the trait).
 	 */
-	public function test_all_three_loggers_expose_level_methods(): void {
+	public function test_all_loggers_expose_level_methods(): void {
 		$loggers = array(
 			new \SScribe_Logger( true, 'trait_test_a' ),
 			new \SScribe_Logger_Enhanced(),
-			new \SScribe_Logger_Structured(),
 		);
 
 		$methods = array( 'debug', 'info', 'notice', 'warning', 'error', 'critical', 'alert', 'emergency' );
@@ -51,7 +50,6 @@ class SScribe_Logger_Common_Trait_Test extends TestCase {
 		$loggers = array(
 			new \SScribe_Logger( true, 'trait_test_b' ),
 			new \SScribe_Logger_Enhanced(),
-			new \SScribe_Logger_Structured(),
 		);
 
 		foreach ( $loggers as $logger ) {
@@ -112,8 +110,8 @@ class SScribe_Logger_Common_Trait_Test extends TestCase {
 	 * deprecation that ReflectionMethod::invoke() emits in PHP 8.1+.
 	 */
 	private static function call_threshold_helper( string $level, string $min_level ): bool {
-		$ref      = new \ReflectionMethod( \SScribe_Logger_Structured::class, 'level_meets_threshold' );
-		$closure  = \Closure::bind( $ref->getClosure( null ), null, \SScribe_Logger_Structured::class );
+		$ref      = new \ReflectionMethod( \SScribe_Logger_Enhanced::class, 'level_meets_threshold' );
+		$closure  = \Closure::bind( $ref->getClosure( null ), null, \SScribe_Logger_Enhanced::class );
 		return (bool) $closure( $level, $min_level );
 	}
 
@@ -121,8 +119,8 @@ class SScribe_Logger_Common_Trait_Test extends TestCase {
 	 * Invoke the protected static `get_level_priority_map` helper.
 	 */
 	private static function call_priority_helper(): array {
-		$ref      = new \ReflectionMethod( \SScribe_Logger_Structured::class, 'get_level_priority_map' );
-		$closure  = \Closure::bind( $ref->getClosure( null ), null, \SScribe_Logger_Structured::class );
+		$ref      = new \ReflectionMethod( \SScribe_Logger_Enhanced::class, 'get_level_priority_map' );
+		$closure  = \Closure::bind( $ref->getClosure( null ), null, \SScribe_Logger_Enhanced::class );
 		return $closure();
 	}
 }

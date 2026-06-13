@@ -87,41 +87,6 @@ class SScribe_Zip_Handler_Test extends TestCase {
 		$this->assertFalse( $result );
 	}
 
-	public function test_extract_lang_from_filename(): void {
-		$method = new \ReflectionMethod( SScribe_Zip_Handler::class, 'extract_lang_from_filename' );
-
-		$test_cases = array(
-			'P001-Title-AR.docx'   => 'AR',
-			'P002-Page-EN.docx'    => 'EN',
-			'P003-Test-FR.docx'    => 'FR',
-			'P001-Title.docx'       => null,
-			'P002-Page.docx'        => null,
-			'simple.docx'            => null,
-		);
-
-		foreach ( $test_cases as $filename => $expected ) {
-			$result = $method->invoke( $this->handler, $filename );
-			$this->assertSame( $expected, $result, "Filename: $filename" );
-		}
-	}
-
-	public function test_remove_lang_from_filename(): void {
-		$method = new \ReflectionMethod( SScribe_Zip_Handler::class, 'remove_lang_from_filename' );
-
-		$test_cases = array(
-			'P001-Title-AR.docx' => 'P001-Title.docx',
-			'P002-Page-EN.docx'  => 'P002-Page.docx',
-			'P003-Test-FR.docx'  => 'P003-Test.docx',
-			'P001-Title.docx'   => 'P001-Title.docx',
-			'simple.docx'        => 'simple.docx',
-		);
-
-		foreach ( $test_cases as $filename => $expected ) {
-			$result = $method->invoke( $this->handler, $filename );
-			$this->assertSame( $expected, $result, "Filename: $filename" );
-		}
-	}
-
 	public function test_create_zip_returns_false_with_no_files(): void {
 		if ( ! class_exists( 'ZipArchive' ) ) {
 			$this->markTestSkipped( 'ZipArchive extension not available' );
@@ -139,7 +104,10 @@ class SScribe_Zip_Handler_Test extends TestCase {
 		}
 
 		$source_dir = $this->handler->create_temp_dir();
-		file_put_contents( $source_dir . '/P001-Test.docx', 'dummy content' );
+		// Files now live one level deeper, under the language subdir
+		// (the batch processor writes to `$temp_dir/$LANG/page.ext`).
+		wp_mkdir_p( $source_dir . '/EN' );
+		file_put_contents( $source_dir . '/EN/P001-Test.docx', 'dummy content' );
 
 		$result = $this->handler->create_zip( $source_dir, 'test-zip', array( 'docx' ) );
 
@@ -158,7 +126,8 @@ class SScribe_Zip_Handler_Test extends TestCase {
 		}
 
 		$source_dir = $this->handler->create_temp_dir();
-		file_put_contents( $source_dir . '/P001-Test.docx', 'dummy content' );
+		wp_mkdir_p( $source_dir . '/EN' );
+		file_put_contents( $source_dir . '/EN/P001-Test.docx', 'dummy content' );
 
 		$this->assertDirectoryExists( $source_dir );
 
@@ -177,13 +146,69 @@ class SScribe_Zip_Handler_Test extends TestCase {
 		}
 
 		$source_dir = $this->handler->create_temp_dir();
-		file_put_contents( $source_dir . '/P001-Test.docx', 'docx content' );
-		file_put_contents( $source_dir . '/P001-Test.pdf', 'pdf content' );
+		wp_mkdir_p( $source_dir . '/EN' );
+		file_put_contents( $source_dir . '/EN/P001-Test.docx', 'docx content' );
+		file_put_contents( $source_dir . '/EN/P001-Test.pdf', 'pdf content' );
 
 		$zip_path = $this->handler->create_zip( $source_dir, 'test-multi', array( 'docx', 'pdf' ) );
 
 		$this->assertIsString( $zip_path );
 		$this->assertFileExists( $zip_path );
+
+		if ( file_exists( $zip_path ) ) {
+			unlink( $zip_path );
+		}
+	}
+
+	/**
+	 * Regression test for the per-language folder restructure: a
+	 * multi-language export must place each page into `FORMAT/LANG/page.ext`
+	 * inside the ZIP, with no filename-suffix gymnastics. The language
+	 * is read from the parent directory name on disk, not from the
+	 * filename.
+	 */
+	public function test_create_zip_groups_files_by_language_subdir(): void {
+		if ( ! class_exists( 'ZipArchive' ) ) {
+			$this->markTestSkipped( 'ZipArchive extension not available' );
+		}
+
+		$source_dir = $this->handler->create_temp_dir();
+		wp_mkdir_p( $source_dir . '/AR' );
+		wp_mkdir_p( $source_dir . '/EN' );
+		file_put_contents( $source_dir . '/AR/P001-Arabic.docx', 'arabic content' );
+		file_put_contents( $source_dir . '/AR/P002-Arabic.docx', 'arabic content 2' );
+		file_put_contents( $source_dir . '/EN/P001-English.docx', 'english content' );
+
+		$zip_path = $this->handler->create_zip( $source_dir, 'test-lang-groups', array( 'docx' ), true );
+		$this->assertIsString( $zip_path );
+		$this->assertFileExists( $zip_path );
+
+		// Open the ZIP and assert the language subfolders survived.
+		$zip = new \ZipArchive();
+		$zip->open( $zip_path );
+		$entries = array();
+		for ( $i = 0; $i < $zip->numFiles; $i++ ) {
+			$entries[] = $zip->getNameIndex( $i );
+		}
+		$zip->close();
+
+		$this->assertContains( 'DOCX/AR/P001-Arabic.docx', $entries, 'AR page should be in DOCX/AR/' );
+		$this->assertContains( 'DOCX/AR/P002-Arabic.docx', $entries, 'AR page 2 should be in DOCX/AR/' );
+		$this->assertContains( 'DOCX/EN/P001-English.docx', $entries, 'EN page should be in DOCX/EN/' );
+
+		// Filename must NOT carry a language suffix anymore.
+		foreach ( $entries as $entry ) {
+			$this->assertDoesNotMatchRegularExpression(
+				'#-AR\.docx$#',
+				$entry,
+				'Filenames should no longer carry the -AR suffix: ' . $entry
+			);
+			$this->assertDoesNotMatchRegularExpression(
+				'#-EN\.docx$#',
+				$entry,
+				'Filenames should no longer carry the -EN suffix: ' . $entry
+			);
+		}
 
 		if ( file_exists( $zip_path ) ) {
 			unlink( $zip_path );

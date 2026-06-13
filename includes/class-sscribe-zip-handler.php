@@ -142,7 +142,13 @@ class SScribe_Zip_Handler {
 			if ( ! $ext ) {
 				continue;
 			}
-			$found = glob( $source_dir . '/*.' . $ext );
+			// Files live one level deeper than the source dir — each
+			// exporter's output is written to `$source_dir/$LANG/` by
+			// the batch processor. We glob one level deeper so files
+			// with no language are NOT accidentally included when the
+			// $has_language flag is true (the parent dir is always
+			// present, even if the batch only had one language).
+			$found = glob( $source_dir . '/*/*.' . $ext );
 			if ( $found ) {
 				$all_files[ $format ] = $found;
 			}
@@ -229,29 +235,23 @@ class SScribe_Zip_Handler {
 
 				foreach ( $files as $file ) {
 					$basename      = basename( $file );
+					// The parent directory name IS the language code now —
+					// the batch processor writes each page into
+					// `$source_dir/$LANG/page.ext` directly, so there's no
+					// suffix to extract or strip.
+					$parent_dir    = strtoupper( basename( dirname( $file ) ) );
+					$lang_code     = $parent_dir;
 					// Preserve Unicode letters; strip only filesystem-unsafe characters.
 					$archive_entry = preg_replace( '/[\/\\\\:*?"<>|]/', '-', $basename );
-					$lang_code     = null;
 
 					if ( in_array( $basename, array( 'index.php', '.htaccess' ), true ) ) {
 						continue;
 					}
 
 					if ( $use_lang_folders ) {
-
-						$lang_code = $this->extract_lang_from_filename( $basename );
-
-						if ( $lang_code ) {
-
-							$clean_name    = $this->remove_lang_from_filename( $basename );
-							// Preserve Unicode letters; strip only filesystem-unsafe characters.
-							$archive_entry = $folder_name . '/' . $lang_code . '/' . preg_replace( '/[\/\\\\:*?"<>|]/', '-', $clean_name );
-						} else {
-
-							$archive_entry = $folder_name . '/' . preg_replace( '/[\/\\\\:*?"<>|]/', '-', $basename );
-						}
+						$archive_entry = $folder_name . '/' . $lang_code . '/' . $archive_entry;
 					} elseif ( $use_folders ) {
-						$archive_entry = $folder_name . '/' . preg_replace( '/[\/\\\\:*?"<>|]/', '-', $basename );
+						$archive_entry = $folder_name . '/' . $archive_entry;
 					}
 
 					if ( ! $zip->addFile( $file, $archive_entry ) ) {
@@ -268,7 +268,7 @@ class SScribe_Zip_Handler {
 					$zip_entries[] = array(
 						'source'    => $basename,
 						'zip_path'  => $archive_entry,
-						'lang_code' => $lang_code ?? null,
+						'lang_code' => $lang_code,
 						'size'      => file_exists( $file ) ? (int) filesize( $file ) : 0,
 					);
 				}
@@ -511,38 +511,6 @@ class SScribe_Zip_Handler {
 		}
 
 		return true;
-	}
-
-	/**
-	 * Extract language code from filename.
-	 *
-	 * @param string $filename Export filename.
-	 * @return string|null Language code or null.
-	 */
-	private function extract_lang_from_filename( string $filename ): ?string {
-
-		if ( ! preg_match( '/-([A-Z]{2,3})\.[A-Za-z]+$/', $filename, $matches ) ) {
-			return null;
-		}
-
-		return in_array( $matches[1], SScribe_RTL_Helper::get_all_known_codes(), true ) ? $matches[1] : null;
-	}
-
-	/**
-	 * Remove language code from filename.
-	 *
-	 * @param string $filename Export filename.
-	 * @return string Cleaned filename.
-	 */
-	private function remove_lang_from_filename( string $filename ): string {
-
-		$parts = pathinfo( $filename );
-		$base  = $parts['filename'];
-		$ext   = isset( $parts['extension'] ) ? '.' . $parts['extension'] : '';
-
-		$clean_base = preg_replace( '/-[A-Z]{2,3}$/', '', $base ) ?? $base;
-
-		return $clean_base . $ext;
 	}
 
 	/**

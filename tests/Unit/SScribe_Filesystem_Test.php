@@ -204,7 +204,9 @@ class SScribe_Filesystem_Test extends TestCase {
 
 	public function test_sanitize_path_preserves_spaces_in_filename(): void {
 		// Legitimate filenames with spaces should pass through unchanged.
-		$path = sys_get_temp_dir() . '/sscribe test/P001-Test Markdown Page-EN-42.md';
+		// Language is no longer in the filename (the output dir carries it),
+		// so this fixture uses the new clean format.
+		$path = sys_get_temp_dir() . '/sscribe test/P001-Test Markdown Page-42.md';
 		$safe = \SScribe_Filesystem::sanitize_path( $path );
 
 		$this->assertEquals( $path, $safe );

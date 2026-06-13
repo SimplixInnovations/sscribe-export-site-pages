@@ -54,6 +54,67 @@
 		},
 
 		/**
+		 * Map an ISO 639-1/2 language code to a human-readable label.
+		 *
+		 * Used by the preview modal and the config summary so the user sees
+		 * "Arabic" / "English" rather than the raw locale code (`ar` / `en`).
+		 * Falls back to the uppercased code for languages we don't have a
+		 * label for, and to `'All'` for an empty/null input.
+		 *
+		 * @param {string|null|undefined} code Two/three-letter language code.
+		 * @returns {string} Human-readable language label.
+		 */
+		getLanguageLabel: function (code) {
+			if (!code) {
+				return 'All';
+			}
+			const labels = {
+				en: 'English',
+				ar: 'Arabic',
+				fr: 'French',
+				de: 'German',
+				es: 'Spanish',
+				it: 'Italian',
+				pt: 'Portuguese',
+				nl: 'Dutch',
+				ru: 'Russian',
+				zh: 'Chinese',
+				ja: 'Japanese',
+				ko: 'Korean',
+				he: 'Hebrew',
+				fa: 'Persian',
+				ur: 'Urdu',
+				tr: 'Turkish',
+				pl: 'Polish',
+				sv: 'Swedish',
+				da: 'Danish',
+				fi: 'Finnish',
+				no: 'Norwegian',
+				cs: 'Czech',
+				sk: 'Slovak',
+				hu: 'Hungarian',
+				ro: 'Romanian',
+				bg: 'Bulgarian',
+				hr: 'Croatian',
+				sr: 'Serbian',
+				uk: 'Ukrainian',
+				vi: 'Vietnamese',
+				th: 'Thai',
+				id: 'Indonesian',
+				ms: 'Malay',
+				el: 'Greek',
+				hi: 'Hindi',
+				bn: 'Bengali',
+				lt: 'Lithuanian',
+				lv: 'Latvian',
+				et: 'Estonian',
+				sl: 'Slovenian',
+			};
+			const normalized = String(code).toLowerCase();
+			return labels[normalized] || normalized.toUpperCase();
+		},
+
+		/**
 		 * Refresh the export nonce from the server.
 		 *
 		 * Long-running batch exports can outlive the WP nonce lifetime
@@ -709,7 +770,7 @@
 
 			$('#sscribe-summary-post-type').text(postTypeLabels[postType] || postType);
 			$('#sscribe-summary-status').text(statusLabels[status] || status);
-			$('#sscribe-summary-language').text(language ? language.toUpperCase() : 'All');
+			$('#sscribe-summary-language').text(this.getLanguageLabel(language));
 			$('#sscribe-summary-format').text(format === 'all' ? 'All' : format.toUpperCase());
 			$('#sscribe-summary-pages').text('~' + count + ' ' + sscribe_data.strings.log_pages);
 			$('#sscribe-summary-time').text(sscribe_data.strings.calculating_time || 'Calculating...');
@@ -1758,6 +1819,13 @@
 
 			const progressBar = document.getElementById('sscribe-progress-bar');
 			if (progressBar) {
+				// The first real percentage after the initial showProgress()
+				// indeterminate state should drop the stripe animation and
+				// resume normal scaleX behavior. Done unconditionally on
+				// every update — the classList.remove is a no-op once the
+				// class is gone, and the bar may legitimately receive more
+				// than one update per export.
+				progressBar.classList.remove('sscribe-progress-initializing');
 				progressBar.style.transform = 'scaleX(' + percentage / 100 + ')';
 				progressBar.setAttribute('aria-valuenow', percentage);
 				if (typeof currentPage === 'number' && typeof totalPages === 'number' && totalPages > 0) {
@@ -1767,7 +1835,7 @@
 					);
 				}
 			} else {
-				$('#sscribe-progress-bar').css('width', percentage + '%');
+				$('#sscribe-progress-bar').removeClass('sscribe-progress-initializing').css('width', percentage + '%');
 			}
 			$('#sscribe-progress-text').text(percentage + '%');
 
@@ -1814,14 +1882,26 @@
 		showProgress: function () {
 			$('#sscribe-download-area').addClass('sscribe-hidden');
 			$('#sscribe-error-area').addClass('sscribe-hidden');
-			$('#sscribe-progress-area').removeClass('sscribe-hidden').hide().fadeIn(400);
+			// Defer the initial updateProgress() until the fade-in completes.
+			// updateProgress() writes `transform: scaleX(p)` directly to the
+			// bar element; if it runs while the bar is mid-fade, the element's
+			// layout is still 0-height/width and the transform has nothing to
+			// scale — leaving the bar invisible until the first batch tick.
+			// An indeterminate stripe animation (.sscribe-progress-initializing)
+			// is shown in the meantime so the user sees activity from t=0.
+			$('#sscribe-progress-area')
+				.removeClass('sscribe-hidden')
+				.hide()
+				.fadeIn(400, function () {
+					$('#sscribe-progress-bar').addClass('sscribe-progress-initializing');
+					SScribe.updateProgress(0);
+					SScribe.updatePhase('fetching');
+				});
 			$('#sscribe-current-page').text('').hide();
 			$('#sscribe-time-remaining').text('').hide();
 			$('#sscribe-cancel-btn')
 				.prop('disabled', false)
 				.text(sscribe_data.strings.cancel || 'Cancel Export');
-			this.updateProgress(0);
-			this.updatePhase('fetching');
 			$('#sscribe-export-btn, #sscribe-preview-btn').prop('disabled', true);
 		},
 
@@ -2198,7 +2278,10 @@
 		renderPreview: function (data) {
 			const $content = $('#sscribe-preview-content');
 			const strings = sscribe_data.strings || {};
-			const totalPages = parseInt(data.total_pages, 10) || 0;
+			// Server returns total_pages as a localized string (e.g. "1,234")
+			// to match the count chips in the UI. Use parseLocalizedInt so
+			// "1,234" parses as 1234, not 1.
+			const totalPages = this.parseLocalizedInt(data.total_pages);
 			const formatLabels = {
 				docx: strings.format_docx || 'Word Document (DOCX)',
 				pdf: strings.format_pdf || 'PDF Document',
@@ -2240,7 +2323,7 @@
 				'<span class="sscribe-preview-label">' +
 				this.escapeHtml(strings.preview_language || 'Language:') +
 				'</span>';
-			html += '<span class="sscribe-preview-value">' + this.escapeHtml(data.language || 'All') + '</span>';
+			html += '<span class="sscribe-preview-value">' + this.escapeHtml(this.getLanguageLabel(data.language)) + '</span>';
 			html += '</div>';
 
 			html += '<div class="sscribe-preview-stat">';
@@ -2716,7 +2799,12 @@
 			// collapse the box and the subsequent updateProgress() (which
 			// only writes transform) would scale a zero-width element,
 			// leaving the bar invisible.
-			$('#sscribe-progress-bar').css('transform', 'scaleX(0)');
+			// Also drop the initializing class so a follow-up export doesn't
+			// briefly show the indeterminate stripes between the reset and
+			// the first real percentage.
+			$('#sscribe-progress-bar')
+				.removeClass('sscribe-progress-initializing')
+				.css('transform', 'scaleX(0)');
 			$('#sscribe-progress-text').text('0%');
 			$('#sscribe-status-text').text('');
 			$('#sscribe-current-page').text('').hide();

@@ -21,16 +21,21 @@ class SScribe_Font_Helper {
 	/**
 	 * Get the path to the Arabic font file.
 	 *
+	 * Resolves the bundled Amiri font from `assets/fonts/amiri/`. Amiri is
+	 * the OFL-licensed classical Naskh face we ship for RTL/Arabic PDF
+	 * rendering. It replaces XB Riyaz (which was pulled from mPDF's vendor
+	 * default font directory and never actually wired into our fontdata).
+	 *
 	 * @param bool $bold Whether to return bold variant.
 	 * @return string Font file path.
 	 */
 	public static function get_arabic_font_path( bool $bold = false ): string {
 		$base   = defined( 'SSCRIBE_PLUGIN_DIR' ) ? SSCRIBE_PLUGIN_DIR : '';
-		$prefix = $base . 'vendor-prefixed/mpdf/mpdf/ttfonts/';
+		$prefix = $base . 'assets/fonts/amiri/';
 		if ( $bold ) {
-			return $prefix . 'XB RiyazBd.ttf';
+			return $prefix . 'Amiri-Bold.ttf';
 		}
-		return $prefix . 'XB Riyaz.ttf';
+		return $prefix . 'Amiri-Regular.ttf';
 	}
 
 	/**
