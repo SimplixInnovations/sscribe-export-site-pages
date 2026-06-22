@@ -159,6 +159,41 @@ format means adding a new enum case + factory arm.
 
 ---
 
+## Adding a new AJAX handler
+
+All SScribe AJAX endpoints must verify the WordPress nonce and the
+current user's capability before doing anything else. Rather than
+duplicate the four-line check at the top of every handler, wrap the
+handler with `SScribe_AJAX_Guard::with_guard()` at the registration
+site:
+
+```php
+add_action(
+    'wp_ajax_sscribe_my_action',
+    SScribe_AJAX_Guard::with_guard(
+        [ $this, 'ajax_my_action' ],
+        $this->get_required_capability()
+    )
+);
+
+public function ajax_my_action(): void {
+    // Guard has already passed — no need to check nonce or capability.
+    // ... handler logic ...
+}
+```
+
+The wrapper emits a localized error JSON response and exits if either
+the nonce or the capability check fails, so handlers do not need to
+do their own `exit` / `return` after a guard failure. The wrapped
+callable receives the same arguments WordPress passes to the
+underlying action.
+
+Existing SScribe handlers (in `class-sscribe-batch-processor.php`)
+still use the inline guard pattern for historical reasons; new
+handlers registered by extension plugins **must** use the wrapper.
+
+---
+
 ## Logger API
 
 `SScribe_Logger::instance()` is the canonical way to obtain a logger
@@ -206,5 +241,39 @@ $session->delete( $id );
 - **No direct DB access for audit / stats tables.** The wrapper
   classes (`SScribe_Audit_Trail`, `SScribe_Export_Stats`) are the
   only supported entry points.
-- **The `SScribe_Container` service container** is internal. It is
-  a simple registry, not a DI framework; don't depend on its layout.
+
+## Service container (PSR-11)
+
+`SScribe_Container` implements the PSR-11 `ContainerInterface`. This
+is the stable entry point for extension plugins that need to
+collaborate with SScribe's internal services (e.g. the session
+manager, rate limiter, or exporters) without depending on the
+container's internal layout:
+
+```php
+use Psr\Container\ContainerInterface;
+use SScribe\SScribe_Container;
+
+$container = SScribe_Container::instance();
+
+if ( $container->has( SScribe_Session::class ) ) {
+    $session = $container->get( SScribe_Session::class );
+    // ...
+}
+```
+
+Lookup-then-resolve (`has()` + `get()`) is the safe pattern — service
+registration is optional and may differ between the free and premium
+distributions. Missing services throw
+`SScribe_Container_NotFound_Exception` (which implements
+`Psr\Container\NotFoundExceptionInterface`); other container errors
+throw `SScribe_Container_Exception` (which implements
+`Psr\Container\ContainerExceptionInterface`). Both extend
+`\RuntimeException`, so generic `\RuntimeException` catches still
+work for backwards compatibility.
+
+The container itself is intentionally a thin registry, not a general
+DI framework. Do not depend on its internal binding layout or its
+singleton lifecycle — only the `get` / `has` surface is stable.
+
+---

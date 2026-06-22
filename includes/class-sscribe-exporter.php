@@ -22,12 +22,44 @@ use SScribeVendor\PhpOffice\PhpWord\Shared\Converter;
 use SScribeVendor\PhpOffice\PhpWord\SimpleType\Jc;
 
 /**
- * Export orchestration and format routing.
+ * Legacy DOCX export engine.
+ *
+ * ## Why this class still exists
+ *
+ * `SScribe_Exporter` predates the format-specific exporter classes in
+ * `includes/exporters/`. The four public format exporters each manage
+ * their own format-native generation:
+ *
+ *  - `SScribe_DOCX_Exporter`     — PhpWord (DOCX)
+ *  - `SScribe_PDF_Exporter`      — mPDF (PDF, via intermediate HTML)
+ *  - `SScribe_HTML_Exporter`     — self-contained HTML page
+ *  - `SScribe_Markdown_Exporter` — CommonMark
+ *
+ * Each implements {@see SScribe_Exporter_Interface} and is the public
+ * entry point for plugin consumers. This class is retained as the
+ * legacy DOCX engine: `SScribe_DOCX_Exporter` delegates
+ * `generate_docx()` and the format-option / cover-page / TOC / SEO /
+ * breadcrumbs / child-pages helpers to it. Future work (Phase 2.2
+ * follow-up) will move those methods into `SScribe_DOCX_Exporter`
+ * directly and shrink this class to a shared utilities bundle.
+ *
+ * ## Stability
+ *
+ * **Internal — not part of the public API.** No third-party code
+ * should `new SScribe_Exporter()` or call its methods directly. The
+ * stable contract is {@see SScribe_Exporter_Interface}; use the
+ * `SScribe_Exporter_Factory` or `SScribe_Export_All_Formats_Wrapper`
+ * to obtain a format exporter.
+ *
+ * Marked `final` to prevent extension — the dependency surface and
+ * internal state are tightly coupled and not designed for subclassing.
  *
  * @package SScribe_Export_Site_Pages
  * @subpackage Exporters
+ * @internal
+ * @since   1.0.0
  */
-class SScribe_Exporter {
+final class SScribe_Exporter {
 
 	/**
 	 * Last error message from export operation.

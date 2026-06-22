@@ -98,11 +98,6 @@
 
     <!-- Admin partials: use targeted phpcs:ignore comments where pre-sanitized output is intentional. -->
 
-    <!-- Allow all naming conventions for WP core properties and internal variables -->
-    <rule ref="WordPress.NamingConventions.ValidVariableName">
-        <exclude-pattern>*/includes/class-sscribe-batch-processor\.php$</exclude-pattern>
-    </rule>
-
     <!-- Suppress ini_set silencing warning — required for accurate Content-Length in download_json() -->
     <rule ref="WordPress.PHP.NoSilencedErrors">
         <severity>0</severity>

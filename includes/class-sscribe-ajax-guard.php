@@ -265,4 +265,71 @@ class SScribe_AJAX_Guard {
 
 		return sprintf( '%.2f %s', $value, $units[ $i ] );
 	}
+
+	/**
+	 * Wrap a callable so the standard SScribe nonce + capability checks
+	 * run before it is invoked.
+	 *
+	 * Use this at the action registration site to remove the duplicated
+	 * `check_ajax_referer` + `current_user_can` boilerplate from every
+	 * AJAX handler:
+	 *
+	 *     // Before — 12 lines of boilerplate per handler:
+	 *     add_action( 'wp_ajax_sscribe_foo', [ $this, 'ajax_foo' ] );
+	 *     public function ajax_foo(): void {
+	 *         if ( ! check_ajax_referer( 'sscribe_export_nonce', 'nonce', false ) ) {
+	 *             self::error( [ 'message' => 'Security check failed.' ], 403 );
+	 *         }
+	 *         if ( ! current_user_can( $this->get_required_capability() ) ) {
+	 *             self::error( [ 'message' => 'Permission denied.' ], 403 );
+	 *         }
+	 *         // ... actual handler logic ...
+	 *     }
+	 *
+	 *     // After — registration site owns the guard:
+	 *     add_action(
+	 *         'wp_ajax_sscribe_foo',
+	 *         SScribe_AJAX_Guard::with_guard( [ $this, 'ajax_foo' ], $this->get_required_capability() )
+	 *     );
+	 *     public function ajax_foo(): void {
+	 *         // ... actual handler logic only ...
+	 *     }
+	 *
+	 * The wrapped callable receives the same arguments WordPress passes to
+	 * the underlying action. If either guard fails, an error JSON response
+	 * is emitted via {@see self::error()} and the wrapped callable is
+	 * never invoked — no need to `exit` or `return` in your handler.
+	 *
+	 * @param callable $handler    The actual AJAX handler to guard.
+	 * @param string   $capability Capability the current user must have
+	 *                             (typically the result of
+	 *                             {@see SScribe_Capabilities::get_required_capability()}).
+	 * @param string   $nonce_name Nonce action name (default
+	 *                             `'sscribe_export_nonce'`).
+	 * @param string   $nonce_arg  Request key holding the nonce
+	 *                             (default `'nonce'`).
+	 * @return callable Wrapped callable suitable for `add_action()`.
+	 */
+	public static function with_guard(
+		callable $handler,
+		string $capability,
+		string $nonce_name = 'sscribe_export_nonce',
+		string $nonce_arg = 'nonce'
+	): callable {
+		return static function ( ...$args ) use ( $handler, $capability, $nonce_name, $nonce_arg ): void {
+			if ( ! check_ajax_referer( $nonce_name, $nonce_arg, false ) ) {
+				self::error(
+					array( 'message' => __( 'Security check failed.', 'sscribe-export-site-pages' ) ),
+					403
+				);
+			}
+			if ( ! current_user_can( $capability ) ) {
+				self::error(
+					array( 'message' => __( 'Permission denied.', 'sscribe-export-site-pages' ) ),
+					403
+				);
+			}
+			$handler( ...$args );
+		};
+	}
 }
