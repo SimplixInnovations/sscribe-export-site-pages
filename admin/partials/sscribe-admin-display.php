@@ -586,7 +586,7 @@ $sscribe_export_index    = $sscribe_export_index ?? array();
 			</div>
 		</div>
 
-		<div id="sscribe-download-area" class="sscribe-status-alert sscribe-status-success sscribe-hidden" role="status" aria-live="polite">
+		<div id="sscribe-download-area" class="sscribe-status-alert sscribe-status-success sscribe-hidden" role="alert" aria-live="assertive">
 			<div class="sscribe-status-icon" aria-hidden="true">
 				<?php // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- SVG sanitized in get_icon().
 				?>
