@@ -784,20 +784,28 @@
 			const format = $('input[name="sscribe_format"]:checked').val() || 'all';
 			const status = $selectedStatus.val() || 'publish';
 
-			const postTypeLabels = { page: 'Pages', post: 'Posts', any: 'Both' };
+			// Localized labels (server-fed via sscribe_data.strings) so
+			// the config-summary chips honor the site locale. Each label
+			// has a hardcoded English fallback for safety.
+			const S = sscribe_data.strings || {};
+			const postTypeLabels = {
+				page: S.post_type_page || 'Pages',
+				post: S.post_type_post || 'Posts',
+				any:  S.post_type_any  || 'Both',
+			};
 			const statusLabels = {
-				publish: 'Published',
-				draft: 'Draft',
-				private: 'Private',
-				future: 'Scheduled',
-				pending: 'Pending',
-				all: 'All',
+				publish: S.status_publish || 'Published',
+				draft:   S.status_draft   || 'Draft',
+				private: S.status_private || 'Private',
+				future:  S.status_future  || 'Scheduled',
+				pending: S.status_pending || 'Pending',
+				all:     S.status_all     || 'All',
 			};
 
 			$('#sscribe-summary-post-type').text(postTypeLabels[postType] || postType);
 			$('#sscribe-summary-status').text(statusLabels[status] || status);
 			$('#sscribe-summary-language').text(this.getLanguageLabel(language));
-			$('#sscribe-summary-format').text(format === 'all' ? 'All' : format.toUpperCase());
+			$('#sscribe-summary-format').text(format === 'all' ? (S.status_all || 'All') : format.toUpperCase());
 			$('#sscribe-summary-pages').text('~' + count + ' ' + sscribe_data.strings.log_pages);
 			$('#sscribe-summary-time').text(sscribe_data.strings.calculating_time || 'Calculating...');
 
@@ -843,10 +851,18 @@
 			const liveRegion = document.getElementById('sscribe-live-region');
 			if (liveRegion) {
 				if (count > 0) {
-					liveRegion.textContent =
-						count + ' ' + (sscribe_data.strings.log_pages || 'pages') + ' ready for export';
+					// Use a localized printf-style template so translators
+					// can reorder the count + noun + verb (e.g. for SOV
+					// languages like Japanese or RTL Arabic).
+					const tplReady = (sscribe_data.strings && sscribe_data.strings.live_region_ready)
+						|| '%1$d %2$s ready for export';
+					liveRegion.textContent = tplReady
+						.replace('%1$d', count)
+						.replace('%2$s', (sscribe_data.strings && sscribe_data.strings.log_pages) || 'pages');
 				} else {
-					liveRegion.textContent = 'No pages match selected options. Export button is disabled.';
+					liveRegion.textContent =
+						(sscribe_data.strings && sscribe_data.strings.live_region_no_pages)
+						|| 'No pages match selected options. Export button is disabled.';
 				}
 			}
 
@@ -1904,8 +1920,15 @@
 
 			const liveRegion = document.getElementById('sscribe-live-region');
 			if (liveRegion) {
-				const msg = (sscribe_data.strings && sscribe_data.strings.export_progress_prefix) || 'Export progress:';
-				liveRegion.textContent = msg + ' ' + percentage + '%';
+				// Use a localized printf-style template so translators
+				// can reorder prefix + percentage for RTL/SOV locales.
+				const prefix = (sscribe_data.strings && sscribe_data.strings.export_progress_prefix)
+					|| 'Export progress:';
+				const tplProg = (sscribe_data.strings && sscribe_data.strings.live_region_progress)
+					|| '%1$s %2$d%%';
+				liveRegion.textContent = tplProg
+					.replace('%1$s', prefix)
+					.replace('%2$d', percentage);
 			}
 
 			// Use the localized template from sscribe_data.strings for the

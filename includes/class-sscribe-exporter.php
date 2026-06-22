@@ -1664,7 +1664,7 @@ final class SScribe_Exporter {
 			array( __( 'Author', 'sscribe-export-site-pages' ), $page_data['author'] ?? '' ),
 			array( __( 'Published', 'sscribe-export-site-pages' ), $page_data['date_published'] ?? '' ),
 			array( __( 'Last Modified', 'sscribe-export-site-pages' ), $page_data['date_modified'] ?? '' ),
-			array( __( 'Word Count', 'sscribe-export-site-pages' ), number_format( (int) ( $page_data['word_count'] ?? 0 ) ) ),
+			array( __( 'Word Count', 'sscribe-export-site-pages' ), number_format_i18n( (int) ( $page_data['word_count'] ?? 0 ) ) ),
 		);
 		$reading_time_value = (float) ( $page_data['reading_time'] ?? 0 );
 		$info_rows[] = array(

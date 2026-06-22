@@ -337,10 +337,13 @@ class SScribe_HTML_Exporter implements SScribe_Exporter_Interface {
 	<footer>
 		<p><small>' . esc_html(
 			sprintf(
-				/* translators: 1: site name, 2: date and time */
+				/* translators: %1$s: site name, %2$s: date and time */
 				__( 'Exported from %1$s on %2$s', 'sscribe-export-site-pages' ),
 				$site_name,
-				wp_date( 'Y-m-d H:i' )
+				wp_date(
+					sanitize_text_field( (string) get_option( 'date_format', 'Y-m-d' ) ) . ' ' .
+					sanitize_text_field( (string) get_option( 'time_format', 'H:i' ) )
+				)
 			)
 		) . '</small></p>
 	</footer>
