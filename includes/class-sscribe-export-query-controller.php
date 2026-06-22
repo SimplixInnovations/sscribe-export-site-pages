@@ -102,7 +102,16 @@ class SScribe_Export_Query_Controller {
 	/**
 	 * AJAX handler for health check.
 	 *
-	 * @param string $export_capability Required capability.
+	 * Gated by the dedicated `sscribe_health` capability (not the
+	 * `sscribe_export` capability). Splitting the two lets a site admin
+	 * grant read-only diagnostic access without granting export
+	 * authority — useful for support staff who should be able to run
+	 * the "copy support info" action but not start an export.
+	 *
+	 * @param string $export_capability Unused; kept for signature
+	 *                                 compatibility with the loader.
+	 *                                 Override the capability via the
+	 *                                 `sscribe_health_capability` filter.
 	 * @return void
 	 */
 	public function ajax_health_check( string $export_capability = 'sscribe_export' ): void {
@@ -110,14 +119,25 @@ class SScribe_Export_Query_Controller {
 			SScribe_AJAX_Guard::error( array( 'message' => __( 'Security check failed.', 'sscribe-export-site-pages' ) ), 403 );
 		}
 
-		if ( ! current_user_can( $export_capability ) ) {
+		/**
+		 * Filter the capability required to call the health diagnostics
+		 * endpoint. Defaults to the dedicated `sscribe_health` capability
+		 * (granted to administrators by {@see SScribe_Activator}).
+		 *
+		 * @since 1.2.0
+		 *
+		 * @param string $capability Capability name.
+		 */
+		$health_capability = (string) apply_filters( 'sscribe_health_capability', 'sscribe_health' );
+
+		if ( ! current_user_can( $health_capability ) ) {
 			SScribe_AJAX_Guard::error(
 				array( 'message' => __( 'Permission denied.', 'sscribe-export-site-pages' ) ),
 				403
 			);
 		}
 
-		$rate_check = $this->rate_limiter->check_rate_limit( $export_capability );
+		$rate_check = $this->rate_limiter->check_rate_limit( $health_capability );
 		if ( false === $rate_check ) {
 			SScribe_AJAX_Guard::error(
 				array( 'message' => __( 'Too many requests. Please wait a moment.', 'sscribe-export-site-pages' ) ),

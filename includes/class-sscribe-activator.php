@@ -327,16 +327,33 @@ class SScribe_Activator {
 	}
 
 	/**
-	 * Grant the scribe_export capability to the Administrator role.
+	 * Grant the scribe_export and scribe_health capabilities to the
+	 * Administrator role.
 	 *
-	 * This allows administrators to access export functionality by default.
-	 * Other roles can be granted access via the scribe_export_capability filter
-	 * or by manually assigning the capability.
+	 * The two capabilities are deliberately separate: an editor who
+	 * has been granted `scribe_export` to run exports should NOT
+	 * automatically be able to read the health diagnostics endpoint,
+	 * which surfaces PHP version, memory state, plugin versions and
+	 * other server fingerprint information. Splitting the capability
+	 * lets site admins grant the read-only diagnostic without granting
+	 * the (more powerful) export functionality.
+	 *
+	 * Other roles can be granted access via the
+	 * `sscribe_export_capability` and `sscribe_health_capability` filters
+	 * or by manually assigning the capabilities.
 	 */
 	private static function grant_export_capability(): void {
 		$admin_role = get_role( 'administrator' );
-		if ( $admin_role && ! $admin_role->has_cap( 'sscribe_export' ) ) {
+		if ( ! $admin_role ) {
+			return;
+		}
+
+		if ( ! $admin_role->has_cap( 'sscribe_export' ) ) {
 			$admin_role->add_cap( 'sscribe_export' );
+		}
+
+		if ( ! $admin_role->has_cap( 'sscribe_health' ) ) {
+			$admin_role->add_cap( 'sscribe_health' );
 		}
 	}
 }

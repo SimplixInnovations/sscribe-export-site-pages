@@ -1979,7 +1979,7 @@
 			console.log('Timestamp:', timestamp);
 			console.log('Action:', action);
 			console.log('HTTP Status:', statusCode, statusText);
-			console.log('Request Data:', requestData || {});
+			console.log('Request Data:', SScribe.redactNonce(requestData) || {});
 			console.log('Response Headers:', xhr ? xhr.getAllResponseHeaders() : 'N/A');
 			console.log('Response Text (first 500):', responseText);
 			console.log('Exception:', exception || 'None');
@@ -1994,6 +1994,32 @@
 
 			console.groupEnd();
 			/* eslint-enable no-console */
+		},
+
+		/**
+		 * Return a shallow copy of `data` with any `nonce` field replaced
+		 * by a `[REDACTED]` placeholder. Does not mutate the input.
+		 *
+		 * Used before logging to the browser console so a copy-paste
+		 * mistake or a browser extension reading the console cannot
+		 * exfiltrate the live SScribe export nonce (a 12h-valid token).
+		 *
+		 * @param {object|null|undefined} data The AJAX request data.
+		 * @return {object|null} A safe-to-log copy of the data.
+		 */
+		redactNonce: function (data) {
+			if (!data || typeof data !== 'object') {
+				return data;
+			}
+			const safe = {};
+			for (const key of Object.keys(data)) {
+				if (key === 'nonce') {
+					safe[key] = '[REDACTED]';
+				} else {
+					safe[key] = data[key];
+				}
+			}
+			return safe;
 		},
 
 		/**

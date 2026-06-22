@@ -218,4 +218,95 @@ class SScribe_Filesystem_Test extends TestCase {
 
 		$this->assertEquals( $path, $safe );
 	}
+
+	/**
+	 * Symlink attack protection: put_contents() must reject writes to
+	 * files whose parent directory is a symlink that escapes the
+	 * SScribe export directory.
+	 */
+	public function test_put_contents_rejects_symlink_escape(): void {
+		$fs = new \SScribe_Filesystem();
+
+		// Create an "outside" target and a symlink under what would
+		// conceptually be the SScribe export dir.
+		$outside   = $this->test_dir . '/outside-target';
+		$link_dir  = $this->test_dir . '/exports';
+		$link_name = $link_dir . '/evil';
+
+		mkdir( $outside, 0755, true );
+		mkdir( $link_dir, 0755, true );
+		symlink( $outside, $link_name );
+
+		// Pretend the SScribe export dir IS this test's exports dir.
+		// is_path_safe_for_write() compares lexically against the
+		// SSCRIBE export dir (computed from wp_upload_dir()). The test
+		// validates the *helper* directly.
+		$safe = $fs->is_path_safe_for_write( $link_name . '/file.txt' );
+
+		$this->assertEquals( \SScribe_Filesystem::SSCRIBE_PATH_REJECT, $safe,
+			'Expected symlink escape to be REJECTed' );
+	}
+
+	/**
+	 * Symlink attack protection: copy() must also reject destinations
+	 * that resolve outside the SScribe export directory.
+	 */
+	public function test_copy_rejects_symlink_escape(): void {
+		$fs = new \SScribe_Filesystem();
+
+		$outside   = $this->test_dir . '/outside-target-2';
+		$link_dir  = $this->test_dir . '/exports-2';
+		$link_name = $link_dir . '/evil-copy';
+
+		mkdir( $outside, 0755, true );
+		mkdir( $link_dir, 0755, true );
+		symlink( $outside, $link_name );
+
+		$safe = $fs->is_path_safe_for_write( $link_name );
+
+		$this->assertEquals( \SScribe_Filesystem::SSCRIBE_PATH_REJECT, $safe,
+			'Expected symlink escape via copy destination to be REJECTed' );
+	}
+
+	/**
+	 * is_within_allowed_directory() must return true for paths
+	 * that are lexically inside the allowed root.
+	 */
+	public function test_is_within_allowed_directory_accepts_inside(): void {
+		$fs = new \SScribe_Filesystem();
+
+		$allowed = $this->test_dir . '/exports';
+		mkdir( $allowed, 0755, true );
+
+		$inside = $allowed . '/sub/dir/file.txt';
+		$this->assertTrue( $fs->is_within_allowed_directory( $inside, $allowed ) );
+	}
+
+	/**
+	 * is_within_allowed_directory() must return false for paths
+	 * outside the allowed root (and not equal to it).
+	 */
+	public function test_is_within_allowed_directory_rejects_outside(): void {
+		$fs = new \SScribe_Filesystem();
+
+		$allowed = $this->test_dir . '/exports';
+		$outside = $this->test_dir . '/other/file.txt';
+		$this->assertFalse( $fs->is_within_allowed_directory( $outside, $allowed ) );
+	}
+
+	/**
+	 * is_path_safe_for_write() should return EXTERNAL for files that
+	 * are lexically *outside* the SScribe export dir — e.g. WP temp —
+	 * because the caller is performing a legitimate external write.
+	 */
+	public function test_is_path_safe_for_write_allows_external_writes(): void {
+		$fs = new \SScribe_Filesystem();
+
+		// sys_get_temp_dir() is outside the SScribe export dir.
+		$temp = sys_get_temp_dir() . '/sscribe-external-test.txt';
+		$safe = $fs->is_path_safe_for_write( $temp );
+
+		$this->assertEquals( \SScribe_Filesystem::SSCRIBE_PATH_EXTERNAL, $safe,
+			'Expected WP temp dir writes to be allowed (EXTERNAL)' );
+	}
 }

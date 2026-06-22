@@ -131,15 +131,24 @@ class SScribe_Audit_Trail {
 	 * @return array Sanitized context.
 	 */
 	private function sanitize_context( array $context ): array {
+		// Forbidden substrings (case-insensitive, matched against the
+		// key name with stripos). Matches obvious secrets plus a handful
+		// of common variants (apikey without underscore, session_key,
+		// bearer, access_key, client_secret) and JWT-shaped values.
 		$forbidden_keys = array(
 			'password',
 			'token',
 			'secret',
 			'api_key',
+			'apikey',
 			'auth',
 			'credential',
 			'private_key',
 			'nonce',
+			'session_key',
+			'bearer',
+			'access_key',
+			'client_secret',
 		);
 
 		foreach ( $context as $key => $value ) {
@@ -151,6 +160,11 @@ class SScribe_Audit_Trail {
 					break;
 				}
 			}
+			// Also redact JWT-shaped string values (header.payload.signature
+			// base64url triplets that look like "eyJ..." patterns).
+			if ( ! $is_sensitive && is_string( $value ) && $this->looks_like_jwt( $value ) ) {
+				$is_sensitive = true;
+			}
 			if ( $is_sensitive ) {
 				$context[ $key ] = '[REDACTED]';
 			} elseif ( is_array( $value ) || is_object( $value ) ) {
@@ -159,6 +173,30 @@ class SScribe_Audit_Trail {
 		}
 
 		return $context;
+	}
+
+	/**
+	 * Heuristic check for a JSON Web Token string.
+	 *
+	 * A JWT has the form `header.payload.signature` where each segment
+	 * is base64url-encoded. The header always starts with `eyJ` (the
+	 * base64url of `{"`). We accept any string that has at least two
+	 * dots and starts with `eyJ`.
+	 *
+	 * False positives are not a security problem — the value is redacted
+	 * either way. False negatives (e.g. a JWT without the canonical
+	 * header) are also not a problem, because the bearer/secret/...
+	 * substring check above will catch most of them.
+	 *
+	 * @param string $value String to inspect.
+	 * @return bool True if the value looks like a JWT.
+	 */
+	private function looks_like_jwt( string $value ): bool {
+		if ( strlen( $value ) < 8 || strpos( $value, 'eyJ' ) !== 0 ) {
+			return false;
+		}
+		// A JWT has exactly two dots separating three segments.
+		return substr_count( $value, '.' ) >= 2;
 	}
 
 	/**
