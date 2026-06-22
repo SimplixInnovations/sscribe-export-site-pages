@@ -280,6 +280,45 @@ class SScribe_Export_Log {
 	}
 
 	/**
+	 * Record a retry attempt on a page.
+	 *
+	 * Called by the batch processor's retry loop so the audit trail
+	 * shows not just the final outcome of a page export but also the
+	 * intermediate retries that were attempted. Without this, a user
+	 * inspecting the log would only see the last attempt and could
+	 * not tell whether a transient error was recovered.
+	 *
+	 * @param int    $page_id  Page ID.
+	 * @param string $format   Format being retried.
+	 * @param int    $attempt  Attempt number (1-based: 1 = first retry).
+	 * @param string $category Error category of the previous attempt.
+	 * @return void
+	 */
+	public function log_page_retry( int $page_id, string $format, int $attempt, string $category ): void {
+		$data = $this->read_log();
+
+		if ( ! isset( $data['pages'][ $page_id ] ) ) {
+			// Page entry may not exist yet if the first attempt logged
+			// nothing (e.g. exporter threw before write_log). Create a
+			// stub so the retry record is preserved.
+			$data['pages'][ $page_id ] = array(
+				'status'        => 'retrying',
+				'retries'       => array(),
+				'start_time'    => microtime( true ),
+			);
+		}
+
+		$data['pages'][ $page_id ]['retries'][] = array(
+			'format'   => $format,
+			'attempt'  => $attempt,
+			'category' => $category,
+			'time'     => current_time( 'mysql' ),
+		);
+
+		$this->write_log( $data );
+	}
+
+	/**
 	 * Log the result of a specific format export.
 	 *
 	 * @param int    $page_id   Page ID.
