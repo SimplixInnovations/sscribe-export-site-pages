@@ -101,6 +101,17 @@ The bundled Amiri font family (assets/fonts/amiri/) is licensed under the SIL Op
 * Memory monitoring and timeout protection
 * GDPR-compliant audit trail with HMAC-SHA256 hashed IP addresses
 
+== Installation from GitHub Release ZIP ==
+
+If you downloaded the plugin from the GitHub Releases page, the ZIP already contains a pre-built `vendor-prefixed/` directory with the namespaced PhpWord and mPDF libraries. No additional build step is required — just upload and activate.
+
+If you cloned the repository directly, you must run the following once before activating the plugin:
+
+    composer install
+    composer vendor:prefix
+
+This generates the `vendor-prefixed/` directory and the namespaced runtime shim that the plugin depends on. The `.distignore` file excludes both `vendor/` and `vendor-prefixed/` from Git tracking, so a fresh clone will not include them.
+
 == Upgrade Notice ==
 
 = 1.1.1 =
