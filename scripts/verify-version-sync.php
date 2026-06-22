@@ -198,6 +198,12 @@ if ( $canonical_version ) {
 			if ( 'class-sscribe-filesystem.php' === basename( $f ) ) {
 				continue;
 			}
+
+			// composer.json contains a real phpoffice/phpword version
+			// constraint (~1.4.0), not a stale version reference.
+			if ( 'composer.json' === basename( $f ) ) {
+				continue;
+			}
 			$has_actual_warnings = true;
 			$unique              = array_unique( $vs );
 			foreach ( $unique as $v ) {

@@ -68,7 +68,7 @@ final class SScribe_Container_Exception extends \RuntimeException implements Con
  *
  * @package SScribe_Export_Site_Pages
  * @subpackage Container
- * @since   1.0.0
+ * @since   1.1.1
  * @api     stable
  *
  * @see     https://www.php-fig.org/psr/psr-11/ PSR-11: Container Interface

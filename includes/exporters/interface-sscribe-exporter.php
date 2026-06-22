@@ -41,7 +41,7 @@ if ( ! defined( 'ABSPATH' ) ) {
  * {@see SScribe_Result::failure()} instead.
  *
  * @package SScribe_Export_Site_Pages
- * @since   1.0.0
+ * @since   1.1.1
  * @api     stable
  */
 interface SScribe_Exporter_Interface {
