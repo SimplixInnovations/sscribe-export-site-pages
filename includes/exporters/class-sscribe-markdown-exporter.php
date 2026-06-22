@@ -461,19 +461,21 @@ class SScribe_Markdown_Exporter implements SScribe_Exporter_Interface {
 	 * @return string Content with Markdown headings.
 	 */
 	private function convert_headings( string $html ): string {
-		for ( $i = 6; $i >= 1; $i-- ) {
-			$html = preg_replace_callback(
-				'/<h' . $i . '[^>]*>(.*?)<\/h' . $i . '>/is',
-				function ( $m ) use ( $i ): string {
-					// Strip inner HTML tags at capture time so child elements like <span>,
-					// <a>, <strong> don't appear raw in the Markdown heading.
-					$inner = wp_strip_all_tags( $m[1] );
-					return "\n" . str_repeat( '#', $i ) . ' ' . $inner . "\n";
-				},
-				$html
-			) ?? $html;
-		}
-		return $html;
+		// Single-pass replacement covering all six heading levels. Replaces
+		// a previous loop that ran six separate preg_replace_callback
+		// passes (one per h1..h6), each scanning the entire document.
+		// A 200 KB page is now scanned once instead of six times.
+		return preg_replace_callback(
+			'/<h([1-6])[^>]*>(.*?)<\/h\1>/is',
+			static function ( $m ): string {
+				// Strip inner HTML tags at capture time so child elements like <span>,
+				// <a>, <strong> don't appear raw in the Markdown heading.
+				$level = (int) $m[1];
+				$inner = wp_strip_all_tags( $m[2] );
+				return "\n" . str_repeat( '#', $level ) . ' ' . $inner . "\n";
+			},
+			$html
+		) ?? $html;
 	}
 
 	/**

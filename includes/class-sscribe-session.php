@@ -172,7 +172,12 @@ class SScribe_Session {
 			if ( $result ) {
 
 				if ( isset( $data['user_id'] ) ) {
-					set_transient( 'sscribe_active_sid_' . $data['user_id'], $session_id, 300 );
+					// Persist the active-session pointer for the full session
+					// lifetime (DAY_IN_SECONDS, matched to cleanup_expired
+					// window) so the LIKE-fallback scan in
+					// get_active_session_data() only fires on the very
+					// first lookup or after cleanup deletes the option.
+					set_transient( 'sscribe_active_sid_' . $data['user_id'], $session_id, DAY_IN_SECONDS );
 					// Verify the transient was actually stored. If not, the session
 					// would be invisible to has_active_session(), allowing concurrent
 					// exports to start. Delete the orphaned option and retry.
@@ -454,7 +459,7 @@ class SScribe_Session {
 						// don't cause unnecessary DB fallback queries when the user has an
 						// active export in progress (M-03 fix). Only refresh when user_id
 						// is present; anonymous sessions are not tracked via this transient.
-						set_transient( 'sscribe_active_sid_' . (int) $merged['user_id'], $session_id, 300 );
+						set_transient( 'sscribe_active_sid_' . (int) $merged['user_id'], $session_id, DAY_IN_SECONDS );
 					}
 					return true;
 				}
@@ -711,6 +716,13 @@ class SScribe_Session {
 
 				if ( isset( $data['created_at'] ) && $last_activity > 0 && ( $now - $last_activity ) > $max_age_seconds ) {
 					if ( delete_option( $option->option_name ) ) {
+						// Drop the matching active-session transient too so it
+						// doesn't outlive the option it points at and mislead
+						// the next get_active_session_data() lookup.
+						if ( isset( $data['user_id'] ) ) {
+							delete_transient( 'sscribe_active_sid_' . (int) $data['user_id'] );
+							unset( self::$active_session_cache[ (int) $data['user_id'] ] );
+						}
 						++$deleted;
 					}
 				} elseif ( ! isset( $data['created_at'] ) ) {
