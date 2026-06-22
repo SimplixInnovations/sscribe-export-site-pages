@@ -48,6 +48,23 @@ class SScribe_Page_Collector {
 	private array $breadcrumb_cache = array();
 
 	/**
+	 * Cached permalinks by page ID.
+	 *
+	 * get_permalink() is non-trivial: it loads the post, runs
+	 * apply_filters( 'post_link', ... ) (Yoast/RankMath/Polylang all
+	 * hook here), and resolves the rewrite rule. Within one export
+	 * the same set of pages is referenced multiple times (page data,
+	 * breadcrumbs, child lists) — memoizing the result per request
+	 * trims several filter chains per page.
+	 *
+	 * The cache key is just the post ID; WPML is handled by
+	 * switching the language before calling the accessor.
+	 *
+	 * @var array<int, string>
+	 */
+	private array $permalink_cache = array();
+
+	/**
 	 * Clear all page caches.
 	 *
 	 * @return void
@@ -56,6 +73,7 @@ class SScribe_Page_Collector {
 		$this->featured_images_cache = array();
 		$this->child_pages_cache     = array();
 		$this->breadcrumb_cache      = array();
+		$this->permalink_cache       = array();
 	}
 
 	/**
@@ -497,6 +515,29 @@ class SScribe_Page_Collector {
 	}
 
 	/**
+	 * Get a memoized permalink for a page.
+	 *
+	 * get_permalink() is non-trivial — it loads the post, runs
+	 * apply_filters( 'post_link', ... ), and resolves the rewrite
+	 * rule. Within a single export the same page is referenced
+	 * several times (page data, breadcrumb, child list), so caching
+	 * the result per request trims several filter chains per page.
+	 *
+	 * The cache key is the post ID. If WPML is active, callers must
+	 * switch the language via do_action('wpml_switch_language', $lang)
+	 * before calling this — the cache is language-agnostic.
+	 *
+	 * @param int $page_id Page ID.
+	 * @return string Permalink URL.
+	 */
+	private function get_permalink_cached( int $page_id ): string {
+		if ( ! isset( $this->permalink_cache[ $page_id ] ) ) {
+			$this->cache_add( $this->permalink_cache, $page_id, (string) get_permalink( $page_id ) );
+		}
+		return $this->permalink_cache[ $page_id ];
+	}
+
+	/**
 	 * Get full page data by ID.
 	 *
 	 * Note: Uses a static guard to prevent nested the_content filter calls.
@@ -520,17 +561,19 @@ class SScribe_Page_Collector {
 
 		// Skip password-protected posts - export only title and note.
 		if ( ! empty( $post_object->post_password ) ) {
+			$password_title = get_the_title( $page_id );
+			$password_title = $password_title ? $password_title : sprintf( 'Untitled Page %d', $page_id );
 			return array(
 				'id'                  => $page_id,
 				'title'               => html_entity_decode(
-					get_the_title( $page_id ) ? get_the_title( $page_id ) : sprintf( 'Untitled Page %d', $page_id ),
+					$password_title,
 					ENT_QUOTES | ENT_HTML5,
 					'UTF-8'
 				),
 				'content'             => '<p>' . __( '[Password Protected Content]', 'sscribe-export-site-pages' ) . '</p>',
 				'raw_content'         => '',
 				'excerpt'             => '',
-				'permalink'           => get_permalink( $page_id ),
+				'permalink'           => $this->get_permalink_cached( $page_id ),
 				'slug'                => $post_object->post_name,
 				'author'              => get_the_author_meta( 'display_name', $post_object->post_author ) ?? __( 'Unknown', 'sscribe-export-site-pages' ),
 				'date_published'      => get_the_date( 'F j, Y', $page_id ),
@@ -630,19 +673,25 @@ class SScribe_Page_Collector {
 		$post_type_for_children = $post_object->post_type;
 		$children               = $this->get_child_pages( $page_id, $post_type_for_children );
 
+		// Hoist title once. get_the_title() runs an apply_filters chain and
+		// may hit the database; doing it once per page saves a redundant
+		// call inside the ternary that builds the title field.
+		$page_title_raw = get_the_title( $page_id );
+		$page_title     = $page_title_raw ? $page_title_raw : sprintf( 'Untitled Page %d', $page_id );
+
 		$language = $this->get_page_language( $page_id );
 
 		if ( $this->is_wpml_active() && ! empty( $language ) ) {
 			// phpcs:ignore WordPress.NamingConventions.PrefixAllGlobals.NonPrefixedHooknameFound -- WPML hook.
 			do_action( 'wpml_switch_language', $language );
 			try {
-				$permalink = get_permalink( $page_id );
+				$permalink = $this->get_permalink_cached( $page_id );
 			} finally {
 				// phpcs:ignore WordPress.NamingConventions.PrefixAllGlobals.NonPrefixedHooknameFound -- WPML hook.
 				do_action( 'wpml_switch_language', null );
 			}
 		} else {
-			$permalink = get_permalink( $page_id );
+			$permalink = $this->get_permalink_cached( $page_id );
 		}
 
 		// For non-published posts, get_permalink() returns a preview URL with ?p=ID.
@@ -656,7 +705,7 @@ class SScribe_Page_Collector {
 			array(
 				'id'                  => $page_id,
 				'title'               => html_entity_decode(
-					get_the_title( $page_id ) ? get_the_title( $page_id ) : sprintf( 'Untitled Page %d', $page_id ),
+					$page_title,
 					ENT_QUOTES | ENT_HTML5,
 					'UTF-8'
 				),
@@ -704,12 +753,21 @@ class SScribe_Page_Collector {
 		}
 
 		$args = array(
-			'post_type'       => $this->resolve_post_type_for_query( $post_type ),
-			'post_status'     => 'publish',
-			'posts_per_page'  => -1,
-			'post_parent__in' => $page_ids,
-			'orderby'         => 'menu_order title',
-			'order'           => 'ASC',
+			'post_type'              => $this->resolve_post_type_for_query( $post_type ),
+			'post_status'            => 'publish',
+			'posts_per_page'         => 500,
+			'post_parent__in'        => $page_ids,
+			'orderby'                => 'menu_order title',
+			'order'                  => 'ASC',
+			// Performance: skip the SELECT FOUND_ROWS() pagination
+			// count — we never use pagination on this query.
+			'no_found_rows'          => true,
+			// Performance: child pages are only used for navigation
+			// (id, title, permalink). We don't read post meta or
+			// terms here, so the extra cache-priming queries are
+			// wasted work.
+			'update_post_meta_cache' => false,
+			'update_post_term_cache' => false,
 		);
 
 		$query              = new WP_Query( $args );
@@ -723,7 +781,7 @@ class SScribe_Page_Collector {
 			$children_by_parent[ $parent_id ][] = array(
 				'id'    => $child->ID,
 				'title' => html_entity_decode( $child->post_title, ENT_QUOTES | ENT_HTML5, 'UTF-8' ),
-				'url'   => get_permalink( $child->ID ),
+				'url'   => $this->get_permalink_cached( (int) $child->ID ),
 			);
 		}
 
@@ -762,7 +820,7 @@ class SScribe_Page_Collector {
 				$children[] = array(
 					'id'    => $child->ID,
 					'title' => html_entity_decode( $child->post_title, ENT_QUOTES | ENT_HTML5, 'UTF-8' ),
-					'url'   => get_permalink( $child->ID ),
+					'url'   => $this->get_permalink_cached( (int) $child->ID ),
 				);
 			}
 		}
@@ -865,7 +923,7 @@ class SScribe_Page_Collector {
 						$ancestor_post = $ancestor_map[ $ancestor_id ];
 						$breadcrumbs[] = array(
 							'title' => html_entity_decode( $ancestor_post->post_title, ENT_QUOTES | ENT_HTML5, 'UTF-8' ),
-							'url'   => get_permalink( $ancestor_id ),
+							'url'   => $this->get_permalink_cached( $ancestor_id ),
 						);
 					}
 				} finally {
@@ -885,7 +943,7 @@ class SScribe_Page_Collector {
 		try {
 			$breadcrumbs[] = array(
 				'title' => html_entity_decode( get_the_title( $page_id ), ENT_QUOTES | ENT_HTML5, 'UTF-8' ),
-				'url'   => get_permalink( $page_id ),
+				'url'   => $this->get_permalink_cached( $page_id ),
 			);
 		} finally {
 			if ( $this->is_wpml_active() ) {

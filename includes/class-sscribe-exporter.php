@@ -132,6 +132,27 @@ final class SScribe_Exporter {
 	private string $cached_time_format = '';
 
 	/**
+	 * Cached site name from get_bloginfo('name') to avoid repeated
+	 * option reads + filter chains on every DOCX page.
+	 *
+	 * Populated by {@see self::get_site_name()} on first access.
+	 *
+	 * @var string
+	 */
+	private string $cached_site_name = '';
+
+	/**
+	 * Cached WP locale to avoid repeated get_option('WPLANG') + filter
+	 * chains on every page (cover page + every content page both call
+	 * get_section_settings() which reads the locale).
+	 *
+	 * Populated by {@see self::get_cached_locale()} on first access.
+	 *
+	 * @var string
+	 */
+	private string $cached_locale = '';
+
+	/**
 	 * Color palette for document styling.
 	 *
 	 * @var array<string, string>
@@ -977,8 +998,7 @@ final class SScribe_Exporter {
 		$properties = $php_word->getDocInfo();
 		$properties->setCreator( 'SScribe by Simplix Innovations' );
 
-		$blog_name         = get_bloginfo( 'name' );
-		$blog_name_decoded = html_entity_decode( ( is_string( $blog_name ) ? $blog_name : '' ), ENT_QUOTES | ENT_HTML5, 'UTF-8' );
+		$blog_name_decoded = $this->get_site_name();
 		$properties->setCompany( $blog_name_decoded );
 
 		$title         = $page_data['title'] ?? '';
@@ -1140,7 +1160,7 @@ final class SScribe_Exporter {
 		// Detect page size based on locale: default to A4 for non-US locales.
 		// US, Canada, Mexico, and Philippines use US Letter (8.5×11 inches).
 		// Most of the rest of the world uses A4 (210×297mm).
-		$locale       = get_locale();
+		$locale       = $this->get_cached_locale();
 		$us_like_locales = array( 'en_US', 'en_CA', 'en_MX', 'fil_PH' );
 		$is_us_letter    = in_array( $locale, $us_like_locales, true )
 			|| str_starts_with( $locale, 'en_US' ); // en_US, en_US.UTF-8, etc.
@@ -1197,7 +1217,7 @@ final class SScribe_Exporter {
 				sprintf(
 					/* translators: %s: site name */
 					__( '%s | EXTERNAL AUDIT AND DOCUMENTATION', 'sscribe-export-site-pages' ),
-					html_entity_decode( (string) get_bloginfo( 'name' ), ENT_QUOTES | ENT_HTML5, 'UTF-8' )
+					$this->get_site_name()
 				)
 			),
 			array(
@@ -1430,7 +1450,7 @@ final class SScribe_Exporter {
 		$header_table = $header->addTable( array( 'width' => $table_width ) );
 		$header_table->addRow();
 		$header_table->addCell( Converter::inchToTwip( 3.25 ) )->addText(
-			$this->safe_text( html_entity_decode( (string) get_bloginfo( 'name' ), ENT_QUOTES | ENT_HTML5, 'UTF-8' ) ),
+			$this->safe_text( $this->get_site_name() ),
 			array(
 				'name'  => $this->font_name,
 				'size'  => 8,
@@ -1907,5 +1927,45 @@ final class SScribe_Exporter {
 			'date_format' => $this->cached_date_format,
 			'time_format' => $this->cached_time_format,
 		);
+	}
+
+	/**
+	 * Get cached site name (via get_bloginfo('name')), populating
+	 * the cache on first call.
+	 *
+	 * Returning a memoized string avoids running get_bloginfo() —
+	 * which fetches options and applies a long filter chain — once
+	 * per DOCX page. Without this, set_document_properties(),
+	 * add_cover_page(), and add_header_footer() each issue an
+	 * identical get_bloginfo() call, multiplying cost by 3 per page.
+	 *
+	 * @return string Site name (decoded as text).
+	 */
+	private function get_site_name(): string {
+		if ( '' === $this->cached_site_name ) {
+			$raw                  = get_bloginfo( 'name' );
+			$this->cached_site_name = html_entity_decode(
+				is_string( $raw ) ? $raw : '',
+				ENT_QUOTES | ENT_HTML5,
+				'UTF-8'
+			);
+		}
+		return $this->cached_site_name;
+	}
+
+	/**
+	 * Get cached WordPress locale, populating the cache on first call.
+	 *
+	 * get_locale() looks up the WPLANG option and runs through the
+	 * locale and pre_option_locale filters on every call. Memoizing
+	 * it once per export saves one filter chain invocation per page.
+	 *
+	 * @return string Locale identifier, e.g. 'en_US'.
+	 */
+	private function get_cached_locale(): string {
+		if ( '' === $this->cached_locale ) {
+			$this->cached_locale = (string) get_locale();
+		}
+		return $this->cached_locale;
 	}
 }
