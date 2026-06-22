@@ -906,6 +906,16 @@
 
 			this.isProcessing = true;
 			this.batchRetries = 0;
+
+			// Disable the export + preview buttons immediately so a
+			// double-click, Enter-key repeat, or keyboard shortcut
+			// (Ctrl+Shift+E) cannot re-fire sscribe_preflight_check
+			// while the first one is still in flight. updateExportButton()
+			// re-evaluates the disabled state on completion, so this
+			// only blocks the synchronous click window.
+			const $exportBtns = $('#sscribe-export-btn, #sscribe-preview-btn');
+			$exportBtns.prop('disabled', true).addClass('sscribe-btn-busy');
+
 			this.resetUI();
 			this.updateExportButton();
 
@@ -1338,7 +1348,7 @@
 						.text(sscribe_data.strings.cancel || 'Cancel Export');
 					SScribe.showToast(sscribe_data.strings.export_cancelled || 'Export cancelled.', 'info');
 				},
-				error: function () {
+				error: function (xhr) {
 					SScribe.isProcessing = false;
 					// Defensive: if the cancel AJAX fails, we don't know
 					// whether the server is still processing. Reset the UI
@@ -1349,6 +1359,21 @@
 					$('#sscribe-cancel-btn')
 						.prop('disabled', false)
 						.text(sscribe_data.strings.cancel || 'Cancel Export');
+
+					// Surface the failure with a sticky warning so the
+					// user knows the server may still be processing
+					// pages. Without this, the success-path toast on
+					// the next attempt would mask the half-cancelled
+					// state and the user could start a second export
+					// against the same session.
+					const msg = SScribe.parseServerError(xhr)
+						|| (sscribe_data.strings && sscribe_data.strings.err_cancel_failed)
+						|| 'Could not confirm cancellation — the server may still be processing. Reload the page before starting a new export.';
+					SScribe.showToast(msg, 'warning', 0);
+					// Hard-disable export buttons until the page is
+					// reloaded, so the user cannot fire a second
+					// concurrent session against the same backend.
+					$('#sscribe-export-btn, #sscribe-preview-btn').prop('disabled', true);
 				},
 			});
 		},
@@ -1863,9 +1888,13 @@
 				progressBar.style.transform = 'scaleX(' + percentage / 100 + ')';
 				progressBar.setAttribute('aria-valuenow', percentage);
 				if (typeof currentPage === 'number' && typeof totalPages === 'number' && totalPages > 0) {
+					// Use the localized template from sscribe_data.strings so
+					// screen-reader announcements honor the site language.
+					const tpl = (sscribe_data.strings && sscribe_data.strings.progress_pages)
+						|| 'Processing %1$d of %2$d pages';
 					progressBar.setAttribute(
 						'aria-valuetext',
-						'Processing ' + currentPage + ' of ' + totalPages + ' pages'
+						tpl.replace('%1$d', currentPage).replace('%2$d', totalPages)
 					);
 				}
 			} else {
@@ -1879,7 +1908,14 @@
 				liveRegion.textContent = msg + ' ' + percentage + '%';
 			}
 
-			document.title = '(' + percentage + '%) SScribe Export';
+			// Use the localized template from sscribe_data.strings for the
+			// document title so the tab-bar percentage indicator is
+			// translated.
+			const titleTpl = (sscribe_data.strings && sscribe_data.strings.document_title)
+				|| '(%d%%) SScribe Export';
+			document.title = titleTpl
+				.replace('%d', percentage)
+				.replace('%%', '%');
 		},
 
 		updatePhase: function (phase) {

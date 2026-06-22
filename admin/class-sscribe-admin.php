@@ -276,22 +276,28 @@ class SScribe_Admin {
 			true
 		);
 
-		// Always enqueue debug console assets so the debug tab is functional
-		// even when debug logging is currently disabled (users need the UI to enable it).
-		wp_enqueue_style(
-			'sscribe-debug-console',
-			SSCRIBE_PLUGIN_URL . 'admin/css/sscribe-debug-console.css',
-			array( 'sscribe-admin' ),
-			$debug_css_version
-		);
+		// Only enqueue debug console assets when debug logging is
+		// actually active. The Debug tab UI is always rendered so users
+		// can flip the toggle, but the JS/CSS for the tab only matters
+		// when there's data to display. On production sites where
+		// neither SSCRIBE_DEBUG is set nor the user has enabled the
+		// toggle, this skips ~60 KB of unused JS+CSS.
+		if ( $debug ) {
+			wp_enqueue_style(
+				'sscribe-debug-console',
+				SSCRIBE_PLUGIN_URL . 'admin/css/sscribe-debug-console.css',
+				array( 'sscribe-admin' ),
+				$debug_css_version
+			);
 
-		wp_enqueue_script(
-			'sscribe-debug-console',
-			SSCRIBE_PLUGIN_URL . 'admin/js/sscribe-debug-console.js',
-			array( 'jquery', 'sscribe-admin' ),
-			$debug_js_version,
-			true
-		);
+			wp_enqueue_script(
+				'sscribe-debug-console',
+				SSCRIBE_PLUGIN_URL . 'admin/js/sscribe-debug-console.js',
+				array( 'jquery', 'sscribe-admin' ),
+				$debug_js_version,
+				true
+			);
+		}
 
 		add_action( 'admin_print_footer_scripts', array( $this, 'print_localized_data' ), 0 );
 	}
@@ -439,6 +445,11 @@ class SScribe_Admin {
 				'dismiss_notification'   => __( 'Dismiss notification', 'sscribe-export-site-pages' ),
 				'preview_error'          => __( 'Failed to generate preview.', 'sscribe-export-site-pages' ),
 				'download_unavailable'   => __( 'Download unavailable.', 'sscribe-export-site-pages' ),
+				/* translators: %1$d: current page number, %2$d: total pages */
+				'progress_pages'         => __( 'Processing %1$d of %2$d pages', 'sscribe-export-site-pages' ),
+				/* translators: %d: progress percentage (e.g. 42) */
+				'document_title'         => __( '(%d%%) SScribe Export', 'sscribe-export-site-pages' ),
+				'err_cancel_failed'      => __( 'Could not confirm cancellation — the server may still be processing. Reload the page before starting a new export.', 'sscribe-export-site-pages' ),
 			),
 		);
 
