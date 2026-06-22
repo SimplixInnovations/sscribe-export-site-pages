@@ -402,6 +402,7 @@ final class SScribe_Batch_Processor {
 				wp_mkdir_p( $page_dir );
 			}
 
+			$total_sleep_ms = 0;
 			while ( $attempt < self::MAX_RETRIES ) {
 				try {
 					$result = $exporter->export( $page_data, $page_dir, $page_index, $total );
@@ -429,13 +430,21 @@ final class SScribe_Batch_Processor {
 					break;
 				}
 
-				// Retry delay: capped at 100ms to avoid blocking the FPM worker for
-				// extended periods. Skip delay on attempt 0 to fail fast on genuine errors.
-				// Attempt 0: no delay (fail fast), Attempt 1: 100ms, Attempt 2: 100ms.
-				$delay_ms = min( 100, 100 * ( 2 ** $attempt ) );
-				if ( $attempt > 0 ) {
-					usleep( $delay_ms * 1000 );
+				// Record the retry so the audit trail preserves the
+				// intermediate attempts and not just the final outcome.
+				if ( $this->export_log ) {
+					$this->export_log->log_page_retry( $page_id, $format, $attempt + 1, $error_category );
 				}
+
+				// Retry delay: fixed 100ms per attempt, capped by a 500ms cumulative
+				// budget across the entire retry sequence so a degenerate site can't
+				// burn FPM worker time on retries.
+				$delay_ms = 100;
+				if ( $total_sleep_ms + $delay_ms > 500 ) {
+					break;
+				}
+				$total_sleep_ms += $delay_ms;
+				usleep( $delay_ms * 1000 );
 				++$attempt;
 
 				// Recreate exporter for clean state on next attempt.

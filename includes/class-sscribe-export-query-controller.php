@@ -385,14 +385,17 @@ class SScribe_Export_Query_Controller {
 		}
 		$format      = isset( $_POST['format'] ) ? sanitize_text_field( wp_unslash( $_POST['format'] ) ) : 'docx';
 
-		$allowed_formats = array( 'all', 'docx', 'pdf', 'html', 'markdown' );
-		if ( ! in_array( $format, $allowed_formats, true ) ) {
-			$format = 'docx';
+		// Use the centralized Exporter_Factory to validate the format
+		// instead of a hardcoded list, so this stays in sync with
+		// batch processor and with any third-party exporters that
+		// register themselves via the factory.
+		if ( 'all' === $format ) {
+			$formats = \SScribe_Exporter_Factory::get_supported_formats();
+		} elseif ( \SScribe_Exporter_Factory::is_supported( $format ) ) {
+			$formats = array( $format );
+		} else {
+			$formats = \SScribe_Exporter_Factory::get_supported_formats();
 		}
-
-		$formats = 'all' === $format
-			? array( 'docx', 'pdf', 'html', 'markdown' )
-			: array( $format );
 
 		$post_type = isset( $_POST['post_type'] ) ? sanitize_text_field( wp_unslash( $_POST['post_type'] ) ) : 'page';
 		if ( ! in_array( $post_type, array( 'page', 'post' ), true ) ) {
