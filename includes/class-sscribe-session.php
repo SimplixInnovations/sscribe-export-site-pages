@@ -1219,34 +1219,183 @@ class SScribe_Session {
 	}
 
 	/**
-	 * Encrypt session data using AES-256-CBC.
+	 * Encrypt session data using libsodium (preferred) or legacy AES-256-CBC.
+	 *
+	 * New writes go through {@see sodium_encrypt_session_data()}; the
+	 * result is prefixed with the magic tag `s1:` so the decryptor can
+	 * pick the right algorithm. Legacy AES-encrypted rows (no prefix)
+	 * remain readable via the {@see decrypt_session_data()} fallback
+	 * path and are re-encrypted with sodium on the next write.
+	 *
+	 * The legacy AES path is kept because (a) some existing installs
+	 * may have session rows written by SScribe 1.0.x/1.1.x, and (b)
+	 * it lets the encrypted-data migration be lazy rather than
+	 * blocking. After the next write of every session row, the
+	 * legacy code path can be removed in a follow-up release.
+	 *
+	 * @param string $data JSON-encoded session data.
+	 * @return string Encrypted data (sodium- or AES-prefixed) or, on
+	 *                hard failure, the original plaintext with a
+	 *                logged error (so the session still functions).
+	 */
+	private function encrypt_session_data( string $data ): string {
+		try {
+			return $this->sodium_encrypt_session_data( $data );
+		} catch ( \Throwable $e ) {
+			$this->logger->error(
+				'Sodium session encryption failed; falling back to legacy AES-256-CBC',
+				array(
+					'exception' => get_class( $e ),
+					'message'   => $e->getMessage(),
+				)
+			);
+		}
+
+		return $this->legacy_aes_encrypt_session_data( $data );
+	}
+
+	/**
+	 * Decrypt session data, trying sodium first then the legacy AES path.
+	 *
+	 * The dispatch is prefix-based:
+	 *  - `s1:` → sodium authenticated secretbox.
+	 *  - (no prefix, base64 with 16+ byte payload) → legacy AES-256-CBC.
+	 *  - (anything else) → null; the caller falls back to plain JSON.
+	 *
+	 * @param string $encrypted_data Stored session row.
+	 * @return string|null Decrypted JSON, or null if no path succeeds.
+	 */
+	private function decrypt_session_data( string $encrypted_data ): ?string {
+		// Sodium-prefixed data.
+		if ( 0 === strpos( $encrypted_data, 's1:' ) ) {
+			return $this->sodium_decrypt_session_data( $encrypted_data );
+		}
+
+		// Legacy AES-256-CBC.
+		return $this->legacy_aes_decrypt_session_data( $encrypted_data );
+	}
+
+	/**
+	 * Encrypt session data using libsodium's secretbox (XSalsa20-Poly1305).
+	 *
+	 * Output format: `"s1:" . base64url( nonce || ciphertext )` where
+	 * the nonce is 24 bytes (the secretbox nonce size) and the
+	 * ciphertext is 16 bytes longer than the plaintext (Poly1305 MAC).
+	 *
+	 * @param string $data JSON-encoded session data.
+	 * @return string Prefixed, base64url-encoded sodium ciphertext.
+	 * @throws \RuntimeException If sodium is unavailable or encryption fails.
+	 */
+	private function sodium_encrypt_session_data( string $data ): string {
+		if ( ! function_exists( 'sodium_crypto_secretbox' ) ) {
+			throw new \RuntimeException( 'libsodium (sodium_crypto_secretbox) is not available' );
+		}
+
+		$key   = $this->get_sodium_key();
+		$nonce = random_bytes( SODIUM_CRYPTO_SECRETBOX_NONCEBYTES );
+
+		$ciphertext = sodium_crypto_secretbox( $data, $nonce, $key );
+		if ( false === $ciphertext ) {
+			throw new \RuntimeException( 'sodium_crypto_secretbox returned false' );
+		}
+
+		// base64url so the row is copy-paste safe in wp_options.
+		return 's1:' . rtrim( strtr( base64_encode( $nonce . $ciphertext ), '+/', '-_' ), '=' );
+	}
+
+	/**
+	 * Decrypt a sodium-prefixed session row.
+	 *
+	 * @param string $encrypted_data String starting with `s1:`.
+	 * @return string|null Decrypted JSON, or null on any failure.
+	 */
+	private function sodium_decrypt_session_data( string $encrypted_data ): ?string {
+		if ( ! function_exists( 'sodium_crypto_secretbox_open' ) ) {
+			return null;
+		}
+
+		$b64 = substr( $encrypted_data, 3 );
+		$raw = base64_decode( strtr( $b64, '-_', '+/'), true );
+		if ( false === $raw ) {
+			return null;
+		}
+
+		$nonce_len = SODIUM_CRYPTO_SECRETBOX_NONCEBYTES;
+		if ( strlen( $raw ) < $nonce_len + 1 ) {
+			return null;
+		}
+
+		$nonce     = substr( $raw, 0, $nonce_len );
+		$cipher    = substr( $raw, $nonce_len );
+		$plaintext = sodium_crypto_secretbox_open( $cipher, $nonce, $this->get_sodium_key() );
+		if ( false === $plaintext ) {
+			return null;
+		}
+
+		return $plaintext;
+	}
+
+	/**
+	 * Get or create the 32-byte sodium secretbox key.
+	 *
+	 * The key is stored as a base64-encoded option (`autoload = no`,
+	 * so it is not loaded on every WordPress request). A fresh key
+	 * is generated with `sodium_crypto_secretbox_keygen()` on first
+	 * use. Rotating the key invalidates all existing sodium-encrypted
+	 * sessions — do that only as a deliberate recovery action.
+	 *
+	 * @return string 32 raw bytes.
+	 */
+	private function get_sodium_key(): string {
+		$stored = (string) get_option( 'sscribe_session_sodium_key', '' );
+		if ( '' !== $stored ) {
+			$key = base64_decode( $stored, true );
+			if ( false !== $key && SODIUM_CRYPTO_SECRETBOX_KEYBYTES === strlen( $key ) ) {
+				return $key;
+			}
+		}
+
+		if ( ! function_exists( 'sodium_crypto_secretbox_keygen' ) ) {
+			throw new \RuntimeException( 'libsodium (sodium_crypto_secretbox_keygen) is not available' );
+		}
+
+		$key = sodium_crypto_secretbox_keygen();
+		add_option( 'sscribe_session_sodium_key', base64_encode( $key ), '', 'no' );
+
+		return $key;
+	}
+
+	/**
+	 * Legacy AES-256-CBC encryption. Kept for reading data written by
+	 * SScribe 1.0.x / 1.1.x and as a hard-failure fallback if sodium
+	 * is unavailable. New data should never reach this path; the
+	 * `encrypt_session_data()` wrapper prefers sodium first.
 	 *
 	 * @param string $data JSON-encoded session data.
 	 * @return string Base64-encoded encrypted data with IV prepended.
 	 */
-	private function encrypt_session_data( string $data ): string {
-		$key    = $this->get_encryption_key();
+	private function legacy_aes_encrypt_session_data( string $data ): string {
+		$key    = $this->get_legacy_aes_key();
 		$iv_len = openssl_cipher_iv_length( 'aes-256-cbc' );
 		$iv     = openssl_random_pseudo_bytes( $iv_len );
 
 		$encrypted = openssl_encrypt( $data, 'aes-256-cbc', $key, OPENSSL_RAW_DATA, $iv );
 
 		if ( false === $encrypted ) {
-			$this->logger->error( 'Failed to encrypt session data' );
+			$this->logger->error( 'Failed to encrypt session data (legacy AES)' );
 			return $data;
 		}
 
-		// Prepend IV to ciphertext for storage.
 		return base64_encode( $iv . $encrypted );
 	}
 
 	/**
-	 * Decrypt session data using AES-256-CBC.
+	 * Legacy AES-256-CBC decryption.
 	 *
 	 * @param string $encrypted_data Base64-encoded encrypted data with IV prepended.
 	 * @return string|null Decrypted JSON data, or null if decryption fails.
 	 */
-	private function decrypt_session_data( string $encrypted_data ): ?string {
+	private function legacy_aes_decrypt_session_data( string $encrypted_data ): ?string {
 		$raw = base64_decode( $encrypted_data, true );
 
 		if ( false === $raw || strlen( $raw ) < 16 ) {
@@ -1255,7 +1404,7 @@ class SScribe_Session {
 
 		$iv     = substr( $raw, 0, 16 );
 		$cipher = substr( $raw, 16 );
-		$key    = $this->get_encryption_key();
+		$key    = $this->get_legacy_aes_key();
 
 		$decrypted = openssl_decrypt( $cipher, 'aes-256-cbc', $key, OPENSSL_RAW_DATA, $iv );
 
@@ -1267,11 +1416,11 @@ class SScribe_Session {
 	}
 
 	/**
-	 * Derive an encryption key from the signing key using SHA-256.
+	 * Derive the legacy AES-256 key from the signing key using SHA-256.
 	 *
 	 * @return string 32-byte encryption key.
 	 */
-	private function get_encryption_key(): string {
+	private function get_legacy_aes_key(): string {
 		return hash( 'sha256', $this->get_signing_key(), true );
 	}
 

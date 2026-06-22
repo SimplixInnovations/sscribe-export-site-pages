@@ -191,9 +191,25 @@ class SScribe_Admin {
 	/**
 	 * Send security headers on the export page.
 	 *
-	 * Note: Content-Security-Policy is not sent as it would interfere with
-	 * WordPress admin scripts and other plugin scripts that do not have our nonce.
-	 * WordPress core manages its own CSP headers.
+	 * The `Content-Security-Policy` header is intentionally permissive
+	 * on `script-src` because the WP admin loads scripts from many
+	 * sources (core, our plugin, third-party admin plugins) and
+	 * nonce-locking the WP nonce on script-src would break those
+	 * scripts. The restrictive directives that follow (`object-src`,
+	 * `base-uri`, `frame-ancestors`) are chosen to be defense-in-depth
+	 * without breaking admin JS:
+	 *
+	 *  - `object-src 'none'` blocks <object>/<embed>/<applet> — the
+	 *    classic vector for XSS via Flash and PDF readers.
+	 *  - `base-uri 'self'` blocks <base> tag injection that could
+	 *    re-target relative URLs to an attacker domain.
+	 *  - `frame-ancestors 'self'` supersedes X-Frame-Options for
+	 *    browsers that recognize CSP Level 2 (all evergreen browsers).
+	 *  - `form-action 'self'` prevents the admin form from posting to
+	 *    an external origin.
+	 *
+	 * WordPress core does not set a CSP on admin pages, so this is
+	 * additive defense.
 	 */
 	public function maybe_send_csp_headers(): void {
 		// phpcs:ignore WordPress.Security.NonceVerification.Recommended -- Read-only page param check.
@@ -208,6 +224,8 @@ class SScribe_Admin {
 		header( 'X-Frame-Options: SAMEORIGIN' );
 		header( 'X-Content-Type-Options: nosniff' );
 		header( 'Referrer-Policy: strict-origin-when-cross-origin' );
+		header( "Content-Security-Policy: default-src 'self'; object-src 'none'; base-uri 'self'; frame-ancestors 'self'; form-action 'self'" );
+		header( 'Permissions-Policy: geolocation=(), microphone=(), camera=()' );
 	}
 
 	/**

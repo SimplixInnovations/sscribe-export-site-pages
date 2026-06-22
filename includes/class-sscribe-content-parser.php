@@ -184,6 +184,23 @@ class SScribe_Content_Parser {
 			return array();
 		}
 
+		/**
+		 * Filter the raw export HTML before it is parsed and sanitized.
+		 *
+		 * Use this hook to apply an additional, stricter sanitization
+		 * pass (e.g. strip `javascript:` URIs from `href`/`src`, remove
+		 * a tag your security review has flagged, or replace a custom
+		 * shortcode) without forking the plugin. The HTML has not yet
+		 * been through `wp_kses()`; the SScribe content parser will
+		 * run its own KSES allowlist on the returned value.
+		 *
+		 * @since 1.2.0
+		 *
+		 * @param string $html The original, unfiltered post content.
+		 * @return string The (possibly further sanitized) HTML.
+		 */
+		$html = (string) apply_filters( 'sscribe_sanitize_export_html', $html );
+
 		$logger = SScribe_Logger::instance( SScribe_Logger::is_logging_enabled() );
 
 		$logger->debug(

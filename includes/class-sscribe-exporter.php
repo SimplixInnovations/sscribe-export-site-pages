@@ -437,23 +437,77 @@ final class SScribe_Exporter {
 	/**
 	 * Check if host is a blocked internal/private IP address.
 	 *
-	 * For document generation, URLs are only added as text links and never fetched.
-	 * Therefore, we only block explicit private/reserved IPs without DNS resolution.
-	 * External DNS lookups (e.g., Google DNS) would be disproportionate for this use case.
+	 * For document generation, URLs are only added as text links and
+	 * never fetched. Therefore, we only block explicit private/reserved
+	 * IPs without DNS resolution. External DNS lookups (e.g., Google
+	 * DNS) would be disproportionate for this use case.
+	 *
+	 * Note: handles dotted-quad (`127.0.0.1`), IPv6 (`::1`), and
+	 * alternative single-integer forms (`2130706433` == `127.0.0.1`,
+	 * `0x7f000001` == `127.0.0.1`). Other forms (octal, IPv4-mapped
+	 * IPv6) are caught by `FILTER_VALIDATE_IP` returning false and
+	 * then falling through to the `ip2long` long-form check below.
 	 *
 	 * @param string $host Hostname or IP to check.
 	 * @return bool True if blocked.
 	 */
 	private function is_ip_blocked( string $host ): bool {
-		// If it's already an IP, check if it's private/reserved.
+		// Standard dotted-quad / IPv6 — block if private/reserved.
 		if ( filter_var( $host, FILTER_VALIDATE_IP ) !== false ) {
-			// Block private and reserved IP ranges.
 			return filter_var( $host, FILTER_VALIDATE_IP, FILTER_FLAG_NO_PRIV_RANGE | FILTER_FLAG_NO_RES_RANGE ) === false;
 		}
 
-		// For hostnames, we don't resolve DNS since URLs in documents are just text, not fetched.
-		// The SSRF risk is negligible for text-only URLs.
+		// Numeric alternative IP forms: decimal (2130706433) and
+		// hex (0x7f000001) both encode 127.0.0.1. Some HTTP clients
+		// accept these; the export pipeline never fetches them, but
+		// blocking them in `validate_url()` is defense-in-depth so a
+		// future code path that DOES fetch won't be surprised.
+		$normalized = $this->normalize_ip_literal( $host );
+		if ( null !== $normalized ) {
+			return filter_var( $normalized, FILTER_VALIDATE_IP, FILTER_FLAG_NO_PRIV_RANGE | FILTER_FLAG_NO_RES_RANGE ) === false;
+		}
+
+		// For hostnames, we don't resolve DNS since URLs in documents
+		// are just text, not fetched. The SSRF risk is negligible for
+		// text-only URLs.
 		return false;
+	}
+
+	/**
+	 * Convert a numeric or hex IP literal to its canonical dotted-quad form.
+	 *
+	 * Handles the well-known alternative forms browsers and HTTP
+	 * libraries sometimes accept:
+	 *  - Pure decimal integer: `2130706433` → `127.0.0.1`
+	 *  - Pure hex integer: `0x7f000001` → `127.0.0.1`
+	 *
+	 * Returns null for non-numeric input or for values that don't fit
+	 * in 32 bits (which can't be a valid IPv4 address).
+	 *
+	 * @param string $host Hostname or IP literal to inspect.
+	 * @return string|null Canonical IP, or null if not a numeric literal.
+	 */
+	private function normalize_ip_literal( string $host ): ?string {
+		$candidate = trim( $host );
+		if ( '' === $candidate ) {
+			return null;
+		}
+
+		// Hex literal: 0x followed by hex digits.
+		if ( preg_match( '/^0x[0-9a-fA-F]+$/', $candidate ) ) {
+			$value = intval( substr( $candidate, 2 ), 16 );
+		} elseif ( ctype_digit( $candidate ) ) {
+			// Pure decimal integer.
+			$value = (int) $candidate;
+		} else {
+			return null;
+		}
+
+		if ( $value < 0 || $value > 0xFFFFFFFF ) {
+			return null;
+		}
+
+		return long2ip( $value );
 	}
 
 	/**
