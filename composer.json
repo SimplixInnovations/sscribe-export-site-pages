@@ -12,8 +12,8 @@
     ],
     "require": {
         "php": ">=8.2",
-        "phpoffice/phpword": "^1.4",
-        "mpdf/mpdf": "^8.3"
+        "phpoffice/phpword": "~1.4.0",
+        "mpdf/mpdf": "~8.3.0"
     },
     "require-dev": {
         "brianhenryie/strauss": "^0.27.2",
