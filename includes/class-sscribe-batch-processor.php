@@ -9,10 +9,8 @@
 
 declare(strict_types=1);
 
-/*
- * phpcs:disable WordPress.NamingConventions.ValidVariableName
- * Reason: ZipArchive is PHP built-in with camelCase properties like numFiles.
- */
+// Note: The only ZipArchive camelCase property in this file (`numFiles`) is
+// silenced at the point of use with a `phpcs:ignore` comment — see below.
 
 if ( ! defined( 'ABSPATH' ) ) {
 	exit;
@@ -24,8 +22,13 @@ use SScribe_Result as SScribe_Export_Result;
 
 /**
  * Handles batch export processing with rate limiting and resource monitoring.
+ *
+ * Marked `final` to prevent extension — the dependency surface is large
+ * (12+ collaborators) and extension by third parties would be a support
+ * liability. For custom batch behavior, register additional WP hooks
+ * (e.g. {@see sscribe_after_export_page}) instead of subclassing.
  */
-class SScribe_Batch_Processor {
+final class SScribe_Batch_Processor {
 
 	private const MAX_STORED_ERRORS          = 50;
 	private const DEFAULT_FORMATS            = array( 'docx' );
@@ -187,30 +190,39 @@ class SScribe_Batch_Processor {
 	private ?SScribe_Export_Query_Controller $query_controller = null;
 
 	/**
-	 * Generate cryptographically secure random bytes with fallback.
+	 * Generate non-cryptographic random bytes for identifiers and suffixes.
+	 *
+	 * Used only for ZIP filename suffixes and similar non-security
+	 * identifiers. For session tokens, signing keys, or any other
+	 * security-sensitive use, use {@see random_bytes()} (which throws
+	 * on entropy failure) or {@see sodium_crypto_secretbox_keygen()}.
+	 *
+	 * The fallback chain is intentional: this function must never throw
+	 * because a non-crypto suffix is not worth a broken export. The
+	 * first preference is the system CSPRNG ({@see random_bytes()});
+	 * the second preference is the OpenSSL CSPRNG (kept for diagnostics
+	 * in the rare environment where /dev/urandom is missing); the last
+	 * resort is {@see wp_generate_password()} which is NOT a CSPRNG
+	 * but is acceptable for filename uniqueness on the same host.
 	 *
 	 * @param int $length Number of bytes.
 	 * @return string Raw binary bytes.
 	 */
-	private static function secure_random_bytes( int $length ): string {
+	private static function random_suffix_bytes( int $length ): string {
 		try {
 			return random_bytes( $length );
 		} catch ( \Throwable $e ) {
-			// Fallback for environments where random_bytes() fails.
-			// Check crypto_strong to ensure openssl fallback is cryptographically secure.
+			// Fallback: OpenSSL's CSPRNG. Check crypto_strong so we never
+			// silently accept weak bytes.
 			$strong = false;
 			$bytes  = openssl_random_pseudo_bytes( $length, $strong );
 			if ( $bytes && $strong ) {
 				return $bytes;
 			}
-			// Last-resort fallback. wp_generate_password() uses WP's own
-			// randomization (which internally prefers random_bytes() and
-			// falls back to mt_rand). This is NOT a CSPRNG, but it only
-			// fires when BOTH random_bytes() and openssl strong random have
-			// failed -- an extremely rare environment condition. Used here
-			// only for non-cryptographic random suffixes (e.g. ZIP
-			// filenames); never for security tokens.
-			return wp_generate_password( $length, false );
+			// Last-resort fallback: not a CSPRNG, but adequate for a
+			// random suffix on a single-host filename (the worst case
+			// is a collision, not a security breach).
+			return (string) wp_generate_password( $length, false );
 		}
 	}
 
@@ -2365,7 +2377,7 @@ class SScribe_Batch_Processor {
 				$timestamp,
 				$lang_suffix,
 				$format_suffix,
-				substr( bin2hex( self::secure_random_bytes( 3 ) ), 0, 6 )
+				substr( bin2hex( self::random_suffix_bytes( 3 ) ), 0, 6 )
 			);
 
 			$this->logger->debug(
