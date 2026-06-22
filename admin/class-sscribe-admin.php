@@ -450,6 +450,23 @@ class SScribe_Admin {
 				/* translators: %d: progress percentage (e.g. 42) */
 				'document_title'         => __( '(%d%%) SScribe Export', 'sscribe-export-site-pages' ),
 				'err_cancel_failed'      => __( 'Could not confirm cancellation — the server may still be processing. Reload the page before starting a new export.', 'sscribe-export-site-pages' ),
+				// Post-type labels for the live config-summary chips.
+				'post_type_page'         => __( 'Pages', 'sscribe-export-site-pages' ),
+				'post_type_post'         => __( 'Posts', 'sscribe-export-site-pages' ),
+				'post_type_any'          => __( 'Both', 'sscribe-export-site-pages' ),
+				// Post-status labels for the live config-summary chips.
+				'status_publish'         => __( 'Published', 'sscribe-export-site-pages' ),
+				'status_draft'           => __( 'Draft', 'sscribe-export-site-pages' ),
+				'status_private'         => __( 'Private', 'sscribe-export-site-pages' ),
+				'status_future'          => __( 'Scheduled', 'sscribe-export-site-pages' ),
+				'status_pending'         => __( 'Pending', 'sscribe-export-site-pages' ),
+				'status_all'             => __( 'All', 'sscribe-export-site-pages' ),
+				// Live-region announcements (mirrors progress_pages template style).
+				/* translators: 1: page count, 2: "pages" label */
+				'live_region_ready'      => __( '%1$d %2$s ready for export', 'sscribe-export-site-pages' ),
+				'live_region_no_pages'   => __( 'No pages match selected options. Export button is disabled.', 'sscribe-export-site-pages' ),
+				/* translators: 1: prefix (e.g. "Export progress:"), 2: percentage */
+				'live_region_progress'   => __( '%1$s %2$d%%', 'sscribe-export-site-pages' ),
 			),
 		);
 

@@ -2656,9 +2656,18 @@ body .sscribe-master-container .sscribe-hero {
 	position: relative;
 }
 
-/* Modal focus trap indicator */
-.sscribe-modal[aria-modal='true'] {
+/* Modal focus indicator — guard against removing the focus ring
+   from the modal root if the focus-trap JS momentarily focuses it.
+   Without :not(:focus), keyboard users lose all visual focus feedback
+   when the trap cycles to the modal boundary. When the modal root
+   itself IS the focused element (rare), draw an explicit focus ring. */
+.sscribe-modal[aria-modal='true']:not(:focus) {
 	outline: none;
+}
+
+.sscribe-modal[aria-modal='true']:focus-visible {
+	outline: 3px solid var(--sscribe-primary);
+	outline-offset: -3px;
 }
 
 /* Ensure interactive elements have visible hover states (not just color change) */
