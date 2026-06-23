@@ -2,9 +2,9 @@
 /**
  * SScribe Batch Session Helpers Trait
  *
- * Shared session-related helpers used by both SScribe_Batch_Processor
- * and SScribe_Batch_Session_Handler. Extracted to dedupe the rate-limit
- * check and capability lookup that both classes need.
+ * Shared session-related helpers consumed by SScribe_Session (via the
+ * SScribe_Session_AJAX trait). Extracted to dedupe the rate-limit
+ * check and capability lookup that AJAX endpoints need.
  *
  * Using classes MUST provide a `get_rate_limiter()` method that returns
  * an SScribe_Export_Rate_Limiter instance — they already do.

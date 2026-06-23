@@ -5,12 +5,14 @@
  * Extracted from SScribe_Batch_Processor to reduce file complexity.
  *
  * Owns the session-cancellation surface: the AJAX entrypoints that
- * delegate to the session handler for cancel/clear, plus the local
+ * delegate to SScribe_Session for cancel/clear (the implementation
+ * — including the export-lock race fix — now lives on the session
+ * itself via the SScribe_Session_AJAX trait), plus the local
  * temp-directory + export-log teardown that the batch step also
  * invokes when it detects a cancelled session mid-run.
  *
  * Using classes MUST provide:
- *  - the session_handler collaborator (delegation target)
+ *  - the session collaborator (delegation target for AJAX endpoints)
  *  - the zip_handler, logger, and export_log properties (cleanup)
  *  - the export_log property is nullable (lazy-initialized)
  *
@@ -35,9 +37,13 @@ trait SScribe_Cancel_Handler {
 
 	/**
 	 * Cancel an ongoing export via AJAX.
+	 *
+	 * Delegates to SScribe_Session::ajax_cancel_export() — the
+	 * implementation now lives on the session itself, including
+	 * the export-lock acquire/release race fix.
 	 */
 	public function ajax_cancel_export(): void {
-		$this->session_handler->ajax_cancel_export();
+		$this->session->ajax_cancel_export();
 	}
 
 	/**
@@ -62,8 +68,10 @@ trait SScribe_Cancel_Handler {
 
 	/**
 	 * Clear export session via AJAX.
+	 *
+	 * Delegates to SScribe_Session::ajax_clear_session().
 	 */
 	public function ajax_clear_session(): void {
-		$this->session_handler->ajax_clear_session();
+		$this->session->ajax_clear_session();
 	}
 }

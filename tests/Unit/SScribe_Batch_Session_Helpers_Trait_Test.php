@@ -3,7 +3,7 @@
  * SScribe Batch Session Helpers Trait unit test
  *
  * Locks in the shared rate-limit / capability helpers used by
- * SScribe_Batch_Session_Handler.
+ * SScribe_Session via the SScribe_Session_AJAX trait.
  *
  * @package SScribe_Export_Site_Pages
  */

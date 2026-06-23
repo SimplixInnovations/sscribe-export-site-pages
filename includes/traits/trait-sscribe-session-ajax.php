@@ -1,96 +1,56 @@
 <?php
 /**
- * SScribe Batch Session Handler
+ * SScribe Session AJAX Trait
+ *
+ * Owns the three AJAX endpoints that mutate or query session
+ * state: check active session, cancel export, clear session.
+ *
+ * Extracted from SScribe_Batch_Session_Handler (now removed) and
+ * folded into SScribe_Session so that all session state AND all
+ * session-mutating endpoints live in one class — eliminating the
+ * dual-ownership race where the cancel endpoint could mutate
+ * state concurrently with a running batch iteration.
+ *
+ * The cancel race fix lives in ajax_cancel_export(): the
+ * mutation phase is wrapped in acquire_lock() / release_lock()
+ * so it can never run concurrently with a batch that holds the
+ * same export lock. The batch's next acquire_lock will fail
+ * after cancel completes, returning a 429 to the client and
+ * effectively terminating the batch.
+ *
+ * Using classes MUST provide lazy accessors for these
+ * collaborators (see SScribe_Session for the canonical
+ * implementation):
+ *
+ *   - get_rate_limiter()      → SScribe_Export_Rate_Limiter
+ *   - get_auditor()           → SScribe_Export_Auditor
+ *   - get_zip_handler()       → SScribe_Zip_Handler
+ *   - get_lock_manager()      → SScribe_Export_Lock_Manager
+ *
+ * Plus the standard SScribe_Batch_Session_Helpers trait
+ * (for get_required_capability() and check_rate_limit()).
  *
  * @package SScribe_Export_Site_Pages
  * @license GPL v2 or later
  * @link    https://www.gnu.org/licenses/gpl-2.0.html
  */
 
-declare( strict_types=1 );
+declare(strict_types=1);
 
 if ( ! defined( 'ABSPATH' ) ) {
 	exit;
 }
 
-require_once SSCRIBE_PLUGIN_DIR . 'includes/traits/trait-sscribe-batch-session-helpers.php';
-
 /**
- * Handles session lifecycle AJAX requests: check active, clear, cancel.
+ * Session AJAX endpoints — check active / cancel / clear.
  *
- * Extracted from SScribe_Batch_Processor to reduce file complexity.
+ * Folded into SScribe_Session via this trait so that one class
+ * owns session state AND the endpoints that mutate it. See the
+ * file docblock for the cancel-race rationale.
  */
-class SScribe_Batch_Session_Handler {
+trait SScribe_Session_AJAX {
 
 	use SScribe_Batch_Session_Helpers;
-
-	/**
-	 * Session manager.
-	 *
-	 * @var SScribe_Session
-	 */
-	private readonly SScribe_Session $session;
-
-	/**
-	 * ZIP handler instance.
-	 *
-	 * @var SScribe_Zip_Handler
-	 */
-	private readonly SScribe_Zip_Handler $zip_handler;
-
-	/**
-	 * Logger instance.
-	 *
-	 * @var SScribe_Logger_Interface
-	 */
-	private readonly SScribe_Logger_Interface $logger;
-
-	/**
-	 * Export auditor instance.
-	 *
-	 * @var SScribe_Export_Auditor
-	 */
-	private readonly SScribe_Export_Auditor $auditor;
-
-	/**
-	 * Rate limiter instance.
-	 *
-	 * @var SScribe_Export_Rate_Limiter
-	 */
-	private readonly SScribe_Export_Rate_Limiter $rate_limiter;
-
-	/**
-	 * Lock manager instance.
-	 *
-	 * @var SScribe_Export_Lock_Manager
-	 */
-	private readonly SScribe_Export_Lock_Manager $lock_manager;
-
-	/**
-	 * Initialize the session handler.
-	 *
-	 * @param SScribe_Session|null             $session      Session manager.
-	 * @param SScribe_Zip_Handler|null         $zip_handler  ZIP handler.
-	 * @param SScribe_Logger_Interface|null    $logger       Logger.
-	 * @param SScribe_Export_Auditor|null      $auditor      Export auditor.
-	 * @param SScribe_Export_Rate_Limiter|null $rate_limiter Rate limiter.
-	 * @param SScribe_Export_Lock_Manager|null $lock_manager Lock manager.
-	 */
-	public function __construct(
-		?SScribe_Session $session = null,
-		?SScribe_Zip_Handler $zip_handler = null,
-		?SScribe_Logger_Interface $logger = null,
-		?SScribe_Export_Auditor $auditor = null,
-		?SScribe_Export_Rate_Limiter $rate_limiter = null,
-		?SScribe_Export_Lock_Manager $lock_manager = null
-	) {
-		$this->session      = $session ?? new SScribe_Session();
-		$this->zip_handler  = $zip_handler ?? new SScribe_Zip_Handler();
-		$this->logger       = $logger ?? SScribe_Logger::instance();
-		$this->auditor      = $auditor ?? new SScribe_Export_Auditor();
-		$this->rate_limiter = $rate_limiter ?? new SScribe_Export_Rate_Limiter();
-		$this->lock_manager = $lock_manager ?? new SScribe_Export_Lock_Manager( $this->logger );
-	}
 
 	/**
 	 * Check for active session on page load - used to restore UI after browser reload.
@@ -137,7 +97,7 @@ class SScribe_Batch_Session_Handler {
 			return;
 		}
 
-		$session_data = $this->session->get_active_session_data( $user_id );
+		$session_data = $this->get_active_session_data( $user_id );
 
 		if ( null === $session_data ) {
 			wp_send_json_success(
@@ -165,6 +125,14 @@ class SScribe_Batch_Session_Handler {
 
 	/**
 	 * Cancel an ongoing export via AJAX.
+	 *
+	 * Acquires the export lock before mutating session state so
+	 * the cancellation cannot race with a batch iteration that
+	 * holds the same lock. If the lock is already held, returns
+	 * 409 Conflict with retry hint — the JS client retries
+	 * within a few seconds. Once the lock is held, the mutation
+	 * phase (re-read → flag cancelled → update → cleanup →
+	 * delete) runs atomically with respect to the batch.
 	 */
 	public function ajax_cancel_export(): void {
 		if ( ! check_ajax_referer( 'sscribe_export_nonce', 'nonce', false ) ) {
@@ -181,7 +149,9 @@ class SScribe_Batch_Session_Handler {
 			SScribe_AJAX_Guard::error( array( 'message' => __( 'Invalid session.', 'sscribe-export-site-pages' ) ), 400 );
 		}
 
-		$session = $this->session->get( $session_id );
+		// Pre-lock read for ownership check. Cheap and avoids
+		// holding the lock across a 403 path.
+		$session = $this->get( $session_id );
 		if ( ! $session ) {
 			SScribe_AJAX_Guard::error( array( 'message' => __( 'Session not found.', 'sscribe-export-site-pages' ) ), 404 );
 		}
@@ -202,13 +172,52 @@ class SScribe_Batch_Session_Handler {
 			);
 		}
 
-		$session['cancelled'] = true;
-		$this->session->update( $session_id, $session );
-		$this->cleanup_cancelled_export( $session );
-		$this->session->delete( $session_id );
-		delete_transient( 'sscribe_lock_' . $session_id );
+		// Acquire the export lock — race fix. If a batch
+		// iteration holds it, return 409 with retry hint and let
+		// the JS client retry. Once the lock is held, the
+		// mutation below runs atomically with respect to the
+		// batch: when this finally releases, the batch's next
+		// acquire_lock will fail and the batch is effectively
+		// dead (returns 429 to its own caller).
+		$lock_token = $this->get_lock_manager()->acquire_lock( $session_id, 30, 25 );
+		if ( null === $lock_token ) {
+			SScribe_AJAX_Guard::error(
+				array(
+					'code'     => 'batch_in_progress',
+					'message'  => __( 'A batch is processing. Try again in a moment.', 'sscribe-export-site-pages' ),
+					'retry'    => true,
+					'retry_in' => 5000,
+				),
+				409
+			);
+		}
 
-		SScribe_AJAX_Guard::success( array( 'message' => __( 'Export cancelled.', 'sscribe-export-site-pages' ) ) );
+		try {
+			// Re-read inside the lock. The session may have
+			// been updated by a concurrent iteration that
+			// finished just before we acquired the lock, or
+			// cleared by an earlier cancel that beat us.
+			$session = $this->get( $session_id );
+			if ( ! $session ) {
+				SScribe_AJAX_Guard::success(
+					array( 'message' => __( 'Session already cleared.', 'sscribe-export-site-pages' ) )
+				);
+			}
+
+			// Defensive ownership re-check after the re-read.
+			if ( ! $this->validate_session_ownership( $session, $session_id ) ) {
+				SScribe_AJAX_Guard::error( array( 'message' => __( 'Invalid session access.', 'sscribe-export-site-pages' ) ), 403 );
+			}
+
+			$session['cancelled'] = true;
+			$this->update( $session_id, $session );
+			$this->cleanup_cancelled_export( $session );
+			$this->delete( $session_id );
+
+			SScribe_AJAX_Guard::success( array( 'message' => __( 'Export cancelled.', 'sscribe-export-site-pages' ) ) );
+		} finally {
+			$this->get_lock_manager()->release_lock( $session_id, $lock_token );
+		}
 	}
 
 	/**
@@ -239,8 +248,8 @@ class SScribe_Batch_Session_Handler {
 		$force   = isset( $_POST['force'] ) && filter_var( wp_unslash( $_POST['force'] ), FILTER_VALIDATE_BOOLEAN );
 
 		if ( $force ) {
-			$deleted = $this->session->clear_user_sessions( $user_id );
-			$this->logger->debug(
+			$deleted = $this->clear_user_sessions( $user_id );
+			$this->get_logger()->debug(
 				'Force cleared all sessions for user',
 				array(
 					'user_id'       => $user_id,
@@ -250,8 +259,8 @@ class SScribe_Batch_Session_Handler {
 
 			$this->cleanup_user_locks( $user_id );
 		} else {
-			$this->session->cleanup_expired( 60 );
-			$this->logger->debug( 'Cleared expired sessions for user', array( 'user_id' => $user_id ) );
+			$this->cleanup_expired( 60 );
+			$this->get_logger()->debug( 'Cleared expired sessions for user', array( 'user_id' => $user_id ) );
 		}
 
 		SScribe_AJAX_Guard::success( array( 'message' => __( 'Session cleared.', 'sscribe-export-site-pages' ) ) );
@@ -264,8 +273,8 @@ class SScribe_Batch_Session_Handler {
 	 */
 	private function cleanup_cancelled_export( array $session ): void {
 		if ( ! empty( $session['temp_dir'] ) && is_dir( $session['temp_dir'] ) ) {
-			$this->zip_handler->delete_directory( $session['temp_dir'] );
-			$this->logger->debug(
+			$this->get_zip_handler()->delete_directory( $session['temp_dir'] );
+			$this->get_logger()->debug(
 				'Cleaned up temp directory for cancelled export',
 				array(
 					'temp_dir' => $session['temp_dir'],
@@ -280,13 +289,13 @@ class SScribe_Batch_Session_Handler {
 	 * @param int|null $user_id User ID.
 	 */
 	private function cleanup_user_locks( ?int $user_id = null ): void {
-		$this->lock_manager->cleanup_user_locks( $user_id );
+		$this->get_lock_manager()->cleanup_user_locks( $user_id );
 	}
 
 	/**
 	 * Verify the session belongs to the current user.
 	 *
-	 * @param array  $session   Session data.
+	 * @param array  $session    Session data.
 	 * @param string $session_id Session identifier.
 	 * @return bool True if user owns the session.
 	 */
@@ -294,7 +303,7 @@ class SScribe_Batch_Session_Handler {
 		$current_user_id = get_current_user_id();
 
 		if ( ! isset( $session['user_id'] ) ) {
-			$this->auditor->log(
+			$this->get_auditor()->log(
 				'session_hijack',
 				array(
 					'session_id'      => $session_id,
@@ -306,7 +315,7 @@ class SScribe_Batch_Session_Handler {
 		}
 
 		if ( (int) $session['user_id'] !== $current_user_id ) {
-			$this->auditor->log(
+			$this->get_auditor()->log(
 				'session_access_denied',
 				array(
 					'session_id'      => $session_id,
@@ -323,9 +332,41 @@ class SScribe_Batch_Session_Handler {
 	/**
 	 * Get the rate limiter (used by the shared SScribe_Batch_Session_Helpers trait).
 	 *
+	 * Concrete classes using this trait MUST override this
+	 * method to return a SScribe_Export_Rate_Limiter instance.
+	 *
 	 * @return SScribe_Export_Rate_Limiter
 	 */
-	private function get_rate_limiter(): SScribe_Export_Rate_Limiter {
-		return $this->rate_limiter;
-	}
+	abstract protected function get_rate_limiter(): SScribe_Export_Rate_Limiter;
+
+	/**
+	 * Get the auditor (used by validate_session_ownership).
+	 *
+	 * @return SScribe_Export_Auditor
+	 */
+	abstract protected function get_auditor(): SScribe_Export_Auditor;
+
+	/**
+	 * Get the ZIP handler (used by cleanup_cancelled_export).
+	 *
+	 * @return SScribe_Zip_Handler
+	 */
+	abstract protected function get_zip_handler(): SScribe_Zip_Handler;
+
+	/**
+	 * Get the lock manager (used by ajax_cancel_export's race fix
+	 * and cleanup_user_locks).
+	 *
+	 * @return SScribe_Export_Lock_Manager
+	 */
+	abstract protected function get_lock_manager(): SScribe_Export_Lock_Manager;
+
+	/**
+	 * Get the logger (used by ajax_clear_session and
+	 * cleanup_cancelled_export). Concrete classes using this
+	 * trait MUST override this method.
+	 *
+	 * @return \SScribe_Logger_Interface
+	 */
+	abstract protected function get_logger(): \SScribe_Logger_Interface;
 }
