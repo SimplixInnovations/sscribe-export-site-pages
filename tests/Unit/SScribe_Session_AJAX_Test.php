@@ -21,14 +21,21 @@ class SScribe_Session_AJAX_Test extends TestCase {
 	protected function setUp(): void {
 		parent::setUp();
 		$GLOBALS['sscribe_test_transients']       = array();
+		$GLOBALS['sscribe_test_options']          = array();
+		$GLOBALS['sscribe_test_wp_cache']         = array();
 		$GLOBALS['sscribe_test_current_user_can'] = true;
+		$GLOBALS['sscribe_test_current_user_id']  = 1;
 		$GLOBALS['sscribe_test_current_user']     = new \WP_User();
 		$GLOBALS['sscribe_test_current_user']->ID = 1;
+		\SScribe_Session::enable_test_mode();
 	}
 
 	protected function tearDown(): void {
 		$GLOBALS['sscribe_test_transients']       = array();
+		$GLOBALS['sscribe_test_options']          = array();
+		$GLOBALS['sscribe_test_wp_cache']         = array();
 		$GLOBALS['sscribe_test_current_user_can'] = null;
+		$GLOBALS['sscribe_test_current_user_id']  = null;
 		$GLOBALS['sscribe_test_current_user']     = null;
 		parent::tearDown();
 	}
@@ -117,5 +124,103 @@ class SScribe_Session_AJAX_Test extends TestCase {
 		$this->expectException( \RuntimeException::class );
 		$this->expectExceptionMessage( 'AJAX error response sent' );
 		$session->ajax_cancel_export();
+	}
+
+	/**
+	 * Cancel race fix: if a batch iteration already holds the
+	 * export lock for this session, cancel must return 409 with
+	 * a retry hint — never acquire the lock itself and race.
+	 */
+	public function test_ajax_cancel_export_returns_409_when_batch_lock_held(): void {
+		$session = new \SScribe_Session();
+		$id      = $session->create(
+			array(
+				'user_id'  => 1,
+				'temp_dir' => '',
+			)
+		);
+
+		// Simulate a batch iteration holding the export lock.
+		$GLOBALS['sscribe_test_transients'][ 'sscribe_lock_' . $id ] = time() . '|batch-token';
+
+		$_POST['nonce']      = 'valid_nonce';
+		$_POST['session_id'] = $id;
+
+		ob_start();
+		try {
+			$session->ajax_cancel_export();
+			$this->fail( 'Expected RuntimeException for 409 lock-conflict response' );
+		} catch ( \RuntimeException $e ) {
+			$this->assertStringContainsString( 'AJAX error response sent', $e->getMessage() );
+		} finally {
+			$output = ob_get_clean();
+		}
+
+		// 409 payload must include the batch_in_progress code that
+		// the JS client uses to decide retry behaviour.
+		$this->assertStringContainsString( 'batch_in_progress', $output );
+
+		// Session must still exist — cancel must NOT mutate when 409'd.
+		$this->assertNotNull( $session->get( $id ) );
+	}
+
+	/**
+	 * Happy-path cancel: lock acquired, mutation runs, session
+	 * is deleted, user sees 'Export cancelled.'
+	 */
+	public function test_ajax_cancel_export_happy_path_deletes_session(): void {
+		$session = new \SScribe_Session();
+		$id      = $session->create(
+			array(
+				'user_id'  => 1,
+				'temp_dir' => '',
+			)
+		);
+
+		$this->assertNotNull( $session->get( $id ), 'precondition: session exists' );
+
+		$_POST['nonce']      = 'valid_nonce';
+		$_POST['session_id'] = $id;
+
+		ob_start();
+		try {
+			$session->ajax_cancel_export();
+			$this->fail( 'Expected RuntimeException for success response' );
+		} catch ( \RuntimeException $e ) {
+			$this->assertStringContainsString( 'AJAX success response sent', $e->getMessage() );
+		} finally {
+			$output = ob_get_clean();
+		}
+
+		// The success payload must include the user-visible message.
+		$this->assertStringContainsString( 'Export cancelled.', $output );
+
+		// Session row must be gone — the post-lock re-read on
+		// line 200 of the trait fetched it, mutation ran, and
+		// delete() removed the row.
+		$this->assertNull( $session->get( $id ), 'session should be deleted after cancel' );
+	}
+
+	/**
+	 * 404 path: valid session_id format but no session row exists.
+	 * Pre-lock read at line 154 returns null, hits line 155-157.
+	 */
+	public function test_ajax_cancel_export_fails_404_when_session_missing(): void {
+		$session = new \SScribe_Session();
+
+		$_POST['nonce']      = 'valid_nonce';
+		$_POST['session_id'] = '0123456789abcdef';
+
+		ob_start();
+		try {
+			$session->ajax_cancel_export();
+			$this->fail( 'Expected RuntimeException for 404 response' );
+		} catch ( \RuntimeException $e ) {
+			$this->assertStringContainsString( 'AJAX error response sent', $e->getMessage() );
+		} finally {
+			$output = ob_get_clean();
+		}
+
+		$this->assertStringContainsString( 'Session not found.', $output );
 	}
 }
