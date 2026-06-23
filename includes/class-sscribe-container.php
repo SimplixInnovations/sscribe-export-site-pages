@@ -9,29 +9,14 @@
 
 declare(strict_types=1);
 
-use Psr\Container\ContainerExceptionInterface;
 use Psr\Container\ContainerInterface;
-use Psr\Container\NotFoundExceptionInterface;
 
 if ( ! defined( 'ABSPATH' ) ) {
 	exit;
 }
 
-/**
- * Runtime exception for "service not found" lookups in the SScribe
- * container. Implements {@see NotFoundExceptionInterface} so callers
- * written against PSR-11 can `catch` it generically.
- */
-final class SScribe_Container_NotFound_Exception extends \RuntimeException implements NotFoundExceptionInterface {
-}
-
-/**
- * Runtime exception for general container errors (e.g. circular
- * dependencies, factories returning non-objects). Implements
- * {@see ContainerExceptionInterface} for PSR-11 generic catches.
- */
-final class SScribe_Container_Exception extends \RuntimeException implements ContainerExceptionInterface {
-}
+require_once __DIR__ . '/class-sscribe-container-exception.php';
+require_once __DIR__ . '/class-sscribe-container-notfound-exception.php';
 
 /**
  * Dependency injection container implementing PSR-11 ContainerInterface.
@@ -195,7 +180,8 @@ final class SScribe_Container implements ContainerInterface {
 			throw new SScribe_Container_NotFound_Exception(
 				sprintf(
 					/* translators: %s: Service identifier that was not registered. */
-					'Service "%s" is not registered in the container.',
+					'Service not registered in container. Key: "%s"',
+					// phpcs:ignore WordPress.Security.EscapeOutput.ExceptionNotEscaped -- Exception message; $key is an internal container id, not user-facing output.
 					$key
 				)
 			);
@@ -206,6 +192,7 @@ final class SScribe_Container implements ContainerInterface {
 				sprintf(
 					/* translators: %s: Service identifier causing circular dependency. */
 					'Circular dependency detected while resolving container service: %s',
+					// phpcs:ignore WordPress.Security.EscapeOutput.ExceptionNotEscaped -- Exception message; $key is an internal container id, not user-facing output.
 					$key
 				)
 			);
@@ -224,7 +211,9 @@ final class SScribe_Container implements ContainerInterface {
 				sprintf(
 					/* translators: 1: Service identifier, 2: PHP type returned. */
 					'Container factory for "%1$s" returned non-object type: %2$s',
+					// phpcs:ignore WordPress.Security.EscapeOutput.ExceptionNotEscaped -- Exception message; $key is an internal container id, not user-facing output.
 					$key,
+					// phpcs:ignore WordPress.Security.EscapeOutput.ExceptionNotEscaped -- Exception message; gettype() returns a PHP type name (a fixed set of strings), not user input.
 					gettype( $instance )
 				)
 			);
