@@ -22,7 +22,7 @@ if ( ! defined( 'ABSPATH' ) ) {
  * Site Pages. Methods documented here will not change signature across
  * minor versions. New optional capability methods may be added in minor
  * versions with a default implementation in {@see SScribe_Exporter_Base}
- * (not yet extracted — see Phase 2 audit finding 2.2).
+ * (not yet extracted).
  *
  * Third-party plugins are encouraged to implement this interface to add
  * custom export formats. The recommended registration path is:

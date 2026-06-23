@@ -39,9 +39,9 @@ use SScribeVendor\PhpOffice\PhpWord\SimpleType\Jc;
  * entry point for plugin consumers. This class is retained as the
  * legacy DOCX engine: `SScribe_DOCX_Exporter` delegates
  * `generate_docx()` and the format-option / cover-page / TOC / SEO /
- * breadcrumbs / child-pages helpers to it. Future work (Phase 2.2
- * follow-up) will move those methods into `SScribe_DOCX_Exporter`
- * directly and shrink this class to a shared utilities bundle.
+ * breadcrumbs / child-pages helpers to it. A future refactor may
+ * move those methods into `SScribe_DOCX_Exporter` directly, leaving
+ * this class as a shared utilities bundle.
  *
  * ## Stability
  *
