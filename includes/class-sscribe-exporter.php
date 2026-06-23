@@ -1956,7 +1956,7 @@ final class SScribe_Exporter {
 	/**
 	 * Get cached WordPress locale, populating the cache on first call.
 	 *
-	 * get_locale() looks up the WPLANG option and runs through the
+	 * `get_locale()` looks up the WPLANG option and runs through the
 	 * locale and pre_option_locale filters on every call. Memoizing
 	 * it once per export saves one filter chain invocation per page.
 	 *

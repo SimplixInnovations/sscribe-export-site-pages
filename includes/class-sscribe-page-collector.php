@@ -50,17 +50,14 @@ class SScribe_Page_Collector {
 	/**
 	 * Cached permalinks by page ID.
 	 *
-	 * get_permalink() is non-trivial: it loads the post, runs
+	 * `get_permalink()` is non-trivial: it loads the post, runs
 	 * apply_filters( 'post_link', ... ) (Yoast/RankMath/Polylang all
 	 * hook here), and resolves the rewrite rule. Within one export
 	 * the same set of pages is referenced multiple times (page data,
 	 * breadcrumbs, child lists) — memoizing the result per request
 	 * trims several filter chains per page.
 	 *
-	 * The cache key is just the post ID; WPML is handled by
-	 * switching the language before calling the accessor.
-	 *
-	 * @var array<int, string>
+	 * @var array<int,string>
 	 */
 	private array $permalink_cache = array();
 
@@ -517,18 +514,15 @@ class SScribe_Page_Collector {
 	/**
 	 * Get a memoized permalink for a page.
 	 *
-	 * get_permalink() is non-trivial — it loads the post, runs
+	 * `get_permalink()` is non-trivial — it loads the post, runs
 	 * apply_filters( 'post_link', ... ), and resolves the rewrite
 	 * rule. Within a single export the same page is referenced
 	 * several times (page data, breadcrumb, child list), so caching
 	 * the result per request trims several filter chains per page.
 	 *
-	 * The cache key is the post ID. If WPML is active, callers must
-	 * switch the language via do_action('wpml_switch_language', $lang)
-	 * before calling this — the cache is language-agnostic.
-	 *
 	 * @param int $page_id Page ID.
-	 * @return string Permalink URL.
+	 * @return string Memoized permalink (empty string if the page
+	 *                has no permalink, e.g. not yet published).
 	 */
 	private function get_permalink_cached( int $page_id ): string {
 		if ( ! isset( $this->permalink_cache[ $page_id ] ) ) {

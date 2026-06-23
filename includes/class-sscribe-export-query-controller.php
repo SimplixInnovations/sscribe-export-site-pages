@@ -329,7 +329,7 @@ class SScribe_Export_Query_Controller {
 		$formats       = ! empty( $formats_input ) ? $formats_input : array( 'docx' );
 		// Use a constant for the default format.
 
-		$page_count = isset( $_POST['page_count'] ) ? absint( $_POST['page_count'] ) : 0;
+		$page_count = isset( $_POST['page_count'] ) ? absint( wp_unslash( $_POST['page_count'] ) ) : 0;
 
 		$diagnostics = $this->diagnostics->run_preflight( $page_count, $formats );
 
