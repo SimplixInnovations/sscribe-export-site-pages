@@ -210,8 +210,39 @@ trait SScribe_Session_AJAX {
 			}
 
 			$session['cancelled'] = true;
-			$this->update( $session_id, $session );
-			$this->cleanup_cancelled_export( $session );
+			$update_ok            = $this->update( $session_id, $session );
+			if ( ! $update_ok ) {
+				// Lost the race to a concurrent finalize or batch
+				// step. delete() is idempotent so we can still
+				// tear down; just log so the audit trail shows the
+				// cancellation was requested but the persisted row
+				// was already gone / overwritten by another writer.
+				$this->get_logger()->warning(
+					'Cancel mutation: update returned false (concurrent writer won race)',
+					array( 'session_id' => $session_id )
+				);
+			}
+
+			// cleanup_cancelled_export() can throw on filesystem
+			// errors (Windows file handle, transient I/O). We must
+			// still reach delete() + success() so the user sees a
+			// clean 'Export cancelled' and the on-disk session row
+			// is removed. Otherwise the active-session transient
+			// keeps pointing at a stale row and the user is locked
+			// out of starting a new export with 'You already have
+			// an export in progress.'
+			try {
+				$this->cleanup_cancelled_export( $session );
+			} catch ( \Throwable $e ) {
+				$this->get_logger()->warning(
+					'Cancel cleanup: temp_dir teardown failed',
+					array(
+						'session_id' => $session_id,
+						'error'      => $e->getMessage(),
+					)
+				);
+			}
+
 			$this->delete( $session_id );
 
 			SScribe_AJAX_Guard::success( array( 'message' => __( 'Export cancelled.', 'sscribe-export-site-pages' ) ) );
