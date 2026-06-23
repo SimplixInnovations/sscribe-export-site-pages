@@ -179,11 +179,21 @@ class SScribe_Finalize_Export_Failure_Test extends TestCase {
 	 * up in the production source. If a refactor accidentally removes
 	 * them, the production failure modes (no files generated, failed
 	 * to create ZIP, empty ZIP archive) would degrade silently.
+	 *
+	 * The finalize_export() pipeline now lives in the
+	 * SScribe_Export_Finalizer trait, so the regression scan must
+	 * look at both the class file AND the trait file to catch
+	 * accidental removals from either location.
 	 */
 	public function test_failure_branches_present_in_production_source(): void {
-		$source = file_get_contents( SSCRIBE_PLUGIN_DIR . 'includes/class-sscribe-batch-processor.php' );
+		$class_source = file_get_contents( SSCRIBE_PLUGIN_DIR . 'includes/class-sscribe-batch-processor.php' );
+		$trait_source = file_get_contents( SSCRIBE_PLUGIN_DIR . 'includes/traits/trait-sscribe-export-finalizer.php' );
 
-		$this->assertNotFalse( $source, 'batch processor source must be readable' );
+		$this->assertNotFalse( $class_source, 'batch processor source must be readable' );
+		$this->assertNotFalse( $trait_source, 'export finalizer trait source must be readable' );
+
+		$source = $class_source . $trait_source;
+
 		$this->assertStringContainsString(
 			'No files generated',
 			$source,
