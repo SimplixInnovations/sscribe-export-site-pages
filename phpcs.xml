@@ -20,6 +20,10 @@
     <exclude-pattern>./phpstan-bootstrap.php</exclude-pattern>
     <exclude-pattern>./fake-wp/*</exclude-pattern>
 
+    <!-- Ad-hoc runtime verification scripts (refactor smoke-tests, never shipped) -->
+    <exclude-pattern>./verify_*.php</exclude-pattern>
+    <exclude-pattern>./debug_*.php</exclude-pattern>
+
     <arg value="ps"/>
     <arg name="colors"/>
     <arg name="extensions" value="php"/>

@@ -122,6 +122,12 @@ desktop.ini
 *.bak
 test-phpcs-output.txt
 
+# Ad-hoc runtime verification / smoke-test scripts used during
+# refactors. The PHPUnit suite covers the real assertions; these
+# one-off CLI scripts must not ship in the production ZIP.
+verify_*.php
+debug_*.php
+
 # Environment
 .env
 .env.*
