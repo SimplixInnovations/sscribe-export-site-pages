@@ -601,7 +601,13 @@ class SScribe_Filesystem {
 			// under the to-be-created root can't bypass the check.
 			$allowed_real = self::normalize_path( $allowed_root );
 		} else {
-			$allowed_real = rtrim( $allowed_real, '/\\' ) . DIRECTORY_SEPARATOR;
+			// Normalize realpath result to forward slashes so it can be
+			// compared against a parent_real that was produced by the
+			// lexical normalize_path() fallback. Without this, realpath
+			// returns backslash-separated paths on Windows while the
+			// fallback produces forward slashes — strpos() then fails
+			// to match even when the parent IS inside the allowed root.
+			$allowed_real = self::normalize_path( $allowed_real );
 		}
 
 		$parent      = dirname( $file );
@@ -611,10 +617,12 @@ class SScribe_Filesystem {
 			// lexically; this still rejects a parent that points
 			// outside the allowed root via `..` segments.
 			$parent_real = self::normalize_path( $parent );
+		} else {
+			$parent_real = self::normalize_path( $parent_real );
 		}
 
-		$parent_real = rtrim( $parent_real, '/\\' ) . DIRECTORY_SEPARATOR;
-		$allowed_real = rtrim( $allowed_real, '/\\' ) . DIRECTORY_SEPARATOR;
+		$parent_real = rtrim( $parent_real, '/' ) . '/';
+		$allowed_real = rtrim( $allowed_real, '/' ) . '/';
 
 		// Case-insensitive compare on Windows; case-sensitive elsewhere.
 		$cmp = ( defined( 'PHP_OS_FAMILY' ) && 'Windows' === PHP_OS_FAMILY )
@@ -629,6 +637,13 @@ class SScribe_Filesystem {
 	 * Normalize a path by resolving `.` and `..` segments lexically
 	 * (no filesystem access). Used when realpath() is not available
 	 * because the path does not yet exist.
+	 *
+	 * On Windows, the result is lowercased so callers can compare
+	 * it against realpath() output (Windows filesystems are
+	 * case-insensitive). This matches the lowercase normalization in
+	 * `SScribe_Security::normalize_path_for_compare()` so the
+	 * filesystem primitives and the security check use the same
+	 * case-folding rule.
 	 *
 	 * @param string $path Path to normalize.
 	 * @return string Normalized absolute path.
@@ -648,7 +663,11 @@ class SScribe_Filesystem {
 			}
 			$resolved[] = $segment;
 		}
-		return ( $is_absolute ? '/' : '' ) . implode( '/', $resolved );
+		$normalized = ( $is_absolute ? '/' : '' ) . implode( '/', $resolved );
+		if ( defined( 'PHP_OS_FAMILY' ) && 'Windows' === PHP_OS_FAMILY ) {
+			$normalized = strtolower( $normalized );
+		}
+		return $normalized;
 	}
 
 	/**
