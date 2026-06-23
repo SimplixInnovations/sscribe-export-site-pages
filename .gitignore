@@ -41,14 +41,6 @@ SSCRIBE-COMPREHENSIVE-AUDIT-REPORT.md
 test_require.php
 *.test.php
 
-# Ad-hoc runtime verification scripts (kept around for spot-checks
-# during refactors; never part of the plugin and must not leak into
-# the release ZIP).
-verify_logger_runtime.php
-debug_sanitize.php
-verify_*.php
-debug_*.php
-
 # IDE & Editors
 .idea/
 .vscode/
