@@ -193,4 +193,56 @@ class SScribe_Logger_Enhanced_Test extends TestCase {
 		$this->assertStringContainsString( 'sscribe_', $result );
 		$this->assertStringEndsWith( '.log', $result );
 	}
+
+	/**
+	 * Regression guard for refactor #4: SScribe_Logger_Enhanced
+	 * must extend SScribe_Logger so the file pipeline is
+	 * inherited rather than duplicated. If a future change ever
+	 * reverts to `implements SScribe_Logger_Interface`, this
+	 * test fails before the duplicated-state problem resurfaces.
+	 */
+	public function test_extends_sscribe_logger(): void {
+		$this->assertInstanceOf( \SScribe_Logger::class, $this->logger );
+		$parent = ( new \ReflectionClass( SScribe_Logger_Enhanced::class ) )->getParentClass();
+		$this->assertNotFalse( $parent );
+		$this->assertSame( \SScribe_Logger::class, $parent->getName() );
+	}
+
+	/**
+	 * Regression guard for refactor #4: the file-pipeline state
+	 * ($buffer, $log_dir, $prefix, $session_id) must be declared
+	 * on SScribe_Logger (the parent), NOT re-declared on the
+	 * Enhanced subclass. If someone re-introduces a private
+	 * redeclaration in the child, this test catches the drift
+	 * before the parallel-state bug returns.
+	 */
+	public function test_pipeline_state_is_inherited_not_redeclared(): void {
+		$parent = \SScribe_Logger::class;
+		foreach ( array( 'buffer', 'log_dir', 'prefix', 'session_id' ) as $prop ) {
+			$ref   = new \ReflectionProperty( SScribe_Logger_Enhanced::class, $prop );
+			$this->assertSame(
+				$parent,
+				$ref->getDeclaringClass()->getName(),
+				"\${$prop} should be inherited from {$parent}, not redeclared on SScribe_Logger_Enhanced"
+			);
+		}
+	}
+
+	/**
+	 * Regression guard for refactor #4: the SScribe_Logger_Common
+	 * trait must be used by the parent only. Enhanced inherits
+	 * the trait methods via class extension, so a second
+	 * `use SScribe_Logger_Common;` on the child would create
+	 * ambiguous dispatch. Catches any future re-introduction
+	 * of the trait on the child class.
+	 */
+	public function test_trait_is_used_only_on_parent(): void {
+		$traits = class_uses( SScribe_Logger_Enhanced::class );
+		$this->assertNotContains( \SScribe_Logger_Common::class, $traits );
+
+		// The parent must still use the trait — otherwise the
+		// inherited dispatch methods would break.
+		$parent_traits = class_uses( \SScribe_Logger::class );
+		$this->assertContains( \SScribe_Logger_Common::class, $parent_traits );
+	}
 }
