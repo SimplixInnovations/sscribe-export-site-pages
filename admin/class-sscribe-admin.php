@@ -239,8 +239,6 @@ class SScribe_Admin {
 			return;
 		}
 
-		$debug = SSCRIBE_DEBUG || SScribe_Settings::is_debug_enabled();
-
 		$css_version = file_exists( SSCRIBE_PLUGIN_DIR . 'admin/css/sscribe-admin.css' )
 			? filemtime( SSCRIBE_PLUGIN_DIR . 'admin/css/sscribe-admin.css' )
 			: SSCRIBE_VERSION;
@@ -276,28 +274,24 @@ class SScribe_Admin {
 			true
 		);
 
-		// Only enqueue debug console assets when debug logging is
-		// actually active. The Debug tab UI is always rendered so users
-		// can flip the toggle, but the JS/CSS for the tab only matters
-		// when there's data to display. On production sites where
-		// neither SSCRIBE_DEBUG is set nor the user has enabled the
-		// toggle, this skips ~60 KB of unused JS+CSS.
-		if ( $debug ) {
-			wp_enqueue_style(
-				'sscribe-debug-console',
-				SSCRIBE_PLUGIN_URL . 'admin/css/sscribe-debug-console.css',
-				array( 'sscribe-admin' ),
-				$debug_css_version
-			);
+		// Debug console assets are now always enqueued for the debug tab UI.
+		// The Debug tab is always rendered so users can flip the toggle;
+		// the JS/CSS for the tab needs to be available regardless of
+		// whether the user has currently enabled debug logging.
+		wp_enqueue_style(
+			'sscribe-debug-console',
+			SSCRIBE_PLUGIN_URL . 'admin/css/sscribe-debug-console.css',
+			array( 'sscribe-admin' ),
+			$debug_css_version
+		);
 
-			wp_enqueue_script(
-				'sscribe-debug-console',
-				SSCRIBE_PLUGIN_URL . 'admin/js/sscribe-debug-console.js',
-				array( 'jquery', 'sscribe-admin' ),
-				$debug_js_version,
-				true
-			);
-		}
+		wp_enqueue_script(
+			'sscribe-debug-console',
+			SSCRIBE_PLUGIN_URL . 'admin/js/sscribe-debug-console.js',
+			array( 'jquery', 'sscribe-admin' ),
+			$debug_js_version,
+			true
+		);
 
 		add_action( 'admin_print_footer_scripts', array( $this, 'print_localized_data' ), 0 );
 	}
