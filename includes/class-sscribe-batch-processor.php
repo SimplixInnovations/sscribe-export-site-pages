@@ -106,13 +106,6 @@ final class SScribe_Batch_Processor {
 	private readonly SScribe_Batch_File_Handler $file_handler;
 
 	/**
-	 * Batch session handler for session lifecycle operations.
-	 *
-	 * @var SScribe_Batch_Session_Handler
-	 */
-	private readonly SScribe_Batch_Session_Handler $session_handler;
-
-	/**
 	 * Export log instance.
 	 *
 	 * @var \SScribe_Export_Log|null
@@ -665,41 +658,31 @@ final class SScribe_Batch_Processor {
 	/**
 	 * Initialize the batch processor.
 	 *
-	 * @param SScribe_Page_Collector|null        $collector      Page collector.
-	 * @param SScribe_Zip_Handler|null           $zip_handler    Zip handler.
-	 * @param SScribe_Session|null               $session         Session.
-	 * @param SScribe_Logger_Interface|null      $logger          Logger.
-	 * @param SScribe_Batch_File_Handler|null    $file_handler   File handler.
-	 * @param SScribe_Batch_Session_Handler|null $session_handler Session handler.
+	 * @param SScribe_Page_Collector|null     $collector    Page collector.
+	 * @param SScribe_Zip_Handler|null        $zip_handler  Zip handler.
+	 * @param SScribe_Session|null            $session      Session.
+	 * @param SScribe_Logger_Interface|null   $logger       Logger.
+	 * @param SScribe_Batch_File_Handler|null $file_handler File handler.
 	 */
 	public function __construct(
 		?SScribe_Page_Collector $collector = null,
 		?SScribe_Zip_Handler $zip_handler = null,
 		?SScribe_Session $session = null,
 		?SScribe_Logger_Interface $logger = null,
-		?SScribe_Batch_File_Handler $file_handler = null,
-		?SScribe_Batch_Session_Handler $session_handler = null
+		?SScribe_Batch_File_Handler $file_handler = null
 	) {
 		$this->batch_size = (int) apply_filters( 'sscribe_batch_size', 5 );
 		$this->batch_size = max( 1, min( 20, $this->batch_size ) );
 
-		$this->collector       = $collector ?? new SScribe_Page_Collector();
-		$this->zip_handler     = $zip_handler ?? new SScribe_Zip_Handler();
-		$this->session         = $session ?? new SScribe_Session();
-		$this->logger          = $logger ?? SScribe_Logger::instance( SScribe_Logger::is_logging_enabled() );
-		$this->file_handler    = $file_handler ?? new SScribe_Batch_File_Handler(
+		$this->collector    = $collector ?? new SScribe_Page_Collector();
+		$this->zip_handler  = $zip_handler ?? new SScribe_Zip_Handler();
+		$this->session      = $session ?? new SScribe_Session();
+		$this->logger       = $logger ?? SScribe_Logger::instance( SScribe_Logger::is_logging_enabled() );
+		$this->file_handler = $file_handler ?? new SScribe_Batch_File_Handler(
 			$this->get_rate_limiter(),
 			$this->zip_handler,
 			$this->logger,
 			$this->get_auditor()
-		);
-		$this->session_handler = $session_handler ?? new SScribe_Batch_Session_Handler(
-			$this->session,
-			$this->zip_handler,
-			$this->logger,
-			$this->get_auditor(),
-			$this->get_rate_limiter(),
-			new SScribe_Export_Lock_Manager( $this->logger )
 		);
 
 		if ( ! self::$shutdown_registered ) {

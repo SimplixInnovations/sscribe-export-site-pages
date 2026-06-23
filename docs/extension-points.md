@@ -218,10 +218,14 @@ should `use` that trait rather than redefining the boilerplate.
 
 ## Session storage
 
-`SScribe_Session` is the canonical storage layer for batch state.
-`SScribe_Batch_Session_Handler` is the AJAX coordinator that wraps
-it. Use the storage layer directly in CLI/CRON code; use the handler
-in `wp_ajax_*` callbacks.
+`SScribe_Session` is the canonical owner of batch session state.
+It exposes both the data layer (CRUD, encryption, migration, active
+detection) AND — via the `SScribe_Session_AJAX` trait — the three
+AJAX endpoints that mutate that state (`ajax_check_active_session`,
+`ajax_cancel_export`, `ajax_clear_session`). The previous
+`SScribe_Batch_Session_Handler` wrapper was collapsed into the
+session class to eliminate dual ownership. Use `SScribe_Session`
+directly from `wp_ajax_*` callbacks and from CLI/CRON code.
 
 ```php
 $session = new SScribe_Session();

@@ -13,13 +13,25 @@ if ( ! defined( 'ABSPATH' ) ) {
 	exit;
 }
 
+require_once SSCRIBE_PLUGIN_DIR . 'includes/traits/trait-sscribe-batch-session-helpers.php';
+require_once SSCRIBE_PLUGIN_DIR . 'includes/traits/trait-sscribe-session-ajax.php';
+
 /**
  * Session management.
+ *
+ * Owns both the data layer (CRUD, encryption, migration, active
+ * detection) and — via the SScribe_Session_AJAX trait — the three
+ * AJAX endpoints that mutate session state (check active, cancel,
+ * clear). This consolidation eliminates the prior dual-ownership
+ * pattern between this class and SScribe_Batch_Session_Handler
+ * (now removed).
  *
  * @package SScribe_Export_Site_Pages
  * @subpackage Session
  */
 class SScribe_Session {
+
+	use SScribe_Session_AJAX;
 
 	private const SESSION_CLEANUP_BATCH = 100;
 
@@ -45,6 +57,36 @@ class SScribe_Session {
 	 * @var SScribe_Logger_Interface
 	 */
 	private readonly SScribe_Logger_Interface $logger;
+
+	/**
+	 * Rate limiter (lazy — only resolved when an AJAX endpoint
+	 * in the SScribe_Session_AJAX trait actually fires).
+	 *
+	 * @var SScribe_Export_Rate_Limiter|null
+	 */
+	private ?SScribe_Export_Rate_Limiter $rate_limiter = null;
+
+	/**
+	 * Export auditor (lazy — used by validate_session_ownership).
+	 *
+	 * @var SScribe_Export_Auditor|null
+	 */
+	private ?SScribe_Export_Auditor $auditor = null;
+
+	/**
+	 * ZIP handler (lazy — used by cleanup_cancelled_export).
+	 *
+	 * @var SScribe_Zip_Handler|null
+	 */
+	private ?SScribe_Zip_Handler $zip_handler = null;
+
+	/**
+	 * Lock manager (lazy — used by ajax_cancel_export's race
+	 * fix and cleanup_user_locks).
+	 *
+	 * @var SScribe_Export_Lock_Manager|null
+	 */
+	private ?SScribe_Export_Lock_Manager $lock_manager = null;
 
 	public const OPTION_PREFIX = 'sscribe_session_';
 
@@ -1446,5 +1488,50 @@ class SScribe_Session {
 	 */
 	public function get_storage_type(): string {
 		return 'encrypted-json';
+	}
+
+	/**
+	 * Get the logger (required by SScribe_Session_AJAX trait).
+	 *
+	 * @return SScribe_Logger_Interface
+	 */
+	protected function get_logger(): SScribe_Logger_Interface {
+		return $this->logger;
+	}
+
+	/**
+	 * Get the rate limiter (required by SScribe_Session_AJAX trait).
+	 *
+	 * @return SScribe_Export_Rate_Limiter
+	 */
+	protected function get_rate_limiter(): SScribe_Export_Rate_Limiter {
+		return $this->rate_limiter ??= new SScribe_Export_Rate_Limiter();
+	}
+
+	/**
+	 * Get the export auditor (required by SScribe_Session_AJAX trait).
+	 *
+	 * @return SScribe_Export_Auditor
+	 */
+	protected function get_auditor(): SScribe_Export_Auditor {
+		return $this->auditor ??= new SScribe_Export_Auditor();
+	}
+
+	/**
+	 * Get the ZIP handler (required by SScribe_Session_AJAX trait).
+	 *
+	 * @return SScribe_Zip_Handler
+	 */
+	protected function get_zip_handler(): SScribe_Zip_Handler {
+		return $this->zip_handler ??= new SScribe_Zip_Handler();
+	}
+
+	/**
+	 * Get the lock manager (required by SScribe_Session_AJAX trait).
+	 *
+	 * @return SScribe_Export_Lock_Manager
+	 */
+	protected function get_lock_manager(): SScribe_Export_Lock_Manager {
+		return $this->lock_manager ??= new SScribe_Export_Lock_Manager( $this->logger );
 	}
 }
