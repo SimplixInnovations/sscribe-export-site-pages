@@ -24,11 +24,14 @@ class SScribe_Security {
 	 * @param string $dir Directory path to protect.
 	 */
 	public static function protect_directory( string $dir ): void {
-		self::validate_path_scope( $dir );
-
+		// Create the directory first so the scope check operates on a real
+		// path (realpath() requires the path to exist). The scope check
+		// then confirms the created dir is within the uploads scope.
 		if ( ! is_dir( $dir ) ) {
 			wp_mkdir_p( $dir );
 		}
+
+		self::validate_path_scope( $dir );
 
 		$htaccess_path = $dir . '/.htaccess';
 		$content       = "Options -Indexes\n";
