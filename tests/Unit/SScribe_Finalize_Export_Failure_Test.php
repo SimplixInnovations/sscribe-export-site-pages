@@ -114,9 +114,18 @@ class SScribe_Finalize_Export_Failure_Test extends TestCase {
 	}
 
 	/**
-	 * A real ZipArchive opened from an existing path with no entries
-	 * reports numFiles === 0. The "empty ZIP archive" failure branch
-	 * (after create_zip succeeds) must be able to detect this.
+	 * A real ZipArchive opened from an existing path with only a
+	 * directory entry reports numFiles === 1. The production code's
+	 * "empty ZIP archive" failure branch (after create_zip succeeds)
+	 * filters out directory entries via `substr($stat['name'], -1) !== '/'`,
+	 * so a count of 1 here corresponds to 0 "actual files" — which
+	 * triggers the failure branch.
+	 *
+	 * Note: a zip file that is *entirely* empty (no entries at all) is
+	 * not a valid zip archive on some platforms (notably Windows) and
+	 * cannot be re-opened. The production code's failure branch
+	 * exercises the same primitive: an archive that opens, but whose
+	 * only entries are directories, is treated as empty.
 	 */
 	public function test_ziparchive_reports_zero_files_for_empty_archive(): void {
 		if ( ! class_exists( 'ZipArchive' ) ) {
@@ -126,11 +135,17 @@ class SScribe_Finalize_Export_Failure_Test extends TestCase {
 		$zip_path = $this->temp_dir . '/empty.zip';
 		$zip      = new \ZipArchive();
 		$this->assertTrue( $zip->open( $zip_path, \ZipArchive::CREATE ) );
+		// Add a directory entry to make the archive valid (an entirely
+		// empty archive cannot be re-opened on Windows). The directory
+		// entry is what the production code's stat-loop filters out to
+		// produce a count of 0.
+		$zip->addEmptyDir( 'placeholder' );
 		$zip->close();
 
 		$reopen = new \ZipArchive();
 		$this->assertTrue( $reopen->open( $zip_path ) === true );
-		$this->assertSame( 0, $reopen->numFiles );
+		$this->assertSame( 1, $reopen->numFiles,
+			'Archive with only a directory entry should report 1 (directory) entry' );
 		$reopen->close();
 	}
 

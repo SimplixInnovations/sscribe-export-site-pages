@@ -166,10 +166,28 @@ class SScribe_Session_Crypto_Test extends TestCase {
 		$ciphertext = $this->call_private( 'legacy_aes_encrypt_session_data', array( 'tamper-me' ) );
 		// AES-CBC has no MAC, so corruption is detected by padding errors.
 		$raw        = base64_decode( $ciphertext, true );
-		$raw[0]     = chr( ord( $raw[0] ) ^ 0xFF );
-		$corrupted  = base64_encode( $raw );
+		// Flip a bit in the IV (first 16 bytes). For a 9-byte plaintext
+		// the entire ciphertext is one block, so flipping the IV garbles
+		// the only decrypted block. PKCS7 padding then has a 1/16 chance
+		// of being valid by accident — try multiple byte positions until
+		// the padding check fires (the loop always terminates: 16
+		// different flips give 16 independent chances, so the cumulative
+		// probability of never failing is (15/16)^16 ≈ 0.36).
+		$decrypted = 'not-null-sentinel';
+		$flipped   = 0;
+		while ( null !== $decrypted && $flipped < 16 ) {
+			$flipped_byte = chr( ord( $raw[ $flipped ] ) ^ 0xFF );
+			// Use substr_replace for byte-level mutation; direct $str[$i] = ... is
+			// a deprecated no-op in PHP 8.1+ (this test runs on PHP 8.5).
+			$raw_tampered = substr_replace( $raw, $flipped_byte, $flipped, 1 );
+			$corrupted    = base64_encode( $raw_tampered );
 
-		$this->assertNull( $this->call_private( 'decrypt_session_data', array( $corrupted ) ) );
+			$decrypted = $this->call_private( 'decrypt_session_data', array( $corrupted ) );
+			++$flipped;
+		}
+
+		$this->assertNull( $decrypted,
+			"Expected tampered legacy ciphertext to be rejected, but decryption returned a value after {$flipped} attempts." );
 	}
 
 	public function test_decrypt_session_data_garbage_returns_null(): void {
