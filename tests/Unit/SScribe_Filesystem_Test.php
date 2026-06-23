@@ -225,23 +225,45 @@ class SScribe_Filesystem_Test extends TestCase {
 	 * SScribe export directory.
 	 */
 	public function test_put_contents_rejects_symlink_escape(): void {
+		if ( ! function_exists( 'symlink' ) ) {
+			$this->markTestSkipped( 'symlink() not available' );
+		}
+
 		$fs = new \SScribe_Filesystem();
 
-		// Create an "outside" target and a symlink under what would
-		// conceptually be the SScribe export dir.
+		// is_path_safe_for_write() compares lexically against the SSCRIBE
+		// export dir (computed from wp_upload_dir()). The symlink must
+		// live INSIDE the export dir for the helper to detect the
+		// escape — placing it in an arbitrary test dir would just
+		// produce SSCRIBE_PATH_EXTERNAL.
+		$upload_dir  = wp_upload_dir();
+		$export_dir  = trailingslashit( $upload_dir['basedir'] ) . 'sscribe-exports';
+		if ( ! is_dir( $export_dir ) ) {
+			// Bootstrap's wp_upload_dir() returns a fresh temp dir per
+			// process; create the export dir on demand so the test is
+			// self-contained.
+			mkdir( $export_dir, 0755, true );
+		}
+
 		$outside   = $this->test_dir . '/outside-target';
-		$link_dir  = $this->test_dir . '/exports';
-		$link_name = $link_dir . '/evil';
+		$link_name = $export_dir . '/evil-' . uniqid();
 
 		mkdir( $outside, 0755, true );
-		mkdir( $link_dir, 0755, true );
-		symlink( $outside, $link_name );
 
-		// Pretend the SScribe export dir IS this test's exports dir.
-		// is_path_safe_for_write() compares lexically against the
-		// SSCRIBE export dir (computed from wp_upload_dir()). The test
-		// validates the *helper* directly.
+		// symlink() requires SeCreateSymbolicLinkPrivilege on Windows
+		// (admin-only by default). Skip on platforms where the call
+		// fails — the test exercises a privilege-gated attack surface
+		// that the rest of the suite does not depend on.
+		if ( ! @symlink( $outside, $link_name ) ) {
+			rmdir( $outside );
+			$this->markTestSkipped( 'symlink() not permitted on this platform' );
+		}
+
 		$safe = $fs->is_path_safe_for_write( $link_name . '/file.txt' );
+
+		// Clean up before asserting so a failure doesn't leak symlinks.
+		@unlink( $link_name );
+		rmdir( $outside );
 
 		$this->assertEquals( \SScribe_Filesystem::SSCRIBE_PATH_REJECT, $safe,
 			'Expected symlink escape to be REJECTed' );
@@ -252,17 +274,32 @@ class SScribe_Filesystem_Test extends TestCase {
 	 * that resolve outside the SScribe export directory.
 	 */
 	public function test_copy_rejects_symlink_escape(): void {
+		if ( ! function_exists( 'symlink' ) ) {
+			$this->markTestSkipped( 'symlink() not available' );
+		}
+
 		$fs = new \SScribe_Filesystem();
 
+		$upload_dir  = wp_upload_dir();
+		$export_dir  = trailingslashit( $upload_dir['basedir'] ) . 'sscribe-exports';
+		if ( ! is_dir( $export_dir ) ) {
+			mkdir( $export_dir, 0755, true );
+		}
+
 		$outside   = $this->test_dir . '/outside-target-2';
-		$link_dir  = $this->test_dir . '/exports-2';
-		$link_name = $link_dir . '/evil-copy';
+		$link_name = $export_dir . '/evil-copy-' . uniqid();
 
 		mkdir( $outside, 0755, true );
-		mkdir( $link_dir, 0755, true );
-		symlink( $outside, $link_name );
+
+		if ( ! @symlink( $outside, $link_name ) ) {
+			rmdir( $outside );
+			$this->markTestSkipped( 'symlink() not permitted on this platform' );
+		}
 
 		$safe = $fs->is_path_safe_for_write( $link_name );
+
+		@unlink( $link_name );
+		rmdir( $outside );
 
 		$this->assertEquals( \SScribe_Filesystem::SSCRIBE_PATH_REJECT, $safe,
 			'Expected symlink escape via copy destination to be REJECTed' );
