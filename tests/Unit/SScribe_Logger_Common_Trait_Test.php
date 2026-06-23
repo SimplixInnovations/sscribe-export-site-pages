@@ -106,12 +106,20 @@ class SScribe_Logger_Common_Trait_Test extends TestCase {
 
 	/**
 	 * Invoke the protected static `level_meets_threshold` helper via
-	 * a Closure bound to the using class. Avoids the `setAccessible()`
+	 * a Closure bound to the declaring class. Avoids the `setAccessible()`
 	 * deprecation that ReflectionMethod::invoke() emits in PHP 8.1+.
+	 *
+	 * Note: the method lives in SScribe_Logger_Common and is reached
+	 * here via inheritance (SScribe_Logger_Enhanced → SScribe_Logger →
+	 * SScribe_Logger_Common). Rebind to the actual declaring class
+	 * (the trait's using class) so PHP 8.5+ accepts the closure
+	 * binding — binding to the lookup class is rejected as a no-op
+	 * rebind once the closure's scope is already fixed.
 	 */
 	private static function call_threshold_helper( string $level, string $min_level ): bool {
 		$ref      = new \ReflectionMethod( \SScribe_Logger_Enhanced::class, 'level_meets_threshold' );
-		$closure  = \Closure::bind( $ref->getClosure( null ), null, \SScribe_Logger_Enhanced::class );
+		$scope    = $ref->getDeclaringClass()->getName();
+		$closure  = \Closure::bind( $ref->getClosure( null ), null, $scope );
 		return (bool) $closure( $level, $min_level );
 	}
 
@@ -120,7 +128,8 @@ class SScribe_Logger_Common_Trait_Test extends TestCase {
 	 */
 	private static function call_priority_helper(): array {
 		$ref      = new \ReflectionMethod( \SScribe_Logger_Enhanced::class, 'get_level_priority_map' );
-		$closure  = \Closure::bind( $ref->getClosure( null ), null, \SScribe_Logger_Enhanced::class );
+		$scope    = $ref->getDeclaringClass()->getName();
+		$closure  = \Closure::bind( $ref->getClosure( null ), null, $scope );
 		return $closure();
 	}
 }

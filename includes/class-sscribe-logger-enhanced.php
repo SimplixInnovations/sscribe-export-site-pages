@@ -2,6 +2,24 @@
 /**
  * SScribe Logger Enhanced
  *
+ * Multi-destination logger that extends the base SScribe_Logger to
+ * add optional database and Query Monitor output alongside the
+ * inherited file output. Subclasses add destinations on top of the
+ * file pipeline rather than duplicating it.
+ *
+ * Inherits from SScribe_Logger:
+ *   - the buffered write pipeline ($buffer, $log_dir, $prefix)
+ *   - the level dispatch (debug/info/...) via SScribe_Logger_Common trait
+ *   - the singleton factory (instance())
+ *
+ * Enhanced adds:
+ *   - level threshold filtering (min_level from constructor options)
+ *   - optional database writes (enable_db, table_name, table_exists)
+ *   - optional Query Monitor output (enable_qm)
+ *   - a different file-rotation strategy (rotate when existing file
+ *     already exceeds the limit, not when the incoming content would)
+ *   - DB-side helpers (get_db_logs, cleanup_db_logs)
+ *
  * @package SScribe_Export_Site_Pages
  * @license GPL v2 or later
  * @link    https://www.gnu.org/licenses/gpl-2.0.html
@@ -15,13 +33,12 @@ if ( ! defined( 'ABSPATH' ) ) {
 
 require_once SSCRIBE_PLUGIN_DIR . 'includes/interfaces/interface-sscribe-logger.php';
 require_once SSCRIBE_PLUGIN_DIR . 'includes/traits/trait-sscribe-logger-common.php';
+require_once SSCRIBE_PLUGIN_DIR . 'includes/class-sscribe-logger.php';
 
 /**
  * Enhanced logger with multiple output destinations.
  */
-class SScribe_Logger_Enhanced implements SScribe_Logger_Interface {
-
-	use SScribe_Logger_Common;
+class SScribe_Logger_Enhanced extends SScribe_Logger {
 
 	/**
 	 * Minimum log level threshold.
@@ -52,68 +69,11 @@ class SScribe_Logger_Enhanced implements SScribe_Logger_Interface {
 	private bool $enable_file;
 
 	/**
-	 * Log message buffer.
-	 *
-	 * @var array
-	 */
-	private array $buffer = array();
-
-	/**
-	 * Log directory path.
-	 *
-	 * @var string
-	 */
-	private readonly string $log_dir;
-
-	/**
 	 * Database table name for logs.
 	 *
 	 * @var string
 	 */
 	private readonly string $table_name;
-
-	/**
-	 * Log file prefix.
-	 *
-	 * @var string
-	 */
-	private readonly string $prefix;
-
-	/**
-	 * Current session identifier.
-	 *
-	 * @var string|null
-	 */
-	private ?string $session_id = null;
-
-	/**
-	 * Constructor.
-	 *
-	 * @param array $options Logger configuration options.
-	 */
-	public function __construct( array $options = array() ) {
-		$this->min_level = $options['min_level'] ?? self::LEVEL_INFO;
-		$this->enable_qm = $options['enable_qm'] ?? true;
-		$this->prefix    = $options['prefix'] ?? 'sscribe';
-
-		// If 'enabled' is explicitly false, disable file and DB logging.
-		// Otherwise use individual enable flags with defaults.
-		if ( isset( $options['enabled'] ) && false === $options['enabled'] ) {
-			$this->enable_file = false;
-			$this->enable_db   = false;
-		} else {
-			$this->enable_db   = $options['enable_db'] ?? false;
-			$this->enable_file = $options['enable_file'] ?? true;
-		}
-
-		$upload_dir       = wp_upload_dir();
-		$this->log_dir    = $upload_dir['basedir'] . '/sscribe-logs';
-		$this->table_name = $GLOBALS['wpdb']->prefix . 'sscribe_export_logs';
-
-		if ( $this->enable_file || $this->enable_db ) {
-			add_action( 'shutdown', array( $this, 'flush' ) );
-		}
-	}
 
 	/**
 	 * Cached table existence result.
@@ -123,20 +83,56 @@ class SScribe_Logger_Enhanced implements SScribe_Logger_Interface {
 	private ?bool $table_exists_cache = null;
 
 	/**
-	 * Determine if a log level should be processed.
+	 * Constructor.
 	 *
-	 * Delegates to the shared `SScribe_Logger_Common::level_meets_threshold()`
-	 * helper so the priority comparison lives in one place.
-	 *
-	 * @param string $level Log level to check.
-	 * @return bool True if level meets threshold.
+	 * @param array $options Logger configuration options.
 	 */
-	private function should_log( string $level ): bool {
-		return self::level_meets_threshold( $level, $this->min_level );
+	public function __construct( array $options = array() ) {
+		$this->min_level = $options['min_level'] ?? self::LEVEL_INFO;
+		$this->enable_qm = $options['enable_qm'] ?? true;
+
+		// If 'enabled' is explicitly false, disable file and DB logging.
+		// Otherwise use individual enable flags with defaults.
+		if ( isset( $options['enabled'] ) && false === $options['enabled'] ) {
+			$this->enable_file = false;
+			$this->enable_db   = false;
+			$parent_enabled    = false;
+		} else {
+			$this->enable_db   = $options['enable_db'] ?? false;
+			$this->enable_file = $options['enable_file'] ?? true;
+			$parent_enabled    = $this->enable_file;
+		}
+
+		$this->table_name = $GLOBALS['wpdb']->prefix . 'sscribe_export_logs';
+
+		// Initialise the inherited file pipeline. Parent sets the
+		// readonly $log_dir and $prefix here; $buffer starts empty,
+		// $session_id starts null. Must call parent FIRST so we can
+		// reference $this->prefix for our local-only flags after.
+		//
+		// Parent's constructor registers `shutdown` → [ $this, 'flush' ].
+		// Because $this is bound to the Enhanced instance, late static
+		// dispatch routes that call to the override below — no second
+		// registration needed.
+		parent::__construct( $parent_enabled, $options['prefix'] ?? 'sscribe' );
+	}
+
+	/**
+	 * Check if logger has any active output.
+	 *
+	 * @return bool True if file or database logging is enabled.
+	 */
+	public function is_enabled(): bool {
+		return $this->enable_file || $this->enable_db;
 	}
 
 	/**
 	 * Write a log entry to the log destinations.
+	 *
+	 * The base class's log() is bypassed: Enhanced uses a different
+	 * level filter (min_level from constructor, not the Settings-
+	 * based threshold the base uses) and a different entry format
+	 * (file + DB shapes returned by format_entry()).
 	 *
 	 * @param string $level   Log level.
 	 * @param string $message Log message.
@@ -163,16 +159,12 @@ class SScribe_Logger_Enhanced implements SScribe_Logger_Interface {
 	}
 
 	/**
-	 * Check if logger has any active output.
-	 *
-	 * @return bool True if file or database logging is enabled.
-	 */
-	public function is_enabled(): bool {
-		return $this->enable_file || $this->enable_db;
-	}
-
-	/**
 	 * Flush log buffer to file.
+	 *
+	 * Different rotation strategy from the base: rotate when the
+	 * existing file already exceeds the limit, not when the
+	 * incoming content would push it over. This preserves the
+	 * pre-refactor behavior.
 	 */
 	public function flush(): void {
 		if ( empty( $this->buffer ) ) {
@@ -212,6 +204,19 @@ class SScribe_Logger_Enhanced implements SScribe_Logger_Interface {
 		}
 
 		$this->buffer = array();
+	}
+
+	/**
+	 * Determine if a log level should be processed.
+	 *
+	 * Delegates to the shared `SScribe_Logger_Common::level_meets_threshold()`
+	 * helper so the priority comparison lives in one place.
+	 *
+	 * @param string $level Log level to check.
+	 * @return bool True if level meets threshold.
+	 */
+	private function should_log( string $level ): bool {
+		return self::level_meets_threshold( $level, $this->min_level );
 	}
 
 	/**
@@ -376,11 +381,13 @@ class SScribe_Logger_Enhanced implements SScribe_Logger_Interface {
 	/**
 	 * Get log file path.
 	 *
+	 * Returns the same path the base class computes; declared here
+	 * only to preserve the historical public API on Enhanced.
+	 *
 	 * @return string Log file path.
 	 */
 	public function get_log_file(): string {
-		$date = gmdate( 'Y-m-d' );
-		return trailingslashit( $this->log_dir ) . "{$this->prefix}_debug_{$date}.log";
+		return parent::get_log_file();
 	}
 
 	/**

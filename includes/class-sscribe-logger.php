@@ -36,21 +36,21 @@ class SScribe_Logger implements SScribe_Logger_Interface {
 	 *
 	 * @var string|null
 	 */
-	private ?string $session_id = null;
+	protected ?string $session_id = null;
 
 	/**
 	 * Log message buffer.
 	 *
 	 * @var array
 	 */
-	private array $buffer = array();
+	protected array $buffer = array();
 
 	/**
 	 * Log directory path.
 	 *
 	 * @var string
 	 */
-	private readonly string $log_dir;
+	protected readonly string $log_dir;
 
 	/**
 	 * Whether the log directory has been protected.
@@ -163,8 +163,8 @@ class SScribe_Logger implements SScribe_Logger_Interface {
 	 * @param string $prefix  Log file prefix.
 	 */
 	public function __construct(
-		private readonly bool $enabled = true,
-		private readonly string $prefix = 'sscribe'
+		protected readonly bool $enabled = true,
+		protected readonly string $prefix = 'sscribe'
 	) {
 		$upload_dir    = wp_upload_dir();
 		$this->log_dir = $upload_dir['basedir'] . '/sscribe-logs';
