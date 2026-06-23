@@ -78,6 +78,48 @@ $config = array(
 
 		'Dhyana-Regular.ttf', 'Dhyana-Bold.ttf',
 
+		// XB Riyaz Regular — the whole family is now superseded by Amiri
+		// (shipped in assets/fonts/amiri/, wired into build_mpdf_config as
+		// 'amiri' in fontdata). mPDF's default fontdata still references
+		// the Regular face, but the PDF exporter's fonttrans map rewrites
+		// every "xbriyaz" lookup to 'amiri' (or 'freeserif' fallback) for
+		// RTL pages, so the file is never actually opened.
+		'XB Riyaz.ttf',
+
+		// Lateef (Arabic) — superseded by Amiri. fonttrans rewrites every
+		// "lateef" lookup to the active RTL font.
+		'LateefRegOT.ttf', 'Lateef font OFL.txt',
+
+		// Uthman (Arabic calligraphic) — never referenced in the production
+		// PDF exporter config. fonttrans rewrites it to the active RTL font
+		// for RTL pages; for LTR pages it's never selected.
+		'Uthman.otf',
+
+		// OCR-B — only useful for OCR rasterization, which the exporter
+		// never does. Not referenced by the PDF exporter's fontdata.
+		'ocrb10.ttf', 'ocrbinfo.txt',
+
+		// DejaVu Condensed — the Regular/Bold/Italic/BoldItalic faces of
+		// DejaVu Sans/Serif are still kept (the LTR Latin baseline), but
+		// the Condensed variants are only referenced by fontdata entries
+		// no production code ever selects. mPDF's fonttrans for RTL
+		// pages rewrites "dejavu sans" to the active RTL font, so even
+		// on LTR pages the Condensed family is never opened.
+		'DejaVuSansCondensed.ttf', 'DejaVuSansCondensed-Bold.ttf',
+		'DejaVuSansCondensed-Oblique.ttf', 'DejaVuSansCondensed-BoldOblique.ttf',
+		'DejaVuSerifCondensed.ttf', 'DejaVuSerifCondensed-Bold.ttf',
+		'DejaVuSerifCondensed-Italic.ttf', 'DejaVuSerifCondensed-BoldItalic.ttf',
+
+		// FreeSans + FreeMono — the LTR baseline is FreeSerif (wired into
+		// mPDF config as 'default_font' for LTR and as the fallback in the
+		// RTL fonttrans). FreeSans and FreeMono are never selected by any
+		// production CSS or fontdata reference. GNUFreeFontinfo.txt is the
+		// shared license for all three families; drop it once both
+		// siblings are excluded.
+		'FreeSans.ttf', 'FreeSansBold.ttf', 'FreeSansBoldOblique.ttf', 'FreeSansOblique.ttf',
+		'FreeMono.ttf', 'FreeMonoBold.ttf', 'FreeMonoBoldOblique.ttf', 'FreeMonoOblique.ttf',
+		'GNUFreeFontinfo.txt',
+
 		'DhyanaOFL.txt', 'Jomolhari-OFL.txt', 'KhmerOFL.txt',
 		'LohitKannadaOFL.txt', 'SyrCOMEdessa_license.txt', 'TaameyDavidCLM-LICENSE.txt',
 		'TharlonOFL.txt', 'XW Zar Font Info.txt',
