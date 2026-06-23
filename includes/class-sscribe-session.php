@@ -1306,10 +1306,12 @@ class SScribe_Session {
 		$key   = $this->get_sodium_key();
 		$nonce = random_bytes( SODIUM_CRYPTO_SECRETBOX_NONCEBYTES );
 
+		// sodium_crypto_secretbox() is typed to return `string` (it throws
+		// internally on failure); the explicit `false` guard is dead code
+		// that PHPStan flags. The surrounding try/catch in the public
+		// encrypt_session_data() entry point handles any unexpected
+		// \SodiumException by falling back to legacy AES.
 		$ciphertext = sodium_crypto_secretbox( $data, $nonce, $key );
-		if ( false === $ciphertext ) {
-			throw new \RuntimeException( 'sodium_crypto_secretbox returned false' );
-		}
 
 		// base64url so the row is copy-paste safe in wp_options.
 		return 's1:' . rtrim( strtr( base64_encode( $nonce . $ciphertext ), '+/', '-_' ), '=' );
@@ -1327,7 +1329,7 @@ class SScribe_Session {
 		}
 
 		$b64 = substr( $encrypted_data, 3 );
-		$raw = base64_decode( strtr( $b64, '-_', '+/'), true );
+		$raw = base64_decode( strtr( $b64, '-_', '+/' ), true );
 		if ( false === $raw ) {
 			return null;
 		}
@@ -1357,6 +1359,7 @@ class SScribe_Session {
 	 * sessions — do that only as a deliberate recovery action.
 	 *
 	 * @return string 32 raw bytes.
+	 * @throws \RuntimeException If libsodium is unavailable.
 	 */
 	private function get_sodium_key(): string {
 		$stored = (string) get_option( 'sscribe_session_sodium_key', '' );

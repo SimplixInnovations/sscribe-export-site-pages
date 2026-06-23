@@ -2529,7 +2529,9 @@ final class SScribe_Batch_Processor {
 			if ( true === $zip_open ) {
 				// Count only actual file entries (not directory entries which end with '/').
 				$total_files_zip = 0;
-				// phpcs:ignore WordPress.NamingConventions.ValidVariableName.PropertyNotSnakeCase
+				// `numFiles` is the camelCase property on PHP's ZipArchive class — we
+				// cannot rename it, so suppress the snake_case sniff for this access.
+				// phpcs:ignore WordPress.NamingConventions.ValidVariableName.UsedPropertyNotSnakeCase
 				$zip_file_count = $zip->numFiles;
 				for ( $i = 0; $i < $zip_file_count; $i++ ) {
 					$stat = $zip->statIndex( $i );
