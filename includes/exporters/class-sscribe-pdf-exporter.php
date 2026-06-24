@@ -778,6 +778,70 @@ class SScribe_PDF_Exporter implements SScribe_Exporter_Interface {
 						'R' => $amiri_regular,
 						'B' => $amiri_bold,
 					),
+					// Re-pin sans/mono/condensed fontdata entries to the
+					// TTFs the release ZIP actually ships. The default
+					// fontdata points 'freesans' -> FreeSans.ttf,
+					// 'freemono' -> FreeMono.ttf, and the DejaVu*Condensed
+					// entries -> the Condensed TTF family. The build
+					// script's `font_excludes` prunes all of these
+					// (see scripts/build-release.php). Without these
+					// overrides, ANY CSS that resolves to 'freesans',
+					// 'freemono', or any name in the serif_fonts chain
+					// (which begins with 'dejavuserifcondensed') crashes
+					// with `Cannot find TTF TrueType font file ...`.
+					// The 2026-06-24 report hit the
+					// 'dejavusanscondensed' / DejaVuSansCondensed.ttf
+					// path; the matching CSS-keyword path through
+					// 'dejavuserifcondensed' was latent in the same
+					// release and triggered here on standard theme CSS
+					// (`font-family: serif` is in Twenty* core).
+					'freesans' => array(
+						'R'  => 'DejaVuSans.ttf',
+						'B'  => 'DejaVuSans-Bold.ttf',
+						'I'  => 'DejaVuSans-Oblique.ttf',
+						'BI' => 'DejaVuSans-BoldOblique.ttf',
+					),
+					'freemono' => array(
+						'R'  => 'DejaVuSansMono.ttf',
+						'B'  => 'DejaVuSansMono-Bold.ttf',
+						'I'  => 'DejaVuSansMono-Oblique.ttf',
+						'BI' => 'DejaVuSansMono-BoldOblique.ttf',
+					),
+					'dejavuserifcondensed' => array(
+						'R'  => 'DejaVuSerif.ttf',
+						'B'  => 'DejaVuSerif-Bold.ttf',
+						'I'  => 'DejaVuSerif-Italic.ttf',
+						'BI' => 'DejaVuSerif-BoldItalic.ttf',
+					),
+					'dejavusanscondensed' => array(
+						'R'  => 'DejaVuSans.ttf',
+						'B'  => 'DejaVuSans-Bold.ttf',
+						'I'  => 'DejaVuSans-Oblique.ttf',
+						'BI' => 'DejaVuSans-BoldOblique.ttf',
+					),
+					// Sun-ExtA / Sun-ExtB are mPDF's auto-selected fonts
+					// for CJK and SIP characters (see
+					// LanguageToFont::getLanguageOptions which maps
+					// Chinese / Korean / Japanese to 'sun-exta'). The
+					// build script's `font_excludes` prunes the TTF
+					// files, so any HTML containing CJK text crashes
+					// the export with `Cannot find TTF TrueType font
+					// file Sun-ExtA.ttf`. Re-pin to DejaVuSans (the
+					// widest-coverage shipped font). Characters DejaVu
+					// doesn't cover render as mPDF's internal "?"
+					// tofu, but the export no longer crashes.
+					'sun-exta' => array(
+						'R'  => 'DejaVuSans.ttf',
+						'B'  => 'DejaVuSans-Bold.ttf',
+						'I'  => 'DejaVuSans-Oblique.ttf',
+						'BI' => 'DejaVuSans-BoldOblique.ttf',
+					),
+					'sun-extb' => array(
+						'R'  => 'DejaVuSans.ttf',
+						'B'  => 'DejaVuSans-Bold.ttf',
+						'I'  => 'DejaVuSans-Oblique.ttf',
+						'BI' => 'DejaVuSans-BoldOblique.ttf',
+					),
 				)
 			),
 			// Pin the mPDF automatic substitution chain to fonts we actually
@@ -805,17 +869,58 @@ class SScribe_PDF_Exporter implements SScribe_Exporter_Interface {
 			'backupSubsFont'   => array( 'freeserif' ),
 			'backupSIPFont'    => null,
 			'isRemoteEnabled'  => true,
-			'fonttrans'        => $is_rtl ? array(
-				'dejavu sans'     => $rtl_arabic_font,
-				'dejavusans'      => $rtl_arabic_font,
-				'arial'           => $rtl_arabic_font,
-				'amiri'           => $rtl_arabic_font,
-				'xbriyaz'         => $xbriyaz_available ? 'xbriyaz' : $rtl_arabic_font,
-				'lateef'          => $rtl_arabic_font,
-				'times new roman' => $rtl_arabic_font,
-				'serif'           => $rtl_arabic_font,
-				'sans-serif'      => $rtl_arabic_font,
-			) : array(),
+			// CSS-keyword remap. mPDF's setCSS resolves `font-family: serif`
+			// (or `times new roman`, `georgia`, `arial`, etc.) by walking its
+			// built-in `serif_fonts` / `sans_fonts` chains whose first entries
+			// are `dejavuserifcondensed` / `dejavusanscondensed` — TTFs the
+			// release ZIP does not ship (see scripts/build-release.php
+			// `font_excludes`). Without this remap, any WordPress page that
+			// uses default theme CSS (`font-family: serif` is in Twenty* core)
+			// crashes the export with `MpdfException: Cannot find TTF TrueType
+			// font file "DejaVuSerifCondensed.ttf"`. Pin to fonts we DO ship.
+			//
+			// This remap is unconditional — the previous RTL-only mapping
+			// left non-RTL pages exposed to the same crash, just on the
+			// CSS-resolution path instead of the backup-substitution path.
+			// The original 2026-06-24 report (`DejaVuSansCondensed.ttf`) hit
+			// the backup path; this remap closes the CSS-keyword path that
+			// was latent in the same release.
+			'fonttrans'        => array_merge(
+				array(
+					// CSS generic families — primary trigger.
+					'serif'           => $is_rtl ? $rtl_arabic_font : 'freeserif',
+					'sans-serif'      => $is_rtl ? $rtl_arabic_font : 'freesans',
+					'monospace'       => 'freemono',
+					// Common CSS named families that walk the *_fonts chain
+					// to the same pruned DejaVu*Condensed entries.
+					'times'           => $is_rtl ? $rtl_arabic_font : 'freeserif',
+					'times new roman' => $is_rtl ? $rtl_arabic_font : 'freeserif',
+					'georgia'         => $is_rtl ? $rtl_arabic_font : 'freeserif',
+					'palatino'        => $is_rtl ? $rtl_arabic_font : 'freeserif',
+					'cambria'         => $is_rtl ? $rtl_arabic_font : 'freeserif',
+					'garamond'        => $is_rtl ? $rtl_arabic_font : 'freeserif',
+					'bookman'         => $is_rtl ? $rtl_arabic_font : 'freeserif',
+					'arial'           => $is_rtl ? $rtl_arabic_font : 'freesans',
+					'helvetica'       => $is_rtl ? $rtl_arabic_font : 'freesans',
+					'verdana'         => $is_rtl ? $rtl_arabic_font : 'freesans',
+					'tahoma'          => $is_rtl ? $rtl_arabic_font : 'freesans',
+					'trebuchet'       => $is_rtl ? $rtl_arabic_font : 'freesans',
+					'trebuchet ms'    => $is_rtl ? $rtl_arabic_font : 'freesans',
+					'lucida'          => $is_rtl ? $rtl_arabic_font : 'freesans',
+					'lucida sans'     => $is_rtl ? $rtl_arabic_font : 'freesans',
+					'courier'         => 'freemono',
+					'courier new'     => 'freemono',
+					'monaco'          => 'freemono',
+					'consolas'        => 'freemono',
+				),
+				$is_rtl ? array(
+					'dejavu sans'     => $rtl_arabic_font,
+					'dejavusans'      => $rtl_arabic_font,
+					'amiri'           => $rtl_arabic_font,
+					'xbriyaz'         => $xbriyaz_available ? 'xbriyaz' : $rtl_arabic_font,
+					'lateef'          => $rtl_arabic_font,
+				) : array()
+			),
 			'mode'             => 'utf-8',
 			'default_font'     => $is_rtl ? $rtl_arabic_font : 'freeserif',
 			'useOTL'           => 0xFF,
