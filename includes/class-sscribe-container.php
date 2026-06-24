@@ -9,8 +9,6 @@
 
 declare(strict_types=1);
 
-use Psr\Container\ContainerInterface;
-
 if ( ! defined( 'ABSPATH' ) ) {
 	exit;
 }
@@ -19,14 +17,22 @@ require_once __DIR__ . '/class-sscribe-container-exception.php';
 require_once __DIR__ . '/class-sscribe-container-notfound-exception.php';
 
 /**
- * Dependency injection container implementing PSR-11 ContainerInterface.
+ * Lightweight dependency injection container.
  *
  * This is a thin registry with a singleton lifecycle, used internally to
  * wire up the batch processor, exporters, and helper services. It is
  * **not** a general-purpose DI framework — keep it simple, keep it
- * internal. The interface is exposed so third-party extensions can be
- * written against PSR-11 (`get( $id )`, `has( $id )`) and remain
- * portable across PSR-11 containers.
+ * internal.
+ *
+ * The public surface (`get( $id )`, `has( $id )`) is intentionally
+ * compatible in shape with the PSR-11 `ContainerInterface` so third-party
+ * extensions written against PSR-11 can adapt to it, but the container
+ * does not `implements` the PSR-11 interface. The shipped plugin cannot
+ * rely on a Composer autoloader for the `Psr\Container` namespace
+ * (WordPress loads plugins without one), so a literal `implements`
+ * clause would fatal at activation. Callers wanting strict PSR-11
+ * compatibility can wrap any `SScribe_Container` in their own thin
+ * adapter.
  *
  * ## Resolution rules
  *
@@ -40,25 +46,15 @@ require_once __DIR__ . '/class-sscribe-container-notfound-exception.php';
  *    so they can resolve sibling services.
  *  - Circular dependencies throw {@see SScribe_Container_Exception}.
  *  - Unknown service IDs throw {@see SScribe_Container_NotFound_Exception}.
- *
- * ## Why PSR-11
- *
- *  - Interop with Pimple, PHP-DI, Symfony DI, and the dozens of WP
- *    plugins that already type-hint `ContainerInterface`.
- *  - Removes the need for a custom "register_services" knowledge of
- *    the container's internal layout (see `extension-points.md`).
- *  - Makes the container usable from PSR-11-aware middleware (e.g.
- *    a future REST controller that needs the same session manager
- *    the AJAX handlers use).
+ *  - Both exception classes extend `\RuntimeException` directly, so
+ *    generic `\RuntimeException` catches work for backwards compatibility.
  *
  * @package SScribe_Export_Site_Pages
  * @subpackage Container
  * @since   1.1.1
  * @api     stable
- *
- * @see     https://www.php-fig.org/psr/psr-11/ PSR-11: Container Interface
  */
-final class SScribe_Container implements ContainerInterface {
+final class SScribe_Container {
 
 	/**
 	 * Container singleton instance.

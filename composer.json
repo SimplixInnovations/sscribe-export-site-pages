@@ -75,7 +75,8 @@
             "classmap_prefix": "SScribeVendor_",
             "packages": [
                 "mpdf/mpdf",
-                "phpoffice/phpword"
+                "phpoffice/phpword",
+                "psr/container"
             ],
             "delete_vendor_packages": false,
             "exclude_constants": []

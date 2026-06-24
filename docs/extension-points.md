@@ -246,18 +246,15 @@ $session->delete( $id );
   classes (`SScribe_Audit_Trail`, `SScribe_Export_Stats`) are the
   only supported entry points.
 
-## Service container (PSR-11)
+## Service container
 
-`SScribe_Container` implements the PSR-11 `ContainerInterface`. This
-is the stable entry point for extension plugins that need to
-collaborate with SScribe's internal services (e.g. the session
+`SScribe_Container` is SScribe's internal dependency-injection
+registry. This is the stable entry point for extension plugins that
+need to collaborate with SScribe's services (e.g. the session
 manager, rate limiter, or exporters) without depending on the
 container's internal layout:
 
 ```php
-use Psr\Container\ContainerInterface;
-use SScribe\SScribe_Container;
-
 $container = SScribe_Container::instance();
 
 if ( $container->has( SScribe_Session::class ) ) {
@@ -269,12 +266,18 @@ if ( $container->has( SScribe_Session::class ) ) {
 Lookup-then-resolve (`has()` + `get()`) is the safe pattern — service
 registration is optional and may differ between the free and premium
 distributions. Missing services throw
-`SScribe_Container_NotFound_Exception` (which implements
-`Psr\Container\NotFoundExceptionInterface`); other container errors
-throw `SScribe_Container_Exception` (which implements
-`Psr\Container\ContainerExceptionInterface`). Both extend
-`\RuntimeException`, so generic `\RuntimeException` catches still
-work for backwards compatibility.
+`SScribe_Container_NotFound_Exception`; other container errors throw
+`SScribe_Container_Exception`. Both extend `\RuntimeException` directly.
+
+> **Note:** the public surface (`get( $id )`, `has( $id )`) is
+> intentionally compatible in shape with the PSR-11
+> `ContainerInterface` so PSR-11-aware code can adapt to it, but
+> `SScribe_Container` does not `implements` the PSR-11 interface
+> directly. The shipped plugin has no Composer autoloader for the
+> `Psr\Container` namespace on production WordPress installs, so a
+> literal `implements` clause would fatal at activation. Extension
+> code that needs strict PSR-11 typing can wrap the container in
+> a one-line adapter.
 
 The container itself is intentionally a thin registry, not a general
 DI framework. Do not depend on its internal binding layout or its
