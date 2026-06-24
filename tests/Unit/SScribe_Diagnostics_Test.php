@@ -258,4 +258,50 @@ $sections            = array(
 
 		$this->assertStringContainsStringIgnoringCase( 'debug', $result );
 	}
+
+	/**
+	 * Regression: shipped mPDF ships 17 font files; the MIN_MPDF_FONT_COUNT
+	 * floor must accept healthy installs. Previously 40 → false-positive on
+	 * every install because the build script deliberately prunes a chunk of
+	 * the upstream font set.
+	 */
+	public function test_min_mpdf_font_count_accepts_shipped_vendor_tree(): void {
+		$const = new \ReflectionClass( SScribe_Diagnostics::class );
+		$value = $const->getConstant( 'MIN_MPDF_FONT_COUNT' );
+
+		$this->assertIsInt( $value );
+
+		// The shipped vendor tree has 17 files (16 TTF + DejaVuinfo.txt).
+		// The floor MUST be <= 17 or every install reports a false-positive
+		// "mPDF fonts incomplete" warning.
+		$this->assertLessThanOrEqual(
+			17,
+			$value,
+			'MIN_MPDF_FONT_COUNT is higher than the shipped font file count; '
+			. 'this causes a false-positive warning on every install.'
+		);
+	}
+
+	/**
+	 * Regression: the shipped vendor-prefixed tree does NOT include
+	 * phpoffice/phpword/composer.json (it is pruned by scripts/build-release.php),
+	 * so the version-lookup branch in check_phpword() is dead code. The
+	 * fallback "PHPWord loaded" message is the only branch that should fire
+	 * in production.
+	 */
+	public function test_check_phpword_does_not_probe_pruned_composer_json(): void {
+		$method = new \ReflectionMethod( SScribe_Diagnostics::class, 'check_phpword' );
+
+		$result = $method->invoke( $this->diagnostics );
+
+		// PHPWord class is loaded in the test bootstrap via the prefixed
+		// autoloader. If the class exists, the only message the function
+		// should produce is the "PHPWord loaded" fallback — the
+		// composer.json version probe is dead in production.
+		if ( class_exists( '\\SScribeVendor\\PhpOffice\\PhpWord\\PhpWord' ) ) {
+			$this->assertSame( 'PHPWord loaded — XML encoding handled natively by library', $result['message'] );
+		} else {
+			$this->assertSame( 'error', $result['status'] );
+		}
+	}
 }
