@@ -20,7 +20,17 @@ if ( ! defined( 'ABSPATH' ) ) {
  */
 class SScribe_Diagnostics {
 
-	private const MIN_MPDF_FONT_COUNT = 40;
+	/**
+	 * Minimum expected mPDF font files in the shipped vendor tree.
+	 *
+	 * The plugin ships 17 font files in
+	 * vendor-prefixed/mpdf/mpdf/ttfonts/ (16 TTF + DejaVuinfo.txt). A lower
+	 * bound of 15 leaves room for one or two expected file additions without
+	 * firing false-positive warnings on healthy installs. Values higher than
+	 * the shipped count produce a "warning" on every install, which is the
+	 * bug this constant was guarding against.
+	 */
+	private const MIN_MPDF_FONT_COUNT = 15;
 
 	/**
 	 * Logger instance.
@@ -655,28 +665,16 @@ class SScribe_Diagnostics {
 	 * @return array
 	 */
 	private function check_phpword(): array {
+		// Note: composer.json is intentionally pruned from the shipped
+		// vendor-prefixed tree (see scripts/build-release.php prune patterns),
+		// so version lookup via the composer.json probe is dead in production.
+		// If a future enhancement needs the bundled PHPWord version, expose it
+		// from the prefixed class loader or a build-time generated manifest.
 		if ( class_exists( '\\SScribeVendor\\PhpOffice\\PhpWord\\PhpWord' ) ) {
-			$phpword_composer_file = SSCRIBE_PLUGIN_DIR . 'vendor-prefixed/phpoffice/phpword/composer.json';
-			if ( file_exists( $phpword_composer_file ) && is_readable( $phpword_composer_file ) ) {
-				// phpcs:ignore WordPress.WP.AlternativeFunctions.file_get_contents_file_get_contents -- Safe: reading a local composer.json from plugin directory.
-				$raw_json        = file_get_contents( $phpword_composer_file );
-				$composer_data   = is_string( $raw_json ) ? json_decode( $raw_json, true ) : null;
-				$bundled_version = ( is_array( $composer_data ) && isset( $composer_data['version'] ) ) ? $composer_data['version'] : 'unknown';
-
-				return array(
-					'name'    => 'PHPWord Library',
-					'status'  => 'ok',
-					'message' => sprintf(
-						'PHPWord %s — XML encoding handled natively by library',
-						$bundled_version
-					),
-				);
-			}
-
 			return array(
 				'name'    => 'PHPWord Library',
 				'status'  => 'ok',
-				'message' => 'PHPWord loaded',
+				'message' => 'PHPWord loaded — XML encoding handled natively by library',
 			);
 		}
 
