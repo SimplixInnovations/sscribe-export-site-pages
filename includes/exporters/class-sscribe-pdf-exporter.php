@@ -780,6 +780,30 @@ class SScribe_PDF_Exporter implements SScribe_Exporter_Interface {
 					),
 				)
 			),
+			// Pin the mPDF automatic substitution chain to fonts we actually
+			// ship. mPDF's defaults (`dejavusanscondensed`, `freesans`,
+			// `sun-exta`, and `sun-extb` for backupSIPFont) include several
+			// TTFs that are not in the release ZIP — see
+			// scripts/build-release.php `font_excludes`. If a page contains a
+			// character the active font can't render, mPDF would try to load
+			// the first backup font, fail to find the TTF, and throw an
+			// `MpdfException: Cannot find TTF TrueType font file ... in
+			// configured font directories.` (reported 2026-06-24 with
+			// `DejaVuSansCondensed.ttf`).
+			//
+			// We pin `backupSubsFont` to `['freeserif']` — which IS shipped
+			// (FreeSerif.ttf covers Latin, Cyrillic, Greek, Vietnamese, and a
+			// wide swath of IPA, so the vast majority of "missing glyph" cases
+			// now resolve to a working font). Characters that FreeSerif also
+			// doesn't cover (CJK, complex Indic, etc.) silently render as mPDF's
+			// internal "?" tofu, but the PDF export no longer crashes.
+			//
+			// `backupSIPFont` is the SIP/Plane-2 fallback used for characters
+			// above U+20000. mPDF defaults to `sun-extb`, which is also not
+			// shipped. Setting it to `null` disables the SIP fallback entirely
+			// — the same "?" behavior applies for those rare characters.
+			'backupSubsFont'   => array( 'freeserif' ),
+			'backupSIPFont'    => null,
 			'isRemoteEnabled'  => true,
 			'fonttrans'        => $is_rtl ? array(
 				'dejavu sans'     => $rtl_arabic_font,
