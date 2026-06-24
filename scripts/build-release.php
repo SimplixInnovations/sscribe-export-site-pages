@@ -59,6 +59,13 @@ $config = array(
 
 	'font_excludes'    => array(
 
+		// Sun-ExtA / Sun-ExtB — mPDF's auto-selected fonts for CJK and
+		// SIP characters (LanguageToFont::getLanguageOptions maps Chinese
+		// / Korean / Japanese to 'sun-exta'). The PDF exporter remaps
+		// these fontdata entries to DejaVuSans so the export does not
+		// crash on CJK content; characters DejaVu does not cover render
+		// as '?' tofu but the PDF still writes. UnBatang is the Korean
+		// CJK fallback; same treatment.
 		'Sun-ExtA.ttf', 'Sun-ExtB.ttf', 'UnBatang_0613.ttf', 'Aegyptus.otf',
 		'Aegean.otf', 'Akkadian.otf', 'Jomolhari.ttf', 'KhmerOS.ttf',
 		'Abyssinica_SIL.ttf', 'AboriginalSansREGULAR.ttf', 'Padauk-book.ttf',
@@ -100,11 +107,15 @@ $config = array(
 		'ocrb10.ttf', 'ocrbinfo.txt',
 
 		// DejaVu Condensed — the Regular/Bold/Italic/BoldItalic faces of
-		// DejaVu Sans/Serif are still kept (the LTR Latin baseline), but
-		// the Condensed variants are only referenced by fontdata entries
-		// no production code ever selects. mPDF's fonttrans for RTL
-		// pages rewrites "dejavu sans" to the active RTL font, so even
-		// on LTR pages the Condensed family is never opened.
+		// DejaVu Sans/Serif are still kept (the LTR Latin baseline). The
+		// Condensed variants are referenced by mPDF's default fontdata
+		// entries (dejavusanscondensed, dejavuserifcondensed) and sit at
+		// the head of the sans_fonts / serif_fonts chain — the chain mPDF
+		// walks when CSS specifies `font-family: serif` or any name that
+		// resolves through the generic families. The PDF exporter remaps
+		// those fontdata entries to the non-condensed DejaVu faces (see
+		// build_mpdf_config in includes/exporters/class-sscribe-pdf-exporter.php),
+		// so the Condensed TTFs are never opened.
 		'DejaVuSansCondensed.ttf', 'DejaVuSansCondensed-Bold.ttf',
 		'DejaVuSansCondensed-Oblique.ttf', 'DejaVuSansCondensed-BoldOblique.ttf',
 		'DejaVuSerifCondensed.ttf', 'DejaVuSerifCondensed-Bold.ttf',
@@ -112,10 +123,14 @@ $config = array(
 
 		// FreeSans + FreeMono — the LTR baseline is FreeSerif (wired into
 		// mPDF config as 'default_font' for LTR and as the fallback in the
-		// RTL fonttrans). FreeSans and FreeMono are never selected by any
-		// production CSS or fontdata reference. GNUFreeFontinfo.txt is the
-		// shared license for all three families; drop it once both
-		// siblings are excluded.
+		// RTL fonttrans). FreeSans and FreeMono ARE referenced by mPDF's
+		// default fontdata entries (freesans, freemono) and would be
+		// auto-selected when CSS specifies `font-family: sans-serif` or
+		// `font-family: monospace` — the PDF exporter remaps those
+		// fontdata entries to the shipped DejaVu Sans / DejaVu SansMono
+		// faces (see build_mpdf_config). GNUFreeFontinfo.txt is the shared
+		// license for all three families; drop it once both siblings are
+		// excluded.
 		'FreeSans.ttf', 'FreeSansBold.ttf', 'FreeSansBoldOblique.ttf', 'FreeSansOblique.ttf',
 		'FreeMono.ttf', 'FreeMonoBold.ttf', 'FreeMonoBoldOblique.ttf', 'FreeMonoOblique.ttf',
 		'GNUFreeFontinfo.txt',
