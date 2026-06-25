@@ -121,7 +121,7 @@ This generates the `vendor-prefixed/` directory and the namespaced runtime shim 
 == Upgrade Notice ==
 
 = 1.1.2 =
-Recommended update for all users. Closes a latent PDF export crash that affected any page with standard theme CSS (e.g. `font-family: serif` in Twenty-series themes). Exports now render successfully for English / Arabic content with full theme CSS; characters outside DejaVu's coverage render as `?` tofu but no longer crash the export.
+Recommended update: closes a latent PDF crash that affected pages with standard theme CSS. Exports now render successfully for English/Arabic content; out-of-coverage chars render as ? tofu but no longer crash.
 
 = 1.1.1 =
 Maintenance release: batch processing reliability improvements, crash recovery for interrupted exports, RTL formatting enhancements, and AJAX/security hardening.
