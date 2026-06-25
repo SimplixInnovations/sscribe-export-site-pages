@@ -84,6 +84,7 @@ $sscribe_cleanup_site = static function (): void {
 	delete_option( 'sscribe_export_index' );
 	delete_option( 'sscribe_export_metrics' );
 	global $wpdb;
+	// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- Cleanup during uninstall.
 	$wpdb->query(
 		$wpdb->prepare(
 			"DELETE FROM {$wpdb->options} WHERE option_name LIKE %s",
