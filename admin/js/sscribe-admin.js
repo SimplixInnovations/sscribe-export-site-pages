@@ -310,14 +310,24 @@
 			// Keyboard shortcuts + modal escape handling.
 			$(document).on('keydown.sscribe', function (e) {
 				if (e.key === 'Escape' || e.key === 'Esc') {
-					const $previewPanel = $('#sscribe-preview-panel');
-					const $logModal = $('#sscribe-log-modal');
+					// Don't hijack Escape inside form fields — let the
+					// browser cancel IME composition, clear selection,
+					// or otherwise handle native behaviour. Only the
+					// preflight banner is dismissed from anywhere.
+					const tag = e.target && e.target.tagName;
+					const inField = tag === 'INPUT' || tag === 'TEXTAREA' || (e.target && e.target.isContentEditable);
+
 					const $preflight = $('.sscribe-preflight-banner');
 					if ($preflight.length) {
 						e.preventDefault();
 						$preflight.find('.sscribe-preflight-close').trigger('click');
 						return;
 					}
+					if (inField) {
+						return;
+					}
+					const $previewPanel = $('#sscribe-preview-panel');
+					const $logModal = $('#sscribe-log-modal');
 					if ($previewPanel.length && !$previewPanel.hasClass('sscribe-hidden')) {
 						e.preventDefault();
 						self.closePreview();
@@ -1189,6 +1199,12 @@
 						SScribe.showProgress();
 						SScribe.sessionId = response.data.session_id;
 						SScribe.updateStatus(response.data.message);
+						if (response.data.partial_export) {
+							SScribe.showWarning(
+								response.data.partial_export_message,
+								false
+							);
+						}
 						SScribe.processBatch();
 					} else {
 						SScribe.showError(response.data.message, false, SScribe.normalizeErrorData(response.data));
@@ -2116,7 +2132,6 @@
 			const icon = icons[type] || '&#9432;';
 			const isAssertive = type === 'error' || type === 'warning';
 			const role = isAssertive ? 'alert' : 'status';
-			const ariaLive = isAssertive ? 'assertive' : 'polite';
 			const dismissLabel =
 				(sscribe_data.strings && sscribe_data.strings.dismiss_notification) || 'Dismiss notification';
 
@@ -2135,8 +2150,6 @@
 					type +
 					'" role="' +
 					role +
-					'" aria-live="' +
-					ariaLive +
 					'" aria-atomic="true">' +
 					'<span class="sscribe-toast-icon">' +
 					icon +
@@ -3066,6 +3079,41 @@
 
 			$('#sscribe-error-area').removeClass('sscribe-hidden').hide().fadeIn(300);
 			$('#sscribe-export-btn, #sscribe-preview-btn').prop('disabled', false);
+		},
+
+		/**
+		 * Show a non-fatal warning toast.
+		 *
+		 * @param {string} message Warning message.
+		 * @param {boolean} isHtml Whether the message is HTML.
+		 */
+		showWarning: function (message, isHtml) {
+			const alertRegion = document.getElementById('sscribe-alert-region');
+			if (alertRegion) {
+				alertRegion.textContent = '';
+				alertRegion.textContent = message;
+			}
+			const $toast = $(
+				'<div class="notice notice-warning sscribe-toast" role="status">' +
+					'<p></p>' +
+				'</div>'
+			);
+			if (isHtml) {
+				$toast.find('p').html(message);
+			} else {
+				$toast.find('p').text(message);
+			}
+			const $container = $('#sscribe-toast-container');
+			if ($container.length) {
+				$container.append($toast);
+			} else {
+				$('body').append($toast);
+			}
+			setTimeout(function () {
+				$toast.fadeOut(300, function () {
+					$(this).remove();
+				});
+			}, 8000);
 		},
 
 		/**
