@@ -4,7 +4,7 @@ Donate link: https://simplixi.com
 Tags: export, docx, pdf, html, markdown
 Requires at least: 6.0
 Tested up to: 7.0
-Stable tag: 1.1.1
+Stable tag: 1.1.2
 Requires PHP: 8.2
 License: GPLv2 or later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
@@ -82,6 +82,9 @@ The bundled Amiri font family (assets/fonts/amiri/) is licensed under the SIL Op
 
 == Changelog ==
 
+= 1.1.2 =
+* Fixed latent PDF export crash: WordPress themes ship base CSS with `font-family: serif`; mPDF's chain resolution tried to load pruned DejaVu*Condensed / FreeSans / Sun-ExtA TTFs and crashed. fonttrans remap and fontdata overrides close the CSS-keyword, fontdata-entry, and backup-substitution paths on the same crash class.
+
 = 1.1.1 =
 * Fixed PHPCS warnings across all files
 * Improved batch processing reliability
@@ -113,6 +116,9 @@ If you cloned the repository directly, you must run the following once before ac
 This generates the `vendor-prefixed/` directory and the namespaced runtime shim that the plugin depends on. The `.distignore` file excludes both `vendor/` and `vendor-prefixed/` from Git tracking, so a fresh clone will not include them.
 
 == Upgrade Notice ==
+
+= 1.1.2 =
+Recommended update for all users. Closes a latent PDF export crash that affected any page with standard theme CSS (e.g. `font-family: serif` in Twenty-series themes). Exports now render successfully for English / Arabic content with full theme CSS; characters outside DejaVu's coverage render as `?` tofu but no longer crash the export.
 
 = 1.1.1 =
 Maintenance release: batch processing reliability improvements, crash recovery for interrupted exports, RTL formatting enhancements, and AJAX/security hardening.
