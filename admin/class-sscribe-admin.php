@@ -559,13 +559,16 @@ class SScribe_Admin {
 		$upload_dir = wp_upload_dir();
 		$export_dir = trailingslashit( $upload_dir['basedir'] ) . 'sscribe-exports/';
 
-		$sscribe_export_index = get_option( 'sscribe_export_index', array() );
-		if ( ! is_array( $sscribe_export_index ) ) {
-			$sscribe_export_index = array();
+		$sscribe_export_index = array();
+		$sscribe_export_rows  = array();
+		if ( class_exists( 'SScribe_Zip_Handler' ) ) {
+			$sscribe_zip_handler  = SScribe_Container::instance()->get( SScribe_Zip_Handler::class );
+			$sscribe_export_rows  = $sscribe_zip_handler->list_export_entries();
+			$sscribe_export_index = array_keys( $sscribe_export_rows );
 		}
 
 		$sscribe_recent_exports = ! empty( $sscribe_export_index )
-			? $this->build_recent_exports( $sscribe_export_index, $export_dir, $sscribe_wpml_active, $sscribe_languages, get_current_user_id() )
+			? $this->build_recent_exports( $sscribe_export_rows, $export_dir, $sscribe_wpml_active, $sscribe_languages, get_current_user_id() )
 			: array();
 
 		include SSCRIBE_PLUGIN_DIR . 'admin/partials/sscribe-admin-display.php';
