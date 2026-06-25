@@ -748,6 +748,20 @@ class SScribe_PDF_Exporter implements SScribe_Exporter_Interface {
 		$amiri_regular = $this->find_font_file( $amiri_dir, 'amiri[-_]?regular' ) ?? 'Amiri-Regular.ttf';
 		$amiri_bold    = $this->find_font_file( $amiri_dir, 'amiri[-_]?bold' ) ?? 'Amiri-Bold.ttf';
 
+		// DejaVuSans face used for fontdata re-pinning of every TTF
+		// pruned by scripts/build-release.php `font_excludes`. Cached
+		// here so each fontdata override below doesn't repeat the
+		// 4-key array literal. Glyphs outside DejaVu's coverage render
+		// as '?' tofu, but the export does not crash — this is the
+		// contract documented on the existing freesans / freemono /
+		// dejavu*condensed / sun-ext* overrides above.
+		$deja_vu_sans_face = array(
+			'R'  => 'DejaVuSans.ttf',
+			'B'  => 'DejaVuSans-Bold.ttf',
+			'I'  => 'DejaVuSans-Oblique.ttf',
+			'BI' => 'DejaVuSans-BoldOblique.ttf',
+		);
+
 		// xbriyaz detection must include the plugin's own font directory.
 		// The merged fontDir list is built AFTER this check, so scanning only
 		// mPDF's default fontDirs would miss an xbriyaz.ttf shipped with the
@@ -842,6 +856,69 @@ class SScribe_PDF_Exporter implements SScribe_Exporter_Interface {
 						'I'  => 'DejaVuSans-Oblique.ttf',
 						'BI' => 'DejaVuSans-BoldOblique.ttf',
 					),
+					// The fontdata entries below all point at TTFs that
+					// scripts/build-release.php `font_excludes` removes from
+					// the release ZIP. mPDF's fontdata key is also a valid
+					// family name — mPDF's SetFont chain walker picks the
+					// first name in serif_fonts / sans_fonts / mono_fonts
+					// that ALSO appears in available_unifonts, which is
+					// built from the fontdata keys. So even if a fonttrans
+					// remap rewrites the CSS name, the family-name chain
+					// can still resolve the original key, AddFont will
+					// then look up the TTF listed in the fontdata entry,
+					// and the export crashes with `Cannot find TTF
+					// TrueType font file ... in configured font
+					// directories.` for ANY character class that the
+					// active font can't render and the chain walks
+					// through. (The 2026-06-24 DejaVuSansCondensed.ttf
+					// report was the same class; this closes every
+					// fontdata entry whose TTF is excluded.)
+					//
+					// Pin to DejaVuSans (the widest-coverage shipped
+					// font: Latin, Cyrillic, Greek, Vietnamese, IPA).
+					// Glyphs outside DejaVu's coverage render as mPDF's
+					// internal '?' tofu, but the export no longer
+					// crashes. The named family is preserved in the
+					// fonttrans map so any HTML that explicitly asks
+					// for, e.g. 'Estrangelo Edessa' is rewritten to
+					// 'freeserif' before the family-name chain walker
+					// runs.
+					'ocrb'              => $deja_vu_sans_face,
+					'estrangeloedessa'  => $deja_vu_sans_face,
+					'kaputaunicode'     => $deja_vu_sans_face,
+					'abyssinicasil'     => $deja_vu_sans_face,
+					'aboriginalsans'    => $deja_vu_sans_face,
+					'jomolhari'         => $deja_vu_sans_face,
+					'sundaneseunicode'  => $deja_vu_sans_face,
+					'taiheritagepro'    => $deja_vu_sans_face,
+					'aegean'            => $deja_vu_sans_face,
+					'aegyptus'          => $deja_vu_sans_face,
+					'akkadian'          => $deja_vu_sans_face,
+					'quivira'           => $deja_vu_sans_face,
+					'eeyekunicode'      => $deja_vu_sans_face,
+					'lannaalif'         => $deja_vu_sans_face,
+					'daibannasilbook'   => $deja_vu_sans_face,
+					'garuda'            => $deja_vu_sans_face,
+					'khmeros'           => $deja_vu_sans_face,
+					'dhyana'            => $deja_vu_sans_face,
+					'tharlon'           => $deja_vu_sans_face,
+					'padaukbook'        => $deja_vu_sans_face,
+					'zawgyi-one'        => $deja_vu_sans_face,
+					'ayar'              => $deja_vu_sans_face,
+					'taameydavidclm'    => $deja_vu_sans_face,
+					'mph2bdamase'       => $deja_vu_sans_face,
+					'lohitkannada'      => $deja_vu_sans_face,
+					'pothana2000'       => $deja_vu_sans_face,
+					// xbriyaz / lateef — their fontdata entries point at
+					// TTFs the build script prunes. The fonttrans map
+					// already rewrites the CSS name to the active RTL
+					// font, but the family-name chain walker can still
+					// resolve these names through the available_unifonts
+					// intersection (same class as the DejaVu*Condensed
+					// crash). Pin the fontdata entries to DejaVuSans so
+					// AddFont never looks for the pruned TTF.
+					'xbriyaz'           => $deja_vu_sans_face,
+					'lateef'            => $deja_vu_sans_face,
 				)
 			),
 			// Pin the mPDF automatic substitution chain to fonts we actually
