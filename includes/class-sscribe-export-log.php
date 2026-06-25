@@ -358,12 +358,15 @@ class SScribe_Export_Log {
 		$this->flush();
 
 		if ( ! empty( $data['zip_file'] ) ) {
-			// Set transient for fast lookup (30 day expiry).
 			$index_key = 'sscribe_zip_index_' . md5( $data['zip_file'] );
-			set_transient( $index_key, $this->session_id, 30 * DAY_IN_SECONDS );
+			// Prefer the object cache so the row does not bloat wp_options
+			// on hosts that lack persistent object cache. The persistent
+			// option below is the durable fallback.
+			wp_cache_set( $index_key, $this->session_id, 'sscribe_zip_index', 30 * DAY_IN_SECONDS );
 
-			// Also set a persistent option-based reverse index for fallback when transient expires.
-			// This prevents O(n) file scans when the transient is cleared.
+			// Persistent option-based reverse index for fallback when the
+			// object cache is cold or unavailable. Without this we would
+			// fall back to an O(n) file scan on every cache miss.
 			update_option( 'sscribe_log_zip_' . md5( $data['zip_file'] ), $this->session_id, false );
 		}
 	}
@@ -515,9 +518,12 @@ class SScribe_Export_Log {
 			return null;
 		}
 
-		// First try transient cache for fast lookup.
+		// First try object cache for fast lookup.
 		$index_key  = 'sscribe_zip_index_' . md5( $filename );
-		$session_id = get_transient( $index_key );
+		$session_id = wp_cache_get( $index_key, 'sscribe_zip_index' );
+		if ( false === $session_id ) {
+			$session_id = get_transient( $index_key );
+		}
 
 		if ( false !== $session_id && is_string( $session_id ) ) {
 			$log_file = $log_dir . '/export_' . sanitize_file_name( $session_id ) . '.json';
@@ -537,7 +543,8 @@ class SScribe_Export_Log {
 		$session_id = get_option( $option_key, false );
 
 		if ( false !== $session_id && is_string( $session_id ) ) {
-			// Restore transient for faster subsequent lookups.
+			// Restore object cache + transient for faster subsequent lookups.
+			wp_cache_set( $index_key, $session_id, 'sscribe_zip_index', 30 * DAY_IN_SECONDS );
 			set_transient( $index_key, $session_id, 30 * DAY_IN_SECONDS );
 
 			$log_file = $log_dir . '/export_' . sanitize_file_name( $session_id ) . '.json';
@@ -613,6 +620,7 @@ class SScribe_Export_Log {
 		}
 
 		$index_key = 'sscribe_zip_index_' . md5( $filename );
+		wp_cache_delete( $index_key, 'sscribe_zip_index' );
 		delete_transient( $index_key );
 
 		// Also delete persistent option-based index.
