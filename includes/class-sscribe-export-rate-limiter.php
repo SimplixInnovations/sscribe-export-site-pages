@@ -108,9 +108,29 @@ class SScribe_Export_Rate_Limiter {
 			return false;
 		}
 
-		++$data['count'];
+		$new_count = $data['count'];
+		if ( wp_using_ext_object_cache() ) {
+			$incremented = wp_cache_incr( $transient_key, 1, 'sscribe_rate_limit' );
+			if ( false === $incremented ) {
+				wp_cache_add( $transient_key, 1, 'sscribe_rate_limit', self::RATE_LIMIT_WINDOW + 5 );
+				$new_count = 1;
+			} else {
+				$new_count = (int) $incremented;
+			}
+		} else {
+			++$data['count'];
+			set_transient( $transient_key, $data, self::RATE_LIMIT_WINDOW + 5 );
+			$new_count = $data['count'];
+		}
 
-		set_transient( $transient_key, $data, self::RATE_LIMIT_WINDOW + 5 );
+		if ( $new_count > $rate_limit ) {
+			if ( wp_using_ext_object_cache() ) {
+				wp_cache_delete( $lock_key, '' );
+			} else {
+				delete_transient( $lock_key );
+			}
+			return false;
+		}
 
 		if ( wp_using_ext_object_cache() ) {
 			wp_cache_delete( $lock_key, '' );
