@@ -2,14 +2,15 @@
 /**
  * End-to-end PDF render test for the shipped dist.
  *
- * Boots the plugin with WP stubs, then constructs the same mPDF config
- * the plugin's build_mpdf_config() produces, runs WriteHTML on content
- * containing a 'serif' CSS keyword, and verifies a valid PDF is written.
+ * Boots the plugin with WP stubs, calls the plugin's REAL
+ * build_mpdf_config() (via reflection — it is private) to obtain the
+ * exact same mPDF config production code uses, then runs WriteHTML on
+ * content containing every CSS keyword and a non-Latin character class
+ * the 2026-06-24 / latent crash classes can trigger.
  *
- * The build_mpdf_config() function itself calls SScribe_Security::protect_directory
- * which requires WP's wp-admin/includes/file.php (a real WP runtime dep,
- * not a plugin issue). So we reconstruct the config in the harness, but
- * using the exact same logic, pins, and font directories the plugin ships.
+ * Because the config comes from the plugin's own code, any future change
+ * to fonttrans / fontdata / backupSubsFont / backupSIPFont is automatically
+ * exercised here — no harness-vs-source drift.
  *
  * This is the runtime proof that the activation-time "Cannot find TTF
  * TrueType font file DejaVuSerifCondensed.ttf" crash is gone — because
@@ -39,7 +40,7 @@ $stubs = [
     'load_plugin_textdomain' => '',
     'trailingslashit' => '$_p = $a[0] ?? ""; return rtrim($_p, "/\\\\") . "/";',
     'untrailingslashit' => '$_p = $a[0] ?? ""; return rtrim($_p, "/\\\\");',
-    'wp_upload_dir' => 'return ["basedir" => "/tmp/wp-content/uploads", "baseurl" => "http://x"];',
+    'wp_upload_dir' => 'return ["basedir" => getenv("SSCRIBE_UPLOADS"), "baseurl" => "http://x"];',
     'admin_url' => 'return "http://x/" . ($a[0] ?? "");',
     'home_url' => 'return "http://x";', 'site_url' => 'return "http://x";',
     'get_option' => 'return $a[1] ?? false;', 'update_option' => 'return true;', 'delete_option' => 'return true;',
@@ -104,6 +105,17 @@ $stubs = [
     'is_user_logged_in' => 'return true;', 'is_ssl' => 'return false;',
     'wp_doing_ajax' => 'return false;', 'wp_doing_cron' => 'return false;',
     'wp_check_filetype_and_ext' => 'return ["ext" => "pdf", "type" => "application/pdf", "proper_filename" => false];',
+    // WP_Filesystem + helpers — needed because build_mpdf_config() calls
+    // SScribe_Security::protect_directory() which calls write_file() which
+    // does `if ( ! function_exists( 'WP_Filesystem' ) ) require_once ABSPATH .
+    // 'wp-admin/includes/file.php'`. We pre-define the function so the
+    // require_once is skipped, and we return a stub $wp_filesystem object
+    // that satisfies the put_contents() call. See
+    // includes/class-sscribe-security.php:137-159.
+    'WP_Filesystem' => 'global $wp_filesystem; $wp_filesystem = new class { public function put_contents($p,$c,$m=null){ return file_put_contents($p,(string)$c,LOCK_EX) !== false; } public function rmdir($d){ return @rmdir($d); } public function delete($p){ return @unlink($p); } public function exists($p){ return file_exists($p); } public function is_dir($p){ return is_dir($p); } public function mkdir($p,$chmod=0755,$rec=false){ return @mkdir($p,$chmod,$rec); } public function get_contents($p){ return @file_get_contents($p); } }; return true;',
+    'request_filesystem_credentials' => 'return true;',
+    'wp_tempnam' => 'return tempnam(sys_get_temp_dir(), "sscribe");',
+    'get_temp_dir' => 'return sys_get_temp_dir();',
 ];
 foreach ($stubs as $fn => $body) {
     if (!function_exists($fn)) {
@@ -132,7 +144,10 @@ $outdir  = getenv('SSCRIBE_OUTDIR');
 
 define('ABSPATH', $abspath);
 define('SSCRIBE_DEBUG', false);
-define('SSCRIBE_VERSION', '1.1.1');
+define('SSCRIBE_VERSION', '1.1.2');
+// Note: SSCRIBE_PLUGIN_DIR and SSCRIBE_PLUGIN_URL are defined by the plugin
+// header at the top of sscribe-export-site-pages.php; do not duplicate here.
+define('FS_CHMOD_FILE', 0644);
 define('WP_DEBUG', false);
 define('WP_DEBUG_LOG', false);
 define('WP_CONTENT_DIR', '/tmp/wp-content/');
@@ -146,114 +161,30 @@ define('YEAR_IN_SECONDS', 31536000);
 require_once $shim;
 require_once $main;
 
-// Reconstruct the exact config the plugin's build_mpdf_config produces,
-// minus the WP_Filesystem-protected directory init. The exporter's
-// critical safety pins (default_font=freeserif, backupSubsFont=freeserif,
-// backupSIPFont=null) are preserved verbatim.
-$font_dir  = $abspath . 'assets/fonts/';
-$amiri_dir = $font_dir . 'amiri/';
+// Construct the real PDF exporter and call its real (private)
+// build_mpdf_config() via reflection. This way any future change to the
+// production code's fonttrans / fontdata / backupSubsFont / backupSIPFont
+// pins is automatically exercised here — no harness-vs-source drift.
+$exporter = new \SScribe_PDF_Exporter();
+$build_mpdf_config = (new \ReflectionClass($exporter))->getMethod('build_mpdf_config');
+$build_mpdf_config->setAccessible(true);
+$build_result = $build_mpdf_config->invoke($exporter, false, 0);
 
-$default_config      = ( new \SScribeVendor\Mpdf\Config\ConfigVariables() )->getDefaults();
-$default_font_config = ( new \SScribeVendor\Mpdf\Config\FontVariables() )->getDefaults();
-$font_dirs = $default_config['fontDir'];
-$font_data = $default_font_config['fontdata'];
+if ($build_result instanceof \SScribe_Result && ! $build_result->success) {
+    echo "BUILD_CONFIG_FAILED: " . $build_result->message . "\n";
+    exit(1);
+}
 
-$amiri_available = is_dir( $amiri_dir ) && file_exists( $amiri_dir . 'Amiri-Regular.ttf' );
-
-$is_rtl = false; // English page in this test
-$rtl_arabic_font = $amiri_available ? 'amiri' : 'freeserif';
-$config = array(
-    'fontDir'         => array_merge( $font_dirs, array( $amiri_dir ) ),
-    'fontdata'        => array_replace(
-        $font_data,
-        array(
-            'freesans' => array(
-                'R'  => 'DejaVuSans.ttf',
-                'B'  => 'DejaVuSans-Bold.ttf',
-                'I'  => 'DejaVuSans-Oblique.ttf',
-                'BI' => 'DejaVuSans-BoldOblique.ttf',
-            ),
-            'freemono' => array(
-                'R'  => 'DejaVuSansMono.ttf',
-                'B'  => 'DejaVuSansMono-Bold.ttf',
-                'I'  => 'DejaVuSansMono-Oblique.ttf',
-                'BI' => 'DejaVuSansMono-BoldOblique.ttf',
-            ),
-            'dejavuserifcondensed' => array(
-                'R'  => 'DejaVuSerif.ttf',
-                'B'  => 'DejaVuSerif-Bold.ttf',
-                'I'  => 'DejaVuSerif-Italic.ttf',
-                'BI' => 'DejaVuSerif-BoldItalic.ttf',
-            ),
-            'dejavusanscondensed' => array(
-                'R'  => 'DejaVuSans.ttf',
-                'B'  => 'DejaVuSans-Bold.ttf',
-                'I'  => 'DejaVuSans-Oblique.ttf',
-                'BI' => 'DejaVuSans-BoldOblique.ttf',
-            ),
-            'sun-exta' => array(
-                'R'  => 'DejaVuSans.ttf',
-                'B'  => 'DejaVuSans-Bold.ttf',
-                'I'  => 'DejaVuSans-Oblique.ttf',
-                'BI' => 'DejaVuSans-BoldOblique.ttf',
-            ),
-            'sun-extb' => array(
-                'R'  => 'DejaVuSans.ttf',
-                'B'  => 'DejaVuSans-Bold.ttf',
-                'I'  => 'DejaVuSans-Oblique.ttf',
-                'BI' => 'DejaVuSans-BoldOblique.ttf',
-            ),
-        )
-    ),
-    'backupSubsFont'  => array( 'freeserif' ),
-    'backupSIPFont'   => null,
-    'isRemoteEnabled' => true,
-    'fonttrans'       => array(
-        'serif'           => $is_rtl ? $rtl_arabic_font : 'freeserif',
-        'sans-serif'      => $is_rtl ? $rtl_arabic_font : 'freesans',
-        'monospace'       => 'freemono',
-        'times'           => $is_rtl ? $rtl_arabic_font : 'freeserif',
-        'times new roman' => $is_rtl ? $rtl_arabic_font : 'freeserif',
-        'georgia'         => $is_rtl ? $rtl_arabic_font : 'freeserif',
-        'palatino'        => $is_rtl ? $rtl_arabic_font : 'freeserif',
-        'cambria'         => $is_rtl ? $rtl_arabic_font : 'freeserif',
-        'garamond'        => $is_rtl ? $rtl_arabic_font : 'freeserif',
-        'bookman'         => $is_rtl ? $rtl_arabic_font : 'freeserif',
-        'arial'           => $is_rtl ? $rtl_arabic_font : 'freesans',
-        'helvetica'       => $is_rtl ? $rtl_arabic_font : 'freesans',
-        'verdana'         => $is_rtl ? $rtl_arabic_font : 'freesans',
-        'tahoma'          => $is_rtl ? $rtl_arabic_font : 'freesans',
-        'trebuchet'       => $is_rtl ? $rtl_arabic_font : 'freesans',
-        'trebuchet ms'    => $is_rtl ? $rtl_arabic_font : 'freesans',
-        'lucida'          => $is_rtl ? $rtl_arabic_font : 'freesans',
-        'lucida sans'     => $is_rtl ? $rtl_arabic_font : 'freesans',
-        'courier'         => 'freemono',
-        'courier new'     => 'freemono',
-        'monaco'          => 'freemono',
-        'consolas'        => 'freemono',
-    ),
-    'mode'            => 'utf-8',
-    'default_font'    => $is_rtl ? $rtl_arabic_font : 'freeserif',
-    'useOTL'          => 0xFF,
-    'useKashida'      => 75,
-    'OTLhelper'       => true,
-    'autoArabic'      => true,
-    'autoScriptToLang'=> true,
-    'autoLangToFont'  => true,
-    'orientation'     => 'P',
-    'margin_left'     => 15,
-    'margin_right'    => 15,
-    'margin_top'      => 15,
-    'margin_bottom'   => 15,
-    'tempDir'         => $outdir,
-    'debug'           => false,
-);
+$config         = $build_result['config'];
+$amiri_available = $build_result['amiri_available'];
 
 echo "DEFAULT_FONT=" . $config['default_font'] . "\n";
 echo "BACKUP_SUBS=" . json_encode($config['backupSubsFont']) . "\n";
 echo "BACKUP_SIP=" . var_export($config['backupSIPFont'], true) . "\n";
 echo "AMIRI_AVAILABLE=" . ($amiri_available ? 'YES' : 'NO') . "\n";
 echo "FONT_DIR_COUNT=" . count($config['fontDir']) . "\n";
+echo "FONTDATA_KEYS=" . implode(',', array_keys($config['fontdata'])) . "\n";
+echo "FONTTRANS_KEYS=" . implode(',', array_keys($config['fonttrans'])) . "\n";
 
 try {
 $mpdf = new \SScribeVendor\Mpdf\Mpdf($config);
@@ -336,6 +267,11 @@ file_put_contents($harness_path, $harness);
 
 $outdir = sys_get_temp_dir() . '/sscribe-e2e-out-' . md5($root);
 @mkdir($outdir, 0755, true);
+// Upload dir must be writable so build_mpdf_config()'s wp_mkdir_p($mpdf_temp)
+// succeeds and the tempDir scan finds writable directories. The harness's
+// wp_upload_dir() stub reads SSCRIBE_UPLOADS and returns it as basedir.
+$uploads = sys_get_temp_dir() . '/sscribe-e2e-up-' . md5($root);
+@mkdir($uploads, 0755, true);
 $shim = $root . '/includes/sscribe-prefixed-runtime-shim.php';
 $main = $root . '/sscribe-export-site-pages.php';
 
@@ -344,6 +280,7 @@ $env = [
     'SSCRIBE_SHIM'    => $shim,
     'SSCRIBE_MAIN'    => $main,
     'SSCRIBE_OUTDIR'  => $outdir,
+    'SSCRIBE_UPLOADS' => $uploads,
     'PATH'            => getenv('PATH'),
 ];
 foreach ($env as $k => $v) {
