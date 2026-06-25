@@ -1,6 +1,6 @@
 <?php
 /**
- * Runtime verification of dist/sscribe-export-site-pages-1.1.1.zip.
+ * Runtime verification of dist/sscribe-export-site-pages-1.1.2.
  *
  * Usage:
  *   php scripts/verify_runtime.php dist/sscribe-export-site-pages
@@ -122,7 +122,7 @@ $tempdir = getenv('SSCRIBE_TEMPDIR');
 
 define('ABSPATH', $abspath);
 define('SSCRIBE_DEBUG', false);
-define('SSCRIBE_VERSION', '1.1.1');
+define('SSCRIBE_VERSION', '1.1.2');
 define('WP_DEBUG', false);
 define('WP_DEBUG_LOG', false);
 define('WP_CONTENT_DIR', '/tmp/wp-content/');
@@ -211,6 +211,44 @@ try {
                 echo "MPDF_ALIAS_PARTIAL prefixed_only\n";
             } else {
                 echo "MPDF_ALIAS_FAIL neither_resolves\n";
+            }
+            break;
+        case 'mpdf_alias_cold':
+            // Cold-path regression: the shim's fallback autoloader must
+            // resolve `\Mpdf\Mpdf` to `\SScribeVendor\Mpdf\Mpdf` even on
+            // a fresh request that has NOT pre-warmed the class. A
+            // third-party plugin doing `new \Mpdf\Mpdf()` before the
+            // plugin's own exporter code instantiated the prefixed
+            // class would otherwise hit `Class "Mpdf\Mpdf" not found`.
+            //
+            // We can't actually `new \Mpdf\Mpdf()` here without the
+            // production config — mPDF's default config still wires
+            // serif_fonts[0] = 'dejavuserifcondensed' whose fontdata
+            // entry points at the pruned DejaVuSerifCondensed.ttf, so
+            // construction trips the same crash class the production
+            // code now pins. The point of this test is the autoloader,
+            // not mPDF's defaults — so we assert on ReflectionClass
+            // (which triggers the autoloader without instantiating).
+            try {
+                $r = new ReflectionClass('\Mpdf\Mpdf');
+                $name = $r->getName();
+                $file = $r->getFileName();
+                echo "MPDF_COLD_RESOLVED class=$name file=$file\n";
+            } catch (Throwable $e) {
+                echo "MPDF_COLD_FAIL " . get_class($e) . ': ' . $e->getMessage() . "\n";
+            }
+            break;
+        case 'phpword_alias_cold':
+            // Same cold-path regression for PHPWord. Third-party plugins
+            // (WPML, Polylang, etc.) sometimes construct PHPWord under
+            // the unprefixed name before our own exporter code runs.
+            try {
+                $cold = new \PhpOffice\PhpWord\PhpWord();
+                $cold_class = get_class($cold);
+                $via_alias = (new ReflectionClass('\PhpOffice\PhpWord\PhpWord'))->getName();
+                echo "PHPWORD_COLD_INSTANTIATED class=$cold_class alias=$via_alias\n";
+            } catch (Throwable $e) {
+                echo "PHPWORD_COLD_FAIL " . get_class($e) . ': ' . $e->getMessage() . "\n";
             }
             break;
         case 'phpword_instantiate':
@@ -332,6 +370,8 @@ $checks = [
     ['label' => 'mPDF class autoloads (vendor-prefixed namespace)', 'action' => 'mpdf_class'],
     ['label' => 'mPDF can be instantiated with writable tempDir', 'action' => 'mpdf_instantiate'],
     ['label' => 'mPDF class-alias \Mpdf\Mpdf resolves after instantiation', 'action' => 'mpdf_alias'],
+    ['label' => 'mPDF cold-path: \Mpdf\Mpdf instantiates WITHOUT prefixed-name pre-warm (shim fallback autoloader)', 'action' => 'mpdf_alias_cold'],
+    ['label' => 'PHPWord cold-path: \PhpOffice\PhpWord\PhpWord instantiates WITHOUT prefixed-name pre-warm', 'action' => 'phpword_alias_cold'],
     ['label' => 'PHPWord can be instantiated', 'action' => 'phpword_instantiate'],
     ['label' => 'PDF exporter config has backupSubsFont=freeserif, backupSIPFont pinned', 'action' => 'pdf_config'],
     ['label' => 'FPDI/FpdfTpl landmine: class_exists probe behavior', 'action' => 'fpdi_landmine'],
