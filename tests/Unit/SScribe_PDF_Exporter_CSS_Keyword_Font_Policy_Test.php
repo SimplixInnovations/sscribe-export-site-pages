@@ -203,6 +203,101 @@ class SScribe_PDF_Exporter_CSS_Keyword_Font_Policy_Test extends TestCase {
 	}
 
 	/**
+	 * Regression guard for every OTHER fontdata entry whose default TTF
+	 * is excluded by scripts/build-release.php. mPDF's SetFont chain walker
+	 * picks the first family name in $serif_fonts / $sans_fonts /
+	 * $mono_fonts that ALSO appears in $available_unifonts (built from the
+	 * fontdata keys). If a fontdata entry's default TTF is pruned, ANY
+	 * HTML that triggers the chain — even after a fonttrans remap, because
+	 * the chain picks by family name not by the remap target — will crash
+	 * with `Cannot find TTF TrueType font file ...`. The 1.1.1 fix only
+	 * covered 6 families; this test pins every family whose TTF the build
+	 * script prunes so the policy cannot silently regress on future builds.
+	 *
+	 * @dataProvider provide_pruned_ttf_fontdata_entries
+	 */
+	public function test_fontdata_overrides_every_pruned_ttf_family( string $family, string $expected_ttf ): void {
+		$result = $this->call_build_mpdf_config( false, 0 );
+		$config = $result['config'];
+
+		if ( isset( $config['__source_only__'] ) ) {
+			$this->markTestSkipped( 'build_mpdf_config() not callable in this env; covered by test_source_code_pins_css_keyword_policy().' );
+			return;
+		}
+
+		$this->assertArrayHasKey( 'fontdata', $config, 'mPDF config must declare fontdata overrides.' );
+		$fontdata = $config['fontdata'];
+
+		$this->assertArrayHasKey(
+			$family,
+			$fontdata,
+			"fontdata must override '$family' — its default TTF is pruned by scripts/build-release.php, leaving AddFont with a missing-file crash on any chain walk."
+		);
+		$this->assertSame(
+			$expected_ttf,
+			$fontdata[ $family ]['R'] ?? null,
+			"fontdata['$family']['R'] must point at the shipped '$expected_ttf' (not the pruned default)."
+		);
+		$this->assertFileExists(
+			\SSCRIBE_PLUGIN_DIR . 'vendor-prefixed/mpdf/mpdf/ttfonts/' . $expected_ttf,
+			"Remapped TTF '$expected_ttf' must ship in vendor-prefixed/mpdf/mpdf/ttfonts/."
+		);
+	}
+
+	/**
+	 * Fontdata entries that point at TTFs excluded by
+	 * scripts/build-release.php `font_excludes`. Each tuple is
+	 * (fontdata family key, shipped remap target). Drives
+	 * test_fontdata_overrides_every_pruned_ttf_family.
+	 *
+	 * Source: src/Config/FontVariables.php in vendor-prefixed/mpdf —
+	 * cross-checked against the `font_excludes` array in
+	 * scripts/build-release.php (which lists the actual files the build
+	 * prunes). Keep this list in sync when either side changes.
+	 */
+	public static function provide_pruned_ttf_fontdata_entries(): array {
+		return array(
+			// Script-family / academic / historic fonts whose default TTF
+			// is excluded. All remapped to DejaVuSans (widest-coverage
+			// shipped face — Latin, Cyrillic, Greek, Vietnamese, IPA).
+			array( 'ocrb',             'DejaVuSans.ttf' ),
+			array( 'estrangeloedessa', 'DejaVuSans.ttf' ),
+			array( 'kaputaunicode',    'DejaVuSans.ttf' ),
+			array( 'abyssinicasil',    'DejaVuSans.ttf' ),
+			array( 'aboriginalsans',   'DejaVuSans.ttf' ),
+			array( 'jomolhari',        'DejaVuSans.ttf' ),
+			array( 'sundaneseunicode', 'DejaVuSans.ttf' ),
+			array( 'taiheritagepro',   'DejaVuSans.ttf' ),
+			array( 'aegean',           'DejaVuSans.ttf' ),
+			array( 'aegyptus',         'DejaVuSans.ttf' ),
+			array( 'akkadian',         'DejaVuSans.ttf' ),
+			array( 'quivira',          'DejaVuSans.ttf' ),
+			array( 'eeyekunicode',     'DejaVuSans.ttf' ),
+			array( 'lannaalif',        'DejaVuSans.ttf' ),
+			array( 'daibannasilbook',  'DejaVuSans.ttf' ),
+			array( 'garuda',           'DejaVuSans.ttf' ),
+			array( 'khmeros',          'DejaVuSans.ttf' ),
+			array( 'dhyana',           'DejaVuSans.ttf' ),
+			array( 'tharlon',          'DejaVuSans.ttf' ),
+			array( 'padaukbook',       'DejaVuSans.ttf' ),
+			array( 'zawgyi-one',       'DejaVuSans.ttf' ),
+			array( 'ayar',             'DejaVuSans.ttf' ),
+			array( 'taameydavidclm',   'DejaVuSans.ttf' ),
+			array( 'mph2bdamase',      'DejaVuSans.ttf' ),
+			array( 'lohitkannada',     'DejaVuSans.ttf' ),
+			array( 'pothana2000',      'DejaVuSans.ttf' ),
+			// Arabic / Syriac families — default TTFs pruned; fonttrans
+			// already rewrites the CSS name but the family-name chain can
+			// still resolve the original key, so the fontdata entry must
+			// also be pinned. fontdata pinning is the load-bearing fix;
+			// fonttrans alone is insufficient (see the DejaVu*Condensed
+			// bug class — same mechanism).
+			array( 'xbriyaz',          'DejaVuSans.ttf' ),
+			array( 'lateef',           'DejaVuSans.ttf' ),
+		);
+	}
+
+	/**
 	 * Belt-and-braces: even if the runtime config-building path is
 	 * short-circuited by an environment issue, the source code itself
 	 * must declare the CSS-keyword remap and fontdata overrides.
