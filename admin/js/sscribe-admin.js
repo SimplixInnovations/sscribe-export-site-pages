@@ -2702,14 +2702,33 @@
 			const $modal = $('#sscribe-log-modal');
 			const $content = $('#sscribe-log-content');
 
-			$content.html(
-				'<div class="sscribe-log-loading">' +
-					'<span class="sscribe-loading-spinner"></span>' +
-					'<span>' +
-					this.escapeHtml(sscribe_data.strings.loading_log || 'Loading log...') +
-					'</span>' +
-					'</div>'
-			);
+			const renderLoading = () => {
+				$content.html(
+					'<div class="sscribe-log-loading">' +
+						'<span class="sscribe-loading-spinner"></span>' +
+						'<span>' +
+						this.escapeHtml(sscribe_data.strings.loading_log || 'Loading log...') +
+						'</span>' +
+						'</div>'
+				);
+			};
+			const renderError = (message) => {
+				const safe = this.escapeHtml(message);
+				$content.html(
+					'<div class="sscribe-log-error" role="alert">' +
+						'<p>' + safe + '</p>' +
+						'<button type="button" class="sscribe-button sscribe-button-ghost sscribe-log-retry">' +
+						this.escapeHtml(sscribe_data.strings.retry || 'Retry') +
+						'</button>' +
+						'</div>'
+				);
+				$content.find('.sscribe-log-retry').on('click', () => {
+					renderLoading();
+					fetchLog();
+				});
+			};
+
+			renderLoading();
 
 			$modal.attr('aria-hidden', 'false').removeClass('sscribe-hidden').prop('hidden', false).hide().fadeIn(300);
 			this.saveFocus();
@@ -2717,34 +2736,33 @@
 			this.focusFirstInteractive($modal[0], '#sscribe-modal-close');
 
 			const self = this;
-			$.ajax({
-				url: sscribe_data.ajaxurl,
-				type: 'POST',
-				timeout: 30000,
-				data: {
-					action: 'sscribe_get_export_log',
-					nonce: sscribe_data.download_nonce,
-					file: filename,
-				},
-				success: function (response) {
-					if (response.success && response.data && response.data.log) {
-						self.renderExportLog(response.data);
-					} else {
-						const message =
-							response && response.data && response.data.message
-								? response.data.message
-								: sscribe_data.strings.log_not_found || 'Log not found.';
-						$content.html('<div class="sscribe-log-error">' + self.escapeHtml(message) + '</div>');
-					}
-				},
-				error: function () {
-					$content.html(
-						'<div class="sscribe-log-error">' +
-							self.escapeHtml(sscribe_data.strings.log_load_failed || 'Failed to load log.') +
-							'</div>'
-					);
-				},
-			});
+			const fetchLog = () => {
+				$.ajax({
+					url: sscribe_data.ajaxurl,
+					type: 'POST',
+					timeout: 30000,
+					data: {
+						action: 'sscribe_get_export_log',
+						nonce: sscribe_data.download_nonce,
+						file: filename,
+					},
+					success: function (response) {
+						if (response.success && response.data && response.data.log) {
+							self.renderExportLog(response.data);
+						} else {
+							const message =
+								response && response.data && response.data.message
+									? response.data.message
+									: sscribe_data.strings.log_not_found || 'Log not found.';
+							renderError(message);
+						}
+					},
+					error: function () {
+						renderError(sscribe_data.strings.log_load_failed || 'Failed to load log.');
+					},
+				});
+			};
+			fetchLog();
 		},
 
 		/**
