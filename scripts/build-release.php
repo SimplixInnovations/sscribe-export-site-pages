@@ -140,10 +140,36 @@ $config = array(
 		'TharlonOFL.txt', 'XW Zar Font Info.txt',
 	),
 
+	// setasign/fpdi ships in vendor-prefixed/ but setasign/fpdf (the
+	// parent class) is NOT shipped. Fpdi extends FpdfTpl extends
+	// \FPDF, so any autoload-triggered class_exists() or new \Fpdi\Fpdi
+	// throws "Class FPDF not found" fatal. The FPDI package is
+	// included for potential future use of its PDF-import feature but
+	// no production code path constructs an Fpdi instance today. Drop
+	// the 5 FPDF-extending classes so the autoloader hits the
+	// missing-class branch instead of the missing-parent branch — and
+	// any future plugin/theme that does `new \setasign\Fpdi\Fpdi()`
+	// gets a clean "Class not found" instead of a confusing
+	// "Class FPDF not found" that misleads operators into thinking
+	// FPDF is the missing dependency.
+	'fpdi_excludes'    => array(
+		'vendor-prefixed/setasign/fpdi/src/Fpdi.php',
+		'vendor-prefixed/setasign/fpdi/src/FpdfTpl.php',
+		'vendor-prefixed/setasign/fpdi/src/FpdfTplTrait.php',
+		'vendor-prefixed/setasign/fpdi/src/FpdiProtection.php',
+		'vendor-prefixed/setasign/fpdi/src/PdfParser/FpdiPdfParser.php',
+		'vendor-prefixed/setasign/fpdi/src/PdfReader/FpdiPdfReader.php',
+		// TcpdfFpdi / Tfpdf adapters — same parent dependency issue and
+		// not used by any production code path.
+		'vendor-prefixed/setasign/fpdi/src/TcpdfFpdi.php',
+		'vendor-prefixed/setasign/fpdi/src/Tfpdf',
+		'vendor-prefixed/setasign/fpdi/src/Tcpdf',
+	),
+
 	'show_excluded'    => true,
 );
 
-$all_excludes = array_unique( array_merge( $config['base_excludes'], $config['font_excludes'] ) );
+$all_excludes = array_unique( array_merge( $config['base_excludes'], $config['font_excludes'], $config['fpdi_excludes'] ?? array() ) );
 
 function rrmdir( string $dir ): void {
 	if ( ! is_dir( $dir ) ) {
