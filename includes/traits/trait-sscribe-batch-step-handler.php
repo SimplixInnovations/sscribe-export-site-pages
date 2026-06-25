@@ -383,6 +383,23 @@ trait SScribe_Batch_Step_Handler {
 						break;
 					}
 
+					$soft_deadline_ratio = (float) apply_filters( 'sscribe_soft_deadline_ratio', 0.5 );
+					if ( $processed_in_this_batch > 0 && $soft_deadline_ratio > 0 && $soft_deadline_ratio < 1 ) {
+						$remaining_time = $this->get_remaining_time( $batch_start_time );
+						$max_exec       = (int) ini_get( 'max_execution_time' );
+						if ( $max_exec > 0 && $remaining_time > 0 && $remaining_time < ( $max_exec * $soft_deadline_ratio ) && empty( $session['_soft_deadline_warned'] ) ) {
+							$this->logger->debug(
+								'Soft deadline crossed — remaining time below configured ratio',
+								array(
+									'remaining_time' => round( $remaining_time, 2 ),
+									'max_execution'  => $max_exec,
+									'ratio'          => $soft_deadline_ratio,
+								)
+							);
+							$this->session->update( $session_id, array( '_soft_deadline_warned' => time() ) );
+						}
+					}
+
 					$memory_threshold_mb = (int) apply_filters( 'sscribe_memory_threshold_mb', 10 );
 					if ( $processed_in_this_batch > 0 && ! $this->is_memory_available( $memory_threshold_mb ) ) {
 						$memory_paused = true;
