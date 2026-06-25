@@ -938,7 +938,7 @@ class SScribe_Content_Parser {
 						foreach ( $sub_runs as $key => $run ) {
 							$sub_runs[ $key ]['bold'] = true;
 						}
-						$runs = array_merge( $runs, $sub_runs );
+						array_push( $runs, ...$sub_runs );
 						break;
 
 					case 'em':
@@ -947,7 +947,7 @@ class SScribe_Content_Parser {
 						foreach ( $sub_runs as $key => $run ) {
 							$sub_runs[ $key ]['italic'] = true;
 						}
-						$runs = array_merge( $runs, $sub_runs );
+						array_push( $runs, ...$sub_runs );
 						break;
 
 					case 'u':
@@ -955,7 +955,7 @@ class SScribe_Content_Parser {
 						foreach ( $sub_runs as $key => $run ) {
 							$sub_runs[ $key ]['underline'] = true;
 						}
-						$runs = array_merge( $runs, $sub_runs );
+						array_push( $runs, ...$sub_runs );
 						break;
 
 					case 's':
@@ -993,7 +993,7 @@ class SScribe_Content_Parser {
 
 					case 'span':
 						$sub_runs = $this->get_inline_runs( $child );
-						$runs     = array_merge( $runs, $sub_runs );
+						array_push( $runs, ...$sub_runs );
 						break;
 
 					case 'img':
@@ -1011,7 +1011,7 @@ class SScribe_Content_Parser {
 						foreach ( $sub_runs as $key => $run ) {
 							$sub_runs[ $key ]['superScript'] = true;
 						}
-						$runs = array_merge( $runs, $sub_runs );
+						array_push( $runs, ...$sub_runs );
 						break;
 
 					case 'sub':
@@ -1019,7 +1019,7 @@ class SScribe_Content_Parser {
 						foreach ( $sub_runs as $key => $run ) {
 							$sub_runs[ $key ]['subScript'] = true;
 						}
-						$runs = array_merge( $runs, $sub_runs );
+						array_push( $runs, ...$sub_runs );
 						break;
 
 					case 'mark':
@@ -1027,7 +1027,7 @@ class SScribe_Content_Parser {
 						foreach ( $sub_runs as $key => $run ) {
 							$sub_runs[ $key ]['highlight'] = 'yellow';
 						}
-						$runs = array_merge( $runs, $sub_runs );
+						array_push( $runs, ...$sub_runs );
 						break;
 
 					case 'ins':
@@ -1035,7 +1035,7 @@ class SScribe_Content_Parser {
 						foreach ( $sub_runs as $key => $run ) {
 							$sub_runs[ $key ]['underline'] = true;
 						}
-						$runs = array_merge( $runs, $sub_runs );
+						array_push( $runs, ...$sub_runs );
 						break;
 
 					case 'table':
@@ -1049,7 +1049,7 @@ class SScribe_Content_Parser {
 
 					default:
 						$sub_runs = $this->get_inline_runs( $child );
-						$runs     = array_merge( $runs, $sub_runs );
+						array_push( $runs, ...$sub_runs );
 						break;
 				}
 			}
