@@ -18,10 +18,10 @@
 	/* === DESIGN SYSTEM TOKENS (per DESIGN.md) === */
 
 	/* Brand & Accent Colors */
-	--sscribe-primary: #68a885; /* Sage Green - Primary Brand Accent */
-	--sscribe-primary-hover: #5a9a75; /* Darkened sage for hover */
-	--sscribe-primary-light: rgb(104 168 133 / 10%);
-	--sscribe-primary-lighter: rgb(104 168 133 / 6%);
+	--sscribe-primary: #3d6e54; /* Sage Green - darkened to pass WCAG AA on white */
+	--sscribe-primary-hover: #2f5943; /* Darker for hover/active states */
+	--sscribe-primary-light: rgb(61 110 84 / 10%);
+	--sscribe-primary-lighter: rgb(61 110 84 / 6%);
 	--sscribe-accent: #a9cdb9; /* Light Sage - secondary accent */
 	--sscribe-cta: #333; /* Dark Charcoal - CTA Primary */
 	--sscribe-cta-hover: #1a1a1a;
