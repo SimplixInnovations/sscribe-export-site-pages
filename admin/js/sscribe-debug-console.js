@@ -453,12 +453,10 @@
 					const $entry = $(this);
 					const $context = $entry.find('.sscribe-debug-entry-context');
 					if ($context.length) {
-						// Toggle .expanded on the parent — the CSS rule
-						// .sscribe-debug-entry.expanded .sscribe-debug-entry-context { display: block }
-						// handles visibility. No need for .sscribe-hidden on the context element.
 						const isExpanded = $entry.hasClass('expanded');
 						$entry.toggleClass('expanded', !isExpanded);
 						$entry.attr('aria-expanded', String(!isExpanded));
+						$context.attr('aria-hidden', String(isExpanded));
 					}
 				}
 			});
@@ -470,6 +468,7 @@
 					const isExpanded = $entry.hasClass('expanded');
 					$entry.toggleClass('expanded', !isExpanded);
 					$entry.attr('aria-expanded', String(!isExpanded));
+					$context.attr('aria-hidden', String(isExpanded));
 				}
 			});
 
@@ -547,6 +546,28 @@
 			// behaviour identical if the key is missing (e.g. an older
 			// sscribe_data shape from a cached page).
 			const refreshMs = Number( sscribe_data && sscribe_data.refresh_interval ) || 10000;
+			// Hidden tabs back off to 6x the visible interval so an
+			// admin who leaves the debug tab in a background window
+			// doesn't keep hammering the server at full rate.
+			const hiddenMultiplier = 6;
+			let effectiveRefreshMs = refreshMs;
+			if (document.visibilityState === 'hidden') {
+				effectiveRefreshMs = refreshMs * hiddenMultiplier;
+			}
+			// Honor a "no new entries" stop: after N consecutive
+			// unchanged responses the polling pauses until the user
+			// interacts (clicking a row, scrolling, or tab-visibility
+			// returning).
+			this.consecutiveNoChange = 0;
+			this.noChangeStopThreshold = 5;
+			this.visibilityHandler = function () {
+				if (document.visibilityState !== 'hidden') {
+					self.consecutiveNoChange = 0;
+				}
+				self.stopAutoRefresh();
+				self.startAutoRefresh();
+			};
+			document.addEventListener('visibilitychange', this.visibilityHandler);
 			this.refreshInterval = setInterval(function () {
 				// Stale-lock recovery: if a fetch has been pending for >10s
 				// (down from 30s — 30s left the user staring at a frozen
@@ -573,16 +594,24 @@
 					self.showPausedIndicator('Auto-refresh paused — scrolled into history');
 					return;
 				}
+				if (self.consecutiveNoChange >= self.noChangeStopThreshold) {
+					self.showPausedIndicator('Auto-refresh paused — no new log entries');
+					return;
+				}
 				self.hidePausedIndicator();
 				self.slowRefreshNoticeSince = null;
 				self.fetchLogs();
-			}, refreshMs);
+			}, effectiveRefreshMs);
 		},
 
 		stopAutoRefresh: function () {
 			if (this.refreshInterval) {
 				clearInterval(this.refreshInterval);
 				this.refreshInterval = null;
+			}
+			if (this.visibilityHandler) {
+				document.removeEventListener('visibilitychange', this.visibilityHandler);
+				this.visibilityHandler = null;
 			}
 		},
 
@@ -827,6 +856,11 @@
 					}
 
 					if (isInitialLoad) {
+						if (newEntries.length === 0) {
+							self.consecutiveNoChange = (self.consecutiveNoChange || 0) + 1;
+						} else {
+							self.consecutiveNoChange = 0;
+						}
 						self.renderLogs(newEntries, false, response.data);
 					} else {
 						self.appendLogs(newEntries);
@@ -1748,7 +1782,11 @@
 					'</pre></div>' +
 					'</div>';
 			});
-			contextHtml = '<div class="sscribe-debug-entry-context">' + contextRows + '</div>';
+			const ctxId = 'sscribe-debug-ctx-' + entryId;
+			contextHtml =
+				'<div class="sscribe-debug-entry-context" id="' + escAttr(ctxId) + '" aria-hidden="true">' +
+				contextRows +
+				'</div>';
 		}
 
 		const hasContext = contextHtml !== '';
@@ -1758,7 +1796,9 @@
 			(hasContext ? ' has-context' : '') +
 			'"' +
 			(hasContext
-				? ' tabindex="0" role="button" aria-expanded="false" aria-label="Toggle context for: ' +
+				? ' tabindex="0" role="button" aria-expanded="false" aria-controls="sscribe-debug-ctx-' +
+					escAttr(String(entryId)) +
+					'" aria-label="Toggle context for: ' +
 					escAttr(truncateForAriaLabel(String(entry.message || ''), 50)) +
 					'"'
 				: '') +
