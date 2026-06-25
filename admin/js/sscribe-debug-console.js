@@ -963,8 +963,10 @@
 
 		buildLogsHtml: function (entries) {
 			let html = '';
-			entries.forEach(function (entry) {
-				html += buildEntryHtml(entry);
+			entries.forEach(function (entry, index) {
+				const baseId = entry && (entry.id || entry.timestamp) ? String(entry.id || entry.timestamp) : 'idx-' + index;
+				const entryId = baseId + '-' + index;
+				html += buildEntryHtml(entry, entryId);
 			});
 			return html;
 		},
@@ -1740,7 +1742,7 @@
 		},
 	};
 
-	function buildEntryHtml(entry) {
+	function buildEntryHtml(entry, entryId) {
 		const allowedLevels = [
 			'all',
 			'debug',
