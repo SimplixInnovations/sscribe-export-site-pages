@@ -3,7 +3,7 @@
  * Plugin Name:       SScribe Export Site Pages
  * Plugin URI:        https://simplixi.com/sscribe
  * Description:       Export WordPress pages and posts to professional DOCX, PDF, HTML, or Markdown files with multilingual RTL support, SEO metadata, and secure ZIP download.
- * Version:           1.1.1
+ * Version:           1.1.2
  * Requires at least: 6.0
  * Requires PHP:      8.2
  * Author:            Simplix Innovations
@@ -23,7 +23,7 @@ if ( ! defined( 'ABSPATH' ) ) {
 }
 
 if ( ! defined( 'SSCRIBE_VERSION' ) ) {
-	define( 'SSCRIBE_VERSION', '1.1.1' );
+	define( 'SSCRIBE_VERSION', '1.1.2' );
 }
 
 if ( version_compare( PHP_VERSION, '8.2', '<' ) ) {
@@ -31,14 +31,19 @@ if ( version_compare( PHP_VERSION, '8.2', '<' ) ) {
 		'admin_notices',
 		function () {
 			printf(
-				'<div class="error"><p>%s %s</p></div>',
-				esc_html__( 'SScribe Export Site Pages requires PHP 8.2 or higher. Your current version is:', 'sscribe-export-site-pages' ),
-				esc_html( PHP_VERSION )
+				'<div class="error"><p><strong>%1$s</strong></p><p>%2$s <code>%3$s</code></p><p>%4$s <a href="%5$s" target="_blank" rel="noopener noreferrer">%6$s</a>.</p></div>',
+				esc_html__( 'SScribe Export Site Pages has been deactivated.', 'sscribe-export-site-pages' ),
+				esc_html__( 'This plugin requires PHP 8.2 or higher. Your server is running PHP', 'sscribe-export-site-pages' ),
+				esc_html( PHP_VERSION ),
+				esc_html__( 'Ask your hosting provider to upgrade PHP, or follow the WordPress guide:', 'sscribe-export-site-pages' ),
+				esc_url( 'https://make.wordpress.org/core/handbook/tutorials/upgrading-php/' ),
+				esc_html__( 'Upgrading PHP on WordPress', 'sscribe-export-site-pages' )
 			);
 		}
 	);
 	// Self-deactivate so the DB does not retain a broken "active" marker for an
-	// incompatible PHP runtime. The admin notice above explains the reason.
+	// incompatible PHP runtime. The admin notice above explains the reason
+	// and points operators at the WordPress upgrade guide.
 	add_action(
 		'admin_init',
 		static function () {
@@ -64,9 +69,11 @@ if ( version_compare( $sscribe_wp_version, '6.0', '<' ) ) {
 		'admin_notices',
 		function () use ( $sscribe_wp_version ) {
 			printf(
-				'<div class="error"><p>%s %s</p></div>',
-				esc_html__( 'SScribe Export Site Pages requires WordPress 6.0 or higher. Please upgrade your WordPress installation. Your current version is:', 'sscribe-export-site-pages' ),
-				esc_html( $sscribe_wp_version )
+				'<div class="error"><p><strong>%1$s</strong></p><p>%2$s <code>%3$s</code></p><p>%4$s</p></div>',
+				esc_html__( 'SScribe Export Site Pages has been deactivated.', 'sscribe-export-site-pages' ),
+				esc_html__( 'This plugin requires WordPress 6.0 or higher. Your installation is running', 'sscribe-export-site-pages' ),
+				esc_html( $sscribe_wp_version ),
+				esc_html__( 'Update WordPress from Dashboard → Updates before activating this plugin.', 'sscribe-export-site-pages' )
 			);
 		}
 	);
