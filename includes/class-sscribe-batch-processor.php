@@ -1018,8 +1018,11 @@ final class SScribe_Batch_Processor {
 			}
 		}
 
-		$page_ids = $this->collector->get_page_ids( $language, $post_status, $post_type );
-		$total    = count( $page_ids );
+		$page_ids      = $this->collector->get_page_ids( $language, $post_status, $post_type );
+		$total         = count( $page_ids );
+		$available_total = $this->collector->get_page_count_only( $language, $post_status, $post_type );
+		$partial_export = $available_total > $total;
+		$page_id_cap    = 10000;
 
 		$current_lang = 'default';
 		if ( $this->collector->is_wpml_active() ) {
@@ -1177,6 +1180,18 @@ final class SScribe_Batch_Processor {
 				$total
 			),
 		);
+		if ( $partial_export ) {
+			$response['partial_export']      = true;
+			$response['available_total']     = $available_total;
+			$response['page_id_cap']         = $page_id_cap;
+			$response['partial_export_message'] = sprintf(
+				/* translators: 1: Number of pages exported, 2: Total available pages, 3: Cap limit. */
+				__( 'Export capped at %1$d pages. %2$d pages were available. Run additional exports in batches of %3$d to cover the rest.', 'sscribe-export-site-pages' ),
+				$total,
+				$available_total,
+				$page_id_cap
+			);
+		}
 		if ( null !== $memory_warning ) {
 			$response['memory_warning'] = $memory_warning;
 		}
@@ -1302,6 +1317,12 @@ final class SScribe_Batch_Processor {
 	public function ajax_refresh_nonce(): void {
 		if ( ! current_user_can( $this->get_required_capability() ) ) {
 			wp_send_json_error( array( 'message' => __( 'Permission denied.', 'sscribe-export-site-pages' ) ), 403 );
+			return;
+		}
+
+		$nonce_ok = check_ajax_referer( 'sscribe_export_nonce', 'nonce', false );
+		if ( ! $nonce_ok ) {
+			wp_send_json_error( array( 'message' => __( 'Invalid nonce.', 'sscribe-export-site-pages' ) ), 403 );
 			return;
 		}
 
