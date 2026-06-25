@@ -263,8 +263,7 @@ class SScribe_Zip_Handler_Test extends TestCase {
 
 		file_put_contents( $file_path, 'zip-fixture' );
 
-		$exports              = get_option( 'sscribe_export_index', array() );
-		$exports[ $filename ] = array(
+		$row = array(
 			'created_at' => time(),
 			'user_id'    => 1,
 			'formats'    => array( 'docx' ),
@@ -272,18 +271,25 @@ class SScribe_Zip_Handler_Test extends TestCase {
 			'lang_name'  => '',
 			'flag_url'   => '',
 		);
-		update_option( 'sscribe_export_index', $exports, false );
+		update_option( 'sscribe_export_row_' . md5( $filename ), $row, false );
+
+		$index   = get_option( 'sscribe_export_index', array() );
+		$index[] = $filename;
+		update_option( 'sscribe_export_index', array_values( array_unique( $index ) ), false );
 
 		delete_transient( 'sscribe_cron_exports_lock' );
 		$this->handler->cleanup_expired();
 
-		$updated_exports = get_option( 'sscribe_export_index', array() );
-		$this->assertArrayHasKey( $filename, $updated_exports );
+		$updated_index = get_option( 'sscribe_export_index', array() );
+		$this->assertContains( $filename, $updated_index );
 
 		if ( file_exists( $file_path ) ) {
 			unlink( $file_path );
 		}
-		unset( $updated_exports[ $filename ] );
-		update_option( 'sscribe_export_index', $updated_exports, false );
+		$updated_index = array_values( array_filter( $updated_index, static function ( $b ) use ( $filename ) {
+			return (string) $b !== $filename;
+		} ) );
+		update_option( 'sscribe_export_index', $updated_index, false );
+		delete_option( 'sscribe_export_row_' . md5( $filename ) );
 	}
 }

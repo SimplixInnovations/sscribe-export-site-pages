@@ -72,7 +72,7 @@ class SScribe_Admin_Test extends TestCase {
 	}
 
 	public function test_enqueue_admin_assets_only_runs_for_plugin_pages(): void {
-		global $sscribe_test_styles, $sscribe_test_scripts, $sscribe_test_localized;
+		global $sscribe_test_styles, $sscribe_test_scripts, $sscribe_test_localized, $sscribe_test_options;
 
 		$admin = new SScribe_Admin();
 		$admin->enqueue_admin_assets( 'dashboard_page_unrelated' );
@@ -80,13 +80,20 @@ class SScribe_Admin_Test extends TestCase {
 		$this->assertCount( 0, $sscribe_test_styles );
 		$this->assertCount( 0, $sscribe_test_scripts );
 
+		// Default: debug console assets are gated behind the
+		// sscribe_debug_enabled option (off by default).
+		$sscribe_test_options['sscribe_debug_enabled'] = false;
 		$admin->enqueue_admin_assets( 'toplevel_page_sscribe-export' );
 
-		// Debug console assets are now always enqueued for the debug tab UI.
-		// Styles: sscribe-admin + sscribe-debug-console = 2.
-		//   (The inline @font-face CSS for Manrope was removed along with
-		//   the font itself — the admin UI uses the system font stack now.)
-		// Scripts: sscribe-admin + sscribe-debug-console = 2.
+		$this->assertCount( 1, $sscribe_test_styles );
+		$this->assertCount( 1, $sscribe_test_scripts );
+
+		// When debug is enabled, the console assets are added on top.
+		$sscribe_test_styles  = array();
+		$sscribe_test_scripts = array();
+		$sscribe_test_options['sscribe_debug_enabled'] = true;
+		$admin->enqueue_admin_assets( 'toplevel_page_sscribe-export' );
+
 		$this->assertCount( 2, $sscribe_test_styles );
 		$this->assertCount( 2, $sscribe_test_scripts );
 	}
