@@ -145,17 +145,33 @@ class SScribe_Export_Query_Controller {
 			);
 		}
 
+		// Cache the diagnostics payload for 30 seconds so the debug
+		// console polling (default 10s) and concurrent admins share a
+		// single computation. Pass `?force=1` to bypass the cache.
+		// phpcs:ignore WordPress.Security.NonceVerification.Recommended -- Read-only flag.
+		$force = isset( $_GET['force'] ) && '1' === sanitize_text_field( wp_unslash( $_GET['force'] ) );
+		$cache_key = 'sscribe_health_snapshot_' . $health_capability . '_' . get_current_user_id();
+		if ( ! $force ) {
+			$cached = get_transient( $cache_key );
+			if ( false !== $cached && is_array( $cached ) ) {
+				$cached['cache_hit'] = true;
+				SScribe_AJAX_Guard::success( $cached );
+			}
+		}
+
 		$diagnostics = $this->diagnostics->check_ajax_health();
 		$boot        = $this->diagnostics->get_boot_diagnostics();
 
-		SScribe_AJAX_Guard::success(
-			array(
-				'ajax_health' => $diagnostics,
-				'boot_state'  => $boot,
-				'server_time' => current_time( 'mysql' ),
-				'server_utc'  => gmdate( 'Y-m-d H:i:s' ),
-			)
+		$payload = array(
+			'ajax_health' => $diagnostics,
+			'boot_state'  => $boot,
+			'server_time' => current_time( 'mysql' ),
+			'server_utc'  => gmdate( 'Y-m-d H:i:s' ),
 		);
+
+		set_transient( $cache_key, $payload, 30 );
+
+		SScribe_AJAX_Guard::success( $payload );
 	}
 
 	/**
@@ -242,16 +258,16 @@ class SScribe_Export_Query_Controller {
 			);
 		}
 
-		$exports = get_option( 'sscribe_export_index', array() );
+		$exports = $this->zip_handler->get_export_entry( $filename );
 
-		if ( ! isset( $exports[ $filename ] ) ) {
+		if ( null === $exports ) {
 			SScribe_AJAX_Guard::error(
 				array( 'message' => __( 'Export not found.', 'sscribe-export-site-pages' ) ),
 				404
 			);
 		}
 
-		$export_info = $exports[ $filename ];
+		$export_info = $exports;
 		if ( isset( $export_info['user_id'] ) && get_current_user_id() !== (int) $export_info['user_id'] ) {
 			SScribe_AJAX_Guard::error(
 				array( 'message' => __( 'Permission denied.', 'sscribe-export-site-pages' ) ),
@@ -277,6 +293,22 @@ class SScribe_Export_Query_Controller {
 			SScribe_AJAX_Guard::error(
 				array( 'message' => __( 'Log not found for this export.', 'sscribe-export-site-pages' ) ),
 				404
+			);
+		}
+
+		$offset = isset( $_POST['offset'] ) ? max( 0, (int) $_POST['offset'] ) : 0;
+		$limit  = isset( $_POST['limit'] ) ? max( 1, min( 200, (int) $_POST['limit'] ) ) : 50;
+		if ( isset( $log_data['pages'] ) && is_array( $log_data['pages'] ) ) {
+			$pages     = $log_data['pages'];
+			$page_keys = array_keys( $pages );
+			$total     = count( $page_keys );
+			$slice     = array_slice( $page_keys, $offset, $limit, true );
+			$log_data['pages']       = array_intersect_key( $pages, array_flip( $slice ) );
+			$log_data['_pagination'] = array(
+				'offset'   => $offset,
+				'limit'    => $limit,
+				'total'    => $total,
+				'has_more' => ( $offset + $limit ) < $total,
 			);
 		}
 
@@ -528,7 +560,7 @@ class SScribe_Export_Query_Controller {
 			);
 		}
 
-		$exports = get_option( 'sscribe_export_index', array() );
+		$exports = $this->zip_handler->list_export_entries();
 		$user_id = get_current_user_id();
 
 		$result = array();
