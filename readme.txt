@@ -1,6 +1,5 @@
 === SScribe Export Site Pages ===
 Contributors: simplixinnovations
-Donate link: https://simplixi.com
 Tags: export, docx, pdf, html, markdown
 Requires at least: 6.0
 Tested up to: 7.0
@@ -73,6 +72,10 @@ Yes. You can export pages by individual language or all languages simultaneously
 = What happens if an export is interrupted? =
 
 SScribe uses a session tracking system with crash recovery. If your browser closes during an export, you can resume it from the admin panel without losing progress.
+
+= Does SScribe contact external servers or fetch images? =
+
+No. All export processing happens on your own WordPress server. PDF and DOCX exports embed images that are already in your Media Library; no external HTTP requests are made during an export.
 
 == License ==
 
