@@ -31,7 +31,7 @@
  *
  * @package SScribe_Export_Site_Pages
  * @subpackage Container
- * @since   1.1.1
+ * @since   1.1.2
  */
 
 declare(strict_types=1);

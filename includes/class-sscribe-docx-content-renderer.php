@@ -971,7 +971,7 @@ class SScribe_DOCX_Content_Renderer {
 		/**
 		 * Filter whether to append the image source URL table to inline images.
 		 *
-		 * @since 1.1.1
+		 * @since 1.1.2
 		 * @param bool   $append Whether to append the URL table. Default true.
 		 * @param string $src    The image source URL.
 		 */

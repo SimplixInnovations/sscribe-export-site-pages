@@ -204,7 +204,7 @@ final class SScribe_Exporter {
 		/**
 		 * Filter the DOCX color palette.
 		 *
-		 * @since 1.1.1
+		 * @since 1.1.2
 		 * @param array<string, string> $colors Color palette array.
 		 */
 		$this->colors = apply_filters( 'sscribe_docx_colors', $this->colors );

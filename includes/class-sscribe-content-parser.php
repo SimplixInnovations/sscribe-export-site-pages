@@ -194,7 +194,7 @@ class SScribe_Content_Parser {
 		 * been through `wp_kses()`; the SScribe content parser will
 		 * run its own KSES allowlist on the returned value.
 		 *
-		 * @since 1.1.1
+		 * @since 1.1.2
 		 *
 		 * @param string $html The original, unfiltered post content.
 		 * @return string The (possibly further sanitized) HTML.

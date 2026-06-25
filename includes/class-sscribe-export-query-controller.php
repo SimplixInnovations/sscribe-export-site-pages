@@ -124,7 +124,7 @@ class SScribe_Export_Query_Controller {
 		 * endpoint. Defaults to the dedicated `sscribe_health` capability
 		 * (granted to administrators by {@see SScribe_Activator}).
 		 *
-		 * @since 1.1.1
+		 * @since 1.1.2
 		 *
 		 * @param string $capability Capability name.
 		 */
