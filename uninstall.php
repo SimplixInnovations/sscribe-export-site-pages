@@ -83,6 +83,13 @@ $sscribe_cleanup_site = static function (): void {
 	delete_option( 'sscribe_version' );
 	delete_option( 'sscribe_export_index' );
 	delete_option( 'sscribe_export_metrics' );
+	global $wpdb;
+	$wpdb->query(
+		$wpdb->prepare(
+			"DELETE FROM {$wpdb->options} WHERE option_name LIKE %s",
+			$wpdb->esc_like( 'sscribe_export_row_' ) . '%'
+		)
+	);
 	delete_option( 'sscribe_schema_version' );
 	delete_option( 'sscribe_session_signing_key' );
 

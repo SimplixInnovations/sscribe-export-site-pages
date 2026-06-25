@@ -111,14 +111,14 @@ class SScribe_Batch_File_Handler {
 				wp_die( esc_html__( 'Invalid file request.', 'sscribe-export-site-pages' ) );
 			}
 
-			$exports = get_option( 'sscribe_export_index', array() );
-			if ( ! isset( $exports[ $filename ] ) || ! is_array( $exports[ $filename ] ) ) {
+			$exports = $this->zip_handler->get_export_entry( $filename );
+			if ( null === $exports ) {
 				$this->auditor->log( 'download_orphaned_denied', array( 'filename' => $filename ) );
 				status_header( 403 );
 				wp_die( esc_html__( 'Invalid file access.', 'sscribe-export-site-pages' ) );
 			}
 
-			$export_info = $exports[ $filename ];
+			$export_info = $exports;
 			if ( isset( $export_info['user_id'] ) && get_current_user_id() !== (int) $export_info['user_id'] ) {
 				$this->auditor->log( 'download_access_denied', array( 'filename' => $filename ) );
 				status_header( 403 );
@@ -209,13 +209,12 @@ class SScribe_Batch_File_Handler {
 			SScribe_AJAX_Guard::error( array( 'message' => __( 'Invalid filename.', 'sscribe-export-site-pages' ) ), 400 );
 		}
 
-		$exports = get_option( 'sscribe_export_index', array() );
+		$export_info = $this->zip_handler->get_export_entry( $filename );
 
-		if ( ! isset( $exports[ $filename ] ) ) {
+		if ( null === $export_info ) {
 			SScribe_AJAX_Guard::error( array( 'message' => __( 'Export not found.', 'sscribe-export-site-pages' ) ), 404 );
 		}
 
-		$export_info    = $exports[ $filename ] ?? array();
 		$stored_user_id = isset( $export_info['user_id'] ) ? (int) (string) $export_info['user_id'] : 0;
 		if ( $stored_user_id > 0 && get_current_user_id() !== $stored_user_id ) {
 				$this->auditor->log( 'delete_access_denied', array( 'filename' => $filename ) );
@@ -255,8 +254,17 @@ class SScribe_Batch_File_Handler {
 			wp_delete_file( $file_path );
 		}
 
-		unset( $exports[ $filename ] );
-		update_option( 'sscribe_export_index', $exports, false );
+		delete_option( 'sscribe_export_row_' . md5( $filename ) );
+		$index   = get_option( 'sscribe_export_index', array() );
+		$index   = array_values(
+			array_filter(
+				(array) $index,
+				static function ( $basename ) use ( $filename ) {
+					return (string) $basename !== $filename;
+				}
+			)
+		);
+		update_option( 'sscribe_export_index', $index, false );
 
 		SScribe_Export_Log::delete_by_filename( $filename );
 
