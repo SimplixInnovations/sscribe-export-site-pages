@@ -167,7 +167,7 @@ $sscribe_show_wp_debug_notice = ( defined( 'WP_DEBUG' ) && WP_DEBUG );
 	</details>
 
 	<div id="sscribe-debug-help-content" hidden>
-		<h3><?php esc_html_e( 'Debug Console Help', 'sscribe-export-site-pages' ); ?></h3>
+		<h3 id="sscribe-debug-help-title"><?php esc_html_e( 'Debug Console Help', 'sscribe-export-site-pages' ); ?></h3>
 		<p><?php esc_html_e( 'View detailed export logs, toggle debug mode, and manage rotated log files. Logs capture detailed information about export operations including processing steps, errors, and performance metrics.', 'sscribe-export-site-pages' ); ?></p>
 		<h4><?php esc_html_e( 'Auto-refresh', 'sscribe-export-site-pages' ); ?></h4>
 		<p><?php esc_html_e( 'When enabled, logs refresh automatically every 10 seconds. Manual mode gives you full control over when to refresh.', 'sscribe-export-site-pages' ); ?></p>

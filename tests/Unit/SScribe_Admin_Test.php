@@ -80,15 +80,18 @@ class SScribe_Admin_Test extends TestCase {
 		$this->assertCount( 0, $sscribe_test_styles );
 		$this->assertCount( 0, $sscribe_test_scripts );
 
-		// Default: debug console assets are gated behind the
-		// sscribe_debug_enabled option (off by default).
+		// Debug console assets are always enqueued because the Debug tab is
+		// always rendered — without the JS, the user has no way to flip
+		// the sscribe_debug_enabled toggle on a fresh install. The flag
+		// controls *logging*, not whether the console UI is available.
 		$sscribe_test_options['sscribe_debug_enabled'] = false;
 		$admin->enqueue_admin_assets( 'toplevel_page_sscribe-export' );
 
-		$this->assertCount( 1, $sscribe_test_styles );
-		$this->assertCount( 1, $sscribe_test_scripts );
+		$this->assertCount( 2, $sscribe_test_styles );
+		$this->assertCount( 2, $sscribe_test_scripts );
 
-		// When debug is enabled, the console assets are added on top.
+		// The same two assets are enqueued when debug is enabled — the
+		// flag only changes which logs are captured, not the UI surface.
 		$sscribe_test_styles  = array();
 		$sscribe_test_scripts = array();
 		$sscribe_test_options['sscribe_debug_enabled'] = true;
