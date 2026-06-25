@@ -23,6 +23,7 @@ $sscribe_step            = 1;
 $sscribe_export_index    = $sscribe_export_index ?? array();
 ?>
 
+<a class="sscribe-skip-link screen-reader-text" href="#sscribe-step-1"><?php esc_html_e( 'Skip to export configuration', 'sscribe-export-site-pages' ); ?></a>
 <div class="sscribe-master-container">
 	<header class="sscribe-hero">
 		<div class="sscribe-hero-content">
@@ -270,6 +271,7 @@ $sscribe_export_index    = $sscribe_export_index ?? array();
 								<?php
 								echo $sscribe_is_zero ? ' disabled' : ''; // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- Static attribute string.
 								?>
+								aria-label="<?php echo esc_attr( sprintf( '%1$s, %2$d %3$s', $sscribe_status_label, $sscribe_count, _n( 'page', 'pages', $sscribe_count, 'sscribe-export-site-pages' ) ) ); ?>"
 								>
 								<div class="sscribe-status-card-inner">
 									<div class="sscribe-status-icon">
@@ -370,11 +372,11 @@ $sscribe_export_index    = $sscribe_export_index ?? array();
 					<div class="sscribe-format-options-inner">
 
 						<div class="sscribe-format-option-panel" data-format="pdf" hidden>
-							<h4 class="sscribe-format-option-title"><?php esc_html_e( 'PDF Options', 'sscribe-export-site-pages' ); ?></h4>
+							<h3 class="sscribe-format-option-title"><?php esc_html_e( 'PDF Options', 'sscribe-export-site-pages' ); ?></h3>
 							<div class="sscribe-format-option-grid">
 								<label class="sscribe-format-option-field">
 									<span class="sscribe-format-option-label"><?php esc_html_e( 'Page size', 'sscribe-export-site-pages' ); ?></span>
-									<select name="sscribe_pdf_page_size" id="sscribe-pdf-page-size">
+									<select name="sscribe_pdf_page_size" id="sscribe-pdf-page-size" aria-label="<?php esc_attr_e( 'PDF page size', 'sscribe-export-site-pages' ); ?>">
 										<option value="A4"><?php esc_html_e( 'A4 (210 × 297 mm)', 'sscribe-export-site-pages' ); ?></option>
 										<option value="Letter"><?php esc_html_e( 'Letter (8.5 × 11 in)', 'sscribe-export-site-pages' ); ?></option>
 										<option value="Legal"><?php esc_html_e( 'Legal (8.5 × 14 in)', 'sscribe-export-site-pages' ); ?></option>
@@ -393,11 +395,11 @@ $sscribe_export_index    = $sscribe_export_index ?? array();
 						</div>
 
 						<div class="sscribe-format-option-panel" data-format="docx" hidden>
-							<h4 class="sscribe-format-option-title"><?php esc_html_e( 'DOCX Options', 'sscribe-export-site-pages' ); ?></h4>
+							<h3 class="sscribe-format-option-title"><?php esc_html_e( 'DOCX Options', 'sscribe-export-site-pages' ); ?></h3>
 							<div class="sscribe-format-option-grid">
 								<label class="sscribe-format-option-field">
 									<span class="sscribe-format-option-label"><?php esc_html_e( 'Template', 'sscribe-export-site-pages' ); ?></span>
-									<select name="sscribe_docx_template" id="sscribe-docx-template">
+									<select name="sscribe_docx_template" id="sscribe-docx-template" aria-label="<?php esc_attr_e( 'DOCX template', 'sscribe-export-site-pages' ); ?>">
 										<option value="default"><?php esc_html_e( 'Default (with cover & TOC)', 'sscribe-export-site-pages' ); ?></option>
 										<option value="minimal"><?php esc_html_e( 'Minimal (body only)', 'sscribe-export-site-pages' ); ?></option>
 									</select>
@@ -414,7 +416,7 @@ $sscribe_export_index    = $sscribe_export_index ?? array();
 						</div>
 
 						<div class="sscribe-format-option-panel" data-format="markdown" hidden>
-							<h4 class="sscribe-format-option-title"><?php esc_html_e( 'Markdown Options', 'sscribe-export-site-pages' ); ?></h4>
+							<h3 class="sscribe-format-option-title"><?php esc_html_e( 'Markdown Options', 'sscribe-export-site-pages' ); ?></h3>
 							<div class="sscribe-format-option-grid">
 								<label class="sscribe-format-option-field sscribe-format-option-checkbox">
 									<input type="checkbox" name="sscribe_md_include_frontmatter" id="sscribe-md-include-frontmatter" value="1" checked>
@@ -432,7 +434,7 @@ $sscribe_export_index    = $sscribe_export_index ?? array();
 						</div>
 
 						<div class="sscribe-format-option-panel" data-format="html" hidden>
-							<h4 class="sscribe-format-option-title"><?php esc_html_e( 'HTML Options', 'sscribe-export-site-pages' ); ?></h4>
+							<h3 class="sscribe-format-option-title"><?php esc_html_e( 'HTML Options', 'sscribe-export-site-pages' ); ?></h3>
 							<div class="sscribe-format-option-grid">
 								<label class="sscribe-format-option-field sscribe-format-option-checkbox">
 									<input type="checkbox" name="sscribe_html_include_css" id="sscribe-html-include-css" value="1" checked>
@@ -677,7 +679,7 @@ $sscribe_export_index    = $sscribe_export_index ?? array();
 							<?php foreach ( $sscribe_recent_exports as $sscribe_export ) : ?>
 								<div class="sscribe-history-row" data-filename="<?php echo esc_attr( $sscribe_export['filename'] ); ?>">
 									<label class="sscribe-history-check-label">
-										<input type="checkbox" class="sscribe-history-check" value="<?php echo esc_attr( $sscribe_export['filename'] ); ?>">
+										<input type="checkbox" class="sscribe-history-check" value="<?php echo esc_attr( $sscribe_export['filename'] ); ?>" aria-label="<?php echo esc_attr( sprintf( /* translators: %s: export filename */ __( 'Select export %s', 'sscribe-export-site-pages' ), $sscribe_export['filename'] ) ); ?>">
 										<span class="sscribe-check-visual"></span>
 									</label>
 									<div class="sscribe-history-file">
