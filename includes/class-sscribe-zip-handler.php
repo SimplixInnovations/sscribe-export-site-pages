@@ -386,8 +386,8 @@ class SScribe_Zip_Handler {
 
 		// Update the export index with the new ZIP.
 		try {
-			$exports                          = get_option( 'sscribe_export_index', array() );
-			$exports[ basename( $zip_path ) ] = array(
+			$basename = basename( $zip_path );
+			$row      = array(
 				'created_at' => time(),
 				'user_id'    => get_current_user_id(),
 				'formats'    => $formats,
@@ -397,22 +397,25 @@ class SScribe_Zip_Handler {
 				'session_id' => $session_id,
 			);
 
-			// Cap index at 50 entries to prevent wp_options bloat.
-			if ( count( $exports ) > 50 ) {
-				$removed = array_slice( $exports, 0, count( $exports ) - 50, true );
-				$exports = array_slice( $exports, -50, 50, true );
+			update_option( 'sscribe_export_row_' . md5( $basename ), $row, false );
 
-				// Delete files for entries being removed from the index
-				// to prevent orphaned files from accumulating.
-				foreach ( $removed as $basename => $data ) {
-					$file_path = $this->export_dir . '/' . ltrim( (string) $basename, '/\\' );
+			$index   = get_option( 'sscribe_export_index', array() );
+			$index[] = $basename;
+			$index   = array_values( array_unique( $index ) );
+
+			if ( count( $index ) > 50 ) {
+				$removed = array_slice( $index, 0, count( $index ) - 50 );
+				$index   = array_slice( $index, -50 );
+				foreach ( $removed as $removed_basename ) {
+					delete_option( 'sscribe_export_row_' . md5( (string) $removed_basename ) );
+					$file_path = $this->export_dir . '/' . ltrim( (string) $removed_basename, '/\\' );
 					if ( file_exists( $file_path ) ) {
 						wp_delete_file( $file_path );
 					}
 				}
 			}
 
-			update_option( 'sscribe_export_index', $exports, false );
+			update_option( 'sscribe_export_index', $index, false );
 		} finally {
 			// Only unlock using the method that was used to acquire the lock.
 			if ( $lock_using_cache ) {
@@ -514,6 +517,38 @@ class SScribe_Zip_Handler {
 	}
 
 	/**
+	 * Look up a single export entry by filename.
+	 *
+	 * @param string $zip_filename Basename of the ZIP.
+	 * @return array<string, mixed>|null Row data, or null if not present.
+	 */
+	public function get_export_entry( string $zip_filename ): ?array {
+		$row = get_option( 'sscribe_export_row_' . md5( $zip_filename ), null );
+		return is_array( $row ) ? $row : null;
+	}
+
+	/**
+	 * List export entries in newest-first order.
+	 *
+	 * Reads from per-row options so the index does not need to be
+	 * rewritten on every write — the option containing just the
+	 * basenames is bounded in size.
+	 *
+	 * @return array<string, array<string, mixed>> Map of basename => row data.
+	 */
+	public function list_export_entries(): array {
+		$index   = get_option( 'sscribe_export_index', array() );
+		$entries = array();
+		foreach ( (array) $index as $basename ) {
+			$row = $this->get_export_entry( (string) $basename );
+			if ( null !== $row ) {
+				$entries[ (string) $basename ] = $row;
+			}
+		}
+		return $entries;
+	}
+
+	/**
 	 * Get the AJAX download URL for a ZIP file.
 	 *
 	 * @param string $zip_filename ZIP filename.
@@ -556,11 +591,20 @@ class SScribe_Zip_Handler {
 			$modified = false;
 
 			// Clean up ZIPs that are in the index first.
-			foreach ( $exports as $basename => $data ) {
-				$file_path = $this->export_dir . '/' . ltrim( (string) $basename, '/\\' );
+			foreach ( (array) $exports as $basename ) {
+				$basename   = (string) $basename;
+				$file_path  = $this->export_dir . '/' . ltrim( $basename, '/\\' );
 
 				if ( ! file_exists( $file_path ) ) {
-					unset( $exports[ $basename ] );
+					$exports    = array_values(
+						array_filter(
+							(array) $exports,
+							static function ( $b ) use ( $basename ) {
+								return (string) $b !== $basename;
+							}
+						)
+					);
+					delete_option( 'sscribe_export_row_' . md5( $basename ) );
 					SScribe_Export_Log::delete_by_filename( $basename );
 					$modified = true;
 					++$cleaned;
@@ -570,7 +614,15 @@ class SScribe_Zip_Handler {
 				$file_time = filemtime( $file_path );
 				if ( $file_time && ( $now - $file_time ) > $max_age ) {
 					wp_delete_file( $file_path );
-					unset( $exports[ $basename ] );
+					$exports    = array_values(
+						array_filter(
+							(array) $exports,
+							static function ( $b ) use ( $basename ) {
+								return (string) $b !== $basename;
+							}
+						)
+					);
+					delete_option( 'sscribe_export_row_' . md5( $basename ) );
 					SScribe_Export_Log::delete_by_filename( $basename );
 					$modified = true;
 					++$cleaned;
