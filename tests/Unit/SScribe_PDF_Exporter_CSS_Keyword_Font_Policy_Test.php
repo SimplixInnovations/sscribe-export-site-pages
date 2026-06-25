@@ -210,7 +210,7 @@ class SScribe_PDF_Exporter_CSS_Keyword_Font_Policy_Test extends TestCase {
 	 * fontdata keys). If a fontdata entry's default TTF is pruned, ANY
 	 * HTML that triggers the chain — even after a fonttrans remap, because
 	 * the chain picks by family name not by the remap target — will crash
-	 * with `Cannot find TTF TrueType font file ...`. The 1.1.1 fix only
+	 * with `Cannot find TTF TrueType font file ...`. The 1.1.2 fix only
 	 * covered 6 families; this test pins every family whose TTF the build
 	 * script prunes so the policy cannot silently regress on future builds.
 	 *
