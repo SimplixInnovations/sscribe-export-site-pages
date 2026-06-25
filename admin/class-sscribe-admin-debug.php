@@ -331,6 +331,17 @@ class SScribe_Admin_Debug {
 				return;
 			}
 
+			if ( ! preg_match( '/^(sscribe_debug_|sscribe-debug-export-)/', basename( $filename ) ) ) {
+				wp_send_json_error(
+					array(
+						'message' => __( 'Invalid filename.', 'sscribe-export-site-pages' ),
+						'nonce'   => wp_create_nonce( 'sscribe_export_nonce' ),
+					),
+					400
+				);
+				return;
+			}
+
 			$safe_log_dir = rtrim( $real_log_dir, DIRECTORY_SEPARATOR ) . DIRECTORY_SEPARATOR;
 			if ( 0 !== strpos( $real_file_path, $safe_log_dir ) ) {
 				wp_send_json_error(
