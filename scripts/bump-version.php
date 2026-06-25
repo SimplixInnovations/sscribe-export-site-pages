@@ -37,11 +37,16 @@ if (!preg_match("/define\s*\(\s*['\"]SSCRIBE_VERSION['\"]\s*,\s*['\"]([0-9.]+)['
 $old_version = $matches[1];
 
 if ($old_version === $new_version) {
-	echo "Already at version {$new_version}. Nothing to do.\n";
-	exit(0);
+	echo "Already at version {$new_version}.\n";
+	echo "Re-scanning for stray references anyway...\n\n";
+	$rescan_only = true;
+} else {
+	$rescan_only = false;
 }
 
-echo "Bumping version: {$old_version} → {$new_version}\n\n";
+if (! $rescan_only) {
+	echo "Bumping version: {$old_version} → {$new_version}\n\n";
+}
 
 $locations = array(
 
@@ -107,7 +112,14 @@ $locations = array(
 $updated_count = 0;
 $errors = array();
 
+if ($rescan_only) {
+	echo "Skipping canonical location updates (no version transition).\n\n";
+}
+
 foreach ($locations as $loc) {
+	if ($rescan_only) {
+		break;
+	}
 	$file = $loc['file'];
 
 	if (!file_exists($file)) {
@@ -147,7 +159,18 @@ foreach ($locations as $loc) {
 
 echo "\n";
 
-echo "Deep scanning for stray {$old_version} references...\n";
+if ($rescan_only) {
+	echo "Scanning for stray references that don't match {$new_version}...\n";
+	// In rescan-only mode, $old_version === $new_version, so a literal
+	// regex/str_replace would be a no-op. Instead, scan for ANY
+	// \d+\.\d+\.\d+ pattern that doesn't equal $new_version and report it.
+	$scan_target_regex = '/\b(\d+\.\d+\.\d+)\b/';
+	$scan_target_desc  = "non-{$new_version}";
+} else {
+	echo "Deep scanning for stray {$old_version} references...\n";
+	$scan_target_regex = '/\b' . preg_quote($old_version, '/') . '\b/';
+	$scan_target_desc  = "{$old_version}";
+}
 
 $scan_dirs = array(
 	$root_dir . '/includes/',
@@ -165,7 +188,7 @@ $scan_files = array(
 );
 $scan_extensions = array('php', 'txt', 'css', 'json', 'pot', 'js', 'yml', 'yaml', 'neon', 'xml');
 
-$version_regex = '/\b' . preg_quote($old_version, '/') . '\b/';
+$version_regex = $scan_target_regex;
 $stray_found = array();
 $skip_patterns = array(
 	'readme.txt' => 'Changelog historical entries are intentional.',
@@ -198,6 +221,31 @@ foreach ($all_files as $file) {
 
 	$file_content = file_get_contents($file);
 	if (preg_match_all($version_regex, $file_content, $v_matches)) {
+		$canonical_major = (int) strtok($new_version, '.');
+		// In rescan mode, filter out matches that already equal $new_version
+		// (they're canonical and correct) AND matches whose major version
+		// differs (those are IP addresses, PHPUnit versions, etc., not
+		// SScribe version references — same logic verify-version-sync.php
+		// uses). In transition mode, all matches are strays of $old_version
+		// (which has the same major as $new_version), so they all qualify.
+		if ($rescan_only) {
+			$noncanonical = array_filter(
+				$v_matches[0],
+				static function ($m) use ($new_version, $canonical_major) {
+					if ($m === $new_version) {
+						return false;
+					}
+					$maj = (int) strtok($m, '.');
+					return $maj === $canonical_major;
+				}
+			);
+			if (empty($noncanonical)) {
+				continue;
+			}
+			$stray_count = count($noncanonical);
+		} else {
+			$stray_count = count($v_matches[0]);
+		}
 		$basename = basename($file);
 		$skip = false;
 		foreach ($skip_patterns as $pattern => $reason) {
@@ -215,18 +263,31 @@ foreach ($all_files as $file) {
 		}
 		$relative = str_replace($root_dir . '/', '', $file);
 
-		$replaced = str_replace($old_version, $new_version, $file_content);
-		$stray_count = count($v_matches[0]);
-		$stray_found[] = sprintf('  ↳ %s: %d reference(s) → auto-updated', $relative, $stray_count);
-		// phpcs:ignore WordPress.WP.AlternativeFunctions.file_system_operations_file_put_contents
+		if ($rescan_only) {
+			$stray_found[] = sprintf(
+				'  ↳ %s: %d reference(s) (need manual review): %s',
+				$relative,
+				$stray_count,
+				implode(', ', array_values(array_unique($noncanonical)))
+			);
+		} else {
+			$replaced = str_replace($old_version, $new_version, $file_content);
+			$stray_found[] = sprintf('  ↳ %s: %d reference(s) → auto-updated', $relative, $stray_count);
+			// phpcs:ignore WordPress.WP.AlternativeFunctions.file_system_operations_file_put_contents
 
-		file_put_contents($file, $replaced);
-		$updated_count += $stray_count;
+			file_put_contents($file, $replaced);
+			$updated_count += $stray_count;
+		}
 	}
 }
 
 if (!empty($stray_found)) {
-	echo "\nAuto-updated stray references:\n";
+	echo "\n";
+	if ($rescan_only) {
+		echo "Stray references that don't match {$new_version} (manual review required):\n";
+	} else {
+		echo "Auto-updated stray references:\n";
+	}
 	foreach ($stray_found as $sf) {
 		echo $sf . "\n";
 	}
@@ -257,13 +318,22 @@ if (!empty($errors)) {
 }
 
 echo "═══════════════════════════════════════\n";
-echo "✓ Version bumped: {$old_version} → {$new_version}\n";
-echo "✓ Files updated: {$updated_count} reference(s)\n";
-echo "✓ Don't forget to:\n";
-echo "    1. Update CHANGELOG.md (if exists)\n";
-echo "    2. Add changelog entry in readme.txt\n";
-echo "    3. Run: composer build && composer test\n";
-echo "    4. Commit: git commit -am 'chore: bump version to v{$new_version}'\n";
+if ($rescan_only) {
+	echo "✓ Rescan complete at version {$new_version}\n";
+	if (! empty($stray_found)) {
+		echo "✗ Stray references found — manual review needed above.\n";
+		exit(1);
+	}
+	echo "✓ No stray references found.\n";
+} else {
+	echo "✓ Version bumped: {$old_version} → {$new_version}\n";
+	echo "✓ Files updated: {$updated_count} reference(s)\n";
+	echo "✓ Don't forget to:\n";
+	echo "    1. Update CHANGELOG.md (if exists)\n";
+	echo "    2. Add changelog entry in readme.txt\n";
+	echo "    3. Run: composer build && composer test\n";
+	echo "    4. Commit: git commit -am 'chore: bump version to v{$new_version}'\n";
+}
 echo "═══════════════════════════════════════\n";
 
 exit(0);
