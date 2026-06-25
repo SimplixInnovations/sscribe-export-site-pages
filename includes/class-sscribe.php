@@ -202,24 +202,25 @@ class SScribe {
 	private function define_ajax_hooks(): void {
 		$container = SScribe_Container::instance();
 		$batch     = $container->get( SScribe_Batch_Processor::class );
+		$cap       = SScribe_Capabilities::get_required();
 
-		$this->loader->add_action( 'wp_ajax_sscribe_start_export', $batch, 'ajax_start_export' );
-		$this->loader->add_action( 'wp_ajax_sscribe_process_batch', $batch, 'ajax_process_batch' );
-		$this->loader->add_action( 'wp_ajax_sscribe_finalize_export', $batch, 'ajax_finalize_export' );
-		$this->loader->add_action( 'wp_ajax_sscribe_download', $batch, 'ajax_download' );
-		$this->loader->add_action( 'wp_ajax_sscribe_refresh_download_nonce', $batch, 'ajax_refresh_download_nonce' );
-		$this->loader->add_action( 'wp_ajax_sscribe_refresh_nonce', $batch, 'ajax_refresh_nonce' );
-		$this->loader->add_action( 'wp_ajax_sscribe_get_status_counts', $batch, 'ajax_get_status_counts' );
-		$this->loader->add_action( 'wp_ajax_sscribe_cancel_export', $batch, 'ajax_cancel_export' );
-		$this->loader->add_action( 'wp_ajax_sscribe_delete_export', $batch, 'ajax_delete_export' );
-		$this->loader->add_action( 'wp_ajax_sscribe_get_export_log', $batch, 'ajax_get_export_log' );
-		$this->loader->add_action( 'wp_ajax_sscribe_clear_session', $batch, 'ajax_clear_session' );
-		$this->loader->add_action( 'wp_ajax_sscribe_preflight_check', $batch, 'ajax_preflight_check' );
-		$this->loader->add_action( 'wp_ajax_sscribe_get_export_preview', $batch, 'ajax_get_export_preview' );
-		$this->loader->add_action( 'wp_ajax_sscribe_get_recent_exports', $batch, 'ajax_get_recent_exports' );
-		$this->loader->add_action( 'wp_ajax_sscribe_get_support_info', $batch, 'ajax_get_support_info' );
-		$this->loader->add_action( 'wp_ajax_sscribe_health_check', $batch, 'ajax_health_check' );
-		$this->loader->add_action( 'wp_ajax_sscribe_check_active_session', $batch, 'ajax_check_active_session' );
+		$this->loader->add_guarded_ajax_action( 'wp_ajax_sscribe_start_export', $batch, 'ajax_start_export', $cap );
+		$this->loader->add_guarded_ajax_action( 'wp_ajax_sscribe_process_batch', $batch, 'ajax_process_batch', $cap );
+		$this->loader->add_guarded_ajax_action( 'wp_ajax_sscribe_finalize_export', $batch, 'ajax_finalize_export', $cap );
+		$this->loader->add_guarded_ajax_action( 'wp_ajax_sscribe_download', $batch, 'ajax_download', $cap );
+		$this->loader->add_guarded_ajax_action( 'wp_ajax_sscribe_refresh_download_nonce', $batch, 'ajax_refresh_download_nonce', $cap );
+		$this->loader->add_guarded_ajax_action( 'wp_ajax_sscribe_refresh_nonce', $batch, 'ajax_refresh_nonce', $cap );
+		$this->loader->add_guarded_ajax_action( 'wp_ajax_sscribe_get_status_counts', $batch, 'ajax_get_status_counts', $cap );
+		$this->loader->add_guarded_ajax_action( 'wp_ajax_sscribe_cancel_export', $batch, 'ajax_cancel_export', $cap );
+		$this->loader->add_guarded_ajax_action( 'wp_ajax_sscribe_delete_export', $batch, 'ajax_delete_export', $cap );
+		$this->loader->add_guarded_ajax_action( 'wp_ajax_sscribe_get_export_log', $batch, 'ajax_get_export_log', $cap );
+		$this->loader->add_guarded_ajax_action( 'wp_ajax_sscribe_clear_session', $batch, 'ajax_clear_session', $cap );
+		$this->loader->add_guarded_ajax_action( 'wp_ajax_sscribe_preflight_check', $batch, 'ajax_preflight_check', $cap );
+		$this->loader->add_guarded_ajax_action( 'wp_ajax_sscribe_get_export_preview', $batch, 'ajax_get_export_preview', $cap );
+		$this->loader->add_guarded_ajax_action( 'wp_ajax_sscribe_get_recent_exports', $batch, 'ajax_get_recent_exports', $cap );
+		$this->loader->add_guarded_ajax_action( 'wp_ajax_sscribe_get_support_info', $batch, 'ajax_get_support_info', $cap );
+		$this->loader->add_guarded_ajax_action( 'wp_ajax_sscribe_health_check', $batch, 'ajax_health_check', $cap, 'sscribe_health_nonce', 'nonce' );
+		$this->loader->add_guarded_ajax_action( 'wp_ajax_sscribe_check_active_session', $batch, 'ajax_check_active_session', $cap );
 	}
 
 	/**
@@ -313,16 +314,18 @@ class SScribe {
 	 * WordPress.org-hosted plugins auto-load translations since WP 4.6.
 	 */
 	private function init_i18n(): void {
-		add_action(
-			'init',
-			static function () {
-				// phpcs:ignore PluginCheck.CodeAnalysis.DiscouragedFunctions.load_plugin_textdomainFound -- Required for self-hosted/non-WP.org installs.
-				load_plugin_textdomain(
-					'sscribe-export-site-pages',
-					false,
-					dirname( SSCRIBE_PLUGIN_BASENAME ) . '/languages'
-				);
-			}
+		add_action( 'init', array( $this, 'load_textdomain' ) );
+	}
+
+	/**
+	 * Load the plugin's text domain for translation files.
+	 */
+	public function load_textdomain(): void {
+		// phpcs:ignore PluginCheck.CodeAnalysis.DiscouragedFunctions.load_plugin_textdomainFound -- Required for self-hosted/non-WP.org installs.
+		load_plugin_textdomain(
+			'sscribe-export-site-pages',
+			false,
+			dirname( SSCRIBE_PLUGIN_BASENAME ) . '/languages'
 		);
 	}
 }
