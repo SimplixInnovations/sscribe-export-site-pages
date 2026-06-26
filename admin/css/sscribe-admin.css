@@ -2636,25 +2636,30 @@ body .sscribe-master-container .sscribe-hero::before {
 }
 
 .sscribe-history-empty {
-	padding: 56px 28px;
+	padding: 64px 28px;
 	text-align: center;
 	color: var(--sscribe-text-muted);
 	background:
 		radial-gradient(
-			ellipse at top,
-			rgb(var(--sscribe-primary-rgb) / 5%) 0%,
-			rgb(var(--sscribe-primary-rgb) / 0%) 70%
+			ellipse at center,
+			rgb(var(--sscribe-primary-rgb) / 8%) 0%,
+			rgb(var(--sscribe-primary-rgb) / 2%) 40%,
+			transparent 70%
 		);
+	border-radius: var(--sscribe-radius-md);
+	position: relative;
 }
 
 .sscribe-history-empty em {
 	display: block;
 	font-style: normal;
-	font-size: 14px;
-	font-weight: 500;
-	color: var(--sscribe-text-main);
-	margin-top: 14px;
-	letter-spacing: -0.005em;
+	font-size: 14.5px;
+	font-weight: 600;
+	font-family: var(--sscribe-font-display);
+	color: var(--sscribe-text-heading);
+	margin-top: 16px;
+	letter-spacing: -0.01em;
+	line-height: 1.4;
 }
 
 .sscribe-history-empty em::before {
@@ -2672,14 +2677,34 @@ body .sscribe-master-container .sscribe-hero::before {
 }
 
 .sscribe-history-notice {
-	padding: 12px 24px;
+	padding: 14px 24px;
 	text-align: center;
-	color: var(--sscribe-text-muted);
+	color: var(--sscribe-text-secondary);
 	font-size: 12.5px;
 	font-weight: 500;
-	background: var(--sscribe-bg);
+	background:
+		linear-gradient(
+			180deg,
+			rgb(var(--sscribe-primary-rgb) / 3%) 0%,
+			transparent 100%
+		),
+		var(--sscribe-bg);
 	border-top: 1px solid var(--sscribe-border-light);
 	letter-spacing: 0.005em;
+	position: relative;
+}
+
+.sscribe-history-notice::before {
+	content: '';
+	position: absolute;
+	inset: 0 0 auto;
+	height: 1px;
+	background: linear-gradient(
+		90deg,
+		transparent 0%,
+		rgb(var(--sscribe-primary-rgb) / 35%) 50%,
+		transparent 100%
+	);
 }
 
 .sscribe-history-notice p {
@@ -2688,9 +2713,17 @@ body .sscribe-master-container .sscribe-hero::before {
 
 .sscribe-empty-illustration {
 	display: block;
-	margin: 0 auto 4px;
+	margin: 0 auto 12px;
 	color: var(--sscribe-primary);
 	opacity: 0.55;
+	transition:
+		opacity var(--sscribe-transition-normal),
+		transform var(--sscribe-transition-normal);
+}
+
+.sscribe-history-empty:hover .sscribe-empty-illustration {
+	opacity: 0.85;
+	transform: translateY(-2px) scale(1.02);
 }
 
 /* History Actions */
