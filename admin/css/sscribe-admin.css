@@ -1974,19 +1974,40 @@ body .sscribe-master-container .sscribe-hero::before {
 	BULK ACTIONS BAR
 	============================================ */
 .sscribe-bulk-bar {
+	position: relative;
 	display: flex;
 	align-items: center;
 	justify-content: space-between;
-	padding: 10px 28px;
-	background: var(--sscribe-primary-light);
-	border-bottom: 1px solid var(--sscribe-border-light);
+	padding: 12px 24px;
+	background:
+		linear-gradient(
+			135deg,
+			rgb(var(--sscribe-primary-rgb) / 6%) 0%,
+			rgb(var(--sscribe-primary-rgb) / 2%) 100%
+		),
+		var(--sscribe-card-bg);
+	border-bottom: 1px solid var(--sscribe-primary-soft);
 	gap: var(--sscribe-space-sm);
+	animation: sscribe-bulk-bar-in 220ms cubic-bezier(0.16, 1, 0.3, 1) both;
+}
+
+.sscribe-bulk-bar::before {
+	content: '';
+	position: absolute;
+	inset: 0 0 auto;
+	height: 1px;
+	background: linear-gradient(
+		90deg,
+		rgb(var(--sscribe-primary-rgb) / 0%) 0%,
+		rgb(var(--sscribe-primary-rgb) / 60%) 50%,
+		rgb(var(--sscribe-primary-rgb) / 0%) 100%
+	);
 }
 
 .sscribe-bulk-left {
 	display: flex;
 	align-items: center;
-	gap: 10px;
+	gap: 12px;
 }
 
 .sscribe-bulk-select-all {
@@ -2015,16 +2036,26 @@ body .sscribe-master-container .sscribe-hero::before {
 	border: 2px solid var(--sscribe-border-light);
 	border-radius: var(--sscribe-radius-sm);
 	background: var(--sscribe-card-bg);
-	transition: all var(--sscribe-transition-fast);
+	transition:
+		background var(--sscribe-transition-fast),
+		border-color var(--sscribe-transition-fast),
+		transform var(--sscribe-transition-fast),
+		box-shadow var(--sscribe-transition-fast);
 	display: flex;
 	align-items: center;
 	justify-content: center;
 	flex-shrink: 0;
 }
 
+.sscribe-bulk-select-all:hover .sscribe-check-visual {
+	border-color: var(--sscribe-primary-soft);
+	transform: scale(1.05);
+}
+
 .sscribe-bulk-select-all input:checked + .sscribe-check-visual {
 	background: var(--sscribe-primary);
 	border-color: var(--sscribe-primary);
+	box-shadow: 0 2px 6px rgb(var(--sscribe-primary-rgb) / 28%);
 }
 
 .sscribe-bulk-select-all input:checked + .sscribe-check-visual::after {
@@ -2034,31 +2065,47 @@ body .sscribe-master-container .sscribe-hero::before {
 	border: solid #fff;
 	border-width: 0 2px 2px 0;
 	transform: rotate(45deg);
-	margin-top: -1px;
+	margin-top: -2px;
 }
 
 .sscribe-bulk-select-all input:indeterminate + .sscribe-check-visual {
 	background: var(--sscribe-primary);
 	border-color: var(--sscribe-primary);
+	box-shadow: 0 2px 6px rgb(var(--sscribe-primary-rgb) / 28%);
 }
 
 .sscribe-bulk-select-all input:indeterminate + .sscribe-check-visual::after {
 	content: '';
-	width: 8px;
+	width: 9px;
 	height: 2px;
 	background: var(--sscribe-text-inverse);
 	border-radius: 1px;
 }
 
 .sscribe-bulk-select-all input:focus-visible + .sscribe-check-visual {
-	outline: 2px solid var(--sscribe-primary);
-	outline-offset: 2px;
+	box-shadow:
+		0 0 0 3px rgb(var(--sscribe-primary-rgb) / 22%),
+		0 2px 6px rgb(var(--sscribe-primary-rgb) / 28%);
 }
 
 .sscribe-bulk-count {
 	font-size: 13px;
 	font-weight: 600;
-	color: var(--sscribe-primary);
+	color: var(--sscribe-primary-active);
+	letter-spacing: -0.005em;
+	font-variant-numeric: tabular-nums;
+}
+
+.sscribe-bulk-count::before {
+	content: '';
+	display: inline-block;
+	width: 6px;
+	height: 6px;
+	margin-right: 8px;
+	border-radius: 999px;
+	background: var(--sscribe-primary);
+	vertical-align: middle;
+	box-shadow: 0 0 0 3px rgb(var(--sscribe-primary-rgb) / 18%);
 }
 
 .sscribe-bulk-actions {
@@ -2070,27 +2117,78 @@ body .sscribe-master-container .sscribe-hero::before {
 	display: none;
 }
 
+@keyframes sscribe-bulk-bar-in {
+	from {
+		opacity: 0;
+		transform: translateY(-6px);
+	}
+
+	to {
+		opacity: 1;
+		transform: translateY(0);
+	}
+}
+
 .sscribe-history-table {
 	display: flex;
 	flex-direction: column;
+	position: relative;
 }
 
 .sscribe-history-row {
+	position: relative;
 	display: flex;
 	align-items: center;
 	justify-content: space-between;
-	padding: 18px 28px;
+	padding: 16px 24px;
 	border-bottom: 1px solid var(--sscribe-border-light);
-	transition: background var(--sscribe-transition-fast);
+	transition:
+		background var(--sscribe-transition-fast),
+		transform var(--sscribe-transition-fast),
+		box-shadow var(--sscribe-transition-fast);
 	gap: var(--sscribe-space-sm);
+	isolation: isolate;
+}
+
+.sscribe-history-row::before {
+	content: '';
+	position: absolute;
+	inset: 0 auto 0 0;
+	width: 3px;
+	background: linear-gradient(
+		180deg,
+		var(--sscribe-primary) 0%,
+		var(--sscribe-primary-soft) 100%
+	);
+	transform: scaleY(0);
+	transform-origin: center;
+	transition: transform var(--sscribe-transition-fast);
+	border-radius: 0 2px 2px 0;
+	z-index: 1;
 }
 
 .sscribe-history-row:hover {
-	background: var(--sscribe-primary-lighter);
+	background: linear-gradient(
+		90deg,
+		rgb(var(--sscribe-primary-rgb) / 4%) 0%,
+		rgb(var(--sscribe-primary-rgb) / 0%) 70%
+	);
+}
+
+.sscribe-history-row:hover::before {
+	transform: scaleY(0.7);
 }
 
 .sscribe-history-row:last-child {
 	border-bottom: none;
+}
+
+.sscribe-history-row:focus-within {
+	background: rgb(var(--sscribe-primary-rgb) / 4%);
+}
+
+.sscribe-history-row:focus-within::before {
+	transform: scaleY(0.7);
 }
 
 .sscribe-history-check-label {
@@ -2101,6 +2199,22 @@ body .sscribe-master-container .sscribe-hero::before {
 	position: relative;
 	width: 20px;
 	height: 20px;
+	opacity: 0;
+	transform: translateX(-4px);
+	transition:
+		opacity var(--sscribe-transition-fast),
+		transform var(--sscribe-transition-fast);
+}
+
+.sscribe-history-row:hover .sscribe-history-check-label,
+.sscribe-history-row:focus-within .sscribe-history-check-label,
+.sscribe-history-row.sscribe-row-selected .sscribe-history-check-label {
+	opacity: 1;
+	transform: translateX(0);
+}
+
+.sscribe-history-row.sscribe-row-selected .sscribe-history-check-label {
+	opacity: 1;
 }
 
 .sscribe-history-check {
@@ -2116,19 +2230,31 @@ body .sscribe-master-container .sscribe-hero::before {
 .sscribe-check-visual {
 	width: 18px;
 	height: 18px;
-	border: 2px solid var(--sscribe-border);
-	border-radius: 4px;
+	border: 1.5px solid var(--sscribe-border);
+	border-radius: 5px;
 	background: var(--sscribe-card-bg);
-	transition: all var(--sscribe-transition-fast);
+	transition:
+		background var(--sscribe-transition-fast),
+		border-color var(--sscribe-transition-fast),
+		transform var(--sscribe-transition-fast),
+		box-shadow var(--sscribe-transition-fast);
 	display: flex;
 	align-items: center;
 	justify-content: center;
 	flex-shrink: 0;
 }
 
+.sscribe-history-check-label:hover .sscribe-check-visual {
+	border-color: var(--sscribe-primary-soft);
+	transform: scale(1.08);
+}
+
 .sscribe-history-check:checked + .sscribe-check-visual {
 	background: var(--sscribe-primary);
 	border-color: var(--sscribe-primary);
+	box-shadow:
+		inset 0 1px 0 rgb(255 255 255 / 25%),
+		0 2px 6px rgb(var(--sscribe-primary-rgb) / 28%);
 }
 
 .sscribe-history-check:checked + .sscribe-check-visual::after {
@@ -2138,76 +2264,194 @@ body .sscribe-master-container .sscribe-hero::before {
 	border: solid #fff;
 	border-width: 0 2px 2px 0;
 	transform: rotate(45deg);
-	margin-top: -1px;
+	margin-top: -2px;
 }
 
 .sscribe-history-check:focus-visible + .sscribe-check-visual {
-	outline: 2px solid var(--sscribe-primary);
-	outline-offset: 2px;
+	box-shadow:
+		0 0 0 3px rgb(var(--sscribe-primary-rgb) / 22%),
+		0 2px 6px rgb(var(--sscribe-primary-rgb) / 28%);
 }
 
 .sscribe-history-row.sscribe-row-selected {
-	background: var(--sscribe-primary-light);
+	background: linear-gradient(
+		90deg,
+		rgb(var(--sscribe-primary-rgb) / 8%) 0%,
+		rgb(var(--sscribe-primary-rgb) / 2%) 70%
+	);
+}
+
+.sscribe-history-row.sscribe-row-selected::before {
+	transform: scaleY(1);
+	box-shadow: 0 0 8px rgb(var(--sscribe-primary-rgb) / 50%);
 }
 
 .sscribe-history-row.sscribe-row-deleting {
 	opacity: 0.5;
 	pointer-events: none;
+	transition:
+		opacity 320ms ease,
+		transform 320ms ease,
+		max-height 320ms ease,
+		padding 320ms ease,
+		margin 320ms ease;
+	transform: translateX(20px);
 }
 
 .sscribe-history-file {
 	display: flex;
 	align-items: center;
 	gap: 14px;
+	min-width: 0;
+	flex: 1 1 auto;
 }
 
 .sscribe-file-icon {
-	width: 40px;
-	height: 40px;
-	background: var(--sscribe-info-light);
-	color: var(--sscribe-info);
-	border-radius: 8px;
+	width: 42px;
+	height: 42px;
+	background: linear-gradient(
+		135deg,
+		rgb(var(--sscribe-primary-rgb) / 12%) 0%,
+		rgb(var(--sscribe-primary-rgb) / 4%) 100%
+	);
+	color: var(--sscribe-primary);
+	border-radius: 10px;
 	display: flex;
 	align-items: center;
 	justify-content: center;
+	flex-shrink: 0;
+	border: 1px solid rgb(var(--sscribe-primary-rgb) / 12%);
+	transition:
+		transform var(--sscribe-transition-fast),
+		box-shadow var(--sscribe-transition-fast),
+		background var(--sscribe-transition-fast);
+}
+
+.sscribe-history-row:hover .sscribe-file-icon {
+	transform: scale(1.04) rotate(-2deg);
+	background: linear-gradient(
+		135deg,
+		rgb(var(--sscribe-primary-rgb) / 18%) 0%,
+		rgb(var(--sscribe-primary-rgb) / 6%) 100%
+	);
+	box-shadow: 0 4px 10px rgb(var(--sscribe-primary-rgb) / 16%);
+}
+
+.sscribe-history-row.sscribe-row-selected .sscribe-file-icon {
+	background: var(--sscribe-primary-gradient);
+	color: var(--sscribe-text-inverse);
+	border-color: var(--sscribe-primary);
+	box-shadow:
+		inset 0 1px 0 rgb(255 255 255 / 25%),
+		0 4px 10px rgb(var(--sscribe-primary-rgb) / 28%);
 }
 
 .sscribe-file-icon-img {
 	width: 24px;
-	height: auto;
-	border-radius: 2px;
+	height: 24px;
+	border-radius: 3px;
+	object-fit: cover;
 }
 
 .sscribe-file-icon-text {
-	font-size: 10px;
+	font-size: 11px;
 	font-weight: 700;
-	color: var(--sscribe-info);
+	color: var(--sscribe-primary);
+	letter-spacing: 0.02em;
+}
+
+.sscribe-history-row.sscribe-row-selected .sscribe-file-icon-text {
+	color: var(--sscribe-text-inverse);
+}
+
+.sscribe-file-details {
+	display: flex;
+	flex-direction: column;
+	gap: 3px;
+	min-width: 0;
 }
 
 .sscribe-file-details strong {
 	display: block;
-	font-size: 14px;
+	font-size: 13.5px;
+	font-weight: 600;
 	color: var(--sscribe-text-main);
-	margin-bottom: 2px;
+	letter-spacing: -0.01em;
+	white-space: nowrap;
+	overflow: hidden;
+	text-overflow: ellipsis;
+	font-family: var(--sscribe-font-mono, ui-monospace, monospace);
 }
 
 .sscribe-file-details span {
-	display: block;
+	display: inline-flex;
+	align-items: center;
+	gap: 8px;
+	flex-wrap: wrap;
 	font-size: 12px;
 	color: var(--sscribe-text-muted);
+	font-variant-numeric: tabular-nums;
+	letter-spacing: 0.005em;
+}
+
+.sscribe-file-details .sscribe-file-meta-dot {
+	display: inline-block;
+	width: 3px;
+	height: 3px;
+	border-radius: 999px;
+	background: var(--sscribe-border);
+}
+
+.sscribe-file-details .sscribe-file-size {
+	font-weight: 600;
+	color: var(--sscribe-text-main);
 }
 
 .sscribe-history-empty {
-	padding: 24px 28px;
+	padding: 56px 28px;
 	text-align: center;
 	color: var(--sscribe-text-muted);
+	background:
+		radial-gradient(
+			ellipse at top,
+			rgb(var(--sscribe-primary-rgb) / 5%) 0%,
+			rgb(var(--sscribe-primary-rgb) / 0%) 70%
+		);
+}
+
+.sscribe-history-empty em {
+	display: block;
+	font-style: normal;
+	font-size: 14px;
+	font-weight: 500;
+	color: var(--sscribe-text-main);
+	margin-top: 14px;
+	letter-spacing: -0.005em;
+}
+
+.sscribe-history-empty em::before {
+	content: '';
+	display: block;
+	width: 40px;
+	height: 2px;
+	margin: 18px auto 0;
+	background: linear-gradient(
+		90deg,
+		rgb(var(--sscribe-primary-rgb) / 0%) 0%,
+		rgb(var(--sscribe-primary-rgb) / 60%) 50%,
+		rgb(var(--sscribe-primary-rgb) / 0%) 100%
+	);
 }
 
 .sscribe-history-notice {
-	padding: 8px 16px;
+	padding: 12px 24px;
 	text-align: center;
 	color: var(--sscribe-text-muted);
-	font-size: 13px;
+	font-size: 12.5px;
+	font-weight: 500;
+	background: var(--sscribe-bg);
+	border-top: 1px solid var(--sscribe-border-light);
+	letter-spacing: 0.005em;
 }
 
 .sscribe-history-notice p {
@@ -2216,17 +2460,25 @@ body .sscribe-master-container .sscribe-hero::before {
 
 .sscribe-empty-illustration {
 	display: block;
-	margin: 0 auto 12px;
-	color: var(--sscribe-text-muted);
-	opacity: 0.6;
+	margin: 0 auto 4px;
+	color: var(--sscribe-primary);
+	opacity: 0.55;
 }
 
 /* History Actions */
 .sscribe-history-actions {
 	display: flex;
 	align-items: center;
-	gap: 8px;
-	flex-wrap: wrap;
+	gap: 6px;
+	flex-shrink: 0;
+	opacity: 0.7;
+	transition: opacity var(--sscribe-transition-fast);
+}
+
+.sscribe-history-row:hover .sscribe-history-actions,
+.sscribe-history-row:focus-within .sscribe-history-actions,
+.sscribe-history-row.sscribe-row-selected .sscribe-history-actions {
+	opacity: 1;
 }
 
 .sscribe-delete-btn {
