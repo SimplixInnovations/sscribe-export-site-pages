@@ -6029,6 +6029,15 @@ body .sscribe-master-container .sscribe-support-copy-text {
 	border: 1px solid var(--sscribe-border-light);
 	background: rgb(var(--sscribe-primary-rgb) / 2.5%);
 	box-shadow: inset 0 1px 0 rgb(255 255 255 / 60%);
+	transition:
+		border-color var(--sscribe-transition-fast),
+		background var(--sscribe-transition-fast);
+	position: relative;
+}
+
+.sscribe-format-option-grid:hover {
+	border-color: rgb(var(--sscribe-primary-rgb) / 18%);
+	background: rgb(var(--sscribe-primary-rgb) / 3.5%);
 }
 
 .sscribe-format-option-field {
