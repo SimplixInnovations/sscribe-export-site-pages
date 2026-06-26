@@ -4580,6 +4580,14 @@ body .sscribe-master-container .sscribe-hero::before {
 	box-shadow: 0 2px 6px rgb(220 38 38 / 18%);
 }
 
+.sscribe-preflight-close:focus-visible {
+	outline: none;
+	border-color: var(--sscribe-primary);
+	box-shadow:
+		0 0 0 4px rgb(var(--sscribe-primary-rgb) / 18%),
+		0 1px 2px rgb(15 23 42 / 4%);
+}
+
 .sscribe-preflight-body {
 	padding: 22px 24px;
 	background:
