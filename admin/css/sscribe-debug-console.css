@@ -438,11 +438,33 @@
 	padding: 48px;
 	color: var(--sscribe-debug-text-console);
 	text-align: center;
+	background:
+		radial-gradient(
+			ellipse at center,
+			rgb(99 179 237 / 8%) 0%,
+			transparent 65%
+		);
+	border-radius: var(--sscribe-radius-md);
+	margin: 8px;
 }
 
 .sscribe-debug-empty svg {
 	margin-bottom: 16px;
-	opacity: 0.5;
+	opacity: 0.55;
+	color: #94a3b8;
+	animation: sscribe-empty-float 4s ease-in-out infinite;
+}
+
+@keyframes sscribe-empty-float {
+	0%, 100% {
+		opacity: 0.45;
+		transform: translateY(0);
+	}
+
+	50% {
+		opacity: 0.7;
+		transform: translateY(-3px);
+	}
 }
 
 .sscribe-debug-append-loading {
@@ -478,15 +500,21 @@
 }
 
 .sscribe-debug-entry {
+	position: relative;
 	color: var(--sscribe-debug-text-console);
-	padding: 8px 12px;
-	border-radius: 4px;
+	padding: 10px 14px;
+	border-radius: 8px;
 	margin-bottom: 4px;
 	min-height: 32px;
 	display: flex;
-	align-items: flex-start;
+	flex-direction: column;
+	align-items: stretch;
 	cursor: default;
-	transition: background-color 0.15s;
+	border: 1px solid transparent;
+	transition:
+		background-color 0.15s,
+		border-color 0.15s,
+		transform 0.2s cubic-bezier(0.16, 1, 0.3, 1);
 }
 
 .sscribe-debug-entry.has-context {
@@ -495,6 +523,15 @@
 
 .sscribe-debug-entry:hover {
 	background: rgb(255 255 255 / 5%);
+	border-color: rgb(255 255 255 / 8%);
+}
+
+.sscribe-debug-entry.expanded {
+	background: rgb(255 255 255 / 6%);
+	border-color: rgb(99 179 237 / 25%);
+	box-shadow:
+		inset 3px 0 0 #4f9cf9,
+		0 4px 12px rgb(0 0 0 / 20%);
 }
 
 .sscribe-debug-entry-header {
@@ -504,8 +541,14 @@
 }
 
 .sscribe-debug-entry-time {
-	color: var(--sscribe-text-muted, #6c757d);
+	color: #64748b;
 	flex-shrink: 0;
+	font-variant-numeric: tabular-nums;
+	font-size: 11.5px;
+	padding: 1px 6px;
+	border-radius: 4px;
+	background: rgb(255 255 255 / 4%);
+	border: 1px solid rgb(255 255 255 / 6%);
 }
 
 .sscribe-debug-entry-badge {
@@ -569,20 +612,25 @@
 }
 
 .sscribe-debug-entry:focus-visible {
-	outline: 2px solid #4f9cf9;
-	outline-offset: -2px;
+	outline: none;
+	background: rgb(99 179 237 / 10%);
+	border-color: #4f9cf9;
+	box-shadow: 0 0 0 3px rgb(79 156 249 / 25%);
 }
 
 .sscribe-debug-entry-message {
 	flex: 1;
 	overflow-wrap: break-word;
+	line-height: 1.55;
 }
 
 .sscribe-debug-entry-context {
 	display: none;
 	margin-top: 12px;
-	padding-top: 12px;
-	border-top: 1px solid rgb(255 255 255 / 10%);
+	padding: 12px 14px;
+	border-top: 1px solid rgb(255 255 255 / 8%);
+	background: rgb(0 0 0 / 18%);
+	border-radius: 6px;
 	font-size: 11px;
 	color: #adb5bd;
 }
