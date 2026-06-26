@@ -736,6 +736,14 @@ body .sscribe-master-container .sscribe-hero::before {
 	opacity: 1;
 }
 
+.sscribe-status-card-label:hover .sscribe-status-icon {
+	color: var(--sscribe-primary);
+	border-color: var(--sscribe-primary-soft);
+	background: rgb(var(--sscribe-primary-rgb) / 8%);
+	transform: scale(1.04);
+	box-shadow: 0 2px 6px rgb(var(--sscribe-primary-rgb) / 18%);
+}
+
 .sscribe-status-card-label input[type='radio']:focus-visible ~ .sscribe-status-card-inner {
 	outline: none;
 	box-shadow: 0 0 0 3px rgb(var(--sscribe-primary-rgb) / 30%);
@@ -981,6 +989,9 @@ body .sscribe-master-container .sscribe-hero::before {
 .sscribe-format-card-label:hover .sscribe-format-icon {
 	color: var(--sscribe-primary);
 	border-color: var(--sscribe-primary-soft);
+	background: rgb(var(--sscribe-primary-rgb) / 8%);
+	transform: scale(1.04);
+	box-shadow: 0 2px 6px rgb(var(--sscribe-primary-rgb) / 18%);
 }
 
 .sscribe-format-card-label input[type='radio']:checked + .sscribe-format-card-inner .sscribe-format-icon {
