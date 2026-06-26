@@ -4065,6 +4065,7 @@ body .sscribe-master-container .sscribe-hero::before {
 	line-height: 1.2;
 	position: relative;
 	padding-bottom: 10px;
+	padding-inline-start: 4px;
 }
 
 .sscribe-section-title::after {
