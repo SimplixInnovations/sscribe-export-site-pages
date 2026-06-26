@@ -3742,13 +3742,40 @@ body .sscribe-master-container .sscribe-hero::before {
 .sscribe-summary-chip {
 	padding: 2px 9px;
 	border-radius: 999px;
-	background: rgb(var(--sscribe-primary-rgb) / 10%);
+	background:
+		linear-gradient(
+			180deg,
+			rgb(255 255 255 / 40%) 0%,
+			rgb(255 255 255 / 0%) 60%
+		),
+		rgb(var(--sscribe-primary-rgb) / 10%);
 	color: var(--sscribe-primary-active);
 	font-weight: 600;
 	font-size: 11.5px;
 	white-space: nowrap;
 	letter-spacing: -0.005em;
 	border: 1px solid rgb(var(--sscribe-primary-rgb) / 14%);
+	box-shadow: inset 0 1px 0 rgb(255 255 255 / 35%);
+	transition:
+		background var(--sscribe-transition-fast),
+		border-color var(--sscribe-transition-fast),
+		transform var(--sscribe-transition-fast),
+		box-shadow var(--sscribe-transition-fast);
+}
+
+.sscribe-summary-chip:hover {
+	border-color: rgb(var(--sscribe-primary-rgb) / 28%);
+	background:
+		linear-gradient(
+			180deg,
+			rgb(255 255 255 / 45%) 0%,
+			rgb(255 255 255 / 0%) 60%
+		),
+		rgb(var(--sscribe-primary-rgb) / 15%);
+	box-shadow:
+		inset 0 1px 0 rgb(255 255 255 / 45%),
+		0 1px 2px rgb(var(--sscribe-primary-rgb) / 14%);
+	transform: translateY(-1px);
 }
 
 .sscribe-summary-pages {
@@ -3764,10 +3791,31 @@ body .sscribe-master-container .sscribe-hero::before {
 	font-weight: 700;
 	color: var(--sscribe-text-main);
 	padding: 2px 9px;
-	background: var(--sscribe-bg);
+	background:
+		linear-gradient(
+			180deg,
+			rgb(255 255 255 / 60%) 0%,
+			rgb(255 255 255 / 0%) 60%
+		),
+		var(--sscribe-bg);
 	border-radius: 999px;
 	border: 1px solid var(--sscribe-border-light);
 	font-variant-numeric: tabular-nums;
+	box-shadow: inset 0 1px 0 rgb(255 255 255 / 70%);
+	transition:
+		background var(--sscribe-transition-fast),
+		border-color var(--sscribe-transition-fast),
+		transform var(--sscribe-transition-fast),
+		box-shadow var(--sscribe-transition-fast);
+}
+
+.sscribe-summary-time:hover {
+	border-color: rgb(var(--sscribe-primary-rgb) / 22%);
+	color: var(--sscribe-primary-active);
+	transform: translateY(-1px);
+	box-shadow:
+		inset 0 1px 0 rgb(255 255 255 / 75%),
+		0 1px 2px rgb(15 23 42 / 6%);
 }
 
 .sscribe-summary-sep {
