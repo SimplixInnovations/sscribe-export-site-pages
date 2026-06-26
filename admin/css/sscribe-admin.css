@@ -418,7 +418,7 @@ body .sscribe-master-container .sscribe-hero::before {
 }
 
 /* ============================================
-	PANELS & CARDS
+	PANELS & CARDS — premium surface with depth
 	============================================ */
 .sscribe-panel {
 	background: var(--sscribe-card-bg);
@@ -426,20 +426,43 @@ body .sscribe-master-container .sscribe-hero::before {
 	border-radius: var(--sscribe-radius-lg);
 	margin-bottom: var(--sscribe-space-l);
 	overflow: hidden;
-	transition: border-color var(--sscribe-transition-fast);
+	transition:
+		border-color var(--sscribe-transition-normal),
+		box-shadow var(--sscribe-transition-normal),
+		transform var(--sscribe-transition-normal);
+	box-shadow: var(--sscribe-shadow-xs);
 }
 
 .sscribe-panel:hover {
-	border-color: var(--sscribe-primary);
+	border-color: rgb(var(--sscribe-primary-rgb) / 25%);
+	box-shadow: var(--sscribe-shadow-shallow);
 }
 
 .sscribe-panel-header {
-	padding: var(--sscribe-space-ml) var(--sscribe-space-l);
+	padding: 20px 28px;
 	border-bottom: 1px solid var(--sscribe-border-light);
 	display: flex;
 	align-items: center;
 	justify-content: space-between;
-	background: var(--sscribe-section-bg);
+	background:
+		linear-gradient(
+			180deg,
+			rgb(var(--sscribe-primary-rgb) / 2%) 0%,
+			transparent 100%
+		),
+		var(--sscribe-card-bg);
+	position: relative;
+}
+
+.sscribe-panel-header::after {
+	content: '';
+	position: absolute;
+	inset-inline-start: 0;
+	inset-block-end: -1px;
+	width: 48px;
+	height: 2px;
+	background: var(--sscribe-primary-gradient);
+	border-radius: 0 2px 2px 0;
 }
 
 .sscribe-panel-title {
@@ -450,14 +473,16 @@ body .sscribe-master-container .sscribe-hero::before {
 
 .sscribe-panel-title h2,
 .sscribe-panel-title h3 {
-	font-size: 16px;
-	font-weight: 600;
+	font-family: var(--sscribe-font-display);
+	font-size: var(--sscribe-text-xl);
+	font-weight: 700;
 	color: var(--sscribe-text-heading);
 	margin: 0;
+	letter-spacing: -0.01em;
 }
 
 .sscribe-panel-body {
-	padding: var(--sscribe-space-lg, 24px);
+	padding: 28px;
 }
 
 /* ============================================
@@ -498,49 +523,107 @@ body .sscribe-master-container .sscribe-hero::before {
 }
 
 /* ============================================
-	TABS NAVIGATION
+	TABS NAVIGATION — modern underline indicator
 	============================================ */
 .sscribe-tabs-nav {
 	display: flex;
-	gap: var(--sscribe-space-s);
-	margin-bottom: var(--sscribe-space-l);
+	gap: var(--sscribe-space-xs);
+	margin-bottom: var(--sscribe-space-xl);
 	border-bottom: 1px solid var(--sscribe-border-light);
+	padding: 0 4px;
 }
 
 .sscribe-tab-btn {
+	position: relative;
 	background: transparent;
 	border: none;
-	border-bottom: 3px solid transparent;
-	padding: var(--sscribe-space-sm) var(--sscribe-space-l);
+	padding: 14px 20px;
 	font-family: inherit;
-	font-size: 15px;
+	font-size: var(--sscribe-text-md);
 	font-weight: 600;
 	color: var(--sscribe-text-secondary);
 	cursor: pointer;
-	display: flex;
+	display: inline-flex;
 	align-items: center;
 	gap: var(--sscribe-space-s);
 	transition:
 		color var(--sscribe-transition-fast),
-		border-color var(--sscribe-transition-fast);
+		background var(--sscribe-transition-fast);
 	margin-bottom: -1px;
+	border-radius: 8px 8px 0 0;
+}
+
+.sscribe-tab-btn .sscribe-icon {
+	color: var(--sscribe-text-muted);
+	transition:
+		color var(--sscribe-transition-fast),
+		transform var(--sscribe-transition-fast);
 }
 
 .sscribe-tab-btn:hover {
+	color: var(--sscribe-text-heading);
+	background: rgb(var(--sscribe-primary-rgb) / 4%);
+}
+
+.sscribe-tab-btn:hover .sscribe-icon {
 	color: var(--sscribe-primary);
+	transform: scale(1.08);
 }
 
 .sscribe-tab-btn.sscribe-tab-active {
 	color: var(--sscribe-primary);
-	border-bottom-color: var(--sscribe-primary);
+}
+
+/* Sliding underline indicator — premium SaaS pattern */
+.sscribe-tab-btn.sscribe-tab-active::after {
+	content: '';
+	position: absolute;
+	inset-inline: 12px;
+	inset-block-end: -1px;
+	height: 2px;
+	background: var(--sscribe-primary-gradient);
+	border-radius: 2px 2px 0 0;
+	box-shadow:
+		0 -1px 8px rgb(var(--sscribe-primary-rgb) / 30%),
+		0 -2px 16px rgb(var(--sscribe-primary-rgb) / 15%);
+	animation: sscribe-tab-underline-enter 280ms cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.sscribe-tab-btn.sscribe-tab-active .sscribe-icon {
+	color: var(--sscribe-primary);
+}
+
+@keyframes sscribe-tab-underline-enter {
+	from {
+		transform: scaleX(0);
+		opacity: 0;
+	}
+
+	to {
+		transform: scaleX(1);
+		opacity: 1;
+	}
 }
 
 .sscribe-tab-content {
 	display: none;
+	animation: sscribe-tab-content-enter 240ms cubic-bezier(0.16, 1, 0.3, 1);
 }
 
 .sscribe-tab-content.sscribe-tab-active {
 	display: block;
+}
+
+@keyframes sscribe-tab-content-enter {
+	from {
+		opacity: 0;
+		transform: translateY(6px);
+	}
+
+	to {
+		opacity: 1;
+		transform: translateY(0);
+	}
 }
 
 /* ============================================
