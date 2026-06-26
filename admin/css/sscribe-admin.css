@@ -3150,6 +3150,15 @@ body .sscribe-master-container .sscribe-hero::before {
 	color: var(--sscribe-text-main);
 	margin: 0;
 	letter-spacing: -0.015em;
+	display: inline-flex;
+	align-items: center;
+	gap: 10px;
+}
+
+.sscribe-modal-header h3 svg,
+.sscribe-modal-header h3 .sscribe-icon {
+	color: var(--sscribe-primary);
+	flex-shrink: 0;
 }
 
 .sscribe-modal-close {
