@@ -627,19 +627,18 @@ body .sscribe-master-container .sscribe-hero::before {
 }
 
 /* ============================================
-	STATUS CARDS (Card-based selector)
+	STATUS CARDS — premium selectable card
 	============================================ */
 .sscribe-status-cards {
-	display: flex;
-	flex-wrap: wrap;
-	gap: 12px;
+	display: grid;
+	grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
+	gap: var(--sscribe-space-sm);
 }
 
 .sscribe-status-card-label {
 	display: block;
 	cursor: pointer;
-	flex: 1 1 140px;
-	max-width: 180px;
+	position: relative;
 }
 
 .sscribe-status-card-label input[type='radio'] {
@@ -656,42 +655,84 @@ body .sscribe-master-container .sscribe-hero::before {
 
 .sscribe-status-card-inner {
 	display: flex;
-	align-items: center;
+	flex-direction: column;
+	gap: var(--sscribe-space-sm);
 	background: var(--sscribe-card-bg);
 	border: 1px solid var(--sscribe-border-light);
-	border-radius: var(--sscribe-radius-md);
-	padding: 12px 14px;
-	gap: 12px;
-	transition: all var(--sscribe-transition-normal);
+	border-radius: 10px;
+	padding: 14px;
+	transition:
+		border-color var(--sscribe-transition-normal),
+		background var(--sscribe-transition-normal),
+		box-shadow var(--sscribe-transition-normal),
+		transform var(--sscribe-transition-normal);
 	height: 100%;
+	position: relative;
+	overflow: hidden;
+}
+
+.sscribe-status-card-inner::before {
+	content: '';
+	position: absolute;
+	inset: 0;
+	border-radius: inherit;
+	background: linear-gradient(180deg, rgb(255 255 255 / 60%) 0%, transparent 40%);
+	opacity: 0;
+	transition: opacity var(--sscribe-transition-normal);
+	pointer-events: none;
 }
 
 .sscribe-status-card-label:hover .sscribe-status-card-inner {
-	border-color: var(--sscribe-primary);
+	border-color: rgb(var(--sscribe-primary-rgb) / 35%);
+	transform: translateY(-2px);
+	box-shadow: var(--sscribe-shadow-shallow);
+}
+
+.sscribe-status-card-label:hover .sscribe-status-card-inner::before {
+	opacity: 1;
+}
+
+.sscribe-status-card-label input[type='radio']:focus-visible ~ .sscribe-status-card-inner {
+	outline: none;
+	box-shadow: 0 0 0 3px rgb(var(--sscribe-primary-rgb) / 30%);
 }
 
 .sscribe-status-card-label input[type='radio']:checked + .sscribe-status-card-inner {
 	border-color: var(--sscribe-primary);
-	background: var(--sscribe-primary-light);
-	box-shadow: 0 0 0 3px rgb(var(--sscribe-success-rgb) / 10%);
+	background:
+		linear-gradient(180deg, rgb(var(--sscribe-primary-rgb) / 6%) 0%, rgb(var(--sscribe-primary-rgb) / 0%) 100%),
+		var(--sscribe-card-bg);
+	box-shadow:
+		var(--sscribe-shadow-shallow),
+		inset 0 0 0 1px var(--sscribe-primary);
 }
 
 .sscribe-status-icon {
 	flex-shrink: 0;
-	width: 36px;
-	height: 36px;
-	border-radius: var(--sscribe-radius-sm);
+	width: 38px;
+	height: 38px;
+	border-radius: 10px;
 	background: var(--sscribe-bg);
+	border: 1px solid var(--sscribe-border-light);
 	display: flex;
 	align-items: center;
 	justify-content: center;
-	color: var(--sscribe-text-muted);
-	transition: all var(--sscribe-transition-normal);
+	color: var(--sscribe-text-secondary);
+	transition:
+		background var(--sscribe-transition-normal),
+		color var(--sscribe-transition-normal),
+		border-color var(--sscribe-transition-normal),
+		transform var(--sscribe-transition-normal);
 }
 
 .sscribe-status-card-label input[type='radio']:checked + .sscribe-status-card-inner .sscribe-status-icon {
-	background: var(--sscribe-primary);
+	background: var(--sscribe-primary-gradient);
 	color: var(--sscribe-text-inverse);
+	border-color: transparent;
+	box-shadow:
+		inset 0 1px 0 rgb(255 255 255 / 25%),
+		0 4px 12px -4px rgb(var(--sscribe-primary-rgb) / 40%);
+	transform: scale(1.05);
 }
 
 .sscribe-status-meta {
@@ -704,37 +745,53 @@ body .sscribe-master-container .sscribe-hero::before {
 
 .sscribe-status-name {
 	font-weight: 600;
-	font-size: 13px;
-	color: var(--sscribe-text-main);
+	font-size: var(--sscribe-text-sm);
+	color: var(--sscribe-text-heading);
 	white-space: nowrap;
 	overflow: hidden;
 	text-overflow: ellipsis;
 }
 
+.sscribe-status-card-label input[type='radio']:checked + .sscribe-status-card-inner .sscribe-status-name {
+	color: var(--sscribe-primary-active);
+}
+
 .sscribe-status-count {
-	font-size: 12px;
+	font-size: var(--sscribe-text-xs);
 	color: var(--sscribe-text-muted);
 	font-weight: 500;
+	font-variant-numeric: tabular-nums;
+}
+
+.sscribe-status-selector {
+	position: absolute;
+	inset-block-start: 12px;
+	inset-inline-end: 12px;
+	color: var(--sscribe-primary);
+	opacity: 0;
+	transform: scale(0.4) rotate(-30deg);
+	transition:
+		opacity var(--sscribe-transition-normal),
+		transform var(--sscribe-transition-normal);
+	flex-shrink: 0;
+	z-index: 1;
 }
 
 .sscribe-status-selector .sscribe-check-icon {
-	color: var(--sscribe-primary);
-	opacity: 0;
-	transform: scale(0.5);
-	transition: all var(--sscribe-transition-normal);
-	flex-shrink: 0;
+	filter: drop-shadow(0 1px 2px rgb(var(--sscribe-primary-rgb) / 40%));
 }
 
-.sscribe-status-card-label input[type='radio']:checked + .sscribe-status-card-inner .sscribe-check-icon {
+.sscribe-status-card-label input[type='radio']:checked + .sscribe-status-card-inner .sscribe-status-selector {
 	opacity: 1;
-	transform: scale(1);
+	transform: scale(1) rotate(0);
 }
 
 /* Disabled Status Cards */
 .sscribe-status-disabled {
-	opacity: 0.5;
+	opacity: 0.45;
 	cursor: not-allowed;
 	pointer-events: none;
+	filter: grayscale(0.6);
 }
 
 .sscribe-status-disabled input {
@@ -1341,36 +1398,59 @@ body .sscribe-master-container .sscribe-hero::before {
 }
 
 /* ============================================
-	STATUS ALERTS (Progress/Success/Error)
+	STATUS ALERTS — banner surface for live export state
 	============================================ */
 .sscribe-status-alert {
-	margin-top: var(--sscribe-space-ml);
-	padding: var(--sscribe-space-ml) var(--sscribe-space-l);
-	border-radius: var(--sscribe-radius-lg);
+	margin-top: var(--sscribe-space-l);
+	padding: 24px 28px;
+	border-radius: 14px;
 	display: flex;
 	align-items: center;
-	gap: var(--sscribe-space-ml);
+	gap: 20px;
 	border: 1px solid transparent;
-	box-shadow: var(--sscribe-shadow-shallow);
+	box-shadow: var(--sscribe-shadow-standard);
+	position: relative;
+	overflow: hidden;
+}
+
+/* Decorative sheen across the top of every banner */
+.sscribe-status-alert::before {
+	content: '';
+	position: absolute;
+	inset: 0 0 auto;
+	height: 1px;
+	background: linear-gradient(
+		90deg,
+		transparent 0%,
+		rgb(255 255 255 / 60%) 50%,
+		transparent 100%
+	);
+	pointer-events: none;
 }
 
 .sscribe-status-processing {
-	background: var(--sscribe-info-light);
-	border-color: rgb(var(--sscribe-success-rgb) / 20%);
+	background:
+		linear-gradient(135deg, rgb(var(--sscribe-primary-rgb) / 6%) 0%, rgb(var(--sscribe-primary-rgb) / 2%) 100%),
+		var(--sscribe-card-bg);
+	border-color: rgb(var(--sscribe-primary-rgb) / 18%);
 }
 
 .sscribe-status-success {
-	background: var(--sscribe-success-light);
-	border-color: rgb(var(--sscribe-success-rgb) / 25%);
+	background:
+		linear-gradient(135deg, rgb(var(--sscribe-primary-rgb) / 10%) 0%, rgb(var(--sscribe-primary-rgb) / 4%) 100%),
+		var(--sscribe-card-bg);
+	border-color: rgb(var(--sscribe-primary-rgb) / 28%);
 }
 
 .sscribe-status-success .sscribe-status-icon {
-	color: var(--sscribe-success);
+	color: var(--sscribe-primary);
 }
 
 .sscribe-status-error {
-	background: var(--sscribe-danger-light);
-	border-color: rgb(var(--sscribe-danger-rgb) / 20%);
+	background:
+		linear-gradient(135deg, rgb(var(--sscribe-danger-rgb) / 8%) 0%, rgb(var(--sscribe-danger-rgb) / 2%) 100%),
+		var(--sscribe-card-bg);
+	border-color: rgb(var(--sscribe-danger-rgb) / 22%);
 }
 
 .sscribe-status-error .sscribe-status-icon {
@@ -1379,16 +1459,19 @@ body .sscribe-master-container .sscribe-hero::before {
 
 .sscribe-status-info {
 	flex-grow: 1;
+	min-width: 0;
 }
 
 .sscribe-status-heading {
-	font-size: 16px;
+	font-family: var(--sscribe-font-display);
+	font-size: var(--sscribe-text-xl);
 	font-weight: 700;
-	margin-bottom: 6px;
+	letter-spacing: -0.01em;
+	margin-bottom: 4px;
 }
 
 .sscribe-status-success .sscribe-status-heading {
-	color: var(--sscribe-primary);
+	color: var(--sscribe-primary-active);
 }
 
 .sscribe-status-error .sscribe-status-heading {
