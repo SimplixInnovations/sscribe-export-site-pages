@@ -334,15 +334,31 @@
 
 .sscribe-debug-save-feedback {
 	margin-left: 12px;
-	font-size: 14px;
+	font-size: 13px;
+	font-weight: 600;
+	display: inline-flex;
+	align-items: center;
+	gap: 6px;
+	padding: 4px 10px;
+	border-radius: 999px;
+	border: 1px solid transparent;
+	background: transparent;
+	transition:
+		background var(--sscribe-transition-fast),
+		border-color var(--sscribe-transition-fast),
+		color var(--sscribe-transition-fast);
 }
 
 .sscribe-debug-save-feedback.success {
-	color: #28a745;
+	color: #16a34a;
+	background: rgb(34 197 94 / 10%);
+	border-color: rgb(34 197 94 / 24%);
 }
 
 .sscribe-debug-save-feedback.error {
-	color: #dc3545;
+	color: #dc2626;
+	background: rgb(220 38 38 / 10%);
+	border-color: rgb(220 38 38 / 24%);
 }
 
 .sscribe-debug-controls-row {
