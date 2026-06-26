@@ -2903,11 +2903,28 @@ body .sscribe-master-container .sscribe-hero::before {
 		padding var(--sscribe-transition-fast);
 	border-radius: 4px;
 	margin: 0 -12px;
+	position: relative;
+}
+
+.sscribe-support-item::before {
+	content: '';
+	position: absolute;
+	inset: 6px auto 6px 0;
+	width: 2px;
+	border-radius: 0 2px 2px 0;
+	background: var(--sscribe-primary);
+	opacity: 0;
+	transition: opacity var(--sscribe-transition-fast);
+	pointer-events: none;
 }
 
 .sscribe-support-item:hover {
 	background: rgb(255 255 255 / 4%);
 	padding-left: 16px;
+}
+
+.sscribe-support-item:hover::before {
+	opacity: 0.85;
 }
 
 .sscribe-support-item:last-child {
