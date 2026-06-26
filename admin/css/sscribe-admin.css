@@ -1080,6 +1080,19 @@ body .sscribe-master-container .sscribe-hero::before {
 	opacity: 1;
 }
 
+.sscribe-format-all:hover .sscribe-format-card-inner {
+	border-color: var(--sscribe-primary);
+	background-color: rgb(var(--sscribe-primary-rgb) / 8%);
+	border-style: solid;
+}
+
+.sscribe-format-all:hover .sscribe-format-icon {
+	transform: scale(1.08) rotate(-4deg);
+	box-shadow:
+		0 0 0 3px rgb(var(--sscribe-primary-rgb) / 20%),
+		0 4px 12px rgb(var(--sscribe-primary-rgb) / 22%);
+}
+
 /* ============================================
 	LANGUAGE SELECTION
 	============================================ */
