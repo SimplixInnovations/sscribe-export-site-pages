@@ -199,7 +199,7 @@
 
 		unbindVisibilityHandler: function () {
 			if (this._visibilityHandler) {
-				$(document).off('visibilitychange', this._visibilityHandler);
+				document.removeEventListener('visibilitychange', this._visibilityHandler);
 				this._visibilityHandler = null;
 			}
 			if (this._beforeUnloadHandler) {
@@ -479,6 +479,10 @@
 
 		bindVisibilityHandler: function () {
 			const self = this;
+			// Idempotent — if init() is ever re-entered without an
+			// intervening destroy(), drop the previous handlers first.
+			this.unbindVisibilityHandler();
+
 			this._visibilityHandler = function () {
 				if (document.hidden) {
 					self.stopAutoRefresh();
@@ -499,7 +503,7 @@
 					self.hidePausedIndicator();
 				}
 			};
-			$(document).on('visibilitychange', this._visibilityHandler);
+			document.addEventListener('visibilitychange', this._visibilityHandler);
 
 			this._beforeUnloadHandler = function () {
 				self.stopAutoRefresh();
