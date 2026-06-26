@@ -2954,15 +2954,21 @@ body .sscribe-master-container .sscribe-hero::before {
 .sscribe-modal {
 	position: fixed;
 	inset: 0;
-	background: rgb(15 23 42 / 62%);
+	background:
+		radial-gradient(
+			ellipse at center,
+			rgb(4 120 87 / 8%) 0%,
+			transparent 60%
+		),
+		rgb(15 23 42 / 62%);
 	display: flex;
 	align-items: center;
 	justify-content: center;
 	z-index: 100000;
 	padding: 20px;
 	/* stylelint-disable-next-line property-no-vendor-prefix */
-	-webkit-backdrop-filter: blur(8px);
-	backdrop-filter: blur(8px);
+	-webkit-backdrop-filter: blur(8px) saturate(140%);
+	backdrop-filter: blur(8px) saturate(140%);
 	animation: sscribe-modal-backdrop-in 200ms ease-out;
 }
 
@@ -3952,6 +3958,12 @@ body .sscribe-master-container .sscribe-hero::before {
 	background: var(--sscribe-primary-gradient);
 	border-radius: 999px;
 	opacity: 0.7;
+	transition: width 280ms cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.sscribe-config-section:hover .sscribe-section-title::after {
+	width: 64px;
+	opacity: 1;
 }
 
 .sscribe-config-section:last-child {
