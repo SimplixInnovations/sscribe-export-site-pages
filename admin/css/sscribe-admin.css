@@ -4344,15 +4344,19 @@ body .sscribe-master-container .sscribe-hero::before {
 	display: inline-flex;
 	align-items: center;
 	justify-content: center;
-	width: 20px;
-	height: 20px;
+	width: 22px;
+	height: 22px;
 	border-radius: 50%;
-	background: var(--sscribe-primary);
+	background: var(--sscribe-primary-gradient);
 	color: var(--sscribe-text-inverse);
 	font-size: 11px;
 	font-weight: 700;
+	font-variant-numeric: tabular-nums;
 	margin-right: 8px;
 	flex-shrink: 0;
+	box-shadow:
+		inset 0 1px 0 rgb(255 255 255 / 30%),
+		0 1px 3px rgb(var(--sscribe-primary-rgb) / 28%);
 }
 
 /* Forced Colors Mode (Windows High Contrast) */
@@ -4425,46 +4429,106 @@ body .sscribe-master-container .sscribe-hero::before {
 .sscribe-preflight-header {
 	display: flex;
 	align-items: center;
-	gap: 12px;
-	padding: 16px 20px;
-	background: var(--sscribe-warning-light);
+	gap: 14px;
+	padding: 18px 22px;
+	background:
+		linear-gradient(
+			135deg,
+			rgb(var(--sscribe-warning-rgb, 234 179 8) / 16%) 0%,
+			rgb(var(--sscribe-warning-rgb, 234 179 8) / 4%) 100%
+		),
+		var(--sscribe-warning-light);
 	border-bottom: 1px solid var(--sscribe-border);
+	position: relative;
+}
+
+.sscribe-preflight-header::after {
+	content: '';
+	position: absolute;
+	inset: auto 0 -1px;
+	height: 1px;
+	background: linear-gradient(
+		90deg,
+		transparent 0%,
+		rgb(var(--sscribe-warning-rgb, 234 179 8) / 40%) 50%,
+		transparent 100%
+	);
 }
 
 .sscribe-preflight-icon {
-	font-size: 24px;
+	display: inline-flex;
+	align-items: center;
+	justify-content: center;
+	width: 36px;
+	height: 36px;
+	border-radius: 10px;
+	background: linear-gradient(135deg, #fbbf24 0%, #d97706 100%);
+	color: #422006;
 	flex-shrink: 0;
+	font-size: 18px;
+	box-shadow:
+		inset 0 1px 0 rgb(255 255 255 / 35%),
+		0 2px 8px rgb(217 119 6 / 22%);
 }
 
 .sscribe-preflight-header h3 {
 	margin: 0;
 	flex: 1;
-	color: var(--sscribe-text-main);
+	color: var(--sscribe-text-heading);
+	font-family: var(--sscribe-font-display);
 	font-size: 16px;
-	font-weight: 600;
+	font-weight: 700;
+	letter-spacing: -0.01em;
 }
 
 .sscribe-preflight-close {
-	background: none;
-	border: none;
-	font-size: 24px;
+	background: var(--sscribe-card-bg);
+	border: 1px solid var(--sscribe-border-light);
+	font-size: 16px;
 	color: var(--sscribe-text-muted);
 	cursor: pointer;
-	padding: 4px 8px;
+	padding: 0;
+	width: 30px;
+	height: 30px;
+	border-radius: 8px;
 	line-height: 1;
-	transition: color var(--sscribe-transition-fast);
+	display: inline-flex;
+	align-items: center;
+	justify-content: center;
+	transition:
+		color var(--sscribe-transition-fast),
+		background var(--sscribe-transition-fast),
+		border-color var(--sscribe-transition-fast),
+		transform var(--sscribe-transition-fast),
+		box-shadow var(--sscribe-transition-fast);
+	box-shadow: 0 1px 2px rgb(15 23 42 / 4%);
 }
 
 .sscribe-preflight-close:hover {
 	color: var(--sscribe-danger);
+	background: var(--sscribe-danger-light);
+	border-color: var(--sscribe-danger-light);
+	transform: rotate(90deg);
+	box-shadow: 0 2px 6px rgb(220 38 38 / 18%);
 }
 
 .sscribe-preflight-body {
-	padding: 20px;
+	padding: 22px 24px;
+	background:
+		linear-gradient(
+			180deg,
+			rgb(var(--sscribe-primary-rgb) / 2%) 0%,
+			transparent 30%
+		),
+		var(--sscribe-card-bg);
 }
 
 .sscribe-preflight-section {
-	margin-bottom: 16px;
+	margin-bottom: 18px;
+	padding: 14px 16px;
+	border-radius: var(--sscribe-radius-sm);
+	border: 1px solid var(--sscribe-border-light);
+	background: rgb(var(--sscribe-primary-rgb) / 2%);
 }
 
 .sscribe-preflight-section:last-child {
@@ -4473,9 +4537,15 @@ body .sscribe-master-container .sscribe-hero::before {
 
 .sscribe-preflight-section-title {
 	margin: 0 0 8px;
-	font-size: 14px;
-	font-weight: 600;
-	color: var(--sscribe-text-main);
+	font-family: var(--sscribe-font-display);
+	font-size: 12px;
+	font-weight: 700;
+	letter-spacing: 0.04em;
+	text-transform: uppercase;
+	color: var(--sscribe-text-heading);
+	display: flex;
+	align-items: center;
+	gap: 8px;
 }
 
 .sscribe-preflight-errors .sscribe-preflight-section-title {
