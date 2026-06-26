@@ -4071,7 +4071,7 @@ body .sscribe-master-container .sscribe-hero::before {
 .sscribe-section-title::after {
 	content: '';
 	position: absolute;
-	left: 0;
+	left: 4px;
 	bottom: 0;
 	width: 28px;
 	height: 2px;
