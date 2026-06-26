@@ -339,6 +339,15 @@ body .sscribe-master-container .sscribe-hero::before {
 	color: var(--sscribe-primary);
 	flex-shrink: 0;
 	opacity: 0.85;
+	transition:
+		opacity var(--sscribe-transition-fast),
+		transform var(--sscribe-transition-fast);
+}
+
+.sscribe-hero-stat:hover > .sscribe-icon,
+.sscribe-hero-stat:hover > img {
+	opacity: 1;
+	transform: scale(1.08);
 }
 
 .sscribe-hero-content {
