@@ -1539,21 +1539,49 @@ body .sscribe-master-container .sscribe-hero::before {
 
 /* Cancel — destructive within progress UI */
 .sscribe-button-cancel {
-	background: transparent;
+	background:
+		linear-gradient(
+			135deg,
+			rgb(var(--sscribe-danger-rgb) / 6%) 0%,
+			transparent 100%
+		),
+		transparent;
 	border-color: var(--sscribe-danger);
 	color: var(--sscribe-danger);
 	margin-top: var(--sscribe-space-m);
+	box-shadow: 0 1px 2px rgb(var(--sscribe-danger-rgb) / 6%);
 }
 
 .sscribe-button-cancel:hover {
-	background: rgb(var(--sscribe-danger-rgb) / 10%);
+	background:
+		linear-gradient(
+			135deg,
+			rgb(var(--sscribe-danger-rgb) / 14%) 0%,
+			rgb(var(--sscribe-danger-rgb) / 6%) 100%
+		),
+		transparent;
 	color: var(--sscribe-danger);
 	transform: translateY(-1px);
+	box-shadow:
+		inset 0 1px 0 rgb(255 255 255 / 40%),
+		0 4px 12px rgb(var(--sscribe-danger-rgb) / 18%);
 }
 
 .sscribe-button-cancel:active {
-	background: rgb(var(--sscribe-danger-rgb) / 16%);
+	background:
+		linear-gradient(
+			135deg,
+			rgb(var(--sscribe-danger-rgb) / 22%) 0%,
+			rgb(var(--sscribe-danger-rgb) / 12%) 100%
+		),
+		transparent;
 	transform: translateY(0);
+}
+
+.sscribe-button-cancel:focus-visible {
+	outline: none;
+	border-color: var(--sscribe-danger);
+	box-shadow: 0 0 0 4px rgb(var(--sscribe-danger-rgb) / 22%);
 }
 
 .sscribe-button-cancel:disabled {
@@ -1561,6 +1589,7 @@ body .sscribe-master-container .sscribe-hero::before {
 	cursor: not-allowed;
 	pointer-events: none;
 	transform: none;
+	box-shadow: none;
 }
 
 /* Size Variants */
