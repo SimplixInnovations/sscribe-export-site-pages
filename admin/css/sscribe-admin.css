@@ -18,21 +18,26 @@
 	/* === DESIGN SYSTEM TOKENS (per DESIGN.md) === */
 
 	/* Brand & Accent Colors */
-	--sscribe-primary: #3d6e54; /* Sage Green - darkened to pass WCAG AA on white */
-	--sscribe-primary-rgb: 61 110 84;
-	--sscribe-primary-hover: #2f5943; /* Darker for hover/active states */
-	--sscribe-primary-light: rgb(var(--sscribe-primary-rgb) / 10%);
-	--sscribe-primary-lighter: rgb(var(--sscribe-primary-rgb) / 6%);
+	--sscribe-primary: #047857; /* Emerald-700 — deeper, more saturated than #3d6e54 */
+	--sscribe-primary-rgb: 4 120 87;
+	--sscribe-primary-hover: #065f46; /* Emerald-800 — for pressed/active */
+	--sscribe-primary-active: #064e3b; /* Emerald-900 — deepest */
+	--sscribe-primary-soft: #10b981; /* Emerald-500 — for gradients + accents */
+	--sscribe-primary-light: rgb(var(--sscribe-primary-rgb) / 8%);
+	--sscribe-primary-lighter: rgb(var(--sscribe-primary-rgb) / 4%);
+	--sscribe-primary-medium: rgb(var(--sscribe-primary-rgb) / 14%);
 	--sscribe-primary-ring: rgb(var(--sscribe-primary-rgb) / 20%);
-	--sscribe-primary-ring-strong: rgb(var(--sscribe-primary-rgb) / 25%);
+	--sscribe-primary-ring-strong: rgb(var(--sscribe-primary-rgb) / 28%);
+	--sscribe-primary-gradient: linear-gradient(135deg, #10b981 0%, #047857 60%, #065f46 100%);
+	--sscribe-primary-gradient-soft: linear-gradient(135deg, rgb(16 185 129 / 12%) 0%, rgb(4 120 87 / 8%) 100%);
 	--sscribe-accent: #a9cdb9; /* Light Sage - secondary accent */
 	--sscribe-accent-rgb: 169 205 185;
 	--sscribe-accent-light: rgb(var(--sscribe-accent-rgb) / 15%);
 	--sscribe-accent-medium: rgb(var(--sscribe-accent-rgb) / 25%);
 	--sscribe-accent-strong: rgb(var(--sscribe-accent-rgb) / 35%);
-	--sscribe-cta: #333; /* Dark Charcoal - CTA Primary */
-	--sscribe-cta-hover: #1a1a1a;
-	--sscribe-cta-active: #0d0d0d;
+	--sscribe-cta: #0a0f1c; /* Near-black with blue undertone — premium feel */
+	--sscribe-cta-hover: #1e293b;
+	--sscribe-cta-active: #475569;
 
 	/* Semantic Colors */
 	--sscribe-success: #68a885;
@@ -77,6 +82,22 @@
 	/* Typography — system stack, no bundled UI font (saves ~380 KB). */
 	--sscribe-font-family:
 		-apple-system, blinkmacsystemfont, 'Segoe UI', roboto, 'Helvetica Neue', arial, sans-serif;
+	--sscribe-font-display:
+		'SF Pro Display', -apple-system, blinkmacsystemfont, 'Segoe UI', system-ui, sans-serif;
+	--sscribe-font-mono:
+		'SF Mono', 'JetBrains Mono', 'Fira Code', 'Cascadia Code', menlo, consolas, monospace;
+
+	/* Type scale — modular, 1.250 ratio anchored at 16px */
+	--sscribe-text-xs: 11px;
+	--sscribe-text-sm: 12px;
+	--sscribe-text-base: 14px;
+	--sscribe-text-md: 15px;
+	--sscribe-text-lg: 16px;
+	--sscribe-text-xl: 18px;
+	--sscribe-text-2xl: 22px;
+	--sscribe-text-3xl: 28px;
+	--sscribe-text-4xl: 36px;
+	--sscribe-text-display: 48px;
 
 	/* Spacing Scale (8px base unit) */
 	--sscribe-space-xs: 4px;
@@ -97,12 +118,16 @@
 	--sscribe-radius-lg: 10px; /* Card: cards, containers */
 	--sscribe-radius-full: 50%;
 
-	/* Shadow System (two-layer opacity) */
+	/* Shadow System — depth-first, warm-neutral (not pure black) */
 	--sscribe-shadow-flat: none;
-	--sscribe-shadow-shallow: rgb(0 0 0 / 5%) 0px 1px 8px 0px;
-	--sscribe-shadow-standard: rgb(0 0 0 / 5%) 0px 2px 6px 0px, rgb(0 0 0 / 10%) 0px 8px 19.2px 0px;
-	--sscribe-shadow-elevated: rgb(0 0 0 / 5%) 0px 4px 8px 0px, rgb(0 0 0 / 10%) 0px 24px 35.2px 0px;
-	--sscribe-shadow-floating: rgb(0 0 0 / 15%) 0px 1px 5px 0px;
+	--sscribe-shadow-xs: 0 1px 2px rgb(15 23 42 / 4%);
+	--sscribe-shadow-shallow: 0 1px 3px rgb(15 23 42 / 6%), 0 1px 2px rgb(15 23 42 / 4%);
+	--sscribe-shadow-standard: 0 4px 12px -2px rgb(15 23 42 / 8%), 0 2px 4px -2px rgb(15 23 42 / 4%);
+	--sscribe-shadow-elevated: 0 12px 32px -8px rgb(15 23 42 / 12%), 0 4px 8px -4px rgb(15 23 42 / 6%);
+	--sscribe-shadow-floating: 0 24px 48px -12px rgb(15 23 42 / 20%), 0 8px 16px -8px rgb(15 23 42 / 10%);
+	--sscribe-shadow-glow: 0 0 0 4px rgb(var(--sscribe-primary-rgb) / 12%);
+	--sscribe-shadow-inset: inset 0 1px 0 rgb(255 255 255 / 60%);
+	--sscribe-shadow-ring-brand: 0 0 0 3px rgb(var(--sscribe-primary-rgb) / 18%);
 
 	/* Transitions */
 	--sscribe-transition-fast: 150ms ease;
@@ -202,40 +227,74 @@ body .sscribe-master-container {
 }
 
 /* ============================================
-	HERO SECTION
+	HERO SECTION — brand-first statement surface
 	============================================ */
 body .sscribe-master-container .sscribe-hero {
-	background: var(--sscribe-card-bg);
+	background:
+		radial-gradient(
+			circle at 0% 0%,
+			rgb(var(--sscribe-primary-rgb) / 8%) 0%,
+			transparent 50%
+		),
+		radial-gradient(
+			circle at 100% 100%,
+			rgb(var(--sscribe-primary-rgb) / 4%) 0%,
+			transparent 50%
+		),
+		var(--sscribe-card-bg);
 	border: 1px solid var(--sscribe-border-light);
 	border-radius: var(--sscribe-radius-lg);
-	padding: var(--sscribe-space-l) var(--sscribe-space-xl);
+	padding: 36px 40px;
 	margin-bottom: var(--sscribe-space-xl);
 	position: relative;
+	overflow: hidden;
+	box-shadow: var(--sscribe-shadow-shallow);
+}
+
+/* Subtle decorative grid overlay — premium feel */
+body .sscribe-master-container .sscribe-hero::before {
+	content: '';
+	position: absolute;
+	inset: 0;
+	background-image:
+		linear-gradient(rgb(var(--sscribe-primary-rgb) / 3%) 1px, transparent 1px),
+		linear-gradient(90deg, rgb(var(--sscribe-primary-rgb) / 3%) 1px, transparent 1px);
+	background-size: 32px 32px;
+	/* stylelint-disable property-no-vendor-prefix -- Safari + older Chrome still need the -webkit- prefix. */
+	-webkit-mask-image: radial-gradient(ellipse at center, black 30%, transparent 70%);
+	mask-image: radial-gradient(ellipse at center, black 30%, transparent 70%);
+	/* stylelint-enable property-no-vendor-prefix */
+	pointer-events: none;
+	opacity: 0.5;
 }
 
 .sscribe-hero-stats {
 	display: flex;
 	gap: var(--sscribe-space-s);
-	margin-top: var(--sscribe-space-sm);
+	margin-top: var(--sscribe-space-md);
+	position: relative;
+	z-index: 1;
 }
 
 .sscribe-hero-stat {
-	display: flex;
+	display: inline-flex;
 	align-items: center;
-	gap: 5px;
-	font-size: 12px;
+	gap: 6px;
+	font-size: var(--sscribe-text-sm);
 	font-weight: 500;
 	color: var(--sscribe-text-secondary);
-	background: var(--sscribe-section-bg);
+	background: var(--sscribe-card-bg);
 	border: 1px solid var(--sscribe-border-light);
-	padding: 4px 10px;
-	border-radius: 100px;
+	padding: 6px 12px;
+	border-radius: 999px;
 	white-space: nowrap;
+	box-shadow: var(--sscribe-shadow-xs);
 }
 
 .sscribe-hero-stat strong {
 	color: var(--sscribe-text-heading);
 	font-weight: 700;
+	font-variant-numeric: tabular-nums;
 }
 
 .sscribe-hero-content {
@@ -243,57 +302,105 @@ body .sscribe-master-container .sscribe-hero {
 	align-items: center;
 	justify-content: space-between;
 	gap: var(--sscribe-space-ml);
+	position: relative;
+	z-index: 1;
 }
 
 .sscribe-hero-left {
 	display: flex;
 	align-items: center;
-	gap: var(--sscribe-space-m);
+	gap: var(--sscribe-space-ml);
 }
 
+/* Brand mark — gradient-filled rounded square with white SVG */
 .sscribe-hero-logo {
 	flex-shrink: 0;
-	width: 52px;
-	height: 52px;
-	background: var(--sscribe-primary-light);
-	border: 1px solid rgb(var(--sscribe-success-rgb) / 20%);
-	border-radius: var(--sscribe-radius-sm);
+	width: 64px;
+	height: 64px;
+	background: var(--sscribe-primary-gradient);
+	border-radius: 16px;
 	display: flex;
 	align-items: center;
 	justify-content: center;
+	box-shadow:
+		var(--sscribe-shadow-elevated),
+		inset 0 1px 0 rgb(255 255 255 / 20%),
+		0 0 0 1px rgb(var(--sscribe-primary-rgb) / 30%);
+	position: relative;
+	transition: transform var(--sscribe-transition-normal);
 }
 
+.sscribe-hero-logo::after {
+	content: '';
+	position: absolute;
+	inset: 0;
+	border-radius: inherit;
+	background: linear-gradient(180deg, rgb(255 255 255 / 15%) 0%, transparent 60%);
+	pointer-events: none;
+}
+
+.sscribe-hero-logo .sscribe-logo-img {
+	color: #fff;
+	width: 36px;
+	height: 36px;
+	position: relative;
+	z-index: 1;
+}
+
+/* Wordmark — large, tightly tracked, slight weight contrast */
 .sscribe-hero-title {
 	color: var(--sscribe-text-heading);
-	font-size: 24px;
-	font-weight: 700;
-	letter-spacing: 0;
+	font-family: var(--sscribe-font-display);
+	font-size: var(--sscribe-text-3xl);
+	font-weight: 800;
+	letter-spacing: -0.02em;
 	margin: 0;
 	padding: 0;
-	line-height: 1.2;
+	line-height: 1.1;
 	border: none;
+	background: linear-gradient(180deg, var(--sscribe-text-heading) 0%, var(--sscribe-primary-active) 100%);
+	/* stylelint-disable property-no-vendor-prefix -- text-fill-color still requires -webkit- on Safari/older Chrome. */
+	-webkit-background-clip: text;
+	background-clip: text;
+	-webkit-text-fill-color: transparent;
+	/* stylelint-enable property-no-vendor-prefix */
 }
 
 .sscribe-hero-subtitle {
 	color: var(--sscribe-text-secondary);
-	font-size: 14px;
+	font-size: var(--sscribe-text-md);
 	font-weight: 400;
-	max-width: 480px;
-	line-height: 1.5;
-	margin: 4px 0 0;
+	max-width: 520px;
+	line-height: 1.55;
+	margin: 6px 0 0;
 	padding: 0;
 }
 
 .sscribe-hero-version {
 	flex-shrink: 0;
-	background: var(--sscribe-primary-light);
-	border: 1px solid rgb(var(--sscribe-success-rgb) / 20%);
-	color: var(--sscribe-primary);
-	padding: 6px 14px;
-	border-radius: 100px;
-	font-size: 12px;
+	background: var(--sscribe-card-bg);
+	border: 1px solid var(--sscribe-border-light);
+	color: var(--sscribe-text-secondary);
+	padding: 7px 14px;
+	border-radius: 999px;
+	font-family: var(--sscribe-font-mono);
+	font-size: var(--sscribe-text-xs);
 	font-weight: 600;
+	letter-spacing: 0.02em;
 	white-space: nowrap;
+	box-shadow: var(--sscribe-shadow-xs);
+}
+
+.sscribe-hero-version::before {
+	content: '';
+	display: inline-block;
+	width: 6px;
+	height: 6px;
+	background: var(--sscribe-primary);
+	border-radius: 50%;
+	margin-inline-end: 8px;
+	vertical-align: middle;
+	box-shadow: 0 0 0 3px rgb(var(--sscribe-primary-rgb) / 20%);
 }
 
 @media (width <= 782px) {
