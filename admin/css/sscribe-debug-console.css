@@ -748,17 +748,36 @@
 }
 
 .sscribe-debug-rotated-file {
+	position: relative;
 	display: flex;
 	justify-content: space-between;
 	align-items: center;
-	padding: 10px 12px;
+	padding: 10px 12px 10px 16px;
 	border-radius: var(--sscribe-radius-sm);
 	border-bottom: 1px solid rgb(var(--sscribe-primary-rgb) / 8%);
-	transition: background var(--sscribe-transition-fast);
+	transition:
+		background var(--sscribe-transition-fast),
+		padding var(--sscribe-transition-fast);
+}
+
+.sscribe-debug-rotated-file::before {
+	content: '';
+	position: absolute;
+	inset: 6px auto 6px 0;
+	width: 2px;
+	border-radius: 0 2px 2px 0;
+	background: var(--sscribe-primary-gradient);
+	opacity: 0;
+	transition: opacity var(--sscribe-transition-fast);
 }
 
 .sscribe-debug-rotated-file:hover {
 	background: rgb(var(--sscribe-primary-rgb) / 5%);
+	padding-left: 20px;
+}
+
+.sscribe-debug-rotated-file:hover::before {
+	opacity: 0.85;
 }
 
 .sscribe-debug-rotated-file:last-child {
