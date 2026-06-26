@@ -4108,6 +4108,24 @@ body .sscribe-master-container .sscribe-hero::before {
 	transition: background var(--sscribe-transition-fast);
 }
 
+.sscribe-config-section::before {
+	content: '';
+	position: absolute;
+	left: 0;
+	top: 14px;
+	bottom: 14px;
+	width: 2px;
+	border-radius: 0 2px 2px 0;
+	background: var(--sscribe-primary-gradient);
+	opacity: 0;
+	transition: opacity var(--sscribe-transition-fast);
+	pointer-events: none;
+}
+
+.sscribe-config-section:hover::before {
+	opacity: 0.7;
+}
+
 .sscribe-config-section:hover {
 	background: linear-gradient(
 		180deg,
