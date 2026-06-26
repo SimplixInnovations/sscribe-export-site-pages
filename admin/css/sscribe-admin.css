@@ -5037,6 +5037,19 @@ body .sscribe-master-container .sscribe-hero::before {
 	justify-content: center;
 	width: 100%;
 	min-height: 44px;
+	font-weight: 600;
+	letter-spacing: -0.005em;
+}
+
+.sscribe-support-actions-vertical .sscribe-button > .sscribe-icon {
+	color: currentcolor;
+	opacity: 0.85;
+	transition: transform var(--sscribe-transition-fast);
+}
+
+.sscribe-support-actions-vertical .sscribe-button:hover > .sscribe-icon {
+	transform: scale(1.08);
+	opacity: 1;
 }
 
 .sscribe-support-main {
