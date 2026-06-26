@@ -2858,16 +2858,21 @@ body .sscribe-master-container .sscribe-hero::before {
 	display: flex;
 	justify-content: space-between;
 	align-items: baseline;
-	padding: 8px 0;
+	padding: 10px 12px;
 	font-family: 'Fira Code', Consolas, Monaco, monospace;
 	font-size: 12.5px;
 	line-height: 1.6;
 	border-bottom: 1px solid rgb(255 255 255 / 4%);
-	transition: background var(--sscribe-transition-fast);
+	transition:
+		background var(--sscribe-transition-fast),
+		padding var(--sscribe-transition-fast);
+	border-radius: 4px;
+	margin: 0 -12px;
 }
 
 .sscribe-support-item:hover {
-	background: rgb(255 255 255 / 2%);
+	background: rgb(255 255 255 / 4%);
+	padding-left: 16px;
 }
 
 .sscribe-support-item:last-child {
