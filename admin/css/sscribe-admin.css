@@ -2901,6 +2901,26 @@ body .sscribe-master-container .sscribe-hero::before {
 	letter-spacing: 0.005em;
 }
 
+.sscribe-support-loading {
+	display: inline-flex;
+	align-items: center;
+	gap: 8px;
+	color: var(--sscribe-primary);
+	border-color: rgb(16 185 129 / 25%);
+	background: rgb(16 185 129 / 10%);
+}
+
+.sscribe-support-loading::before {
+	content: '';
+	width: 10px;
+	height: 10px;
+	border-radius: 50%;
+	border: 2px solid rgb(16 185 129 / 25%);
+	border-top-color: var(--sscribe-primary);
+	animation: sscribe-spin 0.8s linear infinite;
+	flex-shrink: 0;
+}
+
 .sscribe-support-error {
 	color: #fca5a5;
 	background: rgb(220 38 38 / 18%);
