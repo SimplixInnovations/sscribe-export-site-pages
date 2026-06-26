@@ -704,7 +704,7 @@ $sscribe_export_index    = $sscribe_export_index ?? array();
 												}
 												echo esc_html( wp_date( $sscribe_date_fmt . ' ' . $sscribe_time_fmt, $sscribe_export['time'] ) );
 												?>
-												&mdash; <?php echo esc_html( size_format( $sscribe_export['size'] ) ); ?>
+												&middot; <span class="sscribe-file-size"><?php echo esc_html( size_format( $sscribe_export['size'] ) ); ?></span>
 											</span>
 										</div>
 									</div>
