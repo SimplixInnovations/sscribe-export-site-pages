@@ -5121,9 +5121,9 @@ body .sscribe-master-container .sscribe-hero::before {
 
 .sscribe-toast-icon {
 	flex-shrink: 0;
-	width: 28px;
-	height: 28px;
-	border-radius: 8px;
+	width: 30px;
+	height: 30px;
+	border-radius: 9px;
 	display: flex;
 	align-items: center;
 	justify-content: center;
@@ -5131,6 +5131,7 @@ body .sscribe-master-container .sscribe-hero::before {
 	color: var(--sscribe-primary);
 	position: relative;
 	z-index: 1;
+	box-shadow: inset 0 1px 0 rgb(255 255 255 / 50%);
 }
 
 .sscribe-toast-icon .sscribe-icon,
@@ -5148,15 +5149,15 @@ body .sscribe-master-container .sscribe-hero::before {
 .sscribe-toast-dismiss {
 	flex-shrink: 0;
 	background: none;
-	border: none;
+	border: 1px solid transparent;
 	color: var(--sscribe-text-muted);
 	opacity: 0.5;
 	cursor: pointer;
-	padding: 4px;
+	padding: 0;
 	width: 24px;
 	height: 24px;
 	border-radius: 6px;
-	font-size: 18px;
+	font-size: 16px;
 	line-height: 1;
 	display: inline-flex;
 	align-items: center;
@@ -5164,13 +5165,24 @@ body .sscribe-master-container .sscribe-hero::before {
 	transition:
 		opacity var(--sscribe-transition-fast),
 		background var(--sscribe-transition-fast),
-		color var(--sscribe-transition-fast);
+		color var(--sscribe-transition-fast),
+		border-color var(--sscribe-transition-fast),
+		transform var(--sscribe-transition-fast);
 }
 
 .sscribe-toast-dismiss:hover {
 	opacity: 1;
 	background: rgb(15 23 42 / 6%);
 	color: var(--sscribe-text-main);
+	border-color: rgb(15 23 42 / 8%);
+	transform: rotate(90deg);
+}
+
+.sscribe-toast-dismiss:focus-visible {
+	opacity: 1;
+	outline: none;
+	border-color: var(--sscribe-primary);
+	box-shadow: 0 0 0 3px rgb(var(--sscribe-primary-rgb) / 22%);
 }
 
 /* Toast types — left accent stripe + icon container recolor */
