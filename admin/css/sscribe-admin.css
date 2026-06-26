@@ -2309,9 +2309,11 @@ body .sscribe-master-container .sscribe-hero::before {
 }
 
 .sscribe-bulk-select-all input:checked + .sscribe-check-visual {
-	background: var(--sscribe-primary);
+	background: var(--sscribe-primary-gradient);
 	border-color: var(--sscribe-primary);
-	box-shadow: 0 2px 6px rgb(var(--sscribe-primary-rgb) / 28%);
+	box-shadow:
+		inset 0 1px 0 rgb(255 255 255 / 30%),
+		0 2px 6px rgb(var(--sscribe-primary-rgb) / 28%);
 }
 
 .sscribe-bulk-select-all input:checked + .sscribe-check-visual::after {
@@ -2322,12 +2324,16 @@ body .sscribe-master-container .sscribe-hero::before {
 	border-width: 0 2px 2px 0;
 	transform: rotate(45deg);
 	margin-top: -2px;
+	position: relative;
+	z-index: 1;
 }
 
 .sscribe-bulk-select-all input:indeterminate + .sscribe-check-visual {
-	background: var(--sscribe-primary);
+	background: var(--sscribe-primary-gradient);
 	border-color: var(--sscribe-primary);
-	box-shadow: 0 2px 6px rgb(var(--sscribe-primary-rgb) / 28%);
+	box-shadow:
+		inset 0 1px 0 rgb(255 255 255 / 30%),
+		0 2px 6px rgb(var(--sscribe-primary-rgb) / 28%);
 }
 
 .sscribe-bulk-select-all input:indeterminate + .sscribe-check-visual::after {
