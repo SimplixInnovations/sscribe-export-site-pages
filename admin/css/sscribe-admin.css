@@ -3858,6 +3858,9 @@ body .sscribe-master-container .sscribe-hero::before {
 .sscribe-post-type-card:hover .sscribe-post-type-icon {
 	color: var(--sscribe-primary);
 	border-color: var(--sscribe-primary-soft);
+	background: rgb(var(--sscribe-primary-rgb) / 8%);
+	transform: scale(1.04);
+	box-shadow: 0 2px 6px rgb(var(--sscribe-primary-rgb) / 18%);
 }
 
 .sscribe-post-type-card input[type='radio']:checked + .sscribe-post-type-card-inner .sscribe-post-type-icon {
