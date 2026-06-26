@@ -1347,6 +1347,16 @@
 				return;
 			}
 
+			// Confirm before tearing down a running export — once cancelled,
+			// partial progress is discarded and the user has to start over.
+			const confirmMsg =
+				(sscribe_data.strings && sscribe_data.strings.cancel_confirm) ||
+				'Cancel the current export? Partial progress will be discarded.';
+			if (!window.confirm(confirmMsg)) {
+				SScribe.announce(sscribe_data.strings.cancel_aborted || 'Cancellation aborted.');
+				return;
+			}
+
 			if (this._batchXHR) {
 				this._batchXHR.abort();
 				this._batchXHR = null;
@@ -1827,15 +1837,18 @@
 							(sscribe_data.strings && sscribe_data.strings.delete_success) || 'Export deleted.',
 							'success'
 						);
+						if (typeof callback === 'function') {
+							callback(true);
+						}
 					} else {
 						SScribe.showError(
 							response.data.message ||
 								(sscribe_data.strings && sscribe_data.strings.delete_failed) ||
 								'Failed to delete export.'
 						);
-					}
-					if (typeof callback === 'function') {
-						callback();
+						if (typeof callback === 'function') {
+							callback(false);
+						}
 					}
 				},
 				error: function () {
@@ -1843,7 +1856,7 @@
 						(sscribe_data.strings && sscribe_data.strings.delete_failed) || 'Failed to delete export.'
 					);
 					if (typeof callback === 'function') {
-						callback();
+						callback(false);
 					}
 				},
 			});
@@ -1857,6 +1870,21 @@
 			if ($checks.length === 0) {
 				return;
 			}
+			const count = $checks.length;
+			const template =
+				(sscribe_data.strings && sscribe_data.strings.bulk_delete_confirm) ||
+				'Delete %d selected export(s)? This cannot be undone.';
+			const message = template.replace('%d', String(count));
+
+			// Native confirm is the lowest-friction confirmation. WordPress
+			// admin already relies on native confirm() for destructive
+			// actions in core (e.g. theme deletion), so this matches user
+			// expectation and is accessible by default.
+			if (!window.confirm(message)) {
+				SScribe.announce(sscribe_data.strings.bulk_delete_cancelled || 'Bulk delete cancelled.');
+				return;
+			}
+
 			const filenames = [];
 			$checks.each(function () {
 				filenames.push($(this).val());
@@ -1866,6 +1894,10 @@
 				this.bulkDeleteQueue = [];
 			}
 			this.bulkDeleteQueue = filenames.slice();
+			SScribe.announce(
+				(sscribe_data.strings && sscribe_data.strings.bulk_delete_started) ||
+					'Deleting %d export(s)…'.replace('%d', String(count))
+			);
 			this.processBulkDelete();
 		},
 
@@ -2117,6 +2149,43 @@
 			const $wpadminbar = $('#wpadminbar');
 			const adminBarHeight = $wpadminbar.length ? $wpadminbar.outerHeight() : 0;
 			$container.css('top', Math.max(adminBarHeight, 32) + 'px');
+		},
+
+		/**
+		 * Push a polite announcement to the screen-reader live region.
+		 *
+		 * Throttled to once per second per message — without throttling,
+		 * the per-page progress updates fire dozens of announcements per
+		 * second, which floods SR users and obscures the actual state.
+		 * The live region is shared across the admin surface, so callers
+		 * get a single channel that re-announces on demand via a
+		 * trailing-edge debounce.
+		 *
+		 * @param {string} message Plain-text message for assistive tech.
+		 */
+		announce: function (message) {
+			if (!message) {
+				return;
+			}
+			const $region = $('#sscribe-live-region');
+			if (!$region.length) {
+				return;
+			}
+
+			const now = Date.now();
+			const last = this._lastAnnounce || { text: '', at: 0 };
+			// If the same message was just announced within the last
+			// second, suppress. Otherwise clear the region (forces SR to
+			// re-read) and write the new text.
+			if (last.text === message && now - last.at < 1000) {
+				return;
+			}
+			this._lastAnnounce = { text: message, at: now };
+
+			$region.text('');
+			setTimeout(function () {
+				$region.text(message);
+			}, 30);
 		},
 
 		showToast: function (message, type, duration) {
@@ -2662,7 +2731,12 @@
 				$btn.removeData('sscribe-confirming');
 				clearTimeout($btn.data('sscribe-confirm-timeout'));
 				$row.addClass('sscribe-row-deleting');
-				SScribe.deleteSingleExport(filename, function () {
+				SScribe.deleteSingleExport(filename, function (success) {
+					if (success === false) {
+						// Roll back optimistic UI — row stays.
+						$row.removeClass('sscribe-row-deleting');
+						return;
+					}
 					$row.fadeOut(200, function () {
 						$(this).remove();
 						SScribe.refreshRecentExports();
@@ -2673,13 +2747,26 @@
 
 			// First click — ask for confirmation.
 			const originalText = $btn.text();
-			$btn.data('sscribe-confirming', true)
+			const confirmMsg =
+				(sscribe_data.strings && sscribe_data.strings.delete_confirm_hint) ||
+				'Click again within 3 seconds to confirm deletion.';
+			$btn
+				.data('sscribe-confirming', true)
+				.data('sscribe-confirm-original', originalText)
 				.text(sscribe_data.strings.click_again || 'Click again')
+				.attr('aria-label', confirmMsg)
 				.prop('disabled', false);
+
+			// Announce to assistive tech that the action is now armed.
+			SScribe.announce(confirmMsg);
 
 			const tid = setTimeout(function () {
 				if ($btn.data('sscribe-confirming')) {
-					$btn.removeData('sscribe-confirming').text(originalText);
+					$btn
+						.removeData('sscribe-confirming')
+						.removeData('sscribe-confirm-original')
+						.text(originalText)
+						.removeAttr('aria-label');
 				}
 			}, 3000);
 			$btn.data('sscribe-confirm-timeout', tid);
@@ -3180,6 +3267,13 @@
 			}
 			if (status === 403) {
 				return strings.net_403 || strings.err_403 || 'Access denied (403).';
+			}
+			if (status === 429) {
+				return (
+					strings.net_429 ||
+					strings.err_rate_limit ||
+					'Too many requests. Please slow down and try again in a moment.'
+				);
 			}
 			if (status === 500) {
 				return strings.net_500 || strings.err_500 || 'Internal server error (500).';
