@@ -276,6 +276,29 @@
 	border-radius: 6px;
 	font-size: 14px;
 	min-width: 120px;
+	background: var(--sscribe-card-bg);
+	color: var(--sscribe-text-heading);
+	transition:
+		border-color var(--sscribe-transition-fast),
+		box-shadow var(--sscribe-transition-fast),
+		background var(--sscribe-transition-fast);
+	box-shadow: inset 0 1px 0 rgb(255 255 255 / 60%);
+}
+
+.sscribe-select:hover:not(:focus, :disabled) {
+	border-color: var(--sscribe-primary-soft);
+	box-shadow:
+		inset 0 1px 0 rgb(255 255 255 / 60%),
+		0 1px 2px rgb(15 23 42 / 3%);
+}
+
+.sscribe-select:focus,
+.sscribe-select:focus-visible {
+	outline: none;
+	border-color: var(--sscribe-primary);
+	box-shadow:
+		inset 0 1px 0 rgb(255 255 255 / 60%),
+		0 0 0 4px rgb(var(--sscribe-primary-rgb) / 18%);
 }
 
 .sscribe-input {
@@ -284,6 +307,29 @@
 	border-radius: 6px;
 	font-size: 14px;
 	width: 200px;
+	background: var(--sscribe-card-bg);
+	color: var(--sscribe-text-heading);
+	transition:
+		border-color var(--sscribe-transition-fast),
+		box-shadow var(--sscribe-transition-fast),
+		background var(--sscribe-transition-fast);
+	box-shadow: inset 0 1px 0 rgb(255 255 255 / 60%);
+}
+
+.sscribe-input:hover:not(:focus, :disabled) {
+	border-color: var(--sscribe-primary-soft);
+	box-shadow:
+		inset 0 1px 0 rgb(255 255 255 / 60%),
+		0 1px 2px rgb(15 23 42 / 3%);
+}
+
+.sscribe-input:focus,
+.sscribe-input:focus-visible {
+	outline: none;
+	border-color: var(--sscribe-primary);
+	box-shadow:
+		inset 0 1px 0 rgb(255 255 255 / 60%),
+		0 0 0 4px rgb(var(--sscribe-primary-rgb) / 18%);
 }
 
 .sscribe-debug-save-feedback {
