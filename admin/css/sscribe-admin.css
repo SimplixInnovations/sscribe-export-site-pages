@@ -3737,6 +3737,19 @@ body .sscribe-master-container .sscribe-hero::before {
 	font-size: 11px;
 	text-transform: uppercase;
 	letter-spacing: 0.06em;
+	display: inline-flex;
+	align-items: center;
+	gap: 6px;
+}
+
+.sscribe-summary-label::before {
+	content: '';
+	width: 5px;
+	height: 5px;
+	border-radius: 999px;
+	background: var(--sscribe-primary-gradient);
+	box-shadow: 0 0 0 2px rgb(var(--sscribe-primary-rgb) / 14%);
+	flex-shrink: 0;
 }
 
 .sscribe-summary-chip {
