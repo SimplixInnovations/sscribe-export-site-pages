@@ -23,6 +23,7 @@ $config = array(
 	'run_phpcs'        => true,
 	'generate_sha256'  => true,
 	'auto_clean_root'  => true,
+	'strip_comments'   => true,
 
 	'mainPluginFile'   => 'sscribe-export-site-pages.php',
 	'readmeFile'       => 'readme.txt',
@@ -198,6 +199,51 @@ function format_bytes( int $bytes ): string {
 		$unit++;
 	}
 	return round( $bytes, 2 ) . ' ' . $units[ $unit ];
+}
+
+function strip_php_comments( string $source ): string {
+	$tokens = @token_get_all( $source );
+	if ( false === $tokens ) {
+		return $source;
+	}
+
+	$output = '';
+	foreach ( $tokens as $token ) {
+		if ( is_array( $token ) ) {
+			$type  = $token[0];
+			$value = $token[1];
+
+			if ( T_DOC_COMMENT === $type ) {
+				$output .= $value;
+				continue;
+			}
+
+			if ( T_COMMENT === $type ) {
+				if ( preg_match( '/phpcs:|phpcs-disable|phpcs-enable|phpcs:ignore|translators:|@preserve/i', $value ) ) {
+					$output .= $value;
+				}
+				continue;
+			}
+
+			$output .= $value;
+		} else {
+			$output .= $token;
+		}
+	}
+
+	return $output;
+}
+
+function strip_css_comments( string $source ): string {
+	$out = preg_replace( '/\/\*[\s\S]*?\*\//', '', $source );
+	if ( null === $out ) {
+		return $source;
+	}
+	$out = preg_replace( '/\n\s*\n/', "\n", $out );
+	if ( null === $out ) {
+		return $source;
+	}
+	return $out;
 }
 
 function run_tests( string $root ): bool {
@@ -430,12 +476,29 @@ foreach ( $iterator as $file ) {
 		if ( ! is_dir( $dest_parent ) ) {
 			mkdir( $dest_parent, 0755, true );
 		}
-		copy( $file->getPathname(), $dest );
+		if ( $config['strip_comments'] ) {
+			$ext = strtolower( pathinfo( $file->getPathname(), PATHINFO_EXTENSION ) );
+			if ( 'php' === $ext ) {
+				$src = file_get_contents( $file->getPathname() );
+				file_put_contents( $dest, strip_php_comments( $src ) );
+			} elseif ( 'css' === $ext ) {
+				$src = file_get_contents( $file->getPathname() );
+				file_put_contents( $dest, strip_css_comments( $src ) );
+			} else {
+				copy( $file->getPathname(), $dest );
+			}
+		} else {
+			copy( $file->getPathname(), $dest );
+		}
 		$copied++;
 	}
 }
 
 echo "     ✅ Copied: $copied files\n";
+
+if ( $config['strip_comments'] ) {
+	echo "  🧹 Stripping non-docblock comments from PHP / CSS files...\n";
+}
 
 echo "  Pruning vendor development files...\n";
 $vendor_dir = $plugin_dir . '/vendor-prefixed';
