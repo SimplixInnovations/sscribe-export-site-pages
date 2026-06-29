@@ -319,7 +319,7 @@ class SScribe_Content_Parser {
 
 			$body = $dom->getElementsByTagName( 'body' )->item( 0 );
 			if ( ! $body ) {
-				// No cleanup needed here — the finally block below handles $body and $dom.
+				// No cleanup needed here : the finally block below handles $body and $dom.
 				return $elements;
 			}
 
@@ -462,7 +462,7 @@ class SScribe_Content_Parser {
 				}
 
 				// Descendant fallback for the <img>. We intentionally do not
-				// recurse to find a <figcaption> — captions must be a direct
+				// recurse to find a <figcaption> : captions must be a direct
 				// child per the HTML5 spec, so any deeper match would be
 				// noise from a nested figure.
 				if ( null === $img_node ) {
@@ -505,7 +505,7 @@ class SScribe_Content_Parser {
 				// Parse <details>/<summary> collapsible sections.
 				// <summary> is extracted as a label; only children that appear
 				// AFTER the <summary> form the collapsible body. Pre-summary
-				// content is intentionally skipped — in well-formed HTML,
+				// content is intentionally skipped : in well-formed HTML,
 				// <summary> is the first child; pre-summary nodes usually
 				// indicate malformed markup and including them would duplicate
 				// the body content next to the summary.
@@ -842,7 +842,7 @@ class SScribe_Content_Parser {
 		if ( mb_strlen( $html, '8bit' ) > 500000 ) {
 			$logger = SScribe_Logger::instance( SScribe_Logger::is_logging_enabled() );
 			$logger->warning(
-				'Large HTML content truncated for button extraction — content past 500KB limit skipped',
+				'Large HTML content truncated for button extraction : content past 500KB limit skipped',
 				array(
 					'original_length' => mb_strlen( $html, '8bit' ),
 					'truncated_to'    => 500000,
@@ -1174,7 +1174,7 @@ class SScribe_Content_Parser {
 		}
 
 		$extension = strtolower( pathinfo( $real_local, PATHINFO_EXTENSION ) );
-		// WEBP and AVIF are not supported by PHPWord — exclude them to prevent exceptions.
+		// WEBP and AVIF are not supported by PHPWord : exclude them to prevent exceptions.
 		if ( ! in_array( $extension, array( 'jpg', 'jpeg', 'png', 'gif', 'bmp', 'svg', 'webp', 'avif' ), true ) ) {
 			return '';
 		}
@@ -1182,7 +1182,7 @@ class SScribe_Content_Parser {
 		// Validate actual MIME type matches expected image MIME for the extension.
 		// This prevents malicious files with disguised extensions from being processed.
 		if ( function_exists( 'getimagesize' ) ) {
-			// Suppress warnings — treat false/missing as invalid (returns empty).
+			// Suppress warnings : treat false/missing as invalid (returns empty).
 			// phpcs:ignore WordPress.PHP.NoSilencedErrors.Discouraged -- getimagesize returns false for invalid images; we check this and return empty.
 			$image_info = @getimagesize( $real_local );
 			if ( false === $image_info || ! isset( $image_info['mime'] ) ) {
@@ -1218,21 +1218,21 @@ class SScribe_Content_Parser {
 	 * fetch the image into a temp file, returning its local path.
 	 *
 	 * The download is gated by the existing `sscribe_allowed_image_hosts`
-	 * filter — only whitelisted hosts will be fetched. Anything else
+	 * filter : only whitelisted hosts will be fetched. Anything else
 	 * returns an empty string, which exporters treat as a missing image
 	 * (DOCX renders `[MISSING IMAGE]`, PDF skips the element).
 	 *
 	 * Security: path-traversal attempts in the URL (e.g.
 	 * `/uploads/../sibling/file.png`) share the same host as the upload
 	 * directory but resolve to a path outside it. We must NOT treat
-	 * these as legitimate remote images — `url_to_local_path()` already
+	 * these as legitimate remote images : `url_to_local_path()` already
 	 * rejects them, and we also skip the download fallback for any URL
 	 * whose host matches the upload host. This prevents accidentally
 	 * fetching a same-host URL that was constructed to escape the
 	 * uploads directory.
 	 *
 	 * Returns an empty string for non-image URLs, blocked hosts, or
-	 * download failures — never throws.
+	 * download failures : never throws.
 	 *
 	 * @param string $url Image URL (local or remote).
 	 * @return string Local file path, or empty string on failure.
@@ -1250,7 +1250,7 @@ class SScribe_Content_Parser {
 			return $local;
 		}
 
-		// Only attempt remote download for http(s) URLs — file://, data:,
+		// Only attempt remote download for http(s) URLs : file://, data:,
 		// javascript: are blocked by SScribe_Image_Processor anyway.
 		$scheme = strtolower( (string) wp_parse_url( $url, PHP_URL_SCHEME ) );
 		if ( 'http' !== $scheme && 'https' !== $scheme ) {

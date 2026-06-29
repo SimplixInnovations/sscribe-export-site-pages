@@ -140,7 +140,7 @@ $sscribe_export_index    = $sscribe_export_index ?? array();
 									</div>
 									<div class="sscribe-post-type-meta">
 										<span class="sscribe-post-type-name"><?php esc_html_e( 'Posts', 'sscribe-export-site-pages' ); ?></span>
-										<span class="sscribe-post-type-count" id="sscribe-post-count">—</span>
+										<span class="sscribe-post-type-count" id="sscribe-post-count">:</span>
 									</div>
 									<div class="sscribe-post-type-selector">
 										<?php // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- SVG sanitized in get_icon().
@@ -159,7 +159,7 @@ $sscribe_export_index    = $sscribe_export_index ?? array();
 									</div>
 									<div class="sscribe-post-type-meta">
 										<span class="sscribe-post-type-name"><?php esc_html_e( 'Both', 'sscribe-export-site-pages' ); ?></span>
-										<span class="sscribe-post-type-count" id="sscribe-both-count">—</span>
+										<span class="sscribe-post-type-count" id="sscribe-both-count">:</span>
 									</div>
 									<div class="sscribe-post-type-selector">
 										<?php // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- SVG sanitized in get_icon().
@@ -477,7 +477,7 @@ $sscribe_export_index    = $sscribe_export_index ?? array();
 						<span class="sscribe-summary-sep" aria-hidden="true">·</span>
 						<span class="sscribe-summary-chip sscribe-summary-format" id="sscribe-summary-format"><?php esc_html_e( 'All', 'sscribe-export-site-pages' ); ?></span>
 						<span class="sscribe-summary-sep-em" aria-hidden="true">|</span>
-						<span class="sscribe-summary-chip sscribe-summary-pages" id="sscribe-summary-pages">—</span>
+						<span class="sscribe-summary-chip sscribe-summary-pages" id="sscribe-summary-pages">:</span>
 						<span class="sscribe-summary-sep" aria-hidden="true">·</span>
 						<span class="sscribe-summary-chip sscribe-summary-time" id="sscribe-summary-time"><?php esc_html_e( 'See Preview', 'sscribe-export-site-pages' ); ?></span>
 					</div>

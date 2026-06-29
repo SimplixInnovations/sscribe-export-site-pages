@@ -4,7 +4,7 @@
  *
  * Extracted from SScribe_Batch_Processor to reduce file complexity.
  *
- * Owns the active-session probe — the AJAX endpoint that the front-end
+ * Owns the active-session probe : the AJAX endpoint that the front-end
  * uses on page load to decide whether to restore an in-flight export
  * (e.g. after a browser reload mid-batch).
  *
@@ -27,7 +27,7 @@ if ( ! defined( 'ABSPATH' ) ) {
 }
 
 /**
- * Active-session probe — used by the front-end to restore in-flight
+ * Active-session probe : used by the front-end to restore in-flight
  * exports after a page reload.
  */
 trait SScribe_Session_Status {

@@ -274,7 +274,7 @@ class SScribe_AJAX_Guard {
 	 * `check_ajax_referer` + `current_user_can` boilerplate from every
 	 * AJAX handler:
 	 *
-	 *     // Before — 12 lines of boilerplate per handler:
+	 *     // Before : 12 lines of boilerplate per handler:
 	 *     add_action( 'wp_ajax_sscribe_foo', [ $this, 'ajax_foo' ] );
 	 *     public function ajax_foo(): void {
 	 *         if ( ! check_ajax_referer( 'sscribe_export_nonce', 'nonce', false ) ) {
@@ -286,7 +286,7 @@ class SScribe_AJAX_Guard {
 	 *         // ... actual handler logic ...
 	 *     }
 	 *
-	 *     // After — registration site owns the guard:
+	 *     // After : registration site owns the guard:
 	 *     add_action(
 	 *         'wp_ajax_sscribe_foo',
 	 *         SScribe_AJAX_Guard::with_guard( [ $this, 'ajax_foo' ], $this->get_required_capability() )
@@ -298,7 +298,7 @@ class SScribe_AJAX_Guard {
 	 * The wrapped callable receives the same arguments WordPress passes to
 	 * the underlying action. If either guard fails, an error JSON response
 	 * is emitted via {@see self::error()} and the wrapped callable is
-	 * never invoked — no need to `exit` or `return` in your handler.
+	 * never invoked : no need to `exit` or `return` in your handler.
 	 *
 	 * @param callable $handler    The actual AJAX handler to guard.
 	 * @param string   $capability Capability the current user must have

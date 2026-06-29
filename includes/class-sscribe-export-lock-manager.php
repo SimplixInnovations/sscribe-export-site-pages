@@ -87,7 +87,7 @@ class SScribe_Export_Lock_Manager {
 			$lock_age   = $current_time - $lock_time;
 
 			if ( $lock_age > $stale_threshold ) {
-				// Stale lock detected — overwrite and verify ownership.
+				// Stale lock detected : overwrite and verify ownership.
 				$new_value = $current_time . '|' . $lock_token;
 				if ( $using_cache ) {
 					wp_cache_set( $lock_key, $new_value, 'transient', $lock_ttl );
@@ -108,7 +108,7 @@ class SScribe_Export_Lock_Manager {
 					);
 					return $lock_token;
 				}
-				// Another process overwrote us — they win.
+				// Another process overwrote us : they win.
 				$this->logger->debug(
 					'Stale lock overwrite lost race',
 					array( 'session_id' => $session_id )
@@ -126,7 +126,7 @@ class SScribe_Export_Lock_Manager {
 			// Atomic lock acquisition with retry loop.
 		for ( $attempt = 1; $attempt <= 3; ++$attempt ) {
 			if ( $using_cache ) {
-				// wp_cache_add() is atomic — only succeeds if key does not exist.
+				// wp_cache_add() is atomic : only succeeds if key does not exist.
 				if ( wp_cache_add( $lock_key, $current_time . '|' . $lock_token, 'transient', $lock_ttl ) ) {
 					$this->register_shutdown_cleanup( $session_id, $lock_token );
 					return $lock_token;
@@ -134,7 +134,7 @@ class SScribe_Export_Lock_Manager {
 			} elseif ( set_transient( $lock_key, $current_time . '|' . $lock_token, $lock_ttl ) ) {
 				// Verify we actually own the lock: set_transient() on non-cache
 				// backends uses INSERT...ON DUPLICATE KEY UPDATE, which ALWAYS
-				// overwrites — so two concurrent processes both get `true`.
+				// overwrites : so two concurrent processes both get `true`.
 				// Re-read to confirm OUR value was stored.
 				$stored = get_transient( $lock_key );
 				if ( is_string( $stored ) && $stored === $current_time . '|' . $lock_token ) {
@@ -171,7 +171,7 @@ class SScribe_Export_Lock_Manager {
 	}
 
 	/**
-	 * Shutdown handler — releases lock if script was killed by fatal error.
+	 * Shutdown handler : releases lock if script was killed by fatal error.
 	 *
 	 * This static method is called by register_shutdown_function() when PHP terminates.
 	 * It checks whether the script exited normally or due to a fatal error by comparing
@@ -180,7 +180,7 @@ class SScribe_Export_Lock_Manager {
 	 * Token verification: before deleting the lock we re-read the stored value
 	 * and confirm OUR token still owns it. If a different process has since
 	 * taken over the lock (e.g. a stale-claim after our TTL expired), we must
-	 * NOT delete it — that would wipe the legitimate holder's lock and open
+	 * NOT delete it : that would wipe the legitimate holder's lock and open
 	 * a window for duplicate concurrent processing.
 	 *
 	 * @return void
@@ -189,7 +189,7 @@ class SScribe_Export_Lock_Manager {
 		$session_id = self::$shutdown_session_id;
 		$lock_token = self::$shutdown_lock_token;
 
-		// If either is null, no lock was acquired — nothing to clean up.
+		// If either is null, no lock was acquired : nothing to clean up.
 		if ( null === $session_id || null === $lock_token ) {
 			return;
 		}
@@ -208,7 +208,7 @@ class SScribe_Export_Lock_Manager {
 			$parts  = explode( '|', $raw );
 			$stored = $parts[1] ?? '';
 			if ( ! hash_equals( $lock_token, $stored ) ) {
-				// Different process owns the lock now — leave it alone.
+				// Different process owns the lock now : leave it alone.
 				self::$shutdown_session_id = null;
 				self::$shutdown_lock_token = null;
 				return;
@@ -291,7 +291,7 @@ class SScribe_Export_Lock_Manager {
 			$user_id_json    = '%' . $wpdb->esc_like( '"user_id":' . $user_id ) . '%';
 			$prefix_len      = strlen( self::SESSION_PREFIX );
 
-			// Query with user_id filter pushed into SQL — avoids fetching all sessions then filtering in PHP.
+			// Query with user_id filter pushed into SQL : avoids fetching all sessions then filtering in PHP.
 			// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- Cleanup.
 			$sessions = $wpdb->get_results(
 				$wpdb->prepare(

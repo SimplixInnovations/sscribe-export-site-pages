@@ -199,7 +199,7 @@ class SScribe_Admin {
 	 * `base-uri`, `frame-ancestors`) are chosen to be defense-in-depth
 	 * without breaking admin JS:
 	 *
-	 *  - `object-src 'none'` blocks <object>/<embed>/<applet> — the
+	 *  - `object-src 'none'` blocks <object>/<embed>/<applet> : the
 	 *    classic vector for XSS via Flash and PDF readers.
 	 *  - `base-uri 'self'` blocks <base> tag injection that could
 	 *    re-target relative URLs to an attacker domain.
@@ -288,7 +288,7 @@ class SScribe_Admin {
 
 		// Debug console assets. The Debug tab is always rendered so users
 		// can flip the toggle on/off, and the toggle UI lives inside the
-		// tab — without the JS, the user has no way to enable debug in the
+		// tab : without the JS, the user has no way to enable debug in the
 		// first place. Always enqueue both so the toggle works on a fresh
 		// install. The combined cost is ~20-30 KB gzipped on a single admin
 		// page; the alternative (gating behind sscribe_debug_enabled) breaks
@@ -389,7 +389,7 @@ class SScribe_Admin {
 				'delete_tooltip'         => __( 'Delete this export', 'sscribe-export-site-pages' ),
 				'support_title'          => __( 'Support Information', 'sscribe-export-site-pages' ),
 				'err_permission'         => __( 'Your WordPress user role does not have the required capability (sscribe_export). Please contact your site administrator to grant export permissions, or log in with an Administrator account.', 'sscribe-export-site-pages' ),
-				'err_session_expired'    => __( 'The export session was lost — this typically happens when the PHP session or database connection timed out. Click "Try Again" to start a fresh export. If this keeps happening, ask your hosting provider to increase the PHP max_execution_time (recommended: 120s or higher).', 'sscribe-export-site-pages' ),
+				'err_session_expired'    => __( 'The export session was lost : this typically happens when the PHP session or database connection timed out. Click "Try Again" to start a fresh export. If this keeps happening, ask your hosting provider to increase the PHP max_execution_time (recommended: 120s or higher).', 'sscribe-export-site-pages' ),
 				'err_data_corrupted'     => __( 'The session data in the database became invalid. This can happen if your database ran out of storage or a caching plugin (e.g., WP Rocket, W3 Total Cache) is caching wp_options. Exclude "sscribe_session_*" from object caching.', 'sscribe-export-site-pages' ),
 				'err_rate_limit'         => __( 'You have exceeded the request rate limit (200 requests per minute). Please wait about 1 minute and then try again. This limit protects your server from overload.', 'sscribe-export-site-pages' ),
 				'err_no_pages'           => __( 'No pages match the selected language and status combination. Go back and verify your selection. If using WPML, ensure the selected language has pages assigned to it.', 'sscribe-export-site-pages' ),
@@ -402,13 +402,13 @@ class SScribe_Admin {
 				'err_500'                => __( 'Your server encountered an internal error (HTTP 500). Check your server\'s PHP error log for details. Common causes: a conflicting plugin, PHP memory limit too low, or a corrupted .htaccess file.', 'sscribe-export-site-pages' ),
 				'err_403'                => __( 'The server rejected the request (HTTP 403 Forbidden). This is usually caused by a security plugin (e.g., Wordfence, Sucuri, iThemes Security) or server-level firewall blocking AJAX requests. Whitelist the SScribe AJAX actions in your security plugin settings.', 'sscribe-export-site-pages' ),
 				'err_generic'            => __( 'Click "Try Again" to retry the export. If the problem continues: refresh the page, check your browser\'s developer console (F12), or contact your hosting provider to review PHP error logs.', 'sscribe-export-site-pages' ),
-				'net_connection_lost'    => __( 'Connection lost — the server did not respond. Please check your internet connection and try again.', 'sscribe-export-site-pages' ),
+				'net_connection_lost'    => __( 'Connection lost : the server did not respond. Please check your internet connection and try again.', 'sscribe-export-site-pages' ),
 				'net_403'                => __( 'Access denied (HTTP 403). A security plugin or firewall may be blocking this request.', 'sscribe-export-site-pages' ),
-				'net_500'                => __( 'Internal server error (HTTP 500). The server encountered a problem — check your PHP error log for details.', 'sscribe-export-site-pages' ),
+				'net_500'                => __( 'Internal server error (HTTP 500). The server encountered a problem : check your PHP error log for details.', 'sscribe-export-site-pages' ),
 				'net_502'                => __( 'Bad gateway (HTTP 502). Your server or reverse proxy (Nginx/Cloudflare) is unavailable. Please wait a moment and try again.', 'sscribe-export-site-pages' ),
 				'net_503'                => __( 'Service unavailable (HTTP 503). Your server is temporarily overloaded or under maintenance. Please wait a moment and try again.', 'sscribe-export-site-pages' ),
 				'net_504'                => __( 'Gateway timeout (HTTP 504). The request took too long to process. Ask your hosting provider to increase the PHP max_execution_time.', 'sscribe-export-site-pages' ),
-				'net_timeout'            => __( 'Request timed out — the server took too long to respond. This may happen with large exports. Please try again.', 'sscribe-export-site-pages' ),
+				'net_timeout'            => __( 'Request timed out : the server took too long to respond. This may happen with large exports. Please try again.', 'sscribe-export-site-pages' ),
 				/* translators: %d: HTTP status code */
 				'net_unknown'            => __( 'A network error occurred (HTTP %d). Please check your connection and try again.', 'sscribe-export-site-pages' ),
 				'support_loading'        => __( 'Loading support information...', 'sscribe-export-site-pages' ),
@@ -458,7 +458,7 @@ class SScribe_Admin {
 				'progress_pages'         => __( 'Processing %1$d of %2$d pages', 'sscribe-export-site-pages' ),
 				/* translators: %d: progress percentage (e.g. 42) */
 				'document_title'         => __( '(%d%%) SScribe Export', 'sscribe-export-site-pages' ),
-				'err_cancel_failed'      => __( 'Could not confirm cancellation — the server may still be processing. Reload the page before starting a new export.', 'sscribe-export-site-pages' ),
+				'err_cancel_failed'      => __( 'Could not confirm cancellation : the server may still be processing. Reload the page before starting a new export.', 'sscribe-export-site-pages' ),
 				// Post-type labels for the live config-summary chips.
 				'post_type_page'         => __( 'Pages', 'sscribe-export-site-pages' ),
 				'post_type_post'         => __( 'Posts', 'sscribe-export-site-pages' ),

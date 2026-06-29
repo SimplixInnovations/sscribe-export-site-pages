@@ -43,20 +43,20 @@ class SScribe_Filesystem {
 	private SScribe_Logger_Interface $logger;
 
 	/**
-	 * Sentinel: the path resolves inside the SScribe export directory —
+	 * Sentinel: the path resolves inside the SScribe export directory :
 	 * always safe to write.
 	 */
 	public const SSCRIBE_PATH_ALLOWED = 'allowed';
 
 	/**
 	 * Sentinel: the path resolves outside the SScribe export directory
-	 * via a symlink — refuse the write.
+	 * via a symlink : refuse the write.
 	 */
 	public const SSCRIBE_PATH_REJECT = 'reject';
 
 	/**
 	 * Sentinel: the path is outside the SScribe export directory but
-	 * is not a symlink (e.g. WP temp dir) — allow, since the caller
+	 * is not a symlink (e.g. WP temp dir) : allow, since the caller
 	 * is performing a legitimate write that does not need protection.
 	 */
 	public const SSCRIBE_PATH_EXTERNAL = 'external';
@@ -220,14 +220,14 @@ class SScribe_Filesystem {
 		$file = self::sanitize_path( $file );
 
 		// Symlink attack protection: reject writes that resolve outside the
-		// SScribe export directory. The check is symlink-aware — files
+		// SScribe export directory. The check is symlink-aware : files
 		// inside the WP temp directory or other legitimate WP write paths
 		// are allowed through; only symlinked escapes are blocked.
 		$safety = $this->is_path_safe_for_write( $file );
 		if ( self::SSCRIBE_PATH_REJECT === $safety ) {
 			self::$last_error = 'Refusing to write outside SScribe export directory (symlink attack suspected)';
 			$this->logger->warning(
-				'Refused write — path resolves outside SScribe export directory',
+				'Refused write : path resolves outside SScribe export directory',
 				array(
 					'file' => $file,
 				)
@@ -255,7 +255,7 @@ class SScribe_Filesystem {
 			// separate step to ensure correct permissions on all filesystems.
 			if ( $mode && self::$fs->chmod( $file, $mode ) === false ) {
 				$this->logger->warning(
-					'WP_Filesystem chmod failed — file may have unexpected permissions',
+					'WP_Filesystem chmod failed : file may have unexpected permissions',
 					array(
 						'file' => $file,
 						'mode' => decoct( $mode ),
@@ -471,7 +471,7 @@ class SScribe_Filesystem {
 
 		$result = array();
 		foreach ( array_diff( $files, array( '.', '..' ) ) as $name ) {
-			// Skip dotfiles and the guard index.php — this matches what
+			// Skip dotfiles and the guard index.php : this matches what
 			// WP_Filesystem::dirlist() returns and keeps .htaccess /
 			// index.php out of the rotated log list.
 			if ( '' === $name || '.' === $name[0] || 'index.php' === $name ) {
@@ -506,7 +506,7 @@ class SScribe_Filesystem {
 		if ( self::SSCRIBE_PATH_REJECT === $safety ) {
 			self::$last_error = 'Refusing to copy outside SScribe export directory (symlink attack suspected)';
 			$this->logger->warning(
-				'Refused copy — destination resolves outside SScribe export directory',
+				'Refused copy : destination resolves outside SScribe export directory',
 				array(
 					'source'      => $source,
 					'destination' => $destination,
@@ -595,7 +595,7 @@ class SScribe_Filesystem {
 		// Normalize the allowed root: realpath() requires the dir to exist.
 		$allowed_real = realpath( $allowed_root );
 		if ( false === $allowed_real ) {
-			// Allowed root doesn't exist yet — the dir will be created
+			// Allowed root doesn't exist yet : the dir will be created
 			// by wp_mkdir_p() before the write. Compare lexically
 			// against the literal path so a future symlink planted
 			// under the to-be-created root can't bypass the check.
@@ -605,7 +605,7 @@ class SScribe_Filesystem {
 			// compared against a parent_real that was produced by the
 			// lexical normalize_path() fallback. Without this, realpath
 			// returns backslash-separated paths on Windows while the
-			// fallback produces forward slashes — strpos() then fails
+			// fallback produces forward slashes : strpos() then fails
 			// to match even when the parent IS inside the allowed root.
 			$allowed_real = self::normalize_path( $allowed_real );
 		}
@@ -613,7 +613,7 @@ class SScribe_Filesystem {
 		$parent      = dirname( $file );
 		$parent_real = realpath( $parent );
 		if ( false === $parent_real ) {
-			// Parent doesn't exist — caller will create it. Compare
+			// Parent doesn't exist : caller will create it. Compare
 			// lexically; this still rejects a parent that points
 			// outside the allowed root via `..` segments.
 			$parent_real = self::normalize_path( $parent );
@@ -688,7 +688,7 @@ class SScribe_Filesystem {
 	 *     redirects the write). Refuse the write.
 	 *   - {@see self::SSCRIBE_PATH_EXTERNAL}: the file's parent is
 	 *     outside the export root but the literal path is also
-	 *     outside (e.g. WP temp dir). Allow the write — the caller
+	 *     outside (e.g. WP temp dir). Allow the write : the caller
 	 *     is performing a legitimate external write.
 	 *
 	 * @param string $file Target file path.
@@ -697,7 +697,7 @@ class SScribe_Filesystem {
 	public function is_path_safe_for_write( string $file ): string {
 		$allowed_root = $this->get_export_dir();
 		if ( '' === $allowed_root ) {
-			// Cannot determine export dir — fail open to avoid breaking
+			// Cannot determine export dir : fail open to avoid breaking
 			// plugin functionality on misconfigured sites. The audit
 			// trail will still record the write.
 			return self::SSCRIBE_PATH_EXTERNAL;
@@ -717,7 +717,7 @@ class SScribe_Filesystem {
 		// parent directory with realpath() to detect a symlink escape.
 		$parent = dirname( $file );
 		if ( ! is_dir( $parent ) ) {
-			// Parent will be created — cannot be a symlink target yet.
+			// Parent will be created : cannot be a symlink target yet.
 			// Allow.
 			return self::SSCRIBE_PATH_ALLOWED;
 		}

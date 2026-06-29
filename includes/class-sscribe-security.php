@@ -83,13 +83,13 @@ class SScribe_Security {
 			$path = $dir . '/' . $file;
 
 			if ( is_link( $path ) ) {
-				// Symlinks are deleted as files — validate target is in scope before deletion.
+				// Symlinks are deleted as files : validate target is in scope before deletion.
 				$target = readlink( $path );
 				if ( false !== $target && self::is_path_in_scope( $target ) ) {
 					wp_delete_file( $path );
 				}
 			} elseif ( is_dir( $path ) ) {
-				// Follow directory — scope check happens in recursive call.
+				// Follow directory : scope check happens in recursive call.
 				self::delete_directory( $path, $max_depth, $depth + 1 );
 			} else {
 				wp_delete_file( $path );

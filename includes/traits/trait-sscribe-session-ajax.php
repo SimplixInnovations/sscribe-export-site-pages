@@ -33,7 +33,7 @@ if ( ! defined( 'ABSPATH' ) ) {
 }
 
 /**
- * Session AJAX endpoints — check active / cancel / clear.
+ * Session AJAX endpoints : check active / cancel / clear.
  *
  * Folded into SScribe_Session via this trait so that one class
  * owns session state AND the endpoints that mutate it. See the
@@ -67,7 +67,7 @@ trait SScribe_Session_AJAX {
 
 		$rate_check = $this->check_rate_limit();
 		if ( false === $rate_check ) {
-			// Rate limit tripped — signal the UI to skip the restore rather
+			// Rate limit tripped : signal the UI to skip the restore rather
 			// than show a stale "session active" banner.
 			wp_send_json_success(
 				array(
@@ -120,7 +120,7 @@ trait SScribe_Session_AJAX {
 	 * Acquires the export lock before mutating session state so
 	 * the cancellation cannot race with a batch iteration that
 	 * holds the same lock. If the lock is already held, returns
-	 * 409 Conflict with retry hint — the JS client retries
+	 * 409 Conflict with retry hint : the JS client retries
 	 * within a few seconds. Once the lock is held, the mutation
 	 * phase (re-read → flag cancelled → update → cleanup →
 	 * delete) runs atomically with respect to the batch.
@@ -163,7 +163,7 @@ trait SScribe_Session_AJAX {
 			);
 		}
 
-		// Acquire the export lock — race fix. If a batch
+		// Acquire the export lock : race fix. If a batch
 		// iteration holds it, return 409 with retry hint and let
 		// the JS client retry. Once the lock is held, the
 		// mutation below runs atomically with respect to the

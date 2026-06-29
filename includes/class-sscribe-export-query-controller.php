@@ -105,7 +105,7 @@ class SScribe_Export_Query_Controller {
 	 * Gated by the dedicated `sscribe_health` capability (not the
 	 * `sscribe_export` capability). Splitting the two lets a site admin
 	 * grant read-only diagnostic access without granting export
-	 * authority — useful for support staff who should be able to run
+	 * authority : useful for support staff who should be able to run
 	 * the "copy support info" action but not start an export.
 	 *
 	 * @param string $export_capability Unused; kept for signature
@@ -443,7 +443,7 @@ class SScribe_Export_Query_Controller {
 		// truncate the displayed "Total pages" to 10,000 even when more match.
 		$page_count = $this->collector->get_page_count_only( $language, $post_status, $post_type );
 
-		// Fetch a single sample page for the preview modal — the full list is
+		// Fetch a single sample page for the preview modal : the full list is
 		// not needed and would re-introduce the 10K cap we're trying to avoid.
 		$pages = $this->collector->get_page_ids( $language, $post_status, $post_type, 1 );
 

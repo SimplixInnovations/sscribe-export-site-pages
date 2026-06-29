@@ -167,7 +167,7 @@
 			this.$empty = $('#sscribe-debug-empty');
 			// Hardcoded fallback for the case where the PHP template's
 			// <p> renders empty (e.g. a translation override or a custom
-			// child theme) — without this, renderLogs() would blank the
+			// child theme) : without this, renderLogs() would blank the
 			// empty-state copy on every refresh.
 			this.defaultEmptyMessage = this.$empty.find('p').text().trim() || 'No log entries found.';
 			this.$entryCount = $('#sscribe-debug-entry-count');
@@ -282,7 +282,7 @@
 					self.hidePausedIndicator();
 				} else {
 					self.stopAutoRefresh();
-					self.showPausedIndicator('Manual mode — auto-refresh off');
+					self.showPausedIndicator('Manual mode : auto-refresh off');
 				}
 				self.saveSettings(previousAutoRefresh);
 			});
@@ -312,7 +312,7 @@
 					$btn.prop('disabled', true);
 					self.clearLogs();
 				} else {
-					// First click: prompt for confirmation. Do NOT disable the button —
+					// First click: prompt for confirmation. Do NOT disable the button :
 					// the user MUST be able to click it again to confirm within 3s,
 					// otherwise the confirm flow is dead on arrival.
 					if (!$btn.data('original-text')) {
@@ -479,14 +479,14 @@
 
 		bindVisibilityHandler: function () {
 			const self = this;
-			// Idempotent — if init() is ever re-entered without an
+			// Idempotent : if init() is ever re-entered without an
 			// intervening destroy(), drop the previous handlers first.
 			this.unbindVisibilityHandler();
 
 			this._visibilityHandler = function () {
 				if (document.hidden) {
 					self.stopAutoRefresh();
-					self.showPausedIndicator('Paused — tab inactive');
+					self.showPausedIndicator('Paused : tab inactive');
 				} else if (self.isAutoRefresh) {
 					const $debugTabBtn = $('#sscribe-tab-btn-debug');
 					const isOnDebugTab =
@@ -494,7 +494,7 @@
 					if (isOnDebugTab) {
 						self.fetchLogs();
 					}
-					// Resume polling regardless of which plugin tab is active —
+					// Resume polling regardless of which plugin tab is active :
 					// startAutoRefresh() polls in the background and the paused
 					// indicator must clear when the tab becomes visible again.
 					self.startAutoRefresh();
@@ -574,7 +574,7 @@
 			document.addEventListener('visibilitychange', this.visibilityHandler);
 			this.refreshInterval = setInterval(function () {
 				// Stale-lock recovery: if a fetch has been pending for >10s
-				// (down from 30s — 30s left the user staring at a frozen
+				// (down from 30s : 30s left the user staring at a frozen
 				// console for too long), assume the request hung and reset
 				// the lock so the next tick can retry. Surface a "slow
 				// refresh" notice after 5s so the user knows the console
@@ -595,11 +595,11 @@
 					return;
 				}
 				if (self.currentOffset !== 0) {
-					self.showPausedIndicator('Auto-refresh paused — scrolled into history');
+					self.showPausedIndicator('Auto-refresh paused : scrolled into history');
 					return;
 				}
 				if (self.consecutiveNoChange >= self.noChangeStopThreshold) {
-					self.showPausedIndicator('Auto-refresh paused — no new log entries');
+					self.showPausedIndicator('Auto-refresh paused : no new log entries');
 					return;
 				}
 				self.hidePausedIndicator();
@@ -711,7 +711,7 @@
 						}
 						self.$saveFeedback
 							.removeClass('success error')
-							.text('Debug mode changed — reloading\u2026')
+							.text('Debug mode changed : reloading\u2026')
 							.addClass('success');
 						self.saveFeedbackTimeout = setTimeout(function () {
 							self.saveFeedbackTimeout = null;
@@ -914,7 +914,7 @@
 					if (xhr.status === 0) {
 						errorMsg = 'Network error. Please check your connection.';
 					} else if (xhr.status === 403) {
-						// Nonce/session expired — the most common cause on long admin
+						// Nonce/session expired : the most common cause on long admin
 						// sessions. Tell the user clearly so they know to reload.
 						errorMsg = 'Session expired. Please reload the page to continue.';
 						self.refreshNonce(function () {
@@ -977,7 +977,7 @@
 
 		renderLogs: function (entries, skipObserver, extraData, scrollToTop) {
 			// Consume the filter-change flag at the very top so an early return
-			// for empty entries still clears the pending state — otherwise the
+			// for empty entries still clears the pending state : otherwise the
 			// next non-filter render would also force-scroll to the top.
 			const forceScrollTop = scrollToTop === true || this._filterChangeInProgress === true;
 			this._filterChangeInProgress = false;
@@ -1015,7 +1015,7 @@
 			// Preserve scroll position during auto-refresh updates. The
 			// filter change path (forceScrollTop) scrolls to the top of the
 			// (now-shorter) entry list instead of carrying the old
-			// "wasAtBottom" heuristic over — a smaller filtered list would
+			// "wasAtBottom" heuristic over : a smaller filtered list would
 			// otherwise jump to the bottom of content the user never scrolled
 			// into.
 			const consoleBody = this.$consoleBody && this.$consoleBody[0];
@@ -1180,7 +1180,7 @@
 					}
 				}
 			).fail(function () {
-				self.showPausedIndicator('Nonce refresh failed — you may need to reload the page.');
+				self.showPausedIndicator('Nonce refresh failed : you may need to reload the page.');
 			});
 		},
 
@@ -1337,7 +1337,7 @@
 					resumeAutoRefresh();
 				}
 			).fail(function () {
-				self.showPausedIndicator('Nonce refresh failed — attempting export anyway.');
+				self.showPausedIndicator('Nonce refresh failed : attempting export anyway.');
 				self.doExportLogs();
 				resumeAutoRefresh();
 			});
@@ -1360,8 +1360,8 @@
 			}
 
 			self.$exportBtn.prop('disabled', true);
-			self.$exportBtn.find('.sscribe-export-btn-scope').text(' — exporting…');
-			this.showPausedIndicator('Export in progress — download should begin shortly');
+			self.$exportBtn.find('.sscribe-export-btn-scope').text(' : exporting…');
+			this.showPausedIndicator('Export in progress : download should begin shortly');
 			// fetch+blob (not form POST) so server errors surface to the user.
 			// Audit N-5: form POST opened a blank tab on every failure mode.
 			this.downloadViaFetch(sscribe_data.ajaxurl, data, {
@@ -1418,7 +1418,7 @@
 				self.rotatedRequest = null;
 				let errMsg = 'Unable to load rotated logs.';
 				if (xhr.status === 0) {
-					errMsg = 'Network error — could not load rotated logs.';
+					errMsg = 'Network error : could not load rotated logs.';
 				}
 				self.$rotatedBody.html('<div class="sscribe-debug-rotated-empty">' + escHtml(errMsg) + '</div>');
 			});
@@ -1508,7 +1508,7 @@
 					// Rapid clicks on the same file would otherwise stack duplicate
 					// history entries (the second click aborts the first request,
 					// but the first's success handler never runs so only the
-					// second pushState lands — repeated n times = n entries that
+					// second pushState lands : repeated n times = n entries that
 					// all point at the same view). If we're already on this exact
 					// state, replace the current entry instead of stacking a new
 					// one.
@@ -1588,7 +1588,7 @@
 			this.$entries.empty();
 			this.$entryCount.text('Loading...');
 			// fetchLogs() will add the is-loading class on the initial-load
-			// path and remove it in its success/fail handlers — adding it
+			// path and remove it in its success/fail handlers : adding it
 			// here as well is redundant and would survive a fetch abort.
 			const url = new URL(window.location.href);
 			url.searchParams.delete('view');
@@ -1611,7 +1611,7 @@
 
 			// Bump the export button out of the way and surface a status hint.
 			// Both timeouts (button re-enable + indicator hide) are aligned to
-			// 5s — the previous 3s/5s split left a 2-second window with no
+			// 5s : the previous 3s/5s split left a 2-second window with no
 			// status message while the button was still disabled, which
 			// confused users (audit #2). Use a single constant so the two
 			// values cannot drift apart again.

@@ -11,7 +11,7 @@
  * stray content the exporters may have written.
  *
  * Using classes MUST provide the supporting private API the trait calls
- * into — namely the session/lock/logger/diagnostics collaborators and the
+ * into : namely the session/lock/logger/diagnostics collaborators and the
  * resource/format helpers. SScribe_Batch_Processor already does.
  *
  * @package SScribe_Export_Site_Pages
@@ -26,7 +26,7 @@ if ( ! defined( 'ABSPATH' ) ) {
 }
 
 /**
- * Batch step handler — processes one chunk of pages per AJAX call.
+ * Batch step handler : processes one chunk of pages per AJAX call.
  */
 trait SScribe_Batch_Step_Handler {
 
@@ -123,7 +123,7 @@ trait SScribe_Batch_Step_Handler {
 
 			// Validate ownership and session integrity BEFORE acquiring lock.
 			// This avoids a false-lock window where the lock is held but the batch
-			// is rejected — another process would unnecessarily back off.
+			// is rejected : another process would unnecessarily back off.
 			if ( ! $this->validate_session_ownership( $session, $session_id ) ) {
 				$this->restore_ob_level( $ob_level_before );
 				SScribe_AJAX_Guard::error(
@@ -155,7 +155,7 @@ trait SScribe_Batch_Step_Handler {
 			$this->current_lock_token = $this->get_lock_manager()->acquire_lock( $session_id, $lock_ttl, $stale_threshold );
 
 			if ( null === $this->current_lock_token ) {
-				$this->logger->debug( 'Lock acquisition failed — another process holds the lock', array( 'session_id' => $session_id ) );
+				$this->logger->debug( 'Lock acquisition failed : another process holds the lock', array( 'session_id' => $session_id ) );
 				$this->restore_ob_level( $ob_level_before );
 				SScribe_AJAX_Guard::error(
 					array(
@@ -355,7 +355,7 @@ trait SScribe_Batch_Step_Handler {
 			// Snapshot the session once per batch for the cancellation
 			// check. Previously the per-page loop did
 			// $this->session->get($session_id) on every iteration, which
-			// is O(pages) transient reads per batch — on a 500-page
+			// is O(pages) transient reads per batch : on a 500-page
 			// export with batch size 20 that was 25 transients per batch
 			// times 25 batches = 625 transients for cancellation polling
 			// alone. The snapshot is good enough for the cancellation
@@ -389,7 +389,7 @@ trait SScribe_Batch_Step_Handler {
 						$max_exec       = (int) ini_get( 'max_execution_time' );
 						if ( $max_exec > 0 && $remaining_time > 0 && $remaining_time < ( $max_exec * $soft_deadline_ratio ) && empty( $session['_soft_deadline_warned'] ) ) {
 							$this->logger->debug(
-								'Soft deadline crossed — remaining time below configured ratio',
+								'Soft deadline crossed : remaining time below configured ratio',
 								array(
 									'remaining_time' => round( $remaining_time, 2 ),
 									'max_execution'  => $max_exec,

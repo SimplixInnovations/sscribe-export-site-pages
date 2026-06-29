@@ -57,7 +57,7 @@ class SScribe_Session {
 	private readonly SScribe_Logger_Interface $logger;
 
 	/**
-	 * Rate limiter (lazy — only resolved when an AJAX endpoint
+	 * Rate limiter (lazy : only resolved when an AJAX endpoint
 	 * in the SScribe_Session_AJAX trait actually fires).
 	 *
 	 * @var SScribe_Export_Rate_Limiter|null
@@ -65,21 +65,21 @@ class SScribe_Session {
 	private ?SScribe_Export_Rate_Limiter $rate_limiter = null;
 
 	/**
-	 * Export auditor (lazy — used by validate_session_ownership).
+	 * Export auditor (lazy : used by validate_session_ownership).
 	 *
 	 * @var SScribe_Export_Auditor|null
 	 */
 	private ?SScribe_Export_Auditor $auditor = null;
 
 	/**
-	 * ZIP handler (lazy — used by cleanup_cancelled_export).
+	 * ZIP handler (lazy : used by cleanup_cancelled_export).
 	 *
 	 * @var SScribe_Zip_Handler|null
 	 */
 	private ?SScribe_Zip_Handler $zip_handler = null;
 
 	/**
-	 * Lock manager (lazy — used by ajax_cancel_export's race
+	 * Lock manager (lazy : used by ajax_cancel_export's race
 	 * fix and cleanup_user_locks).
 	 *
 	 * @var SScribe_Export_Lock_Manager|null
@@ -117,7 +117,7 @@ class SScribe_Session {
 	}
 
 	/**
-	 * Test-only: reset all session state — clears the static active-session cache,
+	 * Test-only: reset all session state : clears the static active-session cache,
 	 * the test transients global, and all session options.
 	 *
 	 * Call this in setUp() to ensure a completely clean slate when tests share
@@ -192,7 +192,7 @@ class SScribe_Session {
 					$existing_data = $this->get( $existing );
 					if ( $existing_data && $this->is_active_session_data( $existing_data ) ) {
 						$this->logger->warning(
-							'Blocked duplicate session creation — user has active session',
+							'Blocked duplicate session creation : user has active session',
 							array(
 								'user_id'          => $data['user_id'],
 								'existing_session' => $existing,
@@ -201,7 +201,7 @@ class SScribe_Session {
 						);
 						return '';
 					}
-					// Stale transient pointing to expired session — clear it.
+					// Stale transient pointing to expired session : clear it.
 					delete_transient( $transient_key );
 				}
 			}
@@ -223,7 +223,7 @@ class SScribe_Session {
 					// exports to start. Delete the orphaned option and retry.
 					if ( get_transient( 'sscribe_active_sid_' . $data['user_id'] ) !== $session_id ) {
 						$this->logger->error(
-							'Active-session transient verification failed — rolling back',
+							'Active-session transient verification failed : rolling back',
 							array(
 								'user_id'    => $data['user_id'],
 								'session_id' => $session_id,
@@ -306,11 +306,11 @@ class SScribe_Session {
 		if ( is_array( $raw ) ) {
 			$data = $raw;
 		} elseif ( is_string( $raw ) ) {
-			// Attempt decryption first — null/false return means decryption failed.
+			// Attempt decryption first : null/false return means decryption failed.
 			$decrypted = $this->decrypt_session_data( $raw );
 
 			if ( null !== $decrypted && false !== $decrypted ) {
-				// Decryption succeeded — JSON decode the result.
+				// Decryption succeeded : JSON decode the result.
 				$data = json_decode( $decrypted, true );
 				if ( ! is_array( $data ) ) {
 					$this->logger->warning(
@@ -323,7 +323,7 @@ class SScribe_Session {
 					return null;
 				}
 			} else {
-				// Decryption failed — try plain JSON decode (legacy unencrypted or test fixtures).
+				// Decryption failed : try plain JSON decode (legacy unencrypted or test fixtures).
 				$data = json_decode( $raw, true );
 
 				if ( ! is_array( $data ) ) {
@@ -432,7 +432,7 @@ class SScribe_Session {
 			if ( null === $existing ) {
 				// This is expected during cancellation - not an error condition.
 				$this->logger->debug(
-					'Session no longer exists during update — may have been cancelled',
+					'Session no longer exists during update : may have been cancelled',
 					array( 'session_id' => $session_id )
 				);
 				return false;
@@ -517,7 +517,7 @@ class SScribe_Session {
 			}
 
 			$this->logger->error(
-				'Session update failed after max retries — session may be in inconsistent state',
+				'Session update failed after max retries : session may be in inconsistent state',
 				array(
 					'session_id'  => $session_id,
 					'option_name' => $option_name,
@@ -711,7 +711,7 @@ class SScribe_Session {
 		$cursor  = '';
 
 		do {
-			// Enforce time limit — resume on next cron run if needed.
+			// Enforce time limit : resume on next cron run if needed.
 			if ( ( microtime( true ) - $start_time ) > $max_seconds ) {
 				break;
 			}
@@ -1008,7 +1008,7 @@ class SScribe_Session {
 	}
 
 	/**
-	 * Uncached active-session check — always queries storage directly.
+	 * Uncached active-session check : always queries storage directly.
 	 * Used in test mode to avoid stale-cache blocking legitimate session creation.
 	 *
 	 * @param int $user_id User ID.
@@ -1139,11 +1139,11 @@ class SScribe_Session {
 			return null;
 		}
 
-		// Attempt decryption first — null/false return means decryption failed.
+		// Attempt decryption first : null/false return means decryption failed.
 		$decrypted = $this->decrypt_session_data( $raw );
 
 		if ( null !== $decrypted && false !== $decrypted ) {
-			// Decryption succeeded — JSON decode the result.
+			// Decryption succeeded : JSON decode the result.
 			$data = json_decode( $decrypted, true );
 			if ( is_array( $data ) ) {
 				return $data;
@@ -1151,7 +1151,7 @@ class SScribe_Session {
 			return null;
 		}
 
-		// Decryption failed — try plain JSON decode (legacy unencrypted data or test fixtures).
+		// Decryption failed : try plain JSON decode (legacy unencrypted data or test fixtures).
 		$data = json_decode( $raw, true );
 
 		if ( is_array( $data ) ) {
@@ -1396,7 +1396,7 @@ class SScribe_Session {
 	 * so it is not loaded on every WordPress request). A fresh key
 	 * is generated with `sodium_crypto_secretbox_keygen()` on first
 	 * use. Rotating the key invalidates all existing sodium-encrypted
-	 * sessions — do that only as a deliberate recovery action.
+	 * sessions : do that only as a deliberate recovery action.
 	 *
 	 * @return string 32 raw bytes.
 	 * @throws \RuntimeException If libsodium is unavailable.

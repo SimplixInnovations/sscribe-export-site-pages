@@ -27,7 +27,7 @@
 		_langCountsXHRs: null,
 		/**
 		 * In-flight nonce refresh request. Used to coalesce concurrent 403
-		 * responses — if two AJAX calls fail with 403 simultaneously, only
+		 * responses : if two AJAX calls fail with 403 simultaneously, only
 		 * one refresh request is sent; the second waits for the first's
 		 * completion before retrying its original request.
 		 *
@@ -66,7 +66,7 @@
 		 */
 		getLanguageLabel: function (code) {
 			// `!code` would treat a non-empty value like '0' as "all
-			// languages", which is wrong — use a strict empty check.
+			// languages", which is wrong : use a strict empty check.
 			if (code === '' || code === null || code === undefined) {
 				return 'All';
 			}
@@ -200,7 +200,7 @@
 							options.data.nonce = newNonce;
 							$.ajax(options);
 						} else {
-							// Refresh failed — fall through to original error.
+							// Refresh failed : fall through to original error.
 							if (typeof originalError === 'function') {
 								originalError(xhr, status, thrown);
 							}
@@ -310,7 +310,7 @@
 			// Keyboard shortcuts + modal escape handling.
 			$(document).on('keydown.sscribe', function (e) {
 				if (e.key === 'Escape' || e.key === 'Esc') {
-					// Don't hijack Escape inside form fields — let the
+					// Don't hijack Escape inside form fields : let the
 					// browser cancel IME composition, clear selection,
 					// or otherwise handle native behaviour. Only the
 					// preflight banner is dismissed from anywhere.
@@ -349,7 +349,7 @@
 					return;
 				}
 				if ((e.key === 'e' || e.key === 'E') && e.shiftKey) {
-					// Ctrl+Shift+E (Cmd+Shift+E on macOS) — same
+					// Ctrl+Shift+E (Cmd+Shift+E on macOS) : same
 					// rationale as the P binding: avoid stepping on
 					// browser-native shortcuts. Ctrl+E is empty in
 					// most browsers, but Cmd+E is "Use Selection for
@@ -361,7 +361,7 @@
 					}
 				}
 				if ((e.key === 'p' || e.key === 'P') && e.shiftKey) {
-					// Ctrl+Shift+P (Cmd+Shift+P on macOS) — using a
+					// Ctrl+Shift+P (Cmd+Shift+P on macOS) : using a
 					// multi-modifier binding to avoid clobbering the
 					// browser's native Ctrl/Cmd+P print dialog. A user
 					// who hits plain Ctrl+P expects the print dialog
@@ -1160,7 +1160,7 @@
 					if (attempt < maxAttempts - 1) {
 						self.clearSessionWithRetry(language, postStatus, postType, formats, attempt + 1);
 					} else {
-						// All cleanup attempts exhausted — do not proceed, as a stale
+						// All cleanup attempts exhausted : do not proceed, as a stale
 						// session ghost may remain and conflict with a new export.
 						self.isProcessing = false;
 						self.resetUI();
@@ -1347,7 +1347,7 @@
 				return;
 			}
 
-			// Confirm before tearing down a running export — once cancelled,
+			// Confirm before tearing down a running export : once cancelled,
 			// partial progress is discarded and the user has to start over.
 			const confirmMsg =
 				(sscribe_data.strings && sscribe_data.strings.cancel_confirm) ||
@@ -1394,7 +1394,7 @@
 					SScribe.isProcessing = false;
 					// Defensive: if the cancel AJAX fails, we don't know
 					// whether the server is still processing. Reset the UI
-					// so the user can try again — otherwise the progress
+					// so the user can try again : otherwise the progress
 					// area (with its indeterminate stripes) stays visible
 					// and the user is stuck.
 					SScribe.resetUI();
@@ -1410,7 +1410,7 @@
 					// against the same session.
 					const msg = SScribe.parseServerError(xhr)
 						|| (sscribe_data.strings && sscribe_data.strings.err_cancel_failed)
-						|| 'Could not confirm cancellation — the server may still be processing. Reload the page before starting a new export.';
+						|| 'Could not confirm cancellation : the server may still be processing. Reload the page before starting a new export.';
 					SScribe.showToast(msg, 'warning', 0);
 					// Hard-disable export buttons until the page is
 					// reloaded, so the user cannot fire a second
@@ -1741,7 +1741,7 @@
 				html +=
 					'<span>' +
 					this.escapeHtml(exp.date || '') +
-					' — ' +
+					' : ' +
 					this.escapeHtml(exp.size_formatted || exp.size || '') +
 					'</span>';
 				html += '</div></div>';
@@ -2027,7 +2027,7 @@
 			// updateProgress() writes `transform: scaleX(p)` directly to the
 			// bar element; if it runs while the bar is mid-fade, the element's
 			// layout is still 0-height/width and the transform has nothing to
-			// scale — leaving the bar invisible until the first batch tick.
+			// scale : leaving the bar invisible until the first batch tick.
 			// An indeterminate stripe animation (.sscribe-progress-initializing)
 			// is shown in the meantime so the user sees activity from t=0.
 			$('#sscribe-progress-area')
@@ -2076,12 +2076,12 @@
 						diagnostics = parsed.data._diagnostics;
 					}
 				} catch {
-					// Not JSON — the response body wasn't meant to be parsed, nothing to extract.
+					// Not JSON : the response body wasn't meant to be parsed, nothing to extract.
 				}
 			}
 
 			/* eslint-disable no-console */
-			console.groupCollapsed('[SSCRIBE] AJAX Error — %s (HTTP %d %s)', action, statusCode, statusText);
+			console.groupCollapsed('[SSCRIBE] AJAX Error : %s (HTTP %d %s)', action, statusCode, statusText);
 
 			console.log('Timestamp:', timestamp);
 			console.log('Action:', action);
@@ -2154,7 +2154,7 @@
 		/**
 		 * Push a polite announcement to the screen-reader live region.
 		 *
-		 * Throttled to once per second per message — without throttling,
+		 * Throttled to once per second per message : without throttling,
 		 * the per-page progress updates fire dozens of announcements per
 		 * second, which floods SR users and obscures the actual state.
 		 * The live region is shared across the admin surface, so callers
@@ -2727,13 +2727,13 @@
 
 			// Check for double-click confirmation.
 			if ($btn.data('sscribe-confirming')) {
-				// Second click — actually delete.
+				// Second click : actually delete.
 				$btn.removeData('sscribe-confirming');
 				clearTimeout($btn.data('sscribe-confirm-timeout'));
 				$row.addClass('sscribe-row-deleting');
 				SScribe.deleteSingleExport(filename, function (success) {
 					if (success === false) {
-						// Roll back optimistic UI — row stays.
+						// Roll back optimistic UI : row stays.
 						$row.removeClass('sscribe-row-deleting');
 						return;
 					}
@@ -2745,7 +2745,7 @@
 				return;
 			}
 
-			// First click — ask for confirmation.
+			// First click : ask for confirmation.
 			const originalText = $btn.text();
 			const confirmMsg =
 				(sscribe_data.strings && sscribe_data.strings.delete_confirm_hint) ||
@@ -3031,7 +3031,7 @@
 			$('#sscribe-progress-area').addClass('sscribe-hidden');
 			$('#sscribe-error-area').addClass('sscribe-hidden');
 			$('#sscribe-download-area').addClass('sscribe-hidden');
-			// Reset transform only — the bar's CSS gives it width: 100% so
+			// Reset transform only : the bar's CSS gives it width: 100% so
 			// scaleX() has something to scale. Setting width: 0% here would
 			// collapse the box and the subsequent updateProgress() (which
 			// only writes transform) would scale a zero-width element,

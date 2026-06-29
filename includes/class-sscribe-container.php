@@ -21,7 +21,7 @@ require_once __DIR__ . '/class-sscribe-container-notfound-exception.php';
  *
  * This is a thin registry with a singleton lifecycle, used internally to
  * wire up the batch processor, exporters, and helper services. It is
- * **not** a general-purpose DI framework — keep it simple, keep it
+ * **not** a general-purpose DI framework : keep it simple, keep it
  * internal.
  *
  * The public surface (`get( $id )`, `has( $id )`) is intentionally

@@ -117,7 +117,7 @@ class SScribe_PDF_Exporter implements SScribe_Exporter_Interface {
 			: $page_data;
 		$temp_image_paths    = $this->collect_temp_image_paths( $processed_page_data );
 
-		// Use generate_html_string() — avoids .html file side-effect from export().
+		// Use generate_html_string() : avoids .html file side-effect from export().
 		$html_content = $this->html_exporter->generate_html_string( $processed_page_data );
 		$html_size    = strlen( $html_content );
 
@@ -140,7 +140,7 @@ class SScribe_PDF_Exporter implements SScribe_Exporter_Interface {
 				$this->cleanup_temp_images( $temp_image_paths );
 
 				return SScribe_Result::failure(
-					__( 'PDF export is not available — mPDF library is missing. Please reinstall the plugin.', 'sscribe-export-site-pages' ),
+					__( 'PDF export is not available : mPDF library is missing. Please reinstall the plugin.', 'sscribe-export-site-pages' ),
 					array(
 						'error_category' => 'pdf_missing_library',
 						'page_id'        => $page_id,
@@ -173,7 +173,7 @@ class SScribe_PDF_Exporter implements SScribe_Exporter_Interface {
 				return SScribe_Result::failure(
 					sprintf(
 						/* translators: 1: HTML size, 2: Page title. */
-						__( 'PDF render skipped — HTML content is too large (%1$s). To raise the limit, use the "sscribe_pdf_max_html_size" filter. Try exporting to DOCX instead, or reduce page content complexity.', 'sscribe-export-site-pages' ),
+						__( 'PDF render skipped : HTML content is too large (%1$s). To raise the limit, use the "sscribe_pdf_max_html_size" filter. Try exporting to DOCX instead, or reduce page content complexity.', 'sscribe-export-site-pages' ),
 						size_format( $html_size )
 					),
 					array(
@@ -286,13 +286,13 @@ class SScribe_PDF_Exporter implements SScribe_Exporter_Interface {
 			// Discard any accidental output from WordPress hooks or other plugins
 			// that occurred *during this export's render* (mPDF may echo notices
 			// to stdout if display_errors is on), so the PDF binary is not
-			// contaminated. Scope the cleanup to the render window only — we
+			// contaminated. Scope the cleanup to the render window only : we
 			// capture the level before WriteHTML and clean up after Output(),
 			// instead of tearing down all PHP output buffers globally (which
 			// would also discard anything queued by parent callers and the
 			// wider request). The cleanup runs AFTER Output() specifically so
 			// any output buffer mPDF opens internally during its render
-			// pipeline is also discarded — leaving it dangling would corrupt
+			// pipeline is also discarded : leaving it dangling would corrupt
 			// output for the next request handled by the same PHP-FPM worker.
 			$ob_level_before_render = ob_get_level();
 			$mpdf->WriteHTML( $base_css, \SScribeVendor\Mpdf\HTMLParserMode::HEADER_CSS );
@@ -369,7 +369,7 @@ class SScribe_PDF_Exporter implements SScribe_Exporter_Interface {
 			return SScribe_Result::failure(
 				sprintf(
 					/* translators: 1: Error class, 2: Error message. */
-					__( 'Unable to generate PDF: %1$s — %2$s', 'sscribe-export-site-pages' ),
+					__( 'Unable to generate PDF: %1$s : %2$s', 'sscribe-export-site-pages' ),
 					get_class( $e ),
 					$e->getMessage()
 				),
@@ -424,7 +424,7 @@ class SScribe_PDF_Exporter implements SScribe_Exporter_Interface {
 	private function check_memory_pressure() {
 		$memory_limit_str = (string) ini_get( 'memory_limit' );
 		if ( '' === $memory_limit_str || '-1' === $memory_limit_str ) {
-			// No limit set — nothing to check.
+			// No limit set : nothing to check.
 			return null;
 		}
 
@@ -456,7 +456,7 @@ class SScribe_PDF_Exporter implements SScribe_Exporter_Interface {
 			return SScribe_Result::failure(
 				sprintf(
 					/* translators: 1: Free memory, 2: Memory limit. */
-					__( 'PDF export aborted — only %1$s free of %2$s PHP memory limit. Try exporting to DOCX instead, or increase the memory_limit.', 'sscribe-export-site-pages' ),
+					__( 'PDF export aborted : only %1$s free of %2$s PHP memory limit. Try exporting to DOCX instead, or increase the memory_limit.', 'sscribe-export-site-pages' ),
 					size_format( max( 0, $memory_free ) ),
 					size_format( $memory_limit )
 				),
@@ -598,7 +598,7 @@ class SScribe_PDF_Exporter implements SScribe_Exporter_Interface {
 				$page_data['content'] = (string) preg_replace_callback(
 					'/<img\b[^>]*\bsrc=("([^"]*)"|\'([^\']*)\')[^>]*>/i',
 					function ( array $matches ) use ( &$downloads, $max_content_images, &$temp_paths ): string {
-						// Use null coalescing — the alternative group is
+						// Use null coalescing : the alternative group is
 						// simply not captured when the matched src used the
 						// other quote style, so $matches[2] or $matches[3]
 						// can be undefined on PHP 8+ with strict notices.
@@ -607,7 +607,7 @@ class SScribe_PDF_Exporter implements SScribe_Exporter_Interface {
 							return $matches[0];
 						}
 
-						// Skip data: / fragment / file:// sources — they are
+						// Skip data: / fragment / file:// sources : they are
 						// already inline or not fetchable.
 						if ( str_starts_with( $url, 'data:' ) || str_starts_with( $url, '#' ) || str_starts_with( $url, 'file://' ) ) {
 							return $matches[0];
@@ -677,7 +677,7 @@ class SScribe_PDF_Exporter implements SScribe_Exporter_Interface {
 		// Protect the parent sscribe/ directory as well as the mpdf-tmp/
 		// subdirectory. On multisite, the uploads dir is per-site, so the
 		// parent sscribe/ folder may not be covered by the standard WordPress
-		// uploads .htaccess — site 1's mpdf-tmp/.htaccess does not protect
+		// uploads .htaccess : site 1's mpdf-tmp/.htaccess does not protect
 		// site 2's sscribe/ parent. Apache picks up the .htaccess on each
 		// request, so the protection is verified before the first export.
 		if ( ! file_exists( $sscribe_dir . '.htaccess' ) ) {
@@ -689,7 +689,7 @@ class SScribe_PDF_Exporter implements SScribe_Exporter_Interface {
 		// that mPDF can't resolve and the rest of the pipeline silently uses
 		// the next font in the stack (freeserif, then sans-serif). We log
 		// a warning so site operators can spot a broken install, but we do
-		// NOT hard-fail the export — losing the custom Arabic face is a
+		// NOT hard-fail the export : losing the custom Arabic face is a
 		// graceful degradation, not a stop-the-world error.
 		$amiri_available = is_dir( $amiri_dir ) && file_exists( $amiri_dir . 'Amiri-Regular.ttf' );
 		if ( ! $amiri_available ) {
@@ -730,7 +730,7 @@ class SScribe_PDF_Exporter implements SScribe_Exporter_Interface {
 		$server_software = isset( $_SERVER['SERVER_SOFTWARE'] ) ? sanitize_text_field( wp_unslash( (string) $_SERVER['SERVER_SOFTWARE'] ) ) : '';
 		if ( '' !== $server_software && false !== stripos( $server_software, 'nginx' ) ) {
 			$this->logger->debug(
-				'PDF export temp directory: Nginx host detected — verify Nginx config denies direct access to mpdf-tmp/ (the .htaccess is Apache-only; index.php is the cross-platform fallback).',
+				'PDF export temp directory: Nginx host detected : verify Nginx config denies direct access to mpdf-tmp/ (the .htaccess is Apache-only; index.php is the cross-platform fallback).',
 				array(
 					'server_software'   => $server_software,
 					'temp_dir'          => $mpdf_temp,
@@ -752,7 +752,7 @@ class SScribe_PDF_Exporter implements SScribe_Exporter_Interface {
 		// pruned by scripts/build-release.php `font_excludes`. Cached
 		// here so each fontdata override below doesn't repeat the
 		// 4-key array literal. Glyphs outside DejaVu's coverage render
-		// as '?' tofu, but the export does not crash — this is the
+		// as '?' tofu, but the export does not crash : this is the
 		// contract documented on the existing freesans / freemono /
 		// dejavu*condensed / sun-ext* overrides above.
 		$deja_vu_sans_face = array(
@@ -776,7 +776,7 @@ class SScribe_PDF_Exporter implements SScribe_Exporter_Interface {
 		}
 
 		// RTL Arabic font resolution: prefer Amiri (shipped), then xbriyaz
-		// (mPDF vendor default — can be dropped in by site operators), then
+		// (mPDF vendor default : can be dropped in by site operators), then
 		// freeserif (always present). The Amiri file lookup above is always
 		// executed (cheap scandir) so its filename flows into fontdata even
 		// when the file is missing; mPDF will skip the entry and use the
@@ -859,7 +859,7 @@ class SScribe_PDF_Exporter implements SScribe_Exporter_Interface {
 					// The fontdata entries below all point at TTFs that
 					// scripts/build-release.php `font_excludes` removes from
 					// the release ZIP. mPDF's fontdata key is also a valid
-					// family name — mPDF's SetFont chain walker picks the
+					// family name : mPDF's SetFont chain walker picks the
 					// first name in serif_fonts / sans_fonts / mono_fonts
 					// that ALSO appears in available_unifonts, which is
 					// built from the fontdata keys. So even if a fonttrans
@@ -909,7 +909,7 @@ class SScribe_PDF_Exporter implements SScribe_Exporter_Interface {
 					'mph2bdamase'       => $deja_vu_sans_face,
 					'lohitkannada'      => $deja_vu_sans_face,
 					'pothana2000'       => $deja_vu_sans_face,
-					// xbriyaz / lateef — their fontdata entries point at
+					// xbriyaz / lateef : their fontdata entries point at
 					// TTFs the build script prunes. The fonttrans map
 					// already rewrites the CSS name to the active RTL
 					// font, but the family-name chain walker can still
@@ -924,7 +924,7 @@ class SScribe_PDF_Exporter implements SScribe_Exporter_Interface {
 			// Pin the mPDF automatic substitution chain to fonts we actually
 			// ship. mPDF's defaults (`dejavusanscondensed`, `freesans`,
 			// `sun-exta`, and `sun-extb` for backupSIPFont) include several
-			// TTFs that are not in the release ZIP — see
+			// TTFs that are not in the release ZIP : see
 			// scripts/build-release.php `font_excludes`. If a page contains a
 			// character the active font can't render, mPDF would try to load
 			// the first backup font, fail to find the TTF, and throw an
@@ -932,7 +932,7 @@ class SScribe_PDF_Exporter implements SScribe_Exporter_Interface {
 			// configured font directories.` (reported 2026-06-24 with
 			// `DejaVuSansCondensed.ttf`).
 			//
-			// We pin `backupSubsFont` to `['freeserif']` — which IS shipped
+			// We pin `backupSubsFont` to `['freeserif']` : which IS shipped
 			// (FreeSerif.ttf covers Latin, Cyrillic, Greek, Vietnamese, and a
 			// wide swath of IPA, so the vast majority of "missing glyph" cases
 			// now resolve to a working font). Characters that FreeSerif also
@@ -942,21 +942,21 @@ class SScribe_PDF_Exporter implements SScribe_Exporter_Interface {
 			// `backupSIPFont` is the SIP/Plane-2 fallback used for characters
 			// above U+20000. mPDF defaults to `sun-extb`, which is also not
 			// shipped. Setting it to `null` disables the SIP fallback entirely
-			// — the same "?" behavior applies for those rare characters.
+			// : the same "?" behavior applies for those rare characters.
 			'backupSubsFont'   => array( 'freeserif' ),
 			'backupSIPFont'    => null,
 			'isRemoteEnabled'  => true,
 			// CSS-keyword remap. mPDF's setCSS resolves `font-family: serif`
 			// (or `times new roman`, `georgia`, `arial`, etc.) by walking its
 			// built-in `serif_fonts` / `sans_fonts` chains whose first entries
-			// are `dejavuserifcondensed` / `dejavusanscondensed` — TTFs the
+			// are `dejavuserifcondensed` / `dejavusanscondensed` : TTFs the
 			// release ZIP does not ship (see scripts/build-release.php
 			// `font_excludes`). Without this remap, any WordPress page that
 			// uses default theme CSS (`font-family: serif` is in Twenty* core)
 			// crashes the export with `MpdfException: Cannot find TTF TrueType
 			// font file "DejaVuSerifCondensed.ttf"`. Pin to fonts we DO ship.
 			//
-			// This remap is unconditional — the previous RTL-only mapping
+			// This remap is unconditional : the previous RTL-only mapping
 			// left non-RTL pages exposed to the same crash, just on the
 			// CSS-resolution path instead of the backup-substitution path.
 			// The original 2026-06-24 report (`DejaVuSansCondensed.ttf`) hit
@@ -964,7 +964,7 @@ class SScribe_PDF_Exporter implements SScribe_Exporter_Interface {
 			// was latent in the same release.
 			'fonttrans'        => array_merge(
 				array(
-					// CSS generic families — primary trigger.
+					// CSS generic families : primary trigger.
 					'serif'           => $is_rtl ? $rtl_arabic_font : 'freeserif',
 					'sans-serif'      => $is_rtl ? $rtl_arabic_font : 'freesans',
 					'monospace'       => 'freemono',
@@ -1066,15 +1066,15 @@ class SScribe_PDF_Exporter implements SScribe_Exporter_Interface {
 	 *  - direction (preserved always; if RTL, the page-level CSS already sets
 	 *    direction:rtl, so this is a no-op for RTL pages but still useful for
 	 *    LTR pages that contain a single RTL element).
-	 *  - text-align, vertical-align — content alignment.
-	 *  - page-break-before, page-break-after, break-before, break-after — page
+	 *  - text-align, vertical-align : content alignment.
+	 *  - page-break-before, page-break-after, break-before, break-after : page
 	 *    break hints (CSS Paged Media).
-	 *  - color, background-color, background — text and cell coloring.
-	 *  - border, border-*, border-width, border-color, border-style — table
+	 *  - color, background-color, background : text and cell coloring.
+	 *  - border, border-*, border-width, border-color, border-style : table
 	 *    cell borders (used in pricing tables and similar layouts).
-	 *  - width, height, min-width, max-width, min-height, max-height — cell
+	 *  - width, height, min-width, max-width, min-height, max-height : cell
 	 *    sizing (used for image dimensions and column widths).
-	 *  - float, clear — table cell alignment.
+	 *  - float, clear : table cell alignment.
 	 *
 	 * @param string $declarations Raw CSS declarations (e.g. "color:red; width:100%").
 	 * @param bool   $is_rtl       Whether the page is RTL.
@@ -1148,7 +1148,7 @@ class SScribe_PDF_Exporter implements SScribe_Exporter_Interface {
 	 *
 	 * The $pattern is a PCRE fragment matched against the basename
 	 * (case-insensitive) followed by ".ttf". Patterns are hard-coded
-	 * by the caller in this class, so they are trusted — do not pass
+	 * by the caller in this class, so they are trusted : do not pass
 	 * untrusted user input here.
 	 *
 	 * Example: pattern "amiri[-_]?regular" matches

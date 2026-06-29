@@ -1,6 +1,6 @@
 <?php
 /**
- * Prefixed runtime shim — keeps third-party mPDF / PHPWord callsites
+ * Prefixed runtime shim : keeps third-party mPDF / PHPWord callsites
  * working under the release ZIP's SScribeVendor\* namespace.
  *
  * @see docs/extension-points.md for the public surface this preserves.
@@ -23,7 +23,7 @@
  * for `PhpOffice\PhpWord\PhpWord` (the unprefixed name). The
  * composer-generated PSR-4 autoloader only knows the prefixed
  * namespace, so the lookup fails with `Class "PhpOffice\PhpWord\
- * PhpWord" not found` — even though the SHIPPED library file lives at
+ * PhpWord" not found` : even though the SHIPPED library file lives at
  * `vendor-prefixed/phpoffice/phpword/src/PhpWord/PhpWord/PhpWord.php`.
  *
  * What this shim does
@@ -44,7 +44,7 @@
  *
  *    The fallback runs AFTER composer's autoloader (registered first,
  *    gets first refusal). It only fires if composer couldn't resolve
- *    the name — never on a name composer already knows.
+ *    the name : never on a name composer already knows.
  *
  * Failure modes
  * -------------
@@ -66,7 +66,7 @@ if ( ! defined( 'ABSPATH' ) ) {
 // composer-prefixed PSR-4 namespace map for the two libraries this shim
 // covers. Hardcoded here (not loaded from vendor-prefixed/composer/) so
 // the shim has no dependency on the composer's autoloader being
-// functional — it must work even if the composer's autoload_psr4.php
+// functional : it must work even if the composer's autoload_psr4.php
 // is corrupted or partial.
 $sscribe_prefixed_aliases = array(
 	'\SScribeVendor\PhpOffice\PhpWord\PhpWord'           => '\PhpOffice\PhpWord\PhpWord',
@@ -142,7 +142,7 @@ spl_autoload_register(
 		$sscribe_unprefixed_target   = '\\' . $sscribe_normalized;
 
 		// Bail if the request is for a prefixed name (composer autoloader
-		// handles those) — if it reached us, composer gave up.
+		// handles those) : if it reached us, composer gave up.
 		if ( isset( $sscribe_prefixed_aliases[ $sscribe_unprefixed_target ] ) ) {
 			return;
 		}
@@ -158,7 +158,7 @@ spl_autoload_register(
 
 		require_once $sscribe_file;
 
-		// class_exists($prefixed, false) — the prefixed class was just
+		// class_exists($prefixed, false) : the prefixed class was just
 		// declared by the require above. Create the alias for any
 		// future request under the unprefixed name.
 		$sscribe_prefixed_name = $sscribe_unprefixed_to_prefixed[ $sscribe_normalized ];

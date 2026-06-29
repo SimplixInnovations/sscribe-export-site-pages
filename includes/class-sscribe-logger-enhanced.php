@@ -112,7 +112,7 @@ class SScribe_Logger_Enhanced extends SScribe_Logger {
 		//
 		// Parent's constructor registers `shutdown` → [ $this, 'flush' ].
 		// Because $this is bound to the Enhanced instance, late static
-		// dispatch routes that call to the override below — no second
+		// dispatch routes that call to the override below : no second
 		// registration needed.
 		parent::__construct( $parent_enabled, $options['prefix'] ?? 'sscribe' );
 	}
@@ -186,7 +186,7 @@ class SScribe_Logger_Enhanced extends SScribe_Logger {
 			$rotated      = rename( $log_file, $rotated_file ); // phpcs:ignore WordPress.WP.AlternativeFunctions.rename_rename
 			if ( $rotated ) {
 				$warning_entry = sprintf(
-					"[%s] [WARNING] Log file exceeded %s bytes — rotated to %s\n",
+					"[%s] [WARNING] Log file exceeded %s bytes : rotated to %s\n",
 					gmdate( 'Y-m-d H:i:s' ),
 					size_format( self::MAX_LOG_FILE_SIZE ),
 					basename( $rotated_file )

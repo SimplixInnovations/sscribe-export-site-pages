@@ -169,7 +169,7 @@ class SScribe_Logger implements SScribe_Logger_Interface {
 		$upload_dir    = wp_upload_dir();
 		$this->log_dir = $upload_dir['basedir'] . '/sscribe-logs';
 
-		// Always register shutdown hook — flush() gates on empty buffer and $this->enabled internally.
+		// Always register shutdown hook : flush() gates on empty buffer and $this->enabled internally.
 		// This ensures logs are written even if the logger was disabled at construction but
 		// became enabled mid-request (e.g., after settings toggle via AJAX).
 		add_action( 'shutdown', array( $this, 'flush' ) );
@@ -302,7 +302,7 @@ class SScribe_Logger implements SScribe_Logger_Interface {
 			$rotated      = rename( $log_file, $rotated_file ); // phpcs:ignore WordPress.WP.AlternativeFunctions.rename_rename -- Safe filesystem rename for log rotation.
 			if ( $rotated ) {
 				$warning_entry = sprintf(
-					"[%s] [WARNING] Log file exceeded %s bytes — rotated to %s\n",
+					"[%s] [WARNING] Log file exceeded %s bytes : rotated to %s\n",
 					gmdate( 'Y-m-d H:i:s' ),
 					size_format( self::MAX_LOG_FILE_SIZE ),
 					basename( $rotated_file )
@@ -310,7 +310,7 @@ class SScribe_Logger implements SScribe_Logger_Interface {
 				file_put_contents( $log_file, $warning_entry, LOCK_EX ); // phpcs:ignore WordPress.WP.AlternativeFunctions.file_system_operations_file_put_contents -- Required for debug logging per plugin requirements.
 				chmod( $log_file, 0600 ); // phpcs:ignore WordPress.WP.AlternativeFunctions.file_system_operations_chmod -- Setting 0600 for log file security.
 			}
-			// If rename failed (e.g., file locked), fall through — the log entry will be
+			// If rename failed (e.g., file locked), fall through : the log entry will be
 			// written to the existing file even if it exceeds the size limit.
 		}
 
@@ -321,7 +321,7 @@ class SScribe_Logger implements SScribe_Logger_Interface {
 
 		// Set restrictive 0600 permissions (owner read/write only) so debug logs
 		// containing post content and internal paths are not world-readable.
-		// chmod is safe to call on every write — no-op if permissions already 0600.
+		// chmod is safe to call on every write : no-op if permissions already 0600.
 		chmod( $log_file, 0600 ); // phpcs:ignore WordPress.WP.AlternativeFunctions.file_system_operations_chmod -- Setting 0600 for log file security; only effective on Unix-like systems where debug logs are stored.
 
 		$this->buffer = array();
@@ -334,7 +334,7 @@ class SScribe_Logger implements SScribe_Logger_Interface {
 	 * @return array Log entries from file and buffer.
 	 */
 	public function get_logs( int $limit = -1 ): array {
-		// Do NOT gate on $this->enabled — log files may exist from previous sessions
+		// Do NOT gate on $this->enabled : log files may exist from previous sessions
 		// where logging was enabled. The debug tab needs to show historical logs even
 		// if the logger is currently disabled.
 
@@ -398,7 +398,7 @@ class SScribe_Logger implements SScribe_Logger_Interface {
 	 */
 	public function clear_logs(): void {
 		$this->buffer = array();
-		// Always delete files regardless of enabled state — users expect files gone
+		// Always delete files regardless of enabled state : users expect files gone
 		// when they click "Clear Logs", even if logging is currently disabled.
 		$upload_dir = wp_upload_dir();
 		$log_dir    = $upload_dir['basedir'] . '/sscribe-logs';

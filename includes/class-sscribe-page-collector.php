@@ -54,7 +54,7 @@ class SScribe_Page_Collector {
 	 * apply_filters( 'post_link', ... ) (Yoast/RankMath/Polylang all
 	 * hook here), and resolves the rewrite rule. Within one export
 	 * the same set of pages is referenced multiple times (page data,
-	 * breadcrumbs, child lists) — memoizing the result per request
+	 * breadcrumbs, child lists) : memoizing the result per request
 	 * trims several filter chains per page.
 	 *
 	 * @var array<int,string>
@@ -514,7 +514,7 @@ class SScribe_Page_Collector {
 	/**
 	 * Get a memoized permalink for a page.
 	 *
-	 * `get_permalink()` is non-trivial — it loads the post, runs
+	 * `get_permalink()` is non-trivial : it loads the post, runs
 	 * apply_filters( 'post_link', ... ), and resolves the rewrite
 	 * rule. Within a single export the same page is referenced
 	 * several times (page data, breadcrumb, child list), so caching
@@ -754,7 +754,7 @@ class SScribe_Page_Collector {
 			'orderby'                => 'menu_order title',
 			'order'                  => 'ASC',
 			// Performance: skip the SELECT FOUND_ROWS() pagination
-			// count — we never use pagination on this query.
+			// count : we never use pagination on this query.
 			'no_found_rows'          => true,
 			// Performance: child pages are only used for navigation
 			// (id, title, permalink). We don't read post meta or

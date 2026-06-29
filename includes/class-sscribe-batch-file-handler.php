@@ -74,7 +74,7 @@ class SScribe_Batch_File_Handler {
 	public function ajax_download(): void {
 		if ( ! check_ajax_referer( 'sscribe_download', 'nonce', false ) ) {
 			status_header( 403 );
-			wp_die( esc_html__( 'Security check failed. The download link may have expired — please refresh the page and try again.', 'sscribe-export-site-pages' ) );
+			wp_die( esc_html__( 'Security check failed. The download link may have expired : please refresh the page and try again.', 'sscribe-export-site-pages' ) );
 		}
 
 		if ( ! current_user_can( $this->get_required_capability() ) ) {
@@ -157,7 +157,7 @@ class SScribe_Batch_File_Handler {
 			$read_result = readfile( $file_path ); // phpcs:ignore WordPress.WP.AlternativeFunctions.file_system_operations_readfile -- Direct download
 			if ( false === $read_result ) {
 				$this->logger->warning(
-					'readfile() returned false — possible partial read',
+					'readfile() returned false : possible partial read',
 					array(
 						'filename' => $filename,
 						'path'     => $file_path,

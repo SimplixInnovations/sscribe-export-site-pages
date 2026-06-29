@@ -7,7 +7,7 @@
  * check and capability lookup that AJAX endpoints need.
  *
  * Using classes MUST provide a `get_rate_limiter()` method that returns
- * an SScribe_Export_Rate_Limiter instance — they already do.
+ * an SScribe_Export_Rate_Limiter instance : they already do.
  *
  * @package SScribe_Export_Site_Pages
  * @license GPL v2 or later

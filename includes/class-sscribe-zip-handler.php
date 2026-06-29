@@ -48,7 +48,7 @@ class SScribe_Zip_Handler {
 		if ( ! empty( $upload_dir['error'] ) ) {
 			$this->export_dir = '';
 			$this->logger->warning(
-				'wp_upload_dir() returned an error — export directory unavailable',
+				'wp_upload_dir() returned an error : export directory unavailable',
 				array( 'error' => $upload_dir['error'] )
 			);
 			return;
@@ -71,7 +71,7 @@ class SScribe_Zip_Handler {
 		if ( ! file_exists( $this->export_dir ) ) {
 			SScribe_Security::protect_directory( $this->export_dir );
 		} elseif ( ! file_exists( $this->export_dir . '/.htaccess' ) ) {
-			// Directory exists but .htaccess was removed — re-apply protection.
+			// Directory exists but .htaccess was removed : re-apply protection.
 			SScribe_Security::protect_directory( $this->export_dir );
 		}
 		return $this->export_dir;
@@ -142,7 +142,7 @@ class SScribe_Zip_Handler {
 			if ( ! $ext ) {
 				continue;
 			}
-			// Files live one level deeper than the source dir — each
+			// Files live one level deeper than the source dir : each
 			// exporter's output is written to `$source_dir/$LANG/` by
 			// the batch processor. We glob one level deeper so files
 			// with no language are NOT accidentally included when the
@@ -235,7 +235,7 @@ class SScribe_Zip_Handler {
 
 				foreach ( $files as $file ) {
 					$basename      = basename( $file );
-					// The parent directory name IS the language code now —
+					// The parent directory name IS the language code now :
 					// the batch processor writes each page into
 					// `$source_dir/$LANG/page.ext` directly, so there's no
 					// suffix to extract or strip.
@@ -275,7 +275,7 @@ class SScribe_Zip_Handler {
 			}
 
 			// For each requested format that produced zero files, add a failure
-			// manifest so the user knows the format was attempted but failed —
+			// manifest so the user knows the format was attempted but failed :
 			// without this, a missing format is silent and confusing.
 			foreach ( $formats as $format ) {
 				$ext = isset( $format_extensions[ $format ] ) ? $format_extensions[ $format ] : null;
@@ -285,7 +285,7 @@ class SScribe_Zip_Handler {
 				$files_for_format = isset( $all_files[ $format ] ) ? $all_files[ $format ] : array();
 				if ( empty( $files_for_format ) ) {
 					$failure_msg  = "Export format: {$format}\n";
-					$failure_msg .= "Status: FAILED — no files generated for this format.\n";
+					$failure_msg .= "Status: FAILED : no files generated for this format.\n";
 					$failure_msg .= 'Please check the debug log for error details.';
 					$manifest_name = strtoupper( $format ) . '_EXPORT_FAILED.txt';
 					$zip->addFromString( $manifest_name, $failure_msg );
@@ -309,7 +309,7 @@ class SScribe_Zip_Handler {
 			}
 			// If the assembly failed partway, delete the orphaned partial ZIP.
 			// On success the temp file is still needed for the rename step
-			// below — only delete when we know assembly didn't complete.
+			// below : only delete when we know assembly didn't complete.
 			if ( $assembly_failed && file_exists( $tmp_zip ) ) {
 				wp_delete_file( $tmp_zip );
 			}
@@ -324,7 +324,7 @@ class SScribe_Zip_Handler {
 				$zip_finalized = true;
 			} else {
 				$this->logger->warning(
-					'Failed to move temp ZIP to final location — serving from temp path',
+					'Failed to move temp ZIP to final location : serving from temp path',
 					array(
 						'temp_zip'  => $tmp_zip,
 						'final_zip' => $zip_path,
@@ -471,7 +471,7 @@ class SScribe_Zip_Handler {
 
 		// Find the first ACTUAL file entry (skip directory entries which
 		// have size === 0 by design). For multi-format exports (DOCX/, PDF/,
-		// etc.) the first index is often a directory entry — checking it
+		// etc.) the first index is often a directory entry : checking it
 		// for size > 0 would falsely flag the archive as truncated.
 		$first_file_entry = null;
 		for ( $i = 0; $i < $num_files; $i++ ) {
@@ -479,7 +479,7 @@ class SScribe_Zip_Handler {
 			if ( ! $entry || empty( $entry['name'] ) ) {
 				continue;
 			}
-			// Directory entries end with '/'. Skip them — they have size 0
+			// Directory entries end with '/'. Skip them : they have size 0
 			// by design, not because the archive is corrupted.
 			if ( substr( $entry['name'], -1 ) === '/' ) {
 				continue;
@@ -491,7 +491,7 @@ class SScribe_Zip_Handler {
 
 		if ( ! $first_file_entry ) {
 			$this->logger->error(
-				'ZIP appears truncated or corrupted — no readable file entries found',
+				'ZIP appears truncated or corrupted : no readable file entries found',
 				array(
 					'zip_path'    => $zip_path,
 					'total_index' => $num_files,
@@ -503,7 +503,7 @@ class SScribe_Zip_Handler {
 		// First file entry must have content (size > 0) to be considered valid.
 		if ( 0 === $first_file_entry['size'] ) {
 			$this->logger->error(
-				'ZIP appears truncated or corrupted — first file entry is empty',
+				'ZIP appears truncated or corrupted : first file entry is empty',
 				array(
 					'zip_path'      => $zip_path,
 					'first_entry'   => $first_file_entry,
@@ -531,7 +531,7 @@ class SScribe_Zip_Handler {
 	 * List export entries in newest-first order.
 	 *
 	 * Reads from per-row options so the index does not need to be
-	 * rewritten on every write — the option containing just the
+	 * rewritten on every write : the option containing just the
 	 * basenames is bounded in size.
 	 *
 	 * @return array<string, array<string, mixed>> Map of basename => row data.

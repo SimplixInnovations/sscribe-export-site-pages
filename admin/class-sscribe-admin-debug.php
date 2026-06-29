@@ -178,14 +178,14 @@ class SScribe_Admin_Debug {
 	 * The previous implementation scaled the tail-read window with `$offset`
 	 * (fetch_count = $offset + $limit + 1000). That made different pages read
 	 * different windows from the file, so a new log line written between two
-	 * requests would shift every later page's contents by one row — entries
+	 * requests would shift every later page's contents by one row : entries
 	 * could appear twice or be skipped entirely. We now always read the same
 	 * `MAX_FETCH` window (capped at 5000 lines) and slice that single window
 	 * by `$offset`. This is the same model as `tail -n | less` and is the
 	 * best a tail-only reader can offer without byte-offset cursors.
 	 *
 	 * The response includes a `has_more` flag (true when the window hit the
-	 * cap — there *may* be older entries beyond it) so the JS infinite-scroll
+	 * cap : there *may* be older entries beyond it) so the JS infinite-scroll
 	 * observer knows whether to keep asking for the next page.
 	 *
 	 * @internal

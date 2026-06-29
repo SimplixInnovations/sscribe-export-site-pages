@@ -299,7 +299,7 @@ $sections            = array(
 		// should produce is the "PHPWord loaded" fallback — the
 		// composer.json version probe is dead in production.
 		if ( class_exists( '\\SScribeVendor\\PhpOffice\\PhpWord\\PhpWord' ) ) {
-			$this->assertSame( 'PHPWord loaded — XML encoding handled natively by library', $result['message'] );
+			$this->assertSame( 'PHPWord loaded : XML encoding handled natively by library', $result['message'] );
 		} else {
 			$this->assertSame( 'error', $result['status'] );
 		}

@@ -307,7 +307,7 @@ class SScribe_HTML_Exporter implements SScribe_Exporter_Interface {
 
 		$direction_css = $is_rtl ? 'html, body { direction: rtl; }' : '';
 
-		// SEO block is opt-in via filter — not shown by default in reader-facing exports.
+		// SEO block is opt-in via filter : not shown by default in reader-facing exports.
 		$show_seo = (bool) apply_filters( 'sscribe_html_export_show_seo', false, $page_data );
 
 		$include_css = '1' === (string) $this->get_format_option( 'sscribe_html_include_css', '1' );

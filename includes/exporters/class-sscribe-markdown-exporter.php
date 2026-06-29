@@ -192,7 +192,7 @@ class SScribe_Markdown_Exporter implements SScribe_Exporter_Interface {
 
 		$include_featured_image = '1' === (string) $this->get_format_option( 'sscribe_md_include_featured_image', '1' );
 
-		// YAML front matter block FIRST — byte zero for Hugo/Jekyll/Obsidian compatibility.
+		// YAML front matter block FIRST : byte zero for Hugo/Jekyll/Obsidian compatibility.
 		$md  = "---\n";
 		$md .= 'title: "' . $this->escape_yaml_string( $title ) . "\"\n";
 		$md .= 'url: "' . $this->escape_yaml_string( $page_data['permalink'] ?? '' ) . "\"\n";
@@ -250,7 +250,7 @@ class SScribe_Markdown_Exporter implements SScribe_Exporter_Interface {
 
 		$md .= "---\n\n";
 
-		// Human-readable header AFTER front matter — not part of YAML document.
+		// Human-readable header AFTER front matter : not part of YAML document.
 		$md .= '# ' . $this->escape_markdown( $title ) . "\n\n";
 		$md .= '> ' . ( $page_data['permalink'] ?? '' ) . "\n\n";
 
@@ -389,7 +389,7 @@ class SScribe_Markdown_Exporter implements SScribe_Exporter_Interface {
 				$table_html = $matches[1];
 
 				// Tables that use colspan or rowspan cannot be losslessly
-				// converted to GitHub Flavored Markdown — GFM tables have no
+				// converted to GitHub Flavored Markdown : GFM tables have no
 				// concept of merged cells, and a row with <td colspan="2">
 				// would produce a 1-cell row while the next row produces
 				// 2 cells, misaligning the GFM separator and producing
@@ -428,8 +428,8 @@ class SScribe_Markdown_Exporter implements SScribe_Exporter_Interface {
 					if ( ! empty( $cells ) ) {
 						$rows[] = $cells;
 
-						// Always add GFM separator row after first row — even when no <th> cells
-						// are present — to produce a valid Markdown table (GFM requires the
+						// Always add GFM separator row after first row : even when no <th> cells
+						// are present : to produce a valid Markdown table (GFM requires the
 						// | --- | --- | row). Use left-align (:---) as the default alignment.
 						if ( $is_first_row ) {
 							$rows[]       = array_fill( 0, count( $cells ), ':---' );
@@ -660,7 +660,7 @@ class SScribe_Markdown_Exporter implements SScribe_Exporter_Interface {
 
 		if ( $iteration >= $max_iterations ) {
 			$this->logger->error(
-				'Markdown list conversion hit iteration cap — output is incomplete',
+				'Markdown list conversion hit iteration cap : output is incomplete',
 				array(
 					'iteration_cap' => $max_iterations,
 					'html_excerpt'  => substr( $html, 0, 200 ),
@@ -769,7 +769,7 @@ class SScribe_Markdown_Exporter implements SScribe_Exporter_Interface {
 		/*
 		 * Process list items. This regex matches each <li>...</li> including any nested lists.
 		 * The [^>]*> allows <li> with attributes (e.g., <li class="item">, <li id="x">) to
-		 * be picked up — without it, attribute-bearing items are silently dropped in the
+		 * be picked up : without it, attribute-bearing items are silently dropped in the
 		 * regex fallback path (when DOMDocument is unavailable). This matches the parent
 		 * <ul>/<ol> regex's attribute handling at the top of convert_lists().
 		 * The key improvement is that we DON'T strip tags before processing - we handle
@@ -827,7 +827,7 @@ class SScribe_Markdown_Exporter implements SScribe_Exporter_Interface {
 
 		if ( $iteration >= $max_nested_iterations ) {
 			$this->logger->warning(
-				'Markdown nested list conversion hit depth cap — nested output may be incomplete',
+				'Markdown nested list conversion hit depth cap : nested output may be incomplete',
 				array(
 					'nested_cap' => $max_nested_iterations,
 					'depth'      => $depth,
@@ -933,7 +933,7 @@ class SScribe_Markdown_Exporter implements SScribe_Exporter_Interface {
 	 */
 	private function convert_details( string $html ): string {
 		// Strip only the 'open' attribute from <details> since Markdown doesn't
-		// support the boolean open attribute — the element will render closed by
+		// support the boolean open attribute : the element will render closed by
 		// default in most Markdown renderers, which is the safe fallback.
 		$html = preg_replace( '/<details([^>]*)open([^>]*)>/i', '<details$1$2>', $html ) ?? $html;
 		$html = preg_replace( '/<details(\s[^>]*)?>/i', '<details>', $html ) ?? $html;
@@ -954,7 +954,7 @@ class SScribe_Markdown_Exporter implements SScribe_Exporter_Interface {
 			return '#';
 		}
 
-		// Exclude data URIs — they are too large for Markdown files and should
+		// Exclude data URIs : they are too large for Markdown files and should
 		// not appear as inline image references.
 		if ( str_starts_with( $url, 'data:' ) ) {
 			return '';
@@ -1002,7 +1002,7 @@ class SScribe_Markdown_Exporter implements SScribe_Exporter_Interface {
 	 * Escape special Markdown characters in text.
 	 *
 	 * Only escapes characters that have special meaning in Markdown contexts.
-	 * Note: '.' and '-' are NOT escaped globally — '.' only needs escaping before
+	 * Note: '.' and '-' are NOT escaped globally : '.' only needs escaping before
 	 * digits (e.g., "2." for ordered lists) and '-' only at line-start as list
 	 * markers; escaping them everywhere produces ugly output like "anti\-pattern".
 	 *
@@ -1039,7 +1039,7 @@ class SScribe_Markdown_Exporter implements SScribe_Exporter_Interface {
 				continue;
 			}
 			$first_char = $trimmed[0];
-			// Escape Markdown special chars at line start — but NOT # (headings)
+			// Escape Markdown special chars at line start : but NOT # (headings)
 			// since headings have already been converted before this runs.
 			// Preserve leading whitespace by slicing from the start, not by
 			// negative-offset substr (which truncates trailing characters when
