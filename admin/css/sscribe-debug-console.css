@@ -85,10 +85,6 @@
 	color: var(--sscribe-primary);
 	font-weight: 700;
 	font-size: 14px;
-	transition:
-		transform var(--sscribe-transition-fast),
-		border-color var(--sscribe-transition-fast),
-		background var(--sscribe-transition-fast);
 }
 
 .sscribe-debug-help-btn:hover {
@@ -108,7 +104,6 @@
 	border-radius: var(--sscribe-radius-lg);
 	padding: var(--sscribe-space-l);
 	margin-bottom: var(--sscribe-space-l);
-	transition: border-color var(--sscribe-transition-fast);
 	overflow: hidden;
 }
 
@@ -159,7 +154,6 @@
 	cursor: pointer;
 	inset: 0;
 	background: var(--sscribe-card-bg-hover);
-	transition: 0.3s cubic-bezier(0.16, 1, 0.3, 1);
 	border-radius: 24px;
 }
 
@@ -175,7 +169,6 @@
 	left: 3px;
 	bottom: 3px;
 	background: var(--sscribe-on-dark);
-	transition: 0.3s cubic-bezier(0.16, 1, 0.3, 1);
 	border-radius: 50%;
 }
 
@@ -214,9 +207,6 @@
 	min-width: 120px;
 	background: var(--sscribe-card-bg);
 	color: var(--sscribe-text-heading);
-	transition:
-		border-color var(--sscribe-transition-fast),
-		background var(--sscribe-transition-fast);
 }
 
 .sscribe-select:hover:not(:focus, :disabled) {
@@ -237,9 +227,6 @@
 	width: 200px;
 	background: var(--sscribe-card-bg);
 	color: var(--sscribe-text-heading);
-	transition:
-		border-color var(--sscribe-transition-fast),
-		background var(--sscribe-transition-fast);
 }
 
 .sscribe-input:hover:not(:focus, :disabled) {
@@ -263,10 +250,6 @@
 	border-radius: 999px;
 	border: 1px solid transparent;
 	background: transparent;
-	transition:
-		background var(--sscribe-transition-fast),
-		border-color var(--sscribe-transition-fast),
-		color var(--sscribe-transition-fast);
 }
 
 .sscribe-debug-save-feedback.success {
@@ -330,16 +313,9 @@
 	height: 6px;
 	border-radius: 50%;
 	background: #fcb900;
-	animation: sscribe-paused-pulse 1.6s ease-in-out infinite;
 }
 
-@keyframes sscribe-paused-pulse {
-	0%, 100% {
-		opacity: 0.7;
-		transform: scale(1);
-	}
-
-	50% {
+50% {
 		opacity: 1;
 		transform: scale(1.2);
 	}
@@ -356,10 +332,6 @@
 	font-size: 13px;
 	font-weight: 600;
 	color: var(--sscribe-text-secondary);
-	transition:
-		border-color var(--sscribe-transition-fast),
-		background var(--sscribe-transition-fast),
-		color var(--sscribe-transition-fast);
 }
 
 .sscribe-radio-label:hover {
@@ -448,16 +420,9 @@
 	margin-bottom: 16px;
 	opacity: 0.55;
 	color: #94a3b8;
-	animation: sscribe-empty-float 4s ease-in-out infinite;
 }
 
-@keyframes sscribe-empty-float {
-	0%, 100% {
-		opacity: 0.45;
-		transform: translateY(0);
-	}
-
-	50% {
+50% {
 		opacity: 0.7;
 		transform: translateY(-3px);
 	}
@@ -507,10 +472,6 @@
 	align-items: stretch;
 	cursor: default;
 	border: 1px solid transparent;
-	transition:
-		background-color 0.15s,
-		border-color 0.15s,
-		transform 0.2s cubic-bezier(0.16, 1, 0.3, 1);
 }
 
 .sscribe-debug-entry.has-context {
@@ -634,7 +595,6 @@
 	margin-bottom: 4px;
 	padding: 2px 8px;
 	border-radius: 4px;
-	transition: background 150ms ease;
 }
 
 .sscribe-debug-context-row:hover {
@@ -687,7 +647,6 @@
 	font-weight: 600;
 	font-size: 13.5px;
 	color: var(--sscribe-text-heading);
-	transition: background var(--sscribe-transition-fast);
 	position: relative;
 }
 
@@ -703,7 +662,6 @@
 	width: 3px;
 	background: var(--sscribe-primary);
 	opacity: 0;
-	transition: opacity var(--sscribe-transition-fast);
 }
 
 .sscribe-debug-rotated[open] summary::before {
@@ -748,9 +706,6 @@
 	padding: 10px 12px 10px 16px;
 	border-radius: var(--sscribe-radius-sm);
 	border-bottom: 1px solid rgb(var(--sscribe-primary-rgb) / 8%);
-	transition:
-		background var(--sscribe-transition-fast),
-		padding var(--sscribe-transition-fast);
 }
 
 .sscribe-debug-rotated-file::before {
@@ -761,7 +716,6 @@
 	border-radius: 0 2px 2px 0;
 	background: var(--sscribe-primary);
 	opacity: 0;
-	transition: opacity var(--sscribe-transition-fast);
 }
 
 .sscribe-debug-rotated-file:hover {
@@ -927,13 +881,8 @@
 	border: 3px solid rgb(255 255 255 / 20%);
 	border-top-color: #fff;
 	border-radius: 50%;
-	animation: sscribe-console-spin 0.8s linear infinite;
 }
 
-@keyframes sscribe-console-spin {
-	to {
-		transform: rotate(360deg);
-	}
 }
 
 .sscribe-export-btn-scope {
@@ -946,15 +895,9 @@
 	background: #fcb900;
 	border-color: #d97706;
 	color: #422006;
-	animation: sscribe-confirm-pulse 1.4s ease-in-out infinite;
 }
 
-@keyframes sscribe-confirm-pulse {
-	0%, 100% {
-		opacity: 0.85;
-	}
-
-	50% {
+50% {
 		opacity: 1;
 	}
 }
@@ -962,7 +905,6 @@
 .sscribe-debug-entry-toggle {
 	flex-shrink: 0;
 	margin-left: auto;
-	transition: transform 0.2s ease;
 	font-size: 10px;
 	color: #6c757d;
 }
