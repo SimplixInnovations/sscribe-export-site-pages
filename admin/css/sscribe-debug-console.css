@@ -32,22 +32,13 @@
 	align-items: center;
 	gap: 10px;
 	padding: 12px 18px;
-	background:
-		linear-gradient(
-			135deg,
-			rgb(255 193 7 / 12%) 0%,
-			rgb(255 193 7 / 5%) 100%
-		),
-		#fff;
-	border: 1px solid rgb(255 193 7 / 35%);
+	background: rgb(252 185 0 / 10%);
+	border: 1px solid rgb(252 185 0 / 35%);
 	border-radius: var(--sscribe-radius-md);
 	margin-bottom: 20px;
-	color: #856404;
+	color: #fcb900;
 	font-size: 13px;
 	font-weight: 500;
-	box-shadow:
-		inset 0 1px 0 rgb(255 255 255 / 70%),
-		0 1px 2px rgb(0 30 43 / 4%);
 }
 
 .sscribe-debug-wp-debug-notice svg {
@@ -86,13 +77,7 @@
 	height: 32px;
 	border-radius: 50%;
 	border: 1px solid var(--sscribe-border-light);
-	background:
-		linear-gradient(
-			135deg,
-			rgb(var(--sscribe-primary-rgb) / 6%) 0%,
-			rgb(var(--sscribe-primary-rgb) / 2%) 100%
-		),
-		var(--sscribe-card-bg);
+	background: var(--sscribe-card-bg);
 	cursor: pointer;
 	display: flex;
 	align-items: center;
@@ -100,51 +85,30 @@
 	color: var(--sscribe-primary);
 	font-weight: 700;
 	font-size: 14px;
-	box-shadow:
-		inset 0 1px 0 rgb(255 255 255 / 60%),
-		0 1px 2px rgb(0 30 43 / 5%);
 	transition:
 		transform var(--sscribe-transition-fast),
-		box-shadow var(--sscribe-transition-fast),
 		border-color var(--sscribe-transition-fast),
 		background var(--sscribe-transition-fast);
 }
 
 .sscribe-debug-help-btn:hover {
-	transform: translateY(-1px);
 	border-color: rgb(var(--sscribe-primary-rgb) / 40%);
-	box-shadow:
-		inset 0 1px 0 rgb(255 255 255 / 70%),
-		0 2px 6px rgb(var(--sscribe-primary-rgb) / 22%);
 }
 
 .sscribe-debug-help-btn:focus-visible {
 	outline: none;
 	border-color: var(--sscribe-primary);
-	box-shadow: 0 0 0 4px rgb(var(--sscribe-primary-rgb) / 18%);
 }
 
 .sscribe-debug-settings-card,
 .sscribe-debug-controls-card {
 	position: relative;
-	background:
-		linear-gradient(
-			180deg,
-			rgb(var(--sscribe-primary-rgb) / 3%) 0%,
-			transparent 60%
-		),
-		var(--sscribe-card-bg);
+	background: var(--sscribe-card-bg);
 	border: 1px solid var(--sscribe-border-light);
 	border-radius: var(--sscribe-radius-lg);
 	padding: var(--sscribe-space-l);
 	margin-bottom: var(--sscribe-space-l);
-	box-shadow:
-		inset 0 1px 0 rgb(255 255 255 / 70%),
-		0 1px 2px rgb(0 30 43 / 4%),
-		0 6px 18px -10px rgb(0 30 43 / 8%);
-	transition:
-		border-color var(--sscribe-transition-fast),
-		box-shadow var(--sscribe-transition-fast);
+	transition: border-color var(--sscribe-transition-fast);
 	overflow: hidden;
 }
 
@@ -154,7 +118,7 @@
 	position: absolute;
 	inset: 0 0 auto;
 	height: 2px;
-	background: var(--sscribe-primary-gradient);
+	background: var(--sscribe-primary);
 	opacity: 0.7;
 	pointer-events: none;
 }
@@ -162,10 +126,6 @@
 .sscribe-debug-settings-card:hover,
 .sscribe-debug-controls-card:hover {
 	border-color: rgb(var(--sscribe-primary-rgb) / 25%);
-	box-shadow:
-		inset 0 1px 0 rgb(255 255 255 / 70%),
-		0 2px 4px rgb(0 30 43 / 6%),
-		0 12px 24px -10px rgb(0 30 43 / 12%);
 }
 
 .sscribe-debug-settings-grid {
@@ -198,25 +158,13 @@
 	position: absolute;
 	cursor: pointer;
 	inset: 0;
-	background:
-		linear-gradient(
-			135deg,
-			rgb(0 30 43 / 8%) 0%,
-			rgb(0 30 43 / 4%) 100%
-		),
-		#cbd5e1;
+	background: var(--sscribe-card-bg-hover);
 	transition: 0.3s cubic-bezier(0.16, 1, 0.3, 1);
 	border-radius: 24px;
-	box-shadow:
-		inset 0 1px 2px rgb(0 30 43 / 18%),
-		inset 0 -1px 0 rgb(255 255 255 / 30%);
 }
 
 .sscribe-toggle-slider:focus-visible {
 	outline: none;
-	box-shadow:
-		inset 0 1px 2px rgb(0 30 43 / 18%),
-		0 0 0 4px rgb(var(--sscribe-primary-rgb) / 22%);
 }
 
 .sscribe-toggle-slider::before {
@@ -226,25 +174,13 @@
 	width: 20px;
 	left: 3px;
 	bottom: 3px;
-	background:
-		linear-gradient(
-			180deg,
-			rgb(255 255 255 / 100%) 0%,
-			rgb(241 245 249 / 100%) 100%
-		);
+	background: var(--sscribe-on-dark);
 	transition: 0.3s cubic-bezier(0.16, 1, 0.3, 1);
 	border-radius: 50%;
-	box-shadow:
-		0 1px 2px rgb(0 30 43 / 18%),
-		0 1px 0 rgb(255 255 255 / 60%);
 }
 
 .sscribe-toggle-switch input:checked + .sscribe-toggle-slider {
-	background: var(--sscribe-primary-gradient);
-	box-shadow:
-		inset 0 1px 2px rgb(0 30 43 / 14%),
-		inset 0 -1px 0 rgb(255 255 255 / 30%),
-		0 0 12px rgb(var(--sscribe-primary-rgb) / 22%);
+	background: var(--sscribe-primary);
 }
 
 .sscribe-toggle-switch input:checked + .sscribe-toggle-slider::before {
@@ -280,25 +216,17 @@
 	color: var(--sscribe-text-heading);
 	transition:
 		border-color var(--sscribe-transition-fast),
-		box-shadow var(--sscribe-transition-fast),
 		background var(--sscribe-transition-fast);
-	box-shadow: inset 0 1px 0 rgb(255 255 255 / 60%);
 }
 
 .sscribe-select:hover:not(:focus, :disabled) {
 	border-color: var(--sscribe-primary-soft);
-	box-shadow:
-		inset 0 1px 0 rgb(255 255 255 / 60%),
-		0 1px 2px rgb(0 30 43 / 3%);
 }
 
 .sscribe-select:focus,
 .sscribe-select:focus-visible {
 	outline: none;
 	border-color: var(--sscribe-primary);
-	box-shadow:
-		inset 0 1px 0 rgb(255 255 255 / 60%),
-		0 0 0 4px rgb(var(--sscribe-primary-rgb) / 18%);
 }
 
 .sscribe-input {
@@ -311,25 +239,17 @@
 	color: var(--sscribe-text-heading);
 	transition:
 		border-color var(--sscribe-transition-fast),
-		box-shadow var(--sscribe-transition-fast),
 		background var(--sscribe-transition-fast);
-	box-shadow: inset 0 1px 0 rgb(255 255 255 / 60%);
 }
 
 .sscribe-input:hover:not(:focus, :disabled) {
 	border-color: var(--sscribe-primary-soft);
-	box-shadow:
-		inset 0 1px 0 rgb(255 255 255 / 60%),
-		0 1px 2px rgb(0 30 43 / 3%);
 }
 
 .sscribe-input:focus,
 .sscribe-input:focus-visible {
 	outline: none;
 	border-color: var(--sscribe-primary);
-	box-shadow:
-		inset 0 1px 0 rgb(255 255 255 / 60%),
-		0 0 0 4px rgb(var(--sscribe-primary-rgb) / 18%);
 }
 
 .sscribe-debug-save-feedback {
@@ -392,21 +312,15 @@
 	display: inline-flex;
 	align-items: center;
 	gap: 8px;
-	color: #d97706;
+	color: #fcb900;
 	font-size: 11.5px;
 	font-weight: 700;
 	padding: 4px 10px;
 	border-radius: 999px;
-	background:
-		linear-gradient(
-			135deg,
-			rgb(251 191 36 / 18%) 0%,
-			rgb(251 191 36 / 8%) 100%
-		);
-	border: 1px solid rgb(251 191 36 / 40%);
+	background: rgb(252 185 0 / 14%);
+	border: 1px solid rgb(252 185 0 / 40%);
 	text-transform: uppercase;
 	letter-spacing: 0.04em;
-	box-shadow: inset 0 1px 0 rgb(255 255 255 / 50%);
 }
 
 .sscribe-debug-refresh-paused::before {
@@ -415,8 +329,7 @@
 	width: 6px;
 	height: 6px;
 	border-radius: 50%;
-	background: linear-gradient(135deg, #fbbf24 0%, #d97706 100%);
-	box-shadow: 0 0 8px rgb(251 191 36 / 60%);
+	background: #fcb900;
 	animation: sscribe-paused-pulse 1.6s ease-in-out infinite;
 }
 
@@ -457,23 +370,13 @@
 
 .sscribe-radio-label:has(input:checked) {
 	border-color: rgb(var(--sscribe-primary-rgb) / 40%);
-	background:
-		linear-gradient(
-			180deg,
-			rgb(255 255 255 / 40%) 0%,
-			rgb(255 255 255 / 0%) 60%
-		),
-		rgb(var(--sscribe-primary-rgb) / 10%);
+	background: rgb(var(--sscribe-primary-rgb) / 10%);
 	color: var(--sscribe-primary-active);
-	box-shadow: inset 0 1px 0 rgb(255 255 255 / 40%);
 }
 
 .sscribe-radio-label:has(input:focus-visible) {
 	outline: none;
 	border-color: var(--sscribe-primary);
-	box-shadow:
-		inset 0 1px 0 rgb(255 255 255 / 40%),
-		0 0 0 4px rgb(var(--sscribe-primary-rgb) / 18%);
 }
 
 .sscribe-radio-label input {
@@ -499,7 +402,6 @@
 	border-radius: 16px;
 	overflow: hidden;
 	margin-bottom: 20px;
-	box-shadow: 0 12px 24px rgb(0 0 0 / 15%);
 }
 
 .sscribe-debug-console-header {
@@ -538,12 +440,6 @@
 	padding: 48px;
 	color: var(--sscribe-debug-text-console);
 	text-align: center;
-	background:
-		radial-gradient(
-			ellipse at center,
-			rgb(99 179 237 / 8%) 0%,
-			transparent 65%
-		);
 	border-radius: var(--sscribe-radius-md);
 	margin: 8px;
 }
@@ -629,9 +525,6 @@
 .sscribe-debug-entry.expanded {
 	background: rgb(255 255 255 / 6%);
 	border-color: rgb(99 179 237 / 25%);
-	box-shadow:
-		inset 3px 0 0 #4f9cf9,
-		0 4px 12px rgb(0 0 0 / 20%);
 }
 
 .sscribe-debug-entry-header {
@@ -661,9 +554,6 @@
 	flex-shrink: 0;
 	display: inline-flex;
 	align-items: center;
-	box-shadow:
-		inset 0 1px 0 rgb(255 255 255 / 22%),
-		0 1px 1px rgb(0 0 0 / 12%);
 }
 
 .sscribe-debug-entry-badge.debug {
@@ -682,17 +572,17 @@
 }
 
 .sscribe-debug-entry-badge.warning {
-	background: linear-gradient(135deg, #fbbf24 0%, #d97706 100%);
+	background: #fcb900;
 	color: #422006;
 }
 
 .sscribe-debug-entry-badge.error {
-	background: linear-gradient(135deg, #f87171 0%, #dc2626 100%);
+	background: #dc2626;
 	color: #fff;
 }
 
 .sscribe-debug-entry-badge.critical {
-	background: linear-gradient(135deg, #dc2626 0%, #991b1b 100%);
+	background: #991b1b;
 	color: #fff;
 }
 
@@ -715,7 +605,6 @@
 	outline: none;
 	background: rgb(99 179 237 / 10%);
 	border-color: #4f9cf9;
-	box-shadow: 0 0 0 3px rgb(79 156 249 / 25%);
 }
 
 .sscribe-debug-entry-message {
@@ -782,19 +671,10 @@
 
 .sscribe-debug-rotated {
 	position: relative;
-	background:
-		linear-gradient(
-			180deg,
-			rgb(var(--sscribe-primary-rgb) / 2.5%) 0%,
-			transparent 60%
-		),
-		var(--sscribe-debug-bg-card);
+	background: var(--sscribe-debug-bg-card);
 	border: 1px solid var(--sscribe-debug-border);
 	border-radius: var(--sscribe-radius-md);
 	overflow: hidden;
-	box-shadow:
-		inset 0 1px 0 rgb(255 255 255 / 60%),
-		0 1px 2px rgb(0 30 43 / 4%);
 }
 
 .sscribe-debug-rotated summary {
@@ -821,7 +701,7 @@
 	inset-inline-start: 0;
 	inset-block: 0;
 	width: 3px;
-	background: var(--sscribe-primary-gradient);
+	background: var(--sscribe-primary);
 	opacity: 0;
 	transition: opacity var(--sscribe-transition-fast);
 }
@@ -837,7 +717,6 @@
 .sscribe-debug-rotated summary:focus-visible {
 	outline: none;
 	background: rgb(var(--sscribe-primary-rgb) / 6%);
-	box-shadow: inset 0 0 0 2px rgb(var(--sscribe-primary-rgb) / 22%);
 }
 
 .sscribe-debug-rotated-hint {
@@ -880,7 +759,7 @@
 	inset: 6px auto 6px 0;
 	width: 2px;
 	border-radius: 0 2px 2px 0;
-	background: var(--sscribe-primary-gradient);
+	background: var(--sscribe-primary);
 	opacity: 0;
 	transition: opacity var(--sscribe-transition-fast);
 }
@@ -950,22 +829,13 @@
 	justify-content: space-between;
 	gap: 12px;
 	padding: 12px 16px;
-	background:
-		linear-gradient(
-			135deg,
-			rgb(251 191 36 / 14%) 0%,
-			rgb(251 191 36 / 5%) 100%
-		),
-		#fffbeb;
-	border: 1px solid rgb(251 191 36 / 32%);
+	background: rgb(252 185 0 / 10%);
+	border: 1px solid rgb(252 185 0 / 32%);
 	border-radius: var(--sscribe-radius-sm);
 	margin-bottom: 14px;
 	font-size: 12.5px;
 	font-weight: 500;
-	color: #92400e;
-	box-shadow:
-		inset 0 1px 0 rgb(255 255 255 / 60%),
-		0 1px 2px rgb(217 119 6 / 8%);
+	color: #fcb900;
 }
 
 .sscribe-debug-rotated-banner .sscribe-button {
@@ -1073,26 +943,19 @@
 }
 
 .sscribe-button.sscribe-btn-confirming {
-	background: linear-gradient(135deg, #fbbf24 0%, #d97706 100%);
+	background: #fcb900;
 	border-color: #d97706;
 	color: #422006;
-	box-shadow:
-		inset 0 1px 0 rgb(255 255 255 / 35%),
-		0 2px 8px rgb(217 119 6 / 30%);
 	animation: sscribe-confirm-pulse 1.4s ease-in-out infinite;
 }
 
 @keyframes sscribe-confirm-pulse {
 	0%, 100% {
-		box-shadow:
-			inset 0 1px 0 rgb(255 255 255 / 35%),
-			0 2px 8px rgb(217 119 6 / 30%);
+		opacity: 0.85;
 	}
 
 	50% {
-		box-shadow:
-			inset 0 1px 0 rgb(255 255 255 / 40%),
-			0 4px 14px rgb(217 119 6 / 45%);
+		opacity: 1;
 	}
 }
 
