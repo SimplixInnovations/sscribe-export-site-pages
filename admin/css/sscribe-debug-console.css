@@ -6,16 +6,16 @@
  */
 
 :root {
-	--sscribe-debug-color-debug: var(--sscribe-text-muted);
-	--sscribe-debug-color-info: var(--sscribe-info);
-	--sscribe-debug-color-notice: var(--sscribe-teal);
-	--sscribe-debug-color-warning: var(--sscribe-warning);
-	--sscribe-debug-color-error: var(--sscribe-danger);
+	--sscribe-debug-color-debug: var(--ss-ink-500);
+	--sscribe-debug-color-info: var(--ss-ink-700);
+	--sscribe-debug-color-notice: var(--ss-green);
+	--sscribe-debug-color-warning: var(--ss-amber);
+	--sscribe-debug-color-error: var(--ss-red);
 	--sscribe-debug-color-critical: #991b1b;
-	--sscribe-debug-bg-card: rgb(255 255 255 / 75%);
-	--sscribe-debug-bg-console: var(--sscribe-ink);
-	--sscribe-debug-text-console: var(--sscribe-on-dark);
-	--sscribe-debug-border: rgb(0 0 0 / 12%);
+	--sscribe-debug-bg-card: #fff;
+	--sscribe-debug-bg-console: var(--ss-ink-900);
+	--sscribe-debug-text-console: #fff;
+	--sscribe-debug-border: var(--ss-border);
 }
 
 .sscribe-hidden {
@@ -32,18 +32,19 @@
 	align-items: center;
 	gap: 10px;
 	padding: 12px 18px;
-	background: rgb(252 185 0 / 10%);
-	border: 1px solid rgb(252 185 0 / 35%);
-	border-radius: var(--sscribe-radius-md);
+	background: var(--ss-amber-tint);
+	border: 1px solid var(--ss-amber-border);
+	border-left: 3px solid var(--ss-amber);
+	border-radius: var(--ss-radius-md);
 	margin-bottom: 20px;
-	color: #fcb900;
+	color: var(--ss-amber-text);
 	font-size: 13px;
-	font-weight: 500;
+	font-weight: 600;
 }
 
 .sscribe-debug-wp-debug-notice svg {
 	flex-shrink: 0;
-	color: #d97706;
+	color: var(--ss-amber);
 }
 
 .sscribe-debug-header {
@@ -58,52 +59,53 @@
 
 .sscribe-debug-title-row h2 {
 	margin: 0;
-	font-size: 24px;
+	font-size: 20px;
 	font-weight: 700;
-	font-family: var(--sscribe-font-display);
-	letter-spacing: -0.015em;
-	color: var(--sscribe-text-heading);
+	font-family: var(--ss-font);
+	letter-spacing: -0.02em;
+	color: var(--ss-ink-900);
 }
 
 .sscribe-debug-description {
-	margin: 8px 0 0;
-	color: var(--sscribe-text-secondary);
-	font-size: 13.5px;
-	line-height: 1.5;
+	margin: 6px 0 0;
+	color: var(--ss-ink-500);
+	font-size: 13px;
+	line-height: 1.55;
 }
 
 .sscribe-debug-help-btn {
 	width: 32px;
 	height: 32px;
-	border-radius: 50%;
-	border: 1px solid var(--sscribe-border-light);
-	background: var(--sscribe-card-bg);
+	border-radius: var(--ss-radius-sm);
+	border: 1px solid var(--ss-border);
+	background: var(--ss-bg);
 	cursor: pointer;
 	display: flex;
 	align-items: center;
 	justify-content: center;
-	color: var(--sscribe-primary);
+	color: var(--ss-green);
 	font-weight: 700;
 	font-size: 14px;
 }
 
 .sscribe-debug-help-btn:hover {
-	border-color: rgb(var(--sscribe-primary-rgb) / 40%);
+	border-color: var(--ss-green);
+	background: var(--ss-green-tint);
 }
 
 .sscribe-debug-help-btn:focus-visible {
 	outline: none;
-	border-color: var(--sscribe-primary);
+	border-color: var(--ss-green);
 }
 
 .sscribe-debug-settings-card,
 .sscribe-debug-controls-card {
 	position: relative;
-	background: var(--sscribe-card-bg);
-	border: 1px solid var(--sscribe-border-light);
-	border-radius: var(--sscribe-radius-lg);
-	padding: var(--sscribe-space-l);
-	margin-bottom: var(--sscribe-space-l);
+	background: var(--ss-bg);
+	border: 1px solid var(--ss-border);
+	border-radius: var(--ss-radius-lg);
+	padding: var(--ss-space-6);
+	margin-bottom: var(--ss-space-6);
 	overflow: hidden;
 }
 
@@ -111,16 +113,17 @@
 .sscribe-debug-controls-card::before {
 	content: '';
 	position: absolute;
-	inset: 0 0 auto;
-	height: 2px;
-	background: var(--sscribe-primary);
-	opacity: 0.7;
+	left: 0;
+	top: 0;
+	bottom: 0;
+	width: 3px;
+	background: var(--ss-green);
 	pointer-events: none;
 }
 
 .sscribe-debug-settings-card:hover,
 .sscribe-debug-controls-card:hover {
-	border-color: rgb(var(--sscribe-primary-rgb) / 25%);
+	border-color: var(--ss-border-strong);
 }
 
 .sscribe-debug-settings-grid {
@@ -153,27 +156,31 @@
 	position: absolute;
 	cursor: pointer;
 	inset: 0;
-	background: var(--sscribe-card-bg-hover);
-	border-radius: 24px;
+	background: var(--ss-bg-muted);
+	border-radius: 9999px;
+	border: 1px solid var(--ss-border);
 }
 
 .sscribe-toggle-slider:focus-visible {
 	outline: none;
+	border-color: var(--ss-green);
 }
 
 .sscribe-toggle-slider::before {
 	position: absolute;
 	content: '';
-	height: 20px;
-	width: 20px;
-	left: 3px;
-	bottom: 3px;
-	background: var(--sscribe-on-dark);
+	height: 18px;
+	width: 18px;
+	left: 2px;
+	bottom: 2px;
+	background: #fff;
 	border-radius: 50%;
+	border: 1px solid var(--ss-border);
 }
 
 .sscribe-toggle-switch input:checked + .sscribe-toggle-slider {
-	background: var(--sscribe-primary);
+	background: var(--ss-green);
+	border-color: var(--ss-green);
 }
 
 .sscribe-toggle-switch input:checked + .sscribe-toggle-slider::before {
@@ -186,7 +193,7 @@
 }
 
 .sscribe-toggle-text small {
-	color: #6c757d;
+	color: var(--ss-ink-500);
 }
 
 .sscribe-debug-level-section {
@@ -201,42 +208,42 @@
 
 .sscribe-select {
 	padding: 8px 12px;
-	border: 1px solid var(--sscribe-debug-border);
-	border-radius: 6px;
-	font-size: 14px;
+	border: 1px solid var(--ss-border);
+	border-radius: var(--ss-radius-sm);
+	font-size: 13px;
 	min-width: 120px;
-	background: var(--sscribe-card-bg);
-	color: var(--sscribe-text-heading);
+	background: var(--ss-bg);
+	color: var(--ss-ink-900);
 }
 
 .sscribe-select:hover:not(:focus, :disabled) {
-	border-color: var(--sscribe-primary-soft);
+	border-color: var(--ss-ink-300);
 }
 
 .sscribe-select:focus,
 .sscribe-select:focus-visible {
 	outline: none;
-	border-color: var(--sscribe-primary);
+	border-color: var(--ss-green);
 }
 
 .sscribe-input {
 	padding: 8px 12px;
-	border: 1px solid var(--sscribe-debug-border);
-	border-radius: 6px;
-	font-size: 14px;
+	border: 1px solid var(--ss-border);
+	border-radius: var(--ss-radius-sm);
+	font-size: 13px;
 	width: 200px;
-	background: var(--sscribe-card-bg);
-	color: var(--sscribe-text-heading);
+	background: var(--ss-bg);
+	color: var(--ss-ink-900);
 }
 
 .sscribe-input:hover:not(:focus, :disabled) {
-	border-color: var(--sscribe-primary-soft);
+	border-color: var(--ss-ink-300);
 }
 
 .sscribe-input:focus,
 .sscribe-input:focus-visible {
 	outline: none;
-	border-color: var(--sscribe-primary);
+	border-color: var(--ss-green);
 }
 
 .sscribe-debug-save-feedback {
@@ -253,15 +260,15 @@
 }
 
 .sscribe-debug-save-feedback.success {
-	color: #16a34a;
-	background: rgb(34 197 94 / 10%);
-	border-color: rgb(34 197 94 / 24%);
+	color: var(--ss-green-deeper);
+	background: var(--ss-green-tint);
+	border-color: var(--ss-green-border);
 }
 
 .sscribe-debug-save-feedback.error {
-	color: #dc2626;
-	background: rgb(220 38 38 / 10%);
-	border-color: rgb(220 38 38 / 24%);
+	color: var(--ss-red);
+	background: var(--ss-red-tint);
+	border-color: var(--ss-red-border);
 }
 
 .sscribe-debug-controls-row {
@@ -295,13 +302,13 @@
 	display: inline-flex;
 	align-items: center;
 	gap: 8px;
-	color: #fcb900;
-	font-size: 11.5px;
+	color: var(--ss-amber-text);
+	font-size: 11px;
 	font-weight: 700;
 	padding: 4px 10px;
-	border-radius: 999px;
-	background: rgb(252 185 0 / 14%);
-	border: 1px solid rgb(252 185 0 / 40%);
+	border-radius: 9999px;
+	background: var(--ss-amber-tint);
+	border: 1px solid var(--ss-amber-border);
 	text-transform: uppercase;
 	letter-spacing: 0.04em;
 }
@@ -312,7 +319,7 @@
 	width: 6px;
 	height: 6px;
 	border-radius: 50%;
-	background: #fcb900;
+	background: var(--ss-amber);
 }
 
 .sscribe-radio-label {
@@ -320,40 +327,38 @@
 	align-items: center;
 	gap: 6px;
 	padding: 6px 10px;
-	border-radius: 999px;
-	border: 1px solid transparent;
+	border-radius: var(--ss-radius-full);
+	border: 1px solid var(--ss-border);
 	cursor: pointer;
-	font-size: 13px;
+	font-size: 12px;
 	font-weight: 600;
-	color: var(--sscribe-text-secondary);
+	color: var(--ss-ink-600);
+	background: var(--ss-bg);
 }
 
 .sscribe-radio-label:hover {
-	border-color: rgb(var(--sscribe-primary-rgb) / 22%);
-	background: rgb(var(--sscribe-primary-rgb) / 5%);
-	color: var(--sscribe-primary-active);
+	border-color: var(--ss-ink-300);
+	background: var(--ss-bg-subtle);
+	color: var(--ss-green-deeper);
 }
 
 .sscribe-radio-label:has(input:checked) {
-	border-color: rgb(var(--sscribe-primary-rgb) / 40%);
-	background: rgb(var(--sscribe-primary-rgb) / 10%);
-	color: var(--sscribe-primary-active);
+	border-color: var(--ss-green);
+	background: var(--ss-green-tint);
+	color: var(--ss-green-deeper);
 }
 
 .sscribe-radio-label:has(input:focus-visible) {
 	outline: none;
-	border-color: var(--sscribe-primary);
+	border-color: var(--ss-green);
 }
 
 .sscribe-radio-label input {
 	cursor: pointer;
-	accent-color: var(--sscribe-primary);
+	accent-color: var(--ss-green);
 }
 
-/* ============================================
-	DEBUG CONSOLE - Uses main plugin button styles
-	Button styles inherit from sscribe-admin.css
-	============================================ */
+/* DEBUG CONSOLE: button styles inherit from sscribe-admin.css */
 
 .sscribe-debug-master .sscribe-button-icon {
 	width: 36px;
@@ -363,9 +368,9 @@
 }
 
 .sscribe-debug-console-card {
-	background: var(--sscribe-debug-bg-console);
-	border: 1px solid rgb(255 255 255 / 10%);
-	border-radius: 16px;
+	background: var(--ss-ink-900);
+	border: 1px solid var(--ss-ink-900);
+	border-radius: var(--ss-radius-lg);
 	overflow: hidden;
 	margin-bottom: 20px;
 }
@@ -374,9 +379,9 @@
 	display: flex;
 	justify-content: space-between;
 	align-items: center;
-	padding: 14px 20px;
-	background: rgb(0 0 0 / 20%);
-	border-bottom: 1px solid rgb(255 255 255 / 5%);
+	padding: 12px 18px;
+	background: var(--ss-ink-800);
+	border-bottom: 1px solid var(--ss-ink-700);
 	color: #fff;
 }
 
@@ -406,14 +411,13 @@
 	padding: 48px;
 	color: var(--sscribe-debug-text-console);
 	text-align: center;
-	border-radius: var(--sscribe-radius-md);
+	border-radius: var(--ss-radius-md);
 	margin: 8px;
 }
 
 .sscribe-debug-empty svg {
 	margin-bottom: 16px;
-	opacity: 0.55;
-	color: #94a3b8;
+	color: var(--ss-ink-400);
 }
 
 .sscribe-debug-append-loading {
@@ -425,27 +429,27 @@
 
 .sscribe-debug-append-error {
 	padding: 8px 12px;
-	color: #dc3545;
+	color: var(--ss-red);
 	font-size: 13px;
 }
 
 .sscribe-rotated-error {
-	color: var(--sscribe-danger, #dc3545);
+	color: var(--ss-red);
 	font-size: 12px;
 	margin-top: 4px;
 }
 
 .sscribe-debug-empty p {
 	margin: 0;
-	opacity: 0.7;
+	color: var(--ss-ink-400);
 	font-size: 14px;
 	line-height: 1.5;
 }
 
 .sscribe-debug-entries {
-	font-family: Monaco, Menlo, 'Ubuntu Mono', monospace;
+	font-family: var(--ss-font-mono);
 	font-size: 12px;
-	line-height: 1.5;
+	line-height: 1.55;
 }
 
 .sscribe-debug-entry {
@@ -506,27 +510,27 @@
 }
 
 .sscribe-debug-entry-badge.debug {
-	background: var(--sscribe-text-muted);
-	color: var(--sscribe-on-dark);
+	background: var(--ss-ink-500);
+	color: #fff;
 }
 
 .sscribe-debug-entry-badge.info {
-	background: var(--sscribe-teal);
-	color: var(--sscribe-on-dark);
+	background: var(--ss-green);
+	color: #fff;
 }
 
 .sscribe-debug-entry-badge.notice {
-	background: var(--sscribe-teal);
-	color: var(--sscribe-on-dark);
+	background: var(--ss-green);
+	color: #fff;
 }
 
 .sscribe-debug-entry-badge.warning {
-	background: #fcb900;
+	background: var(--ss-amber);
 	color: #422006;
 }
 
 .sscribe-debug-entry-badge.error {
-	background: #dc2626;
+	background: var(--ss-red);
 	color: #fff;
 }
 
@@ -536,18 +540,18 @@
 }
 
 .sscribe-debug-entry-badge.alert {
-	background: var(--sscribe-danger);
-	color: var(--sscribe-on-dark);
+	background: var(--ss-red);
+	color: #fff;
 }
 
 .sscribe-debug-entry-badge.emergency {
 	background: #7a1818;
-	color: var(--sscribe-on-dark);
+	color: #fff;
 }
 
 .sscribe-debug-entry-badge.raw {
-	background: var(--sscribe-charcoal);
-	color: var(--sscribe-on-dark);
+	background: var(--ss-ink-900);
+	color: #fff;
 }
 
 .sscribe-debug-entry:focus-visible {
@@ -593,7 +597,7 @@
 	color: #569cd6;
 	min-width: 120px;
 	flex-shrink: 0;
-	font-family: 'JetBrains Mono', 'Fira Code', Consolas, Monaco, monospace;
+	font-family: var(--ss-font-mono);
 	font-size: 12px;
 	letter-spacing: -0.005em;
 }
@@ -601,7 +605,7 @@
 .sscribe-debug-context-val {
 	color: #ce9178;
 	word-break: break-all;
-	font-family: 'JetBrains Mono', 'Fira Code', Consolas, Monaco, monospace;
+	font-family: var(--ss-font-mono);
 	font-size: 12px;
 	letter-spacing: -0.005em;
 }
@@ -619,23 +623,24 @@
 
 .sscribe-debug-rotated {
 	position: relative;
-	background: var(--sscribe-debug-bg-card);
-	border: 1px solid var(--sscribe-debug-border);
-	border-radius: var(--sscribe-radius-md);
+	background: var(--ss-bg);
+	border: 1px solid var(--ss-border);
+	border-radius: var(--ss-radius-md);
 	overflow: hidden;
 }
 
 .sscribe-debug-rotated summary {
 	list-style: none;
-	padding: 14px 18px;
+	padding: 12px 18px;
 	cursor: pointer;
 	display: flex;
 	justify-content: space-between;
 	align-items: center;
-	font-weight: 600;
-	font-size: 13.5px;
-	color: var(--sscribe-text-heading);
+	font-weight: 700;
+	font-size: 13px;
+	color: var(--ss-ink-900);
 	position: relative;
+	letter-spacing: -0.005em;
 }
 
 .sscribe-debug-rotated summary::-webkit-details-marker {
@@ -645,41 +650,41 @@
 .sscribe-debug-rotated summary::before {
 	content: '';
 	position: absolute;
-	inset-inline-start: 0;
-	inset-block: 0;
+	left: 0;
+	top: 0;
+	bottom: 0;
 	width: 3px;
-	background: var(--sscribe-primary);
-	opacity: 0;
+	background: var(--ss-green);
 }
 
 .sscribe-debug-rotated[open] summary::before {
-	opacity: 0.85;
+	background: var(--ss-green);
 }
 
 .sscribe-debug-rotated summary:hover {
-	background: rgb(var(--sscribe-primary-rgb) / 5%);
+	background: var(--ss-bg-subtle);
 }
 
 .sscribe-debug-rotated summary:focus-visible {
 	outline: none;
-	background: rgb(var(--sscribe-primary-rgb) / 6%);
+	background: var(--ss-bg-subtle);
 }
 
 .sscribe-debug-rotated-hint {
-	font-size: 11.5px;
-	font-weight: 500;
-	color: var(--sscribe-text-muted);
-	letter-spacing: 0.01em;
+	font-size: 11px;
+	font-weight: 600;
+	color: var(--ss-ink-500);
+	letter-spacing: 0.02em;
 }
 
 .sscribe-debug-rotated-body {
 	padding: 14px 18px;
-	border-top: 1px solid rgb(var(--sscribe-primary-rgb) / 10%);
-	background: rgb(255 255 255 / 40%);
+	border-top: 1px solid var(--ss-border);
+	background: var(--ss-bg-subtle);
 }
 
 .sscribe-debug-rotated-empty {
-	color: var(--sscribe-text-muted);
+	color: var(--ss-ink-500);
 	font-size: 13px;
 	text-align: center;
 	padding: 18px 12px;
@@ -692,27 +697,28 @@
 	justify-content: space-between;
 	align-items: center;
 	padding: 10px 12px 10px 16px;
-	border-radius: var(--sscribe-radius-sm);
-	border-bottom: 1px solid rgb(var(--sscribe-primary-rgb) / 8%);
+	border-radius: var(--ss-radius-sm);
+	border-bottom: 1px solid var(--ss-border);
 }
 
 .sscribe-debug-rotated-file::before {
 	content: '';
 	position: absolute;
-	inset: 6px auto 6px 0;
+	left: 0;
+	top: 6px;
+	bottom: 6px;
 	width: 2px;
 	border-radius: 0 2px 2px 0;
-	background: var(--sscribe-primary);
+	background: var(--ss-green);
 	opacity: 0;
 }
 
 .sscribe-debug-rotated-file:hover {
-	background: rgb(var(--sscribe-primary-rgb) / 5%);
-	padding-left: 20px;
+	background: var(--ss-green-tint);
 }
 
 .sscribe-debug-rotated-file:hover::before {
-	opacity: 0.85;
+	opacity: 1;
 }
 
 .sscribe-debug-rotated-file:last-child {
@@ -726,16 +732,16 @@
 }
 
 .sscribe-debug-rotated-file-name {
-	font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+	font-family: var(--ss-font-mono);
 	font-size: 12px;
-	color: var(--sscribe-text-heading);
-	font-weight: 600;
+	color: var(--ss-ink-900);
+	font-weight: 700;
 	letter-spacing: -0.005em;
 }
 
 .sscribe-debug-rotated-file-meta {
 	font-size: 11px;
-	color: var(--sscribe-text-muted);
+	color: var(--ss-ink-500);
 	font-weight: 500;
 	letter-spacing: 0.005em;
 }
@@ -771,13 +777,14 @@
 	justify-content: space-between;
 	gap: 12px;
 	padding: 12px 16px;
-	background: rgb(252 185 0 / 10%);
-	border: 1px solid rgb(252 185 0 / 32%);
-	border-radius: var(--sscribe-radius-sm);
+	background: var(--ss-amber-tint);
+	border: 1px solid var(--ss-amber-border);
+	border-left: 3px solid var(--ss-amber);
+	border-radius: var(--ss-radius-sm);
 	margin-bottom: 14px;
 	font-size: 12.5px;
-	font-weight: 500;
-	color: #fcb900;
+	font-weight: 600;
+	color: var(--ss-amber-text);
 }
 
 .sscribe-debug-rotated-banner .sscribe-button {
@@ -887,7 +894,7 @@
 	flex-shrink: 0;
 	margin-left: auto;
 	font-size: 10px;
-	color: #6c757d;
+	color: var(--ss-ink-500);
 }
 
 .sscribe-debug-entry.expanded .sscribe-debug-entry-toggle {
