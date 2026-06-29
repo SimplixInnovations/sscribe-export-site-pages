@@ -741,18 +741,32 @@
 
 .sscribe-debug-context-row {
 	display: flex;
+	align-items: baseline;
 	margin-bottom: 4px;
+	padding: 2px 8px;
+	border-radius: 4px;
+	transition: background 150ms ease;
+}
+
+.sscribe-debug-context-row:hover {
+	background: rgb(255 255 255 / 3%);
 }
 
 .sscribe-debug-context-key {
 	color: #569cd6;
 	min-width: 120px;
 	flex-shrink: 0;
+	font-family: 'JetBrains Mono', 'Fira Code', Consolas, Monaco, monospace;
+	font-size: 12px;
+	letter-spacing: -0.005em;
 }
 
 .sscribe-debug-context-val {
 	color: #ce9178;
 	word-break: break-all;
+	font-family: 'JetBrains Mono', 'Fira Code', Consolas, Monaco, monospace;
+	font-size: 12px;
+	letter-spacing: -0.005em;
 }
 
 .sscribe-debug-context-val pre {

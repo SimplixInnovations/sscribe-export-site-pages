@@ -10,19 +10,19 @@
 
 /* ============================================
 	CSS CUSTOM PROPERTIES (Design Tokens)
-	Global scope so all elements — including
-	modals rendered outside .sscribe-master-container —
+	Global scope so all elements : including
+	modals rendered outside .sscribe-master-container :
 	can access these variables.
 	============================================ */
 :root {
 	/* === DESIGN SYSTEM TOKENS (per DESIGN.md) === */
 
 	/* Brand & Accent Colors */
-	--sscribe-primary: #047857; /* Emerald-700 — deeper, more saturated than #3d6e54 */
+	--sscribe-primary: #047857; /* Emerald-700 : deeper, more saturated than #3d6e54 */
 	--sscribe-primary-rgb: 4 120 87;
-	--sscribe-primary-hover: #065f46; /* Emerald-800 — for pressed/active */
-	--sscribe-primary-active: #064e3b; /* Emerald-900 — deepest */
-	--sscribe-primary-soft: #10b981; /* Emerald-500 — for gradients + accents */
+	--sscribe-primary-hover: #065f46; /* Emerald-800 : for pressed/active */
+	--sscribe-primary-active: #064e3b; /* Emerald-900 : deepest */
+	--sscribe-primary-soft: #10b981; /* Emerald-500 : for gradients + accents */
 	--sscribe-primary-light: rgb(var(--sscribe-primary-rgb) / 8%);
 	--sscribe-primary-lighter: rgb(var(--sscribe-primary-rgb) / 4%);
 	--sscribe-primary-medium: rgb(var(--sscribe-primary-rgb) / 14%);
@@ -35,7 +35,7 @@
 	--sscribe-accent-light: rgb(var(--sscribe-accent-rgb) / 15%);
 	--sscribe-accent-medium: rgb(var(--sscribe-accent-rgb) / 25%);
 	--sscribe-accent-strong: rgb(var(--sscribe-accent-rgb) / 35%);
-	--sscribe-cta: #0a0f1c; /* Near-black with blue undertone — premium feel */
+	--sscribe-cta: #0a0f1c; /* Near-black with blue undertone : premium feel */
 	--sscribe-cta-hover: #1e293b;
 	--sscribe-cta-active: #475569;
 
@@ -79,7 +79,7 @@
 	--sscribe-text-light: #94a3b8;
 	--sscribe-text-inverse: #fff;
 
-	/* Typography — system stack, no bundled UI font (saves ~380 KB). */
+	/* Typography : system stack, no bundled UI font (saves ~380 KB). */
 	--sscribe-font-family:
 		-apple-system, blinkmacsystemfont, 'Segoe UI', roboto, 'Helvetica Neue', arial, sans-serif;
 	--sscribe-font-display:
@@ -87,7 +87,7 @@
 	--sscribe-font-mono:
 		'SF Mono', 'JetBrains Mono', 'Fira Code', 'Cascadia Code', menlo, consolas, monospace;
 
-	/* Type scale — modular, 1.250 ratio anchored at 16px */
+	/* Type scale : modular, 1.250 ratio anchored at 16px */
 	--sscribe-text-xs: 11px;
 	--sscribe-text-sm: 12px;
 	--sscribe-text-base: 14px;
@@ -118,7 +118,7 @@
 	--sscribe-radius-lg: 10px; /* Card: cards, containers */
 	--sscribe-radius-full: 50%;
 
-	/* Shadow System — depth-first, warm-neutral (not pure black) */
+	/* Shadow System : depth-first, warm-neutral (not pure black) */
 	--sscribe-shadow-flat: none;
 	--sscribe-shadow-xs: 0 1px 2px rgb(15 23 42 / 4%);
 	--sscribe-shadow-shallow: 0 1px 3px rgb(15 23 42 / 6%), 0 1px 2px rgb(15 23 42 / 4%);
@@ -148,7 +148,7 @@
 		--sscribe-warning-text: #fcd34d;
 
 		/* Brand accents brighten slightly so primary CTAs remain legible
-		   on the darker surface — sage green gets ~10% more luminance. */
+		   on the darker surface : sage green gets ~10% more luminance. */
 		--sscribe-primary: #5a9d7a;
 		--sscribe-primary-hover: #74b994;
 		--sscribe-cta: #c9cdd4;
@@ -227,7 +227,7 @@ body .sscribe-master-container {
 }
 
 /* ============================================
-	HERO SECTION — brand-first statement surface
+	HERO SECTION : brand-first statement surface
 	============================================ */
 body .sscribe-master-container .sscribe-hero {
 	background:
@@ -251,7 +251,7 @@ body .sscribe-master-container .sscribe-hero {
 	box-shadow: var(--sscribe-shadow-shallow);
 }
 
-/* Subtle decorative grid overlay — premium feel */
+/* Subtle decorative grid overlay : premium feel */
 body .sscribe-master-container .sscribe-hero::before {
 	content: '';
 	position: absolute;
@@ -365,7 +365,7 @@ body .sscribe-master-container .sscribe-hero::before {
 	gap: var(--sscribe-space-ml);
 }
 
-/* Brand mark — gradient-filled rounded square with white SVG */
+/* Brand mark : gradient-filled rounded square with white SVG */
 .sscribe-hero-logo {
 	flex-shrink: 0;
 	width: 64px;
@@ -400,7 +400,7 @@ body .sscribe-master-container .sscribe-hero::before {
 	z-index: 1;
 }
 
-/* Wordmark — large, tightly tracked, slight weight contrast */
+/* Wordmark : large, tightly tracked, slight weight contrast */
 .sscribe-hero-title {
 	color: var(--sscribe-text-heading);
 	font-family: var(--sscribe-font-display);
@@ -471,7 +471,7 @@ body .sscribe-master-container .sscribe-hero::before {
 }
 
 /* ============================================
-	PANELS & CARDS — premium surface with depth
+	PANELS & CARDS : premium surface with depth
 	============================================ */
 .sscribe-panel {
 	background: var(--sscribe-card-bg);
@@ -576,7 +576,7 @@ body .sscribe-master-container .sscribe-hero::before {
 }
 
 /* ============================================
-	TABS NAVIGATION — modern underline indicator
+	TABS NAVIGATION : modern underline indicator
 	============================================ */
 .sscribe-tabs-nav {
 	display: flex;
@@ -627,7 +627,7 @@ body .sscribe-master-container .sscribe-hero::before {
 	color: var(--sscribe-primary);
 }
 
-/* Sliding underline indicator — premium SaaS pattern */
+/* Sliding underline indicator : premium SaaS pattern */
 .sscribe-tab-btn.sscribe-tab-active::after {
 	content: '';
 	position: absolute;
@@ -680,7 +680,7 @@ body .sscribe-master-container .sscribe-hero::before {
 }
 
 /* ============================================
-	STATUS CARDS — premium selectable card
+	STATUS CARDS : premium selectable card
 	============================================ */
 .sscribe-status-cards {
 	display: grid;
@@ -1356,7 +1356,7 @@ body .sscribe-master-container .sscribe-hero::before {
 }
 
 /* ============================================
-	BUTTONS — premium surface with gradient + lift
+	BUTTONS : premium surface with gradient + lift
 	============================================ */
 .sscribe-button {
 	position: relative;
@@ -1391,7 +1391,7 @@ body .sscribe-master-container .sscribe-hero::before {
 	BUTTON VARIANTS
 	============================================ */
 
-/* Primary CTA — gradient-filled with elevation + lift */
+/* Primary CTA : gradient-filled with elevation + lift */
 .sscribe-button-primary {
 	background: var(--sscribe-primary-gradient);
 	color: var(--sscribe-text-inverse);
@@ -1448,7 +1448,7 @@ body .sscribe-master-container .sscribe-hero::before {
 	transform: none;
 }
 
-/* Secondary — soft tinted pill, premium not loud */
+/* Secondary : soft tinted pill, premium not loud */
 .sscribe-button-secondary {
 	background: rgb(var(--sscribe-accent-rgb) / 18%);
 	color: var(--sscribe-primary-active);
@@ -1480,7 +1480,7 @@ body .sscribe-master-container .sscribe-hero::before {
 	transform: none;
 }
 
-/* Ghost — quiet, hover reveals border */
+/* Ghost : quiet, hover reveals border */
 .sscribe-button-ghost {
 	background: transparent;
 	color: var(--sscribe-text-secondary);
@@ -1511,7 +1511,7 @@ body .sscribe-master-container .sscribe-hero::before {
 	cursor: not-allowed;
 }
 
-/* Success — emerald CTA alternative */
+/* Success : emerald CTA alternative */
 .sscribe-button-success {
 	background: linear-gradient(180deg, var(--sscribe-primary) 0%, var(--sscribe-primary-hover) 100%);
 	color: var(--sscribe-text-inverse);
@@ -1547,7 +1547,7 @@ body .sscribe-master-container .sscribe-hero::before {
 	box-shadow: none;
 }
 
-/* Danger — outline that fills on hover */
+/* Danger : outline that fills on hover */
 .sscribe-button-danger {
 	background: transparent;
 	border-color: var(--sscribe-danger);
@@ -1581,7 +1581,7 @@ body .sscribe-master-container .sscribe-hero::before {
 	transform: none;
 }
 
-/* Outline — the workhorse */
+/* Outline : the workhorse */
 .sscribe-button-outline {
 	background: var(--sscribe-card-bg);
 	border-color: var(--sscribe-border);
@@ -1614,7 +1614,7 @@ body .sscribe-master-container .sscribe-hero::before {
 	transform: none;
 }
 
-/* Cancel — destructive within progress UI */
+/* Cancel : destructive within progress UI */
 .sscribe-button-cancel {
 	background:
 		linear-gradient(
@@ -1693,7 +1693,7 @@ body .sscribe-master-container .sscribe-hero::before {
 	font-family: var(--sscribe-font-display);
 }
 
-/* Icon Button — square, balanced */
+/* Icon Button : square, balanced */
 .sscribe-button-icon {
 	padding: 0;
 	min-width: 36px;
@@ -1765,7 +1765,7 @@ body .sscribe-master-container .sscribe-hero::before {
 }
 
 /* ============================================
-	STATUS ALERTS — banner surface for live export state
+	STATUS ALERTS : banner surface for live export state
 	============================================ */
 .sscribe-status-alert {
 	margin-top: var(--sscribe-space-l);
@@ -2935,7 +2935,7 @@ body .sscribe-master-container .sscribe-hero::before {
 	box-shadow: inset 0 1px 0 rgb(255 255 255 / 8%);
 }
 
-/* Support grid styles – rendered inside the terminal card. */
+/* Support grid styles : rendered inside the terminal card. */
 .sscribe-support-grid-inner {
 	display: flex;
 	flex-direction: column;
@@ -2998,6 +2998,10 @@ body .sscribe-master-container .sscribe-hero::before {
 	flex-shrink: 0;
 	margin-right: 16px;
 	letter-spacing: 0.01em;
+	font-family: var(--sscribe-font-family);
+	text-transform: uppercase;
+	font-size: 11px;
+	font-weight: 600;
 }
 
 .sscribe-support-value {
@@ -3006,6 +3010,7 @@ body .sscribe-master-container .sscribe-hero::before {
 	word-break: break-all;
 	font-weight: 500;
 	letter-spacing: 0.005em;
+	font-variant-numeric: tabular-nums;
 }
 
 /* ============================================
@@ -4636,7 +4641,7 @@ body .sscribe-master-container .sscribe-hero::before {
 	position: relative;
 }
 
-/* Modal focus indicator — guard against removing the focus ring
+/* Modal focus indicator : guard against removing the focus ring
    from the modal root if the focus-trap JS momentarily focuses it.
    Without :not(:focus), keyboard users lose all visual focus feedback
    when the trap cycles to the modal boundary. When the modal root
@@ -5627,7 +5632,7 @@ body .sscribe-master-container .sscribe-hero::before {
 	box-shadow: 0 0 0 3px rgb(var(--sscribe-primary-rgb) / 22%);
 }
 
-/* Toast types — left accent stripe + icon container recolor */
+/* Toast types : left accent stripe + icon container recolor */
 .sscribe-toast-success::before {
 	background: linear-gradient(180deg, var(--sscribe-success), var(--sscribe-success));
 }
@@ -6466,7 +6471,7 @@ body .sscribe-master-container .sscribe-support-copy-text {
 	BUTTON STATE COMPLETENESS
 	Universal :focus-visible, :active, and
 	:disabled states for every variant are now
-	declared alongside each variant above — single
+	declared alongside each variant above : single
 	source of truth for each button's interaction
 	model.
 	============================================ */
