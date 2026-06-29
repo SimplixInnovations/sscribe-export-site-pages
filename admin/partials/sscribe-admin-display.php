@@ -368,7 +368,7 @@ $sscribe_export_index    = $sscribe_export_index ?? array();
 					</div>
 				</div>
 
-				<div id="sscribe-format-options" class="sscribe-format-options sscribe-hidden" aria-live="polite">
+				<div id="sscribe-format-options" class="sscribe-format-options sscribe-hidden">
 					<div class="sscribe-format-options-inner">
 
 						<div class="sscribe-format-option-panel" data-format="pdf" hidden>
@@ -573,8 +573,7 @@ $sscribe_export_index    = $sscribe_export_index ?? array();
 							aria-valuemin="0"
 							aria-valuemax="100"
 							aria-valuenow="0"
-							aria-valuetext="<?php esc_attr_e( 'Starting...', 'sscribe-export-site-pages' ); ?>"
-							aria-labelledby="sscribe-status-text"></div>
+							aria-valuetext="<?php esc_attr_e( 'Starting...', 'sscribe-export-site-pages' ); ?>"></div>
 					</div>
 					<span id="sscribe-progress-text" class="sscribe-progress-percentage" aria-hidden="true">0%</span>
 				</div>

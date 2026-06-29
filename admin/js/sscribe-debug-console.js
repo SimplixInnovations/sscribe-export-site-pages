@@ -1796,6 +1796,11 @@
 		}
 
 		const hasContext = contextHtml !== '';
+		const msgText = String(entry.message || '').trim();
+		const fallbackLabel = String(entry.level || 'log') + ' entry at ' + String(entry.timestamp || '');
+		const ariaLabelText = msgText
+			? truncateForAriaLabel(msgText, 50)
+			: truncateForAriaLabel(fallbackLabel, 50);
 
 		return (
 			'<div class="sscribe-debug-entry' +
@@ -1805,7 +1810,7 @@
 				? ' tabindex="0" role="button" aria-expanded="false" aria-controls="sscribe-debug-ctx-' +
 					escAttr(String(entryId)) +
 					'" aria-label="Toggle context for: ' +
-					escAttr(truncateForAriaLabel(String(entry.message || ''), 50)) +
+					escAttr(ariaLabelText) +
 					'"'
 				: '') +
 			'>' +

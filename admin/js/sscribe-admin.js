@@ -127,9 +127,9 @@
 		 * Refresh the export nonce from the server.
 		 *
 		 * Long-running batch exports can outlive the WP nonce lifetime
-		 * (default 12h). When the JS detects a 403, it calls this method
-		 * to fetch a fresh nonce, updates sscribe_data.nonce, and the
-		 * caller retries the original request.
+		 * (default 12h). On a 403 the AJAX wrapper calls refreshNonce,
+		 * fetches a fresh nonce, updates sscribe_data.download_nonce,
+		 * and retries the original request.
 		 *
 		 * @returns {Promise<string|null>} The new nonce, or null on failure.
 		 */
@@ -310,24 +310,18 @@
 			// Keyboard shortcuts + modal escape handling.
 			$(document).on('keydown.sscribe', function (e) {
 				if (e.key === 'Escape' || e.key === 'Esc') {
-					// Don't hijack Escape inside form fields : let the
-					// browser cancel IME composition, clear selection,
-					// or otherwise handle native behaviour. Only the
-					// preflight banner is dismissed from anywhere.
-					const tag = e.target && e.target.tagName;
-					const inField = tag === 'INPUT' || tag === 'TEXTAREA' || (e.target && e.target.isContentEditable);
-
 					const $preflight = $('.sscribe-preflight-banner');
 					if ($preflight.length) {
 						e.preventDefault();
 						$preflight.find('.sscribe-preflight-close').trigger('click');
 						return;
 					}
-					if (inField) {
-						return;
-					}
 					const $previewPanel = $('#sscribe-preview-panel');
 					const $logModal = $('#sscribe-log-modal');
+					// Modal Escape handling: even when focus is on a form
+					// field inside the modal, close it. Outside a modal,
+					// let the browser handle native ESC inside fields
+					// (IME cancel, selection clear).
 					if ($previewPanel.length && !$previewPanel.hasClass('sscribe-hidden')) {
 						e.preventDefault();
 						self.closePreview();
@@ -336,6 +330,10 @@
 					if ($logModal.length && !$logModal.hasClass('sscribe-hidden')) {
 						e.preventDefault();
 						self.closeModal();
+						return;
+					}
+					const tag = e.target && e.target.tagName;
+					if (tag === 'INPUT' || tag === 'TEXTAREA' || (e.target && e.target.isContentEditable)) {
 						return;
 					}
 				}

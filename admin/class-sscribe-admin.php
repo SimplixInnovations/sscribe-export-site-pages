@@ -316,7 +316,7 @@ class SScribe_Admin {
 	 *
 	 * WordPress's wp_localize_script() outputs inline <script> tags without a
 	 * CSP nonce attribute because the output goes through print_extra_script(),
-	 * which hardcodes the tag. This method deliberately replaces that approach by
+	 * which hardcodes the tag. print_localized_data() replaces that approach by
 	 * printing the data manually with the per-request CSP nonce.
 	 *
 	 * Hooks at priority 0 so it fires before wp_print_footer_scripts (priority 20).
