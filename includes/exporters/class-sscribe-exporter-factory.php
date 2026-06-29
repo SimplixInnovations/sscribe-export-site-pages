@@ -101,7 +101,7 @@ class SScribe_Exporter_Factory {
 	 * @param int    $index         Current page index.
 	 * @param int    $total         Total page count.
 	 * @param string $extension     File extension.
-	 * @param bool   $include_lang  Deprecated — language is communicated
+	 * @param bool   $include_lang  Deprecated : language is communicated
 	 *                              via the output directory, not the filename.
 	 * @return string Generated filename.
 	 */
@@ -129,7 +129,7 @@ class SScribe_Exporter_Factory {
 			$page_title = self::sanitize_filename_preserve_unicode( $page_title );
 		}
 
-		// $include_lang is intentionally ignored — see the docblock.
+		// $include_lang is intentionally ignored : see the docblock.
 		unset( $include_lang );
 
 		$pad_length = $total > 0 ? strlen( (string) $total ) : 3;
@@ -143,7 +143,7 @@ class SScribe_Exporter_Factory {
 		// misuse when $total > 1 by logging a debug message.
 		$page_index = $index > 0 ? $index : 1;
 		if ( 0 === $index && $total > 1 ) {
-			// This is a calling-code bug — log it for debugging.
+			// This is a calling-code bug : log it for debugging.
 			error_log( // phpcs:ignore WordPress.PHP.DevelopmentFunctions
 				sprintf(
 					'SScribe: build_filename called with index=0 for a multi-page export (%d pages). Filename will use P001.',

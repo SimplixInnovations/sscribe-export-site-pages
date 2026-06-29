@@ -18,7 +18,7 @@ if ( ! defined( 'ABSPATH' ) ) {
  *
  * Convenience dispatcher that fans an export out to every supported
  * format with per-format error isolation. A failure in one format
- * never aborts the others — each format's outcome is returned in
+ * never aborts the others : each format's outcome is returned in
  * the result array keyed by format string.
  *
  * The wrapper is a pure utility: it does not own session state, file
@@ -53,7 +53,7 @@ class SScribe_Export_All_Formats_Wrapper {
 			$formats = array_keys( SScribe_Export_Format::get_supported_formats() );
 		}
 
-		// Deduplicate — if a filter hook returned the same format key twice,
+		// Deduplicate : if a filter hook returned the same format key twice,
 		// the second pass would overwrite the first format's file and double
 		// the per-page I/O for no reason.
 		$formats = array_values( array_unique( array_map( 'strval', $formats ) ) );
@@ -76,7 +76,7 @@ class SScribe_Export_All_Formats_Wrapper {
 				);
 
 			$shared_failure = SScribe_Result::failure(
-				sprintf( 'Cannot export to any format — %s.', $reason ),
+				sprintf( 'Cannot export to any format : %s.', $reason ),
 				array(
 					'error_category' => 'output_dir_unavailable',
 					'output_dir'     => $output_dir,

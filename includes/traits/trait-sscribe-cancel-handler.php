@@ -6,7 +6,7 @@
  *
  * Owns the session-cancellation surface: the AJAX entrypoints that
  * delegate to SScribe_Session for cancel/clear (the implementation
- * — including the export-lock race fix — now lives on the session
+ * : including the export-lock race fix : now lives on the session
  * itself via the SScribe_Session_AJAX trait), plus the local
  * temp-directory + export-log teardown that the batch step also
  * invokes when it detects a cancelled session mid-run.
@@ -30,7 +30,7 @@ if ( ! defined( 'ABSPATH' ) ) {
 }
 
 /**
- * Session cancel + cleanup — invoked by both the batch step and the
+ * Session cancel + cleanup : invoked by both the batch step and the
  * dedicated cancel/clear AJAX endpoints.
  */
 trait SScribe_Cancel_Handler {
@@ -38,7 +38,7 @@ trait SScribe_Cancel_Handler {
 	/**
 	 * Cancel an ongoing export via AJAX.
 	 *
-	 * Delegates to SScribe_Session::ajax_cancel_export() — the
+	 * Delegates to SScribe_Session::ajax_cancel_export() : the
 	 * implementation now lives on the session itself, including
 	 * the export-lock acquire/release race fix.
 	 */

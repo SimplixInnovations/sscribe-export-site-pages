@@ -183,7 +183,7 @@ class SScribe_Audit_Trail {
 	 * base64url of `{"`). We accept any string that has at least two
 	 * dots and starts with `eyJ`.
 	 *
-	 * False positives are not a security problem — the value is redacted
+	 * False positives are not a security problem : the value is redacted
 	 * either way. False negatives (e.g. a JWT without the canonical
 	 * header) are also not a problem, because the bearer/secret/...
 	 * substring check above will catch most of them.

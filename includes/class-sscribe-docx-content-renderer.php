@@ -273,7 +273,7 @@ class SScribe_DOCX_Content_Renderer {
 	 * @param array<string, string> $colors   Color palette.
 	 * @param bool                  $is_rtl   RTL flag.
 	 * @param string                $font_name Font name.
-	 * @param int                   $font_size Font size (clamped to 6–72pt range).
+	 * @param int                   $font_size Font size (clamped to 6:72pt range).
 	 */
 	public function sync_config( array $colors, bool $is_rtl, string $font_name, int $font_size ): void {
 		// Validate required color keys exist after filter application.
@@ -494,7 +494,7 @@ class SScribe_DOCX_Content_Renderer {
 	 * @param array   $element Paragraph element data.
 	 */
 	private function render_paragraph( Section $section, array $element ): void {
-		// Empty paragraphs serve as visual spacers in HTML — preserve
+		// Empty paragraphs serve as visual spacers in HTML : preserve
 		// the spacing by adding a text break rather than dropping silently.
 		if ( empty( $element['runs'] ) ) {
 			$section->addTextBreak();
@@ -809,7 +809,7 @@ class SScribe_DOCX_Content_Renderer {
 						)
 					)
 				);
-				// PHPWord Cell does not have addLink() — add TextRun first, then addLink on it.
+				// PHPWord Cell does not have addLink() : add TextRun first, then addLink on it.
 				$link_run = $cell->addTextRun(
 					$this->get_para_style( array( 'alignment' => Jc::CENTER ) )
 				);

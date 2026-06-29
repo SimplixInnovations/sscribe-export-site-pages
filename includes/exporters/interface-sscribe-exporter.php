@@ -36,7 +36,7 @@ if ( ! defined( 'ABSPATH' ) ) {
  *
  * Implementations must return a {@see SScribe_Result} on every code path.
  * The batch processor and the {@see SScribe_Export_All_Formats_Wrapper}
- * both rely on a non-throwing contract — `export()` should catch
+ * both rely on a non-throwing contract : `export()` should catch
  * internal exceptions and surface them as
  * {@see SScribe_Result::failure()} instead.
  *

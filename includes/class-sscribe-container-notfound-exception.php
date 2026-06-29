@@ -4,7 +4,7 @@
  *
  * Thrown **exclusively** by {@see SScribe_Container::get()} /
  * `::resolve()` when the requested service id has no registered factory
- * — i.e. it is the SScribe-container equivalent of the Psr\Container
+ * : i.e. it is the SScribe-container equivalent of the Psr\Container
  * `NotFoundExceptionInterface`. Catching this specific class is the
  * supported way to distinguish "the service is not registered" from
  * other container failures.
@@ -18,14 +18,14 @@
  *     try {
  *         $svc = $container->get( 'sscribe.foo' );
  *     } catch ( SScribe_Container_NotFound_Exception $e ) {
- *         // service is not registered — caller can decide to register,
+ *         // service is not registered : caller can decide to register,
  *         // fall back to a default, or surface a user-facing message.
  *     } catch ( SScribe_Container_Exception $e ) {
- *         // factory blew up — surface as an unrecoverable internal error.
+ *         // factory blew up : surface as an unrecoverable internal error.
  *     }
  *
- * Extends {@see \RuntimeException} directly — does not implement any
- * external interface — so the class loads cleanly on production
+ * Extends {@see \RuntimeException} directly : does not implement any
+ * external interface : so the class loads cleanly on production
  * WordPress installs that have no Composer autoloader registered for
  * the Psr\Container namespace. Generic `\RuntimeException` catches
  * continue to work.

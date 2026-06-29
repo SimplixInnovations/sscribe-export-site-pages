@@ -30,10 +30,10 @@ use SScribeVendor\PhpOffice\PhpWord\SimpleType\Jc;
  * `includes/exporters/`. The four public format exporters each manage
  * their own format-native generation:
  *
- *  - `SScribe_DOCX_Exporter`     — PhpWord (DOCX)
- *  - `SScribe_PDF_Exporter`      — mPDF (PDF, via intermediate HTML)
- *  - `SScribe_HTML_Exporter`     — self-contained HTML page
- *  - `SScribe_Markdown_Exporter` — CommonMark
+ *  - `SScribe_DOCX_Exporter`     : PhpWord (DOCX)
+ *  - `SScribe_PDF_Exporter`      : mPDF (PDF, via intermediate HTML)
+ *  - `SScribe_HTML_Exporter`     : self-contained HTML page
+ *  - `SScribe_Markdown_Exporter` : CommonMark
  *
  * Each implements {@see SScribe_Exporter_Interface} and is the public
  * entry point for plugin consumers. This class is retained as the
@@ -45,13 +45,13 @@ use SScribeVendor\PhpOffice\PhpWord\SimpleType\Jc;
  *
  * ## Stability
  *
- * **Internal — not part of the public API.** No third-party code
+ * **Internal : not part of the public API.** No third-party code
  * should `new SScribe_Exporter()` or call its methods directly. The
  * stable contract is {@see SScribe_Exporter_Interface}; use the
  * `SScribe_Exporter_Factory` or `SScribe_Export_All_Formats_Wrapper`
  * to obtain a format exporter.
  *
- * Marked `final` to prevent extension — the dependency surface and
+ * Marked `final` to prevent extension : the dependency surface and
  * internal state are tightly coupled and not designed for subclassing.
  *
  * @package SScribe_Export_Site_Pages
@@ -319,7 +319,7 @@ final class SScribe_Exporter {
 		// to prevent oversized XML elements in DOCX. Threshold is 2048 Unicode chars
 		// to accommodate long URLs, CDNs, and affiliate links while still protecting DOCX integrity.
 		//
-		// CRITICAL: Do NOT apply this to scripts that don't use spaces — Arabic, Hebrew,
+		// CRITICAL: Do NOT apply this to scripts that don't use spaces : Arabic, Hebrew,
 		// Thai, Chinese, Japanese, Korean, and other CJK/non-space-delimited text would
 		// be silently truncated. Only truncate when the string is clearly a no-space
 		// "machine-style" payload: contains a space OR has high ASCII/digit density.
@@ -327,7 +327,7 @@ final class SScribe_Exporter {
 			$original_length = mb_strlen( $text, 'UTF-8' );
 			$text = mb_substr( $text, 0, 2048, 'UTF-8' );
 			$this->get_logger()->warning(
-				'Text truncated in safe_text — long machine-style string detected',
+				'Text truncated in safe_text : long machine-style string detected',
 				array(
 					'original_length' => $original_length,
 					'truncated_to'    => 2048,
@@ -381,7 +381,7 @@ final class SScribe_Exporter {
 			return true;
 		}
 
-		// Otherwise: assume human text in a non-Latin script — do NOT truncate.
+		// Otherwise: assume human text in a non-Latin script : do NOT truncate.
 		return false;
 	}
 
@@ -473,7 +473,7 @@ final class SScribe_Exporter {
 	 * @return bool True if blocked.
 	 */
 	private function is_ip_blocked( string $host ): bool {
-		// Standard dotted-quad / IPv6 — block if private/reserved.
+		// Standard dotted-quad / IPv6 : block if private/reserved.
 		if ( filter_var( $host, FILTER_VALIDATE_IP ) !== false ) {
 			return filter_var( $host, FILTER_VALIDATE_IP, FILTER_FLAG_NO_PRIV_RANGE | FILTER_FLAG_NO_RES_RANGE ) === false;
 		}
@@ -858,7 +858,7 @@ final class SScribe_Exporter {
 				return $output_path;
 			}
 
-			// Deep XML validation — only in debug mode.
+			// Deep XML validation : only in debug mode.
 			$xml_valid = true;
 			$zip_xml   = null;
 			if ( $has_document ) {
@@ -907,7 +907,7 @@ final class SScribe_Exporter {
 			// $has_document and $has_types guaranteed true here (early throw above).
 			// Only $xml_valid may be false when debug mode is enabled.
 			if ( ! $xml_valid ) {
-				// Do NOT call wp_delete_file() here — the outer catch (\Throwable $e) at
+				// Do NOT call wp_delete_file() here : the outer catch (\Throwable $e) at
 				// line 685 handles file cleanup with a file_exists() guard. Calling it here
 				// would result in a redundant delete attempt on an already-deleted file.
 				unset( $writer, $php_word );
@@ -1419,7 +1419,7 @@ final class SScribe_Exporter {
 			$section->addText(
 				/* translators: Instructions for updating the Table of Contents field in Microsoft Word and LibreOffice. */
 
-				__( 'To update the Table of Contents: Microsoft Word — right-click → Update Field. LibreOffice — press F9 or select Tools → Update → All Fields.', 'sscribe-export-site-pages' ),
+				__( 'To update the Table of Contents: Microsoft Word : right-click → Update Field. LibreOffice : press F9 or select Tools → Update → All Fields.', 'sscribe-export-site-pages' ),
 				array(
 					'name'   => $this->font_name,
 					'size'   => 9,
@@ -1933,8 +1933,8 @@ final class SScribe_Exporter {
 	 * Get cached site name (via get_bloginfo('name')), populating
 	 * the cache on first call.
 	 *
-	 * Returning a memoized string avoids running get_bloginfo() —
-	 * which fetches options and applies a long filter chain — once
+	 * Returning a memoized string avoids running get_bloginfo() :
+	 * which fetches options and applies a long filter chain : once
 	 * per DOCX page. Without this, set_document_properties(),
 	 * add_cover_page(), and add_header_footer() each issue an
 	 * identical get_bloginfo() call, multiplying cost by 3 per page.

@@ -33,7 +33,7 @@ if ( ! defined( 'ABSPATH' ) ) {
 }
 
 /**
- * Finalize the export pipeline — package files into the final ZIP.
+ * Finalize the export pipeline : package files into the final ZIP.
  */
 trait SScribe_Export_Finalizer {
 
@@ -144,7 +144,7 @@ trait SScribe_Export_Finalizer {
 
 			$lock_token = $this->get_lock_manager()->acquire_lock( $session_id, $lock_ttl, (int) ( $lock_ttl * 0.85 ) );
 		if ( null === $lock_token ) {
-			$this->logger->debug( 'Finalize race detected — another request holds the lock', array( 'session_id' => $session_id ) );
+			$this->logger->debug( 'Finalize race detected : another request holds the lock', array( 'session_id' => $session_id ) );
 			SScribe_AJAX_Guard::error(
 				array(
 					'code'    => 'race_detected',
@@ -208,7 +208,7 @@ trait SScribe_Export_Finalizer {
 	 * @param string|null $lock_token Optional lock token to release on completion.
 	 */
 	private function finalize_export( string $session_id, array $session, ?string $lock_token = null ): void {
-		// Clear shutdown cleanup tracking — finalize_export handles temp_dir cleanup itself.
+		// Clear shutdown cleanup tracking : finalize_export handles temp_dir cleanup itself.
 		self::$cleanup_temp_dir    = null;
 		self::$cleanup_zip_handler = null;
 		self::$cleanup_logger      = null;
@@ -318,7 +318,7 @@ trait SScribe_Export_Finalizer {
 			$total_generated_files = array_sum( $files_before );
 			if ( 0 === $total_generated_files ) {
 				$this->logger->debug(
-					'No files generated — all pages likely failed',
+					'No files generated : all pages likely failed',
 					array(
 						'temp_dir' => $session['temp_dir'],
 						'formats'  => $formats,
@@ -326,7 +326,7 @@ trait SScribe_Export_Finalizer {
 				);
 
 				if ( $this->export_log ) {
-					$this->export_log->mark_failed( 'No files generated — all pages failed' );
+					$this->export_log->mark_failed( 'No files generated : all pages failed' );
 					$this->export_log->flush();
 				}
 
@@ -341,7 +341,7 @@ trait SScribe_Export_Finalizer {
 
 				SScribe_AJAX_Guard::error(
 					array(
-						'message'   => __( 'No files were generated — all pages failed to export. Check the export format selected and try again.', 'sscribe-export-site-pages' ),
+						'message'   => __( 'No files were generated : all pages failed to export. Check the export format selected and try again.', 'sscribe-export-site-pages' ),
 						'guidance'  => __( 'If you selected PDF format, verify that the PDF export works before running a bulk export. Try exporting a single page first.', 'sscribe-export-site-pages' ),
 						'fix_steps' => array(
 							__( 'Select DOCX, HTML, or Markdown format instead of PDF-only.', 'sscribe-export-site-pages' ),
@@ -433,7 +433,7 @@ trait SScribe_Export_Finalizer {
 			if ( true === $zip_open ) {
 				// Count only actual file entries (not directory entries which end with '/').
 				$total_files_zip = 0;
-				// `numFiles` is the camelCase property on PHP's ZipArchive class — we
+				// `numFiles` is the camelCase property on PHP's ZipArchive class : we
 				// cannot rename it, so suppress the snake_case sniff for this access.
 				// phpcs:ignore WordPress.NamingConventions.ValidVariableName.UsedPropertyNotSnakeCase
 				$zip_file_count = $zip->numFiles;
@@ -485,7 +485,7 @@ trait SScribe_Export_Finalizer {
 
 				SScribe_AJAX_Guard::error(
 					array(
-						'message'   => __( 'Export packaging failed — the ZIP archive was empty. Please try again.', 'sscribe-export-site-pages' ),
+						'message'   => __( 'Export packaging failed : the ZIP archive was empty. Please try again.', 'sscribe-export-site-pages' ),
 						'guidance'  => __( 'This can happen if temporary export files were deleted before packaging completed. Click "Try Again" to restart the export.', 'sscribe-export-site-pages' ),
 						'fix_steps' => array(
 							__( 'Click "Try Again" to restart the export.', 'sscribe-export-site-pages' ),
@@ -589,7 +589,7 @@ trait SScribe_Export_Finalizer {
 			if ( $expected_file_count > 0 && $total_files_zip < $expected_file_count ) {
 				$zip_warning = sprintf(
 					/* translators: 1: Number of files expected, 2: Number of files found in the ZIP archive. */
-					__( 'Warning: ZIP may be incomplete — expected %1$d files, found %2$d in archive.', 'sscribe-export-site-pages' ),
+					__( 'Warning: ZIP may be incomplete : expected %1$d files, found %2$d in archive.', 'sscribe-export-site-pages' ),
 					$expected_file_count,
 					$total_files_zip
 				);

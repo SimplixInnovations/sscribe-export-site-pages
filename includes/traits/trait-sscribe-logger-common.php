@@ -18,12 +18,12 @@ if ( ! defined( 'ABSPATH' ) ) {
  *
  * Provides the PSR-3-style level dispatch methods (debug/info/notice/
  * warning/error/critical/alert/emergency) plus a session-id setter.
- * Each method is a one-line `$this->log()` call — the subclass's
+ * Each method is a one-line `$this->log()` call : the subclass's
  * `log()` implementation does the actual filtering, formatting, and
  * persistence.
  *
  * Subclasses MUST declare a `$session_id` property (string|null) for
- * `set_session_id()` and `get_context_enrichment()` to work — this
+ * `set_session_id()` and `get_context_enrichment()` to work : this
  * matches what each subclass already does, so no class change is
  * needed beyond removing the now-duplicated methods.
  */
@@ -72,7 +72,7 @@ trait SScribe_Logger_Common {
 	/**
 	 * Set the current session ID for log correlation.
 	 *
-	 * Shared across all logger implementations — the property is
+	 * Shared across all logger implementations : the property is
 	 * expected to be declared on the using class.
 	 *
 	 * @param string $session_id Unique session identifier.

@@ -10,7 +10,7 @@
 declare(strict_types=1);
 
 // Note: The only ZipArchive camelCase property in this file (`numFiles`) is
-// silenced at the point of use with a `phpcs:ignore` comment — see below.
+// silenced at the point of use with a `phpcs:ignore` comment : see below.
 
 if ( ! defined( 'ABSPATH' ) ) {
 	exit;
@@ -27,13 +27,13 @@ use SScribe_Result as SScribe_Export_Result;
 /**
  * Handles batch export processing with rate limiting and resource monitoring.
  *
- * Marked `final` to prevent extension — the dependency surface is large
+ * Marked `final` to prevent extension : the dependency surface is large
  * (12+ collaborators) and extension by third parties would be a support
  * liability. For custom batch behavior, register additional WP hooks
  * (e.g. {@see sscribe_after_export_page}) instead of subclassing.
  *
  * The actual methods are spread across four traits so each file stays
- * scannable — the four traits group behaviour by responsibility:
+ * scannable : the four traits group behaviour by responsibility:
  *
  *  - SScribe_Batch_Step_Handler  : ajax_process_batch + the two
  *                                  helpers it uses exclusively
@@ -315,7 +315,7 @@ final class SScribe_Batch_Processor {
 			);
 		}
 
-		// Warn if reported size differs from actual size by more than 10% — possible truncation or metadata issue.
+		// Warn if reported size differs from actual size by more than 10% : possible truncation or metadata issue.
 		if ( $file_size > 0 ) {
 			$size_diff_ratio = abs( $actual_size - $file_size ) / $file_size;
 			if ( $size_diff_ratio > 0.10 ) {
@@ -367,7 +367,7 @@ final class SScribe_Batch_Processor {
 			// Resolve the per-format options for this page. Exposed via the
 			// dynamic `sscribe_export_options_{$format}` filter so third-party
 			// integrations can opt in without modifying the plugin. Then push
-			// the resolved options onto the exporter instance — built-in
+			// the resolved options onto the exporter instance : built-in
 			// exporters implement apply_format_options(); method_exists()
 			// keeps third-party exporters that don't yet support it working.
 			$format_options = array();
@@ -394,7 +394,7 @@ final class SScribe_Batch_Processor {
 			// Forward the resolved options to the exporter. Built-in
 			// exporters (PDF, DOCX, Markdown, HTML) implement this method;
 			// method_exists() keeps third-party exporters that don't yet
-			// support it working — they fall back to their defaults.
+			// support it working : they fall back to their defaults.
 			if ( method_exists( $exporter, 'apply_format_options' ) ) {
 				$exporter->apply_format_options( $format_options );
 			}
@@ -406,7 +406,7 @@ final class SScribe_Batch_Processor {
 			// `$temp_dir/$LANG/` so the ZIP handler can place files into
 			// `FORMAT/LANG/page.ext` directly, with no filename-suffix
 			// gymnastics. `ALL` is the catch-all for pages with no
-			// detectable language — the ZIP handler treats it like any
+			// detectable language : the ZIP handler treats it like any
 			// other lang code (no special validation).
 			$page_lang_raw = isset( $page_data['language'] ) ? (string) $page_data['language'] : '';
 			$page_lang_key = '' !== $page_lang_raw ? sanitize_key( substr( $page_lang_raw, 0, 2 ) ) : '';
@@ -439,7 +439,7 @@ final class SScribe_Batch_Processor {
 					break;
 				}
 
-				// Do not retry after the final attempt — accept current result as-is.
+				// Do not retry after the final attempt : accept current result as-is.
 				if ( $attempt >= self::MAX_RETRIES - 1 ) {
 					break;
 				}
@@ -933,7 +933,7 @@ final class SScribe_Batch_Processor {
 		$formats       = ! empty( $formats_input ) ? $formats_input : self::DEFAULT_FORMATS;
 		if ( empty( $formats_input ) ) {
 			$this->logger->debug(
-				'No formats supplied in AJAX request — falling back to DEFAULT_FORMATS',
+				'No formats supplied in AJAX request : falling back to DEFAULT_FORMATS',
 				array( 'default_formats' => self::DEFAULT_FORMATS )
 			);
 		}
@@ -949,7 +949,7 @@ final class SScribe_Batch_Processor {
 
 		if ( empty( $formats ) ) {
 			$this->logger->debug(
-				'All requested formats failed is_supported() check — falling back to DEFAULT_FORMATS',
+				'All requested formats failed is_supported() check : falling back to DEFAULT_FORMATS',
 				array(
 					'rejected_input' => $formats_input,
 					'default_formats' => self::DEFAULT_FORMATS,
@@ -1129,7 +1129,7 @@ final class SScribe_Batch_Processor {
 			$active_sid = get_transient( 'sscribe_active_sid_' . $user_id );
 			if ( $active_sid !== $session_id && is_string( $active_sid ) && '0' !== $active_sid ) {
 				$this->logger->warning(
-					'Concurrent session creation detected — cleaning up duplicate',
+					'Concurrent session creation detected : cleaning up duplicate',
 					array(
 						'user_id'         => $user_id,
 						'our_session'     => $session_id,
@@ -1139,7 +1139,7 @@ final class SScribe_Batch_Processor {
 				$this->session->delete( $session_id );
 				if ( ! empty( $temp_dir ) && is_dir( $temp_dir ) ) {
 					$this->zip_handler->delete_directory( $temp_dir );
-					// Same as above — keep the shutdown handler state in
+					// Same as above : keep the shutdown handler state in
 					// sync so it does not try to clean up an already-gone
 					// temp dir.
 					self::$cleanup_temp_dir = null;
@@ -1334,7 +1334,7 @@ final class SScribe_Batch_Processor {
 	}
 
 	/**
-	 * Static shutdown handler — cleans up any orphaned temp directory if the
+	 * Static shutdown handler : cleans up any orphaned temp directory if the
 	 * export was interrupted before finalize_export() could run.
 	 *
 	 * Registered once per process via register_shutdown_function() in __construct.
