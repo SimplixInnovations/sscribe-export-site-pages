@@ -5,18 +5,9 @@
  * Owns the three AJAX endpoints that mutate or query session
  * state: check active session, cancel export, clear session.
  *
- * Extracted from SScribe_Batch_Session_Handler (now removed) and
- * folded into SScribe_Session so that all session state AND all
- * session-mutating endpoints live in one class — eliminating the
- * dual-ownership race where the cancel endpoint could mutate
- * state concurrently with a running batch iteration.
- *
- * The cancel race fix lives in ajax_cancel_export(): the
- * mutation phase is wrapped in acquire_lock() / release_lock()
- * so it can never run concurrently with a batch that holds the
- * same export lock. The batch's next acquire_lock will fail
- * after cancel completes, returning a 429 to the client and
- * effectively terminating the batch.
+ * ajax_cancel_export() acquires the export lock before mutating
+ * session state so the cancel phase cannot run concurrently
+ * with a batch iteration that holds the same lock.
  *
  * Using classes MUST provide lazy accessors for these
  * collaborators (see SScribe_Session for the canonical
@@ -27,8 +18,8 @@
  *   - get_zip_handler()       → SScribe_Zip_Handler
  *   - get_lock_manager()      → SScribe_Export_Lock_Manager
  *
- * Plus the standard SScribe_Batch_Session_Helpers trait
- * (for get_required_capability() and check_rate_limit()).
+ * Plus SScribe_Batch_Session_Helpers for
+ * get_required_capability() and check_rate_limit().
  *
  * @package SScribe_Export_Site_Pages
  * @license GPL v2 or later
