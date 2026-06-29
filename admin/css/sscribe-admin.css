@@ -808,6 +808,8 @@ body .sscribe-master-container .sscribe-hero::before {
 	font-weight: 600;
 	font-size: var(--sscribe-text-sm);
 	color: var(--sscribe-text-heading);
+	font-family: var(--sscribe-font-display, inherit);
+	letter-spacing: -0.011em;
 	white-space: nowrap;
 	overflow: hidden;
 	text-overflow: ellipsis;
@@ -1025,10 +1027,11 @@ body .sscribe-master-container .sscribe-hero::before {
 	font-weight: 600;
 	font-size: 13px;
 	color: var(--sscribe-text-main);
+	font-family: var(--sscribe-font-display, inherit);
 	white-space: nowrap;
 	overflow: hidden;
 	text-overflow: ellipsis;
-	letter-spacing: -0.01em;
+	letter-spacing: -0.011em;
 }
 
 .sscribe-format-desc {
@@ -1260,7 +1263,8 @@ body .sscribe-master-container .sscribe-hero::before {
 	font-weight: 600;
 	color: var(--sscribe-text-main);
 	font-size: 14px;
-	letter-spacing: -0.01em;
+	font-family: var(--sscribe-font-display, inherit);
+	letter-spacing: -0.011em;
 	white-space: nowrap;
 	overflow: hidden;
 	text-overflow: ellipsis;
@@ -4031,11 +4035,13 @@ body .sscribe-master-container .sscribe-hero::before {
 
 .sscribe-post-type-name {
 	font-weight: 600;
+	font-size: 13px;
 	color: var(--sscribe-text-main);
+	font-family: var(--sscribe-font-display, inherit);
 	white-space: nowrap;
 	overflow: hidden;
 	text-overflow: ellipsis;
-	letter-spacing: -0.01em;
+	letter-spacing: -0.011em;
 }
 
 .sscribe-post-type-meta .sscribe-post-type-count {
