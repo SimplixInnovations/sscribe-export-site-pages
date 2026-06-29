@@ -109,7 +109,7 @@ The bundled Amiri font family (assets/fonts/amiri/) is licensed under the SIL Op
 
 == Installation from GitHub Release ZIP ==
 
-If you downloaded the plugin from the GitHub Releases page, the ZIP already contains a pre-built `vendor-prefixed/` directory with the namespaced PhpWord and mPDF libraries. No additional build step is required — just upload and activate.
+If you downloaded the plugin from the GitHub Releases page, the ZIP already contains a pre-built `vendor-prefixed/` directory with the namespaced PhpWord and mPDF libraries. No additional build step is required : just upload and activate.
 
 If you cloned the repository directly, you must run the following once before activating the plugin:
 
@@ -176,9 +176,9 @@ When remaining memory drops below this, the mPDF exporter aborts with a `SScribe
 
 The following classes are part of the public API and may be used by extension plugins:
 
-* `SScribe_Export_All_Formats_Wrapper` — static `export_page()` for fan-out exports to every supported format in a single call, with per-format error isolation. See `docs/extension-points.md` for usage.
-* `SScribe_Exporter_Factory` — `create( string $format )` to construct a specific exporter.
-* `SScribe_Exporter_Interface` — the contract every exporter implements; third-party exporters can plug in by extending the factory.
+* `SScribe_Export_All_Formats_Wrapper` : static `export_page()` for fan-out exports to every supported format in a single call, with per-format error isolation. See `docs/extension-points.md` for usage.
+* `SScribe_Exporter_Factory` : `create( string $format )` to construct a specific exporter.
+* `SScribe_Exporter_Interface` : the contract every exporter implements; third-party exporters can plug in by extending the factory.
 
 == Actions ==
 
