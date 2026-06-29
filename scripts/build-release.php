@@ -246,6 +246,33 @@ function strip_css_comments( string $source ): string {
 	return $out;
 }
 
+/**
+ * Strip non-docblock comments from JS source.
+ *
+ * Matches the spirit of the zip-no-comments-rule:
+ * preserve /*! license banners and /* eslint pragmas,
+ * drop everything else (line //, block /* *\/) while
+ * keeping /* *\/ (jsdoc) and /*! *\/ (license).
+ */
+function strip_js_comments( string $source ): string {
+	// Drop block /* ... */ that is NOT /*! or /** (preserves license + jsdoc).
+	$out = preg_replace( '#/\*(?![*!]).*?\*/#s', '', $source );
+	if ( null === $out ) {
+		return $source;
+	}
+	// Drop line // comments (NOT inside strings; same regex approach as strip_php_comments' pragmatic pass).
+	$out = preg_replace( '#(?<![:"\'`])//[^\n]*#', '', $out );
+	if ( null === $out ) {
+		return $source;
+	}
+	// Collapse runs of blank lines.
+	$out = preg_replace( '/\n\s*\n/', "\n", $out );
+	if ( null === $out ) {
+		return $source;
+	}
+	return $out;
+}
+
 function run_tests( string $root ): bool {
 	echo "  🧪 Running PHPUnit tests...\n";
 
@@ -484,6 +511,9 @@ foreach ( $iterator as $file ) {
 			} elseif ( 'css' === $ext ) {
 				$src = file_get_contents( $file->getPathname() );
 				file_put_contents( $dest, strip_css_comments( $src ) );
+			} elseif ( 'js' === $ext ) {
+				$src = file_get_contents( $file->getPathname() );
+				file_put_contents( $dest, strip_js_comments( $src ) );
 			} else {
 				copy( $file->getPathname(), $dest );
 			}
@@ -497,7 +527,7 @@ foreach ( $iterator as $file ) {
 echo "     ✅ Copied: $copied files\n";
 
 if ( $config['strip_comments'] ) {
-	echo "  🧹 Stripping non-docblock comments from PHP / CSS files...\n";
+	echo "  🧹 Stripping non-docblock comments from PHP / CSS / JS files...\n";
 }
 
 echo "  Pruning vendor development files...\n";
