@@ -54,7 +54,7 @@ class SScribe_Diagnostics {
 	}
 
 	/**
-	 * Get comprehensive support information.
+	 * Get site + plugin support snapshot for the diagnostics export.
 	 *
 	 * @return array
 	 */

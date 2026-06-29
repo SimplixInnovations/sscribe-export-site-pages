@@ -386,7 +386,7 @@ trait SScribe_Session_AJAX {
 	/**
 	 * Get the logger (used by ajax_clear_session and
 	 * cleanup_cancelled_export). Concrete classes using this
-	 * trait MUST override this method.
+	 * trait MUST override get_logger().
 	 *
 	 * @return \SScribe_Logger_Interface
 	 */

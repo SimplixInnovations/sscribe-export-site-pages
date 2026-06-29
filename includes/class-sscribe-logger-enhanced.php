@@ -480,8 +480,8 @@ class SScribe_Logger_Enhanced extends SScribe_Logger {
 	/**
 	 * Get log entries from database with optional filters.
 	 *
-	 * Note: This method returns raw database row objects, not formatted strings.
-	 * For formatted string output, use get_logs() which calls this method internally.
+	 * Note: returns raw database row objects, not formatted strings.
+	 * For formatted string output, use get_logs() which calls fetch_logs() internally.
 	 *
 	 * @param array $filters Filter criteria (level, user_id, date_from, date_to).
 	 * @param int   $limit   Maximum number of entries.

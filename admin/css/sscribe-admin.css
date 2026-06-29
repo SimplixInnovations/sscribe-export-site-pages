@@ -877,10 +877,6 @@ body .sscribe-master-container .sscribe-hero::before {
 	content: '';
 	position: absolute;
 	inset: 0;
-		135deg,
-		rgb(var(--sscribe-primary-rgb) / 5%) 0%,
-		rgb(var(--sscribe-primary-rgb) / 0%) 60%
-	);
 	opacity: 0;
 	transition: opacity var(--sscribe-transition-normal);
 	pointer-events: none;
@@ -1007,10 +1003,6 @@ body .sscribe-master-container .sscribe-hero::before {
 }
 
 .sscribe-format-all .sscribe-format-card-inner::before {
-		135deg,
-		rgb(var(--sscribe-primary-rgb) / 8%) 0%,
-		rgb(var(--sscribe-primary-rgb) / 0%) 60%
-	);
 	opacity: 1;
 }
 
@@ -1074,10 +1066,6 @@ body .sscribe-master-container .sscribe-hero::before {
 	content: '';
 	position: absolute;
 	inset: 0;
-		135deg,
-		rgb(var(--sscribe-primary-rgb) / 5%) 0%,
-		rgb(var(--sscribe-primary-rgb) / 0%) 60%
-	);
 	opacity: 0;
 	transition: opacity var(--sscribe-transition-normal);
 	pointer-events: none;
@@ -1229,10 +1217,6 @@ body .sscribe-master-container .sscribe-hero::before {
 }
 
 .sscribe-lang-card-all .sscribe-lang-card-inner::before {
-		135deg,
-		rgb(var(--sscribe-primary-rgb) / 8%) 0%,
-		rgb(var(--sscribe-primary-rgb) / 0%) 60%
-	);
 	opacity: 1;
 }
 
@@ -1612,11 +1596,7 @@ body .sscribe-master-container .sscribe-hero::before {
 	position: absolute;
 	inset: 0 0 auto;
 	height: 1px;
-		90deg,
-		transparent 0%,
-		rgb(255 255 255 / 60%) 50%,
 		transparent 100%
-	);
 	pointer-events: none;
 }
 
@@ -1903,11 +1883,7 @@ body .sscribe-master-container .sscribe-hero::before {
 	content: '';
 	position: absolute;
 	inset: 0;
-		90deg,
-		rgb(255 255 255 / 0%) 0%,
-		rgb(255 255 255 / 40%) 50%,
 		rgb(255 255 255 / 0%) 100%
-	);
 	background-size: 200% 100%;
 	animation: sscribe-progress-shimmer 1.8s linear infinite;
 	opacity: 0.7;
@@ -1917,10 +1893,7 @@ body .sscribe-master-container .sscribe-hero::before {
 	content: '';
 	position: absolute;
 	inset: 0 0 1px;
-		180deg,
-		rgb(255 255 255 / 30%) 0%,
 		rgb(255 255 255 / 0%) 100%
-	);
 	border-radius: 999px 999px 0 0;
 	pointer-events: none;
 }
@@ -2076,11 +2049,6 @@ body .sscribe-master-container .sscribe-hero::before {
 	position: absolute;
 	inset: 0 0 auto;
 	height: 1px;
-		90deg,
-		rgb(var(--sscribe-primary-rgb) / 0%) 0%,
-		rgb(var(--sscribe-primary-rgb) / 60%) 50%,
-		rgb(var(--sscribe-primary-rgb) / 0%) 100%
-	);
 }
 
 .sscribe-bulk-left {
@@ -2228,10 +2196,8 @@ body .sscribe-master-container .sscribe-hero::before {
 	position: absolute;
 	inset: 0 auto 0 0;
 	width: 3px;
-		180deg,
 		var(--sscribe-primary) 0%,
 		var(--sscribe-primary-soft) 100%
-	);
 	transform: scaleY(0);
 	transform-origin: center;
 	transition: transform var(--sscribe-transition-fast);
@@ -2240,10 +2206,6 @@ body .sscribe-master-container .sscribe-hero::before {
 }
 
 .sscribe-history-row:hover {
-		90deg,
-		rgb(var(--sscribe-primary-rgb) / 4%) 0%,
-		rgb(var(--sscribe-primary-rgb) / 0%) 70%
-	);
 }
 
 .sscribe-history-row:hover::before {
@@ -2340,10 +2302,6 @@ body .sscribe-master-container .sscribe-hero::before {
 }
 
 .sscribe-history-row.sscribe-row-selected {
-		90deg,
-		rgb(var(--sscribe-primary-rgb) / 8%) 0%,
-		rgb(var(--sscribe-primary-rgb) / 2%) 70%
-	);
 }
 
 .sscribe-history-row.sscribe-row-selected::before {
@@ -2373,10 +2331,6 @@ body .sscribe-master-container .sscribe-hero::before {
 .sscribe-file-icon {
 	width: 42px;
 	height: 42px;
-		135deg,
-		rgb(var(--sscribe-primary-rgb) / 12%) 0%,
-		rgb(var(--sscribe-primary-rgb) / 4%) 100%
-	);
 	color: var(--sscribe-primary);
 	border-radius: var(--sscribe-radius-lg);
 	display: flex;
@@ -2391,10 +2345,6 @@ body .sscribe-master-container .sscribe-hero::before {
 
 .sscribe-history-row:hover .sscribe-file-icon {
 	transform: scale(1.04) rotate(-2deg);
-		135deg,
-		rgb(var(--sscribe-primary-rgb) / 18%) 0%,
-		rgb(var(--sscribe-primary-rgb) / 6%) 100%
-	);
 }
 
 .sscribe-history-row.sscribe-row-selected .sscribe-file-icon {
@@ -2491,11 +2441,6 @@ body .sscribe-master-container .sscribe-hero::before {
 	width: 40px;
 	height: 2px;
 	margin: 18px auto 0;
-		90deg,
-		rgb(var(--sscribe-primary-rgb) / 0%) 0%,
-		rgb(var(--sscribe-primary-rgb) / 60%) 50%,
-		rgb(var(--sscribe-primary-rgb) / 0%) 100%
-	);
 }
 
 .sscribe-history-notice {
@@ -2514,11 +2459,8 @@ body .sscribe-master-container .sscribe-hero::before {
 	position: absolute;
 	inset: 0 0 auto;
 	height: 1px;
-		90deg,
-		transparent 0%,
 		rgb(var(--sscribe-primary-rgb) / 35%) 50%,
 		transparent 100%
-	);
 }
 
 .sscribe-history-notice p {
@@ -3107,10 +3049,6 @@ body .sscribe-master-container .sscribe-hero::before {
 }
 
 .sscribe-log-table tbody tr:hover td {
-		90deg,
-		rgb(var(--sscribe-primary-rgb) / 4%) 0%,
-		rgb(var(--sscribe-primary-rgb) / 0%) 70%
-	);
 }
 
 .sscribe-log-table tbody tr:last-child td {
@@ -3494,10 +3432,6 @@ body .sscribe-master-container .sscribe-hero::before {
 	content: '';
 	position: absolute;
 	inset: 0;
-		135deg,
-		rgb(var(--sscribe-primary-rgb) / 5%) 0%,
-		rgb(var(--sscribe-primary-rgb) / 0%) 60%
-	);
 	opacity: 0;
 	transition: opacity var(--sscribe-transition-normal);
 	pointer-events: none;
@@ -3668,10 +3602,6 @@ body .sscribe-master-container .sscribe-hero::before {
 }
 
 .sscribe-config-section:hover {
-		180deg,
-		rgb(var(--sscribe-primary-rgb) / 1.5%) 0%,
-		rgb(var(--sscribe-primary-rgb) / 0%) 60%
-	);
 }
 
 .sscribe-section-title {
@@ -4210,11 +4140,8 @@ body .sscribe-master-container .sscribe-hero::before {
 	position: absolute;
 	inset: auto 0 -1px;
 	height: 1px;
-		90deg,
-		transparent 0%,
 		rgb(var(--sscribe-warning-rgb, 234 179 8) / 40%) 50%,
 		transparent 100%
-	);
 }
 
 .sscribe-preflight-icon {
@@ -4552,11 +4479,7 @@ body .sscribe-master-container .sscribe-hero::before {
 	content: '';
 	position: absolute;
 	inset: 0;
-		90deg,
-		rgb(255 255 255 / 0%) 0%,
-		rgb(255 255 255 / 50%) 50%,
 		rgb(255 255 255 / 0%) 100%
-	);
 	background-size: 200% 100%;
 	animation: sscribe-skeleton-shimmer 1.6s linear infinite;
 	mix-blend-mode: overlay;
@@ -4595,10 +4518,6 @@ body .sscribe-master-container .sscribe-hero::before {
 	position: absolute;
 	inset: 0 auto 0 0;
 	width: 3px;
-		180deg,
-		rgb(var(--sscribe-primary-rgb) / 30%) 0%,
-		rgb(var(--sscribe-primary-rgb) / 0%) 100%
-	);
 	opacity: 0.4;
 }
 
@@ -4747,11 +4666,6 @@ body .sscribe-master-container .sscribe-hero::before {
 	position: absolute;
 	inset: 0 0 auto;
 	height: 1px;
-		90deg,
-		rgb(var(--sscribe-primary-rgb) / 0%) 0%,
-		rgb(var(--sscribe-primary-rgb) / 30%) 50%,
-		rgb(var(--sscribe-primary-rgb) / 0%) 100%
-	);
 }
 
 .sscribe-terminal-header {
@@ -4872,10 +4786,6 @@ body .sscribe-master-container .sscribe-hero::before {
 .sscribe-progress-initializing {
 	/* stylelint-disable-next-line declaration-no-important -- Override the bar's width: 100% / scaleX(0) so the stripes are visible while the percentage is unknown. */
 	width: 100% !important;
-		-45deg,
-		var(--sscribe-primary) 0 10px,
-		rgb(var(--sscribe-success-rgb) / 60%) 10px 20px
-	);
 	background-size: 40px 40px;
 	animation: sscribe-progress-stripes 1s linear infinite;
 	/* stylelint-disable-next-line declaration-no-important -- Override the JS's transform: scaleX(0) so the bar is visible while indeterminate. */
