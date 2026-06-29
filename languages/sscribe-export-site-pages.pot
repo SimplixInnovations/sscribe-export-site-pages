@@ -309,7 +309,7 @@ msgid "Your WordPress user role does not have the required capability (sscribe_e
 msgstr ""
 
 #: admin/class-sscribe-admin.php:384
-msgid "The export session was lost — this typically happens when the PHP session or database connection timed out. Click \"Try Again\" to start a fresh export. If this keeps happening, ask your hosting provider to increase the PHP max_execution_time (recommended: 120s or higher)."
+msgid "The export session was lost : this typically happens when the PHP session or database connection timed out. Click \"Try Again\" to start a fresh export. If this keeps happening, ask your hosting provider to increase the PHP max_execution_time (recommended: 120s or higher)."
 msgstr ""
 
 #: admin/class-sscribe-admin.php:385
@@ -361,7 +361,7 @@ msgid "Click \"Try Again\" to retry the export. If the problem continues: refres
 msgstr ""
 
 #: admin/class-sscribe-admin.php:397
-msgid "Connection lost — the server did not respond. Please check your internet connection and try again."
+msgid "Connection lost : the server did not respond. Please check your internet connection and try again."
 msgstr ""
 
 #: admin/class-sscribe-admin.php:398
@@ -369,7 +369,7 @@ msgid "Access denied (HTTP 403). A security plugin or firewall may be blocking t
 msgstr ""
 
 #: admin/class-sscribe-admin.php:399
-msgid "Internal server error (HTTP 500). The server encountered a problem — check your PHP error log for details."
+msgid "Internal server error (HTTP 500). The server encountered a problem : check your PHP error log for details."
 msgstr ""
 
 #: admin/class-sscribe-admin.php:400
@@ -385,7 +385,7 @@ msgid "Gateway timeout (HTTP 504). The request took too long to process. Ask you
 msgstr ""
 
 #: admin/class-sscribe-admin.php:403
-msgid "Request timed out — the server took too long to respond. This may happen with large exports. Please try again."
+msgid "Request timed out : the server took too long to respond. This may happen with large exports. Please try again."
 msgstr ""
 
 #. translators: %d: HTTP status code
@@ -1035,7 +1035,7 @@ msgid "Activation aborted: required runtime dependencies are missing. Run \"comp
 msgstr ""
 
 #: includes/class-sscribe-batch-file-handler.php:77
-msgid "Security check failed. The download link may have expired — please refresh the page and try again."
+msgid "Security check failed. The download link may have expired : please refresh the page and try again."
 msgstr ""
 
 #: includes/class-sscribe-batch-file-handler.php:82
@@ -1305,7 +1305,7 @@ msgid "Export finalization failed. Please try again."
 msgstr ""
 
 #: includes/class-sscribe-batch-processor.php:2221
-msgid "No files were generated — all pages failed to export. Check the export format selected and try again."
+msgid "No files were generated : all pages failed to export. Check the export format selected and try again."
 msgstr ""
 
 #: includes/class-sscribe-batch-processor.php:2222
@@ -1334,7 +1334,7 @@ msgid "Failed to create ZIP package."
 msgstr ""
 
 #: includes/class-sscribe-batch-processor.php:2363
-msgid "Export packaging failed — the ZIP archive was empty. Please try again."
+msgid "Export packaging failed : the ZIP archive was empty. Please try again."
 msgstr ""
 
 #: includes/class-sscribe-batch-processor.php:2364
@@ -1357,7 +1357,7 @@ msgstr ""
 #. translators: 1: Number of files in ZIP, 2: Number of expected files.
 #: includes/class-sscribe-batch-processor.php:2467
 #, php-format
-msgid "Warning: ZIP may be incomplete — expected %1$d files, found %2$d in archive."
+msgid "Warning: ZIP may be incomplete : expected %1$d files, found %2$d in archive."
 msgstr ""
 
 #. translators: %d: Number of pages exported.
@@ -2068,7 +2068,7 @@ msgid "TABLE OF CONTENTS"
 msgstr ""
 
 #: includes/class-sscribe-exporter.php:1216
-msgid "To update the Table of Contents: Microsoft Word — right-click → Update Field. LibreOffice — press F9 or select Tools → Update → All Fields."
+msgid "To update the Table of Contents: Microsoft Word : right-click → Update Field. LibreOffice : press F9 or select Tools → Update → All Fields."
 msgstr ""
 
 #. translators: %s: page number field (e.g. "Page 1 / 10")
@@ -2400,7 +2400,7 @@ msgid "Markdown export failed for \"%1$s\": %2$s"
 msgstr ""
 
 #: includes/exporters/class-sscribe-pdf-exporter.php:103
-msgid "PDF export is not available — mPDF library is missing. Please reinstall the plugin."
+msgid "PDF export is not available : mPDF library is missing. Please reinstall the plugin."
 msgstr ""
 
 #: includes/exporters/class-sscribe-pdf-exporter.php:110
@@ -2418,7 +2418,7 @@ msgstr ""
 #. translators: 1: HTML size, 2: Page title.
 #: includes/exporters/class-sscribe-pdf-exporter.php:134
 #, php-format
-msgid "PDF render skipped — HTML content is too large (%1$s). To raise the limit, use the \"sscribe_pdf_max_html_size\" filter. Try exporting to DOCX instead, or reduce page content complexity."
+msgid "PDF render skipped : HTML content is too large (%1$s). To raise the limit, use the \"sscribe_pdf_max_html_size\" filter. Try exporting to DOCX instead, or reduce page content complexity."
 msgstr ""
 
 #: includes/exporters/class-sscribe-pdf-exporter.php:183
@@ -2432,7 +2432,7 @@ msgstr ""
 #. translators: 1: Error class, 2: Error message.
 #: includes/exporters/class-sscribe-pdf-exporter.php:295
 #, php-format
-msgid "Unable to generate PDF: %1$s — %2$s"
+msgid "Unable to generate PDF: %1$s : %2$s"
 msgstr ""
 
 #: includes/exporters/class-sscribe-pdf-exporter.php:511
