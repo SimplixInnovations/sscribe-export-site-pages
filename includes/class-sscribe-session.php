@@ -19,12 +19,10 @@ require_once SSCRIBE_PLUGIN_DIR . 'includes/traits/trait-sscribe-session-ajax.ph
 /**
  * Session management.
  *
- * Owns both the data layer (CRUD, encryption, migration, active
- * detection) and — via the SScribe_Session_AJAX trait — the three
+ * Owns the data layer (CRUD, encryption, migration, active
+ * detection) and, via the SScribe_Session_AJAX trait, the three
  * AJAX endpoints that mutate session state (check active, cancel,
- * clear). This consolidation eliminates the prior dual-ownership
- * pattern between this class and SScribe_Batch_Session_Handler
- * (now removed).
+ * clear).
  *
  * @package SScribe_Export_Site_Pages
  * @subpackage Session

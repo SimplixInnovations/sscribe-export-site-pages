@@ -3,9 +3,7 @@
  * SScribe Session AJAX Trait Unit Test
  *
  * Exercises the three AJAX endpoints (check active, cancel, clear)
- * that now live on SScribe_Session via the SScribe_Session_AJAX
- * trait. The implementation previously lived on the (now-removed)
- * SScribe_Batch_Session_Handler class.
+ * on SScribe_Session via the SScribe_Session_AJAX trait.
  *
  * @package SScribe_Export_Site_Pages
  */
