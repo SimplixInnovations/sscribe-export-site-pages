@@ -305,10 +305,10 @@ body .sscribe-master-container .sscribe-hero {
 
 .sscribe-hero-title {
 	font-family: var(--ss-font);
-	font-size: 24px;
-	font-weight: 700;
+	font-size: 28px;
+	font-weight: 800;
 	color: var(--ss-ink-900);
-	letter-spacing: -0.025em;
+	letter-spacing: -0.03em;
 	line-height: 1;
 	margin: 0;
 	padding: 0;
@@ -330,12 +330,12 @@ body .sscribe-master-container .sscribe-hero {
 }
 
 .sscribe-hero-subtitle {
-	font-size: 13px;
+	font-size: 14px;
 	color: var(--ss-ink-500);
-	font-weight: 400;
+	font-weight: 500;
 	max-width: 480px;
 	line-height: 1.55;
-	margin: 5px 0 0;
+	margin: 6px 0 0;
 }
 
 .sscribe-hero-stats {
@@ -403,7 +403,7 @@ body .sscribe-master-container .sscribe-hero {
 	border: 1px solid var(--ss-border);
 	border-radius: var(--ss-radius-md);
 	gap: 2px;
-	margin: 16px 24px 0;
+	margin: 24px 24px 0;
 	overflow-x: auto;
 	max-width: 100%;
 	position: relative;
@@ -472,6 +472,7 @@ body .sscribe-master-container .sscribe-hero {
 
 .sscribe-tab-content.sscribe-tab-active {
 	display: block;
+	padding: 24px;
 }
 
 
@@ -496,13 +497,13 @@ body .sscribe-master-container .sscribe-hero {
 }
 
 .sscribe-panel-header {
-	padding: 14px 20px;
+	padding: 16px 24px;
 	border-bottom: 1px solid var(--ss-border);
 	display: flex;
 	align-items: center;
 	justify-content: space-between;
-	background: var(--ss-bg-subtle);
-	gap: 12px;
+	background: var(--ss-bg);
+	gap: 16px;
 }
 
 .sscribe-panel-title {
@@ -515,10 +516,10 @@ body .sscribe-master-container .sscribe-hero {
 .sscribe-panel-title h2,
 .sscribe-panel-title h3 {
 	font-family: var(--ss-font);
-	font-size: 15px;
-	font-weight: 700;
+	font-size: 16px;
+	font-weight: 800;
 	color: var(--ss-ink-900);
-	letter-spacing: -0.015em;
+	letter-spacing: -0.02em;
 	margin: 0;
 	padding: 0;
 	border: none;
@@ -546,11 +547,16 @@ body .sscribe-master-container .sscribe-hero {
 }
 
 .sscribe-panel-body {
-	padding: 20px;
+	padding: 24px;
+	background: var(--ss-bg-subtle);
 }
 
 .sscribe-flat-body {
 	padding: 0;
+}
+
+.sscribe-panel-body.sscribe-flat-body {
+	background: var(--ss-bg);
 }
 
 
@@ -561,11 +567,14 @@ body .sscribe-master-container .sscribe-hero {
 .sscribe-config-grid {
 	display: flex;
 	flex-direction: column;
+	gap: 8px;
 }
 
 .sscribe-config-section {
 	padding: 24px;
 	border-bottom: 1px solid var(--ss-border);
+	background: var(--ss-bg);
+	border-radius: var(--ss-radius-sm);
 }
 
 .sscribe-config-section:last-child {
@@ -577,11 +586,11 @@ body .sscribe-master-container .sscribe-hero {
 	display: flex;
 	align-items: center;
 	gap: 10px;
-	font-size: 11px;
-	font-weight: 700;
-	color: var(--ss-ink-600);
+	font-size: 12px;
+	font-weight: 800;
+	color: var(--ss-ink-700);
 	text-transform: uppercase;
-	letter-spacing: 0.09em;
+	letter-spacing: 0.1em;
 	margin-bottom: var(--ss-space-4);
 	padding-bottom: 10px;
 	border-bottom: 1px solid var(--ss-border);
@@ -679,7 +688,7 @@ body .sscribe-master-container .sscribe-hero {
 	border-color: var(--ss-green-deeper);
 	border-width: 2px;
 	padding: 9px 11px;
-	background: var(--ss-green-tint);
+	background: var(--ss-bg);
 }
 
 .sscribe-post-type-card input[type='radio']:focus-visible + .sscribe-post-type-card-inner,
@@ -719,9 +728,9 @@ body .sscribe-master-container .sscribe-hero {
 .sscribe-post-type-card input[type='radio']:checked + .sscribe-post-type-card-inner .sscribe-post-type-icon,
 .sscribe-status-card-label input[type='radio']:checked + .sscribe-status-card-inner .sscribe-status-icon,
 .sscribe-format-card-label input[type='radio']:checked + .sscribe-format-card-inner .sscribe-format-icon {
-	background: var(--ss-green-deeper);
+	background: var(--ss-bg);
 	border-color: var(--ss-green-deeper);
-	color: #fff;
+	color: var(--ss-green-deeper);
 }
 
 .sscribe-post-type-meta,
@@ -740,12 +749,12 @@ body .sscribe-master-container .sscribe-hero {
 .sscribe-format-name,
 .sscribe-lang-name {
 	font-weight: 700;
-	font-size: 13px;
+	font-size: 14px;
 	color: var(--ss-ink-900);
 	white-space: nowrap;
 	overflow: hidden;
 	text-overflow: ellipsis;
-	letter-spacing: -0.005em;
+	letter-spacing: -0.01em;
 	line-height: 1.3;
 }
 
@@ -753,9 +762,9 @@ body .sscribe-master-container .sscribe-hero {
 .sscribe-status-count,
 .sscribe-format-desc,
 .sscribe-lang-count {
-	font-size: 11px;
+	font-size: 12px;
 	color: var(--ss-ink-500);
-	font-weight: 500;
+	font-weight: 600;
 	font-variant-numeric: tabular-nums;
 	line-height: 1.3;
 }
@@ -787,8 +796,8 @@ body .sscribe-master-container .sscribe-hero {
 .sscribe-format-selector,
 .sscribe-lang-selector {
 	flex-shrink: 0;
-	width: 16px;
-	height: 16px;
+	width: 18px;
+	height: 18px;
 	border-radius: var(--ss-radius-full);
 	background: var(--ss-bg);
 	border: 1.5px solid var(--ss-ink-300);
@@ -1310,7 +1319,7 @@ body .sscribe-master-container .sscribe-hero {
 	align-items: center;
 	justify-content: space-between;
 	gap: var(--ss-space-4);
-	padding: 18px 24px;
+	padding: 24px;
 	border-top: 1px solid var(--ss-border);
 	background: var(--ss-bg);
 	border-bottom: 1px solid var(--ss-border);
@@ -1401,7 +1410,7 @@ body .sscribe-master-container .sscribe-hero {
    ============================================================ */
 
 .sscribe-status-alert {
-	margin: 16px 24px 0;
+	margin: 24px 24px 0;
 	padding: 0;
 	border-radius: var(--ss-radius-md);
 	display: flex;
@@ -1417,21 +1426,21 @@ body .sscribe-master-container .sscribe-hero {
 	display: flex;
 	align-items: center;
 	justify-content: center;
-	width: 44px;
+	width: 48px;
 	padding: 16px 0;
 	color: #fff;
 }
 
 .sscribe-status-alert > .sscribe-alert-icon svg,
 .sscribe-status-alert > .sscribe-alert-icon .sscribe-icon {
-	width: 18px;
-	height: 18px;
+	width: 20px;
+	height: 20px;
 }
 
 .sscribe-status-alert > .sscribe-alert-body {
 	flex-grow: 1;
 	min-width: 0;
-	padding: 14px 20px;
+	padding: 16px 24px;
 }
 
 .sscribe-status-alert > .sscribe-alert-body:last-child {
@@ -2248,27 +2257,28 @@ body .sscribe-master-container .sscribe-hero {
 	display: flex;
 	align-items: center;
 	justify-content: space-between;
-	padding: 15px 20px;
+	padding: 16px 24px;
 	border-bottom: 1px solid var(--ss-border);
-	background: var(--ss-bg-subtle);
+	background: var(--ss-bg);
+	border-top: 4px solid var(--ss-green-deeper);
 }
 
 .sscribe-modal-header h3 {
 	font-family: var(--ss-font);
-	font-size: var(--ss-text-md);
-	font-weight: 700;
+	font-size: var(--ss-text-lg);
+	font-weight: 800;
 	color: var(--ss-ink-900);
 	display: flex;
 	align-items: center;
 	gap: 8px;
-	letter-spacing: -0.01em;
+	letter-spacing: -0.02em;
 }
 
 .sscribe-modal-header h3 svg,
 .sscribe-modal-header h3 .sscribe-icon {
-	color: var(--ss-green);
-	width: 15px;
-	height: 15px;
+	color: var(--ss-green-deeper);
+	width: 18px;
+	height: 18px;
 }
 
 .sscribe-modal-close {
@@ -2296,9 +2306,10 @@ body .sscribe-master-container .sscribe-hero {
 }
 
 .sscribe-modal-body {
-	padding: 20px;
+	padding: 24px;
 	overflow-y: auto;
 	flex-grow: 1;
+	background: var(--ss-bg-subtle);
 }
 
 .sscribe-preview-result {
@@ -2312,13 +2323,17 @@ body .sscribe-master-container .sscribe-hero {
 	grid-template-columns: 1fr;
 	gap: 0;
 	margin-bottom: 16px;
+	background: var(--ss-bg);
+	border: 1px solid var(--ss-border);
+	border-radius: var(--ss-radius-sm);
+	padding: 8px 16px;
 }
 
 .sscribe-preview-stat {
 	display: grid;
 	grid-template-columns: minmax(140px, max-content) 1fr;
 	gap: 16px;
-	padding: 10px 0;
+	padding: 12px 0;
 	border-bottom: 1px solid var(--ss-border-light);
 	font-size: 13px;
 	line-height: 1.5;
@@ -2395,7 +2410,7 @@ body .sscribe-master-container .sscribe-hero {
 	align-items: center;
 	justify-content: flex-end;
 	gap: var(--ss-space-2);
-	padding: 14px 20px;
+	padding: 16px 24px;
 	border-top: 1px solid var(--ss-border);
 	background: var(--ss-bg-subtle);
 }

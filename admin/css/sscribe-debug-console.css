@@ -402,7 +402,7 @@
 	background: var(--sscribe-debug-bg-console);
 	max-height: max(400px, calc(100vh - 480px));
 	overflow-y: auto;
-	padding: 12px;
+	padding: 8px;
 	scroll-behavior: smooth;
 }
 
@@ -467,6 +467,14 @@
 	align-items: stretch;
 	cursor: default;
 	border: 1px solid transparent;
+}
+
+.sscribe-debug-entries > .sscribe-debug-entry:nth-child(even) {
+	background: rgb(255 255 255 / 3%);
+}
+
+.sscribe-debug-entries > .sscribe-debug-entry:nth-child(odd) {
+	background: transparent;
 }
 
 .sscribe-debug-entry.has-context {
@@ -567,6 +575,7 @@
 	flex: 1;
 	overflow-wrap: break-word;
 	line-height: 1.55;
+	min-width: 0;
 }
 
 .sscribe-debug-entry-context {
@@ -587,9 +596,14 @@
 .sscribe-debug-context-row {
 	display: flex;
 	align-items: baseline;
-	margin-bottom: 4px;
-	padding: 2px 8px;
+	margin-bottom: 2px;
+	padding: 4px 8px;
 	border-radius: 4px;
+	gap: 8px;
+}
+
+.sscribe-debug-context-rows > .sscribe-debug-context-row:nth-child(odd) {
+	background: rgb(255 255 255 / 2%);
 }
 
 .sscribe-debug-context-row:hover {
