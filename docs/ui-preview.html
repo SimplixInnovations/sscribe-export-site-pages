@@ -42,10 +42,11 @@
 	--ss-red:        #dc2626;
 	--ss-red-tint:   #fef2f2;
 	--ss-red-border: #fca5a5;
+	--ss-red-text:   #b91c1c;
 	--ss-amber:        #d97706;
 	--ss-amber-tint:   #fff8e0;
 	--ss-amber-border: #fde68a;
-	--ss-amber-text:   #946f3f;
+	--ss-amber-text:   #8a6539;
 	--ss-bg:        #fff;
 	--ss-bg-subtle: #f9fbfa;
 	--ss-bg-muted:  #f4f7f6;
@@ -97,10 +98,11 @@
 	--sscribe-danger:            #dc2626;
 	--sscribe-danger-light:      #fef2f2;
 	--sscribe-danger-active:     #b91c1c;
+	--sscribe-danger-text:       #b91c1c;
 	--sscribe-warning:           #d97706;
 	--sscribe-warning-bg:        #fff8e0;
 	--sscribe-warning-border:    #fde68a;
-	--sscribe-warning-text:      #946f3f;
+	--sscribe-warning-text:      #8a6539;
 	--sscribe-warning-light:     #fff8e0;
 	--sscribe-alert-success-bg:  #e3fcef;
 	--sscribe-alert-success-border: #00a35c;
@@ -824,7 +826,7 @@ body .sscribe-master-container .sscribe-hero {
 .sscribe-format-desc,
 .sscribe-lang-count {
 	font-size: 12px;
-	color: var(--ss-ink-500);
+	color: var(--ss-ink-600);
 	font-weight: 500;
 	font-variant-numeric: tabular-nums;
 	line-height: 1.3;
@@ -971,9 +973,9 @@ body .sscribe-master-container .sscribe-hero {
    ============================================================ */
 
 .sscribe-format-options {
-	margin: 16px 24px;
-	padding: 20px;
-	border-radius: var(--ss-radius-md);
+	margin: 16px 28px 0;
+	padding: 22px;
+	border-radius: var(--ss-radius-lg);
 	border: 1px solid var(--ss-border);
 	background: var(--ss-bg-subtle);
 }
@@ -1026,17 +1028,23 @@ body .sscribe-master-container .sscribe-hero {
 .sscribe-format-option-checkbox {
 	flex-direction: row;
 	align-items: center;
-	gap: 8px;
+	gap: 10px;
 	cursor: pointer;
-	padding: 8px 12px;
-	border-radius: var(--ss-radius-sm);
+	padding: 10px 14px;
+	border-radius: var(--ss-radius-md);
 	border: 1px solid var(--ss-border);
 	background: var(--ss-bg);
-	min-height: 38px;
+	min-height: 40px;
 }
 
 .sscribe-format-option-checkbox:hover {
 	border-color: var(--ss-ink-300);
+}
+
+.sscribe-format-option-checkbox:focus-within {
+	border-color: var(--ss-green-dark);
+	outline: 2px solid var(--ss-green-dark);
+	outline-offset: 2px;
 }
 
 .sscribe-format-option-checkbox input[type='checkbox'] {
@@ -1258,7 +1266,7 @@ body .sscribe-master-container .sscribe-hero {
 .sscribe-button-danger {
 	background: var(--ss-red-tint);
 	border-color: var(--ss-red-border);
-	color: var(--ss-red);
+	color: var(--ss-red-text);
 }
 
 .sscribe-button-danger:hover {
@@ -1328,10 +1336,19 @@ body .sscribe-master-container .sscribe-hero {
 	background: var(--ss-green-tint);
 }
 
+.sscribe-button-icon:focus-visible {
+	outline: 2px solid var(--ss-green-dark);
+	outline-offset: 2px;
+}
+
 .sscribe-button-icon.sscribe-button-danger:hover {
 	border-color: var(--ss-red);
 	color: var(--ss-red);
 	background: var(--ss-red-tint);
+}
+
+.sscribe-button-icon.sscribe-button-danger:focus-visible {
+	outline-color: var(--ss-red-text);
 }
 
 
@@ -1707,7 +1724,7 @@ body .sscribe-master-container .sscribe-hero {
 
 .sscribe-current-page {
 	font-size: var(--ss-text-base);
-	color: var(--ss-ink-500);
+	color: var(--ss-ink-600);
 	margin-bottom: var(--ss-space-2);
 	max-width: 440px;
 	white-space: nowrap;
@@ -1786,7 +1803,7 @@ body .sscribe-master-container .sscribe-hero {
 
 .sscribe-badge-danger {
 	background: var(--ss-red-tint);
-	color: var(--ss-red);
+	color: var(--ss-red-text);
 	border-color: var(--ss-red-border);
 }
 
@@ -1862,6 +1879,13 @@ body .sscribe-master-container .sscribe-hero {
 .sscribe-bulk-select-all:hover .sscribe-check-visual,
 .sscribe-history-check-label:hover .sscribe-check-visual {
 	border-color: var(--ss-green);
+}
+
+.sscribe-bulk-select-all:focus-within .sscribe-check-visual,
+.sscribe-history-check-label:focus-within .sscribe-check-visual {
+	outline: 2px solid var(--ss-green-dark);
+	outline-offset: 2px;
+	border-color: var(--ss-green-dark);
 }
 
 .sscribe-bulk-select-all input:checked + .sscribe-check-visual,
@@ -2026,7 +2050,7 @@ body .sscribe-master-container .sscribe-hero {
 
 .sscribe-file-details span {
 	font-size: 11px;
-	color: var(--ss-ink-500);
+	color: var(--ss-ink-600);
 	margin-top: 1px;
 	font-variant-numeric: tabular-nums;
 }
@@ -2044,7 +2068,7 @@ body .sscribe-master-container .sscribe-hero {
 
 .sscribe-history-meta-cell {
 	font-size: 11px;
-	color: var(--ss-ink-500);
+	color: var(--ss-ink-600);
 	font-variant-numeric: tabular-nums;
 	font-weight: 500;
 	white-space: nowrap;
@@ -2068,7 +2092,7 @@ body .sscribe-master-container .sscribe-hero {
 	padding: 12px 20px;
 	border-top: 1px solid var(--ss-border-light);
 	font-size: 12px;
-	color: var(--ss-ink-500);
+	color: var(--ss-ink-600);
 	text-align: center;
 }
 
@@ -2090,7 +2114,7 @@ body .sscribe-master-container .sscribe-hero {
 .sscribe-history-empty em {
 	font-style: normal;
 	font-size: var(--ss-text-base);
-	color: var(--ss-ink-500);
+	color: var(--ss-ink-600);
 }
 
 
@@ -2134,7 +2158,7 @@ body .sscribe-master-container .sscribe-hero {
 
 .sscribe-support-header p {
 	font-size: var(--ss-text-base);
-	color: var(--ss-ink-500);
+	color: var(--ss-ink-600);
 	line-height: 1.55;
 }
 
@@ -2370,8 +2394,8 @@ body .sscribe-master-container .sscribe-hero {
 	display: flex;
 	align-items: center;
 	justify-content: center;
-	width: 36px;
-	height: 36px;
+	width: 40px;
+	height: 40px;
 	border-radius: var(--ss-radius-full);
 	flex-shrink: 0;
 }
@@ -2380,6 +2404,12 @@ body .sscribe-master-container .sscribe-hero {
 	background: var(--ss-bg-muted);
 	color: var(--ss-ink-900);
 	border-color: var(--ss-ink-300);
+}
+
+.sscribe-modal-close:focus-visible {
+	outline: 2px solid var(--ss-green-dark);
+	outline-offset: 2px;
+	border-color: var(--ss-green-dark);
 }
 
 .sscribe-modal-body {
@@ -2469,7 +2499,7 @@ body .sscribe-master-container .sscribe-hero {
 	margin: 14px 0 0;
 	padding: 0;
 	font-size: 12px;
-	color: var(--ss-ink-500);
+	color: var(--ss-ink-600);
 	font-style: italic;
 }
 
@@ -2500,7 +2530,7 @@ body .sscribe-master-container .sscribe-hero {
 	align-items: center;
 	justify-content: center;
 	padding: 40px;
-	color: var(--ss-ink-500);
+	color: var(--ss-ink-600);
 	gap: 12px;
 	font-size: var(--ss-text-base);
 }
@@ -2517,7 +2547,7 @@ body .sscribe-master-container .sscribe-hero {
 	display: flex;
 	align-items: center;
 	gap: 10px;
-	color: var(--ss-ink-500);
+	color: var(--ss-ink-600);
 	font-size: var(--ss-text-base);
 }
 
@@ -2574,7 +2604,7 @@ body .sscribe-master-container .sscribe-hero {
 
 .sscribe-toast-desc {
 	font-size: var(--ss-text-sm);
-	color: var(--ss-ink-500);
+	color: var(--ss-ink-600);
 	line-height: 1.4;
 }
 
@@ -2585,12 +2615,20 @@ body .sscribe-master-container .sscribe-hero {
 	color: var(--ss-ink-400);
 	font-size: 15px;
 	cursor: pointer;
-	padding: 0;
+	padding: 4px;
 	line-height: 1;
+	border-radius: var(--ss-radius-sm);
 }
 
 .sscribe-toast-dismiss:hover {
 	color: var(--ss-ink-700);
+	background: var(--ss-bg-muted);
+}
+
+.sscribe-toast-dismiss:focus-visible {
+	outline: 2px solid var(--ss-green-dark);
+	outline-offset: 1px;
+	color: var(--ss-ink-900);
 }
 
 .sscribe-toast-success { border-left-color: var(--ss-green); }
