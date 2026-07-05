@@ -143,7 +143,6 @@
   top: 2px;
   background: var(--ss-surface);
   border-radius: 50%;
-  transition: transform 120ms ease;
 }
 
 .sscribe-toggle-switch input:checked + .sscribe-toggle-slider {
@@ -151,7 +150,7 @@
 }
 
 .sscribe-toggle-switch input:checked + .sscribe-toggle-slider::before {
-  transform: translateX(16px);
+  left: 18px;
 }
 
 .sscribe-toggle-switch input:focus-visible + .sscribe-toggle-slider {
@@ -187,7 +186,6 @@
 
 .sscribe-select {
   appearance: none;
-  -webkit-appearance: none;
   height: 40px;
   border: 1.5px solid var(--ss-border);
   border-radius: var(--ss-radius-sm);
@@ -245,7 +243,6 @@
 
 .sscribe-input {
   appearance: none;
-  -webkit-appearance: none;
   height: 40px;
   border: 1.5px solid var(--ss-border);
   border-radius: var(--ss-radius-sm);
@@ -509,7 +506,6 @@
   cursor: pointer;
   padding: var(--ss-space-3) var(--ss-space-5);
   list-style: none;
-  user-select: none;
 }
 
 .sscribe-debug-rotated summary::-webkit-details-marker {
