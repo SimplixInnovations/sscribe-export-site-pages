@@ -717,6 +717,13 @@
   border-color: var(--ss-brand-soft);
 }
 
+.sscribe-summary-time.sscribe-summary-time-pending {
+  background: var(--ss-surface-2);
+  color: var(--ss-text-muted);
+  border-color: var(--ss-border);
+  font-style: italic;
+}
+
 .sscribe-summary-sep {
   color: var(--ss-text-muted);
   font-size: 11px;
@@ -1872,6 +1879,18 @@
 .sscribe-delete-btn,
 .sscribe-log-btn {
   display: inline-flex;
+}
+
+.sscribe-delete-btn:not(:disabled) {
+  background: transparent;
+  color: var(--ss-text-secondary);
+  border-color: var(--ss-border);
+}
+
+.sscribe-delete-btn:not(:disabled):hover {
+  background: var(--ss-error-bg);
+  color: var(--ss-error);
+  border-color: var(--ss-error-border);
 }
 
 .sscribe-lang-card-compact .sscribe-lang-card-inner {
