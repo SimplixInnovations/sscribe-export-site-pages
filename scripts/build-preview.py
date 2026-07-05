@@ -56,7 +56,7 @@ html = f'''<!DOCTYPE html>
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=1200">
-<title>sScribe Admin — Visual Preview</title>
+<title>sScribe Admin Visual Preview</title>
 <style>{css}
 
 body.toplevel_page_sscribe-export {{
