@@ -602,7 +602,13 @@ class SScribe_Export_Query_Controller {
 			}
 		);
 
-		SScribe_AJAX_Guard::success( array( 'exports' => array_slice( array_values( $sorted ), 0, 10 ) ) );
+		SScribe_AJAX_Guard::success(
+			array(
+				'exports'      => array_slice( array_values( $sorted ), 0, 10 ),
+				'total_count'  => count( $result ),
+				'page_count'   => array_sum( array_column( $result, 'size' ) ),
+			)
+		);
 	}
 
 	/**
