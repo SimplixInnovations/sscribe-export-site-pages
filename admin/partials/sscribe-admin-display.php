@@ -804,6 +804,9 @@ $sscribe_export_index    = $sscribe_export_index ?? array();
 				<span><?php esc_html_e( 'Loading log...', 'sscribe-export-site-pages' ); ?></span>
 			</div>
 		</div>
+		<div class="sscribe-modal-footer">
+			<button type="button" class="sscribe-button sscribe-button-outline sscribe-modal-close-btn" data-close-modal="sscribe-log-modal"><?php esc_html_e( 'Close', 'sscribe-export-site-pages' ); ?></button>
+		</div>
 		<span id="sscribe-log-modal-desc" class="screen-reader-text"><?php esc_html_e( 'Export log details showing processing information for this export', 'sscribe-export-site-pages' ); ?></span>
 	</div>
 </div>

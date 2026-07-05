@@ -123,6 +123,23 @@
 			return labels[normalized] || normalized.toUpperCase();
 		},
 
+		getPostStatusLabel: function (slug) {
+			if (slug === '' || slug === null || slug === undefined) {
+				return '';
+			}
+			const labels = {
+				publish: 'Published',
+				draft: 'Draft',
+				private: 'Private',
+				future: 'Scheduled',
+				pending: 'Pending Review',
+				trash: 'Trash',
+				inherit: 'Inherit',
+			};
+			const normalized = String(slug).toLowerCase();
+			return labels[normalized] || normalized.charAt(0).toUpperCase() + normalized.slice(1);
+		},
+
 		/**
 		 * Refresh the export nonce from the server.
 		 *
@@ -2530,7 +2547,7 @@
 				'<span class="sscribe-preview-label">' +
 				this.escapeHtml(strings.preview_status || 'Status:') +
 				'</span>';
-			html += '<span class="sscribe-preview-value">' + this.escapeHtml(data.post_status || 'publish') + '</span>';
+			html += '<span class="sscribe-preview-value">' + this.escapeHtml(this.getPostStatusLabel(data.post_status || 'publish')) + '</span>';
 			html += '</div>';
 
 			html += '<div class="sscribe-preview-stat">';
