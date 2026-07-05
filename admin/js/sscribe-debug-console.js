@@ -342,7 +342,7 @@
 					overlay.setAttribute('aria-hidden', 'true');
 					const dialog = document.createElement('div');
 					dialog.style.cssText =
-						'position:fixed;top:50%;left:50%;transform:translate(-50%,-50%);background:#fff;color:#333;padding:24px;border-radius:8px;max-width:400px;z-index:9999999;box-shadow:0 8px 32px rgb(0 0 0 / 30%);font-size:14px;line-height:1.6;';
+						'position:fixed;top:50%;left:50%;transform:translate(-50%,-50%);background:#fff;color:#333;padding:24px;border-radius:8px;max-width:400px;z-index:9999999;font-size:14px;line-height:1.6;';
 					dialog.setAttribute('role', 'dialog');
 					dialog.setAttribute('aria-modal', 'true');
 					dialog.setAttribute('aria-labelledby', 'sscribe-debug-help-title');

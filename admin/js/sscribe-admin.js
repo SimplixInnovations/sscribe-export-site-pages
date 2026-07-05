@@ -1688,6 +1688,12 @@
 				success: function (response) {
 					if (response.success && response.data.exports) {
 						SScribe.renderRecentExports(response.data.exports);
+						if (typeof response.data.total_count !== 'undefined') {
+							const $stat = $('#sscribe-stat-recent-exports');
+							if ($stat.length) {
+								$stat.text(response.data.total_count);
+							}
+						}
 					}
 					SScribe.toggleHistorySkeleton(false);
 				},
