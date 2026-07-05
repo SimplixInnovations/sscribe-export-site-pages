@@ -1741,7 +1741,7 @@
 }
 
 .sscribe-feedback {
-  color: var(--ss-success);
+  color: var(--ss-text-secondary);
   font-size: 12px;
   margin: 0;
 }
@@ -1891,6 +1891,645 @@
 .sscribe-summary-language {
   display: inline-flex;
   align-items: center;
+}
+
+/* ═══════════════════════════════════════════════════════════════════
+   MODAL CONTENT — preview, log, preflight
+   JS emits these classes via $content.html(...). All use --ss-* tokens.
+   ═══════════════════════════════════════════════════════════════════ */
+
+/* ── PREVIEW MODAL ── */
+
+.sscribe-preview-content {
+  display: flex;
+  flex-direction: column;
+  gap: var(--ss-space-4);
+}
+
+.sscribe-preview-result {
+  display: flex;
+  flex-direction: column;
+  gap: var(--ss-space-3);
+}
+
+.sscribe-preview-grid {
+  display: grid;
+  grid-template-columns: minmax(120px, auto) 1fr;
+  gap: var(--ss-space-2) var(--ss-space-5);
+  align-items: baseline;
+}
+
+.sscribe-preview-stat {
+  display: contents;
+}
+
+.sscribe-preview-label {
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--ss-text-tertiary);
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  white-space: nowrap;
+}
+
+.sscribe-preview-value {
+  font-size: 13px;
+  font-weight: 500;
+  color: var(--ss-text-primary);
+  overflow-wrap: anywhere;
+}
+
+.sscribe-preview-sample {
+  background: var(--ss-surface-2);
+  border: 1px solid var(--ss-border);
+  border-radius: var(--ss-radius);
+  padding: var(--ss-space-3) var(--ss-space-4);
+  font-size: 13px;
+  line-height: 1.6;
+  color: var(--ss-text-secondary);
+}
+
+.sscribe-preview-title {
+  display: block;
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--ss-text-primary);
+  margin: 0 0 var(--ss-space-2) 0;
+}
+
+.sscribe-preview-excerpt {
+  color: var(--ss-text-secondary);
+  font-size: 13px;
+  line-height: 1.6;
+  margin: 0;
+}
+
+.sscribe-preview-note {
+  font-size: 11px;
+  color: var(--ss-text-muted);
+  font-style: italic;
+  margin: var(--ss-space-2) 0 0 0;
+}
+
+.sscribe-preview-empty {
+  text-align: center;
+  padding: var(--ss-space-6) var(--ss-space-4);
+  color: var(--ss-text-muted);
+  font-size: 13px;
+}
+
+.sscribe-preview-dismiss-btn,
+.sscribe-preview-start-btn {
+  /* inherits .sscribe-button base — modifiers below */
+}
+
+.sscribe-preview-loading {
+  display: flex;
+  align-items: center;
+  gap: var(--ss-space-3);
+  color: var(--ss-text-muted);
+  font-size: 13px;
+  padding: var(--ss-space-4) 0;
+}
+
+/* ── LOG MODAL ── */
+
+.sscribe-log-content {
+  display: flex;
+  flex-direction: column;
+  gap: var(--ss-space-4);
+}
+
+.sscribe-log-summary {
+  display: grid;
+  grid-template-columns: minmax(110px, auto) 1fr;
+  gap: var(--ss-space-2) var(--ss-space-4);
+  align-items: baseline;
+  padding: var(--ss-space-3) var(--ss-space-4);
+  background: var(--ss-surface-2);
+  border: 1px solid var(--ss-border);
+  border-radius: var(--ss-radius);
+  font-size: 13px;
+}
+
+.sscribe-log-stat {
+  display: contents;
+}
+
+.sscribe-log-stat-label {
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--ss-text-tertiary);
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  white-space: nowrap;
+}
+
+.sscribe-log-stat-value {
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--ss-text-primary);
+}
+
+.sscribe-log-stat-value.success {
+  color: var(--ss-success);
+}
+
+.sscribe-log-stat-value.failed {
+  color: var(--ss-error);
+}
+
+.sscribe-log-success {
+  color: var(--ss-success);
+  font-weight: 500;
+}
+
+.sscribe-log-failed {
+  color: var(--ss-error);
+  font-weight: 500;
+}
+
+.sscribe-log-status-success {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 2px 8px;
+  background: var(--ss-success-bg);
+  border: 1px solid var(--ss-success-border);
+  color: var(--ss-success);
+  border-radius: var(--ss-radius-full);
+  font-size: 11px;
+  font-weight: 600;
+}
+
+.sscribe-log-status-failed {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 2px 8px;
+  background: var(--ss-error-bg);
+  border: 1px solid var(--ss-error-border);
+  color: var(--ss-error);
+  border-radius: var(--ss-radius-full);
+  font-size: 11px;
+  font-weight: 600;
+}
+
+.sscribe-log-pages {
+  color: var(--ss-text-secondary);
+  font-size: 13px;
+}
+
+.sscribe-log-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 13px;
+  font-variant-numeric: tabular-nums;
+}
+
+.sscribe-log-table th {
+  text-align: left;
+  font-size: 11px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: var(--ss-text-tertiary);
+  padding: var(--ss-space-2) var(--ss-space-3);
+  border-bottom: 1px solid var(--ss-border);
+  background: var(--ss-surface-2);
+  white-space: nowrap;
+}
+
+.sscribe-log-table td {
+  padding: var(--ss-space-3);
+  border-bottom: 1px solid var(--ss-border);
+  color: var(--ss-text-secondary);
+  vertical-align: middle;
+}
+
+.sscribe-log-table tr:last-child td {
+  border-bottom: none;
+}
+
+.sscribe-log-empty {
+  text-align: center;
+  padding: var(--ss-space-6) var(--ss-space-4);
+  color: var(--ss-text-muted);
+  font-size: 13px;
+}
+
+.sscribe-log-error {
+  padding: var(--ss-space-3) var(--ss-space-4);
+  background: var(--ss-error-bg);
+  border: 1px solid var(--ss-error-border);
+  border-radius: var(--ss-radius);
+  color: var(--ss-error);
+  font-size: 13px;
+  display: flex;
+  flex-direction: column;
+  gap: var(--ss-space-3);
+}
+
+.sscribe-log-errors {
+  color: var(--ss-error);
+  font-weight: 500;
+}
+
+/* ── PREFLIGHT MODAL ── */
+
+.sscribe-preflight-body {
+  display: flex;
+  flex-direction: column;
+  gap: var(--ss-space-4);
+}
+
+.sscribe-preflight-header {
+  display: flex;
+  align-items: center;
+  gap: var(--ss-space-3);
+}
+
+.sscribe-preflight-icon {
+  flex-shrink: 0;
+  width: 32px;
+  height: 32px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  background: var(--ss-warning-bg);
+  border: 1px solid var(--ss-warning-border);
+  color: var(--ss-warning);
+  border-radius: var(--ss-radius-sm);
+}
+
+.sscribe-preflight-section {
+  padding: var(--ss-space-3) var(--ss-space-4);
+  background: var(--ss-surface-2);
+  border: 1px solid var(--ss-border);
+  border-radius: var(--ss-radius);
+}
+
+.sscribe-preflight-section-title {
+  font-size: 11px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: var(--ss-text-tertiary);
+  margin: 0 0 var(--ss-space-2) 0;
+}
+
+.sscribe-preflight-list {
+  margin: 0;
+  padding-left: var(--ss-space-5);
+  color: var(--ss-text-secondary);
+  font-size: 13px;
+  line-height: 1.6;
+}
+
+.sscribe-preflight-errors,
+.sscribe-preflight-warnings {
+  color: var(--ss-text-secondary);
+  font-size: 13px;
+  line-height: 1.6;
+}
+
+.sscribe-preflight-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--ss-space-3);
+  justify-content: flex-end;
+}
+
+.sscribe-preflight-fix,
+.sscribe-preflight-proceed {
+  /* inherits .sscribe-button base */
+}
+
+/* ── ERROR AREA (inline form / inline alert) ── */
+
+.sscribe-error-area {
+  padding: var(--ss-space-3) var(--ss-space-4);
+  background: var(--ss-error-bg);
+  border: 1px solid var(--ss-error-border);
+  border-radius: var(--ss-radius);
+  display: flex;
+  flex-direction: column;
+  gap: var(--ss-space-2);
+  margin-top: var(--ss-space-3);
+}
+
+.sscribe-error-text {
+  color: var(--ss-error);
+  font-size: 13px;
+  font-weight: 500;
+}
+
+.sscribe-error-guidance-text {
+  color: var(--ss-text-secondary);
+  font-size: 12px;
+  line-height: 1.5;
+}
+
+.sscribe-error-technical-details {
+  margin-top: var(--ss-space-2);
+  padding: var(--ss-space-3);
+  background: var(--ss-surface);
+  border: 1px solid var(--ss-border);
+  border-radius: var(--ss-radius-sm);
+  font: 11px/1.5 var(--ss-font-mono);
+  color: var(--ss-text-secondary);
+  overflow-x: auto;
+  white-space: pre-wrap;
+}
+
+.sscribe-error-try-again {
+  /* inherits .sscribe-button base */
+  align-self: flex-start;
+}
+
+/* ── PROGRESS / PHASE STEPS ── */
+
+.sscribe-progress-area {
+  display: flex;
+  flex-direction: column;
+  gap: var(--ss-space-3);
+  margin-top: var(--ss-space-3);
+}
+
+.sscribe-progress-bar {
+  width: 100%;
+  height: 6px;
+  background: var(--ss-surface-3);
+  border-radius: var(--ss-radius-full);
+  overflow: hidden;
+  position: relative;
+}
+
+.sscribe-progress-text {
+  font-size: 13px;
+  color: var(--ss-text-secondary);
+}
+
+.sscribe-progress-bar-fill-finalizing {
+  height: 100%;
+  width: 100%;
+  background: var(--ss-success);
+  border-radius: var(--ss-radius-full);
+  transition: width 200ms ease;
+}
+
+.sscribe-phase-step.sscribe-phase-completed {
+  background: var(--ss-success-bg);
+  color: var(--ss-success);
+}
+
+/* ── STATUS TEXT (text-only fallback inside status alerts) ── */
+
+.sscribe-status-text {
+  font-size: 13px;
+  color: var(--ss-text-secondary);
+  line-height: 1.55;
+  margin: 0;
+}
+
+/* ── WORKSPACE WRAPPER ── */
+
+.sscribe-workspace {
+  background: var(--ss-bg);
+  padding: var(--ss-space-5) var(--ss-space-6);
+  border-radius: var(--ss-radius-lg);
+}
+
+/* ── BOTH COUNT (post-type "Both" card label) ── */
+
+.sscribe-both-count {
+  font-size: 11px;
+  color: var(--ss-text-muted);
+  font-family: var(--ss-font-mono);
+}
+
+.sscribe-page-count,
+.sscribe-post-count {
+  font-size: 11px;
+  color: var(--ss-text-muted);
+  font-family: var(--ss-font-mono);
+}
+
+/* ── ROW STATE CLASSES ── */
+
+.sscribe-row-selected {
+  background: var(--ss-brand-tint);
+}
+
+.sscribe-row-deleting {
+  opacity: 0.5;
+  pointer-events: none;
+}
+
+/* ── BUTTON STATE MODIFIERS ── */
+
+.sscribe-button.sscribe-btn-busy,
+.sscribe-button.sscribe-btn-confirming,
+.sscribe-button.sscribe-confirming {
+  cursor: progress;
+  opacity: 0.7;
+  pointer-events: none;
+}
+
+.sscribe-button.sscribe-cancel-btn {
+  background: transparent;
+  color: var(--ss-error);
+  border-color: var(--ss-error-border);
+}
+
+.sscribe-button.sscribe-cancel-btn:hover:not(:disabled) {
+  background: var(--ss-error-bg);
+  border-color: var(--ss-error-border);
+  color: var(--ss-error);
+}
+
+.sscribe-button.sscribe-new-export-btn,
+.sscribe-button#sscribe-new-export-btn,
+.sscribe-button#sscribe-download-btn,
+.sscribe-button#sscribe-export-btn,
+.sscribe-button#sscribe-preview-btn {
+  /* inherit base — no extra overrides needed */
+}
+
+.sscribe-confirm-original,
+.sscribe-confirm-timeout {
+  font-size: 11px;
+  color: var(--ss-text-muted);
+  margin-left: var(--ss-space-2);
+}
+
+.sscribe-button .sscribe-back-to-current {
+  font-size: 12px;
+  color: var(--ss-text-secondary);
+  background: transparent;
+  border: 1px solid var(--ss-border);
+  padding: 4px var(--ss-space-3);
+  border-radius: var(--ss-radius-sm);
+  cursor: pointer;
+}
+
+.sscribe-button .sscribe-back-to-current:hover {
+  color: var(--ss-text-primary);
+  border-color: var(--ss-border-strong);
+}
+
+/* ── BULK ACTION BUTTONS ── */
+
+.sscribe-bulk-delete-btn,
+.sscribe-bulk-download-btn {
+  /* inherits .sscribe-button base */
+}
+
+/* ── ROTATED (debug-rotated file action buttons) ── */
+
+.sscribe-rotated-delete,
+.sscribe-rotated-error,
+.sscribe-rotated-export,
+.sscribe-rotated-view {
+  /* inherits .sscribe-button .sscribe-button-icon base */
+}
+
+/* ── TOAST ── */
+
+.sscribe-toast-icon {
+  flex-shrink: 0;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.sscribe-toast-message {
+  flex: 1;
+  min-width: 0;
+  font-size: 13px;
+  line-height: 1.4;
+}
+
+.sscribe-toast.sscribe-toast-removing {
+  opacity: 0;
+  transform: none;
+  transition: opacity 200ms ease;
+}
+
+/* ── TAB ACTIVE STATE for specific tab buttons ── */
+
+.sscribe-tab-btn-debug.sscribe-tab-active {
+  color: var(--ss-brand);
+}
+
+/* ── GENERIC LOADING STATE ── */
+
+.sscribe-loading {
+  display: flex;
+  align-items: center;
+  gap: var(--ss-space-3);
+  color: var(--ss-text-muted);
+  font-size: 13px;
+}
+
+.sscribe-loading-count {
+  font-family: var(--ss-font-mono);
+  font-size: 11px;
+  color: var(--ss-text-muted);
+}
+
+/* ── SUPPORT TAB GRID ── */
+
+.sscribe-support-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: var(--ss-space-3);
+}
+
+.sscribe-support-grid-inner {
+  display: flex;
+  flex-direction: column;
+  gap: var(--ss-space-3);
+}
+
+.sscribe-support-item {
+  padding: var(--ss-space-3) var(--ss-space-4);
+  background: var(--ss-surface);
+  border: 1px solid var(--ss-border);
+  border-radius: var(--ss-radius);
+}
+
+.sscribe-support-label {
+  font-size: 11px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: var(--ss-text-tertiary);
+  margin-bottom: var(--ss-space-1);
+}
+
+.sscribe-support-value {
+  font-size: 13px;
+  color: var(--ss-text-primary);
+  font-weight: 500;
+}
+
+.sscribe-support-loading {
+  display: flex;
+  align-items: center;
+  gap: var(--ss-space-3);
+  color: var(--ss-text-muted);
+  font-size: 13px;
+  padding: var(--ss-space-4) 0;
+}
+
+.sscribe-support-error {
+  padding: var(--ss-space-3) var(--ss-space-4);
+  background: var(--ss-error-bg);
+  border: 1px solid var(--ss-error-border);
+  border-radius: var(--ss-radius);
+  color: var(--ss-error);
+  font-size: 13px;
+}
+
+.sscribe-support-copy-btn,
+.sscribe-support-refresh-btn {
+  /* inherits .sscribe-button base */
+}
+
+/* ── A11Y LIVE REGIONS (visually hidden but available to screen readers) ── */
+
+.sscribe-alert-region,
+.sscribe-live-region {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip-path: inset(50%);
+  white-space: nowrap;
+  border: 0;
+}
+
+/* ── INFINITE-SCROLL SENTINEL (zero-height trigger element) ── */
+
+.sscribe-infinite-scroll-sentinel {
+  height: 1px;
+  width: 100%;
+  pointer-events: none;
+}
+
+/* ── FEEDBACK (inline form feedback) ── */
+
+.sscribe-feedback-success {
+  color: var(--ss-success);
+  font-size: 12px;
+}
+
+.sscribe-feedback-error {
+  color: var(--ss-error);
+  font-size: 12px;
 }
 
 body.toplevel_page_sscribe-export {
