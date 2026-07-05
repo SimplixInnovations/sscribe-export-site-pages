@@ -537,3 +537,155 @@
   font-size: 12px;
   text-align: center;
 }
+
+/* Rotated file rows inside the banner */
+
+.sscribe-debug-rotated-file {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--ss-space-3);
+  padding: var(--ss-space-2) 0;
+  border-top: 1px solid #3f3f46;
+  flex-wrap: wrap;
+}
+
+.sscribe-debug-rotated-file:first-child {
+  border-top: none;
+  padding-top: 0;
+}
+
+.sscribe-debug-rotated-file-info {
+  display: flex;
+  align-items: center;
+  gap: var(--ss-space-3);
+  min-width: 0;
+  flex: 1;
+}
+
+.sscribe-debug-rotated-file-name {
+  color: #fafafa;
+  font-size: 13px;
+  font-weight: 500;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  min-width: 0;
+}
+
+.sscribe-debug-rotated-file-meta {
+  color: #a1a1aa;
+  font-size: 11px;
+  font-family: var(--ss-font-mono);
+}
+
+.sscribe-debug-rotated-file-actions {
+  display: flex;
+  gap: var(--ss-space-2);
+  flex-shrink: 0;
+}
+
+/* Append-state rows (more-entries fetcher) */
+
+.sscribe-debug-append-error,
+.sscribe-debug-append-loading {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: var(--ss-space-3) var(--ss-space-5);
+  font-size: 12px;
+  font-family: var(--ss-font);
+  color: #a1a1aa;
+  border-top: 1px solid #27272a;
+}
+
+.sscribe-debug-append-error {
+  color: #fca5a5;
+  background: rgb(180 35 24 / 12%);
+  justify-content: space-between;
+  gap: var(--ss-space-3);
+}
+
+.sscribe-debug-append-loading {
+  color: #d4d4d8;
+  background: #27272a;
+}
+
+/* Entry header (timestamp + badge + toggle chevron row) */
+
+.sscribe-debug-entry-header {
+  display: flex;
+  align-items: center;
+  gap: var(--ss-space-3);
+  flex: 1;
+  min-width: 0;
+}
+
+.sscribe-debug-entry-toggle {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 16px;
+  height: 16px;
+  color: #71717a;
+  font-size: 9px;
+  flex-shrink: 0;
+  transition: color 120ms ease;
+}
+
+.sscribe-debug-entry:hover .sscribe-debug-entry-toggle,
+.sscribe-debug-entry.expanded .sscribe-debug-entry-toggle {
+  color: #d4d4d8;
+}
+
+.sscribe-debug-entry.expanded .sscribe-debug-entry-toggle {
+  transform: rotate(90deg);
+}
+
+/* Context panel (key/value rows) */
+
+.sscribe-debug-context-row {
+  display: flex;
+  gap: var(--ss-space-2);
+  align-items: baseline;
+  flex-wrap: wrap;
+}
+
+.sscribe-debug-context-key {
+  color: #a1a1aa;
+  font-size: 11px;
+  font-family: var(--ss-font-mono);
+  flex-shrink: 0;
+}
+
+.sscribe-debug-context-val {
+  flex: 1;
+  min-width: 0;
+  color: #d4d4d8;
+  font-size: 11px;
+  font-family: var(--ss-font-mono);
+  overflow-wrap: anywhere;
+}
+
+.sscribe-debug-context-val pre {
+  margin: 0;
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+}
+
+/* Rotated banner (info / warning inside the entries list) */
+
+.sscribe-debug-rotated-banner {
+  display: flex;
+  align-items: flex-start;
+  gap: var(--ss-space-3);
+  padding: var(--ss-space-3) var(--ss-space-5);
+  background: var(--ss-warning-bg);
+  border: 1px solid var(--ss-warning-border);
+  border-left: 3px solid var(--ss-warning);
+  margin: var(--ss-space-2) var(--ss-space-5);
+  border-radius: var(--ss-radius-md);
+  color: var(--ss-warning);
+  font-size: 12px;
+  line-height: 1.5;
+}
