@@ -832,7 +832,7 @@
 			$('#sscribe-summary-language').text(this.getLanguageLabel(language));
 			$('#sscribe-summary-format').text(format === 'all' ? (S.status_all || 'All') : format.toUpperCase());
 			$('#sscribe-summary-pages').text('~' + count + ' ' + sscribe_data.strings.log_pages);
-			$('#sscribe-summary-time').text(sscribe_data.strings.calculating_time || 'Calculating...');
+			$('#sscribe-summary-time').text(sscribe_data.strings.calculating_time || 'Calculating...').addClass('sscribe-summary-time-pending');
 
 			if (this._configSummaryXHR && this._configSummaryXHR.abort) {
 				this._configSummaryXHR.abort();
@@ -840,7 +840,7 @@
 			const self = this;
 			clearTimeout(this._configSummaryDebounceTimer);
 			if (!this._countsLoaded || count === 0) {
-				$('#sscribe-summary-time').text(sscribe_data.strings.summary_time_hint || 'See Preview');
+				$('#sscribe-summary-time').text(sscribe_data.strings.summary_time_hint || 'See Preview').removeClass('sscribe-summary-time-pending');
 				return;
 			}
 			this._configSummaryDebounceTimer = setTimeout(function () {
@@ -859,16 +859,16 @@
 					},
 					success: function (response) {
 						if (response.success && response.data && response.data.estimated_time) {
-							$('#sscribe-summary-time').text(response.data.estimated_time);
+							$('#sscribe-summary-time').text(response.data.estimated_time).removeClass('sscribe-summary-time-pending');
 						} else {
-							$('#sscribe-summary-time').text(sscribe_data.strings.summary_time_hint || 'See Preview');
+							$('#sscribe-summary-time').text(sscribe_data.strings.summary_time_hint || 'See Preview').removeClass('sscribe-summary-time-pending');
 						}
 					},
 					error: function (xhr, status) {
 						if (status === 'abort') {
 							return;
 						}
-						$('#sscribe-summary-time').text(sscribe_data.strings.summary_time_hint || 'See Preview');
+						$('#sscribe-summary-time').text(sscribe_data.strings.summary_time_hint || 'See Preview').removeClass('sscribe-summary-time-pending');
 					},
 				});
 			}, 300);
