@@ -2,7 +2,7 @@
 
 .sscribe-master-container {
   --ss-bg: #fafafa;
-  --ss-surface: #ffffff;
+  --ss-surface: #fff;
   --ss-surface-2: #f4f4f5;
   --ss-surface-3: #e4e4e7;
   --ss-border: #e4e4e7;
@@ -374,8 +374,12 @@
 
 .sscribe-language-cards-wrapper {
   overflow-x: auto;
-  -webkit-overflow-scrolling: touch;
-  scrollbar-width: thin;
+}
+
+@supports (scrollbar-width: thin) {
+  .sscribe-language-cards-wrapper {
+    scrollbar-width: thin;
+  }
 }
 
 .sscribe-post-type-card,
@@ -656,7 +660,6 @@
   background: var(--ss-surface);
   cursor: pointer;
   appearance: none;
-  -webkit-appearance: none;
   background-image: url("data:image/svg+xml;charset=utf8,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 16 16' fill='%2371717a'%3E%3Cpath d='M8 11L3 6h10z'/%3E%3C/svg%3E");
   background-repeat: no-repeat;
   background-position: right 12px center;
@@ -718,13 +721,11 @@
 .sscribe-summary-sep {
   color: var(--ss-text-muted);
   font-size: 11px;
-  user-select: none;
 }
 
 .sscribe-summary-sep-em {
   color: var(--ss-border-strong);
   font-size: 11px;
-  user-select: none;
   margin: 0 var(--ss-space-1);
 }
 
@@ -1524,8 +1525,9 @@
   resize: vertical;
 }
 
-.sscribe-support-copy-text:focus {
-  outline: none;
+.sscribe-support-copy-text:focus-visible {
+  outline: 2px solid var(--ss-brand);
+  outline-offset: -2px;
 }
 
 .sscribe-modal {
@@ -1774,7 +1776,7 @@
   outline-offset: 2px;
 }
 
-@media (max-width: 900px) {
+@media (width <= 900px) {
   .sscribe-workspace {
     padding: var(--ss-space-5) var(--ss-space-4);
   }
@@ -1801,7 +1803,7 @@
   }
 }
 
-@media (max-width: 640px) {
+@media (width <= 640px) {
   .sscribe-hero-content {
     flex-direction: column;
     align-items: flex-start;
@@ -1821,7 +1823,6 @@
   }
   .sscribe-tabs-nav {
     overflow-x: auto;
-    scrollbar-width: none;
   }
   .sscribe-tabs-nav::-webkit-scrollbar {
     display: none;
@@ -1852,6 +1853,13 @@
   }
   .sscribe-bulk-bar {
     padding: var(--ss-space-2) var(--ss-space-4);
+  }
+}
+
+@supports (scrollbar-width: none) {
+  .sscribe-tabs-nav {
+    overflow-x: auto;
+    scrollbar-width: none;
   }
 }
 

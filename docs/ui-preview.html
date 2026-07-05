@@ -1,0 +1,2114 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=1200">
+<title>sScribe Admin Visual Preview</title>
+<style>/* @version 1.1.2 */
+
+.sscribe-master-container {
+  --ss-bg: #fafafa;
+  --ss-surface: #fff;
+  --ss-surface-2: #f4f4f5;
+  --ss-surface-3: #e4e4e7;
+  --ss-border: #e4e4e7;
+  --ss-border-strong: #d4d4d8;
+  --ss-text-primary: #09090b;
+  --ss-text-secondary: #3f3f46;
+  --ss-text-tertiary: #52525b;
+  --ss-text-muted: #71717a;
+  --ss-text-inverse: #fafafa;
+  --ss-brand: #635bff;
+  --ss-brand-hover: #5247e0;
+  --ss-brand-active: #4039c0;
+  --ss-brand-soft: #ebe9ff;
+  --ss-brand-tint: #f5f4ff;
+  --ss-success: #00875a;
+  --ss-success-bg: #e6f6f0;
+  --ss-success-border: #abefc6;
+  --ss-warning: #b54708;
+  --ss-warning-bg: #fff6ed;
+  --ss-warning-border: #f9dbaf;
+  --ss-error: #b42318;
+  --ss-error-bg: #fef3f2;
+  --ss-error-border: #fecdca;
+  --ss-info: #1849a9;
+  --ss-info-bg: #eff8ff;
+  --ss-radius-sm: 6px;
+  --ss-radius: 8px;
+  --ss-radius-md: 10px;
+  --ss-radius-lg: 12px;
+  --ss-radius-xl: 16px;
+  --ss-radius-full: 9999px;
+  --ss-space-1: 4px;
+  --ss-space-2: 8px;
+  --ss-space-3: 12px;
+  --ss-space-4: 16px;
+  --ss-space-5: 20px;
+  --ss-space-6: 24px;
+  --ss-space-7: 28px;
+  --ss-space-8: 32px;
+  --ss-space-10: 40px;
+  --ss-space-12: 48px;
+  --ss-font: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+  --ss-font-mono: ui-monospace, "SF Mono", Menlo, Consolas, "Liberation Mono", monospace;
+  --ss-max-w: 1100px;
+}
+
+.sscribe-master-container {
+  background: var(--ss-bg);
+  font: 14px/1.5 var(--ss-font);
+  color: var(--ss-text-primary);
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  box-sizing: border-box;
+}
+
+.sscribe-master-container *,
+.sscribe-master-container *::before,
+.sscribe-master-container *::after {
+  box-sizing: inherit;
+}
+
+.sscribe-master-container h1,
+.sscribe-master-container h2,
+.sscribe-master-container h3,
+.sscribe-master-container h4 {
+  font-family: var(--ss-font);
+  font-weight: 600;
+  margin: 0;
+}
+
+.sscribe-master-container p {
+  margin: 0;
+}
+
+.sscribe-master-container table {
+  display: block;
+  border: none;
+}
+
+.sscribe-master-container .button {
+  background: none;
+  border: none;
+  color: inherit;
+  font: inherit;
+  padding: 0;
+  margin: 0;
+  cursor: pointer;
+}
+
+.sscribe-hidden {
+  display: none !important;
+}
+
+.sscribe-skip-link.screen-reader-text:focus {
+  clip: auto !important;
+  width: auto;
+  height: auto;
+  overflow: visible;
+  position: absolute;
+  top: var(--ss-space-2);
+  left: var(--ss-space-2);
+  z-index: 100000;
+  padding: var(--ss-space-2) var(--ss-space-4);
+  background: var(--ss-brand);
+  color: var(--ss-text-inverse);
+  border-radius: var(--ss-radius);
+  text-decoration: none;
+  font-weight: 600;
+  font-size: 13px;
+}
+
+.sscribe-hero {
+  background: var(--ss-surface);
+  border-bottom: 1px solid var(--ss-border);
+  padding: var(--ss-space-6) var(--ss-space-8);
+}
+
+.sscribe-hero-content {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--ss-space-6);
+  max-width: var(--ss-max-w);
+  margin: 0 auto;
+}
+
+.sscribe-hero-left {
+  display: flex;
+  align-items: center;
+  gap: var(--ss-space-4);
+  min-width: 0;
+}
+
+.sscribe-hero-logo {
+  width: 36px;
+  height: 36px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--ss-brand);
+  flex-shrink: 0;
+}
+
+.sscribe-logo-img {
+  width: 36px;
+  height: 36px;
+}
+
+.sscribe-hero-title {
+  font-size: 22px;
+  font-weight: 700;
+  letter-spacing: -0.025em;
+  color: var(--ss-text-primary);
+  margin: 0 0 2px 0;
+}
+
+.sscribe-hero-subtitle {
+  font-size: 13px;
+  line-height: 1.5;
+  color: var(--ss-text-secondary);
+  max-width: 520px;
+}
+
+.sscribe-hero-version {
+  display: inline-flex;
+  align-items: center;
+  padding: 4px var(--ss-space-3);
+  background: var(--ss-surface-2);
+  color: var(--ss-text-secondary);
+  border-radius: var(--ss-radius-full);
+  font-size: 11px;
+  font-weight: 600;
+  font-family: var(--ss-font-mono);
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  border: 1px solid var(--ss-border);
+  flex-shrink: 0;
+}
+
+.sscribe-hero-stats {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--ss-space-5);
+  margin-top: var(--ss-space-3);
+  flex-wrap: wrap;
+}
+
+.sscribe-hero-stat {
+  font-size: 12px;
+  color: var(--ss-text-secondary);
+}
+
+.sscribe-hero-stat strong {
+  color: var(--ss-text-primary);
+  font-weight: 600;
+  font-family: var(--ss-font-mono);
+  margin-right: 4px;
+}
+
+.sscribe-icon-img {
+  width: 16px;
+  height: 16px;
+  color: currentColor;
+}
+
+.sscribe-workspace.sscribe-flat-workspace {
+  padding: var(--ss-space-6) var(--ss-space-8);
+  max-width: var(--ss-max-w);
+  margin: 0 auto;
+}
+
+.sscribe-tabs-nav {
+  display: flex;
+  gap: 2px;
+  border-bottom: 1px solid var(--ss-border);
+  margin-bottom: var(--ss-space-6);
+}
+
+.sscribe-tab-btn {
+  min-height: 44px;
+  padding: 0 var(--ss-space-4);
+  background: transparent;
+  border: none;
+  font: inherit;
+  font-size: 13px;
+  font-weight: 500;
+  color: var(--ss-text-secondary);
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  border-bottom: 2px solid transparent;
+  margin-bottom: -1px;
+  position: relative;
+  transition: color 120ms ease, border-color 120ms ease;
+}
+
+.sscribe-tab-btn:hover {
+  color: var(--ss-text-primary);
+}
+
+.sscribe-tab-btn.sscribe-tab-active {
+  color: var(--ss-text-primary);
+  font-weight: 600;
+  border-bottom-color: var(--ss-brand);
+}
+
+.sscribe-tab-content {
+  display: none;
+}
+
+.sscribe-tab-content.sscribe-tab-active {
+  display: block;
+}
+
+.sscribe-panel {
+  background: var(--ss-surface);
+  border: 1px solid var(--ss-border);
+  border-radius: var(--ss-radius-lg);
+  overflow: hidden;
+}
+
+.sscribe-config-panel {
+  background: var(--ss-surface);
+  border: 1px solid var(--ss-border);
+  border-radius: var(--ss-radius-lg);
+  overflow: hidden;
+}
+
+.sscribe-panel-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--ss-space-4);
+  padding: var(--ss-space-5) var(--ss-space-6);
+  border-bottom: 1px solid var(--ss-border);
+}
+
+.sscribe-panel-title {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--ss-space-2);
+}
+
+.sscribe-panel-title h2 {
+  font-size: 15px;
+  font-weight: 600;
+  color: var(--ss-text-primary);
+  margin: 0;
+}
+
+.sscribe-panel-title svg {
+  color: var(--ss-text-tertiary);
+}
+
+.sscribe-panel-body {
+  padding: var(--ss-space-6);
+}
+
+.sscribe-panel-body.sscribe-flat-body {
+  padding: 0;
+}
+
+.sscribe-config-grid {
+  display: flex;
+  flex-direction: column;
+}
+
+.sscribe-config-section {
+  padding: var(--ss-space-6) var(--ss-space-7);
+  border-bottom: 1px solid var(--ss-border);
+}
+
+.sscribe-config-section:last-child {
+  border-bottom: none;
+}
+
+.sscribe-section-title {
+  display: flex;
+  align-items: center;
+  gap: var(--ss-space-2);
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--ss-text-tertiary);
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  margin: 0 0 var(--ss-space-4) 0;
+}
+
+.sscribe-config-section-header {
+  display: flex;
+  align-items: center;
+  gap: var(--ss-space-2);
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--ss-text-tertiary);
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  margin: 0 0 var(--ss-space-4) 0;
+}
+
+.sscribe-step-badge {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 20px;
+  height: 20px;
+  border-radius: 50%;
+  background: var(--ss-brand);
+  color: var(--ss-text-inverse);
+  font-size: 10px;
+  font-weight: 700;
+  line-height: 1;
+  flex-shrink: 0;
+}
+
+.sscribe-post-type-cards.sscribe-cards-compact,
+.sscribe-status-cards.sscribe-cards-row,
+.sscribe-format-cards.sscribe-cards-row,
+.sscribe-language-cards.sscribe-cards-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--ss-space-2);
+}
+
+.sscribe-language-cards.sscribe-cards-row {
+  flex-wrap: nowrap;
+}
+
+.sscribe-language-cards-wrapper {
+  overflow-x: auto;
+}
+
+@supports (scrollbar-width: thin) {
+  .sscribe-language-cards-wrapper {
+    scrollbar-width: thin;
+  }
+}
+
+.sscribe-post-type-card,
+.sscribe-post-type-card-label,
+.sscribe-status-card-label,
+.sscribe-format-card-label,
+.sscribe-lang-card-label {
+  position: relative;
+  cursor: pointer;
+  display: inline-flex;
+}
+
+.sscribe-post-type-card > input,
+.sscribe-status-card-label > input,
+.sscribe-format-card-label > input,
+.sscribe-lang-card-label > input {
+  position: absolute;
+  opacity: 0;
+  pointer-events: none;
+  width: 0;
+  height: 0;
+}
+
+.sscribe-post-type-card-inner,
+.sscribe-status-card-inner,
+.sscribe-format-card-inner,
+.sscribe-lang-card-inner {
+  display: flex;
+  align-items: center;
+  gap: var(--ss-space-3);
+  padding: var(--ss-space-3) var(--ss-space-4);
+  background: var(--ss-surface);
+  border: 1px solid var(--ss-border);
+  border-radius: var(--ss-radius-md);
+  transition: border-color 120ms ease, background 120ms ease;
+  min-height: 64px;
+  min-width: 0;
+}
+
+.sscribe-format-card-inner {
+  min-width: 130px;
+}
+
+.sscribe-post-type-card-label:hover .sscribe-post-type-card-inner,
+.sscribe-status-card-label:hover .sscribe-status-card-inner,
+.sscribe-format-card-label:hover .sscribe-format-card-inner,
+.sscribe-lang-card-label:hover .sscribe-lang-card-inner {
+  border-color: var(--ss-border-strong);
+  background: var(--ss-brand-tint);
+}
+
+.sscribe-post-type-card-label input:checked ~ .sscribe-post-type-card-inner,
+.sscribe-status-card-label input:checked ~ .sscribe-status-card-inner,
+.sscribe-format-card-label input:checked ~ .sscribe-format-card-inner,
+.sscribe-lang-card-label input:checked ~ .sscribe-lang-card-inner {
+  border: 2px solid var(--ss-brand);
+  padding: calc(var(--ss-space-3) - 1px) calc(var(--ss-space-4) - 1px);
+  background: var(--ss-brand-soft);
+}
+
+.sscribe-post-type-icon,
+.sscribe-status-icon,
+.sscribe-format-icon {
+  width: 32px;
+  height: 32px;
+  border-radius: var(--ss-radius-sm);
+  background: var(--ss-surface-2);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--ss-text-secondary);
+  flex-shrink: 0;
+}
+
+.sscribe-post-type-meta,
+.sscribe-status-meta,
+.sscribe-format-meta,
+.sscribe-lang-meta {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.sscribe-post-type-name,
+.sscribe-status-name,
+.sscribe-format-name,
+.sscribe-lang-name {
+  font-size: 13px;
+  font-weight: 500;
+  color: var(--ss-text-primary);
+  line-height: 1.3;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.sscribe-post-type-count,
+.sscribe-status-count,
+.sscribe-lang-count {
+  font-size: 11px;
+  color: var(--ss-text-muted);
+  font-family: var(--ss-font-mono);
+}
+
+.sscribe-format-desc {
+  font-size: 11px;
+  color: var(--ss-text-muted);
+  line-height: 1.4;
+}
+
+.sscribe-post-type-selector,
+.sscribe-status-selector,
+.sscribe-format-selector,
+.sscribe-lang-selector {
+  width: 18px;
+  height: 18px;
+  border: 1.5px solid var(--ss-border-strong);
+  border-radius: 50%;
+  background: var(--ss-surface);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  color: transparent;
+  flex-shrink: 0;
+  transition: border-color 120ms ease, background 120ms ease, color 120ms ease;
+}
+
+.sscribe-post-type-selector svg,
+.sscribe-status-selector svg,
+.sscribe-format-selector svg,
+.sscribe-lang-selector svg {
+  width: 12px;
+  height: 12px;
+}
+
+.sscribe-post-type-card-label input:checked ~ .sscribe-post-type-card-inner .sscribe-post-type-selector,
+.sscribe-status-card-label input:checked ~ .sscribe-status-card-inner .sscribe-status-selector,
+.sscribe-format-card-label input:checked ~ .sscribe-format-card-inner .sscribe-format-selector,
+.sscribe-lang-card-label input:checked ~ .sscribe-lang-card-inner .sscribe-lang-selector {
+  border-color: var(--ss-brand);
+  background: var(--ss-brand);
+  color: var(--ss-text-inverse);
+}
+
+.sscribe-status-card-label.sscribe-status-disabled {
+  opacity: 0.5;
+  pointer-events: none;
+  cursor: not-allowed;
+}
+
+.sscribe-lang-card-all .sscribe-lang-card-inner,
+.sscribe-format-all .sscribe-format-card-inner {
+  border-style: dashed;
+  border-color: var(--ss-border-strong);
+}
+
+.sscribe-lang-flag-wrapper {
+  width: 32px;
+  height: 32px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+
+.sscribe-lang-flag {
+  width: 24px;
+  height: 18px;
+  object-fit: cover;
+  border-radius: 2px;
+  border: 1px solid var(--ss-border);
+}
+
+.sscribe-lang-flag-placeholder {
+  width: 24px;
+  height: 18px;
+  border-radius: 2px;
+  background: var(--ss-surface-2);
+  border: 1px solid var(--ss-border);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 9px;
+  font-weight: 700;
+  color: var(--ss-text-tertiary);
+  font-family: var(--ss-font-mono);
+  text-transform: uppercase;
+}
+
+.sscribe-lang-flag-all {
+  background: transparent;
+  border-style: dashed;
+  color: var(--ss-text-muted);
+}
+
+.sscribe-format-options {
+  border-top: 1px solid var(--ss-border);
+  background: var(--ss-surface-2);
+  padding: var(--ss-space-5) var(--ss-space-7);
+}
+
+.sscribe-format-options-inner {
+  display: flex;
+  flex-direction: column;
+  gap: var(--ss-space-4);
+}
+
+.sscribe-format-option-panel {
+  background: var(--ss-surface);
+  border: 1px solid var(--ss-border);
+  border-radius: var(--ss-radius-md);
+  padding: var(--ss-space-4) var(--ss-space-5);
+}
+
+.sscribe-format-option-title {
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--ss-text-tertiary);
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  margin: 0 0 var(--ss-space-3) 0;
+}
+
+.sscribe-format-option-grid {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--ss-space-4);
+}
+
+.sscribe-format-option-field {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  min-width: 180px;
+}
+
+.sscribe-format-option-field.sscribe-format-option-checkbox {
+  flex-direction: row;
+  align-items: center;
+  gap: var(--ss-space-2);
+  min-width: 0;
+  min-height: 40px;
+  padding: 0 var(--ss-space-2);
+  cursor: pointer;
+}
+
+.sscribe-format-option-field.sscribe-format-option-checkbox input {
+  width: 16px;
+  height: 16px;
+  margin: 0;
+  accent-color: var(--ss-brand);
+  cursor: pointer;
+}
+
+.sscribe-format-option-field.sscribe-format-option-checkbox span {
+  font-size: 13px;
+  color: var(--ss-text-primary);
+}
+
+.sscribe-format-option-label {
+  font-size: 11px;
+  font-weight: 500;
+  color: var(--ss-text-tertiary);
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+
+.sscribe-format-option-field select {
+  height: 40px;
+  border: 1.5px solid var(--ss-border);
+  border-radius: var(--ss-radius-sm);
+  padding: 0 var(--ss-space-7) 0 var(--ss-space-3);
+  font: inherit;
+  font-size: 13px;
+  color: var(--ss-text-primary);
+  background: var(--ss-surface);
+  cursor: pointer;
+  appearance: none;
+  background-image: url("data:image/svg+xml;charset=utf8,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 16 16' fill='%2371717a'%3E%3Cpath d='M8 11L3 6h10z'/%3E%3C/svg%3E");
+  background-repeat: no-repeat;
+  background-position: right 12px center;
+  background-size: 12px 12px;
+}
+
+.sscribe-export-bar {
+  padding: var(--ss-space-5) var(--ss-space-7);
+  border-top: 1px solid var(--ss-border);
+  background: var(--ss-surface);
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: var(--ss-space-4);
+  flex-wrap: wrap;
+}
+
+.sscribe-config-summary {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--ss-space-2);
+  align-items: center;
+}
+
+.sscribe-summary-label {
+  font-size: 11px;
+  font-weight: 500;
+  color: var(--ss-text-tertiary);
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  margin-right: var(--ss-space-1);
+}
+
+.sscribe-summary-chip {
+  display: inline-flex;
+  align-items: center;
+  padding: 4px var(--ss-space-3);
+  background: var(--ss-surface-2);
+  border: 1px solid var(--ss-border);
+  border-radius: var(--ss-radius-full);
+  font-size: 12px;
+  font-weight: 500;
+  color: var(--ss-text-primary);
+  white-space: nowrap;
+}
+
+.sscribe-summary-pages {
+  background: var(--ss-brand);
+  color: var(--ss-text-inverse);
+  border-color: var(--ss-brand);
+}
+
+.sscribe-summary-time {
+  background: var(--ss-brand-soft);
+  color: var(--ss-brand);
+  border-color: var(--ss-brand-soft);
+}
+
+.sscribe-summary-sep {
+  color: var(--ss-text-muted);
+  font-size: 11px;
+}
+
+.sscribe-summary-sep-em {
+  color: var(--ss-border-strong);
+  font-size: 11px;
+  margin: 0 var(--ss-space-1);
+}
+
+.sscribe-export-bar-actions {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--ss-space-2);
+  flex-wrap: wrap;
+}
+
+.sscribe-export-disabled-reason {
+  font-size: 11px;
+  font-style: italic;
+  color: var(--ss-text-muted);
+  margin-right: var(--ss-space-2);
+}
+
+.sscribe-button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 7px;
+  min-height: 40px;
+  padding: 0 var(--ss-space-4);
+  font: inherit;
+  font-size: 13px;
+  font-weight: 600;
+  line-height: 1;
+  color: var(--ss-text-primary);
+  background: var(--ss-surface);
+  border: 1px solid transparent;
+  border-radius: var(--ss-radius-md);
+  cursor: pointer;
+  text-decoration: none !important;
+  white-space: nowrap;
+  transition: background 120ms ease, color 120ms ease, border-color 120ms ease;
+}
+
+.sscribe-button svg {
+  flex-shrink: 0;
+}
+
+.sscribe-button-primary {
+  background: var(--ss-brand);
+  color: var(--ss-text-inverse);
+  border-color: var(--ss-brand);
+}
+
+.sscribe-button-primary:hover:not(:disabled) {
+  background: var(--ss-brand-hover);
+  border-color: var(--ss-brand-hover);
+}
+
+.sscribe-button-primary:active:not(:disabled) {
+  background: var(--ss-brand-active);
+  border-color: var(--ss-brand-active);
+}
+
+.sscribe-button-outline {
+  background: var(--ss-surface);
+  color: var(--ss-text-primary);
+  border-color: var(--ss-border-strong);
+}
+
+.sscribe-button-outline:hover:not(:disabled) {
+  border-color: var(--ss-brand);
+  color: var(--ss-brand);
+  background: var(--ss-brand-tint);
+}
+
+.sscribe-button-secondary {
+  background: var(--ss-surface-2);
+  color: var(--ss-text-primary);
+  border-color: var(--ss-border);
+}
+
+.sscribe-button-secondary:hover:not(:disabled) {
+  background: var(--ss-surface-3);
+}
+
+.sscribe-button-ghost {
+  background: transparent;
+  color: var(--ss-text-secondary);
+  border-color: transparent;
+}
+
+.sscribe-button-ghost:hover:not(:disabled) {
+  background: var(--ss-surface-2);
+  color: var(--ss-text-primary);
+}
+
+.sscribe-button-success {
+  background: var(--ss-success);
+  color: var(--ss-text-inverse);
+  border-color: var(--ss-success);
+}
+
+.sscribe-button-success:hover:not(:disabled) {
+  background: #006c48;
+  border-color: #006c48;
+}
+
+.sscribe-button-danger {
+  background: var(--ss-error);
+  color: var(--ss-text-inverse);
+  border-color: var(--ss-error);
+}
+
+.sscribe-button-danger:hover:not(:disabled) {
+  background: #8a1a12;
+  border-color: #8a1a12;
+}
+
+.sscribe-button-cancel {
+  background: transparent;
+  color: var(--ss-error);
+  border-color: var(--ss-error-border);
+}
+
+.sscribe-button-cancel:hover:not(:disabled) {
+  background: var(--ss-error-bg);
+}
+
+.sscribe-button-icon {
+  min-width: 40px;
+  min-height: 40px;
+  width: 40px;
+  height: 40px;
+  padding: 0;
+}
+
+.sscribe-button-icon svg {
+  width: 16px;
+  height: 16px;
+}
+
+.sscribe-btn-sm {
+  min-height: 32px;
+  padding: 0 var(--ss-space-3);
+  font-size: 12px;
+}
+
+.sscribe-button-sm {
+  min-height: 32px;
+  padding: 0 var(--ss-space-3);
+  font-size: 12px;
+}
+
+.sscribe-button-icon.sscribe-btn-sm {
+  min-width: 32px;
+  min-height: 32px;
+  width: 32px;
+  height: 32px;
+}
+
+.sscribe-btn-lg {
+  min-height: 44px;
+  padding: 0 var(--ss-space-5);
+  font-size: 14px;
+}
+
+.sscribe-button:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.sscribe-noscript-notice {
+  background: var(--ss-warning-bg);
+  border: 1px solid var(--ss-warning-border);
+  color: var(--ss-warning);
+  padding: var(--ss-space-2) var(--ss-space-3);
+  border-radius: var(--ss-radius-sm);
+  font-size: 12px;
+}
+
+.sscribe-status-alert {
+  display: flex;
+  align-items: flex-start;
+  gap: var(--ss-space-4);
+  background: var(--ss-surface);
+  border: 1px solid var(--ss-border);
+  border-radius: var(--ss-radius-lg);
+  padding: var(--ss-space-6);
+  margin-top: var(--ss-space-4);
+  position: relative;
+  overflow: hidden;
+}
+
+.sscribe-status-alert::before {
+  content: "";
+  position: absolute;
+  left: 0;
+  top: 0;
+  bottom: 0;
+  width: 3px;
+  background: var(--ss-border-strong);
+}
+
+.sscribe-status-processing {
+  background: var(--ss-info-bg);
+  border-color: var(--ss-info-bg);
+}
+
+.sscribe-status-processing::before {
+  background: var(--ss-info);
+}
+
+.sscribe-status-success {
+  background: var(--ss-success-bg);
+  border-color: var(--ss-success-bg);
+}
+
+.sscribe-status-success::before {
+  background: var(--ss-success);
+}
+
+.sscribe-status-error {
+  background: var(--ss-error-bg);
+  border-color: var(--ss-error-bg);
+}
+
+.sscribe-status-error::before {
+  background: var(--ss-error);
+}
+
+.sscribe-status-icon {
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  background: rgb(255 255 255 / 60%);
+  flex-shrink: 0;
+}
+
+.sscribe-status-processing .sscribe-status-icon {
+  color: var(--ss-info);
+}
+
+.sscribe-status-success .sscribe-status-icon {
+  color: var(--ss-success);
+}
+
+.sscribe-status-error .sscribe-status-icon {
+  color: var(--ss-error);
+}
+
+.sscribe-spinner {
+  flex-shrink: 0;
+}
+
+.sscribe-spinner-img {
+  width: 32px;
+  height: 32px;
+  display: block;
+}
+
+.sscribe-status-info {
+  flex: 1;
+  min-width: 0;
+}
+
+.sscribe-status-heading {
+  font-size: 15px;
+  font-weight: 600;
+  color: var(--ss-text-primary);
+  margin: 0 0 var(--ss-space-1) 0;
+}
+
+.sscribe-status-desc {
+  font-size: 13px;
+  color: var(--ss-text-secondary);
+  line-height: 1.5;
+  margin: 0;
+}
+
+.sscribe-phase-steps {
+  display: flex;
+  align-items: center;
+  gap: var(--ss-space-1);
+  margin-bottom: var(--ss-space-3);
+  flex-wrap: wrap;
+}
+
+.sscribe-phase-step {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 4px var(--ss-space-3);
+  background: rgb(255 255 255 / 60%);
+  border-radius: var(--ss-radius-full);
+  font-size: 11px;
+  font-weight: 500;
+  color: var(--ss-text-muted);
+  line-height: 1;
+}
+
+.sscribe-phase-step.sscribe-phase-active {
+  background: var(--ss-brand);
+  color: var(--ss-text-inverse);
+  font-weight: 600;
+}
+
+.sscribe-phase-step.sscribe-phase-done {
+  background: var(--ss-success);
+  color: var(--ss-text-inverse);
+  font-weight: 600;
+}
+
+.sscribe-phase-dot {
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background: currentColor;
+  flex-shrink: 0;
+}
+
+.sscribe-phase-check {
+  width: 10px;
+  height: 10px;
+  flex-shrink: 0;
+}
+
+.sscribe-phase-step:not(.sscribe-phase-done) .sscribe-phase-check {
+  display: none;
+}
+
+.sscribe-phase-step.sscribe-phase-done .sscribe-phase-dot {
+  display: none;
+}
+
+.sscribe-phase-label {
+  font-size: 11px;
+  font-weight: 500;
+  color: var(--ss-text-muted);
+}
+
+.sscribe-phase-connector {
+  display: inline-block;
+  width: var(--ss-space-4);
+  height: 1px;
+  background: var(--ss-border-strong);
+  flex-shrink: 0;
+}
+
+.sscribe-current-page {
+  font-size: 12px;
+  color: var(--ss-text-secondary);
+  font-family: var(--ss-font-mono);
+  margin: 0 0 var(--ss-space-2) 0;
+}
+
+.sscribe-progress-tracker {
+  display: flex;
+  align-items: center;
+  gap: var(--ss-space-2);
+  margin: var(--ss-space-3) 0;
+}
+
+.sscribe-progress-bar-container {
+  flex: 1;
+  height: 6px;
+  background: var(--ss-surface-3);
+  border-radius: var(--ss-radius-full);
+  overflow: hidden;
+}
+
+.sscribe-progress-bar-fill {
+  height: 100%;
+  background: var(--ss-brand);
+  width: 0%;
+  border-radius: var(--ss-radius-full);
+  transition: width 200ms ease;
+}
+
+.sscribe-progress-percentage {
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--ss-brand);
+  font-family: var(--ss-font-mono);
+  min-width: 38px;
+  text-align: right;
+}
+
+.sscribe-progress-meta {
+  display: flex;
+  align-items: center;
+  gap: var(--ss-space-3);
+  margin-top: var(--ss-space-1);
+}
+
+.sscribe-time-remaining {
+  font-size: 11px;
+  font-style: italic;
+  color: var(--ss-text-muted);
+}
+
+.sscribe-success-actions,
+.sscribe-error-actions {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--ss-space-2);
+  margin-top: var(--ss-space-3);
+  flex-wrap: wrap;
+}
+
+.sscribe-error-guidance {
+  background: var(--ss-warning-bg);
+  border: 1px solid var(--ss-warning-border);
+  border-radius: var(--ss-radius-sm);
+  padding: var(--ss-space-2) var(--ss-space-3);
+  margin-top: var(--ss-space-3);
+}
+
+.sscribe-guidance-text {
+  font-size: 12px;
+  color: var(--ss-warning);
+  margin: 0;
+  line-height: 1.5;
+}
+
+.sscribe-debug-details {
+  margin: var(--ss-space-2) 0;
+}
+
+.sscribe-debug-details summary {
+  cursor: pointer;
+  font-size: 12px;
+  color: var(--ss-text-secondary);
+  font-weight: 500;
+  padding: 4px 0;
+}
+
+.sscribe-debug-pre {
+  background: var(--ss-bg);
+  color: var(--ss-text-primary);
+  font: 11px/1.5 var(--ss-font-mono);
+  padding: var(--ss-space-3) var(--ss-space-3);
+  border-radius: var(--ss-radius-sm);
+  border: 1px solid var(--ss-border);
+  overflow-x: auto;
+  margin: var(--ss-space-1) 0 0 0;
+  white-space: pre-wrap;
+  word-break: break-word;
+}
+
+.sscribe-badge {
+  display: inline-flex;
+  align-items: center;
+  padding: 3px var(--ss-space-2);
+  background: var(--ss-warning-bg);
+  border: 1px solid var(--ss-warning-border);
+  color: var(--ss-warning);
+  border-radius: var(--ss-radius-full);
+  font-size: 11px;
+  font-weight: 500;
+}
+
+.sscribe-bulk-bar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--ss-space-3);
+  padding: var(--ss-space-2) var(--ss-space-7);
+  background: var(--ss-brand-tint);
+  border-bottom: 1px solid var(--ss-border);
+}
+
+.sscribe-bulk-left {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--ss-space-3);
+}
+
+.sscribe-bulk-select-all {
+  display: inline-flex;
+  align-items: center;
+  cursor: pointer;
+  position: relative;
+  min-height: 40px;
+  padding: 0 var(--ss-space-1);
+}
+
+.sscribe-bulk-select-all input {
+  position: absolute;
+  opacity: 0;
+  width: 0;
+  height: 0;
+  pointer-events: none;
+}
+
+.sscribe-check-visual {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 16px;
+  height: 16px;
+  border: 1.5px solid var(--ss-border-strong);
+  border-radius: 3px;
+  background: var(--ss-surface);
+  color: transparent;
+  flex-shrink: 0;
+  transition: background 120ms ease, border-color 120ms ease, color 120ms ease;
+}
+
+.sscribe-check-visual svg {
+  width: 12px;
+  height: 12px;
+}
+
+.sscribe-bulk-select-all input:checked ~ .sscribe-check-visual,
+.sscribe-history-check-label input:checked ~ .sscribe-check-visual {
+  background: var(--ss-brand);
+  border-color: var(--ss-brand);
+  color: var(--ss-text-inverse);
+}
+
+.sscribe-bulk-count {
+  font-size: 12px;
+  font-weight: 500;
+  color: var(--ss-brand);
+}
+
+.sscribe-bulk-actions {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--ss-space-2);
+}
+
+.sscribe-history-table {
+  padding: 0 var(--ss-space-7) var(--ss-space-4);
+}
+
+.sscribe-history-row {
+  display: flex;
+  align-items: center;
+  gap: var(--ss-space-3);
+  padding: var(--ss-space-3) 0;
+  border-bottom: 1px solid var(--ss-border);
+  transition: background 120ms ease;
+}
+
+.sscribe-history-row:last-child {
+  border-bottom: none;
+}
+
+.sscribe-history-row:hover {
+  background: var(--ss-surface-2);
+  margin: 0 calc(-1 * var(--ss-space-7));
+  padding-left: var(--ss-space-7);
+  padding-right: var(--ss-space-7);
+}
+
+.sscribe-history-check-label {
+  display: inline-flex;
+  align-items: center;
+  cursor: pointer;
+  position: relative;
+  min-height: 40px;
+  padding: 0 var(--ss-space-1);
+}
+
+.sscribe-history-check {
+  position: absolute;
+  opacity: 0;
+  width: 0;
+  height: 0;
+  pointer-events: none;
+}
+
+.sscribe-history-file {
+  display: flex;
+  align-items: center;
+  gap: var(--ss-space-3);
+  flex: 1;
+  min-width: 0;
+}
+
+.sscribe-file-icon {
+  width: 36px;
+  height: 36px;
+  background: var(--ss-surface-2);
+  border: 1px solid var(--ss-border);
+  border-radius: var(--ss-radius-sm);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  overflow: hidden;
+}
+
+.sscribe-file-icon-img {
+  width: 24px;
+  height: 18px;
+  object-fit: cover;
+  border-radius: 1px;
+}
+
+.sscribe-file-icon-text {
+  font-size: 9px;
+  font-weight: 700;
+  text-transform: uppercase;
+  color: var(--ss-text-muted);
+  font-family: var(--ss-font-mono);
+}
+
+.sscribe-file-details {
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.sscribe-file-details strong {
+  font-size: 13px;
+  font-weight: 500;
+  color: var(--ss-text-primary);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.sscribe-file-details span {
+  font-size: 11px;
+  color: var(--ss-text-muted);
+}
+
+.sscribe-file-size {
+  font-family: var(--ss-font-mono);
+  margin-left: 6px;
+}
+
+.sscribe-history-actions {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  flex-shrink: 0;
+}
+
+.sscribe-history-empty {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding: var(--ss-space-10) var(--ss-space-5);
+  color: var(--ss-text-muted);
+}
+
+.sscribe-empty-illustration {
+  color: var(--ss-border-strong);
+  opacity: 0.7;
+  margin-bottom: var(--ss-space-3);
+}
+
+.sscribe-history-notice {
+  padding: var(--ss-space-2);
+  text-align: center;
+}
+
+.sscribe-history-notice p {
+  font-size: 12px;
+  color: var(--ss-text-muted);
+  margin: 0;
+}
+
+.sscribe-history-skeleton {
+  padding: var(--ss-space-3) 0;
+}
+
+.sscribe-history-skeleton-row {
+  display: flex;
+  align-items: center;
+  gap: var(--ss-space-3);
+  padding: var(--ss-space-2) 0;
+}
+
+.sscribe-skeleton {
+  background: var(--ss-surface-2);
+  border-radius: var(--ss-radius-sm);
+}
+
+.sscribe-skeleton-icon {
+  width: 36px;
+  height: 36px;
+}
+
+.sscribe-skeleton-title {
+  width: 180px;
+  height: 14px;
+}
+
+.sscribe-support-master {
+  display: grid;
+  grid-template-columns: 260px 1fr;
+  gap: var(--ss-space-5);
+}
+
+.sscribe-support-sidebar {
+  background: var(--ss-surface);
+  border: 1px solid var(--ss-border);
+  border-radius: var(--ss-radius-lg);
+  padding: var(--ss-space-5);
+  height: fit-content;
+}
+
+.sscribe-support-header {
+  margin-bottom: var(--ss-space-4);
+}
+
+.sscribe-support-header h2 {
+  font-size: 15px;
+  font-weight: 600;
+  color: var(--ss-text-primary);
+  margin: 0 0 6px 0;
+}
+
+.sscribe-support-header p {
+  font-size: 12px;
+  color: var(--ss-text-secondary);
+  line-height: 1.55;
+  margin: 0;
+}
+
+.sscribe-support-actions-vertical {
+  display: flex;
+  flex-direction: column;
+  gap: var(--ss-space-2);
+}
+
+.sscribe-support-actions-vertical .sscribe-button {
+  width: 100%;
+}
+
+.sscribe-support-feedback {
+  font-size: 12px;
+  color: var(--ss-text-secondary);
+  margin: var(--ss-space-3) 0 0 0;
+}
+
+.sscribe-support-main {
+  min-width: 0;
+}
+
+.sscribe-support-terminal {
+  background: #18181b;
+  border: 1px solid var(--ss-border-strong);
+  border-radius: var(--ss-radius-lg);
+  overflow: hidden;
+}
+
+.sscribe-terminal-header {
+  display: flex;
+  align-items: center;
+  gap: var(--ss-space-2);
+  padding: var(--ss-space-2) var(--ss-space-3);
+  background: #27272a;
+  border-bottom: 1px solid #3f3f46;
+}
+
+.sscribe-dot {
+  width: 12px;
+  height: 12px;
+  border-radius: 50%;
+  flex-shrink: 0;
+}
+
+.sscribe-dot-red {
+  background: #ff5f57;
+}
+
+.sscribe-dot-yellow {
+  background: #ffbd2e;
+}
+
+.sscribe-dot-green {
+  background: #28c840;
+}
+
+.sscribe-terminal-title {
+  font-size: 11px;
+  color: var(--ss-text-muted);
+  font-family: var(--ss-font-mono);
+  margin-left: var(--ss-space-2);
+}
+
+.sscribe-support-copy-wrap {
+  padding: var(--ss-space-3);
+}
+
+.sscribe-support-copy-text {
+  width: 100%;
+  min-height: 360px;
+  background: transparent;
+  color: #a1a1aa;
+  font: 12px/1.5 var(--ss-font-mono);
+  border: none;
+  resize: vertical;
+}
+
+.sscribe-support-copy-text:focus-visible {
+  outline: 2px solid var(--ss-brand);
+  outline-offset: -2px;
+}
+
+.sscribe-modal {
+  position: fixed;
+  inset: 0;
+  background: rgb(9 9 11 / 50%);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: var(--ss-space-5);
+  z-index: 100000;
+}
+
+.sscribe-modal-content {
+  background: var(--ss-surface);
+  border: 1px solid var(--ss-border);
+  border-radius: var(--ss-radius-xl);
+  max-width: 540px;
+  width: 100%;
+  max-height: 80vh;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+
+.sscribe-modal-content-preview {
+  max-width: 680px;
+}
+
+.sscribe-modal-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--ss-space-3);
+  padding: var(--ss-space-4) var(--ss-space-6) var(--ss-space-3);
+  border-bottom: 1px solid var(--ss-border);
+}
+
+.sscribe-modal-header h3 {
+  font-size: 15px;
+  font-weight: 600;
+  color: var(--ss-text-primary);
+  margin: 0;
+  display: inline-flex;
+  align-items: center;
+  gap: var(--ss-space-2);
+}
+
+.sscribe-modal-close {
+  width: 40px;
+  height: 40px;
+  background: transparent;
+  border: none;
+  border-radius: var(--ss-radius-sm);
+  font-size: 20px;
+  line-height: 1;
+  color: var(--ss-text-secondary);
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.sscribe-modal-close:hover {
+  background: var(--ss-error-bg);
+  color: var(--ss-error);
+}
+
+.sscribe-modal-body {
+  padding: var(--ss-space-5) var(--ss-space-6);
+  flex: 1;
+  overflow-y: auto;
+}
+
+.sscribe-modal-footer {
+  padding: var(--ss-space-3) var(--ss-space-6);
+  border-top: 1px solid var(--ss-border);
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: var(--ss-space-2);
+  background: var(--ss-surface-2);
+}
+
+.sscribe-preview-footer {
+  padding: var(--ss-space-3) var(--ss-space-6);
+  border-top: 1px solid var(--ss-border);
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: var(--ss-space-2);
+  background: var(--ss-surface-2);
+}
+
+.sscribe-preview-loading,
+.sscribe-log-loading {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--ss-space-2);
+  color: var(--ss-text-muted);
+  font-size: 13px;
+}
+
+.sscribe-loading-spinner {
+  width: 18px;
+  height: 18px;
+  border: 2px solid var(--ss-border);
+  border-top-color: var(--ss-brand);
+  border-radius: 50%;
+}
+
+.sscribe-progress-initializing {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: var(--ss-space-2);
+  color: var(--ss-text-muted);
+  font-size: 12px;
+}
+
+.sscribe-toast-container {
+  position: fixed;
+  bottom: var(--ss-space-5);
+  right: var(--ss-space-5);
+  display: flex;
+  flex-direction: column;
+  gap: var(--ss-space-2);
+  max-width: 340px;
+  z-index: 100001;
+}
+
+.sscribe-toast {
+  display: flex;
+  align-items: flex-start;
+  gap: var(--ss-space-2);
+  padding: var(--ss-space-3) var(--ss-space-4);
+  background: var(--ss-text-primary);
+  color: var(--ss-text-inverse);
+  border-radius: var(--ss-radius-lg);
+  border: 1px solid var(--ss-text-primary);
+  font-size: 13px;
+  line-height: 1.4;
+}
+
+.sscribe-toast-success {
+  background: var(--ss-success);
+  border-color: var(--ss-success);
+}
+
+.sscribe-toast-error {
+  background: var(--ss-error);
+  border-color: var(--ss-error);
+}
+
+.sscribe-toast-info {
+  background: var(--ss-info);
+  border-color: var(--ss-info);
+}
+
+.sscribe-toast-dismiss {
+  background: transparent;
+  border: none;
+  color: var(--ss-text-inverse);
+  opacity: 0.7;
+  cursor: pointer;
+  padding: 0;
+  margin-left: auto;
+  font-size: 16px;
+  line-height: 1;
+}
+
+.sscribe-toast-dismiss:hover {
+  opacity: 1;
+}
+
+.sscribe-preflight,
+.sscribe-preflight-banner {
+  background: var(--ss-warning-bg);
+  border-left: 3px solid var(--ss-warning);
+  padding: var(--ss-space-4) var(--ss-space-5);
+  border-radius: var(--ss-radius-sm);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--ss-space-4);
+}
+
+.sscribe-preflight-close {
+  width: 32px;
+  height: 32px;
+  background: transparent;
+  border: none;
+  cursor: pointer;
+  border-radius: var(--ss-radius-sm);
+  color: var(--ss-warning);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.sscribe-feedback {
+  color: var(--ss-success);
+  font-size: 12px;
+  margin: 0;
+}
+
+.sscribe-export-btn-scope {
+  font-size: 12px;
+  color: var(--ss-text-muted);
+  margin-left: var(--ss-space-1);
+}
+
+.sscribe-button:focus-visible,
+.sscribe-tab-btn:focus-visible,
+.sscribe-modal-close:focus-visible,
+.sscribe-button-icon:focus-visible,
+.sscribe-toast-dismiss:focus-visible,
+.sscribe-preflight-close:focus-visible,
+.sscribe-support-copy-text:focus-visible {
+  outline: 2px solid var(--ss-brand);
+  outline-offset: 2px;
+}
+
+.sscribe-post-type-card-label:focus-within .sscribe-post-type-card-inner,
+.sscribe-status-card-label:focus-within .sscribe-status-card-inner,
+.sscribe-format-card-label:focus-within .sscribe-format-card-inner,
+.sscribe-lang-card-label:focus-within .sscribe-lang-card-inner {
+  outline: 2px solid var(--ss-brand);
+  outline-offset: 2px;
+}
+
+.sscribe-format-option-field select:focus-visible {
+  outline: 2px solid var(--ss-brand);
+  outline-offset: 2px;
+}
+
+.sscribe-format-option-field.sscribe-format-option-checkbox:focus-within {
+  outline: 2px solid var(--ss-brand);
+  outline-offset: 2px;
+  border-radius: var(--ss-radius-sm);
+}
+
+.sscribe-bulk-select-all:focus-within .sscribe-check-visual,
+.sscribe-history-check-label:focus-within .sscribe-check-visual {
+  outline: 2px solid var(--ss-brand);
+  outline-offset: 2px;
+}
+
+@media (width <= 900px) {
+  .sscribe-workspace {
+    padding: var(--ss-space-5) var(--ss-space-4);
+  }
+  .sscribe-hero {
+    padding: var(--ss-space-5) var(--ss-space-4);
+  }
+  .sscribe-hero-subtitle {
+    display: none;
+  }
+  .sscribe-support-master {
+    grid-template-columns: 1fr;
+  }
+  .sscribe-support-terminal {
+    order: -1;
+  }
+  .sscribe-export-bar {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: var(--ss-space-3);
+  }
+  .sscribe-export-bar-actions {
+    width: 100%;
+    justify-content: flex-end;
+  }
+}
+
+@media (width <= 640px) {
+  .sscribe-hero-content {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: var(--ss-space-3);
+  }
+  .sscribe-hero-version {
+    align-self: flex-start;
+  }
+  .sscribe-post-type-cards,
+  .sscribe-status-cards,
+  .sscribe-format-cards {
+    gap: 6px;
+  }
+  .sscribe-post-type-card-inner,
+  .sscribe-format-card-inner {
+    min-width: 100px;
+  }
+  .sscribe-tabs-nav {
+    overflow-x: auto;
+  }
+  .sscribe-tabs-nav::-webkit-scrollbar {
+    display: none;
+  }
+  .sscribe-panel-header {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: var(--ss-space-2);
+  }
+  .sscribe-modal-content {
+    max-height: 90vh;
+  }
+  .sscribe-status-alert {
+    flex-direction: column;
+    gap: var(--ss-space-3);
+  }
+  .sscribe-config-section {
+    padding: var(--ss-space-5) var(--ss-space-4);
+  }
+  .sscribe-format-options {
+    padding: var(--ss-space-4);
+  }
+  .sscribe-export-bar {
+    padding: var(--ss-space-4);
+  }
+  .sscribe-history-table {
+    padding: 0 var(--ss-space-4) var(--ss-space-4);
+  }
+  .sscribe-bulk-bar {
+    padding: var(--ss-space-2) var(--ss-space-4);
+  }
+}
+
+@supports (scrollbar-width: none) {
+  .sscribe-tabs-nav {
+    overflow-x: auto;
+    scrollbar-width: none;
+  }
+}
+
+.sscribe-delete-btn,
+.sscribe-log-btn {
+  display: inline-flex;
+}
+
+.sscribe-lang-card-compact .sscribe-lang-card-inner {
+  padding: var(--ss-space-2) var(--ss-space-3);
+  min-height: 56px;
+}
+
+.sscribe-summary-post-type,
+.sscribe-summary-status,
+.sscribe-summary-format,
+.sscribe-summary-language {
+  display: inline-flex;
+  align-items: center;
+}
+
+body.toplevel_page_sscribe-export {
+  background: var(--ss-bg-subtle);
+}
+.faux-admin-bar {
+  height: 32px; background: #1d2327; color: #c3c4c7;
+  display: flex; align-items: center; padding: 0 16px;
+  font-size: 13px;
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+}
+.faux-admin-bar span { margin-right: 16px; opacity: 0.85; }
+#wpcontent { background: var(--ss-bg-subtle); min-height: 100vh; }
+#wpbody-content { padding: 0 20px 32px; box-sizing: border-box; }
+</style>
+</head>
+<body class="toplevel_page_sscribe-export">
+<div class="faux-admin-bar">
+  <span>WordPress Admin</span>
+  <span>sScribe Export Site Pages</span>
+</div>
+<div id="wpcontent">
+<div id="wpbody">
+<div id="wpbody-content">
+
+<a class="sscribe-skip-link screen-reader-text" href="#main">Skip to export</a>
+<div class="sscribe-master-container">
+
+  <header class="sscribe-hero">
+    <div class="sscribe-hero-content">
+      <div class="sscribe-hero-left">
+        <div class="sscribe-hero-logo"><svg viewBox="0 0 24 24" width="24" height="24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg></div>
+        <div class="sscribe-hero-text">
+          <span class="sscribe-hero-eyebrow">SSCRIBE &middot; ENTERPRISE EXPORT</span>
+          <div class="sscribe-hero-title-row">
+            <h1 class="sscribe-hero-title">SScribe</h1>
+            <span class="sscribe-hero-version">v1.1.2</span>
+          </div>
+          <p class="sscribe-hero-subtitle">Export every page into beautifully formatted documents with multilingual support, SEO meta, and secure ZIP download.</p>
+        </div>
+      </div>
+    </div>
+    <div class="sscribe-hero-stats">
+      <span class="sscribe-hero-stat"><svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg><strong>247</strong>&nbsp;pages</span>
+      <span class="sscribe-hero-stat"><svg viewBox="0 0 24 24" width="24" height="24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg><strong>18</strong>&nbsp;exports</span>
+    </div>
+  </header>
+
+  <div class="sscribe-workspace sscribe-flat-workspace" id="sscribe-main-content" role="main">
+
+    <nav class="sscribe-tabs-nav" role="tablist">
+      <button type="button" class="sscribe-tab-btn sscribe-tab-active" role="tab" aria-selected="true"><svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/></svg>Export</button>
+      <button type="button" class="sscribe-tab-btn" role="tab" aria-selected="false"><svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>History</button>
+      <button type="button" class="sscribe-tab-btn" role="tab" aria-selected="false"><svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><line x1="12" y1="16" x2="12" y2="12"/><line x1="12" y1="8" x2="12.01" y2="8"/></svg>Support</button>
+    </nav>
+
+    <div class="sscribe-tab-content sscribe-tab-active">
+
+      <section class="sscribe-panel sscribe-config-panel">
+        <div class="sscribe-panel-header">
+          <div class="sscribe-panel-title"><svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/></svg><h2>Export Configuration</h2></div>
+        </div>
+        <div class="sscribe-panel-body sscribe-flat-body">
+          <div class="sscribe-config-grid">
+
+            <div class="sscribe-config-section">
+              <div class="sscribe-section-title"><span class="sscribe-step-badge">1</span>Content Type</div>
+              <div class="sscribe-post-type-cards sscribe-cards-compact">
+                <label class="sscribe-post-type-card">
+                  <input type="radio" name="pt" checked>
+                  <div class="sscribe-post-type-card-inner">
+                    <div class="sscribe-post-type-icon"><svg viewBox="0 0 24 24" width="24" height="24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg></div>
+                    <div class="sscribe-post-type-meta">
+                      <span class="sscribe-post-type-name">Pages</span>
+                      <span class="sscribe-post-type-count">247 items</span>
+                    </div>
+                    <div class="sscribe-post-type-selector"><svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg></div>
+                  </div>
+                </label>
+                <label class="sscribe-post-type-card">
+                  <input type="radio" name="pt">
+                  <div class="sscribe-post-type-card-inner">
+                    <div class="sscribe-post-type-icon"><svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><line x1="12" y1="16" x2="12" y2="12"/><line x1="12" y1="8" x2="12.01" y2="8"/></svg></div>
+                    <div class="sscribe-post-type-meta">
+                      <span class="sscribe-post-type-name">Posts</span>
+                      <span class="sscribe-post-type-count">152 items</span>
+                    </div>
+                    <div class="sscribe-post-type-selector"><svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg></div>
+                  </div>
+                </label>
+                <label class="sscribe-post-type-card">
+                  <input type="radio" name="pt">
+                  <div class="sscribe-post-type-card-inner">
+                    <div class="sscribe-post-type-icon"><svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg></div>
+                    <div class="sscribe-post-type-meta">
+                      <span class="sscribe-post-type-name">Both</span>
+                      <span class="sscribe-post-type-count">399 items</span>
+                    </div>
+                    <div class="sscribe-post-type-selector"><svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg></div>
+                  </div>
+                </label>
+              </div>
+            </div>
+
+            <div class="sscribe-config-section">
+              <div class="sscribe-section-title"><span class="sscribe-step-badge">2</span>Status Filter</div>
+              <div class="sscribe-status-cards sscribe-cards-compact">
+                <label class="sscribe-status-card-label">
+                  <input type="radio" name="st" value="published" checked>
+                  <div class="sscribe-status-card-inner">
+                    <div class="sscribe-status-icon"><svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg></div>
+                    <div class="sscribe-status-meta">
+                      <span class="sscribe-status-name">Published</span>
+                      <span class="sscribe-status-count">198</span>
+                    </div>
+                  </div>
+                </label>
+                <label class="sscribe-status-card-label">
+                  <input type="radio" name="st" value="draft">
+                  <div class="sscribe-status-card-inner">
+                    <div class="sscribe-status-icon"><svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg></div>
+                    <div class="sscribe-status-meta">
+                      <span class="sscribe-status-name">Drafts</span>
+                      <span class="sscribe-status-count">32</span>
+                    </div>
+                  </div>
+                </label>
+                <label class="sscribe-status-card-label">
+                  <input type="radio" name="st" value="private">
+                  <div class="sscribe-status-card-inner">
+                    <div class="sscribe-status-icon"><svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><line x1="12" y1="16" x2="12" y2="12"/><line x1="12" y1="8" x2="12.01" y2="8"/></svg></div>
+                    <div class="sscribe-status-meta">
+                      <span class="sscribe-status-name">Private</span>
+                      <span class="sscribe-status-count">17</span>
+                    </div>
+                  </div>
+                </label>
+              </div>
+            </div>
+
+            <div class="sscribe-config-section">
+              <div class="sscribe-section-title"><span class="sscribe-step-badge">3</span>Output Format</div>
+              <div class="sscribe-format-cards sscribe-cards-compact">
+                <label class="sscribe-format-card-label">
+                  <input type="radio" name="fmt" value="docx" checked>
+                  <div class="sscribe-format-card-inner">
+                    <div class="sscribe-format-icon"><svg viewBox="0 0 24 24" width="24" height="24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg></div>
+                    <div class="sscribe-format-meta">
+                      <span class="sscribe-format-name">Word Document</span>
+                      <span class="sscribe-format-desc">.docx &middot; editable</span>
+                    </div>
+                  </div>
+                </label>
+                <label class="sscribe-format-card-label">
+                  <input type="radio" name="fmt" value="pdf">
+                  <div class="sscribe-format-card-inner">
+                    <div class="sscribe-format-icon"><svg viewBox="0 0 24 24" width="24" height="24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg></div>
+                    <div class="sscribe-format-meta">
+                      <span class="sscribe-format-name">PDF</span>
+                      <span class="sscribe-format-desc">.pdf &middot; printable</span>
+                    </div>
+                  </div>
+                </label>
+                <label class="sscribe-format-card-label">
+                  <input type="radio" name="fmt" value="html">
+                  <div class="sscribe-format-card-inner">
+                    <div class="sscribe-format-icon"><svg viewBox="0 0 24 24" width="24" height="24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg></div>
+                    <div class="sscribe-format-meta">
+                      <span class="sscribe-format-name">HTML</span>
+                      <span class="sscribe-format-desc">.html &middot; web-ready</span>
+                    </div>
+                  </div>
+                </label>
+                <label class="sscribe-format-card-label">
+                  <input type="radio" name="fmt" value="md">
+                  <div class="sscribe-format-card-inner">
+                    <div class="sscribe-format-icon"><svg viewBox="0 0 24 24" width="24" height="24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg></div>
+                    <div class="sscribe-format-meta">
+                      <span class="sscribe-format-name">Markdown</span>
+                      <span class="sscribe-format-desc">.md &middot; plain text</span>
+                    </div>
+                  </div>
+                </label>
+              </div>
+            </div>
+
+          </div>
+        </div>
+      </section>
+
+      <div class="sscribe-status-alert sscribe-status-success">
+        <div class="sscribe-alert-icon"><svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg></div>
+        <div class="sscribe-alert-body">
+          <span class="sscribe-status-eyebrow">READY &middot; ALL CHECKS PASSED</span>
+          <h3 class="sscribe-status-heading">Configuration complete and ready to export</h3>
+          <p class="sscribe-status-desc">Your selection includes 247 pages filtered by publication status, formatted as Word Documents.</p>
+        </div>
+      </div>
+
+      <div class="sscribe-export-bar">
+        <div class="sscribe-config-summary">
+          <span class="sscribe-summary-label">SUMMARY</span>
+          <span class="sscribe-summary-chip">Pages</span>
+          <span class="sscribe-summary-chip">Published</span>
+          <span class="sscribe-summary-chip">DOCX</span>
+          <span class="sscribe-summary-sep">&rarr;</span>
+          <span class="sscribe-summary-chip sscribe-summary-pages">247 pages</span>
+          <span class="sscribe-summary-sep">&middot;</span>
+          <span class="sscribe-summary-chip sscribe-summary-time">~8m</span>
+        </div>
+        <div class="sscribe-export-bar-actions">
+          <button type="button" class="sscribe-button sscribe-button-outline"><svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><line x1="12" y1="16" x2="12" y2="12"/><line x1="12" y1="8" x2="12.01" y2="8"/></svg>Preview</button>
+          <button type="button" class="sscribe-button sscribe-button-secondary">Save Profile</button>
+          <button type="button" class="sscribe-button sscribe-button-primary"><svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>Export Now</button>
+        </div>
+      </div>
+
+    </div>
+  </div>
+
+  <div style="height: 40px;"></div>
+</div>
+</div>
+</div>
+</div>
+</body>
+</html>
