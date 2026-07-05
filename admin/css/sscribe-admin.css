@@ -287,7 +287,7 @@
   gap: var(--ss-space-2);
 }
 
-.sscribe-panel-title h2 {
+.sscribe-master-container .sscribe-panel-title h2 {
   font-size: 15px;
   font-weight: 600;
   color: var(--ss-text-primary);
@@ -383,7 +383,6 @@
 }
 
 .sscribe-post-type-card,
-.sscribe-post-type-card-label,
 .sscribe-status-card-label,
 .sscribe-format-card-label,
 .sscribe-lang-card-label {
@@ -423,7 +422,7 @@
   min-width: 130px;
 }
 
-.sscribe-post-type-card-label:hover .sscribe-post-type-card-inner,
+.sscribe-post-type-card:hover .sscribe-post-type-card-inner,
 .sscribe-status-card-label:hover .sscribe-status-card-inner,
 .sscribe-format-card-label:hover .sscribe-format-card-inner,
 .sscribe-lang-card-label:hover .sscribe-lang-card-inner {
@@ -431,7 +430,7 @@
   background: var(--ss-brand-tint);
 }
 
-.sscribe-post-type-card-label input:checked ~ .sscribe-post-type-card-inner,
+.sscribe-post-type-card input:checked ~ .sscribe-post-type-card-inner,
 .sscribe-status-card-label input:checked ~ .sscribe-status-card-inner,
 .sscribe-format-card-label input:checked ~ .sscribe-format-card-inner,
 .sscribe-lang-card-label input:checked ~ .sscribe-lang-card-inner {
@@ -517,7 +516,7 @@
   height: 12px;
 }
 
-.sscribe-post-type-card-label input:checked ~ .sscribe-post-type-card-inner .sscribe-post-type-selector,
+.sscribe-post-type-card input:checked ~ .sscribe-post-type-card-inner .sscribe-post-type-selector,
 .sscribe-status-card-label input:checked ~ .sscribe-status-card-inner .sscribe-status-selector,
 .sscribe-format-card-label input:checked ~ .sscribe-format-card-inner .sscribe-format-selector,
 .sscribe-lang-card-label input:checked ~ .sscribe-lang-card-inner .sscribe-lang-selector {
@@ -909,7 +908,7 @@
   border: 1px solid var(--ss-border);
   border-radius: var(--ss-radius-lg);
   padding: var(--ss-space-6);
-  margin-top: var(--ss-space-4);
+  margin: var(--ss-space-4) 0;
   position: relative;
   overflow: hidden;
 }
@@ -1637,6 +1636,13 @@
   border: 2px solid var(--ss-border);
   border-top-color: var(--ss-brand);
   border-radius: 50%;
+  animation: sscribe-spin 0.8s linear infinite;
+}
+
+@keyframes sscribe-spin {
+  to {
+    transform: rotate(360deg);
+  }
 }
 
 .sscribe-progress-initializing {
@@ -1751,7 +1757,7 @@
   outline-offset: 2px;
 }
 
-.sscribe-post-type-card-label:focus-within .sscribe-post-type-card-inner,
+.sscribe-post-type-card:focus-within .sscribe-post-type-card-inner,
 .sscribe-status-card-label:focus-within .sscribe-status-card-inner,
 .sscribe-format-card-label:focus-within .sscribe-format-card-inner,
 .sscribe-lang-card-label:focus-within .sscribe-lang-card-inner {
