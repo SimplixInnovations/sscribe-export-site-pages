@@ -67,10 +67,10 @@ class SScribe_Admin_Debug {
 
 		try {
 			$utc = new DateTimeImmutable( $utc_timestamp, new DateTimeZone( 'UTC' ) );
-			$site_tz = wp_timezone(); // Returns DateTimeZone for site's timezone setting.
+			$site_tz = wp_timezone(); 
 			return $utc->setTimezone( $site_tz )->format( 'Y-m-d H:i:s' );
 		} catch ( Exception $e ) {
-			return $utc_timestamp; // Fallback: return as-is if conversion fails.
+			return $utc_timestamp; 
 		}
 	}
 
@@ -197,10 +197,10 @@ class SScribe_Admin_Debug {
 
 		$filter_level = isset( $_POST['filter_level'] ) ? sanitize_text_field( wp_unslash( $_POST['filter_level'] ) ) : 'ALL';
 		$filter_level = strtoupper( $filter_level );
-		// Validate against the known level set + ALL. An unknown level
-		// (typo, tampered value, removed constant) would otherwise fall
-		// through parse_log_entries() with $filter_priority = null and
-		// silently bypass level filtering entirely.
+		
+		
+		
+		
 		$allowed_levels = array(
 			'ALL',
 			'DEBUG',
@@ -222,19 +222,19 @@ class SScribe_Admin_Debug {
 
 		$logger = SScribe_Logger::instance( true );
 
-		// Always tail-read the same window regardless of $offset, so the
-		// window the user is paging through is identical between requests
-		// (modulo new lines being written). MAX_FETCH caps memory use on
-		// very large log files.
+		
+		
+		
+		
 		$logs = $logger->get_logs( self::MAX_FETCH_LINES );
 
 		$entries = $this->parse_log_entries( $logs, $filter_level, $search, $session_id, true );
 		$total   = count( $entries );
 
-		// has_more = true when the tail-read hit MAX_FETCH_LINES. The window
-		// we held was the LAST 5000 lines of the file, so older entries may
-		// exist beyond the window. JS should stop paginating at this point
-		// (or surface a "showing latest 5000 entries" notice).
+		
+		
+		
+		
 		$has_more = count( $logs ) >= self::MAX_FETCH_LINES;
 
 		$upload_dir    = wp_upload_dir();
@@ -374,8 +374,8 @@ class SScribe_Admin_Debug {
 		$session_id   = isset( $_POST['session_id'] ) ? sanitize_text_field( wp_unslash( $_POST['session_id'] ) ) : '';
 
 		$logger = SScribe_Logger::instance( true );
-		// Cap the export at MAX_FETCH_LINES to prevent OOM on sites with
-		// months of accumulated debug logs. Same cap as ajax_debug_fetch_logs().
+		
+		
 		$logs = $logger->get_logs( self::MAX_FETCH_LINES );
 
 		$entries = $this->parse_log_entries( $logs, $filter_level, $search, $session_id, true );
@@ -467,7 +467,7 @@ class SScribe_Admin_Debug {
 			fn( $a, $b ) => $b['mtime'] <=> $a['mtime']
 		);
 
-		// Cap the number of files returned to prevent performance issues.
+		
 		$max_files   = 50;
 		$total_count = count( $result );
 		if ( $total_count > $max_files ) {
@@ -562,7 +562,7 @@ class SScribe_Admin_Debug {
 		$entries = $this->parse_log_entries( $lines, 'ALL', '', '', false );
 		$count   = count( $entries );
 
-		// Clamp high offset to valid range.
+		
 		$effective_offset = $offset;
 		if ( $effective_offset >= $count ) {
 			$effective_offset = max( 0, $count - 1 );
@@ -641,7 +641,7 @@ class SScribe_Admin_Debug {
 			return;
 		}
 
-		// Prevent deletion of the active (non-rotated) log file.
+		
 		$logger     = SScribe_Logger::instance( true );
 		$active_log = $logger->get_log_file();
 		if ( $active_log && realpath( $active_log ) === $real_file_path ) {
@@ -748,7 +748,7 @@ class SScribe_Admin_Debug {
 	 * @return array Parsed entry.
 	 */
 	private function parse_log_line( string $line ): array {
-		// Guard against extremely long lines (malformed/binary content).
+		
 		if ( mb_strlen( $line ) > 10000 ) {
 			return array(
 				'timestamp' => '',
@@ -769,15 +769,15 @@ class SScribe_Admin_Debug {
 			);
 		}
 
-		// Parse non-JSON log lines: [timestamp] [level] message | {context_json}.
-		// Try to match the pattern [timestamp] [level] first, then split message from context.
+		
+		
 		if ( preg_match( '/^\[([^\]]+)\]\s+\[([^\]]+)\]\s+(.+)$/', $line, $matches ) ) {
 			$timestamp = $matches[1];
 			$level     = $matches[2];
 			$rest      = $matches[3];
 
-			// Check if the rest ends with a JSON context: message | {"key":"value"}
-			// Find the last ' | {' that is followed by valid JSON ending with }.
+			
+			
 			$context      = array();
 			$message_part = $rest;
 
@@ -801,7 +801,7 @@ class SScribe_Admin_Debug {
 			);
 		}
 
-		// Unparseable line - use RAW level to distinguish from real log entries.
+		
 		return array(
 			'timestamp' => '',
 			'level'     => 'RAW',
@@ -821,7 +821,7 @@ class SScribe_Admin_Debug {
 			ob_end_clean();
 		}
 
-		// Disable zlib compression to ensure Content-Length is accurate.
+		
 		if ( function_exists( 'ini_set' ) ) {
 			// phpcs:ignore WordPress.PHP.IniSet.Risky, Squiz.PHP.DiscouragedFunctions.Discouraged
 			@ini_set( 'zlib.output_compression', 'Off' );

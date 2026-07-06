@@ -295,16 +295,16 @@ class SScribe_Content_Parser {
 
 		$prev_use_errors = libxml_use_internal_errors( true );
 
-		// Note: libxml_disable_entity_loader() is deprecated in PHP 8.0+ and
-		// entity loading is disabled by default in libxml2 ≥ 2.9.0 (PHP 8+).
-		// Additionally, LIBXML_NONET flag is used in loadHTML() below, providing
-		// defense-in-depth against XXE and external entity attacks.
+		
+		
+		
+		
 
 		try {
 
-			// Sanitize control characters while preserving valid whitespace.
-			// Using preg_replace instead of mb_encode_numericentity to avoid.
-			// DOMPurify bypass via encoded malicious content.
+			
+			
+			
 			$html = preg_replace( '/[\x00-\x08\x0B\x0C\x0E-\x1F\x7F]/', '', $html );
 
 			$wrapped = '<!DOCTYPE html><html><head>'
@@ -319,7 +319,7 @@ class SScribe_Content_Parser {
 
 			$body = $dom->getElementsByTagName( 'body' )->item( 0 );
 			if ( ! $body ) {
-				// No cleanup needed here : the finally block below handles $body and $dom.
+				
 				return $elements;
 			}
 
@@ -342,9 +342,9 @@ class SScribe_Content_Parser {
 			if ( isset( $body ) ) {
 				unset( $body );
 			}
-			// These variables are always set when finally runs because the assignments
-			// occur before any code that could throw. isset() here silences PHPStan
-			// but the variables are unconditionally cleaned up.
+			
+			
+			
 			unset( $dom );
 			libxml_clear_errors();
 			libxml_use_internal_errors( $prev_use_errors );
@@ -447,10 +447,10 @@ class SScribe_Content_Parser {
 				$img_node     = null;
 				$caption_text = '';
 
-				// Walk direct children first, but fall back to a descendant
-				// search for the <img> if the page builder wrapped it in a
-				// container (e.g. Gutenberg's <figure class="wp-block-image">
-				// sometimes nests <img> inside an extra <div> for layout).
+				
+				
+				
+				
 				foreach ( $node->childNodes as $child ) {
 					if ( $child instanceof DOMElement ) {
 						if ( 'img' === $child->tagName ) {
@@ -461,10 +461,10 @@ class SScribe_Content_Parser {
 					}
 				}
 
-				// Descendant fallback for the <img>. We intentionally do not
-				// recurse to find a <figcaption> : captions must be a direct
-				// child per the HTML5 spec, so any deeper match would be
-				// noise from a nested figure.
+				
+				
+				
+				
 				if ( null === $img_node ) {
 					$descendant_imgs = $node->getElementsByTagName( 'img' );
 					if ( $descendant_imgs->length > 0 ) {
@@ -488,13 +488,13 @@ class SScribe_Content_Parser {
 				return $figure_data;
 
 			case 'figcaption':
-				// Return figcaption as separate element only when it appears outside of a figure.
-				// When inside a figure, the caption is extracted by the figure case above
-				// to prevent duplicate captions in the output.
-				// Check if parent is a figure element by traversing up.
+				
+				
+				
+				
 				$parent = $node->parentNode;
 				if ( $parent instanceof DOMElement && 'figure' === strtolower( $parent->nodeName ) ) {
-					return null; // Figcaption handled by figure case.
+					return null; 
 				}
 				return array(
 					'type'    => 'figcaption',
@@ -502,13 +502,13 @@ class SScribe_Content_Parser {
 				);
 
 			case 'details':
-				// Parse <details>/<summary> collapsible sections.
-				// <summary> is extracted as a label; only children that appear
-				// AFTER the <summary> form the collapsible body. Pre-summary
-				// content is intentionally skipped : in well-formed HTML,
-				// <summary> is the first child; pre-summary nodes usually
-				// indicate malformed markup and including them would duplicate
-				// the body content next to the summary.
+				
+				
+				
+				
+				
+				
+				
 				$summary_text     = '';
 				$body_elements    = array();
 				$is_summary_found = false;
@@ -543,12 +543,12 @@ class SScribe_Content_Parser {
 				);
 
 			case 'summary':
-				// Return summary as separate element only when it appears outside of details.
-				// When inside details, the summary is extracted by the details case above
-				// to prevent duplicate output.
+				
+				
+				
 				$parent = $node->parentNode;
 				if ( $parent instanceof DOMElement && 'details' === strtolower( $parent->nodeName ) ) {
-					return null; // Summary handled by details case.
+					return null; 
 				}
 				return array(
 					'type'    => 'paragraph',
@@ -748,11 +748,11 @@ class SScribe_Content_Parser {
 				}
 				$cell_tag = strtolower( $td->nodeName );
 				if ( 'td' === $cell_tag || 'th' === $cell_tag ) {
-					// Extract colspan / rowspan from the cell attributes so the
-					// DOCX renderer can multiply cell widths and skip cells
-					// already consumed by a previous rowspan. Without this,
-					// merged-cell tables export as a flat row of equal cells
-					// and the visual structure is lost.
+					
+					
+					
+					
+					
 					$colspan_attr = $td->getAttribute( 'colspan' );
 					$rowspan_attr = $td->getAttribute( 'rowspan' );
 					$colspan      = is_numeric( $colspan_attr ) ? max( 1, (int) $colspan_attr ) : 1;
@@ -837,8 +837,8 @@ class SScribe_Content_Parser {
 			return $buttons;
 		}
 
-		// Limit input size to prevent regex backtracking on large content.
-		// Use mb_strcut to avoid splitting multi-byte UTF-8 characters.
+		
+		
 		if ( mb_strlen( $html, '8bit' ) > 500000 ) {
 			$logger = SScribe_Logger::instance( SScribe_Logger::is_logging_enabled() );
 			$logger->warning(
@@ -851,35 +851,14 @@ class SScribe_Content_Parser {
 			$html = mb_strcut( $html, 0, 500000, 'UTF-8' );
 		}
 
-		/*
-		 * Improved regex pattern that avoids catastrophic backtracking.
-		 *
-		 * Key improvements:
-		 * 1. Matches <a followed by whitespace (not just any char)
-		 * 2. Uses negated character classes that cannot contain > or quotes
-		 * 3. Avoids pattern [^>]*class= which backtracks heavily on non-matching input
-		 * 4. Separates attribute parsing from button class detection
-		 *
-		 * Pattern breakdown:
-		 * - <a\s+          : <a tag with at least one space
-		 * - (?:[^>]*?)     : optional attributes before class (non-greedy, prevents backtracking)
-		 * - class=["\']    : class attribute opening
-		 * - [^"\']*        : class value before button class (no quotes)
-		 * - (?:wp-block-button__link|wp-element-button|...) : button class alternatives
-		 * - [^"\']*        : class value after button class
-		 * - ["\']          : closing quote
-		 * - [^>]*          : remaining attributes
-		 * - >               : tag close
-		 * - (.*?)          : content (non-greedy)
-		 * - <\/a>          : closing anchor
-		 */
+		
 		$pattern = '/<a\s+(?:[^>]*?\s)?class=["\']([^"\']*(?:wp-block-button__link|wp-element-button|button|btn|elementor-button|et_pb_button|fl-button|vc_btn)[^"\']*)["\'](?:[^>]*)?>(.*?)<\/a>/is';
 
 		$match_count = preg_match_all( $pattern, $html, $matches, PREG_SET_ORDER );
 		if ( false !== $match_count && $match_count > 0 ) {
 			foreach ( $matches as $match ) {
 				$classes = $match[1];
-				// Decode HTML entities BEFORE stripping tags to handle encoded content properly.
+				
 				$content = html_entity_decode( $match[2], ENT_QUOTES | ENT_HTML5, 'UTF-8' );
 				$content = wp_strip_all_tags( $content );
 				$content = trim( $content );
@@ -1096,8 +1075,8 @@ class SScribe_Content_Parser {
 	 * @return string
 	 */
 	private function get_text_content( \DOMNode $node ): string {
-		// If node has only element children (no direct text nodes), iterate
-		// and join with space to prevent "HelloWorld" concatenation.
+		
+		
 		$has_text_children = false;
 		foreach ( $node->childNodes as $child ) {
 			if ( XML_TEXT_NODE === $child->nodeType && '' !== trim( $child->nodeValue ) ) {
@@ -1147,10 +1126,10 @@ class SScribe_Content_Parser {
 		$upload_url  = $upload_dir['baseurl'];
 		$upload_path = realpath( $upload_dir['basedir'] );
 
-		// Normalize protocol-relative URLs (//example.com/path) by prepending
-		// the same scheme the upload URL uses, so the stripos check below
-		// can match correctly. Without this, //cdn.example.com/wp-content/...
-		// would never match the upload URL.
+		
+		
+		
+		
 		if ( str_starts_with( $url, '//' ) ) {
 			$scheme = (string) wp_parse_url( $upload_url, PHP_URL_SCHEME );
 			$url    = ( '' !== $scheme ? $scheme : 'https' ) . ':' . $url;
@@ -1174,15 +1153,15 @@ class SScribe_Content_Parser {
 		}
 
 		$extension = strtolower( pathinfo( $real_local, PATHINFO_EXTENSION ) );
-		// WEBP and AVIF are not supported by PHPWord : exclude them to prevent exceptions.
+		
 		if ( ! in_array( $extension, array( 'jpg', 'jpeg', 'png', 'gif', 'bmp', 'svg', 'webp', 'avif' ), true ) ) {
 			return '';
 		}
 
-		// Validate actual MIME type matches expected image MIME for the extension.
-		// This prevents malicious files with disguised extensions from being processed.
+		
+		
 		if ( function_exists( 'getimagesize' ) ) {
-			// Suppress warnings : treat false/missing as invalid (returns empty).
+			
 			// phpcs:ignore WordPress.PHP.NoSilencedErrors.Discouraged -- getimagesize returns false for invalid images; we check this and return empty.
 			$image_info = @getimagesize( $real_local );
 			if ( false === $image_info || ! isset( $image_info['mime'] ) ) {
@@ -1243,25 +1222,25 @@ class SScribe_Content_Parser {
 			return '';
 		}
 
-		// Try the fast path first: is this an uploads-dir URL we can map
-		// to a real local file?
+		
+		
 		$local = $this->url_to_local_path( $url );
 		if ( '' !== $local && file_exists( $local ) ) {
 			return $local;
 		}
 
-		// Only attempt remote download for http(s) URLs : file://, data:,
-		// javascript: are blocked by SScribe_Image_Processor anyway.
+		
+		
 		$scheme = strtolower( (string) wp_parse_url( $url, PHP_URL_SCHEME ) );
 		if ( 'http' !== $scheme && 'https' !== $scheme ) {
 			return '';
 		}
 
-		// Reject URLs that share the upload host. Path-traversal attempts
-		// (e.g. /uploads/../sibling/file.png) pass the http(s) scheme check
-		// but would expose files outside the uploads directory if fetched.
-		// Treating "same host as uploads" as local-only matches the security
-		// guarantee of url_to_local_path() above.
+		
+		
+		
+		
+		
 		$upload_dir = $this->get_upload_dir();
 		$upload_host = strtolower( (string) wp_parse_url( $upload_dir['baseurl'] ?? '', PHP_URL_HOST ) );
 		$url_host    = strtolower( (string) wp_parse_url( $url, PHP_URL_HOST ) );
@@ -1269,9 +1248,9 @@ class SScribe_Content_Parser {
 			return '';
 		}
 
-		// Delegate to the image processor, which enforces the
-		// sscribe_allowed_image_hosts filter and is the single source of
-		// truth for what counts as a fetchable image.
+		
+		
+		
 		if ( ! class_exists( 'SScribe_Image_Processor' ) ) {
 			require_once SSCRIBE_PLUGIN_DIR . 'includes/class-sscribe-image-processor.php';
 		}

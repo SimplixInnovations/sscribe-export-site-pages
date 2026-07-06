@@ -145,9 +145,9 @@ class SScribe_Export_Query_Controller {
 			);
 		}
 
-		// Cache the diagnostics payload for 30 seconds so the debug
-		// console polling (default 10s) and concurrent admins share a
-		// single computation. Pass `?force=1` to bypass the cache.
+		
+		
+		
 		// phpcs:ignore WordPress.Security.NonceVerification.Recommended -- Read-only flag.
 		$force = isset( $_GET['force'] ) && '1' === sanitize_text_field( wp_unslash( $_GET['force'] ) );
 		$cache_key = 'sscribe_health_snapshot_' . $health_capability . '_' . get_current_user_id();
@@ -206,8 +206,8 @@ class SScribe_Export_Query_Controller {
 			$post_type = 'page';
 		}
 
-		// Always return counts for ALL post types so the JS side can keep all three
-		// counters (page, post, any) in sync without firing a second AJAX call.
+		
+		
 		$page_counts = $this->collector->get_post_status_counts( $language, 'page' );
 		$post_counts = $this->collector->get_post_status_counts( $language, 'post' );
 
@@ -217,8 +217,8 @@ class SScribe_Export_Query_Controller {
 			$any_counts[ $key ] = ( $page_counts[ $key ] ?? 0 ) + ( $post_counts[ $key ] ?? 0 );
 		}
 
-		// The "active" counts (for the currently selected post type) keep the
-		// existing single-status structure so legacy status-card logic still works.
+		
+		
 		$counts = 'any' === $post_type ? $any_counts : ( 'page' === $post_type ? $page_counts : $post_counts );
 
 		SScribe_AJAX_Guard::success(
@@ -359,7 +359,7 @@ class SScribe_Export_Query_Controller {
 		$formats_raw   = isset( $_POST['formats'] ) ? wp_unslash( (array) $_POST['formats'] ) : array();
 		$formats_input = array_map( 'sanitize_text_field', $formats_raw );
 		$formats       = ! empty( $formats_input ) ? $formats_input : array( 'docx' );
-		// Use a constant for the default format.
+		
 
 		$page_count = isset( $_POST['page_count'] ) ? absint( wp_unslash( $_POST['page_count'] ) ) : 0;
 
@@ -411,16 +411,16 @@ class SScribe_Export_Query_Controller {
 		$language    = isset( $_POST['language'] ) ? sanitize_text_field( wp_unslash( $_POST['language'] ) ) : '';
 		$post_status = isset( $_POST['post_status'] ) ? sanitize_text_field( wp_unslash( $_POST['post_status'] ) ) : 'publish';
 
-		// Ignore language filter if WPML is not active.
+		
 		if ( ! $this->collector->is_wpml_active() ) {
 			$language = '';
 		}
 		$format      = isset( $_POST['format'] ) ? sanitize_text_field( wp_unslash( $_POST['format'] ) ) : 'docx';
 
-		// Use the centralized Exporter_Factory to validate the format
-		// instead of a hardcoded list, so this stays in sync with
-		// batch processor and with any third-party exporters that
-		// register themselves via the factory.
+		
+		
+		
+		
 		if ( 'all' === $format ) {
 			$formats = \SScribe_Exporter_Factory::get_supported_formats();
 		} elseif ( \SScribe_Exporter_Factory::is_supported( $format ) ) {
@@ -433,18 +433,18 @@ class SScribe_Export_Query_Controller {
 		if ( ! in_array( $post_type, array( 'page', 'post' ), true ) ) {
 			$post_type = 'page';
 		}
-		// NOTE: Removed 'any' from allowed post_types to prevent mass-export of all CPTs.
-		// If 'any' behavior is needed, add a confirmation UI step.
+		
+		
 
-		// Use get_page_count_only() instead of counting get_page_ids() so the
-		// preview reflects the true total on sites with >10,000 pages. The
-		// collector's get_page_ids() silently caps posts_per_page at 10000 to
-		// protect against memory exhaustion; using its count verbatim would
-		// truncate the displayed "Total pages" to 10,000 even when more match.
+		
+		
+		
+		
+		
 		$page_count = $this->collector->get_page_count_only( $language, $post_status, $post_type );
 
-		// Fetch a single sample page for the preview modal : the full list is
-		// not needed and would re-introduce the 10K cap we're trying to avoid.
+		
+		
 		$pages = $this->collector->get_page_ids( $language, $post_status, $post_type, 1 );
 
 		$seconds_per_page = 0.0;

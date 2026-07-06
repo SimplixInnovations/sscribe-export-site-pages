@@ -46,12 +46,12 @@ $sscribe_export_index    = $sscribe_export_index ?? array();
 			<?php
 			echo wp_kses_post( SScribe_Helpers::get_icon( 'file-text', 12 ) );
 			?>
-			<strong id="sscribe-stat-total-pages"><?php echo esc_html( number_format_i18n( $sscribe_total_pages_all ) ); ?></strong> <?php esc_html_e( 'pages', 'sscribe-export-site-pages' ); ?></span>
+			<strong id="sscribe-stat-total-pages"><?php echo esc_html( number_format_i18n( $sscribe_total_pages_all ) ); ?></strong> <?php echo esc_html( _n( 'page', 'pages', $sscribe_total_pages_all, 'sscribe-export-site-pages' ) ); ?></span>
 			<span class="sscribe-hero-stat">
 			<?php
 			echo wp_kses_post( SScribe_Helpers::get_icon( 'clock', 12 ) );
 			?>
-			<strong id="sscribe-stat-recent-exports"><?php echo esc_html( count( $sscribe_recent_exports ) ); ?></strong> <?php esc_html_e( 'exports', 'sscribe-export-site-pages' ); ?></span>
+			<strong id="sscribe-stat-recent-exports"><?php echo esc_html( count( $sscribe_recent_exports ) ); ?></strong> <?php echo esc_html( _n( 'export', 'exports', count( $sscribe_recent_exports ), 'sscribe-export-site-pages' ) ); ?></span>
 		</div>
 	</header>
 
@@ -457,7 +457,7 @@ $sscribe_export_index    = $sscribe_export_index ?? array();
 						<span class="sscribe-summary-sep" aria-hidden="true">·</span>
 						<span class="sscribe-summary-chip sscribe-summary-status" id="sscribe-summary-status">
 							<?php
-							// Detect which status is actually pre-selected by PHP, rather than hardcoding 'Published'.
+							
 							$sscribe_selected_status_label = __( 'Published', 'sscribe-export-site-pages' );
 							$sscribe_first_found           = true;
 							foreach ( $sscribe_status_labels as $sscribe_s_key => $sscribe_s_label ) {

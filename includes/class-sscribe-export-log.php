@@ -298,9 +298,9 @@ class SScribe_Export_Log {
 		$data = $this->read_log();
 
 		if ( ! isset( $data['pages'][ $page_id ] ) ) {
-			// Page entry may not exist yet if the first attempt logged
-			// nothing (e.g. exporter threw before write_log). Create a
-			// stub so the retry record is preserved.
+			
+			
+			
 			$data['pages'][ $page_id ] = array(
 				'status'        => 'retrying',
 				'retries'       => array(),
@@ -359,14 +359,14 @@ class SScribe_Export_Log {
 
 		if ( ! empty( $data['zip_file'] ) ) {
 			$index_key = 'sscribe_zip_index_' . md5( $data['zip_file'] );
-			// Prefer the object cache so the row does not bloat wp_options
-			// on hosts that lack persistent object cache. The persistent
-			// option below is the durable fallback.
+			
+			
+			
 			wp_cache_set( $index_key, $this->session_id, 'sscribe_zip_index', 30 * DAY_IN_SECONDS );
 
-			// Persistent option-based reverse index for fallback when the
-			// object cache is cold or unavailable. Without this we would
-			// fall back to an O(n) file scan on every cache miss.
+			
+			
+			
 			update_option( 'sscribe_log_zip_' . md5( $data['zip_file'] ), $this->session_id, false );
 		}
 	}
@@ -518,7 +518,7 @@ class SScribe_Export_Log {
 			return null;
 		}
 
-		// First try object cache for fast lookup.
+		
 		$index_key  = 'sscribe_zip_index_' . md5( $filename );
 		$session_id = wp_cache_get( $index_key, 'sscribe_zip_index' );
 		if ( false === $session_id ) {
@@ -538,12 +538,12 @@ class SScribe_Export_Log {
 			}
 		}
 
-		// Fall back to persistent option-based index to avoid O(n) file scan.
+		
 		$option_key = 'sscribe_log_zip_' . md5( $filename );
 		$session_id = get_option( $option_key, false );
 
 		if ( false !== $session_id && is_string( $session_id ) ) {
-			// Restore object cache + transient for faster subsequent lookups.
+			
 			wp_cache_set( $index_key, $session_id, 'sscribe_zip_index', 30 * DAY_IN_SECONDS );
 			set_transient( $index_key, $session_id, 30 * DAY_IN_SECONDS );
 
@@ -559,8 +559,8 @@ class SScribe_Export_Log {
 			}
 		}
 
-		// Last resort: linear scan of all log files (only if both cache layers missed).
-		// Allow disabling full scan for sites with many exports where O(n) is unacceptable.
+		
+		
 		if ( ! apply_filters( 'sscribe_enable_log_full_scan', true ) ) {
 			return null;
 		}
@@ -586,7 +586,7 @@ class SScribe_Export_Log {
 					if ( is_array( $data ) && isset( $data['zip_file'] ) && $data['zip_file'] === $filename ) {
 
 						if ( isset( $data['session_id'] ) ) {
-							// Rebuild both cache layers for future lookups.
+							
 							set_transient( $index_key, $data['session_id'], 30 * DAY_IN_SECONDS );
 							update_option( $option_key, $data['session_id'], false );
 						}
@@ -623,7 +623,7 @@ class SScribe_Export_Log {
 		wp_cache_delete( $index_key, 'sscribe_zip_index' );
 		delete_transient( $index_key );
 
-		// Also delete persistent option-based index.
+		
 		delete_option( 'sscribe_log_zip_' . md5( $filename ) );
 
 		$files = glob( $log_dir . '/export_*.json' );

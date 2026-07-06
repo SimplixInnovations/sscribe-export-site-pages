@@ -58,8 +58,8 @@ class SScribe_Settings {
 		}
 		$result = update_option( self::OPT_DEBUG_ENABLED, $enabled, 'no' );
 		if ( ! $result ) {
-			// Verify actual DB value regardless of update_option return.
-			// update_option returns false for "no change" which is not a failure.
+			
+			
 			return (bool) get_option( self::OPT_DEBUG_ENABLED ) === $enabled;
 		}
 		return true;
@@ -101,8 +101,8 @@ class SScribe_Settings {
 		}
 		$result = update_option( self::OPT_DEBUG_LOG_LEVEL, $level, 'no' );
 		if ( ! $result ) {
-			// Verify actual DB value regardless of update_option return.
-			// update_option returns false for "no change" which is not a failure.
+			
+			
 			return get_option( self::OPT_DEBUG_LOG_LEVEL ) === $level;
 		}
 		return true;
@@ -130,8 +130,8 @@ class SScribe_Settings {
 		}
 		$result = update_option( self::OPT_DEBUG_AUTO_REFRESH, $enabled, 'no' );
 		if ( ! $result ) {
-			// Verify actual DB value regardless of update_option return.
-			// update_option returns false for "no change" which is not a failure.
+			
+			
 			return (bool) get_option( self::OPT_DEBUG_AUTO_REFRESH ) === $enabled;
 		}
 		return true;
@@ -169,7 +169,7 @@ class SScribe_Settings {
 		$enabled_saved = self::set_debug_enabled( $enabled );
 		$refresh_saved = self::set_auto_refresh( $refresh );
 
-		// Log specific failures for debugging.
+		
 		if ( ! $level_saved || ! $enabled_saved || ! $refresh_saved ) {
 			if ( class_exists( 'SScribe_Logger' ) ) {
 				$logger = SScribe_Logger::instance( true );
@@ -185,7 +185,7 @@ class SScribe_Settings {
 			return false;
 		}
 
-		// Reset logger singleton so next call gets fresh instance with updated state.
+		
 		if ( class_exists( 'SScribe_Logger' ) ) {
 			SScribe_Logger::reset_instance();
 		}

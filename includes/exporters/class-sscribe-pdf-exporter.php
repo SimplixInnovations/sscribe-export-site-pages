@@ -117,7 +117,7 @@ class SScribe_PDF_Exporter implements SScribe_Exporter_Interface {
 			: $page_data;
 		$temp_image_paths    = $this->collect_temp_image_paths( $processed_page_data );
 
-		// Use generate_html_string() : avoids .html file side-effect from export().
+		
 		$html_content = $this->html_exporter->generate_html_string( $processed_page_data );
 		$html_size    = strlen( $html_content );
 
@@ -185,18 +185,18 @@ class SScribe_PDF_Exporter implements SScribe_Exporter_Interface {
 				);
 			}
 
-			// Memory pressure guard: bail out before allocating mPDF if the
-			// process is already too close to memory_limit. Without this,
-			// large multi-page exports accumulate per-page allocations and
-			// hit OOM mid-render, producing truncated/corrupt PDFs.
+			
+			
+			
+			
 			$memory_pressure = $this->check_memory_pressure();
 			if ( $memory_pressure instanceof SScribe_Result ) {
 				$this->cleanup_temp_images( $temp_image_paths );
 				return $memory_pressure;
 			}
 
-			// libxml state must be captured AFTER the early-return checks so that
-			// the finally block always restores the correct prior state.
+			
+			
 			$prev_errors = libxml_use_internal_errors( true );
 
 			$mpdf_config = $this->build_mpdf_config( $is_rtl, $page_id );
@@ -210,9 +210,9 @@ class SScribe_PDF_Exporter implements SScribe_Exporter_Interface {
 			$mpdf = new \SScribeVendor\Mpdf\Mpdf( $config );
 			$mpdf->SetDirectionality( $is_rtl ? 'rtl' : 'ltr' );
 
-			// sscribe_pdf_include_page_numbers: render "{PAGENO}/{nb}" in the
-			// bottom-center of every page. mPDF's footer placeholders expand at
-			// render time, so this is a no-op when the option is off.
+			
+			
+			
 			if ( '1' === (string) $this->get_format_option( 'sscribe_pdf_include_page_numbers', '1' ) ) {
 				$mpdf->SetFooter( '{PAGENO}/{nb}' );
 			}
@@ -230,7 +230,7 @@ class SScribe_PDF_Exporter implements SScribe_Exporter_Interface {
 				set_time_limit( max( 60, $max_exec ) ); // phpcs:ignore Squiz.PHP.DiscouragedFunctions.Discouraged
 			}
 
-			// Pre-render time check.
+			
 			if ( function_exists( 'microtime' ) ) {
 				$max_exec    = (int) ini_get( 'max_execution_time' );
 				$batch_start = $page_data['_batch_start_time'] ?? 0.0;
@@ -262,9 +262,9 @@ class SScribe_PDF_Exporter implements SScribe_Exporter_Interface {
 			$filename    = \SScribe_Exporter_Factory::build_filename( $page_data, $index, $total, 'pdf' );
 			$output_path = trailingslashit( $output_dir ) . $filename;
 
-			// RTL: prefer Amiri (shipped), then xbriyaz (mPDF vendor default),
-			// then freeserif. LTR: mPDF's freeserif gives us a clean Latin
-			// baseline without a 380 KB bundled font.
+			
+			
+			
 			$font_stack = $is_rtl
 				? ( $amiri_available
 					? 'amiri, freeserif, sans-serif'
@@ -283,17 +283,17 @@ class SScribe_PDF_Exporter implements SScribe_Exporter_Interface {
 			$base_css .= ' a { color: #2C6E8A; text-decoration: none; }';
 			$base_css .= ' h1, h2, h3, h4, h5, h6 { color: #122119; }';
 
-			// Discard any accidental output from WordPress hooks or other plugins
-			// that occurred *during this export's render* (mPDF may echo notices
-			// to stdout if display_errors is on), so the PDF binary is not
-			// contaminated. Scope the cleanup to the render window only : we
-			// capture the level before WriteHTML and clean up after Output(),
-			// instead of tearing down all PHP output buffers globally (which
-			// would also discard anything queued by parent callers and the
-			// wider request). The cleanup runs AFTER Output() specifically so
-			// any output buffer mPDF opens internally during its render
-			// pipeline is also discarded : leaving it dangling would corrupt
-			// output for the next request handled by the same PHP-FPM worker.
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
 			$ob_level_before_render = ob_get_level();
 			$mpdf->WriteHTML( $base_css, \SScribeVendor\Mpdf\HTMLParserMode::HEADER_CSS );
 
@@ -393,9 +393,9 @@ class SScribe_PDF_Exporter implements SScribe_Exporter_Interface {
 			$this->cleanup_temp_images( $temp_image_paths );
 			$this->cleanup_mpdf_temp( $mpdf_temp );
 			libxml_clear_errors();
-			// Only restore if libxml state was captured (inside the try block).
-			// If an early return was taken before entering the try, $prev_errors
-			// is still null and there is no prior state to restore.
+			
+			
+			
 			if ( null !== $prev_errors ) {
 				libxml_use_internal_errors( $prev_errors );
 			}
@@ -424,7 +424,7 @@ class SScribe_PDF_Exporter implements SScribe_Exporter_Interface {
 	private function check_memory_pressure() {
 		$memory_limit_str = (string) ini_get( 'memory_limit' );
 		if ( '' === $memory_limit_str || '-1' === $memory_limit_str ) {
-			// No limit set : nothing to check.
+			
 			return null;
 		}
 
@@ -440,7 +440,7 @@ class SScribe_PDF_Exporter implements SScribe_Exporter_Interface {
 		$soft_margin = (int) apply_filters( 'sscribe_pdf_memory_soft_margin_bytes', 32 * 1024 * 1024 );
 		$hard_margin = (int) apply_filters( 'sscribe_pdf_memory_hard_margin_bytes', 8 * 1024 * 1024 );
 
-		// Hard limit: too close to OOM, must abort.
+		
 		if ( $memory_free <= $hard_margin ) {
 			$this->logger->error(
 				'PDF export aborted: memory pressure too high to render safely',
@@ -468,7 +468,7 @@ class SScribe_PDF_Exporter implements SScribe_Exporter_Interface {
 			);
 		}
 
-		// Soft limit: warn and try to free memory before continuing.
+		
 		if ( $memory_free <= $soft_margin ) {
 			$this->logger->warning(
 				'PDF export memory pressure: soft margin reached, forcing GC',
@@ -498,7 +498,7 @@ class SScribe_PDF_Exporter implements SScribe_Exporter_Interface {
 	private function collect_temp_image_paths( array $processed_page_data ): array {
 		$paths = array();
 
-		// Primary source: _temp_image_paths set by process_images_in_page_data().
+		
 		if ( ! empty( $processed_page_data['_temp_image_paths'] ) && is_array( $processed_page_data['_temp_image_paths'] ) ) {
 			foreach ( $processed_page_data['_temp_image_paths'] as $path ) {
 				if ( file_exists( $path ) && strpos( $path, sys_get_temp_dir() ) === 0 ) {
@@ -507,7 +507,7 @@ class SScribe_PDF_Exporter implements SScribe_Exporter_Interface {
 			}
 		}
 
-		// Fallback: featured_image_url if set and within temp directory.
+		
 		if ( ! empty( $processed_page_data['featured_image_url'] ) ) {
 			$path = $processed_page_data['featured_image_url'];
 			if ( file_exists( $path ) && strpos( $path, sys_get_temp_dir() ) === 0 && ! in_array( $path, $paths, true ) ) {
@@ -580,12 +580,12 @@ class SScribe_PDF_Exporter implements SScribe_Exporter_Interface {
 			}
 		}
 
-		// Also download content <img src="..."> tags and rewrite the HTML so
-		// mPDF can render the image from a local file rather than fetching
-		// it at render time (which fails for auth-protected, CDN-signed, or
-		// Cloudflare-Access-gated URLs and adds significant render time on
-		// slow hosting). Capped at sscribe_pdf_max_content_images
-		// (default 20) to prevent unbounded I/O on long pages.
+		
+		
+		
+		
+		
+		
 		$content = isset( $page_data['content'] ) ? (string) $page_data['content'] : '';
 		if ( '' !== $content ) {
 			$max_content_images = (int) apply_filters( 'sscribe_pdf_max_content_images', 20 );
@@ -598,17 +598,17 @@ class SScribe_PDF_Exporter implements SScribe_Exporter_Interface {
 				$page_data['content'] = (string) preg_replace_callback(
 					'/<img\b[^>]*\bsrc=("([^"]*)"|\'([^\']*)\')[^>]*>/i',
 					function ( array $matches ) use ( &$downloads, $max_content_images, &$temp_paths ): string {
-						// Use null coalescing : the alternative group is
-						// simply not captured when the matched src used the
-						// other quote style, so $matches[2] or $matches[3]
-						// can be undefined on PHP 8+ with strict notices.
+						
+						
+						
+						
 						$url = $matches[2] ?? ( $matches[3] ?? '' );
 						if ( '' === $url || $downloads >= $max_content_images ) {
 							return $matches[0];
 						}
 
-						// Skip data: / fragment / file:// sources : they are
-						// already inline or not fetchable.
+						
+						
 						if ( str_starts_with( $url, 'data:' ) || str_starts_with( $url, '#' ) || str_starts_with( $url, 'file://' ) ) {
 							return $matches[0];
 						}
@@ -617,8 +617,8 @@ class SScribe_PDF_Exporter implements SScribe_Exporter_Interface {
 						if ( $local_path && file_exists( $local_path ) ) {
 							$temp_paths[] = $local_path;
 							++$downloads;
-							// Rewrite only the src value, preserving the
-							// original attribute quoting style.
+							
+							
 							$replacement = str_replace(
 								array( '"' . $url . '"', "'" . $url . "'" ),
 								array( '"' . $local_path . '"', "'" . $local_path . "'" ),
@@ -634,7 +634,7 @@ class SScribe_PDF_Exporter implements SScribe_Exporter_Interface {
 			}
 		}
 
-		// Track all temp paths so collect_temp_image_paths() can find them.
+		
 		$page_data['_temp_image_paths'] = $temp_paths;
 
 		return $page_data;
@@ -674,23 +674,23 @@ class SScribe_PDF_Exporter implements SScribe_Exporter_Interface {
 			wp_mkdir_p( $mpdf_temp );
 		}
 
-		// Protect the parent sscribe/ directory as well as the mpdf-tmp/
-		// subdirectory. On multisite, the uploads dir is per-site, so the
-		// parent sscribe/ folder may not be covered by the standard WordPress
-		// uploads .htaccess : site 1's mpdf-tmp/.htaccess does not protect
-		// site 2's sscribe/ parent. Apache picks up the .htaccess on each
-		// request, so the protection is verified before the first export.
+		
+		
+		
+		
+		
+		
 		if ( ! file_exists( $sscribe_dir . '.htaccess' ) ) {
 			SScribe_Security::protect_directory( $sscribe_dir );
 		}
 
-		// Amiri is the only Arabic font the plugin ships. If the TTF is
-		// missing, the fontdata entry below falls back to a literal filename
-		// that mPDF can't resolve and the rest of the pipeline silently uses
-		// the next font in the stack (freeserif, then sans-serif). We log
-		// a warning so site operators can spot a broken install, but we do
-		// NOT hard-fail the export : losing the custom Arabic face is a
-		// graceful degradation, not a stop-the-world error.
+		
+		
+		
+		
+		
+		
+		
 		$amiri_available = is_dir( $amiri_dir ) && file_exists( $amiri_dir . 'Amiri-Regular.ttf' );
 		if ( ! $amiri_available ) {
 			$this->logger->warning(
@@ -721,12 +721,12 @@ class SScribe_PDF_Exporter implements SScribe_Exporter_Interface {
 			SScribe_Security::protect_directory( $mpdf_temp );
 		}
 
-		// Nginx hosting note: protect_directory() writes both .htaccess (Apache)
-		// and an index.php file (the "Silence is golden" fallback that works on
-		// any web server). However, .htaccess is silently ignored on Nginx, so
-		// operators on Nginx hosts should add an equivalent deny rule to their
-		// server config. Surface this as a one-time debug warning so the issue
-		// is visible without being noisy on every export.
+		
+		
+		
+		
+		
+		
 		$server_software = isset( $_SERVER['SERVER_SOFTWARE'] ) ? sanitize_text_field( wp_unslash( (string) $_SERVER['SERVER_SOFTWARE'] ) ) : '';
 		if ( '' !== $server_software && false !== stripos( $server_software, 'nginx' ) ) {
 			$this->logger->debug(
@@ -748,13 +748,13 @@ class SScribe_PDF_Exporter implements SScribe_Exporter_Interface {
 		$amiri_regular = $this->find_font_file( $amiri_dir, 'amiri[-_]?regular' ) ?? 'Amiri-Regular.ttf';
 		$amiri_bold    = $this->find_font_file( $amiri_dir, 'amiri[-_]?bold' ) ?? 'Amiri-Bold.ttf';
 
-		// DejaVuSans face used for fontdata re-pinning of every TTF
-		// pruned by scripts/build-release.php `font_excludes`. Cached
-		// here so each fontdata override below doesn't repeat the
-		// 4-key array literal. Glyphs outside DejaVu's coverage render
-		// as '?' tofu, but the export does not crash : this is the
-		// contract documented on the existing freesans / freemono /
-		// dejavu*condensed / sun-ext* overrides above.
+		
+		
+		
+		
+		
+		
+		
 		$deja_vu_sans_face = array(
 			'R'  => 'DejaVuSans.ttf',
 			'B'  => 'DejaVuSans-Bold.ttf',
@@ -762,10 +762,10 @@ class SScribe_PDF_Exporter implements SScribe_Exporter_Interface {
 			'BI' => 'DejaVuSans-BoldOblique.ttf',
 		);
 
-		// xbriyaz detection must include the plugin's own font directory.
-		// The merged fontDir list is built AFTER this check, so scanning only
-		// mPDF's default fontDirs would miss an xbriyaz.ttf shipped with the
-		// plugin or dropped into assets/fonts/ by a site operator.
+		
+		
+		
+		
 		$xbriyaz_available = false;
 		$xbriyaz_search_dirs = array_merge( array( $font_dir, $amiri_dir ), $font_dirs );
 		foreach ( $xbriyaz_search_dirs as $xbriyaz_dir_path ) {
@@ -775,12 +775,12 @@ class SScribe_PDF_Exporter implements SScribe_Exporter_Interface {
 			}
 		}
 
-		// RTL Arabic font resolution: prefer Amiri (shipped), then xbriyaz
-		// (mPDF vendor default : can be dropped in by site operators), then
-		// freeserif (always present). The Amiri file lookup above is always
-		// executed (cheap scandir) so its filename flows into fontdata even
-		// when the file is missing; mPDF will skip the entry and use the
-		// next family in the CSS stack.
+		
+		
+		
+		
+		
+		
 		$rtl_arabic_font = $amiri_available ? 'amiri' : ( $xbriyaz_available ? 'xbriyaz' : 'freeserif' );
 
 		$config = array(
@@ -792,23 +792,23 @@ class SScribe_PDF_Exporter implements SScribe_Exporter_Interface {
 						'R' => $amiri_regular,
 						'B' => $amiri_bold,
 					),
-					// Re-pin sans/mono/condensed fontdata entries to the
-					// TTFs the release ZIP actually ships. The default
-					// fontdata points 'freesans' -> FreeSans.ttf,
-					// 'freemono' -> FreeMono.ttf, and the DejaVu*Condensed
-					// entries -> the Condensed TTF family. The build
-					// script's `font_excludes` prunes all of these
-					// (see scripts/build-release.php). Without these
-					// overrides, ANY CSS that resolves to 'freesans',
-					// 'freemono', or any name in the serif_fonts chain
-					// (which begins with 'dejavuserifcondensed') crashes
-					// with `Cannot find TTF TrueType font file ...`.
-					// The 2026-06-24 report hit the
-					// 'dejavusanscondensed' / DejaVuSansCondensed.ttf
-					// path; the matching CSS-keyword path through
-					// 'dejavuserifcondensed' was latent in the same
-					// release and triggered here on standard theme CSS
-					// (`font-family: serif` is in Twenty* core).
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
 					'freesans' => array(
 						'R'  => 'DejaVuSans.ttf',
 						'B'  => 'DejaVuSans-Bold.ttf',
@@ -833,17 +833,17 @@ class SScribe_PDF_Exporter implements SScribe_Exporter_Interface {
 						'I'  => 'DejaVuSans-Oblique.ttf',
 						'BI' => 'DejaVuSans-BoldOblique.ttf',
 					),
-					// Sun-ExtA / Sun-ExtB are mPDF's auto-selected fonts
-					// for CJK and SIP characters (see
-					// LanguageToFont::getLanguageOptions which maps
-					// Chinese / Korean / Japanese to 'sun-exta'). The
-					// build script's `font_excludes` prunes the TTF
-					// files, so any HTML containing CJK text crashes
-					// the export with `Cannot find TTF TrueType font
-					// file Sun-ExtA.ttf`. Re-pin to DejaVuSans (the
-					// widest-coverage shipped font). Characters DejaVu
-					// doesn't cover render as mPDF's internal "?"
-					// tofu, but the export no longer crashes.
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
 					'sun-exta' => array(
 						'R'  => 'DejaVuSans.ttf',
 						'B'  => 'DejaVuSans-Bold.ttf',
@@ -856,33 +856,33 @@ class SScribe_PDF_Exporter implements SScribe_Exporter_Interface {
 						'I'  => 'DejaVuSans-Oblique.ttf',
 						'BI' => 'DejaVuSans-BoldOblique.ttf',
 					),
-					// The fontdata entries below all point at TTFs that
-					// scripts/build-release.php `font_excludes` removes from
-					// the release ZIP. mPDF's fontdata key is also a valid
-					// family name : mPDF's SetFont chain walker picks the
-					// first name in serif_fonts / sans_fonts / mono_fonts
-					// that ALSO appears in available_unifonts, which is
-					// built from the fontdata keys. So even if a fonttrans
-					// remap rewrites the CSS name, the family-name chain
-					// can still resolve the original key, AddFont will
-					// then look up the TTF listed in the fontdata entry,
-					// and the export crashes with `Cannot find TTF
-					// TrueType font file ... in configured font
-					// directories.` for ANY character class that the
-					// active font can't render and the chain walks
-					// through. (The 2026-06-24 DejaVuSansCondensed.ttf
-					// report was the same class; this closes every
-					// fontdata entry whose TTF is excluded.)
-					//
-					// Pin to DejaVuSans (the widest-coverage shipped
-					// font: Latin, Cyrillic, Greek, Vietnamese, IPA).
-					// Glyphs outside DejaVu's coverage render as mPDF's
-					// internal '?' tofu, but the export no longer
-					// crashes. The named family is preserved in the
-					// fonttrans map so any HTML that explicitly asks
-					// for, e.g. 'Estrangelo Edessa' is rewritten to
-					// 'freeserif' before the family-name chain walker
-					// runs.
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
+					
 					'ocrb'              => $deja_vu_sans_face,
 					'estrangeloedessa'  => $deja_vu_sans_face,
 					'kaputaunicode'     => $deja_vu_sans_face,
@@ -909,67 +909,67 @@ class SScribe_PDF_Exporter implements SScribe_Exporter_Interface {
 					'mph2bdamase'       => $deja_vu_sans_face,
 					'lohitkannada'      => $deja_vu_sans_face,
 					'pothana2000'       => $deja_vu_sans_face,
-					// xbriyaz / lateef : their fontdata entries point at
-					// TTFs the build script prunes. The fonttrans map
-					// already rewrites the CSS name to the active RTL
-					// font, but the family-name chain walker can still
-					// resolve these names through the available_unifonts
-					// intersection (same class as the DejaVu*Condensed
-					// crash). Pin the fontdata entries to DejaVuSans so
-					// AddFont never looks for the pruned TTF.
+					
+					
+					
+					
+					
+					
+					
+					
 					'xbriyaz'           => $deja_vu_sans_face,
 					'lateef'            => $deja_vu_sans_face,
 				)
 			),
-			// Pin the mPDF automatic substitution chain to fonts we actually
-			// ship. mPDF's defaults (`dejavusanscondensed`, `freesans`,
-			// `sun-exta`, and `sun-extb` for backupSIPFont) include several
-			// TTFs that are not in the release ZIP : see
-			// scripts/build-release.php `font_excludes`. If a page contains a
-			// character the active font can't render, mPDF would try to load
-			// the first backup font, fail to find the TTF, and throw an
-			// `MpdfException: Cannot find TTF TrueType font file ... in
-			// configured font directories.` (reported 2026-06-24 with
-			// `DejaVuSansCondensed.ttf`).
-			//
-			// We pin `backupSubsFont` to `['freeserif']` : which IS shipped
-			// (FreeSerif.ttf covers Latin, Cyrillic, Greek, Vietnamese, and a
-			// wide swath of IPA, so the vast majority of "missing glyph" cases
-			// now resolve to a working font). Characters that FreeSerif also
-			// doesn't cover (CJK, complex Indic, etc.) silently render as mPDF's
-			// internal "?" tofu, but the PDF export no longer crashes.
-			//
-			// `backupSIPFont` is the SIP/Plane-2 fallback used for characters
-			// above U+20000. mPDF defaults to `sun-extb`, which is also not
-			// shipped. Setting it to `null` disables the SIP fallback entirely
-			// : the same "?" behavior applies for those rare characters.
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
 			'backupSubsFont'   => array( 'freeserif' ),
 			'backupSIPFont'    => null,
 			'isRemoteEnabled'  => true,
-			// CSS-keyword remap. mPDF's setCSS resolves `font-family: serif`
-			// (or `times new roman`, `georgia`, `arial`, etc.) by walking its
-			// built-in `serif_fonts` / `sans_fonts` chains whose first entries
-			// are `dejavuserifcondensed` / `dejavusanscondensed` : TTFs the
-			// release ZIP does not ship (see scripts/build-release.php
-			// `font_excludes`). Without this remap, any WordPress page that
-			// uses default theme CSS (`font-family: serif` is in Twenty* core)
-			// crashes the export with `MpdfException: Cannot find TTF TrueType
-			// font file "DejaVuSerifCondensed.ttf"`. Pin to fonts we DO ship.
-			//
-			// This remap is unconditional : the previous RTL-only mapping
-			// left non-RTL pages exposed to the same crash, just on the
-			// CSS-resolution path instead of the backup-substitution path.
-			// The original 2026-06-24 report (`DejaVuSansCondensed.ttf`) hit
-			// the backup path; this remap closes the CSS-keyword path that
-			// was latent in the same release.
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
 			'fonttrans'        => array_merge(
 				array(
-					// CSS generic families : primary trigger.
+					
 					'serif'           => $is_rtl ? $rtl_arabic_font : 'freeserif',
 					'sans-serif'      => $is_rtl ? $rtl_arabic_font : 'freesans',
 					'monospace'       => 'freemono',
-					// Common CSS named families that walk the *_fonts chain
-					// to the same pruned DejaVu*Condensed entries.
+					
+					
 					'times'           => $is_rtl ? $rtl_arabic_font : 'freeserif',
 					'times new roman' => $is_rtl ? $rtl_arabic_font : 'freeserif',
 					'georgia'         => $is_rtl ? $rtl_arabic_font : 'freeserif',

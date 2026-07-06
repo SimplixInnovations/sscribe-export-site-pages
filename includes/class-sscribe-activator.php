@@ -29,9 +29,9 @@ class SScribe_Activator {
 	 */
 	public static function activate( bool $network_wide = false ): void {
 
-		// Only wipe the export index and schema on a FRESH install (not on updates).
-		// WordPress re-runs the activation hook on plugin update, so checking
-		// get_option() first prevents accidental data loss on upgrade.
+		
+		
+		
 		$existing_version = get_option( 'sscribe_version', null );
 		if ( null === $existing_version ) {
 			delete_option( 'sscribe_export_index' );

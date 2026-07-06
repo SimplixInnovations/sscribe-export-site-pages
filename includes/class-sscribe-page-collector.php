@@ -83,7 +83,7 @@ class SScribe_Page_Collector {
 	 */
 	private function cache_add( array &$cache, int $key, mixed $value ): void {
 		if ( count( $cache ) >= self::CACHE_MAX_SIZE ) {
-			// Evict oldest entry (first key) to maintain bounded size.
+			
 			array_shift( $cache );
 		}
 		$cache[ $key ] = $value;
@@ -166,8 +166,8 @@ class SScribe_Page_Collector {
 			return $cached;
 		}
 
-		// Cap posts_per_page at 10000 to prevent memory exhaustion on sites with
-		// thousands of pages, while still allowing explicit per-page limits.
+		
+		
 		$effective_limit = $limit > 0 ? min( $limit, 10000 ) : 10000;
 
 		$args = array(
@@ -358,7 +358,7 @@ class SScribe_Page_Collector {
 
 		global $wpdb;
 
-		// Process in chunks of 100 to prevent unbounded IN clauses while handling large batches.
+		
 		$chunk_size = 100;
 		$chunks     = array_chunk( $page_ids, $chunk_size );
 
@@ -553,7 +553,7 @@ class SScribe_Page_Collector {
 			return false;
 		}
 
-		// Skip password-protected posts - export only title and note.
+		
 		if ( ! empty( $post_object->post_password ) ) {
 			$password_title = get_the_title( $page_id );
 			$password_title = $password_title ? $password_title : sprintf( 'Untitled Page %d', $page_id );
@@ -667,9 +667,9 @@ class SScribe_Page_Collector {
 		$post_type_for_children = $post_object->post_type;
 		$children               = $this->get_child_pages( $page_id, $post_type_for_children );
 
-		// Hoist title once. get_the_title() runs an apply_filters chain and
-		// may hit the database; doing it once per page saves a redundant
-		// call inside the ternary that builds the title field.
+		
+		
+		
 		$page_title_raw = get_the_title( $page_id );
 		$page_title     = $page_title_raw ? $page_title_raw : sprintf( 'Untitled Page %d', $page_id );
 
@@ -688,8 +688,8 @@ class SScribe_Page_Collector {
 			$permalink = $this->get_permalink_cached( $page_id );
 		}
 
-		// For non-published posts, get_permalink() returns a preview URL with ?p=ID.
-		// Use a placeholder instead of exposing internal admin URLs in exported documents.
+		
+		
 		if ( ! in_array( $post_object->post_status, array( 'publish', 'private' ), true ) ) {
 			$permalink = __( '[Draft - Not Published]', 'sscribe-export-site-pages' );
 		}
@@ -753,13 +753,13 @@ class SScribe_Page_Collector {
 			'post_parent__in'        => $page_ids,
 			'orderby'                => 'menu_order title',
 			'order'                  => 'ASC',
-			// Performance: skip the SELECT FOUND_ROWS() pagination
-			// count : we never use pagination on this query.
+			
+			
 			'no_found_rows'          => true,
-			// Performance: child pages are only used for navigation
-			// (id, title, permalink). We don't read post meta or
-			// terms here, so the extra cache-priming queries are
-			// wasted work.
+			
+			
+			
+			
 			'update_post_meta_cache' => false,
 			'update_post_term_cache' => false,
 		);
@@ -856,13 +856,13 @@ class SScribe_Page_Collector {
 		$breadcrumbs = array();
 		$ancestors   = get_post_ancestors( $page_id );
 
-		// Guard against circular parent relationships by deduplicating ancestor IDs.
+		
 		if ( $ancestors ) {
 			$seen     = array( $page_id => true );
 			$filtered = array();
 			foreach ( $ancestors as $ancestor_id ) {
 				if ( isset( $seen[ $ancestor_id ] ) ) {
-					// Circular reference detected - break the chain.
+					
 					break;
 				}
 				$seen[ $ancestor_id ] = true;
@@ -890,7 +890,7 @@ class SScribe_Page_Collector {
 				$ancestor_map[ $ancestor_post->ID ] = $ancestor_post;
 			}
 
-			// Group ancestors by language to minimize WPML language switches.
+			
 			$ancestors_by_lang = array();
 			foreach ( $ancestors as $ancestor_id ) {
 				if ( ! isset( $ancestor_map[ $ancestor_id ] ) ) {
@@ -903,7 +903,7 @@ class SScribe_Page_Collector {
 				$ancestors_by_lang[ $ancestor_lang ][] = $ancestor_id;
 			}
 
-			// For each unique language, switch once and fetch all titles/urls.
+			
 			foreach ( $ancestors_by_lang as $lang => $lang_ancestors ) {
 				$switched = false;
 				if ( $this->is_wpml_active() && ! empty( $lang ) ) {
@@ -970,7 +970,7 @@ class SScribe_Page_Collector {
 			return array( 'page', 'post' );
 		}
 
-		// Validate post_type against allowed list to prevent injection of arbitrary types.
+		
 		$allowed_types = array( 'page', 'post' );
 		if ( ! in_array( $post_type, $allowed_types, true ) ) {
 			return 'page';
@@ -1053,19 +1053,19 @@ class SScribe_Page_Collector {
 
 		try {
 
-			// Map empty language to 'all' for WPML consistency with
-			// get_page_ids_direct/get_page_ids_chunked/get_page_count_only
-			// (line 172, 287, 461). Without this, wpml_switch_language('')
-			// silently filters to the current active language instead of
-			// all languages, making "All Languages" status counts show only
-			// the default language's numbers.
+			
+			
+			
+			
+			
+			
 			$target_lang = ! empty( $language ) ? $language : 'all';
 			// phpcs:ignore WordPress.NamingConventions.PrefixAllGlobals.NonPrefixedHooknameFound -- WPML hook.
 			do_action( 'wpml_switch_language', $target_lang );
 			$args['suppress_filters'] = false;
 			$switched                 = true;
 
-			// Optimize: Use a single query with GROUP BY instead of one query per status.
+			
 			global $wpdb;
 
 			$post_type_placeholders = is_array( $args['post_type'] )
@@ -1102,12 +1102,12 @@ class SScribe_Page_Collector {
 			}
 			// phpcs:enable
 
-			// Initialize all counts to 0.
+			
 			foreach ( $statuses as $status => $label ) {
 				$counts[ $status ] = 0;
 			}
 
-			// Map SQL results to counts array.
+			
 			if ( is_array( $results ) ) {
 				foreach ( $results as $row ) {
 					$status = $row['post_status'];
@@ -1148,7 +1148,7 @@ class SScribe_Page_Collector {
 	 * @return string Validated status.
 	 */
 	public function validate_post_status( string $status ): string {
-		// Sanitize the input to prevent injection and handle whitespace issues.
+		
 		$status = sanitize_text_field( $status );
 		$valid  = array_keys( $this->get_valid_post_statuses() );
 

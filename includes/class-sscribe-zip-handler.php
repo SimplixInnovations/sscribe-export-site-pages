@@ -71,7 +71,7 @@ class SScribe_Zip_Handler {
 		if ( ! file_exists( $this->export_dir ) ) {
 			SScribe_Security::protect_directory( $this->export_dir );
 		} elseif ( ! file_exists( $this->export_dir . '/.htaccess' ) ) {
-			// Directory exists but .htaccess was removed : re-apply protection.
+			
 			SScribe_Security::protect_directory( $this->export_dir );
 		}
 		return $this->export_dir;
@@ -127,8 +127,8 @@ class SScribe_Zip_Handler {
 
 		$zip_path = $this->export_dir . '/' . sanitize_file_name( $zip_name ) . '.zip';
 
-		// Gather all exportable files first so we can validate disk space
-		// before creating the ZIP archive.
+		
+		
 		$all_files         = array();
 		$format_extensions = array(
 			'docx'     => 'docx',
@@ -142,12 +142,12 @@ class SScribe_Zip_Handler {
 			if ( ! $ext ) {
 				continue;
 			}
-			// Files live one level deeper than the source dir : each
-			// exporter's output is written to `$source_dir/$LANG/` by
-			// the batch processor. We glob one level deeper so files
-			// with no language are NOT accidentally included when the
-			// $has_language flag is true (the parent dir is always
-			// present, even if the batch only had one language).
+			
+			
+			
+			
+			
+			
 			$found = glob( $source_dir . '/*/*.' . $ext );
 			if ( $found ) {
 				$all_files[ $format ] = $found;
@@ -160,7 +160,7 @@ class SScribe_Zip_Handler {
 			return false;
 		}
 
-		// Guard against disk exhaustion: ensure sufficient space before opening ZIP.
+		
 		$all_file_paths = array();
 		foreach ( $all_files as $format_files ) {
 			foreach ( $format_files as $file_path ) {
@@ -190,10 +190,10 @@ class SScribe_Zip_Handler {
 
 		$zip        = new ZipArchive();
 		$zip_opened = false;
-		// Build ZIP in a temp file first so that if any exception occurs during
-		// assembly, the temp file is cleaned up by the catch/finally below.
-		// PHP does NOT auto-delete temp files on exception, so we have to do it
-		// ourselves to avoid orphaned partial ZIPs.
+		
+		
+		
+		
 		$tmp_zip          = wp_tempnam( 'sscribe-export-' );
 		$assembly_failed  = false;
 		if ( false === $tmp_zip ) {
@@ -205,7 +205,7 @@ class SScribe_Zip_Handler {
 			if ( $zip->open( $tmp_zip, ZipArchive::CREATE | ZipArchive::OVERWRITE ) !== true ) {
 				$this->logger->error( 'Failed to create ZIP file', array( 'zip_path' => $zip_path ) );
 				$this->delete_directory( $source_dir );
-				// Use wp_delete_file() for temp file cleanup (WP-recommended).
+				
 				if ( file_exists( $tmp_zip ) ) {
 					wp_delete_file( $tmp_zip );
 				}
@@ -235,13 +235,13 @@ class SScribe_Zip_Handler {
 
 				foreach ( $files as $file ) {
 					$basename      = basename( $file );
-					// The parent directory name IS the language code now :
-					// the batch processor writes each page into
-					// `$source_dir/$LANG/page.ext` directly, so there's no
-					// suffix to extract or strip.
+					
+					
+					
+					
 					$parent_dir    = strtoupper( basename( dirname( $file ) ) );
 					$lang_code     = $parent_dir;
-					// Preserve Unicode letters; strip only filesystem-unsafe characters.
+					
 					$archive_entry = preg_replace( '/[\/\\\\:*?"<>|]/', '-', $basename );
 
 					if ( in_array( $basename, array( 'index.php', '.htaccess' ), true ) ) {
@@ -274,9 +274,9 @@ class SScribe_Zip_Handler {
 				}
 			}
 
-			// For each requested format that produced zero files, add a failure
-			// manifest so the user knows the format was attempted but failed :
-			// without this, a missing format is silent and confusing.
+			
+			
+			
 			foreach ( $formats as $format ) {
 				$ext = isset( $format_extensions[ $format ] ) ? $format_extensions[ $format ] : null;
 				if ( ! $ext ) {
@@ -302,21 +302,21 @@ class SScribe_Zip_Handler {
 			$assembly_failed = true;
 			throw $e;
 		} finally {
-			// Only call close() if open() actually succeeded.
-			// Calling close() on a never-opened ZipArchive throws warnings on some PHP versions.
+			
+			
 			if ( $zip_opened ) {
 				$zip->close();
 			}
-			// If the assembly failed partway, delete the orphaned partial ZIP.
-			// On success the temp file is still needed for the rename step
-			// below : only delete when we know assembly didn't complete.
+			
+			
+			
 			if ( $assembly_failed && file_exists( $tmp_zip ) ) {
 				wp_delete_file( $tmp_zip );
 			}
 		}
 
-		// Move the completed ZIP from the temp file to its final destination.
-		// If the move fails (e.g., disk full), fall back to the temp path.
+		
+		
 		$zip_finalized = false;
 		if ( file_exists( $tmp_zip ) && filesize( $tmp_zip ) > 0 ) {
 			// phpcs:ignore WordPress.WP.AlternativeFunctions.rename_rename -- Fallback when WP_Filesystem unavailable; zip finalization.
@@ -332,7 +332,7 @@ class SScribe_Zip_Handler {
 				);
 				$zip_path = $tmp_zip;
 			}
-			// Use wp_delete_file() for temp file cleanup (WP-recommended).
+			
 		} elseif ( file_exists( $tmp_zip ) ) {
 			wp_delete_file( $tmp_zip );
 		}
@@ -357,20 +357,20 @@ class SScribe_Zip_Handler {
 			usleep( $lock_delay );
 		}
 
-		// If lock could not be acquired, another request is likely writing.
-		// Skip indexing but DO NOT delete the ZIP - it was successfully created
-		// and deleting it causes silent data loss. The ZIP will be cleaned up
-		// by cleanup_expired() or the user can access it directly.
+		
+		
+		
+		
 		if ( ! $locked ) {
 			$this->logger->warning(
 				'Export indexing skipped - could not acquire exclusive lock (concurrent finalize detected)',
 				array( 'zip' => basename( $zip_path ) )
 			);
-			// Return the path anyway so the caller has access to the successfully created ZIP.
+			
 			return file_exists( $zip_path ) ? $zip_path : false;
 		}
 
-		// Final integrity verification before returning.
+		
 		if ( ! $this->verify_zip_integrity( $zip_path ) ) {
 			$this->logger->error(
 				'ZIP verification failed before return',
@@ -384,7 +384,7 @@ class SScribe_Zip_Handler {
 			return false;
 		}
 
-		// Update the export index with the new ZIP.
+		
 		try {
 			$basename = basename( $zip_path );
 			$row      = array(
@@ -417,7 +417,7 @@ class SScribe_Zip_Handler {
 
 			update_option( 'sscribe_export_index', $index, false );
 		} finally {
-			// Only unlock using the method that was used to acquire the lock.
+			
 			if ( $lock_using_cache ) {
 				wp_cache_delete( $lock_key, 'transient' );
 			} else {
@@ -440,8 +440,8 @@ class SScribe_Zip_Handler {
 		}
 
 		$zip    = new ZipArchive();
-		// ZipArchive::READONLY available since PHP 7.4.3. Fallback to 1 (ZIPARCHIVE::READONLY)
-		// for PHPStan which may not have this constant in its stubs.
+		
+		
 		$readonly_mode = defined( 'ZipArchive::READONLY' ) ? ZipArchive::READONLY : 1;
 		$result = $zip->open( $zip_path, $readonly_mode );
 		if ( true !== $result ) {
@@ -455,8 +455,8 @@ class SScribe_Zip_Handler {
 			return false;
 		}
 
-		// Verify the ZIP contains at least one readable file entry.
-		// A truncated ZIP can have numFiles > 0 but no readable entries.
+		
+		
 		$num_files = $zip->numFiles; // phpcs:ignore WordPress.NamingConventions.ValidVariableName.UsedPropertyNotSnakeCase
 		if ( $num_files < 1 ) {
 			$zip->close();
@@ -469,18 +469,18 @@ class SScribe_Zip_Handler {
 			return false;
 		}
 
-		// Find the first ACTUAL file entry (skip directory entries which
-		// have size === 0 by design). For multi-format exports (DOCX/, PDF/,
-		// etc.) the first index is often a directory entry : checking it
-		// for size > 0 would falsely flag the archive as truncated.
+		
+		
+		
+		
 		$first_file_entry = null;
 		for ( $i = 0; $i < $num_files; $i++ ) {
 			$entry = $zip->statIndex( $i );
 			if ( ! $entry || empty( $entry['name'] ) ) {
 				continue;
 			}
-			// Directory entries end with '/'. Skip them : they have size 0
-			// by design, not because the archive is corrupted.
+			
+			
 			if ( substr( $entry['name'], -1 ) === '/' ) {
 				continue;
 			}
@@ -500,7 +500,7 @@ class SScribe_Zip_Handler {
 			return false;
 		}
 
-		// First file entry must have content (size > 0) to be considered valid.
+		
 		if ( 0 === $first_file_entry['size'] ) {
 			$this->logger->error(
 				'ZIP appears truncated or corrupted : first file entry is empty',
@@ -590,7 +590,7 @@ class SScribe_Zip_Handler {
 			$exports  = get_option( 'sscribe_export_index', array() );
 			$modified = false;
 
-			// Clean up ZIPs that are in the index first.
+			
 			foreach ( (array) $exports as $basename ) {
 				$basename   = (string) $basename;
 				$file_path  = $this->export_dir . '/' . ltrim( $basename, '/\\' );
@@ -629,12 +629,12 @@ class SScribe_Zip_Handler {
 				}
 			}
 
-			// Clean up ZIPs that exist on disk but are NOT in the index (orphaned files).
+			
 			if ( ! empty( $files ) ) {
 				$indexed_basenames = array_keys( $exports );
 				foreach ( $files as $file_path ) {
 					$basename = basename( $file_path );
-					// If basename is not in the index, it's orphaned and should be cleaned up.
+					
 					if ( ! in_array( $basename, $indexed_basenames, true ) ) {
 						$file_time = filemtime( $file_path );
 						if ( $file_time && ( $now - $file_time ) > $max_age ) {

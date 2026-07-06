@@ -131,10 +131,10 @@ class SScribe_Audit_Trail {
 	 * @return array Sanitized context.
 	 */
 	private function sanitize_context( array $context ): array {
-		// Forbidden substrings (case-insensitive, matched against the
-		// key name with stripos). Matches obvious secrets plus a handful
-		// of common variants (apikey without underscore, session_key,
-		// bearer, access_key, client_secret) and JWT-shaped values.
+		
+		
+		
+		
 		$forbidden_keys = array(
 			'password',
 			'token',
@@ -152,7 +152,7 @@ class SScribe_Audit_Trail {
 		);
 
 		foreach ( $context as $key => $value ) {
-			// Check if any forbidden word appears in the key name (substring match).
+			
 			$is_sensitive = false;
 			foreach ( $forbidden_keys as $forbidden ) {
 				if ( stripos( (string) $key, $forbidden ) !== false ) {
@@ -160,8 +160,8 @@ class SScribe_Audit_Trail {
 					break;
 				}
 			}
-			// Also redact JWT-shaped string values (header.payload.signature
-			// base64url triplets that look like "eyJ..." patterns).
+			
+			
 			if ( ! $is_sensitive && is_string( $value ) && $this->looks_like_jwt( $value ) ) {
 				$is_sensitive = true;
 			}
@@ -195,7 +195,7 @@ class SScribe_Audit_Trail {
 		if ( strlen( $value ) < 8 || strpos( $value, 'eyJ' ) !== 0 ) {
 			return false;
 		}
-		// A JWT has exactly two dots separating three segments.
+		
 		return substr_count( $value, '.' ) >= 2;
 	}
 
@@ -256,7 +256,7 @@ class SScribe_Audit_Trail {
 			return array();
 		}
 
-		// Access control: only users with manage_options can view audit logs.
+		
 		if ( ! current_user_can( 'manage_options' ) ) {
 			return array();
 		}
@@ -300,7 +300,7 @@ class SScribe_Audit_Trail {
 		$args[]       = $limit;
 		$args[]       = $offset;
 
-		// This query intentionally not cached as it returns real-time audit data for monitoring/debugging purposes.
+		
 		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, PluginCheck.Security.DirectDB.UnescapedDBParameter
 		return $wpdb->get_results(
 			// phpcs:ignore WordPress.DB.PreparedSQLPlaceholders.ReplacementsWrongNumber -- Dynamic WHERE clause placeholders counted at runtime
@@ -345,7 +345,7 @@ class SScribe_Audit_Trail {
 
 		$where_clause = implode( ' AND ', $where );
 
-		// This query uses a 30-second transient cache since audit counts don't change frequently during display.
+		
 		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, PluginCheck.Security.DirectDB.UnescapedDBParameter
 		$result = $wpdb->get_results(
 			$wpdb->prepare(
@@ -443,9 +443,9 @@ class SScribe_Audit_Trail {
 			KEY idx_session_id (session_id)
 		) $charset_collate;";
 
-		// Guard the wp-admin include the same way SScribe_Upgrader does so
-		// partial installs and the unit-test suite (where WordPress runtime
-		// is not loaded) do not raise a warning that aborts the migration.
+		
+		
+		
 		$upgrade_functions = ABSPATH . 'wp-admin/includes/upgrade.php';
 		if ( file_exists( $upgrade_functions ) ) {
 			require_once $upgrade_functions;

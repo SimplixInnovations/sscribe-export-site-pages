@@ -26,7 +26,7 @@ class SScribe_Validator {
 
 	public const MIN_DISK_SPACE_MB = 100;
 
-	// Fallback per-format memory baselines (MB) when adaptive metrics are unavailable.
+	
 	public const BASELINE_MB_PER_PAGE = array(
 		'docx'     => 1.5,
 		'pdf'      => 5.0,
@@ -215,7 +215,7 @@ class SScribe_Validator {
 		$memory_used      = memory_get_usage( true );
 		$memory_available = $memory_limit - $memory_used;
 
-		// Calibrate per-page memory using adaptive metrics (historical averages) when available.
+		
 		$metrics           = class_exists( 'SScribe_Adaptive_Metrics' ) ? new SScribe_Adaptive_Metrics() : null;
 		$total_mb_per_page = 0.0;
 		foreach ( $formats as $format ) {
