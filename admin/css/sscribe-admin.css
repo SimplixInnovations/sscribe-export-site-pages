@@ -2510,7 +2510,7 @@
   font-size: 13px !important;
   border-radius: 0 0 var(--ss-radius-md) var(--ss-radius-md) !important;
   text-decoration: none !important;
-  outline: none !important;
+  clip-path: inset(50%) !important;
 }
 
 .sscribe-skip-link:focus {
@@ -3135,7 +3135,6 @@ kbd.sscribe-shortcut-hint {
   min-width: 0 !important;
   height: 30px !important;
   border: none !important;
-  outline: none !important;
   background: transparent !important;
   color: var(--ss-text-primary) !important;
   font-size: 13px !important;
@@ -3154,7 +3153,7 @@ kbd.sscribe-shortcut-hint {
 }
 
 .sscribe-search-field input[type="search"]:focus {
-  outline: none !important;
+  outline-color: transparent !important;
 }
 
 .sscribe-bulk-hint {
