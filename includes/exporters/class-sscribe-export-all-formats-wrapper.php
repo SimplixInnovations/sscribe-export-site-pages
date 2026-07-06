@@ -53,19 +53,19 @@ class SScribe_Export_All_Formats_Wrapper {
 			$formats = array_keys( SScribe_Export_Format::get_supported_formats() );
 		}
 
-		// Deduplicate : if a filter hook returned the same format key twice,
-		// the second pass would overwrite the first format's file and double
-		// the per-page I/O for no reason.
+		
+		
+		
 		$formats = array_values( array_unique( array_map( 'strval', $formats ) ) );
 
 		$results = array();
 
-		// Pre-flight: bail out cleanly if the output directory vanished or
-		// became unwritable between export start and this call (e.g. a
-		// cleanup cron job ran, the disk filled up, or the user revoked
-		// write permissions). Each format would otherwise fail with a
-		// cryptic filesystem error rather than a clear "directory
-		// missing/unwritable" message.
+		
+		
+		
+		
+		
+		
 		if ( '' === $output_dir || ! is_dir( $output_dir ) || ! wp_is_writable( $output_dir ) ) {
 			$reason = '' === $output_dir
 				? 'output directory path is empty'
@@ -112,9 +112,9 @@ class SScribe_Export_All_Formats_Wrapper {
 				$exporter = SScribe_Exporter_Factory::create( $format );
 				$result   = $exporter->export( $page_data, $output_dir, $index, $total );
 			} catch ( \Throwable $e ) {
-				// Log the per-format failure so it shows up in the debug
-				// console even when the batch processor ignores the
-				// per-format failure entry below.
+				
+				
+				
 				if ( class_exists( 'SScribe_Logger', false ) ) {
 					SScribe_Logger::instance()->error(
 						sprintf( 'All-formats wrapper: %s export failed', $format ),

@@ -41,9 +41,9 @@ if ( version_compare( PHP_VERSION, '8.2', '<' ) ) {
 			);
 		}
 	);
-	// Self-deactivate so the DB does not retain a broken "active" marker for an
-	// incompatible PHP runtime. The admin notice above explains the reason
-	// and points operators at the WordPress upgrade guide.
+	
+	
+	
 	add_action(
 		'admin_init',
 		static function () {
@@ -59,8 +59,8 @@ if ( version_compare( PHP_VERSION, '8.2', '<' ) ) {
 if ( function_exists( 'get_bloginfo' ) ) {
 	$sscribe_wp_version = (string) get_bloginfo( 'version' );
 } else {
-	// Defensive fallback for unusual bootstraps (e.g. Bedrock) where the
-	// global $wp_version is not yet populated when this header is loaded.
+	
+	
 	global $wp_version;
 	$sscribe_wp_version = isset( $wp_version ) ? (string) $wp_version : '0.0';
 }

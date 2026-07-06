@@ -101,7 +101,7 @@ $sscribe_cleanup_site = static function (): void {
 	delete_option( 'sscribe_settings' );
 	delete_option( 'sscribe_active_languages' );
 
-	// Revoke the scribe_export capability from all roles.
+	
 	$sscribe_roles = new \WP_Roles();
 	foreach ( $sscribe_roles->roles as $sscribe_role_name => $sscribe_role_data ) {
 		$sscribe_role = get_role( $sscribe_role_name );
@@ -129,7 +129,7 @@ $sscribe_cleanup_site = static function (): void {
 	wp_clear_scheduled_hook( 'sscribe_cleanup_sessions' );
 	wp_clear_scheduled_hook( 'sscribe_cleanup_audit_trail' );
 
-	// Clean up per-site upload directories while still switched to this blog.
+	
 	$sscribe_upload_dir = wp_upload_dir();
 	$sscribe_dirs       = array(
 		$sscribe_upload_dir['basedir'] . '/sscribe-exports',

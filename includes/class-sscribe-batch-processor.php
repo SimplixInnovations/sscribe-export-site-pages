@@ -9,7 +9,7 @@
 
 declare(strict_types=1);
 
-// Note: The only ZipArchive camelCase property in this file (`numFiles`) is
+
 // silenced at the point of use with a `phpcs:ignore` comment : see below.
 
 if ( ! defined( 'ABSPATH' ) ) {
@@ -226,16 +226,16 @@ final class SScribe_Batch_Processor {
 		try {
 			return random_bytes( $length );
 		} catch ( \Throwable $e ) {
-			// Fallback: OpenSSL's CSPRNG. Check crypto_strong so we never
-			// silently accept weak bytes.
+			
+			
 			$strong = false;
 			$bytes  = openssl_random_pseudo_bytes( $length, $strong );
 			if ( $bytes && $strong ) {
 				return $bytes;
 			}
-			// Last-resort fallback: not a CSPRNG, but adequate for a
-			// random suffix on a single-host filename (the worst case
-			// is a collision, not a security breach).
+			
+			
+			
 			return (string) wp_generate_password( $length, false );
 		}
 	}
@@ -315,7 +315,7 @@ final class SScribe_Batch_Processor {
 			);
 		}
 
-		// Warn if reported size differs from actual size by more than 10% : possible truncation or metadata issue.
+		
 		if ( $file_size > 0 ) {
 			$size_diff_ratio = abs( $actual_size - $file_size ) / $file_size;
 			if ( $size_diff_ratio > 0.10 ) {
@@ -364,12 +364,12 @@ final class SScribe_Batch_Processor {
 		foreach ( $formats as $format ) {
 			$format_start = microtime( true );
 
-			// Resolve the per-format options for this page. Exposed via the
-			// dynamic `sscribe_export_options_{$format}` filter so third-party
-			// integrations can opt in without modifying the plugin. Then push
-			// the resolved options onto the exporter instance : built-in
-			// exporters implement apply_format_options(); method_exists()
-			// keeps third-party exporters that don't yet support it working.
+			
+			
+			
+			
+			
+			
 			$format_options = array();
 			if ( ! empty( $session['format_options'] ) ) {
 				$format_options = (array) $session['format_options'];
@@ -391,10 +391,10 @@ final class SScribe_Batch_Processor {
 				continue;
 			}
 
-			// Forward the resolved options to the exporter. Built-in
-			// exporters (PDF, DOCX, Markdown, HTML) implement this method;
-			// method_exists() keeps third-party exporters that don't yet
-			// support it working : they fall back to their defaults.
+			
+			
+			
+			
 			if ( method_exists( $exporter, 'apply_format_options' ) ) {
 				$exporter->apply_format_options( $format_options );
 			}
@@ -402,12 +402,12 @@ final class SScribe_Batch_Processor {
 			$attempt = 0;
 			$result  = null;
 
-			// Per-page output directory: write each page into
-			// `$temp_dir/$LANG/` so the ZIP handler can place files into
-			// `FORMAT/LANG/page.ext` directly, with no filename-suffix
-			// gymnastics. `ALL` is the catch-all for pages with no
-			// detectable language : the ZIP handler treats it like any
-			// other lang code (no special validation).
+			
+			
+			
+			
+			
+			
 			$page_lang_raw = isset( $page_data['language'] ) ? (string) $page_data['language'] : '';
 			$page_lang_key = '' !== $page_lang_raw ? sanitize_key( substr( $page_lang_raw, 0, 2 ) ) : '';
 			$page_lang     = '' !== $page_lang_key ? strtoupper( $page_lang_key ) : 'ALL';
@@ -439,20 +439,20 @@ final class SScribe_Batch_Processor {
 					break;
 				}
 
-				// Do not retry after the final attempt : accept current result as-is.
+				
 				if ( $attempt >= self::MAX_RETRIES - 1 ) {
 					break;
 				}
 
-				// Record the retry so the audit trail preserves the
-				// intermediate attempts and not just the final outcome.
+				
+				
 				if ( $this->export_log ) {
 					$this->export_log->log_page_retry( $page_id, $format, $attempt + 1, $error_category );
 				}
 
-				// Retry delay: fixed 100ms per attempt, capped by a 500ms cumulative
-				// budget across the entire retry sequence so a degenerate site can't
-				// burn FPM worker time on retries.
+				
+				
+				
 				$delay_ms = 100;
 				if ( $total_sleep_ms + $delay_ms > 500 ) {
 					break;
@@ -461,7 +461,7 @@ final class SScribe_Batch_Processor {
 				usleep( $delay_ms * 1000 );
 				++$attempt;
 
-				// Recreate exporter for clean state on next attempt.
+				
 				try {
 					$exporter = \SScribe_Exporter_Factory::create( $format );
 				} catch ( SScribe_Validation_Exception $e ) {
@@ -470,7 +470,7 @@ final class SScribe_Batch_Processor {
 				}
 			}
 
-			// Free exporter immediately after use to prevent memory buildup across format iterations.
+			
 			$exporter = null;
 
 			$format_elapsed         = microtime( true ) - $format_start;
@@ -870,7 +870,7 @@ final class SScribe_Batch_Processor {
 			return false;
 		}
 
-		// Log successful session access for complete audit trail.
+		
 		$this->audit_log(
 			'session_access_ok',
 			array(
@@ -922,7 +922,7 @@ final class SScribe_Batch_Processor {
 
 		$language    = isset( $_POST['language'] ) ? sanitize_text_field( wp_unslash( $_POST['language'] ) ) : '';
 		$post_status = isset( $_POST['post_status'] ) ? sanitize_text_field( wp_unslash( $_POST['post_status'] ) ) : 'publish';
-		// Validate post_status against allowlist to prevent exporting trash/auto-draft content.
+		
 		$allowed_statuses = array( 'publish', 'private', 'draft', 'pending', 'future' );
 		if ( ! in_array( $post_status, $allowed_statuses, true ) ) {
 			$post_status = 'publish';
@@ -960,17 +960,17 @@ final class SScribe_Batch_Processor {
 
 		$post_type        = isset( $_POST['post_type'] ) ? sanitize_text_field( wp_unslash( $_POST['post_type'] ) ) : 'page';
 
-		// Per-format options from the admin UI panels. Stored in the session
-		// and re-exposed via the `sscribe_export_options_{$format}` filter so
-		// individual exporters can opt in to reading them without changing
-		// their public API. Unknown option names are accepted (future
-		// formats can add their own) but values are sanitized to scalar
-		// strings to prevent object/array injection.
+		
+		
+		
+		
+		
+		
 		// phpcs:ignore WordPress.Security.ValidatedSanitizedInput.InputNotSanitized -- parse_format_options() sanitizes per-key (sanitize_key) and per-value (string cast).
 		$format_options = self::parse_format_options( wp_unslash( $_POST['format_options'] ?? array() ) );
 		$valid_post_types = array_values( get_post_types( array( 'public' => true ) ) );
 		$valid_post_types = array_merge( $valid_post_types, array( 'any' ) );
-		// Remove post types that don't make sense for content export.
+		
 		$valid_post_types = array_values( array_diff( $valid_post_types, array( 'attachment' ) ) );
 		if ( ! in_array( $post_type, $valid_post_types, true ) ) {
 			SScribe_AJAX_Guard::error(
@@ -1092,7 +1092,7 @@ final class SScribe_Batch_Processor {
 			)
 		);
 
-		// Store page_ids in separate transient to avoid bloating session autoload.
+		
 		$this->session->set_page_ids( $session_id, $page_ids );
 
 		$this->logger->debug(
@@ -1104,13 +1104,13 @@ final class SScribe_Batch_Processor {
 		);
 
 		if ( empty( $session_id ) ) {
-			// Clean up orphaned temp directory that was created before session failed.
+			
 			if ( ! empty( $temp_dir ) && is_dir( $temp_dir ) ) {
 				$this->zip_handler->delete_directory( $temp_dir );
-				// Clear the shutdown-cleanup tracking so the shutdown
-				// handler does not later try to delete a now-nonexistent
-				// directory (the handler's is_dir() guard would catch
-				// it, but clearing the static keeps the state honest).
+				
+				
+				
+				
 				self::$cleanup_temp_dir = null;
 			}
 			SScribe_AJAX_Guard::error(
@@ -1121,10 +1121,10 @@ final class SScribe_Batch_Processor {
 			);
 		}
 
-		// Post-creation TOCTOU defence: verify OUR session is the one tracked as active.
-		// If a concurrent request created another session for the same user between
-		// has_active_session() and create(), the transient will point to the other
-		// session. In that case, clean up and reject instead of proceeding with both.
+		
+		
+		
+		
 		if ( $user_id ) {
 			$active_sid = get_transient( 'sscribe_active_sid_' . $user_id );
 			if ( $active_sid !== $session_id && is_string( $active_sid ) && '0' !== $active_sid ) {
@@ -1139,9 +1139,9 @@ final class SScribe_Batch_Processor {
 				$this->session->delete( $session_id );
 				if ( ! empty( $temp_dir ) && is_dir( $temp_dir ) ) {
 					$this->zip_handler->delete_directory( $temp_dir );
-					// Same as above : keep the shutdown handler state in
-					// sync so it does not try to clean up an already-gone
-					// temp dir.
+					
+					
+					
 					self::$cleanup_temp_dir = null;
 				}
 				SScribe_AJAX_Guard::error(

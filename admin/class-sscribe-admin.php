@@ -70,8 +70,8 @@ class SScribe_Admin {
 		$this->zip_handler = $zip_handler ?? new SScribe_Zip_Handler();
 
 		$this->debug = new SScribe_Admin_Debug();
-		// Always register debug AJAX hooks so the debug tab can toggle
-		// settings even when debug logging is currently disabled.
+		
+		
 		$this->debug->register_hooks();
 	}
 
@@ -137,7 +137,7 @@ class SScribe_Admin {
 	 * @return string Modified script tag with nonce attribute.
 	 */
 	public function add_nonce_to_script_tags( string $tag, string $handle, string $src ): string {
-		// Only add nonce to our plugin's scripts.
+		
 		$our_handles = array( 'sscribe-admin', 'sscribe-debug-console' );
 
 		if ( ! in_array( $handle, $our_handles, true ) ) {
@@ -149,7 +149,7 @@ class SScribe_Admin {
 			return $tag;
 		}
 
-		// Add nonce attribute to script tag.
+		
 		return str_replace( '<script ', '<script nonce="' . esc_attr( $nonce ) . '" ', $tag );
 	}
 
@@ -274,9 +274,9 @@ class SScribe_Admin {
 			$css_version
 		);
 
-		// Manrope was removed; the admin UI now uses the system font stack
-		// (declared in --sscribe-font-family in sscribe-admin.css). No
-		// @font-face declarations are needed here.
+		
+		
+		
 
 		wp_enqueue_script(
 			'sscribe-admin',
@@ -286,13 +286,13 @@ class SScribe_Admin {
 			true
 		);
 
-		// Debug console assets. The Debug tab is always rendered so users
-		// can flip the toggle on/off, and the toggle UI lives inside the
-		// tab : without the JS, the user has no way to enable debug in the
-		// first place. Always enqueue both so the toggle works on a fresh
-		// install. The combined cost is ~20-30 KB gzipped on a single admin
-		// page; the alternative (gating behind sscribe_debug_enabled) breaks
-		// the very UI that's supposed to flip that flag.
+		
+		
+		
+		
+		
+		
+		
 		wp_enqueue_style(
 			'sscribe-debug-console',
 			SSCRIBE_PLUGIN_URL . 'admin/css/sscribe-debug-console.css',
@@ -337,11 +337,11 @@ class SScribe_Admin {
 			'nonce'           => wp_create_nonce( 'sscribe_export_nonce' ),
 			'download_nonce'  => $this->get_download_nonce(),
 			'icons_url'       => SSCRIBE_PLUGIN_URL . 'assets/icons/',
-			// Auto-refresh interval (ms) for the debug console. Filterable so
-			// admins can throttle it down on slow servers or up on fast ones.
-			// Enforce a hard minimum of 5 seconds (5000ms) here so a buggy or
-			// malicious filter returning 0/negative cannot create a tight
-			// infinite loop hammering the AJAX endpoint.
+			
+			
+			
+			
+			
 			'refresh_interval' => max( 5000, (int) apply_filters( 'sscribe_debug_refresh_interval_ms', 10000 ) ),
 			'strings'        => array(
 				'starting'               => __( 'Starting export...', 'sscribe-export-site-pages' ),
@@ -372,6 +372,7 @@ class SScribe_Admin {
 				'minute_suffix'          => __( 'm', 'sscribe-export-site-pages' ),
 				'log_total'              => __( 'Total:', 'sscribe-export-site-pages' ),
 				'log_pages'              => __( 'pages', 'sscribe-export-site-pages' ),
+				                    'log_page'              => __( 'page',  'sscribe-export-site-pages' ),
 				'log_success_label'      => __( 'Success:', 'sscribe-export-site-pages' ),
 				'log_failed_label'       => __( 'Failed:', 'sscribe-export-site-pages' ),
 				'log_page_details'       => __( 'Page Details', 'sscribe-export-site-pages' ),
@@ -459,18 +460,18 @@ class SScribe_Admin {
 				/* translators: %d: progress percentage (e.g. 42) */
 				'document_title'         => __( '(%d%%) SScribe Export', 'sscribe-export-site-pages' ),
 				'err_cancel_failed'      => __( 'Could not confirm cancellation : the server may still be processing. Reload the page before starting a new export.', 'sscribe-export-site-pages' ),
-				// Post-type labels for the live config-summary chips.
+				
 				'post_type_page'         => __( 'Pages', 'sscribe-export-site-pages' ),
 				'post_type_post'         => __( 'Posts', 'sscribe-export-site-pages' ),
 				'post_type_any'          => __( 'Both', 'sscribe-export-site-pages' ),
-				// Post-status labels for the live config-summary chips.
+				
 				'status_publish'         => __( 'Published', 'sscribe-export-site-pages' ),
 				'status_draft'           => __( 'Draft', 'sscribe-export-site-pages' ),
 				'status_private'         => __( 'Private', 'sscribe-export-site-pages' ),
 				'status_future'          => __( 'Scheduled', 'sscribe-export-site-pages' ),
 				'status_pending'         => __( 'Pending', 'sscribe-export-site-pages' ),
 				'status_all'             => __( 'All', 'sscribe-export-site-pages' ),
-				// Live-region announcements (mirrors progress_pages template style).
+				
 				/* translators: 1: page count, 2: "pages" label */
 				'live_region_ready'      => __( '%1$d %2$s ready for export', 'sscribe-export-site-pages' ),
 				'live_region_no_pages'   => __( 'No pages match selected options. Export button is disabled.', 'sscribe-export-site-pages' ),
@@ -531,8 +532,8 @@ class SScribe_Admin {
 		}
 
 		$sscribe_debug_info = array();
-		// Always show the debug tab so users can toggle debug on/off.
-		// The debug *logging* is still controlled by the setting.
+		
+		
 		$sscribe_is_debug             = true;
 		$sscribe_debug_logging_active = SSCRIBE_DEBUG || SScribe_Settings::is_debug_enabled();
 
@@ -543,7 +544,7 @@ class SScribe_Admin {
 		}
 
 		if ( $sscribe_debug_logging_active ) {
-			// Include blog ID in cache key for multisite compatibility.
+			
 			$blog_id            = is_multisite() ? get_current_blog_id() : 0;
 			$debug_cache_key    = 'sscribe_debug_info_' . $blog_id . '_' . get_current_user_id();
 			$sscribe_debug_info = get_transient( $debug_cache_key );
@@ -603,7 +604,7 @@ class SScribe_Admin {
 
 		$recent_exports = array();
 
-		// Pre-collect existing files to avoid O(n) file_exists() calls on slow filesystems.
+		
 		$existing_files = array();
 		if ( is_dir( $export_dir ) ) {
 			$glob_files = glob( trailingslashit( $export_dir ) . '*.zip' );
@@ -643,11 +644,11 @@ class SScribe_Admin {
 			}
 
 			$lang_code = sanitize_key( (string) ( $data['lang_code'] ?? '' ) );
-			// lang_code is populated for every new export by the batch
-			// processor. The filename no longer carries a `-LANG` suffix
-			// (the language is communicated by the per-language subdir
-			// inside the ZIP), so a regex-based fallback would either
-			// be dead code or mis-parse format tokens. Trust the index.
+			
+			
+			
+			
+			
 
 			if ( '' === $lang_code ) {
 				$lang_code = 'all';
@@ -710,8 +711,8 @@ class SScribe_Admin {
 					'status_breakdown' => $this->collector->get_post_status_counts( $lang_code ),
 				);
 
-				// Limit to 50 IDs per language to prevent expensive queries on large multilingual sites.
-				// Use get_page_count_only() for the total count, and only fetch IDs when needed for slug checks.
+				
+				
 				$sscribe_debug_info['language_details'][ $lang_code ]['published_count'] = $this->collector->get_page_count_only( $lang_code, 'publish' );
 				$page_ids = $this->collector->get_page_ids( $lang_code, 'publish', 'page', 50 );
 				$sscribe_debug_info['language_details'][ $lang_code ]['published_page_ids'] = $page_ids;

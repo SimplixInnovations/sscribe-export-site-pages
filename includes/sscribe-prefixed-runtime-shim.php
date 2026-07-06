@@ -63,11 +63,11 @@ if ( ! defined( 'ABSPATH' ) ) {
 	exit;
 }
 
-// composer-prefixed PSR-4 namespace map for the two libraries this shim
-// covers. Hardcoded here (not loaded from vendor-prefixed/composer/) so
-// the shim has no dependency on the composer's autoloader being
-// functional : it must work even if the composer's autoload_psr4.php
-// is corrupted or partial.
+
+
+
+
+
 $sscribe_prefixed_aliases = array(
 	'\SScribeVendor\PhpOffice\PhpWord\PhpWord'           => '\PhpOffice\PhpWord\PhpWord',
 	'\SScribeVendor\PhpOffice\PhpWord\IOFactory'         => '\PhpOffice\PhpWord\IOFactory',
@@ -83,27 +83,27 @@ $sscribe_prefixed_aliases = array(
 	'\SScribeVendor\Mpdf\Mpdf'                            => '\Mpdf\Mpdf',
 );
 
-// Inverse map: unprefixed name → prefixed name. Used by the fallback
-// autoloader to translate a third-party class request into the
-// prefixed name we actually ship.
+
+
+
 $sscribe_unprefixed_to_prefixed = array();
 foreach ( $sscribe_prefixed_aliases as $sscribe_source => $sscribe_alias ) {
 	$sscribe_unprefixed_to_prefixed[ ltrim( $sscribe_alias, '\\' ) ] = ltrim( $sscribe_source, '\\' );
 }
 
-// PSR-4 root paths for each leading namespace segment of the unprefixed
-// names we alias. Matches the entries in vendor-prefixed/composer/
-// autoload_psr4.php for the two libraries this shim covers. Keys are
-// the namespace segments immediately under the root; values are the
-// on-disk path roots relative to vendor-prefixed/.
+
+
+
+
+
 $sscribe_root_for_prefix = array(
 	'PhpOffice\\PhpWord' => 'phpoffice/phpword/src/PhpWord',
 	'Mpdf'               => 'mpdf/mpdf/src',
 );
 
-// Resolve an unprefixed class name to the on-disk file under
-// vendor-prefixed/ that contains the prefixed class. Returns null if
-// the unprefixed name is not in the shim's alias map.
+
+
+
 $sscribe_resolve_prefixed_file = static function ( string $unprefixed ) use ( &$sscribe_root_for_prefix, &$sscribe_unprefixed_to_prefixed ): ?string {
 	if ( ! isset( $sscribe_unprefixed_to_prefixed[ $unprefixed ] ) ) {
 		return null;
@@ -119,34 +119,34 @@ $sscribe_resolve_prefixed_file = static function ( string $unprefixed ) use ( &$
 	return null;
 };
 
-// Eagerly create aliases for any prefixed class that is already loaded.
-// Production code uses prefixed names first; once those classes are
-// defined, the unprefixed names become available for third-party use
-// without needing the fallback autoloader.
+
+
+
+
 foreach ( $sscribe_prefixed_aliases as $sscribe_source => $sscribe_alias ) {
 	if ( class_exists( $sscribe_source, false ) && ! class_exists( $sscribe_alias, false ) ) {
 		class_alias( $sscribe_source, $sscribe_alias );
 	}
 }
 
-// Fallback autoloader: registered AFTER the composer autoloader. Fires
-// only if composer could not resolve the class. Translates the
-// unprefixed request into a require of the prefixed file, then creates
-// the alias. Without this, a third-party plugin that does
-// `new \Mpdf\Mpdf()` before the plugin's own code has instantiated
-// `\SScribeVendor\Mpdf\Mpdf` (and thus warmed the alias) hits
-// `Class "Mpdf\Mpdf" not found`.
+
+
+
+
+
+
+
 spl_autoload_register(
 	static function ( string $sscribe_class_name ) use ( $sscribe_prefixed_aliases, $sscribe_unprefixed_to_prefixed, $sscribe_resolve_prefixed_file ): void {
 		$sscribe_normalized          = ltrim( $sscribe_class_name, '\\' );
 		$sscribe_unprefixed_target   = '\\' . $sscribe_normalized;
 
-		// Bail if the request is for a prefixed name (composer autoloader
-		// handles those) : if it reached us, composer gave up.
+		
+		
 		if ( isset( $sscribe_prefixed_aliases[ $sscribe_unprefixed_target ] ) ) {
 			return;
 		}
-		// Bail if the unprefixed name isn't in our alias map.
+		
 		if ( ! isset( $sscribe_unprefixed_to_prefixed[ $sscribe_normalized ] ) ) {
 			return;
 		}
@@ -158,9 +158,9 @@ spl_autoload_register(
 
 		require_once $sscribe_file;
 
-		// class_exists($prefixed, false) : the prefixed class was just
-		// declared by the require above. Create the alias for any
-		// future request under the unprefixed name.
+		
+		
+		
 		$sscribe_prefixed_name = $sscribe_unprefixed_to_prefixed[ $sscribe_normalized ];
 		if ( class_exists( $sscribe_prefixed_name, false ) && ! class_exists( $sscribe_unprefixed_target, false ) ) {
 			class_alias( $sscribe_prefixed_name, ltrim( $sscribe_unprefixed_target, '\\' ) );

@@ -169,12 +169,12 @@ class SScribe_Markdown_Exporter implements SScribe_Exporter_Interface {
 		$md  = $include_frontmatter ? $this->generate_frontmatter( $page_data ) : '';
 		$md .= $this->html_to_markdown( $page_data['content'] ?? '' );
 
-		// NOTE: BOM is intentionally NOT prepended here. The YAML frontmatter
-		// already contains a `direction` field (set by generate_frontmatter()) which
-		// static site generators (Hugo, Jekyll, Obsidian) read to determine text
-		// direction. Prepending a UTF-8 BOM (\xEF\xBB\xBF) before the YAML ---
-		// delimiter would place the BOM bytes BEFORE the document start marker,
-		// causing YAML parsers to reject the front matter entirely.
+		
+		
+		
+		
+		
+		
 
 		return $md;
 	}
@@ -192,7 +192,7 @@ class SScribe_Markdown_Exporter implements SScribe_Exporter_Interface {
 
 		$include_featured_image = '1' === (string) $this->get_format_option( 'sscribe_md_include_featured_image', '1' );
 
-		// YAML front matter block FIRST : byte zero for Hugo/Jekyll/Obsidian compatibility.
+		
 		$md  = "---\n";
 		$md .= 'title: "' . $this->escape_yaml_string( $title ) . "\"\n";
 		$md .= 'url: "' . $this->escape_yaml_string( $page_data['permalink'] ?? '' ) . "\"\n";
@@ -250,7 +250,7 @@ class SScribe_Markdown_Exporter implements SScribe_Exporter_Interface {
 
 		$md .= "---\n\n";
 
-		// Human-readable header AFTER front matter : not part of YAML document.
+		
 		$md .= '# ' . $this->escape_markdown( $title ) . "\n\n";
 		$md .= '> ' . ( $page_data['permalink'] ?? '' ) . "\n\n";
 
@@ -270,11 +270,11 @@ class SScribe_Markdown_Exporter implements SScribe_Exporter_Interface {
 
 		$html = $this->strip_all_styles( $html );
 
-		// Strip any remaining unexpanded shortcodes ([caption], [gallery],
-		// [embed], custom plugin shortcodes) so they don't leak into the
-		// exported .md file as raw shortcode syntax. Gutenberg block
-		// delimiters (<!-- wp:... -->) are already removed by
-		// strip_all_styles() via the <!-- --> comment strip.
+		
+		
+		
+		
+		
 		$html = $this->strip_shortcodes( $html );
 
 		$md = $html;
@@ -291,16 +291,16 @@ class SScribe_Markdown_Exporter implements SScribe_Exporter_Interface {
 		$md = $this->convert_horizontal_rules( $md );
 		$md = $this->convert_details( $md );
 
-		// Decode HTML entities BEFORE stripping tags so the tag stripper does
-		// not mis-handle multibyte UTF-8 sequences (e.g. Arabic) that were
-		// entity-encoded. The stripper internally calls html_entity_decode()
-		// with its own charset, which can corrupt UTF-8 strings if it runs
-		// before we decode with an explicit 'UTF-8' encoding.
+		
+		
+		
+		
+		
 		$md = html_entity_decode( $md, ENT_QUOTES | ENT_HTML5, 'UTF-8' );
 		$md = wp_strip_all_tags( $md );
 
-		// Escape Markdown syntax characters at line-start positions in body content
-		// to prevent literal characters from being interpreted as Markdown.
+		
+		
 		$md = $this->escape_markdown_body( $md );
 
 		$md = preg_replace( '/\n{3,}/', "\n\n", $md );
@@ -320,11 +320,11 @@ class SScribe_Markdown_Exporter implements SScribe_Exporter_Interface {
 		$html = preg_replace( '/<script[^>]*>.*?<\/script>/is', '', $html ) ?? $html;
 		$html = preg_replace( '/<noscript[^>]*>.*?<\/noscript>/is', '', $html ) ?? $html;
 
-		// Replace SVGs with a text placeholder to preserve intent.
+		
 		$html = preg_replace_callback(
 			'/<svg[^>]*>.*?<\/svg>/is',
 			function ( $matches ) {
-				// Try to extract a title child element as alt text.
+				
 				if ( preg_match( '/<title[^>]*>(.*?)<\/title>/is', $matches[0], $t ) ) {
 					$label = trim( wp_strip_all_tags( $t[1] ) );
 					return $label ? '[SVG: ' . $label . ']' : '[SVG image]';
@@ -367,10 +367,10 @@ class SScribe_Markdown_Exporter implements SScribe_Exporter_Interface {
 			$html = strip_shortcodes( $html );
 		}
 
-		// Regex fallback for any shortcode that wasn't registered with
-		// add_shortcode() (so strip_shortcodes() above wouldn't have
-		// known about it). Matches both self-closing and paired forms,
-		// and tolerates whitespace/newlines inside the tag attributes.
+		
+		
+		
+		
 		$html = preg_replace( '/\[[a-zA-Z_][a-zA-Z0-9_-]*(?:\s+[^\]]*)?\/?\][\s\S]*?(?:\[\/[a-zA-Z_][a-zA-Z0-9_-]*\])?/s', '', $html ) ?? $html;
 
 		return $html;
@@ -388,15 +388,15 @@ class SScribe_Markdown_Exporter implements SScribe_Exporter_Interface {
 			function ( $matches ) {
 				$table_html = $matches[1];
 
-				// Tables that use colspan or rowspan cannot be losslessly
-				// converted to GitHub Flavored Markdown : GFM tables have no
-				// concept of merged cells, and a row with <td colspan="2">
-				// would produce a 1-cell row while the next row produces
-				// 2 cells, misaligning the GFM separator and producing
-				// broken output in any GFM renderer. Emit an HTML comment
-				// placeholder so the user (or downstream tooling) knows the
-				// table needs manual review, and preserve the cell text in
-				// a plain-text block so the content is not lost.
+				
+				
+				
+				
+				
+				
+				
+				
+				
 				if ( preg_match( '/<(td|th)\b[^>]*\b(colspan|rowspan)\s*=\s*["\']?[2-9]/is', $table_html ) ) {
 					$plain = trim( wp_strip_all_tags( $table_html ) );
 					$plain = preg_replace( '/\s+/', ' ', $plain );
@@ -419,7 +419,7 @@ class SScribe_Markdown_Exporter implements SScribe_Exporter_Interface {
 						foreach ( $cell_matches[1] as $cell_content ) {
 							$cell_content = wp_strip_all_tags( $cell_content );
 							$cell_content = trim( preg_replace( '/\s+/', ' ', $cell_content ) );
-							// Escape pipe characters in cell content to prevent table misalignment.
+							
 							$cell_content = str_replace( '|', '\\|', $cell_content );
 							$cells[]      = $cell_content;
 						}
@@ -428,9 +428,9 @@ class SScribe_Markdown_Exporter implements SScribe_Exporter_Interface {
 					if ( ! empty( $cells ) ) {
 						$rows[] = $cells;
 
-						// Always add GFM separator row after first row : even when no <th> cells
-						// are present : to produce a valid Markdown table (GFM requires the
-						// | --- | --- | row). Use left-align (:---) as the default alignment.
+						
+						
+						
 						if ( $is_first_row ) {
 							$rows[]       = array_fill( 0, count( $cells ), ':---' );
 							$is_first_row = false;
@@ -461,15 +461,15 @@ class SScribe_Markdown_Exporter implements SScribe_Exporter_Interface {
 	 * @return string Content with Markdown headings.
 	 */
 	private function convert_headings( string $html ): string {
-		// Single-pass replacement covering all six heading levels. Replaces
-		// a previous loop that ran six separate preg_replace_callback
-		// passes (one per h1..h6), each scanning the entire document.
-		// A 200 KB page is now scanned once instead of six times.
+		
+		
+		
+		
 		return preg_replace_callback(
 			'/<h([1-6])[^>]*>(.*?)<\/h\1>/is',
 			static function ( $m ): string {
-				// Strip inner HTML tags at capture time so child elements like <span>,
-				// <a>, <strong> don't appear raw in the Markdown heading.
+				
+				
 				$level = (int) $m[1];
 				$inner = wp_strip_all_tags( $m[2] );
 				return "\n" . str_repeat( '#', $level ) . ' ' . $inner . "\n";
@@ -516,15 +516,15 @@ class SScribe_Markdown_Exporter implements SScribe_Exporter_Interface {
 	 * @return string Attribute value or empty string.
 	 */
 	private function extract_attribute( string $tag, string $attr ): string {
-		// Try double-quoted value first.
+		
 		if ( preg_match( '/' . preg_quote( $attr, '/' ) . '="([^"]*)"/', $tag, $m ) ) {
 			return $m[1];
 		}
-		// Then single-quoted value.
+		
 		if ( preg_match( '/' . preg_quote( $attr, '/' ) . '=\'([^\']*)\'/', $tag, $m ) ) {
 			return $m[1];
 		}
-		// Then unquoted value (HTML5 legal form: no whitespace, ", ', =, `, <, or >).
+		
 		if ( preg_match( '/' . preg_quote( $attr, '/' ) . '=([^\s"\'=`<>]+)/', $tag, $m ) ) {
 			return $m[1];
 		}
@@ -544,10 +544,10 @@ class SScribe_Markdown_Exporter implements SScribe_Exporter_Interface {
 				$url        = $this->sanitize_url( $matches[1] );
 				$inner_html = $matches[2];
 
-				// If the link contains only an <img> tag, convert to an inline image
-				// inside a link: [![alt](src)](url) format.
+				
+				
 				if ( preg_match( '/<img\s[^>]*>/is', $inner_html ) ) {
-					// Extract src and alt from the first <img> using our extract_attribute helper.
+					
 					$img_tag = preg_match( '/<img\s[^>]*>/is', $inner_html, $img_match ) ? $img_match[0] : '';
 					$img_src = $this->extract_attribute( $img_tag, 'src' );
 					$img_alt = $this->extract_attribute( $img_tag, 'alt' );
@@ -564,8 +564,8 @@ class SScribe_Markdown_Exporter implements SScribe_Exporter_Interface {
 				if ( empty( $text ) ) {
 					$text = $url;
 				}
-				// Encode literal parentheses in URLs to prevent Markdown link breakage
-				// (e.g., Wikipedia URLs like C_(programming_language)).
+				
+				
 				$url = str_replace( array( '(', ')' ), array( '%28', '%29' ), $url );
 				return '[' . $text . '](' . $url . ')';
 			},
@@ -580,14 +580,14 @@ class SScribe_Markdown_Exporter implements SScribe_Exporter_Interface {
 	 * @return string Content with Markdown formatting.
 	 */
 	private function convert_formatting( string $html ): string {
-		// Process innermost tags FIRST (strong>em, b>i, etc.) so that nested
-		// inline elements like <strong><em>text</em></strong> are fully collapsed
-		// before the outer tag is processed, preventing partial matches.
-		// Use (.*?) with /s flag for non-greedy matching across nested tags.
-		// Handle strong>em and b>i combinations first.
+		
+		
+		
+		
+		
 		$html = preg_replace( '/<(strong|b)><(em|i)>(.*?)<\/\2><\/\1>/is', '***$3***', $html ) ?? $html;
 		$html = preg_replace( '/<(em|i)><(strong|b)>(.*?)<\/\2><\/\1>/is', '***$3***', $html ) ?? $html;
-		// Now handle simple (non-nested) formatting.
+		
 		$html = preg_replace( '/<(strong|b)>(.*?)<\/\1>/is', '**$2**', $html ) ?? $html;
 		$html = preg_replace( '/<(em|i)>(.*?)<\/\1>/is', '*$2*', $html ) ?? $html;
 		$html = preg_replace( '/<(s|strike|del)>(.*?)<\/\1>/is', '~~$2~~', $html ) ?? $html;
@@ -601,19 +601,19 @@ class SScribe_Markdown_Exporter implements SScribe_Exporter_Interface {
 	 * @return string Content with Markdown lists.
 	 */
 	private function convert_lists( string $html ): string {
-		// Use DOMDocument for safe list parsing instead of regex to avoid
-		// catastrophic backtracking (ReDoS) on deeply nested or crafted HTML.
+		
+		
 		$dom             = new DOMDocument( '1.0', 'UTF-8' );
 		$prev_use_errors = libxml_use_internal_errors( true );
 		try {
-			// NOTE: The @ operator was intentionally removed. Errors are captured via
-			// libxml_use_internal_errors(true) above, and libxml_get_errors() can be
-			// inspected after loadHTML() to detect and log parse failures without
-			// silently swallowing fatal libxml errors that could indicate corruption.
-			// The <meta charset> tag ensures DOMDocument interprets the input as UTF-8
-			// and does not fall back to ISO-8859-1 (which would corrupt multibyte
-			// characters like Arabic, Hebrew, CJK). The LIBXML_NONET flag prevents
-			// any network access during parsing.
+			
+			
+			
+			
+			
+			
+			
+			
 			$wrapped = '<!DOCTYPE html><html><head>'
 				. '<meta http-equiv="Content-Type" content="text/html; charset=UTF-8">'
 				. '</head><body>' . $html . '</body></html>';
@@ -644,7 +644,7 @@ class SScribe_Markdown_Exporter implements SScribe_Exporter_Interface {
 			libxml_use_internal_errors( $prev_use_errors );
 		}
 
-		// Fallback: bounded regex for environments where DOMDocument is unavailable.
+		
 		$max_iterations = 5000;
 		$iteration      = 0;
 
@@ -688,10 +688,10 @@ class SScribe_Markdown_Exporter implements SScribe_Exporter_Interface {
 			if ( 'ul' === $tag || 'ol' === $tag ) {
 				$out .= $this->convert_single_list( $child, $tag, 1 );
 			} else {
-				// Use saveHTML($child) to preserve the outer tag so that subsequent
-				// converters (convert_paragraphs, etc.) can still find and process it.
-				// get_inner_html() previously stripped the tag, leaving bare text that
-				// subsequent regex-based converters would skip.
+				
+				
+				
+				
 				$out .= $child->ownerDocument->saveHTML( $child ); // phpcs:ignore WordPress.NamingConventions.ValidVariableName.UsedPropertyNotSnakeCase
 			}
 		}
@@ -709,7 +709,7 @@ class SScribe_Markdown_Exporter implements SScribe_Exporter_Interface {
 	private function convert_single_list( \DOMNode $list_node, string $list_tag, int $depth = 1 ): string {
 		$result  = "\n";
 		$counter = 1;
-		// 2 spaces per nesting level (matches the convert_list_items regex fallback).
+		
 		$indent = str_repeat( '  ', $depth );
 		foreach ( $list_node->childNodes as $li ) { // phpcs:ignore WordPress.NamingConventions.ValidVariableName.UsedPropertyNotSnakeCase
 			if ( XML_ELEMENT_NODE !== $li->nodeType || 'li' !== strtolower( $li->nodeName ) ) { // phpcs:ignore WordPress.NamingConventions.ValidVariableName.UsedPropertyNotSnakeCase
@@ -720,14 +720,14 @@ class SScribe_Markdown_Exporter implements SScribe_Exporter_Interface {
 			foreach ( $li->childNodes as $child ) { // phpcs:ignore WordPress.NamingConventions.ValidVariableName.UsedPropertyNotSnakeCase
 				$child_tag = strtolower( $child->nodeName ); // phpcs:ignore WordPress.NamingConventions.ValidVariableName.UsedPropertyNotSnakeCase
 				if ( 'ul' === $child_tag || 'ol' === $child_tag ) {
-					// Recursively convert nested lists with increased depth.
+					
 					$item_text_parts[] = $this->convert_single_list( $child, $child_tag, $depth + 1 );
 				} elseif ( XML_ELEMENT_NODE === $child->nodeType ) { // phpcs:ignore WordPress.NamingConventions.ValidVariableName.UsedPropertyNotSnakeCase
-					// Call convert_dom_lists() instead of wp_strip_all_tags() so that
-					// inline formatting (<strong>, <em>, <code>) inside <li> items goes
-					// through the full conversion pipeline (convert_formatting,
-					// convert_links, convert_code_blocks, etc.) instead of being
-					// prematurely stripped. Normalize resulting whitespace afterward.
+					
+					
+					
+					
+					
 					$item_text_parts[] = preg_replace(
 						'/\s+/',
 						' ',
@@ -766,24 +766,13 @@ class SScribe_Markdown_Exporter implements SScribe_Exporter_Interface {
 
 		$result = "\n";
 
-		/*
-		 * Process list items. This regex matches each <li>...</li> including any nested lists.
-		 * The [^>]*> allows <li> with attributes (e.g., <li class="item">, <li id="x">) to
-		 * be picked up : without it, attribute-bearing items are silently dropped in the
-		 * regex fallback path (when DOMDocument is unavailable). This matches the parent
-		 * <ul>/<ol> regex's attribute handling at the top of convert_lists().
-		 * The key improvement is that we DON'T strip tags before processing - we handle
-		 * nested lists recursively before stripping.
-		 */
+		
 		if ( preg_match_all( '/<li[^>]*>(.*?)<\/li>/is', $content, $matches ) ) {
 			foreach ( $matches[1] as $item_content ) {
-				/*
-				 * Before processing this list item, check if it contains nested lists.
-				 * If so, recursively convert them with increased depth.
-				 */
+				
 				$item_content = $this->convert_nested_lists_in_content( $item_content, $depth + 1 );
 
-				// Now strip remaining HTML tags and normalize whitespace.
+				
 				$item_content = wp_strip_all_tags( $item_content );
 				$item_content = trim( preg_replace( '/\s+/', ' ', $item_content ) );
 
@@ -815,7 +804,7 @@ class SScribe_Markdown_Exporter implements SScribe_Exporter_Interface {
 		$max_nested_iterations = 100;
 		$iteration             = 0;
 
-		// Keep processing while there are nested list patterns.
+		
 		while ( preg_match( '/<(ul|ol)[^>]*>(.*?)<\/\1>/is', $content, $matches, PREG_OFFSET_CAPTURE ) && $iteration < $max_nested_iterations ) {
 			$nested_list_type    = $matches[1][0];
 			$nested_list_content = $matches[2][0];
@@ -849,14 +838,14 @@ class SScribe_Markdown_Exporter implements SScribe_Exporter_Interface {
 	 * @return string Content with Markdown code blocks.
 	 */
 	private function convert_code_blocks( string $html ): string {
-		// Combined single-pass regex: matches<pre> (with optional attributes) containing
-		// optional <code> (with optional attributes), captures inner content, and extracts
-		// language from class="language-XXX" on either element.
+		
+		
+		
 		$html = preg_replace_callback(
 			'/<pre([^>]*)>(?:<code[^>]*>)?(.*?)(?:<\/code>)?<\/pre>/is',
 			function ( $m ): string {
 				$lang = '';
-				// Extract language from class="language-XXX" on <pre> or <code>.
+				
 				if ( preg_match( '/class=["\'](?:[^"\']*\s)?language-([a-zA-Z0-9_-]+)(?:\s[^"\']*)?["\']/', $m[1] . $m[2], $lang_match ) ) {
 					$lang = $lang_match[1];
 				}
@@ -866,7 +855,7 @@ class SScribe_Markdown_Exporter implements SScribe_Exporter_Interface {
 			$html
 		) ?? $html;
 
-		// Inline code: <code>...</code> (not inside pre).
+		
 		$html = preg_replace( '/<code>(.*?)<\/code>/is', '`$1`', $html ) ?? $html;
 		return $html;
 	}
@@ -903,10 +892,10 @@ class SScribe_Markdown_Exporter implements SScribe_Exporter_Interface {
 	 * @return string Content with Markdown paragraphs.
 	 */
 	private function convert_paragraphs( string $html ): string {
-		// No /s flag: paragraph content should not span multiple lines in the HTML
-		// at this point (styles/scripts already stripped, other block elements
-		// already converted). Using /s here risks matching across </p> boundaries
-		// in malformed HTML.
+		
+		
+		
+		
 		$html = preg_replace( '/<p[^>]*>(.*?)<\/p>/i', "\n$1\n", $html ) ?? $html;
 		$html = preg_replace( '/<br\s*\/?>/i', "\n", $html ) ?? $html;
 		return $html;
@@ -932,9 +921,9 @@ class SScribe_Markdown_Exporter implements SScribe_Exporter_Interface {
 	 * @return string HTML with details/summary elements preserved.
 	 */
 	private function convert_details( string $html ): string {
-		// Strip only the 'open' attribute from <details> since Markdown doesn't
-		// support the boolean open attribute : the element will render closed by
-		// default in most Markdown renderers, which is the safe fallback.
+		
+		
+		
 		$html = preg_replace( '/<details([^>]*)open([^>]*)>/i', '<details$1$2>', $html ) ?? $html;
 		$html = preg_replace( '/<details(\s[^>]*)?>/i', '<details>', $html ) ?? $html;
 
@@ -954,15 +943,15 @@ class SScribe_Markdown_Exporter implements SScribe_Exporter_Interface {
 			return '#';
 		}
 
-		// Exclude data URIs : they are too large for Markdown files and should
-		// not appear as inline image references.
+		
+		
 		if ( str_starts_with( $url, 'data:' ) ) {
 			return '';
 		}
 
 		if ( str_starts_with( $url, '/' ) ) {
-			// sscribe_md_absolute_urls=false: keep relative URLs as-is so the
-			// markdown stays portable for sites hosted at varying base URLs.
+			
+			
 			$use_absolute = '1' === (string) $this->get_format_option( 'sscribe_md_absolute_urls', '1' );
 			if ( ! $use_absolute ) {
 				return $url;
@@ -1028,9 +1017,9 @@ class SScribe_Markdown_Exporter implements SScribe_Exporter_Interface {
 	 * @return string Content with line-start Markdown chars escaped.
 	 */
 	private function escape_markdown_body( string $text ): string {
-		// NOTE: Heading markers (#) are intentionally NOT escaped at line start,
-		// because convert_headings() has already produced valid Markdown headings
-		// (e.g. "## Section") by this point. Escaping # would corrupt them.
+		
+		
+		
 		$lines = explode( "\n", $text );
 		foreach ( $lines as $index => $line ) {
 			$leading_ws_len = strlen( $line ) - strlen( ltrim( $line ) );
@@ -1039,11 +1028,11 @@ class SScribe_Markdown_Exporter implements SScribe_Exporter_Interface {
 				continue;
 			}
 			$first_char = $trimmed[0];
-			// Escape Markdown special chars at line start : but NOT # (headings)
-			// since headings have already been converted before this runs.
-			// Preserve leading whitespace by slicing from the start, not by
-			// negative-offset substr (which truncates trailing characters when
-			// the trimmed length differs from the offset).
+			
+			
+			
+			
+			
 			if ( in_array( $first_char, array( '-', '*', '>', '|' ), true ) ) {
 				$leading_ws       = substr( $line, 0, $leading_ws_len );
 				$lines[ $index ]  = $leading_ws . '\\' . $trimmed;
@@ -1059,7 +1048,7 @@ class SScribe_Markdown_Exporter implements SScribe_Exporter_Interface {
 	 * @return string Escaped text.
 	 */
 	private function escape_yaml_string( string $text ): string {
-		// Strip non-printable control characters (except \t=\x09, \n=\x0A, and \r=\x0D which are handled below).
+		
 		$text = preg_replace( '/[\x00-\x08\x0B\x0C\x0E-\x1F\x7F]/', '', $text );
 		$text = str_replace( '\\', '\\\\', $text );
 		$text = str_replace( '"', '\\"', $text );

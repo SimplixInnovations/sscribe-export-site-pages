@@ -119,16 +119,16 @@ class SScribe_AJAX_Guard {
 
 		$extraneous = trim( $extraneous );
 
-		// Restore output buffer levels that were active when this method
-		// was called, so that downstream code (and test harnesses) can
-		// continue capturing or inspecting the response. The buffers are
-		// created empty; their purpose is to preserve the nesting depth
-		// any enclosing code expected to find.
+		
+		
+		
+		
+		
 		while ( ob_get_level() < $start_level ) {
 			ob_start();
 		}
 
-		// Skip error_log output in test environments to avoid noisy test output.
+		
 		if ( defined( 'WP_TESTS_DOMAIN' ) || defined( 'SSCRIBE_TESTING' ) ) {
 			return;
 		}

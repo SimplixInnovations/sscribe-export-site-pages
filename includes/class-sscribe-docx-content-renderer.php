@@ -140,7 +140,7 @@ class SScribe_DOCX_Content_Renderer {
 	private function safe_text( string $text ): string {
 		$text = (string) $text;
 
-		// Use iconv for UTF-8 sanitization - compatible with PHP 8.2+ (mb_convert_encoding deprecation).
+		
 		$cleaned = @iconv( 'UTF-8', 'UTF-8//IGNORE', $text );
 		if ( false !== $cleaned ) {
 			$text = $cleaned;
@@ -155,9 +155,9 @@ class SScribe_DOCX_Content_Renderer {
 		$text = str_replace( array( "\r\n", "\r" ), "\n", $text );
 		$text = str_replace( "\x0C", '', $text );
 
-		// Truncate extremely long strings without spaces (e.g., long hashes, encoded data)
-		// to prevent oversized XML elements in DOCX. Threshold is 2048 Unicode chars
-		// to accommodate long URLs, CDNs, and affiliate links while still protecting DOCX integrity.
+		
+		
+		
 		if ( mb_strlen( $text, 'UTF-8' ) > 2048 && false === mb_strpos( $text, ' ', 0, 'UTF-8' ) ) {
 			$text = mb_substr( $text, 0, 2048, 'UTF-8' );
 		}
@@ -276,8 +276,8 @@ class SScribe_DOCX_Content_Renderer {
 	 * @param int                   $font_size Font size (clamped to 6:72pt range).
 	 */
 	public function sync_config( array $colors, bool $is_rtl, string $font_name, int $font_size ): void {
-		// Validate required color keys exist after filter application.
-		// To prevent undefined index errors from third-party mutations.
+		
+		
 		$defaults = array(
 			'primary'  => '4A8263',
 			'heading'  => '122119',
@@ -288,12 +288,12 @@ class SScribe_DOCX_Content_Renderer {
 			'white'    => 'FFFFFF',
 			'border'   => 'CCCCCC',
 		);
-		// Filter out invalid values, then merge defaults to fill any gaps.
+		
 		$sanitized       = array_filter( $colors, 'is_string' );
 		$this->colors    = array_merge( $defaults, $sanitized );
 		$this->is_rtl    = $is_rtl;
 		$this->font_name = $font_name;
-		// Clamp font_size to a sane range to prevent invalid PHPWord XML.
+		
 		$this->font_size = max( 6, min( 72, $font_size ) );
 	}
 
@@ -354,9 +354,9 @@ class SScribe_DOCX_Content_Renderer {
 			return;
 		}
 
-		// Only add the "Content" section heading when there are actual elements to render.
-		// Adding it before parsing meant a non-empty page with zero parsed elements
-		// would produce a floating H1 with nothing beneath it.
+		
+		
+		
 		$section->addTitle( __( 'Content', 'sscribe-export-site-pages' ), 2 );
 
 		foreach ( $elements as $element_index => $element ) {
@@ -401,7 +401,7 @@ class SScribe_DOCX_Content_Renderer {
 
 		switch ( $element['type'] ) {
 			case 'heading':
-				// Skip empty heading nodes (common in Gutenberg when heading block is added but not filled).
+				
 				$text = trim( $element['content'] ?? '' );
 				if ( '' === $text ) {
 					return;
@@ -453,8 +453,8 @@ class SScribe_DOCX_Content_Renderer {
 				break;
 
 			case 'horizontal_rule':
-				// Use a proper paragraph border instead of em-dash repetition.
-				// borderBottom produces a real DOCX horizontal rule.
+				
+				
 				$section->addTextRun(
 					array(
 						'borderBottomSize'  => 6,
@@ -474,8 +474,8 @@ class SScribe_DOCX_Content_Renderer {
 				break;
 
 			case 'figcaption':
-				// Figcaption is rendered as part of figure, not as standalone.
-				// Log standalone figcaption to aid debugging of parser edge cases.
+				
+				
 				$this->get_logger()->debug(
 					'Standalone figcaption element skipped (expected within figure)',
 					array(
@@ -494,8 +494,8 @@ class SScribe_DOCX_Content_Renderer {
 	 * @param array   $element Paragraph element data.
 	 */
 	private function render_paragraph( Section $section, array $element ): void {
-		// Empty paragraphs serve as visual spacers in HTML : preserve
-		// the spacing by adding a text break rather than dropping silently.
+		
+		
 		if ( empty( $element['runs'] ) ) {
 			$section->addTextBreak();
 			return;
@@ -521,7 +521,7 @@ class SScribe_DOCX_Content_Renderer {
 			}
 
 			if ( isset( $run['break'] ) && $run['break'] ) {
-				// Collapse consecutive <br> tags into a single paragraph break.
+				
 				if ( $prev_was_break ) {
 					continue;
 				}
@@ -568,7 +568,7 @@ class SScribe_DOCX_Content_Renderer {
 				if ( ! empty( $link_url ) ) {
 					$font_style['color'] = $this->colors['link'];
 
-					// Truncate long URLs used as link text to prevent layout issues.
+					
 					$display_text = $text_content;
 					if ( '' === trim( $display_text ) || $display_text === $link_url ) {
 						$display_text = mb_strlen( $link_url, 'UTF-8' ) > 60
@@ -582,8 +582,8 @@ class SScribe_DOCX_Content_Renderer {
 						$font_style
 					);
 					$display_url = urldecode( $link_url );
-					// Only append URL suffix when link text itself looks like a URL.
-					// Not when it's a meaningful human label like "Click here".
+					
+					
 					$text_is_url  = filter_var( $text_content, FILTER_VALIDATE_URL ) !== false;
 					$text_is_path = preg_match( '/^[\/\.]?[a-zA-Z0-9_\-\/]+$/u', $text_content ) === 1
 						&& strlen( $text_content ) < 80
@@ -677,9 +677,9 @@ class SScribe_DOCX_Content_Renderer {
 			return;
 		}
 
-		// Derive column count as the maximum cell count across ALL rows,
-		// not just the first row, to handle tables where subsequent rows
-		// have more cells than the header row.
+		
+		
+		
 		$col_count = max(
 			array_map(
 				fn( $row ) => count( $row['cells'] ?? array() ),
@@ -704,7 +704,7 @@ class SScribe_DOCX_Content_Renderer {
 			'width'       => $total_width_twip,
 		);
 
-		// bidiVisual is required for RTL tables to render correctly in Word.
+		
 		if ( $this->is_rtl ) {
 			$table_style['bidiVisual'] = true;
 		}
@@ -733,10 +733,10 @@ class SScribe_DOCX_Content_Renderer {
 					$font_style['color']   = $this->colors['heading'];
 				}
 
-				// Apply colspan if present to multiply effective cell width.
+				
 				$colspan = isset( $cell['colspan'] ) ? max( 1, (int) $cell['colspan'] ) : 1;
 
-				// Use explicit cell width from HTML attribute if available, otherwise distribute evenly.
+				
 				if ( isset( $cell['width'] ) && is_numeric( $cell['width'] ) && (int) $cell['width'] > 0 ) {
 					$effective_width = Converter::pixelToTwip( (int) $cell['width'] ) * $colspan;
 				} else {
@@ -809,7 +809,7 @@ class SScribe_DOCX_Content_Renderer {
 						)
 					)
 				);
-				// PHPWord Cell does not have addLink() : add TextRun first, then addLink on it.
+				
 				$link_run = $cell->addTextRun(
 					$this->get_para_style( array( 'alignment' => Jc::CENTER ) )
 				);
@@ -844,8 +844,8 @@ class SScribe_DOCX_Content_Renderer {
 			return;
 		}
 
-		// Only accept absolute URLs (http/https) or absolute local paths.
-		// Reject relative paths (e.g., ../wp-content/...) which would cause failures downstream.
+		
+		
 		$is_absolute_url  = str_starts_with( $src, 'http://' ) || str_starts_with( $src, 'https://' );
 		$is_absolute_path = str_starts_with( $src, '/' ) && file_exists( $src );
 		if ( ! $is_absolute_url && ! $is_absolute_path ) {
@@ -856,7 +856,7 @@ class SScribe_DOCX_Content_Renderer {
 			return;
 		}
 
-		// Build an image element for the figure's image.
+		
 		$image_element = array(
 			'type'       => 'image',
 			'src'        => $src,
@@ -864,10 +864,10 @@ class SScribe_DOCX_Content_Renderer {
 			'local_path' => $element['local_path'] ?? '',
 		);
 
-		// Render the image first.
+		
 		$this->render_inline_image( $section, $image_element );
 
-		// Render caption if present (trim to catch whitespace-only captions).
+		
 		if ( '' !== trim( $caption ) ) {
 			$section->addText(
 				$this->safe_text( $caption ),
@@ -907,9 +907,9 @@ class SScribe_DOCX_Content_Renderer {
 				$this->get_para_style( array( 'alignment' => Jc::CENTER ) )
 			);
 		} elseif ( is_readable( $path ) ) {
-			// Block unsupported image formats that PHPWord cannot process.
-			// For unsupported formats, render the alt text as an italicized paragraph
-			// instead of silently dropping the image.
+			
+			
+			
 			$ext = strtolower( pathinfo( $path, PATHINFO_EXTENSION ) );
 			if ( in_array( $ext, array( 'webp', 'avif' ), true ) ) {
 				$this->get_logger()->debug(
@@ -937,7 +937,7 @@ class SScribe_DOCX_Content_Renderer {
 
 			$image_info = getimagesize( $path );
 			if ( $image_info ) {
-				// 8.33 inches at 96 DPI = 800px max width as specified by the audit.
+				
 				$max_width  = Converter::inchToEmu( 8.33 );
 				$width_emu  = Converter::pixelToEmu( $image_info[0] );
 				$height_emu = Converter::pixelToEmu( $image_info[1] );
@@ -1023,7 +1023,7 @@ class SScribe_DOCX_Content_Renderer {
 	private function render_details( Section $section, array $element ): void {
 		$summary = trim( $element['summary'] ?? '' );
 
-		// Render the summary line with a visual indicator prefix.
+		
 		if ( '' !== $summary ) {
 			$section->addText(
 				'[+] ' . $this->safe_text( $summary ),
@@ -1037,10 +1037,10 @@ class SScribe_DOCX_Content_Renderer {
 			);
 		}
 
-		// Render the collapsible body with a left indent.
+		
 		$body_elements = $element['content'] ?? array();
 		if ( ! empty( $body_elements ) ) {
-			// Use a subtle left border + indent to visually indicate the collapsed region.
+			
 			$indent_style = array(
 				'indentLeft' => Converter::inchToTwip( 0.25 ),
 				'borderLeftSize' => 4,
@@ -1092,7 +1092,7 @@ class SScribe_DOCX_Content_Renderer {
 						$this->render_table( $section, $body_element );
 						break;
 					default:
-						// Render unknown body elements as plain text.
+						
 						$text = trim( $body_element['content'] ?? '' );
 						if ( '' !== $text ) {
 							$section->addText(

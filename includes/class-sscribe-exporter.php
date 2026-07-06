@@ -209,8 +209,8 @@ final class SScribe_Exporter {
 		 */
 		$this->colors = apply_filters( 'sscribe_docx_colors', $this->colors );
 
-		// Validate required color keys exist after filter application.
-		// To prevent undefined index errors from third-party mutations.
+		
+		
 		$defaults = array(
 			'primary'  => '4A8263',
 			'heading'  => '122119',
@@ -236,7 +236,7 @@ final class SScribe_Exporter {
 			$this->font_size
 		);
 
-		// Sync config only for injected content_renderer (not newly created ones).
+		
 		if ( null !== $content_renderer ) {
 			$this->content_renderer->sync_config(
 				$this->colors,
@@ -295,7 +295,7 @@ final class SScribe_Exporter {
 	private function safe_text( string $text ): string {
 		$text = (string) $text;
 
-		// Use iconv for UTF-8 sanitization - compatible with PHP 8.2+ (mb_convert_encoding deprecation).
+		
 		$cleaned = @iconv( 'UTF-8', 'UTF-8//IGNORE', $text );
 		if ( false !== $cleaned ) {
 			$text = $cleaned;
@@ -315,14 +315,14 @@ final class SScribe_Exporter {
 
 		$text = str_replace( "\x0C", '', $text );
 
-		// Truncate extremely long strings without spaces (e.g., long hashes, encoded data)
-		// to prevent oversized XML elements in DOCX. Threshold is 2048 Unicode chars
-		// to accommodate long URLs, CDNs, and affiliate links while still protecting DOCX integrity.
-		//
-		// CRITICAL: Do NOT apply this to scripts that don't use spaces : Arabic, Hebrew,
-		// Thai, Chinese, Japanese, Korean, and other CJK/non-space-delimited text would
-		// be silently truncated. Only truncate when the string is clearly a no-space
-		// "machine-style" payload: contains a space OR has high ASCII/digit density.
+		
+		
+		
+		
+		
+		
+		
+		
 		if ( mb_strlen( $text, 'UTF-8' ) > 2048 && $this->is_machine_style_string( $text ) ) {
 			$original_length = mb_strlen( $text, 'UTF-8' );
 			$text = mb_substr( $text, 0, 2048, 'UTF-8' );
@@ -335,9 +335,9 @@ final class SScribe_Exporter {
 			);
 		}
 
-		// PHPWord's output escaping is enabled in generate_docx() (Settings::setOutputEscapingEnabled(true)),
-		// so we do not pre-escape XML entities here. Pre-escaping would cause double-encoding
-		// (e.g. "&amp;" becoming "&amp;amp;") and break Word's display of legitimate ampersands.
+		
+		
+		
 
 		return $text;
 	}
@@ -356,24 +356,24 @@ final class SScribe_Exporter {
 	 * @return bool True if it looks like a machine-style string suitable for truncation.
 	 */
 	private function is_machine_style_string( string $text ): bool {
-		// Whitespace separation = natural text. Don't truncate.
+		
 		if ( false !== mb_strpos( $text, ' ', 0, 'UTF-8' ) ) {
 			return true;
 		}
 
-		// URL scheme = machine content. Don't truncate.
+		
 		if ( preg_match( '#^[a-z][a-z0-9+.\-]*://#i', $text ) ) {
 			return true;
 		}
 
-		// Quick path: if the string has no characters above U+007F, it's
-		// pure ASCII and safe to truncate.
+		
+		
 		if ( 0 === mb_strlen( $text, 'UTF-8' ) - mb_strlen( $text, 'ASCII' ) ) {
 			return true;
 		}
 
-		// Heuristic: count ASCII alnum + common machine symbols (=/+-_:.;?&%)
-		// as a fraction of total length. If > 60% it's a machine payload.
+		
+		
 		$ascii_machine_count = preg_match_all( '/[A-Za-z0-9=\/\+_\-:.;?&%@#]/', $text );
 		$total_length        = mb_strlen( $text, 'UTF-8' );
 
@@ -381,7 +381,7 @@ final class SScribe_Exporter {
 			return true;
 		}
 
-		// Otherwise: assume human text in a non-Latin script : do NOT truncate.
+		
 		return false;
 	}
 
@@ -437,7 +437,7 @@ final class SScribe_Exporter {
 		$scheme        = strtolower( ( false === $parsed_scheme || null === $parsed_scheme ) ? '' : $parsed_scheme );
 
 		if ( in_array( $scheme, array( 'http', 'https', 'mailto', 'tel' ), true ) ) {
-			// SSRF protection: validate URL doesn't point to internal/private IP ranges.
+			
 			$host = wp_parse_url( $url, PHP_URL_HOST );
 			if ( $host && $this->is_ip_blocked( $host ) ) {
 				$this->get_logger()->warning(
@@ -473,24 +473,24 @@ final class SScribe_Exporter {
 	 * @return bool True if blocked.
 	 */
 	private function is_ip_blocked( string $host ): bool {
-		// Standard dotted-quad / IPv6 : block if private/reserved.
+		
 		if ( filter_var( $host, FILTER_VALIDATE_IP ) !== false ) {
 			return filter_var( $host, FILTER_VALIDATE_IP, FILTER_FLAG_NO_PRIV_RANGE | FILTER_FLAG_NO_RES_RANGE ) === false;
 		}
 
-		// Numeric alternative IP forms: decimal (2130706433) and
-		// hex (0x7f000001) both encode 127.0.0.1. Some HTTP clients
-		// accept these; the export pipeline never fetches them, but
-		// blocking them in `validate_url()` is defense-in-depth so a
-		// future code path that DOES fetch won't be surprised.
+		
+		
+		
+		
+		
 		$normalized = $this->normalize_ip_literal( $host );
 		if ( null !== $normalized ) {
 			return filter_var( $normalized, FILTER_VALIDATE_IP, FILTER_FLAG_NO_PRIV_RANGE | FILTER_FLAG_NO_RES_RANGE ) === false;
 		}
 
-		// For hostnames, we don't resolve DNS since URLs in documents
-		// are just text, not fetched. The SSRF risk is negligible for
-		// text-only URLs.
+		
+		
+		
 		return false;
 	}
 
@@ -514,11 +514,11 @@ final class SScribe_Exporter {
 			return null;
 		}
 
-		// Hex literal: 0x followed by hex digits.
+		
 		if ( preg_match( '/^0x[0-9a-fA-F]+$/', $candidate ) ) {
 			$value = intval( substr( $candidate, 2 ), 16 );
 		} elseif ( ctype_digit( $candidate ) ) {
-			// Pure decimal integer.
+			
 			$value = (int) $candidate;
 		} else {
 			return null;
@@ -653,7 +653,7 @@ final class SScribe_Exporter {
 			return false;
 		}
 
-		// Verify output directory is writable before attempting file creation.
+		
 		if ( ! is_writable( $output_dir ) ) { // phpcs:ignore WordPress.WP.AlternativeFunctions.file_system_operations_is_writable
 			$this->last_error = 'Output directory is not writable: ' . $output_dir;
 			$this->get_logger()->error(
@@ -719,12 +719,12 @@ final class SScribe_Exporter {
 
 			$this->define_styles( $php_word );
 
-			// sscribe_docx_template: 'minimal' skips the cover page (and the
-			// TOC rendered inside it). The content section below becomes the
-			// first section in the document.
+			
+			
+			
 			$template = (string) $this->get_format_option( 'sscribe_docx_template', 'default' );
 			if ( 'minimal' !== $template ) {
-				// Cover page: vertically center content for better visual balance.
+				
 				$cover_settings              = $this->get_section_settings( $this->is_rtl );
 				$cover_settings['vAlign']    = 'center';
 				$cover = $php_word->addSection( $cover_settings );
@@ -815,9 +815,9 @@ final class SScribe_Exporter {
 
 			$this->cleanup_phpword_temp_files();
 
-			// Lightweight integrity check: verify file size > minimum threshold.
+			
 			$file_size = @filesize( $output_path );
-			$min_size  = 8192; // Minimal DOCX should be at least 8KB to avoid empty/corrupted files.
+			$min_size  = 8192; 
 
 			$this->get_logger()->debug(
 				'DOCX saved to disk',
@@ -835,7 +835,7 @@ final class SScribe_Exporter {
 				throw new \RuntimeException( 'DOCX file size below minimum threshold' );
 			}
 
-			// Structural integrity check: always run in production to catch corrupted files.
+			
 			$zip_check = new \ZipArchive();
 			if ( true !== $zip_check->open( $output_path ) ) {
 				wp_delete_file( $output_path );
@@ -858,7 +858,7 @@ final class SScribe_Exporter {
 				return $output_path;
 			}
 
-			// Deep XML validation : only in debug mode.
+			
 			$xml_valid = true;
 			$zip_xml   = null;
 			if ( $has_document ) {
@@ -904,12 +904,12 @@ final class SScribe_Exporter {
 				}
 			}
 
-			// $has_document and $has_types guaranteed true here (early throw above).
-			// Only $xml_valid may be false when debug mode is enabled.
+			
+			
 			if ( ! $xml_valid ) {
-				// Do NOT call wp_delete_file() here : the outer catch (\Throwable $e) at
-				// line 685 handles file cleanup with a file_exists() guard. Calling it here
-				// would result in a redundant delete attempt on an already-deleted file.
+				
+				
+				
 				unset( $writer, $php_word );
 				throw new \RuntimeException( 'DOCX integrity check failed: XML validation error' );
 			}
@@ -1102,11 +1102,11 @@ final class SScribe_Exporter {
 		if ( $this->is_rtl ) {
 			$blockquote_style['bidi']             = true;
 			$blockquote_style['indentation']      = array( 'right' => Converter::cmToTwip( 1 ) );
-			$blockquote_style['borderRightSize']  = 12;  // 12 = 1.5pt (PHPWord uses 1/8th-point units for border sizes).
+			$blockquote_style['borderRightSize']  = 12;  
 			$blockquote_style['borderRightColor'] = $this->colors['primary'];
 		} else {
 			$blockquote_style['indentation']     = array( 'left' => Converter::cmToTwip( 1 ) );
-			$blockquote_style['borderLeftSize']  = 12;  // 12 = 1.5pt.
+			$blockquote_style['borderLeftSize']  = 12;  
 			$blockquote_style['borderLeftColor'] = $this->colors['primary'];
 		}
 
@@ -1124,20 +1124,20 @@ final class SScribe_Exporter {
 			$codeblock_style['indentation'] = array( 'left' => Converter::cmToTwip( 0.5 ) );
 		}
 
-		// CodeBlock needs explicit complexScript and rtl for proper RTL code display.
+		
 		if ( $this->is_rtl ) {
 			$codeblock_style['complexScript'] = true;
 			$codeblock_style['rtl']           = true;
 		}
 
-		// Light gray background shading to visually distinguish code blocks.
+		
 		$codeblock_style['shading'] = array(
 			'fill' => 'F2F2F2',
 		);
 
 		$php_word->addParagraphStyle( 'CodeBlock', $this->get_para_style( $codeblock_style ) );
 
-		// Define ListBullet and ListNumber styles to ensure consistent sizing with the rest of the document.
+		
 		$list_style = array(
 			'spaceBefore' => Converter::pointToTwip( 2 ),
 			'spaceAfter'  => Converter::pointToTwip( 2 ),
@@ -1157,17 +1157,17 @@ final class SScribe_Exporter {
 	 * @return array Section settings.
 	 */
 	private function get_section_settings( bool $is_rtl = false ): array {
-		// Detect page size based on locale: default to A4 for non-US locales.
-		// US, Canada, Mexico, and Philippines use US Letter (8.5×11 inches).
-		// Most of the rest of the world uses A4 (210×297mm).
+		
+		
+		
 		$locale       = $this->get_cached_locale();
 		$us_like_locales = array( 'en_US', 'en_CA', 'en_MX', 'fil_PH' );
 		$is_us_letter    = in_array( $locale, $us_like_locales, true )
-			|| str_starts_with( $locale, 'en_US' ); // en_US, en_US.UTF-8, etc.
+			|| str_starts_with( $locale, 'en_US' ); 
 
 		// phpcs:ignore WordPress.WP.AlternativeFunctions.file_system_operations_is_dir
-		$page_w = $is_us_letter ? Converter::inchToTwip( 8.5 ) : Converter::inchToTwip( 8.27 ); // 210mm
-		$page_h = $is_us_letter ? Converter::inchToTwip( 11 ) : Converter::inchToTwip( 11.69 ); // 297mm
+		$page_w = $is_us_letter ? Converter::inchToTwip( 8.5 ) : Converter::inchToTwip( 8.27 ); 
+		$page_h = $is_us_letter ? Converter::inchToTwip( 11 ) : Converter::inchToTwip( 11.69 ); 
 
 		$settings = array(
 			'pageSizeW'    => $page_w,
@@ -1238,14 +1238,14 @@ final class SScribe_Exporter {
 		$section->addTextBreak( 4 );
 
 		$cover_title = $this->safe_text( (string) ( $page_data['title'] ?? '' ) );
-		// Use Word's allCaps style instead of destructively uppercasing the string,
-		// which corrupts non-ASCII characters and is irreversible in the document.
+		
+		
 		$cover_title_font = array(
 			'name'    => $this->font_name,
 			'size'    => 28,
 			'bold'    => true,
 			'color'   => $this->colors['heading'],
-			'allCaps' => ! $this->is_rtl, // Uppercase via style for non-RTL; RTL uses original case.
+			'allCaps' => ! $this->is_rtl, 
 		);
 		$section->addText(
 			$cover_title,
@@ -1347,15 +1347,15 @@ final class SScribe_Exporter {
 			);
 		}
 
-		// sscribe_docx_include_toc=false: user opted out of the TOC entirely.
-		// Skipping it here also avoids the page break above, so the cover
-		// flows straight into the next section.
+		
+		
+		
 		if ( '1' !== (string) $this->get_format_option( 'sscribe_docx_include_toc', '1' ) ) {
 			return;
 		}
 
-		// Skip TOC if page content is minimal (single section or very few headings).
-		// A table of contents with a single entry is pointless and wastes a page.
+		
+		
 		$content       = $page_data['content'] ?? '';
 		$word_count    = $page_data['word_count'] ?? 0;
 		$heading_count = 0;
@@ -1489,7 +1489,7 @@ final class SScribe_Exporter {
 				'size'  => 7,
 				'color' => $this->colors['body'],
 			),
-			// LTR: right-align (Jc::END), RTL: left-align (Jc::START).
+			
 			array( 'alignment' => $this->is_rtl ? Jc::START : Jc::END )
 		);
 	}
@@ -1502,9 +1502,9 @@ final class SScribe_Exporter {
 	 * @return void
 	 */
 	private function add_featured_image( Section $section, array $page_data ): void {
-		// sscribe_docx_include_images=false: opt out of the embedded featured
-		// image. The image is still downloaded by the caller (so removing this
-		// guard does not leave temp files behind).
+		
+		
+		
 		if ( '1' !== (string) $this->get_format_option( 'sscribe_docx_include_images', '1' ) ) {
 			return;
 		}
@@ -1577,8 +1577,8 @@ final class SScribe_Exporter {
 				}
 			}
 
-			// Reject oversized images before addImage() to prevent memory exhaustion.
-			// A 50MB RAW JPEG would cause a fatal OOM before the outer catch could handle it.
+			
+			
 			$max_image_bytes = (int) apply_filters( 'sscribe_max_featured_image_bytes', 5 * 1024 * 1024 );
 			$image_bytes     = @filesize( $path );
 			if ( false !== $image_bytes && $image_bytes > $max_image_bytes ) {
@@ -1832,7 +1832,7 @@ final class SScribe_Exporter {
 		$section->addTextBreak( 1 );
 		$section->addTitle( __( 'Child Pages', 'sscribe-export-site-pages' ), 2 );
 
-		// Cap at 3 levels deep and limit total children to prevent abnormally long lists.
+		
 		$max_depth    = 3;
 		$max_children = 50;
 		$this->render_child_pages( $section, $page_data['children'], 0, $max_depth, $max_children, 0 );
@@ -1892,7 +1892,7 @@ final class SScribe_Exporter {
 			);
 			++$rendered;
 
-			// Recursively render grandchildren.
+			
 			if ( ! empty( $child['children'] ) && is_array( $child['children'] ) ) {
 				$rendered = $this->render_child_pages( $section, $child['children'], $depth + 1, $max_depth, $max_children, $rendered );
 			}

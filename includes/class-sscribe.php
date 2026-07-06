@@ -59,9 +59,9 @@ class SScribe {
 			fn( SScribe_Container $c ) => new SScribe_Export_Lock_Manager( $c->get( SScribe_Logger::class ) )
 		);
 
-		// Exporters are registered as factories (bind) rather than singletons because
-		// each export request needs a fresh instance to avoid state pollution between
-		// concurrent batch exports (e.g., DOCX PhpWord object state, HTML parser buffers).
+		
+		
+		
 		$container->bind(
 			SScribe_Exporter::class,
 			fn( SScribe_Container $c ) => new SScribe_Exporter( $c->get( SScribe_Content_Parser::class ) )
@@ -190,8 +190,8 @@ class SScribe {
 			return;
 		}
 
-		// Cache is per-blog (not per-user) since the cached data (page counts, languages)
-		// is system-wide, not user-specific.
+		
+		
 		$cache_key = 'sscribe_admin_page_data_v' . SSCRIBE_VERSION . '_' . get_current_blog_id();
 		delete_transient( $cache_key );
 	}
@@ -259,12 +259,12 @@ class SScribe {
 
 			SScribe_Logger::cleanup_old_logs( 7 );
 
-			// Clean up old export JSON log files.
+			
 			require_once SSCRIBE_PLUGIN_DIR . 'includes/class-sscribe-export-log.php';
 			SScribe_Export_Log::cleanup_old_logs( 24 );
 
-			// Clean up expired/orphaned transients (locks, rate limits) that may have
-			// been left behind by crashed processes or failed exports.
+			
+			
 			$lock_manager = SScribe_Container::instance()->get( SScribe_Export_Lock_Manager::class );
 			$lock_manager->cleanup_user_locks( null, null );
 

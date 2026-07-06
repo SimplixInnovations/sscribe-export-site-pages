@@ -105,8 +105,8 @@ class SScribe_Filesystem {
 			return false;
 		}
 
-		// Use output buffering to prevent request_filesystem_credentials() from
-		// outputting HTML forms during AJAX requests.
+		
+		
 		ob_start();
 		$credentials = request_filesystem_credentials( admin_url(), '', false, false, null );
 		ob_end_clean();
@@ -158,28 +158,28 @@ class SScribe_Filesystem {
 			return $file;
 		}
 
-		// Fast path: no traversal segments or null bytes present, no change needed.
-		// Null bytes can break filename handling on some filesystems (CWE-22).
+		
+		
 		if ( false === strpos( $file, '..' ) && false === strpos( $file, "\0" ) ) {
 			return $file;
 		}
 
-		// If only a null byte is present (no traversal), strip it and return.
+		
 		if ( false === strpos( $file, '..' ) ) {
 			return str_replace( "\0", '', $file );
 		}
 
-		// Detect a leading absolute-path marker (Unix / or Windows drive letter)
-		// so we can re-attach it after the normalization that strips empty segments.
+		
+		
 		$is_unix_absolute = '/' === $file[0];
 
-		// Normalize separators: convert backslashes to forward slashes and
-		// collapse duplicate separators. Mirrors WordPress's wp_normalize_path()
-		// without depending on it (so this is testable without WP loaded).
+		
+		
+		
 		$normalized = str_replace( '\\', '/', $file );
 		$normalized = preg_replace( '#/+#', '/', $normalized );
 
-		// Split on /, drop any empty or ".." segments, rejoin.
+		
 		$segments = explode( '/', $normalized );
 		$cleaned  = array();
 		foreach ( $segments as $segment ) {
@@ -195,9 +195,9 @@ class SScribe_Filesystem {
 
 		$reassembled = implode( '/', $cleaned );
 
-		// Re-attach the absolute-path marker that was consumed by the
-		// segment loop, since "leading empty segment" is what marks
-		// an absolute path on Unix.
+		
+		
+		
 		if ( $is_unix_absolute && '/' !== $reassembled[0] ) {
 			$reassembled = '/' . $reassembled;
 		}
@@ -216,13 +216,13 @@ class SScribe_Filesystem {
 	public function put_contents( string $file, string $content, int $mode = 0600 ): bool {
 		self::$last_error = '';
 
-		// Defense in depth: strip any path traversal in the basename before write.
+		
 		$file = self::sanitize_path( $file );
 
-		// Symlink attack protection: reject writes that resolve outside the
-		// SScribe export directory. The check is symlink-aware : files
-		// inside the WP temp directory or other legitimate WP write paths
-		// are allowed through; only symlinked escapes are blocked.
+		
+		
+		
+		
 		$safety = $this->is_path_safe_for_write( $file );
 		if ( self::SSCRIBE_PATH_REJECT === $safety ) {
 			self::$last_error = 'Refusing to write outside SScribe export directory (symlink attack suspected)';
@@ -250,9 +250,9 @@ class SScribe_Filesystem {
 				return false;
 			}
 
-			// WP_Filesystem implementations (FTP/SSH) may silently ignore the
-			// $mode parameter in put_contents(). Apply chmod explicitly as a
-			// separate step to ensure correct permissions on all filesystems.
+			
+			
+			
 			if ( $mode && self::$fs->chmod( $file, $mode ) === false ) {
 				$this->logger->warning(
 					'WP_Filesystem chmod failed : file may have unexpected permissions',
@@ -311,7 +311,7 @@ class SScribe_Filesystem {
 	public function get_contents( string $file ): string|false {
 		self::$last_error = '';
 
-		// Defense in depth: strip any path traversal in the basename before read.
+		
 		$file = self::sanitize_path( $file );
 
 		if ( self::$fs instanceof WP_Filesystem_Base ) {
@@ -391,7 +391,7 @@ class SScribe_Filesystem {
 			if ( ! wp_mkdir_p( $path ) ) {
 				return false;
 			}
-			// Apply the requested permissions if wp_mkdir_p created the directory.
+			
 			if ( $mode && function_exists( 'chmod' ) ) {
 				// phpcs:ignore WordPress.WP.AlternativeFunctions.file_system_operations_chmod -- Fallback when WP_Filesystem unavailable.
 				chmod( $path, $mode );
@@ -471,9 +471,9 @@ class SScribe_Filesystem {
 
 		$result = array();
 		foreach ( array_diff( $files, array( '.', '..' ) ) as $name ) {
-			// Skip dotfiles and the guard index.php : this matches what
-			// WP_Filesystem::dirlist() returns and keeps .htaccess /
-			// index.php out of the rotated log list.
+			
+			
+			
 			if ( '' === $name || '.' === $name[0] || 'index.php' === $name ) {
 				continue;
 			}
@@ -501,7 +501,7 @@ class SScribe_Filesystem {
 	public function copy( string $source, string $destination, bool $overwrite = false, int $mode = 0600 ): bool {
 		self::$last_error = '';
 
-		// Symlink attack protection: same guard as put_contents().
+		
 		$safety = $this->is_path_safe_for_write( $destination );
 		if ( self::SSCRIBE_PATH_REJECT === $safety ) {
 			self::$last_error = 'Refusing to copy outside SScribe export directory (symlink attack suspected)';
@@ -592,30 +592,30 @@ class SScribe_Filesystem {
 			return false;
 		}
 
-		// Normalize the allowed root: realpath() requires the dir to exist.
+		
 		$allowed_real = realpath( $allowed_root );
 		if ( false === $allowed_real ) {
-			// Allowed root doesn't exist yet : the dir will be created
-			// by wp_mkdir_p() before the write. Compare lexically
-			// against the literal path so a future symlink planted
-			// under the to-be-created root can't bypass the check.
+			
+			
+			
+			
 			$allowed_real = self::normalize_path( $allowed_root );
 		} else {
-			// Normalize realpath result to forward slashes so it can be
-			// compared against a parent_real that was produced by the
-			// lexical normalize_path() fallback. Without this, realpath
-			// returns backslash-separated paths on Windows while the
-			// fallback produces forward slashes : strpos() then fails
-			// to match even when the parent IS inside the allowed root.
+			
+			
+			
+			
+			
+			
 			$allowed_real = self::normalize_path( $allowed_real );
 		}
 
 		$parent      = dirname( $file );
 		$parent_real = realpath( $parent );
 		if ( false === $parent_real ) {
-			// Parent doesn't exist : caller will create it. Compare
-			// lexically; this still rejects a parent that points
-			// outside the allowed root via `..` segments.
+			
+			
+			
 			$parent_real = self::normalize_path( $parent );
 		} else {
 			$parent_real = self::normalize_path( $parent_real );
@@ -624,7 +624,7 @@ class SScribe_Filesystem {
 		$parent_real = rtrim( $parent_real, '/' ) . '/';
 		$allowed_real = rtrim( $allowed_real, '/' ) . '/';
 
-		// Case-insensitive compare on Windows; case-sensitive elsewhere.
+		
 		$cmp = ( defined( 'PHP_OS_FAMILY' ) && 'Windows' === PHP_OS_FAMILY )
 			? 'strcasecmp'
 			: 'strcmp';
@@ -697,9 +697,9 @@ class SScribe_Filesystem {
 	public function is_path_safe_for_write( string $file ): string {
 		$allowed_root = $this->get_export_dir();
 		if ( '' === $allowed_root ) {
-			// Cannot determine export dir : fail open to avoid breaking
-			// plugin functionality on misconfigured sites. The audit
-			// trail will still record the write.
+			
+			
+			
 			return self::SSCRIBE_PATH_EXTERNAL;
 		}
 
@@ -708,24 +708,24 @@ class SScribe_Filesystem {
 		$literal_in_export = ( 0 === strpos( $file_abs, $allowed_abs ) );
 
 		if ( ! $literal_in_export ) {
-			// File is not even *lexically* under the export root. Allow
-			// (caller is writing to e.g. WP temp).
+			
+			
 			return self::SSCRIBE_PATH_EXTERNAL;
 		}
 
-		// File is lexically under the export root. Now resolve the
-		// parent directory with realpath() to detect a symlink escape.
+		
+		
 		$parent = dirname( $file );
 		if ( ! is_dir( $parent ) ) {
-			// Parent will be created : cannot be a symlink target yet.
-			// Allow.
+			
+			
 			return self::SSCRIBE_PATH_ALLOWED;
 		}
 
 		$parent_real = realpath( $parent );
 		if ( false === $parent_real ) {
-			// realpath() failed (e.g. race, permission error). Fail
-			// closed: refuse the write rather than risk escaping.
+			
+			
 			return self::SSCRIBE_PATH_REJECT;
 		}
 

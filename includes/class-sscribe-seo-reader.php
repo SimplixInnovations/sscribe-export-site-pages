@@ -55,7 +55,7 @@ class SScribe_SEO_Reader {
 					return $result;
 				}
 			} catch ( \Throwable $e ) {
-				// Third-party SEO plugin threw an exception : skip and try next plugin.
+				
 				continue;
 			}
 		}
@@ -209,7 +209,7 @@ class SScribe_SEO_Reader {
 				$keyphrases     = isset( $aioseo_post->keyphrases ) ? json_decode( $aioseo_post->keyphrases, true ) : array();
 				if ( ! empty( $keyphrases['focus']['keyphrase'] ) ) {
 					$keyword = $keyphrases['focus']['keyphrase'];
-					// Handle array (multiple keywords) by joining with comma.
+					
 					if ( is_array( $keyword ) ) {
 						$keyword = implode( ', ', $keyword );
 					}

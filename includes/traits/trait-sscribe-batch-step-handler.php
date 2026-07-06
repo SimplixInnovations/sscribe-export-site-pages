@@ -59,9 +59,9 @@ trait SScribe_Batch_Step_Handler {
 			);
 		}
 
-		// Self-heal at most once per minute (not on every batch) to avoid
-		// expensive DB queries (clear_orphaned_locks, clear_stale_sessions)
-		// and filesystem scans (clear_old_temp_files) on every batch iteration.
+		
+		
+		
 		$last_heal = get_transient( 'sscribe_last_self_heal' );
 		if ( ! $last_heal || time() - (int) $last_heal > 60 ) {
 			$this->get_diagnostics()->self_heal();
@@ -76,21 +76,21 @@ trait SScribe_Batch_Step_Handler {
 
 		$ob_level_before = ob_get_level();
 		ob_start();
-		// Initialize batch timing variables BEFORE the try block so they are always
-		// defined when build_batch_response() is called (even if an exception fires
-		// before $batch_start_time = microtime(true) inside the try).
+		
+		
+		
 		$batch_start_time = microtime( true );
 		$batch_duration  = 0.0;
 		try {
 			$session_id = isset( $_POST['session_id'] ) ? sanitize_text_field( wp_unslash( $_POST['session_id'] ) ) : '';
 			$session    = $this->session->get( $session_id );
 
-			// NOTE: do NOT use the pre-lock $session['formats'] for any
-			// side-effecting call (set_time_limit, etc.). The session is
-			// re-read after the lock is acquired (see below) to pick up
-			// fresh formats in case another process updated the session
-			// between the reads. Side-effecting calls based on the stale
-			// read would persist for the rest of the request.
+			
+			
+			
+			
+			
+			
 
 			$this->logger->debug(
 				'Process batch called',
@@ -121,9 +121,9 @@ trait SScribe_Batch_Step_Handler {
 			$lock_ttl        = (int) apply_filters( 'sscribe_lock_ttl', 180 );
 			$stale_threshold = (int) apply_filters( 'sscribe_lock_stale_threshold', 140 );
 
-			// Validate ownership and session integrity BEFORE acquiring lock.
-			// This avoids a false-lock window where the lock is held but the batch
-			// is rejected : another process would unnecessarily back off.
+			
+			
+			
 			if ( ! $this->validate_session_ownership( $session, $session_id ) ) {
 				$this->restore_ob_level( $ob_level_before );
 				SScribe_AJAX_Guard::error(
@@ -170,9 +170,9 @@ trait SScribe_Batch_Step_Handler {
 
 			$lock_token = $this->current_lock_token;
 
-			// Re-read session after acquiring lock to get fresh data.
-			// The initial read at line 953 may have stale data if another
-			// process was mid-update when we read it.
+			
+			
+			
 			$session = $this->session->get( $session_id );
 			if ( null === $session ) {
 				$this->get_lock_manager()->release_lock( $session_id, $lock_token );
@@ -211,54 +211,54 @@ trait SScribe_Batch_Step_Handler {
 			$start_time        = isset( $session['start_time'] ) ? $session['start_time'] : microtime( true );
 			$formats           = isset( $session['formats'] ) ? $session['formats'] : self::DEFAULT_FORMATS;
 
-			// Apply the PDF-specific time limit here, AFTER the post-lock
-			// re-read. Doing it earlier (against the pre-lock $formats) is
-			// wrong if another process mutated the session's formats
-			// between the two reads.
+			
+			
+			
+			
 			if ( in_array( 'pdf', $formats, true ) && function_exists( 'set_time_limit' ) ) {
 				$pdf_max_time = (int) apply_filters( 'sscribe_pdf_max_execution_time', 150 );
 
 				set_time_limit( $pdf_max_time ); // phpcs:ignore Squiz.PHP.DiscouragedFunctions.Discouraged
 			}
-			// Get pause hint from previous batch to adjust batch size accordingly.
+			
 			$pause_hint = isset( $session['last_pause_reason'] ) ? $session['last_pause_reason'] : '';
 			$this->optimize_batch_size( $formats, $pause_hint );
-			// NOTE: Do NOT overwrite $session_id from session data - the POST value is canonical.
-			// Using the POST value prevents session data tampering attacks.
+			
+			
 
-			// Validate temp_dir is within allowed uploads directory to prevent path traversal attacks.
+			
 			$upload_dir        = wp_upload_dir();
 			$allowed_temp_base = trailingslashit( $upload_dir['basedir'] ) . 'sscribe-exports';
-			// realpath() resolves symlinks and normalizes paths. Both base and temp must be
-			// resolved to ensure the strpos comparison works on servers with symlinked dirs
-			// (common on ServerAvatar, Cloudflare, OpenLiteSpeed, and managed hosting).
-			// NOTE: If the allowed base directory doesn't exist yet, realpath() returns false.
-			// In that case, we fall back to ensuring the temp_dir starts with the non-resolved
-			// allowed_base path. This is safe because we create the dir via wp_mkdir_p() below.
+			
+			
+			
+			
+			
+			
 			$real_allowed_base = realpath( $allowed_temp_base );
-			// Recreate temp dir if it was deleted between batches (e.g., crashed PHP process).
-			// This prevents false "corrupted session" errors on valid sessions.
+			
+			
 			if ( ! empty( $temp_dir ) && ! is_dir( $temp_dir ) ) {
 				wp_mkdir_p( $temp_dir );
 			}
 			$real_temp_dir = realpath( $temp_dir );
-			// Reject unresolved paths to prevent path traversal attacks.
-			// realpath() returns false if the path doesn't exist or can't be resolved.
-			// Use trailing DIRECTORY_SEPARATOR to prevent /sscribe-exports-evil passing as /sscribe-exports.
-			// If real_allowed_base is false (directory doesn't exist yet), use safe fallback comparison.
+			
+			
+			
+			
 			$path_valid = true;
 			if ( false === $real_temp_dir ) {
-				// temp_dir doesn't exist and couldn't be created - this is a genuine error.
+				
 				$path_valid = false;
 			} elseif ( false !== $real_allowed_base ) {
-				// Both resolved - check containment with trailing separator.
+				
 				$safe_base = rtrim( $real_allowed_base, DIRECTORY_SEPARATOR ) . DIRECTORY_SEPARATOR;
 				if ( 0 !== strpos( $real_temp_dir, $safe_base ) ) {
 					$path_valid = false;
 				}
 			} else {
-				// real_allowed_base is false - directory doesn't exist yet.
-				// Fall back to non-resolved path comparison (safe because we use DIRECTORY_SEPARATOR boundary).
+				
+				
 				$safe_base = rtrim( $allowed_temp_base, DIRECTORY_SEPARATOR ) . DIRECTORY_SEPARATOR;
 				if ( 0 !== strpos( $real_temp_dir, $safe_base ) ) {
 					$path_valid = false;
@@ -295,8 +295,8 @@ trait SScribe_Batch_Step_Handler {
 
 			$batch = array_slice( $page_ids, $processed, $this->batch_size );
 
-			// Only prefetch images/child pages for batches of 3+ pages to avoid
-			// disproportionate overhead for tiny final batches.
+			
+			
 			if ( count( $batch ) >= 3 ) {
 				$this->collector->get_featured_images_batch( $batch );
 				$this->collector->get_child_pages_batch( $batch );
@@ -314,8 +314,8 @@ trait SScribe_Batch_Step_Handler {
 			if ( empty( $batch ) ) {
 				$this->logger->debug( 'Batch empty, finalizing export' );
 				$this->restore_ob_level( $ob_level_before );
-				// Finalize UNDER lock to prevent a concurrent process from also
-				// detecting an empty batch and racing to finalize the same session.
+				
+				
 				try {
 					$this->finalize_export( $session_id, $session, $lock_token );
 				} finally {
@@ -332,36 +332,36 @@ trait SScribe_Batch_Step_Handler {
 			$current_batch_page_id   = null;
 			$paused_reason           = '';
 
-			// Reset time limit immediately before batch work starts (not just at function
-			// entry) so that any setup overhead (session reads, image prefetch, etc.)
-			// does not eat into the per-batch budget.
+			
+			
+			
 			$batch_time_limit = (int) apply_filters( 'sscribe_max_execution_time', 150 );
 			if ( function_exists( 'set_time_limit' ) ) {
 				set_time_limit( $batch_time_limit ); // phpcs:ignore Squiz.PHP.DiscouragedFunctions.Discouraged
 			}
 
-			// Suspend cache invalidation during bulk processing to avoid flooding
-			// the object cache layer with clean_post_cache() calls on every page.
+			
+			
 			wp_suspend_cache_invalidation( true );
 
-			// Read the export log ONCE per batch, not once per page. The
-			// per-page $log_data lookup below is a read-only crash-detection
-			// hint (logs a debug message if a page was mid-processing when
-			// the previous batch died) and the data does not change during
-			// the batch, so a single read is sufficient. Cuts O(pages)
-			// get_log() calls down to O(1) per batch.
+			
+			
+			
+			
+			
+			
 			$batch_log_data = $this->export_log ? $this->export_log->get_log() : null;
 
-			// Snapshot the session once per batch for the cancellation
-			// check. Previously the per-page loop did
-			// $this->session->get($session_id) on every iteration, which
-			// is O(pages) transient reads per batch : on a 500-page
-			// export with batch size 20 that was 25 transients per batch
-			// times 25 batches = 625 transients for cancellation polling
-			// alone. The snapshot is good enough for the cancellation
-			// signal: any cancellation that fires during the batch is
-			// picked up at the next batch boundary, which the frontend
-			// already polls on a short interval.
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
 			$batch_session_snapshot = $this->session->get( $session_id );
 
 			try {
@@ -533,7 +533,7 @@ trait SScribe_Batch_Step_Handler {
 								'page_id'         => $page_id,
 								'page_title'      => $page_data['title'] ?? '',
 								'exception_class' => get_class( $e ),
-								// NOTE: exception_file/line removed from frontend response - only keep in server logs.
+								
 								'memory_usage'    => size_format( memory_get_usage( true ) ),
 								'memory_peak'     => size_format( memory_get_peak_usage( true ) ),
 								'memory_limit'    => ini_get( 'memory_limit' ),
@@ -619,32 +619,32 @@ trait SScribe_Batch_Step_Handler {
 
 					do_action( 'sscribe_after_export_page', $page_id, $formats, $export_success );
 
-					// NOTE: do NOT call clean_post_cache($page_id) here.
-					// wp_suspend_cache_invalidation(true) is in effect during
-					// the entire batch loop (see the top of the foreach
-					// block), so a clean_post_cache() call would be a no-op
-					// and waste a function call per page. Cache invalidation
-					// is restored in the finally block below, and any stale
-					// post caches are naturally refreshed on next read.
+					
+					
+					
+					
+					
+					
+					
 
 					$page_data = null;
 
 					++$processed;
 					++$processed_in_this_batch;
 
-					// Run garbage collection after every page to reclaim memory promptly,
-					// not only every 10 pages as before.
+					
+					
 					if ( function_exists( 'gc_collect_cycles' ) ) {
 						gc_collect_cycles();
 					}
 
-					// Check cancellation against the cached session snapshot
-					// (refreshed once per batch above) instead of doing a
-					// fresh get_transient() on every page. The next batch
-					// will pick up any cancellation that fires during this
-					// batch, which is acceptable since the frontend polls
-					// status every few seconds and the batch boundary
-					// typically completes within one polling interval.
+					
+					
+					
+					
+					
+					
+					
 					if ( ! empty( $batch_session_snapshot['cancelled'] ) ) {
 						$this->logger->debug(
 							'Mid-batch cancellation detected',
@@ -666,19 +666,19 @@ trait SScribe_Batch_Step_Handler {
 						'memory_used' => size_format( memory_get_usage( true ) ),
 					)
 				);
-				// Always log to PHP error_log as fallback regardless of logger state.
+				
 				if ( SScribe_Logger::is_logging_enabled() ) {
 					error_log( // phpcs:ignore WordPress.PHP.DevelopmentFunctions.error_log_error_log -- Fallback error logging when logger is available.
 						'SScribe batch error: ' . $e->getMessage() . ' | Page: ' . ( $current_batch_page_id ?? 'unknown' )
 					);
 				}
 			} finally {
-				// Restore cache invalidation after bulk processing.
+				
 				wp_suspend_cache_invalidation( false );
 
-				// Persist session state BEFORE releasing lock to prevent race condition.
-				// Between lock release and session update, another process could acquire
-				// the lock and read stale session data, causing duplicate processing.
+				
+				
+				
 				$batch_duration = microtime( true ) - $batch_start_time;
 
 				$this->logger->debug(
@@ -741,8 +741,8 @@ trait SScribe_Batch_Step_Handler {
 					);
 				}
 
-				// Derive $paused_reason inside finally BEFORE building $update_data
-				// so the hint is correctly persisted for the next batch call.
+				
+				
 				$paused_reason = $memory_paused ? 'memory' : ( $timeout_paused ? 'timeout' : '' );
 
 				$update_data = array(
@@ -751,21 +751,21 @@ trait SScribe_Batch_Step_Handler {
 					'structured_errors' => $structured_errors,
 					'start_time'        => $start_time,
 					'last_pause_reason' => $paused_reason,
-					// Store exact counts BEFORE trim to avoid off-by-one errors when the
-					// synthetic "... and N more" message is appended to the errors array.
+					
+					
 					'error_count'        => $total_errors,
 					'structured_count'   => $total_structured_errors,
 				);
 
-				// Preserve cancelled flag if set (mid-batch cancellation at line 1431 breaks
-				// from loop but finally still runs - must not clear the flag on next batch call).
+				
+				
 				if ( ! empty( $session['cancelled'] ) ) {
 					$update_data['cancelled'] = true;
 				}
 
 				$format_keys = array( 'format_time_docx', 'format_time_pdf', 'format_time_html', 'format_time_markdown', 'format_size_docx', 'format_size_pdf', 'format_size_html', 'format_size_markdown', 'format_pages_docx', 'format_pages_pdf', 'format_pages_html', 'format_pages_markdown' );
-				// Also persist any custom format keys that are not in the hardcoded list
-				// (e.g. format_time_epub) to ensure custom formats are preserved across batches.
+				
+				
 				foreach ( $session as $key => $value ) {
 					if ( is_string( $key ) && ( str_starts_with( $key, 'format_time_' ) || str_starts_with( $key, 'format_size_' ) || str_starts_with( $key, 'format_pages_' ) ) && ! in_array( $key, $format_keys, true ) ) {
 						if ( str_starts_with( $key, 'format_time_' ) || str_starts_with( $key, 'format_size_' ) ) {
@@ -777,7 +777,7 @@ trait SScribe_Batch_Step_Handler {
 				}
 				foreach ( $format_keys as $key ) {
 					if ( isset( $session[ $key ] ) ) {
-						// Coerce to expected type: format_time/size are float, format_pages is int.
+						
 						if ( str_starts_with( $key, 'format_time_' ) || str_starts_with( $key, 'format_size_' ) ) {
 							$update_data[ $key ] = (float) ( $session[ $key ] ?? 0 );
 						} else {
@@ -809,9 +809,9 @@ trait SScribe_Batch_Step_Handler {
 			$percentage = ( $total > 0 && $processed > 0 ) ? round( ( $processed / $total ) * 100 ) : 0;
 			$is_done    = ( $processed >= $total );
 
-			// Detect mid-batch cancellation: re-read session to check if cancelled flag was
-			// set during the foreach loop. If so, return cancelled=true so the frontend
-			// stops polling immediately instead of scheduling another batch request.
+			
+			
+			
 			$mid_batch_cancelled = false;
 			if ( ! $is_done ) {
 				$session_snapshot = $this->session->get( $session_id );
@@ -861,7 +861,7 @@ trait SScribe_Batch_Step_Handler {
 						'error_diagnostics' => $error_diagnostics ? $error_diagnostics : null,
 					)
 				);
-				return; // Ensure no further code executes after success response.
+				return; 
 			}
 
 			$response = $this->build_batch_response(
@@ -877,7 +877,7 @@ trait SScribe_Batch_Step_Handler {
 				$batch_start_time
 			);
 
-			// Notify frontend when export was cancelled mid-batch so it stops polling.
+			
 			if ( $mid_batch_cancelled ) {
 				$response['cancelled'] = true;
 			}

@@ -72,8 +72,8 @@ class SScribe_DOCX_Exporter implements SScribe_Exporter_Interface {
 	 */
 	public function apply_format_options( array $options ): void {
 		$this->format_options = $options;
-		// SScribe_Exporter is a concrete class typed in the constructor, so
-		// set_format_options() is always available. No defensive check needed.
+		
+		
 		$this->exporter->set_format_options( $options );
 	}
 

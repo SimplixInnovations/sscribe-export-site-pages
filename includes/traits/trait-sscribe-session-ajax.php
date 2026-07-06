@@ -67,8 +67,8 @@ trait SScribe_Session_AJAX {
 
 		$rate_check = $this->check_rate_limit();
 		if ( false === $rate_check ) {
-			// Rate limit tripped : signal the UI to skip the restore rather
-			// than show a stale "session active" banner.
+			
+			
 			wp_send_json_success(
 				array(
 					'has_active'   => false,
@@ -99,7 +99,7 @@ trait SScribe_Session_AJAX {
 			return;
 		}
 
-		// Return active session info for UI restoration.
+		
 		wp_send_json_success(
 			array(
 				'has_active' => true,
@@ -140,8 +140,8 @@ trait SScribe_Session_AJAX {
 			SScribe_AJAX_Guard::error( array( 'message' => __( 'Invalid session.', 'sscribe-export-site-pages' ) ), 400 );
 		}
 
-		// Pre-lock read for ownership check. Cheap and avoids
-		// holding the lock across a 403 path.
+		
+		
 		$session = $this->get( $session_id );
 		if ( ! $session ) {
 			SScribe_AJAX_Guard::error( array( 'message' => __( 'Session not found.', 'sscribe-export-site-pages' ) ), 404 );
@@ -163,13 +163,13 @@ trait SScribe_Session_AJAX {
 			);
 		}
 
-		// Acquire the export lock : race fix. If a batch
-		// iteration holds it, return 409 with retry hint and let
-		// the JS client retry. Once the lock is held, the
-		// mutation below runs atomically with respect to the
-		// batch: when this finally releases, the batch's next
-		// acquire_lock will fail and the batch is effectively
-		// dead (returns 429 to its own caller).
+		
+		
+		
+		
+		
+		
+		
 		$lock_token = $this->get_lock_manager()->acquire_lock( $session_id, 30, 25 );
 		if ( null === $lock_token ) {
 			SScribe_AJAX_Guard::error(
@@ -184,10 +184,10 @@ trait SScribe_Session_AJAX {
 		}
 
 		try {
-			// Re-read inside the lock. The session may have
-			// been updated by a concurrent iteration that
-			// finished just before we acquired the lock, or
-			// cleared by an earlier cancel that beat us.
+			
+			
+			
+			
 			$session = $this->get( $session_id );
 			if ( ! $session ) {
 				SScribe_AJAX_Guard::success(
@@ -195,7 +195,7 @@ trait SScribe_Session_AJAX {
 				);
 			}
 
-			// Defensive ownership re-check after the re-read.
+			
 			if ( ! $this->validate_session_ownership( $session, $session_id ) ) {
 				SScribe_AJAX_Guard::error( array( 'message' => __( 'Invalid session access.', 'sscribe-export-site-pages' ) ), 403 );
 			}
@@ -203,25 +203,25 @@ trait SScribe_Session_AJAX {
 			$session['cancelled'] = true;
 			$update_ok            = $this->update( $session_id, $session );
 			if ( ! $update_ok ) {
-				// Lost the race to a concurrent finalize or batch
-				// step. delete() is idempotent so we can still
-				// tear down; just log so the audit trail shows the
-				// cancellation was requested but the persisted row
-				// was already gone / overwritten by another writer.
+				
+				
+				
+				
+				
 				$this->get_logger()->warning(
 					'Cancel mutation: update returned false (concurrent writer won race)',
 					array( 'session_id' => $session_id )
 				);
 			}
 
-			// cleanup_cancelled_export() can throw on filesystem
-			// errors (Windows file handle, transient I/O). We must
-			// still reach delete() + success() so the user sees a
-			// clean 'Export cancelled' and the on-disk session row
-			// is removed. Otherwise the active-session transient
-			// keeps pointing at a stale row and the user is locked
-			// out of starting a new export with 'You already have
-			// an export in progress.'
+			
+			
+			
+			
+			
+			
+			
+			
 			try {
 				$this->cleanup_cancelled_export( $session );
 			} catch ( \Throwable $e ) {

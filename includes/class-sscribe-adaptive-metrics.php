@@ -107,10 +107,10 @@ class SScribe_Adaptive_Metrics {
 		$lock_key = 'sscribe_metrics_save_lock';
 		$lock_ttl = 5;
 
-		// Acquire lock using wp_cache_add (atomic on object cache) or fall back to non-atomic skip.
+		
 		$acquired = wp_cache_add( $lock_key, 1, '', $lock_ttl );
 		if ( ! $acquired ) {
-			// Another process is saving metrics : skip this update rather than racing.
+			
 			return;
 		}
 

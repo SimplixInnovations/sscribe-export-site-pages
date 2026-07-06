@@ -142,9 +142,9 @@ class SScribe_Logger implements SScribe_Logger_Interface {
 	 * @return bool True if enhanced logger should be loaded.
 	 */
 	private static function should_use_enhanced(): bool {
-		// Enhanced logger is only for QueryMonitor or explicit DB logging.
-		// NOT for UI debug toggle - that uses base file logger to ensure
-		// the debug console (which reads via get_log_file()) works correctly.
+		
+		
+		
 		if ( class_exists( 'QM_Collector' ) && ! ( defined( 'QM_DISABLED' ) && QM_DISABLED ) && ( is_admin() || wp_doing_ajax() ) ) {
 			return true;
 		}
@@ -169,9 +169,9 @@ class SScribe_Logger implements SScribe_Logger_Interface {
 		$upload_dir    = wp_upload_dir();
 		$this->log_dir = $upload_dir['basedir'] . '/sscribe-logs';
 
-		// Always register shutdown hook : flush() gates on empty buffer and $this->enabled internally.
-		// This ensures logs are written even if the logger was disabled at construction but
-		// became enabled mid-request (e.g., after settings toggle via AJAX).
+		
+		
+		
 		add_action( 'shutdown', array( $this, 'flush' ) );
 	}
 
@@ -227,7 +227,7 @@ class SScribe_Logger implements SScribe_Logger_Interface {
 			return;
 		}
 
-		// Apply log level filtering if configured.
+		
 		$configured_level = SScribe_Settings::get_debug_log_level();
 		if ( 'ALL' !== $configured_level ) {
 			$priorities          = array(
@@ -249,12 +249,12 @@ class SScribe_Logger implements SScribe_Logger_Interface {
 
 		$this->buffer[] = $entry;
 
-		// Flush when buffer reaches 50 entries to prevent memory bloat.
+		
 		if ( count( $this->buffer ) >= 50 ) {
 			$this->flush();
 		}
 
-		// Also flush on critical and above to ensure important logs aren't lost.
+		
 		if ( self::LEVEL_PRIORITY[ $level ] >= self::LEVEL_PRIORITY[ self::LEVEL_CRITICAL ] ) {
 			$this->flush();
 		}
@@ -292,8 +292,8 @@ class SScribe_Logger implements SScribe_Logger_Interface {
 		$log_file = $this->get_log_file();
 		$content  = implode( PHP_EOL, $this->buffer ) . PHP_EOL;
 
-		// Check file size AFTER content is ready to write, so we account for the actual write size.
-		// This prevents writing oversized files when buffer content exceeds the limit.
+		
+		
 		$current_size = file_exists( $log_file ) ? filesize( $log_file ) : 0;
 		$content_size = strlen( $content );
 
@@ -310,8 +310,8 @@ class SScribe_Logger implements SScribe_Logger_Interface {
 				file_put_contents( $log_file, $warning_entry, LOCK_EX ); // phpcs:ignore WordPress.WP.AlternativeFunctions.file_system_operations_file_put_contents -- Required for debug logging per plugin requirements.
 				chmod( $log_file, 0600 ); // phpcs:ignore WordPress.WP.AlternativeFunctions.file_system_operations_chmod -- Setting 0600 for log file security.
 			}
-			// If rename failed (e.g., file locked), fall through : the log entry will be
-			// written to the existing file even if it exceeds the size limit.
+			
+			
 		}
 
 		$result = file_put_contents( $log_file, $content, FILE_APPEND | LOCK_EX ); // phpcs:ignore WordPress.WP.AlternativeFunctions.file_system_operations_file_put_contents -- Required for debug logging per plugin requirements.
@@ -319,9 +319,9 @@ class SScribe_Logger implements SScribe_Logger_Interface {
 			error_log( 'SScribe_Logger: Failed to flush log to ' . $log_file ); // phpcs:ignore WordPress.PHP.DevelopmentFunctions.error_log_error_log -- Reporting flush failure when file_put_contents fails; no better alternative in production.
 		}
 
-		// Set restrictive 0600 permissions (owner read/write only) so debug logs
-		// containing post content and internal paths are not world-readable.
-		// chmod is safe to call on every write : no-op if permissions already 0600.
+		
+		
+		
 		chmod( $log_file, 0600 ); // phpcs:ignore WordPress.WP.AlternativeFunctions.file_system_operations_chmod -- Setting 0600 for log file security; only effective on Unix-like systems where debug logs are stored.
 
 		$this->buffer = array();
@@ -334,17 +334,17 @@ class SScribe_Logger implements SScribe_Logger_Interface {
 	 * @return array Log entries from file and buffer.
 	 */
 	public function get_logs( int $limit = -1 ): array {
-		// Do NOT gate on $this->enabled : log files may exist from previous sessions
-		// where logging was enabled. The debug tab needs to show historical logs even
-		// if the logger is currently disabled.
+		
+		
+		
 
 		$file_entries = array();
 		$log_file     = $this->get_log_file();
 
 		if ( file_exists( $log_file ) ) {
 			if ( $limit > 0 ) {
-				// Use SplFileObject to read only the tail of the file without loading
-				// the entire file into memory. This prevents OOM on large log files.
+				
+				
 				try {
 					$file = new SplFileObject( $log_file, 'r' );
 					$file->seek( PHP_INT_MAX );
@@ -362,13 +362,13 @@ class SScribe_Logger implements SScribe_Logger_Interface {
 					}
 					unset( $file );
 				} catch ( Exception $e ) {
-					// Fallback to full read if SplFileObject fails.
+					
 					$contents = file_get_contents( $log_file ); // phpcs:ignore WordPress.WP.AlternativeFunctions.file_get_contents_file_get_contents
 					if ( $contents ) {
 						$contents     = str_replace( "\r\n", "\n", $contents );
 						$contents     = str_replace( "\r", "\n", $contents );
 						$file_entries = explode( "\n", trim( $contents ) );
-						// Apply limit to prevent memory issues on large files.
+						
 						if ( count( $file_entries ) > $limit ) {
 							$file_entries = array_slice( $file_entries, -$limit );
 						}
@@ -398,8 +398,8 @@ class SScribe_Logger implements SScribe_Logger_Interface {
 	 */
 	public function clear_logs(): void {
 		$this->buffer = array();
-		// Always delete files regardless of enabled state : users expect files gone
-		// when they click "Clear Logs", even if logging is currently disabled.
+		
+		
 		$upload_dir = wp_upload_dir();
 		$log_dir    = $upload_dir['basedir'] . '/sscribe-logs';
 
