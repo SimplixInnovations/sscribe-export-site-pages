@@ -131,10 +131,7 @@ class SScribe_Audit_Trail {
 	 * @return array Sanitized context.
 	 */
 	private function sanitize_context( array $context ): array {
-		
-		
-		
-		
+
 		$forbidden_keys = array(
 			'password',
 			'token',
@@ -152,7 +149,7 @@ class SScribe_Audit_Trail {
 		);
 
 		foreach ( $context as $key => $value ) {
-			
+
 			$is_sensitive = false;
 			foreach ( $forbidden_keys as $forbidden ) {
 				if ( stripos( (string) $key, $forbidden ) !== false ) {
@@ -160,8 +157,7 @@ class SScribe_Audit_Trail {
 					break;
 				}
 			}
-			
-			
+
 			if ( ! $is_sensitive && is_string( $value ) && $this->looks_like_jwt( $value ) ) {
 				$is_sensitive = true;
 			}
@@ -195,7 +191,7 @@ class SScribe_Audit_Trail {
 		if ( strlen( $value ) < 8 || strpos( $value, 'eyJ' ) !== 0 ) {
 			return false;
 		}
-		
+
 		return substr_count( $value, '.' ) >= 2;
 	}
 
@@ -256,7 +252,6 @@ class SScribe_Audit_Trail {
 			return array();
 		}
 
-		
 		if ( ! current_user_can( 'manage_options' ) ) {
 			return array();
 		}
@@ -300,7 +295,6 @@ class SScribe_Audit_Trail {
 		$args[]       = $limit;
 		$args[]       = $offset;
 
-		
 		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, PluginCheck.Security.DirectDB.UnescapedDBParameter
 		return $wpdb->get_results(
 			// phpcs:ignore WordPress.DB.PreparedSQLPlaceholders.ReplacementsWrongNumber -- Dynamic WHERE clause placeholders counted at runtime
@@ -345,7 +339,6 @@ class SScribe_Audit_Trail {
 
 		$where_clause = implode( ' AND ', $where );
 
-		
 		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, PluginCheck.Security.DirectDB.UnescapedDBParameter
 		$result = $wpdb->get_results(
 			$wpdb->prepare(
@@ -443,9 +436,6 @@ class SScribe_Audit_Trail {
 			KEY idx_session_id (session_id)
 		) $charset_collate;";
 
-		
-		
-		
 		$upgrade_functions = ABSPATH . 'wp-admin/includes/upgrade.php';
 		if ( file_exists( $upgrade_functions ) ) {
 			require_once $upgrade_functions;

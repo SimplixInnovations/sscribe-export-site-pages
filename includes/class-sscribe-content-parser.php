@@ -295,16 +295,8 @@ class SScribe_Content_Parser {
 
 		$prev_use_errors = libxml_use_internal_errors( true );
 
-		
-		
-		
-		
-
 		try {
 
-			
-			
-			
 			$html = preg_replace( '/[\x00-\x08\x0B\x0C\x0E-\x1F\x7F]/', '', $html );
 
 			$wrapped = '<!DOCTYPE html><html><head>'
@@ -319,7 +311,7 @@ class SScribe_Content_Parser {
 
 			$body = $dom->getElementsByTagName( 'body' )->item( 0 );
 			if ( ! $body ) {
-				
+
 				return $elements;
 			}
 
@@ -342,9 +334,7 @@ class SScribe_Content_Parser {
 			if ( isset( $body ) ) {
 				unset( $body );
 			}
-			
-			
-			
+
 			unset( $dom );
 			libxml_clear_errors();
 			libxml_use_internal_errors( $prev_use_errors );
@@ -447,10 +437,6 @@ class SScribe_Content_Parser {
 				$img_node     = null;
 				$caption_text = '';
 
-				
-				
-				
-				
 				foreach ( $node->childNodes as $child ) {
 					if ( $child instanceof DOMElement ) {
 						if ( 'img' === $child->tagName ) {
@@ -461,10 +447,6 @@ class SScribe_Content_Parser {
 					}
 				}
 
-				
-				
-				
-				
 				if ( null === $img_node ) {
 					$descendant_imgs = $node->getElementsByTagName( 'img' );
 					if ( $descendant_imgs->length > 0 ) {
@@ -488,13 +470,9 @@ class SScribe_Content_Parser {
 				return $figure_data;
 
 			case 'figcaption':
-				
-				
-				
-				
 				$parent = $node->parentNode;
 				if ( $parent instanceof DOMElement && 'figure' === strtolower( $parent->nodeName ) ) {
-					return null; 
+					return null;
 				}
 				return array(
 					'type'    => 'figcaption',
@@ -502,13 +480,6 @@ class SScribe_Content_Parser {
 				);
 
 			case 'details':
-				
-				
-				
-				
-				
-				
-				
 				$summary_text     = '';
 				$body_elements    = array();
 				$is_summary_found = false;
@@ -543,12 +514,9 @@ class SScribe_Content_Parser {
 				);
 
 			case 'summary':
-				
-				
-				
 				$parent = $node->parentNode;
 				if ( $parent instanceof DOMElement && 'details' === strtolower( $parent->nodeName ) ) {
-					return null; 
+					return null;
 				}
 				return array(
 					'type'    => 'paragraph',
@@ -748,11 +716,7 @@ class SScribe_Content_Parser {
 				}
 				$cell_tag = strtolower( $td->nodeName );
 				if ( 'td' === $cell_tag || 'th' === $cell_tag ) {
-					
-					
-					
-					
-					
+
 					$colspan_attr = $td->getAttribute( 'colspan' );
 					$rowspan_attr = $td->getAttribute( 'rowspan' );
 					$colspan      = is_numeric( $colspan_attr ) ? max( 1, (int) $colspan_attr ) : 1;
@@ -837,8 +801,6 @@ class SScribe_Content_Parser {
 			return $buttons;
 		}
 
-		
-		
 		if ( mb_strlen( $html, '8bit' ) > 500000 ) {
 			$logger = SScribe_Logger::instance( SScribe_Logger::is_logging_enabled() );
 			$logger->warning(
@@ -851,14 +813,13 @@ class SScribe_Content_Parser {
 			$html = mb_strcut( $html, 0, 500000, 'UTF-8' );
 		}
 
-		
 		$pattern = '/<a\s+(?:[^>]*?\s)?class=["\']([^"\']*(?:wp-block-button__link|wp-element-button|button|btn|elementor-button|et_pb_button|fl-button|vc_btn)[^"\']*)["\'](?:[^>]*)?>(.*?)<\/a>/is';
 
 		$match_count = preg_match_all( $pattern, $html, $matches, PREG_SET_ORDER );
 		if ( false !== $match_count && $match_count > 0 ) {
 			foreach ( $matches as $match ) {
 				$classes = $match[1];
-				
+
 				$content = html_entity_decode( $match[2], ENT_QUOTES | ENT_HTML5, 'UTF-8' );
 				$content = wp_strip_all_tags( $content );
 				$content = trim( $content );
@@ -1075,8 +1036,7 @@ class SScribe_Content_Parser {
 	 * @return string
 	 */
 	private function get_text_content( \DOMNode $node ): string {
-		
-		
+
 		$has_text_children = false;
 		foreach ( $node->childNodes as $child ) {
 			if ( XML_TEXT_NODE === $child->nodeType && '' !== trim( $child->nodeValue ) ) {
@@ -1126,10 +1086,6 @@ class SScribe_Content_Parser {
 		$upload_url  = $upload_dir['baseurl'];
 		$upload_path = realpath( $upload_dir['basedir'] );
 
-		
-		
-		
-		
 		if ( str_starts_with( $url, '//' ) ) {
 			$scheme = (string) wp_parse_url( $upload_url, PHP_URL_SCHEME );
 			$url    = ( '' !== $scheme ? $scheme : 'https' ) . ':' . $url;
@@ -1153,15 +1109,13 @@ class SScribe_Content_Parser {
 		}
 
 		$extension = strtolower( pathinfo( $real_local, PATHINFO_EXTENSION ) );
-		
+
 		if ( ! in_array( $extension, array( 'jpg', 'jpeg', 'png', 'gif', 'bmp', 'svg', 'webp', 'avif' ), true ) ) {
 			return '';
 		}
 
-		
-		
 		if ( function_exists( 'getimagesize' ) ) {
-			
+
 			// phpcs:ignore WordPress.PHP.NoSilencedErrors.Discouraged -- getimagesize returns false for invalid images; we check this and return empty.
 			$image_info = @getimagesize( $real_local );
 			if ( false === $image_info || ! isset( $image_info['mime'] ) ) {
@@ -1222,25 +1176,16 @@ class SScribe_Content_Parser {
 			return '';
 		}
 
-		
-		
 		$local = $this->url_to_local_path( $url );
 		if ( '' !== $local && file_exists( $local ) ) {
 			return $local;
 		}
 
-		
-		
 		$scheme = strtolower( (string) wp_parse_url( $url, PHP_URL_SCHEME ) );
 		if ( 'http' !== $scheme && 'https' !== $scheme ) {
 			return '';
 		}
 
-		
-		
-		
-		
-		
 		$upload_dir = $this->get_upload_dir();
 		$upload_host = strtolower( (string) wp_parse_url( $upload_dir['baseurl'] ?? '', PHP_URL_HOST ) );
 		$url_host    = strtolower( (string) wp_parse_url( $url, PHP_URL_HOST ) );
@@ -1248,9 +1193,6 @@ class SScribe_Content_Parser {
 			return '';
 		}
 
-		
-		
-		
 		if ( ! class_exists( 'SScribe_Image_Processor' ) ) {
 			require_once SSCRIBE_PLUGIN_DIR . 'includes/class-sscribe-image-processor.php';
 		}

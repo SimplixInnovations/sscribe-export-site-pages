@@ -117,7 +117,6 @@ class SScribe_Privacy {
 		$items_limit = 500;
 		$offset      = ( $page - 1 ) * $items_limit;
 
-		
 		foreach ( $this->audit_trail->get_logs( array( 'user_id' => $user_id ), $items_limit, $offset ) as $log ) {
 			$export_items[] = array(
 				'group_id'    => 'sscribe-audit-events',
@@ -152,8 +151,6 @@ class SScribe_Privacy {
 			);
 		}
 
-		
-		
 		if ( 1 === $page ) {
 			foreach ( $this->export_stats->get_exports_by_user( $user_id ) as $stat ) {
 				$export_items[] = array(
@@ -224,7 +221,6 @@ class SScribe_Privacy {
 			}
 		}
 
-		
 		$has_more = count( $export_items ) >= $items_limit;
 
 		return array(
@@ -253,9 +249,6 @@ class SScribe_Privacy {
 
 		$user_id = (int) $user->ID;
 
-		
-		
-		
 		$removed_items  = $this->audit_trail->erase_user_data( $user_id );
 		$removed_items += $this->export_stats->erase_user_data( $user_id );
 		$removed_items += $this->session->delete_sessions_for_user( $user_id );

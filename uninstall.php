@@ -101,12 +101,14 @@ $sscribe_cleanup_site = static function (): void {
 	delete_option( 'sscribe_settings' );
 	delete_option( 'sscribe_active_languages' );
 
-	
 	$sscribe_roles = new \WP_Roles();
-	foreach ( $sscribe_roles->roles as $sscribe_role_name => $sscribe_role_data ) {
-		$sscribe_role = get_role( $sscribe_role_name );
-		if ( $sscribe_role && $sscribe_role->has_cap( 'sscribe_export' ) ) {
-			$sscribe_role->remove_cap( 'sscribe_export' );
+	$sscribe_plugin_caps = array( 'sscribe_export', 'sscribe_health' );
+	foreach ( $sscribe_plugin_caps as $sscribe_cap ) {
+		foreach ( $sscribe_roles->roles as $sscribe_role_name => $sscribe_role_data ) {
+			$sscribe_role = get_role( $sscribe_role_name );
+			if ( $sscribe_role && $sscribe_role->has_cap( $sscribe_cap ) ) {
+				$sscribe_role->remove_cap( $sscribe_cap );
+			}
 		}
 	}
 
@@ -129,7 +131,6 @@ $sscribe_cleanup_site = static function (): void {
 	wp_clear_scheduled_hook( 'sscribe_cleanup_sessions' );
 	wp_clear_scheduled_hook( 'sscribe_cleanup_audit_trail' );
 
-	
 	$sscribe_upload_dir = wp_upload_dir();
 	$sscribe_dirs       = array(
 		$sscribe_upload_dir['basedir'] . '/sscribe-exports',

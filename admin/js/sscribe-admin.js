@@ -443,6 +443,7 @@
 					self.releaseFocusTrap($panel[0]);
 				}
 			});
+			$(document).trigger('sscribe:tab:activated', [ tabId ]);
 		},
 		onPostTypeChange: function () {
 			if (this.isProcessing) {

@@ -140,7 +140,6 @@ class SScribe_DOCX_Content_Renderer {
 	private function safe_text( string $text ): string {
 		$text = (string) $text;
 
-		
 		$cleaned = @iconv( 'UTF-8', 'UTF-8//IGNORE', $text );
 		if ( false !== $cleaned ) {
 			$text = $cleaned;
@@ -155,9 +154,6 @@ class SScribe_DOCX_Content_Renderer {
 		$text = str_replace( array( "\r\n", "\r" ), "\n", $text );
 		$text = str_replace( "\x0C", '', $text );
 
-		
-		
-		
 		if ( mb_strlen( $text, 'UTF-8' ) > 2048 && false === mb_strpos( $text, ' ', 0, 'UTF-8' ) ) {
 			$text = mb_substr( $text, 0, 2048, 'UTF-8' );
 		}
@@ -276,8 +272,7 @@ class SScribe_DOCX_Content_Renderer {
 	 * @param int                   $font_size Font size (clamped to 6:72pt range).
 	 */
 	public function sync_config( array $colors, bool $is_rtl, string $font_name, int $font_size ): void {
-		
-		
+
 		$defaults = array(
 			'primary'  => '4A8263',
 			'heading'  => '122119',
@@ -288,12 +283,12 @@ class SScribe_DOCX_Content_Renderer {
 			'white'    => 'FFFFFF',
 			'border'   => 'CCCCCC',
 		);
-		
+
 		$sanitized       = array_filter( $colors, 'is_string' );
 		$this->colors    = array_merge( $defaults, $sanitized );
 		$this->is_rtl    = $is_rtl;
 		$this->font_name = $font_name;
-		
+
 		$this->font_size = max( 6, min( 72, $font_size ) );
 	}
 
@@ -354,9 +349,6 @@ class SScribe_DOCX_Content_Renderer {
 			return;
 		}
 
-		
-		
-		
 		$section->addTitle( __( 'Content', 'sscribe-export-site-pages' ), 2 );
 
 		foreach ( $elements as $element_index => $element ) {
@@ -401,7 +393,6 @@ class SScribe_DOCX_Content_Renderer {
 
 		switch ( $element['type'] ) {
 			case 'heading':
-				
 				$text = trim( $element['content'] ?? '' );
 				if ( '' === $text ) {
 					return;
@@ -453,8 +444,6 @@ class SScribe_DOCX_Content_Renderer {
 				break;
 
 			case 'horizontal_rule':
-				
-				
 				$section->addTextRun(
 					array(
 						'borderBottomSize'  => 6,
@@ -474,8 +463,6 @@ class SScribe_DOCX_Content_Renderer {
 				break;
 
 			case 'figcaption':
-				
-				
 				$this->get_logger()->debug(
 					'Standalone figcaption element skipped (expected within figure)',
 					array(
@@ -494,8 +481,7 @@ class SScribe_DOCX_Content_Renderer {
 	 * @param array   $element Paragraph element data.
 	 */
 	private function render_paragraph( Section $section, array $element ): void {
-		
-		
+
 		if ( empty( $element['runs'] ) ) {
 			$section->addTextBreak();
 			return;
@@ -521,7 +507,7 @@ class SScribe_DOCX_Content_Renderer {
 			}
 
 			if ( isset( $run['break'] ) && $run['break'] ) {
-				
+
 				if ( $prev_was_break ) {
 					continue;
 				}
@@ -568,7 +554,6 @@ class SScribe_DOCX_Content_Renderer {
 				if ( ! empty( $link_url ) ) {
 					$font_style['color'] = $this->colors['link'];
 
-					
 					$display_text = $text_content;
 					if ( '' === trim( $display_text ) || $display_text === $link_url ) {
 						$display_text = mb_strlen( $link_url, 'UTF-8' ) > 60
@@ -582,8 +567,7 @@ class SScribe_DOCX_Content_Renderer {
 						$font_style
 					);
 					$display_url = urldecode( $link_url );
-					
-					
+
 					$text_is_url  = filter_var( $text_content, FILTER_VALIDATE_URL ) !== false;
 					$text_is_path = preg_match( '/^[\/\.]?[a-zA-Z0-9_\-\/]+$/u', $text_content ) === 1
 						&& strlen( $text_content ) < 80
@@ -677,9 +661,6 @@ class SScribe_DOCX_Content_Renderer {
 			return;
 		}
 
-		
-		
-		
 		$col_count = max(
 			array_map(
 				fn( $row ) => count( $row['cells'] ?? array() ),
@@ -704,7 +685,6 @@ class SScribe_DOCX_Content_Renderer {
 			'width'       => $total_width_twip,
 		);
 
-		
 		if ( $this->is_rtl ) {
 			$table_style['bidiVisual'] = true;
 		}
@@ -733,10 +713,8 @@ class SScribe_DOCX_Content_Renderer {
 					$font_style['color']   = $this->colors['heading'];
 				}
 
-				
 				$colspan = isset( $cell['colspan'] ) ? max( 1, (int) $cell['colspan'] ) : 1;
 
-				
 				if ( isset( $cell['width'] ) && is_numeric( $cell['width'] ) && (int) $cell['width'] > 0 ) {
 					$effective_width = Converter::pixelToTwip( (int) $cell['width'] ) * $colspan;
 				} else {
@@ -809,7 +787,7 @@ class SScribe_DOCX_Content_Renderer {
 						)
 					)
 				);
-				
+
 				$link_run = $cell->addTextRun(
 					$this->get_para_style( array( 'alignment' => Jc::CENTER ) )
 				);
@@ -844,8 +822,6 @@ class SScribe_DOCX_Content_Renderer {
 			return;
 		}
 
-		
-		
 		$is_absolute_url  = str_starts_with( $src, 'http://' ) || str_starts_with( $src, 'https://' );
 		$is_absolute_path = str_starts_with( $src, '/' ) && file_exists( $src );
 		if ( ! $is_absolute_url && ! $is_absolute_path ) {
@@ -856,7 +832,6 @@ class SScribe_DOCX_Content_Renderer {
 			return;
 		}
 
-		
 		$image_element = array(
 			'type'       => 'image',
 			'src'        => $src,
@@ -864,10 +839,8 @@ class SScribe_DOCX_Content_Renderer {
 			'local_path' => $element['local_path'] ?? '',
 		);
 
-		
 		$this->render_inline_image( $section, $image_element );
 
-		
 		if ( '' !== trim( $caption ) ) {
 			$section->addText(
 				$this->safe_text( $caption ),
@@ -907,9 +880,7 @@ class SScribe_DOCX_Content_Renderer {
 				$this->get_para_style( array( 'alignment' => Jc::CENTER ) )
 			);
 		} elseif ( is_readable( $path ) ) {
-			
-			
-			
+
 			$ext = strtolower( pathinfo( $path, PATHINFO_EXTENSION ) );
 			if ( in_array( $ext, array( 'webp', 'avif' ), true ) ) {
 				$this->get_logger()->debug(
@@ -937,7 +908,7 @@ class SScribe_DOCX_Content_Renderer {
 
 			$image_info = getimagesize( $path );
 			if ( $image_info ) {
-				
+
 				$max_width  = Converter::inchToEmu( 8.33 );
 				$width_emu  = Converter::pixelToEmu( $image_info[0] );
 				$height_emu = Converter::pixelToEmu( $image_info[1] );
@@ -1023,7 +994,6 @@ class SScribe_DOCX_Content_Renderer {
 	private function render_details( Section $section, array $element ): void {
 		$summary = trim( $element['summary'] ?? '' );
 
-		
 		if ( '' !== $summary ) {
 			$section->addText(
 				'[+] ' . $this->safe_text( $summary ),
@@ -1037,10 +1007,9 @@ class SScribe_DOCX_Content_Renderer {
 			);
 		}
 
-		
 		$body_elements = $element['content'] ?? array();
 		if ( ! empty( $body_elements ) ) {
-			
+
 			$indent_style = array(
 				'indentLeft' => Converter::inchToTwip( 0.25 ),
 				'borderLeftSize' => 4,
@@ -1092,7 +1061,6 @@ class SScribe_DOCX_Content_Renderer {
 						$this->render_table( $section, $body_element );
 						break;
 					default:
-						
 						$text = trim( $body_element['content'] ?? '' );
 						if ( '' !== $text ) {
 							$section->addText(

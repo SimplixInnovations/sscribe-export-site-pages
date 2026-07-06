@@ -83,7 +83,7 @@ class SScribe_Page_Collector {
 	 */
 	private function cache_add( array &$cache, int $key, mixed $value ): void {
 		if ( count( $cache ) >= self::CACHE_MAX_SIZE ) {
-			
+
 			array_shift( $cache );
 		}
 		$cache[ $key ] = $value;
@@ -166,8 +166,6 @@ class SScribe_Page_Collector {
 			return $cached;
 		}
 
-		
-		
 		$effective_limit = $limit > 0 ? min( $limit, 10000 ) : 10000;
 
 		$args = array(
@@ -358,7 +356,6 @@ class SScribe_Page_Collector {
 
 		global $wpdb;
 
-		
 		$chunk_size = 100;
 		$chunks     = array_chunk( $page_ids, $chunk_size );
 
@@ -553,7 +550,6 @@ class SScribe_Page_Collector {
 			return false;
 		}
 
-		
 		if ( ! empty( $post_object->post_password ) ) {
 			$password_title = get_the_title( $page_id );
 			$password_title = $password_title ? $password_title : sprintf( 'Untitled Page %d', $page_id );
@@ -667,9 +663,6 @@ class SScribe_Page_Collector {
 		$post_type_for_children = $post_object->post_type;
 		$children               = $this->get_child_pages( $page_id, $post_type_for_children );
 
-		
-		
-		
 		$page_title_raw = get_the_title( $page_id );
 		$page_title     = $page_title_raw ? $page_title_raw : sprintf( 'Untitled Page %d', $page_id );
 
@@ -688,8 +681,6 @@ class SScribe_Page_Collector {
 			$permalink = $this->get_permalink_cached( $page_id );
 		}
 
-		
-		
 		if ( ! in_array( $post_object->post_status, array( 'publish', 'private' ), true ) ) {
 			$permalink = __( '[Draft - Not Published]', 'sscribe-export-site-pages' );
 		}
@@ -753,13 +744,9 @@ class SScribe_Page_Collector {
 			'post_parent__in'        => $page_ids,
 			'orderby'                => 'menu_order title',
 			'order'                  => 'ASC',
-			
-			
+
 			'no_found_rows'          => true,
-			
-			
-			
-			
+
 			'update_post_meta_cache' => false,
 			'update_post_term_cache' => false,
 		);
@@ -856,13 +843,12 @@ class SScribe_Page_Collector {
 		$breadcrumbs = array();
 		$ancestors   = get_post_ancestors( $page_id );
 
-		
 		if ( $ancestors ) {
 			$seen     = array( $page_id => true );
 			$filtered = array();
 			foreach ( $ancestors as $ancestor_id ) {
 				if ( isset( $seen[ $ancestor_id ] ) ) {
-					
+
 					break;
 				}
 				$seen[ $ancestor_id ] = true;
@@ -890,7 +876,6 @@ class SScribe_Page_Collector {
 				$ancestor_map[ $ancestor_post->ID ] = $ancestor_post;
 			}
 
-			
 			$ancestors_by_lang = array();
 			foreach ( $ancestors as $ancestor_id ) {
 				if ( ! isset( $ancestor_map[ $ancestor_id ] ) ) {
@@ -903,7 +888,6 @@ class SScribe_Page_Collector {
 				$ancestors_by_lang[ $ancestor_lang ][] = $ancestor_id;
 			}
 
-			
 			foreach ( $ancestors_by_lang as $lang => $lang_ancestors ) {
 				$switched = false;
 				if ( $this->is_wpml_active() && ! empty( $lang ) ) {
@@ -970,7 +954,6 @@ class SScribe_Page_Collector {
 			return array( 'page', 'post' );
 		}
 
-		
 		$allowed_types = array( 'page', 'post' );
 		if ( ! in_array( $post_type, $allowed_types, true ) ) {
 			return 'page';
@@ -1053,19 +1036,12 @@ class SScribe_Page_Collector {
 
 		try {
 
-			
-			
-			
-			
-			
-			
 			$target_lang = ! empty( $language ) ? $language : 'all';
 			// phpcs:ignore WordPress.NamingConventions.PrefixAllGlobals.NonPrefixedHooknameFound -- WPML hook.
 			do_action( 'wpml_switch_language', $target_lang );
 			$args['suppress_filters'] = false;
 			$switched                 = true;
 
-			
 			global $wpdb;
 
 			$post_type_placeholders = is_array( $args['post_type'] )
@@ -1102,12 +1078,10 @@ class SScribe_Page_Collector {
 			}
 			// phpcs:enable
 
-			
 			foreach ( $statuses as $status => $label ) {
 				$counts[ $status ] = 0;
 			}
 
-			
 			if ( is_array( $results ) ) {
 				foreach ( $results as $row ) {
 					$status = $row['post_status'];
@@ -1148,7 +1122,7 @@ class SScribe_Page_Collector {
 	 * @return string Validated status.
 	 */
 	public function validate_post_status( string $status ): string {
-		
+
 		$status = sanitize_text_field( $status );
 		$valid  = array_keys( $this->get_valid_post_statuses() );
 

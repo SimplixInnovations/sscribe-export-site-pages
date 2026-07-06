@@ -787,12 +787,51 @@
 /* ----------------------------------------------------------
    4. CONSOLE FOOTER BUTTONS — danger + secondary hierarchy
    ---------------------------------------------------------- */
-.sscribe-debug-console-footer {
-  display: flex;
-  align-items: center;
-  gap: var(--ss-space-3);
-  padding: var(--ss-space-4) 0;
-  margin-top: var(--ss-space-3);
+
+/* ----------------------------------------------------------
+   4b. HELP DIALOG — overlay + dialog + close (built by JS)
+   ---------------------------------------------------------- */
+.sscribe-help-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgb(9 9 11 / 50%);
+  z-index: 9999998;
+}
+
+.sscribe-help-dialog {
+  position: fixed;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  background: var(--ss-surface);
+  color: var(--ss-text-primary);
+  padding: var(--ss-space-6);
+  border: 1px solid var(--ss-border);
+  border-radius: var(--ss-radius-md);
+  max-width: 400px;
+  z-index: 9999999;
+  font-size: 14px;
+  line-height: 1.6;
+}
+
+.sscribe-help-close {
+  position: absolute;
+  top: var(--ss-space-3);
+  right: var(--ss-space-3);
+  background: none;
+  border: none;
+  font-size: 18px;
+  cursor: pointer;
+  color: var(--ss-text-secondary);
+}
+
+.sscribe-help-close:hover {
+  color: var(--ss-text-primary);
+}
+
+.sscribe-help-close:focus-visible {
+  outline: 2px solid var(--ss-brand);
+  outline-offset: 2px;
 }
 
 #sscribe-debug-clear-btn {
@@ -841,46 +880,11 @@
   color: var(--ss-text-primary);
 }
 
-/* Export count badge */
-#sscribe-debug-export-btn .sscribe-export-count,
-#sscribe-debug-export-btn > *:last-child:not(:first-child) {
-  font-size: 11px;
-  color: var(--ss-text-muted);
-  font-weight: 400;
-}
-
 /* ----------------------------------------------------------
    5. ROTATED LOGS DISCLOSURE — chevron toggle treatment
    ---------------------------------------------------------- */
 .sscribe-debug-rotated-section {
   margin-top: var(--ss-space-5);
-}
-
-.sscribe-debug-rotated-toggle {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  padding: var(--ss-space-3) var(--ss-space-4);
-  background: var(--ss-surface);
-  border: 1px solid var(--ss-border);
-  border-radius: var(--ss-radius-md);
-  cursor: pointer;
-  user-select: none;
-  font-size: 13px;
-  font-weight: 600;
-  color: var(--ss-text-primary);
-  transition: background 150ms;
-}
-
-.sscribe-debug-rotated-toggle:hover {
-  background: var(--ss-surface-2);
-}
-
-/* Hide the raw "Click to collapse/expand" text — JS handles it */
-.sscribe-debug-rotated-toggle .sscribe-debug-rotated-hint {
-  font-size: 11px;
-  font-weight: 400;
-  color: var(--ss-text-muted);
 }
 
 /* ----------------------------------------------------------
@@ -1046,12 +1050,6 @@
   align-self: flex-end !important;
 }
 
-/* Target the specific save button parent container */
-#sscribe-debug-save-settings {
-  align-self: flex-end !important;
-  margin-bottom: 0 !important;
-}
-
 /* The panel itself: align items to bottom to baseline all groups */
 .sscribe-debug-settings {
   display: flex !important;
@@ -1177,12 +1175,12 @@
 [id^="sscribe-debug-ctx-"].sscribe-ctx-open {
   display: grid !important;
   grid-template-columns: minmax(130px, auto) 1fr;
-  gap: 2px 16px;
+  gap: 10px 20px;
   width: 100%;
   min-width: 0;
   max-width: 100%;
   box-sizing: border-box;
-  padding: 10px 16px 14px;
+  padding: 16px 20px 20px;
   background: #12122a;
   border-top: 1px solid rgb(255 255 255 / 8%);
   overflow: hidden;
@@ -1227,249 +1225,6 @@
   flex: 0 0 auto;
   width: 100%;
   overflow-x: auto;
-}
-.sscribe-debug-entry.expanded .sscribe-debug-entry-context table,
-.sscribe-debug-entry.expanded table.sscribe-debug-entry-context {
-  display: table !important;
-  width: 100%;
-  border-collapse: collapse;
-}
-
-/* ── AUTHORITATIVE FIX: show context panel when parent entry is expanded ── */
-/* The JS click handler adds .expanded to .sscribe-debug-entry              */
-/* The context table has id="sscribe-debug-ctx-*" and style="display:none" */
-/* We must override BOTH the inline style and any existing !important rules */
-.sscribe-debug-entry.expanded [id^="sscribe-debug-ctx-"] {
-  display: table !important;
-  width: 100%;
-  border-collapse: collapse;
-  margin-top: 8px;
-  padding: 0;
-  background: rgb(18 18 42 / 95%);
-  border-top: 1px solid rgb(255 255 255 / 8%);
-  overflow: visible !important;
-  white-space: normal;
-}
-.sscribe-debug-entry.expanded [id^="sscribe-debug-ctx-"] td {
-  padding: 4px 8px;
-  font-size: 12px;
-  font-family: monospace;
-  vertical-align: top;
-  border-top: 1px solid rgb(255 255 255 / 6%);
-  word-break: break-all;
-  white-space: pre-wrap;
-  color: #e2e8f0;
-}
-.sscribe-debug-entry.expanded [id^="sscribe-debug-ctx-"] td:first-child {
-  font-weight: 600;
-  color: #93c5fd;
-  white-space: nowrap;
-  min-width: 120px;
-  width: 25%;
-  overflow: visible;
-}
-
-/* ── HIGH-SPECIFICITY FIX: Use ID selector to beat :not() rule ── */
-/* The existing hide rule has (0,5,0) specificity via :not() pseudo-classes.   */
-/* Using #sscribe-debug-root gives us (1,x,0) which beats all class selectors. */
-#sscribe-debug-root .sscribe-debug-entry.expanded [id^="sscribe-debug-ctx-"] {
-  display: grid !important;
-  width: 100%;
-  grid-template-columns: minmax(120px, auto) 1fr;
-  margin-top: 8px;
-  background: rgb(18 18 42 / 95%);
-  border-top: 1px solid rgb(255 255 255 / 8%);
-  overflow: visible !important;
-  white-space: normal;
-}
-#sscribe-debug-root .sscribe-debug-entry.expanded [id^="sscribe-debug-ctx-"] td {
-  padding: 4px 8px;
-  font-size: 12px;
-  font-family: monospace;
-  vertical-align: top;
-  border-top: 1px solid rgb(255 255 255 / 6%);
-  word-break: break-all;
-  white-space: pre-wrap;
-  color: #e2e8f0;
-}
-#sscribe-debug-root .sscribe-debug-entry.expanded [id^="sscribe-debug-ctx-"] td:first-child {
-  font-weight: 600;
-  color: #93c5fd;
-  white-space: nowrap;
-  min-width: 120px;
-  width: 25%;
-}
-
-/* ── Context panel spacing polish ── */
-#sscribe-debug-root .sscribe-debug-entry.expanded {
-  flex-direction: column;
-  align-items: stretch;
-}
-#sscribe-debug-root .sscribe-debug-entry.expanded [id^="sscribe-debug-ctx-"] {
-  margin-top: 0 !important;
-  padding: 10px 16px 14px !important;
-}
-#sscribe-debug-root .sscribe-debug-entry.expanded [id^="sscribe-debug-ctx-"] td {
-  padding: 6px 12px !important;
-  line-height: 1.5;
-}
-#sscribe-debug-root .sscribe-debug-entry.expanded [id^="sscribe-debug-ctx-"] tr:first-child td {
-  padding-top: 10px !important;
-}
-#sscribe-debug-root .sscribe-debug-entry.expanded [id^="sscribe-debug-ctx-"] tr:last-child td {
-  padding-bottom: 10px !important;
-}
-#sscribe-debug-root .sscribe-debug-entry.expanded [id^="sscribe-debug-ctx-"] td:first-child {
-  padding-right: 20px !important;
-}
-
-/* ── Context panel: generous row padding for readability ── */
-#sscribe-debug-root .sscribe-debug-entry.expanded [id^="sscribe-debug-ctx-"] td {
-  padding: 8px 16px !important;
-  line-height: 1.6;
-  font-size: 12.5px;
-}
-#sscribe-debug-root .sscribe-debug-entry.expanded [id^="sscribe-debug-ctx-"] tr:first-child > td {
-  padding-top: 14px !important;
-}
-#sscribe-debug-root .sscribe-debug-entry.expanded [id^="sscribe-debug-ctx-"] tr:last-child > td {
-  padding-bottom: 14px !important;
-}
-#sscribe-debug-root .sscribe-debug-entry.expanded [id^="sscribe-debug-ctx-"] td:first-child {
-  padding-left: 18px !important;
-  padding-right: 24px !important;
-}
-#sscribe-debug-root .sscribe-debug-entry.expanded [id^="sscribe-debug-ctx-"] td:last-child {
-  padding-right: 18px !important;
-}
-
-/* ── FINAL: Generous cell padding – bump up significantly ── */
-#sscribe-debug-root .sscribe-debug-entry.expanded [id^="sscribe-debug-ctx-"] td {
-  padding: 10px 20px !important;
-  line-height: 1.7;
-  font-size: 12.5px;
-  border-top: 1px solid rgb(255 255 255 / 7%) !important;
-}
-#sscribe-debug-root .sscribe-debug-entry.expanded [id^="sscribe-debug-ctx-"] tr:first-child td {
-  border-top: none !important;
-  padding-top: 16px !important;
-}
-#sscribe-debug-root .sscribe-debug-entry.expanded [id^="sscribe-debug-ctx-"] tr:last-child td {
-  padding-bottom: 16px !important;
-}
-#sscribe-debug-root .sscribe-debug-entry.expanded [id^="sscribe-debug-ctx-"] td:first-child {
-  padding-left: 20px !important;
-  padding-right: 28px !important;
-  min-width: 130px !important;
-}
-#sscribe-debug-root .sscribe-debug-entry.expanded [id^="sscribe-debug-ctx-"] td:last-child {
-  padding-right: 20px !important;
-}
-
-/* ── NUCLEAR: Double-ID selector to beat WP admin td rules ── */
-#wpwrap #sscribe-debug-root .sscribe-debug-entry.expanded [id^="sscribe-debug-ctx-"] td {
-  padding: 10px 20px !important;
-  line-height: 1.7 !important;
-  font-size: 12.5px !important;
-  border-top: 1px solid rgb(255 255 255 / 7%) !important;
-  vertical-align: top !important;
-}
-#wpwrap #sscribe-debug-root .sscribe-debug-entry.expanded [id^="sscribe-debug-ctx-"] tr:first-child td {
-  border-top: none !important;
-  padding-top: 16px !important;
-}
-#wpwrap #sscribe-debug-root .sscribe-debug-entry.expanded [id^="sscribe-debug-ctx-"] tr:last-child td {
-  padding-bottom: 16px !important;
-}
-#wpwrap #sscribe-debug-root .sscribe-debug-entry.expanded [id^="sscribe-debug-ctx-"] td:first-child {
-  padding-left: 20px !important;
-  padding-right: 28px !important;
-  min-width: 130px !important;
-}
-#wpwrap #sscribe-debug-root .sscribe-debug-entry.expanded [id^="sscribe-debug-ctx-"] td:last-child {
-  padding-right: 20px !important;
-}
-
-/* === CONTEXT TABLE PADDING - Correct selectors === */
-.sscribe-debug-entry-context {
-  padding: 0 !important;
-}
-.sscribe-debug-entry-context table {
-  width: 100% !important;
-  border-collapse: collapse !important;
-  padding: 0 !important;
-  margin: 0 !important;
-}
-.sscribe-debug-entry-context table tr td {
-  padding: 10px 20px !important;
-  line-height: 1.7 !important;
-  font-size: 12.5px !important;
-  border-top: 1px solid rgb(255 255 255 / 7%) !important;
-  vertical-align: top !important;
-}
-.sscribe-debug-entry-context table tr:first-child td {
-  border-top: none !important;
-  padding-top: 16px !important;
-}
-.sscribe-debug-entry-context table tr:last-child td {
-  padding-bottom: 16px !important;
-}
-.sscribe-debug-entry-context table tr td:first-child {
-  padding-left: 20px !important;
-  padding-right: 24px !important;
-  min-width: 130px !important;
-  font-weight: 600 !important;
-  color: rgb(255 255 255 / 60%) !important;
-  white-space: nowrap !important;
-}
-.sscribe-debug-entry-context table tr td:last-child {
-  padding-right: 20px !important;
-}
-.sscribe-debug-entry-context table tr td pre {
-  margin: 0 !important;
-  padding: 0 !important;
-  font-family: inherit !important;
-  font-size: inherit !important;
-  white-space: pre-wrap !important;
-  word-break: break-all !important;
-  color: rgb(255 255 255 / 85%) !important;
-}
-
-/* === CONTEXT TABLE - sscribe-ctx-open class targeting === */
-.sscribe-ctx-open table tr td,
-.sscribe-debug-entry-context.sscribe-ctx-open table tr td {
-  padding: 10px 20px !important;
-  line-height: 1.7 !important;
-  font-size: 12.5px !important;
-  border-top: 1px solid rgb(255 255 255 / 7%) !important;
-  vertical-align: top !important;
-}
-.sscribe-ctx-open table tr:first-child td {
-  border-top: none !important;
-  padding-top: 16px !important;
-}
-.sscribe-ctx-open table tr:last-child td {
-  padding-bottom: 16px !important;
-}
-.sscribe-ctx-open table tr td:first-child {
-  padding-left: 20px !important;
-  padding-right: 24px !important;
-  min-width: 130px !important;
-  font-weight: 600 !important;
-  color: rgb(255 255 255 / 60%) !important;
-  white-space: nowrap !important;
-}
-.sscribe-ctx-open table tr td:last-child {
-  padding-right: 20px !important;
-}
-.sscribe-ctx-open table tr td pre {
-  margin: 0 !important;
-  padding: 0 !important;
-  font-family: monospace !important;
-  font-size: inherit !important;
-  white-space: pre-wrap !important;
-  word-break: break-all !important;
-  color: rgb(255 255 255 / 85%) !important;
 }
 
 /* === CORRECT CONTEXT GRID SPACING - Grid layout fix ===

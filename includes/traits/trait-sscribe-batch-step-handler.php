@@ -59,9 +59,6 @@ trait SScribe_Batch_Step_Handler {
 			);
 		}
 
-		
-		
-		
 		$last_heal = get_transient( 'sscribe_last_self_heal' );
 		if ( ! $last_heal || time() - (int) $last_heal > 60 ) {
 			$this->get_diagnostics()->self_heal();
@@ -76,21 +73,12 @@ trait SScribe_Batch_Step_Handler {
 
 		$ob_level_before = ob_get_level();
 		ob_start();
-		
-		
-		
+
 		$batch_start_time = microtime( true );
 		$batch_duration  = 0.0;
 		try {
 			$session_id = isset( $_POST['session_id'] ) ? sanitize_text_field( wp_unslash( $_POST['session_id'] ) ) : '';
 			$session    = $this->session->get( $session_id );
-
-			
-			
-			
-			
-			
-			
 
 			$this->logger->debug(
 				'Process batch called',
@@ -121,9 +109,6 @@ trait SScribe_Batch_Step_Handler {
 			$lock_ttl        = (int) apply_filters( 'sscribe_lock_ttl', 180 );
 			$stale_threshold = (int) apply_filters( 'sscribe_lock_stale_threshold', 140 );
 
-			
-			
-			
 			if ( ! $this->validate_session_ownership( $session, $session_id ) ) {
 				$this->restore_ob_level( $ob_level_before );
 				SScribe_AJAX_Guard::error(
@@ -170,9 +155,6 @@ trait SScribe_Batch_Step_Handler {
 
 			$lock_token = $this->current_lock_token;
 
-			
-			
-			
 			$session = $this->session->get( $session_id );
 			if ( null === $session ) {
 				$this->get_lock_manager()->release_lock( $session_id, $lock_token );
@@ -211,54 +193,37 @@ trait SScribe_Batch_Step_Handler {
 			$start_time        = isset( $session['start_time'] ) ? $session['start_time'] : microtime( true );
 			$formats           = isset( $session['formats'] ) ? $session['formats'] : self::DEFAULT_FORMATS;
 
-			
-			
-			
-			
 			if ( in_array( 'pdf', $formats, true ) && function_exists( 'set_time_limit' ) ) {
 				$pdf_max_time = (int) apply_filters( 'sscribe_pdf_max_execution_time', 150 );
 
 				set_time_limit( $pdf_max_time ); // phpcs:ignore Squiz.PHP.DiscouragedFunctions.Discouraged
 			}
-			
+
 			$pause_hint = isset( $session['last_pause_reason'] ) ? $session['last_pause_reason'] : '';
 			$this->optimize_batch_size( $formats, $pause_hint );
-			
-			
 
-			
 			$upload_dir        = wp_upload_dir();
 			$allowed_temp_base = trailingslashit( $upload_dir['basedir'] ) . 'sscribe-exports';
-			
-			
-			
-			
-			
-			
+
 			$real_allowed_base = realpath( $allowed_temp_base );
-			
-			
+
 			if ( ! empty( $temp_dir ) && ! is_dir( $temp_dir ) ) {
 				wp_mkdir_p( $temp_dir );
 			}
 			$real_temp_dir = realpath( $temp_dir );
-			
-			
-			
-			
+
 			$path_valid = true;
 			if ( false === $real_temp_dir ) {
-				
+
 				$path_valid = false;
 			} elseif ( false !== $real_allowed_base ) {
-				
+
 				$safe_base = rtrim( $real_allowed_base, DIRECTORY_SEPARATOR ) . DIRECTORY_SEPARATOR;
 				if ( 0 !== strpos( $real_temp_dir, $safe_base ) ) {
 					$path_valid = false;
 				}
 			} else {
-				
-				
+
 				$safe_base = rtrim( $allowed_temp_base, DIRECTORY_SEPARATOR ) . DIRECTORY_SEPARATOR;
 				if ( 0 !== strpos( $real_temp_dir, $safe_base ) ) {
 					$path_valid = false;
@@ -295,8 +260,6 @@ trait SScribe_Batch_Step_Handler {
 
 			$batch = array_slice( $page_ids, $processed, $this->batch_size );
 
-			
-			
 			if ( count( $batch ) >= 3 ) {
 				$this->collector->get_featured_images_batch( $batch );
 				$this->collector->get_child_pages_batch( $batch );
@@ -314,8 +277,7 @@ trait SScribe_Batch_Step_Handler {
 			if ( empty( $batch ) ) {
 				$this->logger->debug( 'Batch empty, finalizing export' );
 				$this->restore_ob_level( $ob_level_before );
-				
-				
+
 				try {
 					$this->finalize_export( $session_id, $session, $lock_token );
 				} finally {
@@ -332,36 +294,15 @@ trait SScribe_Batch_Step_Handler {
 			$current_batch_page_id   = null;
 			$paused_reason           = '';
 
-			
-			
-			
 			$batch_time_limit = (int) apply_filters( 'sscribe_max_execution_time', 150 );
 			if ( function_exists( 'set_time_limit' ) ) {
 				set_time_limit( $batch_time_limit ); // phpcs:ignore Squiz.PHP.DiscouragedFunctions.Discouraged
 			}
 
-			
-			
 			wp_suspend_cache_invalidation( true );
 
-			
-			
-			
-			
-			
-			
 			$batch_log_data = $this->export_log ? $this->export_log->get_log() : null;
 
-			
-			
-			
-			
-			
-			
-			
-			
-			
-			
 			$batch_session_snapshot = $this->session->get( $session_id );
 
 			try {
@@ -533,7 +474,7 @@ trait SScribe_Batch_Step_Handler {
 								'page_id'         => $page_id,
 								'page_title'      => $page_data['title'] ?? '',
 								'exception_class' => get_class( $e ),
-								
+
 								'memory_usage'    => size_format( memory_get_usage( true ) ),
 								'memory_peak'     => size_format( memory_get_peak_usage( true ) ),
 								'memory_limit'    => ini_get( 'memory_limit' ),
@@ -619,32 +560,15 @@ trait SScribe_Batch_Step_Handler {
 
 					do_action( 'sscribe_after_export_page', $page_id, $formats, $export_success );
 
-					
-					
-					
-					
-					
-					
-					
-
 					$page_data = null;
 
 					++$processed;
 					++$processed_in_this_batch;
 
-					
-					
 					if ( function_exists( 'gc_collect_cycles' ) ) {
 						gc_collect_cycles();
 					}
 
-					
-					
-					
-					
-					
-					
-					
 					if ( ! empty( $batch_session_snapshot['cancelled'] ) ) {
 						$this->logger->debug(
 							'Mid-batch cancellation detected',
@@ -666,19 +590,16 @@ trait SScribe_Batch_Step_Handler {
 						'memory_used' => size_format( memory_get_usage( true ) ),
 					)
 				);
-				
+
 				if ( SScribe_Logger::is_logging_enabled() ) {
 					error_log( // phpcs:ignore WordPress.PHP.DevelopmentFunctions.error_log_error_log -- Fallback error logging when logger is available.
 						'SScribe batch error: ' . $e->getMessage() . ' | Page: ' . ( $current_batch_page_id ?? 'unknown' )
 					);
 				}
 			} finally {
-				
+
 				wp_suspend_cache_invalidation( false );
 
-				
-				
-				
 				$batch_duration = microtime( true ) - $batch_start_time;
 
 				$this->logger->debug(
@@ -741,8 +662,6 @@ trait SScribe_Batch_Step_Handler {
 					);
 				}
 
-				
-				
 				$paused_reason = $memory_paused ? 'memory' : ( $timeout_paused ? 'timeout' : '' );
 
 				$update_data = array(
@@ -751,21 +670,17 @@ trait SScribe_Batch_Step_Handler {
 					'structured_errors' => $structured_errors,
 					'start_time'        => $start_time,
 					'last_pause_reason' => $paused_reason,
-					
-					
+
 					'error_count'        => $total_errors,
 					'structured_count'   => $total_structured_errors,
 				);
 
-				
-				
 				if ( ! empty( $session['cancelled'] ) ) {
 					$update_data['cancelled'] = true;
 				}
 
 				$format_keys = array( 'format_time_docx', 'format_time_pdf', 'format_time_html', 'format_time_markdown', 'format_size_docx', 'format_size_pdf', 'format_size_html', 'format_size_markdown', 'format_pages_docx', 'format_pages_pdf', 'format_pages_html', 'format_pages_markdown' );
-				
-				
+
 				foreach ( $session as $key => $value ) {
 					if ( is_string( $key ) && ( str_starts_with( $key, 'format_time_' ) || str_starts_with( $key, 'format_size_' ) || str_starts_with( $key, 'format_pages_' ) ) && ! in_array( $key, $format_keys, true ) ) {
 						if ( str_starts_with( $key, 'format_time_' ) || str_starts_with( $key, 'format_size_' ) ) {
@@ -777,7 +692,7 @@ trait SScribe_Batch_Step_Handler {
 				}
 				foreach ( $format_keys as $key ) {
 					if ( isset( $session[ $key ] ) ) {
-						
+
 						if ( str_starts_with( $key, 'format_time_' ) || str_starts_with( $key, 'format_size_' ) ) {
 							$update_data[ $key ] = (float) ( $session[ $key ] ?? 0 );
 						} else {
@@ -809,9 +724,6 @@ trait SScribe_Batch_Step_Handler {
 			$percentage = ( $total > 0 && $processed > 0 ) ? round( ( $processed / $total ) * 100 ) : 0;
 			$is_done    = ( $processed >= $total );
 
-			
-			
-			
 			$mid_batch_cancelled = false;
 			if ( ! $is_done ) {
 				$session_snapshot = $this->session->get( $session_id );
@@ -861,7 +773,7 @@ trait SScribe_Batch_Step_Handler {
 						'error_diagnostics' => $error_diagnostics ? $error_diagnostics : null,
 					)
 				);
-				return; 
+				return;
 			}
 
 			$response = $this->build_batch_response(
@@ -877,7 +789,6 @@ trait SScribe_Batch_Step_Handler {
 				$batch_start_time
 			);
 
-			
 			if ( $mid_batch_cancelled ) {
 				$response['cancelled'] = true;
 			}

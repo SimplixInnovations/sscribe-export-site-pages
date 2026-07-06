@@ -117,7 +117,6 @@ class SScribe_PDF_Exporter implements SScribe_Exporter_Interface {
 			: $page_data;
 		$temp_image_paths    = $this->collect_temp_image_paths( $processed_page_data );
 
-		
 		$html_content = $this->html_exporter->generate_html_string( $processed_page_data );
 		$html_size    = strlen( $html_content );
 
@@ -185,18 +184,12 @@ class SScribe_PDF_Exporter implements SScribe_Exporter_Interface {
 				);
 			}
 
-			
-			
-			
-			
 			$memory_pressure = $this->check_memory_pressure();
 			if ( $memory_pressure instanceof SScribe_Result ) {
 				$this->cleanup_temp_images( $temp_image_paths );
 				return $memory_pressure;
 			}
 
-			
-			
 			$prev_errors = libxml_use_internal_errors( true );
 
 			$mpdf_config = $this->build_mpdf_config( $is_rtl, $page_id );
@@ -210,9 +203,6 @@ class SScribe_PDF_Exporter implements SScribe_Exporter_Interface {
 			$mpdf = new \SScribeVendor\Mpdf\Mpdf( $config );
 			$mpdf->SetDirectionality( $is_rtl ? 'rtl' : 'ltr' );
 
-			
-			
-			
 			if ( '1' === (string) $this->get_format_option( 'sscribe_pdf_include_page_numbers', '1' ) ) {
 				$mpdf->SetFooter( '{PAGENO}/{nb}' );
 			}
@@ -230,7 +220,6 @@ class SScribe_PDF_Exporter implements SScribe_Exporter_Interface {
 				set_time_limit( max( 60, $max_exec ) ); // phpcs:ignore Squiz.PHP.DiscouragedFunctions.Discouraged
 			}
 
-			
 			if ( function_exists( 'microtime' ) ) {
 				$max_exec    = (int) ini_get( 'max_execution_time' );
 				$batch_start = $page_data['_batch_start_time'] ?? 0.0;
@@ -262,9 +251,6 @@ class SScribe_PDF_Exporter implements SScribe_Exporter_Interface {
 			$filename    = \SScribe_Exporter_Factory::build_filename( $page_data, $index, $total, 'pdf' );
 			$output_path = trailingslashit( $output_dir ) . $filename;
 
-			
-			
-			
 			$font_stack = $is_rtl
 				? ( $amiri_available
 					? 'amiri, freeserif, sans-serif'
@@ -283,17 +269,6 @@ class SScribe_PDF_Exporter implements SScribe_Exporter_Interface {
 			$base_css .= ' a { color: #2C6E8A; text-decoration: none; }';
 			$base_css .= ' h1, h2, h3, h4, h5, h6 { color: #122119; }';
 
-			
-			
-			
-			
-			
-			
-			
-			
-			
-			
-			
 			$ob_level_before_render = ob_get_level();
 			$mpdf->WriteHTML( $base_css, \SScribeVendor\Mpdf\HTMLParserMode::HEADER_CSS );
 
@@ -393,9 +368,7 @@ class SScribe_PDF_Exporter implements SScribe_Exporter_Interface {
 			$this->cleanup_temp_images( $temp_image_paths );
 			$this->cleanup_mpdf_temp( $mpdf_temp );
 			libxml_clear_errors();
-			
-			
-			
+
 			if ( null !== $prev_errors ) {
 				libxml_use_internal_errors( $prev_errors );
 			}
@@ -424,7 +397,7 @@ class SScribe_PDF_Exporter implements SScribe_Exporter_Interface {
 	private function check_memory_pressure() {
 		$memory_limit_str = (string) ini_get( 'memory_limit' );
 		if ( '' === $memory_limit_str || '-1' === $memory_limit_str ) {
-			
+
 			return null;
 		}
 
@@ -440,7 +413,6 @@ class SScribe_PDF_Exporter implements SScribe_Exporter_Interface {
 		$soft_margin = (int) apply_filters( 'sscribe_pdf_memory_soft_margin_bytes', 32 * 1024 * 1024 );
 		$hard_margin = (int) apply_filters( 'sscribe_pdf_memory_hard_margin_bytes', 8 * 1024 * 1024 );
 
-		
 		if ( $memory_free <= $hard_margin ) {
 			$this->logger->error(
 				'PDF export aborted: memory pressure too high to render safely',
@@ -468,7 +440,6 @@ class SScribe_PDF_Exporter implements SScribe_Exporter_Interface {
 			);
 		}
 
-		
 		if ( $memory_free <= $soft_margin ) {
 			$this->logger->warning(
 				'PDF export memory pressure: soft margin reached, forcing GC',
@@ -498,7 +469,6 @@ class SScribe_PDF_Exporter implements SScribe_Exporter_Interface {
 	private function collect_temp_image_paths( array $processed_page_data ): array {
 		$paths = array();
 
-		
 		if ( ! empty( $processed_page_data['_temp_image_paths'] ) && is_array( $processed_page_data['_temp_image_paths'] ) ) {
 			foreach ( $processed_page_data['_temp_image_paths'] as $path ) {
 				if ( file_exists( $path ) && strpos( $path, sys_get_temp_dir() ) === 0 ) {
@@ -507,7 +477,6 @@ class SScribe_PDF_Exporter implements SScribe_Exporter_Interface {
 			}
 		}
 
-		
 		if ( ! empty( $processed_page_data['featured_image_url'] ) ) {
 			$path = $processed_page_data['featured_image_url'];
 			if ( file_exists( $path ) && strpos( $path, sys_get_temp_dir() ) === 0 && ! in_array( $path, $paths, true ) ) {
@@ -580,12 +549,6 @@ class SScribe_PDF_Exporter implements SScribe_Exporter_Interface {
 			}
 		}
 
-		
-		
-		
-		
-		
-		
 		$content = isset( $page_data['content'] ) ? (string) $page_data['content'] : '';
 		if ( '' !== $content ) {
 			$max_content_images = (int) apply_filters( 'sscribe_pdf_max_content_images', 20 );
@@ -598,17 +561,12 @@ class SScribe_PDF_Exporter implements SScribe_Exporter_Interface {
 				$page_data['content'] = (string) preg_replace_callback(
 					'/<img\b[^>]*\bsrc=("([^"]*)"|\'([^\']*)\')[^>]*>/i',
 					function ( array $matches ) use ( &$downloads, $max_content_images, &$temp_paths ): string {
-						
-						
-						
-						
+
 						$url = $matches[2] ?? ( $matches[3] ?? '' );
 						if ( '' === $url || $downloads >= $max_content_images ) {
 							return $matches[0];
 						}
 
-						
-						
 						if ( str_starts_with( $url, 'data:' ) || str_starts_with( $url, '#' ) || str_starts_with( $url, 'file://' ) ) {
 							return $matches[0];
 						}
@@ -617,8 +575,7 @@ class SScribe_PDF_Exporter implements SScribe_Exporter_Interface {
 						if ( $local_path && file_exists( $local_path ) ) {
 							$temp_paths[] = $local_path;
 							++$downloads;
-							
-							
+
 							$replacement = str_replace(
 								array( '"' . $url . '"', "'" . $url . "'" ),
 								array( '"' . $local_path . '"', "'" . $local_path . "'" ),
@@ -634,7 +591,6 @@ class SScribe_PDF_Exporter implements SScribe_Exporter_Interface {
 			}
 		}
 
-		
 		$page_data['_temp_image_paths'] = $temp_paths;
 
 		return $page_data;
@@ -674,23 +630,10 @@ class SScribe_PDF_Exporter implements SScribe_Exporter_Interface {
 			wp_mkdir_p( $mpdf_temp );
 		}
 
-		
-		
-		
-		
-		
-		
 		if ( ! file_exists( $sscribe_dir . '.htaccess' ) ) {
 			SScribe_Security::protect_directory( $sscribe_dir );
 		}
 
-		
-		
-		
-		
-		
-		
-		
 		$amiri_available = is_dir( $amiri_dir ) && file_exists( $amiri_dir . 'Amiri-Regular.ttf' );
 		if ( ! $amiri_available ) {
 			$this->logger->warning(
@@ -721,12 +664,6 @@ class SScribe_PDF_Exporter implements SScribe_Exporter_Interface {
 			SScribe_Security::protect_directory( $mpdf_temp );
 		}
 
-		
-		
-		
-		
-		
-		
 		$server_software = isset( $_SERVER['SERVER_SOFTWARE'] ) ? sanitize_text_field( wp_unslash( (string) $_SERVER['SERVER_SOFTWARE'] ) ) : '';
 		if ( '' !== $server_software && false !== stripos( $server_software, 'nginx' ) ) {
 			$this->logger->debug(
@@ -748,13 +685,6 @@ class SScribe_PDF_Exporter implements SScribe_Exporter_Interface {
 		$amiri_regular = $this->find_font_file( $amiri_dir, 'amiri[-_]?regular' ) ?? 'Amiri-Regular.ttf';
 		$amiri_bold    = $this->find_font_file( $amiri_dir, 'amiri[-_]?bold' ) ?? 'Amiri-Bold.ttf';
 
-		
-		
-		
-		
-		
-		
-		
 		$deja_vu_sans_face = array(
 			'R'  => 'DejaVuSans.ttf',
 			'B'  => 'DejaVuSans-Bold.ttf',
@@ -762,10 +692,6 @@ class SScribe_PDF_Exporter implements SScribe_Exporter_Interface {
 			'BI' => 'DejaVuSans-BoldOblique.ttf',
 		);
 
-		
-		
-		
-		
 		$xbriyaz_available = false;
 		$xbriyaz_search_dirs = array_merge( array( $font_dir, $amiri_dir ), $font_dirs );
 		foreach ( $xbriyaz_search_dirs as $xbriyaz_dir_path ) {
@@ -775,12 +701,6 @@ class SScribe_PDF_Exporter implements SScribe_Exporter_Interface {
 			}
 		}
 
-		
-		
-		
-		
-		
-		
 		$rtl_arabic_font = $amiri_available ? 'amiri' : ( $xbriyaz_available ? 'xbriyaz' : 'freeserif' );
 
 		$config = array(
@@ -792,23 +712,7 @@ class SScribe_PDF_Exporter implements SScribe_Exporter_Interface {
 						'R' => $amiri_regular,
 						'B' => $amiri_bold,
 					),
-					
-					
-					
-					
-					
-					
-					
-					
-					
-					
-					
-					
-					
-					
-					
-					
-					
+
 					'freesans' => array(
 						'R'  => 'DejaVuSans.ttf',
 						'B'  => 'DejaVuSans-Bold.ttf',
@@ -833,17 +737,7 @@ class SScribe_PDF_Exporter implements SScribe_Exporter_Interface {
 						'I'  => 'DejaVuSans-Oblique.ttf',
 						'BI' => 'DejaVuSans-BoldOblique.ttf',
 					),
-					
-					
-					
-					
-					
-					
-					
-					
-					
-					
-					
+
 					'sun-exta' => array(
 						'R'  => 'DejaVuSans.ttf',
 						'B'  => 'DejaVuSans-Bold.ttf',
@@ -856,33 +750,7 @@ class SScribe_PDF_Exporter implements SScribe_Exporter_Interface {
 						'I'  => 'DejaVuSans-Oblique.ttf',
 						'BI' => 'DejaVuSans-BoldOblique.ttf',
 					),
-					
-					
-					
-					
-					
-					
-					
-					
-					
-					
-					
-					
-					
-					
-					
-					
-					
-					
-					
-					
-					
-					
-					
-					
-					
-					
-					
+
 					'ocrb'              => $deja_vu_sans_face,
 					'estrangeloedessa'  => $deja_vu_sans_face,
 					'kaputaunicode'     => $deja_vu_sans_face,
@@ -909,67 +777,23 @@ class SScribe_PDF_Exporter implements SScribe_Exporter_Interface {
 					'mph2bdamase'       => $deja_vu_sans_face,
 					'lohitkannada'      => $deja_vu_sans_face,
 					'pothana2000'       => $deja_vu_sans_face,
-					
-					
-					
-					
-					
-					
-					
-					
+
 					'xbriyaz'           => $deja_vu_sans_face,
 					'lateef'            => $deja_vu_sans_face,
 				)
 			),
-			
-			
-			
-			
-			
-			
-			
-			
-			
-			
-			
-			
-			
-			
-			
-			
-			
-			
-			
-			
-			
-			
+
 			'backupSubsFont'   => array( 'freeserif' ),
 			'backupSIPFont'    => null,
 			'isRemoteEnabled'  => true,
-			
-			
-			
-			
-			
-			
-			
-			
-			
-			
-			
-			
-			
-			
-			
-			
+
 			'fonttrans'        => array_merge(
 				array(
-					
+
 					'serif'           => $is_rtl ? $rtl_arabic_font : 'freeserif',
 					'sans-serif'      => $is_rtl ? $rtl_arabic_font : 'freesans',
 					'monospace'       => 'freemono',
-					
-					
+
 					'times'           => $is_rtl ? $rtl_arabic_font : 'freeserif',
 					'times new roman' => $is_rtl ? $rtl_arabic_font : 'freeserif',
 					'georgia'         => $is_rtl ? $rtl_arabic_font : 'freeserif',

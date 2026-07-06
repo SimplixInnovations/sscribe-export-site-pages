@@ -127,12 +127,10 @@ class SScribe_Session {
 		self::$active_session_cache = array();
 		self::$test_mode           = false;
 
-		
 		if ( isset( $GLOBALS['sscribe_test_transients'] ) ) {
 			$GLOBALS['sscribe_test_transients'] = array();
 		}
 
-		
 		if ( isset( $GLOBALS['sscribe_test_options'] ) && is_array( $GLOBALS['sscribe_test_options'] ) ) {
 			foreach ( $GLOBALS['sscribe_test_options'] as $key => $value ) {
 				if ( str_starts_with( $key, self::OPTION_PREFIX ) ) {
@@ -182,9 +180,6 @@ class SScribe_Session {
 				return '';
 			}
 
-			
-			
-			
 			if ( isset( $data['user_id'] ) ) {
 				$transient_key = 'sscribe_active_sid_' . $data['user_id'];
 				$existing      = get_transient( $transient_key );
@@ -201,7 +196,7 @@ class SScribe_Session {
 						);
 						return '';
 					}
-					
+
 					delete_transient( $transient_key );
 				}
 			}
@@ -212,15 +207,9 @@ class SScribe_Session {
 			if ( $result ) {
 
 				if ( isset( $data['user_id'] ) ) {
-					
-					
-					
-					
-					
+
 					set_transient( 'sscribe_active_sid_' . $data['user_id'], $session_id, DAY_IN_SECONDS );
-					
-					
-					
+
 					if ( get_transient( 'sscribe_active_sid_' . $data['user_id'] ) !== $session_id ) {
 						$this->logger->error(
 							'Active-session transient verification failed : rolling back',
@@ -306,11 +295,11 @@ class SScribe_Session {
 		if ( is_array( $raw ) ) {
 			$data = $raw;
 		} elseif ( is_string( $raw ) ) {
-			
+
 			$decrypted = $this->decrypt_session_data( $raw );
 
 			if ( null !== $decrypted && false !== $decrypted ) {
-				
+
 				$data = json_decode( $decrypted, true );
 				if ( ! is_array( $data ) ) {
 					$this->logger->warning(
@@ -323,7 +312,7 @@ class SScribe_Session {
 					return null;
 				}
 			} else {
-				
+
 				$data = json_decode( $raw, true );
 
 				if ( ! is_array( $data ) ) {
@@ -395,8 +384,7 @@ class SScribe_Session {
 		$lock_ttl      = 10;
 		$using_cache   = wp_using_ext_object_cache();
 
-		
-		$base_delay   = 50000; 
+		$base_delay   = 50000;
 		$max_attempts = 6;
 
 		for ( $lock_attempt = 1; $lock_attempt <= $max_attempts; ++$lock_attempt ) {
@@ -410,9 +398,8 @@ class SScribe_Session {
 				break;
 			}
 
-			
 			$delay  = $base_delay * ( 2 ** ( $lock_attempt - 1 ) );
-			$jitter = wp_rand( 0, (int) ( $delay * 0.1 ) ); 
+			$jitter = wp_rand( 0, (int) ( $delay * 0.1 ) );
 			usleep( $delay + $jitter );
 		}
 
@@ -430,7 +417,7 @@ class SScribe_Session {
 			$existing = $this->get( $session_id );
 
 			if ( null === $existing ) {
-				
+
 				$this->logger->debug(
 					'Session no longer exists during update : may have been cancelled',
 					array( 'session_id' => $session_id )
@@ -438,8 +425,6 @@ class SScribe_Session {
 				return false;
 			}
 
-			
-			
 			$current_user_id = get_current_user_id();
 			if ( $current_user_id > 0 && isset( $existing['user_id'] ) && (int) $existing['user_id'] !== $current_user_id ) {
 				$this->logger->warning(
@@ -488,17 +473,12 @@ class SScribe_Session {
 			for ( $attempt = 1; $attempt <= 2; ++$attempt ) {
 				$encrypted_data = $this->encrypt_session_data( $encoded_data );
 				if ( update_option( $option_name, $encrypted_data, false ) ) {
-					
-					
-					
+
 					if ( isset( $merged['user_id'] ) && isset( $merged['status'] ) && in_array( $merged['status'], array( 'complete', 'failed', 'cancelled' ), true ) ) {
 						unset( self::$active_session_cache[ (int) $merged['user_id'] ] );
 						delete_transient( 'sscribe_active_sid_' . (int) $merged['user_id'] );
 					} elseif ( isset( $merged['user_id'] ) ) {
-						
-						
-						
-						
+
 						set_transient( 'sscribe_active_sid_' . (int) $merged['user_id'], $session_id, DAY_IN_SECONDS );
 					}
 					return true;
@@ -634,8 +614,6 @@ class SScribe_Session {
 			}
 		}
 
-		
-		
 		$page_ids = $this->get_page_ids( $session_id );
 		if ( empty( $page_ids ) ) {
 			$page_ids = $data['page_ids'] ?? array();
@@ -645,9 +623,6 @@ class SScribe_Session {
 			return false;
 		}
 
-		
-		
-		
 		$data['total']     = (int) $data['total'];
 		$data['processed'] = (int) $data['processed'];
 
@@ -705,13 +680,13 @@ class SScribe_Session {
 		$pattern     = $wpdb->esc_like( $this->option_prefix ) . '%';
 		$now         = time();
 		$start_time  = microtime( true );
-		$max_seconds = 30; 
+		$max_seconds = 30;
 
 		$deleted = 0;
 		$cursor  = '';
 
 		do {
-			
+
 			if ( ( microtime( true ) - $start_time ) > $max_seconds ) {
 				break;
 			}
@@ -742,7 +717,6 @@ class SScribe_Session {
 					? max( (int) $data['created_at'], (int) $data['updated_at'] )
 					: (int) $data['created_at'];
 
-				
 				if ( $last_activity <= 0 || $last_activity > $now ) {
 					$last_activity = 0;
 				}
@@ -756,9 +730,7 @@ class SScribe_Session {
 
 				if ( isset( $data['created_at'] ) && $last_activity > 0 && ( $now - $last_activity ) > $max_age_seconds ) {
 					if ( delete_option( $option->option_name ) ) {
-						
-						
-						
+
 						if ( isset( $data['user_id'] ) ) {
 							delete_transient( 'sscribe_active_sid_' . (int) $data['user_id'] );
 							unset( self::$active_session_cache[ (int) $data['user_id'] ] );
@@ -832,8 +804,6 @@ class SScribe_Session {
 			return array();
 		}
 
-		
-		
 		if ( self::$test_mode && ! empty( $GLOBALS['sscribe_test_options'] ) ) {
 			$test_sessions = array();
 			foreach ( $GLOBALS['sscribe_test_options'] as $option_name => $option_value ) {
@@ -849,7 +819,7 @@ class SScribe_Session {
 					$test_sessions[] = $data;
 				}
 			}
-			
+
 			if ( ! empty( $test_sessions ) ) {
 				usort(
 					$test_sessions,
@@ -1049,9 +1019,7 @@ class SScribe_Session {
 	 */
 	private function is_active_session_data( array $data ): bool {
 		$status = $data['status'] ?? '';
-		
-		
-		
+
 		if ( ! in_array( $status, array( 'processing', 'pending', 'finalizing', 'completing' ), true ) ) {
 			return false;
 		}
@@ -1139,11 +1107,10 @@ class SScribe_Session {
 			return null;
 		}
 
-		
 		$decrypted = $this->decrypt_session_data( $raw );
 
 		if ( null !== $decrypted && false !== $decrypted ) {
-			
+
 			$data = json_decode( $decrypted, true );
 			if ( is_array( $data ) ) {
 				return $data;
@@ -1151,14 +1118,12 @@ class SScribe_Session {
 			return null;
 		}
 
-		
 		$data = json_decode( $raw, true );
 
 		if ( is_array( $data ) ) {
 			return $data;
 		}
 
-		
 		if ( null !== $session_id && preg_match( '/^a:\d+:\{/', $raw ) ) {
 			$migrated = $this->migrate_legacy_session( $session_id, $raw );
 			if ( null !== $migrated ) {
@@ -1318,12 +1283,11 @@ class SScribe_Session {
 	 * @return string|null Decrypted JSON, or null if no path succeeds.
 	 */
 	private function decrypt_session_data( string $encrypted_data ): ?string {
-		
+
 		if ( 0 === strpos( $encrypted_data, 's1:' ) ) {
 			return $this->sodium_decrypt_session_data( $encrypted_data );
 		}
 
-		
 		return $this->legacy_aes_decrypt_session_data( $encrypted_data );
 	}
 
@@ -1346,14 +1310,8 @@ class SScribe_Session {
 		$key   = $this->get_sodium_key();
 		$nonce = random_bytes( SODIUM_CRYPTO_SECRETBOX_NONCEBYTES );
 
-		
-		
-		
-		
-		
 		$ciphertext = sodium_crypto_secretbox( $data, $nonce, $key );
 
-		
 		return 's1:' . rtrim( strtr( base64_encode( $nonce . $ciphertext ), '+/', '-_' ), '=' );
 	}
 

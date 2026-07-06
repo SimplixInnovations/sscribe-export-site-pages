@@ -64,7 +64,6 @@ class SScribe_Diagnostics {
 		$log_dir       = trailingslashit( $upload_dir['basedir'] ) . 'sscribe-logs';
 		$debug_enabled = SSCRIBE_DEBUG;
 
-		
 		$container    = SScribe_Container::instance();
 		$debug_logger = null;
 
@@ -83,7 +82,7 @@ class SScribe_Diagnostics {
 			$monthly_stats = $export_stats->get_stats( 'month' );
 		} catch ( \Throwable $e ) {
 			$monthly_stats = array();
-			
+
 			if ( defined( 'WP_DEBUG_LOG' ) && WP_DEBUG_LOG ) {
 				error_log( 'SScribe Diagnostics: monthly_stats failed : ' . $e->getMessage() );
 			}
@@ -135,7 +134,7 @@ class SScribe_Diagnostics {
 		}
 
 		try {
-			$logger_entries = null !== $debug_logger ? $debug_logger->get_logs( 5 ) : array(); 
+			$logger_entries = null !== $debug_logger ? $debug_logger->get_logs( 5 ) : array();
 		} catch ( \Throwable $e ) {
 			$logger_entries = array();
 			if ( defined( 'WP_DEBUG_LOG' ) && WP_DEBUG_LOG ) {
@@ -539,8 +538,6 @@ class SScribe_Diagnostics {
 				);
 			}
 
-			
-			
 			SScribe_Security::protect_directory( $export_dir );
 		}
 
@@ -624,9 +621,6 @@ class SScribe_Diagnostics {
 			);
 		}
 
-		
-		
-		
 		$amiri_dir   = SSCRIBE_PLUGIN_DIR . 'assets/fonts/amiri';
 		$amiri_fonts = is_dir( $amiri_dir ) ? glob( $amiri_dir . '/Amiri-*.ttf' ) : array();
 		if ( empty( $amiri_fonts ) ) {
@@ -665,11 +659,7 @@ class SScribe_Diagnostics {
 	 * @return array
 	 */
 	private function check_phpword(): array {
-		
-		
-		
-		
-		
+
 		if ( class_exists( '\\SScribeVendor\\PhpOffice\\PhpWord\\PhpWord' ) ) {
 			return array(
 				'name'    => 'PHPWord Library',
@@ -1053,7 +1043,7 @@ class SScribe_Diagnostics {
 			$mtime     = filemtime( $full_path );
 
 			if ( $mtime && time() - $mtime > 3 * DAY_IN_SECONDS ) {
-				
+
 				if ( is_dir( $full_path ) && ! $this->is_temp_dir_in_use( $full_path ) ) {
 					$this->delete_directory( $full_path );
 					++$cleared;
@@ -1109,8 +1099,6 @@ class SScribe_Diagnostics {
 				continue;
 			}
 
-			
-			
 			if ( ! empty( $data['temp_dir'] ) && str_starts_with( $data['temp_dir'], $dir ) ) {
 				return true;
 			}
@@ -1254,7 +1242,7 @@ class SScribe_Diagnostics {
 	 * @return string Formatted value safe for public sharing.
 	 */
 	private function format_support_value( string $key, string $value ): string {
-		
+
 		if ( 'php_version' === $key ) {
 			$parts = explode( '.', $value );
 			if ( count( $parts ) >= 2 ) {

@@ -58,8 +58,7 @@ class SScribe_Settings {
 		}
 		$result = update_option( self::OPT_DEBUG_ENABLED, $enabled, 'no' );
 		if ( ! $result ) {
-			
-			
+
 			return (bool) get_option( self::OPT_DEBUG_ENABLED ) === $enabled;
 		}
 		return true;
@@ -101,8 +100,7 @@ class SScribe_Settings {
 		}
 		$result = update_option( self::OPT_DEBUG_LOG_LEVEL, $level, 'no' );
 		if ( ! $result ) {
-			
-			
+
 			return get_option( self::OPT_DEBUG_LOG_LEVEL ) === $level;
 		}
 		return true;
@@ -130,8 +128,7 @@ class SScribe_Settings {
 		}
 		$result = update_option( self::OPT_DEBUG_AUTO_REFRESH, $enabled, 'no' );
 		if ( ! $result ) {
-			
-			
+
 			return (bool) get_option( self::OPT_DEBUG_AUTO_REFRESH ) === $enabled;
 		}
 		return true;
@@ -169,7 +166,6 @@ class SScribe_Settings {
 		$enabled_saved = self::set_debug_enabled( $enabled );
 		$refresh_saved = self::set_auto_refresh( $refresh );
 
-		
 		if ( ! $level_saved || ! $enabled_saved || ! $refresh_saved ) {
 			if ( class_exists( 'SScribe_Logger' ) ) {
 				$logger = SScribe_Logger::instance( true );
@@ -185,7 +181,6 @@ class SScribe_Settings {
 			return false;
 		}
 
-		
 		if ( class_exists( 'SScribe_Logger' ) ) {
 			SScribe_Logger::reset_instance();
 		}

@@ -49,7 +49,6 @@ trait SScribe_Logger_Common {
 			'request_id'     => $this->get_request_id(),
 		);
 
-		
 		if ( isset( $this->session_id ) && null !== $this->session_id ) {
 			$context['session_id'] = $this->session_id;
 		}

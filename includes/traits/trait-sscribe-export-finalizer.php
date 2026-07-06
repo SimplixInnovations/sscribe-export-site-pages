@@ -102,9 +102,6 @@ trait SScribe_Export_Finalizer {
 		$status = $session['status'] ?? '';
 		$temp_dir = $session['temp_dir'] ?? '';
 
-		
-		
-		
 		if ( 'pending' === $status && ! empty( $temp_dir ) && ! is_dir( $temp_dir ) ) {
 			$this->session->update(
 				$session_id,
@@ -134,11 +131,6 @@ trait SScribe_Export_Finalizer {
 			return;
 		}
 
-		
-		
-		
-		
-		
 		$file_count = $this->count_temp_dir_files( $session['temp_dir'] );
 		$lock_ttl   = max( 120, min( 600, $file_count * 2 ) );
 
@@ -156,8 +148,7 @@ trait SScribe_Export_Finalizer {
 		}
 
 		if ( 'completing' === $status ) {
-			
-			
+
 			$completing_since = $session['completing_since'] ?? 0;
 			if ( $completing_since > 0 && ( time() - $completing_since ) < $lock_ttl ) {
 				$this->release_lock( $session_id, $lock_token );
@@ -168,13 +159,9 @@ trait SScribe_Export_Finalizer {
 					),
 					409
 				);
-				
-				
-				
-				
+
 				return;
 			}
-			
 		}
 
 		try {
@@ -208,7 +195,7 @@ trait SScribe_Export_Finalizer {
 	 * @param string|null $lock_token Optional lock token to release on completion.
 	 */
 	private function finalize_export( string $session_id, array $session, ?string $lock_token = null ): void {
-		
+
 		self::$cleanup_temp_dir    = null;
 		self::$cleanup_zip_handler = null;
 		self::$cleanup_logger      = null;
@@ -306,8 +293,7 @@ trait SScribe_Export_Finalizer {
 			$files_before = array();
 			foreach ( $formats as $format ) {
 				$ext   = 'markdown' === $format ? 'md' : $format;
-				
-				
+
 				$found = glob( trailingslashit( $session['temp_dir'] ) . '*/*.' . $ext );
 				if ( $found ) {
 					$files_before[ $format ] = count( $found );
@@ -431,10 +417,9 @@ trait SScribe_Export_Finalizer {
 			$zip_open        = $zip->open( $zip_path );
 			$total_files_zip = 0;
 			if ( true === $zip_open ) {
-				
+
 				$total_files_zip = 0;
-				
-				
+
 				// phpcs:ignore WordPress.NamingConventions.ValidVariableName.UsedPropertyNotSnakeCase
 				$zip_file_count = $zip->numFiles;
 				for ( $i = 0; $i < $zip_file_count; $i++ ) {
@@ -446,7 +431,6 @@ trait SScribe_Export_Finalizer {
 				$zip->close();
 			}
 
-			
 			$expected_file_count = array_sum( $files_before );
 			if ( $expected_file_count > 0 && $total_files_zip < $expected_file_count ) {
 				$this->logger->warning(
@@ -521,8 +505,7 @@ trait SScribe_Export_Finalizer {
 
 			$duration         = microtime( true ) - ( $session['start_time'] ?? microtime( true ) );
 			$zip_size         = function_exists( 'wp_filesize' ) && file_exists( $zip_path ) ? (int) wp_filesize( $zip_path ) : 0;
-			
-			
+
 			$error_count      = (int) ( $session['error_count'] ?? count( $session['errors'] ?? array() ) );
 			$successful_pages = max( 0, ( $session['total'] ?? 0 ) - $error_count );
 			$export_stats->complete_export(
@@ -559,8 +542,6 @@ trait SScribe_Export_Finalizer {
 			$formats    = isset( $session['formats'] ) ? $session['formats'] : self::DEFAULT_FORMATS;
 			$session_pt = $session['post_type'] ?? 'page';
 
-			
-			
 			$fresh_session = $this->session->get( $session_id );
 			if ( ! $fresh_session ) {
 				$fresh_session = array();
@@ -584,7 +565,6 @@ trait SScribe_Export_Finalizer {
 			$log_summary       = $this->export_log ? $this->export_log->get_summary() : array();
 			$error_diagnostics = $this->build_error_diagnostics_payload( $structured_errors, $session['errors'] ?? array() );
 
-			
 			$zip_warning = '';
 			if ( $expected_file_count > 0 && $total_files_zip < $expected_file_count ) {
 				$zip_warning = sprintf(
@@ -643,8 +623,6 @@ trait SScribe_Export_Finalizer {
 				);
 			}
 
-			
-			
 			$this->session->delete( $session_id );
 			$this->release_lock( $session_id, $lock_token );
 			SScribe_AJAX_Guard::success( $response );

@@ -63,10 +63,6 @@ class SScribe_Upgrader {
 		global $wpdb;
 		$charset_collate = $wpdb->get_charset_collate();
 
-		
-		
-		
-		
 		$upgrade_functions = ABSPATH . 'wp-admin/includes/upgrade.php';
 		if ( file_exists( $upgrade_functions ) ) {
 			require_once $upgrade_functions;

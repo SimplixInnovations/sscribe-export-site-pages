@@ -107,10 +107,9 @@ class SScribe_Adaptive_Metrics {
 		$lock_key = 'sscribe_metrics_save_lock';
 		$lock_ttl = 5;
 
-		
 		$acquired = wp_cache_add( $lock_key, 1, '', $lock_ttl );
 		if ( ! $acquired ) {
-			
+
 			return;
 		}
 

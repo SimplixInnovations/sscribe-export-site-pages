@@ -125,25 +125,19 @@ class SScribe_Exporter_Factory {
 
 			$page_title = rtrim( $page_title, '- _' );
 
-			
 			$page_title = self::sanitize_filename_preserve_unicode( $page_title );
 		}
 
-		
 		unset( $include_lang );
 
 		$pad_length = $total > 0 ? strlen( (string) $total ) : 3;
 		$pad_length = max( 3, $pad_length );
 
-		
-		
 		$id_suffix = $page_id > 0 ? '-' . $page_id : '';
 
-		
-		
 		$page_index = $index > 0 ? $index : 1;
 		if ( 0 === $index && $total > 1 ) {
-			
+
 			error_log( // phpcs:ignore WordPress.PHP.DevelopmentFunctions
 				sprintf(
 					'SScribe: build_filename called with index=0 for a multi-page export (%d pages). Filename will use P001.',
@@ -174,29 +168,21 @@ class SScribe_Exporter_Factory {
 	 * @return string Sanitized filename safe for filesystem use.
 	 */
 	private static function sanitize_filename_preserve_unicode( string $filename ): string {
-		
+
 		$filename = str_replace( array( '/', '\\' ), '-', $filename );
 
-		
 		$filename = str_replace( "\0", '', $filename );
 
-		
-		
 		$filename = preg_replace( '/[\x00-\x1f\x7f<>:\"\/\\\\|?]/', '', $filename );
 
-		
-		
 		if ( preg_match( '/^(con|prn|aux|nul|com[1-9]|lpt[1-9])(\\.|$)/i', $filename ) ) {
 			$filename = '_' . $filename;
 		}
 
-		
 		$filename = preg_replace( '/-+/', '-', $filename );
 
-		
 		$filename = trim( $filename, '.-' );
 
-		
 		if ( strlen( $filename ) > 200 ) {
 			$filename = substr( $filename, 0, 200 );
 		}

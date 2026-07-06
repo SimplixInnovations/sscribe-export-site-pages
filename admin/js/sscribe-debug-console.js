@@ -283,11 +283,10 @@
 				const helpContent = self.$helpContent && self.$helpContent[0];
 				if (helpContent) {
 					const overlay = document.createElement('div');
-					overlay.style.cssText = 'position:fixed;inset:0;background:rgb(0 0 0 / 50%);z-index:9999998;';
+					overlay.className = 'sscribe-help-overlay';
 					overlay.setAttribute('aria-hidden', 'true');
 					const dialog = document.createElement('div');
-					dialog.style.cssText =
-						'position:fixed;top:50%;left:50%;transform:translate(-50%,-50%);background:#fff;color:#333;padding:24px;border-radius:8px;max-width:400px;z-index:9999999;font-size:14px;line-height:1.6;';
+					dialog.className = 'sscribe-help-dialog';
 					dialog.setAttribute('role', 'dialog');
 					dialog.setAttribute('aria-modal', 'true');
 					dialog.setAttribute('aria-labelledby', 'sscribe-debug-help-title');
@@ -333,10 +332,9 @@
 					};
 					const closeBtn = document.createElement('button');
 					closeBtn.type = 'button';
+					closeBtn.className = 'sscribe-help-close';
 					closeBtn.textContent = '\u00D7';
 					closeBtn.setAttribute('aria-label', 'Close dialog');
-					closeBtn.style.cssText =
-						'position:absolute;top:12px;right:12px;background:none;border:none;font-size:18px;cursor:pointer;';
 					closeBtn.addEventListener('click', closeDialog);
 					dialog.appendChild(closeBtn);
 					overlay.addEventListener('click', closeDialog);
@@ -1706,7 +1704,7 @@
 })(jQuery);
 
 /**
- * SScribe Debug Console — Targeted Fixes v1.1.2 patch-2
+ * SScribe Debug Console - Targeted Fixes v1.1.2 patch-2
  * 1. Inject SEARCH LOGS: label above search input
  * 2. Fix settings panel LOG LEVEL + Save alignment
  */
@@ -1783,7 +1781,7 @@
 })(jQuery);
 
 /**
- * SScribe Debug Console — Context Panel Class Observer
+ * SScribe Debug Console - Context Panel Class Observer
  * Watches context panels for jQuery show/hide (inline style changes)
  * and adds/removes .sscribe-ctx-open class so CSS can target them
  * without !important display battles.
@@ -1836,10 +1834,10 @@
 })(jQuery);
 
 /**
- * SScribe Debug — Context panel click interceptor (patch-3)
+ * SScribe Debug - Context panel click interceptor (patch-3)
  * Uses event capture (useCapture=true) so it fires AFTER jQuery's
  * handler. Reads aria-expanded and syncs .sscribe-ctx-open class
- * on the sibling context panel — no MutationObserver race condition.
+ * on the sibling context panel - no MutationObserver race condition.
  */
 (function ($) {
   'use strict';

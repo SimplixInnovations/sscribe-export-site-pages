@@ -29,9 +29,6 @@ class SScribe_Activator {
 	 */
 	public static function activate( bool $network_wide = false ): void {
 
-		
-		
-		
 		$existing_version = get_option( 'sscribe_version', null );
 		if ( null === $existing_version ) {
 			delete_option( 'sscribe_export_index' );
@@ -211,7 +208,6 @@ class SScribe_Activator {
 		) $charset_collate;";
 		dbDelta( $sql_sessions );
 
-		require_once SSCRIBE_PLUGIN_DIR . 'includes/class-sscribe-audit-trail.php';
 		SScribe_Audit_Trail::create_table();
 	}
 

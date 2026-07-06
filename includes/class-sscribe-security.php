@@ -24,9 +24,7 @@ class SScribe_Security {
 	 * @param string $dir Directory path to protect.
 	 */
 	public static function protect_directory( string $dir ): void {
-		
-		
-		
+
 		if ( ! is_dir( $dir ) ) {
 			wp_mkdir_p( $dir );
 		}
@@ -83,13 +81,13 @@ class SScribe_Security {
 			$path = $dir . '/' . $file;
 
 			if ( is_link( $path ) ) {
-				
+
 				$target = readlink( $path );
 				if ( false !== $target && self::is_path_in_scope( $target ) ) {
 					wp_delete_file( $path );
 				}
 			} elseif ( is_dir( $path ) ) {
-				
+
 				self::delete_directory( $path, $max_depth, $depth + 1 );
 			} else {
 				wp_delete_file( $path );
@@ -112,11 +110,9 @@ class SScribe_Security {
 			if ( ! function_exists( 'WP_Filesystem' ) ) {
 				require_once ABSPATH . 'wp-admin/includes/file.php';
 			}
-			
-			
-			
+
 			if ( ! WP_Filesystem() ) {
-				
+
 				// phpcs:ignore WordPress.WP.AlternativeFunctions.file_system_operations_rmdir
 				return @rmdir( $dir );
 			}
@@ -142,16 +138,14 @@ class SScribe_Security {
 				require_once ABSPATH . 'wp-admin/includes/file.php';
 			}
 			$chmod = null === $chmod ? ( defined( 'FS_CHMOD_FILE' ) ? FS_CHMOD_FILE : 0644 ) : $chmod;
-			
-			
-			
+
 			if ( ! WP_Filesystem() ) {
-				
+
 				// phpcs:ignore WordPress.WP.AlternativeFunctions.file_system_operations_file_put_contents
 				if ( false === file_put_contents( $file_path, $content, LOCK_EX ) ) {
 					return false;
 				}
-				
+
 				// phpcs:ignore WordPress.WP.AlternativeFunctions.file_system_operations_chmod
 				chmod( $file_path, $chmod );
 				return true;

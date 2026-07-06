@@ -67,8 +67,7 @@ trait SScribe_Session_AJAX {
 
 		$rate_check = $this->check_rate_limit();
 		if ( false === $rate_check ) {
-			
-			
+
 			wp_send_json_success(
 				array(
 					'has_active'   => false,
@@ -99,7 +98,6 @@ trait SScribe_Session_AJAX {
 			return;
 		}
 
-		
 		wp_send_json_success(
 			array(
 				'has_active' => true,
@@ -140,8 +138,6 @@ trait SScribe_Session_AJAX {
 			SScribe_AJAX_Guard::error( array( 'message' => __( 'Invalid session.', 'sscribe-export-site-pages' ) ), 400 );
 		}
 
-		
-		
 		$session = $this->get( $session_id );
 		if ( ! $session ) {
 			SScribe_AJAX_Guard::error( array( 'message' => __( 'Session not found.', 'sscribe-export-site-pages' ) ), 404 );
@@ -163,13 +159,6 @@ trait SScribe_Session_AJAX {
 			);
 		}
 
-		
-		
-		
-		
-		
-		
-		
 		$lock_token = $this->get_lock_manager()->acquire_lock( $session_id, 30, 25 );
 		if ( null === $lock_token ) {
 			SScribe_AJAX_Guard::error(
@@ -184,10 +173,7 @@ trait SScribe_Session_AJAX {
 		}
 
 		try {
-			
-			
-			
-			
+
 			$session = $this->get( $session_id );
 			if ( ! $session ) {
 				SScribe_AJAX_Guard::success(
@@ -195,7 +181,6 @@ trait SScribe_Session_AJAX {
 				);
 			}
 
-			
 			if ( ! $this->validate_session_ownership( $session, $session_id ) ) {
 				SScribe_AJAX_Guard::error( array( 'message' => __( 'Invalid session access.', 'sscribe-export-site-pages' ) ), 403 );
 			}
@@ -203,25 +188,13 @@ trait SScribe_Session_AJAX {
 			$session['cancelled'] = true;
 			$update_ok            = $this->update( $session_id, $session );
 			if ( ! $update_ok ) {
-				
-				
-				
-				
-				
+
 				$this->get_logger()->warning(
 					'Cancel mutation: update returned false (concurrent writer won race)',
 					array( 'session_id' => $session_id )
 				);
 			}
 
-			
-			
-			
-			
-			
-			
-			
-			
 			try {
 				$this->cleanup_cancelled_export( $session );
 			} catch ( \Throwable $e ) {

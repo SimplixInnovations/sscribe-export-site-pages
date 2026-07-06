@@ -72,8 +72,7 @@ class SScribe_DOCX_Exporter implements SScribe_Exporter_Interface {
 	 */
 	public function apply_format_options( array $options ): void {
 		$this->format_options = $options;
-		
-		
+
 		$this->exporter->set_format_options( $options );
 	}
 

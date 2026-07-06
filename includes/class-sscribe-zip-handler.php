@@ -71,7 +71,7 @@ class SScribe_Zip_Handler {
 		if ( ! file_exists( $this->export_dir ) ) {
 			SScribe_Security::protect_directory( $this->export_dir );
 		} elseif ( ! file_exists( $this->export_dir . '/.htaccess' ) ) {
-			
+
 			SScribe_Security::protect_directory( $this->export_dir );
 		}
 		return $this->export_dir;
@@ -127,8 +127,6 @@ class SScribe_Zip_Handler {
 
 		$zip_path = $this->export_dir . '/' . sanitize_file_name( $zip_name ) . '.zip';
 
-		
-		
 		$all_files         = array();
 		$format_extensions = array(
 			'docx'     => 'docx',
@@ -142,12 +140,7 @@ class SScribe_Zip_Handler {
 			if ( ! $ext ) {
 				continue;
 			}
-			
-			
-			
-			
-			
-			
+
 			$found = glob( $source_dir . '/*/*.' . $ext );
 			if ( $found ) {
 				$all_files[ $format ] = $found;
@@ -160,7 +153,6 @@ class SScribe_Zip_Handler {
 			return false;
 		}
 
-		
 		$all_file_paths = array();
 		foreach ( $all_files as $format_files ) {
 			foreach ( $format_files as $file_path ) {
@@ -190,10 +182,7 @@ class SScribe_Zip_Handler {
 
 		$zip        = new ZipArchive();
 		$zip_opened = false;
-		
-		
-		
-		
+
 		$tmp_zip          = wp_tempnam( 'sscribe-export-' );
 		$assembly_failed  = false;
 		if ( false === $tmp_zip ) {
@@ -205,7 +194,7 @@ class SScribe_Zip_Handler {
 			if ( $zip->open( $tmp_zip, ZipArchive::CREATE | ZipArchive::OVERWRITE ) !== true ) {
 				$this->logger->error( 'Failed to create ZIP file', array( 'zip_path' => $zip_path ) );
 				$this->delete_directory( $source_dir );
-				
+
 				if ( file_exists( $tmp_zip ) ) {
 					wp_delete_file( $tmp_zip );
 				}
@@ -235,13 +224,10 @@ class SScribe_Zip_Handler {
 
 				foreach ( $files as $file ) {
 					$basename      = basename( $file );
-					
-					
-					
-					
+
 					$parent_dir    = strtoupper( basename( dirname( $file ) ) );
 					$lang_code     = $parent_dir;
-					
+
 					$archive_entry = preg_replace( '/[\/\\\\:*?"<>|]/', '-', $basename );
 
 					if ( in_array( $basename, array( 'index.php', '.htaccess' ), true ) ) {
@@ -274,9 +260,6 @@ class SScribe_Zip_Handler {
 				}
 			}
 
-			
-			
-			
 			foreach ( $formats as $format ) {
 				$ext = isset( $format_extensions[ $format ] ) ? $format_extensions[ $format ] : null;
 				if ( ! $ext ) {
@@ -302,21 +285,16 @@ class SScribe_Zip_Handler {
 			$assembly_failed = true;
 			throw $e;
 		} finally {
-			
-			
+
 			if ( $zip_opened ) {
 				$zip->close();
 			}
-			
-			
-			
+
 			if ( $assembly_failed && file_exists( $tmp_zip ) ) {
 				wp_delete_file( $tmp_zip );
 			}
 		}
 
-		
-		
 		$zip_finalized = false;
 		if ( file_exists( $tmp_zip ) && filesize( $tmp_zip ) > 0 ) {
 			// phpcs:ignore WordPress.WP.AlternativeFunctions.rename_rename -- Fallback when WP_Filesystem unavailable; zip finalization.
@@ -332,7 +310,6 @@ class SScribe_Zip_Handler {
 				);
 				$zip_path = $tmp_zip;
 			}
-			
 		} elseif ( file_exists( $tmp_zip ) ) {
 			wp_delete_file( $tmp_zip );
 		}
@@ -357,20 +334,15 @@ class SScribe_Zip_Handler {
 			usleep( $lock_delay );
 		}
 
-		
-		
-		
-		
 		if ( ! $locked ) {
 			$this->logger->warning(
 				'Export indexing skipped - could not acquire exclusive lock (concurrent finalize detected)',
 				array( 'zip' => basename( $zip_path ) )
 			);
-			
+
 			return file_exists( $zip_path ) ? $zip_path : false;
 		}
 
-		
 		if ( ! $this->verify_zip_integrity( $zip_path ) ) {
 			$this->logger->error(
 				'ZIP verification failed before return',
@@ -384,7 +356,6 @@ class SScribe_Zip_Handler {
 			return false;
 		}
 
-		
 		try {
 			$basename = basename( $zip_path );
 			$row      = array(
@@ -417,7 +388,7 @@ class SScribe_Zip_Handler {
 
 			update_option( 'sscribe_export_index', $index, false );
 		} finally {
-			
+
 			if ( $lock_using_cache ) {
 				wp_cache_delete( $lock_key, 'transient' );
 			} else {
@@ -440,8 +411,7 @@ class SScribe_Zip_Handler {
 		}
 
 		$zip    = new ZipArchive();
-		
-		
+
 		$readonly_mode = defined( 'ZipArchive::READONLY' ) ? ZipArchive::READONLY : 1;
 		$result = $zip->open( $zip_path, $readonly_mode );
 		if ( true !== $result ) {
@@ -455,8 +425,6 @@ class SScribe_Zip_Handler {
 			return false;
 		}
 
-		
-		
 		$num_files = $zip->numFiles; // phpcs:ignore WordPress.NamingConventions.ValidVariableName.UsedPropertyNotSnakeCase
 		if ( $num_files < 1 ) {
 			$zip->close();
@@ -469,18 +437,13 @@ class SScribe_Zip_Handler {
 			return false;
 		}
 
-		
-		
-		
-		
 		$first_file_entry = null;
 		for ( $i = 0; $i < $num_files; $i++ ) {
 			$entry = $zip->statIndex( $i );
 			if ( ! $entry || empty( $entry['name'] ) ) {
 				continue;
 			}
-			
-			
+
 			if ( substr( $entry['name'], -1 ) === '/' ) {
 				continue;
 			}
@@ -500,7 +463,6 @@ class SScribe_Zip_Handler {
 			return false;
 		}
 
-		
 		if ( 0 === $first_file_entry['size'] ) {
 			$this->logger->error(
 				'ZIP appears truncated or corrupted : first file entry is empty',
@@ -590,7 +552,6 @@ class SScribe_Zip_Handler {
 			$exports  = get_option( 'sscribe_export_index', array() );
 			$modified = false;
 
-			
 			foreach ( (array) $exports as $basename ) {
 				$basename   = (string) $basename;
 				$file_path  = $this->export_dir . '/' . ltrim( $basename, '/\\' );
@@ -629,12 +590,11 @@ class SScribe_Zip_Handler {
 				}
 			}
 
-			
 			if ( ! empty( $files ) ) {
 				$indexed_basenames = array_keys( $exports );
 				foreach ( $files as $file_path ) {
 					$basename = basename( $file_path );
-					
+
 					if ( ! in_array( $basename, $indexed_basenames, true ) ) {
 						$file_time = filemtime( $file_path );
 						if ( $file_time && ( $now - $file_time ) > $max_age ) {
