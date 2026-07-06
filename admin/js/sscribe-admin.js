@@ -285,6 +285,10 @@
 			$(document).on('click.sscribe', '#sscribe-support-copy-btn', $.proxy(this.copySupportInfo, this));
 			$(document).on('click.sscribe', '#sscribe-modal-close', $.proxy(this.closeModal, this));
 			$(document).on('click.sscribe', '.sscribe-history-actions > a', $.proxy(this.downloadExport, this));
+			$(document).on('click.sscribe', '#sscribe-onboarding-dismiss', $.proxy(this.dismissOnboarding, this));
+			$(document).on('click.sscribe', '#sscribe-error-toggle-details', $.proxy(this.toggleErrorDetails, this));
+			$(document).on('input.sscribe', '#sscribe-history-search', $.proxy(this.filterHistory, this));
+			$(document).on('click.sscribe', '#sscribe-empty-start-export-btn', $.proxy(this.startFirstExportFromEmpty, this));
 			$(document).on('click.sscribe', '#sscribe-preview-panel', function (e) {
 				if (e.target === this) {
 					SScribe.closePreview();
@@ -313,6 +317,12 @@
 					}
 					const tag = e.target && e.target.tagName;
 					if (tag === 'INPUT' || tag === 'TEXTAREA' || (e.target && e.target.isContentEditable)) {
+						return;
+					}
+					const $confirmModal = $('#sscribe-confirm-modal');
+					if ($confirmModal.length && !$confirmModal.hasClass('sscribe-hidden')) {
+						e.preventDefault();
+						$confirmModal.find('#sscribe-confirm-cancel').trigger('click');
 						return;
 					}
 				}
@@ -416,6 +426,18 @@
             },
         setActiveTab: function (tabId) {
 			const self = this;
+			const announce = document.getElementById('sscribe-tab-announce');
+			if (announce) {
+				let label = '';
+				$('.sscribe-tab-btn').each(function () {
+					if ($(this).data('tab') === tabId) {
+						label = $(this).text().trim();
+					}
+				});
+				announce.textContent = label
+					? (label + ' tab selected')
+					: 'Tab changed';
+			}
 			$('.sscribe-tab-btn').each(function () {
 				const $button = $(this);
 				const isActive = $button.data('tab') === tabId;
@@ -1189,13 +1211,33 @@
 			if (!this.sessionId) {
 				return;
 			}
-			const confirmMsg =
+			const confirmTitle =
+				(sscribe_data.strings && sscribe_data.strings.cancel_title) ||
+				'Cancel this export?';
+			const confirmDesc =
 				(sscribe_data.strings && sscribe_data.strings.cancel_confirm) ||
 				'Cancel the current export? Partial progress will be discarded.';
-			if (!window.confirm(confirmMsg)) {
-				SScribe.announce(sscribe_data.strings.cancel_aborted || 'Cancellation aborted.');
-				return;
-			}
+			const confirmBtn =
+				(sscribe_data.strings && sscribe_data.strings.cancel) ||
+				'Cancel Export';
+			this.showConfirm({
+				title: confirmTitle,
+				description: confirmDesc,
+				confirmLabel: confirmBtn,
+				variant: 'danger',
+				onProceed: function () {
+					SScribe._doCancelExport();
+				},
+				onCancel: function () {
+					SScribe.announce(sscribe_data.strings.cancel_aborted || 'Cancellation aborted.');
+				},
+			});
+		},
+		/**
+		 * Internal: send the cancel-export AJAX request after the user confirms.
+		 * Split out so the confirm modal's onProceed closure can call it safely.
+		 */
+		_doCancelExport: function () {
 			if (this._batchXHR) {
 				this._batchXHR.abort();
 				this._batchXHR = null;
@@ -1261,6 +1303,7 @@
 			if (liveRegion) {
 				liveRegion.textContent = (sscribe_data.strings && sscribe_data.strings.complete) || 'Export complete!';
 			}
+			this.populateSuccessMeta(data);
 			const self = this;
 			$('#sscribe-progress-area').slideUp(300, function () {
 				$('#sscribe-download-area')
@@ -1589,26 +1632,31 @@
 			$table.html(html);
 		},
 		updateBulkBar: function () {
-			const $checks = $('.sscribe-history-check:checked');
-			const $all = $('.sscribe-history-check');
+			const $checks = $('.sscribe-history-check:checked').not('.sscribe-history-row-hidden .sscribe-history-check');
+			const $all = $('.sscribe-history-check').not('.sscribe-history-row-hidden .sscribe-history-check');
 			const $bar = $('#sscribe-bulk-bar');
+			if (!$bar.length) {
+				return;
+			}
 			const count = $checks.length;
 			const total = $all.length;
 			if (count > 0) {
-				$bar.removeClass('sscribe-hidden');
+				$bar.removeClass('sscribe-hidden').attr('data-active', 'true');
 				$('#sscribe-bulk-count').text(count + ' ' + (sscribe_data.strings.selected || 'selected'));
 				$('.sscribe-history-row').removeClass('sscribe-row-selected');
 				$checks.closest('.sscribe-history-row').addClass('sscribe-row-selected');
 				const $selectAll = $('#sscribe-bulk-select-all');
-				if (count === total) {
+				if (count === total && total > 0) {
 					$selectAll.prop('checked', true).prop('indeterminate', false);
 				} else {
 					$selectAll.prop('checked', false).prop('indeterminate', true);
 				}
+				$('#sscribe-bulk-download-btn, #sscribe-bulk-delete-btn').prop('disabled', false);
 			} else {
-				$bar.addClass('sscribe-hidden');
+				$bar.attr('data-active', 'false');
 				$('.sscribe-history-row').removeClass('sscribe-row-selected');
 				$('#sscribe-bulk-select-all').prop('checked', false).prop('indeterminate', false);
+				$('#sscribe-bulk-download-btn, #sscribe-bulk-delete-btn').prop('disabled', true);
 			}
 		},
 		toggleSelectAll: function (e) {
@@ -1669,10 +1717,41 @@
 				(sscribe_data.strings && sscribe_data.strings.bulk_delete_confirm) ||
 				'Delete %d selected export(s)? This cannot be undone.';
 			const message = template.replace('%d', String(count));
-			if (!window.confirm(message)) {
-				SScribe.announce(sscribe_data.strings.bulk_delete_cancelled || 'Bulk delete cancelled.');
+			const proceedLabel =
+				(sscribe_data.strings && sscribe_data.strings.bulk_delete_label) ||
+				'Delete forever';
+			const self = this;
+			this.showConfirm({
+				title: (sscribe_data.strings && sscribe_data.strings.bulk_delete_title) ||
+					'Delete ' + count + ' export(s)?',
+				description: (sscribe_data.strings && sscribe_data.strings.bulk_delete_desc) ||
+					'This permanently removes the selected packages from your uploads folder. The deletion cannot be undone.',
+				body: '<ul class="sscribe-confirm-list">' +
+					$checks.map(function () {
+						const name = SScribe.escapeHtml($(this).val());
+						return '<li>' + name + '</li>';
+					}).get().join('') +
+					'</ul>',
+				confirmLabel: proceedLabel,
+				variant: 'danger',
+				onProceed: function () {
+					SScribe._doBulkDeleteSelected();
+				},
+				onCancel: function () {
+					SScribe.announce(sscribe_data.strings.bulk_delete_cancelled || 'Bulk delete cancelled.');
+				},
+			});
+			return;
+		},
+		/**
+		 * Internal: actually run the bulk-delete AJAX flow.
+		 */
+		_doBulkDeleteSelected: function () {
+			const $checks = $('.sscribe-history-check:checked');
+			if ($checks.length === 0) {
 				return;
 			}
+			const count = $checks.length;
 			const filenames = [];
 			$checks.each(function () {
 				filenames.push($(this).val());
@@ -2284,6 +2363,211 @@
 				}
 				self._previewTrigger = null;
 			});
+		},
+		/**
+		 * Open the confirm (alertdialog) modal. Replaces native window.confirm().
+		 *
+		 * @param {Object}   opts                       Options.
+		 * @param {string}   opts.title                 Heading text (already localized).
+		 * @param {string}   opts.description           Short description shown under title.
+		 * @param {string}   [opts.body]                Optional HTML body content (already escaped).
+		 * @param {string}   [opts.confirmLabel]        Proceed button label. Default: "Confirm".
+		 * @param {string}   [opts.cancelLabel]         Cancel button label. Default: "Cancel".
+		 * @param {string}   [opts.variant]             "danger" (red proceed) or default.
+		 * @param {Function} opts.onProceed             Called when user confirms. Receives `done(true)`.
+		 * @param {Function} [opts.onCancel]            Called when user dismisses. Receives `done(false)`.
+		 * @returns {void}
+		 */
+		showConfirm: function (opts) {
+			if (!opts || typeof opts.onProceed !== 'function') {
+				return;
+			}
+			const $modal = $('#sscribe-confirm-modal');
+			if (!$modal.length) {
+				opts.onProceed(function () { return true; });
+				return;
+			}
+			const $title = $('#sscribe-confirm-title');
+			const $desc = $('#sscribe-confirm-desc');
+			const $body = $('#sscribe-confirm-body');
+			const $proceed = $('#sscribe-confirm-proceed');
+			const $cancel = $('#sscribe-confirm-cancel');
+			$title.text(opts.title || 'Confirm action');
+			$desc.text(opts.description || 'Are you sure?');
+			const bodyHtml = opts.body || '';
+			$body.html(bodyHtml);
+			if (bodyHtml.trim() === '') {
+				$modal.addClass('sscribe-confirm-empty');
+			} else {
+				$modal.removeClass('sscribe-confirm-empty');
+			}
+			const proceedLabel = opts.confirmLabel || 'Confirm';
+			const cancelLabel = opts.cancelLabel || 'Cancel';
+			$proceed.text(proceedLabel);
+			$cancel.text(cancelLabel);
+			$proceed.removeClass('sscribe-button-danger sscribe-button-primary');
+			if (opts.variant === 'danger') {
+				$proceed.addClass('sscribe-button-danger');
+			} else {
+				$proceed.addClass('sscribe-button-primary');
+			}
+			const self = this;
+			$modal.removeClass('sscribe-hidden').attr('aria-hidden', 'false').prop('hidden', false);
+			this.trapFocus($modal[0]);
+			const cancel = function () {
+				$modal.addClass('sscribe-hidden').attr('aria-hidden', 'true').prop('hidden', true);
+				self.releaseFocusTrap($modal[0]);
+				if (typeof opts.onCancel === 'function') {
+					opts.onCancel();
+				}
+			};
+			const proceed = function () {
+				$modal.addClass('sscribe-hidden').attr('aria-hidden', 'true').prop('hidden', true);
+				self.releaseFocusTrap($modal[0]);
+				opts.onProceed();
+			};
+			$proceed.off('click.sscribe-confirm').one('click.sscribe-confirm', function (e) {
+				e.preventDefault();
+				proceed();
+			});
+			$cancel.off('click.sscribe-confirm').one('click.sscribe-confirm', function (e) {
+				e.preventDefault();
+				cancel();
+			});
+			$modal.off('click.sscribe-confirm-overlay').one('click.sscribe-confirm-overlay', function (e) {
+				if (e.target === this) {
+					cancel();
+				}
+			});
+			setTimeout(function () {
+				if ($proceed[0] && !$proceed.prop('disabled')) {
+					$proceed.trigger('focus');
+				} else if ($cancel[0]) {
+					$cancel.trigger('focus');
+				}
+			}, 0);
+		},
+		/**
+		 * Dismiss the onboarding banner and remember that dismissal this session.
+		 * @param {Event} e Click event.
+		 */
+		dismissOnboarding: function (e) {
+			if (e) {
+				e.preventDefault();
+			}
+			const $banner = $('#sscribe-onboarding-banner');
+			$banner.fadeOut(160, function () {
+				$banner.remove();
+			});
+			try {
+				sessionStorage.setItem('sscribe_onboarding_dismissed', '1');
+			} catch (_err) {
+				/* sessionStorage unavailable — ignore */
+			}
+		},
+		/**
+		 * Toggle the technical-details section under the error card.
+		 * @param {Event} e Click event.
+		 */
+		toggleErrorDetails: function (e) {
+			if (e) {
+				e.preventDefault();
+			}
+			const $btn = $('#sscribe-error-toggle-details');
+			const $details = $('#sscribe-error-technical-details');
+			if (!$btn.length || !$details.length) {
+				return;
+			}
+			const open = $btn.attr('aria-expanded') === 'true';
+			$btn.attr('aria-expanded', open ? 'false' : 'true');
+			$('#sscribe-error-toggle-details-label').text(
+				open
+					? (sscribe_data.strings && sscribe_data.strings.error_show_details) || 'Show technical details'
+					: (sscribe_data.strings && sscribe_data.strings.error_hide_details) || 'Hide technical details'
+			);
+			$details.prop('hidden', open);
+		},
+		/**
+		 * Filter history rows by name or size.
+		 * @param {Event} e Input event.
+		 */
+		filterHistory: function (e) {
+			const raw = (e && e.target && e.target.value) || '';
+			const needle = String(raw).toLowerCase().trim();
+			const $rows = $('#sscribe-history-table .sscribe-history-row');
+			let visible = 0;
+			$rows.each(function () {
+				if (needle === '') {
+					$(this).removeClass('sscribe-history-row-hidden');
+					visible++;
+					return;
+				}
+				const text = $(this).text().toLowerCase();
+				if (text.indexOf(needle) !== -1) {
+					$(this).removeClass('sscribe-history-row-hidden');
+					visible++;
+				} else {
+					$(this).addClass('sscribe-history-row-hidden');
+				}
+			});
+			this.updateBulkBar();
+			if (needle !== '' && visible === 0) {
+				this.announce(
+					(sscribe_data.strings && sscribe_data.strings.history_no_match) ||
+					'No exports match your filter.'
+				);
+			}
+		},
+		/**
+		 * Empty-state CTA: switch to the export tab and focus the post-type section.
+		 */
+		startFirstExportFromEmpty: function (e) {
+			if (e) {
+				e.preventDefault();
+			}
+			this.activateTab('export', true);
+			const target = document.getElementById('sscribe-main-content');
+			if (target && typeof target.focus === 'function') {
+				target.focus();
+			}
+		},
+		/**
+		 * Populate the success meta block (pages, formats, size, generated).
+		 *
+		 * @param {Object} data Export completion data from server.
+		 */
+		populateSuccessMeta: function (data) {
+			if (!data || typeof data !== 'object') {
+				return;
+			}
+			const setVal = function (id, val) {
+				const $el = document.getElementById(id);
+				if ($el) {
+					$el.textContent = val;
+				}
+			};
+			if (typeof data.pages !== 'undefined') {
+				setVal('sscribe-success-pages', String(data.pages));
+			}
+			if (data.formats && data.formats.length) {
+				setVal('sscribe-success-formats', data.formats.length > 1
+					? data.formats.length + ' formats: ' + data.formats.join(', ').toUpperCase()
+					: String(data.formats[0]).toUpperCase());
+			} else if (typeof data.format !== 'undefined') {
+				setVal('sscribe-success-formats', String(data.format).toUpperCase());
+			}
+			if (typeof data.size !== 'undefined' && data.size) {
+				const formatted = (typeof this.formatBytes === 'function')
+					? this.formatBytes(data.size)
+					: Math.round(data.size / 1024) + ' KB';
+				setVal('sscribe-success-size', formatted);
+			}
+			if (typeof data.elapsed !== 'undefined') {
+				setVal('sscribe-success-generated', 'in ' + data.elapsed + 's');
+			} else if (data.created_at) {
+				const stamp = new Date(data.created_at * 1000 || Date.now());
+				setVal('sscribe-success-generated', stamp.toLocaleString());
+			}
 		},
 		/**
 		 * Start export directly from preview modal.
