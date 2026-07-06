@@ -76,7 +76,6 @@ class SScribe_Export_Lock_Manager {
 		$current_time = time();
 		$using_cache  = wp_using_ext_object_cache();
 
-		
 		$existing_lock = $using_cache
 			? wp_cache_get( $lock_key, 'transient' )
 			: get_transient( $lock_key );
@@ -87,14 +86,14 @@ class SScribe_Export_Lock_Manager {
 			$lock_age   = $current_time - $lock_time;
 
 			if ( $lock_age > $stale_threshold ) {
-				
+
 				$new_value = $current_time . '|' . $lock_token;
 				if ( $using_cache ) {
 					wp_cache_set( $lock_key, $new_value, 'transient', $lock_ttl );
 				} else {
 					set_transient( $lock_key, $new_value, $lock_ttl );
 				}
-				
+
 				$stored = $using_cache
 					? wp_cache_get( $lock_key, 'transient' )
 					: get_transient( $lock_key );
@@ -108,7 +107,7 @@ class SScribe_Export_Lock_Manager {
 					);
 					return $lock_token;
 				}
-				
+
 				$this->logger->debug(
 					'Stale lock overwrite lost race',
 					array( 'session_id' => $session_id )
@@ -123,19 +122,15 @@ class SScribe_Export_Lock_Manager {
 			return null;
 		}
 
-			
 		for ( $attempt = 1; $attempt <= 3; ++$attempt ) {
 			if ( $using_cache ) {
-				
+
 				if ( wp_cache_add( $lock_key, $current_time . '|' . $lock_token, 'transient', $lock_ttl ) ) {
 					$this->register_shutdown_cleanup( $session_id, $lock_token );
 					return $lock_token;
 				}
 			} elseif ( set_transient( $lock_key, $current_time . '|' . $lock_token, $lock_ttl ) ) {
-				
-				
-				
-				
+
 				$stored = get_transient( $lock_key );
 				if ( is_string( $stored ) && $stored === $current_time . '|' . $lock_token ) {
 					$this->register_shutdown_cleanup( $session_id, $lock_token );
@@ -143,7 +138,7 @@ class SScribe_Export_Lock_Manager {
 				}
 			}
 
-			usleep( 50000 ); 
+			usleep( 50000 );
 		}
 
 		$this->logger->warning(
@@ -189,7 +184,6 @@ class SScribe_Export_Lock_Manager {
 		$session_id = self::$shutdown_session_id;
 		$lock_token = self::$shutdown_lock_token;
 
-		
 		if ( null === $session_id || null === $lock_token ) {
 			return;
 		}
@@ -197,9 +191,6 @@ class SScribe_Export_Lock_Manager {
 		$lock_key    = 'sscribe_lock_' . $session_id;
 		$using_cache = wp_using_ext_object_cache();
 
-		
-		
-		
 		$raw = $using_cache
 			? wp_cache_get( $lock_key, 'transient' )
 			: get_transient( $lock_key );
@@ -208,23 +199,18 @@ class SScribe_Export_Lock_Manager {
 			$parts  = explode( '|', $raw );
 			$stored = $parts[1] ?? '';
 			if ( ! hash_equals( $lock_token, $stored ) ) {
-				
+
 				self::$shutdown_session_id = null;
 				self::$shutdown_lock_token = null;
 				return;
 			}
 		}
 
-		
-		
-		
-		
 		if ( $using_cache ) {
 			wp_cache_delete( $lock_key, 'transient' );
 		}
 		delete_transient( $lock_key );
 
-		
 		self::$shutdown_session_id = null;
 		self::$shutdown_lock_token = null;
 	}
@@ -264,7 +250,6 @@ class SScribe_Export_Lock_Manager {
 		}
 		delete_transient( $lock_key );
 
-		
 		if ( self::$shutdown_session_id === $session_id ) {
 			self::$shutdown_session_id = null;
 			self::$shutdown_lock_token = null;
@@ -291,7 +276,6 @@ class SScribe_Export_Lock_Manager {
 			$user_id_json    = '%' . $wpdb->esc_like( '"user_id":' . $user_id ) . '%';
 			$prefix_len      = strlen( self::SESSION_PREFIX );
 
-			
 			// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- Cleanup.
 			$sessions = $wpdb->get_results(
 				$wpdb->prepare(

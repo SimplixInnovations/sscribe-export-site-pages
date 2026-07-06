@@ -67,10 +67,10 @@ class SScribe_Admin_Debug {
 
 		try {
 			$utc = new DateTimeImmutable( $utc_timestamp, new DateTimeZone( 'UTC' ) );
-			$site_tz = wp_timezone(); 
+			$site_tz = wp_timezone();
 			return $utc->setTimezone( $site_tz )->format( 'Y-m-d H:i:s' );
 		} catch ( Exception $e ) {
-			return $utc_timestamp; 
+			return $utc_timestamp;
 		}
 	}
 
@@ -197,10 +197,7 @@ class SScribe_Admin_Debug {
 
 		$filter_level = isset( $_POST['filter_level'] ) ? sanitize_text_field( wp_unslash( $_POST['filter_level'] ) ) : 'ALL';
 		$filter_level = strtoupper( $filter_level );
-		
-		
-		
-		
+
 		$allowed_levels = array(
 			'ALL',
 			'DEBUG',
@@ -222,19 +219,11 @@ class SScribe_Admin_Debug {
 
 		$logger = SScribe_Logger::instance( true );
 
-		
-		
-		
-		
 		$logs = $logger->get_logs( self::MAX_FETCH_LINES );
 
 		$entries = $this->parse_log_entries( $logs, $filter_level, $search, $session_id, true );
 		$total   = count( $entries );
 
-		
-		
-		
-		
 		$has_more = count( $logs ) >= self::MAX_FETCH_LINES;
 
 		$upload_dir    = wp_upload_dir();
@@ -374,8 +363,7 @@ class SScribe_Admin_Debug {
 		$session_id   = isset( $_POST['session_id'] ) ? sanitize_text_field( wp_unslash( $_POST['session_id'] ) ) : '';
 
 		$logger = SScribe_Logger::instance( true );
-		
-		
+
 		$logs = $logger->get_logs( self::MAX_FETCH_LINES );
 
 		$entries = $this->parse_log_entries( $logs, $filter_level, $search, $session_id, true );
@@ -467,7 +455,6 @@ class SScribe_Admin_Debug {
 			fn( $a, $b ) => $b['mtime'] <=> $a['mtime']
 		);
 
-		
 		$max_files   = 50;
 		$total_count = count( $result );
 		if ( $total_count > $max_files ) {
@@ -562,7 +549,6 @@ class SScribe_Admin_Debug {
 		$entries = $this->parse_log_entries( $lines, 'ALL', '', '', false );
 		$count   = count( $entries );
 
-		
 		$effective_offset = $offset;
 		if ( $effective_offset >= $count ) {
 			$effective_offset = max( 0, $count - 1 );
@@ -641,7 +627,6 @@ class SScribe_Admin_Debug {
 			return;
 		}
 
-		
 		$logger     = SScribe_Logger::instance( true );
 		$active_log = $logger->get_log_file();
 		if ( $active_log && realpath( $active_log ) === $real_file_path ) {
@@ -748,7 +733,7 @@ class SScribe_Admin_Debug {
 	 * @return array Parsed entry.
 	 */
 	private function parse_log_line( string $line ): array {
-		
+
 		if ( mb_strlen( $line ) > 10000 ) {
 			return array(
 				'timestamp' => '',
@@ -769,15 +754,11 @@ class SScribe_Admin_Debug {
 			);
 		}
 
-		
-		
 		if ( preg_match( '/^\[([^\]]+)\]\s+\[([^\]]+)\]\s+(.+)$/', $line, $matches ) ) {
 			$timestamp = $matches[1];
 			$level     = $matches[2];
 			$rest      = $matches[3];
 
-			
-			
 			$context      = array();
 			$message_part = $rest;
 
@@ -801,7 +782,6 @@ class SScribe_Admin_Debug {
 			);
 		}
 
-		
 		return array(
 			'timestamp' => '',
 			'level'     => 'RAW',
@@ -821,7 +801,6 @@ class SScribe_Admin_Debug {
 			ob_end_clean();
 		}
 
-		
 		if ( function_exists( 'ini_set' ) ) {
 			// phpcs:ignore WordPress.PHP.IniSet.Risky, Squiz.PHP.DiscouragedFunctions.Discouraged
 			@ini_set( 'zlib.output_compression', 'Off' );

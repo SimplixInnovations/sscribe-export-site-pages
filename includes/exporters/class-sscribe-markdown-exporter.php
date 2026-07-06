@@ -169,13 +169,6 @@ class SScribe_Markdown_Exporter implements SScribe_Exporter_Interface {
 		$md  = $include_frontmatter ? $this->generate_frontmatter( $page_data ) : '';
 		$md .= $this->html_to_markdown( $page_data['content'] ?? '' );
 
-		
-		
-		
-		
-		
-		
-
 		return $md;
 	}
 
@@ -192,7 +185,6 @@ class SScribe_Markdown_Exporter implements SScribe_Exporter_Interface {
 
 		$include_featured_image = '1' === (string) $this->get_format_option( 'sscribe_md_include_featured_image', '1' );
 
-		
 		$md  = "---\n";
 		$md .= 'title: "' . $this->escape_yaml_string( $title ) . "\"\n";
 		$md .= 'url: "' . $this->escape_yaml_string( $page_data['permalink'] ?? '' ) . "\"\n";
@@ -250,7 +242,6 @@ class SScribe_Markdown_Exporter implements SScribe_Exporter_Interface {
 
 		$md .= "---\n\n";
 
-		
 		$md .= '# ' . $this->escape_markdown( $title ) . "\n\n";
 		$md .= '> ' . ( $page_data['permalink'] ?? '' ) . "\n\n";
 
@@ -270,11 +261,6 @@ class SScribe_Markdown_Exporter implements SScribe_Exporter_Interface {
 
 		$html = $this->strip_all_styles( $html );
 
-		
-		
-		
-		
-		
 		$html = $this->strip_shortcodes( $html );
 
 		$md = $html;
@@ -291,16 +277,9 @@ class SScribe_Markdown_Exporter implements SScribe_Exporter_Interface {
 		$md = $this->convert_horizontal_rules( $md );
 		$md = $this->convert_details( $md );
 
-		
-		
-		
-		
-		
 		$md = html_entity_decode( $md, ENT_QUOTES | ENT_HTML5, 'UTF-8' );
 		$md = wp_strip_all_tags( $md );
 
-		
-		
 		$md = $this->escape_markdown_body( $md );
 
 		$md = preg_replace( '/\n{3,}/', "\n\n", $md );
@@ -320,11 +299,10 @@ class SScribe_Markdown_Exporter implements SScribe_Exporter_Interface {
 		$html = preg_replace( '/<script[^>]*>.*?<\/script>/is', '', $html ) ?? $html;
 		$html = preg_replace( '/<noscript[^>]*>.*?<\/noscript>/is', '', $html ) ?? $html;
 
-		
 		$html = preg_replace_callback(
 			'/<svg[^>]*>.*?<\/svg>/is',
 			function ( $matches ) {
-				
+
 				if ( preg_match( '/<title[^>]*>(.*?)<\/title>/is', $matches[0], $t ) ) {
 					$label = trim( wp_strip_all_tags( $t[1] ) );
 					return $label ? '[SVG: ' . $label . ']' : '[SVG image]';
@@ -367,10 +345,6 @@ class SScribe_Markdown_Exporter implements SScribe_Exporter_Interface {
 			$html = strip_shortcodes( $html );
 		}
 
-		
-		
-		
-		
 		$html = preg_replace( '/\[[a-zA-Z_][a-zA-Z0-9_-]*(?:\s+[^\]]*)?\/?\][\s\S]*?(?:\[\/[a-zA-Z_][a-zA-Z0-9_-]*\])?/s', '', $html ) ?? $html;
 
 		return $html;
@@ -388,15 +362,6 @@ class SScribe_Markdown_Exporter implements SScribe_Exporter_Interface {
 			function ( $matches ) {
 				$table_html = $matches[1];
 
-				
-				
-				
-				
-				
-				
-				
-				
-				
 				if ( preg_match( '/<(td|th)\b[^>]*\b(colspan|rowspan)\s*=\s*["\']?[2-9]/is', $table_html ) ) {
 					$plain = trim( wp_strip_all_tags( $table_html ) );
 					$plain = preg_replace( '/\s+/', ' ', $plain );
@@ -419,7 +384,7 @@ class SScribe_Markdown_Exporter implements SScribe_Exporter_Interface {
 						foreach ( $cell_matches[1] as $cell_content ) {
 							$cell_content = wp_strip_all_tags( $cell_content );
 							$cell_content = trim( preg_replace( '/\s+/', ' ', $cell_content ) );
-							
+
 							$cell_content = str_replace( '|', '\\|', $cell_content );
 							$cells[]      = $cell_content;
 						}
@@ -428,9 +393,6 @@ class SScribe_Markdown_Exporter implements SScribe_Exporter_Interface {
 					if ( ! empty( $cells ) ) {
 						$rows[] = $cells;
 
-						
-						
-						
 						if ( $is_first_row ) {
 							$rows[]       = array_fill( 0, count( $cells ), ':---' );
 							$is_first_row = false;
@@ -461,15 +423,11 @@ class SScribe_Markdown_Exporter implements SScribe_Exporter_Interface {
 	 * @return string Content with Markdown headings.
 	 */
 	private function convert_headings( string $html ): string {
-		
-		
-		
-		
+
 		return preg_replace_callback(
 			'/<h([1-6])[^>]*>(.*?)<\/h\1>/is',
 			static function ( $m ): string {
-				
-				
+
 				$level = (int) $m[1];
 				$inner = wp_strip_all_tags( $m[2] );
 				return "\n" . str_repeat( '#', $level ) . ' ' . $inner . "\n";
@@ -516,15 +474,15 @@ class SScribe_Markdown_Exporter implements SScribe_Exporter_Interface {
 	 * @return string Attribute value or empty string.
 	 */
 	private function extract_attribute( string $tag, string $attr ): string {
-		
+
 		if ( preg_match( '/' . preg_quote( $attr, '/' ) . '="([^"]*)"/', $tag, $m ) ) {
 			return $m[1];
 		}
-		
+
 		if ( preg_match( '/' . preg_quote( $attr, '/' ) . '=\'([^\']*)\'/', $tag, $m ) ) {
 			return $m[1];
 		}
-		
+
 		if ( preg_match( '/' . preg_quote( $attr, '/' ) . '=([^\s"\'=`<>]+)/', $tag, $m ) ) {
 			return $m[1];
 		}
@@ -544,10 +502,8 @@ class SScribe_Markdown_Exporter implements SScribe_Exporter_Interface {
 				$url        = $this->sanitize_url( $matches[1] );
 				$inner_html = $matches[2];
 
-				
-				
 				if ( preg_match( '/<img\s[^>]*>/is', $inner_html ) ) {
-					
+
 					$img_tag = preg_match( '/<img\s[^>]*>/is', $inner_html, $img_match ) ? $img_match[0] : '';
 					$img_src = $this->extract_attribute( $img_tag, 'src' );
 					$img_alt = $this->extract_attribute( $img_tag, 'alt' );
@@ -564,8 +520,7 @@ class SScribe_Markdown_Exporter implements SScribe_Exporter_Interface {
 				if ( empty( $text ) ) {
 					$text = $url;
 				}
-				
-				
+
 				$url = str_replace( array( '(', ')' ), array( '%28', '%29' ), $url );
 				return '[' . $text . '](' . $url . ')';
 			},
@@ -580,14 +535,10 @@ class SScribe_Markdown_Exporter implements SScribe_Exporter_Interface {
 	 * @return string Content with Markdown formatting.
 	 */
 	private function convert_formatting( string $html ): string {
-		
-		
-		
-		
-		
+
 		$html = preg_replace( '/<(strong|b)><(em|i)>(.*?)<\/\2><\/\1>/is', '***$3***', $html ) ?? $html;
 		$html = preg_replace( '/<(em|i)><(strong|b)>(.*?)<\/\2><\/\1>/is', '***$3***', $html ) ?? $html;
-		
+
 		$html = preg_replace( '/<(strong|b)>(.*?)<\/\1>/is', '**$2**', $html ) ?? $html;
 		$html = preg_replace( '/<(em|i)>(.*?)<\/\1>/is', '*$2*', $html ) ?? $html;
 		$html = preg_replace( '/<(s|strike|del)>(.*?)<\/\1>/is', '~~$2~~', $html ) ?? $html;
@@ -601,19 +552,11 @@ class SScribe_Markdown_Exporter implements SScribe_Exporter_Interface {
 	 * @return string Content with Markdown lists.
 	 */
 	private function convert_lists( string $html ): string {
-		
-		
+
 		$dom             = new DOMDocument( '1.0', 'UTF-8' );
 		$prev_use_errors = libxml_use_internal_errors( true );
 		try {
-			
-			
-			
-			
-			
-			
-			
-			
+
 			$wrapped = '<!DOCTYPE html><html><head>'
 				. '<meta http-equiv="Content-Type" content="text/html; charset=UTF-8">'
 				. '</head><body>' . $html . '</body></html>';
@@ -644,7 +587,6 @@ class SScribe_Markdown_Exporter implements SScribe_Exporter_Interface {
 			libxml_use_internal_errors( $prev_use_errors );
 		}
 
-		
 		$max_iterations = 5000;
 		$iteration      = 0;
 
@@ -688,10 +630,7 @@ class SScribe_Markdown_Exporter implements SScribe_Exporter_Interface {
 			if ( 'ul' === $tag || 'ol' === $tag ) {
 				$out .= $this->convert_single_list( $child, $tag, 1 );
 			} else {
-				
-				
-				
-				
+
 				$out .= $child->ownerDocument->saveHTML( $child ); // phpcs:ignore WordPress.NamingConventions.ValidVariableName.UsedPropertyNotSnakeCase
 			}
 		}
@@ -709,7 +648,7 @@ class SScribe_Markdown_Exporter implements SScribe_Exporter_Interface {
 	private function convert_single_list( \DOMNode $list_node, string $list_tag, int $depth = 1 ): string {
 		$result  = "\n";
 		$counter = 1;
-		
+
 		$indent = str_repeat( '  ', $depth );
 		foreach ( $list_node->childNodes as $li ) { // phpcs:ignore WordPress.NamingConventions.ValidVariableName.UsedPropertyNotSnakeCase
 			if ( XML_ELEMENT_NODE !== $li->nodeType || 'li' !== strtolower( $li->nodeName ) ) { // phpcs:ignore WordPress.NamingConventions.ValidVariableName.UsedPropertyNotSnakeCase
@@ -720,14 +659,10 @@ class SScribe_Markdown_Exporter implements SScribe_Exporter_Interface {
 			foreach ( $li->childNodes as $child ) { // phpcs:ignore WordPress.NamingConventions.ValidVariableName.UsedPropertyNotSnakeCase
 				$child_tag = strtolower( $child->nodeName ); // phpcs:ignore WordPress.NamingConventions.ValidVariableName.UsedPropertyNotSnakeCase
 				if ( 'ul' === $child_tag || 'ol' === $child_tag ) {
-					
+
 					$item_text_parts[] = $this->convert_single_list( $child, $child_tag, $depth + 1 );
 				} elseif ( XML_ELEMENT_NODE === $child->nodeType ) { // phpcs:ignore WordPress.NamingConventions.ValidVariableName.UsedPropertyNotSnakeCase
-					
-					
-					
-					
-					
+
 					$item_text_parts[] = preg_replace(
 						'/\s+/',
 						' ',
@@ -766,13 +701,11 @@ class SScribe_Markdown_Exporter implements SScribe_Exporter_Interface {
 
 		$result = "\n";
 
-		
 		if ( preg_match_all( '/<li[^>]*>(.*?)<\/li>/is', $content, $matches ) ) {
 			foreach ( $matches[1] as $item_content ) {
-				
+
 				$item_content = $this->convert_nested_lists_in_content( $item_content, $depth + 1 );
 
-				
 				$item_content = wp_strip_all_tags( $item_content );
 				$item_content = trim( preg_replace( '/\s+/', ' ', $item_content ) );
 
@@ -804,7 +737,6 @@ class SScribe_Markdown_Exporter implements SScribe_Exporter_Interface {
 		$max_nested_iterations = 100;
 		$iteration             = 0;
 
-		
 		while ( preg_match( '/<(ul|ol)[^>]*>(.*?)<\/\1>/is', $content, $matches, PREG_OFFSET_CAPTURE ) && $iteration < $max_nested_iterations ) {
 			$nested_list_type    = $matches[1][0];
 			$nested_list_content = $matches[2][0];
@@ -838,14 +770,12 @@ class SScribe_Markdown_Exporter implements SScribe_Exporter_Interface {
 	 * @return string Content with Markdown code blocks.
 	 */
 	private function convert_code_blocks( string $html ): string {
-		
-		
-		
+
 		$html = preg_replace_callback(
 			'/<pre([^>]*)>(?:<code[^>]*>)?(.*?)(?:<\/code>)?<\/pre>/is',
 			function ( $m ): string {
 				$lang = '';
-				
+
 				if ( preg_match( '/class=["\'](?:[^"\']*\s)?language-([a-zA-Z0-9_-]+)(?:\s[^"\']*)?["\']/', $m[1] . $m[2], $lang_match ) ) {
 					$lang = $lang_match[1];
 				}
@@ -855,7 +785,6 @@ class SScribe_Markdown_Exporter implements SScribe_Exporter_Interface {
 			$html
 		) ?? $html;
 
-		
 		$html = preg_replace( '/<code>(.*?)<\/code>/is', '`$1`', $html ) ?? $html;
 		return $html;
 	}
@@ -892,10 +821,7 @@ class SScribe_Markdown_Exporter implements SScribe_Exporter_Interface {
 	 * @return string Content with Markdown paragraphs.
 	 */
 	private function convert_paragraphs( string $html ): string {
-		
-		
-		
-		
+
 		$html = preg_replace( '/<p[^>]*>(.*?)<\/p>/i', "\n$1\n", $html ) ?? $html;
 		$html = preg_replace( '/<br\s*\/?>/i', "\n", $html ) ?? $html;
 		return $html;
@@ -921,9 +847,7 @@ class SScribe_Markdown_Exporter implements SScribe_Exporter_Interface {
 	 * @return string HTML with details/summary elements preserved.
 	 */
 	private function convert_details( string $html ): string {
-		
-		
-		
+
 		$html = preg_replace( '/<details([^>]*)open([^>]*)>/i', '<details$1$2>', $html ) ?? $html;
 		$html = preg_replace( '/<details(\s[^>]*)?>/i', '<details>', $html ) ?? $html;
 
@@ -943,15 +867,12 @@ class SScribe_Markdown_Exporter implements SScribe_Exporter_Interface {
 			return '#';
 		}
 
-		
-		
 		if ( str_starts_with( $url, 'data:' ) ) {
 			return '';
 		}
 
 		if ( str_starts_with( $url, '/' ) ) {
-			
-			
+
 			$use_absolute = '1' === (string) $this->get_format_option( 'sscribe_md_absolute_urls', '1' );
 			if ( ! $use_absolute ) {
 				return $url;
@@ -1017,9 +938,7 @@ class SScribe_Markdown_Exporter implements SScribe_Exporter_Interface {
 	 * @return string Content with line-start Markdown chars escaped.
 	 */
 	private function escape_markdown_body( string $text ): string {
-		
-		
-		
+
 		$lines = explode( "\n", $text );
 		foreach ( $lines as $index => $line ) {
 			$leading_ws_len = strlen( $line ) - strlen( ltrim( $line ) );
@@ -1028,11 +947,7 @@ class SScribe_Markdown_Exporter implements SScribe_Exporter_Interface {
 				continue;
 			}
 			$first_char = $trimmed[0];
-			
-			
-			
-			
-			
+
 			if ( in_array( $first_char, array( '-', '*', '>', '|' ), true ) ) {
 				$leading_ws       = substr( $line, 0, $leading_ws_len );
 				$lines[ $index ]  = $leading_ws . '\\' . $trimmed;
@@ -1048,7 +963,7 @@ class SScribe_Markdown_Exporter implements SScribe_Exporter_Interface {
 	 * @return string Escaped text.
 	 */
 	private function escape_yaml_string( string $text ): string {
-		
+
 		$text = preg_replace( '/[\x00-\x08\x0B\x0C\x0E-\x1F\x7F]/', '', $text );
 		$text = str_replace( '\\', '\\\\', $text );
 		$text = str_replace( '"', '\\"', $text );

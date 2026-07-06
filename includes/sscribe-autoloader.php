@@ -89,9 +89,7 @@ spl_autoload_register(
 		}
 
 		foreach ( $paths as $path ) {
-			
-			
-			
+
 			$real_plugin_dir = realpath( SSCRIBE_PLUGIN_DIR );
 			$real_path       = realpath( $path );
 			if ( $real_path && $real_plugin_dir && str_starts_with( $real_path, $real_plugin_dir . DIRECTORY_SEPARATOR ) ) {

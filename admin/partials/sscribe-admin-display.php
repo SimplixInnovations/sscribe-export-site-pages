@@ -457,7 +457,7 @@ $sscribe_export_index    = $sscribe_export_index ?? array();
 						<span class="sscribe-summary-sep" aria-hidden="true">·</span>
 						<span class="sscribe-summary-chip sscribe-summary-status" id="sscribe-summary-status">
 							<?php
-							
+
 							$sscribe_selected_status_label = __( 'Published', 'sscribe-export-site-pages' );
 							$sscribe_first_found           = true;
 							foreach ( $sscribe_status_labels as $sscribe_s_key => $sscribe_s_label ) {

@@ -105,8 +105,6 @@ class SScribe_Filesystem {
 			return false;
 		}
 
-		
-		
 		ob_start();
 		$credentials = request_filesystem_credentials( admin_url(), '', false, false, null );
 		ob_end_clean();
@@ -158,28 +156,19 @@ class SScribe_Filesystem {
 			return $file;
 		}
 
-		
-		
 		if ( false === strpos( $file, '..' ) && false === strpos( $file, "\0" ) ) {
 			return $file;
 		}
 
-		
 		if ( false === strpos( $file, '..' ) ) {
 			return str_replace( "\0", '', $file );
 		}
 
-		
-		
 		$is_unix_absolute = '/' === $file[0];
 
-		
-		
-		
 		$normalized = str_replace( '\\', '/', $file );
 		$normalized = preg_replace( '#/+#', '/', $normalized );
 
-		
 		$segments = explode( '/', $normalized );
 		$cleaned  = array();
 		foreach ( $segments as $segment ) {
@@ -195,9 +184,6 @@ class SScribe_Filesystem {
 
 		$reassembled = implode( '/', $cleaned );
 
-		
-		
-		
 		if ( $is_unix_absolute && '/' !== $reassembled[0] ) {
 			$reassembled = '/' . $reassembled;
 		}
@@ -216,13 +202,8 @@ class SScribe_Filesystem {
 	public function put_contents( string $file, string $content, int $mode = 0600 ): bool {
 		self::$last_error = '';
 
-		
 		$file = self::sanitize_path( $file );
 
-		
-		
-		
-		
 		$safety = $this->is_path_safe_for_write( $file );
 		if ( self::SSCRIBE_PATH_REJECT === $safety ) {
 			self::$last_error = 'Refusing to write outside SScribe export directory (symlink attack suspected)';
@@ -250,9 +231,6 @@ class SScribe_Filesystem {
 				return false;
 			}
 
-			
-			
-			
 			if ( $mode && self::$fs->chmod( $file, $mode ) === false ) {
 				$this->logger->warning(
 					'WP_Filesystem chmod failed : file may have unexpected permissions',
@@ -311,7 +289,6 @@ class SScribe_Filesystem {
 	public function get_contents( string $file ): string|false {
 		self::$last_error = '';
 
-		
 		$file = self::sanitize_path( $file );
 
 		if ( self::$fs instanceof WP_Filesystem_Base ) {
@@ -391,7 +368,7 @@ class SScribe_Filesystem {
 			if ( ! wp_mkdir_p( $path ) ) {
 				return false;
 			}
-			
+
 			if ( $mode && function_exists( 'chmod' ) ) {
 				// phpcs:ignore WordPress.WP.AlternativeFunctions.file_system_operations_chmod -- Fallback when WP_Filesystem unavailable.
 				chmod( $path, $mode );
@@ -471,9 +448,7 @@ class SScribe_Filesystem {
 
 		$result = array();
 		foreach ( array_diff( $files, array( '.', '..' ) ) as $name ) {
-			
-			
-			
+
 			if ( '' === $name || '.' === $name[0] || 'index.php' === $name ) {
 				continue;
 			}
@@ -501,7 +476,6 @@ class SScribe_Filesystem {
 	public function copy( string $source, string $destination, bool $overwrite = false, int $mode = 0600 ): bool {
 		self::$last_error = '';
 
-		
 		$safety = $this->is_path_safe_for_write( $destination );
 		if ( self::SSCRIBE_PATH_REJECT === $safety ) {
 			self::$last_error = 'Refusing to copy outside SScribe export directory (symlink attack suspected)';
@@ -592,30 +566,19 @@ class SScribe_Filesystem {
 			return false;
 		}
 
-		
 		$allowed_real = realpath( $allowed_root );
 		if ( false === $allowed_real ) {
-			
-			
-			
-			
+
 			$allowed_real = self::normalize_path( $allowed_root );
 		} else {
-			
-			
-			
-			
-			
-			
+
 			$allowed_real = self::normalize_path( $allowed_real );
 		}
 
 		$parent      = dirname( $file );
 		$parent_real = realpath( $parent );
 		if ( false === $parent_real ) {
-			
-			
-			
+
 			$parent_real = self::normalize_path( $parent );
 		} else {
 			$parent_real = self::normalize_path( $parent_real );
@@ -624,7 +587,6 @@ class SScribe_Filesystem {
 		$parent_real = rtrim( $parent_real, '/' ) . '/';
 		$allowed_real = rtrim( $allowed_real, '/' ) . '/';
 
-		
 		$cmp = ( defined( 'PHP_OS_FAMILY' ) && 'Windows' === PHP_OS_FAMILY )
 			? 'strcasecmp'
 			: 'strcmp';
@@ -697,9 +659,7 @@ class SScribe_Filesystem {
 	public function is_path_safe_for_write( string $file ): string {
 		$allowed_root = $this->get_export_dir();
 		if ( '' === $allowed_root ) {
-			
-			
-			
+
 			return self::SSCRIBE_PATH_EXTERNAL;
 		}
 
@@ -708,24 +668,19 @@ class SScribe_Filesystem {
 		$literal_in_export = ( 0 === strpos( $file_abs, $allowed_abs ) );
 
 		if ( ! $literal_in_export ) {
-			
-			
+
 			return self::SSCRIBE_PATH_EXTERNAL;
 		}
 
-		
-		
 		$parent = dirname( $file );
 		if ( ! is_dir( $parent ) ) {
-			
-			
+
 			return self::SSCRIBE_PATH_ALLOWED;
 		}
 
 		$parent_real = realpath( $parent );
 		if ( false === $parent_real ) {
-			
-			
+
 			return self::SSCRIBE_PATH_REJECT;
 		}
 

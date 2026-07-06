@@ -83,6 +83,10 @@ This plugin is free software: you can redistribute it and/or modify it under the
 
 The bundled Amiri font family (assets/fonts/amiri/) is licensed under the SIL Open Font License v1.1, which is compatible with GPL v2. See assets/fonts/amiri/OFL.txt for the full license text.
 
+The bundled PhpOffice/PhpWord library (vendor-prefixed/phpoffice/) is licensed under the GNU Lesser General Public License v3.0 only. LGPL v3 is compatible with GPL v2-or-later: the LGPL permits redistribution of a combined work under GPL terms, and PhpOffice publishes its source under the same terms. The full LGPL v3 text is available at https://www.gnu.org/licenses/lgpl-3.0.html.
+
+The bundled Mpdf library (vendor-prefixed/mpdf/) is licensed under the GNU General Public License v2 only.
+
 == Changelog ==
 
 = 1.1.2 =

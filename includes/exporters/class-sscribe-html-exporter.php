@@ -181,7 +181,7 @@ class SScribe_HTML_Exporter implements SScribe_Exporter_Interface {
 	 * @return array Archival-safe HTML allowlist for wp_kses().
 	 */
 	private function get_archival_allowlist(): array {
-		
+
 		$allowlist['p']          = array(
 			'lang' => true,
 			'dir'  => true,
@@ -191,14 +191,14 @@ class SScribe_HTML_Exporter implements SScribe_Exporter_Interface {
 		$allowlist['blockquote'] = array( 'cite' => true );
 		$allowlist['pre']        = array();
 		$allowlist['code']       = array();
-		
+
 		$allowlist['h1'] = array();
 		$allowlist['h2'] = array();
 		$allowlist['h3'] = array();
 		$allowlist['h4'] = array();
 		$allowlist['h5'] = array();
 		$allowlist['h6'] = array();
-		
+
 		$allowlist['strong'] = array();
 		$allowlist['b']      = array();
 		$allowlist['em']     = array();
@@ -210,7 +210,7 @@ class SScribe_HTML_Exporter implements SScribe_Exporter_Interface {
 		$allowlist['sub']    = array();
 		$allowlist['sup']    = array();
 		$allowlist['u']      = array();
-		
+
 		$allowlist['a'] = array(
 			'href'  => array(
 				'protocols' => array( 'http', 'https', 'mailto', 'tel' ),
@@ -225,7 +225,7 @@ class SScribe_HTML_Exporter implements SScribe_Exporter_Interface {
 				'tag'        => true,
 			),
 		);
-		
+
 		$allowlist['img'] = array(
 			'src'     => true,
 			'alt'     => true,
@@ -233,7 +233,7 @@ class SScribe_HTML_Exporter implements SScribe_Exporter_Interface {
 			'height'  => true,
 			'loading' => true,
 		);
-		
+
 		$allowlist['ul'] = array();
 		$allowlist['ol'] = array(
 			'start' => true,
@@ -243,7 +243,7 @@ class SScribe_HTML_Exporter implements SScribe_Exporter_Interface {
 		$allowlist['dl'] = array();
 		$allowlist['dt'] = array();
 		$allowlist['dd'] = array();
-		
+
 		$allowlist['table']    = array();
 		$allowlist['thead']    = array();
 		$allowlist['tbody']    = array();
@@ -264,7 +264,7 @@ class SScribe_HTML_Exporter implements SScribe_Exporter_Interface {
 			'span'  => true,
 			'width' => true,
 		);
-		
+
 		$allowlist['figure']     = array();
 		$allowlist['figcaption'] = array();
 		$allowlist['details']    = array();
@@ -285,8 +285,7 @@ class SScribe_HTML_Exporter implements SScribe_Exporter_Interface {
 			'dir'  => true,
 		);
 		$allowlist['span']       = array();
-		
-		
+
 		return $allowlist;
 	}
 
@@ -307,7 +306,6 @@ class SScribe_HTML_Exporter implements SScribe_Exporter_Interface {
 
 		$direction_css = $is_rtl ? 'html, body { direction: rtl; }' : '';
 
-		
 		$show_seo = (bool) apply_filters( 'sscribe_html_export_show_seo', false, $page_data );
 
 		$include_css = '1' === (string) $this->get_format_option( 'sscribe_html_include_css', '1' );
@@ -403,9 +401,6 @@ class SScribe_HTML_Exporter implements SScribe_Exporter_Interface {
 		$height = (int) ( $page_data['featured_image_height'] ?? 0 );
 		$alt    = esc_attr( $page_data['title'] ?? '' );
 
-		
-		
-		
 		$responsive = '1' === (string) $this->get_format_option( 'sscribe_html_responsive_images', '1' );
 		$loading    = $responsive ? 'lazy' : 'eager';
 		$dimensions = ( $width && $height && ! $responsive )

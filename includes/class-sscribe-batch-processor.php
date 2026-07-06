@@ -226,16 +226,13 @@ final class SScribe_Batch_Processor {
 		try {
 			return random_bytes( $length );
 		} catch ( \Throwable $e ) {
-			
-			
+
 			$strong = false;
 			$bytes  = openssl_random_pseudo_bytes( $length, $strong );
 			if ( $bytes && $strong ) {
 				return $bytes;
 			}
-			
-			
-			
+
 			return (string) wp_generate_password( $length, false );
 		}
 	}
@@ -315,7 +312,6 @@ final class SScribe_Batch_Processor {
 			);
 		}
 
-		
 		if ( $file_size > 0 ) {
 			$size_diff_ratio = abs( $actual_size - $file_size ) / $file_size;
 			if ( $size_diff_ratio > 0.10 ) {
@@ -364,12 +360,6 @@ final class SScribe_Batch_Processor {
 		foreach ( $formats as $format ) {
 			$format_start = microtime( true );
 
-			
-			
-			
-			
-			
-			
 			$format_options = array();
 			if ( ! empty( $session['format_options'] ) ) {
 				$format_options = (array) $session['format_options'];
@@ -391,10 +381,6 @@ final class SScribe_Batch_Processor {
 				continue;
 			}
 
-			
-			
-			
-			
 			if ( method_exists( $exporter, 'apply_format_options' ) ) {
 				$exporter->apply_format_options( $format_options );
 			}
@@ -402,12 +388,6 @@ final class SScribe_Batch_Processor {
 			$attempt = 0;
 			$result  = null;
 
-			
-			
-			
-			
-			
-			
 			$page_lang_raw = isset( $page_data['language'] ) ? (string) $page_data['language'] : '';
 			$page_lang_key = '' !== $page_lang_raw ? sanitize_key( substr( $page_lang_raw, 0, 2 ) ) : '';
 			$page_lang     = '' !== $page_lang_key ? strtoupper( $page_lang_key ) : 'ALL';
@@ -439,20 +419,14 @@ final class SScribe_Batch_Processor {
 					break;
 				}
 
-				
 				if ( $attempt >= self::MAX_RETRIES - 1 ) {
 					break;
 				}
 
-				
-				
 				if ( $this->export_log ) {
 					$this->export_log->log_page_retry( $page_id, $format, $attempt + 1, $error_category );
 				}
 
-				
-				
-				
 				$delay_ms = 100;
 				if ( $total_sleep_ms + $delay_ms > 500 ) {
 					break;
@@ -461,7 +435,6 @@ final class SScribe_Batch_Processor {
 				usleep( $delay_ms * 1000 );
 				++$attempt;
 
-				
 				try {
 					$exporter = \SScribe_Exporter_Factory::create( $format );
 				} catch ( SScribe_Validation_Exception $e ) {
@@ -470,7 +443,6 @@ final class SScribe_Batch_Processor {
 				}
 			}
 
-			
 			$exporter = null;
 
 			$format_elapsed         = microtime( true ) - $format_start;
@@ -870,7 +842,6 @@ final class SScribe_Batch_Processor {
 			return false;
 		}
 
-		
 		$this->audit_log(
 			'session_access_ok',
 			array(
@@ -922,7 +893,7 @@ final class SScribe_Batch_Processor {
 
 		$language    = isset( $_POST['language'] ) ? sanitize_text_field( wp_unslash( $_POST['language'] ) ) : '';
 		$post_status = isset( $_POST['post_status'] ) ? sanitize_text_field( wp_unslash( $_POST['post_status'] ) ) : 'publish';
-		
+
 		$allowed_statuses = array( 'publish', 'private', 'draft', 'pending', 'future' );
 		if ( ! in_array( $post_status, $allowed_statuses, true ) ) {
 			$post_status = 'publish';
@@ -960,17 +931,11 @@ final class SScribe_Batch_Processor {
 
 		$post_type        = isset( $_POST['post_type'] ) ? sanitize_text_field( wp_unslash( $_POST['post_type'] ) ) : 'page';
 
-		
-		
-		
-		
-		
-		
 		// phpcs:ignore WordPress.Security.ValidatedSanitizedInput.InputNotSanitized -- parse_format_options() sanitizes per-key (sanitize_key) and per-value (string cast).
 		$format_options = self::parse_format_options( wp_unslash( $_POST['format_options'] ?? array() ) );
 		$valid_post_types = array_values( get_post_types( array( 'public' => true ) ) );
 		$valid_post_types = array_merge( $valid_post_types, array( 'any' ) );
-		
+
 		$valid_post_types = array_values( array_diff( $valid_post_types, array( 'attachment' ) ) );
 		if ( ! in_array( $post_type, $valid_post_types, true ) ) {
 			SScribe_AJAX_Guard::error(
@@ -1092,7 +1057,6 @@ final class SScribe_Batch_Processor {
 			)
 		);
 
-		
 		$this->session->set_page_ids( $session_id, $page_ids );
 
 		$this->logger->debug(
@@ -1104,13 +1068,10 @@ final class SScribe_Batch_Processor {
 		);
 
 		if ( empty( $session_id ) ) {
-			
+
 			if ( ! empty( $temp_dir ) && is_dir( $temp_dir ) ) {
 				$this->zip_handler->delete_directory( $temp_dir );
-				
-				
-				
-				
+
 				self::$cleanup_temp_dir = null;
 			}
 			SScribe_AJAX_Guard::error(
@@ -1121,10 +1082,6 @@ final class SScribe_Batch_Processor {
 			);
 		}
 
-		
-		
-		
-		
 		if ( $user_id ) {
 			$active_sid = get_transient( 'sscribe_active_sid_' . $user_id );
 			if ( $active_sid !== $session_id && is_string( $active_sid ) && '0' !== $active_sid ) {
@@ -1139,9 +1096,7 @@ final class SScribe_Batch_Processor {
 				$this->session->delete( $session_id );
 				if ( ! empty( $temp_dir ) && is_dir( $temp_dir ) ) {
 					$this->zip_handler->delete_directory( $temp_dir );
-					
-					
-					
+
 					self::$cleanup_temp_dir = null;
 				}
 				SScribe_AJAX_Guard::error(

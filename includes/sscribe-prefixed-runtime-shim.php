@@ -91,6 +91,8 @@ foreach ( $sscribe_prefixed_aliases as $sscribe_source => $sscribe_alias ) {
 	$sscribe_unprefixed_to_prefixed[ ltrim( $sscribe_alias, '\\' ) ] = ltrim( $sscribe_source, '\\' );
 }
 
+$sscribe_unprefixed_to_prefixed_lower = array_change_key_case( $sscribe_unprefixed_to_prefixed, CASE_LOWER );
+
 
 
 
@@ -104,14 +106,12 @@ $sscribe_root_for_prefix = array(
 
 
 
-$sscribe_resolve_prefixed_file = static function ( string $unprefixed ) use ( &$sscribe_root_for_prefix, &$sscribe_unprefixed_to_prefixed ): ?string {
-	if ( ! isset( $sscribe_unprefixed_to_prefixed[ $unprefixed ] ) ) {
-		return null;
-	}
+$sscribe_resolve_prefixed_file = static function ( string $unprefixed ) use ( &$sscribe_root_for_prefix ): ?string {
 	foreach ( $sscribe_root_for_prefix as $sscribe_prefix_part => $sscribe_path_root ) {
 		$sscribe_prefix_with_sep = $sscribe_prefix_part . '\\';
-		if ( 0 === strncmp( $unprefixed, $sscribe_prefix_with_sep, strlen( $sscribe_prefix_with_sep ) ) ) {
+		if ( 0 === strncasecmp( $unprefixed, $sscribe_prefix_with_sep, strlen( $sscribe_prefix_with_sep ) ) ) {
 			$sscribe_relative = str_replace( '\\', '/', substr( $unprefixed, strlen( $sscribe_prefix_part ) ) );
+			$sscribe_relative = strtolower( $sscribe_relative );
 			return rtrim( __DIR__ . '/../vendor-prefixed/' . $sscribe_path_root, '/' )
 				. ( '' === $sscribe_relative ? '' : $sscribe_relative ) . '.php';
 		}
@@ -137,18 +137,18 @@ foreach ( $sscribe_prefixed_aliases as $sscribe_source => $sscribe_alias ) {
 
 
 spl_autoload_register(
-	static function ( string $sscribe_class_name ) use ( $sscribe_prefixed_aliases, $sscribe_unprefixed_to_prefixed, $sscribe_resolve_prefixed_file ): void {
+	static function ( string $sscribe_class_name ) use ( $sscribe_unprefixed_to_prefixed, $sscribe_unprefixed_to_prefixed_lower, $sscribe_resolve_prefixed_file ): void {
 		$sscribe_normalized          = ltrim( $sscribe_class_name, '\\' );
 		$sscribe_unprefixed_target   = '\\' . $sscribe_normalized;
 
-		
-		
-		if ( isset( $sscribe_prefixed_aliases[ $sscribe_unprefixed_target ] ) ) {
-			return;
-		}
-		
-		if ( ! isset( $sscribe_unprefixed_to_prefixed[ $sscribe_normalized ] ) ) {
-			return;
+		$sscribe_prefixed_name = null;
+		if ( isset( $sscribe_unprefixed_to_prefixed[ $sscribe_normalized ] ) ) {
+			$sscribe_prefixed_name = $sscribe_unprefixed_to_prefixed[ $sscribe_normalized ];
+		} else {
+			$sscribe_normalized_lower = strtolower( $sscribe_normalized );
+			if ( isset( $sscribe_unprefixed_to_prefixed_lower[ $sscribe_normalized_lower ] ) ) {
+				$sscribe_prefixed_name = $sscribe_unprefixed_to_prefixed_lower[ $sscribe_normalized_lower ];
+			}
 		}
 
 		$sscribe_file = $sscribe_resolve_prefixed_file( $sscribe_normalized );
@@ -158,11 +158,10 @@ spl_autoload_register(
 
 		require_once $sscribe_file;
 
-		
-		
-		
-		$sscribe_prefixed_name = $sscribe_unprefixed_to_prefixed[ $sscribe_normalized ];
-		if ( class_exists( $sscribe_prefixed_name, false ) && ! class_exists( $sscribe_unprefixed_target, false ) ) {
+		if ( null !== $sscribe_prefixed_name
+			&& class_exists( $sscribe_prefixed_name, false )
+			&& ! class_exists( $sscribe_unprefixed_target, false )
+		) {
 			class_alias( $sscribe_prefixed_name, ltrim( $sscribe_unprefixed_target, '\\' ) );
 		}
 	}

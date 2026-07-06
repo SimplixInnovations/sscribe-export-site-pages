@@ -142,9 +142,7 @@ class SScribe_Logger implements SScribe_Logger_Interface {
 	 * @return bool True if enhanced logger should be loaded.
 	 */
 	private static function should_use_enhanced(): bool {
-		
-		
-		
+
 		if ( class_exists( 'QM_Collector' ) && ! ( defined( 'QM_DISABLED' ) && QM_DISABLED ) && ( is_admin() || wp_doing_ajax() ) ) {
 			return true;
 		}
@@ -169,9 +167,6 @@ class SScribe_Logger implements SScribe_Logger_Interface {
 		$upload_dir    = wp_upload_dir();
 		$this->log_dir = $upload_dir['basedir'] . '/sscribe-logs';
 
-		
-		
-		
 		add_action( 'shutdown', array( $this, 'flush' ) );
 	}
 
@@ -227,7 +222,6 @@ class SScribe_Logger implements SScribe_Logger_Interface {
 			return;
 		}
 
-		
 		$configured_level = SScribe_Settings::get_debug_log_level();
 		if ( 'ALL' !== $configured_level ) {
 			$priorities          = array(
@@ -249,12 +243,10 @@ class SScribe_Logger implements SScribe_Logger_Interface {
 
 		$this->buffer[] = $entry;
 
-		
 		if ( count( $this->buffer ) >= 50 ) {
 			$this->flush();
 		}
 
-		
 		if ( self::LEVEL_PRIORITY[ $level ] >= self::LEVEL_PRIORITY[ self::LEVEL_CRITICAL ] ) {
 			$this->flush();
 		}
@@ -292,8 +284,6 @@ class SScribe_Logger implements SScribe_Logger_Interface {
 		$log_file = $this->get_log_file();
 		$content  = implode( PHP_EOL, $this->buffer ) . PHP_EOL;
 
-		
-		
 		$current_size = file_exists( $log_file ) ? filesize( $log_file ) : 0;
 		$content_size = strlen( $content );
 
@@ -310,8 +300,6 @@ class SScribe_Logger implements SScribe_Logger_Interface {
 				file_put_contents( $log_file, $warning_entry, LOCK_EX ); // phpcs:ignore WordPress.WP.AlternativeFunctions.file_system_operations_file_put_contents -- Required for debug logging per plugin requirements.
 				chmod( $log_file, 0600 ); // phpcs:ignore WordPress.WP.AlternativeFunctions.file_system_operations_chmod -- Setting 0600 for log file security.
 			}
-			
-			
 		}
 
 		$result = file_put_contents( $log_file, $content, FILE_APPEND | LOCK_EX ); // phpcs:ignore WordPress.WP.AlternativeFunctions.file_system_operations_file_put_contents -- Required for debug logging per plugin requirements.
@@ -319,9 +307,6 @@ class SScribe_Logger implements SScribe_Logger_Interface {
 			error_log( 'SScribe_Logger: Failed to flush log to ' . $log_file ); // phpcs:ignore WordPress.PHP.DevelopmentFunctions.error_log_error_log -- Reporting flush failure when file_put_contents fails; no better alternative in production.
 		}
 
-		
-		
-		
 		chmod( $log_file, 0600 ); // phpcs:ignore WordPress.WP.AlternativeFunctions.file_system_operations_chmod -- Setting 0600 for log file security; only effective on Unix-like systems where debug logs are stored.
 
 		$this->buffer = array();
@@ -334,17 +319,13 @@ class SScribe_Logger implements SScribe_Logger_Interface {
 	 * @return array Log entries from file and buffer.
 	 */
 	public function get_logs( int $limit = -1 ): array {
-		
-		
-		
 
 		$file_entries = array();
 		$log_file     = $this->get_log_file();
 
 		if ( file_exists( $log_file ) ) {
 			if ( $limit > 0 ) {
-				
-				
+
 				try {
 					$file = new SplFileObject( $log_file, 'r' );
 					$file->seek( PHP_INT_MAX );
@@ -362,13 +343,13 @@ class SScribe_Logger implements SScribe_Logger_Interface {
 					}
 					unset( $file );
 				} catch ( Exception $e ) {
-					
+
 					$contents = file_get_contents( $log_file ); // phpcs:ignore WordPress.WP.AlternativeFunctions.file_get_contents_file_get_contents
 					if ( $contents ) {
 						$contents     = str_replace( "\r\n", "\n", $contents );
 						$contents     = str_replace( "\r", "\n", $contents );
 						$file_entries = explode( "\n", trim( $contents ) );
-						
+
 						if ( count( $file_entries ) > $limit ) {
 							$file_entries = array_slice( $file_entries, -$limit );
 						}
@@ -398,8 +379,7 @@ class SScribe_Logger implements SScribe_Logger_Interface {
 	 */
 	public function clear_logs(): void {
 		$this->buffer = array();
-		
-		
+
 		$upload_dir = wp_upload_dir();
 		$log_dir    = $upload_dir['basedir'] . '/sscribe-logs';
 

@@ -209,8 +209,6 @@ final class SScribe_Exporter {
 		 */
 		$this->colors = apply_filters( 'sscribe_docx_colors', $this->colors );
 
-		
-		
 		$defaults = array(
 			'primary'  => '4A8263',
 			'heading'  => '122119',
@@ -236,7 +234,6 @@ final class SScribe_Exporter {
 			$this->font_size
 		);
 
-		
 		if ( null !== $content_renderer ) {
 			$this->content_renderer->sync_config(
 				$this->colors,
@@ -295,7 +292,6 @@ final class SScribe_Exporter {
 	private function safe_text( string $text ): string {
 		$text = (string) $text;
 
-		
 		$cleaned = @iconv( 'UTF-8', 'UTF-8//IGNORE', $text );
 		if ( false !== $cleaned ) {
 			$text = $cleaned;
@@ -315,14 +311,6 @@ final class SScribe_Exporter {
 
 		$text = str_replace( "\x0C", '', $text );
 
-		
-		
-		
-		
-		
-		
-		
-		
 		if ( mb_strlen( $text, 'UTF-8' ) > 2048 && $this->is_machine_style_string( $text ) ) {
 			$original_length = mb_strlen( $text, 'UTF-8' );
 			$text = mb_substr( $text, 0, 2048, 'UTF-8' );
@@ -334,10 +322,6 @@ final class SScribe_Exporter {
 				)
 			);
 		}
-
-		
-		
-		
 
 		return $text;
 	}
@@ -356,24 +340,19 @@ final class SScribe_Exporter {
 	 * @return bool True if it looks like a machine-style string suitable for truncation.
 	 */
 	private function is_machine_style_string( string $text ): bool {
-		
+
 		if ( false !== mb_strpos( $text, ' ', 0, 'UTF-8' ) ) {
 			return true;
 		}
 
-		
 		if ( preg_match( '#^[a-z][a-z0-9+.\-]*://#i', $text ) ) {
 			return true;
 		}
 
-		
-		
 		if ( 0 === mb_strlen( $text, 'UTF-8' ) - mb_strlen( $text, 'ASCII' ) ) {
 			return true;
 		}
 
-		
-		
 		$ascii_machine_count = preg_match_all( '/[A-Za-z0-9=\/\+_\-:.;?&%@#]/', $text );
 		$total_length        = mb_strlen( $text, 'UTF-8' );
 
@@ -381,7 +360,6 @@ final class SScribe_Exporter {
 			return true;
 		}
 
-		
 		return false;
 	}
 
@@ -437,7 +415,7 @@ final class SScribe_Exporter {
 		$scheme        = strtolower( ( false === $parsed_scheme || null === $parsed_scheme ) ? '' : $parsed_scheme );
 
 		if ( in_array( $scheme, array( 'http', 'https', 'mailto', 'tel' ), true ) ) {
-			
+
 			$host = wp_parse_url( $url, PHP_URL_HOST );
 			if ( $host && $this->is_ip_blocked( $host ) ) {
 				$this->get_logger()->warning(
@@ -473,24 +451,16 @@ final class SScribe_Exporter {
 	 * @return bool True if blocked.
 	 */
 	private function is_ip_blocked( string $host ): bool {
-		
+
 		if ( filter_var( $host, FILTER_VALIDATE_IP ) !== false ) {
 			return filter_var( $host, FILTER_VALIDATE_IP, FILTER_FLAG_NO_PRIV_RANGE | FILTER_FLAG_NO_RES_RANGE ) === false;
 		}
 
-		
-		
-		
-		
-		
 		$normalized = $this->normalize_ip_literal( $host );
 		if ( null !== $normalized ) {
 			return filter_var( $normalized, FILTER_VALIDATE_IP, FILTER_FLAG_NO_PRIV_RANGE | FILTER_FLAG_NO_RES_RANGE ) === false;
 		}
 
-		
-		
-		
 		return false;
 	}
 
@@ -514,11 +484,10 @@ final class SScribe_Exporter {
 			return null;
 		}
 
-		
 		if ( preg_match( '/^0x[0-9a-fA-F]+$/', $candidate ) ) {
 			$value = intval( substr( $candidate, 2 ), 16 );
 		} elseif ( ctype_digit( $candidate ) ) {
-			
+
 			$value = (int) $candidate;
 		} else {
 			return null;
@@ -653,7 +622,6 @@ final class SScribe_Exporter {
 			return false;
 		}
 
-		
 		if ( ! is_writable( $output_dir ) ) { // phpcs:ignore WordPress.WP.AlternativeFunctions.file_system_operations_is_writable
 			$this->last_error = 'Output directory is not writable: ' . $output_dir;
 			$this->get_logger()->error(
@@ -719,12 +687,9 @@ final class SScribe_Exporter {
 
 			$this->define_styles( $php_word );
 
-			
-			
-			
 			$template = (string) $this->get_format_option( 'sscribe_docx_template', 'default' );
 			if ( 'minimal' !== $template ) {
-				
+
 				$cover_settings              = $this->get_section_settings( $this->is_rtl );
 				$cover_settings['vAlign']    = 'center';
 				$cover = $php_word->addSection( $cover_settings );
@@ -815,9 +780,8 @@ final class SScribe_Exporter {
 
 			$this->cleanup_phpword_temp_files();
 
-			
 			$file_size = @filesize( $output_path );
-			$min_size  = 8192; 
+			$min_size  = 8192;
 
 			$this->get_logger()->debug(
 				'DOCX saved to disk',
@@ -835,7 +799,6 @@ final class SScribe_Exporter {
 				throw new \RuntimeException( 'DOCX file size below minimum threshold' );
 			}
 
-			
 			$zip_check = new \ZipArchive();
 			if ( true !== $zip_check->open( $output_path ) ) {
 				wp_delete_file( $output_path );
@@ -858,7 +821,6 @@ final class SScribe_Exporter {
 				return $output_path;
 			}
 
-			
 			$xml_valid = true;
 			$zip_xml   = null;
 			if ( $has_document ) {
@@ -904,12 +866,8 @@ final class SScribe_Exporter {
 				}
 			}
 
-			
-			
 			if ( ! $xml_valid ) {
-				
-				
-				
+
 				unset( $writer, $php_word );
 				throw new \RuntimeException( 'DOCX integrity check failed: XML validation error' );
 			}
@@ -1102,11 +1060,11 @@ final class SScribe_Exporter {
 		if ( $this->is_rtl ) {
 			$blockquote_style['bidi']             = true;
 			$blockquote_style['indentation']      = array( 'right' => Converter::cmToTwip( 1 ) );
-			$blockquote_style['borderRightSize']  = 12;  
+			$blockquote_style['borderRightSize']  = 12;
 			$blockquote_style['borderRightColor'] = $this->colors['primary'];
 		} else {
 			$blockquote_style['indentation']     = array( 'left' => Converter::cmToTwip( 1 ) );
-			$blockquote_style['borderLeftSize']  = 12;  
+			$blockquote_style['borderLeftSize']  = 12;
 			$blockquote_style['borderLeftColor'] = $this->colors['primary'];
 		}
 
@@ -1124,20 +1082,17 @@ final class SScribe_Exporter {
 			$codeblock_style['indentation'] = array( 'left' => Converter::cmToTwip( 0.5 ) );
 		}
 
-		
 		if ( $this->is_rtl ) {
 			$codeblock_style['complexScript'] = true;
 			$codeblock_style['rtl']           = true;
 		}
 
-		
 		$codeblock_style['shading'] = array(
 			'fill' => 'F2F2F2',
 		);
 
 		$php_word->addParagraphStyle( 'CodeBlock', $this->get_para_style( $codeblock_style ) );
 
-		
 		$list_style = array(
 			'spaceBefore' => Converter::pointToTwip( 2 ),
 			'spaceAfter'  => Converter::pointToTwip( 2 ),
@@ -1157,17 +1112,15 @@ final class SScribe_Exporter {
 	 * @return array Section settings.
 	 */
 	private function get_section_settings( bool $is_rtl = false ): array {
-		
-		
-		
+
 		$locale       = $this->get_cached_locale();
 		$us_like_locales = array( 'en_US', 'en_CA', 'en_MX', 'fil_PH' );
 		$is_us_letter    = in_array( $locale, $us_like_locales, true )
-			|| str_starts_with( $locale, 'en_US' ); 
+			|| str_starts_with( $locale, 'en_US' );
 
 		// phpcs:ignore WordPress.WP.AlternativeFunctions.file_system_operations_is_dir
-		$page_w = $is_us_letter ? Converter::inchToTwip( 8.5 ) : Converter::inchToTwip( 8.27 ); 
-		$page_h = $is_us_letter ? Converter::inchToTwip( 11 ) : Converter::inchToTwip( 11.69 ); 
+		$page_w = $is_us_letter ? Converter::inchToTwip( 8.5 ) : Converter::inchToTwip( 8.27 );
+		$page_h = $is_us_letter ? Converter::inchToTwip( 11 ) : Converter::inchToTwip( 11.69 );
 
 		$settings = array(
 			'pageSizeW'    => $page_w,
@@ -1238,14 +1191,13 @@ final class SScribe_Exporter {
 		$section->addTextBreak( 4 );
 
 		$cover_title = $this->safe_text( (string) ( $page_data['title'] ?? '' ) );
-		
-		
+
 		$cover_title_font = array(
 			'name'    => $this->font_name,
 			'size'    => 28,
 			'bold'    => true,
 			'color'   => $this->colors['heading'],
-			'allCaps' => ! $this->is_rtl, 
+			'allCaps' => ! $this->is_rtl,
 		);
 		$section->addText(
 			$cover_title,
@@ -1347,15 +1299,10 @@ final class SScribe_Exporter {
 			);
 		}
 
-		
-		
-		
 		if ( '1' !== (string) $this->get_format_option( 'sscribe_docx_include_toc', '1' ) ) {
 			return;
 		}
 
-		
-		
 		$content       = $page_data['content'] ?? '';
 		$word_count    = $page_data['word_count'] ?? 0;
 		$heading_count = 0;
@@ -1489,7 +1436,6 @@ final class SScribe_Exporter {
 				'size'  => 7,
 				'color' => $this->colors['body'],
 			),
-			
 			array( 'alignment' => $this->is_rtl ? Jc::START : Jc::END )
 		);
 	}
@@ -1502,9 +1448,7 @@ final class SScribe_Exporter {
 	 * @return void
 	 */
 	private function add_featured_image( Section $section, array $page_data ): void {
-		
-		
-		
+
 		if ( '1' !== (string) $this->get_format_option( 'sscribe_docx_include_images', '1' ) ) {
 			return;
 		}
@@ -1577,8 +1521,6 @@ final class SScribe_Exporter {
 				}
 			}
 
-			
-			
 			$max_image_bytes = (int) apply_filters( 'sscribe_max_featured_image_bytes', 5 * 1024 * 1024 );
 			$image_bytes     = @filesize( $path );
 			if ( false !== $image_bytes && $image_bytes > $max_image_bytes ) {
@@ -1832,7 +1774,6 @@ final class SScribe_Exporter {
 		$section->addTextBreak( 1 );
 		$section->addTitle( __( 'Child Pages', 'sscribe-export-site-pages' ), 2 );
 
-		
 		$max_depth    = 3;
 		$max_children = 50;
 		$this->render_child_pages( $section, $page_data['children'], 0, $max_depth, $max_children, 0 );
@@ -1892,7 +1833,6 @@ final class SScribe_Exporter {
 			);
 			++$rendered;
 
-			
 			if ( ! empty( $child['children'] ) && is_array( $child['children'] ) ) {
 				$rendered = $this->render_child_pages( $section, $child['children'], $depth + 1, $max_depth, $max_children, $rendered );
 			}

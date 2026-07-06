@@ -70,7 +70,7 @@ class SScribe_Arabic_Segmenter {
 	public static function get_reading_time( string $text, string $language = 'en' ): int {
 		$word_count = self::count_words( $text, $language );
 		$wpm        = 'ar' === strtolower( $language ) ? 138 : 200;
-		
+
 		return $word_count > 0 ? (int) ceil( $word_count / $wpm ) : 0;
 	}
 }

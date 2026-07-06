@@ -115,7 +115,7 @@ class SScribe_Export_Query_Controller {
 	 * @return void
 	 */
 	public function ajax_health_check( string $export_capability = 'sscribe_export' ): void {
-		if ( ! check_ajax_referer( 'sscribe_export_nonce', 'nonce', false ) ) {
+		if ( ! check_ajax_referer( 'sscribe_health_nonce', 'nonce', false ) ) {
 			SScribe_AJAX_Guard::error( array( 'message' => __( 'Security check failed.', 'sscribe-export-site-pages' ) ), 403 );
 		}
 
@@ -145,9 +145,6 @@ class SScribe_Export_Query_Controller {
 			);
 		}
 
-		
-		
-		
 		// phpcs:ignore WordPress.Security.NonceVerification.Recommended -- Read-only flag.
 		$force = isset( $_GET['force'] ) && '1' === sanitize_text_field( wp_unslash( $_GET['force'] ) );
 		$cache_key = 'sscribe_health_snapshot_' . $health_capability . '_' . get_current_user_id();
@@ -206,8 +203,6 @@ class SScribe_Export_Query_Controller {
 			$post_type = 'page';
 		}
 
-		
-		
 		$page_counts = $this->collector->get_post_status_counts( $language, 'page' );
 		$post_counts = $this->collector->get_post_status_counts( $language, 'post' );
 
@@ -217,8 +212,6 @@ class SScribe_Export_Query_Controller {
 			$any_counts[ $key ] = ( $page_counts[ $key ] ?? 0 ) + ( $post_counts[ $key ] ?? 0 );
 		}
 
-		
-		
 		$counts = 'any' === $post_type ? $any_counts : ( 'page' === $post_type ? $page_counts : $post_counts );
 
 		SScribe_AJAX_Guard::success(
@@ -359,7 +352,6 @@ class SScribe_Export_Query_Controller {
 		$formats_raw   = isset( $_POST['formats'] ) ? wp_unslash( (array) $_POST['formats'] ) : array();
 		$formats_input = array_map( 'sanitize_text_field', $formats_raw );
 		$formats       = ! empty( $formats_input ) ? $formats_input : array( 'docx' );
-		
 
 		$page_count = isset( $_POST['page_count'] ) ? absint( wp_unslash( $_POST['page_count'] ) ) : 0;
 
@@ -411,16 +403,11 @@ class SScribe_Export_Query_Controller {
 		$language    = isset( $_POST['language'] ) ? sanitize_text_field( wp_unslash( $_POST['language'] ) ) : '';
 		$post_status = isset( $_POST['post_status'] ) ? sanitize_text_field( wp_unslash( $_POST['post_status'] ) ) : 'publish';
 
-		
 		if ( ! $this->collector->is_wpml_active() ) {
 			$language = '';
 		}
 		$format      = isset( $_POST['format'] ) ? sanitize_text_field( wp_unslash( $_POST['format'] ) ) : 'docx';
 
-		
-		
-		
-		
 		if ( 'all' === $format ) {
 			$formats = \SScribe_Exporter_Factory::get_supported_formats();
 		} elseif ( \SScribe_Exporter_Factory::is_supported( $format ) ) {
@@ -433,18 +420,9 @@ class SScribe_Export_Query_Controller {
 		if ( ! in_array( $post_type, array( 'page', 'post' ), true ) ) {
 			$post_type = 'page';
 		}
-		
-		
 
-		
-		
-		
-		
-		
 		$page_count = $this->collector->get_page_count_only( $language, $post_status, $post_type );
 
-		
-		
 		$pages = $this->collector->get_page_ids( $language, $post_status, $post_type, 1 );
 
 		$seconds_per_page = 0.0;

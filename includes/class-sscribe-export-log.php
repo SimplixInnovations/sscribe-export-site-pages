@@ -298,9 +298,7 @@ class SScribe_Export_Log {
 		$data = $this->read_log();
 
 		if ( ! isset( $data['pages'][ $page_id ] ) ) {
-			
-			
-			
+
 			$data['pages'][ $page_id ] = array(
 				'status'        => 'retrying',
 				'retries'       => array(),
@@ -359,14 +357,9 @@ class SScribe_Export_Log {
 
 		if ( ! empty( $data['zip_file'] ) ) {
 			$index_key = 'sscribe_zip_index_' . md5( $data['zip_file'] );
-			
-			
-			
+
 			wp_cache_set( $index_key, $this->session_id, 'sscribe_zip_index', 30 * DAY_IN_SECONDS );
 
-			
-			
-			
 			update_option( 'sscribe_log_zip_' . md5( $data['zip_file'] ), $this->session_id, false );
 		}
 	}
@@ -518,7 +511,6 @@ class SScribe_Export_Log {
 			return null;
 		}
 
-		
 		$index_key  = 'sscribe_zip_index_' . md5( $filename );
 		$session_id = wp_cache_get( $index_key, 'sscribe_zip_index' );
 		if ( false === $session_id ) {
@@ -538,12 +530,11 @@ class SScribe_Export_Log {
 			}
 		}
 
-		
 		$option_key = 'sscribe_log_zip_' . md5( $filename );
 		$session_id = get_option( $option_key, false );
 
 		if ( false !== $session_id && is_string( $session_id ) ) {
-			
+
 			wp_cache_set( $index_key, $session_id, 'sscribe_zip_index', 30 * DAY_IN_SECONDS );
 			set_transient( $index_key, $session_id, 30 * DAY_IN_SECONDS );
 
@@ -559,8 +550,6 @@ class SScribe_Export_Log {
 			}
 		}
 
-		
-		
 		if ( ! apply_filters( 'sscribe_enable_log_full_scan', true ) ) {
 			return null;
 		}
@@ -586,7 +575,7 @@ class SScribe_Export_Log {
 					if ( is_array( $data ) && isset( $data['zip_file'] ) && $data['zip_file'] === $filename ) {
 
 						if ( isset( $data['session_id'] ) ) {
-							
+
 							set_transient( $index_key, $data['session_id'], 30 * DAY_IN_SECONDS );
 							update_option( $option_key, $data['session_id'], false );
 						}
@@ -623,7 +612,6 @@ class SScribe_Export_Log {
 		wp_cache_delete( $index_key, 'sscribe_zip_index' );
 		delete_transient( $index_key );
 
-		
 		delete_option( 'sscribe_log_zip_' . md5( $filename ) );
 
 		$files = glob( $log_dir . '/export_*.json' );

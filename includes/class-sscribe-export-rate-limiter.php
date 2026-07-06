@@ -150,9 +150,7 @@ class SScribe_Export_Rate_Limiter {
 		$ip = '';
 		if ( isset( $_SERVER['HTTP_CF_CONNECTING_IP'] ) ) {
 			$raw_ip = sanitize_text_field( wp_unslash( $_SERVER['HTTP_CF_CONNECTING_IP'] ) );
-			
-			
-			
+
 			if ( $raw_ip && filter_var( $raw_ip, FILTER_VALIDATE_IP ) ) {
 				$ip = $raw_ip;
 			}
@@ -161,9 +159,7 @@ class SScribe_Export_Rate_Limiter {
 			$raw_forwarded = sanitize_text_field( wp_unslash( $_SERVER['HTTP_X_FORWARDED_FOR'] ) );
 			if ( $raw_forwarded ) {
 				$first = trim( explode( ',', $raw_forwarded )[0] );
-				
-				
-				
+
 				if ( $first && filter_var( $first, FILTER_VALIDATE_IP ) ) {
 					$ip = $first;
 				}

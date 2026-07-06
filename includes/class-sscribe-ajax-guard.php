@@ -119,16 +119,10 @@ class SScribe_AJAX_Guard {
 
 		$extraneous = trim( $extraneous );
 
-		
-		
-		
-		
-		
 		while ( ob_get_level() < $start_level ) {
 			ob_start();
 		}
 
-		
 		if ( defined( 'WP_TESTS_DOMAIN' ) || defined( 'SSCRIBE_TESTING' ) ) {
 			return;
 		}

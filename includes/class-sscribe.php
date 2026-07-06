@@ -59,9 +59,6 @@ class SScribe {
 			fn( SScribe_Container $c ) => new SScribe_Export_Lock_Manager( $c->get( SScribe_Logger::class ) )
 		);
 
-		
-		
-		
 		$container->bind(
 			SScribe_Exporter::class,
 			fn( SScribe_Container $c ) => new SScribe_Exporter( $c->get( SScribe_Content_Parser::class ) )
@@ -190,8 +187,6 @@ class SScribe {
 			return;
 		}
 
-		
-		
 		$cache_key = 'sscribe_admin_page_data_v' . SSCRIBE_VERSION . '_' . get_current_blog_id();
 		delete_transient( $cache_key );
 	}
@@ -259,12 +254,9 @@ class SScribe {
 
 			SScribe_Logger::cleanup_old_logs( 7 );
 
-			
 			require_once SSCRIBE_PLUGIN_DIR . 'includes/class-sscribe-export-log.php';
 			SScribe_Export_Log::cleanup_old_logs( 24 );
 
-			
-			
 			$lock_manager = SScribe_Container::instance()->get( SScribe_Export_Lock_Manager::class );
 			$lock_manager->cleanup_user_locks( null, null );
 

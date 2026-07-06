@@ -1424,12 +1424,6 @@
   border: 2px solid var(--ss-border);
   border-top-color: var(--ss-brand);
   border-radius: 50%;
-  animation: sscribe-spin 0.8s linear infinite;
-}
-@keyframes sscribe-spin {
-  to {
-    transform: rotate(360deg);
-  }
 }
 .sscribe-progress-initializing {
   display: flex;
@@ -2074,7 +2068,6 @@
 }
 .sscribe-toast.sscribe-toast-removing {
   opacity: 0;
-  transform: none;
   transition: opacity 200ms ease;
 }
 .sscribe-tab-btn-debug.sscribe-tab-active {

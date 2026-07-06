@@ -14,7 +14,7 @@ if ( ! defined( 'ABSPATH' ) ) {
 }
 
 $sscribe_vendor_aliases = array(
-	
+
 	'PhpOffice\\PhpWord\\PhpWord'              => 'SScribeVendor\\PhpOffice\\PhpWord\\PhpWord',
 	'PhpOffice\\PhpWord\\IOFactory'            => 'SScribeVendor\\PhpOffice\\PhpWord\\IOFactory',
 	'PhpOffice\\PhpWord\\Settings'             => 'SScribeVendor\\PhpOffice\\PhpWord\\Settings',
@@ -34,7 +34,7 @@ $sscribe_vendor_aliases = array(
 );
 
 foreach ( $sscribe_vendor_aliases as $sscribe_source => $sscribe_target ) {
-	if ( class_exists( $sscribe_source ) && ! class_exists( $sscribe_target ) ) {
+	if ( class_exists( $sscribe_source, false ) && ! class_exists( $sscribe_target, false ) ) {
 		class_alias( $sscribe_source, $sscribe_target );
 	}
 }

@@ -91,8 +91,6 @@ class SScribe_Logger_Enhanced extends SScribe_Logger {
 		$this->min_level = $options['min_level'] ?? self::LEVEL_INFO;
 		$this->enable_qm = $options['enable_qm'] ?? true;
 
-		
-		
 		if ( isset( $options['enabled'] ) && false === $options['enabled'] ) {
 			$this->enable_file = false;
 			$this->enable_db   = false;
@@ -105,15 +103,6 @@ class SScribe_Logger_Enhanced extends SScribe_Logger {
 
 		$this->table_name = $GLOBALS['wpdb']->prefix . 'sscribe_export_logs';
 
-		
-		
-		
-		
-		
-		
-		
-		
-		
 		parent::__construct( $parent_enabled, $options['prefix'] ?? 'sscribe' );
 	}
 
@@ -364,17 +353,12 @@ class SScribe_Logger_Enhanced extends SScribe_Logger {
 			KEY level (level)
 		) $charset_collate;";
 
-		
-		
-		
-		
 		$upgrade_functions = ABSPATH . 'wp-admin/includes/upgrade.php';
 		if ( file_exists( $upgrade_functions ) ) {
 			require_once $upgrade_functions;
 		}
 		dbDelta( $sql );
 
-		
 		$this->table_exists_cache = true;
 	}
 
@@ -401,7 +385,7 @@ class SScribe_Logger_Enhanced extends SScribe_Logger {
 	 * @return array Log entries.
 	 */
 	public function get_logs( int $limit = 100 ): array {
-		
+
 		if ( ! $this->enable_db ) {
 			return $this->get_file_logs( $limit );
 		}
@@ -458,13 +442,11 @@ class SScribe_Logger_Enhanced extends SScribe_Logger {
 	public function clear_logs(): void {
 		global $wpdb;
 
-		
 		if ( $this->table_exists() ) {
 			// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.InterpolatedNotPrepared -- Table name is already escaped via esc_sql(); DELETE FROM does not support placeholders for table names.
 			$wpdb->query( 'DELETE FROM ' . esc_sql( $this->table_name ) );
 		}
 
-		
 		if ( $this->enable_file ) {
 			$files = glob( $this->log_dir . '/' . $this->prefix . '_debug_*.log' );
 			if ( is_array( $files ) ) {

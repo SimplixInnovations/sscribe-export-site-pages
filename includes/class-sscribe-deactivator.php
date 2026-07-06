@@ -44,7 +44,7 @@ class SScribe_Deactivator {
 
 		try {
 			self::cleanup_transients();
-			self::revoke_export_capability();
+			self::revoke_plugin_capabilities();
 		} catch ( \Throwable $e ) {
 			if ( defined( 'WP_DEBUG' ) && WP_DEBUG ) {
 				error_log( 'SScribe deactivation error: ' . $e->getMessage() ); // phpcs:ignore WordPress.PHP.DevelopmentFunctions.error_log_error_log
@@ -58,7 +58,6 @@ class SScribe_Deactivator {
 	private static function cleanup_transients(): void {
 		global $wpdb;
 
-		
 		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- Deactivation cleanup.
 		$transients = $wpdb->get_results(
 			$wpdb->prepare(
@@ -73,7 +72,6 @@ class SScribe_Deactivator {
 			delete_option( $t->option_name );
 		}
 
-		
 		delete_transient( 'sscribe_upgrade_lock' );
 	}
 
@@ -84,13 +82,17 @@ class SScribe_Deactivator {
 	 * The capability is a plugin-specific addition and should be removed
 	 * on deactivation to keep the role database clean.
 	 */
-	private static function revoke_export_capability(): void {
+	private static function revoke_plugin_capabilities(): void {
 		$wp_roles = new \WP_Roles();
 
-		foreach ( $wp_roles->roles as $role_name => $role_data ) {
-			$role = get_role( $role_name );
-			if ( $role && $role->has_cap( 'sscribe_export' ) ) {
-				$role->remove_cap( 'sscribe_export' );
+		$sscribe_capabilities = array( 'sscribe_export', 'sscribe_health' );
+
+		foreach ( $sscribe_capabilities as $sscribe_cap ) {
+			foreach ( $wp_roles->roles as $role_name => $role_data ) {
+				$role = get_role( $role_name );
+				if ( $role && $role->has_cap( $sscribe_cap ) ) {
+					$role->remove_cap( $sscribe_cap );
+				}
 			}
 		}
 	}

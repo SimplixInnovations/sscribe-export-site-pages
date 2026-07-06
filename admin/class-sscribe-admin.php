@@ -70,8 +70,7 @@ class SScribe_Admin {
 		$this->zip_handler = $zip_handler ?? new SScribe_Zip_Handler();
 
 		$this->debug = new SScribe_Admin_Debug();
-		
-		
+
 		$this->debug->register_hooks();
 	}
 
@@ -137,7 +136,7 @@ class SScribe_Admin {
 	 * @return string Modified script tag with nonce attribute.
 	 */
 	public function add_nonce_to_script_tags( string $tag, string $handle, string $src ): string {
-		
+
 		$our_handles = array( 'sscribe-admin', 'sscribe-debug-console' );
 
 		if ( ! in_array( $handle, $our_handles, true ) ) {
@@ -149,7 +148,6 @@ class SScribe_Admin {
 			return $tag;
 		}
 
-		
 		return str_replace( '<script ', '<script nonce="' . esc_attr( $nonce ) . '" ', $tag );
 	}
 
@@ -274,10 +272,6 @@ class SScribe_Admin {
 			$css_version
 		);
 
-		
-		
-		
-
 		wp_enqueue_script(
 			'sscribe-admin',
 			SSCRIBE_PLUGIN_URL . 'admin/js/sscribe-admin.js',
@@ -286,13 +280,6 @@ class SScribe_Admin {
 			true
 		);
 
-		
-		
-		
-		
-		
-		
-		
 		wp_enqueue_style(
 			'sscribe-debug-console',
 			SSCRIBE_PLUGIN_URL . 'admin/css/sscribe-debug-console.css',
@@ -337,11 +324,7 @@ class SScribe_Admin {
 			'nonce'           => wp_create_nonce( 'sscribe_export_nonce' ),
 			'download_nonce'  => $this->get_download_nonce(),
 			'icons_url'       => SSCRIBE_PLUGIN_URL . 'assets/icons/',
-			
-			
-			
-			
-			
+
 			'refresh_interval' => max( 5000, (int) apply_filters( 'sscribe_debug_refresh_interval_ms', 10000 ) ),
 			'strings'        => array(
 				'starting'               => __( 'Starting export...', 'sscribe-export-site-pages' ),
@@ -372,7 +355,7 @@ class SScribe_Admin {
 				'minute_suffix'          => __( 'm', 'sscribe-export-site-pages' ),
 				'log_total'              => __( 'Total:', 'sscribe-export-site-pages' ),
 				'log_pages'              => __( 'pages', 'sscribe-export-site-pages' ),
-				                    'log_page'              => __( 'page',  'sscribe-export-site-pages' ),
+				'log_page'              => __( 'page', 'sscribe-export-site-pages' ),
 				'log_success_label'      => __( 'Success:', 'sscribe-export-site-pages' ),
 				'log_failed_label'       => __( 'Failed:', 'sscribe-export-site-pages' ),
 				'log_page_details'       => __( 'Page Details', 'sscribe-export-site-pages' ),
@@ -460,18 +443,18 @@ class SScribe_Admin {
 				/* translators: %d: progress percentage (e.g. 42) */
 				'document_title'         => __( '(%d%%) SScribe Export', 'sscribe-export-site-pages' ),
 				'err_cancel_failed'      => __( 'Could not confirm cancellation : the server may still be processing. Reload the page before starting a new export.', 'sscribe-export-site-pages' ),
-				
+
 				'post_type_page'         => __( 'Pages', 'sscribe-export-site-pages' ),
 				'post_type_post'         => __( 'Posts', 'sscribe-export-site-pages' ),
 				'post_type_any'          => __( 'Both', 'sscribe-export-site-pages' ),
-				
+
 				'status_publish'         => __( 'Published', 'sscribe-export-site-pages' ),
 				'status_draft'           => __( 'Draft', 'sscribe-export-site-pages' ),
 				'status_private'         => __( 'Private', 'sscribe-export-site-pages' ),
 				'status_future'          => __( 'Scheduled', 'sscribe-export-site-pages' ),
 				'status_pending'         => __( 'Pending', 'sscribe-export-site-pages' ),
 				'status_all'             => __( 'All', 'sscribe-export-site-pages' ),
-				
+
 				/* translators: 1: page count, 2: "pages" label */
 				'live_region_ready'      => __( '%1$d %2$s ready for export', 'sscribe-export-site-pages' ),
 				'live_region_no_pages'   => __( 'No pages match selected options. Export button is disabled.', 'sscribe-export-site-pages' ),
@@ -532,8 +515,7 @@ class SScribe_Admin {
 		}
 
 		$sscribe_debug_info = array();
-		
-		
+
 		$sscribe_is_debug             = true;
 		$sscribe_debug_logging_active = SSCRIBE_DEBUG || SScribe_Settings::is_debug_enabled();
 
@@ -544,7 +526,7 @@ class SScribe_Admin {
 		}
 
 		if ( $sscribe_debug_logging_active ) {
-			
+
 			$blog_id            = is_multisite() ? get_current_blog_id() : 0;
 			$debug_cache_key    = 'sscribe_debug_info_' . $blog_id . '_' . get_current_user_id();
 			$sscribe_debug_info = get_transient( $debug_cache_key );
@@ -604,7 +586,6 @@ class SScribe_Admin {
 
 		$recent_exports = array();
 
-		
 		$existing_files = array();
 		if ( is_dir( $export_dir ) ) {
 			$glob_files = glob( trailingslashit( $export_dir ) . '*.zip' );
@@ -644,11 +625,6 @@ class SScribe_Admin {
 			}
 
 			$lang_code = sanitize_key( (string) ( $data['lang_code'] ?? '' ) );
-			
-			
-			
-			
-			
 
 			if ( '' === $lang_code ) {
 				$lang_code = 'all';
@@ -711,8 +687,6 @@ class SScribe_Admin {
 					'status_breakdown' => $this->collector->get_post_status_counts( $lang_code ),
 				);
 
-				
-				
 				$sscribe_debug_info['language_details'][ $lang_code ]['published_count'] = $this->collector->get_page_count_only( $lang_code, 'publish' );
 				$page_ids = $this->collector->get_page_ids( $lang_code, 'publish', 'page', 50 );
 				$sscribe_debug_info['language_details'][ $lang_code ]['published_page_ids'] = $page_ids;

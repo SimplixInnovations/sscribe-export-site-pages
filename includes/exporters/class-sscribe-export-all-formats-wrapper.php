@@ -53,19 +53,10 @@ class SScribe_Export_All_Formats_Wrapper {
 			$formats = array_keys( SScribe_Export_Format::get_supported_formats() );
 		}
 
-		
-		
-		
 		$formats = array_values( array_unique( array_map( 'strval', $formats ) ) );
 
 		$results = array();
 
-		
-		
-		
-		
-		
-		
 		if ( '' === $output_dir || ! is_dir( $output_dir ) || ! wp_is_writable( $output_dir ) ) {
 			$reason = '' === $output_dir
 				? 'output directory path is empty'
@@ -112,9 +103,7 @@ class SScribe_Export_All_Formats_Wrapper {
 				$exporter = SScribe_Exporter_Factory::create( $format );
 				$result   = $exporter->export( $page_data, $output_dir, $index, $total );
 			} catch ( \Throwable $e ) {
-				
-				
-				
+
 				if ( class_exists( 'SScribe_Logger', false ) ) {
 					SScribe_Logger::instance()->error(
 						sprintf( 'All-formats wrapper: %s export failed', $format ),

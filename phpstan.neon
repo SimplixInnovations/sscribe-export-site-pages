@@ -65,6 +65,8 @@ parameters:
         - '#Function (apply_filters|do_action) invoked with \d+ parameters, \d+ required\.#'
         # PHPStan evaluates constant values at analysis time — these comparisons are runtime guards.
         - '#Strict comparison using !== between .* will always evaluate to true\.#'
+        - '#Strict comparison using !== between .* will always evaluate to false\.#'
+        - '#Instanceof between null and .* will always evaluate to false\.#'
         # SSCRIBE_DEBUG defaults to false but can be overridden in wp-config.php. PHPStan cannot know this.
         - '#Ternary operator condition is always false\.#'
         - '#Left side of && is always false\.#'
