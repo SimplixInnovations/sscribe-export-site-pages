@@ -6,10 +6,8 @@
  * @package SScribe
  * @version 1.1.2
  */
-
 (function ($) {
 	'use strict';
-
 	const SScribe = {
 		sessionId: null,
 		isProcessing: false,
@@ -34,7 +32,6 @@
 		 * @type {Promise<string|null>|null}
 		 */
 		_nonceRefreshInFlight: null,
-
 		/**
 		 * Parse a localized integer from text (handles comma/period separators).
 		 *
@@ -52,7 +49,6 @@
 			const num = parseInt(cleaned, 10);
 			return isNaN(num) ? 0 : num;
 		},
-
 		/**
 		 * Map an ISO 639-1/2 language code to a human-readable label.
 		 *
@@ -65,8 +61,6 @@
 		 * @returns {string} Human-readable language label.
 		 */
 		getLanguageLabel: function (code) {
-			// `!code` would treat a non-empty value like '0' as "all
-			// languages", which is wrong : use a strict empty check.
 			if (code === '' || code === null || code === undefined) {
 				return 'All';
 			}
@@ -116,13 +110,12 @@
 				ku: 'Kurdish',
 				sd: 'Sindhi',
 				yi: 'Yiddish',
-				iw: 'Hebrew', // legacy ISO 639-1 alias for he.
-				ji: 'Yiddish', // legacy ISO 639-1 alias for yi.
+				iw: 'Hebrew', 
+				ji: 'Yiddish', 
 			};
 			const normalized = String(code).toLowerCase();
 			return labels[normalized] || normalized.toUpperCase();
 		},
-
 		getPostStatusLabel: function (slug) {
 			if (slug === '' || slug === null || slug === undefined) {
 				return '';
@@ -139,7 +132,6 @@
 			const normalized = String(slug).toLowerCase();
 			return labels[normalized] || normalized.charAt(0).toUpperCase() + normalized.slice(1);
 		},
-
 		/**
 		 * Refresh the export nonce from the server.
 		 *
@@ -177,8 +169,6 @@
 					},
 				});
 			});
-			// Clear the in-flight marker once the request resolves so the
-			// next 403 can trigger another refresh.
 			self._nonceRefreshInFlight = promise;
 			promise.finally(function () {
 				if (self._nonceRefreshInFlight === promise) {
@@ -187,7 +177,6 @@
 			});
 			return promise;
 		},
-
 		/**
 		 * Wrap a $.ajax options object so that on 403 (nonce expired) the
 		 * nonce is refreshed and the request is retried once.
@@ -203,13 +192,10 @@
 			const dataNonceKey = options.data && options.data.nonce ? true : false;
 			const originalError = options.error;
 			let retried = false;
-
-			// Wrap error so that 403 triggers a refresh + retry.
 			options.error = function (xhr, status, thrown) {
 				const isNonceFailure =
 					xhr && xhr.status === 403 ||
 					(status === 'error' && xhr && xhr.status === 403);
-
 				if (!retried && isNonceFailure && dataNonceKey) {
 					retried = true;
 					self.refreshNonce().then(function (newNonce) {
@@ -217,7 +203,6 @@
 							options.data.nonce = newNonce;
 							$.ajax(options);
 						} else {
-							// Refresh failed : fall through to original error.
 							if (typeof originalError === 'function') {
 								originalError(xhr, status, thrown);
 							}
@@ -225,15 +210,12 @@
 					});
 					return;
 				}
-
 				if (typeof originalError === 'function') {
 					originalError(xhr, status, thrown);
 				}
 			};
-
 			return $.ajax(options);
 		},
-
 		init: function () {
 			if (typeof sscribe_data === 'undefined' || !sscribe_data) {
 				return;
@@ -242,22 +224,15 @@
 			this.bindEvents();
 			this.initializeTabs();
 			this.adjustToastContainerPosition();
-
-			// Set initial disabled-reason text while AJAX counts load.
 			$('#sscribe-export-disabled-reason').text(
 				(sscribe_data.strings && sscribe_data.strings.loading_counts) || 'Loading page counts...'
 			);
-
 			this.updateConfigSummary();
 			this.updateFormatOptionPanels();
-
 			const defaultPostType = $('input[name="sscribe_post_type"]:checked').val() || 'page';
 			const defaultLanguage = $('input[name="sscribe_language"]:checked').val() || '';
 			this.refreshStatusAndLanguageCounts(defaultPostType, defaultLanguage);
-
-			// Check for active session on page load - restore UI if one exists.
 			this.checkActiveSession();
-
 			const self = this;
 			let supportTriggered = false;
 			const observer = new IntersectionObserver(
@@ -275,16 +250,13 @@
 				observer.observe(supportSection);
 			}
 		},
-
 		bindEvents: function () {
-			// Unbind any previously bound namespaced events to prevent duplicates.
 			$(document).off('.sscribe');
 			$('.sscribe-lang-card-label').off('.sscribe');
 			$('input[name="sscribe_post_type"]').off('.sscribe');
 			$('input[name="sscribe_language"]').off('.sscribe');
 			$('input[name="sscribe_post_status"]').off('.sscribe');
 			$('input[name="sscribe_format"]').off('.sscribe');
-
 			$(document).on('click.sscribe', '#sscribe-export-btn', $.proxy(this.startExport, this));
 			$(document).on('click.sscribe', '#sscribe-preview-btn', $.proxy(this.showPreview, this));
 			$(document).on('click.sscribe', '#sscribe-preview-close', $.proxy(this.closePreview, this));
@@ -296,16 +268,13 @@
 			});
 			$(document).on('click.sscribe', '#sscribe-error-try-again', $.proxy(this.retry, this));
 			$(document).on('click.sscribe', '#sscribe-cancel-btn', $.proxy(this.cancelExport, this));
-
 			$('.sscribe-lang-card-label').on('click.sscribe', function () {
 				$(this).find('input[type="radio"]').prop('checked', true);
 			});
-
 			$('input[name="sscribe_post_type"]').on('change.sscribe', $.proxy(this.onPostTypeChange, this));
 			$('input[name="sscribe_language"]').on('change.sscribe', $.proxy(this.onLanguageChange, this));
 			$('input[name="sscribe_post_status"]').on('change.sscribe', $.proxy(this.updateConfigSummary, this));
 			$('input[name="sscribe_format"]').on('change.sscribe', $.proxy(this.onFormatChange, this));
-
 			$(document).on('click.sscribe', '.sscribe-delete-btn', $.proxy(this.deleteExport, this));
 			$(document).on('click.sscribe', '.sscribe-log-btn', $.proxy(this.showExportLog, this));
 			$(document).on('change.sscribe', '.sscribe-history-check', $.proxy(this.updateBulkBar, this));
@@ -321,10 +290,7 @@
 					SScribe.closePreview();
 				}
 			});
-
 			const self = this;
-
-			// Keyboard shortcuts + modal escape handling.
 			$(document).on('keydown.sscribe', function (e) {
 				if (e.key === 'Escape' || e.key === 'Esc') {
 					const $preflight = $('.sscribe-preflight-banner');
@@ -335,10 +301,6 @@
 					}
 					const $previewPanel = $('#sscribe-preview-panel');
 					const $logModal = $('#sscribe-log-modal');
-					// Modal Escape handling: even when focus is on a form
-					// field inside the modal, close it. Outside a modal,
-					// let the browser handle native ESC inside fields
-					// (IME cancel, selection clear).
 					if ($previewPanel.length && !$previewPanel.hasClass('sscribe-hidden')) {
 						e.preventDefault();
 						self.closePreview();
@@ -354,21 +316,14 @@
 						return;
 					}
 				}
-
 				if (!e.ctrlKey && !e.metaKey) {
 					return;
 				}
-				// Don't trigger shortcuts when user is typing in an input, textarea, or contenteditable.
 				const tag = e.target.tagName;
 				if (tag === 'INPUT' || tag === 'TEXTAREA' || e.target.isContentEditable) {
 					return;
 				}
 				if ((e.key === 'e' || e.key === 'E') && e.shiftKey) {
-					// Ctrl+Shift+E (Cmd+Shift+E on macOS) : same
-					// rationale as the P binding: avoid stepping on
-					// browser-native shortcuts. Ctrl+E is empty in
-					// most browsers, but Cmd+E is "Use Selection for
-					// Find" in Safari/Firefox.
 					e.preventDefault();
 					const $btn = $('#sscribe-export-btn');
 					if (!$btn.prop('disabled')) {
@@ -376,11 +331,6 @@
 					}
 				}
 				if ((e.key === 'p' || e.key === 'P') && e.shiftKey) {
-					// Ctrl+Shift+P (Cmd+Shift+P on macOS) : using a
-					// multi-modifier binding to avoid clobbering the
-					// browser's native Ctrl/Cmd+P print dialog. A user
-					// who hits plain Ctrl+P expects the print dialog
-					// to open, not a side-panel preview.
 					e.preventDefault();
 					const $btn = $('#sscribe-preview-btn');
 					if (!$btn.prop('disabled')) {
@@ -389,40 +339,33 @@
 				}
 			});
 		},
-
 		initializeTabs: function () {
 			const self = this;
 			const $tabs = $('.sscribe-tab-btn');
 			if (!$tabs.length) {
 				return;
 			}
-
 			let activeTabId = $tabs.filter('.sscribe-tab-active').first().data('tab');
 			if (!activeTabId) {
 				activeTabId = $tabs.first().data('tab');
 			}
-
 			this.setActiveTab(activeTabId);
-
 			$tabs.on('click', function (e) {
 				e.preventDefault();
 				const $btn = $(this);
 				self.activateTab($btn.data('tab'), true);
 			});
-
 			$tabs.on('keydown', function (e) {
 				const key = e.key;
 				if (!['ArrowRight', 'ArrowLeft', 'Home', 'End'].includes(key)) {
 					return;
 				}
 				e.preventDefault();
-
 				const $orderedTabs = $('.sscribe-tab-btn');
 				const currentIndex = $orderedTabs.index(this);
 				if (currentIndex === -1) {
 					return;
 				}
-
 				let nextIndex = currentIndex;
 				if (key === 'ArrowRight') {
 					nextIndex = (currentIndex + 1) % $orderedTabs.length;
@@ -433,17 +376,14 @@
 				} else if (key === 'End') {
 					nextIndex = $orderedTabs.length - 1;
 				}
-
 				const $nextTab = $orderedTabs.eq(nextIndex);
 				self.activateTab($nextTab.data('tab'), true);
 			});
 		},
-
 		activateTab: function (tabId, moveFocus) {
 			if (!tabId) {
 				return;
 			}
-
 			const currentTabId = $('.sscribe-tab-btn[aria-selected="true"]').data('tab');
 			if (currentTabId === tabId) {
 				if (moveFocus) {
@@ -451,13 +391,10 @@
 				}
 				return;
 			}
-
 			this.setActiveTab(tabId);
-
 			if (moveFocus) {
 				$('.sscribe-tab-btn[data-tab="' + tabId + '"]').trigger('focus');
 			}
-
 			if (tabId === 'debug' && typeof window.SScribeDebugConsole !== 'undefined') {
 				if (!window.SScribeDebugConsole.initialized) {
 					window.SScribeDebugConsole.init();
@@ -467,11 +404,18 @@
 			} else if (currentTabId === 'debug' && typeof window.SScribeDebugConsole !== 'undefined') {
 				window.SScribeDebugConsole.stopAutoRefresh();
 			}
-		},
-
-		setActiveTab: function (tabId) {
+// Auto-load support diagnostics when Support tab is activated
+            if (tabId === 'support') {
+                // Auto-load diagnostics if textarea is empty
+                setTimeout(function () {
+                    if (!$('#sscribe-support-copy-text').val().trim()) {
+                        SScribe.loadSupportInfo();
+                    }
+                }, 200);
+            }
+            },
+        setActiveTab: function (tabId) {
 			const self = this;
-
 			$('.sscribe-tab-btn').each(function () {
 				const $button = $(this);
 				const isActive = $button.data('tab') === tabId;
@@ -480,13 +424,10 @@
 					.attr('tabindex', isActive ? '0' : '-1')
 					.toggleClass('sscribe-tab-active', isActive);
 			});
-
 			$('.sscribe-tab-content').each(function () {
 				const $panel = $(this);
 				const isActive = $panel.attr('id') === 'sscribe-tab-' + tabId;
-
 				$panel.find(':focus').trigger('blur');
-
 				if (isActive) {
 					$panel
 						.addClass('sscribe-tab-active')
@@ -499,37 +440,25 @@
 						.attr('aria-hidden', 'true')
 						.attr('tabindex', '-1')
 						.prop('hidden', true);
-
 					self.releaseFocusTrap($panel[0]);
 				}
 			});
 		},
-
 		onPostTypeChange: function () {
 			if (this.isProcessing) {
 				return;
 			}
-
 			const postType = $('input[name="sscribe_post_type"]:checked').val() || 'page';
 			const language = $('input[name="sscribe_language"]:checked').val() || '';
-
 			this.refreshStatusAndLanguageCounts(postType, language);
 		},
-
 		refreshStatusAndLanguageCounts: function (postType, language) {
 			const self = this;
-
-			// Reset to loading state: export/preview buttons must disable
-			// while the in-flight request is pending, otherwise the user
-			// can click Export with a count that doesn't match the current
-			// filter state (the previous fetch's count is still active).
 			self.selectedPageCount = 0;
 			self._countsLoaded = false;
 			self.updateExportButton();
-
 			$('.sscribe-status-card-label').addClass('sscribe-loading');
 			$('#sscribe-page-count, #sscribe-post-count, #sscribe-both-count').addClass('sscribe-loading-count');
-
 			if (self._countsXHR && self._countsXHR.abort) {
 				self._countsXHR.abort();
 			}
@@ -549,17 +478,13 @@
 						const pageCounts = response.data.counts_page || allCounts;
 						const postCounts = response.data.counts_post || {};
 						const anyCounts = response.data.counts_any || {};
-
 						self.updateStatusCounts(allCounts);
-
 						const pageTotal = self.parseLocalizedInt(pageCounts.all) || 0;
 						const postTotal = self.parseLocalizedInt(postCounts.all) || 0;
 						const anyTotal = self.parseLocalizedInt(anyCounts.all) || 0;
-
 						$('#sscribe-page-count').text(pageTotal.toLocaleString());
 						$('#sscribe-post-count').text(postTotal.toLocaleString());
 						$('#sscribe-both-count').text(anyTotal.toLocaleString());
-
 						self._countsLoaded = true;
 						self.updateConfigSummary();
 						self.updateExportButton();
@@ -572,7 +497,6 @@
 					$('#sscribe-page-count, #sscribe-post-count, #sscribe-both-count').removeClass('sscribe-loading-count');
 				},
 			});
-
 			if (!this._langCountsXHRs) {
 				this._langCountsXHRs = [];
 			}
@@ -583,17 +507,14 @@
 					xhr.abort();
 				}
 			});
-
 			$('input[name="sscribe_language"]').each(function () {
 				const langCode = $(this).val();
-
 				if (self._langXHRsByCode && self._langXHRsByCode[langCode] && self._langXHRsByCode[langCode].abort) {
 					self._langXHRsByCode[langCode].abort();
 				}
 				if (!self._langXHRsByCode) {
 					self._langXHRsByCode = {};
 				}
-
 				const xhr = $.ajax({
 					url: sscribe_data.ajaxurl,
 					type: 'POST',
@@ -609,16 +530,13 @@
 							const pageCounts = response.data.counts_page || response.data.counts || {};
 							const postCounts = response.data.counts_post || {};
 							const anyCounts = response.data.counts_any || {};
-
 							const pageTotal = self.parseLocalizedInt(pageCounts.all) || 0;
 							const postTotal = self.parseLocalizedInt(postCounts.all) || 0;
 							const anyTotal = self.parseLocalizedInt(anyCounts.all) || 0;
-
 							const currentPostType = $('input[name="sscribe_post_type"]:checked').val() || 'page';
 							const displayTotal = 'post' === currentPostType
 								? postTotal
 								: ( 'any' === currentPostType ? anyTotal : pageTotal );
-
 							const $langLabel = $('input[name="sscribe_language"][value="' + langCode + '"]')
 								.closest('.sscribe-lang-card-label');
 							$langLabel.find('.sscribe-lang-count').text(displayTotal.toLocaleString());
@@ -639,7 +557,6 @@
 				self._langXHRsByCode[langCode] = xhr;
 			});
 		},
-
 		checkActiveSession: function () {
 			$.ajax({
 				url: sscribe_data.ajaxurl,
@@ -657,9 +574,6 @@
 							.prop('disabled', false)
 							.text(sscribe_data.strings.cancel || 'Cancel Export');
 						$('#sscribe-export-btn, #sscribe-preview-btn').prop('disabled', true);
-						// If the server hasn't computed a real percentage
-						// yet, show the indeterminate stripe state. The
-						// first updateProgress(>= 1) will clear the class.
 						const restoredPct = Number(response.data.percentage) || 0;
 						if (restoredPct < 1) {
 							$('#sscribe-progress-bar').addClass('sscribe-progress-initializing');
@@ -678,22 +592,18 @@
 				},
 			});
 		},
-
 		updateStatusCounts: function (counts) {
 			const currentSelected = $('input[name="sscribe_post_status"]:checked');
 			let currentStillValid = false;
 			let firstAvailable = null;
 			const self = this;
-
 			$('.sscribe-status-card-label').each(function () {
 				const $label = $(this);
 				const $input = $label.find('input[type="radio"]');
 				const status = $input.val();
 				const count = self.parseLocalizedInt(counts[status]) || 0;
-
 				$label.find('.sscribe-status-count').text(count);
 				$label.attr('data-count', count);
-
 				if (count === 0) {
 					$input.prop('disabled', true).prop('checked', false);
 					$label.addClass('sscribe-status-disabled');
@@ -708,13 +618,11 @@
 					}
 				}
 			});
-
 			if (!currentStillValid && firstAvailable) {
 				firstAvailable.prop('checked', true);
 				this.updateConfigSummary();
 			}
 		},
-
 		onLanguageChange: function () {
 			if (this.isProcessing) {
 				return;
@@ -723,13 +631,11 @@
 			const language = $('input[name="sscribe_language"]:checked').val() || '';
 			this.refreshStatusAndLanguageCounts(postType, language);
 		},
-
 		onFormatChange: function () {
 			this.updateConfigSummary();
 			this.updateExportButton();
 			this.updateFormatOptionPanels();
 		},
-
 		/**
 		 * Show the option panel for the currently selected export format and
 		 * hide the others. The "all" format shows no per-format panel.
@@ -744,7 +650,6 @@
 			const format = $('input[name="sscribe_format"]:checked').val() || 'all';
 			const $wrapper = $('#sscribe-format-options');
 			const $panels = $wrapper.find('.sscribe-format-option-panel');
-
 			let anyVisible = false;
 			$panels.each(function () {
 				const $panel = $(this);
@@ -756,14 +661,12 @@
 					$panel.attr('hidden', 'hidden');
 				}
 			});
-
 			if (anyVisible) {
 				$wrapper.removeClass('sscribe-hidden');
 			} else {
 				$wrapper.addClass('sscribe-hidden');
 			}
 		},
-
 		/**
 		 * Collect the per-format option values from the option panels.
 		 * Returned as a flat object suitable for sending in an AJAX
@@ -791,7 +694,6 @@
 				});
 			return options;
 		},
-
 		updateConfigSummary: function () {
 			const $selectedStatus = $('input[name="sscribe_post_status"]:checked');
 			let count = 0;
@@ -801,17 +703,11 @@
 						$selectedStatus.closest('.sscribe-status-card-label').find('.sscribe-status-count').text()
 					) || 0;
 			}
-
 			this.selectedPageCount = count;
-
 			const postType = $('input[name="sscribe_post_type"]:checked').val() || 'page';
 			const language = $('input[name="sscribe_language"]:checked').val();
 			const format = $('input[name="sscribe_format"]:checked').val() || 'all';
 			const status = $selectedStatus.val() || 'publish';
-
-			// Localized labels (server-fed via sscribe_data.strings) so
-			// the config-summary chips honor the site locale. Each label
-			// has a hardcoded English fallback for safety.
 			const S = sscribe_data.strings || {};
 			const postTypeLabels = {
 				page: S.post_type_page || 'Pages',
@@ -826,14 +722,12 @@
 				pending: S.status_pending || 'Pending',
 				all:     S.status_all     || 'All',
 			};
-
 			$('#sscribe-summary-post-type').text(postTypeLabels[postType] || postType);
 			$('#sscribe-summary-status').text(statusLabels[status] || status);
 			$('#sscribe-summary-language').text(this.getLanguageLabel(language));
 			$('#sscribe-summary-format').text(format === 'all' ? (S.status_all || 'All') : format.toUpperCase());
-			$('#sscribe-summary-pages').text('~' + count + ' ' + sscribe_data.strings.log_pages);
+			$('#sscribe-summary-pages').text((this._countsLoaded ? '' : '~') + count + ' ' + (count === 1 ? ((S && S.log_page) || 'page') : ((S && S.log_pages) || 'pages')));
 			$('#sscribe-summary-time').text(sscribe_data.strings.calculating_time || 'Calculating...').addClass('sscribe-summary-time-pending');
-
 			if (this._configSummaryXHR && this._configSummaryXHR.abort) {
 				this._configSummaryXHR.abort();
 			}
@@ -872,28 +766,22 @@
 					},
 				});
 			}, 300);
-
 			const liveRegion = document.getElementById('sscribe-live-region');
 			if (liveRegion) {
 				if (count > 0) {
-					// Use a localized printf-style template so translators
-					// can reorder the count + noun + verb (e.g. for SOV
-					// languages like Japanese or RTL Arabic).
 					const tplReady = (sscribe_data.strings && sscribe_data.strings.live_region_ready)
 						|| '%1$d %2$s ready for export';
 					liveRegion.textContent = tplReady
 						.replace('%1$d', count)
-						.replace('%2$s', (sscribe_data.strings && sscribe_data.strings.log_pages) || 'pages');
+						.replace('%2$s', (count === 1 ? ((sscribe_data.strings && sscribe_data.strings.log_page) || 'page') : ((sscribe_data.strings && sscribe_data.strings.log_pages) || 'pages')));
 				} else {
 					liveRegion.textContent =
 						(sscribe_data.strings && sscribe_data.strings.live_region_no_pages)
 						|| 'No pages match selected options. Export button is disabled.';
 				}
 			}
-
 			this.updateExportButton();
 		},
-
 		updateExportButton: function () {
 			const hasPostType = $('input[name="sscribe_post_type"]:checked').length > 0;
 			const hasLanguage =
@@ -904,12 +792,9 @@
 				!$('input[name="sscribe_post_status"]:checked').prop('disabled');
 			const hasFormat = $('input[name="sscribe_format"]:checked').length > 0;
 			const hasPages = this.selectedPageCount > 0;
-
 			const canExport = hasPostType && hasLanguage && hasStatus && hasFormat && hasPages;
-
 			$('#sscribe-export-btn').prop('disabled', !canExport);
 			$('#sscribe-preview-btn').prop('disabled', !canExport);
-
 			const $reason = $('#sscribe-export-disabled-reason');
 			if (!canExport) {
 				if (!hasPages) {
@@ -931,50 +816,32 @@
 				$reason.text('');
 			}
 		},
-
 		startExport: function (e) {
 			e.preventDefault();
-
 			if (this.isProcessing) {
 				return;
 			}
-
-			// Clear any pending config summary debounce timer.
 			clearTimeout(this._configSummaryDebounceTimer);
 			if (this._configSummaryXHR && this._configSummaryXHR.abort) {
 				this._configSummaryXHR.abort();
 			}
-
 			this.isProcessing = true;
 			this.batchRetries = 0;
-
-			// Disable the export + preview buttons immediately so a
-			// double-click, Enter-key repeat, or keyboard shortcut
-			// (Ctrl+Shift+E) cannot re-fire sscribe_preflight_check
-			// while the first one is still in flight. updateExportButton()
-			// re-evaluates the disabled state on completion, so this
-			// only blocks the synchronous click window.
 			const $exportBtns = $('#sscribe-export-btn, #sscribe-preview-btn');
 			$exportBtns.prop('disabled', true).addClass('sscribe-btn-busy');
-
 			this.resetUI();
 			this.updateExportButton();
-
 			const language = $('input[name="sscribe_language"]:checked').val() || '';
 			const postStatus = $('input[name="sscribe_post_status"]:checked').val() || 'publish';
 			const postType = $('input[name="sscribe_post_type"]:checked').val() || 'page';
 			const format = $('input[name="sscribe_format"]:checked').val() || 'docx';
-
 			let formats = [];
 			if (format === 'all') {
 				formats = ['docx', 'pdf', 'html', 'markdown'];
 			} else {
 				formats = [format];
 			}
-
 			const self = this;
-
-			// Run pre-flight checks before starting export.
 			$.ajax({
 				url: sscribe_data.ajaxurl,
 				type: 'POST',
@@ -988,8 +855,6 @@
 				success: function (response) {
 					if (response.success) {
 						const diagnostics = response.data;
-
-						// If there are errors, show a warning but allow user to proceed.
 						if (diagnostics.status === 'error') {
 							self.showPreflightWarnings(diagnostics, function () {
 								self.proceedWithExport(language, postStatus, postType, formats);
@@ -1006,12 +871,10 @@
 				},
 			});
 		},
-
 		showPreflightWarnings: function (diagnostics, onProceed) {
 			const checks = diagnostics.checks || {};
 			const errors = [];
 			const warnings = [];
-
 			for (const key in checks) {
 				if (Object.prototype.hasOwnProperty.call(checks, key)) {
 					const check = checks[key];
@@ -1022,7 +885,6 @@
 					}
 				}
 			}
-
 			let bannerHtml = '<div class="sscribe-preflight-banner">';
 			bannerHtml += '<div class="sscribe-preflight-header">';
 			bannerHtml += '<span class="sscribe-preflight-icon" aria-hidden="true">⚠</span>';
@@ -1034,7 +896,6 @@
 				'">&times;</button>';
 			bannerHtml += '</div>';
 			bannerHtml += '<div class="sscribe-preflight-body">';
-
 			if (errors.length > 0) {
 				bannerHtml += '<div class="sscribe-preflight-section sscribe-preflight-errors">';
 				bannerHtml +=
@@ -1057,7 +918,6 @@
 				}
 				bannerHtml += '</ul></div>';
 			}
-
 			if (warnings.length > 0) {
 				bannerHtml += '<div class="sscribe-preflight-section sscribe-preflight-warnings">';
 				bannerHtml +=
@@ -1080,7 +940,6 @@
 				}
 				bannerHtml += '</ul></div>';
 			}
-
 			bannerHtml += '</div>';
 			bannerHtml += '<div class="sscribe-preflight-actions">';
 			bannerHtml +=
@@ -1092,28 +951,22 @@
 				this.escapeHtml(sscribe_data.strings.preflight_cancel || 'Go Back') +
 				'</button>';
 			bannerHtml += '</div></div>';
-
 			$('.sscribe-preflight-banner').remove();
-
 			$('.sscribe-workspace').prepend(bannerHtml);
-
 			const $banner = $('.sscribe-preflight-banner');
 			$banner.attr('role', 'alert');
-
 			const $firstFocusable = $banner.find('.sscribe-preflight-close');
 			if ($firstFocusable.length && typeof $firstFocusable[0].focus === 'function') {
 				setTimeout(function () {
 					$firstFocusable[0].focus();
 				}, 100);
 			}
-
 			$banner.on('click.sscribe-preflight', '.sscribe-preflight-proceed', function () {
 				$banner.fadeOut(200, function () {
 					$banner.remove();
 				});
 				onProceed();
 			});
-
 			$banner.on('click.sscribe-preflight', '.sscribe-preflight-cancel', function () {
 				$banner.fadeOut(200, function () {
 					$banner.remove();
@@ -1126,7 +979,6 @@
 					$('input[name="sscribe_language"]:checked').val() || ''
 				);
 			});
-
 			$banner.on('click.sscribe-preflight', '.sscribe-preflight-close', function () {
 				$banner.fadeOut(200, function () {
 					$banner.remove();
@@ -1139,7 +991,6 @@
 					$('input[name="sscribe_language"]:checked').val() || ''
 				);
 			});
-
 			const bannerOffset = $banner.offset();
 			if (bannerOffset) {
 				$('html, body').animate(
@@ -1150,15 +1001,12 @@
 				);
 			}
 		},
-
 		proceedWithExport: function (language, postStatus, postType, formats) {
 			this.clearSessionWithRetry(language, postStatus, postType, formats, 0);
 		},
-
 		clearSessionWithRetry: function (language, postStatus, postType, formats, attempt) {
 			const maxAttempts = 3;
 			const self = this;
-
 			$.ajax({
 				url: sscribe_data.ajaxurl,
 				type: 'POST',
@@ -1175,8 +1023,6 @@
 					if (attempt < maxAttempts - 1) {
 						self.clearSessionWithRetry(language, postStatus, postType, formats, attempt + 1);
 					} else {
-						// All cleanup attempts exhausted : do not proceed, as a stale
-						// session ghost may remain and conflict with a new export.
 						self.isProcessing = false;
 						self.resetUI();
 						self.updateExportButton();
@@ -1190,7 +1036,6 @@
 				},
 			});
 		},
-
 		doStartExport: function (language, postStatus, postType, formats) {
 			$.ajax({
 				url: sscribe_data.ajaxurl,
@@ -1203,10 +1048,6 @@
 					post_status: postStatus,
 					post_type: postType,
 					formats: formats,
-					// Per-format options from the visible option panel.
-					// Server-side validation should treat unknown option
-					// names as a no-op so future formats can add their
-					// own without breaking older clients.
 					format_options: this.collectFormatOptions(),
 				},
 				success: function (response) {
@@ -1234,11 +1075,9 @@
 				},
 			});
 		},
-
 		scheduleNextBatch: function (retryInMs, isRetry) {
 			const self = this;
 			let delay;
-
 			if (typeof retryInMs === 'number' && isFinite(retryInMs) && retryInMs > 0) {
 				delay = Math.max(0, Math.floor(retryInMs));
 				self.pollBackoff = 0;
@@ -1253,29 +1092,23 @@
 				delay = Math.min(self.pollBackoffMax, Math.floor(self.pollBackoffBase));
 				self.pollBackoff = 0;
 			}
-
 			const jitter = Math.floor(Math.random() * (self.pollJitter * 2 + 1)) - self.pollJitter;
 			delay = Math.max(0, delay + jitter);
 			delay = Math.max(1500, delay);
-
 			setTimeout(function () {
 				self.processBatch();
 			}, delay);
 		},
-
 		processBatch: function () {
 			if (!this.sessionId) {
 				this.showError(sscribe_data.strings.error);
 				return;
 			}
-
 			if (this._batchInProgress) {
 				return;
 			}
 			this._batchInProgress = true;
-
 			const self = this;
-
 			this._batchXHR = $.ajax({
 				url: sscribe_data.ajaxurl,
 				type: 'POST',
@@ -1291,17 +1124,14 @@
 					if (response.success) {
 						SScribe.batchRetries = 0;
 						const data = response.data;
-
 						SScribe.updateProgress(data.percentage, data.current_page, data.total_pages);
 						SScribe.updateStatus(data.message);
 						if (data.status === 'processing') {
 							SScribe.updatePhase('processing');
 						}
-
 						if (data.current_page) {
 							$('#sscribe-current-page').text(data.current_page).show();
 						}
-
 						if (data.time_remaining !== undefined && data.time_remaining > 0) {
 							const minutes = Math.floor(data.time_remaining / 60);
 							const seconds = data.time_remaining % 60;
@@ -1316,7 +1146,6 @@
 							}
 							$('#sscribe-time-remaining').text(timeStr).show();
 						}
-
 						if (data.status === 'complete') {
 							SScribe.exportComplete(data);
 						} else if (data.status === 'finalizing') {
@@ -1354,16 +1183,11 @@
 				},
 			});
 		},
-
 		cancelExport: function (e) {
 			e.preventDefault();
-
 			if (!this.sessionId) {
 				return;
 			}
-
-			// Confirm before tearing down a running export : once cancelled,
-			// partial progress is discarded and the user has to start over.
 			const confirmMsg =
 				(sscribe_data.strings && sscribe_data.strings.cancel_confirm) ||
 				'Cancel the current export? Partial progress will be discarded.';
@@ -1371,7 +1195,6 @@
 				SScribe.announce(sscribe_data.strings.cancel_aborted || 'Cancellation aborted.');
 				return;
 			}
-
 			if (this._batchXHR) {
 				this._batchXHR.abort();
 				this._batchXHR = null;
@@ -1380,11 +1203,9 @@
 				this._finalizingXHR.abort();
 				this._finalizingXHR = null;
 			}
-
 			$('#sscribe-cancel-btn')
 				.prop('disabled', true)
 				.text(sscribe_data.strings.cancelling || 'Cancelling...');
-
 			$.ajax({
 				url: sscribe_data.ajaxurl,
 				type: 'POST',
@@ -1407,34 +1228,18 @@
 				},
 				error: function (xhr) {
 					SScribe.isProcessing = false;
-					// Defensive: if the cancel AJAX fails, we don't know
-					// whether the server is still processing. Reset the UI
-					// so the user can try again : otherwise the progress
-					// area (with its indeterminate stripes) stays visible
-					// and the user is stuck.
 					SScribe.resetUI();
 					$('#sscribe-cancel-btn')
 						.prop('disabled', false)
 						.text(sscribe_data.strings.cancel || 'Cancel Export');
-
-					// Surface the failure with a sticky warning so the
-					// user knows the server may still be processing
-					// pages. Without this, the success-path toast on
-					// the next attempt would mask the half-cancelled
-					// state and the user could start a second export
-					// against the same session.
 					const msg = SScribe.parseServerError(xhr)
 						|| (sscribe_data.strings && sscribe_data.strings.err_cancel_failed)
 						|| 'Could not confirm cancellation : the server may still be processing. Reload the page before starting a new export.';
 					SScribe.showToast(msg, 'warning', 0);
-					// Hard-disable export buttons until the page is
-					// reloaded, so the user cannot fire a second
-					// concurrent session against the same backend.
 					$('#sscribe-export-btn, #sscribe-preview-btn').prop('disabled', true);
 				},
 			});
 		},
-
 		showExportCompleteNotice: function () {
 			const msg =
 				sscribe_data.strings && sscribe_data.strings.export_complete_notice
@@ -1442,23 +1247,19 @@
 					: 'Export complete! You can start a new export now.';
 			this.showToast(msg, 'success', 6000);
 		},
-
 		exportComplete: function (data, isAutoDownload) {
 			this.isProcessing = false;
 			const progressFill = document.getElementById('sscribe-progress-bar');
 			if (progressFill) {
 				progressFill.classList.remove('sscribe-progress-bar-fill-finalizing');
 			}
-
 			if (this._originalTitle) {
 				document.title = this._originalTitle;
 			}
-
 			const liveRegion = document.getElementById('sscribe-live-region');
 			if (liveRegion) {
 				liveRegion.textContent = (sscribe_data.strings && sscribe_data.strings.complete) || 'Export complete!';
 			}
-
 			const self = this;
 			$('#sscribe-progress-area').slideUp(300, function () {
 				$('#sscribe-download-area')
@@ -1484,23 +1285,18 @@
 								'warning'
 							);
 						}
-
 						$('html, body').animate({ scrollTop: 0 }, 300);
-
 						SScribe.refreshRecentExports();
-
 						if (
 							typeof window.SScribeDebugConsole !== 'undefined' &&
 							window.SScribeDebugConsole.initialized
 						) {
 							window.SScribeDebugConsole.fetchLogs();
 						}
-
 						self.showExportCompleteNotice();
 					});
 			});
 		},
-
 		findExportInRecentExports: function (resultData, callback) {
 			const selfSessionId = resultData.session_id || null;
 			const selfStartTime = resultData.created_at || 0;
@@ -1539,19 +1335,15 @@
 				},
 			});
 		},
-
 		pollFinalize: function (sessionId, attempt, delay) {
 			if (this._finalizingXHR) {
 				return;
 			}
-
 			this.isProcessing = true;
-
 			const maxAttempts = 180;
 			if (attempt === 0) {
 				this._finalizeStartTime = Date.now();
 			}
-
 			const finalizeStart = this._finalizeStartTime || Date.now();
 			const elapsedSec = Math.floor((Date.now() - finalizeStart) / 1000);
 			const min = Math.floor(elapsedSec / 60);
@@ -1561,14 +1353,11 @@
 				(sscribe_data.strings.packaging || 'Packaging files into ZIP archive...') + ' (' + timeStr + ')'
 			);
 			SScribe.updatePhase('packaging');
-
 			const progressFill = document.getElementById('sscribe-progress-bar');
 			if (progressFill) {
 				progressFill.classList.add('sscribe-progress-bar-fill-finalizing');
 			}
-
 			const self = this;
-
 			setTimeout(function () {
 				self._finalizingXHR = $.ajax({
 					url: sscribe_data.ajaxurl,
@@ -1587,7 +1376,6 @@
 							self.exportComplete(response.data);
 							return;
 						}
-
 						if (response.data && response.data.code === 'not_finalizing') {
 							const resultData = { session_id: sessionId, created_at: response.data.created_at || 0 };
 							self.findExportInRecentExports(resultData, function (matched) {
@@ -1608,7 +1396,6 @@
 							});
 							return;
 						}
-
 						if (attempt < maxAttempts) {
 							self.pollFinalize(sessionId, attempt + 1, self.finalizePollInterval || 2000);
 						} else {
@@ -1643,7 +1430,6 @@
 							});
 							return;
 						}
-
 						if (attempt < maxAttempts) {
 							self.pollFinalize(sessionId, attempt + 1, self.finalizePollInterval || 2000);
 						} else {
@@ -1655,7 +1441,6 @@
 				});
 			}, delay);
 		},
-
 		toggleHistorySkeleton: function (show) {
 			const $skel = $('#sscribe-history-skeleton');
 			const $table = $('#sscribe-history-table');
@@ -1670,7 +1455,6 @@
 				$table.removeClass('sscribe-hidden');
 			}
 		},
-
 		refreshRecentExports: function () {
 			const $table = $('#sscribe-history-table');
 			const hasExistingRows = $table.find('.sscribe-history-row').length > 0;
@@ -1702,12 +1486,9 @@
 				},
 			});
 		},
-
 		renderRecentExports: function (exports) {
 			const $table = $('#sscribe-history-table');
 			const strings = sscribe_data.strings || {};
-
-			// Cancel any pending confirmation timers before replacing the DOM.
 			$table.find('.sscribe-delete-btn').each(function () {
 				const $btn = $(this);
 				if ($btn.data('sscribe-confirm-timeout')) {
@@ -1715,7 +1496,6 @@
 					$btn.removeData('sscribe-confirming').removeData('sscribe-confirm-timeout');
 				}
 			});
-
 			if (!exports || exports.length === 0) {
 				$table.html(
 					'<div class="sscribe-history-empty"><em>' +
@@ -1725,7 +1505,6 @@
 				this.updateBulkBar();
 				return;
 			}
-
 			const maxRows = 50;
 			const totalExports = exports.length;
 			let html = '';
@@ -1741,7 +1520,6 @@
 					'</label>';
 				html += '<div class="sscribe-history-file">';
 				html += '<div class="sscribe-file-icon">';
-
 				if (exp.flag_url) {
 					html +=
 						'<img src="' +
@@ -1755,7 +1533,6 @@
 						this.escapeHtml((exp.lang_code || 'EN').substring(0, 2).toUpperCase()) +
 						'</span>';
 				}
-
 				html += '</div>';
 				html += '<div class="sscribe-file-details">';
 				html += '<strong>' + this.escapeHtml(exp.filename) + '</strong>';
@@ -1808,10 +1585,8 @@
 				html += '</button>';
 				html += '</div></div>';
 			}
-
 			$table.html(html);
 		},
-
 		updateBulkBar: function () {
 			const $checks = $('.sscribe-history-check:checked');
 			const $all = $('.sscribe-history-check');
@@ -1835,13 +1610,11 @@
 				$('#sscribe-bulk-select-all').prop('checked', false).prop('indeterminate', false);
 			}
 		},
-
 		toggleSelectAll: function (e) {
 			const isChecked = $(e.currentTarget).prop('checked');
 			$('.sscribe-history-check').prop('checked', isChecked);
 			this.updateBulkBar();
 		},
-
 		deleteSingleExport: function (filename, callback) {
 			$.ajax({
 				url: sscribe_data.ajaxurl,
@@ -1882,7 +1655,6 @@
 				},
 			});
 		},
-
 		bulkDeleteSelected: function () {
 			if (this.isProcessing) {
 				return;
@@ -1896,16 +1668,10 @@
 				(sscribe_data.strings && sscribe_data.strings.bulk_delete_confirm) ||
 				'Delete %d selected export(s)? This cannot be undone.';
 			const message = template.replace('%d', String(count));
-
-			// Native confirm is the lowest-friction confirmation. WordPress
-			// admin already relies on native confirm() for destructive
-			// actions in core (e.g. theme deletion), so this matches user
-			// expectation and is accessible by default.
 			if (!window.confirm(message)) {
 				SScribe.announce(sscribe_data.strings.bulk_delete_cancelled || 'Bulk delete cancelled.');
 				return;
 			}
-
 			const filenames = [];
 			$checks.each(function () {
 				filenames.push($(this).val());
@@ -1921,7 +1687,6 @@
 			);
 			this.processBulkDelete();
 		},
-
 		bulkDownload: function () {
 			if (this.isProcessing) {
 				return;
@@ -1934,14 +1699,12 @@
 				const $row = $(this).closest('.sscribe-history-row');
 				const $downloadLink = $row.find('.sscribe-history-actions > a');
 				if ($downloadLink.length) {
-					// Stagger each download to avoid browser popup blocking.
 					setTimeout(function () {
 						$downloadLink[0].click();
 					}, i * 800);
 				}
 			});
 		},
-
 		processBulkDelete: function () {
 			if (this.bulkDeleteQueue.length === 0) {
 				this.updateBulkBar();
@@ -1951,30 +1714,20 @@
 			const filename = this.bulkDeleteQueue.shift();
 			this.deleteSingleExport(filename, $.proxy(this.processBulkDelete, this));
 		},
-
 		updateProgress: function (percentage, currentPage, totalPages) {
 			percentage = Number(percentage);
 			if (!isFinite(percentage)) {
 				percentage = 0;
 			}
 			percentage = Math.min(100, Math.max(0, percentage));
-
 			const progressBar = document.getElementById('sscribe-progress-bar');
 			if (progressBar) {
-				// The first real percentage (>= 1) after the initial
-				// showProgress() indeterminate state should drop the stripe
-				// animation and resume normal scaleX behavior. We only drop
-				// the class on a real percentage so the showProgress()
-				// fadeIn-callback's updateProgress(0) doesn't immediately
-				// remove the stripes the user is supposed to see.
 				if (percentage >= 1) {
 					progressBar.classList.remove('sscribe-progress-initializing');
 				}
 				progressBar.style.transform = 'scaleX(' + percentage / 100 + ')';
 				progressBar.setAttribute('aria-valuenow', percentage);
 				if (typeof currentPage === 'number' && typeof totalPages === 'number' && totalPages > 0) {
-					// Use the localized template from sscribe_data.strings so
-					// screen-reader announcements honor the site language.
 					const tpl = (sscribe_data.strings && sscribe_data.strings.progress_pages)
 						|| 'Processing %1$d of %2$d pages';
 					progressBar.setAttribute(
@@ -1986,11 +1739,8 @@
 				$('#sscribe-progress-bar').removeClass('sscribe-progress-initializing').css('width', percentage + '%');
 			}
 			$('#sscribe-progress-text').text(percentage + '%');
-
 			const liveRegion = document.getElementById('sscribe-live-region');
 			if (liveRegion) {
-				// Use a localized printf-style template so translators
-				// can reorder prefix + percentage for RTL/SOV locales.
 				const prefix = (sscribe_data.strings && sscribe_data.strings.export_progress_prefix)
 					|| 'Export progress:';
 				const tplProg = (sscribe_data.strings && sscribe_data.strings.live_region_progress)
@@ -1999,28 +1749,21 @@
 					.replace('%1$s', prefix)
 					.replace('%2$d', percentage);
 			}
-
-			// Use the localized template from sscribe_data.strings for the
-			// document title so the tab-bar percentage indicator is
-			// translated.
 			const titleTpl = (sscribe_data.strings && sscribe_data.strings.document_title)
 				|| '(%d%%) SScribe Export';
 			document.title = titleTpl
 				.replace('%d', percentage)
 				.replace('%%', '%');
 		},
-
 		updatePhase: function (phase) {
 			const $steps = $('.sscribe-phase-step');
 			if (!$steps.length) {
 				return;
 			}
-
 			let found = false;
 			$steps.each(function () {
 				const $step = $(this);
 				const stepPhase = $step.data('phase');
-
 				if (stepPhase === phase) {
 					$step.removeClass('sscribe-phase-completed sscribe-phase-active').addClass('sscribe-phase-active');
 					found = true;
@@ -2031,26 +1774,16 @@
 				}
 			});
 		},
-
 		updateStatus: function (message) {
 			$('#sscribe-status-text').text(message);
-
 			const liveRegion = document.getElementById('sscribe-live-region');
 			if (liveRegion) {
 				liveRegion.textContent = message;
 			}
 		},
-
 		showProgress: function () {
 			$('#sscribe-download-area').addClass('sscribe-hidden');
 			$('#sscribe-error-area').addClass('sscribe-hidden');
-			// Defer the initial updateProgress() until the fade-in completes.
-			// updateProgress() writes `transform: scaleX(p)` directly to the
-			// bar element; if it runs while the bar is mid-fade, the element's
-			// layout is still 0-height/width and the transform has nothing to
-			// scale : leaving the bar invisible until the first batch tick.
-			// An indeterminate stripe animation (.sscribe-progress-initializing)
-			// is shown in the meantime so the user sees activity from t=0.
 			$('#sscribe-progress-area')
 				.removeClass('sscribe-hidden')
 				.hide()
@@ -2066,7 +1799,6 @@
 				.text(sscribe_data.strings.cancel || 'Cancel Export');
 			$('#sscribe-export-btn, #sscribe-preview-btn').prop('disabled', true);
 		},
-
 		/**
 		 * Log a structured AJAX error diagnostic to the browser console.
 		 *
@@ -2082,13 +1814,11 @@
 			if (!window.console || !window.console.group) {
 				return;
 			}
-
 			const action = (requestData && requestData.action) || 'unknown';
 			const timestamp = new Date().toISOString();
 			const statusCode = xhr ? xhr.status : 0;
 			const statusText = xhr ? xhr.statusText : 'N/A';
 			const responseText = xhr && xhr.responseText ? xhr.responseText.substring(0, 500) : 'N/A';
-
 			let diagnostics = null;
 			if (xhr && xhr.responseText) {
 				try {
@@ -2097,13 +1827,9 @@
 						diagnostics = parsed.data._diagnostics;
 					}
 				} catch {
-					// Not JSON : the response body wasn't meant to be parsed, nothing to extract.
 				}
 			}
-
-			/* eslint-disable no-console */
 			console.groupCollapsed('[SSCRIBE] AJAX Error : %s (HTTP %d %s)', action, statusCode, statusText);
-
 			console.log('Timestamp:', timestamp);
 			console.log('Action:', action);
 			console.log('HTTP Status:', statusCode, statusText);
@@ -2111,19 +1837,14 @@
 			console.log('Response Headers:', xhr ? xhr.getAllResponseHeaders() : 'N/A');
 			console.log('Response Text (first 500):', responseText);
 			console.log('Exception:', exception || 'None');
-
 			if (diagnostics) {
 				console.log('Server Diagnostics:', diagnostics);
 			}
-
 			if (typeof window.SSCRIBE_DEBUG !== 'undefined' && window.SSCRIBE_DEBUG) {
 				console.log('Full XHR:', xhr);
 			}
-
 			console.groupEnd();
-			/* eslint-enable no-console */
 		},
-
 		/**
 		 * Return a shallow copy of `data` with any `nonce` field replaced
 		 * by a `[REDACTED]` placeholder. Does not mutate the input.
@@ -2149,7 +1870,6 @@
 			}
 			return safe;
 		},
-
 		/**
 		 * Show a non-blocking toast notification.
 		 *
@@ -2171,7 +1891,6 @@
 			const adminBarHeight = $wpadminbar.length ? $wpadminbar.outerHeight() : 0;
 			$container.css('top', Math.max(adminBarHeight, 32) + 'px');
 		},
-
 		/**
 		 * Push a polite announcement to the screen-reader live region.
 		 *
@@ -2192,40 +1911,30 @@
 			if (!$region.length) {
 				return;
 			}
-
 			const now = Date.now();
 			const last = this._lastAnnounce || { text: '', at: 0 };
-			// If the same message was just announced within the last
-			// second, suppress. Otherwise clear the region (forces SR to
-			// re-read) and write the new text.
 			if (last.text === message && now - last.at < 1000) {
 				return;
 			}
 			this._lastAnnounce = { text: message, at: now };
-
 			$region.text('');
 			setTimeout(function () {
 				$region.text(message);
 			}, 30);
 		},
-
 		showToast: function (message, type, duration) {
 			type = type || 'info';
 			duration = typeof duration === 'number' ? duration : 4000;
-
 			const $container = $('#sscribe-toast-container');
 			if (!$container.length) {
 				return;
 			}
-
 			const icons = { success: '&#10003;', error: '&#10005;', warning: '&#9888;', info: '&#9432;' };
 			const icon = icons[type] || '&#9432;';
 			const isAssertive = type === 'error' || type === 'warning';
 			const role = isAssertive ? 'alert' : 'status';
 			const dismissLabel =
 				(sscribe_data.strings && sscribe_data.strings.dismiss_notification) || 'Dismiss notification';
-
-			// Cap visible toasts at 5 to prevent overflow.
 			const $existing = $container.children('.sscribe-toast');
 			if ($existing.length >= 5) {
 				const $oldest = $existing.first();
@@ -2234,7 +1943,6 @@
 					$oldest.remove();
 				}, 200);
 			}
-
 			const $toast = $(
 				'<div class="sscribe-toast sscribe-toast-' +
 					type +
@@ -2252,16 +1960,13 @@
 					'">&times;</button>' +
 					'</div>'
 			);
-
 			$container.append($toast);
-
 			$toast.find('.sscribe-toast-dismiss').on('click', function () {
 				$toast.addClass('sscribe-toast-removing');
 				setTimeout(function () {
 					$toast.remove();
 				}, 200);
 			});
-
 			if (duration > 0) {
 				setTimeout(function () {
 					$toast.addClass('sscribe-toast-removing');
@@ -2271,30 +1976,24 @@
 				}, duration);
 			}
 		},
-
 		copySupportInfo: function (e) {
 			e.preventDefault();
 			const text = $('#sscribe-support-copy-text').val();
 			const strings = sscribe_data.strings || {};
-
 			if (!text) {
 				return;
 			}
-
 			const onSuccess = function () {
 				SScribe.showToast(strings.support_copied || 'Support information copied.', 'success');
 			};
-
 			if (navigator.clipboard && navigator.clipboard.writeText) {
 				navigator.clipboard.writeText(text).then(onSuccess, function () {
 					SScribe.copyViaTextarea(text, onSuccess);
 				});
 				return;
 			}
-
 			SScribe.copyViaTextarea(text, onSuccess);
 		},
-
 		copyViaTextarea: function (text, onSuccess) {
 			const textarea = document.getElementById('sscribe-support-copy-text');
 			if (!textarea) {
@@ -2314,17 +2013,14 @@
 					);
 			}
 		},
-
 		humanizeSupportKey: function (key) {
 			return key.replace(/_/g, ' ').replace(/\b\w/g, function (char) {
 				return char.toUpperCase();
 			});
 		},
-
 		saveFocus: function () {
 			this._lastFocusedElement = document.activeElement;
 		},
-
 		restoreFocus: function () {
 			if (
 				this._lastFocusedElement &&
@@ -2336,19 +2032,15 @@
 			}
 			this._lastFocusedElement = null;
 		},
-
 		trapFocus: function (container) {
 			if (!container || typeof container.querySelectorAll !== 'function') {
 				return;
 			}
-
 			const focusableSelectors =
 				'a[href], button:not([disabled]), textarea:not([disabled]), input:not([disabled]), select:not([disabled]), [tabindex]:not([tabindex="-1"])';
-
 			if (container._sscribeTrapHandler) {
 				container.removeEventListener('keydown', container._sscribeTrapHandler);
 			}
-
 			const handler = function (e) {
 				if (e.key !== 'Tab') {
 					return;
@@ -2371,11 +2063,9 @@
 					}
 				}
 			};
-
 			container._sscribeTrapHandler = handler;
 			container.addEventListener('keydown', handler);
 		},
-
 		releaseFocusTrap: function (container) {
 			if (!container || !container._sscribeTrapHandler) {
 				return;
@@ -2383,12 +2073,10 @@
 			container.removeEventListener('keydown', container._sscribeTrapHandler);
 			delete container._sscribeTrapHandler;
 		},
-
 		focusFirstInteractive: function (container, fallbackSelector) {
 			if (!container || typeof container.querySelector !== 'function') {
 				return;
 			}
-
 			const focusableSelector =
 				'button:not([disabled]), [href], input:not([disabled]), select:not([disabled]), textarea:not([disabled]), [tabindex]:not([tabindex="-1"])';
 			const firstFocusable = container.querySelector(focusableSelector);
@@ -2396,7 +2084,6 @@
 				firstFocusable.focus();
 				return;
 			}
-
 			if (fallbackSelector) {
 				const fallback = document.querySelector(fallbackSelector);
 				if (fallback && typeof fallback.focus === 'function') {
@@ -2404,7 +2091,6 @@
 				}
 			}
 		},
-
 		/**
 		 * Escape HTML special characters to prevent XSS.
 		 *
@@ -2419,7 +2105,6 @@
 			div.textContent = str;
 			return div.innerHTML;
 		},
-
 		/**
 		 * Show the export preview modal.
 		 *
@@ -2430,24 +2115,18 @@
 			if (this.isProcessing) {
 				return;
 			}
-
-			// Abort any existing preview AJAX request to prevent race conditions.
 			if (this._previewXHR && this._previewXHR.abort) {
 				this._previewXHR.abort();
 			}
-
 			this._previewTrigger = e.currentTarget;
-
 			const language = $('input[name="sscribe_language"]:checked').val() || '';
 			const postStatus = $('input[name="sscribe_post_status"]:checked').val() || 'publish';
 			const postType = $('input[name="sscribe_post_type"]:checked').val() || 'page';
 			const format = $('input[name="sscribe_format"]:checked').val() || 'docx';
 			const formats = format === 'all' ? ['docx', 'pdf', 'html', 'markdown'] : [format];
-
 			const $panel = $('#sscribe-preview-panel');
 			const $content = $('#sscribe-preview-content');
 			const $startBtn = $('#sscribe-preview-start-btn');
-
 			$content.html(
 				'<div class="sscribe-preview-loading">' +
 					'<span class="sscribe-loading-spinner"></span>' +
@@ -2457,12 +2136,10 @@
 					'</div>'
 			);
 			$startBtn.prop('disabled', true);
-
 			$panel.attr('aria-hidden', 'false').removeClass('sscribe-hidden').prop('hidden', false).hide().fadeIn(300);
 			this.saveFocus();
 			this.trapFocus($panel[0]);
 			this.focusFirstInteractive($panel[0], '#sscribe-preview-close');
-
 			const self = this;
 			this._previewXHR = $.ajax({
 				url: sscribe_data.ajaxurl,
@@ -2491,7 +2168,6 @@
 				},
 			});
 		},
-
 		/**
 		 * Render the preview content in the modal.
 		 *
@@ -2500,9 +2176,6 @@
 		renderPreview: function (data) {
 			const $content = $('#sscribe-preview-content');
 			const strings = sscribe_data.strings || {};
-			// Server returns total_pages as a localized string (e.g. "1,234")
-			// to match the count chips in the UI. Use parseLocalizedInt so
-			// "1,234" parses as 1234, not 1.
 			const totalPages = this.parseLocalizedInt(data.total_pages);
 			const formatLabels = {
 				docx: strings.format_docx || 'Word Document (DOCX)',
@@ -2510,7 +2183,6 @@
 				html: strings.format_html || 'HTML Page',
 				markdown: strings.format_markdown || 'Markdown',
 			};
-
 			let formatText = '';
 			if (Array.isArray(data.formats) && data.formats.length > 0) {
 				const labels = data.formats.map(function (fmt) {
@@ -2520,10 +2192,8 @@
 			} else if (data.format) {
 				formatText = formatLabels[data.format] || data.format.toUpperCase();
 			}
-
 			let html = '<div class="sscribe-preview-result">';
 			html += '<div class="sscribe-preview-grid">';
-
 			html += '<div class="sscribe-preview-stat">';
 			html +=
 				'<span class="sscribe-preview-label">' +
@@ -2531,7 +2201,6 @@
 				'</span>';
 			html += '<span class="sscribe-preview-value">' + this.escapeHtml(String(totalPages)) + '</span>';
 			html += '</div>';
-
 			html += '<div class="sscribe-preview-stat">';
 			html +=
 				'<span class="sscribe-preview-label">' +
@@ -2539,7 +2208,6 @@
 				'</span>';
 			html += '<span class="sscribe-preview-value">' + this.escapeHtml(formatText || 'N/A') + '</span>';
 			html += '</div>';
-
 			html += '<div class="sscribe-preview-stat">';
 			html +=
 				'<span class="sscribe-preview-label">' +
@@ -2547,7 +2215,6 @@
 				'</span>';
 			html += '<span class="sscribe-preview-value">' + this.escapeHtml(this.getLanguageLabel(data.language)) + '</span>';
 			html += '</div>';
-
 			html += '<div class="sscribe-preview-stat">';
 			html +=
 				'<span class="sscribe-preview-label">' +
@@ -2555,7 +2222,6 @@
 				'</span>';
 			html += '<span class="sscribe-preview-value">' + this.escapeHtml(this.getPostStatusLabel(data.post_status || 'publish')) + '</span>';
 			html += '</div>';
-
 			html += '<div class="sscribe-preview-stat">';
 			html +=
 				'<span class="sscribe-preview-label">' +
@@ -2563,7 +2229,6 @@
 				'</span>';
 			html += '<span class="sscribe-preview-value">' + this.escapeHtml(data.estimated_time || 'N/A') + '</span>';
 			html += '</div>';
-
 			html += '<div class="sscribe-preview-stat">';
 			html +=
 				'<span class="sscribe-preview-label">' +
@@ -2572,16 +2237,13 @@
 			html +=
 				'<span class="sscribe-preview-value">' + this.escapeHtml(data.file_size_estimate || 'N/A') + '</span>';
 			html += '</div>';
-
 			html += '</div>';
-
 			if (totalPages === 0) {
 				html +=
 					'<div class="sscribe-preview-empty">' +
 					this.escapeHtml(sscribe_data.strings.err_no_pages || 'No pages match selected options.') +
 					'</div>';
 			}
-
 			if (data.title && data.content) {
 				html += '<div class="sscribe-preview-sample">';
 				html += '<h4>' + this.escapeHtml(strings.preview_sample_title || 'Sample:') + '</h4>';
@@ -2589,17 +2251,14 @@
 				html += '<p class="sscribe-preview-excerpt">' + this.escapeHtml(data.content) + '</p>';
 				html += '</div>';
 			}
-
 			html +=
 				'<p class="sscribe-preview-note">' +
 				this.escapeHtml(strings.preview_fallback_note || 'Only the first few pages are shown in the preview.') +
 				'</p>';
 			html += '</div>';
-
 			$content.html(html);
 			$('#sscribe-preview-start-btn').prop('disabled', totalPages <= 0);
 		},
-
 		/**
 		 * Close the preview modal.
 		 *
@@ -2609,7 +2268,6 @@
 			if (e) {
 				e.preventDefault();
 			}
-			// Abort any pending preview AJAX request when closing.
 			if (this._previewXHR && this._previewXHR.abort) {
 				this._previewXHR.abort();
 			}
@@ -2626,7 +2284,6 @@
 				self._previewTrigger = null;
 			});
 		},
-
 		/**
 		 * Start export directly from preview modal.
 		 *
@@ -2637,11 +2294,9 @@
 			if (this.isProcessing) {
 				return;
 			}
-
 			this.closePreview();
 			$('#sscribe-export-btn').trigger('click');
 		},
-
 		/**
 		 * Load support information from the server.
 		 */
@@ -2649,7 +2304,6 @@
 			const $grid = $('#sscribe-support-grid');
 			const $textarea = $('#sscribe-support-copy-text');
 			const $btn = $('#sscribe-support-copy-btn');
-
 			$textarea.val('');
 			$btn.prop('disabled', true);
 			$grid.removeClass('sscribe-hidden').html(
@@ -2660,7 +2314,6 @@
 					'</span>' +
 					'</div>'
 			);
-
 			const self = this;
 			$.ajax({
 				url: sscribe_data.ajaxurl,
@@ -2695,7 +2348,6 @@
 				},
 			});
 		},
-
 		/**
 		 * Render support information in the UI.
 		 *
@@ -2705,9 +2357,7 @@
 			const $grid = $('#sscribe-support-grid');
 			const $textarea = $('#sscribe-support-copy-text');
 			const $btn = $('#sscribe-support-copy-btn');
-
 			let html = '<div class="sscribe-support-grid-inner">';
-
 			if (data.sections) {
 				Object.keys(data.sections).forEach(function (sectionKey) {
 					const section = data.sections[sectionKey];
@@ -2722,15 +2372,11 @@
 					}
 				}, this);
 			}
-
 			html += '</div>';
 			$grid.html(html);
-
-			// Use the copy_text that PHP already builds in the proper format.
 			$textarea.val(data.copy_text || '');
 			$btn.prop('disabled', false);
 		},
-
 		/**
 		 * Delete an export file.
 		 *
@@ -2741,20 +2387,15 @@
 			const $btn = $(e.currentTarget);
 			const filename = $btn.data('filename');
 			const $row = $btn.closest('.sscribe-history-row');
-
 			if (!filename) {
 				return;
 			}
-
-			// Check for double-click confirmation.
 			if ($btn.data('sscribe-confirming')) {
-				// Second click : actually delete.
 				$btn.removeData('sscribe-confirming');
 				clearTimeout($btn.data('sscribe-confirm-timeout'));
 				$row.addClass('sscribe-row-deleting');
 				SScribe.deleteSingleExport(filename, function (success) {
 					if (success === false) {
-						// Roll back optimistic UI : row stays.
 						$row.removeClass('sscribe-row-deleting');
 						return;
 					}
@@ -2765,8 +2406,6 @@
 				});
 				return;
 			}
-
-			// First click : ask for confirmation.
 			const originalText = $btn.text();
 			const confirmMsg =
 				(sscribe_data.strings && sscribe_data.strings.delete_confirm_hint) ||
@@ -2777,10 +2416,7 @@
 				.text(sscribe_data.strings.click_again || 'Click again')
 				.attr('aria-label', confirmMsg)
 				.prop('disabled', false);
-
-			// Announce to assistive tech that the action is now armed.
 			SScribe.announce(confirmMsg);
-
 			const tid = setTimeout(function () {
 				if ($btn.data('sscribe-confirming')) {
 					$btn
@@ -2792,7 +2428,6 @@
 			}, 3000);
 			$btn.data('sscribe-confirm-timeout', tid);
 		},
-
 		/**
 		 * Show export log in modal.
 		 *
@@ -2802,14 +2437,11 @@
 			e.preventDefault();
 			const $btn = $(e.currentTarget);
 			const filename = $btn.data('filename');
-
 			if (!filename) {
 				return;
 			}
-
 			const $modal = $('#sscribe-log-modal');
 			const $content = $('#sscribe-log-content');
-
 			const renderLoading = () => {
 				$content.html(
 					'<div class="sscribe-log-loading">' +
@@ -2835,14 +2467,11 @@
 					fetchLog();
 				});
 			};
-
 			renderLoading();
-
 			$modal.attr('aria-hidden', 'false').removeClass('sscribe-hidden').prop('hidden', false).hide().fadeIn(300);
 			this.saveFocus();
 			this.trapFocus($modal[0]);
 			this.focusFirstInteractive($modal[0], '#sscribe-modal-close');
-
 			const self = this;
 			const fetchLog = () => {
 				$.ajax({
@@ -2872,7 +2501,6 @@
 			};
 			fetchLog();
 		},
-
 		/**
 		 * Render export log content.
 		 *
@@ -2890,13 +2518,11 @@
 				);
 				return;
 			}
-
 			const pagesObj = log.pages && typeof log.pages === 'object' ? log.pages : {};
 			const pages = Object.keys(pagesObj).map(function (key) {
 				return pagesObj[key];
 			});
 			const errors = Array.isArray(log.errors) ? log.errors : [];
-
 			let html = '<div class="sscribe-log-summary">';
 			html +=
 				'<div class="sscribe-log-stat"><strong>' +
@@ -2917,7 +2543,6 @@
 				this.escapeHtml(String(log.failed || 0)) +
 				'</div>';
 			html += '</div>';
-
 			if (pages.length > 0) {
 				html += '<div class="sscribe-log-pages">';
 				html += '<h4>' + this.escapeHtml(strings.log_page_details || 'Page Details') + '</h4>';
@@ -2929,7 +2554,6 @@
 				html += '<th>' + this.escapeHtml(strings.log_col_time || 'Time') + '</th>';
 				html += '<th>' + this.escapeHtml(strings.log_col_formats || 'Formats') + '</th>';
 				html += '</tr></thead><tbody>';
-
 				pages.forEach(
 					function (page) {
 						const pageId = page.id || '-';
@@ -2939,7 +2563,6 @@
 							page.duration !== null && page.duration !== undefined
 								? String(page.duration) + (strings.log_seconds_suffix || 's')
 								: '-';
-
 						let formatText = '-';
 						if (page.formats && typeof page.formats === 'object') {
 							const formatKeys = Object.keys(page.formats).filter(function (fmt) {
@@ -2949,7 +2572,6 @@
 								formatText = formatKeys.join(', ');
 							}
 						}
-
 						const statusClass =
 							status === 'success'
 								? 'sscribe-log-status-success'
@@ -2965,7 +2587,6 @@
 						html += '</tr>';
 					}.bind(this)
 				);
-
 				html += '</tbody></table></div>';
 			} else {
 				html +=
@@ -2973,7 +2594,6 @@
 					this.escapeHtml(strings.log_not_found || 'Log not found.') +
 					'</div>';
 			}
-
 			if (errors.length > 0) {
 				html += '<div class="sscribe-log-errors">';
 				html += '<h4>' + this.escapeHtml(strings.log_errors || 'Errors') + '</h4>';
@@ -2987,10 +2607,8 @@
 				);
 				html += '</ul></div>';
 			}
-
 			$content.html(html);
 		},
-
 		/**
 		 * Close the log modal.
 		 *
@@ -3009,7 +2627,6 @@
 				self.restoreFocus();
 			});
 		},
-
 		/**
 		 * Download an export file.
 		 *
@@ -3027,7 +2644,6 @@
 				window.location.href = filename;
 			}
 		},
-
 		/**
 		 * Retry failed operation.
 		 *
@@ -3044,7 +2660,6 @@
 			this.updateExportButton();
 			$('#sscribe-export-btn').trigger('click');
 		},
-
 		/**
 		 * Reset UI to initial state.
 		 */
@@ -3052,14 +2667,6 @@
 			$('#sscribe-progress-area').addClass('sscribe-hidden');
 			$('#sscribe-error-area').addClass('sscribe-hidden');
 			$('#sscribe-download-area').addClass('sscribe-hidden');
-			// Reset transform only : the bar's CSS gives it width: 100% so
-			// scaleX() has something to scale. Setting width: 0% here would
-			// collapse the box and the subsequent updateProgress() (which
-			// only writes transform) would scale a zero-width element,
-			// leaving the bar invisible.
-			// Also drop the initializing class so a follow-up export doesn't
-			// briefly show the indeterminate stripes between the reset and
-			// the first real percentage.
 			$('#sscribe-progress-bar')
 				.removeClass('sscribe-progress-initializing')
 				.css('transform', 'scaleX(0)');
@@ -3076,7 +2683,6 @@
 			this.sessionId = null;
 			this.batchRetries = 0;
 		},
-
 		/**
 		 * Get error guidance based on error message.
 		 *
@@ -3099,7 +2705,6 @@
 			}
 			return sscribe_data.strings.err_generic || '';
 		},
-
 		/**
 		 * Format guidance text for display.
 		 *
@@ -3112,7 +2717,6 @@
 			}
 			return this.escapeHtml(guidance).replace(/\n/g, '<br>');
 		},
-
 		/**
 		 * Normalize error data from server response.
 		 *
@@ -3131,7 +2735,6 @@
 				_diagnostics: data._diagnostics || null,
 			};
 		},
-
 		/**
 		 * Show error with user-friendly message.
 		 *
@@ -3141,33 +2744,23 @@
 		 */
 		showError: function (message, isCancelled, errorData) {
 			this.isProcessing = false;
-
-			// Restore original page title.
 			if (this._originalTitle) {
 				document.title = this._originalTitle;
 			}
-
 			$('#sscribe-progress-area').fadeOut(200);
-
-			// Announce error to screen readers via assertive live region.
 			const alertRegion = document.getElementById('sscribe-alert-region');
 			if (alertRegion) {
 				alertRegion.textContent =
 					message || (sscribe_data.strings && sscribe_data.strings.error) || 'Export failed.';
 			}
-
 			let displayMessage = message;
 			let guidance = '';
 			let diagnosticInfo = null;
-
 			if (errorData) {
 				diagnosticInfo = this.normalizeErrorData(errorData);
 				if (diagnosticInfo && window.console) {
-					/* eslint-disable no-console */
 					console.log('[SSCRIBE] Server diagnostics for this error:', diagnosticInfo);
-					/* eslint-enable no-console */
 				}
-
 				if (diagnosticInfo.code) {
 					displayMessage = '[' + diagnosticInfo.code + '] ' + message;
 				}
@@ -3182,31 +2775,25 @@
 					}
 				}
 			}
-
 			if (!guidance && !isCancelled) {
 				guidance = this.getErrorGuidance(message);
 			}
-
 			$('#sscribe-error-text').text(displayMessage);
-
 			if (guidance && !isCancelled) {
 				$('#sscribe-error-guidance-text').html(this.formatGuidance(guidance));
 				$('#sscribe-error-guidance').removeClass('sscribe-hidden');
 			} else {
 				$('#sscribe-error-guidance').addClass('sscribe-hidden');
 			}
-
 			if (diagnosticInfo && typeof window.SSCRIBE_DEBUG !== 'undefined' && window.SSCRIBE_DEBUG) {
 				const $techDetails = $('#sscribe-error-technical-details');
 				const techInfo = JSON.stringify(diagnosticInfo._diagnostics || diagnosticInfo, null, 2);
 				$techDetails.find('pre').text(techInfo);
 				$techDetails.removeClass('sscribe-hidden');
 			}
-
 			$('#sscribe-error-area').removeClass('sscribe-hidden').hide().fadeIn(300);
 			$('#sscribe-export-btn, #sscribe-preview-btn').prop('disabled', false);
 		},
-
 		/**
 		 * Show a non-fatal warning toast.
 		 *
@@ -3241,7 +2828,6 @@
 				});
 			}, 8000);
 		},
-
 		/**
 		 * Get user-friendly network error message.
 		 *
@@ -3278,11 +2864,9 @@
 			}
 			return null;
 		},
-
 		getNetworkErrorMessage: function (xhr, _action) {
 			const strings = sscribe_data.strings || {};
 			const status = xhr ? xhr.status : 0;
-
 			if (status === 0) {
 				return strings.net_connection_lost || strings.err_connection || 'Connection lost.';
 			}
@@ -3311,12 +2895,10 @@
 			if (status === 12029 || status === 12030 || status === 12031) {
 				return strings.net_connection_lost || strings.err_connection || 'Connection lost.';
 			}
-
 			const unknownMsg = strings.net_unknown || 'A network error occurred (HTTP %d).';
 			return unknownMsg.replace('%d', status);
 		},
 	};
-
 	/**
 	 * Global AJAX error diagnostics.
 	 *
@@ -3345,7 +2927,6 @@
 			SScribe.logAJAXError(requestData, jqXHR, exception);
 		}
 	});
-
 	$(document).ready(function () {
 		SScribe.init();
 	});
