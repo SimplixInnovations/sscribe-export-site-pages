@@ -2429,15 +2429,50 @@
   display: block !important;
 }
 
-/* Empty state */
+/* Empty state — non-italic, real CTA */
 #sscribe-history-table .sscribe-history-empty {
-  padding: var(--ss-space-8) var(--ss-space-6) !important;
+  padding: var(--ss-space-12) var(--ss-space-6) var(--ss-space-10) !important;
   text-align: center !important;
-  color: var(--ss-text-muted) !important;
-  font-style: italic !important;
+  color: var(--ss-text-secondary) !important;
+  font-style: normal !important;
   grid-column: unset !important;
   grid-row: unset !important;
-  display: block !important;
+  display: flex !important;
+  flex-direction: column !important;
+  align-items: center !important;
+  justify-content: center !important;
+  gap: var(--ss-space-4) !important;
+}
+
+#sscribe-history-table .sscribe-empty-icon {
+  display: flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  width: 88px !important;
+  height: 88px !important;
+  border-radius: var(--ss-radius-full) !important;
+  background: var(--ss-brand-tint) !important;
+  color: var(--ss-brand) !important;
+}
+
+#sscribe-history-table .sscribe-empty-title {
+  margin: 0 !important;
+  font-size: 16px !important;
+  font-weight: 600 !important;
+  color: var(--ss-text-primary) !important;
+  line-height: 1.4 !important;
+}
+
+#sscribe-history-table .sscribe-empty-copy {
+  margin: 0 !important;
+  max-width: 340px !important;
+  font-size: 13px !important;
+  line-height: 1.5 !important;
+  color: var(--ss-text-secondary) !important;
+}
+
+#sscribe-history-table .sscribe-history-empty .sscribe-button {
+  margin-top: var(--ss-space-3) !important;
 }
 
 /* Row selected state */
@@ -2454,4 +2489,1000 @@
   border-bottom: 1px solid var(--ss-border) !important;
   grid-column: unset !important;
   grid-row: unset !important;
+}
+
+/* ═══════════════════════════════════════════
+   UX REFINEMENT BLOCK (10) — additions for the v1.1.2 polish pass.
+   Patterns: 1px hairlines, brand-purple focus rings, no shadows,
+   no gradients, no transforms, no rgba() decimal alpha.
+   ═══════════════════════════════════════════ */
+
+/* Skip link — paints on focus, otherwise invisible */
+.sscribe-skip-link {
+  position: absolute !important;
+  left: -9999px !important;
+  top: 0 !important;
+  z-index: 100000 !important;
+  padding: 10px 18px !important;
+  background: var(--ss-brand) !important;
+  color: #fff !important;
+  font-weight: 600 !important;
+  font-size: 13px !important;
+  border-radius: 0 0 var(--ss-radius-md) var(--ss-radius-md) !important;
+  text-decoration: none !important;
+  outline: none !important;
+}
+
+.sscribe-skip-link:focus {
+  left: var(--ss-space-3) !important;
+  outline: 2px solid #fff !important;
+  outline-offset: 2px !important;
+}
+
+/* Onboarding banner — visible only for first-time users */
+.sscribe-onboarding-banner {
+  display: flex !important;
+  align-items: flex-start !important;
+  gap: var(--ss-space-4) !important;
+  padding: var(--ss-space-5) var(--ss-space-6) !important;
+  margin: 0 0 var(--ss-space-5) 0 !important;
+  background: var(--ss-brand-tint) !important;
+  border: 1px solid var(--ss-brand) !important;
+  border-radius: var(--ss-radius-lg) !important;
+  position: relative !important;
+}
+
+.sscribe-onboarding-icon {
+  display: flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  width: 40px !important;
+  height: 40px !important;
+  flex-shrink: 0 !important;
+  border-radius: var(--ss-radius-md) !important;
+  background: var(--ss-brand) !important;
+  color: #fff !important;
+}
+
+.sscribe-onboarding-body {
+  flex: 1 !important;
+  min-width: 0 !important;
+}
+
+.sscribe-onboarding-body h2 {
+  margin: 0 0 4px 0 !important;
+  font-size: 15px !important;
+  font-weight: 600 !important;
+  color: var(--ss-text-primary) !important;
+  line-height: 1.4 !important;
+}
+
+.sscribe-onboarding-body p {
+  margin: 0 0 var(--ss-space-3) 0 !important;
+  font-size: 13px !important;
+  line-height: 1.5 !important;
+  color: var(--ss-text-secondary) !important;
+}
+
+.sscribe-onboarding-steps {
+  display: flex !important;
+  flex-wrap: wrap !important;
+  gap: var(--ss-space-2) !important;
+  margin: 0 !important;
+  padding: 0 !important;
+  list-style: none !important;
+  counter-reset: sscribe-onboard-counter;
+}
+
+.sscribe-onboarding-steps li {
+  counter-increment: sscribe-onboard-counter !important;
+  position: relative !important;
+  padding: 6px 12px 6px 32px !important;
+  background: var(--ss-surface) !important;
+  border: 1px solid var(--ss-border) !important;
+  border-radius: var(--ss-radius-full) !important;
+  font-size: 12px !important;
+  font-weight: 500 !important;
+  color: var(--ss-text-secondary) !important;
+}
+
+.sscribe-onboarding-steps li::before {
+  content: counter(sscribe-onboard-counter) !important;
+  position: absolute !important;
+  left: 6px !important;
+  top: 50% !important;
+  margin-top: -10px !important;
+  width: 20px !important;
+  height: 20px !important;
+  border-radius: var(--ss-radius-full) !important;
+  background: var(--ss-brand) !important;
+  color: #fff !important;
+  font-size: 11px !important;
+  font-weight: 700 !important;
+  display: flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  line-height: 1 !important;
+}
+
+#sscribe-onboarding-dismiss {
+  position: absolute !important;
+  top: var(--ss-space-3) !important;
+  right: var(--ss-space-3) !important;
+  width: 32px !important;
+  height: 32px !important;
+  padding: 0 !important;
+  display: flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  background: transparent !important;
+  border: 1px solid transparent !important;
+  border-radius: var(--ss-radius-md) !important;
+  color: var(--ss-text-secondary) !important;
+  cursor: pointer !important;
+  font-size: 18px !important;
+  line-height: 1 !important;
+  transition: all 120ms ease !important;
+}
+
+#sscribe-onboarding-dismiss:hover {
+  background: var(--ss-surface) !important;
+  color: var(--ss-text-primary) !important;
+}
+
+#sscribe-onboarding-dismiss:focus-visible {
+  outline: 2px solid var(--ss-brand) !important;
+  outline-offset: 2px !important;
+}
+
+/* Hero polish — version pill, stat block, inline icons */
+.sscribe-hero-version {
+  padding: 4px 10px !important;
+  border-radius: var(--ss-radius-full) !important;
+  background: var(--ss-surface-2) !important;
+  color: var(--ss-text-secondary) !important;
+  font-size: 11px !important;
+  font-weight: 600 !important;
+  font-family: var(--ss-font-mono) !important;
+  text-transform: uppercase !important;
+  letter-spacing: 0.04em !important;
+}
+
+.sscribe-hero-stat {
+  display: flex !important;
+  align-items: center !important;
+  gap: 6px !important;
+  font-size: 12px !important;
+  color: var(--ss-text-secondary) !important;
+  margin: 0 !important;
+}
+
+.sscribe-hero-stat strong {
+  font-size: 13px !important;
+  font-weight: 600 !important;
+  color: var(--ss-text-primary) !important;
+  font-variant-numeric: tabular-nums !important;
+}
+
+.sscribe-hero-stat .sscribe-icon {
+  flex-shrink: 0 !important;
+  color: var(--ss-text-tertiary) !important;
+}
+
+/* Section numbering — pill, not step wizard */
+.sscribe-config-section-header {
+  display: flex !important;
+  align-items: center !important;
+  gap: 10px !important;
+  padding: 18px 24px !important;
+  border-bottom: 1px solid var(--ss-border) !important;
+}
+
+.sscribe-config-section:last-of-type .sscribe-config-section-header {
+  border-bottom: none !important;
+}
+
+.sscribe-section-number {
+  display: inline-flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  width: 22px !important;
+  height: 22px !important;
+  border-radius: var(--ss-radius-full) !important;
+  background: var(--ss-surface-2) !important;
+  color: var(--ss-text-tertiary) !important;
+  font-size: 11px !important;
+  font-weight: 700 !important;
+  font-variant-numeric: tabular-nums !important;
+  flex-shrink: 0 !important;
+}
+
+.sscribe-section-title {
+  margin: 0 !important;
+  font-size: 12px !important;
+  font-weight: 600 !important;
+  text-transform: uppercase !important;
+  letter-spacing: 0.06em !important;
+  color: var(--ss-text-tertiary) !important;
+}
+
+.sscribe-config-section-header .sscribe-section-subtitle {
+  margin: 0 !important;
+  font-size: 12px !important;
+  color: var(--ss-text-secondary) !important;
+  font-weight: 400 !important;
+  text-transform: none !important;
+  letter-spacing: normal !important;
+  margin-left: auto !important;
+}
+
+/* Visible keyboard shortcut hints */
+.sscribe-shortcut-hint,
+kbd.sscribe-shortcut-hint {
+  display: inline-flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  min-width: 22px !important;
+  height: 20px !important;
+  padding: 0 6px !important;
+  margin-left: var(--ss-space-2) !important;
+  border: 1px solid var(--ss-border-strong) !important;
+  border-bottom-width: 2px !important;
+  border-radius: var(--ss-radius-sm) !important;
+  background: var(--ss-surface-2) !important;
+  color: var(--ss-text-secondary) !important;
+  font-family: var(--ss-font-mono) !important;
+  font-size: 10px !important;
+  font-weight: 600 !important;
+  line-height: 1 !important;
+  letter-spacing: 0 !important;
+  text-transform: none !important;
+}
+
+.sscribe-button-primary .sscribe-shortcut-hint,
+.sscribe-button-primary kbd.sscribe-shortcut-hint {
+  background: rgb(255 255 255 / 14%) !important;
+  border-color: rgb(255 255 255 / 30%) !important;
+  color: #fff !important;
+}
+
+/* Summary bar — divider and reasoning copy */
+.sscribe-summary {
+  display: flex !important;
+  flex-wrap: wrap !important;
+  align-items: center !important;
+  gap: 6px !important;
+  flex: 1 !important;
+  min-width: 0 !important;
+}
+
+.sscribe-summary-divider {
+  width: 1px !important;
+  height: 14px !important;
+  background: var(--ss-border) !important;
+  margin: 0 4px !important;
+}
+
+#sscribe-preview-disabled-reason {
+  display: inline-block !important;
+  font-size: 11px !important;
+  font-style: italic !important;
+  color: var(--ss-text-muted) !important;
+  margin-right: var(--ss-space-3) !important;
+}
+
+/* Phase stepper connectors + labels */
+.sscribe-phase-steps {
+  display: flex !important;
+  align-items: center !important;
+  gap: 4px !important;
+}
+
+.sscribe-phase-step {
+  display: inline-flex !important;
+  align-items: center !important;
+  gap: 6px !important;
+  padding: 5px 10px !important;
+  border-radius: var(--ss-radius-full) !important;
+  background: var(--ss-surface-2) !important;
+  font-size: 11px !important;
+  font-weight: 500 !important;
+  color: var(--ss-text-muted) !important;
+  border: 1px solid transparent !important;
+}
+
+.sscribe-phase-step .sscribe-phase-dot {
+  width: 6px !important;
+  height: 6px !important;
+  border-radius: var(--ss-radius-full) !important;
+  background: currentColor !important;
+  flex-shrink: 0 !important;
+}
+
+.sscribe-phase-step.sscribe-phase-active {
+  background: var(--ss-brand-soft) !important;
+  color: var(--ss-brand) !important;
+  font-weight: 600 !important;
+  border-color: var(--ss-brand-tint) !important;
+}
+
+.sscribe-phase-step.sscribe-phase-done {
+  background: var(--ss-success-bg) !important;
+  color: var(--ss-success) !important;
+  font-weight: 600 !important;
+}
+
+.sscribe-phase-step.sscribe-phase-done .sscribe-phase-dot {
+  background: var(--ss-success) !important;
+}
+
+.sscribe-phase-check {
+  display: none !important;
+  color: var(--ss-success) !important;
+}
+
+.sscribe-phase-step.sscribe-phase-done .sscribe-phase-check {
+  display: inline-flex !important;
+}
+
+.sscribe-phase-step.sscribe-phase-done .sscribe-phase-dot {
+  display: none !important;
+}
+
+.sscribe-phase-label {
+  font-size: 11px !important;
+  color: var(--ss-text-muted) !important;
+  font-weight: 500 !important;
+}
+
+.sscribe-phase-connector {
+  width: 16px !important;
+  height: 1px !important;
+  background: var(--ss-border-strong) !important;
+  margin: 0 2px !important;
+}
+
+.sscribe-phase-connector.sscribe-phase-connector-active {
+  background: var(--ss-brand) !important;
+}
+
+/* Spinner — CSS-only, brand border-top */
+.sscribe-spinner-img {
+  display: block !important;
+  width: 32px !important;
+  height: 32px !important;
+  border-radius: var(--ss-radius-full) !important;
+  border: 3px solid var(--ss-border) !important;
+  border-top-color: var(--ss-brand) !important;
+  background: transparent !important;
+  flex-shrink: 0 !important;
+  -webkit-mask-image: none !important;
+  mask-image: none !important;
+  -webkit-filter: none !important;
+  filter: none !important;
+}
+
+#sscribe-progress-tracker .sscribe-spinner-img {
+  width: 18px !important;
+  height: 18px !important;
+  border-width: 2px !important;
+}
+
+/* Progress area — actions row, ETA pill */
+.sscribe-progress-actions {
+  display: flex !important;
+  align-items: center !important;
+  gap: var(--ss-space-3) !important;
+  flex-wrap: wrap !important;
+  margin-top: var(--ss-space-3) !important;
+}
+
+.sscribe-progress-eta {
+  display: inline-flex !important;
+  align-items: center !important;
+  gap: 6px !important;
+  font-size: 12px !important;
+  color: var(--ss-text-muted) !important;
+  font-style: italic !important;
+}
+
+.sscribe-progress-eta .sscribe-icon {
+  color: var(--ss-text-tertiary) !important;
+}
+
+/* Success meta — pages / formats / size / generated */
+.sscribe-success-meta {
+  margin: var(--ss-space-3) 0 var(--ss-space-4) 0 !important;
+  padding: var(--ss-space-3) 0 !important;
+  display: grid !important;
+  grid-template-columns: repeat(auto-fit, minmax(140px, 1fr)) !important;
+  gap: var(--ss-space-4) !important;
+  border-top: 1px solid var(--ss-border) !important;
+  border-bottom: 1px solid var(--ss-border) !important;
+}
+
+.sscribe-success-meta-row {
+  display: flex !important;
+  flex-direction: column !important;
+  gap: 2px !important;
+}
+
+.sscribe-success-meta-row dt {
+  margin: 0 !important;
+  font-size: 11px !important;
+  text-transform: uppercase !important;
+  letter-spacing: 0.05em !important;
+  color: var(--ss-text-tertiary) !important;
+  font-weight: 600 !important;
+}
+
+.sscribe-success-meta-row dd {
+  margin: 0 !important;
+  font-size: 14px !important;
+  font-weight: 600 !important;
+  color: var(--ss-text-primary) !important;
+  font-variant-numeric: tabular-nums !important;
+}
+
+/* Error details toggle — chevron + state */
+.sscribe-button.sscribe-button-toggle-details {
+  display: inline-flex !important;
+  align-items: center !important;
+  gap: 6px !important;
+}
+
+.sscribe-button.sscribe-button-toggle-details .sscribe-toggle-chevron {
+  width: 12px !important;
+  height: 12px !important;
+  flex-shrink: 0 !important;
+  transition: transform 160ms ease !important;
+}
+
+.sscribe-button[aria-expanded="true"] .sscribe-toggle-chevron {
+  transform: rotate(180deg) !important;
+}
+
+.sscribe-error-technical-details {
+  margin-top: var(--ss-space-3) !important;
+  padding: var(--ss-space-3) var(--ss-space-4) !important;
+  background: var(--ss-bg) !important;
+  border: 1px solid var(--ss-border) !important;
+  border-radius: var(--ss-radius-md) !important;
+  font-family: var(--ss-font-mono) !important;
+  font-size: 11px !important;
+  line-height: 1.5 !important;
+  color: var(--ss-text-secondary) !important;
+  max-height: 240px !important;
+  overflow-y: auto !important;
+  white-space: pre-wrap !important;
+  word-break: break-word !important;
+}
+
+#sscribe-error-actions {
+  display: flex !important;
+  flex-wrap: wrap !important;
+  gap: 8px !important;
+  margin-top: var(--ss-space-3) !important;
+}
+
+/* Confirm modal — alertdialog surface */
+.sscribe-modal-content-confirm {
+  max-width: 440px !important;
+}
+
+.sscribe-confirm-header {
+  display: flex !important;
+  align-items: flex-start !important;
+  gap: var(--ss-space-3) !important;
+  padding-bottom: var(--ss-space-3) !important;
+}
+
+.sscribe-confirm-icon {
+  display: flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  width: 40px !important;
+  height: 40px !important;
+  border-radius: var(--ss-radius-full) !important;
+  background: var(--ss-warning-bg) !important;
+  color: var(--ss-warning) !important;
+  flex-shrink: 0 !important;
+}
+
+.sscribe-confirm-titles {
+  flex: 1 !important;
+  min-width: 0 !important;
+  display: flex !important;
+  flex-direction: column !important;
+  gap: 2px !important;
+}
+
+.sscribe-confirm-titles h3 {
+  margin: 0 !important;
+  font-size: 15px !important;
+  font-weight: 600 !important;
+  color: var(--ss-text-primary) !important;
+  line-height: 1.4 !important;
+}
+
+.sscribe-confirm-desc {
+  margin: 0 !important;
+  font-size: 13px !important;
+  font-weight: 400 !important;
+  color: var(--ss-text-secondary) !important;
+  line-height: 1.5 !important;
+}
+
+.sscribe-confirm-body {
+  font-size: 13px !important;
+  line-height: 1.5 !important;
+  color: var(--ss-text-secondary) !important;
+  padding-top: var(--ss-space-3) !important;
+}
+
+.sscribe-confirm-footer {
+  display: flex !important;
+  flex-direction: row-reverse !important;
+  justify-content: flex-start !important;
+  gap: 8px !important;
+}
+
+/* About-this-export info box */
+.sscribe-about-export {
+  display: flex !important;
+  align-items: flex-start !important;
+  gap: var(--ss-space-3) !important;
+  padding: var(--ss-space-3) var(--ss-space-4) !important;
+  margin: var(--ss-space-3) 0 0 0 !important;
+  background: var(--ss-bg) !important;
+  border: 1px solid var(--ss-border) !important;
+  border-radius: var(--ss-radius-md) !important;
+}
+
+.sscribe-about-export .sscribe-icon {
+  flex-shrink: 0 !important;
+  color: var(--ss-text-tertiary) !important;
+  margin-top: 2px !important;
+}
+
+.sscribe-about-export-body {
+  flex: 1 !important;
+  min-width: 0 !important;
+  font-size: 12px !important;
+  color: var(--ss-text-secondary) !important;
+  line-height: 1.5 !important;
+}
+
+.sscribe-about-export-body strong {
+  display: block !important;
+  font-size: 13px !important;
+  font-weight: 600 !important;
+  color: var(--ss-text-primary) !important;
+  margin-bottom: 2px !important;
+}
+
+.sscribe-about-export-body code {
+  padding: 1px 5px !important;
+  background: var(--ss-surface-2) !important;
+  border: 1px solid var(--ss-border) !important;
+  border-radius: 4px !important;
+  font-family: var(--ss-font-mono) !important;
+  font-size: 11px !important;
+  color: var(--ss-text-primary) !important;
+}
+
+/* Open-in-browser ZIP link */
+.sscribe-button.sscribe-open-browser-link {
+  font-size: 12px !important;
+  font-weight: 500 !important;
+  color: var(--ss-brand) !important;
+  text-decoration: none !important;
+  padding: 6px 8px !important;
+}
+
+.sscribe-button.sscribe-open-browser-link:hover {
+  text-decoration: underline !important;
+  background: var(--ss-surface-2) !important;
+}
+
+/* History panel header meta + toolbar */
+.sscribe-panel-header-meta {
+  display: flex !important;
+  align-items: center !important;
+  gap: var(--ss-space-2) !important;
+}
+
+.sscribe-badge.sscribe-badge-info {
+  background: var(--ss-info-bg) !important;
+  color: var(--ss-info) !important;
+  border-color: var(--ss-info-bg) !important;
+  cursor: help !important;
+}
+
+.sscribe-history-toolbar {
+  display: flex !important;
+  flex-wrap: wrap !important;
+  align-items: center !important;
+  justify-content: space-between !important;
+  gap: var(--ss-space-3) !important;
+  padding: var(--ss-space-3) var(--ss-space-6) !important;
+  border-bottom: 1px solid var(--ss-border) !important;
+  background: var(--ss-surface) !important;
+}
+
+.sscribe-search-field {
+  position: relative !important;
+  display: flex !important;
+  align-items: center !important;
+  gap: 6px !important;
+  flex: 1 !important;
+  max-width: 360px !important;
+  padding: 0 var(--ss-space-3) !important;
+  height: 32px !important;
+  border: 1px solid var(--ss-border) !important;
+  border-radius: var(--ss-radius-md) !important;
+  background: var(--ss-surface) !important;
+  transition: all 120ms ease !important;
+}
+
+.sscribe-search-field .sscribe-icon {
+  flex-shrink: 0 !important;
+  color: var(--ss-text-tertiary) !important;
+}
+
+.sscribe-search-field input[type="search"] {
+  flex: 1 !important;
+  min-width: 0 !important;
+  height: 30px !important;
+  border: none !important;
+  outline: none !important;
+  background: transparent !important;
+  color: var(--ss-text-primary) !important;
+  font-size: 13px !important;
+  line-height: 1 !important;
+  padding: 0 !important;
+}
+
+.sscribe-search-field input[type="search"]::placeholder {
+  color: var(--ss-text-muted) !important;
+}
+
+.sscribe-search-field:focus-within {
+  border-color: var(--ss-brand) !important;
+  outline: 2px solid var(--ss-brand) !important;
+  outline-offset: -1px !important;
+}
+
+.sscribe-search-field input[type="search"]:focus {
+  outline: none !important;
+}
+
+.sscribe-bulk-hint {
+  display: flex !important;
+  align-items: center !important;
+  gap: 6px !important;
+  margin: 0 !important;
+  font-size: 12px !important;
+  color: var(--ss-text-muted) !important;
+}
+
+.sscribe-bulk-hint .sscribe-icon {
+  color: var(--ss-text-tertiary) !important;
+  flex-shrink: 0 !important;
+}
+
+/* Bulk bar — visible pre-selection (data-active toggles shadow) */
+.sscribe-bulk-bar[data-active="false"] .sscribe-bulk-count {
+  color: var(--ss-text-secondary) !important;
+}
+
+.sscribe-bulk-bar[data-active="true"] {
+  background: var(--ss-brand-soft) !important;
+  border-bottom-color: var(--ss-brand-tint) !important;
+}
+
+.sscribe-bulk-bar[data-active="true"] .sscribe-bulk-count {
+  color: var(--ss-brand) !important;
+  font-weight: 600 !important;
+}
+
+.sscribe-bulk-select-all-label {
+  font-size: 12px !important;
+  font-weight: 500 !important;
+  color: var(--ss-text-secondary) !important;
+  margin-left: 8px !important;
+}
+
+.sscribe-bulk-select-all input:checked ~ .sscribe-bulk-select-all-label {
+  color: var(--ss-brand) !important;
+}
+
+/* History meta line improvements */
+.sscribe-history-table .sscribe-file-meta {
+  display: flex !important;
+  flex-wrap: wrap !important;
+  align-items: center !important;
+  gap: 4px !important;
+}
+
+.sscribe-history-table .sscribe-meta-sep {
+  color: var(--ss-text-muted) !important;
+  opacity: 0.6 !important;
+  font-size: 10px !important;
+}
+
+.sscribe-history-table .sscribe-file-retention {
+  display: inline-flex !important;
+  align-items: center !important;
+  gap: 3px !important;
+  padding: 0 5px !important;
+  height: 18px !important;
+  border-radius: var(--ss-radius-sm) !important;
+  background: var(--ss-surface-2) !important;
+  color: var(--ss-text-tertiary) !important;
+  font-size: 10px !important;
+  font-weight: 500 !important;
+  font-family: var(--ss-font-mono) !important;
+}
+
+.sscribe-history-row.sscribe-history-row-hidden {
+  display: none !important;
+}
+
+/* Support terminal panel + cards */
+.sscribe-support-panel {
+  background: var(--ss-surface) !important;
+  border: 1px solid var(--ss-border) !important;
+  border-radius: var(--ss-radius-lg) !important;
+  overflow: hidden !important;
+}
+
+.sscribe-support-panel-header {
+  display: flex !important;
+  align-items: center !important;
+  gap: 10px !important;
+  padding: 14px 22px !important;
+  background: var(--ss-surface-2) !important;
+  border-bottom: 1px solid var(--ss-border) !important;
+  color: var(--ss-text-secondary) !important;
+}
+
+.sscribe-support-panel-header .sscribe-icon {
+  color: var(--ss-text-tertiary) !important;
+}
+
+.sscribe-support-panel-title {
+  margin: 0 !important;
+  font-size: 13px !important;
+  font-weight: 600 !important;
+  color: var(--ss-text-primary) !important;
+}
+
+.sscribe-support-panel-meta {
+  margin-left: auto !important;
+  font-family: var(--ss-font-mono) !important;
+  font-size: 11px !important;
+  color: var(--ss-text-muted) !important;
+}
+
+.sscribe-support-cmd {
+  padding: 18px 22px !important;
+  font-family: var(--ss-font-mono) !important;
+  font-size: 12px !important;
+  line-height: 1.55 !important;
+  color: var(--ss-text-primary) !important;
+  background: var(--ss-bg) !important;
+  margin: 0 !important;
+  white-space: pre-wrap !important;
+  word-break: break-word !important;
+}
+
+.sscribe-support-actions-row {
+  display: flex !important;
+  align-items: center !important;
+  gap: 8px !important;
+  padding: 10px 22px !important;
+  border-top: 1px solid var(--ss-border) !important;
+  background: var(--ss-surface) !important;
+}
+
+.sscribe-support-actions-row .sscribe-icon {
+  color: currentColor !important;
+}
+
+.sscribe-support-status {
+  margin-left: auto !important;
+  font-size: 12px !important;
+  color: var(--ss-success) !important;
+  font-weight: 500 !important;
+}
+
+/* Help & Docs sub-section list */
+.sscribe-help-list {
+  display: grid !important;
+  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)) !important;
+  gap: 8px !important;
+  margin: 0 !important;
+  padding: 0 !important;
+  list-style: none !important;
+}
+
+.sscribe-help-list li {
+  margin: 0 !important;
+}
+
+.sscribe-help-link {
+  display: flex !important;
+  align-items: center !important;
+  gap: 10px !important;
+  padding: 14px 16px !important;
+  background: var(--ss-surface) !important;
+  border: 1px solid var(--ss-border) !important;
+  border-radius: var(--ss-radius-md) !important;
+  text-decoration: none !important;
+  color: var(--ss-text-primary) !important;
+  font-size: 13px !important;
+  font-weight: 500 !important;
+  transition: all 120ms ease !important;
+  min-height: 44px !important;
+}
+
+.sscribe-help-link:hover {
+  border-color: var(--ss-brand) !important;
+  background: var(--ss-brand-tint) !important;
+  color: var(--ss-brand) !important;
+  text-decoration: none !important;
+}
+
+.sscribe-help-link:focus-visible {
+  outline: 2px solid var(--ss-brand) !important;
+  outline-offset: 2px !important;
+}
+
+.sscribe-help-link-icon {
+  width: 32px !important;
+  height: 32px !important;
+  display: inline-flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  border-radius: var(--ss-radius-md) !important;
+  background: var(--ss-brand-tint) !important;
+  color: var(--ss-brand) !important;
+  flex-shrink: 0 !important;
+}
+
+.sscribe-help-link:hover .sscribe-help-link-icon {
+  background: var(--ss-brand) !important;
+  color: #fff !important;
+}
+
+.sscribe-help-link-body {
+  flex: 1 !important;
+  min-width: 0 !important;
+  display: flex !important;
+  flex-direction: column !important;
+  gap: 2px !important;
+}
+
+.sscribe-help-link-title {
+  font-size: 13px !important;
+  font-weight: 600 !important;
+  color: inherit !important;
+  line-height: 1.4 !important;
+}
+
+.sscribe-help-link-sub {
+  font-size: 11px !important;
+  font-weight: 400 !important;
+  color: var(--ss-text-muted) !important;
+  line-height: 1.4 !important;
+}
+
+.sscribe-help-link .sscribe-icon-external {
+  color: var(--ss-text-muted) !important;
+  flex-shrink: 0 !important;
+  margin-left: 2px !important;
+}
+
+.sscribe-help-link:hover .sscribe-icon-external {
+  color: var(--ss-brand) !important;
+}
+
+/* Sub-section title for support panel */
+.sscribe-subsection-title {
+  margin: 0 0 12px 0 !important;
+  font-size: 12px !important;
+  font-weight: 600 !important;
+  text-transform: uppercase !important;
+  letter-spacing: 0.06em !important;
+  color: var(--ss-text-tertiary) !important;
+  display: flex !important;
+  align-items: center !important;
+  gap: 8px !important;
+}
+
+.sscribe-subsection-title::after {
+  content: '' !important;
+  flex: 1 !important;
+  height: 1px !important;
+  background: var(--ss-border) !important;
+}
+
+/* Hidden-skip skip-link override (default WP a11y fix) */
+.sscribe-master-container a.sscribe-skip-link:focus,
+.sscribe-master-container a.sscribe-skip-link:active {
+  color: #fff !important;
+}
+
+/* Disabled button (search context) */
+.sscribe-button:disabled,
+.sscribe-button[disabled] {
+  cursor: not-allowed !important;
+  opacity: 0.5 !important;
+}
+
+.sscribe-button.sscribe-button-outline:disabled:hover,
+.sscribe-button.sscribe-button-outline[disabled]:hover {
+  border-color: var(--ss-border-strong) !important;
+  color: var(--ss-text-primary) !important;
+  background: var(--ss-surface) !important;
+}
+
+/* Tab change live region */
+#sscribe-tab-announce {
+  position: absolute !important;
+  width: 1px !important;
+  height: 1px !important;
+  padding: 0 !important;
+  margin: -1px !important;
+  overflow: hidden !important;
+  clip: rect(0,0,0,0) !important;
+  white-space: nowrap !important;
+  border: 0 !important;
+}
+
+/* Modal generic — final overrides to ensure alertdialog visual order */
+.sscribe-modal-content .sscribe-modal-header h3 {
+  font-family: var(--ss-font) !important;
+}
+
+.sscribe-modal-content .sscribe-modal-body p:last-child {
+  margin-bottom: 0 !important;
+}
+
+#sscribe-confirm-modal .sscribe-modal-body {
+  display: none !important;
+}
+
+#sscribe-confirm-modal:not(.sscribe-confirm-empty) .sscribe-modal-body {
+  display: block !important;
+  border-top: 1px solid var(--ss-border) !important;
+}
+
+.sscribe-confirm-list {
+  margin: 0 !important;
+  padding: 0 !important;
+  list-style: none !important;
+  max-height: 180px !important;
+  overflow-y: auto !important;
+  display: flex !important;
+  flex-direction: column !important;
+  gap: 2px !important;
+}
+
+.sscribe-confirm-list li {
+  margin: 0 !important;
+  padding: 6px 10px !important;
+  background: var(--ss-bg) !important;
+  border: 1px solid var(--ss-border) !important;
+  border-radius: var(--ss-radius-sm) !important;
+  font-family: var(--ss-font-mono) !important;
+  font-size: 11px !important;
+  line-height: 1.4 !important;
+  color: var(--ss-text-secondary) !important;
+  white-space: nowrap !important;
+  overflow: hidden !important;
+  text-overflow: ellipsis !important;
+  direction: ltr !important;
+  text-align: left !important;
 }
