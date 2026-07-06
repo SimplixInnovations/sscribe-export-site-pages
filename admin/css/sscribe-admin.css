@@ -1,5 +1,3 @@
-/* @version 1.1.2 */
-
 .sscribe-master-container {
   --ss-bg: #fafafa;
   --ss-surface: #fff;
@@ -48,7 +46,6 @@
   --ss-font-mono: ui-monospace, "SF Mono", Menlo, Consolas, "Liberation Mono", monospace;
   --ss-max-w: 1100px;
 }
-
 .sscribe-master-container {
   background: var(--ss-bg);
   font: 14px/1.5 var(--ss-font);
@@ -57,13 +54,11 @@
   -moz-osx-font-smoothing: grayscale;
   box-sizing: border-box;
 }
-
 .sscribe-master-container *,
 .sscribe-master-container *::before,
 .sscribe-master-container *::after {
   box-sizing: inherit;
 }
-
 .sscribe-master-container h1,
 .sscribe-master-container h2,
 .sscribe-master-container h3,
@@ -72,16 +67,13 @@
   font-weight: 600;
   margin: 0;
 }
-
 .sscribe-master-container p {
   margin: 0;
 }
-
 .sscribe-master-container table {
   display: block;
   border: none;
 }
-
 .sscribe-master-container .button {
   background: none;
   border: none;
@@ -91,11 +83,9 @@
   margin: 0;
   cursor: pointer;
 }
-
 .sscribe-hidden {
   display: none !important;
 }
-
 .sscribe-skip-link.screen-reader-text:focus {
   clip: auto !important;
   width: auto;
@@ -113,13 +103,11 @@
   font-weight: 600;
   font-size: 13px;
 }
-
 .sscribe-hero {
   background: var(--ss-surface);
   border-bottom: 1px solid var(--ss-border);
   padding: var(--ss-space-6) var(--ss-space-8);
 }
-
 .sscribe-hero-content {
   display: flex;
   align-items: center;
@@ -128,14 +116,12 @@
   max-width: var(--ss-max-w);
   margin: 0 auto;
 }
-
 .sscribe-hero-left {
   display: flex;
   align-items: center;
   gap: var(--ss-space-4);
   min-width: 0;
 }
-
 .sscribe-hero-logo {
   width: 36px;
   height: 36px;
@@ -145,12 +131,10 @@
   color: var(--ss-brand);
   flex-shrink: 0;
 }
-
 .sscribe-logo-img {
   width: 36px;
   height: 36px;
 }
-
 .sscribe-hero-title {
   font-size: 22px;
   font-weight: 700;
@@ -158,14 +142,12 @@
   color: var(--ss-text-primary);
   margin: 0 0 2px 0;
 }
-
 .sscribe-hero-subtitle {
   font-size: 13px;
   line-height: 1.5;
   color: var(--ss-text-secondary);
   max-width: 520px;
 }
-
 .sscribe-hero-version {
   display: inline-flex;
   align-items: center;
@@ -181,7 +163,6 @@
   border: 1px solid var(--ss-border);
   flex-shrink: 0;
 }
-
 .sscribe-hero-stats {
   display: inline-flex;
   align-items: center;
@@ -189,38 +170,32 @@
   margin-top: var(--ss-space-3);
   flex-wrap: wrap;
 }
-
 .sscribe-hero-stat {
   font-size: 12px;
   color: var(--ss-text-secondary);
 }
-
 .sscribe-hero-stat strong {
   color: var(--ss-text-primary);
   font-weight: 600;
   font-family: var(--ss-font-mono);
   margin-right: 4px;
 }
-
 .sscribe-icon-img {
   width: 16px;
   height: 16px;
   color: currentColor;
 }
-
 .sscribe-workspace.sscribe-flat-workspace {
   padding: var(--ss-space-6) var(--ss-space-8);
   max-width: var(--ss-max-w);
   margin: 0 auto;
 }
-
 .sscribe-tabs-nav {
   display: flex;
   gap: 2px;
   border-bottom: 1px solid var(--ss-border);
   margin-bottom: var(--ss-space-6);
 }
-
 .sscribe-tab-btn {
   min-height: 44px;
   padding: 0 var(--ss-space-4);
@@ -239,39 +214,32 @@
   position: relative;
   transition: color 120ms ease, border-color 120ms ease;
 }
-
 .sscribe-tab-btn:hover {
   color: var(--ss-text-primary);
 }
-
 .sscribe-tab-btn.sscribe-tab-active {
   color: var(--ss-text-primary);
   font-weight: 600;
   border-bottom-color: var(--ss-brand);
 }
-
 .sscribe-tab-content {
   display: none;
 }
-
 .sscribe-tab-content.sscribe-tab-active {
   display: block;
 }
-
 .sscribe-panel {
   background: var(--ss-surface);
   border: 1px solid var(--ss-border);
   border-radius: var(--ss-radius-lg);
   overflow: hidden;
 }
-
 .sscribe-config-panel {
   background: var(--ss-surface);
   border: 1px solid var(--ss-border);
   border-radius: var(--ss-radius-lg);
   overflow: hidden;
 }
-
 .sscribe-panel-header {
   display: flex;
   align-items: center;
@@ -280,46 +248,37 @@
   padding: var(--ss-space-5) var(--ss-space-6);
   border-bottom: 1px solid var(--ss-border);
 }
-
 .sscribe-panel-title {
   display: inline-flex;
   align-items: center;
   gap: var(--ss-space-2);
 }
-
 .sscribe-master-container .sscribe-panel-title h2 {
   font-size: 15px;
   font-weight: 600;
   color: var(--ss-text-primary);
   margin: 0;
 }
-
 .sscribe-panel-title svg {
   color: var(--ss-text-tertiary);
 }
-
 .sscribe-panel-body {
   padding: var(--ss-space-6);
 }
-
 .sscribe-panel-body.sscribe-flat-body {
   padding: 0;
 }
-
 .sscribe-config-grid {
   display: flex;
   flex-direction: column;
 }
-
 .sscribe-config-section {
   padding: var(--ss-space-6) var(--ss-space-7);
   border-bottom: 1px solid var(--ss-border);
 }
-
 .sscribe-config-section:last-child {
   border-bottom: none;
 }
-
 .sscribe-section-title {
   display: flex;
   align-items: center;
@@ -331,7 +290,6 @@
   letter-spacing: 0.06em;
   margin: 0 0 var(--ss-space-4) 0;
 }
-
 .sscribe-config-section-header {
   display: flex;
   align-items: center;
@@ -343,7 +301,6 @@
   letter-spacing: 0.06em;
   margin: 0 0 var(--ss-space-4) 0;
 }
-
 .sscribe-step-badge {
   display: inline-flex;
   align-items: center;
@@ -358,7 +315,6 @@
   line-height: 1;
   flex-shrink: 0;
 }
-
 .sscribe-post-type-cards.sscribe-cards-compact,
 .sscribe-status-cards.sscribe-cards-row,
 .sscribe-format-cards.sscribe-cards-row,
@@ -367,21 +323,17 @@
   flex-wrap: wrap;
   gap: var(--ss-space-2);
 }
-
 .sscribe-language-cards.sscribe-cards-row {
   flex-wrap: nowrap;
 }
-
 .sscribe-language-cards-wrapper {
   overflow-x: auto;
 }
-
 @supports (scrollbar-width: thin) {
   .sscribe-language-cards-wrapper {
     scrollbar-width: thin;
   }
 }
-
 .sscribe-post-type-card,
 .sscribe-status-card-label,
 .sscribe-format-card-label,
@@ -390,7 +342,6 @@
   cursor: pointer;
   display: inline-flex;
 }
-
 .sscribe-post-type-card > input,
 .sscribe-status-card-label > input,
 .sscribe-format-card-label > input,
@@ -401,7 +352,6 @@
   width: 0;
   height: 0;
 }
-
 .sscribe-post-type-card-inner,
 .sscribe-status-card-inner,
 .sscribe-format-card-inner,
@@ -417,11 +367,9 @@
   min-height: 64px;
   min-width: 0;
 }
-
 .sscribe-format-card-inner {
   min-width: 130px;
 }
-
 .sscribe-post-type-card:hover .sscribe-post-type-card-inner,
 .sscribe-status-card-label:hover .sscribe-status-card-inner,
 .sscribe-format-card-label:hover .sscribe-format-card-inner,
@@ -429,7 +377,6 @@
   border-color: var(--ss-border-strong);
   background: var(--ss-brand-tint);
 }
-
 .sscribe-post-type-card input:checked ~ .sscribe-post-type-card-inner,
 .sscribe-status-card-label input:checked ~ .sscribe-status-card-inner,
 .sscribe-format-card-label input:checked ~ .sscribe-format-card-inner,
@@ -438,7 +385,6 @@
   padding: calc(var(--ss-space-3) - 1px) calc(var(--ss-space-4) - 1px);
   background: var(--ss-brand-soft);
 }
-
 .sscribe-post-type-icon,
 .sscribe-status-icon,
 .sscribe-format-icon {
@@ -452,7 +398,6 @@
   color: var(--ss-text-secondary);
   flex-shrink: 0;
 }
-
 .sscribe-post-type-meta,
 .sscribe-status-meta,
 .sscribe-format-meta,
@@ -463,7 +408,6 @@
   flex-direction: column;
   gap: 2px;
 }
-
 .sscribe-post-type-name,
 .sscribe-status-name,
 .sscribe-format-name,
@@ -476,7 +420,6 @@
   text-overflow: ellipsis;
   white-space: nowrap;
 }
-
 .sscribe-post-type-count,
 .sscribe-status-count,
 .sscribe-lang-count {
@@ -484,13 +427,11 @@
   color: var(--ss-text-muted);
   font-family: var(--ss-font-mono);
 }
-
 .sscribe-format-desc {
   font-size: 11px;
   color: var(--ss-text-muted);
   line-height: 1.4;
 }
-
 .sscribe-post-type-selector,
 .sscribe-status-selector,
 .sscribe-format-selector,
@@ -507,7 +448,6 @@
   flex-shrink: 0;
   transition: border-color 120ms ease, background 120ms ease, color 120ms ease;
 }
-
 .sscribe-post-type-selector svg,
 .sscribe-status-selector svg,
 .sscribe-format-selector svg,
@@ -515,7 +455,6 @@
   width: 12px;
   height: 12px;
 }
-
 .sscribe-post-type-card input:checked ~ .sscribe-post-type-card-inner .sscribe-post-type-selector,
 .sscribe-status-card-label input:checked ~ .sscribe-status-card-inner .sscribe-status-selector,
 .sscribe-format-card-label input:checked ~ .sscribe-format-card-inner .sscribe-format-selector,
@@ -524,19 +463,16 @@
   background: var(--ss-brand);
   color: var(--ss-text-inverse);
 }
-
 .sscribe-status-card-label.sscribe-status-disabled {
   opacity: 0.5;
   pointer-events: none;
   cursor: not-allowed;
 }
-
 .sscribe-lang-card-all .sscribe-lang-card-inner,
 .sscribe-format-all .sscribe-format-card-inner {
   border-style: dashed;
   border-color: var(--ss-border-strong);
 }
-
 .sscribe-lang-flag-wrapper {
   width: 32px;
   height: 32px;
@@ -545,7 +481,6 @@
   justify-content: center;
   flex-shrink: 0;
 }
-
 .sscribe-lang-flag {
   width: 24px;
   height: 18px;
@@ -553,7 +488,6 @@
   border-radius: 2px;
   border: 1px solid var(--ss-border);
 }
-
 .sscribe-lang-flag-placeholder {
   width: 24px;
   height: 18px;
@@ -569,32 +503,27 @@
   font-family: var(--ss-font-mono);
   text-transform: uppercase;
 }
-
 .sscribe-lang-flag-all {
   background: transparent;
   border-style: dashed;
   color: var(--ss-text-muted);
 }
-
 .sscribe-format-options {
   border-top: 1px solid var(--ss-border);
   background: var(--ss-surface-2);
   padding: var(--ss-space-5) var(--ss-space-7);
 }
-
 .sscribe-format-options-inner {
   display: flex;
   flex-direction: column;
   gap: var(--ss-space-4);
 }
-
 .sscribe-format-option-panel {
   background: var(--ss-surface);
   border: 1px solid var(--ss-border);
   border-radius: var(--ss-radius-md);
   padding: var(--ss-space-4) var(--ss-space-5);
 }
-
 .sscribe-format-option-title {
   font-size: 12px;
   font-weight: 600;
@@ -603,20 +532,17 @@
   letter-spacing: 0.05em;
   margin: 0 0 var(--ss-space-3) 0;
 }
-
 .sscribe-format-option-grid {
   display: flex;
   flex-wrap: wrap;
   gap: var(--ss-space-4);
 }
-
 .sscribe-format-option-field {
   display: flex;
   flex-direction: column;
   gap: 6px;
   min-width: 180px;
 }
-
 .sscribe-format-option-field.sscribe-format-option-checkbox {
   flex-direction: row;
   align-items: center;
@@ -626,7 +552,6 @@
   padding: 0 var(--ss-space-2);
   cursor: pointer;
 }
-
 .sscribe-format-option-field.sscribe-format-option-checkbox input {
   width: 16px;
   height: 16px;
@@ -634,12 +559,10 @@
   accent-color: var(--ss-brand);
   cursor: pointer;
 }
-
 .sscribe-format-option-field.sscribe-format-option-checkbox span {
   font-size: 13px;
   color: var(--ss-text-primary);
 }
-
 .sscribe-format-option-label {
   font-size: 11px;
   font-weight: 500;
@@ -647,7 +570,6 @@
   text-transform: uppercase;
   letter-spacing: 0.04em;
 }
-
 .sscribe-format-option-field select {
   height: 40px;
   border: 1.5px solid var(--ss-border);
@@ -664,7 +586,6 @@
   background-position: right 12px center;
   background-size: 12px 12px;
 }
-
 .sscribe-export-bar {
   padding: var(--ss-space-5) var(--ss-space-7);
   border-top: 1px solid var(--ss-border);
@@ -675,14 +596,12 @@
   gap: var(--ss-space-4);
   flex-wrap: wrap;
 }
-
 .sscribe-config-summary {
   display: flex;
   flex-wrap: wrap;
   gap: var(--ss-space-2);
   align-items: center;
 }
-
 .sscribe-summary-label {
   font-size: 11px;
   font-weight: 500;
@@ -691,7 +610,6 @@
   letter-spacing: 0.04em;
   margin-right: var(--ss-space-1);
 }
-
 .sscribe-summary-chip {
   display: inline-flex;
   align-items: center;
@@ -704,51 +622,43 @@
   color: var(--ss-text-primary);
   white-space: nowrap;
 }
-
 .sscribe-summary-pages {
   background: var(--ss-brand);
   color: var(--ss-text-inverse);
   border-color: var(--ss-brand);
 }
-
 .sscribe-summary-time {
   background: var(--ss-brand-soft);
   color: var(--ss-brand);
   border-color: var(--ss-brand-soft);
 }
-
 .sscribe-summary-time.sscribe-summary-time-pending {
   background: var(--ss-surface-2);
   color: var(--ss-text-muted);
   border-color: var(--ss-border);
   font-style: italic;
 }
-
 .sscribe-summary-sep {
   color: var(--ss-text-muted);
   font-size: 11px;
 }
-
 .sscribe-summary-sep-em {
   color: var(--ss-border-strong);
   font-size: 11px;
   margin: 0 var(--ss-space-1);
 }
-
 .sscribe-export-bar-actions {
   display: inline-flex;
   align-items: center;
   gap: var(--ss-space-2);
   flex-wrap: wrap;
 }
-
 .sscribe-export-disabled-reason {
   font-size: 11px;
   font-style: italic;
   color: var(--ss-text-muted);
   margin-right: var(--ss-space-2);
 }
-
 .sscribe-button {
   display: inline-flex;
   align-items: center;
@@ -769,92 +679,75 @@
   white-space: nowrap;
   transition: background 120ms ease, color 120ms ease, border-color 120ms ease;
 }
-
 .sscribe-button svg {
   flex-shrink: 0;
 }
-
 .sscribe-button-primary {
   background: var(--ss-brand);
   color: var(--ss-text-inverse);
   border-color: var(--ss-brand);
 }
-
 .sscribe-button-primary:hover:not(:disabled) {
   background: var(--ss-brand-hover);
   border-color: var(--ss-brand-hover);
 }
-
 .sscribe-button-primary:active:not(:disabled) {
   background: var(--ss-brand-active);
   border-color: var(--ss-brand-active);
 }
-
 .sscribe-button-outline {
   background: var(--ss-surface);
   color: var(--ss-text-primary);
   border-color: var(--ss-border-strong);
 }
-
 .sscribe-button-outline:hover:not(:disabled) {
   border-color: var(--ss-brand);
   color: var(--ss-brand);
   background: var(--ss-brand-tint);
 }
-
 .sscribe-button-secondary {
   background: var(--ss-surface-2);
   color: var(--ss-text-primary);
   border-color: var(--ss-border);
 }
-
 .sscribe-button-secondary:hover:not(:disabled) {
   background: var(--ss-surface-3);
 }
-
 .sscribe-button-ghost {
   background: transparent;
   color: var(--ss-text-secondary);
   border-color: transparent;
 }
-
 .sscribe-button-ghost:hover:not(:disabled) {
   background: var(--ss-surface-2);
   color: var(--ss-text-primary);
 }
-
 .sscribe-button-success {
   background: var(--ss-success);
   color: var(--ss-text-inverse);
   border-color: var(--ss-success);
 }
-
 .sscribe-button-success:hover:not(:disabled) {
   background: #006c48;
   border-color: #006c48;
 }
-
 .sscribe-button-danger {
   background: var(--ss-error);
   color: var(--ss-text-inverse);
   border-color: var(--ss-error);
 }
-
 .sscribe-button-danger:hover:not(:disabled) {
   background: #8a1a12;
   border-color: #8a1a12;
 }
-
 .sscribe-button-cancel {
   background: transparent;
   color: var(--ss-error);
   border-color: var(--ss-error-border);
 }
-
 .sscribe-button-cancel:hover:not(:disabled) {
   background: var(--ss-error-bg);
 }
-
 .sscribe-button-icon {
   min-width: 40px;
   min-height: 40px;
@@ -862,42 +755,35 @@
   height: 40px;
   padding: 0;
 }
-
 .sscribe-button-icon svg {
   width: 16px;
   height: 16px;
 }
-
 .sscribe-btn-sm {
   min-height: 32px;
   padding: 0 var(--ss-space-3);
   font-size: 12px;
 }
-
 .sscribe-button-sm {
   min-height: 32px;
   padding: 0 var(--ss-space-3);
   font-size: 12px;
 }
-
 .sscribe-button-icon.sscribe-btn-sm {
   min-width: 32px;
   min-height: 32px;
   width: 32px;
   height: 32px;
 }
-
 .sscribe-btn-lg {
   min-height: 44px;
   padding: 0 var(--ss-space-5);
   font-size: 14px;
 }
-
 .sscribe-button:disabled {
   opacity: 0.5;
   cursor: not-allowed;
 }
-
 .sscribe-noscript-notice {
   background: var(--ss-warning-bg);
   border: 1px solid var(--ss-warning-border);
@@ -906,7 +792,6 @@
   border-radius: var(--ss-radius-sm);
   font-size: 12px;
 }
-
 .sscribe-status-alert {
   display: flex;
   align-items: flex-start;
@@ -919,7 +804,6 @@
   position: relative;
   overflow: hidden;
 }
-
 .sscribe-status-alert::before {
   content: "";
   position: absolute;
@@ -929,34 +813,27 @@
   width: 3px;
   background: var(--ss-border-strong);
 }
-
 .sscribe-status-processing {
   background: var(--ss-info-bg);
   border-color: var(--ss-info-bg);
 }
-
 .sscribe-status-processing::before {
   background: var(--ss-info);
 }
-
 .sscribe-status-success {
   background: var(--ss-success-bg);
   border-color: var(--ss-success-bg);
 }
-
 .sscribe-status-success::before {
   background: var(--ss-success);
 }
-
 .sscribe-status-error {
   background: var(--ss-error-bg);
   border-color: var(--ss-error-bg);
 }
-
 .sscribe-status-error::before {
   background: var(--ss-error);
 }
-
 .sscribe-status-icon {
   width: 32px;
   height: 32px;
@@ -967,48 +844,39 @@
   background: rgb(255 255 255 / 60%);
   flex-shrink: 0;
 }
-
 .sscribe-status-processing .sscribe-status-icon {
   color: var(--ss-info);
 }
-
 .sscribe-status-success .sscribe-status-icon {
   color: var(--ss-success);
 }
-
 .sscribe-status-error .sscribe-status-icon {
   color: var(--ss-error);
 }
-
 .sscribe-spinner {
   flex-shrink: 0;
 }
-
 .sscribe-spinner-img {
   width: 32px;
   height: 32px;
   display: block;
 }
-
 .sscribe-status-info {
   flex: 1;
   min-width: 0;
 }
-
 .sscribe-status-heading {
   font-size: 15px;
   font-weight: 600;
   color: var(--ss-text-primary);
   margin: 0 0 var(--ss-space-1) 0;
 }
-
 .sscribe-status-desc {
   font-size: 13px;
   color: var(--ss-text-secondary);
   line-height: 1.5;
   margin: 0;
 }
-
 .sscribe-phase-steps {
   display: flex;
   align-items: center;
@@ -1016,7 +884,6 @@
   margin-bottom: var(--ss-space-3);
   flex-wrap: wrap;
 }
-
 .sscribe-phase-step {
   display: inline-flex;
   align-items: center;
@@ -1029,19 +896,16 @@
   color: var(--ss-text-muted);
   line-height: 1;
 }
-
 .sscribe-phase-step.sscribe-phase-active {
   background: var(--ss-brand);
   color: var(--ss-text-inverse);
   font-weight: 600;
 }
-
 .sscribe-phase-step.sscribe-phase-done {
   background: var(--ss-success);
   color: var(--ss-text-inverse);
   font-weight: 600;
 }
-
 .sscribe-phase-dot {
   width: 7px;
   height: 7px;
@@ -1049,27 +913,22 @@
   background: currentColor;
   flex-shrink: 0;
 }
-
 .sscribe-phase-check {
   width: 10px;
   height: 10px;
   flex-shrink: 0;
 }
-
 .sscribe-phase-step:not(.sscribe-phase-done) .sscribe-phase-check {
   display: none;
 }
-
 .sscribe-phase-step.sscribe-phase-done .sscribe-phase-dot {
   display: none;
 }
-
 .sscribe-phase-label {
   font-size: 11px;
   font-weight: 500;
   color: var(--ss-text-muted);
 }
-
 .sscribe-phase-connector {
   display: inline-block;
   width: var(--ss-space-4);
@@ -1077,21 +936,18 @@
   background: var(--ss-border-strong);
   flex-shrink: 0;
 }
-
 .sscribe-current-page {
   font-size: 12px;
   color: var(--ss-text-secondary);
   font-family: var(--ss-font-mono);
   margin: 0 0 var(--ss-space-2) 0;
 }
-
 .sscribe-progress-tracker {
   display: flex;
   align-items: center;
   gap: var(--ss-space-2);
   margin: var(--ss-space-3) 0;
 }
-
 .sscribe-progress-bar-container {
   flex: 1;
   height: 6px;
@@ -1099,7 +955,6 @@
   border-radius: var(--ss-radius-full);
   overflow: hidden;
 }
-
 .sscribe-progress-bar-fill {
   height: 100%;
   background: var(--ss-brand);
@@ -1107,7 +962,6 @@
   border-radius: var(--ss-radius-full);
   transition: width 200ms ease;
 }
-
 .sscribe-progress-percentage {
   font-size: 12px;
   font-weight: 600;
@@ -1116,20 +970,17 @@
   min-width: 38px;
   text-align: right;
 }
-
 .sscribe-progress-meta {
   display: flex;
   align-items: center;
   gap: var(--ss-space-3);
   margin-top: var(--ss-space-1);
 }
-
 .sscribe-time-remaining {
   font-size: 11px;
   font-style: italic;
   color: var(--ss-text-muted);
 }
-
 .sscribe-success-actions,
 .sscribe-error-actions {
   display: inline-flex;
@@ -1138,7 +989,6 @@
   margin-top: var(--ss-space-3);
   flex-wrap: wrap;
 }
-
 .sscribe-error-guidance {
   background: var(--ss-warning-bg);
   border: 1px solid var(--ss-warning-border);
@@ -1146,18 +996,15 @@
   padding: var(--ss-space-2) var(--ss-space-3);
   margin-top: var(--ss-space-3);
 }
-
 .sscribe-guidance-text {
   font-size: 12px;
   color: var(--ss-warning);
   margin: 0;
   line-height: 1.5;
 }
-
 .sscribe-debug-details {
   margin: var(--ss-space-2) 0;
 }
-
 .sscribe-debug-details summary {
   cursor: pointer;
   font-size: 12px;
@@ -1165,7 +1012,6 @@
   font-weight: 500;
   padding: 4px 0;
 }
-
 .sscribe-debug-pre {
   background: var(--ss-bg);
   color: var(--ss-text-primary);
@@ -1178,7 +1024,6 @@
   white-space: pre-wrap;
   word-break: break-word;
 }
-
 .sscribe-badge {
   display: inline-flex;
   align-items: center;
@@ -1190,7 +1035,6 @@
   font-size: 11px;
   font-weight: 500;
 }
-
 .sscribe-bulk-bar {
   display: flex;
   align-items: center;
@@ -1200,13 +1044,11 @@
   background: var(--ss-brand-tint);
   border-bottom: 1px solid var(--ss-border);
 }
-
 .sscribe-bulk-left {
   display: inline-flex;
   align-items: center;
   gap: var(--ss-space-3);
 }
-
 .sscribe-bulk-select-all {
   display: inline-flex;
   align-items: center;
@@ -1215,7 +1057,6 @@
   min-height: 40px;
   padding: 0 var(--ss-space-1);
 }
-
 .sscribe-bulk-select-all input {
   position: absolute;
   opacity: 0;
@@ -1223,7 +1064,6 @@
   height: 0;
   pointer-events: none;
 }
-
 .sscribe-check-visual {
   display: inline-flex;
   align-items: center;
@@ -1237,35 +1077,29 @@
   flex-shrink: 0;
   transition: background 120ms ease, border-color 120ms ease, color 120ms ease;
 }
-
 .sscribe-check-visual svg {
   width: 12px;
   height: 12px;
 }
-
 .sscribe-bulk-select-all input:checked ~ .sscribe-check-visual,
 .sscribe-history-check-label input:checked ~ .sscribe-check-visual {
   background: var(--ss-brand);
   border-color: var(--ss-brand);
   color: var(--ss-text-inverse);
 }
-
 .sscribe-bulk-count {
   font-size: 12px;
   font-weight: 500;
   color: var(--ss-brand);
 }
-
 .sscribe-bulk-actions {
   display: inline-flex;
   align-items: center;
   gap: var(--ss-space-2);
 }
-
 .sscribe-history-table {
   padding: 0 var(--ss-space-7) var(--ss-space-4);
 }
-
 .sscribe-history-row {
   display: flex;
   align-items: center;
@@ -1274,18 +1108,15 @@
   border-bottom: 1px solid var(--ss-border);
   transition: background 120ms ease;
 }
-
 .sscribe-history-row:last-child {
   border-bottom: none;
 }
-
 .sscribe-history-row:hover {
   background: var(--ss-surface-2);
   margin: 0 calc(-1 * var(--ss-space-7));
   padding-left: var(--ss-space-7);
   padding-right: var(--ss-space-7);
 }
-
 .sscribe-history-check-label {
   display: inline-flex;
   align-items: center;
@@ -1294,7 +1125,6 @@
   min-height: 40px;
   padding: 0 var(--ss-space-1);
 }
-
 .sscribe-history-check {
   position: absolute;
   opacity: 0;
@@ -1302,7 +1132,6 @@
   height: 0;
   pointer-events: none;
 }
-
 .sscribe-history-file {
   display: flex;
   align-items: center;
@@ -1310,7 +1139,6 @@
   flex: 1;
   min-width: 0;
 }
-
 .sscribe-file-icon {
   width: 36px;
   height: 36px;
@@ -1323,14 +1151,12 @@
   flex-shrink: 0;
   overflow: hidden;
 }
-
 .sscribe-file-icon-img {
   width: 24px;
   height: 18px;
   object-fit: cover;
   border-radius: 1px;
 }
-
 .sscribe-file-icon-text {
   font-size: 9px;
   font-weight: 700;
@@ -1338,14 +1164,12 @@
   color: var(--ss-text-muted);
   font-family: var(--ss-font-mono);
 }
-
 .sscribe-file-details {
   min-width: 0;
   display: flex;
   flex-direction: column;
   gap: 2px;
 }
-
 .sscribe-file-details strong {
   font-size: 13px;
   font-weight: 500;
@@ -1354,24 +1178,20 @@
   text-overflow: ellipsis;
   white-space: nowrap;
 }
-
 .sscribe-file-details span {
   font-size: 11px;
   color: var(--ss-text-muted);
 }
-
 .sscribe-file-size {
   font-family: var(--ss-font-mono);
   margin-left: 6px;
 }
-
 .sscribe-history-actions {
   display: inline-flex;
   align-items: center;
   gap: 6px;
   flex-shrink: 0;
 }
-
 .sscribe-history-empty {
   display: flex;
   flex-direction: column;
@@ -1379,56 +1199,46 @@
   padding: var(--ss-space-10) var(--ss-space-5);
   color: var(--ss-text-muted);
 }
-
 .sscribe-empty-illustration {
   color: var(--ss-border-strong);
   opacity: 0.7;
   margin-bottom: var(--ss-space-3);
 }
-
 .sscribe-history-notice {
   padding: var(--ss-space-2);
   text-align: center;
 }
-
 .sscribe-history-notice p {
   font-size: 12px;
   color: var(--ss-text-muted);
   margin: 0;
 }
-
 .sscribe-history-skeleton {
   padding: var(--ss-space-3) 0;
 }
-
 .sscribe-history-skeleton-row {
   display: flex;
   align-items: center;
   gap: var(--ss-space-3);
   padding: var(--ss-space-2) 0;
 }
-
 .sscribe-skeleton {
   background: var(--ss-surface-2);
   border-radius: var(--ss-radius-sm);
 }
-
 .sscribe-skeleton-icon {
   width: 36px;
   height: 36px;
 }
-
 .sscribe-skeleton-title {
   width: 180px;
   height: 14px;
 }
-
 .sscribe-support-master {
   display: grid;
   grid-template-columns: 260px 1fr;
   gap: var(--ss-space-5);
 }
-
 .sscribe-support-sidebar {
   background: var(--ss-surface);
   border: 1px solid var(--ss-border);
@@ -1436,52 +1246,43 @@
   padding: var(--ss-space-5);
   height: fit-content;
 }
-
 .sscribe-support-header {
   margin-bottom: var(--ss-space-4);
 }
-
 .sscribe-support-header h2 {
   font-size: 15px;
   font-weight: 600;
   color: var(--ss-text-primary);
   margin: 0 0 6px 0;
 }
-
 .sscribe-support-header p {
   font-size: 12px;
   color: var(--ss-text-secondary);
   line-height: 1.55;
   margin: 0;
 }
-
 .sscribe-support-actions-vertical {
   display: flex;
   flex-direction: column;
   gap: var(--ss-space-2);
 }
-
 .sscribe-support-actions-vertical .sscribe-button {
   width: 100%;
 }
-
 .sscribe-support-feedback {
   font-size: 12px;
   color: var(--ss-text-secondary);
   margin: var(--ss-space-3) 0 0 0;
 }
-
 .sscribe-support-main {
   min-width: 0;
 }
-
 .sscribe-support-terminal {
   background: #18181b;
   border: 1px solid var(--ss-border-strong);
   border-radius: var(--ss-radius-lg);
   overflow: hidden;
 }
-
 .sscribe-terminal-header {
   display: flex;
   align-items: center;
@@ -1490,37 +1291,30 @@
   background: #27272a;
   border-bottom: 1px solid #3f3f46;
 }
-
 .sscribe-dot {
   width: 12px;
   height: 12px;
   border-radius: 50%;
   flex-shrink: 0;
 }
-
 .sscribe-dot-red {
   background: #ff5f57;
 }
-
 .sscribe-dot-yellow {
   background: #ffbd2e;
 }
-
 .sscribe-dot-green {
   background: #28c840;
 }
-
 .sscribe-terminal-title {
   font-size: 11px;
   color: var(--ss-text-muted);
   font-family: var(--ss-font-mono);
   margin-left: var(--ss-space-2);
 }
-
 .sscribe-support-copy-wrap {
   padding: var(--ss-space-3);
 }
-
 .sscribe-support-copy-text {
   width: 100%;
   min-height: 360px;
@@ -1530,12 +1324,10 @@
   border: none;
   resize: vertical;
 }
-
 .sscribe-support-copy-text:focus-visible {
   outline: 2px solid var(--ss-brand);
   outline-offset: -2px;
 }
-
 .sscribe-modal {
   position: fixed;
   inset: 0;
@@ -1546,7 +1338,6 @@
   padding: var(--ss-space-5);
   z-index: 100000;
 }
-
 .sscribe-modal-content {
   background: var(--ss-surface);
   border: 1px solid var(--ss-border);
@@ -1558,11 +1349,9 @@
   flex-direction: column;
   overflow: hidden;
 }
-
 .sscribe-modal-content-preview {
   max-width: 680px;
 }
-
 .sscribe-modal-header {
   display: flex;
   align-items: center;
@@ -1571,7 +1360,6 @@
   padding: var(--ss-space-4) var(--ss-space-6) var(--ss-space-3);
   border-bottom: 1px solid var(--ss-border);
 }
-
 .sscribe-modal-header h3 {
   font-size: 15px;
   font-weight: 600;
@@ -1581,7 +1369,6 @@
   align-items: center;
   gap: var(--ss-space-2);
 }
-
 .sscribe-modal-close {
   width: 40px;
   height: 40px;
@@ -1596,18 +1383,15 @@
   align-items: center;
   justify-content: center;
 }
-
 .sscribe-modal-close:hover {
   background: var(--ss-error-bg);
   color: var(--ss-error);
 }
-
 .sscribe-modal-body {
   padding: var(--ss-space-5) var(--ss-space-6);
   flex: 1;
   overflow-y: auto;
 }
-
 .sscribe-modal-footer {
   padding: var(--ss-space-3) var(--ss-space-6);
   border-top: 1px solid var(--ss-border);
@@ -1617,7 +1401,6 @@
   gap: var(--ss-space-2);
   background: var(--ss-surface-2);
 }
-
 .sscribe-preview-footer {
   padding: var(--ss-space-3) var(--ss-space-6);
   border-top: 1px solid var(--ss-border);
@@ -1627,7 +1410,6 @@
   gap: var(--ss-space-2);
   background: var(--ss-surface-2);
 }
-
 .sscribe-preview-loading,
 .sscribe-log-loading {
   display: inline-flex;
@@ -1636,7 +1418,6 @@
   color: var(--ss-text-muted);
   font-size: 13px;
 }
-
 .sscribe-loading-spinner {
   width: 18px;
   height: 18px;
@@ -1645,13 +1426,11 @@
   border-radius: 50%;
   animation: sscribe-spin 0.8s linear infinite;
 }
-
 @keyframes sscribe-spin {
   to {
     transform: rotate(360deg);
   }
 }
-
 .sscribe-progress-initializing {
   display: flex;
   align-items: center;
@@ -1660,7 +1439,6 @@
   color: var(--ss-text-muted);
   font-size: 12px;
 }
-
 .sscribe-toast-container {
   position: fixed;
   bottom: var(--ss-space-5);
@@ -1671,7 +1449,6 @@
   max-width: 340px;
   z-index: 100001;
 }
-
 .sscribe-toast {
   display: flex;
   align-items: flex-start;
@@ -1684,22 +1461,18 @@
   font-size: 13px;
   line-height: 1.4;
 }
-
 .sscribe-toast-success {
   background: var(--ss-success);
   border-color: var(--ss-success);
 }
-
 .sscribe-toast-error {
   background: var(--ss-error);
   border-color: var(--ss-error);
 }
-
 .sscribe-toast-info {
   background: var(--ss-info);
   border-color: var(--ss-info);
 }
-
 .sscribe-toast-dismiss {
   background: transparent;
   border: none;
@@ -1711,11 +1484,9 @@
   font-size: 16px;
   line-height: 1;
 }
-
 .sscribe-toast-dismiss:hover {
   opacity: 1;
 }
-
 .sscribe-preflight,
 .sscribe-preflight-banner {
   background: var(--ss-warning-bg);
@@ -1727,7 +1498,6 @@
   justify-content: space-between;
   gap: var(--ss-space-4);
 }
-
 .sscribe-preflight-close {
   width: 32px;
   height: 32px;
@@ -1740,19 +1510,16 @@
   align-items: center;
   justify-content: center;
 }
-
 .sscribe-feedback {
   color: var(--ss-text-secondary);
   font-size: 12px;
   margin: 0;
 }
-
 .sscribe-export-btn-scope {
   font-size: 12px;
   color: var(--ss-text-muted);
   margin-left: var(--ss-space-1);
 }
-
 .sscribe-button:focus-visible,
 .sscribe-tab-btn:focus-visible,
 .sscribe-modal-close:focus-visible,
@@ -1763,7 +1530,6 @@
   outline: 2px solid var(--ss-brand);
   outline-offset: 2px;
 }
-
 .sscribe-post-type-card:focus-within .sscribe-post-type-card-inner,
 .sscribe-status-card-label:focus-within .sscribe-status-card-inner,
 .sscribe-format-card-label:focus-within .sscribe-format-card-inner,
@@ -1771,24 +1537,20 @@
   outline: 2px solid var(--ss-brand);
   outline-offset: 2px;
 }
-
 .sscribe-format-option-field select:focus-visible {
   outline: 2px solid var(--ss-brand);
   outline-offset: 2px;
 }
-
 .sscribe-format-option-field.sscribe-format-option-checkbox:focus-within {
   outline: 2px solid var(--ss-brand);
   outline-offset: 2px;
   border-radius: var(--ss-radius-sm);
 }
-
 .sscribe-bulk-select-all:focus-within .sscribe-check-visual,
 .sscribe-history-check-label:focus-within .sscribe-check-visual {
   outline: 2px solid var(--ss-brand);
   outline-offset: 2px;
 }
-
 @media (width <= 900px) {
   .sscribe-workspace {
     padding: var(--ss-space-5) var(--ss-space-4);
@@ -1815,7 +1577,6 @@
     justify-content: flex-end;
   }
 }
-
 @media (width <= 640px) {
   .sscribe-hero-content {
     flex-direction: column;
@@ -1868,36 +1629,30 @@
     padding: var(--ss-space-2) var(--ss-space-4);
   }
 }
-
 @supports (scrollbar-width: none) {
   .sscribe-tabs-nav {
     overflow-x: auto;
     scrollbar-width: none;
   }
 }
-
 .sscribe-delete-btn,
 .sscribe-log-btn {
   display: inline-flex;
 }
-
 .sscribe-delete-btn:not(:disabled) {
   background: transparent;
   color: var(--ss-text-secondary);
   border-color: var(--ss-border);
 }
-
 .sscribe-delete-btn:not(:disabled):hover {
   background: var(--ss-error-bg);
   color: var(--ss-error);
   border-color: var(--ss-error-border);
 }
-
 .sscribe-lang-card-compact .sscribe-lang-card-inner {
   padding: var(--ss-space-2) var(--ss-space-3);
   min-height: 56px;
 }
-
 .sscribe-summary-post-type,
 .sscribe-summary-status,
 .sscribe-summary-format,
@@ -1905,37 +1660,25 @@
   display: inline-flex;
   align-items: center;
 }
-
-/* ═══════════════════════════════════════════════════════════════════
-   MODAL CONTENT — preview, log, preflight
-   JS emits these classes via $content.html(...). All use --ss-* tokens.
-   ═══════════════════════════════════════════════════════════════════ */
-
-/* ── PREVIEW MODAL ── */
-
 .sscribe-preview-content {
   display: flex;
   flex-direction: column;
   gap: var(--ss-space-4);
 }
-
 .sscribe-preview-result {
   display: flex;
   flex-direction: column;
   gap: var(--ss-space-3);
 }
-
 .sscribe-preview-grid {
   display: grid;
   grid-template-columns: minmax(120px, auto) 1fr;
   gap: var(--ss-space-2) var(--ss-space-5);
   align-items: baseline;
 }
-
 .sscribe-preview-stat {
   display: contents;
 }
-
 .sscribe-preview-label {
   font-size: 11px;
   font-weight: 600;
@@ -1944,14 +1687,12 @@
   letter-spacing: 0.05em;
   white-space: nowrap;
 }
-
 .sscribe-preview-value {
   font-size: 13px;
   font-weight: 500;
   color: var(--ss-text-primary);
   overflow-wrap: anywhere;
 }
-
 .sscribe-preview-sample {
   background: var(--ss-surface-2);
   border: 1px solid var(--ss-border);
@@ -1961,7 +1702,6 @@
   line-height: 1.6;
   color: var(--ss-text-secondary);
 }
-
 .sscribe-preview-title {
   display: block;
   font-size: 13px;
@@ -1969,33 +1709,27 @@
   color: var(--ss-text-primary);
   margin: 0 0 var(--ss-space-2) 0;
 }
-
 .sscribe-preview-excerpt {
   color: var(--ss-text-secondary);
   font-size: 13px;
   line-height: 1.6;
   margin: 0;
 }
-
 .sscribe-preview-note {
   font-size: 11px;
   color: var(--ss-text-muted);
   font-style: italic;
   margin: var(--ss-space-2) 0 0 0;
 }
-
 .sscribe-preview-empty {
   text-align: center;
   padding: var(--ss-space-6) var(--ss-space-4);
   color: var(--ss-text-muted);
   font-size: 13px;
 }
-
 .sscribe-preview-dismiss-btn,
 .sscribe-preview-start-btn {
-  /* inherits .sscribe-button base — modifiers below */
 }
-
 .sscribe-preview-loading {
   display: flex;
   align-items: center;
@@ -2004,15 +1738,11 @@
   font-size: 13px;
   padding: var(--ss-space-4) 0;
 }
-
-/* ── LOG MODAL ── */
-
 .sscribe-log-content {
   display: flex;
   flex-direction: column;
   gap: var(--ss-space-4);
 }
-
 .sscribe-log-summary {
   display: grid;
   grid-template-columns: minmax(110px, auto) 1fr;
@@ -2024,11 +1754,9 @@
   border-radius: var(--ss-radius);
   font-size: 13px;
 }
-
 .sscribe-log-stat {
   display: contents;
 }
-
 .sscribe-log-stat-label {
   font-size: 11px;
   font-weight: 600;
@@ -2037,31 +1765,25 @@
   letter-spacing: 0.05em;
   white-space: nowrap;
 }
-
 .sscribe-log-stat-value {
   font-size: 13px;
   font-weight: 600;
   color: var(--ss-text-primary);
 }
-
 .sscribe-log-stat-value.success {
   color: var(--ss-success);
 }
-
 .sscribe-log-stat-value.failed {
   color: var(--ss-error);
 }
-
 .sscribe-log-success {
   color: var(--ss-success);
   font-weight: 500;
 }
-
 .sscribe-log-failed {
   color: var(--ss-error);
   font-weight: 500;
 }
-
 .sscribe-log-status-success {
   display: inline-flex;
   align-items: center;
@@ -2074,7 +1796,6 @@
   font-size: 11px;
   font-weight: 600;
 }
-
 .sscribe-log-status-failed {
   display: inline-flex;
   align-items: center;
@@ -2087,19 +1808,16 @@
   font-size: 11px;
   font-weight: 600;
 }
-
 .sscribe-log-pages {
   color: var(--ss-text-secondary);
   font-size: 13px;
 }
-
 .sscribe-log-table {
   width: 100%;
   border-collapse: collapse;
   font-size: 13px;
   font-variant-numeric: tabular-nums;
 }
-
 .sscribe-log-table th {
   text-align: left;
   font-size: 11px;
@@ -2112,25 +1830,21 @@
   background: var(--ss-surface-2);
   white-space: nowrap;
 }
-
 .sscribe-log-table td {
   padding: var(--ss-space-3);
   border-bottom: 1px solid var(--ss-border);
   color: var(--ss-text-secondary);
   vertical-align: middle;
 }
-
 .sscribe-log-table tr:last-child td {
   border-bottom: none;
 }
-
 .sscribe-log-empty {
   text-align: center;
   padding: var(--ss-space-6) var(--ss-space-4);
   color: var(--ss-text-muted);
   font-size: 13px;
 }
-
 .sscribe-log-error {
   padding: var(--ss-space-3) var(--ss-space-4);
   background: var(--ss-error-bg);
@@ -2142,26 +1856,20 @@
   flex-direction: column;
   gap: var(--ss-space-3);
 }
-
 .sscribe-log-errors {
   color: var(--ss-error);
   font-weight: 500;
 }
-
-/* ── PREFLIGHT MODAL ── */
-
 .sscribe-preflight-body {
   display: flex;
   flex-direction: column;
   gap: var(--ss-space-4);
 }
-
 .sscribe-preflight-header {
   display: flex;
   align-items: center;
   gap: var(--ss-space-3);
 }
-
 .sscribe-preflight-icon {
   flex-shrink: 0;
   width: 32px;
@@ -2174,14 +1882,12 @@
   color: var(--ss-warning);
   border-radius: var(--ss-radius-sm);
 }
-
 .sscribe-preflight-section {
   padding: var(--ss-space-3) var(--ss-space-4);
   background: var(--ss-surface-2);
   border: 1px solid var(--ss-border);
   border-radius: var(--ss-radius);
 }
-
 .sscribe-preflight-section-title {
   font-size: 11px;
   font-weight: 600;
@@ -2190,7 +1896,6 @@
   color: var(--ss-text-tertiary);
   margin: 0 0 var(--ss-space-2) 0;
 }
-
 .sscribe-preflight-list {
   margin: 0;
   padding-left: var(--ss-space-5);
@@ -2198,28 +1903,21 @@
   font-size: 13px;
   line-height: 1.6;
 }
-
 .sscribe-preflight-errors,
 .sscribe-preflight-warnings {
   color: var(--ss-text-secondary);
   font-size: 13px;
   line-height: 1.6;
 }
-
 .sscribe-preflight-actions {
   display: flex;
   flex-wrap: wrap;
   gap: var(--ss-space-3);
   justify-content: flex-end;
 }
-
 .sscribe-preflight-fix,
 .sscribe-preflight-proceed {
-  /* inherits .sscribe-button base */
 }
-
-/* ── ERROR AREA (inline form / inline alert) ── */
-
 .sscribe-error-area {
   padding: var(--ss-space-3) var(--ss-space-4);
   background: var(--ss-error-bg);
@@ -2230,19 +1928,16 @@
   gap: var(--ss-space-2);
   margin-top: var(--ss-space-3);
 }
-
 .sscribe-error-text {
   color: var(--ss-error);
   font-size: 13px;
   font-weight: 500;
 }
-
 .sscribe-error-guidance-text {
   color: var(--ss-text-secondary);
   font-size: 12px;
   line-height: 1.5;
 }
-
 .sscribe-error-technical-details {
   margin-top: var(--ss-space-2);
   padding: var(--ss-space-3);
@@ -2254,21 +1949,15 @@
   overflow-x: auto;
   white-space: pre-wrap;
 }
-
 .sscribe-error-try-again {
-  /* inherits .sscribe-button base */
   align-self: flex-start;
 }
-
-/* ── PROGRESS / PHASE STEPS ── */
-
 .sscribe-progress-area {
   display: flex;
   flex-direction: column;
   gap: var(--ss-space-3);
   margin-top: var(--ss-space-3);
 }
-
 .sscribe-progress-bar {
   width: 100%;
   height: 6px;
@@ -2277,12 +1966,10 @@
   overflow: hidden;
   position: relative;
 }
-
 .sscribe-progress-text {
   font-size: 13px;
   color: var(--ss-text-secondary);
 }
-
 .sscribe-progress-bar-fill-finalizing {
   height: 100%;
   width: 100%;
@@ -2290,57 +1977,39 @@
   border-radius: var(--ss-radius-full);
   transition: width 200ms ease;
 }
-
 .sscribe-phase-step.sscribe-phase-completed {
   background: var(--ss-success-bg);
   color: var(--ss-success);
 }
-
-/* ── STATUS TEXT (text-only fallback inside status alerts) ── */
-
 .sscribe-status-text {
   font-size: 13px;
   color: var(--ss-text-secondary);
   line-height: 1.55;
   margin: 0;
 }
-
-/* ── WORKSPACE WRAPPER ── */
-
 .sscribe-workspace {
   background: var(--ss-bg);
   padding: var(--ss-space-5) var(--ss-space-6);
   border-radius: var(--ss-radius-lg);
 }
-
-/* ── BOTH COUNT (post-type "Both" card label) ── */
-
 .sscribe-both-count {
   font-size: 11px;
   color: var(--ss-text-muted);
   font-family: var(--ss-font-mono);
 }
-
 .sscribe-page-count,
 .sscribe-post-count {
   font-size: 11px;
   color: var(--ss-text-muted);
   font-family: var(--ss-font-mono);
 }
-
-/* ── ROW STATE CLASSES ── */
-
 .sscribe-row-selected {
   background: var(--ss-brand-tint);
 }
-
 .sscribe-row-deleting {
   opacity: 0.5;
   pointer-events: none;
 }
-
-/* ── BUTTON STATE MODIFIERS ── */
-
 .sscribe-button.sscribe-btn-busy,
 .sscribe-button.sscribe-btn-confirming,
 .sscribe-button.sscribe-confirming {
@@ -2348,34 +2017,28 @@
   opacity: 0.7;
   pointer-events: none;
 }
-
 .sscribe-button.sscribe-cancel-btn {
   background: transparent;
   color: var(--ss-error);
   border-color: var(--ss-error-border);
 }
-
 .sscribe-button.sscribe-cancel-btn:hover:not(:disabled) {
   background: var(--ss-error-bg);
   border-color: var(--ss-error-border);
   color: var(--ss-error);
 }
-
 .sscribe-button.sscribe-new-export-btn,
 .sscribe-button#sscribe-new-export-btn,
 .sscribe-button#sscribe-download-btn,
 .sscribe-button#sscribe-export-btn,
 .sscribe-button#sscribe-preview-btn {
-  /* inherit base — no extra overrides needed */
 }
-
 .sscribe-confirm-original,
 .sscribe-confirm-timeout {
   font-size: 11px;
   color: var(--ss-text-muted);
   margin-left: var(--ss-space-2);
 }
-
 .sscribe-button .sscribe-back-to-current {
   font-size: 12px;
   color: var(--ss-text-secondary);
@@ -2385,58 +2048,38 @@
   border-radius: var(--ss-radius-sm);
   cursor: pointer;
 }
-
 .sscribe-button .sscribe-back-to-current:hover {
   color: var(--ss-text-primary);
   border-color: var(--ss-border-strong);
 }
-
-/* ── BULK ACTION BUTTONS ── */
-
 .sscribe-bulk-delete-btn,
 .sscribe-bulk-download-btn {
-  /* inherits .sscribe-button base */
 }
-
-/* ── ROTATED (debug-rotated file action buttons) ── */
-
 .sscribe-rotated-delete,
 .sscribe-rotated-error,
 .sscribe-rotated-export,
 .sscribe-rotated-view {
-  /* inherits .sscribe-button .sscribe-button-icon base */
 }
-
-/* ── TOAST ── */
-
 .sscribe-toast-icon {
   flex-shrink: 0;
   display: inline-flex;
   align-items: center;
   justify-content: center;
 }
-
 .sscribe-toast-message {
   flex: 1;
   min-width: 0;
   font-size: 13px;
   line-height: 1.4;
 }
-
 .sscribe-toast.sscribe-toast-removing {
   opacity: 0;
   transform: none;
   transition: opacity 200ms ease;
 }
-
-/* ── TAB ACTIVE STATE for specific tab buttons ── */
-
 .sscribe-tab-btn-debug.sscribe-tab-active {
   color: var(--ss-brand);
 }
-
-/* ── GENERIC LOADING STATE ── */
-
 .sscribe-loading {
   display: flex;
   align-items: center;
@@ -2444,34 +2087,27 @@
   color: var(--ss-text-muted);
   font-size: 13px;
 }
-
 .sscribe-loading-count {
   font-family: var(--ss-font-mono);
   font-size: 11px;
   color: var(--ss-text-muted);
 }
-
-/* ── SUPPORT TAB GRID ── */
-
 .sscribe-support-grid {
   display: grid;
   grid-template-columns: 1fr 1fr;
   gap: var(--ss-space-3);
 }
-
 .sscribe-support-grid-inner {
   display: flex;
   flex-direction: column;
   gap: var(--ss-space-3);
 }
-
 .sscribe-support-item {
   padding: var(--ss-space-3) var(--ss-space-4);
   background: var(--ss-surface);
   border: 1px solid var(--ss-border);
   border-radius: var(--ss-radius);
 }
-
 .sscribe-support-label {
   font-size: 11px;
   font-weight: 600;
@@ -2480,13 +2116,11 @@
   color: var(--ss-text-tertiary);
   margin-bottom: var(--ss-space-1);
 }
-
 .sscribe-support-value {
   font-size: 13px;
   color: var(--ss-text-primary);
   font-weight: 500;
 }
-
 .sscribe-support-loading {
   display: flex;
   align-items: center;
@@ -2495,7 +2129,6 @@
   font-size: 13px;
   padding: var(--ss-space-4) 0;
 }
-
 .sscribe-support-error {
   padding: var(--ss-space-3) var(--ss-space-4);
   background: var(--ss-error-bg);
@@ -2504,14 +2137,9 @@
   color: var(--ss-error);
   font-size: 13px;
 }
-
 .sscribe-support-copy-btn,
 .sscribe-support-refresh-btn {
-  /* inherits .sscribe-button base */
 }
-
-/* ── A11Y LIVE REGIONS (visually hidden but available to screen readers) ── */
-
 .sscribe-alert-region,
 .sscribe-live-region {
   position: absolute;
@@ -2524,23 +2152,313 @@
   white-space: nowrap;
   border: 0;
 }
-
-/* ── INFINITE-SCROLL SENTINEL (zero-height trigger element) ── */
-
 .sscribe-infinite-scroll-sentinel {
   height: 1px;
   width: 100%;
   pointer-events: none;
 }
-
-/* ── FEEDBACK (inline form feedback) ── */
-
 .sscribe-feedback-success {
   color: var(--ss-success);
   font-size: 12px;
 }
-
 .sscribe-feedback-error {
   color: var(--ss-error);
   font-size: 12px;
+}
+
+/* ═══════════════════════════════════════════
+   SSCRIBE UI/UX FIX PACK — v1.1.2 AUDIT
+   Applied: 2026-07-05
+   ═══════════════════════════════════════════ */
+
+/* ── FIX 1: FORMAT CARDS — 5-column grid, no orphan ── */
+#sscribe-format-cards {
+  display: grid;
+  grid-template-columns: repeat(5, 1fr);
+  gap: var(--ss-space-3);
+}
+
+/* ── FIX 2: FORMAT CARDS — unselected look selectable, not disabled ── */
+#sscribe-format-cards label {
+  cursor: pointer;
+  border: 1px solid var(--ss-border);
+  background: var(--ss-surface);
+  opacity: 1;
+  transition: border-color 120ms ease, background 120ms ease;
+}
+#sscribe-format-cards label:hover {
+  border-color: var(--ss-brand);
+  background: var(--ss-brand-tint);
+}
+#sscribe-format-cards label:focus-within {
+  outline: 2px solid var(--ss-brand);
+  outline-offset: 2px;
+}
+
+/* ── FIX 3: STATUS CARDS — disabled clearly non-interactive ── */
+#sscribe-status-cards label.sscribe-status-disabled {
+  opacity: 0.32;
+  cursor: not-allowed;
+  pointer-events: none;
+}
+
+/* ===== HISTORY TABLE: CLEAN FLEX LAYOUT ===== */
+
+/* Override any previous grid attempts — use flex which matches the JS template */
+#sscribe-history-table .sscribe-history-row {
+  display: flex !important;
+  align-items: center !important;
+  gap: var(--ss-space-3) !important;
+  padding: var(--ss-space-3) var(--ss-space-4) !important;
+  border-bottom: 1px solid var(--ss-border) !important;
+  transition: background 0.1s ease !important;
+  min-height: 56px !important;
+  background: transparent !important;
+  border-radius: 0 !important;
+  grid-template-columns: unset !important;
+  grid-column: unset !important;
+  grid-row: unset !important;
+  flex-direction: row !important;
+  flex-wrap: nowrap !important;
+}
+
+#sscribe-history-table .sscribe-history-row:last-child {
+  border-bottom: none !important;
+}
+
+#sscribe-history-table .sscribe-history-row:hover {
+  background: var(--ss-surface-2) !important;
+  border-radius: var(--ss-radius) !important;
+}
+
+/* Checkbox label — left, fixed width, flex-shrink 0 */
+#sscribe-history-table .sscribe-history-check-label {
+  display: inline-flex !important;
+  align-items: center !important;
+  cursor: pointer !important;
+  position: relative !important;
+  flex-shrink: 0 !important;
+  width: auto !important;
+  height: auto !important;
+  background: transparent !important;
+  border: none !important;
+  border-radius: 0 !important;
+  grid-column: unset !important;
+  grid-row: unset !important;
+  padding: 0 var(--ss-space-1) !important;
+}
+
+/* Checkbox input — hidden, replaced by custom visual */
+#sscribe-history-table .sscribe-history-check {
+  position: absolute !important;
+  opacity: 0 !important;
+  width: 0 !important;
+  height: 0 !important;
+  pointer-events: none !important;
+}
+
+/* File section — takes remaining space, flex row: icon + details side by side */
+#sscribe-history-table .sscribe-history-file {
+  display: flex !important;
+  align-items: center !important;
+  gap: var(--ss-space-3) !important;
+  flex: 1 !important;
+  min-width: 0 !important;
+  overflow: visible !important;
+  flex-direction: row !important;
+  flex-shrink: 1 !important;
+  width: auto !important;
+  height: auto !important;
+  background: transparent !important;
+  border: none !important;
+  font-family: inherit !important;
+  font-size: inherit !important;
+  color: inherit !important;
+  white-space: normal !important;
+  grid-column: unset !important;
+  grid-row: unset !important;
+}
+
+/* Language / file icon badge — fixed circle */
+#sscribe-history-table .sscribe-file-icon {
+  width: 36px !important;
+  height: 36px !important;
+  flex-shrink: 0 !important;
+  border-radius: var(--ss-radius-sm) !important;
+  background: var(--ss-surface-2) !important;
+  border: 1px solid var(--ss-border) !important;
+  display: inline-flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  overflow: hidden !important;
+  font-size: inherit !important;
+  font-weight: inherit !important;
+  font-family: inherit !important;
+  grid-column: unset !important;
+  grid-row: unset !important;
+}
+
+/* Text inside icon badge (e.g. "AL", "EN") */
+#sscribe-history-table .sscribe-file-icon-text {
+  font-size: 10px !important;
+  font-weight: 700 !important;
+  color: var(--ss-brand) !important;
+  line-height: 1 !important;
+  letter-spacing: 0.02em !important;
+  text-transform: uppercase !important;
+}
+
+/* Flag images inside icon badge */
+#sscribe-history-table .sscribe-file-icon-img {
+  width: 100% !important;
+  height: 100% !important;
+  object-fit: cover !important;
+  display: block !important;
+}
+
+/* File details — flex column: filename on top, meta on bottom */
+#sscribe-history-table .sscribe-file-details {
+  display: flex !important;
+  flex-direction: column !important;
+  min-width: 0 !important;
+  flex: 1 !important;
+  gap: 2px !important;
+  background: transparent !important;
+  border: none !important;
+  font-family: inherit !important;
+  grid-column: unset !important;
+  grid-row: unset !important;
+  white-space: normal !important;
+  overflow: visible !important;
+  align-items: flex-start !important;
+  justify-content: center !important;
+}
+
+/* Filename — strong, truncated with ellipsis */
+#sscribe-history-table .sscribe-file-details strong {
+  font-size: 12.5px !important;
+  font-weight: 500 !important;
+  color: var(--ss-text-primary) !important;
+  overflow: hidden !important;
+  text-overflow: ellipsis !important;
+  white-space: nowrap !important;
+  display: block !important;
+  max-width: 100% !important;
+  grid-column: unset !important;
+  grid-row: unset !important;
+  font-family: inherit !important;
+}
+
+/* Date + size meta line */
+#sscribe-history-table .sscribe-file-details span {
+  font-size: 11px !important;
+  color: var(--ss-text-muted) !important;
+  white-space: nowrap !important;
+  display: block !important;
+  grid-column: unset !important;
+  grid-row: unset !important;
+  font-family: inherit !important;
+  line-height: 1.4 !important;
+}
+
+/* Actions — right side, flex row of icon buttons */
+#sscribe-history-table .sscribe-history-actions {
+  display: flex !important;
+  align-items: center !important;
+  gap: var(--ss-space-1) !important;
+  flex-shrink: 0 !important;
+  margin-left: auto !important;
+  grid-column: unset !important;
+  grid-row: unset !important;
+}
+
+#sscribe-history-table .sscribe-history-actions a,
+#sscribe-history-table .sscribe-history-actions button {
+  display: inline-flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  width: 30px !important;
+  height: 30px !important;
+  border-radius: var(--ss-radius-sm) !important;
+  border: 1px solid var(--ss-border) !important;
+  background: transparent !important;
+  color: var(--ss-text-muted) !important;
+  cursor: pointer !important;
+  transition: all 120ms ease !important;
+  text-decoration: none !important;
+  flex-shrink: 0 !important;
+  padding: 0 !important;
+  font-size: 13px !important;
+}
+
+#sscribe-history-table .sscribe-history-actions a:hover,
+#sscribe-history-table .sscribe-history-actions button:hover {
+  background: var(--ss-surface-2) !important;
+  border-color: var(--ss-border-strong) !important;
+  color: var(--ss-text-primary) !important;
+}
+
+#sscribe-history-table .sscribe-history-actions .sscribe-delete-btn:hover {
+  background: var(--ss-error-bg) !important;
+  border-color: var(--ss-error-border) !important;
+  color: var(--ss-error) !important;
+}
+
+/* Check visual (custom checkbox) */
+#sscribe-history-table .sscribe-check-visual {
+  width: 16px !important;
+  height: 16px !important;
+  flex-shrink: 0 !important;
+  border: 1px solid var(--ss-border-strong) !important;
+  border-radius: 4px !important;
+  background: var(--ss-surface) !important;
+  display: inline-flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  transition: all 120ms ease !important;
+  position: relative !important;
+  grid-column: unset !important;
+  grid-row: unset !important;
+}
+
+#sscribe-history-table .sscribe-history-check:checked ~ .sscribe-check-visual {
+  background: var(--ss-brand) !important;
+  border-color: var(--ss-brand) !important;
+}
+
+#sscribe-history-table .sscribe-history-check:checked ~ .sscribe-check-visual::after {
+  content: '' !important;
+  width: 9px !important;
+  height: 5px !important;
+  border-left: 2px solid #fff !important;
+  border-bottom: 2px solid #fff !important;
+  transform: rotate(-45deg) translate(0, -1px) !important;
+  display: block !important;
+}
+
+/* Empty state */
+#sscribe-history-table .sscribe-history-empty {
+  padding: var(--ss-space-8) var(--ss-space-6) !important;
+  text-align: center !important;
+  color: var(--ss-text-muted) !important;
+  font-style: italic !important;
+  grid-column: unset !important;
+  grid-row: unset !important;
+  display: block !important;
+}
+
+/* Row selected state */
+#sscribe-history-table .sscribe-history-row.sscribe-row-selected {
+  background: var(--ss-brand-tint) !important;
+}
+
+/* Skeleton loading rows */
+#sscribe-history-table .sscribe-skeleton-row {
+  display: flex !important;
+  align-items: center !important;
+  gap: var(--ss-space-3) !important;
+  padding: var(--ss-space-3) var(--ss-space-4) !important;
+  border-bottom: 1px solid var(--ss-border) !important;
+  grid-column: unset !important;
+  grid-row: unset !important;
 }

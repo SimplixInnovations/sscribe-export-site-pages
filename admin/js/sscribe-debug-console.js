@@ -4,10 +4,8 @@
  * @package SScribe_Export_Site_Pages
  * @version 1.1.2
  */
-
 (function ($) {
 	'use strict';
-
 	const debounce = function (fn, wait) {
 		let timeout;
 		return function () {
@@ -19,7 +17,6 @@
 			}, wait);
 		};
 	};
-
 	function escHtml(str) {
 		if (str === null || str === undefined) {
 			return '';
@@ -28,7 +25,6 @@
 		div.textContent = String(str);
 		return div.innerHTML;
 	}
-
 	function escAttr(str) {
 		if (str === null || str === undefined) {
 			return '';
@@ -40,13 +36,6 @@
 			.replace(/</g, '&lt;')
 			.replace(/>/g, '&gt;');
 	}
-
-	// Format a Y-m-d H:i:s string (already converted to the site's
-	// timezone on the server side) using the browser's locale. Parses
-	// explicitly with a regex + Date constructor to avoid the
-	// implementation-defined behaviour of `new Date('Y-m-d H:i:s')`
-	// (some browsers treat it as UTC, others as local). Falls back to
-	// the raw string on any parse failure.
 	function formatLocalTimestamp( raw ) {
 		if ( ! raw || typeof raw !== 'string' ) {
 			return '';
@@ -65,13 +54,6 @@
 			return raw;
 		}
 	}
-
-	// Truncate a string by visible code points, not UTF-16 code units.
-	// `String.prototype.substring(0, n)` splits surrogate pairs in emoji
-	// and supplementary-plane characters, which produces malformed
-	// UTF-16 in aria-labels. Iterating with the spread operator exposes
-	// code points, so a slice of 50 yields at most 50 user-perceived
-	// characters and never lands mid-pair.
 	function truncateForAriaLabel(str, maxChars) {
 		const text = String(str || '');
 		const codePoints = Array.from(text);
@@ -80,13 +62,8 @@
 		}
 		return codePoints.slice(0, maxChars).join('') + '\u2026';
 	}
-
 	const SScribeDebugConsole = {
 		refreshInterval: null,
-		// Timeout ID for the exportRotatedLog() paused-indicator auto-hide.
-		// Stored so viewRotatedLog() / backToCurrentLog() can cancel it
-		// when the user navigates to a rotated view before the 5s window
-		// expires.
 		exportHintTimeout: null,
 		isAutoRefresh: true,
 		currentFilter: 'ALL',
@@ -106,17 +83,8 @@
 		isRefreshing: false,
 		isRefreshingSince: null,
 		clearBtnTimeout: null,
-		// Set when a refresh has been pending for >5s so we can show a
-		// "refresh taking longer than expected..." indicator. Cleared on
-		// fetch success/failure.
 		slowRefreshNoticeSince: null,
-		// True while a filter/search/session change is in flight to fetchLogs.
-		// renderLogs() consults this so a filter-triggered re-render scrolls
-		// to the top of the (now-shorter) entry list, instead of carrying
-		// the old "wasAtBottom" heuristic over and jumping to the bottom
-		// of a list the user never scrolled into.
 		_filterChangeInProgress: false,
-
 		init: function () {
 			if (this.initialized) {
 				return;
@@ -141,7 +109,6 @@
 			this.loadInitialState();
 			this.initialized = true;
 		},
-
 		hasRequiredDom: function () {
 			return (
 				document.getElementById('sscribe-debug-root') !== null &&
@@ -150,7 +117,6 @@
 				document.getElementById('sscribe-debug-rotated-body') !== null
 			);
 		},
-
 		cacheDom: function () {
 			this.$container = $('#sscribe-debug-root');
 			this.$enabled = $('#sscribe-debug-enabled');
@@ -165,10 +131,6 @@
 			this.$consoleBody = $('#sscribe-debug-console-body');
 			this.$entries = $('#sscribe-debug-entries');
 			this.$empty = $('#sscribe-debug-empty');
-			// Hardcoded fallback for the case where the PHP template's
-			// <p> renders empty (e.g. a translation override or a custom
-			// child theme) : without this, renderLogs() would blank the
-			// empty-state copy on every refresh.
 			this.defaultEmptyMessage = this.$empty.find('p').text().trim() || 'No log entries found.';
 			this.$entryCount = $('#sscribe-debug-entry-count');
 			this.$clearBtn = $('#sscribe-debug-clear-btn');
@@ -180,7 +142,6 @@
 			this.$helpContent = $('#sscribe-debug-help-content');
 			this.$refreshPaused = $('#sscribe-debug-refresh-paused');
 		},
-
 		unbindEvents: function () {
 			this.$saveSettings.off('.sscribe');
 			this.$filterLevel.off('.sscribe');
@@ -196,7 +157,6 @@
 			this.unbindVisibilityHandler();
 			this.unbindToggleHandler();
 		},
-
 		unbindVisibilityHandler: function () {
 			if (this._visibilityHandler) {
 				document.removeEventListener('visibilitychange', this._visibilityHandler);
@@ -211,7 +171,6 @@
 				this._popStateHandler = null;
 			}
 		},
-
 		unbindToggleHandler: function () {
 			if (this._toggleHandler) {
 				const rotatedEl = this.$rotatedDetails && this.$rotatedDetails[0];
@@ -221,14 +180,11 @@
 				this._toggleHandler = null;
 			}
 		},
-
 		bindEvents: function () {
 			const self = this;
-
 			this.$saveSettings.on('click.sscribe', function () {
 				self.saveSettings(self.isAutoRefresh);
 			});
-
 			this.$filterLevel.on('change.sscribe', function () {
 				self.currentFilter = $(this).val();
 				self.currentOffset = 0;
@@ -241,7 +197,6 @@
 				self.fetchLogs();
 				self.updateExportButtonScope();
 			});
-
 			this.$searchInput.on(
 				'input.sscribe',
 				debounce(function () {
@@ -257,7 +212,6 @@
 					self.updateExportButtonScope();
 				}, 300)
 			);
-
 			this.$sessionInput.on(
 				'input.sscribe',
 				debounce(function () {
@@ -273,7 +227,6 @@
 					self.updateExportButtonScope();
 				}, 300)
 			);
-
 			this.$refreshMode.on('change.sscribe', function () {
 				const previousAutoRefresh = self.isAutoRefresh;
 				self.isAutoRefresh = $(this).val() === 'auto';
@@ -286,7 +239,6 @@
 				}
 				self.saveSettings(previousAutoRefresh);
 			});
-
 			this.$refreshBtn.on('click.sscribe', function () {
 				if (self.isAutoRefresh) {
 					self.stopAutoRefresh();
@@ -300,7 +252,6 @@
 					self.fetchRotatedLogs();
 				}
 			});
-
 			this.$clearBtn.on('click.sscribe', function () {
 				const $btn = $(this);
 				if ($btn.data('confirming')) {
@@ -312,9 +263,6 @@
 					$btn.prop('disabled', true);
 					self.clearLogs();
 				} else {
-					// First click: prompt for confirmation. Do NOT disable the button :
-					// the user MUST be able to click it again to confirm within 3s,
-					// otherwise the confirm flow is dead on arrival.
 					if (!$btn.data('original-text')) {
 						$btn.data('original-text', $btn.text());
 					}
@@ -327,13 +275,10 @@
 								.text(self.$clearBtn.data('original-text') || self.clearBtnOriginalText);
 							self.$clearBtn.removeData('original-text');
 						}
-						// Null the timeout ID so the next first-click correctly
-						// detects "no pending timeout" without clearing a stale ID.
 						self.clearBtnTimeout = null;
 					}, 3000);
 				}
 			});
-
 			this.$container.on('click.sscribe', '#sscribe-debug-help-btn', function () {
 				const helpContent = self.$helpContent && self.$helpContent[0];
 				if (helpContent) {
@@ -346,14 +291,7 @@
 					dialog.setAttribute('role', 'dialog');
 					dialog.setAttribute('aria-modal', 'true');
 					dialog.setAttribute('aria-labelledby', 'sscribe-debug-help-title');
-					// tabindex="-1" makes the dialog focusable as a fallback when
-					// its body has no focusable children (e.g. pure text help).
-					// Without it, screen readers won't announce the dialog opened
-					// because focus stayed on the button that launched it.
 					dialog.setAttribute('tabindex', '-1');
-					// The source element is `hidden` in the template (so it
-					// doesn't render inline). Strip `hidden` from the clone so the
-					// dialog body isn't caught by the UA `[hidden]` stylesheet.
 					const helpClone = helpContent.cloneNode(true);
 					if (helpClone && helpClone.removeAttribute) {
 						helpClone.removeAttribute('hidden');
@@ -393,7 +331,6 @@
 							}
 						}
 					};
-
 					const closeBtn = document.createElement('button');
 					closeBtn.type = 'button';
 					closeBtn.textContent = '\u00D7';
@@ -402,14 +339,10 @@
 						'position:absolute;top:12px;right:12px;background:none;border:none;font-size:18px;cursor:pointer;';
 					closeBtn.addEventListener('click', closeDialog);
 					dialog.appendChild(closeBtn);
-
 					overlay.addEventListener('click', closeDialog);
 					document.body.appendChild(overlay);
 					document.body.appendChild(dialog);
 					document.addEventListener('keydown', keyHandler);
-					// Move focus to the first focusable element. If the dialog has
-					// none (pure-text help), fall back to focusing the dialog
-					// itself so screen readers still announce the dialog opened.
 					const focusableElements = Array.from(dialog.querySelectorAll(focusableSelectors));
 					if (focusableElements.length > 0) {
 						focusableElements[0].focus();
@@ -418,11 +351,9 @@
 					}
 				}
 			});
-
 			this.$exportBtn.on('click.sscribe', function () {
 				self.exportLogs();
 			});
-
 			const rotatedEl = this.$rotatedDetails && this.$rotatedDetails[0];
 			if (rotatedEl) {
 				this._toggleHandler = function () {
@@ -436,7 +367,6 @@
 				};
 				rotatedEl.addEventListener('toggle', this._toggleHandler);
 			}
-
 			this.$rotatedBody.on('click.sscribe', '.sscribe-rotated-view', function () {
 				self.viewRotatedLog($(this).data('file'));
 			});
@@ -446,7 +376,6 @@
 			this.$rotatedBody.on('click.sscribe', '.sscribe-rotated-delete', function () {
 				self.deleteRotatedLog($(this).data('file'), $(this));
 			});
-
 			this.$entries.on('keydown.sscribe', '.sscribe-debug-entry', function (e) {
 				if (e.key === 'Enter' || e.key === ' ') {
 					e.preventDefault();
@@ -460,7 +389,6 @@
 					}
 				}
 			});
-
 			this.$entries.on('click.sscribe', '.sscribe-debug-entry.has-context', function () {
 				const $entry = $(this);
 				const $context = $entry.find('.sscribe-debug-entry-context');
@@ -471,18 +399,13 @@
 					$context.attr('aria-hidden', String(isExpanded));
 				}
 			});
-
 			this.$entries.on('click.sscribe', '.sscribe-debug-retry-append', function () {
 				self.retryAppend();
 			});
 		},
-
 		bindVisibilityHandler: function () {
 			const self = this;
-			// Idempotent : if init() is ever re-entered without an
-			// intervening destroy(), drop the previous handlers first.
 			this.unbindVisibilityHandler();
-
 			this._visibilityHandler = function () {
 				if (document.hidden) {
 					self.stopAutoRefresh();
@@ -494,9 +417,6 @@
 					if (isOnDebugTab) {
 						self.fetchLogs();
 					}
-					// Resume polling regardless of which plugin tab is active :
-					// startAutoRefresh() polls in the background and the paused
-					// indicator must clear when the tab becomes visible again.
 					self.startAutoRefresh();
 					self.hidePausedIndicator();
 				} else {
@@ -504,12 +424,10 @@
 				}
 			};
 			document.addEventListener('visibilitychange', this._visibilityHandler);
-
 			this._beforeUnloadHandler = function () {
 				self.stopAutoRefresh();
 			};
 			window.addEventListener('beforeunload', this._beforeUnloadHandler);
-
 			this._popStateHandler = function (event) {
 				if (event.state && event.state.view === 'rotated' && event.state.file) {
 					self.viewRotatedLog(event.state.file);
@@ -519,7 +437,6 @@
 			};
 			window.addEventListener('popstate', this._popStateHandler);
 		},
-
 		loadInitialState: function () {
 			if (!this.$refreshMode || !this.$refreshMode.length) {
 				this.isAutoRefresh = true;
@@ -532,36 +449,23 @@
 			this.hasMoreEntries = true;
 			this.fetchLogs();
 			this.updateExportButtonScope();
-
 			const rotatedEl = this.$rotatedDetails && this.$rotatedDetails[0];
 			if (rotatedEl && rotatedEl.open) {
 				this.fetchRotatedLogs();
 			}
-
 			if (this.isAutoRefresh) {
 				this.startAutoRefresh();
 			}
 		},
-
 		startAutoRefresh: function () {
 			const self = this;
 			this.stopAutoRefresh();
-			// Honor a PHP-provided override; fall back to 10000ms to keep
-			// behaviour identical if the key is missing (e.g. an older
-			// sscribe_data shape from a cached page).
 			const refreshMs = Number( sscribe_data && sscribe_data.refresh_interval ) || 10000;
-			// Hidden tabs back off to 6x the visible interval so an
-			// admin who leaves the debug tab in a background window
-			// doesn't keep hammering the server at full rate.
 			const hiddenMultiplier = 6;
 			let effectiveRefreshMs = refreshMs;
 			if (document.visibilityState === 'hidden') {
 				effectiveRefreshMs = refreshMs * hiddenMultiplier;
 			}
-			// Honor a "no new entries" stop: after N consecutive
-			// unchanged responses the polling pauses until the user
-			// interacts (clicking a row, scrolling, or tab-visibility
-			// returning).
 			this.consecutiveNoChange = 0;
 			this.noChangeStopThreshold = 5;
 			this.visibilityHandler = function () {
@@ -573,12 +477,6 @@
 			};
 			document.addEventListener('visibilitychange', this.visibilityHandler);
 			this.refreshInterval = setInterval(function () {
-				// Stale-lock recovery: if a fetch has been pending for >10s
-				// (down from 30s : 30s left the user staring at a frozen
-				// console for too long), assume the request hung and reset
-				// the lock so the next tick can retry. Surface a "slow
-				// refresh" notice after 5s so the user knows the console
-				// hasn't actually stopped working.
 				if (self.isRefreshing && self.isRefreshingSince) {
 					const pendingMs = Date.now() - self.isRefreshingSince;
 					if (pendingMs > 5000 && !self.slowRefreshNoticeSince) {
@@ -607,7 +505,6 @@
 				self.fetchLogs();
 			}, effectiveRefreshMs);
 		},
-
 		stopAutoRefresh: function () {
 			if (this.refreshInterval) {
 				clearInterval(this.refreshInterval);
@@ -618,19 +515,16 @@
 				this.visibilityHandler = null;
 			}
 		},
-
 		showPausedIndicator: function (message) {
 			if (this.$refreshPaused) {
 				this.$refreshPaused.text(message).show();
 			}
 		},
-
 		hidePausedIndicator: function () {
 			if (this.$refreshPaused) {
 				this.$refreshPaused.hide();
 			}
 		},
-
 		getResponseMessage: function (response, fallback) {
 			if (response && response.data) {
 				if (typeof response.data === 'string' && response.data) {
@@ -642,12 +536,10 @@
 			}
 			return fallback;
 		},
-
 		updateExportButtonScope: function () {
 			const hasFilter = this.currentFilter !== 'ALL' || this.searchQuery !== '' || this.sessionFilter !== '';
 			this.$exportBtn.find('.sscribe-export-btn-scope').text(hasFilter ? ' (filtered)' : ' (all)');
 		},
-
 		showConsoleError: function (message) {
 			this.$empty.hide();
 			this.$entries.html(
@@ -661,20 +553,15 @@
 					'</div>'
 			);
 		},
-
 		saveSettings: function (previousAutoRefresh) {
 			const self = this;
-
-			// Guard against missing DOM elements.
 			if (!this.$enabled.length || !this.$level.length) {
 				return;
 			}
-
 			if (this.saveFeedbackTimeout) {
 				clearTimeout(this.saveFeedbackTimeout);
 				this.saveFeedbackTimeout = null;
 			}
-
 			if (this.saveSettingsRequest) {
 				this.saveSettingsRequest.abort();
 			}
@@ -686,10 +573,8 @@
 				log_level: this.$level.val(),
 				auto_refresh: this.isAutoRefresh ? '1' : '0',
 			};
-
 			self.$saveSettings.prop('disabled', true);
 			self.$refreshMode.prop('disabled', true);
-
 			this.saveSettingsRequest = $.post(sscribe_data.ajaxurl, data, function (response) {
 				self.saveSettingsRequest = null;
 				self.$saveSettings.prop('disabled', false);
@@ -786,28 +671,22 @@
 				}, 2000);
 			});
 		},
-
 		fetchLogs: function (append) {
 			const self = this;
 			const isInitialLoad = !append;
-
 			if (this.isRefreshing) {
 				return;
 			}
-
 			if (isInitialLoad) {
 				this.currentOffset = 0;
 				this.hasMoreEntries = true;
 			}
-
 			if (append && this.isLoadingMore) {
 				return;
 			}
-
 			if (!this.hasMoreEntries && append) {
 				return;
 			}
-
 			const data = {
 				action: 'sscribe_debug_fetch_logs',
 				nonce: sscribe_data.nonce,
@@ -817,7 +696,6 @@
 				offset: this.currentOffset,
 				limit: 200,
 			};
-
 			if (isInitialLoad) {
 				this.isRefreshing = true;
 				this.isRefreshingSince = Date.now();
@@ -828,7 +706,6 @@
 				self.isLoadingMore = true;
 				self.showAppendLoading();
 			}
-
 			if (this.currentRequest) {
 				this.currentRequest.abort();
 				this.currentRequest = null;
@@ -846,7 +723,6 @@
 					self.isRefreshingSince = null;
 					self.slowRefreshNoticeSince = null;
 				}
-
 				if (response.success) {
 					if (!response.data || !Array.isArray(response.data.entries)) {
 						self.showConsoleError('Invalid response from server.');
@@ -854,11 +730,9 @@
 					}
 					const newEntries = response.data.entries;
 					const totalCount = response.data.count;
-
 					if (response.data.nonce) {
 						sscribe_data.nonce = response.data.nonce;
 					}
-
 					if (isInitialLoad) {
 						if (newEntries.length === 0) {
 							self.consecutiveNoChange = (self.consecutiveNoChange || 0) + 1;
@@ -875,11 +749,9 @@
 							return;
 						}
 					}
-
 					self.currentOffset += newEntries.length;
 					self.hasMoreEntries = self.currentOffset < totalCount;
 					self.$entryCount.text(1 === totalCount ? '1 entry' : totalCount + ' entries');
-
 					if (!self.hasMoreEntries) {
 						self.destroyObserver();
 					}
@@ -914,8 +786,6 @@
 					if (xhr.status === 0) {
 						errorMsg = 'Network error. Please check your connection.';
 					} else if (xhr.status === 403) {
-						// Nonce/session expired : the most common cause on long admin
-						// sessions. Tell the user clearly so they know to reload.
 						errorMsg = 'Session expired. Please reload the page to continue.';
 						self.refreshNonce(function () {
 							if (isInitialLoad) {
@@ -940,10 +810,6 @@
 					self.showConsoleError(errorMsg);
 				} else {
 					self.$entries.find('.sscribe-debug-append-error').remove();
-					// Audit N-6: on 403 (nonce expired) we must refresh the
-					// nonce first, otherwise the Retry button would 403 again
-					// for the same reason. The isInitialLoad path above already
-					// does this; mirror the same behavior for the append path.
 					if (xhr.status === 403) {
 						self.refreshNonce(function () {
 							self.fetchLogs(true);
@@ -958,13 +824,11 @@
 				}
 			});
 		},
-
 		retryAppend: function () {
 			this.$entries.find('.sscribe-debug-append-error').remove();
 			this.isLoadingMore = false;
 			this.fetchLogs(true);
 		},
-
 		buildLogsHtml: function (entries) {
 			let html = '';
 			entries.forEach(function (entry, index) {
@@ -974,20 +838,14 @@
 			});
 			return html;
 		},
-
 		renderLogs: function (entries, skipObserver, extraData, scrollToTop) {
-			// Consume the filter-change flag at the very top so an early return
-			// for empty entries still clears the pending state : otherwise the
-			// next non-filter render would also force-scroll to the top.
 			const forceScrollTop = scrollToTop === true || this._filterChangeInProgress === true;
 			this._filterChangeInProgress = false;
-
 			if (!entries || entries.length === 0) {
 				this.$entries.empty();
 				this.$empty.find('p').text(this.defaultEmptyMessage);
 				this.$empty.show();
 				this.destroyObserver();
-
 				if (extraData) {
 					if (extraData.debug_enabled === false) {
 						this.$empty
@@ -1007,28 +865,17 @@
 				}
 				return;
 			}
-
 			this.$empty.hide();
 			this.$empty.find('p').text(this.defaultEmptyMessage);
 			this.cleanupBeforeRender();
-
-			// Preserve scroll position during auto-refresh updates. The
-			// filter change path (forceScrollTop) scrolls to the top of the
-			// (now-shorter) entry list instead of carrying the old
-			// "wasAtBottom" heuristic over : a smaller filtered list would
-			// otherwise jump to the bottom of content the user never scrolled
-			// into.
 			const consoleBody = this.$consoleBody && this.$consoleBody[0];
-
 			let scrollTop = 0;
 			let wasAtBottom = false;
 			if (consoleBody) {
 				scrollTop = consoleBody.scrollTop;
 				wasAtBottom = consoleBody.scrollHeight - consoleBody.scrollTop - consoleBody.clientHeight < 50;
 			}
-
 			this.$entries.html(this.buildLogsHtml(entries));
-
 			if (consoleBody) {
 				if (forceScrollTop) {
 					consoleBody.scrollTop = 0;
@@ -1038,39 +885,30 @@
 					consoleBody.scrollTop = scrollTop;
 				}
 			}
-
 			if (!skipObserver) {
 				this.setupObserver();
 			}
 		},
-
 		cleanupBeforeRender: function () {
 			this.isLoadingMore = false;
 			this.hideAppendLoading();
 			this.destroyObserver();
 		},
-
 		appendLogs: function (entries) {
 			if (!entries || entries.length === 0) {
 				return;
 			}
-
 			this.destroyObserver();
-
 			const html = this.buildLogsHtml(entries);
 			this.$entries.append(html);
-
 			this.setupObserver();
 		},
-
 		showAppendLoading: function () {
 			this.$entries.append('<div class="sscribe-debug-append-loading">Loading more entries...</div>');
 		},
-
 		hideAppendLoading: function () {
 			this.$entries.find('.sscribe-debug-append-loading').remove();
 		},
-
 		setupObserver: function () {
 			if (!this.hasMoreEntries) {
 				return;
@@ -1078,7 +916,6 @@
 			if (!this.$consoleBody || !this.$consoleBody[0]) {
 				return;
 			}
-
 			const self = this;
 			const sentinel = document.createElement('div');
 			sentinel.id = 'sscribe-infinite-scroll-sentinel';
@@ -1086,7 +923,6 @@
 			sentinel.style.width = '100%';
 			this.$entries.find('#sscribe-infinite-scroll-sentinel').remove();
 			this.$entries.append(sentinel);
-
 			this.observer = new IntersectionObserver(
 				function (entries) {
 					if (entries[0].isIntersecting && !self.isLoadingMore && self.hasMoreEntries) {
@@ -1095,10 +931,8 @@
 				},
 				{ root: this.$consoleBody[0], rootMargin: '50px', threshold: 0 }
 			);
-
 			this.observer.observe(sentinel);
 		},
-
 		destroyObserver: function () {
 			if (this.observer) {
 				this.observer.disconnect();
@@ -1106,16 +940,13 @@
 			}
 			this.$entries.find('#sscribe-infinite-scroll-sentinel').remove();
 		},
-
 		clearLogs: function () {
 			const self = this;
 			const data = {
 				action: 'sscribe_debug_clear_logs',
 				nonce: sscribe_data.nonce,
 			};
-
 			self.$clearBtn.prop('disabled', true);
-
 			$.post(sscribe_data.ajaxurl, data, function (response) {
 				self.$clearBtn.prop('disabled', false);
 				self.$clearBtn.siblings('.sscribe-feedback').remove();
@@ -1161,11 +992,9 @@
 				setTimeout(function () {
 					self.$clearBtn.siblings('.sscribe-feedback').remove();
 				}, 2000);
-				// Attempt to refresh nonce on failure.
 				self.refreshNonce();
 			});
 		},
-
 		refreshNonce: function (retryAction) {
 			const self = this;
 			$.post(
@@ -1183,7 +1012,6 @@
 				self.showPausedIndicator('Nonce refresh failed : you may need to reload the page.');
 			});
 		},
-
 		downloadViaForm: function (url, data) {
 			const form = document.createElement('form');
 			form.method = 'POST';
@@ -1205,7 +1033,6 @@
 				}
 			}, 100);
 		},
-
 		/**
 		 * Trigger a download using fetch + blob.
 		 *
@@ -1226,12 +1053,10 @@
 			callbacks = callbacks || {};
 			const onSuccess = typeof callbacks.onSuccess === 'function' ? callbacks.onSuccess : function () {};
 			const onError = typeof callbacks.onError === 'function' ? callbacks.onError : function () {};
-
 			const body = new URLSearchParams();
 			Object.keys(data).forEach(function (key) {
 				body.append(key, data[key]);
 			});
-
 			fetch(url, {
 				method: 'POST',
 				credentials: 'same-origin',
@@ -1242,7 +1067,6 @@
 				body: body.toString(),
 			})
 				.then(function (response) {
-					// Extract filename from Content-Disposition before consuming body.
 					let filename = '';
 					const disposition = response.headers.get('Content-Disposition') || '';
 					const match = disposition.match(/filename\*?=(?:UTF-8'')?"?([^";]+)"?/i);
@@ -1253,9 +1077,7 @@
 							filename = match[1];
 						}
 					}
-
 					if (!response.ok) {
-						// Try to parse the error JSON so we can show a useful message.
 						return response.text().then(function (text) {
 							let message = 'HTTP ' + response.status;
 							try {
@@ -1273,7 +1095,6 @@
 							throw new Error(message);
 						});
 					}
-
 					return response.blob().then(function (blob) {
 						if (!blob || blob.size === 0) {
 							throw new Error('Empty response from server.');
@@ -1285,7 +1106,6 @@
 						a.style.display = 'none';
 						document.body.appendChild(a);
 						a.click();
-						// Defer cleanup so the browser has time to start the download.
 						setTimeout(function () {
 							if (a.parentNode) {
 								a.remove();
@@ -1303,21 +1123,15 @@
 					onError(message);
 				});
 		},
-
 		exportLogs: function () {
 			const self = this;
 			if (!this.hasRequiredDom() || !sscribe_data || !sscribe_data.nonce) {
 				return;
 			}
-
-			// Stop auto-refresh during the nonce refresh + form POST so a
-			// concurrent fetchLogs() tick cannot overwrite sscribe_data.nonce
-			// between this refresh response and the export form consuming it.
 			const wasAutoRefresh = this.isAutoRefresh;
 			if (wasAutoRefresh) {
 				this.stopAutoRefresh();
 			}
-
 			const resumeAutoRefresh = function () {
 				if (wasAutoRefresh) {
 					setTimeout(function () {
@@ -1325,7 +1139,6 @@
 					}, 0);
 				}
 			};
-
 			$.post(
 				sscribe_data.ajaxurl,
 				{ action: 'sscribe_debug_refresh_nonce', nonce: sscribe_data.nonce },
@@ -1342,7 +1155,6 @@
 				resumeAutoRefresh();
 			});
 		},
-
 		doExportLogs: function () {
 			const self = this;
 			const data = {
@@ -1352,18 +1164,12 @@
 				search: this.searchQuery,
 				session_id: this.sessionFilter,
 			};
-			// When the user is viewing a rotated log, the export POST must
-			// include the filename so the server returns THAT file, not
-			// a fresh export built from the current filter state.
 			if (this.isViewingRotated && this.currentRotatedFilename) {
 				data.filename = this.currentRotatedFilename;
 			}
-
 			self.$exportBtn.prop('disabled', true);
 			self.$exportBtn.find('.sscribe-export-btn-scope').text(' : exporting…');
 			this.showPausedIndicator('Export in progress : download should begin shortly');
-			// fetch+blob (not form POST) so server errors surface to the user.
-			// Audit N-5: form POST opened a blank tab on every failure mode.
 			this.downloadViaFetch(sscribe_data.ajaxurl, data, {
 				onSuccess: function () {
 					self.$exportBtn.prop('disabled', false);
@@ -1371,35 +1177,26 @@
 					self.hidePausedIndicator();
 				},
 				onError: function () {
-					// downloadViaFetch already shows the error; just restore the
-					// button so the user can retry without waiting for a timer.
 					self.$exportBtn.prop('disabled', false);
 					self.updateExportButtonScope();
 					self.hidePausedIndicator();
 				},
 			});
 		},
-
 		fetchRotatedLogs: function () {
 			const self = this;
 			const data = {
 				action: 'sscribe_debug_get_files',
 				nonce: sscribe_data.nonce,
 			};
-
 			if (this.rotatedRequest) {
 				this.rotatedRequest.abort();
 			}
-
-			// Show a loading hint immediately so the panel isn't blank
-			// while the AJAX is in flight; the success / fail handlers
-			// below replace this with the actual file list.
 			this.$rotatedBody.html(
 				'<div class="sscribe-debug-rotated-empty sscribe-debug-rotated-loading">' +
 					escHtml('Loading rotated logs...') +
 					'</div>'
 			);
-
 			this.rotatedRequest = $.post(sscribe_data.ajaxurl, data, function (response) {
 				self.rotatedRequest = null;
 				if (response.success && response.data && Array.isArray(response.data.files)) {
@@ -1423,15 +1220,12 @@
 				self.$rotatedBody.html('<div class="sscribe-debug-rotated-empty">' + escHtml(errMsg) + '</div>');
 			});
 		},
-
 		renderRotatedLogs: function (files) {
 			if (!files || files.length === 0) {
 				this.$rotatedBody.html('<div class="sscribe-debug-rotated-empty">No rotated log files.</div>');
 				return;
 			}
-
 			let html = '';
-
 			files.forEach(function (file) {
 				html += '<div class="sscribe-debug-rotated-file">';
 				html += '<div class="sscribe-debug-rotated-file-info">';
@@ -1464,38 +1258,26 @@
 					'">Delete</button>';
 				html += '</div></div>';
 			});
-
 			this.$rotatedBody.html(html);
 		},
-
 		viewRotatedLog: function (filename) {
 			const self = this;
-
-			// Cancel any pending "Exporting rotated log..." auto-hide so the
-			// indicator from a just-completed export doesn't get pulled out
-			// from under the rotated view the user is now looking at.
 			if (this.exportHintTimeout) {
 				clearTimeout(this.exportHintTimeout);
 				this.exportHintTimeout = null;
 			}
-
 			if (this.viewRotatedRequest) {
 				this.viewRotatedRequest.abort();
 			}
-
 			const data = {
 				action: 'sscribe_debug_fetch_rotated',
 				nonce: sscribe_data.nonce,
 				filename: filename,
 			};
-
 			this.hasMoreEntries = false;
 			this.destroyObserver();
-			// Reset isRefreshing so that auto-refresh can resume when the user
-			// goes back to the current log (isRefreshing blocks startAutoRefresh).
 			this.isRefreshing = false;
 			this.isRefreshingSince = null;
-
 			this.viewRotatedRequest = $.post(sscribe_data.ajaxurl, data, function (response) {
 				self.viewRotatedRequest = null;
 				if (response.success) {
@@ -1505,13 +1287,6 @@
 					url.searchParams.set('view', 'rotated');
 					url.searchParams.set('file', filename);
 					const newState = { view: 'rotated', file: filename };
-					// Rapid clicks on the same file would otherwise stack duplicate
-					// history entries (the second click aborts the first request,
-					// but the first's success handler never runs so only the
-					// second pushState lands : repeated n times = n entries that
-					// all point at the same view). If we're already on this exact
-					// state, replace the current entry instead of stacking a new
-					// one.
 					if (
 						history.state &&
 						history.state.view === newState.view &&
@@ -1553,7 +1328,6 @@
 				self.isViewingRotated = false;
 				self.$entryCount.text('Error');
 				self.showConsoleError('Unable to open rotated log.');
-				// Clean URL state on failure.
 				const cleanUrl = new URL(window.location.href);
 				cleanUrl.searchParams.delete('view');
 				cleanUrl.searchParams.delete('file');
@@ -1563,16 +1337,11 @@
 				}, 2000);
 			});
 		},
-
 		backToCurrentLog: function () {
-			// Abort any in-flight rotated log request.
 			if (this.viewRotatedRequest) {
 				this.viewRotatedRequest.abort();
 				this.viewRotatedRequest = null;
 			}
-			// Cancel any pending export hint auto-hide from a previous
-			// exportRotatedLog() call so the indicator doesn't get yanked
-			// out mid-navigation.
 			if (this.exportHintTimeout) {
 				clearTimeout(this.exportHintTimeout);
 				this.exportHintTimeout = null;
@@ -1587,9 +1356,6 @@
 			this.slowRefreshNoticeSince = null;
 			this.$entries.empty();
 			this.$entryCount.text('Loading...');
-			// fetchLogs() will add the is-loading class on the initial-load
-			// path and remove it in its success/fail handlers : adding it
-			// here as well is redundant and would survive a fetch abort.
 			const url = new URL(window.location.href);
 			url.searchParams.delete('view');
 			url.searchParams.delete('file');
@@ -1600,7 +1366,6 @@
 				this.hidePausedIndicator();
 			}
 		},
-
 		exportRotatedLog: function (filename, $btn) {
 			const self = this;
 			const data = {
@@ -1608,15 +1373,7 @@
 				nonce: sscribe_data.nonce,
 				filename: filename,
 			};
-
-			// Bump the export button out of the way and surface a status hint.
-			// Both timeouts (button re-enable + indicator hide) are aligned to
-			// 5s : the previous 3s/5s split left a 2-second window with no
-			// status message while the button was still disabled, which
-			// confused users (audit #2). Use a single constant so the two
-			// values cannot drift apart again.
 			const ROTATED_EXPORT_TIMEOUT_MS = 5000;
-
 			const restoreBtn = function () {
 				if ($btn) {
 					$btn.prop('disabled', false).text('Export');
@@ -1625,10 +1382,7 @@
 			if ($btn) {
 				$btn.prop('disabled', true).text('Downloading...');
 			}
-
 			self.showPausedIndicator('Exporting rotated log...');
-			// fetch+blob so server errors (file not found, nonce expiry,
-			// permission denied) are reported instead of opening a blank tab.
 			this.downloadViaFetch(sscribe_data.ajaxurl, data, {
 				onSuccess: function () {
 					restoreBtn();
@@ -1640,8 +1394,6 @@
 				},
 				onError: function () {
 					restoreBtn();
-					// downloadViaFetch already surfaces the error to the
-					// paused indicator; just make sure the hint hides.
 					if (self.exportHintTimeout) {
 						clearTimeout(self.exportHintTimeout);
 					}
@@ -1652,14 +1404,11 @@
 				},
 			});
 		},
-
 		deleteRotatedLog: function (filename, $btn) {
 			const self = this;
-
 			if (!$btn) {
 				return;
 			}
-
 			if ($btn.data('confirming')) {
 				const pendingTimeout = $btn.data('delete-timeout');
 				if (pendingTimeout) {
@@ -1672,7 +1421,6 @@
 				self._executeDeleteRotatedLog(filename, $btn);
 				return;
 			}
-
 			if (!$btn.data('original-text')) {
 				$btn.data('original-text', $btn.text());
 			}
@@ -1687,7 +1435,6 @@
 			}, 3000);
 			$btn.data('delete-timeout', revertTimeout);
 		},
-
 		_executeDeleteRotatedLog: function (filename, $btn) {
 			const self = this;
 			const data = {
@@ -1695,11 +1442,9 @@
 				nonce: sscribe_data.nonce,
 				filename: filename,
 			};
-
 			if ($btn) {
 				$btn.prop('disabled', true).text('Deleting...');
 			}
-
 			$.post(sscribe_data.ajaxurl, data, function (response) {
 				if ($btn) {
 					const originalText = $btn.data('original-text') || 'Delete';
@@ -1745,7 +1490,6 @@
 			});
 		},
 	};
-
 	function buildEntryHtml(entry, entryId) {
 		const allowedLevels = [
 			'all',
@@ -1762,7 +1506,6 @@
 		const entryLevel = entry.level && typeof entry.level === 'string' ? entry.level.toLowerCase() : 'info';
 		const badgeClass = allowedLevels.includes(entryLevel) ? entryLevel : 'info';
 		let contextHtml = '';
-
 		if (entry.context && Object.keys(entry.context).length > 0) {
 			let contextRows = '';
 			Object.keys(entry.context).forEach(function (key) {
@@ -1794,14 +1537,12 @@
 				contextRows +
 				'</div>';
 		}
-
 		const hasContext = contextHtml !== '';
 		const msgText = String(entry.message || '').trim();
 		const fallbackLabel = String(entry.level || 'log') + ' entry at ' + String(entry.timestamp || '');
 		const ariaLabelText = msgText
 			? truncateForAriaLabel(msgText, 50)
 			: truncateForAriaLabel(fallbackLabel, 50);
-
 		return (
 			'<div class="sscribe-debug-entry' +
 			(hasContext ? ' has-context' : '') +
@@ -1818,10 +1559,6 @@
 			'<span class="sscribe-debug-entry-badge ' +
 			escAttr(badgeClass) +
 			'">' +
-			// Normalize display to uppercase to match the class. The
-			// server can return 'warning' / 'Warning' / 'WARNING' depending
-			// on source; the badge class is already lowercased, so the
-			// text needs explicit normalization to stay consistent.
 			escHtml((entry.level || 'INFO').toUpperCase()) +
 			'</span>' +
 			'<span class="sscribe-debug-entry-time">' +
@@ -1836,12 +1573,429 @@
 			'</div>'
 		);
 	}
-
 	window.SScribeDebugConsole = SScribeDebugConsole;
-
 	jQuery(document).ready(function () {
 		if (window.SScribeDebugConsole) {
 			window.SScribeDebugConsole.init();
 		}
 	});
+})(jQuery);
+
+
+/**
+ * SScribe Debug Console DOM Enhancement v1.1.2 patch
+ * Applies enterprise layout wrappers to Debug tab sections.
+ * Runs once on page load, idempotent (checks for class before restructuring).
+ */
+(function ($) {
+  'use strict';
+
+  function ssDebugEnhanceLayout() {
+    var $root = $('#sscribe-debug-root');
+    if (!$root.length) return;
+
+    // ---- 1. SETTINGS PANEL RESTRUCTURE ----
+    // Already rendered: toggle + description | LOG LEVEL label+select | Save btn
+    // Wrap them in a proper flex row if not already done.
+    var $toggle     = $root.find('#sscribe-debug-enabled').closest('label, span, div').first();
+    var $levelLabel = $root.find('label[for="sscribe-debug-level"], .sscribe-debug-level-label');
+    var $levelSel   = $root.find('#sscribe-debug-level');
+    var $saveBtn    = $root.find('#sscribe-debug-save-settings');
+    var $feedback   = $root.find('#sscribe-debug-save-feedback');
+
+    // Locate the settings panel container (parent holding all 3 groups)
+    var $settingsPanel = $saveBtn.closest('.sscribe-debug-settings, .sscribe-debug-panel, section').first();
+    if (!$settingsPanel.length) {
+      // Fallback: find the common ancestor of toggle + saveBtn
+      $settingsPanel = $saveBtn.parent();
+    }
+    if (!$settingsPanel.hasClass('ss-layout-enhanced')) {
+      $settingsPanel.addClass('ss-layout-enhanced');
+      $settingsPanel.css({
+        'display': 'flex',
+        'align-items': 'center',
+        'justify-content': 'space-between',
+        'flex-wrap': 'wrap',
+        'gap': '16px'
+      });
+    }
+
+    // ---- 2. FILTER BAR CONSISTENT INPUT HEIGHTS ----
+    // The 3 filter inputs must be the same height. Force via inline style.
+    $('#sscribe-debug-filter-level, #sscribe-debug-session-id, #sscribe-debug-search').each(function() {
+      $(this).css({
+        'height': '36px',
+        'min-height': '36px',
+        'box-sizing': 'border-box',
+        'font-size': '13px'
+      });
+    });
+
+    // ---- 3. NORMALIZE LABEL CASING ----
+    // "Search logs:" should match "FILTER:" / "SESSION ID:" uppercase style.
+    $root.find('label[for="sscribe-debug-search"]').each(function() {
+      var $lbl = $(this);
+      var txt  = $lbl.text().replace(/:$/, '').trim().toUpperCase();
+      $lbl.text(txt + ':');
+      $lbl.css({
+        'font-size': '11px',
+        'font-weight': '600',
+        'letter-spacing': '0.08em',
+        'text-transform': 'uppercase',
+        'color': 'var(--ss-text-tertiary, #71717a)'
+      });
+    });
+    // Also target generic text nodes labeling the search field
+    $root.find('.sscribe-debug-search-label, [data-label="search"]').each(function() {
+      $(this).css('text-transform', 'uppercase');
+    });
+
+    // ---- 4. REFRESH ROW ALIGNMENT ----
+    var $refreshRow = $root.find('#sscribe-debug-refresh-btn').parent();
+    $refreshRow.css({
+      'display': 'flex',
+      'align-items': 'center',
+      'gap': '16px'
+    });
+    $root.find('input[type="radio"]').closest('label, span').css({
+      'display': 'inline-flex',
+      'align-items': 'center',
+      'gap': '6px',
+      'font-size': '13px'
+    });
+
+    // ---- 5. CONSOLE FOOTER BUTTON LAYOUT ----
+    var $clearBtn  = $root.find('#sscribe-debug-clear-btn');
+    var $exportBtn = $root.find('#sscribe-debug-export-btn');
+    var $footer    = $clearBtn.parent();
+    $footer.css({
+      'display': 'flex',
+      'align-items': 'center',
+      'gap': '12px',
+      'padding': '16px 0 8px'
+    });
+
+    // ---- 6. ROTATED LOGS DISCLOSURE CLEANUP ----
+    // Replace the bare "Click to expand/collapse" text with a cleaner hint.
+    var $disclosureToggle = $root.find('[aria-expanded]').filter(function() {
+      return $(this).text().toLowerCase().indexOf('rotated') !== -1 ||
+             $(this).find(':contains("Rotated")').length > 0;
+    });
+    $disclosureToggle.css({
+      'display': 'flex',
+      'align-items': 'center',
+      'justify-content': 'space-between',
+      'width': '100%',
+      'cursor': 'pointer'
+    });
+  }
+
+  // Run on DOM ready and after tab switch
+  $(document).ready(function() {
+    // Slight delay to let the plugin's own init finish
+    setTimeout(ssDebugEnhanceLayout, 300);
+  });
+
+  // Re-run if SScribe tab switches activate the Debug panel
+  $(document).on('sscribe:tab:activated', function(e, tabId) {
+    if (tabId === 'debug') {
+      setTimeout(ssDebugEnhanceLayout, 100);
+    }
+  });
+
+})(jQuery);
+
+/**
+ * SScribe Debug Console — Targeted Fixes v1.1.2 patch-2
+ * 1. Inject SEARCH LOGS: label above search input
+ * 2. Fix settings panel LOG LEVEL + Save alignment
+ */
+(function ($) {
+  'use strict';
+
+  function ssDebugPatch2() {
+    var $root = $('#sscribe-debug-root');
+    if (!$root.length) return;
+
+    // ---- FIX 1: INJECT "SEARCH LOGS:" LABEL ----
+    // The search input (#sscribe-debug-search) has no visible label above it.
+    // FILTER: and SESSION ID: have visible uppercase labels.
+    // We inject one if it hasn't been injected already.
+    var $searchInput = $root.find('#sscribe-debug-search');
+    if ($searchInput.length && !$searchInput.prev('.ss-injected-label').length) {
+      $searchInput.before(
+        '<span class="ss-injected-label" aria-hidden="true">SEARCH LOGS:</span>'
+      );
+    }
+
+    // ---- FIX 2: SETTINGS PANEL ALIGNMENT ----
+    // Ensure LOG LEVEL + dropdown are in a flex-col group,
+    // and Save Settings aligns to the bottom of that group.
+    var $saveBtn    = $root.find('#sscribe-debug-save-settings');
+    var $levelSel   = $root.find('#sscribe-debug-level');
+    var $levelLabel = $root.find('#sscribe-debug-level').prev();
+
+    // Find the settings section (common ancestor)
+    var $settingsSection = $saveBtn.closest('section, .sscribe-debug-section, .sscribe-panel, div').first();
+
+    // Apply align-items: flex-end to the settings section so all items
+    // baseline to the bottom. This pushes Save Settings to align with
+    // the bottom edge of the LOG LEVEL select.
+    if ($settingsSection.length && !$settingsSection.data('patch2-applied')) {
+      $settingsSection.data('patch2-applied', true);
+      $settingsSection.css('align-items', 'flex-end');
+    }
+
+    // Also force save button to self-align bottom
+    $saveBtn.css('align-self', 'flex-end');
+
+    // ---- FIX 3: WRAP FILTER + SEARCH INPUTS in vertical groups ----
+    // Ensure each of the 3 filter inputs has its label displayed above it.
+    // FILTER and SESSION ID already have labels (as generic text nodes),
+    // but we wrap each pair in a flex-col group for consistent layout.
+    var $filterSel  = $root.find('#sscribe-debug-filter-level');
+    var $sessionId  = $root.find('#sscribe-debug-session-id');
+
+    // Apply consistent sizing & vertical grouping via inline style if not already done
+    [$filterSel, $sessionId, $searchInput].forEach(function(el) {
+      if (el.length) {
+        el.css({
+          'display': 'block',
+          'width': '100%',
+          'height': '36px',
+          'min-height': '36px',
+          'box-sizing': 'border-box'
+        });
+      }
+    });
+  }
+
+  $(document).ready(function() {
+    setTimeout(ssDebugPatch2, 400);
+  });
+
+  $(document).on('sscribe:tab:activated', function(e, tabId) {
+    if (tabId === 'debug') {
+      setTimeout(ssDebugPatch2, 150);
+    }
+  });
+
+})(jQuery);
+
+/**
+ * SScribe Debug Console — Context Panel Class Observer
+ * Watches context panels for jQuery show/hide (inline style changes)
+ * and adds/removes .sscribe-ctx-open class so CSS can target them
+ * without !important display battles.
+ */
+(function ($) {
+  'use strict';
+
+  function ssObserveContextPanels() {
+    var entries = document.getElementById('sscribe-debug-entries');
+    if (!entries) return;
+
+    // Use MutationObserver to watch for style attribute changes
+    // on any [id^="sscribe-debug-ctx-"] elements
+    var observer = new MutationObserver(function(mutations) {
+      mutations.forEach(function(mutation) {
+        if (mutation.type === 'attributes' && mutation.attributeName === 'style') {
+          var el = mutation.target;
+          var display = el.style.display;
+          if (display === 'none' || display === '') {
+            el.classList.remove('sscribe-ctx-open');
+          } else {
+            // display:block or display:grid or any non-none value
+            el.classList.add('sscribe-ctx-open');
+          }
+        }
+      });
+    });
+
+    // Observe all existing and future context panels
+    function observeAll() {
+      var panels = entries.querySelectorAll('[id^="sscribe-debug-ctx-"]');
+      panels.forEach(function(panel) {
+        observer.observe(panel, { attributes: true, attributeFilter: ['style'] });
+      });
+    }
+
+    observeAll();
+
+    // Also watch for new entries being added to the DOM
+    var entriesObserver = new MutationObserver(function() {
+      observeAll();
+    });
+    entriesObserver.observe(entries, { childList: true, subtree: false });
+  }
+
+  $(document).ready(function() {
+    setTimeout(ssObserveContextPanels, 500);
+  });
+
+})(jQuery);
+
+/**
+ * SScribe Debug — Context panel click interceptor (patch-3)
+ * Uses event capture (useCapture=true) so it fires AFTER jQuery's
+ * handler. Reads aria-expanded and syncs .sscribe-ctx-open class
+ * on the sibling context panel — no MutationObserver race condition.
+ */
+(function ($) {
+  'use strict';
+
+  function ssCtxSync() {
+    var entries = document.getElementById('sscribe-debug-entries');
+    if (!entries) return;
+
+    // Capture-phase listener fires last among capture listeners,
+    // but we use setTimeout(0) to let jQuery's bubbling handler finish.
+    entries.addEventListener('click', function (e) {
+      var btn = e.target.closest('button[aria-controls], button[aria-expanded]');
+      if (!btn) return;
+
+      // Defer to next tick so jQuery has already toggled aria-expanded
+      setTimeout(function () {
+        var isExpanded = btn.getAttribute('aria-expanded') === 'true';
+        // Find the context panel: next sibling element with id starting sscribe-debug-ctx-
+        var next = btn.nextElementSibling;
+        while (next) {
+          if (next.id && next.id.indexOf('sscribe-debug-ctx-') === 0) {
+            if (isExpanded) {
+              next.classList.add('sscribe-ctx-open');
+            } else {
+              next.classList.remove('sscribe-ctx-open');
+            }
+            break;
+          }
+          next = next.nextElementSibling;
+        }
+      }, 0);
+    }, true);
+  }
+
+  $(document).ready(function () {
+    setTimeout(ssCtxSync, 600);
+  });
+
+})(jQuery);
+
+/* === SScribe Context Panel Padding Patch ===
+ * Applies inline styles to context table cells to ensure proper padding
+ * regardless of CSS specificity conflicts.
+ */
+(function() {
+  'use strict';
+
+  var KEY_STYLE = 'padding:10px 20px;line-height:1.7;font-size:12.5px;border-top:1px solid rgb(255 255 255 / 7%);vertical-align:top;';
+  var FIRST_KEY_STYLE = 'padding:16px 24px 10px 20px;line-height:1.7;font-size:12.5px;vertical-align:top;font-weight:600;color:rgb(255 255 255 / 60%);white-space:nowrap;min-width:130px;';
+  var VAL_STYLE = 'padding:10px 20px;line-height:1.7;font-size:12.5px;border-top:1px solid rgb(255 255 255 / 7%);vertical-align:top;color:rgb(255 255 255 / 85%);';
+  var FIRST_VAL_STYLE = 'padding:16px 20px 10px 20px;line-height:1.7;font-size:12.5px;vertical-align:top;color:rgb(255 255 255 / 85%);';
+  var LAST_CELL_EXTRA = 'padding-bottom:16px;';
+  var TABLE_STYLE = 'width:100%;border-collapse:collapse;';
+  var PRE_STYLE = 'margin:0;padding:0;font-family:monospace;font-size:inherit;white-space:pre-wrap;word-break:break-all;';
+
+  function styleCtxPanel(panel) {
+    var table = panel.querySelector('table');
+    if (!table) return;
+    table.style.cssText = TABLE_STYLE;
+    var rows = table.querySelectorAll('tr');
+    rows.forEach(function(row, rowIdx) {
+      var cells = row.querySelectorAll('td');
+      cells.forEach(function(cell, cellIdx) {
+        var isFirst = rowIdx === 0;
+        var isLast = rowIdx === rows.length - 1;
+        var isKey = cellIdx === 0;
+        var baseStyle = isKey
+          ? (isFirst ? FIRST_KEY_STYLE : KEY_STYLE)
+          : (isFirst ? FIRST_VAL_STYLE : VAL_STYLE);
+        if (isLast && !isFirst) baseStyle += LAST_CELL_EXTRA;
+        cell.style.cssText = baseStyle;
+        if (!isKey) {
+          var pre = cell.querySelector('pre');
+          if (pre) pre.style.cssText = PRE_STYLE;
+        }
+      });
+    });
+  }
+
+  function applyToAll() {
+    var panels = document.querySelectorAll('[id^="sscribe-debug-ctx-"]');
+    panels.forEach(function(panel) {
+      styleCtxPanel(panel);
+    });
+  }
+
+  // Watch for dynamically added panels
+  var observer = new MutationObserver(function(mutations) {
+    mutations.forEach(function(mutation) {
+      mutation.addedNodes.forEach(function(node) {
+        if (node.nodeType === 1) {
+          if (node.id && node.id.indexOf('sscribe-debug-ctx-') === 0) {
+            styleCtxPanel(node);
+          }
+          var nested = node.querySelectorAll ? node.querySelectorAll('[id^="sscribe-debug-ctx-"]') : [];
+          nested.forEach(function(p) { styleCtxPanel(p); });
+        }
+      });
+    });
+  });
+
+  $(document).ready(function() {
+    setTimeout(function() {
+      applyToAll();
+      var container = document.getElementById('sscribe-debug-entries');
+      if (container) {
+        observer.observe(container, { childList: true, subtree: true });
+      }
+    }, 800);
+  });
+}()); 
+
+/* === Click-triggered context styling patch ===
+ * Listens to click events on debug entries and re-applies inline styles
+ * to ensure padding is always visible when panels are expanded.
+ */
+(function ($) {
+  'use strict';
+
+  var KEY_STYLE = 'padding:10px 20px;line-height:1.7;font-size:12.5px;border-top:1px solid rgb(255 255 255 / 7%);vertical-align:top;font-weight:600;color:rgb(255 255 255 / 60%);white-space:nowrap;min-width:130px;';
+  var VAL_STYLE = 'padding:10px 20px;line-height:1.7;font-size:12.5px;border-top:1px solid rgb(255 255 255 / 7%);vertical-align:top;color:rgb(255 255 255 / 85%);';
+  var PRE_STYLE = 'margin:0;padding:0;font-family:monospace;white-space:pre-wrap;word-break:break-all;';
+
+  function applyCtxStyles(ctxDiv) {
+    if (!ctxDiv) return;
+    var rows = ctxDiv.querySelectorAll('tr');
+    rows.forEach(function (row, i) {
+      var tds = row.querySelectorAll('td');
+      tds.forEach(function (td, j) {
+        var style = j === 0 ? KEY_STYLE : VAL_STYLE;
+        if (i === 0) style = style.replace('border-top:1px solid rgb(255 255 255 / 7%);', '');
+        td.setAttribute('style', style);
+        if (j > 0) {
+          var pre = td.querySelector('pre');
+          if (pre) pre.setAttribute('style', PRE_STYLE);
+        }
+      });
+    });
+  }
+
+  $(document).on('click', '#sscribe-debug-entries .sscribe-debug-entry, #sscribe-debug-entries [role="button"]', function () {
+    var entry = this;
+    setTimeout(function () {
+      // Find the sibling context panel
+      var sibling = entry.nextElementSibling;
+      while (sibling) {
+        if (sibling.id && sibling.id.indexOf('sscribe-debug-ctx-') === 0) {
+          applyCtxStyles(sibling);
+          break;
+        }
+        sibling = sibling.nextElementSibling;
+      }
+      // Also check if context is inside the entry
+      var inner = entry.querySelector('[id^="sscribe-debug-ctx-"]');
+      if (inner) applyCtxStyles(inner);
+    }, 50);
+  });
+
 })(jQuery);

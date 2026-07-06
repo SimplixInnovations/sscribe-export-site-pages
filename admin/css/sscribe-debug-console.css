@@ -3,7 +3,6 @@
   margin: 0;
   padding: 0;
 }
-
 .sscribe-debug-wp-debug-notice {
   display: flex;
   align-items: center;
@@ -18,22 +17,18 @@
   font-size: 13px;
   font-weight: 600;
 }
-
 .sscribe-debug-wp-debug-notice svg {
   flex-shrink: 0;
   color: var(--ss-warning);
 }
-
 .sscribe-debug-header {
   margin-bottom: var(--ss-space-7);
 }
-
 .sscribe-debug-title-row {
   display: flex;
   align-items: center;
   gap: var(--ss-space-3);
 }
-
 .sscribe-debug-title-row h2 {
   margin: 0;
   font-size: 22px;
@@ -43,7 +38,6 @@
   color: var(--ss-text-primary);
   line-height: 1.3;
 }
-
 .sscribe-debug-description {
   margin: var(--ss-space-2) 0 0;
   color: var(--ss-text-secondary);
@@ -51,7 +45,6 @@
   line-height: 1.55;
   max-width: 640px;
 }
-
 .sscribe-debug-help-btn {
   width: 40px;
   height: 40px;
@@ -66,18 +59,15 @@
   font-weight: 700;
   font-size: 14px;
 }
-
 .sscribe-debug-help-btn:hover {
   border-color: var(--ss-brand);
   background: var(--ss-brand-tint);
   color: var(--ss-brand-hover);
 }
-
 .sscribe-debug-help-btn:focus-visible {
   outline: 2px solid var(--ss-brand);
   outline-offset: 2px;
 }
-
 .sscribe-debug-settings-card,
 .sscribe-debug-controls-card {
   background: var(--ss-surface);
@@ -86,14 +76,12 @@
   padding: var(--ss-space-5);
   margin-bottom: var(--ss-space-5);
 }
-
 .sscribe-debug-settings-grid {
   display: grid;
   grid-template-columns: 1fr 200px auto;
   gap: var(--ss-space-5);
   align-items: end;
 }
-
 .sscribe-debug-toggle-section,
 .sscribe-debug-level-section,
 .sscribe-debug-save-section {
@@ -101,7 +89,6 @@
   flex-direction: column;
   gap: var(--ss-space-2);
 }
-
 .sscribe-debug-toggle-label {
   display: flex;
   align-items: center;
@@ -109,7 +96,6 @@
   cursor: pointer;
   min-height: 40px;
 }
-
 .sscribe-toggle-switch {
   position: relative;
   display: inline-block;
@@ -117,14 +103,12 @@
   height: 20px;
   flex-shrink: 0;
 }
-
 .sscribe-toggle-switch input {
   opacity: 0;
   width: 0;
   height: 0;
   position: absolute;
 }
-
 .sscribe-toggle-slider {
   position: absolute;
   inset: 0;
@@ -133,7 +117,6 @@
   cursor: pointer;
   transition: background 120ms ease;
 }
-
 .sscribe-toggle-slider::before {
   content: "";
   position: absolute;
@@ -144,38 +127,31 @@
   background: var(--ss-surface);
   border-radius: 50%;
 }
-
 .sscribe-toggle-switch input:checked + .sscribe-toggle-slider {
   background: var(--ss-brand);
 }
-
 .sscribe-toggle-switch input:checked + .sscribe-toggle-slider::before {
   left: 18px;
 }
-
 .sscribe-toggle-switch input:focus-visible + .sscribe-toggle-slider {
   outline: 2px solid var(--ss-brand);
   outline-offset: 2px;
 }
-
 .sscribe-toggle-text {
   display: flex;
   flex-direction: column;
   gap: 2px;
   min-width: 0;
 }
-
 .sscribe-toggle-text strong {
   font-size: 13px;
   font-weight: 600;
   color: var(--ss-text-primary);
 }
-
 .sscribe-toggle-text small {
   font-size: 11px;
   color: var(--ss-text-muted);
 }
-
 .sscribe-debug-level-section label {
   font-size: 11px;
   font-weight: 500;
@@ -183,7 +159,6 @@
   text-transform: uppercase;
   letter-spacing: 0.04em;
 }
-
 .sscribe-select {
   appearance: none;
   height: 40px;
@@ -200,29 +175,24 @@
   background-position: right 12px center;
   background-size: 12px 12px;
 }
-
 .sscribe-select:focus-visible {
   outline: 2px solid var(--ss-brand);
   outline-offset: 2px;
 }
-
 .sscribe-debug-save-section {
   align-items: stretch;
 }
-
 .sscribe-debug-save-feedback {
   font-size: 12px;
   color: var(--ss-text-secondary);
   min-height: 16px;
 }
-
 .sscribe-debug-controls-row {
   display: grid;
   grid-template-columns: minmax(160px, 1fr) minmax(160px, 1fr) minmax(200px, 2fr);
   gap: var(--ss-space-4);
   margin-bottom: var(--ss-space-4);
 }
-
 .sscribe-debug-filter,
 .sscribe-debug-session-filter,
 .sscribe-debug-search {
@@ -231,7 +201,6 @@
   gap: var(--ss-space-2);
   min-width: 0;
 }
-
 .sscribe-debug-filter label,
 .sscribe-debug-session-filter label {
   font-size: 11px;
@@ -240,7 +209,6 @@
   text-transform: uppercase;
   letter-spacing: 0.04em;
 }
-
 .sscribe-input {
   appearance: none;
   height: 40px;
@@ -253,13 +221,11 @@
   background: var(--ss-surface);
   min-width: 0;
 }
-
 .sscribe-input:focus-visible {
   outline: 2px solid var(--ss-brand);
   outline-offset: 2px;
   border-color: var(--ss-brand);
 }
-
 .sscribe-debug-refresh-row {
   display: flex;
   justify-content: space-between;
@@ -267,14 +233,12 @@
   gap: var(--ss-space-3);
   flex-wrap: wrap;
 }
-
 .sscribe-debug-refresh-mode {
   display: inline-flex;
   align-items: center;
   gap: var(--ss-space-3);
   flex-wrap: wrap;
 }
-
 .sscribe-debug-refresh-paused {
   display: inline-flex;
   align-items: center;
@@ -286,7 +250,6 @@
   font-size: 11px;
   font-weight: 500;
 }
-
 .sscribe-radio-label {
   display: inline-flex;
   align-items: center;
@@ -296,7 +259,6 @@
   color: var(--ss-text-secondary);
   min-height: 40px;
 }
-
 .sscribe-radio-label input {
   width: 16px;
   height: 16px;
@@ -304,18 +266,15 @@
   accent-color: var(--ss-brand);
   cursor: pointer;
 }
-
 .sscribe-radio-label:focus-within {
   outline: 2px solid var(--ss-brand);
   outline-offset: 2px;
   border-radius: var(--ss-radius-sm);
 }
-
 .sscribe-radio-label input:checked + .sscribe-radio-text {
   color: var(--ss-text-primary);
   font-weight: 500;
 }
-
 .sscribe-debug-console-card {
   background: #18181b;
   border: 1px solid var(--ss-border-strong);
@@ -323,7 +282,6 @@
   margin-bottom: var(--ss-space-5);
   overflow: hidden;
 }
-
 .sscribe-debug-console-header {
   display: flex;
   align-items: center;
@@ -333,14 +291,12 @@
   background: #27272a;
   border-bottom: 1px solid #3f3f46;
 }
-
 .sscribe-debug-console-title {
   font-size: 14px;
   font-weight: 600;
   color: #fafafa;
   font-family: var(--ss-font-mono);
 }
-
 .sscribe-debug-console-count {
   display: inline-flex;
   align-items: center;
@@ -352,7 +308,6 @@
   font-weight: 600;
   font-family: var(--ss-font-mono);
 }
-
 .sscribe-debug-console-body {
   max-height: 520px;
   overflow-y: auto;
@@ -360,7 +315,6 @@
   background: #18181b;
   color: #e4e4e7;
 }
-
 .sscribe-debug-empty {
   display: flex;
   flex-direction: column;
@@ -371,21 +325,17 @@
   text-align: center;
   font: 13px/1.5 var(--ss-font);
 }
-
 .sscribe-debug-empty svg {
   color: #52525b;
   margin-bottom: var(--ss-space-3);
 }
-
 .sscribe-debug-empty p {
   max-width: 340px;
   margin: 0;
 }
-
 .sscribe-debug-entries {
   padding: var(--ss-space-2) 0;
 }
-
 .sscribe-debug-entry {
   display: flex;
   align-items: flex-start;
@@ -396,15 +346,12 @@
   cursor: pointer;
   transition: background 120ms ease;
 }
-
 .sscribe-debug-entry:last-child {
   border-bottom: none;
 }
-
 .sscribe-debug-entry:hover {
   background: #27272a;
 }
-
 .sscribe-debug-entry-time {
   flex-shrink: 0;
   font-size: 11px;
@@ -413,7 +360,6 @@
   min-width: 70px;
   padding-top: 1px;
 }
-
 .sscribe-debug-entry-badge {
   flex-shrink: 0;
   display: inline-flex;
@@ -428,7 +374,6 @@
   min-width: 64px;
   justify-content: center;
 }
-
 .sscribe-debug-entry-message {
   flex: 1;
   color: #e4e4e7;
@@ -438,7 +383,6 @@
   overflow-wrap: anywhere;
   padding-top: 1px;
 }
-
 .sscribe-debug-entry-context {
   flex-basis: 100%;
   margin-top: var(--ss-space-2);
@@ -451,27 +395,22 @@
   overflow-wrap: anywhere;
   display: none;
 }
-
 .sscribe-debug-entry.expanded .sscribe-debug-entry-context {
   display: block;
 }
-
 .sscribe-debug-entry-badge-debug {
   background: #3f3f46;
   color: #d4d4d8;
 }
-
 .sscribe-debug-entry-badge-info,
 .sscribe-debug-entry-badge-notice {
   background: #ebe9ff;
   color: #4039c0;
 }
-
 .sscribe-debug-entry-badge-warning {
   background: #fff6ed;
   color: #b54708;
 }
-
 .sscribe-debug-entry-badge-error,
 .sscribe-debug-entry-badge-critical,
 .sscribe-debug-entry-badge-alert,
@@ -479,26 +418,22 @@
   background: #fef3f2;
   color: #b42318;
 }
-
 .sscribe-debug-entry-badge-raw {
   background: rgb(99 91 255 / 15%);
   color: #b3a8ff;
 }
-
 .sscribe-debug-actions {
   display: flex;
   gap: var(--ss-space-2);
   flex-wrap: wrap;
   margin-bottom: var(--ss-space-5);
 }
-
 .sscribe-debug-rotated {
   background: var(--ss-surface);
   border: 1px solid var(--ss-border);
   border-radius: var(--ss-radius-lg);
   padding: 0;
 }
-
 .sscribe-debug-rotated summary {
   display: flex;
   align-items: center;
@@ -507,22 +442,18 @@
   padding: var(--ss-space-3) var(--ss-space-5);
   list-style: none;
 }
-
 .sscribe-debug-rotated summary::-webkit-details-marker {
   display: none;
 }
-
 .sscribe-debug-rotated-title {
   font-size: 14px;
   font-weight: 600;
   color: var(--ss-text-primary);
 }
-
 .sscribe-debug-rotated-hint {
   font-size: 11px;
   color: var(--ss-text-muted);
 }
-
 .sscribe-debug-rotated-body {
   padding: var(--ss-space-3) var(--ss-space-5);
   border-top: 1px solid var(--ss-border);
@@ -530,16 +461,12 @@
   flex-direction: column;
   gap: var(--ss-space-2);
 }
-
 .sscribe-debug-rotated-empty {
   padding: var(--ss-space-3) 0;
   color: var(--ss-text-muted);
   font-size: 12px;
   text-align: center;
 }
-
-/* Rotated file rows inside the banner */
-
 .sscribe-debug-rotated-file {
   display: flex;
   align-items: center;
@@ -549,12 +476,10 @@
   border-top: 1px solid #3f3f46;
   flex-wrap: wrap;
 }
-
 .sscribe-debug-rotated-file:first-child {
   border-top: none;
   padding-top: 0;
 }
-
 .sscribe-debug-rotated-file-info {
   display: flex;
   align-items: center;
@@ -562,7 +487,6 @@
   min-width: 0;
   flex: 1;
 }
-
 .sscribe-debug-rotated-file-name {
   color: #fafafa;
   font-size: 13px;
@@ -572,21 +496,16 @@
   white-space: nowrap;
   min-width: 0;
 }
-
 .sscribe-debug-rotated-file-meta {
   color: #a1a1aa;
   font-size: 11px;
   font-family: var(--ss-font-mono);
 }
-
 .sscribe-debug-rotated-file-actions {
   display: flex;
   gap: var(--ss-space-2);
   flex-shrink: 0;
 }
-
-/* Append-state rows (more-entries fetcher) */
-
 .sscribe-debug-append-error,
 .sscribe-debug-append-loading {
   display: flex;
@@ -598,21 +517,16 @@
   color: #a1a1aa;
   border-top: 1px solid #27272a;
 }
-
 .sscribe-debug-append-error {
   color: #fca5a5;
   background: rgb(180 35 24 / 12%);
   justify-content: space-between;
   gap: var(--ss-space-3);
 }
-
 .sscribe-debug-append-loading {
   color: #d4d4d8;
   background: #27272a;
 }
-
-/* Entry header (timestamp + badge + toggle chevron row) */
-
 .sscribe-debug-entry-header {
   display: flex;
   align-items: center;
@@ -620,7 +534,6 @@
   flex: 1;
   min-width: 0;
 }
-
 .sscribe-debug-entry-toggle {
   display: inline-flex;
   align-items: center;
@@ -632,32 +545,25 @@
   flex-shrink: 0;
   transition: color 120ms ease;
 }
-
 .sscribe-debug-entry:hover .sscribe-debug-entry-toggle,
 .sscribe-debug-entry.expanded .sscribe-debug-entry-toggle {
   color: #d4d4d8;
 }
-
 .sscribe-debug-entry.expanded .sscribe-debug-entry-toggle {
   transform: rotate(90deg);
 }
-
-/* Context panel (key/value rows) */
-
 .sscribe-debug-context-row {
   display: flex;
   gap: var(--ss-space-2);
   align-items: baseline;
   flex-wrap: wrap;
 }
-
 .sscribe-debug-context-key {
   color: #a1a1aa;
   font-size: 11px;
   font-family: var(--ss-font-mono);
   flex-shrink: 0;
 }
-
 .sscribe-debug-context-val {
   flex: 1;
   min-width: 0;
@@ -666,15 +572,11 @@
   font-family: var(--ss-font-mono);
   overflow-wrap: anywhere;
 }
-
 .sscribe-debug-context-val pre {
   margin: 0;
   white-space: pre-wrap;
   overflow-wrap: anywhere;
 }
-
-/* Rotated banner (info / warning inside the entries list) */
-
 .sscribe-debug-rotated-banner {
   display: flex;
   align-items: flex-start;
@@ -688,4 +590,963 @@
   color: var(--ss-warning);
   font-size: 12px;
   line-height: 1.5;
+}
+
+/* ============================================================
+   DEBUG CONSOLE ENTERPRISE OVERRIDES — v1.1.2 patch
+   Fixes: settings panel layout, filter bar alignment,
+   button hierarchy, refresh row, rotated-logs disclosure
+   ============================================================ */
+
+/* ----------------------------------------------------------
+   1. SETTINGS PANEL — 3-column flex: toggle | log-level | save
+   ---------------------------------------------------------- */
+.sscribe-debug-settings-panel {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: var(--ss-space-5);
+  padding: var(--ss-space-5) var(--ss-space-6);
+  background: var(--ss-surface);
+  border: 1px solid var(--ss-border);
+  border-radius: var(--ss-radius-md);
+  margin-bottom: var(--ss-space-5);
+}
+
+.sscribe-debug-settings-panel .sscribe-toggle-group {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  flex: 1;
+  min-width: 200px;
+}
+
+.sscribe-debug-settings-panel .sscribe-toggle-row {
+  display: flex;
+  align-items: center;
+  gap: var(--ss-space-3);
+}
+
+.sscribe-debug-settings-right {
+  display: flex;
+  align-items: flex-end;
+  gap: var(--ss-space-4);
+  flex-shrink: 0;
+}
+
+/* Ensure LOG LEVEL label + select are stacked */
+.sscribe-debug-level-group {
+  display: flex;
+  flex-direction: column;
+  gap: var(--ss-space-1);
+}
+
+.sscribe-debug-level-group label {
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--ss-text-tertiary);
+  line-height: 1;
+  margin: 0;
+}
+
+/* ----------------------------------------------------------
+   2. FILTER BAR — consistent 3-column grid with labels
+   ---------------------------------------------------------- */
+.sscribe-debug-filters {
+  display: grid;
+  grid-template-columns: 200px 1fr 1fr;
+  align-items: end;
+  gap: var(--ss-space-4);
+  padding: var(--ss-space-4) var(--ss-space-5);
+  background: var(--ss-surface);
+  border: 1px solid var(--ss-border);
+  border-radius: var(--ss-radius-md);
+  margin-bottom: var(--ss-space-3);
+}
+
+.sscribe-debug-filter-group {
+  display: flex;
+  flex-direction: column;
+  gap: var(--ss-space-1);
+}
+
+.sscribe-debug-filter-group label,
+.sscribe-debug-filter-label {
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--ss-text-tertiary);
+  line-height: 1;
+  margin: 0;
+}
+
+/* Target the individual filter inputs by ID for height consistency */
+#sscribe-debug-filter-level,
+#sscribe-debug-session-id,
+#sscribe-debug-search,
+#sscribe-debug-level {
+  height: 36px;
+  padding: 0 var(--ss-space-3);
+  font-size: 13px;
+  border: 1px solid var(--ss-border);
+  border-radius: var(--ss-radius);
+  background: var(--ss-bg);
+  color: var(--ss-text-primary);
+  transition: border-color 120ms ease;
+  width: 100%;
+  box-sizing: border-box;
+  -webkit-appearance: none;
+  appearance: none;
+}
+
+#sscribe-debug-filter-level:focus,
+#sscribe-debug-session-id:focus,
+#sscribe-debug-search:focus,
+#sscribe-debug-level:focus {
+  border-color: var(--ss-brand);
+}
+
+#sscribe-debug-filter-level:focus-visible,
+#sscribe-debug-session-id:focus-visible,
+#sscribe-debug-search:focus-visible,
+#sscribe-debug-level:focus-visible {
+  outline: 2px solid var(--ss-brand);
+  outline-offset: 2px;
+}
+
+#sscribe-debug-filter-level {
+  cursor: pointer;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 24 24' fill='none' stroke='%2371717a' stroke-width='2.5' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpolyline points='6 9 12 15 18 9'/%3E%3C/svg%3E");
+  background-repeat: no-repeat;
+  background-position: right 10px center;
+  padding-right: 32px;
+}
+
+/* ----------------------------------------------------------
+   3. AUTO-REFRESH ROW — proper horizontal alignment
+   ---------------------------------------------------------- */
+.sscribe-debug-refresh-row {
+  display: flex;
+  align-items: center;
+  gap: var(--ss-space-4);
+  padding: var(--ss-space-3) var(--ss-space-1);
+  margin-bottom: var(--ss-space-4);
+}
+
+.sscribe-debug-refresh-row .sscribe-radio-group {
+  display: flex;
+  align-items: center;
+  gap: var(--ss-space-4);
+  flex: 1;
+}
+
+.sscribe-debug-refresh-row label {
+  display: flex;
+  align-items: center;
+  gap: var(--ss-space-2);
+  font-size: 13px;
+  color: var(--ss-text-secondary);
+  cursor: pointer;
+  user-select: none;
+}
+
+.sscribe-debug-refresh-row input[type="radio"] {
+  accent-color: var(--ss-brand);
+  width: 15px;
+  height: 15px;
+  flex-shrink: 0;
+}
+
+#sscribe-debug-refresh-btn {
+  margin-left: auto;
+  flex-shrink: 0;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 32px;
+  height: 32px;
+  border-radius: var(--ss-radius);
+  border: 1px solid var(--ss-border);
+  background: var(--ss-surface);
+  color: var(--ss-text-secondary);
+  cursor: pointer;
+  transition: border-color 150ms, background 150ms, color 150ms;
+  padding: 0;
+}
+
+#sscribe-debug-refresh-btn:hover {
+  border-color: var(--ss-brand);
+  color: var(--ss-brand);
+  background: var(--ss-brand-tint);
+}
+
+/* ----------------------------------------------------------
+   4. CONSOLE FOOTER BUTTONS — danger + secondary hierarchy
+   ---------------------------------------------------------- */
+.sscribe-debug-console-footer {
+  display: flex;
+  align-items: center;
+  gap: var(--ss-space-3);
+  padding: var(--ss-space-4) 0;
+  margin-top: var(--ss-space-3);
+}
+
+#sscribe-debug-clear-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--ss-space-2);
+  height: 36px;
+  padding: 0 var(--ss-space-4);
+  font-size: 13px;
+  font-weight: 500;
+  font-family: var(--ss-font);
+  border-radius: var(--ss-radius);
+  border: 1.5px solid var(--ss-error);
+  background: transparent;
+  color: var(--ss-error);
+  cursor: pointer;
+  transition: background 150ms, color 150ms;
+  white-space: nowrap;
+}
+
+#sscribe-debug-clear-btn:hover {
+  background: var(--ss-error-bg);
+}
+
+#sscribe-debug-export-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--ss-space-2);
+  height: 36px;
+  padding: 0 var(--ss-space-4);
+  font-size: 13px;
+  font-weight: 500;
+  font-family: var(--ss-font);
+  border-radius: var(--ss-radius);
+  border: 1px solid var(--ss-border);
+  background: var(--ss-surface);
+  color: var(--ss-text-secondary);
+  cursor: pointer;
+  transition: border-color 150ms, background 150ms;
+  white-space: nowrap;
+}
+
+#sscribe-debug-export-btn:hover {
+  border-color: var(--ss-border-strong);
+  background: var(--ss-surface-2);
+  color: var(--ss-text-primary);
+}
+
+/* Export count badge */
+#sscribe-debug-export-btn .sscribe-export-count,
+#sscribe-debug-export-btn > *:last-child:not(:first-child) {
+  font-size: 11px;
+  color: var(--ss-text-muted);
+  font-weight: 400;
+}
+
+/* ----------------------------------------------------------
+   5. ROTATED LOGS DISCLOSURE — chevron toggle treatment
+   ---------------------------------------------------------- */
+.sscribe-debug-rotated-section {
+  margin-top: var(--ss-space-5);
+}
+
+.sscribe-debug-rotated-toggle {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: var(--ss-space-3) var(--ss-space-4);
+  background: var(--ss-surface);
+  border: 1px solid var(--ss-border);
+  border-radius: var(--ss-radius-md);
+  cursor: pointer;
+  user-select: none;
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--ss-text-primary);
+  transition: background 150ms;
+}
+
+.sscribe-debug-rotated-toggle:hover {
+  background: var(--ss-surface-2);
+}
+
+/* Hide the raw "Click to collapse/expand" text — JS handles it */
+.sscribe-debug-rotated-toggle .sscribe-debug-rotated-hint {
+  font-size: 11px;
+  font-weight: 400;
+  color: var(--ss-text-muted);
+}
+
+/* ----------------------------------------------------------
+   6. SAVE SETTINGS BUTTON — consistent with design system
+   ---------------------------------------------------------- */
+#sscribe-debug-save-settings {
+  height: 36px;
+  padding: 0 var(--ss-space-5);
+  font-size: 13px;
+  font-weight: 600;
+  font-family: var(--ss-font);
+  border-radius: var(--ss-radius);
+  border: none;
+  background: var(--ss-brand);
+  color: #fff;
+  cursor: pointer;
+  letter-spacing: -0.01em;
+  transition: background 120ms ease;
+  white-space: nowrap;
+  flex-shrink: 0;
+  align-self: flex-end;
+  margin-bottom: 0;
+}
+
+#sscribe-debug-save-settings:hover {
+  background: var(--ss-brand-hover);
+}
+
+#sscribe-debug-save-settings:active {
+  background: var(--ss-brand-active);
+}
+
+#sscribe-debug-save-settings:focus-visible {
+  outline: 2px solid var(--ss-brand);
+  outline-offset: 2px;
+}
+
+/* ----------------------------------------------------------
+   7. SAVE FEEDBACK / inline status text
+   ---------------------------------------------------------- */
+#sscribe-debug-save-feedback {
+  font-size: 12px;
+  color: var(--ss-success);
+  font-weight: 500;
+  margin-top: var(--ss-space-1);
+  min-height: 16px;
+  line-height: 1;
+}
+
+/* ----------------------------------------------------------
+   8. SESSION ID DESCRIPTION tooltip suppression
+   ---------------------------------------------------------- */
+#sscribe-session-id-desc {
+  display: none; /* hidden — tooltip text causes layout overflow */
+}
+
+/* ============================================================
+   CRITICAL FIXES v1.1.2 patch-2
+   1. Console context popup layout (vertical char rendering fix)
+   2. Settings panel LOG LEVEL + Save alignment
+   3. Search logs label (injected via JS — CSS styles here)
+   ============================================================ */
+
+/* ----------------------------------------------------------
+   FIX 1: CONTEXT PANEL — enforce full-width grid layout
+   The context panel was rendering characters vertically due
+   to the parent flex container collapsing its width to 0.
+   ---------------------------------------------------------- */
+
+/* Context panel wrapper: IDs like sscribe-debug-ctx-* */
+[id^="sscribe-debug-ctx-"] {
+  width: 100% !important;
+  min-width: 0 !important;
+  max-width: 100% !important;
+  display: grid !important;
+  grid-template-columns: minmax(120px, auto) 1fr !important;
+  gap: 2px 12px !important;
+  padding: 10px 16px 12px !important;
+  background: #1a1a2e !important;
+  border-top: 1px solid rgb(255 255 255 / 7%) !important;
+  box-sizing: border-box !important;
+  overflow: hidden !important;
+  white-space: normal !important;
+  word-break: break-all !important;
+}
+
+/* Context key (left column) */
+[id^="sscribe-debug-ctx-"] .sscribe-debug-context-key,
+.sscribe-debug-context-key {
+  color: #a1a1aa !important;
+  font-size: 11px !important;
+  font-family: var(--ss-font-mono, 'Fira Code', 'Courier New', monospace) !important;
+  font-weight: 500 !important;
+  letter-spacing: 0.02em !important;
+  white-space: nowrap !important;
+  padding: 1px 0 !important;
+  overflow: hidden !important;
+  text-overflow: ellipsis !important;
+  align-self: start !important;
+}
+
+/* Context value (right column) */
+[id^="sscribe-debug-ctx-"] .sscribe-debug-context-val,
+.sscribe-debug-context-val {
+  color: #d4d4d8 !important;
+  font-size: 11px !important;
+  font-family: var(--ss-font-mono, 'Fira Code', 'Courier New', monospace) !important;
+  font-weight: 400 !important;
+  white-space: pre-wrap !important;
+  word-break: break-all !important;
+  overflow-wrap: anywhere !important;
+  padding: 1px 0 !important;
+  min-width: 0 !important;
+}
+
+/* Context value pre (nested code blocks) */
+[id^="sscribe-debug-ctx-"] .sscribe-debug-context-val pre,
+.sscribe-debug-context-val pre {
+  margin: 0 !important;
+  white-space: pre-wrap !important;
+  overflow-wrap: anywhere !important;
+  word-break: break-all !important;
+  min-width: 0 !important;
+  max-width: 100% !important;
+}
+
+/* The entry button row — must NOT collapse context child width */
+.sscribe-debug-entries > button {
+  display: grid !important;
+  grid-template-columns: 1fr !important;
+  width: 100% !important;
+  min-width: 0 !important;
+}
+
+/* Entry header row (badge + time + message) */
+.sscribe-debug-entry-header {
+  display: flex !important;
+  align-items: center !important;
+  gap: 10px !important;
+  padding: 10px 16px !important;
+  width: 100% !important;
+  min-width: 0 !important;
+  box-sizing: border-box !important;
+}
+
+.sscribe-debug-entry-message {
+  flex: 1 !important;
+  min-width: 0 !important;
+  white-space: nowrap !important;
+  overflow: hidden !important;
+  text-overflow: ellipsis !important;
+}
+
+/* ----------------------------------------------------------
+   FIX 2: SETTINGS PANEL ALIGNMENT
+   LOG LEVEL label+select group and Save Settings button
+   must be bottom-aligned (align to the bottom of the row).
+   ---------------------------------------------------------- */
+
+/* The settings panel is a flex row — make right group bottom-align */
+.sscribe-debug-settings-right,
+.sscribe-debug-settings-panel > *:last-child {
+  align-self: flex-end !important;
+}
+
+/* Target the specific save button parent container */
+#sscribe-debug-save-settings {
+  align-self: flex-end !important;
+  margin-bottom: 0 !important;
+}
+
+/* The panel itself: align items to bottom to baseline all groups */
+.sscribe-debug-settings {
+  display: flex !important;
+  align-items: flex-end !important;
+  justify-content: space-between !important;
+  flex-wrap: wrap !important;
+  gap: 16px !important;
+  padding: 20px 24px !important;
+}
+
+/* LOG LEVEL label — sits above the dropdown, already good */
+/* Make the LOG LEVEL group + Save btn share a baseline row */
+.sscribe-debug-level-group + #sscribe-debug-save-settings,
+.sscribe-debug-settings > *:nth-child(2),
+.sscribe-debug-settings > *:nth-child(3) {
+  align-self: flex-end !important;
+}
+
+/* Direct selector for the LOG LEVEL section parent */
+#sscribe-debug-level {
+  margin-top: 4px !important;
+}
+
+/* ----------------------------------------------------------
+   FIX 3: SEARCH LOGS LABEL (injected via JS)
+   These styles will be applied to the JS-injected label.
+   ---------------------------------------------------------- */
+.ss-injected-label {
+  display: block !important;
+  font-size: 11px !important;
+  font-weight: 600 !important;
+  letter-spacing: 0.08em !important;
+  text-transform: uppercase !important;
+  color: var(--ss-text-tertiary, #71717a) !important;
+  line-height: 1 !important;
+  margin: 0 0 6px 0 !important;
+  white-space: nowrap !important;
+}
+
+/* ============================================================
+   EMERGENCY FIX: Restore hidden state for context panels
+   The display:grid !important above overrides jQuery .hide()
+   which sets inline style="display:none".
+   We must ensure collapsed panels stay hidden.
+   ============================================================ */
+
+/* When the plugin hides context panels via jQuery .hide(),
+   it sets display:none as an inline style. The !important above
+   overrides that. Fix: use [aria-expanded="false"] on the parent
+   button to hide the associated context div. */
+.sscribe-debug-entries > button[aria-expanded="false"] + [id^="sscribe-debug-ctx-"],
+.sscribe-debug-entries > button[aria-expanded="false"] ~ [id^="sscribe-debug-ctx-"] {
+  display: none !important;
+}
+
+/* Only show the grid layout when aria-expanded is true */
+.sscribe-debug-entries > button[aria-expanded="true"] + [id^="sscribe-debug-ctx-"],
+.sscribe-debug-entries > button[aria-expanded="true"] ~ [id^="sscribe-debug-ctx-"] {
+  display: grid !important;
+  grid-template-columns: minmax(120px, auto) 1fr !important;
+  gap: 2px 12px !important;
+  width: 100% !important;
+  min-width: 0 !important;
+  max-width: 100% !important;
+  padding: 10px 16px 12px !important;
+  background: #1a1a2e !important;
+  border-top: 1px solid rgb(255 255 255 / 7%) !important;
+  box-sizing: border-box !important;
+  overflow: hidden !important;
+  white-space: normal !important;
+}
+/* Only override to grid when the button is explicitly expanded */
+.sscribe-debug-entries > button[aria-expanded="true"] + [id^="sscribe-debug-ctx-"],
+.sscribe-debug-entries > button[aria-expanded="true"] ~ [id^="sscribe-debug-ctx-"],
+[id^="sscribe-debug-ctx-"].sscribe-ctx-visible {
+  display: grid !important;
+}
+
+/* ============================================================
+   FINAL AUTHORITATIVE FIX: Context panel display management
+   REMOVE the display:grid !important — let jQuery own display.
+   Only apply layout styles when the panel IS visible.
+   Use :not([style*="display: none"]) to target only shown panels.
+   ============================================================ */
+
+/* Reset: remove display overrides from previous rules.
+   The [id^="sscribe-debug-ctx-"] rules above used display !important.
+   These rules below restore jQuery control over visibility. */
+
+/* Context panels: default hidden (let original plugin CSS handle it) */
+[id^="sscribe-debug-ctx-"]:not([style*="display: block"]):not([style*="display:block"]):not([style*="display: grid"]):not([style*="display:grid"]) {
+  display: none !important;
+}
+
+/* Context panels: when jQuery shows them (display:block or display:grid or empty style) */
+[id^="sscribe-debug-ctx-"][style*="display: block"],
+[id^="sscribe-debug-ctx-"][style*="display:block"],
+[id^="sscribe-debug-ctx-"][style=""],
+.sscribe-debug-entries > button[aria-expanded="true"] + [id^="sscribe-debug-ctx-"],
+.sscribe-debug-entries > button[aria-expanded="true"] ~ [id^="sscribe-debug-ctx-"] {
+  display: grid !important;
+  grid-template-columns: minmax(130px, auto) 1fr !important;
+  gap: 2px 16px !important;
+  width: 100% !important;
+  min-width: 0 !important;
+  max-width: 100% !important;
+  box-sizing: border-box !important;
+  padding: 10px 16px 14px !important;
+  background: #12122a !important;
+  border-top: 1px solid rgb(255 255 255 / 8%) !important;
+  overflow: hidden !important;
+  white-space: normal !important;
+}
+
+/* ============================================================
+   CLASS-BASED CONTEXT PANEL VISIBILITY (via MutationObserver)
+   The JS observer adds .sscribe-ctx-open when panel is shown.
+   This is the ONLY authoritative display rule — no !important
+   battles with jQuery inline styles.
+   ============================================================ */
+
+/* Open state — JS adds this class via MutationObserver */
+[id^="sscribe-debug-ctx-"].sscribe-ctx-open {
+  display: grid !important;
+  grid-template-columns: minmax(130px, auto) 1fr;
+  gap: 2px 16px;
+  width: 100%;
+  min-width: 0;
+  max-width: 100%;
+  box-sizing: border-box;
+  padding: 10px 16px 14px;
+  background: #12122a;
+  border-top: 1px solid rgb(255 255 255 / 8%);
+  overflow: hidden;
+  white-space: normal;
+}
+
+/* PATCH-3: removed (was duplicating #sscribe-debug-level rule) */
+
+/* ── Context-panel expand / collapse ─────────────────────────────────── */
+.sscribe-debug-entry-context {
+  display: none !important;
+}
+.sscribe-debug-entry.expanded .sscribe-debug-entry-context {
+  display: grid !important;
+  width: 100%;
+  border-collapse: collapse;
+  margin-top: 6px;
+  background: rgb(255 255 255 / 5%);
+  border-radius: 4px;
+}
+.sscribe-debug-entry.expanded .sscribe-debug-entry-context td {
+  padding: 4px 8px;
+  font-size: 12px;
+  vertical-align: top;
+  border-top: 1px solid rgb(255 255 255 / 8%);
+  word-break: break-all;
+}
+.sscribe-debug-entry.expanded .sscribe-debug-entry-context td:first-child {
+  font-weight: 600;
+  color: #93c5fd;
+  white-space: nowrap;
+  min-width: 120px;
+  width: 30%;
+}
+/* Entry layout: column when expanded so context shows below header */
+.sscribe-debug-entry.expanded {
+  flex-direction: column;
+  align-items: stretch;
+}
+.sscribe-debug-entry.expanded .sscribe-debug-entry-context {
+  display: block !important;
+  flex: 0 0 auto;
+  width: 100%;
+  overflow-x: auto;
+}
+.sscribe-debug-entry.expanded .sscribe-debug-entry-context table,
+.sscribe-debug-entry.expanded table.sscribe-debug-entry-context {
+  display: table !important;
+  width: 100%;
+  border-collapse: collapse;
+}
+
+/* ── AUTHORITATIVE FIX: show context panel when parent entry is expanded ── */
+/* The JS click handler adds .expanded to .sscribe-debug-entry              */
+/* The context table has id="sscribe-debug-ctx-*" and style="display:none" */
+/* We must override BOTH the inline style and any existing !important rules */
+.sscribe-debug-entry.expanded [id^="sscribe-debug-ctx-"] {
+  display: table !important;
+  width: 100%;
+  border-collapse: collapse;
+  margin-top: 8px;
+  padding: 0;
+  background: rgb(18 18 42 / 95%);
+  border-top: 1px solid rgb(255 255 255 / 8%);
+  overflow: visible !important;
+  white-space: normal;
+}
+.sscribe-debug-entry.expanded [id^="sscribe-debug-ctx-"] td {
+  padding: 4px 8px;
+  font-size: 12px;
+  font-family: monospace;
+  vertical-align: top;
+  border-top: 1px solid rgb(255 255 255 / 6%);
+  word-break: break-all;
+  white-space: pre-wrap;
+  color: #e2e8f0;
+}
+.sscribe-debug-entry.expanded [id^="sscribe-debug-ctx-"] td:first-child {
+  font-weight: 600;
+  color: #93c5fd;
+  white-space: nowrap;
+  min-width: 120px;
+  width: 25%;
+  overflow: visible;
+}
+
+/* ── HIGH-SPECIFICITY FIX: Use ID selector to beat :not() rule ── */
+/* The existing hide rule has (0,5,0) specificity via :not() pseudo-classes.   */
+/* Using #sscribe-debug-root gives us (1,x,0) which beats all class selectors. */
+#sscribe-debug-root .sscribe-debug-entry.expanded [id^="sscribe-debug-ctx-"] {
+  display: grid !important;
+  width: 100%;
+  grid-template-columns: minmax(120px, auto) 1fr;
+  margin-top: 8px;
+  background: rgb(18 18 42 / 95%);
+  border-top: 1px solid rgb(255 255 255 / 8%);
+  overflow: visible !important;
+  white-space: normal;
+}
+#sscribe-debug-root .sscribe-debug-entry.expanded [id^="sscribe-debug-ctx-"] td {
+  padding: 4px 8px;
+  font-size: 12px;
+  font-family: monospace;
+  vertical-align: top;
+  border-top: 1px solid rgb(255 255 255 / 6%);
+  word-break: break-all;
+  white-space: pre-wrap;
+  color: #e2e8f0;
+}
+#sscribe-debug-root .sscribe-debug-entry.expanded [id^="sscribe-debug-ctx-"] td:first-child {
+  font-weight: 600;
+  color: #93c5fd;
+  white-space: nowrap;
+  min-width: 120px;
+  width: 25%;
+}
+
+/* ── Context panel spacing polish ── */
+#sscribe-debug-root .sscribe-debug-entry.expanded {
+  flex-direction: column;
+  align-items: stretch;
+}
+#sscribe-debug-root .sscribe-debug-entry.expanded [id^="sscribe-debug-ctx-"] {
+  margin-top: 0 !important;
+  padding: 10px 16px 14px !important;
+}
+#sscribe-debug-root .sscribe-debug-entry.expanded [id^="sscribe-debug-ctx-"] td {
+  padding: 6px 12px !important;
+  line-height: 1.5;
+}
+#sscribe-debug-root .sscribe-debug-entry.expanded [id^="sscribe-debug-ctx-"] tr:first-child td {
+  padding-top: 10px !important;
+}
+#sscribe-debug-root .sscribe-debug-entry.expanded [id^="sscribe-debug-ctx-"] tr:last-child td {
+  padding-bottom: 10px !important;
+}
+#sscribe-debug-root .sscribe-debug-entry.expanded [id^="sscribe-debug-ctx-"] td:first-child {
+  padding-right: 20px !important;
+}
+
+/* ── Context panel: generous row padding for readability ── */
+#sscribe-debug-root .sscribe-debug-entry.expanded [id^="sscribe-debug-ctx-"] td {
+  padding: 8px 16px !important;
+  line-height: 1.6;
+  font-size: 12.5px;
+}
+#sscribe-debug-root .sscribe-debug-entry.expanded [id^="sscribe-debug-ctx-"] tr:first-child > td {
+  padding-top: 14px !important;
+}
+#sscribe-debug-root .sscribe-debug-entry.expanded [id^="sscribe-debug-ctx-"] tr:last-child > td {
+  padding-bottom: 14px !important;
+}
+#sscribe-debug-root .sscribe-debug-entry.expanded [id^="sscribe-debug-ctx-"] td:first-child {
+  padding-left: 18px !important;
+  padding-right: 24px !important;
+}
+#sscribe-debug-root .sscribe-debug-entry.expanded [id^="sscribe-debug-ctx-"] td:last-child {
+  padding-right: 18px !important;
+}
+
+/* ── FINAL: Generous cell padding – bump up significantly ── */
+#sscribe-debug-root .sscribe-debug-entry.expanded [id^="sscribe-debug-ctx-"] td {
+  padding: 10px 20px !important;
+  line-height: 1.7;
+  font-size: 12.5px;
+  border-top: 1px solid rgb(255 255 255 / 7%) !important;
+}
+#sscribe-debug-root .sscribe-debug-entry.expanded [id^="sscribe-debug-ctx-"] tr:first-child td {
+  border-top: none !important;
+  padding-top: 16px !important;
+}
+#sscribe-debug-root .sscribe-debug-entry.expanded [id^="sscribe-debug-ctx-"] tr:last-child td {
+  padding-bottom: 16px !important;
+}
+#sscribe-debug-root .sscribe-debug-entry.expanded [id^="sscribe-debug-ctx-"] td:first-child {
+  padding-left: 20px !important;
+  padding-right: 28px !important;
+  min-width: 130px !important;
+}
+#sscribe-debug-root .sscribe-debug-entry.expanded [id^="sscribe-debug-ctx-"] td:last-child {
+  padding-right: 20px !important;
+}
+
+/* ── NUCLEAR: Double-ID selector to beat WP admin td rules ── */
+#wpwrap #sscribe-debug-root .sscribe-debug-entry.expanded [id^="sscribe-debug-ctx-"] td {
+  padding: 10px 20px !important;
+  line-height: 1.7 !important;
+  font-size: 12.5px !important;
+  border-top: 1px solid rgb(255 255 255 / 7%) !important;
+  vertical-align: top !important;
+}
+#wpwrap #sscribe-debug-root .sscribe-debug-entry.expanded [id^="sscribe-debug-ctx-"] tr:first-child td {
+  border-top: none !important;
+  padding-top: 16px !important;
+}
+#wpwrap #sscribe-debug-root .sscribe-debug-entry.expanded [id^="sscribe-debug-ctx-"] tr:last-child td {
+  padding-bottom: 16px !important;
+}
+#wpwrap #sscribe-debug-root .sscribe-debug-entry.expanded [id^="sscribe-debug-ctx-"] td:first-child {
+  padding-left: 20px !important;
+  padding-right: 28px !important;
+  min-width: 130px !important;
+}
+#wpwrap #sscribe-debug-root .sscribe-debug-entry.expanded [id^="sscribe-debug-ctx-"] td:last-child {
+  padding-right: 20px !important;
+}
+
+/* === CONTEXT TABLE PADDING - Correct selectors === */
+.sscribe-debug-entry-context {
+  padding: 0 !important;
+}
+.sscribe-debug-entry-context table {
+  width: 100% !important;
+  border-collapse: collapse !important;
+  padding: 0 !important;
+  margin: 0 !important;
+}
+.sscribe-debug-entry-context table tr td {
+  padding: 10px 20px !important;
+  line-height: 1.7 !important;
+  font-size: 12.5px !important;
+  border-top: 1px solid rgb(255 255 255 / 7%) !important;
+  vertical-align: top !important;
+}
+.sscribe-debug-entry-context table tr:first-child td {
+  border-top: none !important;
+  padding-top: 16px !important;
+}
+.sscribe-debug-entry-context table tr:last-child td {
+  padding-bottom: 16px !important;
+}
+.sscribe-debug-entry-context table tr td:first-child {
+  padding-left: 20px !important;
+  padding-right: 24px !important;
+  min-width: 130px !important;
+  font-weight: 600 !important;
+  color: rgb(255 255 255 / 60%) !important;
+  white-space: nowrap !important;
+}
+.sscribe-debug-entry-context table tr td:last-child {
+  padding-right: 20px !important;
+}
+.sscribe-debug-entry-context table tr td pre {
+  margin: 0 !important;
+  padding: 0 !important;
+  font-family: inherit !important;
+  font-size: inherit !important;
+  white-space: pre-wrap !important;
+  word-break: break-all !important;
+  color: rgb(255 255 255 / 85%) !important;
+}
+
+/* === CONTEXT TABLE - sscribe-ctx-open class targeting === */
+.sscribe-ctx-open table tr td,
+.sscribe-debug-entry-context.sscribe-ctx-open table tr td {
+  padding: 10px 20px !important;
+  line-height: 1.7 !important;
+  font-size: 12.5px !important;
+  border-top: 1px solid rgb(255 255 255 / 7%) !important;
+  vertical-align: top !important;
+}
+.sscribe-ctx-open table tr:first-child td {
+  border-top: none !important;
+  padding-top: 16px !important;
+}
+.sscribe-ctx-open table tr:last-child td {
+  padding-bottom: 16px !important;
+}
+.sscribe-ctx-open table tr td:first-child {
+  padding-left: 20px !important;
+  padding-right: 24px !important;
+  min-width: 130px !important;
+  font-weight: 600 !important;
+  color: rgb(255 255 255 / 60%) !important;
+  white-space: nowrap !important;
+}
+.sscribe-ctx-open table tr td:last-child {
+  padding-right: 20px !important;
+}
+.sscribe-ctx-open table tr td pre {
+  margin: 0 !important;
+  padding: 0 !important;
+  font-family: monospace !important;
+  font-size: inherit !important;
+  white-space: pre-wrap !important;
+  word-break: break-all !important;
+  color: rgb(255 255 255 / 85%) !important;
+}
+
+/* === CORRECT CONTEXT GRID SPACING - Grid layout fix ===
+ * The context panel uses CSS Grid (not a table).
+ * Increase row gap and add vertical padding to grid children.
+ */
+[id^="sscribe-debug-ctx-"].sscribe-ctx-open {
+  gap: 10px 20px !important;
+  padding: 16px 20px 20px 20px !important;
+}
+[id^="sscribe-debug-ctx-"].sscribe-ctx-open > * {
+  line-height: 1.7 !important;
+  font-size: 12.5px !important;
+}
+[id^="sscribe-debug-ctx-"].sscribe-ctx-open > *:nth-child(odd) {
+  font-weight: 600 !important;
+  color: rgb(255 255 255 / 60%) !important;
+  opacity: 1 !important;
+}
+[id^="sscribe-debug-ctx-"].sscribe-ctx-open > *:nth-child(even) {
+  color: rgb(255 255 255 / 90%) !important;
+}
+
+/* ===== DEFINITIVE CONTEXT SPACING FIX =====
+ * The context uses .sscribe-debug-entry.expanded + .sscribe-debug-entry-context (CSS Grid)
+ * The grid has gap: 2px 16px by default - we override to add proper row spacing.
+ * Also adds padding to the container and styles key/value child elements.
+ */
+.sscribe-debug-entry.expanded .sscribe-debug-entry-context {
+  gap: 10px 24px !important;
+  padding: 16px 20px 20px !important;
+  overflow: visible !important;
+}
+.sscribe-debug-entry.expanded .sscribe-debug-entry-context > * {
+  font-size: 12.5px !important;
+  line-height: 1.65 !important;
+  align-self: start !important;
+}
+.sscribe-debug-entry.expanded .sscribe-debug-entry-context > *:nth-child(odd) {
+  font-weight: 600 !important;
+  color: rgb(255 255 255 / 55%) !important;
+  letter-spacing: 0.01em !important;
+}
+.sscribe-debug-entry.expanded .sscribe-debug-entry-context > *:nth-child(even) {
+  color: rgb(255 255 255 / 92%) !important;
+  word-break: break-word !important;
+  white-space: pre-wrap !important;
+}
+
+/* ===== HIGH-SPECIFICITY GAP OVERRIDE =====
+ * The active display rule is:
+ * .sscribe-debug-entries > button[aria-expanded="true"] ~ [id^="sscribe-debug-ctx-"]
+ * with specificity (0,3,1) and gap: 2px 16px !important
+ * We override with ID-based selector (1,2,1) > (0,3,1)
+ */
+#sscribe-debug-entries > button[aria-expanded="true"] ~ [id^="sscribe-debug-ctx-"],
+#sscribe-debug-entries > [aria-expanded="true"] + [id^="sscribe-debug-ctx-"],
+#sscribe-debug-entries > [aria-expanded="true"] ~ [id^="sscribe-debug-ctx-"] {
+  gap: 12px 24px !important;
+  padding: 16px 20px 20px !important;
+  overflow: visible !important;
+}
+#sscribe-debug-entries > button[aria-expanded="true"] ~ [id^="sscribe-debug-ctx-"] > *,
+#sscribe-debug-entries > [aria-expanded="true"] ~ [id^="sscribe-debug-ctx-"] > * {
+  font-size: 12.5px !important;
+  line-height: 1.65 !important;
+  align-self: start !important;
+}
+#sscribe-debug-entries > button[aria-expanded="true"] ~ [id^="sscribe-debug-ctx-"] > *:nth-child(odd),
+#sscribe-debug-entries > [aria-expanded="true"] ~ [id^="sscribe-debug-ctx-"] > *:nth-child(odd) {
+  font-weight: 600 !important;
+  color: rgb(255 255 255 / 55%) !important;
+  letter-spacing: 0.01em !important;
+}
+#sscribe-debug-entries > button[aria-expanded="true"] ~ [id^="sscribe-debug-ctx-"] > *:nth-child(even),
+#sscribe-debug-entries > [aria-expanded="true"] ~ [id^="sscribe-debug-ctx-"] > *:nth-child(even) {
+  color: rgb(255 255 255 / 92%) !important;
+  word-break: break-word !important;
+  white-space: pre-wrap !important;
 }
