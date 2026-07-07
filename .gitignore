@@ -124,3 +124,12 @@ fake-wp/
 
 # Audit output files (contains full local filesystem paths)
 test-phpcs-output.txt
+
+# WP Playground scratch artifacts — local browser automation logs,
+# toolchain node_modules, blueprint configs, and empty temp dirs.
+# Never ship in the plugin ZIP and never commit (they regenerate
+# on the next Playground run).
+.playwright-mcp/
+.playground-tools/
+playground-tools/
+playground-blueprint.json
