@@ -1355,3 +1355,170 @@
   overflow-wrap: anywhere !important;
   white-space: pre-wrap !important;
 }
+
+/* ============================================================
+   DEBUG CONSOLE — enterprise polish pass
+   Mirrors the admin.css revamp v2 tokens, scoped to the
+   console's dark terminal palette. Type utilities, motion,
+   focus rings, reduced motion, forced colors, and print.
+   ============================================================ */
+
+/* ── TYPE UTILITY CLASSES ──────────────────────────────────── */
+
+.sscribe-debug-type-display {
+  font-size: var(--ss-text-display);
+  line-height: var(--ss-text-display-lh);
+  letter-spacing: var(--ss-text-display-ls);
+  font-weight: var(--ss-text-display-fw);
+  color: rgb(255 255 255 / 96%);
+  margin: 0;
+}
+
+.sscribe-debug-type-h2 {
+  font-size: var(--ss-text-h2);
+  line-height: var(--ss-text-h2-lh);
+  letter-spacing: var(--ss-text-h2-ls);
+  font-weight: var(--ss-text-h2-fw);
+  color: rgb(255 255 255 / 96%);
+  margin: 0;
+}
+
+.sscribe-debug-type-body {
+  font-size: var(--ss-text-body);
+  line-height: var(--ss-text-body-lh);
+  color: rgb(255 255 255 / 75%);
+}
+
+.sscribe-debug-type-label {
+  font-size: var(--ss-text-label);
+  font-weight: var(--ss-text-label-fw);
+  letter-spacing: var(--ss-text-label-ls);
+  text-transform: uppercase;
+  color: rgb(255 255 255 / 55%);
+}
+
+.sscribe-debug-type-numeric {
+  font-family: var(--ss-font-mono);
+  font-variant-numeric: tabular-nums;
+  font-feature-settings: "tnum" 1, "lnum" 1;
+}
+
+/* ── MOTION TOKENS (consumed by JS-added transition helpers) ─ */
+
+.sscribe-debug-fade-in {
+  transition: opacity var(--ss-motion-base) var(--ss-easing);
+}
+
+.sscribe-debug-pulse {
+  transition: background-color var(--ss-motion-fast) var(--ss-easing);
+}
+
+/* ── FOCUS RING REINFORCEMENT (debug-specific elements) ───── */
+
+.sscribe-debug-help-btn:focus-visible,
+.sscribe-debug-refresh-btn:focus-visible,
+.sscribe-debug-filter-select:focus-visible,
+.sscribe-debug-search-input:focus-visible,
+.sscribe-debug-entry:focus-visible,
+.sscribe-debug-tab:focus-visible {
+  outline: var(--ss-focus-ring) solid var(--ss-focus-color);
+  outline-offset: var(--ss-focus-offset);
+}
+
+/* ── REDUCED MOTION ────────────────────────────────────────── */
+
+@media (prefers-reduced-motion: reduce) {
+  /* stylelint-disable declaration-no-important */
+  .sscribe-debug-console-card,
+  .sscribe-debug-console-card * {
+    transition-duration: 0ms !important;
+    animation-duration: 0ms !important;
+    animation-iteration-count: 1 !important;
+    scroll-behavior: auto !important;
+  }
+  /* stylelint-enable declaration-no-important */
+}
+
+/* ── FORCED COLORS (Windows High Contrast) ─────────────────── */
+
+@media (forced-colors: active) {
+  .sscribe-debug-console-card {
+    --sscribe-debug-color-bg: Canvas;
+    --sscribe-debug-color-bg-header: Canvas;
+    --sscribe-debug-color-bg-entry-hover: Canvas;
+    --sscribe-debug-color-border: CanvasText;
+    --sscribe-debug-color-text: CanvasText;
+    --sscribe-debug-color-text-muted: CanvasText;
+  }
+
+  .sscribe-debug-help-btn:focus-visible,
+  .sscribe-debug-refresh-btn:focus-visible,
+  .sscribe-debug-filter-select:focus-visible,
+  .sscribe-debug-search-input:focus-visible,
+  .sscribe-debug-entry:focus-visible,
+  .sscribe-debug-tab:focus-visible {
+    /* stylelint-disable declaration-no-important */
+    outline: 3px solid Highlight !important;
+    outline-offset: 2px !important;
+    /* stylelint-enable declaration-no-important */
+  }
+
+  .sscribe-debug-dot-red,
+  .sscribe-debug-dot-yellow,
+  .sscribe-debug-dot-green,
+  .sscribe-debug-level-error,
+  .sscribe-debug-level-critical,
+  .sscribe-debug-level-alert,
+  .sscribe-debug-level-emergency {
+    forced-color-adjust: none;
+    background: Highlight;
+    color: HighlightText;
+  }
+}
+
+/* ── PRINT ─────────────────────────────────────────────────── */
+
+@media print {
+  .sscribe-debug-console-card {
+    --sscribe-debug-color-bg: #fff;
+    --sscribe-debug-color-bg-header: #fff;
+    --sscribe-debug-color-bg-entry-hover: #fff;
+    --sscribe-debug-color-border: #000;
+    --sscribe-debug-color-text: #000;
+    --sscribe-debug-color-text-muted: #333;
+
+    background: #fff !important;
+    color: #000 !important;
+  }
+
+  .sscribe-debug-console-header,
+  .sscribe-debug-toolbar {
+    /* stylelint-disable declaration-no-important */
+    background: #fff !important;
+    color: #000 !important;
+    border-bottom: 1px solid #000 !important;
+    /* stylelint-enable declaration-no-important */
+  }
+
+  .sscribe-debug-dot-red,
+  .sscribe-debug-dot-yellow,
+  .sscribe-debug-dot-green {
+    /* stylelint-disable declaration-no-important */
+    display: none !important;
+    /* stylelint-enable declaration-no-important */
+  }
+
+  .sscribe-debug-entry {
+    /* stylelint-disable declaration-no-important */
+    border-bottom: 1px solid #ccc !important;
+    break-inside: avoid;
+    /* stylelint-enable declaration-no-important */
+  }
+
+  .sscribe-debug-context-panel {
+    /* stylelint-disable declaration-no-important */
+    background: #f5f5f5 !important;
+    color: #000 !important;
+    /* stylelint-enable declaration-no-important */
+  }
+}

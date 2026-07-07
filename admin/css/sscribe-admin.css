@@ -45,6 +45,38 @@
   --ss-font: -apple-system, blinkmacsystemfont, "Segoe UI", roboto, "Helvetica Neue", arial, sans-serif;
   --ss-font-mono: ui-monospace, "SF Mono", menlo, consolas, "Liberation Mono", monospace;
   --ss-max-w: 1100px;
+  --ss-text-display: 28px;
+  --ss-text-display-lh: 1.2;
+  --ss-text-display-ls: -0.025em;
+  --ss-text-display-fw: 700;
+  --ss-text-h1: 22px;
+  --ss-text-h1-lh: 1.3;
+  --ss-text-h1-ls: -0.025em;
+  --ss-text-h1-fw: 700;
+  --ss-text-h2: 16px;
+  --ss-text-h2-lh: 1.35;
+  --ss-text-h2-ls: -0.01em;
+  --ss-text-h2-fw: 600;
+  --ss-text-h3: 15px;
+  --ss-text-h3-lh: 1.4;
+  --ss-text-h3-fw: 600;
+  --ss-text-h4: 13px;
+  --ss-text-h4-fw: 600;
+  --ss-text-body: 13px;
+  --ss-text-body-lh: 1.5;
+  --ss-text-body-md: 14px;
+  --ss-text-label: 11px;
+  --ss-text-label-fw: 600;
+  --ss-text-label-ls: 0.06em;
+  --ss-text-caption: 11px;
+  --ss-text-caption-lh: 1.4;
+  --ss-motion-fast: 80ms;
+  --ss-motion-base: 120ms;
+  --ss-motion-slow: 200ms;
+  --ss-easing: cubic-bezier(0.2, 0, 0, 1);
+  --ss-focus-ring: 2px;
+  --ss-focus-offset: 2px;
+  --ss-focus-color: var(--ss-brand);
 
   background: var(--ss-bg);
   font: 14px/1.5 var(--ss-font);
@@ -3538,4 +3570,275 @@ kbd.sscribe-shortcut-hint {
   text-overflow: ellipsis !important;
   direction: ltr !important;
   text-align: left !important;
+}
+
+/* ============================================================
+   ENTERPRISE REVAMP v2 — polish pass
+   1. Type utility classes (consume --ss-text-* tokens)
+   2. Side-stripe selection state (no 1px layout shift)
+   3. prefers-color-scheme: dark
+   4. prefers-reduced-motion: reduce
+   5. forced-colors: active (Windows High Contrast)
+   6. Print styles
+   ============================================================ */
+
+/* ── 1. TYPE UTILITY CLASSES ───────────────────────────────── */
+
+.ss-type-display {
+  font-size: var(--ss-text-display);
+  line-height: var(--ss-text-display-lh);
+  letter-spacing: var(--ss-text-display-ls);
+  font-weight: var(--ss-text-display-fw);
+  color: var(--ss-text-primary);
+  margin: 0;
+}
+
+.ss-type-h1 {
+  font-size: var(--ss-text-h1);
+  line-height: var(--ss-text-h1-lh);
+  letter-spacing: var(--ss-text-h1-ls);
+  font-weight: var(--ss-text-h1-fw);
+  color: var(--ss-text-primary);
+  margin: 0;
+}
+
+.ss-type-h2 {
+  font-size: var(--ss-text-h2);
+  line-height: var(--ss-text-h2-lh);
+  letter-spacing: var(--ss-text-h2-ls);
+  font-weight: var(--ss-text-h2-fw);
+  color: var(--ss-text-primary);
+  margin: 0;
+}
+
+.ss-type-h3 {
+  font-size: var(--ss-text-h3);
+  line-height: var(--ss-text-h3-lh);
+  font-weight: var(--ss-text-h3-fw);
+  color: var(--ss-text-primary);
+  margin: 0;
+}
+
+.ss-type-h4 {
+  font-size: var(--ss-text-h4);
+  font-weight: var(--ss-text-h4-fw);
+  color: var(--ss-text-primary);
+  margin: 0;
+}
+
+.ss-type-body {
+  font-size: var(--ss-text-body);
+  line-height: var(--ss-text-body-lh);
+  color: var(--ss-text-secondary);
+}
+
+.ss-type-body-md {
+  font-size: var(--ss-text-body-md);
+  line-height: var(--ss-text-body-lh);
+  color: var(--ss-text-secondary);
+}
+
+.ss-type-label {
+  font-size: var(--ss-text-label);
+  font-weight: var(--ss-text-label-fw);
+  letter-spacing: var(--ss-text-label-ls);
+  text-transform: uppercase;
+  color: var(--ss-text-tertiary);
+}
+
+.ss-type-caption {
+  font-size: var(--ss-text-caption);
+  line-height: var(--ss-text-caption-lh);
+  color: var(--ss-text-muted);
+}
+
+.ss-type-numeric {
+  font-family: var(--ss-font-mono);
+  font-variant-numeric: tabular-nums;
+  font-feature-settings: "tnum" 1, "lnum" 1;
+}
+
+/* ── 2. SIDE-STRIPE SELECTION PATTERN ────────────────────────
+   Replaces 1px border-swap with a 3px brand stripe on the
+   leading edge + brand-tint background. No layout shift, no
+   border-swap arithmetic, identical outer dimensions. */
+
+.ss-side-stripe {
+  position: relative;
+  padding-left: calc(var(--ss-space-4) + 3px);
+  border-left: 3px solid transparent;
+}
+
+.ss-side-stripe::before {
+  content: "";
+  position: absolute;
+  left: 0;
+  top: 0;
+  bottom: 0;
+  width: 3px;
+  background: var(--ss-brand);
+  border-radius: var(--ss-radius-sm) 0 0 var(--ss-radius-sm);
+}
+
+/* ── 3. DARK MODE (OS preference) ─────────────────────────── */
+
+@media (prefers-color-scheme: dark) {
+  .sscribe-master-container {
+    --ss-bg: #09090b;
+    --ss-surface: #18181b;
+    --ss-surface-2: #27272a;
+    --ss-surface-3: #3f3f46;
+    --ss-border: #27272a;
+    --ss-border-strong: #3f3f46;
+    --ss-text-primary: #fafafa;
+    --ss-text-secondary: #d4d4d8;
+    --ss-text-tertiary: #a1a1aa;
+    --ss-text-muted: #8b8b96;
+    --ss-text-inverse: #09090b;
+    --ss-brand: #7c75ff;
+    --ss-brand-hover: #8a83ff;
+    --ss-brand-active: #695fff;
+    --ss-brand-soft: #2a2660;
+    --ss-brand-tint: #1d1a3f;
+    --ss-success: #34d399;
+    --ss-success-bg: #022c1f;
+    --ss-success-border: #064e3b;
+    --ss-warning: #fbbf24;
+    --ss-warning-bg: #2a1a07;
+    --ss-warning-border: #78350f;
+    --ss-error: #f87171;
+    --ss-error-bg: #2c1212;
+    --ss-error-border: #7f1d1d;
+    --ss-info: #60a5fa;
+    --ss-info-bg: #0c1f3a;
+  }
+
+  .sscribe-master-container .sscribe-support-terminal,
+  .sscribe-master-container .sscribe-debug-console-card {
+    background: #0f0f10;
+    border-color: var(--ss-border-strong);
+  }
+
+  .sscribe-master-container .sscribe-terminal-header,
+  .sscribe-master-container .sscribe-debug-console-header {
+    background: #18181b;
+    border-bottom-color: var(--ss-border);
+  }
+
+  .sscribe-master-container .sscribe-support-copy-text,
+  .sscribe-master-container .sscribe-debug-console-body {
+    color: #d4d4d8;
+  }
+}
+
+/* ── 4. REDUCED MOTION ─────────────────────────────────────── */
+
+@media (prefers-reduced-motion: reduce) {
+  /* stylelint-disable declaration-no-important */
+  .sscribe-master-container,
+  .sscribe-master-container * {
+    transition-duration: 0ms !important;
+    animation-duration: 0ms !important;
+    animation-iteration-count: 1 !important;
+    scroll-behavior: auto !important;
+  }
+  /* stylelint-enable declaration-no-important */
+}
+
+/* ── 5. FORCED COLORS (Windows High Contrast) ─────────────── */
+
+@media (forced-colors: active) {
+  .sscribe-master-container {
+    --ss-border: CanvasText;
+    --ss-border-strong: CanvasText;
+    --ss-text-primary: CanvasText;
+    --ss-text-secondary: CanvasText;
+    --ss-text-tertiary: CanvasText;
+    --ss-text-muted: CanvasText;
+  }
+
+  .sscribe-button:focus-visible,
+  .sscribe-tab-btn:focus-visible,
+  .sscribe-modal-close:focus-visible,
+  .sscribe-button-icon:focus-visible,
+  .sscribe-toast-dismiss:focus-visible,
+  .sscribe-preflight-close:focus-visible,
+  .sscribe-support-copy-text:focus-visible,
+  .sscribe-post-type-card:focus-within .sscribe-post-type-card-inner,
+  .sscribe-status-card-label:focus-within .sscribe-status-card-inner,
+  .sscribe-format-card-label:focus-within .sscribe-format-card-inner,
+  .sscribe-lang-card-label:focus-within .sscribe-lang-card-inner,
+  .sscribe-format-option-field select:focus-visible,
+  .sscribe-format-option-field.sscribe-format-option-checkbox:focus-within,
+  .sscribe-bulk-select-all:focus-within .sscribe-check-visual,
+  .sscribe-history-check-label:focus-within .sscribe-check-visual {
+    /* stylelint-disable declaration-no-important */
+    outline: 3px solid Highlight !important;
+    outline-offset: 2px !important;
+    /* stylelint-enable declaration-no-important */
+  }
+
+  .sscribe-button-primary,
+  .sscribe-button-success,
+  .sscribe-button-danger,
+  .sscribe-status-alert::before,
+  .ss-side-stripe::before {
+    forced-color-adjust: none;
+    background: Highlight;
+    color: HighlightText;
+  }
+}
+
+/* ── 6. PRINT ──────────────────────────────────────────────── */
+
+@media print {
+  .sscribe-master-container {
+    --ss-bg: #fff;
+    --ss-surface: #fff;
+    --ss-surface-2: #fff;
+    --ss-surface-3: #fff;
+    --ss-border: #000;
+    --ss-border-strong: #000;
+    --ss-text-primary: #000;
+    --ss-text-secondary: #000;
+    --ss-text-tertiary: #333;
+    --ss-text-muted: #555;
+    --ss-brand: #000;
+    --ss-brand-soft: #fff;
+    --ss-brand-tint: #fff;
+
+    background: #fff;
+    color: #000;
+  }
+
+  .sscribe-hero,
+  .sscribe-panel,
+  .sscribe-support-sidebar,
+  .sscribe-support-terminal,
+  .sscribe-config-panel,
+  .sscribe-modal,
+  .sscribe-toast-container,
+  .sscribe-status-alert,
+  .sscribe-bulk-bar,
+  .sscribe-debug-console-card,
+  .sscribe-history-toolbar {
+    /* stylelint-disable declaration-no-important */
+    box-shadow: none !important;
+    border: 1px solid #000 !important;
+    /* stylelint-enable declaration-no-important */
+  }
+
+  .sscribe-modal,
+  .sscribe-toast-container {
+    /* stylelint-disable declaration-no-important */
+    position: static !important;
+    background: transparent !important;
+    /* stylelint-enable declaration-no-important */
+  }
+
+  .sscribe-tab-content:not(.sscribe-tab-active) {
+    /* stylelint-disable declaration-no-important */
+    display: none !important;
+    /* stylelint-enable declaration-no-important */
+  }
 }
