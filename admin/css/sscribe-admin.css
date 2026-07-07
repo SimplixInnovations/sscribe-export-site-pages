@@ -1,4 +1,4 @@
-/* @version 1.1.2 */
+/* @version 1.1.3 */
 
 .sscribe-master-container {
   --ss-bg: #fafafa;
@@ -28,6 +28,37 @@
   --ss-error-border: #fecdca;
   --ss-info: #1849a9;
   --ss-info-bg: #eff8ff;
+
+  /* v3 semantic role aliases — physical tokens above, roles below.
+     Components should reference --ss-color-* roles, not raw --ss-*.
+     Re-balancing the palette only requires editing the physical layer. */
+  --ss-color-bg-canvas: var(--ss-bg);
+  --ss-color-bg-surface: var(--ss-surface);
+  --ss-color-bg-inset: var(--ss-surface-2);
+  --ss-color-bg-skeleton: var(--ss-surface-3);
+  --ss-color-border: var(--ss-border);
+  --ss-color-border-strong: var(--ss-border-strong);
+  --ss-color-fg-primary: var(--ss-text-primary);
+  --ss-color-fg-secondary: var(--ss-text-secondary);
+  --ss-color-fg-tertiary: var(--ss-text-tertiary);
+  --ss-color-fg-muted: var(--ss-text-muted);
+  --ss-color-fg-inverse: var(--ss-text-inverse);
+  --ss-color-accent: var(--ss-brand);
+  --ss-color-accent-hover: var(--ss-brand-hover);
+  --ss-color-accent-active: var(--ss-brand-active);
+  --ss-color-accent-soft: var(--ss-brand-soft);
+  --ss-color-accent-tint: var(--ss-brand-tint);
+  --ss-color-success-fg: var(--ss-success);
+  --ss-color-success-bg: var(--ss-success-bg);
+  --ss-color-success-border: var(--ss-success-border);
+  --ss-color-warning-fg: var(--ss-warning);
+  --ss-color-warning-bg: var(--ss-warning-bg);
+  --ss-color-warning-border: var(--ss-warning-border);
+  --ss-color-error-fg: var(--ss-error);
+  --ss-color-error-bg: var(--ss-error-bg);
+  --ss-color-error-border: var(--ss-error-border);
+  --ss-color-info-fg: var(--ss-info);
+  --ss-color-info-bg: var(--ss-info-bg);
   --ss-radius-sm: 6px;
   --ss-radius: 8px;
   --ss-radius-md: 10px;
@@ -3037,7 +3068,8 @@ kbd.sscribe-shortcut-hint {
   margin: 0 4px !important;
 }
 
-#sscribe-preview-disabled-reason {
+#sscribe-preview-disabled-reason,
+.sscribe-preview-disabled-reason {
   display: inline-block !important;
   font-size: 11px !important;
   font-style: italic !important;
@@ -3695,11 +3727,11 @@ kbd.sscribe-shortcut-hint {
     --ss-text-primary: #fafafa;
     --ss-text-secondary: #d4d4d8;
     --ss-text-tertiary: #a1a1aa;
-    --ss-text-muted: #8b8b96;
+    --ss-text-muted: #a1a1aa;
     --ss-text-inverse: #09090b;
-    --ss-brand: #7c75ff;
-    --ss-brand-hover: #8a83ff;
-    --ss-brand-active: #695fff;
+    --ss-brand: #8e89ff;
+    --ss-brand-hover: #a5a0ff;
+    --ss-brand-active: #b8b3ff;
     --ss-brand-soft: #2a2660;
     --ss-brand-tint: #1d1a3f;
     --ss-success: #34d399;
@@ -3843,4 +3875,702 @@ kbd.sscribe-shortcut-hint {
     display: none !important;
     /* stylelint-enable declaration-no-important */
   }
+}
+
+/* ── 7. v3 COMPONENT LIBRARY (additive — only new components) ── */
+
+/* Button size modifiers (existing .sscribe-button-* rules earlier in file) */
+
+.ss-btn-sm {
+  height: 32px;
+  font-size: 12px;
+  padding: 0 12px;
+  border-radius: var(--ss-radius-sm);
+}
+
+.ss-btn-lg {
+  height: 44px;
+  font-size: 14px;
+  padding: 0 22px;
+}
+
+.sscribe-button[aria-disabled="true"] {
+  cursor: not-allowed;
+}
+
+/* ── 7.2 INPUTS ───────────────────────────────────────────── */
+
+.sscribe-input,
+.sscribe-select,
+.sscribe-textarea {
+  width: 100%;
+  height: 40px;
+  padding: 0 12px;
+  border: 1px solid var(--ss-color-border-strong);
+  border-radius: var(--ss-radius-sm, 6px);
+  background: var(--ss-color-bg-surface);
+  color: var(--ss-color-fg-primary);
+  font: 400 13px/1 var(--ss-font);
+  transition: border-color var(--ss-motion-fast) var(--ss-easing);
+}
+
+.sscribe-textarea {
+  height: auto;
+  min-height: 80px;
+  padding: 10px 12px;
+  line-height: 1.5;
+}
+
+.sscribe-input:hover,
+.sscribe-select:hover,
+.sscribe-textarea:hover {
+  border-color: var(--ss-color-fg-tertiary);
+}
+
+.sscribe-input:focus-visible,
+.sscribe-select:focus-visible,
+.sscribe-textarea:focus-visible {
+  outline: 2px solid var(--ss-color-accent);
+  outline-offset: 2px;
+  border-color: var(--ss-color-accent);
+}
+
+.sscribe-input[inputmode="numeric"],
+.sscribe-input[type="number"] {
+  font-variant-numeric: tabular-nums lining-nums;
+  text-align: right;
+}
+
+/* ── 7.3 CARDS, PANELS ────────────────────────────────────── */
+
+.sscribe-card,
+.sscribe-panel {
+  background: var(--ss-color-bg-surface);
+  border: 1px solid var(--ss-color-border);
+  border-radius: var(--ss-radius-lg, 12px);
+}
+
+.sscribe-card-header,
+.sscribe-panel-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 18px 24px;
+  border-bottom: 1px solid var(--ss-color-border);
+}
+
+.sscribe-card-header h2,
+.sscribe-panel-title h2 {
+  margin: 0;
+  font: 600 15px/1.3 var(--ss-font);
+  color: var(--ss-color-fg-primary);
+  letter-spacing: -0.005em;
+}
+
+.sscribe-card-body,
+.sscribe-panel-body {
+  padding: 24px;
+}
+
+.sscribe-card-footer {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 14px 24px;
+  border-top: 1px solid var(--ss-color-border);
+  background: var(--ss-color-bg-inset);
+  border-bottom-left-radius: var(--ss-radius-lg, 12px);
+  border-bottom-right-radius: var(--ss-radius-lg, 12px);
+}
+
+/* ── 7.4 TABLE ────────────────────────────────────────────── */
+
+.sscribe-table {
+  width: 100%;
+  border-collapse: collapse;
+  font: 400 13px/1.4 var(--ss-font);
+  color: var(--ss-color-fg-primary);
+}
+
+.sscribe-table thead th {
+  padding: 10px 16px;
+  font: 600 11px/1.2 var(--ss-font);
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: var(--ss-color-fg-tertiary);
+  background: var(--ss-color-bg-inset);
+  text-align: left;
+  border-bottom: 1px solid var(--ss-color-border);
+}
+
+.sscribe-table tbody td {
+  padding: 12px 16px;
+  border-bottom: 1px solid var(--ss-color-border);
+}
+
+.sscribe-table tbody tr:hover td {
+  background: var(--ss-color-bg-inset);
+}
+
+.sscribe-table tbody tr:last-child td {
+  border-bottom: none;
+}
+
+.sscribe-table .ss-numeric,
+.sscribe-table td[align="right"],
+.sscribe-table th[align="right"] {
+  text-align: right;
+  font-variant-numeric: tabular-nums lining-nums;
+}
+
+/* ── 7.5 CHIPS & BADGES ──────────────────────────────────── */
+
+.sscribe-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  height: 22px;
+  padding: 0 10px;
+  border-radius: var(--ss-radius-full, 9999px);
+  background: var(--ss-color-bg-inset);
+  color: var(--ss-color-fg-secondary);
+  font: 500 12px/1 var(--ss-font);
+  white-space: nowrap;
+}
+
+.sscribe-chip-solid {
+  background: var(--ss-color-accent);
+  color: #fff;
+}
+
+.sscribe-chip-success {
+  background: var(--ss-color-success-bg);
+  color: var(--ss-color-success-fg);
+}
+
+.sscribe-chip-warning {
+  background: var(--ss-color-warning-bg);
+  color: var(--ss-color-warning-fg);
+}
+
+.sscribe-chip-error {
+  background: var(--ss-color-error-bg);
+  color: var(--ss-color-error-fg);
+}
+
+.sscribe-chip-info {
+  background: var(--ss-color-info-bg);
+  color: var(--ss-color-info-fg);
+}
+
+/* ── 7.6 CODE & KBD ──────────────────────────────────────── */
+
+.sscribe-code {
+  font-family: var(--ss-font-mono);
+  font-size: 12.5px;
+  background: var(--ss-color-bg-inset);
+  color: var(--ss-color-fg-primary);
+  padding: 1px 6px;
+  border-radius: var(--ss-radius-sm, 6px);
+  border: 1px solid var(--ss-color-border);
+}
+
+.sscribe-kbd,
+kbd.sscribe-kbd {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 20px;
+  height: 20px;
+  padding: 0 5px;
+  font-family: var(--ss-font-mono);
+  font-size: 11px;
+  color: var(--ss-color-fg-secondary);
+  background: var(--ss-color-bg-surface);
+  border: 1px solid var(--ss-color-border-strong);
+  border-bottom-width: 2px;
+  border-radius: var(--ss-radius-sm, 6px);
+  vertical-align: middle;
+}
+
+/* ── 7.7 BREADCRUMB ─────────────────────────────────────── */
+
+.sscribe-breadcrumb {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 8px;
+  font: 400 13px/1.4 var(--ss-font);
+  color: var(--ss-color-fg-secondary);
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.sscribe-breadcrumb li {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.sscribe-breadcrumb li + li::before {
+  content: "\203A";
+  color: var(--ss-color-fg-muted);
+  font-size: 13px;
+}
+
+.sscribe-breadcrumb a {
+  color: var(--ss-color-fg-secondary);
+  text-decoration: none;
+}
+
+.sscribe-breadcrumb a:hover {
+  color: var(--ss-color-accent);
+}
+
+.sscribe-breadcrumb [aria-current="page"],
+.sscribe-breadcrumb li:last-child {
+  color: var(--ss-color-fg-primary);
+  font-weight: 500;
+}
+
+/* ── 7.8 EMPTY STATE ────────────────────────────────────── */
+
+.sscribe-empty-state {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 12px;
+  padding: 64px 24px;
+  text-align: center;
+}
+
+.sscribe-empty-state-icon {
+  width: 40px;
+  height: 40px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  background: var(--ss-color-bg-inset);
+  border-radius: var(--ss-radius-full, 9999px);
+  color: var(--ss-color-fg-tertiary);
+}
+
+.sscribe-empty-state-title {
+  margin: 0;
+  font: 600 15px/1.3 var(--ss-font);
+  color: var(--ss-color-fg-primary);
+}
+
+.sscribe-empty-state-body {
+  margin: 0;
+  max-width: 360px;
+  font: 400 13px/1.55 var(--ss-font);
+  color: var(--ss-color-fg-secondary);
+}
+
+/* ── 7.9 PROGRESS, SKELETON ─────────────────────────────── */
+
+.sscribe-progress {
+  position: relative;
+  width: 100%;
+  height: 6px;
+  background: var(--ss-color-bg-skeleton);
+  border-radius: var(--ss-radius-full, 9999px);
+  overflow: hidden;
+}
+
+.sscribe-progress-fill {
+  height: 100%;
+  width: 0%;
+  background: var(--ss-color-accent);
+  border-radius: var(--ss-radius-full, 9999px);
+  transition: width var(--ss-motion-base) var(--ss-easing);
+}
+
+.sscribe-progress-finalizing .sscribe-progress-fill {
+  background: var(--ss-color-success-fg);
+}
+
+/* ── 7.10 CHECKBOX / RADIO / SWITCH / SEGMENTED ─────────── */
+
+.sscribe-checkbox,
+.sscribe-radio {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  cursor: pointer;
+  min-height: 40px;
+  padding: 8px 0;
+}
+
+.sscribe-checkbox input,
+.sscribe-radio input {
+  width: 16px;
+  height: 16px;
+  margin: 0;
+  accent-color: var(--ss-color-accent);
+  cursor: pointer;
+}
+
+.sscribe-switch {
+  position: relative;
+  display: inline-block;
+  width: 36px;
+  height: 20px;
+  flex-shrink: 0;
+  cursor: pointer;
+}
+
+.sscribe-switch input {
+  opacity: 0;
+  width: 0;
+  height: 0;
+  position: absolute;
+}
+
+.sscribe-switch-track {
+  position: absolute;
+  inset: 0;
+  background: var(--ss-color-bg-skeleton);
+  border: 1px solid var(--ss-color-border-strong);
+  border-radius: var(--ss-radius-full, 9999px);
+  transition: background-color var(--ss-motion-fast) var(--ss-easing),
+              border-color var(--ss-motion-fast) var(--ss-easing);
+}
+
+.sscribe-switch-knob {
+  position: absolute;
+  top: 2px;
+  left: 2px;
+  width: 14px;
+  height: 14px;
+  background: var(--ss-color-bg-surface);
+  border: 1px solid var(--ss-color-border-strong);
+  border-radius: var(--ss-radius-full, 9999px);
+  transition: transform var(--ss-motion-fast) var(--ss-easing),
+              background-color var(--ss-motion-fast) var(--ss-easing);
+}
+
+.sscribe-switch input:checked + .sscribe-switch-track {
+  background: var(--ss-color-accent);
+  border-color: var(--ss-color-accent);
+}
+
+.sscribe-switch input:checked + .sscribe-switch-track .sscribe-switch-knob {
+  transform: translateX(16px);
+  background: #fff;
+  border-color: #fff;
+}
+
+.sscribe-switch:focus-within .sscribe-switch-track {
+  outline: 2px solid var(--ss-color-accent);
+  outline-offset: 2px;
+}
+
+.sscribe-segmented {
+  display: inline-flex;
+  align-items: stretch;
+  background: var(--ss-color-bg-inset);
+  border: 1px solid var(--ss-color-border);
+  border-radius: var(--ss-radius, 8px);
+  padding: 2px;
+  gap: 2px;
+}
+
+.sscribe-segmented-item {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  height: 32px;
+  padding: 0 12px;
+  border-radius: 6px;
+  font: 500 12px/1 var(--ss-font);
+  color: var(--ss-color-fg-secondary);
+  cursor: pointer;
+  transition: background-color var(--ss-motion-fast) var(--ss-easing),
+              color var(--ss-motion-fast) var(--ss-easing);
+}
+
+.sscribe-segmented-item:hover {
+  color: var(--ss-color-fg-primary);
+}
+
+.sscribe-segmented-item[aria-selected="true"],
+.sscribe-segmented-item.ss-active {
+  background: var(--ss-color-bg-surface);
+  color: var(--ss-color-fg-primary);
+}
+
+.sscribe-segmented-item:focus-visible {
+  outline: 2px solid var(--ss-color-accent);
+  outline-offset: 2px;
+}
+
+/* ── 7.11 TOAST & MODAL (existing .sscribe-toast-* and .sscribe-modal-content* rules earlier) */
+
+.sscribe-toast-warning {
+  background: var(--ss-color-warning-fg);
+}
+
+.sscribe-modal-backdrop {
+  position: fixed;
+  inset: 0;
+  background: rgb(9 9 11 / 50%);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 20px;
+  z-index: 100000;
+}
+
+/* ── 7.12 FORMS ──────────────────────────────────────────── */
+
+.sscribe-form-row {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  width: 100%;
+}
+
+.sscribe-form-row > label {
+  font: 500 12px/1.4 var(--ss-font);
+  color: var(--ss-color-fg-secondary);
+}
+
+.sscribe-form-row .sscribe-form-helper {
+  font: 400 12px/1.4 var(--ss-font);
+  color: var(--ss-color-fg-muted);
+}
+
+.sscribe-form-row .sscribe-form-error {
+  font: 500 12px/1.4 var(--ss-font);
+  color: var(--ss-color-error-fg);
+}
+
+.sscribe-form-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+  gap: 16px;
+}
+
+.sscribe-fieldset {
+  border: 1px solid var(--ss-color-border);
+  border-radius: var(--ss-radius, 8px);
+  padding: 18px 20px;
+  margin: 0;
+}
+
+.sscribe-fieldset legend {
+  padding: 0 8px;
+  font: 600 12px/1 var(--ss-font);
+  color: var(--ss-color-fg-tertiary);
+  text-transform: uppercase;
+  letter-spacing: 0.02em;
+}
+
+/* ── 7.13 TOOLTIP ───────────────────────────────────────── */
+
+[data-tooltip] {
+  position: relative;
+}
+
+[data-tooltip]::after {
+  content: attr(data-tooltip);
+  position: absolute;
+  bottom: calc(100% + 6px);
+  left: 50%;
+  transform: translateX(-50%);
+  padding: 4px 8px;
+  background: #18181b;
+  color: #fff;
+  font: 400 11px/1.4 var(--ss-font);
+  border-radius: var(--ss-radius-sm, 6px);
+  white-space: nowrap;
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity var(--ss-motion-fast) var(--ss-easing);
+  z-index: 100001;
+}
+
+[data-tooltip]:hover::after,
+[data-tooltip]:focus-visible::after {
+  opacity: 1;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  [data-tooltip]::after {
+    transition: none;
+  }
+}
+
+/* 7.14 v3 ORPHAN CLASS COVERAGE
+   Resolves 14 classes used by admin/partials/sscribe-admin-display.php
+   that had no CSS rules. All values are token-driven so the v3 palette,
+   dark mode, and forced-colors media blocks apply uniformly. */
+
+.sscribe-hero-stat-label {
+  font: 500 11px/1.4 var(--ss-font);
+  color: var(--ss-color-fg-muted);
+  letter-spacing: 0.01em;
+}
+
+.sscribe-onboarding-title {
+  font: 600 15px/1.4 var(--ss-font);
+  color: var(--ss-color-fg-primary);
+  letter-spacing: -0.01em;
+  margin: 0 0 4px;
+}
+
+.sscribe-onboarding-copy {
+  font: 400 13px/1.55 var(--ss-font);
+  color: var(--ss-color-fg-secondary);
+  margin: 0 0 12px;
+}
+
+.sscribe-onboarding-close {
+  width: 32px;
+  height: 32px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  background: transparent;
+  border: 1px solid transparent;
+  border-radius: var(--ss-radius-sm, 6px);
+  color: var(--ss-color-fg-muted);
+  font-size: 18px;
+  line-height: 1;
+  cursor: pointer;
+  transition: color var(--ss-motion-fast, 120ms) var(--ss-easing, cubic-bezier(0.2, 0, 0, 1)),
+              background var(--ss-motion-fast, 120ms) var(--ss-easing, cubic-bezier(0.2, 0, 0, 1));
+}
+
+.sscribe-onboarding-close:hover {
+  color: var(--ss-color-fg-primary);
+  background: var(--ss-color-bg-inset);
+}
+
+.sscribe-onboarding-close:focus-visible {
+  outline: 2px solid var(--ss-color-accent);
+  outline-offset: 2px;
+}
+
+.sscribe-progress-actions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-top: 14px;
+}
+
+.sscribe-success-meta {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));
+  gap: 12px;
+  margin: 14px 0 0;
+  padding: 12px 14px;
+  background: var(--ss-color-bg-inset);
+  border: 1px solid var(--ss-color-border);
+  border-radius: var(--ss-radius-md, 8px);
+}
+
+.sscribe-success-meta-item {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  margin: 0;
+  min-width: 0;
+}
+
+.sscribe-success-meta-item dt {
+  font: 500 11px/1.4 var(--ss-font);
+  color: var(--ss-color-fg-muted);
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  margin: 0;
+}
+
+.sscribe-success-meta-item dd {
+  font: 600 14px/1.3 var(--ss-font);
+  color: var(--ss-color-fg-primary);
+  font-variant-numeric: tabular-nums;
+  margin: 0;
+}
+
+.sscribe-modal-close-btn {
+  margin-top: 16px;
+}
+
+.sscribe-button-toggle-details {
+  font-size: 12px;
+  padding: 4px 10px;
+  height: auto;
+  min-height: 28px;
+}
+
+.sscribe-support-section {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  padding: 18px 20px;
+  background: var(--ss-color-bg-surface);
+  border: 1px solid var(--ss-color-border);
+  border-radius: var(--ss-radius-lg, 12px);
+}
+
+.sscribe-support-section-header {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  color: var(--ss-color-fg-primary);
+}
+
+.sscribe-support-section-header h2 {
+  font: 600 14px/1.4 var(--ss-font);
+  margin: 0;
+  color: var(--ss-color-fg-primary);
+}
+
+.sscribe-support-section-copy {
+  font: 400 13px/1.55 var(--ss-font);
+  color: var(--ss-color-fg-secondary);
+  margin: 0;
+}
+
+.sscribe-support-resources {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.sscribe-support-link {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 10px;
+  border-radius: var(--ss-radius-sm, 6px);
+  color: var(--ss-color-fg-secondary);
+  text-decoration: none;
+  font: 500 13px/1.4 var(--ss-font);
+  transition: background var(--ss-motion-fast, 120ms) var(--ss-easing, cubic-bezier(0.2, 0, 0, 1)),
+              color var(--ss-motion-fast, 120ms) var(--ss-easing, cubic-bezier(0.2, 0, 0, 1));
+}
+
+.sscribe-support-link:hover {
+  background: var(--ss-color-bg-inset);
+  color: var(--ss-color-fg-primary);
+}
+
+.sscribe-support-link:focus-visible {
+  outline: 2px solid var(--ss-color-accent);
+  outline-offset: 2px;
+}
+
+.sscribe-support-link svg {
+  flex-shrink: 0;
 }
