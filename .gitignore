@@ -133,3 +133,4 @@ test-phpcs-output.txt
 .playground-tools/
 playground-tools/
 playground-blueprint.json
+screenshots/
