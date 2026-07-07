@@ -161,6 +161,11 @@ opencode.json
 .windsurf/
 .continue/
 .codeium/
+.playwright-mcp/
+
+# WP Playground scratch artifacts (local testing only — never shipped)
+playground-blueprint.json
+playground-tools/
 
 # IDE / IDE assistant (stubs file used by PHPStan + Intelephense, not shipped)
 .stubs/
