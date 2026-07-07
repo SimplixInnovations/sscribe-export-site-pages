@@ -1522,3 +1522,30 @@
     /* stylelint-enable declaration-no-important */
   }
 }
+
+/* v3 component library alignment (additive) */
+
+.sscribe-debug-terminal {
+  --ss-debug-fg: #d4d4d8;
+  --ss-debug-fg-muted: #8b8b96;
+  --ss-debug-accent: #8e89ff;
+  --ss-debug-divider: #27272a;
+}
+
+.sscribe-debug-master .sscribe-empty-state {
+  padding: 48px 24px;
+}
+
+.sscribe-debug-master .sscribe-progress {
+  margin: 12px 0;
+}
+
+.sscribe-debug-master .sscribe-chip-success {
+  background: var(--ss-success-bg);
+  color: var(--ss-success);
+}
+
+.sscribe-debug-master .sscribe-chip-error {
+  background: var(--ss-error-bg);
+  color: var(--ss-error);
+}

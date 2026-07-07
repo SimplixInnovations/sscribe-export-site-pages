@@ -3,7 +3,7 @@ Contributors: simplixinnovations
 Tags: export, docx, pdf, html, markdown
 Requires at least: 6.0
 Tested up to: 7.0
-Stable tag: 1.1.2
+Stable tag: 1.1.3
 Requires PHP: 8.2
 License: GPLv2 or later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
@@ -89,6 +89,14 @@ The bundled Mpdf library (vendor-prefixed/mpdf/) is licensed under the GNU Gener
 
 == Changelog ==
 
+= 1.1.3 =
+* Added full v3 component library: .sscribe-button, .sscribe-input, .sscribe-select, .sscribe-textarea, .sscribe-card, .sscribe-panel, .sscribe-table (with tabular-nums numeric columns), .sscribe-breadcrumb, .sscribe-empty-state, .sscribe-progress, .sscribe-checkbox, .sscribe-radio, .sscribe-switch, .sscribe-segmented, .sscribe-chip, .sscribe-badge, .sscribe-code, .sscribe-kbd, .sscribe-form-row, .sscribe-form-grid, .sscribe-fieldset, .sscribe-modal-backdrop, .sscribe-toast-warning, [data-tooltip] (pure-CSS tooltip).
+* Added semantic role token aliases (--ss-color-fg-primary, --ss-color-bg-surface, --ss-color-accent, --ss-color-success-fg, etc.) so the physical --ss-* palette can be rebalanced without touching component rules.
+* Re-tuned dark-mode palette for true WCAG AA on dark surfaces: brand #7C75FF to #8E89FF, text-muted #8b8b96 to #a1a1aa.
+* Unified focus ring outline rule across 14 control families (button, tab-btn, modal-close, button-icon, toast-dismiss, preflight-close, support-copy-text, format-option-field select, help-link, onboarding-dismiss, post-type/status/format/lang card labels, format-option-checkbox, bulk-select-all, history-check-label). All use `outline: 2px solid var(--ss-color-accent)`.
+* Hit targets normalized: button 40px default, button-icon 40x40, modal-close 40x40, tab-btn 44px, btn-sm 32px, btn-lg 44px. Form inputs and selects 40px tall.
+* Debug console CSS aligned to v3 component system; --ss-debug-* scoped tokens for the dark terminal chrome.
+
 = 1.1.2 =
 * Fixed latent PDF export crash: WordPress themes ship base CSS with `font-family: serif`; mPDF's chain resolution tried to load pruned DejaVu*Condensed / FreeSans / Sun-ExtA TTFs and crashed. fonttrans remap and fontdata overrides close the CSS-keyword, fontdata-entry, and backup-substitution paths on the same crash class.
 
@@ -123,6 +131,9 @@ If you cloned the repository directly, you must run the following once before ac
 This generates the `vendor-prefixed/` directory and the namespaced runtime shim that the plugin depends on. The `.distignore` file excludes both `vendor/` and `vendor-prefixed/` from Git tracking, so a fresh clone will not include them.
 
 == Upgrade Notice ==
+
+= 1.1.3 =
+Full 1000% enterprise UI revamp: complete component library (button, input, table, breadcrumb, modal, toast, switch, segmented, chip, badge, code, kbd, empty-state), semantic role tokens (--ss-color-* aliases), dark-mode contrast tuned for true WCAG AA (brand #8E89FF, muted text #a1a1AA on dark), and unified focus ring outline across 14 control families. No PHP/JS changes, all class names preserved.
 
 = 1.1.2 =
 Recommended update: closes a latent PDF crash that affected pages with standard theme CSS. Exports now render successfully for English/Arabic content; out-of-coverage chars render as ? tofu but no longer crash.

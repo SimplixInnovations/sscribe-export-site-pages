@@ -4,7 +4,6 @@
 This assembles the actual shipped CSS plus a representative markup so the user
 can open it in a browser and confirm the visual state.
 """
-import os
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parent.parent
@@ -71,6 +70,84 @@ body.toplevel_page_sscribe-export {{
 .faux-admin-bar span {{ margin-right: 16px; opacity: 0.85; }}
 #wpcontent {{ background: var(--ss-bg-subtle); min-height: 100vh; }}
 #wpbody-content {{ padding: 0 20px 32px; box-sizing: border-box; }}
+.sscribe-component-row {{
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 12px;
+  padding: 14px 0 22px;
+  border-bottom: 1px dashed var(--ss-color-border, #e4e4e7);
+}}
+.sscribe-component-row:last-child {{ border-bottom: none; }}
+.sscribe-component-row h3 {{
+  flex: 0 0 100%;
+  margin: 0 0 4px;
+  font-weight: 600;
+  color: var(--ss-color-fg-primary, #09090b);
+}}
+.sscribe-switch {{
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+  cursor: pointer;
+  font: 500 13px/1.4 var(--ss-font, -apple-system, sans-serif);
+  color: var(--ss-color-fg-secondary, #3f3f46);
+  margin: 0;
+}}
+.sscribe-switch input {{ position: absolute; opacity: 0; pointer-events: none; width: 0; height: 0; }}
+.sscribe-switch-track {{
+  position: relative;
+  width: 36px;
+  height: 20px;
+  background: var(--ss-color-bg-inset, #e4e4e7);
+  border: 1px solid var(--ss-color-border, #d4d4d8);
+  border-radius: 9999px;
+  transition: background 120ms cubic-bezier(0.2, 0, 0, 1), border-color 120ms cubic-bezier(0.2, 0, 0, 1);
+  flex-shrink: 0;
+}}
+.sscribe-switch-knob {{
+  position: absolute;
+  top: 1px;
+  left: 1px;
+  width: 16px;
+  height: 16px;
+  background: var(--ss-color-fg-tertiary, #71717a);
+  border-radius: 50%;
+  transition: transform 120ms cubic-bezier(0.2, 0, 0, 1), background 120ms cubic-bezier(0.2, 0, 0, 1);
+}}
+.sscribe-switch input:checked + .sscribe-switch-track {{
+  background: var(--ss-color-accent, #635bff);
+  border-color: var(--ss-color-accent, #635bff);
+}}
+.sscribe-switch input:checked + .sscribe-switch-track .sscribe-switch-knob {{
+  transform: translateX(16px);
+  background: #ffffff;
+}}
+.sscribe-progress {{
+  width: 220px;
+  height: 6px;
+  background: var(--ss-color-bg-skeleton, #e4e4e7);
+  border-radius: 9999px;
+  overflow: hidden;
+  display: block;
+}}
+.sscribe-progress-fill {{
+  display: block;
+  height: 100%;
+  width: var(--p, 0%);
+  background: var(--ss-color-accent, #635bff);
+  border-radius: inherit;
+  transition: width 120ms cubic-bezier(0.2, 0, 0, 1);
+}}
+.sscribe-switch-with-label {{
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+  cursor: pointer;
+  font: 500 13px/1.4 var(--ss-font, -apple-system, sans-serif);
+  color: var(--ss-color-fg-secondary, #3f3f46);
+  margin: 0;
+}}
 </style>
 </head>
 <body class="toplevel_page_sscribe-export">
@@ -93,7 +170,7 @@ body.toplevel_page_sscribe-export {{
           <span class="sscribe-hero-eyebrow">SSCRIBE &middot; ENTERPRISE EXPORT</span>
           <div class="sscribe-hero-title-row">
             <h1 class="sscribe-hero-title">SScribe</h1>
-            <span class="sscribe-hero-version">v1.1.2</span>
+            <span class="sscribe-hero-version">v1.1.3</span>
           </div>
           <p class="sscribe-hero-subtitle">Export every page into beautifully formatted documents with multilingual support, SEO meta, and secure ZIP download.</p>
         </div>
@@ -275,7 +352,141 @@ body.toplevel_page_sscribe-export {{
       </div>
 
     </div>
+
+    <section class="sscribe-panel" style="margin-top: 24px;">
+      <div class="sscribe-panel-header">
+        <div class="sscribe-panel-title">{icon_info}<h2>Component Library (v3)</h2></div>
+      </div>
+      <div class="sscribe-panel-body">
+
+        <nav class="sscribe-breadcrumb" aria-label="Breadcrumb">
+          <a href="#">Export</a>
+          <span class="sscribe-breadcrumb-sep" aria-hidden="true">&rsaquo;</span>
+          <a href="#">History</a>
+          <span class="sscribe-breadcrumb-sep" aria-hidden="true">&rsaquo;</span>
+          <span aria-current="page">2026-07-07-fidelity-package</span>
+        </nav>
+
+        <div class="sscribe-component-row">
+          <h3 class="sscribe-type-h3">Buttons</h3>
+          <button type="button" class="sscribe-button sscribe-button-primary">{icon_download}Export Now</button>
+          <button type="button" class="sscribe-button sscribe-button-secondary">Save Profile</button>
+          <button type="button" class="sscribe-button sscribe-button-outline">Preview</button>
+          <button type="button" class="sscribe-button sscribe-button-ghost">Cancel</button>
+          <button type="button" class="sscribe-button sscribe-button-success">{icon_check}Done</button>
+          <button type="button" class="sscribe-button sscribe-button-danger">Delete</button>
+          <button type="button" class="sscribe-button sscribe-button-cancel">Stop</button>
+        </div>
+
+        <div class="sscribe-component-row">
+          <h3 class="sscribe-type-h3">Sizes &amp; icons</h3>
+          <button type="button" class="sscribe-button sscribe-button-primary ss-btn-sm">Small</button>
+          <button type="button" class="sscribe-button sscribe-button-primary">Default</button>
+          <button type="button" class="sscribe-button sscribe-button-primary ss-btn-lg">Large</button>
+          <button type="button" class="sscribe-button-icon" aria-label="Refresh">{icon_clock}</button>
+          <button type="button" class="sscribe-button-icon sscribe-button-icon-danger" aria-label="Delete">{icon_info}</button>
+        </div>
+
+        <div class="sscribe-component-row">
+          <h3 class="sscribe-type-h3">Inputs</h3>
+          <input type="text" class="sscribe-input" placeholder="Export name" />
+          <select class="sscribe-select" style="width: 200px;">
+            <option>English</option>
+            <option>Arabic</option>
+          </select>
+          <textarea class="sscribe-textarea" rows="2" style="width: 280px;" placeholder="Description"></textarea>
+          <input type="text" class="sscribe-input" inputmode="numeric" value="247" style="width: 100px;" />
+        </div>
+
+        <div class="sscribe-component-row">
+          <h3 class="sscribe-type-h3">Chips &amp; badges</h3>
+          <span class="sscribe-chip">Pages</span>
+          <span class="sscribe-chip sscribe-chip-solid">247</span>
+          <span class="sscribe-chip sscribe-chip-success">Ready</span>
+          <span class="sscribe-chip sscribe-chip-warning">Pending</span>
+          <span class="sscribe-chip sscribe-chip-error">Failed</span>
+          <span class="sscribe-chip sscribe-chip-info">Info</span>
+          <span class="sscribe-badge">NEW</span>
+          <span class="sscribe-badge sscribe-badge-success">OK</span>
+        </div>
+
+        <div class="sscribe-component-row">
+          <h3 class="sscribe-type-h3">Code &amp; kbd</h3>
+          <code class="sscribe-code">sscribe_export_options_pdf</code>
+          <kbd class="sscribe-kbd">Ctrl</kbd>
+          <span>+</span>
+          <kbd class="sscribe-kbd">S</kbd>
+          <span>to save</span>
+        </div>
+
+        <div class="sscribe-component-row">
+          <h3 class="sscribe-type-h3">Switch, segmented &amp; progress</h3>
+          <label class="sscribe-switch-with-label">
+            <span class="sscribe-switch">
+              <input type="checkbox" checked />
+              <span class="sscribe-switch-track"><span class="sscribe-switch-knob"></span></span>
+            </span>
+            <span>Include drafts</span>
+          </label>
+          <div class="sscribe-segmented" role="radiogroup" aria-label="Format family">
+            <button type="button" class="sscribe-segmented-item sscribe-segmented-item-active" role="radio" aria-checked="true">All</button>
+            <button type="button" class="sscribe-segmented-item" role="radio" aria-checked="false">Document</button>
+            <button type="button" class="sscribe-segmented-item" role="radio" aria-checked="false">Web</button>
+          </div>
+          <div class="sscribe-progress" style="--p: 64%;" role="progressbar" aria-valuenow="64" aria-valuemin="0" aria-valuemax="100">
+            <div class="sscribe-progress-fill"></div>
+          </div>
+        </div>
+
+        <div class="sscribe-component-row">
+          <h3 class="sscribe-type-h3">Tooltip &amp; empty state</h3>
+          <button type="button" class="sscribe-button sscribe-button-outline" data-tooltip="Run with English + Arabic in parallel">Multi-language</button>
+          <div class="sscribe-empty-state" style="background: var(--ss-color-bg-surface); border: 1px solid var(--ss-color-border); border-radius: var(--ss-radius-lg, 12px); margin-top: 12px;">
+            <div class="sscribe-empty-state-icon">{icon_doc}</div>
+            <div class="sscribe-empty-state-title">No exports yet</div>
+            <p class="sscribe-empty-state-body">Pick a content type, choose a format, and click Export Now. The result will appear here within minutes.</p>
+            <button type="button" class="sscribe-button sscribe-button-primary">Start first export</button>
+          </div>
+        </div>
+
+        <div class="sscribe-component-row">
+          <h3 class="sscribe-type-h3">Form rows</h3>
+          <div class="sscribe-form-grid">
+            <div class="sscribe-form-row">
+              <label class="sscribe-form-label">Export name</label>
+              <input type="text" class="sscribe-input" value="2026-07-07-fidelity-package" />
+              <span class="sscribe-form-helper">Lowercase, dash-separated. Used in the ZIP file name.</span>
+            </div>
+            <div class="sscribe-form-row">
+              <label class="sscribe-form-label">Owner email</label>
+              <input type="email" class="sscribe-input" value="compliance@example.com" />
+              <span class="sscribe-form-helper">Notified when the export completes.</span>
+            </div>
+          </div>
+          <fieldset class="sscribe-fieldset">
+            <legend>Advanced</legend>
+            <label class="sscribe-switch-with-label">
+              <span class="sscribe-switch">
+                <input type="checkbox" />
+                <span class="sscribe-switch-track"><span class="sscribe-switch-knob"></span></span>
+              </span>
+              <span>Embed external images</span>
+            </label>
+          </fieldset>
+        </div>
+
+        <div class="sscribe-component-row">
+          <h3 class="sscribe-type-h3">Toasts</h3>
+          <div class="sscribe-toast sscribe-toast-success">{icon_check}Export completed in 3m 41s.</div>
+          <div class="sscribe-toast sscribe-toast-warning">{icon_info}Background fetch encountered a soft retry.</div>
+          <div class="sscribe-toast sscribe-toast-error">{icon_info}Permission denied on attachment 4.</div>
+        </div>
+
+      </div>
+    </section>
+
   </div>
+</div>
 
   <div style="height: 40px;"></div>
 </div>
