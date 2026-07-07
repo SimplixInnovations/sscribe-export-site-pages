@@ -1882,7 +1882,7 @@
  * Applies inline styles to context table cells to ensure proper padding
  * regardless of CSS specificity conflicts.
  */
-(function() {
+(function($) {
   'use strict';
 
   var KEY_STYLE = 'padding:10px 20px;line-height:1.7;font-size:12.5px;border-top:1px solid rgb(255 255 255 / 7%);vertical-align:top;';
@@ -1948,7 +1948,7 @@
       }
     }, 800);
   });
-}()); 
+})(jQuery);
 
 /* === Click-triggered context styling patch ===
  * Listens to click events on debug entries and re-applies inline styles

@@ -634,8 +634,16 @@ class SScribe_Diagnostics {
 
 		$ttfonts_dir = SSCRIBE_PLUGIN_DIR . 'vendor-prefixed/mpdf/mpdf/ttfonts';
 		if ( is_dir( $ttfonts_dir ) ) {
-			$font_files = glob( $ttfonts_dir . '/*.{ttf,otf,txt}', GLOB_BRACE );
-			$count      = is_array( $font_files ) ? count( $font_files ) : 0;
+			$glob_flags = defined( 'GLOB_BRACE' ) ? GLOB_BRACE : 0;
+			$font_files = glob( $ttfonts_dir . '/*.{ttf,otf,txt}', $glob_flags );
+			if ( ! is_array( $font_files ) ) {
+				$font_files = array_merge(
+					(array) glob( $ttfonts_dir . '/*.ttf' ),
+					(array) glob( $ttfonts_dir . '/*.otf' ),
+					(array) glob( $ttfonts_dir . '/*.txt' )
+				);
+			}
+			$count      = count( $font_files );
 			if ( $count < self::MIN_MPDF_FONT_COUNT ) {
 				return array(
 					'name'    => 'mPDF Library',
@@ -769,7 +777,7 @@ class SScribe_Diagnostics {
 		);
 
 		$orphaned = 0;
-		foreach ( $options as $option ) {
+		foreach ( (array) $options as $option ) {
 			$decoded = is_string( $option->option_value ) ? json_decode( $option->option_value, true ) : null;
 			if ( is_array( $decoded ) && ( $decoded['status'] ?? '' ) === 'processing' ) {
 				++$orphaned;
@@ -1092,7 +1100,7 @@ class SScribe_Diagnostics {
 			)
 		);
 
-		foreach ( $options as $option ) {
+		foreach ( (array) $options as $option ) {
 			$data = $session->decode_session_value( $option->option_value ?? '' );
 
 			if ( ! is_array( $data ) ) {
