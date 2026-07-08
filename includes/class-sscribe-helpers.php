@@ -101,6 +101,72 @@ class SScribe_Helpers {
 	}
 
 	/**
+	 * Get an icon as inline SVG so currentColor resolves correctly.
+	 *
+	 * Use this when an icon must inherit its color from CSS (e.g. white
+	 * check on a colored selected-state circle). For most other uses,
+	 * get_icon() with the <img> tag is preferred.
+	 *
+	 * @param string $name      Icon name.
+	 * @param int    $size      Icon size in pixels.
+	 * @param string $css_class Additional CSS classes.
+	 * @return string
+	 */
+	public static function get_icon_inline( string $name, int $size = 20, string $css_class = '' ): string {
+		$cache_key = 'inline:' . $name . ':' . $size . ':' . $css_class;
+		if ( isset( self::$icon_cache[ $cache_key ] ) ) {
+			return self::$icon_cache[ $cache_key ];
+		}
+
+		$file_path = SSCRIBE_PLUGIN_DIR . self::$icons_dir . $name . '.svg';
+
+		if ( ! file_exists( $file_path ) ) {
+			return '';
+		}
+
+		$raw = file_get_contents( $file_path );
+		if ( false === $raw || '' === $raw ) {
+			return '';
+		}
+
+		$raw = (string) $raw;
+
+		$classes = 'sscribe-icon sscribe-icon-' . sanitize_html_class( $name );
+		if ( '' !== $css_class ) {
+			$parts     = preg_split( '/\s+/', trim( $css_class ), -1, PREG_SPLIT_NO_EMPTY );
+			$sanitized = array();
+			foreach ( $parts as $part ) {
+				$cleaned = sanitize_html_class( $part );
+				if ( '' !== $cleaned ) {
+					$sanitized[] = $cleaned;
+				}
+			}
+			if ( ! empty( $sanitized ) ) {
+				$classes .= ' ' . implode( ' ', $sanitized );
+			}
+		}
+
+		$abs_size = absint( $size );
+
+		if ( strpos( $raw, '<svg' ) !== false ) {
+			$raw = preg_replace( '/\s(width|height)="[^"]*"/i', '', $raw, 2 );
+		}
+
+		$svg  = preg_replace(
+			'/<svg\b/i',
+			'<svg width="' . $abs_size . '" height="' . $abs_size . '" class="' . esc_attr( $classes ) . '" aria-hidden="true"',
+			$raw,
+			1
+		);
+		if ( null === $svg ) {
+			$svg = $raw;
+		}
+
+		self::$icon_cache[ $cache_key ] = $svg;
+		return $svg;
+	}
+
+	/**
 	 * Get the client IP address.
 	 *
 	 * @return string
