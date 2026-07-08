@@ -150,7 +150,7 @@ $sscribe_export_index    = $sscribe_export_index ?? array();
 									<div class="sscribe-post-type-selector">
 										<?php // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- SVG sanitized in get_icon().
 										?>
-										<?php echo wp_kses_post( SScribe_Helpers::get_icon( 'check', 16, 'sscribe-check-icon' ) ); ?>
+										<?php echo wp_kses_post( SScribe_Helpers::get_icon_inline( 'check', 16, 'sscribe-check-icon' ) ); ?>
 									</div>
 								</div>
 							</label>
@@ -169,7 +169,7 @@ $sscribe_export_index    = $sscribe_export_index ?? array();
 									<div class="sscribe-post-type-selector">
 										<?php // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- SVG sanitized in get_icon().
 										?>
-										<?php echo wp_kses_post( SScribe_Helpers::get_icon( 'check', 16, 'sscribe-check-icon' ) ); ?>
+										<?php echo wp_kses_post( SScribe_Helpers::get_icon_inline( 'check', 16, 'sscribe-check-icon' ) ); ?>
 									</div>
 								</div>
 							</label>
@@ -188,7 +188,7 @@ $sscribe_export_index    = $sscribe_export_index ?? array();
 									<div class="sscribe-post-type-selector">
 										<?php // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- SVG sanitized in get_icon().
 										?>
-										<?php echo wp_kses_post( SScribe_Helpers::get_icon( 'check', 16, 'sscribe-check-icon' ) ); ?>
+										<?php echo wp_kses_post( SScribe_Helpers::get_icon_inline( 'check', 16, 'sscribe-check-icon' ) ); ?>
 									</div>
 								</div>
 							</label>
@@ -224,7 +224,7 @@ $sscribe_export_index    = $sscribe_export_index ?? array();
 									<div class="sscribe-lang-selector">
 										<?php // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- SVG sanitized in get_icon().
 										?>
-										<?php echo wp_kses_post( SScribe_Helpers::get_icon( 'check', 14, 'sscribe-check-icon' ) ); ?>
+										<?php echo wp_kses_post( SScribe_Helpers::get_icon_inline( 'check', 14, 'sscribe-check-icon' ) ); ?>
 									</div>
 								</div>
 							</label>
@@ -248,7 +248,7 @@ $sscribe_export_index    = $sscribe_export_index ?? array();
 										<div class="sscribe-lang-selector">
 											<?php // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- SVG sanitized in get_icon().
 											?>
-											<?php echo wp_kses_post( SScribe_Helpers::get_icon( 'check', 14, 'sscribe-check-icon' ) ); ?>
+											<?php echo wp_kses_post( SScribe_Helpers::get_icon_inline( 'check', 14, 'sscribe-check-icon' ) ); ?>
 										</div>
 									</div>
 								</label>
@@ -310,7 +310,7 @@ $sscribe_export_index    = $sscribe_export_index ?? array();
 									<div class="sscribe-status-selector">
 										<?php // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- SVG sanitized in get_icon().
 										?>
-										<?php echo wp_kses_post( SScribe_Helpers::get_icon( 'check', 14, 'sscribe-check-icon' ) ); ?>
+										<?php echo wp_kses_post( SScribe_Helpers::get_icon_inline( 'check', 14, 'sscribe-check-icon' ) ); ?>
 									</div>
 								</div>
 							</label>
@@ -339,7 +339,7 @@ $sscribe_export_index    = $sscribe_export_index ?? array();
 									<div class="sscribe-format-selector">
 										<?php // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- SVG sanitized in get_icon().
 										?>
-										<?php echo wp_kses_post( SScribe_Helpers::get_icon( 'check', 14, 'sscribe-check-icon' ) ); ?>
+										<?php echo wp_kses_post( SScribe_Helpers::get_icon_inline( 'check', 14, 'sscribe-check-icon' ) ); ?>
 									</div>
 								</div>
 							</label>
@@ -383,7 +383,7 @@ $sscribe_export_index    = $sscribe_export_index ?? array();
 									<div class="sscribe-format-selector">
 										<?php // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- SVG sanitized in get_icon().
 										?>
-										<?php echo wp_kses_post( SScribe_Helpers::get_icon( 'check', 14, 'sscribe-check-icon' ) ); ?>
+										<?php echo wp_kses_post( SScribe_Helpers::get_icon_inline( 'check', 14, 'sscribe-check-icon' ) ); ?>
 									</div>
 								</div>
 							</label>
@@ -569,7 +569,7 @@ $sscribe_export_index    = $sscribe_export_index ?? array();
 						<span class="sscribe-phase-dot" aria-hidden="true"></span>
 						<span class="sscribe-phase-label"><?php esc_html_e( 'Reading pages', 'sscribe-export-site-pages' ); ?></span>
 						<?php
-						echo wp_kses_post( SScribe_Helpers::get_icon( 'check', 12, 'sscribe-phase-check' ) );
+						echo wp_kses_post( SScribe_Helpers::get_icon_inline( 'check', 12, 'sscribe-phase-check' ) );
 						?>
 					</div>
 					<span class="sscribe-phase-connector" aria-hidden="true"></span>
@@ -577,7 +577,7 @@ $sscribe_export_index    = $sscribe_export_index ?? array();
 						<span class="sscribe-phase-dot" aria-hidden="true"></span>
 						<span class="sscribe-phase-label"><?php esc_html_e( 'Generating files', 'sscribe-export-site-pages' ); ?></span>
 						<?php
-						echo wp_kses_post( SScribe_Helpers::get_icon( 'check', 12, 'sscribe-phase-check' ) );
+						echo wp_kses_post( SScribe_Helpers::get_icon_inline( 'check', 12, 'sscribe-phase-check' ) );
 						?>
 					</div>
 					<span class="sscribe-phase-connector" aria-hidden="true"></span>
@@ -585,7 +585,7 @@ $sscribe_export_index    = $sscribe_export_index ?? array();
 						<span class="sscribe-phase-dot" aria-hidden="true"></span>
 						<span class="sscribe-phase-label"><?php esc_html_e( 'Packaging ZIP', 'sscribe-export-site-pages' ); ?></span>
 						<?php
-						echo wp_kses_post( SScribe_Helpers::get_icon( 'check', 12, 'sscribe-phase-check' ) );
+						echo wp_kses_post( SScribe_Helpers::get_icon_inline( 'check', 12, 'sscribe-phase-check' ) );
 						?>
 					</div>
 				</div>

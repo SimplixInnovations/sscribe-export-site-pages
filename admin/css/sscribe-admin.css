@@ -474,7 +474,8 @@
   background: var(--ss-surface);
   border: 1px solid var(--ss-border);
   border-radius: var(--ss-radius-md);
-  transition: border-color 120ms ease, background 120ms ease;
+  box-shadow: 0 0 0 0 transparent;
+  transition: border-color 120ms ease, background 120ms ease, box-shadow 120ms ease;
   min-height: 64px;
   min-width: 0;
 }
@@ -495,9 +496,9 @@
 .sscribe-status-card-label input:checked ~ .sscribe-status-card-inner,
 .sscribe-format-card-label input:checked ~ .sscribe-format-card-inner,
 .sscribe-lang-card-label input:checked ~ .sscribe-lang-card-inner {
-  border: 2px solid var(--ss-brand);
-  padding: calc(var(--ss-space-3) - 1px) calc(var(--ss-space-4) - 1px);
+  border-color: var(--ss-brand);
   background: var(--ss-brand-soft);
+  box-shadow: inset 0 0 0 1px var(--ss-brand);
 }
 
 .sscribe-post-type-icon,
@@ -564,9 +565,9 @@
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  color: transparent;
   flex-shrink: 0;
-  transition: border-color 120ms ease, background 120ms ease, color 120ms ease;
+  overflow: hidden;
+  transition: border-color 120ms ease, background 120ms ease;
 }
 
 .sscribe-post-type-selector svg,
@@ -575,6 +576,10 @@
 .sscribe-lang-selector svg {
   width: 12px;
   height: 12px;
+  display: block;
+  opacity: 0;
+  transition: opacity 120ms ease;
+  color: var(--ss-text-inverse);
 }
 
 .sscribe-post-type-card input:checked ~ .sscribe-post-type-card-inner .sscribe-post-type-selector,
@@ -583,7 +588,13 @@
 .sscribe-lang-card-label input:checked ~ .sscribe-lang-card-inner .sscribe-lang-selector {
   border-color: var(--ss-brand);
   background: var(--ss-brand);
-  color: var(--ss-text-inverse);
+}
+
+.sscribe-post-type-card input:checked ~ .sscribe-post-type-card-inner .sscribe-post-type-selector svg,
+.sscribe-status-card-label input:checked ~ .sscribe-status-card-inner .sscribe-status-selector svg,
+.sscribe-format-card-label input:checked ~ .sscribe-format-card-inner .sscribe-format-selector svg,
+.sscribe-lang-card-label input:checked ~ .sscribe-lang-card-inner .sscribe-lang-selector svg {
+  opacity: 1;
 }
 
 .sscribe-lang-card-all .sscribe-lang-card-inner,
@@ -2396,19 +2407,24 @@
 .sscribe-button#sscribe-new-export-btn,
 .sscribe-confirm-original,
 .sscribe-confirm-timeout {
-  font-size: 11px;
-  color: var(--ss-text-muted);
+  font-size: 13px;
+  color: var(--ss-text-secondary);
   margin-left: var(--ss-space-2);
+  min-height: 32px;
+  padding: 0 var(--ss-space-3);
 }
 
 .sscribe-button .sscribe-back-to-current {
-  font-size: 12px;
+  font-size: 13px;
   color: var(--ss-text-secondary);
   background: transparent;
   border: 1px solid var(--ss-border);
-  padding: 4px var(--ss-space-3);
+  padding: 0 var(--ss-space-3);
+  min-height: 32px;
   border-radius: var(--ss-radius-sm);
   cursor: pointer;
+  display: inline-flex;
+  align-items: center;
 }
 
 .sscribe-button .sscribe-back-to-current:hover {
@@ -4504,10 +4520,9 @@ kbd.sscribe-kbd {
 }
 
 .sscribe-button-toggle-details {
-  font-size: 12px;
-  padding: 4px 10px;
-  height: auto;
-  min-height: 28px;
+  font-size: 13px;
+  padding: 0 var(--ss-space-3);
+  min-height: 32px;
 }
 
 .sscribe-support-section {
