@@ -12,11 +12,13 @@
   --ss-text-tertiary: #52525b;
   --ss-text-muted: #71717a;
   --ss-text-inverse: #fafafa;
-  --ss-brand: #635bff;
-  --ss-brand-hover: #5247e0;
-  --ss-brand-active: #4039c0;
-  --ss-brand-soft: #ebe9ff;
-  --ss-brand-tint: #f5f4ff;
+  --ss-brand: #3d7a5a;
+  --ss-brand-hover: #2f6146;
+  --ss-brand-active: #234b37;
+  --ss-brand-soft: #d4e7dc;
+  --ss-brand-tint: #e8f2ec;
+  --ss-brand-mark: #68a885;
+  --ss-brand-mark-soft: #b5d6c2;
   --ss-success: #00875a;
   --ss-success-bg: #e6f6f0;
   --ss-success-border: #abefc6;
@@ -208,7 +210,7 @@
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  color: var(--ss-brand);
+  color: var(--ss-brand-mark);
   flex-shrink: 0;
 }
 
@@ -803,9 +805,9 @@
 }
 
 .sscribe-summary-pages {
-  background: var(--ss-brand);
-  color: #fff;
-  border-color: var(--ss-brand);
+  background: var(--ss-brand-mark);
+  color: #0f2a1d;
+  border-color: var(--ss-brand-mark);
 }
 
 .sscribe-summary-time {
@@ -2952,7 +2954,7 @@
 
 /* ═══════════════════════════════════════════
    UX REFINEMENT BLOCK (10) — additions for the v1.1.2 polish pass.
-   Patterns: 1px hairlines, brand-purple focus rings, no shadows,
+   Patterns: 1px hairlines, brand focus rings, no shadows,
    no gradients, no transforms, no rgba() decimal alpha.
    ═══════════════════════════════════════════ */
 
@@ -3817,11 +3819,13 @@ kbd.sscribe-shortcut-hint {
     --ss-text-tertiary: #a1a1aa;
     --ss-text-muted: #a1a1aa;
     --ss-text-inverse: #09090b;
-    --ss-brand: #8e89ff;
-    --ss-brand-hover: #a5a0ff;
-    --ss-brand-active: #b8b3ff;
-    --ss-brand-soft: #312d6b;
-    --ss-brand-tint: #1d1a3f;
+    --ss-brand: #4d8a6a;
+    --ss-brand-hover: #5fa983;
+    --ss-brand-active: #6ab088;
+    --ss-brand-soft: #1f3a2c;
+    --ss-brand-tint: #142a1f;
+    --ss-brand-mark: #7fc6a3;
+    --ss-brand-mark-soft: #2f5942;
     --ss-success: #34d399;
     --ss-success-bg: #022c1f;
     --ss-success-border: #064e3b;

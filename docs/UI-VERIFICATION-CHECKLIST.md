@@ -37,8 +37,9 @@ Positive checks:
 | Pattern | Expected | Why |
 |---|---|---|
 | `:focus-visible` | ≥ 14 | One ring covering 14 control families |
-| `--ss-color-accent: #635bff` (light) | 1 | Brand color on light |
-| `--ss-color-accent: #8e89ff` (dark, case-insensitive) | 1 | AA-tuned brand on dark |
+| `--ss-color-accent: #3d7a5a` (light) | 1 | Brand color on light (Simplixi green, AA white text) |
+| `--ss-color-accent: #4d8a6a` (dark, case-insensitive) | 1 | AA-tuned brand on dark |
+| `--ss-brand-mark: #68a885` (light) / `#7fc6a3` (dark) | 2 | Simplixi brand decoration (logo, hero, not for buttons) |
 | `--ss-text-muted: #71717a` (light) | 1 | AA-passing muted text |
 | `--ss-text-muted: #a1a1aa` (dark) | 1 | AA-tuned muted on dark |
 
