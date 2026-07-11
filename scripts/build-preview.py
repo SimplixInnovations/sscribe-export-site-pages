@@ -116,8 +116,8 @@ body.toplevel_page_sscribe-export {{
   transition: transform 120ms cubic-bezier(0.2, 0, 0, 1), background 120ms cubic-bezier(0.2, 0, 0, 1);
 }}
 .sscribe-switch input:checked + .sscribe-switch-track {{
-  background: var(--ss-color-accent, #635bff);
-  border-color: var(--ss-color-accent, #635bff);
+  background: var(--ss-color-accent, #3d7a5a);
+  border-color: var(--ss-color-accent, #3d7a5a);
 }}
 .sscribe-switch input:checked + .sscribe-switch-track .sscribe-switch-knob {{
   transform: translateX(16px);
@@ -135,7 +135,7 @@ body.toplevel_page_sscribe-export {{
   display: block;
   height: 100%;
   width: var(--p, 0%);
-  background: var(--ss-color-accent, #635bff);
+  background: var(--ss-color-accent, #3d7a5a);
   border-radius: inherit;
   transition: width 120ms cubic-bezier(0.2, 0, 0, 1);
 }}

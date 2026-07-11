@@ -454,8 +454,8 @@
 
 .sscribe-debug-entry-badge-info,
 .sscribe-debug-entry-badge-notice {
-  background: #ebe9ff;
-  color: #4039c0;
+  background: #d4e7dc;
+  color: #234b37;
 }
 
 .sscribe-debug-entry-badge-warning {
@@ -1528,7 +1528,7 @@
 .sscribe-debug-terminal {
   --ss-debug-fg: #d4d4d8;
   --ss-debug-fg-muted: #8b8b96;
-  --ss-debug-accent: #8e89ff;
+  --ss-debug-accent: #4d8a6a;
   --ss-debug-divider: #27272a;
 }
 

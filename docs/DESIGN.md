@@ -18,7 +18,7 @@ This doc covers the admin surface (the `SScribe Export` admin page and its sub-t
 The v3 system is built on five principles:
 
 1. **Restraint over decoration.** No gradients, no shadows, no glow, no decorative animation. Hierarchy comes from type ramp, spacing, and hairline borders. A card looks like a piece of paper sitting on the page - not like a floating panel with a halo.
-2. **Tokens, not hardcoded values.** Every color, font size, radius, and motion duration resolves to a CSS custom property. Components never hardcode `#635bff` or `8px` - they use `var(--ss-color-accent)` and `var(--ss-radius-md)`. This lets dark mode, future rebrand, and accessibility tuning work without touching component rules.
+2. **Tokens, not hardcoded values.** Every color, font size, radius, and motion duration resolves to a CSS custom property. Components never hardcode `#3d7a5a` or `8px` - they use `var(--ss-color-accent)` and `var(--ss-radius-md)`. This lets dark mode, future rebrand, and accessibility tuning work without touching component rules.
 3. **Semantic roles, physical palette.** Components consume semantic tokens (`--ss-color-fg-primary`, `--ss-color-bg-inset`). Semantic tokens alias physical tokens (`--ss-text-primary`, `--ss-surface-2`). Want to rebalance the dark mode palette? Change the physical tokens; every component re-tunes for free.
 4. **AA on dark.** The admin often runs in dark mode (macOS, Windows, GNOME 42+, Android). The dark palette is tuned for true WCAG AA - body text ≥ 4.5:1, large text ≥ 3:1, brand accent ≥ 4.5:1 for primary interactive use. Verified ratios documented per token.
 5. **Native semantics first.** Buttons are `<button>`. Inputs are `<input>`. Tables are `<table>`. ARIA is used only where a custom widget cannot be a native element (modal, toast container, segmented control). No `role="button"` on `<div>`, no fake lists.
@@ -66,10 +66,12 @@ No `-webkit-` prefixes on standardized properties (no `-webkit-transform`, no `-
 | `--ss-text-secondary` | `#3f3f46` | 9.7:1 | Secondary body |
 | `--ss-text-tertiary` | `#52525b` | 7.3:1 | Labels |
 | `--ss-text-muted` | `#71717a` | 4.83:1 | Captions, placeholders (passes AA) |
-| `--ss-brand` | `#635bff` | 5.9:1 | Primary interactive |
-| `--ss-brand-hover` | `#5046e5` | - | Hover state |
-| `--ss-brand-active` | `#3d34d3` | - | Pressed |
-| `--ss-brand-tint` | `#ebe9ff` | - | Subtle selection bg |
+| `--ss-brand` | `#3d7a5a` | 5.1:1 | Primary interactive (AA white text) |
+| `--ss-brand-hover` | `#2f6146` | - | Hover state |
+| `--ss-brand-active` | `#234b37` | - | Pressed |
+| `--ss-brand-soft` | `#d4e7dc` | - | Selected card bg |
+| `--ss-brand-tint` | `#e8f2ec` | - | Subtle selection bg |
+| `--ss-brand-mark` | `#68a885` | - | Logo / hero decoration (the Simplixi brand) |
 | `--ss-success` | `#16a34a` | - | Success state |
 | `--ss-warning` | `#d97706` | - | Warning state |
 | `--ss-error` | `#dc2626` | - | Error state |
@@ -91,10 +93,12 @@ Tuned for true WCAG AA on dark surfaces. Defined in `prefers-color-scheme: dark`
 | `--ss-text-secondary` | `#3f3f46` | `#d4d4d8` | 11.0:1 |
 | `--ss-text-tertiary` | `#52525b` | `#a1a1aa` | 7.1:1 |
 | `--ss-text-muted` | `#71717a` | `#a1a1aa` | 7.1:1 |
-| `--ss-brand` | `#635bff` | `#8e89ff` | 6.4:1 |
-| `--ss-brand-hover` | `#5046e5` | `#a5a0ff` | 8.1:1 |
-| `--ss-brand-active` | `#3d34d3` | `#b8b3ff` | 10.4:1 |
-| `--ss-brand-tint` | `#ebe9ff` | `#1e1b4b` | - |
+| `--ss-brand` | `#3d7a5a` | `#4d8a6a` | 4.2:1 (large UI) / 5.1:1 (white text on light) |
+| `--ss-brand-hover` | `#2f6146` | `#5fa983` | - |
+| `--ss-brand-active` | `#234b37` | `#6ab088` | - |
+| `--ss-brand-soft` | `#d4e7dc` | `#1f3a2c` | - |
+| `--ss-brand-tint` | `#e8f2ec` | `#142a1f` | - |
+| `--ss-brand-mark` | `#68a885` | `#7fc6a3` | - (decoration) |
 
 ### 3.4 Semantic role tokens
 
@@ -362,7 +366,7 @@ v2 polish shipped the dark mode, reduced motion, and forced-colors media blocks.
 
 - 27 semantic role tokens (no palette changes; pure aliasing).
 - Full component library (input, select, textarea, table, breadcrumb, chip, code, kbd, segmented, switch, progress, empty-state, modal-backdrop, tooltip, form-row/grid/fieldset).
-- Token-driven dark-mode re-tune: brand `#7c75ff` → `#8e89ff`, muted text `#8b8b96` → `#a1a1aa`, others normalized to the 11-step palette.
+- Token-driven dark-mode re-tune: brand `#3d7a5a` (light) / `#4d8a6a` (dark), muted text `#71717a` / `#a1a1aa`, others normalized to the 11-step palette. Simplixi brand mark `#68a885` reserved for hero/logo.
 - Hit-target normalization to 40px default + intentional `.ss-btn-sm` and `.ss-btn-lg` modifiers.
 - Unified `:focus-visible` ring across 14 control families.
 
@@ -373,7 +377,7 @@ All existing class names are preserved. New utility classes use the `.ss-type-*`
 ## 11. References
 
 - LongCipher design system - `designmd.ai` (restraint, tabular-nums, anti-patterns).
-- DocuForge design system - `designmd.ai` (blue-purple-gray palette, button hierarchy, status badge conventions).
-- Genesis design system - `designmd.ai` (indigo interactive, 4px spacing, pill chips).
+- DocuForge design system - `designmd.ai` (button hierarchy, status badge conventions, code-style chips).
+- Genesis design system - `designmd.ai` (spacing discipline, 12px card radius, pill chips).
 - WCAG AA - `w3.org/WAI/WCAG21/Understanding/contrast-minimum.html`.
 - `forced-colors` spec - `drafts.csswg.org/csswg-drafts/mediaqueries-5/#forced-colors`.
