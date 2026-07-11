@@ -511,11 +511,18 @@
 						self._countsLoaded = true;
 						self.updateConfigSummary();
 						self.updateExportButton();
+					} else {
+						$('#sscribe-page-count').text('0');
+						$('#sscribe-post-count').text('0');
+						$('#sscribe-both-count').text('0');
 					}
 					$('.sscribe-status-card-label').removeClass('sscribe-loading');
 					$('#sscribe-page-count, #sscribe-post-count, #sscribe-both-count').removeClass('sscribe-loading-count');
 				},
 				error: function () {
+					$('#sscribe-page-count').text('0');
+					$('#sscribe-post-count').text('0');
+					$('#sscribe-both-count').text('0');
 					$('.sscribe-status-card-label').removeClass('sscribe-loading');
 					$('#sscribe-page-count, #sscribe-post-count, #sscribe-both-count').removeClass('sscribe-loading-count');
 				},
@@ -2548,6 +2555,10 @@
 			};
 			if (typeof data.pages !== 'undefined') {
 				setVal('sscribe-success-pages', String(data.pages));
+			} else if (typeof data.processed !== 'undefined') {
+				setVal('sscribe-success-pages', String(data.processed));
+			} else if (typeof data.total !== 'undefined') {
+				setVal('sscribe-success-pages', String(data.total));
 			}
 			if (data.formats && data.formats.length) {
 				setVal('sscribe-success-formats', data.formats.length > 1
@@ -2555,18 +2566,26 @@
 					: String(data.formats[0]).toUpperCase());
 			} else if (typeof data.format !== 'undefined') {
 				setVal('sscribe-success-formats', String(data.format).toUpperCase());
+			} else if (data.filename && /\.zip$/i.test(data.filename)) {
+				const stem = data.filename.replace(/\.zip$/i, '');
+				setVal('sscribe-success-formats', stem.toUpperCase());
 			}
 			if (typeof data.size !== 'undefined' && data.size) {
 				const formatted = (typeof this.formatBytes === 'function')
 					? this.formatBytes(data.size)
 					: Math.round(data.size / 1024) + ' KB';
 				setVal('sscribe-success-size', formatted);
+			} else if (typeof data.file_size !== 'undefined' && data.file_size) {
+				const formatted = (typeof this.formatBytes === 'function')
+					? this.formatBytes(data.file_size)
+					: Math.round(data.file_size / 1024) + ' KB';
+				setVal('sscribe-success-size', formatted);
 			}
 			if (typeof data.elapsed !== 'undefined') {
-				setVal('sscribe-success-generated', 'in ' + data.elapsed + 's');
+				setVal('sscribe-success-time', 'in ' + data.elapsed + 's');
 			} else if (data.created_at) {
 				const stamp = new Date(data.created_at * 1000 || Date.now());
-				setVal('sscribe-success-generated', stamp.toLocaleString());
+				setVal('sscribe-success-time', stamp.toLocaleString());
 			}
 		},
 		/**
@@ -3215,4 +3234,6 @@
 	$(document).ready(function () {
 		SScribe.init();
 	});
+
+	window.SScribe = SScribe;
 })(jQuery);

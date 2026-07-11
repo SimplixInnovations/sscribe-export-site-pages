@@ -164,7 +164,7 @@ $sscribe_export_index    = $sscribe_export_index ?? array();
 									</div>
 									<div class="sscribe-post-type-meta">
 										<span class="sscribe-post-type-name"><?php esc_html_e( 'Posts', 'sscribe-export-site-pages' ); ?></span>
-										<span class="sscribe-post-type-count" id="sscribe-post-count">:</span>
+										<span class="sscribe-post-type-count" id="sscribe-post-count">0</span>
 									</div>
 									<div class="sscribe-post-type-selector">
 										<?php // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- SVG sanitized in get_icon().
@@ -183,7 +183,7 @@ $sscribe_export_index    = $sscribe_export_index ?? array();
 									</div>
 									<div class="sscribe-post-type-meta">
 										<span class="sscribe-post-type-name"><?php esc_html_e( 'Pages + Posts', 'sscribe-export-site-pages' ); ?></span>
-										<span class="sscribe-post-type-count" id="sscribe-both-count">:</span>
+										<span class="sscribe-post-type-count" id="sscribe-both-count">0</span>
 									</div>
 									<div class="sscribe-post-type-selector">
 										<?php // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- SVG sanitized in get_icon().
