@@ -579,14 +579,18 @@ trait SScribe_Export_Finalizer {
 				'status'            => 'complete',
 				'processed'         => $session['total'],
 				'total'             => $session['total'],
+				'pages'             => $session['total'],
 				'percentage'        => 100,
 				'download_url'      => $download_url,
 				'filename'          => basename( $zip_path ),
+				'formats'           => isset( $session['formats'] ) ? $session['formats'] : array(),
 				'errors'            => $session['errors'] ?? array(),
 				'error_diagnostics' => $error_diagnostics,
 				'log_summary'       => $log_summary,
 				'session_id'        => $session_id,
 				'created_at'        => $session['start_time'] ?? microtime( true ),
+				'file_size'         => $zip_size,
+				'size'              => $zip_size,
 				'message'           => sprintf(
 					/* translators: %d: Number of pages exported. */
 					_n(
