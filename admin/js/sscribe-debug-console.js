@@ -2,7 +2,7 @@
  * SScribe Debug Console JavaScript
  *
  * @package SScribe_Export_Site_Pages
- * @version 1.1.2
+ * @version 1.1.3
  */
 (function ($) {
 	'use strict';
@@ -1581,7 +1581,7 @@
 
 
 /**
- * SScribe Debug Console DOM Enhancement v1.1.2 patch
+ * SScribe Debug Console DOM Enhancement v1.1.2 patch (carried forward to 1.1.3)
  * Applies enterprise layout wrappers to Debug tab sections.
  * Runs once on page load, idempotent (checks for class before restructuring).
  */
@@ -1704,7 +1704,7 @@
 })(jQuery);
 
 /**
- * SScribe Debug Console - Targeted Fixes v1.1.2 patch-2
+ * SScribe Debug Console - Targeted Fixes v1.1.2 patch-2 (carried forward to 1.1.3)
  * 1. Inject SEARCH LOGS: label above search input
  * 2. Fix settings panel LOG LEVEL + Save alignment
  */

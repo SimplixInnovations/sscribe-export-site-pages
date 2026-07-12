@@ -10,7 +10,7 @@
   --ss-text-primary: #09090b;
   --ss-text-secondary: #3f3f46;
   --ss-text-tertiary: #52525b;
-  --ss-text-muted: #71717a;
+  --ss-text-muted: #5a5f66;
   --ss-text-inverse: #fafafa;
   --ss-brand: #3d7a5a;
   --ss-brand-hover: #2f6146;
@@ -458,7 +458,7 @@
 .sscribe-language-cards.sscribe-cards-row {
   display: flex;
   flex-wrap: wrap;
-  gap: var(--ss-space-2);
+  gap: var(--ss-space-1);
   min-width: 0;
 }
 
@@ -1949,8 +1949,18 @@
 
   .sscribe-post-type-cards,
   .sscribe-status-cards,
-  .sscribe-format-cards {
-    flex-direction: column;
+  .sscribe-format-cards,
+  .sscribe-post-type-cards.sscribe-cards-compact,
+  .sscribe-status-cards.sscribe-cards-row,
+  .sscribe-format-cards.sscribe-cards-row {
+    flex-flow: column nowrap;
+    gap: 6px;
+  }
+
+  #sscribe-format-cards,
+  #sscribe-format-cards.sscribe-cards-row {
+    display: flex;
+    flex-flow: column nowrap;
     gap: 6px;
   }
 
@@ -2648,7 +2658,7 @@
 /* ── FIX 1: FORMAT CARDS — 5-column grid, no orphan ── */
 #sscribe-format-cards {
   display: grid;
-  grid-template-columns: repeat(5, 1fr);
+  grid-template-columns: repeat(5, minmax(0, 1fr));
   gap: var(--ss-space-3);
 }
 
@@ -2676,6 +2686,25 @@
   opacity: 0.32;
   cursor: not-allowed;
   pointer-events: none;
+}
+
+/* ── FIX 4: STATUS CARDS — 6-column grid, no orphan ── */
+#sscribe-status-cards {
+  display: grid;
+  grid-template-columns: repeat(6, minmax(0, 1fr));
+  gap: var(--ss-space-2);
+}
+
+@media (width <= 1100px) {
+  #sscribe-status-cards {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
+}
+
+@media (width <= 640px) {
+  #sscribe-status-cards {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
 }
 
 /* ===== HISTORY TABLE: CLEAN FLEX LAYOUT ===== */
