@@ -251,10 +251,16 @@
 }
 
 .sscribe-hero-stats {
-  display: inline-flex;
+  display: flex;
   align-items: center;
-  gap: var(--ss-space-5);
-  margin-top: var(--ss-space-3);
+  gap: var(--ss-space-6);
+  margin-top: var(--ss-space-4);
+  max-width: var(--ss-max-w);
+  margin-left: auto;
+  margin-right: auto;
+  /* Match the .sscribe-hero-left inner offset: 36px logo + 16px gap. */
+  padding: var(--ss-space-4) 0 0 calc(36px + var(--ss-space-4));
+  border-top: 1px solid var(--ss-border);
   flex-wrap: wrap;
 }
 
@@ -265,6 +271,11 @@
   font-size: 12px;
   line-height: 1;
   color: var(--ss-text-secondary);
+}
+
+.sscribe-hero-stat + .sscribe-hero-stat {
+  padding-left: var(--ss-space-6);
+  border-left: 1px solid var(--ss-border);
 }
 
 .sscribe-hero-stat .sscribe-icon {
@@ -530,7 +541,6 @@
 .sscribe-lang-card-label input:checked ~ .sscribe-lang-card-inner {
   border-color: var(--ss-brand);
   background: var(--ss-brand-soft);
-  box-shadow: inset 0 0 0 1px var(--ss-brand);
 }
 
 .sscribe-post-type-icon,
@@ -1929,16 +1939,26 @@
     align-self: flex-start;
   }
 
+  .sscribe-hero-stats {
+    padding-left: 0;
+  }
+
+  .sscribe-hero-stat + .sscribe-hero-stat {
+    padding-left: var(--ss-space-4);
+  }
+
   .sscribe-post-type-cards,
   .sscribe-status-cards,
   .sscribe-format-cards {
+    flex-direction: column;
     gap: 6px;
   }
 
   .sscribe-post-type-card-inner,
   .sscribe-status-card-inner,
   .sscribe-format-card-inner {
-    min-width: 100px;
+    min-width: 0;
+    width: 100%;
   }
 
   .sscribe-tabs-nav {
@@ -2838,7 +2858,7 @@
   background: transparent !important;
   color: var(--ss-text-muted) !important;
   cursor: pointer !important;
-  transition: all 120ms ease !important;
+  transition: background 120ms ease, border-color 120ms ease, color 120ms ease !important;
   text-decoration: none !important;
   flex-shrink: 0 !important;
   padding: 0 !important;
@@ -2869,7 +2889,7 @@
   display: inline-flex !important;
   align-items: center !important;
   justify-content: center !important;
-  transition: all 120ms ease !important;
+  transition: background 120ms ease, border-color 120ms ease !important;
   position: relative !important;
   grid-column: unset !important;
   grid-row: unset !important;
@@ -3087,7 +3107,7 @@
   cursor: pointer !important;
   font-size: 18px !important;
   line-height: 1 !important;
-  transition: all 120ms ease !important;
+  transition: background 120ms ease, color 120ms ease !important;
 }
 
 #sscribe-onboarding-dismiss:hover {
@@ -3332,7 +3352,7 @@ kbd.sscribe-shortcut-hint {
   border: 1px solid var(--ss-border) !important;
   border-radius: var(--ss-radius-md) !important;
   background: var(--ss-surface) !important;
-  transition: all 120ms ease !important;
+  transition: border-color 120ms ease, outline-color 120ms ease !important;
 }
 
 .sscribe-search-field .sscribe-icon {
@@ -3532,7 +3552,7 @@ kbd.sscribe-shortcut-hint {
   color: var(--ss-text-primary) !important;
   font-size: 13px !important;
   font-weight: 500 !important;
-  transition: all 120ms ease !important;
+  transition: border-color 120ms ease, background 120ms ease, color 120ms ease !important;
   min-height: 44px !important;
 }
 
