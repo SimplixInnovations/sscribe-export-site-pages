@@ -3909,9 +3909,22 @@ kbd.sscribe-shortcut-hint {
   .sscribe-button-danger,
   .sscribe-status-alert::before,
   .ss-side-stripe::before {
-    forced-color-adjust: none;
     background: Highlight;
     color: HighlightText;
+  }
+
+  /* Safari does not support forced-color-adjust; the opt-out below only
+     applies in engines that also implement forced-colors (Edge, Chrome,
+     Firefox 113+). Safari silently skips the @supports wrapper and keeps
+     the Highlight/HighlightText pair above. */
+  @supports (forced-color-adjust: none) {
+    .sscribe-button-primary,
+    .sscribe-button-success,
+    .sscribe-button-danger,
+    .sscribe-status-alert::before,
+    .ss-side-stripe::before {
+      forced-color-adjust: none;
+    }
   }
 }
 
