@@ -266,6 +266,7 @@
 				e.preventDefault();
 				window.location.reload();
 			});
+			$(document).on('click.sscribe', '#sscribe-view-history-btn', $.proxy(this.openHistoryFromSuccess, this));
 			$(document).on('click.sscribe', '#sscribe-error-try-again', $.proxy(this.retry, this));
 			$(document).on('click.sscribe', '#sscribe-cancel-btn', $.proxy(this.cancelExport, this));
 			$('.sscribe-lang-card-label').on('click.sscribe', function () {
@@ -2537,6 +2538,18 @@
 			if (target && typeof target.focus === 'function') {
 				target.focus();
 			}
+		},
+		/**
+		 * Success-state CTA: switch to the History tab so the user can see
+		 * the export they just completed (and any prior exports). Keeps the
+		 * success section visible briefly so screen readers announce the
+		 * tab change.
+		 */
+		openHistoryFromSuccess: function (e) {
+			if (e) {
+				e.preventDefault();
+			}
+			this.activateTab('history', true);
 		},
 		/**
 		 * Populate the success meta block (pages, formats, size, generated).

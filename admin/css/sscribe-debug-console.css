@@ -91,7 +91,7 @@
   display: grid;
   grid-template-columns: 1fr 200px auto;
   gap: var(--ss-space-5);
-  align-items: end;
+  align-items: start;
 }
 
 .sscribe-debug-toggle-section,
@@ -100,6 +100,18 @@
   display: flex;
   flex-direction: column;
   gap: var(--ss-space-2);
+}
+
+.sscribe-debug-toggle-section {
+  /* Spacer pseudo so all three columns share a consistent label baseline
+     and the dropdown aligns horizontally with the toggle switch. */
+  padding-top: 0;
+}
+
+.sscribe-debug-toggle-section::before {
+  content: '';
+  display: block;
+  height: 18px;
 }
 
 .sscribe-debug-toggle-label {
@@ -178,16 +190,25 @@
 
 .sscribe-debug-level-section label {
   font-size: 11px;
-  font-weight: 500;
-  color: var(--ss-text-tertiary);
+  font-weight: 600;
+  color: var(--ss-text-secondary);
   text-transform: uppercase;
-  letter-spacing: 0.04em;
+  letter-spacing: 0.06em;
+  height: 18px;
+  line-height: 18px;
+  display: block;
+}
+
+.sscribe-debug-save-section::before {
+  content: '';
+  display: block;
+  height: 18px;
 }
 
 .sscribe-select {
   appearance: none;
   height: 40px;
-  border: 1.5px solid var(--ss-border);
+  border: 1px solid var(--ss-border-strong);
   border-radius: var(--ss-radius-sm);
   padding: 0 var(--ss-space-7) 0 var(--ss-space-3);
   font: inherit;
@@ -195,10 +216,15 @@
   color: var(--ss-text-primary);
   background: var(--ss-surface);
   cursor: pointer;
-  background-image: url("data:image/svg+xml;charset=utf8,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 16 16' fill='%2371717a'%3E%3Cpath d='M8 11L3 6h10z'/%3E%3C/svg%3E");
+  transition: border-color 120ms ease;
+  background-image: url("data:image/svg+xml;charset=utf8,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 16 16' fill='%2352525b'%3E%3Cpath d='M8 11L3 6h10z'/%3E%3C/svg%3E");
   background-repeat: no-repeat;
   background-position: right 12px center;
   background-size: 12px 12px;
+}
+
+.sscribe-select:hover {
+  border-color: var(--ss-text-tertiary);
 }
 
 .sscribe-select:focus-visible {
@@ -1040,19 +1066,18 @@
 
 /* Context panel wrapper: IDs like sscribe-debug-ctx-* */
 [id^="sscribe-debug-ctx-"] {
-  width: 100% !important;
-  min-width: 0 !important;
-  max-width: 100% !important;
-  display: grid !important;
-  grid-template-columns: minmax(120px, auto) 1fr !important;
-  gap: 2px 12px !important;
-  padding: 10px 16px 12px !important;
-  background: #1a1a2e !important;
-  border-top: 1px solid rgb(255 255 255 / 7%) !important;
-  box-sizing: border-box !important;
-  overflow: hidden !important;
-  white-space: normal !important;
-  word-break: break-all !important;
+    width: 100% !important;
+    min-width: 0 !important;
+    max-width: 100% !important;
+    grid-template-columns: minmax(120px, auto) 1fr !important;
+    gap: 2px 12px !important;
+    padding: 16px !important;
+    background: #000000 !important;
+    border-top: 1px solid rgb(255 255 255 / 7%) !important;
+    box-sizing: border-box !important;
+    overflow: hidden !important;
+    white-space: normal !important;
+    word-break: break-all !important;
 }
 
 /* Context key (left column) */
