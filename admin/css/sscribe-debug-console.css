@@ -832,6 +832,9 @@
   font-size: 13px;
   color: var(--ss-text-secondary);
   cursor: pointer;
+  /* stylelint-disable property-no-vendor-prefix -- Safari/iOS Safari 3-13 need the prefix */
+  -webkit-user-select: none;
+  /* stylelint-enable property-no-vendor-prefix */
   user-select: none;
 }
 
@@ -1470,9 +1473,24 @@
   .sscribe-debug-level-critical,
   .sscribe-debug-level-alert,
   .sscribe-debug-level-emergency {
-    forced-color-adjust: none;
     background: Highlight;
     color: HighlightText;
+  }
+
+  /* Safari does not support forced-color-adjust; the opt-out below only
+     applies in engines that also implement forced-colors (Edge, Chrome,
+     Firefox 113+). Safari silently skips the @supports wrapper and keeps
+     the Highlight/HighlightText pair above. */
+  @supports (forced-color-adjust: none) {
+    .sscribe-debug-dot-red,
+    .sscribe-debug-dot-yellow,
+    .sscribe-debug-dot-green,
+    .sscribe-debug-level-error,
+    .sscribe-debug-level-critical,
+    .sscribe-debug-level-alert,
+    .sscribe-debug-level-emergency {
+      forced-color-adjust: none;
+    }
   }
 }
 
