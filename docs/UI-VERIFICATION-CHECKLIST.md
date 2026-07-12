@@ -111,7 +111,7 @@ After build, run the constraint grep on the extracted ZIP (section 1 above) plus
 
 ## 7. Visual Verification via Playwright
 
-Open `docs/ui-preview.html` in a real browser via the Playwright MCP. Verify:
+Drive the live WP Playground admin page in a real browser via the Playwright MCP. Verify:
 
 - [ ] **Light mode, 1440px wide**: hero, config panel, format cards, progress, history, modal, support terminal, debug console render with no horizontal scroll, no overlapping controls.
 - [ ] **Dark mode (forced)**: all sections render with AA contrast. Brand accent visible. No white-on-white.
@@ -137,7 +137,7 @@ In WP Playground:
 - [ ] All section 1-6 checks pass.
 - [ ] Section 7 visual verification recorded (screenshots in `docs/screenshots/`).
 - [ ] Section 8 runtime smoke test recorded.
-- [ ] CHANGELOG entry added in `readme.txt` covering the change.
+- [ ] Changelog entry added in `readme.txt` covering the change (`= 1.X.Y =` block).
 - [ ] UPGRADE NOTICE added in `readme.txt` if the change is user-visible.
 - [ ] Git commit on `develop` with author `Simplix Innovations <info@simplixi.com>` and NO `Co-Authored-By` trailer.
 
