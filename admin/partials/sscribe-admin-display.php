@@ -67,23 +67,25 @@ $sscribe_export_index    = $sscribe_export_index ?? array();
 	<div id="sscribe-alert-region" class="screen-reader-text" aria-live="assertive" aria-atomic="true"></div>
 
 	<div id="sscribe-onboarding-banner" class="sscribe-onboarding-banner<?php echo empty( $sscribe_recent_exports ) ? '' : ' sscribe-hidden'; ?>" role="region" aria-label="<?php esc_attr_e( 'First-run guide', 'sscribe-export-site-pages' ); ?>">
-		<div class="sscribe-onboarding-icon" aria-hidden="true">
-			<?php
-			echo wp_kses_post( SScribe_Helpers::get_icon( 'sparkles', 22 ) );
-			?>
+		<div class="sscribe-onboarding-inner">
+			<div class="sscribe-onboarding-icon" aria-hidden="true">
+				<?php
+				echo wp_kses_post( SScribe_Helpers::get_icon( 'sparkles', 22 ) );
+				?>
+			</div>
+			<div class="sscribe-onboarding-body">
+				<h2 class="sscribe-onboarding-title"><?php esc_html_e( 'Export your first package in three steps', 'sscribe-export-site-pages' ); ?></h2>
+				<p class="sscribe-onboarding-copy"><?php esc_html_e( 'Choose your content type below, pick a format, then click Generate Package. Use Preview to verify your selection before exporting.', 'sscribe-export-site-pages' ); ?></p>
+				<ol class="sscribe-onboarding-steps">
+					<li><?php esc_html_e( 'Pick what to export', 'sscribe-export-site-pages' ); ?></li>
+					<li><?php esc_html_e( 'Pick a format', 'sscribe-export-site-pages' ); ?></li>
+					<li><?php esc_html_e( 'Click Generate Package', 'sscribe-export-site-pages' ); ?></li>
+				</ol>
+			</div>
+			<button type="button" id="sscribe-onboarding-dismiss" class="sscribe-button-icon sscribe-onboarding-close" aria-label="<?php esc_attr_e( 'Dismiss first-run guide', 'sscribe-export-site-pages' ); ?>">
+				<span aria-hidden="true">&times;</span>
+			</button>
 		</div>
-		<div class="sscribe-onboarding-body">
-			<h2 class="sscribe-onboarding-title"><?php esc_html_e( 'Export your first package in three steps', 'sscribe-export-site-pages' ); ?></h2>
-			<p class="sscribe-onboarding-copy"><?php esc_html_e( 'Choose your content type below, pick a format, then click Generate Package. Use Preview to verify your selection before exporting.', 'sscribe-export-site-pages' ); ?></p>
-			<ol class="sscribe-onboarding-steps">
-				<li><?php esc_html_e( 'Pick what to export', 'sscribe-export-site-pages' ); ?></li>
-				<li><?php esc_html_e( 'Pick a format', 'sscribe-export-site-pages' ); ?></li>
-				<li><?php esc_html_e( 'Click Generate Package', 'sscribe-export-site-pages' ); ?></li>
-			</ol>
-		</div>
-		<button type="button" id="sscribe-onboarding-dismiss" class="sscribe-button-icon sscribe-onboarding-close" aria-label="<?php esc_attr_e( 'Dismiss first-run guide', 'sscribe-export-site-pages' ); ?>">
-			<span aria-hidden="true">&times;</span>
-		</button>
 	</div>
 
 	<div class="sscribe-workspace sscribe-flat-workspace" id="sscribe-main-content" role="main">
@@ -507,9 +509,9 @@ $sscribe_export_index    = $sscribe_export_index ?? array();
 					</div>
 					<div class="sscribe-export-bar-actions">
 						<button type="button" id="sscribe-preview-btn" class="sscribe-button sscribe-button-outline sscribe-btn-sm" disabled aria-describedby="sscribe-preview-btn-hint" title="<?php esc_attr_e( 'Ctrl+Shift+P (Cmd+Shift+P on Mac)', 'sscribe-export-site-pages' ); ?>">
-							<?php // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- SVG sanitized in get_icon().
+							<?php // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- SVG sanitized in get_icon_inline().
 							?>
-							<?php echo wp_kses_post( SScribe_Helpers::get_icon( 'eye', 15 ) ); ?>
+							<?php echo wp_kses_post( SScribe_Helpers::get_icon_inline( 'eye', 15 ) ); ?>
 							<span><?php esc_html_e( 'Preview', 'sscribe-export-site-pages' ); ?></span>
 							<kbd class="sscribe-shortcut-hint" aria-hidden="true">⇧P</kbd>
 						</button>
@@ -649,16 +651,16 @@ $sscribe_export_index    = $sscribe_export_index ?? array();
 				</dl>
 				<div class="sscribe-success-actions">
 					<a id="sscribe-download-btn" href="#" class="sscribe-button sscribe-button-success" download aria-describedby="sscribe-download-hint">
-						<?php // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- SVG sanitized in get_icon().
+						<?php // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- SVG sanitized in get_icon_inline().
 						?>
-						<?php echo wp_kses_post( SScribe_Helpers::get_icon( 'download-file', 16 ) ); ?>
+						<?php echo wp_kses_post( SScribe_Helpers::get_icon_inline( 'download-file', 16 ) ); ?>
 						<span><?php esc_html_e( 'Download ZIP', 'sscribe-export-site-pages' ); ?></span>
 					</a>
 					<span id="sscribe-download-hint" class="screen-reader-text"><?php esc_html_e( 'Download the exported ZIP file to your computer', 'sscribe-export-site-pages' ); ?></span>
 					<button type="button" id="sscribe-view-history-btn" class="sscribe-button sscribe-button-outline" aria-describedby="sscribe-view-history-hint">
-						<?php // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- SVG sanitized in get_icon().
+						<?php // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- SVG sanitized in get_icon_inline().
 						?>
-						<?php echo wp_kses_post( SScribe_Helpers::get_icon( 'clock', 16 ) ); ?>
+						<?php echo wp_kses_post( SScribe_Helpers::get_icon_inline( 'clock', 16 ) ); ?>
 						<span><?php esc_html_e( 'View in History', 'sscribe-export-site-pages' ); ?></span>
 					</button>
 					<span id="sscribe-view-history-hint" class="screen-reader-text"><?php esc_html_e( 'Open the History tab to see this and past exports', 'sscribe-export-site-pages' ); ?></span>
@@ -686,18 +688,18 @@ $sscribe_export_index    = $sscribe_export_index ?? array();
 				</div>
 				<div class="sscribe-error-actions">
 					<button type="button" id="sscribe-error-try-again" class="sscribe-button sscribe-button-secondary" aria-describedby="sscribe-try-again-hint">
-						<?php // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- SVG sanitized in get_icon().
+						<?php // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- SVG sanitized in get_icon_inline().
 						?>
-						<?php echo wp_kses_post( SScribe_Helpers::get_icon( 'refresh-cw', 16 ) ); ?>
+						<?php echo wp_kses_post( SScribe_Helpers::get_icon_inline( 'refresh-cw', 16 ) ); ?>
 						<span><?php esc_html_e( 'Try Again', 'sscribe-export-site-pages' ); ?></span>
 					</button>
 					<button type="button" id="sscribe-error-change-config" class="sscribe-button sscribe-button-outline">
 						<?php esc_html_e( 'Change Configuration', 'sscribe-export-site-pages' ); ?>
 					</button>
 					<button type="button" id="sscribe-error-toggle-details" class="sscribe-button sscribe-button-ghost sscribe-button-toggle-details" aria-expanded="false" aria-controls="sscribe-error-technical-details">
-						<?php // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- SVG sanitized in get_icon().
+						<?php // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- SVG sanitized in get_icon_inline().
 						?>
-						<?php echo wp_kses_post( SScribe_Helpers::get_icon( 'chevron-down', 14 ) ); ?>
+						<?php echo wp_kses_post( SScribe_Helpers::get_icon_inline( 'chevron-down', 14 ) ); ?>
 						<span id="sscribe-error-toggle-details-label"><?php esc_html_e( 'Show technical details', 'sscribe-export-site-pages' ); ?></span>
 					</button>
 					<span id="sscribe-try-again-hint" class="screen-reader-text"><?php esc_html_e( 'Attempt the export again', 'sscribe-export-site-pages' ); ?></span>
@@ -863,43 +865,6 @@ $sscribe_export_index    = $sscribe_export_index ?? array();
 			<div class="sscribe-tab-content" id="sscribe-tab-docs" role="tabpanel" aria-labelledby="sscribe-tab-btn-docs" aria-hidden="true" tabindex="-1">
 				<div class="sscribe-support-master">
 					<div class="sscribe-support-sidebar">
-						<div class="sscribe-support-section">
-							<div class="sscribe-support-section-header">
-								<?php echo wp_kses_post( SScribe_Helpers::get_icon( 'book-open', 20 ) ); ?>
-								<h2><?php esc_html_e( 'Help &amp; Docs', 'sscribe-export-site-pages' ); ?></h2>
-							</div>
-							<p class="sscribe-support-section-copy"><?php esc_html_e( 'Resources to get the most out of sScribe.', 'sscribe-export-site-pages' ); ?></p>
-							<ul class="sscribe-support-resources" role="list">
-								<li>
-									<a href="https://wordpress.org/plugins/sscribe-export-site-pages/#faq" target="_blank" rel="noopener noreferrer" class="sscribe-support-link">
-										<?php echo wp_kses_post( SScribe_Helpers::get_icon( 'help-circle', 16 ) ); ?>
-										<span><?php esc_html_e( 'Frequently Asked Questions', 'sscribe-export-site-pages' ); ?></span>
-										<?php echo wp_kses_post( SScribe_Helpers::get_icon( 'external-link', 14 ) ); ?>
-									</a>
-								</li>
-								<li>
-									<a href="https://wordpress.org/plugins/sscribe-export-site-pages/" target="_blank" rel="noopener noreferrer" class="sscribe-support-link">
-										<?php echo wp_kses_post( SScribe_Helpers::get_icon( 'file-text', 16 ) ); ?>
-										<span><?php esc_html_e( 'Plugin documentation', 'sscribe-export-site-pages' ); ?></span>
-										<?php echo wp_kses_post( SScribe_Helpers::get_icon( 'external-link', 14 ) ); ?>
-									</a>
-								</li>
-								<li>
-									<a href="https://wordpress.org/plugins/sscribe-export-site-pages/#changelog" target="_blank" rel="noopener noreferrer" class="sscribe-support-link">
-										<?php echo wp_kses_post( SScribe_Helpers::get_icon( 'clock', 16 ) ); ?>
-										<span><?php esc_html_e( 'What’s new', 'sscribe-export-site-pages' ); ?></span>
-										<?php echo wp_kses_post( SScribe_Helpers::get_icon( 'external-link', 14 ) ); ?>
-									</a>
-								</li>
-								<li>
-									<a href="<?php echo esc_url( admin_url( 'plugin-install.php?tab=plugin-information&amp;plugin=' . SSCRIBE_PLUGIN_BASENAME ) ); ?>" class="sscribe-support-link">
-										<?php echo wp_kses_post( SScribe_Helpers::get_icon( 'info', 16 ) ); ?>
-										<span><?php esc_html_e( 'About this plugin', 'sscribe-export-site-pages' ); ?></span>
-										<?php echo wp_kses_post( SScribe_Helpers::get_icon( 'external-link', 14 ) ); ?>
-									</a>
-								</li>
-							</ul>
-						</div>
 
 						<div class="sscribe-support-section">
 							<div class="sscribe-support-section-header">
