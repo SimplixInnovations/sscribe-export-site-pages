@@ -51,7 +51,7 @@ require_once __DIR__ . '/class-sscribe-container-notfound-exception.php';
  *
  * @package SScribe_Export_Site_Pages
  * @subpackage Container
- * @since   1.1.2
+ * @since   1.1.3
  * @api     stable
  */
 final class SScribe_Container {
