@@ -96,6 +96,13 @@ The bundled Mpdf library (vendor-prefixed/mpdf/) is licensed under the GNU Gener
 * Unified focus ring outline rule across 14 control families (button, tab-btn, modal-close, button-icon, toast-dismiss, preflight-close, support-copy-text, format-option-field select, help-link, onboarding-dismiss, post-type/status/format/lang card labels, format-option-checkbox, bulk-select-all, history-check-label). All use `outline: 2px solid var(--ss-color-accent)`.
 * Hit targets normalized: button 40px default, button-icon 40x40, modal-close 40x40, tab-btn 44px, btn-sm 32px, btn-lg 44px. Form inputs and selects 40px tall.
 * Debug console CSS aligned to v3 component system; --ss-debug-* scoped tokens for the dark terminal chrome.
+* Polish: status cards now use a 6-col grid (3-col at <=1100px, 2-col at <=640px) so the "All" card no longer wraps to a full-width orphan row.
+* Polish: format cards switched to `repeat(5, minmax(0, 1fr))` so all 5 cards share equal width without horizontal overflow at intermediate viewports (1024-1280px).
+* Polish: `--ss-text-muted` light value bumped from #71717a to #5a5f66 to clear WCAG AA against `--ss-bg` and `--ss-brand-soft` backgrounds; dark-mode override unchanged at #a1a1aa.
+* Polish: format cards stack vertically on mobile (>=640px and below) via flex-column override of the grid, matching post-type and status rows.
+* Polish: card-row gap tightened from var(--ss-space-2) (8px) to var(--ss-space-1) (4px) for tighter visual rhythm; status grid uses --ss-space-2 to preserve readability across 6 columns.
+* Polish: hero-stats baseline verified to align with title x at 1024, 1280, 1440 viewports (padding-left on .sscribe-hero-stats calibrated at <=900px breakpoint).
+* Verified: forced-colors media block covers all 14 focusable element families with 3px Highlight !important outlines; CanvasText applied to all text and border tokens; primary/success/danger buttons map to Highlight/HighlightText via forced-color-adjust: none for engines that support it (Edge, Chrome, Firefox 113+).
 
 = 1.1.2 =
 * Fixed latent PDF export crash: WordPress themes ship base CSS with `font-family: serif`; mPDF's chain resolution tried to load pruned DejaVu*Condensed / FreeSans / Sun-ExtA TTFs and crashed. fonttrans remap and fontdata overrides close the CSS-keyword, fontdata-entry, and backup-substitution paths on the same crash class.

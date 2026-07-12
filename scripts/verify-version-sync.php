@@ -113,7 +113,7 @@ if ( $canonical_version ) {
 			new RecursiveDirectoryIterator( $dir, RecursiveDirectoryIterator::SKIP_DOTS )
 		);
 		foreach ( $iterator as $file_info ) {
-			if ( $file_info->isFile() && in_array( $file_info->getExtension(), array( 'php', 'txt', 'css', 'json', 'pot' ), true ) ) {
+			if ( $file_info->isFile() && in_array( $file_info->getExtension(), array( 'php', 'txt', 'css', 'json', 'pot', 'js' ), true ) ) {
 				$all_files[] = $file_info->getPathname();
 			}
 		}

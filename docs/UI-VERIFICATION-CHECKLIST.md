@@ -40,7 +40,7 @@ Positive checks:
 | `--ss-color-accent: #3d7a5a` (light) | 1 | Brand color on light (Simplixi green, AA white text) |
 | `--ss-color-accent: #4d8a6a` (dark, case-insensitive) | 1 | AA-tuned brand on dark |
 | `--ss-brand-mark: #68a885` (light) / `#7fc6a3` (dark) | 2 | Simplixi brand decoration (logo, hero, not for buttons) |
-| `--ss-text-muted: #71717a` (light) | 1 | AA-passing muted text |
+| `--ss-text-muted: #5a5f66` (light) | 1 | AA-passing muted text on `--ss-bg` and `--ss-brand-soft` |
 | `--ss-text-muted: #a1a1aa` (dark) | 1 | AA-tuned muted on dark |
 
 ## 2. Class Coverage
@@ -113,10 +113,12 @@ After build, run the constraint grep on the extracted ZIP (section 1 above) plus
 
 Drive the live WP Playground admin page in a real browser via the Playwright MCP. Verify:
 
-- [ ] **Light mode, 1440px wide**: hero, config panel, format cards, progress, history, modal, support terminal, debug console render with no horizontal scroll, no overlapping controls.
+- [ ] **Light mode, 1440px wide**: hero, config panel, format cards (5-col, equal width), status cards (6-col, equal width, no orphan), progress, history, modal, support terminal, debug console render with no horizontal scroll, no overlapping controls.
+- [ ] **Intermediate viewports (1024, 1100, 1280px)**: status cards adapt to 3-col grid via `<=1100px` breakpoint; format cards fit evenly at 175px each via `repeat(5, minmax(0, 1fr))`. No horizontal overflow on master container.
 - [ ] **Dark mode (forced)**: all sections render with AA contrast. Brand accent visible. No white-on-white.
 - [ ] **Forced colors mode**: borders and outlines use system colors. Focus rings use Highlight at 3px.
-- [ ] **360px viewport**: single-column collapse. Hero stats stack. Tabs become horizontal scroll. No content overflows horizontally.
+- [ ] **360px viewport**: single-column collapse. Hero stats stack. Tabs become horizontal scroll. Format / status / post-type cards stack vertically via flex-column override. No content overflows horizontally.
+- [ ] **640px breakpoint**: status cards collapse to 2-col grid; format/post-type cards stack via the same mobile flex-column rule.
 - [ ] **Keyboard tab order**: every interactive element receives focus with a visible 2px accent outline. Order is logical (top to bottom, left to right).
 - [ ] **No animations or transitions on**: hover, focus, click in any mode. Transitions nullified under `prefers-reduced-motion: reduce`.
 
