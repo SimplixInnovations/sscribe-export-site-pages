@@ -187,6 +187,14 @@ if ( $canonical_version ) {
 				continue;
 			}
 
+			// Test fixtures intentionally encode historical version references
+			// (regression fixtures for diagnostics on older installs, change-log
+			// references in @since / comment blocks). Tests/ is not shipped in
+			// the production artifact, so stale refs there are non-blocking.
+			if ( 0 === strpos( $f, 'tests/' ) || 0 === strpos( $f, 'tests\\' ) ) {
+				continue;
+			}
+
 			if ( 'sscribe-export-site-pages.php' === basename( $f ) ) {
 				continue;
 			}

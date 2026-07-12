@@ -144,7 +144,7 @@ $outdir  = getenv('SSCRIBE_OUTDIR');
 
 define('ABSPATH', $abspath);
 define('SSCRIBE_DEBUG', false);
-define('SSCRIBE_VERSION', '1.1.2');
+define('SSCRIBE_VERSION', '1.1.3');
 // Note: SSCRIBE_PLUGIN_DIR and SSCRIBE_PLUGIN_URL are defined by the plugin
 // header at the top of sscribe-export-site-pages.php; do not duplicate here.
 define('FS_CHMOD_FILE', 0644);

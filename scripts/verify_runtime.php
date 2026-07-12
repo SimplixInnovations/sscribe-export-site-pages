@@ -1,6 +1,6 @@
 <?php
 /**
- * Runtime verification of dist/sscribe-export-site-pages-1.1.2.
+ * Runtime verification of dist/sscribe-export-site-pages-1.1.3.
  *
  * Usage:
  *   php scripts/verify_runtime.php dist/sscribe-export-site-pages
@@ -122,7 +122,7 @@ $tempdir = getenv('SSCRIBE_TEMPDIR');
 
 define('ABSPATH', $abspath);
 define('SSCRIBE_DEBUG', false);
-define('SSCRIBE_VERSION', '1.1.2');
+define('SSCRIBE_VERSION', '1.1.3');
 define('WP_DEBUG', false);
 define('WP_DEBUG_LOG', false);
 define('WP_CONTENT_DIR', '/tmp/wp-content/');
