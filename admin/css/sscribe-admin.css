@@ -10,7 +10,7 @@
   --ss-text-primary: #09090b;
   --ss-text-secondary: #3f3f46;
   --ss-text-tertiary: #52525b;
-  --ss-text-muted: #5a5f66;
+  --ss-text-muted: #71717a;
   --ss-text-inverse: #fafafa;
   --ss-brand: #3d7a5a;
   --ss-brand-hover: #2f6146;
@@ -20,17 +20,24 @@
   --ss-brand-mark: #68a885;
   --ss-brand-mark-soft: #b5d6c2;
   --ss-brand-mark-fg: #0f2a1d;
-  --ss-success: #00875a;
+  --ss-success: #00664a;
+  --ss-success-fg: #0f5a3e;
   --ss-success-bg: #e6f6f0;
   --ss-success-border: #abefc6;
-  --ss-warning: #b54708;
+  --ss-warning: #93370d;
+  --ss-warning-fg: #7a2c0a;
   --ss-warning-bg: #fff6ed;
   --ss-warning-border: #f9dbaf;
-  --ss-error: #b42318;
+  --ss-error: #9a1f17;
+  --ss-error-fg: #8a1a12;
   --ss-error-bg: #fef3f2;
   --ss-error-border: #fecdca;
-  --ss-info: #1849a9;
+  --ss-info: #153e91;
+  --ss-info-fg: #0f3278;
   --ss-info-bg: #eff8ff;
+  --ss-success-hover: #00553c;
+  --ss-error-hover: #82180f;
+  --ss-warning-hover: #7a2c0a;
 
   /* v3 semantic role aliases — physical tokens above, roles below.
      Components should reference --ss-color-* roles, not raw --ss-*.
@@ -616,7 +623,7 @@
   display: block;
   opacity: 0;
   transition: opacity 120ms ease;
-  color: #fff;
+  color: var(--ss-text-inverse);
   stroke-width: 3;
 }
 
@@ -953,8 +960,8 @@
 }
 
 .sscribe-button-success:hover:not(:disabled) {
-  background: #006c48;
-  border-color: #006c48;
+  background: var(--ss-success-hover);
+  border-color: var(--ss-success-hover);
 }
 
 .sscribe-button-danger {
@@ -964,8 +971,8 @@
 }
 
 .sscribe-button-danger:hover:not(:disabled) {
-  background: #8a1a12;
-  border-color: #8a1a12;
+  background: var(--ss-error-hover);
+  border-color: var(--ss-error-hover);
 }
 
 .sscribe-button-cancel {
@@ -991,12 +998,7 @@
   height: 16px;
 }
 
-.sscribe-btn-sm {
-  min-height: 32px;
-  padding: 0 var(--ss-space-3);
-  font-size: 12px;
-}
-
+.sscribe-btn-sm,
 .sscribe-button-sm {
   min-height: 32px;
   padding: 0 var(--ss-space-3);
@@ -1010,7 +1012,8 @@
   height: 32px;
 }
 
-.sscribe-btn-lg {
+.sscribe-btn-lg,
+.sscribe-button-lg {
   min-height: 44px;
   padding: 0 var(--ss-space-5);
   font-size: 14px;
@@ -2488,12 +2491,6 @@
   margin: 0;
 }
 
-.sscribe-workspace {
-  background: var(--ss-bg);
-  padding: var(--ss-space-5) var(--ss-space-6);
-  border-radius: var(--ss-radius-lg);
-}
-
 .sscribe-both-count {
   font-size: 11px;
   color: var(--ss-text-muted);
@@ -2716,9 +2713,10 @@
 
 /* ── FIX 3: STATUS CARDS — disabled clearly non-interactive ── */
 #sscribe-status-cards label.sscribe-status-disabled {
-  opacity: 0.32;
+  opacity: 0.55;
   cursor: not-allowed;
   pointer-events: none;
+  filter: grayscale(0.6);
 }
 
 /* ── FIX 4: STATUS CARDS — 6-column grid, no orphan ── */
@@ -3086,7 +3084,7 @@
   flex-shrink: 0 !important;
   border-radius: var(--ss-radius-md) !important;
   background: var(--ss-brand) !important;
-  color: #fff !important;
+  color: var(--ss-text-inverse) !important;
 }
 
 .sscribe-onboarding-body {
@@ -3145,7 +3143,7 @@
   height: 20px !important;
   border-radius: var(--ss-radius-full) !important;
   background: var(--ss-brand) !important;
-  color: #fff !important;
+  color: var(--ss-text-inverse) !important;
   font-size: 11px !important;
   font-weight: 700 !important;
   display: flex !important;
@@ -3219,8 +3217,8 @@ kbd.sscribe-shortcut-hint {
 
 .sscribe-button-primary .sscribe-shortcut-hint,
 .sscribe-button-primary kbd.sscribe-shortcut-hint {
-  background: rgb(255 255 255 / 14%) !important;
-  border-color: rgb(255 255 255 / 30%) !important;
+  background: rgb(255 255 255 / 22%) !important;
+  border-color: rgb(255 255 255 / 45%) !important;
   color: #fff !important;
 }
 
@@ -3612,7 +3610,7 @@ kbd.sscribe-shortcut-hint {
 /* Hidden-skip skip-link override (default WP a11y fix) */
 .sscribe-master-container a.sscribe-skip-link:focus,
 .sscribe-master-container a.sscribe-skip-link:active {
-  color: #fff !important;
+  color: var(--ss-text-inverse) !important;
 }
 
 /* Disabled button (search context) */
@@ -4139,7 +4137,7 @@ kbd.sscribe-shortcut-hint {
 
 .sscribe-chip-solid {
   background: var(--ss-color-accent);
-  color: #fff;
+  color: var(--ss-text-inverse);
 }
 
 .sscribe-chip-success {
@@ -4483,7 +4481,7 @@ kbd.sscribe-kbd {
   transform: translateX(-50%);
   padding: 4px 8px;
   background: #18181b;
-  color: #fff;
+  color: var(--ss-text-inverse);
   font: 400 11px/1.4 var(--ss-font);
   border-radius: var(--ss-radius-sm, 6px);
   white-space: nowrap;
