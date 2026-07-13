@@ -1747,25 +1747,8 @@
     // Also force save button to self-align bottom
     $saveBtn.css('align-self', 'flex-end');
 
-    // ---- FIX 3: WRAP FILTER + SEARCH INPUTS in vertical groups ----
-    // Ensure each of the 3 filter inputs has its label displayed above it.
-    // FILTER and SESSION ID already have labels (as generic text nodes),
-    // but we wrap each pair in a flex-col group for consistent layout.
-    var $filterSel  = $root.find('#sscribe-debug-filter-level');
-    var $sessionId  = $root.find('#sscribe-debug-session-id');
-
-    // Apply consistent sizing & vertical grouping via inline style if not already done
-    [$filterSel, $sessionId, $searchInput].forEach(function(el) {
-      if (el.length) {
-        el.css({
-          'display': 'block',
-          'width': '100%',
-          'height': '36px',
-          'min-height': '36px',
-          'box-sizing': 'border-box'
-        });
-      }
-    });
+    // Filter + search inputs use .sscribe-input which already enforces
+    // 36px height, width, and box-sizing. No JS sizing override needed.
   }
 
   $(document).ready(function() {

@@ -306,7 +306,7 @@ class SScribe {
 	 * WordPress.org-hosted plugins auto-load translations since WP 4.6.
 	 */
 	private function init_i18n(): void {
-		add_action( 'init', array( $this, 'load_textdomain' ) );
+		add_action( 'plugins_loaded', array( $this, 'load_textdomain' ) );
 	}
 
 	/**

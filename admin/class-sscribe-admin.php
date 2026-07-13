@@ -54,6 +54,18 @@ class SScribe_Admin {
 	private string $csp_nonce = '';
 
 	/**
+	 * Cached inline-localize script body for hash-based CSP.
+	 *
+	 * Stored when print_localized_data() runs and re-read by
+	 * get_localized_data_hash() so the CSP header and the inline
+	 * <script> tag agree on the exact bytes being hashed. Both calls
+	 * happen on the same request so race conditions are not a concern.
+	 *
+	 * @var string
+	 */
+	private string $localized_script_body = '';
+
+	/**
 	 * Initialize the admin interface.
 	 *
 	 * @param SScribe_Page_Collector|null $collector   Page collector.
@@ -221,13 +233,24 @@ class SScribe_Admin {
 
 		$nonce = $this->get_csp_nonce();
 
+		// Drop 'unsafe-inline' from script-src by hashing the localized
+		// <script>var sscribe_data = ...</script> body. The hash is
+		// recomputed each request so the data (which embeds a per-request
+		// nonce + ajax URL) does not need a stable canonical form.
+		$inline_script_hash = $this->get_localized_data_hash();
+
+		$script_src = "'self' 'nonce-" . $nonce . "'";
+		if ( ! empty( $inline_script_hash ) ) {
+			$script_src .= " '" . $inline_script_hash . "'";
+		}
+
 		header( 'X-Frame-Options: SAMEORIGIN' );
 		header( 'X-Content-Type-Options: nosniff' );
 		header( 'Referrer-Policy: strict-origin-when-cross-origin' );
 		header(
 			'Content-Security-Policy: ' .
 			"default-src 'self'; " .
-			"script-src 'self' 'nonce-" . $nonce . "' 'unsafe-inline'; " .
+			'script-src ' . $script_src . '; ' .
 			"style-src 'self' 'unsafe-inline'; " .
 			"img-src 'self' data: https:; " .
 			"object-src 'none'; " .
@@ -306,6 +329,10 @@ class SScribe_Admin {
 	 * which hardcodes the tag. print_localized_data() replaces that approach by
 	 * printing the data manually with the per-request CSP nonce.
 	 *
+	 * The script body is cached (see $localized_script_body) so the CSP header
+	 * can include a matching SHA-256 hash and drop 'unsafe-inline' from
+	 * script-src. This is the CSP-hardening equivalent of wp_localize_script.
+	 *
 	 * Hooks at priority 0 so it fires before wp_print_footer_scripts (priority 20).
 	 */
 	public function print_localized_data(): void {
@@ -319,7 +346,22 @@ class SScribe_Admin {
 			return;
 		}
 
-		$data = array(
+		$body  = 'var sscribe_data = ' . wp_json_encode( $this->build_localized_data(), JSON_HEX_TAG | JSON_HEX_AMP | JSON_HEX_QUOT | JSON_HEX_APOS ) . ';';
+		$this->localized_script_body = $body;
+
+		echo '<script nonce="' . esc_attr( $nonce ) . '">' . $body . '</script>'; // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- JSON-encoded, constant-string contents.
+	}
+
+	/**
+	 * Build the localized data array for print_localized_data().
+	 *
+	 * Extracted so both the printer and any tests can construct the same
+	 * payload without duplicating the 100+ string entries.
+	 *
+	 * @return array<string, mixed>
+	 */
+	private function build_localized_data(): array {
+		return array(
 			'ajaxurl'         => admin_url( 'admin-ajax.php' ),
 			'nonce'           => wp_create_nonce( 'sscribe_export_nonce' ),
 			'download_nonce'  => $this->get_download_nonce(),
@@ -444,6 +486,13 @@ class SScribe_Admin {
 				'document_title'         => __( '(%d%%) SScribe Export', 'sscribe-export-site-pages' ),
 				'err_cancel_failed'      => __( 'Could not confirm cancellation : the server may still be processing. Reload the page before starting a new export.', 'sscribe-export-site-pages' ),
 
+				'bulk_delete_confirm'    => __( 'Delete all selected exports? This cannot be undone.', 'sscribe-export-site-pages' ),
+				'bulk_delete_label'      => __( 'Delete selected', 'sscribe-export-site-pages' ),
+				'bulk_delete_title'      => __( 'Delete selected exports?', 'sscribe-export-site-pages' ),
+				'bulk_delete_desc'       => __( 'All selected exports will be permanently removed from the server. ZIP files in your downloads folder will not be affected.', 'sscribe-export-site-pages' ),
+				'bulk_delete_cancelled'  => __( 'Bulk delete cancelled.', 'sscribe-export-site-pages' ),
+				'bulk_delete_started'    => __( 'Deleting selected exports...', 'sscribe-export-site-pages' ),
+
 				'post_type_page'         => __( 'Pages', 'sscribe-export-site-pages' ),
 				'post_type_post'         => __( 'Posts', 'sscribe-export-site-pages' ),
 				'post_type_any'          => __( 'Both', 'sscribe-export-site-pages' ),
@@ -462,12 +511,26 @@ class SScribe_Admin {
 				'live_region_progress'   => __( '%1$s %2$d%%', 'sscribe-export-site-pages' ),
 			),
 		);
+	}
 
-		?>
-		<script nonce="<?php echo esc_attr( $nonce ); ?>">
-		var sscribe_data = <?php echo wp_json_encode( $data, JSON_HEX_TAG | JSON_HEX_AMP | JSON_HEX_QUOT | JSON_HEX_APOS ); ?>;
-		</script>
-		<?php
+	/**
+	 * SHA-256 CSP hash of the inline localize script body.
+	 *
+	 * Returns the `sha256-<base64>` token that should be added to
+	 * script-src alongside the per-request nonce. Lets the CSP header
+	 * drop 'unsafe-inline' for the var sscribe_data script block.
+	 *
+	 * Returns '' when print_localized_data() has not yet run on this
+	 * request: the caller should treat that as 'use nonce-only'.
+	 *
+	 * @return string CSP hash token (e.g. sha256-AbCdEf…) or empty string.
+	 */
+	public function get_localized_data_hash(): string {
+		if ( '' === $this->localized_script_body ) {
+			return '';
+		}
+
+		return 'sha256-' . base64_encode( hash( 'sha256', $this->localized_script_body, true ) ); // phpcs:ignore WordPress.PHP.DiscouragedPHPFunctions.obfuscation_base64_encode -- CSP hash format mandates base64.
 	}
 
 	/**
