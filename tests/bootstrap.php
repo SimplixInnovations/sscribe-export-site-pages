@@ -1169,6 +1169,20 @@ if ( ! function_exists( 'wp_http_validate_url' ) ) {
 	}
 }
 
+if ( ! function_exists( 'wp_validate_url' ) ) {
+	function wp_validate_url( $url, $object = null ) {
+		unset( $object );
+		if ( ! is_string( $url ) || '' === $url ) {
+			return false;
+		}
+		$scheme = strtolower( (string) wp_parse_url( $url, PHP_URL_SCHEME ) );
+		if ( ! in_array( $scheme, array( 'http', 'https', 'ftp' ), true ) ) {
+			return false;
+		}
+		return esc_url_raw( $url ) ?: false;
+	}
+}
+
 if ( ! function_exists( 'wp_parse_url' ) ) {
 	function wp_parse_url( $url, $component = -1 ) {
 		return parse_url( $url, $component );

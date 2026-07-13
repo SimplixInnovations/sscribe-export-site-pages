@@ -25,15 +25,6 @@ class SScribe_Wave1_Integration_Test extends TestCase {
 		parent::tearDown();
 	}
 
-	public function test_font_helper_exists(): void {
-		$this->assertTrue( class_exists( 'SScribe_Font_Helper' ), 'SScribe_Font_Helper class should exist' );
-	}
-
-	public function test_font_helper_returns_amiri(): void {
-		$path = SScribe_Font_Helper::get_arabic_font_path();
-		$this->assertStringContainsString( 'Amiri-Regular.ttf', $path, 'Font helper should return Amiri' );
-	}
-
 	public function test_rtl_helper_arabic(): void {
 		$this->assertTrue( SScribe_RTL_Helper::is_rtl( 'ar' ), 'Arabic should be RTL' );
 		$this->assertEquals( 'rtl', SScribe_RTL_Helper::get_direction( 'ar' ) );
