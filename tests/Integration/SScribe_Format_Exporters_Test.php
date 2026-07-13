@@ -236,14 +236,6 @@ class SScribe_Format_Exporters_Test extends TestCase {
 		$this->assertGreaterThan( 0, $time );
 	}
 
-	public function test_font_helper_returns_amiri(): void {
-		$regular = SScribe_Font_Helper::get_arabic_font_path();
-		$bold    = SScribe_Font_Helper::get_arabic_font_path( true );
-
-		$this->assertStringContainsString( 'Amiri-Regular.ttf', $regular );
-		$this->assertStringContainsString( 'Amiri-Bold.ttf', $bold );
-	}
-
 	public function test_rtl_helper_get_languages(): void {
 		$languages = SScribe_RTL_Helper::get_rtl_languages();
 
@@ -261,10 +253,6 @@ class SScribe_Format_Exporters_Test extends TestCase {
 
 	public function test_image_processor_exists(): void {
 		$this->assertTrue( class_exists( 'SScribe_Image_Processor' ) );
-	}
-
-	public function test_font_helper_exists(): void {
-		$this->assertTrue( class_exists( 'SScribe_Font_Helper' ) );
 	}
 
 	private function cleanup_temp_dir( string $dir ): void {

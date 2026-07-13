@@ -83,6 +83,16 @@ if ( ! function_exists( 'esc_url' ) ) {
 if ( ! function_exists( 'esc_url_raw' ) ) {
 	function esc_url_raw( $url, $protocols = null ): string { return ''; }
 }
+if ( ! function_exists( 'wp_validate_url' ) ) {
+	function wp_validate_url( $url, $object = null ): string|false {
+		if ( ! is_string( $url ) || '' === $url ) {
+			return false;
+		}
+		$allowed = array( 'http', 'https', 'ftp' );
+		$scheme  = strtolower( (string) ( parse_url( $url, PHP_URL_SCHEME ) ?: '' ) );
+		return in_array( $scheme, $allowed, true ) ? esc_url_raw( $url ) : false;
+	}
+}
 if ( ! function_exists( 'esc_js' ) ) {
 	function esc_js( $text ): string { return ''; }
 }
