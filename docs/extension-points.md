@@ -264,7 +264,7 @@ if ( $container->has( SScribe_Session::class ) ) {
 ```
 
 Lookup-then-resolve (`has()` + `get()`) is the safe pattern — service
-registration is optional and may differ between the free and premium
+registration is optional and may differ between default and extension
 distributions. Missing services throw
 `SScribe_Container_NotFound_Exception`; other container errors throw
 `SScribe_Container_Exception`. Both extend `\RuntimeException` directly.

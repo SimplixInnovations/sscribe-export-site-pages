@@ -479,7 +479,7 @@
 					const pendingMs = Date.now() - self.isRefreshingSince;
 					if (pendingMs > 5000 && !self.slowRefreshNoticeSince) {
 						self.slowRefreshNoticeSince = self.isRefreshingSince + 5000;
-						self.showPausedIndicator('Refresh taking longer than expected…');
+						self.showPausedIndicator('Refresh taking longer than expected...');
 					}
 					if (pendingMs > 10000) {
 						self.isRefreshing = false;
@@ -1042,9 +1042,9 @@
 		 * Filename is extracted from the Content-Disposition response header when
 		 * present, falling back to the caller-supplied default.
 		 *
-		 * @param {string} url         Endpoint URL (e.g. admin-ajax.php).
-		 * @param {Object} data        POST payload (form-urlencoded).
-		 * @param {Object} callbacks   onSuccess(filename), onError(message).
+		 * @param {string} url Endpoint URL (e.g. admin-ajax.php).
+		 * @param {Object} data POST payload (form-urlencoded).
+		 * @param {Object} callbacks onSuccess(filename), onError(message).
 		 */
 		downloadViaFetch: function (url, data, callbacks) {
 			const self = this;
@@ -1166,7 +1166,7 @@
 				data.filename = this.currentRotatedFilename;
 			}
 			self.$exportBtn.prop('disabled', true);
-			self.$exportBtn.find('.sscribe-export-btn-scope').text(' : exporting…');
+			self.$exportBtn.find('.sscribe-export-btn-scope').text(' : exporting...');
 			this.showPausedIndicator('Export in progress : download should begin shortly');
 			this.downloadViaFetch(sscribe_data.ajaxurl, data, {
 				onSuccess: function () {
@@ -1589,116 +1589,116 @@
   'use strict';
 
   function ssDebugEnhanceLayout() {
-    var $root = $('#sscribe-debug-root');
-    if (!$root.length) return;
+ var $root = $('#sscribe-debug-root');
+ if (!$root.length) return;
 
-    // ---- 1. SETTINGS PANEL RESTRUCTURE ----
-    // Already rendered: toggle + description | LOG LEVEL label+select | Save btn
-    // Wrap them in a proper flex row if not already done.
-    var $toggle     = $root.find('#sscribe-debug-enabled').closest('label, span, div').first();
-    var $levelLabel = $root.find('label[for="sscribe-debug-level"], .sscribe-debug-level-label');
-    var $levelSel   = $root.find('#sscribe-debug-level');
-    var $saveBtn    = $root.find('#sscribe-debug-save-settings');
-    var $feedback   = $root.find('#sscribe-debug-save-feedback');
+ // ---- 1. SETTINGS PANEL RESTRUCTURE ----
+ // Already rendered: toggle + description | LOG LEVEL label+select | Save btn
+ // Wrap them in a proper flex row if not already done.
+ var $toggle = $root.find('#sscribe-debug-enabled').closest('label, span, div').first();
+ var $levelLabel = $root.find('label[for="sscribe-debug-level"], .sscribe-debug-level-label');
+ var $levelSel = $root.find('#sscribe-debug-level');
+ var $saveBtn = $root.find('#sscribe-debug-save-settings');
+ var $feedback = $root.find('#sscribe-debug-save-feedback');
 
-    // Locate the settings panel container (parent holding all 3 groups)
-    var $settingsPanel = $saveBtn.closest('.sscribe-debug-settings, .sscribe-debug-panel, section').first();
-    if (!$settingsPanel.length) {
-      // Fallback: find the common ancestor of toggle + saveBtn
-      $settingsPanel = $saveBtn.parent();
-    }
-    if (!$settingsPanel.hasClass('ss-layout-enhanced')) {
-      $settingsPanel.addClass('ss-layout-enhanced');
-      $settingsPanel.css({
-        'display': 'flex',
-        'align-items': 'center',
-        'justify-content': 'space-between',
-        'flex-wrap': 'wrap',
-        'gap': '16px'
-      });
-    }
+ // Locate the settings panel container (parent holding all 3 groups)
+ var $settingsPanel = $saveBtn.closest('.sscribe-debug-settings, .sscribe-debug-panel, section').first();
+ if (!$settingsPanel.length) {
+ // Fallback: find the common ancestor of toggle + saveBtn
+ $settingsPanel = $saveBtn.parent();
+ }
+ if (!$settingsPanel.hasClass('ss-layout-enhanced')) {
+ $settingsPanel.addClass('ss-layout-enhanced');
+ $settingsPanel.css({
+ 'display': 'flex',
+ 'align-items': 'center',
+ 'justify-content': 'space-between',
+ 'flex-wrap': 'wrap',
+ 'gap': '16px'
+ });
+ }
 
-    // ---- 2. FILTER BAR CONSISTENT INPUT HEIGHTS ----
-    // The 3 filter inputs must be the same height. Force via inline style.
-    $('#sscribe-debug-filter-level, #sscribe-debug-session-id, #sscribe-debug-search').each(function() {
-      $(this).css({
-        'height': '36px',
-        'min-height': '36px',
-        'box-sizing': 'border-box',
-        'font-size': '13px'
-      });
-    });
+ // ---- 2. FILTER BAR CONSISTENT INPUT HEIGHTS ----
+ // The 3 filter inputs must be the same height. Force via inline style.
+ $('#sscribe-debug-filter-level, #sscribe-debug-session-id, #sscribe-debug-search').each(function() {
+ $(this).css({
+ 'height': '36px',
+ 'min-height': '36px',
+ 'box-sizing': 'border-box',
+ 'font-size': '13px'
+ });
+ });
 
-    // ---- 3. NORMALIZE LABEL CASING ----
-    // "Search logs:" should match "FILTER:" / "SESSION ID:" uppercase style.
-    $root.find('label[for="sscribe-debug-search"]').each(function() {
-      var $lbl = $(this);
-      var txt  = $lbl.text().replace(/:$/, '').trim().toUpperCase();
-      $lbl.text(txt + ':');
-      $lbl.css({
-        'font-size': '11px',
-        'font-weight': '600',
-        'letter-spacing': '0.08em',
-        'text-transform': 'uppercase',
-        'color': 'var(--ss-text-tertiary, #71717a)'
-      });
-    });
-    // Also target generic text nodes labeling the search field
-    $root.find('.sscribe-debug-search-label, [data-label="search"]').each(function() {
-      $(this).css('text-transform', 'uppercase');
-    });
+ // ---- 3. NORMALIZE LABEL CASING ----
+ // "Search logs:" should match "FILTER:" / "SESSION ID:" uppercase style.
+ $root.find('label[for="sscribe-debug-search"]').each(function() {
+ var $lbl = $(this);
+ var txt  = $lbl.text().replace(/:$/, '').trim().toUpperCase();
+ $lbl.text(txt + ':');
+ $lbl.css({
+ 'font-size': '11px',
+ 'font-weight': '600',
+ 'letter-spacing': '0.08em',
+ 'text-transform': 'uppercase',
+ 'color': 'var(--ss-text-tertiary, #71717a)'
+ });
+ });
+ // Also target generic text nodes labeling the search field
+ $root.find('.sscribe-debug-search-label, [data-label="search"]').each(function() {
+ $(this).css('text-transform', 'uppercase');
+ });
 
-    // ---- 4. REFRESH ROW ALIGNMENT ----
-    var $refreshRow = $root.find('#sscribe-debug-refresh-btn').parent();
-    $refreshRow.css({
-      'display': 'flex',
-      'align-items': 'center',
-      'gap': '16px'
-    });
-    $root.find('input[type="radio"]').closest('label, span').css({
-      'display': 'inline-flex',
-      'align-items': 'center',
-      'gap': '6px',
-      'font-size': '13px'
-    });
+ // ---- 4. REFRESH ROW ALIGNMENT ----
+ var $refreshRow = $root.find('#sscribe-debug-refresh-btn').parent();
+ $refreshRow.css({
+ 'display': 'flex',
+ 'align-items': 'center',
+ 'gap': '16px'
+ });
+ $root.find('input[type="radio"]').closest('label, span').css({
+ 'display': 'inline-flex',
+ 'align-items': 'center',
+ 'gap': '6px',
+ 'font-size': '13px'
+ });
 
-    // ---- 5. CONSOLE FOOTER BUTTON LAYOUT ----
-    var $clearBtn  = $root.find('#sscribe-debug-clear-btn');
-    var $exportBtn = $root.find('#sscribe-debug-export-btn');
-    var $footer    = $clearBtn.parent();
-    $footer.css({
-      'display': 'flex',
-      'align-items': 'center',
-      'gap': '12px',
-      'padding': '16px 0 8px'
-    });
+ // ---- 5. CONSOLE FOOTER BUTTON LAYOUT ----
+ var $clearBtn  = $root.find('#sscribe-debug-clear-btn');
+ var $exportBtn = $root.find('#sscribe-debug-export-btn');
+ var $footer = $clearBtn.parent();
+ $footer.css({
+ 'display': 'flex',
+ 'align-items': 'center',
+ 'gap': '12px',
+ 'padding': '16px 0 8px'
+ });
 
-    // ---- 6. ROTATED LOGS DISCLOSURE CLEANUP ----
-    // Replace the bare "Click to expand/collapse" text with a cleaner hint.
-    var $disclosureToggle = $root.find('[aria-expanded]').filter(function() {
-      return $(this).text().toLowerCase().indexOf('rotated') !== -1 ||
-             $(this).find(':contains("Rotated")').length > 0;
-    });
-    $disclosureToggle.css({
-      'display': 'flex',
-      'align-items': 'center',
-      'justify-content': 'space-between',
-      'width': '100%',
-      'cursor': 'pointer'
-    });
+ // ---- 6. ROTATED LOGS DISCLOSURE CLEANUP ----
+ // Replace the bare "Click to expand/collapse" text with a cleaner hint.
+ var $disclosureToggle = $root.find('[aria-expanded]').filter(function() {
+ return $(this).text().toLowerCase().indexOf('rotated') !== -1 ||
+ $(this).find(':contains("Rotated")').length > 0;
+ });
+ $disclosureToggle.css({
+ 'display': 'flex',
+ 'align-items': 'center',
+ 'justify-content': 'space-between',
+ 'width': '100%',
+ 'cursor': 'pointer'
+ });
   }
 
   // Run on DOM ready and after tab switch
   $(document).ready(function() {
-    // Slight delay to let the plugin's own init finish
-    setTimeout(ssDebugEnhanceLayout, 300);
+ // Slight delay to let the plugin's own init finish
+ setTimeout(ssDebugEnhanceLayout, 300);
   });
 
   // Re-run if SScribe tab switches activate the Debug panel
   $(document).on('sscribe:tab:activated', function(e, tabId) {
-    if (tabId === 'debug') {
-      setTimeout(ssDebugEnhanceLayout, 100);
-    }
+ if (tabId === 'debug') {
+ setTimeout(ssDebugEnhanceLayout, 100);
+ }
   });
 
 })(jQuery);
@@ -1712,53 +1712,53 @@
   'use strict';
 
   function ssDebugPatch2() {
-    var $root = $('#sscribe-debug-root');
-    if (!$root.length) return;
+ var $root = $('#sscribe-debug-root');
+ if (!$root.length) return;
 
-    // ---- FIX 1: INJECT "SEARCH LOGS:" LABEL ----
-    // The search input (#sscribe-debug-search) has no visible label above it.
-    // FILTER: and SESSION ID: have visible uppercase labels.
-    // We inject one if it hasn't been injected already.
-    var $searchInput = $root.find('#sscribe-debug-search');
-    if ($searchInput.length && !$searchInput.prev('.ss-injected-label').length) {
-      $searchInput.before(
-        '<span class="ss-injected-label" aria-hidden="true">SEARCH LOGS:</span>'
-      );
-    }
+ // ---- FIX 1: INJECT "SEARCH LOGS:" LABEL ----
+ // The search input (#sscribe-debug-search) has no visible label above it.
+ // FILTER: and SESSION ID: have visible uppercase labels.
+ // We inject one if it hasn't been injected already.
+ var $searchInput = $root.find('#sscribe-debug-search');
+ if ($searchInput.length && !$searchInput.prev('.ss-injected-label').length) {
+ $searchInput.before(
+ '<span class="ss-injected-label" aria-hidden="true">SEARCH LOGS:</span>'
+ );
+ }
 
-    // ---- FIX 2: SETTINGS PANEL ALIGNMENT ----
-    // Ensure LOG LEVEL + dropdown are in a flex-col group,
-    // and Save Settings aligns to the bottom of that group.
-    var $saveBtn    = $root.find('#sscribe-debug-save-settings');
-    var $levelSel   = $root.find('#sscribe-debug-level');
-    var $levelLabel = $root.find('#sscribe-debug-level').prev();
+ // ---- FIX 2: SETTINGS PANEL ALIGNMENT ----
+ // Ensure LOG LEVEL + dropdown are in a flex-col group,
+ // and Save Settings aligns to the bottom of that group.
+ var $saveBtn = $root.find('#sscribe-debug-save-settings');
+ var $levelSel = $root.find('#sscribe-debug-level');
+ var $levelLabel = $root.find('#sscribe-debug-level').prev();
 
-    // Find the settings section (common ancestor)
-    var $settingsSection = $saveBtn.closest('section, .sscribe-debug-section, .sscribe-panel, div').first();
+ // Find the settings section (common ancestor)
+ var $settingsSection = $saveBtn.closest('section, .sscribe-debug-section, .sscribe-panel, div').first();
 
-    // Apply align-items: flex-end to the settings section so all items
-    // baseline to the bottom. This pushes Save Settings to align with
-    // the bottom edge of the LOG LEVEL select.
-    if ($settingsSection.length && !$settingsSection.data('patch2-applied')) {
-      $settingsSection.data('patch2-applied', true);
-      $settingsSection.css('align-items', 'flex-end');
-    }
+ // Apply align-items: flex-end to the settings section so all items
+ // baseline to the bottom. This pushes Save Settings to align with
+ // the bottom edge of the LOG LEVEL select.
+ if ($settingsSection.length && !$settingsSection.data('patch2-applied')) {
+ $settingsSection.data('patch2-applied', true);
+ $settingsSection.css('align-items', 'flex-end');
+ }
 
-    // Also force save button to self-align bottom
-    $saveBtn.css('align-self', 'flex-end');
+ // Also force save button to self-align bottom
+ $saveBtn.css('align-self', 'flex-end');
 
-    // Filter + search inputs use .sscribe-input which already enforces
-    // 36px height, width, and box-sizing. No JS sizing override needed.
+ // Filter + search inputs use .sscribe-input which already enforces
+ // 36px height, width, and box-sizing. No JS sizing override needed.
   }
 
   $(document).ready(function() {
-    setTimeout(ssDebugPatch2, 400);
+ setTimeout(ssDebugPatch2, 400);
   });
 
   $(document).on('sscribe:tab:activated', function(e, tabId) {
-    if (tabId === 'debug') {
-      setTimeout(ssDebugPatch2, 150);
-    }
+ if (tabId === 'debug') {
+ setTimeout(ssDebugPatch2, 150);
+ }
   });
 
 })(jQuery);
@@ -1773,45 +1773,45 @@
   'use strict';
 
   function ssObserveContextPanels() {
-    var entries = document.getElementById('sscribe-debug-entries');
-    if (!entries) return;
+ var entries = document.getElementById('sscribe-debug-entries');
+ if (!entries) return;
 
-    // Use MutationObserver to watch for style attribute changes
-    // on any [id^="sscribe-debug-ctx-"] elements
-    var observer = new MutationObserver(function(mutations) {
-      mutations.forEach(function(mutation) {
-        if (mutation.type === 'attributes' && mutation.attributeName === 'style') {
-          var el = mutation.target;
-          var display = el.style.display;
-          if (display === 'none' || display === '') {
-            el.classList.remove('sscribe-ctx-open');
-          } else {
-            // display:block or display:grid or any non-none value
-            el.classList.add('sscribe-ctx-open');
-          }
-        }
-      });
-    });
+ // Use MutationObserver to watch for style attribute changes
+ // on any [id^="sscribe-debug-ctx-"] elements
+ var observer = new MutationObserver(function(mutations) {
+ mutations.forEach(function(mutation) {
+ if (mutation.type === 'attributes' && mutation.attributeName === 'style') {
+ var el = mutation.target;
+ var display = el.style.display;
+ if (display === 'none' || display === '') {
+ el.classList.remove('sscribe-ctx-open');
+ } else {
+ // display:block or display:grid or any non-none value
+ el.classList.add('sscribe-ctx-open');
+ }
+ }
+ });
+ });
 
-    // Observe all existing and future context panels
-    function observeAll() {
-      var panels = entries.querySelectorAll('[id^="sscribe-debug-ctx-"]');
-      panels.forEach(function(panel) {
-        observer.observe(panel, { attributes: true, attributeFilter: ['style'] });
-      });
-    }
+ // Observe all existing and future context panels
+ function observeAll() {
+ var panels = entries.querySelectorAll('[id^="sscribe-debug-ctx-"]');
+ panels.forEach(function(panel) {
+ observer.observe(panel, { attributes: true, attributeFilter: ['style'] });
+ });
+ }
 
-    observeAll();
+ observeAll();
 
-    // Also watch for new entries being added to the DOM
-    var entriesObserver = new MutationObserver(function() {
-      observeAll();
-    });
-    entriesObserver.observe(entries, { childList: true, subtree: false });
+ // Also watch for new entries being added to the DOM
+ var entriesObserver = new MutationObserver(function() {
+ observeAll();
+ });
+ entriesObserver.observe(entries, { childList: true, subtree: false });
   }
 
   $(document).ready(function() {
-    setTimeout(ssObserveContextPanels, 500);
+ setTimeout(ssObserveContextPanels, 500);
   });
 
 })(jQuery);
@@ -1826,37 +1826,37 @@
   'use strict';
 
   function ssCtxSync() {
-    var entries = document.getElementById('sscribe-debug-entries');
-    if (!entries) return;
+ var entries = document.getElementById('sscribe-debug-entries');
+ if (!entries) return;
 
-    // Capture-phase listener fires last among capture listeners,
-    // but we use setTimeout(0) to let jQuery's bubbling handler finish.
-    entries.addEventListener('click', function (e) {
-      var btn = e.target.closest('button[aria-controls], button[aria-expanded]');
-      if (!btn) return;
+ // Capture-phase listener fires last among capture listeners,
+ // but we use setTimeout(0) to let jQuery's bubbling handler finish.
+ entries.addEventListener('click', function (e) {
+ var btn = e.target.closest('button[aria-controls], button[aria-expanded]');
+ if (!btn) return;
 
-      // Defer to next tick so jQuery has already toggled aria-expanded
-      setTimeout(function () {
-        var isExpanded = btn.getAttribute('aria-expanded') === 'true';
-        // Find the context panel: next sibling element with id starting sscribe-debug-ctx-
-        var next = btn.nextElementSibling;
-        while (next) {
-          if (next.id && next.id.indexOf('sscribe-debug-ctx-') === 0) {
-            if (isExpanded) {
-              next.classList.add('sscribe-ctx-open');
-            } else {
-              next.classList.remove('sscribe-ctx-open');
-            }
-            break;
-          }
-          next = next.nextElementSibling;
-        }
-      }, 0);
-    }, true);
+ // Defer to next tick so jQuery has already toggled aria-expanded
+ setTimeout(function () {
+ var isExpanded = btn.getAttribute('aria-expanded') === 'true';
+ // Find the context panel: next sibling element with id starting sscribe-debug-ctx-
+ var next = btn.nextElementSibling;
+ while (next) {
+ if (next.id && next.id.indexOf('sscribe-debug-ctx-') === 0) {
+ if (isExpanded) {
+ next.classList.add('sscribe-ctx-open');
+ } else {
+ next.classList.remove('sscribe-ctx-open');
+ }
+ break;
+ }
+ next = next.nextElementSibling;
+ }
+ }, 0);
+ }, true);
   }
 
   $(document).ready(function () {
-    setTimeout(ssCtxSync, 600);
+ setTimeout(ssCtxSync, 600);
   });
 
 })(jQuery);
@@ -1877,59 +1877,59 @@
   var PRE_STYLE = 'margin:0;padding:0;font-family:monospace;font-size:inherit;white-space:pre-wrap;word-break:break-all;';
 
   function styleCtxPanel(panel) {
-    var table = panel.querySelector('table');
-    if (!table) return;
-    table.style.cssText = TABLE_STYLE;
-    var rows = table.querySelectorAll('tr');
-    rows.forEach(function(row, rowIdx) {
-      var cells = row.querySelectorAll('td');
-      cells.forEach(function(cell, cellIdx) {
-        var isFirst = rowIdx === 0;
-        var isLast = rowIdx === rows.length - 1;
-        var isKey = cellIdx === 0;
-        var baseStyle = isKey
-          ? (isFirst ? FIRST_KEY_STYLE : KEY_STYLE)
-          : (isFirst ? FIRST_VAL_STYLE : VAL_STYLE);
-        if (isLast && !isFirst) baseStyle += LAST_CELL_EXTRA;
-        cell.style.cssText = baseStyle;
-        if (!isKey) {
-          var pre = cell.querySelector('pre');
-          if (pre) pre.style.cssText = PRE_STYLE;
-        }
-      });
-    });
+ var table = panel.querySelector('table');
+ if (!table) return;
+ table.style.cssText = TABLE_STYLE;
+ var rows = table.querySelectorAll('tr');
+ rows.forEach(function(row, rowIdx) {
+ var cells = row.querySelectorAll('td');
+ cells.forEach(function(cell, cellIdx) {
+ var isFirst = rowIdx === 0;
+ var isLast = rowIdx === rows.length - 1;
+ var isKey = cellIdx === 0;
+ var baseStyle = isKey
+ ? (isFirst ? FIRST_KEY_STYLE : KEY_STYLE)
+ : (isFirst ? FIRST_VAL_STYLE : VAL_STYLE);
+ if (isLast && !isFirst) baseStyle += LAST_CELL_EXTRA;
+ cell.style.cssText = baseStyle;
+ if (!isKey) {
+ var pre = cell.querySelector('pre');
+ if (pre) pre.style.cssText = PRE_STYLE;
+ }
+ });
+ });
   }
 
   function applyToAll() {
-    var panels = document.querySelectorAll('[id^="sscribe-debug-ctx-"]');
-    panels.forEach(function(panel) {
-      styleCtxPanel(panel);
-    });
+ var panels = document.querySelectorAll('[id^="sscribe-debug-ctx-"]');
+ panels.forEach(function(panel) {
+ styleCtxPanel(panel);
+ });
   }
 
   // Watch for dynamically added panels
   var observer = new MutationObserver(function(mutations) {
-    mutations.forEach(function(mutation) {
-      mutation.addedNodes.forEach(function(node) {
-        if (node.nodeType === 1) {
-          if (node.id && node.id.indexOf('sscribe-debug-ctx-') === 0) {
-            styleCtxPanel(node);
-          }
-          var nested = node.querySelectorAll ? node.querySelectorAll('[id^="sscribe-debug-ctx-"]') : [];
-          nested.forEach(function(p) { styleCtxPanel(p); });
-        }
-      });
-    });
+ mutations.forEach(function(mutation) {
+ mutation.addedNodes.forEach(function(node) {
+ if (node.nodeType === 1) {
+ if (node.id && node.id.indexOf('sscribe-debug-ctx-') === 0) {
+ styleCtxPanel(node);
+ }
+ var nested = node.querySelectorAll ? node.querySelectorAll('[id^="sscribe-debug-ctx-"]') : [];
+ nested.forEach(function(p) { styleCtxPanel(p); });
+ }
+ });
+ });
   });
 
   $(document).ready(function() {
-    setTimeout(function() {
-      applyToAll();
-      var container = document.getElementById('sscribe-debug-entries');
-      if (container) {
-        observer.observe(container, { childList: true, subtree: true });
-      }
-    }, 800);
+ setTimeout(function() {
+ applyToAll();
+ var container = document.getElementById('sscribe-debug-entries');
+ if (container) {
+ observer.observe(container, { childList: true, subtree: true });
+ }
+ }, 800);
   });
 })(jQuery);
 
@@ -1945,38 +1945,38 @@
   var PRE_STYLE = 'margin:0;padding:0;font-family:monospace;white-space:pre-wrap;word-break:break-all;';
 
   function applyCtxStyles(ctxDiv) {
-    if (!ctxDiv) return;
-    var rows = ctxDiv.querySelectorAll('tr');
-    rows.forEach(function (row, i) {
-      var tds = row.querySelectorAll('td');
-      tds.forEach(function (td, j) {
-        var style = j === 0 ? KEY_STYLE : VAL_STYLE;
-        if (i === 0) style = style.replace('border-top:1px solid rgb(255 255 255 / 7%);', '');
-        td.setAttribute('style', style);
-        if (j > 0) {
-          var pre = td.querySelector('pre');
-          if (pre) pre.setAttribute('style', PRE_STYLE);
-        }
-      });
-    });
+ if (!ctxDiv) return;
+ var rows = ctxDiv.querySelectorAll('tr');
+ rows.forEach(function (row, i) {
+ var tds = row.querySelectorAll('td');
+ tds.forEach(function (td, j) {
+ var style = j === 0 ? KEY_STYLE : VAL_STYLE;
+ if (i === 0) style = style.replace('border-top:1px solid rgb(255 255 255 / 7%);', '');
+ td.setAttribute('style', style);
+ if (j > 0) {
+ var pre = td.querySelector('pre');
+ if (pre) pre.setAttribute('style', PRE_STYLE);
+ }
+ });
+ });
   }
 
   $(document).on('click', '#sscribe-debug-entries .sscribe-debug-entry, #sscribe-debug-entries [role="button"]', function () {
-    var entry = this;
-    setTimeout(function () {
-      // Find the sibling context panel
-      var sibling = entry.nextElementSibling;
-      while (sibling) {
-        if (sibling.id && sibling.id.indexOf('sscribe-debug-ctx-') === 0) {
-          applyCtxStyles(sibling);
-          break;
-        }
-        sibling = sibling.nextElementSibling;
-      }
-      // Also check if context is inside the entry
-      var inner = entry.querySelector('[id^="sscribe-debug-ctx-"]');
-      if (inner) applyCtxStyles(inner);
-    }, 50);
+ var entry = this;
+ setTimeout(function () {
+ // Find the sibling context panel
+ var sibling = entry.nextElementSibling;
+ while (sibling) {
+ if (sibling.id && sibling.id.indexOf('sscribe-debug-ctx-') === 0) {
+ applyCtxStyles(sibling);
+ break;
+ }
+ sibling = sibling.nextElementSibling;
+ }
+ // Also check if context is inside the entry
+ var inner = entry.querySelector('[id^="sscribe-debug-ctx-"]');
+ if (inner) applyCtxStyles(inner);
+ }, 50);
   });
 
 })(jQuery);

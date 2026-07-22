@@ -104,7 +104,7 @@
 
 .sscribe-debug-toggle-section {
   /* Spacer pseudo so all three columns share a consistent label baseline
-     and the dropdown aligns horizontally with the toggle switch. */
+ and the dropdown aligns horizontally with the toggle switch. */
   padding-top: 0;
 }
 
@@ -701,14 +701,14 @@
 }
 
 /* ============================================================
-   DEBUG CONSOLE ENTERPRISE OVERRIDES — v1.1.2 patch
-   Fixes: settings panel layout, filter bar alignment,
-   button hierarchy, refresh row, rotated-logs disclosure
-   ============================================================ */
+ DEBUG CONSOLE ENTERPRISE OVERRIDES  -  v1.1.2 patch
+ Fixes: settings panel layout, filter bar alignment,
+ button hierarchy, refresh row, rotated-logs disclosure
+ ============================================================ */
 
 /* ----------------------------------------------------------
-   1. SETTINGS PANEL — 3-column flex: toggle | log-level | save
-   ---------------------------------------------------------- */
+ 1. SETTINGS PANEL  -  3-column flex: toggle | log-level | save
+ ---------------------------------------------------------- */
 .sscribe-debug-settings-panel {
   display: flex;
   align-items: center;
@@ -761,8 +761,8 @@
 }
 
 /* ----------------------------------------------------------
-   2. FILTER BAR — consistent 3-column grid with labels
-   ---------------------------------------------------------- */
+ 2. FILTER BAR  -  consistent 3-column grid with labels
+ ---------------------------------------------------------- */
 .sscribe-debug-filters {
   display: grid;
   grid-template-columns: 200px 1fr 1fr;
@@ -834,8 +834,8 @@
 }
 
 /* ----------------------------------------------------------
-   3. AUTO-REFRESH ROW — proper horizontal alignment
-   ---------------------------------------------------------- */
+ 3. AUTO-REFRESH ROW  -  proper horizontal alignment
+ ---------------------------------------------------------- */
 .sscribe-debug-refresh-row {
   display: flex;
   align-items: center;
@@ -895,12 +895,12 @@
 }
 
 /* ----------------------------------------------------------
-   4. CONSOLE FOOTER BUTTONS — danger + secondary hierarchy
-   ---------------------------------------------------------- */
+ 4. CONSOLE FOOTER BUTTONS  -  danger + secondary hierarchy
+ ---------------------------------------------------------- */
 
 /* ----------------------------------------------------------
-   4b. HELP DIALOG — overlay + dialog + close (built by JS)
-   ---------------------------------------------------------- */
+ 4b. HELP DIALOG  -  overlay + dialog + close (built by JS)
+ ---------------------------------------------------------- */
 .sscribe-help-overlay {
   position: fixed;
   inset: 0;
@@ -991,15 +991,15 @@
 }
 
 /* ----------------------------------------------------------
-   5. ROTATED LOGS DISCLOSURE — chevron toggle treatment
-   ---------------------------------------------------------- */
+ 5. ROTATED LOGS DISCLOSURE  -  chevron toggle treatment
+ ---------------------------------------------------------- */
 .sscribe-debug-rotated-section {
   margin-top: var(--ss-space-5);
 }
 
 /* ----------------------------------------------------------
-   6. SAVE SETTINGS BUTTON — consistent with design system
-   ---------------------------------------------------------- */
+ 6. SAVE SETTINGS BUTTON  -  consistent with design system
+ ---------------------------------------------------------- */
 #sscribe-debug-save-settings {
   height: 36px;
   padding: 0 var(--ss-space-5);
@@ -1033,8 +1033,8 @@
 }
 
 /* ----------------------------------------------------------
-   7. SAVE FEEDBACK / inline status text
-   ---------------------------------------------------------- */
+ 7. SAVE FEEDBACK / inline status text
+ ---------------------------------------------------------- */
 #sscribe-debug-save-feedback {
   font-size: 12px;
   color: var(--ss-success);
@@ -1045,39 +1045,39 @@
 }
 
 /* ----------------------------------------------------------
-   8. SESSION ID DESCRIPTION tooltip suppression
-   ---------------------------------------------------------- */
+ 8. SESSION ID DESCRIPTION tooltip suppression
+ ---------------------------------------------------------- */
 #sscribe-session-id-desc {
-  display: none; /* hidden — tooltip text causes layout overflow */
+  display: none; /* hidden  -  tooltip text causes layout overflow */
 }
 
 /* ============================================================
-   CRITICAL FIXES v1.1.2 patch-2
-   1. Console context popup layout (vertical char rendering fix)
-   2. Settings panel LOG LEVEL + Save alignment
-   3. Search logs label (injected via JS — CSS styles here)
-   ============================================================ */
+ CRITICAL FIXES v1.1.2 patch-2
+ 1. Console context popup layout (vertical char rendering fix)
+ 2. Settings panel LOG LEVEL + Save alignment
+ 3. Search logs label (injected via JS  -  CSS styles here)
+ ============================================================ */
 
 /* ----------------------------------------------------------
-   FIX 1: CONTEXT PANEL — enforce full-width grid layout
-   The context panel was rendering characters vertically due
-   to the parent flex container collapsing its width to 0.
-   ---------------------------------------------------------- */
+ FIX 1: CONTEXT PANEL  -  enforce full-width grid layout
+ The context panel was rendering characters vertically due
+ to the parent flex container collapsing its width to 0.
+ ---------------------------------------------------------- */
 
 /* Context panel wrapper: IDs like sscribe-debug-ctx-* */
 [id^="sscribe-debug-ctx-"] {
-    width: 100% !important;
-    min-width: 0 !important;
-    max-width: 100% !important;
-    grid-template-columns: minmax(120px, auto) 1fr !important;
-    gap: 2px 12px !important;
-    padding: 16px !important;
-    background: #000000 !important;
-    border-top: 1px solid rgb(255 255 255 / 7%) !important;
-    box-sizing: border-box !important;
-    overflow: hidden !important;
-    white-space: normal !important;
-    word-break: break-all !important;
+ width: 100% !important;
+ min-width: 0 !important;
+ max-width: 100% !important;
+ grid-template-columns: minmax(120px, auto) 1fr !important;
+ gap: 2px 12px !important;
+ padding: 16px !important;
+ background: #000000 !important;
+ border-top: 1px solid rgb(255 255 255 / 7%) !important;
+ box-sizing: border-box !important;
+ overflow: hidden !important;
+ white-space: normal !important;
+ word-break: break-all !important;
 }
 
 /* Context key (left column) */
@@ -1120,7 +1120,7 @@
   max-width: 100% !important;
 }
 
-/* The entry button row — must NOT collapse context child width */
+/* The entry button row  -  must NOT collapse context child width */
 .sscribe-debug-entries > button {
   display: grid !important;
   grid-template-columns: 1fr !important;
@@ -1129,12 +1129,12 @@
 }
 
 /* ----------------------------------------------------------
-   FIX 2: SETTINGS PANEL ALIGNMENT
-   LOG LEVEL label+select group and Save Settings button
-   must be bottom-aligned (align to the bottom of the row).
-   ---------------------------------------------------------- */
+ FIX 2: SETTINGS PANEL ALIGNMENT
+ LOG LEVEL label+select group and Save Settings button
+ must be bottom-aligned (align to the bottom of the row).
+ ---------------------------------------------------------- */
 
-/* The settings panel is a flex row — make right group bottom-align */
+/* The settings panel is a flex row  -  make right group bottom-align */
 .sscribe-debug-settings-right,
 .sscribe-debug-settings-panel > *:last-child {
   align-self: flex-end !important;
@@ -1150,7 +1150,7 @@
   padding: 20px 24px !important;
 }
 
-/* LOG LEVEL label — sits above the dropdown, already good */
+/* LOG LEVEL label  -  sits above the dropdown, already good */
 
 /* Make the LOG LEVEL group + Save btn share a baseline row */
 .sscribe-debug-level-group + #sscribe-debug-save-settings,
@@ -1165,9 +1165,9 @@
 }
 
 /* ----------------------------------------------------------
-   FIX 3: SEARCH LOGS LABEL (injected via JS)
-   These styles will be applied to the JS-injected label.
-   ---------------------------------------------------------- */
+ FIX 3: SEARCH LOGS LABEL (injected via JS)
+ These styles will be applied to the JS-injected label.
+ ---------------------------------------------------------- */
 .ss-injected-label {
   display: block !important;
   font-size: 11px !important;
@@ -1181,16 +1181,16 @@
 }
 
 /* ============================================================
-   EMERGENCY FIX: Restore hidden state for context panels
-   The display:grid !important above overrides jQuery .hide()
-   which sets inline style="display:none".
-   We must ensure collapsed panels stay hidden.
-   ============================================================ */
+ EMERGENCY FIX: Restore hidden state for context panels
+ The display:grid !important above overrides jQuery .hide()
+ which sets inline style="display:none".
+ We must ensure collapsed panels stay hidden.
+ ============================================================ */
 
 /* When the plugin hides context panels via jQuery .hide(),
-   it sets display:none as an inline style. The !important above
-   overrides that. Fix: use [aria-expanded="false"] on the parent
-   button to hide the associated context div. */
+ it sets display:none as an inline style. The !important above
+ overrides that. Fix: use [aria-expanded="false"] on the parent
+ button to hide the associated context div. */
 .sscribe-debug-entries > button[aria-expanded="false"] + [id^="sscribe-debug-ctx-"],
 .sscribe-debug-entries > button[aria-expanded="false"] ~ [id^="sscribe-debug-ctx-"] {
   display: none !important;
@@ -1221,15 +1221,15 @@
 }
 
 /* ============================================================
-   FINAL AUTHORITATIVE FIX: Context panel display management
-   REMOVE the display:grid !important — let jQuery own display.
-   Only apply layout styles when the panel IS visible.
-   Use :not([style*="display: none"]) to target only shown panels.
-   ============================================================ */
+ FINAL AUTHORITATIVE FIX: Context panel display management
+ REMOVE the display:grid !important  -  let jQuery own display.
+ Only apply layout styles when the panel IS visible.
+ Use :not([style*="display: none"]) to target only shown panels.
+ ============================================================ */
 
 /* Reset: remove display overrides from previous rules.
-   The [id^="sscribe-debug-ctx-"] rules above used display !important.
-   These rules below restore jQuery control over visibility. */
+ The [id^="sscribe-debug-ctx-"] rules above used display !important.
+ These rules below restore jQuery control over visibility. */
 
 /* Context panels: default hidden (let original plugin CSS handle it) */
 [id^="sscribe-debug-ctx-"]:not([style*="display: block"], [style*="display:block"], [style*="display: grid"], [style*="display:grid"]) {
@@ -1257,13 +1257,13 @@
 }
 
 /* ============================================================
-   CLASS-BASED CONTEXT PANEL VISIBILITY (via MutationObserver)
-   The JS observer adds .sscribe-ctx-open when panel is shown.
-   This is the ONLY authoritative display rule — no !important
-   battles with jQuery inline styles.
-   ============================================================ */
+ CLASS-BASED CONTEXT PANEL VISIBILITY (via MutationObserver)
+ The JS observer adds .sscribe-ctx-open when panel is shown.
+ This is the ONLY authoritative display rule  -  no !important
+ battles with jQuery inline styles.
+ ============================================================ */
 
-/* Open state — JS adds this class via MutationObserver */
+/* Open state  -  JS adds this class via MutationObserver */
 [id^="sscribe-debug-ctx-"].sscribe-ctx-open {
   display: grid !important;
   grid-template-columns: minmax(130px, auto) 1fr;
@@ -1385,11 +1385,11 @@
 }
 
 /* ============================================================
-   DEBUG CONSOLE — enterprise polish pass
-   Mirrors the admin.css revamp v2 tokens, scoped to the
-   console's dark terminal palette. Type utilities, motion,
-   focus rings, reduced motion, forced colors, and print.
-   ============================================================ */
+ DEBUG CONSOLE  -  enterprise polish pass
+ Mirrors the admin.css revamp v2 tokens, scoped to the
+ console's dark terminal palette. Type utilities, motion,
+ focus rings, reduced motion, forced colors, and print.
+ ============================================================ */
 
 /* ── TYPE UTILITY CLASSES ──────────────────────────────────── */
 
@@ -1457,12 +1457,12 @@
 
 @media (prefers-reduced-motion: reduce) {
   /* stylelint-disable declaration-no-important */
-  .sscribe-debug-console-card,
-  .sscribe-debug-console-card * {
-    transition-duration: 0ms !important;
-    animation-duration: 0ms !important;
-    animation-iteration-count: 1 !important;
-    scroll-behavior: auto !important;
+ .sscribe-debug-console-card,
+ .sscribe-debug-console-card * {
+ transition-duration: 0ms !important;
+ animation-duration: 0ms !important;
+ animation-iteration-count: 1 !important;
+ scroll-behavior: auto !important;
   }
   /* stylelint-enable declaration-no-important */
 }
@@ -1470,99 +1470,99 @@
 /* ── FORCED COLORS (Windows High Contrast) ─────────────────── */
 
 @media (forced-colors: active) {
-  .sscribe-debug-console-card {
-    --sscribe-debug-color-bg: Canvas;
-    --sscribe-debug-color-bg-header: Canvas;
-    --sscribe-debug-color-bg-entry-hover: Canvas;
-    --sscribe-debug-color-border: CanvasText;
-    --sscribe-debug-color-text: CanvasText;
-    --sscribe-debug-color-text-muted: CanvasText;
+ .sscribe-debug-console-card {
+ --sscribe-debug-color-bg: Canvas;
+ --sscribe-debug-color-bg-header: Canvas;
+ --sscribe-debug-color-bg-entry-hover: Canvas;
+ --sscribe-debug-color-border: CanvasText;
+ --sscribe-debug-color-text: CanvasText;
+ --sscribe-debug-color-text-muted: CanvasText;
   }
 
-  .sscribe-debug-help-btn:focus-visible,
-  .sscribe-debug-refresh-btn:focus-visible,
-  .sscribe-debug-filter-select:focus-visible,
-  .sscribe-debug-search-input:focus-visible,
-  .sscribe-debug-entry:focus-visible,
-  .sscribe-debug-tab:focus-visible {
-    /* stylelint-disable declaration-no-important */
-    outline: 3px solid Highlight !important;
-    outline-offset: 2px !important;
-    /* stylelint-enable declaration-no-important */
+ .sscribe-debug-help-btn:focus-visible,
+ .sscribe-debug-refresh-btn:focus-visible,
+ .sscribe-debug-filter-select:focus-visible,
+ .sscribe-debug-search-input:focus-visible,
+ .sscribe-debug-entry:focus-visible,
+ .sscribe-debug-tab:focus-visible {
+ /* stylelint-disable declaration-no-important */
+ outline: 3px solid Highlight !important;
+ outline-offset: 2px !important;
+ /* stylelint-enable declaration-no-important */
   }
 
-  .sscribe-debug-dot-red,
-  .sscribe-debug-dot-yellow,
-  .sscribe-debug-dot-green,
-  .sscribe-debug-level-error,
-  .sscribe-debug-level-critical,
-  .sscribe-debug-level-alert,
-  .sscribe-debug-level-emergency {
-    background: Highlight;
-    color: HighlightText;
+ .sscribe-debug-dot-red,
+ .sscribe-debug-dot-yellow,
+ .sscribe-debug-dot-green,
+ .sscribe-debug-level-error,
+ .sscribe-debug-level-critical,
+ .sscribe-debug-level-alert,
+ .sscribe-debug-level-emergency {
+ background: Highlight;
+ color: HighlightText;
   }
 
   /* Safari does not support forced-color-adjust; the opt-out below only
-     applies in engines that also implement forced-colors (Edge, Chrome,
-     Firefox 113+). Safari silently skips the @supports wrapper and keeps
-     the Highlight/HighlightText pair above. */
+ applies in engines that also implement forced-colors (Edge, Chrome,
+ Firefox 113+). Safari silently skips the @supports wrapper and keeps
+ the Highlight/HighlightText pair above. */
   @supports (forced-color-adjust: none) {
-    .sscribe-debug-dot-red,
-    .sscribe-debug-dot-yellow,
-    .sscribe-debug-dot-green,
-    .sscribe-debug-level-error,
-    .sscribe-debug-level-critical,
-    .sscribe-debug-level-alert,
-    .sscribe-debug-level-emergency {
-      forced-color-adjust: none;
-    }
+ .sscribe-debug-dot-red,
+ .sscribe-debug-dot-yellow,
+ .sscribe-debug-dot-green,
+ .sscribe-debug-level-error,
+ .sscribe-debug-level-critical,
+ .sscribe-debug-level-alert,
+ .sscribe-debug-level-emergency {
+ forced-color-adjust: none;
+ }
   }
 }
 
 /* ── PRINT ─────────────────────────────────────────────────── */
 
 @media print {
-  .sscribe-debug-console-card {
-    --sscribe-debug-color-bg: #fff;
-    --sscribe-debug-color-bg-header: #fff;
-    --sscribe-debug-color-bg-entry-hover: #fff;
-    --sscribe-debug-color-border: #000;
-    --sscribe-debug-color-text: #000;
-    --sscribe-debug-color-text-muted: #333;
+ .sscribe-debug-console-card {
+ --sscribe-debug-color-bg: #fff;
+ --sscribe-debug-color-bg-header: #fff;
+ --sscribe-debug-color-bg-entry-hover: #fff;
+ --sscribe-debug-color-border: #000;
+ --sscribe-debug-color-text: #000;
+ --sscribe-debug-color-text-muted: #333;
 
-    background: #fff !important;
-    color: #000 !important;
+ background: #fff !important;
+ color: #000 !important;
   }
 
-  .sscribe-debug-console-header,
-  .sscribe-debug-toolbar {
-    /* stylelint-disable declaration-no-important */
-    background: #fff !important;
-    color: #000 !important;
-    border-bottom: 1px solid #000 !important;
-    /* stylelint-enable declaration-no-important */
+ .sscribe-debug-console-header,
+ .sscribe-debug-toolbar {
+ /* stylelint-disable declaration-no-important */
+ background: #fff !important;
+ color: #000 !important;
+ border-bottom: 1px solid #000 !important;
+ /* stylelint-enable declaration-no-important */
   }
 
-  .sscribe-debug-dot-red,
-  .sscribe-debug-dot-yellow,
-  .sscribe-debug-dot-green {
-    /* stylelint-disable declaration-no-important */
-    display: none !important;
-    /* stylelint-enable declaration-no-important */
+ .sscribe-debug-dot-red,
+ .sscribe-debug-dot-yellow,
+ .sscribe-debug-dot-green {
+ /* stylelint-disable declaration-no-important */
+ display: none !important;
+ /* stylelint-enable declaration-no-important */
   }
 
-  .sscribe-debug-entry {
-    /* stylelint-disable declaration-no-important */
-    border-bottom: 1px solid #ccc !important;
-    break-inside: avoid;
-    /* stylelint-enable declaration-no-important */
+ .sscribe-debug-entry {
+ /* stylelint-disable declaration-no-important */
+ border-bottom: 1px solid #ccc !important;
+ break-inside: avoid;
+ /* stylelint-enable declaration-no-important */
   }
 
-  .sscribe-debug-context-panel {
-    /* stylelint-disable declaration-no-important */
-    background: #f5f5f5 !important;
-    color: #000 !important;
-    /* stylelint-enable declaration-no-important */
+ .sscribe-debug-context-panel {
+ /* stylelint-disable declaration-no-important */
+ background: #f5f5f5 !important;
+ color: #000 !important;
+ /* stylelint-enable declaration-no-important */
   }
 }
 

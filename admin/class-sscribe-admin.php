@@ -54,18 +54,6 @@ class SScribe_Admin {
 	private string $csp_nonce = '';
 
 	/**
-	 * Cached inline-localize script body for hash-based CSP.
-	 *
-	 * Stored when print_localized_data() runs and re-read by
-	 * get_localized_data_hash() so the CSP header and the inline
-	 * <script> tag agree on the exact bytes being hashed. Both calls
-	 * happen on the same request so race conditions are not a concern.
-	 *
-	 * @var string
-	 */
-	private string $localized_script_body = '';
-
-	/**
 	 * Initialize the admin interface.
 	 *
 	 * @param SScribe_Page_Collector|null $collector   Page collector.
@@ -233,16 +221,7 @@ class SScribe_Admin {
 
 		$nonce = $this->get_csp_nonce();
 
-		// Drop 'unsafe-inline' from script-src by hashing the localized
-		// <script>var sscribe_data = ...</script> body. The hash is
-		// recomputed each request so the data (which embeds a per-request
-		// nonce + ajax URL) does not need a stable canonical form.
-		$inline_script_hash = $this->get_localized_data_hash();
-
 		$script_src = "'self' 'nonce-" . $nonce . "'";
-		if ( ! empty( $inline_script_hash ) ) {
-			$script_src .= " '" . $inline_script_hash . "'";
-		}
 
 		header( 'X-Frame-Options: SAMEORIGIN' );
 		header( 'X-Content-Type-Options: nosniff' );
@@ -272,6 +251,10 @@ class SScribe_Admin {
 			return;
 		}
 
+		$tokens_css_version = file_exists( SSCRIBE_PLUGIN_DIR . 'admin/css/sscribe-tokens.css' )
+			? filemtime( SSCRIBE_PLUGIN_DIR . 'admin/css/sscribe-tokens.css' )
+			: SSCRIBE_VERSION;
+
 		$css_version = file_exists( SSCRIBE_PLUGIN_DIR . 'admin/css/sscribe-admin.css' )
 			? filemtime( SSCRIBE_PLUGIN_DIR . 'admin/css/sscribe-admin.css' )
 			: SSCRIBE_VERSION;
@@ -288,10 +271,26 @@ class SScribe_Admin {
 			? filemtime( SSCRIBE_PLUGIN_DIR . 'admin/js/sscribe-debug-console.js' )
 			: SSCRIBE_VERSION;
 
+		// filemtime() returns false on read-only/mtime-stripped production filesystems
+		// (Pantheon, Object Cache Pro, read-only WPEngine mounts). Fall back to the
+		// plugin version so wp_enqueue_style still receives a valid scalar.
+		$tokens_css_version = $tokens_css_version ?: SSCRIBE_VERSION;
+		$css_version        = $css_version ?: SSCRIBE_VERSION;
+		$js_version         = $js_version ?: SSCRIBE_VERSION;
+		$debug_css_version  = $debug_css_version ?: SSCRIBE_VERSION;
+		$debug_js_version   = $debug_js_version ?: SSCRIBE_VERSION;
+
+		wp_enqueue_style(
+			'sscribe-tokens',
+			SSCRIBE_PLUGIN_URL . 'admin/css/sscribe-tokens.css',
+			array(),
+			$tokens_css_version
+		);
+
 		wp_enqueue_style(
 			'sscribe-admin',
 			SSCRIBE_PLUGIN_URL . 'admin/css/sscribe-admin.css',
-			array(),
+			array( 'sscribe-tokens' ),
 			$css_version
 		);
 
@@ -329,10 +328,6 @@ class SScribe_Admin {
 	 * which hardcodes the tag. print_localized_data() replaces that approach by
 	 * printing the data manually with the per-request CSP nonce.
 	 *
-	 * The script body is cached (see $localized_script_body) so the CSP header
-	 * can include a matching SHA-256 hash and drop 'unsafe-inline' from
-	 * script-src. This is the CSP-hardening equivalent of wp_localize_script.
-	 *
 	 * Hooks at priority 0 so it fires before wp_print_footer_scripts (priority 20).
 	 */
 	public function print_localized_data(): void {
@@ -346,8 +341,7 @@ class SScribe_Admin {
 			return;
 		}
 
-		$body  = 'var sscribe_data = ' . wp_json_encode( $this->build_localized_data(), JSON_HEX_TAG | JSON_HEX_AMP | JSON_HEX_QUOT | JSON_HEX_APOS ) . ';';
-		$this->localized_script_body = $body;
+		$body = 'var sscribe_data = ' . wp_json_encode( $this->build_localized_data(), JSON_HEX_TAG | JSON_HEX_AMP | JSON_HEX_QUOT | JSON_HEX_APOS ) . ';';
 
 		echo '<script nonce="' . esc_attr( $nonce ) . '">' . $body . '</script>'; // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- JSON-encoded, constant-string contents.
 	}
@@ -511,26 +505,6 @@ class SScribe_Admin {
 				'live_region_progress'   => __( '%1$s %2$d%%', 'sscribe-export-site-pages' ),
 			),
 		);
-	}
-
-	/**
-	 * SHA-256 CSP hash of the inline localize script body.
-	 *
-	 * Returns the `sha256-<base64>` token that should be added to
-	 * script-src alongside the per-request nonce. Lets the CSP header
-	 * drop 'unsafe-inline' for the var sscribe_data script block.
-	 *
-	 * Returns '' when print_localized_data() has not yet run on this
-	 * request: the caller should treat that as 'use nonce-only'.
-	 *
-	 * @return string CSP hash token (e.g. sha256-AbCdEf…) or empty string.
-	 */
-	public function get_localized_data_hash(): string {
-		if ( '' === $this->localized_script_body ) {
-			return '';
-		}
-
-		return 'sha256-' . base64_encode( hash( 'sha256', $this->localized_script_body, true ) ); // phpcs:ignore WordPress.PHP.DiscouragedPHPFunctions.obfuscation_base64_encode -- CSP hash format mandates base64.
 	}
 
 	/**

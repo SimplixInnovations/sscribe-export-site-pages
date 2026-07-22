@@ -84,20 +84,23 @@ class SScribe_Admin_Test extends TestCase {
 		// always rendered — without the JS, the user has no way to flip
 		// the sscribe_debug_enabled toggle on a fresh install. The flag
 		// controls *logging*, not whether the console UI is available.
+		// Three styles load: sscribe-tokens (the design-token layer, cached
+		// independently) plus sscribe-admin and sscribe-debug-console.
 		$sscribe_test_options['sscribe_debug_enabled'] = false;
 		$admin->enqueue_admin_assets( 'toplevel_page_sscribe-export' );
 
-		$this->assertCount( 2, $sscribe_test_styles );
+		$this->assertCount( 3, $sscribe_test_styles );
 		$this->assertCount( 2, $sscribe_test_scripts );
 
-		// The same two assets are enqueued when debug is enabled — the
-		// flag only changes which logs are captured, not the UI surface.
+		// The same three styles and two scripts are enqueued when debug is
+		// enabled — the flag only changes which logs are captured, not the
+		// UI surface.
 		$sscribe_test_styles  = array();
 		$sscribe_test_scripts = array();
 		$sscribe_test_options['sscribe_debug_enabled'] = true;
 		$admin->enqueue_admin_assets( 'toplevel_page_sscribe-export' );
 
-		$this->assertCount( 2, $sscribe_test_styles );
+		$this->assertCount( 3, $sscribe_test_styles );
 		$this->assertCount( 2, $sscribe_test_scripts );
 	}
 

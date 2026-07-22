@@ -118,7 +118,7 @@ $sscribe_export_index    = $sscribe_export_index ?? array();
 			<?php endif; ?>
 		</nav>
 
-		<div class="sscribe-tab-content sscribe-tab-active" id="sscribe-tab-export" role="tabpanel" aria-labelledby="sscribe-tab-btn-export" aria-hidden="false">
+		<div class="sscribe-tab-content sscribe-tab-active" id="sscribe-tab-export" role="tabpanel" aria-labelledby="sscribe-tab-btn-export" aria-hidden="false" tabindex="0">
 
 <section class="sscribe-panel sscribe-config-panel">
 			<div class="sscribe-panel-header">

@@ -204,5 +204,27 @@ class SScribe_Upgrader {
 				update_option( 'sscribe_upgrade_last_error', 'Error modifying export_session_id: ' . $e->getMessage(), false );
 			}
 		}
+
+		if ( version_compare( $from_version, '1.1.3', '<' ) ) {
+			try {
+				// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- Schema introspection; plugin-controlled table name.
+				$col = $wpdb->get_row(
+					$wpdb->prepare(
+						'SHOW COLUMNS FROM ' . $wpdb->prefix . 'sscribe_export_logs LIKE %s',
+						'session_id'
+					)
+				);
+				if ( ! $col ) {
+					// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.DirectDatabaseQuery.SchemaChange, WordPress.DB.PreparedSQL.NotPrepared -- Schema change; table name is plugin-controlled constant.
+					$wpdb->query(
+						'ALTER TABLE `' . $wpdb->prefix . 'sscribe_export_logs` ' .
+						'ADD COLUMN session_id VARCHAR(60) DEFAULT NULL AFTER context, ' .
+						'ADD KEY idx_session_id (session_id)'
+					);
+				}
+			} catch ( \Throwable $e ) {
+				update_option( 'sscribe_upgrade_last_error', 'Error adding session_id to export_logs: ' . $e->getMessage(), false );
+			}
+		}
 	}
 }

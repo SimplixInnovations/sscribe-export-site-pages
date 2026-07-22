@@ -128,6 +128,7 @@ class SScribe_Activator {
 			level VARCHAR(20) NOT NULL,
 			message TEXT NOT NULL,
 			context LONGTEXT,
+			session_id VARCHAR(60) DEFAULT NULL,
 			user_id BIGINT UNSIGNED,
 			request_id VARCHAR(12),
 			memory_usage VARCHAR(20),
@@ -135,7 +136,8 @@ class SScribe_Activator {
 			KEY idx_timestamp (timestamp),
 			KEY idx_level (level),
 			KEY idx_user_id (user_id),
-			KEY idx_request_id (request_id)
+			KEY idx_request_id (request_id),
+			KEY idx_session_id (session_id)
 		) $charset_collate;";
 
 		$table_stats = $wpdb->prefix . 'sscribe_export_stats';
