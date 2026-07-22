@@ -495,10 +495,11 @@ $sscribe_preflight_warnings = $sscribe_preflight_warnings ?? array();
 						<?php
 						$sscribe_w_severity = isset( $sscribe_warning['severity'] ) ? sanitize_html_class( (string) $sscribe_warning['severity'] ) : 'info';
 						$sscribe_w_icon     = isset( $sscribe_warning['icon'] ) ? sanitize_key( (string) $sscribe_warning['icon'] ) : 'info';
+						$sscribe_w_code     = isset( $sscribe_warning['code'] ) ? sanitize_key( (string) $sscribe_warning['code'] ) : '';
 						?>
-						<div class="sscribe-preflight-warning sscribe-preflight-warning-<?php echo esc_attr( $sscribe_w_severity ); ?>" data-warning-code="<?php echo esc_attr( (string) ( $sscribe_warning['code'] ?? '' ) ); ?>">
+						<div class="sscribe-preflight-warning sscribe-preflight-warning-<?php echo esc_attr( $sscribe_w_severity ); ?>" data-warning-code="<?php echo esc_attr( $sscribe_w_code ); ?>" role="alert">
 							<span class="sscribe-preflight-warning-icon" aria-hidden="true">
-								<?php echo wp_kses_post( SScribe_Helpers::get_icon_inline( $sscribe_w_icon, 16 ) ); ?>
+								<?php echo SScribe_Helpers::get_icon( $sscribe_w_icon, 16 ); // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped ?>
 							</span>
 							<div class="sscribe-preflight-warning-body">
 								<p class="sscribe-preflight-warning-message"><?php echo esc_html( (string) ( $sscribe_warning['message'] ?? '' ) ); ?></p>
@@ -506,6 +507,9 @@ $sscribe_preflight_warnings = $sscribe_preflight_warnings ?? array();
 									<p class="sscribe-preflight-warning-detail"><?php echo esc_html( (string) $sscribe_warning['detail'] ); ?></p>
 								<?php endif; ?>
 							</div>
+							<button type="button" class="sscribe-preflight-warning-dismiss" data-warning-code="<?php echo esc_attr( $sscribe_w_code ); ?>" aria-label="<?php esc_attr_e( 'Dismiss this advisory', 'sscribe-export-site-pages' ); ?>">
+								<?php echo SScribe_Helpers::get_icon( 'x', 14 ); // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped ?>
+							</button>
 						</div>
 					<?php endforeach; ?>
 				</div>
