@@ -21,6 +21,7 @@ $sscribe_debug_info      = $sscribe_debug_info ?? array();
 $sscribe_is_debug        = $sscribe_is_debug ?? false;
 $sscribe_step            = 1;
 $sscribe_export_index    = $sscribe_export_index ?? array();
+$sscribe_preflight_warnings = $sscribe_preflight_warnings ?? array();
 ?>
 
 <a class="sscribe-skip-link screen-reader-text" href="#sscribe-main-content"><?php esc_html_e( 'Skip to export configuration', 'sscribe-export-site-pages' ); ?></a>
@@ -70,7 +71,7 @@ $sscribe_export_index    = $sscribe_export_index ?? array();
 		<div class="sscribe-onboarding-inner">
 			<div class="sscribe-onboarding-icon" aria-hidden="true">
 				<?php
-				echo wp_kses_post( SScribe_Helpers::get_icon( 'sparkles', 22 ) );
+				echo wp_kses_post( SScribe_Helpers::get_icon_inline( 'download-package', 22 ) );
 				?>
 			</div>
 			<div class="sscribe-onboarding-body">
@@ -398,7 +399,10 @@ $sscribe_export_index    = $sscribe_export_index ?? array();
 					<div class="sscribe-format-options-inner">
 
 						<div class="sscribe-format-option-panel" data-format="pdf" hidden>
-							<h3 class="sscribe-format-option-title"><?php esc_html_e( 'PDF Options', 'sscribe-export-site-pages' ); ?></h3>
+							<h3 class="sscribe-format-option-title">
+								<span class="sscribe-format-option-title-icon" aria-hidden="true"><?php echo wp_kses_post( SScribe_Helpers::get_icon_inline( 'file-pdf', 14 ) ); ?></span>
+								<?php esc_html_e( 'PDF Options', 'sscribe-export-site-pages' ); ?>
+							</h3>
 							<div class="sscribe-format-option-grid">
 								<label class="sscribe-format-option-field">
 									<span class="sscribe-format-option-label"><?php esc_html_e( 'Page size', 'sscribe-export-site-pages' ); ?></span>
@@ -421,7 +425,10 @@ $sscribe_export_index    = $sscribe_export_index ?? array();
 						</div>
 
 						<div class="sscribe-format-option-panel" data-format="docx" hidden>
-							<h3 class="sscribe-format-option-title"><?php esc_html_e( 'DOCX Options', 'sscribe-export-site-pages' ); ?></h3>
+							<h3 class="sscribe-format-option-title">
+								<span class="sscribe-format-option-title-icon" aria-hidden="true"><?php echo wp_kses_post( SScribe_Helpers::get_icon_inline( 'file-doc', 14 ) ); ?></span>
+								<?php esc_html_e( 'DOCX Options', 'sscribe-export-site-pages' ); ?>
+							</h3>
 							<div class="sscribe-format-option-grid">
 								<label class="sscribe-format-option-field">
 									<span class="sscribe-format-option-label"><?php esc_html_e( 'Template', 'sscribe-export-site-pages' ); ?></span>
@@ -442,7 +449,10 @@ $sscribe_export_index    = $sscribe_export_index ?? array();
 						</div>
 
 						<div class="sscribe-format-option-panel" data-format="markdown" hidden>
-							<h3 class="sscribe-format-option-title"><?php esc_html_e( 'Markdown Options', 'sscribe-export-site-pages' ); ?></h3>
+							<h3 class="sscribe-format-option-title">
+								<span class="sscribe-format-option-title-icon" aria-hidden="true"><?php echo wp_kses_post( SScribe_Helpers::get_icon_inline( 'file-md', 14 ) ); ?></span>
+								<?php esc_html_e( 'Markdown Options', 'sscribe-export-site-pages' ); ?>
+							</h3>
 							<div class="sscribe-format-option-grid">
 								<label class="sscribe-format-option-field sscribe-format-option-checkbox">
 									<input type="checkbox" name="sscribe_md_include_frontmatter" id="sscribe-md-include-frontmatter" value="1" checked>
@@ -460,7 +470,10 @@ $sscribe_export_index    = $sscribe_export_index ?? array();
 						</div>
 
 						<div class="sscribe-format-option-panel" data-format="html" hidden>
-							<h3 class="sscribe-format-option-title"><?php esc_html_e( 'HTML Options', 'sscribe-export-site-pages' ); ?></h3>
+							<h3 class="sscribe-format-option-title">
+								<span class="sscribe-format-option-title-icon" aria-hidden="true"><?php echo wp_kses_post( SScribe_Helpers::get_icon_inline( 'file-html', 14 ) ); ?></span>
+								<?php esc_html_e( 'HTML Options', 'sscribe-export-site-pages' ); ?>
+							</h3>
 							<div class="sscribe-format-option-grid">
 								<label class="sscribe-format-option-field sscribe-format-option-checkbox">
 									<input type="checkbox" name="sscribe_html_include_css" id="sscribe-html-include-css" value="1" checked>
@@ -475,6 +488,28 @@ $sscribe_export_index    = $sscribe_export_index ?? array();
 
 					</div>
 				</div>
+
+				<?php if ( ! empty( $sscribe_preflight_warnings ) ) : ?>
+				<div class="sscribe-preflight-warnings" role="status" aria-live="polite" aria-label="<?php esc_attr_e( 'Pre-export advisories', 'sscribe-export-site-pages' ); ?>">
+					<?php foreach ( $sscribe_preflight_warnings as $sscribe_warning ) : ?>
+						<?php
+						$sscribe_w_severity = isset( $sscribe_warning['severity'] ) ? sanitize_html_class( (string) $sscribe_warning['severity'] ) : 'info';
+						$sscribe_w_icon     = isset( $sscribe_warning['icon'] ) ? sanitize_key( (string) $sscribe_warning['icon'] ) : 'info';
+						?>
+						<div class="sscribe-preflight-warning sscribe-preflight-warning-<?php echo esc_attr( $sscribe_w_severity ); ?>" data-warning-code="<?php echo esc_attr( (string) ( $sscribe_warning['code'] ?? '' ) ); ?>">
+							<span class="sscribe-preflight-warning-icon" aria-hidden="true">
+								<?php echo wp_kses_post( SScribe_Helpers::get_icon_inline( $sscribe_w_icon, 16 ) ); ?>
+							</span>
+							<div class="sscribe-preflight-warning-body">
+								<p class="sscribe-preflight-warning-message"><?php echo esc_html( (string) ( $sscribe_warning['message'] ?? '' ) ); ?></p>
+								<?php if ( ! empty( $sscribe_warning['detail'] ) ) : ?>
+									<p class="sscribe-preflight-warning-detail"><?php echo esc_html( (string) $sscribe_warning['detail'] ); ?></p>
+								<?php endif; ?>
+							</div>
+						</div>
+					<?php endforeach; ?>
+				</div>
+				<?php endif; ?>
 
 				<div class="sscribe-export-bar">
 					<div class="sscribe-config-summary" id="sscribe-config-summary" aria-live="polite" aria-label="<?php esc_attr_e( 'Selected export configuration', 'sscribe-export-site-pages' ); ?>">
@@ -509,9 +544,6 @@ $sscribe_export_index    = $sscribe_export_index ?? array();
 					</div>
 					<div class="sscribe-export-bar-actions">
 						<button type="button" id="sscribe-preview-btn" class="sscribe-button sscribe-button-outline sscribe-btn-sm" disabled aria-describedby="sscribe-preview-btn-hint" title="<?php esc_attr_e( 'Ctrl+Shift+P (Cmd+Shift+P on Mac)', 'sscribe-export-site-pages' ); ?>">
-							<?php // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- SVG sanitized in get_icon_inline().
-							?>
-							<?php echo wp_kses_post( SScribe_Helpers::get_icon_inline( 'eye', 15 ) ); ?>
 							<span><?php esc_html_e( 'Preview', 'sscribe-export-site-pages' ); ?></span>
 							<kbd class="sscribe-shortcut-hint" aria-hidden="true">⇧P</kbd>
 						</button>
@@ -651,9 +683,6 @@ $sscribe_export_index    = $sscribe_export_index ?? array();
 				</dl>
 				<div class="sscribe-success-actions">
 					<a id="sscribe-download-btn" href="#" class="sscribe-button sscribe-button-success" download aria-describedby="sscribe-download-hint">
-						<?php // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- SVG sanitized in get_icon_inline().
-						?>
-						<?php echo wp_kses_post( SScribe_Helpers::get_icon_inline( 'download-file', 16 ) ); ?>
 						<span><?php esc_html_e( 'Download ZIP', 'sscribe-export-site-pages' ); ?></span>
 					</a>
 					<span id="sscribe-download-hint" class="screen-reader-text"><?php esc_html_e( 'Download the exported ZIP file to your computer', 'sscribe-export-site-pages' ); ?></span>
@@ -752,15 +781,9 @@ $sscribe_export_index    = $sscribe_export_index ?? array();
 						</div>
 						<div class="sscribe-bulk-actions">
 							<button type="button" class="sscribe-button sscribe-button-sm sscribe-button-outline" id="sscribe-bulk-download-btn" disabled title="<?php esc_attr_e( 'Download selected exports', 'sscribe-export-site-pages' ); ?>" aria-label="<?php esc_attr_e( 'Download selected exports', 'sscribe-export-site-pages' ); ?>">
-								<?php
-								echo wp_kses_post( SScribe_Helpers::get_icon( 'download-file', 14 ) );
-								?>
 								<span><?php esc_html_e( 'Download', 'sscribe-export-site-pages' ); ?></span>
 							</button>
 							<button type="button" class="sscribe-button sscribe-button-sm sscribe-button-danger" id="sscribe-bulk-delete-btn" disabled title="<?php esc_attr_e( 'Delete selected exports', 'sscribe-export-site-pages' ); ?>" aria-label="<?php esc_attr_e( 'Delete selected exports', 'sscribe-export-site-pages' ); ?>">
-								<?php
-								echo wp_kses_post( SScribe_Helpers::get_icon( 'trash', 14 ) );
-								?>
 								<span><?php esc_html_e( 'Delete', 'sscribe-export-site-pages' ); ?></span>
 							</button>
 						</div>
@@ -818,15 +841,15 @@ $sscribe_export_index    = $sscribe_export_index ?? array();
 										</div>
 									</div>
 									<div class="sscribe-history-actions">
-										<a href="<?php echo esc_url( $sscribe_export['url'] ); ?>" class="sscribe-button sscribe-button-icon sscribe-button-sm" download title="<?php esc_attr_e( 'Download this export', 'sscribe-export-site-pages' ); ?>" aria-label="<?php esc_attr_e( 'Download this export', 'sscribe-export-site-pages' ); ?>">
-											<img src="<?php echo esc_url( SScribe_Helpers::icon_url( 'download-file' ) ); ?>" width="16" height="16" alt="">
+										<a href="<?php echo esc_url( $sscribe_export['url'] ); ?>" class="sscribe-button sscribe-button-outline sscribe-button-sm" download title="<?php esc_attr_e( 'Download this export', 'sscribe-export-site-pages' ); ?>" aria-label="<?php esc_attr_e( 'Download this export', 'sscribe-export-site-pages' ); ?>">
+											<?php esc_html_e( 'Download', 'sscribe-export-site-pages' ); ?>
 										</a>
 										<?php /* translators: %s: export filename */ ?>
-										<button type="button" class="sscribe-button sscribe-button-icon sscribe-button-sm sscribe-log-btn" data-filename="<?php echo esc_attr( $sscribe_export['filename'] ); ?>" title="<?php esc_attr_e( 'View export log', 'sscribe-export-site-pages' ); ?>" aria-label="<?php echo esc_attr( sprintf( __( 'View export log for %s', 'sscribe-export-site-pages' ), $sscribe_export['filename'] ) ); ?>">
-											<img src="<?php echo esc_url( SScribe_Helpers::icon_url( 'file-log' ) ); ?>" width="16" height="16" alt="">
+										<button type="button" class="sscribe-button sscribe-button-outline sscribe-button-sm sscribe-log-btn" data-filename="<?php echo esc_attr( $sscribe_export['filename'] ); ?>" title="<?php esc_attr_e( 'View export log', 'sscribe-export-site-pages' ); ?>" aria-label="<?php echo esc_attr( sprintf( __( 'View export log for %s', 'sscribe-export-site-pages' ), $sscribe_export['filename'] ) ); ?>">
+											<?php esc_html_e( 'Log', 'sscribe-export-site-pages' ); ?>
 										</button>
-										<button type="button" class="sscribe-button sscribe-button-icon sscribe-button-sm sscribe-button-danger sscribe-delete-btn" data-filename="<?php echo esc_attr( $sscribe_export['filename'] ); ?>" title="<?php esc_attr_e( 'Delete this export', 'sscribe-export-site-pages' ); ?>" aria-label="<?php esc_attr_e( 'Delete this export', 'sscribe-export-site-pages' ); ?>">
-											<img src="<?php echo esc_url( SScribe_Helpers::icon_url( 'trash' ) ); ?>" width="16" height="16" alt="">
+										<button type="button" class="sscribe-button sscribe-button-outline sscribe-button-sm sscribe-button-danger sscribe-delete-btn" data-filename="<?php echo esc_attr( $sscribe_export['filename'] ); ?>" title="<?php esc_attr_e( 'Delete this export', 'sscribe-export-site-pages' ); ?>" aria-label="<?php esc_attr_e( 'Delete this export', 'sscribe-export-site-pages' ); ?>">
+											<?php esc_html_e( 'Delete', 'sscribe-export-site-pages' ); ?>
 										</button>
 									</div>
 								</div>
@@ -851,9 +874,6 @@ $sscribe_export_index    = $sscribe_export_index ?? array();
 								<h3 class="sscribe-empty-title"><?php esc_html_e( 'No exports yet', 'sscribe-export-site-pages' ); ?></h3>
 								<p class="sscribe-empty-copy"><?php esc_html_e( 'Your generated packages will appear here. They auto-delete 72 hours after creation.', 'sscribe-export-site-pages' ); ?></p>
 								<button type="button" class="sscribe-button sscribe-button-primary" id="sscribe-empty-start-export-btn">
-									<?php
-									echo wp_kses_post( SScribe_Helpers::get_icon( 'sparkles', 14 ) );
-									?>
 									<span><?php esc_html_e( 'Export your first package', 'sscribe-export-site-pages' ); ?></span>
 								</button>
 							</div>
@@ -875,7 +895,6 @@ $sscribe_export_index    = $sscribe_export_index ?? array();
 
 							<div class="sscribe-support-actions-vertical">
 								<button type="button" class="sscribe-button sscribe-button-primary" id="sscribe-support-copy-btn" disabled>
-									<?php echo wp_kses_post( SScribe_Helpers::get_icon( 'copy', 16 ) ); ?>
 									<span><?php esc_html_e( 'Copy to Clipboard', 'sscribe-export-site-pages' ); ?></span>
 								</button>
 								<button type="button" class="sscribe-button sscribe-button-outline" id="sscribe-support-refresh-btn">
@@ -895,9 +914,17 @@ $sscribe_export_index    = $sscribe_export_index ?? array();
 							</div>
 							<div class="sscribe-support-copy-wrap">
 								<label class="screen-reader-text" for="sscribe-support-copy-text"><?php esc_html_e( 'Support information text', 'sscribe-export-site-pages' ); ?></label>
-								<textarea id="sscribe-support-copy-text" class="sscribe-support-copy-text" readonly inputmode="none"></textarea>
+								<textarea id="sscribe-support-copy-text" class="sscribe-support-copy-text" readonly inputmode="none" placeholder="<?php esc_attr_e( 'Click Refresh Data on the left to generate a redacted environment snapshot you can copy to share with support.', 'sscribe-export-site-pages' ); ?>"></textarea>
 							</div>
-							<div class="sscribe-hidden" id="sscribe-support-grid" aria-live="polite"></div>
+							<div id="sscribe-support-grid" class="sscribe-support-grid sscribe-support-grid-empty" aria-live="polite">
+								<div class="sscribe-support-empty">
+									<span class="sscribe-support-empty-icon" aria-hidden="true">
+										<?php echo wp_kses_post( SScribe_Helpers::get_icon_inline( 'clipboard', 22 ) ); ?>
+									</span>
+									<p class="sscribe-support-empty-title"><?php esc_html_e( 'No snapshot loaded yet', 'sscribe-export-site-pages' ); ?></p>
+									<p class="sscribe-support-empty-copy"><?php esc_html_e( 'The snapshot is generated locally on demand and never includes passwords, license keys, or private content.', 'sscribe-export-site-pages' ); ?></p>
+								</div>
+							</div>
 						</div>
 					</div>
 				</div>

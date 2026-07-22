@@ -140,3 +140,11 @@ if ( ! defined( 'FS_CHMOD_FILE' ) ) {
 	 */
 	define( 'FS_CHMOD_FILE', 0644 );
 }
+
+if ( ! defined( 'MB_IN_BYTES' ) ) {
+	/**
+	 * PHP memory constant stub for PHPStan.
+	 * Equals 1048576 bytes (one megabyte).
+	 */
+	define( 'MB_IN_BYTES', 1048576 );
+}
