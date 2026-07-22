@@ -277,6 +277,7 @@
 			$('input[name="sscribe_post_status"]').on('change.sscribe', $.proxy(this.updateConfigSummary, this));
 			$('input[name="sscribe_format"]').on('change.sscribe', $.proxy(this.onFormatChange, this));
 			$(document).on('click.sscribe', '.sscribe-delete-btn', $.proxy(this.deleteExport, this));
+			$(document).on('click.sscribe', '.sscribe-preflight-warning-dismiss', $.proxy(this.dismissPreflightWarning, this));
 			$(document).on('click.sscribe', '.sscribe-log-btn', $.proxy(this.showExportLog, this));
 			$(document).on('change.sscribe', '.sscribe-history-check', $.proxy(this.updateBulkBar, this));
 			$(document).on('change.sscribe', '#sscribe-bulk-select-all', $.proxy(this.toggleSelectAll, this));
@@ -2469,6 +2470,30 @@
 				} catch (__err) {
 					/* storage unavailable - banner stays in DOM until next load */
 				}
+			}
+		},
+		/**
+		 * Hide a single pre-export advisory chip and remember the dismissal
+		 * for the rest of the session so a noisy warning does not flash on
+		 * every radio change.
+		 *
+		 * @param {Event} e Click event on the dismiss button.
+		 */
+		dismissPreflightWarning: function (e) {
+			if (e) {
+				e.preventDefault();
+			}
+			const $btn = $(e && e.currentTarget ? e.currentTarget : null);
+			const code = $btn.attr('data-warning-code') || '';
+			const $warning = $btn.closest('.sscribe-preflight-warning');
+			$warning.attr('data-dismissed', 'true');
+			try {
+				const key = 'sscribe_preflight_dismissed';
+				const existing = JSON.parse(sessionStorage.getItem(key) || '{}');
+				existing[code] = '1';
+				sessionStorage.setItem(key, JSON.stringify(existing));
+			} catch (_err) {
+				/* sessionStorage unavailable - chip hides for this view only */
 			}
 		},
 		/**

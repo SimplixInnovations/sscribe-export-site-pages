@@ -41,6 +41,10 @@
   display: none !important;
 }
 
+.sscribe-master-container [hidden] {
+  display: none !important;
+}
+
 .sscribe-skip-link.screen-reader-text:focus {
   clip-path: none !important;
   width: auto;
@@ -590,7 +594,7 @@
   display: flex;
   align-items: flex-start;
   gap: var(--ss-space-3);
-  padding: var(--ss-space-3) var(--ss-space-4);
+  padding: var(--ss-space-3) var(--ss-space-3) var(--ss-space-3) var(--ss-space-4);
   border: 1px solid var(--ss-border);
   border-left: 3px solid var(--ss-border-strong);
   border-radius: var(--ss-radius-md);
@@ -634,7 +638,7 @@
   border-color: var(--ss-warning-border);
 }
 
-.sscribe-preflight-warning-icon svg {
+.sscribe-preflight-warning-icon img {
   width: 16px;
   height: 16px;
   display: block;
@@ -645,16 +649,60 @@
   min-width: 0;
 }
 
-.sscribe-preflight-warning-message {
-  margin: 0 0 2px;
+.sscribe-preflight-warning .sscribe-preflight-warning-message {
+  margin: 0 0 var(--ss-space-1);
   color: var(--ss-text-primary);
   font-weight: 600;
+  font-size: 13px;
+  line-height: 1.4;
 }
 
-.sscribe-preflight-warning-detail {
+.sscribe-preflight-warning .sscribe-preflight-warning-detail {
   margin: 0;
   color: var(--ss-text-secondary);
   font-size: 12px;
+  line-height: 1.5;
+}
+
+.sscribe-preflight-warning-dismiss {
+  flex-shrink: 0;
+  appearance: none;
+  background: transparent;
+  border: 0;
+  width: 26px;
+  height: 26px;
+  border-radius: var(--ss-radius-sm);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--ss-text-muted);
+  cursor: pointer;
+  margin: -2px -2px -2px 0;
+  transition: background-color 120ms ease, color 120ms ease;
+}
+
+.sscribe-preflight-warning-dismiss:hover {
+  background: var(--ss-surface-2);
+  color: var(--ss-text-primary);
+}
+
+.sscribe-preflight-warning-dismiss:focus-visible {
+  outline: 2px solid var(--ss-info);
+  outline-offset: 2px;
+}
+
+.sscribe-preflight-warning-warning .sscribe-preflight-warning-dismiss:focus-visible {
+  outline-color: var(--ss-warning);
+}
+
+.sscribe-preflight-warning-dismiss img {
+  width: 14px;
+  height: 14px;
+  display: block;
+}
+
+.sscribe-preflight-warning[data-dismissed="true"] {
+  display: none !important;
 }
 
 .sscribe-format-options {
