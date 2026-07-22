@@ -72,10 +72,10 @@ No `-webkit-` prefixes on standardized properties (no `-webkit-transform`, no `-
 | `--ss-brand-soft` | `#d4e7dc` | - | Selected card bg |
 | `--ss-brand-tint` | `#e8f2ec` | - | Subtle selection bg |
 | `--ss-brand-mark` | `#68a885` | - | Logo / hero decoration (the Simplixi brand) |
-| `--ss-success` | `#16a34a` | - | Success state |
-| `--ss-warning` | `#d97706` | - | Warning state |
-| `--ss-error` | `#dc2626` | - | Error state |
-| `--ss-info` | `#0284c7` | - | Info state |
+| `--ss-success` | `#00664a` | 4.5:1 | Success state (AA fg on `--ss-success-bg`) |
+| `--ss-warning` | `#93370d` | 4.6:1 | Warning state (AA fg on `--ss-warning-bg`) |
+| `--ss-error` | `#9a1f17` | 4.5:1 | Error state (AA fg on `--ss-error-bg`) |
+| `--ss-info` | `#153e91` | 4.5:1 | Info state (AA fg on `--ss-info-bg`) |
 
 ### 3.3 Dark mode palette
 

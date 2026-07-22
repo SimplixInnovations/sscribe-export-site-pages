@@ -51,6 +51,9 @@ jobs:
       - name: Composer security audit
         run: composer audit --no-dev
 
+      - name: AI-artifact scan (em-dash, en-dash, LLM phrasings)
+        run: php scripts/check-ai-artifacts.php
+
   lint:
     name: PHP ${{ matrix.php-version }}
     runs-on: ubuntu-latest

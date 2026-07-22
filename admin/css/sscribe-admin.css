@@ -1,133 +1,7 @@
 /* @version 1.1.3 */
-
-.sscribe-master-container {
-  --ss-bg: #fafafa;
-  --ss-surface: #fff;
-  --ss-surface-2: #f4f4f5;
-  --ss-surface-3: #e4e4e7;
-  --ss-border: #e4e4e7;
-  --ss-border-strong: #d4d4d8;
-  --ss-text-primary: #09090b;
-  --ss-text-secondary: #3f3f46;
-  --ss-text-tertiary: #52525b;
-  --ss-text-muted: #71717a;
-  --ss-text-inverse: #fafafa;
-  --ss-brand: #3d7a5a;
-  --ss-brand-hover: #2f6146;
-  --ss-brand-active: #234b37;
-  --ss-brand-soft: #d4e7dc;
-  --ss-brand-tint: #e8f2ec;
-  --ss-brand-mark: #68a885;
-  --ss-brand-mark-soft: #b5d6c2;
-  --ss-brand-mark-fg: #0f2a1d;
-  --ss-success: #00664a;
-  --ss-success-fg: #0f5a3e;
-  --ss-success-bg: #e6f6f0;
-  --ss-success-border: #abefc6;
-  --ss-warning: #93370d;
-  --ss-warning-fg: #7a2c0a;
-  --ss-warning-bg: #fff6ed;
-  --ss-warning-border: #f9dbaf;
-  --ss-error: #9a1f17;
-  --ss-error-fg: #8a1a12;
-  --ss-error-bg: #fef3f2;
-  --ss-error-border: #fecdca;
-  --ss-info: #153e91;
-  --ss-info-fg: #0f3278;
-  --ss-info-bg: #eff8ff;
-  --ss-success-hover: #00553c;
-  --ss-error-hover: #82180f;
-  --ss-warning-hover: #7a2c0a;
-
-  /* v3 semantic role aliases — physical tokens above, roles below.
-     Components should reference --ss-color-* roles, not raw --ss-*.
-     Re-balancing the palette only requires editing the physical layer. */
-  --ss-color-bg-canvas: var(--ss-bg);
-  --ss-color-bg-surface: var(--ss-surface);
-  --ss-color-bg-inset: var(--ss-surface-2);
-  --ss-color-bg-skeleton: var(--ss-surface-3);
-  --ss-color-border: var(--ss-border);
-  --ss-color-border-strong: var(--ss-border-strong);
-  --ss-color-fg-primary: var(--ss-text-primary);
-  --ss-color-fg-secondary: var(--ss-text-secondary);
-  --ss-color-fg-tertiary: var(--ss-text-tertiary);
-  --ss-color-fg-muted: var(--ss-text-muted);
-  --ss-color-fg-inverse: var(--ss-text-inverse);
-  --ss-color-accent: var(--ss-brand);
-  --ss-color-accent-hover: var(--ss-brand-hover);
-  --ss-color-accent-active: var(--ss-brand-active);
-  --ss-color-accent-soft: var(--ss-brand-soft);
-  --ss-color-accent-tint: var(--ss-brand-tint);
-  --ss-color-success-fg: var(--ss-success);
-  --ss-color-success-bg: var(--ss-success-bg);
-  --ss-color-success-border: var(--ss-success-border);
-  --ss-color-warning-fg: var(--ss-warning);
-  --ss-color-warning-bg: var(--ss-warning-bg);
-  --ss-color-warning-border: var(--ss-warning-border);
-  --ss-color-error-fg: var(--ss-error);
-  --ss-color-error-bg: var(--ss-error-bg);
-  --ss-color-error-border: var(--ss-error-border);
-  --ss-color-info-fg: var(--ss-info);
-  --ss-color-info-bg: var(--ss-info-bg);
-  --ss-radius-sm: 6px;
-  --ss-radius: 8px;
-  --ss-radius-md: 10px;
-  --ss-radius-lg: 12px;
-  --ss-radius-xl: 16px;
-  --ss-radius-full: 9999px;
-  --ss-space-1: 4px;
-  --ss-space-2: 8px;
-  --ss-space-3: 12px;
-  --ss-space-4: 16px;
-  --ss-space-5: 20px;
-  --ss-space-6: 24px;
-  --ss-space-7: 28px;
-  --ss-space-8: 32px;
-  --ss-space-10: 40px;
-  --ss-space-12: 48px;
-  --ss-font: -apple-system, blinkmacsystemfont, "Segoe UI", roboto, "Helvetica Neue", arial, sans-serif;
-  --ss-font-mono: ui-monospace, "SF Mono", menlo, consolas, "Liberation Mono", monospace;
-  --ss-max-w: 1100px;
-  --ss-text-display: 28px;
-  --ss-text-display-lh: 1.2;
-  --ss-text-display-ls: -0.025em;
-  --ss-text-display-fw: 700;
-  --ss-text-h1: 22px;
-  --ss-text-h1-lh: 1.3;
-  --ss-text-h1-ls: -0.025em;
-  --ss-text-h1-fw: 700;
-  --ss-text-h2: 16px;
-  --ss-text-h2-lh: 1.35;
-  --ss-text-h2-ls: -0.01em;
-  --ss-text-h2-fw: 600;
-  --ss-text-h3: 15px;
-  --ss-text-h3-lh: 1.4;
-  --ss-text-h3-fw: 600;
-  --ss-text-h4: 13px;
-  --ss-text-h4-fw: 600;
-  --ss-text-body: 13px;
-  --ss-text-body-lh: 1.5;
-  --ss-text-body-md: 14px;
-  --ss-text-label: 11px;
-  --ss-text-label-fw: 600;
-  --ss-text-label-ls: 0.06em;
-  --ss-text-caption: 11px;
-  --ss-text-caption-lh: 1.4;
-  --ss-motion-fast: 80ms;
-  --ss-motion-base: 120ms;
-  --ss-motion-slow: 200ms;
-  --ss-easing: cubic-bezier(0.2, 0, 0, 1);
-  --ss-focus-ring: 2px;
-  --ss-focus-offset: 2px;
-  --ss-focus-color: var(--ss-brand);
-
-  background: var(--ss-bg);
-  font: 14px/1.5 var(--ss-font);
-  color: var(--ss-text-primary);
-  -webkit-font-smoothing: antialiased;
-  -moz-osx-font-smoothing: grayscale;
-  box-sizing: border-box;
-}
+/* Design tokens + master-container resets live in sscribe-tokens.css,
+ * enqueued first so the cache lifetime for that file is independent
+ * of the component layer in this file. */
 
 .sscribe-master-container *,
 .sscribe-master-container *::before,
@@ -479,8 +353,8 @@
 }
 
 @supports (scrollbar-width: thin) {
-  .sscribe-language-cards-wrapper {
-    scrollbar-width: thin;
+ .sscribe-language-cards-wrapper {
+ scrollbar-width: thin;
   }
 }
 
@@ -1911,182 +1785,182 @@
 }
 
 @media (width <= 900px) {
-  .sscribe-workspace {
-    padding: var(--ss-space-5) var(--ss-space-4);
+ .sscribe-workspace {
+ padding: var(--ss-space-5) var(--ss-space-4);
   }
 
-  .sscribe-hero {
-    padding: var(--ss-space-5) var(--ss-space-4);
+ .sscribe-hero {
+ padding: var(--ss-space-5) var(--ss-space-4);
   }
 
-  .sscribe-hero-subtitle {
-    max-width: 100%;
+ .sscribe-hero-subtitle {
+ max-width: 100%;
   }
 
-  .sscribe-hero-content {
-    gap: var(--ss-space-4);
+ .sscribe-hero-content {
+ gap: var(--ss-space-4);
   }
 
-  .sscribe-support-master {
-    grid-template-columns: 1fr;
+ .sscribe-support-master {
+ grid-template-columns: 1fr;
   }
 
-  .sscribe-support-terminal {
-    order: -1;
+ .sscribe-support-terminal {
+ order: -1;
   }
 
-  .sscribe-export-bar {
-    flex-direction: column;
-    align-items: flex-start;
-    gap: var(--ss-space-3);
+ .sscribe-export-bar {
+ flex-direction: column;
+ align-items: flex-start;
+ gap: var(--ss-space-3);
   }
 
-  .sscribe-export-bar-actions {
-    width: 100%;
-    justify-content: flex-end;
+ .sscribe-export-bar-actions {
+ width: 100%;
+ justify-content: flex-end;
   }
 }
 
 @media (width <= 640px) {
-  .sscribe-hero-content {
-    flex-direction: column;
-    align-items: flex-start;
-    gap: var(--ss-space-3);
+ .sscribe-hero-content {
+ flex-direction: column;
+ align-items: flex-start;
+ gap: var(--ss-space-3);
   }
 
-  .sscribe-hero-version {
-    align-self: flex-start;
+ .sscribe-hero-version {
+ align-self: flex-start;
   }
 
-  .sscribe-hero-stats {
-    padding-left: 0;
+ .sscribe-hero-stats {
+ padding-left: 0;
   }
 
-  .sscribe-hero-stat + .sscribe-hero-stat {
-    padding-left: var(--ss-space-4);
+ .sscribe-hero-stat + .sscribe-hero-stat {
+ padding-left: var(--ss-space-4);
   }
 
-  .sscribe-post-type-cards,
-  .sscribe-status-cards,
-  .sscribe-format-cards,
-  .sscribe-post-type-cards.sscribe-cards-compact,
-  .sscribe-status-cards.sscribe-cards-row,
-  .sscribe-format-cards.sscribe-cards-row {
-    flex-flow: column nowrap;
-    gap: 6px;
+ .sscribe-post-type-cards,
+ .sscribe-status-cards,
+ .sscribe-format-cards,
+ .sscribe-post-type-cards.sscribe-cards-compact,
+ .sscribe-status-cards.sscribe-cards-row,
+ .sscribe-format-cards.sscribe-cards-row {
+ flex-flow: column nowrap;
+ gap: 6px;
   }
 
   #sscribe-format-cards,
   #sscribe-format-cards.sscribe-cards-row {
-    display: flex;
-    flex-flow: column nowrap;
-    gap: 6px;
+ display: flex;
+ flex-flow: column nowrap;
+ gap: 6px;
   }
 
-  .sscribe-post-type-card-inner,
-  .sscribe-status-card-inner,
-  .sscribe-format-card-inner {
-    min-width: 0;
-    width: 100%;
+ .sscribe-post-type-card-inner,
+ .sscribe-status-card-inner,
+ .sscribe-format-card-inner {
+ min-width: 0;
+ width: 100%;
   }
 
-  .sscribe-tabs-nav {
-    overflow-x: auto;
+ .sscribe-tabs-nav {
+ overflow-x: auto;
   }
 
-  .sscribe-tabs-nav::-webkit-scrollbar {
-    display: none;
+ .sscribe-tabs-nav::-webkit-scrollbar {
+ display: none;
   }
 
-  .sscribe-panel-header {
-    flex-direction: column;
-    align-items: flex-start;
-    gap: var(--ss-space-2);
+ .sscribe-panel-header {
+ flex-direction: column;
+ align-items: flex-start;
+ gap: var(--ss-space-2);
   }
 
-  .sscribe-modal-content {
-    max-height: 90vh;
+ .sscribe-modal-content {
+ max-height: 90vh;
   }
 
-  .sscribe-status-alert {
-    flex-direction: column;
-    gap: var(--ss-space-3);
+ .sscribe-status-alert {
+ flex-direction: column;
+ gap: var(--ss-space-3);
   }
 
-  .sscribe-config-section {
-    padding: var(--ss-space-5) var(--ss-space-4);
+ .sscribe-config-section {
+ padding: var(--ss-space-5) var(--ss-space-4);
   }
 
-  .sscribe-format-options {
-    padding: var(--ss-space-4);
+ .sscribe-format-options {
+ padding: var(--ss-space-4);
   }
 
-  .sscribe-export-bar {
-    padding: var(--ss-space-4);
+ .sscribe-export-bar {
+ padding: var(--ss-space-4);
   }
 
-  .sscribe-success-meta {
-    grid-template-columns: repeat(2, minmax(0, 1fr));
+ .sscribe-success-meta {
+ grid-template-columns: repeat(2, minmax(0, 1fr));
   }
 
-  .sscribe-success-meta-item {
-    border-right: none;
+ .sscribe-success-meta-item {
+ border-right: none;
   }
 
-  .sscribe-success-meta-item:nth-child(odd) {
-    border-right: 1px solid var(--ss-color-border);
+ .sscribe-success-meta-item:nth-child(odd) {
+ border-right: 1px solid var(--ss-color-border);
   }
 
-  .sscribe-success-meta-item:nth-child(1),
-  .sscribe-success-meta-item:nth-child(2) {
-    border-bottom: 1px solid var(--ss-color-border);
+ .sscribe-success-meta-item:nth-child(1),
+ .sscribe-success-meta-item:nth-child(2) {
+ border-bottom: 1px solid var(--ss-color-border);
   }
 
-  .sscribe-history-table {
-    padding: 0 var(--ss-space-4) var(--ss-space-4);
+ .sscribe-history-table {
+ padding: 0 var(--ss-space-4) var(--ss-space-4);
   }
 
-  .sscribe-bulk-bar {
-    padding: var(--ss-space-2) var(--ss-space-4);
+ .sscribe-bulk-bar {
+ padding: var(--ss-space-2) var(--ss-space-4);
   }
 
-  .sscribe-workspace.sscribe-flat-workspace {
-    padding: var(--ss-space-4) var(--ss-space-3);
+ .sscribe-workspace.sscribe-flat-workspace {
+ padding: var(--ss-space-4) var(--ss-space-3);
   }
 }
 
 @media (width <= 480px) {
-  .sscribe-hero {
-    padding: var(--ss-space-4) var(--ss-space-3);
+ .sscribe-hero {
+ padding: var(--ss-space-4) var(--ss-space-3);
   }
 
-  .sscribe-hero-title {
-    font-size: 18px;
+ .sscribe-hero-title {
+ font-size: 18px;
   }
 
-  .sscribe-post-type-card-inner,
-  .sscribe-status-card-inner,
-  .sscribe-format-card-inner {
-    min-width: 0;
+ .sscribe-post-type-card-inner,
+ .sscribe-status-card-inner,
+ .sscribe-format-card-inner {
+ min-width: 0;
   }
 
-  .sscribe-onboarding-steps li {
-    padding: 4px 12px 4px 30px;
-    font-size: 11px;
+ .sscribe-onboarding-steps li {
+ padding: 4px 12px 4px 30px;
+ font-size: 11px;
   }
 
-  .sscribe-onboarding-steps li::before {
-    left: 4px;
-    width: 18px;
-    height: 18px;
-    font-size: 10px;
+ .sscribe-onboarding-steps li::before {
+ left: 4px;
+ width: 18px;
+ height: 18px;
+ font-size: 10px;
   }
 }
 
 @supports (scrollbar-width: none) {
-  .sscribe-tabs-nav {
-    overflow-x: auto;
-    scrollbar-width: none;
+ .sscribe-tabs-nav {
+ overflow-x: auto;
+ scrollbar-width: none;
   }
 }
 
@@ -2681,18 +2555,18 @@
 }
 
 /* ═══════════════════════════════════════════
-   SSCRIBE UI/UX FIX PACK — v1.1.2 AUDIT
-   Applied: 2026-07-05
-   ═══════════════════════════════════════════ */
+ SSCRIBE UI/UX FIX PACK  -  v1.1.2 AUDIT
+ Applied: 2026-07-05
+ ═══════════════════════════════════════════ */
 
-/* ── FIX 1: FORMAT CARDS — 5-column grid, no orphan ── */
+/* ── FIX 1: FORMAT CARDS  -  5-column grid, no orphan ── */
 #sscribe-format-cards {
   display: grid;
   grid-template-columns: repeat(5, minmax(0, 1fr));
   gap: var(--ss-space-3);
 }
 
-/* ── FIX 2: FORMAT CARDS — unselected look selectable, not disabled ── */
+/* ── FIX 2: FORMAT CARDS  -  unselected look selectable, not disabled ── */
 #sscribe-format-cards label {
   cursor: pointer;
   border: 1px solid var(--ss-border);
@@ -2711,7 +2585,7 @@
   outline-offset: 2px;
 }
 
-/* ── FIX 3: STATUS CARDS — disabled clearly non-interactive ── */
+/* ── FIX 3: STATUS CARDS  -  disabled clearly non-interactive ── */
 #sscribe-status-cards label.sscribe-status-disabled {
   opacity: 0.55;
   cursor: not-allowed;
@@ -2719,7 +2593,7 @@
   filter: grayscale(0.6);
 }
 
-/* ── FIX 4: STATUS CARDS — 6-column grid, no orphan ── */
+/* ── FIX 4: STATUS CARDS  -  6-column grid, no orphan ── */
 #sscribe-status-cards {
   display: grid;
   grid-template-columns: repeat(6, minmax(0, 1fr));
@@ -2728,19 +2602,19 @@
 
 @media (width <= 1100px) {
   #sscribe-status-cards {
-    grid-template-columns: repeat(3, minmax(0, 1fr));
+ grid-template-columns: repeat(3, minmax(0, 1fr));
   }
 }
 
 @media (width <= 640px) {
   #sscribe-status-cards {
-    grid-template-columns: repeat(2, minmax(0, 1fr));
+ grid-template-columns: repeat(2, minmax(0, 1fr));
   }
 }
 
 /* ===== HISTORY TABLE: CLEAN FLEX LAYOUT ===== */
 
-/* Override any previous grid attempts — use flex which matches the JS template */
+/* Override any previous grid attempts  -  use flex which matches the JS template */
 #sscribe-history-table .sscribe-history-row {
   display: flex !important;
   align-items: center !important;
@@ -2766,7 +2640,7 @@
   border-radius: var(--ss-radius) !important;
 }
 
-/* Checkbox label — left, fixed width, flex-shrink 0 */
+/* Checkbox label  -  left, fixed width, flex-shrink 0 */
 #sscribe-history-table .sscribe-history-check-label {
   display: inline-flex !important;
   align-items: center !important;
@@ -2783,7 +2657,7 @@
   padding: 0 var(--ss-space-1) !important;
 }
 
-/* Checkbox input — hidden, replaced by custom visual */
+/* Checkbox input  -  hidden, replaced by custom visual */
 #sscribe-history-table .sscribe-history-check {
   position: absolute !important;
   opacity: 0 !important;
@@ -2792,7 +2666,7 @@
   pointer-events: none !important;
 }
 
-/* File section — takes remaining space, flex row: icon + details side by side */
+/* File section  -  takes remaining space, flex row: icon + details side by side */
 #sscribe-history-table .sscribe-history-file {
   display: flex !important;
   align-items: center !important;
@@ -2813,7 +2687,7 @@
   grid-row: unset !important;
 }
 
-/* Language / file icon badge — fixed circle */
+/* Language / file icon badge  -  fixed circle */
 #sscribe-history-table .sscribe-file-icon {
   width: 36px !important;
   height: 36px !important;
@@ -2850,7 +2724,7 @@
   display: block !important;
 }
 
-/* File details — flex column: filename on top, meta on bottom */
+/* File details  -  flex column: filename on top, meta on bottom */
 #sscribe-history-table .sscribe-file-details {
   display: flex !important;
   flex-direction: column !important;
@@ -2868,7 +2742,7 @@
   justify-content: center !important;
 }
 
-/* Filename — strong, truncated with ellipsis */
+/* Filename  -  strong, truncated with ellipsis */
 #sscribe-history-table .sscribe-file-details strong {
   font-size: 12.5px !important;
   font-weight: 500 !important;
@@ -2895,7 +2769,7 @@
   line-height: 1.4 !important;
 }
 
-/* Actions — right side, flex row of icon buttons */
+/* Actions  -  right side, flex row of icon buttons */
 #sscribe-history-table .sscribe-history-actions {
   display: flex !important;
   align-items: center !important;
@@ -2970,7 +2844,7 @@
   display: block !important;
 }
 
-/* Empty state — non-italic, real CTA */
+/* Empty state  -  non-italic, real CTA */
 #sscribe-history-table .sscribe-history-empty {
   padding: var(--ss-space-12) var(--ss-space-6) var(--ss-space-10) !important;
   text-align: center !important;
@@ -3033,12 +2907,12 @@
 }
 
 /* ═══════════════════════════════════════════
-   UX REFINEMENT BLOCK (10) — additions for the v1.1.2 polish pass.
-   Patterns: 1px hairlines, brand focus rings, no shadows,
-   no gradients, no transforms, no rgba() decimal alpha.
-   ═══════════════════════════════════════════ */
+ UX REFINEMENT BLOCK (10)  -  additions for the v1.1.2 polish pass.
+ Patterns: 1px hairlines, brand focus rings, no shadows,
+ no gradients, no transforms, no rgba() decimal alpha.
+ ═══════════════════════════════════════════ */
 
-/* Skip link — paints on focus, otherwise invisible */
+/* Skip link  -  paints on focus, otherwise invisible */
 .sscribe-skip-link {
   position: absolute !important;
   left: -9999px !important;
@@ -3060,19 +2934,19 @@
   outline-offset: 2px !important;
 }
 
-/* Onboarding banner — visible only for first-time users */
+/* Onboarding banner  -  visible only for first-time users */
 .sscribe-onboarding-banner {
-    background: var(--ss-brand-tint);
-    border-bottom: 1px solid var(--ss-brand-soft);
-    padding: var(--ss-space-5) var(--ss-space-8);
+ background: var(--ss-brand-tint);
+ border-bottom: 1px solid var(--ss-brand-soft);
+ padding: var(--ss-space-5) var(--ss-space-8);
 }
 
 .sscribe-onboarding-inner {
-    display: flex;
-    align-items: center;
-    gap: var(--ss-space-5);
-    max-width: var(--ss-max-w);
-    margin: 0 auto;
+ display: flex;
+ align-items: center;
+ gap: var(--ss-space-5);
+ max-width: var(--ss-max-w);
+ margin: 0 auto;
 }
 
 .sscribe-onboarding-icon {
@@ -3222,7 +3096,7 @@ kbd.sscribe-shortcut-hint {
   color: #fff !important;
 }
 
-/* Summary bar — divider and reasoning copy */
+/* Summary bar  -  divider and reasoning copy */
 .sscribe-summary {
   display: flex !important;
   flex-wrap: wrap !important;
@@ -3256,7 +3130,7 @@ kbd.sscribe-shortcut-hint {
   margin-top: var(--ss-space-3) !important;
 }
 
-/* Confirm modal — alertdialog surface */
+/* Confirm modal  -  alertdialog surface */
 .sscribe-modal-content-confirm {
   max-width: 440px !important;
 }
@@ -3460,7 +3334,7 @@ kbd.sscribe-shortcut-hint {
   flex-shrink: 0 !important;
 }
 
-/* Bulk bar — visible pre-selection (data-active toggles shadow) */
+/* Bulk bar  -  visible pre-selection (data-active toggles shadow) */
 .sscribe-bulk-bar[data-active="false"] .sscribe-bulk-count {
   color: var(--ss-text-secondary) !important;
 }
@@ -3640,7 +3514,7 @@ kbd.sscribe-shortcut-hint {
   border: 0 !important;
 }
 
-/* Modal generic — final overrides to ensure alertdialog visual order */
+/* Modal generic  -  final overrides to ensure alertdialog visual order */
 .sscribe-modal-content .sscribe-modal-header h3 {
   font-family: var(--ss-font) !important;
 }
@@ -3687,14 +3561,14 @@ kbd.sscribe-shortcut-hint {
 }
 
 /* ============================================================
-   ENTERPRISE REVAMP v2 — polish pass
-   1. Type utility classes (consume --ss-text-* tokens)
-   2. Side-stripe selection state (no 1px layout shift)
-   3. prefers-color-scheme: dark
-   4. prefers-reduced-motion: reduce
-   5. forced-colors: active (Windows High Contrast)
-   6. Print styles
-   ============================================================ */
+ ENTERPRISE REVAMP v2  -  polish pass
+ 1. Type utility classes (consume --ss-text-* tokens)
+ 2. Side-stripe selection state (no 1px layout shift)
+ 3. prefers-color-scheme: dark
+ 4. prefers-reduced-motion: reduce
+ 5. forced-colors: active (Windows High Contrast)
+ 6. Print styles
+ ============================================================ */
 
 /* ── 1. TYPE UTILITY CLASSES ───────────────────────────────── */
 
@@ -3773,9 +3647,9 @@ kbd.sscribe-shortcut-hint {
 }
 
 /* ── 2. SIDE-STRIPE SELECTION PATTERN ────────────────────────
-   Replaces 1px border-swap with a 3px brand stripe on the
-   leading edge + brand-tint background. No layout shift, no
-   border-swap arithmetic, identical outer dimensions. */
+ Replaces 1px border-swap with a 3px brand stripe on the
+ leading edge + brand-tint background. No layout shift, no
+ border-swap arithmetic, identical outer dimensions. */
 
 .ss-side-stripe {
   position: relative;
@@ -3797,53 +3671,53 @@ kbd.sscribe-shortcut-hint {
 /* ── 3. DARK MODE (OS preference) ─────────────────────────── */
 
 @media (prefers-color-scheme: dark) {
-  .sscribe-master-container {
-    --ss-bg: #09090b;
-    --ss-surface: #18181b;
-    --ss-surface-2: #27272a;
-    --ss-surface-3: #3f3f46;
-    --ss-border: #27272a;
-    --ss-border-strong: #3f3f46;
-    --ss-text-primary: #fafafa;
-    --ss-text-secondary: #d4d4d8;
-    --ss-text-tertiary: #a1a1aa;
-    --ss-text-muted: #a1a1aa;
-    --ss-text-inverse: #09090b;
-    --ss-brand: #4d8a6a;
-    --ss-brand-hover: #5fa983;
-    --ss-brand-active: #6ab088;
-    --ss-brand-soft: #1f3a2c;
-    --ss-brand-tint: #142a1f;
-    --ss-brand-mark: #7fc6a3;
-    --ss-brand-mark-soft: #2f5942;
-    --ss-success: #34d399;
-    --ss-success-bg: #022c1f;
-    --ss-success-border: #064e3b;
-    --ss-warning: #fbbf24;
-    --ss-warning-bg: #2a1a07;
-    --ss-warning-border: #78350f;
-    --ss-error: #f87171;
-    --ss-error-bg: #2c1212;
-    --ss-error-border: #7f1d1d;
-    --ss-info: #60a5fa;
-    --ss-info-bg: #0c1f3a;
+ .sscribe-master-container {
+ --ss-bg: #09090b;
+ --ss-surface: #18181b;
+ --ss-surface-2: #27272a;
+ --ss-surface-3: #3f3f46;
+ --ss-border: #27272a;
+ --ss-border-strong: #3f3f46;
+ --ss-text-primary: #fafafa;
+ --ss-text-secondary: #d4d4d8;
+ --ss-text-tertiary: #a1a1aa;
+ --ss-text-muted: #a1a1aa;
+ --ss-text-inverse: #09090b;
+ --ss-brand: #4d8a6a;
+ --ss-brand-hover: #5fa983;
+ --ss-brand-active: #6ab088;
+ --ss-brand-soft: #1f3a2c;
+ --ss-brand-tint: #142a1f;
+ --ss-brand-mark: #7fc6a3;
+ --ss-brand-mark-soft: #2f5942;
+ --ss-success: #34d399;
+ --ss-success-bg: #022c1f;
+ --ss-success-border: #064e3b;
+ --ss-warning: #fbbf24;
+ --ss-warning-bg: #2a1a07;
+ --ss-warning-border: #78350f;
+ --ss-error: #f87171;
+ --ss-error-bg: #2c1212;
+ --ss-error-border: #7f1d1d;
+ --ss-info: #60a5fa;
+ --ss-info-bg: #0c1f3a;
   }
 
-  .sscribe-master-container .sscribe-support-terminal,
-  .sscribe-master-container .sscribe-debug-console-card {
-    background: #0f0f10;
-    border-color: var(--ss-border-strong);
+ .sscribe-master-container .sscribe-support-terminal,
+ .sscribe-master-container .sscribe-debug-console-card {
+ background: #0f0f10;
+ border-color: var(--ss-border-strong);
   }
 
-  .sscribe-master-container .sscribe-terminal-header,
-  .sscribe-master-container .sscribe-debug-console-header {
-    background: #18181b;
-    border-bottom-color: var(--ss-border);
+ .sscribe-master-container .sscribe-terminal-header,
+ .sscribe-master-container .sscribe-debug-console-header {
+ background: #18181b;
+ border-bottom-color: var(--ss-border);
   }
 
-  .sscribe-master-container .sscribe-support-copy-text,
-  .sscribe-master-container .sscribe-debug-console-body {
-    color: #d4d4d8;
+ .sscribe-master-container .sscribe-support-copy-text,
+ .sscribe-master-container .sscribe-debug-console-body {
+ color: #d4d4d8;
   }
 }
 
@@ -3851,12 +3725,12 @@ kbd.sscribe-shortcut-hint {
 
 @media (prefers-reduced-motion: reduce) {
   /* stylelint-disable declaration-no-important */
-  .sscribe-master-container,
-  .sscribe-master-container * {
-    transition-duration: 0ms !important;
-    animation-duration: 0ms !important;
-    animation-iteration-count: 1 !important;
-    scroll-behavior: auto !important;
+ .sscribe-master-container,
+ .sscribe-master-container * {
+ transition-duration: 0ms !important;
+ animation-duration: 0ms !important;
+ animation-iteration-count: 1 !important;
+ scroll-behavior: auto !important;
   }
   /* stylelint-enable declaration-no-important */
 }
@@ -3864,115 +3738,141 @@ kbd.sscribe-shortcut-hint {
 /* ── 5. FORCED COLORS (Windows High Contrast) ─────────────── */
 
 @media (forced-colors: active) {
-  .sscribe-master-container {
-    --ss-border: CanvasText;
-    --ss-border-strong: CanvasText;
-    --ss-text-primary: CanvasText;
-    --ss-text-secondary: CanvasText;
-    --ss-text-tertiary: CanvasText;
-    --ss-text-muted: CanvasText;
+ .sscribe-master-container {
+ --ss-border: CanvasText;
+ --ss-border-strong: CanvasText;
+ --ss-text-primary: CanvasText;
+ --ss-text-secondary: CanvasText;
+ --ss-text-tertiary: CanvasText;
+ --ss-text-muted: CanvasText;
+
+ /* Remap alert/semantic backgrounds so tinted status banners stay visible
+ in forced-colors mode. Without these, .sscribe-status-alert-success etc.
+ render as white-on-white (the AA-passing soft tints become invisible when
+ the engine strips background colors). Use system colors plus a
+ CanvasText border so the state is communicated non-colorfully as well. */
+ --ss-success-bg: Canvas;
+ --ss-warning-bg: Canvas;
+ --ss-error-bg: Canvas;
+ --ss-info-bg: Canvas;
+ --ss-success-border: CanvasText;
+ --ss-warning-border: CanvasText;
+ --ss-error-border: CanvasText;
+ --ss-info-border: CanvasText;
+ --ss-success-fg: CanvasText;
+ --ss-warning-fg: CanvasText;
+ --ss-error-fg: CanvasText;
+ --ss-info-fg: CanvasText;
   }
 
-  .sscribe-button:focus-visible,
-  .sscribe-tab-btn:focus-visible,
-  .sscribe-modal-close:focus-visible,
-  .sscribe-button-icon:focus-visible,
-  .sscribe-toast-dismiss:focus-visible,
-  .sscribe-preflight-close:focus-visible,
-  .sscribe-support-copy-text:focus-visible,
-  .sscribe-post-type-card:focus-within .sscribe-post-type-card-inner,
-  .sscribe-status-card-label:focus-within .sscribe-status-card-inner,
-  .sscribe-format-card-label:focus-within .sscribe-format-card-inner,
-  .sscribe-lang-card-label:focus-within .sscribe-lang-card-inner,
-  .sscribe-format-option-field select:focus-visible,
-  .sscribe-format-option-field.sscribe-format-option-checkbox:focus-within,
-  .sscribe-bulk-select-all:focus-within .sscribe-check-visual,
-  .sscribe-history-check-label:focus-within .sscribe-check-visual {
-    /* stylelint-disable declaration-no-important */
-    outline: 3px solid Highlight !important;
-    outline-offset: 2px !important;
-    /* stylelint-enable declaration-no-important */
+ .sscribe-status-alert,
+ .sscribe-status-alert-success,
+ .sscribe-status-alert-warning,
+ .sscribe-status-alert-error,
+ .sscribe-status-alert-info {
+ border: 1px solid CanvasText !important;
   }
 
-  .sscribe-button-primary,
-  .sscribe-button-success,
-  .sscribe-button-danger,
-  .sscribe-status-alert::before,
-  .ss-side-stripe::before {
-    background: Highlight;
-    color: HighlightText;
+ .sscribe-button:focus-visible,
+ .sscribe-tab-btn:focus-visible,
+ .sscribe-modal-close:focus-visible,
+ .sscribe-button-icon:focus-visible,
+ .sscribe-toast-dismiss:focus-visible,
+ .sscribe-preflight-close:focus-visible,
+ .sscribe-support-copy-text:focus-visible,
+ .sscribe-post-type-card:focus-within .sscribe-post-type-card-inner,
+ .sscribe-status-card-label:focus-within .sscribe-status-card-inner,
+ .sscribe-format-card-label:focus-within .sscribe-format-card-inner,
+ .sscribe-lang-card-label:focus-within .sscribe-lang-card-inner,
+ .sscribe-format-option-field select:focus-visible,
+ .sscribe-format-option-field.sscribe-format-option-checkbox:focus-within,
+ .sscribe-bulk-select-all:focus-within .sscribe-check-visual,
+ .sscribe-history-check-label:focus-within .sscribe-check-visual {
+ /* stylelint-disable declaration-no-important */
+ outline: 3px solid Highlight !important;
+ outline-offset: 2px !important;
+ /* stylelint-enable declaration-no-important */
+  }
+
+ .sscribe-button-primary,
+ .sscribe-button-success,
+ .sscribe-button-danger,
+ .sscribe-status-alert::before,
+ .ss-side-stripe::before {
+ background: Highlight;
+ color: HighlightText;
   }
 
   /* Safari does not support forced-color-adjust; the opt-out below only
-     applies in engines that also implement forced-colors (Edge, Chrome,
-     Firefox 113+). Safari silently skips the @supports wrapper and keeps
-     the Highlight/HighlightText pair above. */
+ applies in engines that also implement forced-colors (Edge, Chrome,
+ Firefox 113+). Safari silently skips the @supports wrapper and keeps
+ the Highlight/HighlightText pair above. */
   @supports (forced-color-adjust: none) {
-    .sscribe-button-primary,
-    .sscribe-button-success,
-    .sscribe-button-danger,
-    .sscribe-status-alert::before,
-    .ss-side-stripe::before {
-      forced-color-adjust: none;
-    }
+ .sscribe-button-primary,
+ .sscribe-button-success,
+ .sscribe-button-danger,
+ .sscribe-status-alert::before,
+ .ss-side-stripe::before {
+ forced-color-adjust: none;
+ }
   }
 }
 
 /* ── 6. PRINT ──────────────────────────────────────────────── */
 
 @media print {
-  .sscribe-master-container {
-    --ss-bg: #fff;
-    --ss-surface: #fff;
-    --ss-surface-2: #fff;
-    --ss-surface-3: #fff;
-    --ss-border: #000;
-    --ss-border-strong: #000;
-    --ss-text-primary: #000;
-    --ss-text-secondary: #000;
-    --ss-text-tertiary: #333;
-    --ss-text-muted: #555;
-    --ss-brand: #000;
-    --ss-brand-soft: #fff;
-    --ss-brand-tint: #fff;
+ .sscribe-master-container {
+ --ss-bg: #fff;
+ --ss-surface: #fff;
+ --ss-surface-2: #fff;
+ --ss-surface-3: #fff;
+ --ss-border: #000;
+ --ss-border-strong: #000;
+ --ss-text-primary: #000;
+ --ss-text-secondary: #000;
+ --ss-text-tertiary: #333;
+ --ss-text-muted: #555;
+ --ss-brand: #000;
+ --ss-brand-soft: #fff;
+ --ss-brand-tint: #fff;
 
-    background: #fff;
-    color: #000;
+ background: #fff;
+ color: #000;
   }
 
-  .sscribe-hero,
-  .sscribe-panel,
-  .sscribe-support-sidebar,
-  .sscribe-support-terminal,
-  .sscribe-config-panel,
-  .sscribe-modal,
-  .sscribe-toast-container,
-  .sscribe-status-alert,
-  .sscribe-bulk-bar,
-  .sscribe-debug-console-card,
-  .sscribe-history-toolbar {
-    /* stylelint-disable declaration-no-important */
-    box-shadow: none !important;
-    border: 1px solid #000 !important;
-    /* stylelint-enable declaration-no-important */
+ .sscribe-hero,
+ .sscribe-panel,
+ .sscribe-support-sidebar,
+ .sscribe-support-terminal,
+ .sscribe-config-panel,
+ .sscribe-modal,
+ .sscribe-toast-container,
+ .sscribe-status-alert,
+ .sscribe-bulk-bar,
+ .sscribe-debug-console-card,
+ .sscribe-history-toolbar {
+ /* stylelint-disable declaration-no-important */
+ box-shadow: none !important;
+ border: 1px solid #000 !important;
+ /* stylelint-enable declaration-no-important */
   }
 
-  .sscribe-modal,
-  .sscribe-toast-container {
-    /* stylelint-disable declaration-no-important */
-    position: static !important;
-    background: transparent !important;
-    /* stylelint-enable declaration-no-important */
+ .sscribe-modal,
+ .sscribe-toast-container {
+ /* stylelint-disable declaration-no-important */
+ position: static !important;
+ background: transparent !important;
+ /* stylelint-enable declaration-no-important */
   }
 
-  .sscribe-tab-content:not(.sscribe-tab-active) {
-    /* stylelint-disable declaration-no-important */
-    display: none !important;
-    /* stylelint-enable declaration-no-important */
+ .sscribe-tab-content:not(.sscribe-tab-active) {
+ /* stylelint-disable declaration-no-important */
+ display: none !important;
+ /* stylelint-enable declaration-no-important */
   }
 }
 
-/* ── 7. v3 COMPONENT LIBRARY (additive — only new components) ── */
+/* ── 7. v3 COMPONENT LIBRARY (additive  -  only new components) ── */
 
 /* Button size modifiers (existing .sscribe-button-* rules earlier in file) */
 
@@ -4334,7 +4234,7 @@ kbd.sscribe-kbd {
   border: 1px solid var(--ss-color-border-strong);
   border-radius: var(--ss-radius-full, 9999px);
   transition: background-color var(--ss-motion-fast) var(--ss-easing),
-              border-color var(--ss-motion-fast) var(--ss-easing);
+ border-color var(--ss-motion-fast) var(--ss-easing);
 }
 
 .sscribe-switch-knob {
@@ -4347,7 +4247,7 @@ kbd.sscribe-kbd {
   border: 1px solid var(--ss-color-border-strong);
   border-radius: var(--ss-radius-full, 9999px);
   transition: transform var(--ss-motion-fast) var(--ss-easing),
-              background-color var(--ss-motion-fast) var(--ss-easing);
+ background-color var(--ss-motion-fast) var(--ss-easing);
 }
 
 .sscribe-switch input:checked + .sscribe-switch-track {
@@ -4387,7 +4287,7 @@ kbd.sscribe-kbd {
   color: var(--ss-color-fg-secondary);
   cursor: pointer;
   transition: background-color var(--ss-motion-fast) var(--ss-easing),
-              color var(--ss-motion-fast) var(--ss-easing);
+ color var(--ss-motion-fast) var(--ss-easing);
 }
 
 .sscribe-segmented-item:hover {
@@ -4498,14 +4398,14 @@ kbd.sscribe-kbd {
 
 @media (prefers-reduced-motion: reduce) {
   [data-tooltip]::after {
-    transition: none;
+ transition: none;
   }
 }
 
 /* 7.14 v3 ORPHAN CLASS COVERAGE
-   Resolves 14 classes used by admin/partials/sscribe-admin-display.php
-   that had no CSS rules. All values are token-driven so the v3 palette,
-   dark mode, and forced-colors media blocks apply uniformly. */
+ Resolves 14 classes used by admin/partials/sscribe-admin-display.php
+ that had no CSS rules. All values are token-driven so the v3 palette,
+ dark mode, and forced-colors media blocks apply uniformly. */
 
 .sscribe-hero-stat-label {
   font: 500 11px/1.4 var(--ss-font);
@@ -4540,7 +4440,7 @@ kbd.sscribe-kbd {
   line-height: 1;
   cursor: pointer;
   transition: color var(--ss-motion-fast, 120ms) var(--ss-easing, cubic-bezier(0.2, 0, 0, 1)),
-              background var(--ss-motion-fast, 120ms) var(--ss-easing, cubic-bezier(0.2, 0, 0, 1));
+ background var(--ss-motion-fast, 120ms) var(--ss-easing, cubic-bezier(0.2, 0, 0, 1));
 }
 
 .sscribe-onboarding-close:hover {

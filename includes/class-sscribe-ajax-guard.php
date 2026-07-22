@@ -313,13 +313,19 @@ class SScribe_AJAX_Guard {
 		return static function ( ...$args ) use ( $handler, $capability, $nonce_name, $nonce_arg ): void {
 			if ( ! check_ajax_referer( $nonce_name, $nonce_arg, false ) ) {
 				self::error(
-					array( 'message' => __( 'Security check failed.', 'sscribe-export-site-pages' ) ),
+					array(
+						'code'    => 'invalid_nonce',
+						'message' => __( 'Security check failed.', 'sscribe-export-site-pages' ),
+					),
 					403
 				);
 			}
 			if ( ! current_user_can( $capability ) ) {
 				self::error(
-					array( 'message' => __( 'Permission denied.', 'sscribe-export-site-pages' ) ),
+					array(
+						'code'    => 'permission_denied',
+						'message' => __( 'Permission denied.', 'sscribe-export-site-pages' ),
+					),
 					403
 				);
 			}

@@ -62,6 +62,18 @@ class SScribe_Page_Collector {
 	private array $permalink_cache = array();
 
 	/**
+	 * Memoized get_the_title() calls per request.
+	 *
+	 * The underlying get_the_title() runs through the `the_title` filter
+	 * chain on every call, which is expensive in batch exports where the
+	 * same page is referenced many times (page data, breadcrumbs, child
+	 * lists, etc.).
+	 *
+	 * @var array<int,string>
+	 */
+	private array $title_cache = array();
+
+	/**
 	 * Clear all page caches.
 	 *
 	 * @return void
@@ -71,6 +83,7 @@ class SScribe_Page_Collector {
 		$this->child_pages_cache     = array();
 		$this->breadcrumb_cache      = array();
 		$this->permalink_cache       = array();
+		$this->title_cache           = array();
 	}
 
 	/**
@@ -529,6 +542,25 @@ class SScribe_Page_Collector {
 	}
 
 	/**
+	 * Get the post title for a page, memoized for the request.
+	 *
+	 * The underlying get_the_title() runs through the `the_title` filter
+	 * chain on every call, which is expensive during large batch exports.
+	 * We memoize per request in a small static-ish array on this
+	 * collector instance.
+	 *
+	 * @param int $page_id Page ID.
+	 * @return string Post title (empty string if the post has none).
+	 */
+	private function get_title_cached( int $page_id ): string {
+		if ( ! isset( $this->title_cache[ $page_id ] ) ) {
+			$title = get_the_title( $page_id );
+			$this->title_cache[ $page_id ] = ( false === $title || null === $title ) ? '' : (string) $title;
+		}
+		return $this->title_cache[ $page_id ];
+	}
+
+	/**
 	 * Get full page data by ID.
 	 *
 	 * Note: Uses a static guard to prevent nested the_content filter calls.
@@ -551,7 +583,7 @@ class SScribe_Page_Collector {
 		}
 
 		if ( ! empty( $post_object->post_password ) ) {
-			$password_title = get_the_title( $page_id );
+			$password_title = $this->get_title_cached( $page_id );
 			$password_title = $password_title ? $password_title : sprintf( 'Untitled Page %d', $page_id );
 			return array(
 				'id'                  => $page_id,
@@ -663,7 +695,7 @@ class SScribe_Page_Collector {
 		$post_type_for_children = $post_object->post_type;
 		$children               = $this->get_child_pages( $page_id, $post_type_for_children );
 
-		$page_title_raw = get_the_title( $page_id );
+		$page_title_raw = $this->get_title_cached( $page_id );
 		$page_title     = $page_title_raw ? $page_title_raw : sprintf( 'Untitled Page %d', $page_id );
 
 		$language = $this->get_page_language( $page_id );
@@ -776,6 +808,11 @@ class SScribe_Page_Collector {
 	/**
 	 * Get child pages for a single parent.
 	 *
+	 * Uses wp_cache_get/set (object cache) so re-visiting a parent page
+	 * during a large export hits no DB. Per-request instance cache is
+	 * kept for the duration of the export so even the same-process
+	 * repeats skip the wp_cache layer.
+	 *
 	 * @param int    $page_id   Parent page ID.
 	 * @param string $post_type Post type.
 	 * @return array Child pages.
@@ -783,6 +820,14 @@ class SScribe_Page_Collector {
 	private function get_child_pages( int $page_id, string $post_type = 'page' ): array {
 		if ( isset( $this->child_pages_cache[ $page_id ] ) ) {
 			return $this->child_pages_cache[ $page_id ];
+		}
+
+		$cache_key   = 'sscribe_child_pages_' . get_current_blog_id() . '_' . $page_id;
+		$cache_group = 'sscribe_page_collector';
+		$cached      = wp_cache_get( $cache_key, $cache_group );
+		if ( is_array( $cached ) ) {
+			$this->child_pages_cache[ $page_id ] = $cached;
+			return $cached;
 		}
 
 		$children    = array();
@@ -806,6 +851,7 @@ class SScribe_Page_Collector {
 			}
 		}
 
+		wp_cache_set( $cache_key, $children, $cache_group, MINUTE_IN_SECONDS * 5 );
 		$this->child_pages_cache[ $page_id ] = $children;
 		return $children;
 	}
@@ -920,7 +966,7 @@ class SScribe_Page_Collector {
 		}
 		try {
 			$breadcrumbs[] = array(
-				'title' => html_entity_decode( get_the_title( $page_id ), ENT_QUOTES | ENT_HTML5, 'UTF-8' ),
+				'title' => html_entity_decode( $this->get_title_cached( $page_id ), ENT_QUOTES | ENT_HTML5, 'UTF-8' ),
 				'url'   => $this->get_permalink_cached( $page_id ),
 			);
 		} finally {

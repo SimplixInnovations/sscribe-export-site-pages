@@ -33,10 +33,11 @@ terms of the OFL.
 This plugin also bundles code from the following open-source libraries,
 all of which are compatible with the GPL v2:
 
-* PHPWord (LGPL-2.1-or-later) : DOCX export. Source:
+* PHPWord (LGPL-3.0) : DOCX export. Source:
   https://github.com/PHPOffice/PHPWord. LGPL is compatible with GPL
   v2 when dynamically linked; PHPWord is loaded at runtime through
-  its own autoloader, satisfying the LGPL linking exception.
+  its own autoloader, satisfying the LGPL linking exception. Full
+  license text: https://www.gnu.org/licenses/lgpl-3.0.html
 * mPDF (GPL-2.0-or-later) : PDF export. Source:
   https://github.com/mpdf/mpdf. mPDF is licensed under the same GPL
   v2 (or later) terms as this plugin.
@@ -45,6 +46,8 @@ all of which are compatible with the GPL v2:
   compatible with GPL v2 redistribution.
 * Symfony Polyfill (MIT) : PHP version compatibility helpers.
   Source: https://github.com/symfony/polyfill.
+* psr/container (MIT) : PSR-11 container interface used by the
+  bundled dependency injection container.
 * ezyang/htmlpurifier (LGPL-2.1-or-later) : HTML sanitization used
   by mPDF.
 

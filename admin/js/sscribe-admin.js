@@ -416,16 +416,16 @@
 				window.SScribeDebugConsole.stopAutoRefresh();
 			}
 // Auto-load support diagnostics when Support tab is activated
-            if (tabId === 'support') {
-                // Auto-load diagnostics if textarea is empty
-                setTimeout(function () {
-                    if (!$('#sscribe-support-copy-text').val().trim()) {
-                        SScribe.loadSupportInfo();
-                    }
-                }, 200);
-            }
-            },
-        setActiveTab: function (tabId) {
+ if (tabId === 'support') {
+ // Auto-load diagnostics if textarea is empty
+ setTimeout(function () {
+ if (!$('#sscribe-support-copy-text').val().trim()) {
+ SScribe.loadSupportInfo();
+ }
+ }, 200);
+ }
+ },
+ setActiveTab: function (tabId) {
 			const self = this;
 			const announce = document.getElementById('sscribe-tab-announce');
 			if (announce) {
@@ -747,11 +747,11 @@
 			};
 			const statusLabels = {
 				publish: S.status_publish || 'Published',
-				draft:   S.status_draft   || 'Draft',
+				draft: S.status_draft || 'Draft',
 				private: S.status_private || 'Private',
 				future:  S.status_future  || 'Scheduled',
 				pending: S.status_pending || 'Pending',
-				all:     S.status_all     || 'All',
+				all: S.status_all || 'All',
 			};
 			$('#sscribe-summary-post-type').text(postTypeLabels[postType] || postType);
 			$('#sscribe-summary-status').text(statusLabels[status] || status);
@@ -1771,7 +1771,7 @@
 			this.bulkDeleteQueue = filenames.slice();
 			SScribe.announce(
 				(sscribe_data.strings && sscribe_data.strings.bulk_delete_started) ||
-					'Deleting %d export(s)…'.replace('%d', String(count))
+					'Deleting %d export(s)...'.replace('%d', String(count))
 			);
 			this.processBulkDelete();
 		},
@@ -1895,8 +1895,8 @@
 		 * server. This is the primary tool for support/debugging sessions.
 		 *
 		 * @param {object} requestData The data object sent in the AJAX request.
-		 * @param {jqXHR}  xhr         The jQuery XHR object.
-		 * @param {*}      exception   The exception object (if any).
+		 * @param {jqXHR}  xhr The jQuery XHR object.
+		 * @param {*} exception The exception object (if any).
 		 */
 		logAJAXError: function (requestData, xhr, exception) {
 			if (!window.console || !window.console.group) {
@@ -1967,7 +1967,7 @@
 		 * that should not block the user's workflow.
 		 *
 		 * @param {string} message  The message to display.
-		 * @param {string} type     One of 'success', 'error', 'warning', 'info'.
+		 * @param {string} type One of 'success', 'error', 'warning', 'info'.
 		 * @param {number} duration Auto-dismiss timeout in ms (default: 4000).
 		 */
 		adjustToastContainerPosition: function () {
@@ -2375,15 +2375,15 @@
 		/**
 		 * Open the confirm (alertdialog) modal. Replaces native window.confirm().
 		 *
-		 * @param {Object}   opts                       Options.
-		 * @param {string}   opts.title                 Heading text (already localized).
-		 * @param {string}   opts.description           Short description shown under title.
-		 * @param {string}   [opts.body]                Optional HTML body content (already escaped).
-		 * @param {string}   [opts.confirmLabel]        Proceed button label. Default: "Confirm".
-		 * @param {string}   [opts.cancelLabel]         Cancel button label. Default: "Cancel".
-		 * @param {string}   [opts.variant]             "danger" (red proceed) or default.
-		 * @param {Function} opts.onProceed             Called when user confirms. Receives `done(true)`.
-		 * @param {Function} [opts.onCancel]            Called when user dismisses. Receives `done(false)`.
+		 * @param {Object} opts Options.
+		 * @param {string} opts.title Heading text (already localized).
+		 * @param {string} opts.description Short description shown under title.
+		 * @param {string} [opts.body] Optional HTML body content (already escaped).
+		 * @param {string} [opts.confirmLabel] Proceed button label. Default: "Confirm".
+		 * @param {string} [opts.cancelLabel] Cancel button label. Default: "Cancel".
+		 * @param {string} [opts.variant] "danger" (red proceed) or default.
+		 * @param {Function} opts.onProceed Called when user confirms. Receives `done(true)`.
+		 * @param {Function} [opts.onCancel] Called when user dismisses. Receives `done(false)`.
 		 * @returns {void}
 		 */
 		showConfirm: function (opts) {
@@ -2456,7 +2456,7 @@
 			}, 0);
 		},
 		/**
-		 * Dismiss the onboarding banner and remember that dismissal this session.
+		 * Dismiss the onboarding banner and remember the dismissal across sessions.
 		 * @param {Event} e Click event.
 		 */
 		dismissOnboarding: function (e) {
@@ -2467,10 +2467,17 @@
 			$banner.fadeOut(160, function () {
 				$banner.remove();
 			});
+			// localStorage persists dismissal across tabs/sessions; sessionStorage
+			// would re-show the banner every new tab. Fall back gracefully when
+			// storage is unavailable (private browsing, locked-down profile).
 			try {
-				sessionStorage.setItem('sscribe_onboarding_dismissed', '1');
+				localStorage.setItem('sscribe_onboarding_dismissed', '1');
 			} catch (_err) {
-				/* sessionStorage unavailable — ignore */
+				try {
+					sessionStorage.setItem('sscribe_onboarding_dismissed', '1');
+				} catch (__err) {
+					/* storage unavailable - banner stays in DOM until next load */
+				}
 			}
 		},
 		/**
@@ -2938,11 +2945,14 @@
 			const $modal = $('#sscribe-log-modal');
 			const modalEl = $modal[0];
 			const self = this;
-			$modal.fadeOut(200, function () {
-				$modal.attr('aria-hidden', 'true').addClass('sscribe-hidden').prop('hidden', true);
-				self.releaseFocusTrap(modalEl);
-				self.restoreFocus();
-			});
+			// Mark hidden synchronously so AT and the focus trap see the modal
+			// as gone the instant the user dismisses it, then animate the fade.
+			// Doing it inside the fadeOut callback left the modal partly visible
+			// yet announced as hidden for the full 200 ms transition.
+			$modal.attr('aria-hidden', 'true').addClass('sscribe-hidden').prop('hidden', true);
+			self.releaseFocusTrap(modalEl);
+			self.restoreFocus();
+			$modal.fadeOut(200);
 		},
 		/**
 		 * Download an export file.
@@ -3001,26 +3011,52 @@
 			this.batchRetries = 0;
 		},
 		/**
-		 * Get error guidance based on error message.
+		 * Get error guidance based on a stable server-side error code.
 		 *
-		 * @param {string} message Error message.
+		 * Prefer {@link data.code} when the server returns it (introduced in 1.1.3
+		 * via SScribe_AJAX_Guard) so the message can stay localized without
+		 * breaking guidance lookup. Fall back to substring matching only when
+		 * an older endpoint hasn't been migrated yet.
+		 *
+		 * @param {string} code    Stable error code from response.data.code.
+		 * @param {string} message Error message (fallback heuristic only).
 		 * @returns {string} Guidance text.
 		 */
-		getErrorGuidance: function (message) {
+		getErrorGuidance: function (code, message) {
+			const strings = (sscribe_data && sscribe_data.strings) || {};
+			if (code) {
+				switch (code) {
+					case 'invalid_nonce':
+					case 'permission_denied':
+					case 'session_expired':
+						return strings.err_session_expired || strings.err_generic || '';
+					case 'memory':
+					case 'memory_exhausted':
+						return strings.err_memory || strings.err_generic || '';
+					case 'zip_failed':
+					case 'archive_failed':
+						return strings.err_zip || strings.err_generic || '';
+					case 'rate_limit':
+					case 'rate_limited':
+						return strings.err_rate_limit || strings.err_generic || '';
+					default:
+						return strings.err_generic || '';
+				}
+			}
 			const msg = message || '';
 			if (msg.indexOf('session') !== -1 || msg.indexOf('timeout') !== -1) {
-				return sscribe_data.strings.err_session_expired || '';
+				return strings.err_session_expired || strings.err_generic || '';
 			}
 			if (msg.indexOf('memory') !== -1) {
-				return sscribe_data.strings.err_memory || '';
+				return strings.err_memory || strings.err_generic || '';
 			}
 			if (msg.indexOf('zip') !== -1 || msg.indexOf('archive') !== -1) {
-				return sscribe_data.strings.err_zip || '';
+				return strings.err_zip || strings.err_generic || '';
 			}
 			if (msg.indexOf('rate') !== -1 || msg.indexOf('limit') !== -1) {
-				return sscribe_data.strings.err_rate_limit || '';
+				return strings.err_rate_limit || strings.err_generic || '';
 			}
-			return sscribe_data.strings.err_generic || '';
+			return strings.err_generic || '';
 		},
 		/**
 		 * Format guidance text for display.
@@ -3093,7 +3129,8 @@
 				}
 			}
 			if (!guidance && !isCancelled) {
-				guidance = this.getErrorGuidance(message);
+				const errorCode = (errorData && errorData.code) || '';
+				guidance = this.getErrorGuidance(errorCode, message);
 			}
 			$('#sscribe-error-text').text(displayMessage);
 			if (guidance && !isCancelled) {
