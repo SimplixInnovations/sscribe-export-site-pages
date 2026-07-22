@@ -589,6 +589,13 @@ class SScribe_Admin {
 			? $this->build_recent_exports( $sscribe_export_rows, $export_dir, $sscribe_wpml_active, $sscribe_languages, get_current_user_id() )
 			: array();
 
+		$sscribe_preflight_warnings = $this->gather_preflight_warnings(
+			$sscribe_wpml_active,
+			$sscribe_languages,
+			$sscribe_total_pages_all,
+			$export_dir
+		);
+
 		include SSCRIBE_PLUGIN_DIR . 'admin/partials/sscribe-admin-display.php';
 	}
 
@@ -699,6 +706,94 @@ class SScribe_Admin {
 
 	/**
 	 * Gather debug information for the admin page.
+	 *
+	 * @param bool  $wpml_active       Whether WPML is active.
+	 * @param array $languages         Language list.
+	 * @param int   $total_pages_all   Total published pages.
+	 * @param array $status_counts     Post status counts.
+	 * @return array Debug information.
+	 */
+	/**
+	 * Gather pre-flight warnings to surface above the Generate Package button.
+	 *
+	 * Each warning row carries:
+	 *  - 'code'     short machine identifier
+	 *  - 'icon'     svg icon name from the assets/icons bundle
+	 *  - 'severity' info | warning
+	 *  - 'message'  short heading
+	 *  - 'detail'   optional secondary line with remediation hint
+	 *
+	 * @param bool   $wpml_active     Whether WPML is active.
+	 * @param array  $languages       Configured WPML languages.
+	 * @param int    $total_pages_all Total published pages.
+	 * @param string $export_dir      Export directory path.
+	 * @return array<int, array<string, string>> List of warning rows.
+	 */
+	private function gather_preflight_warnings( bool $wpml_active, array $languages, int $total_pages_all, string $export_dir ): array {
+		$warnings = array();
+
+		if ( $wpml_active && empty( $languages ) ) {
+			$warnings[] = array(
+				'code'     => 'wpml_no_languages',
+				'icon'     => 'info',
+				'severity' => 'info',
+				'message'  => __( 'WPML is active but no languages are configured.', 'sscribe-export-site-pages' ),
+				'detail'   => __( 'Add at least one secondary language in WPML -> Languages before exporting to produce a multilingual package.', 'sscribe-export-site-pages' ),
+			);
+		}
+
+		if ( 0 === (int) $total_pages_all ) {
+			$warnings[] = array(
+				'code'     => 'no_pages',
+				'icon'     => 'info',
+				'severity' => 'info',
+				'message'  => __( 'No published pages are available to export.', 'sscribe-export-site-pages' ),
+				'detail'   => __( 'Publish at least one page, or expand the post-type filter on the left to include drafts and private posts.', 'sscribe-export-site-pages' ),
+			);
+		}
+
+		if ( ! is_dir( $export_dir ) && ! wp_mkdir_p( $export_dir ) ) {
+			$warnings[] = array(
+				'code'     => 'export_dir_unwritable',
+				'icon'     => 'warning',
+				'severity' => 'warning',
+				'message'  => __( 'The exports directory could not be created.', 'sscribe-export-site-pages' ),
+				'detail'   => __( 'Check that your uploads folder is writable, then refresh this page.', 'sscribe-export-site-pages' ),
+			);
+		}
+
+		$memory_limit_raw = (string) ini_get( 'memory_limit' );
+		$memory_limit     = wp_convert_hr_to_bytes( $memory_limit_raw );
+		if ( $memory_limit > 0 && $memory_limit < 256 * MB_IN_BYTES ) {
+			$sscribe_memory_message = sprintf(
+				/* translators: %s: current PHP memory_limit (e.g. "128M") */
+				__( 'PHP memory limit is %s; large exports may run out of memory.', 'sscribe-export-site-pages' ),
+				$memory_limit_raw
+			);
+			$warnings[]             = array(
+				'code'     => 'memory_low',
+				'icon'     => 'warning',
+				'severity' => 'warning',
+				'message'  => $sscribe_memory_message,
+				'detail'   => __( 'Ask your host to raise memory_limit to at least 256M for sites with hundreds of pages or images.', 'sscribe-export-site-pages' ),
+			);
+		}
+
+		if ( defined( 'WP_DEBUG' ) && WP_DEBUG && ! defined( 'SSCRIBE_DEBUG_OVERRIDE' ) ) {
+			$warnings[] = array(
+				'code'     => 'wp_debug_on',
+				'icon'     => 'info',
+				'severity' => 'info',
+				'message'  => __( 'WP_DEBUG is enabled on this site.', 'sscribe-export-site-pages' ),
+				'detail'   => __( 'Exports run correctly with debug on, but disable WP_DEBUG in production for faster package generation.', 'sscribe-export-site-pages' ),
+			);
+		}
+
+		return $warnings;
+	}
+
+	/**
+	 * Gather debug environment info for the Debug tab.
 	 *
 	 * @param bool  $wpml_active       Whether WPML is active.
 	 * @param array $languages         Language list.

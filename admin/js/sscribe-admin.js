@@ -1599,42 +1599,33 @@
 				html +=
 					'<a href="' +
 					this.escapeHtml(exp.url) +
-					'" class="sscribe-button sscribe-button-icon sscribe-button-sm" download title="' +
+					'" class="sscribe-button sscribe-button-outline sscribe-button-sm" download title="' +
 					this.escapeHtml(strings.download_tooltip || 'Download') +
 					'" aria-label="' +
 					this.escapeHtml(strings.download_tooltip || 'Download') +
-					'">';
+					'">' +
+					(this.escapeHtml(strings.download_label || 'Download')) +
+					'</a>';
 				html +=
-					'<img src="' +
-					this.escapeHtml(sscribe_data.icons_url + 'download-file.svg') +
-					'" width="16" height="16" alt="">';
-				html += '</a>';
-				html +=
-					'<button type="button" class="sscribe-button sscribe-button-icon sscribe-button-sm sscribe-log-btn" data-filename="' +
+					'<button type="button" class="sscribe-button sscribe-button-outline sscribe-button-sm sscribe-log-btn" data-filename="' +
 					this.escapeHtml(exp.filename) +
 					'" title="' +
 					this.escapeHtml(strings.log_tooltip || 'View Log') +
 					'" aria-label="' +
 					this.escapeHtml(strings.log_tooltip || 'View Log') +
-					'">';
+					'">' +
+					(this.escapeHtml(strings.log_label || 'Log')) +
+					'</button>';
 				html +=
-					'<img src="' +
-					this.escapeHtml(sscribe_data.icons_url + 'file-log.svg') +
-					'" width="16" height="16" alt="">';
-				html += '</button>';
-				html +=
-					'<button type="button" class="sscribe-button sscribe-button-icon sscribe-button-sm sscribe-button-danger sscribe-delete-btn" data-filename="' +
+					'<button type="button" class="sscribe-button sscribe-button-outline sscribe-button-sm sscribe-button-danger sscribe-delete-btn" data-filename="' +
 					this.escapeHtml(exp.filename) +
 					'" title="' +
 					this.escapeHtml(strings.delete_tooltip || 'Delete') +
 					'" aria-label="' +
 					this.escapeHtml(strings.delete_tooltip || 'Delete') +
-					'">';
-				html +=
-					'<img src="' +
-					this.escapeHtml(sscribe_data.icons_url + 'trash.svg') +
-					'" width="16" height="16" alt="">';
-				html += '</button>';
+					'">' +
+					(this.escapeHtml(strings.delete_label || 'Delete')) +
+					'</button>';
 				html += '</div></div>';
 			}
 			$table.html(html);
@@ -2630,7 +2621,7 @@
 			const $btn = $('#sscribe-support-copy-btn');
 			$textarea.val('');
 			$btn.prop('disabled', true);
-			$grid.removeClass('sscribe-hidden').html(
+			$grid.removeClass('sscribe-support-grid-empty').html(
 				'<div class="sscribe-support-loading">' +
 					'<span class="sscribe-loading-spinner"></span>' +
 					'<span>' +
@@ -2651,7 +2642,7 @@
 					if (response.success && response.data) {
 						self.renderSupportInfo(response.data);
 					} else {
-						$grid.html(
+						$grid.removeClass('sscribe-support-grid-empty').html(
 							'<div class="sscribe-support-error">' +
 								self.escapeHtml(
 									sscribe_data.strings.support_error ||
@@ -2662,7 +2653,7 @@
 					}
 				},
 				error: function () {
-					$grid.html(
+					$grid.removeClass('sscribe-support-grid-empty').html(
 						'<div class="sscribe-support-error">' +
 							self.escapeHtml(
 								sscribe_data.strings.support_error || 'Unable to load support information right now.'
@@ -2681,6 +2672,7 @@
 			const $grid = $('#sscribe-support-grid');
 			const $textarea = $('#sscribe-support-copy-text');
 			const $btn = $('#sscribe-support-copy-btn');
+			$grid.removeClass('sscribe-support-grid-empty');
 			let html = '<div class="sscribe-support-grid-inner">';
 			if (data.sections) {
 				Object.keys(data.sections).forEach(function (sectionKey) {
