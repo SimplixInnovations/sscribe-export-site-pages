@@ -2698,22 +2698,36 @@
 			const $textarea = $('#sscribe-support-copy-text');
 			const $btn = $('#sscribe-support-copy-btn');
 			$grid.removeClass('sscribe-support-grid-empty');
-			let html = '<div class="sscribe-support-grid-inner">';
+			let html = '';
 			if (data.sections) {
 				Object.keys(data.sections).forEach(function (sectionKey) {
 					const section = data.sections[sectionKey];
-					if (section && section.items) {
-						Object.keys(section.items).forEach(function (itemKey) {
-							const value = section.items[itemKey];
-							html += '<div class="sscribe-support-item">';
-							html += '<span class="sscribe-support-label">' + this.escapeHtml(itemKey) + ':</span>';
-							html += '<span class="sscribe-support-value">' + this.escapeHtml(String(value)) + '</span>';
-							html += '</div>';
-						}, this);
+					if (!section || !section.items) {
+						return;
 					}
+					const itemKeys = Object.keys(section.items);
+					if (itemKeys.length === 0) {
+						return;
+					}
+					const label = section.label || sectionKey;
+					const spanClass = section.span === 'full' ? ' sscribe-support-section-full' : '';
+					html += '<section class="sscribe-support-section' + spanClass + '" aria-labelledby="sscribe-support-section-' + this.escapeHtml(sectionKey) + '">';
+					html += '<h4 class="sscribe-support-section-title" id="sscribe-support-section-' + this.escapeHtml(sectionKey) + '">' + this.escapeHtml(label) + '</h4>';
+					html += '<div class="sscribe-support-grid-inner">';
+					itemKeys.forEach(function (itemKey) {
+						const value = section.items[itemKey];
+						html += '<div class="sscribe-support-item">';
+						html += '<span class="sscribe-support-label">' + this.escapeHtml(itemKey) + '</span>';
+						html += '<span class="sscribe-support-value">' + this.escapeHtml(String(value)) + '</span>';
+						html += '</div>';
+					}, this);
+					html += '</div>';
+					html += '</section>';
 				}, this);
 			}
-			html += '</div>';
+			if (html === '') {
+				html = '<div class="sscribe-support-empty-state">' + this.escapeHtml(sscribe_data.strings.support_empty || 'No diagnostic data available.') + '</div>';
+			}
 			$grid.html(html);
 			$textarea.val(data.copy_text || '');
 			$btn.prop('disabled', false);

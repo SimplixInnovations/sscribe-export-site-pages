@@ -144,6 +144,8 @@
 		},
 		unbindEvents: function () {
 			this.$saveSettings.off('.sscribe');
+			this.$enabled.off('.sscribe');
+			this.$level.off('.sscribe');
 			this.$filterLevel.off('.sscribe');
 			this.$searchInput.off('.sscribe');
 			this.$sessionInput.off('.sscribe');
@@ -156,6 +158,19 @@
 			this.$container.off('.sscribe');
 			this.unbindVisibilityHandler();
 			this.unbindToggleHandler();
+		},
+		markSettingsDirty: function () {
+			if (!this.$saveSettings || !this.$saveSettings.length) {
+				return;
+			}
+			this.$saveSettings.addClass('sscribe-button-dirty');
+			this.$saveFeedback.removeClass('success error').text('Unsaved changes');
+		},
+		clearSettingsDirty: function () {
+			if (!this.$saveSettings || !this.$saveSettings.length) {
+				return;
+			}
+			this.$saveSettings.removeClass('sscribe-button-dirty');
 		},
 		unbindVisibilityHandler: function () {
 			if (this._visibilityHandler) {
@@ -184,6 +199,12 @@
 			const self = this;
 			this.$saveSettings.on('click.sscribe', function () {
 				self.saveSettings(self.isAutoRefresh);
+			});
+			this.$enabled.on('change.sscribe', function () {
+				self.markSettingsDirty();
+			});
+			this.$level.on('change.sscribe', function () {
+				self.markSettingsDirty();
 			});
 			this.$filterLevel.on('change.sscribe', function () {
 				self.currentFilter = $(this).val();
@@ -578,6 +599,7 @@
 				self.$saveSettings.prop('disabled', false);
 				self.$refreshMode.prop('disabled', false);
 				if (response.success) {
+					self.clearSettingsDirty();
 					self.$saveFeedback.removeClass('success error').text('Saved!').addClass('success');
 					if (response.data && response.data.nonce) {
 						sscribe_data.nonce = response.data.nonce;
