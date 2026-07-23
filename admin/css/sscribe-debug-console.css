@@ -587,7 +587,7 @@
   justify-content: space-between;
   gap: var(--ss-space-3);
   padding: var(--ss-space-2) 0;
-  border-top: 1px solid #3f3f46;
+  border-top: 1px solid var(--ss-border);
   flex-wrap: wrap;
 }
 
@@ -605,7 +605,7 @@
 }
 
 .sscribe-debug-rotated-file-name {
-  color: #fafafa;
+  color: var(--ss-text-primary);
   font-size: 13px;
   font-weight: 500;
   overflow: hidden;
@@ -615,7 +615,7 @@
 }
 
 .sscribe-debug-rotated-file-meta {
-  color: #a1a1aa;
+  color: var(--ss-text-secondary);
   font-size: 11px;
   font-family: var(--ss-font-mono);
 }
