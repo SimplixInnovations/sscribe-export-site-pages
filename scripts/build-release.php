@@ -44,16 +44,6 @@ $config = array(
 		'.php-cs-fixer.php', '.php-cs-fixer.dist.php', 'mkdocs.yml',
 		'.travis.yml', '.scrutinizer.yml', '.github_changelog_generator',
 
-		// Root-level Markdown audits / smoke tests — these are authoring /
-		// review artifacts that ship em-dash characters and other prose that
-		// WordPress.org plugin-check flags as AI artifacts. The changelog
-		// lives in readme.txt only (WP.org convention), and the real source
-		// of truth for any audit is git history. Do NOT add *.md glob here
-		// — the .distignore glob syntax is not honored by build-release.php
-		// (it only does exact/prefix/segment matches); explicit filenames
-		// are required so future audit files get caught in code review.
-		'BROWSER-SMOKE-TEST-1.1.3.md', 'SECURITY-AUDIT-1.1.3.md',
-
 		// AI tooling (Claude Code, OpenCode, Aider, Cursor, Windsurf, Continue, Codeium)
 		// These contain user-local settings and prompt history that must never ship
 		// in the production plugin. WordPress.org plugin-check flags them as
