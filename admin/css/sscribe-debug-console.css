@@ -1605,15 +1605,6 @@
 /* ── FORCED COLORS (Windows High Contrast) ─────────────────── */
 
 @media (forced-colors: active) {
- .sscribe-debug-console-card {
- --sscribe-debug-color-bg: Canvas;
- --sscribe-debug-color-bg-header: Canvas;
- --sscribe-debug-color-bg-entry-hover: Canvas;
- --sscribe-debug-color-border: CanvasText;
- --sscribe-debug-color-text: CanvasText;
- --sscribe-debug-color-text-muted: CanvasText;
-  }
-
  .sscribe-debug-help-btn:focus-visible,
  .sscribe-debug-refresh-btn:focus-visible,
  .sscribe-debug-filter-select:focus-visible,
@@ -1658,13 +1649,6 @@
 
 @media print {
  .sscribe-debug-console-card {
- --sscribe-debug-color-bg: #fff;
- --sscribe-debug-color-bg-header: #fff;
- --sscribe-debug-color-bg-entry-hover: #fff;
- --sscribe-debug-color-border: #000;
- --sscribe-debug-color-text: #000;
- --sscribe-debug-color-text-muted: #333;
-
  background: #fff !important;
  color: #000 !important;
   }
