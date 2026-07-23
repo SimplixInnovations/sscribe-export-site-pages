@@ -177,3 +177,19 @@ stubs/
 
 # Scratch / experimental
 scratch/
+
+# Local audit / screenshot artifacts left by browser automation.
+# .audit/ holds verification screenshots; root-level .export-*.png and
+# tab-export-*.{jpg,jpeg} are full-page captures from UI polish passes.
+# None of this belongs in the production ZIP.
+.audit/
+.export-debug.png
+.export-history.png
+.export-main.png
+.export-support.png
+.export-v3-final.png
+export-full.png
+tab-export-top.jpg
+tab-export-bottom.jpg
+tab-export-light.jpg
+tab-export-scrolled.jpeg
