@@ -555,6 +555,12 @@ if ( is_dir( $vendor_dir ) ) {
 	);
 
 	$pruned_count = 0;
+	// Extensions that WordPress.org plugin-check rejects outright (shell
+	// scripts, Windows binaries, OS installers). paragonie/random_compat
+	// ships build-phar.sh + build_phar.php which the plugin-check
+	// scanner flags as build artifacts.
+	$prune_extensions = array( 'sh', 'bat', 'cmd', 'exe', 'msi', 'pkg', 'dmg', 'phar' );
+
 	$v_iterator = new RecursiveIteratorIterator(
 		new RecursiveDirectoryIterator( $vendor_dir, RecursiveDirectoryIterator::SKIP_DOTS ),
 		RecursiveIteratorIterator::CHILD_FIRST
@@ -562,7 +568,10 @@ if ( is_dir( $vendor_dir ) ) {
 
 	foreach ( $v_iterator as $item ) {
 		$name = $item->getBasename();
-		if ( in_array( $name, $prune_patterns, true ) ) {
+		$ext  = strtolower( pathinfo( $name, PATHINFO_EXTENSION ) );
+		$matched = in_array( $name, $prune_patterns, true )
+			|| ( ! $item->isDir() && in_array( $ext, $prune_extensions, true ) );
+		if ( $matched ) {
 			if ( $item->isDir() ) {
 				rrmdir( $item->getPathname() );
 			} else {
