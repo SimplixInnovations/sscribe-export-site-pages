@@ -547,11 +547,24 @@ $vendor_dir = $plugin_dir . '/vendor-prefixed';
 if ( is_dir( $vendor_dir ) ) {
 	$prune_patterns = array(
 		'tests', 'docs', '.github', 'samples', 'examples', 'utils', 'bin',
+		'other', /* paragonie/random_compat: phar-build directory */
+		/* paragonie/random_compat: PHP-5 random_bytes() polyfill, dead weight
+		 * on PHP 8.2+ (random_bytes() is native since PHP 7). The package is
+		 * never autoloaded by the plugin or any vendor library. Removing it
+		 * eliminates build_phar.php + psalm-autoload.php in one stroke. */
+		'random_compat',
 		'composer.json', 'composer.lock', 'package.json', 'phpunit.xml',
 		'.gitignore', '.gitattributes', '.travis.yml', '.scrutinizer.yml',
 		'CHANGELOG.md', 'CONTRIBUTING.md', 'README.md', 'CREDITS.txt',
+		'SECURITY.md', /* setasign/fpdi: dev doc, not autoloaded */
 		'COPYING', 'COPYING.LESSER', 'LICENSE', 'LICENSE.txt',
 		'.github_changelog_generator', 'roave-bc-check.yaml',
+		/* paragonie/random_compat: Psalm dev bootstrap, not autoloaded */
+		'psalm-autoload.php',
+		/* mpdf/mpdf: development-only functions (runtime is functions.php) */
+		'functions-dev.php',
+		/* paragonie/random_compat: phar-builder script */
+		'build_phar.php',
 	);
 
 	$pruned_count = 0;
