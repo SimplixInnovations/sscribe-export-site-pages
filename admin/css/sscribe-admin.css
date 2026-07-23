@@ -487,9 +487,15 @@
 
 .sscribe-format-desc {
   font-size: 11px;
-  color: var(--ss-text-muted);
+  color: var(--ss-text-secondary);
   line-height: 1.4;
 }
+
+/* --ss-text-secondary (#3f3f46) keeps >= 4.5:1 contrast on both the
+   default white card background AND the tinted-green SELECTED card
+   background (rgb(212, 231, 220) = the brand-tint selected state).
+   --ss-text-muted (#71717a) only reaches 4.83:1 on white and drops to
+   3.74:1 on the selected green - Lighthouse AA fails. */
 
 .sscribe-post-type-selector,
 .sscribe-status-selector,
@@ -3426,8 +3432,11 @@ kbd.sscribe-shortcut-hint {
 
 .sscribe-button-primary .sscribe-shortcut-hint,
 .sscribe-button-primary kbd.sscribe-shortcut-hint {
-  background: rgb(255 255 255 / 22%) !important;
-  border-color: rgb(255 255 255 / 45%) !important;
+  /* Darker translucent fill so the white text on the primary green button
+     keeps WCAG AA contrast (>=4.5:1 at 10px). 22% white-on-green only
+     reaches 3.3:1, which Lighthouse flags. */
+  background: rgb(0 0 0 / 28%) !important;
+  border-color: rgb(255 255 255 / 35%) !important;
   color: #fff !important;
 }
 
