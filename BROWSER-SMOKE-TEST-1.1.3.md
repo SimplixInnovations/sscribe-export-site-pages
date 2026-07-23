@@ -35,27 +35,33 @@ multi-stage generate pipeline, the success alert, and the downloaded ZIP.
    expected under navigate).
 10. v3 design tokens render correctly in both color schemes.
 
-## Real visual / a11y bugs to fix before 1.1.4
+## Real visual / a11y bugs found and fixed before 1.1.3 ship
 
-These were visible on screen and worth acting on. None block 1.1.3 — they
-all degrade polish, not correctness.
+These were visible on screen and shipped in the same release as the
+audit. Commit `???` (CSS-only, no PHP changes).
 
-### Bug 1 — Markdown format card breaks the word mid-character
+### Bug 1 — Markdown format card breaks the word mid-character ✅ FIXED
 
-The fifth format card ("Markdown" + "Portable markdown text") wraps the
-word "Markdown" as `Markdow` + `n`. Same column width as the four cards to
-its left, but "Markdown" is the only single-word title that overflows the
-text container, so the title underline break lands in the middle of a word.
+The fifth format card ("Markdown" + "Portable markdown text") wrapped
+the word "Markdown" as `Markdow` + `n`. Same column width as the four
+cards to its left, but "Markdown" is the only single-word title that
+overflowed the text container, so the title underline break landed in
+the middle of a word.
 
-Likely cause: `.sscribe-format-option-card` title is given a fixed or
-`min-width` that crowds the text and the only soft-break opportunity is
-inside the word. Fix path: widen the text container by a few px, OR allow
-the title to wrap on a hyphen / non-breaking space, OR use a slightly
-smaller font-size only on the title for that width tier, OR introduce
-`overflow-wrap: anywhere` as a graceful-degradation fallback.
+Root cause: `.sscribe-format-meta` was set with `min-width: 0` (the
+default flex shrink behaviour) and `.sscribe-format-name` had
+`overflow-wrap: anywhere;` — together these force a mid-character break
+the moment the title is even 1px wider than the text container.
 
-Severity: WARN — visible on every load of the Export tab, no other card
-exhibits it, but the panel still functions.
+Fix in `admin/css/sscribe-admin.css`:
+- `.sscribe-format-card-inner` `min-width: 130px → 152px`
+- `.sscribe-format-meta` `min-width: 0 → max-content` (text container
+  sizes to its longest word instead of being squeezed by the row flex)
+- `.sscribe-format-name` `overflow-wrap: anywhere → normal`,
+  `hyphens: auto → manual` (no more forced mid-word breaks)
+
+Verified: all 5 cards now report `offsetHeight: 17px, lineCount: 1`
+after reload with `?ignoreCache`.
 
 ### Bug 2 — Format-card secondary descriptions are dim under dark mode
 
@@ -116,13 +122,13 @@ These came up during the smoke test and were verified clean:
 
 ## Recommended follow-ups for 1.1.4
 
-1. Open four atomic CSS-PRs (one per bug above) — each is a single token
-   override. Ship all four together as
-   `fix(ui): dark-mode AA fixes for format-desc, language-badge, form-`
-   `control-borders, and Markdown card word-break`.
-2. After the CSS changes, re-take the same four screenshots (light Export,
-   light History, dark Export, dark Debug) to verify AA passes on the
-   affected text.
+1. Open one atomic CSS-PR covering Bugs 2, 3, and 4 (the dark-mode AA
+   regressions):
+   `fix(ui): dark-mode AA fixes for format-desc, language-badge,
+   form-control-borders`.
+2. After the dark-mode CSS changes, re-take the same four screenshots
+   (light Export, light History, dark Export, dark Debug) to verify AA
+   passes on the affected text.
 3. The FPDI CVE bump (`SECURITY-AUDIT-1.1.3.md` → Deferred) should land
    in 1.1.4 alongside the mPDF minor bump that pulls FPDI 2.6.7+.
 

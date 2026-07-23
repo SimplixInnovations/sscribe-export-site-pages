@@ -405,7 +405,7 @@
 }
 
 .sscribe-format-card-inner {
-  min-width: 130px;
+  min-width: 152px;
 }
 
 .sscribe-post-type-card-inner {
@@ -451,7 +451,7 @@
 .sscribe-format-meta,
 .sscribe-lang-meta {
   flex: 1;
-  min-width: 0;
+  min-width: max-content;
   display: flex;
   flex-direction: column;
   gap: 2px;
@@ -466,8 +466,8 @@
   color: var(--ss-text-primary);
   line-height: 1.3;
   word-break: normal;
-  overflow-wrap: anywhere;
-  hyphens: auto;
+  overflow-wrap: normal;
+  hyphens: manual;
 }
 
 .sscribe-status-name {
@@ -594,7 +594,7 @@
   display: flex;
   flex-direction: column;
   gap: var(--ss-space-2);
-  padding: var(--ss-space-4) var(--ss-space-7) 0;
+  padding: var(--ss-space-4) var(--ss-space-7) var(--ss-space-4);
 }
 
 .sscribe-preflight-warning {
