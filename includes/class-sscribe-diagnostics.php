@@ -200,6 +200,7 @@ class SScribe_Diagnostics {
 
 		$sections['environment'] = array(
 			'label' => __( 'Environment', 'sscribe-export-site-pages' ),
+			'span'  => 'full',
 			'items' => array(
 				'wordpress_version'  => get_bloginfo( 'version' ),
 				'php_version'        => PHP_VERSION,
@@ -277,6 +278,19 @@ class SScribe_Diagnostics {
 		} catch ( \Throwable $e ) {
 			$copy_text = '';
 		}
+
+		$ordered_sections = array();
+		foreach ( array( 'plugin', 'paths', 'stats', 'health', 'environment' ) as $section_key ) {
+			if ( isset( $sections[ $section_key ] ) ) {
+				$ordered_sections[ $section_key ] = $sections[ $section_key ];
+			}
+		}
+		foreach ( $sections as $section_key => $section_data ) {
+			if ( ! isset( $ordered_sections[ $section_key ] ) ) {
+				$ordered_sections[ $section_key ] = $section_data;
+			}
+		}
+		$sections = $ordered_sections;
 
 		return array(
 			'generated_at'   => gmdate( 'Y-m-d H:i:s' ),

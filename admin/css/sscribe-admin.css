@@ -2817,35 +2817,82 @@
 .sscribe-support-grid {
   display: grid;
   grid-template-columns: 1fr 1fr;
-  gap: var(--ss-space-3);
+  grid-auto-flow: dense;
+  gap: var(--ss-space-4);
+  align-items: start;
+}
+
+.sscribe-support-section {
+  display: flex;
+  flex-direction: column;
+  gap: var(--ss-space-2);
+  padding: var(--ss-space-4);
+  background: var(--ss-surface);
+  border: 1px solid var(--ss-border);
+  border-radius: var(--ss-radius);
+  min-width: 0;
+}
+
+.sscribe-support-section-full {
+  grid-column: 1 / -1;
+}
+
+.sscribe-support-section-full .sscribe-support-grid-inner {
+  grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+}
+
+.sscribe-support-section-title {
+  font-size: 11px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: var(--ss-text-tertiary);
+  margin: 0 0 var(--ss-space-2) 0;
+  padding-bottom: var(--ss-space-2);
+  border-bottom: 1px solid var(--ss-border);
 }
 
 .sscribe-support-grid-inner {
-  display: flex;
-  flex-direction: column;
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
   gap: var(--ss-space-3);
 }
 
 .sscribe-support-item {
-  padding: var(--ss-space-3) var(--ss-space-4);
-  background: var(--ss-surface);
+  display: flex;
+  flex-direction: column;
+  gap: var(--ss-space-1);
+  padding: var(--ss-space-2) var(--ss-space-3);
+  background: var(--ss-surface-alt);
   border: 1px solid var(--ss-border);
-  border-radius: var(--ss-radius);
+  border-radius: var(--ss-radius-sm, 6px);
+  min-width: 0;
 }
 
 .sscribe-support-label {
-  font-size: 11px;
+  font-size: 10px;
   font-weight: 600;
   text-transform: uppercase;
-  letter-spacing: 0.05em;
+  letter-spacing: 0.06em;
   color: var(--ss-text-tertiary);
-  margin-bottom: var(--ss-space-1);
 }
 
 .sscribe-support-value {
   font-size: 13px;
   color: var(--ss-text-primary);
   font-weight: 500;
+  word-break: break-word;
+}
+
+.sscribe-support-empty-state {
+  grid-column: 1 / -1;
+  padding: var(--ss-space-4);
+  text-align: center;
+  color: var(--ss-text-muted);
+  font-size: 13px;
+  background: var(--ss-surface-alt);
+  border: 1px dashed var(--ss-border);
+  border-radius: var(--ss-radius);
 }
 
 .sscribe-support-loading {
@@ -4062,11 +4109,24 @@ kbd.sscribe-shortcut-hint {
  .sscribe-master-container .sscribe-support-copy-text,
  .sscribe-master-container .sscribe-debug-console-body {
  color: #d4d4d8;
+ background-color: #18181b;
+ border-color: #27272a;
   }
 
  .sscribe-master-container .sscribe-format-option-field select {
  background-image: url("data:image/svg+xml;charset=utf8,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 16 16' fill='%23a1a1aa'%3E%3Cpath d='M8 11L3 6h10z'/%3E%3C/svg%3E");
  background-color: transparent;
+  }
+}
+
+/* ── 3b. DARK MODE HEADING FIX (override WP core h2/h3 color) ─ */
+
+@media (prefers-color-scheme: dark) {
+  .sscribe-master-container h1,
+  .sscribe-master-container h2,
+  .sscribe-master-container h3,
+  .sscribe-master-container h4 {
+    color: var(--ss-text-primary, #fafafa);
   }
 }
 
