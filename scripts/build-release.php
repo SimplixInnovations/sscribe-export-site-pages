@@ -52,6 +52,18 @@ $config = array(
 		'.aider.model.settings.json', '.aider.input.history', '.cursor', '.windsurf',
 		'.continue', '.codeium', '.github/copilot', '.cody',
 
+		// Local audit / screenshot artifacts left behind by browser automation.
+		// The .audit/ directory holds v3 verification screenshots; root-level
+		// .export-*.png and tab-export-*.{jpg,jpeg} are full-page captures
+		// produced during UI polish passes. None of this belongs in the
+		// production ZIP — WordPress.org reviewers will see the files and flag
+		// them as junk.
+		'.audit', 'export-full.png', 'export-debug.png', 'export-history.png',
+		'export-main.png', 'export-support.png', 'export-v3-final.png',
+		'tab-export-top.jpg', 'tab-export-bottom.jpg', 'tab-export-light.jpg',
+		'tab-export-scrolled.jpeg', '.export-debug.png', '.export-history.png',
+		'.export-main.png', '.export-support.png', '.export-v3-final.png',
+
 		// PHPStan + Intelephense stubs (WordPress function signatures for static
 		// analysis). Not part of the production plugin — the real WordPress
 		// runtime provides these functions.
