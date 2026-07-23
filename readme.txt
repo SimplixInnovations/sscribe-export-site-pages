@@ -5,7 +5,7 @@ Requires at least: 6.0
 Tested up to: 7.0.0
 Stable tag: 1.1.3
 Requires PHP: 8.2
-License: GPLv2 or later
+License: GPL-2.0-or-later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
 
 Export WordPress pages to professional DOCX, PDF, HTML, or Markdown files with multilingual RTL support and secure ZIP download.

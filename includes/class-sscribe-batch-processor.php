@@ -1270,14 +1270,16 @@ final class SScribe_Batch_Processor {
 	 * 403 response, then retries the original request.
 	 */
 	public function ajax_refresh_nonce(): void {
-		if ( ! current_user_can( $this->get_required_capability() ) ) {
-			wp_send_json_error( array( 'message' => __( 'Permission denied.', 'sscribe-export-site-pages' ) ), 403 );
-			return;
-		}
-
+		// WP convention: verify nonce BEFORE capability to avoid leaking which
+		// unprivileged visitors get a permission error vs an invalid-nonce error.
 		$nonce_ok = check_ajax_referer( 'sscribe_export_nonce', 'nonce', false );
 		if ( ! $nonce_ok ) {
 			wp_send_json_error( array( 'message' => __( 'Invalid nonce.', 'sscribe-export-site-pages' ) ), 403 );
+			return;
+		}
+
+		if ( ! current_user_can( $this->get_required_capability() ) ) {
+			wp_send_json_error( array( 'message' => __( 'Permission denied.', 'sscribe-export-site-pages' ) ), 403 );
 			return;
 		}
 
