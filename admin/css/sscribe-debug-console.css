@@ -490,31 +490,40 @@
   display: none;
 }
 
-.sscribe-debug-entry-badge-debug {
+.sscribe-debug-entry-badge-debug,
+.sscribe-debug-entry-badge.debug {
   background: #3f3f46;
   color: #d4d4d8;
 }
 
 .sscribe-debug-entry-badge-info,
-.sscribe-debug-entry-badge-notice {
+.sscribe-debug-entry-badge.info,
+.sscribe-debug-entry-badge-notice,
+.sscribe-debug-entry-badge.notice {
   background: #d4e7dc;
   color: #234b37;
 }
 
-.sscribe-debug-entry-badge-warning {
+.sscribe-debug-entry-badge-warning,
+.sscribe-debug-entry-badge.warning {
   background: #fff6ed;
   color: #b54708;
 }
 
 .sscribe-debug-entry-badge-error,
+.sscribe-debug-entry-badge.error,
 .sscribe-debug-entry-badge-critical,
+.sscribe-debug-entry-badge.critical,
 .sscribe-debug-entry-badge-alert,
-.sscribe-debug-entry-badge-emergency {
+.sscribe-debug-entry-badge.alert,
+.sscribe-debug-entry-badge-emergency,
+.sscribe-debug-entry-badge.emergency {
   background: #fef3f2;
   color: #b42318;
 }
 
-.sscribe-debug-entry-badge-raw {
+.sscribe-debug-entry-badge-raw,
+.sscribe-debug-entry-badge.raw {
   background: rgb(99 91 255 / 15%);
   color: #b3a8ff;
 }

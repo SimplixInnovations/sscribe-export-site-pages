@@ -2880,22 +2880,31 @@
 			const errors = Array.isArray(log.errors) ? log.errors : [];
 			let html = '<div class="sscribe-log-summary">';
 			html +=
-				'<div class="sscribe-log-stat"><strong>' +
-				this.escapeHtml(strings.log_total || 'Total:') +
-				'</strong> ' +
+				'<div class="sscribe-log-stat">' +
+				'<span class="sscribe-log-stat-label">' +
+				this.escapeHtml(strings.log_total || 'Total') +
+				'</span>' +
+				'<span class="sscribe-log-stat-value">' +
 				this.escapeHtml(String(log.total_pages || 0)) +
+				'</span>' +
 				'</div>';
 			html +=
-				'<div class="sscribe-log-stat sscribe-log-success"><strong>' +
-				this.escapeHtml(strings.log_success_label || 'Success:') +
-				'</strong> ' +
+				'<div class="sscribe-log-stat sscribe-log-success">' +
+				'<span class="sscribe-log-stat-label">' +
+				this.escapeHtml(strings.log_success_label || 'Success') +
+				'</span>' +
+				'<span class="sscribe-log-stat-value success">' +
 				this.escapeHtml(String(log.success || 0)) +
+				'</span>' +
 				'</div>';
 			html +=
-				'<div class="sscribe-log-stat sscribe-log-failed"><strong>' +
-				this.escapeHtml(strings.log_failed_label || 'Failed:') +
-				'</strong> ' +
+				'<div class="sscribe-log-stat sscribe-log-failed">' +
+				'<span class="sscribe-log-stat-label">' +
+				this.escapeHtml(strings.log_failed_label || 'Failed') +
+				'</span>' +
+				'<span class="sscribe-log-stat-value failed">' +
 				this.escapeHtml(String(log.failed || 0)) +
+				'</span>' +
 				'</div>';
 			html += '</div>';
 			if (pages.length > 0) {

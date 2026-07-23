@@ -1525,6 +1525,7 @@
 		];
 		const entryLevel = entry.level && typeof entry.level === 'string' ? entry.level.toLowerCase() : 'info';
 		const badgeClass = allowedLevels.includes(entryLevel) ? entryLevel : 'info';
+		const dataLevel = (entry.level && typeof entry.level === 'string' ? entry.level : 'INFO').toUpperCase();
 		let contextHtml = '';
 		if (entry.context && Object.keys(entry.context).length > 0) {
 			let contextRows = '';
@@ -1566,7 +1567,9 @@
 		return (
 			'<div class="sscribe-debug-entry' +
 			(hasContext ? ' has-context' : '') +
+			' sscribe-debug-entry-level-' + escAttr(badgeClass) +
 			'"' +
+			' data-level="' + escAttr(dataLevel) + '"' +
 			(hasContext
 				? ' tabindex="0" role="button" aria-expanded="false" aria-controls="sscribe-debug-ctx-' +
 					escAttr(String(entryId)) +

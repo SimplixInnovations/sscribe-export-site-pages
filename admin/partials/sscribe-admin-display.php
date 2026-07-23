@@ -548,11 +548,13 @@ $sscribe_preflight_warnings = $sscribe_preflight_warnings ?? array();
 					</div>
 					<div class="sscribe-export-bar-actions">
 						<button type="button" id="sscribe-preview-btn" class="sscribe-button sscribe-button-outline sscribe-btn-sm" disabled aria-describedby="sscribe-preview-btn-hint" title="<?php esc_attr_e( 'Ctrl+Shift+P (Cmd+Shift+P on Mac)', 'sscribe-export-site-pages' ); ?>">
+							<?php echo wp_kses_post( SScribe_Helpers::get_icon_inline( 'eye', 16, 'sscribe-button-icon' ) ); ?>
 							<span><?php esc_html_e( 'Preview', 'sscribe-export-site-pages' ); ?></span>
 							<kbd class="sscribe-shortcut-hint" aria-hidden="true">⇧P</kbd>
 						</button>
 						<span id="sscribe-preview-btn-hint" class="screen-reader-text"><?php esc_html_e( 'Preview what your export will look like before generating', 'sscribe-export-site-pages' ); ?></span>
 						<button type="button" id="sscribe-export-btn" class="sscribe-button sscribe-button-primary sscribe-btn-lg" disabled aria-describedby="sscribe-export-btn-hint" title="<?php esc_attr_e( 'Ctrl+Shift+E (Cmd+Shift+E on Mac)', 'sscribe-export-site-pages' ); ?>">
+							<?php echo wp_kses_post( SScribe_Helpers::get_icon_inline( 'download-package', 18, 'sscribe-button-icon' ) ); ?>
 							<span id="sscribe-export-btn-text"><?php esc_html_e( 'Generate Package', 'sscribe-export-site-pages' ); ?></span>
 							<kbd class="sscribe-shortcut-hint" aria-hidden="true">⇧E</kbd>
 						</button>
@@ -569,9 +571,7 @@ $sscribe_preflight_warnings = $sscribe_preflight_warnings ?? array();
 					<div class="sscribe-modal-content sscribe-modal-content-preview" role="document">
 						<div class="sscribe-modal-header">
 							<h3 id="sscribe-preview-title">
-								<?php // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- SVG sanitized in get_icon().
-								?>
-								<?php echo wp_kses_post( SScribe_Helpers::get_icon( 'eye', 16 ) ); ?>
+								<span class="sscribe-modal-icon"><?php echo wp_kses_post( SScribe_Helpers::get_icon_inline( 'eye', 16 ) ); ?></span>
 								<?php esc_html_e( 'Export Readiness', 'sscribe-export-site-pages' ); ?>
 							</h3>
 							<button type="button" id="sscribe-preview-close" class="sscribe-modal-close" aria-label="<?php esc_attr_e( 'Close preview', 'sscribe-export-site-pages' ); ?>">
@@ -586,6 +586,7 @@ $sscribe_preflight_warnings = $sscribe_preflight_warnings ?? array();
 						</div>
 						<div class="sscribe-modal-footer sscribe-preview-footer">
 							<button type="button" id="sscribe-preview-start-btn" class="sscribe-button sscribe-button-primary">
+								<?php echo wp_kses_post( SScribe_Helpers::get_icon_inline( 'download-package', 16, 'sscribe-button-icon' ) ); ?>
 								<?php esc_html_e( 'Start Export', 'sscribe-export-site-pages' ); ?>
 							</button>
 							<button type="button" id="sscribe-preview-dismiss-btn" class="sscribe-button sscribe-button-outline">
@@ -947,7 +948,10 @@ $sscribe_preflight_warnings = $sscribe_preflight_warnings ?? array();
 	<div id="sscribe-log-modal" class="sscribe-modal sscribe-hidden" role="dialog" aria-modal="true" aria-hidden="true" aria-labelledby="sscribe-log-modal-title" aria-describedby="sscribe-log-modal-desc" hidden>
 	<div class="sscribe-modal-content" role="document">
 		<div class="sscribe-modal-header">
-			<h3 id="sscribe-log-modal-title"><?php esc_html_e( 'Export Log', 'sscribe-export-site-pages' ); ?></h3>
+			<h3 id="sscribe-log-modal-title">
+				<span class="sscribe-modal-icon"><?php echo wp_kses_post( SScribe_Helpers::get_icon_inline( 'file-log', 16 ) ); ?></span>
+				<?php esc_html_e( 'Export Log', 'sscribe-export-site-pages' ); ?>
+			</h3>
 			<button type="button" class="sscribe-modal-close" id="sscribe-modal-close" aria-label="<?php echo esc_attr__( 'Close modal', 'sscribe-export-site-pages' ); ?>">
 				<span aria-hidden="true">&times;</span>
 			</button>
