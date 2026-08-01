@@ -142,7 +142,7 @@ final class SScribe_Export_Log_Test extends TestCase {
 
 	private function find_log_file( string $session_id ): ?string {
 		$upload_dir = wp_upload_dir();
-		$log_dir    = $upload_dir['basedir'] . '/sscribe-logs';
+		$log_dir    = $upload_dir['basedir'] . '/sscribe-exports/logs';
 		$pattern    = $log_dir . '/export_*' . $session_id . '*.json';
 
 		$matches = glob( $pattern );

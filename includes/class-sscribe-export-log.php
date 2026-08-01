@@ -63,7 +63,7 @@ class SScribe_Export_Log {
 	 */
 	public function __construct( string $session_id ) {
 		$upload_dir    = wp_upload_dir();
-		$this->log_dir = $upload_dir['basedir'] . '/sscribe-logs';
+		$this->log_dir = $upload_dir['basedir'] . '/sscribe-exports/logs';
 
 		if ( preg_match( '/^[a-f0-9]{16}$/', $session_id ) ) {
 			$this->session_id = $session_id;
@@ -472,7 +472,7 @@ class SScribe_Export_Log {
 	public static function get_log_by_session( string $session_id ): ?array {
 		$session_id = sanitize_file_name( $session_id );
 		$upload_dir = wp_upload_dir();
-		$log_file   = $upload_dir['basedir'] . '/sscribe-logs/export_' . $session_id . '.json';
+		$log_file   = $upload_dir['basedir'] . '/sscribe-exports/logs/export_' . $session_id . '.json';
 
 		if ( ! file_exists( $log_file ) ) {
 			return null;
@@ -505,7 +505,7 @@ class SScribe_Export_Log {
 		}
 
 		$upload_dir = wp_upload_dir();
-		$log_dir    = $upload_dir['basedir'] . '/sscribe-logs';
+		$log_dir    = $upload_dir['basedir'] . '/sscribe-exports/logs';
 
 		if ( ! is_dir( $log_dir ) ) {
 			return null;
@@ -602,7 +602,7 @@ class SScribe_Export_Log {
 		}
 
 		$upload_dir = wp_upload_dir();
-		$log_dir    = $upload_dir['basedir'] . '/sscribe-logs';
+		$log_dir    = $upload_dir['basedir'] . '/sscribe-exports/logs';
 
 		if ( ! is_dir( $log_dir ) ) {
 			return false;
@@ -642,7 +642,7 @@ class SScribe_Export_Log {
 	 */
 	public static function cleanup_old_logs( int $max_age_hours = 6 ): int {
 		$upload_dir = wp_upload_dir();
-		$log_dir    = $upload_dir['basedir'] . '/sscribe-logs';
+		$log_dir    = $upload_dir['basedir'] . '/sscribe-exports/logs';
 
 		if ( ! is_dir( $log_dir ) ) {
 			return 0;

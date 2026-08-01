@@ -562,6 +562,17 @@ final class SScribe_Batch_Processor {
 		'sscribe_html_export_show_seo',
 		'sscribe_html_include_css',
 		'sscribe_html_responsive_images',
+		// Markdown format_options consumed by SScribe_Markdown_Exporter
+		// via get_format_option(); absence here caused the WordPress.org
+		// allowlist gate (introduced for WP.org review feedback) to
+		// silently strip them at parse_format_options() time, breaking
+		// the "Include frontmatter", "Include featured image", and
+		// "Use absolute URLs" admin checkboxes (admin UI sends the
+		// keys; the allowlist dropped them before they reached the
+		// exporter, so the defaults always won).
+		'sscribe_md_absolute_urls',
+		'sscribe_md_include_featured_image',
+		'sscribe_md_include_frontmatter',
 		'sscribe_pdf_include_images',
 		'sscribe_pdf_include_page_numbers',
 		'sscribe_pdf_max_content_images',

@@ -519,6 +519,19 @@ class SScribe_Filesystem {
 	public function move( string $source, string $destination, bool $overwrite = false ): bool {
 		self::$last_error = '';
 
+		$safety = $this->is_path_safe_for_write( $destination );
+		if ( self::SSCRIBE_PATH_REJECT === $safety ) {
+			self::$last_error = 'Refusing to move outside SScribe export directory (symlink attack suspected)';
+			$this->logger->warning(
+				'Refused move : destination resolves outside SScribe export directory',
+				array(
+					'source'      => $source,
+					'destination' => $destination,
+				)
+			);
+			return false;
+		}
+
 		if ( self::$fs instanceof WP_Filesystem_Base ) {
 			return self::$fs->move( $source, $destination, $overwrite );
 		}

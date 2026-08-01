@@ -227,7 +227,7 @@ class SScribe_Admin_Debug {
 		$has_more = count( $logs ) >= self::MAX_FETCH_LINES;
 
 		$upload_dir    = wp_upload_dir();
-		$log_dir       = $upload_dir['basedir'] . '/sscribe-logs';
+		$log_dir       = $upload_dir['basedir'] . '/sscribe-exports/logs';
 		$log_file      = $log_dir . '/sscribe_debug_' . gmdate( 'Y-m-d' ) . '.log';
 		$log_exists    = file_exists( $log_file );
 		$debug_enabled = SScribe_Settings::is_debug_enabled() || ( defined( 'SSCRIBE_DEBUG' ) && SSCRIBE_DEBUG );
@@ -292,7 +292,7 @@ class SScribe_Admin_Debug {
 
 		if ( ! empty( $filename ) ) {
 			$upload_dir = wp_upload_dir();
-			$log_dir    = $upload_dir['basedir'] . '/sscribe-logs';
+			$log_dir    = $upload_dir['basedir'] . '/sscribe-exports/logs';
 			$file_path  = $log_dir . '/' . $filename;
 
 			$real_file_path = realpath( $file_path );
@@ -418,7 +418,7 @@ class SScribe_Admin_Debug {
 		}
 
 		$upload_dir = wp_upload_dir();
-		$log_dir    = $upload_dir['basedir'] . '/sscribe-logs';
+		$log_dir    = $upload_dir['basedir'] . '/sscribe-exports/logs';
 
 		if ( ! is_dir( $log_dir ) ) {
 			wp_send_json_success( array( 'files' => array() ) );
@@ -515,7 +515,7 @@ class SScribe_Admin_Debug {
 		}
 
 		$upload_dir = wp_upload_dir();
-		$log_dir    = $upload_dir['basedir'] . '/sscribe-logs';
+		$log_dir    = $upload_dir['basedir'] . '/sscribe-exports/logs';
 		$file_path  = $log_dir . '/' . $filename;
 
 		$real_file_path = realpath( $file_path );
@@ -598,7 +598,7 @@ class SScribe_Admin_Debug {
 		}
 
 		$upload_dir = wp_upload_dir();
-		$log_dir    = $upload_dir['basedir'] . '/sscribe-logs';
+		$log_dir    = $upload_dir['basedir'] . '/sscribe-exports/logs';
 		$file_path  = $log_dir . '/' . $filename;
 
 		$real_file_path = realpath( $file_path );

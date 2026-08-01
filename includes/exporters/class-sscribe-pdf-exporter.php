@@ -623,7 +623,12 @@ class SScribe_PDF_Exporter implements SScribe_Exporter_Interface {
 		$font_dir   = trailingslashit( SSCRIBE_PLUGIN_DIR ) . 'assets/fonts/';
 		$amiri_dir  = $font_dir . 'amiri/';
 		$upload_dir = wp_upload_dir();
-		$sscribe_dir = trailingslashit( $upload_dir['basedir'] ) . 'sscribe/';
+		// mPDF tempDir lives under sscribe-exports/ so the default-deny
+		// rule (which only allows writes inside that directory) accepts
+		// it. wp-content/uploads/sscribe/ was the previous location but
+		// sits OUTSIDE the SScribe allowlist — mPDF cache writes there
+		// would be silently rejected by is_path_safe_for_write().
+		$sscribe_dir = trailingslashit( $upload_dir['basedir'] ) . 'sscribe-exports/';
 		$mpdf_temp  = $sscribe_dir . 'mpdf-tmp/';
 
 		if ( ! is_dir( $mpdf_temp ) ) {
