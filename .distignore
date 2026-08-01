@@ -61,8 +61,12 @@ vendor/
 # Vendor-prefixed extras (WordPress.org requirement)
 vendor-prefixed/*/.github/
 vendor-prefixed/*/.git/
-vendor-prefixed/*/COPYING*
-vendor-prefixed/*/LICENSE*
+# NOTE: vendor-prefixed/*/LICENSE* and vendor-prefixed/*/COPYING* are
+# NOT excluded. Per WordPress.org Plugin Directory Guideline 1, the
+# license texts of bundled libraries must ship alongside their source
+# so a reviewer can verify GPL-compatible attribution. The
+# corresponding prune entries were removed from scripts/build-release.php
+# in the same commit.
 vendor-prefixed/*/.github_changelog_generator
 vendor-prefixed/*/.php-cs-fixer*
 vendor-prefixed/*/phpstan.neon*

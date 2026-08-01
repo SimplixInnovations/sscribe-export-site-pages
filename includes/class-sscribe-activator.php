@@ -105,7 +105,11 @@ class SScribe_Activator {
 	private static function activate_single_site(): void {
 		self::create_export_directory();
 		self::create_database_tables();
-		self::register_settings();
+		// register_settings() is wired to the admin_init hook in
+		// sscribe-export-site-pages.php so the Settings API whitelist
+		// is live on every admin request, not just on activation. The
+		// option defaults declared inside register_settings() seed new
+		// installs; existing installs keep their stored values.
 		self::schedule_cleanup();
 		self::cleanup_orphaned_data();
 		self::grant_export_capability();
@@ -215,9 +219,16 @@ class SScribe_Activator {
 
 	/**
 	 * Register WordPress settings via register_setting().
-	 * Required for WordPress Plugin Review compliance.
+	 *
+	 * Required for WordPress Plugin Review compliance and for the
+	 * Settings API whitelist to actually include these option names.
+	 * Wired to the admin_init hook from sscribe-export-site-pages.php
+	 * so the registry is live on every admin request, not just on
+	 * activation. Calling it only from the activation hook left the
+	 * registry dead on every page load after activation, which is the
+	 * settings-API dead-registry anti-pattern.
 	 */
-	private static function register_settings(): void {
+	public static function register_settings(): void {
 		register_setting(
 			'sscribe_settings',
 			'sscribe_debug_enabled',

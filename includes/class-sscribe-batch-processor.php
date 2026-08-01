@@ -585,7 +585,7 @@ final class SScribe_Batch_Processor {
 	 *
 	 * Each key is normalized via sanitize_key(). Each key MUST be on
 	 * the {@see self::FORMAT_OPTION_KEYS} allowlist (extended via the
-	 * `sscribe_format_option_keys` filter) — keys outside the allowlist
+	 * `sscribe_format_option_keys` filter); keys outside the allowlist
 	 * are dropped to prevent injection into exporter pipelines.
 	 *
 	 * Each scalar value is sanitized via sanitize_text_field(); array

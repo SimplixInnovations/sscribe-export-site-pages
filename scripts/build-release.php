@@ -40,7 +40,13 @@ $config = array(
 		'commit-message.txt', '.prettierrc', '.eslintrc.json', '.stylelintrc.json', '.husky',
 		'node_modules', 'screenshots', 'WPScan',
 
-		'phpstan-baseline.neon', 'ruleset.xml', 'CREDITS.txt', 'COPYING',
+		'phpstan-baseline.neon', 'ruleset.xml', 'CREDITS.txt',
+		// 'COPYING' removed from base_excludes: WordPress.org Plugin
+		// Directory Guideline 1 requires third-party license texts to
+		// ship alongside bundled libraries. Pruning all COPYING files
+		// at segment level (including vendor-prefixed/phpoffice/phpword/
+		// COPYING + COPYING.LESSER) violates that rule. The vendored
+		// license files are now intentionally retained in the ZIP.
 		'.php-cs-fixer.php', '.php-cs-fixer.dist.php', 'mkdocs.yml',
 		'.travis.yml', '.scrutinizer.yml', '.github_changelog_generator',
 
@@ -557,7 +563,12 @@ if ( is_dir( $vendor_dir ) ) {
 		'.gitignore', '.gitattributes', '.travis.yml', '.scrutinizer.yml',
 		'CHANGELOG.md', 'CONTRIBUTING.md', 'README.md', 'CREDITS.txt',
 		'SECURITY.md', /* setasign/fpdi: dev doc, not autoloaded */
-		'COPYING', 'COPYING.LESSER', 'LICENSE', 'LICENSE.txt',
+		// LICENSE/COPYING preserved: WordPress.org Plugin Directory
+		// Guideline 1 requires third-party license texts to ship with
+		// the bundled code. Removing them was a WP.org compliance bug.
+		// Stripping them here leaves license.txt's "preserved alongside
+		// its source" claim accurate, and lets a reviewer grep the ZIP
+		// for a license when checking FPDI/mPDF/PHPWord attribution.
 		'.github_changelog_generator', 'roave-bc-check.yaml',
 		/* paragonie/random_compat: Psalm dev bootstrap, not autoloaded */
 		'psalm-autoload.php',

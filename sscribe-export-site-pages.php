@@ -108,6 +108,19 @@ require_once SSCRIBE_PLUGIN_DIR . 'includes/sscribe-autoloader.php';
 register_activation_hook( __FILE__, array( 'SScribe_Activator', 'activate' ) );
 register_deactivation_hook( __FILE__, array( 'SScribe_Deactivator', 'deactivate' ) );
 
+// Wire Settings API registration to admin_init so the option whitelist
+// is live on every admin request. Calling register_setting() only from
+// the activation hook leaves the registry dead on every subsequent
+// page load, which is the settings-API dead-registry anti-pattern the
+// WP admin-UI guide calls out (plugin's options are no longer
+// recognised by settings_errors(), option storage works but no UI
+// feedback for invalid values, etc.). Calling it on admin_init is the
+// canonical pattern.
+add_action(
+	'admin_init',
+	array( 'SScribe_Activator', 'register_settings' )
+);
+
 $sscribe_has_dependencies = false;
 
 if ( file_exists( SSCRIBE_PLUGIN_DIR . 'vendor-prefixed/autoload.php' ) ) {
