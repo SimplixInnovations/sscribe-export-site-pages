@@ -139,7 +139,7 @@ class SScribe_Image_Processor {
 			$ext = self::extension_from_content_type( $content_type );
 		}
 
-		$temp_path = sys_get_temp_dir() . '/sscribe-img-' . uniqid() . '.' . $ext;
+		$temp_path = self::temp_dir() . '/sscribe-img-' . uniqid() . '.' . $ext;
 
 		// phpcs:ignore WordPress.WP.AlternativeFunctions.file_system_operations_file_put_contents
 
@@ -330,7 +330,7 @@ class SScribe_Image_Processor {
 		imagecopyresampled( $resized, $image, 0, 0, 0, 0, $new_width, $new_height, $width, $height );
 		unset( $image );
 
-		$optimized_path = sys_get_temp_dir() . '/sscribe-opt-' . uniqid() . '.jpg';
+		$optimized_path = self::temp_dir() . '/sscribe-opt-' . uniqid() . '.jpg';
 
 		// phpcs:ignore WordPress.WP.AlternativeFunctions.image_jpeg
 
@@ -351,8 +351,29 @@ class SScribe_Image_Processor {
 	 * @param string $path File path.
 	 */
 	public static function cleanup( string $path ): void {
-		if ( file_exists( $path ) && strpos( $path, sys_get_temp_dir() ) === 0 ) {
+		if ( file_exists( $path ) && strpos( $path, self::temp_dir() ) === 0 ) {
 			wp_delete_file( $path );
 		}
+	}
+
+	/**
+	 * Plugin-owned temp directory for intermediate image files.
+	 *
+	 * Lives inside sscribe-exports/ so the default-deny
+	 * is_path_safe_for_write() rule accepts the write. Using
+	 * sys_get_temp_dir() here would put scratch files outside the
+	 * allowlist (and on a multi-site install potentially in a different
+	 * filesystem from the export dir, breaking cross-temp linking).
+	 *
+	 * @return string Absolute path to the image staging dir (with trailing slash).
+	 */
+	private static function temp_dir(): string {
+		$upload_dir = function_exists( 'wp_upload_dir' ) ? wp_upload_dir() : array( 'basedir' => sys_get_temp_dir() );
+		$base       = isset( $upload_dir['basedir'] ) ? (string) $upload_dir['basedir'] : sys_get_temp_dir();
+		$dir        = trailingslashit( $base ) . 'sscribe-exports/image-staging/';
+		if ( ! is_dir( $dir ) && function_exists( 'wp_mkdir_p' ) ) {
+			wp_mkdir_p( $dir );
+		}
+		return $dir;
 	}
 }

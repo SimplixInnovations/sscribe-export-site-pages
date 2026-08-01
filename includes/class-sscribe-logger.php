@@ -165,7 +165,7 @@ class SScribe_Logger implements SScribe_Logger_Interface {
 		protected readonly string $prefix = 'sscribe'
 	) {
 		$upload_dir    = wp_upload_dir();
-		$this->log_dir = $upload_dir['basedir'] . '/sscribe-logs';
+		$this->log_dir = $upload_dir['basedir'] . '/sscribe-exports/logs';
 
 		add_action( 'shutdown', array( $this, 'flush' ) );
 	}

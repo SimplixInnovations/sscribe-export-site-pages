@@ -32,13 +32,20 @@ class SScribe_Export_All_Formats_Wrapper {
 	/**
 	 * Export a single page to every supported (or explicitly-listed) format.
 	 *
-	 * @param array      $page_data  Page content + metadata.
-	 * @param string     $output_dir Output directory for the produced files.
-	 * @param int        $index      1-based page index.
-	 * @param int        $total      Total page count.
-	 * @param array|null $formats    Optional format whitelist. Defaults to
-	 *                               every format returned by
-	 *                               SScribe_Export_Format::get_supported_formats().
+	 * @param array      $page_data      Page content + metadata.
+	 * @param string     $output_dir     Output directory for the produced files.
+	 * @param int        $index          1-based page index.
+	 * @param int        $total          Total page count.
+	 * @param array|null $formats        Optional format whitelist. Defaults to
+	 *                                   every format returned by
+	 *                                   SScribe_Export_Format::get_supported_formats().
+	 * @param array      $format_options Optional per-format options map piped
+	 *                                   through `sscribe_export_options_{$format}`
+	 *                                   then forwarded via each exporter's
+	 *                                   apply_format_options() hook — same contract
+	 *                                   as SScribe_Batch_Processor::dispatch_formats().
+	 *                                   Pass an empty array (the default) to keep
+	 *                                   the historical "no options" behaviour.
 	 * @return array<string, array{success: bool, result: SScribe_Result, error: ?string}>
 	 *                Per-format results keyed by format string.
 	 */
@@ -47,7 +54,8 @@ class SScribe_Export_All_Formats_Wrapper {
 		string $output_dir,
 		int $index = 1,
 		int $total = 1,
-		?array $formats = null
+		?array $formats = null,
+		array $format_options = array()
 	): array {
 		if ( null === $formats || empty( $formats ) ) {
 			$formats = array_keys( SScribe_Export_Format::get_supported_formats() );
@@ -101,7 +109,24 @@ class SScribe_Export_All_Formats_Wrapper {
 
 			try {
 				$exporter = SScribe_Exporter_Factory::create( $format );
-				$result   = $exporter->export( $page_data, $output_dir, $index, $total );
+
+				// Per-format options piping — mirrors the batch processor
+				// contract so callers using the wrapper get the same
+				// sscribe_export_options_{$format} hook and per-exporter
+				// apply_format_options() plumbing the production path uses.
+				// Without this, exporter format_options reads (e.g. the
+				// Markdown exporter's frontmatter / featured_image /
+				// absolute_urls toggles) silently fall back to defaults
+				// instead of honouring the caller's options map.
+				if ( ! empty( $format_options ) ) {
+					// phpcs:ignore WordPress.NamingConventions.PrefixAllGlobals.NonPrefixedHooknameFound -- Per-format dynamic hook, mirrors SScribe_Batch_Processor.
+					$format_options_for_format = apply_filters( "sscribe_export_options_{$format}", $format_options, (int) ( $page_data['id'] ?? 0 ), 'wrapper' );
+					if ( method_exists( $exporter, 'apply_format_options' ) ) {
+						$exporter->apply_format_options( $format_options_for_format );
+					}
+				}
+
+				$result = $exporter->export( $page_data, $output_dir, $index, $total );
 			} catch ( \Throwable $e ) {
 
 				if ( class_exists( 'SScribe_Logger', false ) ) {

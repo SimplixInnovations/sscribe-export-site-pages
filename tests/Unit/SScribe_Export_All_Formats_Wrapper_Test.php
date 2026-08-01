@@ -244,6 +244,92 @@ class SScribe_Export_All_Formats_Wrapper_Test extends TestCase {
 	}
 
 	/**
+	 * Regression: when the caller passes `format_options`, the wrapper
+	 * must pipe them through `sscribe_export_options_{$format}` and
+	 * forward via each exporter's apply_format_options() — same contract
+	 * as SScribe_Batch_Processor::dispatch_formats(). Before the fix,
+	 * the wrapper never called apply_format_options(), so per-format
+	 * toggles (e.g. Markdown's frontmatter / featured image / absolute
+	 * URLs) silently reverted to defaults even when the caller supplied
+	 * an options map.
+	 *
+	 * The wrapper drives a real SScribe_Filesystem write inside the
+	 * factory-built exporter. With the post-5424e8f default-deny rule
+	 * in place, any write to sys_get_temp_dir() is REJECTed — so the
+	 * HTML export itself is expected to fail. The regression we are
+	 * pinning here is the *plumbing*, not the write: the per-format
+	 * filter must fire and the caller's payload must reach the
+	 * exporter before the write is attempted.
+	 */
+	public function test_export_page_pipes_format_options_through_exporter(): void {
+		$tmp = $this->make_tmp_dir();
+
+		$observed_filter_payload = null;
+		$capture = function () use ( &$observed_filter_payload ) {
+			$args   = func_get_args();
+			$observed_filter_payload = $args[0] ?? null;
+			return $args[0] ?? null;
+		};
+		\add_filter( 'sscribe_export_options_html', $capture, 10, 3 );
+
+		$format_options = array(
+			'sscribe_html_include_css' => '0',
+		);
+
+		$results = \SScribe_Export_All_Formats_Wrapper::export_page(
+			$this->make_page_data(),
+			$tmp,
+			1,
+			1,
+			array( 'html' ),
+			$format_options
+		);
+
+		\remove_filter( 'sscribe_export_options_html', $capture, 10 );
+		$this->cleanup_tmp_dir( $tmp );
+
+		// The filter fired with the caller's format_options payload.
+		$this->assertNotNull( $observed_filter_payload, 'Per-format filter must fire when format_options are passed.' );
+		$this->assertSame( $format_options, $observed_filter_payload );
+
+		// The wrapper produced a results entry for the requested format
+		// (write may have failed because the test temp dir is outside
+		// the SScribe export dir — that is the new default-deny
+		// posture, not a regression of this fix).
+		$this->assertArrayHasKey( 'html', $results );
+	}
+
+	/**
+	 * Regression: omitting `format_options` (or passing an empty map)
+	 * must keep the historical "no-options" behaviour — no per-format
+	 * filter fires and apply_format_options() is never called.
+	 */
+	public function test_export_page_omits_format_options_by_default(): void {
+		$tmp = $this->make_tmp_dir();
+
+		$fired = false;
+		$guard = function () use ( &$fired ) {
+			$fired = true;
+			return array();
+		};
+		\add_filter( 'sscribe_export_options_html', $guard, 10, 3 );
+
+		$results = \SScribe_Export_All_Formats_Wrapper::export_page(
+			$this->make_page_data(),
+			$tmp,
+			1,
+			1,
+			array( 'html' )
+		);
+
+		\remove_filter( 'sscribe_export_options_html', $guard, 10 );
+		$this->cleanup_tmp_dir( $tmp );
+
+		$this->assertFalse( $fired, 'Per-format filter must NOT fire when caller passed no format_options.' );
+		$this->assertArrayHasKey( 'html', $results );
+	}
+
+	/**
 	 * Build a tmp dir for one test, isolated by uniqid() so parallel runs
 	 * don't collide. Recursively removed in cleanup_tmp_dir().
 	 */

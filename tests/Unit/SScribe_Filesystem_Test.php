@@ -162,7 +162,10 @@ class SScribe_Filesystem_Test extends TestCase {
 	public function test_move_renames_file(): void {
 		$fs     = new \SScribe_Filesystem();
 		$source = $this->test_dir . '/move-source.txt';
-		$dest   = $this->test_dir . '/move-dest.txt';
+		// Move destination must live INSIDE the SScribe export directory
+		// (post-audit #7). Rejecting writes outside that tree is the whole
+		// point of the default-deny posture; the test now mirrors that.
+		$dest   = $this->export_dir . '/move-dest.txt';
 		file_put_contents( $source, 'Move me' );
 
 		$result = $fs->move( $source, $dest );
@@ -171,6 +174,66 @@ class SScribe_Filesystem_Test extends TestCase {
 		$this->assertFileDoesNotExist( $source );
 		$this->assertFileExists( $dest );
 		$this->assertEquals( 'Move me', file_get_contents( $dest ) );
+	}
+
+	/**
+	 * Audit #7 regression: move() must refuse a destination outside the
+	 * SScribe export directory. Symlink-aware (same check as put_contents).
+	 */
+	public function test_move_refuses_destination_outside_export_dir(): void {
+		if ( ! function_exists( 'symlink' ) ) {
+			$this->markTestSkipped( 'symlink() not available on this platform' );
+		}
+
+		$fs     = new \SScribe_Filesystem();
+		$source = $this->test_dir . '/move-outside-source.txt';
+		$dest   = $this->test_dir . '/move-outside-dest.txt';
+		file_put_contents( $source, 'Should not move' );
+
+		$result = $fs->move( $source, $dest );
+
+		$this->assertFalse( $result, 'move() must refuse destinations outside the export dir' );
+		$this->assertFileExists( $source, 'Source file must NOT be consumed when the move is rejected' );
+		$this->assertFileDoesNotExist( $dest );
+		$this->assertNotEmpty( $fs->get_last_error() );
+	}
+
+	/**
+	 * Audit #7 regression: move() must refuse a destination whose parent
+	 * is a symlink planted inside the export dir that escapes the allowlist
+	 * (defends against symlink planting).
+	 */
+	public function test_move_refuses_planted_symlink_destination(): void {
+		if ( ! function_exists( 'symlink' ) ) {
+			$this->markTestSkipped( 'symlink() not available on this platform' );
+		}
+
+		$fs         = new \SScribe_Filesystem();
+		$source     = $this->test_dir . '/planted-source.txt';
+		$planted    = $this->export_dir . '/planted-link-' . uniqid();
+		$plant_dest = $this->test_dir . '/planted-target.txt';
+
+		file_put_contents( $source, 'Should not escape' );
+		// symlink() requires the target to exist on most platforms
+		// (Windows specifically rejects dangling symlinks by default).
+		file_put_contents( $plant_dest, 'attacker-controlled target' );
+
+		// Plant a symlink: $planted (inside export dir) -> $plant_dest (outside).
+		// Some platforms (notably Windows non-admin and locked-down CI
+		// containers) refuse symlink creation entirely; skip the assertion
+		// rather than fail so the suite stays portable.
+		$symlink_ok = @symlink( $plant_dest, $planted );
+		if ( ! $symlink_ok ) {
+			$this->markTestSkipped( 'symlink() not permitted on this platform (Windows non-admin / locked-down CI)' );
+		}
+		$this->assertTrue( $symlink_ok );
+
+		$result = $fs->move( $source, $planted . '/planted-target.txt' );
+
+		$this->assertFalse( $result, 'move() must refuse destinations whose parent resolves outside the export dir via symlink' );
+		$this->assertFileExists( $source, 'Source file must NOT be consumed when the move is rejected' );
+
+		@unlink( $planted );
 	}
 
 	public function test_mkdir_creates_directory(): void {

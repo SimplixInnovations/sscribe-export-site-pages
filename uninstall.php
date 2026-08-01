@@ -134,6 +134,7 @@ $sscribe_cleanup_site = static function (): void {
 	$sscribe_upload_dir = wp_upload_dir();
 	$sscribe_dirs       = array(
 		$sscribe_upload_dir['basedir'] . '/sscribe-exports',
+		$sscribe_upload_dir['basedir'] . '/sscribe-exports/logs',
 		$sscribe_upload_dir['basedir'] . '/sscribe-logs',
 		$sscribe_upload_dir['basedir'] . '/sscribe/mpdf-tmp',
 	);

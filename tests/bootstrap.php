@@ -1282,6 +1282,41 @@ if ( ! function_exists( 'add_filter' ) ) {
 	}
 }
 
+if ( ! function_exists( 'remove_filter' ) ) {
+	/**
+	 * Test-bench counterpart of WordPress's remove_filter(). Removes the
+	 * first matching callback from the in-memory filter registry so that
+	 * tests that register a listener via add_filter() can clean up
+	 * without leaking the closure into the next test's apply_filters().
+	 * Returns false when no matching entry is present, matching WP.
+	 */
+	function remove_filter( $sscribe_hook, $sscribe_callback, $sscribe_priority = 10 ) {
+		global $sscribe_test_filters;
+
+		if ( ! is_array( $sscribe_test_filters ) ) {
+			return false;
+		}
+
+		$sscribe_remaining = array();
+		$sscribe_removed   = false;
+		foreach ( $sscribe_test_filters as $sscribe_filter ) {
+			if (
+				! $sscribe_removed
+				&& $sscribe_filter['hook'] === $sscribe_hook
+				&& $sscribe_filter['callback'] === $sscribe_callback
+				&& (int) $sscribe_filter['priority'] === (int) $sscribe_priority
+			) {
+				$sscribe_removed = true;
+				continue;
+			}
+			$sscribe_remaining[] = $sscribe_filter;
+		}
+		$sscribe_test_filters = $sscribe_remaining;
+
+		return $sscribe_removed;
+	}
+}
+
 if ( ! function_exists( 'apply_filters' ) ) {
 	function apply_filters( $hook_name, $value ) {
 		global $sscribe_test_filters;

@@ -61,7 +61,7 @@ class SScribe_Diagnostics {
 	public function get_support_info(): array {
 		$upload_dir    = wp_upload_dir();
 		$export_dir    = trailingslashit( $upload_dir['basedir'] ) . 'sscribe-exports';
-		$log_dir       = trailingslashit( $upload_dir['basedir'] ) . 'sscribe-logs';
+		$log_dir       = trailingslashit( $upload_dir['basedir'] ) . 'sscribe-exports/logs';
 		$debug_enabled = SSCRIBE_DEBUG;
 
 		$container    = SScribe_Container::instance();
@@ -222,7 +222,7 @@ class SScribe_Diagnostics {
 					? str_replace( trailingslashit( ABSPATH ), '[ABSPATH]/', $upload_dir['basedir'] )
 					: basename( $upload_dir['basedir'] ),
 				'export_dir'  => '[uploads]/sscribe-exports',
-				'log_dir'     => '[uploads]/sscribe-logs',
+				'log_dir'     => '[uploads]/sscribe-exports/logs',
 				'writable'    => wp_is_writable( $export_dir ) ? __( 'Yes', 'sscribe-export-site-pages' ) : __( 'No', 'sscribe-export-site-pages' ),
 			),
 		);

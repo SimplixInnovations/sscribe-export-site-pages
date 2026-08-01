@@ -183,13 +183,16 @@ class SScribe_Zip_Handler {
 		$zip        = new ZipArchive();
 		$zip_opened = false;
 
-		$tmp_zip          = wp_tempnam( 'sscribe-export-' );
-		$assembly_failed  = false;
-		if ( false === $tmp_zip ) {
-			$this->logger->error( 'Failed to create temp file for ZIP' );
-			$this->delete_directory( $source_dir );
-			return false;
-		}
+		// Staging ZIP lives INSIDE the export directory so the final
+		// move stays on a single filesystem — cross-directory renames
+		// can silently drop the file on Windows (rename returns true
+		// but the destination is empty) and the default-deny posture
+		// rejects writes to sys_get_temp_dir() anyway. A `.tmp` suffix
+		// keeps it out of the cleanup glob + download list until it is
+		// atomically renamed to the final basename in the same dir.
+		$random_suffix   = bin2hex( random_bytes( 6 ) );
+		$tmp_zip         = $this->export_dir . '/.tmp-sscribe-' . $random_suffix . '.zip';
+		$assembly_failed = false;
 		try {
 			if ( $zip->open( $tmp_zip, ZipArchive::CREATE | ZipArchive::OVERWRITE ) !== true ) {
 				$this->logger->error( 'Failed to create ZIP file', array( 'zip_path' => $zip_path ) );
@@ -295,20 +298,23 @@ class SScribe_Zip_Handler {
 			}
 		}
 
-		$zip_finalized = false;
 		if ( file_exists( $tmp_zip ) && filesize( $tmp_zip ) > 0 ) {
-			// phpcs:ignore WordPress.WP.AlternativeFunctions.rename_rename -- Fallback when WP_Filesystem unavailable; zip finalization.
-			if ( @rename( $tmp_zip, $zip_path ) ) {
-				$zip_finalized = true;
-			} else {
-				$this->logger->warning(
-					'Failed to move temp ZIP to final location : serving from temp path',
+			// Both staging and final paths live in $this->export_dir, so
+			// the rename stays on one filesystem — no cross-drive move,
+			// no Windows drop. Clean up the staging file on rename failure
+			// rather than serving a `.tmp` URL.
+			// phpcs:ignore WordPress.WP.AlternativeFunctions.rename_rename -- WP_Filesystem unavailable; zip finalization.
+			if ( ! @rename( $tmp_zip, $zip_path ) ) {
+				$this->logger->error(
+					'Failed to move staging ZIP to final location : zip discarded',
 					array(
 						'temp_zip'  => $tmp_zip,
 						'final_zip' => $zip_path,
 					)
 				);
-				$zip_path = $tmp_zip;
+				wp_delete_file( $tmp_zip );
+				$this->delete_directory( $source_dir );
+				return false;
 			}
 		} elseif ( file_exists( $tmp_zip ) ) {
 			wp_delete_file( $tmp_zip );

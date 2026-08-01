@@ -587,9 +587,12 @@ final class SScribe_Exporter {
 				static function (): void {
 					$error = error_get_last();
 					if ( $error && E_ERROR === $error['type'] ) {
-						$temp_patterns = array(
-							sys_get_temp_dir() . '/phpword_*.tmp',
-							sys_get_temp_dir() . '/PhpWord*',
+						$upload_dir      = function_exists( 'wp_upload_dir' ) ? wp_upload_dir() : array( 'basedir' => sys_get_temp_dir() );
+						$base            = isset( $upload_dir['basedir'] ) ? (string) $upload_dir['basedir'] : sys_get_temp_dir();
+						$phpword_tempdir = trailingslashit( $base ) . 'sscribe-exports/phpword-scratch/';
+						$temp_patterns   = array(
+							$phpword_tempdir . 'phpword_*.tmp',
+							$phpword_tempdir . 'PhpWord*',
 						);
 						foreach ( $temp_patterns as $temp_pattern ) {
 							$temp_files = glob( $temp_pattern );
@@ -648,6 +651,19 @@ final class SScribe_Exporter {
 				\SScribeVendor\PhpOffice\PhpWord\Settings::setZipClass(
 					\SScribeVendor\PhpOffice\PhpWord\Settings::ZIPARCHIVE
 				);
+
+				// Redirect PHPWord's scratch files (phpword_*.tmp, XMLWriter
+				// buffers, image temp extractions) into the SScribe export
+				// dir. Default PHPWord writes to sys_get_temp_dir(), which
+				// sits outside the is_path_safe_for_write() allowlist and
+				// can also fail with a permissions error on hardened hosts.
+				$upload_dir      = function_exists( 'wp_upload_dir' ) ? wp_upload_dir() : array( 'basedir' => sys_get_temp_dir() );
+				$base            = isset( $upload_dir['basedir'] ) ? (string) $upload_dir['basedir'] : sys_get_temp_dir();
+				$phpword_tempdir = trailingslashit( $base ) . 'sscribe-exports/phpword-scratch/';
+				if ( function_exists( 'wp_mkdir_p' ) ) {
+					wp_mkdir_p( $phpword_tempdir );
+				}
+				\SScribeVendor\PhpOffice\PhpWord\Settings::setTempDir( $phpword_tempdir );
 			}
 
 			if ( ! class_exists( '\SScribeVendor\PhpOffice\PhpWord\PhpWord' ) ) {
@@ -933,8 +949,10 @@ final class SScribe_Exporter {
 	 * @return void
 	 */
 	private function cleanup_phpword_temp_files(): void {
-		$temp_pattern = sys_get_temp_dir() . '/phpword_*.tmp';
-		$temp_files   = glob( $temp_pattern );
+		$upload_dir  = function_exists( 'wp_upload_dir' ) ? wp_upload_dir() : array( 'basedir' => sys_get_temp_dir() );
+		$base        = isset( $upload_dir['basedir'] ) ? (string) $upload_dir['basedir'] : sys_get_temp_dir();
+		$temp_dir    = trailingslashit( $base ) . 'sscribe-exports/phpword-scratch/';
+		$temp_files  = glob( $temp_dir . 'phpword_*.tmp' );
 
 		if ( is_array( $temp_files ) ) {
 			foreach ( $temp_files as $temp_file ) {
