@@ -721,7 +721,7 @@ class SScribe_DOCX_Content_Renderer {
 					$effective_width = $cell_width * $colspan;
 				}
 
-				$cell_obj = $table->addCell( $effective_width, $cell_style );
+				$cell_obj = $table->addCell( (int) $effective_width, $cell_style );
 				if ( ! empty( $cell['runs'] ) ) {
 					$text_run = $cell_obj->addTextRun( $this->get_para_style() );
 					$this->render_runs( $text_run, $cell['runs'], false, ! empty( $cell['is_header'] ) );
@@ -755,7 +755,7 @@ class SScribe_DOCX_Content_Renderer {
 		);
 
 		$table->addRow();
-		$cell = $table->addCell( Converter::inchToTwip( 5 ), array( 'bgColor' => $this->colors['light_bg'] ) );
+		$cell = $table->addCell( (int) Converter::inchToTwip( 5 ), array( 'bgColor' => $this->colors['light_bg'] ) );
 
 		$cell->addText(
 			'[ACTION BUTTON] ' . $this->safe_text( ! empty( $element['content'] ) ? $element['content'] : __( 'Click Here', 'sscribe-export-site-pages' ) ),
@@ -956,7 +956,7 @@ class SScribe_DOCX_Content_Renderer {
 				)
 			);
 			$table->addRow();
-			$cell = $table->addCell( Converter::inchToTwip( 5.5 ), array( 'bgColor' => 'F8FAFC' ) );
+			$cell = $table->addCell( (int) Converter::inchToTwip( 5.5 ), array( 'bgColor' => 'F8FAFC' ) );
 			$cell->addText(
 				__( 'IMAGE ASSET SOURCE URL:', 'sscribe-export-site-pages' ),
 				array(
