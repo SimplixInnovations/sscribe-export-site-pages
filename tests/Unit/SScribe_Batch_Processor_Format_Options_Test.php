@@ -25,22 +25,23 @@ class SScribe_Batch_Processor_Format_Options_Test extends TestCase {
 	}
 
 	/**
-	 * Plain scalar values must be cast to strings (the storage contract).
+	 * Plain scalar values must be sanitized via sanitize_text_field().
+	 * Numeric inputs must coerce to their string form without erroring.
 	 */
-	public function test_parse_format_options_coerces_scalars_to_strings(): void {
+	public function test_parse_format_options_sanitizes_scalar_values(): void {
 		$result = \SScribe_Batch_Processor::parse_format_options(
 			array(
-				'page_size'      => 'A4',
-				'include_images' => '1',
-				'orientation'    => 0, // numeric must coerce, not error.
+				'sscribe_pdf_page_size'        => 'A4',
+				'sscribe_pdf_include_images'   => '1',
+				'sscribe_pdf_include_page_numbers' => 1,
 			)
 		);
 
 		$this->assertSame(
 			array(
-				'page_size'      => 'A4',
-				'include_images' => '1',
-				'orientation'    => '0',
+				'sscribe_pdf_page_size'        => 'A4',
+				'sscribe_pdf_include_images'   => '1',
+				'sscribe_pdf_include_page_numbers' => '1',
 			),
 			$result
 		);
@@ -49,55 +50,94 @@ class SScribe_Batch_Processor_Format_Options_Test extends TestCase {
 	/**
 	 * Keys must be sanitized via sanitize_key() — uppercase, spaces, and
 	 * unsafe characters must be normalized; empty keys must be dropped.
+	 * Keys not on the FORMAT_OPTION_KEYS allowlist are also dropped.
 	 */
-	public function test_parse_format_options_sanitizes_keys(): void {
+	public function test_parse_format_options_sanitizes_and_allowlists_keys(): void {
 		$result = \SScribe_Batch_Processor::parse_format_options(
 			array(
-				'Page Size'     => 'A4',
-				'evil/key;'     => 'x',
-				''              => 'dropped',
-				'  spaced key' => 'y',
+				'SSCRIBE_PDF_PAGE_SIZE' => 'A4',
+				'evil/key;'             => 'x',
+				''                      => 'dropped',
+				'  spaced key'         => 'y',
+				'unknown_random_key'    => 'dropped-by-allowlist',
 			)
 		);
 
 		// sanitize_key() lowercases + strips anything not [a-z0-9_-].
-		$this->assertArrayHasKey( 'pagesize', $result );
-		$this->assertArrayHasKey( 'evilkey', $result );
+		// 'SSCRIBE_PDF_PAGE_SIZE' normalizes to 'sscribe_pdf_page_size' (on allowlist).
+		$this->assertArrayHasKey( 'sscribe_pdf_page_size', $result );
+		// 'evil/key;' normalizes to 'evilkey' (NOT on allowlist, dropped).
+		$this->assertArrayNotHasKey( 'evilkey', $result );
+		// Empty key dropped.
 		$this->assertArrayNotHasKey( '', $result );
-		$this->assertArrayHasKey( 'spacedkey', $result );
-		$this->assertArrayNotHasKey( '  spaced key', $result );
+		// '  spaced key' normalizes to 'spacedkey' (NOT on allowlist, dropped).
+		$this->assertArrayNotHasKey( 'spacedkey', $result );
+		// 'unknown_random_key' is on no allowlist, dropped.
+		$this->assertArrayNotHasKey( 'unknown_random_key', $result );
 	}
 
 	/**
-	 * Array values must have every element coerced to string; nested
-	 * arrays must flatten to string('') for non-scalar children to keep
-	 * the storage shape predictable.
+	 * Array values must have every element sanitized via
+	 * sanitize_text_field(); nested arrays must flatten to string('')
+	 * for non-scalar children to keep the storage shape predictable.
+	 * Keys must be on the FORMAT_OPTION_KEYS allowlist.
 	 */
 	public function test_parse_format_options_handles_array_values(): void {
 		$result = \SScribe_Batch_Processor::parse_format_options(
 			array(
-				'items'   => array( 'a', 'b', 1, 0, '1' ),
-				'nested'  => array( array( 'deep' => 'x' ) ),
-				'objects' => array( new \stdClass() ),
+				// sscribe_docx_colors is a comma-separated colour list,
+				// passed as an array from the admin UI.
+				'sscribe_docx_colors'     => array( 'red', 'blue', '#FF0000' ),
+				// sscribe_docx_section_settings is a nested-array option
+				// where each leaf should be sanitized or collapsed.
+				'sscribe_docx_section_settings' => array(
+					array( 'left' => '100pt' ),
+					'normal',
+				),
 			)
 		);
 
-		$this->assertSame( array( 'a', 'b', '1', '0', '1' ), $result['items'] );
+		$this->assertSame(
+			array( 'red', 'blue', '#FF0000' ),
+			$result['sscribe_docx_colors']
+		);
 		// Non-scalar nested → string('') so the structure stays flat.
-		$this->assertSame( array( '' ), $result['nested'] );
-		$this->assertSame( array( '' ), $result['objects'] );
+		$this->assertSame(
+			array( '', 'normal' ),
+			$result['sscribe_docx_section_settings']
+		);
 	}
 
 	/**
 	 * Top-level object values must be coerced to string('') — never
-	 * serialized or stored as-is.
+	 * serialized or stored as-is. Keys must be on the allowlist.
 	 */
 	public function test_parse_format_options_rejects_object_values(): void {
 		$result = \SScribe_Batch_Processor::parse_format_options(
-			array( 'bad' => new \stdClass() )
+			array( 'sscribe_pdf_page_size' => new \stdClass() )
 		);
 
-		$this->assertSame( '', $result['bad'] );
+		$this->assertSame( '', $result['sscribe_pdf_page_size'] );
+	}
+
+	/**
+	 * Keys outside the FORMAT_OPTION_KEYS allowlist must be silently
+	 * dropped, even if they sanitize_key-normalize to a valid shape.
+	 * This blocks attacker-controlled keys from reaching filters or
+	 * exporters that validate against an unrelated allowlist.
+	 */
+	public function test_parse_format_options_drops_unknown_keys(): void {
+		$result = \SScribe_Batch_Processor::parse_format_options(
+			array(
+				'sscribe_pdf_page_size' => 'A4',
+				'unknown_xyz'           => 'dropped',
+				'inject_<script>'        => 'dropped',
+			)
+		);
+
+		$this->assertArrayHasKey( 'sscribe_pdf_page_size', $result );
+		$this->assertArrayNotHasKey( 'unknown_xyz', $result );
+		$this->assertArrayNotHasKey( 'inject_script', $result );
 	}
 
 	/**

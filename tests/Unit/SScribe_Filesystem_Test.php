@@ -14,11 +14,40 @@ use PHPUnit\Framework\TestCase;
 class SScribe_Filesystem_Test extends TestCase {
 
 	private string $test_dir;
+	private string $export_dir;
 
 	protected function setUp(): void {
 		parent::setUp();
 		$this->test_dir = sys_get_temp_dir() . '/sscribe-filesystem-test-' . uniqid();
 		mkdir( $this->test_dir, 0755, true );
+
+		// All write/copy tests must target a path inside the SScribe
+		// export directory, per the WordPress.org Plugin Directory
+		// "no writes outside plugin folder" rule. The bootstrap's
+		// wp_upload_dir() returns a fresh temp dir per process; create
+		// the export dir on demand so the suite stays self-contained.
+		$upload_dir   = wp_upload_dir();
+		$this->export_dir = trailingslashit( $upload_dir['basedir'] ) . 'sscribe-exports';
+		if ( ! is_dir( $this->export_dir ) ) {
+			mkdir( $this->export_dir, 0755, true );
+		} else {
+
+			// Wipe stale files left behind by previous tests so a
+			// copy()/put_contents() with overwrite=false does not
+			// collide with leftover state from earlier runs.
+			$leftover = glob( $this->export_dir . '/{,.}*', GLOB_BRACE );
+			if ( is_array( $leftover ) ) {
+				foreach ( $leftover as $candidate ) {
+					$name = basename( $candidate );
+					if ( '.' === $name || '..' === $name ) {
+						continue;
+					}
+					if ( is_file( $candidate ) ) {
+						@unlink( $candidate );
+					}
+				}
+			}
+		}
 	}
 
 	protected function tearDown(): void {
@@ -45,9 +74,17 @@ class SScribe_Filesystem_Test extends TestCase {
 		rmdir( $dir );
 	}
 
+	/**
+	 * Build a path inside the SScribe export dir (where writes are
+	 * permitted) instead of sys_get_temp_dir() (where they are not).
+	 */
+	private function in_export_dir( string $name ): string {
+		return $this->export_dir . '/' . ltrim( $name, '/' );
+	}
+
 	public function test_put_contents_creates_file(): void {
 		$fs     = new \SScribe_Filesystem();
-		$file   = $this->test_dir . '/test.txt';
+		$file   = $this->in_export_dir( 'test.txt' );
 		$result = $fs->put_contents( $file, 'Hello World' );
 
 		$this->assertTrue( $result );
@@ -111,8 +148,8 @@ class SScribe_Filesystem_Test extends TestCase {
 
 	public function test_copy_copies_file(): void {
 		$fs       = new \SScribe_Filesystem();
-		$source   = $this->test_dir . '/source.txt';
-		$dest     = $this->test_dir . '/dest.txt';
+		$source   = $this->in_export_dir( 'source.txt' );
+		$dest     = $this->in_export_dir( 'dest.txt' );
 		file_put_contents( $source, 'Copy me' );
 
 		$result = $fs->copy( $source, $dest );
@@ -180,18 +217,43 @@ class SScribe_Filesystem_Test extends TestCase {
 
 	public function test_put_contents_sanitizes_traversal_in_path(): void {
 		$fs     = new \SScribe_Filesystem();
-		$unsafe = $this->test_dir . '/../../../tmp/evil.txt';
+		// Construct a path INSIDE the export dir, then inject a traversal
+		// attempt that, if it landed unsanitized, would escape to the
+		// system temp dir. After sanitize_path() the ".." segments must
+		// be stripped (the literal text disappears) and the file must
+		// land inside the export dir.
+		$unsafe = $this->in_export_dir( 'subdir/../../../../../tmp/evil.txt' );
 
-		// After sanitization the file should land inside test_dir
-		// (not escape to /tmp). The ".." segments are stripped, leaving
-		// "<test_dir>/tmp/evil.txt".
 		$result = $fs->put_contents( $unsafe, 'content' );
 
 		$this->assertTrue( $result );
-		// File must be created inside test_dir, not in /tmp.
-		$expected = $this->test_dir . '/tmp/evil.txt';
-		$this->assertFileExists( $expected );
+		// sanitise_path() drops '..' segments by skipping, leaving
+		// "<export_dir>/subdir/tmp/evil.txt".
+		$inside = $this->export_dir . '/subdir/tmp/evil.txt';
+		$this->assertFileExists( $inside );
 		$this->assertFileDoesNotExist( '/tmp/evil.txt' );
+	}
+
+	public function test_put_contents_rejects_path_outside_export_dir(): void {
+		$fs   = new \SScribe_Filesystem();
+		$file = $this->test_dir . '/should-not-write.txt';
+
+		$result = $fs->put_contents( $file, 'should not land' );
+
+		$this->assertFalse( $result, 'Expected put_contents to REJECT writes outside the export dir' );
+		$this->assertFileDoesNotExist( $file );
+	}
+
+	public function test_copy_rejects_destination_outside_export_dir(): void {
+		$fs     = new \SScribe_Filesystem();
+		$source = $this->in_export_dir( 'copy-source.txt' );
+		$dest   = $this->test_dir . '/copy-dest.txt';
+		file_put_contents( $source, 'do not copy me' );
+
+		$result = $fs->copy( $source, $dest );
+
+		$this->assertFalse( $result, 'Expected copy() to REJECT destinations outside the export dir' );
+		$this->assertFileDoesNotExist( $dest );
 	}
 
 	public function test_sanitize_path_preserves_windows_drive_letter(): void {
@@ -235,7 +297,7 @@ class SScribe_Filesystem_Test extends TestCase {
 		// export dir (computed from wp_upload_dir()). The symlink must
 		// live INSIDE the export dir for the helper to detect the
 		// escape — placing it in an arbitrary test dir would just
-		// produce SSCRIBE_PATH_EXTERNAL.
+		// produce SSCRIBE_PATH_REJECT.
 		$upload_dir  = wp_upload_dir();
 		$export_dir  = trailingslashit( $upload_dir['basedir'] ) . 'sscribe-exports';
 		if ( ! is_dir( $export_dir ) ) {
@@ -332,18 +394,23 @@ class SScribe_Filesystem_Test extends TestCase {
 	}
 
 	/**
-	 * is_path_safe_for_write() should return EXTERNAL for files that
-	 * are lexically *outside* the SScribe export dir — e.g. WP temp —
-	 * because the caller is performing a legitimate external write.
+	 * is_path_safe_for_write() must REJECT any file whose literal
+	 * path is outside the SScribe export dir, even if no symlink is
+	 * involved. Per the WordPress.org Plugin Directory guidelines,
+	 * plugins must write only to the database or to a plugin-owned
+	 * folder under wp-content/uploads/. The export directory
+	 * (wp-content/uploads/sscribe-exports/) is the only allowed
+	 * filesystem destination; WP temp, system temp, and any other
+	 * path are default-denied.
 	 */
-	public function test_is_path_safe_for_write_allows_external_writes(): void {
+	public function test_is_path_safe_for_write_rejects_external_writes(): void {
 		$fs = new \SScribe_Filesystem();
 
 		// sys_get_temp_dir() is outside the SScribe export dir.
 		$temp = sys_get_temp_dir() . '/sscribe-external-test.txt';
 		$safe = $fs->is_path_safe_for_write( $temp );
 
-		$this->assertEquals( \SScribe_Filesystem::SSCRIBE_PATH_EXTERNAL, $safe,
-			'Expected WP temp dir writes to be allowed (EXTERNAL)' );
+		$this->assertEquals( \SScribe_Filesystem::SSCRIBE_PATH_REJECT, $safe,
+			'Expected WP temp dir writes to be REJECTed (default-deny outside export dir)' );
 	}
 }

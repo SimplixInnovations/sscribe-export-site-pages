@@ -50,16 +50,16 @@ class SScribe_Filesystem {
 
 	/**
 	 * Sentinel: the path resolves outside the SScribe export directory
-	 * via a symlink : refuse the write.
+	 * (whether via a symlink or not) : refuse the write.
+	 *
+	 * Per the WordPress.org Plugin Directory guidelines, plugins must
+	 * write only to the database or to a plugin-owned folder under
+	 * `wp-content/uploads/`. The SScribe export directory under
+	 * `wp-content/uploads/sscribe-exports/` is the only allowed
+	 * filesystem destination. All other paths are rejected by default,
+	 * even if the literal text does not start with the export root.
 	 */
 	public const SSCRIBE_PATH_REJECT = 'reject';
-
-	/**
-	 * Sentinel: the path is outside the SScribe export directory but
-	 * is not a symlink (e.g. WP temp dir) : allow, since the caller
-	 * is performing a legitimate write that does not need protection.
-	 */
-	public const SSCRIBE_PATH_EXTERNAL = 'external';
 
 	/**
 	 * Constructor.
@@ -206,7 +206,7 @@ class SScribe_Filesystem {
 
 		$safety = $this->is_path_safe_for_write( $file );
 		if ( self::SSCRIBE_PATH_REJECT === $safety ) {
-			self::$last_error = 'Refusing to write outside SScribe export directory (symlink attack suspected)';
+			self::$last_error = 'Refusing to write outside SScribe export directory';
 			$this->logger->warning(
 				'Refused write : path resolves outside SScribe export directory',
 				array(
@@ -633,25 +633,25 @@ class SScribe_Filesystem {
 	}
 
 	/**
-	 * Decide whether a write to `$file` is safe from a symlink-attack
-	 * perspective.
+	 * Decide whether a write to `$file` is safe.
 	 *
-	 * The check resolves the parent directory of `$file` with
-	 * realpath() and compares it to the SScribe export directory
-	 * (computed lazily via wp_upload_dir()). Three outcomes:
+	 * The check enforces the WordPress.org Plugin Directory rule that
+	 * plugins may only write to their own plugin-owned folder under
+	 * `wp-content/uploads/` (or to the database via the Settings API).
+	 * For SScribe, that destination is exactly
+	 * `wp-content/uploads/sscribe-exports/` and nothing else.
 	 *
-	 *   - {@see self::SSCRIBE_PATH_ALLOWED}: the file's parent resolves
-	 *     to a directory that is *inside* the SScribe export root.
-	 *     The write is safe.
-	 *   - {@see self::SSCRIBE_PATH_REJECT}: the file's parent is
-	 *     *outside* the export root, and the literal path of the
-	 *     file looks like it should be inside (i.e. the file was
-	 *     planted under the export root, but a symlink in the path
-	 *     redirects the write). Refuse the write.
-	 *   - {@see self::SSCRIBE_PATH_EXTERNAL}: the file's parent is
-	 *     outside the export root but the literal path is also
-	 *     outside (e.g. WP temp dir). Allow the write : the caller
-	 *     is performing a legitimate external write.
+	 * Two outcomes:
+	 *
+	 *   - {@see self::SSCRIBE_PATH_ALLOWED}: the literal target path
+	 *     is under the SScribe export directory AND the parent
+	 *     directory (if it exists) resolves back inside the export
+	 *     root via realpath() (defends against symlink planting).
+	 *   - {@see self::SSCRIBE_PATH_REJECT}: anything else, including
+	 *     paths whose literal text is already outside the export
+	 *     directory, paths where the parent does not exist, and
+	 *     paths where `wp_upload_dir()` is unavailable. Default-deny
+	 *     protects against misuse even from future callers.
 	 *
 	 * @param string $file Target file path.
 	 * @return string One of the SSCRIBE_PATH_* sentinels.
@@ -660,7 +660,7 @@ class SScribe_Filesystem {
 		$allowed_root = $this->get_export_dir();
 		if ( '' === $allowed_root ) {
 
-			return self::SSCRIBE_PATH_EXTERNAL;
+			return self::SSCRIBE_PATH_REJECT;
 		}
 
 		$file_abs     = self::normalize_path( $file );
@@ -669,7 +669,7 @@ class SScribe_Filesystem {
 
 		if ( ! $literal_in_export ) {
 
-			return self::SSCRIBE_PATH_EXTERNAL;
+			return self::SSCRIBE_PATH_REJECT;
 		}
 
 		$parent = dirname( $file );
