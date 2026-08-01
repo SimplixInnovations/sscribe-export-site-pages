@@ -565,6 +565,20 @@ if ( is_dir( $vendor_dir ) ) {
 		'functions-dev.php',
 		/* paragonie/random_compat: phar-builder script */
 		'build_phar.php',
+		/* setasign/fpdi: ad-hoc manual test scripts that read files from
+		 * outside the package directory; not autoloaded, never referenced
+		 * by the runtime PDFs we generate. */
+		'local-tests',
+		/* setasign/fpdi: scratch experiments checked into the repo next to
+		 * `src/` — not part of the library, not autoloaded. */
+		'scratches',
+		/* myclabs/deep-copy: generated doc/ images and graph PNGs that
+		 * sit next to `src/`; not autoloaded, only used by the package's
+		 * own README on GitHub. */
+		'doc',
+		/* myclabs/deep-copy: PHP test fixtures that deep-copy exercises
+		 * under tests/ — never autoloaded by the runtime. */
+		'fixtures',
 	);
 
 	$pruned_count = 0;
