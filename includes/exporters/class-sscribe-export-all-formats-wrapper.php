@@ -42,8 +42,8 @@ class SScribe_Export_All_Formats_Wrapper {
 	 * @param array      $format_options Optional per-format options map piped
 	 *                                   through `sscribe_export_options_{$format}`
 	 *                                   then forwarded via each exporter's
-	 *                                   apply_format_options() hook — same contract
-	 *                                   as SScribe_Batch_Processor::dispatch_formats().
+	 *                                   apply_format_options() hook (same contract
+	 *                                   as SScribe_Batch_Processor::dispatch_formats()).
 	 *                                   Pass an empty array (the default) to keep
 	 *                                   the historical "no options" behaviour.
 	 * @return array<string, array{success: bool, result: SScribe_Result, error: ?string}>
