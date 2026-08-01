@@ -1,7 +1,7 @@
 <?php
 /**
  * Plugin Name:       SScribe Export Site Pages
- * Plugin URI:        https://simplixi.com/sscribe
+ * Plugin URI:        https://simplixi.com
  * Description:       Export WordPress pages and posts to professional DOCX, PDF, HTML, or Markdown files with multilingual RTL support, SEO metadata, and secure ZIP download.
  * Version:           1.1.3
  * Requires at least: 6.0

@@ -535,10 +535,68 @@ final class SScribe_Batch_Processor {
 	 * @param mixed $raw Raw $_POST['format_options'] value.
 	 * @return array Sanitized options (always an array, possibly empty).
 	 */
+	/**
+	 * Allowlist of format_options keys accepted from the AJAX endpoint.
+	 *
+	 * Every key listed here is a known per-format option consumed by
+	 * one of the SScribe exporters. Keys outside this list are
+	 * silently dropped from incoming requests so an attacker cannot
+	 * smuggle arbitrary data into the export pipeline, where it
+	 * would later reach filters, renderers, or filesystem paths.
+	 *
+	 * Third-party exporters can extend this list via the
+	 * `sscribe_format_option_keys` filter; new keys added there MUST
+	 * also be `sanitize_key()`-compatible (lowercase ASCII, digits,
+	 * underscore, hyphen) and MUST be validated against an allowlist
+	 * inside the consumer exporter.
+	 *
+	 * @var array<int, string>
+	 */
+	public const FORMAT_OPTION_KEYS = array(
+		'sscribe_docx_append_image_url',
+		'sscribe_docx_colors',
+		'sscribe_docx_include_images',
+		'sscribe_docx_include_toc',
+		'sscribe_docx_section_settings',
+		'sscribe_docx_template',
+		'sscribe_html_export_show_seo',
+		'sscribe_html_include_css',
+		'sscribe_html_responsive_images',
+		'sscribe_pdf_include_images',
+		'sscribe_pdf_include_page_numbers',
+		'sscribe_pdf_max_content_images',
+		'sscribe_pdf_max_html_size',
+		'sscribe_pdf_page_size',
+	);
+
+	/**
+	 * Parse and sanitize a format_options map from untrusted input.
+	 *
+	 * Each key is normalized via sanitize_key(). Each key MUST be on
+	 * the {@see self::FORMAT_OPTION_KEYS} allowlist (extended via the
+	 * `sscribe_format_option_keys` filter) — keys outside the allowlist
+	 * are dropped to prevent injection into exporter pipelines.
+	 *
+	 * Each scalar value is sanitized via sanitize_text_field(); array
+	 * values have every element sanitized recursively. Object and
+	 * other non-scalar inputs collapse to empty strings so the
+	 * storage shape stays predictable.
+	 *
+	 * @param mixed $raw Untrusted input from $_POST['format_options'].
+	 * @return array<string, string|array<int, string>> Sanitized map.
+	 */
 	public static function parse_format_options( $raw ): array {
 		if ( ! is_array( $raw ) ) {
 			return array();
 		}
+
+		/**
+		 * Filter the allowlist of format_options keys accepted from
+		 * the AJAX endpoint.
+		 *
+		 * @param array<int, string> $allowed_keys Default allowlist.
+		 */
+		$allowed_keys = apply_filters( 'sscribe_format_option_keys', self::FORMAT_OPTION_KEYS );
 
 		$cleaned = array();
 		foreach ( $raw as $sscribe_opt_name => $sscribe_opt_value ) {
@@ -546,15 +604,23 @@ final class SScribe_Batch_Processor {
 			if ( '' === $sscribe_opt_name ) {
 				continue;
 			}
+			if ( ! in_array( $sscribe_opt_name, $allowed_keys, true ) ) {
+				continue;
+			}
 			if ( is_array( $sscribe_opt_value ) ) {
 				$sscribe_opt_value = array_map(
 					static function ( $sscribe_v ): string {
-						return (string) ( is_scalar( $sscribe_v ) ? $sscribe_v : '' );
+						if ( ! is_scalar( $sscribe_v ) ) {
+							return '';
+						}
+						return sanitize_text_field( (string) $sscribe_v );
 					},
 					$sscribe_opt_value
 				);
+			} elseif ( ! is_scalar( $sscribe_opt_value ) ) {
+				$sscribe_opt_value = '';
 			} else {
-				$sscribe_opt_value = (string) ( is_scalar( $sscribe_opt_value ) ? $sscribe_opt_value : '' );
+				$sscribe_opt_value = sanitize_text_field( (string) $sscribe_opt_value );
 			}
 			$cleaned[ $sscribe_opt_name ] = $sscribe_opt_value;
 		}
@@ -931,7 +997,7 @@ final class SScribe_Batch_Processor {
 
 		$post_type        = isset( $_POST['post_type'] ) ? sanitize_text_field( wp_unslash( $_POST['post_type'] ) ) : 'page';
 
-		// phpcs:ignore WordPress.Security.ValidatedSanitizedInput.InputNotSanitized -- parse_format_options() sanitizes per-key (sanitize_key) and per-value (string cast).
+		// phpcs:ignore WordPress.Security.ValidatedSanitizedInput.InputNotSanitized -- parse_format_options() sanitizes per-key (sanitize_key) and per-value (sanitize_text_field), and enforces the FORMAT_OPTION_KEYS allowlist.
 		$format_options = self::parse_format_options( wp_unslash( $_POST['format_options'] ?? array() ) );
 		$valid_post_types = array_values( get_post_types( array( 'public' => true ) ) );
 		$valid_post_types = array_merge( $valid_post_types, array( 'any' ) );

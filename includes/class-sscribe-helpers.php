@@ -185,11 +185,13 @@ class SScribe_Helpers {
 			}
 		}
 
-		$remote_addr = filter_input( INPUT_SERVER, 'REMOTE_ADDR', FILTER_DEFAULT );
-		if ( false === $remote_addr || null === $remote_addr ) {
+		$remote_addr = isset( $_SERVER['REMOTE_ADDR'] ) // phpcs:ignore WordPress.Security.ValidatedSanitizedInput.InputNotSanitized -- Validated as IP below.
+			? sanitize_text_field( wp_unslash( (string) $_SERVER['REMOTE_ADDR'] ) )
+			: '';
+		if ( '' === $remote_addr ) {
 			return '0.0.0.0';
 		}
-		$ip = filter_var( sanitize_text_field( wp_unslash( (string) $remote_addr ) ), FILTER_VALIDATE_IP );
+		$ip = filter_var( $remote_addr, FILTER_VALIDATE_IP );
 
 		if ( empty( $ip ) ) {
 			return '0.0.0.0';

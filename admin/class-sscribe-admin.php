@@ -321,14 +321,15 @@ class SScribe_Admin {
 	}
 
 	/**
-	 * Print localized JS data with CSP nonce attribute.
+	 * Print localized JS data via wp_add_inline_script() instead of
+	 * echoing a raw <script> tag.
 	 *
-	 * WordPress's wp_localize_script() outputs inline <script> tags without a
-	 * CSP nonce attribute because the output goes through print_extra_script(),
-	 * which hardcodes the tag. print_localized_data() replaces that approach by
-	 * printing the data manually with the per-request CSP nonce.
-	 *
-	 * Hooks at priority 0 so it fires before wp_print_footer_scripts (priority 20).
+	 * WordPress's wp_localize_script() outputs inline <script> tags
+	 * without a CSP nonce attribute. wp_add_inline_script() is the
+	 * recommended path because its output flows through
+	 * wp_inline_script_attributes, which the site can filter to add a
+	 * CSP nonce for free. Hooks at priority 0 so it fires before
+	 * wp_print_footer_scripts (priority 20).
 	 */
 	public function print_localized_data(): void {
 		$screen = get_current_screen();
@@ -336,14 +337,9 @@ class SScribe_Admin {
 			return;
 		}
 
-		$nonce = $this->get_csp_nonce();
-		if ( empty( $nonce ) ) {
-			return;
-		}
-
 		$body = 'var sscribe_data = ' . wp_json_encode( $this->build_localized_data(), JSON_HEX_TAG | JSON_HEX_AMP | JSON_HEX_QUOT | JSON_HEX_APOS ) . ';';
 
-		echo '<script nonce="' . esc_attr( $nonce ) . '">' . $body . '</script>'; // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- JSON-encoded, constant-string contents.
+		wp_add_inline_script( 'sscribe-admin', $body, 'before' );
 	}
 
 	/**
