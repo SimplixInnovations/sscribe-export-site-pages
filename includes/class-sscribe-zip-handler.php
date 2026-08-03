@@ -190,10 +190,15 @@ class SScribe_Zip_Handler {
 		// rejects writes to sys_get_temp_dir() anyway. A `.tmp` suffix
 		// keeps it out of the cleanup glob + download list until it is
 		// atomically renamed to the final basename in the same dir.
-		$random_suffix   = bin2hex( random_bytes( 6 ) );
-		$tmp_zip         = $this->export_dir . '/.tmp-sscribe-' . $random_suffix . '.zip';
+		$random_suffix   = '';
+		$tmp_zip         = '';
 		$assembly_failed = false;
 		try {
+			// random_bytes() can throw on entropy exhaustion (rare, but
+			// documented). Generating the suffix inside the try keeps the
+			// cleanup path reachable on failure.
+			$random_suffix = bin2hex( random_bytes( 6 ) );
+			$tmp_zip       = $this->export_dir . '/.tmp-sscribe-' . $random_suffix . '.zip';
 			if ( $zip->open( $tmp_zip, ZipArchive::CREATE | ZipArchive::OVERWRITE ) !== true ) {
 				$this->logger->error( 'Failed to create ZIP file', array( 'zip_path' => $zip_path ) );
 				$this->delete_directory( $source_dir );

@@ -76,4 +76,55 @@ class SScribe_Page_Collector_Test extends TestCase
         $result = $collector->validate_post_status('all');
         $this->assertEquals('any', $result);
     }
+
+    /**
+     * Regression test: when the chunked query uses `no_found_rows => true`,
+     * `$query->max_num_pages` is 0. The previous loop terminated on
+     * `$page <= $query->max_num_pages`, which exited after the first chunk
+     * and silently dropped every page past the first 500. The loop must
+     * instead drive its exit on the actual post count returned. This test
+     * exercises 3 chunks of 100 IDs and asserts every ID is yielded.
+     */
+    public function test_get_page_ids_chunked_yields_all_pages_without_truncation(): void
+    {
+        $GLOBALS['sscribe_test_wp_query_chunks'] = array(
+            range(1, 100),
+            range(101, 200),
+            range(201, 250),
+        );
+        $GLOBALS['sscribe_test_wp_query_calls'] = 0;
+
+        $collector = new SScribe_Page_Collector();
+
+        $all_ids = array();
+        foreach ($collector->get_page_ids_chunked('en', 'publish', 'page', 100) as $chunk) {
+            $all_ids = array_merge($all_ids, $chunk);
+        }
+
+        $this->assertCount(250, $all_ids, 'All 250 IDs across 3 chunks must be yielded.');
+        $this->assertEquals(range(1, 250), $all_ids, 'IDs must be returned in order.');
+
+        unset($GLOBALS['sscribe_test_wp_query_chunks'], $GLOBALS['sscribe_test_wp_query_calls']);
+    }
+
+    /**
+     * Companion to the above: an empty result set must terminate cleanly
+     * (no infinite loop) with zero IDs yielded.
+     */
+    public function test_get_page_ids_chunked_returns_empty_when_no_chunks(): void
+    {
+        $GLOBALS['sscribe_test_wp_query_chunks'] = array();
+        $GLOBALS['sscribe_test_wp_query_calls'] = 0;
+
+        $collector = new SScribe_Page_Collector();
+
+        $all_ids = array();
+        foreach ($collector->get_page_ids_chunked('en', 'publish', 'page', 100) as $chunk) {
+            $all_ids = array_merge($all_ids, $chunk);
+        }
+
+        $this->assertSame(array(), $all_ids);
+
+        unset($GLOBALS['sscribe_test_wp_query_chunks'], $GLOBALS['sscribe_test_wp_query_calls']);
+    }
 }

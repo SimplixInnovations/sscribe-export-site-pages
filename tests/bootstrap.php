@@ -698,9 +698,31 @@ if ( ! class_exists( 'WP_Query' ) ) {
 	class WP_Query {
 		public array $posts = array();
 		public int $found_posts = 0;
+		public int $max_num_pages = 0;
 
 		public function __construct( $query = array() ) {
-			
+			// Test-time stub. If a test sets
+			// $GLOBALS['sscribe_test_wp_query_chunks'] to an array of
+			// integer arrays, the stub yields each chunk in order on
+			// successive constructions (i.e. successive paged calls).
+			// Anything else: empty result set.
+			$chunks = isset( $GLOBALS['sscribe_test_wp_query_chunks'] ) && is_array( $GLOBALS['sscribe_test_wp_query_chunks'] )
+				? $GLOBALS['sscribe_test_wp_query_chunks']
+				: array();
+
+			$call_index = isset( $GLOBALS['sscribe_test_wp_query_calls'] ) ? (int) $GLOBALS['sscribe_test_wp_query_calls'] : 0;
+			if ( ! isset( $GLOBALS['sscribe_test_wp_query_calls'] ) ) {
+				$GLOBALS['sscribe_test_wp_query_calls'] = 0;
+			}
+			++$GLOBALS['sscribe_test_wp_query_calls'];
+
+			if ( isset( $chunks[ $call_index ] ) && is_array( $chunks[ $call_index ] ) ) {
+				$this->posts = array_values( array_map( 'intval', $chunks[ $call_index ] ) );
+			} else {
+				$this->posts = array();
+			}
+			$this->found_posts  = count( $this->posts );
+			$this->max_num_pages = count( $this->posts ) > 0 ? 1 : 0;
 		}
 	}
 }
