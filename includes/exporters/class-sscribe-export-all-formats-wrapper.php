@@ -110,7 +110,7 @@ class SScribe_Export_All_Formats_Wrapper {
 			try {
 				$exporter = SScribe_Exporter_Factory::create( $format );
 
-				// Per-format options piping — mirrors the batch processor
+				// Per-format options piping. Mirrors the batch processor
 				// contract so callers using the wrapper get the same
 				// sscribe_export_options_{$format} hook and per-exporter
 				// apply_format_options() plumbing the production path uses.

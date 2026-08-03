@@ -184,7 +184,7 @@ class SScribe_Zip_Handler {
 		$zip_opened = false;
 
 		// Staging ZIP lives INSIDE the export directory so the final
-		// move stays on a single filesystem — cross-directory renames
+		// move stays on a single filesystem. Cross-directory renames
 		// can silently drop the file on Windows (rename returns true
 		// but the destination is empty) and the default-deny posture
 		// rejects writes to sys_get_temp_dir() anyway. A `.tmp` suffix
@@ -300,7 +300,7 @@ class SScribe_Zip_Handler {
 
 		if ( file_exists( $tmp_zip ) && filesize( $tmp_zip ) > 0 ) {
 			// Both staging and final paths live in $this->export_dir, so
-			// the rename stays on one filesystem — no cross-drive move,
+			// the rename stays on one filesystem. No cross-drive move,
 			// no Windows drop. Clean up the staging file on rename failure
 			// rather than serving a `.tmp` URL.
 			// phpcs:ignore WordPress.WP.AlternativeFunctions.rename_rename -- WP_Filesystem unavailable; zip finalization.
