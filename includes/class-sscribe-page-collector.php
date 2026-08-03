@@ -302,6 +302,13 @@ class SScribe_Page_Collector {
 				'posts_per_page' => $chunk_size,
 				'paged'          => $page,
 				'fields'         => 'ids',
+				// Skip the SQL_CALC_FOUND_ROWS pass: chunked iteration
+				// never needs a total count, and the calc on paginated
+				// post queries adds an unindexed scan for zero benefit.
+				// The exporter loop's progress is driven by the chunk
+				// cursor + max_num_pages check below, not by a global row
+				// count.
+				'no_found_rows'  => true,
 				'orderby'        => 'menu_order title',
 				'order'          => 'ASC',
 			);
