@@ -305,9 +305,10 @@ class SScribe_Page_Collector {
 				// Skip the SQL_CALC_FOUND_ROWS pass: chunked iteration
 				// never needs a total count, and the calc on paginated
 				// post queries adds an unindexed scan for zero benefit.
-				// The exporter loop's progress is driven by the chunk
-				// cursor + max_num_pages check below, not by a global row
-				// count.
+				// With no_found_rows enabled, $query->max_num_pages is 0,
+				// so the outer loop drives its exit on the actual post
+				// count returned: if the chunk is shorter than the
+				// requested page size, we reached the end of the result set.
 				'no_found_rows'  => true,
 				'orderby'        => 'menu_order title',
 				'order'          => 'ASC',
@@ -332,12 +333,14 @@ class SScribe_Page_Collector {
 				}
 			}
 
-			if ( ! empty( $query->posts ) ) {
+			$fetched = count( $query->posts );
+
+			if ( $fetched > 0 ) {
 				yield $query->posts;
 			}
 
 			++$page;
-		} while ( $page <= $query->max_num_pages );
+		} while ( $fetched >= $chunk_size );
 	}
 
 	/**

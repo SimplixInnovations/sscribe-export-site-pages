@@ -541,6 +541,24 @@ class SScribe_Filesystem {
 			return false;
 		}
 
+		// Defense-in-depth: the native rename() path does not get the
+		// WP_Filesystem_Base safety checks the upstream branch does. Reject
+		// sources that resolve outside the allowlist so a planted symlink
+		// in a non-export parent directory cannot be moved into the export
+		// area. The destination check above already runs for every path.
+		$source_safety = $this->is_path_safe_for_write( $source );
+		if ( self::SSCRIBE_PATH_REJECT === $source_safety ) {
+			self::$last_error = 'Refusing to move source outside SScribe export directory (symlink attack suspected)';
+			$this->logger->warning(
+				'Refused move : source resolves outside SScribe export directory',
+				array(
+					'source'      => $source,
+					'destination' => $destination,
+				)
+			);
+			return false;
+		}
+
 		return rename( $source, $destination ); // phpcs:ignore WordPress.WP.AlternativeFunctions.rename_rename -- WP_Filesystem fallback for file moving.
 	}
 

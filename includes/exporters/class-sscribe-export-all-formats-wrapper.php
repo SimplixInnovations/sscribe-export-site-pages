@@ -118,6 +118,14 @@ class SScribe_Export_All_Formats_Wrapper {
 				// Markdown exporter's frontmatter / featured_image /
 				// absolute_urls toggles) silently fall back to defaults
 				// instead of honouring the caller's options map.
+				//
+				// The wrapper is intentionally more conservative than the
+				// production batch-processor: when the caller passed an
+				// empty $format_options map we skip BOTH the filter and
+				// apply_format_options(). The batch-processor always calls
+				// apply_format_options() so the exporter can install its
+				// built-in defaults. The wrapper is a preview path, not a
+				// production export, so it does not need that step.
 				if ( ! empty( $format_options ) ) {
 					// phpcs:ignore WordPress.NamingConventions.PrefixAllGlobals.NonPrefixedHooknameFound -- Per-format dynamic hook, mirrors SScribe_Batch_Processor.
 					$format_options_for_format = apply_filters( "sscribe_export_options_{$format}", $format_options, (int) ( $page_data['id'] ?? 0 ), 'wrapper' );

@@ -146,4 +146,32 @@ class SScribe_Batch_Processor_Format_Options_Test extends TestCase {
 	public function test_parse_format_options_handles_empty_array(): void {
 		$this->assertSame( array(), \SScribe_Batch_Processor::parse_format_options( array() ) );
 	}
+
+	/**
+	 * Regression: the Markdown exporter's three admin checkboxes
+	 * (absolute_urls, include_featured_image, include_frontmatter) were
+	 * silently dropped by the FORMAT_OPTION_KEYS allowlist in an earlier
+	 * WP.org review pass. The admin UI sent the keys, the allowlist
+	 * dropped them, and the exporter fell back to defaults — so the
+	 * "Include frontmatter" / "Include featured image" / "Use absolute
+	 * URLs" toggles had no effect on the generated .md output. This test
+	 * pins all three keys on the allowlist so a future refactor that
+	 * drops them will fail CI.
+	 */
+	public function test_parse_format_options_preserves_markdown_keys(): void {
+		$result = \SScribe_Batch_Processor::parse_format_options(
+			array(
+				'sscribe_md_absolute_urls'         => '1',
+				'sscribe_md_include_featured_image' => '1',
+				'sscribe_md_include_frontmatter'   => '0',
+			)
+		);
+
+		$this->assertArrayHasKey( 'sscribe_md_absolute_urls', $result );
+		$this->assertArrayHasKey( 'sscribe_md_include_featured_image', $result );
+		$this->assertArrayHasKey( 'sscribe_md_include_frontmatter', $result );
+		$this->assertSame( '1', $result['sscribe_md_absolute_urls'] );
+		$this->assertSame( '1', $result['sscribe_md_include_featured_image'] );
+		$this->assertSame( '0', $result['sscribe_md_include_frontmatter'] );
+	}
 }

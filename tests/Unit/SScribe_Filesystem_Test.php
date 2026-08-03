@@ -161,10 +161,13 @@ class SScribe_Filesystem_Test extends TestCase {
 
 	public function test_move_renames_file(): void {
 		$fs     = new \SScribe_Filesystem();
-		$source = $this->test_dir . '/move-source.txt';
-		// Move destination must live INSIDE the SScribe export directory
-		// (post-audit #7). Rejecting writes outside that tree is the whole
-		// point of the default-deny posture; the test now mirrors that.
+		// Both source and destination must live INSIDE the SScribe export
+		// directory. The new source-side guard (audit follow-up) rejects
+		// sources resolving outside the allowlist, same as the destination
+		// guard. This mirrors the production call site (zip-handler
+		// staging rename) where the staging file is created inside
+		// $this->export_dir.
+		$source = $this->export_dir . '/move-source.txt';
 		$dest   = $this->export_dir . '/move-dest.txt';
 		file_put_contents( $source, 'Move me' );
 
