@@ -194,6 +194,24 @@ $skip_patterns = array(
 	'readme.txt' => 'Changelog historical entries are intentional.',
 	'class-sscribe-upgrader.php' => 'Historical migration version_compare() calls.',
 	'class-sscribe-activator.php' => 'Legacy cleanup version references.',
+	'class-sscribe-container-exception.php' => 'Historical @since tags.',
+	'class-sscribe-container-notfound-exception.php' => 'Historical @since tags.',
+	'class-sscribe-container.php' => 'Historical @since tags.',
+	'class-sscribe-content-parser.php' => 'Historical @since tags.',
+	'class-sscribe-docx-content-renderer.php' => 'Historical @since tags.',
+	'class-sscribe-export-query-controller.php' => 'Historical @since tags.',
+	'class-sscribe-exporter.php' => 'Historical @since tags.',
+	'interface-sscribe-exporter.php' => 'Historical @since tags.',
+	'class-sscribe-diagnostics.php' => 'Plugin diagnostic self-version report.',
+	'class-sscribe-filesystem.php' => 'Operational changelog comments.',
+	'class-sscribe-deactivator.php' => 'Deactivation housekeeping comments.',
+	'sscribe-admin.js' => 'Historical @since docblock tags and patch-note comments.',
+	'sscribe-debug-console.js' => 'Historical @since docblock tags and patch-note comments.',
+	'composer.json' => 'Third-party dependency version constraint (phpoffice/phpword).',
+	'build-release.php' => 'Example version literals in CLI usage strings.',
+	'verify-version-sync.php' => 'Example version literals in CLI usage strings and regex constants.',
+	'bump-version.php' => 'Example version literals in CLI usage strings and regex constants.',
+	'bootstrap.php' => 'Test fixture fallback version literal.',
 	'CHANGELOG.md' => 'Changelog entries.',
 	'.pot' => 'Translation file headers (handled above).',
 );
@@ -248,6 +266,14 @@ foreach ($all_files as $file) {
 		}
 		$basename = basename($file);
 		$skip = false;
+		// Test fixtures intentionally encode historical version references
+		// (regression fixtures for diagnostics on older installs, changelog
+		// references in @since / comment blocks). Tests/ is not shipped in
+		// the production artifact, so stale refs there are non-blocking.
+		$relative_path = str_replace($root_dir . '/', '', $file);
+		if ( 0 === strpos( $relative_path, 'tests/' ) || 0 === strpos( $relative_path, 'tests\\' ) ) {
+			continue;
+		}
 		foreach ($skip_patterns as $pattern => $reason) {
 
 			$match = str_starts_with($pattern, '.')

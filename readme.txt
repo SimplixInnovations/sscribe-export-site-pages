@@ -3,7 +3,7 @@ Contributors: simplixinnovations
 Tags: export, docx, pdf, html, markdown
 Requires at least: 6.0
 Tested up to: 7.0
-Stable tag: 1.1.3
+Stable tag: 1.1.4
 Requires PHP: 8.2
 License: GPL-2.0-or-later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
@@ -89,6 +89,15 @@ The bundled Mpdf library (vendor-prefixed/mpdf/) is licensed under the GNU Gener
 
 == Changelog ==
 
+= 1.1.4 =
+* Fixed pagination truncation: replaced `max_num_pages`-based exit with count-based exit in `SScribe_Page_Collector::get_page_ids_chunked()` so the final chunk is not silently dropped when running with `no_found_rows => true` (which forces `max_num_pages` to 0).
+* Hardened `SScribe_Filesystem::move()` against symlink attacks: the native `rename()` path now rejects sources that resolve outside the SScribe export directory, matching the destination-side guard.
+* Moved `random_bytes()` inside the try block in `SScribe_Zip_Handler::assemble()` so the cleanup path remains reachable on entropy-exhaustion failures.
+* Verified `parse_format_options()` preserves all three Markdown keys (`absolute_urls`, `include_featured_image`, `include_frontmatter`) under the format-options allowlist, with a regression test.
+* Verified `sscribe_export_options_{$format}` filter remains the canonical extension point for per-format options.
+* WP.org submission polish: removed `Network:` header (rejected by plugin-check), removed `Update URI:` header (no custom updaters on WP.org-hosted plugins), preserved bundled Amiri OFL and PhpOffice LGPL-3.0 / Mpdf GPL-2.0 license attributions.
+* No UI changes; v3 component library and tokens from 1.1.3 unchanged.
+
 = 1.1.3 =
 * Added full v3 component library: .sscribe-button, .sscribe-input, .sscribe-select, .sscribe-textarea, .sscribe-card, .sscribe-panel, .sscribe-table (with tabular-nums numeric columns), .sscribe-breadcrumb, .sscribe-empty-state, .sscribe-progress, .sscribe-checkbox, .sscribe-radio, .sscribe-switch, .sscribe-segmented, .sscribe-chip, .sscribe-badge, .sscribe-code, .sscribe-kbd, .sscribe-form-row, .sscribe-form-grid, .sscribe-fieldset, .sscribe-modal-backdrop, .sscribe-toast-warning, [data-tooltip] (pure-CSS tooltip).
 * Added semantic role token aliases (--ss-color-fg-primary, --ss-color-bg-surface, --ss-color-accent, --ss-color-success-fg, etc.) so the physical --ss-* palette can be rebalanced without touching component rules.
@@ -138,6 +147,9 @@ If you cloned the repository directly, you must run the following once before ac
 This generates the `vendor-prefixed/` directory and the namespaced runtime shim that the plugin depends on. The `.distignore` file excludes both `vendor/` and `vendor-prefixed/` from Git tracking, so a fresh clone will not include them.
 
 == Upgrade Notice ==
+
+= 1.1.4 =
+Recommended update: fixes a silent pagination truncation in the chunked page-ID loader (could drop the final chunk on large sites), tightens the Filesystem::move() source-path guard against symlink attacks, and ships the WP.org submission polish (no UI changes).
 
 = 1.1.3 =
 Full 1000% enterprise UI revamp: complete component library (button, input, table, breadcrumb, modal, toast, switch, segmented, chip, badge, code, kbd, empty-state), semantic role tokens (--ss-color-* aliases), dark-mode contrast tuned for true WCAG AA (brand #8E89FF, muted text #a1a1AA on dark), and unified focus ring outline across 14 control families. No PHP/JS changes, all class names preserved.
