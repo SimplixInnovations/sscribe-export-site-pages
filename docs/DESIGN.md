@@ -2,7 +2,7 @@
 scribe_design_version: 3
 plugin: SScribe Export Site Pages
 plugin_slug: sscribe-export-site-pages
-plugin_version: 1.1.3
+plugin_version: 1.1.4
 ---
 
 # sScribe Design System v3

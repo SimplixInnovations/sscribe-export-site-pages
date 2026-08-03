@@ -4,7 +4,7 @@
  * Handles AJAX batch processing with animated progress tracking.
  *
  * @package SScribe
- * @version 1.1.3
+ * @version 1.1.4
  */
 (function ($) {
 	'use strict';

@@ -207,6 +207,40 @@ if ( $canonical_version ) {
 				continue;
 			}
 
+			if ( 'class-sscribe-container-exception.php' === basename( $f ) ) {
+				continue;
+			}
+
+			if ( 'class-sscribe-container-notfound-exception.php' === basename( $f ) ) {
+				continue;
+			}
+
+			if ( 'class-sscribe-container.php' === basename( $f ) ) {
+				continue;
+			}
+
+			if ( 'class-sscribe-content-parser.php' === basename( $f ) ) {
+				continue;
+			}
+
+			if ( 'class-sscribe-docx-content-renderer.php' === basename( $f ) ) {
+				continue;
+			}
+
+			if ( 'class-sscribe-export-query-controller.php' === basename( $f ) ) {
+				continue;
+			}
+
+			if ( 'interface-sscribe-exporter.php' === basename( $f ) ) {
+				continue;
+			}
+
+			// admin/js/ contains historical @since tags and patch-note
+			// comments referencing 1.1.x versions; bumping them is incorrect.
+			if ( 0 === strpos( $f, 'admin/js/' ) || 0 === strpos( $f, 'admin\\js\\' ) ) {
+				continue;
+			}
+
 			// composer.json contains a real phpoffice/phpword version
 			// constraint (~1.4.0), not a stale version reference.
 			if ( 'composer.json' === basename( $f ) ) {
