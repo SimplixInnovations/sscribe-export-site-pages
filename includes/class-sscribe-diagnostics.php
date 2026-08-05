@@ -356,14 +356,44 @@ class SScribe_Diagnostics {
 	public function check_vendor_dependencies(): array {
 		// Pre-warm the prefixed vendor autoloader BEFORE class_exists()
 		// checks. The autoloader is lazy-loaded by SScribe_Exporter_Factory
-		// (commit 6) so frontend page loads don't pay the PhpWord/mPDF
-		// parse cost at boot. The admin notice is gated on this same
-		// dependency list, so without the pre-warm it would always fire
-		// a false-positive on admin pages where no exporter has yet
-		// exercised create()/is_supported(). The factory's loader is a
-		// one-shot, so the cost is paid at most once per request.
-		if ( class_exists( '\SScribe_Exporter_Factory', false ) ) {
-			\SScribe_Exporter_Factory::ensure_vendor_loaded();
+		// so frontend page loads don't pay the PhpWord/mPDF parse cost at
+		// boot. The admin notice is gated on this same dependency list,
+		// so without the pre-warm it would always fire a false-positive on
+		// admin pages where no exporter has yet exercised
+		// create()/is_supported(). Three paths:
+		//   1) SSCRIBE_VENDOR_AUTOLOADED is already defined -> someone
+		//      earlier in the request primed it, nothing to do.
+		//   2) SScribe_Exporter_Factory is already loaded (because some
+		//      earlier call site used it) -> delegate to its one-shot
+		//      loader.
+		//   3) The factory has never been touched yet (most common: a
+		//      settings page where no exporter has been invoked). We
+		//      trigger the plugin spl_autoloader by calling
+		//      `class_exists( '\SScribe_Exporter_Factory' )` with the
+		//      default autoload-ON behavior, then delegate. This is the
+		//      path that closes the false-positive for fresh admin loads
+		//      because the plugin autoloader maps
+		//      `SScribe_Exporter_Factory` to
+		//      `includes/exporters/class-sscribe-exporter-factory.php`.
+		if ( ! defined( 'SSCRIBE_VENDOR_AUTOLOADED' ) ) {
+			if ( class_exists( '\SScribe_Exporter_Factory' ) ) {
+				\SScribe_Exporter_Factory::ensure_vendor_loaded();
+			} else {
+
+				if ( ! defined( 'SSCRIBE_PLUGIN_DIR' ) ) {
+					$missing = array( 'SScribeVendor\Mpdf\Mpdf', 'SScribeVendor\PhpOffice\PhpWord\PhpWord' );
+					return $missing;
+				}
+				$vendor_prefixed = SSCRIBE_PLUGIN_DIR . 'vendor-prefixed/autoload.php';
+				if ( file_exists( $vendor_prefixed ) ) {
+					require_once $vendor_prefixed;
+					$shim = SSCRIBE_PLUGIN_DIR . 'includes/sscribe-prefixed-runtime-shim.php';
+					if ( file_exists( $shim ) ) {
+						require_once $shim;
+					}
+					define( 'SSCRIBE_VENDOR_AUTOLOADED', true );
+				}
+			}
 		}
 
 		$missing = array();

@@ -1008,7 +1008,8 @@ final class SScribe_Batch_Processor {
 
 		$post_type        = isset( $_POST['post_type'] ) ? sanitize_text_field( wp_unslash( $_POST['post_type'] ) ) : 'page';
 
-		// phpcs:ignore WordPress.Security.ValidatedSanitizedInput.InputNotSanitized -- parse_format_options() sanitizes per-key (sanitize_key) and per-value (sanitize_text_field), and enforces the FORMAT_OPTION_KEYS allowlist.
+		// Sanitization: keys -> sanitize_key(), values -> sanitize_text_field(), allowed keys -> FORMAT_OPTION_KEYS allowlist; all enforced inside parse_format_options() (line 599+). Rejecting the phpcs warning at this layer is correct because the parser is the single point of validation; placing the ignores above would scatter them and increase the chance of a regression.
+		// phpcs:ignore WordPress.Security.ValidatedSanitizedInput.InputNotSanitized -- Sanitization is enforced downstream in parse_format_options(); keys are normalized via sanitize_key() and gated by the FORMAT_OPTION_KEYS allowlist before any value is stored or dispatched to the exporter.
 		$format_options = self::parse_format_options( wp_unslash( $_POST['format_options'] ?? array() ) );
 		$valid_post_types = array_values( get_post_types( array( 'public' => true ) ) );
 		$valid_post_types = array_merge( $valid_post_types, array( 'any' ) );
