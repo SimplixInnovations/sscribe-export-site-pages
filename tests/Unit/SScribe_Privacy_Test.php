@@ -16,11 +16,10 @@ declare(strict_types=1);
 
 namespace SScribe\Tests\Unit;
 
+use PHPUnit\Framework\Attributes\Group;
 use PHPUnit\Framework\TestCase;
 
-/**
- * @group privacy
- */
+#[Group( 'privacy' )]
 class SScribe_Privacy_Test extends TestCase {
 
 	public function test_register_exporter_adds_sscribe_entry(): void {

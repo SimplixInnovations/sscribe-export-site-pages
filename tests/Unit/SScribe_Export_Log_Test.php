@@ -124,6 +124,34 @@ final class SScribe_Export_Log_Test extends TestCase {
 		$log->delete();
 	}
 
+	public function test_mark_complete_populates_zip_index_transient(): void {
+		// Performance F2: persisting the zip→session index transient at
+		// write-time guarantees the read path can short-circuit the
+		// glob() scan on hosts that lack an object cache.
+		$GLOBALS['sscribe_test_transients'] = array();
+		$session                            = 'test-index-' . uniqid( '', true );
+		$zip_basename                       = 'export-' . $session . '.zip';
+		$expected_index_key                 = 'sscribe_zip_index_' . md5( $zip_basename );
+
+		$log = new SScribe_Export_Log( $session );
+		$log->set_total_pages( 1 );
+		$log->mark_complete( '/path/to/' . $zip_basename, 1 );
+		$log->flush();
+
+		$this->assertArrayHasKey(
+			$expected_index_key,
+			$GLOBALS['sscribe_test_transients'],
+			'mark_complete must persist sscribe_zip_index_<md5> transient on the no-object-cache path.'
+		);
+		$this->assertSame(
+			$session,
+			$GLOBALS['sscribe_test_transients'][ $expected_index_key ],
+			'Transient value must be the session id so get_log_by_filename() can locate the JSON file.'
+		);
+
+		$log->delete();
+	}
+
 	public function test_delete_removes_log_file(): void {
 		$session = 'test-delete-' . uniqid( '', true );
 		$log     = new SScribe_Export_Log( $session );

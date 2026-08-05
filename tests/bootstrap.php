@@ -206,6 +206,10 @@ if ( ! function_exists( 'get_post_status' ) ) {
 
 if ( ! function_exists( 'get_post_type' ) ) {
 	function get_post_type( $sscribe_post_id ) {
+		unset( $sscribe_post_id );
+		if ( array_key_exists( 'sscribe_test_post_type_override', $GLOBALS ) ) {
+			return $GLOBALS['sscribe_test_post_type_override'];
+		}
 		return 'page';
 	}
 }
@@ -563,8 +567,46 @@ if ( ! function_exists( 'wp_schedule_event' ) ) {
 	}
 }
 
+if ( ! function_exists( 'wp_unschedule_event' ) ) {
+	function wp_unschedule_event( $timestamp, $hook, $args = false ) {
+		global $sscribe_test_scheduled_events;
+		unset( $timestamp, $args );
+		unset( $sscribe_test_scheduled_events[ $hook ] );
+		return true;
+	}
+}
+
+if ( ! function_exists( 'wp_clear_scheduled_hook' ) ) {
+	function wp_clear_scheduled_hook( $hook, $args = array() ) {
+		global $sscribe_test_scheduled_events;
+		unset( $args );
+		unset( $sscribe_test_scheduled_events[ $hook ] );
+		return true;
+	}
+}
+
 if ( ! function_exists( 'is_multisite' ) ) {
 	function is_multisite() {
+		return false;
+	}
+}
+
+if ( ! function_exists( 'get_current_blog_id' ) ) {
+	function get_current_blog_id() {
+		return 1;
+	}
+}
+
+if ( ! function_exists( 'wp_is_post_autosave' ) ) {
+	function wp_is_post_autosave( $post_id ) {
+		unset( $post_id );
+		return false;
+	}
+}
+
+if ( ! function_exists( 'wp_is_post_revision' ) ) {
+	function wp_is_post_revision( $post_id ) {
+		unset( $post_id );
 		return false;
 	}
 }
@@ -630,8 +672,12 @@ if ( ! class_exists( 'WP_Roles' ) ) {
 
 if ( ! function_exists( 'get_role' ) ) {
 	function get_role( $role ) {
-		static $roles = null;
+		// Tests can inject specific role overrides via this global.
+		if ( isset( $GLOBALS['sscribe_test_role_overrides'] ) && is_array( $GLOBALS['sscribe_test_role_overrides'] ) && isset( $GLOBALS['sscribe_test_role_overrides'][ $role ] ) ) {
+			return $GLOBALS['sscribe_test_role_overrides'][ $role ];
+		}
 
+		static $roles = null;
 		if ( null === $roles ) {
 			$roles = array(
 				'administrator' => new WP_Role( 'administrator', array( 'manage_options' => true ) ),
@@ -918,17 +964,23 @@ $sscribe_test_ajax_nonce_valid = true;
 		public function get_results( $query, $output = null ) {
 			global $sscribe_test_options, $sscribe_test_db_tables;
 
-			if ( false !== strpos( $query, $this->options ) && preg_match( "/LIKE '([^']+)'/i", $query, $matches ) ) {
-				$like_pattern = str_replace( '\\_', '_', $matches[1] );
-				$pattern      = str_replace( '%', '.*', preg_quote( $like_pattern, '/' ) );
+			if ( false !== strpos( $query, $this->options ) && preg_match_all( "/LIKE '([^']+)'/i", $query, $like_matches ) ) {
+				$patterns = array();
+				foreach ( $like_matches[1] as $raw ) {
+					$unrolled    = str_replace( '\\_', '_', $raw );
+					$patterns[] = '/^' . str_replace( '%', '.*', preg_quote( $unrolled, '/' ) ) . '$' . '/';
+				}
 				$results = array();
 
 				foreach ( (array) $sscribe_test_options as $option_name => $option_value ) {
-					if ( preg_match( '/^' . $pattern . '$/', $option_name ) ) {
-						$results[] = (object) array(
-							'option_name'  => $option_name,
-							'option_value' => $option_value,
-						);
+					foreach ( $patterns as $pattern ) {
+						if ( preg_match( $pattern, $option_name ) ) {
+							$results[] = (object) array(
+								'option_name'  => $option_name,
+								'option_value' => $option_value,
+							);
+							break;
+						}
 					}
 				}
 
