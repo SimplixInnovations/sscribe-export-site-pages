@@ -99,19 +99,7 @@ The bundled Mpdf library (vendor-prefixed/mpdf/) is licensed under the GNU Gener
 * No UI changes; v3 component library and tokens from 1.1.3 unchanged.
 
 = 1.1.3 =
-* Added full v3 component library: .sscribe-button, .sscribe-input, .sscribe-select, .sscribe-textarea, .sscribe-card, .sscribe-panel, .sscribe-table (with tabular-nums numeric columns), .sscribe-breadcrumb, .sscribe-empty-state, .sscribe-progress, .sscribe-checkbox, .sscribe-radio, .sscribe-switch, .sscribe-segmented, .sscribe-chip, .sscribe-badge, .sscribe-code, .sscribe-kbd, .sscribe-form-row, .sscribe-form-grid, .sscribe-fieldset, .sscribe-modal-backdrop, .sscribe-toast-warning, [data-tooltip] (pure-CSS tooltip).
-* Added semantic role token aliases (--ss-color-fg-primary, --ss-color-bg-surface, --ss-color-accent, --ss-color-success-fg, etc.) so the physical --ss-* palette can be rebalanced without touching component rules.
-* Re-tuned dark-mode palette for true WCAG AA on dark surfaces: brand #7C75FF to #8E89FF, text-muted #8b8b96 to #a1a1aa.
-* Unified focus ring outline rule across 14 control families (button, tab-btn, modal-close, button-icon, toast-dismiss, preflight-close, support-copy-text, format-option-field select, help-link, onboarding-dismiss, post-type/status/format/lang card labels, format-option-checkbox, bulk-select-all, history-check-label). All use `outline: 2px solid var(--ss-color-accent)`.
-* Hit targets normalized: button 40px default, button-icon 40x40, modal-close 40x40, tab-btn 44px, btn-sm 32px, btn-lg 44px. Form inputs and selects 40px tall.
-* Debug console CSS aligned to v3 component system; --ss-debug-* scoped tokens for the dark terminal chrome.
-* Polish: status cards now use a 6-col grid (3-col at <=1100px, 2-col at <=640px) so the "All" card no longer wraps to a full-width orphan row.
-* Polish: format cards switched to `repeat(5, minmax(0, 1fr))` so all 5 cards share equal width without horizontal overflow at intermediate viewports (1024-1280px).
-* Polish: `--ss-text-muted` light value bumped from #71717a to #5a5f66 to clear WCAG AA against `--ss-bg` and `--ss-brand-soft` backgrounds; dark-mode override unchanged at #a1a1aa.
-* Polish: format cards stack vertically on mobile (>=640px and below) via flex-column override of the grid, matching post-type and status rows.
-* Polish: card-row gap tightened from var(--ss-space-2) (8px) to var(--ss-space-1) (4px) for tighter visual rhythm; status grid uses --ss-space-2 to preserve readability across 6 columns.
-* Polish: hero-stats baseline verified to align with title x at 1024, 1280, 1440 viewports (padding-left on .sscribe-hero-stats calibrated at <=900px breakpoint).
-* Verified: forced-colors media block covers all 14 focusable element families with 3px Highlight !important outlines; CanvasText applied to all text and border tokens; primary/success/danger buttons map to Highlight/HighlightText via forced-color-adjust: none for engines that support it (Edge, Chrome, Firefox 113+).
+Full v3 component library: buttons, inputs, modals, tables, chips, badges, code, kbd, tooltips, dark-mode WCAG AA, and unified focus rings. UI-only, no PHP/JS changes.
 
 = 1.1.2 =
 * Fixed latent PDF export crash: WordPress themes ship base CSS with `font-family: serif`; mPDF's chain resolution tried to load pruned DejaVu*Condensed / FreeSans / Sun-ExtA TTFs and crashed. fonttrans remap and fontdata overrides close the CSS-keyword, fontdata-entry, and backup-substitution paths on the same crash class.
