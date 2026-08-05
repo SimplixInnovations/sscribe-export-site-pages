@@ -108,6 +108,9 @@ wordpress-tests-lib/
 # Sisyphus agent metadata
 .sisyphus/
 
+# Impeccable config
+.impeccable/
+
 # Audit reports
 AUDIT-REPORT*.md
 AUDIT-*.md

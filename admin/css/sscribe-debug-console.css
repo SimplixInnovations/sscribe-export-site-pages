@@ -8,7 +8,7 @@
   .sscribe-debug-master h2,
   .sscribe-debug-master h3,
   .sscribe-debug-master h4 {
-    color: var(--ss-text-primary, #fafafa);
+	color: var(--ss-text-primary, #fafafa);
   }
 }
 
@@ -962,8 +962,8 @@
   font-size: 14px;
   line-height: 1.55;
   box-shadow:
-    0 1px 2px rgb(9 9 11 / 4%),
-    0 12px 32px rgb(9 9 11 / 12%);
+	0 1px 2px rgb(9 9 11 / 4%),
+	0 12px 32px rgb(9 9 11 / 12%);
   animation: sscribe-modal-pop 200ms cubic-bezier(0.16, 1, 0.3, 1);
 }
 
@@ -1059,23 +1059,23 @@
 
 @keyframes sscribe-modal-pop {
   from {
-    opacity: 0;
-    transform: translate(-50%, -48%) scale(0.97);
+	opacity: 0;
+	transform: translate(-50%, -48%) scale(0.97);
   }
 
   to {
-    opacity: 1;
-    transform: translate(-50%, -50%) scale(1);
+	opacity: 1;
+	transform: translate(-50%, -50%) scale(1);
   }
 }
 
 @media (prefers-reduced-motion: reduce) {
   .sscribe-help-overlay,
   .sscribe-help-dialog {
-    animation: none !important;
-    /* stylelint-disable-next-line property-no-vendor-prefix */
-    -webkit-backdrop-filter: none !important;
-    backdrop-filter: none !important;
+	animation: none !important;
+	/* stylelint-disable-next-line property-no-vendor-prefix */
+	-webkit-backdrop-filter: none !important;
+	backdrop-filter: none !important;
   }
 }
 

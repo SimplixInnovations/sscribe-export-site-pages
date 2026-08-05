@@ -54,7 +54,7 @@ $config = array(
 		// These contain user-local settings and prompt history that must never ship
 		// in the production plugin. WordPress.org plugin-check flags them as
 		// "ai_instruction_directory" warnings if present.
-		'.claude', '.opencode', '.agent', '.aider', '.aider.chat.history',
+		'.claude', '.opencode', '.impeccable', '.agent', '.aider', '.aider.chat.history',
 		'.aider.model.settings.json', '.aider.input.history', '.cursor', '.windsurf',
 		'.continue', '.codeium', '.github/copilot', '.cody',
 

@@ -159,6 +159,7 @@ opencode.json
 # warnings if present in the production ZIP.
 .claude/
 .opencode/
+.impeccable/
 .agent/
 .aider*
 .cursor/

@@ -84,7 +84,7 @@ class SScribe_Diagnostics {
 			$monthly_stats = array();
 
 			if ( defined( 'WP_DEBUG_LOG' ) && WP_DEBUG_LOG ) {
-				error_log( 'SScribe Diagnostics: monthly_stats failed : ' . $e->getMessage() );
+				error_log( 'SScribe Diagnostics: monthly_stats failed : ' . $e->getMessage() ); // phpcs:ignore WordPress.PHP.DevelopmentFunctions.error_log_error_log
 			}
 			if ( $debug_logger ) {
 				$debug_logger->warning( 'Support info: monthly_stats unavailable', array( 'error' => $e->getMessage() ) );
@@ -98,7 +98,7 @@ class SScribe_Diagnostics {
 		} catch ( \Throwable $e ) {
 			$status_counts = array();
 			if ( defined( 'WP_DEBUG_LOG' ) && WP_DEBUG_LOG ) {
-				error_log( 'SScribe Diagnostics: status_counts failed : ' . $e->getMessage() );
+				error_log( 'SScribe Diagnostics: status_counts failed : ' . $e->getMessage() ); // phpcs:ignore WordPress.PHP.DevelopmentFunctions.error_log_error_log
 			}
 			if ( $debug_logger ) {
 				$debug_logger->warning( 'Support info: status_counts unavailable', array( 'error' => $e->getMessage() ) );
@@ -111,7 +111,7 @@ class SScribe_Diagnostics {
 		} catch ( \Throwable $e ) {
 			$session_check = array( 'message' => __( 'Unavailable', 'sscribe-export-site-pages' ) );
 			if ( defined( 'WP_DEBUG_LOG' ) && WP_DEBUG_LOG ) {
-				error_log( 'SScribe Diagnostics: session_check failed : ' . $e->getMessage() );
+				error_log( 'SScribe Diagnostics: session_check failed : ' . $e->getMessage() ); // phpcs:ignore WordPress.PHP.DevelopmentFunctions.error_log_error_log
 			}
 			if ( $debug_logger ) {
 				$debug_logger->warning( 'Support info: session_check unavailable', array( 'error' => $e->getMessage() ) );
@@ -125,7 +125,7 @@ class SScribe_Diagnostics {
 		} catch ( \Throwable $e ) {
 			$recent_audit_logs = array();
 			if ( defined( 'WP_DEBUG_LOG' ) && WP_DEBUG_LOG ) {
-				error_log( 'SScribe Diagnostics: recent_audit_logs failed : ' . $e->getMessage() );
+				error_log( 'SScribe Diagnostics: recent_audit_logs failed : ' . $e->getMessage() ); // phpcs:ignore WordPress.PHP.DevelopmentFunctions.error_log_error_log
 			}
 			if ( $debug_logger ) {
 				$debug_logger->warning( 'Support info: recent_audit_logs unavailable', array( 'error' => $e->getMessage() ) );
@@ -138,7 +138,7 @@ class SScribe_Diagnostics {
 		} catch ( \Throwable $e ) {
 			$logger_entries = array();
 			if ( defined( 'WP_DEBUG_LOG' ) && WP_DEBUG_LOG ) {
-				error_log( 'SScribe Diagnostics: logger_entries failed : ' . $e->getMessage() );
+				error_log( 'SScribe Diagnostics: logger_entries failed : ' . $e->getMessage() ); // phpcs:ignore WordPress.PHP.DevelopmentFunctions.error_log_error_log
 			}
 			if ( $debug_logger ) {
 				$debug_logger->warning( 'Support info: logger_entries unavailable', array( 'error' => $e->getMessage() ) );
@@ -153,7 +153,7 @@ class SScribe_Diagnostics {
 		} catch ( \Throwable $e ) {
 			$wpml_active = false;
 			if ( defined( 'WP_DEBUG_LOG' ) && WP_DEBUG_LOG ) {
-				error_log( 'SScribe Diagnostics: wpml_active failed : ' . $e->getMessage() );
+				error_log( 'SScribe Diagnostics: wpml_active failed : ' . $e->getMessage() ); // phpcs:ignore WordPress.PHP.DevelopmentFunctions.error_log_error_log
 			}
 			if ( $debug_logger ) {
 				$debug_logger->warning( 'Support info: wpml_active check failed', array( 'error' => $e->getMessage() ) );
@@ -166,7 +166,7 @@ class SScribe_Diagnostics {
 		} catch ( \Throwable $e ) {
 			$seo_plugins = __( 'Unavailable', 'sscribe-export-site-pages' );
 			if ( defined( 'WP_DEBUG_LOG' ) && WP_DEBUG_LOG ) {
-				error_log( 'SScribe Diagnostics: seo_plugins failed : ' . $e->getMessage() );
+				error_log( 'SScribe Diagnostics: seo_plugins failed : ' . $e->getMessage() ); // phpcs:ignore WordPress.PHP.DevelopmentFunctions.error_log_error_log
 			}
 			if ( $debug_logger ) {
 				$debug_logger->warning( 'Support info: seo_plugins unavailable', array( 'error' => $e->getMessage() ) );
@@ -180,7 +180,7 @@ class SScribe_Diagnostics {
 		} catch ( \Throwable $e ) {
 			$session_storage = 'unknown';
 			if ( defined( 'WP_DEBUG_LOG' ) && WP_DEBUG_LOG ) {
-				error_log( 'SScribe Diagnostics: session_storage failed : ' . $e->getMessage() );
+				error_log( 'SScribe Diagnostics: session_storage failed : ' . $e->getMessage() ); // phpcs:ignore WordPress.PHP.DevelopmentFunctions.error_log_error_log
 			}
 			if ( $debug_logger ) {
 				$debug_logger->warning( 'Support info: session_storage unavailable', array( 'error' => $e->getMessage() ) );

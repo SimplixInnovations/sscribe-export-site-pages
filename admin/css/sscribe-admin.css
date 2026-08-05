@@ -1328,21 +1328,21 @@
 
 @keyframes sscribe-progress-pulse {
   0%, 100% {
-    opacity: 1;
+	opacity: 1;
   }
 
   50% {
-    opacity: 0.85;
+	opacity: 0.85;
   }
 }
 
 @keyframes sscribe-progress-sweep {
   0% {
-    background-position: 200% 0;
+	background-position: 200% 0;
   }
 
   100% {
-    background-position: -100% 0;
+	background-position: -100% 0;
   }
 }
 
@@ -1373,8 +1373,8 @@
   .sscribe-progress-bar-fill,
   .sscribe-progress-bar-fill.sscribe-progress-pulse,
   .sscribe-progress-bar-fill::after {
-    animation: none !important;
-    transition: width 200ms ease;
+	animation: none !important;
+	transition: width 200ms ease;
   }
 }
 
@@ -1426,7 +1426,7 @@
   border-radius: var(--ss-radius-md);
   background: var(--ss-surface-2);
   transition: background var(--ss-motion-fast) var(--ss-easing),
-    border-color var(--ss-motion-fast) var(--ss-easing);
+	border-color var(--ss-motion-fast) var(--ss-easing);
 }
 
 .sscribe-debug-toggle-section:has(input:checked) {
@@ -1923,23 +1923,23 @@
 
 @keyframes sscribe-modal-fade-in {
   from {
-    opacity: 0;
+	opacity: 0;
   }
 
   to {
-    opacity: 1;
+	opacity: 1;
   }
 }
 
 @keyframes sscribe-modal-zoom-in {
   from {
-    opacity: 0;
-    transform: scale(0.96) translateY(4px);
+	opacity: 0;
+	transform: scale(0.96) translateY(4px);
   }
 
   to {
-    opacity: 1;
-    transform: scale(1) translateY(0);
+	opacity: 1;
+	transform: scale(1) translateY(0);
   }
 }
 
@@ -1947,7 +1947,7 @@
   .sscribe-modal,
   .sscribe-modal-content,
   .sscribe-toast {
-    animation: none;
+	animation: none;
   }
 }
 
@@ -1993,9 +1993,9 @@
   align-items: center;
   justify-content: center;
   transition: background var(--ss-motion-fast) var(--ss-easing),
-    color var(--ss-motion-fast) var(--ss-easing),
-    border-color var(--ss-motion-fast) var(--ss-easing),
-    transform var(--ss-motion-fast) var(--ss-easing);
+	color var(--ss-motion-fast) var(--ss-easing),
+	border-color var(--ss-motion-fast) var(--ss-easing),
+	transform var(--ss-motion-fast) var(--ss-easing);
   position: relative;
   z-index: 2;
 }
@@ -2091,13 +2091,13 @@
 
 @keyframes sscribe-toast-slide-in {
   from {
-    opacity: 0;
-    transform: translateY(8px) scale(0.98);
+	opacity: 0;
+	transform: translateY(8px) scale(0.98);
   }
 
   to {
-    opacity: 1;
-    transform: translateY(0) scale(1);
+	opacity: 1;
+	transform: translateY(0) scale(1);
   }
 }
 
@@ -2865,18 +2865,18 @@
 
 @keyframes sscribe-confirm-pulse {
   0%, 100% {
-    transform: scale(1);
-    box-shadow: 0 0 0 0 var(--ss-error-border);
+	transform: scale(1);
+	box-shadow: 0 0 0 0 var(--ss-error-border);
   }
   50% {
-    transform: scale(1.03);
-    box-shadow: 0 0 0 4px var(--ss-error-border);
+	transform: scale(1.03);
+	box-shadow: 0 0 0 4px var(--ss-error-border);
   }
 }
 
 @media (prefers-reduced-motion: reduce) {
   .sscribe-button.sscribe-btn-confirming {
-    animation: none;
+	animation: none;
   }
 }
 
@@ -3624,8 +3624,8 @@ kbd.sscribe-shortcut-hint {
 .sscribe-button-primary .sscribe-shortcut-hint,
 .sscribe-button-primary kbd.sscribe-shortcut-hint {
   /* Darker translucent fill so the white text on the primary green button
-     keeps WCAG AA contrast (>=4.5:1 at 10px). 22% white-on-green only
-     reaches 3.3:1, which Lighthouse flags. */
+	 keeps WCAG AA contrast (>=4.5:1 at 10px). 22% white-on-green only
+	 reaches 3.3:1, which Lighthouse flags. */
   background: rgb(0 0 0 / 28%) !important;
   border-color: rgb(255 255 255 / 35%) !important;
   color: #fff !important;
@@ -4271,7 +4271,7 @@ kbd.sscribe-shortcut-hint {
   .sscribe-master-container h2,
   .sscribe-master-container h3,
   .sscribe-master-container h4 {
-    color: var(--ss-text-primary, #fafafa);
+	color: var(--ss-text-primary, #fafafa);
   }
 }
 
@@ -5102,7 +5102,7 @@ kbd.sscribe-kbd {
   background-position: right 12px center;
   background-size: 12px 12px;
   transition: border-color var(--ss-motion-fast) var(--ss-easing),
-    box-shadow var(--ss-motion-fast) var(--ss-easing);
+	box-shadow var(--ss-motion-fast) var(--ss-easing);
 }
 
 .sscribe-master-container select:hover,
@@ -5132,7 +5132,7 @@ kbd.sscribe-kbd {
   border: 1px solid var(--ss-border);
   background: var(--ss-surface);
   transition: border-color var(--ss-motion-fast) var(--ss-easing),
-    background var(--ss-motion-fast) var(--ss-easing);
+	background var(--ss-motion-fast) var(--ss-easing);
   min-height: 36px;
   font-size: 13px;
   color: var(--ss-text-secondary);
@@ -5155,7 +5155,7 @@ kbd.sscribe-kbd {
   background: var(--ss-surface);
   cursor: pointer;
   transition: border-color var(--ss-motion-fast) var(--ss-easing),
-    background var(--ss-motion-fast) var(--ss-easing);
+	background var(--ss-motion-fast) var(--ss-easing);
 }
 
 .sscribe-radio-label input[type="radio"]:hover {
@@ -5193,7 +5193,7 @@ kbd.sscribe-kbd {
   background: var(--ss-surface);
   cursor: pointer;
   transition: background var(--ss-motion-fast) var(--ss-easing),
-    border-color var(--ss-motion-fast) var(--ss-easing);
+	border-color var(--ss-motion-fast) var(--ss-easing);
   vertical-align: middle;
 }
 
@@ -5258,7 +5258,7 @@ kbd.sscribe-kbd {
   background: var(--ss-surface);
   cursor: pointer;
   transition: background var(--ss-motion-fast) var(--ss-easing),
-    border-color var(--ss-motion-fast) var(--ss-easing);
+	border-color var(--ss-motion-fast) var(--ss-easing);
   vertical-align: middle;
 }
 
@@ -5308,7 +5308,7 @@ kbd.sscribe-kbd {
   border: 1px solid var(--ss-border-strong);
   border-radius: var(--ss-radius-full, 9999px);
   transition: background var(--ss-motion-fast) var(--ss-easing),
-    border-color var(--ss-motion-fast) var(--ss-easing);
+	border-color var(--ss-motion-fast) var(--ss-easing);
 }
 
 .sscribe-toggle-slider::before {
@@ -5527,24 +5527,23 @@ kbd.sscribe-kbd {
 @media (prefers-color-scheme: dark) {
   .sscribe-master-container .sscribe-radio-label,
   .sscribe-master-container .sscribe-master-container input[type="checkbox"] {
-    border-color: var(--ss-border-strong);
+	border-color: var(--ss-border-strong);
   }
 
   .sscribe-master-container input[type="checkbox"]:checked::after,
   .sscribe-master-container input[type="checkbox"]:indeterminate::after {
-    background-image: url("data:image/svg+xml;charset=utf8,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16' fill='none' stroke='%2309090b' stroke-width='2.25' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M3.5 8.5l3 3 6-6.5'/%3E%3C/svg%3E");
+	background-image: url("data:image/svg+xml;charset=utf8,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16' fill='none' stroke='%2309090b' stroke-width='2.25' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M3.5 8.5l3 3 6-6.5'/%3E%3C/svg%3E");
   }
 
   .sscribe-master-container input[type="checkbox"]:indeterminate::after {
-    background-image: url("data:image/svg+xml;charset=utf8,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16' fill='none' stroke='%2309090b' stroke-width='2.25' stroke-linecap='round'%3E%3Cpath d='M4 8h8'/%3E%3C/svg%3E");
+	background-image: url("data:image/svg+xml;charset=utf8,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16' fill='none' stroke='%2309090b' stroke-width='2.25' stroke-linecap='round'%3E%3Cpath d='M4 8h8'/%3E%3C/svg%3E");
   }
 
   .sscribe-radio-label input[type="radio"]:checked {
-    box-shadow: inset 0 0 0 3px var(--ss-bg);
+	box-shadow: inset 0 0 0 3px var(--ss-bg);
   }
 
   .sscribe-master-container input[type="radio"]:checked {
-    box-shadow: inset 0 0 0 3px var(--ss-bg);
+	box-shadow: inset 0 0 0 3px var(--ss-bg);
   }
 }
-
