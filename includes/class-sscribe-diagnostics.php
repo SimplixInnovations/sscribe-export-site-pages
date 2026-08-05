@@ -6,7 +6,7 @@
  * @license GPL v2 or later
  * @link    https://www.gnu.org/licenses/gpl-2.0.html
  *
- * @phpcs:disable WordPress.PHP.DevelopmentFunctions.error_log_error_log -- Intentional debug logging gated behind WP_DEBUG_LOG.
+ * @phpcs:disable WordPress.PHP.DevelopmentFunctions.error_log_error_log -- Diagnostics logging only fires inside `if ( defined( 'WP_DEBUG_LOG' ) && WP_DEBUG_LOG )` runtime guards (8 sites). Inline per-call `phpcs:ignore` would be brittle to add to try/catch blocks; the runtime guard is the canonical safety.
  */
 
 declare(strict_types=1);
