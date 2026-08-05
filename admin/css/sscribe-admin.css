@@ -498,8 +498,7 @@
 /* --ss-text-secondary (#3f3f46) keeps >= 4.5:1 contrast on both the
    default white card background AND the tinted-green SELECTED card
    background (rgb(212, 231, 220) = the brand-tint selected state).
-   --ss-text-muted (#71717a) only reaches 4.83:1 on white and drops to
-   3.74:1 on the selected green - Lighthouse AA fails. */
+   --ss-text-muted (#5a5f66) clears WCAG AA on both surfaces. */
 
 .sscribe-post-type-selector,
 .sscribe-status-selector,
@@ -1920,7 +1919,6 @@
   flex-direction: column;
   overflow: hidden;
   animation: sscribe-modal-zoom-in 160ms var(--ss-easing, ease);
-  box-shadow: 0 12px 32px -8px rgb(9 9 11 / 20%), 0 2px 4px -1px rgb(9 9 11 / 8%);
 }
 
 @keyframes sscribe-modal-fade-in {
@@ -2088,7 +2086,6 @@
   border: 1px solid var(--ss-text-primary);
   font-size: 13px;
   line-height: 1.4;
-  box-shadow: 0 8px 24px -6px rgb(9 9 11 / 28%), 0 2px 4px -1px rgb(9 9 11 / 12%);
   animation: sscribe-toast-slide-in 200ms var(--ss-easing, ease);
 }
 
@@ -5323,7 +5320,6 @@ kbd.sscribe-kbd {
   height: 16px;
   background: #fff;
   border-radius: 50%;
-  box-shadow: 0 1px 2px rgb(0 0 0 / 12%), 0 1px 1px rgb(0 0 0 / 6%);
   transition: transform var(--ss-motion-fast) var(--ss-easing);
 }
 
