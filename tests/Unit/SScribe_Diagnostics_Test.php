@@ -130,6 +130,60 @@ class SScribe_Diagnostics_Test extends TestCase {
 		}
 	}
 
+	/**
+	 * Regression: the admin notice fires on the first request after
+	 * plugin boot — before any call site has touched
+	 * `SScribe_Exporter_Factory`. Pre-warm must work even when the
+	 * factory class is not yet loaded.
+	 *
+	 * Simulates the cold path by clearing the autoload cache right
+	 * before invoking the check. If class caching picks up on a
+	 * subsequent test, this exercises the code path where the
+	 * autoloader was never called yet.
+	 */
+	public function test_check_vendor_dependencies_in_cold_state(): void {
+		// Trick: clear class_exists's internal cache so a fresh
+		// class_exists('\SScribe_Exporter_Factory') call does NOT find
+		// it via the in-memory cache and MUST fall back through the
+		// disc autoloader.
+		if ( function_exists( 'wp_cache_clear_cache_group' ) ) {
+			wp_cache_clear_cache_group( '' );
+		}
+
+		$method = new \ReflectionMethod( SScribe_Diagnostics::class, 'check_vendor_dependencies' );
+
+		$result = $method->invoke( $this->diagnostics );
+
+		$this->assertIsArray( $result );
+
+		if ( file_exists( SSCRIBE_PLUGIN_DIR . 'vendor-prefixed/autoload.php' ) ) {
+			$this->assertSame(
+				array(),
+				$result,
+				'check_vendor_dependencies() must return empty on the cold path too (factory not pre-loaded); got: ' . implode( ', ', $result )
+			);
+		}
+	}
+
+	/**
+	 * Regression: SSCRIBE_VENDOR_AUTOLOADED must be defined after
+	 * check_vendor_dependencies() returns when the prefixed vendor
+	 * tree is present. The admin notice should only fire when the
+	 * vendor is genuinely missing — never because the autoloader
+	 * hadn't run yet.
+	 */
+	public function test_check_vendor_dependencies_defines_autoloaded_constant(): void {
+		$method = new \ReflectionMethod( SScribe_Diagnostics::class, 'check_vendor_dependencies' );
+		$method->invoke( $this->diagnostics );
+
+		if ( file_exists( SSCRIBE_PLUGIN_DIR . 'vendor-prefixed/autoload.php' ) ) {
+			$this->assertTrue(
+				defined( 'SSCRIBE_VENDOR_AUTOLOADED' ),
+				'SSCRIBE_VENDOR_AUTOLOADED must be defined after check_vendor_dependencies() runs and the vendor tree is on disk'
+			);
+		}
+	}
+
 	public function test_check_php_version_returns_valid(): void {
 		$method = new \ReflectionMethod( SScribe_Diagnostics::class, 'check_php_version' );
 

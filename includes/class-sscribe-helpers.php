@@ -185,7 +185,7 @@ class SScribe_Helpers {
 			}
 		}
 
-		$remote_addr = isset( $_SERVER['REMOTE_ADDR'] ) // phpcs:ignore WordPress.Security.ValidatedSanitizedInput.InputNotSanitized -- Validated as IP below.
+		$remote_addr = isset( $_SERVER['REMOTE_ADDR'] ) // phpcs:ignore WordPress.Security.ValidatedSanitizedInput.InputNotSanitized -- REMOTE_ADDR is sanitized to text and then passed to filter_var(FILTER_VALIDATE_IP) below; non-IP input is rejected and `0.0.0.0` is returned instead.
 			? sanitize_text_field( wp_unslash( (string) $_SERVER['REMOTE_ADDR'] ) )
 			: '';
 		if ( '' === $remote_addr ) {

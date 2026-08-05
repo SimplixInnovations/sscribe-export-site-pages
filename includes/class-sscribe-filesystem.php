@@ -250,7 +250,7 @@ class SScribe_Filesystem {
 			wp_mkdir_p( $dir );
 		}
 
-		// phpcs:ignore WordPress.WP.AlternativeFunctions.file_system_operations_file_put_contents -- WP_Filesystem fallback for hosting environments without WP_Filesystem support.
+		// phpcs:ignore WordPress.WP.AlternativeFunctions.file_system_operations_file_put_contents -- WP_Filesystem fallback for hosting environments without WP_Filesystem support. The file path is restricted to the SScribe plugin-owned folder under wp-content/uploads/sscribe-exports/ by is_path_safe_for_write() above; this writer cannot create files anywhere else.
 		$result = file_put_contents( $file, $content );
 
 		if ( false === $result ) {
