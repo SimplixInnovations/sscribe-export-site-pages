@@ -506,9 +506,15 @@ class SScribe_SEO_Reader {
 	 */
 	private function get_primary_taxonomy(): string {
 		$taxonomies = get_object_taxonomies( 'page', 'objects' );
+		if ( ! is_array( $taxonomies ) ) {
+			return 'category';
+		}
 		foreach ( $taxonomies as $taxonomy ) {
-			if ( $taxonomy->hierarchical && $taxonomy->public ) {
-				return $taxonomy->name;
+			if ( is_object( $taxonomy ) && isset( $taxonomy->hierarchical, $taxonomy->public, $taxonomy->name )
+				&& true === $taxonomy->hierarchical
+				&& true === $taxonomy->public
+			) {
+				return (string) $taxonomy->name;
 			}
 		}
 		return 'category';
