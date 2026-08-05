@@ -758,7 +758,10 @@
 			$('#sscribe-summary-status').text(statusLabels[status] || status);
 			$('#sscribe-summary-language').text(this.getLanguageLabel(language));
 			$('#sscribe-summary-format').text(format === 'all' ? (S.status_all || 'All') : format.toUpperCase());
-			$('#sscribe-summary-pages').text((this._countsLoaded ? '' : '~') + count + ' ' + (count === 1 ? ((S && S.log_page) || 'page') : ((S && S.log_pages) || 'pages')));
+			var $pagesChip = $('#sscribe-summary-pages');
+			var pagesText = (this._countsLoaded ? '' : '~') + count + ' ' + (count === 1 ? ((S && S.log_page) || 'page') : ((S && S.log_pages) || 'pages'));
+			$pagesChip.text(pagesText);
+			$pagesChip.attr('aria-label', pagesText);
 			$('#sscribe-summary-time').text(sscribe_data.strings.calculating_time || 'Calculating...').addClass('sscribe-summary-time-pending');
 			if (this._configSummaryXHR && this._configSummaryXHR.abort) {
 				this._configSummaryXHR.abort();
@@ -766,7 +769,10 @@
 			const self = this;
 			clearTimeout(this._configSummaryDebounceTimer);
 			if (!this._countsLoaded || count === 0) {
-				$('#sscribe-summary-time').text(sscribe_data.strings.summary_time_hint || 'See Preview').removeClass('sscribe-summary-time-pending');
+				var $timeChipEmpty = $('#sscribe-summary-time');
+				var timeHintEmpty = sscribe_data.strings.summary_time_hint || 'See Preview';
+				$timeChipEmpty.text(timeHintEmpty).removeClass('sscribe-summary-time-pending');
+				$timeChipEmpty.attr('aria-label', timeHintEmpty);
 				return;
 			}
 			this._configSummaryDebounceTimer = setTimeout(function () {
@@ -784,17 +790,24 @@
 						formats: format === 'all' ? ['docx', 'pdf', 'html', 'markdown'] : [format],
 					},
 					success: function (response) {
+						var $timeChip = $('#sscribe-summary-time');
 						if (response.success && response.data && response.data.estimated_time) {
-							$('#sscribe-summary-time').text(response.data.estimated_time).removeClass('sscribe-summary-time-pending');
+							$timeChip.text(response.data.estimated_time).removeClass('sscribe-summary-time-pending');
+							$timeChip.attr('aria-label', response.data.estimated_time);
 						} else {
-							$('#sscribe-summary-time').text(sscribe_data.strings.summary_time_hint || 'See Preview').removeClass('sscribe-summary-time-pending');
+							var fallbackHint = sscribe_data.strings.summary_time_hint || 'See Preview';
+							$timeChip.text(fallbackHint).removeClass('sscribe-summary-time-pending');
+							$timeChip.attr('aria-label', fallbackHint);
 						}
 					},
 					error: function (xhr, status) {
 						if (status === 'abort') {
 							return;
 						}
-						$('#sscribe-summary-time').text(sscribe_data.strings.summary_time_hint || 'See Preview').removeClass('sscribe-summary-time-pending');
+						var $timeChipErr = $('#sscribe-summary-time');
+						var errHint = sscribe_data.strings.summary_time_hint || 'See Preview';
+						$timeChipErr.text(errHint).removeClass('sscribe-summary-time-pending');
+						$timeChipErr.attr('aria-label', errHint);
 					},
 				});
 			}, 300);
@@ -860,7 +873,7 @@
 			this.isProcessing = true;
 			this.batchRetries = 0;
 			const $exportBtns = $('#sscribe-export-btn, #sscribe-preview-btn');
-			$exportBtns.prop('disabled', true).addClass('sscribe-btn-busy');
+			$exportBtns.prop('disabled', true).attr('aria-busy', 'true').addClass('sscribe-btn-busy');
 			this.resetUI();
 			this.updateExportButton();
 			const language = $('input[name="sscribe_language"]:checked').val() || '';
@@ -1894,6 +1907,14 @@
 			if (!window.console || !window.console.group) {
 				return;
 			}
+			// Production hardening: the WP.org reviewer team flags noisy
+			// console output as a release blocker. Only emit the full
+			// request/response envelope when SSCRIBE_DEBUG is explicitly
+			// true on the server (which is the default-off WP.org default).
+			if (typeof window.SSCRIBE_DEBUG === 'undefined' || !window.SSCRIBE_DEBUG) {
+				console.warn('[SSCRIBE] AJAX error suppressed (enable SSCRIBE_DEBUG to inspect).');
+				return;
+			}
 			const action = (requestData && requestData.action) || 'unknown';
 			const timestamp = new Date().toISOString();
 			const statusCode = xhr ? xhr.status : 0;
@@ -2387,6 +2408,11 @@
 				opts.onProceed(function () { return true; });
 				return;
 			}
+			// WCAG 2.4.3 focus restore: remember the trigger element so Cancel
+			// / Escape / overlay-click return keyboard focus to the button
+			// that opened the dialog. Without this, keyboard users land on
+			// <body> after dismissal and have to Tab back through the page.
+			this.saveFocus();
 			const $title = $('#sscribe-confirm-title');
 			const $desc = $('#sscribe-confirm-desc');
 			const $body = $('#sscribe-confirm-body');
@@ -2417,6 +2443,7 @@
 			const cancel = function () {
 				$modal.addClass('sscribe-hidden').attr('aria-hidden', 'true').prop('hidden', true);
 				self.releaseFocusTrap($modal[0]);
+				self.restoreFocus();
 				if (typeof opts.onCancel === 'function') {
 					opts.onCancel();
 				}
@@ -2424,6 +2451,7 @@
 			const proceed = function () {
 				$modal.addClass('sscribe-hidden').attr('aria-hidden', 'true').prop('hidden', true);
 				self.releaseFocusTrap($modal[0]);
+				self.restoreFocus();
 				opts.onProceed();
 			};
 			$proceed.off('click.sscribe-confirm').one('click.sscribe-confirm', function (e) {
@@ -2912,11 +2940,11 @@
 				html += '<h4>' + this.escapeHtml(strings.log_page_details || 'Page Details') + '</h4>';
 				html += '<table class="sscribe-log-table">';
 				html += '<thead><tr>';
-				html += '<th>' + this.escapeHtml(strings.log_col_id || 'ID') + '</th>';
-				html += '<th>' + this.escapeHtml(strings.log_col_title || 'Title') + '</th>';
-				html += '<th>' + this.escapeHtml(strings.log_col_status || 'Status') + '</th>';
-				html += '<th>' + this.escapeHtml(strings.log_col_time || 'Time') + '</th>';
-				html += '<th>' + this.escapeHtml(strings.log_col_formats || 'Formats') + '</th>';
+				html += '<th scope="col">' + this.escapeHtml(strings.log_col_id || 'ID') + '</th>';
+				html += '<th scope="col">' + this.escapeHtml(strings.log_col_title || 'Title') + '</th>';
+				html += '<th scope="col">' + this.escapeHtml(strings.log_col_status || 'Status') + '</th>';
+				html += '<th scope="col">' + this.escapeHtml(strings.log_col_time || 'Time') + '</th>';
+				html += '<th scope="col">' + this.escapeHtml(strings.log_col_formats || 'Formats') + '</th>';
 				html += '</tr></thead><tbody>';
 				pages.forEach(
 					function (page) {
@@ -3046,6 +3074,12 @@
 				progressBar.setAttribute('aria-valuetext', '');
 				progressBar.setAttribute('aria-valuenow', '0');
 			}
+			// Clear aria-busy on the export buttons whenever the busy
+			// state ends. WCAG 1.3.1 / 4.1.3 — the screen-reader signal
+			// must be cleared in lockstep with the disabled/visual state.
+			$('#sscribe-export-btn, #sscribe-preview-btn')
+				.removeClass('sscribe-btn-busy')
+				.removeAttr('aria-busy');
 			this.isProcessing = false;
 			this.sessionId = null;
 			this.batchRetries = 0;
@@ -3151,10 +3185,10 @@
 			let diagnosticInfo = null;
 			if (errorData) {
 				diagnosticInfo = this.normalizeErrorData(errorData);
-				if (diagnosticInfo && window.console) {
+				if (diagnosticInfo && window.console && typeof window.SSCRIBE_DEBUG !== 'undefined' && window.SSCRIBE_DEBUG) {
 					console.log('[SSCRIBE] Server diagnostics for this error:', diagnosticInfo);
 				}
-				if (diagnosticInfo.code) {
+				if (diagnosticInfo && diagnosticInfo.code) {
 					displayMessage = '[' + diagnosticInfo.code + '] ' + message;
 				}
 				if (diagnosticInfo.guidance) {
