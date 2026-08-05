@@ -355,6 +355,21 @@ class SScribe_Page_Collector {
 	}
 
 	/**
+	 * Prime the SEO postmeta cache for a batch of page IDs.
+	 *
+	 * Pass-through to SScribe_SEO_Reader::prime_meta_cache() so the
+	 * batch processor can warm the cache through the same collector
+	 * collaborator that already owns get_featured_images_batch() and
+	 * get_child_pages_batch().
+	 *
+	 * @param int[] $page_ids Page IDs in the current batch.
+	 * @return void
+	 */
+	public function prime_seo_meta_cache( array $page_ids ): void {
+		$this->seo_reader->prime_meta_cache( $page_ids );
+	}
+
+	/**
 	 * Get featured images for a batch of page IDs.
 	 *
 	 * @param array<int> $page_ids Page IDs.
