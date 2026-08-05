@@ -36,7 +36,7 @@ class SScribe_Exporter_Factory {
 	 *
 	 * @return void
 	 */
-	private static function ensure_vendor_loaded(): void {
+	public static function ensure_vendor_loaded(): void {
 		if ( self::$vendor_loaded ) {
 			return;
 		}
