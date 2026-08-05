@@ -73,7 +73,7 @@ function sscribe_check_ai_artifacts_main(): int {
 	$skip_dirs = array(
 		'vendor', 'vendor-prefixed', 'node_modules', 'tests', 'stubs',
 		'scripts', 'docs', '.github', 'dist', 'build', 'coverage',
-		'.cache', '.phpunit.cache', '.playwright-mcp', '.opencode',
+		'.cache', '.phpunit.cache', '.playwright-mcp', '.opencode', '.impeccable',
 		'.aider', '.claude', '.cursor', '.windsurf', '.continue',
 		'.codeium', '.idea', '.vscode', 'screenshots',
 	);
