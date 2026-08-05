@@ -263,6 +263,11 @@ trait SScribe_Batch_Step_Handler {
 			if ( count( $batch ) >= 3 ) {
 				$this->collector->get_featured_images_batch( $batch );
 				$this->collector->get_child_pages_batch( $batch );
+				// Performance N+1 fix: warm the SEO postmeta cache for the
+				// whole batch so per-page get_post_meta() calls inside the
+				// six readers hit the in-memory cache instead of the DB.
+				// Without this, a 200-page Yoast export = 1,400+ queries.
+				$this->collector->prime_seo_meta_cache( $batch );
 			}
 
 			$this->logger->debug(

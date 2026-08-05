@@ -46,6 +46,18 @@ class SScribe_Admin_Debug {
 	private const MAX_FETCH_LINES = 5000;
 
 	/**
+	 * Hard ceiling on rotated log file size we will open for paginated reads.
+	 *
+	 * Files above this size are still listed in the rotated-logs tab (sizes
+	 * use only stat()/filesize()), but the contents endpoint refuses with
+	 * 413 Payload Too Large and instructs the user to download the file
+	 * instead. 100MB is the same ceiling mPDF uses for its own chunked
+	 * resource reads, and is generous given the 2MB MAX_LOG_FILE_SIZE cap
+	 * the logger enforces per-rotation.
+	 */
+	private const MAX_ROTATED_LOG_BYTES = 100 * 1024 * 1024;
+
+	/**
 	 * Get required capability for debug actions.
 	 *
 	 * @return string
@@ -533,8 +545,60 @@ class SScribe_Admin_Debug {
 			return;
 		}
 
-		$content = file_get_contents( $file_path ); // phpcs:ignore WordPress.WP.AlternativeFunctions.file_get_contents_file_get_contents -- Reading local rotated log file.
-		if ( false === $content ) {
+		$file_size = filesize( $real_file_path );
+		if ( false === $file_size ) {
+			wp_send_json_error(
+				array(
+					'message' => __( 'Unable to stat file.', 'sscribe-export-site-pages' ),
+					'nonce'   => wp_create_nonce( 'sscribe_export_nonce' ),
+				),
+				500
+			);
+			return;
+		}
+
+		// Hard ceiling on bytes we will open for paginated reads.
+		// Rotated logs are bounded by MAX_LOG_FILE_SIZE (2MB) at the
+		// logger, so anything over 100MB here means manual files were
+		// dropped into the directory — refuse rather than OOM.
+		if ( $file_size > self::MAX_ROTATED_LOG_BYTES ) {
+			wp_send_json_error(
+				array(
+					/* translators: %s: file size in MB */
+					'message' => sprintf( __( 'Rotated log is %s MB which exceeds the 100 MB read ceiling. Download it instead of paginating.', 'sscribe-export-site-pages' ), (string) (int) ( $file_size / ( 1024 * 1024 ) ) ),
+					'nonce'   => wp_create_nonce( 'sscribe_export_nonce' ),
+				),
+				413
+			);
+			return;
+		}
+
+		// Bounded seek-then-read pattern: only the requested slice lives
+		// in memory. This is the same pattern SScribe_Logger::get_logs()
+		// uses for the active log tail (class-sscribe-logger.php:339).
+		try {
+			$file = new SplFileObject( $real_file_path, 'r' );
+			$file->seek( PHP_INT_MAX );
+			$total_lines = $file->key();
+
+			$effective_offset = $offset;
+			if ( $effective_offset >= $total_lines ) {
+				$effective_offset = max( 0, $total_lines - 1 );
+			}
+
+			$file->seek( $effective_offset );
+			$raw_lines = array();
+			$read      = 0;
+			while ( $read < $limit && ! $file->eof() ) {
+				$line = $file->current();
+				$file->next();
+				if ( false !== $line && '' !== trim( $line ) ) {
+					$raw_lines[] = rtrim( $line, "\r\n" );
+				}
+				++$read;
+			}
+			unset( $file );
+		} catch ( Exception $e ) {
 			wp_send_json_error(
 				array(
 					'message' => __( 'Failed to read file.', 'sscribe-export-site-pages' ),
@@ -545,19 +609,12 @@ class SScribe_Admin_Debug {
 			return;
 		}
 
-		$lines   = explode( PHP_EOL, $content );
-		$entries = $this->parse_log_entries( $lines, 'ALL', '', '', false );
-		$count   = count( $entries );
-
-		$effective_offset = $offset;
-		if ( $effective_offset >= $count ) {
-			$effective_offset = max( 0, $count - 1 );
-		}
+		$entries = $this->parse_log_entries( $raw_lines, 'ALL', '', '', false );
 
 		wp_send_json_success(
 			array(
-				'entries'          => array_slice( $entries, $effective_offset, $limit ),
-				'count'            => $count,
+				'entries'          => $entries,
+				'count'            => $total_lines,
 				'effective_offset' => $effective_offset,
 			)
 		);
