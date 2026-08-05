@@ -201,6 +201,7 @@
 				self.saveSettings(self.isAutoRefresh);
 			});
 			this.$enabled.on('change.sscribe', function () {
+				self.$enabled.attr('aria-checked', self.$enabled.is(':checked') ? 'true' : 'false');
 				self.markSettingsDirty();
 			});
 			this.$level.on('change.sscribe', function () {
@@ -1741,9 +1742,11 @@
  if (!$root.length) return;
 
  // ---- FIX 1: INJECT "SEARCH LOGS:" LABEL ----
- // The search input (#sscribe-debug-search) has no visible label above it.
- // FILTER: and SESSION ID: have visible uppercase labels.
- // We inject one if it hasn't been injected already.
+ // The search input (#sscribe-debug-search) has a screen-reader-text
+ // <label> that screen readers announce as "Search logs:". The sighted
+ // user needs a visible label to match the FILTER: / SESSION ID: pattern.
+ // We inject one labelled visually but kept out of the a11y tree so the
+ // SR-only label remains the canonical accessible name.
  var $searchInput = $root.find('#sscribe-debug-search');
  if ($searchInput.length && !$searchInput.prev('.ss-injected-label').length) {
  $searchInput.before(

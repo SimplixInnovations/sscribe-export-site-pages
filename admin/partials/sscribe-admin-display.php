@@ -60,10 +60,6 @@ $sscribe_preflight_warnings = $sscribe_preflight_warnings ?? array();
 		</div>
 	</header>
 
-	<a href="#sscribe-main-content" class="sscribe-skip-link screen-reader-text">
-		<?php esc_html_e( 'Skip to main content', 'sscribe-export-site-pages' ); ?>
-	</a>
-
 	<div id="sscribe-live-region" class="screen-reader-text" aria-live="polite" aria-atomic="true"></div>
 	<div id="sscribe-alert-region" class="screen-reader-text" aria-live="assertive" aria-atomic="true"></div>
 
@@ -90,6 +86,7 @@ $sscribe_preflight_warnings = $sscribe_preflight_warnings ?? array();
 	</div>
 
 	<div class="sscribe-workspace sscribe-flat-workspace" id="sscribe-main-content" role="main">
+		<div id="sscribe-tab-announce" aria-live="polite" aria-atomic="true"></div>
 		<nav class="sscribe-tabs-nav" role="tablist" aria-label="<?php esc_attr_e( 'Main Navigation', 'sscribe-export-site-pages' ); ?>" aria-orientation="horizontal">
 			<button type="button" class="sscribe-tab-btn sscribe-tab-active" id="sscribe-tab-btn-export" data-tab="export" role="tab" aria-selected="true" aria-controls="sscribe-tab-export">
 				<?php
@@ -542,9 +539,9 @@ $sscribe_preflight_warnings = $sscribe_preflight_warnings ?? array();
 						<span class="sscribe-summary-sep" aria-hidden="true">·</span>
 						<span class="sscribe-summary-chip sscribe-summary-format" id="sscribe-summary-format"><?php esc_html_e( 'All formats', 'sscribe-export-site-pages' ); ?></span>
 						<span class="sscribe-summary-divider" aria-hidden="true"></span>
-						<span class="sscribe-summary-chip sscribe-summary-pages" id="sscribe-summary-pages">:</span>
+						<span class="sscribe-summary-chip sscribe-summary-pages" id="sscribe-summary-pages" aria-label="<?php esc_attr_e( 'Page count not yet available', 'sscribe-export-site-pages' ); ?>">:</span>
 						<span class="sscribe-summary-sep" aria-hidden="true">·</span>
-						<span class="sscribe-summary-chip sscribe-summary-time" id="sscribe-summary-time"><?php esc_html_e( 'Run Preview for ETA', 'sscribe-export-site-pages' ); ?></span>
+						<span class="sscribe-summary-chip sscribe-summary-time" id="sscribe-summary-time" aria-label="<?php esc_attr_e( 'Estimated time not yet available. Run Preview to compute.', 'sscribe-export-site-pages' ); ?>"><?php esc_html_e( 'Run Preview for ETA', 'sscribe-export-site-pages' ); ?></span>
 					</div>
 					<div class="sscribe-export-bar-actions">
 						<button type="button" id="sscribe-preview-btn" class="sscribe-button sscribe-button-outline sscribe-btn-sm" disabled aria-describedby="sscribe-preview-btn-hint" title="<?php esc_attr_e( 'Ctrl+Shift+P (Cmd+Shift+P on Mac)', 'sscribe-export-site-pages' ); ?>">
@@ -631,7 +628,7 @@ $sscribe_preflight_warnings = $sscribe_preflight_warnings ?? array();
 				<h4 id="sscribe-status-text" class="sscribe-status-heading">
 					<?php esc_html_e( 'Reading pages from WordPress...', 'sscribe-export-site-pages' ); ?>
 				</h4>
-				<p id="sscribe-current-page" class="sscribe-current-page" aria-live="polite"></p>
+				<p id="sscribe-current-page" class="sscribe-current-page"></p>
 				<div class="sscribe-progress-tracker">
 					<div class="sscribe-progress-bar-container">
 						<div id="sscribe-progress-bar" class="sscribe-progress-bar-fill"
@@ -644,7 +641,7 @@ $sscribe_preflight_warnings = $sscribe_preflight_warnings ?? array();
 					<span id="sscribe-progress-text" class="sscribe-progress-percentage">0%</span>
 				</div>
 				<div class="sscribe-progress-meta">
-					<span id="sscribe-time-remaining" class="sscribe-time-remaining" aria-live="polite"></span>
+					<span id="sscribe-time-remaining" class="sscribe-time-remaining"></span>
 				</div>
 				<div class="sscribe-progress-actions">
 					<button type="button" id="sscribe-cancel-btn" class="sscribe-button sscribe-button-cancel" aria-describedby="sscribe-cancel-hint">
@@ -952,7 +949,7 @@ $sscribe_preflight_warnings = $sscribe_preflight_warnings ?? array();
 				<span class="sscribe-modal-icon"><?php echo wp_kses_post( SScribe_Helpers::get_icon_inline( 'file-log', 16 ) ); ?></span>
 				<?php esc_html_e( 'Export Log', 'sscribe-export-site-pages' ); ?>
 			</h3>
-			<button type="button" class="sscribe-modal-close" id="sscribe-modal-close" aria-label="<?php echo esc_attr__( 'Close modal', 'sscribe-export-site-pages' ); ?>">
+			<button type="button" class="sscribe-modal-close" id="sscribe-modal-close" aria-label="<?php esc_attr_e( 'Close modal', 'sscribe-export-site-pages' ); ?>">
 				<span aria-hidden="true">&times;</span>
 			</button>
 		</div>
