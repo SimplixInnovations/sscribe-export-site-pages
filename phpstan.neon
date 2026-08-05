@@ -71,6 +71,7 @@ parameters:
         - '#Ternary operator condition is always false\.#'
         - '#Left side of && is always false\.#'
         - '#Right side of && is always false\.#'
+        - '#Result of && is always false\.#'
         - '#Left side of \|\| is always false\.#'
         # Dead code after debug guard is intentional — the code runs when SSCRIBE_DEBUG=true at runtime.
         - '#Unreachable statement - code above always terminates\.#'

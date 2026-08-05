@@ -183,6 +183,11 @@ $config = array(
 		'vendor-prefixed/setasign/fpdi/src/TcpdfFpdi.php',
 		'vendor-prefixed/setasign/fpdi/src/Tfpdf',
 		'vendor-prefixed/setasign/fpdi/src/Tcpdf',
+		// FpdfTrait is dead weight: never `use`d anywhere in the codebase
+		// (verified by grep), only autoloadable. Removing it shrinks the
+		// shipped ZIP without affecting any production code path.
+		// Memory: FPDI/FPDF parent landmine.
+		'vendor-prefixed/setasign/fpdi/src/FpdfTrait.php',
 	),
 
 	'show_excluded'    => true,
