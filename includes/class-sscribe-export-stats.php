@@ -48,7 +48,7 @@ class SScribe_Export_Stats {
 		global $wpdb;
 
 		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- Custom table write, no caching for stats integrity
-		return false !== $wpdb->insert(
+		$result = $wpdb->insert(
 			$this->table_name,
 			array(
 				'export_session_id' => $session_id,
@@ -60,6 +60,8 @@ class SScribe_Export_Stats {
 			),
 			array( '%s', '%d', '%s', '%d', '%s', '%s' )
 		);
+		$this->invalidate_stats_cache();
+		return false !== $result;
 	}
 
 	/**
@@ -74,7 +76,7 @@ class SScribe_Export_Stats {
 		global $wpdb;
 
 		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- Custom table write
-		return false !== $wpdb->update(
+		$result = $wpdb->update(
 			$this->table_name,
 			array(
 				'successful_pages' => $successful_pages,
@@ -84,6 +86,8 @@ class SScribe_Export_Stats {
 			array( '%d', '%d' ),
 			array( '%s' )
 		);
+		$this->invalidate_stats_cache();
+		return false !== $result;
 	}
 
 	/**
@@ -106,13 +110,15 @@ class SScribe_Export_Stats {
 		);
 
 		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- Custom table write
-		return false !== $wpdb->update(
+		$result = $wpdb->update(
 			$this->table_name,
 			$data,
 			array( 'export_session_id' => $session_id ),
 			array( '%s', '%d', '%d', '%s', '%f', '%f' ),
 			array( '%s' )
 		);
+		$this->invalidate_stats_cache();
+		return false !== $result;
 	}
 
 	/**
@@ -126,7 +132,7 @@ class SScribe_Export_Stats {
 		global $wpdb;
 
 		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- Custom table write
-		return false !== $wpdb->update(
+		$result = $wpdb->update(
 			$this->table_name,
 			array(
 				'status'        => 'failed',
@@ -136,6 +142,8 @@ class SScribe_Export_Stats {
 			array( '%s', '%s' ),
 			array( '%s' )
 		);
+		$this->invalidate_stats_cache();
+		return false !== $result;
 	}
 
 	/**
@@ -145,9 +153,21 @@ class SScribe_Export_Stats {
 	 * @return array
 	 */
 	public function get_stats( string $period = 'month' ): array {
+		// Object-cache wrap. Aggregating here fans out to 8 separate
+		// aggregate queries which, on a busy install, can sum to ~50ms
+		// per page render. Period changes (today/week/month/year) are
+		// bucketed into separate cache keys. The 5-minute TTL is well
+		// below the granularity users care about for stats, and the
+		// write methods invalidate the cache on every change below.
+		$cache_key = 'sscribe_stats_' . $period;
+		$cached    = wp_cache_get( $cache_key, 'sscribe_export_stats' );
+		if ( false !== $cached && is_array( $cached ) ) {
+			return $cached;
+		}
+
 		$date_from = $this->get_period_start( $period );
 
-		return array(
+		$stats = array(
 			'total_exports'      => $this->get_total_exports( $date_from ),
 			'successful_exports' => $this->get_successful_exports( $date_from ),
 			'failed_exports'     => $this->get_failed_exports( $date_from ),
@@ -157,6 +177,22 @@ class SScribe_Export_Stats {
 			'format_breakdown'   => $this->get_format_breakdown( $date_from ),
 			'daily_exports'      => $this->get_daily_exports( $date_from ),
 		);
+
+		wp_cache_set( $cache_key, $stats, 'sscribe_export_stats', 5 * MINUTE_IN_SECONDS );
+
+		return $stats;
+	}
+
+	/**
+	 * Invalidate every cached stats aggregate.
+	 *
+	 * Called by every write path so the next read recomputes from the
+	 * underlying table. Cheap on the no-object-cache path (no-op).
+	 */
+	private function invalidate_stats_cache(): void {
+		foreach ( array( 'today', 'week', 'month', 'year' ) as $period ) {
+			wp_cache_delete( 'sscribe_stats_' . $period, 'sscribe_export_stats' );
+		}
 	}
 
 	/**
@@ -434,6 +470,7 @@ class SScribe_Export_Stats {
 			array( '%d', '%s' ),
 			array( '%d' )
 		);
+		$this->invalidate_stats_cache();
 
 		return false === $result ? 0 : (int) $result;
 	}
@@ -450,12 +487,15 @@ class SScribe_Export_Stats {
 		$cutoff = gmdate( 'Y-m-d H:i:s', strtotime( "-{$days} days" ) );
 
 		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
-		return $wpdb->query(
+		$result = $wpdb->query(
 			$wpdb->prepare(
 			// phpcs:ignore WordPress.DB.PreparedSQL.NotPrepared
 				'DELETE FROM ' . $this->table_name . ' WHERE export_date < %s',
 				$cutoff
 			)
 		);
+		$this->invalidate_stats_cache();
+
+		return $result;
 	}
 }

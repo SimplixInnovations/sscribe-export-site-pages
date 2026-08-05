@@ -19,6 +19,48 @@ if ( ! defined( 'ABSPATH' ) ) {
 class SScribe_Exporter_Factory {
 
 	/**
+	 * Guard so we only attempt to bootstrap the vendor autoloader once
+	 * per request, regardless of how many times create()/is_supported()
+	 * get called.
+	 *
+	 * @var bool
+	 */
+	private static bool $vendor_loaded = false;
+
+	/**
+	 * Lazy-load the prefixed vendor autoloader the first time any
+	 * exporter path is exercised. The main plugin file no longer
+	 * require_onces vendor-prefixed/autoload.php at boot, so frontend
+	 * and admin-only page loads (e.g. settings screens, list tables)
+	 * do not pay the cost of parsing PhpWord/mPDF/CommonMark classes.
+	 *
+	 * @return void
+	 */
+	private static function ensure_vendor_loaded(): void {
+		if ( self::$vendor_loaded ) {
+			return;
+		}
+		self::$vendor_loaded = true;
+
+		if ( defined( 'SSCRIBE_VENDOR_AUTOLOADED' ) ) {
+			return;
+		}
+
+		if ( file_exists( SSCRIBE_PLUGIN_DIR . 'vendor-prefixed/autoload.php' ) ) {
+			require_once SSCRIBE_PLUGIN_DIR . 'vendor-prefixed/autoload.php';
+			require_once SSCRIBE_PLUGIN_DIR . 'includes/sscribe-prefixed-runtime-shim.php';
+			define( 'SSCRIBE_VENDOR_AUTOLOADED', true );
+			return;
+		}
+
+		if ( file_exists( SSCRIBE_PLUGIN_DIR . 'vendor/autoload.php' ) ) {
+			require_once SSCRIBE_PLUGIN_DIR . 'vendor/autoload.php';
+			require_once SSCRIBE_PLUGIN_DIR . 'includes/sscribe-vendor-compat.php';
+			define( 'SSCRIBE_VENDOR_AUTOLOADED', true );
+		}
+	}
+
+	/**
 	 * Validate and resolve export format enum.
 	 *
 	 * @param string $format Format string.
@@ -48,6 +90,7 @@ class SScribe_Exporter_Factory {
 	 * @throws SScribe_Validation_Exception If format is invalid.
 	 */
 	public static function create( string $format ): SScribe_Exporter_Interface {
+		self::ensure_vendor_loaded();
 		$enum_format = self::validate_format( $format );
 
 		$container = SScribe_Container::instance();
