@@ -809,13 +809,22 @@ class SScribe_Admin {
 
 			foreach ( $languages as $lang ) {
 				$lang_code = $lang['code'];
+
+				// get_post_status_counts() returns a single GROUP BY
+				// post_status query result that already contains the
+				// 'publish' count. Reading it again from
+				// get_page_count_only() is a redundant per-language
+				// query (N+1 across WPML languages). Derive the
+				// published count from the same array we just got.
+				$status_breakdown = $this->collector->get_post_status_counts( $lang_code );
+
 				$sscribe_debug_info['language_details'][ $lang_code ] = array(
 					'name'             => $lang['name'],
 					'page_count'       => $lang['page_count'] ?? 0,
-					'status_breakdown' => $this->collector->get_post_status_counts( $lang_code ),
+					'status_breakdown' => $status_breakdown,
+					'published_count'  => isset( $status_breakdown['publish'] ) ? (int) $status_breakdown['publish'] : 0,
 				);
 
-				$sscribe_debug_info['language_details'][ $lang_code ]['published_count'] = $this->collector->get_page_count_only( $lang_code, 'publish' );
 				$page_ids = $this->collector->get_page_ids( $lang_code, 'publish', 'page', 50 );
 				$sscribe_debug_info['language_details'][ $lang_code ]['published_page_ids'] = $page_ids;
 				$all_page_ids_by_lang[ $lang_code ] = $page_ids;

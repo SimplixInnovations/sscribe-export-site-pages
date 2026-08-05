@@ -358,7 +358,14 @@ class SScribe_Export_Log {
 		if ( ! empty( $data['zip_file'] ) ) {
 			$index_key = 'sscribe_zip_index_' . md5( $data['zip_file'] );
 
+			// Persist the index in all three layers (object cache,
+			// transient, option) so the read path can short-circuit
+			// the glob() scan regardless of which cache layer is
+			// available. Without this, hosts without an object cache
+			// fall through to glob() on every log lookup until the
+			// read site lazily populates the transient.
 			wp_cache_set( $index_key, $this->session_id, 'sscribe_zip_index', 30 * DAY_IN_SECONDS );
+			set_transient( $index_key, $this->session_id, 30 * DAY_IN_SECONDS );
 
 			update_option( 'sscribe_log_zip_' . md5( $data['zip_file'] ), $this->session_id, false );
 		}

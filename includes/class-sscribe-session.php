@@ -50,6 +50,126 @@ class SScribe_Session {
 	private static bool $test_mode = false;
 
 	/**
+	 * Cache group used for per-user active-session-id lookups so the
+	 * hot path can avoid a wp_options table hit on every AJAX poll.
+	 *
+	 * The persistent layer remains the `sscribe_active_sid_<uid>`
+	 * transient (which survives across requests and is consulted by
+	 * `get_active_session_data()` on cache misses). The object cache
+	 * is a per-request short-circuit; expiry matches the transient.
+	 *
+	 * @var string
+	 */
+	private const ACTIVE_SID_CACHE_GROUP = 'sscribe_active_sid';
+
+	/**
+	 * Read the per-user active-session transient, short-circuiting via
+	 * the object cache when present.
+	 *
+	 * @param int $user_id User ID.
+	 * @return mixed|false Transient value (string sid or '0' marker), or
+	 *                      false if not cached.
+	 */
+	private function get_active_sid_transient( int $user_id ) {
+		$cache_key  = 'sscribe_active_sid_' . $user_id;
+		$obj_key    = $cache_key;
+		$obj_cached = wp_cache_get( $obj_key, self::ACTIVE_SID_CACHE_GROUP );
+		if ( false !== $obj_cached ) {
+			return $obj_cached;
+		}
+
+		$value = get_transient( $cache_key );
+		wp_cache_set( $obj_key, $value, self::ACTIVE_SID_CACHE_GROUP, MINUTE_IN_SECONDS );
+		return $value;
+	}
+
+	/**
+	 * Write-through for the per-user active-session transient.
+	 *
+	 * Populates both layers (transient + object cache) so that the
+	 * next read in the same request short-circuits via the object
+	 * cache and doesn't re-touch wp_options.
+	 *
+	 * @param int    $user_id    User ID.
+	 * @param string $session_id Session id (or '0' marker).
+	 * @param int    $expiration Expiration in seconds.
+	 * @return void
+	 */
+	private function set_active_sid_transient( int $user_id, string $session_id, int $expiration ): void {
+		$cache_key = 'sscribe_active_sid_' . $user_id;
+		set_transient( $cache_key, $session_id, $expiration );
+		wp_cache_set( $cache_key, $session_id, self::ACTIVE_SID_CACHE_GROUP, min( $expiration, MINUTE_IN_SECONDS ) );
+	}
+
+	/**
+	 * Invalidate both cache layers for the per-user active-session
+	 * marker.
+	 *
+	 * @param int $user_id User ID.
+	 * @return void
+	 */
+	private function delete_active_sid_transient( int $user_id ): void {
+		$cache_key = 'sscribe_active_sid_' . $user_id;
+		wp_cache_delete( $cache_key, self::ACTIVE_SID_CACHE_GROUP );
+		delete_transient( $cache_key );
+	}
+
+	/**
+	 * Cache group for the LIKE-scanned session-options index.
+	 *
+	 * The LIKE scan in `get_active_session_data()` walks every
+	 * session option in `wp_options` to restore the user's active
+	 * session when the per-user transient is cold. Caching the scan
+	 * result for one minute via the object cache absorbs repeated
+	 * polls from the same user (or batch admin page loads).
+	 *
+	 * @var string
+	 */
+	private const SESSION_INDEX_CACHE_GROUP = 'sscribe_session_index';
+
+	/**
+	 * Invalidate the LIKE-scan session index in both object cache and
+	 * transient layers. Called whenever a session option is created,
+	 * updated, or deleted.
+	 *
+	 * @return void
+	 */
+	private function invalidate_session_index(): void {
+		wp_cache_delete( 'sscribe_session_options_index', self::SESSION_INDEX_CACHE_GROUP );
+		delete_transient( 'sscribe_session_options_index' );
+	}
+
+	/**
+	 * Run the LIKE scan over session options, cached in object cache
+	 * for the lifetime of the request (and beyond when a persistent
+	 * object cache is present).
+	 *
+	 * @return array<int, object> List of option rows (option_name, option_value).
+	 */
+	private function load_session_options_index(): array {
+		$cached = wp_cache_get( 'sscribe_session_options_index', self::SESSION_INDEX_CACHE_GROUP );
+		if ( is_array( $cached ) ) {
+			return $cached;
+		}
+
+		global $wpdb;
+
+		$pattern = $wpdb->esc_like( $this->option_prefix ) . '%';
+
+		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- Scanned index is itself the cache for this hot read path.
+		$rows = $wpdb->get_results(
+			$wpdb->prepare(
+				"SELECT option_name, option_value FROM {$wpdb->options} WHERE option_name LIKE %s AND autoload = 'no'",
+				$pattern
+			)
+		);
+
+		$rows = is_array( $rows ) ? $rows : array();
+		wp_cache_set( 'sscribe_session_options_index', $rows, self::SESSION_INDEX_CACHE_GROUP, MINUTE_IN_SECONDS );
+		return $rows;
+	}
+
+	/**
 	 * Logger instance.
 	 *
 	 * @var SScribe_Logger_Interface
@@ -203,14 +323,18 @@ class SScribe_Session {
 
 			$encrypted_data = self::$test_mode ? $encoded_data : $this->encrypt_session_data( $encoded_data );
 			$result = add_option( $option_name, $encrypted_data, '', 'no' );
+			if ( $result ) {
+				$this->invalidate_session_index();
+			}
 
 			if ( $result ) {
 
 				if ( isset( $data['user_id'] ) ) {
 
-					set_transient( 'sscribe_active_sid_' . $data['user_id'], $session_id, DAY_IN_SECONDS );
+					$active_sid_user_id = (int) $data['user_id'];
+					$this->set_active_sid_transient( $active_sid_user_id, $session_id, DAY_IN_SECONDS );
 
-					if ( get_transient( 'sscribe_active_sid_' . $data['user_id'] ) !== $session_id ) {
+					if ( $this->get_active_sid_transient( $active_sid_user_id ) !== $session_id ) {
 						$this->logger->error(
 							'Active-session transient verification failed : rolling back',
 							array(
@@ -473,13 +597,14 @@ class SScribe_Session {
 			for ( $attempt = 1; $attempt <= 2; ++$attempt ) {
 				$encrypted_data = $this->encrypt_session_data( $encoded_data );
 				if ( update_option( $option_name, $encrypted_data, false ) ) {
+					$this->invalidate_session_index();
 
 					if ( isset( $merged['user_id'] ) && isset( $merged['status'] ) && in_array( $merged['status'], array( 'complete', 'failed', 'cancelled' ), true ) ) {
 						unset( self::$active_session_cache[ (int) $merged['user_id'] ] );
-						delete_transient( 'sscribe_active_sid_' . (int) $merged['user_id'] );
+						$this->delete_active_sid_transient( (int) $merged['user_id'] );
 					} elseif ( isset( $merged['user_id'] ) ) {
 
-						set_transient( 'sscribe_active_sid_' . (int) $merged['user_id'], $session_id, DAY_IN_SECONDS );
+						$this->set_active_sid_transient( (int) $merged['user_id'], $session_id, DAY_IN_SECONDS );
 					}
 					return true;
 				}
@@ -532,12 +657,16 @@ class SScribe_Session {
 
 		$data = $this->get( $session_id );
 		if ( is_array( $data ) && isset( $data['user_id'] ) ) {
-			delete_transient( 'sscribe_active_sid_' . $data['user_id'] );
+			$this->delete_active_sid_transient( (int) $data['user_id'] );
 			unset( self::$active_session_cache[ (int) $data['user_id'] ] );
 		}
 
 		$this->delete_page_ids( $session_id );
-		return delete_option( $option_name );
+		$deleted = delete_option( $option_name );
+		if ( $deleted ) {
+			$this->invalidate_session_index();
+		}
+		return $deleted;
 	}
 
 	/**
@@ -732,7 +861,7 @@ class SScribe_Session {
 					if ( delete_option( $option->option_name ) ) {
 
 						if ( isset( $data['user_id'] ) ) {
-							delete_transient( 'sscribe_active_sid_' . (int) $data['user_id'] );
+							$this->delete_active_sid_transient( (int) $data['user_id'] );
 							unset( self::$active_session_cache[ (int) $data['user_id'] ] );
 						}
 						++$deleted;
@@ -785,7 +914,7 @@ class SScribe_Session {
 			}
 		}
 
-		delete_transient( 'sscribe_active_sid_' . $user_id );
+		$this->delete_active_sid_transient( $user_id );
 		unset( self::$active_session_cache[ $user_id ] );
 
 		return $deleted;
@@ -893,10 +1022,8 @@ class SScribe_Session {
 	 * @return array|null Session data array or null if no active session.
 	 */
 	public function get_active_session_data( int $user_id ): ?array {
-		global $wpdb;
-
 		$cache_key  = 'sscribe_active_sid_' . $user_id;
-		$cached_sid = get_transient( $cache_key );
+		$cached_sid = $this->get_active_sid_transient( $user_id );
 
 		if ( false !== $cached_sid && is_string( $cached_sid ) && '0' !== $cached_sid ) {
 			$saved_sid = $cached_sid;
@@ -907,18 +1034,10 @@ class SScribe_Session {
 				return $data;
 			}
 
-			delete_transient( $cache_key );
+			$this->delete_active_sid_transient( $user_id );
 		}
 
-		$pattern = $wpdb->esc_like( $this->option_prefix ) . '%';
-
-		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- Lightweight check for active session restoration.
-		$options = $wpdb->get_results(
-			$wpdb->prepare(
-				"SELECT option_name, option_value FROM {$wpdb->options} WHERE option_name LIKE %s AND autoload = 'no'",
-				$pattern
-			)
-		);
+		$options = $this->load_session_options_index();
 
 		foreach ( $options as $option ) {
 			$session_id = str_replace( $this->option_prefix, '', $option->option_name );
@@ -932,7 +1051,7 @@ class SScribe_Session {
 				if ( $this->is_active_session_data( $data ) ) {
 					$sid = $data['session_id'] ?? '';
 					if ( '' !== $sid ) {
-						set_transient( $cache_key, $sid, 5 );
+						$this->set_active_sid_transient( $user_id, $sid, 5 );
 					}
 					$data['option_name'] = $option->option_name;
 					return $data;
@@ -940,7 +1059,7 @@ class SScribe_Session {
 			}
 		}
 
-		set_transient( $cache_key, '0', 5 );
+		$this->set_active_sid_transient( $user_id, '0', 5 );
 
 		return null;
 	}
@@ -957,7 +1076,7 @@ class SScribe_Session {
 		}
 
 		$cache_key = 'sscribe_active_sid_' . $user_id;
-		$cached    = get_transient( $cache_key );
+		$cached    = $this->get_active_sid_transient( $user_id );
 		if ( false !== $cached ) {
 			if ( '0' === $cached ) {
 				self::$active_session_cache[ $user_id ] = false;
@@ -970,7 +1089,7 @@ class SScribe_Session {
 				return true;
 			}
 
-			delete_transient( $cache_key );
+			$this->delete_active_sid_transient( $user_id );
 			self::$active_session_cache[ $user_id ] = false;
 		}
 
@@ -1178,6 +1297,7 @@ class SScribe_Session {
 			);
 			return null;
 		}
+		$this->invalidate_session_index();
 
 		$this->logger->debug(
 			'Migrated legacy serialized session to encrypted JSON storage',
