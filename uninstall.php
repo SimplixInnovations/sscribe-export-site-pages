@@ -3,6 +3,8 @@
  * SScribe Uninstaller
  *
  * @package SScribe_Export_Site_Pages
+ * @license GPL v2 or later
+ * @link    https://www.gnu.org/licenses/gpl-2.0.html
  */
 
 declare(strict_types=1);
@@ -135,7 +137,6 @@ $sscribe_cleanup_site = static function (): void {
 	$sscribe_dirs       = array(
 		$sscribe_upload_dir['basedir'] . '/sscribe-exports',
 		$sscribe_upload_dir['basedir'] . '/sscribe-exports/logs',
-		$sscribe_upload_dir['basedir'] . '/sscribe-logs',
 		$sscribe_upload_dir['basedir'] . '/sscribe/mpdf-tmp',
 	);
 	foreach ( $sscribe_dirs as $dir_path ) {

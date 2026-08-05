@@ -3,6 +3,10 @@
  * Prefixed runtime shim : keeps third-party mPDF / PHPWord callsites
  * working under the release ZIP's SScribeVendor\* namespace.
  *
+ * @package SScribe_Export_Site_Pages
+ * @license GPL v2 or later
+ * @link    https://www.gnu.org/licenses/gpl-2.0.html
+ *
  * @see docs/extension-points.md for the public surface this preserves.
  *
  * Why this file exists

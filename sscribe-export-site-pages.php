@@ -2,7 +2,7 @@
 /**
  * Plugin Name:       SScribe Export Site Pages
  * Plugin URI:        https://simplixi.com
- * Description:       Export WordPress pages and posts to professional DOCX, PDF, HTML, or Markdown files with multilingual RTL support, SEO metadata, and secure ZIP download.
+ * Description:       Export WordPress pages to professional DOCX, PDF, HTML, or Markdown files with multilingual RTL support and secure ZIP download.
  * Version:           1.1.4
  * Requires at least: 6.0
  * Requires PHP:      8.2
@@ -121,17 +121,8 @@ add_action(
 	array( 'SScribe_Activator', 'register_settings' )
 );
 
-$sscribe_has_dependencies = false;
-
-if ( file_exists( SSCRIBE_PLUGIN_DIR . 'vendor-prefixed/autoload.php' ) ) {
-	require_once SSCRIBE_PLUGIN_DIR . 'vendor-prefixed/autoload.php';
-	require_once SSCRIBE_PLUGIN_DIR . 'includes/sscribe-prefixed-runtime-shim.php';
-	$sscribe_has_dependencies = true;
-} elseif ( file_exists( SSCRIBE_PLUGIN_DIR . 'vendor/autoload.php' ) ) {
-	require_once SSCRIBE_PLUGIN_DIR . 'vendor/autoload.php';
-	require_once SSCRIBE_PLUGIN_DIR . 'includes/sscribe-vendor-compat.php';
-	$sscribe_has_dependencies = true;
-}
+$sscribe_has_dependencies = ( file_exists( SSCRIBE_PLUGIN_DIR . 'vendor-prefixed/autoload.php' )
+	|| file_exists( SSCRIBE_PLUGIN_DIR . 'vendor/autoload.php' ) );
 
 if ( ! $sscribe_has_dependencies ) {
 

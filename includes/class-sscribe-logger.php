@@ -155,7 +155,16 @@ class SScribe_Logger implements SScribe_Logger_Interface {
 	}
 
 	/**
-	 * Constructor.
+	 * Canonical log directory name under wp-content/uploads.
+	 *
+	 * Used by every code path that reads, writes, clears, or cleans up
+	 * log files. Single source of truth : keeps cleanup in lockstep
+	 * with the directory the logger actually writes to.
+	 */
+	public const LOG_DIR_NAME = 'sscribe-exports/logs';
+
+	/**
+	 * Construct the logger.
 	 *
 	 * @param bool   $enabled Whether logging is enabled.
 	 * @param string $prefix  Log file prefix.
@@ -165,7 +174,7 @@ class SScribe_Logger implements SScribe_Logger_Interface {
 		protected readonly string $prefix = 'sscribe'
 	) {
 		$upload_dir    = wp_upload_dir();
-		$this->log_dir = $upload_dir['basedir'] . '/sscribe-exports/logs';
+		$this->log_dir = $upload_dir['basedir'] . '/' . self::LOG_DIR_NAME;
 
 		add_action( 'shutdown', array( $this, 'flush' ) );
 	}
@@ -381,7 +390,7 @@ class SScribe_Logger implements SScribe_Logger_Interface {
 		$this->buffer = array();
 
 		$upload_dir = wp_upload_dir();
-		$log_dir    = $upload_dir['basedir'] . '/sscribe-logs';
+		$log_dir    = $upload_dir['basedir'] . '/' . self::LOG_DIR_NAME;
 
 		if ( ! is_dir( $log_dir ) ) {
 			return;
@@ -405,7 +414,7 @@ class SScribe_Logger implements SScribe_Logger_Interface {
 	 */
 	public static function cleanup_old_logs( int $max_age_days = 7 ): int {
 		$upload_dir = wp_upload_dir();
-		$log_dir    = $upload_dir['basedir'] . '/sscribe-logs';
+		$log_dir    = $upload_dir['basedir'] . '/' . self::LOG_DIR_NAME;
 
 		if ( ! is_dir( $log_dir ) ) {
 			return 0;

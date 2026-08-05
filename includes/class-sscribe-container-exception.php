@@ -2,6 +2,10 @@
 /**
  * SScribe Container Exception.
  *
+ * @package SScribe_Export_Site_Pages
+ * @license GPL v2 or later
+ * @link    https://www.gnu.org/licenses/gpl-2.0.html
+ *
  * Thrown by {@see SScribe_Container} for **infrastructure-level** container
  * failures: circular dependencies detected at resolution time, factory
  * closures returning a non-object, factory closures throwing an exception
