@@ -114,6 +114,20 @@ class SScribe_Diagnostics_Test extends TestCase {
 		$result = $method->invoke( $this->diagnostics );
 
 		$this->assertIsArray( $result );
+
+		// Regression: when the prefixed vendor autoloader is available
+		// on disk (which it is in any install where composer install /
+		// the build pipeline ran), the check must return an empty list.
+		// Otherwise the admin notice fires a false-positive on every
+		// page load saying "Run composer install" — see commit
+		// (lazy-autoload-prewarm).
+		if ( file_exists( SSCRIBE_PLUGIN_DIR . 'vendor-prefixed/autoload.php' ) ) {
+			$this->assertSame(
+				array(),
+				$result,
+				'check_vendor_dependencies() must return empty when vendor-prefixed/autoload.php is present; got: ' . implode( ', ', $result )
+			);
+		}
 	}
 
 	public function test_check_php_version_returns_valid(): void {

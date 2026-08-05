@@ -354,6 +354,18 @@ class SScribe_Diagnostics {
 	 * @return array
 	 */
 	public function check_vendor_dependencies(): array {
+		// Pre-warm the prefixed vendor autoloader BEFORE class_exists()
+		// checks. The autoloader is lazy-loaded by SScribe_Exporter_Factory
+		// (commit 6) so frontend page loads don't pay the PhpWord/mPDF
+		// parse cost at boot. The admin notice is gated on this same
+		// dependency list, so without the pre-warm it would always fire
+		// a false-positive on admin pages where no exporter has yet
+		// exercised create()/is_supported(). The factory's loader is a
+		// one-shot, so the cost is paid at most once per request.
+		if ( class_exists( '\SScribe_Exporter_Factory', false ) ) {
+			\SScribe_Exporter_Factory::ensure_vendor_loaded();
+		}
+
 		$missing = array();
 
 		if ( ! class_exists( '\SScribeVendor\Mpdf\Mpdf' ) ) {
