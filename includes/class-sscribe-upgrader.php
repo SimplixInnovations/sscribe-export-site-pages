@@ -215,12 +215,9 @@ class SScribe_Upgrader {
 					)
 				);
 				if ( ! $col ) {
-					// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.DirectDatabaseQuery.SchemaChange, WordPress.DB.PreparedSQL.NotPrepared -- Schema change; table name is plugin-controlled constant.
-					$wpdb->query(
-						'ALTER TABLE `' . $wpdb->prefix . 'sscribe_export_logs` ' .
-						'ADD COLUMN session_id VARCHAR(60) DEFAULT NULL AFTER context, ' .
-						'ADD KEY idx_session_id (session_id)'
-					);
+					$alter_sql = 'ALTER TABLE `' . $wpdb->prefix . 'sscribe_export_logs` ADD COLUMN session_id VARCHAR(60) DEFAULT NULL AFTER context, ADD KEY idx_session_id (session_id)';
+					// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.DirectDatabaseQuery.SchemaChange, WordPress.DB.PreparedSQL.NotPrepared -- Schema change; table name is plugin-controlled constant; SQL is a static DDL string.
+					$wpdb->query( $alter_sql );
 				}
 			} catch ( \Throwable $e ) {
 				update_option( 'sscribe_upgrade_last_error', 'Error adding session_id to export_logs: ' . $e->getMessage(), false );
