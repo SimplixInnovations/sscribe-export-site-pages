@@ -9,6 +9,7 @@ declare(strict_types=1);
 
 namespace SScribe\Tests\Unit;
 
+use PHPUnit\Framework\Attributes\DataProvider;
 use PHPUnit\Framework\TestCase;
 
 class SScribe_PDF_Exporter_CSS_Keyword_Font_Policy_Test extends TestCase {
@@ -213,9 +214,8 @@ class SScribe_PDF_Exporter_CSS_Keyword_Font_Policy_Test extends TestCase {
 	 * with `Cannot find TTF TrueType font file ...`. The 1.1.2 fix only
 	 * covered 6 families; this test pins every family whose TTF the build
 	 * script prunes so the policy cannot silently regress on future builds.
-	 *
-	 * @dataProvider provide_pruned_ttf_fontdata_entries
 	 */
+	#[DataProvider( 'provide_pruned_ttf_fontdata_entries' )]
 	public function test_fontdata_overrides_every_pruned_ttf_family( string $family, string $expected_ttf ): void {
 		$result = $this->call_build_mpdf_config( false, 0 );
 		$config = $result['config'];

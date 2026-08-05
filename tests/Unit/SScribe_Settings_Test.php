@@ -14,11 +14,10 @@ declare(strict_types=1);
 
 namespace SScribe\Tests\Unit;
 
+use PHPUnit\Framework\Attributes\Group;
 use PHPUnit\Framework\TestCase;
 
-/**
- * @group settings
- */
+#[Group( 'settings' )]
 class SScribe_Settings_Test extends TestCase {
 
 	protected function tearDown(): void {
