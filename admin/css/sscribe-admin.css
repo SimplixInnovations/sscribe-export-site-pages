@@ -45,22 +45,34 @@
   display: none !important;
 }
 
-.sscribe-skip-link.screen-reader-text:focus {
+.sscribe-skip-link.screen-reader-text:focus,
+.sscribe-skip-link:focus {
   clip-path: none !important;
   width: auto;
   height: auto;
   overflow: visible;
-  position: absolute;
-  top: var(--ss-space-2);
-  left: var(--ss-space-2);
-  z-index: 100000;
-  padding: var(--ss-space-2) var(--ss-space-4);
-  background: var(--ss-brand);
-  color: var(--ss-text-inverse);
-  border-radius: var(--ss-radius);
-  text-decoration: none;
-  font-weight: 600;
-  font-size: 13px;
+  position: absolute !important;
+  top: var(--ss-space-2) !important;
+  left: var(--ss-space-3) !important;
+  z-index: 100000 !important;
+  padding: var(--ss-space-2) var(--ss-space-4) !important;
+  background: var(--ss-brand) !important;
+  color: #fff !important;
+  border-radius: var(--ss-radius) !important;
+  text-decoration: none !important;
+  font-weight: 600 !important;
+  font-size: 13px !important;
+  outline: 2px solid #fff !important;
+  outline-offset: 2px !important;
+}
+
+@media (forced-colors: active) {
+  .sscribe-skip-link.screen-reader-text:focus,
+  .sscribe-skip-link:focus {
+    background: ButtonFace !important;
+    color: ButtonText !important;
+    outline: 2px solid Highlight !important;
+  }
 }
 
 .sscribe-hero {
@@ -235,6 +247,19 @@
 
 .sscribe-tab-content.sscribe-tab-active {
   display: block;
+  animation: sscribe-tab-fade-in 220ms var(--ss-easing, cubic-bezier(0.22, 1, 0.36, 1)) both;
+}
+
+@keyframes sscribe-tab-fade-in {
+  from {
+    opacity: 0;
+    transform: translateY(4px);
+  }
+
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
 }
 
 .sscribe-panel {
@@ -401,10 +426,12 @@
   background: var(--ss-surface);
   border: 1px solid var(--ss-border);
   border-radius: var(--ss-radius-md);
-  transition: border-color 120ms ease, background 120ms ease;
+  transition: border-color 120ms ease, background 120ms ease,
+    transform 160ms var(--ss-easing, cubic-bezier(0.22, 1, 0.36, 1));
   min-height: 64px;
   min-width: 0;
   width: 100%;
+  will-change: transform;
 }
 
 .sscribe-format-card-inner {
@@ -425,6 +452,15 @@
 .sscribe-lang-card-label:hover .sscribe-lang-card-inner {
   border-color: var(--ss-border-strong);
   background: var(--ss-brand-tint);
+  transform: translateY(-1px);
+}
+
+.sscribe-post-type-card:active .sscribe-post-type-card-inner,
+.sscribe-status-card-label:active .sscribe-status-card-inner,
+.sscribe-format-card-label:active .sscribe-format-card-inner,
+.sscribe-lang-card-label:active .sscribe-lang-card-inner {
+  transform: translateY(0) scale(0.99);
+  transition-duration: 80ms;
 }
 
 .sscribe-post-type-card input:checked ~ .sscribe-post-type-card-inner,
@@ -517,17 +553,53 @@
   transition: border-color 120ms ease, background 120ms ease;
 }
 
-.sscribe-post-type-selector svg,
-.sscribe-status-selector svg,
-.sscribe-format-selector svg,
-.sscribe-lang-selector svg {
-  width: 12px !important;
-  height: 12px !important;
-  display: block;
+.sscribe-post-type-selector,
+.sscribe-status-selector,
+.sscribe-format-selector,
+.sscribe-lang-selector {
+  position: relative;
+}
+
+/* Check mark — short stroke (bottom-left to middle). */
+.sscribe-post-type-selector::before,
+.sscribe-status-selector::before,
+.sscribe-format-selector::before,
+.sscribe-lang-selector::before {
+  content: '';
+  position: absolute;
+  width: 4px;
+  height: 7px;
+  left: 4px;
+  top: 7px;
+  border-right: 2px solid var(--ss-text-inverse);
+  border-bottom: 2px solid var(--ss-text-inverse);
   opacity: 0;
-  transition: opacity 120ms ease;
-  color: var(--ss-text-inverse);
-  stroke-width: 3;
+  transform: rotate(45deg) scale(0.5);
+  transform-origin: 50% 50%;
+  transition: opacity 160ms var(--ss-easing, ease),
+    transform 220ms var(--ss-easing, cubic-bezier(0.34, 1.56, 0.64, 1));
+  box-sizing: border-box;
+}
+
+/* Check mark — long stroke (middle to top-right). */
+.sscribe-post-type-selector::after,
+.sscribe-status-selector::after,
+.sscribe-format-selector::after,
+.sscribe-lang-selector::after {
+  content: '';
+  position: absolute;
+  width: 4px;
+  height: 11px;
+  left: 6px;
+  top: 2px;
+  border-right: 2px solid var(--ss-text-inverse);
+  border-bottom: 2px solid var(--ss-text-inverse);
+  opacity: 0;
+  transform: rotate(-45deg) scale(0.5);
+  transform-origin: 50% 50%;
+  transition: opacity 160ms var(--ss-easing, ease),
+    transform 220ms var(--ss-easing, cubic-bezier(0.34, 1.56, 0.64, 1));
+  box-sizing: border-box;
 }
 
 .sscribe-post-type-card input:checked ~ .sscribe-post-type-card-inner .sscribe-post-type-selector,
@@ -538,11 +610,20 @@
   background: var(--ss-brand);
 }
 
-.sscribe-post-type-card input:checked ~ .sscribe-post-type-card-inner .sscribe-post-type-selector svg,
-.sscribe-status-card-label input:checked ~ .sscribe-status-card-inner .sscribe-status-selector svg,
-.sscribe-format-card-label input:checked ~ .sscribe-format-card-inner .sscribe-format-selector svg,
-.sscribe-lang-card-label input:checked ~ .sscribe-lang-card-inner .sscribe-lang-selector svg {
+.sscribe-post-type-card input:checked ~ .sscribe-post-type-card-inner .sscribe-post-type-selector::before,
+.sscribe-status-card-label input:checked ~ .sscribe-status-card-inner .sscribe-status-selector::before,
+.sscribe-format-card-label input:checked ~ .sscribe-format-card-inner .sscribe-format-selector::before,
+.sscribe-lang-card-label input:checked ~ .sscribe-lang-card-inner .sscribe-lang-selector::before {
   opacity: 1;
+  transform: rotate(45deg) scale(1);
+}
+
+.sscribe-post-type-card input:checked ~ .sscribe-post-type-card-inner .sscribe-post-type-selector::after,
+.sscribe-status-card-label input:checked ~ .sscribe-status-card-inner .sscribe-status-selector::after,
+.sscribe-format-card-label input:checked ~ .sscribe-format-card-inner .sscribe-format-selector::after,
+.sscribe-lang-card-label input:checked ~ .sscribe-lang-card-inner .sscribe-lang-selector::after {
+  opacity: 1;
+  transform: rotate(-45deg) scale(1);
 }
 
 .sscribe-lang-card-all .sscribe-lang-card-inner,
@@ -751,6 +832,22 @@
   display: flex;
   flex-direction: column;
   gap: var(--ss-space-3);
+}
+
+.sscribe-format-option-panel.sscribe-format-option-revealed {
+  animation: sscribe-option-reveal 260ms var(--ss-easing, cubic-bezier(0.22, 1, 0.36, 1)) both;
+}
+
+@keyframes sscribe-option-reveal {
+  from {
+    opacity: 0;
+    transform: translateY(-4px) scaleY(0.96);
+  }
+
+  to {
+    opacity: 1;
+    transform: translateY(0) scaleY(1);
+  }
 }
 
 .sscribe-format-option-title {
@@ -970,7 +1067,13 @@
   cursor: pointer;
   text-decoration: none !important;
   white-space: nowrap;
-  transition: background 120ms ease, color 120ms ease, border-color 120ms ease;
+  transition: background 120ms ease, color 120ms ease, border-color 120ms ease,
+    transform 120ms var(--ss-easing, cubic-bezier(0.22, 1, 0.36, 1));
+}
+
+.sscribe-button:active:not(:disabled, .sscribe-btn-busy, .sscribe-confirming, .sscribe-btn-confirming) {
+  transform: scale(0.97);
+  transition-duration: 60ms;
 }
 
 .sscribe-button svg {
@@ -1117,6 +1220,25 @@
   margin: var(--ss-space-4) 0;
   position: relative;
   overflow: hidden;
+  animation: sscribe-status-enter 280ms cubic-bezier(0.22, 1, 0.36, 1) both;
+}
+
+@keyframes sscribe-status-enter {
+  from {
+    opacity: 0;
+    transform: translateY(-6px);
+  }
+
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .sscribe-status-alert {
+    animation: none;
+  }
 }
 
 .sscribe-status-alert::before {
@@ -1188,6 +1310,20 @@
   width: 32px;
   height: 32px;
   display: block;
+  animation: sscribe-spin 1s linear infinite;
+  transform-origin: 50% 50%;
+}
+
+@keyframes sscribe-spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .sscribe-spinner-img {
+    animation-duration: 3s;
+  }
 }
 
 .sscribe-status-info {
@@ -1228,12 +1364,16 @@
   font-weight: 500;
   color: var(--ss-text-muted);
   line-height: 1;
+  transition: background 220ms cubic-bezier(0.22, 1, 0.36, 1),
+              color 220ms cubic-bezier(0.22, 1, 0.36, 1),
+              transform 220ms cubic-bezier(0.22, 1, 0.36, 1);
 }
 
 .sscribe-phase-step.sscribe-phase-active {
   background: var(--ss-brand);
   color: var(--ss-text-inverse);
   font-weight: 600;
+  transform: translateY(-1px);
 }
 
 .sscribe-phase-step.sscribe-phase-done {
@@ -2053,6 +2193,16 @@
   border: 2px solid var(--ss-border);
   border-top-color: var(--ss-brand);
   border-radius: 50%;
+  display: inline-block;
+  animation: sscribe-spin 0.9s linear infinite;
+  flex-shrink: 0;
+  vertical-align: middle;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .sscribe-loading-spinner {
+    animation-duration: 2.7s;
+  }
 }
 
 .sscribe-progress-initializing {
@@ -2098,6 +2248,30 @@
   to {
 	opacity: 1;
 	transform: translateY(0) scale(1);
+  }
+}
+
+.sscribe-toast.sscribe-toast-removing {
+  animation: sscribe-toast-slide-out 180ms var(--ss-easing, cubic-bezier(0.4, 0, 1, 1)) forwards;
+  pointer-events: none;
+}
+
+@keyframes sscribe-toast-slide-out {
+  from {
+	opacity: 1;
+	transform: translateY(0) scale(1);
+	max-height: 200px;
+	margin-bottom: 0;
+  }
+
+  to {
+	opacity: 0;
+	transform: translateY(-4px) scale(0.98);
+	max-height: 0;
+	margin-bottom: calc(var(--ss-space-2) * -1);
+	padding-top: 0;
+	padding-bottom: 0;
+	border-width: 0;
   }
 }
 
@@ -2935,11 +3109,6 @@
   line-height: 1.4;
 }
 
-.sscribe-toast.sscribe-toast-removing {
-  opacity: 0;
-  transition: opacity 200ms ease;
-}
-
 .sscribe-tab-btn-debug.sscribe-tab-active {
   color: var(--ss-brand);
 }
@@ -3442,28 +3611,6 @@
  Patterns: 1px hairlines, brand focus rings, no shadows,
  no gradients, no transforms, no rgba() decimal alpha.
  ═══════════════════════════════════════════ */
-
-/* Skip link  -  paints on focus, otherwise invisible */
-.sscribe-skip-link {
-  position: absolute !important;
-  left: -9999px !important;
-  top: 0 !important;
-  z-index: 100000 !important;
-  padding: 10px 18px !important;
-  background: var(--ss-brand) !important;
-  color: #fff !important;
-  font-weight: 600 !important;
-  font-size: 13px !important;
-  border-radius: 0 0 var(--ss-radius-md) var(--ss-radius-md) !important;
-  text-decoration: none !important;
-  clip-path: inset(50%) !important;
-}
-
-.sscribe-skip-link:focus {
-  left: var(--ss-space-3) !important;
-  outline: 2px solid #fff !important;
-  outline-offset: 2px !important;
-}
 
 /* Onboarding banner  -  visible only for first-time users */
 .sscribe-onboarding-banner {
@@ -4017,12 +4164,6 @@ kbd.sscribe-shortcut-hint {
   background: var(--ss-border) !important;
 }
 
-/* Hidden-skip skip-link override (default WP a11y fix) */
-.sscribe-master-container a.sscribe-skip-link:focus,
-.sscribe-master-container a.sscribe-skip-link:active {
-  color: var(--ss-text-inverse) !important;
-}
-
 /* Disabled button (search context) */
 .sscribe-button:disabled,
 .sscribe-button[disabled] {
@@ -4287,6 +4428,37 @@ kbd.sscribe-shortcut-hint {
  scroll-behavior: auto !important;
   }
   /* stylelint-enable declaration-no-important */
+
+  /* New keyframes introduced in the extreme-polish pass must resolve to
+   * their visible end state when the timeline is compressed to 0ms. */
+  .sscribe-tab-content.sscribe-tab-active,
+  .sscribe-format-option-panel.sscribe-format-option-revealed {
+	opacity: 1 !important;
+	transform: none !important;
+  }
+
+  .sscribe-post-type-selector::before,
+  .sscribe-post-type-selector::after,
+  .sscribe-status-selector::before,
+  .sscribe-status-selector::after,
+  .sscribe-format-selector::before,
+  .sscribe-format-selector::after,
+  .sscribe-lang-selector::before,
+  .sscribe-lang-selector::after {
+	transform: none !important;
+	transition: none !important;
+  }
+
+  /* Toast exit still completes; the JS removes the node at the end of
+   * the timeout, so forcing the collapse state here matches the snap. */
+  .sscribe-toast.sscribe-toast-removing {
+	max-height: 0 !important;
+	margin-bottom: calc(var(--ss-space-2) * -1) !important;
+	padding-top: 0 !important;
+	padding-bottom: 0 !important;
+	border-width: 0 !important;
+	opacity: 0 !important;
+  }
 }
 
 /* ── 5. FORCED COLORS (Windows High Contrast) ─────────────── */

@@ -153,7 +153,8 @@ $sscribe_cleanup_site = static function (): void {
 							continue;
 						}
 						if ( $fileinfo->isDir() ) {
-							rmdir( $real_path ); // phpcs:ignore WordPress.WP.AlternativeFunctions.file_system_operations_rmdir -- Cleanup during uninstall.
+							// phpcs:ignore WordPress.WP.AlternativeFunctions.file_system_operations_rmdir -- Cleanup during uninstall; @ suppresses rmdir() PHP warning when the directory is non-empty (e.g. locked files). Catch above absorbs the rest.
+							@rmdir( $real_path );
 						} else {
 							wp_delete_file( $real_path );
 						}
@@ -162,7 +163,8 @@ $sscribe_cleanup_site = static function (): void {
 					}
 				}
 				if ( is_dir( $dir_path ) ) {
-					rmdir( $dir_path ); // phpcs:ignore WordPress.WP.AlternativeFunctions.file_system_operations_rmdir -- Cleanup during uninstall.
+					// phpcs:ignore WordPress.WP.AlternativeFunctions.file_system_operations_rmdir -- Cleanup during uninstall; @ suppresses rmdir() PHP warning when the directory is non-empty (e.g. locked files). Outer try/catch absorbs the rest.
+					@rmdir( $dir_path );
 				}
 			} catch ( \Throwable $e ) {
 				continue;
