@@ -87,6 +87,21 @@ class SScribe_Page_Collector {
 	}
 
 	/**
+	 * Read the current content cache generation so transient keys can be
+	 * namespaced by it. Bumping the generation on post mutation
+	 * (save_post, trashed_post, deleted_post, untrashed_post) automatically
+	 * invalidates every key derived from content without enumerating them.
+	 *
+	 * @return int Current generation.
+	 */
+	public function get_content_cache_generation(): int {
+		if ( function_exists( 'get_option' ) ) {
+			return max( 1, (int) get_option( 'sscribe_content_cache_generation', 1 ) );
+		}
+		return 1;
+	}
+
+	/**
 	 * Add an entry to a cache with LRU eviction when max size is exceeded.
 	 *
 	 * @param array &$cache Cache reference.
@@ -173,8 +188,9 @@ class SScribe_Page_Collector {
 	private function get_page_ids_direct( string $language, string $post_status, string $post_type, int $limit = -1 ): array {
 		$post_status = $this->validate_post_status( $post_status );
 
-		$cache_key = "sscribe_page_ids_v2_{$post_status}_" . md5( "{$language}_{$post_type}_{$limit}" );
-		$cached    = get_transient( $cache_key );
+		$generation = $this->get_content_cache_generation();
+		$cache_key  = "sscribe_page_ids_v2_{$post_status}_{$generation}_" . md5( "{$language}_{$post_type}_{$limit}" );
+		$cached     = get_transient( $cache_key );
 		if ( false !== $cached && is_array( $cached ) ) {
 			return $cached;
 		}
@@ -251,6 +267,13 @@ class SScribe_Page_Collector {
 		$post_status = $this->validate_post_status( $post_status );
 		$post_types  = $this->resolve_post_type_for_query( $post_type );
 
+		$generation  = $this->get_content_cache_generation();
+		$cache_key   = 'sscribe_estimate_count_' . $generation . '_' . md5( $language . '|' . $post_status . '|' . ( is_array( $post_types ) ? implode( ',', $post_types ) : (string) $post_types ) );
+		$cached      = function_exists( 'get_transient' ) ? get_transient( $cache_key ) : false;
+		if ( is_int( $cached ) && $cached >= 0 ) {
+			return $cached;
+		}
+
 		if ( is_array( $post_types ) ) {
 			$placeholders = implode( ',', array_fill( 0, count( $post_types ), '%s' ) );
 			// phpcs:disable WordPress.DB.PreparedSQLPlaceholders.UnfinishedPrepare -- placeholders are dynamically built above.
@@ -276,6 +299,10 @@ class SScribe_Page_Collector {
 
 		$count = (int) $wpdb->get_var( $sql );
 		// phpcs:enable
+
+		if ( function_exists( 'set_transient' ) ) {
+			set_transient( $cache_key, $count, MINUTE_IN_SECONDS );
+		}
 
 		return $count;
 	}
@@ -1057,8 +1084,9 @@ class SScribe_Page_Collector {
 	 */
 	public function get_post_status_counts( string $language = '', string $post_type = 'page' ): array {
 
-		$cache_key = 'sscribe_status_counts_' . md5( $language . '_' . $post_type );
-		$cached    = get_transient( $cache_key );
+		$generation = $this->get_content_cache_generation();
+		$cache_key  = 'sscribe_status_counts_' . $generation . '_' . md5( $language . '_' . $post_type );
+		$cached     = get_transient( $cache_key );
 
 		if ( false !== $cached && is_array( $cached ) ) {
 			return $cached;

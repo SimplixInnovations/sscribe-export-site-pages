@@ -534,14 +534,86 @@ class SScribe_Zip_Handler {
 		if ( null === $this->cached_nonce ) {
 			$this->cached_nonce = wp_create_nonce( 'sscribe_download' );
 		}
-		return add_query_arg(
-			array(
-				'action' => 'sscribe_download',
-				'file'   => $zip_filename,
-				'nonce'  => $this->cached_nonce,
-			),
-			admin_url( 'admin-ajax.php' )
+		$token = $this->mint_download_token( $zip_filename );
+		$args  = array(
+			'action' => 'sscribe_download',
+			'file'   => $zip_filename,
+			'nonce'  => $this->cached_nonce,
 		);
+		if ( '' !== $token ) {
+			$args['dl_token'] = $token;
+		}
+		return add_query_arg( $args, admin_url( 'admin-ajax.php' ) );
+	}
+
+	/**
+	 * Mint a single-use download token tied to (filename, user) and store
+	 * the fact that it has not yet been consumed. The token is burned
+	 * (transient deleted) on first valid use by SScribe_Batch_File_Handler.
+	 *
+	 * Tokens live for 24 hours, matching the export retention window so a
+	 * download URL created in this window remains valid until the file is
+	 * pruned. Tokens are only minted on demand; if minting fails the URL
+	 * omits the parameter and falls back to nonce-only validation.
+	 *
+	 * @param string $zip_filename ZIP filename.
+	 * @return string Token, or empty string on failure.
+	 */
+	public function mint_download_token( string $zip_filename ): string {
+		if ( '' === $zip_filename || ! is_user_logged_in() ) {
+			return '';
+		}
+		try {
+			$token = bin2hex( random_bytes( 24 ) );
+		} catch ( \Throwable $e ) {
+			return '';
+		}
+		$user_id = get_current_user_id();
+		set_transient(
+			'sscribe_dl_token_' . $user_id . '_' . md5( $zip_filename ),
+			array(
+				'token'     => $token,
+				'filename'  => $zip_filename,
+				'user_id'   => $user_id,
+				'minted_at' => time(),
+				'used'      => false,
+			),
+			DAY_IN_SECONDS
+		);
+		return $token;
+	}
+
+	/**
+	 * Atomically validate-and-burn a download token. Returns true if the
+	 * token matched an unused entry; false if missing, used, expired, or
+	 * mismatched. The transient is updated to "used" on success and the
+	 * entry is removed after a short grace period so concurrent retries on
+	 * the same URL fail loudly instead of leaking multiple downloads.
+	 *
+	 * @param string $zip_filename ZIP filename.
+	 * @param string $token       Token supplied by the client.
+	 * @return bool True if the token was valid and unused.
+	 */
+	public function consume_download_token( string $zip_filename, string $token ): bool {
+		if ( '' === $token || '' === $zip_filename || ! is_user_logged_in() ) {
+			return false;
+		}
+		$user_id = get_current_user_id();
+		$key     = 'sscribe_dl_token_' . $user_id . '_' . md5( $zip_filename );
+		$stored  = get_transient( $key );
+		if ( ! is_array( $stored ) || empty( $stored['token'] ) ) {
+			return false;
+		}
+		if ( ! empty( $stored['used'] ) ) {
+			return false;
+		}
+		if ( ! hash_equals( (string) $stored['token'], $token ) ) {
+			return false;
+		}
+		$stored['used']      = true;
+		$stored['used_at']   = time();
+		set_transient( $key, $stored, MINUTE_IN_SECONDS );
+		return true;
 	}
 
 	/**

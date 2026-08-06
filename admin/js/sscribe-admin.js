@@ -223,7 +223,12 @@
 			this._originalTitle = document.title;
 			this.bindEvents();
 			this.initializeTabs();
+			this.initializeRadiogroups();
 			this.adjustToastContainerPosition();
+			if (!SScribe._visibilityInstalled && typeof document !== 'undefined') {
+				document.addEventListener('visibilitychange', $.proxy(this, 'handleVisibilityChange'));
+				SScribe._visibilityInstalled = true;
+			}
 			$('#sscribe-export-disabled-reason').text(
 				(sscribe_data.strings && sscribe_data.strings.loading_counts) || 'Loading page counts...'
 			);
@@ -392,6 +397,82 @@
 				self.activateTab($nextTab.data('tab'), true);
 			});
 		},
+		initializeRadiogroups: function () {
+			const self = this;
+			const groupSelectors = [
+				'#sscribe-post-type-cards',
+				'#sscribe-language-cards',
+				'#sscribe-status-cards',
+				'#sscribe-format-cards',
+			];
+			groupSelectors.forEach(function (sel) {
+				const $container = $(sel);
+				if (!$container.length) {
+					return;
+				}
+				const $inputs = $container.find('input[type="radio"]');
+				if (!$inputs.length) {
+					return;
+				}
+				const groupName = $inputs.first().attr('name');
+				if (!groupName) {
+					return;
+				}
+				const $titleEl = $container.closest('.sscribe-config-section').find('.sscribe-section-title, .sscribe-config-section-header').first();
+				$container.attr({
+					role: 'radiogroup',
+					'aria-labelledby': $titleEl.attr('id') || null,
+				});
+				self.applyRovingTabindex(groupName);
+				$container.on('change', 'input[type="radio"]', function () {
+					self.applyRovingTabindex(groupName);
+				});
+				$container.on('focus', 'input[type="radio"]', function () {
+					self.applyRovingTabindex(groupName, $(this));
+				});
+				$container.on('keydown', 'input[type="radio"]', function (e) {
+					const key = e.key;
+					if (!['ArrowRight', 'ArrowLeft', 'ArrowUp', 'ArrowDown', 'Home', 'End'].includes(key)) {
+						return;
+					}
+					e.preventDefault();
+					const $siblings = $container.find('input[type="radio"][name="' + groupName + '"]').not(':disabled');
+					if (!$siblings.length) {
+						return;
+					}
+					const currentIndex = $siblings.index(this);
+					let nextIndex = currentIndex;
+					if (key === 'ArrowRight' || key === 'ArrowDown') {
+						nextIndex = (currentIndex + 1) % $siblings.length;
+					} else if (key === 'ArrowLeft' || key === 'ArrowUp') {
+						nextIndex = (currentIndex - 1 + $siblings.length) % $siblings.length;
+					} else if (key === 'Home') {
+						nextIndex = 0;
+					} else if (key === 'End') {
+						nextIndex = $siblings.length - 1;
+					}
+					const $next = $siblings.eq(nextIndex);
+					$next.prop('checked', true).trigger('change').trigger('focus');
+				});
+			});
+		},
+		applyRovingTabindex: function (groupName, $focused) {
+			const $group = $('input[name="' + groupName + '"]');
+			if (!$group.length) {
+				return;
+			}
+			let $target = $focused || $group.filter(':checked');
+			if (!$target || !$target.length) {
+				$target = $group.filter(':not(:disabled)').first();
+			}
+			$group.each(function () {
+				if (this === $target.get(0)) {
+					$(this).attr('tabindex', '0');
+				} else {
+					$(this).attr('tabindex', '-1');
+				}
+			});
+		},
 		activateTab: function (tabId, moveFocus) {
 			if (!tabId) {
 				return;
@@ -539,33 +620,48 @@
 					xhr.abort();
 				}
 			});
-			$('input[name="sscribe_language"]').each(function () {
-				const langCode = $(this).val();
-				if (self._langXHRsByCode && self._langXHRsByCode[langCode] && self._langXHRsByCode[langCode].abort) {
-					self._langXHRsByCode[langCode].abort();
+			const langCodes = $('input[name="sscribe_language"]').map(function () { return $(this).val(); }).get();
+			if (!langCodes.length) {
+				return;
+			}
+			if (self._allLangCountsTimer) {
+				clearTimeout(self._allLangCountsTimer);
+			}
+			const debounceMs = ( sscribe_data.strings && sscribe_data.strings.lang_counts_debounce_ms )
+				? parseInt( sscribe_data.strings.lang_counts_debounce_ms, 10 )
+				: 200;
+			self._allLangCountsTimer = setTimeout(function () {
+				if (self._allLangCountsXHR && self._allLangCountsXHR.abort) {
+					self._allLangCountsXHR.abort();
 				}
-				if (!self._langXHRsByCode) {
-					self._langXHRsByCode = {};
-				}
-				const xhr = $.ajax({
+				self._allLangCountsXHR = $.ajax({
 					url: sscribe_data.ajaxurl,
 					type: 'POST',
-					timeout: 15000,
+					timeout: 30000,
 					data: {
-						action: 'sscribe_get_status_counts',
+						action: 'sscribe_get_all_status_counts',
 						nonce: sscribe_data.nonce,
-						language: langCode,
+						languages: JSON.stringify( langCodes ),
 						post_type: postType,
 					},
 					success: function (response) {
-						if (response.success && response.data) {
-							const pageCounts = response.data.counts_page || response.data.counts || {};
-							const postCounts = response.data.counts_post || {};
-							const anyCounts = response.data.counts_any || {};
+						if (!response || !response.success || !response.data || !response.data.languages) {
+							return;
+						}
+						const langMap = response.data.languages;
+						const currentPostType = $('input[name="sscribe_post_type"]:checked').val() || 'page';
+						$('input[name="sscribe_language"]').each(function () {
+							const langCode = $(this).val();
+							const entry = langMap[langCode];
+							if (!entry) {
+								return;
+							}
+							const pageCounts = entry.counts_page || entry.counts || {};
+							const postCounts = entry.counts_post || {};
+							const anyCounts  = entry.counts_any || {};
 							const pageTotal = self.parseLocalizedInt(pageCounts.all) || 0;
 							const postTotal = self.parseLocalizedInt(postCounts.all) || 0;
-							const anyTotal = self.parseLocalizedInt(anyCounts.all) || 0;
-							const currentPostType = $('input[name="sscribe_post_type"]:checked').val() || 'page';
+							const anyTotal  = self.parseLocalizedInt(anyCounts.all) || 0;
 							const displayTotal = 'post' === currentPostType
 								? postTotal
 								: ( 'any' === currentPostType ? anyTotal : pageTotal );
@@ -575,19 +671,11 @@
 							$langLabel.attr('data-count-page', pageTotal);
 							$langLabel.attr('data-count-post', postTotal);
 							$langLabel.attr('data-count-any', anyTotal);
-						}
+						});
 					},
 					error: function () {},
-					complete: function () {
-						const idx = self._langCountsXHRs.indexOf(xhr);
-						if (idx > -1) {
-							self._langCountsXHRs.splice(idx, 1);
-						}
-					},
 				});
-				self._langCountsXHRs.push(xhr);
-				self._langXHRsByCode[langCode] = xhr;
-			});
+			}, debounceMs);
 		},
 		checkActiveSession: function () {
 			$.ajax({
@@ -687,10 +775,14 @@
 				const $panel = $(this);
 				const matches = $panel.attr('data-format') === format;
 				if (matches) {
-					$panel.removeAttr('hidden');
+					$panel.removeClass('sscribe-format-option-revealed');
+					// Force reflow so the animation re-triggers when switching
+					// back to a previously-revealed format.
+					void $panel[0].offsetWidth;
+					$panel.removeAttr('hidden').addClass('sscribe-format-option-revealed');
 					anyVisible = true;
 				} else {
-					$panel.attr('hidden', 'hidden');
+					$panel.attr('hidden', 'hidden').removeClass('sscribe-format-option-revealed');
 				}
 			});
 			if (anyVisible) {
@@ -841,24 +933,25 @@
 			$('#sscribe-export-btn').prop('disabled', !canExport);
 			$('#sscribe-preview-btn').prop('disabled', !canExport);
 			const $reason = $('#sscribe-export-disabled-reason');
+			const $previewReason = $('#sscribe-preview-disabled-reason');
 			if (!canExport) {
+				let reasonText = '';
 				if (!hasPages) {
-					$reason.text(
-						(sscribe_data.strings && sscribe_data.strings.err_no_pages) || 'No pages match selected options'
-					);
+					reasonText = (sscribe_data.strings && sscribe_data.strings.err_no_pages) || 'No pages match selected options';
 				} else if (!hasStatus) {
-					$reason.text(sscribe_data.strings.select_status || 'Select a post status');
+					reasonText = sscribe_data.strings.select_status || 'Select a post status';
 				} else if (!hasFormat) {
-					$reason.text(sscribe_data.strings.select_format || 'Select a format');
+					reasonText = sscribe_data.strings.select_format || 'Select a format';
 				} else if (!hasPostType) {
-					$reason.text(sscribe_data.strings.select_post_type || 'Select a post type');
+					reasonText = sscribe_data.strings.select_post_type || 'Select a post type';
 				} else if (!hasLanguage) {
-					$reason.text(sscribe_data.strings.select_language || 'Select a language');
-				} else {
-					$reason.text('');
+					reasonText = sscribe_data.strings.select_language || 'Select a language';
 				}
+				$reason.text(reasonText);
+				$previewReason.text(reasonText);
 			} else {
 				$reason.text('');
+				$previewReason.text('');
 			}
 		},
 		startExport: function (e) {
@@ -1405,6 +1498,13 @@
 			if (this._finalizingXHR) {
 				return;
 			}
+			if (typeof document !== 'undefined' && document.hidden) {
+				// Background tab: hold off until visibility returns. Catches up
+				// with the smallest possible interval so the user does not see
+				// stale progress when they return.
+				this._pendingFinalize = { sessionId: sessionId, attempt: attempt, delay: delay };
+				return;
+			}
 			this.isProcessing = true;
 			const maxAttempts = 180;
 			if (attempt === 0) {
@@ -1463,7 +1563,7 @@
 							return;
 						}
 						if (attempt < maxAttempts) {
-							self.pollFinalize(sessionId, attempt + 1, self.finalizePollInterval || 2000);
+							self.pollFinalize(sessionId, attempt + 1, self.computeFinalizeBackoff());
 						} else {
 							self.isProcessing = false;
 							self.showError('Export finalization timed out. Please try again.', false, {});
@@ -1497,7 +1597,7 @@
 							return;
 						}
 						if (attempt < maxAttempts) {
-							self.pollFinalize(sessionId, attempt + 1, self.finalizePollInterval || 2000);
+							self.pollFinalize(sessionId, attempt + 1, self.computeFinalizeBackoff());
 						} else {
 							self.isProcessing = false;
 							const msg = self.getNetworkErrorMessage(xhr, 'finalize_export');
@@ -1506,6 +1606,35 @@
 					},
 				});
 			}, delay);
+		},
+
+		computeFinalizeBackoff: function () {
+			const self = this;
+			const multiplier = Math.pow(2, Math.max(0, self.pollBackoff));
+			const base = self.pollBackoffBase * multiplier;
+			let delay = Math.min(self.pollBackoffMax, Math.floor(base));
+			if (multiplier < self.pollBackoffMax / self.pollBackoffBase) {
+				self.pollBackoff++;
+			}
+			const jitter = Math.floor(Math.random() * (self.pollJitter * 2 + 1)) - self.pollJitter;
+			delay = Math.max(1500, delay + jitter);
+			return delay;
+		},
+
+		resumeFinalizeFromBackground: function () {
+			const pending = this._pendingFinalize;
+			if (!pending) {
+				return;
+			}
+			this._pendingFinalize = null;
+			this.pollFinalize(pending.sessionId, pending.attempt, 0);
+		},
+
+		handleVisibilityChange: function () {
+			if (typeof document === 'undefined' || document.hidden) {
+				return;
+			}
+			this.resumeFinalizeFromBackground();
 		},
 		toggleHistorySkeleton: function (show) {
 			const $skel = $('#sscribe-history-skeleton');

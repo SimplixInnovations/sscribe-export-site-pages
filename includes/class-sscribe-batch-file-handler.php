@@ -90,6 +90,11 @@ class SScribe_Batch_File_Handler {
 
 		$filename = isset( $_GET['file'] ) ? sanitize_file_name( wp_unslash( $_GET['file'] ) ) : '';
 
+		if ( '' !== $filename && preg_match( '/[\x00-\x1F\x7F]/', $filename ) ) {
+			status_header( 400 );
+			wp_die( esc_html__( 'Invalid file request.', 'sscribe-export-site-pages' ) );
+		}
+
 		$export_dir = '';
 
 		try {
@@ -125,6 +130,13 @@ class SScribe_Batch_File_Handler {
 				wp_die( esc_html__( 'Invalid file access.', 'sscribe-export-site-pages' ) );
 			}
 
+			$supplied_token = isset( $_GET['dl_token'] ) ? sanitize_text_field( wp_unslash( $_GET['dl_token'] ) ) : '';
+			if ( '' !== $supplied_token && ! $this->zip_handler->consume_download_token( $filename, $supplied_token ) ) {
+				$this->auditor->log( 'download_token_invalid', array( 'filename' => $filename ) );
+				status_header( 403 );
+				wp_die( esc_html__( 'Download link expired or already used. Please regenerate the export.', 'sscribe-export-site-pages' ) );
+			}
+
 			$ascii_filename = preg_replace( '/[^a-zA-Z0-9._-]/', '_', $filename ) ?? $filename;
 
 			header( 'Content-Type: application/zip' );
@@ -134,6 +146,7 @@ class SScribe_Batch_File_Handler {
 			header( 'Pragma: no-cache' );
 			header( 'Expires: 0' );
 			header( 'X-Content-Type-Options: nosniff' );
+			header( 'Referrer-Policy: no-referrer' );
 
 			while ( ob_get_level() ) {
 				ob_end_clean();

@@ -339,6 +339,7 @@
 				'#sscribe-debug-help-btn',
 				function () {
 					const helpContent = self.$helpContent && self.$helpContent[0];
+					const helpBtn = document.getElementById( 'sscribe-debug-help-btn' );
 					if (helpContent) {
 						const overlay = document.createElement( 'div' );
 						overlay.className = 'sscribe-help-overlay';
@@ -357,6 +358,9 @@
 						const priorFocus = document.activeElement;
 						const focusableSelectors =
 						'a[href], button:not([disabled]), textarea:not([disabled]), input:not([disabled]), select:not([disabled]), [tabindex]:not([tabindex="-1"])';
+						if (helpBtn && helpBtn.setAttribute) {
+							helpBtn.setAttribute( 'aria-expanded', 'true' );
+						}
 						const closeDialog = function () {
 							if (document.body.contains( overlay )) {
 								document.body.removeChild( overlay );
@@ -365,6 +369,9 @@
 								document.body.removeChild( dialog );
 							}
 							document.removeEventListener( 'keydown', keyHandler );
+							if (helpBtn && helpBtn.setAttribute) {
+								helpBtn.setAttribute( 'aria-expanded', 'false' );
+							}
 							if (priorFocus && typeof priorFocus.focus === 'function') {
 								priorFocus.focus();
 							}

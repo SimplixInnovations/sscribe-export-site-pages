@@ -141,6 +141,9 @@ class SScribe {
 		$this->loader->add_action( 'admin_init', $admin, 'maybe_send_csp_headers' );
 		$this->loader->add_action( 'admin_notices', $this, 'render_vendor_dependency_notice' );
 		$this->loader->add_action( 'save_post', $this, 'invalidate_admin_page_cache' );
+		$this->loader->add_action( 'trashed_post', $this, 'invalidate_admin_page_cache' );
+		$this->loader->add_action( 'deleted_post', $this, 'invalidate_admin_page_cache' );
+		$this->loader->add_action( 'untrashed_post', $this, 'invalidate_admin_page_cache' );
 		$this->loader->add_filter( 'plugin_action_links_' . SSCRIBE_PLUGIN_BASENAME, $admin, 'add_plugin_action_links' );
 		$this->loader->add_filter( 'script_loader_tag', $admin, 'add_nonce_to_script_tags', 10, 3 );
 	}
@@ -175,6 +178,13 @@ class SScribe {
 	/**
 	 * Invalidate admin page cache when posts are saved.
 	 *
+	 * Bumps the global content cache generation option. All transient and
+	 * object-cache keys that participate in content-derived lookups include
+	 * the generation, so an increment is sufficient to invalidate the entire
+	 * population of cached page-ID lists, status counts, breadcrumbs, and
+	 * featured-image lookups without having to enumerate each key. Old keys
+	 * naturally TTL out (5 minutes for page IDs, 1 hour for status counts).
+	 *
 	 * @param int $post_id Post ID that was saved.
 	 */
 	public function invalidate_admin_page_cache( int $post_id ): void {
@@ -189,6 +199,33 @@ class SScribe {
 
 		$cache_key = 'sscribe_admin_page_data_v' . SSCRIBE_VERSION . '_' . get_current_blog_id();
 		delete_transient( $cache_key );
+
+		$this->bump_content_cache_generation();
+	}
+
+	/**
+	 * Increment the global content cache generation counter.
+	 *
+	 * Any code that caches content derived from posts/pages should include
+	 * the current generation (see SScribe_Collector::content_cache_generation())
+	 * in its cache key so this counter acts as a global invalidation bus.
+	 *
+	 * @return int New generation value.
+	 */
+	public function bump_content_cache_generation(): int {
+		$current = (int) get_option( 'sscribe_content_cache_generation', 1 );
+		$next    = max( 1, $current + 1 );
+		update_option( 'sscribe_content_cache_generation', $next, false );
+		return $next;
+	}
+
+	/**
+	 * Read the current content cache generation.
+	 *
+	 * @return int Current generation, defaulting to 1 if unset.
+	 */
+	public function get_content_cache_generation(): int {
+		return max( 1, (int) get_option( 'sscribe_content_cache_generation', 1 ) );
 	}
 
 	/**
@@ -206,6 +243,7 @@ class SScribe {
 		$this->loader->add_guarded_ajax_action( 'wp_ajax_sscribe_refresh_download_nonce', $batch, 'ajax_refresh_download_nonce', $cap );
 		$this->loader->add_guarded_ajax_action( 'wp_ajax_sscribe_refresh_nonce', $batch, 'ajax_refresh_nonce', $cap );
 		$this->loader->add_guarded_ajax_action( 'wp_ajax_sscribe_get_status_counts', $batch, 'ajax_get_status_counts', $cap );
+		$this->loader->add_guarded_ajax_action( 'wp_ajax_sscribe_get_all_status_counts', $batch, 'ajax_get_all_status_counts', $cap );
 		$this->loader->add_guarded_ajax_action( 'wp_ajax_sscribe_cancel_export', $batch, 'ajax_cancel_export', $cap );
 		$this->loader->add_guarded_ajax_action( 'wp_ajax_sscribe_delete_export', $batch, 'ajax_delete_export', $cap, 'sscribe_download' );
 		$this->loader->add_guarded_ajax_action( 'wp_ajax_sscribe_get_export_log', $batch, 'ajax_get_export_log', $cap, 'sscribe_download' );
