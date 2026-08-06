@@ -39,6 +39,11 @@ $config = array(
 		'composer.json', 'composer.lock', 'scratch', 'strauss.json', 'infection.json5',
 		'commit-message.txt', '.prettierrc', '.eslintrc.json', '.stylelintrc.json', '.husky',
 		'node_modules', 'screenshots', 'WPScan',
+		// Ad-hoc Python transform scripts left over from one-off
+		// SVG / kses / indent fixes. Nothing in the production code
+		// path executes them; if a future maintainer drops a *.py at
+		// the repo root, the pattern keeps it out of the ZIP.
+		'*.py',
 
 		'phpstan-baseline.neon', 'ruleset.xml', 'CREDITS.txt',
 		// 'COPYING' removed from base_excludes: WordPress.org Plugin
