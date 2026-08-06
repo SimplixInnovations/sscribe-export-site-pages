@@ -512,16 +512,19 @@ class SScribe_Admin {
 		$cached_page_data = get_transient( $cache_key );
 
 		if ( is_array( $cached_page_data ) ) {
-			$sscribe_wpml_active     = $cached_page_data['wpml_active'] ?? false;
-			$sscribe_languages       = $cached_page_data['languages'] ?? array();
-			$sscribe_total_pages_all = $cached_page_data['total_pages_all'] ?? 0;
-			$sscribe_status_counts   = $cached_page_data['status_counts'] ?? array();
+			$sscribe_wpml_active         = $cached_page_data['wpml_active'] ?? false;
+			$sscribe_languages           = $cached_page_data['languages'] ?? array();
+			$sscribe_total_pages_all     = $cached_page_data['total_pages_all'] ?? 0;
+			$sscribe_total_posts_all     = $cached_page_data['total_posts_all'] ?? 0;
+			$sscribe_total_either_all    = $sscribe_total_pages_all + $sscribe_total_posts_all;
+			$sscribe_status_counts       = $cached_page_data['status_counts'] ?? array();
 		} else {
 
 			$sscribe_wpml_active = $this->collector->is_wpml_active();
 			$sscribe_languages   = $this->collector->get_wpml_languages();
 
 			$sscribe_total_pages_all = $this->collector->get_page_count_only( '', 'publish' );
+			$sscribe_total_posts_all = $this->collector->get_page_count_only( '', 'publish', 'post' );
 
 			$default_language      = '';
 			$sscribe_status_counts = $this->collector->get_post_status_counts( $default_language );
@@ -535,12 +538,15 @@ class SScribe_Admin {
 				unset( $lang );
 			}
 
+			$sscribe_total_either_all = $sscribe_total_pages_all + $sscribe_total_posts_all;
+
 			set_transient(
 				$cache_key,
 				array(
 					'wpml_active'     => $sscribe_wpml_active,
 					'languages'       => $sscribe_languages,
 					'total_pages_all' => $sscribe_total_pages_all,
+					'total_posts_all' => $sscribe_total_posts_all,
 					'status_counts'   => $sscribe_status_counts,
 				),
 				60

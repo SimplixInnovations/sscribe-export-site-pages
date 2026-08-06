@@ -167,6 +167,107 @@ class SScribe_Helpers {
 	}
 
 	/**
+	 * Get an inline SVG icon, escaped through an SVG-only kses allowlist.
+	 *
+	 * WordPress's `wp_kses_post()` strips `<svg>` and `<path>` elements on
+	 * many installs (the default `post` allowed-HTML context does not include
+	 * them in all WP versions, and several hardening plugins actively remove
+	 * them). Passing the output of `get_icon_inline()` through `wp_kses_post()`
+	 * therefore yields an empty string, which is why the radio-card check
+	 * icons and all other inline SVG icons were missing from the rendered
+	 * admin UI. This wrapper applies a tight allowlist that whitelists only
+	 * the SVG elements and attributes our shipped icons actually use, so
+	 * the inline SVG survives sanitization without weakening any other
+	 * escape path in the plugin.
+	 *
+	 * Callers should `echo` the return value of this method directly;
+	 * wrapping it again in `wp_kses_post()` re-introduces the bug.
+	 *
+	 * @param string $name      Icon name (must exist in assets/icons/).
+	 * @param int    $size      Width/height attribute in pixels.
+	 * @param string $css_class Additional CSS classes.
+	 * @return string Sanitized inline SVG markup.
+	 */
+	public static function get_icon_inline_safe( string $name, int $size = 20, string $css_class = '' ): string {
+		$svg = self::get_icon_inline( $name, $size, $css_class );
+		if ( '' === $svg ) {
+			return '';
+		}
+		$allowed = array(
+			'svg'  => array(
+				'class'             => true,
+				'aria-hidden'       => true,
+				'aria-label'        => true,
+				'role'              => true,
+				'width'             => true,
+				'height'            => true,
+				'viewbox'           => true,
+				'xmlns'             => true,
+				'fill'              => true,
+				'stroke'            => true,
+				'stroke-width'      => true,
+				'stroke-linecap'    => true,
+				'stroke-linejoin'   => true,
+			),
+			'g'    => array(
+				'fill'    => true,
+				'stroke'  => true,
+				'transform' => true,
+			),
+			'path' => array(
+				'd'                 => true,
+				'fill'              => true,
+				'stroke'            => true,
+				'stroke-width'      => true,
+				'stroke-linecap'    => true,
+				'stroke-linejoin'   => true,
+				'transform'         => true,
+			),
+			'circle' => array(
+				'cx'    => true,
+				'cy'    => true,
+				'r'     => true,
+				'fill'  => true,
+				'stroke' => true,
+			),
+			'rect'   => array(
+				'x'         => true,
+				'y'         => true,
+				'width'     => true,
+				'height'    => true,
+				'rx'        => true,
+				'ry'        => true,
+				'fill'      => true,
+				'stroke'    => true,
+				'transform' => true,
+			),
+			'line'   => array(
+				'x1'            => true,
+				'y1'            => true,
+				'x2'            => true,
+				'y2'            => true,
+				'stroke'        => true,
+				'stroke-width'  => true,
+				'stroke-linecap' => true,
+			),
+			'polyline' => array(
+				'points'          => true,
+				'fill'            => true,
+				'stroke'          => true,
+				'stroke-linecap'  => true,
+				'stroke-linejoin' => true,
+			),
+			'polygon' => array(
+				'points'          => true,
+				'fill'            => true,
+				'stroke'          => true,
+				'stroke-linejoin' => true,
+			),
+		);
+		return wp_kses( $svg, $allowed );
+	}
+
+	/**
 	 * Get the client IP address.
 	 *
 	 * @return string

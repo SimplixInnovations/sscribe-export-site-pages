@@ -260,7 +260,7 @@ trait SScribe_Batch_Step_Handler {
 
 			$batch = array_slice( $page_ids, $processed, $this->batch_size );
 
-			if ( count( $batch ) >= 3 ) {
+			if ( ! empty( $batch ) ) {
 				$this->collector->get_featured_images_batch( $batch );
 				$this->collector->get_child_pages_batch( $batch );
 				// Performance N+1 fix: warm the SEO postmeta cache for the

@@ -225,6 +225,101 @@ class SScribe_Export_Query_Controller {
 	}
 
 	/**
+	 * Batch AJAX handler: returns status counts for many languages in one call.
+	 *
+	 * Replaces the per-language firehose where the JS previously fired one
+	 * round-trip per language option. With 10+ WPML languages, that was 10+
+	 * concurrent POSTs per card-toggle; collapsing them into a single batched
+	 * query cuts round-trips by Nx and the SQL by the same factor because
+	 * the per-language counts share a single cache key per (lang, post_type).
+	 *
+	 * Accepts either a JSON-encoded array under `languages[]` or a CSV under
+	 * `languages` (the JS sends JSON; CSV is a defensive fallback for older
+	 * clients).
+	 *
+	 * @param string $export_capability Required capability.
+	 * @return void
+	 */
+	public function ajax_get_all_status_counts( string $export_capability = 'sscribe_export' ): void {
+		if ( ! check_ajax_referer( 'sscribe_export_nonce', 'nonce', false ) ) {
+			SScribe_AJAX_Guard::error( array( 'message' => __( 'Security check failed.', 'sscribe-export-site-pages' ) ), 403 );
+		}
+
+		if ( ! current_user_can( $export_capability ) ) {
+			SScribe_AJAX_Guard::error(
+				array( 'message' => __( 'Permission denied.', 'sscribe-export-site-pages' ) ),
+				403
+			);
+		}
+
+		$rate_check = $this->rate_limiter->check_rate_limit( $export_capability );
+		if ( false === $rate_check ) {
+			SScribe_AJAX_Guard::error(
+				array( 'message' => __( 'Too many requests. Please wait.', 'sscribe-export-site-pages' ) ),
+				429
+			);
+		}
+
+		$post_type = isset( $_POST['post_type'] ) ? sanitize_text_field( wp_unslash( $_POST['post_type'] ) ) : 'page';
+		if ( ! in_array( $post_type, array( 'page', 'post', 'any' ), true ) ) {
+			$post_type = 'page';
+		}
+
+		$languages = array();
+		if ( isset( $_POST['languages'] ) ) {
+			$raw = wp_unslash( $_POST['languages'] ); // phpcs:ignore WordPress.Security.ValidatedSanitizedInput.InputNotSanitized -- Per-element sanitization happens below via array_map + sanitize_text_field().
+			if ( is_array( $raw ) ) {
+				$languages = $raw;
+			} else {
+				$decoded = json_decode( (string) $raw, true );
+				if ( is_array( $decoded ) ) {
+					$languages = $decoded;
+				} else {
+					$languages = array_filter( array_map( 'trim', explode( ',', (string) $raw ) ) );
+				}
+			}
+		}
+
+		$languages = array_values(
+			array_unique(
+				array_map(
+					static function ( $lang ) {
+						return is_string( $lang ) ? sanitize_text_field( $lang ) : '';
+					},
+					$languages
+				)
+			)
+		);
+
+		$per_language = array();
+		foreach ( $languages as $language ) {
+			$page_counts = $this->collector->get_post_status_counts( $language, 'page' );
+			$post_counts = $this->collector->get_post_status_counts( $language, 'post' );
+			$any_counts  = array();
+			$all_keys    = array_unique( array_merge( array_keys( $page_counts ), array_keys( $post_counts ) ) );
+			foreach ( $all_keys as $key ) {
+				$any_counts[ $key ] = ( $page_counts[ $key ] ?? 0 ) + ( $post_counts[ $key ] ?? 0 );
+			}
+			$per_language[ $language ] = array(
+				'counts'      => 'any' === $post_type
+					? $any_counts
+					: ( 'page' === $post_type ? $page_counts : $post_counts ),
+				'counts_page' => $page_counts,
+				'counts_post' => $post_counts,
+				'counts_any'  => $any_counts,
+			);
+		}
+
+		SScribe_AJAX_Guard::success(
+			array(
+				'post_type'     => $post_type,
+				'languages'     => $per_language,
+				'queried_count' => count( $per_language ),
+			)
+		);
+	}
+
+	/**
 	 * AJAX handler for getting export log.
 	 *
 	 * @param string $export_capability Required capability.

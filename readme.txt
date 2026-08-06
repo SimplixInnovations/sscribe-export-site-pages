@@ -140,7 +140,7 @@ This generates the `vendor-prefixed/` directory and the namespaced runtime shim 
 Recommended update: fixes a silent pagination truncation in the chunked page-ID loader (could drop the final chunk on large sites), tightens the Filesystem::move() source-path guard against symlink attacks, and ships the WP.org submission polish (no UI changes).
 
 = 1.1.3 =
-Full 1000% enterprise UI revamp: complete component library (button, input, table, breadcrumb, modal, toast, switch, segmented, chip, badge, code, kbd, empty-state), semantic role tokens (--ss-color-* aliases), dark-mode contrast tuned for true WCAG AA (brand #8E89FF, muted text #a1a1AA on dark), and unified focus ring outline across 14 control families. No PHP/JS changes, all class names preserved.
+Full v3 component library (button, input, table, breadcrumb, modal, toast, switch, segmented, chip, badge, code, kbd, empty-state), semantic tokens, dark-mode WCAG AA, unified focus rings across 14 control families. UI-only, no PHP/JS changes.
 
 = 1.1.2 =
 Recommended update: closes a latent PDF crash that affected pages with standard theme CSS. Exports now render successfully for English/Arabic content; out-of-coverage chars render as ? tofu but no longer crash.

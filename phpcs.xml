@@ -19,6 +19,8 @@
     <exclude-pattern>/stubs/*</exclude-pattern>
     <exclude-pattern>./phpstan-bootstrap.php</exclude-pattern>
     <exclude-pattern>./fake-wp/*</exclude-pattern>
+    <exclude-pattern>/.audit/*</exclude-pattern>
+    <exclude-pattern>/.phpunit.cache/*</exclude-pattern>
 
     <!-- Ad-hoc runtime verification scripts (refactor smoke-tests, never shipped) -->
     <exclude-pattern>./verify_*.php</exclude-pattern>

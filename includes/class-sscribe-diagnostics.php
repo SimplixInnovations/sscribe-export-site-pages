@@ -1095,8 +1095,9 @@ class SScribe_Diagnostics {
 			return 0;
 		}
 
-		$cleared = 0;
-		$files   = scandir( $export_dir );
+		$cleared     = 0;
+		$files       = scandir( $export_dir );
+		$active_dirs = $this->collect_active_temp_dirs();
 
 		foreach ( $files as $file ) {
 			if ( '.' === $file || '..' === $file ) {
@@ -1108,7 +1109,7 @@ class SScribe_Diagnostics {
 
 			if ( $mtime && time() - $mtime > 3 * DAY_IN_SECONDS ) {
 
-				if ( is_dir( $full_path ) && ! $this->is_temp_dir_in_use( $full_path ) ) {
+				if ( is_dir( $full_path ) && ! $this->is_temp_dir_in_active_set( $full_path, $active_dirs ) ) {
 					$this->delete_directory( $full_path );
 					++$cleared;
 				} elseif ( ! is_dir( $full_path ) ) {
@@ -1122,27 +1123,19 @@ class SScribe_Diagnostics {
 	}
 
 	/**
-	 * Delete a directory recursively.
+	 * Collect the set of temp_dir paths currently owned by an active session.
 	 *
-	 * @param string $dir Directory path.
+	 * Replaces the previous per-file is_temp_dir_in_use() call which issued
+	 * one DB query per directory. Building the set once brings the cost
+	 * down to a single query regardless of how many files self-heal examines.
+	 *
+	 * @return array<string, true> Active temp_dir paths, keyed by path.
 	 */
-	private function delete_directory( string $dir ): void {
-		SScribe_Security::delete_directory( $dir );
-	}
-
-	/**
-	 * Check if a temp directory is currently in use by an active session.
-	 *
-	 * Prevents self-heal from deleting temp dirs belonging to ongoing exports.
-	 *
-	 * @param string $dir Directory path to check.
-	 * @return bool True if directory is in use by an active session.
-	 */
-	private function is_temp_dir_in_use( string $dir ): bool {
+	private function collect_active_temp_dirs(): array {
 		global $wpdb;
 
 		if ( ! class_exists( 'SScribe_Session' ) ) {
-			return false;
+			return array();
 		}
 
 		$session = new SScribe_Session();
@@ -1156,19 +1149,47 @@ class SScribe_Diagnostics {
 			)
 		);
 
+		$active = array();
 		foreach ( (array) $options as $option ) {
 			$data = $session->decode_session_value( $option->option_value ?? '' );
-
-			if ( ! is_array( $data ) ) {
+			if ( ! is_array( $data ) || empty( $data['temp_dir'] ) ) {
 				continue;
 			}
+			$active[ (string) $data['temp_dir'] ] = true;
+		}
 
-			if ( ! empty( $data['temp_dir'] ) && str_starts_with( $data['temp_dir'], $dir ) ) {
+		return $active;
+	}
+
+	/**
+	 * Membership check against the active-temp-dir set built once per
+	 * self-heal pass. Prefix-based: a candidate directory is considered
+	 * in use if any active temp_dir is a prefix of it (active export may
+	 * have appended a subdir we are about to inspect).
+	 *
+	 * @param string              $dir         Directory to test.
+	 * @param array<string, bool> $active_dirs Active temp_dirs indexed by path.
+	 * @return bool True if $dir is currently owned by an active session.
+	 */
+	private function is_temp_dir_in_active_set( string $dir, array $active_dirs ): bool {
+		if ( empty( $active_dirs ) ) {
+			return false;
+		}
+		foreach ( array_keys( $active_dirs ) as $active_dir ) {
+			if ( str_starts_with( $dir, $active_dir ) ) {
 				return true;
 			}
 		}
-
 		return false;
+	}
+
+	/**
+	 * Delete a directory recursively.
+	 *
+	 * @param string $dir Directory path.
+	 */
+	private function delete_directory( string $dir ): void {
+		SScribe_Security::delete_directory( $dir );
 	}
 
 	/**

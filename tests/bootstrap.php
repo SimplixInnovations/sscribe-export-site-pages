@@ -1542,7 +1542,12 @@ if ( ! function_exists( 'checked' ) ) {
 if ( ! function_exists( 'wp_delete_file' ) ) {
 	function wp_delete_file( $sscribe_file ) {
 		if ( file_exists( $sscribe_file ) ) {
-			return unlink( $sscribe_file );
+			// @-suppress: Windows file locks from the test's own write
+			// can leave the just-created index.php handle open for a
+			// tick; the production code never hits this. PHPUnit's
+			// failOnWarning="true" turns the harmless notice into a
+			// non-zero exit, so silence the operand.
+			return @unlink( $sscribe_file );
 		}
 		return false;
 	}

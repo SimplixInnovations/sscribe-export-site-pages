@@ -1269,6 +1269,13 @@ final class SScribe_Batch_Processor {
 	}
 
 	/**
+	 * Batch status counts for many languages via AJAX.
+	 */
+	public function ajax_get_all_status_counts(): void {
+		$this->get_query_controller()->ajax_get_all_status_counts( $this->get_required_capability() );
+	}
+
+	/**
 	 * Delete an export via AJAX.
 	 */
 	public function ajax_delete_export(): void {

@@ -673,6 +673,13 @@ class SScribe_Session {
 	 * Store page_ids in a separate transient to avoid bloating the session
 	 * autoload with large page ID arrays.
 	 *
+	 * For arrays over the large-array threshold (500 IDs) we route the data
+	 * through the object cache with a dedicated group instead of wp_options.
+	 * The object cache stores keys in memory (Redis/Memcached) or in a
+	 * dedicated site-options-style bucket where a 100k-ID payload is cheap
+	 * instead of bloating wp_options. On hosts without persistent object
+	 * cache we fall back to the transient path so behavior is preserved.
+	 *
 	 * @param string $session_id Session identifier.
 	 * @param array  $page_ids   Array of page IDs.
 	 * @return bool True on success.
@@ -683,6 +690,16 @@ class SScribe_Session {
 			return false;
 		}
 		$transient_key = 'sscribe_page_ids_' . $session_id;
+		$count         = count( $page_ids );
+		$large_array   = $count > (int) apply_filters( 'sscribe_page_ids_large_threshold', 500 );
+		if ( $large_array && wp_using_ext_object_cache() ) {
+			return (bool) wp_cache_set(
+				$transient_key,
+				$page_ids,
+				'sscribe_page_ids',
+				72 * HOUR_IN_SECONDS
+			);
+		}
 		return set_transient( $transient_key, $page_ids, 72 * HOUR_IN_SECONDS );
 	}
 
@@ -698,6 +715,12 @@ class SScribe_Session {
 			return array();
 		}
 		$transient_key = 'sscribe_page_ids_' . $session_id;
+		if ( wp_using_ext_object_cache() ) {
+			$cached = wp_cache_get( $transient_key, 'sscribe_page_ids' );
+			if ( is_array( $cached ) ) {
+				return $cached;
+			}
+		}
 		$result = get_transient( $transient_key );
 		return is_array( $result ) ? $result : array();
 	}
@@ -714,6 +737,9 @@ class SScribe_Session {
 			return false;
 		}
 		$transient_key = 'sscribe_page_ids_' . $session_id;
+		if ( wp_using_ext_object_cache() ) {
+			wp_cache_delete( $transient_key, 'sscribe_page_ids' );
+		}
 		return delete_transient( $transient_key );
 	}
 
