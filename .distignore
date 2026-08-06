@@ -131,6 +131,11 @@ test-phpcs-output.txt
 # one-off CLI scripts must not ship in the production ZIP.
 verify_*.php
 debug_*.php
+# Ad-hoc Python transform scripts used during one-off SVG / kses /
+# indent fixes. Shipped build never needs them; the regex passes
+# that produced them are now baked into the PHP partial or CSS
+# directly. Pattern-match guards against future throwaway scripts.
+*.py
 
 # Environment
 .env
