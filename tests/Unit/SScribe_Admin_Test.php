@@ -80,21 +80,20 @@ class SScribe_Admin_Test extends TestCase {
 		$this->assertCount( 0, $sscribe_test_styles );
 		$this->assertCount( 0, $sscribe_test_scripts );
 
-		// Debug console assets are always enqueued because the Debug tab is
-		// always rendered — without the JS, the user has no way to flip
-		// the sscribe_debug_enabled toggle on a fresh install. The flag
-		// controls *logging*, not whether the console UI is available.
-		// Three styles load: sscribe-tokens (the design-token layer, cached
-		// independently) plus sscribe-admin and sscribe-debug-console.
+		// Debug console assets are gated on the sscribe_debug_enabled
+		// option. When debug is OFF (the common case on a fresh install),
+		// only the base sscribe-tokens + sscribe-admin assets load — saves
+		// ~20-30 KB of JS+CSS on every export page load. The toggle in
+		// the Debug tab flips the option; the next page load picks up
+		// the debug console assets.
 		$sscribe_test_options['sscribe_debug_enabled'] = false;
 		$admin->enqueue_admin_assets( 'toplevel_page_sscribe-export' );
 
-		$this->assertCount( 3, $sscribe_test_styles );
-		$this->assertCount( 2, $sscribe_test_scripts );
+		$this->assertCount( 2, $sscribe_test_styles );
+		$this->assertCount( 1, $sscribe_test_scripts );
 
-		// The same three styles and two scripts are enqueued when debug is
-		// enabled — the flag only changes which logs are captured, not the
-		// UI surface.
+		// When debug is enabled, the debug console assets join the base
+		// two — three styles, two scripts.
 		$sscribe_test_styles  = array();
 		$sscribe_test_scripts = array();
 		$sscribe_test_options['sscribe_debug_enabled'] = true;

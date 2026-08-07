@@ -318,6 +318,17 @@ class SScribe_Diagnostics {
 		$has_error = false;
 		$warnings  = array();
 
+		// Pre-warm the prefixed vendor autoloader BEFORE the mPDF / PHPWord
+		// checks below. The preflight runs over AJAX (admin-ajax.php), which
+		// never fires admin_notices — the only other path that calls
+		// check_vendor_dependencies(). Without this call, the very first
+		// preflight on a fresh install reports a false-positive "mPDF
+		// library not found. Run: composer install" because the prefixed
+		// autoloader has never been registered in this request. Idempotent:
+		// the inner check is a one-shot via SSCRIBE_VENDOR_AUTOLDED, and
+		// later calls become a no-op once defined.
+		$this->check_vendor_dependencies();
+
 		$checks['php_version'] = $this->check_php_version();
 		$checks['memory']      = $this->check_memory( $page_count, $formats );
 		$checks['execution']   = $this->check_execution_time( $page_count );
@@ -668,12 +679,16 @@ class SScribe_Diagnostics {
 	 * @return array
 	 */
 	private function check_mpdf(): array {
+		// Defense in depth: prewarm vendor before class_exists() so any caller
+		// (not just run_preflight()) resolves the prefixed class.
+		$this->check_vendor_dependencies();
+
 		if ( ! class_exists( '\SScribeVendor\Mpdf\Mpdf' ) ) {
 			return array(
 				'name'    => 'mPDF Library',
 				'status'  => 'error',
-				'message' => 'mPDF library not found. Run: composer install',
-				'fix'     => 'Run composer install in the plugin directory',
+				'message' => 'mPDF library files are missing from the plugin install. The vendor-prefixed/ directory must be present for PDF exports.',
+				'fix'     => 'Deactivate the plugin, then reinstall it from the Plugins screen to restore the bundled libraries.',
 			);
 		}
 
@@ -724,6 +739,10 @@ class SScribe_Diagnostics {
 	 */
 	private function check_phpword(): array {
 
+		// Defense in depth: prewarm vendor before class_exists() so any caller
+		// (not just run_preflight()) resolves the prefixed class.
+		$this->check_vendor_dependencies();
+
 		if ( class_exists( '\\SScribeVendor\\PhpOffice\\PhpWord\\PhpWord' ) ) {
 			return array(
 				'name'    => 'PHPWord Library',
@@ -735,8 +754,8 @@ class SScribe_Diagnostics {
 		return array(
 			'name'    => 'PHPWord Library',
 			'status'  => 'error',
-			'message' => 'PHPWord library not found. Run: composer install',
-			'fix'     => 'Run composer install in the plugin directory',
+			'message' => 'PHPWord library files are missing from the plugin install. The vendor-prefixed/ directory must be present for DOCX exports.',
+			'fix'     => 'Deactivate the plugin, then reinstall it from the Plugins screen to restore the bundled libraries.',
 		);
 	}
 
