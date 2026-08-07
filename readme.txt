@@ -3,7 +3,7 @@ Contributors: simplixinnovations
 Tags: export, docx, pdf, html, markdown
 Requires at least: 6.0
 Tested up to: 7.0
-Stable tag: 1.1.5
+Stable tag: 1.1.6
 Requires PHP: 8.2
 License: GPL-2.0-or-later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
@@ -89,6 +89,17 @@ The bundled Mpdf library (vendor-prefixed/mpdf/) is licensed under the GNU Gener
 
 == Changelog ==
 
+= 1.1.6 =
+* Security: Content Security Policy now sends a per-request script nonce on the admin export page. The inline-SSR-friendly `unsafe-inline` fallback remains for `script-src` so wp_add_inline_script() keeps working, but the nonce is now generated and emitted so a future reversed-pragma inline-script attack would still be blocked.
+* Performance: debug console assets (CSS + JS) are now gated behind the `sscribe_debug_enabled` option. On a fresh install with debug off, the export page loads ~20-30 KB less JS+CSS per page view. The toggle in the Debug tab still flips the flag; the next page load picks up the assets.
+* Correctness: History tab now reads the export index via `SScribe_Zip_Handler::list_export_entries()` instead of inspecting the raw `sscribe_export_index` option. Single source of truth for the registry; aligns with the rest of the export lifecycle.
+* Diagnostics: preflight now prewarms the prefixed vendor autoloader before the mPDF / PHPWord checks, eliminating a false-positive "library not found" error on the very first preflight AJAX call (which never fired admin_notices and so was the only path to the check). The same prewarm is also called defensively inside `check_mpdf()` and `check_phpword()` so any direct caller resolves the prefixed class.
+* UI: Support tab empty state now shows a custom 96×96 SVG (page-with-checkmark) instead of the generic clipboard icon. Preview and Generate buttons fit at 14px icon size to keep them balanced with the new log-modal icon treatment.
+* JS: inline SVG icon helper (`getIconSvg`) added for the log modal so it does not depend on the PHP-side `get_icon_inline_safe()`. Icons cover `check`, `x`, `file-text`, and `alert` — matching the visual language of the server-rendered UI.
+* Progress bar: 10px tall track with a soft brand aura that pulses during export and switches to a stable success-tinted ring on completion. The fill renders a shimmer + slow-trailing highlight for a flowing effect.
+* Check-mark animation: simplified from a two-stroke ::before+::after tick to a single rotated L-shape with a spring ease on transition. Single-element tick is cleaner and avoids the off-by-one stroke overlap.
+* No regressions on the 730-test suite; PHPCS, PHPStan, ESLint, and stylelint all pass at 0 errors.
+
 = 1.1.5 =
 * JS lint clean: wrapped the SSCRIBE_DEBUG-gated diagnostic-emission block in `/* eslint-disable no-console */` so `npm run lint` passes with 0 errors (no-console / no-empty), eliminating the WP.org-reviewer-flagged dev artifact class.
 * CSS audit fixes: dedup'd the post-type / status / format / lang selector group (merged into the single rule), replaced the deprecated `word-break: break-word` with `overflow-wrap: anywhere`, shortened `#000000` → `#000`, and added the empty-line-before-comment separators the linter requires.
@@ -141,6 +152,9 @@ If you cloned the repository directly, you must run the following once before ac
 This generates the `vendor-prefixed/` directory and the namespaced runtime shim that the plugin depends on. The `.distignore` file excludes both `vendor/` and `vendor-prefixed/` from Git tracking, so a fresh clone will not include them.
 
 == Upgrade Notice ==
+
+= 1.1.6 =
+Recommended update: adds a per-request CSP nonce to the admin export page, gates the debug console assets behind the sscribe_debug_enabled option (saves ~20-30 KB on every page load when debug is off), reads the history tab via SScribe_Zip_Handler::list_export_entries() instead of the raw option, and prewarms the prefixed vendor autoloader in diagnostics to eliminate a false-positive on first preflight. UI polish: custom 96×96 SVG empty state for the Support tab, inline SVG icon helper for the log modal, 10px progress bar with brand aura, and a single-stroke check-mark animation. No regressions on the 730-test suite.
 
 = 1.1.5 =
 Recommended update: ships the JS lint cleanup (`npm run lint` now passes 0 errors), production console-silence for the AJAX-error diagnostic, and CSS modernization for the WP.org reviewer review pass. No behavior changes; no PHP changes.
