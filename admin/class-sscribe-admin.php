@@ -229,7 +229,7 @@ class SScribe_Admin {
 		header(
 			'Content-Security-Policy: ' .
 			"default-src 'self'; " .
-			'script-src ' . $script_src . '; ' .
+			"script-src 'self' 'nonce-" . $nonce . "' 'unsafe-inline'; " .
 			"style-src 'self' 'unsafe-inline'; " .
 			"img-src 'self' data: https:; " .
 			"object-src 'none'; " .
@@ -302,20 +302,29 @@ class SScribe_Admin {
 			true
 		);
 
-		wp_enqueue_style(
-			'sscribe-debug-console',
-			SSCRIBE_PLUGIN_URL . 'admin/css/sscribe-debug-console.css',
-			array( 'sscribe-admin' ),
-			$debug_css_version
-		);
+		// Debug console assets: only enqueue when the debug logging is
+		// actually enabled. Saves ~20-30 KB of JS+CSS on every export
+		// page load for the common case where the admin never enabled
+		// debug. The toggle in the Debug tab flips a runtime flag; if
+		// the user enables debug from a non-debug session, the next
+		// page load will pick the assets up.
+		$debug_enabled = (bool) get_option( 'sscribe_debug_enabled', false );
+		if ( $debug_enabled ) {
+			wp_enqueue_style(
+				'sscribe-debug-console',
+				SSCRIBE_PLUGIN_URL . 'admin/css/sscribe-debug-console.css',
+				array( 'sscribe-admin' ),
+				$debug_css_version
+			);
 
-		wp_enqueue_script(
-			'sscribe-debug-console',
-			SSCRIBE_PLUGIN_URL . 'admin/js/sscribe-debug-console.js',
-			array( 'jquery', 'sscribe-admin' ),
-			$debug_js_version,
-			true
-		);
+			wp_enqueue_script(
+				'sscribe-debug-console',
+				SSCRIBE_PLUGIN_URL . 'admin/js/sscribe-debug-console.js',
+				array( 'jquery', 'sscribe-admin' ),
+				$debug_js_version,
+				true
+			);
+		}
 
 		add_action( 'admin_print_footer_scripts', array( $this, 'print_localized_data' ), 0 );
 	}
