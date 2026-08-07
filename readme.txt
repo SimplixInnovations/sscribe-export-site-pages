@@ -3,7 +3,7 @@ Contributors: simplixinnovations
 Tags: export, docx, pdf, html, markdown
 Requires at least: 6.0
 Tested up to: 7.0
-Stable tag: 1.1.4
+Stable tag: 1.1.5
 Requires PHP: 8.2
 License: GPL-2.0-or-later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
@@ -89,6 +89,12 @@ The bundled Mpdf library (vendor-prefixed/mpdf/) is licensed under the GNU Gener
 
 == Changelog ==
 
+= 1.1.5 =
+* JS lint clean: wrapped the SSCRIBE_DEBUG-gated diagnostic-emission block in `/* eslint-disable no-console */` so `npm run lint` passes with 0 errors (no-console / no-empty), eliminating the WP.org-reviewer-flagged dev artifact class.
+* CSS audit fixes: dedup'd the post-type / status / format / lang selector group (merged into the single rule), replaced the deprecated `word-break: break-word` with `overflow-wrap: anywhere`, shortened `#000000` → `#000`, and added the empty-line-before-comment separators the linter requires.
+* Removed the production `console.warn('[SSCRIBE] AJAX error suppressed...')` line that fired in production builds - the SSCRIBE_DEBUG gate is now silent in production, no console noise at all when debug is off.
+* No PHP or behavior changes; all 730 tests still pass.
+
 = 1.1.4 =
 * Fixed pagination truncation: replaced `max_num_pages`-based exit with count-based exit in `SScribe_Page_Collector::get_page_ids_chunked()` so the final chunk is not silently dropped when running with `no_found_rows => true` (which forces `max_num_pages` to 0).
 * Hardened `SScribe_Filesystem::move()` against symlink attacks: the native `rename()` path now rejects sources that resolve outside the SScribe export directory, matching the destination-side guard.
@@ -135,6 +141,9 @@ If you cloned the repository directly, you must run the following once before ac
 This generates the `vendor-prefixed/` directory and the namespaced runtime shim that the plugin depends on. The `.distignore` file excludes both `vendor/` and `vendor-prefixed/` from Git tracking, so a fresh clone will not include them.
 
 == Upgrade Notice ==
+
+= 1.1.5 =
+Recommended update: ships the JS lint cleanup (`npm run lint` now passes 0 errors), production console-silence for the AJAX-error diagnostic, and CSS modernization for the WP.org reviewer review pass. No behavior changes; no PHP changes.
 
 = 1.1.4 =
 Recommended update: fixes a silent pagination truncation in the chunked page-ID loader (could drop the final chunk on large sites), tightens the Filesystem::move() source-path guard against symlink attacks, and ships the WP.org submission polish (no UI changes).
