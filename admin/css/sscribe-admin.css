@@ -1,4 +1,4 @@
-/* @version 1.1.5 */
+/* @version 1.1.6 */
 
 /* Design tokens + master-container resets live in sscribe-tokens.css,
  * enqueued first so the cache lifetime for that file is independent
@@ -556,46 +556,39 @@
   transition: border-color 120ms ease, background 120ms ease;
 }
 
-/* Check mark — short stroke (bottom-left to middle). */
+/* Check mark — single L-shape rotated 45deg, anchored from the centre of
+   the 18×18 dot. Width 5 × height 9 with bottom + right borders forms a
+   clean tick that scales from 0 with a spring easing on check. */
 .sscribe-post-type-selector::before,
 .sscribe-status-selector::before,
 .sscribe-format-selector::before,
 .sscribe-lang-selector::before {
   content: '';
   position: absolute;
-  width: 4px;
-  height: 7px;
-  left: 4px;
-  top: 7px;
+  top: 2px;
+  left: 5px;
+  width: 5px;
+  height: 9px;
   border-right: 2px solid var(--ss-text-inverse);
   border-bottom: 2px solid var(--ss-text-inverse);
+  border-top: 0;
+  border-left: 0;
+  border-radius: 0;
   opacity: 0;
-  transform: rotate(45deg) scale(0.5);
+  transform: rotate(45deg) scale(0.2);
   transform-origin: 50% 50%;
-  transition: opacity 160ms var(--ss-easing, ease),
+  transition: opacity 120ms var(--ss-easing, ease),
     transform 220ms var(--ss-easing, cubic-bezier(0.34, 1.56, 0.64, 1));
   box-sizing: border-box;
+  pointer-events: none;
 }
 
-/* Check mark — long stroke (middle to top-right). */
+/* Kill the legacy ::after stroke — single-element tick is cleaner. */
 .sscribe-post-type-selector::after,
 .sscribe-status-selector::after,
 .sscribe-format-selector::after,
 .sscribe-lang-selector::after {
-  content: '';
-  position: absolute;
-  width: 4px;
-  height: 11px;
-  left: 6px;
-  top: 2px;
-  border-right: 2px solid var(--ss-text-inverse);
-  border-bottom: 2px solid var(--ss-text-inverse);
-  opacity: 0;
-  transform: rotate(-45deg) scale(0.5);
-  transform-origin: 50% 50%;
-  transition: opacity 160ms var(--ss-easing, ease),
-    transform 220ms var(--ss-easing, cubic-bezier(0.34, 1.56, 0.64, 1));
-  box-sizing: border-box;
+  content: none;
 }
 
 .sscribe-post-type-card input:checked ~ .sscribe-post-type-card-inner .sscribe-post-type-selector,
@@ -612,14 +605,6 @@
 .sscribe-lang-card-label input:checked ~ .sscribe-lang-card-inner .sscribe-lang-selector::before {
   opacity: 1;
   transform: rotate(45deg) scale(1);
-}
-
-.sscribe-post-type-card input:checked ~ .sscribe-post-type-card-inner .sscribe-post-type-selector::after,
-.sscribe-status-card-label input:checked ~ .sscribe-status-card-inner .sscribe-status-selector::after,
-.sscribe-format-card-label input:checked ~ .sscribe-format-card-inner .sscribe-format-selector::after,
-.sscribe-lang-card-label input:checked ~ .sscribe-lang-card-inner .sscribe-lang-selector::after {
-  opacity: 1;
-  transform: rotate(-45deg) scale(1);
 }
 
 .sscribe-lang-card-all .sscribe-lang-card-inner,
@@ -1431,64 +1416,182 @@
 .sscribe-progress-bar-container {
   position: relative;
   flex: 1;
-  height: 8px;
+  height: 10px;
   background: var(--ss-surface-3);
   border-radius: var(--ss-radius-full);
   overflow: hidden;
   border: 1px solid var(--ss-border);
+  box-shadow: inset 0 1px 2px rgb(0 0 0 / 6%);
+}
+
+/* Glow ring that pulses behind the bar — soft brand aura. */
+.sscribe-progress-bar-container::before {
+  content: "";
+  position: absolute;
+  inset: -3px;
+  border-radius: var(--ss-radius-full);
+  background: radial-gradient(
+    closest-side,
+    var(--ss-brand-tint) 0%,
+    transparent 75%
+  );
+  opacity: 0;
+  pointer-events: none;
+  animation: sscribe-progress-aura 2.4s ease-in-out infinite;
+  z-index: 0;
+}
+
+.sscribe-progress-bar-container.sscribe-progress-complete::before {
+  background: radial-gradient(
+    closest-side,
+    var(--ss-success-bg) 0%,
+    transparent 75%
+  );
+  animation: none;
+  opacity: 0.7;
+  transition: opacity 280ms ease;
 }
 
 .sscribe-progress-bar-fill {
   position: relative;
   height: 100%;
-  background: var(--ss-brand);
+  background: linear-gradient(
+    90deg,
+    var(--ss-brand) 0%,
+    color-mix(in srgb, var(--ss-brand) 80%, #fff 20%) 50%,
+    var(--ss-brand) 100%
+  );
+  background-size: 200% 100%;
   width: 0%;
   border-radius: var(--ss-radius-full);
-  transition: width 320ms cubic-bezier(0.22, 1, 0.36, 1);
+  transition: width 360ms cubic-bezier(0.22, 1, 0.36, 1),
+    background-color 360ms ease;
   overflow: hidden;
+  box-shadow:
+    0 0 0 1px color-mix(in srgb, var(--ss-brand) 50%, transparent),
+    0 1px 0 rgb(255 255 255 / 25%) inset;
+  z-index: 1;
 }
 
+/* Wide soft shimmer band — moves faster, gives "flowing" feel. */
+.sscribe-progress-bar-fill::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(
+    90deg,
+    transparent 0%,
+    rgb(255 255 255 / 22%) 35%,
+    rgb(255 255 255 / 45%) 50%,
+    rgb(255 255 255 / 22%) 65%,
+    transparent 100%
+  );
+  background-size: 220% 100%;
+  background-repeat: no-repeat;
+  animation: sscribe-progress-sweep 1.6s linear infinite;
+  pointer-events: none;
+}
+
+/* Trailing soft highlight — slow secondary pass for depth. */
 .sscribe-progress-bar-fill::after {
   content: "";
   position: absolute;
   inset: 0;
-  background: linear-gradient(90deg, transparent 0%, rgb(255 255 255 / 35%) 50%, transparent 100%);
-  background-size: 200% 100%;
+  background: linear-gradient(
+    90deg,
+    transparent 0%,
+    rgb(255 255 255 / 12%) 40%,
+    rgb(255 255 255 / 18%) 50%,
+    rgb(255 255 255 / 12%) 60%,
+    transparent 100%
+  );
+  background-size: 320% 100%;
   background-repeat: no-repeat;
-  animation: sscribe-progress-sweep 1.8s ease-in-out infinite;
+  animation: sscribe-progress-sweep-slow 4.2s linear infinite;
+  pointer-events: none;
+  mix-blend-mode: screen;
 }
 
 .sscribe-progress-bar-fill.sscribe-progress-pulse {
-  animation: sscribe-progress-pulse 1.8s ease-in-out infinite;
+  animation: sscribe-progress-pulse 2.4s ease-in-out infinite;
 }
 
 @keyframes sscribe-progress-pulse {
   0%, 100% {
-	opacity: 1;
+	background-position: 0% 0;
+	filter: saturate(1);
   }
 
   50% {
-	opacity: 0.85;
+	background-position: 100% 0;
+	filter: saturate(1.15);
   }
 }
 
 @keyframes sscribe-progress-sweep {
   0% {
-	background-position: 200% 0;
+	background-position: 220% 0;
   }
 
   100% {
-	background-position: -100% 0;
+	background-position: -120% 0;
+  }
+}
+
+@keyframes sscribe-progress-sweep-slow {
+  0% {
+	background-position: 320% 0;
+  }
+
+  100% {
+	background-position: -220% 0;
+  }
+}
+
+@keyframes sscribe-progress-aura {
+  0%, 100% {
+	opacity: 0.35;
+  }
+
+  50% {
+	opacity: 0.7;
   }
 }
 
 .sscribe-progress-bar-container.sscribe-progress-complete .sscribe-progress-bar-fill {
-  background: var(--ss-success);
+  background: linear-gradient(
+    90deg,
+    var(--ss-success) 0%,
+    color-mix(in srgb, var(--ss-success) 70%, #fff 30%) 50%,
+    var(--ss-success) 100%
+  );
+  box-shadow:
+    0 0 0 1px color-mix(in srgb, var(--ss-success) 50%, transparent),
+    0 1px 0 rgb(255 255 255 / 25%) inset;
+  animation: sscribe-progress-complete-flash 600ms cubic-bezier(0.34, 1.56, 0.64, 1) 1;
 }
 
-.sscribe-progress-bar-container.sscribe-progress-complete .sscribe-progress-bar-fill.sscribe-progress-pulse {
+.sscribe-progress-bar-container.sscribe-progress-complete .sscribe-progress-bar-fill::before,
+.sscribe-progress-bar-container.sscribe-progress-complete .sscribe-progress-bar-fill::after {
   animation: none;
-  opacity: 1;
+  opacity: 0;
+}
+
+@keyframes sscribe-progress-complete-flash {
+  0% {
+	transform: scaleY(1);
+	filter: brightness(1.4);
+  }
+
+  40% {
+	transform: scaleY(1.45);
+	filter: brightness(1.2);
+  }
+
+  100% {
+	transform: scaleY(1);
+	filter: brightness(1);
+  }
 }
 
 .sscribe-progress-percentage {
@@ -1496,9 +1599,11 @@
   font-weight: 700;
   color: var(--ss-brand);
   font-family: var(--ss-font-mono);
-  min-width: 42px;
+  min-width: 44px;
   text-align: right;
   letter-spacing: 0.02em;
+  font-variant-numeric: tabular-nums;
+  transition: color 280ms ease;
 }
 
 .sscribe-progress-bar-container.sscribe-progress-complete ~ .sscribe-progress-percentage {
@@ -1506,11 +1611,13 @@
 }
 
 @media (prefers-reduced-motion: reduce) {
+  .sscribe-progress-bar-container::before,
   .sscribe-progress-bar-fill,
   .sscribe-progress-bar-fill.sscribe-progress-pulse,
+  .sscribe-progress-bar-fill::before,
   .sscribe-progress-bar-fill::after {
 	animation: none !important;
-	transition: width 200ms ease;
+	transition: width 220ms ease;
   }
 }
 
@@ -1870,8 +1977,9 @@
 
 .sscribe-support-master {
   display: grid;
-  grid-template-columns: 260px 1fr;
+  grid-template-columns: 300px 1fr;
   gap: var(--ss-space-5);
+  align-items: start;
 }
 
 .sscribe-support-sidebar {
@@ -1880,6 +1988,9 @@
   border-radius: var(--ss-radius-lg);
   padding: var(--ss-space-5);
   height: fit-content;
+  position: sticky;
+  top: var(--ss-space-3);
+  box-shadow: 0 1px 0 rgb(0 0 0 / 2%);
 }
 
 .sscribe-support-header {
@@ -1904,10 +2015,12 @@
   display: flex;
   flex-direction: column;
   gap: var(--ss-space-2);
+  margin-top: var(--ss-space-3);
 }
 
 .sscribe-support-actions-vertical .sscribe-button {
   width: 100%;
+  justify-content: center;
 }
 
 .sscribe-support-feedback {
@@ -1968,14 +2081,20 @@
 
 .sscribe-support-copy-text {
   width: 100%;
-  min-height: 360px;
+  min-height: 280px;
   background: var(--ss-bg);
   color: var(--ss-text-primary);
-  font: 12px/1.55 var(--ss-font-mono);
+  font: 12px/1.6 var(--ss-font-mono);
   border: 1px solid var(--ss-border);
-  border-radius: var(--ss-radius);
-  padding: var(--ss-space-3);
+  border-radius: var(--ss-radius-md);
+  padding: var(--ss-space-4);
   resize: vertical;
+  box-shadow: inset 0 1px 2px rgb(0 0 0 / 4%);
+  transition: border-color 120ms ease, box-shadow 120ms ease;
+}
+
+.sscribe-support-copy-text:hover {
+  border-color: var(--ss-border-strong);
 }
 
 .sscribe-support-copy-text::placeholder {
@@ -1991,8 +2110,11 @@
 
 /* Empty state inside the support grid container (initial load before refresh) */
 .sscribe-support-grid.sscribe-support-grid-empty {
-  padding: var(--ss-space-5);
-  display: block;
+  padding: var(--ss-space-6);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 360px;
 }
 
 .sscribe-support-empty {
@@ -2000,36 +2122,51 @@
   flex-direction: column;
   align-items: center;
   text-align: center;
-  padding: var(--ss-space-7) var(--ss-space-5);
+  padding: var(--ss-space-6) var(--ss-space-5);
   color: var(--ss-text-secondary);
   gap: var(--ss-space-2);
+  max-width: 480px;
 }
 
 .sscribe-support-empty-icon {
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  width: 44px;
-  height: 44px;
-  border-radius: 9999px;
-  background: var(--ss-brand-tint);
+  width: 96px;
+  height: 96px;
+  margin-bottom: var(--ss-space-3);
   color: var(--ss-brand);
-  margin-bottom: var(--ss-space-2);
+}
+
+.sscribe-support-empty-illustration {
+  width: 96px;
+  height: 96px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  margin-bottom: var(--ss-space-3);
+}
+
+.sscribe-support-empty-illustration svg {
+  width: 96px;
+  height: 96px;
+  display: block;
 }
 
 .sscribe-support-empty-title {
   margin: 0;
-  font-size: 13px;
+  font-size: 15px;
   font-weight: 600;
   color: var(--ss-text-primary);
+  letter-spacing: -0.005em;
 }
 
 .sscribe-support-empty-copy {
   margin: 0;
-  font-size: 12px;
+  font-size: 13px;
   line-height: 1.55;
-  color: var(--ss-text-muted);
-  max-width: 38ch;
+  color: var(--ss-text-secondary);
+  max-width: 44ch;
 }
 
 .sscribe-modal {
@@ -2092,7 +2229,7 @@
 }
 
 #sscribe-log-modal .sscribe-modal-content {
-  max-width: 720px;
+  max-width: 760px;
 }
 
 .sscribe-modal-header {
@@ -2100,8 +2237,29 @@
   align-items: center;
   justify-content: space-between;
   gap: var(--ss-space-3);
-  padding: var(--ss-space-4) var(--ss-space-6) var(--ss-space-3);
+  padding: var(--ss-space-5) var(--ss-space-6) var(--ss-space-4);
   border-bottom: 1px solid var(--ss-border);
+  position: relative;
+}
+
+/* Subtle gradient overlay on the header for depth — never colour-loud. */
+.sscribe-modal-header::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(
+    180deg,
+    var(--ss-brand-tint) 0%,
+    transparent 100%
+  );
+  opacity: 0.45;
+  pointer-events: none;
+  z-index: 0;
+}
+
+.sscribe-modal-header > * {
+  position: relative;
+  z-index: 1;
 }
 
 .sscribe-modal-header h3 {
@@ -2112,6 +2270,18 @@
   display: inline-flex;
   align-items: center;
   gap: var(--ss-space-2);
+}
+
+.sscribe-modal-header h3 .sscribe-modal-icon,
+.sscribe-modal-header h3 > svg {
+  width: 32px;
+  height: 32px;
+  padding: 6px;
+  background: var(--ss-brand);
+  color: var(--ss-text-inverse);
+  border-radius: var(--ss-radius-sm);
+  flex-shrink: 0;
+  box-sizing: border-box;
 }
 
 .sscribe-modal-close {
@@ -2154,14 +2324,27 @@
   overflow-y: auto;
 }
 
+#sscribe-log-modal .sscribe-modal-body {
+  padding: var(--ss-space-5) var(--ss-space-6);
+}
+
 .sscribe-modal-footer {
-  padding: var(--ss-space-3) var(--ss-space-6);
+  padding: var(--ss-space-4) var(--ss-space-6);
   border-top: 1px solid var(--ss-border);
   display: flex;
   align-items: center;
   justify-content: flex-end;
   gap: var(--ss-space-2);
   background: var(--ss-surface-2);
+}
+
+#sscribe-log-modal .sscribe-modal-footer {
+  background: linear-gradient(
+    180deg,
+    var(--ss-surface-2) 0%,
+    var(--ss-surface-3) 100%
+  );
+  padding: var(--ss-space-4) var(--ss-space-6);
 }
 
 .sscribe-preview-footer {
@@ -2684,12 +2867,12 @@
 .sscribe-log-content {
   display: flex;
   flex-direction: column;
-  gap: var(--ss-space-4);
+  gap: var(--ss-space-5);
 }
 
 .sscribe-log-summary {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));
+  grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
   gap: var(--ss-space-3);
   padding: 0;
   background: transparent;
@@ -2700,12 +2883,68 @@
 
 .sscribe-log-stat {
   display: flex;
-  flex-direction: column;
-  gap: 4px;
+  align-items: center;
+  gap: var(--ss-space-3);
   padding: var(--ss-space-3) var(--ss-space-4);
   background: var(--ss-surface-2);
   border: 1px solid var(--ss-border);
-  border-radius: var(--ss-radius);
+  border-radius: var(--ss-radius-md);
+  min-width: 0;
+  position: relative;
+  overflow: hidden;
+  transition: border-color var(--ss-motion-fast) var(--ss-easing),
+    background var(--ss-motion-fast) var(--ss-easing);
+}
+
+/* Decorative accent stripe on the left edge — colour-coded per stat. */
+.sscribe-log-stat::before {
+  content: "";
+  position: absolute;
+  left: 0;
+  top: 0;
+  bottom: 0;
+  width: 3px;
+  background: var(--ss-border-strong);
+  border-radius: 0 var(--ss-radius-sm) var(--ss-radius-sm) 0;
+}
+
+.sscribe-log-stat.sscribe-log-success::before {
+  background: var(--ss-success);
+}
+
+.sscribe-log-stat.sscribe-log-failed::before {
+  background: var(--ss-error);
+}
+
+.sscribe-log-stat-icon {
+  width: 32px;
+  height: 32px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  border-radius: var(--ss-radius-sm);
+  background: var(--ss-surface);
+  border: 1px solid var(--ss-border);
+  color: var(--ss-text-secondary);
+}
+
+.sscribe-log-stat.sscribe-log-success .sscribe-log-stat-icon {
+  background: var(--ss-success-bg);
+  border-color: var(--ss-success-border);
+  color: var(--ss-success);
+}
+
+.sscribe-log-stat.sscribe-log-failed .sscribe-log-stat-icon {
+  background: var(--ss-error-bg);
+  border-color: var(--ss-error-border);
+  color: var(--ss-error);
+}
+
+.sscribe-log-stat-body {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
   min-width: 0;
 }
 
@@ -2719,10 +2958,11 @@
 }
 
 .sscribe-log-stat-value {
-  font-size: 16px;
+  font-size: 18px;
   font-weight: 700;
   color: var(--ss-text-primary);
   font-variant-numeric: tabular-nums;
+  line-height: 1.1;
 }
 
 .sscribe-log-stat-value.success {
@@ -2772,6 +3012,29 @@
 .sscribe-log-pages {
   color: var(--ss-text-secondary);
   font-size: 13px;
+  display: flex;
+  flex-direction: column;
+  gap: var(--ss-space-3);
+}
+
+.sscribe-log-pages h4 {
+  margin: 0;
+  font-size: 12px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: var(--ss-text-tertiary);
+  display: inline-flex;
+  align-items: center;
+  gap: var(--ss-space-2);
+}
+
+.sscribe-log-pages h4::before {
+  content: "";
+  width: 4px;
+  height: 12px;
+  border-radius: 2px;
+  background: var(--ss-brand);
 }
 
 .sscribe-log-table {
@@ -2780,8 +3043,9 @@
   font-size: 13px;
   font-variant-numeric: tabular-nums;
   border: 1px solid var(--ss-border);
-  border-radius: var(--ss-radius);
+  border-radius: var(--ss-radius-md);
   overflow: hidden;
+  background: var(--ss-surface);
 }
 
 .sscribe-log-table th {
@@ -2804,15 +3068,38 @@
   vertical-align: middle;
 }
 
-.sscribe-log-table tr:last-child td {
+.sscribe-log-table tbody tr {
+  transition: background 120ms ease;
+}
+
+.sscribe-log-table tbody tr:hover td {
+  background: var(--ss-surface-2);
+}
+
+.sscribe-log-table tbody tr:last-child td {
   border-bottom: none;
 }
 
+.sscribe-log-table tbody tr:last-child td:first-child {
+  border-radius: 0 0 0 var(--ss-radius-md);
+}
+
+.sscribe-log-table tbody tr:last-child td:last-child {
+  border-radius: 0 0 var(--ss-radius-md) 0;
+}
+
 .sscribe-log-empty {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: var(--ss-space-2);
   text-align: center;
-  padding: var(--ss-space-6) var(--ss-space-4);
+  padding: var(--ss-space-7) var(--ss-space-4);
   color: var(--ss-text-muted);
   font-size: 13px;
+  background: var(--ss-surface-2);
+  border: 1px dashed var(--ss-border);
+  border-radius: var(--ss-radius-md);
 }
 
 .sscribe-log-error {
@@ -3129,18 +3416,20 @@
   grid-auto-flow: dense;
   gap: var(--ss-space-4);
   align-items: start;
-  padding: 20px;
+  padding: var(--ss-space-5);
+  background: var(--ss-bg);
 }
 
 .sscribe-support-section {
   display: flex;
   flex-direction: column;
-  gap: var(--ss-space-2);
+  gap: var(--ss-space-3);
   padding: var(--ss-space-4);
   background: var(--ss-surface);
   border: 1px solid var(--ss-border);
-  border-radius: var(--ss-radius);
+  border-radius: var(--ss-radius-md);
   min-width: 0;
+  box-shadow: 0 1px 0 rgb(0 0 0 / 2%);
 }
 
 .sscribe-support-section-full {
@@ -3158,25 +3447,42 @@
   letter-spacing: 0.08em;
   color: var(--ss-text-tertiary);
   margin: 0 0 var(--ss-space-2) 0;
-  padding-bottom: var(--ss-space-2);
+  padding: 0 0 var(--ss-space-2) 0;
   border-bottom: 1px solid var(--ss-border);
+  display: flex;
+  align-items: center;
+  gap: var(--ss-space-2);
+}
+
+.sscribe-support-section-title::before {
+  content: "";
+  width: 4px;
+  height: 12px;
+  border-radius: 2px;
+  background: var(--ss-brand);
 }
 
 .sscribe-support-grid-inner {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+  grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
   gap: var(--ss-space-3);
 }
 
 .sscribe-support-item {
   display: flex;
   flex-direction: column;
-  gap: var(--ss-space-1);
-  padding: var(--ss-space-2) var(--ss-space-3);
-  background: var(--ss-surface-alt);
+  gap: 2px;
+  padding: var(--ss-space-3);
+  background: var(--ss-surface-2);
   border: 1px solid var(--ss-border);
-  border-radius: var(--ss-radius-sm, 6px);
+  border-radius: var(--ss-radius-sm);
   min-width: 0;
+  transition: border-color 120ms ease, background 120ms ease;
+}
+
+.sscribe-support-item:hover {
+  border-color: var(--ss-border-strong);
+  background: var(--ss-brand-tint);
 }
 
 .sscribe-support-label {
@@ -3192,6 +3498,7 @@
   color: var(--ss-text-primary);
   font-weight: 500;
   overflow-wrap: anywhere;
+  line-height: 1.4;
 }
 
 .sscribe-support-empty-state {
@@ -4078,16 +4385,23 @@ kbd.sscribe-shortcut-hint {
   border: 1px solid var(--ss-border) !important;
   border-radius: var(--ss-radius-lg) !important;
   overflow: hidden !important;
+  box-shadow: 0 1px 0 rgb(0 0 0 / 2%);
 }
 
 .sscribe-support-panel-header {
   display: flex !important;
   align-items: center !important;
-  gap: 10px !important;
-  padding: 14px 22px !important;
+  gap: var(--ss-space-2) !important;
+  padding: var(--ss-space-4) var(--ss-space-5) !important;
   background: var(--ss-surface-2) !important;
   border-bottom: 1px solid var(--ss-border) !important;
   color: var(--ss-text-secondary) !important;
+}
+
+.sscribe-support-panel-header h3 {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--ss-space-2);
 }
 
 .sscribe-support-panel-header .sscribe-icon {
@@ -4096,16 +4410,23 @@ kbd.sscribe-shortcut-hint {
 
 .sscribe-support-panel-title {
   margin: 0 !important;
-  font-size: 13px !important;
+  font-size: 14px !important;
   font-weight: 600 !important;
   color: var(--ss-text-primary) !important;
 }
 
 .sscribe-support-panel-meta {
   margin-left: auto !important;
+  display: inline-flex !important;
+  align-items: center !important;
+  gap: 6px !important;
   font-family: var(--ss-font-mono) !important;
   font-size: 11px !important;
   color: var(--ss-text-muted) !important;
+  padding: 2px 8px !important;
+  border-radius: var(--ss-radius-full) !important;
+  background: var(--ss-surface) !important;
+  border: 1px solid var(--ss-border) !important;
 }
 
 .sscribe-support-cmd {
@@ -5240,20 +5561,34 @@ kbd.sscribe-kbd {
 .sscribe-support-section-header {
   display: flex;
   align-items: center;
-  gap: 8px;
-  color: var(--ss-color-fg-primary);
+  gap: var(--ss-space-2);
+  color: var(--ss-text-primary);
+  margin-bottom: var(--ss-space-2);
 }
 
 .sscribe-support-section-header h2 {
   font: 600 14px/1.4 var(--ss-font);
   margin: 0;
-  color: var(--ss-color-fg-primary);
+  color: var(--ss-text-primary);
+}
+
+/* Icon-tile wrapper for the leading header icon (info / clipboard etc). */
+.sscribe-support-section-header > svg,
+.sscribe-support-section-header > img {
+  width: 32px;
+  height: 32px;
+  padding: 6px;
+  background: var(--ss-brand);
+  color: var(--ss-text-inverse);
+  border-radius: var(--ss-radius-sm);
+  flex-shrink: 0;
+  box-sizing: border-box;
 }
 
 .sscribe-support-section-copy {
   font: 400 13px/1.55 var(--ss-font);
-  color: var(--ss-color-fg-secondary);
-  margin: 0;
+  color: var(--ss-text-secondary);
+  margin: 0 0 var(--ss-space-4) 0;
 }
 
 /* ── 8. v3.5 PREMIUM POLISH ──────────────────────────────── */
@@ -5646,13 +5981,13 @@ kbd.sscribe-kbd {
 
 /* 8.18 Links contrast in cards */
 
-.sscribe-master-container a {
+.sscribe-master-container a:not(.sscribe-button) {
   color: var(--ss-brand);
   text-decoration-thickness: 1px;
   text-underline-offset: 2px;
 }
 
-.sscribe-master-container a:hover {
+.sscribe-master-container a:not(.sscribe-button):hover {
   color: var(--ss-brand-hover);
 }
 

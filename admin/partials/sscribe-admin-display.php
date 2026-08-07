@@ -513,13 +513,13 @@ $sscribe_preflight_warnings = $sscribe_preflight_warnings ?? array();
 					</div>
 					<div class="sscribe-export-bar-actions">
 						<button type="button" id="sscribe-preview-btn" class="sscribe-button sscribe-button-outline sscribe-btn-sm" disabled aria-describedby="sscribe-preview-btn-hint" title="<?php esc_attr_e( 'Ctrl+Shift+P (Cmd+Shift+P on Mac)', 'sscribe-export-site-pages' ); ?>">
-						<?php echo SScribe_Helpers::get_icon_inline_safe( 'eye', 16, 'sscribe-button-icon' ); // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- helper escapes via internal wp_kses allowlist ?>
+						<?php echo SScribe_Helpers::get_icon_inline_safe( 'eye', 14, 'sscribe-button-icon' ); // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- helper escapes via internal wp_kses allowlist ?>
 							<span><?php esc_html_e( 'Preview', 'sscribe-export-site-pages' ); ?></span>
 							<kbd class="sscribe-shortcut-hint" aria-hidden="true">⇧P</kbd>
 						</button>
 						<span id="sscribe-preview-btn-hint" class="screen-reader-text"><?php esc_html_e( 'Preview what your export will look like before generating', 'sscribe-export-site-pages' ); ?></span>
 						<button type="button" id="sscribe-export-btn" class="sscribe-button sscribe-button-primary sscribe-btn-lg" disabled aria-describedby="sscribe-export-btn-hint" title="<?php esc_attr_e( 'Ctrl+Shift+E (Cmd+Shift+E on Mac)', 'sscribe-export-site-pages' ); ?>">
-						<?php echo SScribe_Helpers::get_icon_inline_safe( 'download-package', 18, 'sscribe-button-icon' ); // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- helper escapes via internal wp_kses allowlist ?>
+						<?php echo SScribe_Helpers::get_icon_inline_safe( 'download-package', 14, 'sscribe-button-icon' ); // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- helper escapes via internal wp_kses allowlist ?>
 							<span id="sscribe-export-btn-text"><?php esc_html_e( 'Generate Package', 'sscribe-export-site-pages' ); ?></span>
 							<kbd class="sscribe-shortcut-hint" aria-hidden="true">⇧E</kbd>
 						</button>
@@ -888,9 +888,19 @@ $sscribe_preflight_warnings = $sscribe_preflight_warnings ?? array();
 							</div>
 							<div id="sscribe-support-grid" class="sscribe-support-grid sscribe-support-grid-empty" aria-live="polite">
 								<div class="sscribe-support-empty">
-									<span class="sscribe-support-empty-icon" aria-hidden="true">
-									<?php echo SScribe_Helpers::get_icon_inline_safe( 'clipboard', 22 ); // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- helper escapes via internal wp_kses allowlist ?>
-									</span>
+								<span class="sscribe-support-empty-icon" aria-hidden="true">
+									<svg width="96" height="96" viewBox="0 0 96 96" fill="none" xmlns="http://www.w3.org/2000/svg" role="img" focusable="false">
+										<rect x="16" y="10" width="50" height="68" rx="7" fill="var(--ss-surface)" stroke="var(--ss-border-strong)" stroke-width="1.5"/>
+										<rect x="23" y="20" width="36" height="3.5" rx="1.75" fill="var(--ss-text-tertiary)" opacity="0.35"/>
+										<rect x="23" y="29" width="36" height="3.5" rx="1.75" fill="var(--ss-text-tertiary)" opacity="0.35"/>
+										<rect x="23" y="38" width="24" height="3.5" rx="1.75" fill="var(--ss-text-tertiary)" opacity="0.35"/>
+										<rect x="23" y="47" width="36" height="3.5" rx="1.75" fill="var(--ss-brand)" opacity="0.55"/>
+										<rect x="23" y="56" width="30" height="3.5" rx="1.75" fill="var(--ss-text-tertiary)" opacity="0.35"/>
+										<circle cx="70" cy="68" r="18" fill="var(--ss-brand)" opacity="0.12"/>
+										<circle cx="70" cy="68" r="12" fill="var(--ss-brand)"/>
+										<path d="M64.5 68l3.8 3.8 6.7-6.7" stroke="var(--ss-text-inverse)" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" fill="none"/>
+									</svg>
+								</span>
 									<p class="sscribe-support-empty-title"><?php esc_html_e( 'No snapshot loaded yet', 'sscribe-export-site-pages' ); ?></p>
 									<p class="sscribe-support-empty-copy"><?php esc_html_e( 'The snapshot is generated locally on demand and never includes passwords, license keys, or private content.', 'sscribe-export-site-pages' ); ?></p>
 								</div>
