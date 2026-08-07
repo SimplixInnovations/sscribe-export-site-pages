@@ -2347,6 +2347,41 @@
 			return div.innerHTML;
 		},
 		/**
+		 * Render a minimal stroke-only SVG icon by name.
+		 *
+		 * Kept inline so the log modal does not depend on the PHP-side
+		 * get_icon_inline_safe() (which runs server-side). Matches the
+		 * shape of the icons bundled in /assets/icons/ so the visual
+		 * language stays consistent across server-rendered and JS-built UI.
+		 *
+		 * @param {string} name One of: check, x, file-text, alert.
+		 * @param {number} size Pixel size for width and height.
+		 * @returns {string} Inline SVG markup.
+		 */
+		getIconSvg: function (name, size) {
+			const px = typeof size === 'number' && size > 0 ? size : 16;
+			const icons = {
+				check:
+					'<path d="M4 11.5L8.5 16L20 4.5" />',
+				x:
+					'<path d="M6 6L18 18M18 6L6 18" />',
+				'file-text':
+					'<path d="M6 3h8l5 5v12a1 1 0 0 1 -1 1H6a1 1 0 0 1 -1 -1V4a1 1 0 0 1 1 -1z" />' +
+					'<path d="M14 3v5h5" />' +
+					'<path d="M9 13h6M9 17h4" />',
+				alert:
+					'<path d="M12 4l9 16H3z" />' +
+					'<path d="M12 10v4M12 17.5v.5" />',
+			};
+			const body = icons[name] || icons.alert;
+			return (
+				'<svg xmlns="http://www.w3.org/2000/svg" width="' + px + '" height="' + px +
+				'" viewBox="0 0 24 24" fill="none" stroke="currentColor" ' +
+				'stroke-width="2" stroke-linecap="round" stroke-linejoin="round" ' +
+				'aria-hidden="true" focusable="false">' + body + '</svg>'
+			);
+		},
+		/**
 		 * Show the export preview modal.
 		 *
 		 * @param {Event} e Click event.
@@ -3049,29 +3084,44 @@
 			let html = '<div class="sscribe-log-summary">';
 			html +=
 				'<div class="sscribe-log-stat">' +
+				'<span class="sscribe-log-stat-icon" aria-hidden="true">' +
+				this.getIconSvg('file-text', 16) +
+				'</span>' +
+				'<span class="sscribe-log-stat-body">' +
 				'<span class="sscribe-log-stat-label">' +
 				this.escapeHtml(strings.log_total || 'Total') +
 				'</span>' +
 				'<span class="sscribe-log-stat-value">' +
 				this.escapeHtml(String(log.total_pages || 0)) +
 				'</span>' +
+				'</span>' +
 				'</div>';
 			html +=
 				'<div class="sscribe-log-stat sscribe-log-success">' +
+				'<span class="sscribe-log-stat-icon" aria-hidden="true">' +
+				this.getIconSvg('check', 16) +
+				'</span>' +
+				'<span class="sscribe-log-stat-body">' +
 				'<span class="sscribe-log-stat-label">' +
 				this.escapeHtml(strings.log_success_label || 'Success') +
 				'</span>' +
 				'<span class="sscribe-log-stat-value success">' +
 				this.escapeHtml(String(log.success || 0)) +
 				'</span>' +
+				'</span>' +
 				'</div>';
 			html +=
 				'<div class="sscribe-log-stat sscribe-log-failed">' +
+				'<span class="sscribe-log-stat-icon" aria-hidden="true">' +
+				this.getIconSvg('x', 16) +
+				'</span>' +
+				'<span class="sscribe-log-stat-body">' +
 				'<span class="sscribe-log-stat-label">' +
 				this.escapeHtml(strings.log_failed_label || 'Failed') +
 				'</span>' +
 				'<span class="sscribe-log-stat-value failed">' +
 				this.escapeHtml(String(log.failed || 0)) +
+				'</span>' +
 				'</span>' +
 				'</div>';
 			html += '</div>';
