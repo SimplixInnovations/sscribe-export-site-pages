@@ -419,9 +419,19 @@
 					return;
 				}
 				const $titleEl = $container.closest('.sscribe-config-section').find('.sscribe-section-title, .sscribe-config-section-header').first();
+				// Guarantee the title has an id so aria-labelledby always resolves.
+				// The section title for the post-type / status / format / language
+				// radiogroups is rendered without an explicit id in the partial, so
+				// wire one up before binding aria-labelledby. The id is scoped to
+				// the group name to avoid collisions if multiple groups coexist.
+				let titleId = $titleEl.attr('id');
+				if (!titleId) {
+					titleId = 'sscribe-radiogroup-title-' + groupName;
+					$titleEl.attr('id', titleId);
+				}
 				$container.attr({
 					role: 'radiogroup',
-					'aria-labelledby': $titleEl.attr('id') || null,
+					'aria-labelledby': titleId,
 				});
 				self.applyRovingTabindex(groupName);
 				$container.on('change', 'input[type="radio"]', function () {
@@ -2033,15 +2043,14 @@
 		 * @param {*} exception The exception object (if any).
 		 */
 		logAJAXError: function (requestData, xhr, exception) {
-			if (!window.console || !window.console.group) {
-				return;
-			}
 			// Production hardening: the WP.org reviewer team flags noisy
 			// console output as a release blocker. Only emit the full
 			// request/response envelope when SSCRIBE_DEBUG is explicitly
 			// true on the server (which is the default-off WP.org default).
 			if (typeof window.SSCRIBE_DEBUG === 'undefined' || !window.SSCRIBE_DEBUG) {
-				console.warn('[SSCRIBE] AJAX error suppressed (enable SSCRIBE_DEBUG to inspect).');
+				return;
+			}
+			if (!window.console || !window.console.group) {
 				return;
 			}
 			const action = (requestData && requestData.action) || 'unknown';
@@ -2057,8 +2066,11 @@
 						diagnostics = parsed.data._diagnostics;
 					}
 				} catch {
+					// Empty optional binding: the response wasn't JSON, that's fine
+					// for our purposes — we just can't surface server diagnostics.
 				}
 			}
+			/* eslint-disable no-console */
 			console.groupCollapsed('[SSCRIBE] AJAX Error : %s (HTTP %d %s)', action, statusCode, statusText);
 			console.log('Timestamp:', timestamp);
 			console.log('Action:', action);
@@ -2070,10 +2082,9 @@
 			if (diagnostics) {
 				console.log('Server Diagnostics:', diagnostics);
 			}
-			if (typeof window.SSCRIBE_DEBUG !== 'undefined' && window.SSCRIBE_DEBUG) {
-				console.log('Full XHR:', xhr);
-			}
+			console.log('Full XHR:', xhr);
 			console.groupEnd();
+			/* eslint-enable no-console */
 		},
 		/**
 		 * Return a shallow copy of `data` with any `nonce` field replaced
@@ -3315,6 +3326,7 @@
 			if (errorData) {
 				diagnosticInfo = this.normalizeErrorData(errorData);
 				if (diagnosticInfo && window.console && typeof window.SSCRIBE_DEBUG !== 'undefined' && window.SSCRIBE_DEBUG) {
+					// eslint-disable-next-line no-console -- gated by SSCRIBE_DEBUG above; only fires in debug sessions.
 					console.log('[SSCRIBE] Server diagnostics for this error:', diagnosticInfo);
 				}
 				if (diagnosticInfo && diagnosticInfo.code) {
