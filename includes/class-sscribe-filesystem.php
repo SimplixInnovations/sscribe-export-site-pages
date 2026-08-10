@@ -715,7 +715,7 @@ class SScribe_Filesystem {
 			return self::SSCRIBE_PATH_REJECT;
 		}
 
-		if ( $this->is_within_allowed_directory( $file, $parent_real ) ) {
+		if ( $this->is_within_allowed_directory( $file, $allowed_root ) ) {
 			return self::SSCRIBE_PATH_ALLOWED;
 		}
 
