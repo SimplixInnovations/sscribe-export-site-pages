@@ -3375,48 +3375,58 @@
 		/**
 		 * Get error guidance based on a stable server-side error code.
 		 *
-		 * Prefer {@link data.code} when the server returns it (introduced in 1.1.3
-		 * via SScribe_AJAX_Guard) so the message can stay localized without
-		 * breaking guidance lookup. Fall back to substring matching only when
-		 * an older endpoint hasn't been migrated yet.
+		 * The server emits a discriminated `data.code` for every JSON error
+		 * response (see SScribe_AJAX_Guard::error() and the per-endpoint
+		 * exit points). Substring matching on `message` is intentionally
+		 * NOT performed here — earlier versions did, and that caused a real
+		 * failure mode where any error message containing the substring
+		 * "session" or "timeout" was mis-translated to the "session lost"
+		 * guidance, hiding the actual cause from operators.
+		 *
+		 * If the server fails to send a code (a 4xx/5xx response from WP
+		 * itself, e.g. a redirect to the login screen), the function falls
+		 * back to generic guidance so the user still sees something useful.
 		 *
 		 * @param {string} code    Stable error code from response.data.code.
-		 * @param {string} message Error message (fallback heuristic only).
+		 * @param {string} message Error message (display only, never matched).
 		 * @returns {string} Guidance text.
 		 */
 		getErrorGuidance: function (code, message) {
 			const strings = (sscribe_data && sscribe_data.strings) || {};
-			if (code) {
-				switch (code) {
-					case 'invalid_nonce':
-					case 'permission_denied':
-					case 'session_expired':
-						return strings.err_session_expired || strings.err_generic || '';
-					case 'memory':
-					case 'memory_exhausted':
-						return strings.err_memory || strings.err_generic || '';
-					case 'zip_failed':
-					case 'archive_failed':
-						return strings.err_zip || strings.err_generic || '';
-					case 'rate_limit':
-					case 'rate_limited':
-						return strings.err_rate_limit || strings.err_generic || '';
-					default:
-						return strings.err_generic || '';
-				}
-			}
-			const msg = message || '';
-			if (msg.indexOf('session') !== -1 || msg.indexOf('timeout') !== -1) {
-				return strings.err_session_expired || strings.err_generic || '';
-			}
-			if (msg.indexOf('memory') !== -1) {
-				return strings.err_memory || strings.err_generic || '';
-			}
-			if (msg.indexOf('zip') !== -1 || msg.indexOf('archive') !== -1) {
-				return strings.err_zip || strings.err_generic || '';
-			}
-			if (msg.indexOf('rate') !== -1 || msg.indexOf('limit') !== -1) {
-				return strings.err_rate_limit || strings.err_generic || '';
+			const knownCodes = {
+				invalid_nonce: strings.err_session_expired,
+				invalid_session_id: strings.err_session_expired,
+				invalid_filename: strings.err_generic,
+				invalid_post_type: strings.err_generic,
+				invalid_language: strings.err_generic,
+				permission_denied: strings.err_session_expired,
+				session_expired: strings.err_session_expired,
+				session_ownership: strings.err_session_expired,
+				session_corrupt: strings.err_generic,
+				session_cleared: strings.err_generic,
+				race_detected: strings.err_generic,
+				already_completing: strings.err_generic,
+				batch_locked: strings.err_generic,
+				batch_in_progress: strings.err_generic,
+				finalize_exception: strings.err_generic,
+				not_finalizing: strings.err_generic,
+				export_not_found: strings.err_generic,
+				delete_failed: strings.err_generic,
+				workspace_init_failed: strings.err_generic,
+				session_create_failed: strings.err_generic,
+				page_list_failed: strings.err_generic,
+				concurrent_export: strings.err_session_expired,
+				no_pages_selected: strings.err_generic,
+				support_info_unavailable: strings.err_generic,
+				memory: strings.err_memory,
+				memory_exhausted: strings.err_memory,
+				zip_failed: strings.err_zip,
+				archive_failed: strings.err_zip,
+				rate_limit: strings.err_rate_limit,
+				rate_limited: strings.err_rate_limit,
+			};
+			if (code && Object.prototype.hasOwnProperty.call(knownCodes, code)) {
+				return knownCodes[code] || strings.err_generic || '';
 			}
 			return strings.err_generic || '';
 		},

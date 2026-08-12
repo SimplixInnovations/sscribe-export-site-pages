@@ -129,6 +129,12 @@ final class SScribe_Batch_Processor {
 	/**
 	 * Active temp directory for shutdown cleanup (static to survive object destruction).
 	 *
+	 * Only set while ownership of the directory is still inside this PHP
+	 * request. Cleared the moment the session has been persisted and the
+	 * workspace has been handed off to the next batch step; if PHP dies
+	 * before that point the value survives into shutdown_cleanup() and the
+	 * workspace is then correctly classified as an orphan.
+	 *
 	 * @var string|null
 	 */
 	private static ?string $cleanup_temp_dir = null;
@@ -935,12 +941,19 @@ final class SScribe_Batch_Processor {
 	 */
 	public function ajax_start_export(): void {
 		if ( ! check_ajax_referer( 'sscribe_export_nonce', 'nonce', false ) ) {
-			SScribe_AJAX_Guard::error( array( 'message' => __( 'Security check failed.', 'sscribe-export-site-pages' ) ), 403 );
+			SScribe_AJAX_Guard::error(
+				array(
+					'code'    => 'invalid_nonce',
+					'message' => __( 'Security check failed.', 'sscribe-export-site-pages' ),
+				),
+				403
+			);
 		}
 
 		if ( ! current_user_can( $this->get_required_capability() ) ) {
 			SScribe_AJAX_Guard::error(
 				array(
+					'code'    => 'permission_denied',
 					'message' => __( 'You do not have permission to export pages.', 'sscribe-export-site-pages' ),
 				),
 				403
@@ -951,6 +964,7 @@ final class SScribe_Batch_Processor {
 		if ( false === $rate_check ) {
 			SScribe_AJAX_Guard::error(
 				array(
+					'code'     => 'rate_limited',
 					'message'  => __( 'Too many requests. Please wait a moment and try again.', 'sscribe-export-site-pages' ),
 					'retry'    => true,
 					'retry_in' => 60000,
@@ -970,7 +984,13 @@ final class SScribe_Batch_Processor {
 		$requested_language = SScribe_AJAX_Guard::post_text( 'language', '', 100 );
 		$language           = $this->collector->normalize_language_code( $requested_language );
 		if ( '' !== $requested_language && '' === $language ) {
-			SScribe_AJAX_Guard::error( array( 'message' => __( 'Invalid or inactive language.', 'sscribe-export-site-pages' ) ), 400 );
+			SScribe_AJAX_Guard::error(
+				array(
+					'code'    => 'invalid_language',
+					'message' => __( 'Invalid or inactive language.', 'sscribe-export-site-pages' ),
+				),
+				400
+			);
 		}
 		$post_status = SScribe_AJAX_Guard::post_text( 'post_status', 'publish', 30 );
 
@@ -1020,6 +1040,7 @@ final class SScribe_Batch_Processor {
 		if ( ! in_array( $post_type, $valid_post_types, true ) ) {
 			SScribe_AJAX_Guard::error(
 				array(
+					'code'    => 'invalid_post_type',
 					'message' => sprintf(
 						/* translators: %s: Submitted post type. */
 						__( 'Invalid post type "%s".', 'sscribe-export-site-pages' ),
@@ -1045,6 +1066,7 @@ final class SScribe_Batch_Processor {
 		if ( null !== $this->session->get_active_session_data( $user_id ) ) {
 			SScribe_AJAX_Guard::error(
 				array(
+					'code'    => 'concurrent_export',
 					'message' => __( 'You already have an export in progress. Please wait for it to complete or refresh the page.', 'sscribe-export-site-pages' ),
 				),
 				409
@@ -1056,6 +1078,7 @@ final class SScribe_Batch_Processor {
 			if ( ! in_array( $language, $valid_languages, true ) ) {
 				SScribe_AJAX_Guard::error(
 					array(
+						'code'    => 'invalid_language',
 						'message' => __( 'Invalid language code specified.', 'sscribe-export-site-pages' ),
 					),
 					400
@@ -1091,6 +1114,7 @@ final class SScribe_Batch_Processor {
 		if ( 0 === $total ) {
 			SScribe_AJAX_Guard::error(
 				array(
+					'code'    => 'no_pages_selected',
 					'message' => __( 'No pages found matching the selected criteria.', 'sscribe-export-site-pages' ),
 				),
 				400
@@ -1111,6 +1135,7 @@ final class SScribe_Batch_Processor {
 			);
 			SScribe_AJAX_Guard::error(
 				array(
+					'code'    => 'workspace_init_failed',
 					'message' => __( 'Failed to initialize export directory. Please try again.', 'sscribe-export-site-pages' ),
 				),
 				500
@@ -1153,6 +1178,7 @@ final class SScribe_Batch_Processor {
 			}
 			SScribe_AJAX_Guard::error(
 				array(
+					'code'    => 'session_create_failed',
 					'message' => __( 'Failed to create export session. Please try again.', 'sscribe-export-site-pages' ),
 				),
 				500
@@ -1166,7 +1192,10 @@ final class SScribe_Batch_Processor {
 				self::$cleanup_temp_dir = null;
 			}
 			SScribe_AJAX_Guard::error(
-				array( 'message' => __( 'Failed to store the export page list. Please try again.', 'sscribe-export-site-pages' ) ),
+				array(
+					'code'    => 'page_list_failed',
+					'message' => __( 'Failed to store the export page list. Please try again.', 'sscribe-export-site-pages' ),
+				),
 				500
 			);
 		}
@@ -1190,6 +1219,7 @@ final class SScribe_Batch_Processor {
 				}
 				SScribe_AJAX_Guard::error(
 					array(
+						'code'    => 'concurrent_export',
 						'message' => __( 'Another export was started. Please try again.', 'sscribe-export-site-pages' ),
 					),
 					409
@@ -1254,6 +1284,10 @@ final class SScribe_Batch_Processor {
 				'php_version'       => PHP_VERSION,
 			);
 		}
+
+		self::$cleanup_temp_dir    = null;
+		self::$cleanup_zip_handler = null;
+		self::$cleanup_logger      = null;
 
 		SScribe_AJAX_Guard::success( $response );
 	}
@@ -1391,6 +1425,24 @@ final class SScribe_Batch_Processor {
 	 * export was interrupted before finalize_export() could run.
 	 *
 	 * Registered once per process via register_shutdown_function() in __construct.
+	 *
+	 * Lifecycle invariant:
+	 *   - $cleanup_temp_dir is set the moment create_temp_dir() succeeds
+	 *     inside start_export().
+	 *   - $cleanup_temp_dir is cleared on every error path inside
+	 *     start_export() (workspace_init_failed / session_create_failed /
+	 *     page_list_failed / concurrent_export).
+	 *   - $cleanup_temp_dir is cleared on the SUCCESS path of start_export()
+	 *     immediately before wp_send_json_success(). PHP-FPM worker shutdown
+	 *     then runs this handler; because the static was nulled, no deletion
+	 *     happens and the workspace survives into the next batch step.
+	 *
+	 * If PHP dies (fatal, OOM, max_execution_time) between setting the state
+	 * and clearing it on success, this handler still finds the workspace on
+	 * disk and reclaims it. The race we previously saw — start_export
+	 * returning a successful response, then shutdown wiping the workspace
+	 * the JS client was about to use for step 2 — is impossible now because
+	 * the static is nulled in the same function that sends the response.
 	 */
 	public static function shutdown_cleanup(): void {
 		$temp_dir = self::$cleanup_temp_dir;
@@ -1402,18 +1454,20 @@ final class SScribe_Batch_Processor {
 		}
 
 		$zip_handler = self::$cleanup_zip_handler;
-		$logger     = self::$cleanup_logger;
+		$logger      = self::$cleanup_logger;
 
 		self::$cleanup_temp_dir    = null;
 		self::$cleanup_zip_handler = null;
 		self::$cleanup_logger      = null;
 
-		if ( $zip_handler && $logger ) {
-			$zip_handler->delete_directory( $temp_dir );
-			$logger->debug(
-				'Shutdown cleanup removed orphaned temp directory',
-				array( 'temp_dir' => $temp_dir )
-			);
+		if ( ! $zip_handler || ! $logger ) {
+			return;
 		}
+
+		$zip_handler->delete_directory( $temp_dir );
+		$logger->debug(
+			'Shutdown cleanup removed orphaned temp directory',
+			array( 'temp_dir' => $temp_dir )
+		);
 	}
 }

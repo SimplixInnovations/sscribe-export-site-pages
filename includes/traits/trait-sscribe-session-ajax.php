@@ -50,6 +50,7 @@ trait SScribe_Session_AJAX {
 		if ( ! check_ajax_referer( 'sscribe_export_nonce', 'nonce', false ) ) {
 			SScribe_AJAX_Guard::error(
 				array(
+					'code'    => 'invalid_nonce',
 					'message' => __( 'Security check failed.', 'sscribe-export-site-pages' ),
 				),
 				403
@@ -59,6 +60,7 @@ trait SScribe_Session_AJAX {
 		if ( ! current_user_can( $this->get_required_capability() ) ) {
 			SScribe_AJAX_Guard::error(
 				array(
+					'code'    => 'permission_denied',
 					'message' => __( 'Permission denied.', 'sscribe-export-site-pages' ),
 				),
 				403
@@ -125,32 +127,63 @@ trait SScribe_Session_AJAX {
 	 */
 	public function ajax_cancel_export(): void {
 		if ( ! check_ajax_referer( 'sscribe_export_nonce', 'nonce', false ) ) {
-			SScribe_AJAX_Guard::error( array( 'message' => __( 'Security check failed.', 'sscribe-export-site-pages' ) ), 403 );
+			SScribe_AJAX_Guard::error(
+				array(
+					'code'    => 'invalid_nonce',
+					'message' => __( 'Security check failed.', 'sscribe-export-site-pages' ),
+				),
+				403
+			);
 		}
 
 		if ( ! current_user_can( $this->get_required_capability() ) ) {
-			SScribe_AJAX_Guard::error( array( 'message' => __( 'Permission denied.', 'sscribe-export-site-pages' ) ), 403 );
+			SScribe_AJAX_Guard::error(
+				array(
+					'code'    => 'permission_denied',
+					'message' => __( 'Permission denied.', 'sscribe-export-site-pages' ),
+				),
+				403
+			);
 		}
 
 		$session_id = SScribe_AJAX_Guard::post_text( 'session_id', '', 16 );
 
 		if ( empty( $session_id ) ) {
-			SScribe_AJAX_Guard::error( array( 'message' => __( 'Invalid session.', 'sscribe-export-site-pages' ) ), 400 );
+			SScribe_AJAX_Guard::error(
+				array(
+					'code'    => 'invalid_session_id',
+					'message' => __( 'Invalid session.', 'sscribe-export-site-pages' ),
+				),
+				400
+			);
 		}
 
 		$session = $this->get( $session_id );
 		if ( ! $session ) {
-			SScribe_AJAX_Guard::error( array( 'message' => __( 'Session not found.', 'sscribe-export-site-pages' ) ), 404 );
+			SScribe_AJAX_Guard::error(
+				array(
+					'code'    => 'session_expired',
+					'message' => __( 'Session not found.', 'sscribe-export-site-pages' ),
+				),
+				404
+			);
 		}
 
 		if ( ! $this->validate_session_ownership( $session, $session_id ) ) {
-			SScribe_AJAX_Guard::error( array( 'message' => __( 'Invalid session access.', 'sscribe-export-site-pages' ) ), 403 );
+			SScribe_AJAX_Guard::error(
+				array(
+					'code'    => 'session_ownership',
+					'message' => __( 'Invalid session access.', 'sscribe-export-site-pages' ),
+				),
+				403
+			);
 		}
 
 		$rate_check = $this->check_rate_limit();
 		if ( false === $rate_check ) {
 			SScribe_AJAX_Guard::error(
 				array(
+					'code'     => 'rate_limited',
 					'message'  => __( 'Too many requests. Please wait a moment.', 'sscribe-export-site-pages' ),
 					'retry'    => true,
 					'retry_in' => 60000,
@@ -182,7 +215,13 @@ trait SScribe_Session_AJAX {
 			}
 
 			if ( ! $this->validate_session_ownership( $session, $session_id ) ) {
-				SScribe_AJAX_Guard::error( array( 'message' => __( 'Invalid session access.', 'sscribe-export-site-pages' ) ), 403 );
+				SScribe_AJAX_Guard::error(
+					array(
+						'code'    => 'session_ownership',
+						'message' => __( 'Invalid session access.', 'sscribe-export-site-pages' ),
+					),
+					403
+				);
 			}
 
 			$session['cancelled'] = true;
@@ -220,17 +259,30 @@ trait SScribe_Session_AJAX {
 	 */
 	public function ajax_clear_session(): void {
 		if ( ! check_ajax_referer( 'sscribe_export_nonce', 'nonce', false ) ) {
-			SScribe_AJAX_Guard::error( array( 'message' => __( 'Security check failed.', 'sscribe-export-site-pages' ) ), 403 );
+			SScribe_AJAX_Guard::error(
+				array(
+					'code'    => 'invalid_nonce',
+					'message' => __( 'Security check failed.', 'sscribe-export-site-pages' ),
+				),
+				403
+			);
 		}
 
 		if ( ! current_user_can( $this->get_required_capability() ) ) {
-			SScribe_AJAX_Guard::error( array( 'message' => __( 'Permission denied.', 'sscribe-export-site-pages' ) ), 403 );
+			SScribe_AJAX_Guard::error(
+				array(
+					'code'    => 'permission_denied',
+					'message' => __( 'Permission denied.', 'sscribe-export-site-pages' ),
+				),
+				403
+			);
 		}
 
 		$rate_check = $this->check_rate_limit();
 		if ( false === $rate_check ) {
 			SScribe_AJAX_Guard::error(
 				array(
+					'code'     => 'rate_limited',
 					'message'  => __( 'Too many requests. Please wait a moment.', 'sscribe-export-site-pages' ),
 					'retry'    => true,
 					'retry_in' => 60000,
