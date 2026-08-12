@@ -63,6 +63,21 @@ class SScribe_Session_Crypto_Test extends TestCase {
 		return $fn( $this->session, ...$args );
 	}
 
+	/**
+	 * Create a row in the unversioned format written by older releases.
+	 *
+	 * @param string $payload Plaintext test payload.
+	 * @return string Base64-encoded legacy ciphertext.
+	 */
+	private function make_legacy_ciphertext( string $payload ): string {
+		$key        = $this->call_private( 'get_legacy_aes_key', array() );
+		$iv         = random_bytes( 16 );
+		$ciphertext = openssl_encrypt( $payload, 'aes-256-cbc', $key, OPENSSL_RAW_DATA, $iv );
+		$this->assertIsString( $ciphertext );
+
+		return base64_encode( $iv . $ciphertext );
+	}
+
 	public function test_sodium_encrypt_produces_s1_prefix(): void {
 		if ( ! function_exists( 'sodium_crypto_secretbox' ) ) {
 			$this->markTestSkipped( 'libsodium not available' );
@@ -141,13 +156,39 @@ class SScribe_Session_Crypto_Test extends TestCase {
 		$this->assertSame( $payload, $decrypted );
 	}
 
+	public function test_openssl_gcm_roundtrip_and_dispatch(): void {
+		if ( ! function_exists( 'openssl_encrypt' ) || ! in_array( 'aes-256-gcm', openssl_get_cipher_methods(), true ) ) {
+			$this->markTestSkipped( 'OpenSSL AES-256-GCM not available' );
+		}
+
+		$payload    = wp_json_encode( array( 'authenticated' => true, 'pages' => 4 ) );
+		$ciphertext = $this->call_private( 'openssl_gcm_encrypt_session_data', array( $payload ) );
+
+		$this->assertStringStartsWith( 'o1:', $ciphertext );
+		$this->assertSame( $payload, $this->call_private( 'openssl_gcm_decrypt_session_data', array( $ciphertext ) ) );
+		$this->assertSame( $payload, $this->call_private( 'decrypt_session_data', array( $ciphertext ) ) );
+	}
+
+	public function test_openssl_gcm_rejects_tampering(): void {
+		if ( ! function_exists( 'openssl_encrypt' ) || ! in_array( 'aes-256-gcm', openssl_get_cipher_methods(), true ) ) {
+			$this->markTestSkipped( 'OpenSSL AES-256-GCM not available' );
+		}
+
+		$ciphertext  = $this->call_private( 'openssl_gcm_encrypt_session_data', array( 'tamper-resistant' ) );
+		$position    = strlen( $ciphertext ) - 2;
+		$replacement = 'A' === $ciphertext[ $position ] ? 'B' : 'A';
+		$tampered    = substr_replace( $ciphertext, $replacement, $position, 1 );
+
+		$this->assertNull( $this->call_private( 'decrypt_session_data', array( $tampered ) ) );
+	}
+
 	public function test_decrypt_session_data_legacy_aes_roundtrip(): void {
 		if ( ! function_exists( 'openssl_encrypt' ) || ! function_exists( 'openssl_decrypt' ) ) {
 			$this->markTestSkipped( 'openssl not available' );
 		}
 
 		$payload    = wp_json_encode( array( 'legacy' => true, 'n' => 7 ) );
-		$ciphertext = $this->call_private( 'legacy_aes_encrypt_session_data', array( $payload ) );
+		$ciphertext = $this->make_legacy_ciphertext( $payload );
 
 		// Legacy path is base64 of (iv + ciphertext) with no magic prefix.
 		$this->assertStringStartsNotWith( 's1:', $ciphertext );
@@ -163,7 +204,7 @@ class SScribe_Session_Crypto_Test extends TestCase {
 			$this->markTestSkipped( 'openssl not available' );
 		}
 
-		$ciphertext = $this->call_private( 'legacy_aes_encrypt_session_data', array( 'tamper-me' ) );
+		$ciphertext = $this->make_legacy_ciphertext( 'tamper-me' );
 		// AES-CBC has no MAC, so corruption is detected by padding errors.
 		$raw        = base64_decode( $ciphertext, true );
 		// Flip a bit in the IV (first 16 bytes). For a 9-byte plaintext

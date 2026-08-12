@@ -14,7 +14,6 @@ $prefixed_autoload = $base_dir . '/vendor-prefixed/autoload.php';
 if ( file_exists( $vendor_autoload ) ) {
 	require_once $vendor_autoload;
 } elseif ( file_exists( $prefixed_autoload ) ) {
-	require_once $base_dir . '/includes/sscribe-prefixed-runtime-shim.php';
 	require_once $prefixed_autoload;
 }
 

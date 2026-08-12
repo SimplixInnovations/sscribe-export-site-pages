@@ -14,7 +14,7 @@ if ( ! defined( 'ABSPATH' ) ) {
 }
 
 /**
- * REST API query controller.
+ * AJAX query controller.
  *
  * @package SScribe_Export_Site_Pages
  * @subpackage API
@@ -108,13 +108,9 @@ class SScribe_Export_Query_Controller {
 	 * authority : useful for support staff who should be able to run
 	 * the "copy support info" action but not start an export.
 	 *
-	 * @param string $export_capability Unused; kept for signature
-	 *                                 compatibility with the loader.
-	 *                                 Override the capability via the
-	 *                                 `sscribe_health_capability` filter.
 	 * @return void
 	 */
-	public function ajax_health_check( string $export_capability = 'sscribe_export' ): void {
+	public function ajax_health_check(): void {
 		if ( ! check_ajax_referer( 'sscribe_health_nonce', 'nonce', false ) ) {
 			SScribe_AJAX_Guard::error( array( 'message' => __( 'Security check failed.', 'sscribe-export-site-pages' ) ), 403 );
 		}
@@ -128,7 +124,7 @@ class SScribe_Export_Query_Controller {
 		 *
 		 * @param string $capability Capability name.
 		 */
-		$health_capability = (string) apply_filters( 'sscribe_health_capability', 'sscribe_health' );
+		$health_capability = SScribe_Capabilities::get_health_required();
 
 		if ( ! current_user_can( $health_capability ) ) {
 			SScribe_AJAX_Guard::error(
@@ -145,8 +141,7 @@ class SScribe_Export_Query_Controller {
 			);
 		}
 
-		// phpcs:ignore WordPress.Security.NonceVerification.Recommended -- Read-only flag.
-		$force = isset( $_GET['force'] ) && '1' === sanitize_text_field( wp_unslash( $_GET['force'] ) );
+		$force = '1' === SScribe_AJAX_Guard::get_text( 'force', '0', 1 );
 		$cache_key = 'sscribe_health_snapshot_' . $health_capability . '_' . get_current_user_id();
 		if ( ! $force ) {
 			$cached = get_transient( $cache_key );
@@ -197,8 +192,12 @@ class SScribe_Export_Query_Controller {
 			);
 		}
 
-		$language  = isset( $_POST['language'] ) ? sanitize_text_field( wp_unslash( $_POST['language'] ) ) : '';
-		$post_type = isset( $_POST['post_type'] ) ? sanitize_text_field( wp_unslash( $_POST['post_type'] ) ) : 'page';
+		$requested_language = SScribe_AJAX_Guard::post_text( 'language', '', 100 );
+		$language           = $this->collector->normalize_language_code( $requested_language );
+		if ( '' !== $requested_language && '' === $language ) {
+			SScribe_AJAX_Guard::error( array( 'message' => __( 'Invalid or inactive language.', 'sscribe-export-site-pages' ) ), 400 );
+		}
+		$post_type = SScribe_AJAX_Guard::post_text( 'post_type', 'page', 30 );
 		if ( ! in_array( $post_type, array( 'page', 'post', 'any' ), true ) ) {
 			$post_type = 'page';
 		}
@@ -260,36 +259,38 @@ class SScribe_Export_Query_Controller {
 			);
 		}
 
-		$post_type = isset( $_POST['post_type'] ) ? sanitize_text_field( wp_unslash( $_POST['post_type'] ) ) : 'page';
+		$post_type = SScribe_AJAX_Guard::post_text( 'post_type', 'page', 30 );
 		if ( ! in_array( $post_type, array( 'page', 'post', 'any' ), true ) ) {
 			$post_type = 'page';
 		}
 
-		$languages = array();
-		if ( isset( $_POST['languages'] ) ) {
-			$raw = wp_unslash( $_POST['languages'] ); // phpcs:ignore WordPress.Security.ValidatedSanitizedInput.InputNotSanitized -- Per-element sanitization happens below via array_map + sanitize_text_field().
-			if ( is_array( $raw ) ) {
-				$languages = $raw;
-			} else {
-				$decoded = json_decode( (string) $raw, true );
-				if ( is_array( $decoded ) ) {
-					$languages = $decoded;
-				} else {
-					$languages = array_filter( array_map( 'trim', explode( ',', (string) $raw ) ) );
-				}
+		$languages = SScribe_AJAX_Guard::post_array( 'languages', 50 );
+		if ( empty( $languages ) ) {
+			$raw     = SScribe_AJAX_Guard::post_text( 'languages', '', 5000 );
+			$decoded = json_decode( $raw, true );
+			if ( is_array( $decoded ) ) {
+				$languages = array_slice( $decoded, 0, 50 );
+			} elseif ( '' !== $raw ) {
+				$languages = array_slice( array_filter( array_map( 'trim', explode( ',', $raw ) ) ), 0, 50 );
 			}
 		}
 
 		$languages = array_values(
-			array_unique(
-				array_map(
-					static function ( $lang ) {
-						return is_string( $lang ) ? sanitize_text_field( $lang ) : '';
-					},
-					$languages
-				)
+			array_filter(
+				array_unique(
+					array_map(
+						function ( $lang ) {
+							return is_string( $lang ) ? $this->collector->normalize_language_code( sanitize_text_field( $lang ) ) : '';
+						},
+						$languages
+					)
+				),
+				static function ( string $language ): bool {
+					return '' !== $language;
+				}
 			)
 		);
+		$languages = array_slice( $languages, 0, 50 );
 
 		$per_language = array();
 		foreach ( $languages as $language ) {
@@ -337,9 +338,10 @@ class SScribe_Export_Query_Controller {
 			);
 		}
 
-		$filename = isset( $_POST['file'] ) ? sanitize_file_name( wp_unslash( $_POST['file'] ) ) : '';
+		$raw_filename = SScribe_AJAX_Guard::post_text( 'file', '', 200 );
+		$filename     = sanitize_file_name( $raw_filename );
 
-		if ( empty( $filename ) ) {
+		if ( '' === $filename || ! hash_equals( $raw_filename, $filename ) || 1 !== preg_match( '/^[A-Za-z0-9][A-Za-z0-9._-]{0,199}\.zip$/D', $filename ) ) {
 			SScribe_AJAX_Guard::error(
 				array( 'message' => __( 'Invalid filename.', 'sscribe-export-site-pages' ) ),
 				400
@@ -355,8 +357,9 @@ class SScribe_Export_Query_Controller {
 			);
 		}
 
-		$export_info = $exports;
-		if ( isset( $export_info['user_id'] ) && get_current_user_id() !== (int) $export_info['user_id'] ) {
+		$export_info   = $exports;
+		$stored_user_id = isset( $export_info['user_id'] ) ? (int) $export_info['user_id'] : 0;
+		if ( $stored_user_id <= 0 || get_current_user_id() !== $stored_user_id ) {
 			SScribe_AJAX_Guard::error(
 				array( 'message' => __( 'Permission denied.', 'sscribe-export-site-pages' ) ),
 				403
@@ -384,8 +387,8 @@ class SScribe_Export_Query_Controller {
 			);
 		}
 
-		$offset = isset( $_POST['offset'] ) ? max( 0, (int) $_POST['offset'] ) : 0;
-		$limit  = isset( $_POST['limit'] ) ? max( 1, min( 200, (int) $_POST['limit'] ) ) : 50;
+		$offset = SScribe_AJAX_Guard::post_integer( 'offset', 0, 0, 1000000 );
+		$limit  = SScribe_AJAX_Guard::post_integer( 'limit', 50, 1, 200 );
 		if ( isset( $log_data['pages'] ) && is_array( $log_data['pages'] ) ) {
 			$pages     = $log_data['pages'];
 			$page_keys = array_keys( $pages );
@@ -432,7 +435,7 @@ class SScribe_Export_Query_Controller {
 			);
 		}
 
-		if ( ! $this->rate_limiter->check_rate_limit( $export_capability ) ) {
+		if ( false === $this->rate_limiter->check_rate_limit( $export_capability ) ) {
 			SScribe_AJAX_Guard::error(
 				array(
 					'message'  => __( 'Too many requests. Please wait a moment.', 'sscribe-export-site-pages' ),
@@ -443,12 +446,17 @@ class SScribe_Export_Query_Controller {
 			);
 		}
 
-		// phpcs:ignore WordPress.Security.ValidatedSanitizedInput.InputNotSanitized -- Sanitization via array_map on next line.
-		$formats_raw   = isset( $_POST['formats'] ) ? wp_unslash( (array) $_POST['formats'] ) : array();
-		$formats_input = array_map( 'sanitize_text_field', $formats_raw );
-		$formats       = ! empty( $formats_input ) ? $formats_input : array( 'docx' );
+		$formats_raw   = SScribe_AJAX_Guard::post_array( 'formats', 10 );
+		$formats_input = array();
+		foreach ( array_slice( $formats_raw, 0, 10 ) as $format_input ) {
+			if ( is_scalar( $format_input ) ) {
+				$formats_input[] = sanitize_key( (string) $format_input );
+			}
+		}
+		$formats       = array_values( array_filter( $formats_input, array( 'SScribe_Exporter_Factory', 'is_supported' ) ) );
+		$formats       = ! empty( $formats ) ? array_unique( $formats ) : array( 'docx' );
 
-		$page_count = isset( $_POST['page_count'] ) ? absint( wp_unslash( $_POST['page_count'] ) ) : 0;
+		$page_count = SScribe_AJAX_Guard::post_integer( 'page_count', 0, 0, 100000 );
 
 		$diagnostics = $this->diagnostics->run_preflight( $page_count, $formats );
 
@@ -495,13 +503,17 @@ class SScribe_Export_Query_Controller {
 			);
 		}
 
-		$language    = isset( $_POST['language'] ) ? sanitize_text_field( wp_unslash( $_POST['language'] ) ) : '';
-		$post_status = isset( $_POST['post_status'] ) ? sanitize_text_field( wp_unslash( $_POST['post_status'] ) ) : 'publish';
-
-		if ( ! $this->collector->is_wpml_active() ) {
-			$language = '';
+		$requested_language = SScribe_AJAX_Guard::post_text( 'language', '', 100 );
+		$language           = $this->collector->normalize_language_code( $requested_language );
+		if ( '' !== $requested_language && '' === $language ) {
+			SScribe_AJAX_Guard::error( array( 'message' => __( 'Invalid or inactive language.', 'sscribe-export-site-pages' ) ), 400 );
 		}
-		$format      = isset( $_POST['format'] ) ? sanitize_text_field( wp_unslash( $_POST['format'] ) ) : 'docx';
+		$post_status = SScribe_AJAX_Guard::post_text( 'post_status', 'publish', 30 );
+		if ( ! in_array( $post_status, array( 'publish', 'private', 'draft', 'pending', 'future' ), true ) ) {
+			$post_status = 'publish';
+		}
+
+		$format = SScribe_AJAX_Guard::post_text( 'format', 'docx', 30 );
 
 		if ( 'all' === $format ) {
 			$formats = \SScribe_Exporter_Factory::get_supported_formats();
@@ -511,7 +523,7 @@ class SScribe_Export_Query_Controller {
 			$formats = \SScribe_Exporter_Factory::get_supported_formats();
 		}
 
-		$post_type = isset( $_POST['post_type'] ) ? sanitize_text_field( wp_unslash( $_POST['post_type'] ) ) : 'page';
+		$post_type = SScribe_AJAX_Guard::post_text( 'post_type', 'page', 30 );
 		if ( ! in_array( $post_type, array( 'page', 'post' ), true ) ) {
 			$post_type = 'page';
 		}
@@ -637,33 +649,47 @@ class SScribe_Export_Query_Controller {
 		$user_id = get_current_user_id();
 
 		$result = array();
+		$date_option = get_option( 'date_format', 'Y-m-d' );
+		$time_option = get_option( 'time_format', 'H:i' );
+		$date_format = is_string( $date_option ) && '' !== $date_option ? substr( $date_option, 0, 100 ) : 'Y-m-d';
+		$time_format = is_string( $time_option ) && '' !== $time_option ? substr( $time_option, 0, 100 ) : 'H:i';
 
 		foreach ( $exports as $filename => $data ) {
-			if ( isset( $data['user_id'] ) && (int) $data['user_id'] !== $user_id ) {
+			if ( ! isset( $data['user_id'] ) || (int) $data['user_id'] !== $user_id ) {
+				continue;
+			}
+
+			$clean_filename = sanitize_file_name( $filename );
+			if ( ! hash_equals( $filename, $clean_filename ) || 1 !== preg_match( '/^[A-Za-z0-9][A-Za-z0-9._-]{0,199}\.zip$/D', $filename ) ) {
 				continue;
 			}
 
 			$file_path = $this->zip_handler->get_export_dir() . '/' . $filename;
-			if ( ! file_exists( $file_path ) ) {
+			if ( is_link( $file_path ) || ! is_file( $file_path ) ) {
 				continue;
 			}
 
 			clearstatcache( true, $file_path );
 			$file_size  = @filesize( $file_path );
 			$file_mtime = @filemtime( $file_path );
-			$result[]   = array(
+			$created_at = (int) ( $data['created_at'] ?? $file_mtime );
+			if ( $created_at <= 0 ) {
+				$created_at = time();
+			}
+			$result[] = array(
 				'filename'       => $filename,
-				'url'            => $this->zip_handler->get_ajax_download_url( $filename ),
+				'session_id'     => sanitize_key( (string) ( $data['session_id'] ?? '' ) ),
+				'url'            => esc_url_raw( $this->zip_handler->get_ajax_download_url( $filename ) ),
 				'size'           => false !== $file_size ? $file_size : 0,
 				'size_formatted' => false !== $file_size ? size_format( $file_size ) : '0 B',
-				'time'           => $data['created_at'] ?? $file_mtime,
+				'time'           => $created_at,
 				'date'           => wp_date(
-					( get_option( 'date_format' ) ? get_option( 'date_format' ) : 'Y-m-d' ) . ' ' . ( get_option( 'time_format' ) ? get_option( 'time_format' ) : 'H:i' ),
-					$data['created_at'] ?? $file_mtime,
+					$date_format . ' ' . $time_format,
+					$created_at,
 				),
-				'lang_code'      => $data['lang_code'] ?? '',
-				'lang_name'      => $data['lang_name'] ?? '',
-				'flag_url'       => $data['flag_url'] ?? '',
+				'lang_code'      => isset( $data['lang_code'] ) && is_scalar( $data['lang_code'] ) ? sanitize_key( (string) $data['lang_code'] ) : '',
+				'lang_name'      => isset( $data['lang_name'] ) && is_scalar( $data['lang_name'] ) ? sanitize_text_field( (string) $data['lang_name'] ) : '',
+				'flag_url'       => isset( $data['flag_url'] ) && is_scalar( $data['flag_url'] ) ? esc_url_raw( (string) $data['flag_url'] ) : '',
 			);
 		}
 
@@ -679,7 +705,6 @@ class SScribe_Export_Query_Controller {
 			array(
 				'exports'      => array_slice( array_values( $sorted ), 0, 10 ),
 				'total_count'  => count( $result ),
-				'page_count'   => array_sum( array_column( $result, 'size' ) ),
 			)
 		);
 	}
@@ -687,22 +712,22 @@ class SScribe_Export_Query_Controller {
 	/**
 	 * AJAX handler for getting support information.
 	 *
-	 * @param string $export_capability Required capability.
+	 * @param string $health_capability Required diagnostics capability.
 	 * @return void
 	 */
-	public function ajax_get_support_info( string $export_capability = 'sscribe_export' ): void {
-		if ( ! check_ajax_referer( 'sscribe_export_nonce', 'nonce', false ) ) {
+	public function ajax_get_support_info( string $health_capability = 'sscribe_health' ): void {
+		if ( ! check_ajax_referer( 'sscribe_health_nonce', 'nonce', false ) ) {
 			SScribe_AJAX_Guard::error( array( 'message' => __( 'Security check failed.', 'sscribe-export-site-pages' ) ), 403 );
 		}
 
-		if ( ! current_user_can( $export_capability ) ) {
+		if ( ! current_user_can( $health_capability ) ) {
 			SScribe_AJAX_Guard::error(
 				array( 'message' => __( 'Permission denied.', 'sscribe-export-site-pages' ) ),
 				403
 			);
 		}
 
-		$rate_check = $this->rate_limiter->check_rate_limit( $export_capability );
+		$rate_check = $this->rate_limiter->check_rate_limit( $health_capability, 'health_support' );
 		if ( false === $rate_check ) {
 			SScribe_AJAX_Guard::error(
 				array(

@@ -59,9 +59,11 @@ class SScribe_Diagnostics {
 	 * @return array
 	 */
 	public function get_support_info(): array {
+		$this->support_errors = array();
 		$upload_dir    = wp_upload_dir();
-		$export_dir    = trailingslashit( $upload_dir['basedir'] ) . 'sscribe-exports';
-		$log_dir       = trailingslashit( $upload_dir['basedir'] ) . 'sscribe-exports/logs';
+		$upload_base   = empty( $upload_dir['error'] ) && ! empty( $upload_dir['basedir'] ) ? (string) $upload_dir['basedir'] : '';
+		$export_dir    = '' !== $upload_base ? trailingslashit( $upload_base ) . 'sscribe-exports' : '';
+		$log_dir       = '' !== $export_dir ? trailingslashit( $export_dir ) . 'logs' : '';
 		$debug_enabled = SSCRIBE_DEBUG;
 
 		$container    = SScribe_Container::instance();
@@ -89,7 +91,7 @@ class SScribe_Diagnostics {
 			if ( $debug_logger ) {
 				$debug_logger->warning( 'Support info: monthly_stats unavailable', array( 'error' => $e->getMessage() ) );
 			}
-			$this->support_errors[] = 'monthly_stats: ' . $e->getMessage();
+			$this->support_errors[] = 'monthly_stats unavailable';
 		}
 
 		try {
@@ -103,7 +105,7 @@ class SScribe_Diagnostics {
 			if ( $debug_logger ) {
 				$debug_logger->warning( 'Support info: status_counts unavailable', array( 'error' => $e->getMessage() ) );
 			}
-			$this->support_errors[] = 'status_counts: ' . $e->getMessage();
+			$this->support_errors[] = 'status_counts unavailable';
 		}
 
 		try {
@@ -116,37 +118,8 @@ class SScribe_Diagnostics {
 			if ( $debug_logger ) {
 				$debug_logger->warning( 'Support info: session_check unavailable', array( 'error' => $e->getMessage() ) );
 			}
-			$this->support_errors[] = 'session_check: ' . $e->getMessage();
+			$this->support_errors[] = 'session_check unavailable';
 		}
-
-		try {
-			$audit_trail       = new SScribe_Audit_Trail();
-			$recent_audit_logs = $audit_trail->get_logs( array(), 5, 0 );
-		} catch ( \Throwable $e ) {
-			$recent_audit_logs = array();
-			if ( defined( 'WP_DEBUG_LOG' ) && WP_DEBUG_LOG ) {
-				error_log( 'SScribe Diagnostics: recent_audit_logs failed : ' . $e->getMessage() ); // phpcs:ignore WordPress.PHP.DevelopmentFunctions.error_log_error_log
-			}
-			if ( $debug_logger ) {
-				$debug_logger->warning( 'Support info: recent_audit_logs unavailable', array( 'error' => $e->getMessage() ) );
-			}
-			$this->support_errors[] = 'recent_audit_logs: ' . $e->getMessage();
-		}
-
-		try {
-			$logger_entries = null !== $debug_logger ? $debug_logger->get_logs( 5 ) : array();
-		} catch ( \Throwable $e ) {
-			$logger_entries = array();
-			if ( defined( 'WP_DEBUG_LOG' ) && WP_DEBUG_LOG ) {
-				error_log( 'SScribe Diagnostics: logger_entries failed : ' . $e->getMessage() ); // phpcs:ignore WordPress.PHP.DevelopmentFunctions.error_log_error_log
-			}
-			if ( $debug_logger ) {
-				$debug_logger->warning( 'Support info: logger_entries unavailable', array( 'error' => $e->getMessage() ) );
-			}
-			$this->support_errors[] = 'logger_entries: ' . $e->getMessage();
-		}
-
-		$recent_log_tail = $logger_entries;
 
 		try {
 			$wpml_active = $container->get( SScribe_Page_Collector::class )->is_wpml_active();
@@ -158,7 +131,7 @@ class SScribe_Diagnostics {
 			if ( $debug_logger ) {
 				$debug_logger->warning( 'Support info: wpml_active check failed', array( 'error' => $e->getMessage() ) );
 			}
-			$this->support_errors[] = 'wpml_active: ' . $e->getMessage();
+			$this->support_errors[] = 'wpml_active unavailable';
 		}
 
 		try {
@@ -171,7 +144,7 @@ class SScribe_Diagnostics {
 			if ( $debug_logger ) {
 				$debug_logger->warning( 'Support info: seo_plugins unavailable', array( 'error' => $e->getMessage() ) );
 			}
-			$this->support_errors[] = 'seo_plugins: ' . $e->getMessage();
+			$this->support_errors[] = 'seo_plugins unavailable';
 		}
 
 		try {
@@ -185,7 +158,7 @@ class SScribe_Diagnostics {
 			if ( $debug_logger ) {
 				$debug_logger->warning( 'Support info: session_storage unavailable', array( 'error' => $e->getMessage() ) );
 			}
-			$this->support_errors[] = 'session_storage: ' . $e->getMessage();
+			$this->support_errors[] = 'session_storage unavailable';
 		}
 
 		$sections['plugin'] = array(
@@ -218,12 +191,10 @@ class SScribe_Diagnostics {
 		$sections['paths'] = array(
 			'label' => __( 'Paths', 'sscribe-export-site-pages' ),
 			'items' => array(
-				'upload_base' => defined( 'ABSPATH' )
-					? str_replace( trailingslashit( ABSPATH ), '[ABSPATH]/', $upload_dir['basedir'] )
-					: basename( $upload_dir['basedir'] ),
+				'upload_base' => '' === $upload_base ? __( 'Unavailable', 'sscribe-export-site-pages' ) : '[uploads]',
 				'export_dir'  => '[uploads]/sscribe-exports',
 				'log_dir'     => '[uploads]/sscribe-exports/logs',
-				'writable'    => wp_is_writable( $export_dir ) ? __( 'Yes', 'sscribe-export-site-pages' ) : __( 'No', 'sscribe-export-site-pages' ),
+				'writable'    => '' !== $export_dir && wp_is_writable( $export_dir ) ? __( 'Yes', 'sscribe-export-site-pages' ) : __( 'No', 'sscribe-export-site-pages' ),
 			),
 		);
 
@@ -259,22 +230,8 @@ class SScribe_Diagnostics {
 			),
 		);
 
-		$recent_audit_summary = array();
-		if ( count( $recent_audit_logs ) > 0 ) {
-			$recent_audit_summary = array_map(
-				static function ( object $entry ): array {
-					return array(
-						'timestamp' => (string) ( $entry->timestamp ?? '' ),
-						'event'     => (string) ( $entry->event ?? '' ),
-						'user_id'   => isset( $entry->user_id ) ? (int) $entry->user_id : 0,
-					);
-				},
-				$recent_audit_logs
-			);
-		}
-
 		try {
-			$copy_text = $this->build_support_copy_text( $sections, $recent_audit_summary, $recent_log_tail );
+			$copy_text = $this->build_support_copy_text( $sections );
 		} catch ( \Throwable $e ) {
 			$copy_text = '';
 		}
@@ -295,14 +252,12 @@ class SScribe_Diagnostics {
 		return array(
 			'generated_at'   => gmdate( 'Y-m-d H:i:s' ),
 			'sections'       => $sections,
-			'audit_events'   => $recent_audit_summary,
-			'log_tail'       => $recent_log_tail,
 			'copy_text'      => $copy_text,
 			'has_debug_mode' => $debug_enabled,
 			'storage'        => array(
 				'session_storage' => $session_storage,
 			),
-			'errors'         => array_values( $this->support_errors ),
+			'errors'         => $this->support_errors,
 		);
 	}
 
@@ -320,7 +275,7 @@ class SScribe_Diagnostics {
 
 		// Pre-warm the prefixed vendor autoloader BEFORE the mPDF / PHPWord
 		// checks below. The preflight runs over AJAX (admin-ajax.php), which
-		// never fires admin_notices — the only other path that calls
+		// never fires admin_notices; the only other path that calls
 		// check_vendor_dependencies(). Without this call, the very first
 		// preflight on a fresh install reports a false-positive "mPDF
 		// library not found. Run: composer install" because the prefixed
@@ -398,10 +353,6 @@ class SScribe_Diagnostics {
 				$vendor_prefixed = SSCRIBE_PLUGIN_DIR . 'vendor-prefixed/autoload.php';
 				if ( file_exists( $vendor_prefixed ) ) {
 					require_once $vendor_prefixed;
-					$shim = SSCRIBE_PLUGIN_DIR . 'includes/sscribe-prefixed-runtime-shim.php';
-					if ( file_exists( $shim ) ) {
-						require_once $shim;
-					}
 					define( 'SSCRIBE_VENDOR_AUTOLOADED', true );
 				}
 			}
@@ -454,6 +405,14 @@ class SScribe_Diagnostics {
 	 */
 	private function check_memory( int $page_count, array $formats ): array {
 		$memory_limit = wp_convert_hr_to_bytes( ini_get( 'memory_limit' ) );
+		if ( $memory_limit <= 0 ) {
+			return array(
+				'name'    => 'Memory',
+				'status'  => 'ok',
+				'message' => 'PHP memory limit is unlimited.',
+			);
+		}
+
 		$memory_mb    = round( $memory_limit / 1024 / 1024 );
 		$used_mb      = round( memory_get_usage( true ) / 1024 / 1024 );
 		$available_mb = $memory_mb - $used_mb;
@@ -846,15 +805,26 @@ class SScribe_Diagnostics {
 		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
 		$options = $wpdb->get_results(
 			$wpdb->prepare(
-				"SELECT option_name, option_value FROM {$wpdb->options} WHERE option_name LIKE %s AND autoload = 'no'",
+				"SELECT option_name, option_value FROM {$wpdb->options} WHERE option_name LIKE %s",
 				$wpdb->esc_like( $option_prefix ) . '%'
 			)
 		);
 
 		$orphaned = 0;
+		$session  = new SScribe_Session();
 		foreach ( (array) $options as $option ) {
-			$decoded = is_string( $option->option_value ) ? json_decode( $option->option_value, true ) : null;
-			if ( is_array( $decoded ) && ( $decoded['status'] ?? '' ) === 'processing' ) {
+			$session_id = SScribe_Session::extract_session_id( (string) ( $option->option_name ?? '' ) );
+			if ( null === $session_id ) {
+				continue;
+			}
+
+			$decoded      = $session->decode_session_value( $option->option_value ?? '', $session_id );
+			$last_updated = is_array( $decoded ) ? (int) ( $decoded['updated_at'] ?? $decoded['created_at'] ?? 0 ) : 0;
+			if (
+				is_array( $decoded )
+				&& in_array( $decoded['status'] ?? '', array( 'processing', 'pending', 'finalizing', 'completing' ), true )
+				&& ( $last_updated <= 0 || ( time() - $last_updated ) > HOUR_IN_SECONDS )
+			) {
 				++$orphaned;
 			}
 		}
@@ -1037,33 +1007,7 @@ class SScribe_Diagnostics {
 	 * @return int
 	 */
 	private function clear_orphaned_locks(): int {
-		global $wpdb;
-
-		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
-		$locks = $wpdb->get_results(
-			$wpdb->prepare(
-				"SELECT option_name FROM {$wpdb->options} WHERE option_name LIKE %s",
-				$wpdb->esc_like( '_transient_sscribe_lock_' ) . '%'
-			)
-		);
-
-		$cleared = 0;
-		foreach ( $locks as $lock ) {
-			$transient = str_replace( '_transient_', '', $lock->option_name );
-			$value     = get_transient( $transient );
-
-			if ( $value ) {
-				$parts     = explode( '|', $value );
-				$lock_time = (int) $parts[0];
-
-				if ( time() - $lock_time > 300 ) {
-					delete_transient( $transient );
-					++$cleared;
-				}
-			}
-		}
-
-		return $cleared;
+		return ( new SScribe_Export_Lock_Manager() )->cleanup_expired_locks();
 	}
 
 	/**
@@ -1072,33 +1016,10 @@ class SScribe_Diagnostics {
 	 * @return int
 	 */
 	private function clear_stale_sessions(): int {
-		global $wpdb;
+		$session_ttl = (int) apply_filters( 'sscribe_session_ttl', DAY_IN_SECONDS );
+		$session_ttl = max( HOUR_IN_SECONDS, min( 7 * DAY_IN_SECONDS, $session_ttl ) );
 
-		$option_prefix = SScribe_Session::OPTION_PREFIX;
-		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
-		$sessions = $wpdb->get_results(
-			$wpdb->prepare(
-				"SELECT option_name, option_value FROM {$wpdb->options} WHERE option_name LIKE %s",
-				$wpdb->esc_like( $option_prefix ) . '%'
-			)
-		);
-
-		$cleared     = 0;
-		$session_ttl = apply_filters( 'sscribe_session_ttl', DAY_IN_SECONDS );
-		foreach ( $sessions as $session ) {
-			$data = json_decode( $session->option_value, true );
-
-			if ( is_array( $data ) && isset( $data['created_at'] ) ) {
-				$created_at = $data['created_at'];
-				$created    = is_numeric( $created_at ) ? (int) $created_at : strtotime( (string) $created_at );
-				if ( $created && time() - $created > $session_ttl ) {
-					delete_option( $session->option_name );
-					++$cleared;
-				}
-			}
-		}
-
-		return $cleared;
+		return ( new SScribe_Session() )->cleanup_expired( $session_ttl );
 	}
 
 	/**
@@ -1108,33 +1029,33 @@ class SScribe_Diagnostics {
 	 */
 	private function clear_old_temp_files(): int {
 		$upload_dir = wp_upload_dir();
-		$export_dir = $upload_dir['basedir'] . '/sscribe-exports';
+		if ( ! empty( $upload_dir['error'] ) || empty( $upload_dir['basedir'] ) ) {
+			return 0;
+		}
 
-		if ( ! is_dir( $export_dir ) ) {
+		$export_dir = trailingslashit( (string) $upload_dir['basedir'] ) . 'sscribe-exports';
+
+		if ( ! is_dir( $export_dir ) || is_link( $export_dir ) ) {
 			return 0;
 		}
 
 		$cleared     = 0;
-		$files       = scandir( $export_dir );
+		$temp_dirs   = glob( trailingslashit( $export_dir ) . 'temp-*', GLOB_ONLYDIR ) ?: array();
 		$active_dirs = $this->collect_active_temp_dirs();
 
-		foreach ( $files as $file ) {
-			if ( '.' === $file || '..' === $file ) {
+		foreach ( $temp_dirs as $temp_dir ) {
+			if ( is_link( $temp_dir ) || ! is_dir( $temp_dir ) ) {
 				continue;
 			}
 
-			$full_path = $export_dir . '/' . $file;
-			$mtime     = filemtime( $full_path );
-
-			if ( $mtime && time() - $mtime > 3 * DAY_IN_SECONDS ) {
-
-				if ( is_dir( $full_path ) && ! $this->is_temp_dir_in_active_set( $full_path, $active_dirs ) ) {
-					$this->delete_directory( $full_path );
-					++$cleared;
-				} elseif ( ! is_dir( $full_path ) ) {
-					wp_delete_file( $full_path );
-					++$cleared;
-				}
+			$mtime = filemtime( $temp_dir );
+			if (
+				false !== $mtime
+				&& time() - $mtime > 3 * DAY_IN_SECONDS
+				&& ! $this->is_temp_dir_in_active_set( $temp_dir, $active_dirs )
+				&& $this->delete_directory( $temp_dir )
+			) {
+				++$cleared;
 			}
 		}
 
@@ -1163,43 +1084,65 @@ class SScribe_Diagnostics {
 		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- Lightweight check for active session temp_dir.
 		$options = $wpdb->get_results(
 			$wpdb->prepare(
-				"SELECT option_value FROM {$wpdb->options} WHERE option_name LIKE %s AND autoload = 'no'",
+				"SELECT option_name, option_value FROM {$wpdb->options} WHERE option_name LIKE %s",
 				$pattern
 			)
 		);
 
 		$active = array();
 		foreach ( (array) $options as $option ) {
-			$data = $session->decode_session_value( $option->option_value ?? '' );
-			if ( ! is_array( $data ) || empty( $data['temp_dir'] ) ) {
+			$session_id = SScribe_Session::extract_session_id( (string) ( $option->option_name ?? '' ) );
+			if ( null === $session_id ) {
 				continue;
 			}
-			$active[ (string) $data['temp_dir'] ] = true;
+
+			$data = $session->decode_session_value( $option->option_value ?? '', $session_id );
+			if (
+				! is_array( $data )
+				|| empty( $data['temp_dir'] )
+				|| ! in_array( $data['status'] ?? '', array( 'processing', 'pending', 'finalizing', 'completing' ), true )
+			) {
+				continue;
+			}
+			$temp_dir = (string) $data['temp_dir'];
+			if ( is_link( $temp_dir ) ) {
+				continue;
+			}
+
+			$real_temp = realpath( $temp_dir );
+			if ( false !== $real_temp ) {
+				$active[ $this->normalize_path( $real_temp ) ] = true;
+			}
 		}
 
 		return $active;
 	}
 
 	/**
-	 * Membership check against the active-temp-dir set built once per
-	 * self-heal pass. Prefix-based: a candidate directory is considered
-	 * in use if any active temp_dir is a prefix of it (active export may
-	 * have appended a subdir we are about to inspect).
+	 * Membership check against the active-temp-dir set built once per pass.
 	 *
 	 * @param string              $dir         Directory to test.
 	 * @param array<string, bool> $active_dirs Active temp_dirs indexed by path.
 	 * @return bool True if $dir is currently owned by an active session.
 	 */
 	private function is_temp_dir_in_active_set( string $dir, array $active_dirs ): bool {
-		if ( empty( $active_dirs ) ) {
+		if ( empty( $active_dirs ) || is_link( $dir ) ) {
 			return false;
 		}
-		foreach ( array_keys( $active_dirs ) as $active_dir ) {
-			if ( str_starts_with( $dir, $active_dir ) ) {
-				return true;
-			}
-		}
-		return false;
+
+		$real_dir = realpath( $dir );
+		return false !== $real_dir && isset( $active_dirs[ $this->normalize_path( $real_dir ) ] );
+	}
+
+	/**
+	 * Normalize an existing path for cross-platform set membership.
+	 *
+	 * @param string $path Absolute path.
+	 * @return string Normalized path.
+	 */
+	private function normalize_path( string $path ): string {
+		$path = rtrim( str_replace( '\\', '/', $path ), '/' );
+		return 'Windows' === PHP_OS_FAMILY ? strtolower( $path ) : $path;
 	}
 
 	/**
@@ -1207,8 +1150,8 @@ class SScribe_Diagnostics {
 	 *
 	 * @param string $dir Directory path.
 	 */
-	private function delete_directory( string $dir ): void {
-		SScribe_Security::delete_directory( $dir );
+	private function delete_directory( string $dir ): bool {
+		return SScribe_Security::delete_directory( $dir );
 	}
 
 	/**
@@ -1250,11 +1193,11 @@ class SScribe_Diagnostics {
 			'message' => ! empty( $nonce ) ? 'Nonces can be created' : 'Failed to generate nonce',
 		);
 
-		$has_cap                   = current_user_can( SScribe_Capabilities::get_required() );
+		$has_cap                   = current_user_can( SScribe_Capabilities::get_health_required() );
 		$checks['user_capability'] = array(
 			'name'    => 'User Permission',
 			'status'  => $has_cap ? 'ok' : 'error',
-			'message' => $has_cap ? 'User has export capability' : 'User lacks required capability',
+			'message' => $has_cap ? 'User has health-check capability' : 'User lacks health-check capability',
 		);
 
 		$site_url                  = site_url();
@@ -1361,12 +1304,10 @@ class SScribe_Diagnostics {
 	/**
 	 * Build copy-paste support text.
 	 *
-	 * @param array $sections     Info sections.
-	 * @param array $audit_events Audit events.
-	 * @param array $log_tail     Recent log entries.
+	 * @param array $sections Info sections.
 	 * @return string
 	 */
-	private function build_support_copy_text( array $sections, array $audit_events, array $log_tail ): string {
+	private function build_support_copy_text( array $sections ): string {
 		$lines   = array();
 		$lines[] = 'SScribe Support Information';
 		$lines[] = 'Generated: ' . gmdate( 'Y-m-d H:i:s' ) . ' UTC';
@@ -1380,27 +1321,6 @@ class SScribe_Diagnostics {
 				}
 				$value   = $this->format_support_value( $key, (string) $value );
 				$lines[] = $key . ': ' . $value;
-			}
-		}
-
-		if ( ! empty( $audit_events ) ) {
-			$lines[] = '';
-			$lines[] = '[Recent Audit Events]';
-			foreach ( $audit_events as $event ) {
-				$lines[] = sprintf(
-					'%s | %s | user:%d',
-					(string) ( $event['timestamp'] ?? '' ),
-					(string) ( $event['event'] ?? '' ),
-					(int) ( $event['user_id'] ?? 0 )
-				);
-			}
-		}
-
-		if ( ! empty( $log_tail ) ) {
-			$lines[] = '';
-			$lines[] = '[Recent Log Tail]';
-			foreach ( $log_tail as $entry ) {
-				$lines[] = is_string( $entry ) ? $entry : wp_json_encode( $entry );
 			}
 		}
 

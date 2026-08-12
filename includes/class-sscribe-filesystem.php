@@ -489,6 +489,19 @@ class SScribe_Filesystem {
 			return false;
 		}
 
+		$source_safety = $this->is_path_safe_for_read( $source );
+		if ( self::SSCRIBE_PATH_REJECT === $source_safety ) {
+			self::$last_error = 'Refusing to copy source outside SScribe export directory';
+			$this->logger->warning(
+				'Refused copy: source is not a regular file inside the SScribe export directory',
+				array(
+					'source'      => $source,
+					'destination' => $destination,
+				)
+			);
+			return false;
+		}
+
 		if ( self::$fs instanceof WP_Filesystem_Base ) {
 			return self::$fs->copy( $source, $destination, $overwrite, $mode );
 		}
@@ -532,6 +545,19 @@ class SScribe_Filesystem {
 			return false;
 		}
 
+		$source_safety = $this->is_path_safe_for_read( $source );
+		if ( self::SSCRIBE_PATH_REJECT === $source_safety ) {
+			self::$last_error = 'Refusing to move source outside SScribe export directory';
+			$this->logger->warning(
+				'Refused move: source is not a regular file inside the SScribe export directory',
+				array(
+					'source'      => $source,
+					'destination' => $destination,
+				)
+			);
+			return false;
+		}
+
 		if ( self::$fs instanceof WP_Filesystem_Base ) {
 			return self::$fs->move( $source, $destination, $overwrite );
 		}
@@ -541,25 +567,38 @@ class SScribe_Filesystem {
 			return false;
 		}
 
-		// Defense-in-depth: the native rename() path does not get the
-		// WP_Filesystem_Base safety checks the upstream branch does. Reject
-		// sources that resolve outside the allowlist so a planted symlink
-		// in a non-export parent directory cannot be moved into the export
-		// area. The destination check above already runs for every path.
-		$source_safety = $this->is_path_safe_for_write( $source );
-		if ( self::SSCRIBE_PATH_REJECT === $source_safety ) {
-			self::$last_error = 'Refusing to move source outside SScribe export directory (symlink attack suspected)';
-			$this->logger->warning(
-				'Refused move : source resolves outside SScribe export directory',
-				array(
-					'source'      => $source,
-					'destination' => $destination,
-				)
-			);
-			return false;
+		return rename( $source, $destination ); // phpcs:ignore WordPress.WP.AlternativeFunctions.rename_rename -- WP_Filesystem fallback for file moving.
+	}
+
+	/**
+	 * Decide whether an existing source is safe to read, copy, or move.
+	 *
+	 * The source must be a regular, non-symlink file whose canonical path is
+	 * inside the plugin-owned export directory. Canonicalizing the file itself
+	 * (rather than only its parent) prevents an in-directory symlink from
+	 * exposing an arbitrary local file through an exported ZIP.
+	 *
+	 * @param string $file Existing source file path.
+	 * @return string One of the SSCRIBE_PATH_* sentinels.
+	 */
+	private function is_path_safe_for_read( string $file ): string {
+		$allowed_root = $this->get_export_dir();
+		if ( '' === $file || '' === $allowed_root || str_contains( $file, "\0" ) || is_link( $file ) ) {
+			return self::SSCRIBE_PATH_REJECT;
 		}
 
-		return rename( $source, $destination ); // phpcs:ignore WordPress.WP.AlternativeFunctions.rename_rename -- WP_Filesystem fallback for file moving.
+		$file_real = realpath( $file );
+		$root_real = realpath( $allowed_root );
+		if ( false === $file_real || false === $root_real || ! is_file( $file_real ) ) {
+			return self::SSCRIBE_PATH_REJECT;
+		}
+
+		$file_abs    = self::normalize_path( $file_real );
+		$root_prefix = rtrim( self::normalize_path( $root_real ), '/' ) . '/';
+
+		return 0 === strpos( $file_abs, $root_prefix )
+			? self::SSCRIBE_PATH_ALLOWED
+			: self::SSCRIBE_PATH_REJECT;
 	}
 
 	/**
@@ -694,9 +733,10 @@ class SScribe_Filesystem {
 			return self::SSCRIBE_PATH_REJECT;
 		}
 
-		$file_abs     = self::normalize_path( $file );
-		$allowed_abs  = self::normalize_path( $allowed_root );
-		$literal_in_export = ( 0 === strpos( $file_abs, $allowed_abs ) );
+		$file_abs      = self::normalize_path( $file );
+		$allowed_abs   = self::normalize_path( $allowed_root );
+		$allowed_prefix = rtrim( $allowed_abs, '/' ) . '/';
+		$literal_in_export = $file_abs === $allowed_abs || 0 === strpos( $file_abs, $allowed_prefix );
 
 		if ( ! $literal_in_export ) {
 
@@ -704,22 +744,24 @@ class SScribe_Filesystem {
 		}
 
 		$parent = dirname( $file );
-		if ( ! is_dir( $parent ) ) {
-
-			return self::SSCRIBE_PATH_ALLOWED;
+		$nearest_existing = $parent;
+		while ( ! file_exists( $nearest_existing ) && dirname( $nearest_existing ) !== $nearest_existing ) {
+			$nearest_existing = dirname( $nearest_existing );
 		}
 
-		$parent_real = realpath( $parent );
-		if ( false === $parent_real ) {
+		$ancestor_real = realpath( $nearest_existing );
+		$root_real     = realpath( $allowed_root );
+		if ( false === $ancestor_real || false === $root_real ) {
 
 			return self::SSCRIBE_PATH_REJECT;
 		}
-
-		if ( $this->is_within_allowed_directory( $file, $allowed_root ) ) {
-			return self::SSCRIBE_PATH_ALLOWED;
+		$ancestor_abs = rtrim( self::normalize_path( $ancestor_real ), '/' );
+		$root_abs     = rtrim( self::normalize_path( $root_real ), '/' );
+		if ( $ancestor_abs !== $root_abs && ! str_starts_with( $ancestor_abs, $root_abs . '/' ) ) {
+			return self::SSCRIBE_PATH_REJECT;
 		}
 
-		return self::SSCRIBE_PATH_REJECT;
+		return self::SSCRIBE_PATH_ALLOWED;
 	}
 
 	/**

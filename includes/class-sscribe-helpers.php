@@ -39,6 +39,9 @@ class SScribe_Helpers {
 	 * @return string
 	 */
 	public static function icon_url( string $name ): string {
+		if ( 1 !== preg_match( '/^[a-z0-9-]{1,50}$/D', $name ) ) {
+			return '';
+		}
 		return SSCRIBE_PLUGIN_URL . self::$icons_dir . $name . '.svg';
 	}
 
@@ -51,6 +54,10 @@ class SScribe_Helpers {
 	 * @return string
 	 */
 	public static function get_icon( string $name, int $size = 20, string $css_class = '' ): string {
+		if ( 1 !== preg_match( '/^[a-z0-9-]{1,50}$/D', $name ) ) {
+			return '';
+		}
+		$size      = max( 1, min( 256, $size ) );
 		$cache_key = $name . ':' . $size . ':' . $css_class;
 		if ( isset( self::$icon_cache[ $cache_key ] ) ) {
 			return self::$icon_cache[ $cache_key ];
@@ -113,6 +120,10 @@ class SScribe_Helpers {
 	 * @return string
 	 */
 	public static function get_icon_inline( string $name, int $size = 20, string $css_class = '' ): string {
+		if ( 1 !== preg_match( '/^[a-z0-9-]{1,50}$/D', $name ) ) {
+			return '';
+		}
+		$size      = max( 1, min( 256, $size ) );
 		$cache_key = 'inline:' . $name . ':' . $size . ':' . $css_class;
 		if ( isset( self::$icon_cache[ $cache_key ] ) ) {
 			return self::$icon_cache[ $cache_key ];
@@ -180,8 +191,9 @@ class SScribe_Helpers {
 	 * the inline SVG survives sanitization without weakening any other
 	 * escape path in the plugin.
 	 *
-	 * Callers should `echo` the return value of this method directly;
-	 * wrapping it again in `wp_kses_post()` re-introduces the bug.
+	 * This method remains for non-template callers. Templates should escape
+	 * late with `wp_kses( ..., self::get_svg_kses_allowed_html() )` so the
+	 * output-site guarantee is explicit to both reviewers and static tools.
 	 *
 	 * @param string $name      Icon name (must exist in assets/icons/).
 	 * @param int    $size      Width/height attribute in pixels.
@@ -193,7 +205,19 @@ class SScribe_Helpers {
 		if ( '' === $svg ) {
 			return '';
 		}
-		$allowed = array(
+		return wp_kses( $svg, self::get_svg_kses_allowed_html() );
+	}
+
+	/**
+	 * Get the strict allowlist used when outputting bundled SVG icons.
+	 *
+	 * Keeping this public lets templates perform the required late escaping at
+	 * the exact output site without falling back to the broader post allowlist.
+	 *
+	 * @return array<string, array<string, bool>> SVG elements and attributes.
+	 */
+	public static function get_svg_kses_allowed_html(): array {
+		return array(
 			'svg'  => array(
 				'class'             => true,
 				'aria-hidden'       => true,
@@ -264,7 +288,6 @@ class SScribe_Helpers {
 				'stroke-linejoin' => true,
 			),
 		);
-		return wp_kses( $svg, $allowed );
 	}
 
 	/**
@@ -274,10 +297,16 @@ class SScribe_Helpers {
 	 */
 	public static function get_client_ip(): string {
 		$trusted_headers = apply_filters( 'sscribe_trusted_ip_headers', array() );
+		$trusted_headers = is_array( $trusted_headers ) ? array_slice( $trusted_headers, 0, 10 ) : array();
 
 		foreach ( $trusted_headers as $header ) {
+			$header = sanitize_key( (string) $header );
+			if ( '' === $header ) {
+				continue;
+			}
+
 			$header_key = 'HTTP_' . strtoupper( str_replace( '-', '_', $header ) );
-			if ( ! empty( $_SERVER[ $header_key ] ) ) {
+			if ( isset( $_SERVER[ $header_key ] ) && is_string( $_SERVER[ $header_key ] ) && '' !== $_SERVER[ $header_key ] ) {
 				$ip = explode( ',', sanitize_text_field( wp_unslash( $_SERVER[ $header_key ] ) ) );
 				$ip = trim( $ip[0] );
 				if ( filter_var( $ip, FILTER_VALIDATE_IP ) ) {
@@ -286,8 +315,8 @@ class SScribe_Helpers {
 			}
 		}
 
-		$remote_addr = isset( $_SERVER['REMOTE_ADDR'] ) // phpcs:ignore WordPress.Security.ValidatedSanitizedInput.InputNotSanitized -- REMOTE_ADDR is sanitized to text and then passed to filter_var(FILTER_VALIDATE_IP) below; non-IP input is rejected and `0.0.0.0` is returned instead.
-			? sanitize_text_field( wp_unslash( (string) $_SERVER['REMOTE_ADDR'] ) )
+		$remote_addr = isset( $_SERVER['REMOTE_ADDR'] ) && is_string( $_SERVER['REMOTE_ADDR'] ) // phpcs:ignore WordPress.Security.ValidatedSanitizedInput.InputNotSanitized -- REMOTE_ADDR is sanitized to text and then passed to filter_var(FILTER_VALIDATE_IP) below; non-IP input is rejected and `0.0.0.0` is returned instead.
+			? sanitize_text_field( wp_unslash( $_SERVER['REMOTE_ADDR'] ) )
 			: '';
 		if ( '' === $remote_addr ) {
 			return '0.0.0.0';

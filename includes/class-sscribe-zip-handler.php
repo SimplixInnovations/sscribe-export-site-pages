@@ -90,12 +90,15 @@ class SScribe_Zip_Handler {
 	 * Create a temporary working directory.
 	 *
 	 * @return string
+	 * @throws \InvalidArgumentException|\RuntimeException When the workspace is unavailable.
 	 */
 	public function create_temp_dir(): string {
 		$export_dir    = $this->get_export_dir();
 		$random_suffix = bin2hex( random_bytes( 6 ) );
 		$temp_dir      = $export_dir . '/temp-' . $random_suffix;
-		wp_mkdir_p( $temp_dir );
+		if ( ! wp_mkdir_p( $temp_dir ) || ! is_dir( $temp_dir ) ) {
+			throw new \RuntimeException( 'Unable to create the SScribe export working directory.' );
+		}
 		return $temp_dir;
 	}
 
@@ -114,6 +117,19 @@ class SScribe_Zip_Handler {
 	 *                   is responsible for cleaning up the temp file.
 	 */
 	public function create_zip( string $source_dir, string $zip_name = '', array $formats = array( 'docx' ), bool $has_language = true, array $lang_metadata = array(), string $session_id = '' ): string|false {
+		try {
+			$this->get_export_dir();
+		} catch ( \InvalidArgumentException $e ) {
+			$this->logger->error( 'Export directory unavailable during ZIP creation' );
+			return false;
+		}
+
+		$source_dir = $this->resolve_temp_directory( $source_dir );
+		if ( '' === $source_dir ) {
+			$this->logger->error( 'Rejected ZIP source directory outside the SScribe export workspace' );
+			return false;
+		}
+
 		if ( ! class_exists( 'ZipArchive' ) ) {
 			$this->logger->error( 'ZipArchive not available' );
 			$this->delete_directory( $source_dir );
@@ -125,7 +141,18 @@ class SScribe_Zip_Handler {
 			$zip_name      = 'sscribe-export-' . gmdate( 'Y-m-d-His' ) . '-' . $random_suffix;
 		}
 
-		$zip_path = $this->export_dir . '/' . sanitize_file_name( $zip_name ) . '.zip';
+		$zip_stem = sanitize_file_name( $zip_name );
+		$zip_stem = preg_replace( '/[^A-Za-z0-9._-]+/', '-', $zip_stem ) ?? '';
+		$zip_stem = trim( $zip_stem, '.-_' );
+		$zip_stem = substr( $zip_stem, 0, 180 );
+		if ( '' === $zip_stem ) {
+			$zip_stem = 'sscribe-export-' . gmdate( 'Y-m-d-His' ) . '-' . bin2hex( random_bytes( 3 ) );
+		}
+
+		$zip_path = $this->export_dir . '/' . $zip_stem . '.zip';
+		if ( file_exists( $zip_path ) || is_link( $zip_path ) ) {
+			$zip_path = $this->export_dir . '/' . substr( $zip_stem, 0, 171 ) . '-' . bin2hex( random_bytes( 4 ) ) . '.zip';
+		}
 
 		$all_files         = array();
 		$format_extensions = array(
@@ -143,7 +170,15 @@ class SScribe_Zip_Handler {
 
 			$found = glob( $source_dir . '/*/*.' . $ext );
 			if ( $found ) {
-				$all_files[ $format ] = $found;
+				$found = array_values(
+					array_filter(
+						$found,
+						fn( string $file ): bool => $this->is_safe_source_file( $file, $source_dir )
+					)
+				);
+				if ( ! empty( $found ) ) {
+					$all_files[ $format ] = $found;
+				}
 			}
 		}
 
@@ -327,31 +362,17 @@ class SScribe_Zip_Handler {
 
 		$this->delete_directory( $source_dir );
 
-		$lock_key         = 'sscribe_index_lock';
-		$locked           = false;
-		$lock_using_cache = wp_using_ext_object_cache();
-		$lock_attempts    = array( 100000, 200000, 400000 );
+		$lock_manager = new SScribe_Export_Lock_Manager( $this->logger );
+		$lock_name    = 'export-index';
+		$lock_token   = $lock_manager->acquire_lock( $lock_name, 30, 25 );
 
-		foreach ( $lock_attempts as $lock_delay ) {
-			if ( $lock_using_cache ) {
-				if ( wp_cache_add( $lock_key, time(), 'transient', 30 ) ) {
-					$locked = true;
-					break;
-				}
-			} elseif ( set_transient( $lock_key, time(), 30 ) ) {
-				$locked = true;
-				break;
-			}
-			usleep( $lock_delay );
-		}
-
-		if ( ! $locked ) {
-			$this->logger->warning(
-				'Export indexing skipped - could not acquire exclusive lock (concurrent finalize detected)',
+		if ( null === $lock_token ) {
+			$this->logger->error(
+				'Export package could not be indexed because the export index is busy',
 				array( 'zip' => basename( $zip_path ) )
 			);
-
-			return file_exists( $zip_path ) ? $zip_path : false;
+			wp_delete_file( $zip_path );
+			return false;
 		}
 
 		if ( ! $this->verify_zip_integrity( $zip_path ) ) {
@@ -360,10 +381,7 @@ class SScribe_Zip_Handler {
 				array( 'zip_path' => $zip_path )
 			);
 			wp_delete_file( $zip_path );
-			if ( $lock_using_cache ) {
-				wp_cache_delete( $lock_key, 'transient' );
-			}
-			delete_transient( $lock_key );
+			$lock_manager->release_lock( $lock_name, $lock_token );
 			return false;
 		}
 
@@ -389,8 +407,13 @@ class SScribe_Zip_Handler {
 				$removed = array_slice( $index, 0, count( $index ) - 50 );
 				$index   = array_slice( $index, -50 );
 				foreach ( $removed as $removed_basename ) {
-					delete_option( 'sscribe_export_row_' . md5( (string) $removed_basename ) );
-					$file_path = $this->export_dir . '/' . ltrim( (string) $removed_basename, '/\\' );
+					$removed_basename = (string) $removed_basename;
+					delete_option( 'sscribe_export_row_' . md5( $removed_basename ) );
+					$removed_basename = $this->normalize_zip_filename( $removed_basename );
+					if ( '' === $removed_basename ) {
+						continue;
+					}
+					$file_path = $this->export_dir . '/' . $removed_basename;
 					if ( file_exists( $file_path ) ) {
 						wp_delete_file( $file_path );
 					}
@@ -399,15 +422,76 @@ class SScribe_Zip_Handler {
 
 			update_option( 'sscribe_export_index', $index, false );
 		} finally {
-
-			if ( $lock_using_cache ) {
-				wp_cache_delete( $lock_key, 'transient' );
-			} else {
-				delete_transient( $lock_key );
-			}
+			$lock_manager->release_lock( $lock_name, $lock_token );
 		}
 
 		return file_exists( $zip_path ) ? $zip_path : false;
+	}
+
+	/**
+	 * Resolve a plugin-created temporary export directory.
+	 *
+	 * @param string $source_dir Candidate directory.
+	 * @return string Canonical directory path, or an empty string when unsafe.
+	 */
+	private function resolve_temp_directory( string $source_dir ): string {
+		if ( '' === $source_dir || is_link( $source_dir ) || ! is_dir( $source_dir ) ) {
+			return '';
+		}
+
+		$export_real = realpath( $this->export_dir );
+		$source_real = realpath( $source_dir );
+		if ( false === $export_real || false === $source_real ) {
+			return '';
+		}
+
+		$safe_prefix = rtrim( $export_real, DIRECTORY_SEPARATOR ) . DIRECTORY_SEPARATOR;
+		if ( ! str_starts_with( $source_real, $safe_prefix ) || ! str_starts_with( basename( $source_real ), 'temp-' ) ) {
+			return '';
+		}
+
+		return $source_real;
+	}
+
+	/**
+	 * Check that a ZIP input is a regular file inside the working directory.
+	 *
+	 * @param string $file        Candidate file.
+	 * @param string $source_root Canonical working directory.
+	 * @return bool
+	 */
+	private function is_safe_source_file( string $file, string $source_root ): bool {
+		if ( is_link( $file ) || ! is_file( $file ) ) {
+			return false;
+		}
+
+		$file_real = realpath( $file );
+		if ( false === $file_real ) {
+			return false;
+		}
+
+		$safe_prefix = rtrim( $source_root, DIRECTORY_SEPARATOR ) . DIRECTORY_SEPARATOR;
+		return str_starts_with( $file_real, $safe_prefix );
+	}
+
+	/**
+	 * Validate an export archive basename read from request or option data.
+	 *
+	 * @param string $filename Candidate filename.
+	 * @return string Validated basename, or an empty string.
+	 */
+	private function normalize_zip_filename( string $filename ): string {
+		$filename = trim( $filename );
+		if (
+			'' === $filename
+			|| strlen( $filename ) > 204
+			|| basename( str_replace( '\\', '/', $filename ) ) !== $filename
+			|| 1 !== preg_match( '/^[A-Za-z0-9][A-Za-z0-9._-]{0,199}\.zip$/D', $filename )
+		) {
+			return '';
+		}
+
+		return sanitize_file_name( $filename ) === $filename ? $filename : '';
 	}
 
 	/**
@@ -496,6 +580,10 @@ class SScribe_Zip_Handler {
 	 * @return array<string, mixed>|null Row data, or null if not present.
 	 */
 	public function get_export_entry( string $zip_filename ): ?array {
+		$zip_filename = $this->normalize_zip_filename( $zip_filename );
+		if ( '' === $zip_filename ) {
+			return null;
+		}
 		$row = get_option( 'sscribe_export_row_' . md5( $zip_filename ), null );
 		return is_array( $row ) ? $row : null;
 	}
@@ -511,9 +599,14 @@ class SScribe_Zip_Handler {
 	 */
 	public function list_export_entries(): array {
 		$index   = get_option( 'sscribe_export_index', array() );
+		$index   = array_slice( (array) $index, -50 );
 		$entries = array();
-		foreach ( (array) $index as $basename ) {
-			$row = $this->get_export_entry( (string) $basename );
+		foreach ( $index as $basename ) {
+			$basename = $this->normalize_zip_filename( (string) $basename );
+			if ( '' === $basename ) {
+				continue;
+			}
+			$row = $this->get_export_entry( $basename );
 			if ( null !== $row ) {
 				$entries[ (string) $basename ] = $row;
 			}
@@ -528,92 +621,84 @@ class SScribe_Zip_Handler {
 	 * @return string
 	 */
 	public function get_ajax_download_url( string $zip_filename ): string {
-		if ( ! is_user_logged_in() ) {
+		$zip_filename = $this->normalize_zip_filename( $zip_filename );
+		if ( '' === $zip_filename || ! is_user_logged_in() ) {
 			return '';
 		}
 		if ( null === $this->cached_nonce ) {
 			$this->cached_nonce = wp_create_nonce( 'sscribe_download' );
 		}
-		$token = $this->mint_download_token( $zip_filename );
-		$args  = array(
+		$args = array(
 			'action' => 'sscribe_download',
 			'file'   => $zip_filename,
 			'nonce'  => $this->cached_nonce,
 		);
-		if ( '' !== $token ) {
-			$args['dl_token'] = $token;
-		}
 		return add_query_arg( $args, admin_url( 'admin-ajax.php' ) );
 	}
 
 	/**
-	 * Mint a single-use download token tied to (filename, user) and store
-	 * the fact that it has not yet been consumed. The token is burned
-	 * (transient deleted) on first valid use by SScribe_Batch_File_Handler.
+	 * Delete one user-owned export and its metadata atomically.
 	 *
-	 * Tokens live for 24 hours, matching the export retention window so a
-	 * download URL created in this window remains valid until the file is
-	 * pruned. Tokens are only minted on demand; if minting fails the URL
-	 * omits the parameter and falls back to nonce-only validation.
-	 *
-	 * @param string $zip_filename ZIP filename.
-	 * @return string Token, or empty string on failure.
+	 * @param string $zip_filename ZIP basename.
+	 * @param int    $user_id      Expected owner ID.
+	 * @return bool True when the export was removed or was already absent.
 	 */
-	public function mint_download_token( string $zip_filename ): string {
-		if ( '' === $zip_filename || ! is_user_logged_in() ) {
-			return '';
+	public function delete_export( string $zip_filename, int $user_id ): bool {
+		$zip_filename = $this->normalize_zip_filename( $zip_filename );
+		if ( '' === $zip_filename || $user_id <= 0 || ! $this->is_available() ) {
+			return false;
 		}
-		try {
-			$token = bin2hex( random_bytes( 24 ) );
-		} catch ( \Throwable $e ) {
-			return '';
-		}
-		$user_id = get_current_user_id();
-		set_transient(
-			'sscribe_dl_token_' . $user_id . '_' . md5( $zip_filename ),
-			array(
-				'token'     => $token,
-				'filename'  => $zip_filename,
-				'user_id'   => $user_id,
-				'minted_at' => time(),
-				'used'      => false,
-			),
-			DAY_IN_SECONDS
-		);
-		return $token;
-	}
 
-	/**
-	 * Atomically validate-and-burn a download token. Returns true if the
-	 * token matched an unused entry; false if missing, used, expired, or
-	 * mismatched. The transient is updated to "used" on success and the
-	 * entry is removed after a short grace period so concurrent retries on
-	 * the same URL fail loudly instead of leaking multiple downloads.
-	 *
-	 * @param string $zip_filename ZIP filename.
-	 * @param string $token       Token supplied by the client.
-	 * @return bool True if the token was valid and unused.
-	 */
-	public function consume_download_token( string $zip_filename, string $token ): bool {
-		if ( '' === $token || '' === $zip_filename || ! is_user_logged_in() ) {
+		$lock_manager = new SScribe_Export_Lock_Manager( $this->logger );
+		$lock_name    = 'export-index';
+		$lock_token   = $lock_manager->acquire_lock( $lock_name, 30, 25 );
+		if ( null === $lock_token ) {
 			return false;
 		}
-		$user_id = get_current_user_id();
-		$key     = 'sscribe_dl_token_' . $user_id . '_' . md5( $zip_filename );
-		$stored  = get_transient( $key );
-		if ( ! is_array( $stored ) || empty( $stored['token'] ) ) {
-			return false;
+
+		try {
+			$row = $this->get_export_entry( $zip_filename );
+			if ( null === $row || (int) ( $row['user_id'] ?? 0 ) !== $user_id ) {
+				return false;
+			}
+
+			$export_real = realpath( $this->export_dir );
+			if ( false === $export_real ) {
+				return false;
+			}
+
+			$file_path = $this->export_dir . '/' . $zip_filename;
+			if ( file_exists( $file_path ) || is_link( $file_path ) ) {
+				if ( is_link( $file_path ) || ! is_file( $file_path ) ) {
+					return false;
+				}
+
+				$file_real   = realpath( $file_path );
+				$safe_prefix = rtrim( $export_real, DIRECTORY_SEPARATOR ) . DIRECTORY_SEPARATOR;
+				if ( false === $file_real || ! str_starts_with( $file_real, $safe_prefix ) ) {
+					return false;
+				}
+
+				wp_delete_file( $file_real );
+				if ( file_exists( $file_real ) ) {
+					return false;
+				}
+			}
+
+			delete_option( 'sscribe_export_row_' . md5( $zip_filename ) );
+			$index = array_values(
+				array_filter(
+					(array) get_option( 'sscribe_export_index', array() ),
+					static fn( $basename ): bool => (string) $basename !== $zip_filename
+				)
+			);
+			update_option( 'sscribe_export_index', array_slice( $index, -50 ), false );
+			SScribe_Export_Log::delete_by_filename( $zip_filename );
+
+			return true;
+		} finally {
+			$lock_manager->release_lock( $lock_name, $lock_token );
 		}
-		if ( ! empty( $stored['used'] ) ) {
-			return false;
-		}
-		if ( ! hash_equals( (string) $stored['token'], $token ) ) {
-			return false;
-		}
-		$stored['used']      = true;
-		$stored['used_at']   = time();
-		set_transient( $key, $stored, MINUTE_IN_SECONDS );
-		return true;
 	}
 
 	/**
@@ -622,10 +707,16 @@ class SScribe_Zip_Handler {
 	 * @return int Number of cleaned items.
 	 */
 	public function cleanup_expired(): int {
-		if ( get_transient( 'sscribe_cron_exports_lock' ) ) {
+		if ( ! $this->is_available() || ! is_dir( $this->export_dir ) ) {
 			return 0;
 		}
-		set_transient( 'sscribe_cron_exports_lock', true, 5 * MINUTE_IN_SECONDS );
+
+		$lock_manager = new SScribe_Export_Lock_Manager( $this->logger );
+		$lock_name    = 'export-index';
+		$lock_token   = $lock_manager->acquire_lock( $lock_name, 5 * MINUTE_IN_SECONDS, 290 );
+		if ( null === $lock_token ) {
+			return 0;
+		}
 
 		try {
 			$cleaned  = 0;
@@ -637,15 +728,48 @@ class SScribe_Zip_Handler {
 
 			foreach ( (array) $exports as $basename ) {
 				$basename   = (string) $basename;
-				$file_path  = $this->export_dir . '/' . ltrim( $basename, '/\\' );
+				$safe_basename = $this->normalize_zip_filename( $basename );
+				if ( '' === $safe_basename ) {
+					$exports = array_values(
+						array_filter(
+							(array) $exports,
+							static fn( $item ): bool => (string) $item !== $basename
+						)
+					);
+					delete_option( 'sscribe_export_row_' . md5( $basename ) );
+					$modified = true;
+					continue;
+				}
+				$basename  = $safe_basename;
+				$file_path = $this->export_dir . '/' . $basename;
 
-				if ( ! file_exists( $file_path ) ) {
+				if ( ! file_exists( $file_path ) && ! is_link( $file_path ) ) {
 					$exports    = array_values(
 						array_filter(
 							(array) $exports,
 							static function ( $b ) use ( $basename ) {
-								return (string) $b !== $basename;
+								return is_string( $b ) && $b !== $basename;
 							}
+						)
+					);
+					delete_option( 'sscribe_export_row_' . md5( $basename ) );
+					SScribe_Export_Log::delete_by_filename( $basename );
+					$modified = true;
+					++$cleaned;
+					continue;
+				}
+
+				if ( is_link( $file_path ) || ! is_file( $file_path ) ) {
+					if ( is_link( $file_path ) ) {
+						wp_delete_file( $file_path );
+						if ( is_link( $file_path ) ) {
+							continue;
+						}
+					}
+					$exports = array_values(
+						array_filter(
+							(array) $exports,
+							static fn( $item ): bool => (string) $item !== $basename
 						)
 					);
 					delete_option( 'sscribe_export_row_' . md5( $basename ) );
@@ -658,6 +782,9 @@ class SScribe_Zip_Handler {
 				$file_time = filemtime( $file_path );
 				if ( $file_time && ( $now - $file_time ) > $max_age ) {
 					wp_delete_file( $file_path );
+					if ( file_exists( $file_path ) ) {
+						continue;
+					}
 					$exports    = array_values(
 						array_filter(
 							(array) $exports,
@@ -674,16 +801,18 @@ class SScribe_Zip_Handler {
 			}
 
 			if ( ! empty( $files ) ) {
-				$indexed_basenames = array_keys( $exports );
+				$indexed_basenames = array_values( array_filter( (array) $exports, 'is_string' ) );
 				foreach ( $files as $file_path ) {
 					$basename = basename( $file_path );
 
-					if ( ! in_array( $basename, $indexed_basenames, true ) ) {
+					if ( ! in_array( $basename, $indexed_basenames, true ) && ! is_link( $file_path ) && is_file( $file_path ) ) {
 						$file_time = filemtime( $file_path );
 						if ( $file_time && ( $now - $file_time ) > $max_age ) {
 							wp_delete_file( $file_path );
-							SScribe_Export_Log::delete_by_filename( $basename );
-							++$cleaned;
+							if ( ! file_exists( $file_path ) ) {
+								SScribe_Export_Log::delete_by_filename( $basename );
+								++$cleaned;
+							}
 						}
 					}
 				}
@@ -694,10 +823,11 @@ class SScribe_Zip_Handler {
 			}
 
 			$cleaned += $this->cleanup_stale_temp_dirs();
+			$cleaned += SScribe_Image_Processor::cleanup_stale();
 
 			return $cleaned;
 		} finally {
-			delete_transient( 'sscribe_cron_exports_lock' );
+			$lock_manager->release_lock( $lock_name, $lock_token );
 		}
 	}
 
@@ -711,12 +841,18 @@ class SScribe_Zip_Handler {
 		$max_age = 3 * DAY_IN_SECONDS;
 		$now     = time();
 
-		$temp_dirs = glob( $this->export_dir . '/temp-*', GLOB_ONLYDIR ) ?: array();
+		$temp_dirs    = glob( $this->export_dir . '/temp-*', GLOB_ONLYDIR ) ?: array();
+		$scratch_dirs = glob( $this->export_dir . '/phpword-scratch/run-*', GLOB_ONLYDIR ) ?: array();
+		$pdf_dirs     = glob( $this->export_dir . '/mpdf-tmp/run-*', GLOB_ONLYDIR ) ?: array();
+		$temp_dirs    = array_merge( $temp_dirs, $scratch_dirs, $pdf_dirs );
 		if ( ! empty( $temp_dirs ) ) {
 			foreach ( $temp_dirs as $temp_dir ) {
+				if ( is_link( $temp_dir ) || ! is_dir( $temp_dir ) ) {
+					continue;
+				}
+
 				$dir_time = filemtime( $temp_dir );
-				if ( $dir_time && ( $now - $dir_time ) > $max_age ) {
-					SScribe_Security::delete_directory( $temp_dir );
+				if ( false !== $dir_time && ( $now - $dir_time ) > $max_age && SScribe_Security::delete_directory( $temp_dir ) ) {
 					++$cleaned;
 				}
 			}
@@ -732,6 +868,7 @@ class SScribe_Zip_Handler {
 	 * @return bool
 	 */
 	public function delete_directory( string $dir ): bool {
-		return SScribe_Security::delete_directory( $dir );
+		$dir = $this->resolve_temp_directory( $dir );
+		return '' !== $dir && SScribe_Security::delete_directory( $dir );
 	}
 }

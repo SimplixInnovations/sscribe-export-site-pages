@@ -9,6 +9,9 @@ screenshots/
 banner-1544x500.png
 icon-128x128.png
 icon-256x256.png
+assets/banner-1544x500.svg
+assets/icon-128x128.svg
+assets/icon-256x256.svg
 
 # Build & deploy
 build/
@@ -58,15 +61,16 @@ docs/
 # Raw Composer vendor tree excluded from release package
 vendor/
 
+# Local-development compatibility adapter; release code uses only prefixed vendors.
+includes/sscribe-vendor-compat.php
+
 # Vendor-prefixed extras (WordPress.org requirement)
 vendor-prefixed/*/.github/
 vendor-prefixed/*/.git/
-# NOTE: vendor-prefixed/*/LICENSE* and vendor-prefixed/*/COPYING* are
-# NOT excluded. Per WordPress.org Plugin Directory Guideline 1, the
-# license texts of bundled libraries must ship alongside their source
-# so a reviewer can verify GPL-compatible attribution. The
-# corresponding prune entries were removed from scripts/build-release.php
-# in the same commit.
+# Third-party license texts ship with their source. PHPWord's original
+# COPYING.LESSER name is rejected as an unexpected `.lesser` file type, so
+# the release keeps the identical notice as COPYING.LESSER.txt instead.
+vendor-prefixed/phpoffice/phpword/COPYING.LESSER
 vendor-prefixed/*/.github_changelog_generator
 vendor-prefixed/*/.php-cs-fixer*
 vendor-prefixed/*/phpstan.neon*
@@ -95,6 +99,7 @@ vendor-prefixed/phpoffice/phpword/src/PhpWord/Shared/PCLZip/
 # scanner. Settings::loadConfig() is never called in SScribe code, so this file
 # is dead weight in the dist archive. Remove it to avoid a reviewer flag.
 vendor-prefixed/phpoffice/phpword/phpword.ini.dist
+vendor-prefixed/phpoffice/phpword/phpmd.xml.dist
 
 # Vendor-prefixed dev files (exact-name segment-level)
 composer.json
@@ -177,6 +182,7 @@ opencode.json
 playground-blueprint.json
 playground-tools/
 .playground-tools/
+.playground-cache/
 
 # IDE / IDE assistant (stubs file used by PHPStan + Intelephense, not shipped)
 .stubs/

@@ -21,7 +21,7 @@ $sscribe_cleanup_site = static function (): void {
 	// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- Cleanup operation during uninstall.
 	$wpdb->query(
 		$wpdb->prepare(
-			"DELETE FROM {$wpdb->options} WHERE option_name LIKE %s AND autoload = 'no'",
+			"DELETE FROM {$wpdb->options} WHERE option_name LIKE %s",
 			$wpdb->esc_like( 'sscribe_session_' ) . '%'
 		)
 	);
@@ -29,7 +29,7 @@ $sscribe_cleanup_site = static function (): void {
 	// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- Cleanup operation during uninstall.
 	$wpdb->query(
 		$wpdb->prepare(
-			"DELETE FROM {$wpdb->options} WHERE option_name LIKE %s AND autoload = 'no'",
+			"DELETE FROM {$wpdb->options} WHERE option_name LIKE %s",
 			$wpdb->esc_like( 'sscribe_log_' ) . '%'
 		)
 	);
@@ -48,6 +48,14 @@ $sscribe_cleanup_site = static function (): void {
 			"DELETE FROM {$wpdb->options} WHERE option_name LIKE %s OR option_name LIKE %s",
 			$wpdb->esc_like( '_transient_sscribe_status_counts_' ) . '%',
 			$wpdb->esc_like( '_transient_timeout_sscribe_status_counts_' ) . '%'
+		)
+	);
+
+	// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- Cleanup during uninstall.
+	$wpdb->query(
+		$wpdb->prepare(
+			"DELETE FROM {$wpdb->options} WHERE option_name LIKE %s",
+			$wpdb->esc_like( 'sscribe_export_lock_' ) . '%'
 		)
 	);
 
@@ -95,6 +103,8 @@ $sscribe_cleanup_site = static function (): void {
 	);
 	delete_option( 'sscribe_schema_version' );
 	delete_option( 'sscribe_session_signing_key' );
+	delete_option( 'sscribe_session_sodium_key' );
+	delete_option( 'sscribe_content_cache_generation' );
 
 	delete_option( 'sscribe_debug_enabled' );
 	delete_option( 'sscribe_debug_log_level' );
@@ -134,29 +144,46 @@ $sscribe_cleanup_site = static function (): void {
 	wp_clear_scheduled_hook( 'sscribe_cleanup_audit_trail' );
 
 	$sscribe_upload_dir = wp_upload_dir();
-	$sscribe_dirs       = array(
-		$sscribe_upload_dir['basedir'] . '/sscribe-exports',
-		$sscribe_upload_dir['basedir'] . '/sscribe-exports/logs',
-		$sscribe_upload_dir['basedir'] . '/sscribe/mpdf-tmp',
-	);
+	$sscribe_dirs       = array();
+	if ( empty( $sscribe_upload_dir['error'] ) && ! empty( $sscribe_upload_dir['basedir'] ) ) {
+		$sscribe_upload_base = untrailingslashit( (string) $sscribe_upload_dir['basedir'] );
+		$sscribe_dirs        = array(
+			$sscribe_upload_base . '/sscribe-exports',
+			$sscribe_upload_base . '/sscribe/mpdf-tmp',
+		);
+	}
 	foreach ( $sscribe_dirs as $dir_path ) {
+		if ( is_link( $dir_path ) ) {
+			wp_delete_file( $dir_path );
+			continue;
+		}
 		if ( is_dir( $dir_path ) ) {
 			try {
+				$real_root = realpath( $dir_path );
+				if ( false === $real_root ) {
+					continue;
+				}
+				$safe_root = rtrim( wp_normalize_path( $real_root ), '/' ) . '/';
 				$iterator = new RecursiveIteratorIterator(
 					new RecursiveDirectoryIterator( $dir_path, RecursiveDirectoryIterator::SKIP_DOTS ),
 					RecursiveIteratorIterator::CHILD_FIRST
 				);
 				foreach ( $iterator as $fileinfo ) {
 					try {
+						$entry_path = $fileinfo->getPathname();
+						if ( $fileinfo->isLink() ) {
+							wp_delete_file( $entry_path );
+							continue;
+						}
 						$real_path = $fileinfo->getRealPath();
-						if ( ! $real_path ) {
+						if ( ! $real_path || ! str_starts_with( wp_normalize_path( $real_path ), $safe_root ) ) {
 							continue;
 						}
 						if ( $fileinfo->isDir() ) {
 							// phpcs:ignore WordPress.WP.AlternativeFunctions.file_system_operations_rmdir -- Cleanup during uninstall; @ suppresses rmdir() PHP warning when the directory is non-empty (e.g. locked files). Catch above absorbs the rest.
 							@rmdir( $real_path );
 						} else {
-							wp_delete_file( $real_path );
+							wp_delete_file( $entry_path );
 						}
 					} catch ( \Throwable $e ) {
 						continue;
@@ -190,8 +217,11 @@ if ( is_multisite() ) {
 			foreach ( $sscribe_sites as $sscribe_site ) {
 				$sscribe_blog_id = is_object( $sscribe_site ) ? $sscribe_site->blog_id : $sscribe_site['blog_id'];
 				switch_to_blog( (int) $sscribe_blog_id );
-				$sscribe_cleanup_site();
-				restore_current_blog();
+				try {
+					$sscribe_cleanup_site();
+				} finally {
+					restore_current_blog();
+				}
 			}
 			$sscribe_offset += $sscribe_number;
 		}

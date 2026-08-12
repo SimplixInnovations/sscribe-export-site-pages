@@ -206,13 +206,9 @@ class SScribe_Content_Parser {
 		$logger->debug(
 			'Content parser: parse() called',
 			array(
-				'html_len'     => strlen( $html ),
-				'html_preview' => substr( $html, 0, 200 ),
+				'html_len' => strlen( $html ),
 			)
 		);
-
-		$button_elements = $this->extract_buttons_from_html( $html );
-		$logger->debug( 'Content parser: buttons extracted', array( 'count' => count( $button_elements ) ) );
 
 		$html = $this->normalize_html( $html );
 		$logger->debug( 'Content parser: HTML normalized', array( 'normalized_len' => strlen( $html ) ) );
@@ -222,13 +218,8 @@ class SScribe_Content_Parser {
 			'Content parser: DOM parsed',
 			array(
 				'element_count' => count( $elements ),
-				'button_count'  => count( $button_elements ),
 			)
 		);
-
-		if ( ! empty( $button_elements ) ) {
-			$elements = $this->merge_buttons_into_elements( $elements, $button_elements );
-		}
 
 		return $elements;
 	}
@@ -278,7 +269,19 @@ class SScribe_Content_Parser {
 	 * @return string Cleaned HTML.
 	 */
 	private function strip_all_styles( string $html ): string {
-		return SScribe_Helpers::strip_page_builder_attributes( $html );
+		$html = $this->safe_replace(
+			array(
+				'/\s*style="[^"]*"/i',
+				"/\s*style='[^']*'/i",
+				'/<style[^>]*>.*?<\/style>/is',
+				'/\s*data-(?:elementor|widget|column|section)(?:-[a-z0-9_-]+)?="[^"]*"/i',
+				"/\s*data-(?:elementor|widget|column|section)(?:-[a-z0-9_-]+)?='[^']*'/i",
+			),
+			'',
+			$html
+		);
+
+		return $html;
 	}
 
 	/**
@@ -422,6 +425,13 @@ class SScribe_Content_Parser {
 			case 'a':
 				$href = $node->getAttribute( 'href' );
 				$text = $this->get_text_content( $node );
+				if ( $this->is_button_anchor( $node ) ) {
+					return array(
+						'type'    => 'button',
+						'content' => $text,
+						'url'     => $href,
+					);
+				}
 				return array(
 					'type'    => 'paragraph',
 					'content' => $text,
@@ -600,6 +610,42 @@ class SScribe_Content_Parser {
 	}
 
 	/**
+	 * Determine whether an anchor uses a known page-builder button class.
+	 *
+	 * @param \DOMNode $node Anchor node.
+	 * @return bool True when the anchor represents a button block.
+	 */
+	private function is_button_anchor( \DOMNode $node ): bool {
+		if ( ! $node instanceof \DOMElement ) {
+			return false;
+		}
+
+		$classes = preg_split( '/\s+/', trim( $node->getAttribute( 'class' ) ) );
+		if ( false === $classes ) {
+			return false;
+		}
+
+		$known_classes = array(
+			'wp-block-button__link',
+			'wp-element-button',
+			'elementor-button',
+			'et_pb_button',
+			'fl-button',
+			'vc_btn',
+			'button',
+			'btn',
+		);
+
+		foreach ( $classes as $class_name ) {
+			if ( in_array( strtolower( $class_name ), $known_classes, true ) ) {
+				return true;
+			}
+		}
+
+		return false;
+	}
+
+	/**
 	 * Parse a list element (ul/ol) into structured format.
 	 *
 	 * @param \DOMNode $node  List DOM node.
@@ -771,86 +817,6 @@ class SScribe_Content_Parser {
 			'alt'        => $alt,
 			'local_path' => $local_path,
 		);
-	}
-
-	/**
-	 * Extract button elements from HTML.
-	 *
-	 * @param string $html HTML content.
-	 * @return array Button elements.
-	 */
-	private function extract_buttons_from_html( string $html ): array {
-		$buttons = array();
-
-		$button_keywords    = array(
-			'wp-block-button__link',
-			'wp-element-button',
-			'elementor-button',
-			'et_pb_button',
-			'fl-button',
-			'vc_btn',
-		);
-		$has_button_keyword = false;
-		foreach ( $button_keywords as $keyword ) {
-			if ( false !== strpos( $html, $keyword ) ) {
-				$has_button_keyword = true;
-				break;
-			}
-		}
-		if ( ! $has_button_keyword && false === strpos( $html, 'class="button' ) && false === strpos( $html, "class='button" ) && false === strpos( $html, 'class="btn' ) && false === strpos( $html, "class='btn" ) ) {
-			return $buttons;
-		}
-
-		if ( mb_strlen( $html, '8bit' ) > 500000 ) {
-			$logger = SScribe_Logger::instance( SScribe_Logger::is_logging_enabled() );
-			$logger->warning(
-				'Large HTML content truncated for button extraction : content past 500KB limit skipped',
-				array(
-					'original_length' => mb_strlen( $html, '8bit' ),
-					'truncated_to'    => 500000,
-				)
-			);
-			$html = mb_strcut( $html, 0, 500000, 'UTF-8' );
-		}
-
-		$pattern = '/<a\s+(?:[^>]*?\s)?class=["\']([^"\']*(?:wp-block-button__link|wp-element-button|button|btn|elementor-button|et_pb_button|fl-button|vc_btn)[^"\']*)["\'](?:[^>]*)?>(.*?)<\/a>/is';
-
-		$match_count = preg_match_all( $pattern, $html, $matches, PREG_SET_ORDER );
-		if ( false !== $match_count && $match_count > 0 ) {
-			foreach ( $matches as $match ) {
-				$classes = $match[1];
-
-				$content = html_entity_decode( $match[2], ENT_QUOTES | ENT_HTML5, 'UTF-8' );
-				$content = wp_strip_all_tags( $content );
-				$content = trim( $content );
-
-				$url = '';
-				if ( preg_match( '/href=["\']([^"\']+)/', $match[0], $url_match ) ) {
-					$url = esc_url_raw( $url_match[1] );
-				}
-
-				if ( ! empty( $content ) ) {
-					$buttons[] = array(
-						'type'    => 'button',
-						'content' => $content,
-						'url'     => $url,
-					);
-				}
-			}
-		}
-
-		return $buttons;
-	}
-
-	/**
-	 * Merge button elements into existing elements array.
-	 *
-	 * @param array $elements Existing elements.
-	 * @param array $buttons  Button elements.
-	 * @return array Merged elements.
-	 */
-	private function merge_buttons_into_elements( array $elements, array $buttons ): array {
-		return array_merge( $elements, $buttons );
 	}
 
 	/**

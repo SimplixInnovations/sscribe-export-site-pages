@@ -32,6 +32,34 @@ jobs:
       - name: Verify version synchronization
         run: php scripts/verify-version-sync.php
 
+  frontend-quality:
+    name: JavaScript and CSS Quality
+    runs-on: ubuntu-latest
+    needs: version-check
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: npm
+
+      - name: Install locked development dependencies
+        run: npm ci --ignore-scripts
+
+      - name: Run JavaScript and CSS linters
+        run: npm run lint
+
+      - name: Verify formatting
+        run: npm run format:check
+
+      - name: Audit JavaScript dependencies
+        run: npm audit --audit-level=high
+
   audit:
     name: Security Audit
     runs-on: ubuntu-latest

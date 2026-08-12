@@ -788,6 +788,9 @@ if ( ! function_exists( 'remove_query_arg' ) ) {
 if ( ! function_exists( 'trailingslashit' ) ) {
 	function trailingslashit( $value ): string { return rtrim( (string) $value, '/\\' ) . '/'; }
 }
+if ( ! function_exists( 'wp_normalize_path' ) ) {
+	function wp_normalize_path( $path ): string { return str_replace( '\\', '/', (string) $path ); }
+}
 if ( ! function_exists( 'untrailingslashit' ) ) {
 	function untrailingslashit( $value ): string { return rtrim( (string) $value, '/\\' ); }
 }

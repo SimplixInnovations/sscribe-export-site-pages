@@ -13,6 +13,16 @@ use PHPUnit\Framework\TestCase;
 
 class SScribe_Batch_Processor_Format_Options_Test extends TestCase {
 
+	protected function setUp(): void {
+		parent::setUp();
+		$GLOBALS['sscribe_test_filters'] = array();
+	}
+
+	protected function tearDown(): void {
+		$GLOBALS['sscribe_test_filters'] = array();
+		parent::tearDown();
+	}
+
 	/**
 	 * Non-array input (null, string, scalar) must return an empty array
 	 * rather than erroring or leaking through unfiltered.
@@ -83,29 +93,42 @@ class SScribe_Batch_Processor_Format_Options_Test extends TestCase {
 	 * Keys must be on the FORMAT_OPTION_KEYS allowlist.
 	 */
 	public function test_parse_format_options_handles_array_values(): void {
+		add_filter(
+			'sscribe_format_option_keys',
+			static fn( array $keys ): array => array_merge( $keys, array( 'sscribe_extension_values' ) )
+		);
 		$result = \SScribe_Batch_Processor::parse_format_options(
 			array(
 				// sscribe_docx_colors is a comma-separated colour list,
 				// passed as an array from the admin UI.
-				'sscribe_docx_colors'     => array( 'red', 'blue', '#FF0000' ),
+				'sscribe_extension_values' => array(
 				// sscribe_docx_section_settings is a nested-array option
 				// where each leaf should be sanitized or collapsed.
-				'sscribe_docx_section_settings' => array(
 					array( 'left' => '100pt' ),
 					'normal',
 				),
 			)
 		);
 
-		$this->assertSame(
-			array( 'red', 'blue', '#FF0000' ),
-			$result['sscribe_docx_colors']
-		);
 		// Non-scalar nested → string('') so the structure stays flat.
 		$this->assertSame(
 			array( '', 'normal' ),
-			$result['sscribe_docx_section_settings']
+			$result['sscribe_extension_values']
 		);
+	}
+
+	public function test_parse_format_options_bounds_extension_payloads(): void {
+		add_filter(
+			'sscribe_format_option_keys',
+			static fn( array $keys ): array => array_merge( $keys, array( 'sscribe_extension_values' ) )
+		);
+
+		$result = \SScribe_Batch_Processor::parse_format_options(
+			array( 'sscribe_extension_values' => array_fill( 0, 50, str_repeat( 'x', 1000 ) ) )
+		);
+
+		$this->assertCount( 20, $result['sscribe_extension_values'] );
+		$this->assertSame( 500, strlen( $result['sscribe_extension_values'][0] ) );
 	}
 
 	/**

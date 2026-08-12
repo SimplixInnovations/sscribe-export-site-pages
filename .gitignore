@@ -83,8 +83,7 @@ phpunit.result.xml
 .env.*
 !.env.example
 
-# Package locks (keep composer.lock)
-package-lock.json
+# Alternative JavaScript package-manager lockfiles.
 yarn.lock
 
 # Generated exports (security)
@@ -112,6 +111,7 @@ wordpress-tests-lib/
 .impeccable/
 
 # Audit reports
+.audit/
 AUDIT-REPORT*.md
 AUDIT-*.md
 

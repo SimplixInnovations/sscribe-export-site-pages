@@ -15,12 +15,49 @@ class SScribe_AJAX_Guard_Test extends TestCase {
 
 	protected function setUp(): void {
 		parent::setUp();
-		$_POST['action'] = 'sscribe_test_action';
+		$_POST = array( 'action' => 'sscribe_test_action' );
+		$_GET  = array();
 	}
 
 	protected function tearDown(): void {
-		unset( $_POST['action'] );
+		$_POST = array();
+		$_GET  = array();
 		parent::tearDown();
+	}
+
+	public function test_text_helpers_reject_non_scalar_values_and_bound_output(): void {
+		$_POST['name'] = array( 'unexpected' );
+		$_GET['name']  = '<b>abcdef</b>';
+
+		$this->assertSame( 'fallback', \SScribe_AJAX_Guard::post_text( 'name', 'fallback', 20 ) );
+		$this->assertSame( 'abc', \SScribe_AJAX_Guard::get_text( 'name', '', 3 ) );
+	}
+
+	public function test_integer_helper_validates_defaults_and_bounds(): void {
+		$_POST['valid']   = '250';
+		$_POST['invalid'] = array( '250' );
+
+		$this->assertSame( 100, \SScribe_AJAX_Guard::post_integer( 'valid', 10, 1, 100 ) );
+		$this->assertSame( 10, \SScribe_AJAX_Guard::post_integer( 'invalid', 10, 1, 100 ) );
+		$this->assertSame( 1, \SScribe_AJAX_Guard::post_integer( 'missing', -5, 1, 100 ) );
+	}
+
+	public function test_boolean_helper_rejects_arrays_and_invalid_tokens(): void {
+		$_POST['enabled'] = 'true';
+		$_POST['array']   = array( 'true' );
+		$_POST['invalid'] = 'sometimes';
+
+		$this->assertTrue( \SScribe_AJAX_Guard::post_boolean( 'enabled' ) );
+		$this->assertFalse( \SScribe_AJAX_Guard::post_boolean( 'array' ) );
+		$this->assertTrue( \SScribe_AJAX_Guard::post_boolean( 'invalid', true ) );
+	}
+
+	public function test_array_helper_rejects_scalars_and_limits_items(): void {
+		$_POST['items']  = array( 'one', 'two', 'three' );
+		$_POST['scalar'] = 'one';
+
+		$this->assertSame( array( 'one', 'two' ), \SScribe_AJAX_Guard::post_array( 'items', 2 ) );
+		$this->assertSame( array(), \SScribe_AJAX_Guard::post_array( 'scalar' ) );
 	}
 
 	public function test_success_sends_json_and_throws(): void {

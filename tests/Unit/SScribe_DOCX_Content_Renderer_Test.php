@@ -298,4 +298,24 @@ class SScribe_DOCX_Content_Renderer_Test extends TestCase {
 		$prop = $refl->getProperty( 'colors' );
 		$this->assertEquals( $colors, $prop->getValue( $renderer ) );
 	}
+
+	public function test_sync_config_rejects_invalid_color_values(): void {
+		$renderer = new \SScribe_DOCX_Content_Renderer();
+		$renderer->sync_config(
+			array(
+				'primary' => 'not-a-color',
+				'body'    => 'abcdef',
+			),
+			false,
+			'Arial',
+			11
+		);
+
+		$refl   = new \ReflectionClass( $renderer );
+		$prop   = $refl->getProperty( 'colors' );
+		$colors = $prop->getValue( $renderer );
+
+		$this->assertSame( '4A8263', $colors['primary'] );
+		$this->assertSame( 'ABCDEF', $colors['body'] );
+	}
 }

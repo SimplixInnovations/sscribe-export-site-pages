@@ -23,7 +23,7 @@ SScribe transforms WordPress pages into professional documents for client handov
 
 **Key Features:**
 
-* Batch processing for sites of any size
+* Bounded batch processing for large sites
 * RTL support for Arabic, Farsi, Urdu, and other Arabic-script languages
 * WPML integration with language-specific exports
 * SEO metadata from Yoast, Rank Math, All in One SEO, SEOPress, The SEO Framework
@@ -63,7 +63,7 @@ SScribe works with Elementor, Divi, WPBakery, Beaver Builder, Gutenberg, and Cla
 
 = Are exported files secure? =
 
-Yes. ZIP files are stored in a protected uploads directory and automatically delete after 72 hours. Only logged-in administrators with appropriate capabilities can access exports.
+Yes. ZIP files are stored in a protected uploads directory and automatically delete after 72 hours. Only logged-in users with the plugin's delegated export capability can access their own exports.
 
 = Does SScribe work with WPML? =
 
@@ -73,9 +73,13 @@ Yes. You can export pages by individual language or all languages simultaneously
 
 SScribe uses a session tracking system with crash recovery. If your browser closes during an export, you can resume it from the admin panel without losing progress.
 
-= Does SScribe contact external servers or fetch images? =
+= Does SScribe contact external services or fetch images? =
 
-No. All export processing happens on your own WordPress server. PDF and DOCX exports embed images that are already in your Media Library; no external HTTP requests are made during an export.
+SScribe does not send content to a third-party service. Media Library images are read directly from the local uploads directory. If exported page content references an image on the same WordPress site but outside that directory, SScribe may retrieve it through WordPress's safe HTTP API so it can be embedded. Other hosts are blocked by default; developers can explicitly add trusted image hosts with the `sscribe_allowed_image_hosts` filter.
+
+== Privacy ==
+
+SScribe stores short-lived export sessions, export archives, operational logs, and security audit records on the WordPress site. Export archives expire after 72 hours by default, export logs are periodically cleaned, and session records expire automatically. The plugin registers WordPress personal-data exporter and eraser callbacks for its user-linked records. It does not transmit exported page content to Simplix Innovations or another third-party service.
 
 == License ==
 
@@ -83,40 +87,29 @@ This plugin is free software: you can redistribute it and/or modify it under the
 
 The bundled Amiri font family (assets/fonts/amiri/) is licensed under the SIL Open Font License v1.1, which is compatible with GPL v2. See assets/fonts/amiri/OFL.txt for the full license text.
 
-The bundled PhpOffice/PhpWord library (vendor-prefixed/phpoffice/) is licensed under the GNU Lesser General Public License v3.0 only. LGPL v3 is compatible with GPL v2-or-later: the LGPL permits redistribution of a combined work under GPL terms, and PhpOffice publishes its source under the same terms. The full LGPL v3 text is available at https://www.gnu.org/licenses/lgpl-3.0.html.
+The bundled PhpOffice/PhpWord library (vendor-prefixed/phpoffice/) is licensed under the GNU Lesser General Public License v3.0 only. LGPL v3 is compatible with GPL v2-or-later: the LGPL permits redistribution of a combined work under GPL terms, and PhpOffice publishes its source under the same terms. Its license notice is included as `vendor-prefixed/phpoffice/phpword/COPYING.LESSER.txt`.
 
 The bundled Mpdf library (vendor-prefixed/mpdf/) is licensed under the GNU General Public License v2 only.
 
 == Changelog ==
 
 = 1.1.6 =
-* Security: Content Security Policy now sends a per-request script nonce on the admin export page. The inline-SSR-friendly `unsafe-inline` fallback remains for `script-src` so wp_add_inline_script() keeps working, but the nonce is now generated and emitted so a future reversed-pragma inline-script attack would still be blocked.
-* Performance: debug console assets (CSS + JS) are now gated behind the `sscribe_debug_enabled` option. On a fresh install with debug off, the export page loads ~20-30 KB less JS+CSS per page view. The toggle in the Debug tab still flips the flag; the next page load picks up the assets.
-* Correctness: History tab now reads the export index via `SScribe_Zip_Handler::list_export_entries()` instead of inspecting the raw `sscribe_export_index` option. Single source of truth for the registry; aligns with the rest of the export lifecycle.
-* Diagnostics: preflight now prewarms the prefixed vendor autoloader before the mPDF / PHPWord checks, eliminating a false-positive "library not found" error on the very first preflight AJAX call (which never fired admin_notices and so was the only path to the check). The same prewarm is also called defensively inside `check_mpdf()` and `check_phpword()` so any direct caller resolves the prefixed class.
-* UI: Support tab empty state now shows a custom 96×96 SVG (page-with-checkmark) instead of the generic clipboard icon. Preview and Generate buttons fit at 14px icon size to keep them balanced with the new log-modal icon treatment.
-* JS: inline SVG icon helper (`getIconSvg`) added for the log modal so it does not depend on the PHP-side `get_icon_inline_safe()`. Icons cover `check`, `x`, `file-text`, and `alert` - matching the visual language of the server-rendered UI.
-* Progress bar: 10px tall track with a soft brand aura that pulses during export and switches to a stable success-tinted ring on completion. The fill renders a shimmer + slow-trailing highlight for a flowing effect.
-* Check-mark animation: simplified from a two-stroke ::before+::after tick to a single rotated L-shape with a spring ease on transition. Single-element tick is cleaner and avoids the off-by-one stroke overlap.
-* No regressions on the 730-test suite; PHPCS, PHPStan, ESLint, and stylelint all pass at 0 errors.
+* Hardened archive ownership, download, deletion, cleanup, and index updates against path traversal, symlink, stale-lock, collision, and concurrency failures.
+* Hardened DOCX, PDF, HTML, and Markdown generation against malformed filter data, unsafe temporary paths, oversized input, remote image resolution, and internal error disclosure.
+* Added bounded session, privacy, audit, diagnostics, history, and debug-log reads to prevent unbounded memory use on large or damaged installations.
+* Improved capability separation, personal-data erasure, log redaction, rate limiting, activation checks, and multisite lifecycle handling.
+* Normalized the bundled PHPWord LGPL notice filename and tightened the release builder so development artifacts and unsupported file types cannot enter the distribution ZIP.
+* Refined the export interface, debug console, progress states, and accessibility behavior.
 
 = 1.1.5 =
-* JS lint clean: wrapped the SSCRIBE_DEBUG-gated diagnostic-emission block in `/* eslint-disable no-console */` so `npm run lint` passes with 0 errors (no-console / no-empty), eliminating the WP.org-reviewer-flagged dev artifact class.
-* CSS audit fixes: dedup'd the post-type / status / format / lang selector group (merged into the single rule), replaced the deprecated `word-break: break-word` with `overflow-wrap: anywhere`, shortened `#000000` → `#000`, and added the empty-line-before-comment separators the linter requires.
-* Removed the production `console.warn('[SSCRIBE] AJAX error suppressed...')` line that fired in production builds - the SSCRIBE_DEBUG gate is now silent in production, no console noise at all when debug is off.
-* No PHP or behavior changes; all 730 tests still pass.
+* Removed production console noise and refined interface styling and compatibility.
 
 = 1.1.4 =
-* Fixed pagination truncation: replaced `max_num_pages`-based exit with count-based exit in `SScribe_Page_Collector::get_page_ids_chunked()` so the final chunk is not silently dropped when running with `no_found_rows => true` (which forces `max_num_pages` to 0).
-* Hardened `SScribe_Filesystem::move()` against symlink attacks: the native `rename()` path now rejects sources that resolve outside the SScribe export directory, matching the destination-side guard.
-* Moved `random_bytes()` inside the try block in `SScribe_Zip_Handler::assemble()` so the cleanup path remains reachable on entropy-exhaustion failures.
-* Verified `parse_format_options()` preserves all three Markdown keys (`absolute_urls`, `include_featured_image`, `include_frontmatter`) under the format-options allowlist, with a regression test.
-* Verified `sscribe_export_options_{$format}` filter remains the canonical extension point for per-format options.
-* WP.org submission polish: removed `Network:` header (rejected by plugin-check), removed `Update URI:` header (no custom updaters on WP.org-hosted plugins), preserved bundled Amiri OFL and PhpOffice LGPL-3.0 / Mpdf GPL-2.0 license attributions.
-* No UI changes; v3 component library and tokens from 1.1.3 unchanged.
+* Fixed final-page truncation on large sites and hardened temporary-file and ZIP cleanup paths.
+* Preserved Markdown option wiring and third-party license attribution.
 
 = 1.1.3 =
-Full v3 component library: buttons, inputs, modals, tables, chips, badges, code, kbd, tooltips, dark-mode WCAG AA, and unified focus rings. UI-only, no PHP/JS changes.
+* Refined controls, tables, dialogs, dark mode, high contrast, and keyboard focus states.
 
 = 1.1.2 =
 * Fixed latent PDF export crash: WordPress themes ship base CSS with `font-family: serif`; mPDF's chain resolution tried to load pruned DejaVu*Condensed / FreeSans / Sun-ExtA TTFs and crashed. fonttrans remap and fontdata overrides close the CSS-keyword, fontdata-entry, and backup-substitution paths on the same crash class.
@@ -140,39 +133,10 @@ Full v3 component library: buttons, inputs, modals, tables, chips, badges, code,
 * Memory monitoring and timeout protection
 * GDPR-compliant audit trail with HMAC-SHA256 hashed IP addresses
 
-== Installation from GitHub Release ZIP ==
-
-If you downloaded the plugin from the GitHub Releases page, the ZIP already contains a pre-built `vendor-prefixed/` directory with the namespaced PhpWord and mPDF libraries. No additional build step is required : just upload and activate.
-
-If you cloned the repository directly, you must run the following once before activating the plugin:
-
-    composer install
-    composer vendor:prefix
-
-This generates the `vendor-prefixed/` directory and the namespaced runtime shim that the plugin depends on. The `.distignore` file excludes both `vendor/` and `vendor-prefixed/` from Git tracking, so a fresh clone will not include them.
-
 == Upgrade Notice ==
 
 = 1.1.6 =
-Recommended update: adds a per-request CSP nonce to the admin export page, gates the debug console assets behind the sscribe_debug_enabled option (saves ~20-30 KB on every page load when debug is off), reads the history tab via SScribe_Zip_Handler::list_export_entries() instead of the raw option, and prewarms the prefixed vendor autoloader in diagnostics to eliminate a false-positive on first preflight. UI polish: custom 96×96 SVG empty state for the Support tab, inline SVG icon helper for the log modal, 10px progress bar with brand aura, and a single-stroke check-mark animation. No regressions on the 730-test suite.
-
-= 1.1.5 =
-Recommended update: ships the JS lint cleanup (`npm run lint` now passes 0 errors), production console-silence for the AJAX-error diagnostic, and CSS modernization for the WP.org reviewer review pass. No behavior changes; no PHP changes.
-
-= 1.1.4 =
-Recommended update: fixes a silent pagination truncation in the chunked page-ID loader (could drop the final chunk on large sites), tightens the Filesystem::move() source-path guard against symlink attacks, and ships the WP.org submission polish (no UI changes).
-
-= 1.1.3 =
-Full v3 component library (button, input, table, breadcrumb, modal, toast, switch, segmented, chip, badge, code, kbd, empty-state), semantic tokens, dark-mode WCAG AA, unified focus rings across 14 control families. UI-only, no PHP/JS changes.
-
-= 1.1.2 =
-Recommended update: closes a latent PDF crash that affected pages with standard theme CSS. Exports now render successfully for English/Arabic content; out-of-coverage chars render as ? tofu but no longer crash.
-
-= 1.1.1 =
-Maintenance release: batch processing reliability improvements, crash recovery for interrupted exports, RTL formatting enhancements, and AJAX/security hardening.
-
-= 1.0.0 =
-Initial release. Export WordPress pages to DOCX, PDF, HTML, or Markdown with full multilingual RTL support, SEO metadata integration, and secure ZIP downloads.
+Recommended update: comprehensive security, reliability, privacy, packaging, and exporter hardening for the WordPress.org release.
 
 == Filters ==
 
@@ -197,7 +161,7 @@ Force enable or disable chunked page ID loading for sites with very large number
 Parameters: `(bool)` - Default: null (auto-detect based on page count)
 
 = `sscribe_export_options_{$format}` =
-Fires inside `SScribe_Batch_Processor::dispatch_formats()` for each selected format (`pdf`, `docx`, `markdown`, `html`). Receives the per-format options collected from the admin UI and returns the (possibly modified) options map the exporter should use. This is the supported extension point for adding new per-format options. See `docs/extension-points.md` for a full example and the full list of option keys.
+Fires inside `SScribe_Batch_Processor::dispatch_formats()` for each selected format (`pdf`, `docx`, `markdown`, `html`). Receives the per-format options collected from the admin UI and returns the (possibly modified) options map the exporter should use.
 
 Parameters: `(array $format_options, int $page_id, string $session_id)`
 

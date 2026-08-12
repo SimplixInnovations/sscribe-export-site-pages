@@ -18,7 +18,121 @@ if ( ! defined( 'ABSPATH' ) ) {
  */
 class SScribe_AJAX_Guard {
 
-	private const LOG_PREVIEW_MAX = 2000;
+	/**
+	 * Read and sanitize a scalar POST value.
+	 *
+	 * @param string $key        Request key.
+	 * @param string $default    Default value.
+	 * @param int    $max_length Maximum returned byte length.
+	 * @return string Sanitized request value.
+	 */
+	public static function post_text( string $key, string $default = '', int $max_length = 200 ): string {
+		// phpcs:ignore WordPress.Security.NonceVerification.Missing, WordPress.Security.ValidatedSanitizedInput.InputNotSanitized -- Sanitized after scalar validation below.
+		$value = isset( $_POST[ $key ] ) ? wp_unslash( $_POST[ $key ] ) : null;
+
+		return self::sanitize_request_text( $value, $default, $max_length );
+	}
+
+	/**
+	 * Read and sanitize a scalar GET value.
+	 *
+	 * @param string $key        Request key.
+	 * @param string $default    Default value.
+	 * @param int    $max_length Maximum returned byte length.
+	 * @return string Sanitized request value.
+	 */
+	public static function get_text( string $key, string $default = '', int $max_length = 200 ): string {
+		// phpcs:ignore WordPress.Security.NonceVerification.Recommended, WordPress.Security.ValidatedSanitizedInput.InputNotSanitized -- Sanitized after scalar validation below.
+		$value = isset( $_GET[ $key ] ) ? wp_unslash( $_GET[ $key ] ) : null;
+
+		return self::sanitize_request_text( $value, $default, $max_length );
+	}
+
+	/**
+	 * Read a bounded integer POST value.
+	 *
+	 * @param string $key     Request key.
+	 * @param int    $default Default value.
+	 * @param int    $minimum Minimum accepted value.
+	 * @param int    $maximum Maximum accepted value.
+	 * @return int Validated integer.
+	 */
+	public static function post_integer(
+		string $key,
+		int $default = 0,
+		int $minimum = 0,
+		int $maximum = PHP_INT_MAX
+	): int {
+		// phpcs:ignore WordPress.Security.NonceVerification.Missing, WordPress.Security.ValidatedSanitizedInput.InputNotSanitized -- Validated as an integer below.
+		$value = isset( $_POST[ $key ] ) ? wp_unslash( $_POST[ $key ] ) : null;
+		if ( ! is_scalar( $value ) || is_bool( $value ) ) {
+			return min( $maximum, max( $minimum, $default ) );
+		}
+
+		$validated = filter_var( (string) $value, FILTER_VALIDATE_INT );
+		if ( false === $validated ) {
+			return min( $maximum, max( $minimum, $default ) );
+		}
+
+		return min( $maximum, max( $minimum, $validated ) );
+	}
+
+	/**
+	 * Read a boolean POST value.
+	 *
+	 * @param string $key     Request key.
+	 * @param bool   $default Default value for missing or malformed input.
+	 * @return bool Validated boolean.
+	 */
+	public static function post_boolean( string $key, bool $default = false ): bool {
+		// phpcs:ignore WordPress.Security.NonceVerification.Missing, WordPress.Security.ValidatedSanitizedInput.InputNotSanitized -- Validated as a boolean below.
+		$value = isset( $_POST[ $key ] ) ? wp_unslash( $_POST[ $key ] ) : null;
+		if ( ! is_scalar( $value ) || is_bool( $value ) ) {
+			return $default;
+		}
+
+		$validated = filter_var( (string) $value, FILTER_VALIDATE_BOOLEAN, FILTER_NULL_ON_FAILURE );
+
+		return is_bool( $validated ) ? $validated : $default;
+	}
+
+	/**
+	 * Read an array POST value with an item-count bound.
+	 *
+	 * Values remain untrusted; callers must validate and sanitize each element
+	 * for its specific destination.
+	 *
+	 * @param string $key       Request key.
+	 * @param int    $max_items Maximum top-level item count.
+	 * @return array Unslashed request array or an empty array.
+	 */
+	public static function post_array( string $key, int $max_items = 100 ): array {
+		// phpcs:ignore WordPress.Security.NonceVerification.Missing, WordPress.Security.ValidatedSanitizedInput.InputNotSanitized -- Elements are intentionally validated by the destination-specific caller.
+		$value = isset( $_POST[ $key ] ) ? wp_unslash( $_POST[ $key ] ) : null;
+		if ( ! is_array( $value ) ) {
+			return array();
+		}
+
+		return array_slice( $value, 0, max( 0, $max_items ), true );
+	}
+
+	/**
+	 * Sanitize a request value without accepting arrays or objects.
+	 *
+	 * @param mixed  $value      Request value.
+	 * @param string $default    Default value.
+	 * @param int    $max_length Maximum returned byte length.
+	 * @return string Sanitized value.
+	 */
+	private static function sanitize_request_text( mixed $value, string $default, int $max_length ): string {
+		if ( ! is_scalar( $value ) || is_bool( $value ) ) {
+			return $default;
+		}
+
+		$sanitized = sanitize_text_field( (string) $value );
+
+		return substr( $sanitized, 0, max( 0, $max_length ) );
+	}
 
 	/**
 	 * Send a successful JSON response and terminate.
@@ -32,12 +146,8 @@ class SScribe_AJAX_Guard {
 		self::sanitise_environment();
 		self::log_cleaned_buffers( 'success' );
 
-		if ( defined( 'SSCRIBE_DEBUG' ) && SSCRIBE_DEBUG && ( is_array( $data ) || is_object( $data ) ) ) {
-			if ( is_array( $data ) ) {
-				$data['_debug'] = self::build_diagnostics( $context );
-			} elseif ( is_object( $data ) ) {
-				$data->_debug = self::build_diagnostics( $context );
-			}
+		if ( defined( 'SSCRIBE_DEBUG' ) && SSCRIBE_DEBUG && current_user_can( 'manage_options' ) && is_array( $data ) ) {
+			$data['_debug'] = self::build_diagnostics( $context );
 		}
 
 		wp_send_json_success( $data, $status_code );
@@ -56,14 +166,12 @@ class SScribe_AJAX_Guard {
 		self::sanitise_environment();
 		self::log_cleaned_buffers( 'error' );
 
-		if ( defined( 'SSCRIBE_DEBUG' ) && SSCRIBE_DEBUG ) {
+		if ( defined( 'SSCRIBE_DEBUG' ) && SSCRIBE_DEBUG && current_user_can( 'manage_options' ) ) {
 			$diagnostics = self::build_diagnostics( $context );
 
 			if ( is_array( $data ) ) {
 				$data['_diagnostics'] = $diagnostics;
-			} elseif ( is_object( $data ) ) {
-				$data->_diagnostics = $diagnostics;
-			} else {
+			} elseif ( ! is_object( $data ) ) {
 				$data = array(
 					'message'      => (string) $data,
 					'_diagnostics' => $diagnostics,
@@ -79,8 +187,6 @@ class SScribe_AJAX_Guard {
 	 * Sanitize PHP environment for AJAX responses.
 	 */
 	private static function sanitise_environment(): void {
-		// phpcs:ignore WordPress.PHP.IniSet.Risky
-
 		self::disable_if_possible( 'display_errors', '0' );
 	}
 
@@ -109,25 +215,21 @@ class SScribe_AJAX_Guard {
 	 * @param string $type Response type (success or error).
 	 */
 	private static function log_cleaned_buffers( string $type ): void {
-		$start_level = ob_get_level();
-		$extraneous  = '';
-
-		while ( ob_get_level() > 0 ) {
-			$content    = ob_get_clean();
-			$extraneous = ( false !== $content ? $content : '' ) . "\n" . $extraneous;
-		}
-
-		$extraneous = trim( $extraneous );
-
-		while ( ob_get_level() < $start_level ) {
-			ob_start();
+		$buffer_level = ob_get_level();
+		$extraneous   = '';
+		if ( $buffer_level > 0 ) {
+			$content = ob_get_contents();
+			if ( false !== $content ) {
+				$extraneous = trim( $content );
+			}
+			ob_clean();
 		}
 
 		if ( defined( 'WP_TESTS_DOMAIN' ) || defined( 'SSCRIBE_TESTING' ) ) {
 			return;
 		}
 
-		if ( '' === $extraneous && 0 === $start_level ) {
+		if ( '' === $extraneous && 0 === $buffer_level ) {
 			return;
 		}
 
@@ -141,33 +243,12 @@ class SScribe_AJAX_Guard {
 					$action,
 					$type,
 					$length,
-					$start_level,
+					$buffer_level,
 					PHP_VERSION,
 					self::format_bytes( memory_get_usage( true ) ),
 					gmdate( 'Y-m-d\TH:i:s\Z' )
 				)
 			);
-
-			if ( $length > 0 ) {
-				$preview = substr( $extraneous, 0, self::LOG_PREVIEW_MAX );
-				// phpcs:ignore WordPress.PHP.DevelopmentFunctions.error_log_error_log
-				error_log(
-					sprintf(
-						"[SSCRIBE][AJAX_BUFFER] ───── Extraneous content (%d bytes) ─────\n%s\n───── End extraneous content ─────",
-						$length,
-						$preview
-					)
-				);
-			}
-
-			if ( $length > self::LOG_PREVIEW_MAX ) {
-				error_log( // phpcs:ignore WordPress.PHP.DevelopmentFunctions.error_log_error_log
-					sprintf(
-						'[SSCRIBE][AJAX_BUFFER] Truncated %d excess bytes. Set SSCRIBE_AJAX_LOG_MAX to increase the preview limit.',
-						$length - self::LOG_PREVIEW_MAX
-					)
-				);
-			}
 		}
 	}
 
@@ -180,10 +261,10 @@ class SScribe_AJAX_Guard {
 		// phpcs:disable WordPress.Security.NonceVerification.Recommended, WordPress.Security.NonceVerification.Missing
 
 		if ( isset( $_POST['action'] ) && is_string( $_POST['action'] ) ) {
-			return sanitize_key( $_POST['action'] );
+			return sanitize_key( wp_unslash( $_POST['action'] ) );
 		}
 		if ( isset( $_GET['action'] ) && is_string( $_GET['action'] ) ) {
-			return sanitize_key( $_GET['action'] );
+			return sanitize_key( wp_unslash( $_GET['action'] ) );
 		}
 
 		// phpcs:enable WordPress.Security.NonceVerification.Recommended, WordPress.Security.NonceVerification.Missing
@@ -198,10 +279,11 @@ class SScribe_AJAX_Guard {
 	 * @return array Diagnostics data.
 	 */
 	private static function build_diagnostics( array $context = array() ): array {
+		$memory_limit = ini_get( 'memory_limit' );
 		$diag = array(
 			'php_version'  => PHP_VERSION,
 			'memory_usage' => self::format_bytes( memory_get_usage( true ) ),
-			'memory_limit' => ini_get( 'memory_limit' ) ? ini_get( 'memory_limit' ) : 'unlimited',
+			'memory_limit' => false !== $memory_limit && '' !== $memory_limit ? $memory_limit : 'unlimited',
 			'request_time' => gmdate( 'Y-m-d\TH:i:s\Z' ),
 			'action'       => self::resolve_action_name(),
 		);

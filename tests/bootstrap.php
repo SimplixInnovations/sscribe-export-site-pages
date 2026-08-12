@@ -1011,6 +1011,11 @@ $sscribe_test_ajax_nonce_valid = true;
 			return array();
 		}
 
+		public function get_row( $query = null, $output = null, $y = 0 ) {
+			unset( $query, $output, $y );
+			return null;
+		}
+
 		public function insert( $table, $data, $format = null ) {
 			global $sscribe_test_db_tables;
 
@@ -1609,7 +1614,6 @@ if ( ! function_exists( 'wp_count_posts' ) ) {
 
 if ( file_exists( SSCRIBE_PLUGIN_DIR . 'vendor-prefixed/autoload.php' ) ) {
 	require_once SSCRIBE_PLUGIN_DIR . 'vendor-prefixed/autoload.php';
-	require_once SSCRIBE_PLUGIN_DIR . 'includes/sscribe-prefixed-runtime-shim.php';
 } elseif ( file_exists( SSCRIBE_PLUGIN_DIR . 'vendor/autoload.php' ) ) {
 	require_once SSCRIBE_PLUGIN_DIR . 'vendor/autoload.php';
 	if ( file_exists( SSCRIBE_PLUGIN_DIR . 'includes/sscribe-vendor-compat.php' ) ) {

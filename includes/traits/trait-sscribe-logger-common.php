@@ -69,6 +69,61 @@ trait SScribe_Logger_Common {
 	}
 
 	/**
+	 * Recursively redact credentials before context reaches any log sink.
+	 *
+	 * @param array $context Context data.
+	 * @param int   $depth   Current recursion depth.
+	 * @return array Redacted context.
+	 */
+	protected function sanitize_log_context( array $context, int $depth = 0 ): array {
+		if ( $depth >= 5 ) {
+			return array( '_truncated' => true );
+		}
+		$context = array_slice( $context, 0, 100, true );
+
+		$sensitive_parts = array(
+			'password',
+			'passwd',
+			'token',
+			'secret',
+			'api_key',
+			'apikey',
+			'authorization',
+			'credential',
+			'private_key',
+			'nonce',
+			'bearer',
+		);
+
+		foreach ( $context as $key => $value ) {
+			$key_text  = (string) $key;
+			$sensitive = false;
+			foreach ( $sensitive_parts as $part ) {
+				if ( false !== stripos( $key_text, $part ) ) {
+					$sensitive = true;
+					break;
+				}
+			}
+
+			if ( $sensitive ) {
+				$context[ $key ] = '[REDACTED]';
+			} elseif ( is_array( $value ) ) {
+				$context[ $key ] = $this->sanitize_log_context( $value, $depth + 1 );
+			} elseif ( is_object( $value ) ) {
+				$context[ $key ] = $this->sanitize_log_context( get_object_vars( $value ), $depth + 1 );
+			} elseif ( is_resource( $value ) ) {
+				$context[ $key ] = '[RESOURCE]';
+			} elseif ( is_string( $value ) && str_starts_with( $value, 'eyJ' ) && substr_count( $value, '.' ) >= 2 ) {
+				$context[ $key ] = '[REDACTED]';
+			} elseif ( is_string( $value ) ) {
+				$context[ $key ] = mb_substr( $value, 0, 2000 );
+			}
+		}
+
+		return $context;
+	}
+
+	/**
 	 * Set the current session ID for log correlation.
 	 *
 	 * Shared across all logger implementations : the property is
@@ -77,7 +132,19 @@ trait SScribe_Logger_Common {
 	 * @param string $session_id Unique session identifier.
 	 */
 	public function set_session_id( string $session_id ): void {
-		$this->session_id = $session_id;
+		$this->session_id = 1 === preg_match( '/^[a-f0-9]{16}$/D', $session_id ) ? $session_id : null;
+	}
+
+	/**
+	 * Normalize a message to one bounded log line.
+	 *
+	 * @param string $message Raw message.
+	 * @return string Safe log message.
+	 */
+	protected function sanitize_log_message( string $message ): string {
+		$message = wp_strip_all_tags( $message, true );
+		$message = preg_replace( '/[\x00-\x1F\x7F]+/u', ' ', $message ) ?? '';
+		return mb_substr( trim( $message ), 0, 4000 );
 	}
 
 	/**

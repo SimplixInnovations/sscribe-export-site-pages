@@ -553,30 +553,16 @@ final class SScribe_Batch_Processor {
 	 * @var array<int, string>
 	 */
 	public const FORMAT_OPTION_KEYS = array(
-		'sscribe_docx_append_image_url',
-		'sscribe_docx_colors',
 		'sscribe_docx_include_images',
 		'sscribe_docx_include_toc',
-		'sscribe_docx_section_settings',
 		'sscribe_docx_template',
-		'sscribe_html_export_show_seo',
 		'sscribe_html_include_css',
 		'sscribe_html_responsive_images',
-		// Markdown format_options consumed by SScribe_Markdown_Exporter
-		// via get_format_option(); absence here caused the WordPress.org
-		// allowlist gate (introduced for WP.org review feedback) to
-		// silently strip them at parse_format_options() time, breaking
-		// the "Include frontmatter", "Include featured image", and
-		// "Use absolute URLs" admin checkboxes (admin UI sends the
-		// keys; the allowlist dropped them before they reached the
-		// exporter, so the defaults always won).
 		'sscribe_md_absolute_urls',
 		'sscribe_md_include_featured_image',
 		'sscribe_md_include_frontmatter',
 		'sscribe_pdf_include_images',
 		'sscribe_pdf_include_page_numbers',
-		'sscribe_pdf_max_content_images',
-		'sscribe_pdf_max_html_size',
 		'sscribe_pdf_page_size',
 	);
 
@@ -608,9 +594,22 @@ final class SScribe_Batch_Processor {
 		 * @param array<int, string> $allowed_keys Default allowlist.
 		 */
 		$allowed_keys = apply_filters( 'sscribe_format_option_keys', self::FORMAT_OPTION_KEYS );
+		if ( ! is_array( $allowed_keys ) ) {
+			$allowed_keys = self::FORMAT_OPTION_KEYS;
+		}
+		$allowed_keys = array_values(
+			array_unique(
+				array_filter(
+					array_map(
+						static fn( $key ): string => is_scalar( $key ) ? sanitize_key( (string) $key ) : '',
+						array_slice( $allowed_keys, 0, 100 )
+					)
+				)
+			)
+		);
 
 		$cleaned = array();
-		foreach ( $raw as $sscribe_opt_name => $sscribe_opt_value ) {
+		foreach ( array_slice( $raw, 0, 100, true ) as $sscribe_opt_name => $sscribe_opt_value ) {
 			$sscribe_opt_name = sanitize_key( (string) $sscribe_opt_name );
 			if ( '' === $sscribe_opt_name ) {
 				continue;
@@ -624,14 +623,14 @@ final class SScribe_Batch_Processor {
 						if ( ! is_scalar( $sscribe_v ) ) {
 							return '';
 						}
-						return sanitize_text_field( (string) $sscribe_v );
+						return mb_substr( sanitize_text_field( (string) $sscribe_v ), 0, 500 );
 					},
-					$sscribe_opt_value
+					array_slice( $sscribe_opt_value, 0, 20 )
 				);
 			} elseif ( ! is_scalar( $sscribe_opt_value ) ) {
 				$sscribe_opt_value = '';
 			} else {
-				$sscribe_opt_value = sanitize_text_field( (string) $sscribe_opt_value );
+				$sscribe_opt_value = mb_substr( sanitize_text_field( (string) $sscribe_opt_value ), 0, 500 );
 			}
 			$cleaned[ $sscribe_opt_name ] = $sscribe_opt_value;
 		}
@@ -752,7 +751,7 @@ final class SScribe_Batch_Processor {
 	 *                      own continuation steps: a 1000-page export that
 	 *                      issues 200 batch calls should not also count
 	 *                      against the 200/min "start a new export" budget.
-	 * @return bool True if rate limit check passes.
+	 * @return bool True when allowed; false when limited or unavailable.
 	 */
 	private function check_rate_limit( string $bucket = 'export' ): bool {
 		return $this->get_rate_limiter()->check_rate_limit( $this->get_required_capability(), $bucket );
@@ -968,16 +967,24 @@ final class SScribe_Batch_Processor {
 		$this->audit_log( 'export_started' );
 		$this->logger->debug( '=== START EXPORT ===' );
 
-		$language    = isset( $_POST['language'] ) ? sanitize_text_field( wp_unslash( $_POST['language'] ) ) : '';
-		$post_status = isset( $_POST['post_status'] ) ? sanitize_text_field( wp_unslash( $_POST['post_status'] ) ) : 'publish';
+		$requested_language = SScribe_AJAX_Guard::post_text( 'language', '', 100 );
+		$language           = $this->collector->normalize_language_code( $requested_language );
+		if ( '' !== $requested_language && '' === $language ) {
+			SScribe_AJAX_Guard::error( array( 'message' => __( 'Invalid or inactive language.', 'sscribe-export-site-pages' ) ), 400 );
+		}
+		$post_status = SScribe_AJAX_Guard::post_text( 'post_status', 'publish', 30 );
 
 		$allowed_statuses = array( 'publish', 'private', 'draft', 'pending', 'future' );
 		if ( ! in_array( $post_status, $allowed_statuses, true ) ) {
 			$post_status = 'publish';
 		}
-		// phpcs:ignore WordPress.Security.ValidatedSanitizedInput.InputNotSanitized -- Sanitization via array_map on next line.
-		$formats_raw   = isset( $_POST['formats'] ) ? wp_unslash( (array) $_POST['formats'] ) : array();
-		$formats_input = array_map( 'sanitize_text_field', $formats_raw );
+		$formats_raw   = SScribe_AJAX_Guard::post_array( 'formats', 10 );
+		$formats_input = array();
+		foreach ( $formats_raw as $format_input ) {
+			if ( is_scalar( $format_input ) && ! is_bool( $format_input ) ) {
+				$formats_input[] = sanitize_key( (string) $format_input );
+			}
+		}
 		$formats       = ! empty( $formats_input ) ? $formats_input : self::DEFAULT_FORMATS;
 		if ( empty( $formats_input ) ) {
 			$this->logger->debug(
@@ -1006,15 +1013,10 @@ final class SScribe_Batch_Processor {
 			$formats = self::DEFAULT_FORMATS;
 		}
 
-		$post_type        = isset( $_POST['post_type'] ) ? sanitize_text_field( wp_unslash( $_POST['post_type'] ) ) : 'page';
+		$post_type = SScribe_AJAX_Guard::post_text( 'post_type', 'page', 30 );
 
-		// Sanitization: keys -> sanitize_key(), values -> sanitize_text_field(), allowed keys -> FORMAT_OPTION_KEYS allowlist; all enforced inside parse_format_options() (line 599+). Rejecting the phpcs warning at this layer is correct because the parser is the single point of validation; placing the ignores above would scatter them and increase the chance of a regression.
-		// phpcs:ignore WordPress.Security.ValidatedSanitizedInput.InputNotSanitized -- Sanitization is enforced downstream in parse_format_options(); keys are normalized via sanitize_key() and gated by the FORMAT_OPTION_KEYS allowlist before any value is stored or dispatched to the exporter.
-		$format_options = self::parse_format_options( wp_unslash( $_POST['format_options'] ?? array() ) );
-		$valid_post_types = array_values( get_post_types( array( 'public' => true ) ) );
-		$valid_post_types = array_merge( $valid_post_types, array( 'any' ) );
-
-		$valid_post_types = array_values( array_diff( $valid_post_types, array( 'attachment' ) ) );
+		$format_options = self::parse_format_options( SScribe_AJAX_Guard::post_array( 'format_options', 100 ) );
+		$valid_post_types = array( 'page', 'post', 'any' );
 		if ( ! in_array( $post_type, $valid_post_types, true ) ) {
 			SScribe_AJAX_Guard::error(
 				array(
@@ -1105,7 +1107,6 @@ final class SScribe_Batch_Processor {
 				'Failed to create temp directory',
 				array(
 					'exception' => $e->getMessage(),
-					'trace'     => $e->getTraceAsString(),
 				)
 			);
 			SScribe_AJAX_Guard::error(
@@ -1135,8 +1136,6 @@ final class SScribe_Batch_Processor {
 			)
 		);
 
-		$this->session->set_page_ids( $session_id, $page_ids );
-
 		$this->logger->debug(
 			'Session created',
 			array(
@@ -1156,6 +1155,18 @@ final class SScribe_Batch_Processor {
 				array(
 					'message' => __( 'Failed to create export session. Please try again.', 'sscribe-export-site-pages' ),
 				),
+				500
+			);
+		}
+
+		if ( ! $this->session->set_page_ids( $session_id, $page_ids ) ) {
+			$this->session->delete( $session_id );
+			if ( ! empty( $temp_dir ) && is_dir( $temp_dir ) ) {
+				$this->zip_handler->delete_directory( $temp_dir );
+				self::$cleanup_temp_dir = null;
+			}
+			SScribe_AJAX_Guard::error(
+				array( 'message' => __( 'Failed to store the export page list. Please try again.', 'sscribe-export-site-pages' ) ),
 				500
 			);
 		}
@@ -1251,7 +1262,7 @@ final class SScribe_Batch_Processor {
 	 * Run health check diagnostics via AJAX.
 	 */
 	public function ajax_health_check(): void {
-		$this->get_query_controller()->ajax_health_check( $this->get_required_capability() );
+		$this->get_query_controller()->ajax_health_check();
 	}
 
 	/**
@@ -1336,7 +1347,7 @@ final class SScribe_Batch_Processor {
 	 * Get support information via AJAX.
 	 */
 	public function ajax_get_support_info(): void {
-		$this->get_query_controller()->ajax_get_support_info( $this->get_required_capability() );
+		$this->get_query_controller()->ajax_get_support_info( SScribe_Capabilities::get_health_required() );
 	}
 
 	/**

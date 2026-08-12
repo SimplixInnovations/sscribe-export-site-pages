@@ -1,513 +1,513 @@
 .sscribe-debug-master {
-  max-width: 1200px;
-  margin: 0;
-  padding: 0;
+	max-width: 1200px;
+	margin: 0;
+	padding: 0;
 }
 
 @media (prefers-color-scheme: dark) {
-  .sscribe-debug-master h2,
-  .sscribe-debug-master h3,
-  .sscribe-debug-master h4 {
-	color: var(--ss-text-primary, #fafafa);
-  }
+	.sscribe-debug-master h2,
+	.sscribe-debug-master h3,
+	.sscribe-debug-master h4 {
+		color: var(--ss-text-primary, #fafafa);
+	}
 }
 
 .sscribe-debug-wp-debug-notice {
-  display: flex;
-  align-items: center;
-  gap: var(--ss-space-2);
-  padding: var(--ss-space-3) var(--ss-space-5);
-  background: var(--ss-warning-bg);
-  border: 1px solid var(--ss-warning-border);
-  border-left: 3px solid var(--ss-warning);
-  border-radius: var(--ss-radius-md);
-  margin-bottom: var(--ss-space-5);
-  color: var(--ss-warning);
-  font-size: 13px;
-  font-weight: 600;
+	display: flex;
+	align-items: center;
+	gap: var(--ss-space-2);
+	padding: var(--ss-space-3) var(--ss-space-5);
+	background: var(--ss-warning-bg);
+	border: 1px solid var(--ss-warning-border);
+	border-left: 3px solid var(--ss-warning);
+	border-radius: var(--ss-radius-md);
+	margin-bottom: var(--ss-space-5);
+	color: var(--ss-warning);
+	font-size: 13px;
+	font-weight: 600;
 }
 
 .sscribe-debug-wp-debug-notice svg {
-  flex-shrink: 0;
-  color: var(--ss-warning);
+	flex-shrink: 0;
+	color: var(--ss-warning);
 }
 
 .sscribe-debug-header {
-  margin-bottom: var(--ss-space-7);
+	margin-bottom: var(--ss-space-7);
 }
 
 .sscribe-debug-title-row {
-  display: flex;
-  align-items: center;
-  gap: var(--ss-space-3);
+	display: flex;
+	align-items: center;
+	gap: var(--ss-space-3);
 }
 
 .sscribe-debug-title-row h2 {
-  margin: 0;
-  font-size: 22px;
-  font-weight: 700;
-  font-family: var(--ss-font);
-  letter-spacing: -0.025em;
-  color: var(--ss-text-primary);
-  line-height: 1.3;
+	margin: 0;
+	font-size: 22px;
+	font-weight: 700;
+	font-family: var(--ss-font);
+	letter-spacing: -0.025em;
+	color: var(--ss-text-primary);
+	line-height: 1.3;
 }
 
 .sscribe-debug-description {
-  margin: var(--ss-space-2) 0 0;
-  color: var(--ss-text-secondary);
-  font-size: 14px;
-  line-height: 1.55;
-  max-width: 640px;
+	margin: var(--ss-space-2) 0 0;
+	color: var(--ss-text-secondary);
+	font-size: 14px;
+	line-height: 1.55;
+	max-width: 640px;
 }
 
 .sscribe-debug-help-btn {
-  width: 40px;
-  height: 40px;
-  border-radius: var(--ss-radius-full);
-  border: 1px solid var(--ss-border);
-  background: var(--ss-bg);
-  cursor: pointer;
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  color: var(--ss-brand);
-  font-weight: 700;
-  font-size: 14px;
+	width: 40px;
+	height: 40px;
+	border-radius: var(--ss-radius-full);
+	border: 1px solid var(--ss-border);
+	background: var(--ss-bg);
+	cursor: pointer;
+	display: inline-flex;
+	align-items: center;
+	justify-content: center;
+	color: var(--ss-brand);
+	font-weight: 700;
+	font-size: 14px;
 }
 
 .sscribe-debug-help-btn:hover {
-  border-color: var(--ss-brand);
-  background: var(--ss-brand-tint);
-  color: var(--ss-brand-hover);
+	border-color: var(--ss-brand);
+	background: var(--ss-brand-tint);
+	color: var(--ss-brand-hover);
 }
 
 .sscribe-debug-help-btn:focus-visible {
-  outline: 2px solid var(--ss-brand);
-  outline-offset: 2px;
+	outline: 2px solid var(--ss-brand);
+	outline-offset: 2px;
 }
 
 .sscribe-debug-settings-card,
 .sscribe-debug-controls-card {
-  background: var(--ss-surface);
-  border: 1px solid var(--ss-border);
-  border-radius: var(--ss-radius-lg);
-  padding: var(--ss-space-5);
-  margin-bottom: var(--ss-space-5);
+	background: var(--ss-surface);
+	border: 1px solid var(--ss-border);
+	border-radius: var(--ss-radius-lg);
+	padding: var(--ss-space-5);
+	margin-bottom: var(--ss-space-5);
 }
 
 .sscribe-debug-settings-grid {
-  display: grid;
-  grid-template-columns: 1fr 200px auto;
-  gap: var(--ss-space-5);
-  align-items: end;
+	display: grid;
+	grid-template-columns: 1fr 200px auto;
+	gap: var(--ss-space-5);
+	align-items: end;
 }
 
 .sscribe-debug-toggle-section,
 .sscribe-debug-level-section,
 .sscribe-debug-save-section {
-  display: flex;
-  flex-direction: column;
-  gap: var(--ss-space-2);
-  min-width: 0;
+	display: flex;
+	flex-direction: column;
+	gap: var(--ss-space-2);
+	min-width: 0;
 }
 
 .sscribe-debug-toggle-section {
-  padding-top: 0;
+	padding-top: 0;
 }
 
 .sscribe-debug-toggle-label {
-  display: flex;
-  align-items: center;
-  gap: var(--ss-space-3);
-  cursor: pointer;
-  min-height: 40px;
+	display: flex;
+	align-items: center;
+	gap: var(--ss-space-3);
+	cursor: pointer;
+	min-height: 40px;
 }
 
 .sscribe-toggle-switch {
-  position: relative;
-  display: inline-block;
-  width: 36px;
-  height: 20px;
-  flex-shrink: 0;
+	position: relative;
+	display: inline-block;
+	width: 36px;
+	height: 20px;
+	flex-shrink: 0;
 }
 
 .sscribe-toggle-switch input {
-  opacity: 0;
-  width: 0;
-  height: 0;
-  position: absolute;
+	opacity: 0;
+	width: 0;
+	height: 0;
+	position: absolute;
 }
 
 .sscribe-toggle-slider {
-  position: absolute;
-  inset: 0;
-  background: var(--ss-border-strong);
-  border-radius: var(--ss-radius-full);
-  cursor: pointer;
-  transition: background 120ms ease;
+	position: absolute;
+	inset: 0;
+	background: var(--ss-border-strong);
+	border-radius: var(--ss-radius-full);
+	cursor: pointer;
+	transition: background 120ms ease;
 }
 
 .sscribe-toggle-slider::before {
-  content: "";
-  position: absolute;
-  width: 16px;
-  height: 16px;
-  left: 2px;
-  top: 2px;
-  background: var(--ss-surface);
-  border-radius: 50%;
+	content: '';
+	position: absolute;
+	width: 16px;
+	height: 16px;
+	left: 2px;
+	top: 2px;
+	background: var(--ss-surface);
+	border-radius: 50%;
 }
 
 .sscribe-toggle-switch input:checked + .sscribe-toggle-slider {
-  background: var(--ss-brand);
+	background: var(--ss-brand);
 }
 
 .sscribe-toggle-switch input:checked + .sscribe-toggle-slider::before {
-  left: 18px;
+	left: 18px;
 }
 
 .sscribe-toggle-switch input:focus-visible + .sscribe-toggle-slider {
-  outline: 2px solid var(--ss-brand);
-  outline-offset: 2px;
+	outline: 2px solid var(--ss-brand);
+	outline-offset: 2px;
 }
 
 .sscribe-toggle-text {
-  display: flex;
-  flex-direction: column;
-  gap: 2px;
-  min-width: 0;
+	display: flex;
+	flex-direction: column;
+	gap: 2px;
+	min-width: 0;
 }
 
 .sscribe-toggle-text strong {
-  font-size: 13px;
-  font-weight: 600;
-  color: var(--ss-text-primary);
+	font-size: 13px;
+	font-weight: 600;
+	color: var(--ss-text-primary);
 }
 
 .sscribe-toggle-text small {
-  font-size: 11px;
-  color: var(--ss-text-muted);
+	font-size: 11px;
+	color: var(--ss-text-muted);
 }
 
 .sscribe-debug-level-section label {
-  font-size: 11px;
-  font-weight: 600;
-  color: var(--ss-text-secondary);
-  text-transform: uppercase;
-  letter-spacing: 0.06em;
-  height: 18px;
-  line-height: 18px;
-  display: block;
+	font-size: 11px;
+	font-weight: 600;
+	color: var(--ss-text-secondary);
+	text-transform: uppercase;
+	letter-spacing: 0.06em;
+	height: 18px;
+	line-height: 18px;
+	display: block;
 }
 
 .sscribe-select {
-  appearance: none;
-  height: 40px;
-  border: 1px solid var(--ss-border-strong);
-  border-radius: var(--ss-radius-sm);
-  padding: 0 var(--ss-space-7) 0 var(--ss-space-3);
-  font: inherit;
-  font-size: 13px;
-  color: var(--ss-text-primary);
-  background: var(--ss-surface);
-  cursor: pointer;
-  transition: border-color 120ms ease;
-  background-image: url("data:image/svg+xml;charset=utf8,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 16 16' fill='%2352525b'%3E%3Cpath d='M8 11L3 6h10z'/%3E%3C/svg%3E");
-  background-repeat: no-repeat;
-  background-position: right 12px center;
-  background-size: 12px 12px;
+	appearance: none;
+	height: 40px;
+	border: 1px solid var(--ss-border-strong);
+	border-radius: var(--ss-radius-sm);
+	padding: 0 var(--ss-space-7) 0 var(--ss-space-3);
+	font: inherit;
+	font-size: 13px;
+	color: var(--ss-text-primary);
+	background: var(--ss-surface);
+	cursor: pointer;
+	transition: border-color 120ms ease;
+	background-image: url("data:image/svg+xml;charset=utf8,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 16 16' fill='%2352525b'%3E%3Cpath d='M8 11L3 6h10z'/%3E%3C/svg%3E");
+	background-repeat: no-repeat;
+	background-position: right 12px center;
+	background-size: 12px 12px;
 }
 
 .sscribe-select:hover {
-  border-color: var(--ss-text-tertiary);
+	border-color: var(--ss-text-tertiary);
 }
 
 .sscribe-select:focus-visible {
-  outline: 2px solid var(--ss-brand);
-  outline-offset: 2px;
+	outline: 2px solid var(--ss-brand);
+	outline-offset: 2px;
 }
 
 .sscribe-debug-save-section {
-  align-items: stretch;
+	align-items: stretch;
 }
 
 .sscribe-debug-save-section #sscribe-debug-save-settings {
-  margin-top: auto;
+	margin-top: auto;
 }
 
 .sscribe-debug-save-feedback {
-  order: -1;
-  font-size: 12px;
-  color: var(--ss-text-secondary);
-  min-height: 16px;
+	order: -1;
+	font-size: 12px;
+	color: var(--ss-text-secondary);
+	min-height: 16px;
 }
 
 .sscribe-button-dirty {
-  position: relative;
-  box-shadow: 0 0 0 2px var(--ss-warning, #d97706);
+	position: relative;
+	box-shadow: 0 0 0 2px var(--ss-warning, #d97706);
 }
 
 .sscribe-button-dirty::after {
-  content: '';
-  position: absolute;
-  top: 6px;
-  right: 6px;
-  width: 8px;
-  height: 8px;
-  border-radius: 50%;
-  background: var(--ss-warning, #d97706);
-  box-shadow: 0 0 0 2px var(--ss-surface, #fff);
+	content: '';
+	position: absolute;
+	top: 6px;
+	right: 6px;
+	width: 8px;
+	height: 8px;
+	border-radius: 50%;
+	background: var(--ss-warning, #d97706);
+	box-shadow: 0 0 0 2px var(--ss-surface, #fff);
 }
 
 .sscribe-debug-controls-row {
-  display: grid;
-  grid-template-columns: minmax(160px, 1fr) minmax(160px, 1fr) minmax(200px, 2fr);
-  gap: var(--ss-space-4);
-  margin-bottom: var(--ss-space-4);
+	display: grid;
+	grid-template-columns: minmax(160px, 1fr) minmax(160px, 1fr) minmax(200px, 2fr);
+	gap: var(--ss-space-4);
+	margin-bottom: var(--ss-space-4);
 }
 
 .sscribe-debug-filter,
 .sscribe-debug-session-filter,
 .sscribe-debug-search {
-  display: flex;
-  flex-direction: column;
-  gap: var(--ss-space-2);
-  min-width: 0;
+	display: flex;
+	flex-direction: column;
+	gap: var(--ss-space-2);
+	min-width: 0;
 }
 
 .sscribe-debug-filter label,
 .sscribe-debug-session-filter label {
-  font-size: 11px;
-  font-weight: 500;
-  color: var(--ss-text-tertiary);
-  text-transform: uppercase;
-  letter-spacing: 0.04em;
+	font-size: 11px;
+	font-weight: 500;
+	color: var(--ss-text-tertiary);
+	text-transform: uppercase;
+	letter-spacing: 0.04em;
 }
 
 .sscribe-input {
-  appearance: none;
-  height: 40px;
-  border: 1.5px solid var(--ss-border);
-  border-radius: var(--ss-radius-sm);
-  padding: 0 var(--ss-space-3);
-  font: inherit;
-  font-size: 13px;
-  color: var(--ss-text-primary);
-  background: var(--ss-surface);
-  min-width: 0;
+	appearance: none;
+	height: 40px;
+	border: 1.5px solid var(--ss-border);
+	border-radius: var(--ss-radius-sm);
+	padding: 0 var(--ss-space-3);
+	font: inherit;
+	font-size: 13px;
+	color: var(--ss-text-primary);
+	background: var(--ss-surface);
+	min-width: 0;
 }
 
 .sscribe-input:focus-visible {
-  outline: 2px solid var(--ss-brand);
-  outline-offset: 2px;
-  border-color: var(--ss-brand);
+	outline: 2px solid var(--ss-brand);
+	outline-offset: 2px;
+	border-color: var(--ss-brand);
 }
 
 .sscribe-debug-refresh-mode {
-  display: inline-flex;
-  align-items: center;
-  gap: var(--ss-space-3);
-  flex-wrap: wrap;
+	display: inline-flex;
+	align-items: center;
+	gap: var(--ss-space-3);
+	flex-wrap: wrap;
 }
 
 .sscribe-debug-refresh-paused {
-  display: inline-flex;
-  align-items: center;
-  padding: 4px var(--ss-space-3);
-  background: var(--ss-warning-bg);
-  border: 1px solid var(--ss-warning-border);
-  color: var(--ss-warning);
-  border-radius: var(--ss-radius-full);
-  font-size: 11px;
-  font-weight: 500;
+	display: inline-flex;
+	align-items: center;
+	padding: 4px var(--ss-space-3);
+	background: var(--ss-warning-bg);
+	border: 1px solid var(--ss-warning-border);
+	color: var(--ss-warning);
+	border-radius: var(--ss-radius-full);
+	font-size: 11px;
+	font-weight: 500;
 }
 
 .sscribe-radio-label {
-  display: inline-flex;
-  align-items: center;
-  gap: 6px;
-  cursor: pointer;
-  font-size: 13px;
-  color: var(--ss-text-secondary);
-  min-height: 40px;
+	display: inline-flex;
+	align-items: center;
+	gap: 6px;
+	cursor: pointer;
+	font-size: 13px;
+	color: var(--ss-text-secondary);
+	min-height: 40px;
 }
 
 .sscribe-radio-label input {
-  width: 16px;
-  height: 16px;
-  margin: 0;
-  accent-color: var(--ss-brand);
-  cursor: pointer;
+	width: 16px;
+	height: 16px;
+	margin: 0;
+	accent-color: var(--ss-brand);
+	cursor: pointer;
 }
 
 .sscribe-radio-label:focus-within {
-  outline: 2px solid var(--ss-brand);
-  outline-offset: 2px;
-  border-radius: var(--ss-radius-sm);
+	outline: 2px solid var(--ss-brand);
+	outline-offset: 2px;
+	border-radius: var(--ss-radius-sm);
 }
 
 .sscribe-radio-label input:checked + .sscribe-radio-text {
-  color: var(--ss-text-primary);
-  font-weight: 500;
+	color: var(--ss-text-primary);
+	font-weight: 500;
 }
 
 .sscribe-debug-console-card {
-  background: #18181b;
-  border: 1px solid var(--ss-border-strong);
-  border-radius: var(--ss-radius-lg);
-  margin-bottom: var(--ss-space-5);
-  overflow: hidden;
+	background: #18181b;
+	border: 1px solid var(--ss-border-strong);
+	border-radius: var(--ss-radius-lg);
+	margin-bottom: var(--ss-space-5);
+	overflow: hidden;
 }
 
 .sscribe-debug-console-header {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: var(--ss-space-3);
-  padding: var(--ss-space-3) var(--ss-space-5);
-  background: #27272a;
-  border-bottom: 1px solid #3f3f46;
+	display: flex;
+	align-items: center;
+	justify-content: space-between;
+	gap: var(--ss-space-3);
+	padding: var(--ss-space-3) var(--ss-space-5);
+	background: #27272a;
+	border-bottom: 1px solid #3f3f46;
 }
 
 .sscribe-debug-console-title {
-  font-size: 14px;
-  font-weight: 600;
-  color: #fafafa;
-  font-family: var(--ss-font-mono);
+	font-size: 14px;
+	font-weight: 600;
+	color: #fafafa;
+	font-family: var(--ss-font-mono);
 }
 
 .sscribe-debug-console-count {
-  display: inline-flex;
-  align-items: center;
-  padding: 3px var(--ss-space-3);
-  background: #3f3f46;
-  color: #d4d4d8;
-  border-radius: var(--ss-radius-full);
-  font-size: 11px;
-  font-weight: 600;
-  font-family: var(--ss-font-mono);
+	display: inline-flex;
+	align-items: center;
+	padding: 3px var(--ss-space-3);
+	background: #3f3f46;
+	color: #d4d4d8;
+	border-radius: var(--ss-radius-full);
+	font-size: 11px;
+	font-weight: 600;
+	font-family: var(--ss-font-mono);
 }
 
 .sscribe-debug-console-body {
-  max-height: 520px;
-  overflow-y: auto;
-  font: 12px/1.5 var(--ss-font-mono);
-  background: #18181b;
-  color: #e4e4e7;
+	max-height: 520px;
+	overflow-y: auto;
+	font: 12px/1.5 var(--ss-font-mono);
+	background: #18181b;
+	color: #e4e4e7;
 }
 
 .sscribe-debug-empty {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
-  padding: var(--ss-space-10) var(--ss-space-5);
-  color: #a1a1aa;
-  text-align: center;
-  font: 13px/1.5 var(--ss-font);
+	display: flex;
+	flex-direction: column;
+	align-items: center;
+	justify-content: center;
+	padding: var(--ss-space-10) var(--ss-space-5);
+	color: #a1a1aa;
+	text-align: center;
+	font: 13px/1.5 var(--ss-font);
 }
 
 .sscribe-debug-empty svg {
-  color: #52525b;
-  margin-bottom: var(--ss-space-3);
+	color: #52525b;
+	margin-bottom: var(--ss-space-3);
 }
 
 .sscribe-debug-empty p {
-  max-width: 340px;
-  margin: 0;
+	max-width: 340px;
+	margin: 0;
 }
 
 .sscribe-debug-entries {
-  padding: var(--ss-space-2) 0;
+	padding: var(--ss-space-2) 0;
 }
 
 .sscribe-debug-entry {
-  display: flex;
-  align-items: flex-start;
-  gap: var(--ss-space-3);
-  padding: var(--ss-space-3) var(--ss-space-5);
-  border-bottom: 1px solid #27272a;
-  min-height: 36px;
-  cursor: pointer;
-  transition: background 120ms ease;
+	display: flex;
+	align-items: flex-start;
+	gap: var(--ss-space-3);
+	padding: var(--ss-space-3) var(--ss-space-5);
+	border-bottom: 1px solid #27272a;
+	min-height: 36px;
+	cursor: pointer;
+	transition: background 120ms ease;
 }
 
 .sscribe-debug-entry:last-child {
-  border-bottom: none;
+	border-bottom: none;
 }
 
 .sscribe-debug-entry:hover {
-  background: #27272a;
+	background: #27272a;
 }
 
 .sscribe-debug-entry-time {
-  flex-shrink: 0;
-  font-size: 11px;
-  color: #71717a;
-  font-family: var(--ss-font-mono);
-  min-width: 70px;
-  padding-top: 1px;
+	flex-shrink: 0;
+	font-size: 11px;
+	color: #71717a;
+	font-family: var(--ss-font-mono);
+	min-width: 70px;
+	padding-top: 1px;
 }
 
 .sscribe-debug-entry-badge {
-  flex-shrink: 0;
-  display: inline-flex;
-  align-items: center;
-  padding: 2px 8px;
-  border-radius: var(--ss-radius-full);
-  font-size: 10px;
-  font-weight: 700;
-  text-transform: uppercase;
-  letter-spacing: 0.05em;
-  font-family: var(--ss-font);
-  min-width: 64px;
-  justify-content: center;
+	flex-shrink: 0;
+	display: inline-flex;
+	align-items: center;
+	padding: 2px 8px;
+	border-radius: var(--ss-radius-full);
+	font-size: 10px;
+	font-weight: 700;
+	text-transform: uppercase;
+	letter-spacing: 0.05em;
+	font-family: var(--ss-font);
+	min-width: 64px;
+	justify-content: center;
 }
 
 .sscribe-debug-entry-message {
-  flex: 1;
-  min-width: 0;
-  color: #e4e4e7;
-  font-family: var(--ss-font-mono);
-  font-size: 12px;
-  line-height: 1.5;
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  padding-top: 1px;
+	flex: 1;
+	min-width: 0;
+	color: #e4e4e7;
+	font-family: var(--ss-font-mono);
+	font-size: 12px;
+	line-height: 1.5;
+	white-space: nowrap;
+	overflow: hidden;
+	text-overflow: ellipsis;
+	padding-top: 1px;
 }
 
 .sscribe-debug-entry-context {
-  flex-basis: 100%;
-  margin-top: var(--ss-space-2);
-  padding: var(--ss-space-3);
-  background: #0f0f10;
-  border-radius: var(--ss-radius-sm);
-  color: #d4d4d8;
-  font: 11px/1.5 var(--ss-font-mono);
-  white-space: pre-wrap;
-  overflow-wrap: anywhere;
-  display: none;
+	flex-basis: 100%;
+	margin-top: var(--ss-space-2);
+	padding: var(--ss-space-3);
+	background: #0f0f10;
+	border-radius: var(--ss-radius-sm);
+	color: #d4d4d8;
+	font: 11px/1.5 var(--ss-font-mono);
+	white-space: pre-wrap;
+	overflow-wrap: anywhere;
+	display: none;
 }
 
 .sscribe-debug-entry-badge-debug,
 .sscribe-debug-entry-badge.debug {
-  background: #3f3f46;
-  color: #d4d4d8;
+	background: #3f3f46;
+	color: #d4d4d8;
 }
 
 .sscribe-debug-entry-badge-info,
 .sscribe-debug-entry-badge.info,
 .sscribe-debug-entry-badge-notice,
 .sscribe-debug-entry-badge.notice {
-  background: #d4e7dc;
-  color: #234b37;
+	background: #d4e7dc;
+	color: #234b37;
 }
 
 .sscribe-debug-entry-badge-warning,
 .sscribe-debug-entry-badge.warning {
-  background: #fff6ed;
-  color: #b54708;
+	background: #fff6ed;
+	color: #b54708;
 }
 
 .sscribe-debug-entry-badge-error,
@@ -518,1196 +518,433 @@
 .sscribe-debug-entry-badge.alert,
 .sscribe-debug-entry-badge-emergency,
 .sscribe-debug-entry-badge.emergency {
-  background: #fef3f2;
-  color: #b42318;
+	background: #fef3f2;
+	color: #b42318;
 }
 
 .sscribe-debug-entry-badge-raw,
 .sscribe-debug-entry-badge.raw {
-  background: rgb(99 91 255 / 15%);
-  color: #b3a8ff;
+	background: rgb(99 91 255 / 15%);
+	color: #b3a8ff;
 }
 
 .sscribe-debug-actions {
-  display: flex;
-  gap: var(--ss-space-2);
-  flex-wrap: wrap;
-  margin-bottom: var(--ss-space-5);
+	display: flex;
+	gap: var(--ss-space-2);
+	flex-wrap: wrap;
+	margin-bottom: var(--ss-space-5);
 }
 
 .sscribe-debug-rotated {
-  background: var(--ss-surface);
-  border: 1px solid var(--ss-border);
-  border-radius: var(--ss-radius-lg);
-  padding: 0;
+	background: var(--ss-surface);
+	border: 1px solid var(--ss-border);
+	border-radius: var(--ss-radius-lg);
+	padding: 0;
 }
 
 .sscribe-debug-rotated summary {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  cursor: pointer;
-  padding: var(--ss-space-3) var(--ss-space-5);
-  list-style: none;
+	display: flex;
+	align-items: center;
+	justify-content: space-between;
+	cursor: pointer;
+	padding: var(--ss-space-3) var(--ss-space-5);
+	list-style: none;
 }
 
 .sscribe-debug-rotated summary::-webkit-details-marker {
-  display: none;
+	display: none;
 }
 
 .sscribe-debug-rotated-title {
-  font-size: 14px;
-  font-weight: 600;
-  color: var(--ss-text-primary);
+	font-size: 14px;
+	font-weight: 600;
+	color: var(--ss-text-primary);
 }
 
 .sscribe-debug-rotated-hint {
-  font-size: 11px;
-  color: var(--ss-text-muted);
+	font-size: 11px;
+	color: var(--ss-text-muted);
 }
 
 .sscribe-debug-rotated-body {
-  padding: var(--ss-space-3) var(--ss-space-5);
-  border-top: 1px solid var(--ss-border);
-  display: flex;
-  flex-direction: column;
-  gap: var(--ss-space-2);
+	padding: var(--ss-space-3) var(--ss-space-5);
+	border-top: 1px solid var(--ss-border);
+	display: flex;
+	flex-direction: column;
+	gap: var(--ss-space-2);
 }
 
 .sscribe-debug-rotated-empty {
-  padding: var(--ss-space-3) 0;
-  color: var(--ss-text-muted);
-  font-size: 12px;
-  text-align: center;
+	padding: var(--ss-space-3) 0;
+	color: var(--ss-text-muted);
+	font-size: 12px;
+	text-align: center;
 }
 
 .sscribe-debug-rotated-file {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: var(--ss-space-3);
-  padding: var(--ss-space-2) 0;
-  border-top: 1px solid var(--ss-border);
-  flex-wrap: wrap;
+	display: flex;
+	align-items: center;
+	justify-content: space-between;
+	gap: var(--ss-space-3);
+	padding: var(--ss-space-2) 0;
+	border-top: 1px solid var(--ss-border);
+	flex-wrap: wrap;
 }
 
 .sscribe-debug-rotated-file:first-child {
-  border-top: none;
-  padding-top: 0;
+	border-top: none;
+	padding-top: 0;
 }
 
 .sscribe-debug-rotated-file-info {
-  display: flex;
-  align-items: center;
-  gap: var(--ss-space-3);
-  min-width: 0;
-  flex: 1;
+	display: flex;
+	align-items: center;
+	gap: var(--ss-space-3);
+	min-width: 0;
+	flex: 1;
 }
 
 .sscribe-debug-rotated-file-name {
-  color: var(--ss-text-primary);
-  font-size: 13px;
-  font-weight: 500;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-  min-width: 0;
+	color: var(--ss-text-primary);
+	font-size: 13px;
+	font-weight: 500;
+	overflow: hidden;
+	text-overflow: ellipsis;
+	white-space: nowrap;
+	min-width: 0;
 }
 
 .sscribe-debug-rotated-file-meta {
-  color: var(--ss-text-secondary);
-  font-size: 11px;
-  font-family: var(--ss-font-mono);
+	color: var(--ss-text-secondary);
+	font-size: 11px;
+	font-family: var(--ss-font-mono);
 }
 
 .sscribe-debug-rotated-file-actions {
-  display: flex;
-  gap: var(--ss-space-2);
-  flex-shrink: 0;
+	display: flex;
+	gap: var(--ss-space-2);
+	flex-shrink: 0;
 }
 
 .sscribe-debug-append-error,
 .sscribe-debug-append-loading {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  padding: var(--ss-space-3) var(--ss-space-5);
-  font-size: 12px;
-  font-family: var(--ss-font);
-  color: #a1a1aa;
-  border-top: 1px solid #27272a;
+	display: flex;
+	align-items: center;
+	justify-content: center;
+	padding: var(--ss-space-3) var(--ss-space-5);
+	font-size: 12px;
+	font-family: var(--ss-font);
+	color: #a1a1aa;
+	border-top: 1px solid #27272a;
 }
 
 .sscribe-debug-append-error {
-  color: #fca5a5;
-  background: rgb(180 35 24 / 12%);
-  justify-content: space-between;
-  gap: var(--ss-space-3);
+	color: #fca5a5;
+	background: rgb(180 35 24 / 12%);
+	justify-content: space-between;
+	gap: var(--ss-space-3);
 }
 
 .sscribe-debug-append-loading {
-  color: #d4d4d8;
-  background: #27272a;
+	color: #d4d4d8;
+	background: #27272a;
 }
 
 .sscribe-debug-entry-header {
-  display: flex;
-  align-items: center;
-  gap: var(--ss-space-3);
-  padding: 10px 16px;
-  width: 100%;
-  min-width: 0;
-  box-sizing: border-box;
-  flex: 1;
+	display: flex;
+	align-items: center;
+	gap: var(--ss-space-3);
+	padding: 10px 16px;
+	width: 100%;
+	min-width: 0;
+	box-sizing: border-box;
+	flex: 1;
 }
 
 .sscribe-debug-entry-toggle {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  width: 16px;
-  height: 16px;
-  color: #71717a;
-  font-size: 9px;
-  flex-shrink: 0;
-  transition: color 120ms ease;
+	display: inline-flex;
+	align-items: center;
+	justify-content: center;
+	width: 16px;
+	height: 16px;
+	color: #71717a;
+	font-size: 9px;
+	flex-shrink: 0;
+	transition: color 120ms ease;
 }
 
 .sscribe-debug-entry:hover .sscribe-debug-entry-toggle,
 .sscribe-debug-entry.expanded .sscribe-debug-entry-toggle {
-  color: #d4d4d8;
+	color: #d4d4d8;
 }
 
 .sscribe-debug-entry.expanded .sscribe-debug-entry-toggle {
-  transform: rotate(90deg);
+	transform: rotate(90deg);
 }
 
 .sscribe-debug-context-row {
-  display: flex;
-  gap: var(--ss-space-2);
-  align-items: baseline;
-  flex-wrap: wrap;
+	display: flex;
+	gap: var(--ss-space-2);
+	align-items: baseline;
+	flex-wrap: wrap;
 }
 
 .sscribe-debug-context-key {
-  color: #a1a1aa;
-  font-size: 11px;
-  font-family: var(--ss-font-mono);
-  flex-shrink: 0;
+	color: #a1a1aa;
+	font-size: 11px;
+	font-family: var(--ss-font-mono);
+	flex-shrink: 0;
 }
 
 .sscribe-debug-context-val {
-  flex: 1;
-  min-width: 0;
-  color: #d4d4d8;
-  font-size: 11px;
-  font-family: var(--ss-font-mono);
-  overflow-wrap: anywhere;
+	flex: 1;
+	min-width: 0;
+	color: #d4d4d8;
+	font-size: 11px;
+	font-family: var(--ss-font-mono);
+	overflow-wrap: anywhere;
 }
 
 .sscribe-debug-context-val pre {
-  margin: 0;
-  white-space: pre-wrap;
-  overflow-wrap: anywhere;
+	margin: 0;
+	white-space: pre-wrap;
+	overflow-wrap: anywhere;
 }
 
 .sscribe-debug-rotated-banner {
-  display: flex;
-  align-items: flex-start;
-  gap: var(--ss-space-3);
-  padding: var(--ss-space-3) var(--ss-space-5);
-  background: var(--ss-warning-bg);
-  border: 1px solid var(--ss-warning-border);
-  border-left: 3px solid var(--ss-warning);
-  margin: var(--ss-space-2) var(--ss-space-5);
-  border-radius: var(--ss-radius-md);
-  color: var(--ss-warning);
-  font-size: 12px;
-  line-height: 1.5;
+	display: flex;
+	align-items: flex-start;
+	gap: var(--ss-space-3);
+	padding: var(--ss-space-3) var(--ss-space-5);
+	background: var(--ss-warning-bg);
+	border: 1px solid var(--ss-warning-border);
+	border-left: 3px solid var(--ss-warning);
+	margin: var(--ss-space-2) var(--ss-space-5);
+	border-radius: var(--ss-radius-md);
+	color: var(--ss-warning);
+	font-size: 12px;
+	line-height: 1.5;
 }
 
-/* ============================================================
- DEBUG CONSOLE ENTERPRISE OVERRIDES  -  v1.1.2 patch
- Fixes: settings panel layout, filter bar alignment,
- button hierarchy, refresh row, rotated-logs disclosure
- ============================================================ */
-
-/* ----------------------------------------------------------
- 1. SETTINGS PANEL  -  3-column flex: toggle | log-level | save
- ---------------------------------------------------------- */
-.sscribe-debug-settings-panel {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  flex-wrap: wrap;
-  gap: var(--ss-space-5);
-  padding: var(--ss-space-5) var(--ss-space-6);
-  background: var(--ss-surface);
-  border: 1px solid var(--ss-border);
-  border-radius: var(--ss-radius-md);
-  margin-bottom: var(--ss-space-5);
+/* Expandable log context. */
+.sscribe-debug-entry:not(.has-context) {
+	cursor: default;
 }
 
-.sscribe-debug-settings-panel .sscribe-toggle-group {
-  display: flex;
-  flex-direction: column;
-  gap: 2px;
-  flex: 1;
-  min-width: 200px;
+.sscribe-debug-entry.expanded {
+	flex-direction: column;
+	align-items: stretch;
 }
 
-.sscribe-debug-settings-panel .sscribe-toggle-row {
-  display: flex;
-  align-items: center;
-  gap: var(--ss-space-3);
+.sscribe-debug-entry.expanded .sscribe-debug-entry-message {
+	white-space: normal;
+	overflow-wrap: anywhere;
 }
 
-.sscribe-debug-settings-right {
-  display: flex;
-  align-items: flex-end;
-  gap: var(--ss-space-4);
-  flex-shrink: 0;
+.sscribe-debug-entry.expanded .sscribe-debug-entry-context {
+	display: block;
 }
 
-/* Ensure LOG LEVEL label + select are stacked */
-.sscribe-debug-level-group {
-  display: flex;
-  flex-direction: column;
-  gap: var(--ss-space-1);
+.sscribe-debug-entry.expanded .sscribe-debug-context-row {
+	display: grid;
+	grid-template-columns: minmax(100px, auto) minmax(0, 1fr);
+	gap: var(--ss-space-3);
+	align-items: start;
+	padding: var(--ss-space-2) 0;
+	border-top: 1px solid rgb(255 255 255 / 8%);
 }
 
-.sscribe-debug-level-group label {
-  font-size: 11px;
-  font-weight: 600;
-  letter-spacing: 0.08em;
-  text-transform: uppercase;
-  color: var(--ss-text-tertiary);
-  line-height: 1;
-  margin: 0;
+.sscribe-debug-entry.expanded .sscribe-debug-context-row:first-child {
+	padding-top: 0;
+	border-top: 0;
 }
 
-/* ----------------------------------------------------------
- 2. FILTER BAR  -  consistent 3-column grid with labels
- ---------------------------------------------------------- */
-.sscribe-debug-filters {
-  display: grid;
-  grid-template-columns: 200px 1fr 1fr;
-  align-items: end;
-  gap: var(--ss-space-4);
-  padding: var(--ss-space-4) var(--ss-space-5);
-  background: var(--ss-surface);
-  border: 1px solid var(--ss-border);
-  border-radius: var(--ss-radius-md);
-  margin-bottom: var(--ss-space-3);
+.sscribe-debug-entry.expanded .sscribe-debug-context-key {
+	font-weight: 600;
 }
 
-.sscribe-debug-filter-group {
-  display: flex;
-  flex-direction: column;
-  gap: var(--ss-space-1);
-}
-
-.sscribe-debug-filter-group label,
-.sscribe-debug-filter-label {
-  font-size: 11px;
-  font-weight: 600;
-  letter-spacing: 0.08em;
-  text-transform: uppercase;
-  color: var(--ss-text-tertiary);
-  line-height: 1;
-  margin: 0;
-}
-
-/* Target the individual filter inputs by ID for height consistency */
-#sscribe-debug-filter-level,
-#sscribe-debug-session-id,
-#sscribe-debug-search,
-#sscribe-debug-level {
-  height: 36px;
-  padding: 0 var(--ss-space-3);
-  font-size: 13px;
-  border: 1px solid var(--ss-border);
-  border-radius: var(--ss-radius);
-  background: var(--ss-bg);
-  color: var(--ss-text-primary);
-  transition: border-color 120ms ease;
-  width: 100%;
-  box-sizing: border-box;
-  appearance: none;
-}
-
-#sscribe-debug-filter-level:focus,
-#sscribe-debug-session-id:focus,
-#sscribe-debug-search:focus,
-#sscribe-debug-level:focus {
-  border-color: var(--ss-brand);
-}
-
-#sscribe-debug-filter-level:focus-visible,
-#sscribe-debug-session-id:focus-visible,
-#sscribe-debug-search:focus-visible,
-#sscribe-debug-level:focus-visible {
-  outline: 2px solid var(--ss-brand);
-  outline-offset: 2px;
-}
-
-#sscribe-debug-filter-level {
-  cursor: pointer;
-  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 24 24' fill='none' stroke='%2371717a' stroke-width='2.5' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpolyline points='6 9 12 15 18 9'/%3E%3C/svg%3E");
-  background-repeat: no-repeat;
-  background-position: right 10px center;
-  padding-right: 32px;
-}
-
-/* ----------------------------------------------------------
- 3. AUTO-REFRESH ROW  -  proper horizontal alignment
- ---------------------------------------------------------- */
-.sscribe-debug-refresh-row {
-  display: flex;
-  align-items: center;
-  gap: var(--ss-space-4);
-  padding: var(--ss-space-3) var(--ss-space-1);
-  margin-bottom: var(--ss-space-4);
-}
-
-.sscribe-debug-refresh-row .sscribe-radio-group {
-  display: flex;
-  align-items: center;
-  gap: var(--ss-space-4);
-  flex: 1;
-}
-
-.sscribe-debug-refresh-row label {
-  display: flex;
-  align-items: center;
-  gap: var(--ss-space-2);
-  font-size: 13px;
-  color: var(--ss-text-secondary);
-  cursor: pointer;
-  /* stylelint-disable property-no-vendor-prefix -- Safari/iOS Safari 3-13 need the prefix */
-  -webkit-user-select: none;
-  /* stylelint-enable property-no-vendor-prefix */
-  user-select: none;
-}
-
-.sscribe-debug-refresh-row input[type="radio"] {
-  accent-color: var(--ss-brand);
-  width: 15px;
-  height: 15px;
-  flex-shrink: 0;
-}
-
-#sscribe-debug-refresh-btn {
-  margin-left: auto;
-  flex-shrink: 0;
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  width: 32px;
-  height: 32px;
-  border-radius: var(--ss-radius);
-  border: 1px solid var(--ss-border);
-  background: var(--ss-surface);
-  color: var(--ss-text-secondary);
-  cursor: pointer;
-  transition: border-color 150ms, background 150ms, color 150ms;
-  padding: 0;
-}
-
-#sscribe-debug-refresh-btn:hover {
-  border-color: var(--ss-brand);
-  color: var(--ss-brand);
-  background: var(--ss-brand-tint);
-}
-
-/* ----------------------------------------------------------
- 4. CONSOLE FOOTER BUTTONS  -  danger + secondary hierarchy
- ---------------------------------------------------------- */
-
-/* ----------------------------------------------------------
- 4b. HELP DIALOG  -  overlay + dialog + close (built by JS)
-   The dialog is appended to document.body so it lives OUTSIDE
-   .sscribe-master-container. Token references would resolve to
-   empty values there. We declare a self-contained token scope
-   on .sscribe-help-dialog itself + use literal values so the
-   modal renders correctly regardless of where it sits.
- ---------------------------------------------------------- */
+/* Help dialog is appended to document.body, outside the admin token scope. */
 .sscribe-help-overlay {
-  position: fixed;
-  inset: 0;
-  background: rgb(9 9 11 / 55%);
-  /* stylelint-disable-next-line property-no-vendor-prefix */
-  -webkit-backdrop-filter: blur(2px);
-  backdrop-filter: blur(2px);
-  z-index: 9999998;
-  animation: sscribe-modal-fade 160ms ease-out;
+	position: fixed;
+	inset: 0;
+	z-index: 999998;
+	background: rgb(9 9 11 / 55%);
+	animation: sscribe-help-fade 160ms ease-out;
 }
 
 .sscribe-help-dialog {
-  position: fixed;
-  top: 50%;
-  left: 50%;
-  transform: translate(-50%, -50%);
-  background: #fff;
-  color: #09090b;
-  padding: 32px 32px 28px;
-  border: 1px solid #e4e4e7;
-  border-radius: 12px;
-  max-width: 480px;
-  width: calc(100% - 32px);
-  max-height: calc(100vh - 64px);
-  overflow-y: auto;
-  z-index: 9999999;
-  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
-  font-size: 14px;
-  line-height: 1.55;
-  box-shadow:
-	0 1px 2px rgb(9 9 11 / 4%),
-	0 12px 32px rgb(9 9 11 / 12%);
-  animation: sscribe-modal-pop 200ms cubic-bezier(0.16, 1, 0.3, 1);
+	position: fixed;
+	top: 50%;
+	left: 50%;
+	z-index: 999999;
+	width: min(480px, calc(100% - 32px));
+	max-height: calc(100vh - 64px);
+	padding: 32px;
+	overflow-y: auto;
+	color: #09090b;
+	background: #fff;
+	border: 1px solid #e4e4e7;
+	border-radius: 12px;
+	box-shadow: 0 12px 32px rgb(9 9 11 / 12%);
+	font:
+		14px/1.55 -apple-system,
+		BlinkMacSystemFont,
+		'Segoe UI',
+		Roboto,
+		sans-serif;
+	transform: translate(-50%, -50%);
+	animation: sscribe-help-pop 200ms cubic-bezier(0.16, 1, 0.3, 1);
 }
 
 .sscribe-help-dialog h2,
 .sscribe-help-dialog h3,
 .sscribe-help-dialog h4 {
-  margin: 0 0 8px;
-  color: #09090b;
-  font-weight: 700;
-  line-height: 1.3;
+	margin: 0 0 8px;
+	color: #09090b;
+	line-height: 1.3;
 }
 
 .sscribe-help-dialog h2 {
-  font-size: 18px;
-  letter-spacing: -0.01em;
-  margin-bottom: 12px;
-  padding-right: 32px;
+	padding-right: 32px;
+	font-size: 18px;
 }
 
-.sscribe-help-dialog h3 {
-  font-size: 13px;
-  text-transform: uppercase;
-  letter-spacing: 0.04em;
-  color: #3d7a5a;
-  margin-top: 20px;
+.sscribe-help-dialog h3,
+.sscribe-help-dialog h4 {
+	margin-top: 20px;
+	font-size: 14px;
 }
 
-.sscribe-help-dialog p {
-  margin: 0 0 12px;
-  color: #3f3f46;
+.sscribe-help-dialog p,
+.sscribe-help-dialog ul,
+.sscribe-help-dialog ol {
+	margin: 0 0 12px;
+	color: #3f3f46;
 }
 
 .sscribe-help-dialog ul,
 .sscribe-help-dialog ol {
-  margin: 0 0 12px;
-  padding-left: 20px;
-  color: #3f3f46;
-}
-
-.sscribe-help-dialog li {
-  margin-bottom: 4px;
-}
-
-.sscribe-help-dialog strong {
-  color: #09090b;
-  font-weight: 600;
+	padding-left: 20px;
 }
 
 .sscribe-help-dialog code {
-  font-family: ui-monospace, SFMono-Regular, "SF Mono", Menlo, Consolas, monospace;
-  font-size: 12.5px;
-  background: #f4f4f5;
-  border: 1px solid #e4e4e7;
-  border-radius: 4px;
-  padding: 1px 6px;
-  color: #09090b;
+	padding: 1px 6px;
+	color: #09090b;
+	background: #f4f4f5;
+	border: 1px solid #e4e4e7;
+	border-radius: 4px;
+	font: 12px/1.5 var(--ss-font-mono, monospace);
 }
 
 .sscribe-help-close {
-  position: absolute;
-  top: 14px;
-  right: 14px;
-  width: 28px;
-  height: 28px;
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  background: transparent;
-  border: 1px solid transparent;
-  border-radius: 8px;
-  font-size: 20px;
-  line-height: 1;
-  cursor: pointer;
-  color: #71717a;
-  transition: background 120ms ease, color 120ms ease, border-color 120ms ease;
+	position: absolute;
+	top: 14px;
+	right: 14px;
+	display: inline-flex;
+	align-items: center;
+	justify-content: center;
+	width: 32px;
+	height: 32px;
+	padding: 0;
+	color: #71717a;
+	background: transparent;
+	border: 1px solid transparent;
+	border-radius: 8px;
+	cursor: pointer;
+	font-size: 20px;
 }
 
 .sscribe-help-close:hover {
-  color: #09090b;
-  background: #f4f4f5;
-  border-color: #e4e4e7;
+	color: #09090b;
+	background: #f4f4f5;
+	border-color: #e4e4e7;
 }
 
 .sscribe-help-close:focus-visible {
-  outline: 2px solid #3d7a5a;
-  outline-offset: 2px;
+	outline: 2px solid #3d7a5a;
+	outline-offset: 2px;
 }
 
-@keyframes sscribe-modal-fade {
-  from { opacity: 0; }
-  to { opacity: 1; }
+@keyframes sscribe-help-fade {
+	from {
+		opacity: 0;
+	}
+
+	to {
+		opacity: 1;
+	}
 }
 
-@keyframes sscribe-modal-pop {
-  from {
-	opacity: 0;
-	transform: translate(-50%, -48%) scale(0.97);
-  }
+@keyframes sscribe-help-pop {
+	from {
+		opacity: 0;
+		transform: translate(-50%, -48%) scale(0.97);
+	}
 
-  to {
-	opacity: 1;
-	transform: translate(-50%, -50%) scale(1);
-  }
+	to {
+		opacity: 1;
+		transform: translate(-50%, -50%) scale(1);
+	}
+}
+
+@media (width <= 782px) {
+	.sscribe-debug-settings-grid,
+	.sscribe-debug-controls-row {
+		grid-template-columns: 1fr;
+	}
+
+	.sscribe-debug-refresh-row,
+	.sscribe-debug-rotated-file {
+		align-items: stretch;
+		flex-direction: column;
+	}
+
+	.sscribe-debug-rotated-file-info {
+		align-items: flex-start;
+		flex-direction: column;
+		gap: var(--ss-space-1);
+	}
+
+	.sscribe-debug-rotated-file-actions,
+	.sscribe-debug-entry-header {
+		flex-wrap: wrap;
+	}
+
+	.sscribe-debug-entry-time {
+		min-width: auto;
+	}
+
+	.sscribe-debug-entry-message {
+		flex-basis: 100%;
+		order: 3;
+		white-space: normal;
+	}
+
+	.sscribe-debug-entry.expanded .sscribe-debug-context-row {
+		grid-template-columns: 1fr;
+		gap: var(--ss-space-1);
+	}
 }
 
 @media (prefers-reduced-motion: reduce) {
-  .sscribe-help-overlay,
-  .sscribe-help-dialog {
-	animation: none !important;
-	/* stylelint-disable-next-line property-no-vendor-prefix */
-	-webkit-backdrop-filter: none !important;
-	backdrop-filter: none !important;
-  }
+	.sscribe-help-overlay,
+	.sscribe-help-dialog {
+		animation: none;
+	}
+
+	.sscribe-debug-master *,
+	.sscribe-debug-master *::before,
+	.sscribe-debug-master *::after {
+		scroll-behavior: auto;
+		transition-duration: 0.01ms;
+		animation-duration: 0.01ms;
+		animation-iteration-count: 1;
+	}
 }
-
-#sscribe-debug-clear-btn {
-  display: inline-flex;
-  align-items: center;
-  gap: var(--ss-space-2);
-  height: 36px;
-  padding: 0 var(--ss-space-4);
-  font-size: 13px;
-  font-weight: 500;
-  font-family: var(--ss-font);
-  border-radius: var(--ss-radius);
-  border: 1.5px solid var(--ss-error);
-  background: transparent;
-  color: var(--ss-error);
-  cursor: pointer;
-  transition: background 150ms, color 150ms;
-  white-space: nowrap;
-}
-
-#sscribe-debug-clear-btn:hover {
-  background: var(--ss-error-bg);
-}
-
-#sscribe-debug-export-btn {
-  display: inline-flex;
-  align-items: center;
-  gap: var(--ss-space-2);
-  height: 36px;
-  padding: 0 var(--ss-space-4);
-  font-size: 13px;
-  font-weight: 500;
-  font-family: var(--ss-font);
-  border-radius: var(--ss-radius);
-  border: 1px solid var(--ss-border);
-  background: var(--ss-surface);
-  color: var(--ss-text-secondary);
-  cursor: pointer;
-  transition: border-color 150ms, background 150ms;
-  white-space: nowrap;
-}
-
-#sscribe-debug-export-btn:hover {
-  border-color: var(--ss-border-strong);
-  background: var(--ss-surface-2);
-  color: var(--ss-text-primary);
-}
-
-/* ----------------------------------------------------------
- 5. ROTATED LOGS DISCLOSURE  -  chevron toggle treatment
- ---------------------------------------------------------- */
-.sscribe-debug-rotated-section {
-  margin-top: var(--ss-space-5);
-}
-
-/* ----------------------------------------------------------
- 6. SAVE SETTINGS BUTTON  -  consistent with design system
- ---------------------------------------------------------- */
-#sscribe-debug-save-settings {
-  height: 36px;
-  padding: 0 var(--ss-space-5);
-  font-size: 13px;
-  font-weight: 600;
-  font-family: var(--ss-font);
-  border-radius: var(--ss-radius);
-  border: none;
-  background: var(--ss-brand);
-  color: #fff;
-  cursor: pointer;
-  letter-spacing: -0.01em;
-  transition: background 120ms ease;
-  white-space: nowrap;
-  flex-shrink: 0;
-  align-self: flex-end;
-  margin-bottom: 0;
-}
-
-#sscribe-debug-save-settings:hover {
-  background: var(--ss-brand-hover);
-}
-
-#sscribe-debug-save-settings:active {
-  background: var(--ss-brand-active);
-}
-
-#sscribe-debug-save-settings:focus-visible {
-  outline: 2px solid var(--ss-brand);
-  outline-offset: 2px;
-}
-
-/* ----------------------------------------------------------
- 7. SAVE FEEDBACK / inline status text
- ---------------------------------------------------------- */
-#sscribe-debug-save-feedback {
-  font-size: 12px;
-  color: var(--ss-success);
-  font-weight: 500;
-  margin-top: var(--ss-space-1);
-  min-height: 16px;
-  line-height: 1;
-}
-
-/* ----------------------------------------------------------
- 8. SESSION ID DESCRIPTION tooltip suppression
- ---------------------------------------------------------- */
-#sscribe-session-id-desc {
-  display: none; /* hidden  -  tooltip text causes layout overflow */
-}
-
-/* ============================================================
- CRITICAL FIXES v1.1.2 patch-2
- 1. Console context popup layout (vertical char rendering fix)
- 2. Settings panel LOG LEVEL + Save alignment
- 3. Search logs label (injected via JS  -  CSS styles here)
- ============================================================ */
-
-/* ----------------------------------------------------------
- FIX 1: CONTEXT PANEL  -  enforce full-width grid layout
- The context panel was rendering characters vertically due
- to the parent flex container collapsing its width to 0.
- ---------------------------------------------------------- */
-
-/* Context panel wrapper: IDs like sscribe-debug-ctx-* */
-[id^="sscribe-debug-ctx-"] {
- width: 100% !important;
- min-width: 0 !important;
- max-width: 100% !important;
- grid-template-columns: minmax(120px, auto) 1fr !important;
- gap: 2px 12px !important;
- padding: 16px !important;
- background: #000 !important;
- border-top: 1px solid rgb(255 255 255 / 7%) !important;
- box-sizing: border-box !important;
- overflow: hidden !important;
- white-space: normal !important;
- word-break: break-all !important;
-}
-
-/* Context key (left column) */
-[id^="sscribe-debug-ctx-"] .sscribe-debug-context-key,
-.sscribe-debug-context-key {
-  color: #a1a1aa !important;
-  font-size: 11px !important;
-  font-family: var(--ss-font-mono, 'Fira Code', 'Courier New', monospace) !important;
-  font-weight: 500 !important;
-  letter-spacing: 0.02em !important;
-  white-space: nowrap !important;
-  padding: 1px 0 !important;
-  overflow: hidden !important;
-  text-overflow: ellipsis !important;
-  align-self: start !important;
-}
-
-/* Context value (right column) */
-[id^="sscribe-debug-ctx-"] .sscribe-debug-context-val,
-.sscribe-debug-context-val {
-  color: #d4d4d8 !important;
-  font-size: 11px !important;
-  font-family: var(--ss-font-mono, 'Fira Code', 'Courier New', monospace) !important;
-  font-weight: 400 !important;
-  white-space: pre-wrap !important;
-  word-break: break-all !important;
-  overflow-wrap: anywhere !important;
-  padding: 1px 0 !important;
-  min-width: 0 !important;
-}
-
-/* Context value pre (nested code blocks) */
-[id^="sscribe-debug-ctx-"] .sscribe-debug-context-val pre,
-.sscribe-debug-context-val pre {
-  margin: 0 !important;
-  white-space: pre-wrap !important;
-  overflow-wrap: anywhere !important;
-  word-break: break-all !important;
-  min-width: 0 !important;
-  max-width: 100% !important;
-}
-
-/* The entry button row  -  must NOT collapse context child width */
-.sscribe-debug-entries > button {
-  display: grid !important;
-  grid-template-columns: 1fr !important;
-  width: 100% !important;
-  min-width: 0 !important;
-}
-
-/* ----------------------------------------------------------
- FIX 2: SETTINGS PANEL ALIGNMENT
- LOG LEVEL label+select group and Save Settings button
- must be bottom-aligned (align to the bottom of the row).
- ---------------------------------------------------------- */
-
-/* The settings panel is a flex row  -  make right group bottom-align */
-.sscribe-debug-settings-right,
-.sscribe-debug-settings-panel > *:last-child {
-  align-self: flex-end !important;
-}
-
-/* The panel itself: align items to bottom to baseline all groups */
-.sscribe-debug-settings {
-  display: flex !important;
-  align-items: flex-end !important;
-  justify-content: space-between !important;
-  flex-wrap: wrap !important;
-  gap: 16px !important;
-  padding: 20px 24px !important;
-}
-
-/* LOG LEVEL label  -  sits above the dropdown, already good */
-
-/* Make the LOG LEVEL group + Save btn share a baseline row */
-.sscribe-debug-level-group + #sscribe-debug-save-settings,
-.sscribe-debug-settings > *:nth-child(2),
-.sscribe-debug-settings > *:nth-child(3) {
-  align-self: flex-end !important;
-}
-
-/* Direct selector for the LOG LEVEL section parent */
-#sscribe-debug-level {
-  margin-top: 4px !important;
-}
-
-/* ----------------------------------------------------------
- FIX 3: SEARCH LOGS LABEL (injected via JS)
- These styles will be applied to the JS-injected label.
- ---------------------------------------------------------- */
-.ss-injected-label {
-  display: block !important;
-  font-size: 11px !important;
-  font-weight: 600 !important;
-  letter-spacing: 0.08em !important;
-  text-transform: uppercase !important;
-  color: var(--ss-text-tertiary, #71717a) !important;
-  line-height: 1 !important;
-  margin: 0 0 6px !important;
-  white-space: nowrap !important;
-}
-
-/* ============================================================
- EMERGENCY FIX: Restore hidden state for context panels
- The display:grid !important above overrides jQuery .hide()
- which sets inline style="display:none".
- We must ensure collapsed panels stay hidden.
- ============================================================ */
-
-/* When the plugin hides context panels via jQuery .hide(),
- it sets display:none as an inline style. The !important above
- overrides that. Fix: use [aria-expanded="false"] on the parent
- button to hide the associated context div. */
-.sscribe-debug-entries > button[aria-expanded="false"] + [id^="sscribe-debug-ctx-"],
-.sscribe-debug-entries > button[aria-expanded="false"] ~ [id^="sscribe-debug-ctx-"] {
-  display: none !important;
-}
-
-/* Only show the grid layout when aria-expanded is true */
-.sscribe-debug-entries > button[aria-expanded="true"] + [id^="sscribe-debug-ctx-"],
-.sscribe-debug-entries > button[aria-expanded="true"] ~ [id^="sscribe-debug-ctx-"] {
-  display: grid !important;
-  grid-template-columns: minmax(120px, auto) 1fr !important;
-  gap: 2px 12px !important;
-  width: 100% !important;
-  min-width: 0 !important;
-  max-width: 100% !important;
-  padding: 10px 16px 12px !important;
-  background: #1a1a2e !important;
-  border-top: 1px solid rgb(255 255 255 / 7%) !important;
-  box-sizing: border-box !important;
-  overflow: hidden !important;
-  white-space: normal !important;
-}
-
-/* Only override to grid when the button is explicitly expanded */
-.sscribe-debug-entries > button[aria-expanded="true"] + [id^="sscribe-debug-ctx-"],
-.sscribe-debug-entries > button[aria-expanded="true"] ~ [id^="sscribe-debug-ctx-"],
-[id^="sscribe-debug-ctx-"].sscribe-ctx-visible {
-  display: grid !important;
-}
-
-/* ============================================================
- FINAL AUTHORITATIVE FIX: Context panel display management
- REMOVE the display:grid !important  -  let jQuery own display.
- Only apply layout styles when the panel IS visible.
- Use :not([style*="display: none"]) to target only shown panels.
- ============================================================ */
-
-/* Reset: remove display overrides from previous rules.
- The [id^="sscribe-debug-ctx-"] rules above used display !important.
- These rules below restore jQuery control over visibility. */
-
-/* Context panels: default hidden (let original plugin CSS handle it) */
-[id^="sscribe-debug-ctx-"]:not([style*="display: block"], [style*="display:block"], [style*="display: grid"], [style*="display:grid"]) {
-  display: none !important;
-}
-
-/* Context panels: when jQuery shows them (display:block or display:grid or empty style) */
-[id^="sscribe-debug-ctx-"][style*="display: block"],
-[id^="sscribe-debug-ctx-"][style*="display:block"],
-[id^="sscribe-debug-ctx-"][style=""],
-.sscribe-debug-entries > button[aria-expanded="true"] + [id^="sscribe-debug-ctx-"],
-.sscribe-debug-entries > button[aria-expanded="true"] ~ [id^="sscribe-debug-ctx-"] {
-  display: grid !important;
-  grid-template-columns: minmax(130px, auto) 1fr !important;
-  gap: 2px 16px !important;
-  width: 100% !important;
-  min-width: 0 !important;
-  max-width: 100% !important;
-  box-sizing: border-box !important;
-  padding: 10px 16px 14px !important;
-  background: #12122a !important;
-  border-top: 1px solid rgb(255 255 255 / 8%) !important;
-  overflow: hidden !important;
-  white-space: normal !important;
-}
-
-/* ============================================================
- CLASS-BASED CONTEXT PANEL VISIBILITY (via MutationObserver)
- The JS observer adds .sscribe-ctx-open when panel is shown.
- This is the ONLY authoritative display rule  -  no !important
- battles with jQuery inline styles.
- ============================================================ */
-
-/* Open state  -  JS adds this class via MutationObserver */
-[id^="sscribe-debug-ctx-"].sscribe-ctx-open {
-  display: grid !important;
-  grid-template-columns: minmax(130px, auto) 1fr;
-  gap: 10px 20px;
-  width: 100%;
-  min-width: 0;
-  max-width: 100%;
-  box-sizing: border-box;
-  padding: 16px 20px 20px;
-  background: #12122a;
-  border-top: 1px solid rgb(255 255 255 / 8%);
-  overflow: hidden;
-  white-space: normal;
-}
-
-/* PATCH-3: removed (was duplicating #sscribe-debug-level rule) */
-
-/* ── Context-panel expand / collapse ─────────────────────────────────── */
-.sscribe-debug-entry.expanded .sscribe-debug-entry-context {
-  display: grid !important;
-  gap: 10px 24px;
-  width: 100%;
-  border-collapse: collapse;
-  margin-top: 6px;
-  padding: 16px 20px 20px;
-  background: rgb(255 255 255 / 5%);
-  border-radius: 4px;
-  overflow: visible;
-}
-
-.sscribe-debug-entry.expanded .sscribe-debug-entry-context td {
-  padding: 4px 8px;
-  font-size: 12px;
-  vertical-align: top;
-  border-top: 1px solid rgb(255 255 255 / 8%);
-  word-break: break-all;
-}
-
-.sscribe-debug-entry.expanded .sscribe-debug-entry-context td:first-child {
-  font-weight: 600;
-  color: #93c5fd;
-  white-space: nowrap;
-  min-width: 120px;
-  width: 30%;
-}
-
-/* Entry layout: column when expanded so context shows below header */
-.sscribe-debug-entry.expanded {
-  flex-direction: column;
-  align-items: stretch;
-}
-
-[id^="sscribe-debug-ctx-"].sscribe-ctx-open > * {
-  line-height: 1.7 !important;
-  font-size: 12.5px !important;
-}
-
-[id^="sscribe-debug-ctx-"].sscribe-ctx-open > *:nth-child(odd) {
-  font-weight: 600 !important;
-  color: rgb(255 255 255 / 60%) !important;
-  opacity: 1 !important;
-}
-
-[id^="sscribe-debug-ctx-"].sscribe-ctx-open > *:nth-child(even) {
-  color: rgb(255 255 255 / 90%) !important;
-}
-
-.sscribe-debug-entry.expanded .sscribe-debug-entry-context > * {
-  font-size: 12.5px !important;
-  line-height: 1.65 !important;
-  align-self: start !important;
-}
-
-.sscribe-debug-entry.expanded .sscribe-debug-entry-context > *:nth-child(odd) {
-  font-weight: 600 !important;
-  color: rgb(255 255 255 / 55%) !important;
-  letter-spacing: 0.01em !important;
-}
-
-.sscribe-debug-entry.expanded .sscribe-debug-entry-context > *:nth-child(even) {
-  color: rgb(255 255 255 / 92%) !important;
-  overflow-wrap: anywhere !important;
-  white-space: pre-wrap !important;
-}
-
-/* ===== HIGH-SPECIFICITY GAP OVERRIDE =====
- * The active display rule is:
- * .sscribe-debug-entries > button[aria-expanded="true"] ~ [id^="sscribe-debug-ctx-"]
- * with specificity (0,3,1) and gap: 2px 16px !important
- * We override with ID-based selector (1,2,1) > (0,3,1)
- */
-#sscribe-debug-entries > button[aria-expanded="true"] ~ [id^="sscribe-debug-ctx-"],
-#sscribe-debug-entries > [aria-expanded="true"] + [id^="sscribe-debug-ctx-"],
-#sscribe-debug-entries > [aria-expanded="true"] ~ [id^="sscribe-debug-ctx-"] {
-  gap: 12px 24px !important;
-  padding: 16px 20px 20px !important;
-  overflow: visible !important;
-}
-
-#sscribe-debug-entries > button[aria-expanded="true"] ~ [id^="sscribe-debug-ctx-"] > *,
-#sscribe-debug-entries > [aria-expanded="true"] ~ [id^="sscribe-debug-ctx-"] > * {
-  font-size: 12.5px !important;
-  line-height: 1.65 !important;
-  align-self: start !important;
-}
-
-#sscribe-debug-entries > button[aria-expanded="true"] ~ [id^="sscribe-debug-ctx-"] > *:nth-child(odd),
-#sscribe-debug-entries > [aria-expanded="true"] ~ [id^="sscribe-debug-ctx-"] > *:nth-child(odd) {
-  font-weight: 600 !important;
-  color: rgb(255 255 255 / 55%) !important;
-  letter-spacing: 0.01em !important;
-}
-
-#sscribe-debug-entries > button[aria-expanded="true"] ~ [id^="sscribe-debug-ctx-"] > *:nth-child(even),
-#sscribe-debug-entries > [aria-expanded="true"] ~ [id^="sscribe-debug-ctx-"] > *:nth-child(even) {
-  color: rgb(255 255 255 / 92%) !important;
-  overflow-wrap: anywhere !important;
-  white-space: pre-wrap !important;
-}
-
-/* ============================================================
- DEBUG CONSOLE  -  enterprise polish pass
- Mirrors the admin.css revamp v2 tokens, scoped to the
- console's dark terminal palette. Type utilities, motion,
- focus rings, reduced motion, forced colors, and print.
- ============================================================ */
-
-/* ── TYPE UTILITY CLASSES ──────────────────────────────────── */
-
-.sscribe-debug-type-display {
-  font-size: var(--ss-text-display);
-  line-height: var(--ss-text-display-lh);
-  letter-spacing: var(--ss-text-display-ls);
-  font-weight: var(--ss-text-display-fw);
-  color: rgb(255 255 255 / 96%);
-  margin: 0;
-}
-
-.sscribe-debug-type-h2 {
-  font-size: var(--ss-text-h2);
-  line-height: var(--ss-text-h2-lh);
-  letter-spacing: var(--ss-text-h2-ls);
-  font-weight: var(--ss-text-h2-fw);
-  color: rgb(255 255 255 / 96%);
-  margin: 0;
-}
-
-.sscribe-debug-type-body {
-  font-size: var(--ss-text-body);
-  line-height: var(--ss-text-body-lh);
-  color: rgb(255 255 255 / 75%);
-}
-
-.sscribe-debug-type-label {
-  font-size: var(--ss-text-label);
-  font-weight: var(--ss-text-label-fw);
-  letter-spacing: var(--ss-text-label-ls);
-  text-transform: uppercase;
-  color: rgb(255 255 255 / 55%);
-}
-
-.sscribe-debug-type-numeric {
-  font-family: var(--ss-font-mono);
-  font-variant-numeric: tabular-nums;
-  font-feature-settings: "tnum" 1, "lnum" 1;
-}
-
-/* ── MOTION TOKENS (consumed by JS-added transition helpers) ─ */
-
-.sscribe-debug-fade-in {
-  transition: opacity var(--ss-motion-base) var(--ss-easing);
-}
-
-.sscribe-debug-pulse {
-  transition: background-color var(--ss-motion-fast) var(--ss-easing);
-}
-
-/* ── FOCUS RING REINFORCEMENT (debug-specific elements) ───── */
-
-.sscribe-debug-help-btn:focus-visible,
-.sscribe-debug-refresh-btn:focus-visible,
-.sscribe-debug-filter-select:focus-visible,
-.sscribe-debug-search-input:focus-visible,
-.sscribe-debug-entry:focus-visible,
-.sscribe-debug-tab:focus-visible {
-  outline: var(--ss-focus-ring) solid var(--ss-focus-color);
-  outline-offset: var(--ss-focus-offset);
-}
-
-/* ── REDUCED MOTION ────────────────────────────────────────── */
-
-@media (prefers-reduced-motion: reduce) {
-  /* stylelint-disable declaration-no-important */
- .sscribe-debug-console-card,
- .sscribe-debug-console-card * {
- transition-duration: 0ms !important;
- animation-duration: 0ms !important;
- animation-iteration-count: 1 !important;
- scroll-behavior: auto !important;
-  }
-  /* stylelint-enable declaration-no-important */
-}
-
-/* ── FORCED COLORS (Windows High Contrast) ─────────────────── */
 
 @media (forced-colors: active) {
- .sscribe-debug-help-btn:focus-visible,
- .sscribe-debug-refresh-btn:focus-visible,
- .sscribe-debug-filter-select:focus-visible,
- .sscribe-debug-search-input:focus-visible,
- .sscribe-debug-entry:focus-visible,
- .sscribe-debug-tab:focus-visible {
- /* stylelint-disable declaration-no-important */
- outline: 3px solid Highlight !important;
- outline-offset: 2px !important;
- /* stylelint-enable declaration-no-important */
-  }
-
- .sscribe-debug-dot-red,
- .sscribe-debug-dot-yellow,
- .sscribe-debug-dot-green,
- .sscribe-debug-level-error,
- .sscribe-debug-level-critical,
- .sscribe-debug-level-alert,
- .sscribe-debug-level-emergency {
- background: Highlight;
- color: HighlightText;
-  }
-
-  /* Safari does not support forced-color-adjust; the opt-out below only
- applies in engines that also implement forced-colors (Edge, Chrome,
- Firefox 113+). Safari silently skips the @supports wrapper and keeps
- the Highlight/HighlightText pair above. */
-  @supports (forced-color-adjust: none) {
- .sscribe-debug-dot-red,
- .sscribe-debug-dot-yellow,
- .sscribe-debug-dot-green,
- .sscribe-debug-level-error,
- .sscribe-debug-level-critical,
- .sscribe-debug-level-alert,
- .sscribe-debug-level-emergency {
- forced-color-adjust: none;
- }
-  }
-}
-
-/* ── PRINT ─────────────────────────────────────────────────── */
-
-@media print {
- .sscribe-debug-console-card {
- background: #fff !important;
- color: #000 !important;
-  }
-
- .sscribe-debug-console-header,
- .sscribe-debug-toolbar {
- /* stylelint-disable declaration-no-important */
- background: #fff !important;
- color: #000 !important;
- border-bottom: 1px solid #000 !important;
- /* stylelint-enable declaration-no-important */
-  }
-
- .sscribe-debug-dot-red,
- .sscribe-debug-dot-yellow,
- .sscribe-debug-dot-green {
- /* stylelint-disable declaration-no-important */
- display: none !important;
- /* stylelint-enable declaration-no-important */
-  }
-
- .sscribe-debug-entry {
- /* stylelint-disable declaration-no-important */
- border-bottom: 1px solid #ccc !important;
- break-inside: avoid;
- /* stylelint-enable declaration-no-important */
-  }
-
- .sscribe-debug-context-panel {
- /* stylelint-disable declaration-no-important */
- background: #f5f5f5 !important;
- color: #000 !important;
- /* stylelint-enable declaration-no-important */
-  }
-}
-
-/* v3 component library alignment (additive) */
-
-.sscribe-debug-terminal {
-  --ss-debug-fg: #d4d4d8;
-  --ss-debug-fg-muted: #8b8b96;
-  --ss-debug-accent: #4d8a6a;
-  --ss-debug-divider: #27272a;
-}
-
-.sscribe-debug-master .sscribe-empty-state {
-  padding: 48px 24px;
-}
-
-.sscribe-debug-master .sscribe-progress {
-  margin: 12px 0;
-}
-
-.sscribe-debug-master .sscribe-chip-success {
-  background: var(--ss-success-bg);
-  color: var(--ss-success);
-}
-
-.sscribe-debug-master .sscribe-chip-error {
-  background: var(--ss-error-bg);
-  color: var(--ss-error);
+	.sscribe-debug-entry:focus-visible,
+	.sscribe-help-close:focus-visible {
+		outline: 3px solid Highlight;
+	}
 }

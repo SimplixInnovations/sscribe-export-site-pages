@@ -208,4 +208,26 @@ class SScribe_Privacy_Storage_Test extends TestCase {
 		$this->assertCount( 1, $session->get_sessions_for_user( 8 ) );
 		$this->assertNotNull( $session->get( $other_session_id ) );
 	}
+
+	public function test_get_sessions_for_user_applies_limit_and_offset_after_sorting(): void {
+		$session = new SScribe_Session();
+
+		foreach ( array( 10, 20, 30 ) as $page_id ) {
+			$session->create(
+				array(
+					'user_id'   => 7,
+					'page_ids'  => array( $page_id ),
+					'total'     => 1,
+					'processed' => 0,
+				)
+			);
+		}
+
+		$all_sessions = $session->get_sessions_for_user( 7 );
+		$page          = $session->get_sessions_for_user( 7, 1, 1 );
+
+		$this->assertCount( 3, $all_sessions );
+		$this->assertCount( 1, $page );
+		$this->assertSame( $all_sessions[1]['session_id'], $page[0]['session_id'] );
+	}
 }

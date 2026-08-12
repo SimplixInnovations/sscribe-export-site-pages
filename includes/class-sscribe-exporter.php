@@ -33,7 +33,7 @@ use SScribeVendor\PhpOffice\PhpWord\SimpleType\Jc;
  *  - `SScribe_DOCX_Exporter`     : PhpWord (DOCX)
  *  - `SScribe_PDF_Exporter`      : mPDF (PDF, via intermediate HTML)
  *  - `SScribe_HTML_Exporter`     : self-contained HTML page
- *  - `SScribe_Markdown_Exporter` : CommonMark
+ *  - `SScribe_Markdown_Exporter` : Markdown
  *
  * Each implements {@see SScribe_Exporter_Interface} and is the public
  * entry point for plugin consumers. This class is retained as the
@@ -74,6 +74,13 @@ final class SScribe_Exporter {
 	 * @var SScribe_Logger_Interface|null
 	 */
 	private ?SScribe_Logger_Interface $logger = null;
+
+	/**
+	 * Filesystem policy checker for the final DOCX path.
+	 *
+	 * @var SScribe_Filesystem
+	 */
+	private SScribe_Filesystem $filesystem;
 
 	/**
 	 * Content parser instance.
@@ -176,6 +183,13 @@ final class SScribe_Exporter {
 	private static bool $shutdown_registered = false;
 
 	/**
+	 * Request-isolated PHPWord scratch directory.
+	 *
+	 * @var string
+	 */
+	private static string $phpword_temp_dir = '';
+
+	/**
 	 * Per-export format options forwarded by SScribe_DOCX_Exporter.
 	 *
 	 * The DOCX exporter calls set_format_options() with the resolved
@@ -192,14 +206,17 @@ final class SScribe_Exporter {
 	 * @param SScribe_Content_Parser|null        $parser           Content parser.
 	 * @param SScribe_DOCX_Content_Renderer|null $content_renderer Content renderer.
 	 * @param SScribe_Logger_Interface|null      $logger           Logger instance.
+	 * @param SScribe_Filesystem|null            $filesystem       Filesystem policy checker.
 	 */
 	public function __construct(
 		?SScribe_Content_Parser $parser = null,
 		?SScribe_DOCX_Content_Renderer $content_renderer = null,
-		?SScribe_Logger_Interface $logger = null
+		?SScribe_Logger_Interface $logger = null,
+		?SScribe_Filesystem $filesystem = null
 	) {
-		$this->parser = $parser ?? new SScribe_Content_Parser();
-		$this->logger = $logger;
+		$this->parser     = $parser ?? new SScribe_Content_Parser();
+		$this->logger     = $logger;
+		$this->filesystem = $filesystem ?? new SScribe_Filesystem();
 
 		/**
 		 * Filter the DOCX color palette.
@@ -207,7 +224,8 @@ final class SScribe_Exporter {
 		 * @since 1.1.2
 		 * @param array<string, string> $colors Color palette array.
 		 */
-		$this->colors = apply_filters( 'sscribe_docx_colors', $this->colors );
+		$filtered_colors = apply_filters( 'sscribe_docx_colors', $this->colors );
+		$filtered_colors = is_array( $filtered_colors ) ? $filtered_colors : array();
 
 		$defaults = array(
 			'primary'  => '4A8263',
@@ -220,8 +238,11 @@ final class SScribe_Exporter {
 			'border'   => 'CCCCCC',
 		);
 		foreach ( $defaults as $key => $default_value ) {
-			if ( ! isset( $this->colors[ $key ] ) || ! is_string( $this->colors[ $key ] ) ) {
+			$candidate = $filtered_colors[ $key ] ?? null;
+			if ( ! is_string( $candidate ) || 1 !== preg_match( '/^[0-9A-Fa-f]{6}$/', $candidate ) ) {
 				$this->colors[ $key ] = $default_value;
+			} else {
+				$this->colors[ $key ] = strtoupper( $candidate );
 			}
 		}
 
@@ -268,6 +289,105 @@ final class SScribe_Exporter {
 	 */
 	private function get_format_option( string $key, $default = null ) {
 		return array_key_exists( $key, $this->format_options ) ? $this->format_options[ $key ] : $default;
+	}
+
+	/**
+	 * Normalize a value supplied through collection or filter hooks.
+	 *
+	 * @param mixed  $value   Candidate value.
+	 * @param string $default Fallback value.
+	 * @return string
+	 */
+	private function normalize_scalar_value( $value, string $default = '' ): string {
+		if ( ! is_scalar( $value ) ) {
+			return $default;
+		}
+
+		$value = trim( (string) $value );
+		return '' !== $value ? $value : $default;
+	}
+
+	/**
+	 * Normalize the collected page contract before it reaches strict PhpWord APIs.
+	 *
+	 * @param array<string, mixed> $page_data Raw page data.
+	 * @return array<string, mixed>
+	 */
+	private function normalize_page_data( array $page_data ): array {
+		$string_fields = array(
+			'title',
+			'content',
+			'permalink',
+			'slug',
+			'author',
+			'date_published',
+			'date_modified',
+			'featured_image_url',
+			'featured_image_path',
+			'excerpt',
+			'language',
+		);
+		foreach ( $string_fields as $field ) {
+			$page_data[ $field ] = $this->normalize_scalar_value( $page_data[ $field ] ?? '' );
+		}
+
+		$page_data['title']        = '' !== $page_data['title'] ? $page_data['title'] : __( 'Untitled', 'sscribe-export-site-pages' );
+		$page_data['language']     = 1 === preg_match( '/^[A-Za-z]{2,8}(?:[-_][A-Za-z0-9]{1,8})*$/', $page_data['language'] ) ? $page_data['language'] : 'en';
+		$page_data['id']           = isset( $page_data['id'] ) && is_numeric( $page_data['id'] ) ? absint( $page_data['id'] ) : 0;
+		$page_data['word_count']   = isset( $page_data['word_count'] ) && is_numeric( $page_data['word_count'] ) ? max( 0, (int) $page_data['word_count'] ) : 0;
+		$page_data['reading_time'] = isset( $page_data['reading_time'] ) && is_numeric( $page_data['reading_time'] ) ? max( 0.0, (float) $page_data['reading_time'] ) : 0.0;
+
+		$seo = isset( $page_data['seo'] ) && is_array( $page_data['seo'] ) ? $page_data['seo'] : array();
+		foreach ( array( 'source', 'meta_title', 'meta_description', 'focus_keyword', 'canonical_url' ) as $field ) {
+			$seo[ $field ] = $this->normalize_scalar_value( $seo[ $field ] ?? '' );
+		}
+		$page_data['seo'] = $seo;
+
+		$breadcrumbs = isset( $page_data['breadcrumbs'] ) && is_array( $page_data['breadcrumbs'] ) ? $page_data['breadcrumbs'] : array();
+		$page_data['breadcrumbs'] = array();
+		foreach ( array_slice( $breadcrumbs, 0, 100 ) as $crumb ) {
+			if ( ! is_array( $crumb ) ) {
+				continue;
+			}
+			$page_data['breadcrumbs'][] = array(
+				'title' => $this->normalize_scalar_value( $crumb['title'] ?? '' ),
+				'url'   => $this->normalize_scalar_value( $crumb['url'] ?? '' ),
+			);
+		}
+
+		$children = isset( $page_data['children'] ) && is_array( $page_data['children'] ) ? $page_data['children'] : array();
+		$page_data['children'] = $this->normalize_child_pages( $children );
+
+		return $page_data;
+	}
+
+	/**
+	 * Normalize the bounded child-page tree used by the DOCX appendix.
+	 *
+	 * @param array<int|string, mixed> $children Raw child rows.
+	 * @param int                      $depth    Current depth.
+	 * @return array<int, array<string, mixed>>
+	 */
+	private function normalize_child_pages( array $children, int $depth = 0 ): array {
+		if ( $depth >= 3 ) {
+			return array();
+		}
+
+		$normalized = array();
+		foreach ( array_slice( $children, 0, 50 ) as $child ) {
+			if ( ! is_array( $child ) ) {
+				continue;
+			}
+
+			$nested       = isset( $child['children'] ) && is_array( $child['children'] ) ? $child['children'] : array();
+			$normalized[] = array(
+				'title'    => $this->normalize_scalar_value( $child['title'] ?? '' ),
+				'url'      => $this->normalize_scalar_value( $child['url'] ?? '' ),
+				'children' => $this->normalize_child_pages( $nested, $depth + 1 ),
+			);
+		}
+
+		return $normalized;
 	}
 
 	/**
@@ -586,35 +706,9 @@ final class SScribe_Exporter {
 			register_shutdown_function(
 				static function (): void {
 					$error = error_get_last();
-					if ( $error && E_ERROR === $error['type'] ) {
-						$upload_dir      = function_exists( 'wp_upload_dir' ) ? wp_upload_dir() : array( 'basedir' => sys_get_temp_dir() );
-						$base            = isset( $upload_dir['basedir'] ) ? (string) $upload_dir['basedir'] : sys_get_temp_dir();
-						$phpword_tempdir = trailingslashit( $base ) . 'sscribe-exports/phpword-scratch/';
-						$temp_patterns   = array(
-							$phpword_tempdir . 'phpword_*.tmp',
-							$phpword_tempdir . 'PhpWord*',
-						);
-						foreach ( $temp_patterns as $temp_pattern ) {
-							$temp_files = glob( $temp_pattern );
-							if ( is_array( $temp_files ) ) {
-								foreach ( $temp_files as $temp_file ) {
-									if ( is_file( $temp_file ) && is_writable( $temp_file ) ) { // phpcs:ignore WordPress.WP.AlternativeFunctions.file_system_operations_is_writable
-										wp_delete_file( $temp_file );
-									} elseif ( is_dir( $temp_file ) ) {
-										$dir_files = glob( $temp_file . '/*' );
-										if ( is_array( $dir_files ) ) {
-											foreach ( $dir_files as $dir_file ) {
-												if ( is_file( $dir_file ) ) {
-													wp_delete_file( $dir_file );
-												}
-											}
-										}
-										// phpcs:ignore WordPress.WP.AlternativeFunctions.file_system_operations_rmdir
-										@rmdir( $temp_file );
-									}
-								}
-							}
-						}
+					$fatal_types = array( E_ERROR, E_CORE_ERROR, E_COMPILE_ERROR, E_USER_ERROR );
+					if ( $error && in_array( $error['type'], $fatal_types, true ) && '' !== self::$phpword_temp_dir ) {
+						SScribe_Security::delete_directory( self::$phpword_temp_dir );
 					}
 				}
 			);
@@ -625,8 +719,10 @@ final class SScribe_Exporter {
 			return false;
 		}
 
+		$page_data = $this->normalize_page_data( $page_data );
+
 		if ( ! is_writable( $output_dir ) ) { // phpcs:ignore WordPress.WP.AlternativeFunctions.file_system_operations_is_writable
-			$this->last_error = 'Output directory is not writable: ' . $output_dir;
+			$this->last_error = 'Output directory is not writable.';
 			$this->get_logger()->error(
 				'DOCX generation failed: output directory not writable',
 				array(
@@ -657,11 +753,9 @@ final class SScribe_Exporter {
 				// dir. Default PHPWord writes to sys_get_temp_dir(), which
 				// sits outside the is_path_safe_for_write() allowlist and
 				// can also fail with a permissions error on hardened hosts.
-				$upload_dir      = function_exists( 'wp_upload_dir' ) ? wp_upload_dir() : array( 'basedir' => sys_get_temp_dir() );
-				$base            = isset( $upload_dir['basedir'] ) ? (string) $upload_dir['basedir'] : sys_get_temp_dir();
-				$phpword_tempdir = trailingslashit( $base ) . 'sscribe-exports/phpword-scratch/';
-				if ( function_exists( 'wp_mkdir_p' ) ) {
-					wp_mkdir_p( $phpword_tempdir );
+				$phpword_tempdir = self::get_phpword_temp_dir();
+				if ( '' === $phpword_tempdir || ! function_exists( 'wp_mkdir_p' ) || ( ! is_dir( $phpword_tempdir ) && ! wp_mkdir_p( $phpword_tempdir ) ) || ! wp_is_writable( $phpword_tempdir ) ) {
+					throw new \RuntimeException( 'The WordPress uploads directory is unavailable for DOCX temporary files.' );
 				}
 				\SScribeVendor\PhpOffice\PhpWord\Settings::setTempDir( $phpword_tempdir );
 			}
@@ -678,7 +772,6 @@ final class SScribe_Exporter {
 				'DOCX generation started',
 				array(
 					'page_id'       => $page_data['id'] ?? 0,
-					'page_title'    => $page_data['title'] ?? 'unknown',
 					'memory_before' => size_format( memory_get_usage( true ) ),
 				)
 			);
@@ -790,6 +883,9 @@ final class SScribe_Exporter {
 
 			$filename    = \SScribe_Exporter_Factory::build_filename( $page_data, $index, $total, 'docx' );
 			$output_path = trailingslashit( $output_dir ) . $filename;
+			if ( SScribe_Filesystem::SSCRIBE_PATH_ALLOWED !== $this->filesystem->is_path_safe_for_write( $output_path ) || is_link( $output_path ) ) {
+				throw new \RuntimeException( 'DOCX output path is outside the plugin-owned export directory.' );
+			}
 
 			$writer = IOFactory::createWriter( $php_word, 'Word2007' );
 			$writer->save( $output_path );
@@ -804,12 +900,12 @@ final class SScribe_Exporter {
 				array(
 					'page_id'     => $page_data['id'] ?? 0,
 					'output_path' => $output_path,
-					'file_size'   => size_format( $file_size ),
+					'file_size'   => false !== $file_size ? size_format( $file_size ) : 'unknown',
 					'memory_now'  => size_format( memory_get_usage( true ) ),
 				)
 			);
 
-			if ( $file_size < $min_size ) {
+			if ( false === $file_size || $file_size < $min_size ) {
 				wp_delete_file( $output_path );
 				unset( $writer, $php_word );
 				throw new \RuntimeException( 'DOCX file size below minimum threshold' );
@@ -949,18 +1045,43 @@ final class SScribe_Exporter {
 	 * @return void
 	 */
 	private function cleanup_phpword_temp_files(): void {
-		$upload_dir  = function_exists( 'wp_upload_dir' ) ? wp_upload_dir() : array( 'basedir' => sys_get_temp_dir() );
-		$base        = isset( $upload_dir['basedir'] ) ? (string) $upload_dir['basedir'] : sys_get_temp_dir();
-		$temp_dir    = trailingslashit( $base ) . 'sscribe-exports/phpword-scratch/';
-		$temp_files  = glob( $temp_dir . 'phpword_*.tmp' );
-
-		if ( is_array( $temp_files ) ) {
-			foreach ( $temp_files as $temp_file ) {
-				if ( is_file( $temp_file ) && is_writable( $temp_file ) ) { // phpcs:ignore WordPress.WP.AlternativeFunctions.file_system_operations_is_writable
-					wp_delete_file( $temp_file );
-				}
-			}
+		$temp_dir = self::get_phpword_temp_dir();
+		if ( '' === $temp_dir || ! is_dir( $temp_dir ) ) {
+			return;
 		}
+
+		if ( SScribe_Security::delete_directory( $temp_dir ) ) {
+			self::$phpword_temp_dir = '';
+		}
+	}
+
+	/**
+	 * Get the plugin-owned PHPWord scratch directory.
+	 *
+	 * @return string Absolute directory path, or an empty string on failure.
+	 */
+	private static function get_phpword_temp_dir(): string {
+		if ( '' !== self::$phpword_temp_dir ) {
+			return self::$phpword_temp_dir;
+		}
+
+		if ( ! function_exists( 'wp_upload_dir' ) ) {
+			return '';
+		}
+
+		$upload_dir = wp_upload_dir();
+		if ( ! empty( $upload_dir['error'] ) || empty( $upload_dir['basedir'] ) ) {
+			return '';
+		}
+
+		try {
+			$token = bin2hex( random_bytes( 12 ) );
+		} catch ( \Throwable $e ) {
+			return '';
+		}
+
+		self::$phpword_temp_dir = trailingslashit( (string) $upload_dir['basedir'] ) . 'sscribe-exports/phpword-scratch/run-' . $token . '/';
+		return self::$phpword_temp_dir;
 	}
 
 	/**
@@ -1384,7 +1505,7 @@ final class SScribe_Exporter {
 			$section->addText(
 				/* translators: Instructions for updating the Table of Contents field in Microsoft Word and LibreOffice. */
 
-				__( 'To update the Table of Contents: Microsoft Word : right-click → Update Field. LibreOffice : press F9 or select Tools → Update → All Fields.', 'sscribe-export-site-pages' ),
+				__( 'To update the Table of Contents: Microsoft Word: right-click, then select Update Field. LibreOffice: press F9 or select Tools, Update, All Fields.', 'sscribe-export-site-pages' ),
 				array(
 					'name'   => $this->font_name,
 					'size'   => 9,
@@ -1481,7 +1602,18 @@ final class SScribe_Exporter {
 			return;
 		}
 
-		$path = $page_data['featured_image_path'];
+		if ( ! class_exists( 'SScribe_Image_Processor' ) ) {
+			require_once SSCRIBE_PLUGIN_DIR . 'includes/class-sscribe-image-processor.php';
+		}
+
+		$path = SScribe_Image_Processor::validate_local_path( (string) $page_data['featured_image_path'] );
+		if ( '' === $path ) {
+			$this->get_logger()->warning(
+				'Featured image skipped: path is outside the uploads directory or unsafe',
+				array( 'page_id' => $page_data['id'] ?? 0 )
+			);
+			return;
+		}
 
 		try {
 			if ( ! is_readable( $path ) ) {
@@ -1502,6 +1634,13 @@ final class SScribe_Exporter {
 						'page_id' => $page_data['id'] ?? 0,
 						'path'    => $path,
 					)
+				);
+				return;
+			}
+			if ( ! SScribe_Image_Processor::are_dimensions_safe( (int) $image_info[0], (int) $image_info[1] ) ) {
+				$this->get_logger()->warning(
+					'Featured image skipped: unsafe dimensions',
+					array( 'page_id' => $page_data['id'] ?? 0 )
 				);
 				return;
 			}
@@ -1528,18 +1667,12 @@ final class SScribe_Exporter {
 					)
 				);
 			} else {
-				$ratio      = $max_width / $width_emu;
-				$width_emu  = $max_width;
+				$ratio      = min( 1, $max_width / $width_emu, $max_height / $height_emu );
+				$width_emu  = (int) ( $width_emu * $ratio );
 				$height_emu = (int) ( $height_emu * $ratio );
-
-				if ( $height_emu > $max_height ) {
-					$ratio      = $max_height / $height_emu;
-					$height_emu = $max_height;
-					$width_emu  = (int) ( $width_emu * $ratio );
-				}
 			}
 
-			$max_image_bytes = (int) apply_filters( 'sscribe_max_featured_image_bytes', 5 * 1024 * 1024 );
+			$max_image_bytes = max( 1, min( 50 * 1024 * 1024, (int) apply_filters( 'sscribe_max_featured_image_bytes', 5 * 1024 * 1024 ) ) );
 			$image_bytes     = @filesize( $path );
 			if ( false !== $image_bytes && $image_bytes > $max_image_bytes ) {
 				$this->get_logger()->warning(

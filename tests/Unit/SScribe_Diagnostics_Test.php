@@ -268,6 +268,80 @@ class SScribe_Diagnostics_Test extends TestCase {
 		$this->assertArrayHasKey( 'status', $result );
 	}
 
+	public function test_temp_cleanup_only_removes_inactive_plugin_temp_directories(): void {
+		$upload_dir = wp_upload_dir();
+		$export_dir = trailingslashit( (string) $upload_dir['basedir'] ) . 'sscribe-exports';
+		$suffix     = bin2hex( random_bytes( 4 ) );
+		$stale_dir  = $export_dir . '/temp-stale-' . $suffix;
+		$active_dir = $export_dir . '/temp-active-' . $suffix;
+		$logs_dir   = $export_dir . '/logs';
+		$zip_file   = $export_dir . '/site-export-' . $suffix . '.zip';
+		$index_file = $export_dir . '/index.php';
+		$old_time   = time() - ( 4 * DAY_IN_SECONDS );
+
+		wp_mkdir_p( $stale_dir );
+		wp_mkdir_p( $active_dir );
+		wp_mkdir_p( $logs_dir );
+		\SScribe_Security::protect_directory( $export_dir );
+		file_put_contents( $stale_dir . '/page.html', 'stale' );
+		file_put_contents( $active_dir . '/page.html', 'active' );
+		file_put_contents( $zip_file, 'archive' );
+		touch( $stale_dir, $old_time );
+		touch( $active_dir, $old_time );
+		touch( $zip_file, $old_time );
+		touch( $logs_dir, $old_time );
+
+		$session    = new \SScribe_Session();
+		$session_id = $session->create(
+			array(
+				'temp_dir' => $active_dir,
+				'status'   => 'processing',
+				'total'    => 1,
+				'processed'=> 0,
+			)
+		);
+
+		try {
+			$method  = new \ReflectionMethod( SScribe_Diagnostics::class, 'clear_old_temp_files' );
+			$cleared = $method->invoke( $this->diagnostics );
+
+			$this->assertSame( 1, $cleared );
+			$this->assertDirectoryDoesNotExist( $stale_dir );
+			$this->assertDirectoryExists( $active_dir );
+			$this->assertDirectoryExists( $logs_dir );
+			$this->assertFileExists( $zip_file );
+			$this->assertFileExists( $index_file );
+		} finally {
+			if ( '' !== $session_id ) {
+				$session->delete( $session_id );
+			}
+			\SScribe_Security::delete_directory( $active_dir );
+			wp_delete_file( $zip_file );
+		}
+	}
+
+	public function test_active_temp_membership_requires_exact_canonical_path(): void {
+		$upload_dir = wp_upload_dir();
+		$export_dir = trailingslashit( (string) $upload_dir['basedir'] ) . 'sscribe-exports';
+		$active_dir = $export_dir . '/temp-a';
+		$other_dir  = $export_dir . '/temp-attacker';
+
+		wp_mkdir_p( $active_dir );
+		wp_mkdir_p( $other_dir );
+
+		try {
+			$normalize  = new \ReflectionMethod( SScribe_Diagnostics::class, 'normalize_path' );
+			$membership = new \ReflectionMethod( SScribe_Diagnostics::class, 'is_temp_dir_in_active_set' );
+			$active     = array( $normalize->invoke( $this->diagnostics, (string) realpath( $active_dir ) ) => true );
+
+			$this->assertTrue( $membership->invoke( $this->diagnostics, $active_dir, $active ) );
+			$this->assertFalse( $membership->invoke( $this->diagnostics, $other_dir, $active ) );
+		} finally {
+			\SScribe_Security::delete_directory( $active_dir );
+			\SScribe_Security::delete_directory( $other_dir );
+		}
+	}
+
 	public function test_get_recommendations_returns_array(): void {
 		$method = new \ReflectionMethod( SScribe_Diagnostics::class, 'get_recommendations' );
 
@@ -297,11 +371,7 @@ class SScribe_Diagnostics_Test extends TestCase {
 			'plugin'     => array( 'label' => 'Plugin', 'items' => array( 'version' => '1.1.2' ) ),
 			'environment' => array( 'label' => 'Env', 'items' => array( 'php' => '8.2' ) ),
 		);
-		$audit              = array();
-		$log_tail           = array();
-
-		$args   = array( $sections, $audit, $log_tail );
-		$result = $method->invokeArgs( $this->diagnostics, $args );
+		$result = $method->invoke( $this->diagnostics, $sections );
 
 		$this->assertIsString( $result );
 	}
@@ -318,11 +388,7 @@ $sections            = array(
 				),
 			),
 		);
-		$audit              = array();
-		$log_tail           = array();
-
-		$args   = array( $sections, $audit, $log_tail );
-		$result = $method->invokeArgs( $this->diagnostics, $args );
+		$result = $method->invoke( $this->diagnostics, $sections );
 
 		$this->assertStringContainsStringIgnoringCase( 'debug', $result );
 	}

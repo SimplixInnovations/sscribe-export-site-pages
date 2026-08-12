@@ -154,17 +154,22 @@ class SScribe_Session {
 
 		global $wpdb;
 
-		$pattern = $wpdb->esc_like( $this->option_prefix ) . '%';
+		$pattern = $wpdb->esc_like( self::OPTION_PREFIX ) . '%';
 
 		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- Scanned index is itself the cache for this hot read path.
 		$rows = $wpdb->get_results(
 			$wpdb->prepare(
-				"SELECT option_name, option_value FROM {$wpdb->options} WHERE option_name LIKE %s AND autoload = 'no'",
+				"SELECT option_name, option_value FROM {$wpdb->options} WHERE option_name LIKE %s",
 				$pattern
 			)
 		);
 
-		$rows = is_array( $rows ) ? $rows : array();
+		$rows = is_array( $rows ) ? array_values(
+			array_filter(
+				$rows,
+				static fn( object $row ): bool => null !== self::extract_session_id( (string) ( $row->option_name ?? '' ) )
+			)
+		) : array();
 		wp_cache_set( 'sscribe_session_options_index', $rows, self::SESSION_INDEX_CACHE_GROUP, MINUTE_IN_SECONDS );
 		return $rows;
 	}
@@ -210,12 +215,8 @@ class SScribe_Session {
 
 	/**
 	 * Initialize the session handler.
-	 *
-	 * @param string $option_prefix Option name prefix.
 	 */
-	public function __construct(
-		private readonly string $option_prefix = self::OPTION_PREFIX
-	) {
+	public function __construct() {
 		$this->logger = SScribe_Logger::instance( SScribe_Logger::is_logging_enabled() );
 	}
 
@@ -253,7 +254,7 @@ class SScribe_Session {
 
 		if ( isset( $GLOBALS['sscribe_test_options'] ) && is_array( $GLOBALS['sscribe_test_options'] ) ) {
 			foreach ( $GLOBALS['sscribe_test_options'] as $key => $value ) {
-				if ( str_starts_with( $key, self::OPTION_PREFIX ) ) {
+				if ( null !== self::extract_session_id( (string) $key ) ) {
 					unset( $GLOBALS['sscribe_test_options'][ $key ] );
 				}
 			}
@@ -267,7 +268,22 @@ class SScribe_Session {
 	 * @return string
 	 */
 	private function get_option_name( string $session_id ): string {
-		return $this->option_prefix . $session_id;
+		return self::OPTION_PREFIX . $session_id;
+	}
+
+	/**
+	 * Extract a valid session ID from a plugin option name.
+	 *
+	 * @param string $option_name Option name to inspect.
+	 * @return string|null The 16-character hexadecimal session ID.
+	 */
+	public static function extract_session_id( string $option_name ): ?string {
+		if ( ! str_starts_with( $option_name, self::OPTION_PREFIX ) ) {
+			return null;
+		}
+
+		$session_id = substr( $option_name, strlen( self::OPTION_PREFIX ) );
+		return 1 === preg_match( '/^[a-f0-9]{16}$/D', $session_id ) ? $session_id : null;
 	}
 
 	/**
@@ -289,7 +305,6 @@ class SScribe_Session {
 			$data['_sig']       = $this->sign_session_id( $session_id );
 			$data['updated_at'] = time();
 
-			$option_name  = $this->get_option_name( $session_id );
 			$encoded_data = wp_json_encode( $data, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES );
 
 			if ( false === $encoded_data ) {
@@ -322,7 +337,7 @@ class SScribe_Session {
 			}
 
 			$encrypted_data = self::$test_mode ? $encoded_data : $this->encrypt_session_data( $encoded_data );
-			$result = add_option( $option_name, $encrypted_data, '', 'no' );
+			$result = add_option( self::OPTION_PREFIX . $session_id, $encrypted_data, '', 'no' );
 			if ( $result ) {
 				$this->invalidate_session_index();
 			}
@@ -342,7 +357,7 @@ class SScribe_Session {
 								'session_id' => $session_id,
 							)
 						);
-						delete_option( $option_name );
+						delete_option( self::OPTION_PREFIX . $session_id );
 						continue;
 					}
 				}
@@ -403,7 +418,7 @@ class SScribe_Session {
 
 		wp_cache_delete( $option_name, 'options' );
 
-		$raw = get_option( $option_name );
+		$raw = get_option( self::OPTION_PREFIX . $session_id );
 
 		if ( false === $raw ) {
 			$this->logger->debug(
@@ -447,7 +462,6 @@ class SScribe_Session {
 							'session_id'  => $session_id,
 							'json_error'  => $json_error,
 							'raw_len'     => strlen( $raw ),
-							'raw_preview' => substr( $raw, 0, 100 ),
 						)
 					);
 					$data = $this->migrate_legacy_session( $session_id, $raw );
@@ -502,32 +516,10 @@ class SScribe_Session {
 		}
 
 		$option_name = $this->get_option_name( $session_id );
-		$lock_key    = 'sscribe_update_lock_' . $session_id;
+		$lock_name   = 'update-' . $session_id;
+		$lock_token  = $this->get_lock_manager()->acquire_lock( $lock_name, 10, 9 );
 
-		$lock_acquired = false;
-		$lock_ttl      = 10;
-		$using_cache   = wp_using_ext_object_cache();
-
-		$base_delay   = 50000;
-		$max_attempts = 6;
-
-		for ( $lock_attempt = 1; $lock_attempt <= $max_attempts; ++$lock_attempt ) {
-			if ( $using_cache ) {
-				if ( wp_cache_add( $lock_key, time(), 'transient', $lock_ttl ) ) {
-					$lock_acquired = true;
-					break;
-				}
-			} elseif ( set_transient( $lock_key, time(), $lock_ttl ) ) {
-				$lock_acquired = true;
-				break;
-			}
-
-			$delay  = $base_delay * ( 2 ** ( $lock_attempt - 1 ) );
-			$jitter = wp_rand( 0, (int) ( $delay * 0.1 ) );
-			usleep( $delay + $jitter );
-		}
-
-		if ( ! $lock_acquired ) {
+		if ( null === $lock_token ) {
 			$this->logger->error(
 				'Failed to acquire session lock (concurrent access)',
 				array( 'session_id' => $session_id )
@@ -596,7 +588,7 @@ class SScribe_Session {
 
 			for ( $attempt = 1; $attempt <= 2; ++$attempt ) {
 				$encrypted_data = $this->encrypt_session_data( $encoded_data );
-				if ( update_option( $option_name, $encrypted_data, false ) ) {
+				if ( update_option( self::OPTION_PREFIX . $session_id, $encrypted_data, false ) ) {
 					$this->invalidate_session_index();
 
 					if ( isset( $merged['user_id'] ) && isset( $merged['status'] ) && in_array( $merged['status'], array( 'complete', 'failed', 'cancelled' ), true ) ) {
@@ -631,12 +623,7 @@ class SScribe_Session {
 			return false;
 
 		} finally {
-
-			if ( $using_cache ) {
-				wp_cache_delete( $lock_key, 'transient' );
-			} else {
-				delete_transient( $lock_key );
-			}
+			$this->get_lock_manager()->release_lock( $lock_name, $lock_token );
 		}
 	}
 
@@ -649,7 +636,7 @@ class SScribe_Session {
 	public function delete( string $session_id ): bool {
 		$session_id = sanitize_key( $session_id );
 
-		if ( empty( $session_id ) ) {
+		if ( empty( $session_id ) || self::SESSION_ID_LENGTH !== strlen( $session_id ) ) {
 			return false;
 		}
 
@@ -662,7 +649,7 @@ class SScribe_Session {
 		}
 
 		$this->delete_page_ids( $session_id );
-		$deleted = delete_option( $option_name );
+		$deleted = delete_option( self::OPTION_PREFIX . $session_id );
 		if ( $deleted ) {
 			$this->invalidate_session_index();
 		}
@@ -832,7 +819,7 @@ class SScribe_Session {
 	public function cleanup_expired( int $max_age_seconds = 14400 ): int {
 		global $wpdb;
 
-		$pattern     = $wpdb->esc_like( $this->option_prefix ) . '%';
+		$pattern     = $wpdb->esc_like( self::OPTION_PREFIX ) . '%';
 		$now         = time();
 		$start_time  = microtime( true );
 		$max_seconds = 30;
@@ -848,7 +835,7 @@ class SScribe_Session {
 			// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- Cleanup operation scans session options in bounded batches; caching not applicable.
 			$options = $wpdb->get_results(
 				$wpdb->prepare(
-					"SELECT option_name, option_value FROM {$wpdb->options} WHERE option_name LIKE %s AND autoload = 'no' AND option_name > %s ORDER BY option_name ASC LIMIT %d",
+					"SELECT option_name, option_value FROM {$wpdb->options} WHERE option_name LIKE %s AND option_name > %s ORDER BY option_name ASC LIMIT %d",
 					$pattern,
 					$cursor,
 					self::SESSION_CLEANUP_BATCH
@@ -856,21 +843,27 @@ class SScribe_Session {
 			);
 
 			foreach ( $options as $option ) {
-				$session_id = str_replace( $this->option_prefix, '', $option->option_name );
+				$cursor     = (string) $option->option_name;
+				$session_id = self::extract_session_id( $cursor );
+				if ( null === $session_id ) {
+					continue;
+				}
 				$data       = $this->decode_session_value( $option->option_value, $session_id );
 
 				if ( ! is_array( $data ) ) {
 					if ( is_string( $option->option_value ) && str_starts_with( $option->option_value, 'a:' ) ) {
-						delete_option( $option->option_name );
-						++$deleted;
+						if ( delete_option( self::OPTION_PREFIX . $session_id ) ) {
+							$this->delete_page_ids( $session_id );
+							$this->get_lock_manager()->discard_lock( $session_id );
+							++$deleted;
+						}
 					}
-					$cursor = $option->option_name;
 					continue;
 				}
 
-				$last_activity = isset( $data['updated_at'] )
-					? max( (int) $data['created_at'], (int) $data['updated_at'] )
-					: (int) $data['created_at'];
+				$created_at    = (int) ( $data['created_at'] ?? 0 );
+				$updated_at    = (int) ( $data['updated_at'] ?? $created_at );
+				$last_activity = max( $created_at, $updated_at );
 
 				if ( $last_activity <= 0 || $last_activity > $now ) {
 					$last_activity = 0;
@@ -879,27 +872,30 @@ class SScribe_Session {
 				$status = $data['status'] ?? '';
 				$age    = $now - $last_activity;
 				if ( 'finalizing' === $status && $age < HOUR_IN_SECONDS ) {
-					$cursor = $option->option_name;
 					continue;
 				}
 
 				if ( isset( $data['created_at'] ) && $last_activity > 0 && ( $now - $last_activity ) > $max_age_seconds ) {
-					if ( delete_option( $option->option_name ) ) {
-
+					if ( delete_option( self::OPTION_PREFIX . $session_id ) ) {
+						$this->delete_page_ids( $session_id );
+						$this->get_lock_manager()->discard_lock( $session_id );
 						if ( isset( $data['user_id'] ) ) {
 							$this->delete_active_sid_transient( (int) $data['user_id'] );
 							unset( self::$active_session_cache[ (int) $data['user_id'] ] );
 						}
 						++$deleted;
 					}
-				} elseif ( ! isset( $data['created_at'] ) ) {
-					delete_option( $option->option_name );
+				} elseif ( ! isset( $data['created_at'] ) && delete_option( self::OPTION_PREFIX . $session_id ) ) {
+					$this->delete_page_ids( $session_id );
+					$this->get_lock_manager()->discard_lock( $session_id );
 					++$deleted;
 				}
-
-				$cursor = $option->option_name;
 			}
 		} while ( ! empty( $options ) );
+
+		if ( $deleted > 0 ) {
+			$this->invalidate_session_index();
+		}
 
 		return $deleted;
 	}
@@ -911,61 +907,77 @@ class SScribe_Session {
 	 * @return int Number of deleted sessions.
 	 */
 	public function clear_user_sessions( int $user_id ): int {
+		if ( $user_id <= 0 ) {
+			return 0;
+		}
+
 		global $wpdb;
 
-		$pattern = $wpdb->esc_like( $this->option_prefix ) . '%';
-
-		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- Cleanup operation scans all session options; caching not applicable for cleanup.
-		$options = $wpdb->get_results(
-			$wpdb->prepare(
-				"SELECT option_name, option_value FROM {$wpdb->options} WHERE option_name LIKE %s AND autoload = 'no'",
-				$pattern
-			)
-		);
-
+		$pattern = $wpdb->esc_like( self::OPTION_PREFIX ) . '%';
 		$deleted = 0;
+		$cursor  = '';
+		$limit   = 500;
 
-		foreach ( $options as $option ) {
-			$session_id = str_replace( $this->option_prefix, '', $option->option_name );
-			$data       = $this->decode_session_value( $option->option_value, $session_id );
+		do {
+			// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- Bounded privacy cleanup scan over plugin-owned options.
+			$options = $wpdb->get_results(
+				$wpdb->prepare(
+					"SELECT option_name, option_value FROM {$wpdb->options} WHERE option_name LIKE %s AND option_name > %s ORDER BY option_name ASC LIMIT %d",
+					$pattern,
+					$cursor,
+					$limit
+				)
+			);
 
-			if ( ! is_array( $data ) ) {
-				continue;
-			}
-
-			if ( isset( $data['user_id'] ) && (int) $data['user_id'] === $user_id ) {
-				if ( delete_option( $option->option_name ) ) {
-					++$deleted;
+			$option_count = count( $options );
+			foreach ( $options as $option ) {
+				$cursor     = (string) $option->option_name;
+				$session_id = self::extract_session_id( $cursor );
+				if ( null === $session_id ) {
+					continue;
+				}
+				$data = $this->decode_session_value( $option->option_value ?? '', $session_id );
+				if ( is_array( $data ) && isset( $data['user_id'] ) && (int) $data['user_id'] === $user_id ) {
+					if ( delete_option( self::OPTION_PREFIX . $session_id ) ) {
+						$this->delete_page_ids( $session_id );
+						$this->get_lock_manager()->discard_lock( $session_id );
+						++$deleted;
+					}
 				}
 			}
-		}
+		} while ( $option_count === $limit );
 
 		$this->delete_active_sid_transient( $user_id );
 		unset( self::$active_session_cache[ $user_id ] );
+		if ( $deleted > 0 ) {
+			$this->invalidate_session_index();
+		}
 
 		return $deleted;
 	}
 
 	/**
-	 * Get all sessions for a user with cursor-based pagination to avoid loading
-	 * all sessions into memory at once (lazy-load pattern). Each batch fetches up
-	 * to 500 sessions and iterates until all matching sessions are retrieved.
+	 * Get sessions for a user with cursor-based, memory-bounded pagination.
 	 *
 	 * @param int $user_id User ID.
+	 * @param int $limit   Maximum matches to return; zero returns all matches.
+	 * @param int $offset  Number of matching sessions to skip.
 	 * @return array Array of session data arrays.
 	 */
-	public function get_sessions_for_user( int $user_id ): array {
+	public function get_sessions_for_user( int $user_id, int $limit = 0, int $offset = 0 ): array {
 		if ( $user_id <= 0 ) {
 			return array();
 		}
+		$limit  = max( 0, min( 500, $limit ) );
+		$offset = max( 0, $offset );
 
 		if ( self::$test_mode && ! empty( $GLOBALS['sscribe_test_options'] ) ) {
 			$test_sessions = array();
 			foreach ( $GLOBALS['sscribe_test_options'] as $option_name => $option_value ) {
-				if ( ! str_starts_with( $option_name, $this->option_prefix ) ) {
+				$session_id = self::extract_session_id( (string) $option_name );
+				if ( null === $session_id ) {
 					continue;
 				}
-				$session_id = str_replace( $this->option_prefix, '', $option_name );
 				$data       = $this->decode_session_value( $option_value, $session_id );
 				if ( ! is_array( $data ) ) {
 					continue;
@@ -982,32 +994,38 @@ class SScribe_Session {
 						return (int) ( $left['updated_at'] ?? 0 ) <=> (int) ( $right['updated_at'] ?? 0 );
 					}
 				);
-				return $test_sessions;
+				return 0 === $limit ? $test_sessions : array_slice( $test_sessions, $offset, $limit );
 			}
 		}
 
 		global $wpdb;
 
-		$pattern = $wpdb->esc_like( $this->option_prefix ) . '%';
+		$pattern = $wpdb->esc_like( self::OPTION_PREFIX ) . '%';
 
 		$sessions = array();
 		$cursor   = '';
-		$limit    = 500;
+		$batch_limit = 500;
+		$matches     = 0;
+		$complete    = false;
 
 		do {
 			// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- Privacy export needs a complete scan of session options.
 			$options = $wpdb->get_results(
 				$wpdb->prepare(
-					"SELECT option_name, option_value FROM {$wpdb->options} WHERE option_name LIKE %s AND autoload = 'no' AND option_name > %s ORDER BY option_name ASC LIMIT %d",
+					"SELECT option_name, option_value FROM {$wpdb->options} WHERE option_name LIKE %s AND option_name > %s ORDER BY option_name ASC LIMIT %d",
 					$pattern,
 					$cursor,
-					$limit
+					$batch_limit
 				)
 			);
 
 			$option_count = count( $options );
 			foreach ( $options as $option ) {
-				$session_id = str_replace( $this->option_prefix, '', $option->option_name );
+				$cursor     = (string) $option->option_name;
+				$session_id = self::extract_session_id( $cursor );
+				if ( null === $session_id ) {
+					continue;
+				}
 				$data       = $this->decode_session_value( $option->option_value ?? '', $session_id );
 
 				if ( ! is_array( $data ) ) {
@@ -1015,18 +1033,26 @@ class SScribe_Session {
 				}
 
 				if ( isset( $data['user_id'] ) && (int) $data['user_id'] === $user_id ) {
-					$sessions[] = $data;
+					if ( $matches >= $offset ) {
+						$sessions[] = $data;
+						if ( $limit > 0 && count( $sessions ) >= $limit ) {
+							$complete = true;
+							break;
+						}
+					}
+					++$matches;
 				}
-				$cursor = $option->option_name;
 			}
-		} while ( $option_count === $limit );
+		} while ( ! $complete && $option_count === $batch_limit );
 
-		usort(
-			$sessions,
-			static function ( array $left, array $right ): int {
-				return (int) ( $left['updated_at'] ?? 0 ) <=> (int) ( $right['updated_at'] ?? 0 );
-			}
-		);
+		if ( 0 === $limit ) {
+			usort(
+				$sessions,
+				static function ( array $left, array $right ): int {
+					return (int) ( $left['updated_at'] ?? 0 ) <=> (int) ( $right['updated_at'] ?? 0 );
+				}
+			);
+		}
 
 		return $sessions;
 	}
@@ -1066,7 +1092,10 @@ class SScribe_Session {
 		$options = $this->load_session_options_index();
 
 		foreach ( $options as $option ) {
-			$session_id = str_replace( $this->option_prefix, '', $option->option_name );
+			$session_id = self::extract_session_id( (string) $option->option_name );
+			if ( null === $session_id ) {
+				continue;
+			}
 			$data       = $this->decode_session_value( $option->option_value ?? '', $session_id );
 
 			if ( ! is_array( $data ) ) {
@@ -1183,12 +1212,12 @@ class SScribe_Session {
 	public function migrate_all_legacy_sessions(): int {
 		global $wpdb;
 
-		$pattern = $wpdb->esc_like( $this->option_prefix ) . '%';
+		$pattern = $wpdb->esc_like( self::OPTION_PREFIX ) . '%';
 
 		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- One-time migration scan across session options.
 		$options = $wpdb->get_results(
 			$wpdb->prepare(
-				"SELECT option_name, option_value FROM {$wpdb->options} WHERE option_name LIKE %s AND autoload = 'no'",
+				"SELECT option_name, option_value FROM {$wpdb->options} WHERE option_name LIKE %s",
 				$pattern
 			)
 		);
@@ -1196,6 +1225,11 @@ class SScribe_Session {
 		$migrated = 0;
 
 		foreach ( $options as $option ) {
+			$session_id = self::extract_session_id( (string) $option->option_name );
+			if ( null === $session_id ) {
+				continue;
+			}
+
 			if ( ! is_string( $option->option_value ) ) {
 				continue;
 			}
@@ -1212,7 +1246,6 @@ class SScribe_Session {
 				continue;
 			}
 
-			$session_id = str_replace( $this->option_prefix, '', (string) $option->option_name );
 			if ( '' !== $session_id && ! isset( $data['_sig'] ) ) {
 				$data['_sig'] = $this->sign_session_id( $session_id );
 			}
@@ -1225,7 +1258,7 @@ class SScribe_Session {
 
 			$encrypted_data = $this->encrypt_session_data( $encoded_data );
 
-			if ( update_option( (string) $option->option_name, $encrypted_data, false ) ) {
+			if ( update_option( self::OPTION_PREFIX . $session_id, $encrypted_data, false ) ) {
 				++$migrated;
 				$this->logger->info(
 					'Migrated legacy serialized session to encrypted JSON storage',
@@ -1235,6 +1268,10 @@ class SScribe_Session {
 					)
 				);
 			}
+		}
+
+		if ( $migrated > 0 ) {
+			$this->invalidate_session_index();
 		}
 
 		return $migrated;
@@ -1316,7 +1353,7 @@ class SScribe_Session {
 
 		$encrypted_data = $this->encrypt_session_data( $encoded_data );
 
-		if ( ! update_option( $this->get_option_name( $session_id ), $encrypted_data, false ) ) {
+		if ( ! update_option( self::OPTION_PREFIX . $session_id, $encrypted_data, false ) ) {
 			$this->logger->warning(
 				'Failed to persist migrated legacy session',
 				array( 'session_id' => $session_id )
@@ -1358,6 +1395,7 @@ class SScribe_Session {
 	 * Get the HMAC signing key.
 	 *
 	 * @return string
+	 * @throws \RuntimeException When a fallback key cannot be persisted.
 	 */
 	private function get_signing_key(): string {
 		if ( defined( 'AUTH_SALT' ) && '' !== AUTH_SALT ) {
@@ -1374,39 +1412,42 @@ class SScribe_Session {
 
 		$secret = get_option( 'sscribe_session_signing_key', '' );
 		if ( '' === $secret ) {
-			$secret = bin2hex( random_bytes( 32 ) );
-			add_option( 'sscribe_session_signing_key', $secret, '', 'no' );
+			$candidate = bin2hex( random_bytes( 32 ) );
+			if ( add_option( 'sscribe_session_signing_key', $candidate, '', 'no' ) ) {
+				return $candidate;
+			}
+
+			// Another request may have initialized the option after our
+			// initial read. Always use the persisted winner so signatures
+			// created concurrently remain verifiable on later requests.
+			$secret = (string) get_option( 'sscribe_session_signing_key', '' );
+			if ( '' === $secret ) {
+				throw new \RuntimeException( 'Unable to persist the SScribe session signing key.' );
+			}
 		}
 
 		return $secret;
 	}
 
 	/**
-	 * Encrypt session data using libsodium (preferred) or legacy AES-256-CBC.
+	 * Encrypt session data using authenticated encryption.
 	 *
 	 * New writes go through {@see sodium_encrypt_session_data()}; the
 	 * result is prefixed with the magic tag `s1:` so the decryptor can
-	 * pick the right algorithm. Legacy AES-encrypted rows (no prefix)
-	 * remain readable via the {@see decrypt_session_data()} fallback
-	 * path and are re-encrypted with sodium on the next write.
-	 *
-	 * The legacy AES path is kept because (a) some existing installs
-	 * may have session rows written by SScribe 1.0.x/1.1.x, and (b)
-	 * it lets the encrypted-data migration be lazy rather than
-	 * blocking. After the next write of every session row, the
-	 * legacy code path can be removed in a follow-up release.
+	 * pick the right algorithm. If sodium is unavailable, AES-256-GCM
+	 * writes use the `o1:` prefix. Legacy AES-CBC rows (no prefix) remain
+	 * readable and are upgraded on their next write.
 	 *
 	 * @param string $data JSON-encoded session data.
-	 * @return string Encrypted data (sodium- or AES-prefixed) or, on
-	 *                hard failure, the original plaintext with a
-	 *                logged error (so the session still functions).
+	 * @return string Authenticated encrypted data.
+	 * @throws \RuntimeException If neither encryption provider succeeds.
 	 */
 	private function encrypt_session_data( string $data ): string {
 		try {
 			return $this->sodium_encrypt_session_data( $data );
 		} catch ( \Throwable $e ) {
 			$this->logger->error(
-				'Sodium session encryption failed; falling back to legacy AES-256-CBC',
+				'Sodium session encryption failed; falling back to AES-256-GCM',
 				array(
 					'exception' => get_class( $e ),
 					'message'   => $e->getMessage(),
@@ -1414,11 +1455,11 @@ class SScribe_Session {
 			);
 		}
 
-		return $this->legacy_aes_encrypt_session_data( $data );
+		return $this->openssl_gcm_encrypt_session_data( $data );
 	}
 
 	/**
-	 * Decrypt session data, trying sodium first then the legacy AES path.
+	 * Decrypt session data according to its version prefix.
 	 *
 	 * The dispatch is prefix-based:
 	 *  - `s1:` → sodium authenticated secretbox.
@@ -1432,6 +1473,9 @@ class SScribe_Session {
 
 		if ( 0 === strpos( $encrypted_data, 's1:' ) ) {
 			return $this->sodium_decrypt_session_data( $encrypted_data );
+		}
+		if ( 0 === strpos( $encrypted_data, 'o1:' ) ) {
+			return $this->openssl_gcm_decrypt_session_data( $encrypted_data );
 		}
 
 		return $this->legacy_aes_decrypt_session_data( $encrypted_data );
@@ -1518,34 +1562,88 @@ class SScribe_Session {
 			throw new \RuntimeException( 'libsodium (sodium_crypto_secretbox_keygen) is not available' );
 		}
 
-		$key = sodium_crypto_secretbox_keygen();
-		add_option( 'sscribe_session_sodium_key', base64_encode( $key ), '', 'no' );
+		$key     = sodium_crypto_secretbox_keygen();
+		$encoded = base64_encode( $key );
+		if ( add_option( 'sscribe_session_sodium_key', $encoded, '', 'no' ) ) {
+			return $key;
+		}
+
+		// A concurrent first write won the add_option() race. Re-read and
+		// use that key instead of returning an unpersisted key that no
+		// future request could use to decrypt this session.
+		$stored = (string) get_option( 'sscribe_session_sodium_key', '' );
+		$key    = base64_decode( $stored, true );
+		if ( false === $key || SODIUM_CRYPTO_SECRETBOX_KEYBYTES !== strlen( $key ) ) {
+			throw new \RuntimeException( 'Unable to persist the SScribe session encryption key.' );
+		}
 
 		return $key;
 	}
 
 	/**
-	 * Legacy AES-256-CBC encryption. Kept for reading data written by
-	 * SScribe 1.0.x / 1.1.x and as a hard-failure fallback if sodium
-	 * is unavailable. New data should never reach this path; the
-	 * `encrypt_session_data()` wrapper prefers sodium first.
+	 * Encrypt session data with authenticated AES-256-GCM.
+	 *
+	 * Output format: `o1:` followed by base64url(nonce || tag || ciphertext).
 	 *
 	 * @param string $data JSON-encoded session data.
-	 * @return string Base64-encoded encrypted data with IV prepended.
+	 * @return string Prefixed authenticated ciphertext.
+	 * @throws \RuntimeException If OpenSSL GCM is unavailable or encryption fails.
 	 */
-	private function legacy_aes_encrypt_session_data( string $data ): string {
-		$key    = $this->get_legacy_aes_key();
-		$iv_len = openssl_cipher_iv_length( 'aes-256-cbc' );
-		$iv     = openssl_random_pseudo_bytes( $iv_len );
-
-		$encrypted = openssl_encrypt( $data, 'aes-256-cbc', $key, OPENSSL_RAW_DATA, $iv );
-
-		if ( false === $encrypted ) {
-			$this->logger->error( 'Failed to encrypt session data (legacy AES)' );
-			return $data;
+	private function openssl_gcm_encrypt_session_data( string $data ): string {
+		if ( ! function_exists( 'openssl_encrypt' ) || ! in_array( 'aes-256-gcm', openssl_get_cipher_methods(), true ) ) {
+			throw new \RuntimeException( 'OpenSSL AES-256-GCM is not available.' );
 		}
 
-		return base64_encode( $iv . $encrypted );
+		$nonce      = random_bytes( 12 );
+		$tag        = '';
+		$ciphertext = openssl_encrypt(
+			$data,
+			'aes-256-gcm',
+			$this->get_legacy_aes_key(),
+			OPENSSL_RAW_DATA,
+			$nonce,
+			$tag,
+			'',
+			16
+		);
+		if ( false === $ciphertext || 16 !== strlen( $tag ) ) {
+			throw new \RuntimeException( 'OpenSSL AES-256-GCM encryption failed.' );
+		}
+
+		return 'o1:' . rtrim( strtr( base64_encode( $nonce . $tag . $ciphertext ), '+/', '-_' ), '=' );
+	}
+
+	/**
+	 * Decrypt an authenticated AES-256-GCM session row.
+	 *
+	 * @param string $encrypted_data String starting with `o1:`.
+	 * @return string|null Decrypted JSON, or null when validation fails.
+	 */
+	private function openssl_gcm_decrypt_session_data( string $encrypted_data ): ?string {
+		if ( ! function_exists( 'openssl_decrypt' ) ) {
+			return null;
+		}
+
+		$encoded = substr( $encrypted_data, 3 );
+		$padding = ( 4 - ( strlen( $encoded ) % 4 ) ) % 4;
+		$raw     = base64_decode( strtr( $encoded, '-_', '+/' ) . str_repeat( '=', $padding ), true );
+		if ( false === $raw || strlen( $raw ) < 29 ) {
+			return null;
+		}
+
+		$nonce      = substr( $raw, 0, 12 );
+		$tag        = substr( $raw, 12, 16 );
+		$ciphertext = substr( $raw, 28 );
+		$plaintext  = openssl_decrypt(
+			$ciphertext,
+			'aes-256-gcm',
+			$this->get_legacy_aes_key(),
+			OPENSSL_RAW_DATA,
+			$nonce,
+			$tag
+		);
+
+		return false === $plaintext ? null : $plaintext;
 	}
 
 	/**
@@ -1555,6 +1653,10 @@ class SScribe_Session {
 	 * @return string|null Decrypted JSON data, or null if decryption fails.
 	 */
 	private function legacy_aes_decrypt_session_data( string $encrypted_data ): ?string {
+		if ( ! function_exists( 'openssl_decrypt' ) ) {
+			return null;
+		}
+
 		$raw = base64_decode( $encrypted_data, true );
 
 		if ( false === $raw || strlen( $raw ) < 16 ) {

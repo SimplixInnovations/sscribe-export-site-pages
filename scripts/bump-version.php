@@ -107,6 +107,14 @@ $locations = array(
 		'label' => 'package.json version',
 		'optional' => true,
 	),
+
+	array(
+		'file' => $root_dir . '/package-lock.json',
+		'pattern' => '/("name":\s*"sscribe-export-site-pages",\s*"version":\s*")' . preg_quote($old_version, '/') . '(")/',
+		'replace' => '${1}' . $new_version . '${2}',
+		'label' => 'package-lock.json project versions',
+		'optional' => true,
+	),
 );
 
 $updated_count = 0;

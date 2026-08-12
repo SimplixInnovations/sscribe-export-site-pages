@@ -48,7 +48,6 @@ class SScribe_Exporter_Factory {
 
 		if ( file_exists( SSCRIBE_PLUGIN_DIR . 'vendor-prefixed/autoload.php' ) ) {
 			require_once SSCRIBE_PLUGIN_DIR . 'vendor-prefixed/autoload.php';
-			require_once SSCRIBE_PLUGIN_DIR . 'includes/sscribe-prefixed-runtime-shim.php';
 			define( 'SSCRIBE_VENDOR_AUTOLOADED', true );
 			return;
 		}
@@ -149,14 +148,14 @@ class SScribe_Exporter_Factory {
 	 * @return string Generated filename.
 	 */
 	public static function build_filename( array $page_data, int $index = 0, int $total = 0, string $extension = 'docx', bool $include_lang = true ): string {
-		$page_id = $page_data['id'] ?? 0;
+		$page_id = absint( $page_data['id'] ?? 0 );
 
-		$raw_title  = $page_data['title'] ?? '';
+		$raw_title = is_scalar( $page_data['title'] ?? null ) ? (string) $page_data['title'] : '';
 		if ( '' !== $raw_title ) {
 			$raw_title = self::sanitize_filename_preserve_unicode( trim( $raw_title ) );
 		}
 
-		$raw_slug   = $page_data['slug'] ?? '';
+		$raw_slug = is_scalar( $page_data['slug'] ?? null ) ? (string) $page_data['slug'] : '';
 		if ( '' !== $raw_slug ) {
 			$raw_slug = self::sanitize_filename_preserve_unicode( trim( $raw_slug ) );
 		}
@@ -173,21 +172,15 @@ class SScribe_Exporter_Factory {
 
 		unset( $include_lang );
 
+		$total      = max( 0, $total );
 		$pad_length = $total > 0 ? strlen( (string) $total ) : 3;
 		$pad_length = max( 3, $pad_length );
 
 		$id_suffix = $page_id > 0 ? '-' . $page_id : '';
 
-		$page_index = $index > 0 ? $index : 1;
-		if ( 0 === $index && $total > 1 ) {
-
-			error_log( // phpcs:ignore WordPress.PHP.DevelopmentFunctions
-				sprintf(
-					'SScribe: build_filename called with index=0 for a multi-page export (%d pages). Filename will use P001.',
-					$total
-				)
-			);
-		}
+		$page_index = max( 1, $index );
+		$extension  = strtolower( $extension );
+		$extension  = 1 === preg_match( '/^[a-z0-9]{1,10}$/D', $extension ) ? $extension : 'bin';
 
 		return sprintf(
 			'P%0' . $pad_length . 'd-%s%s.%s',
@@ -216,7 +209,7 @@ class SScribe_Exporter_Factory {
 
 		$filename = str_replace( "\0", '', $filename );
 
-		$filename = preg_replace( '/[\x00-\x1f\x7f<>:\"\/\\\\|?]/', '', $filename );
+		$filename = preg_replace( '/[\x00-\x1f\x7f<>:\"\/\\\\|?*]/', '', $filename );
 
 		if ( preg_match( '/^(con|prn|aux|nul|com[1-9]|lpt[1-9])(\\.|$)/i', $filename ) ) {
 			$filename = '_' . $filename;
@@ -224,10 +217,12 @@ class SScribe_Exporter_Factory {
 
 		$filename = preg_replace( '/-+/', '-', $filename );
 
-		$filename = trim( $filename, '.-' );
+		$filename = trim( $filename );
+		$filename = rtrim( $filename, '.-' );
 
 		if ( strlen( $filename ) > 200 ) {
-			$filename = substr( $filename, 0, 200 );
+			$filename = mb_strcut( $filename, 0, 200, 'UTF-8' );
+			$filename = rtrim( $filename, ' .-' );
 		}
 
 		return '' !== $filename ? $filename : '_';

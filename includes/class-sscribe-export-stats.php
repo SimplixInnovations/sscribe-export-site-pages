@@ -45,7 +45,24 @@ class SScribe_Export_Stats {
 	 * @return bool
 	 */
 	public function start_export( string $session_id, int $user_id, array $config ): bool {
+		$session_id = $this->normalize_session_id( $session_id );
+		if ( '' === $session_id || $user_id <= 0 ) {
+			return false;
+		}
+
 		global $wpdb;
+		$formats = array_values(
+			array_unique(
+				array_filter(
+					array_map(
+						static fn( $format ): string => is_scalar( $format ) && ! is_bool( $format ) ? sanitize_key( (string) $format ) : '',
+						is_array( $config['formats'] ?? null ) ? $config['formats'] : array()
+					),
+					static fn( string $format ): bool => in_array( $format, array( 'docx', 'pdf', 'html', 'markdown' ), true )
+				)
+			)
+		);
+		$encoded_formats = wp_json_encode( $formats );
 
 		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- Custom table write, no caching for stats integrity
 		$result = $wpdb->insert(
@@ -54,8 +71,8 @@ class SScribe_Export_Stats {
 				'export_session_id' => $session_id,
 				'user_id'           => $user_id,
 				'export_date'       => current_time( 'mysql', true ),
-				'total_pages'       => $config['total_pages'] ?? 0,
-				'formats'           => wp_json_encode( $config['formats'] ?? array() ),
+				'total_pages'       => min( 100000, absint( $config['total_pages'] ?? 0 ) ),
+				'formats'           => false !== $encoded_formats ? $encoded_formats : '[]',
 				'status'            => 'processing',
 			),
 			array( '%s', '%d', '%s', '%d', '%s', '%s' )
@@ -73,7 +90,14 @@ class SScribe_Export_Stats {
 	 * @return bool
 	 */
 	public function update_progress( string $session_id, int $successful_pages, int $failed_pages = 0 ): bool {
+		$session_id = $this->normalize_session_id( $session_id );
+		if ( '' === $session_id ) {
+			return false;
+		}
+
 		global $wpdb;
+		$successful_pages = max( 0, $successful_pages );
+		$failed_pages     = max( 0, $failed_pages );
 
 		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- Custom table write
 		$result = $wpdb->update(
@@ -98,15 +122,24 @@ class SScribe_Export_Stats {
 	 * @return bool
 	 */
 	public function complete_export( string $session_id, array $results = array() ): bool {
+		$session_id = $this->normalize_session_id( $session_id );
+		if ( '' === $session_id ) {
+			return false;
+		}
+
 		global $wpdb;
+		$duration = (float) ( $results['duration'] ?? 0 );
+		$file_size = (float) ( $results['file_size_mb'] ?? 0 );
+		$duration = is_finite( $duration ) ? max( 0.0, $duration ) : 0.0;
+		$file_size = is_finite( $file_size ) ? max( 0.0, $file_size ) : 0.0;
 
 		$data = array(
 			'status'           => 'completed',
-			'successful_pages' => $results['successful_pages'] ?? 0,
-			'failed_pages'     => $results['failed_pages'] ?? 0,
-			'memory_peak'      => $results['memory_peak'] ?? '',
-			'duration_seconds' => $results['duration'] ?? 0,
-			'file_size_mb'     => $results['file_size_mb'] ?? 0,
+			'successful_pages' => max( 0, (int) ( $results['successful_pages'] ?? 0 ) ),
+			'failed_pages'     => max( 0, (int) ( $results['failed_pages'] ?? 0 ) ),
+			'memory_peak'      => mb_substr( sanitize_text_field( (string) ( $results['memory_peak'] ?? '' ) ), 0, 20 ),
+			'duration_seconds' => $duration,
+			'file_size_mb'     => $file_size,
 		);
 
 		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- Custom table write
@@ -129,7 +162,13 @@ class SScribe_Export_Stats {
 	 * @return bool
 	 */
 	public function fail_export( string $session_id, string $error_message ): bool {
+		$session_id = $this->normalize_session_id( $session_id );
+		if ( '' === $session_id ) {
+			return false;
+		}
+
 		global $wpdb;
+		$error_message = mb_substr( sanitize_text_field( $error_message ), 0, 1000 );
 
 		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- Custom table write
 		$result = $wpdb->update(
@@ -409,6 +448,7 @@ class SScribe_Export_Stats {
 	 * @return array
 	 */
 	public function get_recent_exports( int $limit = 10 ): array {
+		$limit = max( 1, min( 100, $limit ) );
 		global $wpdb;
 
 		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
@@ -426,12 +466,16 @@ class SScribe_Export_Stats {
 	 *
 	 * @param int $user_id User ID.
 	 * @param int $limit   Max records to return.
+	 * @param int $offset  Number of records to skip.
 	 * @return array
 	 */
-	public function get_exports_by_user( int $user_id, int $limit = 100 ): array {
+	public function get_exports_by_user( int $user_id, int $limit = 100, int $offset = 0 ): array {
 		if ( $user_id <= 0 ) {
 			return array();
 		}
+
+		$limit  = max( 1, min( 500, $limit ) );
+		$offset = max( 0, $offset );
 
 		global $wpdb;
 
@@ -439,9 +483,10 @@ class SScribe_Export_Stats {
 		return $wpdb->get_results(
 			$wpdb->prepare(
 			// phpcs:ignore WordPress.DB.PreparedSQL.NotPrepared
-				'SELECT * FROM ' . $this->table_name . ' WHERE user_id = %d ORDER BY export_date DESC LIMIT %d',
+				'SELECT * FROM ' . $this->table_name . ' WHERE user_id = %d ORDER BY export_date DESC LIMIT %d OFFSET %d',
 				$user_id,
-				$limit
+				$limit,
+				$offset
 			)
 		);
 	}
@@ -484,6 +529,7 @@ class SScribe_Export_Stats {
 	public function cleanup( int $days = 365 ): int {
 		global $wpdb;
 
+		$days   = max( 1, min( 36500, $days ) );
 		$cutoff = gmdate( 'Y-m-d H:i:s', strtotime( "-{$days} days" ) );
 
 		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
@@ -496,6 +542,17 @@ class SScribe_Export_Stats {
 		);
 		$this->invalidate_stats_cache();
 
-		return $result;
+		return false === $result ? 0 : (int) $result;
+	}
+
+	/**
+	 * Normalize a session identifier for database lookup.
+	 *
+	 * @param string $session_id Raw identifier.
+	 * @return string
+	 */
+	private function normalize_session_id( string $session_id ): string {
+		$session_id = sanitize_key( $session_id );
+		return strlen( $session_id ) <= 64 ? $session_id : '';
 	}
 }

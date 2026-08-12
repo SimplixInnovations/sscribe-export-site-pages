@@ -79,7 +79,7 @@ class SScribe_DOCX_Content_Renderer {
 	 *
 	 * @param SScribe_Content_Parser|null   $parser Content parser.
 	 * @param SScribe_Logger_Interface|null $logger Logger.
-	 * @param array<string, string>         $colors Color palette.
+	 * @param array<string, mixed>          $colors Color palette.
 	 * @param bool                          $is_rtl RTL flag.
 	 * @param string                        $font_name Font name.
 	 * @param int                           $font_size Font size.
@@ -94,7 +94,7 @@ class SScribe_DOCX_Content_Renderer {
 	) {
 		$this->parser = $parser ?? new SScribe_Content_Parser();
 		$this->logger = $logger;
-		$this->colors = ! empty( $colors ) ? $colors : $this->default_colors();
+		$this->colors = $this->sanitize_colors( $colors );
 		$this->is_rtl = $is_rtl;
 		$this->font_name = $font_name;
 		$this->font_size = max( 6, min( 72, $font_size ) );
@@ -116,6 +116,23 @@ class SScribe_DOCX_Content_Renderer {
 			'white' => 'FFFFFF',
 			'border' => 'CCCCCC',
 		);
+	}
+
+	/**
+	 * Merge only valid six-digit hexadecimal colors into the default palette.
+	 *
+	 * @param array<string, mixed> $colors Candidate colors.
+	 * @return array<string, string>
+	 */
+	private function sanitize_colors( array $colors ): array {
+		$sanitized = $this->default_colors();
+		foreach ( $sanitized as $key => $default ) {
+			if ( isset( $colors[ $key ] ) && is_string( $colors[ $key ] ) && 1 === preg_match( '/^[0-9A-Fa-f]{6}$/', $colors[ $key ] ) ) {
+				$sanitized[ $key ] = strtoupper( $colors[ $key ] );
+			}
+		}
+
+		return $sanitized;
 	}
 
 	/**
@@ -266,26 +283,13 @@ class SScribe_DOCX_Content_Renderer {
 	/**
 	 * Update renderer configuration from exporter settings.
 	 *
-	 * @param array<string, string> $colors Color palette.
-	 * @param bool                  $is_rtl RTL flag.
-	 * @param string                $font_name Font name.
-	 * @param int                   $font_size Font size (clamped to 6:72pt range).
+	 * @param array<string, mixed> $colors Color palette.
+	 * @param bool                 $is_rtl RTL flag.
+	 * @param string               $font_name Font name.
+	 * @param int                  $font_size Font size (clamped to 6:72pt range).
 	 */
 	public function sync_config( array $colors, bool $is_rtl, string $font_name, int $font_size ): void {
-
-		$defaults = array(
-			'primary'  => '4A8263',
-			'heading'  => '122119',
-			'body' => '495057',
-			'light_bg' => 'E8EFEB',
-			'link' => '2C6E8A',
-			'code_bg'  => 'F5F6F8',
-			'white' => 'FFFFFF',
-			'border' => 'CCCCCC',
-		);
-
-		$sanitized = array_filter( $colors, 'is_string' );
-		$this->colors = array_merge( $defaults, $sanitized );
+		$this->colors = $this->sanitize_colors( $colors );
 		$this->is_rtl = $is_rtl;
 		$this->font_name = $font_name;
 
@@ -307,7 +311,6 @@ class SScribe_DOCX_Content_Renderer {
 				'Main content skipped: content is empty',
 				array(
 					'page_id' => $page_data['id'] ?? 0,
-					'page_title' => $page_data['title'] ?? 'unknown',
 					'word_count' => $page_data['word_count'] ?? 0,
 				)
 			);
@@ -341,9 +344,7 @@ class SScribe_DOCX_Content_Renderer {
 				'CRITICAL: Content parser returned zero elements',
 				array(
 					'page_id' => $page_data['id'] ?? 0,
-					'page_title' => $page_data['title'] ?? 'unknown',
 					'content_len' => $content_len,
-					'content_preview' => mb_strcut( $content, 0, 500 ),
 				)
 			);
 			return;
@@ -370,7 +371,6 @@ class SScribe_DOCX_Content_Renderer {
 						'page_id' => $page_data['id'] ?? 0,
 						'element_index' => $element_index,
 						'element_type' => $element['type'] ?? 'unknown',
-						'element_content_preview' => substr( $element['content'] ?? '', 0, 100 ),
 						'error_class' => $ex_class,
 						'error_message' => $ex_message,
 						'error_file' => basename( $e->getFile() ) . ':' . $e->getLine(),
@@ -465,10 +465,7 @@ class SScribe_DOCX_Content_Renderer {
 			case 'figcaption':
 				$this->get_logger()->debug(
 					'Standalone figcaption element skipped (expected within figure)',
-					array(
-						'element_type' => 'figcaption',
-						'content' => substr( $element['content'] ?? '', 0, 100 ),
-					)
+					array( 'element_type' => 'figcaption' )
 				);
 				break;
 		}
@@ -864,8 +861,8 @@ class SScribe_DOCX_Content_Renderer {
 	 * @param array   $element Image element data.
 	 */
 	private function render_inline_image( Section $section, array $element ): void {
-		$path = ! empty( $element['local_path'] ) ? $element['local_path'] : '';
-		$src  = ! empty( $element['src'] ) ? $element['src'] : __( 'Unknown URL', 'sscribe-export-site-pages' );
+		$path = ! empty( $element['local_path'] ) ? SScribe_Image_Processor::validate_local_path( (string) $element['local_path'] ) : '';
+		$src  = ! empty( $element['src'] ) && is_string( $element['src'] ) ? $this->validate_url( $element['src'] ) : '';
 
 		if ( empty( $path ) || ! file_exists( $path ) ) {
 			$alt = ! empty( $element['alt'] ) ? $element['alt'] : __( 'No Alt Text Provided', 'sscribe-export-site-pages' );
@@ -880,6 +877,13 @@ class SScribe_DOCX_Content_Renderer {
 				$this->get_para_style( array( 'alignment' => Jc::CENTER ) )
 			);
 		} elseif ( is_readable( $path ) ) {
+			$file_size = filesize( $path );
+			$max_bytes = max( 1, min( 50 * 1024 * 1024, (int) apply_filters( 'sscribe_max_content_image_bytes', 10 * 1024 * 1024 ) ) );
+			if ( false === $file_size || $file_size > $max_bytes ) {
+				$this->get_logger()->warning( 'Content image skipped: file is too large', array( 'src' => $src ) );
+				$section->addTextBreak( 1 );
+				return;
+			}
 
 			$ext = strtolower( pathinfo( $path, PATHINFO_EXTENSION ) );
 			if ( in_array( $ext, array( 'webp', 'avif' ), true ) ) {
@@ -906,8 +910,14 @@ class SScribe_DOCX_Content_Renderer {
 				return;
 			}
 
-			$image_info = getimagesize( $path );
+			// phpcs:ignore WordPress.PHP.NoSilencedErrors.Discouraged -- Invalid image data is handled as a missing image below.
+			$image_info = @getimagesize( $path );
 			if ( $image_info ) {
+				if ( ! SScribe_Image_Processor::are_dimensions_safe( (int) $image_info[0], (int) $image_info[1] ) ) {
+					$this->get_logger()->warning( 'Content image skipped: unsafe dimensions', array( 'src' => $src ) );
+					$section->addTextBreak( 1 );
+					return;
+				}
 
 				$max_width  = Converter::inchToEmu( 8.33 );
 				$width_emu  = Converter::pixelToEmu( $image_info[0] );
@@ -923,8 +933,8 @@ class SScribe_DOCX_Content_Renderer {
 						)
 					);
 				} else {
-					$ratio = $max_width / $width_emu;
-					$width_emu  = $max_width;
+					$ratio      = min( 1, $max_width / $width_emu );
+					$width_emu  = (int) ( $width_emu * $ratio );
 					$height_emu = (int) ( $height_emu * $ratio );
 				}
 
@@ -946,7 +956,7 @@ class SScribe_DOCX_Content_Renderer {
 		 * @param bool $append Whether to append the URL table. Default true.
 		 * @param string $src The image source URL.
 		 */
-		if ( apply_filters( 'sscribe_docx_append_image_url', true, $src ) ) {
+		if ( '' !== $src && apply_filters( 'sscribe_docx_append_image_url', true, $src ) ) {
 			$table = $section->addTable(
 				array(
 					'borderSize'  => 4,

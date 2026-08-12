@@ -91,14 +91,20 @@ class SScribe_SEO_Reader {
 	 * key per page. For a 200-page export on a Yoast-only install, this
 	 * turns 1,400 DB queries into 1.
 	 *
-	 * @param int[] $page_ids Page IDs in the current batch.
+	 * Invalid entries are ignored so extension code cannot accidentally turn a
+	 * malformed ID into post ID 1 through PHP's array-to-integer conversion.
+	 *
+	 * @param array<mixed> $page_ids Page IDs in the current batch.
 	 * @return void
 	 */
 	public function prime_meta_cache( array $page_ids ): void {
 		$page_ids = array_values(
 			array_unique(
 				array_filter(
-					array_map( 'absint', $page_ids ),
+					array_map(
+						static fn( $page_id ): int => is_scalar( $page_id ) && ! is_bool( $page_id ) ? absint( $page_id ) : 0,
+						$page_ids
+					),
 					static fn( $id ) => $id > 0
 				)
 			)
@@ -108,7 +114,7 @@ class SScribe_SEO_Reader {
 			return;
 		}
 
-		// Only prime when SEO plugins are actually present — otherwise the
+		// Only prime when SEO plugins are actually present; otherwise the
 		// readers would return empty results anyway and the cache would
 		// never be hit.
 		if ( ! $this->has_seo_plugin() ) {
@@ -407,7 +413,16 @@ class SScribe_SEO_Reader {
 
 		$focus_keyword = get_post_meta( $page_id, '_aioseop_keywords', true );
 		if ( is_string( $focus_keyword ) && function_exists( 'is_serialized' ) && is_serialized( $focus_keyword, true ) ) {
-			$focus_keyword = maybe_unserialize( $focus_keyword );
+			// phpcs:ignore WordPress.PHP.DiscouragedPHPFunctions.serialize_unserialize -- Legacy AIOSEO stores keyword arrays as serialized post meta; classes are explicitly forbidden.
+			$decoded = @unserialize( trim( $focus_keyword ), array( 'allowed_classes' => false ) );
+			if ( is_array( $decoded ) ) {
+				$focus_keyword = array_values(
+					array_filter(
+						$decoded,
+						static fn( $value ): bool => is_scalar( $value ) || null === $value
+					)
+				);
+			}
 		}
 		if ( is_array( $focus_keyword ) ) {
 			$focus_keyword = implode( ', ', $focus_keyword );

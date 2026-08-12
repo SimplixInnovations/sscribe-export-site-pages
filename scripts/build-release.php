@@ -23,7 +23,7 @@ $config = array(
 	'run_phpcs'        => true,
 	'generate_sha256'  => true,
 	'auto_clean_root'  => true,
-	'strip_comments'   => true,
+	'strip_comments'   => false,
 
 	'mainPluginFile'   => 'sscribe-export-site-pages.php',
 	'readmeFile'       => 'readme.txt',
@@ -31,7 +31,7 @@ $config = array(
 
 	'base_excludes'    => array(
 		'dist', 'vendor', '.git', '.gitignore', '.distignore', '.cache', '.phpunit.cache',
-		'.sisyphus', '.wp-env', 'wordpress', 'wordpress-tests-lib',
+		'.sisyphus', '.wp-env', '.playground-cache', 'wordpress', 'wordpress-tests-lib',
 		'package.json', 'package-lock.json', 'opencode.json', 'CONTRIBUTING.md', 'CHANGELOG.md',
 		'phpunit.xml', 'phpunit.xml.dist', 'phpstan.neon', 'phpstan.neon.dist',
 		'phpcs.xml', 'phpstan-bootstrap.php', '.editorconfig', '.wp-env.json',
@@ -39,6 +39,8 @@ $config = array(
 		'composer.json', 'composer.lock', 'scratch', 'strauss.json', 'infection.json5',
 		'commit-message.txt', '.prettierrc', '.eslintrc.json', '.stylelintrc.json', '.husky',
 		'node_modules', 'screenshots', 'WPScan',
+		'assets/banner-1544x500.svg', 'assets/icon-128x128.svg', 'assets/icon-256x256.svg',
+		'vendor-prefixed/phpoffice/phpword/COPYING.LESSER',
 		// Ad-hoc Python transform scripts left over from one-off
 		// SVG / kses / indent fixes. Nothing in the production code
 		// path executes them; if a future maintainer drops a *.py at
@@ -46,12 +48,9 @@ $config = array(
 		'*.py',
 
 		'phpstan-baseline.neon', 'ruleset.xml', 'CREDITS.txt',
-		// 'COPYING' removed from base_excludes: WordPress.org Plugin
-		// Directory Guideline 1 requires third-party license texts to
-		// ship alongside bundled libraries. Pruning all COPYING files
-		// at segment level (including vendor-prefixed/phpoffice/phpword/
-		// COPYING + COPYING.LESSER) violates that rule. The vendored
-		// license files are now intentionally retained in the ZIP.
+		// Third-party licenses remain in the package. PHPWord's LGPL text
+		// ships as COPYING.LESSER.txt because Plugin Check rejects the
+		// upstream COPYING.LESSER suffix as an unexpected file extension.
 		'.php-cs-fixer.php', '.php-cs-fixer.dist.php', 'mkdocs.yml',
 		'.travis.yml', '.scrutinizer.yml', '.github_changelog_generator',
 
@@ -201,6 +200,10 @@ $config = array(
 $all_excludes = array_unique( array_merge( $config['base_excludes'], $config['font_excludes'], $config['fpdi_excludes'] ?? array() ) );
 
 function rrmdir( string $dir ): void {
+	if ( is_link( $dir ) ) {
+		@unlink( $dir );
+		return;
+	}
 	if ( ! is_dir( $dir ) ) {
 		return;
 	}
@@ -210,7 +213,9 @@ function rrmdir( string $dir ): void {
 			continue;
 		}
 		$path = $dir . '/' . $object;
-		if ( is_dir( $path ) ) {
+		if ( is_link( $path ) ) {
+			@unlink( $path );
+		} elseif ( is_dir( $path ) ) {
 			rrmdir( $path );
 		} else {
 			@unlink( $path );
@@ -417,6 +422,53 @@ function get_distignore_excludes( string $root, string $distignore ): array {
 	return $excludes;
 }
 
+/**
+ * Determine whether a release-relative path matches an exclusion rule.
+ *
+ * Supports the `*` and `?` wildcards used by .distignore. Rules without a
+ * slash also match any individual path segment, preserving the existing
+ * segment-level exclusions for development directories such as `tests`.
+ *
+ * @param string        $relative Relative path using forward slashes.
+ * @param array<string> $excludes Exclusion patterns.
+ * @return bool
+ */
+function is_release_path_excluded( string $relative, array $excludes ): bool {
+	$relative = trim( str_replace( '\\', '/', $relative ), '/' );
+	$segments = explode( '/', $relative );
+
+	foreach ( $excludes as $exclude ) {
+		$exclude = trim( str_replace( '\\', '/', (string) $exclude ), '/' );
+		if ( '' === $exclude ) {
+			continue;
+		}
+
+		$has_wildcard = str_contains( $exclude, '*' ) || str_contains( $exclude, '?' );
+		if ( ! $has_wildcard ) {
+			if ( $relative === $exclude || str_starts_with( $relative, $exclude . '/' ) || ( ! str_contains( $exclude, '/' ) && in_array( $exclude, $segments, true ) ) ) {
+				return true;
+			}
+			continue;
+		}
+
+		$quoted = preg_quote( $exclude, '#' );
+		$regex  = str_replace( array( '\\*', '\\?' ), array( '[^/]*', '[^/]' ), $quoted );
+		if ( str_contains( $exclude, '/' ) ) {
+			if ( 1 === preg_match( '#^' . $regex . '(?:/.*)?$#i', $relative ) ) {
+				return true;
+			}
+		} else {
+			foreach ( $segments as $segment ) {
+				if ( 1 === preg_match( '#^' . $regex . '$#i', $segment ) ) {
+					return true;
+				}
+			}
+		}
+	}
+
+	return false;
+}
+
 function generate_checksum( string $file ): string {
 	return hash_file( 'sha256', $file );
 }
@@ -496,21 +548,14 @@ $dir    = new RecursiveDirectoryIterator( $root, RecursiveDirectoryIterator::SKI
 $filter = new RecursiveCallbackFilterIterator(
 	$dir,
 	static function ( $current ) use ( $root, $excludes ): bool {
+		if ( $current->isLink() ) {
+			return false;
+		}
 		$relative = str_replace( $root . DIRECTORY_SEPARATOR, '', $current->getPathname() );
 		$relative = str_replace( $root . '/', '', $relative );
 		$relative_norm = str_replace( '\\', '/', $relative );
 
-		$segments = explode( '/', $relative_norm );
-
-		foreach ( $excludes as $exclude ) {
-			if ( $relative_norm === $exclude || str_starts_with( $relative_norm, $exclude . '/' ) ) {
-				return false;
-			}
-			if ( in_array( $exclude, $segments, true ) ) {
-				return false;
-			}
-		}
-		return true;
+		return ! is_release_path_excluded( $relative_norm, $excludes );
 	}
 );
 
@@ -523,13 +568,13 @@ foreach ( $iterator as $file ) {
 	$dest     = $plugin_dir . '/' . $relative;
 
 	if ( $file->isDir() ) {
-		if ( ! is_dir( $dest ) ) {
-			mkdir( $dest, 0755, true );
+		if ( ! is_dir( $dest ) && ! mkdir( $dest, 0755, true ) && ! is_dir( $dest ) ) {
+			throw new RuntimeException( 'Unable to create release directory: ' . $relative );
 		}
 	} else {
 		$dest_parent = dirname( $dest );
-		if ( ! is_dir( $dest_parent ) ) {
-			mkdir( $dest_parent, 0755, true );
+		if ( ! is_dir( $dest_parent ) && ! mkdir( $dest_parent, 0755, true ) && ! is_dir( $dest_parent ) ) {
+			throw new RuntimeException( 'Unable to create release parent directory: ' . dirname( $relative ) );
 		}
 		if ( $config['strip_comments'] ) {
 			$ext = strtolower( pathinfo( $file->getPathname(), PATHINFO_EXTENSION ) );
@@ -543,16 +588,36 @@ foreach ( $iterator as $file ) {
 				$src = file_get_contents( $file->getPathname() );
 				file_put_contents( $dest, strip_js_comments( $src ) );
 			} else {
-				copy( $file->getPathname(), $dest );
+				if ( ! copy( $file->getPathname(), $dest ) ) {
+					throw new RuntimeException( 'Unable to copy release file: ' . $relative );
+				}
 			}
 		} else {
-			copy( $file->getPathname(), $dest );
+			if ( ! copy( $file->getPathname(), $dest ) ) {
+				throw new RuntimeException( 'Unable to copy release file: ' . $relative );
+			}
 		}
 		$copied++;
 	}
 }
 
 echo "     ✅ Copied: $copied files\n";
+
+// The upstream PHPWord notice is required for LGPL attribution, but Plugin
+// Check treats its `.LESSER` suffix as a forbidden extension. Copy the exact
+// bytes into the distribution under an accepted text filename even when the
+// generated vendor tree has just been rebuilt from scratch.
+$lgpl_source = $root . '/vendor-prefixed/phpoffice/phpword/COPYING.LESSER';
+$lgpl_destination = $plugin_dir . '/vendor-prefixed/phpoffice/phpword/COPYING.LESSER.txt';
+if ( is_file( $lgpl_source ) ) {
+	if ( ! is_dir( dirname( $lgpl_destination ) ) ) {
+		mkdir( dirname( $lgpl_destination ), 0755, true );
+	}
+	if ( ! copy( $lgpl_source, $lgpl_destination ) ) {
+		echo "     ❌ Failed to normalize the PHPWord LGPL notice filename\n";
+		exit( 1 );
+	}
+}
 
 if ( $config['strip_comments'] ) {
 	echo "  🧹 Stripping non-docblock comments from PHP / CSS / JS files...\n";
@@ -563,28 +628,25 @@ $vendor_dir = $plugin_dir . '/vendor-prefixed';
 if ( is_dir( $vendor_dir ) ) {
 	$prune_patterns = array(
 		'tests', 'docs', '.github', 'samples', 'examples', 'utils', 'bin',
-		'other', /* paragonie/random_compat: phar-build directory */
-		/* paragonie/random_compat: PHP-5 random_bytes() polyfill, dead weight
-		 * on PHP 8.2+ (random_bytes() is native since PHP 7). The package is
-		 * never autoloaded by the plugin or any vendor library. Removing it
-		 * eliminates build_phar.php + psalm-autoload.php in one stroke. */
+		'other',
+		/* PHP 5 polyfill; not autoloaded on the plugin's PHP 8.2+ runtime. */
 		'random_compat',
 		'composer.json', 'composer.lock', 'package.json', 'phpunit.xml',
+		'phpmd.xml.dist', 'phpword.ini.dist',
 		'.gitignore', '.gitattributes', '.travis.yml', '.scrutinizer.yml',
 		'CHANGELOG.md', 'CONTRIBUTING.md', 'README.md', 'CREDITS.txt',
 		'SECURITY.md', /* setasign/fpdi: dev doc, not autoloaded */
 		// LICENSE/COPYING preserved: WordPress.org Plugin Directory
 		// Guideline 1 requires third-party license texts to ship with
 		// the bundled code. Removing them was a WP.org compliance bug.
-		// Stripping them here leaves license.txt's "preserved alongside
+		// Keeping them here leaves license.txt's "preserved alongside
 		// its source" claim accurate, and lets a reviewer grep the ZIP
 		// for a license when checking FPDI/mPDF/PHPWord attribution.
 		'.github_changelog_generator', 'roave-bc-check.yaml',
-		/* paragonie/random_compat: Psalm dev bootstrap, not autoloaded */
+		/* Development-only package files. */
 		'psalm-autoload.php',
 		/* mpdf/mpdf: development-only functions (runtime is functions.php) */
 		'functions-dev.php',
-		/* paragonie/random_compat: phar-builder script */
 		'build_phar.php',
 		/* setasign/fpdi: ad-hoc manual test scripts that read files from
 		 * outside the package directory; not autoloaded, never referenced
@@ -603,10 +665,7 @@ if ( is_dir( $vendor_dir ) ) {
 	);
 
 	$pruned_count = 0;
-	// Extensions that WordPress.org plugin-check rejects outright (shell
-	// scripts, Windows binaries, OS installers). paragonie/random_compat
-	// ships build-phar.sh + build_phar.php which the plugin-check
-	// scanner flags as build artifacts.
+	// Extensions that WordPress.org Plugin Check rejects as build artifacts.
 	$prune_extensions = array( 'sh', 'bat', 'cmd', 'exe', 'msi', 'pkg', 'dmg', 'phar' );
 
 	$v_iterator = new RecursiveIteratorIterator(
@@ -630,6 +689,43 @@ if ( is_dir( $vendor_dir ) ) {
 	}
 	echo "     ✅ Pruned: $pruned_count vendor development artifacts\n";
 }
+
+echo "  Validating distribution contents...\n";
+$distribution_errors = array();
+$required_lgpl_notice = $plugin_dir . '/vendor-prefixed/phpoffice/phpword/COPYING.LESSER.txt';
+if ( ! is_file( $required_lgpl_notice ) ) {
+	$distribution_errors[] = 'Missing normalized PHPWord LGPL notice: vendor-prefixed/phpoffice/phpword/COPYING.LESSER.txt';
+}
+
+$blocked_extensions = array( 'lesser', 'dist', 'sh', 'bat', 'cmd', 'exe', 'msi', 'pkg', 'dmg', 'phar' );
+$allowed_extensionless = array( 'COPYING', 'LICENSE', 'NOTICE' );
+$distribution_iterator = new RecursiveIteratorIterator(
+	new RecursiveDirectoryIterator( $plugin_dir, RecursiveDirectoryIterator::SKIP_DOTS ),
+	RecursiveIteratorIterator::LEAVES_ONLY
+);
+foreach ( $distribution_iterator as $distribution_file ) {
+	if ( ! $distribution_file->isFile() ) {
+		continue;
+	}
+
+	$name      = $distribution_file->getBasename();
+	$extension = strtolower( pathinfo( $name, PATHINFO_EXTENSION ) );
+	$relative  = str_replace( '\\', '/', substr( $distribution_file->getPathname(), strlen( $plugin_dir ) + 1 ) );
+
+	if ( in_array( $extension, $blocked_extensions, true ) ) {
+		$distribution_errors[] = "Forbidden release file type: {$relative}";
+	} elseif ( '' === $extension && ! in_array( $name, $allowed_extensionless, true ) ) {
+		$distribution_errors[] = "Unexpected extensionless release file: {$relative}";
+	}
+}
+
+if ( ! empty( $distribution_errors ) ) {
+	foreach ( $distribution_errors as $distribution_error ) {
+		echo "     ❌ {$distribution_error}\n";
+	}
+	exit( 1 );
+}
+echo "     ✅ Distribution file types and license notices validated\n";
 
 echo "\n===========================================\n";
 echo "  CREATING RELEASE PACKAGE\n";

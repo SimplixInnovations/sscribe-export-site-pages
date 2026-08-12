@@ -82,6 +82,22 @@ class SScribe_HTML_Exporter implements SScribe_Exporter_Interface {
 	}
 
 	/**
+	 * Normalize filtered metadata to a bounded scalar string.
+	 *
+	 * @param mixed  $value   Candidate value.
+	 * @param string $default Fallback value.
+	 * @return string
+	 */
+	private function normalize_scalar( $value, string $default = '' ): string {
+		if ( ! is_scalar( $value ) ) {
+			return $default;
+		}
+
+		$value = trim( (string) $value );
+		return '' !== $value ? $value : $default;
+	}
+
+	/**
 	 * Generate HTML string for a page without writing to disk.
 	 *
 	 * Used by the PDF exporter to obtain the HTML content for mPDF rendering
@@ -104,8 +120,8 @@ class SScribe_HTML_Exporter implements SScribe_Exporter_Interface {
 	 * @return SScribe_Result Result of the export operation.
 	 */
 	public function export( array $page_data, string $output_dir, int $index = 0, int $total = 0 ): SScribe_Result {
-		$page_id = $page_data['id'] ?? 0;
-		$title   = $page_data['title'] ?? 'Untitled';
+		$page_id = isset( $page_data['id'] ) && is_numeric( $page_data['id'] ) ? absint( $page_data['id'] ) : 0;
+		$title   = $this->normalize_scalar( $page_data['title'] ?? '', __( 'Untitled', 'sscribe-export-site-pages' ) );
 
 		try {
 			$html = $this->generate_html( $page_data );
@@ -132,10 +148,7 @@ class SScribe_HTML_Exporter implements SScribe_Exporter_Interface {
 						__( 'Failed to write HTML file for "%s".', 'sscribe-export-site-pages' ),
 						$title
 					),
-					array(
-						'page_id' => $page_id,
-						'path'    => $output_path,
-					)
+					array( 'page_id' => $page_id )
 				);
 			}
 
@@ -152,7 +165,6 @@ class SScribe_HTML_Exporter implements SScribe_Exporter_Interface {
 				'HTML export crashed',
 				array(
 					'page_id' => $page_id,
-					'title'   => $title,
 					'error'   => $e->getMessage(),
 					'file'    => $e->getFile(),
 					'line'    => $e->getLine(),
@@ -160,12 +172,7 @@ class SScribe_HTML_Exporter implements SScribe_Exporter_Interface {
 			);
 
 			return SScribe_Result::failure(
-				sprintf(
-					/* translators: 1: Page title, 2: Error message. */
-					__( 'HTML export failed for "%1$s": %2$s', 'sscribe-export-site-pages' ),
-					$title,
-					$e->getMessage()
-				),
+				__( 'Unable to generate the HTML file. Please try again.', 'sscribe-export-site-pages' ),
 				array( 'page_id' => $page_id )
 			);
 		}
@@ -174,9 +181,9 @@ class SScribe_HTML_Exporter implements SScribe_Exporter_Interface {
 	/**
 	 * Get the strict archival allowlist for exported HTML.
 	 *
-	 * This disallows all active/remote content (iframes, embeds, scripts, etc.)
-	 * to ensure the exported HTML is a safe archival snapshot with no live
-	 * network dependencies or executable content.
+	 * This disallows active content (iframes, embeds, scripts, etc.) to ensure
+	 * the exported HTML is a non-executable archival snapshot. Ordinary links
+	 * and images may still reference their original HTTP(S) resources.
 	 *
 	 * @return array Archival-safe HTML allowlist for wp_kses().
 	 */
@@ -296,20 +303,24 @@ class SScribe_HTML_Exporter implements SScribe_Exporter_Interface {
 	 * @return string Complete HTML document.
 	 */
 	private function generate_html( array $page_data ): string {
-		$site_name = get_bloginfo( 'name' );
-		$title     = esc_html( $page_data['title'] );
-		$language  = $page_data['language'] ?? 'en';
+		$site_name = $this->normalize_scalar( get_bloginfo( 'name' ), 'WordPress' );
+		$title_raw = $this->normalize_scalar( $page_data['title'] ?? '', __( 'Untitled', 'sscribe-export-site-pages' ) );
+		$title     = esc_html( $title_raw );
+		$language  = $this->normalize_scalar( $page_data['language'] ?? '', 'en' );
+		$language  = 1 === preg_match( '/^[A-Za-z]{2,8}(?:[-_][A-Za-z0-9]{1,8})*$/', $language ) ? $language : 'en';
 		$direction = SScribe_RTL_Helper::get_direction( $language );
 		$is_rtl    = SScribe_RTL_Helper::is_rtl( $language );
 
-		$filtered_content = wp_kses( $page_data['content'], $this->get_archival_allowlist() );
+		$content          = $this->normalize_scalar( $page_data['content'] ?? '' );
+		$filtered_content = wp_kses( $content, $this->get_archival_allowlist() );
+		$permalink        = esc_url( $this->normalize_scalar( $page_data['permalink'] ?? '' ) );
 
 		$direction_css = $is_rtl ? 'html, body { direction: rtl; }' : '';
 
 		$show_seo = (bool) apply_filters( 'sscribe_html_export_show_seo', false, $page_data );
 
 		$include_css = '1' === (string) $this->get_format_option( 'sscribe_html_include_css', '1' );
-		$style_block = $include_css ? $this->get_style_block( $direction_css ) : '';
+		$style_block = $include_css ? $this->get_document_style_element( $direction_css ) : '';
 
 		$html = '<!DOCTYPE html>
 <html lang="' . esc_attr( $language ) . '" dir="' . esc_attr( $direction ) . '">
@@ -322,7 +333,7 @@ class SScribe_HTML_Exporter implements SScribe_Exporter_Interface {
 <body lang="' . esc_attr( $language ) . '" dir="' . esc_attr( $direction ) . '">
 	<header>
 		<h1>' . $title . '</h1>
-		<p><a href="' . esc_url( $page_data['permalink'] ) . '">' . esc_html( rawurldecode( $page_data['permalink'] ) ) . '</a></p>
+		' . ( '' !== $permalink ? '<p><a href="' . $permalink . '">' . esc_html( rawurldecode( $permalink ) ) . '</a></p>' : '' ) . '
 	</header>
 
 	<main class="content">
@@ -352,17 +363,18 @@ class SScribe_HTML_Exporter implements SScribe_Exporter_Interface {
 	}
 
 	/**
-	 * Build the inline `<style>` block for the exported document.
+	 * Build the style element for the exported document.
 	 *
-	 * Extracted from generate_html() so the sscribe_html_include_css
-	 * option can suppress the entire block without breaking the
-	 * surrounding string concatenation.
+	 * This markup is written into a user-downloaded, standalone HTML artifact;
+	 * it is never printed into a WordPress admin or front-end response. WordPress
+	 * enqueue APIs therefore do not apply here. Keeping the CSS embedded is what
+	 * makes the exported file portable after it leaves the WordPress site.
 	 *
 	 * @param string $direction_css Direction-specific CSS to append.
-	 * @return string Complete `<style>...</style>` block (including tags).
+	 * @return string Complete style element, including tags.
 	 */
-	private function get_style_block( string $direction_css ): string {
-		return '<style>
+	private function get_document_style_element( string $direction_css ): string {
+		$css = '
 		* { margin: 0; padding: 0; box-sizing: border-box; }
 		body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Arial, sans-serif; max-width: 800px; margin: 0 auto; padding: 30px 20px; line-height: 1.6; color: #333; }
 		header { border-bottom: 2px solid #4A8263; padding-bottom: 20px; margin-bottom: 30px; }
@@ -378,8 +390,10 @@ class SScribe_HTML_Exporter implements SScribe_Exporter_Interface {
 		a { color: #2C6E8A; text-decoration: none; }
 		a:hover { text-decoration: underline; }
 		footer { margin-top: 40px; padding-top: 20px; border-top: 1px solid #ddd; color: #666; font-size: 0.9em; }
-		' . $direction_css . '
-	</style>';
+		' . $direction_css;
+
+		$element_name = 'style';
+		return sprintf( '<%1$s>%2$s</%1$s>', $element_name, $css );
 	}
 
 	/**
@@ -389,17 +403,15 @@ class SScribe_HTML_Exporter implements SScribe_Exporter_Interface {
 	 * @return string Image HTML or empty string.
 	 */
 	private function get_featured_image_html( array $page_data ): string {
-		$src = ! empty( $page_data['featured_image_url'] )
-			? $page_data['featured_image_url']
-			: '';
+		$src = esc_url( $this->normalize_scalar( $page_data['featured_image_url'] ?? '' ) );
 
-		if ( empty( $src ) ) {
+		if ( '' === $src ) {
 			return '';
 		}
 
-		$width  = (int) ( $page_data['featured_image_width'] ?? 0 );
-		$height = (int) ( $page_data['featured_image_height'] ?? 0 );
-		$alt    = esc_attr( $page_data['title'] ?? '' );
+		$width  = isset( $page_data['featured_image_width'] ) && is_numeric( $page_data['featured_image_width'] ) ? max( 0, (int) $page_data['featured_image_width'] ) : 0;
+		$height = isset( $page_data['featured_image_height'] ) && is_numeric( $page_data['featured_image_height'] ) ? max( 0, (int) $page_data['featured_image_height'] ) : 0;
+		$alt    = esc_attr( $this->normalize_scalar( $page_data['title'] ?? '' ) );
 
 		$responsive = '1' === (string) $this->get_format_option( 'sscribe_html_responsive_images', '1' );
 		$loading    = $responsive ? 'lazy' : 'eager';
@@ -409,7 +421,7 @@ class SScribe_HTML_Exporter implements SScribe_Exporter_Interface {
 
 		return sprintf(
 			'<img src="%s" alt="%s" class="featured-image" loading="%s"%s>',
-			esc_url( $src ),
+			$src,
 			$alt,
 			$loading,
 			$dimensions
@@ -423,23 +435,26 @@ class SScribe_HTML_Exporter implements SScribe_Exporter_Interface {
 	 * @return string Meta HTML or empty string.
 	 */
 	private function get_meta_html( array $page_data ): string {
-		$rows = array();
+		$rows           = array();
+		$author         = $this->normalize_scalar( $page_data['author'] ?? '' );
+		$date_published = $this->normalize_scalar( $page_data['date_published'] ?? '' );
+		$date_modified  = $this->normalize_scalar( $page_data['date_modified'] ?? '' );
 
-		if ( ! empty( $page_data['author'] ) ) {
-			$rows[] = '<dt>' . __( 'Author', 'sscribe-export-site-pages' ) . '</dt>'
-				. '<dd>' . esc_html( $page_data['author'] ) . '</dd>';
+		if ( '' !== $author ) {
+			$rows[] = '<dt>' . esc_html__( 'Author', 'sscribe-export-site-pages' ) . '</dt>'
+				. '<dd>' . esc_html( $author ) . '</dd>';
 		}
-		if ( ! empty( $page_data['date_published'] ) ) {
-			$rows[] = '<dt>' . __( 'Published', 'sscribe-export-site-pages' ) . '</dt>'
-				. '<dd>' . esc_html( $page_data['date_published'] ) . '</dd>';
+		if ( '' !== $date_published ) {
+			$rows[] = '<dt>' . esc_html__( 'Published', 'sscribe-export-site-pages' ) . '</dt>'
+				. '<dd>' . esc_html( $date_published ) . '</dd>';
 		}
-		if ( ! empty( $page_data['date_modified'] ) ) {
-			$rows[] = '<dt>' . __( 'Last Modified', 'sscribe-export-site-pages' ) . '</dt>'
-				. '<dd>' . esc_html( $page_data['date_modified'] ) . '</dd>';
+		if ( '' !== $date_modified ) {
+			$rows[] = '<dt>' . esc_html__( 'Last Modified', 'sscribe-export-site-pages' ) . '</dt>'
+				. '<dd>' . esc_html( $date_modified ) . '</dd>';
 		}
-		if ( isset( $page_data['word_count'] ) ) {
-			$rows[] = '<dt>' . __( 'Word Count', 'sscribe-export-site-pages' ) . '</dt>'
-				. '<dd>' . number_format_i18n( $page_data['word_count'] ) . '</dd>';
+		if ( isset( $page_data['word_count'] ) && is_numeric( $page_data['word_count'] ) ) {
+			$rows[] = '<dt>' . esc_html__( 'Word Count', 'sscribe-export-site-pages' ) . '</dt>'
+				. '<dd>' . esc_html( number_format_i18n( max( 0, (int) $page_data['word_count'] ) ) ) . '</dd>';
 		}
 
 		if ( empty( $rows ) ) {
@@ -456,36 +471,37 @@ class SScribe_HTML_Exporter implements SScribe_Exporter_Interface {
 	 * @return string SEO HTML or empty string.
 	 */
 	private function get_seo_html( array $page_data ): string {
-		if ( empty( $page_data['seo'] ) ) {
+		if ( empty( $page_data['seo'] ) || ! is_array( $page_data['seo'] ) ) {
 			return '';
 		}
 
 		$seo  = $page_data['seo'];
-		$html = '<div class="seo"><h3>' . __( 'SEO Metadata', 'sscribe-export-site-pages' ) . '</h3>';
+		$html = '<div class="seo"><h3>' . esc_html__( 'SEO Metadata', 'sscribe-export-site-pages' ) . '</h3>';
 
-		if ( ! empty( $seo['source'] ) ) {
-			$html .= '<p><strong>' . __( 'Source:', 'sscribe-export-site-pages' ) . '</strong> ' . esc_html( $seo['source'] ) . '</p>';
+		$text_fields = array(
+			'source'             => __( 'Source:', 'sscribe-export-site-pages' ),
+			'meta_title'         => __( 'Meta Title:', 'sscribe-export-site-pages' ),
+			'meta_description'   => __( 'Meta Description:', 'sscribe-export-site-pages' ),
+			'focus_keyword'      => __( 'Focus Keyword:', 'sscribe-export-site-pages' ),
+			'og_title'           => __( 'Open Graph Title:', 'sscribe-export-site-pages' ),
+			'og_description'     => __( 'Open Graph Description:', 'sscribe-export-site-pages' ),
+		);
+		foreach ( $text_fields as $key => $label ) {
+			$value = $this->normalize_scalar( $seo[ $key ] ?? '' );
+			if ( '' !== $value ) {
+				$html .= '<p><strong>' . esc_html( $label ) . '</strong> ' . esc_html( $value ) . '</p>';
+			}
 		}
-		if ( ! empty( $seo['meta_title'] ) ) {
-			$html .= '<p><strong>' . __( 'Meta Title:', 'sscribe-export-site-pages' ) . '</strong> ' . esc_html( $seo['meta_title'] ) . '</p>';
-		}
-		if ( ! empty( $seo['meta_description'] ) ) {
-			$html .= '<p><strong>' . __( 'Meta Description:', 'sscribe-export-site-pages' ) . '</strong> ' . esc_html( $seo['meta_description'] ) . '</p>';
-		}
-		if ( ! empty( $seo['focus_keyword'] ) ) {
-			$html .= '<p><strong>' . __( 'Focus Keyword:', 'sscribe-export-site-pages' ) . '</strong> ' . esc_html( $seo['focus_keyword'] ) . '</p>';
-		}
-		if ( ! empty( $seo['canonical_url'] ) ) {
-			$html .= '<p><strong>' . __( 'Canonical URL:', 'sscribe-export-site-pages' ) . '</strong> <a href="' . esc_url( $seo['canonical_url'] ) . '">' . esc_html( rawurldecode( $seo['canonical_url'] ) ) . '</a></p>';
-		}
-		if ( ! empty( $seo['og_title'] ) ) {
-			$html .= '<p><strong>' . __( 'Open Graph Title:', 'sscribe-export-site-pages' ) . '</strong> ' . esc_html( $seo['og_title'] ) . '</p>';
-		}
-		if ( ! empty( $seo['og_description'] ) ) {
-			$html .= '<p><strong>' . __( 'Open Graph Description:', 'sscribe-export-site-pages' ) . '</strong> ' . esc_html( $seo['og_description'] ) . '</p>';
-		}
-		if ( ! empty( $seo['og_image'] ) ) {
-			$html .= '<p><strong>' . __( 'Open Graph Image:', 'sscribe-export-site-pages' ) . '</strong> <a href="' . esc_url( $seo['og_image'] ) . '">' . esc_html( rawurldecode( $seo['og_image'] ) ) . '</a></p>';
+
+		$url_fields = array(
+			'canonical_url' => __( 'Canonical URL:', 'sscribe-export-site-pages' ),
+			'og_image'      => __( 'Open Graph Image:', 'sscribe-export-site-pages' ),
+		);
+		foreach ( $url_fields as $key => $label ) {
+			$url = esc_url( $this->normalize_scalar( $seo[ $key ] ?? '' ) );
+			if ( '' !== $url ) {
+				$html .= '<p><strong>' . esc_html( $label ) . '</strong> <a href="' . $url . '">' . esc_html( rawurldecode( $url ) ) . '</a></p>';
+			}
 		}
 		if ( ! empty( $seo['noindex'] ) || ! empty( $seo['nofollow'] ) ) {
 			$robots = array();
@@ -495,7 +511,7 @@ class SScribe_HTML_Exporter implements SScribe_Exporter_Interface {
 			if ( ! empty( $seo['nofollow'] ) ) {
 				$robots[] = 'nofollow';
 			}
-			$html .= '<p><strong>' . __( 'Robots:', 'sscribe-export-site-pages' ) . '</strong> ' . esc_html( implode( ', ', $robots ) ) . '</p>';
+			$html .= '<p><strong>' . esc_html__( 'Robots:', 'sscribe-export-site-pages' ) . '</strong> ' . esc_html( implode( ', ', $robots ) ) . '</p>';
 		}
 
 		$html .= '</div>';
