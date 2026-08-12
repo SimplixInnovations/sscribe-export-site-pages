@@ -785,6 +785,32 @@ echo "  🔗 Location: dist/sscribe-export-site-pages-{$version}.zip\n";
 echo "  ⏱️  Duration: {$duration}s\n";
 
 echo "\n===========================================\n";
+echo "  POST-BUILD INVARIANT CHECK\n";
+echo "===========================================\n\n";
+
+$invariant_test = $root . '/tests/Unit/SScribe_Shipped_Invariants_Test.php';
+if ( is_file( $invariant_test ) && is_file( $root . '/vendor/bin/phpunit' ) ) {
+	echo "  🔍 Verifying shipped-ZIP invariants (no em-dash, no AI personas, no Co-Authored-By, no rejected headers)...\n";
+	$output = array();
+	$return = 0;
+	exec(
+		'php "' . $root . '/vendor/bin/phpunit" --filter SScribe_Shipped_Invariants_Test --no-coverage 2>&1',
+		$output,
+		$return
+	);
+	if ( 0 !== $return ) {
+		echo "     ❌ Shipped-ZIP invariants FAILED:\n";
+		foreach ( $output as $line ) {
+			echo "     " . $line . "\n";
+		}
+		exit( 1 );
+	}
+	echo "     ✅ Shipped-ZIP invariants verified\n";
+} else {
+	echo "  ⚠️  Invariant test not present; skipping post-build check\n";
+}
+
+echo "\n===========================================\n";
 echo "  READY FOR WORDPRESS.ORG\n";
 echo "===========================================\n\n";
 

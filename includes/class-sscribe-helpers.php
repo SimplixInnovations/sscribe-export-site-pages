@@ -135,6 +135,7 @@ class SScribe_Helpers {
 			return '';
 		}
 
+		// phpcs:ignore WordPress.WP.AlternativeFunctions.file_get_contents_file_get_contents -- Reading a bundled SVG icon from the plugin's own directory; path is built from a strict-validated slug.
 		$raw = file_get_contents( $file_path );
 		if ( false === $raw || '' === $raw ) {
 			return '';
