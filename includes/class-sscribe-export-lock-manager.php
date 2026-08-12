@@ -74,7 +74,7 @@ class SScribe_Export_Lock_Manager {
 		$lock_token   = wp_generate_password( 32, false );
 		$current_time = time();
 		$lock_value   = $current_time . '|' . $lock_token . '|' . ( $current_time + $lock_ttl );
-		$using_cache  = wp_using_ext_object_cache();
+		$using_cache  = (bool) wp_using_ext_object_cache();
 
 		$existing_lock = $using_cache
 			? wp_cache_get( $lock_key, self::CACHE_GROUP )
@@ -154,7 +154,7 @@ class SScribe_Export_Lock_Manager {
 
 		$lock_key    = 'sscribe_lock_' . $session_id;
 		$option_key  = self::OPTION_PREFIX . $session_id;
-		$using_cache = wp_using_ext_object_cache();
+		$using_cache = (bool) wp_using_ext_object_cache();
 
 		$raw = $using_cache
 			? wp_cache_get( $lock_key, self::CACHE_GROUP )
