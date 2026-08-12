@@ -28,7 +28,26 @@ class SScribe_Zip_Handler_Test extends TestCase {
 			array_map( 'unlink', glob( $this->test_export_dir . '/**/*' ) ?: array() );
 			@rmdir( $this->test_export_dir );
 		}
+		unset( $GLOBALS['sscribe_test_current_user'] );
 		parent::tearDown();
+	}
+
+	/**
+	 * Extract a URL's query string into an associative array using only
+	 * native PHP, no bootstrap stubs. Lets the dl_token test assert on
+	 * the URL contents without coupling to wp_parse_url behavior.
+	 *
+	 * @param string $url Full URL.
+	 * @return array<string,string>
+	 */
+	private function parse_query_params( string $url ): array {
+		$query = (string) ( parse_url( $url, PHP_URL_QUERY ) ?? '' );
+		if ( '' === $query ) {
+			return array();
+		}
+		$params = array();
+		parse_str( $query, $params );
+		return $params;
 	}
 
 	public function test_handler_can_be_instantiated(): void {
@@ -321,6 +340,175 @@ class SScribe_Zip_Handler_Test extends TestCase {
 			return (string) $b !== $filename;
 		} ) );
 		update_option( 'sscribe_export_index', $updated_index, false );
+		delete_option( 'sscribe_export_row_' . md5( $filename ) );
+	}
+
+	/**
+	 * Regression for the H1 single-use download token invariant:
+	 * rotate_dl_token() must mint a fresh 32-char hex string each call,
+	 * persist it on the row, and never return the same token twice in
+	 * a row. Without this, consume_dl_token() cannot gate replays.
+	 */
+	public function test_rotate_dl_token_returns_32_char_hex_and_persists(): void {
+		$filename = 'sscribe-token-rotate-' . uniqid() . '.zip';
+		update_option(
+			'sscribe_export_row_' . md5( $filename ),
+			array(
+				'user_id' => 1,
+			),
+			false
+		);
+
+		$token_a = $this->handler->rotate_dl_token( $filename );
+		$this->assertIsString( $token_a );
+		$this->assertMatchesRegularExpression( '/^[a-f0-9]{32}$/', $token_a, 'rotate_dl_token must mint a 32-hex (16-byte) random token.' );
+
+		$token_b = $this->handler->rotate_dl_token( $filename );
+		$this->assertMatchesRegularExpression( '/^[a-f0-9]{32}$/', $token_b );
+		$this->assertNotSame( $token_a, $token_b, 'Two successive rotates must produce distinct tokens.' );
+
+		$row = get_option( 'sscribe_export_row_' . md5( $filename ), array() );
+		$this->assertSame( $token_b, $row['dl_token'] ?? null, 'rotate_dl_token must persist the latest token on the row.' );
+		$this->assertGreaterThan( 0, (int) ( $row['dl_token_at'] ?? 0 ), 'rotate_dl_token must stamp the row with a token-issue time.' );
+
+		delete_option( 'sscribe_export_row_' . md5( $filename ) );
+	}
+
+	/**
+	 * Regression for the H1 single-use download token invariant:
+	 * consume_dl_token() must validate a presented token against the
+	 * stored one with constant-time semantics and rotate the stored
+	 * token immediately on success so a replay cannot succeed even if
+	 * it races before the JS client gets the response.
+	 */
+	public function test_consume_dl_token_succeeds_then_rotates_so_replay_fails(): void {
+		$filename = 'sscribe-token-consume-' . uniqid() . '.zip';
+		$row      = array(
+			'user_id' => 1,
+		);
+		update_option( 'sscribe_export_row_' . md5( $filename ), $row, false );
+
+		$token = $this->handler->rotate_dl_token( $filename );
+		$this->assertNotSame( '', $token );
+
+		// First call with the correct presented token must succeed.
+		$this->assertTrue(
+			$this->handler->consume_dl_token( $filename, $token ),
+			'First redemption of a freshly rotated token must succeed.'
+		);
+
+		// Same token presented again must fail because consume rotated
+		// the stored token immediately on success.
+		$this->assertFalse(
+			$this->handler->consume_dl_token( $filename, $token ),
+			'Replay of an already-consumed token must fail (single-use invariant).'
+		);
+
+		// The stored token must have moved on — capture from option.
+		$row_after = get_option( 'sscribe_export_row_' . md5( $filename ), array() );
+		$this->assertNotSame(
+			$token,
+			$row_after['dl_token'] ?? $token,
+			'consume_dl_token must rotate the stored token on success.'
+		);
+		$this->assertMatchesRegularExpression( '/^[a-f0-9]{32}$/', (string) ( $row_after['dl_token'] ?? '' ) );
+
+		delete_option( 'sscribe_export_row_' . md5( $filename ) );
+	}
+
+	/**
+	 * Regression for the H1 single-use download token invariant:
+	 * a missing or empty presented token must never match. Empty
+	 * strings, malformed input, and tokens issued for a different
+	 * row must all be rejected with false.
+	 */
+	public function test_consume_dl_token_rejects_empty_and_wrong_tokens(): void {
+		$filename = 'sscribe-token-wrong-' . uniqid() . '.zip';
+		update_option(
+			'sscribe_export_row_' . md5( $filename ),
+			array( 'user_id' => 1 ),
+			false
+		);
+		$real_token = $this->handler->rotate_dl_token( $filename );
+		$this->assertNotSame( '', $real_token );
+
+		$this->assertFalse(
+			$this->handler->consume_dl_token( $filename, '' ),
+			'Empty presented token must be rejected.'
+		);
+		$this->assertFalse(
+			$this->handler->consume_dl_token( $filename, 'not-the-token' ),
+			'Wrong presented token must be rejected.'
+		);
+		// A token issued for one row must never accept a token meant for another.
+		$other_filename = 'sscribe-token-other-' . uniqid() . '.zip';
+		update_option(
+			'sscribe_export_row_' . md5( $other_filename ),
+			array( 'user_id' => 1 ),
+			false
+		);
+		$other_token = $this->handler->rotate_dl_token( $other_filename );
+		$this->assertFalse(
+			$this->handler->consume_dl_token( $filename, $other_token ),
+			'Token issued for a different row must be rejected.'
+		);
+
+		// The row token must not have rotated — empty/wrong calls leave the real token intact.
+		$row_after = get_option( 'sscribe_export_row_' . md5( $filename ), array() );
+		$this->assertSame(
+			$real_token,
+			$row_after['dl_token'] ?? null,
+			'Failed consume attempts must not rotate the stored token.'
+		);
+
+		delete_option( 'sscribe_export_row_' . md5( $filename ) );
+		delete_option( 'sscribe_export_row_' . md5( $other_filename ) );
+	}
+
+	/**
+	 * Regression for the H1 single-use download token invariant:
+	 * get_ajax_download_url() must embed a fresh token in the URL, and
+	 * the URL must encode action=sscribe_download, file=, nonce=, and
+	 * token=. The handler-side consume_dl_token() must then accept the
+	 * URL-supplied token exactly once.
+	 */
+	public function test_get_ajax_download_url_embeds_a_single_use_token(): void {
+		$filename = 'sscribe-token-url-' . uniqid() . '.zip';
+		update_option(
+			'sscribe_export_row_' . md5( $filename ),
+			array( 'user_id' => 1 ),
+			false
+		);
+
+		// The bootstrap stub mirrors WP: anonymous = not logged in.
+		// Pin a real WP_User so the production-side auth check passes.
+		$GLOBALS['sscribe_test_current_user'] = new \WP_User( 1 );
+
+		$url = $this->handler->get_ajax_download_url( $filename );
+		$this->assertNotSame( '', $url, 'get_ajax_download_url must produce a URL for a known row.' );
+		$this->assertStringContainsString( 'action=sscribe_download', $url );
+		$this->assertStringContainsString( 'file=' . rawurlencode( $filename ), $url );
+		$this->assertStringContainsString( 'nonce=', $url );
+		$this->assertStringContainsString( 'token=', $url );
+
+		// Pull the embedded token out of the URL with native PHP parse_url
+		// + parse_str so the assertion does not depend on any bootstrap
+		// stub for URL parsing. rawurlencode of a 32-hex string is identity.
+		$params = $this->parse_query_params( $url );
+		$this->assertArrayHasKey( 'token', $params );
+		$this->assertMatchesRegularExpression( '/^[a-f0-9]{32}$/', (string) $params['token'] );
+
+		// Round-trip: the server-side consume_dl_token() must accept the
+		// URL-supplied token exactly once.
+		$this->assertTrue(
+			$this->handler->consume_dl_token( $filename, (string) $params['token'] ),
+			'The URL-supplied token must be redeemable on first use.'
+		);
+		$this->assertFalse(
+			$this->handler->consume_dl_token( $filename, (string) $params['token'] ),
+			'The URL-supplied token must not be reusable after consumption.'
+		);
+
 		delete_option( 'sscribe_export_row_' . md5( $filename ) );
 	}
 }

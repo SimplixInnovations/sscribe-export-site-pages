@@ -215,6 +215,25 @@ class SScribe_Zip_Handler {
 			return false;
 		}
 
+		// Acquire the export-index lock BEFORE the build. Building a
+		// multi-format archive can take longer than the lock TTL, so the
+		// lock serves as a fast-fail gate rather than a strict critical
+		// section: if another export is currently mid-index-update, we
+		// bail out before doing minutes of build work that would be
+		// discarded. The lock_manager reclaims stale locks on its own.
+		$lock_manager = new SScribe_Export_Lock_Manager( $this->logger );
+		$lock_name    = 'export-index';
+		$lock_token   = $lock_manager->acquire_lock( $lock_name, 120, 115 );
+
+		if ( null === $lock_token ) {
+			$this->logger->error(
+				'Export package could not be queued because the export index is busy',
+				array( 'zip' => basename( $zip_path ) )
+			);
+			$this->delete_directory( $source_dir );
+			return false;
+		}
+
 		$zip        = new ZipArchive();
 		$zip_opened = false;
 
@@ -354,26 +373,17 @@ class SScribe_Zip_Handler {
 				);
 				wp_delete_file( $tmp_zip );
 				$this->delete_directory( $source_dir );
+				$lock_manager->release_lock( $lock_name, $lock_token );
 				return false;
 			}
 		} elseif ( file_exists( $tmp_zip ) ) {
 			wp_delete_file( $tmp_zip );
+			$lock_manager->release_lock( $lock_name, $lock_token );
+			$this->delete_directory( $source_dir );
+			return false;
 		}
 
 		$this->delete_directory( $source_dir );
-
-		$lock_manager = new SScribe_Export_Lock_Manager( $this->logger );
-		$lock_name    = 'export-index';
-		$lock_token   = $lock_manager->acquire_lock( $lock_name, 30, 25 );
-
-		if ( null === $lock_token ) {
-			$this->logger->error(
-				'Export package could not be indexed because the export index is busy',
-				array( 'zip' => basename( $zip_path ) )
-			);
-			wp_delete_file( $zip_path );
-			return false;
-		}
 
 		if ( ! $this->verify_zip_integrity( $zip_path ) ) {
 			$this->logger->error(
@@ -617,6 +627,14 @@ class SScribe_Zip_Handler {
 	/**
 	 * Get the AJAX download URL for a ZIP file.
 	 *
+	 * The URL embeds a single-use per-row token (`token=...`) that is
+	 * atomically rotated at URL build time. The export row also stores
+	 * a parallel token, so the server-side download handler can
+	 * validate the presented token via hash_equals and rotate it
+	 * before streaming. Result: the URL is valid for exactly one
+	 * fetch — a replay from browser history, a leaked Slack link, or
+	 * a copied-from-the-server-log request all return 403.
+	 *
 	 * @param string $zip_filename ZIP filename.
 	 * @return string
 	 */
@@ -628,12 +646,87 @@ class SScribe_Zip_Handler {
 		if ( null === $this->cached_nonce ) {
 			$this->cached_nonce = wp_create_nonce( 'sscribe_download' );
 		}
+		$token = $this->rotate_dl_token( $zip_filename );
+		if ( '' === $token ) {
+			return '';
+		}
 		$args = array(
 			'action' => 'sscribe_download',
 			'file'   => $zip_filename,
 			'nonce'  => $this->cached_nonce,
+			'token'  => $token,
 		);
 		return add_query_arg( $args, admin_url( 'admin-ajax.php' ) );
+	}
+
+	/**
+	 * Rotate the per-row single-use download token.
+	 *
+	 * Generates a fresh 32-hex token, persists it on the export row,
+	 * and returns the new value. Called from get_ajax_download_url
+	 * (so every URL the admin sees embeds a fresh token) and from
+	 * ajax_download (so a successfully streamed URL is invalidated
+	 * before any retry can reach the handler).
+	 *
+	 * @param string $zip_filename ZIP basename.
+	 * @return string New token, or empty string if the row is missing.
+	 */
+	public function rotate_dl_token( string $zip_filename ): string {
+		$zip_filename = $this->normalize_zip_filename( $zip_filename );
+		if ( '' === $zip_filename ) {
+			return '';
+		}
+		$option_name = 'sscribe_export_row_' . md5( $zip_filename );
+		$row         = get_option( $option_name, null );
+		if ( ! is_array( $row ) ) {
+			return '';
+		}
+		try {
+			$token = bin2hex( random_bytes( 16 ) );
+		} catch ( \Throwable $e ) {
+			$token = bin2hex( wp_generate_password( 32, false, false ) );
+		}
+		$row['dl_token']    = $token;
+		$row['dl_token_at'] = time();
+		update_option( $option_name, $row, false );
+		return $token;
+	}
+
+	/**
+	 * Validate and rotate a presented download token.
+	 *
+	 * The compare is constant-time (hash_equals). The rotation is
+	 * unconditional on success — once a token has been redeemed, any
+	 * subsequent fetch with the same token fails even if it races
+	 * before the row is reread by the new request.
+	 *
+	 * @param string $zip_filename ZIP basename.
+	 * @param string $presented   Token presented in the URL.
+	 * @return bool True when the token matched and has been rotated.
+	 */
+	public function consume_dl_token( string $zip_filename, string $presented ): bool {
+		$zip_filename = $this->normalize_zip_filename( $zip_filename );
+		if ( '' === $zip_filename || '' === $presented ) {
+			return false;
+		}
+		$option_name = 'sscribe_export_row_' . md5( $zip_filename );
+		$row         = get_option( $option_name, null );
+		if ( ! is_array( $row ) ) {
+			return false;
+		}
+		$stored = isset( $row['dl_token'] ) && is_string( $row['dl_token'] ) ? $row['dl_token'] : '';
+		if ( '' === $stored || ! hash_equals( $stored, $presented ) ) {
+			return false;
+		}
+		try {
+			$new_token = bin2hex( random_bytes( 16 ) );
+		} catch ( \Throwable $e ) {
+			$new_token = bin2hex( wp_generate_password( 32, false, false ) );
+		}
+		$row['dl_token']    = $new_token;
+		$row['dl_token_at'] = time();
+		update_option( $option_name, $row, false );
+		return true;
 	}
 
 	/**

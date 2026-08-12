@@ -1404,12 +1404,24 @@ final class SScribe_Batch_Processor {
 		// unprivileged visitors get a permission error vs an invalid-nonce error.
 		$nonce_ok = check_ajax_referer( 'sscribe_export_nonce', 'nonce', false );
 		if ( ! $nonce_ok ) {
-			wp_send_json_error( array( 'message' => __( 'Invalid nonce.', 'sscribe-export-site-pages' ) ), 403 );
+			wp_send_json_error(
+				array(
+					'code'    => 'invalid_nonce',
+					'message' => __( 'Invalid nonce.', 'sscribe-export-site-pages' ),
+				),
+				403
+			);
 			return;
 		}
 
 		if ( ! current_user_can( $this->get_required_capability() ) ) {
-			wp_send_json_error( array( 'message' => __( 'Permission denied.', 'sscribe-export-site-pages' ) ), 403 );
+			wp_send_json_error(
+				array(
+					'code'    => 'permission_denied',
+					'message' => __( 'Permission denied.', 'sscribe-export-site-pages' ),
+				),
+				403
+			);
 			return;
 		}
 

@@ -32,6 +32,18 @@ class SScribe_Logger implements SScribe_Logger_Interface {
 	private static array $instances = array();
 
 	/**
+	 * Whether the per-request reset hook has been wired in.
+	 *
+	 * Long-running PHP processes (PHP-FPM, wp-cli daemon mode) keep
+	 * static state across requests. The first instance() call in a
+	 * new request wires an init hook that resets the singleton so
+	 * state from a prior request cannot bleed into the next one.
+	 *
+	 * @var bool
+	 */
+	private static bool $request_reset_hooked = false;
+
+	/**
 	 * Current session ID for log context.
 	 *
 	 * @var string|null
@@ -105,6 +117,11 @@ class SScribe_Logger implements SScribe_Logger_Interface {
 	 * @return SScribe_Logger_Interface
 	 */
 	public static function instance( bool $enabled = true, string $prefix = 'sscribe', array $options = array() ): SScribe_Logger_Interface {
+		if ( ! self::$request_reset_hooked && function_exists( 'add_action' ) ) {
+			add_action( 'init', array( self::class, 'reset_instance' ), 0 );
+			self::$request_reset_hooked = true;
+		}
+
 		$effective_enabled = $enabled || self::is_logging_enabled();
 		$encoded_options   = wp_json_encode( $options );
 		$key               = $prefix . '_' . ( $effective_enabled ? '1' : '0' ) . '_' . md5( false !== $encoded_options ? $encoded_options : '' );

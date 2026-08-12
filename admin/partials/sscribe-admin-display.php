@@ -374,7 +374,7 @@ $sscribe_preflight_warnings = $sscribe_preflight_warnings ?? array();
 							<div class="sscribe-format-option-grid">
 								<label class="sscribe-format-option-field">
 									<span class="sscribe-format-option-label"><?php esc_html_e( 'Page size', 'sscribe-export-site-pages' ); ?></span>
-									<select name="sscribe_pdf_page_size" id="sscribe-pdf-page-size" aria-label="<?php esc_attr_e( 'PDF page size', 'sscribe-export-site-pages' ); ?>">
+									<select name="sscribe_pdf_page_size" id="sscribe-pdf-page-size">
 										<option value="A4"><?php esc_html_e( 'A4 (210 × 297 mm)', 'sscribe-export-site-pages' ); ?></option>
 										<option value="Letter"><?php esc_html_e( 'Letter (8.5 × 11 in)', 'sscribe-export-site-pages' ); ?></option>
 										<option value="Legal"><?php esc_html_e( 'Legal (8.5 × 14 in)', 'sscribe-export-site-pages' ); ?></option>
@@ -400,7 +400,7 @@ $sscribe_preflight_warnings = $sscribe_preflight_warnings ?? array();
 							<div class="sscribe-format-option-grid">
 								<label class="sscribe-format-option-field">
 									<span class="sscribe-format-option-label"><?php esc_html_e( 'Template', 'sscribe-export-site-pages' ); ?></span>
-									<select name="sscribe_docx_template" id="sscribe-docx-template" aria-label="<?php esc_attr_e( 'DOCX template', 'sscribe-export-site-pages' ); ?>">
+									<select name="sscribe_docx_template" id="sscribe-docx-template">
 										<option value="default"><?php esc_html_e( 'Default (with cover & TOC)', 'sscribe-export-site-pages' ); ?></option>
 										<option value="minimal"><?php esc_html_e( 'Minimal (body only)', 'sscribe-export-site-pages' ); ?></option>
 									</select>

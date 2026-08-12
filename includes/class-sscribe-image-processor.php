@@ -284,6 +284,23 @@ class SScribe_Image_Processor {
 			return false;
 		}
 
+		// Defense-in-depth against SSRF: even if an operator widens the
+		// `sscribe_allowed_image_hosts` filter to `*` or `0.0.0.0/0`, raw
+		// IP literals in URL hosts must never reach wp_remote_get. Reject
+		// loopback, link-local (AWS metadata at 169.254.169.254), private
+		// (RFC1918), and reserved ranges. IPv6 zone-ids and brackets are
+		// stripped by the host-validation regex above so this runs only
+		// on bare literals.
+		if ( filter_var( trim( $host, '[]' ), FILTER_VALIDATE_IP ) ) {
+			if ( ! filter_var(
+				trim( $host, '[]' ),
+				FILTER_VALIDATE_IP,
+				FILTER_FLAG_NO_PRIV_RANGE | FILTER_FLAG_NO_RES_RANGE
+			) ) {
+				return false;
+			}
+		}
+
 		$site_hosts    = self::get_allowed_hosts();
 		$allowed_hosts = apply_filters( 'sscribe_allowed_image_hosts', $site_hosts );
 

@@ -326,6 +326,15 @@ trait SScribe_Session_AJAX {
 				)
 			);
 		}
+
+		// Mirror the batch-processor cancel handler — without this every
+		// user cancellation leaks the per-session export log file
+		// (export_<sid>.json in sscribe-exports/logs/) until the next
+		// 3-day cleanup sweep. The Support Info view would then list the
+		// session as complete and the JS would 404/500 trying to load it.
+		if ( ! empty( $session['session_id'] ) && class_exists( '\\SScribe_Export_Log', false ) ) {
+			\SScribe_Export_Log::delete_by_session( (string) $session['session_id'] );
+		}
 	}
 
 	/**

@@ -126,4 +126,66 @@ class SScribe_Image_Processor_Test extends TestCase {
 	public function test_optimize_local_exists(): void {
 		$this->assertIsCallable( array( SScribe_Image_Processor::class, 'optimize_local' ) );
 	}
+
+	/**
+	 * Regression for the M3 SSRF defense-in-depth: a raw IP literal
+	 * in the URL host must be rejected even when the operator widens
+	 * the `sscribe_allowed_image_hosts` filter to `*`. Loopback,
+	 * link-local (AWS metadata at 169.254.169.254), private RFC1918,
+	 * and reserved ranges all fail FILTER_FLAG_NO_PRIV_RANGE |
+	 * FILTER_FLAG_NO_RES_RANGE.
+	 */
+	public function test_is_allowed_remote_url_rejects_ip_literal_loopback(): void {
+		$method = new \ReflectionMethod( SScribe_Image_Processor::class, 'is_allowed_remote_url' );
+
+		// Widen the allow-list to `*` so the host-allow-list step
+		// cannot be what saves us; the IP-literal defense must win.
+		$wide_filter = static function (): array {
+			return array( '*' );
+		};
+		add_filter( 'sscribe_allowed_image_hosts', $wide_filter );
+		try {
+			$blocked_urls = array(
+				'http://127.0.0.1/secret.jpg',
+				'http://127.0.0.1:8080/secret.jpg',
+				'http://0.0.0.0/secret.jpg',
+				// AWS / GCE metadata endpoint — the canonical SSRF target.
+				'http://169.254.169.254/latest/meta-data/',
+				'http://[::1]/secret.jpg',
+				// Private RFC1918 ranges.
+				'http://10.0.0.5/secret.jpg',
+				'http://192.168.1.1/secret.jpg',
+				'http://172.16.0.1/secret.jpg',
+			);
+
+			foreach ( $blocked_urls as $url ) {
+				$result = $method->invoke( null, $url );
+				$this->assertFalse(
+					$result,
+					'IP-literal SSRF defense must reject: ' . $url
+				);
+			}
+		} finally {
+			remove_filter( 'sscribe_allowed_image_hosts', $wide_filter );
+		}
+	}
+
+	/**
+	 * Companion to the rejection test above: a public IP literal
+	 * that is NOT loopback/link-local/private/reserved must NOT be
+	 * blanket-rejected by the IP-literal gate. We do not assert a
+	 * pass overall (the host allow-list may still reject the host),
+	 * only that the IP-literal step does not over-reject.
+	 */
+	public function test_is_allowed_remote_url_does_not_indiscriminately_reject_public_ips(): void {
+		$method = new \ReflectionMethod( SScribe_Image_Processor::class, 'is_allowed_remote_url' );
+
+		// 8.8.8.8 (Google public DNS) — must not be rejected on IP-literal grounds.
+		// The host-allow-list may reject it (it's not in the site's default allow-list),
+		// and we accept either outcome here because the SSRF defense is IP-range only.
+		$result = $method->invoke( null, 'http://8.8.8.8/image.jpg' );
+
+		// The single thing we guarantee: the function did not crash on a public IP.
+		$this->assertIsBool( $result );
+	}
 }

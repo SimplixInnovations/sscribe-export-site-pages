@@ -23,7 +23,7 @@ $config = array(
 	'run_phpcs'        => true,
 	'generate_sha256'  => true,
 	'auto_clean_root'  => true,
-	'strip_comments'   => false,
+	'strip_comments'   => true,
 
 	'mainPluginFile'   => 'sscribe-export-site-pages.php',
 	'readmeFile'       => 'readme.txt',
