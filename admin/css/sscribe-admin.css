@@ -3488,6 +3488,16 @@ body.rtl .sscribe-progress-bar-fill {
 	#sscribe-status-cards {
 		grid-template-columns: repeat(3, minmax(0, 1fr));
 	}
+
+	#sscribe-format-cards {
+		grid-template-columns: repeat(3, minmax(0, 1fr));
+	}
+}
+
+@media (width <= 900px) {
+	#sscribe-format-cards {
+		grid-template-columns: repeat(2, minmax(0, 1fr));
+	}
 }
 
 @media (width <= 640px) {
