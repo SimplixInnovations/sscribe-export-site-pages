@@ -632,8 +632,8 @@ class SScribe_Zip_Handler {
 	 * a parallel token, so the server-side download handler can
 	 * validate the presented token via hash_equals and rotate it
 	 * before streaming. Result: the URL is valid for exactly one
-	 * fetch — a replay from browser history, a leaked Slack link, or
-	 * a copied-from-the-server-log request all return 403.
+	 * fetch (a replay from browser history, a leaked Slack link, or
+	 * a copied-from-the-server-log request) all return 403.
 	 *
 	 * @param string $zip_filename ZIP filename.
 	 * @return string
@@ -696,7 +696,7 @@ class SScribe_Zip_Handler {
 	 * Validate and rotate a presented download token.
 	 *
 	 * The compare is constant-time (hash_equals). The rotation is
-	 * unconditional on success — once a token has been redeemed, any
+	 * unconditional on success: once a token has been redeemed, any
 	 * subsequent fetch with the same token fails even if it races
 	 * before the row is reread by the new request.
 	 *

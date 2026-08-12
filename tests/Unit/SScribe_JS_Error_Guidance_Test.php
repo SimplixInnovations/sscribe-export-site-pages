@@ -99,7 +99,7 @@ final class SScribe_JS_Error_Guidance_Test extends TestCase {
 	 * (so the long-batch 403 retry handshake has a client endpoint)
 	 * and (b) translate every code that the server-side handler
 	 * emits (`invalid_nonce`, `permission_denied`) into the guidance
-	 * table — without this, the JS would surface a generic fallback
+	 * table. Without this entry, the JS would surface a generic fallback
 	 * for nonce refresh failures after long-running exports.
 	 */
 	public function test_refresh_nonce_endpoint_codes_are_in_guidance_table(): void {
@@ -123,7 +123,7 @@ final class SScribe_JS_Error_Guidance_Test extends TestCase {
 			$this->assertStringContainsString(
 				$code . ':',
 				$js,
-				'ajax_refresh_nonce() may emit "' . $code . '" — it must be in the JS guidance table.'
+				'ajax_refresh_nonce() may emit "' . $code . '". It must be in the JS guidance table.'
 			);
 		}
 	}

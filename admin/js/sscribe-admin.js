@@ -3382,7 +3382,7 @@
 		 * The server emits a discriminated `data.code` for every JSON error
 		 * response (see SScribe_AJAX_Guard::error() and the per-endpoint
 		 * exit points). Substring matching on `message` is intentionally
-		 * NOT performed here — earlier versions did, and that caused a real
+		 * NOT performed here. Earlier versions did, and that caused a real
 		 * failure mode where any error message containing the substring
 		 * "session" or "timeout" was mis-translated to the "session lost"
 		 * guidance, hiding the actual cause from operators.

@@ -157,9 +157,6 @@ class SScribe_Audit_Trail {
 			'bearer',
 			'access_key',
 			'client_secret',
-			// Cookie names — if a future caller passes $_COOKIE or $_SERVER
-			// through context, WordPress auth cookies would otherwise land in
-			// the audit table verbatim.
 			'cookie',
 			'set_cookie',
 			'wordpress_logged',
