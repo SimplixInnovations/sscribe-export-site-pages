@@ -36,6 +36,8 @@ class SScribe_Adaptive_Metrics {
 		'markdown' => 0.1,
 	);
 
+	private const POST_TYPES = array( 'page', 'post' );
+
 	/**
 	 * Get estimated seconds per page for a format.
 	 *
@@ -45,14 +47,18 @@ class SScribe_Adaptive_Metrics {
 	 */
 	public function get_seconds_per_page( string $format, string $post_type = 'page' ): float {
 		$baseline = self::BASELINE_SECONDS[ $format ] ?? 2.0;
+		if ( ! isset( self::BASELINE_SECONDS[ $format ] ) || ! in_array( $post_type, self::POST_TYPES, true ) ) {
+			return $baseline;
+		}
 
 		$metrics = get_option( 'sscribe_export_metrics', array() );
+		$metrics = is_array( $metrics ) ? $metrics : array();
 		$key     = $format . '_' . $post_type;
 		if ( ! isset( $metrics['formats'][ $key ]['avg_seconds_per_page'] ) ) {
 			return $baseline;
 		}
 
-		$historical = (float) $metrics['formats'][ $key ]['avg_seconds_per_page'];
+		$historical = max( 0.0, (float) $metrics['formats'][ $key ]['avg_seconds_per_page'] );
 		$samples    = (int) ( $metrics['formats'][ $key ]['sample_count'] ?? 0 );
 
 		if ( $samples < self::MIN_SAMPLES ) {
@@ -72,14 +78,18 @@ class SScribe_Adaptive_Metrics {
 	 */
 	public function get_mb_per_page( string $format, string $post_type = 'page' ): float {
 		$baseline = self::BASELINE_MB[ $format ] ?? 0.5;
+		if ( ! isset( self::BASELINE_MB[ $format ] ) || ! in_array( $post_type, self::POST_TYPES, true ) ) {
+			return $baseline;
+		}
 
 		$metrics = get_option( 'sscribe_export_metrics', array() );
+		$metrics = is_array( $metrics ) ? $metrics : array();
 		$key     = $format . '_' . $post_type;
 		if ( ! isset( $metrics['formats'][ $key ]['avg_mb_per_page'] ) ) {
 			return $baseline;
 		}
 
-		$historical = (float) $metrics['formats'][ $key ]['avg_mb_per_page'];
+		$historical = max( 0.0, (float) $metrics['formats'][ $key ]['avg_mb_per_page'] );
 		$samples    = (int) ( $metrics['formats'][ $key ]['sample_count'] ?? 0 );
 
 		if ( $samples < self::MIN_SAMPLES ) {
@@ -100,21 +110,28 @@ class SScribe_Adaptive_Metrics {
 	 * @param string $post_type   Post type.
 	 */
 	public function save( string $format, int $page_count, float $elapsed_sec, float $total_mb, string $post_type = 'page' ): void {
-		if ( $page_count <= 0 ) {
+		if (
+			$page_count <= 0
+			|| ! isset( self::BASELINE_SECONDS[ $format ] )
+			|| ! in_array( $post_type, self::POST_TYPES, true )
+			|| ! is_finite( $elapsed_sec )
+			|| ! is_finite( $total_mb )
+			|| $elapsed_sec < 0
+			|| $total_mb < 0
+		) {
 			return;
 		}
 
-		$lock_key = 'sscribe_metrics_save_lock';
-		$lock_ttl = 5;
-
-		$acquired = wp_cache_add( $lock_key, 1, '', $lock_ttl );
-		if ( ! $acquired ) {
-
+		$lock_manager = new SScribe_Export_Lock_Manager();
+		$lock_name    = 'metrics-save';
+		$lock_token   = $lock_manager->acquire_lock( $lock_name, 5, 4 );
+		if ( null === $lock_token ) {
 			return;
 		}
 
 		try {
 			$metrics = get_option( 'sscribe_export_metrics', array() );
+			$metrics = is_array( $metrics ) ? $metrics : array();
 			$key     = $format . '_' . $post_type;
 			if ( ! isset( $metrics['formats'] ) ) {
 				$metrics['formats'] = array();
@@ -153,7 +170,7 @@ class SScribe_Adaptive_Metrics {
 
 			update_option( 'sscribe_export_metrics', $metrics, false );
 		} finally {
-			wp_cache_delete( $lock_key, '' );
+			$lock_manager->release_lock( $lock_name, $lock_token );
 		}
 	}
 }

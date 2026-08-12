@@ -19,6 +19,7 @@ $sscribe_status_counts   = $sscribe_status_counts ?? array();
 $sscribe_recent_exports  = $sscribe_recent_exports ?? array();
 $sscribe_debug_info      = $sscribe_debug_info ?? array();
 $sscribe_is_debug        = $sscribe_is_debug ?? false;
+$sscribe_can_view_health = $sscribe_can_view_health ?? false;
 $sscribe_step            = 1;
 $sscribe_export_index    = $sscribe_export_index ?? array();
 $sscribe_preflight_warnings = $sscribe_preflight_warnings ?? array();
@@ -67,7 +68,7 @@ $sscribe_preflight_warnings = $sscribe_preflight_warnings ?? array();
 		<div class="sscribe-onboarding-inner">
 			<div class="sscribe-onboarding-icon" aria-hidden="true">
 				<?php
-				echo SScribe_Helpers::get_icon_inline_safe( 'download-package', 22 ); // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- helper escapes via internal wp_kses allowlist
+				echo wp_kses( SScribe_Helpers::get_icon_inline( 'download-package', 22 ), SScribe_Helpers::get_svg_kses_allowed_html() );
 				?>
 			</div>
 			<div class="sscribe-onboarding-body">
@@ -100,12 +101,14 @@ $sscribe_preflight_warnings = $sscribe_preflight_warnings ?? array();
 				?>
 				<?php esc_html_e( 'History', 'sscribe-export-site-pages' ); ?>
 			</button>
+			<?php if ( $sscribe_can_view_health ) : ?>
 			<button type="button" class="sscribe-tab-btn" id="sscribe-tab-btn-docs" data-tab="docs" role="tab" aria-selected="false" aria-controls="sscribe-tab-docs">
 				<?php
 				echo wp_kses_post( SScribe_Helpers::get_icon( 'info', 16 ) );
 				?>
 				<?php esc_html_e( 'Support', 'sscribe-export-site-pages' ); ?>
 			</button>
+			<?php endif; ?>
 			<?php if ( $sscribe_is_debug ) : ?>
 			<button type="button" class="sscribe-tab-btn" id="sscribe-tab-btn-debug" data-tab="debug" role="tab" aria-selected="false" aria-controls="sscribe-tab-debug">
 				<?php
@@ -365,7 +368,7 @@ $sscribe_preflight_warnings = $sscribe_preflight_warnings ?? array();
 
 						<div class="sscribe-format-option-panel" data-format="pdf" hidden>
 							<h3 class="sscribe-format-option-title">
-							<?php echo SScribe_Helpers::get_icon_inline_safe( 'file-pdf', 14 ); // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- helper escapes via internal wp_kses allowlist ?>
+							<?php echo wp_kses( SScribe_Helpers::get_icon_inline( 'file-pdf', 14 ), SScribe_Helpers::get_svg_kses_allowed_html() ); ?>
 								<?php esc_html_e( 'PDF Options', 'sscribe-export-site-pages' ); ?>
 							</h3>
 							<div class="sscribe-format-option-grid">
@@ -391,7 +394,7 @@ $sscribe_preflight_warnings = $sscribe_preflight_warnings ?? array();
 
 						<div class="sscribe-format-option-panel" data-format="docx" hidden>
 							<h3 class="sscribe-format-option-title">
-							<?php echo SScribe_Helpers::get_icon_inline_safe( 'file-doc', 14 ); // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- helper escapes via internal wp_kses allowlist ?>
+							<?php echo wp_kses( SScribe_Helpers::get_icon_inline( 'file-doc', 14 ), SScribe_Helpers::get_svg_kses_allowed_html() ); ?>
 								<?php esc_html_e( 'DOCX Options', 'sscribe-export-site-pages' ); ?>
 							</h3>
 							<div class="sscribe-format-option-grid">
@@ -415,7 +418,7 @@ $sscribe_preflight_warnings = $sscribe_preflight_warnings ?? array();
 
 						<div class="sscribe-format-option-panel" data-format="markdown" hidden>
 							<h3 class="sscribe-format-option-title">
-							<?php echo SScribe_Helpers::get_icon_inline_safe( 'file-md', 14 ); // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- helper escapes via internal wp_kses allowlist ?>
+							<?php echo wp_kses( SScribe_Helpers::get_icon_inline( 'file-md', 14 ), SScribe_Helpers::get_svg_kses_allowed_html() ); ?>
 								<?php esc_html_e( 'Markdown Options', 'sscribe-export-site-pages' ); ?>
 							</h3>
 							<div class="sscribe-format-option-grid">
@@ -436,7 +439,7 @@ $sscribe_preflight_warnings = $sscribe_preflight_warnings ?? array();
 
 						<div class="sscribe-format-option-panel" data-format="html" hidden>
 							<h3 class="sscribe-format-option-title">
-							<?php echo SScribe_Helpers::get_icon_inline_safe( 'file-html', 14 ); // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- helper escapes via internal wp_kses allowlist ?>
+							<?php echo wp_kses( SScribe_Helpers::get_icon_inline( 'file-html', 14 ), SScribe_Helpers::get_svg_kses_allowed_html() ); ?>
 								<?php esc_html_e( 'HTML Options', 'sscribe-export-site-pages' ); ?>
 							</h3>
 							<div class="sscribe-format-option-grid">
@@ -464,7 +467,7 @@ $sscribe_preflight_warnings = $sscribe_preflight_warnings ?? array();
 						?>
 						<div class="sscribe-preflight-warning sscribe-preflight-warning-<?php echo esc_attr( $sscribe_w_severity ); ?>" data-warning-code="<?php echo esc_attr( $sscribe_w_code ); ?>" role="alert">
 							<span class="sscribe-preflight-warning-icon" aria-hidden="true">
-								<?php echo SScribe_Helpers::get_icon( $sscribe_w_icon, 16 ); // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped ?>
+								<?php echo wp_kses_post( SScribe_Helpers::get_icon( $sscribe_w_icon, 16 ) ); ?>
 							</span>
 							<div class="sscribe-preflight-warning-body">
 								<p class="sscribe-preflight-warning-message"><?php echo esc_html( (string) ( $sscribe_warning['message'] ?? '' ) ); ?></p>
@@ -473,7 +476,7 @@ $sscribe_preflight_warnings = $sscribe_preflight_warnings ?? array();
 								<?php endif; ?>
 							</div>
 							<button type="button" class="sscribe-preflight-warning-dismiss" data-warning-code="<?php echo esc_attr( $sscribe_w_code ); ?>" aria-label="<?php esc_attr_e( 'Dismiss this advisory', 'sscribe-export-site-pages' ); ?>">
-								<?php echo SScribe_Helpers::get_icon( 'x', 14 ); // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped ?>
+								<?php echo wp_kses_post( SScribe_Helpers::get_icon( 'x', 14 ) ); ?>
 							</button>
 						</div>
 					<?php endforeach; ?>
@@ -513,13 +516,13 @@ $sscribe_preflight_warnings = $sscribe_preflight_warnings ?? array();
 					</div>
 					<div class="sscribe-export-bar-actions">
 						<button type="button" id="sscribe-preview-btn" class="sscribe-button sscribe-button-outline sscribe-btn-sm" disabled aria-describedby="sscribe-preview-btn-hint" title="<?php esc_attr_e( 'Ctrl+Shift+P (Cmd+Shift+P on Mac)', 'sscribe-export-site-pages' ); ?>">
-						<?php echo SScribe_Helpers::get_icon_inline_safe( 'eye', 14, 'sscribe-button-icon' ); // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- helper escapes via internal wp_kses allowlist ?>
+						<?php echo wp_kses( SScribe_Helpers::get_icon_inline( 'eye', 14, 'sscribe-button-icon' ), SScribe_Helpers::get_svg_kses_allowed_html() ); ?>
 							<span><?php esc_html_e( 'Preview', 'sscribe-export-site-pages' ); ?></span>
 							<kbd class="sscribe-shortcut-hint" aria-hidden="true">⇧P</kbd>
 						</button>
 						<span id="sscribe-preview-btn-hint" class="screen-reader-text"><?php esc_html_e( 'Preview what your export will look like before generating', 'sscribe-export-site-pages' ); ?></span>
 						<button type="button" id="sscribe-export-btn" class="sscribe-button sscribe-button-primary sscribe-btn-lg" disabled aria-describedby="sscribe-export-btn-hint" title="<?php esc_attr_e( 'Ctrl+Shift+E (Cmd+Shift+E on Mac)', 'sscribe-export-site-pages' ); ?>">
-						<?php echo SScribe_Helpers::get_icon_inline_safe( 'download-package', 14, 'sscribe-button-icon' ); // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- helper escapes via internal wp_kses allowlist ?>
+						<?php echo wp_kses( SScribe_Helpers::get_icon_inline( 'download-package', 14, 'sscribe-button-icon' ), SScribe_Helpers::get_svg_kses_allowed_html() ); ?>
 							<span id="sscribe-export-btn-text"><?php esc_html_e( 'Generate Package', 'sscribe-export-site-pages' ); ?></span>
 							<kbd class="sscribe-shortcut-hint" aria-hidden="true">⇧E</kbd>
 						</button>
@@ -536,7 +539,7 @@ $sscribe_preflight_warnings = $sscribe_preflight_warnings ?? array();
 					<div class="sscribe-modal-content sscribe-modal-content-preview" role="document">
 						<div class="sscribe-modal-header">
 							<h3 id="sscribe-preview-title">
-							<?php echo SScribe_Helpers::get_icon_inline_safe( 'eye', 16 ); // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- helper escapes via internal wp_kses allowlist ?>
+							<?php echo wp_kses( SScribe_Helpers::get_icon_inline( 'eye', 16 ), SScribe_Helpers::get_svg_kses_allowed_html() ); ?>
 								<?php esc_html_e( 'Export Readiness', 'sscribe-export-site-pages' ); ?>
 							</h3>
 							<button type="button" id="sscribe-preview-close" class="sscribe-modal-close" aria-label="<?php esc_attr_e( 'Close preview', 'sscribe-export-site-pages' ); ?>">
@@ -551,7 +554,7 @@ $sscribe_preflight_warnings = $sscribe_preflight_warnings ?? array();
 						</div>
 						<div class="sscribe-modal-footer sscribe-preview-footer">
 							<button type="button" id="sscribe-preview-start-btn" class="sscribe-button sscribe-button-primary">
-							<?php echo SScribe_Helpers::get_icon_inline_safe( 'download-package', 16, 'sscribe-button-icon' ); // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- helper escapes via internal wp_kses allowlist ?>
+							<?php echo wp_kses( SScribe_Helpers::get_icon_inline( 'download-package', 16, 'sscribe-button-icon' ), SScribe_Helpers::get_svg_kses_allowed_html() ); ?>
 								<?php esc_html_e( 'Start Export', 'sscribe-export-site-pages' ); ?>
 							</button>
 							<button type="button" id="sscribe-preview-dismiss-btn" class="sscribe-button sscribe-button-outline">
@@ -573,7 +576,7 @@ $sscribe_preflight_warnings = $sscribe_preflight_warnings ?? array();
 						<span class="sscribe-phase-dot" aria-hidden="true"></span>
 						<span class="sscribe-phase-label"><?php esc_html_e( 'Reading pages', 'sscribe-export-site-pages' ); ?></span>
 						<?php
-						echo SScribe_Helpers::get_icon_inline_safe( 'check', 12, 'sscribe-phase-check' ); // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- helper escapes via internal wp_kses allowlist
+						echo wp_kses( SScribe_Helpers::get_icon_inline( 'check', 12, 'sscribe-phase-check' ), SScribe_Helpers::get_svg_kses_allowed_html() );
 						?>
 					</div>
 					<span class="sscribe-phase-connector" aria-hidden="true"></span>
@@ -581,7 +584,7 @@ $sscribe_preflight_warnings = $sscribe_preflight_warnings ?? array();
 						<span class="sscribe-phase-dot" aria-hidden="true"></span>
 						<span class="sscribe-phase-label"><?php esc_html_e( 'Generating files', 'sscribe-export-site-pages' ); ?></span>
 						<?php
-						echo SScribe_Helpers::get_icon_inline_safe( 'check', 12, 'sscribe-phase-check' ); // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- helper escapes via internal wp_kses allowlist
+						echo wp_kses( SScribe_Helpers::get_icon_inline( 'check', 12, 'sscribe-phase-check' ), SScribe_Helpers::get_svg_kses_allowed_html() );
 						?>
 					</div>
 					<span class="sscribe-phase-connector" aria-hidden="true"></span>
@@ -589,7 +592,7 @@ $sscribe_preflight_warnings = $sscribe_preflight_warnings ?? array();
 						<span class="sscribe-phase-dot" aria-hidden="true"></span>
 						<span class="sscribe-phase-label"><?php esc_html_e( 'Packaging ZIP', 'sscribe-export-site-pages' ); ?></span>
 						<?php
-						echo SScribe_Helpers::get_icon_inline_safe( 'check', 12, 'sscribe-phase-check' ); // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- helper escapes via internal wp_kses allowlist
+						echo wp_kses( SScribe_Helpers::get_icon_inline( 'check', 12, 'sscribe-phase-check' ), SScribe_Helpers::get_svg_kses_allowed_html() );
 						?>
 					</div>
 				</div>
@@ -657,9 +660,7 @@ $sscribe_preflight_warnings = $sscribe_preflight_warnings ?? array();
 					</a>
 					<span id="sscribe-download-hint" class="screen-reader-text"><?php esc_html_e( 'Download the exported ZIP file to your computer', 'sscribe-export-site-pages' ); ?></span>
 					<button type="button" id="sscribe-view-history-btn" class="sscribe-button sscribe-button-outline" aria-describedby="sscribe-view-history-hint">
-						<?php // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- SVG sanitized in get_icon_inline().
-						?>
-						<?php echo SScribe_Helpers::get_icon_inline_safe( 'clock', 16 ); // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- helper escapes via internal wp_kses allowlist ?>
+						<?php echo wp_kses( SScribe_Helpers::get_icon_inline( 'clock', 16 ), SScribe_Helpers::get_svg_kses_allowed_html() ); ?>
 						<span><?php esc_html_e( 'View in History', 'sscribe-export-site-pages' ); ?></span>
 					</button>
 					<span id="sscribe-view-history-hint" class="screen-reader-text"><?php esc_html_e( 'Open the History tab to see this and past exports', 'sscribe-export-site-pages' ); ?></span>
@@ -687,18 +688,14 @@ $sscribe_preflight_warnings = $sscribe_preflight_warnings ?? array();
 				</div>
 				<div class="sscribe-error-actions">
 					<button type="button" id="sscribe-error-try-again" class="sscribe-button sscribe-button-secondary" aria-describedby="sscribe-try-again-hint">
-						<?php // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- SVG sanitized in get_icon_inline().
-						?>
-						<?php echo SScribe_Helpers::get_icon_inline_safe( 'refresh-cw', 16 ); // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- helper escapes via internal wp_kses allowlist ?>
+						<?php echo wp_kses( SScribe_Helpers::get_icon_inline( 'refresh-cw', 16 ), SScribe_Helpers::get_svg_kses_allowed_html() ); ?>
 						<span><?php esc_html_e( 'Try Again', 'sscribe-export-site-pages' ); ?></span>
 					</button>
 					<button type="button" id="sscribe-error-change-config" class="sscribe-button sscribe-button-outline">
 						<?php esc_html_e( 'Change Configuration', 'sscribe-export-site-pages' ); ?>
 					</button>
 					<button type="button" id="sscribe-error-toggle-details" class="sscribe-button sscribe-button-ghost sscribe-button-toggle-details" aria-expanded="false" aria-controls="sscribe-error-technical-details">
-						<?php // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- SVG sanitized in get_icon_inline().
-						?>
-						<?php echo SScribe_Helpers::get_icon_inline_safe( 'chevron-down', 14 ); // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- helper escapes via internal wp_kses allowlist ?>
+						<?php echo wp_kses( SScribe_Helpers::get_icon_inline( 'chevron-down', 14 ), SScribe_Helpers::get_svg_kses_allowed_html() ); ?>
 						<span id="sscribe-error-toggle-details-label"><?php esc_html_e( 'Show technical details', 'sscribe-export-site-pages' ); ?></span>
 					</button>
 					<span id="sscribe-try-again-hint" class="screen-reader-text"><?php esc_html_e( 'Attempt the export again', 'sscribe-export-site-pages' ); ?></span>
@@ -761,8 +758,8 @@ $sscribe_preflight_warnings = $sscribe_preflight_warnings ?? array();
 					<?php endif; ?>
 					<div class="sscribe-history-skeleton sscribe-hidden" id="sscribe-history-skeleton">
 						<div class="sscribe-history-skeleton-row"><span class="sscribe-skeleton sscribe-skeleton-icon"></span><span class="sscribe-skeleton sscribe-skeleton-title"></span></div>
-						<div class="sscribe-history-skeleton-row"><span class="sscribe-skeleton sscribe-skeleton-icon"></span><span class="sscribe-skeleton sscribe-skeleton-title" style="width:140px;"></span></div>
-						<div class="sscribe-history-skeleton-row"><span class="sscribe-skeleton sscribe-skeleton-icon"></span><span class="sscribe-skeleton sscribe-skeleton-title" style="width:200px;"></span></div>
+						<div class="sscribe-history-skeleton-row"><span class="sscribe-skeleton sscribe-skeleton-icon"></span><span class="sscribe-skeleton sscribe-skeleton-title sscribe-skeleton-title-short"></span></div>
+						<div class="sscribe-history-skeleton-row"><span class="sscribe-skeleton sscribe-skeleton-icon"></span><span class="sscribe-skeleton sscribe-skeleton-title sscribe-skeleton-title-long"></span></div>
 					</div>
 					<div class="sscribe-history-table" id="sscribe-history-table">
 						<?php if ( ! empty( $sscribe_recent_exports ) ) : ?>
@@ -852,6 +849,7 @@ $sscribe_preflight_warnings = $sscribe_preflight_warnings ?? array();
 				</section>
 			</div>
 
+			<?php if ( $sscribe_can_view_health ) : ?>
 			<div class="sscribe-tab-content" id="sscribe-tab-docs" role="tabpanel" aria-labelledby="sscribe-tab-btn-docs" aria-hidden="true" tabindex="-1">
 				<div class="sscribe-support-master">
 					<div class="sscribe-support-sidebar">
@@ -909,6 +907,7 @@ $sscribe_preflight_warnings = $sscribe_preflight_warnings ?? array();
 					</div>
 				</div>
 			</div>
+			<?php endif; ?>
 
 			<?php if ( $sscribe_is_debug ) : ?>
 			<div class="sscribe-tab-content" id="sscribe-tab-debug" role="tabpanel" aria-labelledby="sscribe-tab-btn-debug" aria-hidden="true" tabindex="-1">
@@ -924,7 +923,7 @@ $sscribe_preflight_warnings = $sscribe_preflight_warnings ?? array();
 	<div class="sscribe-modal-content" role="document">
 		<div class="sscribe-modal-header">
 			<h3 id="sscribe-log-modal-title">
-			<?php echo SScribe_Helpers::get_icon_inline_safe( 'file-log', 16 ); // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- helper escapes via internal wp_kses allowlist ?>
+			<?php echo wp_kses( SScribe_Helpers::get_icon_inline( 'file-log', 16 ), SScribe_Helpers::get_svg_kses_allowed_html() ); ?>
 				<?php esc_html_e( 'Export Log', 'sscribe-export-site-pages' ); ?>
 			</h3>
 			<button type="button" class="sscribe-modal-close" id="sscribe-modal-close" aria-label="<?php esc_attr_e( 'Close modal', 'sscribe-export-site-pages' ); ?>">

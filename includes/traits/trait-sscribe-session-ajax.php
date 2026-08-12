@@ -132,7 +132,7 @@ trait SScribe_Session_AJAX {
 			SScribe_AJAX_Guard::error( array( 'message' => __( 'Permission denied.', 'sscribe-export-site-pages' ) ), 403 );
 		}
 
-		$session_id = isset( $_POST['session_id'] ) ? sanitize_text_field( wp_unslash( $_POST['session_id'] ) ) : '';
+		$session_id = SScribe_AJAX_Guard::post_text( 'session_id', '', 16 );
 
 		if ( empty( $session_id ) ) {
 			SScribe_AJAX_Guard::error( array( 'message' => __( 'Invalid session.', 'sscribe-export-site-pages' ) ), 400 );
@@ -240,7 +240,7 @@ trait SScribe_Session_AJAX {
 		}
 
 		$user_id = get_current_user_id();
-		$force   = isset( $_POST['force'] ) && filter_var( wp_unslash( $_POST['force'] ), FILTER_VALIDATE_BOOLEAN );
+		$force   = SScribe_AJAX_Guard::post_boolean( 'force' );
 
 		if ( $force ) {
 			$deleted = $this->clear_user_sessions( $user_id );
@@ -251,8 +251,6 @@ trait SScribe_Session_AJAX {
 					'deleted_count' => $deleted,
 				)
 			);
-
-			$this->cleanup_user_locks( $user_id );
 		} else {
 			$this->cleanup_expired( 60 );
 			$this->get_logger()->debug( 'Cleared expired sessions for user', array( 'user_id' => $user_id ) );
@@ -276,15 +274,6 @@ trait SScribe_Session_AJAX {
 				)
 			);
 		}
-	}
-
-	/**
-	 * Clean up stale locks for a user.
-	 *
-	 * @param int|null $user_id User ID.
-	 */
-	private function cleanup_user_locks( ?int $user_id = null ): void {
-		$this->get_lock_manager()->cleanup_user_locks( $user_id );
 	}
 
 	/**

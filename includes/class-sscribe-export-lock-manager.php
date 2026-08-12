@@ -14,16 +14,20 @@ if ( ! defined( 'ABSPATH' ) ) {
 }
 
 /**
- * Manages transient-based locks for concurrent export prevention.
+ * Manages atomic locks for concurrent export prevention.
  */
 class SScribe_Export_Lock_Manager {
+	/**
+	 * Prefix for database-backed locks when no persistent object cache exists.
+	 */
+	private const OPTION_PREFIX = 'sscribe_export_lock_';
 
 	/**
-	 * Session option prefix (must match SScribe_Session::OPTION_PREFIX).
+	 * Plugin-specific object-cache group for atomic export locks.
 	 *
 	 * @var string
 	 */
-	private const SESSION_PREFIX = 'sscribe_session_';
+	private const CACHE_GROUP = 'sscribe_export_locks';
 
 	/**
 	 * Logger instance.
@@ -31,20 +35,6 @@ class SScribe_Export_Lock_Manager {
 	 * @var SScribe_Logger_Interface
 	 */
 	private readonly SScribe_Logger_Interface $logger;
-
-	/**
-	 * Active lock token registered for shutdown cleanup.
-	 *
-	 * @var string|null
-	 */
-	private static ?string $shutdown_lock_token = null;
-
-	/**
-	 * Active lock session ID registered for shutdown cleanup.
-	 *
-	 * @var string|null
-	 */
-	private static ?string $shutdown_session_id = null;
 
 	/**
 	 * Initialize the lock manager.
@@ -58,8 +48,8 @@ class SScribe_Export_Lock_Manager {
 	/**
 	 * Acquire a processing lock for a session.
 	 *
-	 * Uses wp_cache_add() for atomic lock acquisition on Redis/Memcached backends.
-	 * Falls back to set_transient() with retry loop for disk-based caching.
+	 * Uses wp_cache_add() for atomic lock acquisition on persistent object-cache
+	 * backends and add_option() for an atomic database fallback.
 	 *
 	 * @param string $session_id       Session identifier.
 	 * @param int    $lock_ttl         Lock TTL in seconds.
@@ -71,69 +61,71 @@ class SScribe_Export_Lock_Manager {
 		int $lock_ttl = 45,
 		int $stale_threshold = 35
 	): ?string {
+		$sanitized = sanitize_key( $session_id );
+		if ( '' === $sanitized || strlen( $sanitized ) > 64 || ! hash_equals( $session_id, $sanitized ) ) {
+			return null;
+		}
+		$session_id = $sanitized;
+		$lock_ttl        = max( 5, min( 1800, $lock_ttl ) );
+		$stale_threshold = max( 1, min( $lock_ttl, $stale_threshold ) );
+
 		$lock_key     = 'sscribe_lock_' . $session_id;
+		$option_key   = self::OPTION_PREFIX . $session_id;
 		$lock_token   = wp_generate_password( 32, false );
 		$current_time = time();
+		$lock_value   = $current_time . '|' . $lock_token . '|' . ( $current_time + $lock_ttl );
 		$using_cache  = wp_using_ext_object_cache();
 
 		$existing_lock = $using_cache
-			? wp_cache_get( $lock_key, 'transient' )
-			: get_transient( $lock_key );
+			? wp_cache_get( $lock_key, self::CACHE_GROUP )
+			: get_option( $option_key, false );
+		if ( ! $using_cache && false === $existing_lock ) {
+			$existing_lock = get_transient( $lock_key );
+		}
 
-		if ( false !== $existing_lock && is_string( $existing_lock ) ) {
-			$lock_parts = explode( '|', $existing_lock );
-			$lock_time  = isset( $lock_parts[0] ) ? (int) $lock_parts[0] : 0;
-			$lock_age   = $current_time - $lock_time;
+		if ( false !== $existing_lock ) {
+			$lock_parts = is_string( $existing_lock ) ? explode( '|', $existing_lock, 3 ) : array();
+			$lock_time  = isset( $lock_parts[0] ) && ctype_digit( $lock_parts[0] ) ? (int) $lock_parts[0] : 0;
+			$existing_token = isset( $lock_parts[1] ) ? trim( $lock_parts[1] ) : '';
+			$expires        = isset( $lock_parts[2] ) && ctype_digit( $lock_parts[2] ) ? (int) $lock_parts[2] : 0;
+			$lock_age       = $current_time - $lock_time;
+			$is_expired     = $expires > 0
+				? $expires <= $current_time
+				: $lock_age > $stale_threshold;
 
-			if ( $lock_age > $stale_threshold ) {
-
-				$new_value = $current_time . '|' . $lock_token;
+			if ( 0 === $lock_time || '' === $existing_token || $is_expired || $lock_age < -300 ) {
 				if ( $using_cache ) {
-					wp_cache_set( $lock_key, $new_value, 'transient', $lock_ttl );
+					wp_cache_delete( $lock_key, self::CACHE_GROUP );
 				} else {
-					set_transient( $lock_key, $new_value, $lock_ttl );
+					delete_option( $option_key );
+					delete_transient( $lock_key );
 				}
-
-				$stored = $using_cache
-					? wp_cache_get( $lock_key, 'transient' )
-					: get_transient( $lock_key );
-				if ( is_string( $stored ) && $stored === $new_value ) {
-					$this->logger->debug(
-						'Overwrote stale lock',
-						array(
-							'session_id' => $session_id,
-							'lock_age'   => $lock_age,
-						)
-					);
-					return $lock_token;
-				}
-
 				$this->logger->debug(
-					'Stale lock overwrite lost race',
+					'Removed stale lock before atomic reacquisition',
+					array(
+						'session_id' => $session_id,
+						'lock_age'   => $lock_age,
+					)
+				);
+			} else {
+				$this->logger->debug(
+					'Batch is already processing concurrently',
 					array( 'session_id' => $session_id )
 				);
 				return null;
 			}
-
-			$this->logger->debug(
-				'Batch is already processing concurrently',
-				array( 'session_id' => $session_id )
-			);
-			return null;
 		}
 
 		for ( $attempt = 1; $attempt <= 3; ++$attempt ) {
 			if ( $using_cache ) {
 
-				if ( wp_cache_add( $lock_key, $current_time . '|' . $lock_token, 'transient', $lock_ttl ) ) {
-					$this->register_shutdown_cleanup( $session_id, $lock_token );
+				if ( wp_cache_add( $lock_key, $lock_value, self::CACHE_GROUP, $lock_ttl ) ) {
 					return $lock_token;
 				}
-			} elseif ( set_transient( $lock_key, $current_time . '|' . $lock_token, $lock_ttl ) ) {
-
-				$stored = get_transient( $lock_key );
-				if ( is_string( $stored ) && $stored === $current_time . '|' . $lock_token ) {
-					$this->register_shutdown_cleanup( $session_id, $lock_token );
+			} elseif ( add_option( $option_key, $lock_value, '', false ) ) {
+				delete_transient( $lock_key );
+				$stored = get_option( $option_key, false );
+				if ( is_string( $stored ) && hash_equals( $lock_value, $stored ) ) {
 					return $lock_token;
 				}
 			}
@@ -142,77 +134,10 @@ class SScribe_Export_Lock_Manager {
 		}
 
 		$this->logger->warning(
-			'Lock transient unavailable after 3 attempts, aborting batch',
+			'Export lock unavailable after 3 attempts, aborting batch',
 			array( 'session_id' => $session_id )
 		);
 		return null;
-	}
-
-	/**
-	 * Register shutdown handler to release lock on fatal error.
-	 *
-	 * Uses register_shutdown_function() to ensure the lock is released
-	 * if the PHP script terminates unexpectedly (fatal error, timeout, etc.).
-	 *
-	 * @param string $session_id Session identifier.
-	 * @param string $lock_token Lock token to release on shutdown.
-	 * @return void
-	 */
-	private function register_shutdown_cleanup( string $session_id, string $lock_token ): void {
-		self::$shutdown_session_id = $session_id;
-		self::$shutdown_lock_token = $lock_token;
-
-		register_shutdown_function( array( self::class, 'shutdown_cleanup_handler' ) );
-	}
-
-	/**
-	 * Shutdown handler : releases lock if script was killed by fatal error.
-	 *
-	 * This static method is called by register_shutdown_function() when PHP terminates.
-	 * It checks whether the script exited normally or due to a fatal error by comparing
-	 * the last error against known fatal error patterns.
-	 *
-	 * Token verification: before deleting the lock we re-read the stored value
-	 * and confirm OUR token still owns it. If a different process has since
-	 * taken over the lock (e.g. a stale-claim after our TTL expired), we must
-	 * NOT delete it : that would wipe the legitimate holder's lock and open
-	 * a window for duplicate concurrent processing.
-	 *
-	 * @return void
-	 */
-	public static function shutdown_cleanup_handler(): void {
-		$session_id = self::$shutdown_session_id;
-		$lock_token = self::$shutdown_lock_token;
-
-		if ( null === $session_id || null === $lock_token ) {
-			return;
-		}
-
-		$lock_key    = 'sscribe_lock_' . $session_id;
-		$using_cache = wp_using_ext_object_cache();
-
-		$raw = $using_cache
-			? wp_cache_get( $lock_key, 'transient' )
-			: get_transient( $lock_key );
-
-		if ( is_string( $raw ) ) {
-			$parts  = explode( '|', $raw );
-			$stored = $parts[1] ?? '';
-			if ( ! hash_equals( $lock_token, $stored ) ) {
-
-				self::$shutdown_session_id = null;
-				self::$shutdown_lock_token = null;
-				return;
-			}
-		}
-
-		if ( $using_cache ) {
-			wp_cache_delete( $lock_key, 'transient' );
-		}
-		delete_transient( $lock_key );
-
-		self::$shutdown_session_id = null;
-		self::$shutdown_lock_token = null;
 	}
 
 	/**
@@ -228,11 +153,15 @@ class SScribe_Export_Lock_Manager {
 		}
 
 		$lock_key    = 'sscribe_lock_' . $session_id;
+		$option_key  = self::OPTION_PREFIX . $session_id;
 		$using_cache = wp_using_ext_object_cache();
 
 		$raw = $using_cache
-			? wp_cache_get( $lock_key, 'transient' )
-			: get_transient( $lock_key );
+			? wp_cache_get( $lock_key, self::CACHE_GROUP )
+			: get_option( $option_key, false );
+		if ( ! $using_cache && false === $raw ) {
+			$raw = get_transient( $lock_key );
+		}
 
 		if ( false === $raw || ! is_string( $raw ) ) {
 			return true;
@@ -246,100 +175,94 @@ class SScribe_Export_Lock_Manager {
 		}
 
 		if ( $using_cache ) {
-			wp_cache_delete( $lock_key, 'transient' );
+			wp_cache_delete( $lock_key, self::CACHE_GROUP );
 		}
+		delete_option( $option_key );
 		delete_transient( $lock_key );
-
-		if ( self::$shutdown_session_id === $session_id ) {
-			self::$shutdown_session_id = null;
-			self::$shutdown_lock_token = null;
-		}
 
 		return true;
 	}
 
 	/**
-	 * Clean up locks for a user or expired locks globally.
+	 * Remove a session lock during an explicit session cleanup.
 	 *
-	 * @param int|null    $user_id           User ID to clean up.
-	 * @param string|null $current_session_id Session to preserve.
-	 * @return array
+	 * This deliberately bypasses token ownership and must only be used after
+	 * the corresponding session has been selected for deletion by trusted code.
+	 *
+	 * @param string $session_id Session identifier.
+	 * @return bool Whether the identifier was valid and cleanup was attempted.
 	 */
-	public function cleanup_user_locks( ?int $user_id = null, ?string $current_session_id = null ): array {
+	public function discard_lock( string $session_id ): bool {
+		$sanitized = sanitize_key( $session_id );
+		if ( '' === $sanitized || ! hash_equals( $session_id, $sanitized ) ) {
+			return false;
+		}
+
+		$lock_key = 'sscribe_lock_' . $sanitized;
+		wp_cache_delete( $lock_key, self::CACHE_GROUP );
+		delete_option( self::OPTION_PREFIX . $sanitized );
+		delete_transient( $lock_key );
+
+		return true;
+	}
+
+	/**
+	 * Clean up expired database-backed locks.
+	 *
+	 * Persistent object-cache locks expire through their cache TTL and are not
+	 * stored in the options table.
+	 *
+	 * @return int Number of expired locks deleted.
+	 */
+	public function cleanup_expired_locks(): int {
 		global $wpdb;
 
-		$deleted   = 0;
-		$preserved = 0;
+		$now                  = time();
+		$lock_timeout_pattern = $wpdb->esc_like( '_transient_timeout_sscribe_lock_' ) . '%';
+		$option_pattern       = $wpdb->esc_like( self::OPTION_PREFIX ) . '%';
 
-		if ( null !== $user_id ) {
-			$session_pattern = $wpdb->esc_like( self::SESSION_PREFIX ) . '%';
-			$user_id_json    = '%' . $wpdb->esc_like( '"user_id":' . $user_id ) . '%';
-			$prefix_len      = strlen( self::SESSION_PREFIX );
+		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- Bounded cleanup of expired plugin-owned transient rows.
+		$expired_locks = $wpdb->get_results(
+			$wpdb->prepare(
+				"SELECT option_name FROM {$wpdb->options} WHERE option_name LIKE %s AND option_value < %d",
+				$lock_timeout_pattern,
+				$now
+			)
+		);
 
-			// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- Cleanup.
-			$sessions = $wpdb->get_results(
-				$wpdb->prepare(
-					"SELECT o.option_name, o.option_value FROM {$wpdb->options} o
-					WHERE o.option_name LIKE %s
-					AND o.autoload = 'no'
-					AND EXISTS (
-						SELECT 1 FROM {$wpdb->options} m
-						WHERE m.option_name = CONCAT(%s, SUBSTRING(o.option_name, %d))
-						AND m.autoload = 'no'
-						AND m.option_value LIKE %s
-					)",
-					$session_pattern,
-					self::SESSION_PREFIX,
-					$prefix_len + 1,
-					$user_id_json
-				)
-			);
-
-			foreach ( $sessions as $session_row ) {
-				$data = json_decode( $session_row->option_value, true );
-
-				if ( ! is_array( $data ) ) {
-					continue;
-				}
-
-				if ( isset( $data['user_id'] ) && (int) $data['user_id'] === $user_id ) {
-					$sid = $data['session_id'] ?? '';
-
-					if ( null !== $current_session_id && $sid === $current_session_id ) {
-						++$preserved;
-						continue;
-					}
-
-					if ( '' !== $sid ) {
-						delete_transient( 'sscribe_lock_' . $sid );
-						++$deleted;
-					}
-					delete_option( $session_row->option_name );
-				}
-			}
-		} else {
-			$now                  = time();
-			$lock_timeout_pattern = $wpdb->esc_like( '_transient_timeout_sscribe_lock_' ) . '%';
-
-			// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- Cleanup.
-			$expired_locks = $wpdb->get_results(
-				$wpdb->prepare(
-					"SELECT option_name FROM {$wpdb->options} WHERE option_name LIKE %s AND option_value < %d",
-					$lock_timeout_pattern,
-					$now
-				)
-			);
-
-			foreach ( $expired_locks as $expired ) {
-				$session_id = str_replace( '_transient_timeout_sscribe_lock_', '', $expired->option_name );
-				delete_transient( 'sscribe_lock_' . $session_id );
+		$deleted = 0;
+		foreach ( $expired_locks as $expired ) {
+			$session_id = str_replace( '_transient_timeout_sscribe_lock_', '', $expired->option_name );
+			if ( $this->discard_lock( $session_id ) ) {
 				++$deleted;
 			}
 		}
 
-		return array(
-			'deleted'   => $deleted,
-			'preserved' => $preserved,
+		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- Bounded cleanup of plugin-owned option locks.
+		$database_locks = $wpdb->get_results(
+			$wpdb->prepare(
+				"SELECT option_name, option_value FROM {$wpdb->options} WHERE option_name LIKE %s ORDER BY option_name ASC LIMIT %d",
+				$option_pattern,
+				500
+			)
 		);
+		foreach ( (array) $database_locks as $lock ) {
+			$option_name = (string) ( $lock->option_name ?? '' );
+			$session_id  = substr( $option_name, strlen( self::OPTION_PREFIX ) );
+			if ( '' === $session_id || self::OPTION_PREFIX . sanitize_key( $session_id ) !== $option_name ) {
+				continue;
+			}
+
+			$parts     = explode( '|', (string) ( $lock->option_value ?? '' ), 3 );
+			$lock_time = isset( $parts[0] ) && ctype_digit( $parts[0] ) ? (int) $parts[0] : 0;
+			$expires   = isset( $parts[2] ) && ctype_digit( $parts[2] ) ? (int) $parts[2] : 0;
+			if ( 0 === $lock_time || ( $expires > 0 ? $expires <= $now : $now - $lock_time > 600 ) || $now - $lock_time < -300 ) {
+				if ( delete_option( $option_name ) ) {
+					++$deleted;
+				}
+			}
+		}
+
+		return $deleted;
 	}
 }

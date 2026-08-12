@@ -156,6 +156,28 @@ class SScribe_Format_Exporters_Test extends TestCase {
 		}
 	}
 
+	public function test_html_exporter_normalizes_malformed_filtered_metadata(): void {
+		require_once SSCRIBE_PLUGIN_DIR . 'includes/exporters/class-sscribe-html-exporter.php';
+		$exporter = new SScribe_HTML_Exporter();
+
+		$html = $exporter->generate_html_string(
+			array(
+				'title'                => array( 'invalid' ),
+				'content'              => new \stdClass(),
+				'permalink'            => array( 'invalid' ),
+				'language'             => '<script>',
+				'featured_image_url'   => array( 'invalid' ),
+				'featured_image_width' => -100,
+				'seo'                  => 'invalid',
+			)
+		);
+
+		$this->assertStringContainsString( '<!DOCTYPE html>', $html );
+		$this->assertStringContainsString( '<html lang="en"', $html );
+		$this->assertStringContainsString( 'Untitled', $html );
+		$this->assertStringNotContainsString( '<script>', $html );
+	}
+
 	public function test_pdf_exporter_interface(): void {
 		require_once SSCRIBE_PLUGIN_DIR . 'includes/exporters/class-sscribe-pdf-exporter.php';
 		$exporter = new SScribe_PDF_Exporter();

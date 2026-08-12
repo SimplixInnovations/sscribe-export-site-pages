@@ -77,7 +77,14 @@ trait SScribe_Batch_Step_Handler {
 		$batch_start_time = microtime( true );
 		$batch_duration  = 0.0;
 		try {
-			$session_id = isset( $_POST['session_id'] ) ? sanitize_text_field( wp_unslash( $_POST['session_id'] ) ) : '';
+			$session_id = SScribe_AJAX_Guard::post_text( 'session_id', '', 16 );
+			if ( 1 !== preg_match( '/^[a-f0-9]{16}$/D', $session_id ) ) {
+				$this->restore_ob_level( $ob_level_before );
+				SScribe_AJAX_Guard::error(
+					array( 'message' => __( 'Invalid export session identifier.', 'sscribe-export-site-pages' ) ),
+					400
+				);
+			}
 			$session    = $this->session->get( $session_id );
 
 			$this->logger->debug(
@@ -89,8 +96,7 @@ trait SScribe_Batch_Step_Handler {
 			);
 
 			if ( ! $session ) {
-				$lock_key = 'sscribe_lock_' . $session_id;
-				delete_transient( $lock_key );
+				$this->get_lock_manager()->discard_lock( $session_id );
 				$this->logger->debug(
 					'ERROR: Session not found, cleared orphaned lock',
 					array(
@@ -106,8 +112,8 @@ trait SScribe_Batch_Step_Handler {
 				);
 			}
 
-			$lock_ttl        = (int) apply_filters( 'sscribe_lock_ttl', 180 );
-			$stale_threshold = (int) apply_filters( 'sscribe_lock_stale_threshold', 140 );
+			$lock_ttl        = max( 30, min( 600, (int) apply_filters( 'sscribe_lock_ttl', 180 ) ) );
+			$stale_threshold = max( 15, min( $lock_ttl - 5, (int) apply_filters( 'sscribe_lock_stale_threshold', 140 ) ) );
 
 			if ( ! $this->validate_session_ownership( $session, $session_id ) ) {
 				$this->restore_ob_level( $ob_level_before );
@@ -202,17 +208,38 @@ trait SScribe_Batch_Step_Handler {
 			$pause_hint = isset( $session['last_pause_reason'] ) ? $session['last_pause_reason'] : '';
 			$this->optimize_batch_size( $formats, $pause_hint );
 
-			$upload_dir        = wp_upload_dir();
-			$allowed_temp_base = trailingslashit( $upload_dir['basedir'] ) . 'sscribe-exports';
+			$upload_dir = wp_upload_dir();
+			if ( ! empty( $upload_dir['error'] ) || empty( $upload_dir['basedir'] ) ) {
+				$this->release_lock( $session_id, $lock_token );
+				$this->restore_ob_level( $ob_level_before );
+				SScribe_AJAX_Guard::error(
+					array( 'message' => __( 'The WordPress uploads directory is unavailable.', 'sscribe-export-site-pages' ) ),
+					500
+				);
+			}
+
+			$allowed_temp_base = trailingslashit( (string) $upload_dir['basedir'] ) . 'sscribe-exports';
+			$filesystem        = new SScribe_Filesystem();
+			$path_valid       = str_starts_with( basename( (string) $temp_dir ), 'temp-' )
+				&& ! is_link( (string) $temp_dir )
+				&& SScribe_Filesystem::SSCRIBE_PATH_ALLOWED === $filesystem->is_path_safe_for_write( trailingslashit( (string) $temp_dir ) . '.sscribe-probe' );
+			if ( ! $path_valid ) {
+				$this->release_lock( $session_id, $lock_token );
+				$this->restore_ob_level( $ob_level_before );
+				SScribe_AJAX_Guard::error(
+					array( 'message' => __( 'Export session corrupted (invalid temp directory path). Please start again.', 'sscribe-export-site-pages' ) ),
+					500
+				);
+			}
 
 			$real_allowed_base = realpath( $allowed_temp_base );
 
 			if ( ! empty( $temp_dir ) && ! is_dir( $temp_dir ) ) {
-				wp_mkdir_p( $temp_dir );
+				wp_mkdir_p( (string) $temp_dir );
 			}
-			$real_temp_dir = realpath( $temp_dir );
+			$real_temp_dir = realpath( (string) $temp_dir );
 
-			$path_valid = true;
+			$path_valid = ! is_link( (string) $temp_dir );
 			if ( false === $real_temp_dir ) {
 
 				$path_valid = false;
@@ -308,7 +335,7 @@ trait SScribe_Batch_Step_Handler {
 
 			$batch_log_data = $this->export_log ? $this->export_log->get_log() : null;
 
-			$batch_session_snapshot = $this->session->get( $session_id );
+			$session_update_failed = false;
 
 			try {
 				foreach ( $batch as $page_id ) {
@@ -574,7 +601,8 @@ trait SScribe_Batch_Step_Handler {
 						gc_collect_cycles();
 					}
 
-					if ( ! empty( $batch_session_snapshot['cancelled'] ) ) {
+					$latest_session = $this->session->get( $session_id );
+					if ( null === $latest_session || ! empty( $latest_session['cancelled'] ) ) {
 						$this->logger->debug(
 							'Mid-batch cancellation detected',
 							array(
@@ -686,15 +714,6 @@ trait SScribe_Batch_Step_Handler {
 
 				$format_keys = array( 'format_time_docx', 'format_time_pdf', 'format_time_html', 'format_time_markdown', 'format_size_docx', 'format_size_pdf', 'format_size_html', 'format_size_markdown', 'format_pages_docx', 'format_pages_pdf', 'format_pages_html', 'format_pages_markdown' );
 
-				foreach ( $session as $key => $value ) {
-					if ( is_string( $key ) && ( str_starts_with( $key, 'format_time_' ) || str_starts_with( $key, 'format_size_' ) || str_starts_with( $key, 'format_pages_' ) ) && ! in_array( $key, $format_keys, true ) ) {
-						if ( str_starts_with( $key, 'format_time_' ) || str_starts_with( $key, 'format_size_' ) ) {
-							$update_data[ $key ] = (float) ( $value ?? 0 );
-						} else {
-							$update_data[ $key ] = (int) ( $value ?? 0 );
-						}
-					}
-				}
 				foreach ( $format_keys as $key ) {
 					if ( isset( $session[ $key ] ) ) {
 
@@ -708,6 +727,7 @@ trait SScribe_Batch_Step_Handler {
 
 				$update_result = $this->session->update( $session_id, $update_data );
 				if ( ! $update_result ) {
+					$session_update_failed = true;
 					$this->logger->error(
 						'Session update failed',
 						array(
@@ -724,6 +744,16 @@ trait SScribe_Batch_Step_Handler {
 				$this->release_lock( $session_id, $lock_token );
 				$this->restore_ob_level( $ob_level_before );
 				$this->collector->clear_page_caches();
+			}
+
+			if ( $session_update_failed ) {
+				SScribe_AJAX_Guard::error(
+					array(
+						'message' => __( 'Export progress could not be saved. The batch can be retried safely.', 'sscribe-export-site-pages' ),
+						'retry'   => true,
+					),
+					500
+				);
 			}
 
 			$percentage = ( $total > 0 && $processed > 0 ) ? round( ( $processed / $total ) * 100 ) : 0;
@@ -759,6 +789,13 @@ trait SScribe_Batch_Step_Handler {
 				$update_data['status']            = 'finalizing';
 				if ( ! $this->session->update( $session_id, $update_data ) ) {
 					$this->logger->error( 'Final session update failed', array( 'session_id' => $session_id ) );
+					SScribe_AJAX_Guard::error(
+						array(
+							'message' => __( 'Export completion state could not be saved. Please retry this step.', 'sscribe-export-site-pages' ),
+							'retry'   => true,
+						),
+						500
+					);
 				}
 
 				$error_diagnostics = array();

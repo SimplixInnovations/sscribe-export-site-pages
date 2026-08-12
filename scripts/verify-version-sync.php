@@ -36,6 +36,16 @@ $version_locations = array(
 		'pattern' => '/@version\s+([0-9.]+)/',
 		'line'    => 8,
 	),
+	'package_json'     => array(
+		'file'    => $root_dir . '/package.json',
+		'pattern' => '/"version"\s*:\s*"([0-9.]+)"/',
+		'line'    => 3,
+	),
+	'package_lock'     => array(
+		'file'    => $root_dir . '/package-lock.json',
+		'pattern' => '/"version"\s*:\s*"([0-9.]+)"/',
+		'line'    => 3,
+	),
 	'readme_changelog' => array(
 		'file'       => $root_dir . '/readme.txt',
 		'pattern'    => '/^= (\d+\.\d+\.\d+) =\s*$/m',

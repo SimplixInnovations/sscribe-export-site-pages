@@ -16,138 +16,110 @@ class SScribe_Export_Lock_Manager_Test extends TestCase {
 	protected function setUp(): void {
 		parent::setUp();
 		$GLOBALS['sscribe_test_transients'] = array();
+		$GLOBALS['sscribe_test_options']    = array();
 	}
 
 	protected function tearDown(): void {
 		$GLOBALS['sscribe_test_transients'] = array();
+		$GLOBALS['sscribe_test_options']    = array();
 		parent::tearDown();
 	}
 
-	public function test_acquire_lock_returns_token_when_no_existing_lock(): void {
+	public function test_database_fallback_acquires_atomic_option_lock(): void {
 		$manager = new \SScribe_Export_Lock_Manager();
 		$token   = $manager->acquire_lock( 'test-session-123' );
 
-		$this->assertNotNull( $token );
 		$this->assertIsString( $token );
-		$this->assertEquals( 32, strlen( $token ) );
+		$this->assertSame( 32, strlen( $token ) );
+		$this->assertIsString( get_option( 'sscribe_export_lock_test-session-123', false ) );
 	}
 
-	public function test_acquire_lock_returns_null_when_active_lock_exists(): void {
+	public function test_second_acquisition_is_rejected(): void {
 		$manager = new \SScribe_Export_Lock_Manager();
-
-		$current_time = time();
-		$GLOBALS['sscribe_test_transients']['sscribe_lock_test-session-456'] = $current_time . '|other-token';
-
-		$token = $manager->acquire_lock( 'test-session-456' );
-		$this->assertNull( $token );
+		$this->assertNotNull( $manager->acquire_lock( 'test-session-456' ) );
+		$this->assertNull( $manager->acquire_lock( 'test-session-456' ) );
 	}
 
-	public function test_acquire_lock_succeeds_on_stale_lock(): void {
-		$manager = new \SScribe_Export_Lock_Manager();
+	public function test_legacy_active_transient_is_honored(): void {
+		$GLOBALS['sscribe_test_transients']['sscribe_lock_legacy-session'] = time() . '|other-token';
 
+		$manager = new \SScribe_Export_Lock_Manager();
+		$this->assertNull( $manager->acquire_lock( 'legacy-session' ) );
+	}
+
+	public function test_stale_legacy_transient_is_replaced(): void {
 		$GLOBALS['sscribe_test_transients']['sscribe_lock_test-stale'] = '100|old-token';
 
-		$token = $manager->acquire_lock( 'test-stale' );
-		$this->assertNotNull( $token );
-		$this->assertIsString( $token );
-		$this->assertEquals( 32, strlen( $token ) );
+		$manager = new \SScribe_Export_Lock_Manager();
+		$token   = $manager->acquire_lock( 'test-stale' );
+		$stored  = get_option( 'sscribe_export_lock_test-stale', false );
 
-		$lock_data = get_transient( 'sscribe_lock_test-stale' );
-		$this->assertNotFalse( $lock_data );
-		$lock_parts = explode( '|', $lock_data );
-		$this->assertCount( 2, $lock_parts );
-		$this->assertEquals( $lock_parts[1], $token );
+		$this->assertIsString( $token );
+		$this->assertIsString( $stored );
+		$this->assertStringContainsString( '|' . $token . '|', $stored );
+		$this->assertFalse( get_transient( 'sscribe_lock_test-stale' ) );
 	}
 
-	public function test_release_lock_returns_true_with_correct_token(): void {
+	public function test_unexpired_lock_uses_owners_expiry_not_callers_threshold(): void {
+		$created = time() - 100;
+		$expires = time() + 200;
+		update_option( 'sscribe_export_lock_shared-resource', $created . '|owner-token|' . $expires, false );
+
+		$manager = new \SScribe_Export_Lock_Manager();
+		$this->assertNull( $manager->acquire_lock( 'shared-resource', 30, 25 ) );
+		$this->assertSame(
+			$created . '|owner-token|' . $expires,
+			get_option( 'sscribe_export_lock_shared-resource', false )
+		);
+	}
+
+	public function test_expired_versioned_lock_is_replaced(): void {
+		update_option( 'sscribe_export_lock_expired-resource', ( time() - 100 ) . '|old-token|' . ( time() - 1 ), false );
+
+		$manager = new \SScribe_Export_Lock_Manager();
+		$token   = $manager->acquire_lock( 'expired-resource', 30, 25 );
+
+		$this->assertIsString( $token );
+		$this->assertStringContainsString( '|' . $token . '|', (string) get_option( 'sscribe_export_lock_expired-resource', false ) );
+	}
+
+	public function test_release_requires_owner_token(): void {
 		$manager = new \SScribe_Export_Lock_Manager();
 		$token   = $manager->acquire_lock( 'test-release' );
 
-		$this->assertNotNull( $token );
+		$this->assertIsString( $token );
+		$this->assertFalse( $manager->release_lock( 'test-release', 'wrong-token' ) );
+		$this->assertIsString( get_option( 'sscribe_export_lock_test-release', false ) );
 		$this->assertTrue( $manager->release_lock( 'test-release', $token ) );
+		$this->assertFalse( get_option( 'sscribe_export_lock_test-release', false ) );
 	}
 
-	public function test_release_lock_returns_false_with_wrong_token(): void {
+	public function test_release_handles_missing_or_null_lock(): void {
 		$manager = new \SScribe_Export_Lock_Manager();
 
-		$token = $manager->acquire_lock( 'test-wrong-token' );
-		$this->assertNotNull( $token );
-
-		$this->assertFalse( $manager->release_lock( 'test-wrong-token', 'wrong-token-value' ) );
+		$this->assertFalse( $manager->release_lock( 'test-null', null ) );
+		$this->assertTrue( $manager->release_lock( 'test-missing', 'token' ) );
 	}
 
-	public function test_release_lock_returns_false_with_null_token(): void {
+	public function test_lock_can_be_reacquired_after_release(): void {
 		$manager = new \SScribe_Export_Lock_Manager();
+		$first   = $manager->acquire_lock( 'test-ownership' );
 
-		$this->assertFalse( $manager->release_lock( 'test-null-token', null ) );
+		$this->assertIsString( $first );
+		$this->assertTrue( $manager->release_lock( 'test-ownership', $first ) );
+
+		$second = $manager->acquire_lock( 'test-ownership' );
+		$this->assertIsString( $second );
+		$this->assertNotSame( $first, $second );
 	}
 
-	public function test_release_lock_returns_true_when_lock_already_expired(): void {
+	public function test_discard_lock_removes_database_and_legacy_storage(): void {
 		$manager = new \SScribe_Export_Lock_Manager();
-		$token   = $manager->acquire_lock( 'test-expired' );
+		$this->assertNotNull( $manager->acquire_lock( 'test-discard' ) );
+		$GLOBALS['sscribe_test_transients']['sscribe_lock_test-discard'] = 'legacy';
 
-		$GLOBALS['sscribe_test_transients'] = array();
-
-		$this->assertTrue( $manager->release_lock( 'test-expired', $token ) );
-	}
-
-	public function test_lock_owner_token_is_verified_on_release(): void {
-		$manager = new \SScribe_Export_Lock_Manager();
-
-		$token_a = $manager->acquire_lock( 'test-ownership' );
-		$this->assertNotNull( $token_a );
-
-		$this->assertTrue( $manager->release_lock( 'test-ownership', $token_a ) );
-
-		$token_b = $manager->acquire_lock( 'test-ownership' );
-		$this->assertNotNull( $token_b );
-		$this->assertNotEquals( $token_a, $token_b );
-	}
-
-	public function test_shutdown_handler_does_not_delete_lock_owned_by_different_token(): void {
-		// Simulate the race: this request acquired the lock, then a stale-claim
-		// by another process overwrote it with a different token before our
-		// shutdown handler ran. The handler must NOT delete the new holder's lock.
-		$manager = new \SScribe_Export_Lock_Manager();
-
-		$token_a = $manager->acquire_lock( 'test-shutdown-race' );
-		$this->assertNotNull( $token_a );
-
-		// Simulate a new process overwriting the lock with a different token
-		// (e.g. our TTL expired, another process took over).
-		$new_holder_token = 'token-of-new-holder';
-		$current_time     = time();
-		$GLOBALS['sscribe_test_transients']['sscribe_lock_test-shutdown-race'] = $current_time . '|' . $new_holder_token;
-
-		// Run the shutdown handler — it must not wipe the new holder's lock.
-		\SScribe_Export_Lock_Manager::shutdown_cleanup_handler();
-
-		$lock_data = get_transient( 'sscribe_lock_test-shutdown-race' );
-		$this->assertNotFalse( $lock_data, 'Shutdown handler must not delete a lock owned by a different token' );
-		$this->assertStringContainsString( $new_holder_token, $lock_data );
-	}
-
-	public function test_shutdown_handler_deletes_lock_owned_by_own_token(): void {
-		// The normal case: shutdown handler is called for a lock we still own.
-		$manager = new \SScribe_Export_Lock_Manager();
-
-		$token = $manager->acquire_lock( 'test-shutdown-own' );
-		$this->assertNotNull( $token );
-
-		\SScribe_Export_Lock_Manager::shutdown_cleanup_handler();
-
-		$lock_data = get_transient( 'sscribe_lock_test-shutdown-own' );
-		$this->assertFalse( $lock_data, 'Shutdown handler must delete a lock we still own' );
-	}
-
-	public function test_shutdown_handler_is_noop_when_no_lock_acquired(): void {
-		// No lock has been acquired — static state is null. The handler must
-		// not throw and must not touch any transients.
-		$marker = 'sscribe_lock_test-shutdown-noop';
-		$GLOBALS['sscribe_test_transients'][ $marker ] = 'should-stay-intact';
-
-		\SScribe_Export_Lock_Manager::shutdown_cleanup_handler();
-
-		$this->assertSame( 'should-stay-intact', get_transient( $marker ) );
+		$this->assertTrue( $manager->discard_lock( 'test-discard' ) );
+		$this->assertFalse( get_option( 'sscribe_export_lock_test-discard', false ) );
+		$this->assertFalse( get_transient( 'sscribe_lock_test-discard' ) );
 	}
 }

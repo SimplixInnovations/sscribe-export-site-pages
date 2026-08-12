@@ -48,7 +48,7 @@ class SScribe_Page_Collector {
 	private array $breadcrumb_cache = array();
 
 	/**
-	 * Cached permalinks by page ID.
+	 * Cached permalinks by page ID and active WPML language.
 	 *
 	 * `get_permalink()` is non-trivial: it loads the post, runs
 	 * apply_filters( 'post_link', ... ) (Yoast/RankMath/Polylang all
@@ -57,7 +57,7 @@ class SScribe_Page_Collector {
 	 * breadcrumbs, child lists) : memoizing the result per request
 	 * trims several filter chains per page.
 	 *
-	 * @var array<int,string>
+	 * @var array<string,string>
 	 */
 	private array $permalink_cache = array();
 
@@ -104,12 +104,12 @@ class SScribe_Page_Collector {
 	/**
 	 * Add an entry to a cache with LRU eviction when max size is exceeded.
 	 *
-	 * @param array &$cache Cache reference.
-	 * @param int   $key    Cache key.
-	 * @param mixed $value  Cache value.
+	 * @param array      &$cache Cache reference.
+	 * @param int|string $key    Cache key.
+	 * @param mixed      $value  Cache value.
 	 * @return void
 	 */
-	private function cache_add( array &$cache, int $key, mixed $value ): void {
+	private function cache_add( array &$cache, int|string $key, mixed $value ): void {
 		if ( count( $cache ) >= self::CACHE_MAX_SIZE ) {
 
 			array_shift( $cache );
@@ -202,8 +202,11 @@ class SScribe_Page_Collector {
 			'post_status'    => $post_status,
 			'posts_per_page' => $effective_limit,
 			'fields'         => 'ids',
-			'orderby'        => 'menu_order title',
-			'order'          => 'ASC',
+			'orderby'        => array(
+				'menu_order' => 'ASC',
+				'title'      => 'ASC',
+				'ID'         => 'ASC',
+			),
 			'no_found_rows'  => true,
 		);
 
@@ -318,7 +321,7 @@ class SScribe_Page_Collector {
 	 */
 	public function get_page_ids_chunked( string $language = '', string $post_status = 'publish', string $post_type = 'page', int $chunk_size = 100 ): \Generator {
 		$post_status = $this->validate_post_status( $post_status );
-		$chunk_size  = (int) apply_filters( 'sscribe_page_ids_chunk_size', $chunk_size );
+		$chunk_size  = max( 1, min( 1000, (int) apply_filters( 'sscribe_page_ids_chunk_size', $chunk_size ) ) );
 
 		$page = 1;
 
@@ -337,8 +340,11 @@ class SScribe_Page_Collector {
 				// count returned: if the chunk is shorter than the
 				// requested page size, we reached the end of the result set.
 				'no_found_rows'  => true,
-				'orderby'        => 'menu_order title',
-				'order'          => 'ASC',
+				'orderby'        => array(
+					'menu_order' => 'ASC',
+					'title'      => 'ASC',
+					'ID'         => 'ASC',
+				),
 			);
 
 			$switched = false;
@@ -399,7 +405,10 @@ class SScribe_Page_Collector {
 	/**
 	 * Get featured images for a batch of page IDs.
 	 *
-	 * @param array<int> $page_ids Page IDs.
+	 * Invalid entries are ignored so extension code cannot accidentally turn a
+	 * malformed ID into post ID 1 through PHP's array-to-integer conversion.
+	 *
+	 * @param array<mixed> $page_ids Page IDs.
 	 * @return array Featured image data.
 	 */
 	public function get_featured_images_batch( array $page_ids ): array {
@@ -408,9 +417,7 @@ class SScribe_Page_Collector {
 		}
 
 		$page_ids = array_map(
-			function ( $id ) {
-				return absint( $id );
-			},
+			static fn( $id ): int => is_scalar( $id ) && ! is_bool( $id ) ? absint( $id ) : 0,
 			$page_ids
 		);
 		$page_ids = array_filter( $page_ids );
@@ -587,10 +594,17 @@ class SScribe_Page_Collector {
 	 *                has no permalink, e.g. not yet published).
 	 */
 	private function get_permalink_cached( int $page_id ): string {
-		if ( ! isset( $this->permalink_cache[ $page_id ] ) ) {
-			$this->cache_add( $this->permalink_cache, $page_id, (string) get_permalink( $page_id ) );
+		$language = '';
+		if ( $this->is_wpml_active() ) {
+			// phpcs:ignore WordPress.NamingConventions.PrefixAllGlobals.NonPrefixedHooknameFound -- WPML hook.
+			$language = sanitize_key( (string) apply_filters( 'wpml_current_language', null ) );
 		}
-		return $this->permalink_cache[ $page_id ];
+		$cache_key = $page_id . '|' . $language;
+
+		if ( ! isset( $this->permalink_cache[ $cache_key ] ) ) {
+			$this->cache_add( $this->permalink_cache, $cache_key, (string) get_permalink( $page_id ) );
+		}
+		return $this->permalink_cache[ $cache_key ];
 	}
 
 	/**
@@ -805,8 +819,11 @@ class SScribe_Page_Collector {
 	/**
 	 * Get child pages for a batch of parent IDs.
 	 *
-	 * @param array<int> $page_ids  Parent page IDs.
-	 * @param string     $post_type Post type.
+	 * Invalid entries are ignored so extension code cannot accidentally turn a
+	 * malformed ID into post ID 1 through PHP's array-to-integer conversion.
+	 *
+	 * @param array<mixed> $page_ids  Parent page IDs.
+	 * @param string       $post_type Post type.
 	 * @return array Child pages grouped by parent.
 	 */
 	public function get_child_pages_batch( array $page_ids, string $post_type = 'page' ): array {
@@ -814,7 +831,10 @@ class SScribe_Page_Collector {
 			return array();
 		}
 
-		$page_ids = array_map( 'absint', $page_ids );
+		$page_ids = array_map(
+			static fn( $id ): int => is_scalar( $id ) && ! is_bool( $id ) ? absint( $id ) : 0,
+			$page_ids
+		);
 		$page_ids = array_filter( $page_ids );
 
 		if ( empty( $page_ids ) ) {
@@ -1123,71 +1143,28 @@ class SScribe_Page_Collector {
 			return $counts;
 		}
 
-		$args = array(
-			'post_type'      => $this->resolve_post_type_for_query( $post_type ),
-			'post_status'    => array_keys( $statuses ),
-			'posts_per_page' => 1,
-			'no_found_rows'  => false,
-			'fields'         => 'ids',
-		);
-
 		$switched = false;
 
 		try {
-
-			$target_lang = ! empty( $language ) ? $language : 'all';
-			// phpcs:ignore WordPress.NamingConventions.PrefixAllGlobals.NonPrefixedHooknameFound -- WPML hook.
-			do_action( 'wpml_switch_language', $target_lang );
-			$args['suppress_filters'] = false;
-			$switched                 = true;
-
-			global $wpdb;
-
-			$post_type_placeholders = is_array( $args['post_type'] )
-				? '(' . implode( ',', array_fill( 0, count( $args['post_type'] ), '%s' ) ) . ')'
-				: '%s';
-
-			// phpcs:disable WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- Single optimized count query for performance; caching handled by transient below.
-			if ( is_array( $args['post_type'] ) ) {
-				$post_type_count        = count( $args['post_type'] );
-				$status_count           = count( $statuses );
-				$post_type_placeholders = implode( ',', array_fill( 0, $post_type_count, '%s' ) );
-				$status_placeholders    = implode( ',', array_fill( 0, $status_count, '%s' ) );
-				// phpcs:disable WordPress.DB.PreparedSQLPlaceholders.UnfinishedPrepare, WordPress.DB.PreparedSQL.InterpolatedNotPrepared, WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, PluginCheck.Security.DirectDB.UnescapedDBParameter -- Dynamic IN clause placeholders built from safe array_fill() of %s only; query is fully prepared.
-				$results = $wpdb->get_results(
-					$wpdb->prepare(
-						"SELECT post_status, COUNT(*) as count FROM {$wpdb->posts} WHERE post_type IN ({$post_type_placeholders}) AND post_status IN ({$status_placeholders}) GROUP BY post_status",
-						array_merge( $args['post_type'], array_keys( $statuses ) )
-					),
-					ARRAY_A
-				);
-				// phpcs:enable
-			} else {
-				$status_count        = count( $statuses );
-				$status_placeholders = implode( ',', array_fill( 0, $status_count, '%s' ) );
-				// phpcs:disable WordPress.DB.PreparedSQLPlaceholders.UnfinishedPrepare, WordPress.DB.PreparedSQL.InterpolatedNotPrepared, WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, PluginCheck.Security.DirectDB.UnescapedDBParameter -- Dynamic IN clause placeholders built from safe array_fill() of %s only; query is fully prepared.
-				$results = $wpdb->get_results(
-					$wpdb->prepare(
-						"SELECT post_status, COUNT(*) as count FROM {$wpdb->posts} WHERE post_type = %s AND post_status IN ({$status_placeholders}) GROUP BY post_status",
-						array_merge( array( $args['post_type'] ), array_keys( $statuses ) )
-					),
-					ARRAY_A
-				);
-				// phpcs:enable
-			}
-			// phpcs:enable
-
-			foreach ( $statuses as $status => $label ) {
-				$counts[ $status ] = 0;
+			if ( $this->is_wpml_active() ) {
+				$target_lang = ! empty( $language ) ? $language : 'all';
+				// phpcs:ignore WordPress.NamingConventions.PrefixAllGlobals.NonPrefixedHooknameFound -- WPML hook.
+				do_action( 'wpml_switch_language', $target_lang );
+				$switched = true;
 			}
 
-			if ( is_array( $results ) ) {
-				foreach ( $results as $row ) {
-					$status = $row['post_status'];
-					if ( isset( $counts[ $status ] ) ) {
-						$counts[ $status ] = (int) $row['count'];
-					}
-				}
+			foreach ( array_keys( $statuses ) as $status ) {
+				$query = new WP_Query(
+					array(
+						'post_type'        => $this->resolve_post_type_for_query( $post_type ),
+						'post_status'      => $status,
+						'posts_per_page'   => 1,
+						'no_found_rows'    => false,
+						'fields'           => 'ids',
+						'suppress_filters' => false,
+					)
+				);
+				$counts[ $status ] = (int) $query->found_posts;
 			}
 		} finally {
 			if ( $switched ) {
@@ -1250,7 +1227,7 @@ class SScribe_Page_Collector {
 		$cached    = get_transient( $cache_key );
 
 		if ( false !== $cached && is_array( $cached ) ) {
-			return $cached;
+			return $this->normalize_wpml_languages( $cached );
 		}
 
 		// phpcs:ignore WordPress.NamingConventions.PrefixAllGlobals.NonPrefixedHooknameFound -- WPML-documented hook.
@@ -1264,18 +1241,62 @@ class SScribe_Page_Collector {
 			return array();
 		}
 
-		$result = array();
-		foreach ( $languages_raw as $lang ) {
-			$result[] = array(
-				'code'        => $lang['language_code'],
-				'name'        => $lang['translated_name'],
-				'native_name' => $lang['native_name'],
-				'flag_url'    => isset( $lang['country_flag_url'] ) ? $lang['country_flag_url'] : '',
-			);
-		}
+		$result = $this->normalize_wpml_languages( $languages_raw );
 
 		set_transient( $cache_key, $result, 5 * MINUTE_IN_SECONDS );
 
 		return $result;
+	}
+
+	/**
+	 * Normalize language rows returned by WPML or the transient cache.
+	 *
+	 * @param array $languages Raw language rows.
+	 * @return array<int, array<string, string>> Validated rows.
+	 */
+	private function normalize_wpml_languages( array $languages ): array {
+		$result = array();
+		foreach ( array_slice( $languages, 0, 100 ) as $lang ) {
+			if ( ! is_array( $lang ) ) {
+				continue;
+			}
+			$code = sanitize_key( (string) ( $lang['language_code'] ?? $lang['code'] ?? '' ) );
+			if ( 1 !== preg_match( '/^[a-z0-9_-]{1,20}$/D', $code ) ) {
+				continue;
+			}
+			$result[] = array(
+				'code'        => $code,
+				'name'        => mb_substr( sanitize_text_field( (string) ( $lang['translated_name'] ?? $lang['name'] ?? $code ) ), 0, 100 ),
+				'native_name' => mb_substr( sanitize_text_field( (string) ( $lang['native_name'] ?? $code ) ), 0, 100 ),
+				'flag_url'    => esc_url_raw( (string) ( $lang['country_flag_url'] ?? $lang['flag_url'] ?? '' ) ),
+			);
+		}
+
+		return $result;
+	}
+
+	/**
+	 * Validate a requested language against WPML's active language list.
+	 *
+	 * @param string $language Requested language code; empty means all languages.
+	 * @return string Active language code or an empty string.
+	 */
+	public function normalize_language_code( string $language ): string {
+		if ( '' === $language || ! $this->is_wpml_active() ) {
+			return '';
+		}
+
+		$language = sanitize_key( $language );
+		if ( 1 !== preg_match( '/^[a-z0-9_-]{1,20}$/D', $language ) ) {
+			return '';
+		}
+
+		foreach ( $this->get_wpml_languages() as $active_language ) {
+			if ( isset( $active_language['code'] ) && hash_equals( sanitize_key( (string) $active_language['code'] ), $language ) ) {
+				return $language;
+			}
+		}
+
+		return '';
 	}
 }

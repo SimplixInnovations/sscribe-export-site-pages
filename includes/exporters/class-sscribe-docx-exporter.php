@@ -86,7 +86,7 @@ class SScribe_DOCX_Exporter implements SScribe_Exporter_Interface {
 	 * @return SScribe_Result Result of the export operation.
 	 */
 	public function export( array $page_data, string $output_dir, int $index = 0, int $total = 0 ): SScribe_Result {
-		$page_id = $page_data['id'] ?? 0;
+		$page_id = isset( $page_data['id'] ) && is_numeric( $page_data['id'] ) ? absint( $page_data['id'] ) : 0;
 
 		if ( ! class_exists( '\SScribeVendor\PhpOffice\PhpWord\PhpWord' ) ) {
 			$this->logger->error(
@@ -94,7 +94,7 @@ class SScribe_DOCX_Exporter implements SScribe_Exporter_Interface {
 				array( 'page_id' => $page_id )
 			);
 			return SScribe_Result::failure(
-				__( 'DOCX export is unavailable: the required PhpWord library is not installed. Run `composer install` in the plugin directory.', 'sscribe-export-site-pages' ),
+				__( 'DOCX export is unavailable because a required library is missing. Please reinstall the plugin.', 'sscribe-export-site-pages' ),
 				array( 'page_id' => $page_id )
 			);
 		}
@@ -113,21 +113,11 @@ class SScribe_DOCX_Exporter implements SScribe_Exporter_Interface {
 			}
 
 			$last_error     = $this->exporter->get_last_error();
-			$memory_context = sprintf(
-				'Memory: %s / %s',
-				size_format( memory_get_usage( true ) ),
-				ini_get( 'memory_limit' )
-			);
-
-			$error_message = $last_error
-				? $last_error
-				: sprintf( 'Unknown export error. %s', $memory_context );
-
 			$this->logger->error(
 				'DOCX export failed',
 				array(
 					'page_id'      => $page_id,
-					'error'        => $error_message,
+					'error'        => $last_error,
 					'memory_usage' => size_format( memory_get_usage( true ) ),
 					'memory_peak'  => size_format( memory_get_peak_usage( true ) ),
 					'memory_limit' => ini_get( 'memory_limit' ),
@@ -135,38 +125,24 @@ class SScribe_DOCX_Exporter implements SScribe_Exporter_Interface {
 			);
 
 			return SScribe_Result::failure(
-				$error_message,
-				array(
-					'page_id'      => $page_id,
-					'memory_usage' => size_format( memory_get_usage( true ) ),
-				)
+				__( 'Unable to generate the DOCX file. Please try again or use another export format.', 'sscribe-export-site-pages' ),
+				array( 'page_id' => $page_id )
 			);
 
 		} catch ( \Throwable $e ) {
-			$exception_class = (string) get_class( $e );
-			$raw_message     = $e->getMessage();
-
-			$display_message = ! empty( $raw_message )
-				? sprintf( '%s: %s', $exception_class, $raw_message )
-				: sprintf( '%s (no message)', $exception_class );
-
 			$this->logger->error(
 				'DOCX export crashed',
 				array(
 					'page_id' => $page_id,
-					'error'   => $display_message,
+					'error'   => $e->getMessage(),
+					'class'   => get_class( $e ),
 					'file'    => $e->getFile(),
 					'line'    => $e->getLine(),
 				)
 			);
 
 			return SScribe_Result::failure(
-				sprintf(
-					/* translators: 1: Page ID, 2: Error message. */
-					__( 'DOCX export failed for page %1$d: %2$s', 'sscribe-export-site-pages' ),
-					$page_id,
-					$display_message
-				),
+				__( 'Unable to generate the DOCX file. Please try again or use another export format.', 'sscribe-export-site-pages' ),
 				array( 'page_id' => $page_id )
 			);
 		}

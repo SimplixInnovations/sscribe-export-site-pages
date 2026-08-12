@@ -4,7 +4,7 @@
         "Read more about it at https://getcomposer.org/doc/01-basic-usage.md#installing-dependencies",
         "This file is @generated automatically"
     ],
-    "content-hash": "2a2c6dbc9dec1b4dd7fb11d7fddaeabc",
+    "content-hash": "fe2fd71ca70214e6eeef2c5a0c04b770",
     "packages": [
         {
             "name": "mpdf/mpdf",
@@ -682,35 +682,55 @@
     "packages-dev": [
         {
             "name": "automattic/vipwpcs",
-            "version": "3.0.1",
+            "version": "3.1.0",
             "source": {
                 "type": "git",
                 "url": "https://github.com/Automattic/VIP-Coding-Standards.git",
-                "reference": "2b1d206d81b74ed999023cffd924f862ff2753c8"
-            },
-            "dist": {
-                "type": "zip",
-                "url": "https://api.github.com/repos/Automattic/VIP-Coding-Standards/zipball/2b1d206d81b74ed999023cffd924f862ff2753c8",
-                "reference": "2b1d206d81b74ed999023cffd924f862ff2753c8",
-                "shasum": ""
+                "reference": "9c47cd036754e0e5f354a9914568f052043c3f30"
             },
             "require": {
-                "php": ">=5.4",
-                "phpcsstandards/phpcsextra": "^1.2.1",
-                "phpcsstandards/phpcsutils": "^1.0.11",
-                "sirbrillig/phpcs-variable-analysis": "^2.11.18",
-                "squizlabs/php_codesniffer": "^3.9.2",
-                "wp-coding-standards/wpcs": "^3.1.0"
+                "php": ">=7.4",
+                "phpcsstandards/phpcsextra": "^1.5.1",
+                "phpcsstandards/phpcsutils": "^1.2.3",
+                "sirbrillig/phpcs-variable-analysis": "^2.13.0",
+                "squizlabs/php_codesniffer": "^3.13.5",
+                "wp-coding-standards/wpcs": "^3.4.1"
             },
             "require-dev": {
                 "php-parallel-lint/php-console-highlighter": "^1.0.0",
-                "php-parallel-lint/php-parallel-lint": "^1.3.2",
+                "php-parallel-lint/php-parallel-lint": "^1.4.0",
                 "phpcompatibility/php-compatibility": "^9",
-                "phpcsstandards/phpcsdevtools": "^1.0",
-                "phpunit/phpunit": "^4 || ^5 || ^6 || ^7 || ^8 || ^9"
+                "phpcsstandards/phpcsdevtools": "^1.2.3",
+                "phpunit/phpunit": "^9"
             },
             "type": "phpcodesniffer-standard",
-            "notification-url": "https://packagist.org/downloads/",
+            "scripts": {
+                "test-ruleset": [
+                    "bin/ruleset-tests"
+                ],
+                "lint": [
+                    "bin/php-lint"
+                ],
+                "cs": [
+                    "@php ./vendor/squizlabs/php_codesniffer/bin/phpcs"
+                ],
+                "test": [
+                    "bin/unit-tests"
+                ],
+                "test-coverage": [
+                    "bin/unit-tests-coverage"
+                ],
+                "feature-completeness": [
+                    "@php ./vendor/phpcsstandards/phpcsdevtools/bin/phpcs-check-feature-completeness -q ./WordPressVIPMinimum"
+                ],
+                "check": [
+                    "@lint",
+                    "@test-ruleset",
+                    "@test",
+                    "@cs",
+                    "@feature-completeness"
+                ]
+            },
             "license": [
                 "MIT"
             ],
@@ -722,17 +742,17 @@
             ],
             "description": "PHP_CodeSniffer rules (sniffs) to enforce WordPress VIP minimum coding conventions",
             "keywords": [
+                "WordPress",
                 "phpcs",
                 "standards",
-                "static analysis",
-                "wordpress"
+                "static analysis"
             ],
             "support": {
                 "issues": "https://github.com/Automattic/VIP-Coding-Standards/issues",
-                "source": "https://github.com/Automattic/VIP-Coding-Standards",
-                "wiki": "https://github.com/Automattic/VIP-Coding-Standards/wiki"
+                "wiki": "https://github.com/Automattic/VIP-Coding-Standards/wiki",
+                "source": "https://github.com/Automattic/VIP-Coding-Standards"
             },
-            "time": "2024-05-10T20:31:09+00:00"
+            "time": "2026-07-27T14:33:48+00:00"
         },
         {
             "name": "brianhenryie/simple-php-code-parser",
@@ -2713,21 +2733,15 @@
         },
         {
             "name": "phpcsstandards/phpcsextra",
-            "version": "1.5.0",
+            "version": "1.5.1",
             "source": {
                 "type": "git",
                 "url": "https://github.com/PHPCSStandards/PHPCSExtra.git",
-                "reference": "b598aa890815b8df16363271b659d73280129101"
-            },
-            "dist": {
-                "type": "zip",
-                "url": "https://api.github.com/repos/PHPCSStandards/PHPCSExtra/zipball/b598aa890815b8df16363271b659d73280129101",
-                "reference": "b598aa890815b8df16363271b659d73280129101",
-                "shasum": ""
+                "reference": "39467533fdb742446d68c1d10ac33d625ee0311c"
             },
             "require": {
                 "php": ">=5.4",
-                "phpcsstandards/phpcsutils": "^1.2.0",
+                "phpcsstandards/phpcsutils": "^1.2.3",
                 "squizlabs/php_codesniffer": "^3.13.5 || ^4.0.1"
             },
             "require-dev": {
@@ -2740,11 +2754,42 @@
             "type": "phpcodesniffer-standard",
             "extra": {
                 "branch-alias": {
-                    "dev-stable": "1.x-dev",
-                    "dev-develop": "1.x-dev"
+                    "dev-develop": "1.x-dev",
+                    "dev-stable": "1.x-dev"
                 }
             },
-            "notification-url": "https://packagist.org/downloads/",
+            "scripts": {
+                "lint": [
+                    "@php ./vendor/php-parallel-lint/php-parallel-lint/parallel-lint . --show-deprecated -e php --exclude vendor --exclude .git"
+                ],
+                "checkcs": [
+                    "@php ./vendor/squizlabs/php_codesniffer/bin/phpcs"
+                ],
+                "fixcs": [
+                    "@php ./vendor/squizlabs/php_codesniffer/bin/phpcbf"
+                ],
+                "check-complete": [
+                    "@php ./vendor/phpcsstandards/phpcsdevtools/bin/phpcs-check-feature-completeness ./Modernize ./NormalizedArrays ./Universal"
+                ],
+                "test-phpcs3": [
+                    "@php ./vendor/phpunit/phpunit/phpunit --filter PHPCSExtra --no-coverage ./vendor/squizlabs/php_codesniffer/tests/AllTests.php"
+                ],
+                "test-phpcs4": [
+                    "@php ./vendor/phpunit/phpunit/phpunit --no-coverage"
+                ],
+                "coverage-phpcs3": [
+                    "@php ./vendor/phpunit/phpunit/phpunit --filter PHPCSExtra ./vendor/squizlabs/php_codesniffer/tests/AllTests.php"
+                ],
+                "coverage-phpcs4": [
+                    "@php ./vendor/phpunit/phpunit/phpunit"
+                ],
+                "coverage-phpcs3-local": [
+                    "@php ./vendor/phpunit/phpunit/phpunit --filter PHPCSExtra ./vendor/squizlabs/php_codesniffer/tests/AllTests.php --coverage-html ./build/coverage-html"
+                ],
+                "coverage-phpcs4-local": [
+                    "@php ./vendor/phpunit/phpunit/phpunit --coverage-html ./build/coverage-html"
+                ]
+            },
             "license": [
                 "LGPL-3.0-or-later"
             ],
@@ -2761,7 +2806,7 @@
             ],
             "description": "A collection of sniffs and standards for use with PHP_CodeSniffer.",
             "keywords": [
-                "PHP_CodeSniffer",
+                "php_codesniffer",
                 "phpcbf",
                 "phpcodesniffer-standard",
                 "phpcs",
@@ -2770,42 +2815,18 @@
             ],
             "support": {
                 "issues": "https://github.com/PHPCSStandards/PHPCSExtra/issues",
-                "security": "https://github.com/PHPCSStandards/PHPCSExtra/security/policy",
-                "source": "https://github.com/PHPCSStandards/PHPCSExtra"
+                "source": "https://github.com/PHPCSStandards/PHPCSExtra",
+                "security": "https://github.com/PHPCSStandards/PHPCSExtra/security/policy"
             },
-            "funding": [
-                {
-                    "url": "https://github.com/PHPCSStandards",
-                    "type": "github"
-                },
-                {
-                    "url": "https://github.com/jrfnl",
-                    "type": "github"
-                },
-                {
-                    "url": "https://opencollective.com/php_codesniffer",
-                    "type": "open_collective"
-                },
-                {
-                    "url": "https://thanks.dev/u/gh/phpcsstandards",
-                    "type": "thanks_dev"
-                }
-            ],
-            "time": "2025-11-12T23:06:57+00:00"
+            "time": "2026-07-27T11:13:17+00:00"
         },
         {
             "name": "phpcsstandards/phpcsutils",
-            "version": "1.2.2",
+            "version": "1.2.3",
             "source": {
                 "type": "git",
                 "url": "https://github.com/PHPCSStandards/PHPCSUtils.git",
-                "reference": "c216317e96c8b3f5932808f9b0f1f7a14e3bbf55"
-            },
-            "dist": {
-                "type": "zip",
-                "url": "https://api.github.com/repos/PHPCSStandards/PHPCSUtils/zipball/c216317e96c8b3f5932808f9b0f1f7a14e3bbf55",
-                "reference": "c216317e96c8b3f5932808f9b0f1f7a14e3bbf55",
-                "shasum": ""
+                "reference": "5f35d9408c54d7b529501f3c688b6eae562aea1f"
             },
             "require": {
                 "dealerdirect/phpcodesniffer-composer-installer": "^0.4.1 || ^0.5 || ^0.6.2 || ^0.7 || ^1.0",
@@ -2831,15 +2852,52 @@
                     "PHPCSUtils/"
                 ]
             },
-            "notification-url": "https://packagist.org/downloads/",
+            "autoload-dev": {
+                "psr-4": {
+                    "PHPCSUtils\\Tests\\": "Tests/",
+                    "PHPCSUtils\\GHPages\\": ".github/GHPages/"
+                }
+            },
+            "scripts": {
+                "lint-lt72": [
+                    "@php ./vendor/php-parallel-lint/php-parallel-lint/parallel-lint . --show-deprecated -e php --exclude vendor --exclude .git --exclude .github/GHPages"
+                ],
+                "lint": [
+                    "@php ./vendor/php-parallel-lint/php-parallel-lint/parallel-lint . -e php --exclude vendor --exclude .git"
+                ],
+                "checkcs": [
+                    "@php ./vendor/squizlabs/php_codesniffer/bin/phpcs"
+                ],
+                "fixcs": [
+                    "@php ./vendor/squizlabs/php_codesniffer/bin/phpcbf"
+                ],
+                "test": [
+                    "@php ./vendor/phpunit/phpunit/phpunit --no-coverage"
+                ],
+                "test10": [
+                    "@php ./vendor/phpunit/phpunit/phpunit -c phpunit10.xml.dist --no-coverage"
+                ],
+                "coverage": [
+                    "@php ./vendor/phpunit/phpunit/phpunit"
+                ],
+                "coverage10": [
+                    "@php ./vendor/phpunit/phpunit/phpunit -c phpunit10.xml.dist"
+                ],
+                "coverage-local": [
+                    "@php ./vendor/phpunit/phpunit/phpunit --coverage-html ./build/coverage-html"
+                ],
+                "coverage-local10": [
+                    "@php ./vendor/phpunit/phpunit/phpunit -c phpunit10.xml.dist --coverage-html ./build/coverage-html"
+                ]
+            },
             "license": [
                 "LGPL-3.0-or-later"
             ],
             "authors": [
                 {
                     "name": "Juliette Reinders Folmer",
-                    "homepage": "https://github.com/jrfnl",
-                    "role": "lead"
+                    "role": "lead",
+                    "homepage": "https://github.com/jrfnl"
                 },
                 {
                     "name": "Contributors",
@@ -2849,7 +2907,7 @@
             "description": "A suite of utility functions for use with PHP_CodeSniffer",
             "homepage": "https://phpcsutils.com/",
             "keywords": [
-                "PHP_CodeSniffer",
+                "php_codesniffer",
                 "phpcbf",
                 "phpcodesniffer-standard",
                 "phpcs",
@@ -2861,30 +2919,12 @@
                 "utility"
             ],
             "support": {
-                "docs": "https://phpcsutils.com/",
                 "issues": "https://github.com/PHPCSStandards/PHPCSUtils/issues",
-                "security": "https://github.com/PHPCSStandards/PHPCSUtils/security/policy",
-                "source": "https://github.com/PHPCSStandards/PHPCSUtils"
+                "source": "https://github.com/PHPCSStandards/PHPCSUtils",
+                "docs": "https://phpcsutils.com/",
+                "security": "https://github.com/PHPCSStandards/PHPCSUtils/security/policy"
             },
-            "funding": [
-                {
-                    "url": "https://github.com/PHPCSStandards",
-                    "type": "github"
-                },
-                {
-                    "url": "https://github.com/jrfnl",
-                    "type": "github"
-                },
-                {
-                    "url": "https://opencollective.com/php_codesniffer",
-                    "type": "open_collective"
-                },
-                {
-                    "url": "https://thanks.dev/u/gh/phpcsstandards",
-                    "type": "thanks_dev"
-                }
-            ],
-            "time": "2025-12-08T14:27:58+00:00"
+            "time": "2026-07-27T10:28:41+00:00"
         },
         {
             "name": "phpdocumentor/reflection-common",
@@ -6800,17 +6840,11 @@
         },
         {
             "name": "wp-coding-standards/wpcs",
-            "version": "3.3.0",
+            "version": "3.4.1",
             "source": {
                 "type": "git",
                 "url": "https://github.com/WordPress/WordPress-Coding-Standards.git",
-                "reference": "7795ec6fa05663d716a549d0b44e47ffc8b0d4a6"
-            },
-            "dist": {
-                "type": "zip",
-                "url": "https://api.github.com/repos/WordPress/WordPress-Coding-Standards/zipball/7795ec6fa05663d716a549d0b44e47ffc8b0d4a6",
-                "reference": "7795ec6fa05663d716a549d0b44e47ffc8b0d4a6",
-                "shasum": ""
+                "reference": "ec2ff942335f33683a5957a85d138753876a05cf"
             },
             "require": {
                 "ext-filter": "*",
@@ -6818,9 +6852,9 @@
                 "ext-tokenizer": "*",
                 "ext-xmlreader": "*",
                 "php": ">=7.2",
-                "phpcsstandards/phpcsextra": "^1.5.0",
-                "phpcsstandards/phpcsutils": "^1.1.0",
-                "squizlabs/php_codesniffer": "^3.13.4"
+                "phpcsstandards/phpcsextra": "^1.5.1",
+                "phpcsstandards/phpcsutils": "^1.2.3",
+                "squizlabs/php_codesniffer": "^3.13.5"
             },
             "require-dev": {
                 "php-parallel-lint/php-console-highlighter": "^1.0.0",
@@ -6834,7 +6868,35 @@
                 "ext-mbstring": "For improved results"
             },
             "type": "phpcodesniffer-standard",
-            "notification-url": "https://packagist.org/downloads/",
+            "scripts": {
+                "lint": [
+                    "@php ./vendor/php-parallel-lint/php-parallel-lint/parallel-lint . -e php --show-deprecated --exclude vendor --exclude .git"
+                ],
+                "check-cs": [
+                    "@php ./vendor/squizlabs/php_codesniffer/bin/phpcs"
+                ],
+                "fix-cs": [
+                    "@php ./vendor/squizlabs/php_codesniffer/bin/phpcbf"
+                ],
+                "run-tests": [
+                    "@php ./vendor/phpunit/phpunit/phpunit --filter WordPress ./vendor/squizlabs/php_codesniffer/tests/AllTests.php --no-coverage"
+                ],
+                "coverage": [
+                    "@php ./vendor/phpunit/phpunit/phpunit --filter WordPress ./vendor/squizlabs/php_codesniffer/tests/AllTests.php"
+                ],
+                "check-complete": [
+                    "@php ./vendor/phpcsstandards/phpcsdevtools/bin/phpcs-check-feature-completeness -q ./WordPress"
+                ],
+                "check-complete-strict": [
+                    "@php ./vendor/phpcsstandards/phpcsdevtools/bin/phpcs-check-feature-completeness ./WordPress"
+                ],
+                "check-all": [
+                    "@lint",
+                    "@check-cs",
+                    "@run-tests",
+                    "@check-complete-strict"
+                ]
+            },
             "license": [
                 "MIT"
             ],
@@ -6846,71 +6908,17 @@
             ],
             "description": "PHP_CodeSniffer rules (sniffs) to enforce WordPress coding conventions",
             "keywords": [
+                "WordPress",
                 "phpcs",
                 "standards",
-                "static analysis",
-                "wordpress"
+                "static analysis"
             ],
             "support": {
                 "issues": "https://github.com/WordPress/WordPress-Coding-Standards/issues",
-                "source": "https://github.com/WordPress/WordPress-Coding-Standards",
-                "wiki": "https://github.com/WordPress/WordPress-Coding-Standards/wiki"
+                "wiki": "https://github.com/WordPress/WordPress-Coding-Standards/wiki",
+                "source": "https://github.com/WordPress/WordPress-Coding-Standards"
             },
-            "funding": [
-                {
-                    "url": "https://opencollective.com/php_codesniffer",
-                    "type": "custom"
-                }
-            ],
-            "time": "2025-11-25T12:08:04+00:00"
-        },
-        {
-            "name": "wp-phpunit/wp-phpunit",
-            "version": "6.9.4",
-            "source": {
-                "type": "git",
-                "url": "https://github.com/wp-phpunit/wp-phpunit.git",
-                "reference": "15fd216bf6516670d8d07b938675925bfa5c15b0"
-            },
-            "dist": {
-                "type": "zip",
-                "url": "https://api.github.com/repos/wp-phpunit/wp-phpunit/zipball/15fd216bf6516670d8d07b938675925bfa5c15b0",
-                "reference": "15fd216bf6516670d8d07b938675925bfa5c15b0",
-                "shasum": ""
-            },
-            "type": "library",
-            "autoload": {
-                "files": [
-                    "__loaded.php"
-                ]
-            },
-            "notification-url": "https://packagist.org/downloads/",
-            "license": [
-                "GPL-2.0-or-later"
-            ],
-            "authors": [
-                {
-                    "name": "Evan Mattson",
-                    "email": "me@aaemnnost.tv"
-                },
-                {
-                    "name": "WordPress Community",
-                    "homepage": "https://wordpress.org/about/"
-                }
-            ],
-            "description": "WordPress core PHPUnit library",
-            "homepage": "https://github.com/wp-phpunit",
-            "keywords": [
-                "phpunit",
-                "test",
-                "wordpress"
-            ],
-            "support": {
-                "docs": "https://github.com/wp-phpunit/docs",
-                "issues": "https://github.com/wp-phpunit/issues",
-                "source": "https://github.com/wp-phpunit/wp-phpunit"
-            },
-            "time": "2026-02-04T01:48:23+00:00"
+            "time": "2026-07-27T11:53:23+00:00"
         }
     ],
     "aliases": [],

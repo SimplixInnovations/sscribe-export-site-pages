@@ -53,7 +53,6 @@ final class SScribe_Main_Test extends TestCase {
 			'cleanup_sessions'                => 'public',
 			'cleanup_audit_trail'             => 'public',
 			'run'                             => 'public',
-			'load_textdomain'                 => 'public',
 		);
 
 		$reflection = new ReflectionClass( SScribe::class );

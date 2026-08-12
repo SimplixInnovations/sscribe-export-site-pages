@@ -51,6 +51,17 @@ class SScribe_Settings_Test extends TestCase {
 		);
 	}
 
+	public function test_debug_log_level_sanitizer_handles_untrusted_types(): void {
+		$this->assertSame( \SScribe_Settings::LEVEL_INFO, \SScribe_Settings::sanitize_debug_log_level( 'info' ) );
+		$this->assertSame( \SScribe_Settings::LEVEL_DEBUG, \SScribe_Settings::sanitize_debug_log_level( array( 'ERROR' ) ) );
+		$this->assertSame( \SScribe_Settings::LEVEL_DEBUG, \SScribe_Settings::sanitize_debug_log_level( new \stdClass() ) );
+	}
+
+	public function test_get_debug_log_level_handles_corrupt_option_type(): void {
+		update_option( \SScribe_Settings::OPT_DEBUG_LOG_LEVEL, array( 'ERROR' ) );
+		$this->assertSame( \SScribe_Settings::LEVEL_DEBUG, \SScribe_Settings::get_debug_log_level() );
+	}
+
 	public function test_auto_refresh_round_trip(): void {
 		$this->assertTrue( \SScribe_Settings::is_auto_refresh(), 'defaults to true' );
 		$this->assertTrue( \SScribe_Settings::set_auto_refresh( false ) );

@@ -37,9 +37,9 @@ trait SScribe_Batch_Session_Helpers {
 	/**
 	 * Verify the rate limit hasn't been exceeded.
 	 *
-	 * @return bool True if the rate limit check passes.
+	 * @return bool|null True when allowed, false when limited, null on lock contention.
 	 */
-	protected function check_rate_limit(): bool {
+	protected function check_rate_limit(): ?bool {
 		return $this->get_rate_limiter()->check_rate_limit( $this->get_required_capability() );
 	}
 }

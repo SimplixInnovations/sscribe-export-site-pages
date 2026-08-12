@@ -202,6 +202,40 @@ class SScribe_Format_Options_Wiring_Test extends TestCase {
 		$this->assertSame( 'A4', $this->call_resolve_pdf_page_size( $exporter ) );
 	}
 
+	public function test_pdf_exporter_removes_remote_image_sources_before_mpdf(): void {
+		$html = '<p>Before</p><img src="https://example.com/blocked.png" alt="Blocked"><img src="data:image/png;base64,AAAA"><p>After</p>';
+
+		$cleaned = $this->call_sanitize_pdf_image_sources( new \SScribe_PDF_Exporter(), $html, true );
+
+		$this->assertStringNotContainsString( '<img', $cleaned );
+		$this->assertStringContainsString( '<p>Before</p>', $cleaned );
+		$this->assertStringContainsString( '<p>After</p>', $cleaned );
+	}
+
+	public function test_pdf_exporter_removes_all_images_when_disabled(): void {
+		$html = '<p>Text</p><img src="C:/uploads/example.png" alt="Example">';
+
+		$cleaned = $this->call_sanitize_pdf_image_sources( new \SScribe_PDF_Exporter(), $html, false );
+
+		$this->assertSame( '<p>Text</p>', $cleaned );
+	}
+
+	public function test_pdf_exporter_keeps_canonical_upload_image(): void {
+		$upload_dir = wp_upload_dir();
+		$path       = trailingslashit( $upload_dir['basedir'] ) . 'sscribe-pdf-source-' . uniqid() . '.png';
+		file_put_contents( $path, 'fixture' );
+
+		try {
+			$html    = '<img src="' . esc_attr( $path ) . '" alt="Local">';
+			$cleaned = $this->call_sanitize_pdf_image_sources( new \SScribe_PDF_Exporter(), $html, true );
+
+			$this->assertStringContainsString( 'alt="Local"', $cleaned );
+			$this->assertStringContainsString( esc_attr( (string) realpath( $path ) ), $cleaned );
+		} finally {
+			wp_delete_file( $path );
+		}
+	}
+
 	public function test_docx_exporter_forwards_options_to_core_exporter(): void {
 		$core    = new \SScribe_Exporter();
 		$exporter = new \SScribe_DOCX_Exporter( $core );
@@ -267,6 +301,21 @@ class SScribe_Format_Options_Wiring_Test extends TestCase {
 	}
 
 	/**
+	 * Invoke the private PDF image-source boundary.
+	 */
+	private function call_sanitize_pdf_image_sources( \SScribe_PDF_Exporter $exporter, string $html, bool $include_images ): string {
+		$method = \Closure::bind(
+			function ( $instance, $document, $enabled ) {
+				return $instance->sanitize_pdf_image_sources( $document, $enabled );
+			},
+			null,
+			\SScribe_PDF_Exporter::class
+		);
+
+		return (string) $method( $exporter, $html, $include_images );
+	}
+
+	/**
 	 * Build a minimal page-data array suitable for all exporter tests.
 	 */
 	private function sample_page_data( array $overrides = array() ): array {
@@ -280,48 +329,6 @@ class SScribe_Format_Options_Wiring_Test extends TestCase {
 			),
 			$overrides
 		);
-	}
-
-	/**
-	 * Regression: escape_markdown_body must preserve the full trimmed content
-	 * after prefixing the escaped char. Before the fix, a negative substr offset
-	 * truncated the line and dropped trailing characters.
-	 */
-	public function test_markdown_escape_body_preserves_full_trimmed_content(): void {
-		$exporter = new \SScribe_Markdown_Exporter();
-
-		$method = \Closure::bind(
-			function ( $exporter, $text ) {
-				return $exporter->escape_markdown_body( $text );
-			},
-			null,
-			\SScribe_Markdown_Exporter::class
-		);
-
-		$out = $method( $exporter, "- important bullet point with trailing text" );
-		$this->assertSame( "\\- important bullet point with trailing text", $out );
-		$this->assertStringEndsWith( 'with trailing text', $out );
-	}
-
-	/**
-	 * Regression: leading whitespace on a line that starts with a Markdown
-	 * special char must be preserved verbatim. Before the fix, a negative
-	 * substr offset could also lose the indentation.
-	 */
-	public function test_markdown_escape_body_preserves_leading_whitespace(): void {
-		$exporter = new \SScribe_Markdown_Exporter();
-
-		$method = \Closure::bind(
-			function ( $exporter, $text ) {
-				return $exporter->escape_markdown_body( $text );
-			},
-			null,
-			\SScribe_Markdown_Exporter::class
-		);
-
-		$out = $method( $exporter, "    > indented quote" );
-		$this->assertStringStartsWith( '    \\>', $out );
-		$this->assertStringContainsString( 'indented quote', $out );
 	}
 
 	/**

@@ -94,6 +94,23 @@ class SScribe_PDF_Exporter implements SScribe_Exporter_Interface {
 	}
 
 	/**
+	 * Normalize filtered page metadata without allowing arrays or objects to
+	 * reach strict third-party library APIs.
+	 *
+	 * @param mixed  $value   Candidate value.
+	 * @param string $default Fallback value.
+	 * @return string
+	 */
+	private function normalize_scalar( $value, string $default = '' ): string {
+		if ( ! is_scalar( $value ) ) {
+			return $default;
+		}
+
+		$value = trim( (string) $value );
+		return '' !== $value ? $value : $default;
+	}
+
+	/**
 	 * Export a page as a PDF file.
 	 *
 	 * @param array  $page_data Page data to export.
@@ -103,40 +120,42 @@ class SScribe_PDF_Exporter implements SScribe_Exporter_Interface {
 	 * @return SScribe_Result Result of the export operation.
 	 */
 	public function export( array $page_data, string $output_dir, int $index = 0, int $total = 0 ): SScribe_Result {
-		require_once SSCRIBE_PLUGIN_DIR . 'includes/class-sscribe-rtl-helper.php';
-		require_once SSCRIBE_PLUGIN_DIR . 'includes/class-sscribe-image-processor.php';
+		$page_id  = isset( $page_data['id'] ) && is_numeric( $page_data['id'] ) ? absint( $page_data['id'] ) : 0;
+		$title    = $this->normalize_scalar( $page_data['title'] ?? '', __( 'Untitled', 'sscribe-export-site-pages' ) );
+		$language = $this->normalize_scalar( $page_data['language'] ?? '', 'en' );
+		$author   = $this->normalize_scalar( $page_data['author'] ?? '' );
+		$seo      = isset( $page_data['seo'] ) && is_array( $page_data['seo'] ) ? $page_data['seo'] : array();
 
-		$page_id  = $page_data['id'] ?? 0;
-		$title    = $page_data['title'] ?? 'Untitled';
-		$language = $page_data['language'] ?? 'en';
-		$is_rtl   = SScribe_RTL_Helper::is_rtl( $language );
-
-		$include_images = '1' === (string) $this->get_format_option( 'sscribe_pdf_include_images', '1' );
-		$processed_page_data = $include_images
-			? $this->process_images_in_page_data( $page_data )
-			: $page_data;
-		$temp_image_paths    = $this->collect_temp_image_paths( $processed_page_data );
-
-		$html_content = $this->html_exporter->generate_html_string( $processed_page_data );
-		$html_size    = strlen( $html_content );
-
-		$libxml_errors = array();
-		$prev_errors   = null;
-		$output_path   = '';
-		$mpdf_temp     = '';
+		$is_rtl                 = false;
+		$html_size              = 0;
+		$libxml_errors          = array();
+		$prev_errors            = null;
+		$output_path            = '';
+		$mpdf_temp              = '';
+		$temp_image_paths       = array();
+		$ob_level_before_render = ob_get_level();
 
 		try {
+			require_once SSCRIBE_PLUGIN_DIR . 'includes/class-sscribe-rtl-helper.php';
+			require_once SSCRIBE_PLUGIN_DIR . 'includes/class-sscribe-image-processor.php';
+
+			$is_rtl                 = SScribe_RTL_Helper::is_rtl( $language );
+			$include_images         = '1' === (string) $this->get_format_option( 'sscribe_pdf_include_images', '1' );
+			$processed_page_data    = $include_images ? $this->process_images_in_page_data( $page_data ) : $page_data;
+			$temp_image_paths       = $this->collect_temp_image_paths( $processed_page_data );
+			$html_content           = $this->html_exporter->generate_html_string( $processed_page_data );
+			$html_content           = $this->sanitize_pdf_image_sources( $html_content, $include_images );
+			$html_size              = strlen( $html_content );
+
 			if ( ! class_exists( '\\SScribeVendor\\Mpdf\\Mpdf' ) ) {
 				$this->logger->error(
 					'PDF export failed: mPDF class not found',
 					array(
 						'page_id'                => $page_id,
 						'class_check'            => '\\SScribeVendor\\Mpdf\\Mpdf',
-						'vendor_autoload_exists' => file_exists( SSCRIBE_PLUGIN_DIR . 'vendor/autoload.php' ),
+						'vendor_autoload_exists' => file_exists( SSCRIBE_PLUGIN_DIR . 'vendor-prefixed/autoload.php' ),
 					)
 				);
-
-				$this->cleanup_temp_images( $temp_image_paths );
 
 				return SScribe_Result::failure(
 					__( 'PDF export is not available : mPDF library is missing. Please reinstall the plugin.', 'sscribe-export-site-pages' ),
@@ -154,7 +173,10 @@ class SScribe_PDF_Exporter implements SScribe_Exporter_Interface {
 				);
 			}
 
-			$max_html_size = (int) apply_filters( 'sscribe_pdf_max_html_size', 5 * 1024 * 1024 );
+			$filtered_max_html_size = (int) apply_filters( 'sscribe_pdf_max_html_size', 5 * 1024 * 1024 );
+			$max_html_size          = $filtered_max_html_size > 0
+				? max( 64 * 1024, min( 50 * 1024 * 1024, $filtered_max_html_size ) )
+				: 0;
 			if ( $max_html_size > 0 && $html_size > $max_html_size ) {
 				$this->logger->error(
 					'PDF export aborted: HTML content too large for render',
@@ -167,11 +189,9 @@ class SScribe_PDF_Exporter implements SScribe_Exporter_Interface {
 					)
 				);
 
-				$this->cleanup_temp_images( $temp_image_paths );
-
 				return SScribe_Result::failure(
 					sprintf(
-						/* translators: 1: HTML size, 2: Page title. */
+						/* translators: %s: HTML size. */
 						__( 'PDF render skipped : HTML content is too large (%1$s). To raise the limit, use the "sscribe_pdf_max_html_size" filter. Try exporting to DOCX instead, or reduce page content complexity.', 'sscribe-export-site-pages' ),
 						size_format( $html_size )
 					),
@@ -186,7 +206,6 @@ class SScribe_PDF_Exporter implements SScribe_Exporter_Interface {
 
 			$memory_pressure = $this->check_memory_pressure();
 			if ( $memory_pressure instanceof SScribe_Result ) {
-				$this->cleanup_temp_images( $temp_image_paths );
 				return $memory_pressure;
 			}
 
@@ -194,7 +213,6 @@ class SScribe_PDF_Exporter implements SScribe_Exporter_Interface {
 
 			$mpdf_config = $this->build_mpdf_config( $is_rtl, $page_id );
 			if ( $mpdf_config instanceof SScribe_Result ) {
-				$this->cleanup_temp_images( $temp_image_paths );
 				return $mpdf_config;
 			}
 
@@ -208,10 +226,10 @@ class SScribe_PDF_Exporter implements SScribe_Exporter_Interface {
 			}
 
 			$mpdf->SetTitle( $title );
-			$mpdf->SetAuthor( $page_data['author'] ?? '' );
+			$mpdf->SetAuthor( $author );
 			$mpdf->SetCreator( 'SScribe Export Plugin v' . SSCRIBE_VERSION );
-			$mpdf->SetSubject( esc_html( $page_data['seo']['meta_description'] ?? '' ) );
-			$mpdf->SetKeywords( esc_html( $page_data['seo']['focus_keyword'] ?? '' ) );
+			$mpdf->SetSubject( esc_html( $this->normalize_scalar( $seo['meta_description'] ?? '' ) ) );
+			$mpdf->SetKeywords( esc_html( $this->normalize_scalar( $seo['focus_keyword'] ?? '' ) ) );
 
 			$html_content = $this->prepare_html_for_mpdf( $html_content, $is_rtl );
 
@@ -222,12 +240,13 @@ class SScribe_PDF_Exporter implements SScribe_Exporter_Interface {
 
 			if ( function_exists( 'microtime' ) ) {
 				$max_exec    = (int) ini_get( 'max_execution_time' );
-				$batch_start = $page_data['_batch_start_time'] ?? 0.0;
+				$batch_start = isset( $page_data['_batch_start_time'] ) && is_numeric( $page_data['_batch_start_time'] )
+					? (float) $page_data['_batch_start_time']
+					: 0.0;
 				if ( $batch_start > 0.0 && $max_exec > 0 ) {
 					$elapsed   = microtime( true ) - $batch_start;
 					$remaining = $max_exec - $elapsed;
 					if ( $remaining < 20 ) {
-						$this->cleanup_temp_images( $temp_image_paths );
 						return SScribe_Result::failure(
 							__( 'Insufficient time remaining to render PDF.', 'sscribe-export-site-pages' ),
 							array(
@@ -250,6 +269,15 @@ class SScribe_PDF_Exporter implements SScribe_Exporter_Interface {
 
 			$filename    = \SScribe_Exporter_Factory::build_filename( $page_data, $index, $total, 'pdf' );
 			$output_path = trailingslashit( $output_dir ) . $filename;
+			if ( SScribe_Filesystem::SSCRIBE_PATH_ALLOWED !== $this->filesystem->is_path_safe_for_write( $output_path ) ) {
+				return SScribe_Result::failure(
+					__( 'Failed to write PDF file.', 'sscribe-export-site-pages' ),
+					array(
+						'error_category' => 'pdf_filesystem',
+						'page_id'        => $page_id,
+					)
+				);
+			}
 
 			$font_stack = $is_rtl
 				? ( $amiri_available
@@ -269,18 +297,13 @@ class SScribe_PDF_Exporter implements SScribe_Exporter_Interface {
 			$base_css .= ' a { color: #2C6E8A; text-decoration: none; }';
 			$base_css .= ' h1, h2, h3, h4, h5, h6 { color: #122119; }';
 
-			$ob_level_before_render = ob_get_level();
 			$mpdf->WriteHTML( $base_css, \SScribeVendor\Mpdf\HTMLParserMode::HEADER_CSS );
 
 			$mpdf->WriteHTML( $html_content );
 
 			$mpdf->Output( $output_path, \SScribeVendor\Mpdf\Output\Destination::FILE );
 
-			while ( ob_get_level() > $ob_level_before_render ) {
-				ob_end_clean();
-			}
-
-			if ( ! file_exists( $output_path ) ) {
+			if ( is_link( $output_path ) || ! is_file( $output_path ) ) {
 				$fs_error  = $this->filesystem->get_last_error();
 				$fs_method = $this->filesystem->get_method();
 
@@ -303,12 +326,21 @@ class SScribe_PDF_Exporter implements SScribe_Exporter_Interface {
 						'language'       => $language,
 						'fs_method'      => $fs_method,
 						'fs_error'       => $fs_error,
-						'output_path'    => $output_path,
 					)
 				);
 			}
 
 			$bytes_written = filesize( $output_path );
+			if ( false === $bytes_written || $bytes_written <= 0 ) {
+				wp_delete_file( $output_path );
+				return SScribe_Result::failure(
+					__( 'Failed to write PDF file.', 'sscribe-export-site-pages' ),
+					array(
+						'error_category' => 'pdf_filesystem',
+						'page_id'        => $page_id,
+					)
+				);
+			}
 
 			return SScribe_Result::success(
 				array(
@@ -342,12 +374,7 @@ class SScribe_PDF_Exporter implements SScribe_Exporter_Interface {
 			);
 
 			return SScribe_Result::failure(
-				sprintf(
-					/* translators: 1: Error class, 2: Error message. */
-					__( 'Unable to generate PDF: %1$s : %2$s', 'sscribe-export-site-pages' ),
-					get_class( $e ),
-					$e->getMessage()
-				),
+				__( 'Unable to generate the PDF. Please try again or use another export format.', 'sscribe-export-site-pages' ),
 				array(
 					'error_category'  => 'pdf_generation',
 					'page_id'         => $page_id,
@@ -359,12 +386,12 @@ class SScribe_PDF_Exporter implements SScribe_Exporter_Interface {
 					'memory_peak'     => size_format( memory_get_peak_usage( true ) ),
 					'memory_limit'    => ini_get( 'memory_limit' ),
 					'mpdf_available'  => true,
-					'libxml_errors'   => $libxml_errors,
-					'exception_class' => get_class( $e ),
-					'exception_file'  => basename( $e->getFile() ) . ':' . $e->getLine(),
 				)
 			);
 		} finally {
+			while ( ob_get_level() > $ob_level_before_render ) {
+				ob_end_clean();
+			}
 			$this->cleanup_temp_images( $temp_image_paths );
 			$this->cleanup_mpdf_temp( $mpdf_temp );
 			libxml_clear_errors();
@@ -471,7 +498,7 @@ class SScribe_PDF_Exporter implements SScribe_Exporter_Interface {
 
 		if ( ! empty( $processed_page_data['_temp_image_paths'] ) && is_array( $processed_page_data['_temp_image_paths'] ) ) {
 			foreach ( $processed_page_data['_temp_image_paths'] as $path ) {
-				if ( file_exists( $path ) && strpos( $path, sys_get_temp_dir() ) === 0 ) {
+				if ( is_string( $path ) && '' !== $path ) {
 					$paths[] = $path;
 				}
 			}
@@ -479,7 +506,7 @@ class SScribe_PDF_Exporter implements SScribe_Exporter_Interface {
 
 		if ( ! empty( $processed_page_data['featured_image_url'] ) ) {
 			$path = $processed_page_data['featured_image_url'];
-			if ( file_exists( $path ) && strpos( $path, sys_get_temp_dir() ) === 0 && ! in_array( $path, $paths, true ) ) {
+			if ( is_string( $path ) && '' !== $path && ! in_array( $path, $paths, true ) ) {
 				$paths[] = $path;
 			}
 		}
@@ -499,37 +526,29 @@ class SScribe_PDF_Exporter implements SScribe_Exporter_Interface {
 	}
 
 	/**
-	 * Clean up mPDF temp directory by removing old files.
+	 * Remove the private per-export mPDF scratch directory.
 	 *
 	 * @param string $mpdf_temp Path to mPDF temp directory.
 	 */
 	private function cleanup_mpdf_temp( string $mpdf_temp ): void {
-		if ( empty( $mpdf_temp ) || ! is_dir( $mpdf_temp ) ) {
+		if ( '' === $mpdf_temp || is_link( $mpdf_temp ) || ! is_dir( $mpdf_temp ) ) {
 			return;
 		}
 
-		$prefix = trailingslashit( $mpdf_temp );
-		$files  = glob( $prefix . '*', GLOB_NOSORT );
-		$files  = is_array( $files ) ? $files : array();
-		$hidden = glob( $prefix . '.[!.]*', GLOB_NOSORT );
-		$hidden = is_array( $hidden ) ? $hidden : array();
-		$files  = array_merge( $files, $hidden );
-
-		if ( empty( $files ) ) {
+		$upload_dir = wp_upload_dir();
+		if ( ! empty( $upload_dir['error'] ) || empty( $upload_dir['basedir'] ) ) {
 			return;
 		}
 
-		$max_age = 5 * 60;
-		$now     = time();
-
-		foreach ( $files as $file ) {
-			if ( is_file( $file ) ) {
-				$mtime = filemtime( $file );
-				if ( false !== $mtime && ( $now - $mtime ) > $max_age ) {
-					wp_delete_file( $file );
-				}
-			}
+		$expected_parent = untrailingslashit(
+			wp_normalize_path( trailingslashit( (string) $upload_dir['basedir'] ) . 'sscribe-exports/mpdf-tmp' )
+		);
+		$actual_parent   = untrailingslashit( wp_normalize_path( dirname( $mpdf_temp ) ) );
+		if ( $expected_parent !== $actual_parent || 1 !== preg_match( '/^run-[a-f0-9]{32}$/', basename( $mpdf_temp ) ) ) {
+			return;
 		}
+
+		SScribe_Security::delete_directory( $mpdf_temp );
 	}
 
 	/**
@@ -551,19 +570,16 @@ class SScribe_PDF_Exporter implements SScribe_Exporter_Interface {
 
 		$content = isset( $page_data['content'] ) ? (string) $page_data['content'] : '';
 		if ( '' !== $content ) {
-			$max_content_images = (int) apply_filters( 'sscribe_pdf_max_content_images', 20 );
-			if ( $max_content_images < 0 ) {
-				$max_content_images = 0;
-			}
+			$max_content_images = max( 0, min( 100, (int) apply_filters( 'sscribe_pdf_max_content_images', 20 ) ) );
 
 			if ( $max_content_images > 0 ) {
-				$downloads            = 0;
+				$attempts              = 0;
 				$page_data['content'] = (string) preg_replace_callback(
 					'/<img\b[^>]*\bsrc=("([^"]*)"|\'([^\']*)\')[^>]*>/i',
-					function ( array $matches ) use ( &$downloads, $max_content_images, &$temp_paths ): string {
+					function ( array $matches ) use ( &$attempts, $max_content_images, &$temp_paths ): string {
 
 						$url = $matches[2] ?? ( $matches[3] ?? '' );
-						if ( '' === $url || $downloads >= $max_content_images ) {
+						if ( '' === $url || $attempts >= $max_content_images ) {
 							return $matches[0];
 						}
 
@@ -571,10 +587,10 @@ class SScribe_PDF_Exporter implements SScribe_Exporter_Interface {
 							return $matches[0];
 						}
 
+						++$attempts;
 						$local_path = SScribe_Image_Processor::download_and_optimize( $url );
 						if ( $local_path && file_exists( $local_path ) ) {
 							$temp_paths[] = $local_path;
-							++$downloads;
 
 							$replacement = str_replace(
 								array( '"' . $url . '"', "'" . $url . "'" ),
@@ -594,6 +610,52 @@ class SScribe_PDF_Exporter implements SScribe_Exporter_Interface {
 		$page_data['_temp_image_paths'] = $temp_paths;
 
 		return $page_data;
+	}
+
+	/**
+	 * Remove image sources that mPDF must never resolve itself.
+	 *
+	 * Remote loading is performed only by SScribe_Image_Processor, which applies
+	 * URL, host, size, redirect, and MIME checks. By this stage every retained
+	 * image must therefore be a canonical regular file inside WordPress uploads.
+	 * This also makes the "include images" option authoritative.
+	 *
+	 * @param string $html_content  Generated document HTML.
+	 * @param bool   $include_images Whether images are enabled for this export.
+	 * @return string HTML containing only validated local image sources.
+	 */
+	private function sanitize_pdf_image_sources( string $html_content, bool $include_images ): string {
+		$cleaned = preg_replace_callback(
+			'/<img\b[^>]*>/i',
+			static function ( array $matches ) use ( $include_images ): string {
+				if ( ! $include_images ) {
+					return '';
+				}
+
+				$tag = $matches[0];
+				if ( 1 !== preg_match( '/\bsrc\s*=\s*(?:"([^"]*)"|\'([^\']*)\'|([^\s>]+))/i', $tag, $source_match ) ) {
+					return '';
+				}
+
+				$source = '';
+				foreach ( array_slice( $source_match, 1 ) as $candidate ) {
+					if ( '' !== $candidate ) {
+						$source = $candidate;
+						break;
+					}
+				}
+				$source    = rawurldecode( html_entity_decode( $source, ENT_QUOTES | ENT_HTML5, 'UTF-8' ) );
+				$canonical = SScribe_Image_Processor::validate_local_path( $source );
+				if ( '' === $canonical ) {
+					return '';
+				}
+
+				return str_replace( $source_match[0], 'src="' . esc_attr( $canonical ) . '"', $tag );
+			},
+			$html_content
+		);
+
+		return is_string( $cleaned ) ? $cleaned : '';
 	}
 
 	/**
@@ -623,16 +685,31 @@ class SScribe_PDF_Exporter implements SScribe_Exporter_Interface {
 		$font_dir   = trailingslashit( SSCRIBE_PLUGIN_DIR ) . 'assets/fonts/';
 		$amiri_dir  = $font_dir . 'amiri/';
 		$upload_dir = wp_upload_dir();
+		if ( ! empty( $upload_dir['error'] ) || empty( $upload_dir['basedir'] ) ) {
+			return SScribe_Result::failure(
+				__( 'PDF export failed: the WordPress uploads directory is unavailable.', 'sscribe-export-site-pages' ),
+				array(
+					'error_category' => 'pdf_filesystem',
+					'page_id'        => $page_id,
+				)
+			);
+		}
 		// mPDF tempDir lives under sscribe-exports/ so the default-deny
 		// rule (which only allows writes inside that directory) accepts
 		// it. wp-content/uploads/sscribe/ was the previous location but
 		// sits OUTSIDE the SScribe allowlist; mPDF cache writes there
 		// would be silently rejected by is_path_safe_for_write().
-		$sscribe_dir = trailingslashit( $upload_dir['basedir'] ) . 'sscribe-exports/';
-		$mpdf_temp  = $sscribe_dir . 'mpdf-tmp/';
+		$sscribe_dir   = trailingslashit( $upload_dir['basedir'] ) . 'sscribe-exports/';
+		$mpdf_temp_root = $sscribe_dir . 'mpdf-tmp/';
 
-		if ( ! is_dir( $mpdf_temp ) ) {
-			wp_mkdir_p( $mpdf_temp );
+		if ( ! is_dir( $mpdf_temp_root ) && ! wp_mkdir_p( $mpdf_temp_root ) ) {
+			return SScribe_Result::failure(
+				__( 'PDF export failed: the temporary directory could not be created.', 'sscribe-export-site-pages' ),
+				array(
+					'error_category' => 'pdf_filesystem',
+					'page_id'        => $page_id,
+				)
+			);
 		}
 
 		if ( ! file_exists( $sscribe_dir . '.htaccess' ) ) {
@@ -650,33 +727,53 @@ class SScribe_PDF_Exporter implements SScribe_Exporter_Interface {
 			);
 		}
 
-		if ( ! wp_is_writable( $mpdf_temp ) ) {
+		if ( ! wp_is_writable( $mpdf_temp_root ) ) {
 			return SScribe_Result::failure(
-				sprintf(
-					/* translators: %s: Temp directory path. */
-					__( 'PDF export failed: temp directory is not writable (%s).', 'sscribe-export-site-pages' ),
-					$mpdf_temp
-				),
+				__( 'PDF export failed: the temporary directory is not writable.', 'sscribe-export-site-pages' ),
 				array(
 					'error_category' => 'pdf_filesystem',
 					'page_id'        => $page_id,
-					'temp_dir'       => $mpdf_temp,
 				)
 			);
 		}
 
-		if ( ! file_exists( $mpdf_temp . '/.htaccess' ) ) {
-			SScribe_Security::protect_directory( $mpdf_temp );
+		if ( ! file_exists( $mpdf_temp_root . '.htaccess' ) ) {
+			SScribe_Security::protect_directory( $mpdf_temp_root );
 		}
 
-		$server_software = isset( $_SERVER['SERVER_SOFTWARE'] ) ? sanitize_text_field( wp_unslash( (string) $_SERVER['SERVER_SOFTWARE'] ) ) : '';
+		try {
+			$run_token = bin2hex( random_bytes( 16 ) );
+		} catch ( \Throwable $e ) {
+			$this->logger->error( 'PDF export failed: unable to generate a secure temporary-directory name' );
+			return SScribe_Result::failure(
+				__( 'PDF export failed: a secure temporary directory could not be created.', 'sscribe-export-site-pages' ),
+				array(
+					'error_category' => 'pdf_filesystem',
+					'page_id'        => $page_id,
+				)
+			);
+		}
+
+		$mpdf_temp = $mpdf_temp_root . 'run-' . $run_token;
+		if ( ! wp_mkdir_p( $mpdf_temp ) || ! wp_is_writable( $mpdf_temp ) ) {
+			$this->cleanup_mpdf_temp( $mpdf_temp );
+			return SScribe_Result::failure(
+				__( 'PDF export failed: a writable temporary directory could not be created.', 'sscribe-export-site-pages' ),
+				array(
+					'error_category' => 'pdf_filesystem',
+					'page_id'        => $page_id,
+				)
+			);
+		}
+
+		$server_software = isset( $_SERVER['SERVER_SOFTWARE'] ) && is_string( $_SERVER['SERVER_SOFTWARE'] ) ? sanitize_text_field( wp_unslash( $_SERVER['SERVER_SOFTWARE'] ) ) : '';
 		if ( '' !== $server_software && false !== stripos( $server_software, 'nginx' ) ) {
 			$this->logger->debug(
 				'PDF export temp directory: Nginx host detected : verify Nginx config denies direct access to mpdf-tmp/ (the .htaccess is Apache-only; index.php is the cross-platform fallback).',
 				array(
 					'server_software'   => $server_software,
-					'temp_dir'          => $mpdf_temp,
-					'index_html_exists' => file_exists( $mpdf_temp . '/index.php' ),
+					'temp_dir'          => $mpdf_temp_root,
+					'index_html_exists' => file_exists( $mpdf_temp_root . 'index.php' ),
 				)
 			);
 		}
@@ -790,7 +887,10 @@ class SScribe_PDF_Exporter implements SScribe_Exporter_Interface {
 
 			'backupSubsFont'   => array( 'freeserif' ),
 			'backupSIPFont'    => null,
-			'isRemoteEnabled'  => true,
+			// Images are resolved through SScribe_Image_Processor before mPDF
+			// receives the document. Keeping mPDF networking disabled prevents
+			// failed or blocked image URLs from bypassing that SSRF boundary.
+			'isRemoteEnabled'  => false,
 
 			'fonttrans'        => array_merge(
 				array(

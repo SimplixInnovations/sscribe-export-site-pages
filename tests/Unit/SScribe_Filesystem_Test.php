@@ -159,6 +159,47 @@ class SScribe_Filesystem_Test extends TestCase {
 		$this->assertEquals( 'Copy me', file_get_contents( $dest ) );
 	}
 
+	/**
+	 * A caller must not be able to copy an arbitrary local file into an export.
+	 */
+	public function test_copy_refuses_source_outside_export_dir(): void {
+		$fs     = new \SScribe_Filesystem();
+		$source = $this->test_dir . '/outside-secret.txt';
+		$dest   = $this->in_export_dir( 'copied-secret.txt' );
+		file_put_contents( $source, 'sensitive local data' );
+
+		$result = $fs->copy( $source, $dest );
+
+		$this->assertFalse( $result );
+		$this->assertFileDoesNotExist( $dest );
+		$this->assertStringContainsString( 'source outside', $fs->get_last_error() );
+	}
+
+	/**
+	 * Canonical source validation must reject symlinks planted in the export dir.
+	 */
+	public function test_copy_refuses_symlink_source(): void {
+		if ( ! function_exists( 'symlink' ) ) {
+			$this->markTestSkipped( 'symlink() not available on this platform' );
+		}
+
+		$fs      = new \SScribe_Filesystem();
+		$outside = $this->test_dir . '/outside-secret.txt';
+		$source  = $this->in_export_dir( 'source-link.txt' );
+		$dest    = $this->in_export_dir( 'copied-link.txt' );
+		file_put_contents( $outside, 'sensitive local data' );
+
+		if ( ! @symlink( $outside, $source ) ) {
+			$this->markTestSkipped( 'symlink() not permitted on this platform' );
+		}
+
+		$result = $fs->copy( $source, $dest );
+
+		$this->assertFalse( $result );
+		$this->assertFileDoesNotExist( $dest );
+		@unlink( $source );
+	}
+
 	public function test_move_renames_file(): void {
 		$fs     = new \SScribe_Filesystem();
 		// Both source and destination must live INSIDE the SScribe export
@@ -395,6 +436,32 @@ class SScribe_Filesystem_Test extends TestCase {
 
 		$this->assertEquals( \SScribe_Filesystem::SSCRIBE_PATH_REJECT, $safe,
 			'Expected symlink escape to be REJECTed' );
+	}
+
+	public function test_write_check_rejects_missing_path_below_symlink_escape(): void {
+		if ( ! function_exists( 'symlink' ) ) {
+			$this->markTestSkipped( 'symlink() not available' );
+		}
+
+		$fs          = new \SScribe_Filesystem();
+		$upload_dir  = wp_upload_dir();
+		$export_dir  = trailingslashit( $upload_dir['basedir'] ) . 'sscribe-exports';
+		$outside     = $this->test_dir . '/nested-outside';
+		$link_name   = $export_dir . '/nested-escape-' . uniqid();
+		wp_mkdir_p( $export_dir );
+		wp_mkdir_p( $outside );
+
+		if ( ! @symlink( $outside, $link_name ) ) {
+			rmdir( $outside );
+			$this->markTestSkipped( 'symlink() not permitted on this platform' );
+		}
+
+		$safe = $fs->is_path_safe_for_write( $link_name . '/missing/child/file.txt' );
+
+		@unlink( $link_name );
+		rmdir( $outside );
+
+		$this->assertSame( \SScribe_Filesystem::SSCRIBE_PATH_REJECT, $safe );
 	}
 
 	/**

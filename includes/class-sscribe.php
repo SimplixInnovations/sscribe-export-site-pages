@@ -138,14 +138,12 @@ class SScribe {
 		$this->loader->add_action( 'admin_menu', $admin, 'add_admin_menu' );
 		$this->loader->add_action( 'admin_init', $admin, 'maybe_redirect_after_activation' );
 		$this->loader->add_action( 'admin_enqueue_scripts', $admin, 'enqueue_admin_assets' );
-		$this->loader->add_action( 'admin_init', $admin, 'maybe_send_csp_headers' );
 		$this->loader->add_action( 'admin_notices', $this, 'render_vendor_dependency_notice' );
 		$this->loader->add_action( 'save_post', $this, 'invalidate_admin_page_cache' );
 		$this->loader->add_action( 'trashed_post', $this, 'invalidate_admin_page_cache' );
 		$this->loader->add_action( 'deleted_post', $this, 'invalidate_admin_page_cache' );
 		$this->loader->add_action( 'untrashed_post', $this, 'invalidate_admin_page_cache' );
 		$this->loader->add_filter( 'plugin_action_links_' . SSCRIBE_PLUGIN_BASENAME, $admin, 'add_plugin_action_links' );
-		$this->loader->add_filter( 'script_loader_tag', $admin, 'add_nonce_to_script_tags', 10, 3 );
 	}
 
 	/**
@@ -235,6 +233,7 @@ class SScribe {
 		$container = SScribe_Container::instance();
 		$batch     = $container->get( SScribe_Batch_Processor::class );
 		$cap       = SScribe_Capabilities::get_required();
+		$health_cap = SScribe_Capabilities::get_health_required();
 
 		$this->loader->add_guarded_ajax_action( 'wp_ajax_sscribe_start_export', $batch, 'ajax_start_export', $cap );
 		$this->loader->add_guarded_ajax_action( 'wp_ajax_sscribe_process_batch', $batch, 'ajax_process_batch', $cap );
@@ -251,8 +250,8 @@ class SScribe {
 		$this->loader->add_guarded_ajax_action( 'wp_ajax_sscribe_preflight_check', $batch, 'ajax_preflight_check', $cap );
 		$this->loader->add_guarded_ajax_action( 'wp_ajax_sscribe_get_export_preview', $batch, 'ajax_get_export_preview', $cap );
 		$this->loader->add_guarded_ajax_action( 'wp_ajax_sscribe_get_recent_exports', $batch, 'ajax_get_recent_exports', $cap );
-		$this->loader->add_guarded_ajax_action( 'wp_ajax_sscribe_get_support_info', $batch, 'ajax_get_support_info', $cap );
-		$this->loader->add_guarded_ajax_action( 'wp_ajax_sscribe_health_check', $batch, 'ajax_health_check', $cap, 'sscribe_health_nonce', 'nonce' );
+		$this->loader->add_guarded_ajax_action( 'wp_ajax_sscribe_get_support_info', $batch, 'ajax_get_support_info', $health_cap, 'sscribe_health_nonce', 'nonce' );
+		$this->loader->add_guarded_ajax_action( 'wp_ajax_sscribe_health_check', $batch, 'ajax_health_check', $health_cap, 'sscribe_health_nonce', 'nonce' );
 		$this->loader->add_guarded_ajax_action( 'wp_ajax_sscribe_check_active_session', $batch, 'ajax_check_active_session', $cap );
 	}
 
@@ -266,6 +265,13 @@ class SScribe {
 
 		$this->loader->add_action( 'sscribe_cleanup_sessions', $this, 'cleanup_sessions' );
 		$this->loader->add_action( 'sscribe_cleanup_audit_trail', $this, 'cleanup_audit_trail' );
+	}
+
+	/**
+	 * Register multisite lifecycle hooks.
+	 */
+	private function define_lifecycle_hooks(): void {
+		$this->loader->add_action( 'wp_initialize_site', new SScribe_Activator(), 'activate_new_site' );
 	}
 
 	/**
@@ -283,34 +289,41 @@ class SScribe {
 	 * Clean up expired sessions and old log entries.
 	 */
 	public function cleanup_sessions(): void {
+		$lock_manager = SScribe_Container::instance()->get( SScribe_Export_Lock_Manager::class );
+		$lock_name    = 'cron-sessions';
+		$lock_token   = $lock_manager->acquire_lock( $lock_name, 2 * MINUTE_IN_SECONDS, 110 );
+		if ( null === $lock_token ) {
+			return;
+		}
 
-		if ( ! get_transient( 'sscribe_cron_sessions_lock' ) ) {
-			set_transient( 'sscribe_cron_sessions_lock', true, 2 * MINUTE_IN_SECONDS );
-
+		try {
 			$session = SScribe_Container::instance()->get( SScribe_Session::class );
 			$session->cleanup_expired( 24 * HOUR_IN_SECONDS );
 
 			SScribe_Logger::cleanup_old_logs( 7 );
 
 			require_once SSCRIBE_PLUGIN_DIR . 'includes/class-sscribe-export-log.php';
-			SScribe_Export_Log::cleanup_old_logs( 24 );
+			SScribe_Export_Log::cleanup_old_logs( 72 );
 
-			$lock_manager = SScribe_Container::instance()->get( SScribe_Export_Lock_Manager::class );
-			$lock_manager->cleanup_user_locks( null, null );
-
-			delete_transient( 'sscribe_cron_sessions_lock' );
+			$lock_manager->cleanup_expired_locks();
+		} finally {
+			$lock_manager->release_lock( $lock_name, $lock_token );
 		}
 	}
 
 	/**
-	 * Clean up old audit trail entries on a daily cron schedule.
+	 * Clean up old audit and export-statistics entries on a daily schedule.
 	 *
 	 * Removes entries older than 90 days to prevent unbounded table growth.
 	 */
 	public function cleanup_audit_trail(): void {
 		require_once SSCRIBE_PLUGIN_DIR . 'includes/class-sscribe-audit-trail.php';
-		$audit_trail = new SScribe_Audit_Trail();
-		$deleted     = $audit_trail->cleanup( 90 );
+		require_once SSCRIBE_PLUGIN_DIR . 'includes/class-sscribe-export-stats.php';
+		$audit_trail   = new SScribe_Audit_Trail();
+		$export_stats  = new SScribe_Export_Stats();
+		$audit_deleted = $audit_trail->cleanup( 90 );
+		$stats_deleted = $export_stats->cleanup( 365 );
+		$deleted       = $audit_deleted + $stats_deleted;
 
 		if ( defined( 'WP_DEBUG' ) && WP_DEBUG && $deleted > 0 ) {
 			error_log( // phpcs:ignore WordPress.PHP.DevelopmentFunctions.error_log_error_log
@@ -327,35 +340,13 @@ class SScribe {
 		require_once SSCRIBE_PLUGIN_DIR . 'includes/class-sscribe-upgrader.php';
 		SScribe_Upgrader::maybe_upgrade();
 
-		$this->init_i18n();
 		$this->register_services();
 		$this->define_admin_hooks();
 		$this->define_ajax_hooks();
 		$this->define_cron_hooks();
+		$this->define_lifecycle_hooks();
 		$this->define_privacy_hooks();
 
 		$this->loader->run();
-	}
-
-	/**
-	 * Initialize internationalization support.
-	 *
-	 * Note: load_plugin_textdomain() is kept for self-hosted installs.
-	 * WordPress.org-hosted plugins auto-load translations since WP 4.6.
-	 */
-	private function init_i18n(): void {
-		add_action( 'plugins_loaded', array( $this, 'load_textdomain' ) );
-	}
-
-	/**
-	 * Load the plugin's text domain for translation files.
-	 */
-	public function load_textdomain(): void {
-		// phpcs:ignore PluginCheck.CodeAnalysis.DiscouragedFunctions.load_plugin_textdomainFound -- Required for self-hosted/non-WP.org installs.
-		load_plugin_textdomain(
-			'sscribe-export-site-pages',
-			false,
-			dirname( SSCRIBE_PLUGIN_BASENAME ) . '/languages'
-		);
 	}
 }

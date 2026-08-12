@@ -20,14 +20,9 @@ class SScribe_Capabilities_Test extends TestCase {
 	 */
 	private const ALLOWED = array(
 		'sscribe_export',
+		'sscribe_health',
 		'manage_options',
-		'edit_pages',
-		'edit_posts',
-		'publish_pages',
-		'publish_posts',
-		'delete_pages',
 		'export',
-		'export_posts',
 	);
 
 	public function test_is_allowed_returns_true_for_valid(): void {
@@ -46,7 +41,7 @@ class SScribe_Capabilities_Test extends TestCase {
 	public function test_get_allowed_list_returns_all(): void {
 		$list = \SScribe_Capabilities::get_allowed_list();
 		$this->assertIsArray( $list );
-		$this->assertCount( 9, $list );
+		$this->assertCount( 4, $list );
 		foreach ( self::ALLOWED as $cap ) {
 			$this->assertContains( $cap, $list );
 		}
@@ -61,14 +56,14 @@ class SScribe_Capabilities_Test extends TestCase {
 		$GLOBALS['sscribe_test_filters'][] = array(
 			'hook'     => 'sscribe_export_capability',
 			'callback' => function () {
-				return 'edit_pages';
+				return 'export';
 			},
 			'priority' => 10,
 			'accepted_args' => 1,
 		);
 
 		$cap = \SScribe_Capabilities::get_required();
-		$this->assertEquals( 'edit_pages', $cap );
+		$this->assertEquals( 'export', $cap );
 
 		array_pop( $GLOBALS['sscribe_test_filters'] );
 	}
@@ -86,6 +81,32 @@ class SScribe_Capabilities_Test extends TestCase {
 		$cap = \SScribe_Capabilities::get_required();
 		$this->assertEquals( 'sscribe_export', $cap );
 
+		array_pop( $GLOBALS['sscribe_test_filters'] );
+	}
+
+	public function test_get_health_required_uses_dedicated_capability(): void {
+		$this->assertSame( 'sscribe_health', \SScribe_Capabilities::get_health_required() );
+
+		$GLOBALS['sscribe_test_filters'][] = array(
+			'hook'          => 'sscribe_health_capability',
+			'callback'      => static fn() => 'manage_options',
+			'priority'      => 10,
+			'accepted_args' => 1,
+		);
+
+		$this->assertSame( 'manage_options', \SScribe_Capabilities::get_health_required() );
+		array_pop( $GLOBALS['sscribe_test_filters'] );
+	}
+
+	public function test_get_health_required_rejects_unapproved_capability(): void {
+		$GLOBALS['sscribe_test_filters'][] = array(
+			'hook'          => 'sscribe_health_capability',
+			'callback'      => static fn() => 'delete_users',
+			'priority'      => 10,
+			'accepted_args' => 1,
+		);
+
+		$this->assertSame( 'sscribe_health', \SScribe_Capabilities::get_health_required() );
 		array_pop( $GLOBALS['sscribe_test_filters'] );
 	}
 }

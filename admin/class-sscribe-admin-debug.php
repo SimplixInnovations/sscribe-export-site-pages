@@ -50,20 +50,67 @@ class SScribe_Admin_Debug {
 	 *
 	 * Files above this size are still listed in the rotated-logs tab (sizes
 	 * use only stat()/filesize()), but the contents endpoint refuses with
-	 * 413 Payload Too Large and instructs the user to download the file
-	 * instead. 100MB is the same ceiling mPDF uses for its own chunked
-	 * resource reads, and is generous given the 2MB MAX_LOG_FILE_SIZE cap
-	 * the logger enforces per-rotation.
+	 * 413 Payload Too Large. The logger normally rotates at 2 MB; the 10 MB
+	 * ceiling also protects sites with a low PHP memory limit if a file was
+	 * placed in the directory manually.
 	 */
-	private const MAX_ROTATED_LOG_BYTES = 100 * 1024 * 1024;
+	private const MAX_ROTATED_LOG_BYTES = 10 * 1024 * 1024;
 
 	/**
 	 * Get required capability for debug actions.
 	 *
 	 * @return string
 	 */
-	private static function get_export_capability(): string {
-		return SScribe_Capabilities::get_required();
+	private static function get_debug_capability(): string {
+		return 'manage_options';
+	}
+
+	/**
+	 * Resolve the plugin-owned debug log directory.
+	 *
+	 * @return string|null Absolute directory path, or null when uploads are unavailable.
+	 */
+	private static function get_log_directory(): ?string {
+		$upload_dir = wp_upload_dir();
+		if ( ! empty( $upload_dir['error'] ) || empty( $upload_dir['basedir'] ) ) {
+			return null;
+		}
+
+		$log_directory = trailingslashit( (string) $upload_dir['basedir'] ) . 'sscribe-exports/logs';
+		return is_link( $log_directory ) ? null : $log_directory;
+	}
+
+	/**
+	 * Read one bounded scalar text value from the AJAX request.
+	 *
+	 * @param string $key        POST field name.
+	 * @param int    $max_length Maximum character count.
+	 * @return string
+	 */
+	private static function get_post_text( string $key, int $max_length = 200 ): string {
+		return SScribe_AJAX_Guard::post_text( $key, '', max( 1, $max_length ) );
+	}
+
+	/**
+	 * Read one bounded non-negative integer from the AJAX request.
+	 *
+	 * @param string $key     POST field name.
+	 * @param int    $default Default value.
+	 * @param int    $maximum Maximum accepted value.
+	 * @return int
+	 */
+	private static function get_post_integer( string $key, int $default, int $maximum ): int {
+		return SScribe_AJAX_Guard::post_integer( $key, $default, 0, $maximum );
+	}
+
+	/**
+	 * Validate an SScribe active or rotated debug-log basename.
+	 *
+	 * @param string $filename Filename to validate.
+	 * @return bool
+	 */
+	private static function is_debug_log_filename( string $filename ): bool {
+		return 1 === preg_match( '/^[a-z0-9_-]{1,80}_debug_\d{4}-\d{2}-\d{2}(?:_\d{2}-\d{2}-\d{2})?\.log$/Di', $filename );
 	}
 
 	/**
@@ -91,22 +138,24 @@ class SScribe_Admin_Debug {
 	 *
 	 * Calls wp_send_json_error and returns false on failure.
 	 *
-	 * @param string $rate_bucket Rate limit bucket identifier.
+	 * @param string $rate_bucket         Rate limit bucket identifier.
+	 * @param string $required_capability Capability required for this action.
 	 * @return bool True if authorized.
 	 */
-	private function verify_request_authorization( string $rate_bucket = 'debug' ): bool {
+	private function verify_request_authorization( string $rate_bucket = 'debug', string $required_capability = '' ): bool {
 		if ( ! check_ajax_referer( 'sscribe_export_nonce', 'nonce', false ) ) {
 			wp_send_json_error( array( 'message' => __( 'Invalid security token.', 'sscribe-export-site-pages' ) ), 403 );
 			return false;
 		}
 
-		if ( ! current_user_can( self::get_export_capability() ) ) {
+		$required_capability = '' !== $required_capability ? $required_capability : self::get_debug_capability();
+		if ( ! current_user_can( $required_capability ) ) {
 			wp_send_json_error( array( 'message' => __( 'Insufficient permissions.', 'sscribe-export-site-pages' ) ), 403 );
 			return false;
 		}
 
 		$rate_limiter = new SScribe_Export_Rate_Limiter();
-		$rate_check = $rate_limiter->check_rate_limit( self::get_export_capability(), $rate_bucket );
+		$rate_check   = $rate_limiter->check_rate_limit( $required_capability, $rate_bucket );
 		if ( false === $rate_check ) {
 			wp_send_json_error( array( 'message' => __( 'Rate limit exceeded. Please wait before trying again.', 'sscribe-export-site-pages' ) ), 429 );
 			return false;
@@ -140,7 +189,7 @@ class SScribe_Admin_Debug {
 	 * @internal
 	 */
 	public function ajax_debug_save_settings(): void {
-		if ( ! $this->verify_request_authorization( 'debug_settings' ) ) {
+		if ( ! $this->verify_request_authorization( 'debug_settings', 'manage_options' ) ) {
 			return;
 		}
 
@@ -153,15 +202,15 @@ class SScribe_Admin_Debug {
 			SScribe_Settings::LEVEL_ERROR,
 			SScribe_Settings::LEVEL_CRITICAL,
 		);
-		$log_level      = isset( $_POST['log_level'] ) ? sanitize_text_field( wp_unslash( $_POST['log_level'] ) ) : 'DEBUG';
+		$log_level      = strtoupper( self::get_post_text( 'log_level', 20 ) );
 		if ( ! in_array( $log_level, $allowed_levels, true ) ) {
 			$log_level = 'DEBUG';
 		}
 
 		$settings = array(
-			'debug_enabled' => (bool) filter_var( wp_unslash( $_POST['debug_enabled'] ?? '' ), FILTER_VALIDATE_BOOLEAN ),
+			'debug_enabled' => SScribe_AJAX_Guard::post_boolean( 'debug_enabled' ),
 			'log_level'     => $log_level,
-			'auto_refresh'  => (bool) filter_var( wp_unslash( $_POST['auto_refresh'] ?? '' ), FILTER_VALIDATE_BOOLEAN ),
+			'auto_refresh'  => SScribe_AJAX_Guard::post_boolean( 'auto_refresh' ),
 		);
 
 		$saved = SScribe_Settings::save_debug_settings( $settings );
@@ -207,8 +256,7 @@ class SScribe_Admin_Debug {
 			return;
 		}
 
-		$filter_level = isset( $_POST['filter_level'] ) ? sanitize_text_field( wp_unslash( $_POST['filter_level'] ) ) : 'ALL';
-		$filter_level = strtoupper( $filter_level );
+		$filter_level = strtoupper( self::get_post_text( 'filter_level', 20 ) ?: 'ALL' );
 
 		$allowed_levels = array(
 			'ALL',
@@ -224,10 +272,10 @@ class SScribe_Admin_Debug {
 		if ( ! in_array( $filter_level, $allowed_levels, true ) ) {
 			$filter_level = 'ALL';
 		}
-		$search       = isset( $_POST['search'] ) ? sanitize_text_field( wp_unslash( $_POST['search'] ) ) : '';
-		$session_id   = isset( $_POST['session_id'] ) ? sanitize_text_field( wp_unslash( $_POST['session_id'] ) ) : '';
-		$offset       = isset( $_POST['offset'] ) ? absint( wp_unslash( $_POST['offset'] ) ) : 0;
-		$limit        = isset( $_POST['limit'] ) ? max( 1, min( 200, absint( wp_unslash( $_POST['limit'] ) ) ) ) : 200;
+		$search     = self::get_post_text( 'search', 200 );
+		$session_id = self::get_post_text( 'session_id', 64 );
+		$offset     = self::get_post_integer( 'offset', 0, self::MAX_FETCH_LINES );
+		$limit      = max( 1, self::get_post_integer( 'limit', 200, 200 ) );
 
 		$logger = SScribe_Logger::instance( true );
 
@@ -238,10 +286,8 @@ class SScribe_Admin_Debug {
 
 		$has_more = count( $logs ) >= self::MAX_FETCH_LINES;
 
-		$upload_dir    = wp_upload_dir();
-		$log_dir       = $upload_dir['basedir'] . '/sscribe-exports/logs';
-		$log_file      = $log_dir . '/sscribe_debug_' . gmdate( 'Y-m-d' ) . '.log';
-		$log_exists    = file_exists( $log_file );
+		$log_file      = $logger->get_log_file();
+		$log_exists    = '' !== $log_file && is_file( $log_file ) && ! is_link( $log_file );
 		$debug_enabled = SScribe_Settings::is_debug_enabled() || ( defined( 'SSCRIBE_DEBUG' ) && SSCRIBE_DEBUG );
 
 		wp_send_json_success(
@@ -265,7 +311,7 @@ class SScribe_Admin_Debug {
 	 * @internal
 	 */
 	public function ajax_debug_clear_logs(): void {
-		if ( ! $this->verify_request_authorization() ) {
+		if ( ! $this->verify_request_authorization( 'debug_delete', 'manage_options' ) ) {
 			return;
 		}
 
@@ -296,49 +342,45 @@ class SScribe_Admin_Debug {
 	 * @internal
 	 */
 	public function ajax_debug_export_logs(): void {
-		if ( ! $this->verify_request_authorization() ) {
+		if ( ! $this->verify_request_authorization( 'debug_read' ) ) {
 			return;
 		}
 
-		$filename = isset( $_POST['filename'] ) ? sanitize_text_field( wp_unslash( $_POST['filename'] ) ) : '';
+		$raw_filename = self::get_post_text( 'filename', 200 );
+		$filename     = sanitize_file_name( $raw_filename );
+		if ( '' !== $raw_filename && ! hash_equals( $raw_filename, $filename ) ) {
+			$filename = '';
+		}
 
-		if ( ! empty( $filename ) ) {
-			$upload_dir = wp_upload_dir();
-			$log_dir    = $upload_dir['basedir'] . '/sscribe-exports/logs';
-			$file_path  = $log_dir . '/' . $filename;
-
-			$real_file_path = realpath( $file_path );
-			$real_log_dir   = realpath( $log_dir );
-
-			if ( false === $real_file_path || false === $real_log_dir ) {
-				wp_send_json_error(
-					array(
-						'message' => __( 'File not found.', 'sscribe-export-site-pages' ),
-						'nonce'   => wp_create_nonce( 'sscribe_export_nonce' ),
-					),
-					404
-				);
-				return;
-			}
-
-			if ( ! preg_match( '/\.(log|json)$/', $filename ) ) {
-				wp_send_json_error(
-					array(
-						'message' => __( 'Invalid file type.', 'sscribe-export-site-pages' ),
-						'nonce'   => wp_create_nonce( 'sscribe_export_nonce' ),
-					),
-					400
-				);
-				return;
-			}
-
-			if ( ! preg_match( '/^(sscribe_debug_|sscribe-debug-export-)/', basename( $filename ) ) ) {
+		if ( '' !== $raw_filename ) {
+			if ( ! self::is_debug_log_filename( $filename ) ) {
 				wp_send_json_error(
 					array(
 						'message' => __( 'Invalid filename.', 'sscribe-export-site-pages' ),
 						'nonce'   => wp_create_nonce( 'sscribe_export_nonce' ),
 					),
 					400
+				);
+				return;
+			}
+
+			$log_dir = self::get_log_directory();
+			if ( null === $log_dir ) {
+				wp_send_json_error( array( 'message' => __( 'The WordPress uploads directory is unavailable.', 'sscribe-export-site-pages' ) ), 500 );
+				return;
+			}
+			$file_path  = $log_dir . '/' . $filename;
+
+			$real_file_path = realpath( $file_path );
+			$real_log_dir   = realpath( $log_dir );
+
+			if ( false === $real_file_path || false === $real_log_dir || is_link( $file_path ) || ! is_file( $real_file_path ) ) {
+				wp_send_json_error(
+					array(
+						'message' => __( 'File not found.', 'sscribe-export-site-pages' ),
+						'nonce'   => wp_create_nonce( 'sscribe_export_nonce' ),
+					),
+					404
 				);
 				return;
 			}
@@ -355,8 +397,20 @@ class SScribe_Admin_Debug {
 				return;
 			}
 
-			$content = file_get_contents( $file_path ); // phpcs:ignore WordPress.WP.AlternativeFunctions.file_get_contents_file_get_contents -- Reading local log file for download.
-			if ( false === $content ) {
+			$file_size = filesize( $real_file_path );
+			if ( false === $file_size || $file_size > self::MAX_ROTATED_LOG_BYTES ) {
+				wp_send_json_error(
+					array(
+						'message' => __( 'Log file is too large to export through the browser.', 'sscribe-export-site-pages' ),
+						'nonce'   => wp_create_nonce( 'sscribe_export_nonce' ),
+					),
+					413
+				);
+				return;
+			}
+
+			$lines = self::read_bounded_log_lines( $real_file_path, self::MAX_FETCH_LINES );
+			if ( null === $lines ) {
 				wp_send_json_error(
 					array(
 						'message' => __( 'Failed to read file.', 'sscribe-export-site-pages' ),
@@ -366,13 +420,29 @@ class SScribe_Admin_Debug {
 				);
 				return;
 			}
-			$this->download_json( $filename, $content );
+			$entries = $this->parse_log_entries( $lines, 'ALL', '', '', false );
+			$content = wp_json_encode(
+				array(
+					'entries'  => $entries,
+					'count'    => count( $entries ),
+					'source'   => $filename,
+					'exported' => wp_date( 'Y-m-d H:i:s' ),
+				)
+			);
+			if ( false === $content ) {
+				wp_send_json_error( array( 'message' => __( 'Failed to encode log data.', 'sscribe-export-site-pages' ) ), 500 );
+				return;
+			}
+			$this->download_json( preg_replace( '/\.log$/i', '.json', $filename ) ?? 'sscribe-debug-export.json', $content );
 			return;
 		}
 
-		$filter_level = isset( $_POST['filter_level'] ) ? sanitize_text_field( wp_unslash( $_POST['filter_level'] ) ) : 'ALL';
-		$search       = isset( $_POST['search'] ) ? sanitize_text_field( wp_unslash( $_POST['search'] ) ) : '';
-		$session_id   = isset( $_POST['session_id'] ) ? sanitize_text_field( wp_unslash( $_POST['session_id'] ) ) : '';
+		$filter_level = strtoupper( self::get_post_text( 'filter_level', 20 ) ?: 'ALL' );
+		if ( ! in_array( $filter_level, array( 'ALL', 'DEBUG', 'INFO', 'NOTICE', 'WARNING', 'ERROR', 'CRITICAL', 'ALERT', 'EMERGENCY' ), true ) ) {
+			$filter_level = 'ALL';
+		}
+		$search     = self::get_post_text( 'search', 200 );
+		$session_id = self::get_post_text( 'session_id', 64 );
 
 		$logger = SScribe_Logger::instance( true );
 
@@ -429,37 +499,49 @@ class SScribe_Admin_Debug {
 			return;
 		}
 
-		$upload_dir = wp_upload_dir();
-		$log_dir    = $upload_dir['basedir'] . '/sscribe-exports/logs';
+		$log_dir = self::get_log_directory();
+		if ( null === $log_dir ) {
+			wp_send_json_error( array( 'message' => __( 'The WordPress uploads directory is unavailable.', 'sscribe-export-site-pages' ) ), 500 );
+			return;
+		}
 
 		if ( ! is_dir( $log_dir ) ) {
 			wp_send_json_success( array( 'files' => array() ) );
 			return;
 		}
 
-		$log_files   = glob( $log_dir . '/*.log' );
-		$log_files   = is_array( $log_files ) ? $log_files : array();
-		$files       = $log_files;
 		$result      = array();
 		$current_log = $this->get_logger_log_file();
+		$scanned     = 0;
+		$truncated   = false;
 
-		foreach ( $files as $file ) {
-			if ( is_file( $file ) ) {
-				$stat = stat( $file );
-				if ( false === $stat ) {
+		try {
+			$iterator = new DirectoryIterator( $log_dir );
+			foreach ( $iterator as $file ) {
+				if ( $file->isDot() ) {
 					continue;
 				}
-				$basename = basename( $file );
+				if ( ++$scanned > 500 ) {
+					$truncated = true;
+					break;
+				}
+				$basename = $file->getBasename();
+				if ( $file->isLink() || ! $file->isFile() || ! self::is_debug_log_filename( $basename ) ) {
+					continue;
+				}
 				if ( ! empty( $current_log ) && $basename === $current_log ) {
 					continue;
 				}
 				$result[] = array(
 					'name'  => $basename,
-					'size'  => size_format( $stat['size'] ),
-					'date'  => wp_date( 'Y-m-d H:i:s', $stat['mtime'] ),
-					'mtime' => $stat['mtime'],
+					'size'  => size_format( $file->getSize() ),
+					'date'  => wp_date( 'Y-m-d H:i:s', $file->getMTime() ),
+					'mtime' => $file->getMTime(),
 				);
 			}
+		} catch ( \Throwable $e ) {
+			wp_send_json_error( array( 'message' => __( 'Unable to read the log directory.', 'sscribe-export-site-pages' ) ), 500 );
+			return;
 		}
 
 		usort(
@@ -486,6 +568,7 @@ class SScribe_Admin_Debug {
 			array(
 				'files'       => $result,
 				'total_count' => $total_count,
+				'truncated'   => $truncated,
 			)
 		);
 	}
@@ -500,9 +583,13 @@ class SScribe_Admin_Debug {
 			return;
 		}
 
-		$filename = isset( $_POST['filename'] ) ? sanitize_text_field( wp_unslash( $_POST['filename'] ) ) : '';
-		$offset   = isset( $_POST['offset'] ) ? absint( wp_unslash( $_POST['offset'] ) ) : 0;
-		$limit    = isset( $_POST['limit'] ) ? max( 1, min( 200, absint( wp_unslash( $_POST['limit'] ) ) ) ) : 200;
+		$raw_filename = self::get_post_text( 'filename', 200 );
+		$filename     = sanitize_file_name( $raw_filename );
+		if ( ! hash_equals( $raw_filename, $filename ) ) {
+			$filename = '';
+		}
+		$offset   = self::get_post_integer( 'offset', 0, self::MAX_FETCH_LINES );
+		$limit    = max( 1, self::get_post_integer( 'limit', 200, 200 ) );
 
 		if ( empty( $filename ) ) {
 			wp_send_json_error(
@@ -515,7 +602,7 @@ class SScribe_Admin_Debug {
 			return;
 		}
 
-		if ( ! preg_match( '/\.(log|json)$/', $filename ) ) {
+		if ( ! self::is_debug_log_filename( $filename ) ) {
 			wp_send_json_error(
 				array(
 					'message' => __( 'Invalid file type.', 'sscribe-export-site-pages' ),
@@ -526,15 +613,18 @@ class SScribe_Admin_Debug {
 			return;
 		}
 
-		$upload_dir = wp_upload_dir();
-		$log_dir    = $upload_dir['basedir'] . '/sscribe-exports/logs';
+		$log_dir = self::get_log_directory();
+		if ( null === $log_dir ) {
+			wp_send_json_error( array( 'message' => __( 'The WordPress uploads directory is unavailable.', 'sscribe-export-site-pages' ) ), 500 );
+			return;
+		}
 		$file_path  = $log_dir . '/' . $filename;
 
 		$real_file_path = realpath( $file_path );
 		$real_log_dir   = realpath( $log_dir );
 
 		$safe_log_dir = rtrim( (string) $real_log_dir, DIRECTORY_SEPARATOR ) . DIRECTORY_SEPARATOR;
-		if ( false === $real_file_path || false === $real_log_dir || 0 !== strpos( $real_file_path, $safe_log_dir ) ) {
+		if ( false === $real_file_path || false === $real_log_dir || is_link( $file_path ) || ! is_file( $real_file_path ) || 0 !== strpos( $real_file_path, $safe_log_dir ) ) {
 			wp_send_json_error(
 				array(
 					'message' => __( 'File not found.', 'sscribe-export-site-pages' ),
@@ -559,13 +649,13 @@ class SScribe_Admin_Debug {
 
 		// Hard ceiling on bytes we will open for paginated reads.
 		// Rotated logs are bounded by MAX_LOG_FILE_SIZE (2MB) at the
-		// logger, so anything over 100MB here means manual files were
-		// dropped into the directory — refuse rather than OOM.
+		// logger, so anything over 10MB here means manual files were
+		// dropped into the directory - refuse rather than exhausting memory.
 		if ( $file_size > self::MAX_ROTATED_LOG_BYTES ) {
 			wp_send_json_error(
 				array(
 					/* translators: %s: file size in MB */
-					'message' => sprintf( __( 'Rotated log is %s MB which exceeds the 100 MB read ceiling. Download it instead of paginating.', 'sscribe-export-site-pages' ), (string) (int) ( $file_size / ( 1024 * 1024 ) ) ),
+					'message' => sprintf( __( 'Rotated log is %s MB and exceeds the safe browser-read limit.', 'sscribe-export-site-pages' ), (string) (int) ( $file_size / ( 1024 * 1024 ) ) ),
 					'nonce'   => wp_create_nonce( 'sscribe_export_nonce' ),
 				),
 				413
@@ -598,7 +688,7 @@ class SScribe_Admin_Debug {
 				++$read;
 			}
 			unset( $file );
-		} catch ( Exception $e ) {
+		} catch ( \Throwable $e ) {
 			wp_send_json_error(
 				array(
 					'message' => __( 'Failed to read file.', 'sscribe-export-site-pages' ),
@@ -626,11 +716,15 @@ class SScribe_Admin_Debug {
 	 * @internal
 	 */
 	public function ajax_debug_delete_rotated(): void {
-		if ( ! $this->verify_request_authorization() ) {
+		if ( ! $this->verify_request_authorization( 'debug_delete', 'manage_options' ) ) {
 			return;
 		}
 
-		$filename = isset( $_POST['filename'] ) ? sanitize_text_field( wp_unslash( $_POST['filename'] ) ) : '';
+		$raw_filename = self::get_post_text( 'filename', 200 );
+		$filename     = sanitize_file_name( $raw_filename );
+		if ( ! hash_equals( $raw_filename, $filename ) ) {
+			$filename = '';
+		}
 
 		if ( empty( $filename ) ) {
 			wp_send_json_error(
@@ -643,7 +737,7 @@ class SScribe_Admin_Debug {
 			return;
 		}
 
-		if ( ! preg_match( '/\.(log|json)$/', $filename ) ) {
+		if ( ! self::is_debug_log_filename( $filename ) ) {
 			wp_send_json_error(
 				array(
 					'message' => __( 'Invalid file type.', 'sscribe-export-site-pages' ),
@@ -654,14 +748,17 @@ class SScribe_Admin_Debug {
 			return;
 		}
 
-		$upload_dir = wp_upload_dir();
-		$log_dir    = $upload_dir['basedir'] . '/sscribe-exports/logs';
+		$log_dir = self::get_log_directory();
+		if ( null === $log_dir ) {
+			wp_send_json_error( array( 'message' => __( 'The WordPress uploads directory is unavailable.', 'sscribe-export-site-pages' ) ), 500 );
+			return;
+		}
 		$file_path  = $log_dir . '/' . $filename;
 
 		$real_file_path = realpath( $file_path );
 		$real_log_dir   = realpath( $log_dir );
 
-		if ( false === $real_file_path || false === $real_log_dir ) {
+		if ( false === $real_file_path || false === $real_log_dir || is_link( $file_path ) || ! is_file( $real_file_path ) ) {
 			wp_send_json_error(
 				array(
 					'message' => __( 'File not found.', 'sscribe-export-site-pages' ),
@@ -717,6 +814,39 @@ class SScribe_Admin_Debug {
 	}
 
 	/**
+	 * Read a bounded tail window from a canonical log file.
+	 *
+	 * @param string $file_path Canonical regular-file path.
+	 * @param int    $max_lines Maximum non-empty lines to return.
+	 * @return array<string>|null Lines in file order, or null on failure.
+	 */
+	private static function read_bounded_log_lines( string $file_path, int $max_lines ): ?array {
+		$max_lines = max( 1, min( self::MAX_FETCH_LINES, $max_lines ) );
+
+		try {
+			$file = new SplFileObject( $file_path, 'r' );
+			$file->seek( PHP_INT_MAX );
+			$total_lines = max( 0, $file->key() );
+			$file->seek( max( 0, $total_lines - $max_lines ) );
+
+			$lines      = array();
+			$line_count = 0;
+			while ( $line_count < $max_lines && ! $file->eof() ) {
+				$line = $file->current();
+				$file->next();
+				if ( false !== $line && '' !== trim( $line ) ) {
+					$lines[] = rtrim( $line, "\r\n" );
+					++$line_count;
+				}
+			}
+			unset( $file );
+			return $lines;
+		} catch ( \Throwable $e ) {
+			return null;
+		}
+	}
+
+	/**
 	 * Parse log entries from raw log lines.
 	 *
 	 * @param array  $lines        Raw log lines.
@@ -743,6 +873,7 @@ class SScribe_Admin_Debug {
 		$filter_priority = $priorities[ $filter_level ] ?? null;
 
 		foreach ( $lines as $line ) {
+			$line = is_scalar( $line ) ? (string) $line : '';
 			if ( empty( trim( $line ) ) ) {
 				continue;
 			}
@@ -758,6 +889,7 @@ class SScribe_Admin_Debug {
 
 			if ( ! empty( $session_id ) ) {
 				$entry_session = $entry['context']['session_id'] ?? '';
+				$entry_session = is_scalar( $entry_session ) ? (string) $entry_session : '';
 				if ( false === strpos( $entry_session, $session_id ) ) {
 					continue;
 				}
@@ -803,11 +935,15 @@ class SScribe_Admin_Debug {
 		$json = json_decode( $line, true );
 		if ( is_array( $json ) ) {
 			$raw_timestamp = $json['timestamp'] ?? $json['time'] ?? '';
+			$raw_timestamp = is_scalar( $raw_timestamp ) ? mb_substr( (string) $raw_timestamp, 0, 64 ) : '';
+			$level         = isset( $json['level'] ) && is_scalar( $json['level'] ) ? strtoupper( mb_substr( (string) $json['level'], 0, 20 ) ) : 'INFO';
+			$message       = isset( $json['message'] ) && is_scalar( $json['message'] ) ? mb_substr( (string) $json['message'], 0, 4000 ) : '';
+			$context       = isset( $json['context'] ) && is_array( $json['context'] ) ? $json['context'] : array();
 			return array(
 				'timestamp' => $this->convert_utc_timestamp_to_site_timezone( $raw_timestamp ),
-				'level'     => $json['level'] ?? 'INFO',
-				'message'   => $json['message'] ?? '',
-				'context'   => $json['context'] ?? array(),
+				'level'     => $level,
+				'message'   => $message,
+				'context'   => $context,
 			);
 		}
 
@@ -871,7 +1007,6 @@ class SScribe_Admin_Debug {
 
 		header( 'Content-Type: application/json' );
 		header( 'Content-Disposition: attachment; filename="' . $safe_filename . '"' );
-		header( 'Content-Encoding: none' );
 		header( 'Content-Length: ' . mb_strlen( $content, '8bit' ) );
 		header( 'Cache-Control: no-store, no-cache, must-revalidate' );
 		header( 'Pragma: no-cache' );

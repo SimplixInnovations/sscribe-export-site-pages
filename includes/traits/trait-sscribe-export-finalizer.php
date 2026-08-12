@@ -64,9 +64,7 @@ trait SScribe_Export_Finalizer {
 			);
 		}
 
-		$session_id = isset( $_POST['session_id'] )
-			? sanitize_text_field( wp_unslash( $_POST['session_id'] ) )
-			: '';
+		$session_id = SScribe_AJAX_Guard::post_text( 'session_id', '', 16 );
 
 		if ( empty( $session_id ) ) {
 			SScribe_AJAX_Guard::error(

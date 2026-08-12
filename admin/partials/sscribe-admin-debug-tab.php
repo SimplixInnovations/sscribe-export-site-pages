@@ -52,7 +52,7 @@ $sscribe_show_wp_debug_notice = ( defined( 'WP_DEBUG' ) && WP_DEBUG );
 			<div class="sscribe-debug-toggle-section">
 				<label class="sscribe-debug-toggle-label">
 					<span class="sscribe-toggle-switch">
-						<input type="checkbox" id="sscribe-debug-enabled" role="switch" aria-checked="<?php echo $sscribe_debug_settings['debug_enabled'] ? 'true' : 'false'; ?>" <?php checked( $sscribe_debug_settings['debug_enabled'] ); ?>>
+						<input type="checkbox" id="sscribe-debug-enabled" role="switch" aria-checked="<?php echo esc_attr( $sscribe_debug_settings['debug_enabled'] ? 'true' : 'false' ); ?>" <?php checked( $sscribe_debug_settings['debug_enabled'] ); ?>>
 						<span class="sscribe-toggle-slider" aria-hidden="true"></span>
 					</span>
 					<span class="sscribe-toggle-text">

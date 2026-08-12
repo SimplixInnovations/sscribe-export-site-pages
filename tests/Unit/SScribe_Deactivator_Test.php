@@ -5,7 +5,7 @@
  * Pins the deactivation contract:
  *   1. All three sscribe_* cron events are unscheduled.
  *   2. sscribe runtime transients are removed.
- *   3. Plugin-specific capabilities are revoked from all roles.
+ *   3. Persistent settings and explicitly assigned capabilities are preserved.
  *   4. WP_DEBUG errors do not leak (catch-all swallows)
  *
  * Deactivation must NOT delete user data per WP.org guidelines.
@@ -79,10 +79,7 @@ final class SScribe_Deactivator_Test extends TestCase {
 		$this->assertArrayNotHasKey( '_transient_sscribe_lock_42', $GLOBALS['sscribe_test_options'] );
 		$this->assertArrayNotHasKey( '_transient_sscribe_rate_7', $GLOBALS['sscribe_test_options'] );
 		$this->assertArrayNotHasKey( '_transient_sscribe_active_sid_99', $GLOBALS['sscribe_test_options'] );
-		// _transient_timeout_sscribe_lock_42 doesn't match the LIKE patterns
-		// for _transient_sscribe_lock_ / _transient_sscribe_rate_ /
-		// _transient_sscribe_active_sid_ — it survives as a no-op.
-		$this->assertArrayHasKey( '_transient_timeout_sscribe_lock_42', $GLOBALS['sscribe_test_options'] );
+		$this->assertArrayNotHasKey( '_transient_timeout_sscribe_lock_42', $GLOBALS['sscribe_test_options'] );
 	}
 
 	public function test_deactivate_does_not_remove_unrelated_transients(): void {
@@ -97,27 +94,21 @@ final class SScribe_Deactivator_Test extends TestCase {
 		$this->assertArrayHasKey( 'some_other_option', $GLOBALS['sscribe_test_options'] );
 	}
 
-	public function test_deactivate_revokes_sscribe_capabilities_from_administrator_role(): void {
-		// The deactivator instantiates a fresh WP_Roles (which has only
-		// 'administrator' in the bootstrap stub) and iterates its roles.
-		// Inject the cap on the administrator role via the stub's static cache
-		// and verify it gets revoked.
+	public function test_deactivate_preserves_explicitly_assigned_capabilities(): void {
 		$admin = new \WP_Role( 'administrator', array(
 			'manage_options' => true,
 			'sscribe_export' => true,
 			'sscribe_health' => true,
 		) );
 
-		// Pre-populate the static-style cache used by the bootstrap get_role()
-		// stub so it returns the role with the custom caps.
 		$GLOBALS['sscribe_test_role_overrides'] = array(
 			'administrator' => $admin,
 		);
 
 		SScribe_Deactivator::deactivate();
 
-		$this->assertFalse( $admin->has_cap( 'sscribe_export' ), 'sscribe_export must be revoked.' );
-		$this->assertFalse( $admin->has_cap( 'sscribe_health' ), 'sscribe_health must be revoked.' );
+		$this->assertTrue( $admin->has_cap( 'sscribe_export' ), 'sscribe_export must survive deactivation.' );
+		$this->assertTrue( $admin->has_cap( 'sscribe_health' ), 'sscribe_health must survive deactivation.' );
 		$this->assertTrue( $admin->has_cap( 'manage_options' ), 'core caps must not be touched.' );
 
 		unset( $GLOBALS['sscribe_test_role_overrides'] );

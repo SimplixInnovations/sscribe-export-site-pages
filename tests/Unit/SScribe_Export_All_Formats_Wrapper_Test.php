@@ -186,7 +186,7 @@ class SScribe_Export_All_Formats_Wrapper_Test extends TestCase {
 
 	/**
 	 * Regression: when the output directory does not exist, the wrapper
-	 * must short-circuit with a clear failure for every format.
+	 * must short-circuit without disclosing a physical server path.
 	 */
 	public function test_export_page_fails_clearly_when_output_dir_missing(): void {
 		$nonexistent = sys_get_temp_dir() . '/sscribe-wrapper-does-not-exist-' . uniqid();
@@ -201,8 +201,8 @@ class SScribe_Export_All_Formats_Wrapper_Test extends TestCase {
 
 		$this->assertArrayHasKey( 'html', $results );
 		$this->assertFalse( $results['html']['success'] );
-		$this->assertStringContainsString( 'does not exist', $results['html']['error'] );
-		$this->assertStringContainsString( $nonexistent, $results['html']['error'] );
+		$this->assertStringContainsString( 'output directory', $results['html']['error'] );
+		$this->assertStringNotContainsString( $nonexistent, $results['html']['error'] );
 	}
 
 	/**
@@ -240,7 +240,8 @@ class SScribe_Export_All_Formats_Wrapper_Test extends TestCase {
 
 		$this->assertArrayHasKey( 'html', $results );
 		$this->assertFalse( $results['html']['success'] );
-		$this->assertStringContainsString( 'not writable', $results['html']['error'] );
+		$this->assertStringContainsString( 'output directory', $results['html']['error'] );
+		$this->assertStringNotContainsString( $tmp, $results['html']['error'] );
 	}
 
 	/**

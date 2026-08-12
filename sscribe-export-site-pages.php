@@ -40,9 +40,6 @@ if ( version_compare( PHP_VERSION, '8.2', '<' ) ) {
 			);
 		}
 	);
-
-
-
 	add_action(
 		'admin_init',
 		static function () {
@@ -58,10 +55,8 @@ if ( version_compare( PHP_VERSION, '8.2', '<' ) ) {
 if ( function_exists( 'get_bloginfo' ) ) {
 	$sscribe_wp_version = (string) get_bloginfo( 'version' );
 } else {
-
-
 	global $wp_version;
-	$sscribe_wp_version = isset( $wp_version ) ? (string) $wp_version : '0.0';
+	$sscribe_wp_version = isset( $wp_version ) && is_scalar( $wp_version ) ? (string) $wp_version : '0.0';
 }
 if ( version_compare( $sscribe_wp_version, '6.0', '<' ) ) {
 	add_action(
@@ -92,10 +87,6 @@ if ( ! defined( 'SSCRIBE_DEBUG' ) ) {
 	define( 'SSCRIBE_DEBUG', false );
 }
 
-if ( ! defined( 'SSCRIBE_DEBUG_PUBLIC' ) ) {
-	define( 'SSCRIBE_DEBUG_PUBLIC', SSCRIBE_DEBUG );
-}
-
 define( 'SSCRIBE_PLUGIN_DIR', plugin_dir_path( __FILE__ ) );
 
 define( 'SSCRIBE_PLUGIN_URL', plugin_dir_url( __FILE__ ) );
@@ -107,14 +98,7 @@ require_once SSCRIBE_PLUGIN_DIR . 'includes/sscribe-autoloader.php';
 register_activation_hook( __FILE__, array( 'SScribe_Activator', 'activate' ) );
 register_deactivation_hook( __FILE__, array( 'SScribe_Deactivator', 'deactivate' ) );
 
-// Wire Settings API registration to admin_init so the option whitelist
-// is live on every admin request. Calling register_setting() only from
-// the activation hook leaves the registry dead on every subsequent
-// page load, which is the settings-API dead-registry anti-pattern the
-// WP admin-UI guide calls out (plugin's options are no longer
-// recognised by settings_errors(), option storage works but no UI
-// feedback for invalid values, etc.). Calling it on admin_init is the
-// canonical pattern.
+// Register the Settings API whitelist on every admin request.
 add_action(
 	'admin_init',
 	array( 'SScribe_Activator', 'register_settings' )
@@ -124,28 +108,23 @@ $sscribe_has_dependencies = ( file_exists( SSCRIBE_PLUGIN_DIR . 'vendor-prefixed
 	|| file_exists( SSCRIBE_PLUGIN_DIR . 'vendor/autoload.php' ) );
 
 if ( ! $sscribe_has_dependencies ) {
-
 	add_action(
 		'admin_notices',
 		static function () {
 			printf(
 				'<div class="error"><p><strong>%s</strong> %s</p></div>',
 				esc_html__( 'SScribe Export Site Pages:', 'sscribe-export-site-pages' ),
-				esc_html__( 'Required runtime dependencies are missing. Rebuild the plugin package or run "composer install" followed by "composer vendor:prefix" in the plugin directory.', 'sscribe-export-site-pages' )
+				esc_html__( 'Required runtime files are missing. Please reinstall the plugin from a complete release package.', 'sscribe-export-site-pages' )
 			);
 		}
 	);
 	return;
 }
 
-if ( ! function_exists( 'sscribe_render_boot_error_notice' ) ) {
 
-	/**
-	 * Render boot error notice if plugin failed to load.
-	 *
-	 * @return void
-	 */
-	function sscribe_render_boot_error_notice(): void {
+add_action(
+	'admin_notices',
+	static function (): void {
 		$boot_error = get_transient( 'sscribe_boot_error' );
 
 		if ( ! is_array( $boot_error ) || empty( $boot_error['message'] ) ) {
@@ -156,8 +135,11 @@ if ( ! function_exists( 'sscribe_render_boot_error_notice' ) ) {
 			return;
 		}
 
-		$message = (string) $boot_error['message'];
-		$time    = isset( $boot_error['time'] ) ? (string) $boot_error['time'] : '';
+		$message = is_scalar( $boot_error['message'] ) && ! is_bool( $boot_error['message'] ) ? (string) $boot_error['message'] : '';
+		$time    = isset( $boot_error['time'] ) && is_scalar( $boot_error['time'] ) && ! is_bool( $boot_error['time'] ) ? (string) $boot_error['time'] : '';
+		if ( '' === $message ) {
+			return;
+		}
 
 		printf(
 			'<div class="notice notice-error"><p><strong>%1$s</strong> %2$s</p>%3$s</div>',
@@ -166,9 +148,7 @@ if ( ! function_exists( 'sscribe_render_boot_error_notice' ) ) {
 			$time ? '<p><small>' . esc_html( $time ) . '</small></p>' : ''
 		);
 	}
-}
-
-add_action( 'admin_notices', 'sscribe_render_boot_error_notice' );
+);
 
 add_action(
 	'plugins_loaded',
@@ -178,20 +158,23 @@ add_action(
 		try {
 			( new SScribe() )->run();
 		} catch ( \Throwable $e ) {
+			$error_reference = substr( hash( 'sha256', get_class( $e ) . '|' . $e->getMessage() ), 0, 12 );
 			set_transient(
 				'sscribe_boot_error',
 				array(
 					'message' => sprintf(
-						/* translators: %s: error message */
-						__( 'The plugin bootstrap failed before the admin menu could be registered: %s', 'sscribe-export-site-pages' ),
-						$e->getMessage()
+						/* translators: %s: diagnostic reference code. */
+						__( 'The plugin could not start. Check the server error log and include reference %s when requesting support.', 'sscribe-export-site-pages' ),
+						$error_reference
 					),
 					'time'    => gmdate( 'Y-m-d H:i:s \U\T\C' ),
 				),
 				MINUTE_IN_SECONDS * 10
 			);
 
-			error_log( 'SScribe Fatal Error Prevented: ' . $e->getMessage() ); // phpcs:ignore WordPress.PHP.DevelopmentFunctions.error_log_error_log
+			if ( defined( 'WP_DEBUG' ) && WP_DEBUG ) {
+				error_log( 'SScribe bootstrap error [' . $error_reference . ']: ' . $e->getMessage() ); // phpcs:ignore WordPress.PHP.DevelopmentFunctions.error_log_error_log
+			}
 		}
 	}
 );

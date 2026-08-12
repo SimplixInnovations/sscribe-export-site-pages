@@ -42,7 +42,7 @@ class SScribe_Settings {
 	 * @return bool
 	 */
 	public static function is_debug_enabled(): bool {
-		return (bool) get_option( self::OPT_DEBUG_ENABLED, false );
+		return (bool) filter_var( get_option( self::OPT_DEBUG_ENABLED, false ), FILTER_VALIDATE_BOOLEAN );
 	}
 
 	/**
@@ -56,7 +56,7 @@ class SScribe_Settings {
 		if ( false !== $current && (bool) $current === $enabled ) {
 			return true;
 		}
-		$result = update_option( self::OPT_DEBUG_ENABLED, $enabled, 'no' );
+		$result = update_option( self::OPT_DEBUG_ENABLED, $enabled, false );
 		if ( ! $result ) {
 
 			return (bool) get_option( self::OPT_DEBUG_ENABLED ) === $enabled;
@@ -70,7 +70,39 @@ class SScribe_Settings {
 	 * @return string
 	 */
 	public static function get_debug_log_level(): string {
-		return (string) get_option( self::OPT_DEBUG_LOG_LEVEL, self::LEVEL_DEBUG );
+		return self::sanitize_debug_log_level( get_option( self::OPT_DEBUG_LOG_LEVEL, self::LEVEL_DEBUG ) );
+	}
+
+	/**
+	 * Sanitize a debug log level for Settings API and direct callers.
+	 *
+	 * @param mixed $level Candidate log level.
+	 * @return string
+	 */
+	public static function sanitize_debug_log_level( $level ): string {
+		if ( ! is_scalar( $level ) ) {
+			return self::LEVEL_DEBUG;
+		}
+
+		$level = strtoupper( sanitize_text_field( (string) $level ) );
+		return in_array( $level, self::get_allowed_log_levels(), true ) ? $level : self::LEVEL_DEBUG;
+	}
+
+	/**
+	 * Get allowed debug log levels.
+	 *
+	 * @return array<int, string>
+	 */
+	public static function get_allowed_log_levels(): array {
+		return array(
+			self::LEVEL_DEBUG,
+			self::LEVEL_INFO,
+			self::LEVEL_NOTICE,
+			self::LEVEL_WARNING,
+			self::LEVEL_ERROR,
+			self::LEVEL_CRITICAL,
+			self::LEVEL_ALL,
+		);
 	}
 
 	/**
@@ -80,25 +112,13 @@ class SScribe_Settings {
 	 * @return bool
 	 */
 	public static function set_debug_log_level( string $level ): bool {
-		$allowed = array(
-			self::LEVEL_DEBUG,
-			self::LEVEL_INFO,
-			self::LEVEL_NOTICE,
-			self::LEVEL_WARNING,
-			self::LEVEL_ERROR,
-			self::LEVEL_CRITICAL,
-			self::LEVEL_ALL,
-		);
-
-		if ( ! in_array( $level, $allowed, true ) ) {
-			$level = self::LEVEL_DEBUG;
-		}
+		$level = self::sanitize_debug_log_level( $level );
 
 		$current = get_option( self::OPT_DEBUG_LOG_LEVEL );
 		if ( false !== $current && $current === $level ) {
 			return true;
 		}
-		$result = update_option( self::OPT_DEBUG_LOG_LEVEL, $level, 'no' );
+		$result = update_option( self::OPT_DEBUG_LOG_LEVEL, $level, false );
 		if ( ! $result ) {
 
 			return get_option( self::OPT_DEBUG_LOG_LEVEL ) === $level;
@@ -112,7 +132,7 @@ class SScribe_Settings {
 	 * @return bool
 	 */
 	public static function is_auto_refresh(): bool {
-		return (bool) get_option( self::OPT_DEBUG_AUTO_REFRESH, true );
+		return (bool) filter_var( get_option( self::OPT_DEBUG_AUTO_REFRESH, true ), FILTER_VALIDATE_BOOLEAN );
 	}
 
 	/**
@@ -126,7 +146,7 @@ class SScribe_Settings {
 		if ( false !== $current && (bool) $current === $enabled ) {
 			return true;
 		}
-		$result = update_option( self::OPT_DEBUG_AUTO_REFRESH, $enabled, 'no' );
+		$result = update_option( self::OPT_DEBUG_AUTO_REFRESH, $enabled, false );
 		if ( ! $result ) {
 
 			return (bool) get_option( self::OPT_DEBUG_AUTO_REFRESH ) === $enabled;
@@ -159,7 +179,7 @@ class SScribe_Settings {
 	 */
 	public static function save_debug_settings( array $settings ): bool {
 		$enabled = (bool) ( $settings['debug_enabled'] ?? false );
-		$level   = (string) ( $settings['log_level'] ?? self::LEVEL_DEBUG );
+		$level   = self::sanitize_debug_log_level( $settings['log_level'] ?? self::LEVEL_DEBUG );
 		$refresh = (bool) ( $settings['auto_refresh'] ?? true );
 
 		$level_saved   = self::set_debug_log_level( $level );

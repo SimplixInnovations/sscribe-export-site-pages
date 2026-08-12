@@ -53,11 +53,32 @@ class SScribe_Logger implements SScribe_Logger_Interface {
 	protected readonly string $log_dir;
 
 	/**
-	 * Whether the log directory has been protected.
+	 * Whether file logging has a valid uploads destination.
 	 *
 	 * @var bool
 	 */
-	private static bool $log_dir_protected = false;
+	protected readonly bool $storage_available;
+
+	/**
+	 * Whether this logger writes files.
+	 *
+	 * @var bool
+	 */
+	protected readonly bool $enabled;
+
+	/**
+	 * Safe filename prefix.
+	 *
+	 * @var string
+	 */
+	protected readonly string $prefix;
+
+	/**
+	 * Protected log directories, keyed by canonical directory path.
+	 *
+	 * @var array<string, bool>
+	 */
+	private static array $protected_log_dirs = array();
 
 	/**
 	 * Log level priority mapping.
@@ -169,12 +190,16 @@ class SScribe_Logger implements SScribe_Logger_Interface {
 	 * @param bool   $enabled Whether logging is enabled.
 	 * @param string $prefix  Log file prefix.
 	 */
-	public function __construct(
-		protected readonly bool $enabled = true,
-		protected readonly string $prefix = 'sscribe'
-	) {
-		$upload_dir    = wp_upload_dir();
-		$this->log_dir = $upload_dir['basedir'] . '/' . self::LOG_DIR_NAME;
+	public function __construct( bool $enabled = true, string $prefix = 'sscribe' ) {
+		$upload_dir              = wp_upload_dir();
+		$clean_prefix            = substr( sanitize_key( $prefix ), 0, 40 );
+		$this->enabled           = $enabled;
+		$this->prefix            = '' !== $clean_prefix ? $clean_prefix : 'sscribe';
+		$candidate_dir           = empty( $upload_dir['error'] ) && ! empty( $upload_dir['basedir'] )
+			? trailingslashit( (string) $upload_dir['basedir'] ) . self::LOG_DIR_NAME
+			: '';
+		$this->storage_available = '' !== $candidate_dir && ! is_link( $candidate_dir );
+		$this->log_dir           = $this->storage_available ? $candidate_dir : '';
 
 		add_action( 'shutdown', array( $this, 'flush' ) );
 	}
@@ -192,11 +217,19 @@ class SScribe_Logger implements SScribe_Logger_Interface {
 	 * @return string Full path to log file.
 	 */
 	public function get_log_file(): string {
-		if ( ! self::$log_dir_protected ) {
-			self::$log_dir_protected = true;
-			SScribe_Security::protect_directory( $this->log_dir );
+		if ( ! $this->storage_available || is_link( $this->log_dir ) ) {
+			return '';
 		}
-		return $this->log_dir . '/' . $this->prefix . '_debug_' . gmdate( 'Y-m-d' ) . '.log';
+
+		if ( empty( self::$protected_log_dirs[ $this->log_dir ] ) ) {
+			SScribe_Security::protect_directory( $this->log_dir );
+			self::$protected_log_dirs[ $this->log_dir ] = true;
+		}
+		if ( ! is_dir( $this->log_dir ) || is_link( $this->log_dir ) ) {
+			return '';
+		}
+		$log_file = $this->log_dir . '/' . $this->prefix . '_debug_' . gmdate( 'Y-m-d' ) . '.log';
+		return is_link( $log_file ) ? '' : $log_file;
 	}
 
 	/**
@@ -229,6 +262,11 @@ class SScribe_Logger implements SScribe_Logger_Interface {
 	private function log_internal( string $level, string $message, array $data = array() ): void {
 		if ( ! $this->is_enabled() ) {
 			return;
+		}
+
+		$level = strtolower( $level );
+		if ( ! isset( self::LEVEL_PRIORITY[ $level ] ) ) {
+			$level = self::LEVEL_INFO;
 		}
 
 		$configured_level = SScribe_Settings::get_debug_log_level();
@@ -270,7 +308,8 @@ class SScribe_Logger implements SScribe_Logger_Interface {
 	 * @return string Formatted log entry.
 	 */
 	private function format_entry( string $level, string $message, array $data = array() ): string {
-		$data        = array_merge( $this->get_context_enrichment(), $data );
+		$message     = $this->sanitize_log_message( $message );
+		$data        = $this->sanitize_log_context( array_merge( $this->get_context_enrichment(), $data ) );
 		$timestamp   = gmdate( 'Y-m-d H:i:s' );
 		$level_upper = strtoupper( $level );
 		$entry       = "[{$timestamp}] [{$level_upper}] {$message}";
@@ -289,15 +328,23 @@ class SScribe_Logger implements SScribe_Logger_Interface {
 		if ( empty( $this->buffer ) || ! $this->enabled ) {
 			return;
 		}
+		if ( ! $this->storage_available ) {
+			$this->buffer = array();
+			return;
+		}
 
 		$log_file = $this->get_log_file();
+		if ( '' === $log_file ) {
+			$this->buffer = array();
+			return;
+		}
 		$content  = implode( PHP_EOL, $this->buffer ) . PHP_EOL;
 
 		$current_size = file_exists( $log_file ) ? filesize( $log_file ) : 0;
 		$content_size = strlen( $content );
 
 		if ( $current_size > 0 && ( $current_size + $content_size ) > self::MAX_LOG_FILE_SIZE ) {
-			$rotated_file = $this->log_dir . '/' . $this->prefix . '_debug_' . gmdate( 'Y-m-d_H-i-s' ) . '.log';
+			$rotated_file = $this->log_dir . '/' . $this->prefix . '_debug_' . gmdate( 'Y-m-d_H-i-s' ) . '-' . bin2hex( random_bytes( 4 ) ) . '.log';
 			$rotated      = rename( $log_file, $rotated_file ); // phpcs:ignore WordPress.WP.AlternativeFunctions.rename_rename -- Safe filesystem rename for log rotation.
 			if ( $rotated ) {
 				$warning_entry = sprintf(
@@ -316,7 +363,9 @@ class SScribe_Logger implements SScribe_Logger_Interface {
 			error_log( 'SScribe_Logger: Failed to flush log to ' . $log_file ); // phpcs:ignore WordPress.PHP.DevelopmentFunctions.error_log_error_log -- Reporting flush failure when file_put_contents fails; no better alternative in production.
 		}
 
-		chmod( $log_file, 0600 ); // phpcs:ignore WordPress.WP.AlternativeFunctions.file_system_operations_chmod -- Setting 0600 for log file security; only effective on Unix-like systems where debug logs are stored.
+		if ( false !== $result ) {
+			chmod( $log_file, 0600 ); // phpcs:ignore WordPress.WP.AlternativeFunctions.file_system_operations_chmod -- Setting 0600 for log file security; only effective on Unix-like systems where debug logs are stored.
+		}
 
 		$this->buffer = array();
 	}
@@ -328,11 +377,14 @@ class SScribe_Logger implements SScribe_Logger_Interface {
 	 * @return array Log entries from file and buffer.
 	 */
 	public function get_logs( int $limit = -1 ): array {
+		if ( ! $this->storage_available ) {
+			return $limit > 0 ? array_slice( $this->buffer, -$limit ) : $this->buffer;
+		}
 
 		$file_entries = array();
 		$log_file     = $this->get_log_file();
 
-		if ( file_exists( $log_file ) ) {
+		if ( '' !== $log_file && is_file( $log_file ) && ! is_link( $log_file ) ) {
 			if ( $limit > 0 ) {
 
 				try {
@@ -390,9 +442,12 @@ class SScribe_Logger implements SScribe_Logger_Interface {
 		$this->buffer = array();
 
 		$upload_dir = wp_upload_dir();
+		if ( ! empty( $upload_dir['error'] ) || empty( $upload_dir['basedir'] ) ) {
+			return;
+		}
 		$log_dir    = $upload_dir['basedir'] . '/' . self::LOG_DIR_NAME;
 
-		if ( ! is_dir( $log_dir ) ) {
+		if ( ! is_dir( $log_dir ) || is_link( $log_dir ) ) {
 			return;
 		}
 
@@ -414,9 +469,12 @@ class SScribe_Logger implements SScribe_Logger_Interface {
 	 */
 	public static function cleanup_old_logs( int $max_age_days = 7 ): int {
 		$upload_dir = wp_upload_dir();
+		if ( ! empty( $upload_dir['error'] ) || empty( $upload_dir['basedir'] ) ) {
+			return 0;
+		}
 		$log_dir    = $upload_dir['basedir'] . '/' . self::LOG_DIR_NAME;
 
-		if ( ! is_dir( $log_dir ) ) {
+		if ( ! is_dir( $log_dir ) || is_link( $log_dir ) ) {
 			return 0;
 		}
 

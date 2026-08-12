@@ -55,7 +55,7 @@ class SScribe_Admin_Test extends TestCase {
 		$this->assertSame( 'dashicons-media-document', $sscribe_test_menu_pages[0]['icon_url'] );
 	}
 
-	public function test_add_admin_menu_uses_filtered_capability(): void {
+	public function test_add_admin_menu_rejects_unapproved_filtered_capability(): void {
 		global $sscribe_test_menu_pages;
 
 		add_filter(
@@ -68,11 +68,11 @@ class SScribe_Admin_Test extends TestCase {
 		$admin = new SScribe_Admin();
 		$admin->add_admin_menu();
 
-		$this->assertSame( 'edit_pages', $sscribe_test_menu_pages[0]['capability'] );
+		$this->assertSame( 'sscribe_export', $sscribe_test_menu_pages[0]['capability'] );
 	}
 
 	public function test_enqueue_admin_assets_only_runs_for_plugin_pages(): void {
-		global $sscribe_test_styles, $sscribe_test_scripts, $sscribe_test_localized, $sscribe_test_options;
+		global $sscribe_test_styles, $sscribe_test_scripts, $sscribe_test_current_user_can;
 
 		$admin = new SScribe_Admin();
 		$admin->enqueue_admin_assets( 'dashboard_page_unrelated' );
@@ -80,23 +80,17 @@ class SScribe_Admin_Test extends TestCase {
 		$this->assertCount( 0, $sscribe_test_styles );
 		$this->assertCount( 0, $sscribe_test_scripts );
 
-		// Debug console assets are gated on the sscribe_debug_enabled
-		// option. When debug is OFF (the common case on a fresh install),
-		// only the base sscribe-tokens + sscribe-admin assets load — saves
-		// ~20-30 KB of JS+CSS on every export page load. The toggle in
-		// the Debug tab flips the option; the next page load picks up
-		// the debug console assets.
-		$sscribe_test_options['sscribe_debug_enabled'] = false;
+		// Export-only users do not receive the diagnostics console assets.
+		$sscribe_test_current_user_can = false;
 		$admin->enqueue_admin_assets( 'toplevel_page_sscribe-export' );
 
 		$this->assertCount( 2, $sscribe_test_styles );
 		$this->assertCount( 1, $sscribe_test_scripts );
 
-		// When debug is enabled, the debug console assets join the base
-		// two — three styles, two scripts.
-		$sscribe_test_styles  = array();
-		$sscribe_test_scripts = array();
-		$sscribe_test_options['sscribe_debug_enabled'] = true;
+		// Diagnostics users need the controls even while logging is disabled.
+		$sscribe_test_styles          = array();
+		$sscribe_test_scripts         = array();
+		$sscribe_test_current_user_can = true;
 		$admin->enqueue_admin_assets( 'toplevel_page_sscribe-export' );
 
 		$this->assertCount( 3, $sscribe_test_styles );

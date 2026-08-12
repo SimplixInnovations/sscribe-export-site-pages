@@ -18,7 +18,7 @@ parameters:
     reportUnmatchedIgnoredErrors: false
     ignoreErrors:
         - '#Function (get_post|get_posts|get_permalink|get_the_title|get_the_content|get_post_meta|get_post_type|get_post_type_object|get_post_types|get_the_author_meta|get_post_thumbnail_id|wp_get_attachment_image_src|get_attached_file|get_the_date|get_the_modified_date|get_post_ancestors|get_children|get_term|get_object_taxonomies|get_user_by|wp_count_posts|get_current_screen|wp_list_pluck|strip_shortcodes|setup_postdata|wp_reset_postdata|maybe_unserialize) not found\.#'
-        - '#Constant (PREG_OFFSET_OFFSET|ARRAY_A|OBJECT|OBJECT_K|WP_CLI|SSCRIBE_DEBUG_PUBLIC) not found\.#'
+        - '#Constant (PREG_OFFSET_OFFSET|ARRAY_A|OBJECT|OBJECT_K|WP_CLI) not found\.#'
         - '#Class (WP_Post|WP_Error|WP_User|WP_Query|WP_Filesystem_Base|WP_Roles) not found\.#'
         - '#Call to method .* on an unknown class WP_Filesystem_Base\.#'
         - '#Property .* has unknown class WP_Filesystem_Base as its type\.#'

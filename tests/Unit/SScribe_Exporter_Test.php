@@ -23,7 +23,8 @@ class SScribe_Exporter_Test extends TestCase {
 		parent::setUp();
 		$this->parser    = new SScribe_Content_Parser();
 		$this->exporter = new SScribe_Exporter( $this->parser );
-		$this->temp_dir = sys_get_temp_dir() . '/sscribe-test-exporter-' . uniqid();
+		$upload_dir     = wp_upload_dir();
+		$this->temp_dir = trailingslashit( $upload_dir['basedir'] ) . 'sscribe-exports/test-exporter-' . uniqid();
 		wp_mkdir_p( $this->temp_dir );
 	}
 
@@ -76,6 +77,31 @@ class SScribe_Exporter_Test extends TestCase {
 		}
 		$page_data = $this->get_sample_page_data();
 		$result    = $this->exporter->generate_docx( $page_data, $this->temp_dir );
+		$this->assertIsString( $result );
+		$this->assertFileExists( $result );
+		if ( file_exists( $result ) ) {
+			unlink( $result );
+		}
+	}
+
+	public function test_generate_docx_normalizes_malformed_filtered_metadata(): void {
+		if ( ! class_exists( 'ZipArchive' ) ) {
+			$this->markTestSkipped( 'ZipArchive extension not available' );
+		}
+
+		$page_data = array(
+			'id'          => array( 42 ),
+			'title'       => array( 'invalid' ),
+			'content'     => '<p>Safe content</p>',
+			'permalink'   => new \stdClass(),
+			'language'    => array( 'ar' ),
+			'seo'         => 'invalid',
+			'breadcrumbs' => array( 'invalid', array( 'title' => array( 'bad' ) ) ),
+			'children'    => array( 'invalid', array( 'title' => array(), 'url' => array() ) ),
+		);
+
+		$result = $this->exporter->generate_docx( $page_data, $this->temp_dir );
+
 		$this->assertIsString( $result );
 		$this->assertFileExists( $result );
 		if ( file_exists( $result ) ) {

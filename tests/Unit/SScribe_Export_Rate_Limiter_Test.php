@@ -16,12 +16,14 @@ class SScribe_Export_Rate_Limiter_Test extends TestCase {
 	protected function setUp(): void {
 		parent::setUp();
 		$GLOBALS['sscribe_test_transients']      = array();
+		$GLOBALS['sscribe_test_options']         = array();
 		$GLOBALS['sscribe_test_current_user_can'] = null;
 		$GLOBALS['sscribe_test_filters']          = array();
 	}
 
 	protected function tearDown(): void {
 		$GLOBALS['sscribe_test_transients']      = array();
+		$GLOBALS['sscribe_test_options']         = array();
 		$GLOBALS['sscribe_test_current_user_can'] = null;
 		$GLOBALS['sscribe_test_filters']          = array();
 		parent::tearDown();
@@ -30,6 +32,17 @@ class SScribe_Export_Rate_Limiter_Test extends TestCase {
 	public function test_check_rate_limit_returns_true_when_within_limits(): void {
 		$limiter = new \SScribe_Export_Rate_Limiter();
 		$this->assertTrue( $limiter->check_rate_limit() );
+	}
+
+	public function test_database_micro_lock_contention_fails_closed(): void {
+		$bucket_key = 'sscribe_rate_export_1';
+		$lock_key   = 'sscribe_rate_lock_' . substr( hash( 'sha256', $bucket_key ), 0, 32 );
+		$lock_value = time() . '|another-request';
+		add_option( $lock_key, $lock_value, '', false );
+
+		$limiter = new \SScribe_Export_Rate_Limiter();
+		$this->assertFalse( $limiter->check_rate_limit() );
+		$this->assertSame( $lock_value, get_option( $lock_key ) );
 	}
 
 	public function test_rate_limit_exceeded_after_max_requests(): void {
@@ -161,6 +174,12 @@ class SScribe_Export_Rate_Limiter_Test extends TestCase {
 		$_SERVER['HTTP_CF_CONNECTING_IP'] = '<script>alert(1)</script>';
 		$_SERVER['HTTP_X_FORWARDED_FOR']  = 'not-an-ip';
 		$_SERVER['REMOTE_ADDR']           = '203.0.113.5';
+		$GLOBALS['sscribe_test_filters']  = array(
+			array(
+				'hook'     => 'sscribe_trusted_ip_headers',
+				'callback' => static fn(): array => array( 'CF-Connecting-IP', 'X-Forwarded-For' ),
+			),
+		);
 
 		try {
 			$ip = $method( $limiter );
@@ -209,6 +228,12 @@ class SScribe_Export_Rate_Limiter_Test extends TestCase {
 		$_SERVER['HTTP_CF_CONNECTING_IP'] = '2001:db8::1';
 		$_SERVER['HTTP_X_FORWARDED_FOR']  = '2001:db8::dead:beef';
 		$_SERVER['REMOTE_ADDR']           = '127.0.0.1';
+		$GLOBALS['sscribe_test_filters']  = array(
+			array(
+				'hook'     => 'sscribe_trusted_ip_headers',
+				'callback' => static fn(): array => array( 'CF-Connecting-IP', 'X-Forwarded-For' ),
+			),
+		);
 
 		try {
 			$ip = $method( $limiter );

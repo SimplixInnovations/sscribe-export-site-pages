@@ -29,6 +29,65 @@ class SScribe_Markdown_Exporter_Tables_Test extends TestCase {
 	}
 
 	/**
+	 * Invoke the complete private HTML-to-Markdown pipeline.
+	 */
+	private function call_html_to_markdown( string $html ): string {
+		$method = \Closure::bind(
+			function ( string $document ) {
+				$exporter = new \SScribe_Markdown_Exporter();
+				return $exporter->html_to_markdown( $document ); // phpcs:ignore WordPress.NamingConventions.ValidVariableName.PrivateMethodFound
+			},
+			null,
+			\SScribe_Markdown_Exporter::class
+		);
+
+		return $method( $html );
+	}
+
+	public function test_list_conversion_preserves_surrounding_text_nodes(): void {
+		$out = $this->call_html_to_markdown( 'Before<ul><li>One</li><li>Two</li></ul>After' );
+
+		$this->assertStringContainsString( 'Before', $out );
+		$this->assertStringContainsString( '- One', $out );
+		$this->assertStringContainsString( '- Two', $out );
+		$this->assertStringContainsString( 'After', $out );
+	}
+
+	public function test_list_conversion_handles_nested_container_and_sublist(): void {
+		$html = '<div><p>Intro</p><ul><li>Parent<ul><li>Child</li></ul></li></ul><p>Outro</p></div>';
+		$out  = $this->call_html_to_markdown( $html );
+
+		$this->assertStringContainsString( 'Intro', $out );
+		$this->assertMatchesRegularExpression( '/^- Parent$/m', $out );
+		$this->assertMatchesRegularExpression( '/^  - Child$/m', $out );
+		$this->assertStringContainsString( 'Outro', $out );
+	}
+
+	public function test_code_fence_expands_when_content_contains_backticks(): void {
+		$out = $this->call_html_to_markdown( '<pre><code>before ``` after</code></pre>' );
+
+		$this->assertStringContainsString( "````\nbefore ``` after\n````", $out );
+	}
+
+	public function test_unsafe_urls_and_data_images_are_removed(): void {
+		$out = $this->call_html_to_markdown(
+			'<a href="javascript:alert(1)">Unsafe</a><img src="data:image/png;base64,AAAA" alt="Embedded">'
+		);
+
+		$this->assertStringContainsString( '[Unsafe](#)', $out );
+		$this->assertStringNotContainsString( 'data:image', $out );
+		$this->assertStringNotContainsString( 'Embedded', $out );
+	}
+
+	public function test_details_are_converted_to_plain_markdown(): void {
+		$out = $this->call_html_to_markdown( '<details open><summary>More</summary><p>Body</p></details>' );
+
+		$this->assertStringContainsString( '**More**', $out );
+		$this->assertStringContainsString( 'Body', $out );
+		$this->assertStringNotContainsString( '<details', $out );
+	}
+
+	/**
 	 * Regression: tables with no merged cells must convert to a normal
 	 * GFM table (separator row, aligned columns).
 	 */

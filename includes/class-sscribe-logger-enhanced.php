@@ -131,6 +131,7 @@ class SScribe_Logger_Enhanced extends SScribe_Logger {
 		if ( ! $this->should_log( $level ) ) {
 			return;
 		}
+		$context = $this->sanitize_log_context( $context );
 
 		$entry = $this->format_entry( $level, $message, $context );
 
@@ -156,43 +157,7 @@ class SScribe_Logger_Enhanced extends SScribe_Logger {
 	 * pre-refactor behavior.
 	 */
 	public function flush(): void {
-		if ( empty( $this->buffer ) ) {
-			return;
-		}
-
-		if ( ! is_dir( $this->log_dir ) ) {
-			$result = wp_mkdir_p( $this->log_dir );
-			if ( $result ) {
-				SScribe_Security::protect_directory( $this->log_dir );
-			}
-		}
-
-		$log_file = $this->get_log_file();
-		$content  = implode( PHP_EOL, $this->buffer ) . PHP_EOL;
-
-		if ( file_exists( $log_file ) && filesize( $log_file ) > self::MAX_LOG_FILE_SIZE ) {
-			$rotated_file = $this->log_dir . '/' . $this->prefix . '_' . gmdate( 'Y-m-d_H-i-s' ) . '.log';
-			$rotated      = rename( $log_file, $rotated_file ); // phpcs:ignore WordPress.WP.AlternativeFunctions.rename_rename
-			if ( $rotated ) {
-				$warning_entry = sprintf(
-					"[%s] [WARNING] Log file exceeded %s bytes : rotated to %s\n",
-					gmdate( 'Y-m-d H:i:s' ),
-					size_format( self::MAX_LOG_FILE_SIZE ),
-					basename( $rotated_file )
-				);
-				file_put_contents( $log_file, $warning_entry, LOCK_EX );
-			}
-		}
-
-		$result = file_put_contents( $log_file, $content, FILE_APPEND | LOCK_EX );
-
-		if ( false === $result ) {
-			error_log( // phpcs:ignore WordPress.PHP.DevelopmentFunctions.error_log_error_log
-				'SScribe_Logger_Enhanced: flush() failed to write to ' . $log_file
-			);
-		}
-
-		$this->buffer = array();
+		parent::flush();
 	}
 
 	/**
@@ -218,6 +183,7 @@ class SScribe_Logger_Enhanced extends SScribe_Logger {
 	 */
 	private function format_entry( string $level, string $message, array $context ): array {
 		$timestamp = gmdate( 'Y-m-d H:i:s' );
+		$message   = $this->sanitize_log_message( $message );
 		$context   = $this->sanitize_context(
 			array_merge( $this->get_context_enrichment(), $context )
 		);
@@ -248,22 +214,7 @@ class SScribe_Logger_Enhanced extends SScribe_Logger {
 	 * @return array Sanitized context.
 	 */
 	private function sanitize_context( array $context ): array {
-		$forbidden = array( 'password', 'token', 'secret', 'auth', 'credential', 'private_key' );
-
-		$sanitized = array();
-		foreach ( $context as $key => $value ) {
-			$sanitized_key = sanitize_key( (string) $key );
-
-			if ( in_array( $sanitized_key, $forbidden, true ) ) {
-				$sanitized[ $sanitized_key ] = '[REDACTED]';
-			} elseif ( is_array( $value ) ) {
-				$sanitized[ $sanitized_key ] = $this->sanitize_context( $value );
-			} else {
-				$sanitized[ $sanitized_key ] = $value;
-			}
-		}
-
-		return $sanitized;
+		return $this->sanitize_log_context( $context );
 	}
 
 	/**
@@ -275,7 +226,7 @@ class SScribe_Logger_Enhanced extends SScribe_Logger {
 		global $wpdb;
 
 		if ( ! $this->table_exists() ) {
-			$this->create_log_table();
+			return;
 		}
 
 		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
@@ -332,37 +283,6 @@ class SScribe_Logger_Enhanced extends SScribe_Logger {
 	}
 
 	/**
-	 * Create log table if not exists.
-	 */
-	private function create_log_table(): void {
-		global $wpdb;
-
-		$charset_collate = $wpdb->get_charset_collate();
-
-		$sql = "CREATE TABLE IF NOT EXISTS {$this->table_name} (
-			id bigint(20) NOT NULL AUTO_INCREMENT,
-			timestamp datetime NOT NULL,
-			level varchar(20) NOT NULL,
-			message text NOT NULL,
-			context longtext,
-			session_id varchar(60) DEFAULT NULL,
-			request_id varchar(12) DEFAULT NULL,
-			user_id bigint(20) DEFAULT NULL,
-			PRIMARY KEY (id),
-			KEY timestamp (timestamp),
-			KEY level (level)
-		) $charset_collate;";
-
-		$upgrade_functions = ABSPATH . 'wp-admin/includes/upgrade.php';
-		if ( file_exists( $upgrade_functions ) ) {
-			require_once $upgrade_functions;
-		}
-		dbDelta( $sql );
-
-		$this->table_exists_cache = true;
-	}
-
-	/**
 	 * Get log file path.
 	 *
 	 * Returns the same path the base class computes; declared here
@@ -416,24 +336,7 @@ class SScribe_Logger_Enhanced extends SScribe_Logger {
 	 * @return array Log entries.
 	 */
 	private function get_file_logs( int $limit = 100 ): array {
-		$log_file = $this->get_log_file();
-
-		if ( ! file_exists( $log_file ) ) {
-			return array();
-		}
-
-		$content = file_get_contents( $log_file ); // phpcs:ignore WordPress.WP.AlternativeFunctions.file_get_contents_file_get_contents
-		if ( ! $content ) {
-			return array();
-		}
-
-		$lines = array_filter( explode( "\n", str_replace( "\r\n", "\n", trim( $content ) ) ), fn( $line ) => '' !== trim( $line ) );
-
-		if ( $limit > 0 && count( $lines ) > $limit ) {
-			$lines = array_slice( $lines, -$limit );
-		}
-
-		return $lines;
+		return parent::get_logs( $limit );
 	}
 
 	/**
@@ -447,15 +350,8 @@ class SScribe_Logger_Enhanced extends SScribe_Logger {
 			$wpdb->query( 'DELETE FROM ' . esc_sql( $this->table_name ) );
 		}
 
-		if ( $this->enable_file ) {
-			$files = glob( $this->log_dir . '/' . $this->prefix . '_debug_*.log' );
-			if ( is_array( $files ) ) {
-				foreach ( $files as $file ) {
-					if ( file_exists( $file ) ) {
-						wp_delete_file( $file );
-					}
-				}
-			}
+		if ( $this->enable_file && $this->storage_available ) {
+			parent::clear_logs();
 		}
 	}
 
@@ -471,6 +367,7 @@ class SScribe_Logger_Enhanced extends SScribe_Logger {
 	 */
 	public function get_db_logs( array $filters = array(), int $limit = 100 ): array {
 		global $wpdb;
+		$limit = max( 1, min( 1000, $limit ) );
 
 		if ( ! $this->table_exists() ) {
 			return array();

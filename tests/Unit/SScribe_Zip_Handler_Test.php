@@ -68,9 +68,7 @@ class SScribe_Zip_Handler_Test extends TestCase {
 
 	public function test_delete_directory_removes_all(): void {
 
-		$base_dir = $this->handler->get_export_dir();
-		$test_dir = $base_dir . '/test-subdir-' . uniqid();
-		wp_mkdir_p( $test_dir );
+		$test_dir = $this->handler->create_temp_dir();
 		file_put_contents( $test_dir . '/test.txt', 'content' );
 
 		$this->assertDirectoryExists( $test_dir );
@@ -118,6 +116,39 @@ class SScribe_Zip_Handler_Test extends TestCase {
 		if ( file_exists( $result ) ) {
 			unlink( $result );
 		}
+	}
+
+	public function test_create_zip_normalizes_long_non_ascii_archive_name(): void {
+		if ( ! class_exists( 'ZipArchive' ) ) {
+			$this->markTestSkipped( 'ZipArchive extension not available' );
+		}
+
+		$source_dir = $this->handler->create_temp_dir();
+		wp_mkdir_p( $source_dir . '/EN' );
+		file_put_contents( $source_dir . '/EN/P001-Test.docx', 'dummy content' );
+
+		$zip_path = $this->handler->create_zip( $source_dir, str_repeat( 'موقع طويل ', 80 ), array( 'docx' ) );
+
+		$this->assertIsString( $zip_path );
+		$this->assertMatchesRegularExpression( '/^[A-Za-z0-9][A-Za-z0-9._-]{0,199}\.zip$/D', basename( $zip_path ) );
+		$this->assertLessThanOrEqual( 204, strlen( basename( $zip_path ) ) );
+		wp_delete_file( $zip_path );
+	}
+
+	public function test_delete_export_rechecks_owner_and_updates_index(): void {
+		$export_dir = $this->handler->get_export_dir();
+		$filename   = 'sscribe-delete-test-' . uniqid() . '.zip';
+		$file_path  = $export_dir . '/' . $filename;
+		file_put_contents( $file_path, 'zip-fixture' );
+		update_option( 'sscribe_export_row_' . md5( $filename ), array( 'user_id' => 7 ), false );
+		update_option( 'sscribe_export_index', array( $filename ), false );
+
+		$this->assertFalse( $this->handler->delete_export( $filename, 8 ) );
+		$this->assertFileExists( $file_path );
+		$this->assertTrue( $this->handler->delete_export( $filename, 7 ) );
+		$this->assertFileDoesNotExist( $file_path );
+		$this->assertNull( $this->handler->get_export_entry( $filename ) );
+		$this->assertNotContains( $filename, get_option( 'sscribe_export_index', array() ) );
 	}
 
 	public function test_create_zip_cleans_up_source(): void {

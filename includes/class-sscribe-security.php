@@ -22,14 +22,16 @@ class SScribe_Security {
 	 * Protect a directory with .htaccess and index.php files.
 	 *
 	 * @param string $dir Directory path to protect.
+	 * @throws \InvalidArgumentException|\RuntimeException When validation or directory creation fails.
 	 */
 	public static function protect_directory( string $dir ): void {
+		self::validate_path_scope( $dir );
 
 		if ( ! is_dir( $dir ) ) {
-			wp_mkdir_p( $dir );
+			if ( ! wp_mkdir_p( $dir ) ) {
+				throw new \RuntimeException( 'Unable to create the protected SScribe directory.' );
+			}
 		}
-
-		self::validate_path_scope( $dir );
 
 		$htaccess_path = $dir . '/.htaccess';
 		$content       = "Options -Indexes\n";
@@ -81,11 +83,9 @@ class SScribe_Security {
 			$path = $dir . '/' . $file;
 
 			if ( is_link( $path ) ) {
-
-				$target = readlink( $path );
-				if ( false !== $target && self::is_path_in_scope( $target ) ) {
-					wp_delete_file( $path );
-				}
+				// Unlink the directory entry itself. Resolving the target first
+				// could delete a file outside the plugin-owned tree.
+				wp_delete_file( $path );
 			} elseif ( is_dir( $path ) ) {
 
 				self::delete_directory( $path, $max_depth, $depth + 1 );

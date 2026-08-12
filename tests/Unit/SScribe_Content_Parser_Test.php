@@ -69,6 +69,16 @@ class SScribe_Content_Parser_Test extends TestCase
         $this->assertSame('blockquote', $result[0]['type']);
     }
 
+    public function test_parse_button_preserves_position_and_url(): void
+    {
+        $html = '<p>Before</p><div class="wp-block-button"><a class="wp-block-button__link" href="https://example.com/start">Start now</a></div><p>After</p>';
+        $result = $this->parser->parse($html);
+
+        $this->assertSame(array('paragraph', 'button', 'paragraph'), array_column($result, 'type'));
+        $this->assertSame('Start now', $result[1]['content']);
+        $this->assertSame('https://example.com/start', $result[1]['url']);
+    }
+
 public function test_url_to_local_path_rejects_sibling_upload_directories(): void
     {
         $uploadDir = wp_upload_dir();

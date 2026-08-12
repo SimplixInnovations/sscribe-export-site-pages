@@ -61,25 +61,20 @@ class SScribe_Export_All_Formats_Wrapper {
 			$formats = array_keys( SScribe_Export_Format::get_supported_formats() );
 		}
 
-		$formats = array_values( array_unique( array_map( 'strval', $formats ) ) );
+		$normalized_formats = array();
+		foreach ( array_slice( $formats, 0, 10 ) as $format ) {
+			if ( is_scalar( $format ) ) {
+				$normalized_formats[] = strtolower( sanitize_key( (string) $format ) );
+			}
+		}
+		$formats = array_values( array_unique( array_filter( $normalized_formats ) ) );
 
 		$results = array();
 
 		if ( '' === $output_dir || ! is_dir( $output_dir ) || ! wp_is_writable( $output_dir ) ) {
-			$reason = '' === $output_dir
-				? 'output directory path is empty'
-				: (
-					! is_dir( $output_dir )
-						? sprintf( 'output directory does not exist: %s', $output_dir )
-						: sprintf( 'output directory is not writable: %s', $output_dir )
-				);
-
 			$shared_failure = SScribe_Result::failure(
-				sprintf( 'Cannot export to any format : %s.', $reason ),
-				array(
-					'error_category' => 'output_dir_unavailable',
-					'output_dir'     => $output_dir,
-				)
+				__( 'Cannot export because the output directory is unavailable.', 'sscribe-export-site-pages' ),
+				array( 'error_category' => 'output_dir_unavailable' )
 			);
 
 			foreach ( $formats as $format ) {
@@ -128,9 +123,10 @@ class SScribe_Export_All_Formats_Wrapper {
 				// production export, so it does not need that step.
 				if ( ! empty( $format_options ) ) {
 					// phpcs:ignore WordPress.NamingConventions.PrefixAllGlobals.NonPrefixedHooknameFound -- Per-format dynamic hook, mirrors SScribe_Batch_Processor.
-					$format_options_for_format = apply_filters( "sscribe_export_options_{$format}", $format_options, (int) ( $page_data['id'] ?? 0 ), 'wrapper' );
+					$page_id                   = isset( $page_data['id'] ) && is_numeric( $page_data['id'] ) ? absint( $page_data['id'] ) : 0;
+					$format_options_for_format = apply_filters( "sscribe_export_options_{$format}", $format_options, $page_id, 'wrapper' );
 					if ( method_exists( $exporter, 'apply_format_options' ) ) {
-						$exporter->apply_format_options( $format_options_for_format );
+						$exporter->apply_format_options( is_array( $format_options_for_format ) ? $format_options_for_format : array() );
 					}
 				}
 
@@ -149,8 +145,8 @@ class SScribe_Export_All_Formats_Wrapper {
 					);
 				}
 				$result = SScribe_Result::failure(
-					$e->getMessage(),
-					array( 'exception' => get_class( $e ) )
+					__( 'The requested format could not be generated.', 'sscribe-export-site-pages' ),
+					array( 'error_category' => 'format_generation' )
 				);
 			}
 
