@@ -75,7 +75,7 @@ if ( 0 === $test_exit ) {
 				$gates_passed = false;
 			}
 		} else {
-			echo "{$warn_mark} (could not parse output — manual check recommended)\n";
+			echo "{$warn_mark} (could not parse output - manual check recommended)\n";
 			$results['phpunit'] = true;
 		}
 	}
@@ -174,9 +174,9 @@ if ( 0 !== $bump_exit ) {
 echo "\n{$info_mark} Ready to add changelog entry?\n\n";
 echo "  Changelog section: == Changelog == in readme.txt\n";
 echo "  Upgrade notice section: == Upgrade Notice == in readme.txt\n\n";
-echo "  [y] Yes — I'll update readme.txt now\n";
-echo "  [n] No  — I'll do it manually\n";
-echo "  [s] Skip — no changelog needed\n\n";
+echo "  [y] Yes - I'll update readme.txt now\n";
+echo "  [n] No  - I'll do it manually\n";
+echo "  [s] Skip - no changelog needed\n\n";
 echo "Choice: ";
 
 $changelog_choice = strtolower( trim( (string) fgets( STDIN ) ) );

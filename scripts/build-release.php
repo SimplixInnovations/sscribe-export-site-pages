@@ -66,7 +66,7 @@ $config = array(
 		// The .audit/ directory holds v3 verification screenshots; root-level
 		// .export-*.png and tab-export-*.{jpg,jpeg} are full-page captures
 		// produced during UI polish passes. None of this belongs in the
-		// production ZIP — WordPress.org reviewers will see the files and flag
+		// production ZIP - WordPress.org reviewers will see the files and flag
 		// them as junk.
 		'.audit', 'export-full.png', 'export-debug.png', 'export-history.png',
 		'export-main.png', 'export-support.png', 'export-v3-final.png',
@@ -75,14 +75,14 @@ $config = array(
 		'.export-main.png', '.export-support.png', '.export-v3-final.png',
 
 		// PHPStan + Intelephense stubs (WordPress function signatures for static
-		// analysis). Not part of the production plugin — the real WordPress
+		// analysis). Not part of the production plugin - the real WordPress
 		// runtime provides these functions.
 		'stubs', '.stubs',
 	),
 
 	'font_excludes'    => array(
 
-		// Sun-ExtA / Sun-ExtB — mPDF's auto-selected fonts for CJK and
+		// Sun-ExtA / Sun-ExtB - mPDF's auto-selected fonts for CJK and
 		// SIP characters (LanguageToFont::getLanguageOptions maps Chinese
 		// / Korean / Japanese to 'sun-exta'). The PDF exporter remaps
 		// these fontdata entries to DejaVuSans so the export does not
@@ -99,7 +99,7 @@ $config = array(
 
 		'Garuda.ttf', 'Garuda-Bold.ttf', 'Garuda-Oblique.ttf', 'Garuda-BoldOblique.ttf',
 
-		// XB Riyaz Arabic — only the Regular face is wired into mPDF's fontdata
+		// XB Riyaz Arabic - only the Regular face is wired into mPDF's fontdata
 		// (see class-sscribe-pdf-exporter.php::build_mpdf_config). The Bold,
 		// Italic, and BoldItalic variants are present in the mPDF ttfonts dir
 		// but never registered, so mPDF would synthetic-bold the Regular face
@@ -108,7 +108,7 @@ $config = array(
 
 		'Dhyana-Regular.ttf', 'Dhyana-Bold.ttf',
 
-		// XB Riyaz Regular — the whole family is now superseded by Amiri
+		// XB Riyaz Regular - the whole family is now superseded by Amiri
 		// (shipped in assets/fonts/amiri/, wired into build_mpdf_config as
 		// 'amiri' in fontdata). mPDF's default fontdata still references
 		// the Regular face, but the PDF exporter's fonttrans map rewrites
@@ -116,24 +116,24 @@ $config = array(
 		// RTL pages, so the file is never actually opened.
 		'XB Riyaz.ttf',
 
-		// Lateef (Arabic) — superseded by Amiri. fonttrans rewrites every
+		// Lateef (Arabic) - superseded by Amiri. fonttrans rewrites every
 		// "lateef" lookup to the active RTL font.
 		'LateefRegOT.ttf', 'Lateef font OFL.txt',
 
-		// Uthman (Arabic calligraphic) — never referenced in the production
+		// Uthman (Arabic calligraphic) - never referenced in the production
 		// PDF exporter config. fonttrans rewrites it to the active RTL font
 		// for RTL pages; for LTR pages it's never selected.
 		'Uthman.otf',
 
-		// OCR-B — only useful for OCR rasterization, which the exporter
+		// OCR-B - only useful for OCR rasterization, which the exporter
 		// never does. Not referenced by the PDF exporter's fontdata.
 		'ocrb10.ttf', 'ocrbinfo.txt',
 
-		// DejaVu Condensed — the Regular/Bold/Italic/BoldItalic faces of
+		// DejaVu Condensed - the Regular/Bold/Italic/BoldItalic faces of
 		// DejaVu Sans/Serif are still kept (the LTR Latin baseline). The
 		// Condensed variants are referenced by mPDF's default fontdata
 		// entries (dejavusanscondensed, dejavuserifcondensed) and sit at
-		// the head of the sans_fonts / serif_fonts chain — the chain mPDF
+		// the head of the sans_fonts / serif_fonts chain - the chain mPDF
 		// walks when CSS specifies `font-family: serif` or any name that
 		// resolves through the generic families. The PDF exporter remaps
 		// those fontdata entries to the non-condensed DejaVu faces (see
@@ -144,12 +144,12 @@ $config = array(
 		'DejaVuSerifCondensed.ttf', 'DejaVuSerifCondensed-Bold.ttf',
 		'DejaVuSerifCondensed-Italic.ttf', 'DejaVuSerifCondensed-BoldItalic.ttf',
 
-		// FreeSans + FreeMono — the LTR baseline is FreeSerif (wired into
+		// FreeSans + FreeMono - the LTR baseline is FreeSerif (wired into
 		// mPDF config as 'default_font' for LTR and as the fallback in the
 		// RTL fonttrans). FreeSans and FreeMono ARE referenced by mPDF's
 		// default fontdata entries (freesans, freemono) and would be
 		// auto-selected when CSS specifies `font-family: sans-serif` or
-		// `font-family: monospace` — the PDF exporter remaps those
+		// `font-family: monospace` - the PDF exporter remaps those
 		// fontdata entries to the shipped DejaVu Sans / DejaVu SansMono
 		// faces (see build_mpdf_config). GNUFreeFontinfo.txt is the shared
 		// license for all three families; drop it once both siblings are
@@ -170,7 +170,7 @@ $config = array(
 	// included for potential future use of its PDF-import feature but
 	// no production code path constructs an Fpdi instance today. Drop
 	// the 5 FPDF-extending classes so the autoloader hits the
-	// missing-class branch instead of the missing-parent branch — and
+	// missing-class branch instead of the missing-parent branch - and
 	// any future plugin/theme that does `new \setasign\Fpdi\Fpdi()`
 	// gets a clean "Class not found" instead of a confusing
 	// "Class FPDF not found" that misleads operators into thinking
@@ -182,7 +182,7 @@ $config = array(
 		'vendor-prefixed/setasign/fpdi/src/FpdiProtection.php',
 		'vendor-prefixed/setasign/fpdi/src/PdfParser/FpdiPdfParser.php',
 		'vendor-prefixed/setasign/fpdi/src/PdfReader/FpdiPdfReader.php',
-		// TcpdfFpdi / Tfpdf adapters — same parent dependency issue and
+		// TcpdfFpdi / Tfpdf adapters - same parent dependency issue and
 		// not used by any production code path.
 		'vendor-prefixed/setasign/fpdi/src/TcpdfFpdi.php',
 		'vendor-prefixed/setasign/fpdi/src/Tfpdf',
@@ -653,14 +653,14 @@ if ( is_dir( $vendor_dir ) ) {
 		 * by the runtime PDFs we generate. */
 		'local-tests',
 		/* setasign/fpdi: scratch experiments checked into the repo next to
-		 * `src/` — not part of the library, not autoloaded. */
+		 * `src/` - not part of the library, not autoloaded. */
 		'scratches',
 		/* myclabs/deep-copy: generated doc/ images and graph PNGs that
 		 * sit next to `src/`; not autoloaded, only used by the package's
 		 * own README on GitHub. */
 		'doc',
 		/* myclabs/deep-copy: PHP test fixtures that deep-copy exercises
-		 * under tests/ — never autoloaded by the runtime. */
+		 * under tests/ - never autoloaded by the runtime. */
 		'fixtures',
 	);
 
