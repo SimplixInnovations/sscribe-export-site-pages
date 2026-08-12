@@ -251,7 +251,7 @@ foreach ($all_files as $file) {
 		// In rescan mode, filter out matches that already equal $new_version
 		// (they're canonical and correct) AND matches whose major version
 		// differs (those are IP addresses, PHPUnit versions, etc., not
-		// SScribe version references — same logic verify-version-sync.php
+		// SScribe version references - same logic verify-version-sync.php
 		// uses). In transition mode, all matches are strays of $old_version
 		// (which has the same major as $new_version), so they all qualify.
 		if ($rescan_only) {
@@ -355,7 +355,7 @@ echo "════════════════════════�
 if ($rescan_only) {
 	echo "✓ Rescan complete at version {$new_version}\n";
 	if (! empty($stray_found)) {
-		echo "✗ Stray references found — manual review needed above.\n";
+		echo "✗ Stray references found - manual review needed above.\n";
 		exit(1);
 	}
 	echo "✓ No stray references found.\n";

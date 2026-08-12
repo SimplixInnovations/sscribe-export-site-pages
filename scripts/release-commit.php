@@ -41,7 +41,7 @@ exec( sprintf( 'git commit -m "%s"', $commit_msg ), $commit_output, $commit_exit
 if ( 0 !== $commit_exit ) {
 
 	if ( ! empty( $commit_output ) && str_contains( implode( "\n", $commit_output ), 'nothing to commit' ) ) {
-		echo "Nothing to commit — version already bumped?\n";
+		echo "Nothing to commit - version already bumped?\n";
 	} else {
 		echo "Error: git commit failed.\n";
 		exit( 1 );
@@ -66,7 +66,7 @@ if ( 0 !== $co_exit ) {
 
 exec( 'git merge develop -m "Merge develop: release v' . $new_version . '"', $merge_output, $merge_exit );
 if ( 0 !== $merge_exit ) {
-	echo "Error: git merge develop failed — resolve conflicts manually.\n";
+	echo "Error: git merge develop failed - resolve conflicts manually.\n";
 	
 	exec( 'git merge --abort 2>NUL', $abort_output, $abort_exit );
 	exec( 'git checkout develop', $co_back_output, $co_back_exit );

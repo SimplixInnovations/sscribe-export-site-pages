@@ -27,12 +27,12 @@ declare( strict_types=1 );
 
 namespace SScribe\Tests\Unit;
 
+use PHPUnit\Framework\Attributes\PreserveGlobalState;
+use PHPUnit\Framework\Attributes\RunTestsInSeparateProcesses;
 use PHPUnit\Framework\TestCase;
 
-/**
- * @runTestsInSeparateProcesses
- * @preserveGlobalState disabled
- */
+#[RunTestsInSeparateProcesses]
+#[PreserveGlobalState( false )]
 final class SScribe_Shutdown_Handoff_Test extends TestCase {
 
 	/**
@@ -41,22 +41,17 @@ final class SScribe_Shutdown_Handoff_Test extends TestCase {
 	 * @return \ReflectionProperty
 	 */
 	private static function cleanup_temp_dir_property(): \ReflectionProperty {
-		$property = new \ReflectionProperty( \SScribe_Batch_Processor::class, 'cleanup_temp_dir' );
-		$property->setAccessible( true );
-		return $property;
+		return new \ReflectionProperty( \SScribe_Batch_Processor::class, 'cleanup_temp_dir' );
 	}
 
 	protected function setUp(): void {
 		parent::setUp();
 		// Reset static cleanup state between tests.
 		$property = self::cleanup_temp_dir_property();
-		$property->setAccessible( true );
 		$property->setValue( null, null );
 		$property = new \ReflectionProperty( \SScribe_Batch_Processor::class, 'cleanup_zip_handler' );
-		$property->setAccessible( true );
 		$property->setValue( null, null );
 		$property = new \ReflectionProperty( \SScribe_Batch_Processor::class, 'cleanup_logger' );
-		$property->setAccessible( true );
 		$property->setValue( null, null );
 	}
 
@@ -111,11 +106,8 @@ final class SScribe_Shutdown_Handoff_Test extends TestCase {
 		// on the same PHP-FPM worker (the classic "second start_export
 		// silently reaped the first one's workspace" bug).
 		$temp_dir_prop = new \ReflectionProperty( \SScribe_Batch_Processor::class, 'cleanup_temp_dir' );
-		$temp_dir_prop->setAccessible( true );
-		$handler_prop = new \ReflectionProperty( \SScribe_Batch_Processor::class, 'cleanup_zip_handler' );
-		$handler_prop->setAccessible( true );
-		$logger_prop = new \ReflectionProperty( \SScribe_Batch_Processor::class, 'cleanup_logger' );
-		$logger_prop->setAccessible( true );
+		$handler_prop  = new \ReflectionProperty( \SScribe_Batch_Processor::class, 'cleanup_zip_handler' );
+		$logger_prop   = new \ReflectionProperty( \SScribe_Batch_Processor::class, 'cleanup_logger' );
 
 		// Set state to mimic a mid-start fatal.
 		$temp_dir = sys_get_temp_dir() . '/sscribe-test-leak-' . wp_generate_password( 8, false, false );

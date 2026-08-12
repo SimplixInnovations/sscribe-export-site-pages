@@ -114,7 +114,7 @@ if ( false !== $entries && is_array( $entries ) ) {
 		}
 	}
 } else {
-	fwrite( STDOUT, "[fix-prefixed-safe] mpdf data dir {$canonical_mpdf_dir} not found — likely handled by Strauss.\n" );
+	fwrite( STDOUT, "[fix-prefixed-safe] mpdf data dir {$canonical_mpdf_dir} not found - likely handled by Strauss.\n" );
 }
 // phpcs:ignore WordPress.WP.AlternativeFunctions.file_system_operations_fwrite -- Standalone CLI maintenance script.
 

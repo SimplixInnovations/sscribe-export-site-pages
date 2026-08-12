@@ -45,17 +45,17 @@ function sscribe_check_ai_artifacts_main(): int {
 	// Each pattern is either a literal string (case-insensitive substring)
 	// or a regex (when prefixed with 'regex:').
 	$patterns = array(
-		// Em-dash and en-dash — the classic LLM tell.
+		// Em-dash and en-dash - the classic LLM tell.
 		'EM_DASH'         => "\xE2\x80\x94",  // U+2014
 		'EN_DASH'         => "\xE2\x80\x93",  // U+2013
-		// Curly quotes — sometimes used by AI, rare in code.
+		// Curly quotes - sometimes used by AI, rare in code.
 		'CURLY_QUOTE_LEFT'  => "\xE2\x80\x98", // U+2018
 		'CURLY_QUOTE_RIGHT' => "\xE2\x80\x99", // U+2019
 		'CURLY_DQUOTE_LEFT' => "\xE2\x80\x9C", // U+201C
 		'CURLY_DQUOTE_RIGHT'=> "\xE2\x80\x9D", // U+201D
-		// Horizontal ellipsis char (three dots) — should be '...' in code.
+		// Horizontal ellipsis char (three dots) - should be '...' in code.
 		'ELLIPSIS_CHAR'   => "\xE2\x80\xA6",  // U+2026
-		// Zero-width space and friends — invisible AI/encoding artifacts.
+		// Zero-width space and friends - invisible AI/encoding artifacts.
 		'ZWSP'            => "\xE2\x80\x8B",  // U+200B
 		'ZWNJ'            => "\xE2\x80\x8C",  // U+200C
 		'ZWJ'             => "\xE2\x80\x8D",  // U+200D
