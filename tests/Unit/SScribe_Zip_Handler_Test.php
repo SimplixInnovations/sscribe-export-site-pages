@@ -404,7 +404,7 @@ class SScribe_Zip_Handler_Test extends TestCase {
 			'Replay of an already-consumed token must fail (single-use invariant).'
 		);
 
-		// The stored token must have moved on — capture from option.
+		// The stored token must have moved on; capture it from the option.
 		$row_after = get_option( 'sscribe_export_row_' . md5( $filename ), array() );
 		$this->assertNotSame(
 			$token,
@@ -453,7 +453,7 @@ class SScribe_Zip_Handler_Test extends TestCase {
 			'Token issued for a different row must be rejected.'
 		);
 
-		// The row token must not have rotated — empty/wrong calls leave the real token intact.
+		// The row token must not have rotated: empty/wrong calls leave the real token intact.
 		$row_after = get_option( 'sscribe_export_row_' . md5( $filename ), array() );
 		$this->assertSame(
 			$real_token,

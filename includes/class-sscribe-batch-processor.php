@@ -1451,9 +1451,9 @@ final class SScribe_Batch_Processor {
 	 *
 	 * If PHP dies (fatal, OOM, max_execution_time) between setting the state
 	 * and clearing it on success, this handler still finds the workspace on
-	 * disk and reclaims it. The race we previously saw — start_export
+	 * disk and reclaims it. The race we previously saw (start_export
 	 * returning a successful response, then shutdown wiping the workspace
-	 * the JS client was about to use for step 2 — is impossible now because
+	 * the JS client was about to use for step 2) is impossible now because
 	 * the static is nulled in the same function that sends the response.
 	 */
 	public static function shutdown_cleanup(): void {
