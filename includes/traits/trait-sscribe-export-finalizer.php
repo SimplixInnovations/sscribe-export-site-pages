@@ -42,12 +42,21 @@ trait SScribe_Export_Finalizer {
 	 */
 	public function ajax_finalize_export(): void {
 		if ( ! check_ajax_referer( 'sscribe_export_nonce', 'nonce', false ) ) {
-			SScribe_AJAX_Guard::error( array( 'message' => __( 'Security check failed.', 'sscribe-export-site-pages' ) ), 403 );
+			SScribe_AJAX_Guard::error(
+				array(
+					'code'    => 'invalid_nonce',
+					'message' => __( 'Security check failed.', 'sscribe-export-site-pages' ),
+				),
+				403
+			);
 		}
 
 		if ( ! current_user_can( $this->get_required_capability() ) ) {
 			SScribe_AJAX_Guard::error(
-				array( 'message' => __( 'Permission denied.', 'sscribe-export-site-pages' ) ),
+				array(
+					'code'    => 'permission_denied',
+					'message' => __( 'Permission denied.', 'sscribe-export-site-pages' ),
+				),
 				403
 			);
 		}
@@ -56,6 +65,7 @@ trait SScribe_Export_Finalizer {
 		if ( false === $rate_check ) {
 			SScribe_AJAX_Guard::error(
 				array(
+					'code'     => 'rate_limited',
 					'message'  => __( 'Too many requests. Please wait a moment.', 'sscribe-export-site-pages' ),
 					'retry'    => true,
 					'retry_in' => 60000,
@@ -69,6 +79,7 @@ trait SScribe_Export_Finalizer {
 		if ( empty( $session_id ) ) {
 			SScribe_AJAX_Guard::error(
 				array(
+					'code'    => 'invalid_session_id',
 					'message' => __( 'Invalid session.', 'sscribe-export-site-pages' ),
 				),
 				400
@@ -80,7 +91,7 @@ trait SScribe_Export_Finalizer {
 		if ( ! $session ) {
 			SScribe_AJAX_Guard::error(
 				array(
-					'code'    => 'not_finalizing',
+					'code'    => 'session_expired',
 					'message' => __( 'Export session not found. Please start again.', 'sscribe-export-site-pages' ),
 				),
 				404
@@ -90,6 +101,7 @@ trait SScribe_Export_Finalizer {
 		if ( ! $this->validate_session_ownership( $session, $session_id ) ) {
 			SScribe_AJAX_Guard::error(
 				array(
+					'code'    => 'session_ownership',
 					'message' => __( 'Invalid session access.', 'sscribe-export-site-pages' ),
 				),
 				403

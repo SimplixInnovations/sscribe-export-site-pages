@@ -199,17 +199,30 @@ class SScribe_Batch_File_Handler {
 	 */
 	public function ajax_delete_export(): void {
 		if ( ! check_ajax_referer( 'sscribe_download', 'nonce', false ) ) {
-			SScribe_AJAX_Guard::error( array( 'message' => __( 'Security check failed.', 'sscribe-export-site-pages' ) ), 403 );
+			SScribe_AJAX_Guard::error(
+				array(
+					'code'    => 'invalid_nonce',
+					'message' => __( 'Security check failed.', 'sscribe-export-site-pages' ),
+				),
+				403
+			);
 		}
 
 		if ( ! current_user_can( $this->get_required_capability() ) ) {
-			SScribe_AJAX_Guard::error( array( 'message' => __( 'Permission denied.', 'sscribe-export-site-pages' ) ), 403 );
+			SScribe_AJAX_Guard::error(
+				array(
+					'code'    => 'permission_denied',
+					'message' => __( 'Permission denied.', 'sscribe-export-site-pages' ),
+				),
+				403
+			);
 		}
 
 		$rate_check = $this->check_rate_limit();
 		if ( false === $rate_check ) {
 			SScribe_AJAX_Guard::error(
 				array(
+					'code'     => 'rate_limited',
 					'message'  => __( 'Too many requests. Please wait a moment.', 'sscribe-export-site-pages' ),
 					'retry'    => true,
 					'retry_in' => 60000,
@@ -222,23 +235,47 @@ class SScribe_Batch_File_Handler {
 		$filename     = sanitize_file_name( $raw_filename );
 
 		if ( '' === $filename || ! hash_equals( $raw_filename, $filename ) || 1 !== preg_match( '/^[A-Za-z0-9][A-Za-z0-9._-]{0,199}\.zip$/D', $filename ) ) {
-			SScribe_AJAX_Guard::error( array( 'message' => __( 'Invalid filename.', 'sscribe-export-site-pages' ) ), 400 );
+			SScribe_AJAX_Guard::error(
+				array(
+					'code'    => 'invalid_filename',
+					'message' => __( 'Invalid filename.', 'sscribe-export-site-pages' ),
+				),
+				400
+			);
 		}
 
 		$export_info = $this->zip_handler->get_export_entry( $filename );
 
 		if ( null === $export_info ) {
-			SScribe_AJAX_Guard::error( array( 'message' => __( 'Export not found.', 'sscribe-export-site-pages' ) ), 404 );
+			SScribe_AJAX_Guard::error(
+				array(
+					'code'    => 'export_not_found',
+					'message' => __( 'Export not found.', 'sscribe-export-site-pages' ),
+				),
+				404
+			);
 		}
 
 		$stored_user_id = isset( $export_info['user_id'] ) ? (int) (string) $export_info['user_id'] : 0;
 		if ( $stored_user_id <= 0 || get_current_user_id() !== $stored_user_id ) {
 			$this->auditor->log( 'delete_access_denied', array( 'filename' => $filename ) );
-			SScribe_AJAX_Guard::error( array( 'message' => __( 'Permission denied.', 'sscribe-export-site-pages' ) ), 403 );
+			SScribe_AJAX_Guard::error(
+				array(
+					'code'    => 'permission_denied',
+					'message' => __( 'Permission denied.', 'sscribe-export-site-pages' ),
+				),
+				403
+			);
 		}
 
 		if ( ! $this->zip_handler->delete_export( $filename, get_current_user_id() ) ) {
-			SScribe_AJAX_Guard::error( array( 'message' => __( 'The export could not be deleted.', 'sscribe-export-site-pages' ) ), 500 );
+			SScribe_AJAX_Guard::error(
+				array(
+					'code'    => 'delete_failed',
+					'message' => __( 'The export could not be deleted.', 'sscribe-export-site-pages' ),
+				),
+				500
+			);
 		}
 
 		$this->auditor->log( 'export_deleted', array( 'filename' => $filename ) );
@@ -251,17 +288,30 @@ class SScribe_Batch_File_Handler {
 	 */
 	public function ajax_refresh_download_nonce(): void {
 		if ( ! check_ajax_referer( 'sscribe_export_nonce', 'nonce', false ) ) {
-			SScribe_AJAX_Guard::error( array( 'message' => __( 'Security check failed.', 'sscribe-export-site-pages' ) ), 403 );
+			SScribe_AJAX_Guard::error(
+				array(
+					'code'    => 'invalid_nonce',
+					'message' => __( 'Security check failed.', 'sscribe-export-site-pages' ),
+				),
+				403
+			);
 		}
 
 		if ( ! current_user_can( $this->get_required_capability() ) ) {
-			SScribe_AJAX_Guard::error( array( 'message' => __( 'Permission denied.', 'sscribe-export-site-pages' ) ), 403 );
+			SScribe_AJAX_Guard::error(
+				array(
+					'code'    => 'permission_denied',
+					'message' => __( 'Permission denied.', 'sscribe-export-site-pages' ),
+				),
+				403
+			);
 		}
 
 		$rate_check = $this->check_rate_limit();
 		if ( false === $rate_check ) {
 			SScribe_AJAX_Guard::error(
 				array(
+					'code'     => 'rate_limited',
 					'message'  => __( 'Too many requests. Please wait a moment.', 'sscribe-export-site-pages' ),
 					'retry'    => true,
 					'retry_in' => 60000,

@@ -35,12 +35,19 @@ trait SScribe_Batch_Step_Handler {
 	 */
 	public function ajax_process_batch(): void {
 		if ( ! check_ajax_referer( 'sscribe_export_nonce', 'nonce', false ) ) {
-			SScribe_AJAX_Guard::error( array( 'message' => __( 'Security check failed.', 'sscribe-export-site-pages' ) ), 403 );
+			SScribe_AJAX_Guard::error(
+				array(
+					'code'    => 'invalid_nonce',
+					'message' => __( 'Security check failed.', 'sscribe-export-site-pages' ),
+				),
+				403
+			);
 		}
 
 		if ( ! current_user_can( $this->get_required_capability() ) ) {
 			SScribe_AJAX_Guard::error(
 				array(
+					'code'    => 'permission_denied',
 					'message' => __( 'Permission denied.', 'sscribe-export-site-pages' ),
 				),
 				403
@@ -51,6 +58,7 @@ trait SScribe_Batch_Step_Handler {
 		if ( false === $rate_check ) {
 			SScribe_AJAX_Guard::error(
 				array(
+					'code'     => 'rate_limited',
 					'message'  => __( 'Too many requests. Please wait a moment.', 'sscribe-export-site-pages' ),
 					'retry'    => true,
 					'retry_in' => 60000,
@@ -81,7 +89,10 @@ trait SScribe_Batch_Step_Handler {
 			if ( 1 !== preg_match( '/^[a-f0-9]{16}$/D', $session_id ) ) {
 				$this->restore_ob_level( $ob_level_before );
 				SScribe_AJAX_Guard::error(
-					array( 'message' => __( 'Invalid export session identifier.', 'sscribe-export-site-pages' ) ),
+					array(
+						'code'    => 'invalid_session_id',
+						'message' => __( 'Invalid export session identifier.', 'sscribe-export-site-pages' ),
+					),
 					400
 				);
 			}
@@ -106,6 +117,7 @@ trait SScribe_Batch_Step_Handler {
 				$this->restore_ob_level( $ob_level_before );
 				SScribe_AJAX_Guard::error(
 					array(
+						'code'    => 'session_expired',
 						'message' => __( 'Export session expired or not found. Please start again.', 'sscribe-export-site-pages' ),
 					),
 					404
@@ -119,6 +131,7 @@ trait SScribe_Batch_Step_Handler {
 				$this->restore_ob_level( $ob_level_before );
 				SScribe_AJAX_Guard::error(
 					array(
+						'code'    => 'session_ownership',
 						'message' => __( 'Invalid session access.', 'sscribe-export-site-pages' ),
 					),
 					403
@@ -137,6 +150,7 @@ trait SScribe_Batch_Step_Handler {
 				$this->restore_ob_level( $ob_level_before );
 				SScribe_AJAX_Guard::error(
 					array(
+						'code'    => 'session_corrupt',
 						'message' => __( 'Export session data corrupted. Please start again.', 'sscribe-export-site-pages' ),
 					),
 					500
@@ -150,6 +164,7 @@ trait SScribe_Batch_Step_Handler {
 				$this->restore_ob_level( $ob_level_before );
 				SScribe_AJAX_Guard::error(
 					array(
+						'code'     => 'batch_locked',
 						'status'   => 'locked',
 						'retry'    => true,
 						'retry_in' => 60000,
@@ -167,6 +182,7 @@ trait SScribe_Batch_Step_Handler {
 				$this->restore_ob_level( $ob_level_before );
 				SScribe_AJAX_Guard::error(
 					array(
+						'code'    => 'session_expired',
 						'message' => __( 'Export session expired during lock acquisition.', 'sscribe-export-site-pages' ),
 					),
 					404
