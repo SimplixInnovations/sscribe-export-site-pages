@@ -55,7 +55,7 @@ class SScribe_Export_Rate_Limiter {
 		$cache_lock_key  = $transient_key . '_lock';
 		$option_lock_key = self::OPTION_LOCK_PREFIX . substr( hash( 'sha256', $transient_key ), 0, 32 );
 		$lock_token      = wp_generate_password( 16, false );
-		$using_cache     = wp_using_ext_object_cache();
+		$using_cache     = (bool) wp_using_ext_object_cache();
 
 		$rate_limit = current_user_can( $export_capability )
 			? max( 1, (int) apply_filters( 'sscribe_rate_limit_admin', 500 ) )

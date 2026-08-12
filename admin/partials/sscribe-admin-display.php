@@ -15,6 +15,8 @@ if ( ! defined( 'ABSPATH' ) ) {
 $sscribe_wpml_active     = $sscribe_wpml_active ?? false;
 $sscribe_languages       = $sscribe_languages ?? array();
 $sscribe_total_pages_all = $sscribe_total_pages_all ?? 0;
+$sscribe_total_posts_all = $sscribe_total_posts_all ?? 0;
+$sscribe_total_either_all = $sscribe_total_either_all ?? ( $sscribe_total_pages_all + $sscribe_total_posts_all );
 $sscribe_status_counts   = $sscribe_status_counts ?? array();
 $sscribe_recent_exports  = $sscribe_recent_exports ?? array();
 $sscribe_debug_info      = $sscribe_debug_info ?? array();
@@ -163,7 +165,7 @@ $sscribe_preflight_warnings = $sscribe_preflight_warnings ?? array();
 									</div>
 									<div class="sscribe-post-type-meta">
 										<span class="sscribe-post-type-name"><?php esc_html_e( 'Posts', 'sscribe-export-site-pages' ); ?></span>
-										<span class="sscribe-post-type-count" id="sscribe-post-count">0</span>
+										<span class="sscribe-post-type-count" id="sscribe-post-count"><?php echo esc_html( number_format_i18n( $sscribe_total_posts_all ) ); ?></span>
 									</div>
 									<div class="sscribe-post-type-selector"></div>
 								</div>
@@ -178,7 +180,7 @@ $sscribe_preflight_warnings = $sscribe_preflight_warnings ?? array();
 									</div>
 									<div class="sscribe-post-type-meta">
 										<span class="sscribe-post-type-name"><?php esc_html_e( 'Pages + Posts', 'sscribe-export-site-pages' ); ?></span>
-										<span class="sscribe-post-type-count" id="sscribe-both-count">0</span>
+										<span class="sscribe-post-type-count" id="sscribe-both-count"><?php echo esc_html( number_format_i18n( $sscribe_total_either_all ) ); ?></span>
 									</div>
 									<div class="sscribe-post-type-selector"></div>
 								</div>
