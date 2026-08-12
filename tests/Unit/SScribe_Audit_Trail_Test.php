@@ -132,4 +132,42 @@ class SScribe_Audit_Trail_Test extends TestCase {
 		$this->assertEquals( 'permission_denied', \SScribe_Audit_Trail::EVENT_PERMISSION_DENIED );
 		$this->assertEquals( 'invalid_nonce', \SScribe_Audit_Trail::EVENT_INVALID_NONCE );
 	}
+
+	/**
+	 * Regression for the L3 audit redaction hardening: WordPress auth
+	 * cookies and PHP session IDs must never reach the audit table
+	 * verbatim. The previous redact list covered `nonce`, `token`, and
+	 * friends but let through cookie-shaped keys like `cookie`,
+	 * `set_cookie`, `wordpress_logged_in_*`, `wordpress_sec_*`,
+	 * `php_session`, and `phpsessid`. The fix extended the forbidden
+	 * list; this test locks the invariants in.
+	 */
+	public function test_log_redacts_cookie_shaped_keys(): void {
+		$audit = new \SScribe_Audit_Trail();
+		$audit->log(
+			\SScribe_Audit_Trail::EVENT_DOWNLOAD,
+			array(
+				'session_id'              => 'sess_x',
+				'cookie'                  => 'wordpress_logged_in_admin=secret|12345',
+				'set_cookie'              => 'wp_settings=1; path=/',
+				'wordpress_logged_in_key' => 'wordpress_logged_in_admin=secret|12345',
+				'wordpress_sec_value'     => 'wordpress_sec_admin=other|67890',
+				'php_session_dump'        => 'PHPSESSID=abc123def456',
+				'phpsessid'               => 'abc123def456',
+			)
+		);
+
+		$inserted = end( $GLOBALS['sscribe_test_db_tables']['wp_sscribe_audit_log'] );
+		$context  = json_decode( $inserted['context'], true );
+
+		$this->assertSame( '[REDACTED]', $context['cookie'] ?? null, '`cookie` key must be redacted.' );
+		$this->assertSame( '[REDACTED]', $context['set_cookie'] ?? null, '`set_cookie` key must be redacted.' );
+		$this->assertSame( '[REDACTED]', $context['wordpress_logged_in_key'] ?? null, 'Keys matching `wordpress_logged_*` must be redacted.' );
+		$this->assertSame( '[REDACTED]', $context['wordpress_sec_value'] ?? null, 'Keys matching `wordpress_sec_*` must be redacted.' );
+		$this->assertSame( '[REDACTED]', $context['php_session_dump'] ?? null, 'Keys matching `php_session*` must be redacted.' );
+		$this->assertSame( '[REDACTED]', $context['phpsessid'] ?? null, '`phpsessid` key must be redacted.' );
+
+		// session_id is whitelisted (it's the legitimate trail key).
+		$this->assertSame( 'sess_x', $context['session_id'] ?? null, '`session_id` is not a sensitive key and must remain intact.' );
+	}
 }

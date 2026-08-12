@@ -2617,15 +2617,19 @@
 			const $panel = $('#sscribe-preview-panel');
 			const panelEl = $panel[0];
 			const self = this;
-			$panel.fadeOut(200, function () {
-				$panel.attr('aria-hidden', 'true').addClass('sscribe-hidden').prop('hidden', true);
-				self.releaseFocusTrap(panelEl);
-				const trigger = self._previewTrigger;
-				if (trigger && typeof trigger.focus === 'function' && document.contains(trigger) && !trigger.disabled) {
-					trigger.focus();
-				}
-				self._previewTrigger = null;
-			});
+			// Mark hidden synchronously so AT and the focus trap see the
+			// panel as gone the instant the user dismisses it, then animate
+			// the fade. Doing this inside the fadeOut callback left the
+			// panel partly visible yet announced as hidden for the full
+			// 200 ms transition, while the focus trap was still installed.
+			$panel.attr('aria-hidden', 'true').addClass('sscribe-hidden').prop('hidden', true);
+			self.releaseFocusTrap(panelEl);
+			const trigger = self._previewTrigger;
+			if (trigger && typeof trigger.focus === 'function' && document.contains(trigger) && !trigger.disabled) {
+				trigger.focus();
+			}
+			self._previewTrigger = null;
+			$panel.fadeOut(200);
 		},
 		/**
 		 * Open the confirm (alertdialog) modal. Replaces native window.confirm().

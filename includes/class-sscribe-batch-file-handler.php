@@ -74,7 +74,7 @@ class SScribe_Batch_File_Handler {
 	public function ajax_download(): void {
 		if ( ! check_ajax_referer( 'sscribe_download', 'nonce', false ) ) {
 			status_header( 403 );
-			wp_die( esc_html__( 'Security check failed. The download link may have expired : please refresh the page and try again.', 'sscribe-export-site-pages' ) );
+			wp_die( esc_html__( 'Security check failed. The download link may have expired. Please refresh the page and try again.', 'sscribe-export-site-pages' ) );
 		}
 
 		if ( ! current_user_can( $this->get_required_capability() ) ) {
@@ -137,6 +137,18 @@ class SScribe_Batch_File_Handler {
 				$this->auditor->log( 'download_access_denied', array( 'filename' => $filename ) );
 				status_header( 403 );
 				wp_die( esc_html__( 'Invalid file access.', 'sscribe-export-site-pages' ) );
+			}
+
+			// Single-use per-row download token: the URL embeds a token that
+			// was rotated at URL build time. consume_dl_token validates the
+			// presented value against the row with hash_equals, then rotates
+			// the token again so any replay (browser history, server-log
+			// leak, accidental Slack share) returns 403 instead of the ZIP.
+			$raw_token = isset( $_GET['token'] ) && is_string( $_GET['token'] ) ? sanitize_text_field( wp_unslash( $_GET['token'] ) ) : '';
+			if ( ! $this->zip_handler->consume_dl_token( $filename, $raw_token ) ) {
+				$this->auditor->log( 'download_token_rejected', array( 'filename' => $filename ) );
+				status_header( 403 );
+				wp_die( esc_html__( 'This download link has already been used or has expired. Refresh the export panel to get a fresh link.', 'sscribe-export-site-pages' ) );
 			}
 
 			$ascii_filename = preg_replace( '/[^a-zA-Z0-9._-]/', '_', $filename ) ?? $filename;

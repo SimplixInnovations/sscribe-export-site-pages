@@ -92,4 +92,39 @@ final class SScribe_JS_Error_Guidance_Test extends TestCase {
 			);
 		}
 	}
+
+	/**
+	 * Regression for the ajax_refresh_nonce add-codes fix: the JS
+	 * must (a) know about the `sscribe_refresh_nonce` AJAX action
+	 * (so the long-batch 403 retry handshake has a client endpoint)
+	 * and (b) translate every code that the server-side handler
+	 * emits (`invalid_nonce`, `permission_denied`) into the guidance
+	 * table — without this, the JS would surface a generic fallback
+	 * for nonce refresh failures after long-running exports.
+	 */
+	public function test_refresh_nonce_endpoint_codes_are_in_guidance_table(): void {
+		$js = $this->admin_js();
+
+		// Client wires to the sscribe_refresh_nonce AJAX action.
+		$this->assertStringContainsString(
+			"action: 'sscribe_refresh_nonce'",
+			$js,
+			'JS must wire the nonce refresh endpoint: sscribe_refresh_nonce.'
+		);
+
+		// The two codes the server-side ajax_refresh_nonce() actually
+		// emits MUST be in the guidance table so the user sees real
+		// guidance instead of the generic fallback.
+		$refresh_codes = array(
+			'invalid_nonce',
+			'permission_denied',
+		);
+		foreach ( $refresh_codes as $code ) {
+			$this->assertStringContainsString(
+				$code . ':',
+				$js,
+				'ajax_refresh_nonce() may emit "' . $code . '" — it must be in the JS guidance table.'
+			);
+		}
+	}
 }

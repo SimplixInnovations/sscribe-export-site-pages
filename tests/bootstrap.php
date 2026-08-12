@@ -457,6 +457,134 @@ if ( ! function_exists( 'wp_get_current_user' ) ) {
 	}
 }
 
+if ( ! function_exists( 'is_user_logged_in' ) ) {
+	/**
+	 * Test stub for WordPress's is_user_logged_in().
+	 *
+	 * Mirrors WP's runtime default: anonymous visitors (no current
+	 * user) are NOT logged in. Tests that exercise auth-gated paths
+	 * must set $GLOBALS['sscribe_test_current_user'] to a real WP_User
+	 * instance with ID > 0, or the stub will return false and the
+	 * auth check will fail as it does in production.
+	 *
+	 * Tests that need a logged-in user without ceremony can call:
+	 *   $GLOBALS['sscribe_test_current_user'] = new WP_User( 1 );
+	 */
+	function is_user_logged_in(): bool {
+		global $sscribe_test_current_user;
+		return ( $sscribe_test_current_user instanceof WP_User ) && ( $sscribe_test_current_user->ID > 0 );
+	}
+}
+
+if ( ! function_exists( 'add_query_arg' ) ) {
+	/**
+	 * Test stub for WordPress's add_query_arg().
+	 *
+	 * Supports both WP signatures:
+	 *   add_query_arg( $key, $value, $url = '' )    // single arg.
+	 *   add_query_arg( $args, $url = '' )           // associative array.
+	 *
+	 * Mirrors WP's URL encoding (rawurlencode for key + value) and
+	 * preserves an existing fragment (#) in the URL. Does not handle
+	 * WP's deprecated $key_string-encoded-array form; tests that need
+	 * that should fall back to a real WP testbench.
+	 */
+	function add_query_arg( ...$args ) {
+		$url = '';
+		if ( count( $args ) >= 3 ) {
+			$key   = $args[0];
+			$value = $args[1];
+			$url   = (string) $args[2];
+			$pairs = array( rawurlencode( (string) $key ) . '=' . rawurlencode( (string) $value ) );
+		} elseif ( count( $args ) === 2 ) {
+			$maybe_url = $args[1];
+			if ( is_array( $maybe_url ) ) {
+				$pairs = array();
+				foreach ( $maybe_url as $key => $value ) {
+					$pairs[] = rawurlencode( (string) $key ) . '=' . rawurlencode( (string) $value );
+				}
+				$url = (string) $args[0];
+			} else {
+				$url = is_string( $maybe_url ) ? $maybe_url : '';
+				if ( is_array( $args[0] ) ) {
+					$pairs = array();
+					foreach ( $args[0] as $key => $value ) {
+						$pairs[] = rawurlencode( (string) $key ) . '=' . rawurlencode( (string) $value );
+					}
+				} else {
+					$pairs = array( rawurlencode( (string) $args[0] ) . '=' );
+				}
+			}
+		} else {
+			return '';
+		}
+
+		$fragment = '';
+		$hash_pos = strpos( $url, '#' );
+		if ( false !== $hash_pos ) {
+			$fragment = substr( $url, $hash_pos );
+			$url      = substr( $url, 0, $hash_pos );
+		}
+
+		$sep = ( '' === $url || false === strpos( $url, '?' ) ) ? '?' : '&';
+		return $url . $sep . implode( '&', $pairs ) . $fragment;
+	}
+}
+
+if ( ! function_exists( 'remove_query_arg' ) ) {
+	/**
+	 * Test stub for WordPress's remove_query_arg().
+	 *
+	 * Removes the named keys from the URL's query string. Supports
+	 * both signatures WP exposes:
+	 *   remove_query_arg( $key, $url = '' )
+	 *   remove_query_arg( $keys, $url = '' )
+	 *
+	 * Returns the cleaned URL, or the original $url unchanged when
+	 * no query string is present (matching WP).
+	 */
+	function remove_query_arg( $keys, $url = '' ) {
+		if ( '' === $url ) {
+			return '';
+		}
+		if ( ! is_array( $keys ) ) {
+			$keys = array( $keys );
+		}
+
+		$parts = wp_parse_url( (string) $url );
+		if ( ! is_array( $parts ) || empty( $parts['query'] ) ) {
+			return (string) $url;
+		}
+
+		parse_str( $parts['query'], $query );
+		foreach ( $keys as $key ) {
+			unset( $query[ (string) $key ] );
+		}
+
+		$rebuilt = '';
+		if ( ! empty( $parts['scheme'] ) ) {
+			$rebuilt .= $parts['scheme'] . '://';
+		}
+		if ( ! empty( $parts['host'] ) ) {
+			$rebuilt .= $parts['host'];
+		}
+		if ( ! empty( $parts['port'] ) ) {
+			$rebuilt .= ':' . $parts['port'];
+		}
+		if ( ! empty( $parts['path'] ) ) {
+			$rebuilt .= $parts['path'];
+		}
+		if ( ! empty( $query ) ) {
+			$rebuilt .= '?' . http_build_query( $query );
+		}
+		if ( ! empty( $parts['fragment'] ) ) {
+			$rebuilt .= '#' . $parts['fragment'];
+		}
+
+		return $rebuilt;
+	}
+}
+
 if ( ! function_exists( '__' ) ) {
 	function __( $sscribe_text, $sscribe_domain = 'default' ) {
 		return $sscribe_text;
