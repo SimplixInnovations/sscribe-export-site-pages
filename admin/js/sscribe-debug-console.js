@@ -301,7 +301,10 @@
 					} else {
 						confirmLabel = 'Clear ' + n + ' log entries';
 					}
-					$btn.data('confirming', true).addClass('sscribe-btn-confirming').text(confirmLabel).attr('aria-label', confirmLabel);
+					$btn.data('confirming', true)
+						.addClass('sscribe-btn-confirming')
+						.text(confirmLabel)
+						.attr('aria-label', confirmLabel);
 					self.clearBtnTimeout = setTimeout(function () {
 						if (self.$clearBtn) {
 							self.$clearBtn
@@ -409,12 +412,16 @@
 					const body = document.createElement('div');
 					body.className = 'sscribe-modal-body';
 					const clonedHelpBody = helpClone.querySelectorAll(':scope > h3, :scope > h4, :scope > p');
-					clonedHelpBody.forEach(function (node) { body.appendChild(node.cloneNode(true)); });
+					clonedHelpBody.forEach(function (node) {
+						body.appendChild(node.cloneNode(true));
+					});
 					dialog.appendChild(header);
 					dialog.appendChild(body);
 					overlay.appendChild(dialog);
 					overlay.addEventListener('click', function (e) {
-						if (e.target === overlay) { closeDialog(); }
+						if (e.target === overlay) {
+							closeDialog();
+						}
 					});
 					document.body.appendChild(overlay);
 					document.addEventListener('keydown', keyHandler);
@@ -950,7 +957,10 @@
 				const count = entries.length;
 				if (this.$staleBannerMessage && this.$staleBannerMessage.length) {
 					this.$staleBannerMessage.text(
-						'Debug mode is OFF. Showing ' + count + (1 === count ? ' entry' : ' entries') + ' from previous runs.'
+						'Debug mode is OFF. Showing ' +
+							count +
+							(1 === count ? ' entry' : ' entries') +
+							' from previous runs.'
 					);
 				}
 				this.$staleBanner.removeClass('sscribe-hidden').attr('hidden', false);
@@ -1599,7 +1609,9 @@
 		const rawLevel = entry.level && typeof entry.level === 'string' ? entry.level.toLowerCase() : 'info';
 		const mappedLevel = isAudit ? 'audit' : rawLevel;
 		const badgeClass = allowedLevels.includes(mappedLevel) ? mappedLevel : 'info';
-		const dataLevel = (isAudit ? 'AUDIT' : (entry.level && typeof entry.level === 'string' ? entry.level : 'INFO')).toUpperCase();
+		const dataLevel = (
+			isAudit ? 'AUDIT' : entry.level && typeof entry.level === 'string' ? entry.level : 'INFO'
+		).toUpperCase();
 		let contextHtml = '';
 		if (entry.context && Object.keys(entry.context).length > 0) {
 			let contextRows = '';

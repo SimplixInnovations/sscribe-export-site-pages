@@ -9,8 +9,10 @@ declare(strict_types=1);
 
 namespace SScribe\Tests\Unit;
 
+use PHPUnit\Framework\Attributes\AllowMockObjectsWithoutExpectations;
 use PHPUnit\Framework\TestCase;
 
+#[AllowMockObjectsWithoutExpectations]
 class SScribe_Export_Query_Controller_Test extends TestCase {
 
 	public function test_can_instantiate_with_no_args(): void {

@@ -1952,13 +1952,18 @@
 			}
 			const count = $checks.length;
 			const exportWord = count === 1 ? 'export' : 'exports';
-			const proceedLabel = (sscribe_data.strings && sscribe_data.strings.bulk_delete_label_format)
-				? sscribe_data.strings.bulk_delete_label_format.replace('%d', String(count)).replace('%s', exportWord)
-				: 'Delete ' + count + ' ' + exportWord;
+			const proceedLabel =
+				sscribe_data.strings && sscribe_data.strings.bulk_delete_label_format
+					? sscribe_data.strings.bulk_delete_label_format
+							.replace('%d', String(count))
+							.replace('%s', exportWord)
+					: 'Delete ' + count + ' ' + exportWord;
 			this.showConfirm({
 				title:
-					(sscribe_data.strings && sscribe_data.strings.bulk_delete_title_format)
-						? sscribe_data.strings.bulk_delete_title_format.replace('%d', String(count)).replace('%s', exportWord)
+					sscribe_data.strings && sscribe_data.strings.bulk_delete_title_format
+						? sscribe_data.strings.bulk_delete_title_format
+								.replace('%d', String(count))
+								.replace('%s', exportWord)
 						: 'Delete ' + count + ' ' + exportWord + '?',
 				description:
 					(sscribe_data.strings && sscribe_data.strings.bulk_delete_desc) ||
@@ -2905,7 +2910,11 @@
 				return '';
 			}
 			const acronyms = { pdf: 'PDF', docx: 'DOCX', html: 'HTML', htm: 'HTM', md: 'MD' };
-			const compoundTokens = { 'all-formats': 'All Formats', 'all-langs': 'All Languages', 'pages-and-posts': 'Pages + Posts' };
+			const compoundTokens = {
+				'all-formats': 'All Formats',
+				'all-langs': 'All Languages',
+				'pages-and-posts': 'Pages + Posts',
+			};
 			return format
 				.split('+')
 				.map(function (part) {
