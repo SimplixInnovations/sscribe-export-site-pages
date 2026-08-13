@@ -222,7 +222,7 @@ class SScribe_Upgrader {
 			}
 		}
 
-		if ( version_compare( $from_version, '1.1.6', '<' ) ) {
+		if ( version_compare( $from_version, '1.1.7', '<' ) ) {
 			try {
 				// phpcs:ignore PluginCheck.Security.DirectDB.UnescapedDBParameter, WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.DirectDatabaseQuery.SchemaChange, WordPress.DB.PreparedSQL.NotPrepared -- Plugin-controlled table and static schema migration.
 				$result = $wpdb->query( 'ALTER TABLE `' . $wpdb->prefix . "sscribe_export_stats` MODIFY COLUMN status VARCHAR(20) NOT NULL DEFAULT 'processing'" );

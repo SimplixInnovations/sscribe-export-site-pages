@@ -3,7 +3,7 @@ Contributors: simplixinnovations
 Tags: export, docx, pdf, html, markdown
 Requires at least: 6.0
 Tested up to: 7.0
-Stable tag: 1.1.6
+Stable tag: 1.1.7
 Requires PHP: 8.2
 License: GPL-2.0-or-later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
@@ -93,6 +93,9 @@ The bundled Mpdf library (vendor-prefixed/mpdf/) is licensed under the GNU Gener
 
 == Changelog ==
 
+= 1.1.7 =
+* Release hygiene.
+
 = 1.1.6 =
 * Hardened archive ownership, download, deletion, cleanup, and index updates against path traversal, symlink, stale-lock, collision, and concurrency failures.
 * Hardened DOCX, PDF, HTML, and Markdown generation against malformed filter data, unsafe temporary paths, oversized input, remote image resolution, and internal error disclosure.
@@ -135,8 +138,8 @@ The bundled Mpdf library (vendor-prefixed/mpdf/) is licensed under the GNU Gener
 
 == Upgrade Notice ==
 
-= 1.1.6 =
-Recommended update: comprehensive security, reliability, privacy, packaging, and exporter hardening for the WordPress.org release.
+= 1.1.7 =
+Maintenance release with internal version sync and release-hygiene cleanup.
 
 == Filters ==
 
