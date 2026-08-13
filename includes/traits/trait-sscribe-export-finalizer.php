@@ -277,9 +277,9 @@ trait SScribe_Export_Finalizer {
 
 			$formats = isset( $session['formats'] ) ? $session['formats'] : self::DEFAULT_FORMATS;
 
-			$format_suffix = count( $formats ) > 1 ? 'ALL-FORMATS' : strtoupper( $formats[0] );
+			$format_suffix = count( $formats ) > 1 ? 'all-formats' : strtolower( $formats[0] );
 			$timestamp     = gmdate( 'Y-m-d-His' );
-			$lang_suffix   = $has_language ? strtoupper( $lang_code ) : 'ALL-LANGS';
+			$lang_suffix   = $has_language ? strtolower( $lang_code ) : 'all-langs';
 
 			$zip_name = sprintf(
 				'%s-%s-%s-%s-%s',

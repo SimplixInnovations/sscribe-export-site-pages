@@ -372,6 +372,19 @@
 			if (!activeTabId) {
 				activeTabId = $tabs.first().data('tab');
 			}
+			try {
+				const urlParams = new URL(window.location.href).searchParams;
+				const requestedTab = urlParams.get('tab');
+				if (requestedTab) {
+					const $requested = $tabs.filter(function () {
+						return $(this).data('tab') === requestedTab;
+					});
+					if ($requested.length) {
+						activeTabId = requestedTab;
+					}
+				}
+			} catch (_e) {
+			}
 			this.setActiveTab(activeTabId);
 			$tabs.on('click', function (e) {
 				e.preventDefault();
@@ -497,6 +510,20 @@
 				return;
 			}
 			const currentTabId = $('.sscribe-tab-btn[aria-selected="true"]').data('tab');
+			if (!this.scrollPositions) {
+				this.scrollPositions = {};
+			}
+			if (currentTabId) {
+				this.scrollPositions[currentTabId] = window.scrollY;
+			}
+			if (currentTabId !== tabId) {
+				try {
+					const url = new URL(window.location.href);
+					url.searchParams.set('tab', tabId);
+					window.history.replaceState(null, '', url.toString());
+				} catch (_e) {
+				}
+			}
 			if (currentTabId === tabId) {
 				if (moveFocus) {
 					$('.sscribe-tab-btn')
@@ -530,6 +557,10 @@
 						SScribe.loadSupportInfo();
 					}
 				}, 200);
+			}
+			const savedY = self.scrollPositions[tabId];
+			if (typeof savedY === 'number') {
+				window.scrollTo(0, savedY);
 			}
 		},
 		setActiveTab: function (tabId) {
@@ -1918,11 +1949,15 @@
 				return;
 			}
 			const count = $checks.length;
-			const proceedLabel = (sscribe_data.strings && sscribe_data.strings.bulk_delete_label) || 'Delete forever';
+			const exportWord = count === 1 ? 'export' : 'exports';
+			const proceedLabel = (sscribe_data.strings && sscribe_data.strings.bulk_delete_label_format)
+				? sscribe_data.strings.bulk_delete_label_format.replace('%d', String(count)).replace('%s', exportWord)
+				: 'Delete ' + count + ' ' + exportWord;
 			this.showConfirm({
 				title:
-					(sscribe_data.strings && sscribe_data.strings.bulk_delete_title) ||
-					'Delete ' + count + ' export(s)?',
+					(sscribe_data.strings && sscribe_data.strings.bulk_delete_title_format)
+						? sscribe_data.strings.bulk_delete_title_format.replace('%d', String(count)).replace('%s', exportWord)
+						: 'Delete ' + count + ' ' + exportWord + '?',
 				description:
 					(sscribe_data.strings && sscribe_data.strings.bulk_delete_desc) ||
 					'This permanently removes the selected packages from your uploads folder. The deletion cannot be undone.',
@@ -2855,6 +2890,81 @@
 			this.activateTab('history', true);
 		},
 		/**
+		 * Format an export format slug as a human label.
+		 *
+		 * Examples: pdf -> PDF, docx -> DOCX, html -> HTML, markdown -> Markdown,
+		 * all-formats -> All Formats, docx+pdf -> DOCX + PDF.
+		 *
+		 * @param {string} format Format slug or compound slug.
+		 * @return {string} Human-friendly label.
+		 */
+		prettyFormatLabel: function (format) {
+			if (!format || typeof format !== 'string') {
+				return '';
+			}
+			const acronyms = { pdf: 'PDF', docx: 'DOCX', html: 'HTML', htm: 'HTM', md: 'MD' };
+			const compoundTokens = { 'all-formats': 'All Formats', 'all-langs': 'All Languages', 'pages-and-posts': 'Pages + Posts' };
+			return format
+				.split('+')
+				.map(function (part) {
+					const lower = part.toLowerCase();
+					if (compoundTokens[lower]) {
+						return compoundTokens[lower];
+					}
+					if (acronyms[lower]) {
+						return acronyms[lower];
+					}
+					return lower.replace(/(^|[\s_-])[a-z]/g, function (m) {
+						return m.toUpperCase();
+					});
+				})
+				.join(' + ');
+		},
+		/**
+		 * Strip a filename stem to a short human-readable label.
+		 *
+		 * "sscribe-export-pages-2026-08-13-103045-abc123" ->
+		 * "Pages Aug 13, 2026 10:30" (date/time stamped inside the name).
+		 *
+		 * @param {string} filename Filename including extension.
+		 * @return {string} Pretty stem, or the original stem on no match.
+		 */
+		prettyFilenameStem: function (filename) {
+			if (!filename || typeof filename !== 'string') {
+				return '';
+			}
+			const stem = filename.replace(/\.zip$/i, '').replace(/^sscribe-export-/, '');
+			const dateMatch = stem.match(/(?:^|-)(\d{4}-\d{2}-\d{2})(?:[-T](\d{2})-?(\d{2}))?/);
+			const randomMatch = stem.match(/-([a-f0-9]{4,8})$/i);
+			let core = stem;
+			if (dateMatch) {
+				core = core.replace(dateMatch[0], '').replace(/-+$/, '');
+			}
+			if (randomMatch) {
+				core = core.replace(randomMatch[0], '').replace(/-+$/, '');
+			}
+			let label = core
+				.split(/[-_]+/)
+				.filter(Boolean)
+				.map(function (part) {
+					return part.charAt(0).toUpperCase() + part.slice(1);
+				})
+				.join(' ');
+			if (dateMatch) {
+				const yyyy = dateMatch[1].slice(0, 4);
+				const mm = dateMatch[1].slice(5, 7) - 1;
+				const dd = dateMatch[1].slice(8, 10);
+				const months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+				const friendly = months[mm] + ' ' + parseInt(dd, 10) + ', ' + yyyy;
+				let stamp = friendly;
+				if (dateMatch[2] && dateMatch[3]) {
+					stamp += ' ' + dateMatch[2] + ':' + dateMatch[3];
+				}
+				label = label ? label + ' · ' + stamp : stamp;
+			}
+			return label || stem;
+		},
+		/**
 		 * Populate the success meta block (pages, formats, size, generated).
 		 *
 		 * @param {Object} data Export completion data from server.
@@ -2876,18 +2986,20 @@
 			} else if (typeof data.total !== 'undefined') {
 				setVal('sscribe-success-pages', String(data.total));
 			}
+			const self = this;
 			if (data.formats && data.formats.length) {
-				setVal(
-					'sscribe-success-formats',
-					data.formats.length > 1
-						? data.formats.length + ' formats: ' + data.formats.join(', ').toUpperCase()
-						: String(data.formats[0]).toUpperCase()
-				);
+				if (data.formats.length > 1) {
+					const labels = data.formats.map(function (f) {
+						return self.prettyFormatLabel(f);
+					});
+					setVal('sscribe-success-formats', data.formats.length + ' formats: ' + labels.join(', '));
+				} else {
+					setVal('sscribe-success-formats', self.prettyFormatLabel(data.formats[0]));
+				}
 			} else if (typeof data.format !== 'undefined') {
-				setVal('sscribe-success-formats', String(data.format).toUpperCase());
+				setVal('sscribe-success-formats', self.prettyFormatLabel(data.format));
 			} else if (data.filename && /\.zip$/i.test(data.filename)) {
-				const stem = data.filename.replace(/\.zip$/i, '');
-				setVal('sscribe-success-formats', stem.toUpperCase());
+				setVal('sscribe-success-formats', self.prettyFilenameStem(data.filename));
 			}
 			if (typeof data.size !== 'undefined' && data.size) {
 				const formatted =

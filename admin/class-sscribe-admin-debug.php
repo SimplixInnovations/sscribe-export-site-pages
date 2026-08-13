@@ -260,6 +260,7 @@ class SScribe_Admin_Debug {
 
 		$allowed_levels = array(
 			'ALL',
+			'AUDIT',
 			'DEBUG',
 			'INFO',
 			'NOTICE',
@@ -438,7 +439,7 @@ class SScribe_Admin_Debug {
 		}
 
 		$filter_level = strtoupper( self::get_post_text( 'filter_level', 20 ) ?: 'ALL' );
-		if ( ! in_array( $filter_level, array( 'ALL', 'DEBUG', 'INFO', 'NOTICE', 'WARNING', 'ERROR', 'CRITICAL', 'ALERT', 'EMERGENCY' ), true ) ) {
+		if ( ! in_array( $filter_level, array( 'ALL', 'AUDIT', 'DEBUG', 'INFO', 'NOTICE', 'WARNING', 'ERROR', 'CRITICAL', 'ALERT', 'EMERGENCY' ), true ) ) {
 			$filter_level = 'ALL';
 		}
 		$search     = self::get_post_text( 'search', 200 );
@@ -871,6 +872,7 @@ class SScribe_Admin_Debug {
 			'EMERGENCY' => 7,
 		);
 		$filter_priority = $priorities[ $filter_level ] ?? null;
+		$filter_audit    = ( 'AUDIT' === $filter_level );
 
 		foreach ( $lines as $line ) {
 			$line = is_scalar( $line ) ? (string) $line : '';
@@ -880,7 +882,12 @@ class SScribe_Admin_Debug {
 
 			$entry = $this->parse_log_line( $line );
 
-			if ( 'ALL' !== $filter_level && null !== $filter_priority ) {
+			if ( $filter_audit ) {
+				$entry_message = isset( $entry['message'] ) && is_scalar( $entry['message'] ) ? (string) $entry['message'] : '';
+				if ( 0 !== strncasecmp( $entry_message, '[AUDIT]', 7 ) ) {
+					continue;
+				}
+			} elseif ( 'ALL' !== $filter_level && null !== $filter_priority ) {
 				$entry_priority = $priorities[ strtoupper( $entry['level'] ) ] ?? 0;
 				if ( $entry_priority < $filter_priority ) {
 					continue;

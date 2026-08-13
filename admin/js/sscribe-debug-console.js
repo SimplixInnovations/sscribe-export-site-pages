@@ -141,6 +141,10 @@
 			this.$rotatedHint = $('.sscribe-debug-rotated-hint');
 			this.$helpContent = $('#sscribe-debug-help-content');
 			this.$refreshPaused = $('#sscribe-debug-refresh-paused');
+			this.$staleBanner = $('#sscribe-debug-stale-banner');
+			this.$staleBannerMessage = $('#sscribe-debug-stale-banner-message');
+			this.$enableAndClearBtn = $('#sscribe-debug-enable-and-clear');
+			this.$emptyEnableBtn = $('#sscribe-debug-empty-enable');
 		},
 		unbindEvents: function () {
 			this.$saveSettings.off('.sscribe');
@@ -288,7 +292,16 @@
 					if (!$btn.data('original-text')) {
 						$btn.data('original-text', $btn.text());
 					}
-					$btn.data('confirming', true).addClass('sscribe-btn-confirming').text('Click again to confirm');
+					const n = self.lastEntryCount || 0;
+					let confirmLabel;
+					if (n <= 0) {
+						confirmLabel = self.clearBtnOriginalText;
+					} else if (n === 1) {
+						confirmLabel = 'Clear 1 log entry';
+					} else {
+						confirmLabel = 'Clear ' + n + ' log entries';
+					}
+					$btn.data('confirming', true).addClass('sscribe-btn-confirming').text(confirmLabel).attr('aria-label', confirmLabel);
 					self.clearBtnTimeout = setTimeout(function () {
 						if (self.$clearBtn) {
 							self.$clearBtn
@@ -301,24 +314,46 @@
 					}, 3000);
 				}
 			});
+			if (this.$enableAndClearBtn && this.$enableAndClearBtn.length) {
+				this.$enableAndClearBtn.on('click.sscribe', function () {
+					if (self.$enabled && !self.$enabled.is(':checked')) {
+						self.$enabled.prop('checked', true).attr('aria-checked', 'true').trigger('change');
+					}
+					if (self.$staleBanner && self.$staleBanner.length) {
+						self.$staleBanner.addClass('sscribe-hidden').attr('hidden', true);
+					}
+					if (self.$saveFeedback && self.$saveFeedback.length) {
+						self.$saveFeedback.removeClass('error').text('Saved');
+					}
+					self.saveSettings(self.isAutoRefresh);
+				});
+			}
+			if (this.$emptyEnableBtn && this.$emptyEnableBtn.length) {
+				this.$emptyEnableBtn.on('click.sscribe', function () {
+					if (self.$enabled && !self.$enabled.is(':checked')) {
+						self.$enabled.prop('checked', true).attr('aria-checked', 'true').trigger('change');
+					}
+					self.saveSettings(self.isAutoRefresh);
+				});
+			}
 			this.$container.on('click.sscribe', '#sscribe-debug-help-btn', function () {
 				const helpContent = self.$helpContent && self.$helpContent[0];
 				const helpBtn = document.getElementById('sscribe-debug-help-btn');
 				if (helpContent) {
 					const overlay = document.createElement('div');
-					overlay.className = 'sscribe-help-overlay';
-					overlay.setAttribute('aria-hidden', 'true');
+					overlay.className = 'sscribe-modal';
+					overlay.setAttribute('role', 'dialog');
+					overlay.setAttribute('aria-modal', 'true');
+					overlay.setAttribute('aria-labelledby', 'sscribe-debug-help-title');
+					overlay.setAttribute('aria-hidden', 'false');
 					const dialog = document.createElement('div');
-					dialog.className = 'sscribe-help-dialog';
-					dialog.setAttribute('role', 'dialog');
-					dialog.setAttribute('aria-modal', 'true');
-					dialog.setAttribute('aria-labelledby', 'sscribe-debug-help-title');
+					dialog.className = 'sscribe-modal-content';
+					dialog.setAttribute('role', 'document');
 					dialog.setAttribute('tabindex', '-1');
 					const helpClone = helpContent.cloneNode(true);
 					if (helpClone && helpClone.removeAttribute) {
 						helpClone.removeAttribute('hidden');
 					}
-					dialog.appendChild(helpClone);
 					const priorFocus = document.activeElement;
 					const focusableSelectors =
 						'a[href], button:not([disabled]), textarea:not([disabled]), input:not([disabled]), select:not([disabled]), [tabindex]:not([tabindex="-1"])';
@@ -328,9 +363,6 @@
 					const closeDialog = function () {
 						if (document.body.contains(overlay)) {
 							document.body.removeChild(overlay);
-						}
-						if (document.body.contains(dialog)) {
-							document.body.removeChild(dialog);
 						}
 						document.removeEventListener('keydown', keyHandler);
 						if (helpBtn && helpBtn.setAttribute) {
@@ -347,7 +379,7 @@
 							return;
 						}
 						if (e.key === 'Tab') {
-							const focusableElements = Array.from(dialog.querySelectorAll(focusableSelectors));
+							const focusableElements = Array.from(overlay.querySelectorAll(focusableSelectors));
 							const first = focusableElements[0];
 							const last = focusableElements[focusableElements.length - 1];
 							if (e.shiftKey && document.activeElement === first) {
@@ -361,16 +393,32 @@
 					};
 					const closeBtn = document.createElement('button');
 					closeBtn.type = 'button';
-					closeBtn.className = 'sscribe-help-close';
-					closeBtn.textContent = '\u00D7';
+					closeBtn.className = 'sscribe-modal-close';
+					closeBtn.innerHTML = '<span aria-hidden="true">&times;</span>';
 					closeBtn.setAttribute('aria-label', 'Close dialog');
 					closeBtn.addEventListener('click', closeDialog);
-					dialog.appendChild(closeBtn);
-					overlay.addEventListener('click', closeDialog);
+					const header = document.createElement('div');
+					header.className = 'sscribe-modal-header';
+					const clonedTitle = helpClone.querySelector('#sscribe-debug-help-title');
+					const titleText = clonedTitle ? clonedTitle.textContent : 'Help';
+					const headerTitle = document.createElement('h3');
+					headerTitle.id = 'sscribe-debug-help-title';
+					headerTitle.textContent = titleText;
+					header.appendChild(headerTitle);
+					header.appendChild(closeBtn);
+					const body = document.createElement('div');
+					body.className = 'sscribe-modal-body';
+					const clonedHelpBody = helpClone.querySelectorAll(':scope > h3, :scope > h4, :scope > p');
+					clonedHelpBody.forEach(function (node) { body.appendChild(node.cloneNode(true)); });
+					dialog.appendChild(header);
+					dialog.appendChild(body);
+					overlay.appendChild(dialog);
+					overlay.addEventListener('click', function (e) {
+						if (e.target === overlay) { closeDialog(); }
+					});
 					document.body.appendChild(overlay);
-					document.body.appendChild(dialog);
 					document.addEventListener('keydown', keyHandler);
-					const focusableElements = Array.from(dialog.querySelectorAll(focusableSelectors));
+					const focusableElements = Array.from(overlay.querySelectorAll(focusableSelectors));
 					if (focusableElements.length > 0) {
 						focusableElements[0].focus();
 					} else {
@@ -473,6 +521,7 @@
 			this.isAutoRefresh = checkedVal !== undefined ? checkedVal === 'auto' : true;
 			this.currentOffset = 0;
 			this.hasMoreEntries = true;
+			this.lastEntryCount = 0;
 			this.fetchLogs();
 			this.updateExportButtonScope();
 			const rotatedEl = this.$rotatedDetails && this.$rotatedDetails[0];
@@ -778,6 +827,7 @@
 					}
 					self.currentOffset += newEntries.length;
 					self.hasMoreEntries = self.currentOffset < totalCount;
+					self.lastEntryCount = totalCount;
 					self.$entryCount.text(1 === totalCount ? '1 entry' : totalCount + ' entries');
 					if (!self.hasMoreEntries) {
 						self.destroyObserver();
@@ -874,6 +924,9 @@
 				this.$empty.find('p').text(this.defaultEmptyMessage);
 				this.$empty.show();
 				this.destroyObserver();
+				if (this.$staleBanner && this.$staleBanner.length) {
+					this.$staleBanner.addClass('sscribe-hidden').attr('hidden', true);
+				}
 				if (extraData) {
 					if (extraData.debug_enabled === false) {
 						this.$empty
@@ -892,6 +945,17 @@
 					this.$empty.find('p').text(this.defaultEmptyMessage);
 				}
 				return;
+			}
+			if (extraData && extraData.debug_enabled === false && this.$staleBanner && this.$staleBanner.length) {
+				const count = entries.length;
+				if (this.$staleBannerMessage && this.$staleBannerMessage.length) {
+					this.$staleBannerMessage.text(
+						'Debug mode is OFF. Showing ' + count + (1 === count ? ' entry' : ' entries') + ' from previous runs.'
+					);
+				}
+				this.$staleBanner.removeClass('sscribe-hidden').attr('hidden', false);
+			} else if (this.$staleBanner && this.$staleBanner.length) {
+				this.$staleBanner.addClass('sscribe-hidden').attr('hidden', true);
 			}
 			this.$empty.hide();
 			this.$empty.find('p').text(this.defaultEmptyMessage);
@@ -1519,6 +1583,7 @@
 	function buildEntryHtml(entry, entryId) {
 		const allowedLevels = [
 			'all',
+			'audit',
 			'debug',
 			'info',
 			'notice',
@@ -1529,9 +1594,12 @@
 			'emergency',
 			'raw',
 		];
-		const entryLevel = entry.level && typeof entry.level === 'string' ? entry.level.toLowerCase() : 'info';
-		const badgeClass = allowedLevels.includes(entryLevel) ? entryLevel : 'info';
-		const dataLevel = (entry.level && typeof entry.level === 'string' ? entry.level : 'INFO').toUpperCase();
+		const entryMessage = entry && typeof entry.message === 'string' ? entry.message : '';
+		const isAudit = /^\[AUDIT\]/i.test(entryMessage);
+		const rawLevel = entry.level && typeof entry.level === 'string' ? entry.level.toLowerCase() : 'info';
+		const mappedLevel = isAudit ? 'audit' : rawLevel;
+		const badgeClass = allowedLevels.includes(mappedLevel) ? mappedLevel : 'info';
+		const dataLevel = (isAudit ? 'AUDIT' : (entry.level && typeof entry.level === 'string' ? entry.level : 'INFO')).toUpperCase();
 		let contextHtml = '';
 		if (entry.context && Object.keys(entry.context).length > 0) {
 			let contextRows = '';
@@ -1591,7 +1659,7 @@
 			'<span class="sscribe-debug-entry-badge ' +
 			escAttr(badgeClass) +
 			'">' +
-			escHtml((entry.level || 'INFO').toUpperCase()) +
+			escHtml(isAudit ? 'AUDIT' : (entry.level || 'INFO').toUpperCase()) +
 			'</span>' +
 			'<span class="sscribe-debug-entry-time">' +
 			escHtml(formatLocalTimestamp(entry.timestamp)) +
