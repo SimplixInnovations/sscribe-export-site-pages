@@ -296,8 +296,16 @@ if ( ! empty( $versions['constant'] ) ) {
 		$version_warnings[] = sprintf( 'Changelog entry not found for version %s', $versions['constant'] );
 	}
 
+	// Scope the regex to the Upgrade Notice section so it does not match the
+	// Changelog, which also contains `= X.Y.Z =` headers (one per historical
+	// release). Without scoping, the first match lands inside the Changelog
+	// span and the captured length is too short to pass the threshold below.
+	$upgrade_scope = '';
+	if ( preg_match( '/^== Upgrade Notice ==$(.*?)(?=^== |\z)/sm', $readme_content, $scope_match ) ) {
+		$upgrade_scope = $scope_match[1];
+	}
 	$upgrade_pattern = '/= ' . preg_quote( $versions['constant'], '/' ) . ' =[\s\S]*?(?== [0-9]|\z)/';
-	if ( preg_match( $upgrade_pattern, $readme_content, $upgrade_section ) ) {
+	if ( '' !== $upgrade_scope && preg_match( $upgrade_pattern, $upgrade_scope, $upgrade_section ) ) {
 		if ( strlen( trim( $upgrade_section[0] ) ) < 50 ) {
 			$version_warnings[] = 'Upgrade notice section appears to be missing or too short.';
 		}
