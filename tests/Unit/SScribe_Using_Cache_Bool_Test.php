@@ -30,6 +30,7 @@ declare( strict_types=1 );
 
 namespace SScribe\Tests\Unit;
 
+use PHPUnit\Framework\Attributes\DataProvider;
 use PHPUnit\Framework\TestCase;
 
 final class SScribe_Using_Cache_Bool_Test extends TestCase {
@@ -58,6 +59,7 @@ final class SScribe_Using_Cache_Bool_Test extends TestCase {
 	 *
 	 * @dataProvider provideSourceFile
 	 */
+	#[DataProvider( 'provideSourceFile' )]
 	public function test_every_assignment_coerces_to_bool( string $label, string $path ): void {
 		$source = file_get_contents( $path );
 		$this->assertNotFalse( $source, "Could not read $path" );
