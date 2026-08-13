@@ -94,7 +94,10 @@ The bundled Mpdf library (vendor-prefixed/mpdf/) is licensed under the GNU Gener
 == Changelog ==
 
 = 1.1.7 =
-* Release hygiene.
+* Bumped development dependencies to latest stable versions across the board (PHPUnit 13, PHPStan 2.2, WPCS 3.4, vipwpcs 3.1, phpcompatibility-wp 2.1, ESLint 10, Prettier 3.9, Stylelint 17).
+* Migrated PHPUnit test schema from annotations to native attributes (`#[DataProvider]`, `#[AllowMockObjectsWithoutExpectations]`).
+* Bumped GitHub Actions to current major versions (checkout v6, setup-node v6, cache v6, upload-artifact v6) and Node LTS to 24.
+* Removed dead `transition: width` declaration on the progress-bar finalizing state; the fill already animates via `transform: scaleX()` on its sibling class.
 
 = 1.1.6 =
 * Hardened archive ownership, download, deletion, cleanup, and index updates against path traversal, symlink, stale-lock, collision, and concurrency failures.
@@ -139,7 +142,7 @@ The bundled Mpdf library (vendor-prefixed/mpdf/) is licensed under the GNU Gener
 == Upgrade Notice ==
 
 = 1.1.7 =
-Maintenance release with internal version sync and release-hygiene cleanup.
+Maintenance release with development-tooling updates and a small admin CSS cleanup. No runtime behavior changes for end users.
 
 == Filters ==
 

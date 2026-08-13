@@ -3158,7 +3158,6 @@ body.rtl .sscribe-progress-bar-fill {
 	width: 100%;
 	background: var(--ss-success);
 	border-radius: var(--ss-radius-full);
-	transition: width 200ms ease;
 }
 
 .sscribe-status-text {
