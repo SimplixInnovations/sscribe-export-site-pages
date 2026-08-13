@@ -384,6 +384,7 @@
 					}
 				}
 			} catch (_e) {
+				// Silent: URL parsing failure leaves ?tab untouched; non-fatal.
 			}
 			this.setActiveTab(activeTabId);
 			$tabs.on('click', function (e) {
@@ -522,6 +523,7 @@
 					url.searchParams.set('tab', tabId);
 					window.history.replaceState(null, '', url.toString());
 				} catch (_e) {
+					// Silent: history-api failure leaves the URL unchanged; non-fatal.
 				}
 			}
 			if (currentTabId === tabId) {
@@ -3503,11 +3505,13 @@
 		 * itself, e.g. a redirect to the login screen), the function falls
 		 * back to generic guidance so the user still sees something useful.
 		 *
-		 * @param {string} code    Stable error code from response.data.code.
-		 * @param {string} message Error message (display only, never matched).
+		 * @param {string} code      Stable error code from response.data.code.
+		 * @param {string} _message  Reserved for future server-message fallback;
+		 *                          callers may pass error.message, the function
+		 *                          intentionally does not consume it today.
 		 * @returns {string} Guidance text.
 		 */
-		getErrorGuidance: function (code, message) {
+		getErrorGuidance: function (code, _message) {
 			const strings = (sscribe_data && sscribe_data.strings) || {};
 			const knownCodes = {
 				invalid_nonce: strings.err_session_expired,
