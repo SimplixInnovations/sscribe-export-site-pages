@@ -38,7 +38,7 @@ $sscribe_show_wp_debug_notice = ( defined( 'WP_DEBUG' ) && WP_DEBUG );
 	<div class="sscribe-debug-header">
 		<div class="sscribe-debug-title-row">
 			<h2><?php esc_html_e( 'Debug Console', 'sscribe-export-site-pages' ); ?></h2>
-			<button type="button" class="sscribe-button sscribe-button-icon" id="sscribe-debug-help-btn" aria-label="<?php esc_attr_e( 'Help', 'sscribe-export-site-pages' ); ?>" aria-controls="sscribe-debug-help-content" aria-expanded="false">
+			<button type="button" class="sscribe-button sscribe-button-icon sscribe-btn-sm" id="sscribe-debug-help-btn" aria-label="<?php esc_attr_e( 'Help', 'sscribe-export-site-pages' ); ?>" aria-controls="sscribe-debug-help-content" aria-expanded="false">
 				<span aria-hidden="true">?</span>
 			</button>
 		</div>
@@ -86,6 +86,7 @@ $sscribe_show_wp_debug_notice = ( defined( 'WP_DEBUG' ) && WP_DEBUG );
 				<label for="sscribe-debug-filter-level"><?php esc_html_e( 'Filter:', 'sscribe-export-site-pages' ); ?></label>
 				<select id="sscribe-debug-filter-level" class="sscribe-select">
 					<option value="ALL"><?php esc_html_e( 'All Levels', 'sscribe-export-site-pages' ); ?></option>
+					<option value="AUDIT"><?php esc_html_e( 'Audit', 'sscribe-export-site-pages' ); ?></option>
 					<?php foreach ( $sscribe_log_levels as $sscribe_level ) : ?>
 						<?php
 						if ( SScribe_Settings::LEVEL_ALL === $sscribe_level ) {
@@ -102,7 +103,7 @@ $sscribe_show_wp_debug_notice = ( defined( 'WP_DEBUG' ) && WP_DEBUG );
 				<span id="sscribe-session-id-desc" class="screen-reader-text"><?php esc_html_e( 'Enter a full or partial session ID to filter logs. Matching is partial (contains).', 'sscribe-export-site-pages' ); ?></span>
 			</div>
 			<div class="sscribe-debug-search">
-				<label for="sscribe-debug-search" class="screen-reader-text"><?php esc_html_e( 'Search logs:', 'sscribe-export-site-pages' ); ?></label>
+				<label for="sscribe-debug-search"><?php esc_html_e( 'Search logs:', 'sscribe-export-site-pages' ); ?></label>
 				<input type="text" id="sscribe-debug-search" class="sscribe-input" maxlength="200" placeholder="<?php esc_attr_e( 'Search logs...', 'sscribe-export-site-pages' ); ?>">
 			</div>
 		</div>
@@ -126,6 +127,21 @@ $sscribe_show_wp_debug_notice = ( defined( 'WP_DEBUG' ) && WP_DEBUG );
 		</div>
 	</div>
 
+	<div class="sscribe-debug-stale-banner sscribe-hidden" id="sscribe-debug-stale-banner" role="status" aria-live="polite">
+		<div class="sscribe-debug-stale-banner-icon" aria-hidden="true">
+			<?php echo wp_kses_post( SScribe_Helpers::get_icon( 'info', 18 ) ); ?>
+		</div>
+		<div class="sscribe-debug-stale-banner-text">
+			<strong><?php esc_html_e( 'Showing previous logs', 'sscribe-export-site-pages' ); ?></strong>
+			<span id="sscribe-debug-stale-banner-message"><?php esc_html_e( 'Debug mode is currently OFF. Entries below are from previous runs and will not update until debug mode is re-enabled.', 'sscribe-export-site-pages' ); ?></span>
+		</div>
+		<div class="sscribe-debug-stale-banner-actions">
+			<button type="button" class="sscribe-button sscribe-button-primary sscribe-button-compact" id="sscribe-debug-enable-and-clear">
+				<?php esc_html_e( 'Enable &amp; Continue', 'sscribe-export-site-pages' ); ?>
+			</button>
+		</div>
+	</div>
+
 	<div class="sscribe-debug-console-card" role="log" aria-label="<?php esc_attr_e( 'Debug log entries', 'sscribe-export-site-pages' ); ?>">
 		<div class="sscribe-debug-console-header">
 			<span class="sscribe-debug-console-title"><?php esc_html_e( 'Console Output', 'sscribe-export-site-pages' ); ?></span>
@@ -138,6 +154,9 @@ $sscribe_show_wp_debug_notice = ( defined( 'WP_DEBUG' ) && WP_DEBUG );
 					<path d="M8 18h32M16 24h8M16 30h16" stroke="currentColor" stroke-width="2" opacity="0.3"/>
 				</svg>
 				<p><?php esc_html_e( 'No log entries yet. Enable debug mode and run an export to see logs.', 'sscribe-export-site-pages' ); ?></p>
+				<button type="button" class="sscribe-button sscribe-button-primary sscribe-button-compact" id="sscribe-debug-empty-enable">
+					<?php esc_html_e( 'Enable Debug Logging', 'sscribe-export-site-pages' ); ?>
+				</button>
 			</div>
 			<div class="sscribe-debug-entries" id="sscribe-debug-entries">
 			</div>

@@ -25,6 +25,97 @@ $sscribe_can_view_health = $sscribe_can_view_health ?? false;
 $sscribe_step            = 1;
 $sscribe_export_index    = $sscribe_export_index ?? array();
 $sscribe_preflight_warnings = $sscribe_preflight_warnings ?? array();
+
+if ( ! function_exists( 'sscribe_humanize_export_filename' ) ) {
+	/**
+	 * Convert a machine export filename into a human-readable label.
+	 *
+	 * Example: "my-wordpress-website-2026-08-13-044146-en-pdf-3fd778.zip"
+	 *          -> "My Wordpress Website English PDF - Aug 13, 2026"
+	 *
+	 * @param string $sscribe_filename Filename ending in .zip.
+	 * @return string Human label, or the original stem on no match.
+	 */
+	function sscribe_humanize_export_filename( $sscribe_filename ) {
+		if ( '' === $sscribe_filename ) {
+			return '';
+		}
+		$sscribe_stem = preg_replace( '/\.zip$/i', '', $sscribe_filename );
+		if ( ! is_string( $sscribe_stem ) ) {
+			$sscribe_stem = '';
+		}
+		$sscribe_date_match = array();
+		if ( preg_match( '/(\d{4}-\d{2}-\d{2})(?:[-T](\d{2})(\d{2})(\d{2}))?/', $sscribe_stem, $sscribe_date_match ) ) {
+			$sscribe_stem = str_replace( $sscribe_date_match[0], '', $sscribe_stem );
+		}
+		$sscribe_stem = preg_replace( '/-[a-f0-9]{4,8}$/i', '', $sscribe_stem );
+		$sscribe_stem = trim( preg_replace( '/-+/', '-', $sscribe_stem ), '-' );
+		$sscribe_parts = array_filter( explode( '-', $sscribe_stem ) );
+		$sscribe_langs = array(
+			'en' => 'English',
+			'de' => 'German',
+			'fr' => 'French',
+			'es' => 'Spanish',
+			'it' => 'Italian',
+			'pt' => 'Portuguese',
+			'nl' => 'Dutch',
+			'pl' => 'Polish',
+			'ru' => 'Russian',
+			'ja' => 'Japanese',
+			'zh' => 'Chinese',
+			'ar' => 'Arabic',
+			'tr' => 'Turkish',
+			'sv' => 'Swedish',
+			'fi' => 'Finnish',
+			'da' => 'Danish',
+			'no' => 'Norwegian',
+			'cs' => 'Czech',
+			'el' => 'Greek',
+			'he' => 'Hebrew',
+			'hi' => 'Hindi',
+			'id' => 'Indonesian',
+			'ko' => 'Korean',
+			'ro' => 'Romanian',
+			'th' => 'Thai',
+			'uk' => 'Ukrainian',
+			'vi' => 'Vietnamese',
+		);
+		$sscribe_tokens = array(
+			'all'     => 'all',
+			'langs'   => 'languages',
+			'formats' => 'formats',
+			'pages'  => 'pages',
+			'posts'  => 'posts',
+			'and'    => '+',
+		);
+		$sscribe_out = array();
+		foreach ( $sscribe_parts as $sscribe_part ) {
+			$sscribe_lower = strtolower( $sscribe_part );
+			if ( isset( $sscribe_langs[ $sscribe_lower ] ) ) {
+				$sscribe_out[] = $sscribe_langs[ $sscribe_lower ];
+				continue;
+			}
+			if ( isset( $sscribe_tokens[ $sscribe_lower ] ) ) {
+				$sscribe_out[] = $sscribe_tokens[ $sscribe_lower ];
+				continue;
+			}
+			$sscribe_out[] = ucfirst( $sscribe_lower );
+		}
+		$sscribe_label = implode( ' ', $sscribe_out );
+		$sscribe_label = preg_replace( '/\s+/', ' ', $sscribe_label );
+		$sscribe_label = str_replace(
+			array( 'Pdf', 'Docx', 'Html', 'Md' ),
+			array( 'PDF', 'DOCX', 'HTML', 'MD' ),
+			$sscribe_label
+		);
+		if ( ! empty( $sscribe_date_match[1] ) ) {
+			$sscribe_ts         = strtotime( $sscribe_date_match[1] );
+			$sscribe_friendly   = $sscribe_ts ? gmdate( 'M j, Y', $sscribe_ts ) : $sscribe_date_match[1];
+			$sscribe_label      = trim( $sscribe_label . ' - ' . $sscribe_friendly );
+		}
+		return '' !== $sscribe_label ? $sscribe_label : $sscribe_stem;
+	}
+}
 ?>
 
 <a class="sscribe-skip-link screen-reader-text" href="#sscribe-main-content"><?php esc_html_e( 'Skip to export configuration', 'sscribe-export-site-pages' ); ?></a>
@@ -104,7 +195,7 @@ $sscribe_preflight_warnings = $sscribe_preflight_warnings ?? array();
 				<?php esc_html_e( 'History', 'sscribe-export-site-pages' ); ?>
 			</button>
 			<?php if ( $sscribe_can_view_health ) : ?>
-			<button type="button" class="sscribe-tab-btn" id="sscribe-tab-btn-docs" data-tab="docs" role="tab" aria-selected="false" aria-controls="sscribe-tab-docs">
+			<button type="button" class="sscribe-tab-btn" id="sscribe-tab-btn-support" data-tab="support" role="tab" aria-selected="false" aria-controls="sscribe-tab-support">
 				<?php
 				echo wp_kses_post( SScribe_Helpers::get_icon( 'info', 16 ) );
 				?>
@@ -340,7 +431,7 @@ $sscribe_preflight_warnings = $sscribe_preflight_warnings ?? array();
 								'markdown' => array(
 									'label' => __( 'Markdown', 'sscribe-export-site-pages' ),
 									'icon'  => 'file-md',
-									'desc'  => __( 'Portable markdown text', 'sscribe-export-site-pages' ),
+									'desc'  => __( 'Plain text export', 'sscribe-export-site-pages' ),
 								),
 							);
 							foreach ( $sscribe_formats as $sscribe_format_key => $sscribe_format_data ) :
@@ -792,7 +883,13 @@ $sscribe_preflight_warnings = $sscribe_preflight_warnings ?? array();
 											<?php endif; ?>
 										</div>
 										<div class="sscribe-file-details">
-											<strong><?php echo esc_html( $sscribe_export['filename'] ); ?></strong>
+											<?php
+											$sscribe_human_label = sscribe_humanize_export_filename( $sscribe_export['filename'] );
+											?>
+											<strong title="<?php echo esc_attr( $sscribe_human_label ); ?>"><?php echo esc_html( $sscribe_export['filename'] ); ?></strong>
+											<?php if ( '' !== $sscribe_human_label && strtolower( $sscribe_human_label ) !== strtolower( $sscribe_export['filename'] ) ) : ?>
+												<span class="sscribe-file-human-label"><?php echo esc_html( $sscribe_human_label ); ?></span>
+											<?php endif; ?>
 											<span class="sscribe-file-meta">
 												<?php echo esc_html( wp_date( $sscribe_date_fmt . ' ' . $sscribe_time_fmt, $sscribe_export['time'] ) ); ?>
 												<span class="sscribe-meta-sep" aria-hidden="true">·</span>
@@ -852,7 +949,7 @@ $sscribe_preflight_warnings = $sscribe_preflight_warnings ?? array();
 			</div>
 
 			<?php if ( $sscribe_can_view_health ) : ?>
-			<div class="sscribe-tab-content" id="sscribe-tab-docs" role="tabpanel" aria-labelledby="sscribe-tab-btn-docs" aria-hidden="true" tabindex="-1">
+			<div class="sscribe-tab-content" id="sscribe-tab-support" role="tabpanel" aria-labelledby="sscribe-tab-btn-support" aria-hidden="true" tabindex="-1">
 				<div class="sscribe-support-master">
 					<div class="sscribe-support-sidebar">
 
