@@ -219,9 +219,11 @@
 				return;
 			}
 			this._originalTitle = document.title;
+			this._lastAnnouncedBucket = -1;
 			this.bindEvents();
 			this.initializeTabs();
 			this.initializeRadiogroups();
+			this.initAutoDownloadPreference();
 			this.adjustToastContainerPosition();
 			if (!SScribe._visibilityInstalled && typeof document !== 'undefined') {
 				document.addEventListener('visibilitychange', $.proxy(this, 'handleVisibilityChange'));
@@ -279,6 +281,7 @@
 			$('input[name="sscribe_language"]').on('change.sscribe', $.proxy(this.onLanguageChange, this));
 			$('input[name="sscribe_post_status"]').on('change.sscribe', $.proxy(this.updateConfigSummary, this));
 			$('input[name="sscribe_format"]').on('change.sscribe', $.proxy(this.onFormatChange, this));
+			$(document).on('change.sscribe', '#sscribe-auto-download-toggle', $.proxy(this.onAutoDownloadToggle, this));
 			$(document).on('click.sscribe', '.sscribe-delete-btn', $.proxy(this.deleteExport, this));
 			$(document).on(
 				'click.sscribe',
@@ -1406,6 +1409,10 @@
 			if (!this.sessionId) {
 				return;
 			}
+			if (typeof this._originalTitle === 'string' && '' !== this._originalTitle) {
+				document.title = this._originalTitle;
+			}
+			this._lastAnnouncedBucket = -1;
 			const confirmTitle = (sscribe_data.strings && sscribe_data.strings.cancel_title) || 'Cancel this export?';
 			const confirmDesc =
 				(sscribe_data.strings && sscribe_data.strings.cancel_confirm) ||
@@ -1482,8 +1489,52 @@
 					: 'Export complete! You can start a new export now.';
 			this.showToast(msg, 'success', 6000);
 		},
+		initAutoDownloadPreference: function () {
+			const $toggle = $('#sscribe-auto-download-toggle');
+			if (!$toggle.length) {
+				return;
+			}
+			const siteDefault = !!(sscribe_data && sscribe_data.auto_download);
+			let stored = siteDefault;
+			try {
+				const raw = window.localStorage.getItem('sscribe_auto_download_pref');
+				if (raw === '1') {
+					stored = true;
+				} else if (raw === '0') {
+					stored = false;
+				}
+			} catch (_e) {
+				stored = siteDefault;
+			}
+			$toggle.prop('checked', stored);
+		},
+		onAutoDownloadToggle: function () {
+			const $toggle = $('#sscribe-auto-download-toggle');
+			const value = $toggle.is(':checked') ? '1' : '0';
+			try {
+				window.localStorage.setItem('sscribe_auto_download_pref', value);
+			} catch (_e) {
+				// Storage quota or sandboxed iframe; preference will not persist for this session.
+			}
+		},
+		shouldAutoDownload: function () {
+			const siteDefault = !!(sscribe_data && sscribe_data.auto_download);
+			let stored = siteDefault;
+			try {
+				const raw = window.localStorage.getItem('sscribe_auto_download_pref');
+				if (raw === '1') {
+					stored = true;
+				} else if (raw === '0') {
+					stored = false;
+				}
+			} catch (_e) {
+				stored = siteDefault;
+			}
+			return stored;
+		},
 		exportComplete: function (data, isAutoDownload) {
 			this.isProcessing = false;
+			this._lastAnnouncedBucket = -1;
 			const progressFill = document.getElementById('sscribe-progress-bar');
 			if (progressFill) {
 				progressFill.classList.remove('sscribe-progress-bar-fill-finalizing');
@@ -1504,7 +1555,7 @@
 					.fadeIn(400, function () {
 						if (data.download_url) {
 							$('#sscribe-download-btn').attr('href', data.download_url);
-							if (isAutoDownload !== false) {
+							if (isAutoDownload !== false && self.shouldAutoDownload()) {
 								const a = document.createElement('a');
 								a.href = data.download_url;
 								a.download = '';
@@ -1779,8 +1830,26 @@
 			}
 			const maxRows = 50;
 			const totalExports = exports.length;
+			const visibleCount = Math.min(totalExports, maxRows);
 			let html = '';
-			for (let i = 0; i < Math.min(totalExports, maxRows); i++) {
+			html +=
+				'<table class="sscribe-history-table-element">' +
+				'<caption class="screen-reader-text">' +
+				this.escapeHtml(strings.history_caption || 'Recent export packages') +
+				'</caption>' +
+				'<thead><tr>' +
+				'<th scope="col" class="sscribe-history-col-check"><span class="screen-reader-text">' +
+				this.escapeHtml(strings.history_col_select || 'Select') +
+				'</span></th>' +
+				'<th scope="col" class="sscribe-history-col-file">' +
+				this.escapeHtml(strings.history_col_export || 'Export') +
+				'</th>' +
+				'<th scope="col" class="sscribe-history-col-actions"><span class="screen-reader-text">' +
+				this.escapeHtml(strings.history_col_actions || 'Actions') +
+				'</span></th>' +
+				'</tr></thead>' +
+				'<tbody aria-rowcount="' + visibleCount + '">';
+			for (let i = 0; i < visibleCount; i++) {
 				const exp = exports[i] && typeof exports[i] === 'object' ? exports[i] : {};
 				const filename = typeof exp.filename === 'string' ? exp.filename : '';
 				const flagUrl = this.getSafeSameOriginUrl(exp.flag_url);
@@ -1788,7 +1857,8 @@
 				if (!filename) {
 					continue;
 				}
-				html += '<div class="sscribe-history-row" data-filename="' + this.escapeHtml(filename) + '">';
+				html += '<tr class="sscribe-history-row" data-filename="' + this.escapeHtml(filename) + '" aria-rowindex="' + (i + 1) + '">';
+				html += '<td class="sscribe-history-cell-check">';
 				html +=
 					'<label class="sscribe-history-check-label">' +
 					'<input type="checkbox" class="sscribe-history-check" value="' +
@@ -1796,7 +1866,8 @@
 					'">' +
 					'<span class="sscribe-check-visual"></span>' +
 					'</label>';
-				html += '<div class="sscribe-history-file">';
+				html += '</td>';
+				html += '<td class="sscribe-history-cell-file"><div class="sscribe-history-file">';
 				html += '<div class="sscribe-file-icon">';
 				if (flagUrl) {
 					html +=
@@ -1824,8 +1895,8 @@
 					' : ' +
 					this.escapeHtml(exp.size_formatted || exp.size || '') +
 					'</span>';
-				html += '</div></div>';
-				html += '<div class="sscribe-history-actions">';
+				html += '</div></div></td>';
+				html += '<td class="sscribe-history-cell-actions"><div class="sscribe-history-actions">';
 				if (downloadUrl) {
 					html +=
 						'<a href="' +
@@ -1839,9 +1910,9 @@
 						'</a>';
 				} else {
 					html +=
-						'<span class="sscribe-button sscribe-button-outline sscribe-button-sm" aria-disabled="true">' +
+						'<button type="button" class="sscribe-button sscribe-button-outline sscribe-button-sm sscribe-button-disabled" disabled>' +
 						this.escapeHtml(strings.download_unavailable || 'Download unavailable') +
-						'</span>';
+						'</button>';
 				}
 				html +=
 					'<button type="button" class="sscribe-button sscribe-button-outline sscribe-button-sm sscribe-log-btn" data-filename="' +
@@ -1857,14 +1928,16 @@
 					'<button type="button" class="sscribe-button sscribe-button-outline sscribe-button-sm sscribe-button-danger sscribe-delete-btn" data-filename="' +
 					this.escapeHtml(filename) +
 					'" title="' +
-					this.escapeHtml(strings.delete_tooltip || 'Delete') +
+					this.escribeHtml(strings.delete_tooltip || 'Delete') +
 					'" aria-label="' +
 					this.escapeHtml(strings.delete_tooltip || 'Delete') +
 					'">' +
 					this.escapeHtml(strings.delete_label || 'Delete') +
 					'</button>';
-				html += '</div></div>';
+				html += '</div></td>';
+				html += '</tr>';
 			}
+			html += '</tbody></table>';
 			$table.html(html);
 		},
 		updateBulkBar: function () {
@@ -2067,15 +2140,13 @@
 					.css('width', percentage + '%');
 			}
 			$('#sscribe-progress-text').text(percentage + '%');
-			const liveRegion = document.getElementById('sscribe-live-region');
-			if (liveRegion) {
+			const bucket = Math.floor(percentage / 10);
+			if (bucket !== this._lastAnnouncedBucket) {
+				this._lastAnnouncedBucket = bucket;
 				const prefix =
 					(sscribe_data.strings && sscribe_data.strings.export_progress_prefix) || 'Export progress:';
-				const tplProg = (sscribe_data.strings && sscribe_data.strings.live_region_progress) || '%1$s %2$d%%';
-				liveRegion.textContent = tplProg.replace('%1$s', prefix).replace('%2$d', percentage);
+				this.announce(prefix + ' ' + percentage + '%');
 			}
-			const titleTpl = (sscribe_data.strings && sscribe_data.strings.document_title) || '(%d%%) SScribe Export';
-			document.title = titleTpl.replace('%d', percentage).replace('%%', '%');
 		},
 		updatePhase: function (phase) {
 			const $steps = $('.sscribe-phase-step');
@@ -2104,6 +2175,9 @@
 			}
 		},
 		showProgress: function () {
+			if (typeof this._originalTitle !== 'string' || '' === this._originalTitle) {
+				this._originalTitle = document.title;
+			}
 			$('#sscribe-download-area').addClass('sscribe-hidden');
 			$('#sscribe-error-area').addClass('sscribe-hidden');
 			$('#sscribe-progress-area')
@@ -2763,10 +2837,10 @@
 				}
 			});
 			setTimeout(function () {
-				if ($proceed[0] && !$proceed.prop('disabled')) {
-					$proceed.trigger('focus');
-				} else if ($cancel[0]) {
+				if ($cancel[0]) {
 					$cancel.trigger('focus');
+				} else if ($proceed[0] && !$proceed.prop('disabled')) {
+					$proceed.trigger('focus');
 				}
 			}, 0);
 		},

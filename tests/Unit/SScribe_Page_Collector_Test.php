@@ -127,4 +127,53 @@ class SScribe_Page_Collector_Test extends TestCase
 
         unset($GLOBALS['sscribe_test_wp_query_chunks'], $GLOBALS['sscribe_test_wp_query_calls']);
     }
+
+    protected function tearDown(): void
+    {
+        unset($GLOBALS['sscribe_test_registered_post_types']);
+        parent::tearDown();
+    }
+
+    public function test_resolve_post_type_for_query_default_returns_first_selectable(): void
+    {
+        $collector = new SScribe_Page_Collector();
+
+        $result = $collector->resolve_post_type_for_query('unknown_type');
+
+        $this->assertSame('page', $result);
+    }
+
+    public function test_resolve_post_type_for_query_any_returns_array_containing_page_post(): void
+    {
+        $collector = new SScribe_Page_Collector();
+
+        $result = $collector->resolve_post_type_for_query('any');
+
+        $this->assertIsArray($result);
+        $this->assertContains('page', $result);
+        $this->assertContains('post', $result);
+    }
+
+    public function test_resolve_post_type_for_query_filters_via_sscribe_allowed_post_types(): void
+    {
+        $GLOBALS['sscribe_test_registered_post_types'] = array(
+            'portfolio' => (object) array(
+                'name'   => 'portfolio',
+                'labels' => (object) array('singular_name' => 'Portfolio'),
+                'public' => true,
+            ),
+        );
+
+        $collector = new SScribe_Page_Collector();
+
+        $allowed = array('page');
+        $result  = $collector->resolve_post_type_for_query('portfolio', $allowed);
+
+        $this->assertSame('page', $result);
+
+        $allowed_with_portfolio = array('page', 'portfolio');
+        $result2 = $collector->resolve_post_type_for_query('portfolio', $allowed_with_portfolio);
+
+        $this->assertSame('portfolio', $result2);
+    }
 }

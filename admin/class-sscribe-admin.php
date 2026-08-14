@@ -252,12 +252,15 @@ class SScribe_Admin {
 	 * @return array<string, mixed>
 	 */
 	private function build_localized_data(): array {
+		$post_type_strings = $this->build_post_type_strings();
+
 		return array(
 			'ajaxurl'         => admin_url( 'admin-ajax.php' ),
 			'nonce'           => wp_create_nonce( 'sscribe_export_nonce' ),
 			'download_nonce'  => $this->get_download_nonce(),
 			'health_nonce'    => current_user_can( SScribe_Capabilities::get_health_required() ) ? wp_create_nonce( 'sscribe_health_nonce' ) : '',
 			'icons_url'       => SSCRIBE_PLUGIN_URL . 'assets/icons/',
+			'auto_download'   => (bool) apply_filters( 'sscribe_auto_download_on_complete', false ),
 
 			'refresh_interval' => min( 300000, max( 5000, (int) apply_filters( 'sscribe_debug_refresh_interval_ms', 10000 ) ) ),
 			'strings'        => array(
@@ -278,6 +281,10 @@ class SScribe_Admin {
 				'delete_failed'          => __( 'Failed to delete export.', 'sscribe-export-site-pages' ),
 				'delete_success'         => __( 'Export deleted.', 'sscribe-export-site-pages' ),
 				'history_empty'          => __( 'Your recent export packages will appear here.', 'sscribe-export-site-pages' ),
+				'history_caption'        => __( 'Recent export packages', 'sscribe-export-site-pages' ),
+				'history_col_select'     => __( 'Select', 'sscribe-export-site-pages' ),
+				'history_col_export'     => __( 'Export', 'sscribe-export-site-pages' ),
+				'history_col_actions'    => __( 'Actions', 'sscribe-export-site-pages' ),
 				'estimated_time'         => __( 'Estimated time:', 'sscribe-export-site-pages' ),
 				'minutes'                => __( 'minutes', 'sscribe-export-site-pages' ),
 				'minute'                 => __( 'minute', 'sscribe-export-site-pages' ),
@@ -343,6 +350,12 @@ class SScribe_Admin {
 				'preflight_continue'     => __( 'Continue Anyway', 'sscribe-export-site-pages' ),
 				'preflight_cancel'       => __( 'Cancel Export', 'sscribe-export-site-pages' ),
 				'close'                  => __( 'Close', 'sscribe-export-site-pages' ),
+				'rotated_view_label'     => __( 'View', 'sscribe-export-site-pages' ),
+				'rotated_export_label'   => __( 'Export', 'sscribe-export-site-pages' ),
+				'rotated_delete_label'   => __( 'Delete', 'sscribe-export-site-pages' ),
+				'rotated_view'           => __( 'View rotated log', 'sscribe-export-site-pages' ),
+				'rotated_export'         => __( 'Export rotated log', 'sscribe-export-site-pages' ),
+				'rotated_delete'         => __( 'Delete rotated log', 'sscribe-export-site-pages' ),
 				'generating_preview'     => __( 'Generating preview...', 'sscribe-export-site-pages' ),
 				'preview_note'           => __( 'Preview is generated from the first page and may differ from the final export.', 'sscribe-export-site-pages' ),
 				'preview_total_pages'    => __( 'Total pages:', 'sscribe-export-site-pages' ),
@@ -374,8 +387,6 @@ class SScribe_Admin {
 				'download_unavailable'   => __( 'Download unavailable.', 'sscribe-export-site-pages' ),
 				/* translators: %1$d: current page number, %2$d: total pages */
 				'progress_pages'         => __( 'Processing %1$d of %2$d pages', 'sscribe-export-site-pages' ),
-				/* translators: %d: progress percentage (e.g. 42) */
-				'document_title'         => __( '(%d%%) SScribe Export', 'sscribe-export-site-pages' ),
 				'err_cancel_failed'      => __( 'Could not confirm cancellation : the server may still be processing. Reload the page before starting a new export.', 'sscribe-export-site-pages' ),
 
 				'bulk_delete_confirm'    => __( 'Delete all selected exports? This cannot be undone.', 'sscribe-export-site-pages' ),
@@ -387,7 +398,10 @@ class SScribe_Admin {
 
 				'post_type_page'         => __( 'Pages', 'sscribe-export-site-pages' ),
 				'post_type_post'         => __( 'Posts', 'sscribe-export-site-pages' ),
-				'post_type_any'          => __( 'Both', 'sscribe-export-site-pages' ),
+				'post_type_any'          => __( 'All types', 'sscribe-export-site-pages' ),
+
+				/* translators: 1: first post type label, 2: second post type label */
+				'post_type_label'        => __( '%1$s + %2$s', 'sscribe-export-site-pages' ),
 
 				'status_publish'         => __( 'Published', 'sscribe-export-site-pages' ),
 				'status_draft'           => __( 'Draft', 'sscribe-export-site-pages' ),
@@ -401,8 +415,113 @@ class SScribe_Admin {
 				'live_region_no_pages'   => __( 'No pages match selected options. Export button is disabled.', 'sscribe-export-site-pages' ),
 				/* translators: 1: prefix (e.g. "Export progress:"), 2: percentage */
 				'live_region_progress'   => __( '%1$s %2$d%%', 'sscribe-export-site-pages' ),
-			),
+			) + $post_type_strings,
 		);
+	}
+
+	/**
+	 * Build dynamic `post_type_<slug>` strings for every selectable post type.
+	 *
+	 * Falls back to `Page`/`Post` when the collector is unavailable so the
+	 * admin JS always has a label it can resolve for the common case.
+	 *
+	 * @return array<string, string>
+	 */
+	private function build_post_type_strings(): array {
+		$strings = array(
+			'post_type_any' => __( 'All types', 'sscribe-export-site-pages' ),
+		);
+
+		$registered = function_exists( 'get_post_types' )
+			? get_post_types( array( 'public' => true ), 'objects' )
+			: array();
+
+		if ( ! is_array( $registered ) ) {
+			$registered = array();
+		}
+
+		unset( $registered['attachment'] );
+
+		$selectable = $this->collector->get_selectable_post_types();
+
+		foreach ( $selectable as $slug ) {
+			$slug = (string) $slug;
+			if ( '' === $slug || isset( $strings[ 'post_type_' . $slug ] ) ) {
+				continue;
+			}
+			$label = '';
+			if ( isset( $registered[ $slug ] ) && isset( $registered[ $slug ]->labels->singular_name ) ) {
+				$label = (string) $registered[ $slug ]->labels->singular_name;
+			}
+			if ( '' === $label ) {
+				$label = ucfirst( $slug );
+			}
+			$strings[ 'post_type_' . $slug ] = $label;
+		}
+
+		if ( ! isset( $strings['post_type_page'] ) ) {
+			$strings['post_type_page'] = __( 'Pages', 'sscribe-export-site-pages' );
+		}
+		if ( ! isset( $strings['post_type_post'] ) ) {
+			$strings['post_type_post'] = __( 'Posts', 'sscribe-export-site-pages' );
+		}
+
+		return $strings;
+	}
+
+	/**
+	 * Build the per-CPT row data the admin UI iterates over for the
+	 * post-type radio cards. Each row carries slug, label, icon slug, count,
+	 * and a boolean indicating whether it is the synthetic `any` aggregate.
+	 *
+	 * @return array<int, array<string, mixed>>
+	 */
+	private function build_selectable_type_rows(): array {
+		$icons = array(
+			'page' => 'file-text',
+			'post' => 'article',
+		);
+
+		$selectable = $this->collector->get_selectable_post_types();
+
+		$registered = function_exists( 'get_post_types' )
+			? get_post_types( array( 'public' => true ), 'objects' )
+			: array();
+
+		$rows = array();
+		$any_count = 0;
+		foreach ( $selectable as $slug ) {
+			$slug = (string) $slug;
+			if ( '' === $slug ) {
+				continue;
+			}
+			$count = (int) $this->collector->get_page_count_only( '', 'publish', $slug );
+			$label = '';
+			if ( isset( $registered[ $slug ] ) && isset( $registered[ $slug ]->labels->singular_name ) ) {
+				$label = (string) $registered[ $slug ]->labels->singular_name;
+			}
+			if ( '' === $label ) {
+				$label = ucfirst( $slug );
+			}
+			$rows[] = array(
+				'slug'    => $slug,
+				'label'   => $label,
+				'icon'    => isset( $icons[ $slug ] ) ? $icons[ $slug ] : 'file-text',
+				'count'   => $count,
+				'is_any'  => false,
+			);
+			$any_count += $count;
+		}
+
+		$rows[] = array(
+			'slug'   => 'any',
+			'label'  => __( 'All types', 'sscribe-export-site-pages' ),
+			'icon'   => 'copy',
+			'count'  => $any_count,
+			'is_any' => true,
+		);
+
+		return $rows;
 	}
 
 	/**
@@ -413,6 +532,8 @@ class SScribe_Admin {
 		$cache_key        = 'sscribe_admin_page_data_v' . SSCRIBE_VERSION . '_' . get_current_blog_id();
 		$cached_page_data = get_transient( $cache_key );
 
+		$sscribe_selectable_types = array();
+
 		if ( is_array( $cached_page_data ) ) {
 			$sscribe_wpml_active         = $cached_page_data['wpml_active'] ?? false;
 			$sscribe_languages           = $cached_page_data['languages'] ?? array();
@@ -420,6 +541,7 @@ class SScribe_Admin {
 			$sscribe_total_posts_all     = $cached_page_data['total_posts_all'] ?? 0;
 			$sscribe_total_either_all    = $sscribe_total_pages_all + $sscribe_total_posts_all;
 			$sscribe_status_counts       = $cached_page_data['status_counts'] ?? array();
+			$sscribe_selectable_types    = $cached_page_data['selectable_types'] ?? $this->build_selectable_type_rows();
 		} else {
 
 			$sscribe_wpml_active = $this->collector->is_wpml_active();
@@ -442,14 +564,17 @@ class SScribe_Admin {
 
 			$sscribe_total_either_all = $sscribe_total_pages_all + $sscribe_total_posts_all;
 
+			$sscribe_selectable_types = $this->build_selectable_type_rows();
+
 			set_transient(
 				$cache_key,
 				array(
-					'wpml_active'     => $sscribe_wpml_active,
-					'languages'       => $sscribe_languages,
-					'total_pages_all' => $sscribe_total_pages_all,
-					'total_posts_all' => $sscribe_total_posts_all,
-					'status_counts'   => $sscribe_status_counts,
+					'wpml_active'      => $sscribe_wpml_active,
+					'languages'        => $sscribe_languages,
+					'total_pages_all'  => $sscribe_total_pages_all,
+					'total_posts_all'  => $sscribe_total_posts_all,
+					'status_counts'    => $sscribe_status_counts,
+					'selectable_types' => $sscribe_selectable_types,
 				),
 				60
 			);
