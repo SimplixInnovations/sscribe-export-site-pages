@@ -1382,6 +1382,9 @@
 						if (response.data.retry === true) {
 							SScribe.scheduleNextBatch(response.data && response.data.retry_in, true);
 						} else {
+							if (isCancelled) {
+								self._lastAnnouncedBucket = -1;
+							}
 							SScribe.showError(
 								response.data.message,
 								isCancelled,
@@ -1397,6 +1400,7 @@
 					if (SScribe.batchRetries <= SScribe.maxBatchRetries) {
 						SScribe.scheduleNextBatch(undefined, true);
 					} else {
+						self._lastAnnouncedBucket = -1;
 						const serverMsg = SScribe.parseServerError(xhr);
 						const msg = serverMsg || SScribe.getNetworkErrorMessage(xhr, 'process_batch');
 						const errData = xhr.responseJSON && xhr.responseJSON.data ? xhr.responseJSON.data : {};
