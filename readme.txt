@@ -3,7 +3,7 @@ Contributors: simplixinnovations
 Tags: export, docx, pdf, html, markdown
 Requires at least: 6.0
 Tested up to: 7.0
-Stable tag: 1.2.0
+Stable tag: 1.9.0
 Requires PHP: 8.2
 License: GPL-2.0-or-later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
@@ -93,6 +93,9 @@ The bundled Mpdf library (vendor-prefixed/mpdf/) is licensed under the GNU Gener
 
 == Changelog ==
 
+= 1.9.0 =
+* Version bump consolidating the 1.1.8 performance/security pass and the 1.2.0 WCAG 2.2 AA + custom post type release. No functional changes from 1.2.0; same shipped code, realigned to the upstream release line.
+
 = 1.2.0 =
 * Added native custom post type support to the Content Type selector. The list of selectable post types is now derived from `get_post_types( ['public' => true] )`, filtered through `sscribe_allowed_post_types`, and rendered as a dynamic list of radio cards on the admin export screen with per-type counts and labels. Each registered public post type (other than `attachment`) becomes a first-class exportable target without code changes; the legacy `'any'` aggregate is preserved for back-compat.
 * Added a WCAG 2.2 AA accessibility pass: auto-download now requires an explicit user opt-in (default off, preference persisted per-browser via `localStorage`), browser tab titles are no longer rewritten during export progress, history rows render as a real `<table>` with caption and scope semantics, debug entries use native `<details>`/`<summary>` disclosures instead of clickable `<div role="button">`, toast dismiss and form controls show proper focus rings in both light and dark mode, button text in dark mode meets 4.5:1 contrast, the disabled "Download unavailable" row is a real `<button disabled>`, and the export progress live region announces at 10% milestones instead of on every update.
@@ -158,6 +161,9 @@ The bundled Mpdf library (vendor-prefixed/mpdf/) is licensed under the GNU Gener
 * GDPR-compliant audit trail with HMAC-SHA256 hashed IP addresses
 
 == Upgrade Notice ==
+
+= 1.9.0 =
+Version bump only - same code as 1.2.0 (WCAG 2.2 AA pass, custom post type support, and the 1.1.8 perf/security hardening). No action required.
 
 = 1.2.0 =
 Feature release that adds native custom post type support, a WCAG 2.2 AA accessibility pass, and 23 new PHPUnit tests. The Content Type selector now lists every public post type registered on the site (excluding attachments) alongside Pages and Posts, with per-type counts; sites that do not register additional post types see the same UI as before. No data migration is required.
