@@ -1644,6 +1644,20 @@ if ( ! function_exists( 'esc_html__' ) ) {
 	}
 }
 
+if ( ! function_exists( 'esc_html_e' ) ) {
+	function esc_html_e( $text, $domain = 'default' ) {
+		unset( $domain );
+		echo esc_html( (string) $text );
+	}
+}
+
+if ( ! function_exists( 'esc_attr_e' ) ) {
+	function esc_attr_e( $text, $domain = 'default' ) {
+		unset( $domain );
+		echo esc_attr( (string) $text );
+	}
+}
+
 if ( ! function_exists( 'number_format_i18n' ) ) {
 	function number_format_i18n( $number, $decimals = 0 ) {
 		return number_format( (float) $number, $decimals, '.', ',' );

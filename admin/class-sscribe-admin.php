@@ -400,9 +400,6 @@ class SScribe_Admin {
 				'post_type_post'         => __( 'Posts', 'sscribe-export-site-pages' ),
 				'post_type_any'          => __( 'All types', 'sscribe-export-site-pages' ),
 
-				/* translators: 1: first post type label, 2: second post type label */
-				'post_type_label'        => __( '%1$s + %2$s', 'sscribe-export-site-pages' ),
-
 				'status_publish'         => __( 'Published', 'sscribe-export-site-pages' ),
 				'status_draft'           => __( 'Draft', 'sscribe-export-site-pages' ),
 				'status_private'         => __( 'Private', 'sscribe-export-site-pages' ),

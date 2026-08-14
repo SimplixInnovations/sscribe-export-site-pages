@@ -193,4 +193,166 @@ class SScribe_Admin_Test extends TestCase {
 
 		wp_delete_file( $export_dir . $valid_file );
 	}
+
+	public function test_build_post_type_strings_returns_any_and_per_slug_labels(): void {
+		$collector = new class() extends \SScribe_Page_Collector {
+			public function __construct() {}
+
+			public function get_selectable_post_types(): array {
+				return array( 'page', 'post', 'product' );
+			}
+		};
+
+		$admin  = new SScribe_Admin( $collector );
+		$method = new \ReflectionMethod( $admin, 'build_post_type_strings' );
+
+		$strings = $method->invoke( $admin );
+
+		$this->assertArrayHasKey( 'post_type_any', $strings );
+		$this->assertSame( 'All types', $strings['post_type_any'] );
+		$this->assertArrayHasKey( 'post_type_page', $strings );
+		$this->assertArrayHasKey( 'post_type_post', $strings );
+		$this->assertArrayHasKey( 'post_type_product', $strings );
+		$this->assertSame( 'Product', $strings['post_type_product'] );
+	}
+
+	public function test_build_post_type_strings_falls_back_to_ucfirst_when_label_missing(): void {
+		$GLOBALS['sscribe_test_registered_post_types'] = array();
+
+		$collector = new class() extends \SScribe_Page_Collector {
+			public function __construct() {}
+
+			public function get_selectable_post_types(): array {
+				return array( 'page', 'unknown_thing' );
+			}
+		};
+
+		$admin  = new SScribe_Admin( $collector );
+		$method = new \ReflectionMethod( $admin, 'build_post_type_strings' );
+
+		$strings = $method->invoke( $admin );
+
+		$this->assertSame( 'Unknown_thing', $strings['post_type_unknown_thing'] );
+
+		unset( $GLOBALS['sscribe_test_registered_post_types'] );
+	}
+
+	public function test_build_selectable_type_rows_appends_any_aggregate(): void {
+		$collector = new class() extends \SScribe_Page_Collector {
+			public function __construct() {}
+
+			public function get_selectable_post_types(): array {
+				return array( 'page', 'post' );
+			}
+
+			public function get_page_count_only( string $language = '', string $post_status = 'publish', string $post_type = 'page' ): int {
+				if ( 'post' === $post_type ) {
+					return 7;
+				}
+				return 3;
+			}
+		};
+
+		$admin  = new SScribe_Admin( $collector );
+		$method = new \ReflectionMethod( $admin, 'build_selectable_type_rows' );
+
+		$rows = $method->invoke( $admin );
+
+		$this->assertCount( 3, $rows );
+		$this->assertSame( 'page', $rows[0]['slug'] );
+		$this->assertSame( 3, $rows[0]['count'] );
+		$this->assertFalse( $rows[0]['is_any'] );
+		$this->assertSame( 'post', $rows[1]['slug'] );
+		$this->assertSame( 7, $rows[1]['count'] );
+		$this->assertSame( 'any', $rows[2]['slug'] );
+		$this->assertTrue( $rows[2]['is_any'] );
+		$this->assertSame( 10, $rows[2]['count'] );
+		$this->assertSame( 'All types', $rows[2]['label'] );
+	}
+
+	public function test_build_selectable_type_rows_uses_known_icons_per_slug(): void {
+		$collector = new class() extends \SScribe_Page_Collector {
+			public function __construct() {}
+
+			public function get_selectable_post_types(): array {
+				return array( 'page', 'post', 'product' );
+			}
+
+			public function get_page_count_only( string $language = '', string $post_status = 'publish', string $post_type = 'page' ): int {
+				return 0;
+			}
+		};
+
+		$admin  = new SScribe_Admin( $collector );
+		$method = new \ReflectionMethod( $admin, 'build_selectable_type_rows' );
+
+		$rows = $method->invoke( $admin );
+
+		$icons = array();
+		foreach ( $rows as $row ) {
+			$icons[ $row['slug'] ] = $row['icon'];
+		}
+
+		$this->assertSame( 'file-text', $icons['page'] );
+		$this->assertSame( 'article', $icons['post'] );
+		$this->assertSame( 'file-text', $icons['product'] );
+		$this->assertSame( 'copy', $icons['any'] );
+	}
+
+	public function test_partial_emits_data_sscribe_count_for_per_selectable_type(): void {
+		$collector = new class() extends \SScribe_Page_Collector {
+			public function __construct() {}
+
+			public function get_selectable_post_types(): array {
+				return array( 'page', 'post', 'product' );
+			}
+
+			public function get_page_count_only( string $language = '', string $post_status = 'publish', string $post_type = 'page' ): int {
+				if ( 'post' === $post_type ) {
+					return 12;
+				}
+				if ( 'product' === $post_type ) {
+					return 4;
+				}
+				return 8;
+			}
+		};
+
+		$admin = new SScribe_Admin( $collector );
+
+		$rows = ( new \ReflectionMethod( $admin, 'build_selectable_type_rows' ) )->invoke( $admin );
+
+		$partial_path = dirname( __DIR__, 2 ) . '/admin/partials/sscribe-admin-display.php';
+		$this->assertFileExists( $partial_path );
+
+		$sscribe_wpml_active          = false;
+		$sscribe_languages            = array();
+		$sscribe_total_pages_all      = 8;
+		$sscribe_total_posts_all      = 12;
+		$sscribe_total_either_all     = 20;
+		$sscribe_status_counts        = array();
+		$sscribe_recent_exports       = array();
+		$sscribe_debug_info           = array();
+		$sscribe_is_debug             = false;
+		$sscribe_can_view_health      = false;
+		$sscribe_export_index         = array();
+		$sscribe_preflight_warnings   = array();
+		$sscribe_selectable_types     = $rows;
+
+		ob_start();
+		include $partial_path;
+		$output = (string) ob_get_clean();
+
+		preg_match_all( '/data-sscribe-count-for="([^"]+)"/', $output, $matches );
+		$slugs = $matches[1] ?? array();
+
+		$this->assertContains( 'page', $slugs );
+		$this->assertContains( 'post', $slugs );
+		$this->assertContains( 'product', $slugs );
+		$this->assertContains( 'any', $slugs );
+		$this->assertCount( 4, $slugs );
+
+		$this->assertStringContainsString( 'data-sscribe-count-for="page"', $output );
+		$this->assertStringContainsString( 'data-sscribe-count-for="any"', $output );
+	}
 }

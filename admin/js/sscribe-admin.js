@@ -623,7 +623,7 @@
 			self._countsLoaded = false;
 			self.updateExportButton();
 			$('.sscribe-status-card-label').addClass('sscribe-loading');
-			$('#sscribe-page-count, #sscribe-post-count, #sscribe-both-count').addClass('sscribe-loading-count');
+			$('[data-sscribe-count-for]').addClass('sscribe-loading-count');
 			if (self._countsXHR && self._countsXHR.abort) {
 				self._countsXHR.abort();
 			}
@@ -647,30 +647,22 @@
 						const pageTotal = self.parseLocalizedInt(pageCounts.all) || 0;
 						const postTotal = self.parseLocalizedInt(postCounts.all) || 0;
 						const anyTotal = self.parseLocalizedInt(anyCounts.all) || 0;
-						$('#sscribe-page-count').text(pageTotal.toLocaleString());
-						$('#sscribe-post-count').text(postTotal.toLocaleString());
-						$('#sscribe-both-count').text(anyTotal.toLocaleString());
+						$('[data-sscribe-count-for="page"]').text(pageTotal.toLocaleString());
+						$('[data-sscribe-count-for="post"]').text(postTotal.toLocaleString());
+						$('[data-sscribe-count-for="any"]').text(anyTotal.toLocaleString());
 						self._countsLoaded = true;
 						self.updateConfigSummary();
 						self.updateExportButton();
 					} else {
-						$('#sscribe-page-count').text('0');
-						$('#sscribe-post-count').text('0');
-						$('#sscribe-both-count').text('0');
+						$('[data-sscribe-count-for]').text('0');
 					}
 					$('.sscribe-status-card-label').removeClass('sscribe-loading');
-					$('#sscribe-page-count, #sscribe-post-count, #sscribe-both-count').removeClass(
-						'sscribe-loading-count'
-					);
+					$('[data-sscribe-count-for]').removeClass('sscribe-loading-count');
 				},
 				error: function () {
-					$('#sscribe-page-count').text('0');
-					$('#sscribe-post-count').text('0');
-					$('#sscribe-both-count').text('0');
+					$('[data-sscribe-count-for]').text('0');
 					$('.sscribe-status-card-label').removeClass('sscribe-loading');
-					$('#sscribe-page-count, #sscribe-post-count, #sscribe-both-count').removeClass(
-						'sscribe-loading-count'
-					);
+					$('[data-sscribe-count-for]').removeClass('sscribe-loading-count');
 				},
 			});
 			if (!this._langCountsXHRs) {
@@ -908,7 +900,16 @@
 			const postTypeLabels = {
 				page: S.post_type_page || 'Pages',
 				post: S.post_type_post || 'Posts',
-				any: S.post_type_any || 'Both',
+				any: S.post_type_any || 'All types',
+			};
+			const resolvePostTypeLabel = function (slug) {
+				if (postTypeLabels[slug]) {
+					return postTypeLabels[slug];
+				}
+				if (S['post_type_' + slug]) {
+					return S['post_type_' + slug];
+				}
+				return slug;
 			};
 			const statusLabels = {
 				publish: S.status_publish || 'Published',
@@ -918,7 +919,7 @@
 				pending: S.status_pending || 'Pending',
 				all: S.status_all || 'All',
 			};
-			$('#sscribe-summary-post-type').text(postTypeLabels[postType] || postType);
+			$('#sscribe-summary-post-type').text(resolvePostTypeLabel(postType));
 			$('#sscribe-summary-status').text(statusLabels[status] || status);
 			$('#sscribe-summary-language').text(this.getLanguageLabel(language));
 			$('#sscribe-summary-format').text(format === 'all' ? S.status_all || 'All' : format.toUpperCase());
