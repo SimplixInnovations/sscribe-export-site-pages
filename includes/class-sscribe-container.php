@@ -13,13 +13,48 @@ if ( ! defined( 'ABSPATH' ) ) {
 	exit;
 }
 
+require_once __DIR__ . '/class-sscribe-container-exception.php';
+require_once __DIR__ . '/class-sscribe-container-notfound-exception.php';
+
 /**
- * Dependency injection container.
+ * Lightweight dependency injection container.
+ *
+ * This is a thin registry with a singleton lifecycle, used internally to
+ * wire up the batch processor, exporters, and helper services. It is
+ * **not** a general-purpose DI framework : keep it simple, keep it
+ * internal.
+ *
+ * The public surface (`get( $id )`, `has( $id )`) is intentionally
+ * compatible in shape with the PSR-11 `ContainerInterface` so third-party
+ * extensions written against PSR-11 can adapt to it, but the container
+ * does not `implements` the PSR-11 interface. The shipped plugin cannot
+ * rely on a Composer autoloader for the `Psr\Container` namespace
+ * (WordPress loads plugins without one), so a literal `implements`
+ * clause would fatal at activation. Callers wanting strict PSR-11
+ * compatibility can wrap any `SScribe_Container` in their own thin
+ * adapter.
+ *
+ * ## Resolution rules
+ *
+ *  - {@see SScribe_Container::get()} returns a previously resolved
+ *    singleton if one is cached, otherwise calls the bound factory
+ *    exactly once.
+ *  - Factories that are bound with {@see SScribe_Container::singleton()}
+ *    are memoized; factories bound with {@see SScribe_Container::bind()}
+ *    produce a fresh instance on every call.
+ *  - Factories receive the container instance as their single argument
+ *    so they can resolve sibling services.
+ *  - Circular dependencies throw {@see SScribe_Container_Exception}.
+ *  - Unknown service IDs throw {@see SScribe_Container_NotFound_Exception}.
+ *  - Both exception classes extend `\RuntimeException` directly, so
+ *    generic `\RuntimeException` catches work for backwards compatibility.
  *
  * @package SScribe_Export_Site_Pages
  * @subpackage Container
+ * @since   1.1.3
+ * @api     stable
  */
-class SScribe_Container {
+final class SScribe_Container {
 
 	/**
 	 * Container singleton instance.
@@ -125,7 +160,11 @@ class SScribe_Container {
 	 *
 	 * @param string $key Service identifier.
 	 * @return object
-	 * @throws \RuntimeException If service not found or circular dependency.
+	 * @throws SScribe_Container_NotFound_Exception If the service is not
+	 *         registered (PSR-11 NotFoundExceptionInterface).
+	 * @throws SScribe_Container_Exception On a circular dependency or a
+	 *         factory that returns a non-object (PSR-11
+	 *         ContainerExceptionInterface).
 	 */
 	public function resolve( string $key ): object {
 
@@ -134,16 +173,23 @@ class SScribe_Container {
 		}
 
 		if ( ! isset( $this->factories[ $key ] ) ) {
-			throw new \RuntimeException( 'Service not registered in container.' );
+			throw new SScribe_Container_NotFound_Exception(
+				sprintf(
+					/* translators: %s: Service identifier that was not registered. */
+					'Service not registered in container. Key: "%s"',
+					// phpcs:ignore WordPress.Security.EscapeOutput.ExceptionNotEscaped -- Exception message; $key is an internal container id, not user-facing output.
+					$key
+				)
+			);
 		}
 
 		if ( isset( $this->resolving[ $key ] ) ) {
-			throw new \RuntimeException(
+			throw new SScribe_Container_Exception(
 				sprintf(
 					/* translators: %s: Service identifier causing circular dependency. */
-
-					'Circular dependency detected in container while resolving: %s',
-					$key // phpcs:ignore WordPress.Security.EscapeOutput.ExceptionNotEscaped -- Exception message, not browser output.
+					'Circular dependency detected while resolving container service: %s',
+					// phpcs:ignore WordPress.Security.EscapeOutput.ExceptionNotEscaped -- Exception message; $key is an internal container id, not user-facing output.
+					$key
 				)
 			);
 		}
@@ -157,9 +203,15 @@ class SScribe_Container {
 		}
 
 		if ( ! is_object( $instance ) ) {
-			throw new \RuntimeException(
-				// phpcs:ignore WordPress.Security.EscapeOutput.ExceptionNotEscaped -- Exception message, not browser output.
-				'Container factory returned non-object type: ' . gettype( $instance )
+			throw new SScribe_Container_Exception(
+				sprintf(
+					/* translators: 1: Service identifier, 2: PHP type returned. */
+					'Container factory for "%1$s" returned non-object type: %2$s',
+					// phpcs:ignore WordPress.Security.EscapeOutput.ExceptionNotEscaped -- Exception message; $key is an internal container id, not user-facing output.
+					$key,
+					// phpcs:ignore WordPress.Security.EscapeOutput.ExceptionNotEscaped -- Exception message; gettype() returns a PHP type name (a fixed set of strings), not user input.
+					gettype( $instance )
+				)
 			);
 		}
 
@@ -181,12 +233,16 @@ class SScribe_Container {
 	}
 
 	/**
-	 * Get a resolved service (alias for resolve).
+	 * Get a resolved service (PSR-11 entry point).
 	 *
 	 * @param string $key Service identifier.
-	 * @return object
+	 * @return mixed The resolved service instance.
+	 * @throws SScribe_Container_NotFound_Exception If the service is not
+	 *         registered.
+	 * @throws SScribe_Container_Exception On a circular dependency or a
+	 *         factory error.
 	 */
-	public function get( string $key ): object {
+	public function get( string $key ): mixed {
 		return $this->resolve( $key );
 	}
 }

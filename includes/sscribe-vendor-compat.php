@@ -14,7 +14,7 @@ if ( ! defined( 'ABSPATH' ) ) {
 }
 
 $sscribe_vendor_aliases = array(
-	// Map public namespace TO internal SScribeVendor so both resolve to same class.
+
 	'PhpOffice\\PhpWord\\PhpWord'              => 'SScribeVendor\\PhpOffice\\PhpWord\\PhpWord',
 	'PhpOffice\\PhpWord\\IOFactory'            => 'SScribeVendor\\PhpOffice\\PhpWord\\IOFactory',
 	'PhpOffice\\PhpWord\\Settings'             => 'SScribeVendor\\PhpOffice\\PhpWord\\Settings',
@@ -26,10 +26,15 @@ $sscribe_vendor_aliases = array(
 	'PhpOffice\\PhpWord\\Shared\\Converter'    => 'SScribeVendor\\PhpOffice\\PhpWord\\Shared\\Converter',
 	'PhpOffice\\PhpWord\\Element\\Section'     => 'SScribeVendor\\PhpOffice\\PhpWord\\Element\\Section',
 	'PhpOffice\\PhpWord\\Element\\TextRun'     => 'SScribeVendor\\PhpOffice\\PhpWord\\Element\\TextRun',
+	'Mpdf\\Mpdf'                               => 'SScribeVendor\\Mpdf\\Mpdf',
+	'Mpdf\\HTMLParserMode'                     => 'SScribeVendor\\Mpdf\\HTMLParserMode',
+	'Mpdf\\Output\\Destination'                => 'SScribeVendor\\Mpdf\\Output\\Destination',
+	'Mpdf\\Config\\ConfigVariables'            => 'SScribeVendor\\Mpdf\\Config\\ConfigVariables',
+	'Mpdf\\Config\\FontVariables'              => 'SScribeVendor\\Mpdf\\Config\\FontVariables',
 );
 
 foreach ( $sscribe_vendor_aliases as $sscribe_source => $sscribe_target ) {
-	if ( class_exists( $sscribe_source ) && ! class_exists( $sscribe_target ) ) {
+	if ( class_exists( $sscribe_source, false ) && ! class_exists( $sscribe_target, false ) ) {
 		class_alias( $sscribe_source, $sscribe_target );
 	}
 }

@@ -16,8 +16,15 @@
     <exclude-pattern>/WPScan/*</exclude-pattern>
     <exclude-pattern>/WordPress-Core/*</exclude-pattern>
     <exclude-pattern>/.cache/*</exclude-pattern>
+    <exclude-pattern>/stubs/*</exclude-pattern>
     <exclude-pattern>./phpstan-bootstrap.php</exclude-pattern>
     <exclude-pattern>./fake-wp/*</exclude-pattern>
+    <exclude-pattern>/.audit/*</exclude-pattern>
+    <exclude-pattern>/.phpunit.cache/*</exclude-pattern>
+
+    <!-- Ad-hoc runtime verification scripts (refactor smoke-tests, never shipped) -->
+    <exclude-pattern>./verify_*.php</exclude-pattern>
+    <exclude-pattern>./debug_*.php</exclude-pattern>
 
     <arg value="ps"/>
     <arg name="colors"/>
@@ -66,11 +73,6 @@
     <!-- Allow standalone CLI scripts that don't run inside WordPress -->
     <exclude-pattern>*/scripts/*</exclude-pattern>
     <exclude-pattern>*/scripts/build-release\.php$</exclude-pattern>
-    <exclude-pattern>*/scripts/verify-zip\.php$</exclude-pattern>
-    <exclude-pattern>*/scripts/list-zip\.php$</exclude-pattern>
-    <exclude-pattern>*/scripts/check-wp-org\.php$</exclude-pattern>
-    <exclude-pattern>*/scripts/fix-phpstan\.php$</exclude-pattern>
-    <exclude-pattern>*/scripts/test-prefixed\.php$</exclude-pattern>
 
     <!-- Allow short ternaries (?:) — valid PHP 8.x pattern used throughout the codebase -->
     <rule ref="Universal.Operators.DisallowShortTernary.Found">
@@ -96,11 +98,6 @@
     </rule>
 
     <!-- Admin partials: use targeted phpcs:ignore comments where pre-sanitized output is intentional. -->
-
-    <!-- Allow all naming conventions for WP core properties and internal variables -->
-    <rule ref="WordPress.NamingConventions.ValidVariableName">
-        <exclude-pattern>*/includes/class-sscribe-batch-processor\.php$</exclude-pattern>
-    </rule>
 
     <!-- Suppress ini_set silencing warning — required for accurate Content-Length in download_json() -->
     <rule ref="WordPress.PHP.NoSilencedErrors">

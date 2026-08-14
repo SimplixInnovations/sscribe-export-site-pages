@@ -146,6 +146,12 @@ class SScribe_Content_Parser {
 		'small'      => array(),
 		'mark'       => array(),
 		'ins'        => array( 'datetime' => true ),
+		'hr'         => array( 'class' => true ),
+		'details'    => array(
+			'class' => true,
+			'open'  => true,
+		),
+		'summary'    => array( 'class' => true ),
 	);
 
 	/**
@@ -178,18 +184,31 @@ class SScribe_Content_Parser {
 			return array();
 		}
 
+		/**
+		 * Filter the raw export HTML before it is parsed and sanitized.
+		 *
+		 * Use this hook to apply an additional, stricter sanitization
+		 * pass (e.g. strip `javascript:` URIs from `href`/`src`, remove
+		 * a tag your security review has flagged, or replace a custom
+		 * shortcode) without forking the plugin. The HTML has not yet
+		 * been through `wp_kses()`; the SScribe content parser will
+		 * run its own KSES allowlist on the returned value.
+		 *
+		 * @since 1.1.3
+		 *
+		 * @param string $html The original, unfiltered post content.
+		 * @return string The (possibly further sanitized) HTML.
+		 */
+		$html = (string) apply_filters( 'sscribe_sanitize_export_html', $html );
+
 		$logger = SScribe_Logger::instance( SScribe_Logger::is_logging_enabled() );
 
 		$logger->debug(
 			'Content parser: parse() called',
 			array(
-				'html_len'     => strlen( $html ),
-				'html_preview' => substr( $html, 0, 200 ),
+				'html_len' => strlen( $html ),
 			)
 		);
-
-		$button_elements = $this->extract_buttons_from_html( $html );
-		$logger->debug( 'Content parser: buttons extracted', array( 'count' => count( $button_elements ) ) );
 
 		$html = $this->normalize_html( $html );
 		$logger->debug( 'Content parser: HTML normalized', array( 'normalized_len' => strlen( $html ) ) );
@@ -199,13 +218,8 @@ class SScribe_Content_Parser {
 			'Content parser: DOM parsed',
 			array(
 				'element_count' => count( $elements ),
-				'button_count'  => count( $button_elements ),
 			)
 		);
-
-		if ( ! empty( $button_elements ) ) {
-			$elements = $this->merge_buttons_into_elements( $elements, $button_elements );
-		}
 
 		return $elements;
 	}
@@ -255,7 +269,19 @@ class SScribe_Content_Parser {
 	 * @return string Cleaned HTML.
 	 */
 	private function strip_all_styles( string $html ): string {
-		return SScribe_Helpers::strip_page_builder_attributes( $html );
+		$html = $this->safe_replace(
+			array(
+				'/\s*style="[^"]*"/i',
+				"/\s*style='[^']*'/i",
+				'/<style[^>]*>.*?<\/style>/is',
+				'/\s*data-(?:elementor|widget|column|section)(?:-[a-z0-9_-]+)?="[^"]*"/i',
+				"/\s*data-(?:elementor|widget|column|section)(?:-[a-z0-9_-]+)?='[^']*'/i",
+			),
+			'',
+			$html
+		);
+
+		return $html;
 	}
 
 	/**
@@ -272,16 +298,8 @@ class SScribe_Content_Parser {
 
 		$prev_use_errors = libxml_use_internal_errors( true );
 
-		// Note: libxml_disable_entity_loader() is deprecated in PHP 8.0+ and
-		// entity loading is disabled by default in libxml2 ≥ 2.9.0 (PHP 8+).
-		// Additionally, LIBXML_NONET flag is used in loadHTML() below, providing
-		// defense-in-depth against XXE and external entity attacks.
-
 		try {
 
-			// Sanitize control characters while preserving valid whitespace.
-			// Using preg_replace instead of mb_encode_numericentity to avoid.
-			// DOMPurify bypass via encoded malicious content.
 			$html = preg_replace( '/[\x00-\x08\x0B\x0C\x0E-\x1F\x7F]/', '', $html );
 
 			$wrapped = '<!DOCTYPE html><html><head>'
@@ -296,7 +314,7 @@ class SScribe_Content_Parser {
 
 			$body = $dom->getElementsByTagName( 'body' )->item( 0 );
 			if ( ! $body ) {
-				// No cleanup needed here — the finally block below handles $body and $dom.
+
 				return $elements;
 			}
 
@@ -319,9 +337,7 @@ class SScribe_Content_Parser {
 			if ( isset( $body ) ) {
 				unset( $body );
 			}
-			// These variables are always set when finally runs because the assignments
-			// occur before any code that could throw. isset() here silences PHPStan
-			// but the variables are unconditionally cleaned up.
+
 			unset( $dom );
 			libxml_clear_errors();
 			libxml_use_internal_errors( $prev_use_errors );
@@ -409,6 +425,13 @@ class SScribe_Content_Parser {
 			case 'a':
 				$href = $node->getAttribute( 'href' );
 				$text = $this->get_text_content( $node );
+				if ( $this->is_button_anchor( $node ) ) {
+					return array(
+						'type'    => 'button',
+						'content' => $text,
+						'url'     => $href,
+					);
+				}
 				return array(
 					'type'    => 'paragraph',
 					'content' => $text,
@@ -434,9 +457,16 @@ class SScribe_Content_Parser {
 					}
 				}
 
+				if ( null === $img_node ) {
+					$descendant_imgs = $node->getElementsByTagName( 'img' );
+					if ( $descendant_imgs->length > 0 ) {
+						$img_node = $descendant_imgs->item( 0 );
+					}
+				}
+
 				$src        = null !== $img_node ? $img_node->getAttribute( 'src' ) : null;
 				$alt        = null !== $img_node ? $img_node->getAttribute( 'alt' ) : '';
-				$local_path = null !== $src ? $this->url_to_local_path( $src ) : '';
+				$local_path = null !== $src ? $this->resolve_image_to_local( $src ) : '';
 
 				$figure_data = array(
 					'type'       => 'figure',
@@ -450,13 +480,9 @@ class SScribe_Content_Parser {
 				return $figure_data;
 
 			case 'figcaption':
-				// Return figcaption as separate element only when it appears outside of a figure.
-				// When inside a figure, the caption is extracted by the figure case above
-				// to prevent duplicate captions in the output.
-				// Check if parent is a figure element by traversing up.
 				$parent = $node->parentNode;
 				if ( $parent instanceof DOMElement && 'figure' === strtolower( $parent->nodeName ) ) {
-					return null; // Figcaption handled by figure case.
+					return null;
 				}
 				return array(
 					'type'    => 'figcaption',
@@ -464,33 +490,29 @@ class SScribe_Content_Parser {
 				);
 
 			case 'details':
-				// Parse <details>/<summary> collapsible sections.
-				// <summary> is extracted as a label; remaining children form the
-				// collapsible body. Both are recursively parsed for nested content.
-				$summary_text = '';
-				$body_elements = array();
+				$summary_text     = '';
+				$body_elements    = array();
 				$is_summary_found = false;
 
 				foreach ( $node->childNodes as $child ) {
-					if ( $child instanceof DOMElement && 'summary' === strtolower( $child->tagName ) ) {
-						$summary_text = trim( $child->textContent );
+					if ( ! $is_summary_found && $child instanceof DOMElement && 'summary' === strtolower( $child->tagName ) ) {
+						$summary_text     = trim( $child->textContent );
 						$is_summary_found = true;
-					} elseif ( $is_summary_found || 'summary' !== strtolower( ( $child instanceof \DOMElement ? $child->tagName : '' ) ) ) {
-						// After summary has been seen, collect remaining children.
-						// Also collect non-summary children before the first summary.
-						$parsed = $this->parse_node( $child, $depth + 1 );
-						if ( null !== $parsed ) {
-							// parse_node returns ?array — isset($parsed[0]) distinguishes
-							// a flat array of elements (multiple) from a single element.
-							if ( isset( $parsed[0] ) ) {
-								foreach ( $parsed as $p ) {
-									if ( null !== $p ) {
-										$body_elements[] = $p;
-									}
+						continue;
+					}
+					if ( ! $is_summary_found ) {
+						continue;
+					}
+					$parsed = $this->parse_node( $child, $depth + 1 );
+					if ( null !== $parsed ) {
+						if ( isset( $parsed[0] ) ) {
+							foreach ( $parsed as $p ) {
+								if ( null !== $p ) {
+									$body_elements[] = $p;
 								}
-							} else {
-								$body_elements[] = $parsed;
 							}
+						} else {
+							$body_elements[] = $parsed;
 						}
 					}
 				}
@@ -502,12 +524,9 @@ class SScribe_Content_Parser {
 				);
 
 			case 'summary':
-				// Return summary as separate element only when it appears outside of details.
-				// When inside details, the summary is extracted by the details case above
-				// to prevent duplicate output.
 				$parent = $node->parentNode;
 				if ( $parent instanceof DOMElement && 'details' === strtolower( $parent->nodeName ) ) {
-					return null; // Summary handled by details case.
+					return null;
 				}
 				return array(
 					'type'    => 'paragraph',
@@ -561,6 +580,15 @@ class SScribe_Content_Parser {
 								$elements[] = $parsed;
 							}
 						}
+					} elseif ( XML_TEXT_NODE === $child->nodeType ) {
+						$text = trim( $child->textContent );
+						if ( '' !== $text ) {
+							$elements[] = array(
+								'type'    => 'paragraph',
+								'content' => $text,
+								'runs'    => array( array( 'text' => $text ) ),
+							);
+						}
 					}
 				}
 				if ( empty( $elements ) ) {
@@ -579,6 +607,42 @@ class SScribe_Content_Parser {
 				}
 				return null;
 		}
+	}
+
+	/**
+	 * Determine whether an anchor uses a known page-builder button class.
+	 *
+	 * @param \DOMNode $node Anchor node.
+	 * @return bool True when the anchor represents a button block.
+	 */
+	private function is_button_anchor( \DOMNode $node ): bool {
+		if ( ! $node instanceof \DOMElement ) {
+			return false;
+		}
+
+		$classes = preg_split( '/\s+/', trim( $node->getAttribute( 'class' ) ) );
+		if ( false === $classes ) {
+			return false;
+		}
+
+		$known_classes = array(
+			'wp-block-button__link',
+			'wp-element-button',
+			'elementor-button',
+			'et_pb_button',
+			'fl-button',
+			'vc_btn',
+			'button',
+			'btn',
+		);
+
+		foreach ( $classes as $class_name ) {
+			if ( in_array( strtolower( $class_name ), $known_classes, true ) ) {
+				return true;
+			}
+		}
+
+		return false;
 	}
 
 	/**
@@ -629,8 +693,19 @@ class SScribe_Content_Parser {
 						$item['runs'][] = array( 'text' => $text );
 					}
 				} elseif ( XML_ELEMENT_NODE === $li_child->nodeType ) {
-					$inline_runs  = $this->get_inline_runs( $li_child );
-					$item['runs'] = array_merge( $item['runs'], $inline_runs );
+					if ( 'a' === $li_tag ) {
+						$href     = $li_child->getAttribute( 'href' );
+						$sub_runs = $this->get_inline_runs( $li_child );
+						if ( '' !== $href ) {
+							foreach ( $sub_runs as $key => $run ) {
+								$sub_runs[ $key ]['link'] = $href;
+							}
+						}
+						$item['runs'] = array_merge( $item['runs'], $sub_runs );
+					} else {
+						$inline_runs  = $this->get_inline_runs( $li_child );
+						$item['runs'] = array_merge( $item['runs'], $inline_runs );
+					}
 				}
 			}
 
@@ -687,10 +762,21 @@ class SScribe_Content_Parser {
 				}
 				$cell_tag = strtolower( $td->nodeName );
 				if ( 'td' === $cell_tag || 'th' === $cell_tag ) {
+
+					$colspan_attr = $td->getAttribute( 'colspan' );
+					$rowspan_attr = $td->getAttribute( 'rowspan' );
+					$colspan      = is_numeric( $colspan_attr ) ? max( 1, (int) $colspan_attr ) : 1;
+					$rowspan      = is_numeric( $rowspan_attr ) ? max( 1, (int) $rowspan_attr ) : 1;
+
+					$width_attr = $td->getAttribute( 'width' );
+
 					$cells[] = array(
 						'content'   => trim( $td->textContent ),
 						'runs'      => $this->get_inline_runs( $td ),
 						'is_header' => ( 'th' === $cell_tag || $section['is_header'] ),
+						'colspan'   => $colspan,
+						'rowspan'   => $rowspan,
+						'width'     => is_numeric( $width_attr ) ? (int) $width_attr : null,
 					);
 				}
 			}
@@ -723,7 +809,7 @@ class SScribe_Content_Parser {
 			return null;
 		}
 
-		$local_path = $this->url_to_local_path( $src );
+		$local_path = $this->resolve_image_to_local( $src );
 
 		return array(
 			'type'       => 'image',
@@ -731,110 +817,6 @@ class SScribe_Content_Parser {
 			'alt'        => $alt,
 			'local_path' => $local_path,
 		);
-	}
-
-	/**
-	 * Extract button elements from HTML.
-	 *
-	 * @param string $html HTML content.
-	 * @return array Button elements.
-	 */
-	private function extract_buttons_from_html( string $html ): array {
-		$buttons = array();
-
-		$button_keywords    = array(
-			'wp-block-button__link',
-			'wp-element-button',
-			'elementor-button',
-			'et_pb_button',
-			'fl-button',
-			'vc_btn',
-		);
-		$has_button_keyword = false;
-		foreach ( $button_keywords as $keyword ) {
-			if ( false !== strpos( $html, $keyword ) ) {
-				$has_button_keyword = true;
-				break;
-			}
-		}
-		if ( ! $has_button_keyword && false === strpos( $html, 'class="button' ) && false === strpos( $html, "class='button" ) && false === strpos( $html, 'class="btn' ) && false === strpos( $html, "class='btn" ) ) {
-			return $buttons;
-		}
-
-		// Limit input size to prevent regex backtracking on large content.
-		// Use mb_strcut to avoid splitting multi-byte UTF-8 characters.
-		if ( mb_strlen( $html, '8bit' ) > 500000 ) {
-			$logger = SScribe_Logger::instance( SScribe_Logger::is_logging_enabled() );
-			$logger->warning(
-				'Large HTML content truncated for button extraction — content past 500KB limit skipped',
-				array(
-					'original_length' => mb_strlen( $html, '8bit' ),
-					'truncated_to'    => 500000,
-				)
-			);
-			$html = mb_strcut( $html, 0, 500000, 'UTF-8' );
-		}
-
-		/*
-		 * Improved regex pattern that avoids catastrophic backtracking.
-		 *
-		 * Key improvements:
-		 * 1. Matches <a followed by whitespace (not just any char)
-		 * 2. Uses negated character classes that cannot contain > or quotes
-		 * 3. Avoids pattern [^>]*class= which backtracks heavily on non-matching input
-		 * 4. Separates attribute parsing from button class detection
-		 *
-		 * Pattern breakdown:
-		 * - <a\s+          : <a tag with at least one space
-		 * - (?:[^>]*?)     : optional attributes before class (non-greedy, prevents backtracking)
-		 * - class=["\']    : class attribute opening
-		 * - [^"\']*        : class value before button class (no quotes)
-		 * - (?:wp-block-button__link|wp-element-button|...) : button class alternatives
-		 * - [^"\']*        : class value after button class
-		 * - ["\']          : closing quote
-		 * - [^>]*          : remaining attributes
-		 * - >               : tag close
-		 * - (.*?)          : content (non-greedy)
-		 * - <\/a>          : closing anchor
-		 */
-		$pattern = '/<a\s+(?:[^>]*?\s)?class=["\']([^"\']*(?:wp-block-button__link|wp-element-button|button|btn|elementor-button|et_pb_button|fl-button|vc_btn)[^"\']*)["\'](?:[^>]*)?>(.*?)<\/a>/is';
-
-		$match_count = preg_match_all( $pattern, $html, $matches, PREG_SET_ORDER );
-		if ( false !== $match_count && $match_count > 0 ) {
-			foreach ( $matches as $match ) {
-				$classes = $match[1];
-				// Decode HTML entities BEFORE stripping tags to handle encoded content properly.
-				$content = html_entity_decode( $match[2], ENT_QUOTES | ENT_HTML5, 'UTF-8' );
-				$content = wp_strip_all_tags( $content );
-				$content = trim( $content );
-
-				$url = '';
-				if ( preg_match( '/href=["\']([^"\']+)/', $match[0], $url_match ) ) {
-					$url = esc_url_raw( $url_match[1] );
-				}
-
-				if ( ! empty( $content ) ) {
-					$buttons[] = array(
-						'type'    => 'button',
-						'content' => $content,
-						'url'     => $url,
-					);
-				}
-			}
-		}
-
-		return $buttons;
-	}
-
-	/**
-	 * Merge button elements into existing elements array.
-	 *
-	 * @param array $elements Existing elements.
-	 * @param array $buttons  Button elements.
-	 * @return array Merged elements.
-	 */
-	private function merge_buttons_into_elements( array $elements, array $buttons ): array {
-		return array_merge( $elements, $buttons );
 	}
 
 	/**
@@ -862,7 +844,7 @@ class SScribe_Content_Parser {
 						foreach ( $sub_runs as $key => $run ) {
 							$sub_runs[ $key ]['bold'] = true;
 						}
-						$runs = array_merge( $runs, $sub_runs );
+						array_push( $runs, ...$sub_runs );
 						break;
 
 					case 'em':
@@ -871,7 +853,7 @@ class SScribe_Content_Parser {
 						foreach ( $sub_runs as $key => $run ) {
 							$sub_runs[ $key ]['italic'] = true;
 						}
-						$runs = array_merge( $runs, $sub_runs );
+						array_push( $runs, ...$sub_runs );
 						break;
 
 					case 'u':
@@ -879,7 +861,7 @@ class SScribe_Content_Parser {
 						foreach ( $sub_runs as $key => $run ) {
 							$sub_runs[ $key ]['underline'] = true;
 						}
-						$runs = array_merge( $runs, $sub_runs );
+						array_push( $runs, ...$sub_runs );
 						break;
 
 					case 's':
@@ -917,7 +899,7 @@ class SScribe_Content_Parser {
 
 					case 'span':
 						$sub_runs = $this->get_inline_runs( $child );
-						$runs     = array_merge( $runs, $sub_runs );
+						array_push( $runs, ...$sub_runs );
 						break;
 
 					case 'img':
@@ -935,7 +917,7 @@ class SScribe_Content_Parser {
 						foreach ( $sub_runs as $key => $run ) {
 							$sub_runs[ $key ]['superScript'] = true;
 						}
-						$runs = array_merge( $runs, $sub_runs );
+						array_push( $runs, ...$sub_runs );
 						break;
 
 					case 'sub':
@@ -943,7 +925,7 @@ class SScribe_Content_Parser {
 						foreach ( $sub_runs as $key => $run ) {
 							$sub_runs[ $key ]['subScript'] = true;
 						}
-						$runs = array_merge( $runs, $sub_runs );
+						array_push( $runs, ...$sub_runs );
 						break;
 
 					case 'mark':
@@ -951,7 +933,7 @@ class SScribe_Content_Parser {
 						foreach ( $sub_runs as $key => $run ) {
 							$sub_runs[ $key ]['highlight'] = 'yellow';
 						}
-						$runs = array_merge( $runs, $sub_runs );
+						array_push( $runs, ...$sub_runs );
 						break;
 
 					case 'ins':
@@ -959,7 +941,7 @@ class SScribe_Content_Parser {
 						foreach ( $sub_runs as $key => $run ) {
 							$sub_runs[ $key ]['underline'] = true;
 						}
-						$runs = array_merge( $runs, $sub_runs );
+						array_push( $runs, ...$sub_runs );
 						break;
 
 					case 'table':
@@ -973,7 +955,7 @@ class SScribe_Content_Parser {
 
 					default:
 						$sub_runs = $this->get_inline_runs( $child );
-						$runs     = array_merge( $runs, $sub_runs );
+						array_push( $runs, ...$sub_runs );
 						break;
 				}
 			}
@@ -1020,8 +1002,7 @@ class SScribe_Content_Parser {
 	 * @return string
 	 */
 	private function get_text_content( \DOMNode $node ): string {
-		// If node has only element children (no direct text nodes), iterate
-		// and join with space to prevent "HelloWorld" concatenation.
+
 		$has_text_children = false;
 		foreach ( $node->childNodes as $child ) {
 			if ( XML_TEXT_NODE === $child->nodeType && '' !== trim( $child->nodeValue ) ) {
@@ -1071,6 +1052,11 @@ class SScribe_Content_Parser {
 		$upload_url  = $upload_dir['baseurl'];
 		$upload_path = realpath( $upload_dir['basedir'] );
 
+		if ( str_starts_with( $url, '//' ) ) {
+			$scheme = (string) wp_parse_url( $upload_url, PHP_URL_SCHEME );
+			$url    = ( '' !== $scheme ? $scheme : 'https' ) . ':' . $url;
+		}
+
 		if ( empty( $upload_path ) || stripos( $url, $upload_url ) !== 0 ) {
 			return '';
 		}
@@ -1089,15 +1075,13 @@ class SScribe_Content_Parser {
 		}
 
 		$extension = strtolower( pathinfo( $real_local, PATHINFO_EXTENSION ) );
-		// WEBP and AVIF are not supported by PHPWord — exclude them to prevent exceptions.
+
 		if ( ! in_array( $extension, array( 'jpg', 'jpeg', 'png', 'gif', 'bmp', 'svg', 'webp', 'avif' ), true ) ) {
 			return '';
 		}
 
-		// Validate actual MIME type matches expected image MIME for the extension.
-		// This prevents malicious files with disguised extensions from being processed.
 		if ( function_exists( 'getimagesize' ) ) {
-			// Suppress warnings — treat false/missing as invalid (returns empty).
+
 			// phpcs:ignore WordPress.PHP.NoSilencedErrors.Discouraged -- getimagesize returns false for invalid images; we check this and return empty.
 			$image_info = @getimagesize( $real_local );
 			if ( false === $image_info || ! isset( $image_info['mime'] ) ) {
@@ -1120,5 +1104,70 @@ class SScribe_Content_Parser {
 		}
 
 		return $real_local;
+	}
+
+	/**
+	 * Resolve a URL to a local image file path, downloading remote
+	 * images if needed.
+	 *
+	 * The plain `url_to_local_path()` only handles URLs that already
+	 * live inside the WP uploads directory. This wrapper adds a fallback:
+	 * for image URLs that are external (CDN, third-party host), it
+	 * delegates to SScribe_Image_Processor::download_and_optimize() to
+	 * fetch the image into a temp file, returning its local path.
+	 *
+	 * The download is gated by the existing `sscribe_allowed_image_hosts`
+	 * filter : only whitelisted hosts will be fetched. Anything else
+	 * returns an empty string, which exporters treat as a missing image
+	 * (DOCX renders `[MISSING IMAGE]`, PDF skips the element).
+	 *
+	 * Security: path-traversal attempts in the URL (e.g.
+	 * `/uploads/../sibling/file.png`) share the same host as the upload
+	 * directory but resolve to a path outside it. We must NOT treat
+	 * these as legitimate remote images : `url_to_local_path()` already
+	 * rejects them, and we also skip the download fallback for any URL
+	 * whose host matches the upload host. This prevents accidentally
+	 * fetching a same-host URL that was constructed to escape the
+	 * uploads directory.
+	 *
+	 * Returns an empty string for non-image URLs, blocked hosts, or
+	 * download failures : never throws.
+	 *
+	 * @param string $url Image URL (local or remote).
+	 * @return string Local file path, or empty string on failure.
+	 */
+	public function resolve_image_to_local( string $url ): string {
+		$url = trim( $url );
+		if ( '' === $url ) {
+			return '';
+		}
+
+		$local = $this->url_to_local_path( $url );
+		if ( '' !== $local && file_exists( $local ) ) {
+			return $local;
+		}
+
+		$scheme = strtolower( (string) wp_parse_url( $url, PHP_URL_SCHEME ) );
+		if ( 'http' !== $scheme && 'https' !== $scheme ) {
+			return '';
+		}
+
+		$upload_dir = $this->get_upload_dir();
+		$upload_host = strtolower( (string) wp_parse_url( $upload_dir['baseurl'] ?? '', PHP_URL_HOST ) );
+		$url_host    = strtolower( (string) wp_parse_url( $url, PHP_URL_HOST ) );
+		if ( '' !== $upload_host && $upload_host === $url_host ) {
+			return '';
+		}
+
+		if ( ! class_exists( 'SScribe_Image_Processor' ) ) {
+			require_once SSCRIBE_PLUGIN_DIR . 'includes/class-sscribe-image-processor.php';
+		}
+
+		$downloaded = \SScribe_Image_Processor::download_and_optimize( $url );
+		if ( false === $downloaded || ! file_exists( $downloaded ) ) {
+			return '';
+		}
+
+		return $downloaded;
 	}
 }

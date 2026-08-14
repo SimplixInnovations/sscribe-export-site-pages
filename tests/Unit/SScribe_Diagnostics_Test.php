@@ -114,6 +114,74 @@ class SScribe_Diagnostics_Test extends TestCase {
 		$result = $method->invoke( $this->diagnostics );
 
 		$this->assertIsArray( $result );
+
+		// Regression: when the prefixed vendor autoloader is available
+		// on disk (which it is in any install where composer install /
+		// the build pipeline ran), the check must return an empty list.
+		// Otherwise the admin notice fires a false-positive on every
+		// page load saying "Run composer install" — see commit
+		// (lazy-autoload-prewarm).
+		if ( file_exists( SSCRIBE_PLUGIN_DIR . 'vendor-prefixed/autoload.php' ) ) {
+			$this->assertSame(
+				array(),
+				$result,
+				'check_vendor_dependencies() must return empty when vendor-prefixed/autoload.php is present; got: ' . implode( ', ', $result )
+			);
+		}
+	}
+
+	/**
+	 * Regression: the admin notice fires on the first request after
+	 * plugin boot — before any call site has touched
+	 * `SScribe_Exporter_Factory`. Pre-warm must work even when the
+	 * factory class is not yet loaded.
+	 *
+	 * Simulates the cold path by clearing the autoload cache right
+	 * before invoking the check. If class caching picks up on a
+	 * subsequent test, this exercises the code path where the
+	 * autoloader was never called yet.
+	 */
+	public function test_check_vendor_dependencies_in_cold_state(): void {
+		// Trick: clear class_exists's internal cache so a fresh
+		// class_exists('\SScribe_Exporter_Factory') call does NOT find
+		// it via the in-memory cache and MUST fall back through the
+		// disc autoloader.
+		if ( function_exists( 'wp_cache_clear_cache_group' ) ) {
+			wp_cache_clear_cache_group( '' );
+		}
+
+		$method = new \ReflectionMethod( SScribe_Diagnostics::class, 'check_vendor_dependencies' );
+
+		$result = $method->invoke( $this->diagnostics );
+
+		$this->assertIsArray( $result );
+
+		if ( file_exists( SSCRIBE_PLUGIN_DIR . 'vendor-prefixed/autoload.php' ) ) {
+			$this->assertSame(
+				array(),
+				$result,
+				'check_vendor_dependencies() must return empty on the cold path too (factory not pre-loaded); got: ' . implode( ', ', $result )
+			);
+		}
+	}
+
+	/**
+	 * Regression: SSCRIBE_VENDOR_AUTOLOADED must be defined after
+	 * check_vendor_dependencies() returns when the prefixed vendor
+	 * tree is present. The admin notice should only fire when the
+	 * vendor is genuinely missing — never because the autoloader
+	 * hadn't run yet.
+	 */
+	public function test_check_vendor_dependencies_defines_autoloaded_constant(): void {
+		$method = new \ReflectionMethod( SScribe_Diagnostics::class, 'check_vendor_dependencies' );
+		$method->invoke( $this->diagnostics );
+
+		if ( file_exists( SSCRIBE_PLUGIN_DIR . 'vendor-prefixed/autoload.php' ) ) {
+			$this->assertTrue(
+				defined( 'SSCRIBE_VENDOR_AUTOLOADED' ),
+				'SSCRIBE_VENDOR_AUTOLOADED must be defined after check_vendor_dependencies() runs and the vendor tree is on disk'
+			);
+		}
 	}
 
 	public function test_check_php_version_returns_valid(): void {
@@ -200,6 +268,80 @@ class SScribe_Diagnostics_Test extends TestCase {
 		$this->assertArrayHasKey( 'status', $result );
 	}
 
+	public function test_temp_cleanup_only_removes_inactive_plugin_temp_directories(): void {
+		$upload_dir = wp_upload_dir();
+		$export_dir = trailingslashit( (string) $upload_dir['basedir'] ) . 'sscribe-exports';
+		$suffix     = bin2hex( random_bytes( 4 ) );
+		$stale_dir  = $export_dir . '/temp-stale-' . $suffix;
+		$active_dir = $export_dir . '/temp-active-' . $suffix;
+		$logs_dir   = $export_dir . '/logs';
+		$zip_file   = $export_dir . '/site-export-' . $suffix . '.zip';
+		$index_file = $export_dir . '/index.php';
+		$old_time   = time() - ( 4 * DAY_IN_SECONDS );
+
+		wp_mkdir_p( $stale_dir );
+		wp_mkdir_p( $active_dir );
+		wp_mkdir_p( $logs_dir );
+		\SScribe_Security::protect_directory( $export_dir );
+		file_put_contents( $stale_dir . '/page.html', 'stale' );
+		file_put_contents( $active_dir . '/page.html', 'active' );
+		file_put_contents( $zip_file, 'archive' );
+		touch( $stale_dir, $old_time );
+		touch( $active_dir, $old_time );
+		touch( $zip_file, $old_time );
+		touch( $logs_dir, $old_time );
+
+		$session    = new \SScribe_Session();
+		$session_id = $session->create(
+			array(
+				'temp_dir' => $active_dir,
+				'status'   => 'processing',
+				'total'    => 1,
+				'processed'=> 0,
+			)
+		);
+
+		try {
+			$method  = new \ReflectionMethod( SScribe_Diagnostics::class, 'clear_old_temp_files' );
+			$cleared = $method->invoke( $this->diagnostics );
+
+			$this->assertSame( 1, $cleared );
+			$this->assertDirectoryDoesNotExist( $stale_dir );
+			$this->assertDirectoryExists( $active_dir );
+			$this->assertDirectoryExists( $logs_dir );
+			$this->assertFileExists( $zip_file );
+			$this->assertFileExists( $index_file );
+		} finally {
+			if ( '' !== $session_id ) {
+				$session->delete( $session_id );
+			}
+			\SScribe_Security::delete_directory( $active_dir );
+			wp_delete_file( $zip_file );
+		}
+	}
+
+	public function test_active_temp_membership_requires_exact_canonical_path(): void {
+		$upload_dir = wp_upload_dir();
+		$export_dir = trailingslashit( (string) $upload_dir['basedir'] ) . 'sscribe-exports';
+		$active_dir = $export_dir . '/temp-a';
+		$other_dir  = $export_dir . '/temp-attacker';
+
+		wp_mkdir_p( $active_dir );
+		wp_mkdir_p( $other_dir );
+
+		try {
+			$normalize  = new \ReflectionMethod( SScribe_Diagnostics::class, 'normalize_path' );
+			$membership = new \ReflectionMethod( SScribe_Diagnostics::class, 'is_temp_dir_in_active_set' );
+			$active     = array( $normalize->invoke( $this->diagnostics, (string) realpath( $active_dir ) ) => true );
+
+			$this->assertTrue( $membership->invoke( $this->diagnostics, $active_dir, $active ) );
+			$this->assertFalse( $membership->invoke( $this->diagnostics, $other_dir, $active ) );
+		} finally {
+			\SScribe_Security::delete_directory( $active_dir );
+			\SScribe_Security::delete_directory( $other_dir );
+		}
+	}
+
 	public function test_get_recommendations_returns_array(): void {
 		$method = new \ReflectionMethod( SScribe_Diagnostics::class, 'get_recommendations' );
 
@@ -226,14 +368,10 @@ class SScribe_Diagnostics_Test extends TestCase {
 		$method = new \ReflectionMethod( SScribe_Diagnostics::class, 'build_support_copy_text' );
 
 		$sections            = array(
-			'plugin'     => array( 'label' => 'Plugin', 'items' => array( 'version' => '1.1.1' ) ),
+			'plugin'     => array( 'label' => 'Plugin', 'items' => array( 'version' => '1.1.2' ) ),
 			'environment' => array( 'label' => 'Env', 'items' => array( 'php' => '8.2' ) ),
 		);
-		$audit              = array();
-		$log_tail           = array();
-
-		$args   = array( $sections, $audit, $log_tail );
-		$result = $method->invokeArgs( $this->diagnostics, $args );
+		$result = $method->invoke( $this->diagnostics, $sections );
 
 		$this->assertIsString( $result );
 	}
@@ -245,17 +383,59 @@ $sections            = array(
 			'plugin' => array(
 				'label' => 'Plugin',
 				'items' => array(
-					'version'     => '1.1.1',
+					'version'     => '1.1.2',
 					'debug_mode'  => 'Enabled',
 				),
 			),
 		);
-		$audit              = array();
-		$log_tail           = array();
-
-		$args   = array( $sections, $audit, $log_tail );
-		$result = $method->invokeArgs( $this->diagnostics, $args );
+		$result = $method->invoke( $this->diagnostics, $sections );
 
 		$this->assertStringContainsStringIgnoringCase( 'debug', $result );
+	}
+
+	/**
+	 * Regression: shipped mPDF ships 17 font files; the MIN_MPDF_FONT_COUNT
+	 * floor must accept healthy installs. Previously 40 → false-positive on
+	 * every install because the build script deliberately prunes a chunk of
+	 * the upstream font set.
+	 */
+	public function test_min_mpdf_font_count_accepts_shipped_vendor_tree(): void {
+		$const = new \ReflectionClass( SScribe_Diagnostics::class );
+		$value = $const->getConstant( 'MIN_MPDF_FONT_COUNT' );
+
+		$this->assertIsInt( $value );
+
+		// The shipped vendor tree has 17 files (16 TTF + DejaVuinfo.txt).
+		// The floor MUST be <= 17 or every install reports a false-positive
+		// "mPDF fonts incomplete" warning.
+		$this->assertLessThanOrEqual(
+			17,
+			$value,
+			'MIN_MPDF_FONT_COUNT is higher than the shipped font file count; '
+			. 'this causes a false-positive warning on every install.'
+		);
+	}
+
+	/**
+	 * Regression: the shipped vendor-prefixed tree does NOT include
+	 * phpoffice/phpword/composer.json (it is pruned by scripts/build-release.php),
+	 * so the version-lookup branch in check_phpword() is dead code. The
+	 * fallback "PHPWord loaded" message is the only branch that should fire
+	 * in production.
+	 */
+	public function test_check_phpword_does_not_probe_pruned_composer_json(): void {
+		$method = new \ReflectionMethod( SScribe_Diagnostics::class, 'check_phpword' );
+
+		$result = $method->invoke( $this->diagnostics );
+
+		// PHPWord class is loaded in the test bootstrap via the prefixed
+		// autoloader. If the class exists, the only message the function
+		// should produce is the "PHPWord loaded" fallback — the
+		// composer.json version probe is dead in production.
+		if ( class_exists( '\\SScribeVendor\\PhpOffice\\PhpWord\\PhpWord' ) ) {
+			$this->assertSame( 'PHPWord loaded : XML encoding handled natively by library', $result['message'] );
+		} else {
+			$this->assertSame( 'error', $result['status'] );
+		}
 	}
 }

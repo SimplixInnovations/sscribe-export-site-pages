@@ -49,6 +49,17 @@ spl_autoload_register(
 			return;
 		}
 
+		if ( 'SScribe_Export_All_Formats_Wrapper' === $class_name ) {
+			$file = SSCRIBE_PLUGIN_DIR . 'includes/exporters/class-sscribe-export-all-formats-wrapper.php';
+			if ( file_exists( $file ) ) {
+				require_once $file;
+				$loaded[ $class_name ] = true;
+			} else {
+				$missing[ $class_name ] = true;
+			}
+			return;
+		}
+
 		if ( 0 !== strpos( $class_name, 'SScribe_' ) ) {
 			$missing[ $class_name ] = true;
 			return;
@@ -78,9 +89,7 @@ spl_autoload_register(
 		}
 
 		foreach ( $paths as $path ) {
-			// Security: Ensure the resolved path stays within the plugin directory
-			// to prevent path traversal via malicious class names.
-			// Use realpath on both sides to resolve symlinks and normalize paths.
+
 			$real_plugin_dir = realpath( SSCRIBE_PLUGIN_DIR );
 			$real_path       = realpath( $path );
 			if ( $real_path && $real_plugin_dir && str_starts_with( $real_path, $real_plugin_dir . DIRECTORY_SEPARATOR ) ) {

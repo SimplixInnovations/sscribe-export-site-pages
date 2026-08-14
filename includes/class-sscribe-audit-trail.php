@@ -103,10 +103,17 @@ class SScribe_Audit_Trail {
 		$user_agent  = $this->get_user_agent();
 		$request_uri = $this->get_request_uri();
 
+		$event             = substr( sanitize_key( $event ), 0, 50 );
+		$event             = '' !== $event ? $event : 'unknown';
 		$sanitized_context = $this->sanitize_context( $context );
+		$session_id        = isset( $sanitized_context['session_id'] ) && is_scalar( $sanitized_context['session_id'] )
+			? sanitize_key( (string) $sanitized_context['session_id'] )
+			: '';
+
+		$encoded_context = wp_json_encode( $sanitized_context );
 
 		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- Custom table write, no caching for audit integrity
-		$result = $wpdb->insert(
+		$result          = $wpdb->insert(
 			$this->table_name,
 			array(
 				'timestamp'   => current_time( 'mysql', true ),
@@ -115,8 +122,8 @@ class SScribe_Audit_Trail {
 				'ip_address'  => $ip,
 				'user_agent'  => $user_agent,
 				'request_uri' => $request_uri,
-				'context'     => wp_json_encode( $sanitized_context ),
-				'session_id'  => $context['session_id'] ?? '',
+				'context'     => false !== $encoded_context ? $encoded_context : '{}',
+				'session_id'  => $session_id,
 			),
 			array( '%s', '%s', '%d', '%s', '%s', '%s', '%s', '%s' )
 		);
@@ -128,22 +135,38 @@ class SScribe_Audit_Trail {
 	 * Sanitize context data by redacting sensitive keys.
 	 *
 	 * @param array $context Context data.
+	 * @param int   $depth   Current recursion depth.
 	 * @return array Sanitized context.
 	 */
-	private function sanitize_context( array $context ): array {
+	private function sanitize_context( array $context, int $depth = 0 ): array {
+		if ( $depth >= 5 ) {
+			return array( '_truncated' => true );
+		}
+
 		$forbidden_keys = array(
 			'password',
 			'token',
 			'secret',
 			'api_key',
+			'apikey',
 			'auth',
 			'credential',
 			'private_key',
 			'nonce',
+			'session_key',
+			'bearer',
+			'access_key',
+			'client_secret',
+			'cookie',
+			'set_cookie',
+			'wordpress_logged',
+			'wordpress_sec',
+			'php_session',
+			'phpsessid',
 		);
 
 		foreach ( $context as $key => $value ) {
-			// Check if any forbidden word appears in the key name (substring match).
+
 			$is_sensitive = false;
 			foreach ( $forbidden_keys as $forbidden ) {
 				if ( stripos( (string) $key, $forbidden ) !== false ) {
@@ -151,14 +174,48 @@ class SScribe_Audit_Trail {
 					break;
 				}
 			}
+
+			if ( ! $is_sensitive && is_string( $value ) && $this->looks_like_jwt( $value ) ) {
+				$is_sensitive = true;
+			}
 			if ( $is_sensitive ) {
 				$context[ $key ] = '[REDACTED]';
-			} elseif ( is_array( $value ) || is_object( $value ) ) {
-				$context[ $key ] = wp_json_encode( $value );
+			} elseif ( is_array( $value ) ) {
+				$context[ $key ] = $this->sanitize_context( $value, $depth + 1 );
+			} elseif ( is_object( $value ) ) {
+				$context[ $key ] = $this->sanitize_context( get_object_vars( $value ), $depth + 1 );
+			} elseif ( is_string( $value ) ) {
+				$context[ $key ] = mb_substr( $value, 0, 2000 );
+			} elseif ( ! is_scalar( $value ) && null !== $value ) {
+				$context[ $key ] = '[UNSUPPORTED]';
 			}
 		}
 
 		return $context;
+	}
+
+	/**
+	 * Heuristic check for a JSON Web Token string.
+	 *
+	 * A JWT has the form `header.payload.signature` where each segment
+	 * is base64url-encoded. The header always starts with `eyJ` (the
+	 * base64url of `{"`). We accept any string that has at least two
+	 * dots and starts with `eyJ`.
+	 *
+	 * False positives are not a security problem : the value is redacted
+	 * either way. False negatives (e.g. a JWT without the canonical
+	 * header) are also not a problem, because the bearer/secret/...
+	 * substring check above will catch most of them.
+	 *
+	 * @param string $value String to inspect.
+	 * @return bool True if the value looks like a JWT.
+	 */
+	private function looks_like_jwt( string $value ): bool {
+		if ( strlen( $value ) < 8 || strpos( $value, 'eyJ' ) !== 0 ) {
+			return false;
+		}
+
+		return substr_count( $value, '.' ) >= 2;
 	}
 
 	/**
@@ -187,8 +244,8 @@ class SScribe_Audit_Trail {
 	 * @return string
 	 */
 	private function get_user_agent(): string {
-		if ( ! empty( $_SERVER['HTTP_USER_AGENT'] ) ) {
-			return sanitize_text_field( wp_unslash( $_SERVER['HTTP_USER_AGENT'] ) );
+		if ( isset( $_SERVER['HTTP_USER_AGENT'] ) && is_string( $_SERVER['HTTP_USER_AGENT'] ) && '' !== $_SERVER['HTTP_USER_AGENT'] ) {
+			return mb_substr( sanitize_text_field( wp_unslash( $_SERVER['HTTP_USER_AGENT'] ) ), 0, 255 );
 		}
 		return 'Unknown';
 	}
@@ -199,8 +256,10 @@ class SScribe_Audit_Trail {
 	 * @return string
 	 */
 	private function get_request_uri(): string {
-		if ( ! empty( $_SERVER['REQUEST_URI'] ) ) {
-			return sanitize_text_field( wp_unslash( $_SERVER['REQUEST_URI'] ) );
+		if ( isset( $_SERVER['REQUEST_URI'] ) && is_string( $_SERVER['REQUEST_URI'] ) && '' !== $_SERVER['REQUEST_URI'] ) {
+			$request_uri = sanitize_text_field( wp_unslash( $_SERVER['REQUEST_URI'] ) );
+			$path        = wp_parse_url( $request_uri, PHP_URL_PATH );
+			return is_string( $path ) ? mb_substr( $path, 0, 2083 ) : '';
 		}
 		return '';
 	}
@@ -218,12 +277,42 @@ class SScribe_Audit_Trail {
 			return array();
 		}
 
-		// Access control: only users with manage_options can view audit logs.
-		if ( ! current_user_can( 'manage_options' ) ) {
+		if ( ! current_user_can( SScribe_Capabilities::get_health_required() ) ) {
 			return array();
 		}
 
+		return $this->query_logs( $filters, $limit, $offset );
+	}
+
+	/**
+	 * Get audit rows for WordPress's authorized personal-data exporter.
+	 *
+	 * @param int $user_id User ID.
+	 * @param int $limit   Maximum rows.
+	 * @param int $offset  Row offset.
+	 * @return array
+	 */
+	public function get_logs_for_user( int $user_id, int $limit = 100, int $offset = 0 ): array {
+		if ( ! $this->enabled || $user_id <= 0 ) {
+			return array();
+		}
+
+		return $this->query_logs( array( 'user_id' => $user_id ), $limit, $offset );
+	}
+
+	/**
+	 * Run a bounded audit-log query.
+	 *
+	 * @param array $filters Filter criteria.
+	 * @param int   $limit   Maximum rows.
+	 * @param int   $offset  Row offset.
+	 * @return array
+	 */
+	private function query_logs( array $filters, int $limit, int $offset ): array {
 		global $wpdb;
+
+		$limit  = max( 1, min( 500, $limit ) );
+		$offset = max( 0, $offset );
 
 		$where = array( '1=1' );
 		$args  = array();
@@ -262,7 +351,6 @@ class SScribe_Audit_Trail {
 		$args[]       = $limit;
 		$args[]       = $offset;
 
-		// This query intentionally not cached as it returns real-time audit data for monitoring/debugging purposes.
 		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, PluginCheck.Security.DirectDB.UnescapedDBParameter
 		return $wpdb->get_results(
 			// phpcs:ignore WordPress.DB.PreparedSQLPlaceholders.ReplacementsWrongNumber -- Dynamic WHERE clause placeholders counted at runtime
@@ -307,7 +395,6 @@ class SScribe_Audit_Trail {
 
 		$where_clause = implode( ' AND ', $where );
 
-		// This query uses a 30-second transient cache since audit counts don't change frequently during display.
 		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, PluginCheck.Security.DirectDB.UnescapedDBParameter
 		$result = $wpdb->get_results(
 			$wpdb->prepare(
@@ -333,16 +420,19 @@ class SScribe_Audit_Trail {
 
 		global $wpdb;
 
+		$days   = max( 1, $days );
 		$cutoff = gmdate( 'Y-m-d H:i:s', strtotime( "-{$days} days" ) );
 
 		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
-		return $wpdb->query(
+		$result = $wpdb->query(
 			$wpdb->prepare(
 			// phpcs:ignore WordPress.DB.PreparedSQL.NotPrepared
 				'DELETE FROM ' . $this->table_name . ' WHERE timestamp < %s',
 				$cutoff
 			)
 		);
+
+		return false === $result ? 0 : (int) $result;
 	}
 
 	/**
@@ -405,7 +495,10 @@ class SScribe_Audit_Trail {
 			KEY idx_session_id (session_id)
 		) $charset_collate;";
 
-		require_once ABSPATH . 'wp-admin/includes/upgrade.php';
+		$upgrade_functions = ABSPATH . 'wp-admin/includes/upgrade.php';
+		if ( file_exists( $upgrade_functions ) ) {
+			require_once $upgrade_functions;
+		}
 		dbDelta( $sql );
 	}
 }

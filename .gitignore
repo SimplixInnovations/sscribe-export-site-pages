@@ -11,6 +11,19 @@
 # Agent/Skills (embedded git repo)
 .agent/
 
+# AI tooling — user-local settings + prompt history must never be committed.
+# WordPress.org plugin-check flags these as "ai_instruction_directory" warnings
+# if present in the production plugin ZIP.
+.claude/
+.aider*
+.aider.chat.history*
+.aider.input.history*
+.aider.model.settings.json
+.cursor/
+.windsurf/
+.continue/
+.codeium/
+
 # IDE/Tool configs
 opencode.json
 .idea/
@@ -70,8 +83,7 @@ phpunit.result.xml
 .env.*
 !.env.example
 
-# Package locks (keep composer.lock)
-package-lock.json
+# Alternative JavaScript package-manager lockfiles.
 yarn.lock
 
 # Generated exports (security)
@@ -95,8 +107,13 @@ wordpress-tests-lib/
 # Sisyphus agent metadata
 .sisyphus/
 
+# Impeccable config
+.impeccable/
+
 # Audit reports
+.audit/
 AUDIT-REPORT*.md
+AUDIT-*.md
 
 # Test references (not part of plugin)
 WPScan/
@@ -107,3 +124,13 @@ fake-wp/
 
 # Audit output files (contains full local filesystem paths)
 test-phpcs-output.txt
+
+# WP Playground scratch artifacts — local browser automation logs,
+# toolchain node_modules, blueprint configs, and empty temp dirs.
+# Never ship in the plugin ZIP and never commit (they regenerate
+# on the next Playground run).
+.playwright-mcp/
+.playground-tools/
+playground-tools/
+playground-blueprint.json
+screenshots/

@@ -1,14 +1,13 @@
 <?php
 /**
  * Plugin Name:       SScribe Export Site Pages
- * Plugin URI:        https://simplixi.com/sscribe
- * Description:       Export WordPress pages and posts to professional DOCX, PDF, HTML, or Markdown files with multilingual RTL support, SEO metadata, and secure ZIP download.
- * Version:           1.1.1
+ * Description:       Export WordPress pages to professional DOCX, PDF, HTML, or Markdown files with multilingual RTL support and secure ZIP download.
+ * Version:           1.2.0
  * Requires at least: 6.0
  * Requires PHP:      8.2
  * Author:            Simplix Innovations
  * Author URI:        https://simplixi.com
- * License:           GPL v2 or later
+ * License:           GPL-2.0-or-later
  * License URI:       https://www.gnu.org/licenses/gpl-2.0.html
  * Text Domain:       sscribe-export-site-pages
  * Domain Path:       /languages
@@ -23,7 +22,7 @@ if ( ! defined( 'ABSPATH' ) ) {
 }
 
 if ( ! defined( 'SSCRIBE_VERSION' ) ) {
-	define( 'SSCRIBE_VERSION', '1.1.1' );
+	define( 'SSCRIBE_VERSION', '1.2.0' );
 }
 
 if ( version_compare( PHP_VERSION, '8.2', '<' ) ) {
@@ -31,26 +30,54 @@ if ( version_compare( PHP_VERSION, '8.2', '<' ) ) {
 		'admin_notices',
 		function () {
 			printf(
-				'<div class="error"><p>%s %s</p></div>',
-				esc_html__( 'SScribe Export Site Pages requires PHP 8.2 or higher to run. Please upgrade your PHP version to benefit from enterprise-level performance and features. Your current version is:', 'sscribe-export-site-pages' ),
-				esc_html( PHP_VERSION )
+				'<div class="error"><p><strong>%1$s</strong></p><p>%2$s <code>%3$s</code></p><p>%4$s <a href="%5$s" target="_blank" rel="noopener noreferrer">%6$s</a>.</p></div>',
+				esc_html__( 'SScribe Export Site Pages has been deactivated.', 'sscribe-export-site-pages' ),
+				esc_html__( 'This plugin requires PHP 8.2 or higher. Your server is running PHP', 'sscribe-export-site-pages' ),
+				esc_html( PHP_VERSION ),
+				esc_html__( 'Ask your hosting provider to upgrade PHP, or follow the WordPress guide:', 'sscribe-export-site-pages' ),
+				esc_url( 'https://make.wordpress.org/core/handbook/tutorials/upgrading-php/' ),
+				esc_html__( 'Upgrading PHP on WordPress', 'sscribe-export-site-pages' )
 			);
+		}
+	);
+	add_action(
+		'admin_init',
+		static function () {
+			if ( ! function_exists( 'deactivate_plugins' ) ) {
+				return;
+			}
+			deactivate_plugins( plugin_basename( __FILE__ ) );
 		}
 	);
 	return;
 }
 
-global $wp_version;
-if ( version_compare( $wp_version, '6.0', '<' ) ) {
+if ( function_exists( 'get_bloginfo' ) ) {
+	$sscribe_wp_version = (string) get_bloginfo( 'version' );
+} else {
+	global $wp_version;
+	$sscribe_wp_version = isset( $wp_version ) && is_scalar( $wp_version ) ? (string) $wp_version : '0.0';
+}
+if ( version_compare( $sscribe_wp_version, '6.0', '<' ) ) {
 	add_action(
 		'admin_notices',
-		function () {
-			global $wp_version;
+		function () use ( $sscribe_wp_version ) {
 			printf(
-				'<div class="error"><p>%s %s</p></div>',
-				esc_html__( 'SScribe Export Site Pages requires WordPress 6.0 or higher. Please upgrade your WordPress installation. Your current version is:', 'sscribe-export-site-pages' ),
-				esc_html( $wp_version )
+				'<div class="error"><p><strong>%1$s</strong></p><p>%2$s <code>%3$s</code></p><p>%4$s</p></div>',
+				esc_html__( 'SScribe Export Site Pages has been deactivated.', 'sscribe-export-site-pages' ),
+				esc_html__( 'This plugin requires WordPress 6.0 or higher. Your installation is running', 'sscribe-export-site-pages' ),
+				esc_html( $sscribe_wp_version ),
+				esc_html__( 'Update WordPress from Dashboard → Updates before activating this plugin.', 'sscribe-export-site-pages' )
 			);
+		}
+	);
+	add_action(
+		'admin_init',
+		static function () {
+			if ( ! function_exists( 'deactivate_plugins' ) ) {
+				return;
+			}
+			deactivate_plugins( plugin_basename( __FILE__ ) );
 		}
 	);
 	return;
@@ -58,10 +85,6 @@ if ( version_compare( $wp_version, '6.0', '<' ) ) {
 
 if ( ! defined( 'SSCRIBE_DEBUG' ) ) {
 	define( 'SSCRIBE_DEBUG', false );
-}
-
-if ( ! defined( 'SSCRIBE_DEBUG_PUBLIC' ) ) {
-	define( 'SSCRIBE_DEBUG_PUBLIC', SSCRIBE_DEBUG );
 }
 
 define( 'SSCRIBE_PLUGIN_DIR', plugin_dir_path( __FILE__ ) );
@@ -75,41 +98,33 @@ require_once SSCRIBE_PLUGIN_DIR . 'includes/sscribe-autoloader.php';
 register_activation_hook( __FILE__, array( 'SScribe_Activator', 'activate' ) );
 register_deactivation_hook( __FILE__, array( 'SScribe_Deactivator', 'deactivate' ) );
 
-$sscribe_has_dependencies = false;
+// Register the Settings API whitelist on every admin request.
+add_action(
+	'admin_init',
+	array( 'SScribe_Activator', 'register_settings' )
+);
 
-if ( file_exists( SSCRIBE_PLUGIN_DIR . 'vendor-prefixed/autoload.php' ) ) {
-	require_once SSCRIBE_PLUGIN_DIR . 'includes/sscribe-prefixed-runtime-shim.php';
-	require_once SSCRIBE_PLUGIN_DIR . 'vendor-prefixed/autoload.php';
-	$sscribe_has_dependencies = true;
-} elseif ( file_exists( SSCRIBE_PLUGIN_DIR . 'vendor/autoload.php' ) ) {
-	require_once SSCRIBE_PLUGIN_DIR . 'vendor/autoload.php';
-	require_once SSCRIBE_PLUGIN_DIR . 'includes/sscribe-vendor-compat.php';
-	$sscribe_has_dependencies = true;
-}
+$sscribe_has_dependencies = ( file_exists( SSCRIBE_PLUGIN_DIR . 'vendor-prefixed/autoload.php' )
+	|| file_exists( SSCRIBE_PLUGIN_DIR . 'vendor/autoload.php' ) );
 
 if ( ! $sscribe_has_dependencies ) {
-
 	add_action(
 		'admin_notices',
 		static function () {
 			printf(
 				'<div class="error"><p><strong>%s</strong> %s</p></div>',
 				esc_html__( 'SScribe Export Site Pages:', 'sscribe-export-site-pages' ),
-				esc_html__( 'Required runtime dependencies are missing. Rebuild the plugin package or run "composer install" followed by "composer vendor:prefix" in the plugin directory.', 'sscribe-export-site-pages' )
+				esc_html__( 'Required runtime files are missing. Please reinstall the plugin from a complete release package.', 'sscribe-export-site-pages' )
 			);
 		}
 	);
 	return;
 }
 
-if ( ! function_exists( 'sscribe_render_boot_error_notice' ) ) {
 
-	/**
-	 * Render boot error notice if plugin failed to load.
-	 *
-	 * @return void
-	 */
-	function sscribe_render_boot_error_notice(): void {
+add_action(
+	'admin_notices',
+	static function (): void {
 		$boot_error = get_transient( 'sscribe_boot_error' );
 
 		if ( ! is_array( $boot_error ) || empty( $boot_error['message'] ) ) {
@@ -120,8 +135,11 @@ if ( ! function_exists( 'sscribe_render_boot_error_notice' ) ) {
 			return;
 		}
 
-		$message = (string) $boot_error['message'];
-		$time    = isset( $boot_error['time'] ) ? (string) $boot_error['time'] : '';
+		$message = is_scalar( $boot_error['message'] ) && ! is_bool( $boot_error['message'] ) ? (string) $boot_error['message'] : '';
+		$time    = isset( $boot_error['time'] ) && is_scalar( $boot_error['time'] ) && ! is_bool( $boot_error['time'] ) ? (string) $boot_error['time'] : '';
+		if ( '' === $message ) {
+			return;
+		}
 
 		printf(
 			'<div class="notice notice-error"><p><strong>%1$s</strong> %2$s</p>%3$s</div>',
@@ -130,9 +148,7 @@ if ( ! function_exists( 'sscribe_render_boot_error_notice' ) ) {
 			$time ? '<p><small>' . esc_html( $time ) . '</small></p>' : ''
 		);
 	}
-}
-
-add_action( 'admin_notices', 'sscribe_render_boot_error_notice' );
+);
 
 add_action(
 	'plugins_loaded',
@@ -142,14 +158,14 @@ add_action(
 		try {
 			( new SScribe() )->run();
 		} catch ( \Throwable $e ) {
+			$error_reference = substr( hash( 'sha256', get_class( $e ) . '|' . $e->getMessage() ), 0, 12 );
 			set_transient(
 				'sscribe_boot_error',
 				array(
 					'message' => sprintf(
-						/* translators: %s: error message */
-
-						__( 'The plugin bootstrap failed before the admin menu could be registered: %s', 'sscribe-export-site-pages' ),
-						$e->getMessage()
+						/* translators: %s: diagnostic reference code. */
+						__( 'The plugin could not start. Check the server error log and include reference %s when requesting support.', 'sscribe-export-site-pages' ),
+						$error_reference
 					),
 					'time'    => gmdate( 'Y-m-d H:i:s \U\T\C' ),
 				),
@@ -157,7 +173,7 @@ add_action(
 			);
 
 			if ( defined( 'WP_DEBUG' ) && WP_DEBUG ) {
-				error_log( 'SScribe Fatal Error Prevented: ' . $e->getMessage() ); // phpcs:ignore WordPress.PHP.DevelopmentFunctions.error_log_error_log
+				error_log( 'SScribe bootstrap error [' . $error_reference . ']: ' . $e->getMessage() ); // phpcs:ignore WordPress.PHP.DevelopmentFunctions.error_log_error_log
 			}
 		}
 	}

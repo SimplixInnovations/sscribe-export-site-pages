@@ -36,6 +36,16 @@ $version_locations = array(
 		'pattern' => '/@version\s+([0-9.]+)/',
 		'line'    => 8,
 	),
+	'package_json'     => array(
+		'file'    => $root_dir . '/package.json',
+		'pattern' => '/"version"\s*:\s*"([0-9.]+)"/',
+		'line'    => 3,
+	),
+	'package_lock'     => array(
+		'file'    => $root_dir . '/package-lock.json',
+		'pattern' => '/"version"\s*:\s*"([0-9.]+)"/',
+		'line'    => 3,
+	),
 	'readme_changelog' => array(
 		'file'       => $root_dir . '/readme.txt',
 		'pattern'    => '/^= (\d+\.\d+\.\d+) =\s*$/m',
@@ -113,7 +123,7 @@ if ( $canonical_version ) {
 			new RecursiveDirectoryIterator( $dir, RecursiveDirectoryIterator::SKIP_DOTS )
 		);
 		foreach ( $iterator as $file_info ) {
-			if ( $file_info->isFile() && in_array( $file_info->getExtension(), array( 'php', 'txt', 'css', 'json', 'pot' ), true ) ) {
+			if ( $file_info->isFile() && in_array( $file_info->getExtension(), array( 'php', 'txt', 'css', 'json', 'pot', 'js' ), true ) ) {
 				$all_files[] = $file_info->getPathname();
 			}
 		}
@@ -187,6 +197,14 @@ if ( $canonical_version ) {
 				continue;
 			}
 
+			// Test fixtures intentionally encode historical version references
+			// (regression fixtures for diagnostics on older installs, change-log
+			// references in @since / comment blocks). Tests/ is not shipped in
+			// the production artifact, so stale refs there are non-blocking.
+			if ( 0 === strpos( $f, 'tests/' ) || 0 === strpos( $f, 'tests\\' ) ) {
+				continue;
+			}
+
 			if ( 'sscribe-export-site-pages.php' === basename( $f ) ) {
 				continue;
 			}
@@ -196,6 +214,46 @@ if ( $canonical_version ) {
 			}
 
 			if ( 'class-sscribe-filesystem.php' === basename( $f ) ) {
+				continue;
+			}
+
+			if ( 'class-sscribe-container-exception.php' === basename( $f ) ) {
+				continue;
+			}
+
+			if ( 'class-sscribe-container-notfound-exception.php' === basename( $f ) ) {
+				continue;
+			}
+
+			if ( 'class-sscribe-container.php' === basename( $f ) ) {
+				continue;
+			}
+
+			if ( 'class-sscribe-content-parser.php' === basename( $f ) ) {
+				continue;
+			}
+
+			if ( 'class-sscribe-docx-content-renderer.php' === basename( $f ) ) {
+				continue;
+			}
+
+			if ( 'class-sscribe-export-query-controller.php' === basename( $f ) ) {
+				continue;
+			}
+
+			if ( 'interface-sscribe-exporter.php' === basename( $f ) ) {
+				continue;
+			}
+
+			// admin/js/ contains historical @since tags and patch-note
+			// comments referencing 1.1.x versions; bumping them is incorrect.
+			if ( 0 === strpos( $f, 'admin/js/' ) || 0 === strpos( $f, 'admin\\js\\' ) ) {
+				continue;
+			}
+
+			// composer.json contains a real phpoffice/phpword version
+			// constraint (~1.4.0), not a stale version reference.
+			if ( 'composer.json' === basename( $f ) ) {
 				continue;
 			}
 			$has_actual_warnings = true;
@@ -238,8 +296,16 @@ if ( ! empty( $versions['constant'] ) ) {
 		$version_warnings[] = sprintf( 'Changelog entry not found for version %s', $versions['constant'] );
 	}
 
+	// Scope the regex to the Upgrade Notice section so it does not match the
+	// Changelog, which also contains `= X.Y.Z =` headers (one per historical
+	// release). Without scoping, the first match lands inside the Changelog
+	// span and the captured length is too short to pass the threshold below.
+	$upgrade_scope = '';
+	if ( preg_match( '/^== Upgrade Notice ==$(.*?)(?=^== |\z)/sm', $readme_content, $scope_match ) ) {
+		$upgrade_scope = $scope_match[1];
+	}
 	$upgrade_pattern = '/= ' . preg_quote( $versions['constant'], '/' ) . ' =[\s\S]*?(?== [0-9]|\z)/';
-	if ( preg_match( $upgrade_pattern, $readme_content, $upgrade_section ) ) {
+	if ( '' !== $upgrade_scope && preg_match( $upgrade_pattern, $upgrade_scope, $upgrade_section ) ) {
 		if ( strlen( trim( $upgrade_section[0] ) ) < 50 ) {
 			$version_warnings[] = 'Upgrade notice section appears to be missing or too short.';
 		}

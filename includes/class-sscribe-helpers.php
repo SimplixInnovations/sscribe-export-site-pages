@@ -39,6 +39,9 @@ class SScribe_Helpers {
 	 * @return string
 	 */
 	public static function icon_url( string $name ): string {
+		if ( 1 !== preg_match( '/^[a-z0-9-]{1,50}$/D', $name ) ) {
+			return '';
+		}
 		return SSCRIBE_PLUGIN_URL . self::$icons_dir . $name . '.svg';
 	}
 
@@ -51,6 +54,10 @@ class SScribe_Helpers {
 	 * @return string
 	 */
 	public static function get_icon( string $name, int $size = 20, string $css_class = '' ): string {
+		if ( 1 !== preg_match( '/^[a-z0-9-]{1,50}$/D', $name ) ) {
+			return '';
+		}
+		$size      = max( 1, min( 256, $size ) );
 		$cache_key = $name . ':' . $size . ':' . $css_class;
 		if ( isset( self::$icon_cache[ $cache_key ] ) ) {
 			return self::$icon_cache[ $cache_key ];
@@ -101,110 +108,187 @@ class SScribe_Helpers {
 	}
 
 	/**
-	 * Get time estimate for a single format export.
+	 * Get an icon as inline SVG so currentColor resolves correctly.
 	 *
-	 * @param string $format     Export format.
-	 * @param int    $page_count Number of pages.
-	 * @return array
-	 */
-	public static function get_format_time_estimate( string $format, int $page_count ): array {
-		$times = array(
-			'docx'     => 1.2,
-			'pdf'      => 8,
-			'html'     => 1,
-			'markdown' => 0.5,
-		);
-
-		$seconds_per_page = isset( $times[ $format ] ) ? $times[ $format ] : 2;
-		$total_seconds    = (int) ceil( $seconds_per_page * $page_count );
-
-		if ( $total_seconds < 60 ) {
-			return array(
-				'text'    => sprintf(
-					/* translators: %d: Estimated seconds. */
-					__( '~%d seconds', 'sscribe-export-site-pages' ),
-					$total_seconds
-				),
-				'seconds' => $total_seconds,
-			);
-		}
-
-		$minutes = (int) ceil( $total_seconds / 60 );
-		return array(
-			'text'    => sprintf(
-				/* translators: %d: Estimated minutes. */
-				_n( '~%d minute', '~%d minutes', $minutes, 'sscribe-export-site-pages' ),
-				$minutes
-			),
-			'seconds' => $total_seconds,
-		);
-	}
-
-	/**
-	 * Get time estimate for all formats combined.
+	 * Use this when an icon must inherit its color from CSS (e.g. white
+	 * check on a colored selected-state circle). For most other uses,
+	 * get_icon() with the <img> tag is preferred.
 	 *
-	 * @param int $page_count Number of pages.
-	 * @return array
-	 */
-	public static function get_all_formats_time_estimate( int $page_count ): array {
-		$total_seconds = (int) ceil( ( 1.2 + 8 + 1 + 0.5 ) * $page_count );
-		$minutes       = (int) ceil( $total_seconds / 60 );
-
-		if ( $minutes < 60 ) {
-			return array(
-				'text'    => sprintf(
-					/* translators: %d: Estimated minutes. */
-					_n( '~%d minute', '~%d minutes', $minutes, 'sscribe-export-site-pages' ),
-					$minutes
-				),
-				'seconds' => $total_seconds,
-			);
-		}
-
-		$hours = (int) floor( $minutes / 60 );
-		$mins  = $minutes % 60;
-		$text  = sprintf(
-			/* translators: 1: Hours, 2: Minutes. */
-			__( '~%1$dh %2$dm', 'sscribe-export-site-pages' ),
-			$hours,
-			$mins
-		);
-		return array(
-			'text'    => $text,
-			'seconds' => $total_seconds,
-		);
-	}
-
-	/**
-	 * Format bytes to human-readable size.
-	 *
-	 * @param int $bytes File size in bytes.
+	 * @param string $name      Icon name.
+	 * @param int    $size      Icon size in pixels.
+	 * @param string $css_class Additional CSS classes.
 	 * @return string
 	 */
-	public static function format_filesize( int $bytes ): string {
-		return size_format( $bytes, 1 );
+	public static function get_icon_inline( string $name, int $size = 20, string $css_class = '' ): string {
+		if ( 1 !== preg_match( '/^[a-z0-9-]{1,50}$/D', $name ) ) {
+			return '';
+		}
+		$size      = max( 1, min( 256, $size ) );
+		$cache_key = 'inline:' . $name . ':' . $size . ':' . $css_class;
+		if ( isset( self::$icon_cache[ $cache_key ] ) ) {
+			return self::$icon_cache[ $cache_key ];
+		}
+
+		$file_path = SSCRIBE_PLUGIN_DIR . self::$icons_dir . $name . '.svg';
+
+		if ( ! file_exists( $file_path ) ) {
+			return '';
+		}
+
+		// phpcs:ignore WordPress.WP.AlternativeFunctions.file_get_contents_file_get_contents -- Reading a bundled SVG icon from the plugin's own directory; path is built from a strict-validated slug.
+		$raw = file_get_contents( $file_path );
+		if ( false === $raw || '' === $raw ) {
+			return '';
+		}
+
+		$raw = (string) $raw;
+
+		$classes = 'sscribe-icon sscribe-icon-' . sanitize_html_class( $name );
+		if ( '' !== $css_class ) {
+			$parts     = preg_split( '/\s+/', trim( $css_class ), -1, PREG_SPLIT_NO_EMPTY );
+			$sanitized = array();
+			foreach ( $parts as $part ) {
+				$cleaned = sanitize_html_class( $part );
+				if ( '' !== $cleaned ) {
+					$sanitized[] = $cleaned;
+				}
+			}
+			if ( ! empty( $sanitized ) ) {
+				$classes .= ' ' . implode( ' ', $sanitized );
+			}
+		}
+
+		$abs_size = absint( $size );
+
+		if ( strpos( $raw, '<svg' ) !== false ) {
+			$raw = preg_replace( '/\s(width|height)="[^"]*"/i', '', $raw, 2 );
+		}
+
+		$svg  = preg_replace(
+			'/<svg\b/i',
+			'<svg width="' . $abs_size . '" height="' . $abs_size . '" class="' . esc_attr( $classes ) . '" aria-hidden="true"',
+			$raw,
+			1
+		);
+		if ( null === $svg ) {
+			$svg = $raw;
+		}
+
+		self::$icon_cache[ $cache_key ] = $svg;
+		return $svg;
 	}
 
 	/**
-	 * Validate and sanitize a document URL.
+	 * Get an inline SVG icon, escaped through an SVG-only kses allowlist.
 	 *
-	 * @param string $url URL to validate.
-	 * @return string Sanitized URL or empty string.
+	 * WordPress's `wp_kses_post()` strips `<svg>` and `<path>` elements on
+	 * many installs (the default `post` allowed-HTML context does not include
+	 * them in all WP versions, and several hardening plugins actively remove
+	 * them). Passing the output of `get_icon_inline()` through `wp_kses_post()`
+	 * therefore yields an empty string, which is why the radio-card check
+	 * icons and all other inline SVG icons were missing from the rendered
+	 * admin UI. This wrapper applies a tight allowlist that whitelists only
+	 * the SVG elements and attributes our shipped icons actually use, so
+	 * the inline SVG survives sanitization without weakening any other
+	 * escape path in the plugin.
+	 *
+	 * This method remains for non-template callers. Templates should escape
+	 * late with `wp_kses( ..., self::get_svg_kses_allowed_html() )` so the
+	 * output-site guarantee is explicit to both reviewers and static tools.
+	 *
+	 * @param string $name      Icon name (must exist in assets/icons/).
+	 * @param int    $size      Width/height attribute in pixels.
+	 * @param string $css_class Additional CSS classes.
+	 * @return string Sanitized inline SVG markup.
 	 */
-	public static function validate_document_url( string $url ): string {
-		$url = esc_url_raw( $url );
-
-		if ( empty( $url ) ) {
+	public static function get_icon_inline_safe( string $name, int $size = 20, string $css_class = '' ): string {
+		$svg = self::get_icon_inline( $name, $size, $css_class );
+		if ( '' === $svg ) {
 			return '';
 		}
+		return wp_kses( $svg, self::get_svg_kses_allowed_html() );
+	}
 
-		$parsed = wp_parse_url( $url );
-
-		if ( ! isset( $parsed['scheme'] ) || ! in_array( $parsed['scheme'], array( 'http', 'https' ), true ) ) {
-			return '';
-		}
-
-		return $url;
+	/**
+	 * Get the strict allowlist used when outputting bundled SVG icons.
+	 *
+	 * Keeping this public lets templates perform the required late escaping at
+	 * the exact output site without falling back to the broader post allowlist.
+	 *
+	 * @return array<string, array<string, bool>> SVG elements and attributes.
+	 */
+	public static function get_svg_kses_allowed_html(): array {
+		return array(
+			'svg'  => array(
+				'class'             => true,
+				'aria-hidden'       => true,
+				'aria-label'        => true,
+				'role'              => true,
+				'width'             => true,
+				'height'            => true,
+				'viewbox'           => true,
+				'xmlns'             => true,
+				'fill'              => true,
+				'stroke'            => true,
+				'stroke-width'      => true,
+				'stroke-linecap'    => true,
+				'stroke-linejoin'   => true,
+			),
+			'g'    => array(
+				'fill'    => true,
+				'stroke'  => true,
+				'transform' => true,
+			),
+			'path' => array(
+				'd'                 => true,
+				'fill'              => true,
+				'stroke'            => true,
+				'stroke-width'      => true,
+				'stroke-linecap'    => true,
+				'stroke-linejoin'   => true,
+				'transform'         => true,
+			),
+			'circle' => array(
+				'cx'    => true,
+				'cy'    => true,
+				'r'     => true,
+				'fill'  => true,
+				'stroke' => true,
+			),
+			'rect'   => array(
+				'x'         => true,
+				'y'         => true,
+				'width'     => true,
+				'height'    => true,
+				'rx'        => true,
+				'ry'        => true,
+				'fill'      => true,
+				'stroke'    => true,
+				'transform' => true,
+			),
+			'line'   => array(
+				'x1'            => true,
+				'y1'            => true,
+				'x2'            => true,
+				'y2'            => true,
+				'stroke'        => true,
+				'stroke-width'  => true,
+				'stroke-linecap' => true,
+			),
+			'polyline' => array(
+				'points'          => true,
+				'fill'            => true,
+				'stroke'          => true,
+				'stroke-linecap'  => true,
+				'stroke-linejoin' => true,
+			),
+			'polygon' => array(
+				'points'          => true,
+				'fill'            => true,
+				'stroke'          => true,
+				'stroke-linejoin' => true,
+			),
+		);
 	}
 
 	/**
@@ -214,10 +298,16 @@ class SScribe_Helpers {
 	 */
 	public static function get_client_ip(): string {
 		$trusted_headers = apply_filters( 'sscribe_trusted_ip_headers', array() );
+		$trusted_headers = is_array( $trusted_headers ) ? array_slice( $trusted_headers, 0, 10 ) : array();
 
 		foreach ( $trusted_headers as $header ) {
+			$header = sanitize_key( (string) $header );
+			if ( '' === $header ) {
+				continue;
+			}
+
 			$header_key = 'HTTP_' . strtoupper( str_replace( '-', '_', $header ) );
-			if ( ! empty( $_SERVER[ $header_key ] ) ) {
+			if ( isset( $_SERVER[ $header_key ] ) && is_string( $_SERVER[ $header_key ] ) && '' !== $_SERVER[ $header_key ] ) {
 				$ip = explode( ',', sanitize_text_field( wp_unslash( $_SERVER[ $header_key ] ) ) );
 				$ip = trim( $ip[0] );
 				if ( filter_var( $ip, FILTER_VALIDATE_IP ) ) {
@@ -226,11 +316,13 @@ class SScribe_Helpers {
 			}
 		}
 
-		$remote_addr = filter_input( INPUT_SERVER, 'REMOTE_ADDR', FILTER_DEFAULT );
-		if ( false === $remote_addr || null === $remote_addr ) {
+		$remote_addr = isset( $_SERVER['REMOTE_ADDR'] ) && is_string( $_SERVER['REMOTE_ADDR'] ) // phpcs:ignore WordPress.Security.ValidatedSanitizedInput.InputNotSanitized -- REMOTE_ADDR is sanitized to text and then passed to filter_var(FILTER_VALIDATE_IP) below; non-IP input is rejected and `0.0.0.0` is returned instead.
+			? sanitize_text_field( wp_unslash( $_SERVER['REMOTE_ADDR'] ) )
+			: '';
+		if ( '' === $remote_addr ) {
 			return '0.0.0.0';
 		}
-		$ip = filter_var( sanitize_text_field( wp_unslash( (string) $remote_addr ) ), FILTER_VALIDATE_IP );
+		$ip = filter_var( $remote_addr, FILTER_VALIDATE_IP );
 
 		if ( empty( $ip ) ) {
 			return '0.0.0.0';

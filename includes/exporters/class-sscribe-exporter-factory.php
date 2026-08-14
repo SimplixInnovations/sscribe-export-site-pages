@@ -19,6 +19,47 @@ if ( ! defined( 'ABSPATH' ) ) {
 class SScribe_Exporter_Factory {
 
 	/**
+	 * Guard so we only attempt to bootstrap the vendor autoloader once
+	 * per request, regardless of how many times create()/is_supported()
+	 * get called.
+	 *
+	 * @var bool
+	 */
+	private static bool $vendor_loaded = false;
+
+	/**
+	 * Lazy-load the prefixed vendor autoloader the first time any
+	 * exporter path is exercised. The main plugin file no longer
+	 * require_onces vendor-prefixed/autoload.php at boot, so frontend
+	 * and admin-only page loads (e.g. settings screens, list tables)
+	 * do not pay the cost of parsing PhpWord/mPDF/CommonMark classes.
+	 *
+	 * @return void
+	 */
+	public static function ensure_vendor_loaded(): void {
+		if ( self::$vendor_loaded ) {
+			return;
+		}
+		self::$vendor_loaded = true;
+
+		if ( defined( 'SSCRIBE_VENDOR_AUTOLOADED' ) ) {
+			return;
+		}
+
+		if ( file_exists( SSCRIBE_PLUGIN_DIR . 'vendor-prefixed/autoload.php' ) ) {
+			require_once SSCRIBE_PLUGIN_DIR . 'vendor-prefixed/autoload.php';
+			define( 'SSCRIBE_VENDOR_AUTOLOADED', true );
+			return;
+		}
+
+		if ( file_exists( SSCRIBE_PLUGIN_DIR . 'vendor/autoload.php' ) ) {
+			require_once SSCRIBE_PLUGIN_DIR . 'vendor/autoload.php';
+			require_once SSCRIBE_PLUGIN_DIR . 'includes/sscribe-vendor-compat.php';
+			define( 'SSCRIBE_VENDOR_AUTOLOADED', true );
+		}
+	}
+
+	/**
 	 * Validate and resolve export format enum.
 	 *
 	 * @param string $format Format string.
@@ -48,6 +89,7 @@ class SScribe_Exporter_Factory {
 	 * @throws SScribe_Validation_Exception If format is invalid.
 	 */
 	public static function create( string $format ): SScribe_Exporter_Interface {
+		self::ensure_vendor_loaded();
 		$enum_format = self::validate_format( $format );
 
 		$container = SScribe_Container::instance();
@@ -90,22 +132,30 @@ class SScribe_Exporter_Factory {
 	/**
 	 * Build a filename for the exported page.
 	 *
+	 * Language is no longer encoded in the filename. The batch processor
+	 * now writes each page into a per-language output subdirectory
+	 * (e.g. `temp-xxx/AR/P001-foo.pdf`), and the ZIP handler derives the
+	 * language from the parent directory name. The `$include_lang`
+	 * parameter is preserved for backward compatibility with any
+	 * third-party callers but is now a no-op.
+	 *
 	 * @param array  $page_data     Page metadata.
 	 * @param int    $index         Current page index.
 	 * @param int    $total         Total page count.
 	 * @param string $extension     File extension.
-	 * @param bool   $include_lang  Whether to include language code.
+	 * @param bool   $include_lang  Deprecated : language is communicated
+	 *                              via the output directory, not the filename.
 	 * @return string Generated filename.
 	 */
 	public static function build_filename( array $page_data, int $index = 0, int $total = 0, string $extension = 'docx', bool $include_lang = true ): string {
-		$page_id = $page_data['id'] ?? 0;
+		$page_id = absint( $page_data['id'] ?? 0 );
 
-		$raw_title  = $page_data['title'] ?? '';
+		$raw_title = is_scalar( $page_data['title'] ?? null ) ? (string) $page_data['title'] : '';
 		if ( '' !== $raw_title ) {
 			$raw_title = self::sanitize_filename_preserve_unicode( trim( $raw_title ) );
 		}
 
-		$raw_slug   = $page_data['slug'] ?? '';
+		$raw_slug = is_scalar( $page_data['slug'] ?? null ) ? (string) $page_data['slug'] : '';
 		if ( '' !== $raw_slug ) {
 			$raw_slug = self::sanitize_filename_preserve_unicode( trim( $raw_slug ) );
 		}
@@ -117,44 +167,25 @@ class SScribe_Exporter_Factory {
 
 			$page_title = rtrim( $page_title, '- _' );
 
-			// Re-sanitize after truncation to ensure no problematic characters remain.
 			$page_title = self::sanitize_filename_preserve_unicode( $page_title );
 		}
 
-		$lang_code = '';
-		if ( $include_lang && ! empty( $page_data['language'] ) ) {
-			$lang      = substr( $page_data['language'], 0, 2 );
-			$sanitized = sanitize_key( $lang );
-			if ( '' !== $lang && '' !== $sanitized ) {
-				$lang_code = '-' . strtoupper( $sanitized );
-			}
-		}
+		unset( $include_lang );
 
+		$total      = max( 0, $total );
 		$pad_length = $total > 0 ? strlen( (string) $total ) : 3;
 		$pad_length = max( 3, $pad_length );
 
-		// Include page_id in filename to prevent collisions when multiple pages
-		// share the same title but have different IDs and/or indices.
 		$id_suffix = $page_id > 0 ? '-' . $page_id : '';
 
-		// Default $index of 0 maps to 1 (first page). Guard against accidental
-		// misuse when $total > 1 by logging a debug message.
-		$page_index = $index > 0 ? $index : 1;
-		if ( 0 === $index && $total > 1 ) {
-			// This is a calling-code bug — log it for debugging.
-			error_log( // phpcs:ignore WordPress.PHP.DevelopmentFunctions
-				sprintf(
-					'SScribe: build_filename called with index=0 for a multi-page export (%d pages). Filename will use P001.',
-					$total
-				)
-			);
-		}
+		$page_index = max( 1, $index );
+		$extension  = strtolower( $extension );
+		$extension  = 1 === preg_match( '/^[a-z0-9]{1,10}$/D', $extension ) ? $extension : 'bin';
 
 		return sprintf(
-			'P%0' . $pad_length . 'd-%s%s%s.%s',
+			'P%0' . $pad_length . 'd-%s%s.%s',
 			$page_index,
 			$page_title,
-			$lang_code,
 			$id_suffix,
 			strtolower( $extension )
 		);
@@ -173,31 +204,25 @@ class SScribe_Exporter_Factory {
 	 * @return string Sanitized filename safe for filesystem use.
 	 */
 	private static function sanitize_filename_preserve_unicode( string $filename ): string {
-		// Replace directory separators with hyphens so the filename stays as one component.
+
 		$filename = str_replace( array( '/', '\\' ), '-', $filename );
 
-		// Remove null bytes (always invalid in filenames).
 		$filename = str_replace( "\0", '', $filename );
 
-		// Strip characters that are illegal on Windows (and generally problematic).
-		// These are: < > : " | ? and non-ASCII control characters.
-		$filename = preg_replace( '/[\x00-\x1f\x7f<>:\"\/\\\\|?]/', '', $filename );
+		$filename = preg_replace( '/[\x00-\x1f\x7f<>:\"\/\\\\|?*]/', '', $filename );
 
-		// Windows reserved names (device names): CON, PRN, AUX, NUL, COM1-9, LPT1-9.
-		// Handle edge cases like "COM1" or "NUL" (case-insensitive on Windows).
 		if ( preg_match( '/^(con|prn|aux|nul|com[1-9]|lpt[1-9])(\\.|$)/i', $filename ) ) {
 			$filename = '_' . $filename;
 		}
 
-		// Collapse multiple hyphens/stubs to a single hyphen.
 		$filename = preg_replace( '/-+/', '-', $filename );
 
-		// Remove leading/trailing hyphens and dots (hidden files on Windows).
-		$filename = trim( $filename, '.-' );
+		$filename = trim( $filename );
+		$filename = rtrim( $filename, '.-' );
 
-		// Enforce max length (255 bytes is the filesystem limit for most OS).
 		if ( strlen( $filename ) > 200 ) {
-			$filename = substr( $filename, 0, 200 );
+			$filename = mb_strcut( $filename, 0, 200, 'UTF-8' );
+			$filename = rtrim( $filename, ' .-' );
 		}
 
 		return '' !== $filename ? $filename : '_';

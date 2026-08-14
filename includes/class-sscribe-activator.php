@@ -29,9 +29,6 @@ class SScribe_Activator {
 	 */
 	public static function activate( bool $network_wide = false ): void {
 
-		// Only wipe the export index and schema on a FRESH install (not on updates).
-		// WordPress re-runs the activation hook on plugin update, so checking
-		// get_option() first prevents accidental data loss on upgrade.
 		$existing_version = get_option( 'sscribe_version', null );
 		if ( null === $existing_version ) {
 			delete_option( 'sscribe_export_index' );
@@ -42,25 +39,52 @@ class SScribe_Activator {
 		if ( ! file_exists( SSCRIBE_PLUGIN_DIR . 'vendor-prefixed/autoload.php' )
 			&& ! file_exists( SSCRIBE_PLUGIN_DIR . 'vendor/autoload.php' )
 		) {
+			$message = sprintf(
+				/* translators: %s: plugin version */
+				__( 'Activation aborted: required runtime dependencies are missing. Reinstall the complete plugin package. Version: %s', 'sscribe-export-site-pages' ),
+				SSCRIBE_VERSION
+			);
 			set_transient(
 				'sscribe_boot_error',
 				array(
-					'message' => sprintf(
-						/* translators: %s: plugin version */
-						__( 'Activation aborted: required runtime dependencies are missing. Run "composer install" in the plugin directory or reinstall the plugin package. Version: %s', 'sscribe-export-site-pages' ),
-						SSCRIBE_VERSION
-					),
+					'message' => $message,
 					'time'    => gmdate( 'Y-m-d H:i:s \\U\\T\\C' ),
 				),
 				MINUTE_IN_SECONDS * 10
 			);
-			return;
+			wp_die(
+				esc_html( $message ),
+				esc_html__( 'SScribe activation failed', 'sscribe-export-site-pages' ),
+				array( 'back_link' => true )
+			);
 		}
 
-		if ( $network_wide && is_multisite() ) {
-			self::activate_network_wide();
-		} else {
-			self::activate_single_site();
+		try {
+			if ( $network_wide && is_multisite() ) {
+				self::activate_network_wide();
+			} else {
+				self::activate_single_site();
+			}
+		} catch ( \Throwable $exception ) {
+			$reference = substr( hash( 'sha256', get_class( $exception ) . '|' . $exception->getMessage() ), 0, 12 );
+			$message   = sprintf(
+				/* translators: %s: diagnostic reference code. */
+				__( 'Activation could not complete the required setup. Reinstall the plugin package or contact your site administrator. Reference: %s', 'sscribe-export-site-pages' ),
+				$reference
+			);
+			set_transient(
+				'sscribe_boot_error',
+				array(
+					'message' => $message,
+					'time'    => gmdate( 'Y-m-d H:i:s \\U\\T\\C' ),
+				),
+				MINUTE_IN_SECONDS * 10
+			);
+			wp_die(
+				esc_html( $message ),
+				esc_html__( 'SScribe activation failed', 'sscribe-export-site-pages' ),
+				array( 'back_link' => true )
+			);
 		}
 
 		set_transient( 'sscribe_activation_redirect', '1', MINUTE_IN_SECONDS );
@@ -94,11 +118,49 @@ class SScribe_Activator {
 
 			foreach ( $sites as $blog_id ) {
 				switch_to_blog( (int) $blog_id );
-				self::activate_single_site();
-				restore_current_blog();
+				try {
+					self::activate_single_site();
+				} finally {
+					restore_current_blog();
+				}
 			}
 
 			$offset += $number;
+		}
+	}
+
+	/**
+	 * Provision a newly created site while the plugin is network-active.
+	 *
+	 * @param object $new_site WordPress site object supplied by wp_initialize_site.
+	 * @return void
+	 */
+	public function activate_new_site( object $new_site ): void {
+		if ( ! is_multisite() ) {
+			return;
+		}
+
+		if ( ! function_exists( 'is_plugin_active_for_network' ) ) {
+			$plugin_functions = ABSPATH . 'wp-admin/includes/plugin.php';
+			if ( file_exists( $plugin_functions ) ) {
+				require_once $plugin_functions;
+			}
+		}
+		if ( ! function_exists( 'is_plugin_active_for_network' ) || ! is_plugin_active_for_network( SSCRIBE_PLUGIN_BASENAME ) ) {
+			return;
+		}
+
+		$site_data = get_object_vars( $new_site );
+		$blog_id   = absint( $site_data['blog_id'] ?? 0 );
+		if ( $blog_id <= 0 ) {
+			return;
+		}
+
+		switch_to_blog( $blog_id );
+		try {
+			self::activate_single_site();
+		} finally {
+			restore_current_blog();
 		}
 	}
 
@@ -108,7 +170,11 @@ class SScribe_Activator {
 	private static function activate_single_site(): void {
 		self::create_export_directory();
 		self::create_database_tables();
-		self::register_settings();
+		// register_settings() is wired to the admin_init hook in
+		// sscribe-export-site-pages.php so the Settings API whitelist
+		// is live on every admin request, not just on activation. The
+		// option defaults declared inside register_settings() seed new
+		// installs; existing installs keep their stored values.
 		self::schedule_cleanup();
 		self::cleanup_orphaned_data();
 		self::grant_export_capability();
@@ -117,6 +183,8 @@ class SScribe_Activator {
 
 	/**
 	 * Create plugin database tables.
+	 *
+	 * @throws \RuntimeException When the WordPress upgrade helper is unavailable.
 	 */
 	private static function create_database_tables(): void {
 		global $wpdb;
@@ -131,6 +199,7 @@ class SScribe_Activator {
 			level VARCHAR(20) NOT NULL,
 			message TEXT NOT NULL,
 			context LONGTEXT,
+			session_id VARCHAR(60) DEFAULT NULL,
 			user_id BIGINT UNSIGNED,
 			request_id VARCHAR(12),
 			memory_usage VARCHAR(20),
@@ -138,7 +207,8 @@ class SScribe_Activator {
 			KEY idx_timestamp (timestamp),
 			KEY idx_level (level),
 			KEY idx_user_id (user_id),
-			KEY idx_request_id (request_id)
+			KEY idx_request_id (request_id),
+			KEY idx_session_id (session_id)
 		) $charset_collate;";
 
 		$table_stats = $wpdb->prefix . 'sscribe_export_stats';
@@ -155,7 +225,7 @@ class SScribe_Activator {
 			memory_peak VARCHAR(20),
 			duration_seconds FLOAT,
 			file_size_mb DECIMAL(10, 2),
-			status ENUM('completed', 'failed', 'paused') DEFAULT 'completed',
+			status VARCHAR(20) NOT NULL DEFAULT 'processing',
 			error_message TEXT,
 			created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
 			PRIMARY KEY  (id),
@@ -165,46 +235,34 @@ class SScribe_Activator {
 			KEY idx_status (status)
 		) $charset_collate;";
 
-		require_once ABSPATH . 'wp-admin/includes/upgrade.php';
+		$upgrade_functions = ABSPATH . 'wp-admin/includes/upgrade.php';
+		if ( file_exists( $upgrade_functions ) ) {
+			require_once $upgrade_functions;
+		}
+
+		if ( ! function_exists( 'dbDelta' ) ) {
+			throw new \RuntimeException( 'WordPress database upgrade functions are unavailable.' );
+		}
 
 		dbDelta( $sql_logs );
 		dbDelta( $sql_stats );
 
-		$table_sessions = $wpdb->prefix . 'sscribe_sessions';
-		$sql_sessions   = "CREATE TABLE $table_sessions (
-			id BIGINT UNSIGNED NOT NULL AUTO_INCREMENT,
-			session_id VARCHAR(64) NOT NULL,
-			user_id BIGINT UNSIGNED NOT NULL,
-			status ENUM('pending', 'processing', 'completed', 'failed', 'paused', 'cancelled') DEFAULT 'pending',
-			language VARCHAR(10) NOT NULL DEFAULT '',
-			post_status VARCHAR(20) NOT NULL DEFAULT 'publish',
-			formats LONGTEXT,
-			total_pages INT UNSIGNED DEFAULT 0,
-			processed_pages INT UNSIGNED DEFAULT 0,
-			current_page_index INT UNSIGNED DEFAULT 0,
-			page_ids LONGTEXT,
-			session_data LONGTEXT,
-			signature VARCHAR(64),
-			created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
-			updated_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
-			expires_at DATETIME,
-			PRIMARY KEY  (id),
-			UNIQUE KEY idx_session_id (session_id),
-			KEY idx_user_id (user_id),
-			KEY idx_status (status),
-			KEY idx_expires_at (expires_at)
-		) $charset_collate;";
-		dbDelta( $sql_sessions );
-
-		require_once SSCRIBE_PLUGIN_DIR . 'includes/class-sscribe-audit-trail.php';
 		SScribe_Audit_Trail::create_table();
+		update_option( 'sscribe_schema_version', SSCRIBE_VERSION, false );
 	}
 
 	/**
 	 * Register WordPress settings via register_setting().
-	 * Required for WordPress Plugin Review compliance.
+	 *
+	 * Required for WordPress Plugin Review compliance and for the
+	 * Settings API whitelist to actually include these option names.
+	 * Wired to the admin_init hook from sscribe-export-site-pages.php
+	 * so the registry is live on every admin request, not just on
+	 * activation. Calling it only from the activation hook left the
+	 * registry dead on every page load after activation, which is the
+	 * settings-API dead-registry anti-pattern.
 	 */
-	private static function register_settings(): void {
+	public static function register_settings(): void {
 		register_setting(
 			'sscribe_settings',
 			'sscribe_debug_enabled',
@@ -220,8 +278,8 @@ class SScribe_Activator {
 			'sscribe_debug_log_level',
 			array(
 				'type'              => 'string',
-				'sanitize_callback' => 'sanitize_text_field',
-				'default'           => 'DEBUG',
+				'sanitize_callback' => array( 'SScribe_Settings', 'sanitize_debug_log_level' ),
+				'default'           => SScribe_Settings::LEVEL_DEBUG,
 			)
 		);
 
@@ -238,9 +296,15 @@ class SScribe_Activator {
 
 	/**
 	 * Create and protect the export directory.
+	 *
+	 * @throws \RuntimeException When WordPress cannot resolve the uploads directory.
 	 */
 	private static function create_export_directory(): void {
-		$upload_dir  = wp_upload_dir();
+		$upload_dir = wp_upload_dir();
+		if ( ! empty( $upload_dir['error'] ) || empty( $upload_dir['basedir'] ) ) {
+			throw new \RuntimeException( 'WordPress could not resolve the uploads directory during SScribe activation.' );
+		}
+
 		$export_path = untrailingslashit( $upload_dir['basedir'] ) . '/sscribe-exports';
 
 		SScribe_Security::protect_directory( $export_path );
@@ -251,6 +315,12 @@ class SScribe_Activator {
 	 */
 	private static function schedule_cleanup(): void {
 		$interval = apply_filters( 'sscribe_cleanup_interval', 'hourly' );
+		if ( ! is_string( $interval ) || '' === $interval ) {
+			$interval = 'hourly';
+		}
+		if ( function_exists( 'wp_get_schedules' ) && ! isset( wp_get_schedules()[ $interval ] ) ) {
+			$interval = 'hourly';
+		}
 		if ( ! wp_next_scheduled( 'sscribe_cleanup_exports' ) ) {
 			wp_schedule_event( time(), $interval, 'sscribe_cleanup_exports' );
 		}
@@ -260,6 +330,12 @@ class SScribe_Activator {
 		}
 
 		$audit_interval = apply_filters( 'sscribe_audit_cleanup_interval', 'daily' );
+		if ( ! is_string( $audit_interval ) || '' === $audit_interval ) {
+			$audit_interval = 'daily';
+		}
+		if ( function_exists( 'wp_get_schedules' ) && ! isset( wp_get_schedules()[ $audit_interval ] ) ) {
+			$audit_interval = 'daily';
+		}
 		if ( ! wp_next_scheduled( 'sscribe_cleanup_audit_trail' ) ) {
 			wp_schedule_event( time(), $audit_interval, 'sscribe_cleanup_audit_trail' );
 		}
@@ -275,9 +351,13 @@ class SScribe_Activator {
 		$lock_pattern    = $wpdb->esc_like( '_transient_sscribe_lock_' ) . '%';
 		$rate_pattern    = $wpdb->esc_like( '_transient_sscribe_rate_' ) . '%';
 
-		$session_option_pattern = $wpdb->esc_like( 'sscribe_session_' ) . '%';
-
-		$patterns = array( $session_pattern, $lock_pattern, $rate_pattern, $session_option_pattern );
+		$patterns = array(
+			$session_pattern,
+			$lock_pattern,
+			$rate_pattern,
+			$wpdb->esc_like( 'sscribe_export_lock_' ) . '%',
+			$wpdb->esc_like( 'sscribe_rate_lock_' ) . '%',
+		);
 
 		foreach ( $patterns as $pattern ) {
 
@@ -312,16 +392,33 @@ class SScribe_Activator {
 	}
 
 	/**
-	 * Grant the scribe_export capability to the Administrator role.
+	 * Grant the sscribe_export and sscribe_health capabilities to the
+	 * Administrator role.
 	 *
-	 * This allows administrators to access export functionality by default.
-	 * Other roles can be granted access via the scribe_export_capability filter
-	 * or by manually assigning the capability.
+	 * The two capabilities are deliberately separate: an editor who
+	 * has been granted `sscribe_export` to run exports should NOT
+	 * automatically be able to read the health diagnostics endpoint,
+	 * which surfaces PHP version, memory state, plugin versions and
+	 * other server fingerprint information. Splitting the capability
+	 * lets site admins grant the read-only diagnostic without granting
+	 * the (more powerful) export functionality.
+	 *
+	 * Other roles can be granted access via the
+	 * `sscribe_export_capability` and `sscribe_health_capability` filters
+	 * or by manually assigning the capabilities.
 	 */
 	private static function grant_export_capability(): void {
 		$admin_role = get_role( 'administrator' );
-		if ( $admin_role && ! $admin_role->has_cap( 'sscribe_export' ) ) {
+		if ( ! $admin_role ) {
+			return;
+		}
+
+		if ( ! $admin_role->has_cap( 'sscribe_export' ) ) {
 			$admin_role->add_cap( 'sscribe_export' );
+		}
+
+		if ( ! $admin_role->has_cap( 'sscribe_health' ) ) {
+			$admin_role->add_cap( 'sscribe_health' );
 		}
 	}
 }

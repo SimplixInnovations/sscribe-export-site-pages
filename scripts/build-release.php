@@ -8,7 +8,7 @@
 declare(strict_types=1);
 
 echo "\n===========================================\n";
-echo "  SSCRIBE EXPORT - ENTERPRISE BUILD\n";
+echo "  SSCRIBE EXPORT BUILD\n";
 echo "===========================================\n\n";
 
 $root       = dirname( __DIR__ );
@@ -23,6 +23,7 @@ $config = array(
 	'run_phpcs'        => true,
 	'generate_sha256'  => true,
 	'auto_clean_root'  => true,
+	'strip_comments'   => true,
 
 	'mainPluginFile'   => 'sscribe-export-site-pages.php',
 	'readmeFile'       => 'readme.txt',
@@ -30,7 +31,7 @@ $config = array(
 
 	'base_excludes'    => array(
 		'dist', 'vendor', '.git', '.gitignore', '.distignore', '.cache', '.phpunit.cache',
-		'.sisyphus', '.wp-env', 'wordpress', 'wordpress-tests-lib',
+		'.sisyphus', '.wp-env', '.playground-cache', 'wordpress', 'wordpress-tests-lib',
 		'package.json', 'package-lock.json', 'opencode.json', 'CONTRIBUTING.md', 'CHANGELOG.md',
 		'phpunit.xml', 'phpunit.xml.dist', 'phpstan.neon', 'phpstan.neon.dist',
 		'phpcs.xml', 'phpstan-bootstrap.php', '.editorconfig', '.wp-env.json',
@@ -38,14 +39,56 @@ $config = array(
 		'composer.json', 'composer.lock', 'scratch', 'strauss.json', 'infection.json5',
 		'commit-message.txt', '.prettierrc', '.eslintrc.json', '.stylelintrc.json', '.husky',
 		'node_modules', 'screenshots', 'WPScan',
+		'assets/banner-1544x500.svg', 'assets/icon-128x128.svg', 'assets/icon-256x256.svg',
+		'vendor-prefixed/phpoffice/phpword/COPYING.LESSER',
+		// Ad-hoc Python transform scripts left over from one-off
+		// SVG / kses / indent fixes. Nothing in the production code
+		// path executes them; if a future maintainer drops a *.py at
+		// the repo root, the pattern keeps it out of the ZIP.
+		'*.py',
 
-		'phpstan-baseline.neon', 'ruleset.xml', 'CREDITS.txt', 'COPYING',
+		'phpstan-baseline.neon', 'ruleset.xml', 'CREDITS.txt',
+		// Third-party licenses remain in the package. PHPWord's LGPL text
+		// ships as COPYING.LESSER.txt because Plugin Check rejects the
+		// upstream COPYING.LESSER suffix as an unexpected file extension.
 		'.php-cs-fixer.php', '.php-cs-fixer.dist.php', 'mkdocs.yml',
 		'.travis.yml', '.scrutinizer.yml', '.github_changelog_generator',
+
+		// AI tooling (Claude Code, OpenCode, Aider, Cursor, Windsurf, Continue, Codeium)
+		// These contain user-local settings and prompt history that must never ship
+		// in the production plugin. WordPress.org plugin-check flags them as
+		// "ai_instruction_directory" warnings if present.
+		'.claude', '.opencode', '.impeccable', '.agent', '.aider', '.aider.chat.history',
+		'.aider.model.settings.json', '.aider.input.history', '.cursor', '.windsurf',
+		'.continue', '.codeium', '.github/copilot', '.cody',
+
+		// Local audit / screenshot artifacts left behind by browser automation.
+		// The .audit/ directory holds v3 verification screenshots; root-level
+		// .export-*.png and tab-export-*.{jpg,jpeg} are full-page captures
+		// produced during UI polish passes. None of this belongs in the
+		// production ZIP - WordPress.org reviewers will see the files and flag
+		// them as junk.
+		'.audit', 'export-full.png', 'export-debug.png', 'export-history.png',
+		'export-main.png', 'export-support.png', 'export-v3-final.png',
+		'tab-export-top.jpg', 'tab-export-bottom.jpg', 'tab-export-light.jpg',
+		'tab-export-scrolled.jpeg', '.export-debug.png', '.export-history.png',
+		'.export-main.png', '.export-support.png', '.export-v3-final.png',
+
+		// PHPStan + Intelephense stubs (WordPress function signatures for static
+		// analysis). Not part of the production plugin - the real WordPress
+		// runtime provides these functions.
+		'stubs', '.stubs',
 	),
 
 	'font_excludes'    => array(
 
+		// Sun-ExtA / Sun-ExtB - mPDF's auto-selected fonts for CJK and
+		// SIP characters (LanguageToFont::getLanguageOptions maps Chinese
+		// / Korean / Japanese to 'sun-exta'). The PDF exporter remaps
+		// these fontdata entries to DejaVuSans so the export does not
+		// crash on CJK content; characters DejaVu does not cover render
+		// as '?' tofu but the PDF still writes. UnBatang is the Korean
+		// CJK fallback; same treatment.
 		'Sun-ExtA.ttf', 'Sun-ExtB.ttf', 'UnBatang_0613.ttf', 'Aegyptus.otf',
 		'Aegean.otf', 'Akkadian.otf', 'Jomolhari.ttf', 'KhmerOS.ttf',
 		'Abyssinica_SIL.ttf', 'AboriginalSansREGULAR.ttf', 'Padauk-book.ttf',
@@ -56,19 +99,111 @@ $config = array(
 
 		'Garuda.ttf', 'Garuda-Bold.ttf', 'Garuda-Oblique.ttf', 'Garuda-BoldOblique.ttf',
 
+		// XB Riyaz Arabic - only the Regular face is wired into mPDF's fontdata
+		// (see class-sscribe-pdf-exporter.php::build_mpdf_config). The Bold,
+		// Italic, and BoldItalic variants are present in the mPDF ttfonts dir
+		// but never registered, so mPDF would synthetic-bold the Regular face
+		// anyway. Drop the unreferenced variants to save ~3.37 MB.
+		'XB RiyazBd.ttf', 'XB RiyazIt.ttf', 'XB RiyazBdIt.ttf',
+
 		'Dhyana-Regular.ttf', 'Dhyana-Bold.ttf',
+
+		// XB Riyaz Regular - the whole family is now superseded by Amiri
+		// (shipped in assets/fonts/amiri/, wired into build_mpdf_config as
+		// 'amiri' in fontdata). mPDF's default fontdata still references
+		// the Regular face, but the PDF exporter's fonttrans map rewrites
+		// every "xbriyaz" lookup to 'amiri' (or 'freeserif' fallback) for
+		// RTL pages, so the file is never actually opened.
+		'XB Riyaz.ttf',
+
+		// Lateef (Arabic) - superseded by Amiri. fonttrans rewrites every
+		// "lateef" lookup to the active RTL font.
+		'LateefRegOT.ttf', 'Lateef font OFL.txt',
+
+		// Uthman (Arabic calligraphic) - never referenced in the production
+		// PDF exporter config. fonttrans rewrites it to the active RTL font
+		// for RTL pages; for LTR pages it's never selected.
+		'Uthman.otf',
+
+		// OCR-B - only useful for OCR rasterization, which the exporter
+		// never does. Not referenced by the PDF exporter's fontdata.
+		'ocrb10.ttf', 'ocrbinfo.txt',
+
+		// DejaVu Condensed - the Regular/Bold/Italic/BoldItalic faces of
+		// DejaVu Sans/Serif are still kept (the LTR Latin baseline). The
+		// Condensed variants are referenced by mPDF's default fontdata
+		// entries (dejavusanscondensed, dejavuserifcondensed) and sit at
+		// the head of the sans_fonts / serif_fonts chain - the chain mPDF
+		// walks when CSS specifies `font-family: serif` or any name that
+		// resolves through the generic families. The PDF exporter remaps
+		// those fontdata entries to the non-condensed DejaVu faces (see
+		// build_mpdf_config in includes/exporters/class-sscribe-pdf-exporter.php),
+		// so the Condensed TTFs are never opened.
+		'DejaVuSansCondensed.ttf', 'DejaVuSansCondensed-Bold.ttf',
+		'DejaVuSansCondensed-Oblique.ttf', 'DejaVuSansCondensed-BoldOblique.ttf',
+		'DejaVuSerifCondensed.ttf', 'DejaVuSerifCondensed-Bold.ttf',
+		'DejaVuSerifCondensed-Italic.ttf', 'DejaVuSerifCondensed-BoldItalic.ttf',
+
+		// FreeSans + FreeMono - the LTR baseline is FreeSerif (wired into
+		// mPDF config as 'default_font' for LTR and as the fallback in the
+		// RTL fonttrans). FreeSans and FreeMono ARE referenced by mPDF's
+		// default fontdata entries (freesans, freemono) and would be
+		// auto-selected when CSS specifies `font-family: sans-serif` or
+		// `font-family: monospace` - the PDF exporter remaps those
+		// fontdata entries to the shipped DejaVu Sans / DejaVu SansMono
+		// faces (see build_mpdf_config). GNUFreeFontinfo.txt is the shared
+		// license for all three families; drop it once both siblings are
+		// excluded.
+		'FreeSans.ttf', 'FreeSansBold.ttf', 'FreeSansBoldOblique.ttf', 'FreeSansOblique.ttf',
+		'FreeMono.ttf', 'FreeMonoBold.ttf', 'FreeMonoBoldOblique.ttf', 'FreeMonoOblique.ttf',
+		'GNUFreeFontinfo.txt',
 
 		'DhyanaOFL.txt', 'Jomolhari-OFL.txt', 'KhmerOFL.txt',
 		'LohitKannadaOFL.txt', 'SyrCOMEdessa_license.txt', 'TaameyDavidCLM-LICENSE.txt',
 		'TharlonOFL.txt', 'XW Zar Font Info.txt',
 	),
 
+	// setasign/fpdi ships in vendor-prefixed/ but setasign/fpdf (the
+	// parent class) is NOT shipped. Fpdi extends FpdfTpl extends
+	// \FPDF, so any autoload-triggered class_exists() or new \Fpdi\Fpdi
+	// throws "Class FPDF not found" fatal. The FPDI package is
+	// included for potential future use of its PDF-import feature but
+	// no production code path constructs an Fpdi instance today. Drop
+	// the 5 FPDF-extending classes so the autoloader hits the
+	// missing-class branch instead of the missing-parent branch - and
+	// any future plugin/theme that does `new \setasign\Fpdi\Fpdi()`
+	// gets a clean "Class not found" instead of a confusing
+	// "Class FPDF not found" that misleads operators into thinking
+	// FPDF is the missing dependency.
+	'fpdi_excludes'    => array(
+		'vendor-prefixed/setasign/fpdi/src/Fpdi.php',
+		'vendor-prefixed/setasign/fpdi/src/FpdfTpl.php',
+		'vendor-prefixed/setasign/fpdi/src/FpdfTplTrait.php',
+		'vendor-prefixed/setasign/fpdi/src/FpdiProtection.php',
+		'vendor-prefixed/setasign/fpdi/src/PdfParser/FpdiPdfParser.php',
+		'vendor-prefixed/setasign/fpdi/src/PdfReader/FpdiPdfReader.php',
+		// TcpdfFpdi / Tfpdf adapters - same parent dependency issue and
+		// not used by any production code path.
+		'vendor-prefixed/setasign/fpdi/src/TcpdfFpdi.php',
+		'vendor-prefixed/setasign/fpdi/src/Tfpdf',
+		'vendor-prefixed/setasign/fpdi/src/Tcpdf',
+		// FpdfTrait is dead weight: never `use`d anywhere in the codebase
+		// (verified by grep), only autoloadable. Removing it shrinks the
+		// shipped ZIP without affecting any production code path.
+		// Memory: FPDI/FPDF parent landmine.
+		'vendor-prefixed/setasign/fpdi/src/FpdfTrait.php',
+	),
+
 	'show_excluded'    => true,
 );
 
-$all_excludes = array_unique( array_merge( $config['base_excludes'], $config['font_excludes'] ) );
+$all_excludes = array_unique( array_merge( $config['base_excludes'], $config['font_excludes'], $config['fpdi_excludes'] ?? array() ) );
 
 function rrmdir( string $dir ): void {
+	if ( is_link( $dir ) ) {
+		@unlink( $dir );
+		return;
+	}
 	if ( ! is_dir( $dir ) ) {
 		return;
 	}
@@ -78,7 +213,9 @@ function rrmdir( string $dir ): void {
 			continue;
 		}
 		$path = $dir . '/' . $object;
-		if ( is_dir( $path ) ) {
+		if ( is_link( $path ) ) {
+			@unlink( $path );
+		} elseif ( is_dir( $path ) ) {
 			rrmdir( $path );
 		} else {
 			@unlink( $path );
@@ -95,6 +232,78 @@ function format_bytes( int $bytes ): string {
 		$unit++;
 	}
 	return round( $bytes, 2 ) . ' ' . $units[ $unit ];
+}
+
+function strip_php_comments( string $source ): string {
+	$tokens = @token_get_all( $source );
+	if ( false === $tokens ) {
+		return $source;
+	}
+
+	$output = '';
+	foreach ( $tokens as $token ) {
+		if ( is_array( $token ) ) {
+			$type  = $token[0];
+			$value = $token[1];
+
+			if ( T_DOC_COMMENT === $type ) {
+				$output .= $value;
+				continue;
+			}
+
+			if ( T_COMMENT === $type ) {
+				if ( preg_match( '/phpcs:|phpcs-disable|phpcs-enable|phpcs:ignore|translators:|@preserve/i', $value ) ) {
+					$output .= $value;
+				}
+				continue;
+			}
+
+			$output .= $value;
+		} else {
+			$output .= $token;
+		}
+	}
+
+	return $output;
+}
+
+function strip_css_comments( string $source ): string {
+	$out = preg_replace( '/\/\*[\s\S]*?\*\//', '', $source );
+	if ( null === $out ) {
+		return $source;
+	}
+	$out = preg_replace( '/\n\s*\n/', "\n", $out );
+	if ( null === $out ) {
+		return $source;
+	}
+	return $out;
+}
+
+/**
+ * Strip non-docblock comments from JS source.
+ *
+ * Matches the spirit of the zip-no-comments-rule:
+ * preserve /*! license banners and /* eslint pragmas,
+ * drop everything else (line //, block /* *\/) while
+ * keeping /* *\/ (jsdoc) and /*! *\/ (license).
+ */
+function strip_js_comments( string $source ): string {
+	// Drop block /* ... */ that is NOT /*! or /** (preserves license + jsdoc).
+	$out = preg_replace( '#/\*(?![*!]).*?\*/#s', '', $source );
+	if ( null === $out ) {
+		return $source;
+	}
+	// Drop line // comments (NOT inside strings; same regex approach as strip_php_comments' pragmatic pass).
+	$out = preg_replace( '#(?<![:"\'`])//[^\n]*#', '', $out );
+	if ( null === $out ) {
+		return $source;
+	}
+	// Collapse runs of blank lines.
+	$out = preg_replace( '/\n\s*\n/', "\n", $out );
+	if ( null === $out ) {
+		return $source;
+	}
+	return $out;
 }
 
 function run_tests( string $root ): bool {
@@ -213,6 +422,53 @@ function get_distignore_excludes( string $root, string $distignore ): array {
 	return $excludes;
 }
 
+/**
+ * Determine whether a release-relative path matches an exclusion rule.
+ *
+ * Supports the `*` and `?` wildcards used by .distignore. Rules without a
+ * slash also match any individual path segment, preserving the existing
+ * segment-level exclusions for development directories such as `tests`.
+ *
+ * @param string        $relative Relative path using forward slashes.
+ * @param array<string> $excludes Exclusion patterns.
+ * @return bool
+ */
+function is_release_path_excluded( string $relative, array $excludes ): bool {
+	$relative = trim( str_replace( '\\', '/', $relative ), '/' );
+	$segments = explode( '/', $relative );
+
+	foreach ( $excludes as $exclude ) {
+		$exclude = trim( str_replace( '\\', '/', (string) $exclude ), '/' );
+		if ( '' === $exclude ) {
+			continue;
+		}
+
+		$has_wildcard = str_contains( $exclude, '*' ) || str_contains( $exclude, '?' );
+		if ( ! $has_wildcard ) {
+			if ( $relative === $exclude || str_starts_with( $relative, $exclude . '/' ) || ( ! str_contains( $exclude, '/' ) && in_array( $exclude, $segments, true ) ) ) {
+				return true;
+			}
+			continue;
+		}
+
+		$quoted = preg_quote( $exclude, '#' );
+		$regex  = str_replace( array( '\\*', '\\?' ), array( '[^/]*', '[^/]' ), $quoted );
+		if ( str_contains( $exclude, '/' ) ) {
+			if ( 1 === preg_match( '#^' . $regex . '(?:/.*)?$#i', $relative ) ) {
+				return true;
+			}
+		} else {
+			foreach ( $segments as $segment ) {
+				if ( 1 === preg_match( '#^' . $regex . '$#i', $segment ) ) {
+					return true;
+				}
+			}
+		}
+	}
+
+	return false;
+}
+
 function generate_checksum( string $file ): string {
 	return hash_file( 'sha256', $file );
 }
@@ -292,21 +548,14 @@ $dir    = new RecursiveDirectoryIterator( $root, RecursiveDirectoryIterator::SKI
 $filter = new RecursiveCallbackFilterIterator(
 	$dir,
 	static function ( $current ) use ( $root, $excludes ): bool {
+		if ( $current->isLink() ) {
+			return false;
+		}
 		$relative = str_replace( $root . DIRECTORY_SEPARATOR, '', $current->getPathname() );
 		$relative = str_replace( $root . '/', '', $relative );
 		$relative_norm = str_replace( '\\', '/', $relative );
 
-		$segments = explode( '/', $relative_norm );
-
-		foreach ( $excludes as $exclude ) {
-			if ( $relative_norm === $exclude || str_starts_with( $relative_norm, $exclude . '/' ) ) {
-				return false;
-			}
-			if ( in_array( $exclude, $segments, true ) ) {
-				return false;
-			}
-		}
-		return true;
+		return ! is_release_path_excluded( $relative_norm, $excludes );
 	}
 );
 
@@ -319,34 +568,106 @@ foreach ( $iterator as $file ) {
 	$dest     = $plugin_dir . '/' . $relative;
 
 	if ( $file->isDir() ) {
-		if ( ! is_dir( $dest ) ) {
-			mkdir( $dest, 0755, true );
+		if ( ! is_dir( $dest ) && ! mkdir( $dest, 0755, true ) && ! is_dir( $dest ) ) {
+			throw new RuntimeException( 'Unable to create release directory: ' . $relative );
 		}
 	} else {
 		$dest_parent = dirname( $dest );
-		if ( ! is_dir( $dest_parent ) ) {
-			mkdir( $dest_parent, 0755, true );
+		if ( ! is_dir( $dest_parent ) && ! mkdir( $dest_parent, 0755, true ) && ! is_dir( $dest_parent ) ) {
+			throw new RuntimeException( 'Unable to create release parent directory: ' . dirname( $relative ) );
 		}
-		copy( $file->getPathname(), $dest );
+		if ( $config['strip_comments'] ) {
+			$ext = strtolower( pathinfo( $file->getPathname(), PATHINFO_EXTENSION ) );
+			if ( 'php' === $ext ) {
+				$src = file_get_contents( $file->getPathname() );
+				file_put_contents( $dest, strip_php_comments( $src ) );
+			} elseif ( 'css' === $ext ) {
+				$src = file_get_contents( $file->getPathname() );
+				file_put_contents( $dest, strip_css_comments( $src ) );
+			} elseif ( 'js' === $ext ) {
+				$src = file_get_contents( $file->getPathname() );
+				file_put_contents( $dest, strip_js_comments( $src ) );
+			} else {
+				if ( ! copy( $file->getPathname(), $dest ) ) {
+					throw new RuntimeException( 'Unable to copy release file: ' . $relative );
+				}
+			}
+		} else {
+			if ( ! copy( $file->getPathname(), $dest ) ) {
+				throw new RuntimeException( 'Unable to copy release file: ' . $relative );
+			}
+		}
 		$copied++;
 	}
 }
 
 echo "     ✅ Copied: $copied files\n";
 
-echo "  🧹 Extreme Optimization: Stripping vendor bloat...\n";
+// The upstream PHPWord notice is required for LGPL attribution, but Plugin
+// Check treats its `.LESSER` suffix as a forbidden extension. Copy the exact
+// bytes into the distribution under an accepted text filename even when the
+// generated vendor tree has just been rebuilt from scratch.
+$lgpl_source = $root . '/vendor-prefixed/phpoffice/phpword/COPYING.LESSER';
+$lgpl_destination = $plugin_dir . '/vendor-prefixed/phpoffice/phpword/COPYING.LESSER.txt';
+if ( is_file( $lgpl_source ) ) {
+	if ( ! is_dir( dirname( $lgpl_destination ) ) ) {
+		mkdir( dirname( $lgpl_destination ), 0755, true );
+	}
+	if ( ! copy( $lgpl_source, $lgpl_destination ) ) {
+		echo "     ❌ Failed to normalize the PHPWord LGPL notice filename\n";
+		exit( 1 );
+	}
+}
+
+if ( $config['strip_comments'] ) {
+	echo "  🧹 Stripping non-docblock comments from PHP / CSS / JS files...\n";
+}
+
+echo "  Pruning vendor development files...\n";
 $vendor_dir = $plugin_dir . '/vendor-prefixed';
 if ( is_dir( $vendor_dir ) ) {
 	$prune_patterns = array(
 		'tests', 'docs', '.github', 'samples', 'examples', 'utils', 'bin',
+		'other',
+		/* PHP 5 polyfill; not autoloaded on the plugin's PHP 8.2+ runtime. */
+		'random_compat',
 		'composer.json', 'composer.lock', 'package.json', 'phpunit.xml',
+		'phpmd.xml.dist', 'phpword.ini.dist',
 		'.gitignore', '.gitattributes', '.travis.yml', '.scrutinizer.yml',
 		'CHANGELOG.md', 'CONTRIBUTING.md', 'README.md', 'CREDITS.txt',
-		'COPYING', 'COPYING.LESSER', 'LICENSE', 'LICENSE.txt',
+		'SECURITY.md', /* setasign/fpdi: dev doc, not autoloaded */
+		// LICENSE/COPYING preserved: WordPress.org Plugin Directory
+		// Guideline 1 requires third-party license texts to ship with
+		// the bundled code. Removing them was a WP.org compliance bug.
+		// Keeping them here leaves license.txt's "preserved alongside
+		// its source" claim accurate, and lets a reviewer grep the ZIP
+		// for a license when checking FPDI/mPDF/PHPWord attribution.
 		'.github_changelog_generator', 'roave-bc-check.yaml',
+		/* Development-only package files. */
+		'psalm-autoload.php',
+		/* mpdf/mpdf: development-only functions (runtime is functions.php) */
+		'functions-dev.php',
+		'build_phar.php',
+		/* setasign/fpdi: ad-hoc manual test scripts that read files from
+		 * outside the package directory; not autoloaded, never referenced
+		 * by the runtime PDFs we generate. */
+		'local-tests',
+		/* setasign/fpdi: scratch experiments checked into the repo next to
+		 * `src/` - not part of the library, not autoloaded. */
+		'scratches',
+		/* myclabs/deep-copy: generated doc/ images and graph PNGs that
+		 * sit next to `src/`; not autoloaded, only used by the package's
+		 * own README on GitHub. */
+		'doc',
+		/* myclabs/deep-copy: PHP test fixtures that deep-copy exercises
+		 * under tests/ - never autoloaded by the runtime. */
+		'fixtures',
 	);
 
 	$pruned_count = 0;
+	// Extensions that WordPress.org Plugin Check rejects as build artifacts.
+	$prune_extensions = array( 'sh', 'bat', 'cmd', 'exe', 'msi', 'pkg', 'dmg', 'phar' );
+
 	$v_iterator = new RecursiveIteratorIterator(
 		new RecursiveDirectoryIterator( $vendor_dir, RecursiveDirectoryIterator::SKIP_DOTS ),
 		RecursiveIteratorIterator::CHILD_FIRST
@@ -354,7 +675,10 @@ if ( is_dir( $vendor_dir ) ) {
 
 	foreach ( $v_iterator as $item ) {
 		$name = $item->getBasename();
-		if ( in_array( $name, $prune_patterns, true ) ) {
+		$ext  = strtolower( pathinfo( $name, PATHINFO_EXTENSION ) );
+		$matched = in_array( $name, $prune_patterns, true )
+			|| ( ! $item->isDir() && in_array( $ext, $prune_extensions, true ) );
+		if ( $matched ) {
 			if ( $item->isDir() ) {
 				rrmdir( $item->getPathname() );
 			} else {
@@ -365,6 +689,43 @@ if ( is_dir( $vendor_dir ) ) {
 	}
 	echo "     ✅ Pruned: $pruned_count vendor development artifacts\n";
 }
+
+echo "  Validating distribution contents...\n";
+$distribution_errors = array();
+$required_lgpl_notice = $plugin_dir . '/vendor-prefixed/phpoffice/phpword/COPYING.LESSER.txt';
+if ( ! is_file( $required_lgpl_notice ) ) {
+	$distribution_errors[] = 'Missing normalized PHPWord LGPL notice: vendor-prefixed/phpoffice/phpword/COPYING.LESSER.txt';
+}
+
+$blocked_extensions = array( 'lesser', 'dist', 'sh', 'bat', 'cmd', 'exe', 'msi', 'pkg', 'dmg', 'phar' );
+$allowed_extensionless = array( 'COPYING', 'LICENSE', 'NOTICE' );
+$distribution_iterator = new RecursiveIteratorIterator(
+	new RecursiveDirectoryIterator( $plugin_dir, RecursiveDirectoryIterator::SKIP_DOTS ),
+	RecursiveIteratorIterator::LEAVES_ONLY
+);
+foreach ( $distribution_iterator as $distribution_file ) {
+	if ( ! $distribution_file->isFile() ) {
+		continue;
+	}
+
+	$name      = $distribution_file->getBasename();
+	$extension = strtolower( pathinfo( $name, PATHINFO_EXTENSION ) );
+	$relative  = str_replace( '\\', '/', substr( $distribution_file->getPathname(), strlen( $plugin_dir ) + 1 ) );
+
+	if ( in_array( $extension, $blocked_extensions, true ) ) {
+		$distribution_errors[] = "Forbidden release file type: {$relative}";
+	} elseif ( '' === $extension && ! in_array( $name, $allowed_extensionless, true ) ) {
+		$distribution_errors[] = "Unexpected extensionless release file: {$relative}";
+	}
+}
+
+if ( ! empty( $distribution_errors ) ) {
+	foreach ( $distribution_errors as $distribution_error ) {
+		echo "     ❌ {$distribution_error}\n";
+	}
+	exit( 1 );
+}
+echo "     ✅ Distribution file types and license notices validated\n";
 
 echo "\n===========================================\n";
 echo "  CREATING RELEASE PACKAGE\n";
@@ -424,7 +785,33 @@ echo "  🔗 Location: dist/sscribe-export-site-pages-{$version}.zip\n";
 echo "  ⏱️  Duration: {$duration}s\n";
 
 echo "\n===========================================\n";
+echo "  POST-BUILD INVARIANT CHECK\n";
+echo "===========================================\n\n";
+
+$invariant_test = $root . '/tests/Unit/SScribe_Shipped_Invariants_Test.php';
+if ( is_file( $invariant_test ) && is_file( $root . '/vendor/bin/phpunit' ) ) {
+	echo "  🔍 Verifying shipped-ZIP invariants (no em-dash, no AI personas, no Co-Authored-By, no rejected headers)...\n";
+	$output = array();
+	$return = 0;
+	exec(
+		'php "' . $root . '/vendor/bin/phpunit" --filter SScribe_Shipped_Invariants_Test --no-coverage 2>&1',
+		$output,
+		$return
+	);
+	if ( 0 !== $return ) {
+		echo "     ❌ Shipped-ZIP invariants FAILED:\n";
+		foreach ( $output as $line ) {
+			echo "     " . $line . "\n";
+		}
+		exit( 1 );
+	}
+	echo "     ✅ Shipped-ZIP invariants verified\n";
+} else {
+	echo "  ⚠️  Invariant test not present; skipping post-build check\n";
+}
+
+echo "\n===========================================\n";
 echo "  READY FOR WORDPRESS.ORG\n";
 echo "===========================================\n\n";
 
-echo "✅ Build successful! No development files or obscure fonts included.\n\n";
+echo "Build successful. No development files or unused fonts included.\n\n";
