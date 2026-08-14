@@ -19,7 +19,6 @@
 	padding: var(--ss-space-3) var(--ss-space-5);
 	background: var(--ss-warning-bg);
 	border: 1px solid var(--ss-warning-border);
-	border-left: 3px solid var(--ss-warning);
 	border-radius: var(--ss-radius-md);
 	margin-bottom: var(--ss-space-5);
 	color: var(--ss-warning);
@@ -350,7 +349,6 @@
 	margin-bottom: var(--ss-space-4);
 	background: var(--ss-warning-bg);
 	border: 1px solid var(--ss-warning-border);
-	border-left: 3px solid var(--ss-warning);
 	border-radius: var(--ss-radius-md);
 	color: var(--ss-text-primary);
 	font-family: var(--ss-font);
@@ -714,7 +712,6 @@ summary.sscribe-debug-entry-header::-webkit-details-marker {
 	padding: var(--ss-space-3) var(--ss-space-5);
 	background: var(--ss-warning-bg);
 	border: 1px solid var(--ss-warning-border);
-	border-left: 3px solid var(--ss-warning);
 	margin: var(--ss-space-2) var(--ss-space-5);
 	border-radius: var(--ss-radius-md);
 	color: var(--ss-warning);
