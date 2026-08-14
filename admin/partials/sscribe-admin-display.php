@@ -25,6 +25,7 @@ $sscribe_can_view_health = $sscribe_can_view_health ?? false;
 $sscribe_step            = 1;
 $sscribe_export_index    = $sscribe_export_index ?? array();
 $sscribe_preflight_warnings = $sscribe_preflight_warnings ?? array();
+$sscribe_selectable_types = $sscribe_selectable_types ?? array();
 
 if ( ! function_exists( 'sscribe_humanize_export_filename' ) ) {
 	/**
@@ -231,51 +232,30 @@ if ( ! function_exists( 'sscribe_humanize_export_filename' ) ) {
 							<span class="sscribe-step-badge">1</span>
 							<?php esc_html_e( 'Content Type', 'sscribe-export-site-pages' ); ?></div>
 						<div class="sscribe-post-type-cards sscribe-cards-compact" id="sscribe-post-type-cards">
-							<label class="sscribe-post-type-card">
-								<input type="radio" name="sscribe_post_type" value="page" checked>
-								<div class="sscribe-post-type-card-inner">
-									<div class="sscribe-post-type-icon">
-										<?php // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- SVG sanitized in get_icon().
-										?>
-										<?php echo wp_kses_post( SScribe_Helpers::get_icon( 'file-text', 22 ) ); ?>
+							<?php foreach ( $sscribe_selectable_types as $sscribe_type_index => $sscribe_type_row ) : ?>
+								<?php
+								$sscribe_type_slug  = (string) ( $sscribe_type_row['slug'] ?? '' );
+								$sscribe_type_label = (string) ( $sscribe_type_row['label'] ?? ucfirst( $sscribe_type_slug ) );
+								$sscribe_type_icon  = (string) ( $sscribe_type_row['icon'] ?? 'file-text' );
+								$sscribe_type_count = (int) ( $sscribe_type_row['count'] ?? 0 );
+								$sscribe_type_is_any = ! empty( $sscribe_type_row['is_any'] );
+								$sscribe_type_checked = ( 0 === $sscribe_type_index && ! $sscribe_type_is_any );
+								?>
+								<label class="sscribe-post-type-card<?php echo $sscribe_type_is_any ? ' sscribe-post-type-card-any' : ''; ?>">
+									<input type="radio" name="sscribe_post_type" value="<?php echo esc_attr( $sscribe_type_slug ); ?>" <?php checked( $sscribe_type_checked ); ?>>
+									<div class="sscribe-post-type-card-inner">
+										<div class="sscribe-post-type-icon">
+											<?php // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- SVG sanitized in get_icon(). ?>
+											<?php echo wp_kses_post( SScribe_Helpers::get_icon( $sscribe_type_icon, 22 ) ); ?>
+										</div>
+										<div class="sscribe-post-type-meta">
+											<span class="sscribe-post-type-name"><?php echo esc_html( $sscribe_type_label ); ?></span>
+											<span class="sscribe-post-type-count" data-sscribe-count-for="<?php echo esc_attr( $sscribe_type_slug ); ?>"><?php echo esc_html( number_format_i18n( $sscribe_type_count ) ); ?></span>
+										</div>
+										<div class="sscribe-post-type-selector"></div>
 									</div>
-									<div class="sscribe-post-type-meta">
-										<span class="sscribe-post-type-name"><?php esc_html_e( 'Pages', 'sscribe-export-site-pages' ); ?></span>
-										<span class="sscribe-post-type-count" id="sscribe-page-count"><?php echo esc_html( number_format_i18n( $sscribe_total_pages_all ) ); ?></span>
-									</div>
-									<div class="sscribe-post-type-selector"></div>
-								</div>
-							</label>
-							<label class="sscribe-post-type-card">
-								<input type="radio" name="sscribe_post_type" value="post">
-								<div class="sscribe-post-type-card-inner">
-									<div class="sscribe-post-type-icon">
-										<?php // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- SVG sanitized in get_icon().
-										?>
-										<?php echo wp_kses_post( SScribe_Helpers::get_icon( 'article', 22 ) ); ?>
-									</div>
-									<div class="sscribe-post-type-meta">
-										<span class="sscribe-post-type-name"><?php esc_html_e( 'Posts', 'sscribe-export-site-pages' ); ?></span>
-										<span class="sscribe-post-type-count" id="sscribe-post-count"><?php echo esc_html( number_format_i18n( $sscribe_total_posts_all ) ); ?></span>
-									</div>
-									<div class="sscribe-post-type-selector"></div>
-								</div>
-							</label>
-							<label class="sscribe-post-type-card">
-								<input type="radio" name="sscribe_post_type" value="any">
-								<div class="sscribe-post-type-card-inner">
-									<div class="sscribe-post-type-icon">
-										<?php // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- SVG sanitized in get_icon().
-										?>
-										<?php echo wp_kses_post( SScribe_Helpers::get_icon( 'copy', 22 ) ); ?>
-									</div>
-									<div class="sscribe-post-type-meta">
-										<span class="sscribe-post-type-name"><?php esc_html_e( 'Pages + Posts', 'sscribe-export-site-pages' ); ?></span>
-										<span class="sscribe-post-type-count" id="sscribe-both-count"><?php echo esc_html( number_format_i18n( $sscribe_total_either_all ) ); ?></span>
-									</div>
-									<div class="sscribe-post-type-selector"></div>
-								</div>
-							</label>
+								</label>
+							<?php endforeach; ?>
 						</div>
 					</div>
 
@@ -608,6 +588,10 @@ if ( ! function_exists( 'sscribe_humanize_export_filename' ) ) {
 						<span class="sscribe-summary-chip sscribe-summary-time" id="sscribe-summary-time" aria-label="<?php esc_attr_e( 'Estimated time not yet available. Run Preview to compute.', 'sscribe-export-site-pages' ); ?>"><?php esc_html_e( 'Run Preview for ETA', 'sscribe-export-site-pages' ); ?></span>
 					</div>
 					<div class="sscribe-export-bar-actions">
+						<label class="sscribe-preference-toggle" for="sscribe-auto-download-toggle">
+							<input type="checkbox" id="sscribe-auto-download-toggle" name="sscribe_auto_download_pref" value="1">
+							<span><?php esc_html_e( 'Auto-download when complete', 'sscribe-export-site-pages' ); ?></span>
+						</label>
 						<button type="button" id="sscribe-preview-btn" class="sscribe-button sscribe-button-outline sscribe-btn-sm" disabled aria-describedby="sscribe-preview-btn-hint" title="<?php esc_attr_e( 'Ctrl+Shift+P (Cmd+Shift+P on Mac)', 'sscribe-export-site-pages' ); ?>">
 						<?php echo wp_kses( SScribe_Helpers::get_icon_inline( 'eye', 14, 'sscribe-button-icon' ), SScribe_Helpers::get_svg_kses_allowed_html() ); ?>
 							<span><?php esc_html_e( 'Preview', 'sscribe-export-site-pages' ); ?></span>
@@ -856,7 +840,17 @@ if ( ! function_exists( 'sscribe_humanize_export_filename' ) ) {
 					</div>
 					<div class="sscribe-history-table" id="sscribe-history-table">
 						<?php if ( ! empty( $sscribe_recent_exports ) ) : ?>
-							<?php foreach ( $sscribe_recent_exports as $sscribe_export ) : ?>
+							<table class="sscribe-history-table-element">
+								<caption class="screen-reader-text"><?php esc_html_e( 'Recent export packages', 'sscribe-export-site-pages' ); ?></caption>
+								<thead>
+									<tr>
+										<th scope="col" class="sscribe-history-col-check"><span class="screen-reader-text"><?php esc_html_e( 'Select', 'sscribe-export-site-pages' ); ?></span></th>
+										<th scope="col" class="sscribe-history-col-file"><?php esc_html_e( 'Export', 'sscribe-export-site-pages' ); ?></th>
+										<th scope="col" class="sscribe-history-col-actions"><span class="screen-reader-text"><?php esc_html_e( 'Actions', 'sscribe-export-site-pages' ); ?></span></th>
+									</tr>
+								</thead>
+								<tbody aria-rowcount="<?php echo count( $sscribe_recent_exports ); ?>">
+							<?php foreach ( $sscribe_recent_exports as $sscribe_export_index => $sscribe_export ) : ?>
 								<?php
 								$sscribe_date_fmt = sanitize_text_field( (string) get_option( 'date_format', 'Y-m-d' ) );
 								if ( ! $sscribe_date_fmt ) {
@@ -869,57 +863,65 @@ if ( ! function_exists( 'sscribe_humanize_export_filename' ) ) {
 								$sscribe_expiry_ts = isset( $sscribe_export['time'] ) ? (int) $sscribe_export['time'] + ( 72 * HOUR_IN_SECONDS ) : 0;
 								$sscribe_human     = $sscribe_expiry_ts > 0 ? human_time_diff( time(), $sscribe_expiry_ts ) : '';
 								?>
-								<div class="sscribe-history-row" data-filename="<?php echo esc_attr( $sscribe_export['filename'] ); ?>">
-									<label class="sscribe-history-check-label">
-										<input type="checkbox" class="sscribe-history-check" value="<?php echo esc_attr( $sscribe_export['filename'] ); ?>" aria-label="<?php echo esc_attr( sprintf( /* translators: %s: export filename */ __( 'Select export %s', 'sscribe-export-site-pages' ), $sscribe_export['filename'] ) ); ?>">
-										<span class="sscribe-check-visual"></span>
-									</label>
-									<div class="sscribe-history-file">
-										<div class="sscribe-file-icon">
-											<?php if ( ! empty( $sscribe_export['flag_url'] ) ) : ?>
-												<img src="<?php echo esc_url( $sscribe_export['flag_url'] ); ?>" alt="<?php echo esc_attr( $sscribe_export['lang_name'] ); ?>" class="sscribe-file-icon-img">
-											<?php else : ?>
-												<span class="sscribe-file-icon-text"><?php echo esc_html( strtoupper( substr( $sscribe_export['lang_code'], 0, 2 ) ) ); ?></span>
-											<?php endif; ?>
-										</div>
-										<div class="sscribe-file-details">
-											<?php
-											$sscribe_human_label = sscribe_humanize_export_filename( $sscribe_export['filename'] );
-											?>
-											<strong title="<?php echo esc_attr( $sscribe_human_label ); ?>"><?php echo esc_html( $sscribe_export['filename'] ); ?></strong>
-											<?php if ( '' !== $sscribe_human_label && strtolower( $sscribe_human_label ) !== strtolower( $sscribe_export['filename'] ) ) : ?>
-												<span class="sscribe-file-human-label"><?php echo esc_html( $sscribe_human_label ); ?></span>
-											<?php endif; ?>
-											<span class="sscribe-file-meta">
-												<?php echo esc_html( wp_date( $sscribe_date_fmt . ' ' . $sscribe_time_fmt, $sscribe_export['time'] ) ); ?>
-												<span class="sscribe-meta-sep" aria-hidden="true">·</span>
-												<span class="sscribe-file-size"><?php echo esc_html( size_format( $sscribe_export['size'] ) ); ?></span>
-												<?php if ( '' !== $sscribe_human ) : ?>
-												<span class="sscribe-meta-sep" aria-hidden="true">·</span>
-												<span class="sscribe-file-retention" title="<?php esc_attr_e( 'Time until this file is auto-deleted', 'sscribe-export-site-pages' ); ?>">
-													<?php
-													/* translators: %s: human time difference */
-													echo esc_html( sprintf( __( 'expires in %s', 'sscribe-export-site-pages' ), $sscribe_human ) );
-													?>
-												</span>
+								<tr class="sscribe-history-row" data-filename="<?php echo esc_attr( $sscribe_export['filename'] ); ?>" aria-rowindex="<?php echo (int) ( $sscribe_export_index + 1 ); ?>">
+									<td class="sscribe-history-cell-check">
+										<label class="sscribe-history-check-label">
+											<input type="checkbox" class="sscribe-history-check" value="<?php echo esc_attr( $sscribe_export['filename'] ); ?>" aria-label="<?php echo esc_attr( sprintf( /* translators: %s: export filename */ __( 'Select export %s', 'sscribe-export-site-pages' ), $sscribe_export['filename'] ) ); ?>">
+											<span class="sscribe-check-visual"></span>
+										</label>
+									</td>
+									<td class="sscribe-history-cell-file">
+										<div class="sscribe-history-file">
+											<div class="sscribe-file-icon">
+												<?php if ( ! empty( $sscribe_export['flag_url'] ) ) : ?>
+													<img src="<?php echo esc_url( $sscribe_export['flag_url'] ); ?>" alt="<?php echo esc_attr( $sscribe_export['lang_name'] ); ?>" class="sscribe-file-icon-img">
+												<?php else : ?>
+													<span class="sscribe-file-icon-text"><?php echo esc_html( strtoupper( substr( $sscribe_export['lang_code'], 0, 2 ) ) ); ?></span>
 												<?php endif; ?>
-											</span>
+											</div>
+											<div class="sscribe-file-details">
+												<?php
+												$sscribe_human_label = sscribe_humanize_export_filename( $sscribe_export['filename'] );
+												?>
+												<strong title="<?php echo esc_attr( $sscribe_human_label ); ?>"><?php echo esc_html( $sscribe_export['filename'] ); ?></strong>
+												<?php if ( '' !== $sscribe_human_label && strtolower( $sscribe_human_label ) !== strtolower( $sscribe_export['filename'] ) ) : ?>
+													<span class="sscribe-file-human-label"><?php echo esc_html( $sscribe_human_label ); ?></span>
+												<?php endif; ?>
+												<span class="sscribe-file-meta">
+													<?php echo esc_html( wp_date( $sscribe_date_fmt . ' ' . $sscribe_time_fmt, $sscribe_export['time'] ) ); ?>
+													<span class="sscribe-meta-sep" aria-hidden="true">·</span>
+													<span class="sscribe-file-size"><?php echo esc_html( size_format( $sscribe_export['size'] ) ); ?></span>
+													<?php if ( '' !== $sscribe_human ) : ?>
+													<span class="sscribe-meta-sep" aria-hidden="true">·</span>
+													<span class="sscribe-file-retention" title="<?php esc_attr_e( 'Time until this file is auto-deleted', 'sscribe-export-site-pages' ); ?>">
+														<?php
+														/* translators: %s: human time difference */
+														echo esc_html( sprintf( __( 'expires in %s', 'sscribe-export-site-pages' ), $sscribe_human ) );
+														?>
+													</span>
+													<?php endif; ?>
+												</span>
+											</div>
 										</div>
-									</div>
-									<div class="sscribe-history-actions">
-										<a href="<?php echo esc_url( $sscribe_export['url'] ); ?>" class="sscribe-button sscribe-button-outline sscribe-button-sm" download title="<?php esc_attr_e( 'Download this export', 'sscribe-export-site-pages' ); ?>" aria-label="<?php esc_attr_e( 'Download this export', 'sscribe-export-site-pages' ); ?>">
-											<?php esc_html_e( 'Download', 'sscribe-export-site-pages' ); ?>
-										</a>
-										<?php /* translators: %s: export filename */ ?>
-										<button type="button" class="sscribe-button sscribe-button-outline sscribe-button-sm sscribe-log-btn" data-filename="<?php echo esc_attr( $sscribe_export['filename'] ); ?>" title="<?php esc_attr_e( 'View export log', 'sscribe-export-site-pages' ); ?>" aria-label="<?php echo esc_attr( sprintf( __( 'View export log for %s', 'sscribe-export-site-pages' ), $sscribe_export['filename'] ) ); ?>">
-											<?php esc_html_e( 'Log', 'sscribe-export-site-pages' ); ?>
-										</button>
-										<button type="button" class="sscribe-button sscribe-button-outline sscribe-button-sm sscribe-button-danger sscribe-delete-btn" data-filename="<?php echo esc_attr( $sscribe_export['filename'] ); ?>" title="<?php esc_attr_e( 'Delete this export', 'sscribe-export-site-pages' ); ?>" aria-label="<?php esc_attr_e( 'Delete this export', 'sscribe-export-site-pages' ); ?>">
-											<?php esc_html_e( 'Delete', 'sscribe-export-site-pages' ); ?>
-										</button>
-									</div>
-								</div>
+									</td>
+									<td class="sscribe-history-cell-actions">
+										<div class="sscribe-history-actions">
+											<a href="<?php echo esc_url( $sscribe_export['url'] ); ?>" class="sscribe-button sscribe-button-outline sscribe-button-sm" download title="<?php esc_attr_e( 'Download this export', 'sscribe-export-site-pages' ); ?>" aria-label="<?php esc_attr_e( 'Download this export', 'sscribe-export-site-pages' ); ?>">
+												<?php esc_html_e( 'Download', 'sscribe-export-site-pages' ); ?>
+											</a>
+											<?php /* translators: %s: export filename */ ?>
+											<button type="button" class="sscribe-button sscribe-button-outline sscribe-button-sm sscribe-log-btn" data-filename="<?php echo esc_attr( $sscribe_export['filename'] ); ?>" title="<?php esc_attr_e( 'View export log', 'sscribe-export-site-pages' ); ?>" aria-label="<?php echo esc_attr( sprintf( __( 'View export log for %s', 'sscribe-export-site-pages' ), $sscribe_export['filename'] ) ); ?>">
+												<?php esc_html_e( 'Log', 'sscribe-export-site-pages' ); ?>
+											</button>
+											<button type="button" class="sscribe-button sscribe-button-outline sscribe-button-sm sscribe-button-danger sscribe-delete-btn" data-filename="<?php echo esc_attr( $sscribe_export['filename'] ); ?>" title="<?php esc_attr_e( 'Delete this export', 'sscribe-export-site-pages' ); ?>" aria-label="<?php esc_attr_e( 'Delete this export', 'sscribe-export-site-pages' ); ?>">
+												<?php esc_html_e( 'Delete', 'sscribe-export-site-pages' ); ?>
+											</button>
+										</div>
+									</td>
+								</tr>
 							<?php endforeach; ?>
+								</tbody>
+							</table>
 							<?php if ( ! empty( $sscribe_export_index ) && count( $sscribe_export_index ) > 10 ) : ?>
 							<div class="sscribe-history-notice">
 								<p>
@@ -986,7 +988,7 @@ if ( ! function_exists( 'sscribe_humanize_export_filename' ) ) {
 							<div id="sscribe-support-grid" class="sscribe-support-grid sscribe-support-grid-empty" aria-live="polite">
 								<div class="sscribe-support-empty">
 								<span class="sscribe-support-empty-icon" aria-hidden="true">
-									<svg width="96" height="96" viewBox="0 0 96 96" fill="none" xmlns="http://www.w3.org/2000/svg" role="img" focusable="false">
+									<svg width="96" height="96" viewBox="0 0 96 96" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true" focusable="false">
 										<rect x="16" y="10" width="50" height="68" rx="7" fill="var(--ss-surface)" stroke="var(--ss-border-strong)" stroke-width="1.5"/>
 										<rect x="23" y="20" width="36" height="3.5" rx="1.75" fill="var(--ss-text-tertiary)" opacity="0.35"/>
 										<rect x="23" y="29" width="36" height="3.5" rx="1.75" fill="var(--ss-text-tertiary)" opacity="0.35"/>

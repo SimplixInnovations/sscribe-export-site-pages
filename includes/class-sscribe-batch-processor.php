@@ -1056,7 +1056,8 @@ final class SScribe_Batch_Processor {
 		$post_type = SScribe_AJAX_Guard::post_text( 'post_type', 'page', 30 );
 
 		$format_options = self::parse_format_options( SScribe_AJAX_Guard::post_array( 'format_options', 100 ) );
-		$valid_post_types = array( 'page', 'post', 'any' );
+		$selectable_post_types = $this->collector->get_selectable_post_types();
+		$valid_post_types       = array_merge( array( 'any' ), $selectable_post_types );
 		if ( ! in_array( $post_type, $valid_post_types, true ) ) {
 			SScribe_AJAX_Guard::error(
 				array(

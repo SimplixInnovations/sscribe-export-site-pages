@@ -3,7 +3,7 @@ Contributors: simplixinnovations
 Tags: export, docx, pdf, html, markdown
 Requires at least: 6.0
 Tested up to: 7.0
-Stable tag: 1.1.8
+Stable tag: 1.2.0
 Requires PHP: 8.2
 License: GPL-2.0-or-later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
@@ -93,6 +93,14 @@ The bundled Mpdf library (vendor-prefixed/mpdf/) is licensed under the GNU Gener
 
 == Changelog ==
 
+= 1.2.0 =
+* Added native custom post type support to the Content Type selector. The list of selectable post types is now derived from `get_post_types( ['public' => true] )`, filtered through `sscribe_allowed_post_types`, and rendered as a dynamic list of radio cards on the admin export screen with per-type counts and labels. Each registered public post type (other than `attachment`) becomes a first-class exportable target without code changes; the legacy `'any'` aggregate is preserved for back-compat.
+* Added a WCAG 2.2 AA accessibility pass: auto-download now requires an explicit user opt-in (default off), browser tab titles are no longer rewritten during export progress, history rows render as a real `<table>` with caption and scope semantics, debug entries use native `<details>`/`<summary>` disclosures instead of clickable `<div role="button">`, toast dismiss and form controls show proper focus rings in both light and dark mode, button text in dark mode meets 4.5:1 contrast, the disabled "Download unavailable" row is a real `<button disabled>`, and the export progress live region announces at 10% milestones instead of on every update.
+* Removed dead CSS and JS: the unused `[data-tooltip]` rules in the admin stylesheet and the unused `document_title` runtime branch are gone, and the debug-console close button carries an `aria-label`.
+* Added localized "View", "Export", and "Delete" labels for rotated-log action buttons and aria-label prefixes so the debug console strings are translatable through the standard text-domain flow.
+* Hardened tests: 23 new PHPUnit tests cover `SScribe_Export_Query_Controller` AJAX endpoints and a new `SScribe_HTML_Exporter_Test` exercises the HTML renderer's write path, filename formatter, RTL output, and nested-directory creation. A new resolve-post-type seam plus bootstrap shim for `get_post_types()` / `get_post_type_object()` lets the CPT logic be unit-tested without touching the live database.
+* Full test suite: 813 tests, 2,612 assertions, all passing.
+
 = 1.1.8 =
 * Hardened the PDF exporter's per-render cleanup path: the mPDF instance, parsed HTML, configuration map, and intermediate buffers are released and the cycle collector is invoked on every export, on top of the existing soft-margin guard, so peak memory across back-to-back exports is bounded by the largest single render.
 * Added a bounded image cache for the PDF exporter. Allowed remote image URLs (sha1-keyed, group `sscribe_image_opt`, 30-minute TTL filterable via `sscribe_image_cache_ttl`) are reused across exports in the same window without re-downloading or re-optimizing.
@@ -150,6 +158,9 @@ The bundled Mpdf library (vendor-prefixed/mpdf/) is licensed under the GNU Gener
 * GDPR-compliant audit trail with HMAC-SHA256 hashed IP addresses
 
 == Upgrade Notice ==
+
+= 1.2.0 =
+Feature release that adds native custom post type support, a WCAG 2.2 AA accessibility pass, and 23 new PHPUnit tests. The Content Type selector now lists every public post type registered on the site (excluding attachments) alongside Pages and Posts, with per-type counts; sites that do not register additional post types see the same UI as before. No data migration is required.
 
 = 1.1.8 =
 Maintenance release that tightens PDF memory cleanup, caches downloaded images per URL, releases per-page memory between batch iterations, rotates the export-session HMAC signing key through a two-key ring, narrows the diagnostic / audit-log / AJAX debug-payload capabilities to `sscribe_health`, and removes a stale audit-log table from uninstall. No user-facing action required; existing sessions remain valid across the signing-key rotation.

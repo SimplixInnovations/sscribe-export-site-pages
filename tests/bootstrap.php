@@ -1585,7 +1585,43 @@ if ( ! function_exists( 'admin_url' ) ) {
 
 if ( ! function_exists( 'get_post_types' ) ) {
 	function get_post_types( array $args = array(), string $output = 'names', string $operator = 'and' ): array {
-		return array( 'page', 'post' );
+		if ( 'objects' === $output ) {
+			$registered = array(
+				'page' => (object) array(
+					'name'         => 'page',
+					'labels'       => (object) array( 'singular_name' => 'Page' ),
+					'public'       => true,
+				),
+				'post' => (object) array(
+					'name'         => 'post',
+					'labels'       => (object) array( 'singular_name' => 'Post' ),
+					'public'       => true,
+				),
+			);
+			if ( ! empty( $GLOBALS['sscribe_test_registered_post_types'] ) && is_array( $GLOBALS['sscribe_test_registered_post_types'] ) ) {
+				foreach ( $GLOBALS['sscribe_test_registered_post_types'] as $slug => $obj ) {
+					$registered[ $slug ] = $obj;
+				}
+			}
+			unset( $registered['attachment'] );
+			return $registered;
+		}
+
+		$names = array( 'page', 'post' );
+		if ( ! empty( $GLOBALS['sscribe_test_registered_post_types'] ) && is_array( $GLOBALS['sscribe_test_registered_post_types'] ) ) {
+			foreach ( array_keys( $GLOBALS['sscribe_test_registered_post_types'] ) as $slug ) {
+				$names[] = (string) $slug;
+			}
+		}
+		$names = array_values( array_unique( $names ) );
+		return $names;
+	}
+}
+
+if ( ! function_exists( 'get_post_type_object' ) ) {
+	function get_post_type_object( string $post_type ): ?object {
+		$registered = get_post_types( array(), 'objects' );
+		return $registered[ $post_type ] ?? null;
 	}
 }
 

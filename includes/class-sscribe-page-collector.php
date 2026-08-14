@@ -1062,19 +1062,49 @@ class SScribe_Page_Collector {
 	}
 
 	/**
-	 * Resolve post type for WP_Query.
+	 * Get the list of public post types the user can pick from the admin UI.
 	 *
-	 * @param string $post_type Post type input.
-	 * @return string|array
+	 * Filters out `attachment` (handled by the media library, not exports) and
+	 * exposes the allow-list through the `sscribe_allowed_post_types` filter so
+	 * third-party integrations can add or remove types without forking.
+	 *
+	 * @return array<int, string>
 	 */
-	private function resolve_post_type_for_query( string $post_type ): string|array {
-		if ( 'any' === $post_type ) {
-			return array( 'page', 'post' );
+	public function get_selectable_post_types(): array {
+		$registered = function_exists( 'get_post_types' )
+			? get_post_types( array( 'public' => true ) )
+			: array( 'page', 'post' );
+
+		if ( ! is_array( $registered ) ) {
+			$registered = array( 'page', 'post' );
 		}
 
-		$allowed_types = array( 'page', 'post' );
+		unset( $registered['attachment'] );
+
+		return array_values(
+			(array) apply_filters( 'sscribe_allowed_post_types', array_values( $registered ) )
+		);
+	}
+
+	/**
+	 * Resolve post type for WP_Query.
+	 *
+	 * Public so the batch processor and tests can share the same allow-list
+	 * logic. The optional second parameter is a test seam.
+	 *
+	 * @param string     $post_type Post type input.
+	 * @param array|null $allowed   Optional explicit allow-list (testing).
+	 * @return string|array
+	 */
+	public function resolve_post_type_for_query( string $post_type, ?array $allowed = null ): string|array {
+		$allowed_types = null !== $allowed ? $allowed : $this->get_selectable_post_types();
+
+		if ( 'any' === $post_type ) {
+			return $allowed_types;
+		}
+
 		if ( ! in_array( $post_type, $allowed_types, true ) ) {
-			return 'page';
+			return $allowed_types[0] ?? 'page';
 		}
 
 		return $post_type;

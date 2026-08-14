@@ -398,7 +398,10 @@
 					closeBtn.type = 'button';
 					closeBtn.className = 'sscribe-modal-close';
 					closeBtn.innerHTML = '<span aria-hidden="true">&times;</span>';
-					closeBtn.setAttribute('aria-label', 'Close dialog');
+					closeBtn.setAttribute(
+						'aria-label',
+						(sscribe_data.strings && sscribe_data.strings.close) || 'Close dialog'
+					);
 					closeBtn.addEventListener('click', closeDialog);
 					const header = document.createElement('div');
 					header.className = 'sscribe-modal-header';
@@ -457,29 +460,6 @@
 			});
 			this.$rotatedBody.on('click.sscribe', '.sscribe-rotated-delete', function () {
 				self.deleteRotatedLog($(this).data('file'), $(this));
-			});
-			this.$entries.on('keydown.sscribe', '.sscribe-debug-entry', function (e) {
-				if (e.key === 'Enter' || e.key === ' ') {
-					e.preventDefault();
-					const $entry = $(this);
-					const $context = $entry.find('.sscribe-debug-entry-context');
-					if ($context.length) {
-						const isExpanded = $entry.hasClass('expanded');
-						$entry.toggleClass('expanded', !isExpanded);
-						$entry.attr('aria-expanded', String(!isExpanded));
-						$context.attr('aria-hidden', String(isExpanded));
-					}
-				}
-			});
-			this.$entries.on('click.sscribe', '.sscribe-debug-entry.has-context', function () {
-				const $entry = $(this);
-				const $context = $entry.find('.sscribe-debug-entry-context');
-				if ($context.length) {
-					const isExpanded = $entry.hasClass('expanded');
-					$entry.toggleClass('expanded', !isExpanded);
-					$entry.attr('aria-expanded', String(!isExpanded));
-					$context.attr('aria-hidden', String(isExpanded));
-				}
 			});
 			this.$entries.on('click.sscribe', '.sscribe-debug-retry-append', function () {
 				self.retryAppend();
@@ -1330,6 +1310,13 @@
 				return;
 			}
 			let html = '';
+			const strings = (typeof sscribe_data !== 'undefined' && sscribe_data.strings) || {};
+			const rotatedViewLabel = strings.rotated_view_label || 'View';
+			const rotatedExportLabel = strings.rotated_export_label || 'Export';
+			const rotatedDeleteLabel = strings.rotated_delete_label || 'Delete';
+			const rotatedView = strings.rotated_view || 'View rotated log';
+			const rotatedExport = strings.rotated_export || 'Export rotated log';
+			const rotatedDelete = strings.rotated_delete || 'Delete rotated log';
 			files.forEach(function (file) {
 				html += '<div class="sscribe-debug-rotated-file">';
 				html += '<div class="sscribe-debug-rotated-file-info">';
@@ -1345,21 +1332,27 @@
 				html +=
 					'<button type="button" class="sscribe-button sscribe-button-sm sscribe-button-outline sscribe-rotated-view" data-file="' +
 					escAttr(file.name) +
-					'" aria-label="View rotated log ' +
-					escAttr(file.name) +
-					'">View</button>';
+					'" aria-label="' +
+					escAttr(rotatedView + ' ' + file.name) +
+					'">' +
+					escHtml(rotatedViewLabel) +
+					'</button>';
 				html +=
 					'<button type="button" class="sscribe-button sscribe-button-sm sscribe-button-secondary sscribe-rotated-export" data-file="' +
 					escAttr(file.name) +
-					'" aria-label="Export rotated log ' +
-					escAttr(file.name) +
-					'">Export</button>';
+					'" aria-label="' +
+					escAttr(rotatedExport + ' ' + file.name) +
+					'">' +
+					escHtml(rotatedExportLabel) +
+					'</button>';
 				html +=
 					'<button type="button" class="sscribe-button sscribe-button-sm sscribe-button-danger sscribe-rotated-delete" data-file="' +
 					escAttr(file.name) +
-					'" aria-label="Delete rotated log ' +
-					escAttr(file.name) +
-					'">Delete</button>';
+					'" aria-label="' +
+					escAttr(rotatedDelete + ' ' + file.name) +
+					'">' +
+					escHtml(rotatedDeleteLabel) +
+					'</button>';
 				html += '</div></div>';
 			});
 			this.$rotatedBody.html(html);
@@ -1650,24 +1643,38 @@
 		const msgText = String(entry.message || '').trim();
 		const fallbackLabel = String(entry.level || 'log') + ' entry at ' + String(entry.timestamp || '');
 		const ariaLabelText = msgText ? truncateForAriaLabel(msgText, 50) : truncateForAriaLabel(fallbackLabel, 50);
+		if (!hasContext) {
+			return (
+				'<div class="sscribe-debug-entry sscribe-debug-entry-level-' +
+				escAttr(badgeClass) +
+				'" data-level="' +
+				escAttr(dataLevel) +
+				'">' +
+				'<div class="sscribe-debug-entry-header">' +
+				'<span class="sscribe-debug-entry-badge ' +
+				escAttr(badgeClass) +
+				'">' +
+				escHtml(isAudit ? 'AUDIT' : (entry.level || 'INFO').toUpperCase()) +
+				'</span>' +
+				'<span class="sscribe-debug-entry-time">' +
+				escHtml(formatLocalTimestamp(entry.timestamp)) +
+				'</span>' +
+				'<span class="sscribe-debug-entry-message">' +
+				escHtml(entry.message || '') +
+				'</span>' +
+				'</div>' +
+				'</div>'
+			);
+		}
 		return (
-			'<div class="sscribe-debug-entry' +
-			(hasContext ? ' has-context' : '') +
-			' sscribe-debug-entry-level-' +
+			'<details class="sscribe-debug-entry has-context sscribe-debug-entry-level-' +
 			escAttr(badgeClass) +
-			'"' +
-			' data-level="' +
+			'" data-level="' +
 			escAttr(dataLevel) +
-			'"' +
-			(hasContext
-				? ' tabindex="0" role="button" aria-expanded="false" aria-controls="sscribe-debug-ctx-' +
-					escAttr(String(entryId)) +
-					'" aria-label="Toggle context for: ' +
-					escAttr(ariaLabelText) +
-					'"'
-				: '') +
-			'>' +
-			'<div class="sscribe-debug-entry-header">' +
+			'" aria-label="' +
+			escAttr('Toggle context for: ' + ariaLabelText) +
+			'">' +
+			'<summary class="sscribe-debug-entry-header">' +
 			'<span class="sscribe-debug-entry-badge ' +
 			escAttr(badgeClass) +
 			'">' +
@@ -1679,10 +1686,10 @@
 			'<span class="sscribe-debug-entry-message">' +
 			escHtml(entry.message || '') +
 			'</span>' +
-			(hasContext ? '<span class="sscribe-debug-entry-toggle" aria-hidden="true">\u25B6</span>' : '') +
-			'</div>' +
+			'<span class="sscribe-debug-entry-toggle" aria-hidden="true">\u25B6</span>' +
+			'</summary>' +
 			contextHtml +
-			'</div>'
+			'</details>'
 		);
 	}
 	window.SScribeDebugConsole = SScribeDebugConsole;
