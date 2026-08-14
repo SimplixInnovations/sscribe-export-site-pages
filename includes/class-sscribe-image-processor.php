@@ -102,9 +102,22 @@ class SScribe_Image_Processor {
 			return false;
 		}
 
+		$cache_key = 'sscribe_img_' . sha1( $url );
+		$cache_ttl = (int) apply_filters( 'sscribe_image_cache_ttl', MINUTE_IN_SECONDS * 30 );
+		if ( $cache_ttl > 0 ) {
+			$cached = wp_cache_get( $cache_key, 'sscribe_image_opt' );
+			if ( is_string( $cached ) && '' !== $cached && ! is_link( $cached ) && is_file( $cached ) ) {
+				return $cached;
+			}
+		}
+
 		$local_path = self::resolve_local_upload_url( $url );
 		if ( '' !== $local_path ) {
-			return self::optimize_local( $local_path );
+			$optimized = self::optimize_local( $local_path );
+			if ( $cache_ttl > 0 && is_string( $optimized ) && '' !== $optimized ) {
+				wp_cache_set( $cache_key, $optimized, 'sscribe_image_opt', $cache_ttl );
+			}
+			return $optimized;
 		}
 
 		$temp_path = self::download_to_temp( $url );
@@ -118,6 +131,10 @@ class SScribe_Image_Processor {
 		$optimized_real = is_string( $optimized_path ) ? realpath( $optimized_path ) : false;
 		if ( false !== $optimized_path && $temp_real !== $optimized_real && file_exists( $temp_path ) ) {
 			wp_delete_file( $temp_path );
+		}
+
+		if ( $cache_ttl > 0 && is_string( $optimized_path ) && '' !== $optimized_path ) {
+			wp_cache_set( $cache_key, $optimized_path, 'sscribe_image_opt', $cache_ttl );
 		}
 
 		return $optimized_path;

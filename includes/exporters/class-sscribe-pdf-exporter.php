@@ -132,6 +132,11 @@ class SScribe_PDF_Exporter implements SScribe_Exporter_Interface {
 		$prev_errors            = null;
 		$output_path            = '';
 		$mpdf_temp              = '';
+		$config                 = array();
+		$mpdf                   = null;
+		$html_content           = '';
+		$font_stack             = '';
+		$base_css               = '';
 		$temp_image_paths       = array();
 		$ob_level_before_render = ob_get_level();
 
@@ -398,6 +403,14 @@ class SScribe_PDF_Exporter implements SScribe_Exporter_Interface {
 
 			if ( null !== $prev_errors ) {
 				libxml_use_internal_errors( $prev_errors );
+			}
+
+			$mpdf         = null;
+			$html_content = null;
+			unset( $config, $mpdf_temp, $font_stack, $base_css, $temp_image_paths, $libxml_errors );
+
+			if ( function_exists( 'gc_collect_cycles' ) ) {
+				gc_collect_cycles();
 			}
 		}
 	}

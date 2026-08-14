@@ -264,6 +264,12 @@ class SScribe {
 		$this->loader->add_action( 'sscribe_cleanup_exports', $zip, 'cleanup_expired' );
 
 		$this->loader->add_action( 'sscribe_cleanup_sessions', $this, 'cleanup_sessions' );
+		$this->loader->add_action(
+			'sscribe_cleanup_sessions',
+			$container->get( SScribe_Session::class ),
+			'maybe_rotate_signing_key',
+			99
+		);
 		$this->loader->add_action( 'sscribe_cleanup_audit_trail', $this, 'cleanup_audit_trail' );
 	}
 

@@ -1295,6 +1295,9 @@ class SScribe_Session {
 
 			$data = json_decode( $decrypted, true );
 			if ( is_array( $data ) ) {
+				if ( null !== $session_id && ! $this->verify_decoded_signature( $session_id, $data ) ) {
+					return null;
+				}
 				return $data;
 			}
 			return null;
@@ -1303,6 +1306,9 @@ class SScribe_Session {
 		$data = json_decode( $raw, true );
 
 		if ( is_array( $data ) ) {
+			if ( null !== $session_id && ! $this->verify_decoded_signature( $session_id, $data ) ) {
+				return null;
+			}
 			return $data;
 		}
 
@@ -1319,6 +1325,20 @@ class SScribe_Session {
 		);
 
 		return null;
+	}
+
+	/**
+	 * Check that a decoded session payload carries a valid HMAC signature.
+	 *
+	 * @param string $session_id Session identifier.
+	 * @param array  $data       Decoded session payload.
+	 * @return bool True when the signature is present and matches.
+	 */
+	private function verify_decoded_signature( string $session_id, array $data ): bool {
+		if ( ! array_key_exists( '_sig', $data ) || ! is_string( $data['_sig'] ) ) {
+			return false;
+		}
+		return $this->verify_session_signature( $session_id, $data['_sig'] );
 	}
 
 	/**
@@ -1388,7 +1408,63 @@ class SScribe_Session {
 	 * @return bool
 	 */
 	private function verify_session_signature( string $session_id, string $signature ): bool {
-		return hash_equals( $this->sign_session_id( $session_id ), $signature );
+		$current = $this->get_signing_key();
+		if ( hash_equals( hash_hmac( 'sha256', $session_id, $current ), $signature ) ) {
+			return true;
+		}
+		$previous = (string) get_option( 'sscribe_session_signing_key_prev', '' );
+		return '' !== $previous && hash_equals( hash_hmac( 'sha256', $session_id, $previous ), $signature );
+	}
+
+	/**
+	 * Rotate the HMAC signing key.
+	 *
+	 * The current key is preserved in the `sscribe_session_signing_key_prev`
+	 * option so existing sessions remain verifiable while clients adopt the
+	 * new key. The previous slot is reused on subsequent rotations, so the
+	 * ring is always exactly two entries deep.
+	 *
+	 * @return bool True on success, false if a new key could not be generated.
+	 */
+	public function rotate_signing_key(): bool {
+		$current = $this->get_signing_key();
+
+		try {
+			$candidate = bin2hex( random_bytes( 32 ) );
+		} catch ( \Throwable $e ) {
+			$this->logger->error(
+				'Failed to generate SScribe session signing key during rotation',
+				array( 'error' => $e->getMessage() )
+			);
+			return false;
+		}
+
+		update_option( 'sscribe_session_signing_key_prev', $current, false );
+		update_option( 'sscribe_session_signing_key', $candidate, false );
+		update_option( 'sscribe_session_signing_key_prev_rotated_at', time(), false );
+
+		$this->logger->info( 'Rotated SScribe session signing key' );
+
+		return true;
+	}
+
+	/**
+	 * Run by the hourly cleanup cron to rotate the signing key no more
+	 * than once every 30 days. Honors a `sscribe_session_rotation_days`
+	 * filter for sites that want a faster cadence.
+	 */
+	public function maybe_rotate_signing_key(): void {
+		$interval_days = (int) apply_filters( 'sscribe_session_rotation_days', 30 );
+		if ( $interval_days < 1 ) {
+			return;
+		}
+
+		$last_rotated = (int) get_option( 'sscribe_session_signing_key_prev_rotated_at', 0 );
+		if ( $last_rotated > 0 && ( time() - $last_rotated ) < ( $interval_days * DAY_IN_SECONDS ) ) {
+			return;
+		}
+
+		$this->rotate_signing_key();
 	}
 
 	/**
@@ -1398,35 +1474,58 @@ class SScribe_Session {
 	 * @throws \RuntimeException When a fallback key cannot be persisted.
 	 */
 	private function get_signing_key(): string {
+		$stored = (string) get_option( 'sscribe_session_signing_key', '' );
+		if ( '' !== $stored ) {
+			return $stored;
+		}
+
 		if ( defined( 'AUTH_SALT' ) && '' !== AUTH_SALT ) {
-			return AUTH_SALT;
+			if ( $this->bootstrap_signing_key( AUTH_SALT ) ) {
+				return AUTH_SALT;
+			}
+		} elseif ( defined( 'SECURE_AUTH_KEY' ) && '' !== SECURE_AUTH_KEY ) {
+			if ( $this->bootstrap_signing_key( SECURE_AUTH_KEY ) ) {
+				return SECURE_AUTH_KEY;
+			}
+		} elseif ( defined( 'NONCE_SALT' ) && '' !== NONCE_SALT ) {
+			if ( $this->bootstrap_signing_key( NONCE_SALT ) ) {
+				return NONCE_SALT;
+			}
 		}
 
-		if ( defined( 'SECURE_AUTH_KEY' ) && '' !== SECURE_AUTH_KEY ) {
-			return SECURE_AUTH_KEY;
-		}
-
-		if ( defined( 'NONCE_SALT' ) && '' !== NONCE_SALT ) {
-			return NONCE_SALT;
-		}
-
-		$secret = get_option( 'sscribe_session_signing_key', '' );
-		if ( '' === $secret ) {
+		try {
 			$candidate = bin2hex( random_bytes( 32 ) );
-			if ( add_option( 'sscribe_session_signing_key', $candidate, '', 'no' ) ) {
-				return $candidate;
-			}
+		} catch ( \Throwable $e ) {
+			throw new \RuntimeException( 'Unable to generate SScribe session signing key.' );
+		}
+		if ( add_option( 'sscribe_session_signing_key', $candidate, '', 'no' ) ) {
+			return $candidate;
+		}
 
-			// Another request may have initialized the option after our
-			// initial read. Always use the persisted winner so signatures
-			// created concurrently remain verifiable on later requests.
-			$secret = (string) get_option( 'sscribe_session_signing_key', '' );
-			if ( '' === $secret ) {
-				throw new \RuntimeException( 'Unable to persist the SScribe session signing key.' );
-			}
+		$secret = (string) get_option( 'sscribe_session_signing_key', '' );
+		if ( '' === $secret ) {
+			throw new \RuntimeException( 'Unable to persist the SScribe session signing key.' );
 		}
 
 		return $secret;
+	}
+
+	/**
+	 * Persist a bootstrap signing key (typically a WordPress salt) so
+	 * subsequent reads prefer the stable stored option and survive
+	 * AUTH_SALT rotation. Returns true on success.
+	 *
+	 * @param string $candidate Bootstrap key material.
+	 * @return bool
+	 */
+	private function bootstrap_signing_key( string $candidate ): bool {
+		if ( '' === $candidate ) {
+			return false;
+		}
+		if ( add_option( 'sscribe_session_signing_key', $candidate, '', 'no' ) ) {
+			return true;
+		}
+		return '' !== (string) get_option( 'sscribe_session_signing_key', '' );
 	}
 
 	/**
@@ -1682,7 +1781,18 @@ class SScribe_Session {
 	 * @return string 32-byte encryption key.
 	 */
 	private function get_legacy_aes_key(): string {
-		return hash( 'sha256', $this->get_signing_key(), true );
+		$stored = (string) get_option( 'sscribe_session_aes_key', '' );
+		if ( '' !== $stored ) {
+			$raw = base64_decode( $stored, true );
+			if ( false !== $raw && 32 === strlen( $raw ) ) {
+				return $raw;
+			}
+		}
+
+		$derived = hash( 'sha256', $this->get_signing_key(), true );
+		update_option( 'sscribe_session_aes_key', base64_encode( $derived ), false );
+
+		return $derived;
 	}
 
 	/**

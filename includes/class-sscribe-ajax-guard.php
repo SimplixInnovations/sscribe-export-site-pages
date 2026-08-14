@@ -146,7 +146,7 @@ class SScribe_AJAX_Guard {
 		self::sanitise_environment();
 		self::log_cleaned_buffers( 'success' );
 
-		if ( defined( 'SSCRIBE_DEBUG' ) && SSCRIBE_DEBUG && current_user_can( 'manage_options' ) && is_array( $data ) ) {
+		if ( defined( 'SSCRIBE_DEBUG' ) && SSCRIBE_DEBUG && current_user_can( SScribe_Capabilities::get_health_required() ) && is_array( $data ) ) {
 			$data['_debug'] = self::build_diagnostics( $context );
 		}
 
@@ -166,7 +166,7 @@ class SScribe_AJAX_Guard {
 		self::sanitise_environment();
 		self::log_cleaned_buffers( 'error' );
 
-		if ( defined( 'SSCRIBE_DEBUG' ) && SSCRIBE_DEBUG && current_user_can( 'manage_options' ) ) {
+		if ( defined( 'SSCRIBE_DEBUG' ) && SSCRIBE_DEBUG && current_user_can( SScribe_Capabilities::get_health_required() ) ) {
 			$diagnostics = self::build_diagnostics( $context );
 
 			if ( is_array( $data ) ) {
