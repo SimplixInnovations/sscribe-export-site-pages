@@ -14,11 +14,40 @@ use PHPUnit\Framework\TestCase;
 class SScribe_Filesystem_Test extends TestCase {
 
 	private string $test_dir;
+	private string $export_dir;
 
 	protected function setUp(): void {
 		parent::setUp();
 		$this->test_dir = sys_get_temp_dir() . '/sscribe-filesystem-test-' . uniqid();
 		mkdir( $this->test_dir, 0755, true );
+
+		// All write/copy tests must target a path inside the SScribe
+		// export directory, per the WordPress.org Plugin Directory
+		// "no writes outside plugin folder" rule. The bootstrap's
+		// wp_upload_dir() returns a fresh temp dir per process; create
+		// the export dir on demand so the suite stays self-contained.
+		$upload_dir   = wp_upload_dir();
+		$this->export_dir = trailingslashit( $upload_dir['basedir'] ) . 'sscribe-exports';
+		if ( ! is_dir( $this->export_dir ) ) {
+			mkdir( $this->export_dir, 0755, true );
+		} else {
+
+			// Wipe stale files left behind by previous tests so a
+			// copy()/put_contents() with overwrite=false does not
+			// collide with leftover state from earlier runs.
+			$leftover = glob( $this->export_dir . '/{,.}*', GLOB_BRACE );
+			if ( is_array( $leftover ) ) {
+				foreach ( $leftover as $candidate ) {
+					$name = basename( $candidate );
+					if ( '.' === $name || '..' === $name ) {
+						continue;
+					}
+					if ( is_file( $candidate ) ) {
+						@unlink( $candidate );
+					}
+				}
+			}
+		}
 	}
 
 	protected function tearDown(): void {
@@ -45,9 +74,17 @@ class SScribe_Filesystem_Test extends TestCase {
 		rmdir( $dir );
 	}
 
+	/**
+	 * Build a path inside the SScribe export dir (where writes are
+	 * permitted) instead of sys_get_temp_dir() (where they are not).
+	 */
+	private function in_export_dir( string $name ): string {
+		return $this->export_dir . '/' . ltrim( $name, '/' );
+	}
+
 	public function test_put_contents_creates_file(): void {
 		$fs     = new \SScribe_Filesystem();
-		$file   = $this->test_dir . '/test.txt';
+		$file   = $this->in_export_dir( 'test.txt' );
 		$result = $fs->put_contents( $file, 'Hello World' );
 
 		$this->assertTrue( $result );
@@ -111,8 +148,8 @@ class SScribe_Filesystem_Test extends TestCase {
 
 	public function test_copy_copies_file(): void {
 		$fs       = new \SScribe_Filesystem();
-		$source   = $this->test_dir . '/source.txt';
-		$dest     = $this->test_dir . '/dest.txt';
+		$source   = $this->in_export_dir( 'source.txt' );
+		$dest     = $this->in_export_dir( 'dest.txt' );
 		file_put_contents( $source, 'Copy me' );
 
 		$result = $fs->copy( $source, $dest );
@@ -122,10 +159,57 @@ class SScribe_Filesystem_Test extends TestCase {
 		$this->assertEquals( 'Copy me', file_get_contents( $dest ) );
 	}
 
+	/**
+	 * A caller must not be able to copy an arbitrary local file into an export.
+	 */
+	public function test_copy_refuses_source_outside_export_dir(): void {
+		$fs     = new \SScribe_Filesystem();
+		$source = $this->test_dir . '/outside-secret.txt';
+		$dest   = $this->in_export_dir( 'copied-secret.txt' );
+		file_put_contents( $source, 'sensitive local data' );
+
+		$result = $fs->copy( $source, $dest );
+
+		$this->assertFalse( $result );
+		$this->assertFileDoesNotExist( $dest );
+		$this->assertStringContainsString( 'source outside', $fs->get_last_error() );
+	}
+
+	/**
+	 * Canonical source validation must reject symlinks planted in the export dir.
+	 */
+	public function test_copy_refuses_symlink_source(): void {
+		if ( ! function_exists( 'symlink' ) ) {
+			$this->markTestSkipped( 'symlink() not available on this platform' );
+		}
+
+		$fs      = new \SScribe_Filesystem();
+		$outside = $this->test_dir . '/outside-secret.txt';
+		$source  = $this->in_export_dir( 'source-link.txt' );
+		$dest    = $this->in_export_dir( 'copied-link.txt' );
+		file_put_contents( $outside, 'sensitive local data' );
+
+		if ( ! @symlink( $outside, $source ) ) {
+			$this->markTestSkipped( 'symlink() not permitted on this platform' );
+		}
+
+		$result = $fs->copy( $source, $dest );
+
+		$this->assertFalse( $result );
+		$this->assertFileDoesNotExist( $dest );
+		@unlink( $source );
+	}
+
 	public function test_move_renames_file(): void {
 		$fs     = new \SScribe_Filesystem();
-		$source = $this->test_dir . '/move-source.txt';
-		$dest   = $this->test_dir . '/move-dest.txt';
+		// Both source and destination must live INSIDE the SScribe export
+		// directory. The new source-side guard (audit follow-up) rejects
+		// sources resolving outside the allowlist, same as the destination
+		// guard. This mirrors the production call site (zip-handler
+		// staging rename) where the staging file is created inside
+		// $this->export_dir.
+		$source = $this->export_dir . '/move-source.txt';
+		$dest   = $this->export_dir . '/move-dest.txt';
 		file_put_contents( $source, 'Move me' );
 
 		$result = $fs->move( $source, $dest );
@@ -136,6 +220,66 @@ class SScribe_Filesystem_Test extends TestCase {
 		$this->assertEquals( 'Move me', file_get_contents( $dest ) );
 	}
 
+	/**
+	 * Audit #7 regression: move() must refuse a destination outside the
+	 * SScribe export directory. Symlink-aware (same check as put_contents).
+	 */
+	public function test_move_refuses_destination_outside_export_dir(): void {
+		if ( ! function_exists( 'symlink' ) ) {
+			$this->markTestSkipped( 'symlink() not available on this platform' );
+		}
+
+		$fs     = new \SScribe_Filesystem();
+		$source = $this->test_dir . '/move-outside-source.txt';
+		$dest   = $this->test_dir . '/move-outside-dest.txt';
+		file_put_contents( $source, 'Should not move' );
+
+		$result = $fs->move( $source, $dest );
+
+		$this->assertFalse( $result, 'move() must refuse destinations outside the export dir' );
+		$this->assertFileExists( $source, 'Source file must NOT be consumed when the move is rejected' );
+		$this->assertFileDoesNotExist( $dest );
+		$this->assertNotEmpty( $fs->get_last_error() );
+	}
+
+	/**
+	 * Audit #7 regression: move() must refuse a destination whose parent
+	 * is a symlink planted inside the export dir that escapes the allowlist
+	 * (defends against symlink planting).
+	 */
+	public function test_move_refuses_planted_symlink_destination(): void {
+		if ( ! function_exists( 'symlink' ) ) {
+			$this->markTestSkipped( 'symlink() not available on this platform' );
+		}
+
+		$fs         = new \SScribe_Filesystem();
+		$source     = $this->test_dir . '/planted-source.txt';
+		$planted    = $this->export_dir . '/planted-link-' . uniqid();
+		$plant_dest = $this->test_dir . '/planted-target.txt';
+
+		file_put_contents( $source, 'Should not escape' );
+		// symlink() requires the target to exist on most platforms
+		// (Windows specifically rejects dangling symlinks by default).
+		file_put_contents( $plant_dest, 'attacker-controlled target' );
+
+		// Plant a symlink: $planted (inside export dir) -> $plant_dest (outside).
+		// Some platforms (notably Windows non-admin and locked-down CI
+		// containers) refuse symlink creation entirely; skip the assertion
+		// rather than fail so the suite stays portable.
+		$symlink_ok = @symlink( $plant_dest, $planted );
+		if ( ! $symlink_ok ) {
+			$this->markTestSkipped( 'symlink() not permitted on this platform (Windows non-admin / locked-down CI)' );
+		}
+		$this->assertTrue( $symlink_ok );
+
+		$result = $fs->move( $source, $planted . '/planted-target.txt' );
+
+		$this->assertFalse( $result, 'move() must refuse destinations whose parent resolves outside the export dir via symlink' );
+		$this->assertFileExists( $source, 'Source file must NOT be consumed when the move is rejected' );
+
+		@unlink( $planted );
+	}
+
 	public function test_mkdir_creates_directory(): void {
 		$fs     = new \SScribe_Filesystem();
 		$subdir = $this->test_dir . '/newdir/subdir';
@@ -144,5 +288,262 @@ class SScribe_Filesystem_Test extends TestCase {
 
 		$this->assertTrue( $result );
 		$this->assertDirectoryExists( $subdir );
+	}
+
+	public function test_sanitize_path_strips_traversal_segments(): void {
+		$unsafe = $this->test_dir . '/../../../etc/passwd';
+		$safe   = \SScribe_Filesystem::sanitize_path( $unsafe );
+
+		// ".." segments must not survive anywhere in the path.
+		$this->assertStringNotContainsString( '..', $safe );
+		// The path must remain rooted at test_dir — no escape via traversal.
+		// Normalize both sides to forward slashes for cross-platform comparison.
+		$test_dir_norm      = str_replace( '\\', '/', rtrim( $this->test_dir, '/' ) );
+		$this->assertStringStartsWith( $test_dir_norm, $safe );
+	}
+
+	public function test_sanitize_path_preserves_directory_component(): void {
+		$path = '/var/www/uploads/file-name.txt';
+		$safe = \SScribe_Filesystem::sanitize_path( $path );
+
+		$this->assertEquals( '/var/www/uploads/file-name.txt', $safe );
+	}
+
+	public function test_sanitize_path_handles_basename_only(): void {
+		$safe = \SScribe_Filesystem::sanitize_path( 'simple-file.txt' );
+
+		$this->assertEquals( 'simple-file.txt', $safe );
+	}
+
+	public function test_sanitize_path_strips_null_bytes(): void {
+		$unsafe = $this->test_dir . "/file\x00name.txt";
+		$safe   = \SScribe_Filesystem::sanitize_path( $unsafe );
+
+		$this->assertStringNotContainsString( "\0", $safe );
+	}
+
+	public function test_put_contents_sanitizes_traversal_in_path(): void {
+		$fs     = new \SScribe_Filesystem();
+		// Construct a path INSIDE the export dir, then inject a traversal
+		// attempt that, if it landed unsanitized, would escape to the
+		// system temp dir. After sanitize_path() the ".." segments must
+		// be stripped (the literal text disappears) and the file must
+		// land inside the export dir.
+		$unsafe = $this->in_export_dir( 'subdir/../../../../../tmp/evil.txt' );
+
+		$result = $fs->put_contents( $unsafe, 'content' );
+
+		$this->assertTrue( $result );
+		// sanitise_path() drops '..' segments by skipping, leaving
+		// "<export_dir>/subdir/tmp/evil.txt".
+		$inside = $this->export_dir . '/subdir/tmp/evil.txt';
+		$this->assertFileExists( $inside );
+		$this->assertFileDoesNotExist( '/tmp/evil.txt' );
+	}
+
+	public function test_put_contents_rejects_path_outside_export_dir(): void {
+		$fs   = new \SScribe_Filesystem();
+		$file = $this->test_dir . '/should-not-write.txt';
+
+		$result = $fs->put_contents( $file, 'should not land' );
+
+		$this->assertFalse( $result, 'Expected put_contents to REJECT writes outside the export dir' );
+		$this->assertFileDoesNotExist( $file );
+	}
+
+	public function test_copy_rejects_destination_outside_export_dir(): void {
+		$fs     = new \SScribe_Filesystem();
+		$source = $this->in_export_dir( 'copy-source.txt' );
+		$dest   = $this->test_dir . '/copy-dest.txt';
+		file_put_contents( $source, 'do not copy me' );
+
+		$result = $fs->copy( $source, $dest );
+
+		$this->assertFalse( $result, 'Expected copy() to REJECT destinations outside the export dir' );
+		$this->assertFileDoesNotExist( $dest );
+	}
+
+	public function test_sanitize_path_preserves_windows_drive_letter(): void {
+		$path = 'C:/Users/test/file.txt';
+		$safe = \SScribe_Filesystem::sanitize_path( $path );
+
+		// Drive letter and following path preserved.
+		$this->assertEquals( 'C:/Users/test/file.txt', $safe );
+	}
+
+	public function test_sanitize_path_preserves_spaces_in_filename(): void {
+		// Legitimate filenames with spaces should pass through unchanged.
+		// Language is no longer in the filename (the output dir carries it),
+		// so this fixture uses the new clean format.
+		$path = sys_get_temp_dir() . '/sscribe test/P001-Test Markdown Page-42.md';
+		$safe = \SScribe_Filesystem::sanitize_path( $path );
+
+		$this->assertEquals( $path, $safe );
+	}
+
+	public function test_sanitize_path_preserves_unicode_in_filename(): void {
+		$path = sys_get_temp_dir() . '/صفحة عربية.md';
+		$safe = \SScribe_Filesystem::sanitize_path( $path );
+
+		$this->assertEquals( $path, $safe );
+	}
+
+	/**
+	 * Symlink attack protection: put_contents() must reject writes to
+	 * files whose parent directory is a symlink that escapes the
+	 * SScribe export directory.
+	 */
+	public function test_put_contents_rejects_symlink_escape(): void {
+		if ( ! function_exists( 'symlink' ) ) {
+			$this->markTestSkipped( 'symlink() not available' );
+		}
+
+		$fs = new \SScribe_Filesystem();
+
+		// is_path_safe_for_write() compares lexically against the SSCRIBE
+		// export dir (computed from wp_upload_dir()). The symlink must
+		// live INSIDE the export dir for the helper to detect the
+		// escape — placing it in an arbitrary test dir would just
+		// produce SSCRIBE_PATH_REJECT.
+		$upload_dir  = wp_upload_dir();
+		$export_dir  = trailingslashit( $upload_dir['basedir'] ) . 'sscribe-exports';
+		if ( ! is_dir( $export_dir ) ) {
+			// Bootstrap's wp_upload_dir() returns a fresh temp dir per
+			// process; create the export dir on demand so the test is
+			// self-contained.
+			mkdir( $export_dir, 0755, true );
+		}
+
+		$outside   = $this->test_dir . '/outside-target';
+		$link_name = $export_dir . '/evil-' . uniqid();
+
+		mkdir( $outside, 0755, true );
+
+		// symlink() requires SeCreateSymbolicLinkPrivilege on Windows
+		// (admin-only by default). Skip on platforms where the call
+		// fails — the test exercises a privilege-gated attack surface
+		// that the rest of the suite does not depend on.
+		if ( ! @symlink( $outside, $link_name ) ) {
+			rmdir( $outside );
+			$this->markTestSkipped( 'symlink() not permitted on this platform' );
+		}
+
+		$safe = $fs->is_path_safe_for_write( $link_name . '/file.txt' );
+
+		// Clean up before asserting so a failure doesn't leak symlinks.
+		@unlink( $link_name );
+		rmdir( $outside );
+
+		$this->assertEquals( \SScribe_Filesystem::SSCRIBE_PATH_REJECT, $safe,
+			'Expected symlink escape to be REJECTed' );
+	}
+
+	public function test_write_check_rejects_missing_path_below_symlink_escape(): void {
+		if ( ! function_exists( 'symlink' ) ) {
+			$this->markTestSkipped( 'symlink() not available' );
+		}
+
+		$fs          = new \SScribe_Filesystem();
+		$upload_dir  = wp_upload_dir();
+		$export_dir  = trailingslashit( $upload_dir['basedir'] ) . 'sscribe-exports';
+		$outside     = $this->test_dir . '/nested-outside';
+		$link_name   = $export_dir . '/nested-escape-' . uniqid();
+		wp_mkdir_p( $export_dir );
+		wp_mkdir_p( $outside );
+
+		if ( ! @symlink( $outside, $link_name ) ) {
+			rmdir( $outside );
+			$this->markTestSkipped( 'symlink() not permitted on this platform' );
+		}
+
+		$safe = $fs->is_path_safe_for_write( $link_name . '/missing/child/file.txt' );
+
+		@unlink( $link_name );
+		rmdir( $outside );
+
+		$this->assertSame( \SScribe_Filesystem::SSCRIBE_PATH_REJECT, $safe );
+	}
+
+	/**
+	 * Symlink attack protection: copy() must also reject destinations
+	 * that resolve outside the SScribe export directory.
+	 */
+	public function test_copy_rejects_symlink_escape(): void {
+		if ( ! function_exists( 'symlink' ) ) {
+			$this->markTestSkipped( 'symlink() not available' );
+		}
+
+		$fs = new \SScribe_Filesystem();
+
+		$upload_dir  = wp_upload_dir();
+		$export_dir  = trailingslashit( $upload_dir['basedir'] ) . 'sscribe-exports';
+		if ( ! is_dir( $export_dir ) ) {
+			mkdir( $export_dir, 0755, true );
+		}
+
+		$outside   = $this->test_dir . '/outside-target-2';
+		$link_name = $export_dir . '/evil-copy-' . uniqid();
+
+		mkdir( $outside, 0755, true );
+
+		if ( ! @symlink( $outside, $link_name ) ) {
+			rmdir( $outside );
+			$this->markTestSkipped( 'symlink() not permitted on this platform' );
+		}
+
+		$safe = $fs->is_path_safe_for_write( $link_name );
+
+		@unlink( $link_name );
+		rmdir( $outside );
+
+		$this->assertEquals( \SScribe_Filesystem::SSCRIBE_PATH_REJECT, $safe,
+			'Expected symlink escape via copy destination to be REJECTed' );
+	}
+
+	/**
+	 * is_within_allowed_directory() must return true for paths
+	 * that are lexically inside the allowed root.
+	 */
+	public function test_is_within_allowed_directory_accepts_inside(): void {
+		$fs = new \SScribe_Filesystem();
+
+		$allowed = $this->test_dir . '/exports';
+		mkdir( $allowed, 0755, true );
+
+		$inside = $allowed . '/sub/dir/file.txt';
+		$this->assertTrue( $fs->is_within_allowed_directory( $inside, $allowed ) );
+	}
+
+	/**
+	 * is_within_allowed_directory() must return false for paths
+	 * outside the allowed root (and not equal to it).
+	 */
+	public function test_is_within_allowed_directory_rejects_outside(): void {
+		$fs = new \SScribe_Filesystem();
+
+		$allowed = $this->test_dir . '/exports';
+		$outside = $this->test_dir . '/other/file.txt';
+		$this->assertFalse( $fs->is_within_allowed_directory( $outside, $allowed ) );
+	}
+
+	/**
+	 * is_path_safe_for_write() must REJECT any file whose literal
+	 * path is outside the SScribe export dir, even if no symlink is
+	 * involved. Per the WordPress.org Plugin Directory guidelines,
+	 * plugins must write only to the database or to a plugin-owned
+	 * folder under wp-content/uploads/. The export directory
+	 * (wp-content/uploads/sscribe-exports/) is the only allowed
+	 * filesystem destination; WP temp, system temp, and any other
+	 * path are default-denied.
+	 */
+	public function test_is_path_safe_for_write_rejects_external_writes(): void {
+		$fs = new \SScribe_Filesystem();
+
+		// sys_get_temp_dir() is outside the SScribe export dir.
+		$temp = sys_get_temp_dir() . '/sscribe-external-test.txt';
+		$safe = $fs->is_path_safe_for_write( $temp );
+
+		$this->assertEquals( \SScribe_Filesystem::SSCRIBE_PATH_REJECT, $safe,
+			'Expected WP temp dir writes to be REJECTed (default-deny outside export dir)' );
 	}
 }

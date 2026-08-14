@@ -34,7 +34,7 @@ class SScribe_Export_Resource_Monitor {
 		$used      = memory_get_usage( true );
 		$available = $limit - $used;
 
-		return $available > ( $buffer_mb * 1024 * 1024 );
+		return $available > ( max( 0, $buffer_mb ) * 1024 * 1024 );
 	}
 
 	/**
@@ -103,7 +103,7 @@ class SScribe_Export_Resource_Monitor {
 	public function get_optimal_batch_size( array $formats = array(), string $hint = '' ): int {
 		$memory_limit  = wp_convert_hr_to_bytes( ini_get( 'memory_limit' ) );
 		$current_usage = memory_get_usage( true );
-		$available     = $memory_limit - $current_usage;
+		$available     = $memory_limit > 0 ? $memory_limit - $current_usage : PHP_INT_MAX;
 
 		$memory_per_page = 5 * 1024 * 1024;
 
@@ -138,6 +138,7 @@ class SScribe_Export_Resource_Monitor {
 	 * @return int Bytes required.
 	 */
 	public function calculate_export_memory_requirement( int $page_count, array $formats ): int {
+		$page_count      = max( 0, $page_count );
 		$memory_per_page = 1.0;
 
 		if ( in_array( 'docx', $formats, true ) ) {
@@ -167,8 +168,12 @@ class SScribe_Export_Resource_Monitor {
 	 */
 	public function get_memory_warning( int $page_count, array $formats ): ?array {
 		$memory_limit  = wp_convert_hr_to_bytes( ini_get( 'memory_limit' ) );
+		if ( $memory_limit <= 0 ) {
+			return null;
+		}
+
 		$current_usage = memory_get_usage( true );
-		$available     = $memory_limit - $current_usage;
+		$available     = max( 0, $memory_limit - $current_usage );
 
 		$estimated_need = $this->calculate_export_memory_requirement( $page_count, $formats );
 		$safe_available = (int) ( $available * 0.8 );

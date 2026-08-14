@@ -18,3 +18,49 @@ with this program; if not, write to the Free Software Foundation, Inc.,
 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
 
 Full license text: https://www.gnu.org/licenses/old-licenses/gpl-2.0.html
+
+Third-Party Assets
+==================
+
+This plugin bundles the Amiri font family (assets/fonts/amiri/),
+copyright 2010-2022 The Amiri Project Authors
+(https://github.com/aliftype/amiri). The Amiri fonts are licensed
+under the SIL Open Font License, Version 1.1. A copy of the OFL is
+included in assets/fonts/amiri/OFL.txt. The OFL is compatible with
+the GPL v2; the font may be redistributed with this plugin under the
+terms of the OFL.
+
+This plugin also bundles code from the following open-source libraries,
+all of which are compatible with the GPL v2. The list below reflects
+only what actually ships in the release archive; license texts for
+each library are preserved alongside its source in vendor-prefixed/
+so a reviewer can verify attribution without leaving the ZIP.
+
+* PHPWord (LGPL-3.0-only) : DOCX export. Source:
+  https://github.com/PHPOffice/PHPWord. PHPWord remains under its
+  LGPL terms and is loaded through the bundled namespaced autoloader.
+  Full license text: https://www.gnu.org/licenses/lgpl-3.0.html
+* mPDF (GPL-2.0-only) : PDF export. Source:
+  https://github.com/mpdf/mpdf.
+* FPDI (MIT) : PDF page composition primitives. Source:
+  https://github.com/setasign/fpdi. The shipped copy has the
+  FPDF-extending classes pruned because the upstream setasign/fpdf
+  parent is not bundled; only the standalone parser, type system,
+  and helpers remain. MIT is a permissive license compatible with
+  GPL v2 redistribution.
+* phpoffice/math (MIT) : arithmetic helpers used by PHPWord.
+* myclabs/deep-copy (MIT) : deep-clone helper used by PHPWord for
+  template and style-graph operations.
+* psr/container (MIT) : PSR-11 container interface used by the
+  bundled dependency injection container.
+* psr/http-message (MIT) : PSR-7 HTTP message interfaces used by
+  the mPDF PSR HTTP shim.
+* psr/log (MIT) : PSR-3 logger interface consumed by the mPDF
+  PSR log-aware trait.
+* mpdf/psr-http-message-shim (MIT) : bridges mPDF's internal HTTP
+  client to PSR-7 messages.
+* mpdf/psr-log-aware-trait (MIT) : bridges mPDF's logging to
+  PSR-3 loggers.
+
+Each library's full license text is preserved alongside its source
+in the plugin's vendor-prefixed/ directory.

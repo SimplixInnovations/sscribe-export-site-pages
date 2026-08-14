@@ -6,7 +6,7 @@
  * @license GPL v2 or later
  * @link    https://www.gnu.org/licenses/gpl-2.0.html
  *
- * @phpcs:disable WordPress.PHP.DevelopmentFunctions.error_log_error_log -- Intentional debug logging gated behind WP_DEBUG_LOG.
+ * @phpcs:disable WordPress.PHP.DevelopmentFunctions.error_log_error_log -- Diagnostics logging only fires inside `if ( defined( 'WP_DEBUG_LOG' ) && WP_DEBUG_LOG )` runtime guards (8 sites). Inline per-call `phpcs:ignore` would be brittle to add to try/catch blocks; the runtime guard is the canonical safety.
  */
 
 declare(strict_types=1);
@@ -20,7 +20,17 @@ if ( ! defined( 'ABSPATH' ) ) {
  */
 class SScribe_Diagnostics {
 
-	private const MIN_MPDF_FONT_COUNT = 40;
+	/**
+	 * Minimum expected mPDF font files in the shipped vendor tree.
+	 *
+	 * The plugin ships 17 font files in
+	 * vendor-prefixed/mpdf/mpdf/ttfonts/ (16 TTF + DejaVuinfo.txt). A lower
+	 * bound of 15 leaves room for one or two expected file additions without
+	 * firing false-positive warnings on healthy installs. Values higher than
+	 * the shipped count produce a "warning" on every install, which is the
+	 * bug this constant was guarding against.
+	 */
+	private const MIN_MPDF_FONT_COUNT = 15;
 
 	/**
 	 * Logger instance.
@@ -44,17 +54,18 @@ class SScribe_Diagnostics {
 	}
 
 	/**
-	 * Get comprehensive support information.
+	 * Get site + plugin support snapshot for the diagnostics export.
 	 *
 	 * @return array
 	 */
 	public function get_support_info(): array {
+		$this->support_errors = array();
 		$upload_dir    = wp_upload_dir();
-		$export_dir    = trailingslashit( $upload_dir['basedir'] ) . 'sscribe-exports';
-		$log_dir       = trailingslashit( $upload_dir['basedir'] ) . 'sscribe-logs';
+		$upload_base   = empty( $upload_dir['error'] ) && ! empty( $upload_dir['basedir'] ) ? (string) $upload_dir['basedir'] : '';
+		$export_dir    = '' !== $upload_base ? trailingslashit( $upload_base ) . 'sscribe-exports' : '';
+		$log_dir       = '' !== $export_dir ? trailingslashit( $export_dir ) . 'logs' : '';
 		$debug_enabled = SSCRIBE_DEBUG;
 
-		// Use container-managed singletons where available to avoid duplicate instances.
 		$container    = SScribe_Container::instance();
 		$debug_logger = null;
 
@@ -73,14 +84,14 @@ class SScribe_Diagnostics {
 			$monthly_stats = $export_stats->get_stats( 'month' );
 		} catch ( \Throwable $e ) {
 			$monthly_stats = array();
-			// Always log — if $debug_logger is null (debug disabled), fall back to PHP error_log.
+
 			if ( defined( 'WP_DEBUG_LOG' ) && WP_DEBUG_LOG ) {
-				error_log( 'SScribe Diagnostics: monthly_stats failed — ' . $e->getMessage() );
+				error_log( 'SScribe Diagnostics: monthly_stats failed : ' . $e->getMessage() ); // phpcs:ignore WordPress.PHP.DevelopmentFunctions.error_log_error_log
 			}
 			if ( $debug_logger ) {
 				$debug_logger->warning( 'Support info: monthly_stats unavailable', array( 'error' => $e->getMessage() ) );
 			}
-			$this->support_errors[] = 'monthly_stats: ' . $e->getMessage();
+			$this->support_errors[] = 'monthly_stats unavailable';
 		}
 
 		try {
@@ -89,12 +100,12 @@ class SScribe_Diagnostics {
 		} catch ( \Throwable $e ) {
 			$status_counts = array();
 			if ( defined( 'WP_DEBUG_LOG' ) && WP_DEBUG_LOG ) {
-				error_log( 'SScribe Diagnostics: status_counts failed — ' . $e->getMessage() );
+				error_log( 'SScribe Diagnostics: status_counts failed : ' . $e->getMessage() ); // phpcs:ignore WordPress.PHP.DevelopmentFunctions.error_log_error_log
 			}
 			if ( $debug_logger ) {
 				$debug_logger->warning( 'Support info: status_counts unavailable', array( 'error' => $e->getMessage() ) );
 			}
-			$this->support_errors[] = 'status_counts: ' . $e->getMessage();
+			$this->support_errors[] = 'status_counts unavailable';
 		}
 
 		try {
@@ -102,54 +113,25 @@ class SScribe_Diagnostics {
 		} catch ( \Throwable $e ) {
 			$session_check = array( 'message' => __( 'Unavailable', 'sscribe-export-site-pages' ) );
 			if ( defined( 'WP_DEBUG_LOG' ) && WP_DEBUG_LOG ) {
-				error_log( 'SScribe Diagnostics: session_check failed — ' . $e->getMessage() );
+				error_log( 'SScribe Diagnostics: session_check failed : ' . $e->getMessage() ); // phpcs:ignore WordPress.PHP.DevelopmentFunctions.error_log_error_log
 			}
 			if ( $debug_logger ) {
 				$debug_logger->warning( 'Support info: session_check unavailable', array( 'error' => $e->getMessage() ) );
 			}
-			$this->support_errors[] = 'session_check: ' . $e->getMessage();
+			$this->support_errors[] = 'session_check unavailable';
 		}
-
-		try {
-			$audit_trail       = new SScribe_Audit_Trail();
-			$recent_audit_logs = $audit_trail->get_logs( array(), 5, 0 );
-		} catch ( \Throwable $e ) {
-			$recent_audit_logs = array();
-			if ( defined( 'WP_DEBUG_LOG' ) && WP_DEBUG_LOG ) {
-				error_log( 'SScribe Diagnostics: recent_audit_logs failed — ' . $e->getMessage() );
-			}
-			if ( $debug_logger ) {
-				$debug_logger->warning( 'Support info: recent_audit_logs unavailable', array( 'error' => $e->getMessage() ) );
-			}
-			$this->support_errors[] = 'recent_audit_logs: ' . $e->getMessage();
-		}
-
-		try {
-			$logger_entries = null !== $debug_logger ? $debug_logger->get_logs( 5 ) : array(); // @phpstan-ignore notIdentical.alwaysFalse
-		} catch ( \Throwable $e ) {
-			$logger_entries = array();
-			if ( defined( 'WP_DEBUG_LOG' ) && WP_DEBUG_LOG ) {
-				error_log( 'SScribe Diagnostics: logger_entries failed — ' . $e->getMessage() );
-			}
-			if ( $debug_logger ) {
-				$debug_logger->warning( 'Support info: logger_entries unavailable', array( 'error' => $e->getMessage() ) );
-			}
-			$this->support_errors[] = 'logger_entries: ' . $e->getMessage();
-		}
-
-		$recent_log_tail = $logger_entries;
 
 		try {
 			$wpml_active = $container->get( SScribe_Page_Collector::class )->is_wpml_active();
 		} catch ( \Throwable $e ) {
 			$wpml_active = false;
 			if ( defined( 'WP_DEBUG_LOG' ) && WP_DEBUG_LOG ) {
-				error_log( 'SScribe Diagnostics: wpml_active failed — ' . $e->getMessage() );
+				error_log( 'SScribe Diagnostics: wpml_active failed : ' . $e->getMessage() ); // phpcs:ignore WordPress.PHP.DevelopmentFunctions.error_log_error_log
 			}
 			if ( $debug_logger ) {
 				$debug_logger->warning( 'Support info: wpml_active check failed', array( 'error' => $e->getMessage() ) );
 			}
-			$this->support_errors[] = 'wpml_active: ' . $e->getMessage();
+			$this->support_errors[] = 'wpml_active unavailable';
 		}
 
 		try {
@@ -157,12 +139,12 @@ class SScribe_Diagnostics {
 		} catch ( \Throwable $e ) {
 			$seo_plugins = __( 'Unavailable', 'sscribe-export-site-pages' );
 			if ( defined( 'WP_DEBUG_LOG' ) && WP_DEBUG_LOG ) {
-				error_log( 'SScribe Diagnostics: seo_plugins failed — ' . $e->getMessage() );
+				error_log( 'SScribe Diagnostics: seo_plugins failed : ' . $e->getMessage() ); // phpcs:ignore WordPress.PHP.DevelopmentFunctions.error_log_error_log
 			}
 			if ( $debug_logger ) {
 				$debug_logger->warning( 'Support info: seo_plugins unavailable', array( 'error' => $e->getMessage() ) );
 			}
-			$this->support_errors[] = 'seo_plugins: ' . $e->getMessage();
+			$this->support_errors[] = 'seo_plugins unavailable';
 		}
 
 		try {
@@ -171,12 +153,12 @@ class SScribe_Diagnostics {
 		} catch ( \Throwable $e ) {
 			$session_storage = 'unknown';
 			if ( defined( 'WP_DEBUG_LOG' ) && WP_DEBUG_LOG ) {
-				error_log( 'SScribe Diagnostics: session_storage failed — ' . $e->getMessage() );
+				error_log( 'SScribe Diagnostics: session_storage failed : ' . $e->getMessage() ); // phpcs:ignore WordPress.PHP.DevelopmentFunctions.error_log_error_log
 			}
 			if ( $debug_logger ) {
 				$debug_logger->warning( 'Support info: session_storage unavailable', array( 'error' => $e->getMessage() ) );
 			}
-			$this->support_errors[] = 'session_storage: ' . $e->getMessage();
+			$this->support_errors[] = 'session_storage unavailable';
 		}
 
 		$sections['plugin'] = array(
@@ -189,8 +171,20 @@ class SScribe_Diagnostics {
 			),
 		);
 
+		// Pre-warm the prefixed vendor autoloader before the class_exists()
+		// probes below. The autoloader is lazy-loaded by
+		// SScribe_Exporter_Factory so that frontend page requests don't pay
+		// the PhpWord/mPDF parse cost on every load. The export flow works
+		// because it triggers the autoloader before instantiating the
+		// exporter; this Support snapshot can be requested from any admin
+		// page (settings, history, support itself) without an exporter ever
+		// running, so without the pre-warm the probes would return false
+		// even though the libraries are fully installed and ready.
+		$this->check_vendor_dependencies();
+
 		$sections['environment'] = array(
 			'label' => __( 'Environment', 'sscribe-export-site-pages' ),
+			'span'  => 'full',
 			'items' => array(
 				'wordpress_version'  => get_bloginfo( 'version' ),
 				'php_version'        => PHP_VERSION,
@@ -198,7 +192,7 @@ class SScribe_Diagnostics {
 				'memory_limit'       => (string) ini_get( 'memory_limit' ),
 				'max_execution_time' => (string) ini_get( 'max_execution_time' ),
 				'zip_extension'      => class_exists( 'ZipArchive' ) ? __( 'Available', 'sscribe-export-site-pages' ) : __( 'Missing', 'sscribe-export-site-pages' ),
-				'dom_extension'     => class_exists( 'DOMDocument' ) ? __( 'Available', 'sscribe-export-site-pages' ) : __( 'Missing', 'sscribe-export-site-pages' ),
+				'dom_extension'      => class_exists( 'DOMDocument' ) ? __( 'Available', 'sscribe-export-site-pages' ) : __( 'Missing', 'sscribe-export-site-pages' ),
 				'mbstring'           => function_exists( 'mb_convert_encoding' ) ? __( 'Available', 'sscribe-export-site-pages' ) : __( 'Missing', 'sscribe-export-site-pages' ),
 				'mpdf'               => class_exists( '\SScribeVendor\Mpdf\Mpdf' ) ? __( 'Available', 'sscribe-export-site-pages' ) : __( 'Missing', 'sscribe-export-site-pages' ),
 				'phpword'            => class_exists( '\SScribeVendor\PhpOffice\PhpWord\PhpWord' ) ? __( 'Available', 'sscribe-export-site-pages' ) : __( 'Missing', 'sscribe-export-site-pages' ),
@@ -208,12 +202,10 @@ class SScribe_Diagnostics {
 		$sections['paths'] = array(
 			'label' => __( 'Paths', 'sscribe-export-site-pages' ),
 			'items' => array(
-				'upload_base' => defined( 'ABSPATH' )
-					? str_replace( trailingslashit( ABSPATH ), '[ABSPATH]/', $upload_dir['basedir'] )
-					: basename( $upload_dir['basedir'] ),
+				'upload_base' => '' === $upload_base ? __( 'Unavailable', 'sscribe-export-site-pages' ) : '[uploads]',
 				'export_dir'  => '[uploads]/sscribe-exports',
-				'log_dir'     => '[uploads]/sscribe-logs',
-				'writable'    => wp_is_writable( $export_dir ) ? __( 'Yes', 'sscribe-export-site-pages' ) : __( 'No', 'sscribe-export-site-pages' ),
+				'log_dir'     => '[uploads]/sscribe-exports/logs',
+				'writable'    => '' !== $export_dir && wp_is_writable( $export_dir ) ? __( 'Yes', 'sscribe-export-site-pages' ) : __( 'No', 'sscribe-export-site-pages' ),
 			),
 		);
 
@@ -249,37 +241,34 @@ class SScribe_Diagnostics {
 			),
 		);
 
-		$recent_audit_summary = array();
-		if ( count( $recent_audit_logs ) > 0 ) {
-			$recent_audit_summary = array_map(
-				static function ( object $entry ): array {
-					return array(
-						'timestamp' => (string) ( $entry->timestamp ?? '' ),
-						'event'     => (string) ( $entry->event ?? '' ),
-						'user_id'   => isset( $entry->user_id ) ? (int) $entry->user_id : 0,
-					);
-				},
-				$recent_audit_logs
-			);
-		}
-
 		try {
-			$copy_text = $this->build_support_copy_text( $sections, $recent_audit_summary, $recent_log_tail );
+			$copy_text = $this->build_support_copy_text( $sections );
 		} catch ( \Throwable $e ) {
 			$copy_text = '';
 		}
 
+		$ordered_sections = array();
+		foreach ( array( 'plugin', 'paths', 'stats', 'health', 'environment' ) as $section_key ) {
+			if ( isset( $sections[ $section_key ] ) ) {
+				$ordered_sections[ $section_key ] = $sections[ $section_key ];
+			}
+		}
+		foreach ( $sections as $section_key => $section_data ) {
+			if ( ! isset( $ordered_sections[ $section_key ] ) ) {
+				$ordered_sections[ $section_key ] = $section_data;
+			}
+		}
+		$sections = $ordered_sections;
+
 		return array(
 			'generated_at'   => gmdate( 'Y-m-d H:i:s' ),
 			'sections'       => $sections,
-			'audit_events'   => $recent_audit_summary,
-			'log_tail'       => $recent_log_tail,
 			'copy_text'      => $copy_text,
 			'has_debug_mode' => $debug_enabled,
 			'storage'        => array(
 				'session_storage' => $session_storage,
 			),
-			'errors'         => array_values( $this->support_errors ),
+			'errors'         => $this->support_errors,
 		);
 	}
 
@@ -294,6 +283,17 @@ class SScribe_Diagnostics {
 		$checks    = array();
 		$has_error = false;
 		$warnings  = array();
+
+		// Pre-warm the prefixed vendor autoloader BEFORE the mPDF / PHPWord
+		// checks below. The preflight runs over AJAX (admin-ajax.php), which
+		// never fires admin_notices; the only other path that calls
+		// check_vendor_dependencies(). Without this call, the very first
+		// preflight on a fresh install reports a false-positive "mPDF
+		// library not found. Run: composer install" because the prefixed
+		// autoloader has never been registered in this request. Idempotent:
+		// the inner check is a one-shot via SSCRIBE_VENDOR_AUTOLDED, and
+		// later calls become a no-op once defined.
+		$this->check_vendor_dependencies();
 
 		$checks['php_version'] = $this->check_php_version();
 		$checks['memory']      = $this->check_memory( $page_count, $formats );
@@ -331,6 +331,44 @@ class SScribe_Diagnostics {
 	 * @return array
 	 */
 	public function check_vendor_dependencies(): array {
+		// Pre-warm the prefixed vendor autoloader BEFORE class_exists()
+		// checks. The autoloader is lazy-loaded by SScribe_Exporter_Factory
+		// so frontend page loads don't pay the PhpWord/mPDF parse cost at
+		// boot. The admin notice is gated on this same dependency list,
+		// so without the pre-warm it would always fire a false-positive on
+		// admin pages where no exporter has yet exercised
+		// create()/is_supported(). Three paths:
+		//   1) SSCRIBE_VENDOR_AUTOLOADED is already defined -> someone
+		//      earlier in the request primed it, nothing to do.
+		//   2) SScribe_Exporter_Factory is already loaded (because some
+		//      earlier call site used it) -> delegate to its one-shot
+		//      loader.
+		//   3) The factory has never been touched yet (most common: a
+		//      settings page where no exporter has been invoked). We
+		//      trigger the plugin spl_autoloader by calling
+		//      `class_exists( '\SScribe_Exporter_Factory' )` with the
+		//      default autoload-ON behavior, then delegate. This is the
+		//      path that closes the false-positive for fresh admin loads
+		//      because the plugin autoloader maps
+		//      `SScribe_Exporter_Factory` to
+		//      `includes/exporters/class-sscribe-exporter-factory.php`.
+		if ( ! defined( 'SSCRIBE_VENDOR_AUTOLOADED' ) ) {
+			if ( class_exists( '\SScribe_Exporter_Factory' ) ) {
+				\SScribe_Exporter_Factory::ensure_vendor_loaded();
+			} else {
+
+				if ( ! defined( 'SSCRIBE_PLUGIN_DIR' ) ) {
+					$missing = array( 'SScribeVendor\Mpdf\Mpdf', 'SScribeVendor\PhpOffice\PhpWord\PhpWord' );
+					return $missing;
+				}
+				$vendor_prefixed = SSCRIBE_PLUGIN_DIR . 'vendor-prefixed/autoload.php';
+				if ( file_exists( $vendor_prefixed ) ) {
+					require_once $vendor_prefixed;
+					define( 'SSCRIBE_VENDOR_AUTOLOADED', true );
+				}
+			}
+		}
+
 		$missing = array();
 
 		if ( ! class_exists( '\SScribeVendor\Mpdf\Mpdf' ) ) {
@@ -378,6 +416,14 @@ class SScribe_Diagnostics {
 	 */
 	private function check_memory( int $page_count, array $formats ): array {
 		$memory_limit = wp_convert_hr_to_bytes( ini_get( 'memory_limit' ) );
+		if ( $memory_limit <= 0 ) {
+			return array(
+				'name'    => 'Memory',
+				'status'  => 'ok',
+				'message' => 'PHP memory limit is unlimited.',
+			);
+		}
+
 		$memory_mb    = round( $memory_limit / 1024 / 1024 );
 		$used_mb      = round( memory_get_usage( true ) / 1024 / 1024 );
 		$available_mb = $memory_mb - $used_mb;
@@ -529,8 +575,6 @@ class SScribe_Diagnostics {
 				);
 			}
 
-			// Guard files are the activator's responsibility, not a diagnostic's.
-			// Use the centralized security utility so guard file creation is consistent.
 			SScribe_Security::protect_directory( $export_dir );
 		}
 
@@ -605,30 +649,42 @@ class SScribe_Diagnostics {
 	 * @return array
 	 */
 	private function check_mpdf(): array {
+		// Defense in depth: prewarm vendor before class_exists() so any caller
+		// (not just run_preflight()) resolves the prefixed class.
+		$this->check_vendor_dependencies();
+
 		if ( ! class_exists( '\SScribeVendor\Mpdf\Mpdf' ) ) {
 			return array(
 				'name'    => 'mPDF Library',
 				'status'  => 'error',
-				'message' => 'mPDF library not found. Run: composer install',
-				'fix'     => 'Run composer install in the plugin directory',
+				'message' => 'mPDF library files are missing from the plugin install. The vendor-prefixed/ directory must be present for PDF exports.',
+				'fix'     => 'Deactivate the plugin, then reinstall it from the Plugins screen to restore the bundled libraries.',
 			);
 		}
 
-		$manrope_dir   = SSCRIBE_PLUGIN_DIR . 'assets/fonts/manrope';
-		$manrope_fonts = is_dir( $manrope_dir ) ? glob( $manrope_dir . '/*[Rr]egular.ttf' ) : array();
-		if ( empty( $manrope_fonts ) ) {
+		$amiri_dir   = SSCRIBE_PLUGIN_DIR . 'assets/fonts/amiri';
+		$amiri_fonts = is_dir( $amiri_dir ) ? glob( $amiri_dir . '/Amiri-*.ttf' ) : array();
+		if ( empty( $amiri_fonts ) ) {
 			return array(
 				'name'    => 'mPDF Library',
 				'status'  => 'warning',
-				'message' => 'mPDF loaded, but Manrope font files missing',
+				'message' => 'mPDF loaded, but Amiri font files missing',
 				'fix'     => 'Reinstall the plugin to restore font files',
 			);
 		}
 
 		$ttfonts_dir = SSCRIBE_PLUGIN_DIR . 'vendor-prefixed/mpdf/mpdf/ttfonts';
 		if ( is_dir( $ttfonts_dir ) ) {
-			$font_files = glob( $ttfonts_dir . '/*.{ttf,otf,txt}', GLOB_BRACE );
-			$count      = is_array( $font_files ) ? count( $font_files ) : 0;
+			$glob_flags = defined( 'GLOB_BRACE' ) ? GLOB_BRACE : 0;
+			$font_files = glob( $ttfonts_dir . '/*.{ttf,otf,txt}', $glob_flags );
+			if ( ! is_array( $font_files ) ) {
+				$font_files = array_merge(
+					(array) glob( $ttfonts_dir . '/*.ttf' ),
+					(array) glob( $ttfonts_dir . '/*.otf' ),
+					(array) glob( $ttfonts_dir . '/*.txt' )
+				);
+			}
+			$count      = count( $font_files );
 			if ( $count < self::MIN_MPDF_FONT_COUNT ) {
 				return array(
 					'name'    => 'mPDF Library',
@@ -652,36 +708,24 @@ class SScribe_Diagnostics {
 	 * @return array
 	 */
 	private function check_phpword(): array {
+
+		// Defense in depth: prewarm vendor before class_exists() so any caller
+		// (not just run_preflight()) resolves the prefixed class.
+		$this->check_vendor_dependencies();
+
 		if ( class_exists( '\\SScribeVendor\\PhpOffice\\PhpWord\\PhpWord' ) ) {
-			$phpword_composer_file = SSCRIBE_PLUGIN_DIR . 'vendor-prefixed/phpoffice/phpword/composer.json';
-			if ( file_exists( $phpword_composer_file ) && is_readable( $phpword_composer_file ) ) {
-				// phpcs:ignore WordPress.WP.AlternativeFunctions.file_get_contents_file_get_contents -- Safe: reading a local composer.json from plugin directory.
-				$raw_json        = file_get_contents( $phpword_composer_file );
-				$composer_data   = is_string( $raw_json ) ? json_decode( $raw_json, true ) : null;
-				$bundled_version = ( is_array( $composer_data ) && isset( $composer_data['version'] ) ) ? $composer_data['version'] : 'unknown';
-
-				return array(
-					'name'    => 'PHPWord Library',
-					'status'  => 'ok',
-					'message' => sprintf(
-						'PHPWord %s — XML encoding handled natively by library',
-						$bundled_version
-					),
-				);
-			}
-
 			return array(
 				'name'    => 'PHPWord Library',
 				'status'  => 'ok',
-				'message' => 'PHPWord loaded',
+				'message' => 'PHPWord loaded : XML encoding handled natively by library',
 			);
 		}
 
 		return array(
 			'name'    => 'PHPWord Library',
 			'status'  => 'error',
-			'message' => 'PHPWord library not found. Run: composer install',
-			'fix'     => 'Run composer install in the plugin directory',
+			'message' => 'PHPWord library files are missing from the plugin install. The vendor-prefixed/ directory must be present for DOCX exports.',
+			'fix'     => 'Deactivate the plugin, then reinstall it from the Plugins screen to restore the bundled libraries.',
 		);
 	}
 
@@ -772,15 +816,26 @@ class SScribe_Diagnostics {
 		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
 		$options = $wpdb->get_results(
 			$wpdb->prepare(
-				"SELECT option_name, option_value FROM {$wpdb->options} WHERE option_name LIKE %s AND autoload = 'no'",
+				"SELECT option_name, option_value FROM {$wpdb->options} WHERE option_name LIKE %s",
 				$wpdb->esc_like( $option_prefix ) . '%'
 			)
 		);
 
 		$orphaned = 0;
-		foreach ( $options as $option ) {
-			$decoded = is_string( $option->option_value ) ? json_decode( $option->option_value, true ) : null;
-			if ( is_array( $decoded ) && ( $decoded['status'] ?? '' ) === 'processing' ) {
+		$session  = new SScribe_Session();
+		foreach ( (array) $options as $option ) {
+			$session_id = SScribe_Session::extract_session_id( (string) ( $option->option_name ?? '' ) );
+			if ( null === $session_id ) {
+				continue;
+			}
+
+			$decoded      = $session->decode_session_value( $option->option_value ?? '', $session_id );
+			$last_updated = is_array( $decoded ) ? (int) ( $decoded['updated_at'] ?? $decoded['created_at'] ?? 0 ) : 0;
+			if (
+				is_array( $decoded )
+				&& in_array( $decoded['status'] ?? '', array( 'processing', 'pending', 'finalizing', 'completing' ), true )
+				&& ( $last_updated <= 0 || ( time() - $last_updated ) > HOUR_IN_SECONDS )
+			) {
 				++$orphaned;
 			}
 		}
@@ -963,33 +1018,7 @@ class SScribe_Diagnostics {
 	 * @return int
 	 */
 	private function clear_orphaned_locks(): int {
-		global $wpdb;
-
-		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
-		$locks = $wpdb->get_results(
-			$wpdb->prepare(
-				"SELECT option_name FROM {$wpdb->options} WHERE option_name LIKE %s",
-				$wpdb->esc_like( '_transient_sscribe_lock_' ) . '%'
-			)
-		);
-
-		$cleared = 0;
-		foreach ( $locks as $lock ) {
-			$transient = str_replace( '_transient_', '', $lock->option_name );
-			$value     = get_transient( $transient );
-
-			if ( $value ) {
-				$parts     = explode( '|', $value );
-				$lock_time = (int) $parts[0];
-
-				if ( time() - $lock_time > 300 ) {
-					delete_transient( $transient );
-					++$cleared;
-				}
-			}
-		}
-
-		return $cleared;
+		return ( new SScribe_Export_Lock_Manager() )->cleanup_expired_locks();
 	}
 
 	/**
@@ -998,33 +1027,10 @@ class SScribe_Diagnostics {
 	 * @return int
 	 */
 	private function clear_stale_sessions(): int {
-		global $wpdb;
+		$session_ttl = (int) apply_filters( 'sscribe_session_ttl', DAY_IN_SECONDS );
+		$session_ttl = max( HOUR_IN_SECONDS, min( 7 * DAY_IN_SECONDS, $session_ttl ) );
 
-		$option_prefix = SScribe_Session::OPTION_PREFIX;
-		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
-		$sessions = $wpdb->get_results(
-			$wpdb->prepare(
-				"SELECT option_name, option_value FROM {$wpdb->options} WHERE option_name LIKE %s",
-				$wpdb->esc_like( $option_prefix ) . '%'
-			)
-		);
-
-		$cleared     = 0;
-		$session_ttl = apply_filters( 'sscribe_session_ttl', DAY_IN_SECONDS );
-		foreach ( $sessions as $session ) {
-			$data = json_decode( $session->option_value, true );
-
-			if ( is_array( $data ) && isset( $data['created_at'] ) ) {
-				$created_at = $data['created_at'];
-				$created    = is_numeric( $created_at ) ? (int) $created_at : strtotime( (string) $created_at );
-				if ( $created && time() - $created > $session_ttl ) {
-					delete_option( $session->option_name );
-					++$cleared;
-				}
-			}
-		}
-
-		return $cleared;
+		return ( new SScribe_Session() )->cleanup_expired( $session_ttl );
 	}
 
 	/**
@@ -1034,32 +1040,33 @@ class SScribe_Diagnostics {
 	 */
 	private function clear_old_temp_files(): int {
 		$upload_dir = wp_upload_dir();
-		$export_dir = $upload_dir['basedir'] . '/sscribe-exports';
-
-		if ( ! is_dir( $export_dir ) ) {
+		if ( ! empty( $upload_dir['error'] ) || empty( $upload_dir['basedir'] ) ) {
 			return 0;
 		}
 
-		$cleared = 0;
-		$files   = scandir( $export_dir );
+		$export_dir = trailingslashit( (string) $upload_dir['basedir'] ) . 'sscribe-exports';
 
-		foreach ( $files as $file ) {
-			if ( '.' === $file || '..' === $file ) {
+		if ( ! is_dir( $export_dir ) || is_link( $export_dir ) ) {
+			return 0;
+		}
+
+		$cleared     = 0;
+		$temp_dirs   = glob( trailingslashit( $export_dir ) . 'temp-*', GLOB_ONLYDIR ) ?: array();
+		$active_dirs = $this->collect_active_temp_dirs();
+
+		foreach ( $temp_dirs as $temp_dir ) {
+			if ( is_link( $temp_dir ) || ! is_dir( $temp_dir ) ) {
 				continue;
 			}
 
-			$full_path = $export_dir . '/' . $file;
-			$mtime     = filemtime( $full_path );
-
-			if ( $mtime && time() - $mtime > 3 * DAY_IN_SECONDS ) {
-				// Only delete if no active session is using this directory.
-				if ( is_dir( $full_path ) && ! $this->is_temp_dir_in_use( $full_path ) ) {
-					$this->delete_directory( $full_path );
-					++$cleared;
-				} elseif ( ! is_dir( $full_path ) ) {
-					wp_delete_file( $full_path );
-					++$cleared;
-				}
+			$mtime = filemtime( $temp_dir );
+			if (
+				false !== $mtime
+				&& time() - $mtime > 3 * DAY_IN_SECONDS
+				&& ! $this->is_temp_dir_in_active_set( $temp_dir, $active_dirs )
+				&& $this->delete_directory( $temp_dir )
+			) {
+				++$cleared;
 			}
 		}
 
@@ -1067,27 +1074,19 @@ class SScribe_Diagnostics {
 	}
 
 	/**
-	 * Delete a directory recursively.
+	 * Collect the set of temp_dir paths currently owned by an active session.
 	 *
-	 * @param string $dir Directory path.
+	 * Replaces the previous per-file is_temp_dir_in_use() call which issued
+	 * one DB query per directory. Building the set once brings the cost
+	 * down to a single query regardless of how many files self-heal examines.
+	 *
+	 * @return array<string, true> Active temp_dir paths, keyed by path.
 	 */
-	private function delete_directory( string $dir ): void {
-		SScribe_Security::delete_directory( $dir );
-	}
-
-	/**
-	 * Check if a temp directory is currently in use by an active session.
-	 *
-	 * Prevents self-heal from deleting temp dirs belonging to ongoing exports.
-	 *
-	 * @param string $dir Directory path to check.
-	 * @return bool True if directory is in use by an active session.
-	 */
-	private function is_temp_dir_in_use( string $dir ): bool {
+	private function collect_active_temp_dirs(): array {
 		global $wpdb;
 
 		if ( ! class_exists( 'SScribe_Session' ) ) {
-			return false;
+			return array();
 		}
 
 		$session = new SScribe_Session();
@@ -1096,26 +1095,74 @@ class SScribe_Diagnostics {
 		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- Lightweight check for active session temp_dir.
 		$options = $wpdb->get_results(
 			$wpdb->prepare(
-				"SELECT option_value FROM {$wpdb->options} WHERE option_name LIKE %s AND autoload = 'no'",
+				"SELECT option_name, option_value FROM {$wpdb->options} WHERE option_name LIKE %s",
 				$pattern
 			)
 		);
 
-		foreach ( $options as $option ) {
-			$data = $session->decode_session_value( $option->option_value ?? '' );
-
-			if ( ! is_array( $data ) ) {
+		$active = array();
+		foreach ( (array) $options as $option ) {
+			$session_id = SScribe_Session::extract_session_id( (string) ( $option->option_name ?? '' ) );
+			if ( null === $session_id ) {
 				continue;
 			}
 
-			// $dir is the export session temp directory being checked.
-			// $data['temp_dir'] is the path stored in the session - check if session temp_dir starts with $dir.
-			if ( ! empty( $data['temp_dir'] ) && str_starts_with( $data['temp_dir'], $dir ) ) {
-				return true;
+			$data = $session->decode_session_value( $option->option_value ?? '', $session_id );
+			if (
+				! is_array( $data )
+				|| empty( $data['temp_dir'] )
+				|| ! in_array( $data['status'] ?? '', array( 'processing', 'pending', 'finalizing', 'completing' ), true )
+			) {
+				continue;
+			}
+			$temp_dir = (string) $data['temp_dir'];
+			if ( is_link( $temp_dir ) ) {
+				continue;
+			}
+
+			$real_temp = realpath( $temp_dir );
+			if ( false !== $real_temp ) {
+				$active[ $this->normalize_path( $real_temp ) ] = true;
 			}
 		}
 
-		return false;
+		return $active;
+	}
+
+	/**
+	 * Membership check against the active-temp-dir set built once per pass.
+	 *
+	 * @param string              $dir         Directory to test.
+	 * @param array<string, bool> $active_dirs Active temp_dirs indexed by path.
+	 * @return bool True if $dir is currently owned by an active session.
+	 */
+	private function is_temp_dir_in_active_set( string $dir, array $active_dirs ): bool {
+		if ( empty( $active_dirs ) || is_link( $dir ) ) {
+			return false;
+		}
+
+		$real_dir = realpath( $dir );
+		return false !== $real_dir && isset( $active_dirs[ $this->normalize_path( $real_dir ) ] );
+	}
+
+	/**
+	 * Normalize an existing path for cross-platform set membership.
+	 *
+	 * @param string $path Absolute path.
+	 * @return string Normalized path.
+	 */
+	private function normalize_path( string $path ): string {
+		$path = rtrim( str_replace( '\\', '/', $path ), '/' );
+		return 'Windows' === PHP_OS_FAMILY ? strtolower( $path ) : $path;
+	}
+
+	/**
+	 * Delete a directory recursively.
+	 *
+	 * @param string $dir Directory path.
+	 */
+	private function delete_directory( string $dir ): bool {
+		return SScribe_Security::delete_directory( $dir );
 	}
 
 	/**
@@ -1157,11 +1204,11 @@ class SScribe_Diagnostics {
 			'message' => ! empty( $nonce ) ? 'Nonces can be created' : 'Failed to generate nonce',
 		);
 
-		$has_cap                   = current_user_can( SScribe_Capabilities::get_required() );
+		$has_cap                   = current_user_can( SScribe_Capabilities::get_health_required() );
 		$checks['user_capability'] = array(
 			'name'    => 'User Permission',
 			'status'  => $has_cap ? 'ok' : 'error',
-			'message' => $has_cap ? 'User has export capability' : 'User lacks required capability',
+			'message' => $has_cap ? 'User has health-check capability' : 'User lacks health-check capability',
 		);
 
 		$site_url                  = site_url();
@@ -1253,7 +1300,7 @@ class SScribe_Diagnostics {
 	 * @return string Formatted value safe for public sharing.
 	 */
 	private function format_support_value( string $key, string $value ): string {
-		// Round PHP version to minor release (e.g. 8.2.17 → 8.2.x).
+
 		if ( 'php_version' === $key ) {
 			$parts = explode( '.', $value );
 			if ( count( $parts ) >= 2 ) {
@@ -1268,12 +1315,10 @@ class SScribe_Diagnostics {
 	/**
 	 * Build copy-paste support text.
 	 *
-	 * @param array $sections     Info sections.
-	 * @param array $audit_events Audit events.
-	 * @param array $log_tail     Recent log entries.
+	 * @param array $sections Info sections.
 	 * @return string
 	 */
-	private function build_support_copy_text( array $sections, array $audit_events, array $log_tail ): string {
+	private function build_support_copy_text( array $sections ): string {
 		$lines   = array();
 		$lines[] = 'SScribe Support Information';
 		$lines[] = 'Generated: ' . gmdate( 'Y-m-d H:i:s' ) . ' UTC';
@@ -1287,27 +1332,6 @@ class SScribe_Diagnostics {
 				}
 				$value   = $this->format_support_value( $key, (string) $value );
 				$lines[] = $key . ': ' . $value;
-			}
-		}
-
-		if ( ! empty( $audit_events ) ) {
-			$lines[] = '';
-			$lines[] = '[Recent Audit Events]';
-			foreach ( $audit_events as $event ) {
-				$lines[] = sprintf(
-					'%s | %s | user:%d',
-					(string) ( $event['timestamp'] ?? '' ),
-					(string) ( $event['event'] ?? '' ),
-					(int) ( $event['user_id'] ?? 0 )
-				);
-			}
-		}
-
-		if ( ! empty( $log_tail ) ) {
-			$lines[] = '';
-			$lines[] = '[Recent Log Tail]';
-			foreach ( $log_tail as $entry ) {
-				$lines[] = is_string( $entry ) ? $entry : wp_json_encode( $entry );
 			}
 		}
 

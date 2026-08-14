@@ -2,6 +2,24 @@
 /**
  * SScribe Logger Enhanced
  *
+ * Multi-destination logger that extends the base SScribe_Logger to
+ * add optional database and Query Monitor output alongside the
+ * inherited file output. Subclasses add destinations on top of the
+ * file pipeline rather than duplicating it.
+ *
+ * Inherits from SScribe_Logger:
+ *   - the buffered write pipeline ($buffer, $log_dir, $prefix)
+ *   - the level dispatch (debug/info/...) via SScribe_Logger_Common trait
+ *   - the singleton factory (instance())
+ *
+ * Enhanced adds:
+ *   - level threshold filtering (min_level from constructor options)
+ *   - optional database writes (enable_db, table_name, table_exists)
+ *   - optional Query Monitor output (enable_qm)
+ *   - a different file-rotation strategy (rotate when existing file
+ *     already exceeds the limit, not when the incoming content would)
+ *   - DB-side helpers (get_db_logs, cleanup_db_logs)
+ *
  * @package SScribe_Export_Site_Pages
  * @license GPL v2 or later
  * @link    https://www.gnu.org/licenses/gpl-2.0.html
@@ -15,13 +33,12 @@ if ( ! defined( 'ABSPATH' ) ) {
 
 require_once SSCRIBE_PLUGIN_DIR . 'includes/interfaces/interface-sscribe-logger.php';
 require_once SSCRIBE_PLUGIN_DIR . 'includes/traits/trait-sscribe-logger-common.php';
+require_once SSCRIBE_PLUGIN_DIR . 'includes/class-sscribe-logger.php';
 
 /**
  * Enhanced logger with multiple output destinations.
  */
-class SScribe_Logger_Enhanced implements SScribe_Logger_Interface {
-
-	use SScribe_Logger_Common;
+class SScribe_Logger_Enhanced extends SScribe_Logger {
 
 	/**
 	 * Minimum log level threshold.
@@ -52,84 +69,11 @@ class SScribe_Logger_Enhanced implements SScribe_Logger_Interface {
 	private bool $enable_file;
 
 	/**
-	 * Log message buffer.
-	 *
-	 * @var array
-	 */
-	private array $buffer = array();
-
-	/**
-	 * Log directory path.
-	 *
-	 * @var string
-	 */
-	private readonly string $log_dir;
-
-	/**
 	 * Database table name for logs.
 	 *
 	 * @var string
 	 */
 	private readonly string $table_name;
-
-	/**
-	 * Log file prefix.
-	 *
-	 * @var string
-	 */
-	private readonly string $prefix;
-
-	/**
-	 * Current session identifier.
-	 *
-	 * @var string|null
-	 */
-	private ?string $session_id = null;
-
-	/**
-	 * Log level priority mapping.
-	 *
-	 * @var array<string, int>
-	 */
-	private const LEVEL_PRIORITY = array(
-		self::LEVEL_DEBUG     => 0,
-		self::LEVEL_INFO      => 1,
-		self::LEVEL_NOTICE    => 2,
-		self::LEVEL_WARNING   => 3,
-		self::LEVEL_ERROR     => 4,
-		self::LEVEL_CRITICAL  => 5,
-		self::LEVEL_ALERT     => 6,
-		self::LEVEL_EMERGENCY => 7,
-	);
-
-	/**
-	 * Constructor.
-	 *
-	 * @param array $options Logger configuration options.
-	 */
-	public function __construct( array $options = array() ) {
-		$this->min_level = $options['min_level'] ?? self::LEVEL_INFO;
-		$this->enable_qm = $options['enable_qm'] ?? true;
-		$this->prefix    = $options['prefix'] ?? 'sscribe';
-
-		// If 'enabled' is explicitly false, disable file and DB logging.
-		// Otherwise use individual enable flags with defaults.
-		if ( isset( $options['enabled'] ) && false === $options['enabled'] ) {
-			$this->enable_file = false;
-			$this->enable_db   = false;
-		} else {
-			$this->enable_db   = $options['enable_db'] ?? false;
-			$this->enable_file = $options['enable_file'] ?? true;
-		}
-
-		$upload_dir       = wp_upload_dir();
-		$this->log_dir    = $upload_dir['basedir'] . '/sscribe-logs';
-		$this->table_name = $GLOBALS['wpdb']->prefix . 'sscribe_export_logs';
-
-		if ( $this->enable_file || $this->enable_db ) {
-			add_action( 'shutdown', array( $this, 'flush' ) );
-		}
-	}
 
 	/**
 	 * Cached table existence result.
@@ -139,28 +83,45 @@ class SScribe_Logger_Enhanced implements SScribe_Logger_Interface {
 	private ?bool $table_exists_cache = null;
 
 	/**
-	 * Set session ID for log context.
+	 * Constructor.
 	 *
-	 * @param string $session_id Session identifier.
+	 * @param array $options Logger configuration options.
 	 */
-	public function set_session_id( string $session_id ): void {
-		$this->session_id = $session_id;
+	public function __construct( array $options = array() ) {
+		$this->min_level = $options['min_level'] ?? self::LEVEL_INFO;
+		$this->enable_qm = $options['enable_qm'] ?? true;
+
+		if ( isset( $options['enabled'] ) && false === $options['enabled'] ) {
+			$this->enable_file = false;
+			$this->enable_db   = false;
+			$parent_enabled    = false;
+		} else {
+			$this->enable_db   = $options['enable_db'] ?? false;
+			$this->enable_file = $options['enable_file'] ?? true;
+			$parent_enabled    = $this->enable_file;
+		}
+
+		$this->table_name = $GLOBALS['wpdb']->prefix . 'sscribe_export_logs';
+
+		parent::__construct( $parent_enabled, $options['prefix'] ?? 'sscribe' );
 	}
 
 	/**
-	 * Determine if a log level should be processed.
+	 * Check if logger has any active output.
 	 *
-	 * @param string $level Log level to check.
-	 * @return bool True if level meets threshold.
+	 * @return bool True if file or database logging is enabled.
 	 */
-	private function should_log( string $level ): bool {
-		$current = self::LEVEL_PRIORITY[ $this->min_level ] ?? 1;
-		$check   = self::LEVEL_PRIORITY[ $level ] ?? 1;
-		return $check >= $current;
+	public function is_enabled(): bool {
+		return $this->enable_file || $this->enable_db;
 	}
 
 	/**
 	 * Write a log entry to the log destinations.
+	 *
+	 * The base class's log() is bypassed: Enhanced uses a different
+	 * level filter (min_level from constructor, not the Settings-
+	 * based threshold the base uses) and a different entry format
+	 * (file + DB shapes returned by format_entry()).
 	 *
 	 * @param string $level   Log level.
 	 * @param string $message Log message.
@@ -170,6 +131,7 @@ class SScribe_Logger_Enhanced implements SScribe_Logger_Interface {
 		if ( ! $this->should_log( $level ) ) {
 			return;
 		}
+		$context = $this->sanitize_log_context( $context );
 
 		$entry = $this->format_entry( $level, $message, $context );
 
@@ -187,135 +149,28 @@ class SScribe_Logger_Enhanced implements SScribe_Logger_Interface {
 	}
 
 	/**
-	 * Check if logger has any active output.
-	 *
-	 * @return bool True if file or database logging is enabled.
-	 */
-	public function is_enabled(): bool {
-		return $this->enable_file || $this->enable_db;
-	}
-
-	/**
-	 * Log debug message.
-	 *
-	 * @param string $message Log message.
-	 * @param array  $context Additional context.
-	 */
-	public function debug( string $message, array $context = array() ): void {
-		$this->log( self::LEVEL_DEBUG, $message, $context );
-	}
-
-	/**
-	 * Log info message.
-	 *
-	 * @param string $message Log message.
-	 * @param array  $context Additional context.
-	 */
-	public function info( string $message, array $context = array() ): void {
-		$this->log( self::LEVEL_INFO, $message, $context );
-	}
-
-	/**
-	 * Log notice message.
-	 *
-	 * @param string $message Log message.
-	 * @param array  $context Additional context.
-	 */
-	public function notice( string $message, array $context = array() ): void {
-		$this->log( self::LEVEL_NOTICE, $message, $context );
-	}
-
-	/**
-	 * Log warning message.
-	 *
-	 * @param string $message Log message.
-	 * @param array  $context Additional context.
-	 */
-	public function warning( string $message, array $context = array() ): void {
-		$this->log( self::LEVEL_WARNING, $message, $context );
-	}
-
-	/**
-	 * Log error message.
-	 *
-	 * @param string $message Log message.
-	 * @param array  $context Additional context.
-	 */
-	public function error( string $message, array $context = array() ): void {
-		$this->log( self::LEVEL_ERROR, $message, $context );
-	}
-
-	/**
-	 * Log critical message.
-	 *
-	 * @param string $message Log message.
-	 * @param array  $context Additional context.
-	 */
-	public function critical( string $message, array $context = array() ): void {
-		$this->log( self::LEVEL_CRITICAL, $message, $context );
-	}
-
-	/**
-	 * Log alert message.
-	 *
-	 * @param string $message Log message.
-	 * @param array  $context Additional context.
-	 */
-	public function alert( string $message, array $context = array() ): void {
-		$this->log( self::LEVEL_ALERT, $message, $context );
-	}
-
-	/**
-	 * Log emergency message.
-	 *
-	 * @param string $message Log message.
-	 * @param array  $context Additional context.
-	 */
-	public function emergency( string $message, array $context = array() ): void {
-		$this->log( self::LEVEL_EMERGENCY, $message, $context );
-	}
-
-	/**
 	 * Flush log buffer to file.
+	 *
+	 * Different rotation strategy from the base: rotate when the
+	 * existing file already exceeds the limit, not when the
+	 * incoming content would push it over. This preserves the
+	 * pre-refactor behavior.
 	 */
 	public function flush(): void {
-		if ( empty( $this->buffer ) ) {
-			return;
-		}
+		parent::flush();
+	}
 
-		if ( ! is_dir( $this->log_dir ) ) {
-			$result = wp_mkdir_p( $this->log_dir );
-			if ( $result ) {
-				SScribe_Security::protect_directory( $this->log_dir );
-			}
-		}
-
-		$log_file = $this->get_log_file();
-		$content  = implode( PHP_EOL, $this->buffer ) . PHP_EOL;
-
-		if ( file_exists( $log_file ) && filesize( $log_file ) > self::MAX_LOG_FILE_SIZE ) {
-			$rotated_file = $this->log_dir . '/' . $this->prefix . '_' . gmdate( 'Y-m-d_H-i-s' ) . '.log';
-			$rotated      = rename( $log_file, $rotated_file ); // phpcs:ignore WordPress.WP.AlternativeFunctions.rename_rename
-			if ( $rotated ) {
-				$warning_entry = sprintf(
-					"[%s] [WARNING] Log file exceeded %s bytes — rotated to %s\n",
-					gmdate( 'Y-m-d H:i:s' ),
-					size_format( self::MAX_LOG_FILE_SIZE ),
-					basename( $rotated_file )
-				);
-				file_put_contents( $log_file, $warning_entry, LOCK_EX );
-			}
-		}
-
-		$result = file_put_contents( $log_file, $content, FILE_APPEND | LOCK_EX );
-
-		if ( false === $result ) {
-			error_log( // phpcs:ignore WordPress.PHP.DevelopmentFunctions.error_log_error_log
-				'SScribe_Logger_Enhanced: flush() failed to write to ' . $log_file
-			);
-		}
-
-		$this->buffer = array();
+	/**
+	 * Determine if a log level should be processed.
+	 *
+	 * Delegates to the shared `SScribe_Logger_Common::level_meets_threshold()`
+	 * helper so the priority comparison lives in one place.
+	 *
+	 * @param string $level Log level to check.
+	 * @return bool True if level meets threshold.
+	 */
+	private function should_log( string $level ): bool {
+		return self::level_meets_threshold( $level, $this->min_level );
 	}
 
 	/**
@@ -328,6 +183,7 @@ class SScribe_Logger_Enhanced implements SScribe_Logger_Interface {
 	 */
 	private function format_entry( string $level, string $message, array $context ): array {
 		$timestamp = gmdate( 'Y-m-d H:i:s' );
+		$message   = $this->sanitize_log_message( $message );
 		$context   = $this->sanitize_context(
 			array_merge( $this->get_context_enrichment(), $context )
 		);
@@ -358,22 +214,7 @@ class SScribe_Logger_Enhanced implements SScribe_Logger_Interface {
 	 * @return array Sanitized context.
 	 */
 	private function sanitize_context( array $context ): array {
-		$forbidden = array( 'password', 'token', 'secret', 'auth', 'credential', 'private_key' );
-
-		$sanitized = array();
-		foreach ( $context as $key => $value ) {
-			$sanitized_key = sanitize_key( (string) $key );
-
-			if ( in_array( $sanitized_key, $forbidden, true ) ) {
-				$sanitized[ $sanitized_key ] = '[REDACTED]';
-			} elseif ( is_array( $value ) ) {
-				$sanitized[ $sanitized_key ] = $this->sanitize_context( $value );
-			} else {
-				$sanitized[ $sanitized_key ] = $value;
-			}
-		}
-
-		return $sanitized;
+		return $this->sanitize_log_context( $context );
 	}
 
 	/**
@@ -385,7 +226,7 @@ class SScribe_Logger_Enhanced implements SScribe_Logger_Interface {
 		global $wpdb;
 
 		if ( ! $this->table_exists() ) {
-			$this->create_log_table();
+			return;
 		}
 
 		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
@@ -442,42 +283,15 @@ class SScribe_Logger_Enhanced implements SScribe_Logger_Interface {
 	}
 
 	/**
-	 * Create log table if not exists.
-	 */
-	private function create_log_table(): void {
-		global $wpdb;
-
-		$charset_collate = $wpdb->get_charset_collate();
-
-		$sql = "CREATE TABLE IF NOT EXISTS {$this->table_name} (
-			id bigint(20) NOT NULL AUTO_INCREMENT,
-			timestamp datetime NOT NULL,
-			level varchar(20) NOT NULL,
-			message text NOT NULL,
-			context longtext,
-			session_id varchar(60) DEFAULT NULL,
-			request_id varchar(12) DEFAULT NULL,
-			user_id bigint(20) DEFAULT NULL,
-			PRIMARY KEY (id),
-			KEY timestamp (timestamp),
-			KEY level (level)
-		) $charset_collate;";
-
-		require_once ABSPATH . 'wp-admin/includes/upgrade.php';
-		dbDelta( $sql );
-
-		// Update cache since table now exists.
-		$this->table_exists_cache = true;
-	}
-
-	/**
 	 * Get log file path.
+	 *
+	 * Returns the same path the base class computes; declared here
+	 * only to preserve the historical public API on Enhanced.
 	 *
 	 * @return string Log file path.
 	 */
 	public function get_log_file(): string {
-		$date = gmdate( 'Y-m-d' );
-		return trailingslashit( $this->log_dir ) . "{$this->prefix}_debug_{$date}.log";
+		return parent::get_log_file();
 	}
 
 	/**
@@ -491,7 +305,7 @@ class SScribe_Logger_Enhanced implements SScribe_Logger_Interface {
 	 * @return array Log entries.
 	 */
 	public function get_logs( int $limit = 100 ): array {
-		// Fall back to file log when DB is disabled.
+
 		if ( ! $this->enable_db ) {
 			return $this->get_file_logs( $limit );
 		}
@@ -522,24 +336,7 @@ class SScribe_Logger_Enhanced implements SScribe_Logger_Interface {
 	 * @return array Log entries.
 	 */
 	private function get_file_logs( int $limit = 100 ): array {
-		$log_file = $this->get_log_file();
-
-		if ( ! file_exists( $log_file ) ) {
-			return array();
-		}
-
-		$content = file_get_contents( $log_file ); // phpcs:ignore WordPress.WP.AlternativeFunctions.file_get_contents_file_get_contents
-		if ( ! $content ) {
-			return array();
-		}
-
-		$lines = array_filter( explode( "\n", str_replace( "\r\n", "\n", trim( $content ) ) ), fn( $line ) => '' !== trim( $line ) );
-
-		if ( $limit > 0 && count( $lines ) > $limit ) {
-			$lines = array_slice( $lines, -$limit );
-		}
-
-		return $lines;
+		return parent::get_logs( $limit );
 	}
 
 	/**
@@ -548,30 +345,21 @@ class SScribe_Logger_Enhanced implements SScribe_Logger_Interface {
 	public function clear_logs(): void {
 		global $wpdb;
 
-		// Clear database logs.
 		if ( $this->table_exists() ) {
 			// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.InterpolatedNotPrepared -- Table name is already escaped via esc_sql(); DELETE FROM does not support placeholders for table names.
 			$wpdb->query( 'DELETE FROM ' . esc_sql( $this->table_name ) );
 		}
 
-		// Clear file logs when file logging is enabled.
-		if ( $this->enable_file ) {
-			$files = glob( $this->log_dir . '/' . $this->prefix . '_debug_*.log' );
-			if ( is_array( $files ) ) {
-				foreach ( $files as $file ) {
-					if ( file_exists( $file ) ) {
-						wp_delete_file( $file );
-					}
-				}
-			}
+		if ( $this->enable_file && $this->storage_available ) {
+			parent::clear_logs();
 		}
 	}
 
 	/**
 	 * Get log entries from database with optional filters.
 	 *
-	 * Note: This method returns raw database row objects, not formatted strings.
-	 * For formatted string output, use get_logs() which calls this method internally.
+	 * Note: returns raw database row objects, not formatted strings.
+	 * For formatted string output, use get_logs() which calls fetch_logs() internally.
 	 *
 	 * @param array $filters Filter criteria (level, user_id, date_from, date_to).
 	 * @param int   $limit   Maximum number of entries.
@@ -579,6 +367,7 @@ class SScribe_Logger_Enhanced implements SScribe_Logger_Interface {
 	 */
 	public function get_db_logs( array $filters = array(), int $limit = 100 ): array {
 		global $wpdb;
+		$limit = max( 1, min( 1000, $limit ) );
 
 		if ( ! $this->table_exists() ) {
 			return array();

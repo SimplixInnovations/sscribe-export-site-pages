@@ -22,12 +22,15 @@ class SScribe_Security {
 	 * Protect a directory with .htaccess and index.php files.
 	 *
 	 * @param string $dir Directory path to protect.
+	 * @throws \InvalidArgumentException|\RuntimeException When validation or directory creation fails.
 	 */
 	public static function protect_directory( string $dir ): void {
 		self::validate_path_scope( $dir );
 
 		if ( ! is_dir( $dir ) ) {
-			wp_mkdir_p( $dir );
+			if ( ! wp_mkdir_p( $dir ) ) {
+				throw new \RuntimeException( 'Unable to create the protected SScribe directory.' );
+			}
 		}
 
 		$htaccess_path = $dir . '/.htaccess';
@@ -80,13 +83,11 @@ class SScribe_Security {
 			$path = $dir . '/' . $file;
 
 			if ( is_link( $path ) ) {
-				// Symlinks are deleted as files — validate target is in scope before deletion.
-				$target = readlink( $path );
-				if ( false !== $target && self::is_path_in_scope( $target ) ) {
-					wp_delete_file( $path );
-				}
+				// Unlink the directory entry itself. Resolving the target first
+				// could delete a file outside the plugin-owned tree.
+				wp_delete_file( $path );
 			} elseif ( is_dir( $path ) ) {
-				// Follow directory — scope check happens in recursive call.
+
 				self::delete_directory( $path, $max_depth, $depth + 1 );
 			} else {
 				wp_delete_file( $path );
@@ -109,8 +110,9 @@ class SScribe_Security {
 			if ( ! function_exists( 'WP_Filesystem' ) ) {
 				require_once ABSPATH . 'wp-admin/includes/file.php';
 			}
-			if ( ! WP_Filesystem( request_filesystem_credentials( 'admin.php', '', false, false, null ) ) ) {
-				// Fallback to rmdir if WP Filesystem fails.
+
+			if ( ! WP_Filesystem() ) {
+
 				// phpcs:ignore WordPress.WP.AlternativeFunctions.file_system_operations_rmdir
 				return @rmdir( $dir );
 			}
@@ -123,30 +125,34 @@ class SScribe_Security {
 	/**
 	 * Write content to a file using WP Filesystem API with fallback.
 	 *
-	 * @param string $file_path File path to write to.
-	 * @param string $content   Content to write.
-	 * @param int    $chmod     Optional chmod mode. Defaults to FS_CHMOD_FILE.
+	 * @param string   $file_path File path to write to.
+	 * @param string   $content   Content to write.
+	 * @param int|null $chmod     Optional chmod mode.
 	 * @return bool True on success, false on failure.
 	 */
-	private static function write_file( string $file_path, string $content, int $chmod = FS_CHMOD_FILE ): bool {
+	private static function write_file( string $file_path, string $content, ?int $chmod = null ): bool {
 		global $wp_filesystem;
 
 		if ( empty( $wp_filesystem ) ) {
 			if ( ! function_exists( 'WP_Filesystem' ) ) {
 				require_once ABSPATH . 'wp-admin/includes/file.php';
 			}
-			if ( ! WP_Filesystem( request_filesystem_credentials( 'admin.php', '', false, false, null ) ) ) {
-				// Fallback to direct file_put_contents with proper locking.
+			$chmod = null === $chmod ? ( defined( 'FS_CHMOD_FILE' ) ? FS_CHMOD_FILE : 0644 ) : $chmod;
+
+			if ( ! WP_Filesystem() ) {
+
 				// phpcs:ignore WordPress.WP.AlternativeFunctions.file_system_operations_file_put_contents
 				if ( false === file_put_contents( $file_path, $content, LOCK_EX ) ) {
 					return false;
 				}
-				// Apply chmod after write (LOCK_EX ensures atomic write so this is safe).
+
 				// phpcs:ignore WordPress.WP.AlternativeFunctions.file_system_operations_chmod
 				chmod( $file_path, $chmod );
 				return true;
 			}
 		}
+
+		$chmod = null === $chmod ? ( defined( 'FS_CHMOD_FILE' ) ? FS_CHMOD_FILE : 0644 ) : $chmod;
 
 		return $wp_filesystem->put_contents( $file_path, $content, $chmod );
 	}

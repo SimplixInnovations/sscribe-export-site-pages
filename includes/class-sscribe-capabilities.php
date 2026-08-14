@@ -20,14 +20,9 @@ class SScribe_Capabilities {
 
 	private const ALLOWED = array(
 		'sscribe_export',
+		'sscribe_health',
 		'manage_options',
-		'edit_pages',
-		'edit_posts',
-		'publish_pages',
-		'publish_posts',
-		'delete_pages',
 		'export',
-		'export_posts',
 	);
 
 	/**
@@ -38,6 +33,16 @@ class SScribe_Capabilities {
 	public static function get_required(): string {
 		$cap = (string) apply_filters( 'sscribe_export_capability', 'sscribe_export' );
 		return self::is_allowed( $cap ) ? $cap : 'sscribe_export';
+	}
+
+	/**
+	 * Get the capability required for diagnostic health checks.
+	 *
+	 * @return string
+	 */
+	public static function get_health_required(): string {
+		$cap = (string) apply_filters( 'sscribe_health_capability', 'sscribe_health' );
+		return self::is_allowed( $cap ) ? $cap : 'sscribe_health';
 	}
 
 	/**

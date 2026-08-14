@@ -54,7 +54,11 @@ class SScribe_Format_Exporters_Test extends TestCase {
 		require_once SSCRIBE_PLUGIN_DIR . 'includes/exporters/class-sscribe-markdown-exporter.php';
 		$exporter = new SScribe_Markdown_Exporter();
 
-		$temp_dir = sys_get_temp_dir() . '/sscribe-test-' . uniqid();
+		// Output dir must live under the SScribe export directory
+		// (per WP.org Plugin Directory "no writes outside plugin
+		// folder" rule enforced by SScribe_Filesystem::put_contents).
+		$upload_dir = wp_upload_dir();
+		$temp_dir   = trailingslashit( $upload_dir['basedir'] ) . 'sscribe-exports/markdown-' . uniqid();
 		wp_mkdir_p( $temp_dir );
 
 		$page_data = array(
@@ -108,7 +112,11 @@ class SScribe_Format_Exporters_Test extends TestCase {
 		require_once SSCRIBE_PLUGIN_DIR . 'includes/exporters/class-sscribe-html-exporter.php';
 		$exporter = new SScribe_HTML_Exporter();
 
-		$temp_dir = sys_get_temp_dir() . '/sscribe-test-' . uniqid();
+		// Output dir must live under the SScribe export directory
+		// (per WP.org Plugin Directory "no writes outside plugin
+		// folder" rule enforced by SScribe_Filesystem::put_contents).
+		$upload_dir = wp_upload_dir();
+		$temp_dir   = trailingslashit( $upload_dir['basedir'] ) . 'sscribe-exports/html-' . uniqid();
 		wp_mkdir_p( $temp_dir );
 
 		$page_data = array(
@@ -146,6 +154,28 @@ class SScribe_Format_Exporters_Test extends TestCase {
 		if ( is_dir( $temp_dir ) ) {
 			rmdir( $temp_dir );
 		}
+	}
+
+	public function test_html_exporter_normalizes_malformed_filtered_metadata(): void {
+		require_once SSCRIBE_PLUGIN_DIR . 'includes/exporters/class-sscribe-html-exporter.php';
+		$exporter = new SScribe_HTML_Exporter();
+
+		$html = $exporter->generate_html_string(
+			array(
+				'title'                => array( 'invalid' ),
+				'content'              => new \stdClass(),
+				'permalink'            => array( 'invalid' ),
+				'language'             => '<script>',
+				'featured_image_url'   => array( 'invalid' ),
+				'featured_image_width' => -100,
+				'seo'                  => 'invalid',
+			)
+		);
+
+		$this->assertStringContainsString( '<!DOCTYPE html>', $html );
+		$this->assertStringContainsString( '<html lang="en"', $html );
+		$this->assertStringContainsString( 'Untitled', $html );
+		$this->assertStringNotContainsString( '<script>', $html );
 	}
 
 	public function test_pdf_exporter_interface(): void {
@@ -236,14 +266,6 @@ class SScribe_Format_Exporters_Test extends TestCase {
 		$this->assertGreaterThan( 0, $time );
 	}
 
-	public function test_font_helper_returns_xbriyaz(): void {
-		$regular = SScribe_Font_Helper::get_arabic_font_path();
-		$bold    = SScribe_Font_Helper::get_arabic_font_path( true );
-
-		$this->assertStringContainsString( 'XB Riyaz.ttf', $regular );
-		$this->assertStringContainsString( 'XB RiyazBd.ttf', $bold );
-	}
-
 	public function test_rtl_helper_get_languages(): void {
 		$languages = SScribe_RTL_Helper::get_rtl_languages();
 
@@ -261,10 +283,6 @@ class SScribe_Format_Exporters_Test extends TestCase {
 
 	public function test_image_processor_exists(): void {
 		$this->assertTrue( class_exists( 'SScribe_Image_Processor' ) );
-	}
-
-	public function test_font_helper_exists(): void {
-		$this->assertTrue( class_exists( 'SScribe_Font_Helper' ) );
 	}
 
 	private function cleanup_temp_dir( string $dir ): void {

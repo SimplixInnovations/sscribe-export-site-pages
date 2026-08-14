@@ -11,6 +11,19 @@ $base_dir           = dirname( __DIR__ );
 $target_safe_dir    = $base_dir . '/vendor-prefixed/thecodingmachine/safe/generated';
 $canonical_safe_dir = $base_dir . '/vendor/thecodingmachine/safe/generated';
 
+// Preserve PHPWord's LGPL notice under a WordPress.org-compatible filename.
+// The upstream `COPYING.LESSER` suffix is interpreted as a forbidden file
+// extension by Plugin Check; the contents and attribution remain unchanged.
+$phpword_lgpl_source = $base_dir . '/vendor-prefixed/phpoffice/phpword/COPYING.LESSER';
+$phpword_lgpl_target = $base_dir . '/vendor-prefixed/phpoffice/phpword/COPYING.LESSER.txt';
+if ( is_file( $phpword_lgpl_source ) ) {
+	if ( ! copy( $phpword_lgpl_source, $phpword_lgpl_target ) ) {
+		fwrite( STDERR, "[fix-prefixed-safe] Failed to normalize the PHPWord LGPL notice.\n" );
+		exit( 1 );
+	}
+	fwrite( STDOUT, "[fix-prefixed-safe] Normalized PHPWord LGPL notice filename.\n" );
+}
+
 if ( ! is_dir( $target_safe_dir ) ) {
 	// phpcs:ignore WordPress.WP.AlternativeFunctions.file_system_operations_fwrite -- Standalone CLI maintenance script.
 
@@ -101,7 +114,7 @@ if ( false !== $entries && is_array( $entries ) ) {
 		}
 	}
 } else {
-	fwrite( STDOUT, "[fix-prefixed-safe] mpdf data dir {$canonical_mpdf_dir} not found — likely handled by Strauss.\n" );
+	fwrite( STDOUT, "[fix-prefixed-safe] mpdf data dir {$canonical_mpdf_dir} not found - likely handled by Strauss.\n" );
 }
 // phpcs:ignore WordPress.WP.AlternativeFunctions.file_system_operations_fwrite -- Standalone CLI maintenance script.
 

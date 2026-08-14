@@ -12,19 +12,19 @@
     ],
     "require": {
         "php": ">=8.2",
-        "phpoffice/phpword": "^1.4",
-        "mpdf/mpdf": "^8.3"
+        "phpoffice/phpword": "~1.4.0",
+        "mpdf/mpdf": "~8.3.0",
+        "psr/container": "^2.0"
     },
     "require-dev": {
-        "brianhenryie/strauss": "^0.27.2",
-        "dealerdirect/phpcodesniffer-composer-installer": "^1.0",
+        "brianhenryie/strauss": "~0.28.1",
+        "dealerdirect/phpcodesniffer-composer-installer": "^1.2",
         "phpcompatibility/phpcompatibility-wp": "^2.1",
-        "phpstan/phpstan": "^2.1",
-        "phpunit/phpunit": "^11.0",
-        "squizlabs/php_codesniffer": "^3.13",
-        "wp-coding-standards/wpcs": "^3.3",
-        "automattic/vipwpcs": "^3.0",
-        "wp-phpunit/wp-phpunit": "^6.9"
+        "phpstan/phpstan": "^2.2",
+        "phpunit/phpunit": "^13",
+        "squizlabs/php_codesniffer": "^3.13.5",
+        "wp-coding-standards/wpcs": "^3.4.1",
+        "automattic/vipwpcs": "^3.1.0"
     },
     "autoload": {
         "classmap": [
@@ -55,7 +55,7 @@
         "cs:fix": "phpcbf -d memory_limit=512M --standard=phpcs.xml",
         "i18n:make-pot": "wp i18n make-pot . languages/sscribe-export-site-pages.pot --domain=sscribe-export-site-pages --exclude=vendor,vendor-prefixed,node_modules,tests,scripts,.github,coverage,dist,build,.cache",
         "version:check": "php scripts/verify-version-sync.php",
-        "vendor:prefix": "php -d memory_limit=512M -d error_reporting=\"E_ALL & ~E_DEPRECATED\" vendor/bin/strauss && php -d memory_limit=512M scripts/fix-prefixed-safe.php && php scripts/fix-phpword-style-deprecation.php",
+        "vendor:prefix": "php -d memory_limit=512M -d error_reporting=\"E_ALL & ~E_DEPRECATED & ~E_WARNING\" scripts/run-strauss.php && php -d memory_limit=512M scripts/fix-prefixed-safe.php && php scripts/fix-phpword-style-deprecation.php",
         "clean": "composer clean:cache && composer clean:coverage",
         "clean:cache": "php -r \"array_map('unlink', glob('.cache/**/*.*')); array_map('rmdir', glob('.cache/*', GLOB_ONLYDIR)); is_dir('.cache') && rmdir('.cache'); echo 'Cache cleared.\\n';\"",
         "clean:coverage": "php -r \"is_dir('coverage') && array_map('unlink', glob('coverage/*.*')) && rmdir('coverage'); echo 'Coverage cleared.\\n';\"",
@@ -74,7 +74,8 @@
             "classmap_prefix": "SScribeVendor_",
             "packages": [
                 "mpdf/mpdf",
-                "phpoffice/phpword"
+                "phpoffice/phpword",
+                "psr/container"
             ],
             "delete_vendor_packages": false,
             "exclude_constants": []

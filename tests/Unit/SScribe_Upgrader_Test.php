@@ -9,8 +9,10 @@ declare(strict_types=1);
 
 namespace SScribe\Tests\Unit;
 
+use PHPUnit\Framework\Attributes\AllowMockObjectsWithoutExpectations;
 use PHPUnit\Framework\TestCase;
 
+#[AllowMockObjectsWithoutExpectations]
 class SScribe_Upgrader_Test extends TestCase {
 
 	protected function setUp(): void {
@@ -45,7 +47,7 @@ class SScribe_Upgrader_Test extends TestCase {
 	public function test_maybe_upgrade_sets_lock_during_execution(): void {
 		delete_option( 'sscribe_schema_version' );
 		\SScribe_Upgrader::maybe_upgrade();
-		$this->assertFalse( get_transient( 'sscribe_upgrade_lock' ) ); // Released in finally
+		$this->assertFalse( get_option( 'sscribe_export_lock_upgrade', false ) );
 	}
 
 	public function test_maybe_upgrade_skips_when_locked(): void {
@@ -87,6 +89,10 @@ class SScribe_Upgrader_Test extends TestCase {
 		\SScribe_Upgrader::maybe_upgrade();
 
 		$GLOBALS['wpdb'] = $orig_wpdb;
-		$this->assertTrue( true );
+		$this->assertFalse( get_option( 'sscribe_schema_version' ) );
+		$error = get_option( 'sscribe_upgrade_last_error' );
+		$this->assertIsArray( $error );
+		$this->assertSame( 'The database upgrade did not complete and will be retried.', $error['message'] );
+		$this->assertMatchesRegularExpression( '/^[a-f0-9]{12}$/', $error['reference'] );
 	}
 }

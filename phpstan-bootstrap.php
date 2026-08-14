@@ -14,7 +14,6 @@ $prefixed_autoload = $base_dir . '/vendor-prefixed/autoload.php';
 if ( file_exists( $vendor_autoload ) ) {
 	require_once $vendor_autoload;
 } elseif ( file_exists( $prefixed_autoload ) ) {
-	require_once $base_dir . '/includes/sscribe-prefixed-runtime-shim.php';
 	require_once $prefixed_autoload;
 }
 
@@ -139,4 +138,12 @@ if ( ! defined( 'FS_CHMOD_FILE' ) ) {
 	 * Default WordPress value is 0644 (owner read/write, world readable).
 	 */
 	define( 'FS_CHMOD_FILE', 0644 );
+}
+
+if ( ! defined( 'MB_IN_BYTES' ) ) {
+	/**
+	 * PHP memory constant stub for PHPStan.
+	 * Equals 1048576 bytes (one megabyte).
+	 */
+	define( 'MB_IN_BYTES', 1048576 );
 }

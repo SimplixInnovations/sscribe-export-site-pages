@@ -54,6 +54,45 @@ class SScribe_Loader {
 	}
 
 	/**
+	 * Register a guarded AJAX action.
+	 *
+	 * Wraps the callback with `SScribe_AJAX_Guard::with_guard()` so the
+	 * `check_ajax_referer → current_user_can` triplet is enforced once,
+	 * centrally. Prevents the copy-paste drift that left
+	 * `ajax_refresh_nonce` (and likely future handlers) without a
+	 * nonce check.
+	 *
+	 * @param string $hook      WordPress action hook name.
+	 * @param object $component Component class instance.
+	 * @param string $callback  Callback method name.
+	 * @param string $capability Capability the current user must have.
+	 * @param string $nonce_name Nonce action name.
+	 * @param string $nonce_arg  Request key holding the nonce.
+	 * @param int    $priority  Hook priority.
+	 * @param int    $accepted_args Number of accepted arguments.
+	 */
+	public function add_guarded_ajax_action(
+		string $hook,
+		object $component,
+		string $callback,
+		string $capability,
+		string $nonce_name = 'sscribe_export_nonce',
+		string $nonce_arg = 'nonce',
+		int $priority = 10,
+		int $accepted_args = 1
+	): void {
+		$handler = SScribe_AJAX_Guard::with_guard(
+			static function ( ...$args ) use ( $component, $callback ): void {
+				$component->{$callback}( ...$args );
+			},
+			$capability,
+			$nonce_name,
+			$nonce_arg
+		);
+		add_action( $hook, $handler, $priority, $accepted_args );
+	}
+
+	/**
 	 * Register a new filter hook.
 	 *
 	 * @param string $hook          WordPress filter hook name.

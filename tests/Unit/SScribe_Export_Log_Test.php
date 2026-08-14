@@ -42,7 +42,7 @@ final class SScribe_Export_Log_Test extends TestCase {
 	}
 
 	public function test_init_creates_log_file(): void {
-		$session = 'test-init-' . uniqid( '', true );
+		$session = $this->new_session_id();
 		$log     = new SScribe_Export_Log( $session );
 		$log->set_total_pages( 5 );
 		$log->flush();
@@ -55,7 +55,7 @@ final class SScribe_Export_Log_Test extends TestCase {
 	}
 
 	public function test_log_page_start_and_success(): void {
-		$session = 'test-success-' . uniqid( '', true );
+		$session = $this->new_session_id();
 		$log     = new SScribe_Export_Log( $session );
 		$log->set_total_pages( 3 );
 
@@ -73,7 +73,7 @@ final class SScribe_Export_Log_Test extends TestCase {
 	}
 
 	public function test_log_page_failure(): void {
-		$session = 'test-failure-' . uniqid( '', true );
+		$session = $this->new_session_id();
 		$log     = new SScribe_Export_Log( $session );
 		$log->set_total_pages( 2 );
 
@@ -90,7 +90,7 @@ final class SScribe_Export_Log_Test extends TestCase {
 	}
 
 	public function test_buffered_writes_reduce_io(): void {
-		$session = 'test-buffered-' . uniqid( '', true );
+		$session = $this->new_session_id();
 		$log     = new SScribe_Export_Log( $session );
 		$log->set_total_pages( 10 );
 
@@ -110,7 +110,7 @@ final class SScribe_Export_Log_Test extends TestCase {
 	}
 
 	public function test_mark_complete(): void {
-		$session = 'test-complete-' . uniqid( '', true );
+		$session = $this->new_session_id();
 		$log     = new SScribe_Export_Log( $session );
 		$log->set_total_pages( 1 );
 		$log->mark_complete( '/path/to/export.zip', 1 );
@@ -124,8 +124,36 @@ final class SScribe_Export_Log_Test extends TestCase {
 		$log->delete();
 	}
 
+	public function test_mark_complete_populates_zip_index_transient(): void {
+		// Performance F2: persisting the zip→session index transient at
+		// write-time guarantees the read path can short-circuit the
+		// glob() scan on hosts that lack an object cache.
+		$GLOBALS['sscribe_test_transients'] = array();
+		$session                            = $this->new_session_id();
+		$zip_basename                       = 'export-' . $session . '.zip';
+		$expected_index_key                 = 'sscribe_zip_index_' . md5( $zip_basename );
+
+		$log = new SScribe_Export_Log( $session );
+		$log->set_total_pages( 1 );
+		$log->mark_complete( '/path/to/' . $zip_basename, 1 );
+		$log->flush();
+
+		$this->assertArrayHasKey(
+			$expected_index_key,
+			$GLOBALS['sscribe_test_transients'],
+			'mark_complete must persist sscribe_zip_index_<md5> transient on the no-object-cache path.'
+		);
+		$this->assertSame(
+			$session,
+			$GLOBALS['sscribe_test_transients'][ $expected_index_key ],
+			'Transient value must be the session id so get_log_by_filename() can locate the JSON file.'
+		);
+
+		$log->delete();
+	}
+
 	public function test_delete_removes_log_file(): void {
-		$session = 'test-delete-' . uniqid( '', true );
+		$session = $this->new_session_id();
 		$log     = new SScribe_Export_Log( $session );
 		$log->set_total_pages( 1 );
 		$log->flush();
@@ -138,14 +166,62 @@ final class SScribe_Export_Log_Test extends TestCase {
 		$this->assertFileDoesNotExist( $log_file );
 	}
 
+	public function test_invalid_session_id_never_creates_a_log_file(): void {
+		$upload_dir = wp_upload_dir();
+		$log_dir    = $upload_dir['basedir'] . '/sscribe-exports/logs';
+		$before     = glob( $log_dir . '/export_*.json' ) ?: array();
 
+		$log = new SScribe_Export_Log( '../invalid-session' );
+		$log->set_total_pages( 1 );
+		$log->flush();
+
+		$after = glob( $log_dir . '/export_*.json' ) ?: array();
+		$this->assertSame( $before, $after );
+	}
+
+	public function test_error_history_and_messages_are_bounded(): void {
+		$session = $this->new_session_id();
+		$log     = new SScribe_Export_Log( $session );
+		$message = str_repeat( 'sensitive-error-', 200 );
+
+		for ( $i = 0; $i < 550; ++$i ) {
+			$log->log_page_failure( 1, $message );
+		}
+		$log->flush();
+		$data = $log->get_log();
+
+		$this->assertCount( 500, $data['errors'] );
+		$this->assertLessThanOrEqual( 1000, mb_strlen( $data['errors'][0]['message'] ) );
+		$log->delete();
+	}
+
+	public function test_cleanup_removes_abandoned_processing_log_after_retention_period(): void {
+		$session = $this->new_session_id();
+		$log     = new SScribe_Export_Log( $session );
+		$log->set_total_pages( 1 );
+		$log->flush();
+		$log_file = $this->find_log_file( $session );
+		$this->assertNotNull( $log_file );
+
+		$data           = json_decode( (string) file_get_contents( $log_file ), true );
+		$data['status'] = 'processing';
+		file_put_contents( $log_file, wp_json_encode( $data ) );
+		touch( $log_file, time() - ( 73 * HOUR_IN_SECONDS ) );
+
+		$this->assertGreaterThanOrEqual( 1, SScribe_Export_Log::cleanup_old_logs( 72 ) );
+		$this->assertFileDoesNotExist( $log_file );
+	}
 
 	private function find_log_file( string $session_id ): ?string {
 		$upload_dir = wp_upload_dir();
-		$log_dir    = $upload_dir['basedir'] . '/sscribe-logs';
+		$log_dir    = $upload_dir['basedir'] . '/sscribe-exports/logs';
 		$pattern    = $log_dir . '/export_*' . $session_id . '*.json';
 
 		$matches = glob( $pattern );
 		return ! empty( $matches ) ? $matches[0] : null;
+	}
+
+	private function new_session_id(): string {
+		return bin2hex( random_bytes( 8 ) );
 	}
 }

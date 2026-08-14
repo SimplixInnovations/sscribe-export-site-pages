@@ -206,6 +206,10 @@ if ( ! function_exists( 'get_post_status' ) ) {
 
 if ( ! function_exists( 'get_post_type' ) ) {
 	function get_post_type( $sscribe_post_id ) {
+		unset( $sscribe_post_id );
+		if ( array_key_exists( 'sscribe_test_post_type_override', $GLOBALS ) ) {
+			return $GLOBALS['sscribe_test_post_type_override'];
+		}
 		return 'page';
 	}
 }
@@ -238,6 +242,12 @@ if ( ! function_exists( 'wp_upload_dir' ) ) {
 if ( ! function_exists( 'trailingslashit' ) ) {
 	function trailingslashit( $sscribe_string ) {
 		return rtrim( $sscribe_string, '/\\' ) . '/';
+	}
+}
+
+if ( ! function_exists( 'untrailingslashit' ) ) {
+	function untrailingslashit( $sscribe_string ) {
+		return rtrim( $sscribe_string, '/\\' );
 	}
 }
 
@@ -447,6 +457,134 @@ if ( ! function_exists( 'wp_get_current_user' ) ) {
 	}
 }
 
+if ( ! function_exists( 'is_user_logged_in' ) ) {
+	/**
+	 * Test stub for WordPress's is_user_logged_in().
+	 *
+	 * Mirrors WP's runtime default: anonymous visitors (no current
+	 * user) are NOT logged in. Tests that exercise auth-gated paths
+	 * must set $GLOBALS['sscribe_test_current_user'] to a real WP_User
+	 * instance with ID > 0, or the stub will return false and the
+	 * auth check will fail as it does in production.
+	 *
+	 * Tests that need a logged-in user without ceremony can call:
+	 *   $GLOBALS['sscribe_test_current_user'] = new WP_User( 1 );
+	 */
+	function is_user_logged_in(): bool {
+		global $sscribe_test_current_user;
+		return ( $sscribe_test_current_user instanceof WP_User ) && ( $sscribe_test_current_user->ID > 0 );
+	}
+}
+
+if ( ! function_exists( 'add_query_arg' ) ) {
+	/**
+	 * Test stub for WordPress's add_query_arg().
+	 *
+	 * Supports both WP signatures:
+	 *   add_query_arg( $key, $value, $url = '' )    // single arg.
+	 *   add_query_arg( $args, $url = '' )           // associative array.
+	 *
+	 * Mirrors WP's URL encoding (rawurlencode for key + value) and
+	 * preserves an existing fragment (#) in the URL. Does not handle
+	 * WP's deprecated $key_string-encoded-array form; tests that need
+	 * that should fall back to a real WP testbench.
+	 */
+	function add_query_arg( ...$args ) {
+		$url = '';
+		if ( count( $args ) >= 3 ) {
+			$key   = $args[0];
+			$value = $args[1];
+			$url   = (string) $args[2];
+			$pairs = array( rawurlencode( (string) $key ) . '=' . rawurlencode( (string) $value ) );
+		} elseif ( count( $args ) === 2 ) {
+			$maybe_url = $args[1];
+			if ( is_array( $maybe_url ) ) {
+				$pairs = array();
+				foreach ( $maybe_url as $key => $value ) {
+					$pairs[] = rawurlencode( (string) $key ) . '=' . rawurlencode( (string) $value );
+				}
+				$url = (string) $args[0];
+			} else {
+				$url = is_string( $maybe_url ) ? $maybe_url : '';
+				if ( is_array( $args[0] ) ) {
+					$pairs = array();
+					foreach ( $args[0] as $key => $value ) {
+						$pairs[] = rawurlencode( (string) $key ) . '=' . rawurlencode( (string) $value );
+					}
+				} else {
+					$pairs = array( rawurlencode( (string) $args[0] ) . '=' );
+				}
+			}
+		} else {
+			return '';
+		}
+
+		$fragment = '';
+		$hash_pos = strpos( $url, '#' );
+		if ( false !== $hash_pos ) {
+			$fragment = substr( $url, $hash_pos );
+			$url      = substr( $url, 0, $hash_pos );
+		}
+
+		$sep = ( '' === $url || false === strpos( $url, '?' ) ) ? '?' : '&';
+		return $url . $sep . implode( '&', $pairs ) . $fragment;
+	}
+}
+
+if ( ! function_exists( 'remove_query_arg' ) ) {
+	/**
+	 * Test stub for WordPress's remove_query_arg().
+	 *
+	 * Removes the named keys from the URL's query string. Supports
+	 * both signatures WP exposes:
+	 *   remove_query_arg( $key, $url = '' )
+	 *   remove_query_arg( $keys, $url = '' )
+	 *
+	 * Returns the cleaned URL, or the original $url unchanged when
+	 * no query string is present (matching WP).
+	 */
+	function remove_query_arg( $keys, $url = '' ) {
+		if ( '' === $url ) {
+			return '';
+		}
+		if ( ! is_array( $keys ) ) {
+			$keys = array( $keys );
+		}
+
+		$parts = wp_parse_url( (string) $url );
+		if ( ! is_array( $parts ) || empty( $parts['query'] ) ) {
+			return (string) $url;
+		}
+
+		parse_str( $parts['query'], $query );
+		foreach ( $keys as $key ) {
+			unset( $query[ (string) $key ] );
+		}
+
+		$rebuilt = '';
+		if ( ! empty( $parts['scheme'] ) ) {
+			$rebuilt .= $parts['scheme'] . '://';
+		}
+		if ( ! empty( $parts['host'] ) ) {
+			$rebuilt .= $parts['host'];
+		}
+		if ( ! empty( $parts['port'] ) ) {
+			$rebuilt .= ':' . $parts['port'];
+		}
+		if ( ! empty( $parts['path'] ) ) {
+			$rebuilt .= $parts['path'];
+		}
+		if ( ! empty( $query ) ) {
+			$rebuilt .= '?' . http_build_query( $query );
+		}
+		if ( ! empty( $parts['fragment'] ) ) {
+			$rebuilt .= '#' . $parts['fragment'];
+		}
+
+		return $rebuilt;
+	}
+}
+
 if ( ! function_exists( '__' ) ) {
 	function __( $sscribe_text, $sscribe_domain = 'default' ) {
 		return $sscribe_text;
@@ -526,6 +664,158 @@ if ( ! function_exists( 'delete_transient' ) ) {
 	}
 }
 
+if ( ! function_exists( 'register_setting' ) ) {
+	function register_setting( $option_group, $option_name, $args = array() ) {
+		global $sscribe_test_registered_settings;
+		$sscribe_test_registered_settings[ $option_name ] = array(
+			'group' => $option_group,
+			'args'  => $args,
+		);
+		return true;
+	}
+}
+
+if ( ! function_exists( 'wp_next_scheduled' ) ) {
+	function wp_next_scheduled( $hook, $args = array() ) {
+		global $sscribe_test_scheduled_events;
+		unset( $args );
+		return $sscribe_test_scheduled_events[ $hook ]['timestamp'] ?? false;
+	}
+}
+
+if ( ! function_exists( 'wp_schedule_event' ) ) {
+	function wp_schedule_event( $timestamp, $recurrence, $hook, $args = array(), $wp_error = false ) {
+		global $sscribe_test_scheduled_events;
+		unset( $args, $wp_error );
+		$sscribe_test_scheduled_events[ $hook ] = array(
+			'timestamp'  => $timestamp,
+			'recurrence' => $recurrence,
+		);
+		return true;
+	}
+}
+
+if ( ! function_exists( 'wp_unschedule_event' ) ) {
+	function wp_unschedule_event( $timestamp, $hook, $args = false ) {
+		global $sscribe_test_scheduled_events;
+		unset( $timestamp, $args );
+		unset( $sscribe_test_scheduled_events[ $hook ] );
+		return true;
+	}
+}
+
+if ( ! function_exists( 'wp_clear_scheduled_hook' ) ) {
+	function wp_clear_scheduled_hook( $hook, $args = array() ) {
+		global $sscribe_test_scheduled_events;
+		unset( $args );
+		unset( $sscribe_test_scheduled_events[ $hook ] );
+		return true;
+	}
+}
+
+if ( ! function_exists( 'is_multisite' ) ) {
+	function is_multisite() {
+		return false;
+	}
+}
+
+if ( ! function_exists( 'get_current_blog_id' ) ) {
+	function get_current_blog_id() {
+		return 1;
+	}
+}
+
+if ( ! function_exists( 'wp_is_post_autosave' ) ) {
+	function wp_is_post_autosave( $post_id ) {
+		unset( $post_id );
+		return false;
+	}
+}
+
+if ( ! function_exists( 'wp_is_post_revision' ) ) {
+	function wp_is_post_revision( $post_id ) {
+		unset( $post_id );
+		return false;
+	}
+}
+
+if ( ! function_exists( 'switch_to_blog' ) ) {
+	function switch_to_blog( $blog_id ) {
+		unset( $blog_id );
+		return true;
+	}
+}
+
+if ( ! function_exists( 'restore_current_blog' ) ) {
+	function restore_current_blog() {
+		return true;
+	}
+}
+
+if ( ! function_exists( 'get_sites' ) ) {
+	function get_sites( $args = array() ) {
+		unset( $args );
+		return array();
+	}
+}
+
+if ( ! class_exists( 'WP_Role' ) ) {
+	class WP_Role {
+		public string $name;
+		public array $capabilities = array();
+
+		public function __construct( string $name, array $capabilities = array() ) {
+			$this->name         = $name;
+			$this->capabilities = $capabilities;
+		}
+
+		public function has_cap( string $capability ): bool {
+			return ! empty( $this->capabilities[ $capability ] );
+		}
+
+		public function add_cap( string $capability, bool $grant = true ): void {
+			$this->capabilities[ $capability ] = $grant;
+		}
+
+		public function remove_cap( string $capability ): void {
+			unset( $this->capabilities[ $capability ] );
+		}
+	}
+}
+
+if ( ! class_exists( 'WP_Roles' ) ) {
+	class WP_Roles {
+		public array $roles = array();
+
+		public function __construct() {
+			$this->roles = array(
+				'administrator' => array(
+					'name'         => 'Administrator',
+					'capabilities' => array( 'manage_options' => true ),
+				),
+			);
+		}
+	}
+}
+
+if ( ! function_exists( 'get_role' ) ) {
+	function get_role( $role ) {
+		// Tests can inject specific role overrides via this global.
+		if ( isset( $GLOBALS['sscribe_test_role_overrides'] ) && is_array( $GLOBALS['sscribe_test_role_overrides'] ) && isset( $GLOBALS['sscribe_test_role_overrides'][ $role ] ) ) {
+			return $GLOBALS['sscribe_test_role_overrides'][ $role ];
+		}
+
+		static $roles = null;
+		if ( null === $roles ) {
+			$roles = array(
+				'administrator' => new WP_Role( 'administrator', array( 'manage_options' => true ) ),
+			);
+		}
+
+		return $roles[ $role ] ?? null;
+	}
+}
+
 if ( ! function_exists( 'wp_cache_delete' ) ) {
 	function wp_cache_delete( $key, $group = '' ) {
 		unset( $GLOBALS['sscribe_test_wp_cache'][ $key ] );
@@ -557,14 +847,56 @@ if ( ! function_exists( 'wp_cache_get' ) ) {
 	}
 }
 
+if ( ! function_exists( 'wp_cache_set' ) ) {
+	function wp_cache_set( $key, $value, $group = '', $expire = 0 ) {
+		if ( ! isset( $GLOBALS['sscribe_test_wp_cache'] ) ) {
+			$GLOBALS['sscribe_test_wp_cache'] = array();
+		}
+		$GLOBALS['sscribe_test_wp_cache'][ $key ] = $value;
+		return true;
+	}
+}
+
+if ( ! function_exists( 'wp_cache_incr' ) ) {
+	function wp_cache_incr( $key, $offset = 1, $group = '' ) {
+		if ( ! isset( $GLOBALS['sscribe_test_wp_cache'][ $key ] ) ) {
+			return false;
+		}
+		$GLOBALS['sscribe_test_wp_cache'][ $key ] += $offset;
+		return $GLOBALS['sscribe_test_wp_cache'][ $key ];
+	}
+}
+
 
 if ( ! class_exists( 'WP_Query' ) ) {
 	class WP_Query {
 		public array $posts = array();
 		public int $found_posts = 0;
+		public int $max_num_pages = 0;
 
 		public function __construct( $query = array() ) {
-			
+			// Test-time stub. If a test sets
+			// $GLOBALS['sscribe_test_wp_query_chunks'] to an array of
+			// integer arrays, the stub yields each chunk in order on
+			// successive constructions (i.e. successive paged calls).
+			// Anything else: empty result set.
+			$chunks = isset( $GLOBALS['sscribe_test_wp_query_chunks'] ) && is_array( $GLOBALS['sscribe_test_wp_query_chunks'] )
+				? $GLOBALS['sscribe_test_wp_query_chunks']
+				: array();
+
+			$call_index = isset( $GLOBALS['sscribe_test_wp_query_calls'] ) ? (int) $GLOBALS['sscribe_test_wp_query_calls'] : 0;
+			if ( ! isset( $GLOBALS['sscribe_test_wp_query_calls'] ) ) {
+				$GLOBALS['sscribe_test_wp_query_calls'] = 0;
+			}
+			++$GLOBALS['sscribe_test_wp_query_calls'];
+
+			if ( isset( $chunks[ $call_index ] ) && is_array( $chunks[ $call_index ] ) ) {
+				$this->posts = array_values( array_map( 'intval', $chunks[ $call_index ] ) );
+			} else {
+				$this->posts = array();
+			}
+			$this->found_posts  = count( $this->posts );
+			$this->max_num_pages = count( $this->posts ) > 0 ? 1 : 0;
 		}
 	}
 }
@@ -603,6 +935,20 @@ if ( ! function_exists( 'current_time' ) ) {
 	}
 }
 
+if ( ! function_exists( 'wp_date' ) ) {
+	function wp_date( $format, $timestamp = null, $timezone = null ) {
+		if ( null === $timestamp ) {
+			$timestamp = time();
+		}
+		if ( $timezone instanceof \DateTimeZone ) {
+			$dt = new \DateTime( '@' . $timestamp );
+			$dt->setTimezone( $timezone );
+			return $dt->format( $format );
+		}
+		return gmdate( $format, $timestamp );
+	}
+}
+
 if ( ! function_exists( 'esc_sql' ) ) {
 	function esc_sql( $data ) {
 		global $wpdb;
@@ -613,6 +959,12 @@ if ( ! function_exists( 'esc_sql' ) ) {
 if ( ! function_exists( 'sanitize_text_field' ) ) {
 	function sanitize_text_field( $str ) {
 		return strip_tags( $str );
+	}
+}
+
+if ( ! function_exists( 'sanitize_email' ) ) {
+	function sanitize_email( $email ) {
+		return filter_var( (string) $email, FILTER_SANITIZE_EMAIL ) ?: '';
 	}
 }
 
@@ -654,6 +1006,8 @@ $sscribe_test_db_tables = array(
 $sscribe_test_http_response = array();
 $sscribe_test_filters       = array();
 $sscribe_test_actions       = array();
+$sscribe_test_registered_settings = array();
+$sscribe_test_scheduled_events    = array();
 $sscribe_test_menu_pages    = array();
 $sscribe_test_styles        = array();
 $sscribe_test_scripts       = array();
@@ -738,17 +1092,23 @@ $sscribe_test_ajax_nonce_valid = true;
 		public function get_results( $query, $output = null ) {
 			global $sscribe_test_options, $sscribe_test_db_tables;
 
-			if ( false !== strpos( $query, $this->options ) && preg_match( "/LIKE '([^']+)'/i", $query, $matches ) ) {
-				$like_pattern = str_replace( '\\_', '_', $matches[1] );
-				$pattern      = str_replace( '%', '.*', preg_quote( $like_pattern, '/' ) );
+			if ( false !== strpos( $query, $this->options ) && preg_match_all( "/LIKE '([^']+)'/i", $query, $like_matches ) ) {
+				$patterns = array();
+				foreach ( $like_matches[1] as $raw ) {
+					$unrolled    = str_replace( '\\_', '_', $raw );
+					$patterns[] = '/^' . str_replace( '%', '.*', preg_quote( $unrolled, '/' ) ) . '$' . '/';
+				}
 				$results = array();
 
 				foreach ( (array) $sscribe_test_options as $option_name => $option_value ) {
-					if ( preg_match( '/^' . $pattern . '$/', $option_name ) ) {
-						$results[] = (object) array(
-							'option_name'  => $option_name,
-							'option_value' => $option_value,
-						);
+					foreach ( $patterns as $pattern ) {
+						if ( preg_match( $pattern, $option_name ) ) {
+							$results[] = (object) array(
+								'option_name'  => $option_name,
+								'option_value' => $option_value,
+							);
+							break;
+						}
 					}
 				}
 
@@ -777,6 +1137,11 @@ $sscribe_test_ajax_nonce_valid = true;
 			}
 
 			return array();
+		}
+
+		public function get_row( $query = null, $output = null, $y = 0 ) {
+			unset( $query, $output, $y );
+			return null;
 		}
 
 		public function insert( $table, $data, $format = null ) {
@@ -1017,6 +1382,20 @@ if ( ! function_exists( 'wp_http_validate_url' ) ) {
 	}
 }
 
+if ( ! function_exists( 'wp_validate_url' ) ) {
+	function wp_validate_url( $url, $object = null ) {
+		unset( $object );
+		if ( ! is_string( $url ) || '' === $url ) {
+			return false;
+		}
+		$scheme = strtolower( (string) wp_parse_url( $url, PHP_URL_SCHEME ) );
+		if ( ! in_array( $scheme, array( 'http', 'https', 'ftp' ), true ) ) {
+			return false;
+		}
+		return esc_url_raw( $url ) ?: false;
+	}
+}
+
 if ( ! function_exists( 'wp_parse_url' ) ) {
 	function wp_parse_url( $url, $component = -1 ) {
 		return parse_url( $url, $component );
@@ -1110,6 +1489,41 @@ if ( ! function_exists( 'add_filter' ) ) {
 	}
 }
 
+if ( ! function_exists( 'remove_filter' ) ) {
+	/**
+	 * Test-bench counterpart of WordPress's remove_filter(). Removes the
+	 * first matching callback from the in-memory filter registry so that
+	 * tests that register a listener via add_filter() can clean up
+	 * without leaking the closure into the next test's apply_filters().
+	 * Returns false when no matching entry is present, matching WP.
+	 */
+	function remove_filter( $sscribe_hook, $sscribe_callback, $sscribe_priority = 10 ) {
+		global $sscribe_test_filters;
+
+		if ( ! is_array( $sscribe_test_filters ) ) {
+			return false;
+		}
+
+		$sscribe_remaining = array();
+		$sscribe_removed   = false;
+		foreach ( $sscribe_test_filters as $sscribe_filter ) {
+			if (
+				! $sscribe_removed
+				&& $sscribe_filter['hook'] === $sscribe_hook
+				&& $sscribe_filter['callback'] === $sscribe_callback
+				&& (int) $sscribe_filter['priority'] === (int) $sscribe_priority
+			) {
+				$sscribe_removed = true;
+				continue;
+			}
+			$sscribe_remaining[] = $sscribe_filter;
+		}
+		$sscribe_test_filters = $sscribe_remaining;
+
+		return $sscribe_removed;
+	}
+}
+
 if ( ! function_exists( 'apply_filters' ) ) {
 	function apply_filters( $hook_name, $value ) {
 		global $sscribe_test_filters;
@@ -1171,7 +1585,43 @@ if ( ! function_exists( 'admin_url' ) ) {
 
 if ( ! function_exists( 'get_post_types' ) ) {
 	function get_post_types( array $args = array(), string $output = 'names', string $operator = 'and' ): array {
-		return array( 'page', 'post' );
+		if ( 'objects' === $output ) {
+			$registered = array(
+				'page' => (object) array(
+					'name'         => 'page',
+					'labels'       => (object) array( 'singular_name' => 'Page' ),
+					'public'       => true,
+				),
+				'post' => (object) array(
+					'name'         => 'post',
+					'labels'       => (object) array( 'singular_name' => 'Post' ),
+					'public'       => true,
+				),
+			);
+			if ( ! empty( $GLOBALS['sscribe_test_registered_post_types'] ) && is_array( $GLOBALS['sscribe_test_registered_post_types'] ) ) {
+				foreach ( $GLOBALS['sscribe_test_registered_post_types'] as $slug => $obj ) {
+					$registered[ $slug ] = $obj;
+				}
+			}
+			unset( $registered['attachment'] );
+			return $registered;
+		}
+
+		$names = array( 'page', 'post' );
+		if ( ! empty( $GLOBALS['sscribe_test_registered_post_types'] ) && is_array( $GLOBALS['sscribe_test_registered_post_types'] ) ) {
+			foreach ( array_keys( $GLOBALS['sscribe_test_registered_post_types'] ) as $slug ) {
+				$names[] = (string) $slug;
+			}
+		}
+		$names = array_values( array_unique( $names ) );
+		return $names;
+	}
+}
+
+if ( ! function_exists( 'get_post_type_object' ) ) {
+	function get_post_type_object( string $post_type ): ?object {
+		$registered = get_post_types( array(), 'objects' );
+		return $registered[ $post_type ] ?? null;
 	}
 }
 
@@ -1191,6 +1641,20 @@ if ( ! function_exists( 'esc_html__' ) ) {
 	function esc_html__( $text, $domain = 'default' ) {
 		unset( $domain );
 		return esc_html( $text );
+	}
+}
+
+if ( ! function_exists( 'esc_html_e' ) ) {
+	function esc_html_e( $text, $domain = 'default' ) {
+		unset( $domain );
+		echo esc_html( (string) $text );
+	}
+}
+
+if ( ! function_exists( 'esc_attr_e' ) ) {
+	function esc_attr_e( $text, $domain = 'default' ) {
+		unset( $domain );
+		echo esc_attr( (string) $text );
 	}
 }
 
@@ -1261,7 +1725,12 @@ if ( ! function_exists( 'checked' ) ) {
 if ( ! function_exists( 'wp_delete_file' ) ) {
 	function wp_delete_file( $sscribe_file ) {
 		if ( file_exists( $sscribe_file ) ) {
-			return unlink( $sscribe_file );
+			// @-suppress: Windows file locks from the test's own write
+			// can leave the just-created index.php handle open for a
+			// tick; the production code never hits this. PHPUnit's
+			// failOnWarning="true" turns the harmless notice into a
+			// non-zero exit, so silence the operand.
+			return @unlink( $sscribe_file );
 		}
 		return false;
 	}
@@ -1277,6 +1746,32 @@ if ( ! defined( 'ARRAY_A' ) ) {
 
 if ( ! defined( 'HOUR_IN_SECONDS' ) ) {
 	define( 'HOUR_IN_SECONDS', 3600 );
+}
+
+// WordPress schema helpers normally live in wp-admin/includes/upgrade.php
+// which the unit suite does not load. The upgrader/activator call
+// require_once ABSPATH . 'wp-admin/includes/upgrade.php' (which then warns
+// in this environment) and immediately invoke dbDelta(); provide a no-op
+// shim so the migration bookkeeping runs to completion and the test
+// assertions on sscribe_schema_version / sscribe_version can succeed.
+if ( ! function_exists( 'dbDelta' ) ) {
+	function dbDelta( $queries = '', $execute = true ) {
+		unset( $queries, $execute );
+		return array();
+	}
+}
+
+if ( ! function_exists( 'maybe_create_table' ) ) {
+	function maybe_create_table( $table_name, $create_ddl ) {
+		unset( $table_name, $create_ddl );
+		return true;
+	}
+}
+
+if ( ! function_exists( 'wp_should_upgrade_global_tables' ) ) {
+	function wp_should_upgrade_global_tables() {
+		return false;
+	}
 }
 
 if ( ! function_exists( 'wp_count_posts' ) ) {
@@ -1295,18 +1790,26 @@ if ( ! function_exists( 'wp_count_posts' ) ) {
 	}
 }
 
-if ( file_exists( SSCRIBE_PLUGIN_DIR . 'vendor/autoload.php' ) ) {
+if ( file_exists( SSCRIBE_PLUGIN_DIR . 'vendor-prefixed/autoload.php' ) ) {
+	require_once SSCRIBE_PLUGIN_DIR . 'vendor-prefixed/autoload.php';
+} elseif ( file_exists( SSCRIBE_PLUGIN_DIR . 'vendor/autoload.php' ) ) {
 	require_once SSCRIBE_PLUGIN_DIR . 'vendor/autoload.php';
 	if ( file_exists( SSCRIBE_PLUGIN_DIR . 'includes/sscribe-vendor-compat.php' ) ) {
 		require_once SSCRIBE_PLUGIN_DIR . 'includes/sscribe-vendor-compat.php';
 	}
-	
-	
-}
-
-if ( file_exists( SSCRIBE_PLUGIN_DIR . 'vendor-prefixed/autoload.php' ) ) {
-	require_once SSCRIBE_PLUGIN_DIR . 'includes/sscribe-prefixed-runtime-shim.php';
-	require_once SSCRIBE_PLUGIN_DIR . 'vendor-prefixed/autoload.php';
 }
 
 require_once SSCRIBE_PLUGIN_DIR . 'includes/sscribe-autoloader.php';
+
+if ( ! function_exists( 'wp_timezone' ) ) {
+	function wp_timezone() {
+		$tz_string = get_option( 'timezone_string' );
+		if ( ! empty( $tz_string ) ) {
+			return new \DateTimeZone( $tz_string );
+		}
+		$offset = (float) get_option( 'gmt_offset' );
+		$hours  = (int) $offset;
+		$mins   = (int) ( ( $offset - $hours ) * 60 );
+		return new \DateTimeZone( sprintf( '%+03d:%02d', -$hours, -$mins ) );
+	}
+}

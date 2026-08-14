@@ -28,7 +28,26 @@ class SScribe_Zip_Handler_Test extends TestCase {
 			array_map( 'unlink', glob( $this->test_export_dir . '/**/*' ) ?: array() );
 			@rmdir( $this->test_export_dir );
 		}
+		unset( $GLOBALS['sscribe_test_current_user'] );
 		parent::tearDown();
+	}
+
+	/**
+	 * Extract a URL's query string into an associative array using only
+	 * native PHP, no bootstrap stubs. Lets the dl_token test assert on
+	 * the URL contents without coupling to wp_parse_url behavior.
+	 *
+	 * @param string $url Full URL.
+	 * @return array<string,string>
+	 */
+	private function parse_query_params( string $url ): array {
+		$query = (string) ( parse_url( $url, PHP_URL_QUERY ) ?? '' );
+		if ( '' === $query ) {
+			return array();
+		}
+		$params = array();
+		parse_str( $query, $params );
+		return $params;
 	}
 
 	public function test_handler_can_be_instantiated(): void {
@@ -68,9 +87,7 @@ class SScribe_Zip_Handler_Test extends TestCase {
 
 	public function test_delete_directory_removes_all(): void {
 
-		$base_dir = $this->handler->get_export_dir();
-		$test_dir = $base_dir . '/test-subdir-' . uniqid();
-		wp_mkdir_p( $test_dir );
+		$test_dir = $this->handler->create_temp_dir();
 		file_put_contents( $test_dir . '/test.txt', 'content' );
 
 		$this->assertDirectoryExists( $test_dir );
@@ -85,41 +102,6 @@ class SScribe_Zip_Handler_Test extends TestCase {
 		$result = $method->invoke( $this->handler, '/non-existent-dir' );
 
 		$this->assertFalse( $result );
-	}
-
-	public function test_extract_lang_from_filename(): void {
-		$method = new \ReflectionMethod( SScribe_Zip_Handler::class, 'extract_lang_from_filename' );
-
-		$test_cases = array(
-			'P001-Title-AR.docx'   => 'AR',
-			'P002-Page-EN.docx'    => 'EN',
-			'P003-Test-FR.docx'    => 'FR',
-			'P001-Title.docx'       => null,
-			'P002-Page.docx'        => null,
-			'simple.docx'            => null,
-		);
-
-		foreach ( $test_cases as $filename => $expected ) {
-			$result = $method->invoke( $this->handler, $filename );
-			$this->assertSame( $expected, $result, "Filename: $filename" );
-		}
-	}
-
-	public function test_remove_lang_from_filename(): void {
-		$method = new \ReflectionMethod( SScribe_Zip_Handler::class, 'remove_lang_from_filename' );
-
-		$test_cases = array(
-			'P001-Title-AR.docx' => 'P001-Title.docx',
-			'P002-Page-EN.docx'  => 'P002-Page.docx',
-			'P003-Test-FR.docx'  => 'P003-Test.docx',
-			'P001-Title.docx'   => 'P001-Title.docx',
-			'simple.docx'        => 'simple.docx',
-		);
-
-		foreach ( $test_cases as $filename => $expected ) {
-			$result = $method->invoke( $this->handler, $filename );
-			$this->assertSame( $expected, $result, "Filename: $filename" );
-		}
 	}
 
 	public function test_create_zip_returns_false_with_no_files(): void {
@@ -139,7 +121,10 @@ class SScribe_Zip_Handler_Test extends TestCase {
 		}
 
 		$source_dir = $this->handler->create_temp_dir();
-		file_put_contents( $source_dir . '/P001-Test.docx', 'dummy content' );
+		// Files now live one level deeper, under the language subdir
+		// (the batch processor writes to `$temp_dir/$LANG/page.ext`).
+		wp_mkdir_p( $source_dir . '/EN' );
+		file_put_contents( $source_dir . '/EN/P001-Test.docx', 'dummy content' );
 
 		$result = $this->handler->create_zip( $source_dir, 'test-zip', array( 'docx' ) );
 
@@ -152,13 +137,47 @@ class SScribe_Zip_Handler_Test extends TestCase {
 		}
 	}
 
+	public function test_create_zip_normalizes_long_non_ascii_archive_name(): void {
+		if ( ! class_exists( 'ZipArchive' ) ) {
+			$this->markTestSkipped( 'ZipArchive extension not available' );
+		}
+
+		$source_dir = $this->handler->create_temp_dir();
+		wp_mkdir_p( $source_dir . '/EN' );
+		file_put_contents( $source_dir . '/EN/P001-Test.docx', 'dummy content' );
+
+		$zip_path = $this->handler->create_zip( $source_dir, str_repeat( 'موقع طويل ', 80 ), array( 'docx' ) );
+
+		$this->assertIsString( $zip_path );
+		$this->assertMatchesRegularExpression( '/^[A-Za-z0-9][A-Za-z0-9._-]{0,199}\.zip$/D', basename( $zip_path ) );
+		$this->assertLessThanOrEqual( 204, strlen( basename( $zip_path ) ) );
+		wp_delete_file( $zip_path );
+	}
+
+	public function test_delete_export_rechecks_owner_and_updates_index(): void {
+		$export_dir = $this->handler->get_export_dir();
+		$filename   = 'sscribe-delete-test-' . uniqid() . '.zip';
+		$file_path  = $export_dir . '/' . $filename;
+		file_put_contents( $file_path, 'zip-fixture' );
+		update_option( 'sscribe_export_row_' . md5( $filename ), array( 'user_id' => 7 ), false );
+		update_option( 'sscribe_export_index', array( $filename ), false );
+
+		$this->assertFalse( $this->handler->delete_export( $filename, 8 ) );
+		$this->assertFileExists( $file_path );
+		$this->assertTrue( $this->handler->delete_export( $filename, 7 ) );
+		$this->assertFileDoesNotExist( $file_path );
+		$this->assertNull( $this->handler->get_export_entry( $filename ) );
+		$this->assertNotContains( $filename, get_option( 'sscribe_export_index', array() ) );
+	}
+
 	public function test_create_zip_cleans_up_source(): void {
 		if ( ! class_exists( 'ZipArchive' ) ) {
 			$this->markTestSkipped( 'ZipArchive extension not available' );
 		}
 
 		$source_dir = $this->handler->create_temp_dir();
-		file_put_contents( $source_dir . '/P001-Test.docx', 'dummy content' );
+		wp_mkdir_p( $source_dir . '/EN' );
+		file_put_contents( $source_dir . '/EN/P001-Test.docx', 'dummy content' );
 
 		$this->assertDirectoryExists( $source_dir );
 
@@ -177,13 +196,110 @@ class SScribe_Zip_Handler_Test extends TestCase {
 		}
 
 		$source_dir = $this->handler->create_temp_dir();
-		file_put_contents( $source_dir . '/P001-Test.docx', 'docx content' );
-		file_put_contents( $source_dir . '/P001-Test.pdf', 'pdf content' );
+		wp_mkdir_p( $source_dir . '/EN' );
+		file_put_contents( $source_dir . '/EN/P001-Test.docx', 'docx content' );
+		file_put_contents( $source_dir . '/EN/P001-Test.pdf', 'pdf content' );
 
 		$zip_path = $this->handler->create_zip( $source_dir, 'test-multi', array( 'docx', 'pdf' ) );
 
 		$this->assertIsString( $zip_path );
 		$this->assertFileExists( $zip_path );
+
+		if ( file_exists( $zip_path ) ) {
+			unlink( $zip_path );
+		}
+	}
+
+	/**
+	 * Regression test for the per-language folder restructure: a
+	 * multi-language export must place each page into `FORMAT/LANG/page.ext`
+	 * inside the ZIP, with no filename-suffix gymnastics. The language
+	 * is read from the parent directory name on disk, not from the
+	 * filename.
+	 */
+	public function test_create_zip_groups_files_by_language_subdir(): void {
+		if ( ! class_exists( 'ZipArchive' ) ) {
+			$this->markTestSkipped( 'ZipArchive extension not available' );
+		}
+
+		$source_dir = $this->handler->create_temp_dir();
+		wp_mkdir_p( $source_dir . '/AR' );
+		wp_mkdir_p( $source_dir . '/EN' );
+		file_put_contents( $source_dir . '/AR/P001-Arabic.docx', 'arabic content' );
+		file_put_contents( $source_dir . '/AR/P002-Arabic.docx', 'arabic content 2' );
+		file_put_contents( $source_dir . '/EN/P001-English.docx', 'english content' );
+
+		$zip_path = $this->handler->create_zip( $source_dir, 'test-lang-groups', array( 'docx' ), true );
+		$this->assertIsString( $zip_path );
+		$this->assertFileExists( $zip_path );
+
+		// Open the ZIP and assert the language subfolders survived.
+		$zip = new \ZipArchive();
+		$zip->open( $zip_path );
+		$entries = array();
+		for ( $i = 0; $i < $zip->numFiles; $i++ ) {
+			$entries[] = $zip->getNameIndex( $i );
+		}
+		$zip->close();
+
+		$this->assertContains( 'DOCX/AR/P001-Arabic.docx', $entries, 'AR page should be in DOCX/AR/' );
+		$this->assertContains( 'DOCX/AR/P002-Arabic.docx', $entries, 'AR page 2 should be in DOCX/AR/' );
+		$this->assertContains( 'DOCX/EN/P001-English.docx', $entries, 'EN page should be in DOCX/EN/' );
+
+		// Filename must NOT carry a language suffix anymore.
+		foreach ( $entries as $entry ) {
+			$this->assertDoesNotMatchRegularExpression(
+				'#-AR\.docx$#',
+				$entry,
+				'Filenames should no longer carry the -AR suffix: ' . $entry
+			);
+			$this->assertDoesNotMatchRegularExpression(
+				'#-EN\.docx$#',
+				$entry,
+				'Filenames should no longer carry the -EN suffix: ' . $entry
+			);
+		}
+
+		if ( file_exists( $zip_path ) ) {
+			unlink( $zip_path );
+		}
+	}
+
+	/**
+	 * Regression test for Audit N-3: verify_zip_integrity() must NOT reject
+	 * a valid multi-format ZIP where the first entry is a directory entry.
+	 *
+	 * The old check rejected any ZIP whose first statIndex() entry had size 0
+	 * — but directory entries always have size 0 by design, so any multi-format
+	 * export (DOCX/, PDF/, etc.) starting with a directory entry was falsely
+	 * flagged as "truncated or corrupted".
+	 */
+	public function test_verify_zip_integrity_accepts_zip_starting_with_directory_entry(): void {
+		if ( ! class_exists( 'ZipArchive' ) ) {
+			$this->markTestSkipped( 'ZipArchive extension not available' );
+		}
+
+		$export_dir = $this->handler->get_export_dir();
+		$zip_path   = $export_dir . '/sscribe-dir-entry-test-' . uniqid() . '.zip';
+
+		// Build a ZIP whose first entry is an explicit directory entry,
+		// followed by a real file. This is the exact shape multi-format
+		// exports produce when DOCX/ or PDF/ directory entries come first.
+		$zip = new \ZipArchive();
+		$this->assertTrue( $zip->open( $zip_path, \ZipArchive::CREATE | \ZipArchive::OVERWRITE ) );
+		$zip->addEmptyDir( 'DOCX' );
+		$zip->addFromString( 'DOCX/P001-Test.docx', 'docx content' );
+		$zip->close();
+
+		$this->assertFileExists( $zip_path );
+
+		$method = new \ReflectionMethod( SScribe_Zip_Handler::class, 'verify_zip_integrity' );
+		$result = $method->invoke( $this->handler, $zip_path );
+
+		$this->assertTrue(
+			$result,
+			'verify_zip_integrity() must accept a valid ZIP that begins with a directory entry (size 0).'
+		);
 
 		if ( file_exists( $zip_path ) ) {
 			unlink( $zip_path );
@@ -197,8 +313,7 @@ class SScribe_Zip_Handler_Test extends TestCase {
 
 		file_put_contents( $file_path, 'zip-fixture' );
 
-		$exports              = get_option( 'sscribe_export_index', array() );
-		$exports[ $filename ] = array(
+		$row = array(
 			'created_at' => time(),
 			'user_id'    => 1,
 			'formats'    => array( 'docx' ),
@@ -206,18 +321,194 @@ class SScribe_Zip_Handler_Test extends TestCase {
 			'lang_name'  => '',
 			'flag_url'   => '',
 		);
-		update_option( 'sscribe_export_index', $exports, false );
+		update_option( 'sscribe_export_row_' . md5( $filename ), $row, false );
+
+		$index   = get_option( 'sscribe_export_index', array() );
+		$index[] = $filename;
+		update_option( 'sscribe_export_index', array_values( array_unique( $index ) ), false );
 
 		delete_transient( 'sscribe_cron_exports_lock' );
 		$this->handler->cleanup_expired();
 
-		$updated_exports = get_option( 'sscribe_export_index', array() );
-		$this->assertArrayHasKey( $filename, $updated_exports );
+		$updated_index = get_option( 'sscribe_export_index', array() );
+		$this->assertContains( $filename, $updated_index );
 
 		if ( file_exists( $file_path ) ) {
 			unlink( $file_path );
 		}
-		unset( $updated_exports[ $filename ] );
-		update_option( 'sscribe_export_index', $updated_exports, false );
+		$updated_index = array_values( array_filter( $updated_index, static function ( $b ) use ( $filename ) {
+			return (string) $b !== $filename;
+		} ) );
+		update_option( 'sscribe_export_index', $updated_index, false );
+		delete_option( 'sscribe_export_row_' . md5( $filename ) );
+	}
+
+	/**
+	 * Regression for the H1 single-use download token invariant:
+	 * rotate_dl_token() must mint a fresh 32-char hex string each call,
+	 * persist it on the row, and never return the same token twice in
+	 * a row. Without this, consume_dl_token() cannot gate replays.
+	 */
+	public function test_rotate_dl_token_returns_32_char_hex_and_persists(): void {
+		$filename = 'sscribe-token-rotate-' . uniqid() . '.zip';
+		update_option(
+			'sscribe_export_row_' . md5( $filename ),
+			array(
+				'user_id' => 1,
+			),
+			false
+		);
+
+		$token_a = $this->handler->rotate_dl_token( $filename );
+		$this->assertIsString( $token_a );
+		$this->assertMatchesRegularExpression( '/^[a-f0-9]{32}$/', $token_a, 'rotate_dl_token must mint a 32-hex (16-byte) random token.' );
+
+		$token_b = $this->handler->rotate_dl_token( $filename );
+		$this->assertMatchesRegularExpression( '/^[a-f0-9]{32}$/', $token_b );
+		$this->assertNotSame( $token_a, $token_b, 'Two successive rotates must produce distinct tokens.' );
+
+		$row = get_option( 'sscribe_export_row_' . md5( $filename ), array() );
+		$this->assertSame( $token_b, $row['dl_token'] ?? null, 'rotate_dl_token must persist the latest token on the row.' );
+		$this->assertGreaterThan( 0, (int) ( $row['dl_token_at'] ?? 0 ), 'rotate_dl_token must stamp the row with a token-issue time.' );
+
+		delete_option( 'sscribe_export_row_' . md5( $filename ) );
+	}
+
+	/**
+	 * Regression for the H1 single-use download token invariant:
+	 * consume_dl_token() must validate a presented token against the
+	 * stored one with constant-time semantics and rotate the stored
+	 * token immediately on success so a replay cannot succeed even if
+	 * it races before the JS client gets the response.
+	 */
+	public function test_consume_dl_token_succeeds_then_rotates_so_replay_fails(): void {
+		$filename = 'sscribe-token-consume-' . uniqid() . '.zip';
+		$row      = array(
+			'user_id' => 1,
+		);
+		update_option( 'sscribe_export_row_' . md5( $filename ), $row, false );
+
+		$token = $this->handler->rotate_dl_token( $filename );
+		$this->assertNotSame( '', $token );
+
+		// First call with the correct presented token must succeed.
+		$this->assertTrue(
+			$this->handler->consume_dl_token( $filename, $token ),
+			'First redemption of a freshly rotated token must succeed.'
+		);
+
+		// Same token presented again must fail because consume rotated
+		// the stored token immediately on success.
+		$this->assertFalse(
+			$this->handler->consume_dl_token( $filename, $token ),
+			'Replay of an already-consumed token must fail (single-use invariant).'
+		);
+
+		// The stored token must have moved on; capture it from the option.
+		$row_after = get_option( 'sscribe_export_row_' . md5( $filename ), array() );
+		$this->assertNotSame(
+			$token,
+			$row_after['dl_token'] ?? $token,
+			'consume_dl_token must rotate the stored token on success.'
+		);
+		$this->assertMatchesRegularExpression( '/^[a-f0-9]{32}$/', (string) ( $row_after['dl_token'] ?? '' ) );
+
+		delete_option( 'sscribe_export_row_' . md5( $filename ) );
+	}
+
+	/**
+	 * Regression for the H1 single-use download token invariant:
+	 * a missing or empty presented token must never match. Empty
+	 * strings, malformed input, and tokens issued for a different
+	 * row must all be rejected with false.
+	 */
+	public function test_consume_dl_token_rejects_empty_and_wrong_tokens(): void {
+		$filename = 'sscribe-token-wrong-' . uniqid() . '.zip';
+		update_option(
+			'sscribe_export_row_' . md5( $filename ),
+			array( 'user_id' => 1 ),
+			false
+		);
+		$real_token = $this->handler->rotate_dl_token( $filename );
+		$this->assertNotSame( '', $real_token );
+
+		$this->assertFalse(
+			$this->handler->consume_dl_token( $filename, '' ),
+			'Empty presented token must be rejected.'
+		);
+		$this->assertFalse(
+			$this->handler->consume_dl_token( $filename, 'not-the-token' ),
+			'Wrong presented token must be rejected.'
+		);
+		// A token issued for one row must never accept a token meant for another.
+		$other_filename = 'sscribe-token-other-' . uniqid() . '.zip';
+		update_option(
+			'sscribe_export_row_' . md5( $other_filename ),
+			array( 'user_id' => 1 ),
+			false
+		);
+		$other_token = $this->handler->rotate_dl_token( $other_filename );
+		$this->assertFalse(
+			$this->handler->consume_dl_token( $filename, $other_token ),
+			'Token issued for a different row must be rejected.'
+		);
+
+		// The row token must not have rotated: empty/wrong calls leave the real token intact.
+		$row_after = get_option( 'sscribe_export_row_' . md5( $filename ), array() );
+		$this->assertSame(
+			$real_token,
+			$row_after['dl_token'] ?? null,
+			'Failed consume attempts must not rotate the stored token.'
+		);
+
+		delete_option( 'sscribe_export_row_' . md5( $filename ) );
+		delete_option( 'sscribe_export_row_' . md5( $other_filename ) );
+	}
+
+	/**
+	 * Regression for the H1 single-use download token invariant:
+	 * get_ajax_download_url() must embed a fresh token in the URL, and
+	 * the URL must encode action=sscribe_download, file=, nonce=, and
+	 * token=. The handler-side consume_dl_token() must then accept the
+	 * URL-supplied token exactly once.
+	 */
+	public function test_get_ajax_download_url_embeds_a_single_use_token(): void {
+		$filename = 'sscribe-token-url-' . uniqid() . '.zip';
+		update_option(
+			'sscribe_export_row_' . md5( $filename ),
+			array( 'user_id' => 1 ),
+			false
+		);
+
+		// The bootstrap stub mirrors WP: anonymous = not logged in.
+		// Pin a real WP_User so the production-side auth check passes.
+		$GLOBALS['sscribe_test_current_user'] = new \WP_User( 1 );
+
+		$url = $this->handler->get_ajax_download_url( $filename );
+		$this->assertNotSame( '', $url, 'get_ajax_download_url must produce a URL for a known row.' );
+		$this->assertStringContainsString( 'action=sscribe_download', $url );
+		$this->assertStringContainsString( 'file=' . rawurlencode( $filename ), $url );
+		$this->assertStringContainsString( 'nonce=', $url );
+		$this->assertStringContainsString( 'token=', $url );
+
+		// Pull the embedded token out of the URL with native PHP parse_url
+		// + parse_str so the assertion does not depend on any bootstrap
+		// stub for URL parsing. rawurlencode of a 32-hex string is identity.
+		$params = $this->parse_query_params( $url );
+		$this->assertArrayHasKey( 'token', $params );
+		$this->assertMatchesRegularExpression( '/^[a-f0-9]{32}$/', (string) $params['token'] );
+
+		// Round-trip: the server-side consume_dl_token() must accept the
+		// URL-supplied token exactly once.
+		$this->assertTrue(
+			$this->handler->consume_dl_token( $filename, (string) $params['token'] ),
+			'The URL-supplied token must be redeemable on first use.'
+		);
+		$this->assertFalse(
+			$this->handler->consume_dl_token( $filename, (string) $params['token'] ),
+			'The URL-supplied token must not be reusable after consumption.'
+		);
+
+		delete_option( 'sscribe_export_row_' . md5( $filename ) );
 	}
 }

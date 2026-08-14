@@ -174,4 +174,44 @@ class SScribe_Container_Test extends TestCase {
 		$this->expectExceptionMessage( 'non-object' );
 		$container->resolve( 'service_i' );
 	}
+
+	/**
+	 * Regression guard: the container classes must load cleanly on a
+	 * production WordPress install where no Composer autoloader for
+	 * the `Psr\Container` namespace exists. Earlier versions of
+	 * `SScribe_Container`, `SScribe_Container_Exception`, and
+	 * `SScribe_Container_NotFound_Exception` `implements`-ed PSR-11
+	 * interfaces, which fatals at activation with
+	 * `Interface "Psr\Container\ContainerExceptionInterface" not found`.
+	 *
+	 * If this test ever fails, someone re-introduced a PSR-11
+	 * dependency into the container surface — the plugin will fatal
+	 * the moment a user activates it on a vanilla WP install.
+	 */
+	public function test_classes_load_without_psr_container_autoloader(): void {
+		// Sanity: assert the interfaces exist where PHPUnit can find
+		// them (via the dev vendor), then prove the exception classes
+		// do NOT depend on them.
+		$exception_reflection = new \ReflectionClass( \SScribe_Container_Exception::class );
+		$notfound_reflection  = new \ReflectionClass( \SScribe_Container_NotFound_Exception::class );
+		$container_reflection = new \ReflectionClass( \SScribe_Container::class );
+
+		// The container must not declare an `implements` for any PSR-11
+		// interface. We allow the parent \RuntimeException and the
+		// interfaces PHP itself declares, but nothing under Psr\*.
+		$this->assertSame( array(), $container_reflection->getInterfaceNames(), 'SScribe_Container must not implements any PSR-11 interface directly.' );
+
+		// The exception classes must extend \RuntimeException directly.
+		$this->assertSame( \RuntimeException::class, $exception_reflection->getParentClass()->getName() );
+		$this->assertSame( \RuntimeException::class, $notfound_reflection->getParentClass()->getName() );
+
+		// Neither exception class may list a PSR-11 interface in its
+		// own `implements` clause (RuntimeException itself is fine).
+		foreach ( array( $exception_reflection, $notfound_reflection ) as $r ) {
+			$interfaces = $r->getInterfaceNames();
+			foreach ( $interfaces as $iface ) {
+				$this->assertStringStartsNotWith( 'Psr\\', $iface, "{$r->getName()} must not implements any Psr\\ interface (would fatal on production WP install)." );
+			}
+		}
+	}
 }

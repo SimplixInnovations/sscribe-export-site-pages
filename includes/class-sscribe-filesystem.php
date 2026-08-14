@@ -29,13 +29,6 @@ class SScribe_Filesystem {
 	private static ?WP_Filesystem_Base $fs = null;
 
 	/**
-	 * Whether filesystem has been initialized.
-	 *
-	 * @var bool
-	 */
-	private static bool $initialized = false;
-
-	/**
 	 * Last error message from operations.
 	 *
 	 * @var string
@@ -48,6 +41,25 @@ class SScribe_Filesystem {
 	 * @var SScribe_Logger_Interface
 	 */
 	private SScribe_Logger_Interface $logger;
+
+	/**
+	 * Sentinel: the path resolves inside the SScribe export directory :
+	 * always safe to write.
+	 */
+	public const SSCRIBE_PATH_ALLOWED = 'allowed';
+
+	/**
+	 * Sentinel: the path resolves outside the SScribe export directory
+	 * (whether via a symlink or not) : refuse the write.
+	 *
+	 * Per the WordPress.org Plugin Directory guidelines, plugins must
+	 * write only to the database or to a plugin-owned folder under
+	 * `wp-content/uploads/`. The SScribe export directory under
+	 * `wp-content/uploads/sscribe-exports/` is the only allowed
+	 * filesystem destination. All other paths are rejected by default,
+	 * even if the literal text does not start with the export root.
+	 */
+	public const SSCRIBE_PATH_REJECT = 'reject';
 
 	/**
 	 * Constructor.
@@ -67,14 +79,16 @@ class SScribe_Filesystem {
 	 * Attempts to initialize WordPress filesystem abstraction with fallback
 	 * to direct PHP filesystem operations if WP_Filesystem is unavailable.
 	 *
+	 * Only marks the cache as initialized when initialization SUCCEEDS, so
+	 * a request that initializes too early (before credentials are available)
+	 * can still retry on the next instantiation once the runtime is ready.
+	 *
 	 * @return bool True if WP_Filesystem is available, false otherwise.
 	 */
 	private function initialize(): bool {
-		if ( self::$initialized ) {
-			return null !== self::$fs;
+		if ( self::$fs instanceof WP_Filesystem_Base ) {
+			return true;
 		}
-
-		self::$initialized = true;
 
 		if ( ! function_exists( 'WP_Filesystem' ) ) {
 			$file_path = ABSPATH . 'wp-admin/includes/file.php';
@@ -91,8 +105,6 @@ class SScribe_Filesystem {
 			return false;
 		}
 
-		// Use output buffering to prevent request_filesystem_credentials() from
-		// outputting HTML forms during AJAX requests.
 		ob_start();
 		$credentials = request_filesystem_credentials( admin_url(), '', false, false, null );
 		ob_end_clean();
@@ -121,6 +133,65 @@ class SScribe_Filesystem {
 	}
 
 	/**
+	 * Sanitize a file path to prevent traversal attacks.
+	 *
+	 * Defense in depth: callers should sanitize user-controlled filenames
+	 * (e.g. page titles) before constructing paths, but this guard prevents
+	 * path traversal if a future caller forgets. The full path is normalized
+	 * to collapse any embedded ".." or "." segments; the basename itself
+	 * is NOT modified (so legitimate filenames with spaces, Unicode, etc.
+	 * pass through unchanged).
+	 *
+	 * If the input path contains no traversal segments, it is returned
+	 * as-is (after separator normalization). This preserves backward
+	 * compatibility with existing callers that construct paths from
+	 * trusted upload-dir constants and a sanitized basename.
+	 *
+	 * @param string $file Original file path.
+	 * @return string Path with traversal segments collapsed, or original
+	 *                 path if it contains none.
+	 */
+	public static function sanitize_path( string $file ): string {
+		if ( '' === $file ) {
+			return $file;
+		}
+
+		if ( false === strpos( $file, '..' ) && false === strpos( $file, "\0" ) ) {
+			return $file;
+		}
+
+		if ( false === strpos( $file, '..' ) ) {
+			return str_replace( "\0", '', $file );
+		}
+
+		$is_unix_absolute = '/' === $file[0];
+
+		$normalized = str_replace( '\\', '/', $file );
+		$normalized = preg_replace( '#/+#', '/', $normalized );
+
+		$segments = explode( '/', $normalized );
+		$cleaned  = array();
+		foreach ( $segments as $segment ) {
+			if ( '' === $segment || '.' === $segment || '..' === $segment ) {
+				continue;
+			}
+			$cleaned[] = $segment;
+		}
+
+		if ( empty( $cleaned ) ) {
+			return '';
+		}
+
+		$reassembled = implode( '/', $cleaned );
+
+		if ( $is_unix_absolute && '/' !== $reassembled[0] ) {
+			$reassembled = '/' . $reassembled;
+		}
+
+		return $reassembled;
+	}
+
+	/**
 	 * Write contents to a file.
 	 *
 	 * @param string $file    File path to write to.
@@ -130,6 +201,20 @@ class SScribe_Filesystem {
 	 */
 	public function put_contents( string $file, string $content, int $mode = 0600 ): bool {
 		self::$last_error = '';
+
+		$file = self::sanitize_path( $file );
+
+		$safety = $this->is_path_safe_for_write( $file );
+		if ( self::SSCRIBE_PATH_REJECT === $safety ) {
+			self::$last_error = 'Refusing to write outside SScribe export directory';
+			$this->logger->warning(
+				'Refused write : path resolves outside SScribe export directory',
+				array(
+					'file' => $file,
+				)
+			);
+			return false;
+		}
 
 		if ( self::$fs instanceof WP_Filesystem_Base ) {
 			$result = self::$fs->put_contents( $file, $content, $mode );
@@ -146,12 +231,9 @@ class SScribe_Filesystem {
 				return false;
 			}
 
-			// WP_Filesystem implementations (FTP/SSH) may silently ignore the
-			// $mode parameter in put_contents(). Apply chmod explicitly as a
-			// separate step to ensure correct permissions on all filesystems.
 			if ( $mode && self::$fs->chmod( $file, $mode ) === false ) {
 				$this->logger->warning(
-					'WP_Filesystem chmod failed — file may have unexpected permissions',
+					'WP_Filesystem chmod failed : file may have unexpected permissions',
 					array(
 						'file' => $file,
 						'mode' => decoct( $mode ),
@@ -168,7 +250,7 @@ class SScribe_Filesystem {
 			wp_mkdir_p( $dir );
 		}
 
-		// phpcs:ignore WordPress.WP.AlternativeFunctions.file_system_operations_file_put_contents -- WP_Filesystem fallback for hosting environments without WP_Filesystem support.
+		// phpcs:ignore WordPress.WP.AlternativeFunctions.file_system_operations_file_put_contents -- WP_Filesystem fallback for hosting environments without WP_Filesystem support. The file path is restricted to the SScribe plugin-owned folder under wp-content/uploads/sscribe-exports/ by is_path_safe_for_write() above; this writer cannot create files anywhere else.
 		$result = file_put_contents( $file, $content );
 
 		if ( false === $result ) {
@@ -206,6 +288,8 @@ class SScribe_Filesystem {
 	 */
 	public function get_contents( string $file ): string|false {
 		self::$last_error = '';
+
+		$file = self::sanitize_path( $file );
 
 		if ( self::$fs instanceof WP_Filesystem_Base ) {
 			$content = self::$fs->get_contents( $file );
@@ -263,11 +347,17 @@ class SScribe_Filesystem {
 	/**
 	 * Create a directory.
 	 *
+	 * Default permission is 0700 (owner-only). The .htaccess guard file
+	 * written by SScribe_Security::protect_directory() blocks HTTP access
+	 * regardless, but a tighter default on the filesystem itself limits
+	 * the blast radius of any other plugin/user reading the log/exports
+	 * directory out-of-band.
+	 *
 	 * @param string $path Directory path to create.
-	 * @param int    $mode Directory permissions (default: 0755).
+	 * @param int    $mode Directory permissions (default: 0700).
 	 * @return bool True if directory created or exists, false otherwise.
 	 */
-	public function mkdir( string $path, int $mode = 0755 ): bool {
+	public function mkdir( string $path, int $mode = 0700 ): bool {
 		self::$last_error = '';
 
 		if ( self::$fs instanceof WP_Filesystem_Base ) {
@@ -278,7 +368,7 @@ class SScribe_Filesystem {
 			if ( ! wp_mkdir_p( $path ) ) {
 				return false;
 			}
-			// Apply the requested permissions if wp_mkdir_p created the directory.
+
 			if ( $mode && function_exists( 'chmod' ) ) {
 				// phpcs:ignore WordPress.WP.AlternativeFunctions.file_system_operations_chmod -- Fallback when WP_Filesystem unavailable.
 				chmod( $path, $mode );
@@ -358,6 +448,10 @@ class SScribe_Filesystem {
 
 		$result = array();
 		foreach ( array_diff( $files, array( '.', '..' ) ) as $name ) {
+
+			if ( '' === $name || '.' === $name[0] || 'index.php' === $name ) {
+				continue;
+			}
 			$full          = trailingslashit( $path ) . $name;
 			$result[ $name ] = array(
 				'name'         => $name,
@@ -381,6 +475,32 @@ class SScribe_Filesystem {
 	 */
 	public function copy( string $source, string $destination, bool $overwrite = false, int $mode = 0600 ): bool {
 		self::$last_error = '';
+
+		$safety = $this->is_path_safe_for_write( $destination );
+		if ( self::SSCRIBE_PATH_REJECT === $safety ) {
+			self::$last_error = 'Refusing to copy outside SScribe export directory (symlink attack suspected)';
+			$this->logger->warning(
+				'Refused copy : destination resolves outside SScribe export directory',
+				array(
+					'source'      => $source,
+					'destination' => $destination,
+				)
+			);
+			return false;
+		}
+
+		$source_safety = $this->is_path_safe_for_read( $source );
+		if ( self::SSCRIBE_PATH_REJECT === $source_safety ) {
+			self::$last_error = 'Refusing to copy source outside SScribe export directory';
+			$this->logger->warning(
+				'Refused copy: source is not a regular file inside the SScribe export directory',
+				array(
+					'source'      => $source,
+					'destination' => $destination,
+				)
+			);
+			return false;
+		}
 
 		if ( self::$fs instanceof WP_Filesystem_Base ) {
 			return self::$fs->copy( $source, $destination, $overwrite, $mode );
@@ -412,6 +532,32 @@ class SScribe_Filesystem {
 	public function move( string $source, string $destination, bool $overwrite = false ): bool {
 		self::$last_error = '';
 
+		$safety = $this->is_path_safe_for_write( $destination );
+		if ( self::SSCRIBE_PATH_REJECT === $safety ) {
+			self::$last_error = 'Refusing to move outside SScribe export directory (symlink attack suspected)';
+			$this->logger->warning(
+				'Refused move : destination resolves outside SScribe export directory',
+				array(
+					'source'      => $source,
+					'destination' => $destination,
+				)
+			);
+			return false;
+		}
+
+		$source_safety = $this->is_path_safe_for_read( $source );
+		if ( self::SSCRIBE_PATH_REJECT === $source_safety ) {
+			self::$last_error = 'Refusing to move source outside SScribe export directory';
+			$this->logger->warning(
+				'Refused move: source is not a regular file inside the SScribe export directory',
+				array(
+					'source'      => $source,
+					'destination' => $destination,
+				)
+			);
+			return false;
+		}
+
 		if ( self::$fs instanceof WP_Filesystem_Base ) {
 			return self::$fs->move( $source, $destination, $overwrite );
 		}
@@ -425,12 +571,215 @@ class SScribe_Filesystem {
 	}
 
 	/**
+	 * Decide whether an existing source is safe to read, copy, or move.
+	 *
+	 * The source must be a regular, non-symlink file whose canonical path is
+	 * inside the plugin-owned export directory. Canonicalizing the file itself
+	 * (rather than only its parent) prevents an in-directory symlink from
+	 * exposing an arbitrary local file through an exported ZIP.
+	 *
+	 * @param string $file Existing source file path.
+	 * @return string One of the SSCRIBE_PATH_* sentinels.
+	 */
+	private function is_path_safe_for_read( string $file ): string {
+		$allowed_root = $this->get_export_dir();
+		if ( '' === $file || '' === $allowed_root || str_contains( $file, "\0" ) || is_link( $file ) ) {
+			return self::SSCRIBE_PATH_REJECT;
+		}
+
+		$file_real = realpath( $file );
+		$root_real = realpath( $allowed_root );
+		if ( false === $file_real || false === $root_real || ! is_file( $file_real ) ) {
+			return self::SSCRIBE_PATH_REJECT;
+		}
+
+		$file_abs    = self::normalize_path( $file_real );
+		$root_prefix = rtrim( self::normalize_path( $root_real ), '/' ) . '/';
+
+		return 0 === strpos( $file_abs, $root_prefix )
+			? self::SSCRIBE_PATH_ALLOWED
+			: self::SSCRIBE_PATH_REJECT;
+	}
+
+	/**
 	 * Get last error message.
 	 *
 	 * @return string Last error message.
 	 */
 	public function get_last_error(): string {
 		return self::$last_error;
+	}
+
+	/**
+	 * Verify that the directory containing `$file` is within the
+	 * SScribe uploads directory (or another explicitly allowed
+	 * directory), following symlinks.
+	 *
+	 * Defense in depth against symlink attacks: a malicious plugin or
+	 * shell access could create a symlink inside
+	 * `wp-content/uploads/sscribe-exports/` that points outside the
+	 * uploads directory (e.g. into `wp-config.php` or another site
+	 * user's home dir). Without this check, a write through the
+	 * symlink would succeed and write to the attacker-controlled
+	 * target.
+	 *
+	 * The check resolves the *parent directory* of the target file
+	 * (not the file itself, which may not exist yet) and verifies
+	 * the resolved absolute path is a prefix of the allowed root.
+	 *
+	 * @param string $file         Target file path (the file being written).
+	 * @param string $allowed_root Absolute path of the allowed root directory.
+	 * @return bool True if the write is safe; false if a symlink attack is suspected.
+	 */
+	public function is_within_allowed_directory( string $file, string $allowed_root ): bool {
+		if ( '' === $file || '' === $allowed_root ) {
+			return false;
+		}
+
+		$allowed_real = realpath( $allowed_root );
+		if ( false === $allowed_real ) {
+
+			$allowed_real = self::normalize_path( $allowed_root );
+		} else {
+
+			$allowed_real = self::normalize_path( $allowed_real );
+		}
+
+		$parent      = dirname( $file );
+		$parent_real = realpath( $parent );
+		if ( false === $parent_real ) {
+
+			$parent_real = self::normalize_path( $parent );
+		} else {
+			$parent_real = self::normalize_path( $parent_real );
+		}
+
+		$parent_real = rtrim( $parent_real, '/' ) . '/';
+		$allowed_real = rtrim( $allowed_real, '/' ) . '/';
+
+		$cmp = ( defined( 'PHP_OS_FAMILY' ) && 'Windows' === PHP_OS_FAMILY )
+			? 'strcasecmp'
+			: 'strcmp';
+
+		return 0 === strpos( $parent_real, $allowed_real )
+			|| 0 === $cmp( $parent_real, $allowed_real );
+	}
+
+	/**
+	 * Normalize a path by resolving `.` and `..` segments lexically
+	 * (no filesystem access). Used when realpath() is not available
+	 * because the path does not yet exist.
+	 *
+	 * On Windows, the result is lowercased so callers can compare
+	 * it against realpath() output (Windows filesystems are
+	 * case-insensitive). This matches the lowercase normalization in
+	 * `SScribe_Security::normalize_path_for_compare()` so the
+	 * filesystem primitives and the security check use the same
+	 * case-folding rule.
+	 *
+	 * @param string $path Path to normalize.
+	 * @return string Normalized absolute path.
+	 */
+	private static function normalize_path( string $path ): string {
+		$path = str_replace( '\\', '/', $path );
+		$is_absolute = ( 0 === strpos( $path, '/' ) );
+		$segments   = explode( '/', $path );
+		$resolved   = array();
+		foreach ( $segments as $segment ) {
+			if ( '' === $segment || '.' === $segment ) {
+				continue;
+			}
+			if ( '..' === $segment ) {
+				array_pop( $resolved );
+				continue;
+			}
+			$resolved[] = $segment;
+		}
+		$normalized = ( $is_absolute ? '/' : '' ) . implode( '/', $resolved );
+		if ( defined( 'PHP_OS_FAMILY' ) && 'Windows' === PHP_OS_FAMILY ) {
+			$normalized = strtolower( $normalized );
+		}
+		return $normalized;
+	}
+
+	/**
+	 * Decide whether a write to `$file` is safe.
+	 *
+	 * The check enforces the WordPress.org Plugin Directory rule that
+	 * plugins may only write to their own plugin-owned folder under
+	 * `wp-content/uploads/` (or to the database via the Settings API).
+	 * For SScribe, that destination is exactly
+	 * `wp-content/uploads/sscribe-exports/` and nothing else.
+	 *
+	 * Two outcomes:
+	 *
+	 *   - {@see self::SSCRIBE_PATH_ALLOWED}: the literal target path
+	 *     is under the SScribe export directory AND the parent
+	 *     directory (if it exists) resolves back inside the export
+	 *     root via realpath() (defends against symlink planting).
+	 *   - {@see self::SSCRIBE_PATH_REJECT}: anything else, including
+	 *     paths whose literal text is already outside the export
+	 *     directory, paths where the parent does not exist, and
+	 *     paths where `wp_upload_dir()` is unavailable. Default-deny
+	 *     protects against misuse even from future callers.
+	 *
+	 * @param string $file Target file path.
+	 * @return string One of the SSCRIBE_PATH_* sentinels.
+	 */
+	public function is_path_safe_for_write( string $file ): string {
+		$allowed_root = $this->get_export_dir();
+		if ( '' === $allowed_root ) {
+
+			return self::SSCRIBE_PATH_REJECT;
+		}
+
+		$file_abs      = self::normalize_path( $file );
+		$allowed_abs   = self::normalize_path( $allowed_root );
+		$allowed_prefix = rtrim( $allowed_abs, '/' ) . '/';
+		$literal_in_export = $file_abs === $allowed_abs || 0 === strpos( $file_abs, $allowed_prefix );
+
+		if ( ! $literal_in_export ) {
+
+			return self::SSCRIBE_PATH_REJECT;
+		}
+
+		$parent = dirname( $file );
+		$nearest_existing = $parent;
+		while ( ! file_exists( $nearest_existing ) && dirname( $nearest_existing ) !== $nearest_existing ) {
+			$nearest_existing = dirname( $nearest_existing );
+		}
+
+		$ancestor_real = realpath( $nearest_existing );
+		$root_real     = realpath( $allowed_root );
+		if ( false === $ancestor_real || false === $root_real ) {
+
+			return self::SSCRIBE_PATH_REJECT;
+		}
+		$ancestor_abs = rtrim( self::normalize_path( $ancestor_real ), '/' );
+		$root_abs     = rtrim( self::normalize_path( $root_real ), '/' );
+		if ( $ancestor_abs !== $root_abs && ! str_starts_with( $ancestor_abs, $root_abs . '/' ) ) {
+			return self::SSCRIBE_PATH_REJECT;
+		}
+
+		return self::SSCRIBE_PATH_ALLOWED;
+	}
+
+	/**
+	 * Get the absolute path of the SScribe export directory.
+	 *
+	 * Returns an empty string if wp_upload_dir() is unavailable.
+	 *
+	 * @return string Absolute path, or empty string on failure.
+	 */
+	private function get_export_dir(): string {
+		if ( ! function_exists( 'wp_upload_dir' ) ) {
+			return '';
+		}
+		$upload_dir = wp_upload_dir();
+		if ( ! empty( $upload_dir['error'] ) || empty( $upload_dir['basedir'] ) ) {
+			return '';
+		}
+		return trailingslashit( $upload_dir['basedir'] ) . 'sscribe-exports';
 	}
 
 	/**
