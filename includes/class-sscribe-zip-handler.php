@@ -716,6 +716,12 @@ class SScribe_Zip_Handler {
 		}
 		$stored = isset( $row['dl_token'] ) && is_string( $row['dl_token'] ) ? $row['dl_token'] : '';
 		if ( '' === $stored || ! hash_equals( $stored, $presented ) ) {
+			if ( $this->logger ) {
+				$this->logger->debug(
+					'Download token row already consumed or absent',
+					array( 'filename' => $zip_filename )
+				);
+			}
 			return false;
 		}
 		try {

@@ -3,7 +3,7 @@ Contributors: simplixinnovations
 Tags: export, docx, pdf, html, markdown
 Requires at least: 6.0
 Tested up to: 7.0
-Stable tag: 1.1.7
+Stable tag: 1.1.8
 Requires PHP: 8.2
 License: GPL-2.0-or-later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
@@ -93,6 +93,16 @@ The bundled Mpdf library (vendor-prefixed/mpdf/) is licensed under the GNU Gener
 
 == Changelog ==
 
+= 1.1.8 =
+* Hardened the PDF exporter's per-render cleanup path: the mPDF instance, parsed HTML, configuration map, and intermediate buffers are released and the cycle collector is invoked on every export, on top of the existing soft-margin guard, so peak memory across back-to-back exports is bounded by the largest single render.
+* Added a bounded image cache for the PDF exporter. Allowed remote image URLs (sha1-keyed, group `sscribe_image_opt`, 30-minute TTL filterable via `sscribe_image_cache_ttl`) are reused across exports in the same window without re-downloading or re-optimizing.
+* Released `$page_data` between pages in the batch processor and emit a debug log + cycle collection pass when remaining memory falls below the `sscribe_min_memory_per_page_mb` filter (default 32MB), preventing slow leaks across very long batch runs.
+* Introduced a two-key HMAC signing ring for export sessions. Verification accepts signatures produced with either the current or immediately previous key, and a 30-day `sscribe_cleanup_sessions` cron at priority 99 rotates the active key in place so operators can recover from a compromised key without invalidating in-flight sessions. The legacy AES session key is now pinned to its own option so rotation no longer breaks in-flight decryption.
+* Required the per-format options filter (`sscribe_export_options_{$format}`) to receive a session ID through `decode_session_value()`, and rejected payloads without a valid `_sig` HMAC, closing a tampering path on bulk-loaded session rows.
+* Added a debug log line on the fail-closed download-token path so future audits can see when a token row was already consumed or absent without changing the rejection behavior.
+* Narrowed the `sscribe_audit_log` diagnostics endpoint, AJAX success/error debug payload, and the audit trail reader to the dedicated `sscribe_health` capability instead of `manage_options`, allowing site owners to delegate health/diagnostic access without granting full admin rights.
+* Dropped the obsolete `wp_sscribe_audit_log` table from `uninstall.php`; the activator never created it and the no-op drop was flagging stale state on WP.org plugin-check runs.
+
 = 1.1.7 =
 * Bumped development dependencies to latest stable versions across the board (PHPUnit 13, PHPStan 2.2, WPCS 3.4, vipwpcs 3.1, phpcompatibility-wp 2.1, ESLint 10, Prettier 3.9, Stylelint 17).
 * Migrated PHPUnit test schema from annotations to native attributes (`#[DataProvider]`, `#[AllowMockObjectsWithoutExpectations]`).
@@ -141,6 +151,9 @@ The bundled Mpdf library (vendor-prefixed/mpdf/) is licensed under the GNU Gener
 
 == Upgrade Notice ==
 
+= 1.1.8 =
+Maintenance release that tightens PDF memory cleanup, caches downloaded images per URL, releases per-page memory between batch iterations, rotates the export-session HMAC signing key through a two-key ring, narrows the diagnostic / audit-log / AJAX debug-payload capabilities to `sscribe_health`, and removes a stale audit-log table from uninstall. No user-facing action required; existing sessions remain valid across the signing-key rotation.
+
 = 1.1.7 =
 Maintenance release with development-tooling updates and a small admin CSS cleanup. No runtime behavior changes for end users.
 
@@ -186,6 +199,21 @@ When remaining memory drops below this, the mPDF exporter triggers a `gc_collect
 
 = `sscribe_pdf_memory_hard_margin_bytes` =
 When remaining memory drops below this, the mPDF exporter aborts with a `SScribe_Result::failure`. Default: `8 * MB_IN_BYTES`.
+
+= `sscribe_image_cache_ttl` =
+Override the TTL (in seconds) of the remote-image cache used by the PDF exporter. Return an `int` of 1 or more; return `0` (or a negative value) to disable the cache entirely.
+
+Parameters: `(int $seconds)` - Default: 1800 (30 minutes)
+
+= `sscribe_min_memory_per_page_mb` =
+Lower bound (in MB) on memory the batch processor tries to free between pages. After dispatching each page, the processor measures available memory and, if it falls below this threshold, emits a debug log line and runs `gc_collect_cycles()`.
+
+Parameters: `(int $megabytes)` - Default: 32
+
+= `sscribe_session_rotation_days` =
+Minimum interval (in days) between automatic HMAC signing-key rotations triggered by the `sscribe_cleanup_sessions` cron. Return an `int` of 1 or more; the ring keeps the current and immediately previous key so in-flight sessions keep verifying.
+
+Parameters: `(int $days)` - Default: 30
 
 == Public classes ==
 

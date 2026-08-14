@@ -277,7 +277,7 @@ class SScribe_Audit_Trail {
 			return array();
 		}
 
-		if ( ! current_user_can( 'manage_options' ) ) {
+		if ( ! current_user_can( SScribe_Capabilities::get_health_required() ) ) {
 			return array();
 		}
 

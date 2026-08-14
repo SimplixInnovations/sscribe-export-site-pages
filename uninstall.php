@@ -127,7 +127,6 @@ $sscribe_cleanup_site = static function (): void {
 	$sscribe_tables = array(
 		$wpdb->prefix . 'sscribe_export_logs',
 		$wpdb->prefix . 'sscribe_export_stats',
-		$wpdb->prefix . 'sscribe_audit_log',
 		$wpdb->prefix . 'sscribe_sessions',
 	);
 

@@ -110,6 +110,75 @@ class SScribe_Session_Test extends TestCase {
 		$this->assertEquals( 'encrypted-json', $session->get_storage_type() );
 	}
 
+	public function test_rotate_signing_key_promotes_current_to_previous(): void {
+		$original_key  = str_repeat( 'a', 64 );
+		$GLOBALS['sscribe_test_options']['sscribe_session_signing_key'] = $original_key;
+		$GLOBALS['sscribe_test_options']['sscribe_session_signing_key_prev'] = '';
+
+		$session = new \SScribe_Session();
+
+		$this->assertTrue( $session->rotate_signing_key() );
+
+		$this->assertSame( $original_key, $GLOBALS['sscribe_test_options']['sscribe_session_signing_key_prev'] );
+		$this->assertNotSame( $original_key, $GLOBALS['sscribe_test_options']['sscribe_session_signing_key'] );
+		$this->assertNotEmpty( $GLOBALS['sscribe_test_options']['sscribe_session_signing_key'] );
+		$this->assertGreaterThan( 0, (int) ( $GLOBALS['sscribe_test_options']['sscribe_session_signing_key_prev_rotated_at'] ?? 0 ) );
+	}
+
+	public function test_session_signed_with_old_key_remains_valid_after_rotation(): void {
+		$original_key = str_repeat( 'b', 64 );
+		$GLOBALS['sscribe_test_options']['sscribe_session_signing_key'] = $original_key;
+		$GLOBALS['sscribe_test_options']['sscribe_session_signing_key_prev'] = '';
+
+		$session = new \SScribe_Session();
+		$id      = $session->create( array( 'page_ids' => array( 7, 8, 9 ), 'total' => 3, 'processed' => 0 ) );
+		$this->assertNotEmpty( $id );
+
+		$this->assertTrue( $session->rotate_signing_key() );
+
+		$data = $session->get( $id );
+
+		$this->assertIsArray( $data );
+		$this->assertSame( array( 7, 8, 9 ), $data['page_ids'] );
+		$this->assertSame( 3, $data['total'] );
+	}
+
+	public function test_decode_session_value_rejects_payload_without_signature(): void {
+		$session = new \SScribe_Session();
+
+		$payload = wp_json_encode( array( 'page_ids' => array( 1 ), 'total' => 1 ) );
+
+		$this->assertNull( $session->decode_session_value( $payload, 'known-session-id' ) );
+	}
+
+	public function test_decode_session_value_rejects_payload_with_mismatched_signature(): void {
+		$session = new \SScribe_Session();
+
+		$payload = wp_json_encode(
+			array(
+				'page_ids' => array( 1 ),
+				'total'    => 1,
+				'_sig'     => str_repeat( '0', 64 ),
+			)
+		);
+
+		$this->assertNull( $session->decode_session_value( $payload, 'known-session-id' ) );
+	}
+
+	public function test_decode_session_value_accepts_payload_with_valid_signature(): void {
+		$session   = new \SScribe_Session();
+		$session_id = 'known-session-id';
+		$signed     = $session->create( array( 'page_ids' => array( 4, 5 ), 'total' => 2, 'processed' => 0 ) );
+
+		$raw = $GLOBALS['sscribe_test_options'][ 'sscribe_session_' . $signed ] ?? '';
+		$this->assertNotEmpty( $raw );
+
+		$decoded = $session->decode_session_value( $raw, $signed );
+
+		$this->assertIsArray( $decoded );
+		$this->assertSame( array( 4, 5 ), $decoded['page_ids'] );
+	}
+
 	private function reset_active_session_cache(): void {
 		$property = new \ReflectionProperty( \SScribe_Session::class, 'active_session_cache' );
 		$property->setValue( null, array() );

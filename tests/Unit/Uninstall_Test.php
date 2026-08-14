@@ -105,7 +105,6 @@ final class Uninstall_Test extends TestCase {
 		// Audit the snippet for required cleanup paths.
 		$this->assertStringContainsString( 'sscribe_export_logs', $snippet );
 		$this->assertStringContainsString( 'sscribe_export_stats', $snippet );
-		$this->assertStringContainsString( 'sscribe_audit_log', $snippet );
 		$this->assertStringContainsString( 'sscribe_sessions', $snippet );
 		$this->assertStringContainsString( 'sscribe_settings', $snippet );
 		$this->assertStringContainsString( 'DROP TABLE IF EXISTS', $snippet );

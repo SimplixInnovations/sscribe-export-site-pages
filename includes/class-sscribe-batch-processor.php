@@ -511,6 +511,26 @@ final class SScribe_Batch_Processor {
 			}
 		}
 
+		unset( $page_data );
+
+		$min_memory_mb    = (int) apply_filters( 'sscribe_min_memory_per_page_mb', 32 );
+		$memory_available = $this->is_memory_available( $min_memory_mb );
+		if ( ! $memory_available ) {
+			$this->logger->debug(
+				'Low memory after page dispatch; forcing cycle collection',
+				array(
+					'page_id'         => $page_id,
+					'memory_usage'    => size_format( memory_get_usage( true ) ),
+					'memory_peak'     => size_format( memory_get_peak_usage( true ) ),
+					'memory_limit'    => (string) ini_get( 'memory_limit' ),
+					'min_required_mb' => $min_memory_mb,
+				)
+			);
+			if ( function_exists( 'gc_collect_cycles' ) ) {
+				gc_collect_cycles();
+			}
+		}
+
 		return array(
 			'export_success'     => $export_success,
 			'successful_formats' => $successful_formats,
