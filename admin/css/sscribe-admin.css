@@ -2436,7 +2436,16 @@ body.rtl .sscribe-progress-bar-fill {
 	font-size: 13px;
 	pointer-events: auto;
 	line-height: 1.4;
-	animation: sscribe-toast-slide-in 200ms var(--ss-easing, ease);
+	opacity: 0;
+	transform: translateY(8px) scale(0.98);
+	transition:
+		opacity 200ms var(--ss-easing, ease),
+		transform 200ms var(--ss-easing, ease);
+}
+
+.sscribe-toast.sscribe-toast-visible {
+	opacity: 1;
+	transform: translateY(0) scale(1);
 }
 
 @keyframes sscribe-toast-slide-in {
@@ -2452,7 +2461,8 @@ body.rtl .sscribe-progress-bar-fill {
 }
 
 .sscribe-toast.sscribe-toast-removing {
-	animation: sscribe-toast-slide-out 180ms var(--ss-easing, cubic-bezier(0.4, 0, 1, 1)) forwards;
+	opacity: 0;
+	transform: translateY(0) scale(0.98);
 	pointer-events: none;
 }
 

@@ -2259,6 +2259,45 @@
 		 * @param {string} type One of 'success', 'error', 'warning', 'info'.
 		 * @param {number} duration Auto-dismiss timeout in ms (default: 4000).
 		 */
+		showToast: function (message, type, duration) {
+			if (!message) {
+				return;
+			}
+			type = type || 'info';
+			duration = typeof duration === 'number' && isFinite(duration) ? duration : 4000;
+			const $container = $('#sscribe-toast-container');
+			if (!$container.length) {
+				return;
+			}
+			const typeClass = 'sscribe-toast-' + type;
+			const $toast = $('<div>')
+				.addClass('sscribe-toast ' + typeClass)
+				.attr('role', type === 'error' ? 'alert' : 'status')
+				.attr('aria-live', type === 'error' ? 'assertive' : 'polite');
+			const $icon = $('<span>').addClass('sscribe-toast-icon').attr('aria-hidden', 'true');
+			const $body = $('<span>').addClass('sscribe-toast-body').text(message);
+			$toast.append($icon).append($body);
+			$container.append($toast);
+			// Animate in
+			requestAnimationFrame(function () {
+				$toast.addClass('sscribe-toast-visible');
+			});
+			// Auto-dismiss
+			const dismiss = function () {
+				$toast.removeClass('sscribe-toast-visible').addClass('sscribe-toast-removing');
+				setTimeout(function () {
+					$toast.remove();
+				}, 220);
+			};
+			if (duration > 0) {
+				setTimeout(dismiss, duration);
+			}
+			// Click-to-dismiss
+			$toast.on('click.sscribe', function () {
+				dismiss();
+			});
+			return $toast;
+		},
 		adjustToastContainerPosition: function () {
 			const $container = $('#sscribe-toast-container');
 			if (!$container.length) {
