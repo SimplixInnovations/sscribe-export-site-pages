@@ -120,7 +120,7 @@ if ( ! function_exists( 'sscribe_humanize_export_filename' ) ) {
 ?>
 
 <a class="sscribe-skip-link screen-reader-text" href="#sscribe-main-content"><?php esc_html_e( 'Skip to export configuration', 'sscribe-export-site-pages' ); ?></a>
-<div class="sscribe-master-container">
+<div class="sscribe-master-container sscribe-table-rule">
 	<header class="sscribe-hero">
 		<div class="sscribe-hero-content">
 			<div class="sscribe-hero-left">

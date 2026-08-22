@@ -19,9 +19,23 @@
 	margin: 0;
 }
 
-.sscribe-master-container table {
+/* Scoped reset: only normalize tables outside of the explicitly-styled
+ * admin components (history, log modal, preview modal). The .sscribe-log-table,
+ * .sscribe-history-table-element, and .sscribe-preview-* tables opt out via
+ * the .sscribe-table-rule opt-out class on the .sscribe-master-container. */
+.sscribe-master-container:not(.sscribe-table-rule) table {
 	display: block;
 	border: none;
+}
+
+.sscribe-master-container.sscribe-table-rule table,
+.sscribe-master-container .sscribe-table,
+.sscribe-master-container .sscribe-log-table,
+.sscribe-master-container .sscribe-history-table-element,
+.sscribe-master-container .sscribe-preview-table {
+	display: table;
+	border-collapse: collapse;
+	width: 100%;
 }
 
 .sscribe-master-container .button {
@@ -2907,16 +2921,22 @@ body.rtl .sscribe-progress-bar-fill {
 	display: flex;
 	align-items: center;
 	gap: var(--ss-space-3);
-	padding: var(--ss-space-3) var(--ss-space-4);
-	background: var(--ss-surface-2);
+	padding: var(--ss-space-4) var(--ss-space-5);
+	background: var(--ss-surface);
 	border: 1px solid var(--ss-border);
 	border-radius: var(--ss-radius-md);
 	min-width: 0;
 	position: relative;
 	overflow: hidden;
+	box-shadow: 0 1px 2px rgb(0 0 0 / 4%);
 	transition:
 		border-color var(--ss-motion-fast) var(--ss-easing),
-		background var(--ss-motion-fast) var(--ss-easing);
+		background var(--ss-motion-fast) var(--ss-easing),
+		box-shadow var(--ss-motion-fast) var(--ss-easing);
+}
+
+.sscribe-log-stat:hover {
+	box-shadow: 0 2px 6px rgb(0 0 0 / 6%);
 }
 
 .sscribe-log-stat::before {
@@ -3062,16 +3082,18 @@ body.rtl .sscribe-progress-bar-fill {
 .sscribe-log-table {
 	width: 100%;
 	min-width: 640px;
-	border-collapse: collapse;
+	border-collapse: separate;
+	border-spacing: 0;
 	font-size: 13px;
 	font-variant-numeric: tabular-nums;
-	border: 0;
+	border: 1px solid var(--ss-border);
+	border-radius: var(--ss-radius-md);
 	background: var(--ss-surface);
+	overflow: hidden;
 }
 
 .sscribe-log-table-wrap {
 	overflow-x: auto;
-	border: 1px solid var(--ss-border);
 	border-radius: var(--ss-radius-md);
 	background: var(--ss-surface);
 }
@@ -3095,18 +3117,18 @@ body.rtl .sscribe-progress-bar-fill {
 .sscribe-log-table th {
 	text-align: left;
 	font-size: 11px;
-	font-weight: 600;
+	font-weight: 700;
 	text-transform: uppercase;
 	letter-spacing: 0.05em;
 	color: var(--ss-text-tertiary);
-	padding: var(--ss-space-2) var(--ss-space-3);
-	border-bottom: 1px solid var(--ss-border);
+	padding: var(--ss-space-3) var(--ss-space-4);
 	background: var(--ss-surface-2);
 	white-space: nowrap;
+	border-bottom: 1px solid var(--ss-border);
 }
 
 .sscribe-log-table td {
-	padding: var(--ss-space-3);
+	padding: var(--ss-space-3) var(--ss-space-4);
 	border-bottom: 1px solid var(--ss-border);
 	color: var(--ss-text-secondary);
 	vertical-align: middle;
@@ -3130,6 +3152,89 @@ body.rtl .sscribe-progress-bar-fill {
 
 .sscribe-log-table tbody tr:last-child td:last-child {
 	border-radius: 0 0 var(--ss-radius-md) 0;
+}
+
+.sscribe-log-id {
+	font-family: var(--ss-font-mono);
+	font-size: 12px;
+	color: var(--ss-text-tertiary);
+	background: var(--ss-surface-2);
+	padding: 2px 6px;
+	border-radius: var(--ss-radius-sm);
+}
+
+.sscribe-log-title {
+	font-weight: 500;
+	color: var(--ss-text-primary);
+	display: block;
+	max-width: 320px;
+	overflow: hidden;
+	text-overflow: ellipsis;
+	white-space: nowrap;
+}
+
+.sscribe-log-status-badge {
+	display: inline-flex;
+	align-items: center;
+	gap: 6px;
+	padding: 2px 10px;
+	border-radius: var(--ss-radius-full);
+	font-size: 11px;
+	font-weight: 600;
+	text-transform: capitalize;
+}
+
+.sscribe-log-status-dot {
+	display: inline-block;
+	width: 6px;
+	height: 6px;
+	border-radius: 50%;
+	flex-shrink: 0;
+}
+
+.sscribe-log-status-dot-success {
+	background: var(--ss-success);
+	box-shadow: 0 0 0 3px var(--ss-success-bg);
+}
+
+.sscribe-log-status-dot-failed {
+	background: var(--ss-error);
+	box-shadow: 0 0 0 3px var(--ss-error-bg);
+}
+
+.sscribe-log-status-dot-neutral {
+	background: var(--ss-text-muted);
+	box-shadow: 0 0 0 3px var(--ss-surface-2);
+}
+
+.sscribe-log-status-neutral {
+	background: var(--ss-surface-2);
+	border-color: var(--ss-border);
+	color: var(--ss-text-secondary);
+}
+
+.sscribe-log-time {
+	font-family: var(--ss-font-mono);
+	font-size: 12px;
+	color: var(--ss-text-secondary);
+}
+
+.sscribe-log-format-chip {
+	display: inline-flex;
+	align-items: center;
+	padding: 2px 8px;
+	margin-right: 4px;
+	background: var(--ss-brand-tint);
+	color: var(--ss-brand);
+	border-radius: var(--ss-radius-sm);
+	font-family: var(--ss-font-mono);
+	font-size: 11px;
+	font-weight: 600;
+	letter-spacing: 0.04em;
+}
+
+.sscribe-log-format-chip:last-child {
+	margin-right: 0;
 }
 
 .sscribe-log-empty {
