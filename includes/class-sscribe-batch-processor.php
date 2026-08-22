@@ -632,14 +632,14 @@ final class SScribe_Batch_Processor {
 						if ( ! is_scalar( $sscribe_v ) ) {
 							return '';
 						}
-						return mb_substr( sanitize_text_field( (string) $sscribe_v ), 0, 500 );
+						return SScribe_Helpers::mb_substr( sanitize_text_field( (string) $sscribe_v ), 0, 500 );
 					},
 					array_slice( $sscribe_opt_value, 0, 20 )
 				);
 			} elseif ( ! is_scalar( $sscribe_opt_value ) ) {
 				$sscribe_opt_value = '';
 			} else {
-				$sscribe_opt_value = mb_substr( sanitize_text_field( (string) $sscribe_opt_value ), 0, 500 );
+				$sscribe_opt_value = SScribe_Helpers::mb_substr( sanitize_text_field( (string) $sscribe_opt_value ), 0, 500 );
 			}
 			$cleaned[ $sscribe_opt_name ] = $sscribe_opt_value;
 		}

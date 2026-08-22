@@ -14,8 +14,7 @@
         "php": ">=8.2",
         "mpdf/mpdf": "~8.3.0",
         "phpoffice/phpword": "~1.4.0",
-        "psr/container": "^2.0",
-        "symfony/polyfill-mbstring": "^1.0"
+        "psr/container": "^2.0"
     },
     "require-dev": {
         "brianhenryie/strauss": "~0.28.1",
@@ -73,11 +72,10 @@
             "target_directory": "vendor-prefixed",
             "namespace_prefix": "SScribeVendor\\",
             "classmap_prefix": "SScribeVendor_",
-            "packages": [
+	            "packages": [
                 "mpdf/mpdf",
                 "phpoffice/phpword",
-                "psr/container",
-                "symfony/polyfill-mbstring"
+                "psr/container"
             ],
             "delete_vendor_packages": false,
             "exclude_constants": []

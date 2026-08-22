@@ -1310,8 +1310,8 @@ class SScribe_Page_Collector {
 			}
 			$result[] = array(
 				'code'        => $code,
-				'name'        => mb_substr( sanitize_text_field( (string) ( $lang['translated_name'] ?? $lang['name'] ?? $code ) ), 0, 100 ),
-				'native_name' => mb_substr( sanitize_text_field( (string) ( $lang['native_name'] ?? $code ) ), 0, 100 ),
+				'name'        => SScribe_Helpers::mb_substr( sanitize_text_field( (string) ( $lang['translated_name'] ?? $lang['name'] ?? $code ) ), 0, 100 ),
+				'native_name' => SScribe_Helpers::mb_substr( sanitize_text_field( (string) ( $lang['native_name'] ?? $code ) ), 0, 100 ),
 				'flag_url'    => esc_url_raw( (string) ( $lang['country_flag_url'] ?? $lang['flag_url'] ?? '' ) ),
 			);
 		}

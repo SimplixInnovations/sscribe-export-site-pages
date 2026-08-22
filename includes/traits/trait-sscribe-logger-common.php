@@ -142,7 +142,7 @@ trait SScribe_Logger_Common {
 			} elseif ( is_string( $value ) && str_starts_with( $value, 'eyJ' ) && substr_count( $value, '.' ) >= 2 ) {
 				$context[ $key ] = '[REDACTED]';
 			} elseif ( is_string( $value ) ) {
-				$context[ $key ] = mb_substr( $value, 0, 2000 );
+				$context[ $key ] = SScribe_Helpers::mb_substr( $value, 0, 2000 );
 			}
 		}
 

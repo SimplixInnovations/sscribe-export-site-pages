@@ -593,7 +593,7 @@ class SScribe_Export_Log {
 	 */
 	private static function limit_text( string $value, int $length ): string {
 		$value = sanitize_text_field( $value );
-		return mb_substr( $value, 0, $length );
+		return SScribe_Helpers::mb_substr( $value, 0, $length );
 	}
 
 	/**

@@ -137,7 +137,7 @@ class SScribe_Export_Stats {
 			'status'           => 'completed',
 			'successful_pages' => max( 0, (int) ( $results['successful_pages'] ?? 0 ) ),
 			'failed_pages'     => max( 0, (int) ( $results['failed_pages'] ?? 0 ) ),
-			'memory_peak'      => mb_substr( sanitize_text_field( (string) ( $results['memory_peak'] ?? '' ) ), 0, 20 ),
+			'memory_peak'      => SScribe_Helpers::mb_substr( sanitize_text_field( (string) ( $results['memory_peak'] ?? '' ) ), 0, 20 ),
 			'duration_seconds' => $duration,
 			'file_size_mb'     => $file_size,
 		);
@@ -168,7 +168,7 @@ class SScribe_Export_Stats {
 		}
 
 		global $wpdb;
-		$error_message = mb_substr( sanitize_text_field( $error_message ), 0, 1000 );
+		$error_message = SScribe_Helpers::mb_substr( sanitize_text_field( $error_message ), 0, 1000 );
 
 		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- Custom table write
 		$result = $wpdb->update(

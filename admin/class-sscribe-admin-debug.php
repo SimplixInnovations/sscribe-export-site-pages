@@ -903,14 +903,14 @@ class SScribe_Admin_Debug {
 			}
 
 			if ( ! empty( $search ) ) {
-				$search_lower  = mb_strtolower( $search, 'UTF-8' );
-				$message       = mb_strtolower( $entry['message'], 'UTF-8' );
+				$search_lower  = SScribe_Helpers::mb_strtolower( $search );
+				$message       = SScribe_Helpers::mb_strtolower( $entry['message'] );
 				$context_json  = wp_json_encode( $entry['context'] );
 				$context_json  = ( false === $context_json ) ? '' : $context_json;
-				$context_lower = mb_strtolower( $context_json, 'UTF-8' );
+				$context_lower = SScribe_Helpers::mb_strtolower( $context_json );
 
-				if ( false === mb_strpos( $message, $search_lower, 0, 'UTF-8' )
-					&& false === mb_strpos( $context_lower, $search_lower, 0, 'UTF-8' )
+				if ( false === SScribe_Helpers::mb_strpos( $message, $search_lower, 0 )
+					&& false === SScribe_Helpers::mb_strpos( $context_lower, $search_lower, 0 )
 				) {
 					continue;
 				}
@@ -930,11 +930,11 @@ class SScribe_Admin_Debug {
 	 */
 	private function parse_log_line( string $line ): array {
 
-		if ( mb_strlen( $line ) > 10000 ) {
+		if ( SScribe_Helpers::mb_strlen( $line ) > 10000 ) {
 			return array(
 				'timestamp' => '',
 				'level'     => 'RAW',
-				'message'   => mb_substr( $line, 0, 200 ) . '... [truncated]',
+				'message'   => SScribe_Helpers::mb_substr( $line, 0, 200 ) . '... [truncated]',
 				'context'   => array(),
 			);
 		}
@@ -1014,7 +1014,7 @@ class SScribe_Admin_Debug {
 
 		header( 'Content-Type: application/json' );
 		header( 'Content-Disposition: attachment; filename="' . $safe_filename . '"' );
-		header( 'Content-Length: ' . mb_strlen( $content, '8bit' ) );
+		header( 'Content-Length: ' . SScribe_Helpers::mb_strlen( $content ) );
 		header( 'Cache-Control: no-store, no-cache, must-revalidate' );
 		header( 'Pragma: no-cache' );
 		header( 'X-Content-Type-Options: nosniff' );

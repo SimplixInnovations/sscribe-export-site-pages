@@ -4105,10 +4105,10 @@ kbd.sscribe-shortcut-hint {
 	border-bottom-width: 2px;
 	border-radius: var(--ss-radius-sm);
 	background: var(--ss-surface-2);
-	color: var(--ss-text-secondary);
+	color: var(--ss-text-primary);
 	font-family: var(--ss-font-mono);
 	font-size: 10px;
-	font-weight: 600;
+	font-weight: 700;
 	line-height: 1;
 	letter-spacing: 0;
 	text-transform: none;

@@ -185,7 +185,7 @@ class SScribe_Audit_Trail {
 			} elseif ( is_object( $value ) ) {
 				$context[ $key ] = $this->sanitize_context( get_object_vars( $value ), $depth + 1 );
 			} elseif ( is_string( $value ) ) {
-				$context[ $key ] = mb_substr( $value, 0, 2000 );
+				$context[ $key ] = SScribe_Helpers::mb_substr( $value, 0, 2000 );
 			} elseif ( ! is_scalar( $value ) && null !== $value ) {
 				$context[ $key ] = '[UNSUPPORTED]';
 			}
@@ -245,7 +245,7 @@ class SScribe_Audit_Trail {
 	 */
 	private function get_user_agent(): string {
 		if ( isset( $_SERVER['HTTP_USER_AGENT'] ) && is_string( $_SERVER['HTTP_USER_AGENT'] ) && '' !== $_SERVER['HTTP_USER_AGENT'] ) {
-			return mb_substr( sanitize_text_field( wp_unslash( $_SERVER['HTTP_USER_AGENT'] ) ), 0, 255 );
+			return SScribe_Helpers::mb_substr( sanitize_text_field( wp_unslash( $_SERVER['HTTP_USER_AGENT'] ) ), 0, 255 );
 		}
 		return 'Unknown';
 	}
@@ -259,7 +259,7 @@ class SScribe_Audit_Trail {
 		if ( isset( $_SERVER['REQUEST_URI'] ) && is_string( $_SERVER['REQUEST_URI'] ) && '' !== $_SERVER['REQUEST_URI'] ) {
 			$request_uri = sanitize_text_field( wp_unslash( $_SERVER['REQUEST_URI'] ) );
 			$path        = wp_parse_url( $request_uri, PHP_URL_PATH );
-			return is_string( $path ) ? mb_substr( $path, 0, 2083 ) : '';
+			return is_string( $path ) ? SScribe_Helpers::mb_substr( $path, 0, 2083 ) : '';
 		}
 		return '';
 	}

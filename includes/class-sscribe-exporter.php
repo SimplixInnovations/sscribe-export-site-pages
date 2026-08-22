@@ -431,9 +431,9 @@ final class SScribe_Exporter {
 
 		$text = str_replace( "\x0C", '', $text );
 
-		if ( mb_strlen( $text, 'UTF-8' ) > 2048 && $this->is_machine_style_string( $text ) ) {
-			$original_length = mb_strlen( $text, 'UTF-8' );
-			$text = mb_substr( $text, 0, 2048, 'UTF-8' );
+		if ( SScribe_Helpers::mb_strlen( $text ) > 2048 && $this->is_machine_style_string( $text ) ) {
+			$original_length = SScribe_Helpers::mb_strlen( $text );
+			$text = SScribe_Helpers::mb_substr( $text, 0, 2048 );
 			$this->get_logger()->warning(
 				'Text truncated in safe_text : long machine-style string detected',
 				array(
@@ -461,7 +461,7 @@ final class SScribe_Exporter {
 	 */
 	private function is_machine_style_string( string $text ): bool {
 
-		if ( false !== mb_strpos( $text, ' ', 0, 'UTF-8' ) ) {
+		if ( false !== SScribe_Helpers::mb_strpos( $text, ' ', 0 ) ) {
 			return true;
 		}
 
@@ -469,12 +469,8 @@ final class SScribe_Exporter {
 			return true;
 		}
 
-		if ( 0 === mb_strlen( $text, 'UTF-8' ) - mb_strlen( $text, 'ASCII' ) ) {
-			return true;
-		}
-
 		$ascii_machine_count = preg_match_all( '/[A-Za-z0-9=\/\+_\-:.;?&%@#]/', $text );
-		$total_length        = mb_strlen( $text, 'UTF-8' );
+		$total_length        = SScribe_Helpers::mb_strlen( $text );
 
 		if ( $total_length > 0 && ( $ascii_machine_count / $total_length ) > 0.6 ) {
 			return true;

@@ -171,8 +171,8 @@ class SScribe_DOCX_Content_Renderer {
 		$text = str_replace( array( "\r\n", "\r" ), "\n", $text );
 		$text = str_replace( "\x0C", '', $text );
 
-		if ( mb_strlen( $text, 'UTF-8' ) > 2048 && false === mb_strpos( $text, ' ', 0, 'UTF-8' ) ) {
-			$text = mb_substr( $text, 0, 2048, 'UTF-8' );
+		if ( SScribe_Helpers::mb_strlen( $text ) > 2048 && false === SScribe_Helpers::mb_strpos( $text, ' ', 0 ) ) {
+			$text = SScribe_Helpers::mb_substr( $text, 0, 2048 );
 		}
 
 		return $text;
@@ -553,8 +553,8 @@ class SScribe_DOCX_Content_Renderer {
 
 					$display_text = $text_content;
 					if ( '' === trim( $display_text ) || $display_text === $link_url ) {
-						$display_text = mb_strlen( $link_url, 'UTF-8' ) > 60
-							? mb_substr( $link_url, 0, 60, 'UTF-8' ) . '...'
+						$display_text = SScribe_Helpers::mb_strlen( $link_url ) > 60
+							? SScribe_Helpers::mb_substr( $link_url, 0, 60 ) . '...'
 							: $link_url;
 					}
 

@@ -351,4 +351,87 @@ class SScribe_Helpers {
 
 		return preg_replace( $patterns, '', $html ) ?? $html;
 	}
+
+	/**
+	 * Multibyte-safe wrappers that gracefully degrade when the mbstring
+	 * extension is unavailable. Each function delegates to mb_* when
+	 * present and falls back to the byte-oriented equivalent otherwise.
+	 *
+	 * @package SScribe_Export_Site_Pages
+	 */
+	/**
+	 * Multibyte-safe strlen that falls back to byte counting when the
+	 * mbstring extension is unavailable.
+	 *
+	 * @param string $string Input string.
+	 * @return int Character count.
+	 */
+	public static function mb_strlen( string $string ): int {
+		return function_exists( 'mb_strlen' ) ? (int) mb_strlen( $string ) : strlen( $string );
+	}
+
+	/**
+	 * Multibyte-safe substr that falls back to byte slicing.
+	 *
+	 * @param string   $string Input string.
+	 * @param int      $start  Start offset (negative counts from end).
+	 * @param int|null $length Optional length; null reads to the end.
+	 * @return string The substring.
+	 */
+	public static function mb_substr( string $string, int $start, ?int $length = null ): string {
+		if ( ! function_exists( 'mb_substr' ) ) {
+			return null === $length ? substr( $string, $start ) : substr( $string, $start, $length );
+		}
+		return null === $length ? (string) mb_substr( $string, $start ) : (string) mb_substr( $string, $start, $length );
+	}
+
+	/**
+	 * Multibyte-safe strcut that falls back to byte slicing.
+	 *
+	 * @param string   $string Input string.
+	 * @param int      $start  Start offset.
+	 * @param int|null $length Optional length; null reads to the end.
+	 * @return string The substring.
+	 */
+	public static function mb_strcut( string $string, int $start, ?int $length = null ): string {
+		if ( ! function_exists( 'mb_strcut' ) ) {
+			return null === $length ? substr( $string, $start ) : substr( $string, $start, $length );
+		}
+		return null === $length ? (string) mb_strcut( $string, $start ) : (string) mb_strcut( $string, $start, $length );
+	}
+
+	/**
+	 * Multibyte-safe strpos that falls back to byte searching.
+	 *
+	 * @param string $haystack String to search.
+	 * @param string $needle   Needle substring.
+	 * @param int    $offset    Search offset (negative counts from end).
+	 * @return int|false Position of needle, or false if not found.
+	 */
+	public static function mb_strpos( string $haystack, string $needle, int $offset = 0 ): int|false {
+		if ( ! function_exists( 'mb_strpos' ) ) {
+			return strpos( $haystack, $needle, $offset );
+		}
+		return mb_strpos( $haystack, $needle, $offset );
+	}
+
+	/**
+	 * Multibyte-safe strtolower that falls back to byte lowering.
+	 *
+	 * @param string $string Input string.
+	 * @return string Lower-cased string.
+	 */
+	public static function mb_strtolower( string $string ): string {
+		return function_exists( 'mb_strtolower' ) ? (string) mb_strtolower( $string ) : strtolower( $string );
+	}
+
+	/**
+	 * Multibyte-safe strtoupper that falls back to byte upper-casing.
+	 *
+	 * @param string $string Input string.
+	 * @return string Upper-cased string.
+	 */
+	public static function mb_strtoupper( string $string ): string {
+		return function_exists( 'mb_strtoupper' ) ? (string) mb_strtoupper( $string ) : strtoupper( $string );
+	}
 }

@@ -2953,6 +2953,113 @@
 				},
 			});
 		},
+		/**
+		 * Copy the support snapshot text to the clipboard and announce
+		 * the result via the live-region. Refuses to do anything if no
+		 * snapshot has been generated yet (textarea empty) or the
+		 * Clipboard API is unavailable.
+		 */
+		copySupportInfo: function () {
+			const $textarea = $('#sscribe-support-copy-text');
+			const $btn = $('#sscribe-support-copy-btn');
+			if (!$textarea.length || !$textarea.val()) {
+				this.showToast(
+					(sscribe_data.strings && sscribe_data.strings.support_copy_error) ||
+						'No support information to copy yet.',
+					'warning'
+				);
+				return;
+			}
+			const text = $textarea.val();
+			const done = () => {
+				$btn.prop('disabled', true).text(
+					(sscribe_data.strings && sscribe_data.strings.support_copied) ||
+						'Copied!'
+				);
+				setTimeout(function () {
+					$btn.prop('disabled', false).text(
+						(sscribe_data.strings && sscribe_data.strings.support_copy) ||
+							'Copy support info'
+					);
+				}, 2000);
+				SScribe.announce(
+					(sscribe_data.strings && sscribe_data.strings.support_copied) ||
+						'Support information copied.'
+				);
+			};
+			if (navigator.clipboard && window.isSecureContext) {
+				navigator.clipboard.writeText(text).then(done).catch(function () {
+					self.fallbackCopy(text, done);
+				});
+			} else {
+				this.fallbackCopy(text, done);
+			}
+		},
+		/**
+		 * Fallback clipboard write for non-secure contexts. Uses a hidden
+		 * textarea + document.execCommand('copy'). Deprecated API but
+		 * still the only option on http:// origins (e.g. test env).
+		 */
+		fallbackCopy: function (text, onDone) {
+			const attempt = function () {
+				const $temp = $('<textarea>')
+					.css({ position: 'fixed', top: '-9999px', opacity: 0 })
+					.val(text)
+					.appendTo('body');
+				$temp[0].select();
+				const result = document.execCommand('copy');
+				$temp.remove();
+				return result;
+			};
+			let ok = false;
+			try {
+				ok = attempt();
+			} catch (_e) {
+				// ok stays false
+			}
+			if (ok) {
+				if (typeof onDone === 'function') {
+					onDone();
+				}
+				return;
+			}
+			this.showToast(
+				(sscribe_data.strings && sscribe_data.strings.support_copy_error) ||
+					'Copy failed. Try selecting the text manually.',
+				'error'
+			);
+		},
+		/**
+		 * Push a status announcement to the aria-live region and keep
+		 * the last-announced bucket so duplicate messages do not spam
+		 * screen readers.
+		 *
+		 * @param {string} message Announcement text.
+		 */
+		announce: function (message) {
+			if (!message) {
+				return;
+			}
+			const $region = $('#sscribe-live-region');
+			if (!$region.length) {
+				return;
+			}
+			const now = Date.now();
+			const last = this._lastAnnounce || { text: '', at: 0 };
+			if (last.text === message && now - last.at < 1500) {
+				return;
+			}
+			// Reset to empty first so identical consecutive strings still
+			// re-trigger screen-reader announcements.
+			$region.text('');
+			setTimeout(
+				function () {
+					$region.text(message);
+				},
+				last.text === message ? 30 : 0
+			);
+			this._lastAnnounce = { text: message, at: now };
+		},
 		renderSupportInfo: function (data) {
 			const $grid = $('#sscribe-support-grid');
 			const $textarea = $('#sscribe-support-copy-text');

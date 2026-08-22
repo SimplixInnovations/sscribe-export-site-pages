@@ -162,8 +162,8 @@ class SScribe_Exporter_Factory {
 
 		$page_title = '' !== $raw_title ? $raw_title : ( '' !== $raw_slug ? $raw_slug : (string) $page_id );
 
-		if ( mb_strlen( $page_title ) > 60 ) {
-			$page_title = mb_substr( $page_title, 0, 60 );
+		if ( SScribe_Helpers::mb_strlen( $page_title ) > 60 ) {
+			$page_title = SScribe_Helpers::mb_substr( $page_title, 0, 60 );
 
 			$page_title = rtrim( $page_title, '- _' );
 
@@ -221,7 +221,7 @@ class SScribe_Exporter_Factory {
 		$filename = rtrim( $filename, '.-' );
 
 		if ( strlen( $filename ) > 200 ) {
-			$filename = mb_strcut( $filename, 0, 200, 'UTF-8' );
+			$filename = SScribe_Helpers::mb_strcut( $filename, 0, 200 );
 			$filename = rtrim( $filename, ' .-' );
 		}
 

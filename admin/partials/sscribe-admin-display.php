@@ -632,13 +632,11 @@ if ( ! function_exists( 'sscribe_humanize_export_filename' ) ) {
 							<span><?php esc_html_e( 'Auto-download when complete', 'sscribe-export-site-pages' ); ?></span>
 						</label>
 						<button type="button" id="sscribe-preview-btn" class="sscribe-button sscribe-button-outline sscribe-btn-sm" disabled aria-describedby="sscribe-preview-btn-hint" title="<?php esc_attr_e( 'Ctrl+Shift+P (Cmd+Shift+P on Mac)', 'sscribe-export-site-pages' ); ?>">
-						<?php echo wp_kses( SScribe_Helpers::get_icon_inline( 'eye', 14, 'sscribe-button-glyph' ), SScribe_Helpers::get_svg_kses_allowed_html() ); ?>
 							<span><?php esc_html_e( 'Preview', 'sscribe-export-site-pages' ); ?></span>
 							<kbd class="sscribe-shortcut-hint" aria-hidden="true">⇧P</kbd>
 						</button>
 						<span id="sscribe-preview-btn-hint" class="screen-reader-text"><?php esc_html_e( 'Preview what your export will look like before generating', 'sscribe-export-site-pages' ); ?></span>
 						<button type="button" id="sscribe-export-btn" class="sscribe-button sscribe-button-primary sscribe-btn-lg" disabled aria-describedby="sscribe-export-btn-hint" title="<?php esc_attr_e( 'Ctrl+Shift+E (Cmd+Shift+E on Mac)', 'sscribe-export-site-pages' ); ?>">
-						<?php echo wp_kses( SScribe_Helpers::get_icon_inline( 'download-package', 14, 'sscribe-button-glyph' ), SScribe_Helpers::get_svg_kses_allowed_html() ); ?>
 							<span id="sscribe-export-btn-text"><?php esc_html_e( 'Generate Package', 'sscribe-export-site-pages' ); ?></span>
 							<kbd class="sscribe-shortcut-hint" aria-hidden="true">⇧E</kbd>
 						</button>
@@ -671,10 +669,9 @@ if ( ! function_exists( 'sscribe_humanize_export_filename' ) ) {
 							<button type="button" id="sscribe-preview-dismiss-btn" class="sscribe-button sscribe-button-outline">
 								<?php esc_html_e( 'Close', 'sscribe-export-site-pages' ); ?>
 							</button>
-							<button type="button" id="sscribe-preview-start-btn" class="sscribe-button sscribe-button-primary">
-							<?php echo wp_kses( SScribe_Helpers::get_icon_inline( 'download-package', 16, 'sscribe-button-glyph' ), SScribe_Helpers::get_svg_kses_allowed_html() ); ?>
-								<?php esc_html_e( 'Start Export', 'sscribe-export-site-pages' ); ?>
-							</button>
+						<button type="button" id="sscribe-preview-start-btn" class="sscribe-button sscribe-button-primary">
+							<?php esc_html_e( 'Start Export', 'sscribe-export-site-pages' ); ?>
+						</button>
 						</div>
 						<span id="sscribe-preview-desc" class="screen-reader-text"><?php esc_html_e( 'Export readiness preview showing selected configuration and expected output', 'sscribe-export-site-pages' ); ?></span>
 					</div>
