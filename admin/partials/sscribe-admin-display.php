@@ -617,16 +617,12 @@ if ( ! function_exists( 'sscribe_humanize_export_filename' ) ) {
 							}
 						}
 						?>
-						<span class="sscribe-summary-chip sscribe-summary-pages" id="sscribe-summary-pages" aria-label="<?php
+						<?php
 							/* translators: %d: page count. */
-							echo esc_attr( sprintf( _n( '%d page selected', '%d pages selected', $sscribe_initial_chip, 'sscribe-export-site-pages' ), $sscribe_initial_chip ) );
+							$sscribe_chip_aria = sprintf( _n( '%d page selected', '%d pages selected', $sscribe_initial_chip, 'sscribe-export-site-pages' ), $sscribe_initial_chip );
+							$sscribe_chip_text = number_format_i18n( $sscribe_initial_chip ) . ' ' . _n( 'page', 'pages', $sscribe_initial_chip, 'sscribe-export-site-pages' );
 						?>
-							">
-							<?php
-							/* translators: %d: page count. */
-							echo esc_html( number_format_i18n( $sscribe_initial_chip ) . ' ' . _n( 'page', 'pages', $sscribe_initial_chip, 'sscribe-export-site-pages' ) );
-							?>
-						</span>
+						<span class="sscribe-summary-chip sscribe-summary-pages" id="sscribe-summary-pages" aria-label="<?php echo esc_attr( $sscribe_chip_aria ); ?>"><?php echo esc_html( $sscribe_chip_text ); ?></span>
 						<span class="sscribe-summary-sep" aria-hidden="true">·</span>
 						<span class="sscribe-summary-chip sscribe-summary-time" id="sscribe-summary-time" aria-label="<?php esc_attr_e( 'Estimated time not yet available. Run Preview to compute.', 'sscribe-export-site-pages' ); ?>"><?php esc_html_e( 'Run Preview for ETA', 'sscribe-export-site-pages' ); ?></span>
 					</div>
