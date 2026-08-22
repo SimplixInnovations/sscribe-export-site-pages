@@ -1104,7 +1104,13 @@ final class SScribe_Exporter {
 
 		$permalink      = $page_data['permalink'] ?? '';
 		$permalink_safe = is_string( $permalink ) ? esc_url_raw( $permalink ) : '';
-		$properties->setDescription( 'Exported from ' . $permalink_safe );
+		$properties->setDescription(
+			sprintf(
+				/* translators: %s: site permalink of the exported page. */
+				__( 'Exported from %s', 'sscribe-export-site-pages' ),
+				$permalink_safe
+			)
+		);
 
 		$author          = $page_data['author'] ?? '';
 		$author_stripped = is_string( $author ) ? wp_strip_all_tags( $author ) : '';
@@ -1490,7 +1496,7 @@ final class SScribe_Exporter {
 			);
 
 			$section->addText(
-				'[Table of Contents could not be generated]',
+				__( '[Table of Contents could not be generated]', 'sscribe-export-site-pages' ),
 				array(
 					'name'   => $this->font_name,
 					'size'   => 10,
@@ -1504,7 +1510,6 @@ final class SScribe_Exporter {
 		try {
 			$section->addText(
 				/* translators: Instructions for updating the Table of Contents field in Microsoft Word and LibreOffice. */
-
 				__( 'To update the Table of Contents: Microsoft Word: right-click, then select Update Field. LibreOffice: press F9 or select Tools, Update, All Fields.', 'sscribe-export-site-pages' ),
 				array(
 					'name'   => $this->font_name,
@@ -1515,7 +1520,7 @@ final class SScribe_Exporter {
 				$this->get_para_style( array( 'spaceBefore' => Converter::pointToTwip( 4 ) ) )
 			);
 		} catch ( \Throwable $e ) {
-
+			// TOC generation is best-effort; do not abort the document if mPDF rejects it.
 			unset( $e );
 		}
 
@@ -1768,7 +1773,7 @@ final class SScribe_Exporter {
 					_n( '%d minute', '%d minutes', (int) ceil( $reading_time_value ), 'sscribe-export-site-pages' ),
 					(int) ceil( $reading_time_value )
 				)
-				: __( '< 1 minute', 'sscribe-export-site-pages' ),
+				: __( 'Under 1 minute', 'sscribe-export-site-pages' ),
 		);
 
 		foreach ( $info_rows as $row ) {

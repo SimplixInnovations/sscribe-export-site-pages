@@ -2,7 +2,7 @@
  * SScribe Debug Console JavaScript
  *
  * @package SScribe_Export_Site_Pages
- * @version 1.1.7
+ * @version 1.9.0
  */
 (function ($) {
 	'use strict';
@@ -533,9 +533,12 @@
 			this.visibilityHandler = function () {
 				if (document.visibilityState !== 'hidden') {
 					self.consecutiveNoChange = 0;
+					self.stopAutoRefresh();
+					self.startAutoRefresh();
 				}
-				self.stopAutoRefresh();
-				self.startAutoRefresh();
+				// When hidden, _visibilityHandler owns pausing and shows the
+				// "Paused: tab inactive" banner; restarting here would fight
+				// it and silently keep polling in the background.
 			};
 			document.addEventListener('visibilitychange', this.visibilityHandler);
 			this.refreshInterval = setInterval(function () {
@@ -815,6 +818,7 @@
 					self.currentOffset += newEntries.length;
 					self.hasMoreEntries = self.currentOffset < totalCount;
 					self.lastEntryCount = totalCount;
+					self.$clearBtn.prop('disabled', totalCount <= 0);
 					self.$entryCount.text(1 === totalCount ? '1 entry' : totalCount + ' entries');
 					if (!self.hasMoreEntries) {
 						self.destroyObserver();
@@ -1096,38 +1100,7 @@
 				self.showPausedIndicator('Nonce refresh failed : you may need to reload the page.');
 			});
 		},
-		downloadViaForm: function (url, data) {
-			const form = document.createElement('form');
-			form.method = 'POST';
-			form.action = url;
-			form.target = '_blank';
-			form.style.display = 'none';
-			Object.keys(data).forEach(function (key) {
-				const input = document.createElement('input');
-				input.type = 'hidden';
-				input.name = key;
-				input.value = data[key];
-				form.appendChild(input);
-			});
-			document.body.appendChild(form);
-			form.submit();
-			setTimeout(function () {
-				if (form.parentNode) {
-					form.remove();
-				}
-			}, 100);
-		},
 		/**
-		 * Trigger a download using fetch + blob.
-		 *
-		 * Unlike downloadViaForm() (which uses a hidden <form> with target="_blank"),
-		 * this approach lets us detect server-side failures (HTTP 4xx/5xx, fatal
-		 * errors, nonces) and surface them to the user instead of silently opening
-		 * a blank tab. We rely on response.ok to distinguish success from error.
-		 *
-		 * Filename is extracted from the Content-Disposition response header when
-		 * present, falling back to the caller-supplied default.
-		 *
 		 * @param {string} url Endpoint URL (e.g. admin-ajax.php).
 		 * @param {Object} data POST payload (form-urlencoded).
 		 * @param {Object} callbacks onSuccess(filename), onError(message).

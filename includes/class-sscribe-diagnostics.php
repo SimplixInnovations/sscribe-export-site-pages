@@ -393,17 +393,27 @@ class SScribe_Diagnostics {
 
 		if ( version_compare( $current, $required, '>=' ) ) {
 			return array(
-				'name'    => 'PHP Version',
+				'name'    => __( 'PHP Version', 'sscribe-export-site-pages' ),
 				'status'  => 'ok',
-				'message' => sprintf( 'PHP %s (minimum: %s)', $current, $required ),
+				'message' => sprintf(
+					/* translators: 1: current PHP version, 2: minimum required PHP version. */
+					__( 'PHP %1$s (minimum: %2$s)', 'sscribe-export-site-pages' ),
+					$current,
+					$required
+				),
 			);
 		}
 
 		return array(
-			'name'    => 'PHP Version',
+			'name'    => __( 'PHP Version', 'sscribe-export-site-pages' ),
 			'status'  => 'error',
-			'message' => sprintf( 'PHP %s detected. Minimum required: %s. Contact your hosting provider to upgrade.', $current, $required ),
-			'fix'     => 'Upgrade PHP to 8.2 or higher',
+			'message' => sprintf(
+				/* translators: 1: current PHP version, 2: minimum required PHP version. */
+				__( 'PHP %1$s detected. Minimum required: %2$s. Contact your hosting provider to upgrade.', 'sscribe-export-site-pages' ),
+				$current,
+				$required
+			),
+			'fix'     => __( 'Upgrade PHP to 8.2 or higher', 'sscribe-export-site-pages' ),
 		);
 	}
 
@@ -418,9 +428,9 @@ class SScribe_Diagnostics {
 		$memory_limit = wp_convert_hr_to_bytes( ini_get( 'memory_limit' ) );
 		if ( $memory_limit <= 0 ) {
 			return array(
-				'name'    => 'Memory',
+				'name'    => __( 'Memory', 'sscribe-export-site-pages' ),
 				'status'  => 'ok',
-				'message' => 'PHP memory limit is unlimited.',
+				'message' => __( 'PHP memory limit is unlimited.', 'sscribe-export-site-pages' ),
 			);
 		}
 
@@ -447,14 +457,15 @@ class SScribe_Diagnostics {
 
 		if ( $available_mb <= 0 ) {
 			return array(
-				'name'    => 'Memory Forecast',
+				'name'    => __( 'Memory Forecast', 'sscribe-export-site-pages' ),
 				'status'  => 'error',
 				'message' => sprintf(
-					'No memory available for export (limit: %dMB, used: %dMB). Increase memory_limit in php.ini.',
+					/* translators: 1: memory limit in MB, 2: used memory in MB. */
+					__( 'No memory available for export (limit: %1$dMB, used: %2$dMB). Increase memory_limit in php.ini.', 'sscribe-export-site-pages' ),
 					$memory_mb,
 					$used_mb
 				),
-				'fix'     => 'Add define( "WP_MEMORY_LIMIT", "256M" ); to wp-config.php',
+				'fix'     => __( 'Add define( "WP_MEMORY_LIMIT", "256M" ); to wp-config.php', 'sscribe-export-site-pages' ),
 			);
 		}
 
@@ -462,10 +473,14 @@ class SScribe_Diagnostics {
 
 		if ( $memory_mb < 128 ) {
 			return array(
-				'name'    => 'Memory Limit',
+				'name'    => __( 'Memory Limit', 'sscribe-export-site-pages' ),
 				'status'  => 'error',
-				'message' => sprintf( 'Memory limit: %dMB. Minimum required: 128MB. Increase memory_limit in php.ini.', $memory_mb ),
-				'fix'     => 'Add define( "WP_MEMORY_LIMIT", "256M" ); to wp-config.php',
+				'message' => sprintf(
+					/* translators: %d: memory limit in MB. */
+					__( 'Memory limit: %dMB. Minimum required: 128MB. Increase memory_limit in php.ini.', 'sscribe-export-site-pages' ),
+					$memory_mb
+				),
+				'fix'     => __( 'Add define( "WP_MEMORY_LIMIT", "256M" ); to wp-config.php', 'sscribe-export-site-pages' ),
 			);
 		}
 
@@ -474,46 +489,65 @@ class SScribe_Diagnostics {
 
 			if ( $estimated_total_mb > $available_mb ) {
 				return array(
-					'name'    => 'Memory Forecast',
+					'name'    => __( 'Memory Forecast', 'sscribe-export-site-pages' ),
 					'status'  => 'error',
 					'message' => sprintf(
-						'Export requires ~%dMB but only %dMB available. Increase memory to %dMB+ or reduce page count.',
+						/* translators: 1: estimated memory need in MB, 2: available memory in MB, 3: recommended memory in MB. */
+						__( 'Export requires ~%1$dMB but only %2$dMB available. Increase memory to %3$dMB+ or reduce page count.', 'sscribe-export-site-pages' ),
 						$estimated_total_mb,
 						$available_mb,
 						$recommended_memory
 					),
-					'fix'     => sprintf( 'Add define( "WP_MEMORY_LIMIT", "%dM" ); to wp-config.php or export fewer pages.', $recommended_memory ),
+					'fix'     => sprintf(
+						/* translators: %d: recommended memory limit in MB. */
+						__( 'Add define( "WP_MEMORY_LIMIT", "%dM" ); to wp-config.php or export fewer pages.', 'sscribe-export-site-pages' ),
+						$recommended_memory
+					),
 				);
 			}
 
 			$percent = round( ( $estimated_total_mb / $available_mb ) * 100 );
 
 			return array(
-				'name'    => 'Memory Forecast',
+				'name'    => __( 'Memory Forecast', 'sscribe-export-site-pages' ),
 				'status'  => 'warning',
 				'message' => sprintf(
-					'Export will use ~%dMB of %dMB available (%d%%). Consider increasing memory for safety.',
+					/* translators: 1: estimated memory use in MB, 2: available memory in MB, 3: percentage of available memory. */
+					__( 'Export will use ~%1$dMB of %2$dMB available (%3$d%%). Consider increasing memory for safety.', 'sscribe-export-site-pages' ),
 					$estimated_total_mb,
 					$available_mb,
 					$percent
 				),
-				'fix'     => 'Increase memory_limit to provide more headroom for large exports',
+				'fix'     => __( 'Increase memory_limit to provide more headroom for large exports', 'sscribe-export-site-pages' ),
 			);
 		}
 
 		if ( $available_mb < 50 ) {
 			return array(
-				'name'    => 'Available Memory',
+				'name'    => __( 'Available Memory', 'sscribe-export-site-pages' ),
 				'status'  => 'warning',
-				'message' => sprintf( 'Only %dMB available (%dMB used of %dMB limit). Large exports may fail.', $available_mb, $used_mb, $memory_mb ),
-				'fix'     => 'Increase memory_limit or reduce batch size',
+				'message' => sprintf(
+					/* translators: 1: available memory in MB, 2: used memory in MB, 3: memory limit in MB. */
+					__( 'Only %1$dMB available (%2$dMB used of %3$dMB limit). Large exports may fail.', 'sscribe-export-site-pages' ),
+					$available_mb,
+					$used_mb,
+					$memory_mb
+				),
+				'fix'     => __( 'Increase memory_limit or reduce batch size', 'sscribe-export-site-pages' ),
 			);
 		}
 
 		return array(
-			'name'    => 'Memory',
+			'name'    => __( 'Memory', 'sscribe-export-site-pages' ),
 			'status'  => 'ok',
-			'message' => sprintf( '%dMB available (limit: %dMB, used: %dMB, estimated need: %dMB)', $available_mb, $memory_mb, $used_mb, $estimated_total_mb ),
+			'message' => sprintf(
+				/* translators: 1: available memory in MB, 2: memory limit in MB, 3: used memory in MB, 4: estimated memory need in MB. */
+				__( '%1$dMB available (limit: %2$dMB, used: %3$dMB, estimated need: %4$dMB)', 'sscribe-export-site-pages' ),
+				$available_mb,
+				$memory_mb,
+				$used_mb,
+				$estimated_total_mb
+			),
 		);
 	}
 
@@ -530,19 +564,32 @@ class SScribe_Diagnostics {
 
 		if ( $max_execution > 0 && ( $max_execution < 30 || $estimated_seconds > $max_execution ) ) {
 			return array(
-				'name'    => 'Execution Time',
+				'name'    => __( 'Execution Time', 'sscribe-export-site-pages' ),
 				'status'  => 'warning',
-				'message' => sprintf( 'max_execution_time: %ds. Short timeout may interrupt large exports.', $max_execution ),
-				'fix'     => 'Increase max_execution_time or rely on batch processing',
+				'message' => sprintf(
+					/* translators: %d: max execution time in seconds. */
+					__( 'max_execution_time: %ds. Short timeout may interrupt large exports.', 'sscribe-export-site-pages' ),
+					$max_execution
+				),
+				'fix'     => __( 'Increase max_execution_time or rely on batch processing', 'sscribe-export-site-pages' ),
 			);
 		}
 
 		return array(
-			'name'    => 'Execution Time',
+			'name'    => __( 'Execution Time', 'sscribe-export-site-pages' ),
 			'status'  => 'ok',
 			'message' => $max_execution > 0
-				? sprintf( 'max_execution_time: %ds (estimated need: %ds)', $max_execution, $estimated_seconds )
-				: sprintf( 'max_execution_time: unlimited (estimated need: %ds)', $estimated_seconds ),
+				? sprintf(
+					/* translators: 1: max execution time in seconds, 2: estimated execution time in seconds. */
+					__( 'max_execution_time: %1$ds (estimated need: %2$ds)', 'sscribe-export-site-pages' ),
+					$max_execution,
+					$estimated_seconds
+				)
+				: sprintf(
+					/* translators: %d: estimated execution time in seconds. */
+					__( 'max_execution_time: unlimited (estimated need: %ds)', 'sscribe-export-site-pages' ),
+					$estimated_seconds
+				),
 		);
 	}
 
@@ -556,10 +603,14 @@ class SScribe_Diagnostics {
 
 		if ( ! empty( $upload_dir['error'] ) ) {
 			return array(
-				'name'    => 'Upload Directory',
+				'name'    => __( 'Upload Directory', 'sscribe-export-site-pages' ),
 				'status'  => 'error',
-				'message' => 'Upload directory error: ' . $upload_dir['error'],
-				'fix'     => 'Check wp-content/uploads directory permissions',
+				'message' => sprintf(
+					/* translators: %s: upload directory error message. */
+					__( 'Upload directory error: %s', 'sscribe-export-site-pages' ),
+					$upload_dir['error']
+				),
+				'fix'     => __( 'Check wp-content/uploads directory permissions', 'sscribe-export-site-pages' ),
 			);
 		}
 
@@ -568,10 +619,14 @@ class SScribe_Diagnostics {
 		if ( ! is_dir( $export_dir ) ) {
 			if ( ! wp_mkdir_p( $export_dir ) ) {
 				return array(
-					'name'    => 'Upload Directory',
+					'name'    => __( 'Upload Directory', 'sscribe-export-site-pages' ),
 					'status'  => 'error',
-					'message' => 'Export directory could not be created: ' . $export_dir,
-					'fix'     => 'Check that wp-content/uploads is writable (chmod 755)',
+					'message' => sprintf(
+						/* translators: %s: export directory name. */
+						__( 'Export directory could not be created: %s', 'sscribe-export-site-pages' ),
+						basename( $export_dir )
+					),
+					'fix'     => __( 'Check that wp-content/uploads is writable (chmod 755)', 'sscribe-export-site-pages' ),
 				);
 			}
 
@@ -580,44 +635,56 @@ class SScribe_Diagnostics {
 
 		if ( ! wp_is_writable( $export_dir ) ) {
 			return array(
-				'name'    => 'Upload Directory',
+				'name'    => __( 'Upload Directory', 'sscribe-export-site-pages' ),
 				'status'  => 'error',
-				'message' => 'Export directory is not writable: ' . $export_dir,
-				'fix'     => 'Set directory permissions to 755 or 775',
+				'message' => sprintf(
+					/* translators: %s: export directory name. */
+					__( 'Export directory is not writable: %s', 'sscribe-export-site-pages' ),
+					basename( $export_dir )
+				),
+				'fix'     => __( 'Set directory permissions to 755 or 775', 'sscribe-export-site-pages' ),
 			);
 		}
 
 		if ( ! function_exists( 'disk_free_space' ) ) {
 			return array(
-				'name'    => 'Disk Space',
+				'name'    => __( 'Disk Space', 'sscribe-export-site-pages' ),
 				'status'  => 'ok',
-				'message' => 'Disk space check is not available on this server configuration (S3, NFS, or restricted hosting).',
+				'message' => __( 'Disk space check is not available on this server configuration (S3, NFS, or restricted hosting).', 'sscribe-export-site-pages' ),
 			);
 		}
 
 		$free_space = disk_free_space( $export_dir );
 		if ( false === $free_space ) {
 			return array(
-				'name'    => 'Disk Space',
+				'name'    => __( 'Disk Space', 'sscribe-export-site-pages' ),
 				'status'  => 'ok',
-				'message' => 'Disk space check not available on this server configuration.',
+				'message' => __( 'Disk space check not available on this server configuration.', 'sscribe-export-site-pages' ),
 			);
 		}
 		$free_mb = round( $free_space / 1024 / 1024 );
 
 		if ( $free_mb < 100 ) {
 			return array(
-				'name'    => 'Disk Space',
+				'name'    => __( 'Disk Space', 'sscribe-export-site-pages' ),
 				'status'  => 'warning',
-				'message' => sprintf( 'Only %dMB free disk space. Large exports may fail.', $free_mb ),
-				'fix'     => 'Free up disk space on the server',
+				'message' => sprintf(
+					/* translators: %d: free disk space in MB. */
+					__( 'Only %dMB free disk space. Large exports may fail.', 'sscribe-export-site-pages' ),
+					$free_mb
+				),
+				'fix'     => __( 'Free up disk space on the server', 'sscribe-export-site-pages' ),
 			);
 		}
 
 		return array(
-			'name'    => 'Upload Directory',
+			'name'    => __( 'Upload Directory', 'sscribe-export-site-pages' ),
 			'status'  => 'ok',
-			'message' => sprintf( 'Writable. Free space: %dMB', $free_mb ),
+			'message' => sprintf(
+				/* translators: %d: free disk space in MB. */
+				__( 'Writable. Free space: %dMB', 'sscribe-export-site-pages' ),
+				$free_mb
+			),
 		);
 	}
 
@@ -869,21 +936,25 @@ class SScribe_Diagnostics {
 		if ( $page_count > 100 ) {
 			$recommendations[] = array(
 				'priority' => 'high',
-				'message'  => 'Exporting ' . $page_count . ' pages. Recommended memory: 512MB+. This will take several minutes.',
+				'message'  => sprintf(
+					/* translators: %d: number of pages being exported. */
+					__( 'Exporting %d pages. Recommended memory: 512MB+. This will take several minutes.', 'sscribe-export-site-pages' ),
+					$page_count
+				),
 			);
 		}
 
 		if ( 'ok' !== $checks['memory']['status'] ) {
 			$recommendations[] = array(
 				'priority' => 'high',
-				'message'  => 'Increase PHP memory_limit to prevent export failures.',
+				'message'  => __( 'Increase PHP memory_limit to prevent export failures.', 'sscribe-export-site-pages' ),
 			);
 		}
 
 		if ( isset( $checks['wp_cron'] ) && 'warning' === $checks['wp_cron']['status'] ) {
 			$recommendations[] = array(
 				'priority' => 'medium',
-				'message'  => 'Consider setting up a server-side cron for WP-Cron.',
+				'message'  => __( 'Consider setting up a server-side cron for WP-Cron.', 'sscribe-export-site-pages' ),
 			);
 		}
 
@@ -916,9 +987,9 @@ class SScribe_Diagnostics {
 		if ( str_contains( $lower_error, 'memory' ) || str_contains( $lower_error, 'allowed memory' ) ) {
 			$diagnosis['category']  = 'memory_exhausted';
 			$diagnosis['fix']       = array(
-				'Add define( "WP_MEMORY_LIMIT", "512M" ); to wp-config.php',
-				'Reduce export batch size',
-				'Export fewer formats at once',
+				__( 'Add define( "WP_MEMORY_LIMIT", "512M" ); to wp-config.php', 'sscribe-export-site-pages' ),
+				__( 'Reduce export batch size', 'sscribe-export-site-pages' ),
+				__( 'Export fewer formats at once', 'sscribe-export-site-pages' ),
 			);
 			$diagnosis['technical'] = array(
 				'current_usage' => size_format( memory_get_usage( true ) ),
@@ -928,33 +999,33 @@ class SScribe_Diagnostics {
 		} elseif ( str_contains( $lower_error, 'timeout' ) || str_contains( $lower_error, 'time limit' ) ) {
 			$diagnosis['category'] = 'timeout';
 			$diagnosis['fix']      = array(
-				'Increase max_execution_time in php.ini',
-				'Reduce page content complexity',
-				'Export in smaller batches',
+				__( 'Increase max_execution_time in php.ini', 'sscribe-export-site-pages' ),
+				__( 'Reduce page content complexity', 'sscribe-export-site-pages' ),
+				__( 'Export in smaller batches', 'sscribe-export-site-pages' ),
 			);
 		} elseif ( str_contains( $lower_error, 'zip' ) || str_contains( $lower_error, 'ziparchive' ) ) {
 			$diagnosis['category'] = 'zip_extension';
 			$diagnosis['fix']      = array(
-				'Enable the zip extension in php.ini',
-				'Contact hosting provider to enable ZipArchive',
+				__( 'Enable the zip extension in php.ini', 'sscribe-export-site-pages' ),
+				__( 'Contact hosting provider to enable ZipArchive', 'sscribe-export-site-pages' ),
 			);
 		} elseif ( str_contains( $lower_error, 'permission' ) || str_contains( $lower_error, 'writable' ) ) {
 			$diagnosis['category'] = 'permissions';
 			$diagnosis['fix']      = array(
-				'Set wp-content/uploads permissions to 755',
-				'Check that the PHP process can write to the uploads directory',
+				__( 'Set wp-content/uploads permissions to 755', 'sscribe-export-site-pages' ),
+				__( 'Check that the PHP process can write to the uploads directory', 'sscribe-export-site-pages' ),
 			);
 		} elseif ( str_contains( $lower_error, 'mpdf' ) || str_contains( $lower_error, 'pdf' ) ) {
 			$diagnosis['category'] = 'pdf_generation';
 			$diagnosis['fix']      = array(
-				'Run composer install to ensure mPDF is installed',
-				'Check that the page content does not contain invalid HTML',
+				__( 'Run composer install to ensure mPDF is installed', 'sscribe-export-site-pages' ),
+				__( 'Check that the page content does not contain invalid HTML', 'sscribe-export-site-pages' ),
 			);
 		} elseif ( str_contains( $lower_error, 'phpword' ) || str_contains( $lower_error, 'docx' ) ) {
 			$diagnosis['category'] = 'docx_generation';
 			$diagnosis['fix']      = array(
-				'Run composer install to ensure PHPWord is installed',
-				'Check page content for complex elements that may not convert well',
+				__( 'Run composer install to ensure PHPWord is installed', 'sscribe-export-site-pages' ),
+				__( 'Check page content for complex elements that may not convert well', 'sscribe-export-site-pages' ),
 			);
 		}
 
@@ -1219,7 +1290,7 @@ class SScribe_Diagnostics {
 		);
 
 		$has_error       = false;
-		$summary         = 'AJAX health: OK';
+		$summary         = __( 'AJAX health: OK', 'sscribe-export-site-pages' );
 		$recommendations = array();
 
 		foreach ( $checks as $check ) {
@@ -1229,12 +1300,16 @@ class SScribe_Diagnostics {
 		}
 
 		if ( $has_error ) {
-			$summary = 'AJAX health: ERRORS DETECTED';
+			$summary = __( 'AJAX health: ERRORS DETECTED', 'sscribe-export-site-pages' );
 		}
 
-		$recommendations[] = 'If AJAX returns 404, check that admin-ajax.php is NOT excluded in CDN/WAF rules (Cloudflare, Sucuri, Wordfence).';
-		$recommendations[] = 'Ensure ModSecurity or similar WAF modules are not blocking AJAX POST requests containing HTML content.';
-		$recommendations[] = sprintf( 'Verify that the plugin files are intact in %s', SSCRIBE_PLUGIN_DIR );
+		$recommendations[] = __( 'If AJAX returns 404, check that admin-ajax.php is NOT excluded in CDN/WAF rules (Cloudflare, Sucuri, Wordfence).', 'sscribe-export-site-pages' );
+		$recommendations[] = __( 'Ensure ModSecurity or similar WAF modules are not blocking AJAX POST requests containing HTML content.', 'sscribe-export-site-pages' );
+		$recommendations[] = sprintf(
+			/* translators: %s: plugin directory placeholder. */
+			__( 'Verify that the plugin files are intact in %s', 'sscribe-export-site-pages' ),
+			'[plugin]'
+		);
 
 		return array(
 			'status'          => $has_error ? 'error' : 'ok',

@@ -424,4 +424,208 @@ final class SScribe_Shipped_Invariants_Test extends TestCase {
 			'PSR interfaces must not be implemented in shipped PHP (no autoloader). Offenders: ' . implode( '; ', $offenders )
 		);
 	}
+
+	/**
+	 * The full-screen toast positioning layer must never block page controls.
+	 */
+	public function test_toast_container_allows_pointer_events_to_pass_through(): void {
+		$stylesheet = self::$plugin_root . '/admin/css/sscribe-admin.css';
+		$this->assertFileExists( $stylesheet, 'Admin source stylesheet missing.' );
+
+		$contents = (string) file_get_contents( $stylesheet );
+		$this->assertMatchesRegularExpression(
+			'/\.sscribe-toast-container\s*\{[^}]*pointer-events:\s*none;/s',
+			$contents,
+			'The toast positioning layer must allow clicks to reach the page beneath it.'
+		);
+	}
+
+	/**
+	 * Responsive column layouts must not reuse the desktop width flex basis.
+	 */
+	public function test_debug_toggle_resets_flex_basis_at_wordpress_mobile_breakpoint(): void {
+		$stylesheet = self::$plugin_root . '/admin/css/sscribe-debug-console.css';
+		$this->assertFileExists( $stylesheet, 'Debug source stylesheet missing.' );
+
+		$contents = (string) file_get_contents( $stylesheet );
+		$this->assertMatchesRegularExpression(
+			'/@media \(width <= 782px\)\s*\{.*?\.sscribe-debug-toggle-section,\s*\.sscribe-debug-level-section[^{]*\{[^}]*flex-basis:\s*auto;/s',
+			$contents,
+			'The debug toggle must not become 360 pixels tall in the responsive column layout.'
+		);
+	}
+
+	/**
+	 * Tab activation must read scroll state from the module, not window.self.
+	 */
+	public function test_tab_activation_reads_its_own_scroll_position_state(): void {
+		$script = self::$plugin_root . '/admin/js/sscribe-admin.js';
+		$this->assertFileExists( $script, 'Admin source script missing.' );
+
+		$contents = (string) file_get_contents( $script );
+		$this->assertStringContainsString(
+			'const savedY = this.scrollPositions[tabId];',
+			$contents,
+			'Tab activation must not throw while restoring a saved scroll position.'
+		);
+	}
+
+	/**
+	 * The export summary should wrap compactly instead of stacking each chip.
+	 */
+	public function test_export_summary_keeps_row_flow_at_wordpress_mobile_breakpoint(): void {
+		$stylesheet = self::$plugin_root . '/admin/css/sscribe-admin.css';
+		$this->assertFileExists( $stylesheet, 'Admin source stylesheet missing.' );
+
+		$contents = (string) file_get_contents( $stylesheet );
+		$this->assertMatchesRegularExpression(
+			'/@media \(width <= 782px\)\s*\{.*?\.sscribe-config-summary\s*\{[^}]*flex-direction:\s*row;/s',
+			$contents,
+			'The responsive export summary must remain a compact wrapping row.'
+		);
+	}
+
+	/**
+	 * The Recent Exports renderer must use the module's escaping helper.
+	 */
+	public function test_recent_exports_renderer_uses_the_existing_escape_helper(): void {
+		$script = self::$plugin_root . '/admin/js/sscribe-admin.js';
+		$this->assertFileExists( $script, 'Admin source script missing.' );
+
+		$contents = (string) file_get_contents( $script );
+		$this->assertStringNotContainsString(
+			'this.escribeHtml(',
+			$contents,
+			'Recent Exports must not call a misspelled, undefined escaping helper.'
+		);
+	}
+
+	/**
+	 * Tab-change announcements belong in the accessibility tree, not the layout.
+	 */
+	public function test_tab_announcement_is_screen_reader_only(): void {
+		$template = self::$plugin_root . '/admin/partials/sscribe-admin-display.php';
+		$this->assertFileExists( $template, 'Admin display template missing.' );
+
+		$contents = (string) file_get_contents( $template );
+		$this->assertMatchesRegularExpression(
+			'/id="sscribe-tab-announce"\s+class="screen-reader-text"/',
+			$contents,
+			'Tab-change announcements must not render as visible page copy.'
+		);
+	}
+
+	/**
+	 * Disabled native radios must remain visually hidden behind card controls.
+	 */
+	public function test_disabled_status_card_radios_remain_hidden(): void {
+		$stylesheet = self::$plugin_root . '/admin/css/sscribe-admin.css';
+		$this->assertFileExists( $stylesheet, 'Admin source stylesheet missing.' );
+
+		$contents = (string) file_get_contents( $stylesheet );
+		$this->assertMatchesRegularExpression(
+			'/\.sscribe-master-container\s+\.sscribe-status-card-label\s*>\s*input\[type=["\']radio["\']\]:disabled\s*\{[^}]*opacity:\s*0;/s',
+			$contents,
+			'Disabled card radios must not reappear through WordPress core disabled-control styles.'
+		);
+	}
+
+	/**
+	 * Inline SVG glyphs must not reuse the square icon-button control class.
+	 */
+	public function test_inline_button_glyphs_do_not_use_the_icon_button_control_class(): void {
+		$template = self::$plugin_root . '/admin/partials/sscribe-admin-display.php';
+		$this->assertFileExists( $template, 'Admin display template missing.' );
+
+		$contents = (string) file_get_contents( $template );
+		$this->assertStringNotContainsString(
+			", 'sscribe-button-icon' )",
+			$contents,
+			'Inline SVG glyphs must not inherit the 32-pixel icon-button control dimensions.'
+		);
+	}
+
+	public function test_export_lifecycle_keeps_actions_locked_only_while_processing(): void {
+		$script   = self::$plugin_root . '/admin/js/sscribe-admin.js';
+		$contents = (string) file_get_contents( $script );
+
+		$this->assertMatchesRegularExpression(
+			'/startExport:\s*function.*?this\.resetUI\(\);.*?this\.isProcessing\s*=\s*true;/s',
+			$contents,
+			'Export startup must reset stale UI before locking the new request.'
+		);
+		$this->assertStringContainsString(
+			'const canExport = hasPostType && hasLanguage && hasStatus && hasFormat && hasPages && !this.isProcessing;',
+			$contents,
+			'Configuration updates must not re-enable actions during an export.'
+		);
+		$this->assertMatchesRegularExpression(
+			'/exportComplete:\s*function.*?removeClass\([\'\"]sscribe-btn-busy[\'\"]\).*?removeAttr\([\'\"]aria-busy[\'\"]\).*?updateExportButton\(\);/s',
+			$contents,
+			'Completion must remove the interaction lock and recalculate action availability.'
+		);
+	}
+
+	public function test_export_feedback_and_completion_actions_remain_clear(): void {
+		$template   = (string) file_get_contents( self::$plugin_root . '/admin/partials/sscribe-admin-display.php' );
+		$stylesheet = (string) file_get_contents( self::$plugin_root . '/admin/css/sscribe-admin.css' );
+
+		$this->assertSame( 1, substr_count( $template, 'id="sscribe-export-disabled-reason"' ) );
+		$this->assertSame( 0, substr_count( $template, 'id="sscribe-preview-disabled-reason"' ) );
+		$this->assertStringContainsString(
+			'id="sscribe-new-export-btn" class="sscribe-button sscribe-button-secondary"',
+			$template
+		);
+		$this->assertMatchesRegularExpression(
+			'/\.sscribe-button-success:hover:not\(:disabled\)\s*\{[^}]*color:\s*var\(--ss-text-inverse\);/s',
+			$stylesheet
+		);
+		$this->assertMatchesRegularExpression(
+			'/\.sscribe-phase-active \.sscribe-phase-label,[^{]*\{[^}]*color:\s*inherit;/s',
+			$stylesheet
+		);
+	}
+
+	public function test_history_row_iteration_does_not_overwrite_the_export_index(): void {
+		$template = (string) file_get_contents( self::$plugin_root . '/admin/partials/sscribe-admin-display.php' );
+
+		$this->assertStringNotContainsString(
+			'foreach ( $sscribe_recent_exports as $sscribe_export_index => $sscribe_export )',
+			$template
+		);
+		$this->assertStringContainsString(
+			'foreach ( $sscribe_recent_exports as $sscribe_export_row_index => $sscribe_export )',
+			$template
+		);
+	}
+
+	/**
+	 * Removing dark mode must not replace the plugin's established light design.
+	 */
+	public function test_original_light_design_is_preserved_without_dark_mode(): void {
+		$tokens     = (string) file_get_contents( self::$plugin_root . '/admin/css/sscribe-tokens.css' );
+		$admin_css  = (string) file_get_contents( self::$plugin_root . '/admin/css/sscribe-admin.css' );
+		$debug_css  = (string) file_get_contents( self::$plugin_root . '/admin/css/sscribe-debug-console.css' );
+		$admin_view = (string) file_get_contents( self::$plugin_root . '/admin/partials/sscribe-admin-display.php' );
+
+		$this->assertStringContainsString(
+			'--ss-brand: #3d7a5a;',
+			$tokens,
+			'The established SScribe light palette must remain intact.'
+		);
+		$this->assertStringNotContainsString( 'prefers-color-scheme: dark', $admin_css );
+		$this->assertStringNotContainsString( 'prefers-color-scheme: dark', $debug_css );
+		$this->assertDoesNotMatchRegularExpression(
+			'/\.sscribe-master-container\s+input\[type=["\']radio["\']\]\s*\{[^}]*display:\s*none;/s',
+			$admin_css,
+			'Radio controls must remain keyboard-focusable.'
+		);
+		$this->assertStringNotContainsString( 'var(--ss-surface-1)', $admin_css );
+		$this->assertStringNotContainsString( 'var(--ss-surface-alt)', $admin_css );
+		$this->assertStringNotContainsString(
+			'<div class="wrap sscribe-admin-wrap">',
+			$admin_view,
+			'Dark-mode removal must not introduce a replacement page shell.'
+		);
+	}
 }

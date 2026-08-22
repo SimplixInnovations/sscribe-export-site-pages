@@ -74,9 +74,9 @@ function sscribe_check_ai_artifacts_main(): int {
 		'vendor', 'vendor-prefixed', 'node_modules', 'tests', 'stubs',
 		'scripts', 'docs', '.github', 'dist', 'build', 'coverage',
 		'.cache', '.phpunit.cache', '.playwright-mcp', '.opencode', '.impeccable',
-		'.audit',
+		'.audit', '.mimosa', '.omo',
 		'.aider', '.claude', '.cursor', '.windsurf', '.continue',
-		'.codeium', '.idea', '.vscode', 'screenshots',
+		'.codeium', '.idea', '.vscode',
 	);
 
 	// File extensions to scan.

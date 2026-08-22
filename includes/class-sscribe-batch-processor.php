@@ -9,9 +9,6 @@
 
 declare(strict_types=1);
 
-
-// silenced at the point of use with a `phpcs:ignore` comment : see below.
-
 if ( ! defined( 'ABSPATH' ) ) {
 	exit;
 }
@@ -547,20 +544,6 @@ final class SScribe_Batch_Processor {
 		return $this->rate_limiter ??= new SScribe_Export_Rate_Limiter();
 	}
 
-	/**
-	 * Parse and sanitize the per-format options payload from the request.
-	 *
-	 * Accepts any keys (future formats can add their own) but enforces
-	 * scalar / scalar-array values to prevent object/array injection into
-	 * the session store. Keys are passed through `sanitize_key()` so they
-	 * are always safe to use as session keys.
-	 *
-	 * Extracted from `ajax_start_export()` so the parsing rules can be
-	 * unit-tested in isolation without bringing up the full AJAX stack.
-	 *
-	 * @param mixed $raw Raw $_POST['format_options'] value.
-	 * @return array Sanitized options (always an array, possibly empty).
-	 */
 	/**
 	 * Allowlist of format_options keys accepted from the AJAX endpoint.
 	 *

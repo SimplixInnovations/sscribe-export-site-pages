@@ -94,7 +94,7 @@ class SScribe_Filesystem_Test extends TestCase {
 
 	public function test_get_contents_reads_file(): void {
 		$fs   = new \SScribe_Filesystem();
-		$file = $this->test_dir . '/test-read.txt';
+		$file = $this->in_export_dir( 'test-read.txt' );
 		file_put_contents( $file, 'Test content' );
 
 		$contents = $fs->get_contents( $file );
@@ -113,7 +113,7 @@ class SScribe_Filesystem_Test extends TestCase {
 
 	public function test_delete_removes_file(): void {
 		$fs   = new \SScribe_Filesystem();
-		$file = $this->test_dir . '/to-delete.txt';
+		$file = $this->in_export_dir( 'to-delete.txt' );
 		file_put_contents( $file, 'Delete me' );
 
 		$result = $fs->delete( $file );

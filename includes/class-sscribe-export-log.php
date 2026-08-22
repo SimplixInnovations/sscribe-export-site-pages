@@ -126,7 +126,7 @@ class SScribe_Export_Log {
 	private function get_default_log_data(): array {
 		return array(
 			'session_id'   => $this->session_id,
-			'created_at'   => current_time( 'mysql' ),
+			'created_at'   => current_time( 'mysql', true ),
 			'total_pages'  => 0,
 			'processed'    => 0,
 			'success'      => 0,
@@ -332,7 +332,7 @@ class SScribe_Export_Log {
 		$data['errors'][] = array(
 			'page_id' => $page_id,
 			'message' => self::limit_text( $error_message, 1000 ),
-			'time'    => current_time( 'mysql' ),
+			'time'    => current_time( 'mysql', true ),
 		);
 		$data['errors']   = array_slice( $data['errors'], -self::MAX_ERROR_ENTRIES );
 
@@ -373,7 +373,7 @@ class SScribe_Export_Log {
 			'format'   => substr( sanitize_key( $format ), 0, 40 ),
 			'attempt'  => $attempt,
 			'category' => $category,
-			'time'     => current_time( 'mysql' ),
+			'time'     => current_time( 'mysql', true ),
 		);
 		$data['pages'][ $page_id ]['retries']   = array_slice( $data['pages'][ $page_id ]['retries'], -20 );
 
@@ -418,7 +418,7 @@ class SScribe_Export_Log {
 		}
 		$data                 = $this->read_log();
 		$data['status']       = 'complete';
-		$data['completed_at'] = current_time( 'mysql' );
+		$data['completed_at'] = current_time( 'mysql', true );
 		$data['zip_file']     = $zip_file;
 		$data['files_in_zip'] = max( 0, $files_in_zip );
 		$this->write_log( $data );
@@ -449,11 +449,11 @@ class SScribe_Export_Log {
 	public function mark_failed( string $error_message ): void {
 		$data                 = $this->read_log();
 		$data['status']       = 'failed';
-		$data['completed_at'] = current_time( 'mysql' );
+		$data['completed_at'] = current_time( 'mysql', true );
 		$data['errors'][]     = array(
 			'page_id' => 0,
 			'message' => self::limit_text( $error_message, 1000 ),
-			'time'    => current_time( 'mysql' ),
+			'time'    => current_time( 'mysql', true ),
 		);
 		$data['errors']       = array_slice( $data['errors'], -self::MAX_ERROR_ENTRIES );
 		$this->write_log( $data );

@@ -95,6 +95,21 @@ trait SScribe_Logger_Common {
 			'bearer',
 		);
 
+		$hashed_parts = array(
+			'ip',
+			'ip_address',
+			'client_ip',
+			'remote_addr',
+		);
+
+		$sensitive_parts = array_merge(
+			$sensitive_parts,
+			array(
+				'cookie',
+				'set_cookie',
+			)
+		);
+
 		foreach ( $context as $key => $value ) {
 			$key_text  = (string) $key;
 			$sensitive = false;
@@ -105,8 +120,19 @@ trait SScribe_Logger_Common {
 				}
 			}
 
+			$hashed = false;
+			foreach ( $hashed_parts as $part ) {
+				if ( false !== stripos( $key_text, $part ) ) {
+					$hashed = true;
+					break;
+				}
+			}
+
 			if ( $sensitive ) {
 				$context[ $key ] = '[REDACTED]';
+			} elseif ( $hashed ) {
+				$raw             = is_scalar( $value ) && ! is_bool( $value ) ? (string) $value : '';
+				$context[ $key ] = '' === $raw ? '[EMPTY]' : substr( hash_hmac( 'sha256', $raw, function_exists( 'wp_salt' ) ? wp_salt( 'auth' ) : 'sscribe-log-context' ), 0, 16 );
 			} elseif ( is_array( $value ) ) {
 				$context[ $key ] = $this->sanitize_log_context( $value, $depth + 1 );
 			} elseif ( is_object( $value ) ) {

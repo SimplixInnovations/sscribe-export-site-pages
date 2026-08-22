@@ -345,6 +345,8 @@ class SScribe_Zip_Handler {
 			);
 		} catch ( \Throwable $e ) {
 			$assembly_failed = true;
+			$this->delete_directory( $source_dir );
+			$lock_manager->release_lock( $lock_name, $lock_token );
 			throw $e;
 		} finally {
 
@@ -398,16 +400,28 @@ class SScribe_Zip_Handler {
 		try {
 			$basename = basename( $zip_path );
 			$row      = array(
-				'created_at' => time(),
-				'user_id'    => get_current_user_id(),
-				'formats'    => $formats,
-				'lang_code'  => $lang_metadata['lang_code'] ?? '',
-				'lang_name'  => $lang_metadata['lang_name'] ?? '',
-				'flag_url'   => $lang_metadata['flag_url'] ?? '',
-				'session_id' => $session_id,
+				'created_at'  => time(),
+				'user_id'     => get_current_user_id(),
+				'formats'     => $formats,
+				'lang_code'   => $lang_metadata['lang_code'] ?? '',
+				'lang_name'   => $lang_metadata['lang_name'] ?? '',
+				'flag_url'    => $lang_metadata['flag_url'] ?? '',
+				'session_id'  => $session_id,
+				'dl_token'    => $this->generate_dl_token(),
+				'dl_token_at' => time(),
 			);
 
-			update_option( 'sscribe_export_row_' . md5( $basename ), $row, false );
+			$row_option = 'sscribe_export_row_' . md5( $basename );
+			$row_saved  = update_option( $row_option, $row, false );
+			if ( ! $row_saved && get_option( $row_option, null ) !== $row ) {
+				$this->logger->error(
+					'Export metadata could not be persisted; ZIP discarded',
+					array( 'filename' => $basename )
+				);
+				wp_delete_file( $zip_path );
+				delete_option( $row_option );
+				return false;
+			}
 
 			$index   = get_option( 'sscribe_export_index', array() );
 			$index[] = $basename;
@@ -430,7 +444,16 @@ class SScribe_Zip_Handler {
 				}
 			}
 
-			update_option( 'sscribe_export_index', $index, false );
+			$index_saved = update_option( 'sscribe_export_index', $index, false );
+			if ( ! $index_saved && get_option( 'sscribe_export_index', array() ) !== $index ) {
+				$this->logger->error(
+					'Export index could not be persisted; ZIP discarded',
+					array( 'filename' => $basename )
+				);
+				delete_option( $row_option );
+				wp_delete_file( $zip_path );
+				return false;
+			}
 		} finally {
 			$lock_manager->release_lock( $lock_name, $lock_token );
 		}
@@ -627,13 +650,10 @@ class SScribe_Zip_Handler {
 	/**
 	 * Get the AJAX download URL for a ZIP file.
 	 *
-	 * The URL embeds a single-use per-row token (`token=...`) that is
-	 * atomically rotated at URL build time. The export row also stores
-	 * a parallel token, so the server-side download handler can
-	 * validate the presented token via hash_equals and rotate it
-	 * before streaming. Result: the URL is valid for exactly one
-	 * fetch (a replay from browser history, a leaked Slack link, or
-	 * a copied-from-the-server-log request) all return 403.
+	 * The URL embeds the row's current single-use token (`token=...`).
+	 * Multiple admin views may render that token without invalidating
+	 * each other; the server rotates it only after a successful
+	 * redemption. A replay with the consumed token therefore fails.
 	 *
 	 * @param string $zip_filename ZIP filename.
 	 * @return string
@@ -646,7 +666,29 @@ class SScribe_Zip_Handler {
 		if ( null === $this->cached_nonce ) {
 			$this->cached_nonce = wp_create_nonce( 'sscribe_download' );
 		}
-		$token = $this->rotate_dl_token( $zip_filename );
+		$row   = get_option( 'sscribe_export_row_' . md5( $zip_filename ), null );
+		$token = is_array( $row ) && isset( $row['dl_token'] ) && is_string( $row['dl_token'] )
+			? $row['dl_token']
+			: '';
+		if ( 1 !== preg_match( '/^[a-f0-9]{32}$/', $token ) ) {
+			$lock_manager = new SScribe_Export_Lock_Manager( $this->logger );
+			$lock_name    = 'download-' . md5( $zip_filename );
+			$lock_token   = $lock_manager->acquire_lock( $lock_name, 30, 25 );
+			if ( null === $lock_token ) {
+				return '';
+			}
+			try {
+				$row   = get_option( 'sscribe_export_row_' . md5( $zip_filename ), null );
+				$token = is_array( $row ) && isset( $row['dl_token'] ) && is_string( $row['dl_token'] )
+					? $row['dl_token']
+					: '';
+				if ( 1 !== preg_match( '/^[a-f0-9]{32}$/', $token ) ) {
+					$token = $this->rotate_dl_token( $zip_filename );
+				}
+			} finally {
+				$lock_manager->release_lock( $lock_name, $lock_token );
+			}
+		}
 		if ( '' === $token ) {
 			return '';
 		}
@@ -663,10 +705,9 @@ class SScribe_Zip_Handler {
 	 * Rotate the per-row single-use download token.
 	 *
 	 * Generates a fresh 32-hex token, persists it on the export row,
-	 * and returns the new value. Called from get_ajax_download_url
-	 * (so every URL the admin sees embeds a fresh token) and from
-	 * ajax_download (so a successfully streamed URL is invalidated
-	 * before any retry can reach the handler).
+	 * and returns the new value. URL generation calls this when a row
+	 * has no valid token; successful redemption rotates the stored
+	 * value before the archive is streamed.
 	 *
 	 * @param string $zip_filename ZIP basename.
 	 * @return string New token, or empty string if the row is missing.
@@ -681,24 +722,18 @@ class SScribe_Zip_Handler {
 		if ( ! is_array( $row ) ) {
 			return '';
 		}
-		try {
-			$token = bin2hex( random_bytes( 16 ) );
-		} catch ( \Throwable $e ) {
-			$token = bin2hex( wp_generate_password( 32, false, false ) );
-		}
+		$token              = $this->generate_dl_token();
 		$row['dl_token']    = $token;
 		$row['dl_token_at'] = time();
-		update_option( $option_name, $row, false );
-		return $token;
+		return update_option( $option_name, $row, false ) ? $token : '';
 	}
 
 	/**
-	 * Validate and rotate a presented download token.
+	 * Atomically validate and rotate a presented download token.
 	 *
-	 * The compare is constant-time (hash_equals). The rotation is
-	 * unconditional on success: once a token has been redeemed, any
-	 * subsequent fetch with the same token fails even if it races
-	 * before the row is reread by the new request.
+	 * A per-export atomic lock serializes the compare-and-rotate section.
+	 * The compare is constant-time (hash_equals), and persistence fails
+	 * closed before the caller is authorized to stream the archive.
 	 *
 	 * @param string $zip_filename ZIP basename.
 	 * @param string $presented   Token presented in the URL.
@@ -709,30 +744,58 @@ class SScribe_Zip_Handler {
 		if ( '' === $zip_filename || '' === $presented ) {
 			return false;
 		}
-		$option_name = 'sscribe_export_row_' . md5( $zip_filename );
-		$row         = get_option( $option_name, null );
-		if ( ! is_array( $row ) ) {
+
+		$lock_manager = new SScribe_Export_Lock_Manager( $this->logger );
+		$lock_name    = 'download-' . md5( $zip_filename );
+		$lock_token   = $lock_manager->acquire_lock( $lock_name, 30, 25 );
+		if ( null === $lock_token ) {
+			$this->logger->debug(
+				'Download token redemption already in progress',
+				array( 'filename' => $zip_filename )
+			);
 			return false;
 		}
-		$stored = isset( $row['dl_token'] ) && is_string( $row['dl_token'] ) ? $row['dl_token'] : '';
-		if ( '' === $stored || ! hash_equals( $stored, $presented ) ) {
-			if ( $this->logger ) {
+
+		$option_name = 'sscribe_export_row_' . md5( $zip_filename );
+		try {
+			$row = get_option( $option_name, null );
+			if ( ! is_array( $row ) ) {
+				return false;
+			}
+			$stored = isset( $row['dl_token'] ) && is_string( $row['dl_token'] ) ? $row['dl_token'] : '';
+			if ( '' === $stored || ! hash_equals( $stored, $presented ) ) {
 				$this->logger->debug(
 					'Download token row already consumed or absent',
 					array( 'filename' => $zip_filename )
 				);
+				return false;
 			}
-			return false;
+			$row['dl_token']    = $this->generate_dl_token();
+			$row['dl_token_at'] = time();
+			if ( ! update_option( $option_name, $row, false ) ) {
+				$this->logger->warning(
+					'Download token rotation could not be persisted',
+					array( 'filename' => $zip_filename )
+				);
+				return false;
+			}
+			return true;
+		} finally {
+			$lock_manager->release_lock( $lock_name, $lock_token );
 		}
+	}
+
+	/**
+	 * Generate a 32-character hexadecimal download token.
+	 *
+	 * @return string
+	 */
+	private function generate_dl_token(): string {
 		try {
-			$new_token = bin2hex( random_bytes( 16 ) );
+			return bin2hex( random_bytes( 16 ) );
 		} catch ( \Throwable $e ) {
-			$new_token = bin2hex( wp_generate_password( 32, false, false ) );
+			return substr( hash( 'sha256', wp_generate_password( 64, true, true ) ), 0, 32 );
 		}
-		$row['dl_token']    = $new_token;
-		$row['dl_token_at'] = time();
-		update_option( $option_name, $row, false );
-		return true;
 	}
 
 	/**

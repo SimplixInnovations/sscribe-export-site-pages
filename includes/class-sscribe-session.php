@@ -36,11 +36,9 @@ class SScribe_Session {
 	private const SESSION_ID_LENGTH = 16;
 
 	/**
-	 * Cache of active sessions by user ID.
-	 *
-	 * @var array<int, bool>
+	 * Seconds a session may sit untouched and still be treated as resumable.
 	 */
-	private static array $active_session_cache = array();
+	private const ACTIVE_SESSION_MAX_IDLE = 900;
 
 	/**
 	 * Test hook: bypass encryption when storing session data.
@@ -245,7 +243,6 @@ class SScribe_Session {
 	 * process state with SScribe_Session_Test (which does not call delete() in tearDown).
 	 */
 	public static function test_reset(): void {
-		self::$active_session_cache = array();
 		self::$test_mode           = false;
 
 		if ( isset( $GLOBALS['sscribe_test_transients'] ) ) {
@@ -358,6 +355,7 @@ class SScribe_Session {
 							)
 						);
 						delete_option( self::OPTION_PREFIX . $session_id );
+						++$attempt;
 						continue;
 					}
 				}
@@ -592,7 +590,6 @@ class SScribe_Session {
 					$this->invalidate_session_index();
 
 					if ( isset( $merged['user_id'] ) && isset( $merged['status'] ) && in_array( $merged['status'], array( 'complete', 'failed', 'cancelled' ), true ) ) {
-						unset( self::$active_session_cache[ (int) $merged['user_id'] ] );
 						$this->delete_active_sid_transient( (int) $merged['user_id'] );
 					} elseif ( isset( $merged['user_id'] ) ) {
 
@@ -645,7 +642,6 @@ class SScribe_Session {
 		$data = $this->get( $session_id );
 		if ( is_array( $data ) && isset( $data['user_id'] ) ) {
 			$this->delete_active_sid_transient( (int) $data['user_id'] );
-			unset( self::$active_session_cache[ (int) $data['user_id'] ] );
 		}
 
 		$this->delete_page_ids( $session_id );
@@ -881,7 +877,6 @@ class SScribe_Session {
 						$this->get_lock_manager()->discard_lock( $session_id );
 						if ( isset( $data['user_id'] ) ) {
 							$this->delete_active_sid_transient( (int) $data['user_id'] );
-							unset( self::$active_session_cache[ (int) $data['user_id'] ] );
 						}
 						++$deleted;
 					}
@@ -927,7 +922,7 @@ class SScribe_Session {
 					$cursor,
 					$limit
 				)
-			);
+			) ?? array();
 
 			$option_count = count( $options );
 			foreach ( $options as $option ) {
@@ -948,7 +943,6 @@ class SScribe_Session {
 		} while ( $option_count === $limit );
 
 		$this->delete_active_sid_transient( $user_id );
-		unset( self::$active_session_cache[ $user_id ] );
 		if ( $deleted > 0 ) {
 			$this->invalidate_session_index();
 		}
@@ -1017,7 +1011,7 @@ class SScribe_Session {
 					$cursor,
 					$batch_limit
 				)
-			);
+			) ?? array();
 
 			$option_count = count( $options );
 			foreach ( $options as $option ) {
@@ -1120,72 +1114,6 @@ class SScribe_Session {
 	}
 
 	/**
-	 * Check if user has active session and return its data.
-	 *
-	 * @param int $user_id User ID.
-	 * @return bool True if user has an active session.
-	 */
-	public function has_active_session( int $user_id ): bool {
-		if ( self::$test_mode ) {
-			return $this->has_active_session_uncached( $user_id );
-		}
-
-		$cache_key = 'sscribe_active_sid_' . $user_id;
-		$cached    = $this->get_active_sid_transient( $user_id );
-		if ( false !== $cached ) {
-			if ( '0' === $cached ) {
-				self::$active_session_cache[ $user_id ] = false;
-				return false;
-			}
-
-			$cached_session = is_string( $cached ) ? $this->get( $cached ) : null;
-			if ( is_array( $cached_session ) && $this->is_active_session_data( $cached_session ) ) {
-				self::$active_session_cache[ $user_id ] = true;
-				return true;
-			}
-
-			$this->delete_active_sid_transient( $user_id );
-			self::$active_session_cache[ $user_id ] = false;
-		}
-
-		return $this->has_active_session_uncached( $user_id );
-	}
-
-	/**
-	 * Uncached active-session check : always queries storage directly.
-	 * Used in test mode to avoid stale-cache blocking legitimate session creation.
-	 *
-	 * @param int $user_id User ID.
-	 * @return bool True if the user has an active session.
-	 */
-	private function has_active_session_uncached( int $user_id ): bool {
-		$transient_key = 'sscribe_active_sid_' . $user_id;
-		$existing     = get_transient( $transient_key );
-
-		if ( false === $existing || '0' === $existing ) {
-			return false;
-		}
-
-		if ( ! is_string( $existing ) ) {
-			return false;
-		}
-
-		$data = $this->get( $existing );
-
-		if ( ! is_array( $data ) ) {
-			delete_transient( $transient_key );
-			return false;
-		}
-
-		if ( ! $this->is_active_session_data( $data ) ) {
-			delete_transient( $transient_key );
-			return false;
-		}
-
-		return true;
-	}
-
-	/**
 	 * Determine whether decoded session data still represents active work.
 	 *
 	 * @param array $data Session data.
@@ -1201,80 +1129,15 @@ class SScribe_Session {
 		$processed = (int) ( $data['processed'] ?? 0 );
 		$total     = (int) ( $data['total'] ?? 0 );
 
-		return $processed < $total && empty( $data['cancelled'] );
-	}
-
-	/**
-	 * Migrate all legacy serialized sessions to JSON.
-	 *
-	 * @return int Number of migrated sessions.
-	 */
-	public function migrate_all_legacy_sessions(): int {
-		global $wpdb;
-
-		$pattern = $wpdb->esc_like( self::OPTION_PREFIX ) . '%';
-
-		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- One-time migration scan across session options.
-		$options = $wpdb->get_results(
-			$wpdb->prepare(
-				"SELECT option_name, option_value FROM {$wpdb->options} WHERE option_name LIKE %s",
-				$pattern
-			)
-		);
-
-		$migrated = 0;
-
-		foreach ( $options as $option ) {
-			$session_id = self::extract_session_id( (string) $option->option_name );
-			if ( null === $session_id ) {
-				continue;
-			}
-
-			if ( ! is_string( $option->option_value ) ) {
-				continue;
-			}
-
-			$data = json_decode( $option->option_value, true );
-
-			if ( is_array( $data ) ) {
-				continue;
-			}
-
-			$data = unserialize( $option->option_value, array( 'allowed_classes' => false ) );
-
-			if ( ! is_array( $data ) ) {
-				continue;
-			}
-
-			if ( '' !== $session_id && ! isset( $data['_sig'] ) ) {
-				$data['_sig'] = $this->sign_session_id( $session_id );
-			}
-
-			$encoded_data = wp_json_encode( $data, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES );
-
-			if ( false === $encoded_data ) {
-				continue;
-			}
-
-			$encrypted_data = $this->encrypt_session_data( $encoded_data );
-
-			if ( update_option( self::OPTION_PREFIX . $session_id, $encrypted_data, false ) ) {
-				++$migrated;
-				$this->logger->info(
-					'Migrated legacy serialized session to encrypted JSON storage',
-					array(
-						'option_name' => (string) $option->option_name,
-						'session_id'  => $session_id,
-					)
-				);
-			}
+		if ( $processed >= $total || ! empty( $data['cancelled'] ) ) {
+			return false;
 		}
 
-		if ( $migrated > 0 ) {
-			$this->invalidate_session_index();
-		}
-
-		return $migrated;
+		// A session that has not been touched recently is a crashed run,
+		// not resumable work. Restoring it would lock the admin UI behind
+		// a session no request will ever advance again.
+		$last_touched = (int) ( $data['updated_at'] ?? $data['created_at'] ?? 0 );
+		return $last_touched > 0 && ( time() - $last_touched ) < self::ACTIVE_SESSION_MAX_IDLE;
 	}
 
 	/**

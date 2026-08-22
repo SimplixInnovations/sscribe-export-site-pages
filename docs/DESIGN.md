@@ -2,7 +2,7 @@
 scribe_design_version: 3
 plugin: SScribe Export Site Pages
 plugin_slug: sscribe-export-site-pages
-plugin_version: 1.1.4
+plugin_version: 1.9.0
 ---
 
 # sScribe Design System v3
@@ -18,9 +18,9 @@ This doc covers the admin surface (the `SScribe Export` admin page and its sub-t
 The v3 system is built on five principles:
 
 1. **Restraint over decoration.** No gradients, no shadows, no glow, no decorative animation. Hierarchy comes from type ramp, spacing, and hairline borders. A card looks like a piece of paper sitting on the page - not like a floating panel with a halo.
-2. **Tokens, not hardcoded values.** Every color, font size, radius, and motion duration resolves to a CSS custom property. Components never hardcode `#3d7a5a` or `8px` - they use `var(--ss-color-accent)` and `var(--ss-radius-md)`. This lets dark mode, future rebrand, and accessibility tuning work without touching component rules.
-3. **Semantic roles, physical palette.** Components consume semantic tokens (`--ss-color-fg-primary`, `--ss-color-bg-inset`). Semantic tokens alias physical tokens (`--ss-text-primary`, `--ss-surface-2`). Want to rebalance the dark mode palette? Change the physical tokens; every component re-tunes for free.
-4. **AA on dark.** The admin often runs in dark mode (macOS, Windows, GNOME 42+, Android). The dark palette is tuned for true WCAG AA - body text ≥ 4.5:1, large text ≥ 3:1, brand accent ≥ 4.5:1 for primary interactive use. Verified ratios documented per token.
+2. **Tokens, not hardcoded values.** Every color, font size, radius, and motion duration resolves to a CSS custom property. Components never hardcode `#3d7a5a` or `8px` - they use `var(--ss-color-accent)` and `var(--ss-radius-md)`. This lets future rebrand and accessibility tuning work without touching component rules.
+3. **Semantic roles, physical palette.** Components consume semantic tokens (`--ss-color-fg-primary`, `--ss-color-bg-inset`). Semantic tokens alias physical tokens (`--ss-text-primary`, `--ss-surface-2`), keeping palette tuning centralized.
+4. **AA on light.** The plugin uses one light palette that remains visually continuous with WordPress Admin. Body text is ≥ 4.5:1, large text is ≥ 3:1, and the brand accent is ≥ 4.5:1 for primary interactive use.
 5. **Native semantics first.** Buttons are `<button>`. Inputs are `<input>`. Tables are `<table>`. ARIA is used only where a custom widget cannot be a native element (modal, toast container, segmented control). No `role="button"` on `<div>`, no fake lists.
 
 ---
@@ -32,7 +32,7 @@ Two stylesheets, one design system.
 - `admin/css/sscribe-admin.css` - primary admin surface (≥ 4,500 lines).
 - `admin/css/sscribe-debug-console.css` - debug-console surface (~1,550 lines).
 
-Both files share the canonical `--ss-*` token space. The debug console extends the token space with `--ss-debug-*` scoping for terminal chrome and traffic-light indicators so it never collides with the main palette.
+Both files share the canonical `--ss-*` token space. The debug console reuses the same light surfaces, borders, typography, and semantic status colors.
 
 **No third-party CSS frameworks.** No Tailwind. No Bootstrap. No CSS-in-JS. The plugin ships zero external stylesheet dependencies and never fetches a font from a CDN. The system font stack is system-only.
 
@@ -47,18 +47,18 @@ No `-webkit-` prefixes on standardized properties (no `-webkit-transform`, no `-
 
 ## 3. Tokens
 
-### 3.1 Surface palette (light mode)
+### 3.1 Surface palette
 
 | Token | Value | Use |
 |---|---|---|
-| `--ss-bg` | `#fafafa` | Page background |
+| `--ss-bg` | `#f0f0f1` | WordPress Admin page background |
 | `--ss-surface` | `#ffffff` | Card / panel |
 | `--ss-surface-2` | `#f4f4f5` | Inset surface (search rest, toolbar bg) |
 | `--ss-surface-3` | `#e4e4e7` | Skeleton track, busy state |
 | `--ss-border` | `#e4e4e7` | 1px hairline |
 | `--ss-border-strong` | `#d4d4d8` | Stronger border (focused inputs) |
 
-### 3.2 Text and brand (light mode)
+### 3.2 Text and brand
 
 | Token | Value | Ratio on `--ss-bg` | Use |
 |---|---|---|---|
@@ -77,30 +77,7 @@ No `-webkit-` prefixes on standardized properties (no `-webkit-transform`, no `-
 | `--ss-error` | `#9a1f17` | 4.5:1 | Error state (AA fg on `--ss-error-bg`) |
 | `--ss-info` | `#153e91` | 4.5:1 | Info state (AA fg on `--ss-info-bg`) |
 
-### 3.3 Dark mode palette
-
-Tuned for true WCAG AA on dark surfaces. Defined in `prefers-color-scheme: dark` block within `.sscribe-master-container`.
-
-| Token | Light | Dark | Ratio on `--ss-bg` (dark) |
-|---|---|---|---|
-| `--ss-bg` | `#fafafa` | `#09090b` | - |
-| `--ss-surface` | `#ffffff` | `#18181b` | - |
-| `--ss-surface-2` | `#f4f4f5` | `#27272a` | - |
-| `--ss-surface-3` | `#e4e4e7` | `#3f3f46` | - |
-| `--ss-border` | `#e4e4e7` | `#27272a` | - |
-| `--ss-border-strong` | `#d4d4d8` | `#3f3f46` | - |
-| `--ss-text-primary` | `#09090b` | `#fafafa` | 17.6:1 |
-| `--ss-text-secondary` | `#3f3f46` | `#d4d4d8` | 11.0:1 |
-| `--ss-text-tertiary` | `#52525b` | `#a1a1aa` | 7.1:1 |
-| `--ss-text-muted` | `#71717a` | `#a1a1aa` | 7.1:1 |
-| `--ss-brand` | `#3d7a5a` | `#4d8a6a` | 4.2:1 (large UI) / 5.1:1 (white text on light) |
-| `--ss-brand-hover` | `#2f6146` | `#5fa983` | - |
-| `--ss-brand-active` | `#234b37` | `#6ab088` | - |
-| `--ss-brand-soft` | `#d4e7dc` | `#1f3a2c` | - |
-| `--ss-brand-tint` | `#e8f2ec` | `#142a1f` | - |
-| `--ss-brand-mark` | `#68a885` | `#7fc6a3` | - (decoration) |
-
-### 3.4 Semantic role tokens
+### 3.3 Semantic role tokens
 
 Defined immediately under the physical tokens. Each role aliases exactly one physical token. Components consume only roles - never raw `--ss-*` physical values directly - except for the rare layout-level rule that needs a specific surface.
 
@@ -127,12 +104,12 @@ Defined immediately under the physical tokens. Each role aliases exactly one phy
 | `--ss-color-warning-fg` | `--ss-warning` | warning text |
 | `--ss-color-error-fg` | `--ss-error` | error text |
 | `--ss-color-info-fg` | `--ss-info` | info text |
-| `--ss-color-success-bg` | light `#ecfdf5`, dark `#052e1a` | success alert bg |
-| `--ss-color-warning-bg` | light `#fffbeb`, dark `#3a2a14` | warning alert bg |
-| `--ss-color-error-bg` | light `#fef2f2`, dark `#3a1414` | error alert bg |
-| `--ss-color-info-bg` | light `#f0f9ff`, dark `#0c2a3a` | info alert bg |
+| `--ss-color-success-bg` | `#e6f6f0` | success alert bg |
+| `--ss-color-warning-bg` | `#fff6ed` | warning alert bg |
+| `--ss-color-error-bg` | `#fef3f2` | error alert bg |
+| `--ss-color-info-bg` | `#eff8ff` | info alert bg |
 
-### 3.5 Type ramp
+### 3.4 Type ramp
 
 The plugin ships two font families via the system stack:
 
@@ -159,11 +136,11 @@ Type utility classes:
 - `.ss-type-display` … `.ss-type-caption` - semantic styles mapped to the tokens above.
 - `.ss-type-numeric` - `font-variant-numeric: tabular-nums lining-nums` for numeric data.
 
-### 3.6 Spacing scale (4px base)
+### 3.5 Spacing scale (4px base)
 
 `--ss-space-1` (4px) through `--ss-space-20` (80px). Use 4px increments only; do not invent new spacing values.
 
-### 3.7 Radius scale
+### 3.6 Radius scale
 
 | Token | Value | Use |
 |---|---|---|
@@ -173,7 +150,7 @@ Type utility classes:
 | `--ss-radius-xl` | 16px | modals |
 | `--ss-radius-full` | 9999px | pill shapes |
 
-### 3.8 Motion
+### 3.7 Motion
 
 | Token | Value | Use |
 |---|---|---|
@@ -184,7 +161,7 @@ Type utility classes:
 
 `prefers-reduced-motion: reduce` nullifies all transitions.
 
-### 3.9 Focus
+### 3.8 Focus
 
 Every interactive component exposes a `:focus-visible` ring using:
 - 2px solid outline `var(--ss-color-accent)`
@@ -270,7 +247,7 @@ Fixed inset 0, `rgb(9 9 11 / 50%)` overlay, flex center, pad 20px, z-index 10000
 
 ### 4.13 Tooltip (`[data-tooltip]`)
 
-Pure CSS. `[data-tooltip]::after` shows `attr(data-tooltip)` on hover / focus-visible. Dark bg #18181b, white text, 11px, pad 4px 8px. Fade in 200ms. Reduced motion = instant.
+Pure CSS. `[data-tooltip]::after` shows `attr(data-tooltip)` on hover / focus-visible. It uses the light surface, primary text, and a strong border, with 11px text and 4px 8px padding. Reduced motion makes its appearance instant.
 
 ### 4.14 Form layout
 
@@ -282,19 +259,15 @@ Pure CSS. `[data-tooltip]::after` shows `attr(data-tooltip)` on hover / focus-vi
 
 ## 5. Media Queries
 
-### 5.1 `prefers-color-scheme: dark`
-
-Toggles the entire palette inside `.sscribe-master-container`. No component change required.
-
-### 5.2 `prefers-reduced-motion: reduce`
+### 5.1 `prefers-reduced-motion: reduce`
 
 Nullifies all transitions and outlines for users with vestibular sensitivity. Hover and focus styles still apply.
 
-### 5.3 `forced-colors: active`
+### 5.2 `forced-colors: active`
 
 Maps tokens to system colors (`Canvas`, `CanvasText`, `Highlight`, `LinkText`) and elevates focus rings to 3px solid `Highlight`. Affects all of `.sscribe-master-container` and `.sscribe-debug-master`.
 
-### 5.4 `max-width` breakpoints
+### 5.3 `max-width` breakpoints
 
 - 900px - tablet: workspace compresses; tabs become horizontal scroll.
 - 640px - mobile: single column.
@@ -354,19 +327,17 @@ These are policy violations when found in the codebase:
 
 ## 9. Debug Console Scoping
 
-`admin/css/sscribe-debug-console.css` is dark-mode-only. It extends the main token space with a `--ss-debug-*` layer for terminal chrome. Component-level rules for `.sscribe-empty-state`, `.sscribe-progress`, `.sscribe-chip-*` inside the `.sscribe-debug-master` scope reuse the same v3 component rules with debug-appropriate ink.
-
-No light mode is provided for the debug terminal: the debug console is intended for system inspection under low-light conditions.
+`admin/css/sscribe-debug-console.css` preserves the original debug-console structure while using the shared light palette. Component-level rules for `.sscribe-empty-state`, `.sscribe-progress`, and `.sscribe-chip-*` inside the `.sscribe-debug-master` scope reuse the same v3 components and semantic status colors.
 
 ---
 
 ## 10. Migration from v2
 
-v2 polish shipped the dark mode, reduced motion, and forced-colors media blocks. v3 adds:
+v2 polish shipped reduced-motion and forced-colors media blocks. v3 adds:
 
 - 27 semantic role tokens (no palette changes; pure aliasing).
 - Full component library (input, select, textarea, table, breadcrumb, chip, code, kbd, segmented, switch, progress, empty-state, modal-backdrop, tooltip, form-row/grid/fieldset).
-- Token-driven dark-mode re-tune: brand `#3d7a5a` (light) / `#4d8a6a` (dark), muted text `#71717a` / `#a1a1aa`, others normalized to the 11-step palette. Simplixi brand mark `#68a885` reserved for hero/logo.
+- Token-driven light palette: brand `#3d7a5a`, muted text `#71717a`, and Simplixi brand mark `#68a885` reserved for hero/logo.
 - Hit-target normalization to 40px default + intentional `.ss-btn-sm` and `.ss-btn-lg` modifiers.
 - Unified `:focus-visible` ring across 14 control families.
 

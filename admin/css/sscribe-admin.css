@@ -1,8 +1,4 @@
-/* @version 1.2.0 */
-
-/* Design tokens + master-container resets live in sscribe-tokens.css,
- * enqueued first so the cache lifetime for that file is independent
- * of the component layer in this file. */
+/* @version 1.9.0 */
 
 .sscribe-master-container *,
 .sscribe-master-container *::before,
@@ -38,7 +34,6 @@
 	cursor: pointer;
 }
 
-/* The hide utilities intentionally override component and WordPress styles. */
 /* stylelint-disable declaration-no-important */
 .sscribe-hidden {
 	display: none !important;
@@ -48,6 +43,21 @@
 	display: none !important;
 }
 /* stylelint-enable declaration-no-important */
+
+/* Self-contained screen-reader utility. Core ships its own copy, but admin
+ * themes and custom CSS occasionally override it, which would expose the
+ * plugin's live regions as visible duplicate messages. */
+.sscribe-master-container .screen-reader-text {
+	position: absolute;
+	overflow: hidden;
+	width: 1px;
+	height: 1px;
+	margin: -1px;
+	padding: 0;
+	border: 0;
+	clip-path: inset(50%);
+	overflow-wrap: normal;
+}
 
 .sscribe-skip-link.screen-reader-text:focus,
 .sscribe-skip-link:focus {
@@ -160,8 +170,6 @@
 	max-width: var(--ss-max-w);
 	margin-left: auto;
 	margin-right: auto;
-
-	/* Match the .sscribe-hero-left inner offset: 36px logo + 16px gap. */
 	padding: var(--ss-space-4) 0 0 calc(36px + var(--ss-space-4));
 	border-top: 1px solid var(--ss-border);
 	flex-wrap: wrap;
@@ -410,15 +418,21 @@
 	flex-shrink: 0;
 }
 
-.sscribe-post-type-card > input,
-.sscribe-status-card-label > input,
-.sscribe-format-card-label > input,
-.sscribe-lang-card-label > input {
+.sscribe-master-container .sscribe-post-type-card > input[type='radio'],
+.sscribe-master-container .sscribe-status-card-label > input[type='radio'],
+.sscribe-master-container .sscribe-format-card-label > input[type='radio'],
+.sscribe-master-container .sscribe-lang-card-label > input[type='radio'] {
 	position: absolute;
 	opacity: 0;
 	pointer-events: none;
-	width: 0;
-	height: 0;
+	width: 1px;
+	height: 1px;
+	overflow: hidden;
+	clip-path: inset(50%);
+}
+
+.sscribe-master-container .sscribe-status-card-label > input[type='radio']:disabled {
+	opacity: 0;
 }
 
 .sscribe-post-type-card-inner,
@@ -540,11 +554,6 @@
 	line-height: 1.4;
 }
 
-/* --ss-text-secondary (#3f3f46) keeps >= 4.5:1 contrast on both the
-   default white card background AND the tinted-green SELECTED card
-   background (rgb(212, 231, 220) = the brand-tint selected state).
-   --ss-text-muted (#5a5f66) clears WCAG AA on both surfaces. */
-
 .sscribe-post-type-selector,
 .sscribe-status-selector,
 .sscribe-format-selector,
@@ -565,9 +574,6 @@
 		background 120ms ease;
 }
 
-/* Check mark - single L-shape rotated 45deg, anchored from the centre of
-   the 18×18 dot. Width 5 × height 9 with bottom + right borders forms a
-   clean tick that scales from 0 with a spring easing on check. */
 .sscribe-post-type-selector::before,
 .sscribe-status-selector::before,
 .sscribe-format-selector::before,
@@ -593,7 +599,6 @@
 	pointer-events: none;
 }
 
-/* Remove the legacy ::after stroke; one element renders the tick. */
 .sscribe-post-type-selector::after,
 .sscribe-status-selector::after,
 .sscribe-format-selector::after,
@@ -662,8 +667,6 @@
 	color: var(--ss-text-muted);
 }
 
-/* Pre-export advisories: calmly surface environment/content concerns above
-   the action bar without blocking the workflow. */
 .sscribe-preflight-warnings {
 	display: flex;
 	flex-direction: column;
@@ -1030,7 +1033,7 @@
 }
 /* stylelint-enable property-no-vendor-prefix */
 
-.sscribe-preference-toggle input[type="checkbox"] {
+.sscribe-preference-toggle input[type='checkbox'] {
 	margin: 0;
 	cursor: pointer;
 }
@@ -1141,6 +1144,40 @@
 .sscribe-button-success:hover:not(:disabled) {
 	background: var(--ss-success-hover);
 	border-color: var(--ss-success-hover);
+	color: var(--ss-text-inverse);
+	text-decoration: none;
+}
+
+/* Anchors rendered as buttons (Download ZIP, history actions) must never
+ * inherit the WP admin link color on hover/visited. Scoped to the plugin
+ * container so the rules cannot leak into surrounding admin UI. */
+.sscribe-master-container a.sscribe-button,
+.sscribe-master-container a.sscribe-button:visited,
+.sscribe-master-container a.sscribe-button:hover,
+.sscribe-master-container a.sscribe-button:active {
+	text-decoration: none;
+}
+
+.sscribe-master-container a.sscribe-button-primary,
+.sscribe-master-container a.sscribe-button-primary:visited,
+.sscribe-master-container a.sscribe-button-primary:hover,
+.sscribe-master-container a.sscribe-button-success,
+.sscribe-master-container a.sscribe-button-success:visited,
+.sscribe-master-container a.sscribe-button-success:hover,
+.sscribe-master-container a.sscribe-button-danger,
+.sscribe-master-container a.sscribe-button-danger:visited,
+.sscribe-master-container a.sscribe-button-danger:hover {
+	color: var(--ss-text-inverse);
+}
+
+.sscribe-master-container a.sscribe-button-outline,
+.sscribe-master-container a.sscribe-button-outline:visited {
+	color: var(--ss-brand);
+}
+
+.sscribe-master-container a.sscribe-button-outline:hover,
+.sscribe-master-container a.sscribe-button-outline:active {
+	color: var(--ss-brand-hover);
 }
 
 .sscribe-button-danger {
@@ -1177,6 +1214,12 @@
 	height: 16px;
 }
 
+.sscribe-button-glyph {
+	width: 14px;
+	height: 14px;
+	flex: 0 0 auto;
+}
+
 .sscribe-btn-sm,
 .sscribe-button-sm {
 	min-height: 32px;
@@ -1195,11 +1238,6 @@
 	min-height: 44px;
 	padding: 0 var(--ss-space-5);
 	font-size: 14px;
-}
-
-.sscribe-button:disabled {
-	opacity: 0.5;
-	cursor: not-allowed;
 }
 
 .sscribe-noscript-notice {
@@ -1360,11 +1398,12 @@
 	align-items: center;
 	gap: 6px;
 	padding: 4px var(--ss-space-3);
-	background: rgb(255 255 255 / 60%);
+	background: var(--ss-surface);
+	border: 1px solid var(--ss-border);
 	border-radius: var(--ss-radius-full);
 	font-size: 11px;
 	font-weight: 500;
-	color: var(--ss-text-muted);
+	color: var(--ss-text-secondary);
 	line-height: 1;
 	transition:
 		background 220ms cubic-bezier(0.22, 1, 0.36, 1),
@@ -1374,6 +1413,7 @@
 
 .sscribe-phase-step.sscribe-phase-active {
 	background: var(--ss-brand);
+	border-color: var(--ss-brand);
 	color: var(--ss-text-inverse);
 	font-weight: 600;
 	transform: translateY(-1px);
@@ -1413,6 +1453,11 @@
 	color: var(--ss-text-muted);
 }
 
+.sscribe-phase-active .sscribe-phase-label,
+.sscribe-phase-completed .sscribe-phase-label {
+	color: inherit;
+}
+
 .sscribe-phase-connector {
 	display: inline-block;
 	width: var(--ss-space-4);
@@ -1446,7 +1491,6 @@
 	box-shadow: inset 0 1px 2px rgb(0 0 0 / 6%);
 }
 
-/* Glow ring that pulses behind the bar. */
 .sscribe-progress-bar-container::before {
 	content: '';
 	position: absolute;
@@ -1490,7 +1534,6 @@
 	z-index: 1;
 }
 
-/* Wide soft shimmer band. */
 .sscribe-progress-bar-fill::before {
 	content: '';
 	position: absolute;
@@ -1509,7 +1552,6 @@
 	pointer-events: none;
 }
 
-/* Trailing soft highlight for depth. */
 .sscribe-progress-bar-fill::after {
 	content: '';
 	position: absolute;
@@ -1646,7 +1688,7 @@ body.rtl .sscribe-progress-bar-fill {
 	gap: var(--ss-space-2);
 	margin-top: var(--ss-space-5);
 	padding-top: var(--ss-space-4);
-	border-top: 1px solid var(--ss-color-border);
+	border-top: 1px solid var(--ss-border);
 	flex-wrap: wrap;
 }
 
@@ -1835,7 +1877,7 @@ body.rtl .sscribe-progress-bar-fill {
 	font-weight: 600;
 	font-size: 12px;
 	color: var(--ss-text-secondary);
-	background: var(--ss-surface-1);
+	background: var(--ss-surface-2);
 	vertical-align: middle;
 }
 
@@ -2022,7 +2064,7 @@ body.rtl .sscribe-progress-bar-fill {
 
 .sscribe-support-master {
 	display: grid;
-	grid-template-columns: 300px 1fr;
+	grid-template-columns: minmax(320px, 340px) minmax(0, 1fr);
 	gap: var(--ss-space-5);
 	align-items: start;
 }
@@ -2031,11 +2073,17 @@ body.rtl .sscribe-progress-bar-fill {
 	background: var(--ss-surface);
 	border: 1px solid var(--ss-border);
 	border-radius: var(--ss-radius-lg);
-	padding: var(--ss-space-5);
+	padding: var(--ss-space-6);
 	height: fit-content;
 	position: sticky;
 	top: var(--ss-space-3);
 	box-shadow: 0 1px 0 rgb(0 0 0 / 2%);
+}
+
+.sscribe-support-sidebar > .sscribe-support-section {
+	padding: 0;
+	border: 0;
+	box-shadow: none;
 }
 
 .sscribe-support-actions-vertical {
@@ -2066,7 +2114,7 @@ body.rtl .sscribe-progress-bar-fill {
 
 .sscribe-support-copy-text {
 	width: 100%;
-	min-height: 280px;
+	min-height: 180px;
 	background: var(--ss-bg);
 	color: var(--ss-text-primary);
 	font: 12px/1.6 var(--ss-font-mono);
@@ -2095,13 +2143,12 @@ body.rtl .sscribe-progress-bar-fill {
 	outline-offset: 2px;
 }
 
-/* Empty state inside the support grid container (initial load before refresh) */
 .sscribe-support-grid.sscribe-support-grid-empty {
 	padding: var(--ss-space-6);
 	display: flex;
 	align-items: center;
 	justify-content: center;
-	min-height: 360px;
+	min-height: 260px;
 }
 
 .sscribe-support-empty {
@@ -2159,7 +2206,7 @@ body.rtl .sscribe-progress-bar-fill {
 	border-radius: var(--ss-radius-xl);
 	max-width: 540px;
 	width: 100%;
-	max-height: 80vh;
+	max-height: calc(100vh - 48px);
 	display: flex;
 	flex-direction: column;
 	overflow: hidden;
@@ -2214,7 +2261,6 @@ body.rtl .sscribe-progress-bar-fill {
 	position: relative;
 }
 
-/* Subtle gradient overlay on the header. */
 .sscribe-modal-header::after {
 	content: '';
 	position: absolute;
@@ -2361,6 +2407,7 @@ body.rtl .sscribe-progress-bar-fill {
 	gap: var(--ss-space-2);
 	max-width: 340px;
 	z-index: 100001;
+	pointer-events: none;
 }
 
 .sscribe-toast {
@@ -2373,6 +2420,7 @@ body.rtl .sscribe-progress-bar-fill {
 	border-radius: var(--ss-radius-lg);
 	border: 1px solid var(--ss-text-primary);
 	font-size: 13px;
+	pointer-events: auto;
 	line-height: 1.4;
 	animation: sscribe-toast-slide-in 200ms var(--ss-easing, ease);
 }
@@ -2457,17 +2505,10 @@ body.rtl .sscribe-progress-bar-fill {
 
 .sscribe-toast-dismiss:focus-visible {
 	opacity: 1;
-	outline: 2px solid var(--ss-text-inverse);
+	outline: 2px solid var(--ss-text-primary);
 	outline-offset: 1px;
 }
 
-@media (prefers-color-scheme: light) {
-	.sscribe-toast-dismiss:focus-visible {
-		outline-color: var(--ss-text-primary);
-	}
-}
-
-.sscribe-preflight,
 .sscribe-preflight-banner {
 	background: var(--ss-warning-bg);
 	border-left: 3px solid var(--ss-warning);
@@ -2667,6 +2708,12 @@ body.rtl .sscribe-progress-bar-fill {
 	}
 }
 
+@media (width <= 782px) {
+	.sscribe-config-summary {
+		flex-direction: row;
+	}
+}
+
 @media (width <= 480px) {
 	.sscribe-hero {
 		padding: var(--ss-space-4) var(--ss-space-3);
@@ -2746,7 +2793,7 @@ body.rtl .sscribe-progress-bar-fill {
 
 .sscribe-preview-grid {
 	display: grid;
-	grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+	grid-template-columns: repeat(3, minmax(0, 1fr));
 	gap: var(--ss-space-3);
 	margin-bottom: var(--ss-space-4);
 }
@@ -2759,6 +2806,8 @@ body.rtl .sscribe-progress-bar-fill {
 	background: var(--ss-surface-2);
 	border: 1px solid var(--ss-border);
 	border-radius: var(--ss-radius);
+	min-height: 66px;
+	justify-content: space-between;
 }
 
 .sscribe-preview-label {
@@ -2788,6 +2837,15 @@ body.rtl .sscribe-progress-bar-fill {
 	color: var(--ss-text-secondary);
 }
 
+.sscribe-preview-sample h4 {
+	margin: 0 0 var(--ss-space-2);
+	font-size: 11px;
+	font-weight: 700;
+	text-transform: uppercase;
+	letter-spacing: 0.05em;
+	color: var(--ss-text-tertiary);
+}
+
 .sscribe-preview-title {
 	display: block;
 	font-size: 13px;
@@ -2805,9 +2863,11 @@ body.rtl .sscribe-progress-bar-fill {
 
 .sscribe-preview-note {
 	font-size: 11px;
-	color: var(--ss-text-muted);
-	font-style: italic;
-	margin: var(--ss-space-2) 0 0 0;
+	color: var(--ss-text-secondary);
+	margin: 0;
+	padding: var(--ss-space-2) var(--ss-space-3);
+	background: var(--ss-brand-tint);
+	border-radius: var(--ss-radius-sm);
 }
 
 .sscribe-preview-empty {
@@ -2834,7 +2894,7 @@ body.rtl .sscribe-progress-bar-fill {
 
 .sscribe-log-summary {
 	display: grid;
-	grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+	grid-template-columns: repeat(3, minmax(0, 1fr));
 	gap: var(--ss-space-3);
 	padding: 0;
 	background: transparent;
@@ -2859,7 +2919,6 @@ body.rtl .sscribe-progress-bar-fill {
 		background var(--ss-motion-fast) var(--ss-easing);
 }
 
-/* Decorative accent stripe on the left edge, colour-coded per stat. */
 .sscribe-log-stat::before {
 	content: '';
 	position: absolute;
@@ -3002,13 +3061,35 @@ body.rtl .sscribe-progress-bar-fill {
 
 .sscribe-log-table {
 	width: 100%;
+	min-width: 640px;
 	border-collapse: collapse;
 	font-size: 13px;
 	font-variant-numeric: tabular-nums;
+	border: 0;
+	background: var(--ss-surface);
+}
+
+.sscribe-log-table-wrap {
+	overflow-x: auto;
 	border: 1px solid var(--ss-border);
 	border-radius: var(--ss-radius-md);
-	overflow: hidden;
 	background: var(--ss-surface);
+}
+
+@media (width <= 600px) {
+	.sscribe-preview-grid {
+		grid-template-columns: repeat(2, minmax(0, 1fr));
+	}
+
+	.sscribe-log-summary {
+		grid-template-columns: 1fr;
+	}
+}
+
+@media (width <= 420px) {
+	.sscribe-preview-grid {
+		grid-template-columns: 1fr;
+	}
 }
 
 .sscribe-log-table th {
@@ -3239,19 +3320,6 @@ body.rtl .sscribe-progress-bar-fill {
 	margin: 0;
 }
 
-.sscribe-both-count {
-	font-size: 11px;
-	color: var(--ss-text-muted);
-	font-family: var(--ss-font-mono);
-}
-
-.sscribe-page-count,
-.sscribe-post-count {
-	font-size: 11px;
-	color: var(--ss-text-muted);
-	font-family: var(--ss-font-mono);
-}
-
 .sscribe-row-selected {
 	background: var(--ss-brand-tint);
 }
@@ -3467,7 +3535,7 @@ body.rtl .sscribe-progress-bar-fill {
 	text-align: center;
 	color: var(--ss-text-muted);
 	font-size: 13px;
-	background: var(--ss-surface-alt);
+	background: var(--ss-surface-2);
 	border: 1px dashed var(--ss-border);
 	border-radius: var(--ss-radius);
 }
@@ -3519,14 +3587,12 @@ body.rtl .sscribe-progress-bar-fill {
 	font-size: 12px;
 }
 
-/* Responsive card and history layouts. */
 #sscribe-format-cards {
 	display: grid;
 	grid-template-columns: repeat(5, minmax(0, 1fr));
 	gap: var(--ss-space-3);
 }
 
-/* The inner card owns the visual border to avoid a second label ring. */
 #sscribe-format-cards label {
 	cursor: pointer;
 	opacity: 1;
@@ -3544,8 +3610,8 @@ body.rtl .sscribe-progress-bar-fill {
 	border-color: var(--ss-border);
 }
 
-#sscribe-status-cards label.sscribe-status-disabled .sscribe-status-card-name,
-#sscribe-status-cards label.sscribe-status-disabled .sscribe-status-card-count {
+#sscribe-status-cards label.sscribe-status-disabled .sscribe-status-name,
+#sscribe-status-cards label.sscribe-status-disabled .sscribe-status-count {
 	color: var(--ss-text-muted);
 }
 
@@ -3582,8 +3648,6 @@ body.rtl .sscribe-progress-bar-fill {
 	}
 }
 
-/* ===== HISTORY TABLE: CLEAN FLEX LAYOUT ===== */
-
 #sscribe-history-table .sscribe-history-table-element {
 	width: 100%;
 	border-collapse: separate;
@@ -3598,7 +3662,7 @@ body.rtl .sscribe-progress-bar-fill {
 	font-weight: 600;
 	font-size: 12px;
 	color: var(--ss-text-secondary);
-	background: var(--ss-surface-1);
+	background: var(--ss-surface-2);
 	vertical-align: middle;
 }
 
@@ -3653,7 +3717,6 @@ body.rtl .sscribe-progress-bar-fill {
 	border-radius: 0;
 }
 
-/* Checkbox label  -  left, fixed width, flex-shrink 0 */
 #sscribe-history-table .sscribe-history-check-label {
 	display: inline-flex;
 	align-items: center;
@@ -3670,7 +3733,6 @@ body.rtl .sscribe-progress-bar-fill {
 	padding: 0 var(--ss-space-1);
 }
 
-/* Checkbox input  -  hidden, replaced by custom visual */
 #sscribe-history-table .sscribe-history-check {
 	position: absolute;
 	opacity: 0;
@@ -3679,7 +3741,6 @@ body.rtl .sscribe-progress-bar-fill {
 	pointer-events: none;
 }
 
-/* File section  -  takes remaining space, flex row: icon + details side by side */
 #sscribe-history-table .sscribe-history-file {
 	display: flex;
 	align-items: center;
@@ -3700,7 +3761,6 @@ body.rtl .sscribe-progress-bar-fill {
 	grid-row: unset;
 }
 
-/* Language / file icon badge  -  fixed circle */
 #sscribe-history-table .sscribe-file-icon {
 	width: 36px;
 	height: 36px;
@@ -3719,7 +3779,6 @@ body.rtl .sscribe-progress-bar-fill {
 	grid-row: unset;
 }
 
-/* Text inside icon badge (e.g. "AL", "EN") */
 #sscribe-history-table .sscribe-file-icon-text {
 	font-size: 10px;
 	font-weight: 700;
@@ -3729,7 +3788,6 @@ body.rtl .sscribe-progress-bar-fill {
 	text-transform: uppercase;
 }
 
-/* Flag images inside icon badge */
 #sscribe-history-table .sscribe-file-icon-img {
 	width: 100%;
 	height: 100%;
@@ -3737,7 +3795,6 @@ body.rtl .sscribe-progress-bar-fill {
 	display: block;
 }
 
-/* File details  -  flex column: filename on top, meta on bottom */
 #sscribe-history-table .sscribe-file-details {
 	display: flex;
 	flex-direction: column;
@@ -3755,7 +3812,6 @@ body.rtl .sscribe-progress-bar-fill {
 	justify-content: center;
 }
 
-/* Filename  -  strong, truncated with ellipsis */
 #sscribe-history-table .sscribe-file-details strong {
 	font-size: 12.5px;
 	font-weight: 500;
@@ -3770,7 +3826,6 @@ body.rtl .sscribe-progress-bar-fill {
 	font-family: inherit;
 }
 
-/* Date + size meta line */
 #sscribe-history-table .sscribe-file-details span {
 	font-size: 11px;
 	color: var(--ss-text-muted);
@@ -3782,7 +3837,6 @@ body.rtl .sscribe-progress-bar-fill {
 	line-height: 1.4;
 }
 
-/* Actions  -  right side, flex row of compact buttons with text labels */
 #sscribe-history-table .sscribe-history-actions {
 	display: flex;
 	align-items: center;
@@ -3833,7 +3887,6 @@ body.rtl .sscribe-progress-bar-fill {
 	color: var(--ss-error);
 }
 
-/* Check visual (custom checkbox) */
 #sscribe-history-table .sscribe-check-visual {
 	width: 16px;
 	height: 16px;
@@ -3867,7 +3920,6 @@ body.rtl .sscribe-progress-bar-fill {
 	display: block;
 }
 
-/* Empty state  -  non-italic, real CTA */
 #sscribe-history-table .sscribe-history-empty {
 	padding: var(--ss-space-12) var(--ss-space-6) var(--ss-space-10);
 	text-align: center;
@@ -3913,20 +3965,10 @@ body.rtl .sscribe-progress-bar-fill {
 	margin-top: var(--ss-space-3);
 }
 
-/* Row selected state */
 #sscribe-history-table .sscribe-history-row.sscribe-row-selected {
 	background: var(--ss-brand-tint);
 }
 
-/* Skeleton loading rows */
-
-/* ═══════════════════════════════════════════
- UX REFINEMENT BLOCK (10)  -  additions for the v1.1.2 polish pass.
- Patterns: 1px hairlines, brand focus rings, no shadows,
- no gradients, no transforms, no rgba() decimal alpha.
- ═══════════════════════════════════════════ */
-
-/* Onboarding banner  -  visible only for first-time users */
 .sscribe-onboarding-banner {
 	background: var(--ss-brand-tint);
 	border-bottom: 1px solid var(--ss-brand-soft);
@@ -4050,7 +4092,6 @@ body.rtl .sscribe-progress-bar-fill {
 	outline-offset: 2px;
 }
 
-/* Visible keyboard shortcut hints */
 .sscribe-shortcut-hint,
 kbd.sscribe-shortcut-hint {
 	display: inline-flex;
@@ -4075,15 +4116,10 @@ kbd.sscribe-shortcut-hint {
 
 .sscribe-button-primary .sscribe-shortcut-hint,
 .sscribe-button-primary kbd.sscribe-shortcut-hint {
-	/* Darker translucent fill so the white text on the primary green button
-	 keeps WCAG AA contrast (>=4.5:1 at 10px). 22% white-on-green only
-	 reaches 3.3:1, which Lighthouse flags. */
 	background: rgb(0 0 0 / 28%);
 	border-color: rgb(255 255 255 / 35%);
 	color: #fff;
 }
-
-/* Summary bar  -  divider and reasoning copy */
 
 .sscribe-summary-divider {
 	width: 1px;
@@ -4093,14 +4129,6 @@ kbd.sscribe-shortcut-hint {
 }
 
 #sscribe-preview-disabled-reason,
-.sscribe-preview-disabled-reason {
-	display: inline-block;
-	font-size: 11px;
-	font-style: italic;
-	color: var(--ss-text-muted);
-	margin-right: var(--ss-space-3);
-}
-
 #sscribe-error-actions {
 	display: flex;
 	flex-wrap: wrap;
@@ -4108,7 +4136,6 @@ kbd.sscribe-shortcut-hint {
 	margin-top: var(--ss-space-3);
 }
 
-/* Confirm modal  -  alertdialog surface */
 .sscribe-modal-content-confirm {
 	max-width: 440px;
 }
@@ -4170,11 +4197,6 @@ kbd.sscribe-shortcut-hint {
 	gap: 8px;
 }
 
-/* About-this-export info box */
-
-/* Open-in-browser ZIP link */
-
-/* History panel header meta + toolbar */
 .sscribe-panel-header-meta {
 	display: flex;
 	align-items: center;
@@ -4261,7 +4283,6 @@ kbd.sscribe-shortcut-hint {
 	flex-shrink: 0;
 }
 
-/* Bulk bar  -  visible pre-selection (data-active toggles shadow) */
 .sscribe-bulk-bar[data-active='false'] .sscribe-bulk-count {
 	color: var(--ss-text-secondary);
 }
@@ -4287,7 +4308,6 @@ kbd.sscribe-shortcut-hint {
 	color: var(--ss-brand);
 }
 
-/* History meta line improvements */
 .sscribe-history-table .sscribe-file-human-label {
 	font-size: 11px;
 	font-weight: 500;
@@ -4330,7 +4350,6 @@ kbd.sscribe-shortcut-hint {
 	display: none;
 }
 
-/* Support terminal panel + cards */
 .sscribe-support-panel {
 	background: var(--ss-surface);
 	border: 1px solid var(--ss-border);
@@ -4373,9 +4392,6 @@ kbd.sscribe-shortcut-hint {
 	border: 1px solid var(--ss-border);
 }
 
-/* Sub-section title for support panel */
-
-/* Disabled button (search context) */
 .sscribe-button:disabled,
 .sscribe-button[disabled] {
 	cursor: not-allowed;
@@ -4389,7 +4405,6 @@ kbd.sscribe-shortcut-hint {
 	background: var(--ss-surface);
 }
 
-/* Tab change live region */
 #sscribe-tab-announce {
 	position: absolute;
 	width: 1px;
@@ -4402,7 +4417,6 @@ kbd.sscribe-shortcut-hint {
 	border: 0;
 }
 
-/* Modal generic  -  final overrides to ensure alertdialog visual order */
 .sscribe-modal-content .sscribe-modal-header h3 {
 	font-family: var(--ss-font);
 }
@@ -4446,27 +4460,6 @@ kbd.sscribe-shortcut-hint {
 	text-overflow: ellipsis;
 	direction: ltr;
 	text-align: left;
-}
-
-/* ============================================================
- ENTERPRISE REVAMP v2  -  polish pass
- 1. Type utility classes (consume --ss-text-* tokens)
- 2. Side-stripe selection state (no 1px layout shift)
- 3. prefers-color-scheme: dark
- 4. prefers-reduced-motion: reduce
- 5. forced-colors: active (Windows High Contrast)
- 6. Print styles
- ============================================================ */
-
-/* ── 1. TYPE UTILITY CLASSES ───────────────────────────────── */
-
-.ss-type-display {
-	font-size: var(--ss-text-display);
-	line-height: var(--ss-text-display-lh);
-	letter-spacing: var(--ss-text-display-ls);
-	font-weight: var(--ss-text-display-fw);
-	color: var(--ss-text-primary);
-	margin: 0;
 }
 
 .ss-type-h1 {
@@ -4536,17 +4529,6 @@ kbd.sscribe-shortcut-hint {
 		'lnum' 1;
 }
 
-/* ── 2. SIDE-STRIPE SELECTION PATTERN ────────────────────────
- Replaces 1px border-swap with a 3px brand stripe on the
- leading edge + brand-tint background. No layout shift, no
- border-swap arithmetic, identical outer dimensions. */
-
-.ss-side-stripe {
-	position: relative;
-	padding-left: calc(var(--ss-space-4) + 3px);
-	border-left: 3px solid transparent;
-}
-
 .ss-side-stripe::before {
 	content: '';
 	position: absolute;
@@ -4558,103 +4540,6 @@ kbd.sscribe-shortcut-hint {
 	border-radius: var(--ss-radius-sm) 0 0 var(--ss-radius-sm);
 }
 
-/* ── 3. DARK MODE (OS preference) ─────────────────────────── */
-
-@media (prefers-color-scheme: dark) {
-	.sscribe-master-container {
-		--ss-bg: #09090b;
-		--ss-surface: #18181b;
-		--ss-surface-2: #27272a;
-		--ss-surface-3: #3f3f46;
-		--ss-border: #27272a;
-		--ss-border-strong: #3f3f46;
-		--ss-text-primary: #fafafa;
-		--ss-text-secondary: #d4d4d8;
-		--ss-text-tertiary: #a1a1aa;
-		--ss-text-muted: #a1a1aa;
-		--ss-text-inverse: #09090b;
-		--ss-brand: #4d8a6a;
-		--ss-brand-hover: #5fa983;
-		--ss-brand-active: #6ab088;
-		--ss-brand-soft: #1f3a2c;
-		--ss-brand-tint: #142a1f;
-		--ss-brand-mark: #7fc6a3;
-		--ss-brand-mark-soft: #2f5942;
-		--ss-success: #34d399;
-		--ss-success-bg: #022c1f;
-		--ss-success-border: #064e3b;
-		--ss-warning: #fbbf24;
-		--ss-warning-bg: #2a1a07;
-		--ss-warning-border: #78350f;
-		--ss-error: #f87171;
-		--ss-error-bg: #2c1212;
-		--ss-error-border: #7f1d1d;
-		--ss-info: #60a5fa;
-		--ss-info-bg: #0c1f3a;
-		--ss-success-text: #052e1f;
-		--ss-error-text: #2c1212;
-		--ss-warning-text: #2a1a07;
-		--ss-info-text: #0c1f3a;
-	}
-
-	.sscribe-master-container .sscribe-debug-console-card {
-		background: #0f0f10;
-		border-color: var(--ss-border-strong);
-	}
-
-	.sscribe-master-container .sscribe-debug-console-header {
-		background: #18181b;
-		border-bottom-color: var(--ss-border);
-	}
-
-	.sscribe-master-container .sscribe-support-copy-text,
-	.sscribe-master-container .sscribe-debug-console-body {
-		color: #d4d4d8;
-		background-color: #18181b;
-		border-color: #27272a;
-	}
-
-	.sscribe-master-container .sscribe-format-option-field select {
-		background-image: url("data:image/svg+xml;charset=utf8,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 16 16' fill='%23a1a1aa'%3E%3Cpath d='M8 11L3 6h10z'/%3E%3C/svg%3E");
-		background-color: transparent;
-	}
-
-	.sscribe-master-container .sscribe-input:focus-visible,
-	.sscribe-master-container select:focus-visible,
-	.sscribe-master-container .sscribe-select:focus-visible {
-		outline-color: var(--ss-brand-mark);
-	}
-
-	.sscribe-master-container .sscribe-button-success {
-		color: var(--ss-success-text);
-	}
-
-	.sscribe-master-container .sscribe-button-danger {
-		color: var(--ss-error-text);
-	}
-
-	.sscribe-master-container .sscribe-button-warning {
-		color: var(--ss-warning-text);
-	}
-
-	.sscribe-master-container .sscribe-button-info {
-		color: var(--ss-info-text);
-	}
-}
-
-/* ── 3b. DARK MODE HEADING FIX (override WP core h2/h3 color) ─ */
-
-@media (prefers-color-scheme: dark) {
-	.sscribe-master-container h1,
-	.sscribe-master-container h2,
-	.sscribe-master-container h3,
-	.sscribe-master-container h4 {
-		color: var(--ss-text-primary, #fafafa);
-	}
-}
-
-/* ── 4. REDUCED MOTION ─────────────────────────────────────── */
-
 @media (prefers-reduced-motion: reduce) {
 	.sscribe-master-container,
 	.sscribe-master-container * {
@@ -4664,7 +4549,6 @@ kbd.sscribe-shortcut-hint {
 		scroll-behavior: auto;
 	}
 
-	/* Animated panels remain visible when motion is reduced. */
 	.sscribe-tab-content.sscribe-tab-active,
 	.sscribe-format-option-panel.sscribe-format-option-revealed {
 		opacity: 1;
@@ -4683,8 +4567,6 @@ kbd.sscribe-shortcut-hint {
 		transition: none;
 	}
 
-	/* Toast exit still completes; the JS removes the node at the end of
-   * the timeout, so forcing the collapse state here matches the snap. */
 	.sscribe-toast.sscribe-toast-removing {
 		max-height: 0;
 		margin-bottom: calc(var(--ss-space-2) * -1);
@@ -4695,8 +4577,6 @@ kbd.sscribe-shortcut-hint {
 	}
 }
 
-/* ── 5. FORCED COLORS (Windows High Contrast) ─────────────── */
-
 @media (forced-colors: active) {
 	.sscribe-master-container {
 		--ss-border: CanvasText;
@@ -4705,12 +4585,6 @@ kbd.sscribe-shortcut-hint {
 		--ss-text-secondary: CanvasText;
 		--ss-text-tertiary: CanvasText;
 		--ss-text-muted: CanvasText;
-
-		/* Remap alert/semantic backgrounds so tinted status banners stay visible
- in forced-colors mode. Without these, .sscribe-status-alert-success etc.
- render as white-on-white (the AA-passing soft tints become invisible when
- the engine strips background colors). Use system colors plus a
- CanvasText border so the state is communicated non-colorfully as well. */
 		--ss-success-bg: Canvas;
 		--ss-warning-bg: Canvas;
 		--ss-error-bg: Canvas;
@@ -4757,10 +4631,6 @@ kbd.sscribe-shortcut-hint {
 		color: HighlightText;
 	}
 
-	/* Safari does not support forced-color-adjust; the opt-out below only
- applies in engines that also implement forced-colors (Edge, Chrome,
- Firefox 113+). Safari silently skips the @supports wrapper and keeps
- the Highlight/HighlightText pair above. */
 	@supports (forced-color-adjust: none) {
 		.sscribe-button-primary,
 		.sscribe-button-success,
@@ -4771,8 +4641,6 @@ kbd.sscribe-shortcut-hint {
 		}
 	}
 }
-
-/* ── 6. PRINT ──────────────────────────────────────────────── */
 
 @media print {
 	.sscribe-master-container {
@@ -4819,37 +4687,26 @@ kbd.sscribe-shortcut-hint {
 	}
 }
 
-/* Shared controls and panels. */
-
 .sscribe-button[aria-disabled='true'] {
 	cursor: not-allowed;
 }
-
-/* ── 7.2 INPUTS ───────────────────────────────────────────── */
 
 .sscribe-input,
 .sscribe-select {
 	width: 100%;
 	height: 40px;
 	padding: 0 12px;
-	border: 1px solid var(--ss-color-border-strong);
+	border: 1px solid var(--ss-border-strong);
 	border-radius: var(--ss-radius-sm, 6px);
-	background: var(--ss-color-bg-surface);
-	color: var(--ss-color-fg-primary);
+	background: var(--ss-surface);
+	color: var(--ss-text-primary);
 	font: 400 13px/1 var(--ss-font);
 	transition: border-color var(--ss-motion-fast) var(--ss-easing);
 }
 
 .sscribe-input:hover,
 .sscribe-select:hover {
-	border-color: var(--ss-color-fg-tertiary);
-}
-
-.sscribe-input:focus-visible,
-.sscribe-select:focus-visible {
-	outline: 2px solid var(--ss-color-accent);
-	outline-offset: 2px;
-	border-color: var(--ss-color-accent);
+	border-color: var(--ss-text-tertiary);
 }
 
 .sscribe-input[inputmode='numeric'],
@@ -4859,27 +4716,25 @@ kbd.sscribe-shortcut-hint {
 }
 
 .sscribe-toast-warning {
-	background: var(--ss-color-warning-fg);
+	background: var(--ss-warning);
 }
-
-/* Export-state and support components. */
 
 .sscribe-hero-stat-label {
 	font: 500 11px/1.4 var(--ss-font);
-	color: var(--ss-color-fg-muted);
+	color: var(--ss-text-muted);
 	letter-spacing: 0.01em;
 }
 
 .sscribe-onboarding-title {
 	font: 600 15px/1.4 var(--ss-font);
-	color: var(--ss-color-fg-primary);
+	color: var(--ss-text-primary);
 	letter-spacing: -0.01em;
 	margin: 0 0 4px;
 }
 
 .sscribe-onboarding-copy {
 	font: 400 13px/1.55 var(--ss-font);
-	color: var(--ss-color-fg-secondary);
+	color: var(--ss-text-secondary);
 	margin: 0 0 12px;
 }
 
@@ -4892,7 +4747,7 @@ kbd.sscribe-shortcut-hint {
 	background: transparent;
 	border: 1px solid transparent;
 	border-radius: var(--ss-radius-sm, 6px);
-	color: var(--ss-color-fg-muted);
+	color: var(--ss-text-muted);
 	font-size: 18px;
 	line-height: 1;
 	cursor: pointer;
@@ -4902,12 +4757,12 @@ kbd.sscribe-shortcut-hint {
 }
 
 .sscribe-onboarding-close:hover {
-	color: var(--ss-color-fg-primary);
-	background: var(--ss-color-bg-inset);
+	color: var(--ss-text-primary);
+	background: var(--ss-surface-2);
 }
 
 .sscribe-onboarding-close:focus-visible {
-	outline: 2px solid var(--ss-color-accent);
+	outline: 2px solid var(--ss-brand);
 	outline-offset: 2px;
 }
 
@@ -4924,8 +4779,8 @@ kbd.sscribe-shortcut-hint {
 	gap: 1px;
 	margin: var(--ss-space-5) 0 0;
 	padding: 0;
-	background: var(--ss-color-border);
-	border: 1px solid var(--ss-color-border);
+	background: var(--ss-border);
+	border: 1px solid var(--ss-border);
 	border-radius: var(--ss-radius-md, 8px);
 	overflow: hidden;
 }
@@ -4937,7 +4792,7 @@ kbd.sscribe-shortcut-hint {
 	margin: 0;
 	min-width: 0;
 	padding: var(--ss-space-3) var(--ss-space-4);
-	background: var(--ss-color-bg-surface);
+	background: var(--ss-surface);
 }
 
 .sscribe-success-meta-item dt {
@@ -5001,9 +4856,6 @@ kbd.sscribe-shortcut-hint {
 	margin: 0 0 var(--ss-space-4) 0;
 }
 
-/* Control refinements. */
-
-.sscribe-select,
 .sscribe-format-option-field select,
 .sscribe-master-container select {
 	appearance: none;
@@ -5033,69 +4885,6 @@ kbd.sscribe-shortcut-hint {
 	border-color: var(--ss-brand);
 	box-shadow: 0 0 0 3px var(--ss-brand-tint);
 }
-
-/* 8.2 Custom radio visual (debug tab refresh-mode + bare radios) */
-
-.sscribe-radio-label {
-	display: inline-flex;
-	align-items: center;
-	gap: 10px;
-	cursor: pointer;
-	padding: 8px 12px;
-	border-radius: var(--ss-radius-sm, 6px);
-	border: 1px solid var(--ss-border);
-	background: var(--ss-surface);
-	transition:
-		border-color var(--ss-motion-fast) var(--ss-easing),
-		background var(--ss-motion-fast) var(--ss-easing);
-	min-height: 36px;
-	font-size: 13px;
-	color: var(--ss-text-secondary);
-}
-
-.sscribe-radio-label:hover {
-	border-color: var(--ss-border-strong);
-	color: var(--ss-text-primary);
-}
-
-.sscribe-radio-label input[type='radio'] {
-	appearance: none;
-	position: relative;
-	flex-shrink: 0;
-	width: 18px;
-	height: 18px;
-	margin: 0;
-	border: 1.5px solid var(--ss-border-strong);
-	border-radius: 50%;
-	background: var(--ss-surface);
-	cursor: pointer;
-	transition:
-		border-color var(--ss-motion-fast) var(--ss-easing),
-		background var(--ss-motion-fast) var(--ss-easing);
-}
-
-.sscribe-radio-label input[type='radio']:hover {
-	border-color: var(--ss-brand);
-}
-
-.sscribe-radio-label input[type='radio']:checked {
-	border-color: var(--ss-brand);
-	background: var(--ss-brand);
-	box-shadow: inset 0 0 0 3px var(--ss-surface);
-}
-
-.sscribe-radio-label:has(input:checked) {
-	border-color: var(--ss-brand);
-	background: var(--ss-brand-tint);
-	color: var(--ss-text-primary);
-}
-
-.sscribe-radio-label input[type='radio']:focus-visible {
-	outline: 2px solid var(--ss-brand);
-	outline-offset: 2px;
-}
-
-/* 8.3 Custom checkbox visual (debug tab + bulk + history) */
 
 .sscribe-master-container input[type='checkbox'] {
 	appearance: none;
@@ -5160,11 +4949,8 @@ kbd.sscribe-shortcut-hint {
 	opacity: 0.6;
 }
 
-/* 8.4 Bare radio (when not in .sscribe-radio-label) */
-
 .sscribe-master-container input[type='radio'] {
 	appearance: none;
-	display: none;
 	position: relative;
 	flex-shrink: 0;
 	width: 18px;
@@ -5194,8 +4980,6 @@ kbd.sscribe-shortcut-hint {
 	outline: 2px solid var(--ss-brand);
 	outline-offset: 2px;
 }
-
-/* 8.5 Toggle switch refinement */
 
 .sscribe-toggle-switch {
 	display: inline-block;
@@ -5252,8 +5036,6 @@ kbd.sscribe-shortcut-hint {
 	outline-offset: 2px;
 }
 
-/* 8.6 Button focus-visible (universal ring) */
-
 .sscribe-button:focus-visible,
 .sscribe-master-container button.sscribe-button:focus-visible {
 	outline: 2px solid var(--ss-brand);
@@ -5268,14 +5050,6 @@ kbd.sscribe-shortcut-hint {
 .sscribe-button-primary:focus-visible {
 	outline-color: var(--ss-brand-hover);
 }
-
-/* 8.7 Modal header with branded icon chip */
-
-/* Modal: max-width on preview variant - 720px applied at line 1908 */
-
-/* Modal close button: focus ring added inline above (close button defined at line 1931) */
-
-/* 8.10 Debug log level color-coded border + better badge */
 
 .sscribe-debug-entry[data-level] {
 	border-left: 3px solid transparent;
@@ -5306,66 +5080,12 @@ kbd.sscribe-shortcut-hint {
 	border-left-color: var(--ss-error);
 }
 
-.sscribe-debug-entry-badge {
-	min-width: 68px;
-	font-size: 10px;
-	font-weight: 700;
-	letter-spacing: 0.05em;
-	padding: 3px 8px;
-	border-radius: var(--ss-radius-sm, 6px);
-}
-
-.sscribe-debug-entry-badge.debug {
-	background: var(--ss-surface-3);
-	color: var(--ss-text-secondary);
-	border: 1px solid var(--ss-border-strong);
-}
-
-.sscribe-debug-entry-badge.info,
-.sscribe-debug-entry-badge.notice {
-	background: var(--ss-info-bg);
-	color: var(--ss-info);
-	border: 1px solid var(--ss-info-border);
-}
-
-.sscribe-debug-entry-badge.warning {
-	background: var(--ss-warning-bg);
-	color: var(--ss-warning);
-	border: 1px solid var(--ss-warning-border);
-}
-
-.sscribe-debug-entry-badge.error,
-.sscribe-debug-entry-badge.critical,
-.sscribe-debug-entry-badge.alert,
-.sscribe-debug-entry-badge.emergency {
-	background: var(--ss-error-bg);
-	color: var(--ss-error);
-	border: 1px solid var(--ss-error-border);
-}
-
-.sscribe-debug-entry-badge.raw {
-	background: var(--ss-brand-tint);
-	color: var(--ss-brand);
-	border: 1px solid var(--ss-brand-soft);
-}
-
-.sscribe-debug-entry-badge.audit {
-	background: var(--ss-brand-soft);
-	color: var(--ss-brand);
-	border: 1px solid var(--ss-brand-soft);
-	border-left-width: 3px;
-}
-
-/* Input focus ring. */
-
 .sscribe-input:focus-visible {
 	outline: 2px solid var(--ss-brand);
 	outline-offset: 2px;
 	border-color: var(--ss-brand);
 	box-shadow: 0 0 0 3px var(--ss-brand-tint);
 }
-
-/* Format option focus ring. */
 
 .sscribe-format-option-field.sscribe-format-option-checkbox:has(input:focus-visible) {
 	outline: 2px solid var(--ss-brand);
@@ -5398,28 +5118,4 @@ kbd.sscribe-shortcut-hint {
 
 .sscribe-master-container .sscribe-panel + .sscribe-panel {
 	margin-top: var(--ss-space-4);
-}
-
-@media (prefers-color-scheme: dark) {
-	.sscribe-master-container .sscribe-radio-label,
-	.sscribe-master-container input[type='checkbox'] {
-		border-color: var(--ss-border-strong);
-	}
-
-	.sscribe-master-container input[type='checkbox']:checked::after,
-	.sscribe-master-container input[type='checkbox']:indeterminate::after {
-		background-image: url("data:image/svg+xml;charset=utf8,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16' fill='none' stroke='%2309090b' stroke-width='2.25' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M3.5 8.5l3 3 6-6.5'/%3E%3C/svg%3E");
-	}
-
-	.sscribe-master-container input[type='checkbox']:indeterminate::after {
-		background-image: url("data:image/svg+xml;charset=utf8,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16' fill='none' stroke='%2309090b' stroke-width='2.25' stroke-linecap='round'%3E%3Cpath d='M4 8h8'/%3E%3C/svg%3E");
-	}
-
-	.sscribe-radio-label input[type='radio']:checked {
-		box-shadow: inset 0 0 0 3px var(--ss-bg);
-	}
-
-	.sscribe-master-container input[type='radio']:checked {
-		box-shadow: inset 0 0 0 3px var(--ss-bg);
-	}
 }

@@ -2,7 +2,7 @@
 Contributors: simplixinnovations
 Tags: export, docx, pdf, html, markdown
 Requires at least: 6.0
-Tested up to: 7.0
+Tested up to: 7.1
 Stable tag: 1.9.0
 Requires PHP: 8.2
 License: GPL-2.0-or-later
@@ -31,15 +31,7 @@ SScribe transforms WordPress pages into professional documents for client handov
 * Secure ZIP downloads with automatic 72-hour deletion
 * Export session tracking with crash recovery
 
-== Screenshots ==
-
-1. Export dashboard with language and format selection
-2. Real-time batch progress with per-page status
-3. Generated ZIP download with all four formats
-4. Language and post-type filtering
-5. Export history and download management
-
-**Requirements:**
+= Requirements =
 
 * WordPress 6.0 or higher
 * PHP 8.2 or higher
@@ -94,11 +86,14 @@ The bundled Mpdf library (vendor-prefixed/mpdf/) is licensed under the GNU Gener
 == Changelog ==
 
 = 1.9.0 =
-* Version bump consolidating the 1.1.8 performance/security pass and the 1.2.0 WCAG 2.2 AA + custom post type release. No functional changes from 1.2.0; same shipped code, realigned to the upstream release line.
+* Rebuilt Export, History, Support, Debug, dialogs, notices, and responsive layouts with a consistent WordPress-native admin design.
+* Simplified the admin interface, removed decorative visual effects and unused assets, and reduced the first-party CSS footprint.
+* Fixed pointer-blocking toast layout, responsive Debug and export-summary spacing, keyboard tab-state errors, Recent Exports rendering, and stale single-use download links.
+* Verified the complete preview, export, History refresh, and ZIP download flow across DOCX, PDF, HTML, and Markdown.
 
 = 1.2.0 =
 * Added native custom post type support to the Content Type selector. The list of selectable post types is now derived from `get_post_types( ['public' => true] )`, filtered through `sscribe_allowed_post_types`, and rendered as a dynamic list of radio cards on the admin export screen with per-type counts and labels. Each registered public post type (other than `attachment`) becomes a first-class exportable target without code changes; the legacy `'any'` aggregate is preserved for back-compat.
-* Added a WCAG 2.2 AA accessibility pass: auto-download now requires an explicit user opt-in (default off, preference persisted per-browser via `localStorage`), browser tab titles are no longer rewritten during export progress, history rows render as a real `<table>` with caption and scope semantics, debug entries use native `<details>`/`<summary>` disclosures instead of clickable `<div role="button">`, toast dismiss and form controls show proper focus rings in both light and dark mode, button text in dark mode meets 4.5:1 contrast, the disabled "Download unavailable" row is a real `<button disabled>`, and the export progress live region announces at 10% milestones instead of on every update.
+* Added a WCAG 2.2 AA accessibility pass: auto-download now requires an explicit user opt-in (default off, preference persisted per-browser via `localStorage`), browser tab titles are no longer rewritten during export progress, history rows render as a real `<table>` with caption and scope semantics, debug entries use native `<details>`/`<summary>` disclosures instead of clickable `<div role="button">`, toast dismiss and form controls show proper focus rings, button text meets WCAG AA 4.5:1 contrast, the disabled "Download unavailable" row is a real `<button disabled>`, and the export progress live region announces at 10% milestones instead of on every update.
 * Removed dead CSS and JS: the unused `[data-tooltip]` rules in the admin stylesheet, the unused `document_title` runtime branch, and the unused `post_type_label` translation string are gone; the debug-console close button carries an `aria-label`; the post-type count refresh in the admin JS uses generic `data-sscribe-count-for` attribute selectors so dynamic CPT counts update after AJAX polls.
 * Added localized "View", "Export", and "Delete" labels for rotated-log action buttons and aria-label prefixes so the debug console strings are translatable through the standard text-domain flow.
 * Hardened tests: 17 new PHPUnit tests cover `SScribe_Export_Query_Controller` AJAX endpoints, a new `SScribe_HTML_Exporter_Test` exercises the HTML renderer's write path, filename formatter, RTL output, and nested-directory creation, and `SScribe_Page_Collector_Test` gains three seam-based tests for the new `resolve_post_type_for_query()` resolver. A new resolve-post-type seam plus bootstrap shim for `get_post_types()` / `get_post_type_object()` lets the CPT logic be unit-tested without touching the live database.
@@ -136,7 +131,7 @@ The bundled Mpdf library (vendor-prefixed/mpdf/) is licensed under the GNU Gener
 * Preserved Markdown option wiring and third-party license attribution.
 
 = 1.1.3 =
-* Refined controls, tables, dialogs, dark mode, high contrast, and keyboard focus states.
+* Refined controls, tables, dialogs, high contrast, and keyboard focus states.
 
 = 1.1.2 =
 * Fixed latent PDF export crash: WordPress themes ship base CSS with `font-family: serif`; mPDF's chain resolution tried to load pruned DejaVu*Condensed / FreeSans / Sun-ExtA TTFs and crashed. fonttrans remap and fontdata overrides close the CSS-keyword, fontdata-entry, and backup-substitution paths on the same crash class.
@@ -163,13 +158,13 @@ The bundled Mpdf library (vendor-prefixed/mpdf/) is licensed under the GNU Gener
 == Upgrade Notice ==
 
 = 1.9.0 =
-Version bump only - same code as 1.2.0 (WCAG 2.2 AA pass, custom post type support, and the 1.1.8 perf/security hardening). No action required.
+WordPress-native admin redesign plus export, download, responsive-layout, and accessibility reliability fixes. No data migration is required.
 
 = 1.2.0 =
-Feature release that adds native custom post type support, a WCAG 2.2 AA accessibility pass, and 23 new PHPUnit tests. The Content Type selector now lists every public post type registered on the site (excluding attachments) alongside Pages and Posts, with per-type counts; sites that do not register additional post types see the same UI as before. No data migration is required.
+Adds public custom post type exports and WCAG 2.2 AA accessibility improvements. No data migration is required.
 
 = 1.1.8 =
-Maintenance release that tightens PDF memory cleanup, caches downloaded images per URL, releases per-page memory between batch iterations, rotates the export-session HMAC signing key through a two-key ring, narrows the diagnostic / audit-log / AJAX debug-payload capabilities to `sscribe_health`, and removes a stale audit-log table from uninstall. No user-facing action required; existing sessions remain valid across the signing-key rotation.
+Improves export memory use, image caching, session-key rotation, diagnostic permissions, and uninstall cleanup. No user action is required.
 
 = 1.1.7 =
 Maintenance release with development-tooling updates and a small admin CSS cleanup. No runtime behavior changes for end users.
@@ -236,7 +231,7 @@ Parameters: `(int $days)` - Default: 30
 
 The following classes are part of the public API and may be used by extension plugins:
 
-* `SScribe_Export_All_Formats_Wrapper` : static `export_page()` for fan-out exports to every supported format in a single call, with per-format error isolation. See `docs/extension-points.md` for usage.
+* `SScribe_Export_All_Formats_Wrapper` : static `export_page()` for fan-out exports to every supported format in a single call, with per-format error isolation.
 * `SScribe_Exporter_Factory` : `create( string $format )` to construct a specific exporter.
 * `SScribe_Exporter_Interface` : the contract every exporter implements; third-party exporters can plug in by extending the factory.
 

@@ -1,4 +1,4 @@
-/* @version 1.2.0 */
+/* @version 1.9.0 */
 
 /* sScribe v3 design tokens.
  * Extracted from sscribe-admin.css so the token + reset layer
@@ -9,7 +9,7 @@
  */
 
 .sscribe-master-container {
-	--ss-bg: #fafafa;
+	--ss-bg: #f0f0f1;
 	--ss-surface: #fff;
 	--ss-surface-2: #f4f4f5;
 	--ss-surface-3: #e4e4e7;
@@ -26,58 +26,34 @@
 	--ss-brand-soft: #d4e7dc;
 	--ss-brand-tint: #e8f2ec;
 	--ss-brand-mark: #68a885;
-	--ss-brand-mark-soft: #b5d6c2;
-	--ss-brand-mark-fg: #0f2a1d;
 	--ss-success: #00664a;
-	--ss-success-fg: #0f5a3e;
 	--ss-success-bg: #e6f6f0;
 	--ss-success-border: #abefc6;
 	--ss-warning: #93370d;
-	--ss-warning-fg: #7a2c0a;
 	--ss-warning-bg: #fff6ed;
 	--ss-warning-border: #f9dbaf;
 	--ss-error: #9a1f17;
-	--ss-error-fg: #8a1a12;
 	--ss-error-bg: #fef3f2;
 	--ss-error-border: #fecdca;
 	--ss-info: #153e91;
-	--ss-info-fg: #0f3278;
 	--ss-info-bg: #eff8ff;
 	--ss-info-border: #c5dcf3;
 	--ss-success-hover: #00553c;
 	--ss-error-hover: #82180f;
-	--ss-warning-hover: #7a2c0a;
 
 	/* v3 semantic role aliases  -  physical tokens above, roles below.
  Components should reference --ss-color-* roles, not raw --ss-*.
  Re-balancing the palette only requires editing the physical layer. */
-	--ss-color-bg-canvas: var(--ss-bg);
 	--ss-color-bg-surface: var(--ss-surface);
 	--ss-color-bg-inset: var(--ss-surface-2);
-	--ss-color-bg-skeleton: var(--ss-surface-3);
 	--ss-color-border: var(--ss-border);
 	--ss-color-border-strong: var(--ss-border-strong);
 	--ss-color-fg-primary: var(--ss-text-primary);
 	--ss-color-fg-secondary: var(--ss-text-secondary);
 	--ss-color-fg-tertiary: var(--ss-text-tertiary);
 	--ss-color-fg-muted: var(--ss-text-muted);
-	--ss-color-fg-inverse: var(--ss-text-inverse);
 	--ss-color-accent: var(--ss-brand);
-	--ss-color-accent-hover: var(--ss-brand-hover);
-	--ss-color-accent-active: var(--ss-brand-active);
-	--ss-color-accent-soft: var(--ss-brand-soft);
-	--ss-color-accent-tint: var(--ss-brand-tint);
-	--ss-color-success-fg: var(--ss-success);
-	--ss-color-success-bg: var(--ss-success-bg);
-	--ss-color-success-border: var(--ss-success-border);
 	--ss-color-warning-fg: var(--ss-warning);
-	--ss-color-warning-bg: var(--ss-warning-bg);
-	--ss-color-warning-border: var(--ss-warning-border);
-	--ss-color-error-fg: var(--ss-error);
-	--ss-color-error-bg: var(--ss-error-bg);
-	--ss-color-error-border: var(--ss-error-border);
-	--ss-color-info-fg: var(--ss-info);
-	--ss-color-info-bg: var(--ss-info-bg);
 	--ss-radius-sm: 6px;
 	--ss-radius: 8px;
 	--ss-radius-md: 10px;
@@ -123,12 +99,7 @@
 	--ss-text-caption: 11px;
 	--ss-text-caption-lh: 1.4;
 	--ss-motion-fast: 80ms;
-	--ss-motion-base: 120ms;
-	--ss-motion-slow: 200ms;
 	--ss-easing: cubic-bezier(0.2, 0, 0, 1);
-	--ss-focus-ring: 2px;
-	--ss-focus-offset: 2px;
-	--ss-focus-color: var(--ss-brand);
 
 	background: var(--ss-bg);
 	font: 14px/1.5 var(--ss-font);

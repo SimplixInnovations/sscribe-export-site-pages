@@ -87,13 +87,11 @@ $sscribe_cleanup_site = static function (): void {
 	);
 
 	delete_transient( 'sscribe_activation_redirect' );
-	delete_transient( 'sscribe_key_warning_shown' );
 	delete_transient( 'sscribe_boot_error' );
 
 	delete_option( 'sscribe_version' );
 	delete_option( 'sscribe_export_index' );
 	delete_option( 'sscribe_export_metrics' );
-	global $wpdb;
 	// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- Cleanup during uninstall.
 	$wpdb->query(
 		$wpdb->prepare(
@@ -127,7 +125,7 @@ $sscribe_cleanup_site = static function (): void {
 	$sscribe_tables = array(
 		$wpdb->prefix . 'sscribe_export_logs',
 		$wpdb->prefix . 'sscribe_export_stats',
-		$wpdb->prefix . 'sscribe_sessions',
+		$wpdb->prefix . 'sscribe_audit_log',
 	);
 
 	foreach ( $sscribe_tables as $sscribe_table_name ) {
@@ -148,7 +146,6 @@ $sscribe_cleanup_site = static function (): void {
 		$sscribe_upload_base = untrailingslashit( (string) $sscribe_upload_dir['basedir'] );
 		$sscribe_dirs        = array(
 			$sscribe_upload_base . '/sscribe-exports',
-			$sscribe_upload_base . '/sscribe/mpdf-tmp',
 		);
 	}
 	foreach ( $sscribe_dirs as $dir_path ) {

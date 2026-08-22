@@ -17,13 +17,11 @@ class SScribe_Session_Test extends TestCase {
 		parent::setUp();
 		$GLOBALS['sscribe_test_options']    = array();
 		$GLOBALS['sscribe_test_transients'] = array();
-		$this->reset_active_session_cache();
 	}
 
 	protected function tearDown(): void {
 		$GLOBALS['sscribe_test_options']    = array();
 		$GLOBALS['sscribe_test_transients'] = array();
-		$this->reset_active_session_cache();
 		parent::tearDown();
 	}
 
@@ -177,10 +175,5 @@ class SScribe_Session_Test extends TestCase {
 
 		$this->assertIsArray( $decoded );
 		$this->assertSame( array( 4, 5 ), $decoded['page_ids'] );
-	}
-
-	private function reset_active_session_cache(): void {
-		$property = new \ReflectionProperty( \SScribe_Session::class, 'active_session_cache' );
-		$property->setValue( null, array() );
 	}
 }

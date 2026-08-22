@@ -168,7 +168,8 @@ class SScribe_Security {
 			throw new \InvalidArgumentException(
 				sprintf(
 					'Directory "%s" is outside the allowed uploads scope.',
-					esc_html( basename( $path ) )
+					// phpcs:ignore WordPress.Security.EscapeOutput.ExceptionNotEscaped -- Exception messages escape at the rendering site, not here.
+					basename( $path )
 				)
 			);
 		}

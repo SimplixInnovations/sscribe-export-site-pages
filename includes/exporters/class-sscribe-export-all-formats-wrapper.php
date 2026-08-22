@@ -92,12 +92,16 @@ class SScribe_Export_All_Formats_Wrapper {
 			$format = (string) $format;
 
 			if ( ! SScribe_Exporter_Factory::is_supported( $format ) ) {
+				$unsupported = sprintf(
+					/* translators: %s: export format slug. */
+					__( 'Unsupported export format: %s', 'sscribe-export-site-pages' ),
+					$format
+				);
+
 				$results[ $format ] = array(
 					'success' => false,
-					'result'  => SScribe_Result::failure(
-						sprintf( 'Unsupported export format: %s', $format )
-					),
-					'error'   => sprintf( 'Unsupported export format: %s', $format ),
+					'result'  => SScribe_Result::failure( $unsupported ),
+					'error'   => $unsupported,
 				);
 				continue;
 			}

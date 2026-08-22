@@ -22,6 +22,7 @@ class SScribe_Export_Lock_Manager_Test extends TestCase {
 	protected function tearDown(): void {
 		$GLOBALS['sscribe_test_transients'] = array();
 		$GLOBALS['sscribe_test_options']    = array();
+		unset( $GLOBALS['sscribe_test_before_wpdb_option_delete'] );
 		parent::tearDown();
 	}
 
@@ -83,6 +84,23 @@ class SScribe_Export_Lock_Manager_Test extends TestCase {
 		$this->assertStringContainsString( '|' . $token . '|', (string) get_option( 'sscribe_export_lock_expired-resource', false ) );
 	}
 
+	public function test_stale_reclamation_cannot_delete_a_successor_lock(): void {
+		$manager   = new \SScribe_Export_Lock_Manager();
+		$option    = 'sscribe_export_lock_stale-race';
+		$expired   = ( time() - 100 ) . '|expired-token|' . ( time() - 1 );
+		$successor = time() . '|successor-token|' . ( time() + 30 );
+
+		update_option( $option, $expired, false );
+		$GLOBALS['sscribe_test_before_wpdb_option_delete'] = static function ( array $where ) use ( $option, $successor ): void {
+			if ( $option === $where['option_name'] ) {
+				update_option( $option, $successor, false );
+			}
+		};
+
+		$this->assertNull( $manager->acquire_lock( 'stale-race', 30, 25 ) );
+		$this->assertSame( $successor, get_option( $option, false ) );
+	}
+
 	public function test_release_requires_owner_token(): void {
 		$manager = new \SScribe_Export_Lock_Manager();
 		$token   = $manager->acquire_lock( 'test-release' );
@@ -111,6 +129,23 @@ class SScribe_Export_Lock_Manager_Test extends TestCase {
 		$second = $manager->acquire_lock( 'test-ownership' );
 		$this->assertIsString( $second );
 		$this->assertNotSame( $first, $second );
+	}
+
+	public function test_release_cannot_delete_a_successor_lock_after_expiry(): void {
+		$manager    = new \SScribe_Export_Lock_Manager();
+		$token      = $manager->acquire_lock( 'test-atomic-release', 30, 25 );
+		$option     = 'sscribe_export_lock_test-atomic-release';
+		$successor  = time() . '|successor-token|' . ( time() + 30 );
+
+		$this->assertIsString( $token );
+		$GLOBALS['sscribe_test_before_wpdb_option_delete'] = static function ( array $where ) use ( $option, $successor ): void {
+			if ( $option === $where['option_name'] ) {
+				update_option( $option, $successor, false );
+			}
+		};
+
+		$this->assertFalse( $manager->release_lock( 'test-atomic-release', $token ) );
+		$this->assertSame( $successor, get_option( $option, false ) );
 	}
 
 	public function test_discard_lock_removes_database_and_legacy_storage(): void {

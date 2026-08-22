@@ -1,17 +1,8 @@
 # Development files
 .git/
-
-# WordPress.org SVN assets (not in plugin ZIP — uploaded to /assets/ in SVN)
-screenshots/
 .github/
 .gitignore
 .agent/
-banner-1544x500.png
-icon-128x128.png
-icon-256x256.png
-assets/banner-1544x500.svg
-assets/icon-128x128.svg
-assets/icon-256x256.svg
 
 # Build & deploy
 build/
@@ -21,8 +12,8 @@ dist/
 WPScan/
 WordPress-Core/
 
-# Composer (dev-only — not needed in production ZIP)
-composer.json
+# Composer lock data is not required at runtime; composer.json remains in the
+# package so WordPress.org reviewers can audit bundled dependency provenance.
 composer.lock
 
 # Testing
@@ -102,7 +93,6 @@ vendor-prefixed/phpoffice/phpword/phpword.ini.dist
 vendor-prefixed/phpoffice/phpword/phpmd.xml.dist
 
 # Vendor-prefixed dev files (exact-name segment-level)
-composer.json
 .gitattributes
 phpstan.neon
 phpstan.neon.dist
@@ -170,6 +160,9 @@ opencode.json
 .claude/
 .opencode/
 .impeccable/
+.omo/
+.mimosa/
+.codegraph
 .agent/
 .aider*
 .cursor/
@@ -194,8 +187,8 @@ stubs/
 # Scratch / experimental
 scratch/
 
-# Local audit / screenshot artifacts left by browser automation.
-# .audit/ holds verification screenshots; root-level .export-*.png and
+# Local browser-audit image artifacts.
+# .audit/ holds verification images; root-level .export-*.png and
 # tab-export-*.{jpg,jpeg} are full-page captures from UI polish passes.
 # None of this belongs in the production ZIP.
 .audit/

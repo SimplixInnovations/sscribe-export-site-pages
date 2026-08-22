@@ -72,6 +72,7 @@ class SScribe_Upgrader_Test extends TestCase {
 
 		$GLOBALS['wpdb'] = new class() {
 			public string $prefix = 'wp_';
+			public string $options = 'wp_options';
 			public function get_charset_collate(): string {
 				return 'CHARACTER SET utf8mb4';
 			}
@@ -84,11 +85,24 @@ class SScribe_Upgrader_Test extends TestCase {
 			public function get_results( $query = null ) {
 				return array();
 			}
+			public function delete( $table, $where, $where_format = null ) {
+				global $sscribe_test_options;
+				unset( $table, $where_format );
+				$option_name = (string) ( $where['option_name'] ?? '' );
+				$expected    = (string) ( $where['option_value'] ?? '' );
+				if ( '' === $option_name || ! isset( $sscribe_test_options[ $option_name ] ) || (string) $sscribe_test_options[ $option_name ] !== $expected ) {
+					return 0;
+				}
+				unset( $sscribe_test_options[ $option_name ] );
+				return 1;
+			}
 		};
 
-		\SScribe_Upgrader::maybe_upgrade();
-
-		$GLOBALS['wpdb'] = $orig_wpdb;
+		try {
+			\SScribe_Upgrader::maybe_upgrade();
+		} finally {
+			$GLOBALS['wpdb'] = $orig_wpdb;
+		}
 		$this->assertFalse( get_option( 'sscribe_schema_version' ) );
 		$error = get_option( 'sscribe_upgrade_last_error' );
 		$this->assertIsArray( $error );

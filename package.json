@@ -1,6 +1,6 @@
 {
   "name": "sscribe-export-site-pages",
-  "version": "1.2.0",
+  "version": "1.9.0",
   "private": true,
   "type": "module",
   "description": "Export WordPress pages to professional DOCX, PDF, HTML, or Markdown packages",
@@ -14,7 +14,7 @@
   "devDependencies": {
     "@eslint/js": "^10.0.1",
     "csso-cli": "^4.0.2",
-    "eslint": "^10.8.1",
+    "eslint": "^10.9.0",
     "globals": "^17.11.0",
     "prettier": "^3.9.6",
     "stylelint": "^17.14.1",

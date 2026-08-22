@@ -1156,7 +1156,23 @@ $sscribe_test_ajax_nonce_valid = true;
 		}
 
 		public function delete( $table, $where, $where_format = null ) {
-			global $sscribe_test_db_tables;
+			global $sscribe_test_db_tables, $sscribe_test_options;
+
+			if ( $table === $this->options && isset( $where['option_name'], $where['option_value'] ) ) {
+				if ( isset( $GLOBALS['sscribe_test_before_wpdb_option_delete'] ) && is_callable( $GLOBALS['sscribe_test_before_wpdb_option_delete'] ) ) {
+					$callback = $GLOBALS['sscribe_test_before_wpdb_option_delete'];
+					unset( $GLOBALS['sscribe_test_before_wpdb_option_delete'] );
+					$callback( $where );
+				}
+
+				$option_name = (string) $where['option_name'];
+				if ( ! array_key_exists( $option_name, $sscribe_test_options ) || (string) $sscribe_test_options[ $option_name ] !== (string) $where['option_value'] ) {
+					return 0;
+				}
+
+				unset( $sscribe_test_options[ $option_name ] );
+				return 1;
+			}
 
 			if ( ! isset( $sscribe_test_db_tables[ $table ] ) || ! is_array( $sscribe_test_db_tables[ $table ] ) ) {
 				return false;
@@ -1223,6 +1239,9 @@ if ( ! function_exists( 'get_option' ) ) {
 if ( ! function_exists( 'update_option' ) ) {
 	function update_option( $sscribe_option, $sscribe_value, $sscribe_autoload = null ) {
 		global $sscribe_test_options;
+		if ( isset( $GLOBALS['sscribe_test_update_option_failure'] ) && $sscribe_option === $GLOBALS['sscribe_test_update_option_failure'] ) {
+			return false;
+		}
 		$sscribe_test_options[ $sscribe_option ] = $sscribe_value;
 		return true;
 	}

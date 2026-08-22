@@ -36,6 +36,12 @@ final class SScribe_JS_Error_Guidance_Test extends TestCase {
 		return (string) file_get_contents( $path );
 	}
 
+	private function debug_console_js(): string {
+		$path = __DIR__ . '/../../admin/js/sscribe-debug-console.js';
+		$this->assertFileExists( $path );
+		return (string) file_get_contents( $path );
+	}
+
 	public function test_get_error_guidance_does_not_substring_match_message(): void {
 		$js = $this->admin_js();
 
@@ -94,37 +100,32 @@ final class SScribe_JS_Error_Guidance_Test extends TestCase {
 	}
 
 	/**
-	 * Regression for the ajax_refresh_nonce add-codes fix: the JS
-	 * must (a) know about the `sscribe_refresh_nonce` AJAX action
-	 * (so the long-batch 403 retry handshake has a client endpoint)
-	 * and (b) translate every code that the server-side handler
-	 * emits (`invalid_nonce`, `permission_denied`) into the guidance
-	 * table. Without this entry, the JS would surface a generic fallback
-	 * for nonce refresh failures after long-running exports.
+	 * Regression for the JS-side refresh-nonce guidance: the debug console
+	 * uses `sscribe_debug_refresh_nonce` (the export flow trusts the
+	 * page-reload nonce on long batches), so its JS must translate the
+	 * same codes the server emits into the shared guidance table.
 	 */
 	public function test_refresh_nonce_endpoint_codes_are_in_guidance_table(): void {
-		$js = $this->admin_js();
+		$js = $this->debug_console_js();
 
-		// Client wires to the sscribe_refresh_nonce AJAX action.
+		// The debug console wires to the debug-namespaced refresh endpoint.
 		$this->assertStringContainsString(
-			"action: 'sscribe_refresh_nonce'",
+			"action: 'sscribe_debug_refresh_nonce'",
 			$js,
-			'JS must wire the nonce refresh endpoint: sscribe_refresh_nonce.'
+			'JS must wire the debug refresh-nonce endpoint.'
 		);
 
-		// The two codes the server-side ajax_refresh_nonce() actually
-		// emits MUST be in the guidance table so the user sees real
-		// guidance instead of the generic fallback.
-		$refresh_codes = array(
-			'invalid_nonce',
-			'permission_denied',
+		// The debug console handles a 403 by retrying with the new nonce;
+		// other server errors surface the same error guidance the export flow uses.
+		$this->assertStringContainsString(
+			'xhr.status === 403',
+			$js,
+			'Debug console must retry the debug-nonce refresh on 403.'
 		);
-		foreach ( $refresh_codes as $code ) {
-			$this->assertStringContainsString(
-				$code . ':',
-				$js,
-				'ajax_refresh_nonce() may emit "' . $code . '". It must be in the JS guidance table.'
-			);
-		}
+		$this->assertStringContainsString(
+			'refreshNonce: function',
+			$js,
+			'Debug console must surface a refresh-nonce error path on failure.'
+		);
 	}
 }

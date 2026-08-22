@@ -26,10 +26,6 @@ class SScribe_Session_Crypto_Test extends TestCase {
 		$GLOBALS['sscribe_test_options']    = array();
 		$GLOBALS['sscribe_test_transients'] = array();
 
-		// Reset static active-session cache between tests.
-		$cache_prop = new \ReflectionProperty( \SScribe_Session::class, 'active_session_cache' );
-		$cache_prop->setValue( null, array() );
-
 		// Force a fresh sodium key per test so wrong-key/right-key paths are isolated.
 		delete_option( 'sscribe_session_sodium_key' );
 		delete_option( 'sscribe_session_legacy_key' );

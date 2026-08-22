@@ -234,7 +234,7 @@ class SScribe_Audit_Trail {
 	 */
 	private function hash_client_ip(): string {
 		$raw_ip = $this->get_client_ip();
-		$salt   = defined( 'AUTH_SALT' ) && '' !== AUTH_SALT ? AUTH_SALT : 'sscribe-audit';
+		$salt   = defined( 'AUTH_SALT' ) && '' !== AUTH_SALT ? AUTH_SALT : ( function_exists( 'wp_salt' ) ? wp_salt( 'auth' ) : 'sscribe-audit-fallback' );
 		return substr( hash_hmac( 'sha256', $raw_ip, $salt ), 0, 16 );
 	}
 

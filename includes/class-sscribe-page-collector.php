@@ -650,7 +650,17 @@ class SScribe_Page_Collector {
 
 		if ( ! empty( $post_object->post_password ) ) {
 			$password_title = $this->get_title_cached( $page_id );
-			$password_title = $password_title ? $password_title : sprintf( 'Untitled Page %d', $page_id );
+			$password_title = $password_title ? $password_title : sprintf(
+				/* translators: %d: post ID. */
+				__( 'Untitled Page %d', 'sscribe-export-site-pages' ),
+				$page_id
+			);
+
+			$password_author = get_the_author_meta( 'display_name', $post_object->post_author );
+			if ( empty( $password_author ) ) {
+				$password_author = __( 'Unknown', 'sscribe-export-site-pages' );
+			}
+
 			return array(
 				'id'                  => $page_id,
 				'title'               => html_entity_decode(
@@ -663,7 +673,7 @@ class SScribe_Page_Collector {
 				'excerpt'             => '',
 				'permalink'           => $this->get_permalink_cached( $page_id ),
 				'slug'                => $post_object->post_name,
-				'author'              => get_the_author_meta( 'display_name', $post_object->post_author ) ?? __( 'Unknown', 'sscribe-export-site-pages' ),
+				'author'              => $password_author,
 				'date_published'      => get_the_date( 'F j, Y', $page_id ),
 				'date_modified'       => get_the_modified_date( 'F j, Y', $page_id ),
 				'featured_image_url'  => '',
@@ -762,7 +772,11 @@ class SScribe_Page_Collector {
 		$children               = $this->get_child_pages( $page_id, $post_type_for_children );
 
 		$page_title_raw = $this->get_title_cached( $page_id );
-		$page_title     = $page_title_raw ? $page_title_raw : sprintf( 'Untitled Page %d', $page_id );
+		$page_title     = $page_title_raw ? $page_title_raw : sprintf(
+			/* translators: %d: post ID. */
+			__( 'Untitled Page %d', 'sscribe-export-site-pages' ),
+			$page_id
+		);
 
 		$language = $this->get_page_language( $page_id );
 

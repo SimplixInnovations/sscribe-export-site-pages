@@ -188,7 +188,7 @@ class SScribe_Settings {
 
 		if ( ! $level_saved || ! $enabled_saved || ! $refresh_saved ) {
 			if ( class_exists( 'SScribe_Logger' ) ) {
-				$logger = SScribe_Logger::instance( true );
+				$logger = SScribe_Logger::instance( self::is_debug_enabled() );
 				$logger->warning(
 					'Debug settings save: partial failure',
 					array(

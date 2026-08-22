@@ -23,13 +23,6 @@ class SScribe_Export_Lock_Manager {
 	private const OPTION_PREFIX = 'sscribe_export_lock_';
 
 	/**
-	 * Plugin-specific object-cache group for atomic export locks.
-	 *
-	 * @var string
-	 */
-	private const CACHE_GROUP = 'sscribe_export_locks';
-
-	/**
 	 * Logger instance.
 	 *
 	 * @var SScribe_Logger_Interface
@@ -48,8 +41,9 @@ class SScribe_Export_Lock_Manager {
 	/**
 	 * Acquire a processing lock for a session.
 	 *
-	 * Uses wp_cache_add() for atomic lock acquisition on persistent object-cache
-	 * backends and add_option() for an atomic database fallback.
+	 * Uses add_option() for atomic database-backed acquisition. Keeping one
+	 * authoritative store also permits release through a conditional delete,
+	 * so an expired owner cannot delete a successor's lock.
 	 *
 	 * @param string $session_id       Session identifier.
 	 * @param int    $lock_ttl         Lock TTL in seconds.
@@ -69,18 +63,16 @@ class SScribe_Export_Lock_Manager {
 		$lock_ttl        = max( 5, min( 1800, $lock_ttl ) );
 		$stale_threshold = max( 1, min( $lock_ttl, $stale_threshold ) );
 
-		$lock_key     = 'sscribe_lock_' . $session_id;
-		$option_key   = self::OPTION_PREFIX . $session_id;
-		$lock_token   = wp_generate_password( 32, false );
-		$current_time = time();
-		$lock_value   = $current_time . '|' . $lock_token . '|' . ( $current_time + $lock_ttl );
-		$using_cache  = (bool) wp_using_ext_object_cache();
-
-		$existing_lock = $using_cache
-			? wp_cache_get( $lock_key, self::CACHE_GROUP )
-			: get_option( $option_key, false );
-		if ( ! $using_cache && false === $existing_lock ) {
+		$lock_key      = 'sscribe_lock_' . $session_id;
+		$option_key    = self::OPTION_PREFIX . $session_id;
+		$lock_token    = wp_generate_password( 32, false );
+		$current_time  = time();
+		$lock_value    = $current_time . '|' . $lock_token . '|' . ( $current_time + $lock_ttl );
+		$existing_lock = get_option( $option_key, false );
+		$is_legacy     = false;
+		if ( false === $existing_lock ) {
 			$existing_lock = get_transient( $lock_key );
+			$is_legacy     = false !== $existing_lock;
 		}
 
 		if ( false !== $existing_lock ) {
@@ -94,12 +86,16 @@ class SScribe_Export_Lock_Manager {
 				: $lock_age > $stale_threshold;
 
 			if ( 0 === $lock_time || '' === $existing_token || $is_expired || $lock_age < -300 ) {
-				if ( $using_cache ) {
-					wp_cache_delete( $lock_key, self::CACHE_GROUP );
-				} else {
-					delete_option( $option_key );
+				if ( $is_legacy ) {
 					delete_transient( $lock_key );
+				} elseif ( ! is_string( $existing_lock ) || ! $this->delete_owned_option_lock( $option_key, $existing_lock ) ) {
+					$this->logger->debug(
+						'Stale lock changed before reclamation; acquisition aborted',
+						array( 'session_id' => $session_id )
+					);
+					return null;
 				}
+				delete_transient( $lock_key );
 				$this->logger->debug(
 					'Removed stale lock before atomic reacquisition',
 					array(
@@ -117,12 +113,7 @@ class SScribe_Export_Lock_Manager {
 		}
 
 		for ( $attempt = 1; $attempt <= 3; ++$attempt ) {
-			if ( $using_cache ) {
-
-				if ( wp_cache_add( $lock_key, $lock_value, self::CACHE_GROUP, $lock_ttl ) ) {
-					return $lock_token;
-				}
-			} elseif ( add_option( $option_key, $lock_value, '', false ) ) {
+			if ( add_option( $option_key, $lock_value, '', false ) ) {
 				delete_transient( $lock_key );
 				$stored = get_option( $option_key, false );
 				if ( is_string( $stored ) && hash_equals( $lock_value, $stored ) ) {
@@ -152,15 +143,18 @@ class SScribe_Export_Lock_Manager {
 			return false;
 		}
 
-		$lock_key    = 'sscribe_lock_' . $session_id;
-		$option_key  = self::OPTION_PREFIX . $session_id;
-		$using_cache = (bool) wp_using_ext_object_cache();
+		$sanitized = sanitize_key( $session_id );
+		if ( '' === $sanitized || ! hash_equals( $session_id, $sanitized ) ) {
+			return false;
+		}
 
-		$raw = $using_cache
-			? wp_cache_get( $lock_key, self::CACHE_GROUP )
-			: get_option( $option_key, false );
-		if ( ! $using_cache && false === $raw ) {
+		$lock_key   = 'sscribe_lock_' . $sanitized;
+		$option_key = self::OPTION_PREFIX . $sanitized;
+		$raw        = get_option( $option_key, false );
+		$is_legacy  = false;
+		if ( false === $raw ) {
 			$raw = get_transient( $lock_key );
+			$is_legacy = false !== $raw;
 		}
 
 		if ( false === $raw || ! is_string( $raw ) ) {
@@ -174,13 +168,42 @@ class SScribe_Export_Lock_Manager {
 			return false;
 		}
 
-		if ( $using_cache ) {
-			wp_cache_delete( $lock_key, self::CACHE_GROUP );
+		if ( $is_legacy ) {
+			delete_transient( $lock_key );
+			return true;
 		}
-		delete_option( $option_key );
-		delete_transient( $lock_key );
 
+		if ( ! $this->delete_owned_option_lock( $option_key, $raw ) ) {
+			return false;
+		}
+
+		delete_transient( $lock_key );
 		return true;
+	}
+
+	/**
+	 * Delete a database-backed lock only if its complete observed value still
+	 * owns the row. This keeps both stale reclamation and release from deleting
+	 * a successor acquired between observation and deletion.
+	 *
+	 * @param string $option_key Lock option name.
+	 * @param string $lock_value Complete observed lock value.
+	 * @return bool Whether the exact owned row was deleted.
+	 */
+	private function delete_owned_option_lock( string $option_key, string $lock_value ): bool {
+		global $wpdb;
+		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- Ownership-conditional deletion cannot be expressed through delete_option().
+		$deleted = $wpdb->delete(
+			$wpdb->options,
+			array(
+				'option_name'  => $option_key,
+				'option_value' => $lock_value,
+			),
+			array( '%s', '%s' )
+		);
+		wp_cache_delete( $option_key, 'options' );
+
+		return 1 === $deleted;
 	}
 
 	/**
@@ -199,7 +222,6 @@ class SScribe_Export_Lock_Manager {
 		}
 
 		$lock_key = 'sscribe_lock_' . $sanitized;
-		wp_cache_delete( $lock_key, self::CACHE_GROUP );
 		delete_option( self::OPTION_PREFIX . $sanitized );
 		delete_transient( $lock_key );
 

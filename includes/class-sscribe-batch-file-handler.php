@@ -139,11 +139,9 @@ class SScribe_Batch_File_Handler {
 				wp_die( esc_html__( 'Invalid file access.', 'sscribe-export-site-pages' ) );
 			}
 
-			// Single-use per-row download token: the URL embeds a token that
-			// was rotated at URL build time. consume_dl_token validates the
-			// presented value against the row with hash_equals, then rotates
-			// the token again so any replay (browser history, server-log
-			// leak, accidental Slack share) returns 403 instead of the ZIP.
+			// Single-use per-row download token: admin views reuse the current
+			// token until consume_dl_token atomically validates and rotates it.
+			// Replays then return 403 instead of the ZIP.
 			$raw_token = isset( $_GET['token'] ) && is_string( $_GET['token'] ) ? sanitize_text_field( wp_unslash( $_GET['token'] ) ) : '';
 			if ( ! $this->zip_handler->consume_dl_token( $filename, $raw_token ) ) {
 				$this->auditor->log( 'download_token_rejected', array( 'filename' => $filename ) );

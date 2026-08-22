@@ -906,7 +906,11 @@ class SScribe_Content_Parser {
 						$src = $child->getAttribute( 'src' );
 						if ( $src ) {
 							$runs[] = array(
-								'text'  => '[Image: ' . $child->getAttribute( 'alt' ) . ']',
+								'text'  => sprintf(
+									/* translators: %s: image alt text. */
+									__( '[Image: %s]', 'sscribe-export-site-pages' ),
+									$child->getAttribute( 'alt' )
+								),
 								'image' => $src,
 							);
 						}

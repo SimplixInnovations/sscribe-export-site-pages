@@ -39,7 +39,7 @@ $sscribe_show_wp_debug_notice = ( defined( 'WP_DEBUG' ) && WP_DEBUG );
 		<div class="sscribe-debug-title-row">
 			<h2><?php esc_html_e( 'Debug Console', 'sscribe-export-site-pages' ); ?></h2>
 			<button type="button" class="sscribe-button sscribe-button-icon sscribe-btn-sm" id="sscribe-debug-help-btn" aria-label="<?php esc_attr_e( 'Help', 'sscribe-export-site-pages' ); ?>" aria-controls="sscribe-debug-help-content" aria-expanded="false">
-				<span aria-hidden="true">?</span>
+				<?php echo wp_kses_post( SScribe_Helpers::get_icon( 'info', 16 ) ); ?>
 			</button>
 		</div>
 		<p class="sscribe-debug-description">
@@ -83,7 +83,7 @@ $sscribe_show_wp_debug_notice = ( defined( 'WP_DEBUG' ) && WP_DEBUG );
 	<div class="sscribe-debug-controls-card">
 		<div class="sscribe-debug-controls-row">
 			<div class="sscribe-debug-filter">
-				<label for="sscribe-debug-filter-level"><?php esc_html_e( 'Filter:', 'sscribe-export-site-pages' ); ?></label>
+				<label for="sscribe-debug-filter-level"><?php esc_html_e( 'Log level', 'sscribe-export-site-pages' ); ?></label>
 				<select id="sscribe-debug-filter-level" class="sscribe-select">
 					<option value="ALL"><?php esc_html_e( 'All Levels', 'sscribe-export-site-pages' ); ?></option>
 					<option value="AUDIT"><?php esc_html_e( 'Audit', 'sscribe-export-site-pages' ); ?></option>
@@ -98,12 +98,12 @@ $sscribe_show_wp_debug_notice = ( defined( 'WP_DEBUG' ) && WP_DEBUG );
 				</select>
 			</div>
 			<div class="sscribe-debug-session-filter">
-				<label for="sscribe-debug-session-id"><?php esc_html_e( 'Session ID:', 'sscribe-export-site-pages' ); ?></label>
+				<label for="sscribe-debug-session-id"><?php esc_html_e( 'Session ID', 'sscribe-export-site-pages' ); ?></label>
 				<input type="text" id="sscribe-debug-session-id" class="sscribe-input" placeholder="<?php esc_attr_e( 'e.g. abc123de or full ID', 'sscribe-export-site-pages' ); ?>" maxlength="64" aria-describedby="sscribe-session-id-desc">
 				<span id="sscribe-session-id-desc" class="screen-reader-text"><?php esc_html_e( 'Enter a full or partial session ID to filter logs. Matching is partial (contains).', 'sscribe-export-site-pages' ); ?></span>
 			</div>
 			<div class="sscribe-debug-search">
-				<label for="sscribe-debug-search"><?php esc_html_e( 'Search logs:', 'sscribe-export-site-pages' ); ?></label>
+				<label for="sscribe-debug-search"><?php esc_html_e( 'Search logs', 'sscribe-export-site-pages' ); ?></label>
 				<input type="text" id="sscribe-debug-search" class="sscribe-input" maxlength="200" placeholder="<?php esc_attr_e( 'Search logs...', 'sscribe-export-site-pages' ); ?>">
 			</div>
 		</div>
@@ -119,10 +119,11 @@ $sscribe_show_wp_debug_notice = ( defined( 'WP_DEBUG' ) && WP_DEBUG );
 					<span class="sscribe-radio-text"><?php esc_html_e( 'Manual refresh only', 'sscribe-export-site-pages' ); ?></span>
 				</label>
 			</div>
-			<button type="button" class="sscribe-button sscribe-button-icon" id="sscribe-debug-refresh-btn" aria-label="<?php esc_attr_e( 'Refresh logs', 'sscribe-export-site-pages' ); ?>">
+			<button type="button" class="sscribe-button sscribe-button-outline" id="sscribe-debug-refresh-btn">
 				<svg width="16" height="16" viewBox="0 0 16 16" fill="currentColor">
 					<path d="M13.65 2.35A8 8 0 1 0 16 8h-2a6 6 0 1 1-1.76-4.24L10 6h6V0l-2.35 2.35z"/>
 				</svg>
+				<span><?php esc_html_e( 'Refresh logs', 'sscribe-export-site-pages' ); ?></span>
 			</button>
 		</div>
 	</div>
@@ -164,14 +165,14 @@ $sscribe_show_wp_debug_notice = ( defined( 'WP_DEBUG' ) && WP_DEBUG );
 	</div>
 
 	<div class="sscribe-debug-actions">
-		<button type="button" class="sscribe-button sscribe-button-danger" id="sscribe-debug-clear-btn">
-			<?php esc_html_e( 'Clear Logs', 'sscribe-export-site-pages' ); ?>
-		</button>
 		<button type="button" class="sscribe-button sscribe-button-outline" id="sscribe-debug-export-btn">
 			<?php
 			esc_html_e( 'Export as JSON', 'sscribe-export-site-pages' );
 			?>
 			<span class="sscribe-export-btn-scope"><?php esc_html_e( '(all entries)', 'sscribe-export-site-pages' ); ?></span>
+		</button>
+		<button type="button" class="sscribe-button sscribe-button-danger" id="sscribe-debug-clear-btn" disabled>
+			<?php esc_html_e( 'Clear Logs', 'sscribe-export-site-pages' ); ?>
 		</button>
 	</div>
 

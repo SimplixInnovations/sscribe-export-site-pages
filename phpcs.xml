@@ -16,6 +16,8 @@
     <exclude-pattern>/WPScan/*</exclude-pattern>
     <exclude-pattern>/WordPress-Core/*</exclude-pattern>
     <exclude-pattern>/.cache/*</exclude-pattern>
+    <exclude-pattern>/.codegraph/*</exclude-pattern>
+    <exclude-pattern>/.omo/*</exclude-pattern>
     <exclude-pattern>/stubs/*</exclude-pattern>
     <exclude-pattern>./phpstan-bootstrap.php</exclude-pattern>
     <exclude-pattern>./fake-wp/*</exclude-pattern>

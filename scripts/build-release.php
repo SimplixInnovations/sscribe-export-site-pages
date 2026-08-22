@@ -36,10 +36,9 @@ $config = array(
 		'phpunit.xml', 'phpunit.xml.dist', 'phpstan.neon', 'phpstan.neon.dist',
 		'phpcs.xml', 'phpstan-bootstrap.php', '.editorconfig', '.wp-env.json',
 		'tests', 'scripts', '.github', '.gitattributes', 'docs', 'examples', 'samples',
-		'composer.json', 'composer.lock', 'scratch', 'strauss.json', 'infection.json5',
+		'composer.lock', 'scratch', 'strauss.json', 'infection.json5',
 		'commit-message.txt', '.prettierrc', '.eslintrc.json', '.stylelintrc.json', '.husky',
-		'node_modules', 'screenshots', 'WPScan',
-		'assets/banner-1544x500.svg', 'assets/icon-128x128.svg', 'assets/icon-256x256.svg',
+		'node_modules', 'WPScan',
 		'vendor-prefixed/phpoffice/phpword/COPYING.LESSER',
 		// Ad-hoc Python transform scripts left over from one-off
 		// SVG / kses / indent fixes. Nothing in the production code
@@ -60,10 +59,11 @@ $config = array(
 		// "ai_instruction_directory" warnings if present.
 		'.claude', '.opencode', '.impeccable', '.agent', '.aider', '.aider.chat.history',
 		'.aider.model.settings.json', '.aider.input.history', '.cursor', '.windsurf',
-		'.continue', '.codeium', '.github/copilot', '.cody',
+		'.continue', '.codeium', '.github/copilot', '.cody', '.mimosa', '.omo',
+		'.debug-journal.md',
 
-		// Local audit / screenshot artifacts left behind by browser automation.
-		// The .audit/ directory holds v3 verification screenshots; root-level
+		// Local browser-audit image artifacts.
+		// The .audit/ directory holds v3 verification images; root-level
 		// .export-*.png and tab-export-*.{jpg,jpeg} are full-page captures
 		// produced during UI polish passes. None of this belongs in the
 		// production ZIP - WordPress.org reviewers will see the files and flag
@@ -692,9 +692,16 @@ if ( is_dir( $vendor_dir ) ) {
 
 echo "  Validating distribution contents...\n";
 $distribution_errors = array();
-$required_lgpl_notice = $plugin_dir . '/vendor-prefixed/phpoffice/phpword/COPYING.LESSER.txt';
-if ( ! is_file( $required_lgpl_notice ) ) {
-	$distribution_errors[] = 'Missing normalized PHPWord LGPL notice: vendor-prefixed/phpoffice/phpword/COPYING.LESSER.txt';
+$required_release_files = array(
+	'composer.json',
+	'vendor-prefixed/phpoffice/phpword/COPYING.LESSER.txt',
+	'vendor-prefixed/mpdf/psr-http-message-shim/NOTICE',
+	'vendor-prefixed/mpdf/psr-log-aware-trait/NOTICE',
+);
+foreach ( $required_release_files as $required_release_file ) {
+	if ( ! is_file( $plugin_dir . '/' . $required_release_file ) ) {
+		$distribution_errors[] = 'Missing required release file: ' . $required_release_file;
+	}
 }
 
 $blocked_extensions = array( 'lesser', 'dist', 'sh', 'bat', 'cmd', 'exe', 'msi', 'pkg', 'dmg', 'phar' );

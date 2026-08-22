@@ -304,8 +304,8 @@ trait SScribe_Session_AJAX {
 				)
 			);
 		} else {
-			$this->cleanup_expired( 60 );
-			$this->get_logger()->debug( 'Cleared expired sessions for user', array( 'user_id' => $user_id ) );
+			$this->clear_user_sessions( $user_id );
+			$this->get_logger()->debug( 'Cleared sessions for user', array( 'user_id' => $user_id ) );
 		}
 
 		SScribe_AJAX_Guard::success( array( 'message' => __( 'Session cleared.', 'sscribe-export-site-pages' ) ) );

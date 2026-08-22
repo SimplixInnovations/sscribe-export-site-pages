@@ -1,6 +1,16 @@
 # Dependencies
 /vendor/
 /vendor-prefixed/
+!/vendor-prefixed/
+/vendor-prefixed/*
+!/vendor-prefixed/mpdf/
+/vendor-prefixed/mpdf/*
+!/vendor-prefixed/mpdf/psr-http-message-shim/
+/vendor-prefixed/mpdf/psr-http-message-shim/*
+!/vendor-prefixed/mpdf/psr-http-message-shim/NOTICE
+!/vendor-prefixed/mpdf/psr-log-aware-trait/
+/vendor-prefixed/mpdf/psr-log-aware-trait/*
+!/vendor-prefixed/mpdf/psr-log-aware-trait/NOTICE
 /node_modules/
 
 # Build outputs
@@ -10,6 +20,11 @@
 
 # Agent/Skills (embedded git repo)
 .agent/
+
+# Local AI-assistant scan/verification state (hundreds of MB, never ships)
+.mimosa/
+.omo/
+.debug-journal.md
 
 # AI tooling — user-local settings + prompt history must never be committed.
 # WordPress.org plugin-check flags these as "ai_instruction_directory" warnings
@@ -133,4 +148,3 @@ test-phpcs-output.txt
 .playground-tools/
 playground-tools/
 playground-blueprint.json
-screenshots/

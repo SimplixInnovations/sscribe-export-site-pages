@@ -357,7 +357,10 @@ class SScribe_Markdown_Exporter implements SScribe_Exporter_Interface {
 			$html = strip_shortcodes( $html );
 		}
 
-		$html = preg_replace( '/\[[a-zA-Z_][a-zA-Z0-9_-]*(?:\s+[^\]]*)?\/?\][\s\S]*?(?:\[\/[a-zA-Z_][a-zA-Z0-9_-]*\])?/s', '', $html ) ?? $html;
+		// Unregistered tags only: require either a matching closing tag or a
+		// self-closing marker. A bare "[word]" in prose must survive.
+		$html = preg_replace( '/\[([a-zA-Z_][a-zA-Z0-9_-]*)(?:\s+[^\]]*)?\/+\]\s*/', '', $html ) ?? $html;
+		$html = preg_replace( '/\[([a-zA-Z_][a-zA-Z0-9_-]*)(?:\s+[^\]]*)?\][\s\S]*?\[\/\1\]/s', '', $html ) ?? $html;
 
 		return $html;
 	}
@@ -515,7 +518,7 @@ class SScribe_Markdown_Exporter implements SScribe_Exporter_Interface {
 	 * @return string Content with Markdown links.
 	 */
 	private function convert_links( string $html ): string {
-		return preg_replace_callback(
+		$result = preg_replace_callback(
 			'/<a[^>]*href=["\']([^"\']*)["\'][^>]*>(.*?)<\/a>/is',
 			function ( $matches ) {
 				$url        = $this->sanitize_url( $matches[1] );
@@ -530,12 +533,12 @@ class SScribe_Markdown_Exporter implements SScribe_Exporter_Interface {
 						return '[' . $url . '](' . $url . ')';
 					}
 					$img_markdown = '![' . ( '' !== $img_alt ? $img_alt : 'image' ) . '](' . $this->sanitize_url( $img_src ) . ')';
-					$url_encoded = str_replace( array( '(', ')' ), array( '%28', '%29' ), $url );
+					$url_encoded  = str_replace( array( '(', ')' ), array( '%28', '%29' ), $url );
 					return '[' . $img_markdown . '](' . $url_encoded . ')';
 				}
 
 				$text = wp_strip_all_tags( $inner_html );
-				$text = trim( preg_replace( '/\s+/', ' ', $text ) );
+				$text = trim( (string) preg_replace( '/\s+/', ' ', $text ) );
 				if ( empty( $text ) ) {
 					$text = $url;
 				}
@@ -545,6 +548,8 @@ class SScribe_Markdown_Exporter implements SScribe_Exporter_Interface {
 			},
 			$html
 		);
+
+		return is_string( $result ) ? $result : $html;
 	}
 
 	/**

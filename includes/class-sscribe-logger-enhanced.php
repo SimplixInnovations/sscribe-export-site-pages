@@ -156,10 +156,6 @@ class SScribe_Logger_Enhanced extends SScribe_Logger {
 	 * incoming content would push it over. This preserves the
 	 * pre-refactor behavior.
 	 */
-	public function flush(): void {
-		parent::flush();
-	}
-
 	/**
 	 * Determine if a log level should be processed.
 	 *

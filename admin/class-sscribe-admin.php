@@ -240,6 +240,10 @@ class SScribe_Admin {
 		$encoded_data = wp_json_encode( $this->build_localized_data(), JSON_HEX_TAG | JSON_HEX_AMP | JSON_HEX_QUOT | JSON_HEX_APOS );
 		$body         = 'var sscribe_data = ' . ( false !== $encoded_data ? $encoded_data : '{}' ) . ';';
 
+		if ( SSCRIBE_DEBUG ) {
+			$body .= ' window.SSCRIBE_DEBUG = true;';
+		}
+
 		wp_add_inline_script( 'sscribe-admin', $body, 'before' );
 	}
 
@@ -259,7 +263,6 @@ class SScribe_Admin {
 			'nonce'           => wp_create_nonce( 'sscribe_export_nonce' ),
 			'download_nonce'  => $this->get_download_nonce(),
 			'health_nonce'    => current_user_can( SScribe_Capabilities::get_health_required() ) ? wp_create_nonce( 'sscribe_health_nonce' ) : '',
-			'icons_url'       => SSCRIBE_PLUGIN_URL . 'assets/icons/',
 			'auto_download'   => (bool) apply_filters( 'sscribe_auto_download_on_complete', false ),
 
 			'refresh_interval' => min( 300000, max( 5000, (int) apply_filters( 'sscribe_debug_refresh_interval_ms', 10000 ) ) ),
@@ -378,6 +381,7 @@ class SScribe_Admin {
 				'format_markdown'        => __( 'Markdown', 'sscribe-export-site-pages' ),
 				'err_clear_session'      => __( 'Failed to clear the export session after multiple attempts. Please refresh the page and try again.', 'sscribe-export-site-pages' ),
 				'export_cancelled'       => __( 'Export cancelled.', 'sscribe-export-site-pages' ),
+				'export_in_progress'     => __( 'An export is in progress. Cancel it to start a new one.', 'sscribe-export-site-pages' ),
 				'export_complete_notice' => __( 'Export complete! You can start a new export now.', 'sscribe-export-site-pages' ),
 				'click_again'            => __( 'Click again', 'sscribe-export-site-pages' ),
 				'selected'               => __( 'selected', 'sscribe-export-site-pages' ),
@@ -485,8 +489,9 @@ class SScribe_Admin {
 			? get_post_types( array( 'public' => true ), 'objects' )
 			: array();
 
-		$rows = array();
+		$rows     = array();
 		$any_count = 0;
+		$default_slug = '';
 		foreach ( $selectable as $slug ) {
 			$slug = (string) $slug;
 			if ( '' === $slug ) {
@@ -500,14 +505,38 @@ class SScribe_Admin {
 			if ( '' === $label ) {
 				$label = ucfirst( $slug );
 			}
+			// Prefer 'page' when it has content, then the first type with
+			// content, so a fresh load never defaults to an empty type.
+			if ( '' === $default_slug && $count > 0 ) {
+				$default_slug = $slug;
+			}
 			$rows[] = array(
 				'slug'    => $slug,
 				'label'   => $label,
 				'icon'    => isset( $icons[ $slug ] ) ? $icons[ $slug ] : 'file-text',
 				'count'   => $count,
 				'is_any'  => false,
+				'is_default' => false,
 			);
 			$any_count += $count;
+		}
+
+		if ( 'page' !== $default_slug ) {
+			foreach ( $rows as $i => $row ) {
+				if ( 'page' === $row['slug'] && $row['count'] > 0 ) {
+					$default_slug = 'page';
+					break;
+				}
+			}
+		}
+		if ( '' === $default_slug && ! empty( $rows ) ) {
+			$default_slug = (string) $rows[0]['slug'];
+		}
+		foreach ( $rows as $i => $row ) {
+			if ( $row['slug'] === $default_slug ) {
+				$rows[ $i ]['is_default'] = true;
+				break;
+			}
 		}
 
 		$rows[] = array(
@@ -516,6 +545,7 @@ class SScribe_Admin {
 			'icon'   => 'copy',
 			'count'  => $any_count,
 			'is_any' => true,
+			'is_default' => false,
 		);
 
 		return $rows;
@@ -526,7 +556,7 @@ class SScribe_Admin {
 	 */
 	public function render_admin_page(): void {
 
-		$cache_key        = 'sscribe_admin_page_data_v' . SSCRIBE_VERSION . '_' . get_current_blog_id();
+		$cache_key        = 'sscribe_admin_page_data_v2_' . SSCRIBE_VERSION . '_' . get_current_blog_id();
 		$cached_page_data = get_transient( $cache_key );
 
 		$sscribe_selectable_types = array();

@@ -105,7 +105,7 @@ final class Uninstall_Test extends TestCase {
 		// Audit the snippet for required cleanup paths.
 		$this->assertStringContainsString( 'sscribe_export_logs', $snippet );
 		$this->assertStringContainsString( 'sscribe_export_stats', $snippet );
-		$this->assertStringContainsString( 'sscribe_sessions', $snippet );
+		$this->assertStringContainsString( 'sscribe_audit_log', $snippet );
 		$this->assertStringContainsString( 'sscribe_settings', $snippet );
 		$this->assertStringContainsString( 'DROP TABLE IF EXISTS', $snippet );
 
@@ -174,14 +174,12 @@ final class Uninstall_Test extends TestCase {
 	public function test_uninstall_removes_sscribe_named_transients(): void {
 		$GLOBALS['sscribe_test_transients'] = array(
 			'sscribe_activation_redirect' => 1,
-			'sscribe_key_warning_shown'  => 1,
 			'sscribe_boot_error'         => 1,
 		);
 
 		$this->invoke_cleanup_site_closure();
 
 		$this->assertArrayNotHasKey( 'sscribe_activation_redirect', $GLOBALS['sscribe_test_transients'] );
-		$this->assertArrayNotHasKey( 'sscribe_key_warning_shown', $GLOBALS['sscribe_test_transients'] );
 		$this->assertArrayNotHasKey( 'sscribe_boot_error', $GLOBALS['sscribe_test_transients'] );
 	}
 }

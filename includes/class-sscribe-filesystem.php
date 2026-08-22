@@ -291,6 +291,11 @@ class SScribe_Filesystem {
 
 		$file = self::sanitize_path( $file );
 
+		if ( ! $this->is_path_safe_for_plugin_read( $file ) ) {
+			self::$last_error = 'Path is outside the allowed read scope';
+			return false;
+		}
+
 		if ( self::$fs instanceof WP_Filesystem_Base ) {
 			$content = self::$fs->get_contents( $file );
 			return false !== $content ? $content : false;
@@ -320,6 +325,15 @@ class SScribe_Filesystem {
 	 */
 	public function delete( string $file ): bool {
 		self::$last_error = '';
+
+		if ( self::SSCRIBE_PATH_ALLOWED !== $this->is_path_safe_for_write( $file ) ) {
+			self::$last_error = 'Path is outside the allowed delete scope';
+			$this->logger->warning(
+				'Rejected file deletion outside export directory',
+				array( 'file' => basename( $file ) )
+			);
+			return false;
+		}
 
 		if ( self::$fs instanceof WP_Filesystem_Base ) {
 			return self::$fs->delete( $file );
@@ -580,6 +594,49 @@ class SScribe_Filesystem {
 	 *
 	 * @param string $file Existing source file path.
 	 * @return string One of the SSCRIBE_PATH_* sentinels.
+	 */
+	/**
+	 * Read scope for the generic get_contents() API: files under the SScribe
+	 * export directory or the plugin directory itself. Extension plugins may
+	 * legitimately read bundled assets (fonts, icons), but nothing else.
+	 *
+	 * @param string $file File path.
+	 * @return bool True when the path is inside a plugin-owned directory.
+	 */
+	private function is_path_safe_for_plugin_read( string $file ): bool {
+		if ( '' === $file || str_contains( $file, ' ' ) || is_link( $file ) ) {
+			return false;
+		}
+
+		$file_real = realpath( $file );
+		if ( false === $file_real ) {
+			return false;
+		}
+
+		$roots = array( $this->get_export_dir(), SSCRIBE_PLUGIN_DIR );
+		foreach ( $roots as $root ) {
+			if ( '' === $root ) {
+				continue;
+			}
+			$root_real = realpath( $root );
+			if ( false === $root_real ) {
+				continue;
+			}
+			$prefix = rtrim( self::normalize_path( $root_real ), '/' ) . '/';
+			if ( 0 === strpos( self::normalize_path( $file_real ), $prefix ) ) {
+				return true;
+			}
+		}
+
+		return false;
+	}
+
+	/**
+	 * Read-scope guard: only files inside the export directory are allowed
+	 * for the internal read paths that bypass the WP_Filesystem API.
+	 *
+	 * @param string $file File path.
+	 * @return string SSCRIBE_PATH_ALLOWED or SSCRIBE_PATH_REJECT.
 	 */
 	private function is_path_safe_for_read( string $file ): string {
 		$allowed_root = $this->get_export_dir();

@@ -19,17 +19,6 @@ if ( ! defined( 'ABSPATH' ) ) {
 class SScribe_SEO_Reader {
 
 	/**
-	 * Meta keys probed by each reader, in the order the readers are tried.
-	 *
-	 * Collected once at runtime so prime_meta_cache() can warm the
-	 * postmeta cache for every key the readers will read, eliminating
-	 * the per-page N+1 of get_post_meta() during a batch export.
-	 *
-	 * @var string[]|null
-	 */
-	private ?array $probed_keys = null;
-
-	/**
 	 * Get SEO data for a page from the first active SEO plugin.
 	 *
 	 * @param int $page_id Post ID.
@@ -121,92 +110,13 @@ class SScribe_SEO_Reader {
 			return;
 		}
 
-		if ( null === $this->probed_keys ) {
-			$this->probed_keys = $this->collect_probed_meta_keys();
-		}
-
-		if ( empty( $this->probed_keys ) ) {
-			return;
-		}
-
 		// update_post_meta_cache() primes only the keys that actually exist
 		// in wp_postmeta for these posts, so the IN(...) stays small and
 		// the warm-up is a single SELECT per batch.
 		update_post_meta_cache( $page_ids );
 	}
 
-	/**
-	 * Collect every meta key the six readers probe.
-	 *
-	 * The keys are derived from the source rather than hand-maintained so
-	 * that adding a new meta key to a reader automatically extends the
-	 * prime set. Mirrors the read_*() implementations exactly.
-	 *
-	 * @return string[]
-	 */
-	private function collect_probed_meta_keys(): array {
-		$keys = array(
-			// Yoast.
-			'_yoast_wpseo_meta-robots-noindex',
-			'_yoast_wpseo_meta-robots-nofollow',
-			'_yoast_wpseo_focuskw',
-			'_yoast_wpseo_title',
-			'_yoast_wpseo_metadesc',
-			'_yoast_wpseo_canonical',
-			'_yoast_wpseo_opengraph-title',
-			'_yoast_wpseo_opengraph-description',
-			'_yoast_wpseo_opengraph-image',
-			// Rank Math.
-			'rank_math_robots',
-			'rank_math_focus_keyword',
-			'rank_math_title',
-			'rank_math_description',
-			'rank_math_canonical_url',
-			'rank_math_facebook_title',
-			'rank_math_facebook_description',
-			'rank_math_facebook_image',
-			// All in One SEO v3.
-			'_aioseop_opengraph_image',
-			'_aioseop_social_image_url',
-			'_aioseop_robots',
-			'_aioseop_noindex',
-			'_aioseop_nofollow',
-			'_aioseop_keywords',
-			'_aioseop_title',
-			'_aioseop_description',
-			'_aioseop_custom_link',
-			'_aioseop_opengraph_title',
-			'_aioseop_opengraph_description',
-			// SEOPress.
-			'_seopress_analysis_target_kw',
-			'_seopress_titles_title',
-			'_seopress_titles_desc',
-			'_seopress_robots_canonical',
-			'_seopress_social_fb_title',
-			'_seopress_social_fb_desc',
-			'_seopress_social_fb_img',
-			'_seopress_robots_index',
-			'_seopress_robots_follow',
-			// The SEO Framework (Genesis).
-			'_genesis_noindex',
-			'_genesis_nofollow',
-			'_genesis_title',
-			'_genesis_description',
-			'_genesis_canonical_uri',
-			'_open_graph_title',
-			'_open_graph_description',
-			'_social_image_url',
-			'_open_graph_image',
-		);
 
-		// _primary_term_<tax> uses a dynamic suffix; we cannot enumerate
-		// the taxonomies here without re-running get_object_taxonomies(),
-		// which is itself a DB round-trip. The dynamic-key probe is rare
-		// (only TSF on a site with a custom primary taxonomy) and absent
-		// from the per-page N+1 in the common case. Accept the cost.
-
-		return array_values( array_unique( $keys ) );
-	}
 
 	/**
 	 * Check if any SEO plugin is active.

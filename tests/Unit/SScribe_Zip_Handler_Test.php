@@ -29,6 +29,7 @@ class SScribe_Zip_Handler_Test extends TestCase {
 			@rmdir( $this->test_export_dir );
 		}
 		unset( $GLOBALS['sscribe_test_current_user'] );
+		unset( $GLOBALS['sscribe_test_update_option_failure'] );
 		parent::tearDown();
 	}
 
@@ -132,9 +133,35 @@ class SScribe_Zip_Handler_Test extends TestCase {
 		$this->assertFileExists( $result );
 		$this->assertStringEndsWith( '.zip', $result );
 
+		$row = get_option( 'sscribe_export_row_' . md5( basename( $result ) ), array() );
+		$this->assertMatchesRegularExpression(
+			'/^[a-f0-9]{32}$/',
+			(string) ( $row['dl_token'] ?? '' ),
+			'New export rows must carry a token before any download URL is rendered.'
+		);
+		$this->assertGreaterThan( 0, (int) ( $row['dl_token_at'] ?? 0 ) );
+
 		if ( file_exists( $result ) ) {
 			unlink( $result );
 		}
+		delete_option( 'sscribe_export_row_' . md5( basename( $result ) ) );
+	}
+
+	public function test_create_zip_fails_closed_when_export_row_cannot_persist(): void {
+		if ( ! class_exists( 'ZipArchive' ) ) {
+			$this->markTestSkipped( 'ZipArchive extension not available' );
+		}
+
+		$source_dir = $this->handler->create_temp_dir();
+		wp_mkdir_p( $source_dir . '/EN' );
+		file_put_contents( $source_dir . '/EN/P001-Test.docx', 'dummy content' );
+
+		$zip_stem = 'metadata-write-failure-' . uniqid();
+		$filename = $zip_stem . '.zip';
+		$GLOBALS['sscribe_test_update_option_failure'] = 'sscribe_export_row_' . md5( $filename );
+
+		$this->assertFalse( $this->handler->create_zip( $source_dir, $zip_stem, array( 'docx' ) ) );
+		$this->assertFileDoesNotExist( $this->test_export_dir . '/' . $filename );
 	}
 
 	public function test_create_zip_normalizes_long_non_ascii_archive_name(): void {
@@ -467,7 +494,7 @@ class SScribe_Zip_Handler_Test extends TestCase {
 
 	/**
 	 * Regression for the H1 single-use download token invariant:
-	 * get_ajax_download_url() must embed a fresh token in the URL, and
+	 * get_ajax_download_url() must embed the row's current token, and
 	 * the URL must encode action=sscribe_download, file=, nonce=, and
 	 * token=. The handler-side consume_dl_token() must then accept the
 	 * URL-supplied token exactly once.
@@ -510,5 +537,109 @@ class SScribe_Zip_Handler_Test extends TestCase {
 		);
 
 		delete_option( 'sscribe_export_row_' . md5( $filename ) );
+	}
+
+	public function test_get_ajax_download_url_serializes_legacy_token_initialization(): void {
+		$filename   = 'sscribe-token-legacy-' . uniqid() . '.zip';
+		$option     = 'sscribe_export_row_' . md5( $filename );
+		$lock_name  = 'download-' . md5( $filename );
+		$lock       = new \SScribe_Export_Lock_Manager();
+		$lock_token = $lock->acquire_lock( $lock_name, 30, 25 );
+
+		update_option( $option, array( 'user_id' => 1 ), false );
+		$GLOBALS['sscribe_test_current_user'] = new \WP_User( 1 );
+		$this->assertIsString( $lock_token );
+		$this->assertSame( '', $this->handler->get_ajax_download_url( $filename ) );
+		$this->assertArrayNotHasKey( 'dl_token', get_option( $option, array() ) );
+
+		$this->assertTrue( $lock->release_lock( $lock_name, $lock_token ) );
+		$this->assertNotSame( '', $this->handler->get_ajax_download_url( $filename ) );
+		$this->assertMatchesRegularExpression( '/^[a-f0-9]{32}$/', (string) ( get_option( $option, array() )['dl_token'] ?? '' ) );
+
+		delete_option( $option );
+	}
+
+	/**
+	 * Rendering the same download in multiple admin views must not make
+	 * an already-visible link stale before either link is redeemed.
+	 */
+	public function test_multiple_rendered_download_urls_keep_the_first_link_redeemable(): void {
+		$filename = 'sscribe-token-multiple-views-' . uniqid() . '.zip';
+		update_option(
+			'sscribe_export_row_' . md5( $filename ),
+			array( 'user_id' => 1 ),
+			false
+		);
+		$GLOBALS['sscribe_test_current_user'] = new \WP_User( 1 );
+
+		$first_url  = $this->handler->get_ajax_download_url( $filename );
+		$second_url = $this->handler->get_ajax_download_url( $filename );
+		$first      = $this->parse_query_params( $first_url );
+		$second     = $this->parse_query_params( $second_url );
+
+		$this->assertSame(
+			$first['token'] ?? null,
+			$second['token'] ?? null,
+			'Rendering Recent Exports must not invalidate the success-view link.'
+		);
+		$this->assertTrue(
+			$this->handler->consume_dl_token( $filename, (string) ( $first['token'] ?? '' ) ),
+			'The first rendered link must remain redeemable until a download consumes it.'
+		);
+
+		$replacement_url = $this->handler->get_ajax_download_url( $filename );
+		$replacement     = $this->parse_query_params( $replacement_url );
+		$this->assertNotSame( $first['token'] ?? null, $replacement['token'] ?? null );
+		$this->assertTrue(
+			$this->handler->consume_dl_token( $filename, (string) ( $replacement['token'] ?? '' ) ),
+			'A later admin render must expose the replacement token created after consumption.'
+		);
+
+		delete_option( 'sscribe_export_row_' . md5( $filename ) );
+	}
+
+	/**
+	 * A concurrent redemption must fail while another request owns the
+	 * per-export consume lock, without mutating the valid token.
+	 */
+	public function test_consume_dl_token_rejects_concurrent_redemption(): void {
+		$filename   = 'sscribe-token-concurrent-' . uniqid() . '.zip';
+		$option     = 'sscribe_export_row_' . md5( $filename );
+		$lock_name  = 'download-' . md5( $filename );
+		$lock       = new \SScribe_Export_Lock_Manager();
+		$lock_token = $lock->acquire_lock( $lock_name, 30, 25 );
+
+		update_option( $option, array( 'user_id' => 1 ), false );
+		$token = $this->handler->rotate_dl_token( $filename );
+
+		$this->assertIsString( $lock_token );
+		$this->assertFalse( $this->handler->consume_dl_token( $filename, $token ) );
+		$this->assertSame( $token, get_option( $option, array() )['dl_token'] ?? null );
+
+		$this->assertTrue( $lock->release_lock( $lock_name, $lock_token ) );
+		$this->assertTrue( $this->handler->consume_dl_token( $filename, $token ) );
+
+		delete_option( $option );
+	}
+
+	/**
+	 * Token redemption must fail closed when the replacement token cannot
+	 * be persisted, leaving the original token available for a later retry.
+	 */
+	public function test_consume_dl_token_fails_closed_when_rotation_cannot_persist(): void {
+		$filename = 'sscribe-token-write-failure-' . uniqid() . '.zip';
+		$option   = 'sscribe_export_row_' . md5( $filename );
+
+		update_option( $option, array( 'user_id' => 1 ), false );
+		$token = $this->handler->rotate_dl_token( $filename );
+
+		$GLOBALS['sscribe_test_update_option_failure'] = $option;
+		$this->assertFalse( $this->handler->consume_dl_token( $filename, $token ) );
+		$this->assertSame( $token, get_option( $option, array() )['dl_token'] ?? null );
+
+		unset( $GLOBALS['sscribe_test_update_option_failure'] );
+		$this->assertTrue( $this->handler->consume_dl_token( $filename, $token ) );
+
+		delete_option( $option );
 	}
 }

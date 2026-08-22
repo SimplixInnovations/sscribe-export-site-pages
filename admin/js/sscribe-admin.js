@@ -4,7 +4,7 @@
  * Handles AJAX batch processing with animated progress tracking.
  *
  * @package SScribe
- * @version 1.1.7
+ * @version 1.9.0
  */
 (function ($) {
 	'use strict';
@@ -12,6 +12,8 @@
 		sessionId: null,
 		isProcessing: false,
 		selectedPageCount: 0,
+		_countsRetries: 0,
+		_lastProgressAt: 0,
 		batchRetries: 0,
 		maxBatchRetries: 3,
 		pollBackoff: 0,
@@ -24,20 +26,9 @@
 		_finalizingXHR: null,
 		_langCountsXHRs: null,
 		/**
-		 * In-flight nonce refresh request. Used to coalesce concurrent 403
-		 * responses : if two AJAX calls fail with 403 simultaneously, only
-		 * one refresh request is sent; the second waits for the first's
-		 * completion before retrying its original request.
-		 *
 		 * @type {Promise<string|null>|null}
 		 */
 		_nonceRefreshInFlight: null,
-		/**
-		 * Parse a localized integer from text (handles comma/period separators).
-		 *
-		 * @param {string} text Text containing a number.
-		 * @returns {number} Parsed integer.
-		 */
 		parseLocalizedInt: function (text) {
 			if (typeof text === 'number') {
 				return Math.floor(text);
@@ -50,13 +41,6 @@
 			return isNaN(num) ? 0 : num;
 		},
 		/**
-		 * Map an ISO 639-1/2 language code to a human-readable label.
-		 *
-		 * Used by the preview modal and the config summary so the user sees
-		 * "Arabic" / "English" rather than the raw locale code (`ar` / `en`).
-		 * Falls back to the uppercased code for languages we don't have a
-		 * label for, and to `'All'` for an empty/null input.
-		 *
 		 * @param {string|null|undefined} code Two/three-letter language code.
 		 * @returns {string} Human-readable language label.
 		 */
@@ -132,88 +116,6 @@
 			const normalized = String(slug).toLowerCase();
 			return labels[normalized] || normalized.charAt(0).toUpperCase() + normalized.slice(1);
 		},
-		/**
-		 * Refresh the export nonce from the server.
-		 *
-		 * Long-running batch exports can outlive the WP nonce lifetime
-		 * (default 12h). On a 403 the AJAX wrapper calls refreshNonce,
-		 * fetches a fresh nonce, updates sscribe_data.download_nonce,
-		 * and retries the original request.
-		 *
-		 * @returns {Promise<string|null>} The new nonce, or null on failure.
-		 */
-		refreshNonce: function () {
-			const self = this;
-			if (self._nonceRefreshInFlight) {
-				return self._nonceRefreshInFlight;
-			}
-			const promise = new Promise(function (resolve) {
-				$.ajax({
-					url: sscribe_data.ajaxurl,
-					type: 'POST',
-					timeout: 15000,
-					data: {
-						action: 'sscribe_refresh_nonce',
-						nonce: sscribe_data.nonce,
-					},
-					success: function (response) {
-						if (response && response.success && response.data && response.data.nonce) {
-							sscribe_data.nonce = response.data.nonce;
-							resolve(response.data.nonce);
-						} else {
-							resolve(null);
-						}
-					},
-					error: function () {
-						resolve(null);
-					},
-				});
-			});
-			self._nonceRefreshInFlight = promise;
-			promise.finally(function () {
-				if (self._nonceRefreshInFlight === promise) {
-					self._nonceRefreshInFlight = null;
-				}
-			});
-			return promise;
-		},
-		/**
-		 * Wrap a $.ajax options object so that on 403 (nonce expired) the
-		 * nonce is refreshed and the request is retried once.
-		 *
-		 * Mutates the passed options object's `data.nonce` field on retry.
-		 * The wrapper preserves the original success/error callbacks.
-		 *
-		 * @param {object} options jQuery $.ajax options.
-		 * @returns {object} The jQuery XHR object (caller can .abort()).
-		 */
-		ajaxWithNonceRefresh: function (options) {
-			const self = this;
-			const dataNonceKey = options.data && options.data.nonce ? true : false;
-			const originalError = options.error;
-			let retried = false;
-			options.error = function (xhr, status, thrown) {
-				const isNonceFailure = (xhr && xhr.status === 403) || (status === 'error' && xhr && xhr.status === 403);
-				if (!retried && isNonceFailure && dataNonceKey) {
-					retried = true;
-					self.refreshNonce().then(function (newNonce) {
-						if (newNonce && options.data) {
-							options.data.nonce = newNonce;
-							$.ajax(options);
-						} else {
-							if (typeof originalError === 'function') {
-								originalError(xhr, status, thrown);
-							}
-						}
-					});
-					return;
-				}
-				if (typeof originalError === 'function') {
-					originalError(xhr, status, thrown);
-				}
-			};
-			return $.ajax(options);
-		},
 		init: function () {
 			if (typeof sscribe_data === 'undefined' || !sscribe_data) {
 				return;
@@ -238,6 +140,7 @@
 			const defaultLanguage = $('input[name="sscribe_language"]:checked').val() || '';
 			this.refreshStatusAndLanguageCounts(defaultPostType, defaultLanguage);
 			this.checkActiveSession();
+			this._installStallWatchdog();
 			const self = this;
 			let supportTriggered = false;
 			const observer = new IntersectionObserver(
@@ -445,11 +348,6 @@
 					.closest('.sscribe-config-section')
 					.find('.sscribe-section-title, .sscribe-config-section-header')
 					.first();
-				// Guarantee the title has an id so aria-labelledby always resolves.
-				// The section title for the post-type / status / format / language
-				// radiogroups is rendered without an explicit id in the partial, so
-				// wire one up before binding aria-labelledby. The id is scoped to
-				// the group name to avoid collisions if multiple groups coexist.
 				let titleId = $titleEl.attr('id');
 				if (!titleId) {
 					titleId = 'sscribe-radiogroup-title-' + groupName;
@@ -563,7 +461,7 @@
 					}
 				}, 200);
 			}
-			const savedY = self.scrollPositions[tabId];
+			const savedY = this.scrollPositions[tabId];
 			if (typeof savedY === 'number') {
 				window.scrollTo(0, savedY);
 			}
@@ -647,20 +545,47 @@
 						const pageTotal = self.parseLocalizedInt(pageCounts.all) || 0;
 						const postTotal = self.parseLocalizedInt(postCounts.all) || 0;
 						const anyTotal = self.parseLocalizedInt(anyCounts.all) || 0;
-						$('[data-sscribe-count-for="page"]').text(pageTotal.toLocaleString());
-						$('[data-sscribe-count-for="post"]').text(postTotal.toLocaleString());
-						$('[data-sscribe-count-for="any"]').text(anyTotal.toLocaleString());
+						$('[data-sscribe-count-for="page"]')
+							.text(pageTotal.toLocaleString())
+							.attr('data-count', pageTotal);
+						$('[data-sscribe-count-for="post"]')
+							.text(postTotal.toLocaleString())
+							.attr('data-count', postTotal);
+						$('[data-sscribe-count-for="any"]')
+							.text(anyTotal.toLocaleString())
+							.attr('data-count', anyTotal);
+						self._countsLoaded = true;
+						self._countsRetries = 0;
+						self.updateConfigSummary();
+						self.updateExportButton();
+					} else if (!self._countsRetries) {
+						self._countsRetries = 1;
+						setTimeout(function () {
+							self.refreshStatusAndLanguageCounts(postType, language);
+						}, 2500);
+					} else {
+						// Keep the PHP-rendered counts; a failed counter request
+						// must not disable the export UI.
+						self._countsRetries = 0;
 						self._countsLoaded = true;
 						self.updateConfigSummary();
 						self.updateExportButton();
-					} else {
-						$('[data-sscribe-count-for]').text('0');
 					}
 					$('.sscribe-status-card-label').removeClass('sscribe-loading');
 					$('[data-sscribe-count-for]').removeClass('sscribe-loading-count');
 				},
 				error: function () {
-					$('[data-sscribe-count-for]').text('0');
+					if (!self._countsRetries) {
+						self._countsRetries = 1;
+						setTimeout(function () {
+							self.refreshStatusAndLanguageCounts(postType, language);
+						}, 2500);
+						return;
+					}
+					self._countsRetries = 0;
+					self._countsLoaded = true;
+					self.updateConfigSummary();
+					self.updateExportButton();
 					$('.sscribe-status-card-label').removeClass('sscribe-loading');
 					$('[data-sscribe-count-for]').removeClass('sscribe-loading-count');
 				},
@@ -741,7 +666,45 @@
 				});
 			}, debounceMs);
 		},
+		/**
+		 * Safety net: an export whose progress has not advanced for several
+		 * minutes is dead (server-side hang, lost session, swallowed error).
+		 * Unlock the UI with the timeout guidance instead of leaving the
+		 * admin locked behind isProcessing forever.
+		 */
+		_installStallWatchdog: function () {
+			if (SScribe._stallWatchdog) {
+				return;
+			}
+			SScribe._stallWatchdog = window.setInterval(function () {
+				if (!SScribe.isProcessing) {
+					return;
+				}
+				const last = SScribe._lastProgressAt || 0;
+				if (!last) {
+					SScribe._lastProgressAt = Date.now();
+					return;
+				}
+				if (Date.now() - last > 240000) {
+					if (SScribe._batchXHR && SScribe._batchXHR.abort) {
+						SScribe._batchXHR.abort();
+						SScribe._batchXHR = null;
+					}
+					if (SScribe._finalizingXHR && SScribe._finalizingXHR.abort) {
+						SScribe._finalizingXHR.abort();
+						SScribe._finalizingXHR = null;
+					}
+					SScribe._lastProgressAt = 0;
+					SScribe.showError(
+						(sscribe_data.strings && sscribe_data.strings.err_timeout) ||
+							'The server took too long to respond.',
+						false
+					);
+				}
+			}, 30000);
+		},
 		checkActiveSession: function () {
+			const startedAt = Date.now();
 			$.ajax({
 				url: sscribe_data.ajaxurl,
 				type: 'POST',
@@ -751,6 +714,12 @@
 					nonce: sscribe_data.nonce,
 				},
 				success: function (response) {
+					// A slow response must never override newer UI state: if
+					// the user already started an export, or the check is so
+					// old the answer can no longer be trusted, ignore it.
+					if (SScribe.isProcessing || Date.now() - startedAt > 20000) {
+						return;
+					}
 					if (response.success && response.data && response.data.has_active) {
 						SScribe.isProcessing = true;
 						SScribe.sessionId = response.data.session_id;
@@ -762,7 +731,12 @@
 						if (restoredPct < 1) {
 							$('#sscribe-progress-bar').addClass('sscribe-progress-initializing');
 						}
-						$('#sscribe-progress-area').show();
+						// .show() cannot override the sscribe-hidden utility
+						// (display:none !important), so the class must be removed
+						// or the restored progress UI stays invisible while the
+						// cancel button stays unreachable.
+						$('#sscribe-progress-area').removeClass('sscribe-hidden').hide().fadeIn(200);
+						SScribe._lastProgressAt = Date.now();
 						SScribe.updateProgress(restoredPct);
 						SScribe.updatePhase(response.data.status);
 						SScribe.processBatch();
@@ -820,16 +794,6 @@
 			this.updateExportButton();
 			this.updateFormatOptionPanels();
 		},
-		/**
-		 * Show the option panel for the currently selected export format and
-		 * hide the others. The "all" format shows no per-format panel.
-		 *
-		 * The "all" radio card and the panels are siblings in the DOM; the
-		 * panels live in #sscribe-format-options. Hiding is done via the
-		 * `hidden` HTML attribute (so screen readers and CSS both see it)
-		 * and the wrapper's `.sscribe-hidden` class is toggled for the
-		 * case where no panel is visible (e.g., "all" selected).
-		 */
 		updateFormatOptionPanels: function () {
 			const format = $('input[name="sscribe_format"]:checked').val() || 'all';
 			const $wrapper = $('#sscribe-format-options');
@@ -840,8 +804,6 @@
 				const matches = $panel.attr('data-format') === format;
 				if (matches) {
 					$panel.removeClass('sscribe-format-option-revealed');
-					// Force reflow so the animation re-triggers when switching
-					// back to a previously-revealed format.
 					void $panel[0].offsetWidth;
 					$panel.removeAttr('hidden').addClass('sscribe-format-option-revealed');
 					anyVisible = true;
@@ -856,12 +818,6 @@
 			}
 		},
 		/**
-		 * Collect the per-format option values from the option panels.
-		 * Returned as a flat object suitable for sending in an AJAX
-		 * request. Checkboxes that are unchecked are included with value
-		 * "0" so the server can distinguish "user unchecked it" from
-		 * "field not present".
-		 *
 		 * @returns {object} Map of option name → value.
 		 */
 		collectFormatOptions: function () {
@@ -1014,14 +970,20 @@
 				!$('input[name="sscribe_post_status"]:checked').prop('disabled');
 			const hasFormat = $('input[name="sscribe_format"]:checked').length > 0;
 			const hasPages = this.selectedPageCount > 0;
-			const canExport = hasPostType && hasLanguage && hasStatus && hasFormat && hasPages;
+			const canExport = hasPostType && hasLanguage && hasStatus && hasFormat && hasPages && !this.isProcessing;
 			$('#sscribe-export-btn').prop('disabled', !canExport);
 			$('#sscribe-preview-btn').prop('disabled', !canExport);
 			const $reason = $('#sscribe-export-disabled-reason');
-			const $previewReason = $('#sscribe-preview-disabled-reason');
 			if (!canExport) {
 				let reasonText = '';
-				if (!hasPages) {
+				if (this.isProcessing) {
+					reasonText =
+						(sscribe_data.strings && sscribe_data.strings.export_in_progress) ||
+						'An export is in progress. Cancel it to start a new one.';
+				} else if (!hasPages && !this._countsLoaded) {
+					reasonText =
+						(sscribe_data.strings && sscribe_data.strings.loading_counts) || 'Loading page counts...';
+				} else if (!hasPages) {
 					reasonText =
 						(sscribe_data.strings && sscribe_data.strings.err_no_pages) ||
 						'No pages match selected options';
@@ -1035,10 +997,8 @@
 					reasonText = sscribe_data.strings.select_language || 'Select a language';
 				}
 				$reason.text(reasonText);
-				$previewReason.text(reasonText);
 			} else {
 				$reason.text('');
-				$previewReason.text('');
 			}
 		},
 		startExport: function (e) {
@@ -1050,11 +1010,12 @@
 			if (this._configSummaryXHR && this._configSummaryXHR.abort) {
 				this._configSummaryXHR.abort();
 			}
+			this.resetUI();
 			this.isProcessing = true;
+			this._lastProgressAt = Date.now();
 			this.batchRetries = 0;
 			const $exportBtns = $('#sscribe-export-btn, #sscribe-preview-btn');
 			$exportBtns.prop('disabled', true).attr('aria-busy', 'true').addClass('sscribe-btn-busy');
-			this.resetUI();
 			this.updateExportButton();
 			const language = $('input[name="sscribe_language"]:checked').val() || '';
 			const postStatus = $('input[name="sscribe_post_status"]:checked').val() || 'publish';
@@ -1539,6 +1500,11 @@
 		},
 		exportComplete: function (data, isAutoDownload) {
 			this.isProcessing = false;
+			this.sessionId = null;
+			this._batchInProgress = false;
+			this.pollBackoff = 0;
+			$('#sscribe-export-btn, #sscribe-preview-btn').removeClass('sscribe-btn-busy').removeAttr('aria-busy');
+			this.updateExportButton();
 			this._lastAnnouncedBucket = -1;
 			const progressFill = document.getElementById('sscribe-progress-bar');
 			if (progressFill) {
@@ -1558,11 +1524,12 @@
 					.removeClass('sscribe-hidden')
 					.hide()
 					.fadeIn(400, function () {
-						if (data.download_url) {
-							$('#sscribe-download-btn').attr('href', data.download_url);
+						const safeDownloadUrl = data.download_url ? self.getSafeSameOriginUrl(data.download_url) : '';
+						if (safeDownloadUrl) {
+							$('#sscribe-download-btn').attr('href', safeDownloadUrl);
 							if (isAutoDownload !== false && self.shouldAutoDownload()) {
 								const a = document.createElement('a');
-								a.href = data.download_url;
+								a.href = safeDownloadUrl;
 								a.download = '';
 								document.body.appendChild(a);
 								a.click();
@@ -1853,7 +1820,9 @@
 				this.escapeHtml(strings.history_col_actions || 'Actions') +
 				'</span></th>' +
 				'</tr></thead>' +
-				'<tbody aria-rowcount="' + visibleCount + '">';
+				'<tbody aria-rowcount="' +
+				visibleCount +
+				'">';
 			for (let i = 0; i < visibleCount; i++) {
 				const exp = exports[i] && typeof exports[i] === 'object' ? exports[i] : {};
 				const filename = typeof exp.filename === 'string' ? exp.filename : '';
@@ -1862,7 +1831,12 @@
 				if (!filename) {
 					continue;
 				}
-				html += '<tr class="sscribe-history-row" data-filename="' + this.escapeHtml(filename) + '" aria-rowindex="' + (i + 1) + '">';
+				html +=
+					'<tr class="sscribe-history-row" data-filename="' +
+					this.escapeHtml(filename) +
+					'" aria-rowindex="' +
+					(i + 1) +
+					'">';
 				html += '<td class="sscribe-history-cell-check">';
 				html +=
 					'<label class="sscribe-history-check-label">' +
@@ -1933,7 +1907,7 @@
 					'<button type="button" class="sscribe-button sscribe-button-outline sscribe-button-sm sscribe-button-danger sscribe-delete-btn" data-filename="' +
 					this.escapeHtml(filename) +
 					'" title="' +
-					this.escribeHtml(strings.delete_tooltip || 'Delete') +
+					this.escapeHtml(strings.delete_tooltip || 'Delete') +
 					'" aria-label="' +
 					this.escapeHtml(strings.delete_tooltip || 'Delete') +
 					'">' +
@@ -2118,6 +2092,7 @@
 			if (!isFinite(percentage)) {
 				percentage = 0;
 			}
+			this._lastProgressAt = Date.now();
 			percentage = Math.min(100, Math.max(0, percentage));
 			const progressBar = document.getElementById('sscribe-progress-bar');
 			if (progressBar) {
@@ -2292,133 +2267,6 @@
 			const $wpadminbar = $('#wpadminbar');
 			const adminBarHeight = $wpadminbar.length ? $wpadminbar.outerHeight() : 0;
 			$container.css('top', Math.max(adminBarHeight, 32) + 'px');
-		},
-		/**
-		 * Push a polite announcement to the screen-reader live region.
-		 *
-		 * Throttled to once per second per message : without throttling,
-		 * the per-page progress updates fire dozens of announcements per
-		 * second, which floods SR users and obscures the actual state.
-		 * The live region is shared across the admin surface, so callers
-		 * get a single channel that re-announces on demand via a
-		 * trailing-edge debounce.
-		 *
-		 * @param {string} message Plain-text message for assistive tech.
-		 */
-		announce: function (message) {
-			if (!message) {
-				return;
-			}
-			const $region = $('#sscribe-live-region');
-			if (!$region.length) {
-				return;
-			}
-			const now = Date.now();
-			const last = this._lastAnnounce || { text: '', at: 0 };
-			if (last.text === message && now - last.at < 1000) {
-				return;
-			}
-			this._lastAnnounce = { text: message, at: now };
-			$region.text('');
-			setTimeout(function () {
-				$region.text(message);
-			}, 30);
-		},
-		showToast: function (message, type, duration) {
-			type = type || 'info';
-			duration = typeof duration === 'number' ? duration : 4000;
-			const $container = $('#sscribe-toast-container');
-			if (!$container.length) {
-				return;
-			}
-			const icons = { success: '&#10003;', error: '&#10005;', warning: '&#9888;', info: '&#9432;' };
-			const icon = icons[type] || '&#9432;';
-			const isAssertive = type === 'error' || type === 'warning';
-			const role = isAssertive ? 'alert' : 'status';
-			const dismissLabel =
-				(sscribe_data.strings && sscribe_data.strings.dismiss_notification) || 'Dismiss notification';
-			const $existing = $container.children('.sscribe-toast');
-			if ($existing.length >= 5) {
-				const $oldest = $existing.first();
-				$oldest.addClass('sscribe-toast-removing');
-				setTimeout(function () {
-					$oldest.remove();
-				}, 200);
-			}
-			const $toast = $(
-				'<div class="sscribe-toast sscribe-toast-' +
-					type +
-					'" role="' +
-					role +
-					'" aria-atomic="true">' +
-					'<span class="sscribe-toast-icon">' +
-					icon +
-					'</span>' +
-					'<span class="sscribe-toast-message">' +
-					this.escapeHtml(message) +
-					'</span>' +
-					'<button type="button" class="sscribe-toast-dismiss" aria-label="' +
-					this.escapeHtml(dismissLabel) +
-					'">&times;</button>' +
-					'</div>'
-			);
-			$container.append($toast);
-			$toast.find('.sscribe-toast-dismiss').on('click', function () {
-				$toast.addClass('sscribe-toast-removing');
-				setTimeout(function () {
-					$toast.remove();
-				}, 200);
-			});
-			if (duration > 0) {
-				setTimeout(function () {
-					$toast.addClass('sscribe-toast-removing');
-					setTimeout(function () {
-						$toast.remove();
-					}, 200);
-				}, duration);
-			}
-		},
-		copySupportInfo: function (e) {
-			e.preventDefault();
-			const text = $('#sscribe-support-copy-text').val();
-			const strings = sscribe_data.strings || {};
-			if (!text) {
-				return;
-			}
-			const onSuccess = function () {
-				SScribe.showToast(strings.support_copied || 'Support information copied.', 'success');
-			};
-			if (navigator.clipboard && navigator.clipboard.writeText) {
-				navigator.clipboard.writeText(text).then(onSuccess, function () {
-					SScribe.copyViaTextarea(text, onSuccess);
-				});
-				return;
-			}
-			SScribe.copyViaTextarea(text, onSuccess);
-		},
-		copyViaTextarea: function (text, onSuccess) {
-			const textarea = document.getElementById('sscribe-support-copy-text');
-			if (!textarea) {
-				return;
-			}
-			textarea.focus();
-			textarea.select();
-			try {
-				document.execCommand('copy');
-				onSuccess();
-			} catch {
-				$('#sscribe-support-feedback')
-					.removeClass('sscribe-hidden')
-					.text(
-						(sscribe_data.strings && sscribe_data.strings.support_copy_error) ||
-							'Copy failed. Try selecting the text manually.'
-					);
-			}
-		},
-		humanizeSupportKey: function (key) {
-			return key.replace(/_/g, ' ').replace(/\b\w/g, function (char) {
-				return char.toUpperCase();
-			});
 		},
 		saveFocus: function () {
 			this._lastFocusedElement = document.activeElement;
@@ -2626,21 +2474,11 @@
 				},
 			});
 		},
-		/**
-		 * Render the preview content in the modal.
-		 *
-		 * @param {object} data Preview data from server.
-		 */
 		renderPreview: function (data) {
 			const $content = $('#sscribe-preview-content');
 			const strings = sscribe_data.strings || {};
 			const totalPages = this.parseLocalizedInt(data.total_pages);
-			const formatLabels = {
-				docx: strings.format_docx || 'Word Document (DOCX)',
-				pdf: strings.format_pdf || 'PDF Document',
-				html: strings.format_html || 'HTML Page',
-				markdown: strings.format_markdown || 'Markdown',
-			};
+			const formatLabels = { docx: 'DOCX', pdf: 'PDF', html: 'HTML', markdown: 'Markdown' };
 			let formatText = '';
 			if (Array.isArray(data.formats) && data.formats.length > 0) {
 				const labels = data.formats.map(function (fmt) {
@@ -2723,11 +2561,6 @@
 			$content.html(html);
 			$('#sscribe-preview-start-btn').prop('disabled', totalPages <= 0);
 		},
-		/**
-		 * Close the preview modal.
-		 *
-		 * @param {Event} e Click event (optional).
-		 */
 		closePreview: function (e) {
 			if (e) {
 				e.preventDefault();
@@ -2738,11 +2571,6 @@
 			const $panel = $('#sscribe-preview-panel');
 			const panelEl = $panel[0];
 			const self = this;
-			// Mark hidden synchronously so AT and the focus trap see the
-			// panel as gone the instant the user dismisses it, then animate
-			// the fade. Doing this inside the fadeOut callback left the
-			// panel partly visible yet announced as hidden for the full
-			// 200 ms transition, while the focus trap was still installed.
 			$panel.attr('aria-hidden', 'true').addClass('sscribe-hidden').prop('hidden', true);
 			self.releaseFocusTrap(panelEl);
 			const trigger = self._previewTrigger;
@@ -2752,20 +2580,6 @@
 			self._previewTrigger = null;
 			$panel.fadeOut(200);
 		},
-		/**
-		 * Open the confirm (alertdialog) modal. Replaces native window.confirm().
-		 *
-		 * @param {Object} opts Options.
-		 * @param {string} opts.title Heading text (already localized).
-		 * @param {string} opts.description Short description shown under title.
-		 * @param {string[]} [opts.items] Optional plain-text list.
-		 * @param {string} [opts.confirmLabel] Proceed button label. Default: "Confirm".
-		 * @param {string} [opts.cancelLabel] Cancel button label. Default: "Cancel".
-		 * @param {string} [opts.variant] "danger" (red proceed) or default.
-		 * @param {Function} opts.onProceed Called when user confirms. Receives `done(true)`.
-		 * @param {Function} [opts.onCancel] Called when user dismisses. Receives `done(false)`.
-		 * @returns {void}
-		 */
 		showConfirm: function (opts) {
 			if (!opts || typeof opts.onProceed !== 'function') {
 				return;
@@ -2777,10 +2591,6 @@
 				});
 				return;
 			}
-			// WCAG 2.4.3 focus restore: remember the trigger element so Cancel
-			// / Escape / overlay-click return keyboard focus to the button
-			// that opened the dialog. Without this, keyboard users land on
-			// <body> after dismissal and have to Tab back through the page.
 			this.saveFocus();
 			const $title = $('#sscribe-confirm-title');
 			const $desc = $('#sscribe-confirm-desc');
@@ -2849,10 +2659,6 @@
 				}
 			}, 0);
 		},
-		/**
-		 * Dismiss the onboarding banner and remember the dismissal across sessions.
-		 * @param {Event} e Click event.
-		 */
 		dismissOnboarding: function (e) {
 			if (e) {
 				e.preventDefault();
@@ -2861,9 +2667,6 @@
 			$banner.fadeOut(160, function () {
 				$banner.remove();
 			});
-			// localStorage persists dismissal across tabs/sessions; sessionStorage
-			// would re-show the banner every new tab. Fall back gracefully when
-			// storage is unavailable (private browsing, locked-down profile).
 			try {
 				localStorage.setItem('sscribe_onboarding_dismissed', '1');
 			} catch (_err) {
@@ -2874,13 +2677,6 @@
 				}
 			}
 		},
-		/**
-		 * Hide a single pre-export advisory chip and remember the dismissal
-		 * for the rest of the session so a noisy warning does not flash on
-		 * every radio change.
-		 *
-		 * @param {Event} e Click event on the dismiss button.
-		 */
 		dismissPreflightWarning: function (e) {
 			if (e) {
 				e.preventDefault();
@@ -2898,10 +2694,6 @@
 				/* sessionStorage unavailable - chip hides for this view only */
 			}
 		},
-		/**
-		 * Toggle the technical-details section under the error card.
-		 * @param {Event} e Click event.
-		 */
 		toggleErrorDetails: function (e) {
 			if (e) {
 				e.preventDefault();
@@ -2920,10 +2712,6 @@
 			);
 			$details.prop('hidden', open);
 		},
-		/**
-		 * Filter history rows by name or size.
-		 * @param {Event} e Input event.
-		 */
 		filterHistory: function (e) {
 			const raw = (e && e.target && e.target.value) || '';
 			const needle = String(raw).toLowerCase().trim();
@@ -2950,9 +2738,6 @@
 				);
 			}
 		},
-		/**
-		 * Empty-state CTA: switch to the export tab and focus the post-type section.
-		 */
 		startFirstExportFromEmpty: function (e) {
 			if (e) {
 				e.preventDefault();
@@ -2963,27 +2748,12 @@
 				target.focus();
 			}
 		},
-		/**
-		 * Success-state CTA: switch to the History tab so the user can see
-		 * the export they just completed (and any prior exports). Keeps the
-		 * success section visible briefly so screen readers announce the
-		 * tab change.
-		 */
 		openHistoryFromSuccess: function (e) {
 			if (e) {
 				e.preventDefault();
 			}
 			this.activateTab('history', true);
 		},
-		/**
-		 * Format an export format slug as a human label.
-		 *
-		 * Examples: pdf -> PDF, docx -> DOCX, html -> HTML, markdown -> Markdown,
-		 * all-formats -> All Formats, docx+pdf -> DOCX + PDF.
-		 *
-		 * @param {string} format Format slug or compound slug.
-		 * @return {string} Human-friendly label.
-		 */
 		prettyFormatLabel: function (format) {
 			if (!format || typeof format !== 'string') {
 				return '';
@@ -3010,15 +2780,6 @@
 				})
 				.join(' + ');
 		},
-		/**
-		 * Strip a filename stem to a short human-readable label.
-		 *
-		 * "sscribe-export-pages-2026-08-13-103045-abc123" ->
-		 * "Pages Aug 13, 2026 10:30" (date/time stamped inside the name).
-		 *
-		 * @param {string} filename Filename including extension.
-		 * @return {string} Pretty stem, or the original stem on no match.
-		 */
 		prettyFilenameStem: function (filename) {
 			if (!filename || typeof filename !== 'string') {
 				return '';
@@ -3055,10 +2816,25 @@
 			return label || stem;
 		},
 		/**
-		 * Populate the success meta block (pages, formats, size, generated).
+		 * Format a byte count with the largest sensible unit.
 		 *
-		 * @param {Object} data Export completion data from server.
+		 * @param {number} bytes Byte count.
+		 * @returns {string} Human-readable size.
 		 */
+		formatBytes: function (bytes) {
+			const value = Number(bytes);
+			if (!isFinite(value) || value <= 0) {
+				return '0 KB';
+			}
+			const units = ['KB', 'MB', 'GB'];
+			let size = value / 1024;
+			let unit = 0;
+			while (size >= 1024 && unit < units.length - 1) {
+				size /= 1024;
+				unit++;
+			}
+			return (unit === 0 ? Math.round(size) : size.toFixed(1)) + ' ' + units[unit];
+		},
 		populateSuccessMeta: function (data) {
 			if (!data || typeof data !== 'object') {
 				return;
@@ -3111,11 +2887,6 @@
 				setVal('sscribe-success-time', stamp.toLocaleString());
 			}
 		},
-		/**
-		 * Start export directly from preview modal.
-		 *
-		 * @param {Event} e Click event.
-		 */
 		startExportFromPreview: function (e) {
 			e.preventDefault();
 			if (this.isProcessing) {
@@ -3124,9 +2895,6 @@
 			this.closePreview();
 			$('#sscribe-export-btn').trigger('click');
 		},
-		/**
-		 * Load support information from the server.
-		 */
 		loadSupportInfo: function () {
 			if (!sscribe_data.health_nonce) {
 				return;
@@ -3185,11 +2953,6 @@
 				},
 			});
 		},
-		/**
-		 * Render support information in the UI.
-		 *
-		 * @param {object} data Support info data.
-		 */
 		renderSupportInfo: function (data) {
 			const $grid = $('#sscribe-support-grid');
 			const $textarea = $('#sscribe-support-copy-text');
@@ -3242,11 +3005,6 @@
 			$textarea.val(data.copy_text || '');
 			$btn.prop('disabled', false);
 		},
-		/**
-		 * Delete an export file.
-		 *
-		 * @param {Event} e Click event.
-		 */
 		deleteExport: function (e) {
 			e.preventDefault();
 			const $btn = $(e.currentTarget);
@@ -3291,11 +3049,6 @@
 			}, 3000);
 			$btn.data('sscribe-confirm-timeout', tid);
 		},
-		/**
-		 * Show export log in modal.
-		 *
-		 * @param {Event} e Click event.
-		 */
 		showExportLog: function (e) {
 			e.preventDefault();
 			const $btn = $(e.currentTarget);
@@ -3366,11 +3119,6 @@
 			};
 			fetchLog();
 		},
-		/**
-		 * Render export log content.
-		 *
-		 * @param {object} data Log data.
-		 */
 		renderExportLog: function (data) {
 			const $content = $('#sscribe-log-content');
 			const strings = sscribe_data.strings || {};
@@ -3435,7 +3183,7 @@
 			if (pages.length > 0) {
 				html += '<div class="sscribe-log-pages">';
 				html += '<h4>' + this.escapeHtml(strings.log_page_details || 'Page Details') + '</h4>';
-				html += '<table class="sscribe-log-table">';
+				html += '<div class="sscribe-log-table-wrap"><table class="sscribe-log-table">';
 				html += '<thead><tr>';
 				html += '<th scope="col">' + this.escapeHtml(strings.log_col_id || 'ID') + '</th>';
 				html += '<th scope="col">' + this.escapeHtml(strings.log_col_title || 'Title') + '</th>';
@@ -3458,7 +3206,11 @@
 								return page.formats[fmt] && page.formats[fmt].success;
 							});
 							if (formatKeys.length > 0) {
-								formatText = formatKeys.join(', ');
+								formatText = formatKeys
+									.map(function (format) {
+										return format.toUpperCase();
+									})
+									.join(', ');
 							}
 						}
 						const statusClass =
@@ -3470,7 +3222,12 @@
 						html += '<tr>';
 						html += '<td>' + this.escapeHtml(String(pageId)) + '</td>';
 						html += '<td>' + this.escapeHtml(title) + '</td>';
-						html += '<td class="' + this.escapeHtml(statusClass) + '">' + this.escapeHtml(status) + '</td>';
+						html +=
+							'<td><span class="' +
+							this.escapeHtml(statusClass) +
+							'">' +
+							this.escapeHtml(status) +
+							'</span></td>';
 						html += '<td>' + this.escapeHtml(duration) + '</td>';
 						html += '<td>' + this.escapeHtml(formatText) + '</td>';
 						html += '</tr>';
@@ -3498,11 +3255,6 @@
 			}
 			$content.html(html);
 		},
-		/**
-		 * Close the log modal.
-		 *
-		 * @param {Event} e Click event.
-		 */
 		closeModal: function (e) {
 			if (e) {
 				e.preventDefault();
@@ -3510,20 +3262,11 @@
 			const $modal = $('#sscribe-log-modal');
 			const modalEl = $modal[0];
 			const self = this;
-			// Mark hidden synchronously so AT and the focus trap see the modal
-			// as gone the instant the user dismisses it, then animate the fade.
-			// Doing it inside the fadeOut callback left the modal partly visible
-			// yet announced as hidden for the full 200 ms transition.
 			$modal.attr('aria-hidden', 'true').addClass('sscribe-hidden').prop('hidden', true);
 			self.releaseFocusTrap(modalEl);
 			self.restoreFocus();
 			$modal.fadeOut(200);
 		},
-		/**
-		 * Download an export file.
-		 *
-		 * @param {Event} e Click event.
-		 */
 		downloadExport: function (e) {
 			const $link = $(e.currentTarget);
 			const href = $link.attr('href');
@@ -3536,11 +3279,6 @@
 				window.location.href = filename;
 			}
 		},
-		/**
-		 * Retry failed operation.
-		 *
-		 * @param {Event} e Click event.
-		 */
 		retry: function (e) {
 			e.preventDefault();
 			$('#sscribe-error-area').addClass('sscribe-hidden');
@@ -3552,9 +3290,6 @@
 			this.updateExportButton();
 			$('#sscribe-export-btn').trigger('click');
 		},
-		/**
-		 * Reset UI to initial state.
-		 */
 		resetUI: function () {
 			$('#sscribe-progress-area').addClass('sscribe-hidden');
 			$('#sscribe-error-area').addClass('sscribe-hidden');
@@ -3570,33 +3305,14 @@
 				progressBar.setAttribute('aria-valuetext', '');
 				progressBar.setAttribute('aria-valuenow', '0');
 			}
-			// Clear aria-busy on the export buttons whenever the busy
-			// state ends. WCAG 1.3.1 / 4.1.3: the screen-reader signal
-			// must be cleared in lockstep with the disabled/visual state.
 			$('#sscribe-export-btn, #sscribe-preview-btn').removeClass('sscribe-btn-busy').removeAttr('aria-busy');
 			this.isProcessing = false;
 			this.sessionId = null;
 			this.batchRetries = 0;
 		},
 		/**
-		 * Get error guidance based on a stable server-side error code.
-		 *
-		 * The server emits a discriminated `data.code` for every JSON error
-		 * response (see SScribe_AJAX_Guard::error() and the per-endpoint
-		 * exit points). Substring matching on `message` is intentionally
-		 * NOT performed here. Earlier versions did, and that caused a real
-		 * failure mode where any error message containing the substring
-		 * "session" or "timeout" was mis-translated to the "session lost"
-		 * guidance, hiding the actual cause from operators.
-		 *
-		 * If the server fails to send a code (a 4xx/5xx response from WP
-		 * itself, e.g. a redirect to the login screen), the function falls
-		 * back to generic guidance so the user still sees something useful.
-		 *
-		 * @param {string} code      Stable error code from response.data.code.
-		 * @param {string} _message  Reserved for future server-message fallback;
-		 *                          callers may pass error.message, the function
-		 *                          intentionally does not consume it today.
+		 * @param {string} code Stable server error code.
+		 * @param {string} _message Reserved for a future fallback.
 		 * @returns {string} Guidance text.
 		 */
 		getErrorGuidance: function (code, _message) {
@@ -3638,24 +3354,12 @@
 			}
 			return strings.err_generic || '';
 		},
-		/**
-		 * Format guidance text for display.
-		 *
-		 * @param {string} guidance Raw guidance text.
-		 * @returns {string} HTML formatted guidance.
-		 */
 		formatGuidance: function (guidance) {
 			if (!guidance) {
 				return '';
 			}
 			return this.escapeHtml(guidance).replace(/\n/g, '<br>');
 		},
-		/**
-		 * Normalize error data from server response.
-		 *
-		 * @param {object} data Error data.
-		 * @returns {object} Normalized error data.
-		 */
 		normalizeErrorData: function (data) {
 			if (!data || typeof data !== 'object') {
 				return {};
@@ -3668,15 +3372,11 @@
 				_diagnostics: data._diagnostics || null,
 			};
 		},
-		/**
-		 * Show error with user-friendly message.
-		 *
-		 * @param {string} message Error message.
-		 * @param {boolean} isCancelled Whether operation was cancelled.
-		 * @param {object} errorData Additional error data.
-		 */
 		showError: function (message, isCancelled, errorData) {
 			this.isProcessing = false;
+			this._batchInProgress = false;
+			$('#sscribe-export-btn, #sscribe-preview-btn').removeClass('sscribe-btn-busy').removeAttr('aria-busy');
+			this.updateExportButton();
 			if (this._originalTitle) {
 				document.title = this._originalTitle;
 			}
@@ -3723,47 +3423,16 @@
 				$techDetails.removeClass('sscribe-hidden');
 			}
 			$('#sscribe-error-area').removeClass('sscribe-hidden').hide().fadeIn(300);
-			$('#sscribe-export-btn, #sscribe-preview-btn').prop('disabled', false);
 		},
-		/**
-		 * Show a non-fatal warning toast.
-		 *
-		 * @param {string} message Warning message.
-		 */
 		showWarning: function (message) {
 			const alertRegion = document.getElementById('sscribe-alert-region');
 			if (alertRegion) {
 				alertRegion.textContent = '';
 				alertRegion.textContent = message;
 			}
-			const $toast = $('<div class="notice notice-warning sscribe-toast" role="status">' + '<p></p>' + '</div>');
-			$toast.find('p').text(message);
-			const $container = $('#sscribe-toast-container');
-			if ($container.length) {
-				$container.append($toast);
-			} else {
-				$('body').append($toast);
-			}
-			setTimeout(function () {
-				$toast.fadeOut(300, function () {
-					$(this).remove();
-				});
-			}, 8000);
+			this.showToast(message, 'warning', 8000);
 		},
 		/**
-		 * Get user-friendly network error message.
-		 *
-		 * @param {jqXHR} xhr  The jQuery XHR object.
-		 * @param {string} action The action that failed.
-		 * @returns {string} Error message.
-		 */
-		/**
-		 * Parse server error message from a failed AJAX response.
-		 *
-		 * Server errors (HTTP 4xx/5xx) typically still send JSON with a
-		 * data.message field. This extracts it so the user sees the real
-		 * error instead of a generic status code string.
-		 *
 		 * @param {jqXHR} xhr The jQuery XHR object.
 		 * @returns {string|null} Server message or null.
 		 */
@@ -3821,18 +3490,6 @@
 			return unknownMsg.replace('%d', status);
 		},
 	};
-	/**
-	 * Global AJAX error diagnostics.
-	 *
-	 * Every failed admin-ajax.php request is captured here and logged to the
-	 * browser console with structured diagnostic context (action name, HTTP
-	 * status, response body, timing, server diagnostics). This provides a
-	 * complete audit trail for support and debugging without modifying
-	 * individual AJAX callers.
-	 *
-	 * Logs are grouped under a collapsible "[SSCRIBE] AJAX Error" label for
-	 * clean DevTools output.
-	 */
 	$(document).ajaxError(function (_event, jqXHR, _settings, exception) {
 		let requestData = null;
 		if (_settings && _settings.data) {

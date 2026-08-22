@@ -424,7 +424,7 @@ class SScribe_Error {
 				'category'  => self::CATEGORY_SYSTEM,
 				'severity'  => self::SEVERITY_ERROR,
 				'message'   => __( 'Export session has expired.', 'sscribe-export-site-pages' ),
-				'details'   => __( 'Session ID: {session_id}. Sessions expire after 72 hours of inactivity.', 'sscribe-export-site-pages' ),
+				'details'   => __( 'Session ID: {session_id}. Sessions expire automatically after a short period of inactivity.', 'sscribe-export-site-pages' ),
 				'guidance'  => __( 'Start a new export. Previous progress has been saved to the log.', 'sscribe-export-site-pages' ),
 				'fix_steps' => array(
 					__( 'Click "Generate Documentation Package" to start a new export.', 'sscribe-export-site-pages' ),
