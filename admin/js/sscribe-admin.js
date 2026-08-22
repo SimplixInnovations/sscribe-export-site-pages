@@ -2973,24 +2973,24 @@
 			const text = $textarea.val();
 			const done = () => {
 				$btn.prop('disabled', true).text(
-					(sscribe_data.strings && sscribe_data.strings.support_copied) ||
-						'Copied!'
+					(sscribe_data.strings && sscribe_data.strings.support_copied) || 'Copied!'
 				);
 				setTimeout(function () {
 					$btn.prop('disabled', false).text(
-						(sscribe_data.strings && sscribe_data.strings.support_copy) ||
-							'Copy support info'
+						(sscribe_data.strings && sscribe_data.strings.support_copy) || 'Copy support info'
 					);
 				}, 2000);
 				SScribe.announce(
-					(sscribe_data.strings && sscribe_data.strings.support_copied) ||
-						'Support information copied.'
+					(sscribe_data.strings && sscribe_data.strings.support_copied) || 'Support information copied.'
 				);
 			};
 			if (navigator.clipboard && window.isSecureContext) {
-				navigator.clipboard.writeText(text).then(done).catch(function () {
-					self.fallbackCopy(text, done);
-				});
+				navigator.clipboard
+					.writeText(text)
+					.then(done)
+					.catch(function () {
+						self.fallbackCopy(text, done);
+					});
 			} else {
 				this.fallbackCopy(text, done);
 			}
