@@ -3163,7 +3163,7 @@
 				$btn.removeData('sscribe-confirming');
 				clearTimeout($btn.data('sscribe-confirm-timeout'));
 				$btn.removeData('sscribe-confirm-hint');
-				$btn.removeClass('sscribe-button-confirming');
+				$btn.removeClass('sscribe-btn-confirming');
 				$row.removeClass('sscribe-row-deleting');
 				SScribe.deleteSingleExport(filename, function (success) {
 					if (success === false) {
@@ -3184,30 +3184,27 @@
 				.attr('aria-live', 'polite')
 				.text(sscribe_data.strings.delete_confirm_hint || 'Click again within 3s to confirm');
 			$original.after($hint);
-			$btn
-				.data('sscribe-confirming', true)
+			$btn.data('sscribe-confirming', true)
 				.data('sscribe-confirm-original', $btn.text())
 				.data('sscribe-confirm-hint', $hint)
-				.addClass('sscribe-button-confirming')
+				.addClass('sscribe-btn-confirming')
 				.text(sscribe_data.strings.click_again || 'Confirm delete')
 				.attr('aria-label', sscribe_data.strings.delete_confirm_hint || 'Click again within 3s to confirm')
 				.prop('disabled', false);
-			SScribe.announce(
-				sscribe_data.strings.delete_confirm_hint || 'Click again within 3 seconds to confirm'
-			);
+			SScribe.announce(sscribe_data.strings.delete_confirm_hint || 'Click again within 3 seconds to confirm');
 			const tid = setTimeout(function () {
-			if ($btn.data('sscribe-confirming')) {
-				const $h = $btn.data('sscribe-confirm-hint');
-				if ($h && $h.length) {
-					$h.remove();
+				if ($btn.data('sscribe-confirming')) {
+					const $h = $btn.data('sscribe-confirm-hint');
+					if ($h && $h.length) {
+						$h.remove();
+					}
+					$btn.removeData('sscribe-confirming')
+						.removeData('sscribe-confirm-original')
+						.removeData('sscribe-confirm-hint')
+						.removeClass('sscribe-btn-confirming')
+						.text($btn.data('sscribe-confirm-original') || '')
+						.removeAttr('aria-label');
 				}
-				$btn.removeData('sscribe-confirming')
-					.removeData('sscribe-confirm-original')
-					.removeData('sscribe-confirm-hint')
-					.removeClass('sscribe-button-confirming')
-					.text($btn.data('sscribe-confirm-original') || '')
-					.removeAttr('aria-label');
-			}
 			}, 3000);
 			$btn.data('sscribe-confirm-timeout', tid);
 		},
@@ -3709,11 +3706,7 @@
 		}
 		try {
 			if (typeof SScribe !== 'undefined' && typeof SScribe.showToast === 'function') {
-				SScribe.showToast(
-					'A script error occurred: ' + (event.message || 'unknown'),
-					'error',
-					6000
-				);
+				SScribe.showToast('A script error occurred: ' + (event.message || 'unknown'), 'error', 6000);
 			}
 		} catch (_e) {
 			// Silent: the toast itself errored, nothing else to do.
