@@ -1729,6 +1729,7 @@ body.rtl .sscribe-progress-bar-fill {
 .sscribe-debug-toggle-section {
 	display: flex;
 	align-items: center;
+	justify-content: center;
 	gap: var(--ss-space-3);
 	padding: var(--ss-space-2) 0;
 	transition: background var(--ss-motion-fast) var(--ss-easing);
