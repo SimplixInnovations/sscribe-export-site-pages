@@ -3479,6 +3479,20 @@ body.rtl .sscribe-progress-bar-fill {
 	}
 }
 
+.sscribe-confirm-hint {
+	display: inline-block;
+	margin-left: var(--ss-space-2);
+	padding: 2px 8px;
+	background: var(--ss-error-bg);
+	border: 1px solid var(--ss-error-border);
+	border-radius: var(--ss-radius-full);
+	color: var(--ss-error);
+	font-size: 11px;
+	font-weight: 600;
+	font-style: italic;
+	letter-spacing: 0.02em;
+}
+
 .sscribe-button.sscribe-cancel-btn {
 	background: transparent;
 	color: var(--ss-error);

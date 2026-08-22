@@ -3162,10 +3162,11 @@
 			if ($btn.data('sscribe-confirming')) {
 				$btn.removeData('sscribe-confirming');
 				clearTimeout($btn.data('sscribe-confirm-timeout'));
-				$row.addClass('sscribe-row-deleting');
+				$btn.removeData('sscribe-confirm-hint');
+				$btn.removeClass('sscribe-button-confirming');
+				$row.removeClass('sscribe-row-deleting');
 				SScribe.deleteSingleExport(filename, function (success) {
 					if (success === false) {
-						$row.removeClass('sscribe-row-deleting');
 						return;
 					}
 					$row.fadeOut(200, function () {
@@ -3175,23 +3176,38 @@
 				});
 				return;
 			}
-			const originalText = $btn.text();
-			const confirmMsg =
-				(sscribe_data.strings && sscribe_data.strings.delete_confirm_hint) ||
-				'Click again within 3 seconds to confirm deletion.';
-			$btn.data('sscribe-confirming', true)
-				.data('sscribe-confirm-original', originalText)
-				.text(sscribe_data.strings.click_again || 'Click again')
-				.attr('aria-label', confirmMsg)
+			// First click: enter the "click again to confirm" state with strong visual cues.
+			const $original = $row.find('.sscribe-history-filename');
+			const $hint = $('<span>')
+				.addClass('sscribe-confirm-hint')
+				.attr('role', 'status')
+				.attr('aria-live', 'polite')
+				.text(sscribe_data.strings.delete_confirm_hint || 'Click again within 3s to confirm');
+			$original.after($hint);
+			$btn
+				.data('sscribe-confirming', true)
+				.data('sscribe-confirm-original', $btn.text())
+				.data('sscribe-confirm-hint', $hint)
+				.addClass('sscribe-button-confirming')
+				.text(sscribe_data.strings.click_again || 'Confirm delete')
+				.attr('aria-label', sscribe_data.strings.delete_confirm_hint || 'Click again within 3s to confirm')
 				.prop('disabled', false);
-			SScribe.announce(confirmMsg);
+			SScribe.announce(
+				sscribe_data.strings.delete_confirm_hint || 'Click again within 3 seconds to confirm'
+			);
 			const tid = setTimeout(function () {
-				if ($btn.data('sscribe-confirming')) {
-					$btn.removeData('sscribe-confirming')
-						.removeData('sscribe-confirm-original')
-						.text(originalText)
-						.removeAttr('aria-label');
+			if ($btn.data('sscribe-confirming')) {
+				const $h = $btn.data('sscribe-confirm-hint');
+				if ($h && $h.length) {
+					$h.remove();
 				}
+				$btn.removeData('sscribe-confirming')
+					.removeData('sscribe-confirm-original')
+					.removeData('sscribe-confirm-hint')
+					.removeClass('sscribe-button-confirming')
+					.text($btn.data('sscribe-confirm-original') || '')
+					.removeAttr('aria-label');
+			}
 			}, 3000);
 			$btn.data('sscribe-confirm-timeout', tid);
 		},
@@ -3682,6 +3698,26 @@
 	});
 	$(document).ready(function () {
 		SScribe.init();
+	});
+
+	// Global JS error trap so any thrown handler surfaces a toast instead
+	// of silently breaking an action (which the user perceives as "broken
+	// tab switching", "delete does nothing", etc.).
+	window.addEventListener('error', function (event) {
+		if (!event || !event.error) {
+			return;
+		}
+		try {
+			if (typeof SScribe !== 'undefined' && typeof SScribe.showToast === 'function') {
+				SScribe.showToast(
+					'A script error occurred: ' + (event.message || 'unknown'),
+					'error',
+					6000
+				);
+			}
+		} catch (_e) {
+			// Silent: the toast itself errored, nothing else to do.
+		}
 	});
 
 	window.SScribe = SScribe;
