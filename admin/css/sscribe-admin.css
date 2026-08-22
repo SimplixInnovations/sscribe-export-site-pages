@@ -4207,35 +4207,6 @@ body.rtl .sscribe-progress-bar-fill {
 	outline-offset: 2px;
 }
 
-.sscribe-shortcut-hint,
-kbd.sscribe-shortcut-hint {
-	display: inline-flex;
-	align-items: center;
-	justify-content: center;
-	min-width: 22px;
-	height: 20px;
-	padding: 0 6px;
-	margin-left: var(--ss-space-2);
-	border: 1px solid var(--ss-border-strong);
-	border-bottom-width: 2px;
-	border-radius: var(--ss-radius-sm);
-	background: var(--ss-surface-2);
-	color: var(--ss-text-primary);
-	font-family: var(--ss-font-mono);
-	font-size: 10px;
-	font-weight: 700;
-	line-height: 1;
-	letter-spacing: 0;
-	text-transform: none;
-}
-
-.sscribe-button-primary .sscribe-shortcut-hint,
-.sscribe-button-primary kbd.sscribe-shortcut-hint {
-	background: rgb(0 0 0 / 28%);
-	border-color: rgb(255 255 255 / 35%);
-	color: #fff;
-}
-
 .sscribe-summary-divider {
 	width: 1px;
 	height: 18px;
