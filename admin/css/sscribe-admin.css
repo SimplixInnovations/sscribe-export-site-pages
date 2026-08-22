@@ -3072,6 +3072,9 @@ body.rtl .sscribe-progress-bar-fill {
 	display: flex;
 	flex-direction: column;
 	gap: var(--ss-space-3);
+	padding-top: var(--ss-space-5);
+	margin-top: var(--ss-space-3);
+	border-top: 1px solid var(--ss-border);
 }
 
 .sscribe-log-pages h4 {
