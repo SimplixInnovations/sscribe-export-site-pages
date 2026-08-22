@@ -360,7 +360,12 @@
 	display: inline-flex;
 	align-items: center;
 	justify-content: center;
-	color: var(--ss-warning);
+	width: 32px;
+	height: 32px;
+	padding: 6px;
+	background: var(--ss-brand);
+	color: var(--ss-text-inverse);
+	border-radius: var(--ss-radius-sm);
 }
 
 .sscribe-debug-stale-banner-text {

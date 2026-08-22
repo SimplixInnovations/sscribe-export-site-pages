@@ -1229,9 +1229,14 @@
 }
 
 .sscribe-button-glyph {
-	width: 14px;
-	height: 14px;
+	width: 28px;
+	height: 28px;
+	padding: 6px;
+	background: var(--ss-brand);
+	color: var(--ss-text-inverse);
+	border-radius: var(--ss-radius-sm);
 	flex: 0 0 auto;
+	box-sizing: border-box;
 }
 
 .sscribe-btn-sm,
