@@ -604,9 +604,6 @@ if ( ! function_exists( 'sscribe_humanize_export_filename' ) ) {
 						<span class="sscribe-summary-chip sscribe-summary-format" id="sscribe-summary-format"><?php esc_html_e( 'All formats', 'sscribe-export-site-pages' ); ?></span>
 						<span class="sscribe-summary-divider" aria-hidden="true"></span>
 						<?php
-						$sscribe_status_counts_first_key = isset( $sscribe_status_counts_first_key )
-							? $sscribe_status_counts_first_key
-							: 'publish';
 						$sscribe_initial_chip = isset( $sscribe_status_counts[ $sscribe_status_counts_first_key ] )
 							? (int) $sscribe_status_counts[ $sscribe_status_counts_first_key ]
 							: 0;
@@ -620,13 +617,16 @@ if ( ! function_exists( 'sscribe_humanize_export_filename' ) ) {
 							}
 						}
 						?>
-						<span class="sscribe-summary-chip sscribe-summary-pages" id="sscribe-summary-pages" aria-label="
+						<span class="sscribe-summary-chip sscribe-summary-pages" id="sscribe-summary-pages" aria-label="<?php
+							/* translators: %d: page count. */
+							echo esc_attr( sprintf( _n( '%d page selected', '%d pages selected', $sscribe_initial_chip, 'sscribe-export-site-pages' ), $sscribe_initial_chip ) );
+						?>
+							">
 							<?php
 							/* translators: %d: page count. */
-							echo esc_attr( sprintf( _n( '%d page selected', '%d pages selected', $sscribe_initial_chip, 'sscribe-export-site-pages' ), $sscribe_initial_chip ) ); ?>
-							"><?php
-							/* translators: %d: page count. */
-							echo esc_html( number_format_i18n( $sscribe_initial_chip ) . ' ' . _n( 'page', 'pages', $sscribe_initial_chip, 'sscribe-export-site-pages' ) ); ?></span>
+							echo esc_html( number_format_i18n( $sscribe_initial_chip ) . ' ' . _n( 'page', 'pages', $sscribe_initial_chip, 'sscribe-export-site-pages' ) );
+							?>
+						</span>
 						<span class="sscribe-summary-sep" aria-hidden="true">·</span>
 						<span class="sscribe-summary-chip sscribe-summary-time" id="sscribe-summary-time" aria-label="<?php esc_attr_e( 'Estimated time not yet available. Run Preview to compute.', 'sscribe-export-site-pages' ); ?>"><?php esc_html_e( 'Run Preview for ETA', 'sscribe-export-site-pages' ); ?></span>
 					</div>
