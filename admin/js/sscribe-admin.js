@@ -3298,65 +3298,76 @@
 				html += '<th scope="col">' + this.escapeHtml(strings.log_col_time || 'Time') + '</th>';
 				html += '<th scope="col">' + this.escapeHtml(strings.log_col_formats || 'Formats') + '</th>';
 				html += '</tr></thead><tbody>';
-					pages.forEach(
-						function (page) {
-							const pageId = page.id || '-';
-							const title = page.title || strings.log_unknown || 'Unknown';
-							const status = page.status || strings.log_unknown || 'Unknown';
-							const duration =
-								page.duration !== null && page.duration !== undefined
-									? String(page.duration) + (strings.log_seconds_suffix || 's')
-									: '-';
-							const statusKey = (status || '').toLowerCase();
-							const statusClass =
-								statusKey === 'success'
-									? 'sscribe-log-status-success'
-									: statusKey === 'failed' || statusKey === 'error'
+				pages.forEach(
+					function (page) {
+						const pageId = page.id || '-';
+						const title = page.title || strings.log_unknown || 'Unknown';
+						const status = page.status || strings.log_unknown || 'Unknown';
+						const duration =
+							page.duration !== null && page.duration !== undefined
+								? String(page.duration) + (strings.log_seconds_suffix || 's')
+								: '-';
+						const statusKey = (status || '').toLowerCase();
+						const statusClass =
+							statusKey === 'success'
+								? 'sscribe-log-status-success'
+								: statusKey === 'failed' || statusKey === 'error'
 									? 'sscribe-log-status-failed'
 									: 'sscribe-log-status-neutral';
-							const statusDotClass =
-								statusKey === 'success'
-									? 'sscribe-log-status-dot-success'
-									: statusKey === 'failed' || statusKey === 'error'
+						const statusDotClass =
+							statusKey === 'success'
+								? 'sscribe-log-status-dot-success'
+								: statusKey === 'failed' || statusKey === 'error'
 									? 'sscribe-log-status-dot-failed'
 									: 'sscribe-log-status-dot-neutral';
-							let formatText = '—';
-							let formatChips = '';
-							if (page.formats && typeof page.formats === 'object') {
-								const formatKeys = Object.keys(page.formats).filter(function (fmt) {
-									return page.formats[fmt] && page.formats[fmt].success;
-								});
-								if (formatKeys.length > 0) {
-									formatText = formatKeys
-										.map(function (format) {
-											return format.toUpperCase();
-										})
-										.join(', ');
-									formatChips = formatKeys
-										.map(function (format) {
-											return '<span class="sscribe-log-format-chip">' + this.escapeHtml(format.toUpperCase()) + '</span>';
-										}.bind(this))
-										.join('');
-								}
+						let formatText = '-';
+						let formatChips = '';
+						if (page.formats && typeof page.formats === 'object') {
+							const formatKeys = Object.keys(page.formats).filter(function (fmt) {
+								return page.formats[fmt] && page.formats[fmt].success;
+							});
+							if (formatKeys.length > 0) {
+								formatText = formatKeys
+									.map(function (format) {
+										return format.toUpperCase();
+									})
+									.join(', ');
+								formatChips = formatKeys
+									.map(
+										function (format) {
+											return (
+												'<span class="sscribe-log-format-chip">' +
+												this.escapeHtml(format.toUpperCase()) +
+												'</span>'
+											);
+										}.bind(this)
+									)
+									.join('');
 							}
-							const idCell = '<code class="sscribe-log-id">' + this.escapeHtml(String(pageId)) + '</code>';
-							const titleCell = '<span class="sscribe-log-title">' + this.escapeHtml(title) + '</span>';
-							const statusCell =
-								'<span class="sscribe-log-status-badge ' + this.escapeHtml(statusClass) + '">' +
-								'<span class="sscribe-log-status-dot ' + this.escapeHtml(statusDotClass) + '" aria-hidden="true"></span>' +
-								this.escapeHtml(status) +
-								'</span>';
-							const timeCell = '<span class="sscribe-log-time">' + this.escapeHtml(duration) + '</span>';
-							const formatCell = formatChips || '<span class="sscribe-log-time">' + this.escapeHtml(formatText) + '</span>';
-							html += '<tr>';
-							html += '<td class="sscribe-log-cell-id">' + idCell + '</td>';
-							html += '<td class="sscribe-log-cell-title">' + titleCell + '</td>';
-							html += '<td class="sscribe-log-cell-status">' + statusCell + '</td>';
-							html += '<td class="sscribe-log-cell-time">' + timeCell + '</td>';
-							html += '<td class="sscribe-log-cell-formats">' + formatCell + '</td>';
-							html += '</tr>';
-						}.bind(this)
-					);
+						}
+						const idCell = '<code class="sscribe-log-id">' + this.escapeHtml(String(pageId)) + '</code>';
+						const titleCell = '<span class="sscribe-log-title">' + this.escapeHtml(title) + '</span>';
+						const statusCell =
+							'<span class="sscribe-log-status-badge ' +
+							this.escapeHtml(statusClass) +
+							'">' +
+							'<span class="sscribe-log-status-dot ' +
+							this.escapeHtml(statusDotClass) +
+							'" aria-hidden="true"></span>' +
+							this.escapeHtml(status) +
+							'</span>';
+						const timeCell = '<span class="sscribe-log-time">' + this.escapeHtml(duration) + '</span>';
+						const formatCell =
+							formatChips || '<span class="sscribe-log-time">' + this.escapeHtml(formatText) + '</span>';
+						html += '<tr>';
+						html += '<td class="sscribe-log-cell-id">' + idCell + '</td>';
+						html += '<td class="sscribe-log-cell-title">' + titleCell + '</td>';
+						html += '<td class="sscribe-log-cell-status">' + statusCell + '</td>';
+						html += '<td class="sscribe-log-cell-time">' + timeCell + '</td>';
+						html += '<td class="sscribe-log-cell-formats">' + formatCell + '</td>';
+						html += '</tr>';
+					}.bind(this)
+				);
 				html += '</tbody></table></div>';
 			} else {
 				html +=
