@@ -367,7 +367,7 @@ padding inside the chip. */
 }
 
 .sscribe-panel-body.sscribe-flat-body {
-	padding: 0;
+	padding: 0 var(--ss-space-6);
 }
 
 .sscribe-config-grid {
