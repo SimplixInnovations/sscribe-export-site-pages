@@ -107,6 +107,8 @@
 	background: var(--ss-surface);
 	border-bottom: 1px solid var(--ss-border);
 	padding: var(--ss-space-6) var(--ss-space-8);
+	width: 100%;
+	box-sizing: border-box;
 }
 
 .sscribe-hero-content {
@@ -115,7 +117,8 @@
 	justify-content: space-between;
 	gap: var(--ss-space-6);
 	width: 100%;
-	margin: 0 auto;
+	max-width: none;
+	margin: 0;
 }
 
 .sscribe-hero-left {
@@ -181,9 +184,7 @@
 	align-items: center;
 	gap: var(--ss-space-6);
 	margin-top: var(--ss-space-4);
-	max-width: var(--ss-max-w);
-	margin-left: auto;
-	margin-right: auto;
+	width: 100%;
 	padding: var(--ss-space-4) 0 0 calc(36px + var(--ss-space-4));
 	border-top: 1px solid var(--ss-border);
 	flex-wrap: wrap;
