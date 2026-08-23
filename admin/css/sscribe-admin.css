@@ -437,7 +437,7 @@ parent's gray chip. */
 .sscribe-status-cards.sscribe-cards-row {
 	display: flex;
 	flex-wrap: wrap;
-	gap: 6px;
+	gap: var(--ss-space-3);
 	min-width: 0;
 }
 
@@ -1106,6 +1106,7 @@ so the user sees both at a glance. */
 	align-items: center;
 	gap: var(--ss-space-3);
 	flex-wrap: wrap;
+	order: 2;
 }
 
 /* Vendor-prefixed user-select keeps the WebKit/Safari toggle interactive. */
@@ -1160,10 +1161,11 @@ so the user sees both at a glance. */
 	align-items: center;
 	gap: var(--ss-space-2);
 	min-height: 20px;
-	flex: 0 1 auto;
+	flex: 1 1 auto;
 	max-width: 60%;
-	text-align: right;
-	justify-content: flex-end;
+	text-align: left;
+	justify-content: flex-start;
+	order: 1;
 }
 
 .sscribe-button {

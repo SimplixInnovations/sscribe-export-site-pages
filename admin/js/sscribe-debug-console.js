@@ -913,7 +913,12 @@
 			if (!entries || entries.length === 0) {
 				this.$entries.empty();
 				this.$empty.find('p').text(this.defaultEmptyMessage);
-				this.$empty.show();
+				// Explicitly remove the hidden utility class - the
+				// element ships with sscribe-hidden (display:none
+				// !important) so we have to strip both that class AND
+				// the hidden attribute before jQuery's .show() can
+				// take effect.
+				this.$empty.removeClass('sscribe-hidden').attr('hidden', false).show();
 				this.destroyObserver();
 				if (this.$staleBanner && this.$staleBanner.length) {
 					this.$staleBanner.addClass('sscribe-hidden').attr('hidden', true);

@@ -555,9 +555,14 @@ final class SScribe_Shipped_Invariants_Test extends TestCase {
 			'Export startup must reset stale UI before locking the new request.'
 		);
 		$this->assertStringContainsString(
-			'const canExport = hasPostType && hasLanguage && hasStatus && hasFormat && hasPages && !this.isProcessing;',
+			'const canExport =',
 			$contents,
 			'Configuration updates must not re-enable actions during an export.'
+		);
+		$this->assertMatchesRegularExpression(
+			'/canExport\s*=.*?hasPostType.*?hasLanguage.*?hasStatus.*?hasFormat.*?hasPages.*?isProcessing.*?isPreparing/s',
+			$contents,
+			'Configuration updates must not re-enable actions during an export or its preflight phase.'
 		);
 		$this->assertMatchesRegularExpression(
 			'/exportComplete:\s*function.*?removeClass\([\'\"]sscribe-btn-busy[\'\"]\).*?removeAttr\([\'\"]aria-busy[\'\"]\).*?updateExportButton\(\);/s',

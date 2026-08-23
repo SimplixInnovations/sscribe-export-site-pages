@@ -11,6 +11,7 @@
 	const SScribe = {
 		sessionId: null,
 		isProcessing: false,
+		isPreparing: false,
 		selectedPageCount: 0,
 		_countsRetries: 0,
 		_lastProgressAt: 0,
@@ -970,7 +971,14 @@
 				!$('input[name="sscribe_post_status"]:checked').prop('disabled');
 			const hasFormat = $('input[name="sscribe_format"]:checked').length > 0;
 			const hasPages = this.selectedPageCount > 0;
-			const canExport = hasPostType && hasLanguage && hasStatus && hasFormat && hasPages && !this.isProcessing;
+			const canExport =
+				hasPostType &&
+				hasLanguage &&
+				hasStatus &&
+				hasFormat &&
+				hasPages &&
+				!this.isProcessing &&
+				!this.isPreparing;
 			$('#sscribe-export-btn').prop('disabled', !canExport);
 			$('#sscribe-preview-btn').prop('disabled', !canExport);
 			const $reason = $('#sscribe-export-disabled-reason');
@@ -980,6 +988,9 @@
 					reasonText =
 						(sscribe_data.strings && sscribe_data.strings.export_in_progress) ||
 						'An export is in progress. Cancel it to start a new one.';
+				} else if (this.isPreparing) {
+					reasonText =
+						(sscribe_data.strings && sscribe_data.strings.preparing_export) || 'Preparing your export...';
 				} else if (!hasPages && !this._countsLoaded) {
 					reasonText =
 						(sscribe_data.strings && sscribe_data.strings.loading_counts) || 'Loading page counts...';
@@ -1003,7 +1014,7 @@
 		},
 		startExport: function (e) {
 			e.preventDefault();
-			if (this.isProcessing) {
+			if (this.isProcessing || this.isPreparing) {
 				return;
 			}
 			clearTimeout(this._configSummaryDebounceTimer);
@@ -1011,7 +1022,13 @@
 				this._configSummaryXHR.abort();
 			}
 			this.resetUI();
-			this.isProcessing = true;
+			// isPreparing means "click acknowledged, preflight running" -
+			// the user already pressed the button and the preflight AJAX
+			// may take a few seconds (429 retries on busy servers).
+			// We don't want to flash "export in progress" during this
+			// preflight phase; only flip to isProcessing once the export
+			// batch is actually running.
+			this.isPreparing = true;
 			this._lastProgressAt = Date.now();
 			this.batchRetries = 0;
 			const $exportBtns = $('#sscribe-export-btn, #sscribe-preview-btn');
@@ -1209,6 +1226,7 @@
 					if (attempt < maxAttempts - 1) {
 						self.clearSessionWithRetry(language, postStatus, postType, formats, attempt + 1);
 					} else {
+						self.isPreparing = false;
 						self.isProcessing = false;
 						self.resetUI();
 						self.updateExportButton();
@@ -1238,6 +1256,11 @@
 				},
 				success: function (response) {
 					if (response.success) {
+						// Export batch has actually started - flip from
+						// preparing to processing so the status bar shows
+						// the "export in progress" copy.
+						SScribe.isPreparing = false;
+						SScribe.isProcessing = true;
 						SScribe.showProgress();
 						SScribe.sessionId = response.data.session_id;
 						SScribe.updateStatus(response.data.message);
@@ -1246,6 +1269,9 @@
 						}
 						SScribe.processBatch();
 					} else {
+						// Start failed - clear the preparing lock so the
+						// user can try again.
+						SScribe.isPreparing = false;
 						SScribe.showError(response.data.message, false, SScribe.normalizeErrorData(response.data));
 					}
 				},
