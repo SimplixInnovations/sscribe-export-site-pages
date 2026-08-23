@@ -1059,10 +1059,19 @@
 }
 
 .sscribe-export-disabled-reason {
+	display: inline-block;
 	font-size: 11px;
 	font-style: italic;
 	color: var(--ss-text-muted);
-	margin-right: var(--ss-space-2);
+}
+
+.sscribe-export-bar-status {
+	margin-top: var(--ss-space-2);
+	display: flex;
+	flex-wrap: wrap;
+	align-items: center;
+	gap: var(--ss-space-2);
+	min-height: 18px;
 }
 
 .sscribe-button {

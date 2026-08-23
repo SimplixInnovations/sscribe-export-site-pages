@@ -639,6 +639,8 @@ if ( ! function_exists( 'sscribe_humanize_export_filename' ) ) {
 							<span id="sscribe-export-btn-text"><?php esc_html_e( 'Generate Package', 'sscribe-export-site-pages' ); ?></span>
 						</button>
 						<span id="sscribe-export-btn-hint" class="screen-reader-text"><?php esc_html_e( 'Start the export process for selected pages and format', 'sscribe-export-site-pages' ); ?></span>
+					</div>
+					<div class="sscribe-export-bar-status">
 						<span id="sscribe-export-disabled-reason" class="sscribe-export-disabled-reason" aria-live="polite"></span>
 						<noscript>
 							<p class="sscribe-noscript-notice"><?php esc_html_e( 'JavaScript is required for export functionality. Please enable JavaScript in your browser.', 'sscribe-export-site-pages' ); ?></p>
