@@ -684,8 +684,14 @@
 .sscribe-preflight-warnings {
 	display: flex;
 	flex-direction: column;
+	align-items: flex-end;
 	gap: var(--ss-space-2);
-	padding: var(--ss-space-4) var(--ss-space-7) var(--ss-space-4);
+	padding: var(--ss-space-4) 0;
+	margin: 0;
+}
+
+.sscribe-preflight-warnings > .sscribe-preflight-warning {
+	width: 100%;
 }
 
 .sscribe-preflight-warning {
@@ -961,7 +967,7 @@
 }
 
 .sscribe-export-bar {
-	padding: var(--ss-space-5) var(--ss-space-7);
+	padding: var(--ss-space-5) 0;
 	border-top: 1px solid var(--ss-border);
 	background: var(--ss-surface);
 	display: flex;
