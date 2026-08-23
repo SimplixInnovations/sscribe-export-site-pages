@@ -227,30 +227,29 @@
 	color: currentcolor;
 }
 
-/* Brand badge treatment for hero / tabs / section-header icons.
-Icons bundled as <img src="*.svg"> get a brand-colored square behind
-them so they read as white glyphs on the brand background. The
+/* Light gray badge treatment for hero / tabs / section-header icons.
+Icons bundled as <img src="*.svg"> get a light-gray square behind
+them so they read as dark glyphs on the brand-tinted surface. The
 SCSS variables --ss-* are resolved at :root so the badge styling
 applies even on elements the plugin appends to document.body.
 
 This badge styling is scoped to specific parent contexts (hero logo,
 hero stats, tab buttons, section headers). Radio card icons inside
 .sscribe-post-type-icon, .sscribe-status-icon, .sscribe-format-icon
-deliberately do NOT get this badge - they are small dark glyphs on
-the parent's light gray surface, matching the original design. */
+deliberately do NOT get this badge - they render at their natural
+size with no chip background. */
 .sscribe-hero-logo > img.sscribe-icon,
 .sscribe-hero-stat > img.sscribe-icon,
 .sscribe-tab-btn > img.sscribe-icon,
 .sscribe-support-section-header > img.sscribe-icon,
 .sscribe-search-field > img.sscribe-icon,
 .sscribe-bulk-hint > img.sscribe-icon {
-	background: var(--ss-brand);
+	background: var(--ss-surface-2);
 	border-radius: var(--ss-radius-sm);
 }
 
 /* Radio card icons render at their declared HTML size inside the
-parent's gray chip. The SVG path's currentColor inherits the
-parent's --ss-text-secondary, giving a dark glyph on light gray. */
+parent's gray chip. */
 .sscribe-post-type-icon > img.sscribe-icon,
 .sscribe-status-icon > img.sscribe-icon,
 .sscribe-format-icon > img.sscribe-icon {
@@ -2398,8 +2397,8 @@ body.rtl .sscribe-progress-bar-fill {
 	width: 32px;
 	height: 32px;
 	padding: 6px;
-	background: var(--ss-brand);
-	color: var(--ss-text-inverse);
+	background: var(--ss-surface-2);
+	color: var(--ss-text-secondary);
 	border-radius: var(--ss-radius-sm);
 	flex-shrink: 0;
 	box-sizing: border-box;
@@ -5047,8 +5046,8 @@ body.rtl .sscribe-progress-bar-fill {
 	width: 32px;
 	height: 32px;
 	padding: 6px;
-	background: var(--ss-brand);
-	color: var(--ss-text-inverse);
+	background: var(--ss-surface-2);
+	color: var(--ss-text-secondary);
 	border-radius: var(--ss-radius-sm);
 	flex-shrink: 0;
 	box-sizing: border-box;
