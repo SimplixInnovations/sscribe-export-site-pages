@@ -339,41 +339,41 @@
 					self.saveSettings(self.isAutoRefresh);
 				});
 			}
-			this.$container.on('click.sscribe', '#sscribe-debug-help-btn', function () {
-				const helpContent = self.$helpContent && self.$helpContent[0];
-				const helpBtn = document.getElementById('sscribe-debug-help-btn');
-				if (helpContent) {
-					const overlay = document.createElement('div');
-					overlay.className = 'sscribe-modal';
-					overlay.setAttribute('role', 'dialog');
-					overlay.setAttribute('aria-modal', 'true');
-					overlay.setAttribute('aria-labelledby', 'sscribe-debug-help-title');
-					overlay.setAttribute('aria-hidden', 'false');
-					const dialog = document.createElement('div');
-					dialog.className = 'sscribe-modal-content';
-					dialog.setAttribute('role', 'document');
-					dialog.setAttribute('tabindex', '-1');
-					const helpClone = helpContent.cloneNode(true);
-					if (helpClone && helpClone.removeAttribute) {
-						helpClone.removeAttribute('hidden');
-					}
-					const priorFocus = document.activeElement;
-					const focusableSelectors =
-						'a[href], button:not([disabled]), textarea:not([disabled]), input:not([disabled]), select:not([disabled]), [tabindex]:not([tabindex="-1"])';
-					if (helpBtn && helpBtn.setAttribute) {
-						helpBtn.setAttribute('aria-expanded', 'true');
-					}
-					const closeDialog = function () {
-						if (document.body.contains(overlay)) {
-							document.body.removeChild(overlay);
+				this.$container.on('click.sscribe', '#sscribe-debug-help-btn', function () {
+					const helpContent = self.$helpContent && self.$helpContent[0];
+					const helpBtn = document.getElementById('sscribe-debug-help-btn');
+					if (helpContent) {
+						const overlay = document.createElement('div');
+						overlay.className = 'sscribe-modal';
+						overlay.setAttribute('role', 'dialog');
+						overlay.setAttribute('aria-modal', 'true');
+						overlay.setAttribute('aria-labelledby', 'sscribe-debug-help-title');
+						overlay.setAttribute('aria-hidden', 'false');
+						const dialog = document.createElement('div');
+						dialog.className = 'sscribe-modal-content';
+						dialog.setAttribute('role', 'document');
+						dialog.setAttribute('tabindex', '-1');
+						const helpClone = helpContent.cloneNode(true);
+						if (helpClone && helpClone.removeAttribute) {
+							helpClone.removeAttribute('hidden');
 						}
-						document.removeEventListener('keydown', keyHandler);
+						const priorFocus = document.activeElement;
+						const focusableSelectors =
+							'a[href], button:not([disabled]), textarea:not([disabled]), input:not([disabled]), select:not([disabled]), [tabindex]:not([tabindex="-1"])';
 						if (helpBtn && helpBtn.setAttribute) {
-							helpBtn.setAttribute('aria-expanded', 'false');
+							helpBtn.setAttribute('aria-expanded', 'true');
 						}
-						if (priorFocus && typeof priorFocus.focus === 'function') {
-							priorFocus.focus();
-						}
+						const closeDialog = function () {
+							if (document.body.contains(overlay)) {
+								document.body.removeChild(overlay);
+							}
+							document.removeEventListener('keydown', keyHandler);
+							if (helpBtn && helpBtn.setAttribute) {
+								helpBtn.setAttribute('aria-expanded', 'false');
+							}
+							if (priorFocus && typeof priorFocus.focus === 'function') {
+								priorFocus.focus();
+							}
 					};
 					const keyHandler = function (e) {
 						if (e.key === 'Escape' || e.key === 'Esc') {
