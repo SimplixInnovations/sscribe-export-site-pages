@@ -232,7 +232,13 @@ plugin: white-on-brand square with 6px padding. Earlier rule at
 context, so any other .sscribe-icon (history rows, hero stats,
 error area icons, language flag, etc.) rendered as the raw 32x32
 SVG with no badge and the path's currentColor (inherited from
-body text) appeared as dark gray on a light surface. */
+body text) appeared as dark gray on a light surface.
+
+Icons are bundled as <img src="*.svg"> for cacheability, so the
+SVG's fill="currentColor" resolves against the IMG document's
+own root color (default canvastext/black) - it does NOT inherit
+the parent element's CSS color. The icons themselves ship with
+fill="#ffffff" so they render white on the brand badge. */
 .sscribe-master-container img.sscribe-icon {
 	padding: 6px;
 	background: var(--ss-brand);
@@ -891,6 +897,13 @@ body text) appeared as dark gray on a light surface. */
 	gap: var(--ss-space-2);
 }
 
+.sscribe-format-option-title > svg.sscribe-icon {
+	width: 16px;
+	height: 16px;
+	color: var(--ss-brand);
+	fill: currentcolor;
+}
+
 .sscribe-format-option-grid {
 	display: grid;
 	grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
@@ -1152,6 +1165,13 @@ body text) appeared as dark gray on a light surface. */
 	border-color: var(--ss-border-strong);
 }
 
+.sscribe-button-outline > svg.sscribe-icon,
+.sscribe-button-secondary > svg.sscribe-icon,
+.sscribe-button-ghost > svg.sscribe-icon {
+	color: currentcolor;
+	fill: currentcolor;
+}
+
 .sscribe-button-outline:hover:not(:disabled) {
 	border-color: var(--ss-brand);
 	color: var(--ss-brand);
@@ -1183,6 +1203,11 @@ body text) appeared as dark gray on a light surface. */
 	background: var(--ss-success);
 	color: var(--ss-text-inverse);
 	border-color: var(--ss-success);
+}
+
+.sscribe-button-success > svg.sscribe-icon {
+	color: currentcolor;
+	fill: currentcolor;
 }
 
 .sscribe-button-success:hover:not(:disabled) {
@@ -1486,6 +1511,8 @@ body text) appeared as dark gray on a light surface. */
 	width: 10px;
 	height: 10px;
 	flex-shrink: 0;
+	color: var(--ss-text-inverse);
+	fill: currentcolor;
 }
 
 .sscribe-phase-step:not(.sscribe-phase-completed) .sscribe-phase-check {
@@ -4162,6 +4189,13 @@ body.rtl .sscribe-progress-bar-fill {
 	background: var(--ss-surface);
 	color: var(--ss-brand);
 	border: 1px solid var(--ss-border);
+}
+
+.sscribe-onboarding-icon svg.sscribe-icon {
+	width: 22px;
+	height: 22px;
+	color: var(--ss-brand);
+	fill: currentcolor;
 }
 
 .sscribe-onboarding-body {
