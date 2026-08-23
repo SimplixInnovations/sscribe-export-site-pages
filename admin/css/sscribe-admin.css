@@ -227,34 +227,37 @@
 	color: currentcolor;
 }
 
-/* Default badge treatment for every .sscribe-icon img inside the
-plugin: white-on-brand square. Earlier rule at
-.sscribe-support-section-header > img only matched one parent
-context, so any other .sscribe-icon (history rows, hero stats,
-error area icons, language flag, etc.) rendered as the raw 32x32
-SVG with no badge and the path's currentColor (inherited from
-body text) appeared as dark gray on a light surface.
+/* Brand badge treatment for hero / tabs / section-header icons.
+Icons bundled as <img src="*.svg"> get a brand-colored square behind
+them so they read as white glyphs on the brand background. The
+SCSS variables --ss-* are resolved at :root so the badge styling
+applies even on elements the plugin appends to document.body.
 
-Icons are bundled as <img src="*.svg"> for cacheability, so the
-SVG's fill="currentColor" resolves against the IMG document's
-own root color (default canvastext/black) - it does NOT inherit
-the parent element's CSS color. The icons themselves ship with
-fill="#ffffff" so they render white on the brand badge.
-
-The HTML sets the IMG's intrinsic size via width="N" height="N"
-attributes (14/16/20/22). We give the IMG element a brand-color
-background so it visually appears as a green chip holding a
-white glyph. We intentionally do NOT add padding + border-box
-here because that would shrink the visible glyph to 4x4 inside
-a 16x16 element - the SVG would render at its declared size and
-the green bg fills the chip behind it. Where a badge with
-breathing room is wanted, the section-specific selector
-.sscribe-support-section-header > img (below) sets explicit
-width/height larger than the icon and uses box-sizing to add
-padding inside the chip. */
-.sscribe-master-container img.sscribe-icon {
+This badge styling is scoped to specific parent contexts (hero logo,
+hero stats, tab buttons, section headers). Radio card icons inside
+.sscribe-post-type-icon, .sscribe-status-icon, .sscribe-format-icon
+deliberately do NOT get this badge - they are small dark glyphs on
+the parent's light gray surface, matching the original design. */
+.sscribe-hero-logo > img.sscribe-icon,
+.sscribe-hero-stat > img.sscribe-icon,
+.sscribe-tab-btn > img.sscribe-icon,
+.sscribe-support-section-header > img.sscribe-icon,
+.sscribe-search-field > img.sscribe-icon,
+.sscribe-bulk-hint > img.sscribe-icon {
 	background: var(--ss-brand);
 	border-radius: var(--ss-radius-sm);
+}
+
+/* Radio card icons render at their declared HTML size inside the
+parent's gray chip. The SVG path's currentColor inherits the
+parent's --ss-text-secondary, giving a dark glyph on light gray. */
+.sscribe-post-type-icon > img.sscribe-icon,
+.sscribe-status-icon > img.sscribe-icon,
+.sscribe-format-icon > img.sscribe-icon {
+	width: auto;
+	height: auto;
+	color: var(--ss-text-secondary);
+	background: transparent;
 }
 
 .sscribe-workspace.sscribe-flat-workspace {
@@ -551,13 +554,6 @@ padding inside the chip. */
 	justify-content: center;
 	color: var(--ss-text-secondary);
 	flex-shrink: 0;
-}
-
-.sscribe-post-type-icon > img.sscribe-icon,
-.sscribe-status-icon > img.sscribe-icon,
-.sscribe-format-icon > img.sscribe-icon {
-	width: 32px;
-	height: 32px;
 }
 
 .sscribe-post-type-meta,
