@@ -226,6 +226,21 @@
 	color: currentcolor;
 }
 
+/* Default badge treatment for every .sscribe-icon img inside the
+plugin: white-on-brand square with 6px padding. Earlier rule at
+.sscribe-support-section-header > img only matched one parent
+context, so any other .sscribe-icon (history rows, hero stats,
+error area icons, language flag, etc.) rendered as the raw 32x32
+SVG with no badge and the path's currentColor (inherited from
+body text) appeared as dark gray on a light surface. */
+.sscribe-master-container img.sscribe-icon {
+	padding: 6px;
+	background: var(--ss-brand);
+	color: var(--ss-text-inverse);
+	border-radius: var(--ss-radius-sm);
+	box-sizing: border-box;
+}
+
 .sscribe-workspace.sscribe-flat-workspace {
 	padding: var(--ss-space-6) var(--ss-space-8);
 	width: 100%;
