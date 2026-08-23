@@ -200,6 +200,7 @@
 			$(document).on('click.sscribe', '#sscribe-support-refresh-btn', $.proxy(this.loadSupportInfo, this));
 			$(document).on('click.sscribe', '#sscribe-support-copy-btn', $.proxy(this.copySupportInfo, this));
 			$(document).on('click.sscribe', '#sscribe-modal-close', $.proxy(this.closeModal, this));
+			$(document).on('click.sscribe', '[data-close-modal]', $.proxy(this.closeModalByAttr, this));
 			$(document).on('click.sscribe', '.sscribe-history-actions > a', $.proxy(this.downloadExport, this));
 			$(document).on('click.sscribe', '#sscribe-onboarding-dismiss', $.proxy(this.dismissOnboarding, this));
 			$(document).on('click.sscribe', '#sscribe-error-toggle-details', $.proxy(this.toggleErrorDetails, this));
@@ -3473,6 +3474,30 @@
 				e.preventDefault();
 			}
 			const $modal = $('#sscribe-log-modal');
+			const modalEl = $modal[0];
+			const self = this;
+			$modal.attr('aria-hidden', 'true').addClass('sscribe-hidden').prop('hidden', true);
+			self.releaseFocusTrap(modalEl);
+			self.restoreFocus();
+			$modal.fadeOut(200);
+		},
+		// Generic closer for any element marked with
+		// [data-close-modal="<modal-id>"]. Reads the modal id from
+		// the attribute so the markup can declare its own target
+		// without needing a separate JS handler per modal.
+		closeModalByAttr: function (e) {
+			if (e) {
+				e.preventDefault();
+			}
+			const $btn = $(e.currentTarget);
+			const modalId = $btn.attr('data-close-modal');
+			if (!modalId) {
+				return;
+			}
+			const $modal = $('#' + modalId);
+			if (!$modal.length) {
+				return;
+			}
 			const modalEl = $modal[0];
 			const self = this;
 			$modal.attr('aria-hidden', 'true').addClass('sscribe-hidden').prop('hidden', true);
