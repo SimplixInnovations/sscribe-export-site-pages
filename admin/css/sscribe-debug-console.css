@@ -363,8 +363,8 @@
 	width: 32px;
 	height: 32px;
 	padding: 6px;
-	background: var(--ss-brand);
-	color: var(--ss-text-inverse);
+	background: var(--ss-surface-2);
+	color: var(--ss-text-secondary);
 	border-radius: var(--ss-radius-sm);
 }
 
