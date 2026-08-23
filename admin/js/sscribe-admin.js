@@ -3192,6 +3192,7 @@
 				.attr('aria-label', sscribe_data.strings.delete_confirm_hint || 'Click again within 3s to confirm')
 				.prop('disabled', false);
 			SScribe.announce(sscribe_data.strings.delete_confirm_hint || 'Click again within 3 seconds to confirm');
+			const $originalText = $btn.data('sscribe-confirm-original');
 			const tid = setTimeout(function () {
 				if ($btn.data('sscribe-confirming')) {
 					const $h = $btn.data('sscribe-confirm-hint');
@@ -3199,10 +3200,9 @@
 						$h.remove();
 					}
 					$btn.removeData('sscribe-confirming')
-						.removeData('sscribe-confirm-original')
 						.removeData('sscribe-confirm-hint')
 						.removeClass('sscribe-btn-confirming')
-						.text($btn.data('sscribe-confirm-original') || '')
+						.text($originalText || '')
 						.removeAttr('aria-label');
 				}
 			}, 3000);
