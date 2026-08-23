@@ -1011,7 +1011,7 @@ parent's gray chip. */
 	border-top: 1px solid var(--ss-border);
 	background: var(--ss-surface);
 	display: flex;
-	justify-content: flex-end;
+	justify-content: space-between;
 	align-items: center;
 	gap: var(--ss-space-3);
 	flex-wrap: wrap;
@@ -1155,13 +1155,15 @@ so the user sees both at a glance. */
 }
 
 .sscribe-export-bar-status {
-	margin-top: var(--ss-space-3);
 	display: flex;
 	flex-wrap: wrap;
 	align-items: center;
 	gap: var(--ss-space-2);
 	min-height: 20px;
-	width: 100%;
+	flex: 0 1 auto;
+	max-width: 60%;
+	text-align: right;
+	justify-content: flex-end;
 }
 
 .sscribe-button {
