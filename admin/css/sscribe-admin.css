@@ -1012,13 +1012,13 @@ padding inside the chip. */
 }
 
 .sscribe-export-bar {
-	padding: var(--ss-space-5) 0;
+	padding: var(--ss-space-5) var(--ss-space-6);
 	border-top: 1px solid var(--ss-border);
 	background: var(--ss-surface);
 	display: flex;
 	justify-content: space-between;
 	align-items: center;
-	gap: var(--ss-space-4);
+	gap: var(--ss-space-5);
 	flex-wrap: wrap;
 }
 
@@ -1030,11 +1030,15 @@ padding inside the chip. */
 }
 
 .sscribe-summary-label {
+	display: inline-flex;
+	align-items: center;
+	padding: 4px var(--ss-space-3);
+	background: transparent;
 	font-size: 11px;
-	font-weight: 600;
+	font-weight: 700;
 	color: var(--ss-text-secondary);
 	text-transform: uppercase;
-	letter-spacing: 0.06em;
+	letter-spacing: 0.08em;
 	margin-right: var(--ss-space-1);
 }
 
@@ -1042,9 +1046,9 @@ padding inside the chip. */
 	display: inline-flex;
 	align-items: center;
 	padding: 4px var(--ss-space-3);
-	background: var(--ss-surface-2);
+	background: var(--ss-surface);
 	border: 1px solid var(--ss-border);
-	border-radius: var(--ss-radius-full);
+	border-radius: var(--ss-radius-md);
 	font-size: 12px;
 	font-weight: 600;
 	color: var(--ss-text-primary);
@@ -1053,19 +1057,19 @@ padding inside the chip. */
 }
 
 .sscribe-summary-pages {
-	background: var(--ss-brand-active);
+	background: var(--ss-brand);
 	color: var(--ss-text-inverse);
-	border-color: var(--ss-brand-active);
+	border-color: var(--ss-brand);
 }
 
 .sscribe-summary-time {
-	background: var(--ss-brand-soft);
-	color: var(--ss-text-primary);
-	border-color: var(--ss-brand-soft);
+	background: var(--ss-surface);
+	color: var(--ss-text-secondary);
+	border-color: var(--ss-border);
 }
 
 .sscribe-summary-time.sscribe-summary-time-pending {
-	background: var(--ss-surface-2);
+	background: var(--ss-surface);
 	color: var(--ss-text-muted);
 	border-color: var(--ss-border);
 	font-style: italic;
@@ -1079,7 +1083,7 @@ padding inside the chip. */
 .sscribe-export-bar-actions {
 	display: inline-flex;
 	align-items: center;
-	gap: var(--ss-space-2);
+	gap: var(--ss-space-3);
 	flex-wrap: wrap;
 }
 
@@ -1089,40 +1093,54 @@ padding inside the chip. */
 	display: inline-flex;
 	align-items: center;
 	gap: var(--ss-space-2);
+	padding: 4px var(--ss-space-3);
+	background: var(--ss-surface);
+	border: 1px solid var(--ss-border);
+	border-radius: var(--ss-radius-md);
 	font-size: 12px;
 	color: var(--ss-text-secondary);
 	cursor: pointer;
 	-webkit-user-select: none;
 	user-select: none;
-	margin-right: var(--ss-space-2);
+	transition:
+		border-color 120ms ease,
+		background-color 120ms ease;
+}
+
+.sscribe-preference-toggle:hover {
+	border-color: var(--ss-brand);
+	background: var(--ss-brand-tint);
+	color: var(--ss-text-primary);
 }
 /* stylelint-enable property-no-vendor-prefix */
 
 .sscribe-preference-toggle input[type='checkbox'] {
 	margin: 0;
 	cursor: pointer;
+	accent-color: var(--ss-brand);
 }
 
 .sscribe-preference-toggle:focus-within {
 	outline: 2px solid var(--ss-brand);
 	outline-offset: 2px;
-	border-radius: 2px;
+	border-radius: var(--ss-radius-md);
 }
 
 .sscribe-export-disabled-reason {
 	display: inline-block;
-	font-size: 11px;
+	font-size: 12px;
 	font-style: italic;
-	color: var(--ss-text-muted);
+	color: var(--ss-warning);
 }
 
 .sscribe-export-bar-status {
-	margin-top: var(--ss-space-2);
+	margin-top: var(--ss-space-3);
 	display: flex;
 	flex-wrap: wrap;
 	align-items: center;
 	gap: var(--ss-space-2);
-	min-height: 18px;
+	min-height: 20px;
+	width: 100%;
 }
 
 .sscribe-button {
