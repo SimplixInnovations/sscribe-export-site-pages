@@ -1027,14 +1027,27 @@ parent's gray chip. */
 /* The Export Summary section (4th config step) sits between the
 format options and the preflight warnings. The chips show what the
 export will look like (post-type · status · format · pages · ETA)
-and the auto-download toggle lives in its own row beneath the
-chips. */
+and the auto-download toggle lives on the same row, right-aligned,
+so the user sees both at a glance. */
 .sscribe-config-section-summary {
 	gap: var(--ss-space-3);
 }
 
-.sscribe-config-summary-preference {
-	margin-top: var(--ss-space-3);
+.sscribe-config-summary-row {
+	display: flex;
+	flex-wrap: wrap;
+	align-items: center;
+	justify-content: space-between;
+	gap: var(--ss-space-3);
+}
+
+.sscribe-config-summary-row > .sscribe-config-summary {
+	flex: 1 1 auto;
+	min-width: 0;
+}
+
+.sscribe-config-summary-row > .sscribe-config-summary-preference {
+	flex: 0 0 auto;
 }
 
 .sscribe-summary-label {

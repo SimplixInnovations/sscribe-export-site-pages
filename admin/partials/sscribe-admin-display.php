@@ -552,62 +552,64 @@ if ( ! function_exists( 'sscribe_humanize_export_filename' ) ) {
 
 				<?php ++$sscribe_step; ?>
 				<div class="sscribe-config-section sscribe-config-section-summary" id="sscribe-config-section-summary">
-					<div class="sscribe-section-title">
+<div class="sscribe-section-title">
 						<?php esc_html_e( 'Export Summary', 'sscribe-export-site-pages' ); ?>
 					</div>
-					<div class="sscribe-config-summary" id="sscribe-config-summary" aria-live="polite" aria-label="<?php esc_attr_e( 'Selected export configuration', 'sscribe-export-site-pages' ); ?>">
-						<span class="sscribe-summary-chip sscribe-summary-post-type" id="sscribe-summary-post-type"><?php esc_html_e( 'Pages', 'sscribe-export-site-pages' ); ?></span>
-						<span class="sscribe-summary-sep" aria-hidden="true">·</span>
-						<span class="sscribe-summary-chip sscribe-summary-status" id="sscribe-summary-status">
-							<?php
+					<div class="sscribe-config-summary-row">
+						<div class="sscribe-config-summary" id="sscribe-config-summary" aria-live="polite" aria-label="<?php esc_attr_e( 'Selected export configuration', 'sscribe-export-site-pages' ); ?>">
+							<span class="sscribe-summary-chip sscribe-summary-post-type" id="sscribe-summary-post-type"><?php esc_html_e( 'Pages', 'sscribe-export-site-pages' ); ?></span>
+							<span class="sscribe-summary-sep" aria-hidden="true">·</span>
+							<span class="sscribe-summary-chip sscribe-summary-status" id="sscribe-summary-status">
+								<?php
 
-							$sscribe_selected_status_label = __( 'Published', 'sscribe-export-site-pages' );
-							$sscribe_first_found           = true;
-							foreach ( $sscribe_status_labels as $sscribe_s_key => $sscribe_s_label ) {
-								$sscribe_s_count = isset( $sscribe_status_counts[ $sscribe_s_key ] ) ? intval( $sscribe_status_counts[ $sscribe_s_key ] ) : 0;
-								if ( $sscribe_first_found && $sscribe_s_count > 0 ) {
-									$sscribe_selected_status_label = $sscribe_s_label;
-									$sscribe_first_found           = false;
+								$sscribe_selected_status_label = __( 'Published', 'sscribe-export-site-pages' );
+								$sscribe_first_found           = true;
+								foreach ( $sscribe_status_labels as $sscribe_s_key => $sscribe_s_label ) {
+									$sscribe_s_count = isset( $sscribe_status_counts[ $sscribe_s_key ] ) ? intval( $sscribe_status_counts[ $sscribe_s_key ] ) : 0;
+									if ( $sscribe_first_found && $sscribe_s_count > 0 ) {
+										$sscribe_selected_status_label = $sscribe_s_label;
+										$sscribe_first_found           = false;
+									}
+								}
+								echo esc_html( $sscribe_selected_status_label );
+								?>
+							</span>
+							<?php if ( $sscribe_wpml_active && ! empty( $sscribe_languages ) ) : ?>
+							<span class="sscribe-summary-sep" aria-hidden="true">·</span>
+							<span class="sscribe-summary-chip sscribe-summary-language" id="sscribe-summary-language"><?php esc_html_e( 'All languages', 'sscribe-export-site-pages' ); ?></span>
+							<?php endif; ?>
+							<span class="sscribe-summary-sep" aria-hidden="true">·</span>
+							<span class="sscribe-summary-chip sscribe-summary-format" id="sscribe-summary-format"><?php esc_html_e( 'All formats', 'sscribe-export-site-pages' ); ?></span>
+							<?php
+								$sscribe_initial_chip = isset( $sscribe_status_counts[ $sscribe_status_counts_first_key ] )
+									? (int) $sscribe_status_counts[ $sscribe_status_counts_first_key ]
+									: 0;
+							if ( $sscribe_initial_chip < 1 ) {
+								foreach ( $sscribe_status_counts as $sscribe_ck => $sscribe_cv ) {
+									if ( $sscribe_cv > 0 ) {
+										$sscribe_status_counts_first_key = $sscribe_ck;
+										$sscribe_initial_chip            = (int) $sscribe_cv;
+										break;
+									}
 								}
 							}
-							echo esc_html( $sscribe_selected_status_label );
 							?>
-						</span>
-						<?php if ( $sscribe_wpml_active && ! empty( $sscribe_languages ) ) : ?>
-						<span class="sscribe-summary-sep" aria-hidden="true">·</span>
-						<span class="sscribe-summary-chip sscribe-summary-language" id="sscribe-summary-language"><?php esc_html_e( 'All languages', 'sscribe-export-site-pages' ); ?></span>
-						<?php endif; ?>
-						<span class="sscribe-summary-sep" aria-hidden="true">·</span>
-						<span class="sscribe-summary-chip sscribe-summary-format" id="sscribe-summary-format"><?php esc_html_e( 'All formats', 'sscribe-export-site-pages' ); ?></span>
-						<?php
-							$sscribe_initial_chip = isset( $sscribe_status_counts[ $sscribe_status_counts_first_key ] )
-								? (int) $sscribe_status_counts[ $sscribe_status_counts_first_key ]
-								: 0;
-						if ( $sscribe_initial_chip < 1 ) {
-							foreach ( $sscribe_status_counts as $sscribe_ck => $sscribe_cv ) {
-								if ( $sscribe_cv > 0 ) {
-									$sscribe_status_counts_first_key = $sscribe_ck;
-									$sscribe_initial_chip            = (int) $sscribe_cv;
-									break;
-								}
-							}
-						}
-						?>
-						<?php
-							/* translators: %d: page count. */
-							$sscribe_chip_aria = sprintf( _n( '%d page selected', '%d pages selected', $sscribe_initial_chip, 'sscribe-export-site-pages' ), $sscribe_initial_chip );
-							$sscribe_chip_text = number_format_i18n( $sscribe_initial_chip ) . ' ' . _n( 'page', 'pages', $sscribe_initial_chip, 'sscribe-export-site-pages' );
-						?>
-						<span class="sscribe-summary-divider" aria-hidden="true"></span>
-						<span class="sscribe-summary-chip sscribe-summary-pages" id="sscribe-summary-pages" aria-label="<?php echo esc_attr( $sscribe_chip_aria ); ?>"><?php echo esc_html( $sscribe_chip_text ); ?></span>
-						<span class="sscribe-summary-sep" aria-hidden="true">·</span>
-						<span class="sscribe-summary-chip sscribe-summary-time" id="sscribe-summary-time" aria-label="<?php esc_attr_e( 'Estimated time not yet available. Run Preview to compute.', 'sscribe-export-site-pages' ); ?>"><?php esc_html_e( 'Run Preview for ETA', 'sscribe-export-site-pages' ); ?></span>
-					</div>
-					<div class="sscribe-config-summary-preference">
-						<label class="sscribe-preference-toggle" for="sscribe-auto-download-toggle">
-							<input type="checkbox" id="sscribe-auto-download-toggle" name="sscribe_auto_download_pref" value="1">
-							<span><?php esc_html_e( 'Auto-download when complete', 'sscribe-export-site-pages' ); ?></span>
-						</label>
+							<?php
+								/* translators: %d: page count. */
+								$sscribe_chip_aria = sprintf( _n( '%d page selected', '%d pages selected', $sscribe_initial_chip, 'sscribe-export-site-pages' ), $sscribe_initial_chip );
+								$sscribe_chip_text = number_format_i18n( $sscribe_initial_chip ) . ' ' . _n( 'page', 'pages', $sscribe_initial_chip, 'sscribe-export-site-pages' );
+							?>
+							<span class="sscribe-summary-divider" aria-hidden="true"></span>
+							<span class="sscribe-summary-chip sscribe-summary-pages" id="sscribe-summary-pages" aria-label="<?php echo esc_attr( $sscribe_chip_aria ); ?>"><?php echo esc_html( $sscribe_chip_text ); ?></span>
+							<span class="sscribe-summary-sep" aria-hidden="true">·</span>
+							<span class="sscribe-summary-chip sscribe-summary-time" id="sscribe-summary-time" aria-label="<?php esc_attr_e( 'Estimated time not yet available. Run Preview to compute.', 'sscribe-export-site-pages' ); ?>"><?php esc_html_e( 'Run Preview for ETA', 'sscribe-export-site-pages' ); ?></span>
+						</div>
+						<div class="sscribe-config-summary-preference">
+							<label class="sscribe-preference-toggle" for="sscribe-auto-download-toggle">
+								<input type="checkbox" id="sscribe-auto-download-toggle" name="sscribe_auto_download_pref" value="1">
+								<span><?php esc_html_e( 'Auto-download when complete', 'sscribe-export-site-pages' ); ?></span>
+							</label>
+						</div>
 					</div>
 				</div>
 
