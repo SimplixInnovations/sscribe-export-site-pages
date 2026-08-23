@@ -8,7 +8,16 @@
  * lifetime for the token file.
  */
 
-.sscribe-master-container {
+/* Design tokens are defined at :root so they cascade globally -
+ * including into elements that the plugin appends to document.body
+ * (modals, toasts, confirm dialogs) which live OUTSIDE the
+ * .sscribe-master-container scope. Scoping the tokens to the master
+ * container made var(--ss-surface), var(--ss-border) etc. resolve to
+ * their initial empty value on those out-of-scope elements,
+ * producing transparent modal backgrounds with browser-default
+ * borders. Promoting the tokens to :root fixes this once for all
+ * floating plugin UI. */
+:root {
 	--ss-bg: #f0f0f1;
 	--ss-surface: #fff;
 	--ss-surface-2: #f4f4f5;
@@ -100,7 +109,9 @@
 	--ss-text-caption-lh: 1.4;
 	--ss-motion-fast: 80ms;
 	--ss-easing: cubic-bezier(0.2, 0, 0, 1);
+}
 
+.sscribe-master-container {
 	background: var(--ss-bg);
 	font: 14px/1.5 var(--ss-font);
 	color: var(--ss-text-primary);
