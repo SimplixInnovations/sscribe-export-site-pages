@@ -227,7 +227,7 @@
 }
 
 /* Default badge treatment for every .sscribe-icon img inside the
-plugin: white-on-brand square with 6px padding. Earlier rule at
+plugin: white-on-brand square. Earlier rule at
 .sscribe-support-section-header > img only matched one parent
 context, so any other .sscribe-icon (history rows, hero stats,
 error area icons, language flag, etc.) rendered as the raw 32x32
@@ -238,13 +238,22 @@ Icons are bundled as <img src="*.svg"> for cacheability, so the
 SVG's fill="currentColor" resolves against the IMG document's
 own root color (default canvastext/black) - it does NOT inherit
 the parent element's CSS color. The icons themselves ship with
-fill="#ffffff" so they render white on the brand badge. */
+fill="#ffffff" so they render white on the brand badge.
+
+The HTML sets the IMG's intrinsic size via width="N" height="N"
+attributes (14/16/20/22). We give the IMG element a brand-color
+background so it visually appears as a green chip holding a
+white glyph. We intentionally do NOT add padding + border-box
+here because that would shrink the visible glyph to 4x4 inside
+a 16x16 element - the SVG would render at its declared size and
+the green bg fills the chip behind it. Where a badge with
+breathing room is wanted, the section-specific selector
+.sscribe-support-section-header > img (below) sets explicit
+width/height larger than the icon and uses box-sizing to add
+padding inside the chip. */
 .sscribe-master-container img.sscribe-icon {
-	padding: 6px;
 	background: var(--ss-brand);
-	color: var(--ss-text-inverse);
 	border-radius: var(--ss-radius-sm);
-	box-sizing: border-box;
 }
 
 .sscribe-workspace.sscribe-flat-workspace {
@@ -541,6 +550,13 @@ fill="#ffffff" so they render white on the brand badge. */
 	justify-content: center;
 	color: var(--ss-text-secondary);
 	flex-shrink: 0;
+}
+
+.sscribe-post-type-icon > img.sscribe-icon,
+.sscribe-status-icon > img.sscribe-icon,
+.sscribe-format-icon > img.sscribe-icon {
+	width: 32px;
+	height: 32px;
 }
 
 .sscribe-post-type-meta,
