@@ -130,4 +130,26 @@ class SScribe_Batch_Processor_Count_Temp_Dir_Files_Test extends TestCase {
 
 		$this->assertSame( 0, $this->call_count_temp_dir_files( $this->temp_dir ) );
 	}
+
+	/**
+	 * A self-referencing symlink inside the export temp tree must NOT hang
+	 * the count. The symlink-loop guard caps recursion depth and de-dups
+	 * real paths, so the count finishes in bounded time and equals the
+	 * count of unique physical files in the tree.
+	 */
+	public function test_terminates_on_symlink_loop(): void {
+		if ( defined( 'PHP_WINDOWS_VERSION_BUILD' ) ) {
+			$this->markTestSkipped( 'symlink() requires elevated privileges on Windows; covered on Linux CI.' );
+		}
+
+		mkdir( $this->temp_dir . '/AR', 0700, true );
+		file_put_contents( $this->temp_dir . '/AR/P001-foo.docx', 'dummy' );
+
+		$loop_link = $this->temp_dir . '/loop';
+		if ( ! @symlink( $this->temp_dir, $loop_link ) ) {
+			$this->markTestSkipped( 'symlink() unavailable in this environment.' );
+		}
+
+		$this->assertSame( 1, $this->call_count_temp_dir_files( $this->temp_dir ) );
+	}
 }

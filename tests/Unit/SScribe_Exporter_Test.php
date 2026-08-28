@@ -390,6 +390,28 @@ class SScribe_Exporter_Test extends TestCase {
 		$this->assertEquals( '', $result );
 	}
 
+	public function test_validate_url_rejects_userinfo_url(): void {
+		$method = new \ReflectionMethod( SScribe_Exporter::class, 'validate_url' );
+
+		$this->assertSame( '', $method->invoke( $this->exporter, 'https://user:pass@example.com/page' ) );
+		$this->assertSame( '', $method->invoke( $this->exporter, 'https://user@example.com/page' ) );
+	}
+
+	public function test_is_machine_style_string_preserves_cjk(): void {
+		$method = new \ReflectionMethod( SScribe_Exporter::class, 'is_machine_style_string' );
+
+		$this->assertFalse( $method->invoke( $this->exporter, '这是一个非常长的中文字符串，用于测试机器样式启发式算法是否将其错误地分类为机器生成的字符串。' ) );
+		$this->assertFalse( $method->invoke( $this->exporter, 'https://example.com/日本語の長いURLパスを含むテストケースです' ) );
+		$this->assertFalse( $method->invoke( $this->exporter, '한국어긴문자열테스트케이스입니다' ) );
+	}
+
+	public function test_is_machine_style_string_still_classifies_ascii(): void {
+		$method = new \ReflectionMethod( SScribe_Exporter::class, 'is_machine_style_string' );
+
+		$this->assertTrue( $method->invoke( $this->exporter, str_repeat( 'A', 2048 ) ) );
+		$this->assertTrue( $method->invoke( $this->exporter, 'https://example.com/this/is/a/very/long/url/path' ) );
+	}
+
 	public function test_with_complex_script_adds_rtl_props_when_rtl(): void {
 		$exporter = new SScribe_Exporter( $this->parser );
 		$method = new \ReflectionMethod( SScribe_Exporter::class, 'with_complex_script' );
