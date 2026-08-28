@@ -991,7 +991,9 @@ class SScribe_Session {
 					delete_option( $cursor );
 					continue;
 				}
-				$payload = maybe_unserialize( $option->option_value );
+				$payload = is_serialized( $option->option_value, true )
+					? unserialize( $option->option_value, array( 'allowed_classes' => false ) )
+					: $option->option_value;
 				$expired = ! is_array( $payload )
 					|| self::PAGE_IDS_SCHEMA !== (int) ( $payload['schema'] ?? 0 )
 					|| (int) ( $payload['expires_at'] ?? 0 ) <= $now;

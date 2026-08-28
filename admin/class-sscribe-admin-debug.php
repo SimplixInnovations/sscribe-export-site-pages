@@ -124,6 +124,13 @@ class SScribe_Admin_Debug {
 			$site_tz = wp_timezone();
 			return $utc->setTimezone( $site_tz )->format( 'Y-m-d H:i:s' );
 		} catch ( Exception $e ) {
+			SScribe_Logger::instance( true )->warning(
+				'Failed to convert UTC timestamp to site timezone; returning raw value.',
+				array(
+					'exception' => $e->getMessage(),
+					'timestamp' => $utc_timestamp,
+				)
+			);
 			return $utc_timestamp;
 		}
 	}
@@ -322,6 +329,10 @@ class SScribe_Admin_Debug {
 				)
 			);
 		} catch ( \Throwable $e ) {
+			SScribe_Logger::instance( true )->warning(
+				'Failed to clear debug logs via AJAX.',
+				array( 'exception' => $e->getMessage() )
+			);
 			wp_send_json_error(
 				array(
 					'message' => __( 'Failed to clear logs. Please try again.', 'sscribe-export-site-pages' ),
@@ -536,6 +547,10 @@ class SScribe_Admin_Debug {
 				);
 			}
 		} catch ( \Throwable $e ) {
+			SScribe_Logger::instance( true )->warning(
+				'Failed to enumerate rotated debug logs.',
+				array( 'exception' => $e->getMessage() )
+			);
 			wp_send_json_error( array( 'message' => __( 'Unable to read the log directory.', 'sscribe-export-site-pages' ) ), 500 );
 			return;
 		}
@@ -685,6 +700,10 @@ class SScribe_Admin_Debug {
 			}
 			unset( $file );
 		} catch ( \Throwable $e ) {
+			SScribe_Logger::instance( true )->warning(
+				'Failed to read rotated debug log file via AJAX.',
+				array( 'exception' => $e->getMessage() )
+			);
 			wp_send_json_error(
 				array(
 					'message' => __( 'Failed to read file.', 'sscribe-export-site-pages' ),
@@ -838,6 +857,10 @@ class SScribe_Admin_Debug {
 			unset( $file );
 			return $lines;
 		} catch ( \Throwable $e ) {
+			SScribe_Logger::instance( true )->warning(
+				'Failed to read tail of rotated debug log file.',
+				array( 'exception' => $e->getMessage() )
+			);
 			return null;
 		}
 	}

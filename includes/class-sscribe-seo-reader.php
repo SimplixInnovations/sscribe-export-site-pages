@@ -63,7 +63,13 @@ class SScribe_SEO_Reader {
 					return $result;
 				}
 			} catch ( \Throwable $e ) {
-
+				SScribe_Logger::instance( true )->warning(
+					'SEO reader threw an exception; continuing to the next plugin.',
+					array(
+						'plugin'    => $plugin_name,
+						'exception' => $e->getMessage(),
+					)
+				);
 				continue;
 			}
 		}

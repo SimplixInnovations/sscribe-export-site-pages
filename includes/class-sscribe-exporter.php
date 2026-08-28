@@ -465,6 +465,14 @@ final class SScribe_Exporter {
 			return true;
 		}
 
+		// Refuse to classify anything containing CJK / Hangul / Kana / other
+		// non-Latin scripts as machine-style. Truncating a long CJK URL or a
+		// Japanese title mid-character corrupts the export; the user-visible
+		// loss outweighs the memory savings.
+		if ( preg_match( '/[\x{3040}-\x{309F}\x{30A0}-\x{30FF}\x{3400}-\x{4DBF}\x{4E00}-\x{9FFF}\x{AC00}-\x{D7AF}\x{F900}-\x{FAFF}\x{FF00}-\x{FFEF}]/u', $text ) ) {
+			return false;
+		}
+
 		if ( preg_match( '#^[a-z][a-z0-9+.\-]*://#i', $text ) ) {
 			return true;
 		}
@@ -531,6 +539,22 @@ final class SScribe_Exporter {
 		$scheme        = strtolower( ( false === $parsed_scheme || null === $parsed_scheme ) ? '' : $parsed_scheme );
 
 		if ( in_array( $scheme, array( 'http', 'https', 'mailto', 'tel' ), true ) ) {
+
+			// Reject userinfo URLs (https://user:pass@host/...) outright.
+			// wp_parse_url() returns the user/pass under PHP_URL_USER /
+			// PHP_URL_PASS (null when absent, string when present); esc_url_raw
+			// does not strip them, and a malicious host could use them for
+			// credential harvesting in exported links or to bypass host-based
+			// SSRF checks downstream.
+			$user = wp_parse_url( $url, PHP_URL_USER );
+			$pass = wp_parse_url( $url, PHP_URL_PASS );
+			if ( null !== $user || null !== $pass ) {
+				$this->get_logger()->warning(
+					'Rejected URL with embedded userinfo (credential smuggling vector).',
+					array( 'url' => $url )
+				);
+				return '';
+			}
 
 			$host = wp_parse_url( $url, PHP_URL_HOST );
 			if ( $host && $this->is_ip_blocked( $host ) ) {
@@ -1508,8 +1532,11 @@ final class SScribe_Exporter {
 				$this->get_para_style( array( 'spaceBefore' => Converter::pointToTwip( 4 ) ) )
 			);
 		} catch ( \Throwable $e ) {
-			// TOC generation is best-effort; do not abort the document if mPDF rejects it.
-			unset( $e );
+			// TOC footer line is best-effort; do not abort the document if PhpWord rejects it.
+			$this->get_logger()->warning(
+				'Failed to append TOC update-instructions line to DOCX.',
+				array( 'exception' => $e->getMessage() )
+			);
 		}
 
 		$section->addPageBreak();
@@ -1561,8 +1588,8 @@ final class SScribe_Exporter {
 		);
 		$cell = $footer_table->addCell( Converter::inchToTwip( 2.5 ) );
 		$cell->addPreserveText(
-			/* translators: %s: page number field (e.g. "Page 1 / 10") */
-			sprintf( __( 'Page %s', 'sscribe-export-site-pages' ), '{PAGE} / {NUMPAGES}' ),
+			/* translators: %s: page-number field token expanded by the word processor (e.g. "Page 1 / 10"). */
+			sprintf( __( 'Page %1$s', 'sscribe-export-site-pages' ), '{PAGE} / {NUMPAGES}' ),
 			array(
 				'name'  => $this->font_name,
 				'size'  => 7,

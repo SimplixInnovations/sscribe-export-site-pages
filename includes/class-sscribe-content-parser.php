@@ -155,6 +155,17 @@ class SScribe_Content_Parser {
 	);
 
 	/**
+	 * Maximum nesting depth for recursive node walkers.
+	 *
+	 * Bounds user-supplied HTML so pathological deeply nested trees
+	 * (nested <div>/<table>/<span> produced by buggy page builders or
+	 * adversarial paste-ins) cannot blow the PHP call stack or exceed
+	 * xdebug.max_nesting_level. Anything past the cap collapses to a
+	 * plain paragraph.
+	 */
+	private const MAX_NODE_DEPTH = 64;
+
+	/**
 	 * Cached upload directory data.
 	 *
 	 * @var array|null
@@ -352,6 +363,18 @@ class SScribe_Content_Parser {
 	 * @return array|null Parsed element or null.
 	 */
 	private function parse_node( \DOMNode $node, int $depth = 0 ): ?array {
+		if ( $depth >= self::MAX_NODE_DEPTH ) {
+			$text = trim( $node->textContent );
+			if ( '' === $text ) {
+				return null;
+			}
+			return array(
+				'type'    => 'paragraph',
+				'content' => $text,
+				'runs'    => array( array( 'text' => $text ) ),
+			);
+		}
+
 		if ( XML_TEXT_NODE === $node->nodeType ) {
 			$text = trim( $node->textContent );
 			if ( ! empty( $text ) ) {
@@ -822,11 +845,20 @@ class SScribe_Content_Parser {
 	/**
 	 * Extract inline formatting runs from a DOM node.
 	 *
-	 * @param \DOMNode $node DOM node.
+	 * @param \DOMNode $node  DOM node.
+	 * @param int      $depth Nesting depth.
 	 * @return array Inline runs.
 	 */
-	private function get_inline_runs( \DOMNode $node ): array {
+	private function get_inline_runs( \DOMNode $node, int $depth = 0 ): array {
 		$runs = array();
+
+		if ( $depth >= self::MAX_NODE_DEPTH ) {
+			$text = trim( $node->textContent );
+			if ( '' !== $text ) {
+				$runs[] = array( 'text' => $text );
+			}
+			return $runs;
+		}
 
 		foreach ( $node->childNodes as $child ) {
 			if ( XML_TEXT_NODE === $child->nodeType ) {
@@ -840,7 +872,7 @@ class SScribe_Content_Parser {
 				switch ( $tag ) {
 					case 'strong':
 					case 'b':
-						$sub_runs = $this->get_inline_runs( $child );
+						$sub_runs = $this->get_inline_runs( $child, $depth + 1 );
 						foreach ( $sub_runs as $key => $run ) {
 							$sub_runs[ $key ]['bold'] = true;
 						}
@@ -849,7 +881,7 @@ class SScribe_Content_Parser {
 
 					case 'em':
 					case 'i':
-						$sub_runs = $this->get_inline_runs( $child );
+						$sub_runs = $this->get_inline_runs( $child, $depth + 1 );
 						foreach ( $sub_runs as $key => $run ) {
 							$sub_runs[ $key ]['italic'] = true;
 						}
@@ -857,7 +889,7 @@ class SScribe_Content_Parser {
 						break;
 
 					case 'u':
-						$sub_runs = $this->get_inline_runs( $child );
+						$sub_runs = $this->get_inline_runs( $child, $depth + 1 );
 						foreach ( $sub_runs as $key => $run ) {
 							$sub_runs[ $key ]['underline'] = true;
 						}
@@ -867,7 +899,7 @@ class SScribe_Content_Parser {
 					case 's':
 					case 'del':
 					case 'strike':
-						$sub_runs = $this->get_inline_runs( $child );
+						$sub_runs = $this->get_inline_runs( $child, $depth + 1 );
 						foreach ( $sub_runs as $key => $run ) {
 							$sub_runs[ $key ]['strikethrough'] = true;
 						}
@@ -876,7 +908,7 @@ class SScribe_Content_Parser {
 
 					case 'a':
 						$href     = $child->getAttribute( 'href' );
-						$sub_runs = $this->get_inline_runs( $child );
+						$sub_runs = $this->get_inline_runs( $child, $depth + 1 );
 						foreach ( $sub_runs as $key => $run ) {
 							$sub_runs[ $key ]['link'] = $href;
 						}
@@ -898,7 +930,7 @@ class SScribe_Content_Parser {
 						break;
 
 					case 'span':
-						$sub_runs = $this->get_inline_runs( $child );
+						$sub_runs = $this->get_inline_runs( $child, $depth + 1 );
 						array_push( $runs, ...$sub_runs );
 						break;
 
@@ -917,7 +949,7 @@ class SScribe_Content_Parser {
 						break;
 
 					case 'sup':
-						$sub_runs = $this->get_inline_runs( $child );
+						$sub_runs = $this->get_inline_runs( $child, $depth + 1 );
 						foreach ( $sub_runs as $key => $run ) {
 							$sub_runs[ $key ]['superScript'] = true;
 						}
@@ -925,7 +957,7 @@ class SScribe_Content_Parser {
 						break;
 
 					case 'sub':
-						$sub_runs = $this->get_inline_runs( $child );
+						$sub_runs = $this->get_inline_runs( $child, $depth + 1 );
 						foreach ( $sub_runs as $key => $run ) {
 							$sub_runs[ $key ]['subScript'] = true;
 						}
@@ -933,7 +965,7 @@ class SScribe_Content_Parser {
 						break;
 
 					case 'mark':
-						$sub_runs = $this->get_inline_runs( $child );
+						$sub_runs = $this->get_inline_runs( $child, $depth + 1 );
 						foreach ( $sub_runs as $key => $run ) {
 							$sub_runs[ $key ]['highlight'] = 'yellow';
 						}
@@ -941,7 +973,7 @@ class SScribe_Content_Parser {
 						break;
 
 					case 'ins':
-						$sub_runs = $this->get_inline_runs( $child );
+						$sub_runs = $this->get_inline_runs( $child, $depth + 1 );
 						foreach ( $sub_runs as $key => $run ) {
 							$sub_runs[ $key ]['underline'] = true;
 						}
@@ -958,7 +990,7 @@ class SScribe_Content_Parser {
 						break;
 
 					default:
-						$sub_runs = $this->get_inline_runs( $child );
+						$sub_runs = $this->get_inline_runs( $child, $depth + 1 );
 						array_push( $runs, ...$sub_runs );
 						break;
 				}

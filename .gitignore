@@ -25,6 +25,7 @@
 .mimosa/
 .omo/
 .debug-journal.md
+assets/icons/.mimosa/
 
 # AI tooling — user-local settings + prompt history must never be committed.
 # WordPress.org plugin-check flags these as "ai_instruction_directory" warnings
@@ -38,6 +39,11 @@
 .windsurf/
 .continue/
 .codeium/
+
+# Kilo / opencode session metadata injected into .git by the CLI tools
+# themselves (the user did not add these by hand). Never commit, never ship.
+.git/kilo/
+.git/opencode/
 
 # IDE/Tool configs
 opencode.json

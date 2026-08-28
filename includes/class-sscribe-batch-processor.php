@@ -885,10 +885,28 @@ final class SScribe_Batch_Processor {
 			new \RecursiveDirectoryIterator( $temp_dir, \FilesystemIterator::SKIP_DOTS ),
 			\RecursiveIteratorIterator::LEAVES_ONLY
 		);
+
+		// Bound the recursion and track visited canonical paths so a symlink
+		// loop inside the export temp dir cannot hang the request. The temp
+		// tree is normally 3-4 levels deep (language code + format subdirs);
+		// 16 is a generous ceiling.
+		$iterator->setMaxDepth( 16 );
+		$seen = array();
+
 		foreach ( $iterator as $entry ) {
-			if ( $entry->isFile() ) {
-				++$count;
+			if ( ! $entry->isFile() ) {
+				continue;
 			}
+
+			$real = $entry->getRealPath();
+			if ( false !== $real && isset( $seen[ $real ] ) ) {
+				continue;
+			}
+			if ( false !== $real ) {
+				$seen[ $real ] = true;
+			}
+
+			++$count;
 		}
 		return $count;
 	}
