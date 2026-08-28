@@ -125,12 +125,17 @@ class SScribe_Image_Processor {
 			return false;
 		}
 
-		$optimized_path = self::optimize_local( $temp_path );
+		$optimized_path = self::optimize_staged( $temp_path );
 
-		$temp_real      = realpath( $temp_path );
-		$optimized_real = is_string( $optimized_path ) ? realpath( $optimized_path ) : false;
-		if ( false !== $optimized_path && $temp_real !== $optimized_real && file_exists( $temp_path ) ) {
-			wp_delete_file( $temp_path );
+		if ( is_string( $optimized_path ) && file_exists( $temp_path ) ) {
+			$temp_real      = realpath( $temp_path );
+			$optimized_real = realpath( $optimized_path );
+			if ( false !== $temp_real
+				&& false !== $optimized_real
+				&& $temp_real !== $optimized_real
+			) {
+				wp_delete_file( $temp_path );
+			}
 		}
 
 		if ( $cache_ttl > 0 && is_string( $optimized_path ) && '' !== $optimized_path ) {
@@ -384,6 +389,39 @@ class SScribe_Image_Processor {
 			return false;
 		}
 
+		return self::optimize_validated( $path );
+	}
+
+	/**
+	 * Optimize a downloaded file only after private staging containment checks.
+	 *
+	 * @param string $path Staged image path.
+	 * @return string|false Optimized path or false when unsafe.
+	 */
+	private static function optimize_staged( string $path ): string|false {
+		$staging_dir = self::temp_dir();
+		if ( '' === $staging_dir || is_link( $path ) || ! is_file( $path ) || ! is_readable( $path ) ) {
+			return false;
+		}
+
+		$staging_real = realpath( $staging_dir );
+		$file_real    = realpath( $path );
+		if ( false === $staging_real || false === $file_real ) {
+			return false;
+		}
+
+		$safe_prefix = rtrim( $staging_real, DIRECTORY_SEPARATOR ) . DIRECTORY_SEPARATOR;
+		return str_starts_with( $file_real, $safe_prefix ) ? self::optimize_validated( $file_real ) : false;
+	}
+
+	/**
+	 * Optimize an image path already validated by its trust-boundary resolver.
+	 *
+	 * @param string $path Canonical validated image path.
+	 * @return string|false Optimized path or false on decode failure.
+	 */
+	private static function optimize_validated( string $path ): string|false {
+
 		$info = false;
 		// phpcs:ignore WordPress.PHP.DevelopmentFunctions.error_log_set_error_handler -- Production error handling for image processing.
 		set_error_handler(
@@ -505,6 +543,7 @@ class SScribe_Image_Processor {
 			return $path;
 		}
 
+		SScribe_Private_Storage::harden_file( $optimized_path );
 		return $optimized_path;
 	}
 
@@ -589,44 +628,12 @@ class SScribe_Image_Processor {
 	/**
 	 * Plugin-owned temp directory for intermediate image files.
 	 *
-	 * Lives inside sscribe-exports/ so the default-deny
-	 * is_path_safe_for_write() rule accepts the write. Using
-	 * sys_get_temp_dir() here would put scratch files outside the
-	 * allowlist (and on a multi-site install potentially in a different
-	 * filesystem from the export dir, breaking cross-temp linking).
+	 * Lives inside this site's private SScribe export root so the
+	 * default-deny write rule accepts it.
 	 *
 	 * @return string Absolute path to the image staging dir (with trailing slash).
 	 */
 	private static function temp_dir(): string {
-		if ( ! function_exists( 'wp_upload_dir' ) ) {
-			return '';
-		}
-		$upload_dir = wp_upload_dir();
-		if ( ! empty( $upload_dir['error'] ) || empty( $upload_dir['basedir'] ) ) {
-			return '';
-		}
-		$base       = (string) $upload_dir['basedir'];
-		$dir        = trailingslashit( $base ) . 'sscribe-exports/image-staging/';
-		if ( ! is_dir( $dir ) ) {
-			if ( ! function_exists( 'wp_mkdir_p' ) || ! wp_mkdir_p( $dir ) ) {
-				return '';
-			}
-		}
-		if ( is_link( $dir ) || ! wp_is_writable( $dir ) ) {
-			return '';
-		}
-		$base_real = realpath( $base );
-		$dir_real  = realpath( $dir );
-		if ( false === $base_real || false === $dir_real ) {
-			return '';
-		}
-		$safe_prefix = rtrim( $base_real, DIRECTORY_SEPARATOR ) . DIRECTORY_SEPARATOR . 'sscribe-exports' . DIRECTORY_SEPARATOR;
-		if ( ! str_starts_with( rtrim( $dir_real, DIRECTORY_SEPARATOR ) . DIRECTORY_SEPARATOR, $safe_prefix ) ) {
-			return '';
-		}
-		if ( ! file_exists( trailingslashit( $base ) . 'sscribe-exports/.htaccess' ) ) {
-			SScribe_Security::protect_directory( trailingslashit( $base ) . 'sscribe-exports' );
-		}
-		return untrailingslashit( $dir );
+		return SScribe_Private_Storage::get_subdirectory( 'image-staging' );
 	}
 }

@@ -65,7 +65,7 @@ class SScribe_Privacy {
 		}
 
 		$content  = '<p>' . esc_html__( 'SScribe stores export session records, export statistics, and security audit events to provide reliable document exports, enforce rate limiting, and help administrators troubleshoot failures.', 'sscribe-export-site-pages' ) . '</p>';
-		$content .= '<p>' . esc_html__( 'These records may include your user ID, a shortened hash derived from your IP address, browser user agent, request path, export status metadata, and timestamps. Generated export packages and debug logs are stored temporarily in your WordPress uploads directory and are automatically cleaned up after their retention window.', 'sscribe-export-site-pages' ) . '</p>';
+		$content .= '<p>' . esc_html__( 'These records may include your user ID, a shortened hash derived from your IP address, browser user agent, request path, export status metadata, and timestamps. Generated export packages and debug logs are stored temporarily in private server-side storage outside public WordPress directories and are automatically cleaned up after their retention window.', 'sscribe-export-site-pages' ) . '</p>';
 		$content .= '<p>' . esc_html__( 'Site owners can export or erase SScribe personal data through WordPress privacy tools.', 'sscribe-export-site-pages' ) . '</p>';
 
 		register_privacy_policy_content(

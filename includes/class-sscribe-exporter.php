@@ -744,15 +744,11 @@ final class SScribe_Exporter {
 					\SScribeVendor\PhpOffice\PhpWord\Settings::ZIPARCHIVE
 				);
 
-				// Redirect PHPWord's scratch files (phpword_*.tmp, XMLWriter
-				// buffers, image temp extractions) into the SScribe export
-				// dir. Default PHPWord writes to sys_get_temp_dir(), which
-				// sits outside the is_path_safe_for_write() allowlist and
-				// can also fail with a permissions error on hardened hosts.
 				$phpword_tempdir = self::get_phpword_temp_dir();
 				if ( '' === $phpword_tempdir || ! function_exists( 'wp_mkdir_p' ) || ( ! is_dir( $phpword_tempdir ) && ! wp_mkdir_p( $phpword_tempdir ) ) || ! wp_is_writable( $phpword_tempdir ) ) {
-					throw new \RuntimeException( 'The WordPress uploads directory is unavailable for DOCX temporary files.' );
+					throw new \RuntimeException( 'Private storage is unavailable for DOCX temporary files.' );
 				}
+				SScribe_Private_Storage::harden_directory( untrailingslashit( $phpword_tempdir ) );
 				\SScribeVendor\PhpOffice\PhpWord\Settings::setTempDir( $phpword_tempdir );
 			}
 
@@ -1061,12 +1057,8 @@ final class SScribe_Exporter {
 			return self::$phpword_temp_dir;
 		}
 
-		if ( ! function_exists( 'wp_upload_dir' ) ) {
-			return '';
-		}
-
-		$upload_dir = wp_upload_dir();
-		if ( ! empty( $upload_dir['error'] ) || empty( $upload_dir['basedir'] ) ) {
+		$root = SScribe_Private_Storage::get_subdirectory( 'phpword-scratch' );
+		if ( '' === $root ) {
 			return '';
 		}
 
@@ -1076,7 +1068,7 @@ final class SScribe_Exporter {
 			return '';
 		}
 
-		self::$phpword_temp_dir = trailingslashit( (string) $upload_dir['basedir'] ) . 'sscribe-exports/phpword-scratch/run-' . $token . '/';
+		self::$phpword_temp_dir = trailingslashit( $root ) . 'run-' . $token . '/';
 		return self::$phpword_temp_dir;
 	}
 

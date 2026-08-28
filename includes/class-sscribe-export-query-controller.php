@@ -733,6 +733,18 @@ class SScribe_Export_Query_Controller {
 		$date_format = is_string( $date_option ) && '' !== $date_option ? substr( $date_option, 0, 100 ) : 'Y-m-d';
 		$time_format = is_string( $time_option ) && '' !== $time_option ? substr( $time_option, 0, 100 ) : 'H:i';
 
+		try {
+			$export_dir = $this->zip_handler->get_export_dir();
+		} catch ( \InvalidArgumentException $e ) {
+			SScribe_AJAX_Guard::success(
+				array(
+					'exports'     => array(),
+					'total_count' => 0,
+				)
+			);
+			return;
+		}
+
 		foreach ( $exports as $filename => $data ) {
 			if ( ! isset( $data['user_id'] ) || (int) $data['user_id'] !== $user_id ) {
 				continue;
@@ -743,7 +755,7 @@ class SScribe_Export_Query_Controller {
 				continue;
 			}
 
-			$file_path = $this->zip_handler->get_export_dir() . '/' . $filename;
+			$file_path = $export_dir . '/' . $filename;
 			if ( is_link( $file_path ) || ! is_file( $file_path ) ) {
 				continue;
 			}

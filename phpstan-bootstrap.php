@@ -147,3 +147,13 @@ if ( ! defined( 'MB_IN_BYTES' ) ) {
 	 */
 	define( 'MB_IN_BYTES', 1048576 );
 }
+
+if ( ! defined( 'SSCRIBE_PRIVATE_STORAGE_DIR' ) ) {
+	/**
+	 * Plugin-private storage override stub for PHPStan.
+	 * Operators can pin SSCRIBE_PRIVATE_STORAGE_DIR in wp-config.php to
+	 * relocate the private export tree. PHPStan treats the constant as
+	 * undefined because it is declared at runtime by WordPress bootstrap.
+	 */
+	define( 'SSCRIBE_PRIVATE_STORAGE_DIR', '' );
+}

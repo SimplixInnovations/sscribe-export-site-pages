@@ -107,8 +107,9 @@ if ( 0 === $cs_exit ) {
 	$results['phpcs'] = true;
 } else {
 	$cs_errors = count( $cs_output );
-	echo "{$warn_mark} {$cs_errors} issue(s) (non-blocking)\n";
+	echo "{$fail_mark} {$cs_errors} issue(s)\n";
 	$results['phpcs'] = false;
+	$gates_passed = false;
 }
 
 echo "\n";

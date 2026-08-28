@@ -516,6 +516,51 @@ final class SScribe_Shipped_Invariants_Test extends TestCase {
 	}
 
 	/**
+	 * Pre-export advisories must use one polite live region, not nested roles.
+	 */
+	public function test_preflight_advisories_do_not_nest_live_regions(): void {
+		$template = self::$plugin_root . '/admin/partials/sscribe-admin-display.php';
+		$this->assertFileExists( $template, 'Admin display template missing.' );
+
+		$contents = (string) file_get_contents( $template );
+		$this->assertMatchesRegularExpression(
+			'/class="sscribe-preflight-warnings"\s+role="status"\s+aria-live="polite"/',
+			$contents,
+			'Pre-export advisories must expose one polite status region.'
+		);
+		$this->assertDoesNotMatchRegularExpression(
+			'/class="[^\"]*\bsscribe-preflight-warning(?:\s|\")[^\"]*"[^>]*\srole="(?:alert|status)"/',
+			$contents,
+			'Individual advisories must not create nested live regions.'
+		);
+	}
+
+	/**
+	 * Toast announcements must use the container as their only live region.
+	 */
+	public function test_toasts_do_not_create_nested_live_regions(): void {
+		$template = (string) file_get_contents( self::$plugin_root . '/admin/partials/sscribe-admin-display.php' );
+		$script   = (string) file_get_contents( self::$plugin_root . '/admin/js/sscribe-admin.js' );
+
+		$this->assertMatchesRegularExpression(
+			'/id="sscribe-toast-container"[^>]*aria-live="polite"/',
+			$template,
+			'The toast container must announce added messages.'
+		);
+		$this->assertMatchesRegularExpression(
+			'/showToast:\s*function(.*?)adjustToastContainerPosition:/s',
+			$script,
+			'The toast function must remain independently auditable.'
+		);
+		preg_match( '/showToast:\s*function(.*?)adjustToastContainerPosition:/s', $script, $toast_function );
+		$this->assertDoesNotMatchRegularExpression(
+			'/\.attr\([\'\"](?:role|aria-live)[\'\"]/',
+			$toast_function[1],
+			'Individual toasts must not create nested live regions.'
+		);
+	}
+
+	/**
 	 * Disabled native radios must remain visually hidden behind card controls.
 	 */
 	public function test_disabled_status_card_radios_remain_hidden(): void {
@@ -568,6 +613,53 @@ final class SScribe_Shipped_Invariants_Test extends TestCase {
 			'/exportComplete:\s*function.*?removeClass\([\'\"]sscribe-btn-busy[\'\"]\).*?removeAttr\([\'\"]aria-busy[\'\"]\).*?updateExportButton\(\);/s',
 			$contents,
 			'Completion must remove the interaction lock and recalculate action availability.'
+		);
+	}
+
+	public function test_cancelled_exports_cannot_restart_a_pending_batch_or_show_failure_ui(): void {
+		$script   = self::$plugin_root . '/admin/js/sscribe-admin.js';
+		$contents = (string) file_get_contents( $script );
+
+		$this->assertStringContainsString( '_isCancelling: false,', $contents );
+		$this->assertMatchesRegularExpression(
+			'/scheduleNextBatch:\s*function.*?self\._batchTimer\s*=\s*setTimeout.*?self\._isCancelling\s*\|\|\s*!self\.sessionId\s*\|\|\s*!self\.isProcessing/s',
+			$contents,
+			'Pending batch timers must stop after cancellation resets the session.'
+		);
+		$this->assertMatchesRegularExpression(
+			'/error:\s*function\s*\(xhr,\s*textStatus\).*?self\._isCancelling\s*&&\s*textStatus\s*===\s*[\'\"]abort[\'\"]/s',
+			$contents,
+			'Aborting the active batch for cancellation must not enter retry or failure handling.'
+		);
+		$this->assertMatchesRegularExpression(
+			'/if\s*\(isCancelled\)\s*\{\s*SScribe\.showCancelled\(response\.data\.message\);/s',
+			$contents,
+			'Server-confirmed cancellation must render the clean cancelled state, not Export failed.'
+		);
+		$this->assertMatchesRegularExpression(
+			'/shouldRetry\s*=.*?xhr\.status\s*===\s*409.*?SScribe\._doCancelExport\(cancelAttempt\s*\+\s*1\);/s',
+			$contents,
+			'Cancellation must retry while the active batch still holds its lock.'
+		);
+		$this->assertStringContainsString(
+			"$('#sscribe-live-region, #sscribe-alert-region').text('');",
+			$contents,
+			'Cancellation reset must clear stale progress announcements.'
+		);
+		$this->assertStringNotContainsString(
+			'this.announce(cancelledMessage);',
+			$contents,
+			'The cancellation toast container already announces additions and must not be announced twice.'
+		);
+	}
+
+	public function test_zip_excludes_unused_mpdf_request_handler(): void {
+		$handler = self::$extract_dir . DIRECTORY_SEPARATOR . self::PLUGIN_SLUG
+			. '/vendor-prefixed/mpdf/mpdf/data/out.php';
+
+		$this->assertFileDoesNotExist(
+			$handler,
+			'Unused vendor request handlers must not be shipped.'
 		);
 	}
 
@@ -631,6 +723,86 @@ final class SScribe_Shipped_Invariants_Test extends TestCase {
 			'<div class="wrap sscribe-admin-wrap">',
 			$admin_view,
 			'Dark-mode removal must not introduce a replacement page shell.'
+		);
+	}
+
+	public function test_component_styles_are_token_driven(): void {
+		$stylesheets = array(
+			self::$plugin_root . '/admin/css/sscribe-admin.css',
+			self::$plugin_root . '/admin/css/sscribe-debug-console.css',
+		);
+
+		foreach ( $stylesheets as $stylesheet ) {
+			$contents = (string) file_get_contents( $stylesheet );
+			$this->assertDoesNotMatchRegularExpression(
+				'/(?:font-size|font-weight|line-height|letter-spacing):\s*-?[0-9]/',
+				$contents,
+				$stylesheet . ' must use typography tokens.'
+			);
+			$this->assertDoesNotMatchRegularExpression(
+				'/\bfont:\s*[^;]*\b[0-9]+(?:px|\/)/',
+				$contents,
+				$stylesheet . ' must use tokens in font shorthands.'
+			);
+			$this->assertDoesNotMatchRegularExpression(
+				'/(?:#[0-9a-f]{3,8}\b|%23[0-9a-f]{3,8}\b|rgba?\()/i',
+				$contents,
+				$stylesheet . ' must use color tokens.'
+			);
+
+			preg_match_all(
+				'/^(?:\s*)(?:gap|row-gap|column-gap|padding(?:-[a-z-]+)?|margin(?:-[a-z-]+)?):\s*([^;]+);/mi',
+				$contents,
+				$spacing_declarations
+			);
+			foreach ( $spacing_declarations[1] as $spacing_value ) {
+				$this->assertDoesNotMatchRegularExpression(
+					'/[0-9.]+px/',
+					$spacing_value,
+					$stylesheet . ' must use spacing tokens.'
+				);
+			}
+		}
+	}
+
+	public function test_mobile_onboarding_uses_a_single_column_hierarchy(): void {
+		$stylesheet = (string) file_get_contents( self::$plugin_root . '/admin/css/sscribe-admin.css' );
+
+		$this->assertMatchesRegularExpression(
+			'/@media\s*\(width\s*<=\s*480px\).*?\.sscribe-onboarding-inner\s*\{[^}]*flex-direction:\s*column;[^}]*align-items:\s*stretch;/s',
+			$stylesheet,
+			'The mobile first-run guide must stack its icon above a full-width body.'
+		);
+		$this->assertMatchesRegularExpression(
+			'/@media\s*\(width\s*<=\s*480px\).*?\.sscribe-onboarding-inner\s*>\s*#sscribe-onboarding-dismiss\s*\{[^}]*position:\s*absolute;[^}]*inset-block-start:\s*0;[^}]*inset-inline-end:\s*0;/s',
+			$stylesheet,
+			'The mobile dismiss control must stay in the logical top corner in LTR and RTL.'
+		);
+	}
+
+	public function test_custom_checkboxes_do_not_render_the_wordpress_core_checkmark(): void {
+		$stylesheet = (string) file_get_contents( self::$plugin_root . '/admin/css/sscribe-admin.css' );
+
+		$this->assertMatchesRegularExpression(
+			'/\.sscribe-master-container\s+input\[type=["\']checkbox["\']\]::before\s*\{[^}]*content:\s*none;/s',
+			$stylesheet,
+			'Custom checkboxes must suppress the WordPress core ::before mark before drawing their own ::after icon.'
+		);
+	}
+
+	public function test_status_choice_cards_preserve_their_grid_gap(): void {
+		$stylesheet = (string) file_get_contents( self::$plugin_root . '/admin/css/sscribe-admin.css' );
+
+		$this->assertMatchesRegularExpression(
+			'/\.sscribe-status-card-inner\s*\{[^}]*min-width:\s*0;[^}]*column-gap:\s*var\(--ss-space-1-5\);[^}]*padding-inline:\s*var\(--ss-space-2\);/s',
+			$stylesheet,
+			'Status card interiors must shrink inside their grid tracks so the declared gap remains visible.'
+		);
+
+		$this->assertMatchesRegularExpression(
+			'/\.sscribe-status-name\s*\{[^}]*white-space:\s*normal;[^}]*overflow-wrap:\s*anywhere;/s',
+			$stylesheet,
+			'Status names must wrap inside compact desktop tracks when translations are longer than English.'
 		);
 	}
 }

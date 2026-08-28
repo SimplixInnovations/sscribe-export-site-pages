@@ -68,16 +68,11 @@ class SScribe_Admin_Debug {
 	/**
 	 * Resolve the plugin-owned debug log directory.
 	 *
-	 * @return string|null Absolute directory path, or null when uploads are unavailable.
+	 * @return string|null Absolute directory path, or null when private storage is unavailable.
 	 */
 	private static function get_log_directory(): ?string {
-		$upload_dir = wp_upload_dir();
-		if ( ! empty( $upload_dir['error'] ) || empty( $upload_dir['basedir'] ) ) {
-			return null;
-		}
-
-		$log_directory = trailingslashit( (string) $upload_dir['basedir'] ) . 'sscribe-exports/logs';
-		return is_link( $log_directory ) ? null : $log_directory;
+		$log_directory = SScribe_Private_Storage::get_subdirectory( 'logs', false );
+		return '' === $log_directory || is_link( $log_directory ) ? null : $log_directory;
 	}
 
 	/**
@@ -367,7 +362,7 @@ class SScribe_Admin_Debug {
 
 			$log_dir = self::get_log_directory();
 			if ( null === $log_dir ) {
-				wp_send_json_error( array( 'message' => __( 'The WordPress uploads directory is unavailable.', 'sscribe-export-site-pages' ) ), 500 );
+				wp_send_json_error( array( 'message' => __( 'Private log storage is unavailable.', 'sscribe-export-site-pages' ) ), 500 );
 				return;
 			}
 			$file_path  = $log_dir . '/' . $filename;
@@ -502,7 +497,7 @@ class SScribe_Admin_Debug {
 
 		$log_dir = self::get_log_directory();
 		if ( null === $log_dir ) {
-			wp_send_json_error( array( 'message' => __( 'The WordPress uploads directory is unavailable.', 'sscribe-export-site-pages' ) ), 500 );
+			wp_send_json_error( array( 'message' => __( 'Private log storage is unavailable.', 'sscribe-export-site-pages' ) ), 500 );
 			return;
 		}
 
@@ -616,7 +611,7 @@ class SScribe_Admin_Debug {
 
 		$log_dir = self::get_log_directory();
 		if ( null === $log_dir ) {
-			wp_send_json_error( array( 'message' => __( 'The WordPress uploads directory is unavailable.', 'sscribe-export-site-pages' ) ), 500 );
+			wp_send_json_error( array( 'message' => __( 'Private log storage is unavailable.', 'sscribe-export-site-pages' ) ), 500 );
 			return;
 		}
 		$file_path  = $log_dir . '/' . $filename;
@@ -751,7 +746,7 @@ class SScribe_Admin_Debug {
 
 		$log_dir = self::get_log_directory();
 		if ( null === $log_dir ) {
-			wp_send_json_error( array( 'message' => __( 'The WordPress uploads directory is unavailable.', 'sscribe-export-site-pages' ) ), 500 );
+			wp_send_json_error( array( 'message' => __( 'Private log storage is unavailable.', 'sscribe-export-site-pages' ) ), 500 );
 			return;
 		}
 		$file_path  = $log_dir . '/' . $filename;

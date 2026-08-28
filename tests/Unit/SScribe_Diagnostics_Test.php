@@ -269,8 +269,7 @@ class SScribe_Diagnostics_Test extends TestCase {
 	}
 
 	public function test_temp_cleanup_only_removes_inactive_plugin_temp_directories(): void {
-		$upload_dir = wp_upload_dir();
-		$export_dir = trailingslashit( (string) $upload_dir['basedir'] ) . 'sscribe-exports';
+		$export_dir = \SScribe_Private_Storage::get_export_dir();
 		$suffix     = bin2hex( random_bytes( 4 ) );
 		$stale_dir  = $export_dir . '/temp-stale-' . $suffix;
 		$active_dir = $export_dir . '/temp-active-' . $suffix;
@@ -321,8 +320,7 @@ class SScribe_Diagnostics_Test extends TestCase {
 	}
 
 	public function test_active_temp_membership_requires_exact_canonical_path(): void {
-		$upload_dir = wp_upload_dir();
-		$export_dir = trailingslashit( (string) $upload_dir['basedir'] ) . 'sscribe-exports';
+		$export_dir = \SScribe_Private_Storage::get_export_dir();
 		$active_dir = $export_dir . '/temp-a';
 		$other_dir  = $export_dir . '/temp-attacker';
 
@@ -414,6 +412,28 @@ $sections            = array(
 			'MIN_MPDF_FONT_COUNT is higher than the shipped font file count; '
 			. 'this causes a false-positive warning on every install.'
 		);
+	}
+
+	public function test_mpdf_font_discovery_does_not_depend_on_glob_brace(): void {
+		$temp_dir = sys_get_temp_dir() . '/sscribe-font-glob-' . bin2hex( random_bytes( 6 ) );
+		wp_mkdir_p( $temp_dir );
+		file_put_contents( $temp_dir . '/one.ttf', '' );
+		file_put_contents( $temp_dir . '/two.otf', '' );
+		file_put_contents( $temp_dir . '/three.txt', '' );
+		file_put_contents( $temp_dir . '/ignored.php', '' );
+
+		try {
+			$method = new \ReflectionMethod( SScribe_Diagnostics::class, 'find_mpdf_font_files' );
+			$files  = $method->invoke( $this->diagnostics, $temp_dir );
+
+			$this->assertCount( 3, $files );
+			$this->assertSame( array( 'one.ttf', 'three.txt', 'two.otf' ), array_map( 'basename', $files ) );
+		} finally {
+			foreach ( glob( $temp_dir . '/*' ) ?: array() as $file ) {
+				wp_delete_file( $file );
+			}
+			@rmdir( $temp_dir );
+		}
 	}
 
 	/**

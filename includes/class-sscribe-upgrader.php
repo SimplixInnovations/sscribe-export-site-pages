@@ -232,6 +232,10 @@ class SScribe_Upgrader {
 				throw new \RuntimeException( 'Failed while updating the export-status column.', 0, $e );
 			}
 		}
+
+		if ( version_compare( $from_version, '2.0.0', '<' ) && ! SScribe_Private_Storage::migrate_legacy_storage() ) {
+			throw new \RuntimeException( 'Failed while migrating export artifacts to private storage.' );
+		}
 	}
 
 	/**

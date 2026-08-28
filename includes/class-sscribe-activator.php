@@ -297,17 +297,32 @@ class SScribe_Activator {
 	/**
 	 * Create and protect the export directory.
 	 *
-	 * @throws \RuntimeException When WordPress cannot resolve the uploads directory.
+	 * Migration failure is logged and surfaced to the administrator via a
+	 * transient notice, but never aborts activation. Legacy public artifacts
+	 * stay in place so the operator can clean them up by hand when file
+	 * permissions or ownership prevent the plugin from moving them.
+	 *
+	 * @throws \RuntimeException When no safe private storage directory is available.
 	 */
 	private static function create_export_directory(): void {
-		$upload_dir = wp_upload_dir();
-		if ( ! empty( $upload_dir['error'] ) || empty( $upload_dir['basedir'] ) ) {
-			throw new \RuntimeException( 'WordPress could not resolve the uploads directory during SScribe activation.' );
+		$export_path = SScribe_Private_Storage::get_export_dir();
+		if ( '' === $export_path ) {
+			throw new \RuntimeException( 'SScribe could not create a safe private storage directory during activation.' );
 		}
-
-		$export_path = untrailingslashit( $upload_dir['basedir'] ) . '/sscribe-exports';
-
-		SScribe_Security::protect_directory( $export_path );
+		if ( ! SScribe_Private_Storage::migrate_legacy_storage() ) {
+			set_transient(
+				'sscribe_migration_warning',
+				array(
+					'message' => sprintf(
+						/* translators: %s: legacy directory name. */
+						__( 'SScribe could not move every legacy public artifact into private storage. Review permissions on %s and the SScribe Diagnostics screen, then re-run Migration from the Tools menu.', 'sscribe-export-site-pages' ),
+						'wp-content/uploads/sscribe-exports'
+					),
+					'time'    => gmdate( 'Y-m-d H:i:s \U\T\C' ),
+				),
+				DAY_IN_SECONDS
+			);
+		}
 	}
 
 	/**

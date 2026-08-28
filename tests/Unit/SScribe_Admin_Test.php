@@ -131,8 +131,7 @@ class SScribe_Admin_Test extends TestCase {
 	}
 
 	public function test_build_recent_exports_sanitizes_filters_and_maps_language_data(): void {
-		$upload_dir = wp_upload_dir();
-		$export_dir = trailingslashit( $upload_dir['basedir'] ) . 'sscribe-exports/';
+		$export_dir = trailingslashit( \SScribe_Private_Storage::get_export_dir() );
 		wp_mkdir_p( $export_dir );
 
 		$valid_file = 'valid-export-FR.zip';

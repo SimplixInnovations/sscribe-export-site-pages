@@ -288,6 +288,11 @@ class SScribe_Admin {
 				'history_col_select'     => __( 'Select', 'sscribe-export-site-pages' ),
 				'history_col_export'     => __( 'Export', 'sscribe-export-site-pages' ),
 				'history_col_actions'    => __( 'Actions', 'sscribe-export-site-pages' ),
+				/* translators: %s: export filename */
+				'select_export_label'    => __( 'Select export %s', 'sscribe-export-site-pages' ),
+				'download_label'         => __( 'Download', 'sscribe-export-site-pages' ),
+				'log_label'              => __( 'Log', 'sscribe-export-site-pages' ),
+				'delete_label'           => __( 'Delete', 'sscribe-export-site-pages' ),
 				'estimated_time'         => __( 'Estimated time:', 'sscribe-export-site-pages' ),
 				'minutes'                => __( 'minutes', 'sscribe-export-site-pages' ),
 				'minute'                 => __( 'minute', 'sscribe-export-site-pages' ),
@@ -321,7 +326,7 @@ class SScribe_Admin {
 				'err_data_corrupted'     => __( 'The encrypted export session data could not be verified. Clear the session and start a new export. If this repeats, check database health and available storage.', 'sscribe-export-site-pages' ),
 				'err_rate_limit'         => __( 'You have exceeded the request rate limit. Please wait about 1 minute and then try again.', 'sscribe-export-site-pages' ),
 				'err_no_pages'           => __( 'No pages match the selected language and status combination. Go back and verify your selection. If using WPML, ensure the selected language has pages assigned to it.', 'sscribe-export-site-pages' ),
-				'err_zip'                => __( 'The server could not create the ZIP archive. Verify that the uploads directory is writable by WordPress, sufficient disk space is available, and the PHP ZIP extension is installed.', 'sscribe-export-site-pages' ),
+				'err_zip'                => __( 'The server could not create the ZIP archive. Verify that private temporary storage is writable, sufficient disk space is available, and the PHP ZIP extension is installed.', 'sscribe-export-site-pages' ),
 				'err_timeout'            => __( 'The server took too long to respond. This usually happens with large pages or slow server hardware. The plugin processes pages individually and will resume from where it left off. If this keeps happening, ask your hosting provider to increase max_execution_time to at least 120 seconds.', 'sscribe-export-site-pages' ),
 				'err_memory'             => __( 'The server ran out of PHP memory during export. Ask your hosting provider to increase the WordPress memory limit (WP_MEMORY_LIMIT) to at least 256M. You can also try exporting fewer pages at a time by selecting a specific language.', 'sscribe-export-site-pages' ),
 				'err_connection'         => __( 'The connection to your server was interrupted. Check your internet connection and try again. If you are behind a proxy or CDN (e.g., Cloudflare), ensure AJAX requests are not being blocked or cached.', 'sscribe-export-site-pages' ),
@@ -373,6 +378,8 @@ class SScribe_Admin {
 				'loading_counts'         => __( 'Loading page counts...', 'sscribe-export-site-pages' ),
 				'log_diagnostics'        => __( 'Diagnostics', 'sscribe-export-site-pages' ),
 				'technical_details'      => __( 'Technical details', 'sscribe-export-site-pages' ),
+				'error_show_details'     => __( 'Show technical details', 'sscribe-export-site-pages' ),
+				'error_hide_details'     => __( 'Hide technical details', 'sscribe-export-site-pages' ),
 				'fix_steps'              => __( 'Steps to fix:', 'sscribe-export-site-pages' ),
 				'export_progress_prefix' => __( 'Export progress:', 'sscribe-export-site-pages' ),
 				'format_docx'            => __( 'Word Document (DOCX)', 'sscribe-export-site-pages' ),
@@ -625,10 +632,8 @@ class SScribe_Admin {
 			}
 		}
 
-		$upload_dir = wp_upload_dir();
-		$export_dir = ! empty( $upload_dir['error'] ) || empty( $upload_dir['basedir'] )
-			? ''
-			: trailingslashit( (string) $upload_dir['basedir'] ) . 'sscribe-exports/';
+		$export_dir = SScribe_Private_Storage::get_export_dir( false );
+		$export_dir = '' !== $export_dir ? trailingslashit( $export_dir ) : '';
 
 		$sscribe_export_index = array();
 		$sscribe_export_rows  = array();
@@ -799,7 +804,7 @@ class SScribe_Admin {
 				'icon'     => 'warning',
 				'severity' => 'warning',
 				'message'  => __( 'The exports directory could not be created.', 'sscribe-export-site-pages' ),
-				'detail'   => __( 'Check that your uploads folder is writable, then refresh this page.', 'sscribe-export-site-pages' ),
+				'detail'   => __( 'Check that private temporary storage is writable, then refresh this page.', 'sscribe-export-site-pages' ),
 			);
 		}
 

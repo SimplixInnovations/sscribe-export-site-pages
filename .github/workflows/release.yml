@@ -1,172 +1,165 @@
 name: Release
 
 on:
-  push:
-    tags:
-      - 'v*'
+    push:
+        tags:
+            - 'v*'
 
 permissions:
-  contents: write
+    contents: write
 
 jobs:
-  verify:
-    name: Pre-release Verification
-    runs-on: ubuntu-latest
-    steps:
-      - name: Checkout code
-        uses: actions/checkout@v6
+    verify:
+        name: Pre-release Verification
+        runs-on: ubuntu-latest
+        steps:
+            - name: Checkout code
+              uses: actions/checkout@v6
 
-      - name: Setup PHP
-        uses: shivammathur/setup-php@v2
-        with:
-          php-version: '8.4'
-          coverage: none
-          extensions: fileinfo
+            - name: Setup PHP
+              uses: shivammathur/setup-php@v2
+              with:
+                  php-version: '8.4'
+                  coverage: none
+                  extensions: fileinfo
 
-      - name: Verify version synchronization
-        run: php scripts/verify-version-sync.php
+            - name: Verify version synchronization
+              run: php scripts/verify-version-sync.php
 
-      - name: Verify tag matches version
-        run: |
-          TAG_VERSION="${GITHUB_REF#refs/tags/v}"
-          PLUGIN_VERSION=$(grep -oP "define\s*\(\s*['\"]SSCRIBE_VERSION['\"]\s*,\s*['\"]\K[0-9.]+" sscribe-export-site-pages.php)
-          if [ "$TAG_VERSION" != "$PLUGIN_VERSION" ]; then
-            echo "Error: Tag version ($TAG_VERSION) does not match plugin version ($PLUGIN_VERSION)"
-            exit 1
-          fi
-          echo "OK: Tag version matches plugin version: $TAG_VERSION"
+            - name: Verify tag matches version
+              run: |
+                  TAG_VERSION="${GITHUB_REF#refs/tags/v}"
+                  PLUGIN_VERSION=$(grep -oP "define\s*\(\s*['\"]SSCRIBE_VERSION['\"]\s*,\s*['\"]\K[0-9.]+" sscribe-export-site-pages.php)
+                  if [ "$TAG_VERSION" != "$PLUGIN_VERSION" ]; then
+                    echo "Error: Tag version ($TAG_VERSION) does not match plugin version ($PLUGIN_VERSION)"
+                    exit 1
+                  fi
+                  echo "OK: Tag version matches plugin version: $TAG_VERSION"
 
-      - name: Verify tagged commit is current develop HEAD
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        run: |
-          git fetch --no-tags origin develop
-          TAG_SHA=$(git rev-list -n 1 "$GITHUB_SHA")
-          DEVELOP_SHA=$(git rev-parse origin/develop)
-          if [ "$TAG_SHA" != "$DEVELOP_SHA" ]; then
-            echo "Error: Release tags must point to the latest origin/develop commit."
-            echo "Tag SHA:    $TAG_SHA"
-            echo "Develop SHA: $DEVELOP_SHA"
-            exit 1
-          fi
-          echo "OK: Tag commit matches origin/develop HEAD"
+            - name: Verify tagged commit is current develop HEAD
+              env:
+                  GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+              run: |
+                  git fetch --no-tags origin develop
+                  TAG_SHA=$(git rev-list -n 1 "$GITHUB_SHA")
+                  DEVELOP_SHA=$(git rev-parse origin/develop)
+                  if [ "$TAG_SHA" != "$DEVELOP_SHA" ]; then
+                    echo "Error: Release tags must point to the latest origin/develop commit."
+                    echo "Tag SHA:    $TAG_SHA"
+                    echo "Develop SHA: $DEVELOP_SHA"
+                    exit 1
+                  fi
+                  echo "OK: Tag commit matches origin/develop HEAD"
 
-  audit:
-    name: Security Audit
-    runs-on: ubuntu-latest
-    needs: verify
-    steps:
-      - name: Checkout code
-        uses: actions/checkout@v6
+    audit:
+        name: Security Audit
+        runs-on: ubuntu-latest
+        needs: verify
+        steps:
+            - name: Checkout code
+              uses: actions/checkout@v6
 
-      - name: Setup PHP
-        uses: shivammathur/setup-php@v2
-        with:
-          php-version: '8.4'
-          coverage: none
-          extensions: fileinfo
+            - name: Setup PHP
+              uses: shivammathur/setup-php@v2
+              with:
+                  php-version: '8.4'
+                  coverage: none
+                  extensions: fileinfo
 
-      - name: Composer security audit
-        run: composer audit --no-dev
+            - name: Install locked dependencies
+              run: composer install --no-interaction --no-progress
 
-  test:
-    name: Run Tests Before Release
-    runs-on: ubuntu-latest
-    needs: audit
-    steps:
-      - name: Checkout code
-        uses: actions/checkout@v6
+            - name: Composer security audit
+              run: composer audit --locked --format=plain --abandoned=fail
 
-      - name: Setup PHP
-        uses: shivammathur/setup-php@v2
-        with:
-          php-version: '8.4'
-          coverage: none
-          extensions: fileinfo
+    test:
+        name: Run Tests Before Release
+        runs-on: ubuntu-latest
+        needs: audit
+        steps:
+            - name: Checkout code
+              uses: actions/checkout@v6
 
-      - name: Cache Composer dependencies
-        uses: actions/cache@v6
-        with:
-          path: vendor
-          key: ${{ runner.os }}-php-8.4-release-${{ hashFiles('composer.lock') }}
-          restore-keys: |
-            ${{ runner.os }}-php-8.4-release-
+            - name: Setup PHP
+              uses: shivammathur/setup-php@v2
+              with:
+                  php-version: '8.4'
+                  coverage: none
+                  extensions: fileinfo, zip
 
-      - name: Install dependencies
-        run: composer install --no-progress
+            - name: Cache Composer dependencies
+              uses: actions/cache@v6
+              with:
+                  path: vendor
+                  key: ${{ runner.os }}-php-8.4-release-${{ hashFiles('composer.lock') }}
+                  restore-keys: |
+                      ${{ runner.os }}-php-8.4-release-
 
-      - name: Generate prefixed vendor tree
-        run: composer vendor:prefix
-      - name: Run PHPUnit
-        run: composer test
+            - name: Install dependencies
+              run: composer install --no-progress
 
-      - name: Run PHPStan
-        run: composer stan
+            - name: Generate prefixed vendor tree
+              run: composer vendor:prefix
+            - name: Run PHPUnit
+              run: composer test
 
-      - name: Run PHPCS
-        run: composer cs
+            - name: Run PHPStan
+              run: composer stan
 
-  build:
-    name: Build WordPress Plugin
-    runs-on: ubuntu-latest
-    needs: test
-    steps:
-      - name: Checkout code
-        uses: actions/checkout@v6
+            - name: Run PHPCS
+              run: composer cs
 
-      - name: Setup PHP
-        uses: shivammathur/setup-php@v2
-        with:
-          php-version: '8.4'
-          coverage: none
-          extensions: fileinfo
+    build:
+        name: Build WordPress Plugin
+        runs-on: ubuntu-latest
+        needs: test
+        steps:
+            - name: Checkout code
+              uses: actions/checkout@v6
 
-      - name: Cache Composer dependencies
-        uses: actions/cache@v6
-        with:
-          path: vendor
-          key: ${{ runner.os }}-php-8.4-build-${{ hashFiles('composer.lock') }}
-          restore-keys: |
-            ${{ runner.os }}-php-8.4-build-
+            - name: Setup PHP
+              uses: shivammathur/setup-php@v2
+              with:
+                  php-version: '8.4'
+                  coverage: none
+                  extensions: fileinfo, zip
 
-      - name: Install build dependencies
-        run: composer install --optimize-autoloader --no-progress
+            - name: Cache Composer dependencies
+              uses: actions/cache@v6
+              with:
+                  path: vendor
+                  key: ${{ runner.os }}-php-8.4-build-${{ hashFiles('composer.lock') }}
+                  restore-keys: |
+                      ${{ runner.os }}-php-8.4-build-
 
-      - name: Generate prefixed vendor tree
-        run: composer vendor:prefix
-      - name: Create WordPress.org package
-        run: |
-          mkdir -p build/sscribe-export-site-pages
-          rsync -av ./ build/sscribe-export-site-pages/ --exclude-from=.distignore
-          cd build
-          zip -r ../sscribe-export-site-pages.zip sscribe-export-site-pages
+            - name: Install build dependencies
+              run: composer install --optimize-autoloader --no-progress
 
-      - name: Verify package contents
-        run: |
-          echo "=== Package Contents (first 100 files) ==="
-          unzip -l sscribe-export-site-pages.zip | head -100
-          echo ""
-          echo "=== Verifying required files ==="
-          unzip -l sscribe-export-site-pages.zip | grep -q "sscribe-export-site-pages.php" || (echo "ERROR: Main plugin file missing!" && exit 1)
-          unzip -l sscribe-export-site-pages.zip | grep -q "readme.txt" || (echo "ERROR: readme.txt missing!" && exit 1)
-          unzip -l sscribe-export-site-pages.zip | grep -q "vendor-prefixed/autoload.php" || (echo "ERROR: vendor-prefixed/autoload.php missing!" && exit 1)
-          echo ""
-          echo "=== Verifying vendor dependencies ==="
-          unzip -l sscribe-export-site-pages.zip | grep -q "vendor-prefixed/" || (echo "ERROR: Prefixed vendor tree missing!" && exit 1)
-          echo ""
-          echo "=== Verifying PCLZip excluded ==="
-          if unzip -l sscribe-export-site-pages.zip | grep -q "PCLZip"; then echo "ERROR: PCLZip should be excluded!" && exit 1; fi
-          echo "OK: All verifications passed!"
+            - name: Generate prefixed vendor tree
+              run: composer vendor:prefix
+            - name: Build and validate the exact WordPress.org package
+              run: php scripts/build-release.php
 
-      - name: Upload to GitHub Release
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        run: |
-          if gh release view "$GITHUB_REF_NAME" >/dev/null 2>&1; then
-            gh release upload "$GITHUB_REF_NAME" sscribe-export-site-pages.zip --clobber
-          else
-            gh release create "$GITHUB_REF_NAME" \
-              sscribe-export-site-pages.zip \
-              --generate-notes \
-              --verify-tag
-          fi
+            - name: Run official WordPress Plugin Check
+              uses: wordpress/plugin-check-action@v1
+              with:
+                  build-dir: ./dist/sscribe-export-site-pages
+                  strict: true
+                  include-experimental: true
+
+            - name: Upload to GitHub Release
+              env:
+                  GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+              run: |
+                  VERSION="${GITHUB_REF_NAME#v}"
+                  ZIP_PATH="dist/sscribe-export-site-pages-${VERSION}.zip"
+                  SHA_PATH="dist/sscribe-export-site-pages-${VERSION}.sha256"
+                  if gh release view "$GITHUB_REF_NAME" >/dev/null 2>&1; then
+                    gh release upload "$GITHUB_REF_NAME" "$ZIP_PATH" "$SHA_PATH" --clobber
+                  else
+                    gh release create "$GITHUB_REF_NAME" \
+                      "$ZIP_PATH" \
+                      "$SHA_PATH" \
+                      --generate-notes \
+                      --verify-tag
+                  fi

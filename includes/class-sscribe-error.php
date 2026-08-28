@@ -289,8 +289,8 @@ class SScribe_Error {
 				'guidance'  => __( 'Contact your hosting provider to fix directory permissions.', 'sscribe-export-site-pages' ),
 				'fix_steps' => array(
 					__( 'Contact your hosting provider or system administrator.', 'sscribe-export-site-pages' ),
-					__( 'Request setting permissions 755 for directories, 644 for files.', 'sscribe-export-site-pages' ),
-					__( 'Ensure the web server user owns the uploads directory.', 'sscribe-export-site-pages' ),
+					__( 'Request owner-only permissions for private directories and files.', 'sscribe-export-site-pages' ),
+					__( 'Ensure the PHP process can write to the configured private storage root.', 'sscribe-export-site-pages' ),
 				),
 			),
 
@@ -299,10 +299,10 @@ class SScribe_Error {
 				'severity'  => self::SEVERITY_CRITICAL,
 				'message'   => __( 'Failed to create temporary directory for export.', 'sscribe-export-site-pages' ),
 				'details'   => __( 'Attempted path: {path}. Error: {error}', 'sscribe-export-site-pages' ),
-				'guidance'  => __( 'Check that wp-content/uploads is writable by the web server.', 'sscribe-export-site-pages' ),
+				'guidance'  => __( 'Check that the configured private storage root is writable by the PHP process.', 'sscribe-export-site-pages' ),
 				'fix_steps' => array(
-					__( 'Verify wp-content/uploads directory exists and is writable.', 'sscribe-export-site-pages' ),
-					__( 'Check file permissions (should be 755).', 'sscribe-export-site-pages' ),
+					__( 'Verify that the private storage base exists and is writable.', 'sscribe-export-site-pages' ),
+					__( 'Check owner permissions on the private storage base.', 'sscribe-export-site-pages' ),
 					__( 'Contact hosting support if the issue persists.', 'sscribe-export-site-pages' ),
 				),
 			),
@@ -378,7 +378,7 @@ class SScribe_Error {
 				'guidance'  => __( 'Individual files may be available in the temp directory. Contact support.', 'sscribe-export-site-pages' ),
 				'fix_steps' => array(
 					__( 'Verify the ZipArchive extension is enabled.', 'sscribe-export-site-pages' ),
-					__( 'Check disk space in the uploads directory.', 'sscribe-export-site-pages' ),
+					__( 'Check disk space for the private storage directory.', 'sscribe-export-site-pages' ),
 					__( 'Contact support with error details.', 'sscribe-export-site-pages' ),
 				),
 			),

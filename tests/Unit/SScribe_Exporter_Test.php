@@ -23,8 +23,7 @@ class SScribe_Exporter_Test extends TestCase {
 		parent::setUp();
 		$this->parser    = new SScribe_Content_Parser();
 		$this->exporter = new SScribe_Exporter( $this->parser );
-		$upload_dir     = wp_upload_dir();
-		$this->temp_dir = trailingslashit( $upload_dir['basedir'] ) . 'sscribe-exports/test-exporter-' . uniqid();
+		$this->temp_dir = \SScribe_Private_Storage::get_subdirectory( 'test-exporter-' . uniqid() );
 		wp_mkdir_p( $this->temp_dir );
 	}
 

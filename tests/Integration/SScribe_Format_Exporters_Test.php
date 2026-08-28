@@ -54,11 +54,7 @@ class SScribe_Format_Exporters_Test extends TestCase {
 		require_once SSCRIBE_PLUGIN_DIR . 'includes/exporters/class-sscribe-markdown-exporter.php';
 		$exporter = new SScribe_Markdown_Exporter();
 
-		// Output dir must live under the SScribe export directory
-		// (per WP.org Plugin Directory "no writes outside plugin
-		// folder" rule enforced by SScribe_Filesystem::put_contents).
-		$upload_dir = wp_upload_dir();
-		$temp_dir   = trailingslashit( $upload_dir['basedir'] ) . 'sscribe-exports/markdown-' . uniqid();
+		$temp_dir = \SScribe_Private_Storage::get_subdirectory( 'markdown-' . uniqid() );
 		wp_mkdir_p( $temp_dir );
 
 		$page_data = array(
@@ -112,11 +108,7 @@ class SScribe_Format_Exporters_Test extends TestCase {
 		require_once SSCRIBE_PLUGIN_DIR . 'includes/exporters/class-sscribe-html-exporter.php';
 		$exporter = new SScribe_HTML_Exporter();
 
-		// Output dir must live under the SScribe export directory
-		// (per WP.org Plugin Directory "no writes outside plugin
-		// folder" rule enforced by SScribe_Filesystem::put_contents).
-		$upload_dir = wp_upload_dir();
-		$temp_dir   = trailingslashit( $upload_dir['basedir'] ) . 'sscribe-exports/html-' . uniqid();
+		$temp_dir = \SScribe_Private_Storage::get_subdirectory( 'html-' . uniqid() );
 		wp_mkdir_p( $temp_dir );
 
 		$page_data = array(

@@ -1,4 +1,4 @@
-/* @version 1.9.0 */
+/* @version 2.0.0 */
 
 .sscribe-master-container *,
 .sscribe-master-container *::before,
@@ -11,7 +11,7 @@
 .sscribe-master-container h3,
 .sscribe-master-container h4 {
 	font-family: var(--ss-font);
-	font-weight: 600;
+	font-weight: var(--ss-font-semibold);
 	margin: 0;
 }
 
@@ -66,7 +66,7 @@
 	overflow: hidden;
 	width: 1px;
 	height: 1px;
-	margin: -1px;
+	margin: calc(-1 * var(--ss-space-px));
 	padding: 0;
 	border: 0;
 	clip-path: inset(50%);
@@ -85,12 +85,12 @@
 	z-index: 100000;
 	padding: var(--ss-space-2) var(--ss-space-4);
 	background: var(--ss-brand);
-	color: #fff;
+	color: var(--ss-color-solid-white);
 	border-radius: var(--ss-radius);
 	text-decoration: none;
-	font-weight: 600;
-	font-size: 13px;
-	outline: 2px solid #fff;
+	font-weight: var(--ss-font-semibold);
+	font-size: var(--ss-text-body);
+	outline: 2px solid var(--ss-color-solid-white);
 	outline-offset: 2px;
 }
 
@@ -149,16 +149,16 @@
 }
 
 .sscribe-hero-title {
-	font-size: 22px;
-	font-weight: 700;
-	letter-spacing: -0.025em;
+	font-size: var(--ss-text-h1);
+	font-weight: var(--ss-font-bold);
+	letter-spacing: var(--ss-tracking-tightest);
 	color: var(--ss-text-primary);
-	margin: 0 0 2px;
+	margin: 0 0 var(--ss-space-half);
 }
 
 .sscribe-hero-subtitle {
-	font-size: 13px;
-	line-height: 1.5;
+	font-size: var(--ss-text-body);
+	line-height: var(--ss-leading-body);
 	color: var(--ss-text-secondary);
 	max-width: 520px;
 }
@@ -166,15 +166,15 @@
 .sscribe-hero-version {
 	display: inline-flex;
 	align-items: center;
-	padding: 4px var(--ss-space-3);
+	padding: var(--ss-space-1) var(--ss-space-3);
 	background: var(--ss-surface-2);
 	color: var(--ss-text-secondary);
 	border-radius: var(--ss-radius-full);
-	font-size: 11px;
-	font-weight: 600;
+	font-size: var(--ss-text-caption);
+	font-weight: var(--ss-font-semibold);
 	font-family: var(--ss-font-mono);
 	text-transform: uppercase;
-	letter-spacing: 0.06em;
+	letter-spacing: var(--ss-tracking-lg);
 	border: 1px solid var(--ss-border);
 	flex-shrink: 0;
 }
@@ -185,7 +185,7 @@
 	gap: var(--ss-space-6);
 	margin-top: var(--ss-space-4);
 	width: 100%;
-	padding: var(--ss-space-4) 0 0 calc(36px + var(--ss-space-4));
+	padding: var(--ss-space-4) 0 0 calc(var(--ss-space-9) + var(--ss-space-4));
 	border-top: 1px solid var(--ss-border);
 	flex-wrap: wrap;
 }
@@ -193,15 +193,15 @@
 .sscribe-hero-stat {
 	display: inline-flex;
 	align-items: center;
-	gap: 6px;
-	font-size: 12px;
-	line-height: 1;
+	gap: var(--ss-space-1-5);
+	font-size: var(--ss-text-small);
+	line-height: var(--ss-leading-none);
 	color: var(--ss-text-secondary);
 }
 
 .sscribe-hero-stat + .sscribe-hero-stat {
-	padding-left: var(--ss-space-6);
-	border-left: 1px solid var(--ss-border);
+	padding-inline-start: var(--ss-space-6);
+	border-inline-start: 1px solid var(--ss-border);
 }
 
 .sscribe-hero-stat .sscribe-icon {
@@ -215,10 +215,10 @@
 
 .sscribe-hero-stat strong {
 	color: var(--ss-text-primary);
-	font-weight: 600;
+	font-weight: var(--ss-font-semibold);
 	font-family: var(--ss-font-mono);
 	font-variant-numeric: tabular-nums;
-	margin-right: 0;
+	margin-inline-end: 0;
 }
 
 .sscribe-icon-img {
@@ -267,7 +267,7 @@ parent's gray chip. */
 
 .sscribe-tabs-nav {
 	display: flex;
-	gap: 2px;
+	gap: var(--ss-space-half);
 	border-bottom: 1px solid var(--ss-border);
 	margin-bottom: var(--ss-space-6);
 }
@@ -278,15 +278,15 @@ parent's gray chip. */
 	background: transparent;
 	border: none;
 	font: inherit;
-	font-size: 13px;
-	font-weight: 500;
+	font-size: var(--ss-text-body);
+	font-weight: var(--ss-font-medium);
 	color: var(--ss-text-secondary);
 	cursor: pointer;
 	display: inline-flex;
 	align-items: center;
-	gap: 6px;
+	gap: var(--ss-space-1-5);
 	border-bottom: 2px solid transparent;
-	margin-bottom: -1px;
+	margin-bottom: calc(-1 * var(--ss-space-px));
 	position: relative;
 	transition:
 		color 120ms ease,
@@ -299,7 +299,7 @@ parent's gray chip. */
 
 .sscribe-tab-btn.sscribe-tab-active {
 	color: var(--ss-text-primary);
-	font-weight: 600;
+	font-weight: var(--ss-font-semibold);
 	border-bottom-color: var(--ss-brand);
 }
 
@@ -354,8 +354,8 @@ parent's gray chip. */
 }
 
 .sscribe-master-container .sscribe-panel-title h2 {
-	font-size: 15px;
-	font-weight: 600;
+	font-size: var(--ss-text-h3);
+	font-weight: var(--ss-font-semibold);
 	color: var(--ss-text-primary);
 	margin: 0;
 }
@@ -390,11 +390,11 @@ parent's gray chip. */
 	display: flex;
 	align-items: center;
 	gap: var(--ss-space-2);
-	font-size: 12px;
-	font-weight: 600;
+	font-size: var(--ss-text-small);
+	font-weight: var(--ss-font-semibold);
 	color: var(--ss-text-tertiary);
 	text-transform: uppercase;
-	letter-spacing: 0.06em;
+	letter-spacing: var(--ss-tracking-lg);
 	margin: 0 0 var(--ss-space-4) 0;
 }
 
@@ -402,11 +402,11 @@ parent's gray chip. */
 	display: flex;
 	align-items: center;
 	gap: var(--ss-space-2);
-	font-size: 12px;
-	font-weight: 600;
+	font-size: var(--ss-text-small);
+	font-weight: var(--ss-font-semibold);
 	color: var(--ss-text-tertiary);
 	text-transform: uppercase;
-	letter-spacing: 0.06em;
+	letter-spacing: var(--ss-tracking-lg);
 	margin: 0 0 var(--ss-space-4) 0;
 }
 
@@ -419,9 +419,9 @@ parent's gray chip. */
 	border-radius: 50%;
 	background: var(--ss-brand);
 	color: var(--ss-text-inverse);
-	font-size: 10px;
-	font-weight: 700;
-	line-height: 1;
+	font-size: var(--ss-text-xs);
+	font-weight: var(--ss-font-bold);
+	line-height: var(--ss-leading-none);
 	flex-shrink: 0;
 }
 
@@ -513,7 +513,9 @@ parent's gray chip. */
 }
 
 .sscribe-status-card-inner {
-	min-width: 158px;
+	min-width: 0;
+	column-gap: var(--ss-space-1-5);
+	padding-inline: var(--ss-space-2);
 }
 
 .sscribe-post-type-card:hover .sscribe-post-type-card-inner,
@@ -563,42 +565,43 @@ parent's gray chip. */
 	min-width: 0;
 	display: flex;
 	flex-direction: column;
-	gap: 2px;
-	text-align: left;
+	gap: var(--ss-space-half);
+	text-align: start;
 }
 
 .sscribe-post-type-name,
 .sscribe-format-name,
 .sscribe-lang-name {
-	font-size: 13px;
-	font-weight: 500;
+	font-size: var(--ss-text-body);
+	font-weight: var(--ss-font-medium);
 	color: var(--ss-text-primary);
-	line-height: 1.3;
+	line-height: var(--ss-leading-heading);
 	word-break: normal;
 	overflow-wrap: normal;
 	hyphens: manual;
 }
 
 .sscribe-status-name {
-	font-size: 13px;
-	font-weight: 500;
+	font-size: var(--ss-text-body);
+	font-weight: var(--ss-font-medium);
 	color: var(--ss-text-primary);
-	line-height: 1.25;
-	white-space: nowrap;
+	line-height: var(--ss-leading-snug);
+	white-space: normal;
+	overflow-wrap: anywhere;
 }
 
 .sscribe-post-type-count,
 .sscribe-status-count,
 .sscribe-lang-count {
-	font-size: 11px;
+	font-size: var(--ss-text-caption);
 	color: var(--ss-text-muted);
 	font-family: var(--ss-font-mono);
 }
 
 .sscribe-format-desc {
-	font-size: 11px;
+	font-size: var(--ss-text-caption);
 	color: var(--ss-text-secondary);
-	line-height: 1.4;
+	line-height: var(--ss-leading-normal);
 }
 
 .sscribe-post-type-selector,
@@ -701,8 +704,8 @@ parent's gray chip. */
 	display: inline-flex;
 	align-items: center;
 	justify-content: center;
-	font-size: 9px;
-	font-weight: 700;
+	font-size: var(--ss-text-micro);
+	font-weight: var(--ss-font-bold);
 	color: var(--ss-text-tertiary);
 	font-family: var(--ss-font-mono);
 	text-transform: uppercase;
@@ -736,8 +739,8 @@ parent's gray chip. */
 	border-left: 0;
 	border-radius: var(--ss-radius-md);
 	background: var(--ss-surface);
-	font-size: 13px;
-	line-height: 1.5;
+	font-size: var(--ss-text-body);
+	line-height: var(--ss-leading-body);
 	position: relative;
 }
 
@@ -807,16 +810,16 @@ parent's gray chip. */
 .sscribe-preflight-warning .sscribe-preflight-warning-message {
 	margin: 0 0 var(--ss-space-1);
 	color: var(--ss-text-primary);
-	font-weight: 600;
-	font-size: 13px;
-	line-height: 1.4;
+	font-weight: var(--ss-font-semibold);
+	font-size: var(--ss-text-body);
+	line-height: var(--ss-leading-normal);
 }
 
 .sscribe-preflight-warning .sscribe-preflight-warning-detail {
 	margin: 0;
 	color: var(--ss-text-secondary);
-	font-size: 12px;
-	line-height: 1.5;
+	font-size: var(--ss-text-small);
+	line-height: var(--ss-leading-body);
 }
 
 .sscribe-preflight-warning-dismiss {
@@ -832,7 +835,7 @@ parent's gray chip. */
 	justify-content: center;
 	color: var(--ss-text-muted);
 	cursor: pointer;
-	margin: -2px -2px -2px 0;
+	margin: calc(-1 * var(--ss-space-half)) calc(-1 * var(--ss-space-half)) calc(-1 * var(--ss-space-half)) 0;
 	transition:
 		background-color 120ms ease,
 		color 120ms ease;
@@ -900,8 +903,8 @@ parent's gray chip. */
 }
 
 .sscribe-format-option-title {
-	font-size: 13px;
-	font-weight: 600;
+	font-size: var(--ss-text-body);
+	font-weight: var(--ss-font-semibold);
 	color: var(--ss-text-primary);
 	margin: 0;
 	display: flex;
@@ -925,7 +928,7 @@ parent's gray chip. */
 .sscribe-format-option-field {
 	display: flex;
 	flex-direction: column;
-	gap: 6px;
+	gap: var(--ss-space-1-5);
 	min-width: 0;
 }
 
@@ -964,14 +967,14 @@ parent's gray chip. */
 }
 
 .sscribe-format-option-field.sscribe-format-option-checkbox span {
-	font-size: 13px;
+	font-size: var(--ss-text-body);
 	color: var(--ss-text-primary);
-	line-height: 1.3;
+	line-height: var(--ss-leading-heading);
 }
 
 .sscribe-format-option-label {
-	font-size: 12px;
-	font-weight: 600;
+	font-size: var(--ss-text-small);
+	font-weight: var(--ss-font-semibold);
 	color: var(--ss-text-secondary);
 }
 
@@ -981,12 +984,12 @@ parent's gray chip. */
 	border-radius: var(--ss-radius-sm);
 	padding: 0 var(--ss-space-7) 0 var(--ss-space-3);
 	font: inherit;
-	font-size: 13px;
+	font-size: var(--ss-text-body);
 	color: var(--ss-text-primary);
 	background-color: var(--ss-surface);
 	cursor: pointer;
 	appearance: none;
-	background-image: url("data:image/svg+xml;charset=utf8,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 16 16' fill='%2352525b'%3E%3Cpath d='M8 11L3 6h10z'/%3E%3C/svg%3E");
+	background-image: var(--ss-icon-caret-down);
 	background-repeat: no-repeat;
 	background-position: right 12px center;
 	background-size: 12px 12px;
@@ -1053,28 +1056,28 @@ so the user sees both at a glance. */
 .sscribe-summary-label {
 	display: inline-flex;
 	align-items: center;
-	padding: 4px var(--ss-space-3);
+	padding: var(--ss-space-1) var(--ss-space-3);
 	background: transparent;
-	font-size: 11px;
-	font-weight: 700;
+	font-size: var(--ss-text-caption);
+	font-weight: var(--ss-font-bold);
 	color: var(--ss-text-secondary);
 	text-transform: uppercase;
-	letter-spacing: 0.08em;
+	letter-spacing: var(--ss-tracking-xl);
 	margin-right: var(--ss-space-1);
 }
 
 .sscribe-summary-chip {
 	display: inline-flex;
 	align-items: center;
-	padding: 4px var(--ss-space-3);
+	padding: var(--ss-space-1) var(--ss-space-3);
 	background: var(--ss-surface);
 	border: 1px solid var(--ss-border);
 	border-radius: var(--ss-radius-md);
-	font-size: 12px;
-	font-weight: 600;
+	font-size: var(--ss-text-small);
+	font-weight: var(--ss-font-semibold);
 	color: var(--ss-text-primary);
 	white-space: nowrap;
-	line-height: 1.4;
+	line-height: var(--ss-leading-normal);
 }
 
 .sscribe-summary-pages {
@@ -1098,7 +1101,7 @@ so the user sees both at a glance. */
 
 .sscribe-summary-sep {
 	color: var(--ss-text-muted);
-	font-size: 11px;
+	font-size: var(--ss-text-caption);
 }
 
 .sscribe-export-bar-actions {
@@ -1115,11 +1118,11 @@ so the user sees both at a glance. */
 	display: inline-flex;
 	align-items: center;
 	gap: var(--ss-space-2);
-	padding: 4px var(--ss-space-3);
+	padding: var(--ss-space-1) var(--ss-space-3);
 	background: var(--ss-surface);
 	border: 1px solid var(--ss-border);
 	border-radius: var(--ss-radius-md);
-	font-size: 12px;
+	font-size: var(--ss-text-small);
 	color: var(--ss-text-secondary);
 	cursor: pointer;
 	-webkit-user-select: none;
@@ -1150,7 +1153,7 @@ so the user sees both at a glance. */
 
 .sscribe-export-disabled-reason {
 	display: inline-block;
-	font-size: 12px;
+	font-size: var(--ss-text-small);
 	font-style: italic;
 	color: var(--ss-warning);
 }
@@ -1172,14 +1175,14 @@ so the user sees both at a glance. */
 	display: inline-flex;
 	align-items: center;
 	justify-content: center;
-	gap: 7px;
+	gap: var(--ss-space-1-75);
 	padding-block: var(--ss-space-2);
 	padding-inline: var(--ss-space-4);
 	min-height: 40px;
 	font: inherit;
-	font-size: 13px;
-	font-weight: 600;
-	line-height: 1.4;
+	font-size: var(--ss-text-body);
+	font-weight: var(--ss-font-semibold);
+	line-height: var(--ss-leading-normal);
 	color: var(--ss-text-primary);
 	background: var(--ss-surface);
 	border: 1px solid transparent;
@@ -1346,7 +1349,7 @@ so the user sees both at a glance. */
 .sscribe-button-glyph {
 	width: 28px;
 	height: 28px;
-	padding: 6px;
+	padding: var(--ss-space-1-5);
 	background: var(--ss-brand);
 	color: var(--ss-text-inverse);
 	border-radius: var(--ss-radius-sm);
@@ -1358,7 +1361,7 @@ so the user sees both at a glance. */
 .sscribe-button-sm {
 	min-height: 32px;
 	padding: 0 var(--ss-space-3);
-	font-size: 12px;
+	font-size: var(--ss-text-small);
 }
 
 .sscribe-button-icon.sscribe-btn-sm {
@@ -1371,7 +1374,7 @@ so the user sees both at a glance. */
 .sscribe-btn-lg {
 	min-height: 44px;
 	padding: 0 var(--ss-space-5);
-	font-size: 14px;
+	font-size: var(--ss-text-body-md);
 }
 
 .sscribe-noscript-notice {
@@ -1380,7 +1383,7 @@ so the user sees both at a glance. */
 	color: var(--ss-warning);
 	padding: var(--ss-space-2) var(--ss-space-3);
 	border-radius: var(--ss-radius-sm);
-	font-size: 12px;
+	font-size: var(--ss-text-small);
 }
 
 .sscribe-status-alert {
@@ -1506,16 +1509,16 @@ so the user sees both at a glance. */
 }
 
 .sscribe-status-heading {
-	font-size: 15px;
-	font-weight: 600;
+	font-size: var(--ss-text-h3);
+	font-weight: var(--ss-font-semibold);
 	color: var(--ss-text-primary);
 	margin: 0 0 var(--ss-space-1) 0;
 }
 
 .sscribe-status-desc {
-	font-size: 13px;
+	font-size: var(--ss-text-body);
 	color: var(--ss-text-secondary);
-	line-height: 1.5;
+	line-height: var(--ss-leading-body);
 	margin: 0;
 }
 
@@ -1530,15 +1533,15 @@ so the user sees both at a glance. */
 .sscribe-phase-step {
 	display: inline-flex;
 	align-items: center;
-	gap: 6px;
-	padding: 4px var(--ss-space-3);
+	gap: var(--ss-space-1-5);
+	padding: var(--ss-space-1) var(--ss-space-3);
 	background: var(--ss-surface);
 	border: 1px solid var(--ss-border);
 	border-radius: var(--ss-radius-full);
-	font-size: 11px;
-	font-weight: 500;
+	font-size: var(--ss-text-caption);
+	font-weight: var(--ss-font-medium);
 	color: var(--ss-text-secondary);
-	line-height: 1;
+	line-height: var(--ss-leading-none);
 	transition:
 		background 220ms cubic-bezier(0.22, 1, 0.36, 1),
 		color 220ms cubic-bezier(0.22, 1, 0.36, 1),
@@ -1549,14 +1552,14 @@ so the user sees both at a glance. */
 	background: var(--ss-brand);
 	border-color: var(--ss-brand);
 	color: var(--ss-text-inverse);
-	font-weight: 600;
+	font-weight: var(--ss-font-semibold);
 	transform: translateY(-1px);
 }
 
 .sscribe-phase-step.sscribe-phase-completed {
 	background: var(--ss-success-bg);
 	color: var(--ss-success);
-	font-weight: 600;
+	font-weight: var(--ss-font-semibold);
 }
 
 .sscribe-phase-dot {
@@ -1584,8 +1587,8 @@ so the user sees both at a glance. */
 }
 
 .sscribe-phase-label {
-	font-size: 11px;
-	font-weight: 500;
+	font-size: var(--ss-text-caption);
+	font-weight: var(--ss-font-medium);
 	color: var(--ss-text-muted);
 }
 
@@ -1603,7 +1606,7 @@ so the user sees both at a glance. */
 }
 
 .sscribe-current-page {
-	font-size: 12px;
+	font-size: var(--ss-text-small);
 	color: var(--ss-text-secondary);
 	font-family: var(--ss-font-mono);
 	margin: 0 0 var(--ss-space-2) 0;
@@ -1624,7 +1627,7 @@ so the user sees both at a glance. */
 	border-radius: var(--ss-radius-full);
 	overflow: hidden;
 	border: 1px solid var(--ss-border);
-	box-shadow: inset 0 1px 2px rgb(0 0 0 / 6%);
+	box-shadow: inset 0 1px 2px var(--ss-color-shadow-06);
 }
 
 .sscribe-progress-bar-container::before {
@@ -1652,7 +1655,7 @@ so the user sees both at a glance. */
 	background: linear-gradient(
 		90deg,
 		var(--ss-brand) 0%,
-		color-mix(in srgb, var(--ss-brand) 80%, #fff 20%) 50%,
+		color-mix(in srgb, var(--ss-brand) 80%, var(--ss-color-solid-white) 20%) 50%,
 		var(--ss-brand) 100%
 	);
 	background-size: 200% 100%;
@@ -1666,7 +1669,7 @@ so the user sees both at a glance. */
 	overflow: hidden;
 	box-shadow:
 		0 0 0 1px color-mix(in srgb, var(--ss-brand) 50%, transparent),
-		0 1px 0 rgb(255 255 255 / 25%) inset;
+		0 1px 0 var(--ss-color-highlight-25) inset;
 	z-index: 1;
 }
 
@@ -1677,9 +1680,9 @@ so the user sees both at a glance. */
 	background: linear-gradient(
 		90deg,
 		transparent 0%,
-		rgb(255 255 255 / 22%) 35%,
-		rgb(255 255 255 / 45%) 50%,
-		rgb(255 255 255 / 22%) 65%,
+		var(--ss-color-highlight-22) 35%,
+		var(--ss-color-highlight-45) 50%,
+		var(--ss-color-highlight-22) 65%,
 		transparent 100%
 	);
 	background-size: 220% 100%;
@@ -1695,9 +1698,9 @@ so the user sees both at a glance. */
 	background: linear-gradient(
 		90deg,
 		transparent 0%,
-		rgb(255 255 255 / 12%) 40%,
-		rgb(255 255 255 / 18%) 50%,
-		rgb(255 255 255 / 12%) 60%,
+		var(--ss-color-highlight-12) 40%,
+		var(--ss-color-highlight-18) 50%,
+		var(--ss-color-highlight-12) 60%,
 		transparent 100%
 	);
 	background-size: 320% 100%;
@@ -1746,12 +1749,12 @@ body.rtl .sscribe-progress-bar-fill {
 	background: linear-gradient(
 		90deg,
 		var(--ss-success) 0%,
-		color-mix(in srgb, var(--ss-success) 70%, #fff 30%) 50%,
+		color-mix(in srgb, var(--ss-success) 70%, var(--ss-color-solid-white) 30%) 50%,
 		var(--ss-success) 100%
 	);
 	box-shadow:
 		0 0 0 1px color-mix(in srgb, var(--ss-success) 50%, transparent),
-		0 1px 0 rgb(255 255 255 / 25%) inset;
+		0 1px 0 var(--ss-color-highlight-25) inset;
 	animation: sscribe-progress-complete-flash 600ms cubic-bezier(0.34, 1.56, 0.64, 1) 1;
 }
 
@@ -1779,13 +1782,13 @@ body.rtl .sscribe-progress-bar-fill {
 }
 
 .sscribe-progress-percentage {
-	font-size: 12px;
-	font-weight: 700;
+	font-size: var(--ss-text-small);
+	font-weight: var(--ss-font-bold);
 	color: var(--ss-brand);
 	font-family: var(--ss-font-mono);
 	min-width: 44px;
 	text-align: right;
-	letter-spacing: 0.02em;
+	letter-spacing: var(--ss-tracking-xs);
 	font-variant-numeric: tabular-nums;
 	transition: color 280ms ease;
 }
@@ -1812,7 +1815,7 @@ body.rtl .sscribe-progress-bar-fill {
 }
 
 .sscribe-time-remaining {
-	font-size: 11px;
+	font-size: var(--ss-text-caption);
 	font-style: italic;
 	color: var(--ss-text-muted);
 }
@@ -1837,10 +1840,10 @@ body.rtl .sscribe-progress-bar-fill {
 }
 
 .sscribe-guidance-text {
-	font-size: 12px;
+	font-size: var(--ss-text-small);
 	color: var(--ss-warning);
 	margin: 0;
-	line-height: 1.5;
+	line-height: var(--ss-leading-body);
 }
 
 .sscribe-debug-toggle-section {
@@ -1868,21 +1871,21 @@ body.rtl .sscribe-progress-bar-fill {
 .sscribe-toggle-text {
 	display: flex;
 	flex-direction: column;
-	gap: 2px;
+	gap: var(--ss-space-half);
 	min-width: 0;
 	flex: 1;
 }
 
 .sscribe-toggle-text strong {
-	font-size: 13px;
-	font-weight: 600;
+	font-size: var(--ss-text-body);
+	font-weight: var(--ss-font-semibold);
 	color: var(--ss-text-primary);
 }
 
 .sscribe-toggle-text small {
-	font-size: 12px;
+	font-size: var(--ss-text-small);
 	color: var(--ss-text-secondary);
-	line-height: 1.4;
+	line-height: var(--ss-leading-normal);
 }
 
 .sscribe-debug-details {
@@ -1891,16 +1894,16 @@ body.rtl .sscribe-progress-bar-fill {
 
 .sscribe-debug-details summary {
 	cursor: pointer;
-	font-size: 12px;
+	font-size: var(--ss-text-small);
 	color: var(--ss-text-secondary);
-	font-weight: 500;
-	padding: 4px 0;
+	font-weight: var(--ss-font-medium);
+	padding: var(--ss-space-1) 0;
 }
 
 .sscribe-debug-pre {
 	background: var(--ss-bg);
 	color: var(--ss-text-primary);
-	font: 11px/1.5 var(--ss-font-mono);
+	font: var(--ss-text-caption)/var(--ss-leading-body) var(--ss-font-mono);
 	padding: var(--ss-space-3) var(--ss-space-3);
 	border-radius: var(--ss-radius-sm);
 	border: 1px solid var(--ss-border);
@@ -1913,13 +1916,13 @@ body.rtl .sscribe-progress-bar-fill {
 .sscribe-badge {
 	display: inline-flex;
 	align-items: center;
-	padding: 3px var(--ss-space-2);
+	padding: var(--ss-space-three-quarter) var(--ss-space-2);
 	background: var(--ss-warning-bg);
 	border: 1px solid var(--ss-warning-border);
 	color: var(--ss-warning);
 	border-radius: var(--ss-radius-full);
-	font-size: 11px;
-	font-weight: 500;
+	font-size: var(--ss-text-caption);
+	font-weight: var(--ss-font-medium);
 }
 
 .sscribe-bulk-bar {
@@ -1985,8 +1988,8 @@ body.rtl .sscribe-progress-bar-fill {
 }
 
 .sscribe-bulk-count {
-	font-size: 12px;
-	font-weight: 500;
+	font-size: var(--ss-text-small);
+	font-weight: var(--ss-font-medium);
 	color: var(--ss-brand);
 }
 
@@ -2008,11 +2011,11 @@ body.rtl .sscribe-progress-bar-fill {
 }
 
 .sscribe-history-table-element thead th {
-	text-align: left;
+	text-align: start;
 	padding: var(--ss-space-3) var(--ss-space-4);
 	border-bottom: 1px solid var(--ss-border);
-	font-weight: 600;
-	font-size: 12px;
+	font-weight: var(--ss-font-semibold);
+	font-size: var(--ss-text-small);
 	color: var(--ss-text-secondary);
 	background: var(--ss-surface-2);
 	vertical-align: middle;
@@ -2025,7 +2028,7 @@ body.rtl .sscribe-progress-bar-fill {
 .sscribe-history-table-element .sscribe-history-col-actions {
 	width: 1%;
 	white-space: nowrap;
-	text-align: right;
+	text-align: end;
 }
 
 .sscribe-history-table-element caption.screen-reader-text {
@@ -2033,7 +2036,7 @@ body.rtl .sscribe-progress-bar-fill {
 	width: 1px;
 	height: 1px;
 	padding: 0;
-	margin: -1px;
+	margin: calc(-1 * var(--ss-space-px));
 	overflow: hidden;
 	clip-path: inset(50%);
 	white-space: nowrap;
@@ -2055,9 +2058,8 @@ body.rtl .sscribe-progress-bar-fill {
 
 .sscribe-history-row:hover {
 	background: var(--ss-surface-2);
-	margin: 0 calc(-1 * var(--ss-space-7));
-	padding-left: var(--ss-space-7);
-	padding-right: var(--ss-space-7);
+	margin-inline: calc(-1 * var(--ss-space-7));
+	padding-inline: var(--ss-space-7);
 }
 
 .sscribe-history-check-label {
@@ -2106,8 +2108,8 @@ body.rtl .sscribe-progress-bar-fill {
 }
 
 .sscribe-file-icon-text {
-	font-size: 9px;
-	font-weight: 700;
+	font-size: var(--ss-text-micro);
+	font-weight: var(--ss-font-bold);
 	text-transform: uppercase;
 	color: var(--ss-text-muted);
 	font-family: var(--ss-font-mono);
@@ -2117,12 +2119,12 @@ body.rtl .sscribe-progress-bar-fill {
 	min-width: 0;
 	display: flex;
 	flex-direction: column;
-	gap: 2px;
+	gap: var(--ss-space-half);
 }
 
 .sscribe-file-details strong {
-	font-size: 13px;
-	font-weight: 500;
+	font-size: var(--ss-text-body);
+	font-weight: var(--ss-font-medium);
 	color: var(--ss-text-primary);
 	overflow: hidden;
 	text-overflow: ellipsis;
@@ -2130,19 +2132,19 @@ body.rtl .sscribe-progress-bar-fill {
 }
 
 .sscribe-file-details span {
-	font-size: 11px;
+	font-size: var(--ss-text-caption);
 	color: var(--ss-text-muted);
 }
 
 .sscribe-file-size {
 	font-family: var(--ss-font-mono);
-	margin-left: 6px;
+	margin-inline-start: var(--ss-space-1-5);
 }
 
 .sscribe-history-actions {
 	display: inline-flex;
 	align-items: center;
-	gap: 6px;
+	gap: var(--ss-space-1-5);
 	flex-shrink: 0;
 }
 
@@ -2160,7 +2162,7 @@ body.rtl .sscribe-progress-bar-fill {
 }
 
 .sscribe-history-notice p {
-	font-size: 12px;
+	font-size: var(--ss-text-small);
 	color: var(--ss-text-muted);
 	margin: 0;
 }
@@ -2214,7 +2216,7 @@ body.rtl .sscribe-progress-bar-fill {
 	height: fit-content;
 	position: sticky;
 	top: var(--ss-space-3);
-	box-shadow: 0 1px 0 rgb(0 0 0 / 2%);
+	box-shadow: 0 1px 0 var(--ss-color-shadow-02);
 }
 
 .sscribe-support-sidebar > .sscribe-support-section {
@@ -2236,7 +2238,7 @@ body.rtl .sscribe-progress-bar-fill {
 }
 
 .sscribe-support-feedback {
-	font-size: 12px;
+	font-size: var(--ss-text-small);
 	color: var(--ss-text-secondary);
 	margin: var(--ss-space-3) 0 0 0;
 }
@@ -2254,12 +2256,12 @@ body.rtl .sscribe-progress-bar-fill {
 	min-height: 180px;
 	background: var(--ss-bg);
 	color: var(--ss-text-primary);
-	font: 12px/1.6 var(--ss-font-mono);
+	font: var(--ss-text-small)/var(--ss-leading-relaxed) var(--ss-font-mono);
 	border: 1px solid var(--ss-border);
 	border-radius: var(--ss-radius-md);
 	padding: var(--ss-space-4);
 	resize: vertical;
-	box-shadow: inset 0 1px 2px rgb(0 0 0 / 4%);
+	box-shadow: inset 0 1px 2px var(--ss-color-shadow-04);
 	transition:
 		border-color 120ms ease,
 		box-shadow 120ms ease;
@@ -2311,16 +2313,16 @@ body.rtl .sscribe-progress-bar-fill {
 
 .sscribe-support-empty-title {
 	margin: 0;
-	font-size: 15px;
-	font-weight: 600;
+	font-size: var(--ss-text-h3);
+	font-weight: var(--ss-font-semibold);
 	color: var(--ss-text-primary);
-	letter-spacing: -0.005em;
+	letter-spacing: var(--ss-tracking-subtle-tight);
 }
 
 .sscribe-support-empty-copy {
 	margin: 0;
-	font-size: 13px;
-	line-height: 1.55;
+	font-size: var(--ss-text-body);
+	line-height: var(--ss-leading-comfortable);
 	color: var(--ss-text-secondary);
 	max-width: 44ch;
 }
@@ -2328,7 +2330,7 @@ body.rtl .sscribe-progress-bar-fill {
 .sscribe-modal {
 	position: fixed;
 	inset: 0;
-	background: rgb(9 9 11 / 50%);
+	background: var(--ss-color-overlay);
 	display: flex;
 	align-items: center;
 	justify-content: center;
@@ -2414,8 +2416,8 @@ body.rtl .sscribe-progress-bar-fill {
 }
 
 .sscribe-modal-header h3 {
-	font-size: 15px;
-	font-weight: 600;
+	font-size: var(--ss-text-h3);
+	font-weight: var(--ss-font-semibold);
 	color: var(--ss-text-primary);
 	margin: 0;
 	display: inline-flex;
@@ -2426,7 +2428,7 @@ body.rtl .sscribe-progress-bar-fill {
 .sscribe-modal-header h3 > svg {
 	width: 32px;
 	height: 32px;
-	padding: 6px;
+	padding: var(--ss-space-1-5);
 	background: var(--ss-surface-2);
 	color: var(--ss-text-secondary);
 	border-radius: var(--ss-radius-sm);
@@ -2441,8 +2443,8 @@ body.rtl .sscribe-progress-bar-fill {
 	background: var(--ss-surface-2);
 	border: 1px solid var(--ss-border);
 	border-radius: var(--ss-radius-full);
-	font-size: 20px;
-	line-height: 1;
+	font-size: var(--ss-text-xl);
+	line-height: var(--ss-leading-none);
 	color: var(--ss-text-secondary);
 	cursor: pointer;
 	display: inline-flex;
@@ -2510,7 +2512,7 @@ body.rtl .sscribe-progress-bar-fill {
 	align-items: center;
 	gap: var(--ss-space-2);
 	color: var(--ss-text-muted);
-	font-size: 13px;
+	font-size: var(--ss-text-body);
 }
 
 .sscribe-loading-spinner {
@@ -2556,9 +2558,9 @@ body.rtl .sscribe-progress-bar-fill {
 	color: var(--ss-text-inverse);
 	border-radius: var(--ss-radius-lg);
 	border: 1px solid var(--ss-text-primary);
-	font-size: 13px;
+	font-size: var(--ss-text-body);
 	pointer-events: auto;
-	line-height: 1.4;
+	line-height: var(--ss-leading-normal);
 	opacity: 0;
 	transform: translateY(8px) scale(0.98);
 	transition:
@@ -2631,8 +2633,8 @@ body.rtl .sscribe-progress-bar-fill {
 	cursor: pointer;
 	padding: 0;
 	margin-left: auto;
-	font-size: 16px;
-	line-height: 1;
+	font-size: var(--ss-text-h2);
+	line-height: var(--ss-leading-none);
 	transition:
 		opacity 120ms ease,
 		background 120ms ease;
@@ -2647,7 +2649,7 @@ body.rtl .sscribe-progress-bar-fill {
 
 .sscribe-toast-dismiss:hover {
 	opacity: 1;
-	background: rgb(255 255 255 / 14%);
+	background: var(--ss-color-highlight-14);
 }
 
 .sscribe-toast-dismiss:focus-visible {
@@ -2682,12 +2684,12 @@ body.rtl .sscribe-progress-bar-fill {
 
 .sscribe-feedback {
 	color: var(--ss-text-secondary);
-	font-size: 12px;
+	font-size: var(--ss-text-small);
 	margin: 0;
 }
 
 .sscribe-export-btn-scope {
-	font-size: 12px;
+	font-size: var(--ss-text-small);
 	color: var(--ss-text-muted);
 	margin-left: var(--ss-space-1);
 }
@@ -2772,11 +2774,11 @@ body.rtl .sscribe-progress-bar-fill {
 	}
 
 	.sscribe-hero-stats {
-		padding-left: 0;
+		padding-inline-start: 0;
 	}
 
 	.sscribe-hero-stat + .sscribe-hero-stat {
-		padding-left: var(--ss-space-4);
+		padding-inline-start: var(--ss-space-4);
 	}
 
 	.sscribe-post-type-cards,
@@ -2786,14 +2788,14 @@ body.rtl .sscribe-progress-bar-fill {
 	.sscribe-status-cards.sscribe-cards-row,
 	.sscribe-format-cards.sscribe-cards-row {
 		flex-flow: column nowrap;
-		gap: 6px;
+		gap: var(--ss-space-1-5);
 	}
 
 	#sscribe-format-cards,
 	#sscribe-format-cards.sscribe-cards-row {
 		display: flex;
 		flex-flow: column nowrap;
-		gap: 6px;
+		gap: var(--ss-space-1-5);
 	}
 
 	.sscribe-post-type-card-inner,
@@ -2867,7 +2869,7 @@ body.rtl .sscribe-progress-bar-fill {
 	}
 
 	.sscribe-hero-title {
-		font-size: 18px;
+		font-size: var(--ss-text-lg);
 	}
 
 	.sscribe-post-type-card-inner,
@@ -2876,16 +2878,44 @@ body.rtl .sscribe-progress-bar-fill {
 		min-width: 0;
 	}
 
+	.sscribe-onboarding-inner {
+		position: relative;
+		flex-direction: column;
+		align-items: stretch;
+		gap: var(--ss-space-3);
+	}
+
+	.sscribe-onboarding-icon {
+		align-self: flex-start;
+	}
+
+	.sscribe-onboarding-body {
+		width: 100%;
+	}
+
+	.sscribe-onboarding-steps {
+		flex-direction: column;
+		align-items: stretch;
+	}
+
 	.sscribe-onboarding-steps li {
-		padding: 4px 12px 4px 30px;
-		font-size: 11px;
+		width: 100%;
+		box-sizing: border-box;
+		padding: var(--ss-space-1) var(--ss-space-3) var(--ss-space-1) calc(var(--ss-space-7) + var(--ss-space-half));
+		font-size: var(--ss-text-caption);
 	}
 
 	.sscribe-onboarding-steps li::before {
 		left: 4px;
 		width: 18px;
 		height: 18px;
-		font-size: 10px;
+		font-size: var(--ss-text-xs);
+	}
+
+	.sscribe-onboarding-inner > #sscribe-onboarding-dismiss {
+		position: absolute;
+		inset-block-start: 0;
+		inset-inline-end: 0;
 	}
 }
 
@@ -2948,7 +2978,7 @@ body.rtl .sscribe-progress-bar-fill {
 .sscribe-preview-stat {
 	display: flex;
 	flex-direction: column;
-	gap: 4px;
+	gap: var(--ss-space-1);
 	padding: var(--ss-space-3) var(--ss-space-4);
 	background: var(--ss-surface-2);
 	border: 1px solid var(--ss-border);
@@ -2958,17 +2988,17 @@ body.rtl .sscribe-progress-bar-fill {
 }
 
 .sscribe-preview-label {
-	font-size: 11px;
-	font-weight: 600;
+	font-size: var(--ss-text-caption);
+	font-weight: var(--ss-font-semibold);
 	color: var(--ss-text-tertiary);
 	text-transform: uppercase;
-	letter-spacing: 0.05em;
+	letter-spacing: var(--ss-tracking-md);
 	white-space: nowrap;
 }
 
 .sscribe-preview-value {
-	font-size: 16px;
-	font-weight: 700;
+	font-size: var(--ss-text-h2);
+	font-weight: var(--ss-font-bold);
 	color: var(--ss-text-primary);
 	font-variant-numeric: tabular-nums;
 	overflow-wrap: anywhere;
@@ -2979,37 +3009,37 @@ body.rtl .sscribe-progress-bar-fill {
 	border: 1px solid var(--ss-border);
 	border-radius: var(--ss-radius);
 	padding: var(--ss-space-3) var(--ss-space-4);
-	font-size: 13px;
-	line-height: 1.6;
+	font-size: var(--ss-text-body);
+	line-height: var(--ss-leading-relaxed);
 	color: var(--ss-text-secondary);
 }
 
 .sscribe-preview-sample h4 {
 	margin: 0 0 var(--ss-space-2);
-	font-size: 11px;
-	font-weight: 700;
+	font-size: var(--ss-text-caption);
+	font-weight: var(--ss-font-bold);
 	text-transform: uppercase;
-	letter-spacing: 0.05em;
+	letter-spacing: var(--ss-tracking-md);
 	color: var(--ss-text-tertiary);
 }
 
 .sscribe-preview-title {
 	display: block;
-	font-size: 13px;
-	font-weight: 600;
+	font-size: var(--ss-text-body);
+	font-weight: var(--ss-font-semibold);
 	color: var(--ss-text-primary);
 	margin: 0 0 var(--ss-space-2) 0;
 }
 
 .sscribe-preview-excerpt {
 	color: var(--ss-text-secondary);
-	font-size: 13px;
-	line-height: 1.6;
+	font-size: var(--ss-text-body);
+	line-height: var(--ss-leading-relaxed);
 	margin: 0;
 }
 
 .sscribe-preview-note {
-	font-size: 11px;
+	font-size: var(--ss-text-caption);
 	color: var(--ss-text-secondary);
 	margin: 0;
 	padding: var(--ss-space-2) var(--ss-space-3);
@@ -3021,7 +3051,7 @@ body.rtl .sscribe-progress-bar-fill {
 	text-align: center;
 	padding: var(--ss-space-6) var(--ss-space-4);
 	color: var(--ss-text-muted);
-	font-size: 13px;
+	font-size: var(--ss-text-body);
 }
 
 .sscribe-preview-loading {
@@ -3029,7 +3059,7 @@ body.rtl .sscribe-progress-bar-fill {
 	align-items: center;
 	gap: var(--ss-space-3);
 	color: var(--ss-text-muted);
-	font-size: 13px;
+	font-size: var(--ss-text-body);
 	padding: var(--ss-space-4) 0;
 }
 
@@ -3047,7 +3077,7 @@ body.rtl .sscribe-progress-bar-fill {
 	background: transparent;
 	border: none;
 	border-radius: 0;
-	font-size: 13px;
+	font-size: var(--ss-text-body);
 }
 
 .sscribe-log-stat {
@@ -3061,7 +3091,7 @@ body.rtl .sscribe-progress-bar-fill {
 	min-width: 0;
 	position: relative;
 	overflow: hidden;
-	box-shadow: 0 1px 2px rgb(0 0 0 / 4%);
+	box-shadow: 0 1px 2px var(--ss-color-shadow-04);
 	transition:
 		border-color var(--ss-motion-fast) var(--ss-easing),
 		background var(--ss-motion-fast) var(--ss-easing),
@@ -3069,7 +3099,7 @@ body.rtl .sscribe-progress-bar-fill {
 }
 
 .sscribe-log-stat:hover {
-	box-shadow: 0 2px 6px rgb(0 0 0 / 6%);
+	box-shadow: 0 2px 6px var(--ss-color-shadow-06);
 }
 
 .sscribe-log-stat::before {
@@ -3119,25 +3149,25 @@ body.rtl .sscribe-progress-bar-fill {
 .sscribe-log-stat-body {
 	display: flex;
 	flex-direction: column;
-	gap: 2px;
+	gap: var(--ss-space-half);
 	min-width: 0;
 }
 
 .sscribe-log-stat-label {
-	font-size: 11px;
-	font-weight: 600;
+	font-size: var(--ss-text-caption);
+	font-weight: var(--ss-font-semibold);
 	color: var(--ss-text-tertiary);
 	text-transform: uppercase;
-	letter-spacing: 0.05em;
+	letter-spacing: var(--ss-tracking-md);
 	white-space: nowrap;
 }
 
 .sscribe-log-stat-value {
-	font-size: 18px;
-	font-weight: 700;
+	font-size: var(--ss-text-lg);
+	font-weight: var(--ss-font-bold);
 	color: var(--ss-text-primary);
 	font-variant-numeric: tabular-nums;
-	line-height: 1.1;
+	line-height: var(--ss-leading-tightest);
 }
 
 .sscribe-log-stat-value.success {
@@ -3150,43 +3180,43 @@ body.rtl .sscribe-progress-bar-fill {
 
 .sscribe-log-success {
 	color: var(--ss-success);
-	font-weight: 500;
+	font-weight: var(--ss-font-medium);
 }
 
 .sscribe-log-failed {
 	color: var(--ss-error);
-	font-weight: 500;
+	font-weight: var(--ss-font-medium);
 }
 
 .sscribe-log-status-success {
 	display: inline-flex;
 	align-items: center;
-	gap: 4px;
-	padding: 2px 8px;
+	gap: var(--ss-space-1);
+	padding: var(--ss-space-half) var(--ss-space-2);
 	background: var(--ss-success-bg);
 	border: 1px solid var(--ss-success-border);
 	color: var(--ss-success);
 	border-radius: var(--ss-radius-full);
-	font-size: 11px;
-	font-weight: 600;
+	font-size: var(--ss-text-caption);
+	font-weight: var(--ss-font-semibold);
 }
 
 .sscribe-log-status-failed {
 	display: inline-flex;
 	align-items: center;
-	gap: 4px;
-	padding: 2px 8px;
+	gap: var(--ss-space-1);
+	padding: var(--ss-space-half) var(--ss-space-2);
 	background: var(--ss-error-bg);
 	border: 1px solid var(--ss-error-border);
 	color: var(--ss-error);
 	border-radius: var(--ss-radius-full);
-	font-size: 11px;
-	font-weight: 600;
+	font-size: var(--ss-text-caption);
+	font-weight: var(--ss-font-semibold);
 }
 
 .sscribe-log-pages {
 	color: var(--ss-text-secondary);
-	font-size: 13px;
+	font-size: var(--ss-text-body);
 	display: flex;
 	flex-direction: column;
 	gap: var(--ss-space-3);
@@ -3197,10 +3227,10 @@ body.rtl .sscribe-progress-bar-fill {
 
 .sscribe-log-pages h4 {
 	margin: 0;
-	font-size: 12px;
-	font-weight: 600;
+	font-size: var(--ss-text-small);
+	font-weight: var(--ss-font-semibold);
 	text-transform: uppercase;
-	letter-spacing: 0.06em;
+	letter-spacing: var(--ss-tracking-lg);
 	color: var(--ss-text-tertiary);
 	display: inline-flex;
 	align-items: center;
@@ -3220,7 +3250,7 @@ body.rtl .sscribe-progress-bar-fill {
 	min-width: 640px;
 	border-collapse: separate;
 	border-spacing: 0;
-	font-size: 13px;
+	font-size: var(--ss-text-body);
 	font-variant-numeric: tabular-nums;
 	border: 1px solid var(--ss-border);
 	border-radius: var(--ss-radius-md);
@@ -3252,10 +3282,10 @@ body.rtl .sscribe-progress-bar-fill {
 
 .sscribe-log-table th {
 	text-align: left;
-	font-size: 11px;
-	font-weight: 700;
+	font-size: var(--ss-text-caption);
+	font-weight: var(--ss-font-bold);
 	text-transform: uppercase;
-	letter-spacing: 0.05em;
+	letter-spacing: var(--ss-tracking-md);
 	color: var(--ss-text-tertiary);
 	padding: var(--ss-space-3) var(--ss-space-4);
 	background: var(--ss-surface-2);
@@ -3292,15 +3322,15 @@ body.rtl .sscribe-progress-bar-fill {
 
 .sscribe-log-id {
 	font-family: var(--ss-font-mono);
-	font-size: 12px;
+	font-size: var(--ss-text-small);
 	color: var(--ss-text-tertiary);
 	background: var(--ss-surface-2);
-	padding: 2px 6px;
+	padding: var(--ss-space-half) var(--ss-space-1-5);
 	border-radius: var(--ss-radius-sm);
 }
 
 .sscribe-log-title {
-	font-weight: 500;
+	font-weight: var(--ss-font-medium);
 	color: var(--ss-text-primary);
 	display: block;
 	max-width: 320px;
@@ -3312,11 +3342,11 @@ body.rtl .sscribe-progress-bar-fill {
 .sscribe-log-status-badge {
 	display: inline-flex;
 	align-items: center;
-	gap: 6px;
-	padding: 2px 10px;
+	gap: var(--ss-space-1-5);
+	padding: var(--ss-space-half) var(--ss-space-2-5);
 	border-radius: var(--ss-radius-full);
-	font-size: 11px;
-	font-weight: 600;
+	font-size: var(--ss-text-caption);
+	font-weight: var(--ss-font-semibold);
 	text-transform: capitalize;
 }
 
@@ -3351,22 +3381,22 @@ body.rtl .sscribe-progress-bar-fill {
 
 .sscribe-log-time {
 	font-family: var(--ss-font-mono);
-	font-size: 12px;
+	font-size: var(--ss-text-small);
 	color: var(--ss-text-secondary);
 }
 
 .sscribe-log-format-chip {
 	display: inline-flex;
 	align-items: center;
-	padding: 2px 8px;
-	margin-right: 4px;
+	padding: var(--ss-space-half) var(--ss-space-2);
+	margin-right: var(--ss-space-1);
 	background: var(--ss-brand-tint);
 	color: var(--ss-brand);
 	border-radius: var(--ss-radius-sm);
 	font-family: var(--ss-font-mono);
-	font-size: 11px;
-	font-weight: 600;
-	letter-spacing: 0.04em;
+	font-size: var(--ss-text-caption);
+	font-weight: var(--ss-font-semibold);
+	letter-spacing: var(--ss-tracking-sm);
 }
 
 .sscribe-log-format-chip:last-child {
@@ -3381,7 +3411,7 @@ body.rtl .sscribe-progress-bar-fill {
 	text-align: center;
 	padding: var(--ss-space-7) var(--ss-space-4);
 	color: var(--ss-text-muted);
-	font-size: 13px;
+	font-size: var(--ss-text-body);
 	background: var(--ss-surface-2);
 	border: 1px dashed var(--ss-border);
 	border-radius: var(--ss-radius-md);
@@ -3393,7 +3423,7 @@ body.rtl .sscribe-progress-bar-fill {
 	border: 1px solid var(--ss-error-border);
 	border-radius: var(--ss-radius);
 	color: var(--ss-error);
-	font-size: 13px;
+	font-size: var(--ss-text-body);
 	display: flex;
 	flex-direction: column;
 	gap: var(--ss-space-3);
@@ -3401,7 +3431,7 @@ body.rtl .sscribe-progress-bar-fill {
 
 .sscribe-log-errors {
 	color: var(--ss-error);
-	font-weight: 500;
+	font-weight: var(--ss-font-medium);
 }
 
 .sscribe-preflight-body {
@@ -3437,10 +3467,10 @@ body.rtl .sscribe-progress-bar-fill {
 }
 
 .sscribe-preflight-section-title {
-	font-size: 11px;
-	font-weight: 600;
+	font-size: var(--ss-text-caption);
+	font-weight: var(--ss-font-semibold);
 	text-transform: uppercase;
-	letter-spacing: 0.05em;
+	letter-spacing: var(--ss-tracking-md);
 	color: var(--ss-text-tertiary);
 	margin: 0 0 var(--ss-space-2) 0;
 }
@@ -3449,15 +3479,15 @@ body.rtl .sscribe-progress-bar-fill {
 	margin: 0;
 	padding-left: var(--ss-space-5);
 	color: var(--ss-text-secondary);
-	font-size: 13px;
-	line-height: 1.6;
+	font-size: var(--ss-text-body);
+	line-height: var(--ss-leading-relaxed);
 }
 
 .sscribe-preflight-errors,
 .sscribe-preflight-warnings {
 	color: var(--ss-text-secondary);
-	font-size: 13px;
-	line-height: 1.6;
+	font-size: var(--ss-text-body);
+	line-height: var(--ss-leading-relaxed);
 }
 
 .sscribe-preflight-warnings .sscribe-preflight-section-title {
@@ -3500,14 +3530,14 @@ body.rtl .sscribe-progress-bar-fill {
 
 .sscribe-error-text {
 	color: var(--ss-error);
-	font-size: 13px;
-	font-weight: 500;
+	font-size: var(--ss-text-body);
+	font-weight: var(--ss-font-medium);
 }
 
 .sscribe-error-guidance-text {
 	color: var(--ss-text-secondary);
-	font-size: 12px;
-	line-height: 1.5;
+	font-size: var(--ss-text-small);
+	line-height: var(--ss-leading-body);
 }
 
 .sscribe-error-technical-details {
@@ -3516,7 +3546,7 @@ body.rtl .sscribe-progress-bar-fill {
 	background: var(--ss-surface);
 	border: 1px solid var(--ss-border);
 	border-radius: var(--ss-radius-sm);
-	font: 11px/1.5 var(--ss-font-mono);
+	font: var(--ss-text-caption)/var(--ss-leading-body) var(--ss-font-mono);
 	color: var(--ss-text-secondary);
 	overflow-x: auto;
 	white-space: pre-wrap;
@@ -3543,7 +3573,7 @@ body.rtl .sscribe-progress-bar-fill {
 }
 
 .sscribe-progress-text {
-	font-size: 13px;
+	font-size: var(--ss-text-body);
 	color: var(--ss-text-secondary);
 }
 
@@ -3555,9 +3585,9 @@ body.rtl .sscribe-progress-bar-fill {
 }
 
 .sscribe-status-text {
-	font-size: 13px;
+	font-size: var(--ss-text-body);
 	color: var(--ss-text-secondary);
-	line-height: 1.55;
+	line-height: var(--ss-leading-comfortable);
 	margin: 0;
 }
 
@@ -3608,15 +3638,15 @@ body.rtl .sscribe-progress-bar-fill {
 .sscribe-confirm-hint {
 	display: inline-block;
 	margin-left: var(--ss-space-2);
-	padding: 2px 8px;
+	padding: var(--ss-space-half) var(--ss-space-2);
 	background: var(--ss-error-bg);
 	border: 1px solid var(--ss-error-border);
 	border-radius: var(--ss-radius-full);
 	color: var(--ss-error);
-	font-size: 11px;
-	font-weight: 600;
+	font-size: var(--ss-text-caption);
+	font-weight: var(--ss-font-semibold);
 	font-style: italic;
-	letter-spacing: 0.02em;
+	letter-spacing: var(--ss-tracking-xs);
 }
 
 .sscribe-button.sscribe-cancel-btn {
@@ -3635,7 +3665,7 @@ body.rtl .sscribe-progress-bar-fill {
 .sscribe-button#sscribe-new-export-btn,
 .sscribe-confirm-original,
 .sscribe-confirm-timeout {
-	font-size: 13px;
+	font-size: var(--ss-text-body);
 	color: var(--ss-text-secondary);
 	margin-left: var(--ss-space-2);
 	min-height: 32px;
@@ -3643,7 +3673,7 @@ body.rtl .sscribe-progress-bar-fill {
 }
 
 .sscribe-button .sscribe-back-to-current {
-	font-size: 13px;
+	font-size: var(--ss-text-body);
 	color: var(--ss-text-secondary);
 	background: transparent;
 	border: 1px solid var(--ss-border);
@@ -3670,8 +3700,8 @@ body.rtl .sscribe-progress-bar-fill {
 .sscribe-toast-message {
 	flex: 1;
 	min-width: 0;
-	font-size: 13px;
-	line-height: 1.4;
+	font-size: var(--ss-text-body);
+	line-height: var(--ss-leading-normal);
 }
 
 .sscribe-tab-btn-debug.sscribe-tab-active {
@@ -3683,12 +3713,12 @@ body.rtl .sscribe-progress-bar-fill {
 	align-items: center;
 	gap: var(--ss-space-3);
 	color: var(--ss-text-muted);
-	font-size: 13px;
+	font-size: var(--ss-text-body);
 }
 
 .sscribe-loading-count {
 	font-family: var(--ss-font-mono);
-	font-size: 11px;
+	font-size: var(--ss-text-caption);
 	color: var(--ss-text-muted);
 }
 
@@ -3710,7 +3740,7 @@ body.rtl .sscribe-progress-bar-fill {
 	border: 1px solid var(--ss-border);
 	border-radius: var(--ss-radius-md);
 	min-width: 0;
-	box-shadow: 0 1px 0 rgb(0 0 0 / 2%);
+	box-shadow: 0 1px 0 var(--ss-color-shadow-02);
 }
 
 .sscribe-support-section-full {
@@ -3722,10 +3752,10 @@ body.rtl .sscribe-progress-bar-fill {
 }
 
 .sscribe-support-section-title {
-	font-size: 11px;
-	font-weight: 700;
+	font-size: var(--ss-text-caption);
+	font-weight: var(--ss-font-bold);
 	text-transform: uppercase;
-	letter-spacing: 0.08em;
+	letter-spacing: var(--ss-tracking-xl);
 	color: var(--ss-text-tertiary);
 	margin: 0 0 var(--ss-space-2) 0;
 	padding: 0 0 var(--ss-space-2) 0;
@@ -3752,7 +3782,7 @@ body.rtl .sscribe-progress-bar-fill {
 .sscribe-support-item {
 	display: flex;
 	flex-direction: column;
-	gap: 2px;
+	gap: var(--ss-space-half);
 	padding: var(--ss-space-3);
 	background: var(--ss-surface-2);
 	border: 1px solid var(--ss-border);
@@ -3769,19 +3799,19 @@ body.rtl .sscribe-progress-bar-fill {
 }
 
 .sscribe-support-label {
-	font-size: 10px;
-	font-weight: 600;
+	font-size: var(--ss-text-xs);
+	font-weight: var(--ss-font-semibold);
 	text-transform: uppercase;
-	letter-spacing: 0.06em;
+	letter-spacing: var(--ss-tracking-lg);
 	color: var(--ss-text-tertiary);
 }
 
 .sscribe-support-value {
-	font-size: 13px;
+	font-size: var(--ss-text-body);
 	color: var(--ss-text-primary);
-	font-weight: 500;
+	font-weight: var(--ss-font-medium);
 	overflow-wrap: anywhere;
-	line-height: 1.4;
+	line-height: var(--ss-leading-normal);
 }
 
 .sscribe-support-empty-state {
@@ -3789,7 +3819,7 @@ body.rtl .sscribe-progress-bar-fill {
 	padding: var(--ss-space-4);
 	text-align: center;
 	color: var(--ss-text-muted);
-	font-size: 13px;
+	font-size: var(--ss-text-body);
 	background: var(--ss-surface-2);
 	border: 1px dashed var(--ss-border);
 	border-radius: var(--ss-radius);
@@ -3800,7 +3830,7 @@ body.rtl .sscribe-progress-bar-fill {
 	align-items: center;
 	gap: var(--ss-space-3);
 	color: var(--ss-text-muted);
-	font-size: 13px;
+	font-size: var(--ss-text-body);
 	padding: var(--ss-space-4) 0;
 }
 
@@ -3810,7 +3840,7 @@ body.rtl .sscribe-progress-bar-fill {
 	border: 1px solid var(--ss-error-border);
 	border-radius: var(--ss-radius);
 	color: var(--ss-error);
-	font-size: 13px;
+	font-size: var(--ss-text-body);
 }
 
 .sscribe-alert-region,
@@ -3819,7 +3849,7 @@ body.rtl .sscribe-progress-bar-fill {
 	width: 1px;
 	height: 1px;
 	padding: 0;
-	margin: -1px;
+	margin: calc(-1 * var(--ss-space-px));
 	overflow: hidden;
 	clip-path: inset(50%);
 	white-space: nowrap;
@@ -3834,12 +3864,12 @@ body.rtl .sscribe-progress-bar-fill {
 
 .sscribe-feedback-success {
 	color: var(--ss-success);
-	font-size: 12px;
+	font-size: var(--ss-text-small);
 }
 
 .sscribe-feedback-error {
 	color: var(--ss-error);
-	font-size: 12px;
+	font-size: var(--ss-text-small);
 }
 
 #sscribe-format-cards {
@@ -3911,11 +3941,11 @@ body.rtl .sscribe-progress-bar-fill {
 }
 
 #sscribe-history-table .sscribe-history-table-element thead th {
-	text-align: left;
+	text-align: start;
 	padding: var(--ss-space-3) var(--ss-space-4);
 	border-bottom: 1px solid var(--ss-border);
-	font-weight: 600;
-	font-size: 12px;
+	font-weight: var(--ss-font-semibold);
+	font-size: var(--ss-text-small);
 	color: var(--ss-text-secondary);
 	background: var(--ss-surface-2);
 	vertical-align: middle;
@@ -3928,7 +3958,7 @@ body.rtl .sscribe-progress-bar-fill {
 #sscribe-history-table .sscribe-history-table-element .sscribe-history-col-actions {
 	width: 1%;
 	white-space: nowrap;
-	text-align: right;
+	text-align: end;
 }
 
 #sscribe-history-table .sscribe-history-table-element caption.screen-reader-text {
@@ -3936,7 +3966,7 @@ body.rtl .sscribe-progress-bar-fill {
 	width: 1px;
 	height: 1px;
 	padding: 0;
-	margin: -1px;
+	margin: calc(-1 * var(--ss-space-px));
 	overflow: hidden;
 	clip-path: inset(50%);
 	white-space: nowrap;
@@ -4035,11 +4065,11 @@ body.rtl .sscribe-progress-bar-fill {
 }
 
 #sscribe-history-table .sscribe-file-icon-text {
-	font-size: 10px;
-	font-weight: 700;
+	font-size: var(--ss-text-xs);
+	font-weight: var(--ss-font-bold);
 	color: var(--ss-brand);
-	line-height: 1;
-	letter-spacing: 0.02em;
+	line-height: var(--ss-leading-none);
+	letter-spacing: var(--ss-tracking-xs);
 	text-transform: uppercase;
 }
 
@@ -4055,7 +4085,7 @@ body.rtl .sscribe-progress-bar-fill {
 	flex-direction: column;
 	min-width: 0;
 	flex: 1;
-	gap: 2px;
+	gap: var(--ss-space-half);
 	background: transparent;
 	border: none;
 	font-family: inherit;
@@ -4068,8 +4098,8 @@ body.rtl .sscribe-progress-bar-fill {
 }
 
 #sscribe-history-table .sscribe-file-details strong {
-	font-size: 12.5px;
-	font-weight: 500;
+	font-size: var(--ss-text-compact);
+	font-weight: var(--ss-font-medium);
 	color: var(--ss-text-primary);
 	overflow: hidden;
 	text-overflow: ellipsis;
@@ -4082,14 +4112,14 @@ body.rtl .sscribe-progress-bar-fill {
 }
 
 #sscribe-history-table .sscribe-file-details span {
-	font-size: 11px;
+	font-size: var(--ss-text-caption);
 	color: var(--ss-text-muted);
 	white-space: nowrap;
 	display: block;
 	grid-column: unset;
 	grid-row: unset;
 	font-family: inherit;
-	line-height: 1.4;
+	line-height: var(--ss-leading-normal);
 }
 
 #sscribe-history-table .sscribe-history-actions {
@@ -4097,7 +4127,7 @@ body.rtl .sscribe-progress-bar-fill {
 	align-items: center;
 	gap: var(--ss-space-2);
 	flex-shrink: 0;
-	margin-left: auto;
+	margin-inline-start: auto;
 	grid-column: unset;
 	grid-row: unset;
 }
@@ -4122,11 +4152,11 @@ body.rtl .sscribe-progress-bar-fill {
 	text-decoration: none;
 	flex-shrink: 0;
 	font-family: inherit;
-	font-size: 12px;
-	font-weight: 500;
-	line-height: 1;
+	font-size: var(--ss-text-small);
+	font-weight: var(--ss-font-medium);
+	line-height: var(--ss-leading-none);
 	white-space: nowrap;
-	letter-spacing: 0;
+	letter-spacing: var(--ss-tracking-none);
 }
 
 #sscribe-history-table .sscribe-history-actions a:hover,
@@ -4169,8 +4199,8 @@ body.rtl .sscribe-progress-bar-fill {
 	content: '';
 	width: 9px;
 	height: 5px;
-	border-left: 2px solid #fff;
-	border-bottom: 2px solid #fff;
+	border-left: 2px solid var(--ss-color-solid-white);
+	border-bottom: 2px solid var(--ss-color-solid-white);
 	transform: rotate(-45deg) translate(0, -1px);
 	display: block;
 }
@@ -4202,17 +4232,17 @@ body.rtl .sscribe-progress-bar-fill {
 
 #sscribe-history-table .sscribe-empty-title {
 	margin: 0;
-	font-size: 16px;
-	font-weight: 600;
+	font-size: var(--ss-text-h2);
+	font-weight: var(--ss-font-semibold);
 	color: var(--ss-text-primary);
-	line-height: 1.4;
+	line-height: var(--ss-leading-normal);
 }
 
 #sscribe-history-table .sscribe-empty-copy {
 	margin: 0;
 	max-width: 340px;
-	font-size: 13px;
-	line-height: 1.5;
+	font-size: var(--ss-text-body);
+	line-height: var(--ss-leading-body);
 	color: var(--ss-text-secondary);
 }
 
@@ -4264,17 +4294,17 @@ body.rtl .sscribe-progress-bar-fill {
 }
 
 .sscribe-onboarding-body h2 {
-	margin: 0 0 4px;
-	font-size: 15px;
-	font-weight: 600;
+	margin: 0 0 var(--ss-space-1);
+	font-size: var(--ss-text-h3);
+	font-weight: var(--ss-font-semibold);
 	color: var(--ss-text-primary);
-	line-height: 1.4;
+	line-height: var(--ss-leading-normal);
 }
 
 .sscribe-onboarding-body p {
 	margin: 0 0 var(--ss-space-3) 0;
-	font-size: 13px;
-	line-height: 1.5;
+	font-size: var(--ss-text-body);
+	line-height: var(--ss-leading-body);
 	color: var(--ss-text-secondary);
 }
 
@@ -4294,13 +4324,13 @@ body.rtl .sscribe-progress-bar-fill {
 	display: inline-flex;
 	align-items: center;
 	min-height: 28px;
-	padding: 4px 14px 4px 34px;
+	padding: var(--ss-space-1) var(--ss-space-3-5) var(--ss-space-1) var(--ss-space-8-5);
 	background: var(--ss-surface);
 	border: 1px solid var(--ss-border);
 	border-radius: var(--ss-radius-full);
-	font-size: 12px;
-	font-weight: 500;
-	line-height: 1.4;
+	font-size: var(--ss-text-small);
+	font-weight: var(--ss-font-medium);
+	line-height: var(--ss-leading-normal);
 	color: var(--ss-text-secondary);
 }
 
@@ -4315,12 +4345,12 @@ body.rtl .sscribe-progress-bar-fill {
 	border-radius: var(--ss-radius-full);
 	background: var(--ss-brand);
 	color: var(--ss-text-inverse);
-	font-size: 11px;
-	font-weight: 700;
+	font-size: var(--ss-text-caption);
+	font-weight: var(--ss-font-bold);
 	display: flex;
 	align-items: center;
 	justify-content: center;
-	line-height: 1;
+	line-height: var(--ss-leading-none);
 }
 
 #sscribe-onboarding-dismiss {
@@ -4336,8 +4366,8 @@ body.rtl .sscribe-progress-bar-fill {
 	border-radius: var(--ss-radius-md);
 	color: var(--ss-text-secondary);
 	cursor: pointer;
-	font-size: 18px;
-	line-height: 1;
+	font-size: var(--ss-text-lg);
+	line-height: var(--ss-leading-none);
 	transition:
 		background 120ms ease,
 		color 120ms ease;
@@ -4365,7 +4395,7 @@ body.rtl .sscribe-progress-bar-fill {
 #sscribe-error-actions {
 	display: flex;
 	flex-wrap: wrap;
-	gap: 8px;
+	gap: var(--ss-space-2);
 	margin-top: var(--ss-space-3);
 }
 
@@ -4397,28 +4427,28 @@ body.rtl .sscribe-progress-bar-fill {
 	min-width: 0;
 	display: flex;
 	flex-direction: column;
-	gap: 2px;
+	gap: var(--ss-space-half);
 }
 
 .sscribe-confirm-titles h3 {
 	margin: 0;
-	font-size: 15px;
-	font-weight: 600;
+	font-size: var(--ss-text-h3);
+	font-weight: var(--ss-font-semibold);
 	color: var(--ss-text-primary);
-	line-height: 1.4;
+	line-height: var(--ss-leading-normal);
 }
 
 .sscribe-confirm-desc {
 	margin: 0;
-	font-size: 13px;
-	font-weight: 400;
+	font-size: var(--ss-text-body);
+	font-weight: var(--ss-font-regular);
 	color: var(--ss-text-secondary);
-	line-height: 1.5;
+	line-height: var(--ss-leading-body);
 }
 
 .sscribe-confirm-body {
-	font-size: 13px;
-	line-height: 1.5;
+	font-size: var(--ss-text-body);
+	line-height: var(--ss-leading-body);
 	color: var(--ss-text-secondary);
 	padding-top: var(--ss-space-3);
 }
@@ -4427,7 +4457,7 @@ body.rtl .sscribe-progress-bar-fill {
 	display: flex;
 	flex-direction: row-reverse;
 	justify-content: flex-start;
-	gap: 8px;
+	gap: var(--ss-space-2);
 }
 
 .sscribe-panel-header-meta {
@@ -4458,7 +4488,7 @@ body.rtl .sscribe-progress-bar-fill {
 	position: relative;
 	display: flex;
 	align-items: center;
-	gap: 6px;
+	gap: var(--ss-space-1-5);
 	flex: 1;
 	max-width: 360px;
 	padding: 0 var(--ss-space-3);
@@ -4483,8 +4513,8 @@ body.rtl .sscribe-progress-bar-fill {
 	border: none;
 	background: transparent;
 	color: var(--ss-text-primary);
-	font-size: 13px;
-	line-height: 1;
+	font-size: var(--ss-text-body);
+	line-height: var(--ss-leading-none);
 	padding: 0;
 	box-shadow: none;
 }
@@ -4505,9 +4535,9 @@ body.rtl .sscribe-progress-bar-fill {
 .sscribe-bulk-hint {
 	display: flex;
 	align-items: center;
-	gap: 6px;
+	gap: var(--ss-space-1-5);
 	margin: 0;
-	font-size: 12px;
+	font-size: var(--ss-text-small);
 	color: var(--ss-text-muted);
 }
 
@@ -4527,14 +4557,14 @@ body.rtl .sscribe-progress-bar-fill {
 
 .sscribe-bulk-bar[data-active='true'] .sscribe-bulk-count {
 	color: var(--ss-brand);
-	font-weight: 600;
+	font-weight: var(--ss-font-semibold);
 }
 
 .sscribe-bulk-select-all-label {
-	font-size: 12px;
-	font-weight: 500;
+	font-size: var(--ss-text-small);
+	font-weight: var(--ss-font-medium);
 	color: var(--ss-text-secondary);
-	margin-left: 8px;
+	margin-inline-start: var(--ss-space-2);
 }
 
 .sscribe-bulk-select-all input:checked ~ .sscribe-bulk-select-all-label {
@@ -4542,10 +4572,10 @@ body.rtl .sscribe-progress-bar-fill {
 }
 
 .sscribe-history-table .sscribe-file-human-label {
-	font-size: 11px;
-	font-weight: 500;
+	font-size: var(--ss-text-caption);
+	font-weight: var(--ss-font-medium);
 	color: var(--ss-text-secondary);
-	line-height: 1.35;
+	line-height: var(--ss-leading-compact);
 	overflow: hidden;
 	text-overflow: ellipsis;
 	white-space: nowrap;
@@ -4556,26 +4586,26 @@ body.rtl .sscribe-progress-bar-fill {
 	display: flex;
 	flex-wrap: wrap;
 	align-items: center;
-	gap: 4px;
+	gap: var(--ss-space-1);
 }
 
 .sscribe-history-table .sscribe-meta-sep {
 	color: var(--ss-text-muted);
 	opacity: 0.6;
-	font-size: 10px;
+	font-size: var(--ss-text-xs);
 }
 
 .sscribe-history-table .sscribe-file-retention {
 	display: inline-flex;
 	align-items: center;
-	gap: 3px;
-	padding: 0 5px;
+	gap: var(--ss-space-three-quarter);
+	padding: 0 var(--ss-space-1-25);
 	height: 18px;
 	border-radius: var(--ss-radius-sm);
 	background: var(--ss-surface-2);
 	color: var(--ss-text-tertiary);
-	font-size: 10px;
-	font-weight: 500;
+	font-size: var(--ss-text-xs);
+	font-weight: var(--ss-font-medium);
 	font-family: var(--ss-font-mono);
 }
 
@@ -4588,7 +4618,7 @@ body.rtl .sscribe-progress-bar-fill {
 	border: 1px solid var(--ss-border);
 	border-radius: var(--ss-radius-lg);
 	overflow: hidden;
-	box-shadow: 0 1px 0 rgb(0 0 0 / 2%);
+	box-shadow: 0 1px 0 var(--ss-color-shadow-02);
 }
 
 .sscribe-support-panel-header {
@@ -4612,14 +4642,14 @@ body.rtl .sscribe-progress-bar-fill {
 }
 
 .sscribe-support-panel-meta {
-	margin-left: auto;
+	margin-inline-start: auto;
 	display: inline-flex;
 	align-items: center;
-	gap: 6px;
+	gap: var(--ss-space-1-5);
 	font-family: var(--ss-font-mono);
-	font-size: 11px;
+	font-size: var(--ss-text-caption);
 	color: var(--ss-text-muted);
-	padding: 2px 8px;
+	padding: var(--ss-space-half) var(--ss-space-2);
 	border-radius: var(--ss-radius-full);
 	background: var(--ss-surface);
 	border: 1px solid var(--ss-border);
@@ -4643,7 +4673,7 @@ body.rtl .sscribe-progress-bar-fill {
 	width: 1px;
 	height: 1px;
 	padding: 0;
-	margin: -1px;
+	margin: calc(-1 * var(--ss-space-px));
 	overflow: hidden;
 	clip-path: inset(50%);
 	white-space: nowrap;
@@ -4675,18 +4705,18 @@ body.rtl .sscribe-progress-bar-fill {
 	overflow-y: auto;
 	display: flex;
 	flex-direction: column;
-	gap: 2px;
+	gap: var(--ss-space-half);
 }
 
 .sscribe-confirm-list li {
 	margin: 0;
-	padding: 6px 10px;
+	padding: var(--ss-space-1-5) var(--ss-space-2-5);
 	background: var(--ss-bg);
 	border: 1px solid var(--ss-border);
 	border-radius: var(--ss-radius-sm);
 	font-family: var(--ss-font-mono);
-	font-size: 11px;
-	line-height: 1.4;
+	font-size: var(--ss-text-caption);
+	line-height: var(--ss-leading-normal);
 	color: var(--ss-text-secondary);
 	white-space: nowrap;
 	overflow: hidden;
@@ -4877,22 +4907,22 @@ body.rtl .sscribe-progress-bar-fill {
 
 @media print {
 	.sscribe-master-container {
-		--ss-bg: #fff;
-		--ss-surface: #fff;
-		--ss-surface-2: #fff;
-		--ss-surface-3: #fff;
-		--ss-border: #000;
-		--ss-border-strong: #000;
-		--ss-text-primary: #000;
-		--ss-text-secondary: #000;
-		--ss-text-tertiary: #333;
-		--ss-text-muted: #555;
-		--ss-brand: #000;
-		--ss-brand-soft: #fff;
-		--ss-brand-tint: #fff;
+		--ss-bg: var(--ss-color-solid-white);
+		--ss-surface: var(--ss-color-solid-white);
+		--ss-surface-2: var(--ss-color-solid-white);
+		--ss-surface-3: var(--ss-color-solid-white);
+		--ss-border: var(--ss-color-solid-black);
+		--ss-border-strong: var(--ss-color-solid-black);
+		--ss-text-primary: var(--ss-color-solid-black);
+		--ss-text-secondary: var(--ss-color-solid-black);
+		--ss-text-tertiary: var(--ss-color-print-secondary);
+		--ss-text-muted: var(--ss-color-print-muted);
+		--ss-brand: var(--ss-color-solid-black);
+		--ss-brand-soft: var(--ss-color-solid-white);
+		--ss-brand-tint: var(--ss-color-solid-white);
 
-		background: #fff;
-		color: #000;
+		background: var(--ss-color-solid-white);
+		color: var(--ss-color-solid-black);
 	}
 
 	.sscribe-hero,
@@ -4906,7 +4936,7 @@ body.rtl .sscribe-progress-bar-fill {
 	.sscribe-debug-console-card,
 	.sscribe-history-toolbar {
 		box-shadow: none;
-		border: 1px solid #000;
+		border: 1px solid var(--ss-color-solid-black);
 	}
 
 	.sscribe-modal,
@@ -4928,12 +4958,12 @@ body.rtl .sscribe-progress-bar-fill {
 .sscribe-select {
 	width: 100%;
 	height: 40px;
-	padding: 0 12px;
+	padding: 0 var(--ss-space-3);
 	border: 1px solid var(--ss-border-strong);
 	border-radius: var(--ss-radius-sm, 6px);
 	background: var(--ss-surface);
 	color: var(--ss-text-primary);
-	font: 400 13px/1 var(--ss-font);
+	font: var(--ss-font-regular) var(--ss-text-body)/var(--ss-leading-none) var(--ss-font);
 	transition: border-color var(--ss-motion-fast) var(--ss-easing);
 }
 
@@ -4953,22 +4983,22 @@ body.rtl .sscribe-progress-bar-fill {
 }
 
 .sscribe-hero-stat-label {
-	font: 500 11px/1.4 var(--ss-font);
+	font: var(--ss-font-medium) var(--ss-text-caption)/var(--ss-leading-normal) var(--ss-font);
 	color: var(--ss-text-muted);
-	letter-spacing: 0.01em;
+	letter-spacing: var(--ss-tracking-subtle);
 }
 
 .sscribe-onboarding-title {
-	font: 600 15px/1.4 var(--ss-font);
+	font: var(--ss-font-semibold) var(--ss-text-h3)/var(--ss-leading-normal) var(--ss-font);
 	color: var(--ss-text-primary);
-	letter-spacing: -0.01em;
-	margin: 0 0 4px;
+	letter-spacing: var(--ss-tracking-tight);
+	margin: 0 0 var(--ss-space-1);
 }
 
 .sscribe-onboarding-copy {
-	font: 400 13px/1.55 var(--ss-font);
+	font: var(--ss-font-regular) var(--ss-text-body)/var(--ss-leading-comfortable) var(--ss-font);
 	color: var(--ss-text-secondary);
-	margin: 0 0 12px;
+	margin: 0 0 var(--ss-space-3);
 }
 
 .sscribe-onboarding-close {
@@ -4981,8 +5011,8 @@ body.rtl .sscribe-progress-bar-fill {
 	border: 1px solid transparent;
 	border-radius: var(--ss-radius-sm, 6px);
 	color: var(--ss-text-muted);
-	font-size: 18px;
-	line-height: 1;
+	font-size: var(--ss-text-lg);
+	line-height: var(--ss-leading-none);
 	cursor: pointer;
 	transition:
 		color var(--ss-motion-fast, 120ms) var(--ss-easing, cubic-bezier(0.2, 0, 0, 1)),
@@ -5002,14 +5032,14 @@ body.rtl .sscribe-progress-bar-fill {
 .sscribe-progress-actions {
 	display: flex;
 	align-items: center;
-	gap: 8px;
-	margin-top: 14px;
+	gap: var(--ss-space-2);
+	margin-top: var(--ss-space-3-5);
 }
 
 .sscribe-success-meta {
 	display: grid;
 	grid-template-columns: repeat(4, minmax(0, 1fr));
-	gap: 1px;
+	gap: var(--ss-space-px);
 	margin: var(--ss-space-5) 0 0;
 	padding: 0;
 	background: var(--ss-border);
@@ -5021,7 +5051,7 @@ body.rtl .sscribe-progress-bar-fill {
 .sscribe-success-meta-item {
 	display: flex;
 	flex-direction: column;
-	gap: 4px;
+	gap: var(--ss-space-1);
 	margin: 0;
 	min-width: 0;
 	padding: var(--ss-space-3) var(--ss-space-4);
@@ -5029,30 +5059,30 @@ body.rtl .sscribe-progress-bar-fill {
 }
 
 .sscribe-success-meta-item dt {
-	font-size: 11px;
-	font-weight: 600;
+	font-size: var(--ss-text-caption);
+	font-weight: var(--ss-font-semibold);
 	color: var(--ss-text-tertiary);
 	text-transform: uppercase;
-	letter-spacing: 0.06em;
+	letter-spacing: var(--ss-tracking-lg);
 	margin: 0;
-	line-height: 1.2;
+	line-height: var(--ss-leading-tight);
 }
 
 .sscribe-success-meta-item dd {
-	font-size: 16px;
-	font-weight: 700;
+	font-size: var(--ss-text-h2);
+	font-weight: var(--ss-font-bold);
 	color: var(--ss-text-primary);
 	font-variant-numeric: tabular-nums;
 	margin: 0;
-	line-height: 1.2;
+	line-height: var(--ss-leading-tight);
 }
 
 .sscribe-modal-close-btn {
-	margin-top: 16px;
+	margin-top: var(--ss-space-4);
 }
 
 .sscribe-button-toggle-details {
-	font-size: 13px;
+	font-size: var(--ss-text-body);
 	padding: 0 var(--ss-space-3);
 	min-height: 32px;
 }
@@ -5066,7 +5096,7 @@ body.rtl .sscribe-progress-bar-fill {
 }
 
 .sscribe-support-section-header h2 {
-	font: 600 14px/1.4 var(--ss-font);
+	font: var(--ss-font-semibold) var(--ss-text-body-md)/var(--ss-leading-normal) var(--ss-font);
 	margin: 0;
 	color: var(--ss-text-primary);
 }
@@ -5075,7 +5105,7 @@ body.rtl .sscribe-progress-bar-fill {
 .sscribe-support-section-header > img {
 	width: 32px;
 	height: 32px;
-	padding: 6px;
+	padding: var(--ss-space-1-5);
 	background: var(--ss-surface-2);
 	color: var(--ss-text-secondary);
 	border-radius: var(--ss-radius-sm);
@@ -5084,7 +5114,7 @@ body.rtl .sscribe-progress-bar-fill {
 }
 
 .sscribe-support-section-copy {
-	font: 400 13px/1.55 var(--ss-font);
+	font: var(--ss-font-regular) var(--ss-text-body)/var(--ss-leading-comfortable) var(--ss-font);
 	color: var(--ss-text-secondary);
 	margin: 0 0 var(--ss-space-4) 0;
 }
@@ -5092,9 +5122,9 @@ body.rtl .sscribe-progress-bar-fill {
 .sscribe-format-option-field select,
 .sscribe-master-container select {
 	appearance: none;
-	padding-right: 36px;
+	padding-right: var(--ss-space-9);
 	cursor: pointer;
-	background-image: url("data:image/svg+xml;charset=utf8,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 16 16' fill='none' stroke='%2352525b' stroke-width='1.75' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='m4 6 4 4 4-4'/%3E%3C/svg%3E");
+	background-image: var(--ss-icon-chevron-down);
 	background-repeat: no-repeat;
 	background-position: right 12px center;
 	background-size: 12px 12px;
@@ -5136,6 +5166,10 @@ body.rtl .sscribe-progress-bar-fill {
 	vertical-align: middle;
 }
 
+.sscribe-master-container input[type='checkbox']::before {
+	content: none;
+}
+
 .sscribe-master-container input[type='checkbox']:hover {
 	border-color: var(--ss-brand);
 }
@@ -5149,7 +5183,7 @@ body.rtl .sscribe-progress-bar-fill {
 	content: '';
 	position: absolute;
 	inset: 0;
-	background-image: url("data:image/svg+xml;charset=utf8,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16' fill='none' stroke='%23ffffff' stroke-width='2.25' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M3.5 8.5l3 3 6-6.5'/%3E%3C/svg%3E");
+	background-image: var(--ss-icon-check-inverse);
 	background-repeat: no-repeat;
 	background-position: center;
 	background-size: 14px 14px;
@@ -5164,7 +5198,7 @@ body.rtl .sscribe-progress-bar-fill {
 	content: '';
 	position: absolute;
 	inset: 0;
-	background-image: url("data:image/svg+xml;charset=utf8,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16' fill='none' stroke='%23ffffff' stroke-width='2.25' stroke-linecap='round'%3E%3Cpath d='M4 8h8'/%3E%3C/svg%3E");
+	background-image: var(--ss-icon-minus-inverse);
 	background-repeat: no-repeat;
 	background-position: center;
 	background-size: 14px 14px;
@@ -5254,7 +5288,7 @@ body.rtl .sscribe-progress-bar-fill {
 	left: 2px;
 	width: 16px;
 	height: 16px;
-	background: #fff;
+	background: var(--ss-color-solid-white);
 	border-radius: 50%;
 	transition: transform var(--ss-motion-fast) var(--ss-easing);
 }
@@ -5286,7 +5320,7 @@ body.rtl .sscribe-progress-bar-fill {
 
 .sscribe-debug-entry[data-level] {
 	border-left: 3px solid transparent;
-	padding-left: calc(var(--ss-space-5) - 2px);
+	padding-left: calc(var(--ss-space-5) - var(--ss-space-half));
 }
 
 .sscribe-debug-entry[data-level='DEBUG'] {
@@ -5351,4 +5385,232 @@ body.rtl .sscribe-progress-bar-fill {
 
 .sscribe-master-container .sscribe-panel + .sscribe-panel {
 	margin-top: var(--ss-space-4);
+}
+
+#sscribe-support-refresh-btn.sscribe-btn-busy .sscribe-icon {
+	animation: sscribe-spin 0.9s linear infinite;
+}
+
+@media (width <= 1000px) {
+	#sscribe-history-table {
+		min-width: 0;
+		max-width: 100%;
+		overflow: visible;
+	}
+
+	#sscribe-history-table .sscribe-history-table-element {
+		display: block;
+		width: 100%;
+		min-width: 0;
+		table-layout: fixed;
+	}
+
+	#sscribe-history-table .sscribe-history-table-element thead {
+		position: absolute;
+		width: 1px;
+		height: 1px;
+		margin: calc(-1 * var(--ss-space-px));
+		overflow: hidden;
+		clip-path: inset(50%);
+		white-space: nowrap;
+	}
+
+	#sscribe-history-table .sscribe-history-table-element tbody {
+		display: grid;
+		gap: var(--ss-space-3);
+		width: 100%;
+		min-width: 0;
+	}
+
+	#sscribe-history-table .sscribe-history-row {
+		display: grid;
+		grid-template-columns: 32px minmax(0, 1fr);
+		gap: var(--ss-space-2) var(--ss-space-3);
+		width: 100%;
+		min-width: 0;
+		margin: 0;
+		padding: var(--ss-space-3);
+		border: 1px solid var(--ss-border);
+		border-radius: var(--ss-radius-md);
+		background: var(--ss-surface);
+	}
+
+	#sscribe-history-table .sscribe-history-row:hover {
+		margin: 0;
+		padding: var(--ss-space-3);
+		background: var(--ss-surface-2);
+	}
+
+	#sscribe-history-table .sscribe-history-row > td,
+	#sscribe-history-table .sscribe-history-row:last-child > td {
+		display: block;
+		min-width: 0;
+		padding: 0;
+		border-bottom: 0;
+	}
+
+	#sscribe-history-table .sscribe-history-cell-check {
+		grid-column: 1;
+		grid-row: 1;
+	}
+
+	#sscribe-history-table .sscribe-history-cell-file {
+		grid-column: 2;
+		grid-row: 1;
+	}
+
+	#sscribe-history-table .sscribe-history-cell-actions {
+		grid-column: 1 / -1;
+		grid-row: 2;
+	}
+
+	#sscribe-history-table .sscribe-history-file,
+	#sscribe-history-table .sscribe-file-details {
+		width: 100%;
+		min-width: 0;
+	}
+
+	#sscribe-history-table .sscribe-file-details strong,
+	#sscribe-history-table .sscribe-file-details span,
+	.sscribe-history-table .sscribe-file-human-label {
+		white-space: normal;
+		overflow-wrap: anywhere;
+	}
+
+	#sscribe-history-table .sscribe-history-actions {
+		display: flex;
+		flex-wrap: wrap;
+		width: 100%;
+		margin-inline-start: 0;
+		padding-inline-start: var(--ss-space-11);
+	}
+
+	#sscribe-history-table .sscribe-history-actions a,
+	#sscribe-history-table .sscribe-history-actions button {
+		min-width: 0;
+		block-size: auto;
+		min-block-size: 30px;
+		white-space: normal;
+		overflow-wrap: anywhere;
+		text-align: center;
+	}
+}
+
+@media (width <= 900px) {
+	.sscribe-support-sidebar {
+		position: static;
+	}
+}
+
+@media (width <= 782px) {
+	.sscribe-success-meta {
+		grid-template-columns: repeat(2, minmax(0, 1fr));
+	}
+
+	.sscribe-success-meta-item,
+	.sscribe-success-meta-item dt,
+	.sscribe-success-meta-item dd {
+		min-inline-size: 0;
+	}
+
+	.sscribe-success-meta-item dt,
+	.sscribe-success-meta-item dd {
+		overflow-wrap: anywhere;
+	}
+
+	.sscribe-tabs-nav {
+		gap: var(--ss-space-half);
+		overflow: auto hidden;
+		scrollbar-width: thin;
+	}
+
+	.sscribe-tab-btn {
+		flex: 1 0 max-content;
+		justify-content: center;
+		min-width: 0;
+		min-height: 44px;
+		padding-inline: var(--ss-space-1);
+		line-height: var(--ss-leading-tight);
+		text-align: center;
+		white-space: nowrap;
+		overflow-wrap: normal;
+	}
+
+	#sscribe-status-cards,
+	#sscribe-status-cards.sscribe-cards-row {
+		display: grid;
+		grid-template-columns: minmax(0, 1fr);
+	}
+
+	.sscribe-history-toolbar,
+	.sscribe-bulk-bar {
+		align-items: stretch;
+	}
+
+	.sscribe-search-field {
+		width: 100%;
+		max-width: none;
+	}
+
+	.sscribe-bulk-bar {
+		flex-wrap: wrap;
+	}
+
+	.sscribe-bulk-actions {
+		flex-wrap: wrap;
+	}
+}
+
+@media (width <= 480px) {
+	.sscribe-success-meta {
+		grid-template-columns: minmax(0, 1fr);
+		inline-size: 100%;
+	}
+
+	.sscribe-success-meta-item {
+		display: grid;
+		grid-template-columns: minmax(0, auto) minmax(0, 1fr);
+		align-items: center;
+		gap: var(--ss-space-3);
+		padding-block: var(--ss-space-3);
+		padding-inline: var(--ss-space-4);
+	}
+
+	.sscribe-success-meta-item dd {
+		min-inline-size: 0;
+		text-align: end;
+		overflow-wrap: anywhere;
+	}
+
+	.sscribe-success-actions {
+		display: grid;
+		grid-template-columns: minmax(0, 1fr);
+		inline-size: 100%;
+	}
+
+	.sscribe-success-actions .sscribe-button {
+		inline-size: 100%;
+		min-inline-size: 0;
+		justify-content: center;
+		white-space: normal;
+		overflow-wrap: anywhere;
+	}
+
+	#sscribe-history-table .sscribe-history-actions {
+		display: grid;
+		grid-template-columns: repeat(3, minmax(0, 1fr));
+		padding-inline-start: 0;
+	}
+
+	#sscribe-history-table .sscribe-history-actions a,
+	#sscribe-history-table .sscribe-history-actions button {
+		min-width: 0;
+		padding-inline: var(--ss-space-2);
+	}
+
+	.sscribe-bulk-left,
+	.sscribe-bulk-actions {
+		width: 100%;
+		justify-content: space-between;
+	}
 }

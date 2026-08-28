@@ -23,7 +23,7 @@ class SScribe_Zip_Handler {
 	 *
 	 * @var string
 	 */
-	private readonly string $export_dir;
+	private string $export_dir;
 
 	/**
 	 * Logger instance.
@@ -44,16 +44,15 @@ class SScribe_Zip_Handler {
 	 */
 	public function __construct() {
 		$this->logger = SScribe_Logger::instance( SScribe_Logger::is_logging_enabled() );
-		$upload_dir   = wp_upload_dir();
-		if ( ! empty( $upload_dir['error'] ) ) {
+		$export_dir   = SScribe_Private_Storage::get_export_dir();
+		if ( '' === $export_dir ) {
 			$this->export_dir = '';
 			$this->logger->warning(
-				'wp_upload_dir() returned an error : export directory unavailable',
-				array( 'error' => $upload_dir['error'] )
+				'Private export storage is unavailable'
 			);
 			return;
 		}
-		$this->export_dir = $upload_dir['basedir'] . '/sscribe-exports';
+		$this->export_dir = $export_dir;
 	}
 
 	/**
@@ -63,16 +62,11 @@ class SScribe_Zip_Handler {
 	 * @throws \InvalidArgumentException When export directory is unavailable.
 	 */
 	public function get_export_dir(): string {
+		$this->export_dir = SScribe_Private_Storage::get_export_dir();
 		if ( '' === $this->export_dir ) {
 			throw new \InvalidArgumentException(
-				'Export directory unavailable: wp_upload_dir() failed during initialization.'
+				'Export directory unavailable: no safe private storage path is writable.'
 			);
-		}
-		if ( ! file_exists( $this->export_dir ) ) {
-			SScribe_Security::protect_directory( $this->export_dir );
-		} elseif ( ! file_exists( $this->export_dir . '/.htaccess' ) ) {
-
-			SScribe_Security::protect_directory( $this->export_dir );
 		}
 		return $this->export_dir;
 	}
@@ -99,6 +93,7 @@ class SScribe_Zip_Handler {
 		if ( ! wp_mkdir_p( $temp_dir ) || ! is_dir( $temp_dir ) ) {
 			throw new \RuntimeException( 'Unable to create the SScribe export working directory.' );
 		}
+		SScribe_Private_Storage::harden_directory( $temp_dir );
 		return $temp_dir;
 	}
 
@@ -378,6 +373,7 @@ class SScribe_Zip_Handler {
 				$lock_manager->release_lock( $lock_name, $lock_token );
 				return false;
 			}
+			SScribe_Private_Storage::harden_file( $zip_path );
 		} elseif ( file_exists( $tmp_zip ) ) {
 			wp_delete_file( $tmp_zip );
 			$lock_manager->release_lock( $lock_name, $lock_token );

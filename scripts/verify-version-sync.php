@@ -36,6 +36,26 @@ $version_locations = array(
 		'pattern' => '/@version\s+([0-9.]+)/',
 		'line'    => 8,
 	),
+	'tokens_css_header' => array(
+		'file'    => $root_dir . '/admin/css/sscribe-tokens.css',
+		'pattern' => '/@version\s+([0-9.]+)/',
+		'line'    => 1,
+	),
+	'admin_js_header'  => array(
+		'file'    => $root_dir . '/admin/js/sscribe-admin.js',
+		'pattern' => '/@version\s+([0-9.]+)/',
+		'line'    => 7,
+	),
+	'debug_js_header'  => array(
+		'file'    => $root_dir . '/admin/js/sscribe-debug-console.js',
+		'pattern' => '/@version\s+([0-9.]+)/',
+		'line'    => 5,
+	),
+	'pot_header'       => array(
+		'file'    => $root_dir . '/languages/sscribe-export-site-pages.pot',
+		'pattern' => '/Project-Id-Version: SScribe Export Site Pages ([0-9.]+)/',
+		'line'    => 5,
+	),
 	'package_json'     => array(
 		'file'    => $root_dir . '/package.json',
 		'pattern' => '/"version"\s*:\s*"([0-9.]+)"/',
@@ -136,6 +156,9 @@ if ( $canonical_version ) {
 		// phpcs:ignore WordPress.WP.AlternativeFunctions.file_get_contents_file_get_contents
 
 		$file_content = file_get_contents( $file );
+		if ( 'sscribe-export-site-pages.pot' === basename( $file ) ) {
+			continue;
+		}
 		if ( preg_match_all( $version_regex, $file_content, $v_matches, PREG_SET_ORDER ) ) {
 			foreach ( $v_matches as $v_match ) {
 				$found_version = $v_match[1];

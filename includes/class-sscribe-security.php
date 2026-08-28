@@ -62,7 +62,7 @@ class SScribe_Security {
 	 * @return bool True if deleted, false otherwise.
 	 */
 	public static function delete_directory( string $dir, int $max_depth = 20, int $depth = 0 ): bool {
-		if ( ! is_dir( $dir ) ) {
+		if ( ! is_dir( $dir ) || is_link( $dir ) ) {
 			return false;
 		}
 
@@ -90,6 +90,7 @@ class SScribe_Security {
 
 				self::delete_directory( $path, $max_depth, $depth + 1 );
 			} else {
+				chmod( $path, 0600 ); // phpcs:ignore WordPress.WP.AlternativeFunctions.file_system_operations_chmod -- Allows owner cleanup of read-only guard files on Windows.
 				wp_delete_file( $path );
 			}
 		}
@@ -167,7 +168,7 @@ class SScribe_Security {
 		if ( ! self::is_path_in_scope( $path ) ) {
 			throw new \InvalidArgumentException(
 				sprintf(
-					'Directory "%s" is outside the allowed uploads scope.',
+					'Directory "%s" is outside the plugin-owned storage scope.',
 					// phpcs:ignore WordPress.Security.EscapeOutput.ExceptionNotEscaped -- Exception messages escape at the rendering site, not here.
 					basename( $path )
 				)
@@ -176,7 +177,7 @@ class SScribe_Security {
 	}
 
 	/**
-	 * Check if a path is within the uploads directory scope.
+	 * Check if a path is within private or legacy plugin-owned storage.
 	 *
 	 * @param string $path Path to check.
 	 * @return bool True if path is in scope.
@@ -186,33 +187,106 @@ class SScribe_Security {
 			return false;
 		}
 
+		// Fail closed against parent-directory traversal. A `..` segment
+		// between path separators can defeat the literal-prefix comparison
+		// below because `normalize_path_for_compare()` does not collapse
+		// segments. SScribe-internal callers never construct such paths.
+		if ( preg_match( '#(?:^|[/\\\\])\.\.(?:[/\\\\]|$)#', $path ) ) {
+			return false;
+		}
+
 		$upload_dir = wp_upload_dir();
-		$base_dir   = trailingslashit( $upload_dir['basedir'] );
-
-		$real_base_dir = realpath( $base_dir );
-		if ( false === $real_base_dir ) {
-			return false;
+		$base_dirs  = array();
+		if ( empty( $upload_dir['error'] ) && ! empty( $upload_dir['basedir'] ) ) {
+			$uploads_base = trailingslashit( (string) $upload_dir['basedir'] );
+			$base_dirs[] = $uploads_base . 'sscribe-exports';
+			$base_dirs[] = $uploads_base . 'sscribe-logs';
+			if ( ! is_link( $uploads_base . 'sscribe' ) ) {
+				$base_dirs[] = $uploads_base . 'sscribe/mpdf-tmp';
+			}
+		}
+		if ( class_exists( 'SScribe_Private_Storage' ) ) {
+			$private_dir = SScribe_Private_Storage::get_export_dir( false );
+			if ( '' !== $private_dir ) {
+				$base_dirs[] = $private_dir;
+			}
 		}
 
-		$real_path = realpath( $path );
-		if ( false !== $real_path ) {
-			return self::path_starts_with( $real_path, $real_base_dir );
+		foreach ( $base_dirs as $base_dir ) {
+			$real_base_dir = realpath( $base_dir );
+			if ( false === $real_base_dir ) {
+				continue;
+			}
+			$real_path = realpath( $path );
+			if ( false !== $real_path && self::path_starts_with( $real_path, $real_base_dir, true ) ) {
+				return true;
+			}
+
+			$parent = dirname( $path );
+			while ( ! file_exists( $parent ) && dirname( $parent ) !== $parent ) {
+				$parent = dirname( $parent );
+			}
+			$real_parent = realpath( $parent );
+			if ( false === $real_parent || ! self::path_starts_with( $real_parent, $real_base_dir, true ) ) {
+				continue;
+			}
+			$canonical = self::canonicalize_path( $path );
+			$canonical_base = rtrim( self::canonicalize_path( $real_base_dir ), '/' );
+			if ( '' !== $canonical && ( $canonical === $canonical_base || str_starts_with( $canonical, $canonical_base . '/' ) ) ) {
+				return true;
+			}
 		}
 
-		$parent = dirname( $path );
-		while ( ! file_exists( $parent ) && dirname( $parent ) !== $parent ) {
-			$parent = dirname( $parent );
+		return false;
+	}
+
+	/**
+	 * Fully resolve `..` and `.` segments in a path without touching the
+	 * filesystem. Unlike `realpath()` the result is defined for paths that
+	 * do not yet exist. Used by `is_path_in_scope()` so a `..` traversal
+	 * segment cannot bypass the literal-prefix containment check.
+	 *
+	 * @param string $path Path to canonicalize.
+	 * @return string Canonical path, or empty string when the path escapes
+	 *                above its own root (e.g. `../../../etc/passwd`).
+	 */
+	private static function canonicalize_path( string $path ): string {
+		if ( '' === $path ) {
+			return '';
 		}
-
-		$real_parent = realpath( $parent );
-		if ( false === $real_parent || ! self::path_starts_with( $real_parent, $real_base_dir, true ) ) {
-			return false;
+		$is_windows = ( 'Windows' === PHP_OS_FAMILY );
+		$normalized = str_replace( '\\', '/', $path );
+		if ( $is_windows ) {
+			$normalized = strtolower( $normalized );
 		}
-
-		$normalized_path = self::normalize_path_for_compare( $path );
-		$normalized_base = rtrim( self::normalize_path_for_compare( $real_base_dir ), '/' );
-
-		return str_starts_with( $normalized_path, $normalized_base . '/' );
+		$prefix    = '';
+		$drive_letter = '';
+		if ( $is_windows && preg_match( '#^([a-z]):(/.*)$#', $normalized, $m ) ) {
+			$drive_letter = $m[1] . ':';
+			$normalized   = $m[2];
+		} elseif ( 0 === strpos( $normalized, '//' ) || 0 === strpos( $normalized, '\\\\' ) ) {
+			$prefix = '//';
+			$normalized = substr( $normalized, 2 );
+		} elseif ( 0 === strpos( $normalized, '/' ) ) {
+			$prefix = '/';
+			$normalized = substr( $normalized, 1 );
+		}
+		$segments = explode( '/', $normalized );
+		$stack    = array();
+		foreach ( $segments as $segment ) {
+			if ( '' === $segment || '.' === $segment ) {
+				continue;
+			}
+			if ( '..' === $segment ) {
+				if ( empty( $stack ) ) {
+					return '';
+				}
+				array_pop( $stack );
+				continue;
+			}
+			$stack[] = $segment;
+		}
+		return $prefix . $drive_letter . ( '' === $prefix ? '' : '/' ) . implode( '/', $stack );
 	}
 
 	/**

@@ -116,6 +116,8 @@ class SScribe_Export_Resource_Monitor_Test extends TestCase {
 		if ( null !== $result ) {
 			$this->assertArrayHasKey( 'estimated_mb', $result );
 			$this->assertArrayHasKey( 'available_mb', $result );
+		} else {
+			$this->assertNull( $result );
 		}
 	}
 }

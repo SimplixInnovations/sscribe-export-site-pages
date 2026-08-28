@@ -45,8 +45,7 @@ class SScribe_Activator_Test extends TestCase {
 		$this->assertNotNull( $role );
 		$this->assertTrue( $role->has_cap( 'sscribe_export' ) );
 
-		$upload_dir  = wp_upload_dir();
-		$export_path = untrailingslashit( $upload_dir['basedir'] ) . '/sscribe-exports';
+		$export_path = \SScribe_Private_Storage::get_export_dir();
 
 		$this->assertFileExists( $export_path . '/.htaccess' );
 		$this->assertFileExists( $export_path . '/index.php' );

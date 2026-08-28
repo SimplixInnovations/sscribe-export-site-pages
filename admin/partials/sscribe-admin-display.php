@@ -138,7 +138,7 @@ if ( ! function_exists( 'sscribe_humanize_export_filename' ) ) {
 			<span class="sscribe-hero-version" title="<?php esc_attr_e( 'Plugin version', 'sscribe-export-site-pages' ); ?>">v<?php echo esc_html( SSCRIBE_VERSION ); ?></span>
 		</div>
 		<div class="sscribe-hero-stats" role="list">
-			<span class="sscribe-hero-stat" role="listitem" title="<?php esc_attr_e( 'Total published and draft pages available for export', 'sscribe-export-site-pages' ); ?>">
+			<span class="sscribe-hero-stat" role="listitem" title="<?php esc_attr_e( 'Total published pages available for export', 'sscribe-export-site-pages' ); ?>">
 			<?php
 			echo wp_kses_post( SScribe_Helpers::get_icon( 'file-text', 14 ) );
 			?>
@@ -621,7 +621,7 @@ if ( ! function_exists( 'sscribe_humanize_export_filename' ) ) {
 						$sscribe_w_icon     = isset( $sscribe_warning['icon'] ) ? sanitize_key( (string) $sscribe_warning['icon'] ) : 'info';
 						$sscribe_w_code     = isset( $sscribe_warning['code'] ) ? sanitize_key( (string) $sscribe_warning['code'] ) : '';
 						?>
-						<div class="sscribe-preflight-warning sscribe-preflight-warning-<?php echo esc_attr( $sscribe_w_severity ); ?>" data-warning-code="<?php echo esc_attr( $sscribe_w_code ); ?>" role="alert">
+						<div class="sscribe-preflight-warning sscribe-preflight-warning-<?php echo esc_attr( $sscribe_w_severity ); ?>" data-warning-code="<?php echo esc_attr( $sscribe_w_code ); ?>">
 							<span class="sscribe-preflight-warning-icon" aria-hidden="true">
 								<?php echo wp_kses_post( SScribe_Helpers::get_icon( $sscribe_w_icon, 16 ) ); ?>
 							</span>
@@ -816,13 +816,13 @@ if ( ! function_exists( 'sscribe_humanize_export_filename' ) ) {
 					<button type="button" id="sscribe-error-change-config" class="sscribe-button sscribe-button-outline">
 						<?php esc_html_e( 'Change Configuration', 'sscribe-export-site-pages' ); ?>
 					</button>
-					<button type="button" id="sscribe-error-toggle-details" class="sscribe-button sscribe-button-ghost sscribe-button-toggle-details" aria-expanded="false" aria-controls="sscribe-error-technical-details">
+					<button type="button" id="sscribe-error-toggle-details" class="sscribe-button sscribe-button-ghost sscribe-button-toggle-details sscribe-hidden" aria-expanded="false" aria-controls="sscribe-error-technical-details" hidden>
 						<?php echo wp_kses( SScribe_Helpers::get_icon_inline( 'chevron-down', 14 ), SScribe_Helpers::get_svg_kses_allowed_html() ); ?>
 						<span id="sscribe-error-toggle-details-label"><?php esc_html_e( 'Show technical details', 'sscribe-export-site-pages' ); ?></span>
 					</button>
 					<span id="sscribe-try-again-hint" class="screen-reader-text"><?php esc_html_e( 'Attempt the export again', 'sscribe-export-site-pages' ); ?></span>
 				</div>
-				<div id="sscribe-error-technical-details" class="sscribe-debug-details sscribe-hidden">
+				<div id="sscribe-error-technical-details" class="sscribe-debug-details sscribe-hidden" hidden>
 					<pre class="sscribe-debug-pre" aria-label="<?php esc_attr_e( 'Technical error details', 'sscribe-export-site-pages' ); ?>"></pre>
 				</div>
 			</div>
@@ -840,7 +840,7 @@ if ( ! function_exists( 'sscribe_humanize_export_filename' ) ) {
 							<h2><?php esc_html_e( 'Recent Exports', 'sscribe-export-site-pages' ); ?></h2>
 						</div>
 						<div class="sscribe-panel-header-meta">
-							<span class="sscribe-badge sscribe-badge-info" title="<?php esc_attr_e( 'Files are auto-deleted 72 hours after creation to keep your uploads folder clean.', 'sscribe-export-site-pages' ); ?>"><?php esc_html_e( 'Auto-deletes in 72 hours', 'sscribe-export-site-pages' ); ?></span>
+							<span class="sscribe-badge sscribe-badge-info" title="<?php esc_attr_e( 'Files are auto-deleted 72 hours after creation to keep private storage clean.', 'sscribe-export-site-pages' ); ?>"><?php esc_html_e( 'Auto-deletes in 72 hours', 'sscribe-export-site-pages' ); ?></span>
 						</div>
 					</div>
 					<?php if ( ! empty( $sscribe_recent_exports ) ) : ?>
@@ -1021,7 +1021,7 @@ if ( ! function_exists( 'sscribe_humanize_export_filename' ) ) {
 					</div>
 
 					<div class="sscribe-support-main">
-						<div class="sscribe-support-panel" data-support-card>
+						<div class="sscribe-support-panel" data-support-card aria-busy="false">
 							<div class="sscribe-support-panel-header">
 								<h3><?php esc_html_e( 'System snapshot', 'sscribe-export-site-pages' ); ?></h3>
 								<span class="sscribe-support-panel-meta"><?php esc_html_e( 'Redacted environment report', 'sscribe-export-site-pages' ); ?></span>
@@ -1030,7 +1030,7 @@ if ( ! function_exists( 'sscribe_humanize_export_filename' ) ) {
 								<label class="screen-reader-text" for="sscribe-support-copy-text"><?php esc_html_e( 'Support information text', 'sscribe-export-site-pages' ); ?></label>
 								<textarea id="sscribe-support-copy-text" class="sscribe-support-copy-text" readonly inputmode="none" placeholder="<?php esc_attr_e( 'Click Refresh Data on the left to generate a redacted environment snapshot you can copy to share with support.', 'sscribe-export-site-pages' ); ?>"></textarea>
 							</div>
-							<div id="sscribe-support-grid" class="sscribe-support-grid sscribe-support-grid-empty" aria-live="polite">
+							<div id="sscribe-support-grid" class="sscribe-support-grid sscribe-support-grid-empty" aria-live="polite" aria-busy="false">
 								<div class="sscribe-support-empty">
 								<span class="sscribe-support-empty-icon" aria-hidden="true">
 									<svg width="96" height="96" viewBox="0 0 96 96" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true" focusable="false">

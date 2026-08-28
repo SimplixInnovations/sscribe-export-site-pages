@@ -224,17 +224,16 @@ trait SScribe_Batch_Step_Handler {
 			$pause_hint = isset( $session['last_pause_reason'] ) ? $session['last_pause_reason'] : '';
 			$this->optimize_batch_size( $formats, $pause_hint );
 
-			$upload_dir = wp_upload_dir();
-			if ( ! empty( $upload_dir['error'] ) || empty( $upload_dir['basedir'] ) ) {
+			$allowed_temp_base = SScribe_Private_Storage::get_export_dir( false );
+			if ( '' === $allowed_temp_base ) {
 				$this->release_lock( $session_id, $lock_token );
 				$this->restore_ob_level( $ob_level_before );
 				SScribe_AJAX_Guard::error(
-					array( 'message' => __( 'The WordPress uploads directory is unavailable.', 'sscribe-export-site-pages' ) ),
+					array( 'message' => __( 'Private export storage is unavailable.', 'sscribe-export-site-pages' ) ),
 					500
 				);
 			}
 
-			$allowed_temp_base = trailingslashit( (string) $upload_dir['basedir'] ) . 'sscribe-exports';
 			$filesystem        = new SScribe_Filesystem();
 			$path_valid       = str_starts_with( basename( (string) $temp_dir ), 'temp-' )
 				&& ! is_link( (string) $temp_dir )

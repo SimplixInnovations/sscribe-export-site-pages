@@ -13,6 +13,11 @@ if ( ! defined( 'WP_UNINSTALL_PLUGIN' ) ) {
 	exit;
 }
 
+if ( ! defined( 'SSCRIBE_PLUGIN_DIR' ) ) {
+	define( 'SSCRIBE_PLUGIN_DIR', plugin_dir_path( __FILE__ ) );
+}
+require_once SSCRIBE_PLUGIN_DIR . 'includes/sscribe-autoloader.php';
+
 global $wpdb;
 
 $sscribe_cleanup_site = static function (): void {
@@ -23,6 +28,14 @@ $sscribe_cleanup_site = static function (): void {
 		$wpdb->prepare(
 			"DELETE FROM {$wpdb->options} WHERE option_name LIKE %s",
 			$wpdb->esc_like( 'sscribe_session_' ) . '%'
+		)
+	);
+
+	// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- Cleanup operation during uninstall.
+	$wpdb->query(
+		$wpdb->prepare(
+			"DELETE FROM {$wpdb->options} WHERE option_name LIKE %s",
+			$wpdb->esc_like( 'sscribe_page_ids_' ) . '%'
 		)
 	);
 
@@ -140,60 +153,8 @@ $sscribe_cleanup_site = static function (): void {
 	wp_clear_scheduled_hook( 'sscribe_cleanup_sessions' );
 	wp_clear_scheduled_hook( 'sscribe_cleanup_audit_trail' );
 
-	$sscribe_upload_dir = wp_upload_dir();
-	$sscribe_dirs       = array();
-	if ( empty( $sscribe_upload_dir['error'] ) && ! empty( $sscribe_upload_dir['basedir'] ) ) {
-		$sscribe_upload_base = untrailingslashit( (string) $sscribe_upload_dir['basedir'] );
-		$sscribe_dirs        = array(
-			$sscribe_upload_base . '/sscribe-exports',
-		);
-	}
-	foreach ( $sscribe_dirs as $dir_path ) {
-		if ( is_link( $dir_path ) ) {
-			wp_delete_file( $dir_path );
-			continue;
-		}
-		if ( is_dir( $dir_path ) ) {
-			try {
-				$real_root = realpath( $dir_path );
-				if ( false === $real_root ) {
-					continue;
-				}
-				$safe_root = rtrim( wp_normalize_path( $real_root ), '/' ) . '/';
-				$iterator = new RecursiveIteratorIterator(
-					new RecursiveDirectoryIterator( $dir_path, RecursiveDirectoryIterator::SKIP_DOTS ),
-					RecursiveIteratorIterator::CHILD_FIRST
-				);
-				foreach ( $iterator as $fileinfo ) {
-					try {
-						$entry_path = $fileinfo->getPathname();
-						if ( $fileinfo->isLink() ) {
-							wp_delete_file( $entry_path );
-							continue;
-						}
-						$real_path = $fileinfo->getRealPath();
-						if ( ! $real_path || ! str_starts_with( wp_normalize_path( $real_path ), $safe_root ) ) {
-							continue;
-						}
-						if ( $fileinfo->isDir() ) {
-							// phpcs:ignore WordPress.WP.AlternativeFunctions.file_system_operations_rmdir -- Cleanup during uninstall; @ suppresses rmdir() PHP warning when the directory is non-empty (e.g. locked files). Catch above absorbs the rest.
-							@rmdir( $real_path );
-						} else {
-							wp_delete_file( $entry_path );
-						}
-					} catch ( \Throwable $e ) {
-						continue;
-					}
-				}
-				if ( is_dir( $dir_path ) ) {
-					// phpcs:ignore WordPress.WP.AlternativeFunctions.file_system_operations_rmdir -- Cleanup during uninstall; @ suppresses rmdir() PHP warning when the directory is non-empty (e.g. locked files). Outer try/catch absorbs the rest.
-					@rmdir( $dir_path );
-				}
-			} catch ( \Throwable $e ) {
-				continue;
-			}
-		}
-	}
+	SScribe_Private_Storage::delete_owned_storage();
+	SScribe_Private_Storage::delete_legacy_storage();
 };
 
 if ( is_multisite() ) {

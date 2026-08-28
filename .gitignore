@@ -148,3 +148,10 @@ test-phpcs-output.txt
 .playground-tools/
 playground-tools/
 playground-blueprint.json
+
+# Ad-hoc review / audit outputs (never commit, never ship).
+tmp_diffs/
+review-diff.patch
+review-*.diff
+review-*.patch
+*System.Management*

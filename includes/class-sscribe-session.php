@@ -33,7 +33,27 @@ class SScribe_Session {
 
 	private const SESSION_CLEANUP_BATCH = 100;
 
-	private const SESSION_ID_LENGTH = 16;
+	private const SESSION_ID_MIN_LENGTH = 8;
+	private const SESSION_ID_MAX_LENGTH = 128;
+
+	private const PAGE_IDS_PREFIX = 'sscribe_page_ids_';
+
+	/**
+	 * Check that a session identifier sits inside the accepted length envelope.
+	 *
+	 * @param string $session_id Candidate identifier (already sanitized).
+	 * @return bool True when the identifier is acceptable.
+	 */
+	private static function is_valid_session_id( string $session_id ): bool {
+		$length = strlen( $session_id );
+		return $length >= self::SESSION_ID_MIN_LENGTH && $length <= self::SESSION_ID_MAX_LENGTH;
+	}
+
+	private const PAGE_IDS_SCHEMA = 1;
+
+	private const PAGE_IDS_TTL = 72 * HOUR_IN_SECONDS;
+
+	private const PAGE_IDS_CACHE_GROUP = 'sscribe_page_ids';
 
 	/**
 	 * Seconds a session may sit untouched and still be treated as resumable.
@@ -400,13 +420,14 @@ class SScribe_Session {
 	public function get( string $session_id ): ?array {
 		$session_id = sanitize_key( $session_id );
 
-		if ( empty( $session_id ) || self::SESSION_ID_LENGTH !== strlen( $session_id ) ) {
+		if ( empty( $session_id ) || ! self::is_valid_session_id( $session_id ) ) {
 			$this->logger->debug(
 				'Session lookup failed: invalid session_id length',
 				array(
-					'session_id'   => $session_id,
-					'expected_len' => self::SESSION_ID_LENGTH,
-					'actual_len'   => strlen( $session_id ),
+					'session_id'     => $session_id,
+					'expected_min'   => self::SESSION_ID_MIN_LENGTH,
+					'expected_max'   => self::SESSION_ID_MAX_LENGTH,
+					'actual_len'     => strlen( $session_id ),
 				)
 			);
 			return null;
@@ -509,7 +530,7 @@ class SScribe_Session {
 	public function update( string $session_id, array $data ): bool {
 		$session_id = sanitize_key( $session_id );
 
-		if ( empty( $session_id ) || self::SESSION_ID_LENGTH !== strlen( $session_id ) ) {
+		if ( empty( $session_id ) || ! self::is_valid_session_id( $session_id ) ) {
 			return false;
 		}
 
@@ -633,7 +654,7 @@ class SScribe_Session {
 	public function delete( string $session_id ): bool {
 		$session_id = sanitize_key( $session_id );
 
-		if ( empty( $session_id ) || self::SESSION_ID_LENGTH !== strlen( $session_id ) ) {
+		if ( empty( $session_id ) || ! self::is_valid_session_id( $session_id ) ) {
 			return false;
 		}
 
@@ -653,15 +674,11 @@ class SScribe_Session {
 	}
 
 	/**
-	 * Store page_ids in a separate transient to avoid bloating the session
-	 * autoload with large page ID arrays.
+	 * Store page IDs in a durable, non-autoloaded option.
 	 *
-	 * For arrays over the large-array threshold (500 IDs) we route the data
-	 * through the object cache with a dedicated group instead of wp_options.
-	 * The object cache stores keys in memory (Redis/Memcached) or in a
-	 * dedicated site-options-style bucket where a 100k-ID payload is cheap
-	 * instead of bloating wp_options. On hosts without persistent object
-	 * cache we fall back to the transient path so behavior is preserved.
+	 * External object caches accelerate reads but are never authoritative.
+	 * The expiry envelope lets normal session cleanup and lazy reads remove
+	 * stale data without loading the payload on every WordPress request.
 	 *
 	 * @param string $session_id Session identifier.
 	 * @param array  $page_ids   Array of page IDs.
@@ -669,61 +686,107 @@ class SScribe_Session {
 	 */
 	public function set_page_ids( string $session_id, array $page_ids ): bool {
 		$session_id = sanitize_key( $session_id );
-		if ( empty( $session_id ) ) {
+		if ( ! self::is_valid_session_id( $session_id ) ) {
 			return false;
 		}
-		$transient_key = 'sscribe_page_ids_' . $session_id;
-		$count         = count( $page_ids );
-		$large_array   = $count > (int) apply_filters( 'sscribe_page_ids_large_threshold', 500 );
-		if ( $large_array && wp_using_ext_object_cache() ) {
-			return (bool) wp_cache_set(
-				$transient_key,
-				$page_ids,
-				'sscribe_page_ids',
-				72 * HOUR_IN_SECONDS
-			);
+		$page_ids = array_values(
+			array_unique(
+				array_filter(
+					array_map( 'absint', $page_ids )
+				)
+			)
+		);
+		$option_key = self::PAGE_IDS_PREFIX . $session_id;
+		$payload    = array(
+			'schema'     => self::PAGE_IDS_SCHEMA,
+			'expires_at' => time() + self::PAGE_IDS_TTL,
+			'page_ids'   => $page_ids,
+		);
+
+		if ( ! update_option( $option_key, $payload, false ) && get_option( $option_key, null ) !== $payload ) {
+			return false;
 		}
-		return set_transient( $transient_key, $page_ids, 72 * HOUR_IN_SECONDS );
+
+		delete_transient( $option_key );
+		if ( wp_using_ext_object_cache() ) {
+			wp_cache_set( $option_key, $payload['page_ids'], self::PAGE_IDS_CACHE_GROUP, self::PAGE_IDS_TTL );
+		}
+
+		return true;
 	}
 
 	/**
-	 * Retrieve page_ids from the separate transient.
+	 * Retrieve page IDs from durable storage with optional cache acceleration.
 	 *
 	 * @param string $session_id Session identifier.
 	 * @return array Empty array if not found.
 	 */
 	public function get_page_ids( string $session_id ): array {
 		$session_id = sanitize_key( $session_id );
-		if ( empty( $session_id ) ) {
+		if ( ! self::is_valid_session_id( $session_id ) ) {
 			return array();
 		}
-		$transient_key = 'sscribe_page_ids_' . $session_id;
+		$option_key = self::PAGE_IDS_PREFIX . $session_id;
 		if ( wp_using_ext_object_cache() ) {
-			$cached = wp_cache_get( $transient_key, 'sscribe_page_ids' );
+			$cached = wp_cache_get( $option_key, self::PAGE_IDS_CACHE_GROUP );
 			if ( is_array( $cached ) ) {
 				return $cached;
 			}
 		}
-		$result = get_transient( $transient_key );
-		return is_array( $result ) ? $result : array();
+
+		$payload = get_option( $option_key, null );
+		if (
+			is_array( $payload )
+			&& self::PAGE_IDS_SCHEMA === (int) ( $payload['schema'] ?? 0 )
+			&& isset( $payload['expires_at'], $payload['page_ids'] )
+			&& is_array( $payload['page_ids'] )
+		) {
+			if ( (int) $payload['expires_at'] <= time() ) {
+				delete_option( $option_key );
+				return array();
+			}
+
+			$page_ids = array_values( array_filter( array_map( 'absint', $payload['page_ids'] ) ) );
+			if ( wp_using_ext_object_cache() ) {
+				wp_cache_set( $option_key, $page_ids, self::PAGE_IDS_CACHE_GROUP, max( 1, (int) $payload['expires_at'] - time() ) );
+			}
+			return $page_ids;
+		}
+		if ( null !== $payload ) {
+			delete_option( $option_key );
+			wp_cache_delete( $option_key, self::PAGE_IDS_CACHE_GROUP );
+		}
+
+		$legacy = get_transient( $option_key );
+		if ( is_array( $legacy ) ) {
+			$page_ids = array_values( array_filter( array_map( 'absint', $legacy ) ) );
+			if ( $this->set_page_ids( $session_id, $page_ids ) ) {
+				return $page_ids;
+			}
+		}
+
+		return array();
 	}
 
 	/**
-	 * Delete the page_ids transient.
+	 * Delete every persistence layer for a page-ID list.
 	 *
 	 * @param string $session_id Session identifier.
 	 * @return bool True on success.
 	 */
 	public function delete_page_ids( string $session_id ): bool {
 		$session_id = sanitize_key( $session_id );
-		if ( empty( $session_id ) ) {
+		if ( ! self::is_valid_session_id( $session_id ) ) {
 			return false;
 		}
-		$transient_key = 'sscribe_page_ids_' . $session_id;
+		$option_key = self::PAGE_IDS_PREFIX . $session_id;
 		if ( wp_using_ext_object_cache() ) {
-			wp_cache_delete( $transient_key, 'sscribe_page_ids' );
+			wp_cache_delete( $option_key, self::PAGE_IDS_CACHE_GROUP );
 		}
-		return delete_transient( $transient_key );
+		$deleted_option    = delete_option( $option_key );
+		$deleted_transient = delete_transient( $option_key );
+
+		return $deleted_option || $deleted_transient;
 	}
 
 	/**
@@ -891,8 +954,54 @@ class SScribe_Session {
 		if ( $deleted > 0 ) {
 			$this->invalidate_session_index();
 		}
+		$this->cleanup_orphaned_page_ids( $now, $start_time, $max_seconds );
 
 		return $deleted;
+	}
+
+	/**
+	 * Delete expired or orphaned page-ID options in bounded batches.
+	 *
+	 * @param int   $now         Current Unix timestamp.
+	 * @param float $start_time  Cleanup start time from microtime().
+	 * @param int   $max_seconds Maximum cleanup duration.
+	 */
+	private function cleanup_orphaned_page_ids( int $now, float $start_time, int $max_seconds ): void {
+		global $wpdb;
+
+		$pattern = $wpdb->esc_like( self::PAGE_IDS_PREFIX ) . '%';
+		$cursor  = '';
+		do {
+			if ( ( microtime( true ) - $start_time ) > $max_seconds ) {
+				break;
+			}
+			// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- Bounded maintenance scan for non-autoloaded plugin options.
+			$options = $wpdb->get_results(
+				$wpdb->prepare(
+					"SELECT option_name, option_value FROM {$wpdb->options} WHERE option_name LIKE %s AND option_name > %s ORDER BY option_name ASC LIMIT %d",
+					$pattern,
+					$cursor,
+					self::SESSION_CLEANUP_BATCH
+				)
+			);
+			foreach ( $options as $option ) {
+				$cursor     = (string) $option->option_name;
+				$session_id = substr( $cursor, strlen( self::PAGE_IDS_PREFIX ) );
+				if ( ! self::is_valid_session_id( $session_id ) || sanitize_key( $session_id ) !== $session_id ) {
+					delete_option( $cursor );
+					continue;
+				}
+				$payload = maybe_unserialize( $option->option_value );
+				$expired = ! is_array( $payload )
+					|| self::PAGE_IDS_SCHEMA !== (int) ( $payload['schema'] ?? 0 )
+					|| (int) ( $payload['expires_at'] ?? 0 ) <= $now;
+				$orphaned = null === get_option( self::OPTION_PREFIX . $session_id, null );
+				if ( $expired || $orphaned ) {
+					wp_cache_delete( $cursor, self::PAGE_IDS_CACHE_GROUP );
+					delete_option( $cursor );
+				}
+			}
+		} while ( ! empty( $options ) );
 	}
 
 	/**

@@ -14,8 +14,8 @@
 	border-radius: var(--ss-radius-md);
 	margin-bottom: var(--ss-space-5);
 	color: var(--ss-warning);
-	font-size: 13px;
-	font-weight: 600;
+	font-size: var(--ss-text-body);
+	font-weight: var(--ss-font-semibold);
 }
 
 .sscribe-debug-wp-debug-notice svg {
@@ -35,27 +35,27 @@
 
 .sscribe-debug-title-row h2 {
 	margin: 0;
-	font-size: 22px;
-	font-weight: 700;
+	font-size: var(--ss-text-h1);
+	font-weight: var(--ss-font-bold);
 	font-family: var(--ss-font);
-	letter-spacing: -0.025em;
+	letter-spacing: var(--ss-tracking-tightest);
 	color: var(--ss-text-primary);
-	line-height: 1.3;
+	line-height: var(--ss-leading-heading);
 }
 
 .sscribe-debug-description {
 	margin: var(--ss-space-2) 0 0;
 	color: var(--ss-text-secondary);
-	font-size: 14px;
-	line-height: 1.55;
+	font-size: var(--ss-text-body-md);
+	line-height: var(--ss-leading-comfortable);
 	max-width: 640px;
 }
 
 .sscribe-debug-help-btn {
 	border-radius: var(--ss-radius-full);
 	color: var(--ss-brand);
-	font-weight: 700;
-	font-size: 14px;
+	font-weight: var(--ss-font-bold);
+	font-size: var(--ss-text-body-md);
 }
 
 .sscribe-debug-help-btn:hover {
@@ -102,13 +102,13 @@
 }
 
 .sscribe-debug-level-section label {
-	font-size: 11px;
-	font-weight: 600;
+	font-size: var(--ss-text-caption);
+	font-weight: var(--ss-font-semibold);
 	color: var(--ss-text-secondary);
 	text-transform: uppercase;
-	letter-spacing: 0.06em;
+	letter-spacing: var(--ss-tracking-lg);
 	height: 18px;
-	line-height: 18px;
+	line-height: var(--ss-leading-control);
 	display: block;
 }
 
@@ -119,12 +119,12 @@
 	border-radius: var(--ss-radius-sm);
 	padding: 0 var(--ss-space-7) 0 var(--ss-space-3);
 	font: inherit;
-	font-size: 13px;
+	font-size: var(--ss-text-body);
 	color: var(--ss-text-primary);
 	background: var(--ss-surface);
 	cursor: pointer;
 	transition: border-color 120ms ease;
-	background-image: url("data:image/svg+xml;charset=utf8,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 16 16' fill='%2352525b'%3E%3Cpath d='M8 11L3 6h10z'/%3E%3C/svg%3E");
+	background-image: var(--ss-icon-caret-down);
 	background-repeat: no-repeat;
 	background-position: right 12px center;
 	background-size: 12px 12px;
@@ -149,14 +149,14 @@
 
 .sscribe-debug-save-feedback {
 	order: -1;
-	font-size: 12px;
+	font-size: var(--ss-text-small);
 	color: var(--ss-text-secondary);
 	min-height: 16px;
 }
 
 .sscribe-button-dirty {
 	position: relative;
-	box-shadow: 0 0 0 2px var(--ss-warning, #d97706);
+	box-shadow: 0 0 0 2px var(--ss-warning);
 }
 
 .sscribe-button-dirty::after {
@@ -167,8 +167,8 @@
 	width: 8px;
 	height: 8px;
 	border-radius: 50%;
-	background: var(--ss-warning, #d97706);
-	box-shadow: 0 0 0 2px var(--ss-surface, #fff);
+	background: var(--ss-warning);
+	box-shadow: 0 0 0 2px var(--ss-surface);
 }
 
 .sscribe-debug-controls-row {
@@ -198,11 +198,11 @@
 
 .sscribe-debug-filter label,
 .sscribe-debug-session-filter label {
-	font-size: 11px;
-	font-weight: 500;
+	font-size: var(--ss-text-caption);
+	font-weight: var(--ss-font-medium);
 	color: var(--ss-text-tertiary);
 	text-transform: uppercase;
-	letter-spacing: 0.04em;
+	letter-spacing: var(--ss-tracking-sm);
 }
 
 .sscribe-input {
@@ -212,7 +212,7 @@
 	border-radius: var(--ss-radius-sm);
 	padding: 0 var(--ss-space-3);
 	font: inherit;
-	font-size: 13px;
+	font-size: var(--ss-text-body);
 	color: var(--ss-text-primary);
 	background: var(--ss-surface);
 	min-width: 0;
@@ -234,21 +234,21 @@
 .sscribe-debug-refresh-paused {
 	display: inline-flex;
 	align-items: center;
-	padding: 4px var(--ss-space-3);
+	padding: var(--ss-space-1) var(--ss-space-3);
 	background: var(--ss-warning-bg);
 	border: 1px solid var(--ss-warning-border);
 	color: var(--ss-warning);
 	border-radius: var(--ss-radius-full);
-	font-size: 11px;
-	font-weight: 500;
+	font-size: var(--ss-text-caption);
+	font-weight: var(--ss-font-medium);
 }
 
 .sscribe-radio-label {
 	display: inline-flex;
 	align-items: center;
-	gap: 6px;
+	gap: var(--ss-space-1-5);
 	cursor: pointer;
-	font-size: 13px;
+	font-size: var(--ss-text-body);
 	color: var(--ss-text-secondary);
 	min-height: 40px;
 }
@@ -269,7 +269,7 @@
 
 .sscribe-radio-label input:checked + .sscribe-radio-text {
 	color: var(--ss-text-primary);
-	font-weight: 500;
+	font-weight: var(--ss-font-medium);
 }
 
 .sscribe-debug-console-card {
@@ -291,8 +291,8 @@
 }
 
 .sscribe-debug-console-title {
-	font-size: 14px;
-	font-weight: 600;
+	font-size: var(--ss-text-body-md);
+	font-weight: var(--ss-font-semibold);
 	color: var(--ss-text-primary);
 	font-family: var(--ss-font-mono);
 }
@@ -300,19 +300,19 @@
 .sscribe-debug-console-count {
 	display: inline-flex;
 	align-items: center;
-	padding: 3px var(--ss-space-3);
+	padding: var(--ss-space-three-quarter) var(--ss-space-3);
 	background: var(--ss-surface-3);
 	color: var(--ss-text-secondary);
 	border-radius: var(--ss-radius-full);
-	font-size: 11px;
-	font-weight: 600;
+	font-size: var(--ss-text-caption);
+	font-weight: var(--ss-font-semibold);
 	font-family: var(--ss-font-mono);
 }
 
 .sscribe-debug-console-body {
 	max-height: 520px;
 	overflow-y: auto;
-	font: 12px/1.5 var(--ss-font-mono);
+	font: var(--ss-text-small)/var(--ss-leading-body) var(--ss-font-mono);
 	background: var(--ss-surface);
 	color: var(--ss-text-primary);
 }
@@ -325,7 +325,7 @@
 	padding: var(--ss-space-10) var(--ss-space-5);
 	color: var(--ss-text-secondary);
 	text-align: center;
-	font: 13px/1.5 var(--ss-font);
+	font: var(--ss-text-body)/var(--ss-leading-body) var(--ss-font);
 }
 
 .sscribe-debug-empty svg {
@@ -362,7 +362,7 @@
 	justify-content: center;
 	width: 32px;
 	height: 32px;
-	padding: 6px;
+	padding: var(--ss-space-1-5);
 	background: var(--ss-surface-2);
 	color: var(--ss-text-secondary);
 	border-radius: var(--ss-radius-sm);
@@ -373,19 +373,19 @@
 	min-width: 0;
 	display: flex;
 	flex-direction: column;
-	gap: 2px;
+	gap: var(--ss-space-half);
 }
 
 .sscribe-debug-stale-banner-text strong {
-	font-size: 13px;
-	font-weight: 600;
+	font-size: var(--ss-text-body);
+	font-weight: var(--ss-font-semibold);
 	color: var(--ss-text-primary);
 }
 
 .sscribe-debug-stale-banner-text span {
-	font-size: 12px;
+	font-size: var(--ss-text-small);
 	color: var(--ss-text-secondary);
-	line-height: 1.4;
+	line-height: var(--ss-leading-normal);
 }
 
 .sscribe-debug-stale-banner-actions {
@@ -393,9 +393,9 @@
 }
 
 .sscribe-button-compact {
-	padding-block: 6px;
+	padding-block: var(--ss-space-1-5);
 	padding-inline: var(--ss-space-4);
-	font-size: 12px;
+	font-size: var(--ss-text-small);
 }
 
 .sscribe-debug-entries {
@@ -423,23 +423,23 @@
 
 .sscribe-debug-entry-time {
 	flex-shrink: 0;
-	font-size: 11px;
+	font-size: var(--ss-text-caption);
 	color: var(--ss-text-muted);
 	font-family: var(--ss-font-mono);
 	min-width: 70px;
-	padding-top: 1px;
+	padding-top: var(--ss-space-px);
 }
 
 .sscribe-debug-entry-badge {
 	flex-shrink: 0;
 	display: inline-flex;
 	align-items: center;
-	padding: 2px 8px;
+	padding: var(--ss-space-half) var(--ss-space-2);
 	border-radius: var(--ss-radius-full);
-	font-size: 10px;
-	font-weight: 700;
+	font-size: var(--ss-text-xs);
+	font-weight: var(--ss-font-bold);
 	text-transform: uppercase;
-	letter-spacing: 0.05em;
+	letter-spacing: var(--ss-tracking-md);
 	font-family: var(--ss-font);
 	min-width: 64px;
 	justify-content: center;
@@ -450,12 +450,12 @@
 	min-width: 0;
 	color: var(--ss-text-primary);
 	font-family: var(--ss-font-mono);
-	font-size: 12px;
-	line-height: 1.5;
+	font-size: var(--ss-text-small);
+	line-height: var(--ss-leading-body);
 	white-space: nowrap;
 	overflow: hidden;
 	text-overflow: ellipsis;
-	padding-top: 1px;
+	padding-top: var(--ss-space-px);
 }
 
 .sscribe-debug-entry-context {
@@ -465,7 +465,7 @@
 	background: var(--ss-surface-2);
 	border-radius: var(--ss-radius-sm);
 	color: var(--ss-text-secondary);
-	font: 11px/1.5 var(--ss-font-mono);
+	font: var(--ss-text-caption)/var(--ss-leading-body) var(--ss-font-mono);
 	white-space: pre-wrap;
 	overflow-wrap: anywhere;
 	display: none;
@@ -538,13 +538,13 @@
 }
 
 .sscribe-debug-rotated-title {
-	font-size: 14px;
-	font-weight: 600;
+	font-size: var(--ss-text-body-md);
+	font-weight: var(--ss-font-semibold);
 	color: var(--ss-text-primary);
 }
 
 .sscribe-debug-rotated-hint {
-	font-size: 11px;
+	font-size: var(--ss-text-caption);
 	color: var(--ss-text-muted);
 }
 
@@ -559,7 +559,7 @@
 .sscribe-debug-rotated-empty {
 	padding: var(--ss-space-3) 0;
 	color: var(--ss-text-muted);
-	font-size: 12px;
+	font-size: var(--ss-text-small);
 	text-align: center;
 }
 
@@ -588,8 +588,8 @@
 
 .sscribe-debug-rotated-file-name {
 	color: var(--ss-text-primary);
-	font-size: 13px;
-	font-weight: 500;
+	font-size: var(--ss-text-body);
+	font-weight: var(--ss-font-medium);
 	overflow: hidden;
 	text-overflow: ellipsis;
 	white-space: nowrap;
@@ -598,7 +598,7 @@
 
 .sscribe-debug-rotated-file-meta {
 	color: var(--ss-text-secondary);
-	font-size: 11px;
+	font-size: var(--ss-text-caption);
 	font-family: var(--ss-font-mono);
 }
 
@@ -614,7 +614,7 @@
 	align-items: center;
 	justify-content: center;
 	padding: var(--ss-space-3) var(--ss-space-5);
-	font-size: 12px;
+	font-size: var(--ss-text-small);
 	font-family: var(--ss-font);
 	color: var(--ss-text-secondary);
 	border-top: 1px solid var(--ss-border);
@@ -636,7 +636,7 @@ summary.sscribe-debug-entry-header {
 	display: flex;
 	align-items: center;
 	gap: var(--ss-space-3);
-	padding: 10px 16px;
+	padding: var(--ss-space-2-5) var(--ss-space-4);
 	width: 100%;
 	min-width: 0;
 	box-sizing: border-box;
@@ -653,7 +653,7 @@ summary.sscribe-debug-entry-header::-webkit-details-marker {
 	display: flex;
 	align-items: center;
 	gap: var(--ss-space-3);
-	padding: 10px 16px;
+	padding: var(--ss-space-2-5) var(--ss-space-4);
 	width: 100%;
 	min-width: 0;
 	box-sizing: border-box;
@@ -667,7 +667,7 @@ summary.sscribe-debug-entry-header::-webkit-details-marker {
 	width: 16px;
 	height: 16px;
 	color: var(--ss-text-muted);
-	font-size: 9px;
+	font-size: var(--ss-text-micro);
 	flex-shrink: 0;
 	transition: color 120ms ease;
 }
@@ -692,7 +692,7 @@ summary.sscribe-debug-entry-header::-webkit-details-marker {
 
 .sscribe-debug-context-key {
 	color: var(--ss-text-secondary);
-	font-size: 11px;
+	font-size: var(--ss-text-caption);
 	font-family: var(--ss-font-mono);
 	flex-shrink: 0;
 }
@@ -701,7 +701,7 @@ summary.sscribe-debug-entry-header::-webkit-details-marker {
 	flex: 1;
 	min-width: 0;
 	color: var(--ss-text-secondary);
-	font-size: 11px;
+	font-size: var(--ss-text-caption);
 	font-family: var(--ss-font-mono);
 	overflow-wrap: anywhere;
 }
@@ -722,8 +722,8 @@ summary.sscribe-debug-entry-header::-webkit-details-marker {
 	margin: var(--ss-space-2) var(--ss-space-5);
 	border-radius: var(--ss-radius-md);
 	color: var(--ss-warning);
-	font-size: 12px;
-	line-height: 1.5;
+	font-size: var(--ss-text-small);
+	line-height: var(--ss-leading-body);
 }
 
 .sscribe-debug-entry:not(.has-context) {
@@ -763,7 +763,7 @@ summary.sscribe-debug-entry-header::-webkit-details-marker {
 }
 
 .sscribe-debug-entry.expanded .sscribe-debug-context-key {
-	font-weight: 600;
+	font-weight: var(--ss-font-semibold);
 }
 
 @media (width <= 782px) {
@@ -834,6 +834,6 @@ summary.sscribe-debug-entry-header::-webkit-details-marker {
 	border: 1px solid var(--ss-error-border);
 	border-radius: var(--ss-radius-sm);
 	color: var(--ss-error);
-	font-size: 12px;
-	line-height: 1.5;
+	font-size: var(--ss-text-small);
+	line-height: var(--ss-leading-body);
 }

@@ -60,10 +60,8 @@ class SScribe_Diagnostics {
 	 */
 	public function get_support_info(): array {
 		$this->support_errors = array();
-		$upload_dir    = wp_upload_dir();
-		$upload_base   = empty( $upload_dir['error'] ) && ! empty( $upload_dir['basedir'] ) ? (string) $upload_dir['basedir'] : '';
-		$export_dir    = '' !== $upload_base ? trailingslashit( $upload_base ) . 'sscribe-exports' : '';
-		$log_dir       = '' !== $export_dir ? trailingslashit( $export_dir ) . 'logs' : '';
+		$export_dir    = SScribe_Private_Storage::get_export_dir( false );
+		$log_dir       = SScribe_Private_Storage::get_subdirectory( 'logs', false );
 		$debug_enabled = SSCRIBE_DEBUG;
 
 		$container    = SScribe_Container::instance();
@@ -202,9 +200,9 @@ class SScribe_Diagnostics {
 		$sections['paths'] = array(
 			'label' => __( 'Paths', 'sscribe-export-site-pages' ),
 			'items' => array(
-				'upload_base' => '' === $upload_base ? __( 'Unavailable', 'sscribe-export-site-pages' ) : '[uploads]',
-				'export_dir'  => '[uploads]/sscribe-exports',
-				'log_dir'     => '[uploads]/sscribe-exports/logs',
+				'storage'     => '' === $export_dir ? __( 'Unavailable', 'sscribe-export-site-pages' ) : '[private]/sscribe-exports',
+				'export_dir'  => '[private]/sscribe-exports',
+				'log_dir'     => '[private]/sscribe-exports/logs',
 				'writable'    => '' !== $export_dir && wp_is_writable( $export_dir ) ? __( 'Yes', 'sscribe-export-site-pages' ) : __( 'No', 'sscribe-export-site-pages' ),
 			),
 		);
@@ -594,55 +592,31 @@ class SScribe_Diagnostics {
 	}
 
 	/**
-	 * Check upload directory writability.
+	 * Check private storage writability.
 	 *
 	 * @return array
 	 */
 	private function check_upload_directory(): array {
-		$upload_dir = wp_upload_dir();
-
-		if ( ! empty( $upload_dir['error'] ) ) {
+		$export_dir = SScribe_Private_Storage::get_export_dir();
+		if ( '' === $export_dir || ! is_dir( $export_dir ) ) {
 			return array(
-				'name'    => __( 'Upload Directory', 'sscribe-export-site-pages' ),
+				'name'    => __( 'Private Storage', 'sscribe-export-site-pages' ),
 				'status'  => 'error',
-				'message' => sprintf(
-					/* translators: %s: upload directory error message. */
-					__( 'Upload directory error: %s', 'sscribe-export-site-pages' ),
-					$upload_dir['error']
-				),
-				'fix'     => __( 'Check wp-content/uploads directory permissions', 'sscribe-export-site-pages' ),
+				'message' => __( 'A safe private export directory could not be created.', 'sscribe-export-site-pages' ),
+				'fix'     => __( 'Make the system temporary directory writable, or configure SSCRIBE_PRIVATE_STORAGE_DIR to a writable path outside the web root.', 'sscribe-export-site-pages' ),
 			);
-		}
-
-		$export_dir = $upload_dir['basedir'] . '/sscribe-exports';
-
-		if ( ! is_dir( $export_dir ) ) {
-			if ( ! wp_mkdir_p( $export_dir ) ) {
-				return array(
-					'name'    => __( 'Upload Directory', 'sscribe-export-site-pages' ),
-					'status'  => 'error',
-					'message' => sprintf(
-						/* translators: %s: export directory name. */
-						__( 'Export directory could not be created: %s', 'sscribe-export-site-pages' ),
-						basename( $export_dir )
-					),
-					'fix'     => __( 'Check that wp-content/uploads is writable (chmod 755)', 'sscribe-export-site-pages' ),
-				);
-			}
-
-			SScribe_Security::protect_directory( $export_dir );
 		}
 
 		if ( ! wp_is_writable( $export_dir ) ) {
 			return array(
-				'name'    => __( 'Upload Directory', 'sscribe-export-site-pages' ),
+				'name'    => __( 'Private Storage', 'sscribe-export-site-pages' ),
 				'status'  => 'error',
 				'message' => sprintf(
 					/* translators: %s: export directory name. */
 					__( 'Export directory is not writable: %s', 'sscribe-export-site-pages' ),
 					basename( $export_dir )
 				),
-				'fix'     => __( 'Set directory permissions to 755 or 775', 'sscribe-export-site-pages' ),
+				'fix'     => __( 'Set the private storage directory to owner-writable permissions.', 'sscribe-export-site-pages' ),
 			);
 		}
 
@@ -678,7 +652,7 @@ class SScribe_Diagnostics {
 		}
 
 		return array(
-			'name'    => __( 'Upload Directory', 'sscribe-export-site-pages' ),
+			'name'    => __( 'Private Storage', 'sscribe-export-site-pages' ),
 			'status'  => 'ok',
 			'message' => sprintf(
 				/* translators: %d: free disk space in MB. */
@@ -742,15 +716,7 @@ class SScribe_Diagnostics {
 
 		$ttfonts_dir = SSCRIBE_PLUGIN_DIR . 'vendor-prefixed/mpdf/mpdf/ttfonts';
 		if ( is_dir( $ttfonts_dir ) ) {
-			$glob_flags = defined( 'GLOB_BRACE' ) ? GLOB_BRACE : 0;
-			$font_files = glob( $ttfonts_dir . '/*.{ttf,otf,txt}', $glob_flags );
-			if ( ! is_array( $font_files ) ) {
-				$font_files = array_merge(
-					(array) glob( $ttfonts_dir . '/*.ttf' ),
-					(array) glob( $ttfonts_dir . '/*.otf' ),
-					(array) glob( $ttfonts_dir . '/*.txt' )
-				);
-			}
+			$font_files = $this->find_mpdf_font_files( $ttfonts_dir );
 			$count      = count( $font_files );
 			if ( $count < self::MIN_MPDF_FONT_COUNT ) {
 				return array(
@@ -767,6 +733,23 @@ class SScribe_Diagnostics {
 			'status'  => 'ok',
 			'message' => 'mPDF loaded with full font support',
 		);
+	}
+
+	/**
+	 * Find packaged mPDF font assets without relying on GLOB_BRACE.
+	 *
+	 * @param string $directory Font directory.
+	 * @return array<string> Absolute font paths.
+	 */
+	private function find_mpdf_font_files( string $directory ): array {
+		$font_files = array_merge(
+			(array) glob( $directory . '/*.ttf' ),
+			(array) glob( $directory . '/*.otf' ),
+			(array) glob( $directory . '/*.txt' )
+		);
+		sort( $font_files, SORT_STRING );
+
+		return $font_files;
 	}
 
 	/**
@@ -1012,8 +995,8 @@ class SScribe_Diagnostics {
 		} elseif ( str_contains( $lower_error, 'permission' ) || str_contains( $lower_error, 'writable' ) ) {
 			$diagnosis['category'] = 'permissions';
 			$diagnosis['fix']      = array(
-				__( 'Set wp-content/uploads permissions to 755', 'sscribe-export-site-pages' ),
-				__( 'Check that the PHP process can write to the uploads directory', 'sscribe-export-site-pages' ),
+				__( 'Check owner permissions on the private storage directory', 'sscribe-export-site-pages' ),
+				__( 'Check that the PHP process can write to the configured private storage base', 'sscribe-export-site-pages' ),
 			);
 		} elseif ( str_contains( $lower_error, 'mpdf' ) || str_contains( $lower_error, 'pdf' ) ) {
 			$diagnosis['category'] = 'pdf_generation';
@@ -1110,12 +1093,7 @@ class SScribe_Diagnostics {
 	 * @return int
 	 */
 	private function clear_old_temp_files(): int {
-		$upload_dir = wp_upload_dir();
-		if ( ! empty( $upload_dir['error'] ) || empty( $upload_dir['basedir'] ) ) {
-			return 0;
-		}
-
-		$export_dir = trailingslashit( (string) $upload_dir['basedir'] ) . 'sscribe-exports';
+		$export_dir = SScribe_Private_Storage::get_export_dir( false );
 
 		if ( ! is_dir( $export_dir ) || is_link( $export_dir ) ) {
 			return 0;

@@ -202,3 +202,11 @@ tab-export-top.jpg
 tab-export-bottom.jpg
 tab-export-light.jpg
 tab-export-scrolled.jpeg
+
+# Scratch / ad-hoc audit outputs (review diffs, side-by-side comparisons,
+# transient dumps). Glob-blindness in build-release.php means these
+# patterns are advisory; filenames are also added to base_excludes
+# in scripts/build-release.php for guaranteed exclusion.
+tmp_diffs/
+review-diff.patch
+System.Management

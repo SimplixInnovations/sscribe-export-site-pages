@@ -167,8 +167,7 @@ final class SScribe_Export_Log_Test extends TestCase {
 	}
 
 	public function test_invalid_session_id_never_creates_a_log_file(): void {
-		$upload_dir = wp_upload_dir();
-		$log_dir    = $upload_dir['basedir'] . '/sscribe-exports/logs';
+		$log_dir = \SScribe_Private_Storage::get_subdirectory( 'logs' );
 		$before     = glob( $log_dir . '/export_*.json' ) ?: array();
 
 		$log = new SScribe_Export_Log( '../invalid-session' );
@@ -213,8 +212,7 @@ final class SScribe_Export_Log_Test extends TestCase {
 	}
 
 	private function find_log_file( string $session_id ): ?string {
-		$upload_dir = wp_upload_dir();
-		$log_dir    = $upload_dir['basedir'] . '/sscribe-exports/logs';
+		$log_dir = \SScribe_Private_Storage::get_subdirectory( 'logs' );
 		$pattern    = $log_dir . '/export_*' . $session_id . '*.json';
 
 		$matches = glob( $pattern );

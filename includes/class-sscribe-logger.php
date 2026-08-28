@@ -65,7 +65,7 @@ class SScribe_Logger implements SScribe_Logger_Interface {
 	protected readonly string $log_dir;
 
 	/**
-	 * Whether file logging has a valid uploads destination.
+	 * Whether file logging has a valid private destination.
 	 *
 	 * @var bool
 	 */
@@ -196,13 +196,13 @@ class SScribe_Logger implements SScribe_Logger_Interface {
 	}
 
 	/**
-	 * Canonical log directory name under wp-content/uploads.
+	 * Canonical log directory name under the private export root.
 	 *
 	 * Used by every code path that reads, writes, clears, or cleans up
 	 * log files. Single source of truth : keeps cleanup in lockstep
 	 * with the directory the logger actually writes to.
 	 */
-	public const LOG_DIR_NAME = 'sscribe-exports/logs';
+	public const LOG_DIR_NAME = 'logs';
 
 	/**
 	 * Construct the logger.
@@ -211,13 +211,10 @@ class SScribe_Logger implements SScribe_Logger_Interface {
 	 * @param string $prefix  Log file prefix.
 	 */
 	public function __construct( bool $enabled = true, string $prefix = 'sscribe' ) {
-		$upload_dir              = wp_upload_dir();
 		$clean_prefix            = substr( sanitize_key( $prefix ), 0, 40 );
 		$this->enabled           = $enabled;
 		$this->prefix            = '' !== $clean_prefix ? $clean_prefix : 'sscribe';
-		$candidate_dir           = empty( $upload_dir['error'] ) && ! empty( $upload_dir['basedir'] )
-			? trailingslashit( (string) $upload_dir['basedir'] ) . self::LOG_DIR_NAME
-			: '';
+		$candidate_dir           = SScribe_Private_Storage::get_subdirectory( self::LOG_DIR_NAME );
 		$this->storage_available = '' !== $candidate_dir && ! is_link( $candidate_dir );
 		$this->log_dir           = $this->storage_available ? $candidate_dir : '';
 
@@ -461,11 +458,7 @@ class SScribe_Logger implements SScribe_Logger_Interface {
 	public function clear_logs(): void {
 		$this->buffer = array();
 
-		$upload_dir = wp_upload_dir();
-		if ( ! empty( $upload_dir['error'] ) || empty( $upload_dir['basedir'] ) ) {
-			return;
-		}
-		$log_dir    = $upload_dir['basedir'] . '/' . self::LOG_DIR_NAME;
+		$log_dir = SScribe_Private_Storage::get_subdirectory( self::LOG_DIR_NAME, false );
 
 		if ( ! is_dir( $log_dir ) || is_link( $log_dir ) ) {
 			return;
@@ -488,11 +481,7 @@ class SScribe_Logger implements SScribe_Logger_Interface {
 	 * @return int Number of files deleted.
 	 */
 	public static function cleanup_old_logs( int $max_age_days = 7 ): int {
-		$upload_dir = wp_upload_dir();
-		if ( ! empty( $upload_dir['error'] ) || empty( $upload_dir['basedir'] ) ) {
-			return 0;
-		}
-		$log_dir    = $upload_dir['basedir'] . '/' . self::LOG_DIR_NAME;
+		$log_dir = SScribe_Private_Storage::get_subdirectory( self::LOG_DIR_NAME, false );
 
 		if ( ! is_dir( $log_dir ) || is_link( $log_dir ) ) {
 			return 0;

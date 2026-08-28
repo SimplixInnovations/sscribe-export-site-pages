@@ -548,14 +548,7 @@ class SScribe_PDF_Exporter implements SScribe_Exporter_Interface {
 			return;
 		}
 
-		$upload_dir = wp_upload_dir();
-		if ( ! empty( $upload_dir['error'] ) || empty( $upload_dir['basedir'] ) ) {
-			return;
-		}
-
-		$expected_parent = untrailingslashit(
-			wp_normalize_path( trailingslashit( (string) $upload_dir['basedir'] ) . 'sscribe-exports/mpdf-tmp' )
-		);
+		$expected_parent = untrailingslashit( wp_normalize_path( SScribe_Private_Storage::get_subdirectory( 'mpdf-tmp', false ) ) );
 		$actual_parent   = untrailingslashit( wp_normalize_path( dirname( $mpdf_temp ) ) );
 		if ( $expected_parent !== $actual_parent || 1 !== preg_match( '/^run-[a-f0-9]{32}$/', basename( $mpdf_temp ) ) ) {
 			return;
@@ -697,37 +690,17 @@ class SScribe_PDF_Exporter implements SScribe_Exporter_Interface {
 	private function build_mpdf_config( bool $is_rtl, int $page_id ): array|SScribe_Result {
 		$font_dir   = trailingslashit( SSCRIBE_PLUGIN_DIR ) . 'assets/fonts/';
 		$amiri_dir  = $font_dir . 'amiri/';
-		$upload_dir = wp_upload_dir();
-		if ( ! empty( $upload_dir['error'] ) || empty( $upload_dir['basedir'] ) ) {
+		$mpdf_temp_root = SScribe_Private_Storage::get_subdirectory( 'mpdf-tmp' );
+		if ( '' === $mpdf_temp_root ) {
 			return SScribe_Result::failure(
-				__( 'PDF export failed: the WordPress uploads directory is unavailable.', 'sscribe-export-site-pages' ),
+				__( 'PDF export failed: private temporary storage is unavailable.', 'sscribe-export-site-pages' ),
 				array(
 					'error_category' => 'pdf_filesystem',
 					'page_id'        => $page_id,
 				)
 			);
 		}
-		// mPDF tempDir lives under sscribe-exports/ so the default-deny
-		// rule (which only allows writes inside that directory) accepts
-		// it. wp-content/uploads/sscribe/ was the previous location but
-		// sits OUTSIDE the SScribe allowlist; mPDF cache writes there
-		// would be silently rejected by is_path_safe_for_write().
-		$sscribe_dir   = trailingslashit( $upload_dir['basedir'] ) . 'sscribe-exports/';
-		$mpdf_temp_root = $sscribe_dir . 'mpdf-tmp/';
-
-		if ( ! is_dir( $mpdf_temp_root ) && ! wp_mkdir_p( $mpdf_temp_root ) ) {
-			return SScribe_Result::failure(
-				__( 'PDF export failed: the temporary directory could not be created.', 'sscribe-export-site-pages' ),
-				array(
-					'error_category' => 'pdf_filesystem',
-					'page_id'        => $page_id,
-				)
-			);
-		}
-
-		if ( ! file_exists( $sscribe_dir . '.htaccess' ) ) {
-			SScribe_Security::protect_directory( $sscribe_dir );
-		}
+		$mpdf_temp_root = trailingslashit( $mpdf_temp_root );
 
 		$amiri_available = is_dir( $amiri_dir ) && file_exists( $amiri_dir . 'Amiri-Regular.ttf' );
 		if ( ! $amiri_available ) {
@@ -778,6 +751,7 @@ class SScribe_PDF_Exporter implements SScribe_Exporter_Interface {
 				)
 			);
 		}
+		SScribe_Private_Storage::harden_directory( $mpdf_temp );
 
 		$server_software = isset( $_SERVER['SERVER_SOFTWARE'] ) && is_string( $_SERVER['SERVER_SOFTWARE'] ) ? sanitize_text_field( wp_unslash( $_SERVER['SERVER_SOFTWARE'] ) ) : '';
 		if ( '' !== $server_software && false !== stripos( $server_software, 'nginx' ) ) {

@@ -1,6 +1,6 @@
-/* @version 1.9.0 */
+/* @version 2.0.0 */
 
-/* sScribe v3 design tokens.
+/* SScribe design tokens.
  * Extracted from sscribe-admin.css so the token + reset layer
  * can be cached independently from the component layer.
  * Tokens rarely change (palette, spacing, radii, type scale);
@@ -50,7 +50,7 @@
 	--ss-success-hover: #00553c;
 	--ss-error-hover: #82180f;
 
-	/* v3 semantic role aliases  -  physical tokens above, roles below.
+	/* Semantic role aliases: physical tokens above, roles below.
  Components should reference --ss-color-* roles, not raw --ss-*.
  Re-balancing the palette only requires editing the physical layer. */
 	--ss-color-bg-surface: var(--ss-surface);
@@ -63,21 +63,50 @@
 	--ss-color-fg-muted: var(--ss-text-muted);
 	--ss-color-accent: var(--ss-brand);
 	--ss-color-warning-fg: var(--ss-warning);
+	--ss-color-solid-white: #fff;
+	--ss-color-solid-black: #000;
+	--ss-color-print-secondary: #333;
+	--ss-color-print-muted: #555;
+	--ss-color-overlay: rgb(9 9 11 / 50%);
+	--ss-color-shadow-02: rgb(0 0 0 / 2%);
+	--ss-color-shadow-04: rgb(0 0 0 / 4%);
+	--ss-color-shadow-06: rgb(0 0 0 / 6%);
+	--ss-color-highlight-12: rgb(255 255 255 / 12%);
+	--ss-color-highlight-14: rgb(255 255 255 / 14%);
+	--ss-color-highlight-18: rgb(255 255 255 / 18%);
+	--ss-color-highlight-22: rgb(255 255 255 / 22%);
+	--ss-color-highlight-25: rgb(255 255 255 / 25%);
+	--ss-color-highlight-45: rgb(255 255 255 / 45%);
+	--ss-icon-caret-down: url("data:image/svg+xml;charset=utf8,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 16 16' fill='%2352525b'%3E%3Cpath d='M8 11L3 6h10z'/%3E%3C/svg%3E");
+	--ss-icon-chevron-down: url("data:image/svg+xml;charset=utf8,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 16 16' fill='none' stroke='%2352525b' stroke-width='1.75' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='m4 6 4 4 4-4'/%3E%3C/svg%3E");
+	--ss-icon-check-inverse: url("data:image/svg+xml;charset=utf8,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16' fill='none' stroke='%23ffffff' stroke-width='2.25' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M3.5 8.5l3 3 6-6.5'/%3E%3C/svg%3E");
+	--ss-icon-minus-inverse: url("data:image/svg+xml;charset=utf8,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16' fill='none' stroke='%23ffffff' stroke-width='2.25' stroke-linecap='round'%3E%3Cpath d='M4 8h8'/%3E%3C/svg%3E");
 	--ss-radius-sm: 6px;
 	--ss-radius: 8px;
 	--ss-radius-md: 10px;
 	--ss-radius-lg: 12px;
 	--ss-radius-xl: 16px;
 	--ss-radius-full: 9999px;
+	--ss-space-px: 1px;
+	--ss-space-half: 2px;
+	--ss-space-three-quarter: 3px;
 	--ss-space-1: 4px;
+	--ss-space-1-25: 5px;
+	--ss-space-1-5: 6px;
+	--ss-space-1-75: 7px;
 	--ss-space-2: 8px;
+	--ss-space-2-5: 10px;
 	--ss-space-3: 12px;
+	--ss-space-3-5: 14px;
 	--ss-space-4: 16px;
 	--ss-space-5: 20px;
 	--ss-space-6: 24px;
 	--ss-space-7: 28px;
 	--ss-space-8: 32px;
+	--ss-space-8-5: 34px;
+	--ss-space-9: 36px;
 	--ss-space-10: 40px;
+	--ss-space-11: 44px;
 	--ss-space-12: 48px;
 	--ss-font: -apple-system, blinkmacsystemfont, 'Segoe UI', roboto, 'Helvetica Neue', arial, sans-serif;
 	--ss-font-mono: ui-monospace, 'SF Mono', menlo, consolas, 'Liberation Mono', monospace;
@@ -99,14 +128,45 @@
 	--ss-text-h3-fw: 600;
 	--ss-text-h4: 13px;
 	--ss-text-h4-fw: 600;
+	--ss-text-micro: 9px;
+	--ss-text-xs: 10px;
 	--ss-text-body: 13px;
 	--ss-text-body-lh: 1.5;
 	--ss-text-body-md: 14px;
+	--ss-text-small: 12px;
+	--ss-text-compact: 12.5px;
+	--ss-text-lg: 18px;
+	--ss-text-xl: 20px;
 	--ss-text-label: 11px;
 	--ss-text-label-fw: 600;
 	--ss-text-label-ls: 0.06em;
 	--ss-text-caption: 11px;
 	--ss-text-caption-lh: 1.4;
+	--ss-font-regular: 400;
+	--ss-font-medium: 500;
+	--ss-font-semibold: 600;
+	--ss-font-bold: 700;
+	--ss-leading-none: 1;
+	--ss-leading-tightest: 1.1;
+	--ss-leading-tight: 1.2;
+	--ss-leading-snug: 1.25;
+	--ss-leading-heading: 1.3;
+	--ss-leading-compact: 1.35;
+	--ss-leading-normal: 1.4;
+	--ss-leading-body: 1.5;
+	--ss-leading-comfortable: 1.55;
+	--ss-leading-relaxed: 1.6;
+	--ss-leading-control: 18px;
+	--ss-tracking-tightest: -0.025em;
+	--ss-tracking-tight: -0.01em;
+	--ss-tracking-subtle-tight: -0.005em;
+	--ss-tracking-none: 0;
+	--ss-tracking-subtle: 0.01em;
+	--ss-tracking-xs: 0.02em;
+	--ss-tracking-sm: 0.04em;
+	--ss-tracking-md: 0.05em;
+	--ss-tracking-lg: 0.06em;
+	--ss-tracking-xl: 0.08em;
 	--ss-motion-fast: 80ms;
 	--ss-easing: cubic-bezier(0.2, 0, 0, 1);
 }

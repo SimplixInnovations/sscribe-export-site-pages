@@ -21,13 +21,7 @@ class SScribe_Filesystem_Test extends TestCase {
 		$this->test_dir = sys_get_temp_dir() . '/sscribe-filesystem-test-' . uniqid();
 		mkdir( $this->test_dir, 0755, true );
 
-		// All write/copy tests must target a path inside the SScribe
-		// export directory, per the WordPress.org Plugin Directory
-		// "no writes outside plugin folder" rule. The bootstrap's
-		// wp_upload_dir() returns a fresh temp dir per process; create
-		// the export dir on demand so the suite stays self-contained.
-		$upload_dir   = wp_upload_dir();
-		$this->export_dir = trailingslashit( $upload_dir['basedir'] ) . 'sscribe-exports';
+		$this->export_dir = \SScribe_Private_Storage::get_subdirectory( 'test-filesystem-' . uniqid() );
 		if ( ! is_dir( $this->export_dir ) ) {
 			mkdir( $this->export_dir, 0755, true );
 		} else {
@@ -400,17 +394,8 @@ class SScribe_Filesystem_Test extends TestCase {
 
 		$fs = new \SScribe_Filesystem();
 
-		// is_path_safe_for_write() compares lexically against the SSCRIBE
-		// export dir (computed from wp_upload_dir()). The symlink must
-		// live INSIDE the export dir for the helper to detect the
-		// escape — placing it in an arbitrary test dir would just
-		// produce SSCRIBE_PATH_REJECT.
-		$upload_dir  = wp_upload_dir();
-		$export_dir  = trailingslashit( $upload_dir['basedir'] ) . 'sscribe-exports';
+		$export_dir = $this->export_dir;
 		if ( ! is_dir( $export_dir ) ) {
-			// Bootstrap's wp_upload_dir() returns a fresh temp dir per
-			// process; create the export dir on demand so the test is
-			// self-contained.
 			mkdir( $export_dir, 0755, true );
 		}
 
@@ -444,8 +429,7 @@ class SScribe_Filesystem_Test extends TestCase {
 		}
 
 		$fs          = new \SScribe_Filesystem();
-		$upload_dir  = wp_upload_dir();
-		$export_dir  = trailingslashit( $upload_dir['basedir'] ) . 'sscribe-exports';
+		$export_dir  = $this->export_dir;
 		$outside     = $this->test_dir . '/nested-outside';
 		$link_name   = $export_dir . '/nested-escape-' . uniqid();
 		wp_mkdir_p( $export_dir );
@@ -475,8 +459,7 @@ class SScribe_Filesystem_Test extends TestCase {
 
 		$fs = new \SScribe_Filesystem();
 
-		$upload_dir  = wp_upload_dir();
-		$export_dir  = trailingslashit( $upload_dir['basedir'] ) . 'sscribe-exports';
+		$export_dir = $this->export_dir;
 		if ( ! is_dir( $export_dir ) ) {
 			mkdir( $export_dir, 0755, true );
 		}
@@ -528,13 +511,8 @@ class SScribe_Filesystem_Test extends TestCase {
 
 	/**
 	 * is_path_safe_for_write() must REJECT any file whose literal
-	 * path is outside the SScribe export dir, even if no symlink is
-	 * involved. Per the WordPress.org Plugin Directory guidelines,
-	 * plugins must write only to the database or to a plugin-owned
-	 * folder under wp-content/uploads/. The export directory
-	 * (wp-content/uploads/sscribe-exports/) is the only allowed
-	 * filesystem destination; WP temp, system temp, and any other
-	 * path are default-denied.
+	 * path is outside the private SScribe export dir, even if no symlink is
+	 * involved. Other filesystem destinations are default-denied.
 	 */
 	public function test_is_path_safe_for_write_rejects_external_writes(): void {
 		$fs = new \SScribe_Filesystem();

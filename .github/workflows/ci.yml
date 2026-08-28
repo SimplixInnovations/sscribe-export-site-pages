@@ -1,198 +1,234 @@
 name: CI
 
 on:
-  push:
-    branches:
-      - main
-      - develop
-  pull_request:
-    branches:
-      - main
-      - develop
-  schedule:
-    - cron: '0 6 * * 1'  # Every Monday at 06:00 UTC
+    push:
+        branches:
+            - main
+            - develop
+    pull_request:
+        branches:
+            - main
+            - develop
+    schedule:
+        - cron: '0 6 * * 1' # Every Monday at 06:00 UTC
 
 jobs:
-  version-check:
-    name: Version Sync Check
-    runs-on: ubuntu-latest
-    steps:
-      - name: Checkout code
-        uses: actions/checkout@v6
-        with:
-          persist-credentials: false
+    version-check:
+        name: Version Sync Check
+        runs-on: ubuntu-latest
+        steps:
+            - name: Checkout code
+              uses: actions/checkout@v6
+              with:
+                  persist-credentials: false
 
-      - name: Setup PHP
-        uses: shivammathur/setup-php@v2
-        with:
-          php-version: '8.4'
-          coverage: none
-          extensions: fileinfo
+            - name: Setup PHP
+              uses: shivammathur/setup-php@v2
+              with:
+                  php-version: '8.4'
+                  coverage: none
+                  extensions: fileinfo
 
-      - name: Verify version synchronization
-        run: php scripts/verify-version-sync.php
+            - name: Verify version synchronization
+              run: php scripts/verify-version-sync.php
 
-  frontend-quality:
-    name: JavaScript and CSS Quality
-    runs-on: ubuntu-latest
-    needs: version-check
-    steps:
-      - name: Checkout code
-        uses: actions/checkout@v6
-        with:
-          persist-credentials: false
+    frontend-quality:
+        name: JavaScript and CSS Quality
+        runs-on: ubuntu-latest
+        needs: version-check
+        steps:
+            - name: Checkout code
+              uses: actions/checkout@v6
+              with:
+                  persist-credentials: false
 
-      - name: Setup Node.js
-        uses: actions/setup-node@v6
-        with:
-          node-version: '24'
-          cache: npm
+            - name: Setup Node.js
+              uses: actions/setup-node@v6
+              with:
+                  node-version: '24'
+                  cache: npm
 
-      - name: Install locked development dependencies
-        run: npm ci --ignore-scripts
+            - name: Install locked development dependencies
+              run: npm ci --ignore-scripts
 
-      - name: Run JavaScript and CSS linters
-        run: npm run lint
+            - name: Run JavaScript and CSS linters
+              run: npm run lint
 
-      - name: Verify formatting
-        run: npm run format:check
+            - name: Verify formatting
+              run: npm run format:check
 
-      - name: Audit JavaScript dependencies
-        run: npm audit --audit-level=high
+            - name: Audit JavaScript dependencies
+              run: npm audit --audit-level=high
 
-  audit:
-    name: Security Audit
-    runs-on: ubuntu-latest
-    steps:
-      - name: Checkout code
-        uses: actions/checkout@v6
-        with:
-          persist-credentials: false
+    audit:
+        name: Security Audit
+        runs-on: ubuntu-latest
+        steps:
+            - name: Checkout code
+              uses: actions/checkout@v6
+              with:
+                  persist-credentials: false
 
-      - name: Setup PHP
-        uses: shivammathur/setup-php@v2
-        with:
-          php-version: '8.4'
-          coverage: none
-          extensions: fileinfo
+            - name: Setup PHP
+              uses: shivammathur/setup-php@v2
+              with:
+                  php-version: '8.4'
+                  coverage: none
+                  extensions: fileinfo
 
-      - name: Composer security audit
-        run: composer audit --no-dev
+            - name: Install locked dependencies
+              run: composer install --no-interaction --no-progress
 
-      - name: AI-artifact scan (em-dash, en-dash, LLM phrasings)
-        run: php scripts/check-ai-artifacts.php
+            - name: Composer security audit
+              run: composer audit --locked --format=plain --abandoned=fail
 
-  lint:
-    name: PHP ${{ matrix.php-version }}
-    runs-on: ubuntu-latest
-    needs: version-check
-    strategy:
-      matrix:
-        php-version: ['8.2', '8.3', '8.4', '8.5']
-    steps:
-      - name: Checkout code
-        uses: actions/checkout@v6
-        with:
-          persist-credentials: false
+            - name: AI-artifact scan (em-dash, en-dash, LLM phrasings)
+              run: php scripts/check-ai-artifacts.php
 
-      - name: Setup PHP
-        uses: shivammathur/setup-php@v2
-        with:
-          php-version: ${{ matrix.php-version }}
-          coverage: none
-          extensions: fileinfo
+    lint:
+        name: PHP ${{ matrix.php-version }}
+        runs-on: ubuntu-latest
+        needs: version-check
+        strategy:
+            matrix:
+                php-version: ['8.2', '8.3', '8.4', '8.5']
+        steps:
+            - name: Checkout code
+              uses: actions/checkout@v6
+              with:
+                  persist-credentials: false
 
-      - name: PHP Syntax Check
-        run: |
-          has_errors=false
-          for file in $(find . -name "*.php" -not -path "./vendor/*" -not -path "./.git/*"); do
-            output=$(php -l "$file" 2>&1)
-            if echo "$output" | grep -q "Parse error"; then
-              echo "$output"
-              has_errors=true
-            fi
-          done
-          if [ "$has_errors" = true ]; then
-            exit 1
-          fi
-          echo "All PHP files have valid syntax"
+            - name: Setup PHP
+              uses: shivammathur/setup-php@v2
+              with:
+                  php-version: ${{ matrix.php-version }}
+                  coverage: none
+                  extensions: fileinfo
 
-  test:
-    name: Tests PHP ${{ matrix.php-version }}
-    runs-on: ubuntu-latest
-    needs: lint
-    strategy:
-      matrix:
-        php-version: ['8.2', '8.4', '8.5']
-    steps:
-      - name: Checkout code
-        uses: actions/checkout@v6
-        with:
-          persist-credentials: false
+            - name: PHP Syntax Check
+              run: |
+                  has_errors=false
+                  for file in $(find . -name "*.php" -not -path "./vendor/*" -not -path "./.git/*"); do
+                    output=$(php -l "$file" 2>&1)
+                    if echo "$output" | grep -q "Parse error"; then
+                      echo "$output"
+                      has_errors=true
+                    fi
+                  done
+                  if [ "$has_errors" = true ]; then
+                    exit 1
+                  fi
+                  echo "All PHP files have valid syntax"
 
-      - name: Setup PHP
-        uses: shivammathur/setup-php@v2
-        with:
-          php-version: ${{ matrix.php-version }}
-          coverage: none
-          extensions: fileinfo
+    test:
+        name: Tests PHP ${{ matrix.php-version }}
+        runs-on: ubuntu-latest
+        needs: lint
+        strategy:
+            matrix:
+                php-version: ['8.2', '8.4', '8.5']
+        steps:
+            - name: Checkout code
+              uses: actions/checkout@v6
+              with:
+                  persist-credentials: false
 
-      - name: Cache Composer dependencies
-        uses: actions/cache@v6
-        with:
-          path: vendor
-          key: ${{ runner.os }}-php-${{ matrix.php-version }}-vendor-${{ hashFiles('composer.lock') }}
-          restore-keys: |
-            ${{ runner.os }}-php-${{ matrix.php-version }}-vendor-
+            - name: Setup PHP
+              uses: shivammathur/setup-php@v2
+              with:
+                  php-version: ${{ matrix.php-version }}
+                  coverage: none
+                  extensions: fileinfo
 
-      - name: Install dependencies
-        run: composer install --no-progress
+            - name: Cache Composer dependencies
+              uses: actions/cache@v6
+              with:
+                  path: vendor
+                  key: ${{ runner.os }}-php-${{ matrix.php-version }}-vendor-${{ hashFiles('composer.lock') }}
+                  restore-keys: |
+                      ${{ runner.os }}-php-${{ matrix.php-version }}-vendor-
 
-      - name: Generate prefixed vendor tree
-        run: composer vendor:prefix
-      - name: Run PHPUnit
-        run: composer test
+            - name: Install dependencies
+              run: composer install --no-progress
 
-      - name: Run PHPStan
-        run: composer stan
+            - name: Generate prefixed vendor tree
+              run: composer vendor:prefix
+            - name: Run PHPUnit
+              run: composer test
 
-      - name: Run PHPCS
-        run: composer cs
+            - name: Run PHPStan
+              run: composer stan
 
-  coverage:
-    name: Coverage PHP 8.4
-    runs-on: ubuntu-latest
-    needs: test
-    steps:
-      - name: Checkout code
-        uses: actions/checkout@v6
-        with:
-          persist-credentials: false
+            - name: Run PHPCS
+              run: composer cs
 
-      - name: Setup PHP
-        uses: shivammathur/setup-php@v2
-        with:
-          php-version: '8.4'
-          extensions: fileinfo
+    coverage:
+        name: Coverage PHP 8.4
+        runs-on: ubuntu-latest
+        needs: test
+        steps:
+            - name: Checkout code
+              uses: actions/checkout@v6
+              with:
+                  persist-credentials: false
 
-      - name: Cache Composer dependencies
-        uses: actions/cache@v6
-        with:
-          path: vendor
-          key: ${{ runner.os }}-php-8.4-vendor-${{ hashFiles('composer.lock') }}
-          restore-keys: |
-            ${{ runner.os }}-php-8.4-vendor-
+            - name: Setup PHP
+              uses: shivammathur/setup-php@v2
+              with:
+                  php-version: '8.4'
+                  extensions: fileinfo
 
-      - name: Install dependencies
-        run: composer install --no-progress
+            - name: Cache Composer dependencies
+              uses: actions/cache@v6
+              with:
+                  path: vendor
+                  key: ${{ runner.os }}-php-8.4-vendor-${{ hashFiles('composer.lock') }}
+                  restore-keys: |
+                      ${{ runner.os }}-php-8.4-vendor-
 
-      - name: Generate prefixed vendor tree
-        run: composer vendor:prefix
-      - name: Run tests with coverage
-        run: composer test:coverage
+            - name: Install dependencies
+              run: composer install --no-progress
 
-      - name: Upload coverage report
-        uses: actions/upload-artifact@v6
-        with:
-          name: coverage-report
-          path: coverage/
+            - name: Generate prefixed vendor tree
+              run: composer vendor:prefix
+            - name: Run tests with coverage
+              run: composer test:coverage
+
+            - name: Upload coverage report
+              uses: actions/upload-artifact@v6
+              with:
+                  name: coverage-report
+                  path: coverage/
+
+    plugin-check:
+        name: Submission Package Check
+        runs-on: ubuntu-latest
+        needs: [test, frontend-quality, audit]
+        steps:
+            - name: Checkout code
+              uses: actions/checkout@v6
+              with:
+                  persist-credentials: false
+
+            - name: Setup PHP
+              uses: shivammathur/setup-php@v2
+              with:
+                  php-version: '8.4'
+                  coverage: none
+                  extensions: fileinfo, zip
+
+            - name: Install locked dependencies
+              run: composer install --no-interaction --no-progress
+
+            - name: Generate prefixed vendor tree
+              run: composer vendor:prefix
+
+            - name: Build the exact submission package
+              run: php scripts/build-release.php
+
+            - name: Run official WordPress Plugin Check
+              uses: wordpress/plugin-check-action@v1
+              with:
+                  build-dir: ./dist/sscribe-export-site-pages
+                  strict: true
+                  include-experimental: true

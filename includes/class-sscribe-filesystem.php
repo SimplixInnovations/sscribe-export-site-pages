@@ -52,12 +52,9 @@ class SScribe_Filesystem {
 	 * Sentinel: the path resolves outside the SScribe export directory
 	 * (whether via a symlink or not) : refuse the write.
 	 *
-	 * Per the WordPress.org Plugin Directory guidelines, plugins must
-	 * write only to the database or to a plugin-owned folder under
-	 * `wp-content/uploads/`. The SScribe export directory under
-	 * `wp-content/uploads/sscribe-exports/` is the only allowed
-	 * filesystem destination. All other paths are rejected by default,
-	 * even if the literal text does not start with the export root.
+	 * SScribe writes runtime artifacts only to its resolved private storage
+	 * directory. All other paths are rejected by default, even if the literal
+	 * text does not start with the export root.
 	 */
 	public const SSCRIBE_PATH_REJECT = 'reject';
 
@@ -250,7 +247,7 @@ class SScribe_Filesystem {
 			wp_mkdir_p( $dir );
 		}
 
-		// phpcs:ignore WordPress.WP.AlternativeFunctions.file_system_operations_file_put_contents -- WP_Filesystem fallback for hosting environments without WP_Filesystem support. The file path is restricted to the SScribe plugin-owned folder under wp-content/uploads/sscribe-exports/ by is_path_safe_for_write() above; this writer cannot create files anywhere else.
+		// phpcs:ignore WordPress.WP.AlternativeFunctions.file_system_operations_file_put_contents -- WP_Filesystem fallback for hosting environments without WP_Filesystem support. The file path is restricted to SScribe's private storage root by is_path_safe_for_write() above.
 		$result = file_put_contents( $file, $content );
 
 		if ( false === $result ) {
@@ -668,14 +665,12 @@ class SScribe_Filesystem {
 	}
 
 	/**
-	 * Verify that the directory containing `$file` is within the
-	 * SScribe uploads directory (or another explicitly allowed
-	 * directory), following symlinks.
+	 * Verify that the directory containing `$file` is within an explicitly
+	 * allowed directory, following symlinks.
 	 *
 	 * Defense in depth against symlink attacks: a malicious plugin or
-	 * shell access could create a symlink inside
-	 * `wp-content/uploads/sscribe-exports/` that points outside the
-	 * uploads directory (e.g. into `wp-config.php` or another site
+	 * shell access could create a symlink inside the private export directory
+	 * that points outside its root (e.g. into `wp-config.php` or another site
 	 * user's home dir). Without this check, a write through the
 	 * symlink would succeed and write to the attacker-controlled
 	 * target.
@@ -762,11 +757,8 @@ class SScribe_Filesystem {
 	/**
 	 * Decide whether a write to `$file` is safe.
 	 *
-	 * The check enforces the WordPress.org Plugin Directory rule that
-	 * plugins may only write to their own plugin-owned folder under
-	 * `wp-content/uploads/` (or to the database via the Settings API).
-	 * For SScribe, that destination is exactly
-	 * `wp-content/uploads/sscribe-exports/` and nothing else.
+	 * The check enforces SScribe's private-storage boundary. The only accepted
+	 * destination is this site's resolved plugin-owned export directory.
 	 *
 	 * Two outcomes:
 	 *
@@ -777,7 +769,7 @@ class SScribe_Filesystem {
 	 *   - {@see self::SSCRIBE_PATH_REJECT}: anything else, including
 	 *     paths whose literal text is already outside the export
 	 *     directory, paths where the parent does not exist, and
-	 *     paths where `wp_upload_dir()` is unavailable. Default-deny
+	 *     paths where the private resolver is unavailable. Default-deny
 	 *     protects against misuse even from future callers.
 	 *
 	 * @param string $file Target file path.
@@ -798,6 +790,13 @@ class SScribe_Filesystem {
 		if ( ! $literal_in_export ) {
 
 			return self::SSCRIBE_PATH_REJECT;
+		}
+		if ( is_link( $file ) ) {
+			$target = realpath( $file );
+			if ( false === $target || 0 !== strpos( self::normalize_path( $target ), self::normalize_path( $allowed_root ) ) ) {
+
+				return self::SSCRIBE_PATH_REJECT;
+			}
 		}
 
 		$parent = dirname( $file );
@@ -824,19 +823,12 @@ class SScribe_Filesystem {
 	/**
 	 * Get the absolute path of the SScribe export directory.
 	 *
-	 * Returns an empty string if wp_upload_dir() is unavailable.
+	 * Returns an empty string if no safe private location is available.
 	 *
 	 * @return string Absolute path, or empty string on failure.
 	 */
 	private function get_export_dir(): string {
-		if ( ! function_exists( 'wp_upload_dir' ) ) {
-			return '';
-		}
-		$upload_dir = wp_upload_dir();
-		if ( ! empty( $upload_dir['error'] ) || empty( $upload_dir['basedir'] ) ) {
-			return '';
-		}
-		return trailingslashit( $upload_dir['basedir'] ) . 'sscribe-exports';
+		return SScribe_Private_Storage::get_export_dir();
 	}
 
 	/**

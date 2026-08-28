@@ -19,9 +19,7 @@ final class SScribe_Security_Test extends TestCase {
 	private string $temp_dir;
 
 	protected function setUp(): void {
-		$upload_dir = wp_upload_dir();
-		$this->temp_dir = $upload_dir['basedir'] . '/sscribe_security_test_' . uniqid();
-		wp_mkdir_p( $this->temp_dir );
+		$this->temp_dir = \SScribe_Private_Storage::get_subdirectory( 'sscribe-security-test-' . uniqid() );
 	}
 
 	protected function tearDown(): void {
@@ -73,9 +71,8 @@ final class SScribe_Security_Test extends TestCase {
 		$this->assertFileExists( $nested_dir . '/.htaccess' );
 	}
 
-	public function test_protect_directory_allows_fresh_upload_child_directory(): void {
-		$upload_dir = wp_upload_dir();
-		$target     = $upload_dir['basedir'] . '/sscribe-fresh-' . uniqid() . '/exports';
+	public function test_protect_directory_allows_fresh_private_child_directory(): void {
+		$target = $this->temp_dir . '/sscribe-fresh-' . uniqid() . '/exports';
 
 		SScribe_Security::protect_directory( $target );
 
@@ -85,7 +82,7 @@ final class SScribe_Security_Test extends TestCase {
 		SScribe_Security::delete_directory( dirname( $target ) );
 	}
 
-	public function test_protect_directory_rejects_fresh_directory_outside_uploads(): void {
+	public function test_protect_directory_rejects_fresh_directory_outside_private_storage(): void {
 		$this->expectException( \InvalidArgumentException::class );
 
 		$target = sys_get_temp_dir() . '/sscribe-outside-' . uniqid() . '/exports';

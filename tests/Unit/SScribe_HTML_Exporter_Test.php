@@ -19,9 +19,7 @@ class SScribe_HTML_Exporter_Test extends TestCase {
 
 	protected function setUp(): void {
 		parent::setUp();
-		$upload_dir        = wp_upload_dir();
-		$this->export_root = trailingslashit( $upload_dir['basedir'] ) . 'sscribe-exports/sscribe-html-test-' . uniqid();
-		mkdir( $this->export_root, 0755, true );
+		$this->export_root = \SScribe_Private_Storage::get_subdirectory( 'sscribe-html-test-' . uniqid() );
 	}
 
 	protected function tearDown(): void {

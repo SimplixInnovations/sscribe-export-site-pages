@@ -32,7 +32,7 @@ if ( ! function_exists( 'wp_safe_redirect' ) ) {
 
 if ( ! function_exists( 'wp_using_ext_object_cache' ) ) {
 	function wp_using_ext_object_cache(): bool {
-		return false; 
+		return (bool) ( $GLOBALS['sscribe_test_using_ext_object_cache'] ?? false );
 	}
 }
 
@@ -228,10 +228,15 @@ if ( ! function_exists( 'strip_shortcodes' ) ) {
 
 if ( ! function_exists( 'wp_upload_dir' ) ) {
 	function wp_upload_dir() {
+		$sscribe_basedir = sys_get_temp_dir() . '/sscribe-test-uploads';
+		if ( ! is_dir( $sscribe_basedir ) ) {
+			wp_mkdir_p( $sscribe_basedir );
+		}
+
 		return array(
-			'basedir' => sys_get_temp_dir() . '/sscribe-test-uploads',
+			'basedir' => $sscribe_basedir,
 			'baseurl' => 'http://example.org/wp-content/uploads',
-			'path'    => sys_get_temp_dir() . '/sscribe-test-uploads',
+			'path'    => $sscribe_basedir,
 			'url'     => 'http://example.org/wp-content/uploads',
 			'subdir'  => '',
 			'error'   => false,
@@ -721,7 +726,7 @@ if ( ! function_exists( 'is_multisite' ) ) {
 
 if ( ! function_exists( 'get_current_blog_id' ) ) {
 	function get_current_blog_id() {
-		return 1;
+		return isset( $GLOBALS['sscribe_test_blog_id'] ) ? (int) $GLOBALS['sscribe_test_blog_id'] : 1;
 	}
 }
 
@@ -1243,6 +1248,9 @@ if ( ! function_exists( 'update_option' ) ) {
 			return false;
 		}
 		$sscribe_test_options[ $sscribe_option ] = $sscribe_value;
+		if ( null !== $sscribe_autoload ) {
+			$GLOBALS['sscribe_test_option_autoload'][ $sscribe_option ] = $sscribe_autoload;
+		}
 		return true;
 	}
 }
@@ -1252,6 +1260,7 @@ if ( ! function_exists( 'delete_option' ) ) {
 		global $sscribe_test_options;
 		if ( isset( $sscribe_test_options[ $sscribe_option ] ) ) {
 			unset( $sscribe_test_options[ $sscribe_option ] );
+			unset( $GLOBALS['sscribe_test_option_autoload'][ $sscribe_option ] );
 			return true;
 		}
 		return false;
@@ -1263,6 +1272,7 @@ if ( ! function_exists( 'add_option' ) ) {
 		global $sscribe_test_options;
 		if ( ! isset( $sscribe_test_options[ $sscribe_option ] ) ) {
 			$sscribe_test_options[ $sscribe_option ] = $sscribe_value;
+			$GLOBALS['sscribe_test_option_autoload'][ $sscribe_option ] = $sscribe_autoload;
 			return true;
 		}
 		return false;

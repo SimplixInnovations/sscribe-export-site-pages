@@ -128,4 +128,45 @@ final class SScribe_JS_Error_Guidance_Test extends TestCase {
 			'Debug console must surface a refresh-nonce error path on failure.'
 		);
 	}
+
+	public function test_export_error_actions_are_wired_and_details_toggle_truthfully(): void {
+		$js = $this->admin_js();
+
+		$this->assertStringContainsString(
+			"'#sscribe-error-change-config', $.proxy(this.changeConfiguration, this)",
+			$js,
+			'The Change Configuration error action must have a real click handler.'
+		);
+		$this->assertStringContainsString(
+			'changeConfiguration: function',
+			$js,
+			'The Change Configuration action must return focus to the export controls.'
+		);
+		$admin_php = (string) file_get_contents( __DIR__ . '/../../admin/class-sscribe-admin.php' );
+		$this->assertStringContainsString(
+			"'error_show_details'",
+			$admin_php,
+			'The Show technical details label must be available to JavaScript translations.'
+		);
+		$this->assertStringContainsString(
+			"'error_hide_details'",
+			$admin_php,
+			'The Hide technical details label must be available to JavaScript translations.'
+		);
+		$this->assertMatchesRegularExpression(
+			'/toggleErrorDetails:\s*function.*?toggleClass\([\'\"]sscribe-hidden[\'\"],\s*!willOpen\).*?prop\([\'\"]hidden[\'\"],\s*!willOpen\)/s',
+			$js,
+			'Technical details must update both the CSS visibility class and the hidden property.'
+		);
+	}
+
+	public function test_clear_session_failure_keeps_safe_request_diagnostics(): void {
+		$js = $this->admin_js();
+
+		$this->assertMatchesRegularExpression(
+			'/clearSessionWithRetry:\s*function.*?error:\s*function\s*\(xhr,\s*textStatus\).*?_diagnostics:\s*\{.*?action:\s*[\'\"]sscribe_clear_session[\'\"].*?http_status:.*?request_status:.*?attempts:/s',
+			$js,
+			'A failed cleanup must preserve safe HTTP diagnostics instead of rendering an empty details panel.'
+		);
+	}
 }

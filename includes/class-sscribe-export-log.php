@@ -48,7 +48,7 @@ class SScribe_Export_Log {
 	private readonly string $log_file;
 
 	/**
-	 * Whether the WordPress uploads directory is available.
+	 * Whether private log storage is available.
 	 *
 	 * @var bool
 	 */
@@ -74,12 +74,9 @@ class SScribe_Export_Log {
 	 * @param string $session_id Session identifier.
 	 */
 	public function __construct( string $session_id ) {
-		$upload_dir              = wp_upload_dir();
 		$valid_session           = 1 === preg_match( '/^[a-f0-9]{16}$/D', $session_id );
-		$this->storage_available = $valid_session && empty( $upload_dir['error'] ) && ! empty( $upload_dir['basedir'] );
-		$this->log_dir           = $this->storage_available
-			? trailingslashit( (string) $upload_dir['basedir'] ) . 'sscribe-exports/logs'
-			: '';
+		$this->log_dir           = $valid_session ? SScribe_Private_Storage::get_subdirectory( 'logs' ) : '';
+		$this->storage_available = $valid_session && '' !== $this->log_dir;
 
 		$this->session_id = $valid_session ? $session_id : '';
 		$this->log_file = $this->storage_available ? $this->log_dir . '/export_' . $this->session_id . '.json' : '';
@@ -623,11 +620,11 @@ class SScribe_Export_Log {
 		if ( 1 !== preg_match( '/^[a-f0-9]{16}$/D', $session_id ) ) {
 			return null;
 		}
-		$upload_dir = wp_upload_dir();
-		if ( ! empty( $upload_dir['error'] ) || empty( $upload_dir['basedir'] ) ) {
+		$log_dir = SScribe_Private_Storage::get_subdirectory( 'logs', false );
+		if ( '' === $log_dir ) {
 			return null;
 		}
-		$log_file   = $upload_dir['basedir'] . '/sscribe-exports/logs/export_' . $session_id . '.json';
+		$log_file = $log_dir . '/export_' . $session_id . '.json';
 
 		return self::read_log_file( $log_file );
 	}
@@ -645,11 +642,7 @@ class SScribe_Export_Log {
 			return null;
 		}
 
-		$upload_dir = wp_upload_dir();
-		if ( ! empty( $upload_dir['error'] ) || empty( $upload_dir['basedir'] ) ) {
-			return null;
-		}
-		$log_dir    = $upload_dir['basedir'] . '/sscribe-exports/logs';
+		$log_dir = SScribe_Private_Storage::get_subdirectory( 'logs', false );
 
 		if ( ! is_dir( $log_dir ) || is_link( $log_dir ) ) {
 			return null;
@@ -728,11 +721,7 @@ class SScribe_Export_Log {
 			return false;
 		}
 
-		$upload_dir = wp_upload_dir();
-		if ( ! empty( $upload_dir['error'] ) || empty( $upload_dir['basedir'] ) ) {
-			return false;
-		}
-		$log_dir    = $upload_dir['basedir'] . '/sscribe-exports/logs';
+		$log_dir = SScribe_Private_Storage::get_subdirectory( 'logs', false );
 
 		if ( ! is_dir( $log_dir ) || is_link( $log_dir ) ) {
 			return false;
@@ -764,11 +753,7 @@ class SScribe_Export_Log {
 	 * @return int Number of deleted files.
 	 */
 	public static function cleanup_old_logs( int $max_age_hours = 6 ): int {
-		$upload_dir = wp_upload_dir();
-		if ( ! empty( $upload_dir['error'] ) || empty( $upload_dir['basedir'] ) ) {
-			return 0;
-		}
-		$log_dir    = $upload_dir['basedir'] . '/sscribe-exports/logs';
+		$log_dir = SScribe_Private_Storage::get_subdirectory( 'logs', false );
 
 		if ( ! is_dir( $log_dir ) || is_link( $log_dir ) ) {
 			return 0;
@@ -842,11 +827,10 @@ class SScribe_Export_Log {
 		if ( 1 !== preg_match( '/^[a-f0-9]{16}$/D', $session_id ) ) {
 			return false;
 		}
-		$upload_dir = wp_upload_dir();
-		if ( ! empty( $upload_dir['error'] ) || empty( $upload_dir['basedir'] ) ) {
+		$log_dir = SScribe_Private_Storage::get_subdirectory( 'logs', false );
+		if ( '' === $log_dir ) {
 			return false;
 		}
-		$log_dir = trailingslashit( (string) $upload_dir['basedir'] ) . 'sscribe-exports/logs';
 		$path    = $log_dir . '/export_' . $session_id . '.json';
 		if ( ! file_exists( $path ) && ! is_link( $path ) ) {
 			return true;

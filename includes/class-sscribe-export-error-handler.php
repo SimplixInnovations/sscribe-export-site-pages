@@ -270,7 +270,7 @@ class SScribe_Export_Error_Handler {
 			'pdf_generation'      => __( 'mPDF could not render the page successfully. Review the technical details for HTML size, memory usage, and libxml parsing problems.', 'sscribe-export-site-pages' ),
 			'pdf_missing_library' => __( 'The mPDF library is missing from the plugin install, so PDF export cannot start.', 'sscribe-export-site-pages' ),
 			'pdf_filesystem'      => __( 'The PDF was generated but could not be written to disk. Review filesystem access and output path details.', 'sscribe-export-site-pages' ),
-			'permissions'         => __( 'The server does not have permission to write required export files. Check upload directory access.', 'sscribe-export-site-pages' ),
+			'permissions'         => __( 'The server does not have permission to write required export files. Check private storage access.', 'sscribe-export-site-pages' ),
 			'zip_extension'       => __( 'ZIP creation failed because the server is missing ZIP support or the archive step could not complete.', 'sscribe-export-site-pages' ),
 			'zip_creation'        => __( 'The export finished processing pages but failed while packaging the ZIP archive.', 'sscribe-export-site-pages' ),
 			'docx_generation'     => __( 'DOCX generation failed for at least one page. Complex content or resource pressure may be involved.', 'sscribe-export-site-pages' ),

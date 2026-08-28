@@ -667,6 +667,7 @@ if ( is_dir( $vendor_dir ) ) {
 	$pruned_count = 0;
 	// Extensions that WordPress.org Plugin Check rejects as build artifacts.
 	$prune_extensions = array( 'sh', 'bat', 'cmd', 'exe', 'msi', 'pkg', 'dmg', 'phar' );
+	$prune_files      = array( 'mpdf/mpdf/data/out.php' );
 
 	$v_iterator = new RecursiveIteratorIterator(
 		new RecursiveDirectoryIterator( $vendor_dir, RecursiveDirectoryIterator::SKIP_DOTS ),
@@ -674,9 +675,11 @@ if ( is_dir( $vendor_dir ) ) {
 	);
 
 	foreach ( $v_iterator as $item ) {
-		$name = $item->getBasename();
-		$ext  = strtolower( pathinfo( $name, PATHINFO_EXTENSION ) );
+		$name     = $item->getBasename();
+		$ext      = strtolower( pathinfo( $name, PATHINFO_EXTENSION ) );
+		$relative = str_replace( '\\', '/', substr( $item->getPathname(), strlen( $vendor_dir ) + 1 ) );
 		$matched = in_array( $name, $prune_patterns, true )
+			|| ( ! $item->isDir() && in_array( $relative, $prune_files, true ) )
 			|| ( ! $item->isDir() && in_array( $ext, $prune_extensions, true ) );
 		if ( $matched ) {
 			if ( $item->isDir() ) {
@@ -692,8 +695,18 @@ if ( is_dir( $vendor_dir ) ) {
 
 echo "  Validating distribution contents...\n";
 $distribution_errors = array();
+$readme_path         = $plugin_dir . '/readme.txt';
+if ( is_file( $readme_path ) ) {
+	$readme_size = filesize( $readme_path );
+	if ( false === $readme_size || $readme_size >= 10240 ) {
+		$distribution_errors[] = 'readme.txt must be smaller than 10 KiB for WordPress.org.';
+	}
+}
 $required_release_files = array(
+	'sscribe-export-site-pages.php',
+	'readme.txt',
 	'composer.json',
+	'vendor-prefixed/autoload.php',
 	'vendor-prefixed/phpoffice/phpword/COPYING.LESSER.txt',
 	'vendor-prefixed/mpdf/psr-http-message-shim/NOTICE',
 	'vendor-prefixed/mpdf/psr-log-aware-trait/NOTICE',
@@ -766,6 +779,12 @@ if ( ! $zip->close() ) {
 	exit( 1 );
 }
 
+$zip_size = filesize( $zip_file );
+if ( false === $zip_size || $zip_size >= 10000000 ) {
+	echo "  ❌ Submission ZIP must be smaller than 10,000,000 bytes\n";
+	exit( 1 );
+}
+
 echo "\n===========================================\n";
 echo "  GENERATING CHECKSUMS\n";
 echo "===========================================\n\n";
@@ -777,7 +796,6 @@ if ( $config['generate_sha256'] ) {
 	echo "  ✅ SHA-256: $checksum\n";
 }
 
-$zip_size = filesize( $zip_file );
 $duration = round( microtime( true ) - $start_time, 2 );
 
 echo "\n===========================================\n";
