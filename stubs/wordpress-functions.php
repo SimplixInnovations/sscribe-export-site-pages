@@ -316,9 +316,19 @@ if ( ! function_exists( 'clean_term_cache' ) ) {
 // ---------------------------------------------------------------------------
 
 if ( ! function_exists( 'get_post' ) ) {
+	/**
+	 * @return WP_Post|array|null
+	 */
 	function get_post( $post = null, $output = OBJECT, $filter = 'raw' ) { return null; }
 }
 if ( ! function_exists( 'get_posts' ) ) {
+	/**
+	 * WordPress core returns array|WP_Post[] in practice but can return false on
+	 * malformed $args. Stub returns array but the union keeps the runtime
+	 * `is_array()` guard meaningful at the call sites.
+	 *
+	 * @return array|WP_Post[]|false
+	 */
 	function get_posts( $args = null ) { return array(); }
 }
 if ( ! function_exists( 'get_permalink' ) ) {
@@ -361,13 +371,23 @@ if ( ! function_exists( 'get_post_ancestors' ) ) {
 	function get_post_ancestors( $post ) { return array(); }
 }
 if ( ! function_exists( 'get_children' ) ) {
+	/**
+	 * @return WP_Post[]|array
+	 */
 	function get_children( $args = '', $output = OBJECT ) { return array(); }
 }
 if ( ! function_exists( 'get_attached_file' ) ) {
 	function get_attached_file( $attachment, $unfiltered = false ) { return false; }
 }
 if ( ! function_exists( 'wp_get_attachment_image_src' ) ) {
-	function wp_get_attachment_image_src( $attachment_id, $size = 'thumbnail', $icon = false ) { return false; }
+	/**
+	 * WordPress core returns array|false. Stub returns false but is declared
+	 * `array|false` so IDE narrowing inside the runtime guard
+	 * `if ( $image_src ) { $url = $image_src[0]; }` resolves correctly.
+	 *
+	 * @return array|false
+	 */
+	function wp_get_attachment_image_src( $attachment_id, $size = 'thumbnail', $icon = false ): array|false { return false; }
 }
 if ( ! function_exists( 'wp_get_attachment_url' ) ) {
 	function wp_get_attachment_url( $attachment_id ) { return false; }
@@ -489,6 +509,15 @@ if ( ! function_exists( 'wp_get_object_terms' ) ) {
 // ---------------------------------------------------------------------------
 
 if ( ! function_exists( 'get_term' ) ) {
+	/**
+	 * WordPress core returns WP_Error|array|WP_Term|null depending on $output.
+	 * Default $output=OBJECT yields WP_Term; ARRAY_A/ARRAY_N yield array;
+	 * invalid input yields WP_Error; missing term yields null. Stub returns
+	 * null but the union keeps the runtime `if ( $term && ! is_wp_error( $term ) )`
+	 * narrowing meaningful at the call sites.
+	 *
+	 * @return \WP_Error|array|WP_Term|null
+	 */
 	function get_term( $term, $taxonomy = '', $output = OBJECT, $filter = 'raw' ) { return null; }
 }
 if ( ! function_exists( 'get_term_by' ) ) {
@@ -1440,6 +1469,21 @@ if ( ! class_exists( 'WP_Post' ) ) {
 	}
 }
 
+if ( ! class_exists( 'WP_Term' ) ) {
+	class WP_Term {
+		public int $term_id          = 0;
+		public string $name          = '';
+		public string $slug          = '';
+		public string $term_group    = '';
+		public int $term_taxonomy_id = 0;
+		public string $taxonomy      = '';
+		public string $description   = '';
+		public int $parent           = 0;
+		public int $count            = 0;
+		public string $filter        = '';
+	}
+}
+
 if ( ! class_exists( 'WP_Query' ) ) {
 	class WP_Query {
 		public array $query         = array();
@@ -1491,5 +1535,112 @@ if ( ! class_exists( 'Requests_Utility_CaseInsensitiveDictionary' ) ) {
 		public function offsetUnset( $offset ): void {}
 		public function getIterator(): \Traversable { return new \ArrayIterator( array() ); }
 		public function count(): int { return 0; }
+	}
+}
+
+// ---------------------------------------------------------------------------
+// wpdb — WordPress database access abstraction class.
+//
+// Stub provides the table properties and query helpers actually referenced
+// by the SScribe plugin so PHP Intelephense does not flag every
+// `$wpdb->postmeta` / `$wpdb->last_error` access as an undefined property.
+// The runtime contract is identical to WordPress core; the methods here
+// return safely-typed defaults so unit tests / fake-wp can satisfy calls
+// without booting a real MySQL connection.
+// ---------------------------------------------------------------------------
+
+if ( ! class_exists( 'wpdb' ) ) {
+	class wpdb {
+		public string $prefix         = 'wp_';
+		public int $insert_id         = 0;
+		public int $num_queries       = 0;
+		public string $last_error     = '';
+		public string $last_query     = '';
+		public string $last_result    = '';
+		public string $db_version     = '';
+		public string $db_server_info = '';
+		public array $tables          = array();
+		// Per-table handles — WordPress core sets these in set_sql_mode / db_connect.
+		public array $posts               = array();
+		public array $postmeta            = array();
+		public array $options             = array();
+		public array $users               = array();
+		public array $usermeta            = array();
+		public array $terms               = array();
+		public array $term_taxonomy       = array();
+		public array $term_relationships  = array();
+		public array $commentmeta         = array();
+		public array $comments            = array();
+		public array $links               = array();
+		public function __construct( $dbuser = '', $dbpassword = '', $dbname = '', $dbhost = '' ) {}
+		public function query( $query ) { return false; }
+		public function get_var( $query = null, $x = 0, $y = 0 ) { return null; }
+		public function get_row( $query = null, $output = OBJECT, $y = 0 ) { return null; }
+		public function get_col( $query = null, $x = 0 ) { return array(); }
+		public function get_results( $query = null, $output = OBJECT ) { return array(); }
+		public function prepare( $query, ...$args ): string { return (string) $query; }
+		public function insert( $table, $data, $format = null ) { return 1; }
+		public function update( $table, $data, $where, $format = null, $where_format = null ) { return 1; }
+		public function delete( $table, $where, $where_format = null ) { return 1; }
+		public function replace( $table, $data, $format = null ) { return 1; }
+		public function flush() { return true; }
+		public function esc_like( $text ): string { return addcslashes( (string) $text, '_%\\' ); }
+		public function hide_errors() { return false; }
+		public function show_errors( $show = true ) { return false; }
+		public function print_error( $str = '' ) {}
+		public function check_safe_collation( $query ): bool { return true; }
+		public function set_charset( $dbh, $charset = null, $collate = null ) { return true; }
+		public function db_connect( $allow_bail = true ) { return false; }
+	}
+}
+
+// ---------------------------------------------------------------------------
+// WP_Filesystem_Base — abstract base for the WP_Filesystem_* transport
+// drivers (direct, ssh2, ftpext, ftpsockets). Plugin code calls these
+// methods through `global $wp_filesystem;` after WP_Filesystem() init.
+//
+// The stub exists so the IDE knows delete()/is_writable()/dirlist()/
+// copy()/move() exist on the base class; runtime signatures match core.
+// ---------------------------------------------------------------------------
+
+if ( ! class_exists( 'WP_Filesystem_Base' ) ) {
+	abstract class WP_Filesystem_Base {
+		public string $verbose = '';
+		public array $options  = array();
+		public function abspath() { return ''; }
+		public function wp_content_dir() { return ''; }
+		public function wp_plugins_dir() { return ''; }
+		public function wp_themes_dir() { return ''; }
+		public function wp_lang_dir() { return ''; }
+		public function find_folder( $folder ) { return ''; }
+		public function search_for_folder( $folder, $base = '.', $loop = false ) { return ''; }
+		public function wp_plugins_dir_iis7( $plugin_folder = '' ) { return false; }
+		public function wp_content_url() { return ''; }
+		public function theme_root() { return ''; }
+		public function theme_root_uri() { return ''; }
+		public function exists( $file ): bool { return false; }
+		public function is_file( $file ): bool { return false; }
+		public function is_dir( $path ): bool { return false; }
+		public function is_readable( $file ): bool { return false; }
+		public function is_writable( $file ): bool { return false; }
+		public function mkdir( $path, $chmod = false, $chown = false, $chgrp = false ): bool { return true; }
+		public function rmdir( $path, $recursive = false ): bool { return true; }
+		public function dirlist( $path, $include_hidden = true, $recursive = false ): array|false { return array(); }
+		public function delete( $file, $recursive = false, $type = false ): bool { return true; }
+		public function copy( $source, $destination, $overwrite = false, $mode = false ): bool { return true; }
+		public function move( $source, $destination, $overwrite = false ): bool { return true; }
+		public function get_contents( $file ): string|false { return false; }
+		public function put_contents( $file, $contents, $mode = false ): bool { return true; }
+		public function chmod( $file, $mode = false, $recursive = false ): bool { return true; }
+		public function touch( $file, $time = 0, $atime = 0 ): bool { return true; }
+		public function owner( $file ): string|false { return false; }
+		public function group( $file ): string|false { return false; }
+		public function perm( $file ): string|false { return false; }
+		public function method() { return ''; }
+		public function connect() { return true; }
+		public function bail( $message, $header = '' ) {}
+		public function errors(): array { return array(); }
+		public function error_get_last() { return null; }
+		public function init( $url = '', $verb = 'GET', $temp = false ) {}
 	}
 }
