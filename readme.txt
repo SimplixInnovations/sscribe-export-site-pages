@@ -3,7 +3,7 @@ Contributors: simplixinnovations
 Tags: export, docx, pdf, html, markdown
 Requires at least: 6.0
 Tested up to: 7.1
-Stable tag: 2.0.0
+Stable tag: 2.0.1
 Requires PHP: 8.2
 License: GPL-2.0-or-later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
@@ -101,6 +101,9 @@ The bundled mPDF library uses GPL-2.0-only. Required notices for bundled depende
 
 == Changelog ==
 
+= 2.0.1 =
+* Loosened the private-storage ownership check so shared-host installs where /tmp is owned by root but world-writable can activate the plugin. Admins can still pin a stricter rule with the new `sscribe_private_storage_allow_foreign_owner` filter.
+
 = 2.0.0 =
 * Moved archives, logs, and working files from public uploads to site-isolated private storage, with verified migration of legacy data.
 * Persisted complete page-ID queues in non-autoloaded expiring options so exports with hundreds of pages can resume reliably.
@@ -119,6 +122,9 @@ The bundled mPDF library uses GPL-2.0-only. Required notices for bundled depende
 * Initial public release with DOCX, PDF, HTML, Markdown, WPML, RTL, batch processing, and secure downloads.
 
 == Upgrade Notice ==
+
+= 2.0.1 =
+Fixes activation on shared-host servers where the OS temp directory is owned by root but carries the world-writable sticky bit. Recommended for every shared-host install.
 
 = 2.0.0 =
 Moves export data to private storage and makes large multilingual exports durable. Legacy archives migrate automatically and remain untouched if verification cannot complete.

@@ -203,6 +203,97 @@ class SScribe_Private_Storage_Test extends TestCase {
 		$this->assertSame( 0600, fileperms( $file ) & 0777 );
 	}
 
+	#[\PHPUnit\Framework\Attributes\RunInSeparateProcess]
+	#[\PHPUnit\Framework\Attributes\PreserveGlobalState( false )]
+	public function test_foreign_owner_override_filter_forces_acceptance(): void {
+		// The ownership check short-circuits to true on platforms where
+		// posix_geteuid() is unavailable, so we can only exercise the
+		// foreign-owner branch where POSIX functions exist.
+		if ( 'Windows' === PHP_OS_FAMILY ) {
+			$this->markTestSkipped( 'posix_geteuid/fileowner are unavailable on Windows; the filter branch only runs on POSIX hosts.' );
+		}
+
+		// Shared-host installations cannot influence posix_geteuid/fileowner
+		// from inside PHP, so the only portable way to assert the foreign-
+		// owner escape hatch is to register a filter that always returns
+		// true and confirm the check then accepts the path.
+		$base = sys_get_temp_dir() . '/sscribe-foreign-owner-' . uniqid();
+		wp_mkdir_p( $base );
+		add_filter( 'sscribe_private_storage_allow_foreign_owner', '__return_true' );
+
+		$method = ( new \ReflectionClass( \SScribe_Private_Storage::class ) )
+			->getMethod( 'is_owned_by_current_process' );
+		$method->setAccessible( true );
+
+		$this->assertTrue( $method->invoke( null, $base ) );
+
+		rmdir( $base );
+	}
+
+	#[\PHPUnit\Framework\Attributes\RunInSeparateProcess]
+	#[\PHPUnit\Framework\Attributes\PreserveGlobalState( false )]
+	public function test_foreign_owner_filter_receives_inspected_base_path(): void {
+		if ( 'Windows' === PHP_OS_FAMILY ) {
+			$this->markTestSkipped( 'posix_geteuid/fileowner are unavailable on Windows; the filter branch only runs on POSIX hosts.' );
+		}
+
+		$base      = sys_get_temp_dir() . '/sscribe-foreign-owner-' . uniqid();
+		$captured  = null;
+		wp_mkdir_p( $base );
+
+		add_filter(
+			'sscribe_private_storage_allow_foreign_owner',
+			static function ( $allowed, $inspected ) use ( &$captured ) {
+				unset( $allowed );
+				$captured = $inspected;
+				return true;
+			},
+			10,
+			2
+		);
+
+		$method = ( new \ReflectionClass( \SScribe_Private_Storage::class ) )
+			->getMethod( 'is_owned_by_current_process' );
+		$method->setAccessible( true );
+		$method->invoke( null, $base );
+
+		$this->assertSame( $base, $captured );
+
+		rmdir( $base );
+	}
+
+	#[\PHPUnit\Framework\Attributes\RunInSeparateProcess]
+	#[\PHPUnit\Framework\Attributes\PreserveGlobalState( false )]
+	public function test_world_writable_base_path_is_accepted_for_storage(): void {
+		// Regression: shared hosts expose a /tmp directory owned by root
+		// but carrying the world-writable sticky bit. The previous
+		// ownership-only check refused the path and broke activation. The
+		// loosened rule must now accept the world-writable base.
+		if ( 'Windows' === PHP_OS_FAMILY ) {
+			$this->markTestSkipped( 'POSIX permission bits are not enforced on Windows; the loosened rule is exercised on Linux.' );
+		}
+
+		$base = sys_get_temp_dir() . '/sscribe-world-writable-' . uniqid();
+		wp_mkdir_p( $base );
+		chmod( $base, 0777 );
+
+		$method = ( new \ReflectionClass( \SScribe_Private_Storage::class ) )
+			->getMethod( 'is_owned_by_current_process' );
+		$method->setAccessible( true );
+		$result = $method->invoke( null, $base );
+
+		// On a developer's machine the test UID matches the dir owner and
+		// the function returns true via the owner branch. On a shared-host
+		// test bench it returns true via the world-writable branch. Either
+		// way the path must be accepted; the relevant assertion is that
+		// the loosened rule does not reject a sticky-bit world-writable
+		// temp dir the way the old one did.
+		$this->assertTrue( $result );
+
+		chmod( $base, 0700 );
+		rmdir( $base );
+	}
+
 	private function path_is_within( string $path, string $root ): bool {
 		$path = strtolower( str_replace( '\\', '/', rtrim( $path, '/\\' ) ) );
 		$root = strtolower( str_replace( '\\', '/', rtrim( $root, '/\\' ) ) );

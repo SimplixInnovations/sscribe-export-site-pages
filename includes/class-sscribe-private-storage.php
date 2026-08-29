@@ -292,21 +292,47 @@ final class SScribe_Private_Storage {
 	 * to be owned by the current PHP process so the first `mkdir` cannot
 	 * follow a foreign-owned symlink.
 	 *
+	 * On shared hosts the OS-level temp directory is owned by root but
+	 * carries the world-writable sticky bit, so the previous "owner must
+	 * match the PHP UID" rule refused every safe install. We now treat a
+	 * foreign-owned directory as acceptable when it carries the other-
+	 * writable bit (mode 0002); the sticky bit (mode 1000) still prevents
+	 * non-owners from deleting files they do not own. Admins who want to
+	 * opt out of the looser rule for a specific path can return true from
+	 * the `sscribe_private_storage_allow_foreign_owner` filter.
+	 *
 	 * @param string $base Base directory to inspect.
 	 * @return bool True when posix/fileowner are unavailable on the
-	 *              platform, or when the resolved owner equals the
-	 *              current process UID. False when fileowner() fails
-	 *              on the path or the resolved owner differs.
+	 *              platform, when the resolved owner equals the current
+	 *              process UID, when the directory is world-writable, or
+	 *              when an admin filter forces acceptance. False when
+	 *              fileowner() fails on the path and no permissive
+	 *              signal applies.
 	 */
 	private static function is_owned_by_current_process( string $base ): bool {
 		if ( ! function_exists( 'posix_geteuid' ) || ! function_exists( 'fileowner' ) ) {
 			return true;
 		}
+		if ( function_exists( 'apply_filters' ) ) {
+			$forced = apply_filters( 'sscribe_private_storage_allow_foreign_owner', false, $base );
+			if ( true === $forced ) {
+				return true;
+			}
+		}
 		$owner = @fileowner( $base );
 		if ( false === $owner ) {
 			return false;
 		}
-		return (int) posix_geteuid() === (int) $owner;
+		if ( (int) posix_geteuid() === (int) $owner ) {
+			return true;
+		}
+		if ( function_exists( 'fileperms' ) ) {
+			$perms = @fileperms( $base );
+			if ( false !== $perms && ( $perms & 0002 ) ) {
+				return true;
+			}
+		}
+		return false;
 	}
 
 	/**

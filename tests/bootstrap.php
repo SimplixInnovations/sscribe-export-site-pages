@@ -1561,12 +1561,21 @@ if ( ! function_exists( 'apply_filters' ) ) {
 			return $value;
 		}
 
+		$extra_args = func_num_args() > 2 ? array_slice( func_get_args(), 2 ) : array();
+
 		foreach ( $sscribe_test_filters as $filter ) {
 			if ( $filter['hook'] !== $hook_name || ! is_callable( $filter['callback'] ) ) {
 				continue;
 			}
 
-			$value = call_user_func( $filter['callback'], $value );
+			$accepted = isset( $filter['accepted_args'] ) ? (int) $filter['accepted_args'] : 1;
+			if ( $accepted <= 1 ) {
+				$value = call_user_func( $filter['callback'], $value );
+				continue;
+			}
+
+			$passed = array_slice( $extra_args, 0, max( 0, $accepted - 1 ) );
+			$value  = call_user_func_array( $filter['callback'], array_merge( array( $value ), $passed ) );
 		}
 
 		return $value;
