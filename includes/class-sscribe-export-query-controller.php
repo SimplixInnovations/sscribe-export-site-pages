@@ -185,26 +185,6 @@ class SScribe_Export_Query_Controller {
 	 * @return void
 	 */
 	public function ajax_get_status_counts( string $export_capability = 'sscribe_export' ): void {
-		if ( ! check_ajax_referer( 'sscribe_export_nonce', 'nonce', false ) ) {
-			SScribe_AJAX_Guard::error(
-				array(
-					'code'    => 'invalid_nonce',
-					'message' => __( 'Security check failed.', 'sscribe-export-site-pages' ),
-				),
-				403
-			);
-		}
-
-		if ( ! current_user_can( $export_capability ) ) {
-			SScribe_AJAX_Guard::error(
-				array(
-					'code'    => 'permission_denied',
-					'message' => __( 'Permission denied.', 'sscribe-export-site-pages' ),
-				),
-				403
-			);
-		}
-
 		$rate_check = $this->rate_limiter->check_rate_limit( $export_capability );
 		if ( false === $rate_check ) {
 			SScribe_AJAX_Guard::error(
@@ -264,26 +244,6 @@ class SScribe_Export_Query_Controller {
 	 * @return void
 	 */
 	public function ajax_get_all_status_counts( string $export_capability = 'sscribe_export' ): void {
-		if ( ! check_ajax_referer( 'sscribe_export_nonce', 'nonce', false ) ) {
-			SScribe_AJAX_Guard::error(
-				array(
-					'code'    => 'invalid_nonce',
-					'message' => __( 'Security check failed.', 'sscribe-export-site-pages' ),
-				),
-				403
-			);
-		}
-
-		if ( ! current_user_can( $export_capability ) ) {
-			SScribe_AJAX_Guard::error(
-				array(
-					'code'    => 'permission_denied',
-					'message' => __( 'Permission denied.', 'sscribe-export-site-pages' ),
-				),
-				403
-			);
-		}
-
 		$rate_check = $this->rate_limiter->check_rate_limit( $export_capability );
 		if ( false === $rate_check ) {
 			SScribe_AJAX_Guard::error(
@@ -473,26 +433,6 @@ class SScribe_Export_Query_Controller {
 	 * @return void
 	 */
 	public function ajax_preflight_check( string $export_capability = 'sscribe_export' ): void {
-		if ( ! check_ajax_referer( 'sscribe_export_nonce', 'nonce', false ) ) {
-			SScribe_AJAX_Guard::error(
-				array(
-					'code'    => 'invalid_nonce',
-					'message' => __( 'Security check failed.', 'sscribe-export-site-pages' ),
-				),
-				403
-			);
-		}
-
-		if ( ! current_user_can( $export_capability ) ) {
-			SScribe_AJAX_Guard::error(
-				array(
-					'code'    => 'permission_denied',
-					'message' => __( 'Permission denied.', 'sscribe-export-site-pages' ),
-				),
-				403
-			);
-		}
-
 		if ( false === $this->rate_limiter->check_rate_limit( $export_capability ) ) {
 			SScribe_AJAX_Guard::error(
 				array(
@@ -539,26 +479,6 @@ class SScribe_Export_Query_Controller {
 	 * @return void
 	 */
 	public function ajax_get_export_preview( string $export_capability = 'sscribe_export' ): void {
-		if ( ! check_ajax_referer( 'sscribe_export_nonce', 'nonce', false ) ) {
-			SScribe_AJAX_Guard::error(
-				array(
-					'code'    => 'invalid_nonce',
-					'message' => __( 'Security check failed.', 'sscribe-export-site-pages' ),
-				),
-				403
-			);
-		}
-
-		if ( ! current_user_can( $export_capability ) ) {
-			SScribe_AJAX_Guard::error(
-				array(
-					'code'    => 'permission_denied',
-					'message' => __( 'Permission denied.', 'sscribe-export-site-pages' ),
-				),
-				403
-			);
-		}
-
 		$rate_check = $this->rate_limiter->check_rate_limit( $export_capability );
 		if ( false === $rate_check ) {
 			SScribe_AJAX_Guard::error(
@@ -691,26 +611,6 @@ class SScribe_Export_Query_Controller {
 	 * @return void
 	 */
 	public function ajax_get_recent_exports( string $export_capability = 'sscribe_export' ): void {
-		if ( ! check_ajax_referer( 'sscribe_export_nonce', 'nonce', false ) ) {
-			SScribe_AJAX_Guard::error(
-				array(
-					'code'    => 'invalid_nonce',
-					'message' => __( 'Security check failed.', 'sscribe-export-site-pages' ),
-				),
-				403
-			);
-		}
-
-		if ( ! current_user_can( $export_capability ) ) {
-			SScribe_AJAX_Guard::error(
-				array(
-					'code'    => 'permission_denied',
-					'message' => __( 'Permission denied.', 'sscribe-export-site-pages' ),
-				),
-				403
-			);
-		}
-
 		$rate_check = $this->rate_limiter->check_rate_limit( $export_capability );
 		if ( false === $rate_check ) {
 			SScribe_AJAX_Guard::error(

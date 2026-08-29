@@ -1828,14 +1828,8 @@ if ( ! function_exists( 'wp_count_posts' ) ) {
 	}
 }
 
-if ( file_exists( SSCRIBE_PLUGIN_DIR . 'vendor-prefixed/autoload.php' ) ) {
-	require_once SSCRIBE_PLUGIN_DIR . 'vendor-prefixed/autoload.php';
-} elseif ( file_exists( SSCRIBE_PLUGIN_DIR . 'vendor/autoload.php' ) ) {
-	require_once SSCRIBE_PLUGIN_DIR . 'vendor/autoload.php';
-	if ( file_exists( SSCRIBE_PLUGIN_DIR . 'includes/sscribe-vendor-compat.php' ) ) {
-		require_once SSCRIBE_PLUGIN_DIR . 'includes/sscribe-vendor-compat.php';
-	}
-}
+require_once SSCRIBE_PLUGIN_DIR . 'includes/class-sscribe-vendor-bootstrap.php';
+SScribe_Vendor_Bootstrap::require();
 
 require_once SSCRIBE_PLUGIN_DIR . 'includes/sscribe-autoloader.php';
 

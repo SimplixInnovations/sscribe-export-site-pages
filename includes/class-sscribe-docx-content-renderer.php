@@ -235,6 +235,54 @@ class SScribe_DOCX_Content_Renderer {
 	}
 
 	/**
+	 * Check whether the host of an image src URL is allowed to appear in
+	 * the generated DOCX metadata table.
+	 *
+	 * Reuses the `sscribe_allowed_image_hosts` filter that gates the
+	 * image-download path in SScribe_Image_Processor so the embedded
+	 * document can never advertise an external host the plugin refused
+	 * to fetch from. Relative URLs (no host) are always permitted; non
+	 * http(s) schemes are rejected so we never echo a `data:` or
+	 * `javascript:` URL into the document.
+	 *
+	 * @param string $url Image source URL.
+	 * @return bool
+	 */
+	private function is_url_host_allowed_for_docx( string $url ): bool {
+		$parsed = wp_parse_url( $url );
+		if ( ! is_array( $parsed ) ) {
+			return false;
+		}
+
+		$scheme = strtolower( (string) ( $parsed['scheme'] ?? '' ) );
+		if ( ! in_array( $scheme, array( 'http', 'https' ), true ) ) {
+			return false;
+		}
+
+		$host = strtolower( (string) ( $parsed['host'] ?? '' ) );
+		if ( '' === $host ) {
+			return false;
+		}
+
+		$default_hosts = array_filter(
+			array(
+				strtolower( (string) wp_parse_url( home_url(), PHP_URL_HOST ) ),
+				strtolower( (string) wp_parse_url( site_url(), PHP_URL_HOST ) ),
+				strtolower( (string) wp_parse_url( (string) wp_upload_dir()['baseurl'], PHP_URL_HOST ) ),
+			)
+		);
+
+		$allowed = apply_filters( 'sscribe_allowed_image_hosts', $default_hosts );
+		if ( ! is_array( $allowed ) ) {
+			$allowed = $default_hosts;
+		}
+
+		$allowed = array_map( 'strtolower', array_map( 'strval', $allowed ) );
+
+		return in_array( $host, $allowed, true );
+	}
+
+	/**
 	 * Add complex script settings to font definition for RTL.
 	 *
 	 * @param array $font_def Font definition.
@@ -952,11 +1000,20 @@ class SScribe_DOCX_Content_Renderer {
 		/**
 		 * Filter whether to append the image source URL table to inline images.
 		 *
+		 * The URL is also gated by the same per-host allowlist used for
+		 * image downloads (`sscribe_allowed_image_hosts`) so a page that
+		 * references an external image we refused to fetch does not still
+		 * get the raw URL embedded in the generated document. A relative
+		 * URL (same-site path) is always permitted.
+		 *
 		 * @since 1.1.3
 		 * @param bool $append Whether to append the URL table. Default true.
 		 * @param string $src The image source URL.
 		 */
-		if ( '' !== $src && apply_filters( 'sscribe_docx_append_image_url', true, $src ) ) {
+		if ( '' !== $src
+			&& $this->is_url_host_allowed_for_docx( $src )
+			&& apply_filters( 'sscribe_docx_append_image_url', true, $src )
+		) {
 			$table = $section->addTable(
 				array(
 					'borderSize'  => 4,

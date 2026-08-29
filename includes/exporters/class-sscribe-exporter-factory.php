@@ -42,21 +42,7 @@ class SScribe_Exporter_Factory {
 		}
 		self::$vendor_loaded = true;
 
-		if ( defined( 'SSCRIBE_VENDOR_AUTOLOADED' ) ) {
-			return;
-		}
-
-		if ( file_exists( SSCRIBE_PLUGIN_DIR . 'vendor-prefixed/autoload.php' ) ) {
-			require_once SSCRIBE_PLUGIN_DIR . 'vendor-prefixed/autoload.php';
-			define( 'SSCRIBE_VENDOR_AUTOLOADED', true );
-			return;
-		}
-
-		if ( file_exists( SSCRIBE_PLUGIN_DIR . 'vendor/autoload.php' ) ) {
-			require_once SSCRIBE_PLUGIN_DIR . 'vendor/autoload.php';
-			require_once SSCRIBE_PLUGIN_DIR . 'includes/sscribe-vendor-compat.php';
-			define( 'SSCRIBE_VENDOR_AUTOLOADED', true );
-		}
+		SScribe_Vendor_Bootstrap::require();
 	}
 
 	/**

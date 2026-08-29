@@ -41,25 +41,6 @@ trait SScribe_Export_Finalizer {
 	 * Finalize the export via AJAX.
 	 */
 	public function ajax_finalize_export(): void {
-		if ( ! check_ajax_referer( 'sscribe_export_nonce', 'nonce', false ) ) {
-			SScribe_AJAX_Guard::error(
-				array(
-					'code'    => 'invalid_nonce',
-					'message' => __( 'Security check failed.', 'sscribe-export-site-pages' ),
-				),
-				403
-			);
-		}
-
-		if ( ! current_user_can( $this->get_required_capability() ) ) {
-			SScribe_AJAX_Guard::error(
-				array(
-					'code'    => 'permission_denied',
-					'message' => __( 'Permission denied.', 'sscribe-export-site-pages' ),
-				),
-				403
-			);
-		}
 
 		$rate_check = $this->check_rate_limit( 'export_batch' );
 		if ( false === $rate_check ) {

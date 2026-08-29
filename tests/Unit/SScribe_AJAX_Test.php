@@ -29,17 +29,24 @@ class SScribe_AJAX_Test extends TestCase {
 	public function test_ajax_get_status_counts_requires_capability(): void {
 		global $sscribe_test_current_user_can;
 		$sscribe_test_current_user_can = false;
+		$_POST['nonce']                = wp_create_nonce( 'sscribe_export_nonce' );
+
+		$guarded = \SScribe_AJAX_Guard::with_guard(
+			fn() => $this->processor->ajax_get_status_counts(),
+			\SScribe_Capabilities::get_required()
+		);
 
 		try {
 			ob_start();
-			$this->processor->ajax_get_status_counts();
+			$guarded();
 			ob_end_clean();
-			$this->fail( 'Expected exception was not thrown' );
+			$this->fail( 'Expected permission_denied error from central guard' );
 		} catch ( \RuntimeException $e ) {
 			$output = ob_get_clean();
 			$json   = json_decode( $output, true );
 			$this->assertNotNull( $json );
 			$this->assertFalse( $json['success'] );
+			$this->assertSame( 'permission_denied', $json['data']['code'] ?? '' );
 		}
 	}
 
@@ -95,17 +102,24 @@ class SScribe_AJAX_Test extends TestCase {
 	public function test_ajax_get_status_counts_validates_nonce(): void {
 		global $sscribe_test_current_user_can;
 		$sscribe_test_current_user_can = true;
+		$_POST['nonce']                = '';
+
+		$guarded = \SScribe_AJAX_Guard::with_guard(
+			fn() => $this->processor->ajax_get_status_counts(),
+			\SScribe_Capabilities::get_required()
+		);
 
 		try {
 			ob_start();
-			$this->processor->ajax_get_status_counts();
+			$guarded();
 			ob_end_clean();
-			$this->fail( 'Expected exception was not thrown' );
+			$this->fail( 'Expected invalid_nonce error from central guard' );
 		} catch ( \RuntimeException $e ) {
 			$output = ob_get_clean();
 			$json   = json_decode( $output, true );
 			$this->assertNotNull( $json );
 			$this->assertFalse( $json['success'] );
+			$this->assertSame( 'invalid_nonce', $json['data']['code'] ?? '' );
 		}
 	}
 

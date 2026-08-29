@@ -188,4 +188,22 @@ class SScribe_Image_Processor_Test extends TestCase {
 		// The single thing we guarantee: the function did not crash on a public IP.
 		$this->assertIsBool( $result );
 	}
+
+	/**
+	 * Regression for the SSRF allowlist default: with NO `sscribe_allowed_image_hosts`
+	 * filter widening, a URL whose host is not in the default site-allow-list must
+	 * be rejected. The default list is only home_url / site_url / uploads baseurl
+	 * hosts; an arbitrary public host has no reason to be in that list and must
+	 * be denied by default.
+	 */
+	public function test_is_allowed_remote_url_rejects_arbitrary_public_host_by_default(): void {
+		$method = new \ReflectionMethod( SScribe_Image_Processor::class, 'is_allowed_remote_url' );
+
+		$result = $method->invoke( null, 'https://example.com/cat.jpg' );
+
+		$this->assertFalse(
+			$result,
+			'SSRF allowlist must deny-by-default for hosts not in home_url/site_url/uploads; got allow for example.com'
+		);
+	}
 }

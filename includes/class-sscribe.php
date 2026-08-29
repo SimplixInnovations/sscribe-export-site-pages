@@ -117,13 +117,27 @@ class SScribe {
 		);
 
 		$container->singleton(
+			SScribe_Export_Query_Controller::class,
+			fn( SScribe_Container $c ) => new SScribe_Export_Query_Controller(
+				new SScribe_Export_Rate_Limiter(),
+				new SScribe_Diagnostics(),
+				$c->get( SScribe_Page_Collector::class ),
+				$c->get( SScribe_Logger::class ),
+				$c->get( SScribe_Zip_Handler::class ),
+				new SScribe_Adaptive_Metrics(),
+				new SScribe_Export_Error_Handler()
+			)
+		);
+
+		$container->singleton(
 			SScribe_Batch_Processor::class,
 			fn( SScribe_Container $c ) => new SScribe_Batch_Processor(
 				$c->get( SScribe_Page_Collector::class ),
 				$c->get( SScribe_Zip_Handler::class ),
 				$c->get( SScribe_Session::class ),
 				$c->get( SScribe_Logger::class ),
-				$c->get( SScribe_Batch_File_Handler::class )
+				$c->get( SScribe_Batch_File_Handler::class ),
+				$c->get( SScribe_Export_Query_Controller::class )
 			)
 		);
 	}
@@ -195,7 +209,7 @@ class SScribe {
 			return;
 		}
 
-		$cache_key = 'sscribe_admin_page_data_v' . SSCRIBE_VERSION . '_' . get_current_blog_id();
+		$cache_key = 'sscribe_admin_page_data_v2_' . SSCRIBE_VERSION . '_' . get_current_blog_id();
 		delete_transient( $cache_key );
 
 		$this->bump_content_cache_generation();
@@ -239,8 +253,6 @@ class SScribe {
 		$this->loader->add_guarded_ajax_action( 'wp_ajax_sscribe_process_batch', $batch, 'ajax_process_batch', $cap );
 		$this->loader->add_guarded_ajax_action( 'wp_ajax_sscribe_finalize_export', $batch, 'ajax_finalize_export', $cap );
 		$this->loader->add_guarded_ajax_action( 'wp_ajax_sscribe_download', $batch, 'ajax_download', $cap, 'sscribe_download' );
-		$this->loader->add_guarded_ajax_action( 'wp_ajax_sscribe_refresh_download_nonce', $batch, 'ajax_refresh_download_nonce', $cap );
-		$this->loader->add_guarded_ajax_action( 'wp_ajax_sscribe_refresh_nonce', $batch, 'ajax_refresh_nonce', $cap );
 		$this->loader->add_guarded_ajax_action( 'wp_ajax_sscribe_get_status_counts', $batch, 'ajax_get_status_counts', $cap );
 		$this->loader->add_guarded_ajax_action( 'wp_ajax_sscribe_get_all_status_counts', $batch, 'ajax_get_all_status_counts', $cap );
 		$this->loader->add_guarded_ajax_action( 'wp_ajax_sscribe_cancel_export', $batch, 'ajax_cancel_export', $cap );
@@ -250,8 +262,7 @@ class SScribe {
 		$this->loader->add_guarded_ajax_action( 'wp_ajax_sscribe_preflight_check', $batch, 'ajax_preflight_check', $cap );
 		$this->loader->add_guarded_ajax_action( 'wp_ajax_sscribe_get_export_preview', $batch, 'ajax_get_export_preview', $cap );
 		$this->loader->add_guarded_ajax_action( 'wp_ajax_sscribe_get_recent_exports', $batch, 'ajax_get_recent_exports', $cap );
-		$this->loader->add_guarded_ajax_action( 'wp_ajax_sscribe_get_support_info', $batch, 'ajax_get_support_info', $health_cap, 'sscribe_health_nonce', 'nonce' );
-		$this->loader->add_guarded_ajax_action( 'wp_ajax_sscribe_health_check', $batch, 'ajax_health_check', $health_cap, 'sscribe_health_nonce', 'nonce' );
+		$this->loader->add_guarded_ajax_action( 'wp_ajax_sscribe_get_support_info', $batch, 'ajax_get_support_info', $health_cap, 'sscribe_health_nonce' );
 		$this->loader->add_guarded_ajax_action( 'wp_ajax_sscribe_check_active_session', $batch, 'ajax_check_active_session', $cap );
 	}
 

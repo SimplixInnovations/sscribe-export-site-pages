@@ -15,7 +15,52 @@ final class SScribe_Private_Storage {
 
 	public const FILE_MODE   = 0600;
 	public const DIR_MODE    = 0700;
-	private const DIRECTORY_NAME = 'sscribe-export-site-pages';
+	private const DIRECTORY_NAME         = 'sscribe-export-site-pages';
+	public const DEFAULT_DIRECTORY_NAME  = 'sscribe-exports';
+
+	/**
+	 * Return the export leaf directory name, honoring the `sscribe_storage_layout` filter.
+	 *
+	 * The canonical name is `sscribe-exports`. Operators may override it via the
+	 * filter when the default collides with another tool, contains reserved
+	 * characters, or needs to match a corporate-naming convention. Any value that
+	 * is not a safe single-segment filename (path separators, NUL, `..` traversal,
+	 * non-`[a-z0-9._-]` characters, leading dot, length > 60) is silently replaced
+	 * with the default to prevent the resolver from constructing unsafe paths.
+	 *
+	 * The legacy paths reported by `get_legacy_storage_dirs()` are NOT affected:
+	 * historical locations shipped by prior plugin releases are fixed regardless
+	 * of operator preference, so an upgrade that renamed the live directory can
+	 * still locate and migrate any leftover public artifacts.
+	 *
+	 * @return string Single-segment directory name.
+	 */
+	public static function get_directory_name(): string {
+		$candidate = apply_filters( 'sscribe_storage_layout', self::DEFAULT_DIRECTORY_NAME );
+		if ( ! is_string( $candidate ) ) {
+			return self::DEFAULT_DIRECTORY_NAME;
+		}
+		$candidate = strtolower( trim( $candidate ) );
+		if ( '' === $candidate ) {
+			return self::DEFAULT_DIRECTORY_NAME;
+		}
+		if ( '.' === $candidate || '..' === $candidate ) {
+			return self::DEFAULT_DIRECTORY_NAME;
+		}
+		if (
+			str_contains( $candidate, "\0" )
+			|| str_contains( $candidate, '/' )
+			|| str_contains( $candidate, '\\' )
+			|| str_contains( $candidate, '..' )
+			|| 1 !== preg_match( '#^[a-z0-9._-]{1,60}$#D', $candidate )
+		) {
+			return self::DEFAULT_DIRECTORY_NAME;
+		}
+		if ( '.' === $candidate[0] ) {
+			return self::DEFAULT_DIRECTORY_NAME;
+		}
+		return $candidate;
+	}
 
 	/**
 	 * Return the canonical export directory and optionally create it.
@@ -47,7 +92,7 @@ final class SScribe_Private_Storage {
 		}
 
 		$site_key = 'site-' . get_current_blog_id() . '-' . substr( hash( 'sha256', self::normalize_path( ABSPATH ) ), 0, 12 );
-		$path     = $canonical_base . DIRECTORY_SEPARATOR . self::DIRECTORY_NAME . DIRECTORY_SEPARATOR . $site_key . DIRECTORY_SEPARATOR . 'sscribe-exports';
+		$path     = $canonical_base . DIRECTORY_SEPARATOR . self::DIRECTORY_NAME . DIRECTORY_SEPARATOR . $site_key . DIRECTORY_SEPARATOR . self::get_directory_name();
 		if ( ! self::is_outside_public_roots( $path ) ) {
 			return '';
 		}

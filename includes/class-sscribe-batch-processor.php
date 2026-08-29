@@ -686,10 +686,22 @@ final class SScribe_Batch_Processor {
 	/**
 	 * Get the query controller instance (lazy-loaded).
 	 *
+	 * Prefers the DI container singleton (production wiring via
+	 * SScribe::register_services()) and falls back to inline construction
+	 * for tests that instantiate the processor without going through the
+	 * container.
+	 *
 	 * @return SScribe_Export_Query_Controller
 	 */
 	private function get_query_controller(): SScribe_Export_Query_Controller {
 		if ( null === $this->query_controller ) {
+			if ( class_exists( '\\SScribe_Container', false ) ) {
+				$container = \SScribe_Container::instance();
+				if ( $container->has( SScribe_Export_Query_Controller::class ) ) {
+					$this->query_controller = $container->get( SScribe_Export_Query_Controller::class );
+					return $this->query_controller;
+				}
+			}
 			$this->query_controller = new SScribe_Export_Query_Controller(
 				$this->get_rate_limiter(),
 				$this->get_diagnostics(),
@@ -715,18 +727,20 @@ final class SScribe_Batch_Processor {
 	/**
 	 * Initialize the batch processor.
 	 *
-	 * @param SScribe_Page_Collector|null     $collector    Page collector.
-	 * @param SScribe_Zip_Handler|null        $zip_handler  Zip handler.
-	 * @param SScribe_Session|null            $session      Session.
-	 * @param SScribe_Logger_Interface|null   $logger       Logger.
-	 * @param SScribe_Batch_File_Handler|null $file_handler File handler.
+	 * @param SScribe_Page_Collector|null          $collector       Page collector.
+	 * @param SScribe_Zip_Handler|null             $zip_handler     Zip handler.
+	 * @param SScribe_Session|null                 $session         Session.
+	 * @param SScribe_Logger_Interface|null        $logger          Logger.
+	 * @param SScribe_Batch_File_Handler|null      $file_handler    File handler.
+	 * @param SScribe_Export_Query_Controller|null $query_controller Query controller.
 	 */
 	public function __construct(
 		?SScribe_Page_Collector $collector = null,
 		?SScribe_Zip_Handler $zip_handler = null,
 		?SScribe_Session $session = null,
 		?SScribe_Logger_Interface $logger = null,
-		?SScribe_Batch_File_Handler $file_handler = null
+		?SScribe_Batch_File_Handler $file_handler = null,
+		?SScribe_Export_Query_Controller $query_controller = null
 	) {
 		$this->batch_size = (int) apply_filters( 'sscribe_batch_size', 5 );
 		$this->batch_size = max( 1, min( 20, $this->batch_size ) );
@@ -741,6 +755,7 @@ final class SScribe_Batch_Processor {
 			$this->logger,
 			$this->get_auditor()
 		);
+		$this->query_controller = $query_controller;
 
 		if ( ! self::$shutdown_registered ) {
 			self::$shutdown_registered = true;
@@ -961,25 +976,6 @@ final class SScribe_Batch_Processor {
 	 * Start a new export session via AJAX.
 	 */
 	public function ajax_start_export(): void {
-		if ( ! check_ajax_referer( 'sscribe_export_nonce', 'nonce', false ) ) {
-			SScribe_AJAX_Guard::error(
-				array(
-					'code'    => 'invalid_nonce',
-					'message' => __( 'Security check failed.', 'sscribe-export-site-pages' ),
-				),
-				403
-			);
-		}
-
-		if ( ! current_user_can( $this->get_required_capability() ) ) {
-			SScribe_AJAX_Guard::error(
-				array(
-					'code'    => 'permission_denied',
-					'message' => __( 'You do not have permission to export pages.', 'sscribe-export-site-pages' ),
-				),
-				403
-			);
-		}
 
 		$rate_check = $this->check_rate_limit();
 		if ( false === $rate_check ) {
@@ -1315,13 +1311,6 @@ final class SScribe_Batch_Processor {
 	}
 
 	/**
-	 * Run health check diagnostics via AJAX.
-	 */
-	public function ajax_health_check(): void {
-		$this->get_query_controller()->ajax_health_check();
-	}
-
-	/**
 	 * Handle file download via AJAX.
 	 */
 	public function ajax_download(): void {
@@ -1404,54 +1393,6 @@ final class SScribe_Batch_Processor {
 	 */
 	public function ajax_get_support_info(): void {
 		$this->get_query_controller()->ajax_get_support_info( SScribe_Capabilities::get_health_required() );
-	}
-
-	/**
-	 * Refresh download nonce via AJAX.
-	 */
-	public function ajax_refresh_download_nonce(): void {
-		$this->file_handler->ajax_refresh_download_nonce();
-	}
-
-	/**
-	 * Refresh the main export nonce via AJAX.
-	 *
-	 * Long-running batch exports can outlive the WP nonce lifetime (default
-	 * 12h, default 24h on some sites). Without a refresh hook the front-end
-	 * JS would 403 on every subsequent batch step. The JS calls this on a
-	 * 403 response, then retries the original request.
-	 */
-	public function ajax_refresh_nonce(): void {
-		// WP convention: verify nonce BEFORE capability to avoid leaking which
-		// unprivileged visitors get a permission error vs an invalid-nonce error.
-		$nonce_ok = check_ajax_referer( 'sscribe_export_nonce', 'nonce', false );
-		if ( ! $nonce_ok ) {
-			wp_send_json_error(
-				array(
-					'code'    => 'invalid_nonce',
-					'message' => __( 'Invalid nonce.', 'sscribe-export-site-pages' ),
-				),
-				403
-			);
-			return;
-		}
-
-		if ( ! current_user_can( $this->get_required_capability() ) ) {
-			wp_send_json_error(
-				array(
-					'code'    => 'permission_denied',
-					'message' => __( 'Permission denied.', 'sscribe-export-site-pages' ),
-				),
-				403
-			);
-			return;
-		}
-
-		wp_send_json_success(
-			array(
-				'nonce' => wp_create_nonce( 'sscribe_export_nonce' ),
-			)
-		);
 	}
 
 	/**

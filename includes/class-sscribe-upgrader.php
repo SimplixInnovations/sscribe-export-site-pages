@@ -47,7 +47,7 @@ class SScribe_Upgrader {
 			try {
 				self::run_migrations( $installed_version );
 
-				delete_transient( 'sscribe_admin_page_data_v' . $installed_version );
+				delete_transient( 'sscribe_admin_page_data_v2_' . $installed_version );
 				delete_transient( 'sscribe_wpml_languages' );
 				update_option( self::SCHEMA_VERSION_OPTION, SSCRIBE_VERSION, false );
 				update_option( 'sscribe_version', SSCRIBE_VERSION, false );

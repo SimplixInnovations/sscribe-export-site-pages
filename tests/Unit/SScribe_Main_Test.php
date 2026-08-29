@@ -65,7 +65,7 @@ final class SScribe_Main_Test extends TestCase {
 
 	public function test_invalidate_admin_page_cache_drops_transient_for_page(): void {
 		$plugin   = new SScribe();
-		$cache_key = 'sscribe_admin_page_data_v' . SSCRIBE_VERSION . '_' . get_current_blog_id();
+		$cache_key = 'sscribe_admin_page_data_v2_' . SSCRIBE_VERSION . '_' . get_current_blog_id();
 		$GLOBALS['sscribe_test_transients'][ $cache_key ] = 'cached-payload';
 
 		$plugin->invalidate_admin_page_cache( 42 );
@@ -75,7 +75,7 @@ final class SScribe_Main_Test extends TestCase {
 
 	public function test_invalidate_admin_page_cache_ignores_post_type_other_than_page_or_post(): void {
 		$plugin    = new SScribe();
-		$cache_key = 'sscribe_admin_page_data_v' . SSCRIBE_VERSION . '_' . get_current_blog_id();
+		$cache_key = 'sscribe_admin_page_data_v2_' . SSCRIBE_VERSION . '_' . get_current_blog_id();
 		$GLOBALS['sscribe_test_transients'][ $cache_key ] = 'cached-payload';
 
 		// Force the bootstrap get_post_type() stub to return 'attachment' for
@@ -93,7 +93,7 @@ final class SScribe_Main_Test extends TestCase {
 
 	public function test_invalidate_admin_page_cache_returns_silently_on_unknown_post_type(): void {
 		$plugin    = new SScribe();
-		$cache_key = 'sscribe_admin_page_data_v' . SSCRIBE_VERSION . '_' . get_current_blog_id();
+		$cache_key = 'sscribe_admin_page_data_v2_' . SSCRIBE_VERSION . '_' . get_current_blog_id();
 		$GLOBALS['sscribe_test_transients'][ $cache_key ] = 'still-here';
 
 		$GLOBALS['sscribe_test_post_type_override'] = false;
@@ -108,7 +108,7 @@ final class SScribe_Main_Test extends TestCase {
 
 	public function test_invalidate_admin_page_cache_protects_against_double_invoke(): void {
 		$plugin    = new SScribe();
-		$cache_key = 'sscribe_admin_page_data_v' . SSCRIBE_VERSION . '_' . get_current_blog_id();
+		$cache_key = 'sscribe_admin_page_data_v2_' . SSCRIBE_VERSION . '_' . get_current_blog_id();
 
 		// First save: transient exists, gets deleted.
 		$GLOBALS['sscribe_test_transients'][ $cache_key ] = 'A';

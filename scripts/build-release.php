@@ -631,8 +631,8 @@ if ( is_dir( $vendor_dir ) ) {
 		'other',
 		/* PHP 5 polyfill; not autoloaded on the plugin's PHP 8.2+ runtime. */
 		'random_compat',
-		'composer.json', 'composer.lock', 'package.json', 'phpunit.xml',
-		'phpmd.xml.dist', 'phpword.ini.dist',
+		'composer.json', 'composer.lock', 'installed.json', 'package.json', 'phpunit.xml',
+		'phpunit.xml.dist', 'phpmd.xml.dist', 'phpword.ini.dist',
 		'.gitignore', '.gitattributes', '.travis.yml', '.scrutinizer.yml',
 		'CHANGELOG.md', 'CONTRIBUTING.md', 'README.md', 'CREDITS.txt',
 		'SECURITY.md', /* setasign/fpdi: dev doc, not autoloaded */
@@ -662,6 +662,12 @@ if ( is_dir( $vendor_dir ) ) {
 		/* myclabs/deep-copy: PHP test fixtures that deep-copy exercises
 		 * under tests/ - never autoloaded by the runtime. */
 		'fixtures',
+		/* phpoffice/phpword: brand PNGs in resources/ - referenced
+		 * only by PHPWord's own README on GitHub; the runtime
+		 * never loads them and the export format doesn't embed them. */
+		'doc.png',
+		'ppt.png',
+		'xls.png',
 	);
 
 	$pruned_count = 0;
@@ -688,6 +694,25 @@ if ( is_dir( $vendor_dir ) ) {
 				@unlink( $item->getPathname() );
 			}
 			$pruned_count++;
+		}
+	}
+	// After pruning matched files, sweep up any directory under vendor-prefixed
+	// that is now empty. CHILD_FIRST ordering means we already attempted to
+	// delete every matched directory; this pass catches directories that only
+	// contained prune-matched files (e.g. phpoffice/phpword/src/PhpWord/resources
+	// after the doc.png/ppt.png/xls.png PNGs are removed) and any vendor
+	// directory that was empty in the upstream package.
+	$empty_dir_iterator = new RecursiveIteratorIterator(
+		new RecursiveDirectoryIterator( $vendor_dir, RecursiveDirectoryIterator::SKIP_DOTS ),
+		RecursiveIteratorIterator::CHILD_FIRST
+	);
+	foreach ( $empty_dir_iterator as $item ) {
+		if ( ! $item->isDir() ) {
+			continue;
+		}
+		$children = new RecursiveDirectoryIterator( $item->getPathname(), RecursiveDirectoryIterator::SKIP_DOTS );
+		if ( 0 === iterator_count( $children ) ) {
+			@rmdir( $item->getPathname() );
 		}
 	}
 	echo "     ✅ Pruned: $pruned_count vendor development artifacts\n";

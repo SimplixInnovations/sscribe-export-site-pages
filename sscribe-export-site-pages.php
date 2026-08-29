@@ -104,8 +104,7 @@ add_action(
 	array( 'SScribe_Activator', 'register_settings' )
 );
 
-$sscribe_has_dependencies = ( file_exists( SSCRIBE_PLUGIN_DIR . 'vendor-prefixed/autoload.php' )
-	|| file_exists( SSCRIBE_PLUGIN_DIR . 'vendor/autoload.php' ) );
+$sscribe_has_dependencies = SScribe_Vendor_Bootstrap::is_available();
 
 if ( ! $sscribe_has_dependencies ) {
 	add_action(

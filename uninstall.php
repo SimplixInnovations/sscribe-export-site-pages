@@ -114,7 +114,10 @@ $sscribe_cleanup_site = static function (): void {
 	);
 	delete_option( 'sscribe_schema_version' );
 	delete_option( 'sscribe_session_signing_key' );
+	delete_option( 'sscribe_session_signing_key_prev' );
+	delete_option( 'sscribe_session_signing_key_prev_rotated_at' );
 	delete_option( 'sscribe_session_sodium_key' );
+	delete_option( 'sscribe_session_aes_key' );
 	delete_option( 'sscribe_content_cache_generation' );
 
 	delete_option( 'sscribe_debug_enabled' );

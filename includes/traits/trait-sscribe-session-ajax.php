@@ -47,25 +47,6 @@ trait SScribe_Session_AJAX {
 	 * Check for active session on page load - used to restore UI after browser reload.
 	 */
 	public function ajax_check_active_session(): void {
-		if ( ! check_ajax_referer( 'sscribe_export_nonce', 'nonce', false ) ) {
-			SScribe_AJAX_Guard::error(
-				array(
-					'code'    => 'invalid_nonce',
-					'message' => __( 'Security check failed.', 'sscribe-export-site-pages' ),
-				),
-				403
-			);
-		}
-
-		if ( ! current_user_can( $this->get_required_capability() ) ) {
-			SScribe_AJAX_Guard::error(
-				array(
-					'code'    => 'permission_denied',
-					'message' => __( 'Permission denied.', 'sscribe-export-site-pages' ),
-				),
-				403
-			);
-		}
 
 		$rate_check = $this->check_rate_limit();
 		if ( false === $rate_check ) {
@@ -126,25 +107,6 @@ trait SScribe_Session_AJAX {
 	 * delete) runs atomically with respect to the batch.
 	 */
 	public function ajax_cancel_export(): void {
-		if ( ! check_ajax_referer( 'sscribe_export_nonce', 'nonce', false ) ) {
-			SScribe_AJAX_Guard::error(
-				array(
-					'code'    => 'invalid_nonce',
-					'message' => __( 'Security check failed.', 'sscribe-export-site-pages' ),
-				),
-				403
-			);
-		}
-
-		if ( ! current_user_can( $this->get_required_capability() ) ) {
-			SScribe_AJAX_Guard::error(
-				array(
-					'code'    => 'permission_denied',
-					'message' => __( 'Permission denied.', 'sscribe-export-site-pages' ),
-				),
-				403
-			);
-		}
 
 		$session_id = SScribe_AJAX_Guard::post_text( 'session_id', '', 16 );
 
@@ -258,25 +220,6 @@ trait SScribe_Session_AJAX {
 	 * Clear export session via AJAX.
 	 */
 	public function ajax_clear_session(): void {
-		if ( ! check_ajax_referer( 'sscribe_export_nonce', 'nonce', false ) ) {
-			SScribe_AJAX_Guard::error(
-				array(
-					'code'    => 'invalid_nonce',
-					'message' => __( 'Security check failed.', 'sscribe-export-site-pages' ),
-				),
-				403
-			);
-		}
-
-		if ( ! current_user_can( $this->get_required_capability() ) ) {
-			SScribe_AJAX_Guard::error(
-				array(
-					'code'    => 'permission_denied',
-					'message' => __( 'Permission denied.', 'sscribe-export-site-pages' ),
-				),
-				403
-			);
-		}
 
 		$rate_check = $this->check_rate_limit();
 		if ( false === $rate_check ) {

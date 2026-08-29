@@ -36,9 +36,7 @@ class SScribe_Activator {
 			delete_option( 'sscribe_version' );
 		}
 
-		if ( ! file_exists( SSCRIBE_PLUGIN_DIR . 'vendor-prefixed/autoload.php' )
-			&& ! file_exists( SSCRIBE_PLUGIN_DIR . 'vendor/autoload.php' )
-		) {
+		if ( ! SScribe_Vendor_Bootstrap::is_available() ) {
 			$message = sprintf(
 				/* translators: %s: plugin version */
 				__( 'Activation aborted: required runtime dependencies are missing. Reinstall the complete plugin package. Version: %s', 'sscribe-export-site-pages' ),

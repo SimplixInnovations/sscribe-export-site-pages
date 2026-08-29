@@ -64,14 +64,27 @@ class SScribe_Session_AJAX_Test extends TestCase {
 
 	public function test_ajax_check_active_session_fails_without_capability(): void {
 		$GLOBALS['sscribe_test_current_user_can'] = false;
+		$_POST['nonce']                          = wp_create_nonce( 'sscribe_export_nonce' );
 
 		$session = new \SScribe_Session();
 
-		$_POST['nonce'] = 'valid_nonce';
+		$guarded = \SScribe_AJAX_Guard::with_guard(
+			fn() => $session->ajax_check_active_session(),
+			\SScribe_Capabilities::get_required()
+		);
 
-		$this->expectException( \RuntimeException::class );
-		$this->expectExceptionMessage( 'AJAX error response sent' );
-		$session->ajax_check_active_session();
+		try {
+			ob_start();
+			$guarded();
+			ob_end_clean();
+			$this->fail( 'Expected permission_denied error from central guard' );
+		} catch ( \RuntimeException $e ) {
+			$output = ob_get_clean();
+			$json   = json_decode( $output, true );
+			$this->assertNotNull( $json );
+			$this->assertFalse( $json['success'] );
+			$this->assertSame( 'permission_denied', $json['data']['code'] ?? '' );
+		}
 	}
 
 	public function test_ajax_clear_session_succeeds_without_force(): void {
@@ -89,15 +102,28 @@ class SScribe_Session_AJAX_Test extends TestCase {
 
 	public function test_ajax_clear_session_fails_without_capability(): void {
 		$GLOBALS['sscribe_test_current_user_can'] = false;
+		$_POST['nonce']                          = wp_create_nonce( 'sscribe_export_nonce' );
+		$_POST['force']                          = false;
 
 		$session = new \SScribe_Session();
 
-		$_POST['nonce'] = 'valid_nonce';
-		$_POST['force'] = false;
+		$guarded = \SScribe_AJAX_Guard::with_guard(
+			fn() => $session->ajax_clear_session(),
+			\SScribe_Capabilities::get_required()
+		);
 
-		$this->expectException( \RuntimeException::class );
-		$this->expectExceptionMessage( 'AJAX error response sent' );
-		$session->ajax_clear_session();
+		try {
+			ob_start();
+			$guarded();
+			ob_end_clean();
+			$this->fail( 'Expected permission_denied error from central guard' );
+		} catch ( \RuntimeException $e ) {
+			$output = ob_get_clean();
+			$json   = json_decode( $output, true );
+			$this->assertNotNull( $json );
+			$this->assertFalse( $json['success'] );
+			$this->assertSame( 'permission_denied', $json['data']['code'] ?? '' );
+		}
 	}
 
 	public function test_ajax_cancel_export_fails_without_session_id(): void {

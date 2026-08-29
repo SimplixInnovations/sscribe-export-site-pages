@@ -294,6 +294,107 @@ class SScribe_Private_Storage_Test extends TestCase {
 		rmdir( $base );
 	}
 
+	public function test_get_directory_name_returns_default_without_filter(): void {
+		$this->assertSame( 'sscribe-exports', \SScribe_Private_Storage::get_directory_name() );
+	}
+
+	public function test_get_directory_name_honors_storage_layout_filter(): void {
+		$override = static function (): string {
+			return 'team-exports';
+		};
+		add_filter( 'sscribe_storage_layout', $override );
+		try {
+			$this->assertSame( 'team-exports', \SScribe_Private_Storage::get_directory_name() );
+		} finally {
+			remove_filter( 'sscribe_storage_layout', $override );
+		}
+		$this->assertSame( 'sscribe-exports', \SScribe_Private_Storage::get_directory_name() );
+	}
+
+	public function test_get_directory_name_rejects_path_traversal_payloads(): void {
+		$payloads = array(
+			'../etc',
+			'foo/../bar',
+			'foo..bar',
+			'foo/bar',
+			'foo\\bar',
+			"foo\0bar",
+			'.hidden',
+			'..',
+			'.',
+			'',
+		);
+		foreach ( $payloads as $payload ) {
+			$filter = static function () use ( $payload ): string {
+				return $payload;
+			};
+			add_filter( 'sscribe_storage_layout', $filter );
+			try {
+				$this->assertSame(
+					'sscribe-exports',
+					\SScribe_Private_Storage::get_directory_name(),
+					'payload must fall back to default: ' . var_export( $payload, true )
+				);
+			} finally {
+				remove_filter( 'sscribe_storage_layout', $filter );
+			}
+		}
+	}
+
+	public function test_get_directory_name_rejects_oversized_and_unsafe_characters(): void {
+		$oversized = str_repeat( 'a', 61 );
+		$filter    = static function () use ( $oversized ): string {
+			return $oversized;
+		};
+		add_filter( 'sscribe_storage_layout', $filter );
+		try {
+			$this->assertSame( 'sscribe-exports', \SScribe_Private_Storage::get_directory_name() );
+		} finally {
+			remove_filter( 'sscribe_storage_layout', $filter );
+		}
+
+		$unsafe_chars = array( 'foo bar', 'foo*bar', 'foo|bar', 'foo:bar', "foo\tbar" );
+		foreach ( $unsafe_chars as $value ) {
+			$char_filter = static function () use ( $value ): string {
+				return $value;
+			};
+			add_filter( 'sscribe_storage_layout', $char_filter );
+			try {
+				$this->assertSame(
+					'sscribe-exports',
+					\SScribe_Private_Storage::get_directory_name(),
+					'unsafe chars must fall back to default: ' . var_export( $value, true )
+				);
+			} finally {
+				remove_filter( 'sscribe_storage_layout', $char_filter );
+			}
+		}
+	}
+
+	public function test_get_directory_name_accepts_safe_alternates(): void {
+		$values = array(
+			'team-exports',
+			'exports.v2',
+			'sscribe_exports',
+			'a',
+		);
+		foreach ( $values as $value ) {
+			$filter = static function () use ( $value ): string {
+				return $value;
+			};
+			add_filter( 'sscribe_storage_layout', $filter );
+			try {
+				$this->assertSame(
+					$value,
+					\SScribe_Private_Storage::get_directory_name(),
+					'safe alternate must pass through: ' . var_export( $value, true )
+				);
+			} finally {
+				remove_filter( 'sscribe_storage_layout', $filter );
+			}
+		}
+	}
+
 	private function path_is_within( string $path, string $root ): bool {
 		$path = strtolower( str_replace( '\\', '/', rtrim( $path, '/\\' ) ) );
 		$root = strtolower( str_replace( '\\', '/', rtrim( $root, '/\\' ) ) );

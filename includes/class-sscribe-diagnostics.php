@@ -200,9 +200,9 @@ class SScribe_Diagnostics {
 		$sections['paths'] = array(
 			'label' => __( 'Paths', 'sscribe-export-site-pages' ),
 			'items' => array(
-				'storage'     => '' === $export_dir ? __( 'Unavailable', 'sscribe-export-site-pages' ) : '[private]/sscribe-exports',
-				'export_dir'  => '[private]/sscribe-exports',
-				'log_dir'     => '[private]/sscribe-exports/logs',
+				'storage'     => '' === $export_dir ? __( 'Unavailable', 'sscribe-export-site-pages' ) : '[private]/' . SScribe_Private_Storage::get_directory_name(),
+				'export_dir'  => '[private]/' . SScribe_Private_Storage::get_directory_name(),
+				'log_dir'     => '[private]/' . SScribe_Private_Storage::get_directory_name() . '/logs',
 				'writable'    => '' !== $export_dir && wp_is_writable( $export_dir ) ? __( 'Yes', 'sscribe-export-site-pages' ) : __( 'No', 'sscribe-export-site-pages' ),
 			),
 		);
