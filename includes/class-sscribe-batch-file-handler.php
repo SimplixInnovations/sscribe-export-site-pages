@@ -294,50 +294,6 @@ class SScribe_Batch_File_Handler {
 	}
 
 	/**
-	 * Refresh download nonce via AJAX.
-	 */
-	public function ajax_refresh_download_nonce(): void {
-		if ( ! check_ajax_referer( 'sscribe_export_nonce', 'nonce', false ) ) {
-			SScribe_AJAX_Guard::error(
-				array(
-					'code'    => 'invalid_nonce',
-					'message' => __( 'Security check failed.', 'sscribe-export-site-pages' ),
-				),
-				403
-			);
-		}
-
-		if ( ! current_user_can( $this->get_required_capability() ) ) {
-			SScribe_AJAX_Guard::error(
-				array(
-					'code'    => 'permission_denied',
-					'message' => __( 'Permission denied.', 'sscribe-export-site-pages' ),
-				),
-				403
-			);
-		}
-
-		$rate_check = $this->check_rate_limit();
-		if ( false === $rate_check ) {
-			SScribe_AJAX_Guard::error(
-				array(
-					'code'     => 'rate_limited',
-					'message'  => __( 'Too many requests. Please wait a moment.', 'sscribe-export-site-pages' ),
-					'retry'    => true,
-					'retry_in' => 60000,
-				),
-				429
-			);
-		}
-
-		SScribe_AJAX_Guard::success(
-			array(
-				'nonce' => wp_create_nonce( 'sscribe_download' ),
-			)
-		);
-	}
-
-	/**
 	 * Get the capability required for export operations.
 	 *
 	 * @return string Capability name.

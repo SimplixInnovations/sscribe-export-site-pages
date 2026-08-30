@@ -1,9 +1,14 @@
-/* @version 2.0.1 */
+/* @version 2.0.0 */
 
 .sscribe-master-container *,
 .sscribe-master-container *::before,
 .sscribe-master-container *::after {
 	box-sizing: inherit;
+}
+
+.sscribe-master-container {
+	max-width: 1200px;
+	margin: var(--ss-space-5) auto;
 }
 
 .sscribe-master-container h1,
@@ -109,6 +114,7 @@
 	padding: var(--ss-space-6) var(--ss-space-8);
 	width: 100%;
 	box-sizing: border-box;
+	border-radius: var(--ss-radius-lg);
 }
 
 .sscribe-hero-content {
@@ -514,7 +520,6 @@ parent's gray chip. */
 
 .sscribe-status-card-inner {
 	min-width: 0;
-	column-gap: var(--ss-space-1-5);
 	padding-inline: var(--ss-space-2);
 }
 
@@ -644,7 +649,7 @@ parent's gray chip. */
 	transform-origin: 50% 50%;
 	transition:
 		opacity 120ms var(--ss-easing, ease),
-		transform 220ms var(--ss-easing, cubic-bezier(0.34, 1.56, 0.64, 1));
+		transform 220ms var(--ss-easing, cubic-bezier(0.22, 1, 0.36, 1));
 	box-sizing: border-box;
 	pointer-events: none;
 }
@@ -1755,7 +1760,7 @@ body.rtl .sscribe-progress-bar-fill {
 	box-shadow:
 		0 0 0 1px color-mix(in srgb, var(--ss-success) 50%, transparent),
 		0 1px 0 var(--ss-color-highlight-25) inset;
-	animation: sscribe-progress-complete-flash 600ms cubic-bezier(0.34, 1.56, 0.64, 1) 1;
+	animation: sscribe-progress-complete-flash 600ms cubic-bezier(0.22, 1, 0.36, 1) 1;
 }
 
 .sscribe-progress-bar-container.sscribe-progress-complete .sscribe-progress-bar-fill::before,
@@ -5298,9 +5303,20 @@ body.rtl .sscribe-progress-bar-fill {
 	border-color: var(--ss-brand);
 }
 
+.sscribe-toggle-switch input:checked + .sscribe-toggle-slider::before {
+	transform: translateX(20px);
+}
+
 .sscribe-toggle-switch input:focus-visible + .sscribe-toggle-slider {
 	outline: 2px solid var(--ss-brand);
 	outline-offset: 2px;
+}
+
+@media (prefers-reduced-motion: reduce) {
+	.sscribe-toggle-slider,
+	.sscribe-toggle-slider::before {
+		transition: none;
+	}
 }
 
 .sscribe-button:focus-visible,

@@ -42,38 +42,4 @@ class SScribe_Batch_File_Handler_Test extends TestCase {
 		);
 		$this->assertInstanceOf( \SScribe_Batch_File_Handler::class, $handler );
 	}
-
-	public function test_ajax_refresh_download_nonce_returns_nonce_on_success(): void {
-		$handler = new \SScribe_Batch_File_Handler(
-			new \SScribe_Export_Rate_Limiter(),
-			new \SScribe_Zip_Handler(),
-			\SScribe_Logger::instance(),
-			new \SScribe_Export_Auditor()
-		);
-
-		$_POST['nonce'] = 'valid_nonce';
-
-		try {
-			$handler->ajax_refresh_download_nonce();
-		} catch ( \RuntimeException $e ) {
-			$this->assertStringContainsString( 'AJAX success response sent', $e->getMessage() );
-		}
-	}
-
-	public function test_ajax_refresh_download_nonce_fails_without_capability(): void {
-		$GLOBALS['sscribe_test_current_user_can'] = false;
-
-		$handler = new \SScribe_Batch_File_Handler(
-			new \SScribe_Export_Rate_Limiter(),
-			new \SScribe_Zip_Handler(),
-			\SScribe_Logger::instance(),
-			new \SScribe_Export_Auditor()
-		);
-
-		$_POST['nonce'] = 'valid_nonce';
-
-		$this->expectException( \RuntimeException::class );
-		$this->expectExceptionMessage( 'AJAX error response sent' );
-		$handler->ajax_refresh_download_nonce();
-	}
 }

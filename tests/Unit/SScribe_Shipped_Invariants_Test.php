@@ -794,9 +794,15 @@ final class SScribe_Shipped_Invariants_Test extends TestCase {
 		$stylesheet = (string) file_get_contents( self::$plugin_root . '/admin/css/sscribe-admin.css' );
 
 		$this->assertMatchesRegularExpression(
-			'/\.sscribe-status-card-inner\s*\{[^}]*min-width:\s*0;[^}]*column-gap:\s*var\(--ss-space-1-5\);[^}]*padding-inline:\s*var\(--ss-space-2\);/s',
+			'/\.sscribe-status-card-inner\s*\{[^}]*min-width:\s*0;[^}]*padding-inline:\s*var\(--ss-space-2\);/s',
 			$stylesheet,
-			'Status card interiors must shrink inside their grid tracks so the declared gap remains visible.'
+			'Status card interiors must shrink inside their grid tracks so the inherited column-gap remains visible.'
+		);
+
+		$this->assertMatchesRegularExpression(
+			'/\.sscribe-post-type-card-inner,\s*\.sscribe-status-card-inner,\s*\.sscribe-format-card-inner,\s*\.sscribe-lang-card-inner\s*\{[^}]*column-gap:\s*var\(--ss-space-3\);/s',
+			$stylesheet,
+			'Card interiors share a single column-gap rule so the status override stays a layout-only override.'
 		);
 
 		$this->assertMatchesRegularExpression(

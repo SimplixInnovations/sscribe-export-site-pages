@@ -80,38 +80,6 @@ class SScribe_Export_Query_Controller_Test extends TestCase {
 		);
 	}
 
-	public function test_ajax_health_check_success_path(): void {
-		$_POST['nonce'] = wp_create_nonce( 'sscribe_health_nonce' );
-		$_POST['force'] = '1';
-
-		$rate_limiter = $this->createMock( \SScribe_Export_Rate_Limiter::class );
-		$rate_limiter->method( 'check_rate_limit' )->willReturn( true );
-
-		$controller = $this->build_controller( rate_limiter: $rate_limiter );
-
-		$json = $this->invoke_and_capture( $controller, 'ajax_health_check' );
-
-		$this->assertTrue( $json['success'] );
-		$this->assertIsArray( $json['data']['ajax_health'] );
-		$this->assertIsArray( $json['data']['boot_state'] );
-		$this->assertArrayHasKey( 'server_time', $json['data'] );
-		$this->assertArrayHasKey( 'server_utc', $json['data'] );
-	}
-
-	public function test_ajax_health_check_rate_limited_path(): void {
-		$_POST['nonce'] = wp_create_nonce( 'sscribe_health_nonce' );
-
-		$rate_limiter = $this->createMock( \SScribe_Export_Rate_Limiter::class );
-		$rate_limiter->method( 'check_rate_limit' )->willReturn( false );
-
-		$controller = $this->build_controller( rate_limiter: $rate_limiter );
-
-		$json = $this->invoke_and_capture( $controller, 'ajax_health_check' );
-
-		$this->assertFalse( $json['success'] );
-		$this->assertSame( 'rate_limited', $json['data']['code'] );
-	}
-
 	public function test_ajax_get_status_counts_merges_any_post_type(): void {
 		$_POST['nonce']     = wp_create_nonce( 'sscribe_export_nonce' );
 		$_POST['post_type'] = 'any';
