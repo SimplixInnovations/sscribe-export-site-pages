@@ -30,8 +30,4 @@
             <file>includes/class-sscribe-deactivator.php</file>
         </exclude>
     </source>
-
-    <php>
-        <env name="WP_TESTS_SKIP_INSTALL" value="1"/>
-    </php>
 </phpunit>

@@ -1,0 +1,34 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<phpunit
+    xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+    xsi:noNamespaceSchemaLocation="https://schema.phpunit.de/11.5/phpunit.xsd"
+    bootstrap="tests-wp/bootstrap.php"
+    colors="true"
+    cacheDirectory=".phpunit.cache"
+    failOnRisky="false"
+    failOnWarning="false"
+>
+    <testsuites>
+        <testsuite name="WordPress">
+            <directory suffix="Test.php">tests-wp/WordPress</directory>
+        </testsuite>
+    </testsuites>
+
+    <source>
+        <include>
+            <directory suffix=".php">includes</directory>
+            <directory suffix=".php">admin</directory>
+        </include>
+        <exclude>
+            <file>includes/class-sscribe-activator.php</file>
+            <file>includes/class-sscribe-deactivator.php</file>
+        </exclude>
+    </source>
+
+    <php>
+        <env name="WP_TESTS_DIR" value="tests-wp/_wordpress-tests-lib"/>
+        <env name="WP_CORE_DIR" value="tests-wp/_wordpress"/>
+        <env name="WP_PHP_BINARY" value="php -d extension=sqlite3 -d extension=pdo_sqlite"/>
+        <ini name="memory_limit" value="1024M"/>
+    </php>
+</phpunit>

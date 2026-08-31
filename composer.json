@@ -17,6 +17,7 @@
         "psr/container": "^2.0"
     },
     "require-dev": {
+        "automattic/vipwpcs": "^3.1.0",
         "brianhenryie/strauss": "~0.28.1",
         "dealerdirect/phpcodesniffer-composer-installer": "^1.2",
         "phpcompatibility/phpcompatibility-wp": "^2.1",
@@ -24,7 +25,7 @@
         "phpunit/phpunit": "^11.5",
         "squizlabs/php_codesniffer": "^3.13.5",
         "wp-coding-standards/wpcs": "^3.4.1",
-        "automattic/vipwpcs": "^3.1.0"
+        "yoast/phpunit-polyfills": "^3.1.2"
     },
     "autoload": {
         "classmap": [
@@ -50,6 +51,12 @@
         ],
         "test": "phpunit",
         "test:coverage": "phpunit --coverage-html coverage/",
+        "test:wp": "php -d extension=sqlite3 -d extension=pdo_sqlite -d memory_limit=1G vendor/bin/phpunit -c phpunit-wp.xml",
+        "test:wp:install": "bash bin/install-wp-tests.sh --sqlite",
+        "test:wp:uninstall": "bash bin/uninstall-wp-tests.sh",
+        "test:all": "composer test && composer test:wp",
+        "ci": "composer version:check && composer test && composer stan && composer cs",
+        "ci:full": "composer version:check && composer vendor:prefix && composer test && composer test:wp && composer stan && composer cs",
         "stan": "phpstan analyse --memory-limit=512M",
         "cs": "phpcs -d memory_limit=512M --standard=phpcs.xml",
         "cs:fix": "phpcbf -d memory_limit=512M --standard=phpcs.xml",
@@ -60,7 +67,7 @@
         "clean:cache": "php -r \"array_map('unlink', glob('.cache/**/*.*')); array_map('rmdir', glob('.cache/*', GLOB_ONLYDIR)); is_dir('.cache') && rmdir('.cache'); echo 'Cache cleared.\\n';\"",
         "clean:coverage": "php -r \"is_dir('coverage') && array_map('unlink', glob('coverage/*.*')) && rmdir('coverage'); echo 'Coverage cleared.\\n';\"",
         "ci": "composer version:check && composer test && composer stan && composer cs",
-        "ci:full": "composer version:check && composer vendor:prefix && composer test && composer stan && composer cs",
+        "ci:full": "composer version:check && composer vendor:prefix && composer test && composer test:wp && composer stan && composer cs",
         "release:prepare": "php scripts/release-prepare.php",
         "release:commit": "php scripts/release-commit.php",
         "release:full": "composer release:prepare && composer release:commit",
