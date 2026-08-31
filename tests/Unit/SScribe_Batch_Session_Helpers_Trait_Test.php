@@ -20,7 +20,7 @@ class SScribe_Batch_Session_Helpers_Trait_Test extends TestCase {
 
 	/**
 	 * The trait must expose both `get_required_capability()` and
-	 * `check_rate_limit()` to the using class. Verify via reflection
+	 * `check_rate_limit_decision()` to the using class. Verify via reflection
 	 * (the methods are protected, so we cannot call them from the
 	 * test class directly).
 	 */
@@ -32,15 +32,15 @@ class SScribe_Batch_Session_Helpers_Trait_Test extends TestCase {
 			'get_required_capability() is missing from the using class'
 		);
 		$this->assertTrue(
-			$ref->hasMethod( 'check_rate_limit' ),
-			'check_rate_limit() is missing from the using class'
+			$ref->hasMethod( 'check_rate_limit_decision' ),
+			'check_rate_limit_decision() is missing from the using class'
 		);
 
 		// The methods come from the trait and are inherited by the
 		// using class. PHP reports them on the using class itself
 		// (traits are inlined), so we just confirm the names exist.
 		$this->assertNotNull( $ref->getMethod( 'get_required_capability' ) );
-		$this->assertNotNull( $ref->getMethod( 'check_rate_limit' ) );
+		$this->assertNotNull( $ref->getMethod( 'check_rate_limit_decision' ) );
 	}
 }
 

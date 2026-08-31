@@ -35,17 +35,21 @@ trait SScribe_Batch_Step_Handler {
 	 */
 	public function ajax_process_batch(): void {
 
-		$rate_check = $this->check_rate_limit( 'export_batch' );
-		if ( false === $rate_check ) {
-			SScribe_AJAX_Guard::error(
-				array(
-					'code'     => 'rate_limited',
-					'message'  => __( 'Too many requests. Please wait a moment.', 'sscribe-export-site-pages' ),
-					'retry'    => true,
-					'retry_in' => 60000,
-				),
-				429
-			);
+		$decision = $this->check_rate_limit_decision( 'export_batch' );
+		if ( ! $decision->allowed ) {
+			if ( class_exists( 'SScribe_Rate_Limit_Response' ) ) {
+				\SScribe_Rate_Limit_Response::emit( $decision );
+			} else {
+				SScribe_AJAX_Guard::error(
+					array(
+						'code'     => $decision->error_code(),
+						'message'  => __( 'Too many requests. Please wait a moment.', 'sscribe-export-site-pages' ),
+						'retry'    => true,
+						'retry_in' => $decision->retry_after_ms,
+					),
+					$decision->http_status()
+				);
+			}
 		}
 
 		$last_heal = get_transient( 'sscribe_last_self_heal' );
@@ -143,16 +147,7 @@ trait SScribe_Batch_Step_Handler {
 			if ( null === $this->current_lock_token ) {
 				$this->logger->debug( 'Lock acquisition failed : another process holds the lock', array( 'session_id' => $session_id ) );
 				$this->restore_ob_level( $ob_level_before );
-				SScribe_AJAX_Guard::error(
-					array(
-						'code'     => 'batch_locked',
-						'status'   => 'locked',
-						'retry'    => true,
-						'retry_in' => 60000,
-						'message'  => __( 'A batch is already processing. Please wait.', 'sscribe-export-site-pages' ),
-					),
-					429
-				);
+				\SScribe_Lock_Response::emit_conflict( $session_id, 5000 );
 			}
 
 			$lock_token = $this->current_lock_token;
@@ -620,9 +615,17 @@ trait SScribe_Batch_Step_Handler {
 					)
 				);
 
-				if ( SScribe_Logger::is_logging_enabled() ) {
-					error_log( // phpcs:ignore WordPress.PHP.DevelopmentFunctions.error_log_error_log -- Fallback error logging when logger is available.
-						'SScribe batch error: ' . $e->getMessage() . ' | Page: ' . ( $current_batch_page_id ?? 'unknown' )
+				if ( class_exists( 'SScribe_Operational_Logger' ) ) {
+					\SScribe_Operational_Logger::record(
+						\SScribe_Operational_Logger::LEVEL_ERROR,
+						'Batch processing failed uncaught',
+						array(
+							'page_id'         => $current_batch_page_id ?? 'unknown',
+							'processed'       => $processed,
+							'exception_class' => get_class( $e ),
+							'file'            => basename( $e->getFile() ),
+							'line'            => $e->getLine(),
+						)
 					);
 				}
 			} finally {

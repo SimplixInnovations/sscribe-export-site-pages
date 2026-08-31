@@ -19,7 +19,7 @@
  *   - get_lock_manager()      → SScribe_Export_Lock_Manager
  *
  * Plus SScribe_Batch_Session_Helpers for
- * get_required_capability() and check_rate_limit().
+ * get_required_capability() and check_rate_limit_decision().
  *
  * @package SScribe_Export_Site_Pages
  * @license GPL v2 or later
@@ -48,13 +48,14 @@ trait SScribe_Session_AJAX {
 	 */
 	public function ajax_check_active_session(): void {
 
-		$rate_check = $this->check_rate_limit();
-		if ( false === $rate_check ) {
+		$decision = $this->check_rate_limit_decision( 'export_read' );
+		if ( ! $decision->allowed ) {
 
 			wp_send_json_success(
 				array(
 					'has_active'   => false,
 					'rate_limited' => true,
+					'retry_in'     => $decision->retry_after_ms,
 				)
 			);
 			return;
@@ -141,30 +142,14 @@ trait SScribe_Session_AJAX {
 			);
 		}
 
-		$rate_check = $this->check_rate_limit();
-		if ( false === $rate_check ) {
-			SScribe_AJAX_Guard::error(
-				array(
-					'code'     => 'rate_limited',
-					'message'  => __( 'Too many requests. Please wait a moment.', 'sscribe-export-site-pages' ),
-					'retry'    => true,
-					'retry_in' => 60000,
-				),
-				429
-			);
+		$decision = $this->check_rate_limit_decision( 'export_start' );
+		if ( ! $decision->allowed ) {
+			\SScribe_Rate_Limit_Response::emit( $decision );
 		}
 
 		$lock_token = $this->get_lock_manager()->acquire_lock( $session_id, 30, 25 );
 		if ( null === $lock_token ) {
-			SScribe_AJAX_Guard::error(
-				array(
-					'code'     => 'batch_in_progress',
-					'message'  => __( 'A batch is processing. Try again in a moment.', 'sscribe-export-site-pages' ),
-					'retry'    => true,
-					'retry_in' => 5000,
-				),
-				409
-			);
+			\SScribe_Lock_Response::emit_conflict( $session_id, 5000 );
 		}
 
 		try {
@@ -221,17 +206,9 @@ trait SScribe_Session_AJAX {
 	 */
 	public function ajax_clear_session(): void {
 
-		$rate_check = $this->check_rate_limit();
-		if ( false === $rate_check ) {
-			SScribe_AJAX_Guard::error(
-				array(
-					'code'     => 'rate_limited',
-					'message'  => __( 'Too many requests. Please wait a moment.', 'sscribe-export-site-pages' ),
-					'retry'    => true,
-					'retry_in' => 60000,
-				),
-				429
-			);
+		$decision = $this->check_rate_limit_decision( 'export_start' );
+		if ( ! $decision->allowed ) {
+			\SScribe_Rate_Limit_Response::emit( $decision );
 		}
 
 		$user_id = get_current_user_id();

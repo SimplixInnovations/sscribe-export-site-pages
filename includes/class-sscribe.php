@@ -357,6 +357,15 @@ class SScribe {
 		require_once SSCRIBE_PLUGIN_DIR . 'includes/class-sscribe-upgrader.php';
 		SScribe_Upgrader::maybe_upgrade();
 
+		require_once SSCRIBE_PLUGIN_DIR . 'includes/class-sscribe-request-id.php';
+		require_once SSCRIBE_PLUGIN_DIR . 'includes/class-sscribe-operational-logger.php';
+		require_once SSCRIBE_PLUGIN_DIR . 'includes/class-sscribe-fatal-handler.php';
+		require_once SSCRIBE_PLUGIN_DIR . 'includes/class-sscribe-rate-limit-response.php';
+		require_once SSCRIBE_PLUGIN_DIR . 'includes/class-sscribe-lock-response.php';
+		SScribe_Fatal_Handler::boot( SSCRIBE_PLUGIN_DIR );
+
+		\SScribe_Request_Id::current();
+
 		$this->register_services();
 		$this->define_admin_hooks();
 		$this->define_ajax_hooks();

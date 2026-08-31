@@ -42,17 +42,9 @@ trait SScribe_Export_Finalizer {
 	 */
 	public function ajax_finalize_export(): void {
 
-		$rate_check = $this->check_rate_limit( 'export_batch' );
-		if ( false === $rate_check ) {
-			SScribe_AJAX_Guard::error(
-				array(
-					'code'     => 'rate_limited',
-					'message'  => __( 'Too many requests. Please wait a moment.', 'sscribe-export-site-pages' ),
-					'retry'    => true,
-					'retry_in' => 60000,
-				),
-				429
-			);
+		$decision = $this->check_rate_limit_decision( 'export_finalize' );
+		if ( ! $decision->allowed ) {
+			\SScribe_Rate_Limit_Response::emit( $decision );
 		}
 
 		$session_id = SScribe_AJAX_Guard::post_text( 'session_id', '', 16 );

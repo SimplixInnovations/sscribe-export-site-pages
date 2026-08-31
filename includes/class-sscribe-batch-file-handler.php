@@ -82,9 +82,14 @@ class SScribe_Batch_File_Handler {
 			wp_die( esc_html__( 'Permission denied.', 'sscribe-export-site-pages' ) );
 		}
 
-		$rate_check = $this->check_rate_limit();
-		if ( false === $rate_check ) {
-			status_header( 429 );
+		$decision = $this->check_rate_limit_decision( 'export_finalize' );
+		if ( ! $decision->allowed ) {
+			status_header( $decision->http_status() );
+			$retry_seconds = (int) ceil( $decision->retry_after_ms / 1000 );
+			if ( $retry_seconds < 1 ) {
+				$retry_seconds = 1;
+			}
+			header( 'Retry-After: ' . $retry_seconds );
 			wp_die( esc_html__( 'Too many requests. Please wait a moment and try again.', 'sscribe-export-site-pages' ) );
 		}
 
@@ -228,17 +233,9 @@ class SScribe_Batch_File_Handler {
 			);
 		}
 
-		$rate_check = $this->check_rate_limit();
-		if ( false === $rate_check ) {
-			SScribe_AJAX_Guard::error(
-				array(
-					'code'     => 'rate_limited',
-					'message'  => __( 'Too many requests. Please wait a moment.', 'sscribe-export-site-pages' ),
-					'retry'    => true,
-					'retry_in' => 60000,
-				),
-				429
-			);
+		$decision = $this->check_rate_limit_decision( 'export_finalize' );
+		if ( ! $decision->allowed ) {
+			\SScribe_Rate_Limit_Response::emit( $decision );
 		}
 
 		$raw_filename = isset( $_POST['file'] ) && is_string( $_POST['file'] ) ? sanitize_text_field( wp_unslash( $_POST['file'] ) ) : '';
@@ -303,11 +300,14 @@ class SScribe_Batch_File_Handler {
 	}
 
 	/**
-	 * Verify rate limit hasn't been exceeded.
+	 * Verify rate limit and return the structured decision so callers
+	 * can distinguish quota exhaustion (HTTP 429) from internal
+	 * micro-lock contention (HTTP 503).
 	 *
-	 * @return bool True when allowed, false when limited or contended.
+	 * @param string $bucket Rate-limit bucket name.
+	 * @return SScribe_Rate_Limit_Decision Decision describing the outcome.
 	 */
-	private function check_rate_limit(): bool {
-		return $this->rate_limiter->check_rate_limit( $this->get_required_capability() );
+	private function check_rate_limit_decision( string $bucket = 'export_finalize' ): \SScribe_Rate_Limit_Decision {
+		return $this->rate_limiter->check_rate_limit_decision( $this->get_required_capability(), $bucket );
 	}
 }

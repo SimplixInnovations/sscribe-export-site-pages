@@ -37,9 +37,15 @@ trait SScribe_Batch_Session_Helpers {
 	/**
 	 * Verify the rate limit hasn't been exceeded.
 	 *
-	 * @return bool|null True when allowed, false when limited, null on lock contention.
+	 * Returns the structured decision so callers can distinguish genuine
+	 * quota exhaustion (HTTP 429) from internal micro-lock contention
+	 * (HTTP 503) and emit the canonical response via
+	 * {@see SScribe_Rate_Limit_Response::emit()}.
+	 *
+	 * @param string $bucket Rate-limit bucket name.
+	 * @return SScribe_Rate_Limit_Decision Decision describing the outcome.
 	 */
-	protected function check_rate_limit(): ?bool {
-		return $this->get_rate_limiter()->check_rate_limit( $this->get_required_capability() );
+	protected function check_rate_limit_decision( string $bucket = 'export_start' ): \SScribe_Rate_Limit_Decision {
+		return $this->get_rate_limiter()->check_rate_limit_decision( $this->get_required_capability(), $bucket );
 	}
 }

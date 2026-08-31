@@ -142,15 +142,21 @@ class SScribe_Export_Query_Controller {
 			);
 		}
 
-		$rate_check = $this->rate_limiter->check_rate_limit( $health_capability );
-		if ( false === $rate_check ) {
-			SScribe_AJAX_Guard::error(
-				array(
-					'code'    => 'rate_limited',
-					'message' => __( 'Too many requests. Please wait a moment.', 'sscribe-export-site-pages' ),
-				),
-				429
-			);
+		$decision = $this->rate_limiter->check_rate_limit_decision( $health_capability, 'health' );
+		if ( ! $decision->allowed ) {
+			if ( class_exists( 'SScribe_Rate_Limit_Response' ) ) {
+				\SScribe_Rate_Limit_Response::emit( $decision );
+			} else {
+				SScribe_AJAX_Guard::error(
+					array(
+						'code'    => $decision->error_code(),
+						'message' => __( 'Too many requests. Please wait a moment.', 'sscribe-export-site-pages' ),
+						'retry'   => true,
+						'retry_in' => $decision->retry_after_ms,
+					),
+					$decision->http_status()
+				);
+			}
 		}
 
 		$force = '1' === SScribe_AJAX_Guard::get_text( 'force', '0', 1 );
@@ -185,15 +191,9 @@ class SScribe_Export_Query_Controller {
 	 * @return void
 	 */
 	public function ajax_get_status_counts( string $export_capability = 'sscribe_export' ): void {
-		$rate_check = $this->rate_limiter->check_rate_limit( $export_capability );
-		if ( false === $rate_check ) {
-			SScribe_AJAX_Guard::error(
-				array(
-					'code'    => 'rate_limited',
-					'message' => __( 'Too many requests. Please wait.', 'sscribe-export-site-pages' ),
-				),
-				429
-			);
+		$decision = $this->rate_limiter->check_rate_limit_decision( $export_capability, 'export_read' );
+		if ( ! $decision->allowed ) {
+			\SScribe_Rate_Limit_Response::emit( $decision );
 		}
 
 		$requested_language = SScribe_AJAX_Guard::post_text( 'language', '', 100 );
@@ -244,15 +244,9 @@ class SScribe_Export_Query_Controller {
 	 * @return void
 	 */
 	public function ajax_get_all_status_counts( string $export_capability = 'sscribe_export' ): void {
-		$rate_check = $this->rate_limiter->check_rate_limit( $export_capability );
-		if ( false === $rate_check ) {
-			SScribe_AJAX_Guard::error(
-				array(
-					'code'    => 'rate_limited',
-					'message' => __( 'Too many requests. Please wait.', 'sscribe-export-site-pages' ),
-				),
-				429
-			);
+		$decision = $this->rate_limiter->check_rate_limit_decision( $export_capability, 'export_read' );
+		if ( ! $decision->allowed ) {
+			\SScribe_Rate_Limit_Response::emit( $decision );
 		}
 
 		$post_type = SScribe_AJAX_Guard::post_text( 'post_type', 'page', 30 );
@@ -374,17 +368,9 @@ class SScribe_Export_Query_Controller {
 			);
 		}
 
-		$rate_check = $this->rate_limiter->check_rate_limit( $export_capability );
-		if ( false === $rate_check ) {
-			SScribe_AJAX_Guard::error(
-				array(
-					'message'  => __( 'Too many requests. Please wait a moment.', 'sscribe-export-site-pages' ),
-					'code'     => 'rate_limited',
-					'retry'    => true,
-					'retry_in' => 60000,
-				),
-				429
-			);
+		$decision = $this->rate_limiter->check_rate_limit_decision( $export_capability, 'export_read' );
+		if ( ! $decision->allowed ) {
+			\SScribe_Rate_Limit_Response::emit( $decision );
 		}
 
 		$log_data = SScribe_Export_Log::get_log_by_filename( $filename );
@@ -433,16 +419,9 @@ class SScribe_Export_Query_Controller {
 	 * @return void
 	 */
 	public function ajax_preflight_check( string $export_capability = 'sscribe_export' ): void {
-		if ( false === $this->rate_limiter->check_rate_limit( $export_capability ) ) {
-			SScribe_AJAX_Guard::error(
-				array(
-					'message'  => __( 'Too many requests. Please wait a moment.', 'sscribe-export-site-pages' ),
-					'code'     => 'rate_limited',
-					'retry'    => true,
-					'retry_in' => 60000,
-				),
-				429
-			);
+		$decision = $this->rate_limiter->check_rate_limit_decision( $export_capability, 'health' );
+		if ( ! $decision->allowed ) {
+			\SScribe_Rate_Limit_Response::emit( $decision );
 		}
 
 		$formats_raw   = SScribe_AJAX_Guard::post_array( 'formats', 10 );
@@ -479,17 +458,9 @@ class SScribe_Export_Query_Controller {
 	 * @return void
 	 */
 	public function ajax_get_export_preview( string $export_capability = 'sscribe_export' ): void {
-		$rate_check = $this->rate_limiter->check_rate_limit( $export_capability );
-		if ( false === $rate_check ) {
-			SScribe_AJAX_Guard::error(
-				array(
-					'message'  => __( 'Too many requests. Please wait a moment.', 'sscribe-export-site-pages' ),
-					'code'     => 'rate_limited',
-					'retry'    => true,
-					'retry_in' => 60000,
-				),
-				429
-			);
+		$decision = $this->rate_limiter->check_rate_limit_decision( $export_capability, 'export_read' );
+		if ( ! $decision->allowed ) {
+			\SScribe_Rate_Limit_Response::emit( $decision );
 		}
 
 		$requested_language = SScribe_AJAX_Guard::post_text( 'language', '', 100 );
@@ -611,17 +582,9 @@ class SScribe_Export_Query_Controller {
 	 * @return void
 	 */
 	public function ajax_get_recent_exports( string $export_capability = 'sscribe_export' ): void {
-		$rate_check = $this->rate_limiter->check_rate_limit( $export_capability );
-		if ( false === $rate_check ) {
-			SScribe_AJAX_Guard::error(
-				array(
-					'message'  => __( 'Too many requests. Please wait a moment.', 'sscribe-export-site-pages' ),
-					'code'     => 'rate_limited',
-					'retry'    => true,
-					'retry_in' => 60000,
-				),
-				429
-			);
+		$decision = $this->rate_limiter->check_rate_limit_decision( $export_capability, 'export_read' );
+		if ( ! $decision->allowed ) {
+			\SScribe_Rate_Limit_Response::emit( $decision );
 		}
 
 		$exports = $this->zip_handler->list_export_entries();
@@ -727,17 +690,9 @@ class SScribe_Export_Query_Controller {
 			);
 		}
 
-		$rate_check = $this->rate_limiter->check_rate_limit( $health_capability, 'health_support' );
-		if ( false === $rate_check ) {
-			SScribe_AJAX_Guard::error(
-				array(
-					'code'     => 'rate_limited',
-					'message'  => __( 'Too many requests. Please wait a moment.', 'sscribe-export-site-pages' ),
-					'retry'    => true,
-					'retry_in' => 60000,
-				),
-				429
-			);
+		$decision = $this->rate_limiter->check_rate_limit_decision( $health_capability, 'health' );
+		if ( ! $decision->allowed ) {
+			\SScribe_Rate_Limit_Response::emit( $decision );
 		}
 
 		try {

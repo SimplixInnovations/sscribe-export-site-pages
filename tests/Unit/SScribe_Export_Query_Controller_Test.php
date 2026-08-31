@@ -68,6 +68,9 @@ class SScribe_Export_Query_Controller_Test extends TestCase {
 		if ( null === $rate_limiter ) {
 			$rate_limiter = $this->createMock( \SScribe_Export_Rate_Limiter::class );
 			$rate_limiter->method( 'check_rate_limit' )->willReturn( true );
+			$rate_limiter->method( 'check_rate_limit_decision' )->willReturn(
+				\SScribe_Rate_Limit_Decision::allowed( 'export_read', 200, 199, 0 )
+			);
 		}
 		return new \SScribe_Export_Query_Controller(
 			$rate_limiter,

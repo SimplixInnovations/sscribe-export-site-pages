@@ -15,6 +15,11 @@ if ( ! defined( 'ABSPATH' ) ) {
 
 /**
  * Rate limiting for export operations per user/IP.
+ *
+ * Bucket-aware so harmless UI reads do not consume the same logical quota
+ * as export mutations. Returns a {@see SScribe_Rate_Limit_Decision} so the
+ * caller can distinguish genuine quota exhaustion from internal
+ * micro-lock contention and report different HTTP status codes.
  */
 class SScribe_Export_Rate_Limiter {
 
@@ -29,26 +34,66 @@ class SScribe_Export_Rate_Limiter {
 	private const OPTION_LOCK_PREFIX = 'sscribe_rate_lock_';
 
 	/**
-	 * Check if current user/IP is within rate limits.
+	 * Canonical rate-limit buckets.
 	 *
-	 * Uses micro-lock pattern to prevent race conditions on concurrent requests.
+	 * - export_start    : starting or clearing an export.
+	 * - export_batch    : mid-flight batch continuation calls.
+	 * - export_finalize : finalize / download / ZIP handoff.
+	 * - export_read     : status counts, preview, recent exports, active-session check.
+	 * - debug_read      : debug log fetch / file listing.
+	 * - debug_write     : debug settings save / clear logs.
+	 * - health          : preflight / health check.
+	 *
+	 * Legacy alias `export` is retained for back-compat with on-disk
+	 * transient keys and existing call sites; treat it as a synonym for
+	 * `export_start`.
+	 */
+	public const BUCKETS = array(
+		'export_start',
+		'export_batch',
+		'export_finalize',
+		'export_read',
+		'debug_read',
+		'debug_write',
+		'health',
+		'export',
+	);
+
+	public const BUCKET_DEFAULT = 'export';
+
+	/**
+	 * Back-compat shim that returns a bool.
+	 *
+	 * Existing callers that have not yet been migrated to the decision
+	 * contract continue to receive `true` when allowed and `false` when
+	 * denied, regardless of the underlying reason (quota exhaustion vs
+	 * internal contention). New code should call {@see check_rate_limit_decision()}.
 	 *
 	 * @param string $export_capability Required capability.
-	 * @param string $bucket            Rate limit bucket name (default: 'export').
-	 *                                 Use 'debug' for debug console actions to keep
-	 *                                 them in a separate bucket from export actions.
+	 * @param string $bucket            Rate limit bucket name.
 	 * @return bool True when allowed; false when limited or contended.
 	 */
-	public function check_rate_limit( string $export_capability = 'sscribe_export', string $bucket = 'export' ): bool {
-		$user_id = get_current_user_id();
-		$bucket  = substr( sanitize_key( $bucket ), 0, 40 );
-		$bucket  = '' !== $bucket ? $bucket : 'export';
+	public function check_rate_limit( string $export_capability = 'sscribe_export', string $bucket = self::BUCKET_DEFAULT ): bool {
+		$decision = $this->check_rate_limit_decision( $export_capability, $bucket );
+		return $decision->allowed;
+	}
 
+	/**
+	 * Primary rate-limit entry point returning a structured decision.
+	 *
+	 * @param string $export_capability Required capability.
+	 * @param string $bucket            Rate limit bucket name.
+	 * @return SScribe_Rate_Limit_Decision Decision describing the outcome.
+	 */
+	public function check_rate_limit_decision( string $export_capability = 'sscribe_export', string $bucket = self::BUCKET_DEFAULT ): SScribe_Rate_Limit_Decision {
+		$bucket = $this->normalise_bucket( $bucket );
+
+		$user_id = get_current_user_id();
 		if ( $user_id > 0 ) {
 			$transient_key = 'sscribe_rate_' . $bucket . '_' . $user_id;
 		} else {
-			$remote_ip = $this->get_client_ip();
-			$transient_key = 'sscribe_rate_' . $bucket . '_anon_' . substr( hash( 'sha256', $remote_ip ), 0, 12 );
+			$remote_ip      = $this->get_client_ip();
+			$transient_key  = 'sscribe_rate_' . $bucket . '_anon_' . substr( hash( 'sha256', $remote_ip ), 0, 12 );
 		}
 
 		$now             = time();
@@ -61,9 +106,9 @@ class SScribe_Export_Rate_Limiter {
 			? max( 1, (int) apply_filters( 'sscribe_rate_limit_admin', 500 ) )
 			: self::RATE_LIMIT_MAX;
 
-		$locked = false;
+		$locked  = false;
 		$attempts = 0;
-		while ( ! $locked && $attempts < 2 ) {
+		while ( ! $locked && $attempts < 3 ) {
 			if ( $using_cache ) {
 				$locked = wp_cache_add( $cache_lock_key, $lock_token, self::LOCK_CACHE_GROUP, 5 );
 			} else {
@@ -83,13 +128,13 @@ class SScribe_Export_Rate_Limiter {
 				}
 			}
 			++$attempts;
-			if ( ! $locked && $attempts < 2 ) {
-				usleep( 50000 );
+			if ( ! $locked && $attempts < 3 ) {
+				usleep( 25000 );
 			}
 		}
 
 		if ( ! $locked ) {
-			return false;
+			return SScribe_Rate_Limit_Decision::limiter_contention( $bucket, $rate_limit, 750 );
 		}
 
 		$data = $using_cache
@@ -111,8 +156,9 @@ class SScribe_Export_Rate_Limiter {
 		}
 
 		if ( (int) $data['count'] >= $rate_limit ) {
+			$retry_ms = max( 1000, ( (int) $data['reset_at'] - $now ) * 1000 );
 			$this->release_lock( $using_cache, $cache_lock_key, $option_lock_key, $lock_token );
-			return false;
+			return SScribe_Rate_Limit_Decision::quota_exceeded( $bucket, $rate_limit, $retry_ms, (int) $data['reset_at'] );
 		}
 
 		$new_count = (int) $data['count'];
@@ -131,13 +177,40 @@ class SScribe_Export_Rate_Limiter {
 		}
 
 		if ( $new_count > $rate_limit ) {
+			$retry_ms = max( 1000, ( (int) $data['reset_at'] - $now ) * 1000 );
 			$this->release_lock( $using_cache, $cache_lock_key, $option_lock_key, $lock_token );
-			return false;
+			return SScribe_Rate_Limit_Decision::quota_exceeded( $bucket, $rate_limit, $retry_ms, (int) $data['reset_at'] );
 		}
 
 		$this->release_lock( $using_cache, $cache_lock_key, $option_lock_key, $lock_token );
 
-		return true;
+		return SScribe_Rate_Limit_Decision::allowed(
+			$bucket,
+			$rate_limit,
+			max( 0, $rate_limit - $new_count ),
+			(int) $data['reset_at']
+		);
+	}
+
+	/**
+	 * Normalise a bucket name against the canonical allow-list.
+	 *
+	 * Falls back to {@see self::BUCKET_DEFAULT} when the supplied value
+	 * is unknown, so unknown buckets never silently share a counter with
+	 * any other call site.
+	 *
+	 * @param string $bucket Raw bucket name.
+	 * @return string Canonical bucket name.
+	 */
+	private function normalise_bucket( string $bucket ): string {
+		$bucket = substr( sanitize_key( $bucket ), 0, 40 );
+		if ( '' === $bucket ) {
+			return self::BUCKET_DEFAULT;
+		}
+		if ( in_array( $bucket, self::BUCKETS, true ) ) {
+			return $bucket;
+		}
+		return self::BUCKET_DEFAULT;
 	}
 
 	/**

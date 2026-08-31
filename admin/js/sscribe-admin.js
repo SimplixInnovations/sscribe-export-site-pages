@@ -1085,8 +1085,27 @@
 						self.proceedWithExport(language, postStatus, postType, formats);
 					}
 				},
-				error: function () {
-					self.proceedWithExport(language, postStatus, postType, formats);
+				error: function (xhr) {
+					const data =
+						xhr && xhr.responseJSON && xhr.responseJSON.data ? xhr.responseJSON.data : {};
+					const decision = SScribe.getAjaxFailureDecision(xhr, data);
+					if (decision.action === 'retry') {
+						setTimeout(function () {
+							self.runPreflightCheck(language, postStatus, postType, format);
+						}, decision.delayMs);
+						return;
+					}
+					if (decision.action === 'refresh_nonce') {
+						SScribe.refreshNonceAnd(function () {
+							self.runPreflightCheck(language, postStatus, postType, format);
+						});
+						return;
+					}
+					const msg =
+						SScribe.parseServerError(xhr) ||
+						SScribe.getNetworkErrorMessage(xhr, 'preflight_check') ||
+						'Preflight check failed. Please try again.';
+					SScribe.showToast(msg, 'error', 6000);
 				},
 			});
 		},
@@ -3817,6 +3836,156 @@
 				alertRegion.textContent = message;
 			}
 			this.showToast(message, 'warning', 8000);
+		},
+		/**
+		 * Centralized translator from a jqXHR failure into a single decision
+		 * object the rest of the code can branch on without re-deriving the
+		 * same status-code / retry_in logic at every call site.
+		 *
+		 * Decision contract:
+		 *   {
+		 *     'action':    'retry' | 'fail' | 'refresh_nonce' | 'noop'
+		 *     'delayMs':   number       // recommended delay before retry (>=0)
+		 *     'reason':    string       // machine-readable bucket
+		 *     'messageKey':string|null  // sscribe_data.strings key, when known
+		 *   }
+		 *
+		 * Status mapping (server-side decisions match this):
+		 *   409 batch_in_progress / batch_locked : short retry with jitter
+		 *   429 rate_limited / rate_limit        : server-driven retry_in (clamped)
+		 *   503 rate_limiter_busy / contention   : short jittered retry
+		 *   403 invalid_nonce                    : refresh-once retry of the same call
+		 *   0   network / abort                  : bounded retry, no message
+		 *   other                                : 'fail' (caller shows the message)
+		 *
+		 * @param {jqXHR|null} xhr      jQuery XHR.
+		 * @param {object}     response Parsed responseJSON.data (may be empty).
+		 * @param {object}     options  Optional override flags (jitter seed etc.).
+		 * @returns {object} Decision object.
+		 */
+		getAjaxFailureDecision: function (xhr, response, options) {
+			const opts = options || {};
+			const data = response || {};
+			const code = typeof data.code === 'string' ? data.code : '';
+			const serverDelay = Number(data.retry_in);
+			const hasServerDelay = isFinite(serverDelay) && serverDelay > 0;
+
+			const status = xhr && typeof xhr.status === 'number' ? xhr.status : 0;
+
+			if (status === 409 || code === 'batch_in_progress' || code === 'batch_locked') {
+				const lower = hasServerDelay ? Math.max(500, serverDelay) : 5000;
+				const upper = hasServerDelay ? Math.min(30000, serverDelay + 5000) : 8000;
+				return {
+					action: 'retry',
+					delayMs: SScribe._jitteredDelay(lower, upper, opts.jitterSeed),
+					reason: 'batch_locked',
+					messageKey: 'err_batch_locked',
+				};
+			}
+
+			if (status === 429 || code === 'rate_limited') {
+				const delay = hasServerDelay ? Math.max(1000, serverDelay) : 60000;
+				return {
+					action: 'retry',
+					delayMs: delay,
+					reason: 'rate_limited',
+					messageKey: 'err_rate_limit',
+				};
+			}
+
+			if (status === 503 || code === 'rate_limiter_busy') {
+				return {
+					action: 'retry',
+					delayMs: SScribe._jitteredDelay(500, 1500, opts.jitterSeed),
+					reason: 'limiter_contention',
+					messageKey: 'err_limiter_busy',
+				};
+			}
+
+			if (status === 403 && (code === 'invalid_nonce' || code === 'security_check_failed')) {
+				return {
+					action: 'refresh_nonce',
+					delayMs: 0,
+					reason: 'invalid_nonce',
+					messageKey: 'err_session_expired',
+				};
+			}
+
+			if (status === 0) {
+				return {
+					action: 'retry',
+					delayMs: SScribe._jitteredDelay(2000, 4000, opts.jitterSeed),
+					reason: 'network',
+					messageKey: 'err_connection',
+				};
+			}
+
+			return {
+				action: 'fail',
+				delayMs: 0,
+				reason: code || 'unknown',
+				messageKey: null,
+			};
+		},
+		/**
+		 * Refresh the WordPress nonce for SScribe AJAX calls.
+		 *
+		 * Falls back to a page reload because the canonical way to obtain
+		 * a fresh nonce is to re-render the admin page (which re-reads the
+		 * session-bound nonce). The fallback path is safe to call even
+		 * when the current call has already failed with invalid_nonce.
+		 *
+		 * @param {Function} after Optional callback to invoke after reload
+		 *                        (only fires when a dedicated refresh
+		 *                        endpoint succeeds; in reload mode the
+		 *                        page navigation supersedes it).
+		 */
+		refreshNonceAnd: function (after) {
+			if (
+				typeof sscribe_data !== 'undefined' &&
+				sscribe_data &&
+				sscribe_data.refresh_nonce_url
+			) {
+				$.ajax({
+					url: sscribe_data.refresh_nonce_url,
+					type: 'POST',
+					dataType: 'json',
+					data: { action: 'sscribe_refresh_nonce' },
+					success: function (response) {
+						if (response && response.success && response.data && response.data.nonce) {
+							sscribe_data.nonce = response.data.nonce;
+							if (typeof after === 'function') {
+								after();
+							}
+							return;
+						}
+						window.location.reload();
+					},
+					error: function () {
+						window.location.reload();
+					},
+				});
+				return;
+			}
+			window.location.reload();
+		},
+		/**
+		 * Stable, deterministic jittered delay between [lowerMs, upperMs].
+		 * Uses a Math.random fallback by default; pass a 0-1 number as
+		 * jitterSeed to make it reproducible in tests.
+		 *
+		 * @param {number} lowerMs   Lower bound in ms (inclusive).
+		 * @param {number} upperMs   Upper bound in ms (inclusive).
+		 * @param {number} jitterSeed Optional 0-1 override.
+		 * @returns {number} Delay in ms.
+		 */
+		_jitteredDelay: function (lowerMs, upperMs, jitterSeed) {
+			const lo = Math.max(0, Math.floor(lowerMs));
+			const hi = Math.max(lo, Math.floor(upperMs));
+			const seed = typeof jitterSeed === 'number' && isFinite(jitterSeed)
+				? Math.min(1, Math.max(0, jitterSeed))
+				: Math.random();
+			return Math.floor(lo + (hi - lo) * seed);
 		},
 		/**
 		 * @param {jqXHR} xhr The jQuery XHR object.

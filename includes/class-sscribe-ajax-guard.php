@@ -146,8 +146,25 @@ class SScribe_AJAX_Guard {
 		self::sanitise_environment();
 		self::log_cleaned_buffers( 'success' );
 
-		if ( defined( 'SSCRIBE_DEBUG' ) && SSCRIBE_DEBUG && current_user_can( SScribe_Capabilities::get_health_required() ) && is_array( $data ) ) {
-			$data['_debug'] = self::build_diagnostics( $context );
+		$request_id = SScribe_Request_Id::current();
+		if ( function_exists( 'header' ) && ! headers_sent() ) {
+			header( SScribe_Request_Id::HEADER . ': ' . $request_id );
+		}
+
+		if ( is_array( $data ) ) {
+			if ( ! isset( $data[ SScribe_Request_Id::RESPONSE_KEY ] ) ) {
+				$data[ SScribe_Request_Id::RESPONSE_KEY ] = $request_id;
+			}
+		} else {
+			$data = array(
+				SScribe_Request_Id::RESPONSE_KEY => $request_id,
+				'value'                          => $data,
+			);
+		}
+
+		if ( defined( 'SSCRIBE_DEBUG' ) && SSCRIBE_DEBUG && current_user_can( SScribe_Capabilities::get_health_required() ) ) {
+			$diagnostics = self::build_diagnostics( $context );
+			$data['_debug'] = $diagnostics;
 		}
 
 		wp_send_json_success( $data, $status_code );
@@ -166,21 +183,81 @@ class SScribe_AJAX_Guard {
 		self::sanitise_environment();
 		self::log_cleaned_buffers( 'error' );
 
+		$request_id = SScribe_Request_Id::current();
+		if ( function_exists( 'header' ) && ! headers_sent() ) {
+			header( SScribe_Request_Id::HEADER . ': ' . $request_id );
+		}
+
+		if ( is_array( $data ) ) {
+			if ( ! isset( $data[ SScribe_Request_Id::RESPONSE_KEY ] ) ) {
+				$data[ SScribe_Request_Id::RESPONSE_KEY ] = $request_id;
+			}
+		} elseif ( ! is_object( $data ) ) {
+			$data = array(
+				'message' => (string) $data,
+				SScribe_Request_Id::RESPONSE_KEY => $request_id,
+			);
+		}
+
+		$effective_status = null !== $status_code ? (int) $status_code : 0;
+		if ( $effective_status >= 500 && class_exists( 'SScribe_Operational_Logger' ) ) {
+			$error_code = is_array( $data ) && isset( $data['code'] ) && is_string( $data['code'] )
+				? $data['code']
+				: 'ajax_5xx';
+			$message    = self::extract_message( $data );
+			\SScribe_Operational_Logger::record(
+				\SScribe_Operational_Logger::LEVEL_ERROR,
+				'AJAX 5xx response',
+				array(
+					'error_code' => $error_code,
+					'http_status' => $effective_status,
+					'ajax_action' => self::resolve_action_name(),
+				)
+			);
+		}
+
 		if ( defined( 'SSCRIBE_DEBUG' ) && SSCRIBE_DEBUG && current_user_can( SScribe_Capabilities::get_health_required() ) ) {
 			$diagnostics = self::build_diagnostics( $context );
 
 			if ( is_array( $data ) ) {
 				$data['_diagnostics'] = $diagnostics;
-			} elseif ( ! is_object( $data ) ) {
+			} else {
 				$data = array(
-					'message'      => (string) $data,
-					'_diagnostics' => $diagnostics,
+					SScribe_Request_Id::RESPONSE_KEY => \SScribe_Request_Id::current(),
+					'value'                          => $data,
+					'_diagnostics'                   => $diagnostics,
 				);
 			}
 		}
 
 		wp_send_json_error( $data, $status_code );
 		exit;
+	}
+
+	/**
+	 * Extract a safe human-readable message from a response payload.
+	 *
+	 * Handles array payloads with a `message` key, scalar payloads, and
+	 * objects with `__toString`. Falls back to 'unknown' for anything
+	 * else so the operational logger never sees an unsafe cast.
+	 *
+	 * @param mixed $data Response data.
+	 * @return string Human-readable message.
+	 */
+	private static function extract_message( mixed $data ): string {
+		if ( is_array( $data ) && isset( $data['message'] ) && is_string( $data['message'] ) ) {
+			return $data['message'];
+		}
+		if ( is_string( $data ) ) {
+			return $data;
+		}
+		if ( is_scalar( $data ) ) {
+			return (string) $data;
+		}
+		if ( is_object( $data ) && method_exists( $data, '__toString' ) ) {
+			return (string) $data;
+		}
+		return 'unknown';
 	}
 
 	/**

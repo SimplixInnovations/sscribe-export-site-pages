@@ -766,7 +766,7 @@ final class SScribe_Batch_Processor {
 	}
 
 	/**
-	 * Verify rate limit hasn't been exceeded.
+	 * Decision-based rate-limit check.
 	 *
 	 * @param string $bucket Rate-limit bucket name. Use 'export' for starting
 	 *                      a new export and 'export_batch' for batch
@@ -775,10 +775,10 @@ final class SScribe_Batch_Processor {
 	 *                      own continuation steps: a 1000-page export that
 	 *                      issues 200 batch calls should not also count
 	 *                      against the 200/min "start a new export" budget.
-	 * @return bool True when allowed; false when limited or unavailable.
+	 * @return \SScribe_Rate_Limit_Decision Decision describing the outcome.
 	 */
-	private function check_rate_limit( string $bucket = 'export' ): bool {
-		return $this->get_rate_limiter()->check_rate_limit( $this->get_required_capability(), $bucket );
+	private function check_rate_limit_decision( string $bucket = 'export' ): \SScribe_Rate_Limit_Decision {
+		return $this->get_rate_limiter()->check_rate_limit_decision( $this->get_required_capability(), $bucket );
 	}
 
 	/**
@@ -977,17 +977,9 @@ final class SScribe_Batch_Processor {
 	 */
 	public function ajax_start_export(): void {
 
-		$rate_check = $this->check_rate_limit();
-		if ( false === $rate_check ) {
-			SScribe_AJAX_Guard::error(
-				array(
-					'code'     => 'rate_limited',
-					'message'  => __( 'Too many requests. Please wait a moment and try again.', 'sscribe-export-site-pages' ),
-					'retry'    => true,
-					'retry_in' => 60000,
-				),
-				429
-			);
+		$decision = $this->check_rate_limit_decision( 'export_start' );
+		if ( ! $decision->allowed ) {
+			\SScribe_Rate_Limit_Response::emit( $decision );
 		}
 
 		$this->get_diagnostics()->self_heal();

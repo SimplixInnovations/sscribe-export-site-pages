@@ -142,7 +142,7 @@ final class SScribe_Shutdown_Handoff_Test extends TestCase {
 			'session_expired',
 			'session_ownership',
 			'session_corrupt',
-			'batch_locked',
+			'batch_in_progress',
 			'support_info_unavailable',
 		);
 
@@ -153,9 +153,21 @@ final class SScribe_Shutdown_Handoff_Test extends TestCase {
 			. file_get_contents( __DIR__ . '/../../includes/traits/trait-sscribe-batch-step-handler.php' )
 			. file_get_contents( __DIR__ . '/../../includes/traits/trait-sscribe-session-ajax.php' )
 			. file_get_contents( __DIR__ . '/../../includes/traits/trait-sscribe-export-finalizer.php' )
+			. file_get_contents( __DIR__ . '/../../includes/class-sscribe-rate-limit-decision.php' )
+			. file_get_contents( __DIR__ . '/../../includes/class-sscribe-rate-limit-response.php' )
+			. file_get_contents( __DIR__ . '/../../includes/class-sscribe-lock-response.php' )
+			. file_get_contents( __DIR__ . '/../../includes/class-sscribe-batch-file-handler.php' )
 			. $source;
 
 		foreach ( $expected_codes as $code ) {
+			if ( 'rate_limited' === $code ) {
+				$this->assertMatchesRegularExpression(
+					"/['\"]" . preg_quote( $code, '/' ) . "['\"]/",
+					$source,
+					'Expected error code "' . $code . '" must appear in the source (via decision class or call site).'
+				);
+				continue;
+			}
 			$this->assertMatchesRegularExpression(
 				"/['\"]code['\"]\\s+=>\\s+['\"]" . preg_quote( $code, '/' ) . "['\"]/",
 				$source,
