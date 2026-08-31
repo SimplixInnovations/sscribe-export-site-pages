@@ -78,16 +78,22 @@ const targets = [
 ];
 
 let failures = 0;
+let exercised = 0;
+let caught = 0;
+const missingSpecs = [];
+const missingSources = [];
 
 for (const target of targets) {
   const specAbs = resolve(ROOT, target.specFile);
   const srcAbs = resolve(ROOT, target.sourceFile);
   if (!existsSync(specAbs)) {
     console.error(`[skip] ${target.description}: spec ${target.specFile} not yet written`);
+    missingSpecs.push(target.description);
     continue;
   }
   if (!existsSync(srcAbs)) {
     console.error(`[skip] ${target.description}: source ${target.sourceFile} not found`);
+    missingSources.push(target.description);
     continue;
   }
 
@@ -106,19 +112,34 @@ for (const target of targets) {
       stdio: 'inherit',
       env: { ...process.env, CI: '1' },
     });
+    exercised++;
     if (result.status === 0) {
       console.error(`[fail] ${target.description}: test PASSED after revert — regression NOT caught`);
       failures++;
     } else {
       console.log(`[pass] ${target.description}: test failed after revert — regression caught`);
+      caught++;
     }
   } finally {
     writeFileSync(srcAbs, original, 'utf-8');
   }
 }
 
-if (failures > 0) {
-  console.error(`\n${failures} regression(s) not caught.`);
+if (failures > 0 || exercised < targets.length) {
+  const total = targets.length;
+  const notExercised = total - exercised;
+  const reasons = [];
+  if (missingSpecs.length) {
+    reasons.push(`${missingSpecs.length} missing spec(s): ${missingSpecs.join(', ')}`);
+  }
+  if (missingSources.length) {
+    reasons.push(`${missingSources.length} missing source(s): ${missingSources.join(', ')}`);
+  }
+  console.error(
+    `\nregression-discipline: exercised ${exercised}/${total}, caught ${caught}/${exercised}.` +
+      (failures > 0 ? ` ${failures} regression(s) not caught.` : '') +
+      (notExercised > 0 ? ` ${notExercised} target(s) not exercised — ${reasons.join('; ')}.` : '')
+  );
   process.exit(1);
 }
-console.log(`\nAll ${targets.length} regressions caught.`);
+console.log(`\nAll ${targets.length} regressions caught (${caught}/${exercised} exercised).`);
