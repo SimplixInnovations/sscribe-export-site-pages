@@ -415,7 +415,7 @@ class SScribe_Logger implements SScribe_Logger_Interface {
 					while ( ! $file->eof() ) {
 						$line = $file->current();
 						$file->next();
-						if ( '' !== trim( $line ) ) {
+						if ( is_string( $line ) && '' !== trim( $line ) ) {
 							$file_entries[] = rtrim( $line, "\r\n" );
 						}
 					}

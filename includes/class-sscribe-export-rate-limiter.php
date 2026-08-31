@@ -187,7 +187,7 @@ class SScribe_Export_Rate_Limiter {
 		return SScribe_Rate_Limit_Decision::allowed(
 			$bucket,
 			$rate_limit,
-			max( 0, $rate_limit - $new_count ),
+			(int) max( 0, $rate_limit - $new_count ),
 			(int) $data['reset_at']
 		);
 	}

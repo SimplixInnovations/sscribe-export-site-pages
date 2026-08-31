@@ -571,7 +571,7 @@ class SScribe_Export_Query_Controller {
 		if ( ! empty( $pages ) ) {
 			$sample_id   = $pages[0];
 			$sample_post = get_post( $sample_id );
-			if ( $sample_post ) {
+			if ( $sample_post instanceof WP_Post ) {
 				$sample_page = array(
 					'title'   => $sample_post->post_title,
 					'url'     => get_permalink( $sample_id ),

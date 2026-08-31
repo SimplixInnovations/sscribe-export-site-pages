@@ -644,7 +644,7 @@ class SScribe_Page_Collector {
 		}
 
 		$post_object = get_post( $page_id );
-		if ( ! $post_object || ! in_array( $post_object->post_type, array( 'page', 'post' ), true ) ) {
+		if ( ! $post_object instanceof WP_Post || ! in_array( $post_object->post_type, array( 'page', 'post' ), true ) ) {
 			return false;
 		}
 
@@ -958,7 +958,7 @@ class SScribe_Page_Collector {
 			}
 		}
 		$lang = get_bloginfo( 'language' );
-		return strtolower( substr( $lang, 0, 2 ) );
+		return strtolower( substr( is_string( $lang ) ? $lang : '', 0, 2 ) );
 	}
 
 	/**
@@ -1004,7 +1004,7 @@ class SScribe_Page_Collector {
 			);
 
 			$ancestor_map = array();
-			foreach ( $ancestor_posts as $ancestor_post ) {
+			foreach ( is_array( $ancestor_posts ) ? $ancestor_posts : array() as $ancestor_post ) {
 				$ancestor_map[ $ancestor_post->ID ] = $ancestor_post;
 			}
 

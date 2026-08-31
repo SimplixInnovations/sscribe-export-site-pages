@@ -155,7 +155,7 @@ class SScribe_Batch_File_Handler {
 			}
 
 			$ascii_filename = preg_replace( '/[^a-zA-Z0-9._-]/', '_', $filename ) ?? $filename;
-			$file_size      = filesize( $real_path );
+			$file_size      = filesize( (string) $real_path );
 			if ( false === $file_size ) {
 				status_header( 500 );
 				wp_die( esc_html__( 'Unable to read the export size. Please regenerate the export.', 'sscribe-export-site-pages' ) );
@@ -184,7 +184,7 @@ class SScribe_Batch_File_Handler {
 				set_time_limit( 360 ); // phpcs:ignore Squiz.PHP.DiscouragedFunctions.Discouraged
 			}
 
-			$read_result = readfile( $real_path ); // phpcs:ignore WordPress.WP.AlternativeFunctions.file_system_operations_readfile -- Canonical plugin-owned ZIP path is streamed directly.
+			$read_result = readfile( (string) $real_path ); // phpcs:ignore WordPress.WP.AlternativeFunctions.file_system_operations_readfile -- Canonical plugin-owned ZIP path is streamed directly.
 			if ( false === $read_result ) {
 				$this->logger->warning(
 					'readfile() returned false : possible partial read',

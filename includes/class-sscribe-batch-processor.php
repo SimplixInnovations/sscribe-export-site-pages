@@ -227,7 +227,7 @@ final class SScribe_Batch_Processor {
 	 */
 	private static function random_suffix_bytes( int $length ): string {
 		try {
-			return random_bytes( $length );
+			return random_bytes( max( 1, $length ) );
 		} catch ( \Throwable $e ) {
 
 			$strong = false;
@@ -271,27 +271,28 @@ final class SScribe_Batch_Processor {
 	/**
 	 * Validate export result and check file integrity.
 	 *
-	 * @param object $result   Export result object.
-	 * @param string $format   Export format.
-	 * @param int    $page_id  Page ID.
+	 * @param SScribe_Result $result  Export result object.
+	 * @param string         $format  Export format.
+	 * @param int            $page_id Page ID.
 	 * @return array Result with keys: is_valid, error, category, context.
 	 */
-	private function validate_export_result( object $result, string $format, int $page_id ): array {
+	private function validate_export_result( SScribe_Result $result, string $format, int $page_id ): array {
 		$min_sizes = $this->get_min_file_sizes();
 		$min_size  = $min_sizes[ $format ] ?? 100;
 
+		$result_data = $result->get_data();
 		if ( ! $result->is_success() ) {
-			$result_data = $result->get_data();
 			return array(
 				'is_valid' => false,
 				'error'    => $result->get_error(),
-				'category' => $result_data['error_category'] ?? 'unknown',
+				'category' => is_array( $result_data ) && isset( $result_data['error_category'] ) ? (string) $result_data['error_category'] : 'unknown',
 				'context'  => is_array( $result_data ) ? $result_data : array(),
 			);
 		}
 
-		$file_path = $result->get_data()['path'] ?? '';
-		$file_size = $result->get_data()['size'] ?? 0;
+		$result_array = is_array( $result_data ) ? $result_data : array();
+		$file_path    = isset( $result_array['path'] ) ? (string) $result_array['path'] : '';
+		$file_size    = isset( $result_array['size'] ) ? (int) $result_array['size'] : 0;
 		clearstatcache( true, $file_path );
 		$actual_size = ( ! empty( $file_path ) && file_exists( $file_path ) ) ? (int) filesize( $file_path ) : 0;
 

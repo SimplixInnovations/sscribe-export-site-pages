@@ -172,12 +172,14 @@ class SScribe_Image_Processor {
 			return false;
 		}
 
-		$body = wp_remote_retrieve_body( $response );
+		$body_raw = wp_remote_retrieve_body( $response );
+		$body     = is_string( $body_raw ) ? $body_raw : '';
 		if ( empty( $body ) || strlen( $body ) > self::MAX_DOWNLOAD_BYTES ) {
 			return false;
 		}
 
-		$content_type = self::normalize_content_type( (string) wp_remote_retrieve_header( $response, 'content-type' ) );
+		$content_type_header = wp_remote_retrieve_header( $response, 'content-type' );
+		$content_type        = self::normalize_content_type( is_string( $content_type_header ) ? $content_type_header : '' );
 		if ( '' === $content_type || ! in_array( $content_type, self::ALLOWED_CONTENT_TYPES, true ) ) {
 			return false;
 		}
@@ -468,7 +470,7 @@ class SScribe_Image_Processor {
 		}
 
 		$new_width  = self::MAX_WIDTH;
-		$new_height = (int) ( $height * ( self::MAX_WIDTH / $width ) );
+		$new_height = max( 1, (int) ( $height * ( self::MAX_WIDTH / $width ) ) );
 
 		// phpcs:ignore WordPress.PHP.DevelopmentFunctions.error_log_set_error_handler -- Production error handling for GD image loading.
 		set_error_handler(
@@ -510,7 +512,9 @@ class SScribe_Image_Processor {
 			imagealphablending( $resized, false );
 			imagesavealpha( $resized, true );
 			$transparent = imagecolorallocatealpha( $resized, 0, 0, 0, 127 );
-			imagefill( $resized, 0, 0, $transparent );
+			if ( false !== $transparent ) {
+				imagefill( $resized, 0, 0, $transparent );
+			}
 		}
 
 		imagecopyresampled( $resized, $image, 0, 0, 0, 0, $new_width, $new_height, $width, $height );

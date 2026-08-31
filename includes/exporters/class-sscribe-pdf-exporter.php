@@ -962,7 +962,9 @@ class SScribe_PDF_Exporter implements SScribe_Exporter_Interface {
 		$html_content = (string) preg_replace_callback(
 			'/\s*style=("([^"]*)"|\'([^\']*)\')/i',
 			function ( array $matches ) use ( $is_rtl ): string {
-				$declarations = '' !== $matches[2] ? $matches[2] : $matches[3];
+				$double = isset( $matches[2] ) ? $matches[2] : '';
+				$single = isset( $matches[3] ) ? $matches[3] : '';
+				$declarations = '' !== $double ? $double : $single;
 				$filtered     = $this->filter_style_attribute( $declarations, $is_rtl );
 				return '' !== $filtered ? ' style="' . $filtered . '"' : '';
 			},

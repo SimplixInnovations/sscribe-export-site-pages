@@ -693,7 +693,7 @@ class SScribe_Admin_Debug {
 			while ( $read < $limit && ! $file->eof() ) {
 				$line = $file->current();
 				$file->next();
-				if ( false !== $line && '' !== trim( $line ) ) {
+				if ( is_string( $line ) && '' !== trim( $line ) ) {
 					$raw_lines[] = rtrim( $line, "\r\n" );
 				}
 				++$read;
@@ -849,7 +849,7 @@ class SScribe_Admin_Debug {
 			while ( $line_count < $max_lines && ! $file->eof() ) {
 				$line = $file->current();
 				$file->next();
-				if ( false !== $line && '' !== trim( $line ) ) {
+				if ( is_string( $line ) && '' !== trim( $line ) ) {
 					$lines[] = rtrim( $line, "\r\n" );
 					++$line_count;
 				}

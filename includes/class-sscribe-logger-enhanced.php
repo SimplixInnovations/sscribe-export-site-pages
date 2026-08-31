@@ -309,15 +309,19 @@ class SScribe_Logger_Enhanced extends SScribe_Logger {
 		$entries = $this->get_db_logs( array(), $limit );
 
 		return array_map(
-			function ( object $row ): string {
-				$context_decoded = json_decode( $row->context, true );
-				$context         = is_array( $context_decoded ) ? $context_decoded : array();
-				$context_str     = $context ? ' | ' . wp_json_encode( $context ) : '';
+			static function ( object $row ): string {
+				$row_array        = (array) $row;
+				$context_decoded  = json_decode( (string) ( $row_array['context'] ?? '' ), true );
+				$context          = is_array( $context_decoded ) ? $context_decoded : array();
+				$context_str      = $context ? ' | ' . wp_json_encode( $context ) : '';
+				$timestamp_value  = isset( $row_array['timestamp'] ) ? (string) $row_array['timestamp'] : '';
+				$level_value      = isset( $row_array['level'] ) ? (string) $row_array['level'] : '';
+				$message_value    = isset( $row_array['message'] ) ? (string) $row_array['message'] : '';
 				return sprintf(
 					'[%s] [%s] %s%s',
-					$row->timestamp,
-					strtoupper( $row->level ),
-					$row->message,
+					$timestamp_value,
+					strtoupper( $level_value ),
+					$message_value,
 					$context_str
 				);
 			},
@@ -417,7 +421,8 @@ class SScribe_Logger_Enhanced extends SScribe_Logger {
 			return 0;
 		}
 
-		$cutoff = gmdate( 'Y-m-d H:i:s', strtotime( '-' . max( 1, abs( (int) $days ) ) . ' days' ) );
+		$cutoff = strtotime( '-' . max( 1, abs( (int) $days ) ) . ' days' );
+		$cutoff = gmdate( 'Y-m-d H:i:s', false !== $cutoff ? $cutoff : time() );
 
 		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
 		return $wpdb->query(

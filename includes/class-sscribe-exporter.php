@@ -637,7 +637,8 @@ final class SScribe_Exporter {
 			return null;
 		}
 
-		return long2ip( $value );
+		$ip = long2ip( $value );
+		return false !== $ip ? $ip : null;
 	}
 
 	/**

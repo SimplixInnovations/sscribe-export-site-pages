@@ -529,8 +529,9 @@ class SScribe_Export_Stats {
 	public function cleanup( int $days = 365 ): int {
 		global $wpdb;
 
-		$days   = max( 1, min( 36500, $days ) );
-		$cutoff = gmdate( 'Y-m-d H:i:s', strtotime( "-{$days} days" ) );
+		$days    = max( 1, min( 36500, $days ) );
+		$cutoff  = strtotime( "-{$days} days" );
+		$cutoff  = gmdate( 'Y-m-d H:i:s', false !== $cutoff ? $cutoff : time() );
 
 		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
 		$result = $wpdb->query(

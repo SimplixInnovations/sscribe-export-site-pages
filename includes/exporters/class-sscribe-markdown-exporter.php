@@ -860,9 +860,10 @@ class SScribe_Markdown_Exporter implements SScribe_Exporter_Interface {
 		return preg_replace_callback(
 			'/<blockquote[^>]*>(.*?)<\/blockquote>/is',
 			function ( $matches ) {
-				$content = wp_strip_all_tags( $matches[1] );
-				$lines   = preg_split( '/\r?\n/', trim( $content ) );
-				$result  = "\n";
+				$content   = wp_strip_all_tags( $matches[1] );
+				$lines_raw = preg_split( '/\r?\n/', trim( $content ) );
+				$lines     = is_array( $lines_raw ) ? $lines_raw : array();
+				$result    = "\n";
 				foreach ( $lines as $line ) {
 					$line = trim( $line );
 					if ( ! empty( $line ) ) {

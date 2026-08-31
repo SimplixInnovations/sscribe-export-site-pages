@@ -1197,11 +1197,14 @@ class SScribe_Session {
 		$options = $this->load_session_options_index();
 
 		foreach ( $options as $option ) {
-			$session_id = self::extract_session_id( (string) $option->option_name );
+			$option_array = (array) $option;
+			$option_name  = isset( $option_array['option_name'] ) ? (string) $option_array['option_name'] : '';
+			$session_id   = self::extract_session_id( $option_name );
 			if ( null === $session_id ) {
 				continue;
 			}
-			$data       = $this->decode_session_value( $option->option_value ?? '', $session_id );
+			$option_value = isset( $option_array['option_value'] ) ? (string) $option_array['option_value'] : '';
+			$data         = $this->decode_session_value( $option_value, $session_id );
 
 			if ( ! is_array( $data ) ) {
 				continue;
@@ -1213,7 +1216,7 @@ class SScribe_Session {
 					if ( '' !== $sid ) {
 						$this->set_active_sid_transient( $user_id, $sid, 5 );
 					}
-					$data['option_name'] = $option->option_name;
+					$data['option_name'] = $option_name;
 					return $data;
 				}
 			}

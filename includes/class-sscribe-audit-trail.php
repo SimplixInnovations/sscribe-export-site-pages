@@ -372,8 +372,9 @@ class SScribe_Audit_Trail {
 			return array();
 		}
 
-		$cache_key = 'sscribe_audit_counts_' . md5( wp_json_encode( $filters ) );
-		$cached    = get_transient( $cache_key );
+		$filters_json = wp_json_encode( $filters );
+		$cache_key    = 'sscribe_audit_counts_' . md5( false !== $filters_json ? $filters_json : '' );
+		$cached       = get_transient( $cache_key );
 		if ( false !== $cached ) {
 			return $cached;
 		}
@@ -420,8 +421,9 @@ class SScribe_Audit_Trail {
 
 		global $wpdb;
 
-		$days   = max( 1, $days );
-		$cutoff = gmdate( 'Y-m-d H:i:s', strtotime( "-{$days} days" ) );
+		$days    = max( 1, $days );
+		$cutoff  = strtotime( "-{$days} days" );
+		$cutoff  = gmdate( 'Y-m-d H:i:s', false !== $cutoff ? $cutoff : time() );
 
 		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
 		$result = $wpdb->query(

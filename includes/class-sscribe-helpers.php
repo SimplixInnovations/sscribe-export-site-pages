@@ -81,8 +81,9 @@ class SScribe_Helpers {
 
 		$icon_class = 'sscribe-icon sscribe-icon-' . sanitize_html_class( $name );
 		if ( '' !== $css_class ) {
-			$parts     = preg_split( '/\s+/', trim( $css_class ), -1, PREG_SPLIT_NO_EMPTY );
-			$sanitized = array();
+			$parts_raw  = preg_split( '/\s+/', trim( $css_class ), -1, PREG_SPLIT_NO_EMPTY );
+			$parts      = is_array( $parts_raw ) ? $parts_raw : array();
+			$sanitized  = array();
 			foreach ( $parts as $part ) {
 				$cleaned = sanitize_html_class( $part );
 				if ( '' !== $cleaned ) {
@@ -145,7 +146,8 @@ class SScribe_Helpers {
 
 		$classes = 'sscribe-icon sscribe-icon-' . sanitize_html_class( $name );
 		if ( '' !== $css_class ) {
-			$parts     = preg_split( '/\s+/', trim( $css_class ), -1, PREG_SPLIT_NO_EMPTY );
+			$parts_raw = preg_split( '/\s+/', trim( $css_class ), -1, PREG_SPLIT_NO_EMPTY );
+			$parts     = is_array( $parts_raw ) ? $parts_raw : array();
 			$sanitized = array();
 			foreach ( $parts as $part ) {
 				$cleaned = sanitize_html_class( $part );

@@ -702,14 +702,15 @@ class SScribe_DOCX_Content_Renderer {
 	 * @param array   $element Table element data.
 	 */
 	private function render_table( Section $section, array $element ): void {
-		if ( empty( $element['rows'] ) ) {
+		$rows = $element['rows'] ?? array();
+		if ( ! is_array( $rows ) || empty( $rows ) ) {
 			return;
 		}
 
 		$col_count = max(
 			array_map(
-				fn( $row ) => count( $row['cells'] ?? array() ),
-				$element['rows']
+				fn( $row ) => is_array( $row ) ? count( $row['cells'] ?? array() ) : 0,
+				$rows
 			)
 		);
 

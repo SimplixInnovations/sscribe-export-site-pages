@@ -403,7 +403,7 @@ class SScribe_SEO_Reader {
 		$primary_term_id = get_post_meta( $page_id, '_primary_term_' . $this->get_primary_taxonomy(), true );
 		if ( $primary_term_id ) {
 			$term = get_term( $primary_term_id );
-			if ( $term && ! is_wp_error( $term ) ) {
+			if ( $term instanceof WP_Term ) {
 				$focus_keyword = $term->name;
 			}
 		}

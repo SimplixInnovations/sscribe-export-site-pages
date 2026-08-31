@@ -742,11 +742,20 @@ class SScribe_Diagnostics {
 	 * @return array<string> Absolute font paths.
 	 */
 	private function find_mpdf_font_files( string $directory ): array {
-		$font_files = array_merge(
-			(array) glob( $directory . '/*.ttf' ),
-			(array) glob( $directory . '/*.otf' ),
-			(array) glob( $directory . '/*.txt' )
-		);
+		$ttf_files = glob( $directory . '/*.ttf' );
+		$otf_files = glob( $directory . '/*.otf' );
+		$txt_files = glob( $directory . '/*.txt' );
+
+		$font_files = array();
+		if ( is_array( $ttf_files ) ) {
+			$font_files = array_merge( $font_files, $ttf_files );
+		}
+		if ( is_array( $otf_files ) ) {
+			$font_files = array_merge( $font_files, $otf_files );
+		}
+		if ( is_array( $txt_files ) ) {
+			$font_files = array_merge( $font_files, $txt_files );
+		}
 		sort( $font_files, SORT_STRING );
 
 		return $font_files;
@@ -1312,7 +1321,11 @@ class SScribe_Diagnostics {
 			if ( ! is_object( $hook_obj ) ) {
 				continue;
 			}
-			foreach ( $hook_obj as $callbacks ) {
+			$hook_array = (array) $hook_obj;
+			foreach ( $hook_array as $callbacks ) {
+				if ( ! is_array( $callbacks ) ) {
+					continue;
+				}
 				foreach ( $callbacks as $callback ) {
 					if ( is_array( $callback ) && isset( $callback[0] ) && is_object( $callback[0] ) ) {
 						$class_name = get_class( $callback[0] );
