@@ -23,7 +23,7 @@ export default defineConfig({
   projects: [
     {
       name: 'e2e',
-      testMatch: /tests-e2e\/(e2e|00-smoke)\.spec\.ts$/,
+      testMatch: /tests-e2e\/(e2e\/.*|00-smoke)\.spec\.ts$/,
       use: { ...devices['Desktop Chrome'] },
     },
     {

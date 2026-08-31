@@ -18,32 +18,22 @@ test.describe('e2e / export / wizard-happy-path', () => {
     );
     await adminPage.locator('#sscribe-export-btn').click();
     const start = JSON.parse((await startResp).text());
-    assertJSONOK(start as { ok: boolean; [k: string]: unknown });
+    assertJSONOK(start as { success: boolean; [k: string]: unknown });
     const sessionId = (start as { data: { session_id: string } }).data.session_id;
     expect(sessionId).toMatch(/^[a-f0-9]{16}$/);
 
-    // Poll batch progress until status === 'complete'. The brief's
-    // `sscribe_get_status` action does not exist; the production JS polls
-    // `sscribe_process_batch` (admin/js/sscribe-admin.js:1416), which returns
-    // `data.status === 'complete'` when the export is done. The brief's
-    // `.sscribe-poll-status-btn` selector is also a phantom — the JS
-    // auto-polls, so we wait for the success area (`#sscribe-download-area`,
-    // SELECTORS.md §8) to become visible instead of clicking a non-existent
-    // button. This deviates from the brief's literal click/poll loop;
-    // documented as a known concern in the report.
-    let complete = false;
-    const deadline = Date.now() + 180_000;
-    while (!complete && Date.now() < deadline) {
-      const pollResp = adminPage.waitForResponse((r) =>
-        r.url().includes('/wp-admin/admin-ajax.php') && r.url().includes('action=sscribe_process_batch')
-      );
-      await adminPage.locator('#sscribe-progress-area').click({ trial: false }).catch(() => {});
-      const r = await pollResp;
-      const json = JSON.parse(await r.text());
-      if ((json as { data: { status: string } }).data.status === 'complete') complete = true;
-      else await adminPage.waitForTimeout(1000);
-    }
-    expect(complete, 'export did not complete within 180s').toBe(true);
+    // Wait for completion. The production JS auto-polls `sscribe_process_batch`
+    // (admin/js/sscribe-admin.js:1416) and switches to `sscribe_finalize_export`
+    // (admin/js/sscribe-admin.js:1763) once the batch returns
+    // `data.status === 'finalizing'`. Neither endpoint ever returns
+    // `data.status === 'complete'` from `process_batch` — that string only
+    // appears in the response of `sscribe_finalize_export` after the ZIP is
+    // built. Rather than mirror the JS's two-stage poll inside the test, we
+    // wait for the UI signal `exportComplete()` raises: `#sscribe-download-area`
+    // becomes visible once the ZIP is ready
+    // (admin/js/sscribe-admin.js:1653-1659). This is the same signal the user
+    // sees in production.
+    await expect(adminPage.locator('#sscribe-download-area')).toBeVisible({ timeout: 240_000 });
 
     // Download (phantom `.sscribe-download-btn` corrected to
     // `#sscribe-download-btn` per SELECTORS.md §8).
@@ -52,7 +42,8 @@ test.describe('e2e / export / wizard-happy-path', () => {
     const download = await downloadPromise;
     const path = await download.path();
     expect(path).not.toBeNull();
-    // Filename pattern: sscribe-export-{session}-{timestamp}.zip
-    expect(download.suggestedFilename()).toMatch(/^sscribe-export-[a-f0-9]{16}-\d+\.zip$/);
+    // Filename pattern: sscribe-export-{gmdate('Y-m-d-His')}-{6-hex}.zip
+    // Production builds this at includes/class-sscribe-zip-handler.php:135-136.
+    expect(download.suggestedFilename()).toMatch(/^sscribe-export-\d{4}-\d{2}-\d{2}-\d{6}-[a-f0-9]{6}\.zip$/);
   });
 });
