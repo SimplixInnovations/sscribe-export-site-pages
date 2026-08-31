@@ -1,0 +1,12 @@
+{
+  "_comment": "Per-format per-page baselines mirroring includes/class-sscribe-adaptive-metrics.php. Update only via deliberate PR with new median measurement — never via silent CI re-baselining.",
+  "docx":     { "seconds_per_page": 1.5, "mb_per_page": 0.5 },
+  "pdf":      { "seconds_per_page": 8.0, "mb_per_page": 2.0 },
+  "html":     { "seconds_per_page": 1.0, "mb_per_page": 0.3 },
+  "markdown": { "seconds_per_page": 0.5, "mb_per_page": 0.1 },
+  "_regression_thresholds": {
+    "wall_time_multiplier": 1.5,
+    "memory_multiplier": 2.0,
+    "jsonl_poll_timeout_ms": 300000
+  }
+}
