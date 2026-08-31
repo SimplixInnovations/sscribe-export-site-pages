@@ -242,12 +242,12 @@ final class SScribe_Operational_Logger {
 			self::rotate( $log_file );
 		}
 
-		$written = @file_put_contents( $log_file, $payload, FILE_APPEND | LOCK_EX );
+		$written = file_put_contents( $log_file, $payload, FILE_APPEND | LOCK_EX );
 		if ( false === $written ) {
 			error_log( '[SSCRIBE][OPS_LOGGER] Failed to append operational record to ' . basename( $log_file ) );
 			return;
 		}
-		@chmod( $log_file, 0600 );
+		chmod( $log_file, 0600 );
 
 		self::prune( $log_file );
 	}

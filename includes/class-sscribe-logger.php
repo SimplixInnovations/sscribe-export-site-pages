@@ -370,7 +370,10 @@ class SScribe_Logger implements SScribe_Logger_Interface {
 					size_format( self::MAX_LOG_FILE_SIZE ),
 					basename( $rotated_file )
 				);
-				file_put_contents( $log_file, $warning_entry, LOCK_EX ); // phpcs:ignore WordPress.WP.AlternativeFunctions.file_system_operations_file_put_contents -- Required for debug logging per plugin requirements.
+				$warning_result = file_put_contents( $log_file, $warning_entry, LOCK_EX ); // phpcs:ignore WordPress.WP.AlternativeFunctions.file_system_operations_file_put_contents -- Required for debug logging per plugin requirements.
+				if ( false === $warning_result ) {
+					error_log( 'SScribe_Logger: Failed to write rotation warning to ' . $log_file ); // phpcs:ignore WordPress.PHP.DevelopmentFunctions.error_log_error_log -- Reporting flush failure when file_put_contents fails; no better alternative in production.
+				}
 				chmod( $log_file, 0600 ); // phpcs:ignore WordPress.WP.AlternativeFunctions.file_system_operations_chmod -- Setting 0600 for log file security.
 			}
 		}
