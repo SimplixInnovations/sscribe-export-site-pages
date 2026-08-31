@@ -24,6 +24,14 @@ add_action( 'sscribe_after_export_page', function (
     if ( '' === $session ) {
         return;
     }
+    // F7: capability gate (per pre-flight fix). Placed AFTER the session
+    // early-exit so an unauthenticated request doesn't leak whether a
+    // session id was supplied, but BEFORE any directory creation or file
+    // write.
+    if ( ! current_user_can( 'manage_options' ) ) {
+        wp_send_json_error( 'insufficient_capability', 403 );
+        return;
+    }
     $dir = WP_CONTENT_DIR . '/uploads/sscribe-perf';
     if ( ! is_dir( $dir ) ) {
         wp_mkdir_p( $dir );
