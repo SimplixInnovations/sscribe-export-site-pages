@@ -50,8 +50,9 @@ opencode.json
 .idea/
 .vscode/
 
-# Internal planning docs (keep out of repo)
-docs/superpowers/
+# Internal planning docs (scratch only — spec docs in docs/superpowers/specs/ DO commit)
+docs/superpowers/analysis/
+docs/superpowers/plans/
 PROGRESS.md
 AGENTS.md
 SScribe-Plugin-Audit-GLM5-Instructions.md
