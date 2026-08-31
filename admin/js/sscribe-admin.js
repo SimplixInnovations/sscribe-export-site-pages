@@ -554,6 +554,15 @@
 				},
 				success: function (response) {
 					if (response.success && response.data) {
+						// Drop stale responses when the user toggles faster than
+						// the server answers: only the highest request_seq wins.
+						const serverSeq = parseInt(response.data.request_seq, 10);
+						if (!Number.isNaN(serverSeq) && serverSeq < (self._lastCountsSeq || 0)) {
+							return;
+						}
+						if (!Number.isNaN(serverSeq)) {
+							self._lastCountsSeq = serverSeq;
+						}
 						const allCounts = response.data.counts || {};
 						const pageCounts = response.data.counts_page || allCounts;
 						const postCounts = response.data.counts_post || {};
@@ -649,6 +658,15 @@
 					success: function (response) {
 						if (!response || !response.success || !response.data || !response.data.languages) {
 							return;
+						}
+						// Drop stale per-language responses the same way as the
+						// single-language counts endpoint.
+						const serverSeq = parseInt(response.data.request_seq, 10);
+						if (!Number.isNaN(serverSeq) && serverSeq < (self._lastCountsSeq || 0)) {
+							return;
+						}
+						if (!Number.isNaN(serverSeq)) {
+							self._lastCountsSeq = serverSeq;
 						}
 						const langMap = response.data.languages;
 						const currentPostType = $('input[name="sscribe_post_type"]:checked').val() || 'page';
@@ -772,11 +790,17 @@
 			let currentStillValid = false;
 			let firstAvailable = null;
 			const self = this;
+			// Retain the canonical counts map in instance state so downstream
+			// readers (updateConfigSummary) can look up the numeric value
+			// without parsing the DOM text back out. The DOM mirror stays
+			// for users with JS disabled / initial server-render path.
+			this._statusCountMap = {};
 			$('.sscribe-status-card-label').each(function () {
 				const $label = $(this);
 				const $input = $label.find('input[type="radio"]');
 				const status = $input.val();
 				const count = self.parseLocalizedInt(counts[status]) || 0;
+				self._statusCountMap[status] = count;
 				$label.find('.sscribe-status-count').text(count);
 				$label.attr('data-count', count);
 				if (count === 0) {
@@ -859,10 +883,19 @@
 			const $selectedStatus = $('input[name="sscribe_post_status"]:checked');
 			let count = 0;
 			if ($selectedStatus.length && !$selectedStatus.prop('disabled')) {
+				const statusKey = $selectedStatus.val();
+				// Read from the canonical instance-state map populated by
+				// updateStatusCounts; falls back to the DOM mirror only when
+				// the map is not yet built (e.g. before any AJAX has fired).
+				const fromMap = this._statusCountMap && Object.prototype.hasOwnProperty.call(this._statusCountMap, statusKey)
+					? this._statusCountMap[statusKey]
+					: null;
 				count =
-					this.parseLocalizedInt(
-						$selectedStatus.closest('.sscribe-status-card-label').find('.sscribe-status-count').text()
-					) || 0;
+					fromMap !== null
+						? fromMap
+						: this.parseLocalizedInt(
+							$selectedStatus.closest('.sscribe-status-card-label').find('.sscribe-status-count').text()
+						) || 0;
 			}
 			this.selectedPageCount = count;
 			const postType = $('input[name="sscribe_post_type"]:checked').val() || 'page';
