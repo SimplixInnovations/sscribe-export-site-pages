@@ -340,19 +340,24 @@ final class SScribe_Private_Storage {
 	 * On shared hosts the OS-level temp directory is owned by root but
 	 * carries the world-writable sticky bit, so the previous "owner must
 	 * match the PHP UID" rule refused every safe install. We now treat a
-	 * foreign-owned directory as acceptable when it carries the other-
-	 * writable bit (mode 0002); the sticky bit (mode 1000) still prevents
-	 * non-owners from deleting files they do not own. Admins who want to
-	 * opt out of the looser rule for a specific path can return true from
-	 * the `sscribe_private_storage_allow_foreign_owner` filter.
+	 * foreign-owned directory as acceptable when it carries both the
+	 * other-writable bit (mode 0002) AND the restricted-deletion sticky
+	 * bit (mode 01000); the sticky bit still prevents non-owners from
+	 * deleting files they do not own. A bare 0777 (world-writable without
+	 * sticky) is rejected because it would let any local user delete or
+	 * rename the base directory itself.
+	 *
+	 * Admins who want to opt out of the looser rule for a specific path
+	 * can return true from the
+	 * `sscribe_private_storage_allow_foreign_owner` filter.
 	 *
 	 * @param string $base Base directory to inspect.
 	 * @return bool True when posix/fileowner are unavailable on the
 	 *              platform, when the resolved owner equals the current
-	 *              process UID, when the directory is world-writable, or
-	 *              when an admin filter forces acceptance. False when
-	 *              fileowner() fails on the path and no permissive
-	 *              signal applies.
+	 *              process UID, when the directory is world-writable AND
+	 *              sticky-bit-protected, or when an admin filter forces
+	 *              acceptance. False when fileowner() fails on the path
+	 *              and no permissive signal applies.
 	 */
 	private static function is_owned_by_current_process( string $base ): bool {
 		if ( ! function_exists( 'posix_geteuid' ) || ! function_exists( 'fileowner' ) ) {
@@ -373,7 +378,7 @@ final class SScribe_Private_Storage {
 		}
 		if ( function_exists( 'fileperms' ) ) {
 			$perms = @fileperms( $base );
-			if ( false !== $perms && ( $perms & 0002 ) ) {
+			if ( false !== $perms && ( $perms & 0002 ) && ( $perms & 01000 ) ) {
 				return true;
 			}
 		}

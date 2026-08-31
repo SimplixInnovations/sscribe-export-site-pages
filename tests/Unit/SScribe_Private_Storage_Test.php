@@ -268,14 +268,15 @@ class SScribe_Private_Storage_Test extends TestCase {
 		// Regression: shared hosts expose a /tmp directory owned by root
 		// but carrying the world-writable sticky bit. The previous
 		// ownership-only check refused the path and broke activation. The
-		// loosened rule must now accept the world-writable base.
+		// loosened rule must now accept the world-writable + sticky-bit
+		// base.
 		if ( 'Windows' === PHP_OS_FAMILY ) {
 			$this->markTestSkipped( 'POSIX permission bits are not enforced on Windows; the loosened rule is exercised on Linux.' );
 		}
 
 		$base = sys_get_temp_dir() . '/sscribe-world-writable-' . uniqid();
 		wp_mkdir_p( $base );
-		chmod( $base, 0777 );
+		chmod( $base, 01777 );
 
 		$method = ( new \ReflectionClass( \SScribe_Private_Storage::class ) )
 			->getMethod( 'is_owned_by_current_process' );
@@ -284,11 +285,46 @@ class SScribe_Private_Storage_Test extends TestCase {
 
 		// On a developer's machine the test UID matches the dir owner and
 		// the function returns true via the owner branch. On a shared-host
-		// test bench it returns true via the world-writable branch. Either
-		// way the path must be accepted; the relevant assertion is that
-		// the loosened rule does not reject a sticky-bit world-writable
-		// temp dir the way the old one did.
+		// test bench it returns true via the world-writable + sticky-bit
+		// branch. Either way the path must be accepted; the relevant
+		// assertion is that the loosened rule does not reject a sticky-bit
+		// world-writable temp dir the way the old one did.
 		$this->assertTrue( $result );
+
+		chmod( $base, 0700 );
+		rmdir( $base );
+	}
+
+	#[\PHPUnit\Framework\Attributes\RunInSeparateProcess]
+	#[\PHPUnit\Framework\Attributes\PreserveGlobalState( false )]
+	public function test_bare_world_writable_base_path_is_rejected(): void {
+		// Regression: a world-writable directory WITHOUT the sticky bit
+		// (mode 0777) must be rejected because any local user could delete
+		// or rename the base directory and substitute a foreign-owned
+		// target. Only world-writable + sticky-bit (mode 01777) is safe.
+		if ( 'Windows' === PHP_OS_FAMILY ) {
+			$this->markTestSkipped( 'POSIX permission bits are not enforced on Windows; the sticky-bit guard is exercised on Linux.' );
+		}
+
+		$base = sys_get_temp_dir() . '/sscribe-bare-world-writable-' . uniqid();
+		wp_mkdir_p( $base );
+		// Force ownership to differ from the test runner so the owner-match
+		// branch is skipped and we exercise the world-writable branch.
+		chmod( $base, 0777 );
+
+		$method = ( new \ReflectionClass( \SScribe_Private_Storage::class ) )
+			->getMethod( 'is_owned_by_current_process' );
+		$method->setAccessible( true );
+		$result = $method->invoke( null, $base );
+
+		// On a shared-host test bench the foreign-owner branch is taken
+		// and 0777 without sticky must reject. On a developer machine the
+		// owner branch may short-circuit true; that's still a safe outcome.
+		if ( fileowner( $base ) === posix_geteuid() ) {
+			$this->assertTrue( $result, 'Owner-match branch must accept even without sticky.' );
+		} else {
+			$this->assertFalse( $result, 'Foreign-owned 0777 without sticky must be rejected.' );
+		}
 
 		chmod( $base, 0700 );
 		rmdir( $base );

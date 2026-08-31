@@ -196,9 +196,9 @@ class SScribe_Export_Query_Controller {
 			\SScribe_Rate_Limit_Response::emit( $decision );
 		}
 
-		$requested_language = SScribe_AJAX_Guard::post_text( 'language', '', 100 );
+		$requested_language = SScribe_AJAX_Guard::post_text( 'language', self::SENTINEL_ALL, 100 );
 		$language           = $this->collector->normalize_language_code( $requested_language );
-		if ( '' !== $requested_language && '' === $language ) {
+		if ( self::SENTINEL_ALL !== $requested_language && '' === $language ) {
 			SScribe_AJAX_Guard::error( array( 'message' => __( 'Invalid or inactive language.', 'sscribe-export-site-pages' ) ), 400 );
 		}
 		$post_type = SScribe_AJAX_Guard::post_text( 'post_type', 'page', 30 );
@@ -206,25 +206,10 @@ class SScribe_Export_Query_Controller {
 			$post_type = 'page';
 		}
 
-		$page_counts = $this->collector->get_post_status_counts( $language, 'page' );
-		$post_counts = $this->collector->get_post_status_counts( $language, 'post' );
+		$payload          = $this->compute_counts_payload( $language, $post_type );
+		$payload['request_seq'] = self::next_request_seq();
 
-		$any_counts = array();
-		$all_keys   = array_unique( array_merge( array_keys( $page_counts ), array_keys( $post_counts ) ) );
-		foreach ( $all_keys as $key ) {
-			$any_counts[ $key ] = ( $page_counts[ $key ] ?? 0 ) + ( $post_counts[ $key ] ?? 0 );
-		}
-
-		$counts = 'any' === $post_type ? $any_counts : ( 'page' === $post_type ? $page_counts : $post_counts );
-
-		SScribe_AJAX_Guard::success(
-			array(
-				'counts'      => $counts,
-				'counts_page' => $page_counts,
-				'counts_post' => $post_counts,
-				'counts_any'  => $any_counts,
-			)
-		);
+		SScribe_AJAX_Guard::success( $payload );
 	}
 
 	/**
@@ -284,21 +269,7 @@ class SScribe_Export_Query_Controller {
 
 		$per_language = array();
 		foreach ( $languages as $language ) {
-			$page_counts = $this->collector->get_post_status_counts( $language, 'page' );
-			$post_counts = $this->collector->get_post_status_counts( $language, 'post' );
-			$any_counts  = array();
-			$all_keys    = array_unique( array_merge( array_keys( $page_counts ), array_keys( $post_counts ) ) );
-			foreach ( $all_keys as $key ) {
-				$any_counts[ $key ] = ( $page_counts[ $key ] ?? 0 ) + ( $post_counts[ $key ] ?? 0 );
-			}
-			$per_language[ $language ] = array(
-				'counts'      => 'any' === $post_type
-					? $any_counts
-					: ( 'page' === $post_type ? $page_counts : $post_counts ),
-				'counts_page' => $page_counts,
-				'counts_post' => $post_counts,
-				'counts_any'  => $any_counts,
-			);
+			$per_language[ $language ] = $this->compute_counts_payload( $language, $post_type );
 		}
 
 		SScribe_AJAX_Guard::success(
@@ -306,8 +277,70 @@ class SScribe_Export_Query_Controller {
 				'post_type'     => $post_type,
 				'languages'     => $per_language,
 				'queried_count' => count( $per_language ),
+				'request_seq'   => self::next_request_seq(),
 			)
 		);
+	}
+
+	/**
+	 * Single source of truth for counts payload across AJAX endpoints.
+	 *
+	 * Returns the same shape used by both ajax_get_status_counts and
+	 * ajax_get_all_status_counts: per-post-type counts plus the synthesized
+	 * "any" aggregate. Centralising this here means there is exactly one
+	 * place where the page+post -> any reduction is computed, and one place
+	 * where the empty-status array key set lives.
+	 *
+	 * @param string $language   Normalized language code, or empty string for all languages.
+	 * @param string $post_type  'page', 'post', or 'any'.
+	 * @return array{counts: array<string,int>, counts_page: array<string,int>, counts_post: array<string,int>, counts_any: array<string,int>}
+	 */
+	private function compute_counts_payload( string $language, string $post_type ): array {
+		$page_counts = $this->collector->get_post_status_counts( $language, 'page' );
+		$post_counts = $this->collector->get_post_status_counts( $language, 'post' );
+
+		$any_counts = array();
+		$all_keys   = array_unique( array_merge( array_keys( $page_counts ), array_keys( $post_counts ) ) );
+		foreach ( $all_keys as $key ) {
+			$any_counts[ $key ] = ( $page_counts[ $key ] ?? 0 ) + ( $post_counts[ $key ] ?? 0 );
+		}
+
+		$counts = 'any' === $post_type ? $any_counts : ( 'page' === $post_type ? $page_counts : $post_counts );
+
+		return array(
+			'counts'      => $counts,
+			'counts_page' => $page_counts,
+			'counts_post' => $post_counts,
+			'counts_any'  => $any_counts,
+		);
+	}
+
+	/**
+	 * Canonical "all languages / all of everything" sentinel.
+	 *
+	 * Exists so the JS client and PHP server agree on a single string for
+	 * "no filter, return aggregates for everything". Replaces the previous
+	 * split between empty string ('') and 'all' that caused translation
+	 * bugs at the JS/PHP boundary.
+	 */
+	public const SENTINEL_ALL = '__all__';
+
+	/**
+	 * Monotonic per-process request sequence for count fetches.
+	 *
+	 * The client echoes the most recent request_seq it has rendered so it
+	 * can drop stale responses (e.g. when the user toggles language faster
+	 * than the server can answer, the earlier in-flight responses are
+	 * discarded instead of clobbering newer counts).
+	 *
+	 * @return int Sequence number.
+	 */
+	public static function next_request_seq(): int {
+		if ( ! isset( $GLOBALS['__sscribe_request_seq'] ) ) {
+			$GLOBALS['__sscribe_request_seq'] = 0;
+		}
+		++$GLOBALS['__sscribe_request_seq'];
+		return (int) $GLOBALS['__sscribe_request_seq'];
 	}
 
 	/**

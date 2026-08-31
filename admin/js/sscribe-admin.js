@@ -1033,6 +1033,7 @@
 			if (this.isProcessing || this.isPreparing) {
 				return;
 			}
+			this._exportCompleteFired = false;
 			clearTimeout(this._configSummaryDebounceTimer);
 			if (this._configSummaryXHR && this._configSummaryXHR.abort) {
 				this._configSummaryXHR.abort();
@@ -1571,44 +1572,30 @@
 				return;
 			}
 			const siteDefault = !!(sscribe_data && sscribe_data.auto_download);
-			let stored = siteDefault;
-			try {
-				const raw = window.localStorage.getItem('sscribe_auto_download_pref');
-				if (raw === '1') {
-					stored = true;
-				} else if (raw === '0') {
-					stored = false;
-				}
-			} catch (_e) {
-				stored = siteDefault;
-			}
-			$toggle.prop('checked', stored);
+			$toggle.prop('checked', siteDefault);
 		},
 		onAutoDownloadToggle: function () {
-			const $toggle = $('#sscribe-auto-download-toggle');
-			const value = $toggle.is(':checked') ? '1' : '0';
-			try {
-				window.localStorage.setItem('sscribe_auto_download_pref', value);
-			} catch (_e) {
-				// Storage quota or sandboxed iframe; preference will not persist for this session.
-			}
+			// Visible checkbox is the sole source of truth. No persistent
+			// client-side storage: an admin toggling "Auto-download" affects
+			// only the current page load and never silently overrides the
+			// site-wide default for other admins on other browsers.
 		},
 		shouldAutoDownload: function () {
-			const siteDefault = !!(sscribe_data && sscribe_data.auto_download);
-			let stored = siteDefault;
-			try {
-				const raw = window.localStorage.getItem('sscribe_auto_download_pref');
-				if (raw === '1') {
-					stored = true;
-				} else if (raw === '0') {
-					stored = false;
-				}
-			} catch (_e) {
-				stored = siteDefault;
+			const $toggle = $('#sscribe-auto-download-toggle');
+			if ($toggle.length) {
+				return $toggle.is(':checked');
 			}
-			return stored;
+			return !!(sscribe_data && sscribe_data.auto_download);
 		},
 		exportComplete: function (data, isAutoDownload) {
+			if (this._exportCompleteFired) {
+				// Guard against duplicate invocations: a single batch-finalize
+				// response should trigger exactly one download click. Re-entry
+				// from a polling race or a tab-visibility refresh would
+				// otherwise fire the same <a>.click() twice.
+				return;
+			}
+			this._exportCompleteFired = true;
 			this.isProcessing = false;
 			this.sessionId = null;
 			this._batchInProgress = false;

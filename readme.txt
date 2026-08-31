@@ -122,4 +122,4 @@ The bundled mPDF library uses GPL-2.0-only. Required notices for bundled depende
 == Upgrade Notice ==
 
 = 2.0.0 =
-Moves export data to private storage and makes large multilingual exports durable, and fixes activation on shared-host servers where the OS temp directory is owned by root but carries the world-writable sticky bit. Legacy archives migrate automatically and remain untouched if verification cannot complete.
+Moves export data to private storage with verified legacy migration, makes large multilingual exports durable, and fixes shared-host activation when the temp directory is root-owned but world-writable.

@@ -325,6 +325,7 @@ if ( ! function_exists( 'sscribe_humanize_export_filename' ) ) {
 								</label>
 							<?php endforeach; ?>
 						</div>
+						</div>
 					</div>
 					<?php endif; ?>
 
