@@ -211,7 +211,7 @@ class SScribe_Admin {
 			wp_enqueue_script(
 				'sscribe-debug-console',
 				SSCRIBE_PLUGIN_URL . 'admin/js/sscribe-debug-console.js',
-				array( 'jquery', 'sscribe-admin' ),
+				array( 'jquery', 'sscribe-admin', 'wp-i18n' ),
 				$debug_js_version,
 				true
 			);
@@ -406,6 +406,21 @@ class SScribe_Admin {
 				'bulk_delete_desc'       => __( 'All selected exports will be permanently removed from the server. ZIP files in your downloads folder will not be affected.', 'sscribe-export-site-pages' ),
 				'bulk_delete_cancelled'  => __( 'Bulk delete cancelled.', 'sscribe-export-site-pages' ),
 				'bulk_delete_started'    => __( 'Deleting selected exports...', 'sscribe-export-site-pages' ),
+				/* translators: 1: count, 2: pluralized "export"/"exports" */
+				'bulk_delete_label_format' => __( 'Delete %1$d %2$s', 'sscribe-export-site-pages' ),
+				/* translators: 1: count, 2: pluralized "export"/"exports" */
+				'bulk_delete_title_format' => __( 'Delete %1$d %2$s?', 'sscribe-export-site-pages' ),
+				'retry'                  => __( 'Retry', 'sscribe-export-site-pages' ),
+				'cancel_title'           => __( 'Cancel this export?', 'sscribe-export-site-pages' ),
+				'cancel_confirm'         => __( 'Cancel the current export? Partial progress will be discarded.', 'sscribe-export-site-pages' ),
+				'cancel_aborted'         => __( 'Cancellation aborted.', 'sscribe-export-site-pages' ),
+				'preparing_export'       => __( 'Preparing your export...', 'sscribe-export-site-pages' ),
+				'select_status'          => __( 'Select a post status', 'sscribe-export-site-pages' ),
+				'select_format'          => __( 'Select a format', 'sscribe-export-site-pages' ),
+				'select_post_type'       => __( 'Select a post type', 'sscribe-export-site-pages' ),
+				'select_language'        => __( 'Select a language', 'sscribe-export-site-pages' ),
+				'support_empty'          => __( 'No diagnostic data available.', 'sscribe-export-site-pages' ),
+				'delete_confirm_hint'    => __( 'Click again within 3s to confirm', 'sscribe-export-site-pages' ),
 
 				'post_type_page'         => __( 'Pages', 'sscribe-export-site-pages' ),
 				'post_type_post'         => __( 'Posts', 'sscribe-export-site-pages' ),

@@ -947,7 +947,7 @@
 			clearTimeout(this._configSummaryDebounceTimer);
 			if (!this._countsLoaded || count === 0) {
 				const $timeChipEmpty = $('#sscribe-summary-time');
-				const timeHintEmpty = sscribe_data.strings.summary_time_hint || 'See Preview';
+				const timeHintEmpty = sscribe_data.strings.summary_time_hint || 'See Preview for adaptive estimate';
 				$timeChipEmpty.text(timeHintEmpty).removeClass('sscribe-summary-time-pending');
 				$timeChipEmpty.attr('aria-label', timeHintEmpty);
 				return;
@@ -972,7 +972,7 @@
 							$timeChip.text(response.data.estimated_time).removeClass('sscribe-summary-time-pending');
 							$timeChip.attr('aria-label', response.data.estimated_time);
 						} else {
-							const fallbackHint = sscribe_data.strings.summary_time_hint || 'See Preview';
+							const fallbackHint = sscribe_data.strings.summary_time_hint || 'See Preview for adaptive estimate';
 							$timeChip.text(fallbackHint).removeClass('sscribe-summary-time-pending');
 							$timeChip.attr('aria-label', fallbackHint);
 						}
@@ -982,7 +982,7 @@
 							return;
 						}
 						const $timeChipErr = $('#sscribe-summary-time');
-						const errHint = sscribe_data.strings.summary_time_hint || 'See Preview';
+						const errHint = sscribe_data.strings.summary_time_hint || 'See Preview for adaptive estimate';
 						$timeChipErr.text(errHint).removeClass('sscribe-summary-time-pending');
 						$timeChipErr.attr('aria-label', errHint);
 					},
@@ -1220,7 +1220,7 @@
 				'</button>';
 			bannerHtml +=
 				'<button type="button" class="sscribe-button sscribe-button-ghost sscribe-preflight-cancel">' +
-				this.escapeHtml(sscribe_data.strings.preflight_cancel || 'Go Back') +
+				this.escapeHtml(sscribe_data.strings.preflight_cancel || 'Cancel Export') +
 				'</button>';
 			bannerHtml += '</div></div>';
 			$('.sscribe-preflight-banner').remove();
@@ -2033,9 +2033,9 @@
 					'<button type="button" class="sscribe-button sscribe-button-outline sscribe-button-sm sscribe-log-btn" data-filename="' +
 					this.escapeHtml(filename) +
 					'" title="' +
-					this.escapeHtml(strings.log_tooltip || 'View Log') +
+					this.escapeHtml(strings.log_tooltip || 'View export log') +
 					'" aria-label="' +
-					this.escapeHtml(strings.log_tooltip || 'View Log') +
+					this.escapeHtml(strings.log_tooltip || 'View export log') +
 					'">' +
 					this.escapeHtml(strings.log_label || 'Log') +
 					'</button>';
@@ -2043,9 +2043,9 @@
 					'<button type="button" class="sscribe-button sscribe-button-outline sscribe-button-sm sscribe-button-danger sscribe-delete-btn" data-filename="' +
 					this.escapeHtml(filename) +
 					'" title="' +
-					this.escapeHtml(strings.delete_tooltip || 'Delete') +
+					this.escapeHtml(strings.delete_tooltip || 'Delete this export') +
 					'" aria-label="' +
-					this.escapeHtml(strings.delete_tooltip || 'Delete') +
+					this.escapeHtml(strings.delete_tooltip || 'Delete this export') +
 					'">' +
 					this.escapeHtml(strings.delete_label || 'Delete') +
 					'</button>';
@@ -2155,7 +2155,7 @@
 						: 'Delete ' + count + ' ' + exportWord + '?',
 				description:
 					(sscribe_data.strings && sscribe_data.strings.bulk_delete_desc) ||
-					'This permanently removes the selected packages from your uploads folder. The deletion cannot be undone.',
+					'All selected exports will be permanently removed from the server. ZIP files in your downloads folder will not be affected.',
 				items: $checks
 					.map(function () {
 						return String($(this).val() || '');
@@ -3195,7 +3195,7 @@
 			if (!$textarea.length || !$textarea.val()) {
 				this.showToast(
 					(sscribe_data.strings && sscribe_data.strings.support_copy_error) ||
-						'No support information to copy yet.',
+						'Copy failed. Try selecting the text manually.',
 					'warning'
 				);
 				return;
@@ -3203,7 +3203,7 @@
 			const text = $textarea.val();
 			const done = () => {
 				$btn.prop('disabled', true).text(
-					(sscribe_data.strings && sscribe_data.strings.support_copied) || 'Copied!'
+					(sscribe_data.strings && sscribe_data.strings.support_copied) || 'Support information copied.'
 				);
 				setTimeout(function () {
 					$btn.prop('disabled', false).text(
