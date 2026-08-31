@@ -30,6 +30,21 @@ Each row also calls out the spec task it supports, where relevant.
 
 ---
 
+## 0. External selectors (WP-core, used by `tests-e2e/helpers/login.ts`)
+
+The selectors and URL fragments below are **not** part of the plugin's admin
+UI; they are WordPress-core login form fields and admin URLs that the
+`loginAsAdmin()` test helper uses to authenticate before navigating to the
+plugin page. They are cataloged here so a future PR2 spec that wraps the
+login helper (e.g., for an auth-required a11y test) has a canonical
+reference. Consumed by `tests-e2e/helpers/login.ts:8-12`.
+
+- `#user_login` → tests-e2e/helpers/login.ts:8 | WP login form username field
+- `#user_pass` → tests-e2e/helpers/login.ts:9 | WP login form password field
+- `#wp-submit` → tests-e2e/helpers/login.ts:12 | WP login form submit button
+- `/wp-admin/` → tests-e2e/helpers/login.ts:11 | Admin URL fragment (landing target after login; matches `page.waitForURL(/\/wp-admin\//)`)
+- `?page=sscribe-export` → admin/class-sscribe-admin.php:78 | Admin page query string (plugin's main admin page slug; cross-referenced in §1 L35)
+
 ## 1. Admin navigation (Tasks 7-10)
 
 - `?page=sscribe-export` → admin/class-sscribe-admin.php:78 | menu_slug from `add_menu_page()`
