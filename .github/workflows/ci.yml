@@ -138,7 +138,7 @@ jobs:
               with:
                   php-version: ${{ matrix.php-version }}
                   coverage: none
-                  extensions: fileinfo
+                  extensions: fileinfo, sqlite3, pdo_sqlite
 
             - name: Cache Composer dependencies
               uses: actions/cache@v6
@@ -161,6 +161,43 @@ jobs:
 
             - name: Run PHPCS
               run: composer cs
+
+    real-wp-tests:
+        name: Real WordPress Integration Suite (SQLite)
+        runs-on: ubuntu-latest
+        needs: test
+        steps:
+            - name: Checkout code
+              uses: actions/checkout@v6
+              with:
+                  persist-credentials: false
+
+            - name: Setup PHP
+              uses: shivammathur/setup-php@v2
+              with:
+                  php-version: '8.4'
+                  coverage: none
+                  extensions: fileinfo, sqlite3, pdo_sqlite
+
+            - name: Cache Composer dependencies
+              uses: actions/cache@v6
+              with:
+                  path: vendor
+                  key: ${{ runner.os }}-php-8.4-vendor-${{ hashFiles('composer.lock') }}
+                  restore-keys: |
+                      ${{ runner.os }}-php-8.4-vendor-
+
+            - name: Install dependencies
+              run: composer install --no-progress
+
+            - name: Install WordPress testbench (SQLite drop-in)
+              run: composer test:wp:install
+
+            - name: Generate prefixed vendor tree
+              run: composer vendor:prefix
+
+            - name: Run real WordPress integration suite
+              run: composer test:wp
 
     coverage:
         name: Coverage PHP 8.4
@@ -203,7 +240,7 @@ jobs:
     plugin-check:
         name: Submission Package Check
         runs-on: ubuntu-latest
-        needs: [test, frontend-quality, audit]
+        needs: [test, frontend-quality, audit, real-wp-tests]
         steps:
             - name: Checkout code
               uses: actions/checkout@v6
