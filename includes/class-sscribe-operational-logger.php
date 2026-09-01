@@ -244,9 +244,18 @@ final class SScribe_Operational_Logger {
 
 		$written = file_put_contents( $log_file, $payload, FILE_APPEND | LOCK_EX );
 		if ( false === $written ) {
+			// Operational-logger self-report uses error_log() rather than the
+			// plugin's own SScribe_Logger because the failure path itself may
+			// have broken the very logger we're trying to report.
+			// phpcs:ignore WordPress.PHP.DevelopmentFunctions.error_log_error_log
 			error_log( '[SSCRIBE][OPS_LOGGER] Failed to append operational record to ' . basename( $log_file ) );
 			return;
 		}
+		// Operational log is owner-read/write only (mode 0600). This is
+		// intentional security hardening; shared-host deployments have
+		// inherited umask issues that allow group/world reads if not set
+		// explicitly.
+		// phpcs:ignore WordPress.WP.AlternativeFunctions.file_system_operations_chmod
 		chmod( $log_file, 0600 );
 
 		self::prune( $log_file );
@@ -278,7 +287,12 @@ final class SScribe_Operational_Logger {
 			return;
 		}
 		$rotated = dirname( $log_file ) . '/' . self::LOG_FILE_PREFIX . gmdate( 'Y-m-d_H-i-s' ) . '-' . bin2hex( random_bytes( 3 ) ) . '.log';
+		// rename() is atomic on POSIX filesystems (WP_Filesystem::move()
+		// is not); the @ suppresses only the rename permission warning.
+		// phpcs:ignore WordPress.WP.AlternativeFunctions.rename_rename
 		@rename( $log_file, $rotated );
+		// Restrict rotated log to owner-only access; see write() above.
+		// phpcs:ignore WordPress.WP.AlternativeFunctions.file_system_operations_chmod
 		@chmod( $rotated, 0600 );
 	}
 
@@ -298,7 +312,7 @@ final class SScribe_Operational_Logger {
 		$excess = array_slice( $files, 0, count( $files ) - self::RETAIN_ROTATED );
 		foreach ( $excess as $old ) {
 			if ( $old !== $log_file ) {
-				@unlink( $old );
+				wp_delete_file( $old );
 			}
 		}
 	}
