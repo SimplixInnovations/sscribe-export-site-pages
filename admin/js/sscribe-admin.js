@@ -13,6 +13,21 @@
 		isProcessing: false,
 		isPreparing: false,
 		selectedPageCount: 0,
+		/**
+		 * Client-owned monotonically increasing generation counter for
+		 * count/status requests. Every logical counts refresh increments
+		 * this BEFORE issuing requests, and any response whose echoed
+		 * `client_generation` does not EXACTLY equal the current value
+		 * is discarded. The server does not generate sequence numbers —
+		 * it only echoes the value the browser originated.
+		 *
+		 * Replaces the previous PHP-side `$GLOBALS['__sscribe_request_seq']`
+		 * mechanism which broke under separate `admin-ajax.php` requests
+		 * (each PHP request started fresh and returned `1`).
+		 *
+		 * @type {number}
+		 */
+		_countsRequestGeneration: 0,
 		_countsRetries: 0,
 		_lastProgressAt: 0,
 		batchRetries: 0,
@@ -534,6 +549,13 @@
 		},
 		refreshStatusAndLanguageCounts: function (postType, language) {
 			const self = this;
+			// Bump the client-owned generation BEFORE any request is issued.
+			// Every response handler compares the echoed `client_generation`
+			// with EXACT equality to this value; anything else is stale and
+			// must not mutate UI state. Ordering belongs to the browser
+			// interaction that originated the requests.
+			self._countsRequestGeneration = (self._countsRequestGeneration || 0) + 1;
+			const generation = self._countsRequestGeneration;
 			self.selectedPageCount = 0;
 			self._countsLoaded = false;
 			self.updateExportButton();
@@ -551,17 +573,28 @@
 					nonce: sscribe_data.nonce,
 					language: language,
 					post_type: postType,
+					client_generation: generation,
 				},
 				success: function (response) {
 					if (response.success && response.data) {
-						// Drop stale responses when the user toggles faster than
-						// the server answers: only the highest request_seq wins.
-						const serverSeq = parseInt(response.data.request_seq, 10);
-						if (!Number.isNaN(serverSeq) && serverSeq < (self._lastCountsSeq || 0)) {
+						// Discard any response whose generation is not EXACTLY
+						// the most recent one. `<` is intentionally not used —
+						// a response from a partially-completed older refresh
+						// must never overwrite the newer one.
+						if (
+							typeof response.data.client_generation === 'undefined' ||
+							parseInt(response.data.client_generation, 10) !== generation
+						) {
 							return;
 						}
-						if (!Number.isNaN(serverSeq)) {
-							self._lastCountsSeq = serverSeq;
+						// Server must echo the controls we sent; if it doesn't,
+						// the response is from a logically different request
+						// even if the generation number happened to match.
+						if (response.data.post_type !== postType) {
+							return;
+						}
+						if (typeof response.data.language !== 'undefined' && response.data.language !== language) {
+							return;
 						}
 						const allCounts = response.data.counts || {};
 						const pageCounts = response.data.counts_page || allCounts;
@@ -590,8 +623,11 @@
 							self.refreshStatusAndLanguageCounts(postType, language);
 						}, 2500);
 					} else {
-						// Keep the PHP-rendered counts; a failed counter request
-						// must not disable the export UI.
+						// Phase 3 will replace this with a fail-closed path that
+						// does not promote PHP-rendered numbers to authoritative
+						// state. Keeping the legacy behavior here only so the
+						// Phase 1 ordering fix is in isolation; Phase 3 fixes
+						// the stale-rendering-trust issue.
 						self._countsRetries = 0;
 						self._countsLoaded = true;
 						self.updateConfigSummary();
@@ -654,19 +690,23 @@
 						nonce: sscribe_data.nonce,
 						languages: JSON.stringify(langCodes),
 						post_type: postType,
+						client_generation: generation,
 					},
 					success: function (response) {
 						if (!response || !response.success || !response.data || !response.data.languages) {
 							return;
 						}
-						// Drop stale per-language responses the same way as the
-						// single-language counts endpoint.
-						const serverSeq = parseInt(response.data.request_seq, 10);
-						if (!Number.isNaN(serverSeq) && serverSeq < (self._lastCountsSeq || 0)) {
+						// Discard any response whose generation is not EXACTLY
+						// the most recent one. The server echoes the value the
+						// browser originated; it does not generate its own.
+						if (
+							typeof response.data.client_generation === 'undefined' ||
+							parseInt(response.data.client_generation, 10) !== generation
+						) {
 							return;
 						}
-						if (!Number.isNaN(serverSeq)) {
-							self._lastCountsSeq = serverSeq;
+						if (response.data.post_type !== postType) {
+							return;
 						}
 						const langMap = response.data.languages;
 						const currentPostType = $('input[name="sscribe_post_type"]:checked').val() || 'page';

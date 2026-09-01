@@ -207,7 +207,10 @@ class SScribe_Export_Query_Controller {
 		}
 
 		$payload          = $this->compute_counts_payload( $language, $post_type );
-		$payload['request_seq'] = self::next_request_seq();
+		$client_generation = $this->read_client_generation();
+		$payload['client_generation'] = $client_generation;
+		$payload['post_type']         = $post_type;
+		$payload['language']          = $requested_language;
 
 		SScribe_AJAX_Guard::success( $payload );
 	}
@@ -274,10 +277,10 @@ class SScribe_Export_Query_Controller {
 
 		SScribe_AJAX_Guard::success(
 			array(
-				'post_type'     => $post_type,
-				'languages'     => $per_language,
-				'queried_count' => count( $per_language ),
-				'request_seq'   => self::next_request_seq(),
+				'post_type'         => $post_type,
+				'languages'         => $per_language,
+				'queried_count'     => count( $per_language ),
+				'client_generation' => $this->read_client_generation(),
 			)
 		);
 	}
@@ -326,21 +329,27 @@ class SScribe_Export_Query_Controller {
 	public const SENTINEL_ALL = '__all__';
 
 	/**
-	 * Monotonic per-process request sequence for count fetches.
+	 * Read the client_generation value the browser attached to the current
+	 * counts request. The server does not generate sequence numbers — it
+	 * only echoes the value the originating JS code stamped onto the
+	 * request. Ordering across separate `admin-ajax.php` calls belongs to
+	 * the browser interaction, not the server.
 	 *
-	 * The client echoes the most recent request_seq it has rendered so it
-	 * can drop stale responses (e.g. when the user toggles language faster
-	 * than the server can answer, the earlier in-flight responses are
-	 * discarded instead of clobbering newer counts).
+	 * A non-integer, negative, or absurdly large value is clamped to 0
+	 * so the JS exact-equality check still works on a coerced integer.
 	 *
-	 * @return int Sequence number.
+	 * @return int Echoed client_generation (>= 0).
 	 */
-	public static function next_request_seq(): int {
-		if ( ! isset( $GLOBALS['__sscribe_request_seq'] ) ) {
-			$GLOBALS['__sscribe_request_seq'] = 0;
+	private function read_client_generation(): int {
+		$raw = SScribe_AJAX_Guard::post_text( 'client_generation', '0', 20 );
+		$n   = is_numeric( $raw ) ? (int) $raw : 0;
+		if ( $n < 0 ) {
+			$n = 0;
 		}
-		++$GLOBALS['__sscribe_request_seq'];
-		return (int) $GLOBALS['__sscribe_request_seq'];
+		if ( $n > 1000000 ) {
+			$n = 0;
+		}
+		return $n;
 	}
 
 	/**
