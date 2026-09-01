@@ -21,38 +21,61 @@ const ROOT = resolve(import.meta.dirname, '..');
 const targets = [
   {
     specFile: 'tests-e2e/a11y/admin-tabs.spec.ts',
-    description: 'dark-mode color-contrast on format-desc',
+    description: 'format-desc text contrast meets WCAG AA',
     sourceFile: 'admin/css/sscribe-admin.css',
-    revertMatch: /(\.sscribe-format-option-description[^{]*\{[^}]*color:\s*)([^;]+)/,
-    revertReplace: '$1#fafafa',  // artificially fail contrast
+    // .sscribe-format-desc { ... color: var(--ss-text-secondary); ... }
+    // Reverting color to #cccccc drops contrast from ~10.4:1 to ~1.6:1,
+    // below the AA threshold the spec asserts.
+    revertMatch: /(\.sscribe-format-desc\s*\{[^}]*color:\s*)([^;]+)/,
+    revertReplace: '$1#cccccc',
   },
   {
     specFile: 'tests-e2e/a11y/admin-tabs.spec.ts',
-    description: 'dark-mode color-contrast on language-badge',
+    description: 'lang-name text contrast meets WCAG AA',
     sourceFile: 'admin/css/sscribe-admin.css',
-    revertMatch: /(\.sscribe-language-badge[^{]*\{[^}]*background-color:\s*)([^;]+)/,
-    revertReplace: '$1#999999',  // artificially fail contrast
+    // .sscribe-lang-name { ... color: var(--ss-text-primary); ... } (in the
+    // shared post-type-name/format-name/lang-name rule at line 579-583).
+    // Reverting color to #cccccc drops contrast below AA.
+    revertMatch:
+      /(\.sscribe-post-type-name,\s*\.sscribe-format-name,\s*\.sscribe-lang-name\s*\{[^}]*color:\s*)([^;]+)/,
+    revertReplace: '$1#cccccc',
   },
   {
     specFile: 'tests-e2e/a11y/format-cards.spec.ts',
     description: 'markdown-format-card word break',
     sourceFile: 'admin/css/sscribe-admin.css',
-    revertMatch: /(\.sscribe-format-option-title[^{]*\{)([^}]*word-wrap:\s*break-word[^;]*;)/,
-    revertReplace: '$1',  // remove the word-wrap rule
+    // .sscribe-format-name { ... word-break: normal; overflow-wrap: normal; ... }
+    // Reverting word-break to break-all forces mid-character breaks in
+    // "Markdown" when the column is narrow, exceeding the 2-line ceiling
+    // the spec asserts.
+    revertMatch:
+      /(\.sscribe-post-type-name,\s*\.sscribe-format-name,\s*\.sscribe-lang-name\s*\{[^}]*word-break:\s*)([^;]+)/,
+    revertReplace: '$1break-all',
   },
   {
     specFile: 'tests-e2e/e2e/debug/toggle.spec.ts',
-    description: 'toggle-ui-assets-gating',
-    sourceFile: 'sscribe-export-site-pages.php',
-    revertMatch: /(wp_enqueue_script\([^,]+,\s*[^,]+,\s*\[\],\s*[^,]+\s*,\s*true\s*\)[\s\S]{0,200}?sscribe-debug\b)/,
-    revertReplace: '/* REVERTED FOR REGRESSION TEST */',
+    description: 'debug console assets enqueued unconditionally for manage_options',
+    sourceFile: 'admin/class-sscribe-admin.php',
+    // wp_enqueue_style('sscribe-debug-console', ...) is wrapped in
+    // if ( current_user_can('manage_options') ) { ... } at line 203-218.
+    // Reverting by neutralizing the capability check makes the assets gate
+    // on something false, dropping the <link>/<script> from the page and
+    // breaking the spec's "cssLoaded/jsLoaded === true" assertion.
+    revertMatch: /(if\s*\(\s*current_user_can\(\s*'manage_options'\s*\)\s*\)\s*\{)/,
+    revertReplace: 'if ( false ) {',
   },
   {
     specFile: 'tests-e2e/e2e/history/delete-two-click.spec.ts',
-    description: 'two-click-confirm pointer-events',
+    description: 'two-click confirm pointer-events landmine',
     sourceFile: 'admin/css/sscribe-admin.css',
-    revertMatch: /(\.sscribe-btn-confirming[^{]*\{[^}]*pointer-events:\s*)([^;]+)/,
-    revertReplace: '$1none',
+    // The spec asserts `.sscribe-btn-confirming` does NOT have
+    // `pointer-events: none`. There is currently no rule setting it; we
+    // inject one via a new declaration that the spec then catches as a
+    // regression. The revert is intentionally self-injecting: the spec's
+    // contract is "no pointer-events rule on .sscribe-btn-confirming".
+    revertMatch:
+      /(\.sscribe-button\.sscribe-btn-confirming\s*\{[^}]*)(\})/,
+    revertReplace: "$1\tpointer-events: none;\n}",
   },
   {
     specFile: 'tests-e2e/e2e/export/wizard-happy-path.spec.ts',
@@ -66,17 +89,29 @@ const targets = [
   },
   {
     specFile: 'tests-e2e/e2e/export/download-token-auth.spec.ts',
-    description: 'download token expiry',
-    sourceFile: 'includes/class-sscribe-export-download.php',
-    revertMatch: /(if\s*\(\s*\$now\s*>\s*\$token_expires\s*\)\s*\{)/,
-    revertReplace: 'if ( false && $now > $token_expires ) {',  // neutralize check
+    description: 'download token single-use rotation',
+    sourceFile: 'includes/class-sscribe-zip-handler.php',
+    // consume_dl_token() returns false on mismatch but ALSO rotates the
+    // token regardless. The spec needs the ROTATION step to actually
+    // happen. Reverting the update_option() call leaves the stored token
+    // unchanged — the second request with the original token would still
+    // hash_equals match, so the spec's "secondStatus === 403" would fail.
+    // We match the `$row['dl_token'] = $this->generate_dl_token();` line
+    // and remove it.
+    revertMatch:
+      /(\$row\['dl_token'\]\s*=\s*\$this->generate_dl_token\(\);\s*\n\s*\$row\['dl_token_at'\]\s*=\s*time\(\);)/,
+    revertReplace: "\$row['dl_token_at'] = time();",
   },
   {
     specFile: 'tests-e2e/e2e/export/batch-progress.spec.ts',
     description: 'batch-progress aria-live',
     sourceFile: 'admin/partials/sscribe-admin-display.php',
-    revertMatch: /(aria-live="polite")/,
-    revertReplace: 'aria-live="off"',  // deliberately wrong
+    // #sscribe-progress-area's aria-live="polite" at line 692. Reverting
+    // to aria-live="off" makes the spec fail the toHaveAttribute('aria-live',
+    // 'polite') assertion immediately on page load.
+    revertMatch:
+      /(<div id="sscribe-progress-area"[^>]*aria-live=")(polite)("[^>]*>)/,
+    revertReplace: '$1off$3',
   },
 ];
 
@@ -110,17 +145,25 @@ for (const target of targets) {
   writeFileSync(srcAbs, reverted, 'utf-8');
 
   try {
-    const result = spawnSync('npx', ['playwright', 'test', '--reporter=line', '--grep', target.description], {
-      cwd: ROOT,
-      stdio: 'inherit',
-      env: { ...process.env, CI: '1' },
-    });
+    const result = spawnSync(
+      'npx',
+      ['playwright', 'test', '--reporter=line', '--grep', target.description],
+      {
+        cwd: ROOT,
+        stdio: 'inherit',
+        env: { ...process.env, CI: '1' },
+      }
+    );
     exercised++;
     if (result.status === 0) {
-      console.error(`[fail] ${target.description}: test PASSED after revert — regression NOT caught`);
+      console.error(
+        `[fail] ${target.description}: test PASSED after revert — regression NOT caught`
+      );
       failures++;
     } else {
-      console.log(`[pass] ${target.description}: test failed after revert — regression caught`);
+      console.log(
+        `[pass] ${target.description}: test failed after revert — regression caught`
+      );
       caught++;
     }
   } finally {
