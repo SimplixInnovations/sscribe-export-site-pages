@@ -36,12 +36,13 @@ jobs:
       - name: Smoke
         run: npm run test:e2e:smoke
 
-      - name: Fast
+      # Phase 15: full E2E gating on every PR. Fast was a parallel
+      # gated subset that let regressions slip past the gate while
+      # full coverage lived only on main post-merge. Per WP.org
+      # submission directive: every pre-merge push must exercise the
+      # full Playwright suite, not a curated fast subset.
+      - name: Full E2E suite (PR + main)
         if: github.event_name == 'push' || github.event_name == 'pull_request'
-        run: npm run test:e2e:fast
-
-      - name: Full (main only)
-        if: github.ref == 'refs/heads/main'
         run: npm run test:e2e:full
 
       - name: Regression discipline (PR only)
