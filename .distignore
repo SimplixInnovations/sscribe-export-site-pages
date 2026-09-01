@@ -11,6 +11,7 @@ scripts/
 dist/
 WPScan/
 WordPress-Core/
+bin/
 
 # Composer lock data is not required at runtime; composer.json remains in the
 # package so WordPress.org reviewers can audit bundled dependency provenance.
@@ -18,7 +19,9 @@ composer.lock
 
 # Testing
 tests/
+tests-wp/
 fake-wp/
+tests-e2e/
 phpunit.xml*
 phpstan.neon*
 phpstan-bootstrap.php

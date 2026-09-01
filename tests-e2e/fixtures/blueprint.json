@@ -6,9 +6,6 @@
     { "step": "installPlugin", "pluginZipFile": "/sscribe-build/sscribe-export-site-pages.zip" },
     { "step": "mkdir", "path": "/wordpress/wp-content/mu-plugins" },
     { "step": "writeFile", "path": "/wordpress/wp-content/mu-plugins/sscribe-perf-sink.php", "data": "@@MU_PLUGIN_PERF_SINK@@" },
-    { "step": "writeFile", "path": "/wordpress/wp-content/mu-plugins/sscribe-test-tokens.php", "data": "@@MU_PLUGIN_TEST_TOKENS@@" },
-    { "step": "writeFile", "path": "/wordpress/wp-content/mu-plugins/sscribe-test-batch.php", "data": "@@MU_PLUGIN_TEST_BATCH@@" },
-    { "step": "writeFile", "path": "/wordpress/wp-content/mu-plugins/sscribe-test-exec.php", "data": "@@MU_PLUGIN_TEST_EXEC@@" },
     { "step": "wp-cli", "command": "wp rewrite structure '/%postname%/' --hard" }
   ]
 }

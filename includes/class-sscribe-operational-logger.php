@@ -86,7 +86,7 @@ final class SScribe_Operational_Logger {
 	 *
 	 * @param string $level   One of {@see self::LEVEL_ERROR}, {@see self::LEVEL_CRITICAL}.
 	 * @param string $message Short, human-readable description of the failure.
-	 * @param array  $context Sanitized context — see class docblock for fields to include.
+	 * @param array  $context Sanitized context - see class docblock for fields to include.
 	 * @return bool True when the entry was accepted, false when dropped (wrong level).
 	 */
 	public static function record( string $level, string $message, array $context = array() ): bool {

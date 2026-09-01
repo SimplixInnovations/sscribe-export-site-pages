@@ -57,9 +57,12 @@ const targets = [
   {
     specFile: 'tests-e2e/e2e/export/wizard-happy-path.spec.ts',
     description: 'export wizard happy path',
-    sourceFile: 'includes/class-sscribe-ajax.php',
-    revertMatch: /(\$response\['ok'\]\s*=\s*)(true)/,
-    revertReplace: '$1false',  // break AJAX response
+    sourceFile: 'includes/class-sscribe-session.php',
+    // session_id is bin2hex(random_bytes(8)) -> 16 hex chars. Shrinking to
+    // random_bytes(4) yields an 8-char session_id, breaking the spec's
+    // regex /^[a-f0-9]{16}$/.
+    revertMatch: /(bin2hex\(\s*random_bytes\(\s*)(\d+)(\s*\)\s*\))/,
+    revertReplace: '$14$3',
   },
   {
     specFile: 'tests-e2e/e2e/export/download-token-auth.spec.ts',

@@ -35,7 +35,10 @@ $config = array(
 		'package.json', 'package-lock.json', 'opencode.json', 'CONTRIBUTING.md', 'CHANGELOG.md',
 		'phpunit.xml', 'phpunit.xml.dist', 'phpstan.neon', 'phpstan.neon.dist',
 		'phpcs.xml', 'phpstan-bootstrap.php', '.editorconfig', '.wp-env.json',
-		'tests', 'scripts', '.github', '.gitattributes', 'docs', 'examples', 'samples',
+		'tests', 'tests-wp', 'tests-e2e', 'scripts', '.github', '.gitattributes', 'docs', 'examples', 'samples',
+		// bin/ holds real-WP testbench shell helpers (install-wp-tests.sh etc.)
+		// added in 14379d2. Never ship them in the release ZIP.
+		'bin',
 		'composer.lock', 'scratch', 'strauss.json', 'infection.json5',
 		'commit-message.txt', '.prettierrc', '.eslintrc.json', '.stylelintrc.json', '.husky',
 		'node_modules', 'WPScan',

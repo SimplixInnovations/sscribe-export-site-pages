@@ -1,6 +1,6 @@
 import { stubFsExt } from './helpers/stub-fs-ext.ts';
 import { spawn, ChildProcess } from 'node:child_process';
-import { mkdirSync, writeFileSync, existsSync, readFileSync } from 'node:fs';
+import { mkdirSync, writeFileSync, existsSync, readFileSync, readdirSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 
@@ -19,12 +19,15 @@ interface GlobalSetupResult {
  * Each marker MUST match a `@@MU_PLUGIN_*@@` token in blueprint.json
  * and MUST resolve to an existing .php file on disk. Throws at boot
  * if any file is missing — fail loud.
+ *
+ * Only mu-plugins with an actual .php file on disk are listed. Test
+ * scaffolding for download-token / batch / exec flows is pending — see
+ * tests-e2e/SELECTORS.md §23 for the spec roadmap. When those specs land,
+ * add their mu-plugin files here AND the matching `writeFile` step in
+ * blueprint.json.
  */
 const MU_PLUGIN_MAP: ReadonlyArray<readonly [string, string]> = [
   ['@@MU_PLUGIN_PERF_SINK@@', 'sscribe-perf-sink.php'],
-  ['@@MU_PLUGIN_TEST_TOKENS@@', 'sscribe-test-tokens.php'],
-  ['@@MU_PLUGIN_TEST_BATCH@@', 'sscribe-test-batch.php'],
-  ['@@MU_PLUGIN_TEST_EXEC@@', 'sscribe-test-exec.php'],
 ];
 
 /**
@@ -48,14 +51,14 @@ export default async function globalSetup(): Promise<GlobalSetupResult> {
   const zipPath = join(stagingDir, 'sscribe-export-site-pages.zip');
   if (!existsSync(zipPath)) {
     const actual = existsSync(distDir)
-      ? require('node:fs').readdirSync(distDir).filter((f: string) => f.endsWith('.zip'))
+      ? readdirSync(distDir).filter((f: string) => f.endsWith('.zip'))
       : [];
     if (actual.length === 0) {
       throw new Error(
         'No plugin ZIP found in dist/. Run `composer release:prepare` before `npm run test:e2e`.'
       );
     }
-    writeFileSync(zipPath, require('node:fs').readFileSync(join(distDir, actual[0])));
+    writeFileSync(zipPath, readFileSync(join(distDir, actual[0])));
   }
 
   // Generate the runtime blueprint by substituting mu-plugin placeholders
