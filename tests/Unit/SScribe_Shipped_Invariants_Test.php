@@ -706,9 +706,9 @@ final class SScribe_Shipped_Invariants_Test extends TestCase {
 		$admin_view = (string) file_get_contents( self::$plugin_root . '/admin/partials/sscribe-admin-display.php' );
 
 		$this->assertStringContainsString(
-			'--ss-brand: #3d7a5a;',
+			'--ss-brand: #2f6146;',
 			$tokens,
-			'The established SScribe light palette must remain intact.'
+			'The established SScribe light palette must remain intact (Phase 27: darkened from #3d7a5a for WCAG AA contrast headroom against box-shadow blending).'
 		);
 		$this->assertStringNotContainsString( 'prefers-color-scheme: dark', $admin_css );
 		$this->assertStringNotContainsString( 'prefers-color-scheme: dark', $debug_css );

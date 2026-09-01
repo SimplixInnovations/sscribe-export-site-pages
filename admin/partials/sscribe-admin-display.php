@@ -121,7 +121,7 @@ if ( ! function_exists( 'sscribe_humanize_export_filename' ) ) {
 
 <a class="sscribe-skip-link screen-reader-text" href="#sscribe-main-content"><?php esc_html_e( 'Skip to export configuration', 'sscribe-export-site-pages' ); ?></a>
 <div class="sscribe-master-container sscribe-table-rule">
-	<header class="sscribe-hero">
+	<div class="sscribe-hero">
 		<div class="sscribe-hero-content">
 			<div class="sscribe-hero-left">
 				<div class="sscribe-hero-logo">
@@ -153,7 +153,7 @@ if ( ! function_exists( 'sscribe_humanize_export_filename' ) ) {
 				<span class="sscribe-hero-stat-label"><?php echo esc_html( _n( 'recent export', 'recent exports', count( $sscribe_recent_exports ), 'sscribe-export-site-pages' ) ); ?></span>
 			</span>
 		</div>
-	</header>
+	</div>
 
 	<div id="sscribe-live-region" class="screen-reader-text" aria-live="polite" aria-atomic="true"></div>
 	<div id="sscribe-alert-region" class="screen-reader-text" aria-live="assertive" aria-atomic="true"></div>
@@ -180,7 +180,7 @@ if ( ! function_exists( 'sscribe_humanize_export_filename' ) ) {
 		</div>
 	</div>
 
-	<div class="sscribe-workspace sscribe-flat-workspace" id="sscribe-main-content" role="main">
+	<div class="sscribe-workspace sscribe-flat-workspace" id="sscribe-main-content">
 		<div id="sscribe-tab-announce" class="screen-reader-text" aria-live="polite" aria-atomic="true"></div>
 		<nav class="sscribe-tabs-nav" role="tablist" aria-label="<?php esc_attr_e( 'Main Navigation', 'sscribe-export-site-pages' ); ?>" aria-orientation="horizontal">
 			<button type="button" class="sscribe-tab-btn sscribe-tab-active" id="sscribe-tab-btn-export" data-tab="export" role="tab" aria-selected="true" aria-controls="sscribe-tab-export">
