@@ -29,6 +29,41 @@
 		 */
 		_countsRequestGeneration: 0,
 		_countsRetries: 0,
+		/**
+		 * Single authoritative counts-state object. The DOM is a RENDERING
+		 * TARGET — runtime decisions must read from this object, never from
+		 * `.text()` parsing of rendered DOM.
+		 *
+		 * `loaded: true` means a successful authoritative response was
+		 * received for exactly the currently selected (postType, language,
+		 * status) tuple. Any refresh failure MUST reset loaded=false and
+		 * never promote stale values from a previous selection.
+		 *
+		 * @type {{
+		 *     generation: number,
+		 *     postType: string|null,
+		 *     language: string|null,
+		 *     status: string|null,
+		 *     statusCounts: Object<string,number>,
+		 *     typeCounts: Object<string,number>,
+		 *     languageCounts: Object<string,number>,
+		 *     loaded: boolean,
+		 *     error: string|null,
+		 *     errorCode: string|null
+		 * }}
+		 */
+		countsState: {
+			generation: 0,
+			postType: null,
+			language: null,
+			status: null,
+			statusCounts: {},
+			typeCounts: {},
+			languageCounts: {},
+			loaded: false,
+			error: null,
+			errorCode: null,
+		},
 		_lastProgressAt: 0,
 		batchRetries: 0,
 		maxBatchRetries: 3,
@@ -613,6 +648,22 @@
 						$('[data-sscribe-count-for="any"]')
 							.text(anyTotal.toLocaleString())
 							.attr('data-count', anyTotal);
+						// Phase 3: authoritative countsState — written ONLY
+						// on a successful response whose generation, post_type,
+						// and language all match the current selection.
+						self.countsState = self.countsState || {};
+						self.countsState.generation = generation;
+						self.countsState.postType = postType;
+						self.countsState.language = language;
+						self.countsState.statusCounts = Object.assign({}, allCounts);
+						self.countsState.typeCounts = {
+							page: pageTotal,
+							post: postTotal,
+							any: anyTotal,
+						};
+						self.countsState.loaded = true;
+						self.countsState.error = null;
+						self.countsState.errorCode = null;
 						self._countsLoaded = true;
 						self._countsRetries = 0;
 						self.updateConfigSummary();
@@ -623,13 +674,23 @@
 							self.refreshStatusAndLanguageCounts(postType, language);
 						}, 2500);
 					} else {
-						// Phase 3 will replace this with a fail-closed path that
-						// does not promote PHP-rendered numbers to authoritative
-						// state. Keeping the legacy behavior here only so the
-						// Phase 1 ordering fix is in isolation; Phase 3 fixes
-						// the stale-rendering-trust issue.
+						// FAIL-CLOSED: a failed authoritative refresh must
+						// not promote PHP-rendered numbers (from the OLD
+						// postType/language) into the new selection's
+						// authoritative state. Mark countsState as not
+						// loaded and disable Export / Preview until a fresh
+						// response arrives. Stale numbers remain visible
+						// but only as a hint, never as input to the
+						// export-enable decision.
 						self._countsRetries = 0;
-						self._countsLoaded = true;
+						self.countsState = self.countsState || {};
+						self.countsState.loaded = false;
+						self.countsState.error = 'Counts could not be refreshed. Retry to enable export.';
+						self.countsState.errorCode = 'refresh_failed';
+						self.countsState.postType = postType;
+						self.countsState.language = language;
+						self._countsLoaded = false;
+						self.selectedPageCount = 0;
 						self.updateConfigSummary();
 						self.updateExportButton();
 					}
@@ -644,8 +705,17 @@
 						}, 2500);
 						return;
 					}
+					// FAIL-CLOSED on transport error after retries: same
+					// invariant as the !response.success branch.
 					self._countsRetries = 0;
-					self._countsLoaded = true;
+					self.countsState = self.countsState || {};
+					self.countsState.loaded = false;
+					self.countsState.error = 'Counts could not be refreshed. Retry to enable export.';
+					self.countsState.errorCode = 'refresh_failed';
+					self.countsState.postType = postType;
+					self.countsState.language = language;
+					self._countsLoaded = false;
+					self.selectedPageCount = 0;
 					self.updateConfigSummary();
 					self.updateExportButton();
 					$('.sscribe-status-card-label').removeClass('sscribe-loading');
@@ -922,20 +992,17 @@
 		updateConfigSummary: function () {
 			const $selectedStatus = $('input[name="sscribe_post_status"]:checked');
 			let count = 0;
-			if ($selectedStatus.length && !$selectedStatus.prop('disabled')) {
+			// Phase 3: read from the authoritative countsState object —
+			// not from .text() parsing of the rendered DOM. The DOM is a
+			// RENDERING TARGET. Stale numbers must never become input to
+			// downstream decisions.
+			const state = this.countsState || {};
+			if ($selectedStatus.length && !$selectedStatus.prop('disabled') && state.loaded) {
 				const statusKey = $selectedStatus.val();
-				// Read from the canonical instance-state map populated by
-				// updateStatusCounts; falls back to the DOM mirror only when
-				// the map is not yet built (e.g. before any AJAX has fired).
-				const fromMap = this._statusCountMap && Object.prototype.hasOwnProperty.call(this._statusCountMap, statusKey)
-					? this._statusCountMap[statusKey]
-					: null;
-				count =
-					fromMap !== null
-						? fromMap
-						: this.parseLocalizedInt(
-							$selectedStatus.closest('.sscribe-status-card-label').find('.sscribe-status-count').text()
-						) || 0;
+				const cs = state.statusCounts || {};
+				if (Object.prototype.hasOwnProperty.call(cs, statusKey)) {
+					count = parseInt(cs[statusKey], 10) || 0;
+				}
 			}
 			this.selectedPageCount = count;
 			const postType = $('input[name="sscribe_post_type"]:checked').val() || 'page';
@@ -971,7 +1038,7 @@
 			$('#sscribe-summary-format').text(format === 'all' ? S.status_all || 'All' : format.toUpperCase());
 			const $pagesChip = $('#sscribe-summary-pages');
 			const pagesText =
-				(this._countsLoaded ? '' : '~') +
+				(state.loaded ? '' : '~') +
 				count +
 				' ' +
 				(count === 1 ? (S && S.log_page) || 'page' : (S && S.log_pages) || 'pages');
@@ -1060,12 +1127,27 @@
 				!$('input[name="sscribe_post_status"]:checked').prop('disabled');
 			const hasFormat = $('input[name="sscribe_format"]:checked').length > 0;
 			const hasPages = this.selectedPageCount > 0;
+			// Phase 3 invariant: Export / Preview must only be enabled when
+			// the authoritative countsState matches the currently selected
+			// (postType, language, status). If the user changed any of those
+			// after the last successful refresh, this state is stale and
+			// the buttons stay disabled until a fresh response arrives.
+			const state = this.countsState || {};
+			const currentPostType = $('input[name="sscribe_post_type"]:checked').val() || 'page';
+			const currentLanguage = $('input[name="sscribe_language"]:checked').val() || '';
+			const currentStatus = $('input[name="sscribe_post_status"]:checked').val() || 'publish';
+			const stateMatchesSelection =
+				state.loaded === true &&
+				state.postType === currentPostType &&
+				state.language === currentLanguage &&
+				(state.status === null || state.status === currentStatus);
 			const canExport =
 				hasPostType &&
 				hasLanguage &&
 				hasStatus &&
 				hasFormat &&
 				hasPages &&
+				stateMatchesSelection &&
 				!this.isProcessing &&
 				!this.isPreparing;
 			$('#sscribe-export-btn').prop('disabled', !canExport);
@@ -1080,7 +1162,9 @@
 				} else if (this.isPreparing) {
 					reasonText =
 						(sscribe_data.strings && sscribe_data.strings.preparing_export) || 'Preparing your export...';
-				} else if (!hasPages && !this._countsLoaded) {
+				} else if (!stateMatchesSelection && state.error) {
+					reasonText = state.error;
+				} else if (!hasPages && !state.loaded) {
 					reasonText =
 						(sscribe_data.strings && sscribe_data.strings.loading_counts) || 'Loading page counts...';
 				} else if (!hasPages) {
