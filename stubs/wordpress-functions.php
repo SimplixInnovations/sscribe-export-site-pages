@@ -1644,3 +1644,38 @@ if ( ! class_exists( 'WP_Filesystem_Base' ) ) {
 		public function init( $url = '', $verb = 'GET', $temp = false ) {}
 	}
 }
+
+// Phase 25: WP_Site class + get_sites() function — needed for static
+// analysis of uninstall.php's multisite loop (per-site table cleanup).
+if ( ! class_exists( 'WP_Site', false ) ) {
+	class WP_Site {
+		public int $blog_id;
+		public string $domain;
+		public string $path;
+		public int $network_id;
+		public string $registered;
+		public string $last_updated;
+		public bool $public;
+		public bool $archived;
+		public bool $mature;
+		public bool $spam;
+		public bool $deleted;
+		public int $lang_id;
+	}
+}
+
+if ( ! function_exists( 'get_sites' ) ) {
+	/**
+	 * @param array<string, mixed> $args Arguments. The 'fields' key
+	 *                                     controls the returned shape:
+	 *                                     'ids' returns int[], any
+	 *                                     other value returns WP_Site[].
+	 * @phpstan-return (
+	 *     $args is array{fields: 'ids'} ? array<int, int>
+	 *     : array<int, WP_Site>
+	 * )
+	 */
+	function get_sites( $args = array() ): array {
+		return array();
+	}
+}
