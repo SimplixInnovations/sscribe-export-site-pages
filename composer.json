@@ -49,7 +49,7 @@
         "post-update-cmd": [
             "@php scripts/fix-phpword-style-deprecation.php"
         ],
-        "test": "phpunit",
+        "test": "phpunit --order-by=random",
         "test:coverage": "phpunit --coverage-html coverage/",
         "test:wp": "php -d extension=sqlite3 -d extension=pdo_sqlite -d memory_limit=1G vendor/bin/phpunit -c phpunit-wp.xml",
         "test:wp:install": "bash bin/install-wp-tests.sh --sqlite",
