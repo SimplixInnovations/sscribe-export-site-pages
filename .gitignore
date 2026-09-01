@@ -163,6 +163,12 @@ test-phpcs-output.txt
 playground-tools/
 playground-blueprint.json
 
+# Playwright test outputs — regenerate on every `playwright test` run.
+# CI mode writes test-results/e2e.junit.xml + playwright-report/.
+# Never commit (would constantly show up as modified after each run).
+/test-results/
+/playwright-report/
+
 # Ad-hoc review / audit outputs (never commit, never ship).
 tmp_diffs/
 review-diff.patch
