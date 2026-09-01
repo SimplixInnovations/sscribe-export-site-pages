@@ -1944,7 +1944,17 @@
 							return;
 						}
 						if (attempt < maxAttempts) {
-							self.pollFinalize(sessionId, attempt + 1, self.computeFinalizeBackoff());
+							// Phase 6: soft-failures on the finalization
+							// endpoint also honor the server's retry_in if
+							// present, mirroring the centralized retry
+							// policy used by processBatch().
+							const dataRetryIn =
+								response.data && Number(response.data.retry_in);
+							const softDelay =
+								isFinite(dataRetryIn) && dataRetryIn > 0
+									? Math.max(1500, Math.floor(dataRetryIn))
+									: self.computeFinalizeBackoff();
+							self.pollFinalize(sessionId, attempt + 1, softDelay);
 						} else {
 							self.isProcessing = false;
 							self.showError('Export finalization timed out. Please try again.', false, {});
@@ -1977,11 +1987,45 @@
 							});
 							return;
 						}
+						// Phase 6: route finalization HTTP failures through the
+						// centralized failure-decision helper so that the
+						// server's retry_in / HTTP Retry-After takes priority
+						// over the client exponential backoff. Same contract
+						// as processBatch() (Phase 5).
+						const responseData =
+							response && response.data ? response.data : {};
+						const decision = SScribe.getAjaxFailureDecision(xhr, responseData, {
+							jitterSeed: 0.5,
+						});
+						if (decision.action === 'retry' || decision.action === 'conflict') {
+							if (attempt < maxAttempts) {
+								self.pollFinalize(sessionId, attempt + 1, decision.delayMs);
+							} else {
+								self.isProcessing = false;
+								self.showError(decision.message || 'Export finalization timed out.', false, {});
+							}
+							return;
+						}
+						if (decision.action === 'refresh_nonce') {
+							if (attempt < maxAttempts) {
+								SScribe.refreshNonceAnd(function () {
+									self.pollFinalize(sessionId, attempt + 1, 0);
+								});
+							} else {
+								self.isProcessing = false;
+								self.showError(decision.message || 'Export finalization timed out.', false, {});
+							}
+							return;
+						}
+						// action === 'fail' — terminal.
 						if (attempt < maxAttempts) {
+							// Unexpected soft-failure: fall back to a small
+							// final backoff so we still drain attempts before
+							// declaring terminal.
 							self.pollFinalize(sessionId, attempt + 1, self.computeFinalizeBackoff());
 						} else {
 							self.isProcessing = false;
-							const msg = self.getNetworkErrorMessage(xhr, 'finalize_export');
+							const msg = decision.message || self.getNetworkErrorMessage(xhr, 'finalize_export');
 							self.showError(msg, false, {});
 						}
 					},
