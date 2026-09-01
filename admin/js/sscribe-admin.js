@@ -1532,6 +1532,7 @@
 			});
 		},
 		doStartExport: function (language, postStatus, postType, formats) {
+			const self = this;
 			$.ajax({
 				url: sscribe_data.ajaxurl,
 				type: 'POST',
@@ -1552,6 +1553,10 @@
 						// the "export in progress" copy.
 						SScribe.isPreparing = false;
 						SScribe.isProcessing = true;
+						// Reset transient retry/backoff counters from any
+						// prior session so the new run starts clean.
+						SScribe.batchRetries = 0;
+						SScribe.pollBackoff = 0;
 						SScribe.showProgress();
 						SScribe.sessionId = response.data.session_id;
 						SScribe.updateStatus(response.data.message);
@@ -1559,21 +1564,67 @@
 							SScribe.showWarning(response.data.partial_export_message);
 						}
 						SScribe.processBatch();
-					} else {
-						// Start failed - clear the preparing lock so the
-						// user can try again.
-						SScribe.isPreparing = false;
-						SScribe.showError(response.data.message, false, SScribe.normalizeErrorData(response.data));
+						return;
 					}
+					// Phase 9: start-export soft-fail terminal. Previously
+					// only reset isPreparing; now also clears isProcessing,
+					// backoff, busy UI, and config summary timer so the
+					// user can immediately retry without a reload.
+					self.finishStartExportFailure(
+						(response && response.data && response.data.message) ||
+							'Export failed to start. Please try again.',
+						null,
+						(response && response.data) || {}
+					);
 				},
 				error: function (xhr) {
-					SScribe.isProcessing = false;
+					// Phase 9: HTTP error terminal — same cleanup as the
+					// soft-fail branch. Without this, isPreparing stayed
+					// true forever after a 5xx and the user had to reload.
 					const serverMsg = SScribe.parseServerError(xhr);
 					const msg = serverMsg || SScribe.getNetworkErrorMessage(xhr, 'start_export');
 					const errData = xhr.responseJSON && xhr.responseJSON.data ? xhr.responseJSON.data : {};
-					SScribe.showError(msg, false, SScribe.normalizeErrorData(errData));
+					self.finishStartExportFailure(msg, xhr, errData);
 				},
 			});
+		},
+		/**
+		 * Phase 9 helper: cleanly terminate the start-export phase on a
+		 * soft-fail or hard HTTP failure. Resets isPreparing/isProcessing,
+		 * backoff counters, busy UI, config-summary timers so the user
+		 * can immediately retry without a page reload.
+		 */
+		finishStartExportFailure: function (message, xhr, data) {
+			const self = this;
+			self.isPreparing = false;
+			self.isProcessing = false;
+			self.batchRetries = 0;
+			self.pollBackoff = 0;
+			clearTimeout(self._configSummaryDebounceTimer);
+			if (self._configSummaryXHR && self._configSummaryXHR.abort) {
+				self._configSummaryXHR.abort();
+				self._configSummaryXHR = null;
+			}
+			$('#sscribe-export-btn, #sscribe-preview-btn')
+				.prop('disabled', false)
+				.removeAttr('aria-busy')
+				.removeClass('sscribe-btn-busy');
+			self.updateExportButton();
+			const responseData = data || {};
+			const httpStatus = xhr && typeof xhr.status === 'number' ? xhr.status : 0;
+			self.showError(
+				message,
+				false,
+				SScribe.normalizeErrorData({
+					code: responseData.code || 'start_export_failed',
+					message: message,
+					_diagnostics: {
+						action: 'sscribe_start_export',
+						http_status: httpStatus,
+						server_code: responseData.code || null,
+					},
+				})
+			);
 		},
 		scheduleNextBatch: function (retryInMs, isRetry) {
 			const self = this;
