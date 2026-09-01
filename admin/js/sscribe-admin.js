@@ -1417,7 +1417,36 @@
 				},
 				error: function (xhr, textStatus) {
 					if (attempt < maxAttempts - 1) {
-						self.clearSessionWithRetry(language, postStatus, postType, formats, attempt + 1);
+						// Phase 7: do not burst-retry. Apply a real delay
+						// between attempts and honor the server's
+						// retry_in / HTTP Retry-After when present so a
+						// 429 / 503 quota signal cannot be amplified.
+						const responseData =
+							xhr && xhr.responseJSON && xhr.responseJSON.data
+								? xhr.responseJSON.data
+								: {};
+						const decision = SScribe.getAjaxFailureDecision(xhr, responseData, {
+							jitterSeed: 0.5,
+						});
+						let delayMs;
+						if (decision.action === 'retry' || decision.action === 'conflict') {
+							delayMs = decision.delayMs;
+						} else {
+							// Generic client backoff with exponential growth,
+							// clamped to >=1500ms so the burst-retry bug is
+							// impossible to reintroduce.
+							const backoff = Math.pow(2, Math.max(0, attempt));
+							delayMs = Math.max(1500, backoff * 1000);
+						}
+						setTimeout(function () {
+							self.clearSessionWithRetry(
+								language,
+								postStatus,
+								postType,
+								formats,
+								attempt + 1
+							);
+						}, delayMs);
 					} else {
 						const responseData = xhr && xhr.responseJSON && xhr.responseJSON.data ? xhr.responseJSON.data : {};
 						const serverMessage = responseData.message || '';
