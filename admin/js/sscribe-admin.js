@@ -1604,16 +1604,43 @@
 					if (self._isCancelling && textStatus === 'abort') {
 						return;
 					}
-					SScribe.batchRetries++;
-					if (SScribe.batchRetries <= SScribe.maxBatchRetries) {
-						SScribe.scheduleNextBatch(undefined, true);
-					} else {
-						self._lastAnnouncedBucket = -1;
-						const serverMsg = SScribe.parseServerError(xhr);
-						const msg = serverMsg || SScribe.getNetworkErrorMessage(xhr, 'process_batch');
-						const errData = xhr.responseJSON && xhr.responseJSON.data ? xhr.responseJSON.data : {};
-						SScribe.showError(msg, false, SScribe.normalizeErrorData(errData));
+					// Phase 5: route HTTP failures through the centralized
+					// failure decision helper. Server retry_in / HTTP
+					// Retry-After take priority over client backoff.
+					// Do NOT silently hammer the server with a 1000ms
+					// generic client retry when the server said 60000.
+					const responseData =
+						xhr && xhr.responseJSON && xhr.responseJSON.data ? xhr.responseJSON.data : {};
+					const decision = SScribe.getAjaxFailureDecision(xhr, responseData, {
+						jitterSeed: 0.5,
+					});
+					if (decision.action === 'retry' || decision.action === 'conflict') {
+						// Honor server-driven timing exactly. The decision
+						// helper clamps the lower bound so a 1s client
+						// backoff can never out-pace a 60s server hint.
+						SScribe.scheduleNextBatch(decision.delayMs, true);
+						SScribe.updateStatus(
+							decision.message ||
+								(sscribe_data.strings && sscribe_data.strings.retrying_after_delay) ||
+								'Retrying…'
+						);
+						return;
 					}
+					if (decision.action === 'refresh_nonce') {
+						SScribe.refreshNonceAnd(function () {
+							SScribe.scheduleNextBatch(0, true);
+						});
+						return;
+					}
+					// action === 'fail' — terminal. Clear in-progress
+					// flags, clear timers, clear busy UI, preserve
+					// useful error details.
+					self._lastAnnouncedBucket = -1;
+					const msg = decision.message || SScribe.getNetworkErrorMessage(xhr, 'process_batch');
+					const errData = responseData || {};
+					SScribe.showError(msg, false, SScribe.normalizeErrorData(errData));
+					SScribe.batchRetries = 0;
+					SScribe.pollBackoff = 0;
 				},
 			});
 		},
