@@ -81,6 +81,17 @@ $config = array(
 		// analysis). Not part of the production plugin - the real WordPress
 		// runtime provides these functions.
 		'stubs', '.stubs',
+
+		// Phase 22: additional dev-only root-level files that previously
+		// leaked into the release ZIP. Per "Build-release .distignore glob
+		// blindness" memory, the .distignore pattern matcher is segment-only
+		// (no real globs) — these must live in base_excludes for guaranteed
+		// exclusion.
+		//   - .superpowers:    local planning/review scratch dir with diff
+		//                      files. NEVER ship to WP.org.
+		//   - phpunit-wp.xml: real-WP testbench config. Dev-only.
+		//   - playwright.config.ts: E2E test config. Dev-only.
+		'.superpowers', 'phpunit-wp.xml', 'playwright.config.ts',
 	),
 
 	'font_excludes'    => array(
@@ -268,6 +279,36 @@ function strip_php_comments( string $source ): string {
 	}
 
 	return $output;
+}
+
+/**
+ * Sanitize AI-artifact Unicode characters that WP.org plugin-check
+ * flags (per wp-org-ai-artifact-audit memory).
+ *
+ * Applied AFTER comment-stripping so docblocks and jsdoc content
+ * (which the build preserves for @preserve/@var/@type pragmas) cannot
+ * leak em-dashes, en-dashes, ellipses, or curly quotes into the
+ * shipped ZIP.
+ *
+ *   —  (em-dash, U+2014)        -> ' - '
+ *   –  (en-dash, U+2013)        -> '-'
+ *   …  (ellipsis, U+2026)       -> '...'
+ *   “  (left double quote)      -> '"'
+ *   ”  (right double quote)     -> '"'
+ *   ‘  (left single quote)      -> "'"
+ *   ’  (right single quote)     -> "'"
+ */
+function sanitize_ai_artifacts( string $source ): string {
+	$replacements = array(
+		"\xE2\x80\x94" => ' - ',   // em-dash
+		"\xE2\x80\x93" => '-',     // en-dash
+		"\xE2\x80\xA6" => '...',   // ellipsis
+		"\xE2\x80\x9C" => '"',     // left double curly quote
+		"\xE2\x80\x9D" => '"',     // right double curly quote
+		"\xE2\x80\x98" => "'",     // left single curly quote
+		"\xE2\x80\x99" => "'",     // right single curly quote / apostrophe
+	);
+	return strtr( $source, $replacements );
 }
 
 function strip_css_comments( string $source ): string {
@@ -583,17 +624,22 @@ foreach ( $iterator as $file ) {
 			$ext = strtolower( pathinfo( $file->getPathname(), PATHINFO_EXTENSION ) );
 			if ( 'php' === $ext ) {
 				$src = file_get_contents( $file->getPathname() );
-				file_put_contents( $dest, strip_php_comments( $src ) );
+				file_put_contents( $dest, sanitize_ai_artifacts( strip_php_comments( $src ) ) );
 			} elseif ( 'css' === $ext ) {
 				$src = file_get_contents( $file->getPathname() );
-				file_put_contents( $dest, strip_css_comments( $src ) );
+				file_put_contents( $dest, sanitize_ai_artifacts( strip_css_comments( $src ) ) );
 			} elseif ( 'js' === $ext ) {
 				$src = file_get_contents( $file->getPathname() );
-				file_put_contents( $dest, strip_js_comments( $src ) );
+				file_put_contents( $dest, sanitize_ai_artifacts( strip_js_comments( $src ) ) );
 			} else {
-				if ( ! copy( $file->getPathname(), $dest ) ) {
-					throw new RuntimeException( 'Unable to copy release file: ' . $relative );
+				// Non-code files still need AI-artifact sanitization
+				// (e.g. .pot/.txt files were checked separately, but other
+				// text files in shipped paths are caught here as a backstop).
+				$src = file_get_contents( $file->getPathname() );
+				if ( false === $src ) {
+					throw new RuntimeException( 'Unable to read release file: ' . $relative );
 				}
+				file_put_contents( $dest, sanitize_ai_artifacts( $src ) );
 			}
 		} else {
 			if ( ! copy( $file->getPathname(), $dest ) ) {

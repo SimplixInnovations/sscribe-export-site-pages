@@ -21,6 +21,9 @@
 # Agent/Skills (embedded git repo)
 .agent/
 
+# Local AI-assistant planning/scratch dirs (review diffs, plans, sdd)
+.superpowers/
+
 # Local AI-assistant scan/verification state (hundreds of MB, never ships)
 .mimosa/
 .omo/
