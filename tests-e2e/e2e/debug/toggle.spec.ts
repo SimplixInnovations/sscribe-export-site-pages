@@ -16,15 +16,9 @@ import { loginAsAdmin } from '../../helpers/login';
  *   - The toggle (`#sscribe-debug-enabled`) reads/writes the option via AJAX;
  *     it never re-evaluates whether to inject assets.
  *
- * This spec asserts the contract by visiting the admin page, querying
- * `wp.i18n` / the rendered <link>/<script> tags, and confirming both assets
- * are present even when the underlying option is false.
- *
- * NOTE: WP-Playground doesn't expose `wp_localize_script` data directly, so
- * we instead verify the script tag exists AND can be parsed. The plugin's
- * debug console will fail to bootstrap (it queries a debug-disabled
- * endpoint) but that's a console-only failure — the function is defined and
- * reachable, which is the asset-gating invariant.
+ * This spec exercises BOTH directions of the toggle to prove the contract
+ * holds regardless of the underlying option state. After flipping the toggle
+ * OFF (and confirming via AJAX), the assets MUST still be present on the page.
  */
 test.describe('e2e / debug / toggle-ui-assets-gating', () => {
   test('debug console assets are enqueued for manage_options users regardless of sscribe_debug_enabled', async ({ browser }) => {
@@ -32,44 +26,62 @@ test.describe('e2e / debug / toggle-ui-assets-gating', () => {
     const page = await ctx.newPage();
     await loginAsAdmin(page);
 
-    // Force the underlying option to OFF via WP-CLI through the playground
-    // wp-cli transport. We can't issue shell commands from inside the
-    // page context, so we set the option by typing the URL fragment that
-    // triggers the AJAX update path… Actually the cleaner approach is to
-    // call the same AJAX the toggle uses, in OFF direction.
     await page.goto('/wp-admin/admin.php?page=sscribe-export');
 
-    // Sanity: the toggle must exist (proves the JS bootstrapped enough to
-    // wire up the form, which itself proves the assets enqueued).
+    // Step 1: assert assets are present in the CURRENT state (whatever it is).
     const debugTab = page.locator('#sscribe-tab-btn-debug');
     await debugTab.click();
     const toggle = page.locator('#sscribe-debug-enabled[role="switch"]');
     await expect(toggle).toBeAttached();
 
-    // Now find the <link> + <script> tags injected by wp_enqueue_*().
-    const stylesheetHrefs = await page.evaluate(() =>
-      Array.from(document.querySelectorAll('link[rel="stylesheet"]'))
-        .map((el) => el.getAttribute('href') || '')
-        .filter(Boolean)
+    const findAssets = () =>
+      page.evaluate(() => {
+        const css = Array.from(document.querySelectorAll('link[rel="stylesheet"]'))
+          .map((el) => el.getAttribute('href') || '')
+          .filter(Boolean);
+        const js = Array.from(document.querySelectorAll('script[src]'))
+          .map((el) => el.getAttribute('src') || '')
+          .filter(Boolean);
+        return {
+          cssLoaded: css.some((h) => h.includes('sscribe-debug-console.css')),
+          jsLoaded: js.some((s) => s.includes('sscribe-debug-console.js')),
+        };
+      });
+
+    const before = await findAssets();
+    expect(before.cssLoaded, 'assets must be enqueued in initial state').toBe(true);
+    expect(before.jsLoaded, 'assets must be enqueued in initial state').toBe(true);
+
+    // Step 2: flip the toggle via the AJAX path (the same one production
+    // uses). The handler POSTs to sscribe_save_debug_settings, which writes
+    // sscribe_debug_enabled. We wait for the response to confirm the write
+    // happened, then verify the assets are STILL present on the page (the
+    // page is not reloaded; only the option was flipped).
+    const updatedToggleState = await toggle.getAttribute('aria-checked');
+    const targetState = updatedToggleState === 'true' ? 'false' : 'true';
+
+    const ajaxResponse = page.waitForResponse(
+      (r) =>
+        r.url().includes('/wp-admin/admin-ajax.php') &&
+        (r.url().includes('sscribe_save_debug_settings') ||
+          r.url().includes('sscribe_toggle_debug'))
     );
-    const scriptSrcs = await page.evaluate(() =>
-      Array.from(document.querySelectorAll('script[src]'))
-        .map((el) => el.getAttribute('src') || '')
-        .filter(Boolean)
-    );
+    await toggle.click();
+    await ajaxResponse;
 
-    const cssLoaded = stylesheetHrefs.some((h) => h.includes('sscribe-debug-console.css'));
-    const jsLoaded = scriptSrcs.some((s) => s.includes('sscribe-debug-console.js'));
+    // Step 3: the toggle's aria-checked must reflect the new state and the
+    // assets must STILL be present. This is the contract.
+    await expect(toggle).toHaveAttribute('aria-checked', targetState);
 
-    expect(cssLoaded, 'sscribe-debug-console.css must be enqueued for manage_options users').toBe(true);
-    expect(jsLoaded, 'sscribe-debug-console.js must be enqueued for manage_options users').toBe(true);
-
-    // Final assertion: the toggle handler exists and can be queried without
-    // throwing. We probe the runtime via a no-op click on the toggle and
-    // expect either an AJAX POST (option still ON) or an immediate state
-    // flip (option was OFF). Either way the handler is wired.
-    const initialChecked = await toggle.getAttribute('aria-checked');
-    expect(['true', 'false']).toContain(initialChecked);
+    const after = await findAssets();
+    expect(
+      after.cssLoaded,
+      `assets must remain enqueued after toggle flip to aria-checked=${targetState}`
+    ).toBe(true);
+    expect(
+      after.jsLoaded,
+      `assets must remain enqueued after toggle flip to aria-checked=${targetState}`
+    ).toBe(true);
 
     await ctx.close();
   });

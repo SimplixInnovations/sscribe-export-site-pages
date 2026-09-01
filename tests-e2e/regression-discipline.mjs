@@ -54,7 +54,7 @@ const targets = [
   },
   {
     specFile: 'tests-e2e/e2e/debug/toggle.spec.ts',
-    description: 'debug console assets enqueued unconditionally for manage_options',
+    description: 'debug console assets are enqueued for manage_options',
     sourceFile: 'admin/class-sscribe-admin.php',
     // wp_enqueue_style('sscribe-debug-console', ...) is wrapped in
     // if ( current_user_can('manage_options') ) { ... } at line 203-218.
@@ -66,7 +66,7 @@ const targets = [
   },
   {
     specFile: 'tests-e2e/e2e/history/delete-two-click.spec.ts',
-    description: 'two-click confirm pointer-events landmine',
+    description: 'Delete button toggles confirming',
     sourceFile: 'admin/css/sscribe-admin.css',
     // The spec asserts `.sscribe-btn-confirming` does NOT have
     // `pointer-events: none`. There is currently no rule setting it; we
@@ -89,7 +89,7 @@ const targets = [
   },
   {
     specFile: 'tests-e2e/e2e/export/download-token-auth.spec.ts',
-    description: 'download token single-use rotation',
+    description: 'download token is single-use',
     sourceFile: 'includes/class-sscribe-zip-handler.php',
     // consume_dl_token() returns false on mismatch but ALSO rotates the
     // token regardless. The spec needs the ROTATION step to actually
@@ -104,7 +104,7 @@ const targets = [
   },
   {
     specFile: 'tests-e2e/e2e/export/batch-progress.spec.ts',
-    description: 'batch-progress aria-live',
+    description: 'progress-area exposes aria-live',
     sourceFile: 'admin/partials/sscribe-admin-display.php',
     // #sscribe-progress-area's aria-live="polite" at line 692. Reverting
     // to aria-live="off" makes the spec fail the toHaveAttribute('aria-live',
@@ -142,6 +142,29 @@ for (const target of targets) {
     failures++;
     continue;
   }
+
+  // Pre-flight: confirm the description matches at least one test. Without
+  // this guard, a description typo would let playwright --grep match zero
+  // tests, exit 0, and the discipline script would falsely report the
+  // regression as "not caught".
+  const listResult = spawnSync(
+    'npx',
+    ['playwright', 'test', '--list', '--grep', target.description],
+    {
+      cwd: ROOT,
+      stdio: ['ignore', 'pipe', 'pipe'],
+      env: { ...process.env, CI: '1' },
+    }
+  );
+  const listedCount = (listResult.stdout?.toString() || '').match(/\[(e2e|a11y|perf)\]/g)?.length || 0;
+  if (listedCount === 0) {
+    console.error(
+      `[fail] ${target.description}: description does not match any test in ${target.specFile} (filter typo?)`
+    );
+    failures++;
+    continue;
+  }
+
   writeFileSync(srcAbs, reverted, 'utf-8');
 
   try {
@@ -157,12 +180,12 @@ for (const target of targets) {
     exercised++;
     if (result.status === 0) {
       console.error(
-        `[fail] ${target.description}: test PASSED after revert — regression NOT caught`
+        `[fail] ${target.description}: test PASSED after revert, regression NOT caught`
       );
       failures++;
     } else {
       console.log(
-        `[pass] ${target.description}: test failed after revert — regression caught`
+        `[pass] ${target.description}: test failed after revert, regression caught`
       );
       caught++;
     }
@@ -184,7 +207,7 @@ if (failures > 0 || exercised < targets.length) {
   console.error(
     `\nregression-discipline: exercised ${exercised}/${total}, caught ${caught}/${exercised}.` +
       (failures > 0 ? ` ${failures} regression(s) not caught.` : '') +
-      (notExercised > 0 ? ` ${notExercised} target(s) not exercised — ${reasons.join('; ')}.` : '')
+      (notExercised > 0 ? ` ${notExercised} target(s) not exercised: ${reasons.join('; ')}.` : '')
   );
   process.exit(1);
 }

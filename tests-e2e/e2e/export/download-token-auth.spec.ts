@@ -27,7 +27,7 @@ import { test, expect } from '../../fixtures/shared';
  * prove the SECOND consumption is rejected.
  */
 test.describe('e2e / export / download-token-auth', () => {
-  test('download token is single-use — replay returns 403', async ({ adminPage }) => {
+  test('download token is single-use: replay returns 403', async ({ adminPage }) => {
     await adminPage.goto('/wp-admin/admin.php?page=sscribe-export');
 
     // Step 1: trigger a fresh export so we get a token-bearing URL.
