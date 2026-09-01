@@ -253,26 +253,16 @@ class SScribe_Export_Query_Controller {
 			}
 		}
 
-		$languages = array_values(
-			array_filter(
-				array_unique(
-					array_map(
-						function ( $lang ) {
-							return is_string( $lang ) ? $this->collector->normalize_language_code( sanitize_text_field( $lang ) ) : '';
-						},
-						$languages
-					)
-				),
-				static function ( string $language ): bool {
-					return '' !== $language;
-				}
-			)
-		);
-		$languages = array_slice( $languages, 0, 50 );
+		$languages = $this->normalize_languages_for_batch( $languages );
 
 		$per_language = array();
-		foreach ( $languages as $language ) {
-			$per_language[ $language ] = $this->compute_counts_payload( $language, $post_type );
+		foreach ( $languages as $raw_language ) {
+			// __all__ is the canonical "no language restriction" sentinel.
+			// Translate it to the empty string at the QUERY boundary only,
+			// never before. The response key remains __all__ so the JS
+			// exact-key lookup finds it.
+			$query_language = ( self::SENTINEL_ALL === $raw_language ) ? '' : $raw_language;
+			$per_language[ $raw_language ] = $this->compute_counts_payload( $query_language, $post_type );
 		}
 
 		SScribe_AJAX_Guard::success(
@@ -350,6 +340,50 @@ class SScribe_Export_Query_Controller {
 			$n = 0;
 		}
 		return $n;
+	}
+
+	/**
+	 * Normalize the JS-supplied list of language codes for the batch
+	 * counts endpoint.
+	 *
+	 * Critical invariant: `__all__` MUST survive this normalization so
+	 * the JS exact-key lookup can find `languages['__all__']` in the
+	 * response. Real codes are validated against the active WPML list
+	 * via `normalize_language_code()` and invalid codes are dropped.
+	 * `__all__` is never fed through that validator — it is the canonical
+	 * "no language restriction" sentinel and must be normalized to the
+	 * empty string only at the QUERY boundary (see the caller), not here.
+	 *
+	 * @param array<int,mixed> $languages Raw POST values.
+	 * @return array<int,string> Deduplicated, sanitized list (max 50).
+	 */
+	private function normalize_languages_for_batch( array $languages ): array {
+		$out = array();
+		$seen = array();
+		foreach ( $languages as $lang ) {
+			if ( ! is_string( $lang ) ) {
+				continue;
+			}
+			$clean = sanitize_text_field( $lang );
+			if ( self::SENTINEL_ALL === $clean ) {
+				if ( isset( $seen[ $clean ] ) ) {
+					continue;
+				}
+				$seen[ $clean ] = true;
+				$out[]          = self::SENTINEL_ALL;
+				continue;
+			}
+			$normalized = $this->collector->normalize_language_code( $clean );
+			if ( '' === $normalized ) {
+				continue;
+			}
+			if ( isset( $seen[ $normalized ] ) ) {
+				continue;
+			}
+			$seen[ $normalized ] = true;
+			$out[]               = $normalized;
+		}
+		return array_slice( $out, 0, 50 );
 	}
 
 	/**

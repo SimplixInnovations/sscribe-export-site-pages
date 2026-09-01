@@ -287,7 +287,7 @@ if ( ! function_exists( 'sscribe_humanize_export_filename' ) ) {
 						<div class="sscribe-language-cards-wrapper">
 						<div class="sscribe-language-cards sscribe-cards-row" id="sscribe-language-cards">
 							<label class="sscribe-lang-card-label sscribe-lang-card-all sscribe-lang-card-compact">
-								<input type="radio" name="sscribe_language" value="" checked>
+								<input type="radio" name="sscribe_language" value="__all__" checked>
 								<div class="sscribe-lang-card-inner">
 									<div class="sscribe-lang-flag-wrapper">
 										<div class="sscribe-lang-flag-placeholder sscribe-lang-flag-all">
