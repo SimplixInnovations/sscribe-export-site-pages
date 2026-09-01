@@ -1,0 +1,65 @@
+name: release-audit
+
+# Single-pass gate that wraps bin/release-audit.sh as a required
+# check for any PR targeting release/2.0.0-final-hardening.
+#
+# This workflow is intentionally additive to .github/workflows/ci.yml:
+# - ci.yml runs the unit + integration tests on every push.
+# - release-audit.yml runs as a separate, decorated check on PRs into
+#   release branches so the gate is visually independent in the
+#   GitHub status checks UI.
+
+on:
+    pull_request:
+        branches:
+            - release/**
+            - main
+    push:
+        branches:
+            - release/2.0.0-final-hardening
+    workflow_dispatch:
+
+permissions:
+    contents: read
+
+concurrency:
+    group: release-audit-${{ github.ref }}
+    cancel-in-progress: true
+
+jobs:
+    release-audit:
+        name: bin/release-audit.sh
+        runs-on: ubuntu-latest
+        timeout-minutes: 30
+        steps:
+            - name: Checkout code
+              uses: actions/checkout@v6
+              with:
+                  persist-credentials: false
+
+            - name: Setup PHP 8.4
+              uses: shivammathur/setup-php@v2
+              with:
+                  php-version: '8.4'
+                  coverage: none
+                  extensions: fileinfo, zip
+
+            - name: Cache Composer dependencies
+              uses: actions/cache@v6
+              with:
+                  path: vendor
+                  key: ${{ runner.os }}-php-8.4-vendor-${{ hashFiles('composer.lock') }}
+                  restore-keys: |
+                      ${{ runner.os }}-php-8.4-vendor-
+
+            - name: Install Composer dependencies
+              run: composer install --no-progress --no-interaction
+
+            - name: Generate prefixed vendor tree (Strauss)
+              run: composer vendor:prefix
+
+            - name: Build the submission package
+              run: php scripts/build-release.php
+
+            - name: Run release-audit
+              run: bash bin/release-audit.sh
