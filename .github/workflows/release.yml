@@ -36,20 +36,26 @@ jobs:
                   fi
                   echo "OK: Tag version matches plugin version: $TAG_VERSION"
 
-            - name: Verify tagged commit is current develop HEAD
+            - name: Verify tagged commit is current main HEAD
               env:
                   GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
               run: |
-                  git fetch --no-tags origin develop
+                  # Phase 17: tag-on-main only. Release tags MUST point at
+                  # origin/main HEAD. Tags pointing at develop or feature
+                  # branches could ship unreviewed code to WP.org.
+                  git fetch --no-tags origin main
                   TAG_SHA=$(git rev-list -n 1 "$GITHUB_SHA")
-                  DEVELOP_SHA=$(git rev-parse origin/develop)
-                  if [ "$TAG_SHA" != "$DEVELOP_SHA" ]; then
-                    echo "Error: Release tags must point to the latest origin/develop commit."
+                  MAIN_SHA=$(git rev-parse origin/main)
+                  if [ "$TAG_SHA" != "$MAIN_SHA" ]; then
+                    echo "Error: Release tags must point to the latest origin/main commit."
                     echo "Tag SHA:    $TAG_SHA"
-                    echo "Develop SHA: $DEVELOP_SHA"
+                    echo "Main SHA:   $MAIN_SHA"
+                    echo ""
+                    echo "Release workflow: cut a tag from origin/main HEAD only."
+                    echo "If origin/main is behind develop, merge develop -> main first."
                     exit 1
                   fi
-                  echo "OK: Tag commit matches origin/develop HEAD"
+                  echo "OK: Tag commit matches origin/main HEAD"
 
     audit:
         name: Security Audit
