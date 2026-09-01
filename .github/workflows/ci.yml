@@ -51,6 +51,12 @@ jobs:
             - name: Version sync integration test
               run: vendor/bin/phpunit tests/Integration/SScribe_Version_Sync_Test.php
 
+            # Phase 23: License SPDX regression — mainfile / readme.txt /
+            # composer.json must all use the canonical GPL-2.0-or-later
+            # identifier, and license.txt must ship the full GPL v2 text.
+            - name: License SPDX integration test
+              run: vendor/bin/phpunit tests/Integration/SScribe_License_SPDIX_Test.php
+
     frontend-quality:
         name: JavaScript and CSS Quality
         runs-on: ubuntu-latest
