@@ -4011,37 +4011,65 @@
 			const opts = options || {};
 			const data = response || {};
 			const code = typeof data.code === 'string' ? data.code : '';
+			const message = typeof data.message === 'string' ? data.message : null;
 			const serverDelay = Number(data.retry_in);
 			const hasServerDelay = isFinite(serverDelay) && serverDelay > 0;
+			// Phase 4: HTTP `Retry-After` header is the second-priority
+			// delay source after the server's JSON `retry_in`. We accept
+			// either a numeric seconds value or an HTTP-date.
+			const headerDelay = SScribe._parseRetryAfterHeader(xhr);
+			const hasHeaderDelay = headerDelay !== null;
 
 			const status = xhr && typeof xhr.status === 'number' ? xhr.status : 0;
+			// `textStatus` is jQuery's textual status, e.g. 'timeout',
+			// 'abort', 'parsererror', 'error'.
+			const textStatus = xhr && typeof xhr.statusText === 'string' ? xhr.statusText : '';
 
+			// 409 batch / lock conflict — use the helper `conflict` action
+			// name required by Phase 4. Server retry_in honored when present.
 			if (status === 409 || code === 'batch_in_progress' || code === 'batch_locked') {
 				const lower = hasServerDelay ? Math.max(500, serverDelay) : 5000;
 				const upper = hasServerDelay ? Math.min(30000, serverDelay + 5000) : 8000;
 				return {
-					action: 'retry',
+					action: 'conflict',
 					delayMs: SScribe._jitteredDelay(lower, upper, opts.jitterSeed),
 					reason: 'batch_locked',
+					message: message,
+					code: code || 'batch_locked',
 					messageKey: 'err_batch_locked',
 				};
 			}
 
 			if (status === 429 || code === 'rate_limited') {
-				const delay = hasServerDelay ? Math.max(1000, serverDelay) : 60000;
+				// Mandatory: server-provided retry_in is absolute; do not let
+				// a 1000ms client backoff override a 60000ms server hint.
+				const delay = hasServerDelay
+					? Math.max(1000, serverDelay)
+					: hasHeaderDelay
+						? headerDelay
+						: 60000;
 				return {
 					action: 'retry',
 					delayMs: delay,
 					reason: 'rate_limited',
+					message: message,
+					code: code || 'rate_limited',
 					messageKey: 'err_rate_limit',
 				};
 			}
 
 			if (status === 503 || code === 'rate_limiter_busy') {
+				const delay = hasServerDelay
+					? Math.max(250, serverDelay)
+					: hasHeaderDelay
+						? headerDelay
+						: SScribe._jitteredDelay(500, 1500, opts.jitterSeed);
 				return {
 					action: 'retry',
-					delayMs: SScribe._jitteredDelay(500, 1500, opts.jitterSeed),
+					delayMs: delay,
 					reason: 'limiter_contention',
+					message: message,
+					code: code || 'rate_limiter_busy',
 					messageKey: 'err_limiter_busy',
 				};
 			}
@@ -4051,15 +4079,88 @@
 					action: 'refresh_nonce',
 					delayMs: 0,
 					reason: 'invalid_nonce',
+					message: message,
+					code: code || 'invalid_nonce',
 					messageKey: 'err_session_expired',
 				};
 			}
 
-			if (status === 0) {
+			if (status === 400) {
+				return {
+					action: 'fail',
+					delayMs: 0,
+					reason: 'bad_request',
+					message: message,
+					code: code || 'bad_request',
+					messageKey: null,
+				};
+			}
+
+			if (status === 401) {
+				return {
+					action: 'fail',
+					delayMs: 0,
+					reason: 'unauthorized',
+					message: message,
+					code: code || 'unauthorized',
+					messageKey: 'err_401',
+				};
+			}
+
+			if (status === 404) {
+				return {
+					action: 'fail',
+					delayMs: 0,
+					reason: 'not_found',
+					message: message,
+					code: code || 'not_found',
+					messageKey: 'err_404',
+				};
+			}
+
+			if (status === 499) {
+				// Client closed request — bounded retry with jitter.
 				return {
 					action: 'retry',
-					delayMs: SScribe._jitteredDelay(2000, 4000, opts.jitterSeed),
+					delayMs: SScribe._jitteredDelay(1000, 3000, opts.jitterSeed),
+					reason: 'client_closed',
+					message: message,
+					code: code || 'client_closed',
+					messageKey: 'err_499',
+				};
+			}
+
+			if (status === 500) {
+				// Terminal — Phase 8 will route this through finishPreparationFailure
+				// for the start-export path; here it just means "no automatic retry".
+				return {
+					action: 'fail',
+					delayMs: 0,
+					reason: 'server_error',
+					message: message,
+					code: code || 'server_error',
+					messageKey: 'err_500',
+				};
+			}
+
+			if (textStatus === 'timeout') {
+				return {
+					action: 'retry',
+					delayMs: hasServerDelay ? serverDelay : hasHeaderDelay ? headerDelay : 5000,
+					reason: 'timeout',
+					message: message,
+					code: code || 'timeout',
+					messageKey: 'err_timeout',
+				};
+			}
+
+			if (status === 0 || textStatus === 'error' || textStatus === 'abort') {
+				return {
+					action: 'retry',
+					delayMs: hasHeaderDelay ? headerDelay : SScribe._jitteredDelay(2000, 4000, opts.jitterSeed),
 					reason: 'network',
+					message: message,
+					code: code || 'network',
 					messageKey: 'err_connection',
 				};
 			}
@@ -4068,8 +4169,42 @@
 				action: 'fail',
 				delayMs: 0,
 				reason: code || 'unknown',
+				message: message,
+				code: code || 'unknown',
 				messageKey: null,
 			};
+		},
+		/**
+		 * Parse the HTTP `Retry-After` header value into a millisecond delay.
+		 *
+		 * Accepts either a non-negative integer (seconds) or an HTTP-date.
+		 * Returns null if the header is absent, malformed, or in the past.
+		 *
+		 * @param {jqXHR|null} xhr jQuery XHR object.
+		 * @returns {number|null} Delay in ms, or null when no usable value.
+		 */
+		_parseRetryAfterHeader: function (xhr) {
+			if (!xhr || typeof xhr.getResponseHeader !== 'function') {
+				return null;
+			}
+			const raw = xhr.getResponseHeader('Retry-After');
+			if (!raw) {
+				return null;
+			}
+			const trimmed = String(raw).trim();
+			if (/^\d+(\.\d+)?$/.test(trimmed)) {
+				const seconds = parseFloat(trimmed);
+				if (!isFinite(seconds) || seconds < 0) {
+					return null;
+				}
+				return Math.floor(seconds * 1000);
+			}
+			const ms = Date.parse(trimmed);
+			if (isNaN(ms)) {
+				return null;
+			}
+			const diff = ms - Date.now();
+			return diff > 0 ? diff : null;
 		},
 		/**
 		 * Refresh the WordPress nonce for SScribe AJAX calls.
