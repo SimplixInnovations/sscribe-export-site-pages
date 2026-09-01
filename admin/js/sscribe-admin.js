@@ -1239,9 +1239,21 @@
 						} else {
 							self.proceedWithExport(language, postStatus, postType, formats);
 						}
-					} else {
-						self.proceedWithExport(language, postStatus, postType, formats);
+						return;
 					}
+					// Phase 8: strictly fail-closed. A preflight that returns
+					// success=false (server says it cannot verify the export)
+					// must NOT proceed. Without this guard, a transient
+					// failure (e.g. partial DB read) would silently start an
+					// export that the server already warned against.
+					const failData =
+						response && response.data ? response.data : {};
+					self.finishPreparationFailure(
+						failData.message ||
+							'Preflight check could not be completed. Please try again.',
+						null,
+						failData
+					);
 				},
 				error: function (xhr) {
 					const data =
@@ -1259,13 +1271,57 @@
 						});
 						return;
 					}
+					// Phase 8: terminal failure path. Reset the click-handler
+					// state (isPreparing, busy UI, export buttons) so the
+					// user is not stuck in a "preparing…" state with no
+					// recovery. Previously this just toasted and left the
+					// button disabled forever.
 					const msg =
+						decision.message ||
 						SScribe.parseServerError(xhr) ||
 						SScribe.getNetworkErrorMessage(xhr, 'preflight_check') ||
 						'Preflight check failed. Please try again.';
-					SScribe.showToast(msg, 'error', 6000);
+					self.finishPreparationFailure(msg, xhr, data);
 				},
 			});
+		},
+		/**
+		 * Phase 8 helper: cleanly terminate the preflight phase on a
+		 * server-side rejection or hard HTTP failure. Resets all
+		 * click-handler state so the user can retry without a page
+		 * reload. Safe to call from any of the preflight code paths.
+		 */
+		finishPreparationFailure: function (message, xhr, data) {
+			const self = this;
+			self.isPreparing = false;
+			self.isProcessing = false;
+			self.batchRetries = 0;
+			self.pollBackoff = 0;
+			clearTimeout(self._configSummaryDebounceTimer);
+			if (self._configSummaryXHR && self._configSummaryXHR.abort) {
+				self._configSummaryXHR.abort();
+				self._configSummaryXHR = null;
+			}
+			$('#sscribe-export-btn, #sscribe-preview-btn')
+				.prop('disabled', false)
+				.removeAttr('aria-busy')
+				.removeClass('sscribe-btn-busy');
+			self.updateExportButton();
+			const responseData =
+				data || (xhr && xhr.responseJSON && xhr.responseJSON.data) || {};
+			self.showError(
+				message,
+				false,
+				SScribe.normalizeErrorData({
+					code: responseData.code || 'preflight_failed',
+					message: message,
+					_diagnostics: {
+						action: 'sscribe_preflight_check',
+						http_status: xhr && typeof xhr.status === 'number' ? xhr.status : 0,
+						server_code: responseData.code || null,
+					},
+				})
+			);
 		},
 		showPreflightWarnings: function (diagnostics, onProceed) {
 			const checks = diagnostics.checks || {};
