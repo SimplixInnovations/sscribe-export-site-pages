@@ -262,6 +262,26 @@ jobs:
             - name: Third-party license inventory integration test
               run: vendor/bin/phpunit tests/Integration/SScribe_Third_Party_License_Test.php
 
+            # Phase 38: mkdir() containment — audits every wp_mkdir_p()
+            # and SScribe_Filesystem->mkdir() callsite under includes/,
+            # admin/, public/. Each callsite must be either inside
+            # SScribe_Private_Storage, routed through the public
+            # SScribe_Filesystem surface (which carries its own
+            # containment check), or explicitly annotated as a
+            # transient working-file tempdir. Without this guard,
+            # a future caller can slip a wp_mkdir_p('/tmp/foo') past
+            # the audit and ship a release that escapes SScribe's
+            # private-storage boundary.
+            - name: Verify mkdir() containment contract
+              run: php scripts/verify-mkdir-containment.php
+
+            # Phase 38: PHPUnit-level regression for the mkdir()
+            # containment verifier — runs against the live source
+            # tree with a one-off mutation (an uncategorised
+            # wp_mkdir_p() callsite planted under admin/).
+            - name: mkdir() containment integration test
+              run: vendor/bin/phpunit tests/Integration/SScribe_Mkdir_Containment_Test.php
+
             # Phase 23: License SPDX regression — mainfile / readme.txt /
             # composer.json must all use the canonical GPL-2.0-or-later
             # identifier, and license.txt must ship the full GPL v2 text.

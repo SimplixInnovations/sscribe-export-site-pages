@@ -276,12 +276,101 @@ class SScribe_Filesystem_Test extends TestCase {
 
 	public function test_mkdir_creates_directory(): void {
 		$fs     = new \SScribe_Filesystem();
-		$subdir = $this->test_dir . '/newdir/subdir';
+		$subdir = $this->in_export_dir( 'newdir/subdir' );
 
 		$result = $fs->mkdir( $subdir );
 
 		$this->assertTrue( $result );
 		$this->assertDirectoryExists( $subdir );
+	}
+
+	// Phase 38 — mkdir() containment regression tests.
+
+	public function test_mkdir_rejects_path_outside_export_dir(): void {
+		$fs = new \SScribe_Filesystem();
+		// sys_get_temp_dir() is outside the SScribe export root, so
+		// this must be rejected even though the path is otherwise
+		// well-formed.
+		$result = $fs->mkdir( $this->test_dir . '/phase38-temp' );
+		$this::assertFalse( $result );
+		$this::assertDirectoryDoesNotExist( $this->test_dir . '/phase38-temp' );
+	}
+
+	public function test_mkdir_rejects_uploads_path(): void {
+		$fs   = new \SScribe_Filesystem();
+		$path = WP_CONTENT_DIR . '/uploads/sscribe-phase38-escape';
+		$this::assertFalse( $fs->mkdir( $path ) );
+		$this::assertDirectoryDoesNotExist( $path );
+	}
+
+	public function test_mkdir_rejects_traversal_in_absolute_path(): void {
+		$fs   = new \SScribe_Filesystem();
+		// Try to escape via an absolute path with embedded traversal.
+		// The containment check rejects anything that doesn't resolve
+		// under the export root, so an arbitrary absolute path must
+		// fail even when normalized by sanitize_path().
+		$escape = sys_get_temp_dir() . '/../phase38-escape';
+		$this::assertFalse( $fs->mkdir( $escape ) );
+	}
+
+	public function test_mkdir_rejects_symlink_escape(): void {
+		$fs        = new \SScribe_Filesystem();
+		$export_dir = rtrim( $this->export_dir, '/' );
+		if ( ! is_dir( $export_dir ) ) {
+			$this::markTestSkipped( 'export_dir not available' );
+		}
+		// Plant a symlink inside the export dir pointing OUTSIDE.
+		$symlink = $export_dir . '/phase38-symlink-escape';
+		if ( is_link( $symlink ) || file_exists( $symlink ) ) {
+			@unlink( $symlink );
+		}
+		$plant_ok = @symlink( sys_get_temp_dir() . '/phase38-outside-' . uniqid(), $symlink );
+		if ( ! $plant_ok ) {
+			$this::markTestSkipped( 'symlink() not permitted on this platform' );
+		}
+		$this::assertFalse( $fs->mkdir( $symlink . '/subdir' ) );
+		@unlink( $symlink );
+	}
+
+	public function test_mkdir_under_private_root_happy_path(): void {
+		$fs = new \SScribe_Filesystem();
+		$result = $fs->mkdir_under_private_root( 'phase38-happy/sub' );
+		$this::assertNotSame( '', $result );
+		$this::assertDirectoryExists( $result );
+		// And the returned path must be inside the export root.
+		$export_dir = \SScribe_Private_Storage::get_export_dir();
+		$this::assertStringStartsWith( $export_dir, $result );
+	}
+
+	public function test_mkdir_under_private_root_rejects_absolute(): void {
+		$fs = new \SScribe_Filesystem();
+		$this::assertSame( '', $fs->mkdir_under_private_root( '/tmp/phase38-absolute' ) );
+		$this::assertSame( '', $fs->mkdir_under_private_root( 'C:\\Windows\\Temp\\phase38-drive' ) );
+	}
+
+	public function test_mkdir_under_private_root_rejects_traversal(): void {
+		$fs = new \SScribe_Filesystem();
+		$this::assertSame( '', $fs->mkdir_under_private_root( '../phase38-traversal' ) );
+		$this::assertSame( '', $fs->mkdir_under_private_root( 'safe/../../escape' ) );
+	}
+
+	public function test_mkdir_under_private_root_rejects_nul(): void {
+		$fs = new \SScribe_Filesystem();
+		$this::assertSame( '', $fs->mkdir_under_private_root( "good\x00bad" ) );
+	}
+
+	public function test_mkdir_under_private_root_rejects_empty(): void {
+		$fs = new \SScribe_Filesystem();
+		$this::assertSame( '', $fs->mkdir_under_private_root( '' ) );
+		$this::assertSame( '', $fs->mkdir_under_private_root( '/' ) );
+		$this::assertSame( '', $fs->mkdir_under_private_root( './' ) );
+	}
+
+	public function test_mkdir_under_private_root_collapses_dot_segments(): void {
+		$fs     = new \SScribe_Filesystem();
+		$result = $fs->mkdir_under_private_root( 'phase38-dots/./inner' );
+		$this::assertNotSame( '', $result );
+		$this::assertDirectoryExists( $result );
 	}
 
 	public function test_sanitize_path_strips_traversal_segments(): void {

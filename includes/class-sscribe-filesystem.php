@@ -364,12 +364,30 @@ class SScribe_Filesystem {
 	 * the blast radius of any other plugin/user reading the log/exports
 	 * directory out-of-band.
 	 *
+	 * Phase 38 containment: every public filesystem mutation must verify
+	 * its target resolves inside the plugin-owned export directory before
+	 * touching the disk. A caller passing `/tmp/foo` or any path that
+	 * resolves outside the export root gets a rejection, not a directory
+	 * at an arbitrary location. Use {@see self::mkdir_under_private_root()}
+	 * when the caller has only a relative path.
+	 *
 	 * @param string $path Directory path to create.
 	 * @param int    $mode Directory permissions (default: 0700).
 	 * @return bool True if directory created or exists, false otherwise.
 	 */
 	public function mkdir( string $path, int $mode = 0700 ): bool {
 		self::$last_error = '';
+
+		if ( self::SSCRIBE_PATH_REJECT === $this->is_path_safe_for_write( $path ) ) {
+			self::$last_error = 'Refusing to mkdir outside SScribe export directory';
+			$this->logger->warning(
+				'Refused mkdir : path resolves outside SScribe export directory',
+				array(
+					'path' => $path,
+				)
+			);
+			return false;
+		}
 
 		if ( self::$fs instanceof WP_Filesystem_Base ) {
 			return self::$fs->mkdir( $path, $mode );
@@ -387,6 +405,152 @@ class SScribe_Filesystem {
 		}
 
 		return true;
+	}
+
+	/**
+	 * Root-scoped directory creation.
+	 *
+	 * Phase 38 helper: callers that need to create a directory inside
+	 * the plugin-owned export area must pass a *relative* path. The
+	 * helper resolves it under {@see SScribe_Private_Storage::get_export_dir()}
+	 * and runs the standard `wp_mkdir_p()` plumbing.
+	 *
+	 * The relative path is rejected when it:
+	 *
+	 *  - is empty or whitespace-only;
+	 *  - starts with `/` (Unix absolute), a Windows drive letter, or
+	 *    a UNC prefix (any absolute path);
+	 *  - contains a NUL byte;
+	 *  - contains a `..` traversal segment after normalization;
+	 *  - resolves to a symlink.
+	 *
+	 * A traversal attempt never reaches the disk because the rejection
+	 * happens before any `wp_mkdir_p()` call. The function returns the
+	 * absolute path on success so callers can chain follow-up writes
+	 * without re-resolving the export root.
+	 *
+	 * @param string $relative_path Path relative to the export root.
+	 * @param int    $mode          Directory permissions (default: 0700).
+	 * @return string Absolute path on success, empty string on failure.
+	 */
+	public function mkdir_under_private_root( string $relative_path, int $mode = 0700 ): string {
+		self::$last_error = '';
+
+		$normalized = trim( str_replace( '\\', '/', $relative_path ) );
+
+		if ( '' === $normalized || str_contains( $normalized, "\0" ) ) {
+			self::$last_error = 'Relative path is empty or contains a NUL byte';
+			$this->logger->warning( 'Refused mkdir_under_private_root : empty or NUL', array( 'input' => $relative_path ) );
+			return '';
+		}
+
+		// Refuse absolute paths (Unix leading slash, Windows drive letter,
+		// UNC prefix). The check runs against the un-stripped input so
+		// `/tmp/foo` is still rejected as absolute rather than being
+		// silently accepted as a sibling segment under the export root.
+		if ( self::is_absolute_path_string( $normalized ) ) {
+			self::$last_error = 'Relative path is absolute; only paths relative to the export root are accepted';
+			$this->logger->warning( 'Refused mkdir_under_private_root : absolute path', array( 'input' => $relative_path ) );
+			return '';
+		}
+
+		$normalized = ltrim( $normalized, '/' );
+
+		$segments = explode( '/', $normalized );
+		$clean    = array();
+		foreach ( $segments as $segment ) {
+			if ( '' === $segment || '.' === $segment ) {
+				continue;
+			}
+			if ( '..' === $segment ) {
+				self::$last_error = 'Relative path contains a .. traversal segment';
+				$this->logger->warning( 'Refused mkdir_under_private_root : traversal', array( 'input' => $relative_path ) );
+				return '';
+			}
+			$clean[] = $segment;
+		}
+
+		if ( empty( $clean ) ) {
+			self::$last_error = 'Relative path collapses to empty after normalization';
+			return '';
+		}
+
+		$export_root = $this->get_export_dir();
+		if ( '' === $export_root ) {
+			self::$last_error = 'Export root is not available';
+			$this->logger->warning( 'Refused mkdir_under_private_root : no export root' );
+			return '';
+		}
+
+		$target = rtrim( $export_root, '/\\' ) . DIRECTORY_SEPARATOR . implode( DIRECTORY_SEPARATOR, $clean );
+
+		if ( is_link( $target ) ) {
+			self::$last_error = 'Target path is a symlink';
+			$this->logger->warning( 'Refused mkdir_under_private_root : target is symlink', array( 'target' => $target ) );
+			return '';
+		}
+
+		if ( ! is_dir( $target ) ) {
+			if ( ! wp_mkdir_p( $target ) ) {
+				self::$last_error = 'wp_mkdir_p failed for contained target';
+				$this->logger->error( 'mkdir_under_private_root : wp_mkdir_p failed', array( 'target' => $target ) );
+				return '';
+			}
+		}
+
+		if ( $mode && function_exists( 'chmod' ) ) {
+			// phpcs:ignore WordPress.WP.AlternativeFunctions.file_system_operations_chmod -- Apply requested mode after create.
+			@chmod( $target, $mode );
+		}
+
+		// Final containment re-check: confirm the resolved target is
+		// still inside the export root after creation. This catches the
+		// edge case where a sibling directory was symlinked between
+		// validation and creation.
+		$target_real = realpath( $target );
+		$root_real   = realpath( $export_root );
+		if ( false === $target_real || false === $root_real ) {
+			self::$last_error = 'Could not resolve target or root';
+			return '';
+		}
+		$target_norm = rtrim( self::normalize_path( $target_real ), '/' );
+		$root_norm   = rtrim( self::normalize_path( $root_real ), '/' );
+		if ( $target_norm !== $root_norm && ! str_starts_with( $target_norm, $root_norm . '/' ) ) {
+			self::$last_error = 'Target resolved outside export root after creation';
+			$this->logger->warning( 'Refused mkdir_under_private_root : escape after create', array( 'target' => $target_real ) );
+			return '';
+		}
+
+		return $target;
+	}
+
+	/**
+	 * Detect whether a string is an absolute filesystem path on the
+	 * current platform. Used by {@see self::mkdir_under_private_root()}
+	 * to reject Unix-style absolute paths and Windows drive letters.
+	 *
+	 * @param string $candidate Normalized (leading separator-stripped) path.
+	 * @return bool True when the path is absolute.
+	 */
+	private static function is_absolute_path_string( string $candidate ): bool {
+		// Unix-style absolute (leading slash).
+		if ( str_starts_with( $candidate, '/' ) ) {
+			return true;
+		}
+		// Windows drive letter (C:, D:, …).
+		if ( strlen( $candidate ) >= 2 && ctype_alpha( $candidate[0] ) && ':' === $candidate[1] ) {
+			return true;
+		}
+		// UNC prefix (\\server\share).
+		if ( str_starts_with( $candidate, '\\\\' ) ) {
+			return true;
+		}
+		// Defense-in-depth: embedded absolute segments such as
+		// `/etc/passwd` slipping through via concatenation.
+		if ( preg_match( '#^[/\\\\]+[A-Za-z]:#', $candidate ) ) {
+			return true;
+		}
+		return false;
 	}
 
 	/**
