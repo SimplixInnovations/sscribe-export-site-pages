@@ -294,6 +294,24 @@ jobs:
             - name: Sticky-bit regression integration test
               run: vendor/bin/phpunit tests/Integration/SScribe_Sticky_Bit_Regression_Test.php
 
+            # Phase 40: PHPStan ignore-rule audit — every ignoreErrors
+            # entry in phpstan.neon must be classified as either
+            # `unavoidable_third_party` (WP/mPDF/DOM stub missing) or
+            # `technical_debt` (known runtime-guard false positive).
+            # Broad directory globs (`admin/*`, `vendor/*`) and
+            # unclassified patterns are release blockers — the spec
+            # explicitly forbids baseline-style "ignore everything in
+            # admin/*" suppressions.
+            - name: Verify PHPStan ignore-rule audit
+              run: php scripts/verify-phpstan-ignores.php
+
+            # Phase 40: PHPUnit-level regression for the ignore-rule
+            # audit — confirms the manifest persists, the
+            # classification table covers every rule, and PHPStan
+            # itself still passes at Level 7.
+            - name: PHPStan ignore-rule audit integration test
+              run: vendor/bin/phpunit tests/Integration/SScribe_PHPStan_Ignores_Test.php
+
             # Phase 23: License SPDX regression — mainfile / readme.txt /
             # composer.json must all use the canonical GPL-2.0-or-later
             # identifier, and license.txt must ship the full GPL v2 text.
