@@ -199,6 +199,25 @@ jobs:
             - name: ZIP certification integration test
               run: vendor/bin/phpunit tests/Integration/SScribe_ZIP_Certification_Test.php
 
+            # Phase 35: ZIP content rules — walks the dist tree the ZIP
+            # was packaged from and enforces every shipped PHP file
+            # parses, the composer.json autoload still points at
+            # `vendor-prefixed/` (not `vendor/`), readme.txt fits the
+            # WP.org 10 KiB cap, languages/ ships a translation file,
+            # no entry is empty, no OS-metadata files (.DS_Store /
+            # Thumbs.db / desktop.ini) leak in, and the dist mainfile
+            # Version header matches the ZIP filename version. Without
+            # this guard a regression in any of those lands a
+            # broken-submission ZIP at WP.org.
+            - name: Verify ZIP content rules
+              run: php scripts/verify-zip-content-rules.php
+
+            # Phase 35: PHPUnit-level regression for the ZIP content
+            # rules verifier — runs against well-formed and mutated
+            # synthetic dist trees.
+            - name: ZIP content rules integration test
+              run: vendor/bin/phpunit tests/Integration/SScribe_ZIP_Content_Rules_Test.php
+
             # Phase 23: License SPDX regression — mainfile / readme.txt /
             # composer.json must all use the canonical GPL-2.0-or-later
             # identifier, and license.txt must ship the full GPL v2 text.
