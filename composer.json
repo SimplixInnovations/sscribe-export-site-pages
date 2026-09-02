@@ -66,8 +66,6 @@
         "clean": "composer clean:cache && composer clean:coverage",
         "clean:cache": "php -r \"array_map('unlink', glob('.cache/**/*.*')); array_map('rmdir', glob('.cache/*', GLOB_ONLYDIR)); is_dir('.cache') && rmdir('.cache'); echo 'Cache cleared.\\n';\"",
         "clean:coverage": "php -r \"is_dir('coverage') && array_map('unlink', glob('coverage/*.*')) && rmdir('coverage'); echo 'Coverage cleared.\\n';\"",
-        "ci": "composer version:check && composer test && composer stan && composer cs",
-        "ci:full": "composer version:check && composer vendor:prefix && composer test && composer test:wp && composer stan && composer cs",
         "release:prepare": "php scripts/release-prepare.php",
         "release:commit": "php scripts/release-commit.php",
         "release:full": "composer release:prepare && composer release:commit",
