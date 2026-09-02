@@ -137,22 +137,50 @@ class SScribe_Export_Rate_Limiter {
 			return SScribe_Rate_Limit_Decision::limiter_contention( $bucket, $rate_limit, 750 );
 		}
 
-		$data = $using_cache
-			? wp_cache_get( $transient_key, self::DATA_CACHE_GROUP )
-			: get_transient( $transient_key );
+		$cache_ttl = self::RATE_LIMIT_WINDOW + 5;
 
-		if ( ! is_array( $data ) || ! isset( $data['count'], $data['reset_at'] ) ) {
-			$data = array(
-				'count'    => 0,
-				'reset_at' => $now + self::RATE_LIMIT_WINDOW,
-			);
-		}
+		if ( $using_cache ) {
+			// Phase 14: persistent object-cache path uses TWO keys per
+			// logical counter so wp_cache_incr() operates on a scalar integer
+			// and wp_cache_get() reads integers. Mixing the two on a single
+			// key (array via get; scalar via incr) fails on Redis
+			// (mixed-type error) and can silently double-count on backends
+			// that fall back to "set to 1" when incr is rejected.
+			$count_key = $transient_key . ':count';
+			$reset_key = $transient_key . ':reset';
 
-		if ( (int) $data['reset_at'] <= $now ) {
+			$count = wp_cache_get( $count_key, self::DATA_CACHE_GROUP );
+			$reset = wp_cache_get( $reset_key, self::DATA_CACHE_GROUP );
+			if ( ! is_int( $count ) || ! is_int( $reset ) ) {
+				$count = 0;
+				$reset = $now + self::RATE_LIMIT_WINDOW;
+				wp_cache_set( $count_key, $count, self::DATA_CACHE_GROUP, $cache_ttl );
+				wp_cache_set( $reset_key, $reset, self::DATA_CACHE_GROUP, $cache_ttl );
+			}
+			if ( $reset <= $now ) {
+				$count = 0;
+				$reset = $now + self::RATE_LIMIT_WINDOW;
+				wp_cache_set( $count_key, $count, self::DATA_CACHE_GROUP, $cache_ttl );
+				wp_cache_set( $reset_key, $reset, self::DATA_CACHE_GROUP, $cache_ttl );
+			}
 			$data = array(
-				'count'    => 0,
-				'reset_at' => $now + self::RATE_LIMIT_WINDOW,
+				'count'    => $count,
+				'reset_at' => $reset,
 			);
+		} else {
+			$data = get_transient( $transient_key );
+			if ( ! is_array( $data ) || ! isset( $data['count'], $data['reset_at'] ) ) {
+				$data = array(
+					'count'    => 0,
+					'reset_at' => $now + self::RATE_LIMIT_WINDOW,
+				);
+			}
+			if ( (int) $data['reset_at'] <= $now ) {
+				$data = array(
+					'count'    => 0,
+					'reset_at' => $now + self::RATE_LIMIT_WINDOW,
+				);
+			}
 		}
 
 		if ( (int) $data['count'] >= $rate_limit ) {
@@ -163,16 +191,17 @@ class SScribe_Export_Rate_Limiter {
 
 		$new_count = (int) $data['count'];
 		if ( $using_cache ) {
-			$incremented = wp_cache_incr( $transient_key, 1, self::DATA_CACHE_GROUP );
+			// Phase 14: incr on the scalar :count key.
+			$incremented = wp_cache_incr( $count_key, 1, self::DATA_CACHE_GROUP );
 			if ( false === $incremented ) {
-				wp_cache_add( $transient_key, 1, self::DATA_CACHE_GROUP, self::RATE_LIMIT_WINDOW + 5 );
+				wp_cache_set( $count_key, 1, self::DATA_CACHE_GROUP, $cache_ttl );
 				$new_count = 1;
 			} else {
 				$new_count = (int) $incremented;
 			}
 		} else {
 			++$data['count'];
-			set_transient( $transient_key, $data, self::RATE_LIMIT_WINDOW + 5 );
+			set_transient( $transient_key, $data, $cache_ttl );
 			$new_count = $data['count'];
 		}
 
