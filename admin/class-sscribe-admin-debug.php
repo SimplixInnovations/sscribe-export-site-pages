@@ -138,7 +138,7 @@ class SScribe_Admin_Debug {
 	/**
 	 * Verify request authorization (nonce, capability, rate limit).
 	 *
-	 * Calls wp_send_json_error and returns false on failure.
+	 * Calls SScribe_AJAX_Guard::error() and returns false on failure.
 	 *
 	 * @param string $rate_bucket         Rate limit bucket identifier.
 	 * @param string $required_capability Capability required for this action.
@@ -220,7 +220,7 @@ class SScribe_Admin_Debug {
 		if ( $saved ) {
 			$response          = SScribe_Settings::get_debug_settings();
 			$response['nonce'] = wp_create_nonce( 'sscribe_export_nonce' );
-			wp_send_json_success( $response );
+			SScribe_AJAX_Guard::success( $response );
 		} else {
 			SScribe_AJAX_Guard::error(
 				array(
@@ -293,7 +293,7 @@ class SScribe_Admin_Debug {
 		$log_exists    = '' !== $log_file && is_file( $log_file ) && ! is_link( $log_file );
 		$debug_enabled = SScribe_Settings::is_debug_enabled() || ( defined( 'SSCRIBE_DEBUG' ) && SSCRIBE_DEBUG );
 
-		wp_send_json_success(
+		SScribe_AJAX_Guard::success(
 			array(
 				'entries'       => array_slice( $entries, $offset, $limit ),
 				'count'         => $total,
@@ -322,7 +322,7 @@ class SScribe_Admin_Debug {
 			$logger = SScribe_Logger::instance( true );
 			$logger->clear_logs();
 
-			wp_send_json_success(
+			SScribe_AJAX_Guard::success(
 				array(
 					'message' => __( 'Logs cleared.', 'sscribe-export-site-pages' ),
 					'nonce'   => wp_create_nonce( 'sscribe_export_nonce' ),
@@ -489,7 +489,7 @@ class SScribe_Admin_Debug {
 		if ( ! $this->verify_request_authorization( 'debug_read' ) ) {
 			return;
 		}
-		wp_send_json_success(
+		SScribe_AJAX_Guard::success(
 			array(
 				'nonce' => wp_create_nonce( 'sscribe_export_nonce' ),
 			)
@@ -513,7 +513,7 @@ class SScribe_Admin_Debug {
 		}
 
 		if ( ! is_dir( $log_dir ) ) {
-			wp_send_json_success( array( 'files' => array() ) );
+			SScribe_AJAX_Guard::success( array( 'files' => array() ) );
 			return;
 		}
 
@@ -575,7 +575,7 @@ class SScribe_Admin_Debug {
 			$result
 		);
 
-		wp_send_json_success(
+		SScribe_AJAX_Guard::success(
 			array(
 				'files'       => $result,
 				'total_count' => $total_count,
@@ -716,7 +716,7 @@ class SScribe_Admin_Debug {
 
 		$entries = $this->parse_log_entries( $raw_lines, 'ALL', '', '', false );
 
-		wp_send_json_success(
+		SScribe_AJAX_Guard::success(
 			array(
 				'entries'          => $entries,
 				'count'            => $total_lines,
@@ -819,7 +819,7 @@ class SScribe_Admin_Debug {
 				500
 			);
 		} else {
-			wp_send_json_success(
+			SScribe_AJAX_Guard::success(
 				array(
 					'message' => __( 'File deleted.', 'sscribe-export-site-pages' ),
 					'nonce'   => wp_create_nonce( 'sscribe_export_nonce' ),
