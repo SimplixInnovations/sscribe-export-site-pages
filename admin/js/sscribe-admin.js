@@ -1654,9 +1654,11 @@
 		scheduleNextBatch: function (retryInMs, isRetry) {
 			const self = this;
 			let delay;
+			let delayFromServer = false;
 			if (typeof retryInMs === 'number' && isFinite(retryInMs) && retryInMs > 0) {
 				delay = Math.max(0, Math.floor(retryInMs));
 				self.pollBackoff = 0;
+				delayFromServer = true;
 			} else if (isRetry) {
 				const backoffMultiplier = Math.pow(2, Math.max(0, self.pollBackoff));
 				const base = self.pollBackoffBase * backoffMultiplier;
@@ -1668,8 +1670,16 @@
 				delay = Math.min(self.pollBackoffMax, Math.floor(self.pollBackoffBase));
 				self.pollBackoff = 0;
 			}
-			const jitter = Math.floor(Math.random() * (self.pollJitter * 2 + 1)) - self.pollJitter;
-			delay = Math.max(0, delay + jitter);
+			// Phase 12: when the server supplies retry_in it is an ABSOLUTE
+			// minimum — only additive (positive-only) jitter may be applied.
+			// When the delay is locally computed (±jitter is allowed).
+			if (delayFromServer) {
+				const positiveJitter = Math.floor(Math.random() * self.pollJitter);
+				delay = delay + positiveJitter;
+			} else {
+				const jitter = Math.floor(Math.random() * (self.pollJitter * 2 + 1)) - self.pollJitter;
+				delay = Math.max(0, delay + jitter);
+			}
 			delay = Math.max(1500, delay);
 			clearTimeout(self._batchTimer);
 			self._batchTimer = setTimeout(function () {
