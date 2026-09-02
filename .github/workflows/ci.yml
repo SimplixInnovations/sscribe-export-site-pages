@@ -282,6 +282,18 @@ jobs:
             - name: mkdir() containment integration test
               run: vendor/bin/phpunit tests/Integration/SScribe_Mkdir_Containment_Test.php
 
+            # Phase 39: sticky-bit regression — pins every scenario
+            # the security invariant requires (current-owned 0700,
+            # foreign-owned 0755/0777 reject, foreign-owned 01777
+            # accept, symlink reject, public-root reject). Without
+            # these explicit regressions a future "simplification" of
+            # is_owned_by_current_process() could silently re-weaken
+            # the shared-host defense and ship a release that exposes
+            # private exports on shared hosts. The POSIX branches
+            # are exercised on the Linux CI runners.
+            - name: Sticky-bit regression integration test
+              run: vendor/bin/phpunit tests/Integration/SScribe_Sticky_Bit_Regression_Test.php
+
             # Phase 23: License SPDX regression — mainfile / readme.txt /
             # composer.json must all use the canonical GPL-2.0-or-later
             # identifier, and license.txt must ship the full GPL v2 text.
