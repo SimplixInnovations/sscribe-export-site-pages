@@ -116,6 +116,20 @@ jobs:
             - name: Strauss vendor-prefix integration test
               run: vendor/bin/phpunit tests/Integration/SScribe_Strauss_Config_Test.php
 
+            # Phase 29: E2E dev-dependency contract — pins package.json
+            # devDependencies (@playwright/test, @axe-core/playwright,
+            # @wp-playground/cli), the test:e2e:* npm scripts, the
+            # playwright.config.ts project list (e2e, a11y, perf), the
+            # presence of tests-e2e/{e2e,a11y}/ subdirs, and the
+            # composer release:prepare + release scripts.
+            - name: Verify E2E dev-dependency contract
+              run: php scripts/verify-e2e-deps.php
+
+            # Phase 29: PHPUnit-level regression for the E2E deps
+            # verifier — runs against well-formed and mutated payloads.
+            - name: E2E dev-dependency integration test
+              run: vendor/bin/phpunit tests/Integration/SScribe_E2E_Deps_Test.php
+
             # Phase 23: License SPDX regression — mainfile / readme.txt /
             # composer.json must all use the canonical GPL-2.0-or-later
             # identifier, and license.txt must ship the full GPL v2 text.
