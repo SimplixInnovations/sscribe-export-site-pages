@@ -36,7 +36,7 @@ run_gate () {
   fi
   end_ns=$(date +%s%N)
   elapsed=$(( (end_ns - start_ns) / 1000000 ))
-  GATES+=("$(printf '%-10s %5sms %s' "$status" "${elapsed}ms" "$name")")
+  GATES+=("$(printf '%-10s %sms %s' "$status" "${elapsed}" "$name")")
   printf '%s %-32s %6sms\n' "$status" "$name" "${elapsed}"
 }
 
