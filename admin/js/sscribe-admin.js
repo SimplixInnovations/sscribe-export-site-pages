@@ -53,6 +53,13 @@
 		 * }}
 		 */
 		countsState: {
+			// Phase 5: SINGLE AUTHORITATIVE COUNT CONTRACT.
+			// This shape is locked. updateConfigSummary(), the export
+			// enable gate, and the preview debounce all read from this
+			// object. The DOM is a RENDERING TARGET, never the source.
+			// Adding/removing keys here requires updating both
+			// Phase 4's generation check (line ~621) and Phase 3's
+			// statusCounts lookup (line ~1037).
 			generation: 0,
 			postType: null,
 			language: null,
@@ -1504,23 +1511,44 @@
 					self.doStartExport(language, postStatus, postType, formats);
 				},
 				error: function (xhr, textStatus) {
-					if (attempt < maxAttempts - 1) {
-						// Phase 7: do not burst-retry. Apply a real delay
-						// between attempts and honor the server's
-						// retry_in / HTTP Retry-After when present so a
-						// 429 / 503 quota signal cannot be amplified.
-						const responseData =
-							xhr && xhr.responseJSON && xhr.responseJSON.data ? xhr.responseJSON.data : {};
-						const decision = SScribe.getAjaxFailureDecision(xhr, responseData, {
-							jitterSeed: 0.5,
+					// Aborted requests must never trigger a retry.
+					if (textStatus === 'abort') {
+						return;
+					}
+					const responseData = xhr && xhr.responseJSON && xhr.responseJSON.data ? xhr.responseJSON.data : {};
+					const decision = SScribe.getAjaxFailureDecision(xhr, responseData, {
+						jitterSeed: 0.5,
+					});
+					// Phase 10: terminal failure decision stops immediately.
+					// Previously any 4xx/5xx was retried up to maxAttempts,
+					// which amplified 4xx noise (e.g. invalid_session_id).
+					if (decision.action === 'fail') {
+						const serverMessage = responseData.message || '';
+						self.isPreparing = false;
+						self.isProcessing = false;
+						self.resetUI();
+						self.updateExportButton();
+						self.showError(
+							serverMessage ||
+								sscribe_data.strings.err_clear_session ||
+								'Could not clear export session. Please try again.',
+							false,
+							{ request_id: decision.requestId || '' }
+						);
+						return;
+					}
+					if (decision.action === 'refresh_nonce') {
+						SScribe.refreshNonceAnd(function () {
+							self.clearSessionWithRetry(language, postStatus, postType, formats, attempt + 1);
 						});
+						return;
+					}
+					if (attempt < maxAttempts - 1) {
+						// Phase 10: only retry on decision=retry or decision=conflict.
 						let delayMs;
 						if (decision.action === 'retry' || decision.action === 'conflict') {
 							delayMs = decision.delayMs;
 						} else {
-							// Generic client backoff with exponential growth,
-							// clamped to >=1500ms so the burst-retry bug is
-							// impossible to reintroduce.
 							const backoff = Math.pow(2, Math.max(0, attempt));
 							delayMs = Math.max(1500, backoff * 1000);
 						}
@@ -1573,6 +1601,7 @@
 				},
 				success: function (response) {
 					if (response.success) {
+						self._startExportRetries = 0;
 						// Export batch has actually started - flip from
 						// preparing to processing so the status bar shows
 						// the "export in progress" copy.
@@ -1602,13 +1631,36 @@
 						(response && response.data) || {}
 					);
 				},
-				error: function (xhr) {
-					// Phase 9: HTTP error terminal — same cleanup as the
-					// soft-fail branch. Without this, isPreparing stayed
-					// true forever after a 5xx and the user had to reload.
+				error: function (xhr, textStatus) {
+					// Phase 11: route through the centralized failure
+					// decision helper. Previously any 4xx/5xx went
+					// straight to terminal, which prevented legitimate
+					// 429/503 backoff and 403 nonce-refresh retries.
+					if (textStatus === 'abort') {
+						return;
+					}
+					const errData = xhr && xhr.responseJSON && xhr.responseJSON.data ? xhr.responseJSON.data : {};
+					const decision = SScribe.getAjaxFailureDecision(xhr, errData, {
+						jitterSeed: 0.5,
+					});
+					if (decision.action === 'retry' || decision.action === 'conflict') {
+						if (!self._startExportRetries || self._startExportRetries < 3) {
+							self._startExportRetries = (self._startExportRetries || 0) + 1;
+							setTimeout(function () {
+								self.doStartExport(language, postStatus, postType, formats);
+							}, decision.delayMs);
+							return;
+						}
+					}
+					if (decision.action === 'refresh_nonce') {
+						SScribe.refreshNonceAnd(function () {
+							self.doStartExport(language, postStatus, postType, formats);
+						});
+						return;
+					}
+					self._startExportRetries = 0;
 					const serverMsg = SScribe.parseServerError(xhr);
 					const msg = serverMsg || SScribe.getNetworkErrorMessage(xhr, 'start_export');
-					const errData = xhr.responseJSON && xhr.responseJSON.data ? xhr.responseJSON.data : {};
 					self.finishStartExportFailure(msg, xhr, errData);
 				},
 			});
