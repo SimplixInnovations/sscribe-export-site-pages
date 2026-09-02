@@ -726,7 +726,11 @@
 					if (
 						response.data &&
 						response.data.debug_enabled !== undefined &&
-						response.data.debug_enabled !== sentDebugEnabled
+						// Phase 17: refresh when the SAVED state diverges
+						// from the PRE-SAVE state. Comparing against
+						// sentDebugEnabled (which equals saved on success)
+						// never detected a real toggle.
+						response.data.debug_enabled !== self._previousDebugEnabled
 					) {
 						self.stopAutoRefresh();
 						if (self.currentRequest) {
