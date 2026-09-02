@@ -146,6 +146,19 @@ jobs:
             - name: Continue-on-error integration test
               run: vendor/bin/phpunit tests/Integration/SScribe_Continue_On_Error_Test.php
 
+            # Phase 32: security scanner — enforces the no-eval / no-shell /
+            # no-extract / no-$$_GET / no-bare-wp_ajax baseline across
+            # every shipped .php file under includes/, admin/, public/.
+            # A single line of eval( $_POST['code'] ) ships to every
+            # install the moment it is merged.
+            - name: Security scanner
+              run: php scripts/verify-security-scan.php
+
+            # Phase 32: PHPUnit-level regression for the security
+            # scanner — runs against well-formed and mutated payloads.
+            - name: Security scanner integration test
+              run: vendor/bin/phpunit tests/Integration/SScribe_Security_Scan_Test.php
+
             # Phase 23: License SPDX regression — mainfile / readme.txt /
             # composer.json must all use the canonical GPL-2.0-or-later
             # identifier, and license.txt must ship the full GPL v2 text.
