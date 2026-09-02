@@ -22,6 +22,7 @@ tests/
 tests-wp/
 fake-wp/
 tests-e2e/
+test-results/
 phpunit.xml*
 phpstan.neon*
 phpstan-bootstrap.php

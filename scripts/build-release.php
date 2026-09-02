@@ -42,6 +42,12 @@ $config = array(
 		'composer.lock', 'scratch', 'strauss.json', 'infection.json5',
 		'commit-message.txt', '.prettierrc', '.eslintrc.json', '.stylelintrc.json', '.husky',
 		'node_modules', 'WPScan',
+		// PHPUnit's failure-tracker directory (created at the repo root on
+		// every run by PHPUnit 11+; the `cacheDirectory` setting in phpunit.xml
+		// is `.phpunit.cache` but PHPUnit also writes `.last-run.json` summary
+		// state into a sibling `test-results/` directory). Phase 34
+		// ZIP-certification surfaces this leak.
+		'test-results',
 		'vendor-prefixed/phpoffice/phpword/COPYING.LESSER',
 		// Ad-hoc Python transform scripts left over from one-off
 		// SVG / kses / indent fixes. Nothing in the production code
@@ -518,6 +524,18 @@ function generate_checksum( string $file ): string {
 }
 
 echo "  📦 Preparing build...\n";
+
+// Phase 34: CI passes --skip-validation to bypass the test/phpstan/phpcs
+// pre-flight when the ZIP-certification step is wired into the
+// version-check job (those checks already gate the `test` and `lint`
+// jobs; re-running them inside the build is a ~30s penalty that does
+// not change the ZIP contract this step certifies).
+if ( in_array( '--skip-validation', $argv, true ) ) {
+	$config['run_tests']   = false;
+	$config['run_phpstan'] = false;
+	$config['run_phpcs']   = false;
+	echo "     ⚡ --skip-validation: skipping pre-flight tests/phpstan/phpcs\n";
+}
 
 try {
 	$version = get_version( $root, $config['mainPluginFile'] );

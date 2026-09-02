@@ -175,6 +175,30 @@ jobs:
             - name: Plugin Check CI integration test
               run: vendor/bin/phpunit tests/Integration/SScribe_Plugin_Check_Test.php
 
+            # Phase 34: ZIP certification — enforces the official WP.org
+            # submission ZIP contract (well-formed ZipArchive, exactly one
+            # `sscribe-export-site-pages/` top-level entry, required
+            # mainfile/readme/license/uninstall/autoload entries, no
+            # dev-only paths, no forbidden extensions, < 10 MB
+            # compressed, matching SHA-256 sidecar). Without this guard,
+            # a regression in scripts/build-release.php silently ships
+            # a ZIP that WP.org rejects on submission. The
+            # `--skip-validation` flag bypasses the pre-flight test /
+            # PHPStan / PHPCS pass (already enforced by the `test` and
+            # `lint` jobs) so the build only produces the dist tree
+            # this verifier certifies.
+            - name: Build the submission ZIP
+              run: php scripts/build-release.php --skip-validation
+
+            - name: Verify ZIP certification contract
+              run: php scripts/verify-zip-certification.php
+
+            # Phase 34: PHPUnit-level regression for the ZIP
+            # certification verifier — runs against well-formed and
+            # mutated synthetic ZIPs.
+            - name: ZIP certification integration test
+              run: vendor/bin/phpunit tests/Integration/SScribe_ZIP_Certification_Test.php
+
             # Phase 23: License SPDX regression — mainfile / readme.txt /
             # composer.json must all use the canonical GPL-2.0-or-later
             # identifier, and license.txt must ship the full GPL v2 text.
