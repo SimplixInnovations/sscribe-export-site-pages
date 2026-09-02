@@ -36,6 +36,30 @@ class SScribe_Image_Processor {
 	private const JPEG_QUALITY = 85;
 
 	/**
+	 * Maximum number of attempts (including the first) when the remote
+	 * origin responds with HTTP 429 Too Many Requests. The retry budget
+	 * is intentionally small so a hostile origin cannot stall an entire
+	 * export by holding a connection open with 429s.
+	 */
+	private const REMOTE_429_MAX_ATTEMPTS = 3;
+
+	/**
+	 * Hard ceiling on the Retry-After header (in seconds) we are willing
+	 * to honor. Anything beyond this is clamped down so a misconfigured
+	 * server cannot park an export for an hour.
+	 */
+	private const REMOTE_429_MAX_RETRY_AFTER_SECONDS = 30;
+
+	/**
+	 * Test seam: when non-null, overrides the default usleep() with this
+	 * callable. Production never sets it; the unit suite sets it to a
+	 * no-op so retry-budget assertions run instantly.
+	 *
+	 * @var callable|null
+	 */
+	public static $test_backoff_override = null;
+
+	/**
 	 * Resolve a path to a regular file inside the WordPress uploads tree.
 	 *
 	 * @param string $path Candidate local path.
@@ -148,77 +172,157 @@ class SScribe_Image_Processor {
 	/**
 	 * Download image to temporary file.
 	 *
+	 * Phase 16: external 429 responses are classified distinctly from
+	 * other HTTP errors and retried with a bounded budget. The remote
+	 * Retry-After header is honored up to a hard cap (default 30s) so
+	 * a misconfigured origin cannot stall an entire export. Other 4xx
+	 * and 5xx responses are surfaced as a single failure — retrying
+	 * 5xx would mask server-side bugs and retrying 4xx (other than
+	 * 429) is wasted work because the response is unlikely to change
+	 * within the export's lifetime.
+	 *
+	 * The returned value is the same string|false contract as before,
+	 * so the upstream caller does not need to learn about 429s; only
+	 * the operational logger is told what happened.
+	 *
 	 * @param string $url Image URL.
 	 * @return string|false
 	 */
 	private static function download_to_temp( string $url ): string|false {
-		$response = wp_safe_remote_get(
-			$url,
-			array(
-				'timeout'             => 10,
-				'user-agent'          => 'SScribe Export Plugin',
-				'reject_unsafe_urls'  => true,
-				'redirection'         => 0,
-				'limit_response_size' => self::MAX_DOWNLOAD_BYTES,
-			)
-		);
+		$host = wp_parse_url( $url, PHP_URL_HOST );
+		$host = is_string( $host ) ? $host : '';
 
-		if ( is_wp_error( $response ) ) {
-			return false;
+		$max_attempts = max( 1, (int) self::REMOTE_429_MAX_ATTEMPTS );
+
+		for ( $attempt = 1; $attempt <= $max_attempts; $attempt++ ) {
+			$response = wp_safe_remote_get(
+				$url,
+				array(
+					'timeout'             => 10,
+					'user-agent'          => 'SScribe Export Plugin',
+					'reject_unsafe_urls'  => true,
+					'redirection'         => 0,
+					'limit_response_size' => self::MAX_DOWNLOAD_BYTES,
+				)
+			);
+
+			if ( is_wp_error( $response ) ) {
+				if ( class_exists( 'SScribe_Operational_Logger' ) ) {
+					\SScribe_Operational_Logger::record(
+						\SScribe_Operational_Logger::LEVEL_ERROR,
+						'Image fetch network error',
+						array(
+							'category' => 'image_download',
+							'host'     => $host,
+							'code'     => (string) $response->get_error_code(),
+						)
+					);
+				}
+				return false;
+			}
+
+			$code = (int) wp_remote_retrieve_response_code( $response );
+
+			// Phase 16: 429 is the one HTTP class we explicitly retry.
+			// Anything else outside 2xx is a terminal failure for this
+			// download — we don't want to retry a 500 and mask a server
+			// bug, and 4xx (other than 429) is unlikely to change
+			// within the export's lifetime.
+			if ( 429 === $code ) {
+				$retry_after_header = wp_remote_retrieve_header( $response, 'retry-after' );
+				$retry_after_s      = self::parse_retry_after_seconds( $retry_after_header );
+				$retry_after_s      = min(
+					max( 0, $retry_after_s ),
+					self::REMOTE_429_MAX_RETRY_AFTER_SECONDS
+				);
+
+				if ( class_exists( 'SScribe_Operational_Logger' ) ) {
+					\SScribe_Operational_Logger::record(
+						\SScribe_Operational_Logger::LEVEL_ERROR,
+						'Image fetch rate-limited by remote origin',
+						array(
+							'category'       => 'image_download',
+							'host'           => $host,
+							'attempt'        => $attempt,
+							'max_attempts'   => $max_attempts,
+							'retry_after_ms' => $retry_after_s * 1000,
+						)
+					);
+				}
+
+				if ( $attempt < $max_attempts && $retry_after_s > 0 ) {
+					self::apply_retry_backoff( $retry_after_s );
+					continue;
+				}
+				return false;
+			}
+
+			if ( $code < 200 || $code >= 300 ) {
+				if ( class_exists( 'SScribe_Operational_Logger' ) ) {
+					\SScribe_Operational_Logger::record(
+						\SScribe_Operational_Logger::LEVEL_ERROR,
+						'Image fetch returned non-2xx HTTP status',
+						array(
+							'category' => 'image_download',
+							'host'     => $host,
+							'status'   => $code,
+						)
+					);
+				}
+				return false;
+			}
+
+			$body_raw = wp_remote_retrieve_body( $response );
+			$body     = is_string( $body_raw ) ? $body_raw : '';
+			if ( empty( $body ) || strlen( $body ) > self::MAX_DOWNLOAD_BYTES ) {
+				return false;
+			}
+
+			$content_type_header = wp_remote_retrieve_header( $response, 'content-type' );
+			$content_type        = self::normalize_content_type( is_string( $content_type_header ) ? $content_type_header : '' );
+			if ( '' === $content_type || ! in_array( $content_type, self::ALLOWED_CONTENT_TYPES, true ) ) {
+				return false;
+			}
+
+			$path = wp_parse_url( $url, PHP_URL_PATH ) ?? '';
+			$ext  = strtolower( pathinfo( $path, PATHINFO_EXTENSION ) );
+
+			if ( ! in_array( $ext, self::ALLOWED_EXTENSIONS, true ) ) {
+				$ext = self::extension_from_content_type( $content_type );
+			}
+
+			$temp_dir = self::temp_dir();
+			if ( '' === $temp_dir ) {
+				return false;
+			}
+
+			try {
+				$temp_path = $temp_dir . '/sscribe-img-' . bin2hex( random_bytes( 12 ) ) . '.' . $ext;
+			} catch ( \Throwable $e ) {
+				return false;
+			}
+
+			$filesystem = new SScribe_Filesystem();
+			if ( ! $filesystem->put_contents( $temp_path, $body ) ) {
+				return false;
+			}
+
+			// phpcs:ignore WordPress.PHP.NoSilencedErrors.Discouraged -- Invalid image data is rejected and the staging file is deleted below.
+			$image_info = @getimagesize( $temp_path );
+			if ( false === $image_info || empty( $image_info['mime'] ) || self::normalize_content_type( (string) $image_info['mime'] ) !== $content_type ) {
+				wp_delete_file( $temp_path );
+				return false;
+			}
+			if ( ! self::are_dimensions_safe( (int) $image_info[0], (int) $image_info[1] ) ) {
+				wp_delete_file( $temp_path );
+				return false;
+			}
+
+			return $temp_path;
 		}
 
-		$code = wp_remote_retrieve_response_code( $response );
-		if ( $code < 200 || $code >= 300 ) {
-			return false;
-		}
-
-		$body_raw = wp_remote_retrieve_body( $response );
-		$body     = is_string( $body_raw ) ? $body_raw : '';
-		if ( empty( $body ) || strlen( $body ) > self::MAX_DOWNLOAD_BYTES ) {
-			return false;
-		}
-
-		$content_type_header = wp_remote_retrieve_header( $response, 'content-type' );
-		$content_type        = self::normalize_content_type( is_string( $content_type_header ) ? $content_type_header : '' );
-		if ( '' === $content_type || ! in_array( $content_type, self::ALLOWED_CONTENT_TYPES, true ) ) {
-			return false;
-		}
-
-		$path = wp_parse_url( $url, PHP_URL_PATH ) ?? '';
-		$ext  = strtolower( pathinfo( $path, PATHINFO_EXTENSION ) );
-
-		if ( ! in_array( $ext, self::ALLOWED_EXTENSIONS, true ) ) {
-			$ext = self::extension_from_content_type( $content_type );
-		}
-
-		$temp_dir = self::temp_dir();
-		if ( '' === $temp_dir ) {
-			return false;
-		}
-
-		try {
-			$temp_path = $temp_dir . '/sscribe-img-' . bin2hex( random_bytes( 12 ) ) . '.' . $ext;
-		} catch ( \Throwable $e ) {
-			return false;
-		}
-
-		$filesystem = new SScribe_Filesystem();
-		if ( ! $filesystem->put_contents( $temp_path, $body ) ) {
-			return false;
-		}
-
-		// phpcs:ignore WordPress.PHP.NoSilencedErrors.Discouraged -- Invalid image data is rejected and the staging file is deleted below.
-		$image_info = @getimagesize( $temp_path );
-		if ( false === $image_info || empty( $image_info['mime'] ) || self::normalize_content_type( (string) $image_info['mime'] ) !== $content_type ) {
-			wp_delete_file( $temp_path );
-			return false;
-		}
-		if ( ! self::are_dimensions_safe( (int) $image_info[0], (int) $image_info[1] ) ) {
-			wp_delete_file( $temp_path );
-			return false;
-		}
-
-		return $temp_path;
+		// Retry budget exhausted without ever receiving a 2xx body.
+		return false;
 	}
 
 	/**
@@ -377,6 +481,78 @@ class SScribe_Image_Processor {
 			'image/webp' => 'webp',
 			default      => 'jpg',
 		};
+	}
+
+	/**
+	 * Parse a Retry-After header value into a non-negative integer
+	 * number of seconds.
+	 *
+	 * Supports both common forms:
+	 *   - "120"             (delta-seconds)
+	 *   - "Wed, 21 Oct 2015 07:28:00 GMT" (HTTP-date)
+	 *
+	 * Anything malformed (negative delta, unparseable date, empty,
+	 * non-numeric / non-date) is treated as 0 so the caller falls back
+	 * to its own back-off policy rather than spinning on a header that
+	 * would never resolve.
+	 *
+	 * @param mixed $header_value Raw header value (string) or '' / null.
+	 * @return int Seconds to wait, clamped to >= 0.
+	 */
+	private static function parse_retry_after_seconds( $header_value ): int {
+		if ( ! is_string( $header_value ) ) {
+			return 0;
+		}
+		$value = trim( $header_value );
+		if ( '' === $value ) {
+			return 0;
+		}
+
+		// A leading "-" is never valid: delta-seconds is per RFC 7231 an
+		// unsigned integer, and strtotime("-5") happily interprets it as
+		// "5 hours ago" — which would make us honor an absurd retry
+		// delay. Reject explicitly so the parser cannot be tricked.
+		if ( str_starts_with( $value, '-' ) ) {
+			return 0;
+		}
+
+		// delta-seconds form: an integer string.
+		if ( ctype_digit( $value ) ) {
+			$delta = (int) $value;
+			return max( 0, $delta );
+		}
+
+		// HTTP-date form: try strtotime(); reject if it can't be parsed.
+		$timestamp = strtotime( $value );
+		if ( false === $timestamp ) {
+			return 0;
+		}
+		$delta = $timestamp - time();
+		return max( 0, $delta );
+	}
+
+	/**
+	 * Apply the inter-attempt backoff for a 429 retry.
+	 *
+	 * Production calls usleep(). The unit suite replaces this with a
+	 * no-op via the static $test_backoff_override property so the
+	 * retry-budget assertions can run instantly without sleeping for
+	 * real seconds. The override is intentionally a public static and
+	 * not a filter because the call site is on a hot retry path; pulling
+	 * a filter registry into the loop would add latency to every export
+	 * just to enable a test seam.
+	 *
+	 * @param int $seconds Non-negative integer seconds.
+	 */
+	private static function apply_retry_backoff( int $seconds ): void {
+		if ( $seconds <= 0 ) {
+			return;
+		}
+		if ( null !== self::$test_backoff_override && is_callable( self::$test_backoff_override ) ) {
+			( self::$test_backoff_override )( $seconds );
+			return;
+		}
+		usleep( $seconds * 1000000 );
 	}
 
 	/**

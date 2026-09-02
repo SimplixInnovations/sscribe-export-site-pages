@@ -1373,11 +1373,43 @@ if ( ! function_exists( 'site_url' ) ) {
 
 if ( ! class_exists( 'WP_Error' ) ) {
 	class WP_Error {
-		public function __construct(
-			public string $code = '',
-			public string $message = '',
-			public mixed $data = null
-		) {
+		public string $code = '';
+		public string $message = '';
+		/** @var mixed */
+		public $data = null;
+		public array $errors = array();
+		public array $error_data = array();
+
+		public function __construct( string $code = '', string $message = '', $data = null ) {
+			$this->code    = $code;
+			$this->message = $message;
+			$this->data    = $data;
+			if ( '' !== $code ) {
+				$this->errors[ $code ][] = $message;
+				if ( null !== $data ) {
+					$this->error_data[ $code ] = $data;
+				}
+			}
+		}
+
+		public function get_error_code(): string {
+			$codes = array_keys( $this->errors );
+			return (string) ( $codes[0] ?? '' );
+		}
+
+		public function get_error_message( string $code = '' ): string {
+			if ( '' === $code ) {
+				$code = $this->get_error_code();
+			}
+			$messages = $this->errors[ $code ] ?? array();
+			return (string) ( $messages[0] ?? '' );
+		}
+
+		public function get_error_data( string $code = '' ) {
+			if ( '' === $code ) {
+				$code = $this->get_error_code();
+			}
+			return $this->error_data[ $code ] ?? null;
 		}
 	}
 }
@@ -1432,19 +1464,59 @@ if ( ! function_exists( 'wp_parse_url' ) ) {
 }
 
 if ( ! function_exists( 'wp_safe_remote_get' ) ) {
+	/**
+	 * Test stub for WordPress's wp_safe_remote_get().
+	 *
+	 * Supports two response shapes via $GLOBALS['sscribe_test_http_response']:
+	 *
+	 *   1. Queue mode (list of responses):
+	 *        $GLOBALS['sscribe_test_http_response'] = array( $r1, $r2, $r3 );
+	 *      Each call shifts one entry off the front and returns it. The
+	 *      queue shrinks, so the test can assert how many calls were made
+	 *      by inspecting the remaining length.
+	 *
+	 *   2. Single-response mode (legacy):
+	 *        $GLOBALS['sscribe_test_http_response'] = $r1;
+	 *      The same response is returned on every call.
+	 *
+	 * Either way, the call count is recorded in
+	 * $GLOBALS['sscribe_test_http_calls'] so tests can assert "the retry
+	 * loop ran exactly N times" without relying on the queue length.
+	 *
+	 * An empty / unset $sscribe_test_http_response produces a WP_Error,
+	 * matching the contract wp_remote_get() returns when no transport is
+	 * configured.
+	 */
 	function wp_safe_remote_get( $url, $args = array() ) {
-		global $sscribe_test_http_response;
+		if ( ! isset( $GLOBALS['sscribe_test_http_calls'] ) ) {
+			$GLOBALS['sscribe_test_http_calls'] = 0;
+		}
+		++$GLOBALS['sscribe_test_http_calls'];
 
-		if ( empty( $sscribe_test_http_response ) ) {
+		if ( empty( $GLOBALS['sscribe_test_http_response'] ) ) {
 			return new WP_Error( 'no_response', 'No mock HTTP response configured.' );
 		}
 
-		$response = $sscribe_test_http_response;
-		$response['requested_url'] = $url;
-		$response['request_args']  = $args;
-		$sscribe_test_http_response = $response;
+		$configured = $GLOBALS['sscribe_test_http_response'];
 
-		return $response;
+		// Queue mode: a list of response arrays. Consume one per call so a
+		// single test can drive "429, 429, 200" without mutating production
+		// code or globals between assertions.
+		if ( is_array( $configured ) && isset( $configured[0] ) && is_array( $configured[0] ) ) {
+			$response = array_shift( $GLOBALS['sscribe_test_http_response'] );
+			$response['requested_url'] = $url;
+			$response['request_args']  = $args;
+			return $response;
+		}
+
+		// Single-response mode (legacy): return the same response forever,
+		// AND write the bookkeeping back to the global so existing
+		// integration tests can inspect $GLOBALS['sscribe_test_http_response']
+		// after the call to verify URL / request-args capture.
+		$configured['requested_url'] = $url;
+		$configured['request_args']  = $args;
+		$GLOBALS['sscribe_test_http_response'] = $configured;
+		return $configured;
 	}
 }
 

@@ -69,6 +69,26 @@ final class SScribe_Operational_Logger {
 	}
 
 	/**
+	 * Decode the buffered entries for unit-test assertions.
+	 *
+	 * Production never calls this. The unit suite uses it to verify
+	 * that record() emitted the expected level, message, and context
+	 * without having to parse the rotated JSONL log file on disk.
+	 *
+	 * @return array<int, array<string, mixed>>
+	 */
+	public static function events_for_testing(): array {
+		$decoded = array();
+		foreach ( self::$buffer as $line ) {
+			$entry = json_decode( (string) $line, true );
+			if ( is_array( $entry ) ) {
+				$decoded[] = $entry;
+			}
+		}
+		return $decoded;
+	}
+
+	/**
 	 * Register the per-request reset hook on first call.
 	 *
 	 * Phase 20: register the SHUTDOWN flush as early as possible so a fatal
