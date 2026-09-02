@@ -2185,17 +2185,14 @@
 							}
 							return;
 						}
-						// action === 'fail' — terminal.
-						if (attempt < maxAttempts) {
-							// Unexpected soft-failure: fall back to a small
-							// final backoff so we still drain attempts before
-							// declaring terminal.
-							self.pollFinalize(sessionId, attempt + 1, self.computeFinalizeBackoff());
-						} else {
-							self.isProcessing = false;
-							const msg = decision.message || self.getNetworkErrorMessage(xhr, 'finalize_export');
-							self.showError(msg, false, {});
-						}
+						// action === 'fail' — terminal. Phase 13: do NOT poll again on
+						// a terminal decision. The previous fall-through
+						// re-entered pollFinalize for up to maxAttempts
+						// attempts, masking the real failure and consuming
+						// rate-limit quota.
+						self.isProcessing = false;
+						const msg = decision.message || self.getNetworkErrorMessage(xhr, 'finalize_export');
+						self.showError(msg, false, { request_id: decision.requestId || '' });
 					},
 				});
 			}, delay);
