@@ -64,6 +64,19 @@ jobs:
             - name: Upgrade Notice integration test
               run: vendor/bin/phpunit tests/Integration/SScribe_Upgrade_Notice_Test.php
 
+            # Phase 25: WP/PHP minimum CI — locks mainfile header ↔
+            # readme.txt ↔ runtime version_compare() guard. Drift here
+            # ships an installable-on-PHP-8.1 build that fatals on
+            # first admin page load.
+            - name: Verify WP/PHP minimum contract
+              run: php scripts/verify-min-versions.php
+
+            # Phase 25: PHPUnit-level regression for the WP/PHP minimum
+            # verifier — runs the script against well-formed and mutated
+            # mainfile + readme.txt pairs.
+            - name: WP/PHP minimum integration test
+              run: vendor/bin/phpunit tests/Integration/SScribe_Minimum_Versions_Test.php
+
             # Phase 23: License SPDX regression — mainfile / readme.txt /
             # composer.json must all use the canonical GPL-2.0-or-later
             # identifier, and license.txt must ship the full GPL v2 text.
