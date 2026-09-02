@@ -130,6 +130,22 @@ jobs:
             - name: E2E dev-dependency integration test
               run: vendor/bin/phpunit tests/Integration/SScribe_E2E_Deps_Test.php
 
+            # Phase 31: continue-on-error contract — pins the per-page
+            # try/catch + `continue` on no-page-data / insufficient-memory
+            # branches, the sscribe_after_export_page observability
+            # seam, the failed_pages column in the activator schema,
+            # the failed_pages persistence in export_stats, and the
+            # failed_pages tally in the finalizer. Without this guard,
+            # a single bad page aborts the whole export.
+            - name: Verify continue-on-error contract
+              run: php scripts/verify-continue-on-error.php
+
+            # Phase 31: PHPUnit-level regression for the continue-on-error
+            # verifier — runs against well-formed and mutated production
+            # payloads.
+            - name: Continue-on-error integration test
+              run: vendor/bin/phpunit tests/Integration/SScribe_Continue_On_Error_Test.php
+
             # Phase 23: License SPDX regression — mainfile / readme.txt /
             # composer.json must all use the canonical GPL-2.0-or-later
             # identifier, and license.txt must ship the full GPL v2 text.
