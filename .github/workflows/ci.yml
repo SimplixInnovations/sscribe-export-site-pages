@@ -99,6 +99,23 @@ jobs:
             - name: Real WP testbench contract
               run: vendor/bin/phpunit tests/Integration/SScribe_Real_WP_Testbench_Test.php
 
+            # Phase 28: Strauss vendor-prefix contract — enforces that
+            # composer.json declares the extra.strauss block (target,
+            # namespace_prefix, classmap_prefix, packages), that the
+            # vendor:prefix script is wired with the three fixup
+            # passes, and that vendor-prefixed/ does not leak any
+            # un-prefixed library class. Without this, SScribe ships
+            # with classes that collide with every other plugin on a
+            # shared WordPress install.
+            - name: Verify Strauss vendor-prefix contract
+              run: php scripts/verify-strauss-config.php
+
+            # Phase 28: PHPUnit-level regression for the Strauss
+            # verifier — runs against well-formed and mutated composer.json
+            # payloads.
+            - name: Strauss vendor-prefix integration test
+              run: vendor/bin/phpunit tests/Integration/SScribe_Strauss_Config_Test.php
+
             # Phase 23: License SPDX regression — mainfile / readme.txt /
             # composer.json must all use the canonical GPL-2.0-or-later
             # identifier, and license.txt must ship the full GPL v2 text.
