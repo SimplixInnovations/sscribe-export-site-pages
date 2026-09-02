@@ -244,6 +244,24 @@ jobs:
             - name: Build transparency integration test
               run: vendor/bin/phpunit tests/Integration/SScribe_Build_Transparency_Test.php
 
+            # Phase 37: third-party license inventory — walks the shipped
+            # dist tree (the same tree the submission ZIP was packaged
+            # from) and asserts every bundled dependency ships its own
+            # LICENSE / COPYING / NOTICE with a GPL-2.0-or-later
+            # compatible SPDX identifier. WP.org reviewers specifically
+            # check mPDF (GPL-2.0-only), PHPWord (LGPL-3.0-only),
+            # PSR/container (MIT), and bundled fonts (OFL-1.1). A
+            # missing or incompatible license is an automatic reject.
+            - name: Verify third-party license inventory
+              run: php scripts/verify-third-party-license.php
+
+            # Phase 37: PHPUnit-level regression for the third-party
+            # license verifier — runs against the live dist tree with
+            # one-off mutations (missing mpdf LICENSE.txt, proprietary
+            # license body, missing font OFL.txt).
+            - name: Third-party license inventory integration test
+              run: vendor/bin/phpunit tests/Integration/SScribe_Third_Party_License_Test.php
+
             # Phase 23: License SPDX regression — mainfile / readme.txt /
             # composer.json must all use the canonical GPL-2.0-or-later
             # identifier, and license.txt must ship the full GPL v2 text.
