@@ -665,10 +665,7 @@
 					.prop('checked', self._previousDebugEnabled)
 					.attr('aria-checked', self._previousDebugEnabled ? 'true' : 'false');
 			}
-			if (
-				self._previousLogLevel !== undefined &&
-				self.$level.val() !== self._previousLogLevel
-			) {
+			if (self._previousLogLevel !== undefined && self.$level.val() !== self._previousLogLevel) {
 				self.$level.val(self._previousLogLevel);
 			}
 			// Clear the captured values so a subsequent successful save

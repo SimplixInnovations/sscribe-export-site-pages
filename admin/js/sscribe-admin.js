@@ -1079,7 +1079,8 @@
 							$timeChip.text(response.data.estimated_time).removeClass('sscribe-summary-time-pending');
 							$timeChip.attr('aria-label', response.data.estimated_time);
 						} else {
-							const fallbackHint = sscribe_data.strings.summary_time_hint || 'See Preview for adaptive estimate';
+							const fallbackHint =
+								sscribe_data.strings.summary_time_hint || 'See Preview for adaptive estimate';
 							$timeChip.text(fallbackHint).removeClass('sscribe-summary-time-pending');
 							$timeChip.attr('aria-label', fallbackHint);
 						}
@@ -1246,18 +1247,15 @@
 					// must NOT proceed. Without this guard, a transient
 					// failure (e.g. partial DB read) would silently start an
 					// export that the server already warned against.
-					const failData =
-						response && response.data ? response.data : {};
+					const failData = response && response.data ? response.data : {};
 					self.finishPreparationFailure(
-						failData.message ||
-							'Preflight check could not be completed. Please try again.',
+						failData.message || 'Preflight check could not be completed. Please try again.',
 						null,
 						failData
 					);
 				},
 				error: function (xhr) {
-					const data =
-						xhr && xhr.responseJSON && xhr.responseJSON.data ? xhr.responseJSON.data : {};
+					const data = xhr && xhr.responseJSON && xhr.responseJSON.data ? xhr.responseJSON.data : {};
 					const decision = SScribe.getAjaxFailureDecision(xhr, data);
 					if (decision.action === 'retry') {
 						setTimeout(function () {
@@ -1307,8 +1305,7 @@
 				.removeAttr('aria-busy')
 				.removeClass('sscribe-btn-busy');
 			self.updateExportButton();
-			const responseData =
-				data || (xhr && xhr.responseJSON && xhr.responseJSON.data) || {};
+			const responseData = data || (xhr && xhr.responseJSON && xhr.responseJSON.data) || {};
 			self.showError(
 				message,
 				false,
@@ -1478,9 +1475,7 @@
 						// retry_in / HTTP Retry-After when present so a
 						// 429 / 503 quota signal cannot be amplified.
 						const responseData =
-							xhr && xhr.responseJSON && xhr.responseJSON.data
-								? xhr.responseJSON.data
-								: {};
+							xhr && xhr.responseJSON && xhr.responseJSON.data ? xhr.responseJSON.data : {};
 						const decision = SScribe.getAjaxFailureDecision(xhr, responseData, {
 							jitterSeed: 0.5,
 						});
@@ -1495,16 +1490,11 @@
 							delayMs = Math.max(1500, backoff * 1000);
 						}
 						setTimeout(function () {
-							self.clearSessionWithRetry(
-								language,
-								postStatus,
-								postType,
-								formats,
-								attempt + 1
-							);
+							self.clearSessionWithRetry(language, postStatus, postType, formats, attempt + 1);
 						}, delayMs);
 					} else {
-						const responseData = xhr && xhr.responseJSON && xhr.responseJSON.data ? xhr.responseJSON.data : {};
+						const responseData =
+							xhr && xhr.responseJSON && xhr.responseJSON.data ? xhr.responseJSON.data : {};
 						const serverMessage = responseData.message || '';
 						self.isPreparing = false;
 						self.isProcessing = false;
@@ -1745,8 +1735,7 @@
 					// Retry-After take priority over client backoff.
 					// Do NOT silently hammer the server with a 1000ms
 					// generic client retry when the server said 60000.
-					const responseData =
-						xhr && xhr.responseJSON && xhr.responseJSON.data ? xhr.responseJSON.data : {};
+					const responseData = xhr && xhr.responseJSON && xhr.responseJSON.data ? xhr.responseJSON.data : {};
 					const decision = SScribe.getAjaxFailureDecision(xhr, responseData, {
 						jitterSeed: 0.5,
 					});
@@ -2084,8 +2073,7 @@
 							// endpoint also honor the server's retry_in if
 							// present, mirroring the centralized retry
 							// policy used by processBatch().
-							const dataRetryIn =
-								response.data && Number(response.data.retry_in);
+							const dataRetryIn = response.data && Number(response.data.retry_in);
 							const softDelay =
 								isFinite(dataRetryIn) && dataRetryIn > 0
 									? Math.max(1500, Math.floor(dataRetryIn))
@@ -2128,8 +2116,7 @@
 						// server's retry_in / HTTP Retry-After takes priority
 						// over the client exponential backoff. Same contract
 						// as processBatch() (Phase 5).
-						const responseData =
-							response && response.data ? response.data : {};
+						const responseData = response && response.data ? response.data : {};
 						const decision = SScribe.getAjaxFailureDecision(xhr, responseData, {
 							jitterSeed: 0.5,
 						});
@@ -3233,10 +3220,7 @@
 				Object.keys(details).length > 0 &&
 				typeof window.SSCRIBE_DEBUG !== 'undefined' &&
 				window.SSCRIBE_DEBUG;
-			$btn
-				.attr('aria-expanded', 'false')
-				.toggleClass('sscribe-hidden', !canShow)
-				.prop('hidden', !canShow);
+			$btn.attr('aria-expanded', 'false').toggleClass('sscribe-hidden', !canShow).prop('hidden', !canShow);
 			$('#sscribe-error-toggle-details-label').text(
 				(sscribe_data.strings && sscribe_data.strings.error_show_details) || 'Show technical details'
 			);
@@ -4250,11 +4234,7 @@
 			if (status === 429 || code === 'rate_limited') {
 				// Mandatory: server-provided retry_in is absolute; do not let
 				// a 1000ms client backoff override a 60000ms server hint.
-				const delay = hasServerDelay
-					? Math.max(1000, serverDelay)
-					: hasHeaderDelay
-						? headerDelay
-						: 60000;
+				const delay = hasServerDelay ? Math.max(1000, serverDelay) : hasHeaderDelay ? headerDelay : 60000;
 				return {
 					action: 'retry',
 					delayMs: delay,
@@ -4427,11 +4407,7 @@
 		 *                        page navigation supersedes it).
 		 */
 		refreshNonceAnd: function (after) {
-			if (
-				typeof sscribe_data !== 'undefined' &&
-				sscribe_data &&
-				sscribe_data.refresh_nonce_url
-			) {
+			if (typeof sscribe_data !== 'undefined' && sscribe_data && sscribe_data.refresh_nonce_url) {
 				$.ajax({
 					url: sscribe_data.refresh_nonce_url,
 					type: 'POST',
@@ -4468,9 +4444,10 @@
 		_jitteredDelay: function (lowerMs, upperMs, jitterSeed) {
 			const lo = Math.max(0, Math.floor(lowerMs));
 			const hi = Math.max(lo, Math.floor(upperMs));
-			const seed = typeof jitterSeed === 'number' && isFinite(jitterSeed)
-				? Math.min(1, Math.max(0, jitterSeed))
-				: Math.random();
+			const seed =
+				typeof jitterSeed === 'number' && isFinite(jitterSeed)
+					? Math.min(1, Math.max(0, jitterSeed))
+					: Math.random();
 			return Math.floor(lo + (hi - lo) * seed);
 		},
 		/**
