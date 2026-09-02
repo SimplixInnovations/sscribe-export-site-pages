@@ -4,6 +4,9 @@
 	"private": true,
 	"type": "module",
 	"description": "Export WordPress pages to professional DOCX, PDF, HTML, or Markdown packages",
+	"engines": {
+		"node": ">=24.0.0"
+	},
 	"scripts": {
 		"lint:js": "eslint admin/js/*.js",
 		"lint:css": "stylelint admin/css/*.css",

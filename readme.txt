@@ -99,6 +99,34 @@ The bundled PhpOffice/PhpWord library uses LGPL-3.0-only. Its notice is included
 
 The bundled mPDF library uses GPL-2.0-only. Required notices for bundled dependencies remain alongside their source in the plugin package.
 
+== Development ==
+
+Source repository: https://github.com/SimplixInnovations/sscribe-export-site-pages
+
+The repository is public so WordPress.org reviewers can inspect every transformation that produces the shipped archive. The released ZIP is built from the same source that lives in the public repository; no private pre-built blobs are substituted at submission time.
+
+Required tools and versions:
+
+* PHP 8.2 or later (8.4 recommended for local development)
+* Composer 2.x (locked via composer.lock)
+* Node.js 24 or later (pinned via GitHub Actions setup-node)
+* Git for source checkout
+
+Build a clean submission archive from a fresh checkout:
+
+    git clone https://github.com/SimplixInnovations/sscribe-export-site-pages.git
+    cd sscribe-export-site-pages
+    composer install
+    composer vendor:prefix
+    composer test
+    composer stan
+    composer cs
+    composer release
+
+The last command runs scripts/build-release.php and writes dist/sscribe-export-site-pages-<version>.zip plus its SHA-256 sidecar. The build process strips comments, prunes unused fonts, prefixes third-party namespaces via Strauss, removes dev-only paths, and verifies the ZIP against the certification contract before it is ever uploaded to WordPress.org.
+
+A detailed description of every build transformation (paths excluded, comments stripped, namespaces prefixed, fonts pruned, AI artifacts sanitized) lives at docs/BUILD_TRANSFORMATIONS.md in the repository. The release evidence trail lives at docs/RELEASE_REPORT_v2.0.0.md.
+
 == Changelog ==
 
 = 2.0.0 =

@@ -205,10 +205,14 @@ jobs:
             # `vendor-prefixed/` (not `vendor/`), readme.txt fits the
             # WP.org 10 KiB cap, languages/ ships a translation file,
             # no entry is empty, no OS-metadata files (.DS_Store /
-            # Thumbs.db / desktop.ini) leak in, and the dist mainfile
-            # Version header matches the ZIP filename version. Without
-            # this guard a regression in any of those lands a
-            # broken-submission ZIP at WP.org.
+            # Thumbs.db / desktop.ini) leak in, the dist mainfile
+            # Version header matches the ZIP filename version, no
+            # dev-only top-level directory (`.git/`, `tests/`,
+            # `node_modules/`, `.idea/`, plain `vendor/`, …) ships,
+            # no IDE/temp/env/log marker (`.env`, `*.swp`, `*.log`)
+            # leaks in, and the runtime directories WP.org requires
+            # (`vendor-prefixed/`, `assets/`, `license.txt`,
+            # `uninstall.php`) are present.
             - name: Verify ZIP content rules
               run: php scripts/verify-zip-content-rules.php
 
@@ -217,6 +221,28 @@ jobs:
             # synthetic dist trees.
             - name: ZIP content rules integration test
               run: vendor/bin/phpunit tests/Integration/SScribe_ZIP_Content_Rules_Test.php
+
+            # Phase 36: source / build transparency — WP.org reviewers
+            # must be able to reproduce the shipped ZIP. readme.txt
+            # must carry a `== Development ==` section that names the
+            # public source repo, lists every build command, and pins
+            # the required tool versions; composer.json must declare
+            # the PHP version floor; composer.lock must be committed;
+            # package.json must pin the Node version in `engines`;
+            # scripts/build-release.php must exist; and
+            # docs/BUILD_TRANSFORMATIONS.md must document every build
+            # transformation. A regression that drops the source URL,
+            # unpins a tool version, or deletes the build doc fails
+            # the gate before submission.
+            - name: Verify build transparency contract
+              run: php scripts/verify-build-transparency.php
+
+            # Phase 36: PHPUnit-level regression for the build
+            # transparency verifier — runs against the live repo with
+            # one-off mutations (stripped Development section, blanked
+            # Author URI, missing composer.lock, missing build doc).
+            - name: Build transparency integration test
+              run: vendor/bin/phpunit tests/Integration/SScribe_Build_Transparency_Test.php
 
             # Phase 23: License SPDX regression — mainfile / readme.txt /
             # composer.json must all use the canonical GPL-2.0-or-later
