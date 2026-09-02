@@ -560,7 +560,7 @@ class SScribe_Export_Query_Controller {
 		}
 
 		$post_type = SScribe_AJAX_Guard::post_text( 'post_type', 'page', 30 );
-		if ( ! in_array( $post_type, array( 'page', 'post' ), true ) ) {
+		if ( ! in_array( $post_type, array( 'page', 'post', 'any' ), true ) ) {
 			$post_type = 'page';
 		}
 
