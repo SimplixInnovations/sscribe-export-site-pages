@@ -586,9 +586,10 @@
 			const self = this;
 			// Bump the client-owned generation BEFORE any request is issued.
 			// Every response handler compares the echoed `client_generation`
-			// with EXACT equality to this value; anything else is stale and
-			// must not mutate UI state. Ordering belongs to the browser
-			// interaction that originated the requests.
+			// with EXACT equality to the CURRENT generation, not the value
+			// captured by its own request — a stale response must NEVER
+			// overwrite newer UI state just because its closure still has
+			// its own generation number.
 			self._countsRequestGeneration = (self._countsRequestGeneration || 0) + 1;
 			const generation = self._countsRequestGeneration;
 			self.selectedPageCount = 0;
@@ -612,23 +613,27 @@
 				},
 				success: function (response) {
 					if (response.success && response.data) {
-						// Discard any response whose generation is not EXACTLY
-						// the most recent one. `<` is intentionally not used —
-						// a response from a partially-completed older refresh
-						// must never overwrite the newer one.
+						// Phase 4 (round 2): discard any response whose generation
+						// is not EXACTLY the most-recent one. Comparing against
+						// `self._countsRequestGeneration` (the LIVE current) — NOT
+						// against the closure-captured `generation` — means an old
+						// Pages response can no longer overwrite newer Posts state.
 						if (
 							typeof response.data.client_generation === 'undefined' ||
-							parseInt(response.data.client_generation, 10) !== generation
+							parseInt(response.data.client_generation, 10) !== self._countsRequestGeneration
 						) {
 							return;
 						}
-						// Server must echo the controls we sent; if it doesn't,
-						// the response is from a logically different request
-						// even if the generation number happened to match.
-						if (response.data.post_type !== postType) {
+						// Phase 4 (round 2): server must echo the controls we sent
+						// AND the live UI selection must still match — the user may
+						// have switched Content Type / Language again while this
+						// response was in flight.
+						const livePostType = $('input[name="sscribe_post_type"]:checked').val() || 'page';
+						const liveLanguage = $('input[name="sscribe_language"]:checked').val() || '';
+						if (response.data.post_type !== livePostType) {
 							return;
 						}
-						if (typeof response.data.language !== 'undefined' && response.data.language !== language) {
+						if (typeof response.data.language !== 'undefined' && response.data.language !== liveLanguage) {
 							return;
 						}
 						const allCounts = response.data.counts || {};
@@ -669,8 +674,19 @@
 						self.updateConfigSummary();
 						self.updateExportButton();
 					} else if (!self._countsRetries) {
+						// Phase 4 (round 2): capture the generation that caused
+						// this retry. If a newer refresh has been started by the
+						// time the timer fires, the retry must bail instead of
+						// starting yet another request behind the live one.
+						const scheduledGeneration = generation;
 						self._countsRetries = 1;
 						setTimeout(function () {
+							if (
+								typeof self._countsRequestGeneration === 'undefined' ||
+								self._countsRequestGeneration !== scheduledGeneration
+							) {
+								return;
+							}
 							self.refreshStatusAndLanguageCounts(postType, language);
 						}, 2500);
 					} else {
@@ -697,10 +713,24 @@
 					$('.sscribe-status-card-label').removeClass('sscribe-loading');
 					$('[data-sscribe-count-for]').removeClass('sscribe-loading-count');
 				},
-				error: function () {
+				error: function (xhr, textStatus) {
+					// Phase 4 (round 2): a deliberately aborted previous
+					// request is NOT an error requiring retry. The browser
+					// already started a newer request that owns the UI;
+					// let that one complete instead of racing against it.
+					if (textStatus === 'abort') {
+						return;
+					}
 					if (!self._countsRetries) {
+						const scheduledGeneration = generation;
 						self._countsRetries = 1;
 						setTimeout(function () {
+							if (
+								typeof self._countsRequestGeneration === 'undefined' ||
+								self._countsRequestGeneration !== scheduledGeneration
+							) {
+								return;
+							}
 							self.refreshStatusAndLanguageCounts(postType, language);
 						}, 2500);
 						return;
@@ -766,16 +796,19 @@
 						if (!response || !response.success || !response.data || !response.data.languages) {
 							return;
 						}
-						// Discard any response whose generation is not EXACTLY
-						// the most recent one. The server echoes the value the
-						// browser originated; it does not generate its own.
+						// Phase 4 (round 2): compare against the LIVE current
+						// generation, NOT the closure-captured one - an old
+						// response must never overwrite a newer one.
 						if (
 							typeof response.data.client_generation === 'undefined' ||
-							parseInt(response.data.client_generation, 10) !== generation
+							parseInt(response.data.client_generation, 10) !== self._countsRequestGeneration
 						) {
 							return;
 						}
-						if (response.data.post_type !== postType) {
+						// Phase 4 (round 2): also verify the live UI selection
+						// still matches what we asked for.
+						const liveAllPostType = $('input[name="sscribe_post_type"]:checked').val() || 'page';
+						if (response.data.post_type !== liveAllPostType) {
 							return;
 						}
 						const langMap = response.data.languages;
@@ -1219,7 +1252,19 @@
 			} else {
 				formats = [format];
 			}
+			// Phase 8: preflight is a named operation so retry/refresh_nonce
+			// paths can safely re-enter it without recursion hazards.
+			this.runPreflightCheck(language, postStatus, postType, formats);
+		},
+		runPreflightCheck: function (language, postStatus, postType, formats) {
 			const self = this;
+			// Phase 8: this is the single re-entrant preflight operation.
+			// Called by startExport() and by the retry/refresh_nonce
+			// branches in the error handler below. Safe to call multiple
+			// times; each call owns its own request.
+			if (typeof formats === 'string') {
+				formats = [formats];
+			}
 			$.ajax({
 				url: sscribe_data.ajaxurl,
 				type: 'POST',
@@ -1227,7 +1272,7 @@
 				data: {
 					action: 'sscribe_preflight_check',
 					nonce: sscribe_data.nonce,
-					page_count: this.selectedPageCount,
+					page_count: self.selectedPageCount,
 					formats: formats,
 				},
 				success: function (response) {
@@ -1242,11 +1287,6 @@
 						}
 						return;
 					}
-					// Phase 8: strictly fail-closed. A preflight that returns
-					// success=false (server says it cannot verify the export)
-					// must NOT proceed. Without this guard, a transient
-					// failure (e.g. partial DB read) would silently start an
-					// export that the server already warned against.
 					const failData = response && response.data ? response.data : {};
 					self.finishPreparationFailure(
 						failData.message || 'Preflight check could not be completed. Please try again.',
@@ -1259,21 +1299,16 @@
 					const decision = SScribe.getAjaxFailureDecision(xhr, data);
 					if (decision.action === 'retry') {
 						setTimeout(function () {
-							self.runPreflightCheck(language, postStatus, postType, format);
+							self.runPreflightCheck(language, postStatus, postType, formats);
 						}, decision.delayMs);
 						return;
 					}
 					if (decision.action === 'refresh_nonce') {
 						SScribe.refreshNonceAnd(function () {
-							self.runPreflightCheck(language, postStatus, postType, format);
+							self.runPreflightCheck(language, postStatus, postType, formats);
 						});
 						return;
 					}
-					// Phase 8: terminal failure path. Reset the click-handler
-					// state (isPreparing, busy UI, export buttons) so the
-					// user is not stuck in a "preparing…" state with no
-					// recovery. Previously this just toasted and left the
-					// button disabled forever.
 					const msg =
 						decision.message ||
 						SScribe.parseServerError(xhr) ||
