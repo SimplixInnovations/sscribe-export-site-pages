@@ -51,6 +51,19 @@ jobs:
             - name: Version sync integration test
               run: vendor/bin/phpunit tests/Integration/SScribe_Version_Sync_Test.php
 
+            # Phase 24: Upgrade Notice CI — enforces the WP.org contract
+            # for the readme.txt == Upgrade Notice == section (presence,
+            # body length, no HTML/Markdown, single paragraph, every entry
+            # has a matching Changelog, Stable tag has a matching entry).
+            - name: Verify Upgrade Notice contract
+              run: php scripts/verify-upgrade-notice.php
+
+            # Phase 24: PHPUnit-level regression for the Upgrade Notice
+            # verifier — runs the script against well-formed and mutated
+            # readme.txt payloads.
+            - name: Upgrade Notice integration test
+              run: vendor/bin/phpunit tests/Integration/SScribe_Upgrade_Notice_Test.php
+
             # Phase 23: License SPDX regression — mainfile / readme.txt /
             # composer.json must all use the canonical GPL-2.0-or-later
             # identifier, and license.txt must ship the full GPL v2 text.
