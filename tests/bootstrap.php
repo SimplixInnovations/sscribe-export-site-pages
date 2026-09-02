@@ -1832,6 +1832,20 @@ if ( ! function_exists( 'checked' ) ) {
 	}
 }
 
+if ( ! function_exists( 'selected' ) ) {
+	/**
+	 * Test stub for WordPress's selected(). Used by admin partials to
+	 * mark a <select> <option> as the currently-saved choice.
+	 */
+	function selected( $selected, $current = true, $display = true ) {
+		$result = ( (string) $selected === (string) $current ) ? 'selected="selected"' : '';
+		if ( $display ) {
+			echo $result;
+		}
+		return $result;
+	}
+}
+
 if ( ! function_exists( 'wp_delete_file' ) ) {
 	function wp_delete_file( $sscribe_file ) {
 		if ( file_exists( $sscribe_file ) ) {
