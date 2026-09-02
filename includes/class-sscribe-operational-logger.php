@@ -70,6 +70,12 @@ final class SScribe_Operational_Logger {
 
 	/**
 	 * Register the per-request reset hook on first call.
+	 *
+	 * Phase 20: register the SHUTDOWN flush as early as possible so a fatal
+	 * error occurring AFTER init still has a durable persistence path.
+	 * Previously the init hook was the only safety net — but if init
+	 * already passed before the first record, the buffer was never
+	 * guaranteed to reach disk before PHP exited.
 	 */
 	private static function ensure_reset_hooked(): void {
 		if ( self::$reset_hooked ) {
@@ -77,8 +83,48 @@ final class SScribe_Operational_Logger {
 		}
 		if ( function_exists( 'add_action' ) ) {
 			add_action( 'init', array( self::class, 'flush' ), 0 );
+			add_action( 'shutdown', array( self::class, 'flush_on_shutdown' ), PHP_INT_MAX );
 		}
 		self::$reset_hooked = true;
+	}
+
+	/**
+	 * Phase 20: shutdown hook that flushes the buffer AND captures
+	 * the most recent fatal/parse error if one occurred during the
+	 * request. Recursive fatal logging is guarded by a static lock.
+	 *
+	 * @return void
+	 */
+	public static function flush_on_shutdown(): void {
+		$lock_key = 'sscribe_op_log_shutdown_lock';
+		if ( isset( $GLOBALS[ $lock_key ] ) && $GLOBALS[ $lock_key ] ) {
+			return;
+		}
+		$GLOBALS[ $lock_key ] = true;
+
+		// Capture the most recent fatal, if any. error_get_last() can
+		// return E_NOTICE / E_WARNING from the live request - filter
+		// to the categories that genuinely indicate a fatal.
+		$last = function_exists( 'error_get_last' ) ? error_get_last() : null;
+		if ( is_array( $last ) && isset( $last['type'] ) ) {
+			$fatal_types = array( E_ERROR, E_PARSE, E_CORE_ERROR, E_COMPILE_ERROR, E_USER_ERROR );
+			if ( in_array( (int) $last['type'], $fatal_types, true ) ) {
+				$basename = isset( $last['file'] ) ? basename( (string) $last['file'] ) : '';
+				$line     = isset( $last['line'] ) ? (int) $last['line'] : 0;
+				$message  = isset( $last['message'] ) ? (string) $last['message'] : 'PHP fatal error';
+				self::record(
+					self::LEVEL_CRITICAL,
+					$message,
+					array(
+						'category' => 'fatal',
+						'file'     => $basename,
+						'line'     => $line,
+					)
+				);
+			}
+		}
+
+		self::flush();
 	}
 
 	/**
