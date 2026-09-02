@@ -7,6 +7,7 @@
     cacheDirectory=".phpunit.cache"
     failOnRisky="true"
     failOnWarning="true"
+    requireCoverageMetadata="false"
 >
     <testsuites>
         <testsuite name="Unit">
@@ -30,4 +31,33 @@
             <file>includes/class-sscribe-deactivator.php</file>
         </exclude>
     </source>
+
+    <!--
+        Phase 41: Coverage gate.
+
+        When the test runner executes with a coverage driver (Xdebug /
+        PCOV), PHPUnit writes a Clover XML report to `clover.xml`. The
+        external verifier `scripts/verify-coverage-thresholds.php`
+        then enforces two contracts:
+
+          (a) project-wide line-coverage threshold of 70%;
+          (b) per-file coverage threshold of 90% for the four
+              security-critical modules — the private storage
+              boundary, the filesystem containment surface, the
+              security validator, and the audit trail writer.
+
+        PHPUnit's own `<coverage>` element does not enforce minimum
+        percentages; the contract lives in the verifier so the same
+        rules apply to local runs and CI.
+
+        `requireCoverageMetadata="false"` on the root `<phpunit>`
+        element keeps tests that lack a `@covers` annotation from
+        being marked risky when a coverage driver is active.
+    -->
+    <coverage>
+        <report>
+            <clover outputFile="clover.xml"/>
+            <text outputFile="php://stdout" showOnlySummary="true"/>
+        </report>
+    </coverage>
 </phpunit>

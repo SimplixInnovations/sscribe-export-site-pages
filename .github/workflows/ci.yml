@@ -312,6 +312,20 @@ jobs:
             - name: PHPStan ignore-rule audit integration test
               run: vendor/bin/phpunit tests/Integration/SScribe_PHPStan_Ignores_Test.php
 
+            # Phase 41: coverage-threshold gate — the verifier parses
+            # the Clover XML written by phpunit.xml's <coverage>
+            # block and enforces two contracts: project-wide ≥ 70%
+            # and every security-critical module ≥ 90% (private
+            # storage, filesystem, security, audit trail). This
+            # integration test exercises the verifier with planted
+            # fixtures (well-formed, low project coverage, low
+            # critical-module coverage, missing critical file,
+            # missing clover.xml) so the gate contract is locked
+            # without depending on a coverage driver on the local
+            # machine.
+            - name: Coverage threshold gate integration test
+              run: vendor/bin/phpunit tests/Integration/SScribe_Coverage_Thresholds_Test.php
+
             # Phase 23: License SPDX regression — mainfile / readme.txt /
             # composer.json must all use the canonical GPL-2.0-or-later
             # identifier, and license.txt must ship the full GPL v2 text.
@@ -500,6 +514,7 @@ jobs:
               with:
                   php-version: '8.4'
                   extensions: fileinfo
+                  coverage: xdebug
 
             - name: Cache Composer dependencies
               uses: actions/cache@v6
@@ -514,14 +529,24 @@ jobs:
 
             - name: Generate prefixed vendor tree
               run: composer vendor:prefix
+
             - name: Run tests with coverage
               run: composer test:coverage
+
+            - name: Enforce coverage-threshold gate
+              run: composer test:coverage:check
 
             - name: Upload coverage report
               uses: actions/upload-artifact@v6
               with:
                   name: coverage-report
                   path: coverage/
+
+            - name: Upload coverage threshold manifest
+              uses: actions/upload-artifact@v6
+              with:
+                  name: coverage-threshold-manifest
+                  path: dist/coverage-threshold-manifest.json
 
     plugin-check:
         name: Submission Package Check
