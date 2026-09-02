@@ -175,8 +175,12 @@ if ( is_multisite() ) {
 				break;
 			}
 			foreach ( $sscribe_sites as $sscribe_site ) {
-				$sscribe_blog_id = is_object( $sscribe_site ) ? $sscribe_site->blog_id : $sscribe_site['blog_id'];
-				switch_to_blog( (int) $sscribe_blog_id );
+				// get_sites() returns WP_Site objects; blog_id is the
+				// canonical identifier for switch_to_blog(). The
+				// is_object()/array-access fallback was dead code that
+				// PHPStan level 7 flagged as unreachable.
+				$sscribe_blog_id = (int) $sscribe_site->blog_id;
+				switch_to_blog( $sscribe_blog_id );
 				try {
 					$sscribe_cleanup_site();
 				} finally {

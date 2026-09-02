@@ -1,0 +1,133 @@
+import { test, expect } from '../../fixtures/shared';
+
+/**
+ * Regression: debug console's enable/disable toggle must
+ *   (a) flip its aria-checked state and persist the option via AJAX,
+ *   (b) on server-side rejection of the save, roll back to the captured
+ *       pre-toggle state (Phase 10: rollbackDebugControls), and
+ *   (c) when debug is OFF and the log is empty, render the
+ *       'debug_disabled' empty-state copy — not the generic
+ *       'no log entries found.' (Phase 11: empty-state taxonomy).
+ *
+ * Background:
+ *   - Source under test: admin/js/sscribe-debug-console.js
+ *     bindEvents (capture previous state on change),
+ *     saveSettings (rollback on terminal failure),
+ *     renderLogs (5-state taxonomy).
+ *   - AJAX endpoint: sscribe_debug_save_settings
+ *     (POSTs debug_enabled + log_level + auto_refresh).
+ *
+ * Mock strategy:
+ *   page.route() intercepts sscribe_debug_save_settings and returns
+ *   controlled success/failure responses. The toggle's
+ *   rollbackDebugControls path is exercised by sending success=false
+ *   after a toggle flip; the rollback state-transition path is
+ *   exercised by sending a 500.
+ */
+
+const isDebugSaveSettings = (postData: string | null | undefined): boolean =>
+	typeof postData === 'string' &&
+	postData.includes('action=sscribe_debug_save_settings');
+
+const syntheticJson = (status: number, body: object): { status: number; contentType: string; body: string } => ({
+	status,
+	contentType: 'application/json; charset=UTF-8',
+	body: JSON.stringify(body),
+});
+
+test.describe('e2e / debug / toggle-state-transition', () => {
+	test('toggle flip persists and survives server-side rejection (rollback to captured previous state)', async ({
+		adminPage,
+	}) => {
+		await adminPage.goto('/wp-admin/admin.php?page=sscribe-export');
+		await adminPage.locator('#sscribe-tab-btn-debug').click();
+		const toggle = adminPage.locator('#sscribe-debug-enabled[role="switch"]');
+		await expect(toggle).toBeAttached();
+
+		const initialAria = await toggle.getAttribute('aria-checked');
+		expect(initialAria === 'true' || initialAria === 'false').toBe(true);
+		const initialState = initialAria === 'true';
+
+		// Install a route that always returns success=false to simulate
+		// a server-side rejection (e.g. log rotation in progress).
+		await adminPage.route('**/admin-ajax.php*', async (route) => {
+			const req = route.request();
+			if (!isDebugSaveSettings(req.postData())) return route.continue();
+			return route.fulfill(
+				syntheticJson(200, {
+					success: false,
+					data: { message: 'Save rejected: log rotation in progress.' },
+				})
+			);
+		});
+
+		// Flip the toggle (visually). The handler fires saveSettings →
+		// server returns success=false → rollbackDebugControls snaps the
+		// checkbox back to the captured pre-toggle state.
+		await toggle.click();
+
+		// Wait for the rollback to take effect. The toggle's aria-checked
+		// must equal the initial state (rollback target).
+		await expect(toggle).toHaveAttribute('aria-checked', String(initialState));
+
+		// And the save feedback should display the server's message.
+		const feedback = adminPage.locator('#sscribe-debug-save-feedback');
+		await expect(feedback).toContainText(/log rotation in progress/i);
+	});
+
+	test('toggle flip rolls back on 500 (hard HTTP failure)', async ({ adminPage }) => {
+		await adminPage.goto('/wp-admin/admin.php?page=sscribe-export');
+		await adminPage.locator('#sscribe-tab-btn-debug').click();
+		const toggle = adminPage.locator('#sscribe-debug-enabled[role="switch"]');
+		await expect(toggle).toBeAttached();
+
+		const initialAria = await toggle.getAttribute('aria-checked');
+		expect(initialAria === 'true' || initialAria === 'false').toBe(true);
+		const initialState = initialAria === 'true';
+
+		// Simulate hard HTTP failure (network timeout or 5xx).
+		await adminPage.route('**/admin-ajax.php*', async (route) => {
+			const req = route.request();
+			if (!isDebugSaveSettings(req.postData())) return route.continue();
+			return route.fulfill(
+				syntheticJson(500, {
+					success: false,
+					data: { message: 'Internal server error.' },
+				})
+			);
+		});
+
+		await toggle.click();
+
+		// Rollback path: checkbox back to initial state, error feedback
+		// visible with HTTP 500 code.
+		await expect(toggle).toHaveAttribute('aria-checked', String(initialState));
+		const feedback = adminPage.locator('#sscribe-debug-save-feedback');
+		await expect(feedback).toContainText(/error/i);
+	});
+
+	test('empty-state taxonomy renders debug_disabled copy when debug is OFF', async ({ adminPage }) => {
+		// Pre-condition: the server is configured with debug_enabled=false
+		// for this test run. WP-Playground seeds the option via
+		// wp-cli on boot, so we read the current toggle state and skip
+		// if it's already ON (we don't want to mutate global state).
+		await adminPage.goto('/wp-admin/admin.php?page=sscribe-export');
+		await adminPage.locator('#sscribe-tab-btn-debug').click();
+		const toggle = adminPage.locator('#sscribe-debug-enabled[role="switch"]');
+		await expect(toggle).toBeAttached();
+		const ariaInitial = await toggle.getAttribute('aria-checked');
+		if (ariaInitial !== 'false') {
+			test.skip(true, 'debug_enabled=true on this testbed; cannot assert debug_disabled empty-state');
+			return;
+		}
+
+		// When debug is OFF and the log is empty, renderLogs must show
+		// the debug_disabled copy (state 1 of 5 in the taxonomy), NOT
+		// the default 'No log entries found.' copy.
+		const empty = adminPage.locator('#sscribe-debug-empty p');
+		await expect(empty).toBeVisible();
+		const text = (await empty.textContent())?.trim() || '';
+		expect(text.toLowerCase()).toContain('disabled');
+		expect(text.toLowerCase()).not.toContain('no log entries found');
+	});
+});

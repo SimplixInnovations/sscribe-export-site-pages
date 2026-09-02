@@ -207,7 +207,10 @@ class SScribe_Export_Query_Controller {
 		}
 
 		$payload          = $this->compute_counts_payload( $language, $post_type );
-		$payload['request_seq'] = self::next_request_seq();
+		$client_generation = $this->read_client_generation();
+		$payload['client_generation'] = $client_generation;
+		$payload['post_type']         = $post_type;
+		$payload['language']          = $requested_language;
 
 		SScribe_AJAX_Guard::success( $payload );
 	}
@@ -250,34 +253,24 @@ class SScribe_Export_Query_Controller {
 			}
 		}
 
-		$languages = array_values(
-			array_filter(
-				array_unique(
-					array_map(
-						function ( $lang ) {
-							return is_string( $lang ) ? $this->collector->normalize_language_code( sanitize_text_field( $lang ) ) : '';
-						},
-						$languages
-					)
-				),
-				static function ( string $language ): bool {
-					return '' !== $language;
-				}
-			)
-		);
-		$languages = array_slice( $languages, 0, 50 );
+		$languages = $this->normalize_languages_for_batch( $languages );
 
 		$per_language = array();
-		foreach ( $languages as $language ) {
-			$per_language[ $language ] = $this->compute_counts_payload( $language, $post_type );
+		foreach ( $languages as $raw_language ) {
+			// __all__ is the canonical "no language restriction" sentinel.
+			// Translate it to the empty string at the QUERY boundary only,
+			// never before. The response key remains __all__ so the JS
+			// exact-key lookup finds it.
+			$query_language = ( self::SENTINEL_ALL === $raw_language ) ? '' : $raw_language;
+			$per_language[ $raw_language ] = $this->compute_counts_payload( $query_language, $post_type );
 		}
 
 		SScribe_AJAX_Guard::success(
 			array(
-				'post_type'     => $post_type,
-				'languages'     => $per_language,
-				'queried_count' => count( $per_language ),
-				'request_seq'   => self::next_request_seq(),
+				'post_type'         => $post_type,
+				'languages'         => $per_language,
+				'queried_count'     => count( $per_language ),
+				'client_generation' => $this->read_client_generation(),
 			)
 		);
 	}
@@ -326,21 +319,71 @@ class SScribe_Export_Query_Controller {
 	public const SENTINEL_ALL = '__all__';
 
 	/**
-	 * Monotonic per-process request sequence for count fetches.
+	 * Read the client_generation value the browser attached to the current
+	 * counts request. The server does not generate sequence numbers — it
+	 * only echoes the value the originating JS code stamped onto the
+	 * request. Ordering across separate `admin-ajax.php` calls belongs to
+	 * the browser interaction, not the server.
 	 *
-	 * The client echoes the most recent request_seq it has rendered so it
-	 * can drop stale responses (e.g. when the user toggles language faster
-	 * than the server can answer, the earlier in-flight responses are
-	 * discarded instead of clobbering newer counts).
+	 * A non-integer, negative, or absurdly large value is clamped to 0
+	 * so the JS exact-equality check still works on a coerced integer.
 	 *
-	 * @return int Sequence number.
+	 * @return int Echoed client_generation (>= 0).
 	 */
-	public static function next_request_seq(): int {
-		if ( ! isset( $GLOBALS['__sscribe_request_seq'] ) ) {
-			$GLOBALS['__sscribe_request_seq'] = 0;
+	private function read_client_generation(): int {
+		$raw = SScribe_AJAX_Guard::post_text( 'client_generation', '0', 20 );
+		$n   = is_numeric( $raw ) ? (int) $raw : 0;
+		if ( $n < 0 ) {
+			$n = 0;
 		}
-		++$GLOBALS['__sscribe_request_seq'];
-		return (int) $GLOBALS['__sscribe_request_seq'];
+		if ( $n > 1000000 ) {
+			$n = 0;
+		}
+		return $n;
+	}
+
+	/**
+	 * Normalize the JS-supplied list of language codes for the batch
+	 * counts endpoint.
+	 *
+	 * Critical invariant: `__all__` MUST survive this normalization so
+	 * the JS exact-key lookup can find `languages['__all__']` in the
+	 * response. Real codes are validated against the active WPML list
+	 * via `normalize_language_code()` and invalid codes are dropped.
+	 * `__all__` is never fed through that validator — it is the canonical
+	 * "no language restriction" sentinel and must be normalized to the
+	 * empty string only at the QUERY boundary (see the caller), not here.
+	 *
+	 * @param array<int,mixed> $languages Raw POST values.
+	 * @return array<int,string> Deduplicated, sanitized list (max 50).
+	 */
+	private function normalize_languages_for_batch( array $languages ): array {
+		$out = array();
+		$seen = array();
+		foreach ( $languages as $lang ) {
+			if ( ! is_string( $lang ) ) {
+				continue;
+			}
+			$clean = sanitize_text_field( $lang );
+			if ( self::SENTINEL_ALL === $clean ) {
+				if ( isset( $seen[ $clean ] ) ) {
+					continue;
+				}
+				$seen[ $clean ] = true;
+				$out[]          = self::SENTINEL_ALL;
+				continue;
+			}
+			$normalized = $this->collector->normalize_language_code( $clean );
+			if ( '' === $normalized ) {
+				continue;
+			}
+			if ( isset( $seen[ $normalized ] ) ) {
+				continue;
+			}
+			$seen[ $normalized ] = true;
+			$out[]               = $normalized;
+		}
+		return array_slice( $out, 0, 50 );
 	}
 
 	/**

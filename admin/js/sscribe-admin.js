@@ -13,7 +13,57 @@
 		isProcessing: false,
 		isPreparing: false,
 		selectedPageCount: 0,
+		/**
+		 * Client-owned monotonically increasing generation counter for
+		 * count/status requests. Every logical counts refresh increments
+		 * this BEFORE issuing requests, and any response whose echoed
+		 * `client_generation` does not EXACTLY equal the current value
+		 * is discarded. The server does not generate sequence numbers —
+		 * it only echoes the value the browser originated.
+		 *
+		 * Replaces the previous PHP-side `$GLOBALS['__sscribe_request_seq']`
+		 * mechanism which broke under separate `admin-ajax.php` requests
+		 * (each PHP request started fresh and returned `1`).
+		 *
+		 * @type {number}
+		 */
+		_countsRequestGeneration: 0,
 		_countsRetries: 0,
+		/**
+		 * Single authoritative counts-state object. The DOM is a RENDERING
+		 * TARGET — runtime decisions must read from this object, never from
+		 * `.text()` parsing of rendered DOM.
+		 *
+		 * `loaded: true` means a successful authoritative response was
+		 * received for exactly the currently selected (postType, language,
+		 * status) tuple. Any refresh failure MUST reset loaded=false and
+		 * never promote stale values from a previous selection.
+		 *
+		 * @type {{
+		 *     generation: number,
+		 *     postType: string|null,
+		 *     language: string|null,
+		 *     status: string|null,
+		 *     statusCounts: Object<string,number>,
+		 *     typeCounts: Object<string,number>,
+		 *     languageCounts: Object<string,number>,
+		 *     loaded: boolean,
+		 *     error: string|null,
+		 *     errorCode: string|null
+		 * }}
+		 */
+		countsState: {
+			generation: 0,
+			postType: null,
+			language: null,
+			status: null,
+			statusCounts: {},
+			typeCounts: {},
+			languageCounts: {},
+			loaded: false,
+			error: null,
+			errorCode: null,
+		},
 		_lastProgressAt: 0,
 		batchRetries: 0,
 		maxBatchRetries: 3,
@@ -534,6 +584,13 @@
 		},
 		refreshStatusAndLanguageCounts: function (postType, language) {
 			const self = this;
+			// Bump the client-owned generation BEFORE any request is issued.
+			// Every response handler compares the echoed `client_generation`
+			// with EXACT equality to this value; anything else is stale and
+			// must not mutate UI state. Ordering belongs to the browser
+			// interaction that originated the requests.
+			self._countsRequestGeneration = (self._countsRequestGeneration || 0) + 1;
+			const generation = self._countsRequestGeneration;
 			self.selectedPageCount = 0;
 			self._countsLoaded = false;
 			self.updateExportButton();
@@ -551,17 +608,28 @@
 					nonce: sscribe_data.nonce,
 					language: language,
 					post_type: postType,
+					client_generation: generation,
 				},
 				success: function (response) {
 					if (response.success && response.data) {
-						// Drop stale responses when the user toggles faster than
-						// the server answers: only the highest request_seq wins.
-						const serverSeq = parseInt(response.data.request_seq, 10);
-						if (!Number.isNaN(serverSeq) && serverSeq < (self._lastCountsSeq || 0)) {
+						// Discard any response whose generation is not EXACTLY
+						// the most recent one. `<` is intentionally not used —
+						// a response from a partially-completed older refresh
+						// must never overwrite the newer one.
+						if (
+							typeof response.data.client_generation === 'undefined' ||
+							parseInt(response.data.client_generation, 10) !== generation
+						) {
 							return;
 						}
-						if (!Number.isNaN(serverSeq)) {
-							self._lastCountsSeq = serverSeq;
+						// Server must echo the controls we sent; if it doesn't,
+						// the response is from a logically different request
+						// even if the generation number happened to match.
+						if (response.data.post_type !== postType) {
+							return;
+						}
+						if (typeof response.data.language !== 'undefined' && response.data.language !== language) {
+							return;
 						}
 						const allCounts = response.data.counts || {};
 						const pageCounts = response.data.counts_page || allCounts;
@@ -580,6 +648,22 @@
 						$('[data-sscribe-count-for="any"]')
 							.text(anyTotal.toLocaleString())
 							.attr('data-count', anyTotal);
+						// Phase 3: authoritative countsState — written ONLY
+						// on a successful response whose generation, post_type,
+						// and language all match the current selection.
+						self.countsState = self.countsState || {};
+						self.countsState.generation = generation;
+						self.countsState.postType = postType;
+						self.countsState.language = language;
+						self.countsState.statusCounts = Object.assign({}, allCounts);
+						self.countsState.typeCounts = {
+							page: pageTotal,
+							post: postTotal,
+							any: anyTotal,
+						};
+						self.countsState.loaded = true;
+						self.countsState.error = null;
+						self.countsState.errorCode = null;
 						self._countsLoaded = true;
 						self._countsRetries = 0;
 						self.updateConfigSummary();
@@ -590,10 +674,23 @@
 							self.refreshStatusAndLanguageCounts(postType, language);
 						}, 2500);
 					} else {
-						// Keep the PHP-rendered counts; a failed counter request
-						// must not disable the export UI.
+						// FAIL-CLOSED: a failed authoritative refresh must
+						// not promote PHP-rendered numbers (from the OLD
+						// postType/language) into the new selection's
+						// authoritative state. Mark countsState as not
+						// loaded and disable Export / Preview until a fresh
+						// response arrives. Stale numbers remain visible
+						// but only as a hint, never as input to the
+						// export-enable decision.
 						self._countsRetries = 0;
-						self._countsLoaded = true;
+						self.countsState = self.countsState || {};
+						self.countsState.loaded = false;
+						self.countsState.error = 'Counts could not be refreshed. Retry to enable export.';
+						self.countsState.errorCode = 'refresh_failed';
+						self.countsState.postType = postType;
+						self.countsState.language = language;
+						self._countsLoaded = false;
+						self.selectedPageCount = 0;
 						self.updateConfigSummary();
 						self.updateExportButton();
 					}
@@ -608,8 +705,17 @@
 						}, 2500);
 						return;
 					}
+					// FAIL-CLOSED on transport error after retries: same
+					// invariant as the !response.success branch.
 					self._countsRetries = 0;
-					self._countsLoaded = true;
+					self.countsState = self.countsState || {};
+					self.countsState.loaded = false;
+					self.countsState.error = 'Counts could not be refreshed. Retry to enable export.';
+					self.countsState.errorCode = 'refresh_failed';
+					self.countsState.postType = postType;
+					self.countsState.language = language;
+					self._countsLoaded = false;
+					self.selectedPageCount = 0;
 					self.updateConfigSummary();
 					self.updateExportButton();
 					$('.sscribe-status-card-label').removeClass('sscribe-loading');
@@ -654,19 +760,23 @@
 						nonce: sscribe_data.nonce,
 						languages: JSON.stringify(langCodes),
 						post_type: postType,
+						client_generation: generation,
 					},
 					success: function (response) {
 						if (!response || !response.success || !response.data || !response.data.languages) {
 							return;
 						}
-						// Drop stale per-language responses the same way as the
-						// single-language counts endpoint.
-						const serverSeq = parseInt(response.data.request_seq, 10);
-						if (!Number.isNaN(serverSeq) && serverSeq < (self._lastCountsSeq || 0)) {
+						// Discard any response whose generation is not EXACTLY
+						// the most recent one. The server echoes the value the
+						// browser originated; it does not generate its own.
+						if (
+							typeof response.data.client_generation === 'undefined' ||
+							parseInt(response.data.client_generation, 10) !== generation
+						) {
 							return;
 						}
-						if (!Number.isNaN(serverSeq)) {
-							self._lastCountsSeq = serverSeq;
+						if (response.data.post_type !== postType) {
+							return;
 						}
 						const langMap = response.data.languages;
 						const currentPostType = $('input[name="sscribe_post_type"]:checked').val() || 'page';
@@ -882,20 +992,17 @@
 		updateConfigSummary: function () {
 			const $selectedStatus = $('input[name="sscribe_post_status"]:checked');
 			let count = 0;
-			if ($selectedStatus.length && !$selectedStatus.prop('disabled')) {
+			// Phase 3: read from the authoritative countsState object —
+			// not from .text() parsing of the rendered DOM. The DOM is a
+			// RENDERING TARGET. Stale numbers must never become input to
+			// downstream decisions.
+			const state = this.countsState || {};
+			if ($selectedStatus.length && !$selectedStatus.prop('disabled') && state.loaded) {
 				const statusKey = $selectedStatus.val();
-				// Read from the canonical instance-state map populated by
-				// updateStatusCounts; falls back to the DOM mirror only when
-				// the map is not yet built (e.g. before any AJAX has fired).
-				const fromMap = this._statusCountMap && Object.prototype.hasOwnProperty.call(this._statusCountMap, statusKey)
-					? this._statusCountMap[statusKey]
-					: null;
-				count =
-					fromMap !== null
-						? fromMap
-						: this.parseLocalizedInt(
-							$selectedStatus.closest('.sscribe-status-card-label').find('.sscribe-status-count').text()
-						) || 0;
+				const cs = state.statusCounts || {};
+				if (Object.prototype.hasOwnProperty.call(cs, statusKey)) {
+					count = parseInt(cs[statusKey], 10) || 0;
+				}
 			}
 			this.selectedPageCount = count;
 			const postType = $('input[name="sscribe_post_type"]:checked').val() || 'page';
@@ -931,7 +1038,7 @@
 			$('#sscribe-summary-format').text(format === 'all' ? S.status_all || 'All' : format.toUpperCase());
 			const $pagesChip = $('#sscribe-summary-pages');
 			const pagesText =
-				(this._countsLoaded ? '' : '~') +
+				(state.loaded ? '' : '~') +
 				count +
 				' ' +
 				(count === 1 ? (S && S.log_page) || 'page' : (S && S.log_pages) || 'pages');
@@ -1020,12 +1127,27 @@
 				!$('input[name="sscribe_post_status"]:checked').prop('disabled');
 			const hasFormat = $('input[name="sscribe_format"]:checked').length > 0;
 			const hasPages = this.selectedPageCount > 0;
+			// Phase 3 invariant: Export / Preview must only be enabled when
+			// the authoritative countsState matches the currently selected
+			// (postType, language, status). If the user changed any of those
+			// after the last successful refresh, this state is stale and
+			// the buttons stay disabled until a fresh response arrives.
+			const state = this.countsState || {};
+			const currentPostType = $('input[name="sscribe_post_type"]:checked').val() || 'page';
+			const currentLanguage = $('input[name="sscribe_language"]:checked').val() || '';
+			const currentStatus = $('input[name="sscribe_post_status"]:checked').val() || 'publish';
+			const stateMatchesSelection =
+				state.loaded === true &&
+				state.postType === currentPostType &&
+				state.language === currentLanguage &&
+				(state.status === null || state.status === currentStatus);
 			const canExport =
 				hasPostType &&
 				hasLanguage &&
 				hasStatus &&
 				hasFormat &&
 				hasPages &&
+				stateMatchesSelection &&
 				!this.isProcessing &&
 				!this.isPreparing;
 			$('#sscribe-export-btn').prop('disabled', !canExport);
@@ -1040,7 +1162,9 @@
 				} else if (this.isPreparing) {
 					reasonText =
 						(sscribe_data.strings && sscribe_data.strings.preparing_export) || 'Preparing your export...';
-				} else if (!hasPages && !this._countsLoaded) {
+				} else if (!stateMatchesSelection && state.error) {
+					reasonText = state.error;
+				} else if (!hasPages && !state.loaded) {
 					reasonText =
 						(sscribe_data.strings && sscribe_data.strings.loading_counts) || 'Loading page counts...';
 				} else if (!hasPages) {
@@ -1115,9 +1239,21 @@
 						} else {
 							self.proceedWithExport(language, postStatus, postType, formats);
 						}
-					} else {
-						self.proceedWithExport(language, postStatus, postType, formats);
+						return;
 					}
+					// Phase 8: strictly fail-closed. A preflight that returns
+					// success=false (server says it cannot verify the export)
+					// must NOT proceed. Without this guard, a transient
+					// failure (e.g. partial DB read) would silently start an
+					// export that the server already warned against.
+					const failData =
+						response && response.data ? response.data : {};
+					self.finishPreparationFailure(
+						failData.message ||
+							'Preflight check could not be completed. Please try again.',
+						null,
+						failData
+					);
 				},
 				error: function (xhr) {
 					const data =
@@ -1135,13 +1271,57 @@
 						});
 						return;
 					}
+					// Phase 8: terminal failure path. Reset the click-handler
+					// state (isPreparing, busy UI, export buttons) so the
+					// user is not stuck in a "preparing…" state with no
+					// recovery. Previously this just toasted and left the
+					// button disabled forever.
 					const msg =
+						decision.message ||
 						SScribe.parseServerError(xhr) ||
 						SScribe.getNetworkErrorMessage(xhr, 'preflight_check') ||
 						'Preflight check failed. Please try again.';
-					SScribe.showToast(msg, 'error', 6000);
+					self.finishPreparationFailure(msg, xhr, data);
 				},
 			});
+		},
+		/**
+		 * Phase 8 helper: cleanly terminate the preflight phase on a
+		 * server-side rejection or hard HTTP failure. Resets all
+		 * click-handler state so the user can retry without a page
+		 * reload. Safe to call from any of the preflight code paths.
+		 */
+		finishPreparationFailure: function (message, xhr, data) {
+			const self = this;
+			self.isPreparing = false;
+			self.isProcessing = false;
+			self.batchRetries = 0;
+			self.pollBackoff = 0;
+			clearTimeout(self._configSummaryDebounceTimer);
+			if (self._configSummaryXHR && self._configSummaryXHR.abort) {
+				self._configSummaryXHR.abort();
+				self._configSummaryXHR = null;
+			}
+			$('#sscribe-export-btn, #sscribe-preview-btn')
+				.prop('disabled', false)
+				.removeAttr('aria-busy')
+				.removeClass('sscribe-btn-busy');
+			self.updateExportButton();
+			const responseData =
+				data || (xhr && xhr.responseJSON && xhr.responseJSON.data) || {};
+			self.showError(
+				message,
+				false,
+				SScribe.normalizeErrorData({
+					code: responseData.code || 'preflight_failed',
+					message: message,
+					_diagnostics: {
+						action: 'sscribe_preflight_check',
+						http_status: xhr && typeof xhr.status === 'number' ? xhr.status : 0,
+						server_code: responseData.code || null,
+					},
+				})
+			);
 		},
 		showPreflightWarnings: function (diagnostics, onProceed) {
 			const checks = diagnostics.checks || {};
@@ -1293,7 +1473,36 @@
 				},
 				error: function (xhr, textStatus) {
 					if (attempt < maxAttempts - 1) {
-						self.clearSessionWithRetry(language, postStatus, postType, formats, attempt + 1);
+						// Phase 7: do not burst-retry. Apply a real delay
+						// between attempts and honor the server's
+						// retry_in / HTTP Retry-After when present so a
+						// 429 / 503 quota signal cannot be amplified.
+						const responseData =
+							xhr && xhr.responseJSON && xhr.responseJSON.data
+								? xhr.responseJSON.data
+								: {};
+						const decision = SScribe.getAjaxFailureDecision(xhr, responseData, {
+							jitterSeed: 0.5,
+						});
+						let delayMs;
+						if (decision.action === 'retry' || decision.action === 'conflict') {
+							delayMs = decision.delayMs;
+						} else {
+							// Generic client backoff with exponential growth,
+							// clamped to >=1500ms so the burst-retry bug is
+							// impossible to reintroduce.
+							const backoff = Math.pow(2, Math.max(0, attempt));
+							delayMs = Math.max(1500, backoff * 1000);
+						}
+						setTimeout(function () {
+							self.clearSessionWithRetry(
+								language,
+								postStatus,
+								postType,
+								formats,
+								attempt + 1
+							);
+						}, delayMs);
 					} else {
 						const responseData = xhr && xhr.responseJSON && xhr.responseJSON.data ? xhr.responseJSON.data : {};
 						const serverMessage = responseData.message || '';
@@ -1323,6 +1532,7 @@
 			});
 		},
 		doStartExport: function (language, postStatus, postType, formats) {
+			const self = this;
 			$.ajax({
 				url: sscribe_data.ajaxurl,
 				type: 'POST',
@@ -1343,6 +1553,10 @@
 						// the "export in progress" copy.
 						SScribe.isPreparing = false;
 						SScribe.isProcessing = true;
+						// Reset transient retry/backoff counters from any
+						// prior session so the new run starts clean.
+						SScribe.batchRetries = 0;
+						SScribe.pollBackoff = 0;
 						SScribe.showProgress();
 						SScribe.sessionId = response.data.session_id;
 						SScribe.updateStatus(response.data.message);
@@ -1350,21 +1564,67 @@
 							SScribe.showWarning(response.data.partial_export_message);
 						}
 						SScribe.processBatch();
-					} else {
-						// Start failed - clear the preparing lock so the
-						// user can try again.
-						SScribe.isPreparing = false;
-						SScribe.showError(response.data.message, false, SScribe.normalizeErrorData(response.data));
+						return;
 					}
+					// Phase 9: start-export soft-fail terminal. Previously
+					// only reset isPreparing; now also clears isProcessing,
+					// backoff, busy UI, and config summary timer so the
+					// user can immediately retry without a reload.
+					self.finishStartExportFailure(
+						(response && response.data && response.data.message) ||
+							'Export failed to start. Please try again.',
+						null,
+						(response && response.data) || {}
+					);
 				},
 				error: function (xhr) {
-					SScribe.isProcessing = false;
+					// Phase 9: HTTP error terminal — same cleanup as the
+					// soft-fail branch. Without this, isPreparing stayed
+					// true forever after a 5xx and the user had to reload.
 					const serverMsg = SScribe.parseServerError(xhr);
 					const msg = serverMsg || SScribe.getNetworkErrorMessage(xhr, 'start_export');
 					const errData = xhr.responseJSON && xhr.responseJSON.data ? xhr.responseJSON.data : {};
-					SScribe.showError(msg, false, SScribe.normalizeErrorData(errData));
+					self.finishStartExportFailure(msg, xhr, errData);
 				},
 			});
+		},
+		/**
+		 * Phase 9 helper: cleanly terminate the start-export phase on a
+		 * soft-fail or hard HTTP failure. Resets isPreparing/isProcessing,
+		 * backoff counters, busy UI, config-summary timers so the user
+		 * can immediately retry without a page reload.
+		 */
+		finishStartExportFailure: function (message, xhr, data) {
+			const self = this;
+			self.isPreparing = false;
+			self.isProcessing = false;
+			self.batchRetries = 0;
+			self.pollBackoff = 0;
+			clearTimeout(self._configSummaryDebounceTimer);
+			if (self._configSummaryXHR && self._configSummaryXHR.abort) {
+				self._configSummaryXHR.abort();
+				self._configSummaryXHR = null;
+			}
+			$('#sscribe-export-btn, #sscribe-preview-btn')
+				.prop('disabled', false)
+				.removeAttr('aria-busy')
+				.removeClass('sscribe-btn-busy');
+			self.updateExportButton();
+			const responseData = data || {};
+			const httpStatus = xhr && typeof xhr.status === 'number' ? xhr.status : 0;
+			self.showError(
+				message,
+				false,
+				SScribe.normalizeErrorData({
+					code: responseData.code || 'start_export_failed',
+					message: message,
+					_diagnostics: {
+						action: 'sscribe_start_export',
+						http_status: httpStatus,
+						server_code: responseData.code || null,
+					},
+				})
+			);
 		},
 		scheduleNextBatch: function (retryInMs, isRetry) {
 			const self = this;
@@ -1480,16 +1740,43 @@
 					if (self._isCancelling && textStatus === 'abort') {
 						return;
 					}
-					SScribe.batchRetries++;
-					if (SScribe.batchRetries <= SScribe.maxBatchRetries) {
-						SScribe.scheduleNextBatch(undefined, true);
-					} else {
-						self._lastAnnouncedBucket = -1;
-						const serverMsg = SScribe.parseServerError(xhr);
-						const msg = serverMsg || SScribe.getNetworkErrorMessage(xhr, 'process_batch');
-						const errData = xhr.responseJSON && xhr.responseJSON.data ? xhr.responseJSON.data : {};
-						SScribe.showError(msg, false, SScribe.normalizeErrorData(errData));
+					// Phase 5: route HTTP failures through the centralized
+					// failure decision helper. Server retry_in / HTTP
+					// Retry-After take priority over client backoff.
+					// Do NOT silently hammer the server with a 1000ms
+					// generic client retry when the server said 60000.
+					const responseData =
+						xhr && xhr.responseJSON && xhr.responseJSON.data ? xhr.responseJSON.data : {};
+					const decision = SScribe.getAjaxFailureDecision(xhr, responseData, {
+						jitterSeed: 0.5,
+					});
+					if (decision.action === 'retry' || decision.action === 'conflict') {
+						// Honor server-driven timing exactly. The decision
+						// helper clamps the lower bound so a 1s client
+						// backoff can never out-pace a 60s server hint.
+						SScribe.scheduleNextBatch(decision.delayMs, true);
+						SScribe.updateStatus(
+							decision.message ||
+								(sscribe_data.strings && sscribe_data.strings.retrying_after_delay) ||
+								'Retrying…'
+						);
+						return;
 					}
+					if (decision.action === 'refresh_nonce') {
+						SScribe.refreshNonceAnd(function () {
+							SScribe.scheduleNextBatch(0, true);
+						});
+						return;
+					}
+					// action === 'fail' — terminal. Clear in-progress
+					// flags, clear timers, clear busy UI, preserve
+					// useful error details.
+					self._lastAnnouncedBucket = -1;
+					const msg = decision.message || SScribe.getNetworkErrorMessage(xhr, 'process_batch');
+					const errData = responseData || {};
+					SScribe.showError(msg, false, SScribe.normalizeErrorData(errData));
+					SScribe.batchRetries = 0;
+					SScribe.pollBackoff = 0;
 				},
 			});
 		},
@@ -1793,7 +2080,17 @@
 							return;
 						}
 						if (attempt < maxAttempts) {
-							self.pollFinalize(sessionId, attempt + 1, self.computeFinalizeBackoff());
+							// Phase 6: soft-failures on the finalization
+							// endpoint also honor the server's retry_in if
+							// present, mirroring the centralized retry
+							// policy used by processBatch().
+							const dataRetryIn =
+								response.data && Number(response.data.retry_in);
+							const softDelay =
+								isFinite(dataRetryIn) && dataRetryIn > 0
+									? Math.max(1500, Math.floor(dataRetryIn))
+									: self.computeFinalizeBackoff();
+							self.pollFinalize(sessionId, attempt + 1, softDelay);
 						} else {
 							self.isProcessing = false;
 							self.showError('Export finalization timed out. Please try again.', false, {});
@@ -1826,11 +2123,45 @@
 							});
 							return;
 						}
+						// Phase 6: route finalization HTTP failures through the
+						// centralized failure-decision helper so that the
+						// server's retry_in / HTTP Retry-After takes priority
+						// over the client exponential backoff. Same contract
+						// as processBatch() (Phase 5).
+						const responseData =
+							response && response.data ? response.data : {};
+						const decision = SScribe.getAjaxFailureDecision(xhr, responseData, {
+							jitterSeed: 0.5,
+						});
+						if (decision.action === 'retry' || decision.action === 'conflict') {
+							if (attempt < maxAttempts) {
+								self.pollFinalize(sessionId, attempt + 1, decision.delayMs);
+							} else {
+								self.isProcessing = false;
+								self.showError(decision.message || 'Export finalization timed out.', false, {});
+							}
+							return;
+						}
+						if (decision.action === 'refresh_nonce') {
+							if (attempt < maxAttempts) {
+								SScribe.refreshNonceAnd(function () {
+									self.pollFinalize(sessionId, attempt + 1, 0);
+								});
+							} else {
+								self.isProcessing = false;
+								self.showError(decision.message || 'Export finalization timed out.', false, {});
+							}
+							return;
+						}
+						// action === 'fail' — terminal.
 						if (attempt < maxAttempts) {
+							// Unexpected soft-failure: fall back to a small
+							// final backoff so we still drain attempts before
+							// declaring terminal.
 							self.pollFinalize(sessionId, attempt + 1, self.computeFinalizeBackoff());
 						} else {
 							self.isProcessing = false;
-							const msg = self.getNetworkErrorMessage(xhr, 'finalize_export');
+							const msg = decision.message || self.getNetworkErrorMessage(xhr, 'finalize_export');
 							self.showError(msg, false, {});
 						}
 					},
@@ -3887,37 +4218,65 @@
 			const opts = options || {};
 			const data = response || {};
 			const code = typeof data.code === 'string' ? data.code : '';
+			const message = typeof data.message === 'string' ? data.message : null;
 			const serverDelay = Number(data.retry_in);
 			const hasServerDelay = isFinite(serverDelay) && serverDelay > 0;
+			// Phase 4: HTTP `Retry-After` header is the second-priority
+			// delay source after the server's JSON `retry_in`. We accept
+			// either a numeric seconds value or an HTTP-date.
+			const headerDelay = SScribe._parseRetryAfterHeader(xhr);
+			const hasHeaderDelay = headerDelay !== null;
 
 			const status = xhr && typeof xhr.status === 'number' ? xhr.status : 0;
+			// `textStatus` is jQuery's textual status, e.g. 'timeout',
+			// 'abort', 'parsererror', 'error'.
+			const textStatus = xhr && typeof xhr.statusText === 'string' ? xhr.statusText : '';
 
+			// 409 batch / lock conflict — use the helper `conflict` action
+			// name required by Phase 4. Server retry_in honored when present.
 			if (status === 409 || code === 'batch_in_progress' || code === 'batch_locked') {
 				const lower = hasServerDelay ? Math.max(500, serverDelay) : 5000;
 				const upper = hasServerDelay ? Math.min(30000, serverDelay + 5000) : 8000;
 				return {
-					action: 'retry',
+					action: 'conflict',
 					delayMs: SScribe._jitteredDelay(lower, upper, opts.jitterSeed),
 					reason: 'batch_locked',
+					message: message,
+					code: code || 'batch_locked',
 					messageKey: 'err_batch_locked',
 				};
 			}
 
 			if (status === 429 || code === 'rate_limited') {
-				const delay = hasServerDelay ? Math.max(1000, serverDelay) : 60000;
+				// Mandatory: server-provided retry_in is absolute; do not let
+				// a 1000ms client backoff override a 60000ms server hint.
+				const delay = hasServerDelay
+					? Math.max(1000, serverDelay)
+					: hasHeaderDelay
+						? headerDelay
+						: 60000;
 				return {
 					action: 'retry',
 					delayMs: delay,
 					reason: 'rate_limited',
+					message: message,
+					code: code || 'rate_limited',
 					messageKey: 'err_rate_limit',
 				};
 			}
 
 			if (status === 503 || code === 'rate_limiter_busy') {
+				const delay = hasServerDelay
+					? Math.max(250, serverDelay)
+					: hasHeaderDelay
+						? headerDelay
+						: SScribe._jitteredDelay(500, 1500, opts.jitterSeed);
 				return {
 					action: 'retry',
-					delayMs: SScribe._jitteredDelay(500, 1500, opts.jitterSeed),
+					delayMs: delay,
 					reason: 'limiter_contention',
+					message: message,
+					code: code || 'rate_limiter_busy',
 					messageKey: 'err_limiter_busy',
 				};
 			}
@@ -3927,15 +4286,88 @@
 					action: 'refresh_nonce',
 					delayMs: 0,
 					reason: 'invalid_nonce',
+					message: message,
+					code: code || 'invalid_nonce',
 					messageKey: 'err_session_expired',
 				};
 			}
 
-			if (status === 0) {
+			if (status === 400) {
+				return {
+					action: 'fail',
+					delayMs: 0,
+					reason: 'bad_request',
+					message: message,
+					code: code || 'bad_request',
+					messageKey: null,
+				};
+			}
+
+			if (status === 401) {
+				return {
+					action: 'fail',
+					delayMs: 0,
+					reason: 'unauthorized',
+					message: message,
+					code: code || 'unauthorized',
+					messageKey: 'err_401',
+				};
+			}
+
+			if (status === 404) {
+				return {
+					action: 'fail',
+					delayMs: 0,
+					reason: 'not_found',
+					message: message,
+					code: code || 'not_found',
+					messageKey: 'err_404',
+				};
+			}
+
+			if (status === 499) {
+				// Client closed request — bounded retry with jitter.
 				return {
 					action: 'retry',
-					delayMs: SScribe._jitteredDelay(2000, 4000, opts.jitterSeed),
+					delayMs: SScribe._jitteredDelay(1000, 3000, opts.jitterSeed),
+					reason: 'client_closed',
+					message: message,
+					code: code || 'client_closed',
+					messageKey: 'err_499',
+				};
+			}
+
+			if (status === 500) {
+				// Terminal — Phase 8 will route this through finishPreparationFailure
+				// for the start-export path; here it just means "no automatic retry".
+				return {
+					action: 'fail',
+					delayMs: 0,
+					reason: 'server_error',
+					message: message,
+					code: code || 'server_error',
+					messageKey: 'err_500',
+				};
+			}
+
+			if (textStatus === 'timeout') {
+				return {
+					action: 'retry',
+					delayMs: hasServerDelay ? serverDelay : hasHeaderDelay ? headerDelay : 5000,
+					reason: 'timeout',
+					message: message,
+					code: code || 'timeout',
+					messageKey: 'err_timeout',
+				};
+			}
+
+			if (status === 0 || textStatus === 'error' || textStatus === 'abort') {
+				return {
+					action: 'retry',
+					delayMs: hasHeaderDelay ? headerDelay : SScribe._jitteredDelay(2000, 4000, opts.jitterSeed),
 					reason: 'network',
+					message: message,
+					code: code || 'network',
 					messageKey: 'err_connection',
 				};
 			}
@@ -3944,8 +4376,42 @@
 				action: 'fail',
 				delayMs: 0,
 				reason: code || 'unknown',
+				message: message,
+				code: code || 'unknown',
 				messageKey: null,
 			};
+		},
+		/**
+		 * Parse the HTTP `Retry-After` header value into a millisecond delay.
+		 *
+		 * Accepts either a non-negative integer (seconds) or an HTTP-date.
+		 * Returns null if the header is absent, malformed, or in the past.
+		 *
+		 * @param {jqXHR|null} xhr jQuery XHR object.
+		 * @returns {number|null} Delay in ms, or null when no usable value.
+		 */
+		_parseRetryAfterHeader: function (xhr) {
+			if (!xhr || typeof xhr.getResponseHeader !== 'function') {
+				return null;
+			}
+			const raw = xhr.getResponseHeader('Retry-After');
+			if (!raw) {
+				return null;
+			}
+			const trimmed = String(raw).trim();
+			if (/^\d+(\.\d+)?$/.test(trimmed)) {
+				const seconds = parseFloat(trimmed);
+				if (!isFinite(seconds) || seconds < 0) {
+					return null;
+				}
+				return Math.floor(seconds * 1000);
+			}
+			const ms = Date.parse(trimmed);
+			if (isNaN(ms)) {
+				return null;
+			}
+			const diff = ms - Date.now();
+			return diff > 0 ? diff : null;
 		},
 		/**
 		 * Refresh the WordPress nonce for SScribe AJAX calls.

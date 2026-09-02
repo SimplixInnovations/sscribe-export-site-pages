@@ -15,16 +15,20 @@ class SScribe_Export_Rate_Limiter_Test extends TestCase {
 
 	protected function setUp(): void {
 		parent::setUp();
-		$GLOBALS['sscribe_test_transients']      = array();
-		$GLOBALS['sscribe_test_options']         = array();
+		$GLOBALS['sscribe_test_transients']       = array();
+		$GLOBALS['sscribe_test_options']          = array();
+		$GLOBALS['sscribe_test_wp_cache']         = array();
 		$GLOBALS['sscribe_test_current_user_can'] = null;
+		$GLOBALS['sscribe_test_current_user_id']  = null;
 		$GLOBALS['sscribe_test_filters']          = array();
 	}
 
 	protected function tearDown(): void {
-		$GLOBALS['sscribe_test_transients']      = array();
-		$GLOBALS['sscribe_test_options']         = array();
+		$GLOBALS['sscribe_test_transients']       = array();
+		$GLOBALS['sscribe_test_options']          = array();
+		$GLOBALS['sscribe_test_wp_cache']         = array();
 		$GLOBALS['sscribe_test_current_user_can'] = null;
+		$GLOBALS['sscribe_test_current_user_id']  = null;
 		$GLOBALS['sscribe_test_filters']          = array();
 		parent::tearDown();
 	}

@@ -95,6 +95,14 @@ vendor-prefixed/phpoffice/phpword/src/PhpWord/Shared/PCLZip/
 vendor-prefixed/phpoffice/phpword/phpword.ini.dist
 vendor-prefixed/phpoffice/phpword/phpmd.xml.dist
 
+# Phase 22: dev-only root files that previously leaked into the
+# release ZIP. Per "Build-release .distignore glob blindness" memory,
+# the .distignore pattern matcher is segment-only (no real globs) —
+# these must live in base_excludes for guaranteed exclusion.
+.superpowers
+phpunit-wp.xml
+playwright.config.ts
+
 # Vendor-prefixed dev files (exact-name segment-level)
 .gitattributes
 phpstan.neon

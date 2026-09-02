@@ -28,10 +28,10 @@
 	--ss-text-secondary: #3f3f46;
 	--ss-text-tertiary: #52525b;
 	--ss-text-muted: #5a5f66;
-	--ss-text-inverse: #fafafa;
-	--ss-brand: #3d7a5a;
-	--ss-brand-hover: #2f6146;
-	--ss-brand-active: #234b37;
+	--ss-text-inverse: #fff;
+	--ss-brand: #2f6146;
+	--ss-brand-hover: #234b37;
+	--ss-brand-active: #173826;
 	--ss-brand-soft: #d4e7dc;
 	--ss-brand-tint: #e8f2ec;
 	--ss-brand-mark: #68a885;

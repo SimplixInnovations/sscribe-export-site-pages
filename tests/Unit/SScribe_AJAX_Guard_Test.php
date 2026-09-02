@@ -101,4 +101,110 @@ class SScribe_AJAX_Guard_Test extends TestCase {
 		$this->expectException( \RuntimeException::class );
 		\SScribe_AJAX_Guard::success( 'ok', 201 );
 	}
+
+	/**
+	 * Phase 13 regression: success() must inject SScribe_Request_Id::RESPONSE_KEY
+	 * (`request_id`) into every success envelope so client-side error tracking
+	 * can correlate JS failures to server-side logs.
+	 *
+	 * Without this contract, the Phase 13 bulk refactor (replacing direct
+	 * wp_send_json_error() in class-sscribe-admin-debug.php with
+	 * SScribe_AJAX_Guard::error()) would silently drop request_id coverage.
+	 */
+	public function test_success_injects_request_id_into_array_data(): void {
+		try {
+			ob_start();
+			\SScribe_AJAX_Guard::success( array( 'foo' => 'bar' ) );
+		} catch ( \RuntimeException $e ) {
+			$body = (string) ob_get_clean();
+			$this->assertStringContainsString( '"request_id"', $body );
+			$this->assertStringContainsString( \SScribe_Request_Id::current(), $body );
+			$this->assertStringContainsString( '"foo":"bar"', $body );
+			return;
+		}
+		$this->fail( 'AJAX_Guard::success did not throw expected RuntimeException' );
+	}
+
+	public function test_success_wraps_scalar_data_with_request_id_envelope(): void {
+		try {
+			ob_start();
+			\SScribe_AJAX_Guard::success( 'ok' );
+		} catch ( \RuntimeException $e ) {
+			$body = (string) ob_get_clean();
+			$this->assertStringContainsString( '"request_id"', $body );
+			$this->assertStringContainsString( \SScribe_Request_Id::current(), $body );
+			$this->assertStringContainsString( '"value":"ok"', $body );
+			return;
+		}
+		$this->fail( 'AJAX_Guard::success did not throw expected RuntimeException' );
+	}
+
+	public function test_success_preserves_caller_supplied_request_id(): void {
+		// Callers that already minted their own request_id (e.g. server
+		// jobs running outside a request boundary) must not be overwritten.
+		try {
+			ob_start();
+			\SScribe_AJAX_Guard::success( array( \SScribe_Request_Id::RESPONSE_KEY => 'caller-mint-123' ) );
+		} catch ( \RuntimeException $e ) {
+			$body = (string) ob_get_clean();
+			$this->assertStringContainsString( '"request_id":"caller-mint-123"', $body );
+			return;
+		}
+		$this->fail( 'AJAX_Guard::success did not throw expected RuntimeException' );
+	}
+
+	/**
+	 * Phase 13 regression: error() must inject request_id into every error
+	 * envelope. This is the load-bearing contract that justifies the bulk
+	 * refactor of class-sscribe-admin-debug.php — without it, the 30
+	 * swapped call sites would lose correlation between client-side
+	 * failures and server-side log entries.
+	 */
+	public function test_error_injects_request_id_into_array_data(): void {
+		try {
+			ob_start();
+			\SScribe_AJAX_Guard::error( array( 'message' => 'fail' ), 403 );
+		} catch ( \RuntimeException $e ) {
+			$body = (string) ob_get_clean();
+			$this->assertStringContainsString( '"request_id"', $body );
+			$this->assertStringContainsString( \SScribe_Request_Id::current(), $body );
+			$this->assertStringContainsString( '"message":"fail"', $body );
+			return;
+		}
+		$this->fail( 'AJAX_Guard::error did not throw expected RuntimeException' );
+	}
+
+	public function test_error_wraps_string_message_with_request_id_envelope(): void {
+		try {
+			ob_start();
+			\SScribe_AJAX_Guard::error( 'Simple error message' );
+		} catch ( \RuntimeException $e ) {
+			$body = (string) ob_get_clean();
+			$this->assertStringContainsString( '"request_id"', $body );
+			$this->assertStringContainsString( \SScribe_Request_Id::current(), $body );
+			$this->assertStringContainsString( '"message":"Simple error message"', $body );
+			return;
+		}
+		$this->fail( 'AJAX_Guard::error did not throw expected RuntimeException' );
+	}
+
+	public function test_error_preserves_caller_supplied_request_id(): void {
+		try {
+			ob_start();
+			\SScribe_AJAX_Guard::error(
+				array(
+					'code'    => 'invalid_nonce',
+					'message' => 'Security check failed.',
+					\SScribe_Request_Id::RESPONSE_KEY => 'caller-mint-err-456',
+				),
+				403
+			);
+		} catch ( \RuntimeException $e ) {
+			$body = (string) ob_get_clean();
+			$this->assertStringContainsString( '"request_id":"caller-mint-err-456"', $body );
+			$this->assertStringContainsString( '"code":"invalid_nonce"', $body );
+			return;
+		}
+		$this->fail( 'AJAX_Guard::error did not throw expected RuntimeException' );
+	}
 }

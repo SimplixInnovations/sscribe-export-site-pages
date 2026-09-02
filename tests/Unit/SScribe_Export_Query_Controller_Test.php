@@ -266,4 +266,256 @@ class SScribe_Export_Query_Controller_Test extends TestCase {
 
 		return is_array( $json ) ? $json : array();
 	}
+
+	/* =========================================================================
+	 * Phase 1 — count request ordering regression
+	 *
+	 * The browser owns the generation counter. The server must ECHO the
+	 * value the browser originated; it must NOT generate its own sequence
+	 * number. Without the echo, the JS exact-equality check would always
+	 * see a stale or missing `client_generation` and discard every response.
+	 * Without the `post_type` / `language` echo, a response from a
+	 * partially-completed older refresh would be indistinguishable from
+	 * the current one.
+	 * =======================================================================*/
+
+	public function test_phase1_ajax_get_status_counts_echoes_client_generation(): void {
+		$_POST['nonce']             = wp_create_nonce( 'sscribe_export_nonce' );
+		$_POST['post_type']         = 'page';
+		$_POST['client_generation'] = '7';
+
+		$collector = $this->createMock( \SScribe_Page_Collector::class );
+		$collector->method( 'normalize_language_code' )->willReturn( '' );
+		$collector->method( 'get_post_status_counts' )->willReturn(
+			array( 'publish' => 1 )
+		);
+
+		$controller = $this->build_controller( collector: $collector );
+
+		$json = $this->invoke_and_capture( $controller, 'ajax_get_status_counts' );
+
+		$this->assertTrue( $json['success'] );
+		$this->assertArrayHasKey( 'client_generation', $json['data'], 'server must echo client_generation' );
+		$this->assertSame( 7, $json['data']['client_generation'] );
+		$this->assertArrayHasKey( 'post_type', $json['data'] );
+		$this->assertSame( 'page', $json['data']['post_type'] );
+		$this->assertArrayHasKey( 'language', $json['data'] );
+		$this->assertArrayNotHasKey(
+			'request_seq',
+			$json['data'],
+			'Phase 1 removed the per-process PHP request_seq mechanism; it must not come back'
+		);
+	}
+
+	public function test_phase1_ajax_get_status_counts_default_generation_is_zero(): void {
+		$_POST['nonce']     = wp_create_nonce( 'sscribe_export_nonce' );
+		$_POST['post_type'] = 'page';
+
+		$collector = $this->createMock( \SScribe_Page_Collector::class );
+		$collector->method( 'normalize_language_code' )->willReturn( '' );
+		$collector->method( 'get_post_status_counts' )->willReturn(
+			array( 'publish' => 1 )
+		);
+
+		$controller = $this->build_controller( collector: $collector );
+
+		$json = $this->invoke_and_capture( $controller, 'ajax_get_status_counts' );
+
+		$this->assertTrue( $json['success'] );
+		$this->assertSame(
+			0,
+			$json['data']['client_generation'],
+			'missing client_generation must default to 0 so JS exact-equality still works'
+		);
+	}
+
+	public function test_phase1_ajax_get_status_counts_clamps_negative_generation(): void {
+		$_POST['nonce']             = wp_create_nonce( 'sscribe_export_nonce' );
+		$_POST['post_type']         = 'page';
+		$_POST['client_generation'] = '-99';
+
+		$collector = $this->createMock( \SScribe_Page_Collector::class );
+		$collector->method( 'normalize_language_code' )->willReturn( '' );
+		$collector->method( 'get_post_status_counts' )->willReturn(
+			array( 'publish' => 1 )
+		);
+
+		$controller = $this->build_controller( collector: $collector );
+
+		$json = $this->invoke_and_capture( $controller, 'ajax_get_status_counts' );
+
+		$this->assertTrue( $json['success'] );
+		$this->assertSame( 0, $json['data']['client_generation'], 'negative values must clamp to 0' );
+	}
+
+	public function test_phase1_ajax_get_status_counts_clamps_absurd_generation(): void {
+		$_POST['nonce']             = wp_create_nonce( 'sscribe_export_nonce' );
+		$_POST['post_type']         = 'page';
+		$_POST['client_generation'] = '99999999999999';
+
+		$collector = $this->createMock( \SScribe_Page_Collector::class );
+		$collector->method( 'normalize_language_code' )->willReturn( '' );
+		$collector->method( 'get_post_status_counts' )->willReturn(
+			array( 'publish' => 1 )
+		);
+
+		$controller = $this->build_controller( collector: $collector );
+
+		$json = $this->invoke_and_capture( $controller, 'ajax_get_status_counts' );
+
+		$this->assertTrue( $json['success'] );
+		$this->assertSame(
+			0,
+			$json['data']['client_generation'],
+			'absurdly large values must clamp to 0 to keep the JS check robust'
+		);
+	}
+
+	public function test_phase1_ajax_get_all_status_counts_echoes_client_generation(): void {
+		$_POST['nonce']             = wp_create_nonce( 'sscribe_export_nonce' );
+		$_POST['post_type']         = 'post';
+		$_POST['client_generation'] = '42';
+		$_POST['languages']         = array( 'en', 'ar' );
+
+		$collector = $this->createMock( \SScribe_Page_Collector::class );
+		$collector->method( 'normalize_language_code' )->willReturnCallback(
+			static function ( string $code ): string {
+				return $code;
+			}
+		);
+		$collector->method( 'get_post_status_counts' )->willReturn(
+			array( 'publish' => 1 )
+		);
+
+		$controller = $this->build_controller( collector: $collector );
+
+		$json = $this->invoke_and_capture( $controller, 'ajax_get_all_status_counts' );
+
+		$this->assertTrue( $json['success'] );
+		$this->assertSame( 42, $json['data']['client_generation'] );
+		$this->assertSame( 'post', $json['data']['post_type'] );
+		$this->assertArrayNotHasKey(
+			'request_seq',
+			$json['data'],
+			'Phase 1 removed the per-process PHP request_seq mechanism'
+		);
+	}
+
+	public function test_phase1_next_request_seq_method_is_removed(): void {
+		$this->assertFalse(
+			method_exists( \SScribe_Export_Query_Controller::class, 'next_request_seq' ),
+			'next_request_seq() must be removed; the server must not generate its own sequence'
+		);
+	}
+
+	/* =========================================================================
+	 * Phase 2 — `__all__` as a real end-to-end sentinel
+	 *
+	 * The All Languages radio, the single counts endpoint, and the batch
+	 * counts endpoint must all agree on the same transport value
+	 * (`__all__`). The batch response must include `languages.__all__`
+	 * with aggregate counts so the JS exact-key lookup finds it. Feeding
+	 * `__all__` through the active-language validator would silently
+	 * reject it and leave the All Languages card stale forever.
+	 * =======================================================================*/
+
+	public function test_phase2_single_endpoint_accepts_sentinel_all(): void {
+		$_POST['nonce']     = wp_create_nonce( 'sscribe_export_nonce' );
+		$_POST['post_type'] = 'page';
+		$_POST['language']  = '__all__';
+
+		$collector = $this->createMock( \SScribe_Page_Collector::class );
+		$collector->method( 'normalize_language_code' )->willReturn( '' );
+		$collector->method( 'get_post_status_counts' )->willReturn(
+			array( 'publish' => 9 )
+		);
+
+		$controller = $this->build_controller( collector: $collector );
+
+		$json = $this->invoke_and_capture( $controller, 'ajax_get_status_counts' );
+
+		$this->assertTrue( $json['success'] );
+		$this->assertSame(
+			'__all__',
+			$json['data']['language'],
+			'server must echo the __all__ sentinel; the validator would have rejected it otherwise'
+		);
+		$this->assertSame( 9, $json['data']['counts']['publish'] );
+	}
+
+	public function test_phase2_batch_endpoint_includes_sentinel_all_key(): void {
+		$_POST['nonce']     = wp_create_nonce( 'sscribe_export_nonce' );
+		$_POST['post_type'] = 'page';
+		$_POST['languages'] = array( '__all__', 'en' );
+
+		$collector = $this->createMock( \SScribe_Page_Collector::class );
+		$collector->method( 'normalize_language_code' )->willReturnCallback(
+			static function ( string $code ): string {
+				return 'en' === $code ? 'en' : '';
+			}
+		);
+		$collector->method( 'get_post_status_counts' )->willReturn(
+			array( 'publish' => 11 )
+		);
+
+		$controller = $this->build_controller( collector: $collector );
+
+		$json = $this->invoke_and_capture( $controller, 'ajax_get_all_status_counts' );
+
+		$this->assertTrue( $json['success'] );
+		$this->assertArrayHasKey(
+			'__all__',
+			$json['data']['languages'],
+			'batch response must include a __all__ key so the JS exact lookup succeeds'
+		);
+		$this->assertArrayHasKey( 'en', $json['data']['languages'] );
+		$this->assertSame( 2, $json['data']['queried_count'] );
+		$this->assertSame( 11, $json['data']['languages']['__all__']['counts']['publish'] );
+		$this->assertSame( 11, $json['data']['languages']['__all__']['counts_page']['publish'] );
+		$this->assertSame( 11, $json['data']['languages']['__all__']['counts_post']['publish'] );
+		// counts_any is the page+post aggregate. Mock returns 11 for each
+		// post_type so the aggregate is 11 + 11 = 22.
+		$this->assertSame( 22, $json['data']['languages']['__all__']['counts_any']['publish'] );
+	}
+
+	public function test_phase2_batch_endpoint_dedupes_sentinel_all(): void {
+		$_POST['nonce']     = wp_create_nonce( 'sscribe_export_nonce' );
+		$_POST['post_type'] = 'page';
+		$_POST['languages'] = array( '__all__', '__all__' );
+
+		$collector = $this->createMock( \SScribe_Page_Collector::class );
+		$collector->method( 'normalize_language_code' )->willReturn( '' );
+		$collector->method( 'get_post_status_counts' )->willReturn(
+			array( 'publish' => 1 )
+		);
+
+		$controller = $this->build_controller( collector: $collector );
+
+		$json = $this->invoke_and_capture( $controller, 'ajax_get_all_status_counts' );
+
+		$this->assertTrue( $json['success'] );
+		$this->assertSame( 1, $json['data']['queried_count'], 'duplicate __all__ must dedupe' );
+		$this->assertCount( 1, $json['data']['languages'] );
+	}
+
+	public function test_phase2_batch_endpoint_drops_unknown_languages_but_keeps_sentinel(): void {
+		$_POST['nonce']     = wp_create_nonce( 'sscribe_export_nonce' );
+		$_POST['post_type'] = 'page';
+		$_POST['languages'] = array( '__all__', 'xx-not-a-language' );
+
+		$collector = $this->createMock( \SScribe_Page_Collector::class );
+		$collector->method( 'normalize_language_code' )->willReturn( '' );
+		$collector->method( 'get_post_status_counts' )->willReturn(
+			array( 'publish' => 1 )
+		);
+
+		$controller = $this->build_controller( collector: $collector );
+
+		$json = $this->invoke_and_capture( $controller, 'ajax_get_all_status_counts' );
+
+		$this->assertTrue( $json['success'] );
+		$this->assertArrayHasKey( '__all__', $json['data']['languages'] );
+		$this->assertArrayNotHasKey( 'xx-not-a-language', $json['data']['languages'] );
+		$this->assertSame( 1, $json['data']['queried_count'] );
+	}
 }

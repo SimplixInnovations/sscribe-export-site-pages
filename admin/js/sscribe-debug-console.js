@@ -205,10 +205,19 @@
 				self.saveSettings(self.isAutoRefresh);
 			});
 			this.$enabled.on('change.sscribe', function () {
+				// Phase 10: capture the previous debug-enabled state at
+				// the moment the user toggles, BEFORE the checkbox flips.
+				// The save handler uses this on failure to roll the UI
+				// back, so the user never sees a checkbox state that the
+				// server has rejected.
+				self._previousDebugEnabled = !self.$enabled.is(':checked');
 				self.$enabled.attr('aria-checked', self.$enabled.is(':checked') ? 'true' : 'false');
 				self.markSettingsDirty();
 			});
 			this.$level.on('change.sscribe', function () {
+				// Phase 10: mirror the capture for log_level so rollback
+				// on save failure is symmetric with debug_enabled.
+				self._previousLogLevel = self.$level.val();
 				self.markSettingsDirty();
 			});
 			this.$filterLevel.on('change.sscribe', function () {
@@ -605,6 +614,20 @@
 			const hasFilter = this.currentFilter !== 'ALL' || this.searchQuery !== '' || this.sessionFilter !== '';
 			this.$exportBtn.find('.sscribe-export-btn-scope').text(hasFilter ? ' (filtered)' : ' (all)');
 		},
+		/**
+		 * Phase 11 helper: single source of truth for whether any
+		 * debug-log filter is active. Used by renderLogs to distinguish
+		 * the no_entries (no filter, log file empty) state from the
+		 * no_filter_matches (filter active, log file has entries but
+		 * none match) state.
+		 */
+		computeHasFilter: function () {
+			return (
+				this.currentFilter !== 'ALL' ||
+				(this.searchQuery && this.searchQuery !== '') ||
+				(this.sessionFilter && this.sessionFilter !== '')
+			);
+		},
 		showConsoleError: function (message) {
 			this.$empty.hide();
 			this.$entries.html(
@@ -617,6 +640,59 @@
 					'</div>' +
 					'</div>'
 			);
+		},
+		/**
+		 * Phase 10 helper: roll back the debug_enabled checkbox and the
+		 * log_level select to the state captured at the moment the user
+		 * toggled them. Called from saveSettings on every terminal
+		 * outcome (server-side rejection or hard HTTP failure) so the
+		 * UI never shows a state the server did not accept.
+		 *
+		 * @param {boolean} sentDebugEnabled The value that was sent in
+		 *   the save request (== current checkbox state at save time).
+		 *   Used as the gate: if no change was made, no rollback needed.
+		 */
+		rollbackDebugControls: function (sentDebugEnabled) {
+			const self = this;
+			// If the user never toggled, the captured previous values are
+			// undefined and there is nothing to roll back.
+			if (self._previousDebugEnabled === undefined) {
+				return;
+			}
+			const currentEnabled = self.$enabled.is(':checked');
+			if (currentEnabled !== self._previousDebugEnabled) {
+				self.$enabled
+					.prop('checked', self._previousDebugEnabled)
+					.attr('aria-checked', self._previousDebugEnabled ? 'true' : 'false');
+			}
+			if (
+				self._previousLogLevel !== undefined &&
+				self.$level.val() !== self._previousLogLevel
+			) {
+				self.$level.val(self._previousLogLevel);
+			}
+			// Clear the captured values so a subsequent successful save
+			// does not roll back to a stale state.
+			self._previousDebugEnabled = undefined;
+			self._previousLogLevel = undefined;
+			// Recompute dirty flag so the Save button reflects the
+			// rollback (no dirty state if user reverted to pre-toggle).
+			if (self.updateDirtyState) {
+				self.updateDirtyState();
+			} else if (self.markSettingsDirty || self.clearSettingsDirty) {
+				// Heuristic: if current state matches the last-saved
+				// state, clear dirty; otherwise leave dirty so user can
+				// retry. We compare against `sentDebugEnabled` which
+				// was the captured-at-save-time state; if rollback
+				// restored it to the same value, no dirty.
+				if (self._previousDebugEnabled === sentDebugEnabled) {
+					if (self.clearSettingsDirty) {
+						self.clearSettingsDirty();
+					}
+				} else if (self.markSettingsDirty) {
+					self.markSettingsDirty();
+				}
+			}
 		},
 		saveSettings: function (previousAutoRefresh) {
 			const self = this;
@@ -686,6 +762,12 @@
 							self.stopAutoRefresh();
 						}
 					}
+					// Phase 10: roll back debug_enabled checkbox + log_level
+					// to the state captured at the moment the user toggled
+					// them. Without this, a server rejection left the
+					// checkbox visually checked while the server kept
+					// debug disabled.
+					self.rollbackDebugControls(sentDebugEnabled);
 					self.$saveFeedback
 						.removeClass('success error')
 						.text(self.getResponseMessage(response, 'Error'))
@@ -713,6 +795,11 @@
 						self.stopAutoRefresh();
 					}
 				}
+				// Phase 10: symmetric rollback for debug_enabled +
+				// log_level on hard HTTP failure (.fail branch). Captured
+				// at toggle time so we never show a state the server
+				// rejected.
+				self.rollbackDebugControls(self.$enabled.is(':checked'));
 				let errorMsg = 'Error ' + xhr.status;
 				if (xhr.status === 0) {
 					errorMsg = 'Network error. Please check your connection.';
@@ -925,19 +1012,33 @@
 				}
 				if (extraData) {
 					if (extraData.debug_enabled === false) {
+						// State 1 of 5: debug_disabled.
 						this.$empty
 							.find('p')
 							.text('Debug logging is disabled. Enable it in Settings above to capture logs.');
 					} else if (extraData.status === 'no_log_file' && extraData.debug_enabled) {
+						// State 2 of 5: no_log_file.
 						this.$empty
 							.find('p')
 							.text('Debug is enabled but no log file exists yet. Run an export to generate logs.');
 					} else if (extraData.status === 'rotated') {
+						// State 3 of 5: rotated-view empty (sub-case of no_entries).
 						this.$empty.find('p').text('This rotated log file is empty.');
+					} else if (this.computeHasFilter()) {
+						// State 4 of 5: no_filter_matches. Debug is on,
+						// log file exists, but the current level / search /
+						// session filter excluded everything.
+						this.$empty
+							.find('p')
+							.text('No entries match the current filters. Adjust level, search, or session above.');
 					} else {
+						// State 5 of 5: no_entries (default — no filter
+						// active, log file exists but is genuinely empty).
 						this.$empty.find('p').text(this.defaultEmptyMessage);
 					}
 				} else {
+					// No extraData envelope — treat as the legacy
+					// no_entries default.
 					this.$empty.find('p').text(this.defaultEmptyMessage);
 				}
 				return;

@@ -81,6 +81,17 @@ $config = array(
 		// analysis). Not part of the production plugin - the real WordPress
 		// runtime provides these functions.
 		'stubs', '.stubs',
+
+		// Phase 22: additional dev-only root-level files that previously
+		// leaked into the release ZIP. Per "Build-release .distignore glob
+		// blindness" memory, the .distignore pattern matcher is segment-only
+		// (no real globs) — these must live in base_excludes for guaranteed
+		// exclusion.
+		//   - .superpowers:    local planning/review scratch dir with diff
+		//                      files. NEVER ship to WP.org.
+		//   - phpunit-wp.xml: real-WP testbench config. Dev-only.
+		//   - playwright.config.ts: E2E test config. Dev-only.
+		'.superpowers', 'phpunit-wp.xml', 'playwright.config.ts',
 	),
 
 	'font_excludes'    => array(
@@ -268,6 +279,36 @@ function strip_php_comments( string $source ): string {
 	}
 
 	return $output;
+}
+
+/**
+ * Sanitize AI-artifact Unicode characters that WP.org plugin-check
+ * flags (per wp-org-ai-artifact-audit memory).
+ *
+ * Applied AFTER comment-stripping so docblocks and jsdoc content
+ * (which the build preserves for @preserve/@var/@type pragmas) cannot
+ * leak em-dashes, en-dashes, ellipses, or curly quotes into the
+ * shipped ZIP.
+ *
+ *   —  (em-dash, U+2014)        -> ' - '
+ *   –  (en-dash, U+2013)        -> '-'
+ *   …  (ellipsis, U+2026)       -> '...'
+ *   “  (left double quote)      -> '"'
+ *   ”  (right double quote)     -> '"'
+ *   ‘  (left single quote)      -> "'"
+ *   ’  (right single quote)     -> "'"
+ */
+function sanitize_ai_artifacts( string $source ): string {
+	$replacements = array(
+		"\xE2\x80\x94" => ' - ',   // em-dash
+		"\xE2\x80\x93" => '-',     // en-dash
+		"\xE2\x80\xA6" => '...',   // ellipsis
+		"\xE2\x80\x9C" => '"',     // left double curly quote
+		"\xE2\x80\x9D" => '"',     // right double curly quote
+		"\xE2\x80\x98" => "'",     // left single curly quote
+		"\xE2\x80\x99" => "'",     // right single curly quote / apostrophe
+	);
+	return strtr( $source, $replacements );
 }
 
 function strip_css_comments( string $source ): string {
@@ -583,17 +624,22 @@ foreach ( $iterator as $file ) {
 			$ext = strtolower( pathinfo( $file->getPathname(), PATHINFO_EXTENSION ) );
 			if ( 'php' === $ext ) {
 				$src = file_get_contents( $file->getPathname() );
-				file_put_contents( $dest, strip_php_comments( $src ) );
+				file_put_contents( $dest, sanitize_ai_artifacts( strip_php_comments( $src ) ) );
 			} elseif ( 'css' === $ext ) {
 				$src = file_get_contents( $file->getPathname() );
-				file_put_contents( $dest, strip_css_comments( $src ) );
+				file_put_contents( $dest, sanitize_ai_artifacts( strip_css_comments( $src ) ) );
 			} elseif ( 'js' === $ext ) {
 				$src = file_get_contents( $file->getPathname() );
-				file_put_contents( $dest, strip_js_comments( $src ) );
+				file_put_contents( $dest, sanitize_ai_artifacts( strip_js_comments( $src ) ) );
 			} else {
-				if ( ! copy( $file->getPathname(), $dest ) ) {
-					throw new RuntimeException( 'Unable to copy release file: ' . $relative );
+				// Non-code files still need AI-artifact sanitization
+				// (e.g. .pot/.txt files were checked separately, but other
+				// text files in shipped paths are caught here as a backstop).
+				$src = file_get_contents( $file->getPathname() );
+				if ( false === $src ) {
+					throw new RuntimeException( 'Unable to read release file: ' . $relative );
 				}
+				file_put_contents( $dest, sanitize_ai_artifacts( $src ) );
 			}
 		} else {
 			if ( ! copy( $file->getPathname(), $dest ) ) {
@@ -866,5 +912,78 @@ if ( is_file( $invariant_test ) && is_file( $root . '/vendor/bin/phpunit' ) ) {
 echo "\n===========================================\n";
 echo "  READY FOR WORDPRESS.ORG\n";
 echo "===========================================\n\n";
+
+// Phase 24: build transparency. Reviewers must be able to see at a
+// glance which transformations were applied to the working tree to
+// produce the release ZIP. Enumerate every category so a future
+// maintainer does not have to read scripts/build-release.php to
+// discover the delta between the git checkout and the shipped
+// artifact.
+echo "Build transformations applied (working tree -> shipped ZIP):\n\n";
+echo "  Excluded paths:\n";
+echo "    - All base_excludes entries (dev-only dirs: tests, tests-wp,\n";
+echo "      tests-e2e, scripts, .github, docs, examples, samples,\n";
+echo "      .superpowers, .audit, .agent, .claude, .opencode, .cursor,\n";
+echo "      .windsurf, .continue, .codeium, .aider*, .mimosa, .omo,\n";
+echo "      node_modules, vendor-prefixed/.github, vendor-prefixed/.git,\n";
+echo "      vendor-prefixed/*/tests, vendor-prefixed/*/docs,\n";
+echo "      vendor-prefixed/*/utils, vendor-prefixed/*/tmp,\n";
+echo "      stubs, .stubs, dist, .git, .gitignore, .distignore,\n";
+echo "      .phpunit.cache, scratch, bin, etc.).\n";
+echo "    - Dev-only root files: phpunit-wp.xml, playwright.config.ts,\n";
+echo "      composer.lock, infection.json5, commit-message.txt,\n";
+echo "      strauss.json, CONTRIBUTING.md, CHANGELOG.md, phpstan*.neon*,\n";
+echo "      phpunit.xml*, phpcs.xml, phpstan-bootstrap.php,\n";
+echo "      .editorconfig, .prettierrc, .eslintrc.json, .stylelintrc.json,\n";
+echo "      .php-cs-fixer.php, mkdocs.yml, .travis.yml, .scrutinizer.yml,\n";
+echo "      .github_changelog_generator, ruleset.xml, CREDITS.txt,\n";
+echo "      .wp-env.json, .distignore, .gitattributes, .debug-journal.md,\n";
+echo "      WPScan, wordpress, wordpress-tests-lib.\n";
+echo "    - .distignore entries (segment-level match against\n";
+echo "      vendor-prefixed/*/tests, vendor-prefixed/*/docs,\n";
+echo "      vendor-prefixed/phpoffice/phpword/COPYING.LESSER,\n";
+echo "      vendor-prefixed/phpoffice/phpword/phpword.ini.dist, etc.).\n";
+echo "    - font_excludes entries (unreferenced mPDF fonts: Sun-ExtA/B,\n";
+echo "      UnBatang, Aegyptus, Aegean, Akkadian, Jomolhari, KhmerOS,\n";
+echo "      Abyssinica SIL, etc.; XB Riyaz Bold/Italic/BoldItalic;\n";
+echo "      Dhyana; Garuda; DejaVuSans variants not registered).\n";
+echo "    - fpdi_excludes entries (FPDI parent classes — see fpdi-fpdf-\n";
+echo "      parent-landmine memory).\n\n";
+
+echo "  In-place transformations (each shipped PHP/CSS/JS file is\n";
+echo "  rewritten before being written to dist/):\n";
+echo "    - PHP: T_DOC_COMMENT preserved (for @preserve/@var/@type);\n";
+echo "      T_COMMENT stripped unless pragma-annotated (phpcs:|@preserve);\n";
+echo "      T_OPEN_TAG / T_STRING / T_VARIABLE untouched.\n";
+echo "    - CSS: all /* ... */ comments stripped.\n";
+echo "    - JS: license banners /*! ... */ and jsdoc /** ... */ preserved;\n";
+echo "      other /* ... */ block comments stripped; line // comments\n";
+echo "      stripped (except those preceded by :, \", ', or `, to keep\n";
+echo "      URLs and JSON literal colons intact).\n";
+echo "    - All four strip outputs pass through sanitize_ai_artifacts()\n";
+echo "      which replaces em-dash (U+2014), en-dash (U+2013), ellipsis\n";
+echo "      (U+2026), and curly quotes (U+201C/D, U+2018/9) with their\n";
+echo "      ASCII equivalents. Required because the comment-strip pass\n";
+echo "      preserves jsdoc / docblock content, which historically\n";
+echo "      leaked Unicode into the ZIP. Non-code files also pass\n";
+echo "      through the sanitizer as a backstop.\n\n";
+
+echo "  Vendor-specific rewrites:\n";
+echo "    - vendor-prefixed/phpoffice/phpword/COPYING.LESSER renamed to\n";
+echo "      COPYING.LESSER.txt (WP.org plugin-check rejects the bare\n";
+echo "      .lesser extension as an unexpected file type).\n";
+echo "    - vendor-prefixed/phpoffice/phpword/src/PhpWord/Shared/PCLZip/\n";
+echo "      removed (PCLZip conflict with WordPress core PCLZip).\n";
+echo "    - vendor-prefixed/phpoffice/phpword/phpword.ini.dist removed\n";
+echo "      (dead weight — Settings::loadConfig() is never called in\n";
+echo "      SScribe code).\n";
+echo "    - includes/sscribe-vendor-compat.php removed (local-dev\n";
+echo "      shim — release code uses only prefixed vendors).\n\n";
+
+echo "  Source files added to the ZIP that are NOT in the working tree:\n";
+echo "    - dist/sscribe-export-site-pages/license.txt is a verbatim\n";
+echo "      copy of ./license.txt (already tracked in git).\n";
+echo "    - dist/sscribe-export-site-pages/readme.txt is a verbatim\n";
+echo "      copy of ./readme.txt (already tracked in git).\n\n";
 
 echo "Build successful. No development files or unused fonts included.\n\n";

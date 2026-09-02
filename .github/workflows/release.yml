@@ -36,20 +36,26 @@ jobs:
                   fi
                   echo "OK: Tag version matches plugin version: $TAG_VERSION"
 
-            - name: Verify tagged commit is current develop HEAD
+            - name: Verify tagged commit is current main HEAD
               env:
                   GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
               run: |
-                  git fetch --no-tags origin develop
+                  # Phase 17: tag-on-main only. Release tags MUST point at
+                  # origin/main HEAD. Tags pointing at develop or feature
+                  # branches could ship unreviewed code to WP.org.
+                  git fetch --no-tags origin main
                   TAG_SHA=$(git rev-list -n 1 "$GITHUB_SHA")
-                  DEVELOP_SHA=$(git rev-parse origin/develop)
-                  if [ "$TAG_SHA" != "$DEVELOP_SHA" ]; then
-                    echo "Error: Release tags must point to the latest origin/develop commit."
+                  MAIN_SHA=$(git rev-parse origin/main)
+                  if [ "$TAG_SHA" != "$MAIN_SHA" ]; then
+                    echo "Error: Release tags must point to the latest origin/main commit."
                     echo "Tag SHA:    $TAG_SHA"
-                    echo "Develop SHA: $DEVELOP_SHA"
+                    echo "Main SHA:   $MAIN_SHA"
+                    echo ""
+                    echo "Release workflow: cut a tag from origin/main HEAD only."
+                    echo "If origin/main is behind develop, merge develop -> main first."
                     exit 1
                   fi
-                  echo "OK: Tag commit matches origin/develop HEAD"
+                  echo "OK: Tag commit matches origin/main HEAD"
 
     audit:
         name: Security Audit
@@ -163,3 +169,85 @@ jobs:
                       --generate-notes \
                       --verify-tag
                   fi
+
+            # Phase 19: Auto-download proof. The release artifact must be
+            # downloaded back from the just-published GitHub Release URL,
+            # checked against the SHA-256 we built, and structure-verified
+            # (manifest files + PHP syntax). No human confirmation required:
+            # if any of these steps fail, the release job fails the build.
+            - name: 'Auto-download proof: fetch + SHA-verify + structure-check'
+              env:
+                  GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+              run: |
+                  VERSION="${GITHUB_REF_NAME#v}"
+                  ZIP_PATH="dist/sscribe-export-site-pages-${VERSION}.zip"
+                  SHA_PATH="dist/sscribe-export-site-pages-${VERSION}.sha256"
+                  DOWNLOAD_DIR="dist/download-verify"
+                  DOWNLOADED_ZIP="${DOWNLOAD_DIR}/sscribe-export-site-pages-${VERSION}.zip"
+                  DOWNLOADED_SHA="${DOWNLOAD_DIR}/sscribe-export-site-pages-${VERSION}.sha256"
+
+                  rm -rf "${DOWNLOAD_DIR}" && mkdir -p "${DOWNLOAD_DIR}"
+
+                  # 1. Download the artifact we just uploaded.
+                  if ! gh release download "$GITHUB_REF_NAME" \
+                      --pattern "sscribe-export-site-pages-${VERSION}.zip" \
+                      --pattern "sscribe-export-site-pages-${VERSION}.sha256" \
+                      --dir "${DOWNLOAD_DIR}"; then
+                    echo "ERROR: gh release download failed"
+                    exit 1
+                  fi
+
+                  # 2. Verify SHA-256 matches the locally-built artifact.
+                  LOCAL_SHA="$(sha256sum "${ZIP_PATH}" | awk '{print $1}')"
+                  REMOTE_SHA="$(sha256sum "${DOWNLOADED_ZIP}" | awk '{print $1}')"
+                  if [ "${LOCAL_SHA}" != "${REMOTE_SHA}" ]; then
+                    echo "ERROR: SHA-256 mismatch between local build and downloaded artifact"
+                    echo "  Local:    ${LOCAL_SHA}"
+                    echo "  Downloaded: ${REMOTE_SHA}"
+                    exit 1
+                  fi
+                  echo "OK: SHA-256 matches local build"
+
+                  # 3. Verify the published .sha256 file matches what we built.
+                  EXPECTED_SHA="$(cat "${SHA_PATH}" | awk '{print $1}')"
+                  if [ "${EXPECTED_SHA}" != "${LOCAL_SHA}" ]; then
+                    echo "ERROR: published .sha256 file does not match local build"
+                    exit 1
+                  fi
+                  echo "OK: published .sha256 file matches local build"
+
+                  # 4. Verify the downloaded ZIP is a valid WordPress plugin
+                  #    package: contains the plugin main file with the
+                  #    canonical Plugin Name header and a syntactically
+                  #    valid readme.txt. A truncated or re-zipped
+                  #    artifact would fail the PHP -l or grep step.
+                  WORK="${DOWNLOAD_DIR}/work"
+                  mkdir -p "${WORK}"
+                  unzip -q "${DOWNLOADED_ZIP}" -d "${WORK}"
+
+                  PLUGIN_DIR="${WORK}/sscribe-export-site-pages"
+                  if [ ! -d "${PLUGIN_DIR}" ]; then
+                    echo "ERROR: downloaded ZIP missing sscribe-export-site-pages/ root directory"
+                    exit 1
+                  fi
+
+                  if ! grep -q "Plugin Name:" "${PLUGIN_DIR}/sscribe-export-site-pages.php"; then
+                    echo "ERROR: downloaded ZIP missing Plugin Name header"
+                    exit 1
+                  fi
+
+                  if ! grep -q "Stable tag: ${VERSION}" "${PLUGIN_DIR}/readme.txt"; then
+                    echo "ERROR: downloaded ZIP readme.txt Stable tag does not match ${VERSION}"
+                    exit 1
+                  fi
+
+                  # PHP -l on every .php file in the plugin dir.
+                  if find "${PLUGIN_DIR}" -name '*.php' -print0 | xargs -0 -I{} php -l {} 2>&1 \
+                      | grep -q "Parse error"; then
+                    echo "ERROR: downloaded ZIP contains PHP files with parse errors"
+                    find "${PLUGIN_DIR}" -name '*.php' -print0 | xargs -0 -I{} php -l {} 2>&1 \
+                      | grep "Parse error"
+                    exit 1
+                  fi
+
+                  echo "OK: downloaded ZIP structure verified (manifest + Stable tag + PHP syntax)"

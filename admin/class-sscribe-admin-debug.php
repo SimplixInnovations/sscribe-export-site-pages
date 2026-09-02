@@ -146,20 +146,20 @@ class SScribe_Admin_Debug {
 	 */
 	private function verify_request_authorization( string $rate_bucket = 'debug', string $required_capability = '' ): bool {
 		if ( ! check_ajax_referer( 'sscribe_export_nonce', 'nonce', false ) ) {
-			wp_send_json_error( array( 'message' => __( 'Invalid security token.', 'sscribe-export-site-pages' ) ), 403 );
+			SScribe_AJAX_Guard::error( array( 'message' => __( 'Invalid security token.', 'sscribe-export-site-pages' ) ), 403 );
 			return false;
 		}
 
 		$required_capability = '' !== $required_capability ? $required_capability : self::get_debug_capability();
 		if ( ! current_user_can( $required_capability ) ) {
-			wp_send_json_error( array( 'message' => __( 'Insufficient permissions.', 'sscribe-export-site-pages' ) ), 403 );
+			SScribe_AJAX_Guard::error( array( 'message' => __( 'Insufficient permissions.', 'sscribe-export-site-pages' ) ), 403 );
 			return false;
 		}
 
 		$rate_limiter = new SScribe_Export_Rate_Limiter();
 		$rate_check   = $rate_limiter->check_rate_limit( $required_capability, $rate_bucket );
 		if ( false === $rate_check ) {
-			wp_send_json_error( array( 'message' => __( 'Rate limit exceeded. Please wait before trying again.', 'sscribe-export-site-pages' ) ), 429 );
+			SScribe_AJAX_Guard::error( array( 'message' => __( 'Rate limit exceeded. Please wait before trying again.', 'sscribe-export-site-pages' ) ), 429 );
 			return false;
 		}
 
@@ -222,7 +222,7 @@ class SScribe_Admin_Debug {
 			$response['nonce'] = wp_create_nonce( 'sscribe_export_nonce' );
 			wp_send_json_success( $response );
 		} else {
-			wp_send_json_error(
+			SScribe_AJAX_Guard::error(
 				array(
 					'message' => __( 'Failed to save settings. Please try again or refresh the page.', 'sscribe-export-site-pages' ),
 					'nonce'   => wp_create_nonce( 'sscribe_export_nonce' ),
@@ -333,7 +333,7 @@ class SScribe_Admin_Debug {
 				'Failed to clear debug logs via AJAX.',
 				array( 'exception' => $e->getMessage() )
 			);
-			wp_send_json_error(
+			SScribe_AJAX_Guard::error(
 				array(
 					'message' => __( 'Failed to clear logs. Please try again.', 'sscribe-export-site-pages' ),
 					'nonce'   => wp_create_nonce( 'sscribe_export_nonce' ),
@@ -361,7 +361,7 @@ class SScribe_Admin_Debug {
 
 		if ( '' !== $raw_filename ) {
 			if ( ! self::is_debug_log_filename( $filename ) ) {
-				wp_send_json_error(
+				SScribe_AJAX_Guard::error(
 					array(
 						'message' => __( 'Invalid filename.', 'sscribe-export-site-pages' ),
 						'nonce'   => wp_create_nonce( 'sscribe_export_nonce' ),
@@ -373,7 +373,7 @@ class SScribe_Admin_Debug {
 
 			$log_dir = self::get_log_directory();
 			if ( null === $log_dir ) {
-				wp_send_json_error( array( 'message' => __( 'Private log storage is unavailable.', 'sscribe-export-site-pages' ) ), 500 );
+				SScribe_AJAX_Guard::error( array( 'message' => __( 'Private log storage is unavailable.', 'sscribe-export-site-pages' ) ), 500 );
 				return;
 			}
 			$file_path  = $log_dir . '/' . $filename;
@@ -382,7 +382,7 @@ class SScribe_Admin_Debug {
 			$real_log_dir   = realpath( $log_dir );
 
 			if ( false === $real_file_path || false === $real_log_dir || is_link( $file_path ) || ! is_file( $real_file_path ) ) {
-				wp_send_json_error(
+				SScribe_AJAX_Guard::error(
 					array(
 						'message' => __( 'File not found.', 'sscribe-export-site-pages' ),
 						'nonce'   => wp_create_nonce( 'sscribe_export_nonce' ),
@@ -394,7 +394,7 @@ class SScribe_Admin_Debug {
 
 			$safe_log_dir = rtrim( $real_log_dir, DIRECTORY_SEPARATOR ) . DIRECTORY_SEPARATOR;
 			if ( 0 !== strpos( $real_file_path, $safe_log_dir ) ) {
-				wp_send_json_error(
+				SScribe_AJAX_Guard::error(
 					array(
 						'message' => __( 'File not found.', 'sscribe-export-site-pages' ),
 						'nonce'   => wp_create_nonce( 'sscribe_export_nonce' ),
@@ -406,7 +406,7 @@ class SScribe_Admin_Debug {
 
 			$file_size = filesize( $real_file_path );
 			if ( false === $file_size || $file_size > self::MAX_ROTATED_LOG_BYTES ) {
-				wp_send_json_error(
+				SScribe_AJAX_Guard::error(
 					array(
 						'message' => __( 'Log file is too large to export through the browser.', 'sscribe-export-site-pages' ),
 						'nonce'   => wp_create_nonce( 'sscribe_export_nonce' ),
@@ -418,7 +418,7 @@ class SScribe_Admin_Debug {
 
 			$lines = self::read_bounded_log_lines( $real_file_path, self::MAX_FETCH_LINES );
 			if ( null === $lines ) {
-				wp_send_json_error(
+				SScribe_AJAX_Guard::error(
 					array(
 						'message' => __( 'Failed to read file.', 'sscribe-export-site-pages' ),
 						'nonce'   => wp_create_nonce( 'sscribe_export_nonce' ),
@@ -437,7 +437,7 @@ class SScribe_Admin_Debug {
 				)
 			);
 			if ( false === $content ) {
-				wp_send_json_error( array( 'message' => __( 'Failed to encode log data.', 'sscribe-export-site-pages' ) ), 500 );
+				SScribe_AJAX_Guard::error( array( 'message' => __( 'Failed to encode log data.', 'sscribe-export-site-pages' ) ), 500 );
 				return;
 			}
 			$this->download_json( preg_replace( '/\.log$/i', '.json', $filename ) ?? 'sscribe-debug-export.json', $content );
@@ -466,7 +466,7 @@ class SScribe_Admin_Debug {
 		);
 
 		if ( false === $json_content ) {
-			wp_send_json_error(
+			SScribe_AJAX_Guard::error(
 				array(
 					'message' => __( 'Failed to encode log data.', 'sscribe-export-site-pages' ),
 					'nonce'   => wp_create_nonce( 'sscribe_export_nonce' ),
@@ -508,7 +508,7 @@ class SScribe_Admin_Debug {
 
 		$log_dir = self::get_log_directory();
 		if ( null === $log_dir ) {
-			wp_send_json_error( array( 'message' => __( 'Private log storage is unavailable.', 'sscribe-export-site-pages' ) ), 500 );
+			SScribe_AJAX_Guard::error( array( 'message' => __( 'Private log storage is unavailable.', 'sscribe-export-site-pages' ) ), 500 );
 			return;
 		}
 
@@ -551,7 +551,7 @@ class SScribe_Admin_Debug {
 				'Failed to enumerate rotated debug logs.',
 				array( 'exception' => $e->getMessage() )
 			);
-			wp_send_json_error( array( 'message' => __( 'Unable to read the log directory.', 'sscribe-export-site-pages' ) ), 500 );
+			SScribe_AJAX_Guard::error( array( 'message' => __( 'Unable to read the log directory.', 'sscribe-export-site-pages' ) ), 500 );
 			return;
 		}
 
@@ -603,7 +603,7 @@ class SScribe_Admin_Debug {
 		$limit    = max( 1, self::get_post_integer( 'limit', 200, 200 ) );
 
 		if ( empty( $filename ) ) {
-			wp_send_json_error(
+			SScribe_AJAX_Guard::error(
 				array(
 					'message' => __( 'Filename required.', 'sscribe-export-site-pages' ),
 					'nonce'   => wp_create_nonce( 'sscribe_export_nonce' ),
@@ -614,7 +614,7 @@ class SScribe_Admin_Debug {
 		}
 
 		if ( ! self::is_debug_log_filename( $filename ) ) {
-			wp_send_json_error(
+			SScribe_AJAX_Guard::error(
 				array(
 					'message' => __( 'Invalid file type.', 'sscribe-export-site-pages' ),
 					'nonce'   => wp_create_nonce( 'sscribe_export_nonce' ),
@@ -626,7 +626,7 @@ class SScribe_Admin_Debug {
 
 		$log_dir = self::get_log_directory();
 		if ( null === $log_dir ) {
-			wp_send_json_error( array( 'message' => __( 'Private log storage is unavailable.', 'sscribe-export-site-pages' ) ), 500 );
+			SScribe_AJAX_Guard::error( array( 'message' => __( 'Private log storage is unavailable.', 'sscribe-export-site-pages' ) ), 500 );
 			return;
 		}
 		$file_path  = $log_dir . '/' . $filename;
@@ -636,7 +636,7 @@ class SScribe_Admin_Debug {
 
 		$safe_log_dir = rtrim( (string) $real_log_dir, DIRECTORY_SEPARATOR ) . DIRECTORY_SEPARATOR;
 		if ( false === $real_file_path || false === $real_log_dir || is_link( $file_path ) || ! is_file( $real_file_path ) || 0 !== strpos( $real_file_path, $safe_log_dir ) ) {
-			wp_send_json_error(
+			SScribe_AJAX_Guard::error(
 				array(
 					'message' => __( 'File not found.', 'sscribe-export-site-pages' ),
 					'nonce'   => wp_create_nonce( 'sscribe_export_nonce' ),
@@ -648,7 +648,7 @@ class SScribe_Admin_Debug {
 
 		$file_size = filesize( $real_file_path );
 		if ( false === $file_size ) {
-			wp_send_json_error(
+			SScribe_AJAX_Guard::error(
 				array(
 					'message' => __( 'Unable to stat file.', 'sscribe-export-site-pages' ),
 					'nonce'   => wp_create_nonce( 'sscribe_export_nonce' ),
@@ -663,7 +663,7 @@ class SScribe_Admin_Debug {
 		// logger, so anything over 10MB here means manual files were
 		// dropped into the directory - refuse rather than exhausting memory.
 		if ( $file_size > self::MAX_ROTATED_LOG_BYTES ) {
-			wp_send_json_error(
+			SScribe_AJAX_Guard::error(
 				array(
 					/* translators: %s: file size in MB */
 					'message' => sprintf( __( 'Rotated log is %s MB and exceeds the safe browser-read limit.', 'sscribe-export-site-pages' ), (string) (int) ( $file_size / ( 1024 * 1024 ) ) ),
@@ -704,7 +704,7 @@ class SScribe_Admin_Debug {
 				'Failed to read rotated debug log file via AJAX.',
 				array( 'exception' => $e->getMessage() )
 			);
-			wp_send_json_error(
+			SScribe_AJAX_Guard::error(
 				array(
 					'message' => __( 'Failed to read file.', 'sscribe-export-site-pages' ),
 					'nonce'   => wp_create_nonce( 'sscribe_export_nonce' ),
@@ -742,7 +742,7 @@ class SScribe_Admin_Debug {
 		}
 
 		if ( empty( $filename ) ) {
-			wp_send_json_error(
+			SScribe_AJAX_Guard::error(
 				array(
 					'message' => __( 'Filename required.', 'sscribe-export-site-pages' ),
 					'nonce'   => wp_create_nonce( 'sscribe_export_nonce' ),
@@ -753,7 +753,7 @@ class SScribe_Admin_Debug {
 		}
 
 		if ( ! self::is_debug_log_filename( $filename ) ) {
-			wp_send_json_error(
+			SScribe_AJAX_Guard::error(
 				array(
 					'message' => __( 'Invalid file type.', 'sscribe-export-site-pages' ),
 					'nonce'   => wp_create_nonce( 'sscribe_export_nonce' ),
@@ -765,7 +765,7 @@ class SScribe_Admin_Debug {
 
 		$log_dir = self::get_log_directory();
 		if ( null === $log_dir ) {
-			wp_send_json_error( array( 'message' => __( 'Private log storage is unavailable.', 'sscribe-export-site-pages' ) ), 500 );
+			SScribe_AJAX_Guard::error( array( 'message' => __( 'Private log storage is unavailable.', 'sscribe-export-site-pages' ) ), 500 );
 			return;
 		}
 		$file_path  = $log_dir . '/' . $filename;
@@ -774,7 +774,7 @@ class SScribe_Admin_Debug {
 		$real_log_dir   = realpath( $log_dir );
 
 		if ( false === $real_file_path || false === $real_log_dir || is_link( $file_path ) || ! is_file( $real_file_path ) ) {
-			wp_send_json_error(
+			SScribe_AJAX_Guard::error(
 				array(
 					'message' => __( 'File not found.', 'sscribe-export-site-pages' ),
 					'nonce'   => wp_create_nonce( 'sscribe_export_nonce' ),
@@ -786,7 +786,7 @@ class SScribe_Admin_Debug {
 
 		$safe_log_dir = rtrim( $real_log_dir, DIRECTORY_SEPARATOR ) . DIRECTORY_SEPARATOR;
 		if ( 0 !== strpos( $real_file_path, $safe_log_dir ) ) {
-			wp_send_json_error(
+			SScribe_AJAX_Guard::error(
 				array(
 					'message' => __( 'File not found.', 'sscribe-export-site-pages' ),
 					'nonce'   => wp_create_nonce( 'sscribe_export_nonce' ),
@@ -799,7 +799,7 @@ class SScribe_Admin_Debug {
 		$logger     = SScribe_Logger::instance( true );
 		$active_log = $logger->get_log_file();
 		if ( $active_log && realpath( $active_log ) === $real_file_path ) {
-			wp_send_json_error(
+			SScribe_AJAX_Guard::error(
 				array(
 					'message' => __( 'Cannot delete the active log file.', 'sscribe-export-site-pages' ),
 					'nonce'   => wp_create_nonce( 'sscribe_export_nonce' ),
@@ -811,7 +811,7 @@ class SScribe_Admin_Debug {
 
 		wp_delete_file( $file_path );
 		if ( file_exists( $file_path ) ) {
-			wp_send_json_error(
+			SScribe_AJAX_Guard::error(
 				array(
 					'message' => __( 'Failed to delete file.', 'sscribe-export-site-pages' ),
 					'nonce'   => wp_create_nonce( 'sscribe_export_nonce' ),
