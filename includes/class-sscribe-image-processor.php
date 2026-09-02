@@ -214,7 +214,7 @@ class SScribe_Image_Processor {
 						array(
 							'category' => 'image_download',
 							'host'     => $host,
-							'code'     => (string) $response->get_error_code(),
+							'code'     => (string) ( is_object( $response ) ? $response->get_error_code() : 'unknown' ),
 						)
 					);
 				}
@@ -548,7 +548,7 @@ class SScribe_Image_Processor {
 		if ( $seconds <= 0 ) {
 			return;
 		}
-		if ( null !== self::$test_backoff_override && is_callable( self::$test_backoff_override ) ) {
+		if ( is_callable( self::$test_backoff_override ) ) {
 			( self::$test_backoff_override )( $seconds );
 			return;
 		}

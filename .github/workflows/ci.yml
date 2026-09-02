@@ -159,6 +159,22 @@ jobs:
             - name: Security scanner integration test
               run: vendor/bin/phpunit tests/Integration/SScribe_Security_Scan_Test.php
 
+            # Phase 33: WordPress Plugin Check CI contract — pins the
+            # plugin-check job (uses wordpress/plugin-check-action@v1,
+            # strict: true, include-experimental: true, depends on
+            # [test, frontend-quality, audit, real-wp-tests], audits
+            # ./dist/sscribe-export-site-pages). Without this guard,
+            # a regression in the Plugin Check wiring silently ships
+            # a build that WP.org rejects on submission.
+            - name: Verify Plugin Check CI contract
+              run: php scripts/verify-plugin-check.php
+
+            # Phase 33: PHPUnit-level regression for the Plugin Check
+            # verifier — runs against well-formed and mutated ci.yml
+            # payloads.
+            - name: Plugin Check CI integration test
+              run: vendor/bin/phpunit tests/Integration/SScribe_Plugin_Check_Test.php
+
             # Phase 23: License SPDX regression — mainfile / readme.txt /
             # composer.json must all use the canonical GPL-2.0-or-later
             # identifier, and license.txt must ship the full GPL v2 text.
