@@ -202,6 +202,8 @@ final class SScribe_ZIP_Content_Rules_Test extends TestCase {
 			'vendor-prefixed/autoload.php'  => "<?php // autoload\n",
 			'includes/collector.php'        => "<?php // collector\n",
 			'languages/sscribe-export-site-pages.pot' => 'msgid ""',
+			'assets/icons/index.svg'        => '<svg/>',
+			'assets/fonts/icon.woff2'       => 'f',
 		);
 		$this->write_tree( $root, $tree );
 	}
@@ -462,6 +464,7 @@ final class SScribe_ZIP_Content_Rules_Test extends TestCase {
 				'vendor-prefixed/autoload.php'  => "<?php // autoload\n",
 				'includes/collector.php'        => "<?php // collector\n",
 				'languages/sscribe-export-site-pages.pot' => 'msgid ""',
+				'assets/icons/index.svg'        => '<svg/>',
 			);
 			foreach ( $tree as $rel => $content ) {
 				$path = $root . '/' . $rel;
@@ -476,6 +479,168 @@ final class SScribe_ZIP_Content_Rules_Test extends TestCase {
 		list( $code, $output ) = $this->run_against_dist( array( 'tree_builder' => $builder ) );
 		$this::assertSame( 1, $code );
 		$this::assertStringContainsString( 'ZIP filename', $output );
+	}
+
+	/**
+	 * The dist tree must not contain any dev-only top-level directory
+	 * — `.git/`, `.github/`, `tests/`, `node_modules/`, plain `vendor/`,
+	 * `coverage/`, `scripts/`, etc. Add a `.git/HEAD` file to the tree
+	 * and confirm the verifier catches it.
+	 */
+	public function test_forbidden_top_segment_fails(): void {
+		$builder = static function ( string $root ): void {
+			$tree = array(
+				'sscribe-export-site-pages.php' => "<?php\n/**\n * Plugin Name: SScribe\n * Version: 9.9.9-test\n */\n",
+				'readme.txt'                    => "=== SScribe ===\n",
+				'license.txt'                   => "GPL v2\n",
+				'uninstall.php'                 => "<?php // uninstall\n",
+				'composer.json'                 => json_encode( array( 'autoload' => array( 'classmap' => array( 'vendor-prefixed/' ) ) ) ),
+				'vendor-prefixed/autoload.php'  => "<?php // autoload\n",
+				'includes/collector.php'        => "<?php // collector\n",
+				'languages/sscribe-export-site-pages.pot' => 'msgid ""',
+				'assets/icons/index.svg'        => '<svg/>',
+				'.git/HEAD'                     => "ref: refs/heads/main\n",
+				'tests/leftover.php'            => "<?php // leftover dev test\n",
+			);
+			foreach ( $tree as $rel => $content ) {
+				$path = $root . '/' . $rel;
+				$dir  = dirname( $path );
+				if ( ! is_dir( $dir ) ) {
+					mkdir( $dir, 0755, true );
+				}
+				// phpcs:ignore WordPress.WP.AlternativeFunctions.file_system_operations_file_put_contents
+				file_put_contents( $path, (string) $content );
+			}
+		};
+		list( $code, $output ) = $this->run_against_dist( array( 'tree_builder' => $builder ) );
+		$this::assertSame( 1, $code, 'Forbidden top-segment must fail. Output:' . "\n" . $output );
+		$this::assertStringContainsString( 'dev-only top-level entry `.git/`', $output );
+		$this::assertStringContainsString( 'dev-only top-level entry `tests/`', $output );
+	}
+
+	/**
+	 * The dist tree must not contain IDE / temp / env / log markers
+	 * (`.env`, `.env.local`, `*.log`, `*.swp`, `*~`, etc.). Plant a
+	 * handful and confirm the verifier flags every pattern it sees.
+	 */
+	public function test_forbidden_basename_fails(): void {
+		$builder = static function ( string $root ): void {
+			$tree = array(
+				'sscribe-export-site-pages.php' => "<?php\n/**\n * Plugin Name: SScribe\n * Version: 9.9.9-test\n */\n",
+				'readme.txt'                    => "=== SScribe ===\n",
+				'license.txt'                   => "GPL v2\n",
+				'uninstall.php'                 => "<?php // uninstall\n",
+				'composer.json'                 => json_encode( array( 'autoload' => array( 'classmap' => array( 'vendor-prefixed/' ) ) ) ),
+				'vendor-prefixed/autoload.php'  => "<?php // autoload\n",
+				'includes/collector.php'        => "<?php // collector\n",
+				'languages/sscribe-export-site-pages.pot' => 'msgid ""',
+				'assets/icons/index.svg'        => '<svg/>',
+				// Plant three forbidden basename patterns.
+				'includes/.env'                 => "SECRET=leaked\n",
+				'includes/debug.log'            => "noise\n",
+				'includes/collector.php.swp'    => "vim swap\n",
+			);
+			foreach ( $tree as $rel => $content ) {
+				$path = $root . '/' . $rel;
+				$dir  = dirname( $path );
+				if ( ! is_dir( $dir ) ) {
+					mkdir( $dir, 0755, true );
+				}
+				// phpcs:ignore WordPress.WP.AlternativeFunctions.file_system_operations_file_put_contents
+				file_put_contents( $path, (string) $content );
+			}
+		};
+		list( $code, $output ) = $this->run_against_dist( array( 'tree_builder' => $builder ) );
+		$this::assertSame( 1, $code, 'Forbidden basename must fail. Output:' . "\n" . $output );
+		$this::assertStringContainsString( 'IDE/temp/env/log file shipped', $output );
+		$this::assertStringContainsString( '.env', $output );
+		$this::assertStringContainsString( 'debug.log', $output );
+		$this::assertStringContainsString( 'collector.php.swp', $output );
+	}
+
+	/**
+	 * A submission ZIP must contain the runtime files WP.org requires:
+	 * vendor-prefixed/, vendor-prefixed/autoload.php, assets/, license.txt,
+	 * uninstall.php, composer.json. Strip vendor-prefixed/ entirely and
+	 * confirm the verifier fails on the missing-directory check (not
+	 * just the missing-autoload check).
+	 */
+	public function test_missing_required_runtime_fails(): void {
+		$builder = static function ( string $root ): void {
+			// Defensive: clear any vendor-prefixed/ leftover from a
+			// previous test's snapshot/restore before rebuilding the
+			// tree. Windows file locks can leave an empty directory
+			// behind after rrmdir() and that would mask the violation
+			// this test is meant to flag.
+			if ( is_dir( $root . '/vendor-prefixed' ) ) {
+				$iter = new \RecursiveDirectoryIterator( $root . '/vendor-prefixed', \FilesystemIterator::SKIP_DOTS );
+				foreach ( new \RecursiveIteratorIterator( $iter, \RecursiveIteratorIterator::CHILD_FIRST ) as $node ) {
+					if ( $node->isDir() ) {
+						@rmdir( $node->getPathname() );
+					} else {
+						@unlink( $node->getPathname() );
+					}
+				}
+				@rmdir( $root . '/vendor-prefixed' );
+			}
+			$tree = array(
+				'sscribe-export-site-pages.php' => "<?php\n/**\n * Plugin Name: SScribe\n * Version: 9.9.9-test\n */\n",
+				'readme.txt'                    => "=== SScribe ===\n",
+				'license.txt'                   => "GPL v2\n",
+				'uninstall.php'                 => "<?php // uninstall\n",
+				'composer.json'                 => json_encode( array( 'autoload' => array( 'classmap' => array( 'vendor-prefixed/' ) ) ) ),
+				// vendor-prefixed/ intentionally absent.
+				'includes/collector.php'        => "<?php // collector\n",
+				'languages/sscribe-export-site-pages.pot' => 'msgid ""',
+				'assets/icons/index.svg'        => '<svg/>',
+			);
+			foreach ( $tree as $rel => $content ) {
+				$path = $root . '/' . $rel;
+				$dir  = dirname( $path );
+				if ( ! is_dir( $dir ) ) {
+					mkdir( $dir, 0755, true );
+				}
+				// phpcs:ignore WordPress.WP.AlternativeFunctions.file_system_operations_file_put_contents
+				file_put_contents( $path, (string) $content );
+			}
+		};
+		list( $code, $output ) = $this->run_against_dist( array( 'tree_builder' => $builder ) );
+		$this::assertSame( 1, $code, 'Missing vendor-prefixed/ must fail. Output:' . "\n" . $output );
+		$this::assertStringContainsString( 'Required runtime directory `vendor-prefixed/`', $output );
+	}
+
+	/**
+	 * An empty assets/ directory is as useless as a missing one — the
+	 * admin UI would 404 every icon/font it tries to load. The verifier
+	 * must flag an empty directory as a violation.
+	 */
+	public function test_empty_assets_dir_fails(): void {
+		$builder = static function ( string $root ): void {
+			$tree = array(
+				'sscribe-export-site-pages.php' => "<?php\n/**\n * Plugin Name: SScribe\n * Version: 9.9.9-test\n */\n",
+				'readme.txt'                    => "=== SScribe ===\n",
+				'license.txt'                   => "GPL v2\n",
+				'uninstall.php'                 => "<?php // uninstall\n",
+				'composer.json'                 => json_encode( array( 'autoload' => array( 'classmap' => array( 'vendor-prefixed/' ) ) ) ),
+				'vendor-prefixed/autoload.php'  => "<?php // autoload\n",
+				'includes/collector.php'        => "<?php // collector\n",
+				'languages/sscribe-export-site-pages.pot' => 'msgid ""',
+			);
+			foreach ( $tree as $rel => $content ) {
+				$path = $root . '/' . $rel;
+				$dir  = dirname( $path );
+				if ( ! is_dir( $dir ) ) {
+					mkdir( $dir, 0755, true );
+				}
+				// phpcs:ignore WordPress.WP.AlternativeFunctions.file_system_operations_file_put_contents
+				file_put_contents( $path, (string) $content );
+			}
+			// assets/ exists but is empty.
+			mkdir( $root . '/assets', 0755, true );
+		};
+		list( $code, $output ) = $this->run_against_dist( array( 'tree_builder' => $builder ) );
+		$this::assertSame( 1, $code, 'Empty assets/ must fail. Output:' . "\n" . $output );
+		$this::assertStringContainsString( '`assets/` is empty', $output );
 	}
 
 	public function test_live_tree_passes(): void {

@@ -275,13 +275,159 @@ if ( ! is_dir( $dist_dir ) ) {
 			$errors[] = "Stray ZIP in dist/ that does not match the dist mainfile version: {$extra}.";
 		}
 	}
+
+	// 11. No dev-only top-level directory may appear anywhere in the
+	//     dist tree at any depth. WP.org reviewers must not see a
+	//     `.git/`, `.github/`, `tests/`, `tests-e2e/`, `coverage/`,
+	//     `node_modules/`, `scripts/`, `.audit/`, `.idea/`,
+	//     `.vscode/`, or any other development-only directory in the
+	//     submitted ZIP. We check the FIRST segment of every relative
+	//     path so an accidental `node_modules/foo` inside an
+	//     otherwise-clean tree still fails. `vendor/` is also
+	//     forbidden (only `vendor-prefixed/` may ship).
+	$forbidden_top_segments = array(
+		'.git',
+		'.github',
+		'.idea',
+		'.vscode',
+		'.audit',
+		'.cursor',
+		'.claude',
+		'.vs',
+		'.fleet',
+		'.phpunit.cache',
+		'.phpunit.result.cache',
+		'node_modules',
+		'tests',
+		'tests-e2e',
+		'tests-wp',
+		'coverage',
+		'build',
+		'scripts',
+		'docs',
+		'.distignore',
+		'.editorconfig',
+		'.gitignore',
+		'.gitattributes',
+		'phpunit.xml.dist',
+		'phpunit-wp.xml',
+		'playwright.config.ts',
+		'composer.lock',
+		'package.json',
+		'package-lock.json',
+		'vendor', // plain upstream vendor/ must NEVER ship; only vendor-prefixed/
+	);
+	$seen_top_violations = array();
+	foreach ( $iterator as $file ) {
+		if ( ! $file->isFile() ) {
+			continue;
+		}
+		$abs_path = $file->getPathname();
+		$rel_path = str_replace( '\\', '/', substr( $abs_path, strlen( $dist_dir ) + 1 ) );
+		$first    = strtolower( (string) ( explode( '/', $rel_path, 2 )[0] ?? '' ) );
+		if ( '' === $first ) {
+			continue;
+		}
+		if ( in_array( $first, $forbidden_top_segments, true )
+			&& ! isset( $seen_top_violations[ $first ] )
+		) {
+			$seen_top_violations[ $first ] = true;
+			$errors[] = "[{$rel_path}] dev-only top-level entry `{$first}/` leaked into the dist tree. Only `vendor-prefixed/` may ship; every other development path must be stripped at build time.";
+		}
+	}
+	if ( ! empty( $seen_top_violations ) ) {
+		$counts['forbidden_top_segments'] = count( $seen_top_violations );
+	}
+
+	// 12. No IDE / temp / environment / log file patterns may ship.
+	//     These are markers a developer left behind on their machine:
+	//     Vim swap files, editor backups, .env files (which often
+	//     contain secrets), local log files, etc. WP.org rejects a
+	//     submission that ships an `.env` or `.log` because reviewers
+	//     have been bitten by leaked credentials in the past.
+	$forbidden_basename_patterns = array(
+		'/\.env$/i',              // .env
+		'/\.env\..+$/i',          // .env.local, .env.production
+		'/\.log$/i',              // *.log
+		'/\.swp$/i',              // Vim swap
+		'/\.swo$/i',              // Vim swap
+		'/\.bak$/i',              // editor backup
+		'/\.tmp$/i',              // temp file
+		'/\.orig$/i',             // merge conflict backup
+		'/~$/',                   // editor backup
+		'/\.phpstorm\..+$/i',     // JetBrains metadata
+		'/\.iml$/i',              // JetBrains module file
+		'/\.sublime-.+$/i',       // Sublime metadata
+		'/\.code-workspace$/i',   // VS Code workspace
+		'/\.project$/i',          // Eclipse metadata
+		'/\.classpath$/i',        // Eclipse classpath
+		'/\.settings$/i',         // Eclipse settings dir marker
+	);
+	$seen_basename_violations = array();
+	foreach ( $iterator as $file ) {
+		if ( ! $file->isFile() ) {
+			continue;
+		}
+		$abs_path = $file->getPathname();
+		$rel_path = str_replace( '\\', '/', substr( $abs_path, strlen( $dist_dir ) + 1 ) );
+		$bn       = (string) $file->getBasename();
+		foreach ( $forbidden_basename_patterns as $pat ) {
+			if ( preg_match( $pat, $bn ) ) {
+				$key = $pat . '::' . $bn;
+				if ( ! isset( $seen_basename_violations[ $key ] ) ) {
+					$seen_basename_violations[ $key ] = true;
+					$errors[] = "[{$rel_path}] IDE/temp/env/log file shipped in dist tree (matches {$pat}). These are markers a developer left behind and must not be in the submission ZIP.";
+				}
+				break;
+			}
+		}
+	}
+	if ( ! empty( $seen_basename_violations ) ) {
+		$counts['forbidden_basenames'] = count( $seen_basename_violations );
+	}
+
+	// 13. Required runtime files and directories must be present.
+	//     The shipped ZIP must contain vendor-prefixed/ (the prefixed
+	//     dependency tree Strauss produced), assets/ (fonts and icons
+	//     referenced by the admin UI), license.txt (the canonical GPL
+	//     text — every WP.org plugin must ship this verbatim), and the
+	//     uninstall.php cleanup hook (WP.org requires it for any
+	//     plugin that creates tables/options on activation).
+	$required_paths = array(
+		'vendor-prefixed'       => 'directory',
+		'vendor-prefixed/autoload.php' => 'file',
+		'assets'                => 'directory',
+		'license.txt'           => 'file',
+		'uninstall.php'         => 'file',
+		'composer.json'         => 'file',
+	);
+	foreach ( $required_paths as $rel => $kind ) {
+		$abs = $dist_dir . '/' . $rel;
+		if ( 'directory' === $kind ) {
+			if ( ! is_dir( $abs ) ) {
+				$errors[] = "Required runtime directory `{$rel}/` missing from dist tree.";
+				continue;
+			}
+			// Must be non-empty: a placeholder dir is as good as missing.
+			$it = new \FilesystemIterator( $abs, \FilesystemIterator::SKIP_DOTS );
+			if ( ! $it->valid() ) {
+				$errors[] = "Required runtime directory `{$rel}/` is empty in dist tree.";
+			}
+		} else {
+			if ( ! is_file( $abs ) ) {
+				$errors[] = "Required runtime file `{$rel}` missing from dist tree.";
+			}
+		}
+	}
 }
 
 echo "Files checked:       {$counts['total_files']}\n";
 echo "PHP files:           {$counts['php_files_checked']} (parse errors: {$counts['php_parse_errors']})\n";
 echo "JS files:            {$counts['js_files_checked']}\n";
 echo "Empty files:         {$counts['empty_files']}\n";
-echo "OS metadata files:   {$counts['os_metadata_files']}\n\n";
+echo "OS metadata files:   {$counts['os_metadata_files']}\n";
+echo "Forbidden top segs:  " . ( isset( $counts['forbidden_top_segments'] ) ? (int) $counts['forbidden_top_segments'] : 0 ) . "\n";
+echo "Forbidden basenames: " . ( isset( $counts['forbidden_basenames'] ) ? (int) $counts['forbidden_basenames'] : 0 ) . "\n\n";
 
 if ( ! empty( $errors ) ) {
 	echo "Errors:\n";
