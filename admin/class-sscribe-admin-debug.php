@@ -144,7 +144,7 @@ class SScribe_Admin_Debug {
 	 * @param string $required_capability Capability required for this action.
 	 * @return bool True if authorized.
 	 */
-	private function verify_request_authorization( string $rate_bucket = 'debug', string $required_capability = '' ): bool {
+	private function verify_request_authorization( string $rate_bucket = 'debug_read', string $required_capability = '' ): bool {
 		if ( ! check_ajax_referer( 'sscribe_export_nonce', 'nonce', false ) ) {
 			SScribe_AJAX_Guard::error( array( 'message' => __( 'Invalid security token.', 'sscribe-export-site-pages' ) ), 403 );
 			return false;
@@ -191,7 +191,7 @@ class SScribe_Admin_Debug {
 	 * @internal
 	 */
 	public function ajax_debug_save_settings(): void {
-		if ( ! $this->verify_request_authorization( 'debug_settings', 'manage_options' ) ) {
+		if ( ! $this->verify_request_authorization( 'debug_write', 'manage_options' ) ) {
 			return;
 		}
 
@@ -314,7 +314,7 @@ class SScribe_Admin_Debug {
 	 * @internal
 	 */
 	public function ajax_debug_clear_logs(): void {
-		if ( ! $this->verify_request_authorization( 'debug_delete', 'manage_options' ) ) {
+		if ( ! $this->verify_request_authorization( 'debug_write', 'manage_options' ) ) {
 			return;
 		}
 
@@ -486,7 +486,7 @@ class SScribe_Admin_Debug {
 	 * @internal
 	 */
 	public function ajax_debug_refresh_nonce(): void {
-		if ( ! $this->verify_request_authorization() ) {
+		if ( ! $this->verify_request_authorization( 'debug_read' ) ) {
 			return;
 		}
 		wp_send_json_success(
@@ -590,7 +590,7 @@ class SScribe_Admin_Debug {
 	 * @internal
 	 */
 	public function ajax_debug_fetch_rotated(): void {
-		if ( ! $this->verify_request_authorization() ) {
+		if ( ! $this->verify_request_authorization( 'debug_read' ) ) {
 			return;
 		}
 
@@ -731,7 +731,7 @@ class SScribe_Admin_Debug {
 	 * @internal
 	 */
 	public function ajax_debug_delete_rotated(): void {
-		if ( ! $this->verify_request_authorization( 'debug_delete', 'manage_options' ) ) {
+		if ( ! $this->verify_request_authorization( 'debug_write', 'manage_options' ) ) {
 			return;
 		}
 
