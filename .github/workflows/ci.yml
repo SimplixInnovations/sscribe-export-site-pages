@@ -566,6 +566,18 @@ jobs:
             - name: No-internal-details integration test
               run: vendor/bin/phpunit tests/Integration/SScribe_No_Internal_Details_Test.php
 
+            # Phase 61: CI command documentation — every composer
+            # test:* script + every canonical ci.yml step keyword must
+            # be documented in docs/CI_COMMANDS.md with Purpose / Gates
+            # / Failure / Debug / Manifest fields. The verifier walks
+            # composer.json + ci.yml + the doc; the integration test
+            # pins the same contract at the PHPUnit boundary.
+            - name: CI docs contract gate
+              run: composer test:ci-docs
+
+            - name: CI docs integration test
+              run: vendor/bin/phpunit tests/Integration/SScribe_CI_Docs_Test.php
+
             # Phase 51: release scripts must derive version dynamically
             # from SSCRIBE_VERSION. The version-sync verifier already
             # covers this source-level, but a dedicated integration
