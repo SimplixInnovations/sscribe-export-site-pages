@@ -369,6 +369,16 @@ jobs:
             - name: Performance budget integration test
               run: vendor/bin/phpunit tests/Integration/SScribe_Performance_Budget_Test.php
 
+            # Phase 45: session / resume regression — pins the
+            # export-pipeline checkpoint contract (create/get/update/
+            # delete, page_ids are the resume checkpoint, validate()
+            # gate, active-session transient, concurrent-export
+            # block). Without these regressions a future "simplification"
+            # of SScribe_Session could silently ship a build that
+            # loses export state on the first network blip.
+            - name: Session/resume regression test
+              run: vendor/bin/phpunit tests/Integration/SScribe_Session_Resume_Test.php
+
             # Phase 23: License SPDX regression — mainfile / readme.txt /
             # composer.json must all use the canonical GPL-2.0-or-later
             # identifier, and license.txt must ship the full GPL v2 text.
