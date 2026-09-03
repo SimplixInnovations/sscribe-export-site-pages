@@ -364,6 +364,24 @@ failure looks like**, **how to debug**, **what manifest it writes**.
 - **Debug:** `dist/phase-68-test-coverage-manifest.json`.
 - **Manifest:** `dist/phase-68-test-coverage-manifest.json`.
 
+### `composer test:manual-runtime-tests`
+
+- **Script:** `php scripts/verify-manual-runtime-tests.php`
+- **Gates:** `docs/MANUAL_RUNTIME_TESTS_v2.0.0.md` exists,
+  declares the canonical sections (Why this exists, Canonical
+  scenarios, Per-scenario acceptance criteria, What "exact
+  ZIP" means, Evidence recording, How an independent auditor
+  verifies this), and explicitly lists all 6 required
+  environments (Standard WordPress, WordPress + WPML, Redis
+  object cache ON, Redis object cache OFF, OpenLiteSpeed,
+  Cloudflare / proxy). Companion PHPUnit integration test
+  pinned at
+  `tests/Integration/SScribe_Manual_Runtime_Tests_Test.php`.
+- **Failure:** 'Manual runtime test runbook must cover 6
+  canonical environments. Missing: OpenLiteSpeed'.
+- **Debug:** `dist/manual-runtime-tests-manifest.json`.
+- **Manifest:** `dist/manual-runtime-tests-manifest.json`.
+
 ### `composer test:wp`
 
 - **Script:** `php -d extension=sqlite3 -d extension=pdo_sqlite

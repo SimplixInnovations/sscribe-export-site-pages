@@ -686,6 +686,24 @@ jobs:
             - name: Phase 68 test coverage integration test
               run: vendor/bin/phpunit tests/Integration/SScribe_Phase_68_Test_Coverage_Test.php
 
+            # Phase 69: Manual / runtime tests runbook — every
+            # release must be exercised on the EXACT release ZIP
+            # in 6 realistic environments: standard WordPress,
+            # WordPress + WPML, Redis object cache ON, Redis
+            # object cache OFF, OpenLiteSpeed, Cloudflare / proxy.
+            # The verifier asserts the runbook at
+            # docs/MANUAL_RUNTIME_TESTS_v2.0.0.md declares the
+            # canonical sections and explicitly lists all 6
+            # environments. Automated PHPUnit tests cannot replace
+            # this runbook — the gate is the existence + coverage
+            # of the runbook, and reviewer evidence must be
+            # recorded in docs/CI_EVIDENCE_v2.0.0.md.
+            - name: Manual runtime tests runbook gate
+              run: composer test:manual-runtime-tests
+
+            - name: Manual runtime tests integration test
+              run: vendor/bin/phpunit tests/Integration/SScribe_Manual_Runtime_Tests_Test.php
+
             # Phase 51: release scripts must derive version dynamically
             # from SSCRIBE_VERSION. The version-sync verifier already
             # covers this source-level, but a dedicated integration
