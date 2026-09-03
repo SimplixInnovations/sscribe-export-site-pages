@@ -483,6 +483,20 @@ jobs:
             - name: Tag policy integration test
               run: vendor/bin/phpunit tests/Integration/SScribe_Tag_Policy_Test.php
 
+            # Phase 55: branch protection — docs/BRANCH_PROTECTION_v2.0.0.md
+            # is the auditable contract for which GitHub branch-protection
+            # rules apply. The verifier asserts the doc declares every
+            # required clause (no force-push, no admin bypass, required
+            # reviews, conversation resolution, --signoff, squash-only,
+            # audited-SHA pin) and that it cross-references the companion
+            # release evidence files. The integration test pins the same
+            # contract at the PHPUnit boundary.
+            - name: Branch protection contract gate
+              run: composer test:branch-protection
+
+            - name: Branch protection integration test
+              run: vendor/bin/phpunit tests/Integration/SScribe_Branch_Protection_Test.php
+
             # Phase 51: release scripts must derive version dynamically
             # from SSCRIBE_VERSION. The version-sync verifier already
             # covers this source-level, but a dedicated integration

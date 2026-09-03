@@ -32,7 +32,7 @@ All are required for merge on `release/2.0.0-final-hardening`:
 | Frontend quality       | `frontend-quality`   | ci.yml                     | ESLint + Stylelint clean                |
 | Audit                  | `audit`              | ci.yml                     | Build transparency invariants            |
 | Real-WP integration    | `real-wp-tests`      | ci.yml                     | M3 testbench (Phase 30-style) clean     |
-| Plugin-Check           | `plugin-check`       | ci.yml                     | WP.org official plugin-check passes     |
+| Submission Package Check | `plugin-check`    | ci.yml                     | WP.org official plugin-check passes     |
 
 Additional required jobs (matrix):
 
