@@ -49,6 +49,9 @@ run_gate "Acceptance-Matrix" composer test:acceptance-matrix >/tmp/release-audit
 echo "== Debug log acceptance (Phase 59) =="
 run_gate "Debug-Log" composer test:debug-log >/tmp/release-audit-debug-log.log 2>&1
 
+echo "== No-internal-details acceptance (Phase 60) =="
+run_gate "No-Internal-Details" composer test:no-internal-details >/tmp/release-audit-no-internal-details.log 2>&1
+
 echo "== PHPStan =="
 run_gate "PHPStan-level-7" vendor/bin/phpstan analyse --memory-limit=1G --no-progress >/tmp/release-audit-phpstan.log 2>&1
 

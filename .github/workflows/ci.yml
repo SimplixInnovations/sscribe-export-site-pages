@@ -552,6 +552,20 @@ jobs:
             - name: Debug log acceptance integration test
               run: vendor/bin/phpunit tests/Integration/SScribe_Debug_Log_Test.php
 
+            # Phase 60: no raw internal details — user-facing surfaces
+            # (admin UI, AJAX responses, REST endpoints, error messages,
+            # log entries, JavaScript-visible PHP) must NEVER leak raw
+            # filesystem paths, raw SQL fragments, raw $wpdb->last_error
+            # echoes, ABSPATH literals, or ungated debug_backtrace
+            # stacks. The verifier scans every PHP file under
+            # includes/ + admin/; the integration test pins the same
+            # contract at the PHPUnit boundary.
+            - name: No-internal-details contract gate
+              run: composer test:no-internal-details
+
+            - name: No-internal-details integration test
+              run: vendor/bin/phpunit tests/Integration/SScribe_No_Internal_Details_Test.php
+
             # Phase 51: release scripts must derive version dynamically
             # from SSCRIBE_VERSION. The version-sync verifier already
             # covers this source-level, but a dedicated integration
