@@ -817,6 +817,36 @@ jobs:
             - name: Release invariants integration test
               run: vendor/bin/phpunit tests/Integration/SScribe_Release_Invariants_Test.php
 
+            # Phase 76: Final Definition of Done — the
+            # canonical "is v2.0.0 SHIPPED?" state. The
+            # Definition of Done doc at
+            # docs/DEFINITION_OF_DONE_v2.0.0.md declares 34
+            # canonical criteria (every Phase 16-75 gate
+            # green, versions in sync, CI SUCCESS, blockers
+            # resolved, ZIP + SHA sidecar, Plugin Check
+            # PASS, real-WP matrix green, coverage met,
+            # composer/npm audits clean, AI-artifact scan
+            # clean, branch protection, tag policy, release
+            # pipeline, acceptance matrix, debug log
+            # redaction, no-internal-details, CI command
+            # docs, build order, exact-package clean
+            # install, plugin-check triage, JS error-free,
+            # AJAX network trace, UI refactor discipline,
+            # Phase 68 coverage, manual runtime tests,
+            # release blockers, final CI state, exact
+            # artifact evidence, agent final report,
+            # auditor handoff, release invariants, tag
+            # signed, WP.org submitted) — each referencing
+            # its enforcing Phase gate. The verifier walks
+            # the doc and asserts every criterion is
+            # declared; the integration test pins the same
+            # contract at the PHPUnit boundary.
+            - name: Definition of Done contract gate
+              run: composer test:definition-of-done
+
+            - name: Definition of Done integration test
+              run: vendor/bin/phpunit tests/Integration/SScribe_Definition_Of_Done_Test.php
+
             # Phase 51: release scripts must derive version dynamically
             # from SSCRIBE_VERSION. The version-sync verifier already
             # covers this source-level, but a dedicated integration

@@ -97,6 +97,9 @@ run_gate "Auditor-Handoff" composer test:auditor-handoff >/tmp/release-audit-aud
 echo "== Release invariants acceptance (Phase 75) =="
 run_gate "Release-Invariants" composer test:release-invariants >/tmp/release-audit-release-invariants.log 2>&1
 
+echo "== Definition of Done acceptance (Phase 76) =="
+run_gate "Definition-Of-Done" composer test:definition-of-done >/tmp/release-audit-definition-of-done.log 2>&1
+
 echo "== PHPStan =="
 run_gate "PHPStan-level-7" vendor/bin/phpstan analyse --memory-limit=1G --no-progress >/tmp/release-audit-phpstan.log 2>&1
 
@@ -148,6 +151,7 @@ if [ "$FAIL" -ne 0 ]; then
   echo "  /tmp/release-audit-agent-final-report.log"
   echo "  /tmp/release-audit-auditor-handoff.log"
   echo "  /tmp/release-audit-release-invariants.log"
+  echo "  /tmp/release-audit-definition-of-done.log"
   exit 1
 fi
 

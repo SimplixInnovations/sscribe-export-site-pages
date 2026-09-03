@@ -488,6 +488,32 @@ failure looks like**, **how to debug**, **what manifest it writes**.
 - **Debug:** `dist/release-invariants-manifest.json`.
 - **Manifest:** `dist/release-invariants-manifest.json`.
 
+### `composer test:definition-of-done`
+
+- **Script:** `php scripts/verify-definition-of-done.php`
+- **Gates:** `docs/DEFINITION_OF_DONE_v2.0.0.md` declares
+  the canonical sections (Why this exists, Canonical
+  Definition of Done, How an independent auditor verifies
+  this) AND lists all 34 canonical DoD criteria (every
+  Phase 16-75 gate green, versions in sync, CI SUCCESS,
+  blockers resolved, ZIP + SHA sidecar, Plugin Check
+  PASS, real-WP matrix green, coverage met, composer/npm
+  audits clean, AI-artifact scan clean, branch
+  protection, tag policy, release pipeline, acceptance
+  matrix, debug log redaction, no-internal-details, CI
+  command docs, build order, exact-package clean
+  install, plugin-check triage, JS error-free, AJAX
+  network trace, UI refactor discipline, Phase 68
+  coverage, manual runtime tests, release blockers,
+  final CI state, exact artifact evidence, agent final
+  report, auditor handoff, release invariants, tag
+  signed, WP.org submitted). This is the canonical
+  "is v2.0.0 SHIPPED?" gate.
+- **Failure:** "Every canonical DoD criterion must appear
+  in the doc. Missing: <criterion fingerprint>".
+- **Debug:** `dist/definition-of-done-manifest.json`.
+- **Manifest:** `dist/definition-of-done-manifest.json`.
+
 ### `composer test:wp`
 
 - **Script:** `php -d extension=sqlite3 -d extension=pdo_sqlite
