@@ -458,6 +458,19 @@ jobs:
             - name: Workflow governance integration test
               run: vendor/bin/phpunit tests/Integration/SScribe_Workflow_Governance_Test.php
 
+            # Phase 53: release workflow architecture — the release
+            # pipeline MUST split certification (build + plugin-check +
+            # artifact upload) from publication (download certified
+            # artifact + SHA verify + gh release upload). The publish
+            # job MUST NOT run composer install, vendor:prefix, or
+            # build-release.php — that would be a second uncontrolled
+            # build after approval.
+            - name: Release pipeline architecture gate
+              run: composer test:release-pipeline
+
+            - name: Release pipeline integration test
+              run: vendor/bin/phpunit tests/Integration/SScribe_Release_Pipeline_Test.php
+
             # Phase 51: release scripts must derive version dynamically
             # from SSCRIBE_VERSION. The version-sync verifier already
             # covers this source-level, but a dedicated integration

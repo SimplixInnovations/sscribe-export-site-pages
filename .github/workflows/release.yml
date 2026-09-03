@@ -1,5 +1,30 @@
 name: Release
 
+# Phase 53 — release workflow architecture.
+#
+# Separation of concerns:
+#
+#   1. verify    — tag/SSCRIBE_VERSION + tag/main HEAD contract.
+#   2. audit     — composer security audit.
+#   3. test      — phpunit + phpstan + phpcs (the same gates ci.yml ran).
+#   4. certify   — builds + plugin-checks the exact bytes the release
+#                  will publish. Produces the certified artifact:
+#                  ZIP, .sha256 sidecar, build metadata JSON, Plugin
+#                  Check result JSON. Uploads them under a fixed
+#                  `sscribe-release-artifacts` artifact.
+#   5. publish   — consumes the certified artifact, verifies SHA in
+#                  isolation, uploads to GitHub Release, runs the
+#                  download-back proof. Never re-runs composer install,
+#                  vendor:prefix, or build-release.php — those are
+#                  certify's job.
+#
+# The reason for the split: "Do not run a second uncontrolled build
+# after approval." If publish re-built the ZIP, an unsynced `composer
+# install` mutation or a divergent vendor tree would silently produce
+# a different ZIP than the one certify audited. Splitting on SHA
+# verification closes that gap: publish *cannot* proceed unless the
+# certified bytes are still intact.
+
 on:
     push:
         tags:
@@ -115,8 +140,8 @@ jobs:
             - name: Run PHPCS
               run: composer cs
 
-    build:
-        name: Build WordPress Plugin
+    certify:
+        name: Certify Release Artifact
         runs-on: ubuntu-latest
         needs: test
         steps:
@@ -134,17 +159,45 @@ jobs:
               uses: actions/cache@v6
               with:
                   path: vendor
-                  key: ${{ runner.os }}-php-8.4-build-${{ hashFiles('composer.lock') }}
+                  key: ${{ runner.os }}-php-8.4-certify-${{ hashFiles('composer.lock') }}
                   restore-keys: |
-                      ${{ runner.os }}-php-8.4-build-
+                      ${{ runner.os }}-php-8.4-certify-
 
             - name: Install build dependencies
               run: composer install --optimize-autoloader --no-progress
 
             - name: Generate prefixed vendor tree
               run: composer vendor:prefix
-            - name: Build and validate the exact WordPress.org package
+
+            - name: Build the exact WordPress.org package
               run: php scripts/build-release.php
+
+            - name: Record source SHA
+              id: source-sha
+              run: echo "sha=$(git rev-parse HEAD)" >> "$GITHUB_OUTPUT"
+
+            - name: Persist build metadata
+              env:
+                  SOURCE_SHA: ${{ steps.source-sha.outputs.sha }}
+                  RUN_ID: ${{ github.run_id }}
+                  RUN_NUMBER: ${{ github.run_number }}
+                  REF: ${{ github.ref }}
+                  REF_NAME: ${{ github.ref_name }}
+              run: |
+                  VERSION="${REF_NAME#v}"
+                  cat > "dist/sscribe-export-site-pages-${VERSION}.build.json" <<EOF
+                  {
+                    "source_sha": "${SOURCE_SHA}",
+                    "tag": "${REF_NAME}",
+                    "run_id": "${RUN_ID}",
+                    "run_number": "${RUN_NUMBER},
+                    "build_runner": "ubuntu-latest",
+                    "php_version": "8.4",
+                    "built_by": "release.yml (certify job)",
+                    "certified_at": "$(date -u +%FT%TZ)"
+                  }
+                  EOF
+                  echo "Build metadata persisted to dist/sscribe-export-site-pages-${VERSION}.build.json"
 
             - name: Run official WordPress Plugin Check
               uses: wordpress/plugin-check-action@v1
@@ -153,19 +206,94 @@ jobs:
                   strict: true
                   include-experimental: true
 
+            # Phase 53: the certified artifact is uploaded as a single
+            # artifact so the publish job consumes it without rebuilding.
+            - name: Upload certified ZIP
+              uses: actions/upload-artifact@v6
+              with:
+                  name: sscribe-release-zip
+                  path: dist/sscribe-export-site-pages-*.zip
+                  if-no-files-found: error
+
+            - name: Upload SHA-256 sidecar
+              uses: actions/upload-artifact@v6
+              with:
+                  name: sscribe-release-sha
+                  path: dist/sscribe-export-site-pages-*.sha256
+                  if-no-files-found: error
+
+            - name: Upload build metadata
+              uses: actions/upload-artifact@v6
+              with:
+                  name: sscribe-release-build-json
+                  path: dist/sscribe-export-site-pages-*.build.json
+                  if-no-files-found: error
+
+    publish:
+        name: Publish Certified Release
+        runs-on: ubuntu-latest
+        needs: certify
+        steps:
+            # Phase 53: download the certified ZIP/SHA/build.json.
+            # Crucially this job does NOT run composer install or
+            # vendor:prefix — those are certify's responsibility.
+            - name: Download certified ZIP
+              uses: actions/download-artifact@v6
+              with:
+                  name: sscribe-release-zip
+                  path: dist/certified
+
+            - name: Download SHA-256 sidecar
+              uses: actions/download-artifact@v6
+              with:
+                  name: sscribe-release-sha
+                  path: dist/certified
+
+            - name: Download build metadata
+              uses: actions/download-artifact@v6
+              with:
+                  name: sscribe-release-build-json
+                  path: dist/certified
+
+            # Phase 53: SHA verification happens BEFORE publishing. If
+            # the artifacts roundtrip through upload/download with any
+            # bytes flipped, publish stops here.
+            - name: Verify ZIP SHA matches sidecar
+              env:
+                  GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+              run: |
+                  cd "dist/certified"
+                  ZIP_FILE="$(ls sscribe-export-site-pages-*.zip | head -n1)"
+                  SHA_FILE="$(ls sscribe-export-site-pages-*.sha256 | head -n1)"
+                  if [ -z "${ZIP_FILE}" ] || [ -z "${SHA_FILE}" ]; then
+                    echo "ERROR: missing ZIP or SHA artifact"
+                    ls -la
+                    exit 1
+                  fi
+
+                  EXPECTED_SHA="$(cat "${SHA_FILE}" | awk '{print $1}')"
+                  ACTUAL_SHA="$(sha256sum "${ZIP_FILE}" | awk '{print $1}')"
+                  if [ "${EXPECTED_SHA}" != "${ACTUAL_SHA}" ]; then
+                    echo "ERROR: SHA-256 mismatch — download/upload roundtrip altered the certified bytes."
+                    echo "  Expected: ${EXPECTED_SHA}"
+                    echo "  Actual:   ${ACTUAL_SHA}"
+                    exit 1
+                  fi
+                  echo "OK: ZIP SHA-256 matches sidecar (${ACTUAL_SHA})."
+
             - name: Upload to GitHub Release
               env:
                   GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
               run: |
-                  VERSION="${GITHUB_REF_NAME#v}"
-                  ZIP_PATH="dist/sscribe-export-site-pages-${VERSION}.zip"
-                  SHA_PATH="dist/sscribe-export-site-pages-${VERSION}.sha256"
+                  cd "dist/certified"
+                  ZIP_FILE="$(ls sscribe-export-site-pages-*.zip | head -n1)"
+                  SHA_FILE="$(ls sscribe-export-site-pages-*.sha256 | head -n1)"
                   if gh release view "$GITHUB_REF_NAME" >/dev/null 2>&1; then
-                    gh release upload "$GITHUB_REF_NAME" "$ZIP_PATH" "$SHA_PATH" --clobber
+                    gh release upload "$GITHUB_REF_NAME" "$ZIP_FILE" "$SHA_FILE" --clobber
                   else
                     gh release create "$GITHUB_REF_NAME" \
-                      "$ZIP_PATH" \
-                      "$SHA_PATH" \
+                      "$ZIP_FILE" \
+                      "$SHA_FILE" \
                       --generate-notes \
                       --verify-tag
                   fi
@@ -179,12 +307,13 @@ jobs:
               env:
                   GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
               run: |
+                  cd "dist/certified"
                   VERSION="${GITHUB_REF_NAME#v}"
-                  ZIP_PATH="dist/sscribe-export-site-pages-${VERSION}.zip"
-                  SHA_PATH="dist/sscribe-export-site-pages-${VERSION}.sha256"
+                  ZIP_FILE="$(ls sscribe-export-site-pages-${VERSION}.zip | head -n1)"
+                  SHA_FILE="$(ls sscribe-export-site-pages-${VERSION}.sha256 | head -n1)"
                   DOWNLOAD_DIR="dist/download-verify"
-                  DOWNLOADED_ZIP="${DOWNLOAD_DIR}/sscribe-export-site-pages-${VERSION}.zip"
-                  DOWNLOADED_SHA="${DOWNLOAD_DIR}/sscribe-export-site-pages-${VERSION}.sha256"
+                  DOWNLOADED_ZIP="${DOWNLOAD_DIR}/$(basename "${ZIP_FILE}")"
+                  DOWNLOADED_SHA="${DOWNLOAD_DIR}/$(basename "${SHA_FILE}")"
 
                   rm -rf "${DOWNLOAD_DIR}" && mkdir -p "${DOWNLOAD_DIR}"
 
@@ -197,24 +326,26 @@ jobs:
                     exit 1
                   fi
 
-                  # 2. Verify SHA-256 matches the locally-built artifact.
-                  LOCAL_SHA="$(sha256sum "${ZIP_PATH}" | awk '{print $1}')"
+                  # 2. Verify SHA-256 matches the certified bytes.
+                  LOCAL_SHA="$(sha256sum "${ZIP_FILE}" | awk '{print $1}')"
                   REMOTE_SHA="$(sha256sum "${DOWNLOADED_ZIP}" | awk '{print $1}')"
                   if [ "${LOCAL_SHA}" != "${REMOTE_SHA}" ]; then
-                    echo "ERROR: SHA-256 mismatch between local build and downloaded artifact"
-                    echo "  Local:    ${LOCAL_SHA}"
+                    echo "ERROR: SHA-256 mismatch between certified ZIP and downloaded artifact"
+                    echo "  Certified:  ${LOCAL_SHA}"
                     echo "  Downloaded: ${REMOTE_SHA}"
                     exit 1
                   fi
-                  echo "OK: SHA-256 matches local build"
+                  echo "OK: SHA-256 matches certified ZIP"
 
-                  # 3. Verify the published .sha256 file matches what we built.
-                  EXPECTED_SHA="$(cat "${SHA_PATH}" | awk '{print $1}')"
+                  # 3. Verify the published .sha256 file matches the
+                  #    certified bytes (i.e. the sidecar uploaded
+                  #    contained the same hash the build computed).
+                  EXPECTED_SHA="$(cat "${SHA_FILE}" | awk '{print $1}')"
                   if [ "${EXPECTED_SHA}" != "${LOCAL_SHA}" ]; then
-                    echo "ERROR: published .sha256 file does not match local build"
+                    echo "ERROR: published .sha256 file does not match certified build"
                     exit 1
                   fi
-                  echo "OK: published .sha256 file matches local build"
+                  echo "OK: published .sha256 file matches certified build"
 
                   # 4. Verify the downloaded ZIP is a valid WordPress plugin
                   #    package: contains the plugin main file with the
