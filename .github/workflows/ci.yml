@@ -338,6 +338,21 @@ jobs:
             - name: i18n contract integration test
               run: vendor/bin/phpunit tests/Integration/SScribe_I18N_Test.php
 
+            # Phase 43: accessibility static contract — every shipped
+            # admin partial passes the eight static a11y checks
+            # (accessible names on inputs/buttons, decorative SVGs,
+            # aria-controls targets exist, no positive tabindex, no
+            # inline handlers, sequential heading levels, visible
+            # :focus styles). The full WCAG 2.2 AA / best-practice
+            # matrix runs at runtime in the e2e axe specs. Without
+            # this gate, a regression in the markup ships a build
+            # whose admin UI fails screen-reader accessibility.
+            - name: Verify accessibility contract
+              run: composer test:a11y
+
+            - name: Accessibility contract integration test
+              run: vendor/bin/phpunit tests/Integration/SScribe_Accessibility_Test.php
+
             # Phase 23: License SPDX regression — mainfile / readme.txt /
             # composer.json must all use the canonical GPL-2.0-or-later
             # identifier, and license.txt must ship the full GPL v2 text.

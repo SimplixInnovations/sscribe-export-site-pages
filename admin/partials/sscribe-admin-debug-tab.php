@@ -120,7 +120,7 @@ $sscribe_show_wp_debug_notice = ( defined( 'WP_DEBUG' ) && WP_DEBUG );
 				</label>
 			</div>
 			<button type="button" class="sscribe-button sscribe-button-outline" id="sscribe-debug-refresh-btn">
-				<svg width="16" height="16" viewBox="0 0 16 16" fill="currentColor">
+				<svg width="16" height="16" viewBox="0 0 16 16" fill="currentColor" aria-hidden="true">
 					<path d="M13.65 2.35A8 8 0 1 0 16 8h-2a6 6 0 1 1-1.76-4.24L10 6h6V0l-2.35 2.35z"/>
 				</svg>
 				<span><?php esc_html_e( 'Refresh logs', 'sscribe-export-site-pages' ); ?></span>
