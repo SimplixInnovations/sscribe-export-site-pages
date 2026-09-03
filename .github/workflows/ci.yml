@@ -432,6 +432,20 @@ jobs:
             - name: AJAX security integration test
               run: vendor/bin/phpunit tests/Integration/SScribe_Ajax_Security_Test.php
 
+            # Phase 50: lifecycle contract — activation,
+            # deactivation, and uninstall must stay in their lanes.
+            # Without this gate a regression that lets the
+            # deactivator delete user options ships a release that
+            # destroys data when the user only deactivates; a
+            # regression that skips the WP_UNINSTALL_PLUGIN guard
+            # ships a release whose uninstall runs outside the
+            # WP-managed lifecycle.
+            - name: Lifecycle gate
+              run: composer test:lifecycle
+
+            - name: Lifecycle integration test
+              run: vendor/bin/phpunit tests/Integration/SScribe_Lifecycle_Test.php
+
             # Phase 23: License SPDX regression — mainfile / readme.txt /
             # composer.json must all use the canonical GPL-2.0-or-later
             # identifier, and license.txt must ship the full GPL v2 text.
