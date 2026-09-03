@@ -740,6 +740,24 @@ jobs:
             - name: Final CI state integration test
               run: vendor/bin/phpunit tests/Integration/SScribe_Final_CI_State_Test.php
 
+            # Phase 72: Required exact artifact evidence — the
+            # release tag MUST NOT be cut until the bit-level
+            # audit trail for the exact release ZIP is recorded:
+            # SHA-256, byte size, file count, source SHA, builder
+            # run ID, builder workflow, plugin check URL, clean
+            # install doc reference, and build timestamp. The
+            # artifact-evidence doc at
+            # docs/EXACT_ARTIFACT_EVIDENCE_v2.0.0.md declares
+            # the canonical 12 fields. The verifier walks the
+            # doc and asserts every field is present; the
+            # integration test pins the same contract at the
+            # PHPUnit boundary.
+            - name: Exact artifact evidence contract gate
+              run: composer test:exact-artifact-evidence
+
+            - name: Exact artifact evidence integration test
+              run: vendor/bin/phpunit tests/Integration/SScribe_Exact_Artifact_Evidence_Test.php
+
             # Phase 51: release scripts must derive version dynamically
             # from SSCRIBE_VERSION. The version-sync verifier already
             # covers this source-level, but a dedicated integration

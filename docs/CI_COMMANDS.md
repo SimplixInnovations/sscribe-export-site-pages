@@ -415,6 +415,25 @@ failure looks like**, **how to debug**, **what manifest it writes**.
 - **Debug:** `dist/final-ci-state-manifest.json`.
 - **Manifest:** `dist/final-ci-state-manifest.json`.
 
+### `composer test:exact-artifact-evidence`
+
+- **Script:** `php scripts/verify-exact-artifact-evidence.php`
+- **Gates:** `docs/EXACT_ARTIFACT_EVIDENCE_v2.0.0.md` declares
+  the canonical sections (Why this exists, Canonical
+  evidence fields, How an independent auditor verifies
+  this), lists all 12 canonical evidence fields (version,
+  zip_filename, zip_sha256, zip_byte_size, zip_file_count,
+  source_sha, source_short_sha, builder_run_id,
+  builder_workflow, plugin_check_url, clean_install_doc,
+  build_timestamp), the exact release ZIP exists in dist/,
+  and the `.sha256` sidecar is present. This is the
+  canonical "is the bit-level audit trail recorded?" gate.
+- **Failure:** "dist/ must contain the exact release ZIP
+  (sscribe-export-site-pages-{VERSION}.zip) for the
+  Phase 72 gate."
+- **Debug:** `dist/exact-artifact-evidence-manifest.json`.
+- **Manifest:** `dist/exact-artifact-evidence-manifest.json`.
+
 ### `composer test:wp`
 
 - **Script:** `php -d extension=sqlite3 -d extension=pdo_sqlite
