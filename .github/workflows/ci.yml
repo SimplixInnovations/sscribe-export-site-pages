@@ -404,6 +404,20 @@ jobs:
             - name: Export result validation integration test
               run: vendor/bin/phpunit tests/Integration/SScribe_Export_Result_Validation_Test.php
 
+            # Phase 48: download security — the customer's download
+            # link is gated by a single-use 32-hex token persisted on
+            # the export row. The token must be validated with
+            # hash_equals (constant-time), rotated atomically, and
+            # fail closed on empty / wrong / missing tokens. Without
+            # this gate a regression that drops the lock or skips
+            # rotation ships a release whose download URL either
+            # leaks across users or works forever.
+            - name: Download security gate
+              run: composer test:download-security
+
+            - name: Download security integration test
+              run: vendor/bin/phpunit tests/Integration/SScribe_Download_Security_Test.php
+
             # Phase 23: License SPDX regression — mainfile / readme.txt /
             # composer.json must all use the canonical GPL-2.0-or-later
             # identifier, and license.txt must ship the full GPL v2 text.
