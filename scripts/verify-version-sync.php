@@ -1,6 +1,27 @@
 <?php
 /**
- * SScribe Version Sync Verifier
+ * SScribe Version Sync Verifier — Phase 51.
+ *
+ * Source-of-truth contract: SSCRIBE_VERSION constant in
+ * sscribe-export-site-pages.php.
+ *
+ * CI gates this synchronisation BEFORE all other checks (via
+ * `composer ci`'s opening `version:check`) and `Do not tag/release
+ * until this passes` is the documented release invariant.
+ *
+ * Verified sources:
+ *   - plugin_header (Version: in plugin file docblock)
+ *   - constant (SSCRIBE_VERSION define)
+ *   - stable_tag (readme.txt)
+ *   - css_header / tokens_css_header (admin/css/*.css)
+ *   - admin_js_header / debug_js_header (admin/js/*.js)
+ *   - pot_header (languages/*.pot)
+ *   - package_json / package_lock
+ *   - readme_changelog (latest = X.Y.Z block in readme.txt)
+ *   - release_scripts (Phase 51): scripts/build-release.php must
+ *     define `function get_version()` that reads `Version:` from
+ *     the plugin header, and the ZIP filename must derive from
+ *     `$version`, not a hardcoded literal
  *
  * @package SScribe_Export_Site_Pages
  */
@@ -307,6 +328,107 @@ if ( count( $versions ) < 2 ) {
 		}
 	}
 }
+
+/**
+ * Release scripts version contract (Phase 51).
+ *
+ * scripts/build-release.php MUST derive its version dynamically from
+ * the canonical SSCRIBE_VERSION constant (via the plugin header) so a
+ * botched release never ships a stale ZIP tag. We statically verify:
+ *
+ *   - the script defines `function get_version(string, string): string`
+ *   - that function reads `Version:` via preg_match (not a literal)
+ *   - the script does NOT contain a hardcoded version literal of the
+ *     canonical form `X.Y.Z` outside the get_version() function body
+ *     (a regression that hardcodes "2.0.1" while SSCRIBE_VERSION is
+ *     "2.0.0" ships a broken ZIP tag)
+ *   - the ZIP filename uses the dynamic `$version` variable, not a
+ *     literal substring
+ */
+$build_release_path = $root_dir . '/scripts/build-release.php';
+$release_script_ok  = true;
+if ( ! file_exists( $build_release_path ) ) {
+	$version_warnings[] = '[release_scripts] scripts/build-release.php not found.';
+	$release_script_ok  = false;
+} else {
+	$build_source = (string) file_get_contents( $build_release_path );
+
+	// 1. get_version() function exists with the expected signature.
+	$has_get_version = (bool) preg_match(
+		'#function\s+get_version\s*\(\s*string\s+\$root\s*,\s*string\s+\$plugin_file\s*\)\s*:\s*string\s*\{#',
+		$build_source
+	);
+	if ( ! $has_get_version ) {
+		$version_errors[] = '[release_scripts] scripts/build-release.php does not define `function get_version(string $root, string $plugin_file): string`.';
+		$release_script_ok = false;
+	}
+
+	// 2. The function body reads the version from the plugin header
+	// (`Version:` regex) rather than returning a hardcoded literal.
+	$reads_dynamically = (bool) preg_match(
+		'#preg_match\s*\(\s*[\'"][^\'"]*Version:[^\'"]*[\'"]#',
+		$build_source
+	);
+	if ( ! $reads_dynamically ) {
+		$version_errors[] = '[release_scripts] scripts/build-release.php get_version() must read the version via a `Version:` preg_match — not a hardcoded literal.';
+		$release_script_ok = false;
+	}
+
+	// 3. The ZIP filename uses the {$version} variable, not a literal.
+	$zip_uses_variable = (bool) preg_match(
+		'#sscribe-export-site-pages-\{\s*\$version\s*\}\.zip#',
+		$build_source
+	);
+	if ( ! $zip_uses_variable ) {
+		$version_errors[] = '[release_scripts] scripts/build-release.php ZIP filename must be `sscribe-export-site-pages-{$version}.zip` (variable, not a literal).';
+		$release_script_ok = false;
+	}
+
+	// 4. The script body (outside the get_version() function) must not
+	// contain a hardcoded `X.Y.Z` version literal. A regression that
+	// copy-pastes `2.0.0` into the ZIP name while the canonical is
+	// `2.0.1` ships a broken release artifact.
+	//
+	// We strip the get_version() function body before scanning so its
+	// `Version:\s*([0-9.]+)` regex (which contains `[0-9.]+`, not an
+	// actual version literal) does not falsely trip the check.
+	$stripped = (string) preg_replace(
+		'#function\s+get_version\s*\([^)]+\)[^}]*\}[^}]*\}#s',
+		'',
+		$build_source
+	);
+	$hardcoded_version_hits = array();
+	if ( preg_match_all( '/\b(\d+\.\d+\.\d+)\b/', $stripped, $hc_matches, PREG_SET_ORDER ) ) {
+		foreach ( $hc_matches as $hc_match ) {
+			$candidate = $hc_match[1];
+			// Only flag if the candidate is plausible as the current
+			// canonical version (same major), otherwise this fires on
+			// unrelated pins like mpdf/mpdf ~8.3.0 in copy-pasted
+			// notes.
+			if ( null !== $canonical_version && substr( $candidate, 0, strpos( $candidate, '.' ) ) !== substr( $canonical_version, 0, strpos( $canonical_version, '.' ) ) ) {
+				continue;
+			}
+			$major = (int) substr( $candidate, 0, strpos( $candidate, '.' ) );
+			$canon = (int) substr( $canonical_version, 0, strpos( $canonical_version, '.' ) );
+			if ( $major !== $canon ) {
+				continue;
+			}
+			// Allow if the candidate IS the canonical version (in a
+			// comment that says "current 2.0.0" etc.) — that drifts the
+			// message but does not pin a stale literal.
+			if ( null !== $canonical_version && $candidate === $canonical_version ) {
+				continue;
+			}
+			$hardcoded_version_hits[] = $candidate;
+		}
+	}
+	if ( ! empty( $hardcoded_version_hits ) ) {
+		$version_errors[] = '[release_scripts] scripts/build-release.php contains hardcoded version literals outside get_version(): ' . implode( ', ', array_unique( $hardcoded_version_hits ) ) . '. The script must derive version dynamically from SSCRIBE_VERSION.';
+		$release_script_ok = false;
+	}
+}
+$versions['release_scripts'] = $release_script_ok ? $canonical_version : ( $canonical_version ?? '' );
+
 
 if ( ! empty( $versions['constant'] ) ) {
 	$readme_file = $root_dir . '/readme.txt';
