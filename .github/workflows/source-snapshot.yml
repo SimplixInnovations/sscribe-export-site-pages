@@ -1,0 +1,39 @@
+name: source-snapshot
+
+permissions:
+  contents: read
+
+on:
+  push:
+    branches:
+      - fix/2.0.0-release-blockers-final-v2
+
+jobs:
+  snapshot:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v6
+        with:
+          persist-credentials: false
+
+      - name: Package source-only workspace
+        shell: bash
+        run: |
+          tar \
+            --exclude=.git \
+            --exclude=vendor \
+            --exclude=vendor-prefixed \
+            --exclude=node_modules \
+            --exclude=tests-wp/_wordpress \
+            --exclude=tests-wp/_wordpress-tests-lib \
+            --exclude=tests-wp/.cache \
+            --exclude=dist \
+            --exclude=coverage \
+            -czf /tmp/sscribe-source-snapshot.tar.gz .
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: source-snapshot
+          path: /tmp/sscribe-source-snapshot.tar.gz
+          if-no-files-found: error
