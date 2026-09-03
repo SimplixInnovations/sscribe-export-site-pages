@@ -307,6 +307,26 @@ failure looks like**, **how to debug**, **what manifest it writes**.
 - **Debug:** `dist/js-error-free-manifest.json`.
 - **Manifest:** `dist/js-error-free-manifest.json`.
 
+### `composer test:ajax-network-trace`
+
+- **Script:** `php scripts/verify-ajax-network-trace.php`
+- **Gates:** every `wp_ajax_sscribe_*` action registered anywhere
+  in the source tree (after stripping `/* */` docblocks) appears as
+  a row in `docs/AJAX_NETWORK_TRACE_v2.0.0.md`, the trace doc
+  declares the canonical sections (Why this exists, Conventions,
+  Endpoints, Guard surface), the Endpoints table declares the
+  canonical columns (Action, Handler, Capability, Nonce action,
+  Rate-limit bucket, Response shape), and ZERO
+  `wp_ajax_nopriv_sscribe_*` actions are ever registered (the
+  plugin is admin-only). The companion PHPUnit integration test
+  is pinned at
+  `tests/Integration/SScribe_AJAX_Network_Trace_Test.php`.
+- **Failure:** "Every registered wp_ajax_sscribe_* action must
+  appear as a row in docs/AJAX_NETWORK_TRACE_v2.0.0.md. Missing:
+  wp_ajax_sscribe_foo".
+- **Debug:** `dist/ajax-network-trace-manifest.json`.
+- **Manifest:** `dist/ajax-network-trace-manifest.json`.
+
 ### `composer test:wp`
 
 - **Script:** `php -d extension=sqlite3 -d extension=pdo_sqlite

@@ -640,6 +640,19 @@ jobs:
             - name: JS error-free integration test
               run: vendor/bin/phpunit tests/Integration/SScribe_JS_Error_Free_Test.php
 
+            # Phase 66: AJAX network trace requirement — every
+            # wp_ajax_sscribe_* action registered in source MUST
+            # appear as a row in docs/AJAX_NETWORK_TRACE_v2.0.0.md
+            # with Action / Handler / Capability / Nonce action /
+            # Rate-limit bucket / Response shape columns. The
+            # verifier also asserts zero public (nopriv) actions
+            # are ever registered.
+            - name: AJAX network trace contract gate
+              run: composer test:ajax-network-trace
+
+            - name: AJAX network trace integration test
+              run: vendor/bin/phpunit tests/Integration/SScribe_AJAX_Network_Trace_Test.php
+
             # Phase 51: release scripts must derive version dynamically
             # from SSCRIBE_VERSION. The version-sync verifier already
             # covers this source-level, but a dedicated integration
