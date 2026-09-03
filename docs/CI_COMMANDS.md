@@ -514,6 +514,26 @@ failure looks like**, **how to debug**, **what manifest it writes**.
 - **Debug:** `dist/definition-of-done-manifest.json`.
 - **Manifest:** `dist/definition-of-done-manifest.json`.
 
+### `composer test:branch-policy`
+
+- **Script:** `php scripts/verify-branch-policy.php`
+- **Gates:** `docs/BRANCH_POLICY_v2.0.0.md` declares the
+  canonical sections (Why this exists, Canonical
+  long-lived branches, Forbidden patterns, Promotion
+  rules, How an independent auditor verifies this) AND
+  the git topology matches: only `main` and `develop`
+  exist as local long-lived branches, both exist on
+  origin, both point to the same SHA locally and on
+  origin, and there are no local-only refs (every local
+  ref is mirrored on origin). This prevents the
+  multi-branch divergence problem that produced ~2600
+  divergent commits between `develop` and the old
+  `release/2.0.0-final-hardening` branch during the
+  v2.0.0 release hardening cycle.
+- **Failure:** "Branch-Policy contract invalid: <rule>".
+- **Debug:** `dist/branch-policy-manifest.json`.
+- **Manifest:** `dist/branch-policy-manifest.json`.
+
 ### `composer test:wp`
 
 - **Script:** `php -d extension=sqlite3 -d extension=pdo_sqlite
