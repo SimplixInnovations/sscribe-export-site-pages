@@ -326,6 +326,18 @@ jobs:
             - name: Coverage threshold gate integration test
               run: vendor/bin/phpunit tests/Integration/SScribe_Coverage_Thresholds_Test.php
 
+            # Phase 42: i18n contract — every translation call
+            # declares the canonical text domain, the POT declares
+            # X-Domain + Project-Id-Version that match the plugin,
+            # and every source msgid is in the POT. Without this
+            # gate, a future "fix typo in placeholder" patch could
+            # ship a missing msgid that translators never see.
+            - name: Verify i18n contract
+              run: php scripts/verify-i18n.php
+
+            - name: i18n contract integration test
+              run: vendor/bin/phpunit tests/Integration/SScribe_I18N_Test.php
+
             # Phase 23: License SPDX regression — mainfile / readme.txt /
             # composer.json must all use the canonical GPL-2.0-or-later
             # identifier, and license.txt must ship the full GPL v2 text.
