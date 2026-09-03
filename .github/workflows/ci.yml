@@ -596,6 +596,20 @@ jobs:
             - name: Build-order integration test
               run: vendor/bin/phpunit tests/Integration/SScribe_Build_Order_Test.php
 
+            # Phase 63: exact package clean install — the published
+            # ZIP at dist/sscribe-export-site-pages-{VERSION}.zip
+            # must install + activate cleanly on a fresh WP install.
+            # The verifier asserts the structural contract (ZIP
+            # exists, version matches, activator + uninstall are
+            # intact, smoke doc references the canonical filename);
+            # the integration test pins the same contract at the
+            # PHPUnit boundary by walking the ZIP directly.
+            - name: Exact-package clean-install contract gate
+              run: composer test:exact-package-clean-install
+
+            - name: Exact-package clean-install integration test
+              run: vendor/bin/phpunit tests/Integration/SScribe_Exact_Package_Clean_Install_Test.php
+
             # Phase 51: release scripts must derive version dynamically
             # from SSCRIBE_VERSION. The version-sync verifier already
             # covers this source-level, but a dedicated integration

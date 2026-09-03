@@ -262,6 +262,24 @@ failure looks like**, **how to debug**, **what manifest it writes**.
 - **Debug:** `dist/build-order-manifest.json`.
 - **Manifest:** `dist/build-order-manifest.json`.
 
+### `composer test:exact-package-clean-install`
+
+- **Script:** `php scripts/verify-exact-package-clean-install.php`
+- **Gates:** the published ZIP at
+  `dist/sscribe-export-site-pages-{VERSION}.zip` must install +
+  activate cleanly on a fresh WP install. Asserts the exact ZIP
+  exists for the canonical SSCRIBE_VERSION, ZIP mainfile version
+  header matches SSCRIBE_VERSION, ZIP activator carries the
+  canonical 3 cron hooks + 2 capability names + delegates to the
+  3 table suffixes, ZIP `uninstall.php` is gated on
+  `WP_UNINSTALL_PLUGIN`, and
+  `docs/WP_ORG_CLEAN_INSTALL_SMOKE.md` references the canonical
+  ZIP filename + declares the canonical invariants table.
+- **Failure:** "ZIP must reference all 3 table suffixes from at
+  least one PHP file".
+- **Debug:** `dist/exact-package-clean-install-manifest.json`.
+- **Manifest:** `dist/exact-package-clean-install-manifest.json`.
+
 ### `composer test:wp`
 
 - **Script:** `php -d extension=sqlite3 -d extension=pdo_sqlite

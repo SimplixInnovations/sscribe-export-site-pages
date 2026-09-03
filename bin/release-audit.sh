@@ -58,6 +58,9 @@ run_gate "CI-Docs" composer test:ci-docs >/tmp/release-audit-ci-docs.log 2>&1
 echo "== Build-order acceptance (Phase 62) =="
 run_gate "Build-Order" composer test:build-order >/tmp/release-audit-build-order.log 2>&1
 
+echo "== Exact-package clean-install acceptance (Phase 63) =="
+run_gate "Exact-Package-Clean-Install" composer test:exact-package-clean-install >/tmp/release-audit-exact-package-clean-install.log 2>&1
+
 echo "== PHPStan =="
 run_gate "PHPStan-level-7" vendor/bin/phpstan analyse --memory-limit=1G --no-progress >/tmp/release-audit-phpstan.log 2>&1
 
@@ -96,6 +99,7 @@ if [ "$FAIL" -ne 0 ]; then
   echo "  /tmp/release-audit-eslint.log"
   echo "  /tmp/release-audit-plugincheck.log"
   echo "  /tmp/release-audit-build-order.log"
+  echo "  /tmp/release-audit-exact-package-clean-install.log"
   exit 1
 fi
 
