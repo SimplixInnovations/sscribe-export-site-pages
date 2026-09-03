@@ -88,6 +88,9 @@ run_gate "Final-CI-State" composer test:final-ci-state >/tmp/release-audit-final
 echo "== Exact artifact evidence acceptance (Phase 72) =="
 run_gate "Exact-Artifact-Evidence" composer test:exact-artifact-evidence >/tmp/release-audit-exact-artifact-evidence.log 2>&1
 
+echo "== Agent final report acceptance (Phase 73) =="
+run_gate "Agent-Final-Report" composer test:agent-final-report >/tmp/release-audit-agent-final-report.log 2>&1
+
 echo "== PHPStan =="
 run_gate "PHPStan-level-7" vendor/bin/phpstan analyse --memory-limit=1G --no-progress >/tmp/release-audit-phpstan.log 2>&1
 
@@ -136,6 +139,7 @@ if [ "$FAIL" -ne 0 ]; then
   echo "  /tmp/release-audit-release-blockers.log"
   echo "  /tmp/release-audit-final-ci-state.log"
   echo "  /tmp/release-audit-exact-artifact-evidence.log"
+  echo "  /tmp/release-audit-agent-final-report.log"
   exit 1
 fi
 

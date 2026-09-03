@@ -434,6 +434,21 @@ failure looks like**, **how to debug**, **what manifest it writes**.
 - **Debug:** `dist/exact-artifact-evidence-manifest.json`.
 - **Manifest:** `dist/exact-artifact-evidence-manifest.json`.
 
+### `composer test:agent-final-report`
+
+- **Script:** `php scripts/verify-agent-final-report.php`
+- **Gates:** `docs/AGENT_FINAL_REPORT_v2.0.0.md` declares the
+  canonical sections (Why this exists, Canonical sections,
+  Format rules, How an independent auditor verifies this)
+  AND lists all 6 canonical report sections (Executive
+  summary, Release evidence, Blocker status, CI state, Open
+  items, Verification recipe). This is the canonical "what
+  shape must the final release report take?" gate.
+- **Failure:** "Every canonical report section must appear
+  in the format spec. Missing: ## Verification recipe".
+- **Debug:** `dist/agent-final-report-manifest.json`.
+- **Manifest:** `dist/agent-final-report-manifest.json`.
+
 ### `composer test:wp`
 
 - **Script:** `php -d extension=sqlite3 -d extension=pdo_sqlite

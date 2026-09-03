@@ -758,6 +758,24 @@ jobs:
             - name: Exact artifact evidence integration test
               run: vendor/bin/phpunit tests/Integration/SScribe_Exact_Artifact_Evidence_Test.php
 
+            # Phase 73: Required agent final report format — the
+            # canonical "is the release ready?" report produced
+            # by the release agent MUST follow a fixed,
+            # auditable format declared at
+            # docs/AGENT_FINAL_REPORT_v2.0.0.md. The format
+            # spec declares 6 canonical report sections
+            # (Executive summary, Release evidence, Blocker
+            # status, CI state, Open items, Verification
+            # recipe) + 7 format rules. The verifier walks the
+            # spec and asserts every canonical section is
+            # declared; the integration test pins the same
+            # contract at the PHPUnit boundary.
+            - name: Agent final report contract gate
+              run: composer test:agent-final-report
+
+            - name: Agent final report integration test
+              run: vendor/bin/phpunit tests/Integration/SScribe_Agent_Final_Report_Test.php
+
             # Phase 51: release scripts must derive version dynamically
             # from SSCRIBE_VERSION. The version-sync verifier already
             # covers this source-level, but a dedicated integration
