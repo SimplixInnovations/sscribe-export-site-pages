@@ -610,6 +610,21 @@ jobs:
             - name: Exact-package clean-install integration test
               run: vendor/bin/phpunit tests/Integration/SScribe_Exact_Package_Clean_Install_Test.php
 
+            # Phase 64: Plugin Check warning triage — the canonical
+            # auditable triage doc at docs/PLUGIN_CHECK_WARNINGS_v2.0.0.md
+            # declares every Plugin Check warning and its status
+            # (fixed / acknowledged / in_progress / deferred). A
+            # regression that introduces a NEW warning not in the
+            # table fails this gate before the WP.org reviewer sees
+            # it. The verifier also enforces the source-level
+            # guardrails (no PHP short open tag, no eval(), no
+            # extract() of superglobals).
+            - name: Plugin Check triage contract gate
+              run: composer test:plugin-check-triage
+
+            - name: Plugin Check triage integration test
+              run: vendor/bin/phpunit tests/Integration/SScribe_Plugin_Check_Triage_Test.php
+
             # Phase 51: release scripts must derive version dynamically
             # from SSCRIBE_VERSION. The version-sync verifier already
             # covers this source-level, but a dedicated integration

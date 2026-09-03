@@ -280,6 +280,20 @@ failure looks like**, **how to debug**, **what manifest it writes**.
 - **Debug:** `dist/exact-package-clean-install-manifest.json`.
 - **Manifest:** `dist/exact-package-clean-install-manifest.json`.
 
+### `composer test:plugin-check-triage`
+
+- **Script:** `php scripts/verify-plugin-check-triage.php`
+- **Gates:** the canonical Plugin Check triage doc at
+  `docs/PLUGIN_CHECK_WARNINGS_v2.0.0.md` declares every canonical
+  section + table column + status, the doc cites every source-
+  level guardrail (no `extract($_POST)`, no `eval()`, no PHP
+  short open tag, etc.), AND the live source tree under
+  `includes/` + `admin/` is free of those known-bad patterns.
+- **Failure:** "Source tree is not free of Plugin Check
+  known-bad patterns".
+- **Debug:** `dist/plugin-check-triage-manifest.json`.
+- **Manifest:** `dist/plugin-check-triage-manifest.json`.
+
 ### `composer test:wp`
 
 - **Script:** `php -d extension=sqlite3 -d extension=pdo_sqlite
