@@ -653,6 +653,23 @@ jobs:
             - name: AJAX network trace integration test
               run: vendor/bin/phpunit tests/Integration/SScribe_AJAX_Network_Trace_Test.php
 
+            # Phase 67: UI refactor discipline — the admin
+            # surface (PHP classes, CSS, JS, partials) MUST stay
+            # at the v1.9.0 file count from the commit that
+            # declared the freeze. The verifier records the
+            # BASELINE_SHA, walks `git ls-tree` at HEAD and at
+            # the baseline, and asserts they match exactly; the
+            # diff between baseline and HEAD must contain zero
+            # renames and zero additions under admin/css/,
+            # admin/js/, admin/partials/, or admin/*.php. A
+            # post-release modularization backlog records what is
+            # intentionally deferred so the freeze stays scoped.
+            - name: UI refactor discipline contract gate
+              run: composer test:ui-refactor-discipline
+
+            - name: UI refactor discipline integration test
+              run: vendor/bin/phpunit tests/Integration/SScribe_UI_Refactor_Discipline_Test.php
+
             # Phase 51: release scripts must derive version dynamically
             # from SSCRIBE_VERSION. The version-sync verifier already
             # covers this source-level, but a dedicated integration

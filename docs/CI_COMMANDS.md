@@ -327,6 +327,27 @@ failure looks like**, **how to debug**, **what manifest it writes**.
 - **Debug:** `dist/ajax-network-trace-manifest.json`.
 - **Manifest:** `dist/ajax-network-trace-manifest.json`.
 
+### `composer test:ui-refactor-discipline`
+
+- **Script:** `php scripts/verify-ui-refactor-discipline.php`
+- **Gates:** `docs/UI_REFACTOR_DISCIPLINE_v2.0.0.md` declares the
+  canonical sections (Why this exists, Baseline SHA, File-count
+  lock, Rename / add / split ban, Allowed modifications, Post-
+  release modularization backlog, How an independent auditor
+  verifies this), records a `BASELINE_SHA` line that resolves to
+  a real commit, the admin surface file count at HEAD matches the
+  baseline exactly (no additions, no removals), the diff between
+  baseline and HEAD contains zero renames (`R`) and zero
+  additions (`A`) under admin/css/, admin/js/, admin/partials/,
+  or admin/*.php, and a post-release modularization backlog with
+  at least 3 deferred items is declared. Companion PHPUnit
+  integration test pinned at
+  `tests/Integration/SScribe_UI_Refactor_Discipline_Test.php`.
+- **Failure:** "Admin files MUST NOT be renamed between
+  BASELINE_SHA and HEAD".
+- **Debug:** `dist/ui-refactor-discipline-manifest.json`.
+- **Manifest:** `dist/ui-refactor-discipline-manifest.json`.
+
 ### `composer test:wp`
 
 - **Script:** `php -d extension=sqlite3 -d extension=pdo_sqlite
