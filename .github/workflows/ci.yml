@@ -510,6 +510,21 @@ jobs:
             - name: Real-WP matrix integration test
               run: vendor/bin/phpunit tests/Integration/SScribe_Real_WP_Matrix_Test.php
 
+            # Phase 57: WPML test strategy — WPML is a paid
+            # third-party plugin; we cannot fetch it in CI. The
+            # strategy is: (a) ship a strategy doc, (b) pin the
+            # canonical detection pair (ICL_SITEPRESS_VERSION +
+            # SitePress), (c) pin the canonical filter
+            # (wpml_current_language), (d) exercise both the
+            # WPML-active and WPML-inactive code paths in PHPUnit
+            # via mocks. The verifier walks the source; the
+            # integration test pins the same contract at PHPUnit.
+            - name: WPML strategy contract gate
+              run: composer test:wpml-strategy
+
+            - name: WPML strategy integration test
+              run: vendor/bin/phpunit tests/Integration/SScribe_WPML_Strategy_Test.php
+
             # Phase 51: release scripts must derive version dynamically
             # from SSCRIBE_VERSION. The version-sync verifier already
             # covers this source-level, but a dedicated integration
