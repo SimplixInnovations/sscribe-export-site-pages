@@ -418,6 +418,20 @@ jobs:
             - name: Download security integration test
               run: vendor/bin/phpunit tests/Integration/SScribe_Download_Security_Test.php
 
+            # Phase 49: AJAX security inventory — every
+            # wp_ajax_sscribe_* action registered must either flow
+            # through SScribe_Loader::add_guarded_ajax_action()
+            # (which wraps the callback with nonce + capability
+            # checks) or be wrapped in a centralized
+            # verify_request_authorization() that runs
+            # check_ajax_referer + current_user_can. Zero
+            # wp_ajax_nopriv_sscribe_* registrations allowed.
+            - name: AJAX security inventory gate
+              run: composer test:ajax-security
+
+            - name: AJAX security integration test
+              run: vendor/bin/phpunit tests/Integration/SScribe_Ajax_Security_Test.php
+
             # Phase 23: License SPDX regression — mainfile / readme.txt /
             # composer.json must all use the canonical GPL-2.0-or-later
             # identifier, and license.txt must ship the full GPL v2 text.
