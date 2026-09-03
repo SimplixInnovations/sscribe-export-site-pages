@@ -392,6 +392,18 @@ jobs:
             - name: Format matrix integration test
               run: vendor/bin/phpunit tests/Integration/SScribe_Format_Matrix_Test.php
 
+            # Phase 47: export result validation — the file a
+            # customer downloads must agree with the format picker
+            # (extension + MIME) and the wrapper/factory API surface
+            # must stay stable. Without this guard a regression that
+            # renames or removes an exporter method silently ships
+            # a build that produces a malformed download.
+            - name: Export result validation gate
+              run: composer test:export-result
+
+            - name: Export result validation integration test
+              run: vendor/bin/phpunit tests/Integration/SScribe_Export_Result_Validation_Test.php
+
             # Phase 23: License SPDX regression — mainfile / readme.txt /
             # composer.json must all use the canonical GPL-2.0-or-later
             # identifier, and license.txt must ship the full GPL v2 text.
