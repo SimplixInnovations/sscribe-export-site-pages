@@ -237,6 +237,31 @@ failure looks like**, **how to debug**, **what manifest it writes**.
 - **Debug:** `dist/no-internal-details-manifest.json`.
 - **Manifest:** `dist/no-internal-details-manifest.json`.
 
+### `composer test:ci-docs`
+
+- **Script:** `php scripts/verify-ci-docs.php`
+- **Gates:** every composer `test:*` script and every canonical
+  ci.yml step keyword MUST appear in `docs/CI_COMMANDS.md` with
+  Purpose / Gates / Failure / Debug / Manifest fields. A regression
+  that drops the doc or rewrites a step keyword without updating
+  the doc fails the gate before the gate itself can drift.
+- **Failure:** "Missing documentation for `composer test:foo`".
+- **Debug:** `dist/ci-docs-manifest.json`.
+- **Manifest:** `dist/ci-docs-manifest.json`.
+
+### `composer test:build-order`
+
+- **Script:** `php scripts/verify-build-order.php`
+- **Gates:** the release pipeline MUST run in canonical order —
+  tests FIRST (so PHPUnit fails before any artifact is built),
+  THEN `build-release.php` (composer release / ZIP build), THEN
+  WordPress Plugin Check on the ZIP. Asserted in ci.yml
+  (plugin-check job), release.yml (certify job), and the local
+  bin/release-audit.sh gate.
+- **Failure:** "release.yml certify ordering is broken".
+- **Debug:** `dist/build-order-manifest.json`.
+- **Manifest:** `dist/build-order-manifest.json`.
+
 ### `composer test:wp`
 
 - **Script:** `php -d extension=sqlite3 -d extension=pdo_sqlite

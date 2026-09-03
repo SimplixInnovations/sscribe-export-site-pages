@@ -578,6 +578,24 @@ jobs:
             - name: CI docs integration test
               run: vendor/bin/phpunit tests/Integration/SScribe_CI_Docs_Test.php
 
+            # Phase 62: build-after-test vs test-after-build — the
+            # release pipeline MUST run in this order:
+            #   1. Tests (PHPUnit + every verifier) FIRST.
+            #   2. THEN build the ZIP (build-release.php).
+            #   3. THEN run WordPress Plugin Check on the ZIP.
+            # The verifier walks ci.yml (plugin-check job), release.yml
+            # (certify job), and bin/release-audit.sh; the integration
+            # test pins the same contract at the PHPUnit boundary.
+            # Without this gate, a regression that builds the ZIP
+            # BEFORE tests run silently ships a broken build, or a
+            # regression that runs Plugin Check BEFORE the build
+            # becomes meaningless.
+            - name: Build-order contract gate
+              run: composer test:build-order
+
+            - name: Build-order integration test
+              run: vendor/bin/phpunit tests/Integration/SScribe_Build_Order_Test.php
+
             # Phase 51: release scripts must derive version dynamically
             # from SSCRIBE_VERSION. The version-sync verifier already
             # covers this source-level, but a dedicated integration
