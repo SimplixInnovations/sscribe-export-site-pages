@@ -54,6 +54,7 @@
         "test:coverage:check": "php scripts/verify-coverage-thresholds.php",
         "test:a11y": "php scripts/verify-accessibility.php",
         "test:perf": "php scripts/verify-performance-budget.php",
+        "test:format-matrix": "php scripts/verify-format-matrix.php",
         "test:wp": "php -d extension=sqlite3 -d extension=pdo_sqlite -d memory_limit=1G vendor/bin/phpunit -c phpunit-wp.xml",
         "test:wp:install": "bash bin/install-wp-tests.sh --sqlite",
         "test:wp:uninstall": "bash bin/uninstall-wp-tests.sh",
