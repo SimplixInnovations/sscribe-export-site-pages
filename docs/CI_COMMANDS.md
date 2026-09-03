@@ -382,6 +382,22 @@ failure looks like**, **how to debug**, **what manifest it writes**.
 - **Debug:** `dist/manual-runtime-tests-manifest.json`.
 - **Manifest:** `dist/manual-runtime-tests-manifest.json`.
 
+### `composer test:release-blockers`
+
+- **Script:** `php scripts/verify-release-blockers.php`
+- **Gates:** `docs/RELEASE_BLOCKERS_v2.0.0.md` declares the
+  canonical sections (Why this exists, Status convention,
+  Canonical blockers, How an independent auditor verifies
+  this), the doc lists all 20 canonical blocker rows, every
+  blocker has a status in {RESOLVED, DEFERRED} (zero OPEN or
+  BLOCKED allowed), and the companion integration test exists
+  at `tests/Integration/SScribe_Release_Blockers_Test.php`.
+  This is the canonical "are we ready to tag?" gate.
+- **Failure:** "Every blocker status must be RESOLVED or
+  DEFERRED. Invalid: Some Blocker (OPEN)".
+- **Debug:** `dist/release-blockers-manifest.json`.
+- **Manifest:** `dist/release-blockers-manifest.json`.
+
 ### `composer test:wp`
 
 - **Script:** `php -d extension=sqlite3 -d extension=pdo_sqlite

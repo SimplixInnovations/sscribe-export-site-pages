@@ -704,6 +704,22 @@ jobs:
             - name: Manual runtime tests integration test
               run: vendor/bin/phpunit tests/Integration/SScribe_Manual_Runtime_Tests_Test.php
 
+            # Phase 70: Final release blockers — the v2.0.0
+            # release MUST NOT be declared ready while ANY canonical
+            # release-blocker is OPEN or BLOCKED. The release
+            # blockers checklist at docs/RELEASE_BLOCKERS_v2.0.0.md
+            # declares 20 canonical blockers, each marked RESOLVED
+            # or DEFERRED with evidence. The verifier walks the
+            # checklist and asserts the canonical sections exist,
+            # every blocker row is present, and every status is
+            # RESOLVED or DEFERRED. The integration test pins the
+            # same contract at the PHPUnit boundary.
+            - name: Release blockers contract gate
+              run: composer test:release-blockers
+
+            - name: Release blockers integration test
+              run: vendor/bin/phpunit tests/Integration/SScribe_Release_Blockers_Test.php
+
             # Phase 51: release scripts must derive version dynamically
             # from SSCRIBE_VERSION. The version-sync verifier already
             # covers this source-level, but a dedicated integration
