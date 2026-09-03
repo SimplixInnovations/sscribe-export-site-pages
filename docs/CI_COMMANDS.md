@@ -398,6 +398,23 @@ failure looks like**, **how to debug**, **what manifest it writes**.
 - **Debug:** `dist/release-blockers-manifest.json`.
 - **Manifest:** `dist/release-blockers-manifest.json`.
 
+### `composer test:final-ci-state`
+
+- **Script:** `php scripts/verify-final-ci-state.php`
+- **Gates:** `docs/FINAL_CI_STATE_v2.0.0.md` declares the
+  canonical sections (Why this exists, Status convention,
+  Canonical required jobs, How an independent auditor
+  verifies this), lists all 8 canonical required CI jobs
+  (version-check, lint, test, audit, frontend-quality,
+  real-wp-tests, coverage, plugin-check), and every job has
+  a status in {SUCCESS, SKIPPED} (zero FAILED / CANCELLED /
+  MISSING allowed). This is the canonical "is CI green on
+  the final SHA?" gate.
+- **Failure:** "Every required job status must be SUCCESS
+  or SKIPPED. Invalid: real-wp-tests (FAILED)".
+- **Debug:** `dist/final-ci-state-manifest.json`.
+- **Manifest:** `dist/final-ci-state-manifest.json`.
+
 ### `composer test:wp`
 
 - **Script:** `php -d extension=sqlite3 -d extension=pdo_sqlite

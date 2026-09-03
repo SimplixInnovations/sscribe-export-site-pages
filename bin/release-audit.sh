@@ -82,6 +82,9 @@ run_gate "Manual-Runtime-Tests" composer test:manual-runtime-tests >/tmp/release
 echo "== Release blockers acceptance (Phase 70) =="
 run_gate "Release-Blockers" composer test:release-blockers >/tmp/release-audit-release-blockers.log 2>&1
 
+echo "== Final CI state acceptance (Phase 71) =="
+run_gate "Final-CI-State" composer test:final-ci-state >/tmp/release-audit-final-ci-state.log 2>&1
+
 echo "== PHPStan =="
 run_gate "PHPStan-level-7" vendor/bin/phpstan analyse --memory-limit=1G --no-progress >/tmp/release-audit-phpstan.log 2>&1
 
@@ -128,6 +131,7 @@ if [ "$FAIL" -ne 0 ]; then
   echo "  /tmp/release-audit-phase-68-test-coverage.log"
   echo "  /tmp/release-audit-manual-runtime-tests.log"
   echo "  /tmp/release-audit-release-blockers.log"
+  echo "  /tmp/release-audit-final-ci-state.log"
   exit 1
 fi
 

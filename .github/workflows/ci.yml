@@ -720,6 +720,26 @@ jobs:
             - name: Release blockers integration test
               run: vendor/bin/phpunit tests/Integration/SScribe_Release_Blockers_Test.php
 
+            # Phase 71: Required final CI state — the v2.0.0
+            # release tag MUST NOT be created until every
+            # canonical required CI job (version-check, lint,
+            # test, audit, frontend-quality, real-wp-tests,
+            # coverage, plugin-check) is SUCCESS on the exact
+            # final SHA. The final-CI-state checklist at
+            # docs/FINAL_CI_STATE_v2.0.0.md declares the
+            # canonical list of required jobs and their
+            # allowed statuses. The verifier walks the
+            # checklist and asserts the canonical sections
+            # exist, every required job is listed, and every
+            # status is SUCCESS or SKIPPED. The integration
+            # test pins the same contract at the PHPUnit
+            # boundary.
+            - name: Final CI state contract gate
+              run: composer test:final-ci-state
+
+            - name: Final CI state integration test
+              run: vendor/bin/phpunit tests/Integration/SScribe_Final_CI_State_Test.php
+
             # Phase 51: release scripts must derive version dynamically
             # from SSCRIBE_VERSION. The version-sync verifier already
             # covers this source-level, but a dedicated integration
