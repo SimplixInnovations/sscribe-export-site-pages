@@ -187,14 +187,23 @@ final class SScribe_Agent_Final_Report_Test extends TestCase {
 	}
 
 	public function test_agent_final_report_manifest_canonical_path(): void {
-		// The verifier writes a manifest when it runs. The
-		// presence of dist/agent-final-report-manifest.json is
-		// optional in CI; this test documents the canonical
-		// path so future contributors know where to look.
 		$manifest_path = $this->repo_root . '/dist/agent-final-report-manifest.json';
+		$this->assertFileExists(
+			$manifest_path,
+			'dist/agent-final-report-manifest.json must exist after the verifier runs.'
+		);
+		$src   = (string) file_get_contents( $manifest_path );
+		$json  = json_decode( $src, true );
+		$this->assertIsArray( $json, 'Agent-final-report manifest must decode as JSON.' );
+		$this->assertArrayHasKey( 'passes', $json, 'Agent-final-report manifest must record the passes key.' );
 		$this->assertTrue(
-			true,
-			"Manifest canonical path: {$manifest_path}"
+			(bool) ( $json['passes'] ?? false ),
+			'Agent-final-report manifest must record `passes: true` so the audit trail proves the gate succeeded.'
+		);
+		$this->assertSame(
+			0,
+			(int) ( $json['errors_count'] ?? 1 ),
+			'Agent-final-report manifest must record `errors_count: 0`.'
 		);
 	}
 }

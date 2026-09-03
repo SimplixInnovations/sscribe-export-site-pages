@@ -54,14 +54,12 @@ final class SScribe_Sticky_Bit_Regression_Test extends TestCase {
 	private static function invoke_ownership_check( string $base ): bool {
 		$method = ( new \ReflectionClass( \SScribe_Private_Storage::class ) )
 			->getMethod( 'is_owned_by_current_process' );
-		$method->setAccessible( true );
 		return (bool) $method->invoke( null, $base );
 	}
 
 	private static function invoke_is_outside_public_roots( string $path ): bool {
 		$method = ( new \ReflectionClass( \SScribe_Private_Storage::class ) )
 			->getMethod( 'is_outside_public_roots' );
-		$method->setAccessible( true );
 		return (bool) $method->invoke( null, $path );
 	}
 
@@ -228,7 +226,6 @@ final class SScribe_Sticky_Bit_Regression_Test extends TestCase {
 		// post-creation guard that fires inside path_exists().
 		$method = ( new \ReflectionClass( \SScribe_Private_Storage::class ) )
 			->getMethod( 'path_is_within' );
-		$method->setAccessible( true );
 		$resolves_inside = $method->invoke( null, $link_base . '/sub', $real_target, false );
 		$this::assertTrue(
 			$resolves_inside,

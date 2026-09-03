@@ -74,7 +74,7 @@ final class SScribe_Definition_Of_Done_Test extends TestCase {
 		// markdown backticks around identifiers so the
 		// fingerprint survives ``code`` formatting.
 		$canonical_criteria = array(
-			'All Phases 16-75 are complete',
+			'All Phases 16-77 are complete',
 			'SSCRIBE_VERSION equals mainfile',
 			'Every required CI job on ci.yml is SUCCESS',
 			'Every Phase 70 blocker is RESOLVED or DEFERRED',
@@ -220,14 +220,23 @@ final class SScribe_Definition_Of_Done_Test extends TestCase {
 	}
 
 	public function test_definition_of_done_manifest_canonical_path(): void {
-		// The verifier writes a manifest when it runs. The
-		// presence of dist/definition-of-done-manifest.json is
-		// optional in CI; this test documents the canonical
-		// path so future contributors know where to look.
 		$manifest_path = $this->repo_root . '/dist/definition-of-done-manifest.json';
+		$this->assertFileExists(
+			$manifest_path,
+			'dist/definition-of-done-manifest.json must exist after the verifier runs.'
+		);
+		$src   = (string) file_get_contents( $manifest_path );
+		$json  = json_decode( $src, true );
+		$this->assertIsArray( $json, 'Definition-of-done manifest must decode as JSON.' );
+		$this->assertArrayHasKey( 'passes', $json, 'Definition-of-done manifest must record the passes key.' );
 		$this->assertTrue(
-			true,
-			"Manifest canonical path: {$manifest_path}"
+			(bool) ( $json['passes'] ?? false ),
+			'Definition-of-done manifest must record `passes: true` so the audit trail proves the gate succeeded.'
+		);
+		$this->assertSame(
+			0,
+			(int) ( $json['errors_count'] ?? 1 ),
+			'Definition-of-done manifest must record `errors_count: 0`.'
 		);
 	}
 }

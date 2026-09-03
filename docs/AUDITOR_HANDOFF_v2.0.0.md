@@ -20,7 +20,11 @@ walks this checklist and asserts:
    Canonical handoff artifacts, Verification recipe per
    artifact, How an independent auditor verifies this).
 3. Every canonical handoff artifact is listed.
-4. Integration test exists.
+4. Every listed handoff artifact exists and is non-empty.
+5. The exact release ZIP + matching SHA-256 sidecar pair
+   resolves at the canonical `dist/{name}-{VERSION}.{ext}`
+   naming convention (no `zip.sha256`, no `.sha`).
+6. Integration test exists.
 
 ## Canonical handoff artifacts
 
@@ -41,6 +45,7 @@ Every release handoff MUST include, at minimum, these artifacts:
 | 11 | Plugin Check triage                      | docs/PLUGIN_CHECK_WARNINGS_v2.0.0.md                                                | Phase 64                       |
 | 12 | Manual runtime tests runbook             | docs/MANUAL_RUNTIME_TESTS_v2.0.0.md + docs/CI_EVIDENCE_v2.0.0.md                    | Phase 69                       |
 | 13 | Exact release ZIP + SHA-256 sidecar     | dist/sscribe-export-site-pages-{VERSION}.zip + dist/sscribe-export-site-pages-{VERSION}.sha256 | Phase 63 + 72     |
+| 14 | Branch topology policy + manifest        | docs/BRANCH_POLICY_v2.0.0.md + dist/branch-policy-manifest.json                      | Phase 77                       |
 
 The handoff MUST include every artifact above. A missing artifact
 fails the gate.
@@ -71,6 +76,10 @@ to verify the claim. The canonical recipes:
     + reviewer evidence recorded in docs/CI_EVIDENCE_v2.0.0.md.
 13. **Exact ZIP** — install on a fresh WP instance + activate
     + run a 1-page export to confirm the plugin loads.
+14. **Branch topology policy** — `composer test:branch-policy`
+    + assert `dist/branch-policy-manifest.json` exists, has 0
+    failures, and lists both `main` + `develop` on origin at
+    the same SHA.
 
 ## How an independent auditor verifies this
 
@@ -95,6 +104,8 @@ for f in \
   docs/PLUGIN_CHECK_WARNINGS_v2.0.0.md \
   docs/MANUAL_RUNTIME_TESTS_v2.0.0.md \
   docs/CI_EVIDENCE_v2.0.0.md \
+  docs/BRANCH_POLICY_v2.0.0.md \
+  dist/branch-policy-manifest.json \
   ; do
     test -s "$f" || echo "MISSING: $f"
 done
@@ -121,3 +132,7 @@ reviewer handoff.
 - 2026-09-03: Initial Phase 74 auditor-handoff protocol +
   verifier + PHPUnit pin. 13 canonical handoff artifacts
   recorded. 13 verification recipes.
+- 2026-09-03: Added Phase 77 branch topology policy as
+  artifact #14 (docs + dist manifest) and a 14th
+  verification recipe so the auditor can independently prove
+  the long-lived branches obey the canonical contract.

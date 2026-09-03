@@ -12,8 +12,12 @@
  *
  *   - Handoff protocol doc exists.
  *   - Doc declares the canonical sections.
- *   - All 13 canonical handoff artifacts are listed.
- *   - The companion verifier script exists.
+ *   - All 15 canonical handoff artifacts are listed
+ *     (13 originals + Phase 77 branch-policy pair).
+ *   - Every listed artifact exists on disk and is non-empty.
+ *   - The exact release ZIP at dist/{slug}-{VERSION}.zip has
+ *     a matching .sha256 sidecar (canonical sidecar naming).
+ *   - The companion verifier script exists and exits 0.
  *
  * @package SScribe_Export_Site_Pages
  */
@@ -84,6 +88,8 @@ final class SScribe_Auditor_Handoff_Test extends TestCase {
 			'docs/SECURITY_MATRIX_v2.0.0.md',
 			'docs/PLUGIN_CHECK_WARNINGS_v2.0.0.md',
 			'docs/MANUAL_RUNTIME_TESTS_v2.0.0.md',
+			'docs/BRANCH_POLICY_v2.0.0.md',
+			'dist/branch-policy-manifest.json',
 		);
 
 		foreach ( $canonical_handoff_artifacts as $expected ) {
@@ -95,10 +101,93 @@ final class SScribe_Auditor_Handoff_Test extends TestCase {
 		}
 	}
 
+	public function test_auditor_handoff_every_listed_artifact_exists_and_nonempty(): void {
+		// Mirror the verifier's on-disk check at the PHPUnit boundary.
+		// A handoff table that lists artifacts but ships empty
+		// placeholders fails the audit-trail contract.
+		$canonical_handoff_artifacts = array(
+			'docs/RELEASE_BLOCKERS_v2.0.0.md',
+			'docs/FINAL_CI_STATE_v2.0.0.md',
+			'docs/EXACT_ARTIFACT_EVIDENCE_v2.0.0.md',
+			'docs/RELEASE_REPORT_v2.0.0.md',
+			'docs/BRANCH_PROTECTION_v2.0.0.md',
+			'docs/TAG_POLICY_v2.0.0.md',
+			'docs/RELEASE_PIPELINE_v2.0.0.md',
+			'docs/ACCEPTANCE_MATRIX_v2.0.0.json',
+			'dist/acceptance-matrix-manifest.json',
+			'docs/BUILD_TRANSFORMATIONS.md',
+			'docs/SECURITY_MATRIX_v2.0.0.md',
+			'docs/PLUGIN_CHECK_WARNINGS_v2.0.0.md',
+			'docs/MANUAL_RUNTIME_TESTS_v2.0.0.md',
+			'docs/BRANCH_POLICY_v2.0.0.md',
+			'dist/branch-policy-manifest.json',
+		);
+
+		$empty = array();
+		foreach ( $canonical_handoff_artifacts as $rel ) {
+			$abs = $this->repo_root . '/' . $rel;
+			if ( ! is_file( $abs ) || 0 === filesize( $abs ) ) {
+				$empty[] = $rel;
+			}
+		}
+		$this->assertSame(
+			array(),
+			$empty,
+			'Every canonical handoff artifact must exist and be non-empty. Empty: ' . implode( ', ', $empty )
+		);
+	}
+
+	public function test_auditor_handoff_exact_zip_sha256_pair_present(): void {
+		// Mirror the verifier's ZIP+SHA sidecar check at the
+		// PHPUnit boundary. The pair must use the canonical
+		// `dist/{slug}-{version}.{ext}` form, NOT
+		// `dist/{slug}-{version}.zip.sha256` (double-ext).
+		$main_src    = (string) file_get_contents( $this->repo_root . '/sscribe-export-site-pages.php' );
+		$dom         = array();
+		$ver         = array();
+		preg_match( '/^\s*\*?\s*Text Domain:\s*([^\s*]+)/m', $main_src, $dom );
+		preg_match( '/^\s*\*?\s*Version:\s*(.+)$/m', $main_src, $ver );
+		$slug = isset( $dom[1] ) ? trim( $dom[1] ) : '';
+		$verv = isset( $ver[1] ) ? trim( $ver[1] ) : '';
+
+		$this->assertNotSame( '', $slug, 'Text Domain header is missing from main plugin file.' );
+		$this->assertNotSame( '', $verv, 'Version header is missing from main plugin file.' );
+
+		$expected_zip = $this->repo_root . '/dist/' . $slug . '-' . $verv . '.zip';
+		$expected_sha = $this->repo_root . '/dist/' . $slug . '-' . $verv . '.sha256';
+		$broken       = $this->repo_root . '/dist/' . $slug . '-' . $verv . '.zip.sha256';
+
+		$this->assertFileExists( $expected_zip, "Canonical ZIP missing: {$expected_zip}" );
+		$this->assertFileExists( $expected_sha, "Canonical SHA sidecar missing: {$expected_sha}" );
+		$this->assertFileDoesNotExist( $broken, "Broken double-ext sidecar present (use .sha256 not .zip.sha256): {$broken}" );
+	}
+
 	public function test_auditor_handoff_verifier_script_exists(): void {
 		$this->assertFileExists(
 			$this->repo_root . '/scripts/verify-auditor-handoff.php',
 			'scripts/verify-auditor-handoff.php must exist so the verifier script can be invoked by CI.'
+		);
+	}
+
+	public function test_auditor_handoff_verifier_executes_clean(): void {
+		// Run the verifier end-to-end via subprocess so the test
+		// actually exercises every rule (rather than re-declaring
+		// them as a no-op). RC must be 0.
+		$verifier = $this->repo_root . '/scripts/verify-auditor-handoff.php';
+		$this->assertFileExists( $verifier );
+		$cmd    = escapeshellcmd( PHP_BINARY ) . ' ' . escapeshellarg( $verifier ) . ' 2>&1';
+		$output = array();
+		$rc     = 0;
+		exec( $cmd, $output, $rc );
+		$this->assertSame(
+			0,
+			$rc,
+			"scripts/verify-auditor-handoff.php must exit 0. Output:\n" . implode( "\n", $output )
+		);
+		$this->assertStringContainsString(
+			'Auditor handoff protocol contract valid',
+			implode( "\n", $output ),
+			'verifier output must end with the success marker so CI logs prove the pass.'
 		);
 	}
 
@@ -194,14 +283,26 @@ final class SScribe_Auditor_Handoff_Test extends TestCase {
 	}
 
 	public function test_auditor_handoff_manifest_canonical_path(): void {
-		// The verifier writes a manifest when it runs. The
-		// presence of dist/auditor-handoff-manifest.json is
-		// optional in CI; this test documents the canonical
-		// path so future contributors know where to look.
+		// The verifier always writes the manifest. The presence
+		// of dist/auditor-handoff-manifest.json with `passes: true`
+		// proves the gate just succeeded end-to-end.
 		$manifest_path = $this->repo_root . '/dist/auditor-handoff-manifest.json';
+		$this->assertFileExists(
+			$manifest_path,
+			'dist/auditor-handoff-manifest.json must exist after the verifier runs.'
+		);
+		$src   = (string) file_get_contents( $manifest_path );
+		$json  = json_decode( $src, true );
+		$this->assertIsArray( $json, 'Auditor-handoff manifest must decode as JSON.' );
+		$this->assertArrayHasKey( 'passes', $json, 'Auditor-handoff manifest must record the passes key.' );
 		$this->assertTrue(
-			true,
-			"Manifest canonical path: {$manifest_path}"
+			(bool) ( $json['passes'] ?? false ),
+			'Auditor-handoff manifest must record `passes: true` so the audit trail proves the gate succeeded.'
+		);
+		$this->assertSame(
+			0,
+			(int) ( $json['errors_count'] ?? 1 ),
+			'Auditor-handoff manifest must record `errors_count: 0`.'
 		);
 	}
 }

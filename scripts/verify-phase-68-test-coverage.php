@@ -122,6 +122,23 @@ if ( is_file( $registry_doc ) ) {
 /**
  * Build the searchable corpus: every test method name + its
  * docblock, keyed by file path.
+ *
+ * Docblock walk-back algorithm:
+ *
+ *   - Find the LAST close-comment (asterisk-slash) before the
+ *     method definition.
+ *   - Find the LAST open-comment (slash-asterisk-asterisk)
+ *     before that close.
+ *   - Validate: between the start of the docblock and the
+ *     method definition, there must be no other function /
+ *     class / closing-brace boundary (a closing brace of a
+ *     previous method body would mean the docblock belongs
+ *     to that method, not this one).
+ *   - If the validation fails, the current method has no
+ *     docblock; use an empty string instead of inheriting.
+ *
+ * This stops a method-without-docblock from inheriting the
+ * previous method's docblock (the historic bug).
  */
 $corpus = array();
 $test_dirs = array( $root_dir . '/tests/Integration', $root_dir . '/tests/Unit' );
@@ -142,15 +159,79 @@ foreach ( $test_dirs as $dir ) {
 			foreach ( $name_hits[1] as $hit ) {
 				$method_name = $hit[0];
 				$offset      = $hit[1];
-				// Capture the docblock: walk back from the method
-				// definition to the nearest "*/" before the
-				// "function" keyword.
-				$before = substr( $src, 0, $offset );
-				$doc_end   = strrpos( $before, '*/' );
-				$doc_start = false === $doc_end ? false : strrpos( substr( $before, 0, $doc_end ), '/*' );
-				$docblock  = ( false !== $doc_start && false !== $doc_end )
-					? substr( $before, $doc_start, $doc_end - $doc_start + 2 )
-					: '';
+
+				$before     = substr( $src, 0, $offset );
+				$doc_end    = strrpos( $before, '*/' );
+				$doc_start  = false === $doc_end ? false : strrpos( substr( $before, 0, $doc_end ), '/*' );
+
+				if ( false === $doc_start || false === $doc_end ) {
+					$docblock = '';
+				} else {
+					$candidate = substr( $before, $doc_start, $doc_end - $doc_start + 2 );
+					// Validate: BETWEEN the docblock's opening slash-
+					// asterisk-asterisk and the current method's
+					// function keyword, look for any earlier
+					// function / class / interface / trait definition
+					// OR another docblock open. If one is found,
+					// the captured candidate belongs to the previous
+					// method, not this one — discard it.
+					//
+					// Boundary inside the captured candidate itself
+					// is fine (a docblock spans multiple methods
+					// in pathological code, but that's a different
+					// bug). The check is specifically for
+					// OUTSIDE-the-candidate content between
+					// `/*` (capture start) and `function` (method
+					// start).
+					$region = substr( $before, 0, $doc_start );
+					$interior = preg_match_all(
+						'/\b(function|class|interface|trait)\b/',
+						$region,
+						$region_matches
+					);
+					// A boundary only "counts" if the captured
+					// region does NOT have a closing `}` for the
+					// previous method's body (i.e. the boundary
+					// is a real *previous* definition, not just
+					// the same declaration we're about to make).
+					// Simplest correct test: an opening `{` for
+					// a class / interface / trait boundary
+					// is fine (the captured region is INSIDE
+					// the class body already), but a function
+					// followed by `()` and then immediately a
+					// docblock ending in `*/` is the previous
+					// method's tail — INVALIDATE.
+					$boundary_invalidates = false;
+					if ( $interior > 0 ) {
+						// Look for a function definition in the
+						// region — that means the captured
+						// docblock belongs to the function
+						// declared BELOW it (not us), unless
+						// there's a closing brace for that
+						// previous function's body between it
+						// and our docblock.
+						if ( preg_match( '/\bfunction\s+\w+\s*\(/', $region ) ) {
+							// Ensure that there's a closing
+							// brace AFTER the most-recent
+							// function declaration. If not,
+							// the previous method's body
+							// hasn't ended → its docblock
+							// runs straight into ours.
+							$last_fn_pos = strrpos( $region, 'function ' );
+							if ( false !== $last_fn_pos ) {
+								$between_fn_and_doc = substr( $region, $last_fn_pos );
+								// Look for `}` (end of previous method body) after the function
+								// declaration. If there is one,
+								// the docblock is ours.
+								if ( false === strpos( $between_fn_and_doc, '}' ) ) {
+									$boundary_invalidates = true;
+								}
+							}
+						}
+					}
+					$docblock = $boundary_invalidates ? '' : $candidate;
+				}
+
 				$corpus[] = array(
 					'file'     => substr( $info->getPathname(), strlen( $root_dir ) + 1 ),
 					'method'   => $method_name,

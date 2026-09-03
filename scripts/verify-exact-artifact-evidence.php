@@ -12,11 +12,15 @@
  *
  *   1. Evidence doc exists.
  *   2. Evidence doc declares canonical sections (Why this exists,
- *      Canonical evidence fields, How an independent auditor
- *      verifies this).
+ *      Canonical evidence fields, Recorded evidence, How an
+ *      independent auditor verifies this).
  *   3. Every canonical evidence field is listed.
- *   4. The dist/ ZIP artifact exists and has a SHA-256 sidecar.
- *   5. Integration test exists.
+ *   4. Every canonical evidence field has a recorded value
+ *      (non-blank cell in the "Recorded evidence" table — so
+ *      a doc that defines fields but never records values
+ *      fails the gate).
+ *   5. The dist/ ZIP artifact exists and has a SHA-256 sidecar.
+ *   6. Integration test exists.
  *
  * @package SScribe_Export_Site_Pages
  */
@@ -73,6 +77,7 @@ if ( is_file( $evidence_doc ) ) {
 	$canonical_sections = array(
 		'## Why this exists',
 		'## Canonical evidence fields',
+		'## Recorded evidence',
 		'## How an independent auditor verifies this',
 	);
 	$missing_sections   = array();
@@ -98,6 +103,63 @@ if ( is_file( $evidence_doc ) ) {
 		'every_canonical_evidence_field_listed',
 		0 === count( $missing_fields ),
 		'Every canonical evidence field must appear in the doc. Missing: ' . implode( ', ', $missing_fields )
+	);
+
+	// Rule 4 (new): every canonical field must have a NON-BLANK
+	// recorded value in the "Recorded evidence" table. This stops
+	// shipping an empty placeholder doc that lists field names
+	// but never actually records the artifact state.
+	//
+	// The canonical recorded-value table format is:
+	//
+	//   | #  | Field       | Recorded value |
+	//   |----|-------------|----------------|
+	//   | 1  | version     | 2.0.0          |
+	//
+	// The earlier field-definition table (field name + source +
+	// purpose) is NOT the recorded evidence — we explicitly look
+	// for the "Recorded value" header column so we don't mistake
+	// the definition-table purpose column for a recorded value.
+	$blank_fields = array();
+	$recorded_values = array();
+	$recorded_table_found = false;
+	$lines = explode( "\n", $doc_src );
+	foreach ( $lines as $line ) {
+		// Detect the start of the recorded evidence table.
+		if ( false !== strpos( $line, 'Recorded value' ) || false !== strpos( $line, 'Recorded Value' ) ) {
+			$recorded_table_found = true;
+			continue;
+		}
+		if ( ! $recorded_table_found ) {
+			continue;
+		}
+		// Skip the separator row (e.g. "|----|---|").
+		if ( preg_match( '/^\s*\|[\s:|]+\|\s*$/', $line ) ) {
+			continue;
+		}
+		// Skip the header row itself (it was already matched above).
+		if ( preg_match( '/^\s*\|\s*#\s*\|\s*Field\s*\|/i', $line ) ) {
+			continue;
+		}
+		// Data rows: `| 12 | build_timestamp | <value> | ...`.
+		if ( preg_match( '/^\s*\|\s*\d+\s*\|\s*([a-z_][a-z0-9_]*)\s*\|\s*(.+?)\s*\|/i', $line, $m ) ) {
+			$fname = trim( $m[1] );
+			$fval  = trim( $m[2] );
+			// Strip surrounding emphasis + drop placeholders.
+			$fval_clean = trim( preg_replace( '/^_+(.+)_+$/', '$1', $fval ) );
+			$recorded_values[ $fname ] = $fval_clean;
+		}
+	}
+	foreach ( $canonical_fields as $field ) {
+		$val = isset( $recorded_values[ $field ] ) ? $recorded_values[ $field ] : '';
+		if ( '' === $val || '_filled at certify_' === $val || '_filled at certify' === $val ) {
+			$blank_fields[] = $field;
+		}
+	}
+	$record(
+		'every_canonical_evidence_field_has_recorded_value',
+		0 === count( $blank_fields ),
+		'Every canonical evidence field must have a non-blank recorded value in the "Recorded evidence" table. Blank: ' . implode( ', ', $blank_fields )
 	);
 }
 

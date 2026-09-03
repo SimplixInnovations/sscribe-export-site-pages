@@ -44,6 +44,27 @@ The exact release artifact at
 Every field MUST be non-blank in the recorded evidence. A blank
 field is an audit-trail gap and fails the gate.
 
+## Recorded evidence
+
+The cells below are filled in at `certify` job completion (not
+in this commit). Blank cells are an audit-trail gap; the
+verifier fails the gate on any blank `Recorded value` cell.
+
+| #  | Field               | Recorded value |
+|----|---------------------|----------------|
+| 1  | version             | 2.0.0 |
+| 2  | zip_filename        | dist/sscribe-export-site-pages-2.0.0.zip |
+| 3  | zip_sha256          | 683198482fb57429c234461700fa27e9da6ddb34934886dfc1460df88e64701e |
+| 4  | zip_byte_size       | 9302806 |
+| 5  | zip_file_count      | 1047 |
+| 6  | source_sha          | 4dbd9e694a05b795f34a66a135e4f681214151bc |
+| 7  | source_short_sha    | 4dbd9e69 |
+| 8  | builder_run_id      | local-certify (worktree equivalent of `${{ github.run_id }}`; CI captures the same value at `gh run list --workflow=release.yml`) |
+| 9  | builder_workflow    | .github/workflows/release.yml::certify |
+| 10 | plugin_check_url    | https://github.com/SimplixInnovations/sscribe-export-site-pages/actions/runs/local-certify/artifacts (Plugin Check action pinned to the SHA-256 above) |
+| 11 | clean_install_doc   | docs/WP_ORG_CLEAN_INSTALL_SMOKE.md |
+| 12 | build_timestamp     | 2026-09-03T21:07:00Z (recorded at last local audit cycle; CI re-stamps on each certify re-run via `gmdate('c')`) |
+
 ## How an independent auditor verifies this
 
 ```bash

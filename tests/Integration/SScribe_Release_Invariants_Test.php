@@ -218,14 +218,23 @@ final class SScribe_Release_Invariants_Test extends TestCase {
 	}
 
 	public function test_release_invariants_manifest_canonical_path(): void {
-		// The verifier writes a manifest when it runs. The
-		// presence of dist/release-invariants-manifest.json is
-		// optional in CI; this test documents the canonical
-		// path so future contributors know where to look.
 		$manifest_path = $this->repo_root . '/dist/release-invariants-manifest.json';
+		$this->assertFileExists(
+			$manifest_path,
+			'dist/release-invariants-manifest.json must exist after the verifier runs.'
+		);
+		$src   = (string) file_get_contents( $manifest_path );
+		$json  = json_decode( $src, true );
+		$this->assertIsArray( $json, 'Release-invariants manifest must decode as JSON.' );
+		$this->assertArrayHasKey( 'passes', $json, 'Release-invariants manifest must record the passes key.' );
 		$this->assertTrue(
-			true,
-			"Manifest canonical path: {$manifest_path}"
+			(bool) ( $json['passes'] ?? false ),
+			'Release-invariants manifest must record `passes: true` so the audit trail proves the gate succeeded.'
+		);
+		$this->assertSame(
+			0,
+			(int) ( $json['errors_count'] ?? 1 ),
+			'Release-invariants manifest must record `errors_count: 0`.'
 		);
 	}
 }

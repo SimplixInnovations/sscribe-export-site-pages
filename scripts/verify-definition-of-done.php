@@ -51,7 +51,7 @@ $record(
 // Each criterion is identified by a unique fingerprint phrase
 // that survives future wording tweaks.
 $canonical_criteria = array(
-	'All Phases 16-75 are complete',
+	'All Phases 16-77 are complete',
 	'SSCRIBE_VERSION equals mainfile',
 	'Every required CI job on ci.yml is SUCCESS',
 	'Every Phase 70 blocker is RESOLVED or DEFERRED',

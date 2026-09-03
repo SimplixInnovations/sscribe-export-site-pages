@@ -226,6 +226,26 @@ final class SScribe_Branch_Policy_Test extends TestCase {
 		);
 
 		sort( $branches );
+
+		// CI mode (GITHUB_ACTIONS=true) intentionally checks out
+		// only the trigger branch. The origin-side rules
+		// enforced by the verifier are the real contract in CI.
+		// In local dev we still demand exactly {main, develop}.
+		$is_ci = ( getenv( 'GITHUB_ACTIONS' ) === 'true' );
+		if ( $is_ci ) {
+			$this->assertNotEmpty(
+				$branches,
+				'CI checkout should contain at least the trigger branch.'
+			);
+			$disallowed = array_diff( $branches, array( 'main', 'develop' ) );
+			$this->assertSame(
+				array(),
+				array_values( $disallowed ),
+				'CI checkout must not contain forbidden long-lived branches. Found: ' . implode( ', ', $disallowed )
+			);
+			return;
+		}
+
 		$this->assertSame(
 			array( 'develop', 'main' ),
 			$branches,

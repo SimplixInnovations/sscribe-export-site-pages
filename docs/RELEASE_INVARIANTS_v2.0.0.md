@@ -50,6 +50,7 @@ The release pipeline MUST obey every invariant below:
 | 30 | Every Phase 70 blocker is RESOLVED or DEFERRED.    | Phase 70 release blockers.                           |
 | 31 | Every Phase 71 required CI job is SUCCESS on the final SHA.| Phase 71 final CI state.                      |
 | 32 | Every Phase 72 artifact evidence field is recorded.| Phase 72 exact artifact evidence.                   |
+| 33 | Branch topology policy holds (exactly `main` and `develop` long-lived; same SHA; no local-only refs).| Phase 77 branch topology policy. |
 
 The verifier asserts all 32 invariants are declared and each
 declares the enforcing Phase in its row.
@@ -79,6 +80,7 @@ composer test:manual-runtime-tests
 composer test:release-blockers
 composer test:final-ci-state
 composer test:exact-artifact-evidence
+composer test:branch-policy
 ```
 
 A green `composer test:release-invariants` + every enforcing
@@ -100,3 +102,6 @@ Phase green = the release pipeline obeys the canonical invariants.
   no-internal-details, JS error-free, UI discipline, Phase 68
   coverage, manual runtime tests, Phase 70 blockers, Phase 71
   CI state, Phase 72 evidence).
+- 2026-09-03: Added Phase 77 branch topology invariant (#33) so
+  the pipeline cannot ship a release whose long-lived branches
+  have diverged beyond the canonical contract.

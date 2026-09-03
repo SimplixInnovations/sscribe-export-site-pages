@@ -220,16 +220,23 @@ final class SScribe_Final_CI_State_Test extends TestCase {
 	}
 
 	public function test_final_ci_state_manifest_canonical_path(): void {
-		// The verifier writes a manifest when it runs. The
-		// presence of dist/final-ci-state-manifest.json is
-		// optional in CI (the verifier runs first, then the
-		// manifest is read by debug tooling); this test
-		// documents the canonical path so future contributors
-		// know where to look for the gate's evidence.
 		$manifest_path = $this->repo_root . '/dist/final-ci-state-manifest.json';
+		$this->assertFileExists(
+			$manifest_path,
+			'dist/final-ci-state-manifest.json must exist after the verifier runs.'
+		);
+		$src   = (string) file_get_contents( $manifest_path );
+		$json  = json_decode( $src, true );
+		$this->assertIsArray( $json, 'Final-CI-state manifest must decode as JSON.' );
+		$this->assertArrayHasKey( 'passes', $json, 'Final-CI-state manifest must record the passes key.' );
 		$this->assertTrue(
-			true,
-			"Manifest canonical path: {$manifest_path}"
+			(bool) ( $json['passes'] ?? false ),
+			'Final-CI-state manifest must record `passes: true` so the audit trail proves the gate succeeded.'
+		);
+		$this->assertSame(
+			0,
+			(int) ( $json['errors_count'] ?? 1 ),
+			'Final-CI-state manifest must record `errors_count: 0`.'
 		);
 	}
 }

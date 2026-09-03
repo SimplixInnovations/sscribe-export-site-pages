@@ -80,14 +80,12 @@ final class SScribe_Image_Processor_Remote_429_Test extends TestCase {
 	private static function invoke_download( string $url ): string|false {
 		$ref    = new \ReflectionClass( \SScribe_Image_Processor::class );
 		$method = $ref->getMethod( 'download_to_temp' );
-		$method->setAccessible( true );
 		return $method->invoke( null, $url );
 	}
 
 	private static function invoke_parse_retry_after( $header_value ): int {
 		$ref    = new \ReflectionClass( \SScribe_Image_Processor::class );
 		$method = $ref->getMethod( 'parse_retry_after_seconds' );
-		$method->setAccessible( true );
 		return $method->invoke( null, $header_value );
 	}
 

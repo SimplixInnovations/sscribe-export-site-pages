@@ -231,8 +231,18 @@ final class SScribe_Phase_68_Test_Coverage_Test extends TestCase {
 		// The selection-invariant invariant says: summary count
 		// MUST equal preview count for the SAME selection. This
 		// is the canonical Phase 68 summary/preview equality
-		// contract.
-		$this::assertTrue( true, 'summary preview equality contract pinned (selection invariant).' );
+		// contract. We assert the contract by requiring BOTH
+		// the summary AND preview rendering targets to declare
+		// the canonical count chips (sscribe-summary-pages +
+		// sscribe-preview-count-area). If either card is missing
+		// its count element, the equality invariant would be
+		// unimplementable.
+		$has_summary_chip = false !== stripos( $src, 'sscribe-summary-pages' );
+		$has_preview_chip = false !== stripos( $src, 'sscribe-preview-content' );
+		$this::assertTrue(
+			$has_summary_chip && $has_preview_chip,
+			'Both summary and preview cards must declare their canonical count elements (sscribe-summary-pages + sscribe-preview-content) so the equality invariant is implementable.'
+		);
 	}
 
 	/**
@@ -256,14 +266,17 @@ final class SScribe_Phase_68_Test_Coverage_Test extends TestCase {
 	public function test_preflight_handles_429_rate_limited(): void {
 		$src = self::includes_source();
 		$this::assertTrue(
-			false !== stripos( $src, 'preflight' ),
-			'Rate-limited preflight contract must be addressable.'
+			false !== stripos( $src, 'wp_ajax_sscribe_preflight_check' ),
+			'Rate-limited preflight contract must be addressable (the preflight AJAX action must be registered).'
 		);
-		// The Phase 49 AJAX security contract asserts every guard
-		// emits a request_id; rate-limit responses use 429.
+		// Use the canonical class name so we don't match accidental
+		// occurrences of the substring "rate" (e.g. "deferred",
+		// "framerate", "operating").
+		$has_rate_limit_class = false !== stripos( $src, 'SScribe_Rate_Limit_Response' )
+			|| false !== stripos( $src, 'SScribe_Rate_Limit_Decision' );
 		$this::assertTrue(
-			false !== stripos( $src, 'rate' ),
-			'Rate-limit handling must exist in source.'
+			$has_rate_limit_class,
+			'Rate-limit handling must exist via SScribe_Rate_Limit_Response or SScribe_Rate_Limit_Decision class.'
 		);
 	}
 
@@ -272,12 +285,14 @@ final class SScribe_Phase_68_Test_Coverage_Test extends TestCase {
 	 */
 	public function test_preflight_handles_503_limiter_contention(): void {
 		$src = self::includes_source();
-		// 503 / contention contract lives in rate-limit response.
+		// 503 / contention contract lives in rate-limit response via
+		// the canonical SScribe_Rate_Limit_Decision::limiter_contention()
+		// factory. We assert on the specific factory method so
+		// unrelated "lock" / "concur" strings in other source files
+		// don't satisfy this assertion.
 		$this::assertTrue(
-			false !== stripos( $src, 'contention' )
-				|| false !== stripos( $src, 'concur' )
-				|| false !== stripos( $src, 'lock' ),
-			'Limiter-contention handling must exist in source.'
+			false !== stripos( $src, 'limiter_contention' ),
+			'Limiter-contention handling must exist via SScribe_Rate_Limit_Decision::limiter_contention() factory.'
 		);
 	}
 

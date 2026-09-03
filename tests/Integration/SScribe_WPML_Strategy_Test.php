@@ -126,13 +126,16 @@ final class SScribe_WPML_Strategy_Test extends TestCase {
 		$this::assertStringContainsStringIgnoringCase( 'real WPML', $source );
 	}
 
+	/**
+	 * @runInSeparateProcess
+	 * @preserveGlobalState disabled
+	 */
 	public function test_page_collector_is_wpml_active_returns_false_when_wpml_absent(): void {
-		// Bootstrap doesn't define ICL_SITEPRESS_VERSION. Force the
-		// detection to run in its native "absent" state by clearing
-		// any prior constant test pollution via a class_alias trick:
-		// we explicitly require the source file and call the method.
-		// Since ICL_SITEPRESS_VERSION is NOT defined in this bootstrap,
-		// is_wpml_active() must return false.
+		// PHP constants cannot be undefined, and classes cannot be
+		// unloaded — so when the sibling "present" test runs first
+		// (random test order), ICL_SITEPRESS_VERSION stays defined
+		// AND SitePress stays loaded. Run this test in a separate
+		// PHP process so it sees a truly clean global state.
 		if ( ! class_exists( 'SScribe_Page_Collector', false ) ) {
 			require_once self::plugin_root() . '/' . self::COLLECTOR_PATH;
 		}

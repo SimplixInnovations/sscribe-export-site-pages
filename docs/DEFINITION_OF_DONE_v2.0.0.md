@@ -22,7 +22,7 @@ criterion references the Phase gate that enforces it.
 
 | #  | Criterion                                                              | Enforced by                                | Status required |
 |----|------------------------------------------------------------------------|--------------------------------------------|-----------------|
-| 1  | All Phases 16-75 are complete + green on the final SHA.                | Phases 16-75 verifiers + PHPUnit suite.    | green           |
+| 1  | All Phases 16-77 are complete + green on the final SHA.                | Phases 16-77 verifiers + PHPUnit suite.    | green           |
 | 2  | SSCRIBE_VERSION equals mainfile `Version:` + readme.txt Stable tag + package.json + composer.json constraint. | Phase 16 verifier.            | green           |
 | 3  | Every required CI job on `ci.yml` is SUCCESS on the final SHA.         | Phase 71 final CI state.                   | SUCCESS         |
 | 4  | Every Phase 70 blocker is RESOLVED or DEFERRED.                        | Phase 70 release blockers.                 | green           |
@@ -53,11 +53,12 @@ criterion references the Phase gate that enforces it.
 | 29 | Exact artifact evidence recorded (SHA-256, byte size, file count, source SHA, builder run ID, plugin check URL, build timestamp).| Phase 72 exact artifact evidence. | green |
 | 30 | Agent final report produced in the canonical format (6 sections, 7 format rules).| Phase 73 agent final report.            | green           |
 | 31 | Auditor handoff protocol holds (13 artifacts listed, every artifact present).| Phase 74 auditor handoff.               | green           |
-| 32 | Release invariants declared + enforced (32 invariants, each with enforcing Phase gate).| Phase 75 release invariants.            | green           |
-| 33 | Tag is cut on `origin/main` HEAD, signed via `gh release create --verify-tag`.| Manual (Phase 54 gate).                  | green           |
-| 34 | WP.org submission is made via the Plugin Check action's `release-zip` artifact, with the audit-trail attached.| Manual (after Phase 33).                | submitted       |
+| 32 | Release invariants declared + enforced (33 invariants, each with enforcing Phase gate).| Phase 75 release invariants.            | green           |
+| 33 | Branch topology policy holds (only `main` + `develop` long-lived; both same SHA; no local-only refs; CI-tolerant).| Phase 77 branch topology policy.        | green           |
+| 34 | Tag is cut on `origin/main` HEAD, signed via `gh release create --verify-tag`.| Manual (Phase 54 gate).                  | green           |
+| 35 | WP.org submission is made via the Plugin Check action's `release-zip` artifact, with the audit-trail attached.| Manual (after Phase 33).                | submitted       |
 
-The verifier asserts all 34 criteria are declared AND each
+The verifier asserts all 35 criteria are declared AND each
 declares the enforcing Phase in its row.
 
 ## How an independent auditor verifies this

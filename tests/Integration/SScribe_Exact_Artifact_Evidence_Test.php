@@ -55,6 +55,7 @@ final class SScribe_Exact_Artifact_Evidence_Test extends TestCase {
 		$canonical_sections = array(
 			'## Why this exists',
 			'## Canonical evidence fields',
+			'## Recorded evidence',
 			'## How an independent auditor verifies this',
 		);
 
@@ -192,15 +193,83 @@ final class SScribe_Exact_Artifact_Evidence_Test extends TestCase {
 		);
 	}
 
+	public function test_exact_artifact_evidence_every_field_has_recorded_value(): void {
+		// Mirror the verifier's non-blank recorded-value check at
+		// the PHPUnit boundary. The "Recorded evidence" table is
+		// the audit-trail; any blank cell is a gap.
+		$src = (string) file_get_contents( $this->evidence_doc_path );
+
+		$canonical_fields = array(
+			'version',
+			'zip_filename',
+			'zip_sha256',
+			'zip_byte_size',
+			'zip_file_count',
+			'source_sha',
+			'source_short_sha',
+			'builder_run_id',
+			'builder_workflow',
+			'plugin_check_url',
+			'clean_install_doc',
+			'build_timestamp',
+		);
+
+		// Walk the doc, accumulating rows from the "Recorded
+		// evidence" table only (defined by the "Recorded value"
+		// header column).
+		$recorded = array();
+		$in_recorded_table = false;
+		foreach ( explode( "\n", $src ) as $line ) {
+			if ( false !== stripos( $line, 'Recorded value' ) ) {
+				$in_recorded_table = true;
+				continue;
+			}
+			if ( ! $in_recorded_table ) {
+				continue;
+			}
+			if ( preg_match( '/^\s*\|[\s:|]+\|\s*$/', $line ) ) {
+				continue;
+			}
+			if ( preg_match( '/^\s*\|\s*#\s*\|\s*Field\s*\|/i', $line ) ) {
+				continue;
+			}
+			if ( preg_match( '/^\s*\|\s*\d+\s*\|\s*([a-z_][a-z0-9_]*)\s*\|\s*(.+?)\s*\|/i', $line, $m ) ) {
+				$recorded[ trim( $m[1] ) ] = trim( preg_replace( '/^_+(.+)_+$/', '$1', trim( $m[2] ) ) );
+			}
+		}
+
+		$blank = array();
+		foreach ( $canonical_fields as $field ) {
+			$val = isset( $recorded[ $field ] ) ? $recorded[ $field ] : '';
+			if ( '' === $val || stripos( $val, 'filled at certify' ) !== false ) {
+				$blank[] = $field;
+			}
+		}
+		$this->assertSame(
+			array(),
+			$blank,
+			'Every canonical evidence field must have a non-blank recorded value. Blank: ' . implode( ', ', $blank )
+		);
+	}
+
 	public function test_exact_artifact_evidence_manifest_canonical_path(): void {
-		// The verifier writes a manifest when it runs. The
-		// presence of dist/exact-artifact-evidence-manifest.json
-		// is optional in CI; this test documents the canonical
-		// path so future contributors know where to look.
 		$manifest_path = $this->repo_root . '/dist/exact-artifact-evidence-manifest.json';
+		$this->assertFileExists(
+			$manifest_path,
+			'dist/exact-artifact-evidence-manifest.json must exist after the verifier runs.'
+		);
+		$src   = (string) file_get_contents( $manifest_path );
+		$json  = json_decode( $src, true );
+		$this->assertIsArray( $json, 'Exact-artifact-evidence manifest must decode as JSON.' );
+		$this->assertArrayHasKey( 'passes', $json, 'Exact-artifact-evidence manifest must record the passes key.' );
 		$this->assertTrue(
-			true,
-			"Manifest canonical path: {$manifest_path}"
+			(bool) ( $json['passes'] ?? false ),
+			'Exact-artifact-evidence manifest must record `passes: true` so the audit trail proves the gate succeeded.'
+		);
+		$this->assertSame(
+			0,
+			(int) ( $json['errors_count'] ?? 1 ),
+			'Exact-artifact-evidence manifest must record `errors_count: 0`.'
 		);
 	}
 }
