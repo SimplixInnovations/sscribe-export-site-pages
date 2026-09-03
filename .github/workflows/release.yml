@@ -176,9 +176,25 @@ jobs:
               id: source-sha
               run: echo "sha=$(git rev-parse HEAD)" >> "$GITHUB_OUTPUT"
 
+            - name: Extract ZIP SHA-256 (release evidence)
+              id: zip-sha
+              run: |
+                  VERSION="${GITHUB_REF_NAME#v}"
+                  SHA_FILE="dist/sscribe-export-site-pages-${VERSION}.sha256"
+                  if [ ! -f "${SHA_FILE}" ]; then
+                    echo "ERROR: build-release.php did not produce ${SHA_FILE}"
+                    ls -la dist/
+                    exit 1
+                  fi
+                  ZIP_SHA="$(awk '{print $1}' "${SHA_FILE}")"
+                  echo "sha=${ZIP_SHA}" >> "$GITHUB_OUTPUT"
+                  echo "ZIP SHA-256: ${ZIP_SHA}"
+
             - name: Persist build metadata
+              # Phase 54: release evidence must record source SHA, tag, ZIP SHA-256.
               env:
                   SOURCE_SHA: ${{ steps.source-sha.outputs.sha }}
+                  ZIP_SHA: ${{ steps.zip-sha.outputs.sha }}
                   RUN_ID: ${{ github.run_id }}
                   RUN_NUMBER: ${{ github.run_number }}
                   REF: ${{ github.ref }}
@@ -189,8 +205,9 @@ jobs:
                   {
                     "source_sha": "${SOURCE_SHA}",
                     "tag": "${REF_NAME}",
+                    "zip_sha256": "${ZIP_SHA}",
                     "run_id": "${RUN_ID}",
-                    "run_number": "${RUN_NUMBER},
+                    "run_number": "${RUN_NUMBER}",
                     "build_runner": "ubuntu-latest",
                     "php_version": "8.4",
                     "built_by": "release.yml (certify job)",
@@ -198,6 +215,7 @@ jobs:
                   }
                   EOF
                   echo "Build metadata persisted to dist/sscribe-export-site-pages-${VERSION}.build.json"
+                  cat "dist/sscribe-export-site-pages-${VERSION}.build.json"
 
             - name: Run official WordPress Plugin Check
               uses: wordpress/plugin-check-action@v1

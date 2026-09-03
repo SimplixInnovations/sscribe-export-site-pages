@@ -471,6 +471,18 @@ jobs:
             - name: Release pipeline integration test
               run: vendor/bin/phpunit tests/Integration/SScribe_Release_Pipeline_Test.php
 
+            # Phase 54: tag policy — release tags must point at
+            # origin/main HEAD, must equal SSCRIBE_VERSION, must NOT
+            # be cut by CI itself, must be signed via `gh release
+            # create --verify-tag`, and the certified build evidence
+            # must record source_sha + tag + zip_sha256 so an
+            # independent auditor can verify.
+            - name: Tag policy gate
+              run: composer test:tag-policy
+
+            - name: Tag policy integration test
+              run: vendor/bin/phpunit tests/Integration/SScribe_Tag_Policy_Test.php
+
             # Phase 51: release scripts must derive version dynamically
             # from SSCRIBE_VERSION. The version-sync verifier already
             # covers this source-level, but a dedicated integration
