@@ -1,0 +1,196 @@
+{
+    "phase": 58,
+    "generated_at": "2026-09-03T00:00:00+00:00",
+    "audited_sha": "a5c093c",
+    "audited_at_release": "v2.0.0",
+    "matrix": {
+        "phpunit_tests": {
+            "floor": 1334,
+            "operator": ">=",
+            "what": "PHPUnit test count must not regress below the audited floor.",
+            "ci_command": "composer test",
+            "ci_step": "Run PHPUnit"
+        },
+        "phpunit_assertions": {
+            "floor": 5412,
+            "operator": ">=",
+            "what": "PHPUnit assertion count must not regress below the audited floor.",
+            "ci_command": "composer test",
+            "ci_step": "Run PHPUnit"
+        },
+        "phpunit_failures": {
+            "ceiling": 0,
+            "operator": "==",
+            "what": "PHPUnit must report 0 failures.",
+            "ci_command": "composer test",
+            "ci_step": "Run PHPUnit"
+        },
+        "phpunit_skipped": {
+            "ceiling": 30,
+            "operator": "<=",
+            "what": "PHPUnit skipped tests must stay under the audited ceiling (27 currently; any new skip must add a justification comment).",
+            "ci_command": "composer test",
+            "ci_step": "Run PHPUnit"
+        },
+        "phpcs_violations": {
+            "ceiling": 0,
+            "operator": "==",
+            "what": "PHPCS must report 0 violations across the audited 90 files.",
+            "ci_command": "composer cs",
+            "ci_step": "Run PHPCS"
+        },
+        "phpstan_level": {
+            "floor": 7,
+            "operator": ">=",
+            "what": "PHPStan must run at level >= 7 with 0 errors.",
+            "ci_command": "composer stan",
+            "ci_step": "Run PHPStan"
+        },
+        "phpstan_errors": {
+            "ceiling": 0,
+            "operator": "==",
+            "what": "PHPStan must report 0 errors.",
+            "ci_command": "composer stan",
+            "ci_step": "Run PHPStan"
+        },
+        "i18n_missing_strings": {
+            "ceiling": 0,
+            "operator": "==",
+            "what": "i18n check must report 0 missing translation wrappers.",
+            "ci_command": "composer i18n:check",
+            "ci_step": "Verify i18n contract"
+        },
+        "a11y_violations": {
+            "ceiling": 0,
+            "operator": "==",
+            "what": "Accessibility (WCAG 2.2 AA) must report 0 violations.",
+            "ci_command": "composer test:a11y",
+            "ci_step": "Verify accessibility contract"
+        },
+        "version_sync": {
+            "expected": true,
+            "operator": "==",
+            "what": "Plugin header / readme.txt / composer.json / main file versions must all agree.",
+            "ci_command": "composer version:check",
+            "ci_step": "Verify version synchronization"
+        },
+        "workflow_governance": {
+            "expected": true,
+            "operator": "==",
+            "what": "All .github/workflows/*.yml must satisfy governance contract (no continue-on-error on required, if: only on artifact steps).",
+            "ci_command": "composer test:workflow-governance",
+            "ci_step": "Verify continue-on-error contract"
+        },
+        "release_pipeline": {
+            "expected": true,
+            "operator": "==",
+            "what": "release.yml must split certify vs publish; publish must consume certify artifact (no double build).",
+            "ci_command": "composer test:release-pipeline",
+            "ci_step": "Build the submission ZIP"
+        },
+        "tag_policy": {
+            "expected": true,
+            "operator": "==",
+            "what": "Tag must match SSCRIBE_VERSION, tag SHA must equal origin/main HEAD, gh release create --verify-tag.",
+            "ci_command": "composer test:tag-policy",
+            "ci_step": "Build the submission ZIP"
+        },
+        "branch_protection": {
+            "expected": true,
+            "operator": "==",
+            "what": "docs/BRANCH_PROTECTION_v2.0.0.md must declare all clauses + sensitive file list.",
+            "ci_command": "composer test:branch-protection",
+            "ci_step": "Run PHPUnit"
+        },
+        "real_wp_matrix": {
+            "expected": true,
+            "operator": "==",
+            "what": "real-wp-tests must declare a strategy.matrix covering PHP 8.2/8.3/8.4 × WP latest/previous.",
+            "ci_command": "composer test:real-wp-matrix",
+            "ci_step": "Real-WP matrix contract gate"
+        },
+        "wpml_strategy": {
+            "expected": true,
+            "operator": "==",
+            "what": "WPML strategy contract (canonical detection + canonical filter + test matrix).",
+            "ci_command": "composer test:wpml-strategy",
+            "ci_step": "WPML strategy contract gate"
+        },
+        "lifecycle_contract": {
+            "expected": true,
+            "operator": "==",
+            "what": "Activation / deactivation / uninstall paths must work without errors.",
+            "ci_command": "composer test:lifecycle",
+            "ci_step": "Run PHPUnit"
+        },
+        "export_result_contract": {
+            "expected": true,
+            "operator": "==",
+            "what": "Every export format must produce a valid result (DOCX/PDF/HTML/Markdown).",
+            "ci_command": "composer test:export-result",
+            "ci_step": "Run PHPUnit"
+        },
+        "download_security_contract": {
+            "expected": true,
+            "operator": "==",
+            "what": "Download tokens must rotate single-use, expire on time, and refuse on stale state.",
+            "ci_command": "composer test:download-security",
+            "ci_step": "Run PHPUnit"
+        },
+        "ajax_security_contract": {
+            "expected": true,
+            "operator": "==",
+            "what": "Every AJAX handler must verify nonces + capabilities + sanitization.",
+            "ci_command": "composer test:ajax-security",
+            "ci_step": "Run PHPUnit"
+        },
+        "coverage_threshold_percent": {
+            "floor": 80,
+            "operator": ">=",
+            "what": "PHPUnit line coverage must stay at or above the audited 80%.",
+            "ci_command": "composer test:coverage:check",
+            "ci_step": "Enforce coverage-threshold gate"
+        },
+        "plugin_check_warnings": {
+            "ceiling": 0,
+            "operator": "==",
+            "what": "WP.org Plugin Check must report 0 errors (warnings allowed if explicitly triaged).",
+            "ci_command": "composer test:plugin-check",
+            "ci_step": "Run official WordPress Plugin Check"
+        },
+        "npm_audit_vulnerabilities": {
+            "ceiling": 0,
+            "operator": "==",
+            "what": "npm audit must report 0 vulnerabilities.",
+            "ci_command": "composer audit:npm",
+            "ci_step": "Audit JavaScript dependencies"
+        },
+        "zip_sha_matches_sidecar": {
+            "expected": true,
+            "operator": "==",
+            "what": "Zipped plugin SHA-256 must equal the .sha256 sidecar.",
+            "ci_command": "composer release:audit",
+            "ci_step": "Build the submission ZIP"
+        },
+        "plugin_check_triage_documented": {
+            "expected": true,
+            "operator": "==",
+            "what": "Every triaged Plugin-Check warning must be documented in docs/POLISH_v2.0.0.md with rationale.",
+            "ci_command": "composer release:audit",
+            "ci_step": "Run official WordPress Plugin Check"
+        }
+    },
+    "totals": {
+        "checks_total": 25,
+        "floors": 3,
+        "ceilings": 8,
+        "expected_bools": 14
+    },
+    "pass_criteria": "All 25 acceptance cells must hold on every commit to release/2.0.0-final-hardening.",
+    "enforcement": [
+        "scripts/verify-acceptance-matrix.php (this verifier)",
+        "tests/Integration/SScribe_Acceptance_Matrix_Test.php (PHPUnit boundary)",
+        "bin/release-audit.sh (final pre-tag gate)",
+        "docs/CI_EVIDENCE_v2.0.0.md (auditor-facing summary)"
+    ]
+}

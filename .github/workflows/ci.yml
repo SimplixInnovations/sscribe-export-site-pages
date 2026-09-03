@@ -525,6 +525,19 @@ jobs:
             - name: WPML strategy integration test
               run: vendor/bin/phpunit tests/Integration/SScribe_WPML_Strategy_Test.php
 
+            # Phase 58: count acceptance matrix — the auditable list
+            # of "every numeric check must hold" for the release.
+            # dist/acceptance-matrix.json declares >= 25 cells;
+            # the verifier walks every cell and asserts its ci_command
+            # is wired in composer.json + its ci_step is wired in
+            # ci.yml; the integration test pins the same contract
+            # at the PHPUnit boundary.
+            - name: Acceptance matrix contract gate
+              run: composer test:acceptance-matrix
+
+            - name: Acceptance matrix integration test
+              run: vendor/bin/phpunit tests/Integration/SScribe_Acceptance_Matrix_Test.php
+
             # Phase 51: release scripts must derive version dynamically
             # from SSCRIBE_VERSION. The version-sync verifier already
             # covers this source-level, but a dedicated integration

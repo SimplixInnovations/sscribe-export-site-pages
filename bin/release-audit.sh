@@ -43,6 +43,9 @@ run_gate () {
 echo "== PHPUnit (full suite) =="
 run_gate "PHPUnit"       vendor/bin/phpunit >/tmp/release-audit-phpunit.log 2>&1
 
+echo "== Acceptance matrix (Phase 58) =="
+run_gate "Acceptance-Matrix" composer test:acceptance-matrix >/tmp/release-audit-acceptance-matrix.log 2>&1
+
 echo "== PHPStan =="
 run_gate "PHPStan-level-7" vendor/bin/phpstan analyse --memory-limit=1G --no-progress >/tmp/release-audit-phpstan.log 2>&1
 
