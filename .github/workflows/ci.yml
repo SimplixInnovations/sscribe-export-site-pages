@@ -796,6 +796,27 @@ jobs:
             - name: Auditor handoff integration test
               run: vendor/bin/phpunit tests/Integration/SScribe_Auditor_Handoff_Test.php
 
+            # Phase 75: Release invariants — the release
+            # pipeline MUST obey a canonical set of invariants
+            # that NEVER drift. The invariants doc at
+            # docs/RELEASE_INVARIANTS_v2.0.0.md declares 32
+            # canonical invariants (versions, ZIP, security,
+            # audit, Plugin Check, real-WP, coverage, AJAX,
+            # autoload, i18n, CI docs, workflow governance,
+            # no-internal-details, JS error-free, UI
+            # discipline, Phase 68 coverage, manual runtime
+            # tests, Phase 70 blockers, Phase 71 CI state,
+            # Phase 72 evidence) — each referencing the
+            # enforcing Phase gate. The verifier walks the
+            # doc and asserts every invariant is declared;
+            # the integration test pins the same contract at
+            # the PHPUnit boundary.
+            - name: Release invariants contract gate
+              run: composer test:release-invariants
+
+            - name: Release invariants integration test
+              run: vendor/bin/phpunit tests/Integration/SScribe_Release_Invariants_Test.php
+
             # Phase 51: release scripts must derive version dynamically
             # from SSCRIBE_VERSION. The version-sync verifier already
             # covers this source-level, but a dedicated integration

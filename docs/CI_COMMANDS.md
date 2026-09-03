@@ -469,6 +469,25 @@ failure looks like**, **how to debug**, **what manifest it writes**.
 - **Debug:** `dist/auditor-handoff-manifest.json`.
 - **Manifest:** `dist/auditor-handoff-manifest.json`.
 
+### `composer test:release-invariants`
+
+- **Script:** `php scripts/verify-release-invariants.php`
+- **Gates:** `docs/RELEASE_INVARIANTS_v2.0.0.md` declares
+  the canonical sections (Why this exists, Canonical
+  invariants, How an independent auditor verifies this)
+  AND lists all 32 canonical invariants (versions, ZIP,
+  security, audit, Plugin Check, real-WP, coverage,
+  AJAX, autoload, i18n, CI docs, workflow governance,
+  no-internal-details, JS error-free, UI discipline,
+  Phase 68 coverage, manual runtime tests, Phase 70
+  blockers, Phase 71 CI state, Phase 72 evidence). This
+  is the canonical "do the release-pipeline invariants
+  hold?" gate.
+- **Failure:** "Every canonical invariant must appear
+  in the doc. Missing: <invariant fingerprint>".
+- **Debug:** `dist/release-invariants-manifest.json`.
+- **Manifest:** `dist/release-invariants-manifest.json`.
+
 ### `composer test:wp`
 
 - **Script:** `php -d extension=sqlite3 -d extension=pdo_sqlite
