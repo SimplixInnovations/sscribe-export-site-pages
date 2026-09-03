@@ -294,6 +294,19 @@ failure looks like**, **how to debug**, **what manifest it writes**.
 - **Debug:** `dist/plugin-check-triage-manifest.json`.
 - **Manifest:** `dist/plugin-check-triage-manifest.json`.
 
+### `composer test:js-error-free`
+
+- **Script:** `php scripts/verify-js-error-free.php`
+- **Gates:** every shipped JS file under `admin/js/` is runtime-
+  clean. Asserts no `console.error(…)`, no `console.warn(…)`, no
+  `alert/confirm/prompt`, no `document.write/writeln`, no
+  `eval()` / `new Function()`, no `var ` declarations (use
+  `const` / `let`), every file declares strict mode, and every
+  `.then()` chain has at least one matching `.catch()`.
+- **Failure:** "Shipped JS must not call console.error(…)."
+- **Debug:** `dist/js-error-free-manifest.json`.
+- **Manifest:** `dist/js-error-free-manifest.json`.
+
 ### `composer test:wp`
 
 - **Script:** `php -d extension=sqlite3 -d extension=pdo_sqlite

@@ -625,6 +625,21 @@ jobs:
             - name: Plugin Check triage integration test
               run: vendor/bin/phpunit tests/Integration/SScribe_Plugin_Check_Triage_Test.php
 
+            # Phase 65: JavaScript error-free requirement — every
+            # shipped file under admin/js/ must be runtime-clean:
+            # no console.error / console.warn, no alert/confirm/
+            # prompt, no document.write, no eval() or new Function(),
+            # no `var ` declarations, every file declares strict
+            # mode, every .then() chain is matched by a .catch().
+            # Without this guard a regression ships admin JS that
+            # surfaces the WP script-error overlay to every site
+            # owner.
+            - name: JS error-free contract gate
+              run: composer test:js-error-free
+
+            - name: JS error-free integration test
+              run: vendor/bin/phpunit tests/Integration/SScribe_JS_Error_Free_Test.php
+
             # Phase 51: release scripts must derive version dynamically
             # from SSCRIBE_VERSION. The version-sync verifier already
             # covers this source-level, but a dedicated integration

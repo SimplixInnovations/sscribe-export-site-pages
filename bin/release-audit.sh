@@ -64,6 +64,9 @@ run_gate "Exact-Package-Clean-Install" composer test:exact-package-clean-install
 echo "== Plugin Check triage acceptance (Phase 64) =="
 run_gate "Plugin-Check-Triage" composer test:plugin-check-triage >/tmp/release-audit-plugin-check-triage.log 2>&1
 
+echo "== JS error-free acceptance (Phase 65) =="
+run_gate "JS-Error-Free" composer test:js-error-free >/tmp/release-audit-js-error-free.log 2>&1
+
 echo "== PHPStan =="
 run_gate "PHPStan-level-7" vendor/bin/phpstan analyse --memory-limit=1G --no-progress >/tmp/release-audit-phpstan.log 2>&1
 
@@ -104,6 +107,7 @@ if [ "$FAIL" -ne 0 ]; then
   echo "  /tmp/release-audit-build-order.log"
   echo "  /tmp/release-audit-exact-package-clean-install.log"
   echo "  /tmp/release-audit-plugin-check-triage.log"
+  echo "  /tmp/release-audit-js-error-free.log"
   exit 1
 fi
 
