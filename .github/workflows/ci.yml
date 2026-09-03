@@ -670,6 +670,22 @@ jobs:
             - name: UI refactor discipline integration test
               run: vendor/bin/phpunit tests/Integration/SScribe_UI_Refactor_Discipline_Test.php
 
+            # Phase 68: Required new tests — the v2.0.0 spec
+            # requires regression coverage for 24 specific
+            # scenarios (stale count response, aborted count XHR,
+            # __all__ sentinel paths, preflight 429/503/500, etc.).
+            # The verifier walks tests/Integration/ and tests/Unit/
+            # and asserts each canonical signature phrase from
+            # docs/REQUIRED_NEW_TESTS_v2.0.0.md appears in at
+            # least one test method name OR docblock. A coverage
+            # manifest at dist/phase-68-test-coverage-manifest.json
+            # records which test method covers each signature.
+            - name: Phase 68 test coverage contract gate
+              run: composer test:phase-68-test-coverage
+
+            - name: Phase 68 test coverage integration test
+              run: vendor/bin/phpunit tests/Integration/SScribe_Phase_68_Test_Coverage_Test.php
+
             # Phase 51: release scripts must derive version dynamically
             # from SSCRIBE_VERSION. The version-sync verifier already
             # covers this source-level, but a dedicated integration

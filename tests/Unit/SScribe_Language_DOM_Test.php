@@ -194,6 +194,12 @@ final class SScribe_Language_DOM_Test extends TestCase {
 		);
 	}
 
+	/**
+	 * Phase 68 #24 — Language DOM sibling structure: every
+	 * per-language radio MUST share the same `name=` attribute
+	 * so the radio group enforces mutual exclusion at the DOM
+	 * level (language dom sibling contract).
+	 */
 	public function test_all_language_radios_share_the_same_name_attribute(): void {
 		// The single-radio-name contract is what makes the JS
 		// `input[name="sscribe_language"]:checked` selector work.

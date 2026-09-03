@@ -85,6 +85,11 @@ final class SScribe_Auto_Download_Test extends TestCase {
 		return $data['auto_download'] ?? null;
 	}
 
+	/**
+	 * Phase 68 #23 — E2E auto-download OFF/ON contract: the
+	 * auto-download default MUST be OFF (false) so a fresh
+	 * install never silently triggers an export download.
+	 */
 	public function test_auto_download_defaults_to_false(): void {
 		// No integrator filter present. The default MUST be false so
 		// a fresh install never auto-downloads without the admin

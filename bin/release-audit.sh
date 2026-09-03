@@ -73,6 +73,9 @@ run_gate "AJAX-Network-Trace" composer test:ajax-network-trace >/tmp/release-aud
 echo "== UI refactor discipline acceptance (Phase 67) =="
 run_gate "UI-Refactor-Discipline" composer test:ui-refactor-discipline >/tmp/release-audit-ui-refactor-discipline.log 2>&1
 
+echo "== Phase 68 test coverage acceptance (Phase 68) =="
+run_gate "Phase-68-Test-Coverage" composer test:phase-68-test-coverage >/tmp/release-audit-phase-68-test-coverage.log 2>&1
+
 echo "== PHPStan =="
 run_gate "PHPStan-level-7" vendor/bin/phpstan analyse --memory-limit=1G --no-progress >/tmp/release-audit-phpstan.log 2>&1
 
@@ -116,6 +119,7 @@ if [ "$FAIL" -ne 0 ]; then
   echo "  /tmp/release-audit-js-error-free.log"
   echo "  /tmp/release-audit-ajax-network-trace.log"
   echo "  /tmp/release-audit-ui-refactor-discipline.log"
+  echo "  /tmp/release-audit-phase-68-test-coverage.log"
   exit 1
 fi
 

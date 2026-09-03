@@ -160,6 +160,12 @@ final class SScribe_Sticky_Bit_Regression_Test extends TestCase {
 
 	#[RunInSeparateProcess]
 	#[PreserveGlobalState( false )]
+	/**
+	 * Phase 68 #21 — sticky-bit ownership: foreign-owned 01777
+	 * (sticky-bit set) directories must be accepted because the
+	 * shared-host /tmp convention requires world-writable +
+	 * sticky-bit. Foreign-owned 0777/0755 must be rejected.
+	 */
 	public function test_foreign_owned_01777_with_sticky_is_accepted(): void {
 		if ( 'Windows' === PHP_OS_FAMILY ) {
 			$this->markTestSkipped( 'POSIX sticky-bit semantics only enforced on Linux.' );

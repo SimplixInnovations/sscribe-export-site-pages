@@ -52,6 +52,12 @@ final class SScribe_Export_Rate_Limiter_Object_Cache_Test extends TestCase {
 		parent::tearDown();
 	}
 
+	/**
+	 * Phase 68 #20 — redis rate-limit counter: the persistent
+	 * object cache path (Redis, Memcached) must advance the
+	 * counter monotonically and never store an array on the
+	 * :count key.
+	 */
 	public function test_persistent_cache_path_advances_counter_monotonically(): void {
 		$limiter = new \SScribe_Export_Rate_Limiter();
 

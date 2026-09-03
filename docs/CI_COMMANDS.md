@@ -348,6 +348,22 @@ failure looks like**, **how to debug**, **what manifest it writes**.
 - **Debug:** `dist/ui-refactor-discipline-manifest.json`.
 - **Manifest:** `dist/ui-refactor-discipline-manifest.json`.
 
+### `composer test:phase-68-test-coverage`
+
+- **Script:** `php scripts/verify-phase-68-test-coverage.php`
+- **Gates:** `docs/REQUIRED_NEW_TESTS_v2.0.0.md` declares the
+  canonical registry sections, lists all 24 Phase 68 signature
+  phrases, and EVERY signature phrase appears in at least one
+  test method name OR docblock under tests/Integration/ or
+  tests/Unit/. The companion PHPUnit integration test pins
+  19 source-pattern assertions at
+  `tests/Integration/SScribe_Phase_68_Test_Coverage_Test.php`.
+- **Failure:** 'Phase 68 signature "__all__ count" must appear
+  in at least one test method name OR docblock. No match found
+  in 1369 test methods scanned.'
+- **Debug:** `dist/phase-68-test-coverage-manifest.json`.
+- **Manifest:** `dist/phase-68-test-coverage-manifest.json`.
+
 ### `composer test:wp`
 
 - **Script:** `php -d extension=sqlite3 -d extension=pdo_sqlite

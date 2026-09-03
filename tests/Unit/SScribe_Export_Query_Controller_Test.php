@@ -419,6 +419,10 @@ class SScribe_Export_Query_Controller_Test extends TestCase {
 	 * reject it and leave the All Languages card stale forever.
 	 * =======================================================================*/
 
+	/**
+	 * Phase 68 #4 — __all__ count: single count endpoint must
+	 * accept __all__ as a real sentinel language value.
+	 */
 	public function test_phase2_single_endpoint_accepts_sentinel_all(): void {
 		$_POST['nonce']     = wp_create_nonce( 'sscribe_export_nonce' );
 		$_POST['post_type'] = 'page';
@@ -443,6 +447,11 @@ class SScribe_Export_Query_Controller_Test extends TestCase {
 		$this->assertSame( 9, $json['data']['counts']['publish'] );
 	}
 
+	/**
+	 * Phase 68 #5/#6 — __all__ preview / __all__ start: the
+	 * batch endpoint must echo __all__ in its preview shape
+	 * and the start path must accept __all__ as a real sentinel.
+	 */
 	public function test_phase2_batch_endpoint_includes_sentinel_all_key(): void {
 		$_POST['nonce']     = wp_create_nonce( 'sscribe_export_nonce' );
 		$_POST['post_type'] = 'page';
