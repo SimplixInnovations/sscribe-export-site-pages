@@ -446,6 +446,25 @@ jobs:
             - name: Lifecycle integration test
               run: vendor/bin/phpunit tests/Integration/SScribe_Lifecycle_Test.php
 
+            # Phase 52: workflow governance — every release-required
+            # workflow must be a hard gate. No `continue-on-error: true`
+            # on required steps; no `if: failure()` outside artifact
+            # upload steps. Without this guard a regression that masks
+            # a required check with `continue-on-error: true` silently
+            # ships a release whose gate is bypassed.
+            - name: Workflow governance gate
+              run: composer test:workflow-governance
+
+            - name: Workflow governance integration test
+              run: vendor/bin/phpunit tests/Integration/SScribe_Workflow_Governance_Test.php
+
+            # Phase 51: release scripts must derive version dynamically
+            # from SSCRIBE_VERSION. The version-sync verifier already
+            # covers this source-level, but a dedicated integration
+            # test pins the contract at the PHPUnit boundary.
+            - name: Version sync release-script contract regression
+              run: vendor/bin/phpunit tests/Integration/SScribe_Version_Sync_Test.php
+
             # Phase 23: License SPDX regression — mainfile / readme.txt /
             # composer.json must all use the canonical GPL-2.0-or-later
             # identifier, and license.txt must ship the full GPL v2 text.
