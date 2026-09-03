@@ -1,0 +1,36 @@
+name: lockfile-refresh
+
+permissions:
+  contents: read
+
+on:
+  push:
+    branches:
+      - fix/2.0.0-release-blockers-final-v2
+
+jobs:
+  refresh-fast-uri:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v6
+        with:
+          persist-credentials: false
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '24'
+          cache: npm
+
+      - name: Refresh patched transitive dependency
+        run: npm update fast-uri --package-lock-only --ignore-scripts
+
+      - name: Verify high-severity audit is clean
+        run: npm audit --audit-level=high
+
+      - name: Upload deterministic lockfile
+        uses: actions/upload-artifact@v4
+        with:
+          name: patched-package-lock
+          path: package-lock.json
+          if-no-files-found: error
