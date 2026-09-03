@@ -49,6 +49,9 @@ jobs:
       - name: Prefix production vendor dependencies
         run: composer vendor:prefix
 
+      - name: Certify generated vendor-prefix tree
+        run: php scripts/verify-strauss-config.php --built
+
       - name: Prepare release fixture
         run: composer release:prepare
 
