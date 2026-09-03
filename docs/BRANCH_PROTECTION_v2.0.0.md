@@ -31,7 +31,7 @@ All are required for merge on `release/2.0.0-final-hardening`:
 | PHPUnit full suite     | `test`               | ci.yml                     | 997 tests still pass                    |
 | Frontend quality       | `frontend-quality`   | ci.yml                     | ESLint + Stylelint clean                |
 | Audit                  | `audit`              | ci.yml                     | Build transparency invariants            |
-| Real-WP integration    | `real-wp-tests`      | ci.yml                     | M3 testbench (Phase 30-style) clean     |
+| Real WordPress Integration Suite (matrix) | `real-wp-tests` | ci.yml              | M3 testbench (PHP 8.2/8.3/8.4 × WP latest/previous) clean |
 | Submission Package Check | `plugin-check`    | ci.yml                     | WP.org official plugin-check passes     |
 
 Additional required jobs (matrix):

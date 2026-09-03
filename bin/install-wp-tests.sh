@@ -65,6 +65,37 @@ if [ "${WP_VERSION}" = "latest" ] || [ -z "${WP_VERSION}" ]; then
 	fi
 fi
 
+# "previous" is an alias for "latest minor - 1" so the real-WP matrix
+# can keep using semantic aliases (latest / previous) without hard-coding
+# version numbers in ci.yml. The version-check API returns BOTH "current"
+# AND "version" history; we resolve "previous" by asking the API for the
+# previous stable release (wordpress.org stable check returns the full
+# stable history, newest first).
+if [ "${WP_VERSION}" = "previous" ]; then
+	log "Resolving previous WordPress version from wordpress.org..."
+	WP_VERSION="$(curl -fsSL 'https://api.wordpress.org/core/version-check/1.7/' \
+		| grep -oE '"version":"[^"]+"' \
+		| sed -E 's/.*"([^"]+)".*/\1/' \
+		| grep -v '^$' \
+		| head -n2 \
+		| tail -n1)"
+	if [ -z "${WP_VERSION}" ]; then
+		# Fallback: previous = latest minus 0.1 (assumes WP increments
+		# minors in lockstep). The version-check API gives us "current"
+		# reliably but the older entries are not always present.
+		log "Falling back to current-0.1 for previous version..."
+		CURRENT="$(curl -fsSL 'https://api.wordpress.org/core/version-check/1.7/' \
+			| grep -oE '"current":"[^"]+"' \
+			| head -n1 \
+			| sed -E 's/.*"([^"]+)".*/\1/')"
+		WP_VERSION="$(printf '%s' "${CURRENT}" | awk -F. '{ printf("%d.%d.%d", $1, $2-1, 0) }')"
+	fi
+	if [ -z "${WP_VERSION}" ]; then
+		echo "ERROR: could not resolve previous WordPress version from wordpress.org API" >&2
+		exit 1
+	fi
+fi
+
 log "Downloading WordPress ${WP_VERSION}..."
 WP_TARBALL="${CACHE_DIR}/wordpress-${WP_VERSION}.tar.gz"
 if [ ! -f "${WP_TARBALL}" ]; then
