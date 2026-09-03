@@ -353,6 +353,22 @@ jobs:
             - name: Accessibility contract integration test
               run: vendor/bin/phpunit tests/Integration/SScribe_Accessibility_Test.php
 
+            # Phase 44: performance budget — the CI smoke test renders
+            # 100 mock HTML pages and asserts the run stays inside the
+            # budget codified in scripts/verify-performance-budget.php
+            # (5s wall, 100ms per page, 256 MiB peak). The verifier
+            # also cross-checks the live-reference budgets in the
+            # manifest against docs/PERFORMANCE_BENCHMARKS_v2.0.0.md so
+            # the reviewer-visible doc and the CI gate cannot drift.
+            # Without this guard a regression in the rendering hot path
+            # silently ships a release that breaks the
+            # ~6-7-minute 1000-page export budget.
+            - name: Performance budget gate
+              run: composer test:perf
+
+            - name: Performance budget integration test
+              run: vendor/bin/phpunit tests/Integration/SScribe_Performance_Budget_Test.php
+
             # Phase 23: License SPDX regression — mainfile / readme.txt /
             # composer.json must all use the canonical GPL-2.0-or-later
             # identifier, and license.txt must ship the full GPL v2 text.
