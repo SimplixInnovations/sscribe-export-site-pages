@@ -538,6 +538,20 @@ jobs:
             - name: Acceptance matrix integration test
               run: vendor/bin/phpunit tests/Integration/SScribe_Acceptance_Matrix_Test.php
 
+            # Phase 59: debug / operational log acceptance — sensitive
+            # keys must be redacted, IP-like keys hashed via HMAC-SHA-256,
+            # JWT-shaped strings redacted, messages bounded to 4000 chars,
+            # context strings bounded to 2000 chars, canonical shape
+            # `[ISO_TIMESTAMP] [LEVEL] message | json` preserved.
+            # The verifier walks includes/class-sscribe-logger.php +
+            # trait-sscribe-logger-common.php; the integration test
+            # exercises the trait directly to prove runtime behavior.
+            - name: Debug log acceptance contract gate
+              run: composer test:debug-log
+
+            - name: Debug log acceptance integration test
+              run: vendor/bin/phpunit tests/Integration/SScribe_Debug_Log_Test.php
+
             # Phase 51: release scripts must derive version dynamically
             # from SSCRIBE_VERSION. The version-sync verifier already
             # covers this source-level, but a dedicated integration
