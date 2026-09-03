@@ -449,6 +449,26 @@ failure looks like**, **how to debug**, **what manifest it writes**.
 - **Debug:** `dist/agent-final-report-manifest.json`.
 - **Manifest:** `dist/agent-final-report-manifest.json`.
 
+### `composer test:auditor-handoff`
+
+- **Script:** `php scripts/verify-auditor-handoff.php`
+- **Gates:** `docs/AUDITOR_HANDOFF_v2.0.0.md` declares the
+  canonical sections (Why this exists, Canonical handoff
+  artifacts, Verification recipe per artifact, How an
+  independent auditor verifies this) AND lists all 13
+  canonical handoff artifacts (release blockers, final CI
+  state, exact artifact evidence, agent final report,
+  branch protection, tag policy, release pipeline,
+  acceptance matrix, build transparency, third-party
+  licenses, plugin check triage, manual runtime tests,
+  exact ZIP). This is the canonical "is the release
+  ready for reviewer handoff?" gate.
+- **Failure:** "Every canonical handoff artifact must
+  appear in the handoff doc. Missing:
+  docs/TAG_POLICY_v2.0.0.md".
+- **Debug:** `dist/auditor-handoff-manifest.json`.
+- **Manifest:** `dist/auditor-handoff-manifest.json`.
+
 ### `composer test:wp`
 
 - **Script:** `php -d extension=sqlite3 -d extension=pdo_sqlite
