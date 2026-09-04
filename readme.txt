@@ -1,7 +1,7 @@
 === SScribe Export Site Pages ===
 Contributors: simplixinnovations
 Tags: export, docx, pdf, html, markdown
-Requires at least: 6.0
+Requires at least: 6.1
 Tested up to: 7.1
 Stable tag: 2.0.0
 Requires PHP: 8.2
@@ -35,7 +35,7 @@ SScribe turns WordPress pages into portable documents for content handovers, aud
 
 = Requirements =
 
-* WordPress 6.0 or newer
+* WordPress 6.1 or newer
 * PHP 8.2 or newer
 * 256 MB of PHP memory is recommended for large PDF exports
 
