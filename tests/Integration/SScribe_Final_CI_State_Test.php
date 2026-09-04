@@ -58,6 +58,7 @@ final class SScribe_Final_CI_State_Test extends TestCase {
 			'## Status convention',
 			'## Canonical required jobs',
 			'## Recorded final state',
+			'## Strict evidence file',
 			'## How an independent auditor verifies this',
 		);
 
@@ -224,9 +225,12 @@ final class SScribe_Final_CI_State_Test extends TestCase {
 
 		$this->assertStringContainsString( 'SSCRIBE_RELEASE_CERTIFICATION', $src );
 		$this->assertStringContainsString( 'git rev-parse HEAD', $src );
-		$this->assertStringContainsString( 'recorded_source_sha_matches_head', $src );
+		$this->assertStringContainsString( 'dist/final-execution-evidence.json', $src );
+		$this->assertStringContainsString( 'evidence_source_sha_matches_head', $src );
+		$this->assertStringContainsString( 'tracked_working_tree_is_clean', $src );
 		$this->assertStringContainsString( 'LOCAL_PASS', $src );
 		$this->assertStringContainsString( 'every_required_job_has_shippable_recorded_status', $src );
+		$this->assertStringContainsString( 'every_evidence_reference_is_verifiable', $src );
 	}
 
 }
