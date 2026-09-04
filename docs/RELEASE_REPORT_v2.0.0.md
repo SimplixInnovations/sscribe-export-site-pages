@@ -2,14 +2,14 @@
 
 **Date:** 2026-09-05T01:18:00+00:00
 **Version:** 2.0.0
-**Source SHA:** `e7f593338a47e6f4c1ca09a1001018fb3ff5dbd5`
+**Source SHA:** `f68caed91d7f39020c69fec6a3fa18d9cd83e2ed`
 **Tag:** `v2.0.0` (UNSIGNED, see Open items)
 **Verdict:** RELEASE NOT READY (7 DEFERRED blockers remain)
 
 ## Executive summary
 
 SScribe 2.0.0 is **not** ready for release as of this report. The local
-release gate was executed at source SHA `e7f593338a47e6f4c1ca09a1001018fb3ff5dbd5`
+release gate was executed at source SHA `f68caed91d7f39020c69fec6a3fa18d9cd83e2ed`
 on branch `main` (also at `develop`), and 21 of 22 local audit sub-checks
 passed plus the full PHPUnit suite is green at 1457 tests / 6092 assertions
 / 0 failures / 28 skipped across multiple random seeds. The deterministic
@@ -54,8 +54,8 @@ corrected public release as v2.0.1"), the honest recommended path is:
 - ZIP SHA-256: `250948f3dc2482deb68c13c5f830c0c99d36f661f5c958e8e80a5f1daa058cee`
 - ZIP byte size: 9507342
 - ZIP entry count: 1051
-- Source SHA: `e7f593338a47e6f4c1ca09a1001018fb3ff5dbd5`
-- Source short SHA: `e7f59333`
+- Source SHA: `f68caed91d7f39020c69fec6a3fa18d9cd83e2ed`
+- Source short SHA: `f68caed9`
 - Builder run ID: local — `dist/evidence/build.log` (contains "BUILD
   COMPLETE" marker and exact ZIP path)
 - Builder workflow: `composer release`
@@ -97,7 +97,7 @@ corrected public release as v2.0.1"), the honest recommended path is:
 
 ## CI state
 
-Phase 71 strict final-state gate run against SHA `e7f59333`:
+Phase 71 strict final-state gate run against SHA `f68caed9`:
 
 | Required job        | Status      | Evidence                                            |
 |---------------------|-------------|-----------------------------------------------------|
@@ -163,7 +163,7 @@ An independent auditor can re-run every claim in this report with:
 
 ```bash
 # 1. Confirm git + branch topology (both at same SHA).
-git rev-parse HEAD          # expect e7f593338a47e6f4c1ca09a1001018fb3ff5dbd5
+git rev-parse HEAD          # expect f68caed91d7f39020c69fec6a3fa18d9cd83e2ed
 git rev-parse origin/main
 git rev-parse origin/develop
 
