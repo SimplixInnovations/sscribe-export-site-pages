@@ -51,6 +51,33 @@ final class SScribe_E2E_Workflow_Test extends TestCase {
 		$this->assertLessThan($npm_audit, $npm_audit_test);
 	}
 
+	public function test_e2e_global_setup_installs_only_the_canonical_versioned_release_zip(): void {
+		$path = dirname(__DIR__, 2) . '/tests-e2e/globalSetup.ts';
+		$this->assertFileExists($path);
+		$source = (string) file_get_contents($path);
+
+		$this->assertStringContainsString(
+			'sscribe-export-site-pages-${releaseVersion}.zip',
+			$source,
+			'E2E must select the canonical versioned ZIP rather than whichever ZIP happens to be first in dist/.'
+		);
+		$this->assertStringNotContainsString(
+			"filter((f: string) => f.endsWith('.zip'))",
+			$source,
+			'E2E must never choose the first arbitrary ZIP from dist/.'
+		);
+		$this->assertStringContainsString(
+			'writeFileSync(zipPath, readFileSync(canonicalZipPath));',
+			$source,
+			'E2E must overwrite the staging ZIP on every run so stale /tmp bytes cannot be reused.'
+		);
+		$this->assertStringNotContainsString(
+			'if (!existsSync(zipPath))',
+			$source,
+			'E2E staging must not retain an old ZIP merely because a previous run left the staging path behind.'
+		);
+	}
+
 	public function test_e2e_requires_full_playwright_suite_on_pull_requests(): void {
 		$workflow = $this->workflow();
 		$this->assertStringContainsString('npm run test:e2e:full', $workflow);
