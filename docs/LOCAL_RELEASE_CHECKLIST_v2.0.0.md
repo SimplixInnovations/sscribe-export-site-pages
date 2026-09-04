@@ -68,7 +68,7 @@ are available locally.
 ## 5. Build the preliminary exact package
 
 ```bash
-composer release:prepare
+composer release
 ```
 
 The canonical artifact is:
@@ -175,22 +175,55 @@ the release is not ready.
 Because committing blocker/source changes creates a new SHA, rerun final
 release evidence after the source is frozen.
 
-Start clean evidence logs:
+First regenerate dependency/build inputs from the locked source and ensure they
+do not dirty tracked files:
 
 ```bash
-rm -rf dist/evidence
-mkdir -p dist/evidence
 FINAL_SHA="$(git rev-parse HEAD)"
 printf '%s\n' "$FINAL_SHA"
+
+composer install --no-interaction --no-progress
+composer vendor:prefix
+git status --short
 ```
 
-Run and save the required signal evidence. One practical local mapping is:
+If `git status --short` shows any tracked change, stop. Review and commit the
+legitimate change, then restart section 10 from the new SHA.
+
+The real package builder is `composer release`
+(`php scripts/build-release.php`). **Do not use `composer release:prepare`
+for packaging**; that command is the interactive version-bump preparation
+workflow.
+
+Because the builder intentionally cleans `dist/`, capture its output outside
+`dist/` first, then copy it back after the build:
+
+```bash
+mkdir -p .cache
+composer release 2>&1 | tee .cache/final-build.log
+BUILD_TIMESTAMP="$(date -u +%Y-%m-%dT%H:%M:%SZ)"
+
+mkdir -p dist/evidence
+cp .cache/final-build.log dist/evidence/build.log
+```
+
+The exact artifact must now be:
+
+```text
+dist/sscribe-export-site-pages-2.0.0.zip
+dist/sscribe-export-site-pages-2.0.0.sha256
+```
+
+Now run and save the remaining required signal evidence against this same
+frozen SHA/artifact:
 
 ```bash
 composer version:check 2>&1 | tee dist/evidence/version-check.log
 
-# Run the repository-required PHP syntax/version matrix here and save its output.
-# The final evidence file must identify the exact commands/runtimes used.
+# Run the repository-required PHP syntax/version matrix here and save its
+# consolidated output to dist/evidence/lint.log. The current CI contract
+# validates syntax on PHP 8.2, 8.3, 8.4 and 8.5.
+
 composer test 2>&1 | tee dist/evidence/test.log
 
 {
@@ -218,28 +251,19 @@ composer test 2>&1 | tee dist/evidence/test.log
 } 2>&1 | tee dist/evidence/coverage.log
 ```
 
-For the `lint` signal, run the supported PHP syntax/runtime matrix required by
-`.github/workflows/ci.yml` (currently PHP 8.2–8.5 for syntax validation) and
-save one consolidated non-empty `dist/evidence/lint.log`.
-
-Now rebuild the artifact from this exact frozen SHA:
+Run official Plugin Check against the already-built exact ZIP and save the
+final output:
 
 ```bash
-rm -f dist/sscribe-export-site-pages-*.zip
-composer release:prepare
+"${SSCRIBE_WP_BIN:-wp}" --path="$SSCRIBE_WP_ROOT" plugin install \
+  "$PWD/dist/sscribe-export-site-pages-2.0.0.zip" --force --activate
+
+"${SSCRIBE_WP_BIN:-wp}" --path="$SSCRIBE_WP_ROOT" plugin check \
+  sscribe-export-site-pages 2>&1 | tee dist/evidence/plugin-check.log
 ```
 
-Run official Plugin Check again against this newly rebuilt exact ZIP and save
-the final output:
-
-```bash
-"${SSCRIBE_WP_BIN:-wp}" --path="$SSCRIBE_WP_ROOT" plugin install   "$PWD/dist/sscribe-export-site-pages-2.0.0.zip" --force --activate
-
-"${SSCRIBE_WP_BIN:-wp}" --path="$SSCRIBE_WP_ROOT" plugin check   sscribe-export-site-pages 2>&1 | tee dist/evidence/plugin-check.log
-```
-
-Repeat the clean-install smoke on this final ZIP and write the final result to
-`dist/evidence/clean-install.md`.
+Repeat the clean-install smoke using this exact final ZIP and write the
+executed result to `dist/evidence/clean-install.md`.
 
 Then run final E2E:
 
@@ -250,8 +274,15 @@ Then run final E2E:
 } 2>&1 | tee dist/evidence/e2e.log
 ```
 
-All commands must exit 0. If any tracked source fix is needed, stop, commit the
-fix, delete stale final evidence, and restart from section 10.
+All commands must exit 0. Verify the tracked tree is still clean:
+
+```bash
+git status --short
+test "$(git rev-parse HEAD)" = "$FINAL_SHA"
+```
+
+If any tracked source fix is needed, stop, commit the fix, delete stale final
+evidence, and restart section 10.
 
 ## 11. Create untracked exact-SHA evidence inputs
 
@@ -289,8 +320,8 @@ Create `dist/release-certification-evidence.json`:
 ```json
 {
   "source_sha": "<FINAL_40_HEX_SHA>",
-  "builder_run_id": "local-<unique-id>",
-  "builder_workflow": "local: composer release:prepare",
+  "builder_run_id": "local:dist/evidence/build.log",
+  "builder_workflow": "composer release",
   "plugin_check_url": "local:dist/evidence/plugin-check.log",
   "clean_install_doc": "dist/evidence/clean-install.md",
   "build_timestamp": "<ISO_8601_TIMESTAMP>"
