@@ -354,7 +354,7 @@ if ( $strict_certification ) {
 		'builder_run_id'   => trim( (string) ( $metadata['builder_run_id'] ?? '' ) ),
 		'builder_workflow' => trim( (string) ( $metadata['builder_workflow'] ?? '' ) ),
 		'plugin_check_url' => $plugin_check_ref,
-		'clean_install_doc'=> $clean_install_rel,
+		'clean_install_doc' => $clean_install_rel,
 		'build_timestamp'  => $timestamp,
 	);
 
