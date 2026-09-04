@@ -78,3 +78,26 @@ test('transient failures remain fail-closed after retry budget is exhausted', as
   );
   assert.equal(calls, 3);
 });
+
+test('defaultExec subprocess env strips inherited allow-scripts overrides', async () => {
+  // The Windows + npm v11+ regression: spawning `npm.cmd` from inside an
+  // `npm run` script failed with EALLOWSCRIPTS when a user-level `.npmrc`
+  // already set `allow-scripts=...`. The subprocess must explicitly clear
+  // that env var so the nested npm invocation does not treat it as a
+  // project-scoped CLI override.
+  const fs = await import('node:fs');
+  const source = fs.readFileSync(
+    new URL('../scripts/npm-audit-high.mjs', import.meta.url),
+    'utf8'
+  );
+  assert.match(
+    source,
+    /npm_config_allow_scripts:\s*''/,
+    'defaultExec must explicitly clear npm_config_allow_scripts to defeat EALLOWSCRIPTS'
+  );
+  assert.match(
+    source,
+    /windowsVerbatimArguments:\s*true/,
+    'defaultExec must use cmd.exe /d /s /c wrapper on Windows to avoid spawnSync EINVAL on .cmd shims'
+  );
+});

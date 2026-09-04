@@ -47,13 +47,35 @@ function parsePayload(stdout) {
 }
 
 function defaultExec() {
-  const npmExecutable = process.platform === 'win32' ? 'npm.cmd' : 'npm';
-  const result = spawnSync(npmExecutable, ['audit', '--json', '--audit-level=high'], {
+  // On Windows, Node v20+ spawnSync refuses to invoke `.cmd` shims
+  // directly and fails with EINVAL unless a shell wrapper is used.
+  // We invoke the npm CLI shim through `cmd.exe /d /s /c` so the
+  // argument list is preserved verbatim and we avoid the
+  // CVE-2024-27980 surface from a blanket `shell: true`. All
+  // arguments are hard-coded — no user-controlled input reaches the
+  // shell — so command injection is not reachable here.
+  const isWindows = process.platform === 'win32';
+  const npmShim = isWindows ? 'npm.cmd' : 'npm';
+  const npmArgs = ['audit', '--json', '--audit-level=high'];
+  const command = isWindows ? 'cmd.exe' : npmShim;
+  const args = isWindows
+    ? ['/d', '/s', '/c', npmShim, ...npmArgs]
+    : npmArgs;
+
+  const result = spawnSync(command, args, {
     encoding: 'utf8',
+    windowsVerbatimArguments: true,
     env: {
       ...process.env,
       npm_config_fetch_timeout: process.env.npm_config_fetch_timeout || '60000',
       npm_config_fetch_retries: process.env.npm_config_fetch_retries || '0',
+      // Clear the inherited `allow-scripts` value so npm v11+ does not
+      // treat a user-level `.npmrc` policy as a CLI override and reject
+      // the nested invocation with EALLOWSCRIPTS.
+      npm_config_allow_scripts: '',
+      // Ensure lifecycle hooks from any resolved dep are skipped.
+      npm_config_ignore_scripts:
+        process.env.npm_config_ignore_scripts || 'true',
     },
     timeout: 90000,
   });
