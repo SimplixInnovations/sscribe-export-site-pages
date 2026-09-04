@@ -105,7 +105,7 @@
         "release:commit": "php scripts/release-commit.php",
         "release:full": "composer release:prepare && composer release:commit",
         "release:audit": "bash bin/release-audit.sh",
-        "audit:npm": "npm audit --audit-level=high",
+        "audit:npm": "node scripts/npm-audit-high.mjs",
         "release": "php scripts/build-release.php",
         "full": "composer ci:full && composer release"
     },
