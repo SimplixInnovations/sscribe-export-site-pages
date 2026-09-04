@@ -1,135 +1,92 @@
-# SScribe v2.0.0 — Branch Protection & Required Checks
+# SScribe v2.0.0 — Branch Protection Policy & Live Status
 
-This file is the certifier's pre-flight branch-protection policy. Every
-rule below maps 1:1 to a GitHub Branch Settings rule; the file pins the
-exact state for `release/2.0.0-final-hardening` at the audited SHA.
+This document is the repository governance policy for the two canonical
+long-lived branches. It is intentionally **not** treated as proof that GitHub
+has applied the server-side settings: live protection must be checked in the
+repository settings/API.
 
-## Why this file exists
-
-Branch protection is a server-side rule. This document is the local
-mirror of what the GitHub repository settings should enforce. Any
-maintainer pushing a change can read this file to know what will pass
-and what will not.
-
-## Branch under protection
+## Target branches
 
 ```
-Branch:                       release/2.0.0-final-hardening
-Base SHA:                     a5c093c (a5c093ca5672171f932a5d458755acd3649b3594)
-Audited Date:                 2026-09-02
-Promotion target (post-2.0.0): main
+Branches: main, develop
+Audited Date: 2026-09-04
 ```
 
-## Required status checks (must ALL be green)
+## Observed live status
 
-The following GitHub Actions jobs are configured in `.github/workflows/ci.yml`.
-All are required for merge on `release/2.0.0-final-hardening`:
+At the 2026-09-04 release-hardening audit, the GitHub API reported:
 
-| Required check         | Job name             | Source                     | What it proves                          |
-|------------------------|----------------------|----------------------------|----------------------------------------|
-| Version sync           | `version-check`      | ci.yml                     | Plugin header version == readme == main file |
-| PHPUnit full suite     | `test`               | ci.yml                     | 997 tests still pass                    |
-| Frontend quality       | `frontend-quality`   | ci.yml                     | ESLint + Stylelint clean                |
-| Audit                  | `audit`              | ci.yml                     | Build transparency invariants            |
-| Real WordPress Integration Suite (matrix) | `real-wp-tests` | ci.yml              | M3 testbench (PHP 8.2/8.3/8.4 × WP latest/previous) clean |
-| Submission Package Check | `plugin-check`    | ci.yml                     | WP.org official plugin-check passes     |
+```
+main:    UNPROTECTED
+develop: UNPROTECTED
+```
 
-Additional required jobs (matrix):
+This is an external repository setting, not a WordPress plugin-code defect and
+not a WordPress.org submission requirement. It should be enabled when the
+GitHub plan/account permits it. Until then, the release process uses pull
+requests, exact-artifact certification, immutable GitHub Action pins, and the
+local release audit as compensating controls.
 
-| Required check         | Job name             | Source                     |
-|------------------------|----------------------|----------------------------|
-| Release audit gate     | `release-audit`      | release-audit.yml (Phase 33) |
-| Coverage PHP 8.4       | `coverage`           | ci.yml (informational; coverage gate = 80%) |
+## Desired required status checks
 
-## Required reviews
+The following release signals map to the repository workflows and should be
+configured as required checks when branch protection/rulesets are available:
 
-- **At least 1 approving review** before merge to `release/2.0.0-final-hardening`.
-- **At least 2 approving reviews** for any change that touches:
+| Check | Job / workflow | What it proves |
+|---|---|---|
+| Version Sync | `version-check` | Metadata and release contracts are internally consistent. |
+| PHPUnit | `test` | Runtime/unit/integration suite passes. |
+| Submission Package Check | `plugin-check` | Official WordPress Plugin Check passes on the exact ZIP. |
+| Exact-package browser runtime | `e2e` workflow | Built ZIP boots and completes browser export/download flows. |
+| Release audit | `release-audit` workflow | Final promotion audit passes. |
+
+## Desired pull-request rules
+
+- **No direct push** to `main`; promotion should occur through a pull request.
+- At least **1 approving review** for ordinary changes.
+- At least **2 approving reviews** for sensitive release/security files:
   - `includes/class-sscribe-activator.php`
   - `includes/class-sscribe-private-storage.php`
+  - `includes/class-sscribe-security.php`
   - `scripts/build-release.php`
   - `bin/release-audit.sh`
-  - `phpcs.xml` / `phpstan.neon` / `.github/workflows/*.yml`
-- **No direct push** — `release/2.0.0-final-hardening` must require PRs.
-
-## Conversation resolution
-
-- All review comments must be resolved before merge.
-- PRs without conversation are blocked from squash-merge.
-
-## Signed commits
-
-- The branch requires `--signoff` for every commit (DCO).
-- The branch rejects force-pushes.
-- The branch rejects deletion (a non-admin must delete the branch from
-  `main` after a clean release tag).
+  - `phpcs.xml`, `phpstan.neon`, and `.github/workflows/*.yml`
+- Conversation resolution is required before merge.
+- Signed commits / DCO `--signoff` are preferred for release promotion.
+- **No force-pushes** to protected long-lived branches.
+- **No branch deletion** for `main` or `develop`.
+- **No admin bypass** for required release checks once protection is enabled.
 
 ## Allowed merge methods
 
-- **Squash** is the only allowed merge method (preserves a clean linear
-  history on `release/2.0.0-final-hardening`).
-- Rebase-merge is disabled (the branch's history is too valuable to flatten).
-- Merge commits are disabled (would fork the linear history).
+- **Squash** is the preferred merge method for feature/release PRs.
+- Rebase-merge is disabled by policy for release promotion.
+- Merge commits are avoided unless repository history requires them.
 
-## Restrictions
+## Compensating controls while GitHub protection is unavailable
 
-- No force-pushes, regardless of role.
-- No commits bypassing branch protection, regardless of role.
-- No admin-bypass BETA — every push goes through the gate.
+1. Feature work lands through PRs rather than direct edits to `main`.
+2. External GitHub Actions are pinned to immutable 40-character commit SHAs.
+3. The exact versioned ZIP is built once and certified before publication.
+4. Plugin Check runs against the exact submission package.
+5. `bin/release-audit.sh` fails closed when mandatory tooling is unavailable.
+6. Release tags are allowed only from `origin/main` HEAD.
 
-## Reset policy
+## How to verify live state
 
-When `release/2.0.0-final-hardening` is promoted into `main`, the branch
-protection is reset on `main`. The promotion commit on `main` is:
+Before tagging a release, inspect GitHub repository settings or the branch API
+for both `main` and `develop`. If protection is available, enable the policy
+above. Do not infer server-side enforcement from this document.
 
-```
-Release v2.0.0
-=============
-Audited SHA: a5c093ca5672171f932a5d458755acd3649b3594
+## Companion evidence
 
-  - 997 PHPUnit pass + 21 skipped + 0 fail.
-  - 0 PHPStan-level-7 errors.
-  - 0 PHPCS violations across 90 files.
-  - 0 ESLint + Stylelint errors.
-  - 0 Plugin-Check errors (5 originally flagged, all addressed).
-  - 0 npm audit vulnerabilities.
-  - ZIP artifact SHA256 matches sidecar.
-  - Performance envelope within WP.org shared-host tolerance.
-
-See docs/CI_EVIDENCE_v2.0.0.md for the audit log at this SHA.
-See docs/SECURITY_MATRIX_v2.0.0.md for the security matrix.
-See docs/PERFORMANCE_BENCHMARKS_v2.0.0.md for the perf envelope.
-See docs/WP_ORG_CLEAN_INSTALL_SMOKE.md for the install evidence.
-```
-
-## Failure modes for any contributor
-
-A commit that lands on `release/2.0.0-final-hardening` and trips one
-of the required checks MUST be reverted before another commit can land
-on top. The gate is "all-green-or-revert", not "all-green-or-pause".
-
-This is intentional: a paused gate holds up the release; a revert
-quickly returns the branch to green and lets the next PR continue.
-
-## How to verify locally
-
-Before pushing, run:
-
-```bash
-bash bin/release-audit.sh
-```
-
-If the script exits 0, the push will pass all required checks. If not,
-fix the reported failure before pushing — do not bypass with an
-`--no-verify` (there is no such loophole; the gate is server-side).
+- `docs/CI_EVIDENCE_v2.0.0.md`
+- `docs/SECURITY_MATRIX_v2.0.0.md`
+- `docs/PERFORMANCE_BENCHMARKS_v2.0.0.md`
+- `docs/WP_ORG_CLEAN_INSTALL_SMOKE.md`
 
 ## Living document
 
-This file is part of the v2.0.0 release hardening audit. It is
-intentionally pinned to commit `a5c093c`. Any change to the required
-checks (e.g., adding coverage) must:
-
-1. Update `docs/BRANCH_PROTECTION_v2.0.0.md`.
-2. Update `.github/workflows/ci.yml` accordingly.
-3. Update `bin/release-audit.sh` if a new local gate is added.
-4. Document the change in a commit message and PR description.
+This is a living document. Update it whenever branch topology, required checks,
+merge policy, GitHub plan capabilities, or the observed live protection state
+changes.
