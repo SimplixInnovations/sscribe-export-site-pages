@@ -37,15 +37,21 @@ final class SScribe_Performance_Budget_Test extends TestCase {
 	}
 
 	private function load_budget(): array {
-		$abs     = self::plugin_root() . '/' . self::MANIFEST_PATH;
-		$this::assertFileExists( $abs, 'performance-budget-manifest.json must exist (run verify-performance-budget.php first).' );
+		$abs = self::plugin_root() . '/' . self::MANIFEST_PATH;
+		if ( ! is_file( $abs ) ) {
+			$this->run_verifier_or_fail();
+		}
+		$this::assertFileExists( $abs, 'performance-budget-manifest.json must exist after the verifier runs.' );
 		$payload = json_decode( (string) file_get_contents( $abs ), true );
 		$this::assertIsArray( $payload );
 		$this::assertTrue( $payload['passes'], 'Performance budget manifest must be passing.' );
 		return $payload;
 	}
 
-	public function test_verifier_passes_against_live_tree(): void {
+	/**
+	 * Generate the performance manifest independently of PHPUnit method order.
+	 */
+	private function run_verifier_or_fail(): string {
 		$root        = self::plugin_root();
 		$descriptors = array(
 			0 => array( 'pipe', 'r' ),
@@ -66,6 +72,11 @@ final class SScribe_Performance_Budget_Test extends TestCase {
 			$code,
 			'Performance budget verifier must pass on the live tree. Output:' . "\n" . $stdout . $stderr
 		);
+		return $stdout;
+	}
+
+	public function test_verifier_passes_against_live_tree(): void {
+		$stdout = $this->run_verifier_or_fail();
 		$this::assertStringContainsString( 'Performance budget contract valid', $stdout );
 	}
 
