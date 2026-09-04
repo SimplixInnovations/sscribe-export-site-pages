@@ -90,7 +90,7 @@ already ignored by Git.
 With `SSCRIBE_RELEASE_CERTIFICATION=1`, the verifier must confirm all of the
 following from the live checkout and untracked release evidence:
 
-1. The tracked working tree is clean.
+1. The working tree is clean, including non-ignored untracked files.
 2. `source_sha` from the untracked metadata equals `git rev-parse HEAD`.
 3. The main plugin version resolves from `SSCRIBE_VERSION`.
 4. Exactly the expected current-version ZIP exists in `dist/`.
