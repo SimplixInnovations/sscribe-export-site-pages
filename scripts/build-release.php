@@ -866,18 +866,33 @@ if ( true !== $zip->open( $zip_file, ZipArchive::CREATE | ZipArchive::OVERWRITE 
 	exit( 1 );
 }
 
-$files = new RecursiveIteratorIterator(
-	new RecursiveDirectoryIterator( $plugin_dir, RecursiveDirectoryIterator::SKIP_DOTS ),
-	RecursiveIteratorIterator::LEAVES_ONLY
-);
+// Determinism contract (release invariants #5): iterate entries in a
+// stable, sorted order so the ZIP SHA-256 is reproducible from source +
+// tools. RecursiveDirectoryIterator order is filesystem-dependent and
+// would otherwise inject platform entropy into every build.
+$file_list = array();
+$directory_iterator = new RecursiveDirectoryIterator( $plugin_dir, RecursiveDirectoryIterator::SKIP_DOTS );
+foreach ( new RecursiveIteratorIterator( $directory_iterator, RecursiveIteratorIterator::LEAVES_ONLY ) as $file ) {
+	if ( $file->isDir() ) {
+		continue;
+	}
+	$full_path = str_replace( '\\', '/', $file->getPathname() );
+	$file_list[] = $full_path;
+}
+sort( $file_list, SORT_STRING );
+
+// Fixed mtime (epoch 0) so every entry has identical timestamp metadata;
+// this guarantees the archive bytes are determined entirely by file
+// contents and ordering, not by filesystem mtime or current clock.
+$fixed_mtime = 0;
 
 $plugin_dir_norm = str_replace( '\\', '/', $plugin_dir );
 
-foreach ( $files as $file ) {
-	if ( ! $file->isDir() ) {
-		$full_path = str_replace( '\\', '/', $file->getPathname() );
-		$relative_in_zip = 'sscribe-export-site-pages/' . str_replace( $plugin_dir_norm . '/', '', $full_path );
-		$zip->addFile( $file->getPathname(), $relative_in_zip );
+foreach ( $file_list as $full_path ) {
+	$relative_in_zip = 'sscribe-export-site-pages/' . str_replace( $plugin_dir_norm . '/', '', $full_path );
+	$zip->addFile( $full_path, $relative_in_zip );
+	if ( method_exists( $zip, 'setMtimeName' ) ) {
+		$zip->setMtimeName( $relative_in_zip, $fixed_mtime );
 	}
 }
 
