@@ -103,7 +103,7 @@ The bundled mPDF library uses GPL-2.0-only. Required notices for bundled depende
 
 Canonical source repository: https://github.com/SimplixInnovations/sscribe-export-site-pages
 
-The released ZIP is built from this repository with the documented, deterministic build commands below; no private pre-built runtime blobs are substituted into the submission package. For a public WordPress.org submission, the exact tagged source used for the ZIP must be accessible to reviewers through the repository or another reviewer-approved source channel.
+The released ZIP is built from this repository with the documented, deterministic build commands below; no private pre-built runtime blobs are substituted into the submission package. Because the production ZIP excludes development/build tooling such as scripts and tests, the canonical repository (or an equivalent maintained source mirror containing the exact tagged source and build tooling) must be publicly accessible for a WordPress.org submission. Reviewer-only or private access is not treated as a substitute for the public source availability required by the WordPress.org plugin guidelines.
 
 Required tools and versions:
 
