@@ -284,7 +284,7 @@ if ( $strict_certification ) {
 	);
 
 	$clean_install_doc = (string) ( $recorded_values['clean_install_doc'] ?? '' );
-	$clean_install_abs = $root_dir . '/' . ltrim( str_replace( '\\\\', '/', $clean_install_doc ), '/' );
+	$clean_install_abs = $root_dir . '/' . ltrim( str_replace( '\\', '/', $clean_install_doc ), '/' );
 	$record(
 		'clean_install_evidence_doc_exists',
 		'' !== $clean_install_doc && is_file( $clean_install_abs ),
