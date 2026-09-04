@@ -175,7 +175,7 @@ final class SScribe_Plugin_Check_Test extends TestCase {
 		$this::assertSame( 1, $count );
 		list( $code, $output ) = $this->run_against( $ci );
 		$this::assertSame( 1, $code );
-		$this::assertStringContainsString( 'wordpress/plugin-check-action@10857da14b6c2246d15402b3e69f777edcf8c12e', $output );
+		$this::assertStringContainsString( 'wordpress/plugin-check-action@<40-char SHA>', $output );
 	}
 
 	public function test_missing_real_wp_tests_dependency_fails(): void {
