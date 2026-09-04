@@ -35,7 +35,7 @@ jobs:
         run: npm run test:audit-helper
 
       - name: Audit JavaScript dependencies
-        run: npm audit --audit-level=high
+        run: npm run audit:js
 
       - name: Install locked Composer build toolchain
         run: composer install --no-interaction --no-progress --no-scripts
