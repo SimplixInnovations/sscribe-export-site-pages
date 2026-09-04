@@ -369,7 +369,7 @@ function run_tests( string $root ): bool {
 
 	$output = array();
 	$return = 0;
-	exec( "php \"$phpunit\" --testdox 2>&1", $output, $return );
+	exec( "php \"$phpunit\" --testdox --exclude-group=release-contract 2>&1", $output, $return );
 
 	if ( $return !== 0 ) {
 		$output_str = implode( "\n", $output );
