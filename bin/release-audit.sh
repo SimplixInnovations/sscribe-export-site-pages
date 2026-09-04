@@ -119,8 +119,7 @@ echo "== Plugin-Check (full WP instance) =="
 if [ -d /c/tmp/wp-a11y/wp-content/plugins/plugin-check ]; then
   run_gate "Plugin-Check" bash -c "cd /c/tmp/wp-a11y && WP_CLI_PHP_ARGS='-d extension=pdo_sqlite -d extension=sqlite3' /c/Users/Ahmed/AppData/Roaming/Composer/vendor/bin/wp plugin check sscribe-export-site-pages --allow-root >/tmp/release-audit-plugincheck.log 2>&1"
 else
-  GATES+=("SKIP       plugin-check testbench missing")
-  echo "SKIP plugin-check testbench missing"
+  run_gate "Plugin-Check" bash -c "echo 'Plugin Check testbench is missing; release audit is fail-closed.' >&2; exit 1"
 fi
 
 echo
