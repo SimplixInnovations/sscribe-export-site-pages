@@ -1,20 +1,11 @@
 <?php
 /**
- * Phase 71 — Required final CI state contract.
+ * Phase 71 - Final execution-evidence contract.
  *
- * Asserts the canonical final-CI-state checklist
- * (docs/FINAL_CI_STATE_v2.0.0.md) is complete and every required
- * job is recorded with a shippable status (SUCCESS or SKIPPED).
- *
- * Rules:
- *
- *   1. Checklist doc exists.
- *   2. Checklist declares canonical sections (Why this exists,
- *      Status convention, Canonical required jobs, How an
- *      independent auditor verifies this).
- *   3. Every canonical required job is listed.
- *   4. Every required job has a status in {SUCCESS, SKIPPED}.
- *   5. Integration test exists.
+ * Normal source CI validates the evidence schema. Strict release
+ * certification is enabled with SSCRIBE_RELEASE_CERTIFICATION=1; strict mode
+ * requires every recorded job to be SUCCESS or LOCAL_PASS and requires the
+ * recorded source SHA to equal the current git HEAD.
  *
  * @package SScribe_Export_Site_Pages
  */
@@ -25,9 +16,10 @@ if ( 'cli' !== php_sapi_name() ) {
 	exit( 'This script must be run from the command line.' );
 }
 
-$root_dir      = dirname( __DIR__ );
-$checklist_doc = $root_dir . '/docs/FINAL_CI_STATE_v2.0.0.md';
-$manifest_path = $root_dir . '/dist/final-ci-state-manifest.json';
+$root_dir             = dirname( __DIR__ );
+$checklist_doc        = $root_dir . '/docs/FINAL_CI_STATE_v2.0.0.md';
+$manifest_path        = $root_dir . '/dist/final-ci-state-manifest.json';
+$strict_certification = '1' === (string) getenv( 'SSCRIBE_RELEASE_CERTIFICATION' );
 
 $matrix = array();
 $errors = array();
@@ -46,7 +38,7 @@ $record = static function ( string $rule, bool $passes, string $detail ) use ( &
 $record(
 	'checklist_doc_exists',
 	is_file( $checklist_doc ),
-	'docs/FINAL_CI_STATE_v2.0.0.md must exist so the Phase 71 final CI state is auditable.'
+	'docs/FINAL_CI_STATE_v2.0.0.md must exist so final execution state is auditable.'
 );
 
 $canonical_required_jobs = array(
@@ -60,9 +52,12 @@ $canonical_required_jobs = array(
 	'plugin-check',
 	'e2e',
 );
-$valid_statuses = array( 'SUCCESS', 'SKIPPED' );
+$known_statuses      = array( 'SUCCESS', 'LOCAL_PASS', 'UNAVAILABLE', 'FAILED', 'CANCELLED', 'SKIPPED', 'MISSING' );
+$shippable_statuses  = array( 'SUCCESS', 'LOCAL_PASS' );
+$row_statuses        = array();
+$recorded_source_sha = '';
+$current_source_sha  = '';
 
-$row_statuses = array();
 if ( is_file( $checklist_doc ) ) {
 	$doc_src = (string) file_get_contents( $checklist_doc );
 
@@ -70,9 +65,10 @@ if ( is_file( $checklist_doc ) ) {
 		'## Why this exists',
 		'## Status convention',
 		'## Canonical required jobs',
+		'## Recorded final state',
 		'## How an independent auditor verifies this',
 	);
-	$missing_sections   = array();
+	$missing_sections = array();
 	foreach ( $canonical_sections as $section ) {
 		if ( false === strpos( $doc_src, $section ) ) {
 			$missing_sections[] = $section;
@@ -84,73 +80,164 @@ if ( is_file( $checklist_doc ) ) {
 		'Final CI state checklist is missing canonical sections: ' . implode( ', ', $missing_sections )
 	);
 
-	// Walk every markdown row in the Canonical required jobs table.
-	// Each row has at least 5 columns: `# | Job | Required status | Notes`.
-	if ( preg_match_all( '/^\|\s*([0-9]+)\s*\|\s*`?([A-Za-z0-9_\-]+)`?\s*\|\s*(SUCCESS|SKIPPED|FAILED|CANCELLED|MISSING)\s*\|/m', $doc_src, $hits, PREG_SET_ORDER ) ) {
-		foreach ( $hits as $row ) {
-			$row_statuses[ (int) $row[1] ] = array(
-				'job'    => trim( $row[2] ),
-				'status' => trim( $row[3] ),
-			);
-		}
-	}
-
-	// Missing jobs.
-	$missing_jobs = array();
+	$missing_policy_jobs = array();
 	foreach ( $canonical_required_jobs as $expected ) {
-		$found = false;
-		foreach ( $row_statuses as $row ) {
-			if ( 0 === strcasecmp( $expected, $row['job'] ) ) {
-				$found = true;
-				break;
-			}
-		}
-		if ( ! $found ) {
-			$missing_jobs[] = $expected;
+		if ( false === stripos( $doc_src, $expected ) ) {
+			$missing_policy_jobs[] = $expected;
 		}
 	}
 	$record(
 		'every_canonical_required_job_listed',
-		0 === count( $missing_jobs ),
-		'Every canonical required job must appear in the checklist. Missing: ' . implode( ', ', $missing_jobs )
+		0 === count( $missing_policy_jobs ),
+		'Every canonical required job must appear in the policy table. Missing: ' . implode( ', ', $missing_policy_jobs )
 	);
 
-	// Status check.
-	$invalid_status = array();
-	foreach ( $row_statuses as $row ) {
-		if ( ! in_array( $row['status'], $valid_statuses, true ) ) {
-			$invalid_status[] = $row['job'] . ' (' . $row['status'] . ')';
+	if ( preg_match( '/Final source SHA:[^A-Za-z0-9]*([A-Za-z0-9_\\-]+)/i', $doc_src, $sha_match ) ) {
+		$recorded_source_sha = trim( (string) $sha_match[1] );
+	}
+	$record(
+		'recorded_final_source_sha_declared',
+		'' !== $recorded_source_sha,
+		'Recorded final state must declare a Final source SHA.'
+	);
+
+	$recorded_start = strpos( $doc_src, '## Recorded final state' );
+	$recorded_block = '';
+	if ( false !== $recorded_start ) {
+		$recorded_block = substr( $doc_src, $recorded_start );
+		$next_section    = strpos( $recorded_block, "\n## ", strlen( '## Recorded final state' ) );
+		if ( false !== $next_section ) {
+			$recorded_block = substr( $recorded_block, 0, $next_section );
+		}
+	}
+
+	if ( preg_match_all(
+		'/^\\|\\s*([0-9]+)\\s*\\|\\s*([^|]+?)\\s*\\|\\s*([A-Z_]+)\\s*\\|\\s*(.*?)\\s*\\|\\s*$/m',
+		$recorded_block,
+		$hits,
+		PREG_SET_ORDER
+	) ) {
+		foreach ( $hits as $row ) {
+			$job = trim( str_replace( chr( 96 ), '', (string) $row[2] ) );
+			if ( 'Job' === $job ) {
+				continue;
+			}
+			$row_statuses[ $job ] = array(
+				'status'   => trim( (string) $row[3] ),
+				'evidence' => trim( (string) $row[4] ),
+			);
+		}
+	}
+
+	$missing_recorded_jobs = array();
+	foreach ( $canonical_required_jobs as $expected ) {
+		if ( ! isset( $row_statuses[ $expected ] ) ) {
+			$missing_recorded_jobs[] = $expected;
 		}
 	}
 	$record(
-		'every_required_job_is_success_or_skipped',
-		0 === count( $invalid_status ),
-		'Every required job status must be SUCCESS or SKIPPED. Invalid: ' . implode( ', ', $invalid_status )
+		'every_canonical_job_has_recorded_state',
+		0 === count( $missing_recorded_jobs ),
+		'Every canonical required job must have a Recorded final state row. Missing: ' . implode( ', ', $missing_recorded_jobs )
 	);
+
+	$unknown_statuses = array();
+	foreach ( $row_statuses as $job => $row ) {
+		if ( ! in_array( $row['status'], $known_statuses, true ) ) {
+			$unknown_statuses[] = $job . ' (' . $row['status'] . ')';
+		}
+	}
+	$record(
+		'recorded_status_vocabulary_is_known',
+		0 === count( $unknown_statuses ),
+		'Recorded final-state rows contain unknown statuses: ' . implode( ', ', $unknown_statuses )
+	);
+
+	if ( $strict_certification ) {
+		$git_output = array();
+		$git_exit   = 1;
+		exec( 'git rev-parse HEAD', $git_output, $git_exit );
+		if ( 0 === $git_exit && ! empty( $git_output ) ) {
+			$current_source_sha = strtolower( trim( (string) end( $git_output ) ) );
+		}
+
+		$record(
+			'current_source_sha_resolved',
+			(bool) preg_match( '/^[a-f0-9]{40}$/', $current_source_sha ),
+			'Strict certification must resolve the current 40-hex git HEAD.'
+		);
+		$record(
+			'recorded_source_sha_matches_head',
+			(bool) preg_match( '/^[a-f0-9]{40}$/i', $recorded_source_sha )
+				&& strtolower( $recorded_source_sha ) === $current_source_sha,
+			'Recorded Final source SHA must exactly match git HEAD during strict certification.'
+		);
+
+		$non_shippable          = array();
+		$missing_local_evidence = array();
+		foreach ( $canonical_required_jobs as $job ) {
+			$row = $row_statuses[ $job ] ?? array( 'status' => 'MISSING', 'evidence' => '' );
+			if ( ! in_array( $row['status'], $shippable_statuses, true ) ) {
+				$non_shippable[] = $job . ' (' . $row['status'] . ')';
+			}
+			if ( 'LOCAL_PASS' === $row['status'] ) {
+				$evidence = trim( (string) $row['evidence'] );
+				if (
+					'' === $evidence
+					|| 0 === stripos( $evidence, 'PENDING' )
+					|| 0 === stripos( $evidence, 'TBD' )
+				) {
+					$missing_local_evidence[] = $job;
+				}
+			}
+		}
+
+		$record(
+			'every_required_job_has_shippable_recorded_status',
+			0 === count( $non_shippable ),
+			'Strict release certification requires SUCCESS or LOCAL_PASS for every required job. Non-shippable: ' . implode( ', ', $non_shippable )
+		);
+		$record(
+			'every_local_pass_has_concrete_evidence',
+			0 === count( $missing_local_evidence ),
+			'Every LOCAL_PASS row must name concrete local evidence. Missing: ' . implode( ', ', $missing_local_evidence )
+		);
+	} else {
+		$record(
+			'release_state_enforced_only_in_strict_certification',
+			true,
+			'Normal source CI validates final-state schema only. Strict mode enforces execution evidence and source-SHA identity.'
+		);
+	}
 }
 
 $test_path = $root_dir . '/tests/Integration/SScribe_Final_CI_State_Test.php';
 $record(
 	'integration_test_exists',
 	is_file( $test_path ),
-	'tests/Integration/SScribe_Final_CI_State_Test.php must exist so the final CI state contract is pinned at the PHPUnit boundary.'
+	'tests/Integration/SScribe_Final_CI_State_Test.php must exist so the Phase 71 contract is pinned at the PHPUnit boundary.'
 );
 
-// Persist manifest.
 $manifest_dir = dirname( $manifest_path );
 if ( ! is_dir( $manifest_dir ) ) {
 	mkdir( $manifest_dir, 0755, true );
 }
+
 $manifest = array(
-	'generated_at'  => gmdate( 'c' ),
-	'row_statuses'  => $row_statuses,
-	'rule_count'    => count( $matrix ),
-	'passed_count'  => count( array_filter( $matrix, static fn( $r ) => $r['passes'] ) ),
-	'errors_count'  => count( $errors ),
-	'passes'        => 0 === count( $errors ),
-	'errors'        => $errors,
-	'matrix'        => $matrix,
+	'generated_at'         => gmdate( 'c' ),
+	'strict_certification' => $strict_certification,
+	'recorded_source_sha'  => $recorded_source_sha,
+	'current_source_sha'   => $current_source_sha,
+	'row_statuses'         => $row_statuses,
+	'rule_count'           => count( $matrix ),
+	'passed_count'         => count( array_filter( $matrix, static fn( $row ) => $row['passes'] ) ),
+	'errors_count'         => count( $errors ),
+	'release_ready'        => $strict_certification && 0 === count( $errors ),
+	'passes'               => 0 === count( $errors ),
+	'errors'               => $errors,
+	'matrix'               => $matrix,
 );
+
 file_put_contents(
 	$manifest_path,
 	json_encode( $manifest, JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES )
@@ -158,21 +245,29 @@ file_put_contents(
 
 echo "=== SScribe Final CI State Acceptance ===\n\n";
 foreach ( $matrix as $row ) {
-	$status = $row['passes'] ? '✓' : '✗';
+	$status = $row['passes'] ? 'PASS' : 'FAIL';
 	echo sprintf( "  %s  %s\n      %s\n", $status, $row['rule'], $row['detail'] );
 }
-echo "\nRow status summary:\n";
-foreach ( $row_statuses as $num => $row ) {
-	echo "  #{$num}  {$row['status']}  {$row['job']}\n";
+
+echo "\nRecorded state summary:\n";
+foreach ( $canonical_required_jobs as $job ) {
+	$row = $row_statuses[ $job ] ?? array( 'status' => 'MISSING', 'evidence' => '' );
+	echo $job . ': ' . $row['status'] . ' - ' . $row['evidence'] . "\n";
 }
+
 echo "\nErrors: " . count( $errors ) . "\n";
 foreach ( $errors as $error ) {
-	echo "  ✗ {$error}\n";
+	echo "  FAIL: {$error}\n";
 }
 echo "\nManifest persisted to: {$manifest_path}\n";
 
 if ( ! empty( $errors ) ) {
 	exit( 1 );
 }
-echo "✓ Final CI state checklist contract valid.\n";
+
+if ( $strict_certification ) {
+	echo "PASS: Final execution evidence is release-ready for the exact current SHA.\n";
+} else {
+	echo "PASS: Final CI state contract structure is valid. Strict release-state enforcement was not requested.\n";
+}
 exit( 0 );
