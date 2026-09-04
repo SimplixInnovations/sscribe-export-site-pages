@@ -124,7 +124,7 @@ final class SScribe_Release_Pipeline_Test extends TestCase {
 		$publish_body = $m[1];
 
 		$this::assertMatchesRegularExpression(
-			'/\bactions\/download-artifact@v\d+\b/',
+			'/\bactions\/download-artifact@[0-9a-f]{40}\b/i',
 			$publish_body,
 			'publish job must consume the certified artifact via `actions/download-artifact`.'
 		);
