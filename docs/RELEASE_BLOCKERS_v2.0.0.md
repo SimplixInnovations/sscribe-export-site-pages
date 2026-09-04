@@ -5,17 +5,18 @@
 Phase 70 of the v2.0.0 release-hardening spec mandates that the
 release MUST NOT be declared ready while ANY of the canonical
 release-blocker conditions remain. This document is the **release
-blocker checklist**. Every blocker below must be marked **RESOLVED**
-(or **DEFERRED** with a written rationale) before the release tag
-is created.
+blocker checklist**. The source branch may be merged while local
+verification is pending, but the release tag / WordPress.org upload
+requires **every row to be RESOLVED**.
 
 The companion verifier `scripts/verify-release-blockers.php` walks
 this checklist and asserts:
 
 1. Every canonical blocker row is present.
-2. Every blocker has a status in {`RESOLVED`, `DEFERRED`}.
-3. No blocker is `OPEN` or `BLOCKED`.
-4. The integration test exists.
+2. Every blocker has a recognized status.
+3. `DEFERRED`, `OPEN`, and `BLOCKED` are all release-stop states.
+4. The release is shippable only when every canonical row is `RESOLVED`.
+5. The integration test exists.
 
 ## Status convention
 
@@ -23,15 +24,17 @@ Each blocker has a `Status` column. The four valid statuses:
 
 - **RESOLVED** — the blocker condition no longer holds. Evidence
   link required (CI run, test file, or doc reference).
-- **DEFERRED** — the blocker condition is intentionally
-  unresolved at v2.0.0 with a written rationale + target version.
+- **DEFERRED** — work/evidence is intentionally pending (for this candidate,
+  mostly local final verification). It is **not shippable** until changed to
+  RESOLVED with real evidence.
 - **OPEN** — work is in progress. Releases MUST NOT ship while any
   blocker is OPEN.
 - **BLOCKED** — work is gated on something external. Releases MUST
   NOT ship while any blocker is BLOCKED.
 
-The verifier accepts only `RESOLVED` or `DEFERRED`; any row with
-`OPEN` or `BLOCKED` (or blank) fails the gate.
+The verifier recognizes `RESOLVED` and `DEFERRED`, but it fails the final
+release gate while **any DEFERRED row remains**. `OPEN`, `BLOCKED`, or blank
+also fail.
 
 ## Canonical blockers
 
@@ -73,9 +76,9 @@ grep -E '^\| [0-9]+ +\|' docs/RELEASE_BLOCKERS_v2.0.0.md \
 vendor/bin/phpunit tests/Integration/SScribe_Release_Blockers_Test.php
 ```
 
-A green `composer test:release-blockers` + every row RESOLVED or
-DEFERRED + a passing integration test = the release is ready to
-tag (subject to Phases 71–76).
+A green `composer test:release-blockers` means every canonical row is
+RESOLVED; only then is the release ready to tag/upload (subject to the
+remaining exact-artifact evidence).
 
 ## What this contract does NOT cover
 
