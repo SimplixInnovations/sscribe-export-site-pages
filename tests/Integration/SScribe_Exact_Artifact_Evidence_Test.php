@@ -208,6 +208,7 @@ final class SScribe_Exact_Artifact_Evidence_Test extends TestCase {
 		$this->assertStringContainsString( 'dist/release-certification-evidence.json', $src );
 		$this->assertStringContainsString( 'metadata_source_sha_matches_head', $src );
 		$this->assertStringContainsString( 'tracked_working_tree_is_clean', $src );
+		$this->assertStringContainsString( 'builder_execution_evidence_is_verifiable', $src );
 		$this->assertStringContainsString( 'plugin_check_evidence_is_verifiable', $src );
 	}
 
