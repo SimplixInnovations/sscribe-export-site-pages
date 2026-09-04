@@ -34,7 +34,7 @@ recomputes the exact artifact identity directly from disk.
 | 5 | `zip_file_count` | `ZipArchive::numFiles` for the exact ZIP | Locks archive entry count. |
 | 6 | `source_sha` | `git rev-parse HEAD` | Locks the source checkout. |
 | 7 | `source_short_sha` | first 8 hex characters of `source_sha` | Human-readable source identity. |
-| 8 | `builder_run_id` | GitHub run ID or explicit local-certification identifier | Identifies the builder execution. |
+| 8 | `builder_run_id` | GitHub execution URL or `local:<path>` to the successful local build log | Proves the builder execution that produced the ZIP. |
 | 9 | `builder_workflow` | Build workflow/job or explicit local build command | Identifies the build path. |
 | 10 | `plugin_check_url` | GitHub Plugin Check URL or `local:<path>` to concrete local evidence | Connects Plugin Check evidence to this artifact. |
 | 11 | `clean_install_doc` | Non-empty untracked evidence file under `dist/` | Proves exact-package clean-install smoke execution. |
@@ -70,8 +70,8 @@ Example for a local build:
 ```json
 {
   "source_sha": "0123456789abcdef0123456789abcdef01234567",
-  "builder_run_id": "local-20260904-130000",
-  "builder_workflow": "local: composer release",
+  "builder_run_id": "local:dist/evidence/build.log",
+  "builder_workflow": "composer release",
   "plugin_check_url": "local:dist/evidence/plugin-check.log",
   "clean_install_doc": "dist/evidence/clean-install.md",
   "build_timestamp": "2026-09-04T13:00:00Z"
@@ -98,12 +98,14 @@ following from the live checkout and untracked release evidence:
 6. The `.sha256` sidecar exists and contains that same digest.
 7. ZIP byte size is recomputed with `filesize()`.
 8. ZIP entry count is recomputed with `ZipArchive::numFiles`.
-9. Plugin Check evidence is an `https://` execution URL or a non-empty
-   `local:<path>`.
-10. `clean_install_doc` is a non-empty untracked evidence file under
-    `dist/`.
-11. Required builder metadata contains no blank/PENDING/TBD placeholders.
-12. `build_timestamp` is valid ISO 8601 data.
+9. Builder execution evidence is an `https://` execution URL or a non-empty
+   `local:<path>` whose log contains `BUILD COMPLETE` and the exact versioned
+   ZIP path.
+10. Plugin Check evidence is an `https://` execution URL or a non-empty
+    `local:<path>`.
+11. `clean_install_doc` is a non-empty untracked evidence file under `dist/`.
+12. Required metadata contains no blank/PENDING/TBD placeholders and
+    `build_timestamp` is valid ISO 8601 data.
 
 The verifier writes the authoritative exact values — including version,
 filename, SHA-256, byte size, entry count, full/short source SHA, and builder
