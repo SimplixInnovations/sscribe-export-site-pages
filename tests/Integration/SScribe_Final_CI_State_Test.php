@@ -29,6 +29,7 @@ require_once SSCRIBE_TESTS_DIR . '/bootstrap.php';
 
 use PHPUnit\Framework\TestCase;
 
+#[\PHPUnit\Framework\Attributes\Group('release-contract')]
 final class SScribe_Final_CI_State_Test extends TestCase {
 
 	/** @var string */
