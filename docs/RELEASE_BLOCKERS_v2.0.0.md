@@ -64,21 +64,21 @@ also fail.
 ## How an independent auditor verifies this
 
 ```bash
-# 1. Run the release-blocker gate.
-composer test:release-blockers
+# 1. Run the strict release-blocker gate.
+SSCRIBE_RELEASE_CERTIFICATION=1 composer test:release-blockers
 
-# 2. Confirm every row is RESOLVED or DEFERRED.
+# 2. Confirm every row is RESOLVED. DEFERRED is valid only while preparing the release, never for tag/upload.
 grep -E '^\| [0-9]+ +\|' docs/RELEASE_BLOCKERS_v2.0.0.md \
   | awk -F '|' '{print $4}' \
-  | grep -vE 'RESOLVED|DEFERRED' && echo "FAIL" || echo "OK"
+  | grep -vE 'RESOLVED' && echo "FAIL" || echo "OK"
 
 # 3. Run the integration test.
 vendor/bin/phpunit tests/Integration/SScribe_Release_Blockers_Test.php
 ```
 
-A green `composer test:release-blockers` means every canonical row is
+A green strict `composer test:release-blockers` means every canonical row is
 RESOLVED; only then is the release ready to tag/upload (subject to the
-remaining exact-artifact evidence).
+remaining strict final-state and exact-artifact evidence).
 
 ## What this contract does NOT cover
 
