@@ -29,6 +29,7 @@
  *     output,
  *   - silently accepts a plugin-check job that skips
  *     scripts/build-release.php,
+ *   - silently allows local release-audit.sh to SKIP Plugin Check,
  *
  * ...fails the suite immediately.
  */
@@ -199,6 +200,13 @@ final class SScribe_Plugin_Check_Test extends TestCase {
 		list( $code, $output ) = $this->run_against( $ci );
 		$this::assertSame( 1, $code );
 		$this::assertStringContainsString( 'build-release.php', $output );
+	}
+
+	public function test_local_release_audit_fails_closed_when_plugin_check_testbench_is_missing(): void {
+		$source = (string) file_get_contents( self::plugin_root() . '/bin/release-audit.sh' );
+		$this::assertStringNotContainsString( 'SKIP plugin-check testbench missing', $source );
+		$this::assertStringContainsString( 'run_gate "Plugin-Check"', $source );
+		$this::assertStringContainsString( 'release audit is fail-closed', $source );
 	}
 
 	public function test_live_repo_passes(): void {
