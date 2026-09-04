@@ -1255,12 +1255,7 @@
 			const postStatus = $('input[name="sscribe_post_status"]:checked').val() || 'publish';
 			const postType = $('input[name="sscribe_post_type"]:checked').val() || 'page';
 			const format = $('input[name="sscribe_format"]:checked').val() || 'docx';
-			let formats = [];
-			if (format === 'all') {
-				formats = ['docx', 'pdf', 'html', 'markdown'];
-			} else {
-				formats = [format];
-			}
+			const formats = (format === 'all') ? ['docx', 'pdf', 'html', 'markdown'] : [format];
 			// Phase 8: preflight is a named operation so retry/refresh_nonce
 			// paths can safely re-enter it without recursion hazards.
 			this.runPreflightCheck(language, postStatus, postType, formats);
