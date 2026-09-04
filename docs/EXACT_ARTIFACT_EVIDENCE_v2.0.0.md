@@ -2,98 +2,99 @@
 
 ## Why this exists
 
-Phase 72 of the v2.0.0 release-hardening spec mandates that the
-canonical evidence for the EXACT release ZIP be recorded before
-the release tag is cut. An auditor (or a WP.org reviewer) must
-be able to take the recorded evidence and reproduce — bit-for-bit
-— the same ZIP from the same source commit.
+Phase 72 proves that the exact ZIP being submitted is the ZIP built from the
+exact source commit being certified. A non-empty documentation field is not
+proof: the recorded SHA-256, byte size, ZIP entry count, source SHA, and
+checksum sidecar must match the files and checkout on disk.
 
-Without this evidence, a WP.org reviewer cannot verify that the
-ZIP a customer downloads was built from the source in the public
-repo. The audit trail becomes unfalsifiable.
-
-The companion verifier `scripts/verify-exact-artifact-evidence.php`
-walks this checklist and asserts:
-
-1. The artifact evidence doc exists.
-2. The doc declares all canonical evidence fields.
-3. Every required field has a recorded value (not blank).
-4. The integration test exists.
+The normal source-contract check validates the evidence schema. Strict release
+certification is enabled with `SSCRIBE_RELEASE_CERTIFICATION=1`; strict mode
+recomputes the artifact identity and rejects stale or placeholder evidence.
 
 ## Canonical evidence fields
 
-The exact release artifact at
-`dist/sscribe-export-site-pages-{VERSION}.zip` (and the
-`.sha256` sidecar) MUST have these fields recorded:
-
-| #  | Field              | Source                                                                       | Purpose                                                                          |
-|----|--------------------|------------------------------------------------------------------------------|----------------------------------------------------------------------------------|
-| 1  | `version`          | SSCRIBE_VERSION in mainfile header                                           | Locks the version that was packaged.                                             |
-| 2  | `zip_filename`     | dist/sscribe-export-site-pages-{VERSION}.zip                                  | Locks the artifact filename.                                                     |
-| 3  | `zip_sha256`       | `sha256sum dist/sscribe-export-site-pages-{VERSION}.zip`                     | Locks the bit-level identity. Auditor re-computes and compares.                  |
-| 4  | `zip_byte_size`    | `stat -c %s dist/sscribe-export-site-pages-{VERSION}.zip`                    | Auditor verifies the same byte count.                                           |
-| 5  | `zip_file_count`   | `unzip -l dist/sscribe-export-site-pages-{VERSION}.zip | tail -1`            | Auditor verifies the same entry count.                                          |
-| 6  | `source_sha`       | `git rev-parse HEAD` on the tag-commit                                        | Locks the source commit the ZIP was built from.                                  |
-| 7  | `source_short_sha` | `git rev-parse --short HEAD`                                                  | Human-friendly short SHA for the reviewer.                                       |
-| 8  | `builder_run_id`   | `${{ github.run_id }}` from the certify workflow                              | Audit trail back to the CI build that produced the ZIP.                          |
-| 9  | `builder_workflow` | `.github/workflows/release.yml::certify`                                      | The workflow file + job name that produced the ZIP.                              |
-| 10 | `plugin_check_url` | The Plugin Check action run URL on the same ZIP                               | Locks the official WP.org Plugin Check evidence for the same artifact.           |
-| 11 | `clean_install_doc`| docs/WP_ORG_CLEAN_INSTALL_SMOKE.md path                                      | Pins the smoke-test doc the artifact was exercised against.                      |
-| 12 | `build_timestamp`  | ISO 8601 UTC timestamp at certify job completion                              | Audit-trail timestamp for the ZIP certification.                                 |
-
-Every field MUST be non-blank in the recorded evidence. A blank
-field is an audit-trail gap and fails the gate.
+| # | Field | Source | Purpose |
+|---|---|---|---|
+| 1 | `version` | `SSCRIBE_VERSION` in the main plugin file | Locks the packaged version. |
+| 2 | `zip_filename` | `dist/sscribe-export-site-pages-{VERSION}.zip` | Locks the exact artifact path. |
+| 3 | `zip_sha256` | SHA-256 of the exact ZIP | Locks bit identity. |
+| 4 | `zip_byte_size` | Exact ZIP byte size | Detects any byte-level change. |
+| 5 | `zip_file_count` | `ZipArchive::numFiles` for the exact ZIP | Locks archive entry count. |
+| 6 | `source_sha` | `git rev-parse HEAD` | Locks the source checkout. |
+| 7 | `source_short_sha` | first 8 hex characters of `source_sha` | Human-readable source identity. |
+| 8 | `builder_run_id` | GitHub run ID or explicit local-certification identifier | Identifies the builder execution. |
+| 9 | `builder_workflow` | Build workflow/job or explicit local build command | Identifies the build path. |
+| 10 | `plugin_check_url` | GitHub Plugin Check run URL, or a concrete local evidence reference when GitHub never executed | Connects Plugin Check evidence to this artifact. |
+| 11 | `clean_install_doc` | Clean-install evidence document | Points to exact-package smoke evidence. |
+| 12 | `build_timestamp` | ISO 8601 UTC completion timestamp | Dates certification evidence. |
 
 ## Recorded evidence
 
-The cells below are filled in at `certify` job completion (not
-in this commit). Blank cells are an audit-trail gap; the
-verifier fails the gate on any blank `Recorded value` cell.
+These values are intentionally reset whenever source changes after a previous
+candidate build. Replace every `PENDING_FINAL_CERTIFICATION` value only after
+building and testing the exact final SHA.
 
-| #  | Field               | Recorded value |
-|----|---------------------|----------------|
-| 1  | version             | 2.0.0 |
-| 2  | zip_filename        | dist/sscribe-export-site-pages-2.0.0.zip |
-| 3  | zip_sha256          | 683198482fb57429c234461700fa27e9da6ddb34934886dfc1460df88e64701e |
-| 4  | zip_byte_size       | 9302806 |
-| 5  | zip_file_count      | 1047 |
-| 6  | source_sha          | 4dbd9e694a05b795f34a66a135e4f681214151bc |
-| 7  | source_short_sha    | 4dbd9e69 |
-| 8  | builder_run_id      | local-certify (worktree equivalent of `${{ github.run_id }}`; CI captures the same value at `gh run list --workflow=release.yml`) |
-| 9  | builder_workflow    | .github/workflows/release.yml::certify |
-| 10 | plugin_check_url    | https://github.com/SimplixInnovations/sscribe-export-site-pages/actions/runs/local-certify/artifacts (Plugin Check action pinned to the SHA-256 above) |
-| 11 | clean_install_doc   | docs/WP_ORG_CLEAN_INSTALL_SMOKE.md |
-| 12 | build_timestamp     | 2026-09-03T21:07:00Z (recorded at last local audit cycle; CI re-stamps on each certify re-run via `gmdate('c')`) |
+| # | Field | Recorded value |
+|---|---|---|
+| 1 | version | 2.0.0 |
+| 2 | zip_filename | dist/sscribe-export-site-pages-2.0.0.zip |
+| 3 | zip_sha256 | PENDING_FINAL_CERTIFICATION |
+| 4 | zip_byte_size | PENDING_FINAL_CERTIFICATION |
+| 5 | zip_file_count | PENDING_FINAL_CERTIFICATION |
+| 6 | source_sha | PENDING_FINAL_CERTIFICATION |
+| 7 | source_short_sha | PENDING_FINAL_CERTIFICATION |
+| 8 | builder_run_id | PENDING_FINAL_CERTIFICATION |
+| 9 | builder_workflow | PENDING_FINAL_CERTIFICATION |
+| 10 | plugin_check_url | PENDING_FINAL_CERTIFICATION |
+| 11 | clean_install_doc | docs/WP_ORG_CLEAN_INSTALL_SMOKE.md |
+| 12 | build_timestamp | PENDING_FINAL_CERTIFICATION |
+
+## Strict certification rules
+
+With `SSCRIBE_RELEASE_CERTIFICATION=1`, the verifier must confirm all of the
+following rather than trusting documentation text:
+
+1. The main plugin version equals the recorded `version`.
+2. Exactly the expected current-version ZIP is selected for certification.
+3. The recorded ZIP filename equals the actual relative path.
+4. `zip_sha256` equals a fresh `hash_file('sha256', ...)` result.
+5. The `.sha256` sidecar exists and contains that same digest.
+6. `zip_byte_size` equals `filesize()`.
+7. `zip_file_count` equals `ZipArchive::numFiles`.
+8. `source_sha` equals `git rev-parse HEAD`.
+9. `source_short_sha` equals the first eight characters of that SHA.
+10. No required evidence value is blank or a `PENDING`/TBD placeholder.
+11. The clean-install evidence document exists.
+12. The build timestamp is valid ISO 8601 data.
+
+Plugin Check success and clean-install/runtime acceptance remain independent
+release blockers as well; a matching checksum alone does not prove behavior.
 
 ## How an independent auditor verifies this
 
 ```bash
-# 1. Run the artifact-evidence verifier.
+# Schema/source-contract check.
 composer test:exact-artifact-evidence
 
-# 2. Cross-check the recorded SHA-256 against the actual ZIP.
-sha256sum dist/sscribe-export-site-pages-{VERSION}.zip
-# Must match the recorded `zip_sha256` exactly.
+# Actual release certification.
+SSCRIBE_RELEASE_CERTIFICATION=1 composer test:exact-artifact-evidence
 
-# 3. Verify the source SHA matches the tag.
+# Independent spot checks.
+sha256sum dist/sscribe-export-site-pages-2.0.0.zip
 git rev-parse HEAD
-# Must match the recorded `source_sha` exactly.
 ```
 
-A green `composer test:exact-artifact-evidence` + matching SHA
-+ matching source commit = the artifact is provably authentic.
+The strict verifier must exit 0 before tagging.
 
 ## What this contract does NOT cover
 
-- **Release blockers status** — Phase 70 separately audits the
-  blocker checklist.
-- **Final CI state** — Phase 71 separately audits CI green.
-- **Branch protection state** — Phase 55 separately audits
-  branch-protection rules.
-- **Tag policy** — Phase 54 separately audits the tag-creation
-  contract (origin/main HEAD, signed, etc.).
+- Phase 70 controls unresolved release blockers.
+- Phase 71 controls execution evidence.
+- Phase 74 controls auditor handoff.
+- Phase 75 controls release invariants.
 
 ## Change log
 
-- 2026-09-03: Initial Phase 72 exact-artifact-evidence contract
-  + verifier + PHPUnit pin. 12 canonical evidence fields recorded.
+- 2026-09-04: Replaced non-empty-only evidence checks with strict live
+  artifact/source comparison and reset stale candidate evidence.
+- 2026-09-03: Initial Phase 72 contract.
