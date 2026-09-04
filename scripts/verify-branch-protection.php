@@ -54,16 +54,16 @@ $doc_src  = (string) file_get_contents( $doc_path );
 $ci_src   = (string) file_get_contents( $ci_workflow );
 
 /**
- * Rule 1: doc declares the protected branch.
+ * Rule 1: doc declares the canonical target branches.
  */
-$declares_branch = (bool) preg_match( '/^Branch:\s*[`"]?(?:release\/|main\b)[^\n]*$/m', $doc_src );
+$declares_branch = (bool) preg_match( '/^Branches:\s*main,\s*develop\s*$/mi', $doc_src );
 $matrix[] = array(
 	'rule'   => 'branch_protection_doc_declares_protected_branch',
 	'passes' => $declares_branch,
-	'detail' => 'docs/BRANCH_PROTECTION_v2.0.0.md must declare which branch is under protection (main or release/X.Y.Z-...).',
+	'detail' => 'docs/BRANCH_PROTECTION_v2.0.0.md must declare the canonical long-lived target branches: main, develop.',
 );
 if ( ! $declares_branch ) {
-	$errors[] = 'Branch-protection doc does not declare the protected branch.';
+	$errors[] = 'Branch-protection doc does not declare the canonical target branches main + develop.';
 }
 
 /**
@@ -222,24 +222,28 @@ if ( ! $declares_reviews ) {
 }
 
 /**
- * Rule 11: doc pins the audit SHA + audited date + a "living
- * document" note (so future maintainers know to update both the
- * doc AND the workflows).
+ * Rule 11: doc records an audited date, the observed live protection
+ * status for both canonical branches, and a living-document note.
+ *
+ * The source tree can verify that the policy is documented truthfully;
+ * it cannot make a server-side GitHub setting true merely by saying so.
  */
-$declares_audit_sha    = (bool) preg_match( '/(?:Audited\s+SHA|Base\s+SHA|Audited\s+Date|Audited\s+commit)/i', $doc_src );
-$is_living_document    = (bool) preg_match( '/[Ll]iving\s+document/', $doc_src );
+$declares_audit_date = (bool) preg_match( '/Audited\s+Date\s*:/i', $doc_src );
+$declares_live_state = (bool) preg_match( '/main:\s*UNPROTECTED/i', $doc_src )
+	&& (bool) preg_match( '/develop:\s*UNPROTECTED/i', $doc_src );
+$is_living_document = (bool) preg_match( '/[Ll]iving\s+document/', $doc_src );
 $matrix[] = array(
-	'rule'   => 'branch_protection_doc_pins_audit_sha_and_date',
-	'passes' => $declares_audit_sha,
-	'detail' => 'Branch-protection doc must pin the audited SHA + date so the auditor can map "this exact doc" to "this exact SHA".',
+	'rule'   => 'branch_protection_doc_records_audited_date_and_live_state',
+	'passes' => $declares_audit_date && $declares_live_state,
+	'detail' => 'Branch-protection doc must record the audited date and the observed live status of main + develop without pretending policy text is server-side enforcement.',
 );
 $matrix[] = array(
 	'rule'   => 'branch_protection_doc_marks_itself_as_living_document',
 	'passes' => $is_living_document,
-	'detail' => 'Doc must declare itself a "living document" so a future maintainer updates both the doc and workflows in lockstep.',
+	'detail' => 'Doc must declare itself a "living document" so a future maintainer updates policy and observed live state together.',
 );
-if ( ! $declares_audit_sha ) {
-	$errors[] = 'Branch-protection doc does NOT pin the audited SHA + date.';
+if ( ! ( $declares_audit_date && $declares_live_state ) ) {
+	$errors[] = 'Branch-protection doc does NOT record audited date + observed live status for main and develop.';
 }
 if ( ! $is_living_document ) {
 	$errors[] = 'Branch-protection doc does NOT identify itself as a living document.';
@@ -275,14 +279,14 @@ if ( ! ( $cross_refs_ci && $cross_refs_sec ) ) {
  * of that claim by demanding a "compensating controls" or
  * "Living document / pin-audited-SHA" line.
  */
-$declares_compensating = $is_living_document || $declares_audit_sha;
+$declares_compensating = (bool) stripos( $doc_src, 'Compensating controls' );
 $matrix[] = array(
 	'rule'   => 'branch_protection_doc_declares_compensating_controls',
 	'passes' => $declares_compensating,
-	'detail' => 'If GitHub plan prevents a rule, doc must declare compensating controls. We accept the audited-SHA pin as the auditable form of this.',
+	'detail' => 'If GitHub plan prevents a rule, the document must explicitly declare compensating controls.',
 );
 if ( ! $declares_compensating ) {
-	$errors[] = 'Branch-protection doc does NOT declare compensating controls or audited-SHA pinning.';
+	$errors[] = 'Branch-protection doc does NOT declare compensating controls.';
 }
 
 // Persist manifest.
