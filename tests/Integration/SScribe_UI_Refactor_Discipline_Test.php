@@ -20,6 +20,7 @@ namespace SScribe\Tests\Integration;
 
 use PHPUnit\Framework\TestCase;
 
+#[\PHPUnit\Framework\Attributes\Group('release-contract')]
 final class SScribe_UI_Refactor_Discipline_Test extends TestCase {
 
 	private const VERIFIER_PATH = 'scripts/verify-ui-refactor-discipline.php';
