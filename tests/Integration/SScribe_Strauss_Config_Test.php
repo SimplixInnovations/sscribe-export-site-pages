@@ -105,7 +105,7 @@ final class SScribe_Strauss_Config_Test extends TestCase {
 			$code,
 			'Well-formed composer.json must pass. Output: ' . $output
 		);
-		$this::assertStringContainsString( 'Strauss vendor-prefix contract holds', $output );
+		$this::assertStringContainsString( 'Strauss configuration contract holds', $output );
 	}
 
 	public function test_missing_strauss_block_fails(): void {
@@ -123,23 +123,23 @@ final class SScribe_Strauss_Config_Test extends TestCase {
 	}
 
 	public function test_wrong_namespace_prefix_fails(): void {
-		$composer                                          = json_decode( $this->well_formed_composer(), true );
-		$composer['extra']['strauss']['namespace_prefix']  = 'SomeOther\\';
+		$composer                                         = json_decode( $this->well_formed_composer(), true );
+		$composer['extra']['strauss']['namespace_prefix'] = 'SomeOther\\';
 		list( $code, $output ) = $this->run_against( json_encode( $composer ) );
 		$this::assertSame( 1, $code, 'wrong namespace_prefix must fail' );
 		$this::assertStringContainsString( 'namespace_prefix', $output );
 	}
 
 	public function test_missing_canonical_package_fails(): void {
-		$composer                                          = json_decode( $this->well_formed_composer(), true );
-		$composer['extra']['strauss']['packages']          = array( 'mpdf/mpdf' ); // missing phpoffice + psr
+		$composer                                 = json_decode( $this->well_formed_composer(), true );
+		$composer['extra']['strauss']['packages'] = array( 'mpdf/mpdf' ); // missing phpoffice + psr
 		list( $code, $output ) = $this->run_against( json_encode( $composer ) );
 		$this::assertSame( 1, $code, 'missing canonical Strauss package must fail' );
 		$this::assertStringContainsString( 'missing the canonical libraries', $output );
 	}
 
 	public function test_missing_vendor_prefix_script_fails(): void {
-		$composer                              = json_decode( $this->well_formed_composer(), true );
+		$composer = json_decode( $this->well_formed_composer(), true );
 		unset( $composer['scripts']['vendor:prefix'] );
 		list( $code, $output ) = $this->run_against( json_encode( $composer ) );
 		$this::assertSame( 1, $code, 'missing vendor:prefix script must fail' );
@@ -147,22 +147,23 @@ final class SScribe_Strauss_Config_Test extends TestCase {
 	}
 
 	public function test_missing_fixup_step_fails(): void {
-		$composer                                                   = json_decode( $this->well_formed_composer(), true );
-		$composer['scripts']['vendor:prefix']                       = 'php scripts/run-strauss.php';
+		$composer                              = json_decode( $this->well_formed_composer(), true );
+		$composer['scripts']['vendor:prefix'] = 'php scripts/run-strauss.php';
 		list( $code, $output ) = $this->run_against( json_encode( $composer ) );
 		$this::assertSame( 1, $code, 'missing fix-prefixed-safe + fix-phpword fixup steps must fail' );
 		$this::assertStringContainsString( 'fix-prefixed-safe.php', $output );
 	}
 
-	public function test_live_repo_passes(): void {
-		// Sanity: the script is wired against the live composer.json
-		// + vendor-prefixed tree. If either regresses, this test
-		// fires immediately.
+	public function test_live_repo_configuration_passes(): void {
+		// Clean source checkouts do not commit vendor-prefixed/. The
+		// generated tree is certified separately with --built immediately
+		// after composer vendor:prefix in E2E and release-build paths.
 		list( $code, $output ) = $this->run_against( null );
 		$this::assertSame(
 			0,
 			$code,
-			"Live composer.json + vendor-prefixed tree must satisfy the Strauss contract. Output:\n" . $output
+			"Live composer.json must satisfy the Strauss configuration contract. Output:\n" . $output
 		);
+		$this::assertStringContainsString( 'Strauss configuration contract holds', $output );
 	}
 }

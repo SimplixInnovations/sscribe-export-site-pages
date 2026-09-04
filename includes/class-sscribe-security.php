@@ -107,19 +107,11 @@ class SScribe_Security {
 	private static function remove_directory( string $dir ): bool {
 		global $wp_filesystem;
 
-		if ( empty( $wp_filesystem ) ) {
-			if ( ! function_exists( 'WP_Filesystem' ) ) {
-				require_once ABSPATH . 'wp-admin/includes/file.php';
-			}
-
-			if ( ! WP_Filesystem() ) {
-
-				// phpcs:ignore WordPress.WP.AlternativeFunctions.file_system_operations_rmdir
-				return @rmdir( $dir );
-			}
+		if ( empty( $wp_filesystem ) && ! self::initialize_wp_filesystem() ) {
+			// phpcs:ignore WordPress.WP.AlternativeFunctions.file_system_operations_rmdir -- Direct fallback when the WordPress filesystem API is unavailable.
+			return @rmdir( $dir );
 		}
 
-		// phpcs:ignore WordPress.WP.AlternativeFunctions.file_system_operations_rmdir
 		return $wp_filesystem->rmdir( $dir );
 	}
 
@@ -134,28 +126,51 @@ class SScribe_Security {
 	private static function write_file( string $file_path, string $content, ?int $chmod = null ): bool {
 		global $wp_filesystem;
 
-		if ( empty( $wp_filesystem ) ) {
-			if ( ! function_exists( 'WP_Filesystem' ) ) {
-				require_once ABSPATH . 'wp-admin/includes/file.php';
+		$chmod = null === $chmod ? ( defined( 'FS_CHMOD_FILE' ) ? FS_CHMOD_FILE : 0644 ) : $chmod;
+
+		if ( empty( $wp_filesystem ) && ! self::initialize_wp_filesystem() ) {
+			// phpcs:ignore WordPress.WP.AlternativeFunctions.file_system_operations_file_put_contents -- Direct fallback when the WordPress filesystem API is unavailable.
+			if ( false === file_put_contents( $file_path, $content, LOCK_EX ) ) {
+				return false;
 			}
-			$chmod = null === $chmod ? ( defined( 'FS_CHMOD_FILE' ) ? FS_CHMOD_FILE : 0644 ) : $chmod;
 
-			if ( ! WP_Filesystem() ) {
+			// phpcs:ignore WordPress.WP.AlternativeFunctions.file_system_operations_chmod -- Apply the same permission contract as WP_Filesystem::put_contents().
+			chmod( $file_path, $chmod );
+			return true;
+		}
 
-				// phpcs:ignore WordPress.WP.AlternativeFunctions.file_system_operations_file_put_contents
-				if ( false === file_put_contents( $file_path, $content, LOCK_EX ) ) {
-					return false;
-				}
+		return $wp_filesystem->put_contents( $file_path, $content, $chmod );
+	}
 
-				// phpcs:ignore WordPress.WP.AlternativeFunctions.file_system_operations_chmod
-				chmod( $file_path, $chmod );
-				return true;
+	/**
+	 * Initialize the WordPress Filesystem API when its bootstrap is available.
+	 *
+	 * WordPress normally provides wp-admin/includes/file.php. Test harnesses,
+	 * recovery contexts, and unusually stripped installations may not. In that
+	 * case callers deliberately use their bounded direct-operation fallback
+	 * rather than fatalling while trying to load a file that does not exist.
+	 *
+	 * @return bool True when a usable global filesystem object is available.
+	 */
+	private static function initialize_wp_filesystem(): bool {
+		global $wp_filesystem;
+
+		if ( ! empty( $wp_filesystem ) ) {
+			return true;
+		}
+
+		if ( ! function_exists( 'WP_Filesystem' ) ) {
+			$filesystem_bootstrap = ABSPATH . 'wp-admin/includes/file.php';
+			if ( is_file( $filesystem_bootstrap ) ) {
+				require_once $filesystem_bootstrap;
 			}
 		}
 
-		$chmod = null === $chmod ? ( defined( 'FS_CHMOD_FILE' ) ? FS_CHMOD_FILE : 0644 ) : $chmod;
+		if ( ! function_exists( 'WP_Filesystem' ) || ! WP_Filesystem() ) {
+			return false;
+		}
 
-		return $wp_filesystem->put_contents( $file_path, $content, $chmod );
+		return ! empty( $wp_filesystem );
 	}
 
 	/**
@@ -212,27 +227,60 @@ class SScribe_Security {
 			}
 		}
 
+		$resolved_bases = array();
 		foreach ( $base_dirs as $base_dir ) {
 			$real_base_dir = realpath( $base_dir );
-			if ( false === $real_base_dir ) {
-				continue;
+			if ( false !== $real_base_dir ) {
+				$resolved_bases[] = $real_base_dir;
 			}
-			$real_path = realpath( $path );
-			if ( false !== $real_path && self::path_starts_with( $real_path, $real_base_dir, true ) ) {
-				return true;
-			}
+		}
 
-			$parent = dirname( $path );
-			while ( ! file_exists( $parent ) && dirname( $parent ) !== $parent ) {
-				$parent = dirname( $parent );
+		// Existing paths, including symlinks, are judged solely by their
+		// resolved target. Never fall back to literal-parent containment after
+		// realpath() has proved that an existing symlink points elsewhere.
+		$real_path = realpath( $path );
+		if ( false !== $real_path ) {
+			foreach ( $resolved_bases as $real_base_dir ) {
+				if ( self::path_starts_with( $real_path, $real_base_dir, true ) ) {
+					return true;
+				}
 			}
-			$real_parent = realpath( $parent );
-			if ( false === $real_parent || ! self::path_starts_with( $real_parent, $real_base_dir, true ) ) {
+			return false;
+		}
+
+		// A dangling symlink cannot be safely protected: its future target may
+		// appear outside plugin-owned storage after this validation completes.
+		if ( is_link( $path ) ) {
+			return false;
+		}
+
+		// For a path that genuinely does not exist yet, resolve the nearest
+		// existing ancestor (stopping at any intermediate symlink) and require
+		// both the ancestor and the canonical literal path to remain in scope.
+		$parent = dirname( $path );
+		while (
+			! file_exists( $parent )
+			&& ! is_link( $parent )
+			&& dirname( $parent ) !== $parent
+		) {
+			$parent = dirname( $parent );
+		}
+		$real_parent = realpath( $parent );
+		if ( false === $real_parent ) {
+			return false;
+		}
+
+		$canonical = self::canonicalize_path( $path );
+		if ( '' === $canonical ) {
+			return false;
+		}
+
+		foreach ( $resolved_bases as $real_base_dir ) {
+			if ( ! self::path_starts_with( $real_parent, $real_base_dir, true ) ) {
 				continue;
 			}
-			$canonical = self::canonicalize_path( $path );
 			$canonical_base = rtrim( self::canonicalize_path( $real_base_dir ), '/' );
-			if ( '' !== $canonical && ( $canonical === $canonical_base || str_starts_with( $canonical, $canonical_base . '/' ) ) ) {
+			if ( $canonical === $canonical_base || str_starts_with( $canonical, $canonical_base . '/' ) ) {
 				return true;
 			}
 		}

@@ -32,6 +32,7 @@ require_once SSCRIBE_TESTS_DIR . '/bootstrap.php';
 
 use PHPUnit\Framework\TestCase;
 
+#[\PHPUnit\Framework\Attributes\Group('release-contract')]
 final class SScribe_Auditor_Handoff_Test extends TestCase {
 
 	/** @var string */
@@ -220,6 +221,30 @@ final class SScribe_Auditor_Handoff_Test extends TestCase {
 			'composer test:auditor-handoff',
 			$ci_chain,
 			'composer.json `ci` chain must include `composer test:auditor-handoff` so Phase 74 runs in CI.'
+		);
+	}
+
+	public function test_branch_policy_evidence_is_generated_before_auditor_handoff(): void {
+		$ci_src = (string) file_get_contents( $this->repo_root . '/.github/workflows/ci.yml' );
+		$ci_branch = strpos( $ci_src, 'run: composer test:branch-policy' );
+		$ci_handoff = strpos( $ci_src, 'run: composer test:auditor-handoff' );
+		$this->assertIsInt( $ci_branch );
+		$this->assertIsInt( $ci_handoff );
+		$this->assertLessThan(
+			$ci_handoff,
+			$ci_branch,
+			'CI must generate dist/branch-policy-manifest.json before the auditor-handoff consumer runs.'
+		);
+
+		$audit_src = (string) file_get_contents( $this->repo_root . '/bin/release-audit.sh' );
+		$audit_branch = strpos( $audit_src, 'run_gate "Branch-Policy" composer test:branch-policy' );
+		$audit_handoff = strpos( $audit_src, 'run_gate "Auditor-Handoff" composer test:auditor-handoff' );
+		$this->assertIsInt( $audit_branch );
+		$this->assertIsInt( $audit_handoff );
+		$this->assertLessThan(
+			$audit_handoff,
+			$audit_branch,
+			'release-audit.sh must generate branch-policy evidence before the auditor-handoff consumer runs.'
 		);
 	}
 

@@ -4,8 +4,9 @@
  *
  * Asserts the canonical release-blocker checklist
  * (docs/RELEASE_BLOCKERS_v2.0.0.md) is complete and every row is
- * in a shippable state (RESOLVED or DEFERRED). A blocker that
- * is OPEN or BLOCKED is a release-stop condition.
+ * in a documented state. RESOLVED is shippable; DEFERRED is an
+ * explicit local/external verification requirement and therefore
+ * remains a release-stop condition until converted to RESOLVED.
  *
  * Rules:
  *
@@ -14,8 +15,9 @@
  *      Status convention, Canonical blockers, How an independent
  *      auditor verifies this).
  *   3. Every canonical blocker row is present.
- *   4. Every blocker has a valid status (RESOLVED or DEFERRED).
- *   5. Integration test exists.
+ *   4. Every blocker has a valid status.
+ *   5. No blocker remains DEFERRED / OPEN / BLOCKED for an actual release.
+ *   6. Integration test exists.
  *
  * @package SScribe_Export_Site_Pages
  */
@@ -139,6 +141,18 @@ if ( is_file( $checklist_doc ) ) {
 		0 === count( $invalid_status ),
 		'Every blocker status must be RESOLVED or DEFERRED. Invalid: ' . implode( ', ', $invalid_status )
 	);
+
+	$deferred = array();
+	foreach ( $row_statuses as $row ) {
+		if ( 'DEFERRED' === $row['status'] ) {
+			$deferred[] = $row['blocker'];
+		}
+	}
+	$record(
+		'no_deferred_blockers_for_release',
+		0 === count( $deferred ),
+		'Final release/tag/upload requires every blocker RESOLVED. Deferred: ' . implode( ', ', $deferred )
+	);
 }
 
 $test_path = $root_dir . '/tests/Integration/SScribe_Release_Blockers_Test.php';
@@ -159,6 +173,8 @@ $manifest = array(
 	'rule_count'    => count( $matrix ),
 	'passed_count'  => count( array_filter( $matrix, static fn( $r ) => $r['passes'] ) ),
 	'errors_count'  => count( $errors ),
+	'deferred_count'=> isset( $deferred ) ? count( $deferred ) : 0,
+	'release_ready' => 0 === count( $errors ) && ( ! isset( $deferred ) || 0 === count( $deferred ) ),
 	'passes'        => 0 === count( $errors ),
 	'errors'        => $errors,
 	'matrix'        => $matrix,
@@ -186,5 +202,5 @@ echo "\nManifest persisted to: {$manifest_path}\n";
 if ( ! empty( $errors ) ) {
 	exit( 1 );
 }
-echo "✓ Release blockers checklist contract valid.\n";
+echo "✓ Release blockers checklist is fully RESOLVED and release-ready.\n";
 exit( 0 );

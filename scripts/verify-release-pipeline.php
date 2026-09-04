@@ -139,12 +139,12 @@ $matrix[] = array(
 $matrix[] = array(
 	'rule'   => 'certify_job_runs_plugin_check',
 	'passes' => $certify_has_plugin_check,
-	'detail' => '`certify` must run the official WordPress Plugin Check (wordpress/plugin-check-action@v1).',
+	'detail' => '`certify` must run the official WordPress Plugin Check (SHA-pinned wordpress/plugin-check-action).',
 );
 $matrix[] = array(
 	'rule'   => 'certify_job_uploads_zip_artifact',
 	'passes' => $certify_uploads_zip,
-	'detail' => '`certify` must upload the ZIP as an actions/upload-artifact@v6 artifact so publish can download it without rebuilding.',
+	'detail' => '`certify` must upload the ZIP as an SHA-pinned actions/upload-artifact artifact so publish can download it without rebuilding.',
 );
 $matrix[] = array(
 	'rule'   => 'certify_job_uploads_sha_sidecar_artifact',
@@ -161,7 +161,7 @@ if ( ! $certify_has_plugin_check ) {
 	$errors[] = '`certify` job does not run the official WordPress Plugin Check.';
 }
 if ( ! $certify_uploads_zip ) {
-	$errors[] = '`certify` job does not upload the ZIP as an actions/upload-artifact@v6 artifact.';
+	$errors[] = '`certify` job does not upload the ZIP as an SHA-pinned actions/upload-artifact artifact.';
 }
 if ( ! $certify_uploads_sha ) {
 	$errors[] = '`certify` job does not upload the .sha256 sidecar as an artifact.';
@@ -184,7 +184,7 @@ $publish_block = $has_publish ? $jobs['publish'] : '';
 // publish must not do.
 $publish_block_no_comments = (string) preg_replace( '/^\s*#[^\n]*$/m', '', $publish_block );
 
-$publish_downloads_zip = (bool) preg_match( '/\buses:\s*actions\/download-artifact@v\d+\b/', $publish_block_no_comments );
+$publish_downloads_zip = (bool) preg_match( '/\buses:\s*actions\/download-artifact@[0-9a-f]{40}\b/i', $publish_block_no_comments );
 $publish_verifies_sha  = (bool) preg_match( '/sha256sum\b/', $publish_block_no_comments )
 	&& (bool) preg_match( '/sha256 mismatch|sha-?256 mismatch/i', $publish_block_no_comments );
 $publish_uploads_gh_release = (bool) preg_match( '/\bgh release (upload|create)\b/', $publish_block_no_comments );
@@ -197,7 +197,7 @@ $publish_runs_build_release    = (bool) preg_match( '/\bphp scripts\/build-relea
 $matrix[] = array(
 	'rule'   => 'publish_job_downloads_certified_artifact',
 	'passes' => $publish_downloads_zip,
-	'detail' => '`publish` must use `actions/download-artifact@v6` to consume the certified ZIP/SHA/build.json.',
+	'detail' => '`publish` must use `SHA-pinned actions/download-artifact` to consume the certified ZIP/SHA/build.json.',
 );
 $matrix[] = array(
 	'rule'   => 'publish_job_verifies_sha_before_publishing',
@@ -232,7 +232,7 @@ $matrix[] = array(
 );
 
 if ( ! $publish_downloads_zip ) {
-	$errors[] = '`publish` does not use actions/download-artifact@v6 to consume the certified artifact.';
+	$errors[] = '`publish` does not use SHA-pinned actions/download-artifact to consume the certified artifact.';
 }
 if ( ! $publish_verifies_sha ) {
 	$errors[] = '`publish` does not verify the SHA-256 of the downloaded artifact before publishing.';

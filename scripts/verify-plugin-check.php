@@ -11,7 +11,7 @@
  * The contract is enforced across four surfaces:
  *
  *   1. .github/workflows/ci.yml declares a `plugin-check` job that
- *      runs `wordpress/plugin-check-action@v1` against the build
+ *      runs `wordpress/plugin-check-action@<40-char SHA>` against the build
  *      directory the release script produces.
  *   2. The plugin-check job uses strict mode (Plugin Check exits
  *      non-zero on warning + error) and include-experimental: true
@@ -57,8 +57,8 @@ if ( ! preg_match( '/^    plugin-check:\s*$/m', $ci ) ) {
 }
 
 // 2. Uses the official wordpress/plugin-check-action.
-if ( ! preg_match( '/uses:\s*wordpress\/plugin-check-action@v1/', $ci ) ) {
-	$errors[] = 'plugin-check job does not use `wordpress/plugin-check-action@v1`. Substituting an unofficial action silently skips the checks WP.org enforces.';
+if ( ! preg_match( '/uses:\s*wordpress\/plugin-check-action@[0-9a-f]{40}\b/i', $ci ) ) {
+	$errors[] = 'plugin-check job does not use `wordpress/plugin-check-action@<40-char SHA>`. Substituting an unofficial action silently skips the checks WP.org enforces.';
 }
 
 // 3. strict: true.

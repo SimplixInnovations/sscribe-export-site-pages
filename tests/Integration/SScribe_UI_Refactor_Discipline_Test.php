@@ -20,6 +20,7 @@ namespace SScribe\Tests\Integration;
 
 use PHPUnit\Framework\TestCase;
 
+#[\PHPUnit\Framework\Attributes\Group('release-contract')]
 final class SScribe_UI_Refactor_Discipline_Test extends TestCase {
 
 	private const VERIFIER_PATH = 'scripts/verify-ui-refactor-discipline.php';
@@ -89,6 +90,21 @@ final class SScribe_UI_Refactor_Discipline_Test extends TestCase {
 				'UI refactor discipline doc must contain canonical section: ' . $section
 			);
 		}
+	}
+
+	public function test_version_check_ci_fetches_history_for_baseline_diff(): void {
+		$ci = (string) file_get_contents( self::plugin_root() . '/.github/workflows/ci.yml' );
+		$job_pos = strpos( $ci, "    version-check:\n" );
+		$this::assertNotFalse( $job_pos, 'CI must declare the version-check job.' );
+		// The job is first in ci.yml and its checkout block is near the top.
+		// Slice a bounded window instead of searching for "\n    ", which also
+		// matches every 8-space-indented property inside the same YAML job.
+		$job = substr( $ci, $job_pos, 1800 );
+		$this::assertStringContainsString(
+			'fetch-depth: 0',
+			$job,
+			'version-check must fetch full history because the UI discipline gate diffs against a historical BASELINE_SHA.'
+		);
 	}
 
 	public function test_baseline_sha_is_recorded_and_resolves(): void {

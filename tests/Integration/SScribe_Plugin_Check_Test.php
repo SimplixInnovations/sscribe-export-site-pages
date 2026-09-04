@@ -23,12 +23,13 @@
  *   - silently accepts a missing plugin-check job,
  *   - silently accepts strict: false,
  *   - silently accepts an unofficial action in place of
- *     wordpress/plugin-check-action@v1,
+ *     wordpress/plugin-check-action@10857da14b6c2246d15402b3e69f777edcf8c12e,
  *   - silently accepts a plugin-check job that depends on nothing,
  *   - silently accepts a build-dir that doesn't match the dist
  *     output,
  *   - silently accepts a plugin-check job that skips
  *     scripts/build-release.php,
+ *   - silently allows local release-audit.sh to SKIP Plugin Check,
  *
  * ...fails the suite immediately.
  */
@@ -110,7 +111,7 @@ final class SScribe_Plugin_Check_Test extends TestCase {
 			'        needs: [test, frontend-quality, audit, real-wp-tests]',
 			'        steps:',
 			'          - name: Checkout',
-			'            uses: actions/checkout@v6',
+			'            uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803',
 			'          - name: Install',
 			'            run: composer install --no-progress',
 			'          - name: Vendor prefix',
@@ -118,7 +119,7 @@ final class SScribe_Plugin_Check_Test extends TestCase {
 			'          - name: Build',
 			'            run: php scripts/build-release.php',
 			'          - name: Plugin Check',
-			'            uses: wordpress/plugin-check-action@v1',
+			'            uses: wordpress/plugin-check-action@10857da14b6c2246d15402b3e69f777edcf8c12e',
 			'            with:',
 			'              build-dir: ./dist/sscribe-export-site-pages',
 			'              strict: true',
@@ -170,11 +171,11 @@ final class SScribe_Plugin_Check_Test extends TestCase {
 	}
 
 	public function test_unofficial_action_fails(): void {
-		$ci = preg_replace( '/wordpress\/plugin-check-action@v1/', 'third-party/plugin-check@latest', $this->well_formed_ci(), 1, $count );
+		$ci = preg_replace( '/wordpress\/plugin-check-action@[0-9a-f]{40}/', 'third-party/plugin-check@latest', $this->well_formed_ci(), 1, $count );
 		$this::assertSame( 1, $count );
 		list( $code, $output ) = $this->run_against( $ci );
 		$this::assertSame( 1, $code );
-		$this::assertStringContainsString( 'wordpress/plugin-check-action@v1', $output );
+		$this::assertStringContainsString( 'wordpress/plugin-check-action@<40-char SHA>', $output );
 	}
 
 	public function test_missing_real_wp_tests_dependency_fails(): void {
@@ -199,6 +200,13 @@ final class SScribe_Plugin_Check_Test extends TestCase {
 		list( $code, $output ) = $this->run_against( $ci );
 		$this::assertSame( 1, $code );
 		$this::assertStringContainsString( 'build-release.php', $output );
+	}
+
+	public function test_local_release_audit_fails_closed_when_plugin_check_testbench_is_missing(): void {
+		$source = (string) file_get_contents( self::plugin_root() . '/bin/release-audit.sh' );
+		$this::assertStringNotContainsString( 'SKIP plugin-check testbench missing', $source );
+		$this::assertStringContainsString( 'run_gate "Plugin-Check"', $source );
+		$this::assertStringContainsString( 'release audit is fail-closed', $source );
 	}
 
 	public function test_live_repo_passes(): void {

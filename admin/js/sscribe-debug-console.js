@@ -704,6 +704,11 @@
 				this.saveSettingsRequest.abort();
 			}
 			const sentDebugEnabled = this.$enabled.is(':checked');
+			// A save can be triggered by refresh-mode/settings controls without
+			// toggling Debug. In that case there is no captured previous toggle
+			// state, so the current checked value is the pre-save baseline.
+			const previousDebugEnabled =
+				this._previousDebugEnabled === undefined ? sentDebugEnabled : this._previousDebugEnabled;
 			const data = {
 				action: 'sscribe_debug_save_settings',
 				nonce: sscribe_data.nonce,
@@ -723,15 +728,13 @@
 					if (response.data && response.data.nonce) {
 						sscribe_data.nonce = response.data.nonce;
 					}
-					if (
+					const debugStateChanged =
 						response.data &&
 						response.data.debug_enabled !== undefined &&
-						// Phase 17: refresh when the SAVED state diverges
-						// from the PRE-SAVE state. Comparing against
-						// sentDebugEnabled (which equals saved on success)
-						// never detected a real toggle.
-						response.data.debug_enabled !== self._previousDebugEnabled
-					) {
+						response.data.debug_enabled !== previousDebugEnabled;
+					self._previousDebugEnabled = undefined;
+					self._previousLogLevel = undefined;
+					if (debugStateChanged) {
 						self.stopAutoRefresh();
 						if (self.currentRequest) {
 							self.currentRequest.abort();
@@ -1007,6 +1010,9 @@
 				// the hidden attribute before jQuery's .show() can
 				// take effect.
 				this.$empty.removeClass('sscribe-hidden').attr('hidden', false).show();
+				if (this.$emptyEnableBtn && this.$emptyEnableBtn.length) {
+					this.$emptyEnableBtn.addClass('sscribe-hidden').attr('hidden', true);
+				}
 				this.destroyObserver();
 				if (this.$staleBanner && this.$staleBanner.length) {
 					this.$staleBanner.addClass('sscribe-hidden').attr('hidden', true);
@@ -1017,6 +1023,9 @@
 						this.$empty
 							.find('p')
 							.text('Debug logging is disabled. Enable it in Settings above to capture logs.');
+						if (this.$emptyEnableBtn && this.$emptyEnableBtn.length) {
+							this.$emptyEnableBtn.removeClass('sscribe-hidden').attr('hidden', false);
+						}
 					} else if (extraData.status === 'no_log_file' && extraData.debug_enabled) {
 						// State 2 of 5: no_log_file.
 						this.$empty
@@ -1060,6 +1069,9 @@
 			}
 			this.$empty.hide();
 			this.$empty.find('p').text(this.defaultEmptyMessage);
+			if (this.$emptyEnableBtn && this.$emptyEnableBtn.length) {
+				this.$emptyEnableBtn.addClass('sscribe-hidden').attr('hidden', true);
+			}
 			this.cleanupBeforeRender();
 			const consoleBody = this.$consoleBody && this.$consoleBody[0];
 			let scrollTop = 0;

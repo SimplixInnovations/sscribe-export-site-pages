@@ -112,11 +112,11 @@ final class SScribe_Fatal_Handler {
 	/**
 	 * Decide whether the fatal originated inside the plugin scope.
 	 *
-	 * A fatal that happened in core WordPress or another plugin during
-	 * an SScribe AJAX request is not necessarily attributable to
-	 * SScribe. We accept files inside the plugin root, and during
-	 * AJAX requests also accept any file (because the user-visible
-	 * operation is SScribe).
+	 * Files inside the plugin root are always attributable to SScribe.
+	 * A fatal in core or another plugin is attributed only while WordPress
+	 * is handling an AJAX action whose canonical action name begins with
+	 * sscribe_. This prevents unrelated admin-ajax.php failures from being
+	 * recorded as SScribe operational incidents.
 	 *
 	 * @param string $file Absolute file path.
 	 * @return bool True when the fatal is in scope.
@@ -128,10 +128,17 @@ final class SScribe_Fatal_Handler {
 		if ( '' !== self::$plugin_root && str_starts_with( $file, self::$plugin_root ) ) {
 			return true;
 		}
-		if ( function_exists( 'wp_doing_ajax' ) && wp_doing_ajax() ) {
-			return true;
+		if ( ! function_exists( 'wp_doing_ajax' ) || ! wp_doing_ajax() ) {
+			return false;
 		}
-		return false;
+
+		$action = $_REQUEST['action'] ?? null; // phpcs:ignore WordPress.Security.NonceVerification.Recommended -- Read-only attribution at shutdown; authorization already occurred in the original request.
+		if ( ! is_string( $action ) ) {
+			return false;
+		}
+
+		$action = sanitize_key( wp_unslash( $action ) );
+		return str_starts_with( $action, 'sscribe_' );
 	}
 
 	/**

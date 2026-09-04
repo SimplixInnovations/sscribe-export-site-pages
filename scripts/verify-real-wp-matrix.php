@@ -7,8 +7,8 @@
  * combinations WordPress actually ships with:
  *
  *   - PHP versions the plugin supports (>= 8.2 per composer.json)
- *   - WordPress versions still on the WP.org "current + previous"
- *     support window (current + N-1)
+ *   - Rolling current + previous WordPress coverage
+ *   - An explicit WordPress 6.1 / PHP 8.2 leg proving the declared floor
  *   - DBs the plugin must run against (SQLite drop-in AND MySQL)
  *
  * If the real-wp-tests job runs only one leg, a regression that
@@ -191,6 +191,32 @@ $matrix[] = array(
 );
 if ( $wp_version_count < 2 ) {
 	$errors[] = "Real-WP matrix only includes {$wp_version_count} WP version(s); need at least current + previous.";
+}
+
+/**
+ * Rule 5b: the declared minimum compatibility pair is exercised explicitly.
+ *
+ * "latest" and "previous" roll forward over time and therefore do not prove
+ * the published minimum remains installable. WordPress 6.1 is the first
+ * official WordPress release that supports PHP 8.2, so that exact pair is a
+ * permanent release leg while the rolling legs validate current versions.
+ */
+$has_declared_floor_leg =
+	(bool) preg_match(
+		"/-\\s+php-version:\\s*['\"]8\\.2['\"][\\s\\S]{0,160}?wp-version:\\s*['\"]6\\.1['\"]/",
+		$matrix_block
+	)
+	|| (bool) preg_match(
+		"/-\\s+wp-version:\\s*['\"]6\\.1['\"][\\s\\S]{0,160}?php-version:\\s*['\"]8\\.2['\"]/",
+		$matrix_block
+	);
+$matrix[] = array(
+	'rule'   => 'real_wp_matrix_covers_declared_wp61_php82_floor',
+	'passes' => $has_declared_floor_leg,
+	'detail' => 'Real-WP matrix MUST include an explicit WP 6.1 / PHP 8.2 leg so the published minimum is continuously proven.',
+);
+if ( ! $has_declared_floor_leg ) {
+	$errors[] = 'Real-WP matrix does NOT include the declared WordPress 6.1 / PHP 8.2 minimum compatibility leg.';
 }
 
 /**

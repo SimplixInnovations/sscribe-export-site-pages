@@ -5,17 +5,18 @@
 Phase 70 of the v2.0.0 release-hardening spec mandates that the
 release MUST NOT be declared ready while ANY of the canonical
 release-blocker conditions remain. This document is the **release
-blocker checklist**. Every blocker below must be marked **RESOLVED**
-(or **DEFERRED** with a written rationale) before the release tag
-is created.
+blocker checklist**. The source branch may be merged while local
+verification is pending, but the release tag / WordPress.org upload
+requires **every row to be RESOLVED**.
 
 The companion verifier `scripts/verify-release-blockers.php` walks
 this checklist and asserts:
 
 1. Every canonical blocker row is present.
-2. Every blocker has a status in {`RESOLVED`, `DEFERRED`}.
-3. No blocker is `OPEN` or `BLOCKED`.
-4. The integration test exists.
+2. Every blocker has a recognized status.
+3. `DEFERRED`, `OPEN`, and `BLOCKED` are all release-stop states.
+4. The release is shippable only when every canonical row is `RESOLVED`.
+5. The integration test exists.
 
 ## Status convention
 
@@ -23,24 +24,26 @@ Each blocker has a `Status` column. The four valid statuses:
 
 - **RESOLVED** — the blocker condition no longer holds. Evidence
   link required (CI run, test file, or doc reference).
-- **DEFERRED** — the blocker condition is intentionally
-  unresolved at v2.0.0 with a written rationale + target version.
+- **DEFERRED** — work/evidence is intentionally pending (for this candidate,
+  mostly local final verification). It is **not shippable** until changed to
+  RESOLVED with real evidence.
 - **OPEN** — work is in progress. Releases MUST NOT ship while any
   blocker is OPEN.
 - **BLOCKED** — work is gated on something external. Releases MUST
   NOT ship while any blocker is BLOCKED.
 
-The verifier accepts only `RESOLVED` or `DEFERRED`; any row with
-`OPEN` or `BLOCKED` (or blank) fails the gate.
+The verifier recognizes `RESOLVED` and `DEFERRED`, but it fails the final
+release gate while **any DEFERRED row remains**. `OPEN`, `BLOCKED`, or blank
+also fail.
 
 ## Canonical blockers
 
 | #  | Blocker                                                                                   | Status    | Evidence                                                                                                          |
 |----|-------------------------------------------------------------------------------------------|-----------|-------------------------------------------------------------------------------------------------------------------|
-| 1  | Any required CI job red                                                                   | RESOLVED  | All 27 contract gates wired in `bin/release-audit.sh` + `.github/workflows/ci.yml`. See Phase 71 for evidence.       |
-| 2  | Any required job skipped                                                                  | RESOLVED  | `continue-on-error: true` audit in Phase 52. Zero hidden skips in required paths.                                  |
-| 3  | PHPUnit runtime fatal                                                                     | RESOLVED  | `composer test` (PHPUnit 11.5) green; coverage warning acknowledged.                                              |
-| 4  | E2E not actually executed                                                                 | DEFERRED  | WP-Playground + Playwright testbed exists (M3 spec); M3 E2E execution deferred to 2.0.1 (zero e2e CI jobs yet).   |
+| 1  | Any required CI job red                                                                   | DEFERRED  | GitHub Actions availability is not treated as release evidence for this merge. Final verification must run locally with `bash bin/release-audit.sh` before tagging/upload. |
+| 2  | Any required job skipped                                                                  | DEFERRED  | Workflow structure forbids hidden pass-on-error paths, but final execution evidence is local for this release candidate. |
+| 3  | PHPUnit runtime fatal                                                                     | DEFERRED  | Source/test architecture has been repaired; run `composer test` locally on the merged final SHA before release. |
+| 4  | E2E not actually executed                                                                 | DEFERRED  | Exact-package WP Playground + Playwright suite exists and is release-required; run `npm run test:e2e:full` locally on the final ZIP before release. |
 | 5  | Security workflow red                                                                     | RESOLVED  | `tests/Security/SScribe_Security_Test.php` + Phase 49/66 contract gates green.                                     |
 | 6  | All Languages broken                                                                      | RESOLVED  | Phase 68 #4–6 registry + `SScribe_Export_Query_Controller` `__all__` paths + Phase 58 acceptance matrix.            |
 | 7  | All Types Preview mismatch                                                                | RESOLVED  | Phase 68 #7 registry + admin display renders `sscribe-post-type-card-any` sentinel.                                  |
@@ -50,11 +53,11 @@ The verifier accepts only `RESOLVED` or `DEFERRED`; any row with
 | 11 | Terminal 500 retry storm                                                                  | RESOLVED  | Phase 68 #12–15 registry + canonical Retry-After header gate (`SScribe_Rate_Limit_Response_Test`).                   |
 | 12 | Operational fatal/error log not durable                                                   | RESOLVED  | Phase 68 #18–19 registry + `SScribe_Operational_Logger_Test` + fatal-handler capture-on-shutdown contract.           |
 | 13 | Redis limiter inconsistent                                                                | RESOLVED  | Phase 68 #20 registry + `SScribe_Export_Rate_Limiter_Object_Cache_Test` monotonicity.                                |
-| 14 | Invalid WordPress/PHP minimum metadata                                                    | RESOLVED  | `Requires at least: 6.0` + `Requires PHP: 8.2` in mainfile; `tested_up_to` synced to latest WP; `SScribe_Minimum_Versions_Test`. |
-| 15 | Plugin Check not run on exact ZIP                                                         | RESOLVED  | `bin/release-audit.sh` invokes `wp plugin check` against the certified ZIP artifact; Phase 64 triage contract.       |
-| 16 | Exact ZIP not clean-install tested                                                        | RESOLVED  | Phase 63 contract + `docs/WP_ORG_CLEAN_INSTALL_SMOKE.md` + `SScribe_Exact_Package_Clean_Install_Test`.               |
-| 17 | Exact ZIP not runtime-export tested                                                       | DEFERRED  | Phase 69 manual runbook + integration test pinned; full matrix of environments awaits licensed WPML/Redis/OpenLiteSpeed envs. |
-| 18 | Source / build transparency unresolved                                                    | RESOLVED  | Phase 36 contract + `docs/BUILD_TRANSFORMATIONS.md` + `SScribe_Build_Transparency_Test`.                              |
+| 14 | Invalid WordPress/PHP minimum metadata                                                    | RESOLVED  | `Requires at least: 6.1` + `Requires PHP: 8.2`; WordPress 6.1/PHP 8.2 is the declared minimum test pair; `Tested up to: 7.1`. |
+| 15 | Plugin Check not run on exact ZIP                                                         | DEFERRED  | Repository gate is fail-closed and portable; run official Plugin Check locally against the exact final ZIP before WordPress.org upload. |
+| 16 | Exact ZIP not clean-install tested                                                        | DEFERRED  | Clean-install contract exists; perform the final local clean WordPress install/activation smoke against the exact merged ZIP. |
+| 17 | Exact ZIP not runtime-export tested                                                       | DEFERRED  | Run the final package through real exports (including All Languages, all formats, retry/finalize/download) in the local production-like environment. |
+| 18 | Source / build transparency unresolved                                                    | DEFERRED  | Build/source documentation is complete, but the canonical repository is private. Provide reviewer-accessible exact v2.0.0 source/build materials before WordPress.org submission. |
 | 19 | License inventory unresolved                                                              | RESOLVED  | Phase 37 contract + `docs/SECURITY_MATRIX_v2.0.0.md` + `SScribe_Third_Party_License_Test` + `SScribe_License_SPDIX_Test`. |
 | 20 | Release path capable of rebuilding untested bytes                                         | RESOLVED  | Phase 53 contract + `SScribe_Release_Pipeline_Test` + `SScribe_Artifact_Certification_Test`.                         |
 
@@ -73,9 +76,9 @@ grep -E '^\| [0-9]+ +\|' docs/RELEASE_BLOCKERS_v2.0.0.md \
 vendor/bin/phpunit tests/Integration/SScribe_Release_Blockers_Test.php
 ```
 
-A green `composer test:release-blockers` + every row RESOLVED or
-DEFERRED + a passing integration test = the release is ready to
-tag (subject to Phases 71–76).
+A green `composer test:release-blockers` means every canonical row is
+RESOLVED; only then is the release ready to tag/upload (subject to the
+remaining exact-artifact evidence).
 
 ## What this contract does NOT cover
 
@@ -91,6 +94,6 @@ tag (subject to Phases 71–76).
 ## Change log
 
 - 2026-09-03: Initial Phase 70 release-blocker checklist + verifier
-  + PHPUnit pin. 20 canonical blockers recorded. 18 RESOLVED, 2
-  DEFERRED (M3 E2E execution; exact-ZIP runtime-export in licensed
-  WPML/Redis envs).
+  + PHPUnit pin. 20 canonical blockers recorded. 12 RESOLVED, 8 DEFERRED. Deferred rows are explicit local/external
+  release-verification requirements and must be closed before the
+  WordPress.org upload/tag; they are not hidden code-completion claims.

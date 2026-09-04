@@ -130,4 +130,58 @@ test.describe('e2e / debug / toggle-state-transition', () => {
 		expect(text.toLowerCase()).toContain('disabled');
 		expect(text.toLowerCase()).not.toContain('no log entries found');
 	});
+	test('saving unchanged debug state does not trigger a page reload', async ({ adminPage }) => {
+		await adminPage.goto('/wp-admin/admin.php?page=sscribe-export');
+		await adminPage.locator('#sscribe-tab-btn-debug').click();
+		const toggle = adminPage.locator('#sscribe-debug-enabled[role="switch"]');
+		await expect(toggle).toBeAttached();
+		const initialState = (await toggle.getAttribute('aria-checked')) === 'true';
+
+		await adminPage.route('**/admin-ajax.php*', async (route) => {
+			const req = route.request();
+			if (!isDebugSaveSettings(req.postData())) return route.continue();
+			return route.fulfill(
+				syntheticJson(200, {
+					success: true,
+					data: {
+						debug_enabled: initialState,
+						log_level: 'INFO',
+						auto_refresh: false,
+						nonce: 'replacement-nonce',
+					},
+				})
+			);
+		});
+
+		await adminPage.evaluate(() => {
+			const w = window as any;
+			w.__sscribeNoReloadMarker = 'alive';
+			w.SScribeDebugConsole._previousDebugEnabled = undefined;
+			w.SScribeDebugConsole.saveSettings(w.SScribeDebugConsole.isAutoRefresh);
+		});
+
+		await adminPage.waitForTimeout(1800);
+		expect(await adminPage.evaluate(() => (window as any).__sscribeNoReloadMarker || null)).toBe('alive');
+	});
+
+	test('enabled console with active filters hides the Enable Debug Logging CTA', async ({ adminPage }) => {
+		await adminPage.goto('/wp-admin/admin.php?page=sscribe-export');
+		await adminPage.locator('#sscribe-tab-btn-debug').click();
+
+		await adminPage.evaluate(() => {
+			const w = window as any;
+			w.SScribeDebugConsole.currentFilter = 'ERROR';
+			w.SScribeDebugConsole.searchQuery = '';
+			w.SScribeDebugConsole.sessionFilter = '';
+			w.SScribeDebugConsole.renderLogs([], false, {
+				status: 'ok',
+				count: 0,
+				debug_enabled: true,
+			}, true);
+		});
+
+		await expect(adminPage.locator('#sscribe-debug-empty p')).toContainText(/no entries match the current filters/i);
+		await expect(adminPage.locator('#sscribe-debug-empty-enable')).toBeHidden();
+	});
+
 });

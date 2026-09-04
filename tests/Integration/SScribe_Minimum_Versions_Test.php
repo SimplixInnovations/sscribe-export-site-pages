@@ -32,6 +32,7 @@
  *   - silently accepts a drift between mainfile and readme.txt,
  *   - silently accepts a runtime guard that disagrees with the header,
  *   - silently accepts a PHP minimum below the canonical 8.2 floor,
+ *   - silently accepts WordPress 6.0 with PHP 8.2 even though that pair is unsupported,
  *
  * ...fails the suite immediately.
  */
@@ -97,7 +98,7 @@ final class SScribe_Minimum_Versions_Test extends TestCase {
 			. " * Plugin Name:       SScribe Export Site Pages\n"
 			. " * Description:       Test fixture.\n"
 			. " * Version:           2.0.0\n"
-			. " * Requires at least: 6.0\n"
+			. " * Requires at least: 6.1\n"
 			. " * Requires PHP:      8.2\n"
 			. " * Author:            Simplix Innovations\n"
 			. " * License:           GPL-2.0-or-later\n"
@@ -112,7 +113,7 @@ final class SScribe_Minimum_Versions_Test extends TestCase {
 			. "}\n";
 	}
 
-	private function well_formed_readme( string $wp_min = '6.0', string $php_min = '8.2' ): string {
+	private function well_formed_readme( string $wp_min = '6.1', string $php_min = '8.2' ): string {
 		return "=== Plugin Name ===\n"
 			. "Contributors: simplix\n"
 			. "Requires at least: {$wp_min}\n"
@@ -136,7 +137,7 @@ final class SScribe_Minimum_Versions_Test extends TestCase {
 	}
 
 	public function test_missing_wp_min_in_mainfile_fails(): void {
-		$mainfile = str_replace( ' * Requires at least: 6.0', '', $this->well_formed_mainfile() );
+		$mainfile = str_replace( ' * Requires at least: 6.1', '', $this->well_formed_mainfile() );
 		list( $code, $output ) = $this->run_against( $mainfile, $this->well_formed_readme() );
 		$this->assertSame( 1, $code );
 		$this->assertStringContainsString( 'Requires at least', $output );
@@ -161,7 +162,7 @@ final class SScribe_Minimum_Versions_Test extends TestCase {
 	public function test_drift_php_min_fails(): void {
 		list( $code, $output ) = $this->run_against(
 			$this->well_formed_mainfile(),
-			$this->well_formed_readme( '6.0', '8.3' )
+			$this->well_formed_readme( '6.1', '8.3' )
 		);
 		$this->assertSame( 1, $code );
 		$this->assertStringContainsString( 'PHP minimum drift', $output );
@@ -179,6 +180,17 @@ final class SScribe_Minimum_Versions_Test extends TestCase {
 		$this->assertStringContainsString( 'runtime guard does not match', $output );
 	}
 
+	public function test_wordpress_60_is_below_supported_floor(): void {
+		$mainfile = str_replace(
+			' * Requires at least: 6.1',
+			' * Requires at least: 6.0',
+			$this->well_formed_mainfile()
+		);
+		list( $code, $output ) = $this->run_against( $mainfile, $this->well_formed_readme( '6.0', '8.2' ) );
+		$this->assertSame( 1, $code );
+		$this->assertStringContainsString( 'below the canonical floor', $output );
+	}
+
 	public function test_php_min_below_floor_fails(): void {
 		// Header says PHP 8.1 (below 8.2 floor).
 		$mainfile = str_replace(
@@ -186,7 +198,7 @@ final class SScribe_Minimum_Versions_Test extends TestCase {
 			array( " * Requires PHP:      8.1\n", "version_compare( PHP_VERSION, '8.1', '<' )" ),
 			$this->well_formed_mainfile()
 		);
-		list( $code, $output ) = $this->run_against( $mainfile, $this->well_formed_readme( '6.0', '8.1' ) );
+		list( $code, $output ) = $this->run_against( $mainfile, $this->well_formed_readme( '6.1', '8.1' ) );
 		$this->assertSame( 1, $code );
 		$this->assertStringContainsString( 'below the canonical floor', $output );
 	}

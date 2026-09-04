@@ -32,6 +32,7 @@ require_once SSCRIBE_TESTS_DIR . '/bootstrap.php';
 
 use PHPUnit\Framework\TestCase;
 
+#[\PHPUnit\Framework\Attributes\Group('release-contract')]
 final class SScribe_Branch_Policy_Test extends TestCase {
 
 	/** @var string */
@@ -91,6 +92,26 @@ final class SScribe_Branch_Policy_Test extends TestCase {
 		$this->assertFileExists(
 			$this->repo_root . '/scripts/verify-branch-policy.php',
 			'scripts/verify-branch-policy.php must exist so the verifier script can be invoked by CI.'
+		);
+	}
+
+	public function test_ci_branch_policy_uses_authenticated_checkout_refs_not_late_ls_remote(): void {
+		$src = (string) file_get_contents( $this->repo_root . '/scripts/verify-branch-policy.php' );
+
+		$this->assertStringContainsString(
+			'refs/remotes/origin/',
+			$src,
+			'CI branch verification must consume remote-tracking refs fetched by actions/checkout.'
+		);
+		$this->assertStringContainsString(
+			'show-ref --verify --hash',
+			$src,
+			'Branch existence must use an exit-status-safe ref lookup rather than rev-parse of an arbitrary token.'
+		);
+		$this->assertStringContainsString(
+			'if ( $is_ci )',
+			$src,
+			'Private-repository CI must have an explicit offline branch-verification path after checkout removes credentials.'
 		);
 	}
 
@@ -214,7 +235,7 @@ final class SScribe_Branch_Policy_Test extends TestCase {
 		// long-lived branch checked out locally. Run git from the
 		// repo root via subprocess so PHPUnit does not need a
 		// working-tree-relative shell.
-		$cmd    = 'git -C ' . escapeshellarg( $this->repo_root ) . ' branch --format="%(refname:short)"';
+		$cmd    = 'git -C ' . escapeshellarg( $this->repo_root ) . ' for-each-ref --format="%(refname:short)" refs/heads/';
 		$output = array();
 		exec( $cmd . ' 2>&1', $output );
 
@@ -233,10 +254,12 @@ final class SScribe_Branch_Policy_Test extends TestCase {
 		// In local dev we still demand exactly {main, develop}.
 		$is_ci = ( getenv( 'GITHUB_ACTIONS' ) === 'true' );
 		if ( $is_ci ) {
-			$this->assertNotEmpty(
-				$branches,
-				'CI checkout should contain at least the trigger branch.'
-			);
+			// Pull-request workflows are checked out at GitHub's synthetic
+			// refs/pull/<n>/merge in detached-HEAD mode. In that valid state
+			// refs/heads/ is empty; the verifier's authenticated
+			// refs/remotes/origin/{main,develop} checks are the authoritative
+			// CI contract. If any local named branches are present, however,
+			// they must still be canonical.
 			$disallowed = array_diff( $branches, array( 'main', 'develop' ) );
 			$this->assertSame(
 				array(),

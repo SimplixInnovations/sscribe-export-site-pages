@@ -12,7 +12,7 @@
  *
  *   - Checklist doc exists.
  *   - Doc declares the canonical sections.
- *   - All 8 canonical required jobs are listed.
+ *   - All 9 canonical required release signals are listed.
  *   - Every required job has a status in {SUCCESS, SKIPPED}.
  *   - The companion verifier script exists.
  *
@@ -29,6 +29,7 @@ require_once SSCRIBE_TESTS_DIR . '/bootstrap.php';
 
 use PHPUnit\Framework\TestCase;
 
+#[\PHPUnit\Framework\Attributes\Group('release-contract')]
 final class SScribe_Final_CI_State_Test extends TestCase {
 
 	/** @var string */
@@ -80,6 +81,7 @@ final class SScribe_Final_CI_State_Test extends TestCase {
 			'real-wp-tests',
 			'coverage',
 			'plugin-check',
+			'e2e',
 		);
 
 		foreach ( $canonical_jobs as $expected ) {

@@ -155,7 +155,7 @@ $sscribe_show_wp_debug_notice = ( defined( 'WP_DEBUG' ) && WP_DEBUG );
 					<path d="M8 18h32M16 24h8M16 30h16" stroke="currentColor" stroke-width="2" opacity="0.3"/>
 				</svg>
 				<p><?php esc_html_e( 'No log entries yet. Enable debug mode and run an export to see logs.', 'sscribe-export-site-pages' ); ?></p>
-				<button type="button" class="sscribe-button sscribe-button-primary sscribe-button-compact" id="sscribe-debug-empty-enable">
+				<button type="button" class="sscribe-button sscribe-button-primary sscribe-button-compact sscribe-hidden" id="sscribe-debug-empty-enable" hidden>
 					<?php esc_html_e( 'Enable Debug Logging', 'sscribe-export-site-pages' ); ?>
 				</button>
 			</div>

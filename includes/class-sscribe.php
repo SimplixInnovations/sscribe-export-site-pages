@@ -247,7 +247,13 @@ class SScribe {
 		$container = SScribe_Container::instance();
 		$batch     = $container->get( SScribe_Batch_Processor::class );
 		$cap       = SScribe_Capabilities::get_required();
-		$health_cap = SScribe_Capabilities::get_health_required();
+		$health_cap      = SScribe_Capabilities::get_health_required();
+		$language_request = new SScribe_Language_Request();
+
+		// Translate the UI-only __all__ sentinel before the guarded Preview/Start
+		// callbacks read request data. Count endpoints intentionally retain it.
+		$this->loader->add_action( 'wp_ajax_sscribe_start_export', $language_request, 'normalize_for_export_endpoint', 1, 0 );
+		$this->loader->add_action( 'wp_ajax_sscribe_get_export_preview', $language_request, 'normalize_for_export_endpoint', 1, 0 );
 
 		$this->loader->add_guarded_ajax_action( 'wp_ajax_sscribe_start_export', $batch, 'ajax_start_export', $cap );
 		$this->loader->add_guarded_ajax_action( 'wp_ajax_sscribe_process_batch', $batch, 'ajax_process_batch', $cap );

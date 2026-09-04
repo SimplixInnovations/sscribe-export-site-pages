@@ -1,6 +1,6 @@
 import { stubFsExt } from './helpers/stub-fs-ext.ts';
 import { spawn, ChildProcess } from 'node:child_process';
-import { mkdirSync, writeFileSync, existsSync, readFileSync, readdirSync } from 'node:fs';
+import { mkdirSync, writeFileSync, existsSync, readFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 
@@ -46,20 +46,30 @@ export default async function globalSetup(): Promise<GlobalSetupResult> {
   const stagingDir = join(tmpdir(), 'sscribe-build');
   mkdirSync(stagingDir, { recursive: true });
 
-  // Ensure the dist/*.zip is present; copy it to the staging dir.
+  // Install exactly the canonical release artifact built for this package
+  // version. Never pick the first arbitrary ZIP from dist/, and always
+  // overwrite the staging copy so a prior local/CI run cannot leak stale bytes.
   const distDir = join(process.cwd(), 'dist');
-  const zipPath = join(stagingDir, 'sscribe-export-site-pages.zip');
-  if (!existsSync(zipPath)) {
-    const actual = existsSync(distDir)
-      ? readdirSync(distDir).filter((f: string) => f.endsWith('.zip'))
-      : [];
-    if (actual.length === 0) {
-      throw new Error(
-        'No plugin ZIP found in dist/. Run `composer release:prepare` before `npm run test:e2e`.'
-      );
-    }
-    writeFileSync(zipPath, readFileSync(join(distDir, actual[0])));
+  const packageJson = JSON.parse(readFileSync(join(process.cwd(), 'package.json'), 'utf-8')) as {
+    version?: string;
+  };
+  const releaseVersion = String(packageJson.version || '').trim();
+  if (!/^\d+\.\d+\.\d+(?:[-+][0-9A-Za-z.-]+)?$/.test(releaseVersion)) {
+    throw new Error(`Invalid or missing package.json version for E2E release fixture: "${releaseVersion}"`);
   }
+
+  const canonicalZipPath = join(
+    distDir,
+    `sscribe-export-site-pages-${releaseVersion}.zip`
+  );
+  if (!existsSync(canonicalZipPath)) {
+    throw new Error(
+      `Canonical plugin ZIP not found at ${canonicalZipPath}. Run \`composer release:prepare\` before \`npm run test:e2e\`.`
+    );
+  }
+
+  const zipPath = join(stagingDir, 'sscribe-export-site-pages.zip');
+  writeFileSync(zipPath, readFileSync(canonicalZipPath));
 
   // Generate the runtime blueprint by substituting mu-plugin placeholders
   // with the real PHP content from disk. This is the ONLY way to get
