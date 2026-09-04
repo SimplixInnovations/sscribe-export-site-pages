@@ -253,10 +253,12 @@ final class SScribe_Branch_Policy_Test extends TestCase {
 		// In local dev we still demand exactly {main, develop}.
 		$is_ci = ( getenv( 'GITHUB_ACTIONS' ) === 'true' );
 		if ( $is_ci ) {
-			$this->assertNotEmpty(
-				$branches,
-				'CI checkout should contain at least the trigger branch.'
-			);
+			// Pull-request workflows are checked out at GitHub's synthetic
+			// refs/pull/<n>/merge in detached-HEAD mode. In that valid state
+			// refs/heads/ is empty; the verifier's authenticated
+			// refs/remotes/origin/{main,develop} checks are the authoritative
+			// CI contract. If any local named branches are present, however,
+			// they must still be canonical.
 			$disallowed = array_diff( $branches, array( 'main', 'develop' ) );
 			$this->assertSame(
 				array(),
