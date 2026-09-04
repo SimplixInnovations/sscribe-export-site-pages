@@ -1037,6 +1037,12 @@ jobs:
                 # that drops a recently-removed WP API or assumes a
                 # not-yet-shipped WP API is caught.
                 wp-version: ['latest', 'previous']
+                include:
+                    # Explicit declared-minimum compatibility leg. The rolling
+                    # latest/previous matrix proves current WordPress support;
+                    # this leg proves the published WP 6.1 + PHP 8.2 floor.
+                    - php-version: '8.2'
+                      wp-version: '6.1'
         steps:
             - name: Checkout code
               uses: actions/checkout@v6
