@@ -32,6 +32,7 @@ require_once SSCRIBE_TESTS_DIR . '/bootstrap.php';
 
 use PHPUnit\Framework\TestCase;
 
+#[\PHPUnit\Framework\Attributes\Group('release-contract')]
 final class SScribe_Auditor_Handoff_Test extends TestCase {
 
 	/** @var string */
