@@ -352,6 +352,7 @@ class SScribe_Admin {
 				'support_refresh'        => __( 'Refresh', 'sscribe-export-site-pages' ),
 				'support_generated'      => __( 'Generated', 'sscribe-export-site-pages' ),
 				'support_debug'          => __( 'Debug mode may expose extra detail intended for administrators only.', 'sscribe-export-site-pages' ),
+				'all_languages'          => __( 'All Languages', 'sscribe-export-site-pages' ),
 				'preflight_title'        => __( 'Export Readiness Check', 'sscribe-export-site-pages' ),
 				'preflight_errors'       => __( 'Critical Issues', 'sscribe-export-site-pages' ),
 				'preflight_warnings'     => __( 'Recommendations', 'sscribe-export-site-pages' ),
