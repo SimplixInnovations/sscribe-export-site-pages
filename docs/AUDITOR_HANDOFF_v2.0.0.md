@@ -55,11 +55,11 @@ fails the gate.
 For each handoff artifact, the auditor runs a specific command
 to verify the claim. The canonical recipes:
 
-1. **Release blockers** — `composer test:release-blockers`
-   + assert every blocker row is RESOLVED or DEFERRED.
-2. **Final CI state** — `composer test:final-ci-state`
-   + assert every required job is SUCCESS or SKIPPED.
-3. **Exact artifact evidence** — `composer test:exact-artifact-evidence`
+1. **Release blockers** — `SSCRIBE_RELEASE_CERTIFICATION=1 composer test:release-blockers`
+   + assert every blocker row is RESOLVED.
+2. **Final execution state** — `SSCRIBE_RELEASE_CERTIFICATION=1 composer test:final-ci-state`
+   + assert every required signal is SUCCESS or LOCAL_PASS on the exact final SHA; inspect concrete evidence for every LOCAL_PASS.
+3. **Exact artifact evidence** — `SSCRIBE_RELEASE_CERTIFICATION=1 composer test:exact-artifact-evidence`
    + `sha256sum dist/sscribe-export-site-pages-{VERSION}.zip`.
 4. **Agent final report** — read the report, verify SHA-256
    + commit SHA + version matches every other artifact.
