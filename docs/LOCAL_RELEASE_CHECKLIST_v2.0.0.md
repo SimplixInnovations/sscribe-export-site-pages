@@ -8,6 +8,13 @@ Run this checklist from `develop`. Any tracked fix must be committed before
 final evidence is generated. At final closure, `main` is fast-forwarded to
 the exact certified `develop` SHA.
 
+For Bash/Git Bash evidence commands, enable fail-fast pipeline behavior before
+using `tee`, otherwise a failing command can be masked by a successful `tee`:
+
+```bash
+set -euo pipefail
+```
+
 > **Critical evidence rule:** never write the exact final SHA/checksum/statuses
 > into tracked release-evidence Markdown and commit them. Final exact-SHA proof
 > lives in gitignored `dist/` evidence files and generated manifests. If any
