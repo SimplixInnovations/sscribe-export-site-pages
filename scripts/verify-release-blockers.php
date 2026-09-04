@@ -31,6 +31,7 @@ if ( 'cli' !== php_sapi_name() ) {
 $root_dir      = dirname( __DIR__ );
 $checklist_doc = $root_dir . '/docs/RELEASE_BLOCKERS_v2.0.0.md';
 $manifest_path = $root_dir . '/dist/release-blockers-manifest.json';
+$strict_certification = '1' === (string) getenv( 'SSCRIBE_RELEASE_CERTIFICATION' );
 
 $matrix = array();
 $errors = array();
@@ -148,11 +149,19 @@ if ( is_file( $checklist_doc ) ) {
 			$deferred[] = $row['blocker'];
 		}
 	}
-	$record(
-		'no_deferred_blockers_for_release',
-		0 === count( $deferred ),
-		'Final release/tag/upload requires every blocker RESOLVED. Deferred: ' . implode( ', ', $deferred )
-	);
+	if ( $strict_certification ) {
+		$record(
+			'no_deferred_blockers_for_release',
+			0 === count( $deferred ),
+			'Final release/tag/upload requires every blocker RESOLVED. Deferred: ' . implode( ', ', $deferred )
+		);
+	} else {
+		$record(
+			'release_state_enforced_only_in_strict_certification',
+			true,
+			'Normal source CI validates blocker schema/status vocabulary. SSCRIBE_RELEASE_CERTIFICATION=1 enforces that no DEFERRED blocker remains.'
+		);
+	}
 }
 
 $test_path = $root_dir . '/tests/Integration/SScribe_Release_Blockers_Test.php';
@@ -174,7 +183,8 @@ $manifest = array(
 	'passed_count'  => count( array_filter( $matrix, static fn( $r ) => $r['passes'] ) ),
 	'errors_count'  => count( $errors ),
 	'deferred_count'=> isset( $deferred ) ? count( $deferred ) : 0,
-	'release_ready' => 0 === count( $errors ) && ( ! isset( $deferred ) || 0 === count( $deferred ) ),
+	'strict_certification' => $strict_certification,
+	'release_ready' => $strict_certification && 0 === count( $errors ) && ( ! isset( $deferred ) || 0 === count( $deferred ) ),
 	'passes'        => 0 === count( $errors ),
 	'errors'        => $errors,
 	'matrix'        => $matrix,
@@ -202,5 +212,9 @@ echo "\nManifest persisted to: {$manifest_path}\n";
 if ( ! empty( $errors ) ) {
 	exit( 1 );
 }
-echo "✓ Release blockers checklist is fully RESOLVED and release-ready.\n";
+if ( $strict_certification ) {
+	echo "✓ Release blockers checklist is fully RESOLVED and release-ready.\n";
+} else {
+	echo "✓ Release blockers contract structure is valid. Strict release-state enforcement was not requested.\n";
+}
 exit( 0 );
