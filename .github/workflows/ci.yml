@@ -12,6 +12,12 @@ on:
     schedule:
         - cron: '0 6 * * 1' # Every Monday at 06:00 UTC
 
+# A new push to the same branch/PR supersedes older evidence. Cancel obsolete
+# runs so only the latest candidate consumes release-validation capacity.
+concurrency:
+    group: ${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}
+    cancel-in-progress: true
+
 jobs:
     version-check:
         name: Version Sync Check

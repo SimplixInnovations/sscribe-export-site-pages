@@ -9,6 +9,12 @@ on:
   pull_request:
     branches: [main, develop]
 
+# Browser certification is candidate-specific; superseded PR/branch runs must
+# not occupy runners after a newer commit has replaced their evidence.
+concurrency:
+  group: ${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
+
 jobs:
   test:
     runs-on: ubuntu-latest

@@ -90,6 +90,32 @@ final class SScribe_Workflow_Governance_Test extends TestCase {
 		$this::assertEmpty( $overlap, 'A workflow cannot be both required and optional: ' . implode( ', ', $overlap ) );
 	}
 
+	public function test_ci_and_e2e_cancel_superseded_candidate_runs(): void {
+		$root = self::plugin_root() . '/' . self::WORKFLOWS_DIR;
+
+		foreach ( array( 'ci.yml', 'e2e.yml' ) as $workflow ) {
+			$path = $root . '/' . $workflow;
+			$this::assertFileExists( $path );
+			$source = (string) file_get_contents( $path );
+
+			$this::assertStringContainsString(
+				'concurrency:',
+				$source,
+				"{$workflow} must declare candidate-scoped concurrency."
+			);
+			$this::assertStringContainsString(
+				'github.event.pull_request.number || github.ref',
+				$source,
+				"{$workflow} concurrency must isolate each PR/branch candidate."
+			);
+			$this::assertMatchesRegularExpression(
+				'/cancel-in-progress:\s*true/',
+				$source,
+				"{$workflow} must cancel superseded runs so stale candidates cannot starve release validation."
+			);
+		}
+	}
+
 	public function test_no_release_required_workflow_uses_continue_on_error(): void {
 		// Direct grep on each required workflow to lock the contract at
 		// the source level — even if a future verifier release misses a
