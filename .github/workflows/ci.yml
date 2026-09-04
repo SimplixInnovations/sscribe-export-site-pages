@@ -785,6 +785,28 @@ jobs:
             - name: Agent final report integration test
               run: vendor/bin/phpunit tests/Integration/SScribe_Agent_Final_Report_Test.php
 
+            # Phase 77: Branch topology policy — prevents the
+            # multi-branch divergence problem we hit during
+            # the v2.0.0 release hardening cycle (~2600
+            # unique commits between develop and
+            # release/2.0.0-final-hardening on the same
+            # critical files). The policy doc at
+            # docs/BRANCH_POLICY_v2.0.0.md declares exactly
+            # two long-lived branches (`main` and `develop`)
+            # that must always point to the same SHA between
+            # releases, plus a list of forbidden patterns
+            # (third long-lived branch, local-only refs,
+            # divergent branches, main ahead of develop).
+            # The verifier walks the doc and scans the git
+            # refs; the integration test pins the same
+            # contract at the PHPUnit boundary so a
+            # regression cannot slip past either guard.
+            - name: Branch Policy contract gate
+              run: composer test:branch-policy
+
+            - name: Branch Policy integration test
+              run: vendor/bin/phpunit tests/Integration/SScribe_Branch_Policy_Test.php
+
             # Phase 74: Required handoff to independent auditor —
             # the protocol for handing off release evidence to an
             # independent auditor MUST be declared in a canonical
@@ -855,28 +877,6 @@ jobs:
 
             - name: Definition of Done integration test
               run: vendor/bin/phpunit tests/Integration/SScribe_Definition_Of_Done_Test.php
-
-            # Phase 77: Branch topology policy — prevents the
-            # multi-branch divergence problem we hit during
-            # the v2.0.0 release hardening cycle (~2600
-            # unique commits between develop and
-            # release/2.0.0-final-hardening on the same
-            # critical files). The policy doc at
-            # docs/BRANCH_POLICY_v2.0.0.md declares exactly
-            # two long-lived branches (`main` and `develop`)
-            # that must always point to the same SHA between
-            # releases, plus a list of forbidden patterns
-            # (third long-lived branch, local-only refs,
-            # divergent branches, main ahead of develop).
-            # The verifier walks the doc and scans the git
-            # refs; the integration test pins the same
-            # contract at the PHPUnit boundary so a
-            # regression cannot slip past either guard.
-            - name: Branch Policy contract gate
-              run: composer test:branch-policy
-
-            - name: Branch Policy integration test
-              run: vendor/bin/phpunit tests/Integration/SScribe_Branch_Policy_Test.php
 
             # Phase 51: release scripts must derive version dynamically
             # from SSCRIBE_VERSION. The version-sync verifier already
