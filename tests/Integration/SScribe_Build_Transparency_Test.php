@@ -136,6 +136,18 @@ final class SScribe_Build_Transparency_Test extends TestCase {
 		$this::assertStringContainsString( 'Build transparency holds', $stdout );
 	}
 
+	public function test_builder_sanitizes_only_text_and_copies_binary_assets_verbatim(): void {
+		$builder = $this->read_live( 'scripts/build-release.php' );
+
+		$this->assertStringContainsString( '$text_extensions = array(', $builder );
+		$this->assertStringContainsString( 'Unable to copy binary release file', $builder );
+		$this->assertStringContainsString(
+			'in_array( $ext, $text_extensions, true )',
+			$builder,
+			'Binary release assets must bypass the Unicode text sanitizer.'
+		);
+	}
+
 	public function test_missing_development_section_fails(): void {
 		$live  = $this->read_live( 'readme.txt' );
 		$strip = preg_replace( '/^==\s*Development\s*==[\s\S]*?(?=^==\s*\w)/m', '', $live, 1 );
