@@ -36,6 +36,7 @@ configured as required checks when branch protection/rulesets are available:
 |---|---|---|
 | Version Sync | `version-check` | Metadata and release contracts are internally consistent. |
 | PHPUnit | `test` | Runtime/unit/integration suite passes. |
+| Real WordPress Integration Suite | `real-wp-tests` | Real WordPress matrix (multiple PHP × WP × DB legs, SQLite drop-in allowed) passes on the actual WordPress runtime. |
 | Submission Package Check | `plugin-check` | Official WordPress Plugin Check passes on the exact ZIP. |
 | Exact-package browser runtime | `e2e` workflow | Built ZIP boots and completes browser export/download flows. |
 | Release audit | `release-audit` workflow | Final promotion audit passes. |
@@ -43,8 +44,8 @@ configured as required checks when branch protection/rulesets are available:
 ## Desired pull-request rules
 
 - **No direct push** to `main`; promotion should occur through a pull request.
-- At least **1 approving review** for ordinary changes.
-- At least **2 approving reviews** for sensitive release/security files:
+- At least 1 approving review for ordinary changes.
+- At least 2 approving reviews for sensitive release/security files:
   - `includes/class-sscribe-activator.php`
   - `includes/class-sscribe-private-storage.php`
   - `includes/class-sscribe-security.php`

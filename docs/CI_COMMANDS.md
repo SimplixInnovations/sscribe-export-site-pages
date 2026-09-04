@@ -385,44 +385,46 @@ failure looks like**, **how to debug**, **what manifest it writes**.
 ### `composer test:release-blockers`
 
 - **Script:** `php scripts/verify-release-blockers.php`
-- **Normal mode:** validates the Phase 70 checklist structure, all 20 canonical
-  rows, and status vocabulary. `DEFERRED` is allowed in normal source CI so
-  development commits do not have to falsify final-release evidence.
-- **Strict release mode:** run
-  `SSCRIBE_RELEASE_CERTIFICATION=1 composer test:release-blockers`.
-  Every blocker must then be `RESOLVED`; any `DEFERRED` row fails closed.
-- **Debug/manifest:** `dist/release-blockers-manifest.json`.
+- **Gates:** the Phase 70 release-blocker checklist must hold; every canonical
+  row is present, status vocabulary is recognized, and the row count matches
+  the contract. In normal mode `DEFERRED` is allowed; in strict release mode
+  every row must be `RESOLVED` (no `DEFERRED`, `OPEN`, `BLOCKED`, or blank).
+- **Failure:** "release-blockers manifest reports N unresolved rows" or the
+  verifier exits non-zero with a numbered list of every failing row.
+- **Debug:** open `dist/release-blockers-manifest.json`; each row is keyed by
+  canonical blocker number with its current `Status` and `Evidence` strings.
+- **Manifest:** `dist/release-blockers-manifest.json`.
 
 ### `composer test:final-ci-state`
 
 - **Script:** `php scripts/verify-final-ci-state.php`
-- **Normal mode:** validates the Phase 71 policy plus the tracked, deliberately
-  non-green `Recorded final state` template for all 9 required signals.
-- **Strict evidence input:** `dist/final-execution-evidence.json` (gitignored).
-- **Strict release mode:** run
-  `SSCRIBE_RELEASE_CERTIFICATION=1 composer test:final-ci-state`.
-  The verifier requires a clean tracked working tree, binds the untracked
-  `source_sha` to `git HEAD`, and requires every signal to be `SUCCESS`
-  or `LOCAL_PASS`. A `SUCCESS` row must reference an `https://` execution
-  URL; a `LOCAL_PASS` row must reference a non-empty `local:<path>` log.
-- **Debug/manifest:** `dist/final-ci-state-manifest.json`.
+- **Gates:** the Phase 71 final-execution-evidence schema must hold; the
+  tracked policy/template must list all 9 required signals, and the strict
+  evidence input must bind to `git HEAD` with every signal `SUCCESS` or
+  `LOCAL_PASS`. `SUCCESS` rows must reference an `https://` execution URL;
+  `LOCAL_PASS` rows must reference a non-empty `local:<path>` log.
+- **Failure:** "final-ci-state manifest reports N signals not SUCCESS/LOCAL_PASS"
+  or the verifier exits non-zero with a per-signal failure list.
+- **Debug:** open `dist/final-ci-state-manifest.json`; each signal lists its
+  status, evidence reference, and the current `source_sha` it binds to.
+- **Manifest:** `dist/final-ci-state-manifest.json`.
 
 ### `composer test:exact-artifact-evidence`
 
 - **Script:** `php scripts/verify-exact-artifact-evidence.php`
-- **Normal mode:** validates the Phase 72 tracked schema/template and all 12
-  canonical evidence fields without treating placeholders as release proof.
-- **Strict metadata input:** `dist/release-certification-evidence.json`
-  (gitignored).
-- **Strict release mode:** run
-  `SSCRIBE_RELEASE_CERTIFICATION=1 composer test:exact-artifact-evidence`.
-  The verifier requires a clean tracked tree, binds untracked `source_sha` to
-  `git HEAD`, resolves `SSCRIBE_VERSION`, requires exactly the expected ZIP,
-  recomputes SHA-256, byte size and ZipArchive entry count, validates the
-  checksum sidecar, verifies Plugin Check/clean-install evidence and build
-  metadata, and writes the authoritative exact values to the generated
-  manifest. No final SHA or checksum is committed to a tracked document.
-- **Debug/manifest:** `dist/exact-artifact-evidence-manifest.json`.
+- **Gates:** the Phase 72 tracked schema/template plus all 12 canonical
+  evidence fields must hold; the strict metadata input must bind to
+  `git HEAD`, resolve `SSCRIBE_VERSION`, require exactly the expected ZIP
+  filename, and recompute SHA-256, byte size, and ZipArchive entry count.
+  The checksum sidecar, Plugin Check/clean-install evidence, and build
+  metadata must validate. No final SHA or checksum is committed to a
+  tracked document.
+- **Failure:** "exact-artifact-evidence manifest reports N mismatches" or
+  the verifier exits non-zero with the mismatched field names.
+- **Debug:** open `dist/exact-artifact-evidence-manifest.json`; it contains
+  the recomputed SHA-256, byte size, entry count, builder identity, and
+  build timestamp.
+- **Manifest:** `dist/exact-artifact-evidence-manifest.json`.
 
 ### `composer test:agent-final-report`
 

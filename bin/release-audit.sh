@@ -121,7 +121,7 @@ SSCRIBE_WP_BIN="${SSCRIBE_WP_BIN:-$(command -v wp 2>/dev/null || true)}"
 if [ -n "$SSCRIBE_WP_ROOT" ] && [ -d "$SSCRIBE_WP_ROOT/wp-content/plugins/plugin-check" ] && [ -n "$SSCRIBE_WP_BIN" ]; then
   run_gate "Plugin-Check" bash -c "\"$SSCRIBE_WP_BIN\" --path=\"$SSCRIBE_WP_ROOT\" plugin check sscribe-export-site-pages --allow-root >/tmp/release-audit-plugincheck.log 2>&1"
 else
-  run_gate "Plugin-Check" bash -c "echo 'Plugin Check testbench unavailable. Set SSCRIBE_WP_ROOT to a WordPress install containing the official Plugin Check plugin and optionally SSCRIBE_WP_BIN to the wp-cli executable. Release audit is fail-closed.' >&2; exit 1"
+  run_gate "Plugin-Check" bash -c "echo 'Plugin Check testbench unavailable. Set SSCRIBE_WP_ROOT to a WordPress install containing the official Plugin Check plugin and optionally SSCRIBE_WP_BIN to the wp-cli executable. release audit is fail-closed.' >&2; exit 1"
 fi
 
 echo

@@ -1,7 +1,7 @@
 <?php
 /**
  * Phase 22 regression: the auto-download-on-complete feature must
- * have a well-defined, opt-in data contract.
+ * have a well-defined, explicit opt-in contract.
  *
  * Why this test exists:
  *
@@ -10,26 +10,22 @@
  *   useful in batch workflows (CI, scheduled jobs), and convenient
  *   for admins who always want the artifact on disk. It is also a
  *   footgun: a stray download in a user's Downloads folder is a
- *   surprise. The default MUST be off, and the filter override
- *   MUST be opt-in only.
+ *   surprise.
  *
- *   The PHP layer exposes two things:
+ *   The authoritative design (Phase 68 #23 + the
+ *   SScribe_Auto_Download_Opt_In_Test integration contract) is:
  *
- *     1. `sscribe_data.auto_download` — a JS-visible boolean that
- *        tells the admin UI whether to auto-click the download
- *        anchor when an export completes.
- *     2. The `sscribe_auto_download_on_complete` filter — the
- *        single knob an integrator can pull to enable auto-download
- *        globally (default returns false).
+ *     - Auto-download is opt-in ONLY via the visible admin checkbox.
+ *     - The server MUST NOT localize a global auto_download default.
+ *     - The server MUST NOT expose a silent `sscribe_auto_download_on_complete`
+ *       filter that an integrator can pull to globally enable the feature
+ *       for every user.
+ *     - The JS layer reads the live visible checkbox state to decide.
  *
- *   This test pins four guarantees:
- *
- *     a. Default is false (no silent auto-downloads on first install).
- *     b. Filter returning true propagates to the localized JS data.
- *     c. Truthy non-bool filter returns are coerced to bool so the
- *        JS layer never sees `1` or `"yes"` in place of `true`.
- *     d. False-y filter returns are coerced to false (no leaking
- *        `null` into a JS truthy check).
+ *   This test pins those guarantees on the PHP layer: the localized
+ *   admin data must not contain a global auto-download default, and
+ *   the legacy global opt-in filter must not be reachable from the
+ *   PHP admin code.
  *
  * @package SScribe_Export_Site_Pages
  */
@@ -42,133 +38,30 @@ use PHPUnit\Framework\TestCase;
 
 final class SScribe_Auto_Download_Test extends TestCase {
 
-	protected function setUp(): void {
-		parent::setUp();
-		// Drop any leftover filter callbacks from a previous test.
-		global $sscribe_test_filters;
-		if ( is_array( $sscribe_test_filters ) ) {
-			$sscribe_test_filters = array_values(
-				array_filter(
-					$sscribe_test_filters,
-					static function ( array $entry ): bool {
-						return ( $entry['hook'] ?? '' ) !== 'sscribe_auto_download_on_complete';
-					}
-				)
-			);
-		}
-	}
-
-	protected function tearDown(): void {
-		global $sscribe_test_filters;
-		if ( is_array( $sscribe_test_filters ) ) {
-			$sscribe_test_filters = array_values(
-				array_filter(
-					$sscribe_test_filters,
-					static function ( array $entry ): bool {
-						return ( $entry['hook'] ?? '' ) !== 'sscribe_auto_download_on_complete';
-					}
-				)
-			);
-		}
-		parent::tearDown();
+	private function admin_php(): string {
+		$path = dirname( __DIR__, 2 ) . '/admin/class-sscribe-admin.php';
+		$this->assertFileExists( $path );
+		return (string) file_get_contents( $path );
 	}
 
 	/**
-	 * Invoke the private SScribe_Admin::build_localized_data() and
-	 * return the auto_download key.
+	 * Phase 68 #23 — auto-download MUST be opt-in only. The server
+	 * must not localize a global auto-download default that could
+	 * silently enable downloads on a fresh install.
 	 */
-	private function localized_auto_download(): mixed {
-		$admin  = new \SScribe_Admin();
-		$method = new \ReflectionMethod( $admin, 'build_localized_data' );
-		/** @var array<string,mixed> $data */
-		$data = $method->invoke( $admin );
-		return $data['auto_download'] ?? null;
-	}
-
-	/**
-	 * Phase 68 #23 — E2E auto-download OFF/ON contract: the
-	 * auto-download default MUST be OFF (false) so a fresh
-	 * install never silently triggers an export download.
-	 */
-	public function test_auto_download_defaults_to_false(): void {
-		// No integrator filter present. The default MUST be false so
-		// a fresh install never auto-downloads without the admin
-		// explicitly opting in.
-		$this->assertFalse(
-			$this->localized_auto_download(),
-			'auto_download must default to false; a fresh install must never auto-download without explicit opt-in'
+	public function test_admin_payload_has_no_global_auto_download_default(): void {
+		$this->assertStringNotContainsString(
+			"'auto_download'",
+			$this->admin_php(),
+			'The admin payload must not localize a global auto_download default; opt-in must be visible-only via the UI toggle.'
 		);
 	}
 
-	public function test_filter_returning_true_enables_auto_download(): void {
-		// A returning true from the filter is the canonical opt-in.
-		add_filter(
+	public function test_admin_payload_does_not_expose_global_opt_in_filter(): void {
+		$this->assertStringNotContainsString(
 			'sscribe_auto_download_on_complete',
-			static function (): bool {
-				return true;
-			}
-		);
-
-		$this->assertTrue(
-			$this->localized_auto_download(),
-			'returning true from sscribe_auto_download_on_complete must propagate as auto_download=true in the JS data'
-		);
-	}
-
-	public function test_truthy_non_bool_filter_returns_are_coerced_to_true(): void {
-		// Defensive: if a third-party filter returns an int or a
-		// truthy string ("yes", "1"), the JS layer must still see a
-		// strict bool. Otherwise the conditional `if (sscribe_data.auto_download)`
-		// in JS would still work but the JS `typeof` check would not
-		// be 'boolean', breaking downstream API expectations.
-		add_filter(
-			'sscribe_auto_download_on_complete',
-			static function (): string {
-				return 'yes';
-			}
-		);
-
-		$value = $this->localized_auto_download();
-		$this->assertTrue(
-			(bool) $value,
-			'truthy non-bool filter returns must coerce to true'
-		);
-		$this->assertIsBool(
-			$value,
-			'auto_download in the localized JS data must always be a strict bool, never an int or string'
-		);
-	}
-
-	public function test_null_filter_return_is_coerced_to_false(): void {
-		// A null filter return must NOT silently mean "enabled".
-		add_filter(
-			'sscribe_auto_download_on_complete',
-			static function () {
-				return null;
-			}
-		);
-
-		$this->assertFalse(
-			$this->localized_auto_download(),
-			'null filter return must coerce to false; auto-download must require explicit opt-in'
-		);
-	}
-
-	public function test_auto_download_key_exists_in_localized_data(): void {
-		// The JS layer depends on the key being present. A refactor
-		// that accidentally drops the key (e.g. a typo, a missed
-		// array merge) would silently fall through to "no
-		// auto-download" for everyone. This test catches the missing
-		// key directly.
-		$admin  = new \SScribe_Admin();
-		$method = new \ReflectionMethod( $admin, 'build_localized_data' );
-		/** @var array<string,mixed> $data */
-		$data = $method->invoke( $admin );
-
-		$this->assertArrayHasKey(
-			'auto_download',
-			$data,
-			'Phase 22: auto_download must be a key in the localized JS data; removing it breaks the JS shouldAutoDownload() fallback path'
+			$this->admin_php(),
+			'The legacy/global auto-download filter must not be reachable from the admin class; opt-in must be visible-only via the UI toggle.'
 		);
 	}
 }
