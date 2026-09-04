@@ -11,7 +11,7 @@
  *
  *   2. No `if: failure()` / `if: always() || failure()` / `if: cancelled()`
  *      on required steps. The standard `if: failure()` is allowed
- *      ONLY for `actions/upload-artifact@v*` (upload the report when
+ *      ONLY for a SHA-pinned `actions/upload-artifact` (upload the report when
  *      the test fails) — every other use is a hidden pass-on-error.
  *
  *   3. Each workflow MUST declare a `name:` so the GitHub status
@@ -55,12 +55,11 @@ $manifest_path = $root_dir . '/dist/workflow-governance-manifest.json';
  */
 $required_workflows = array(
 	'ci.yml'             => 'Main CI gate (every push + PR)',
+	'e2e.yml'            => 'Exact-package Playwright browser/runtime export gate',
 	'release.yml'        => 'Tag-driven release workflow (v* tags)',
-	'release-audit.yml'  => 'Single-pass bin/release-audit.sh wrapper for release branches',
+	'release-audit.yml'  => 'Single-pass release-promotion audit for main',
 );
-$optional_workflows = array(
-	'e2e.yml'            => 'Playwright E2E (browser suite) — diagnostic when tool unavailable',
-);
+$optional_workflows = array();
 
 $matrix   = array();
 $errors   = array();
@@ -168,24 +167,26 @@ foreach ( $workflow_files as $wf_path ) {
 		}
 	}
 
-	// Rule 5: workflows MUST use a pinned action version
-	// (e.g. `actions/checkout@v6`, not `@main` / `@master`).
-	// A `@main` reference lets GitHub silently swap the implementation.
+	// Rule 5: external GitHub Actions MUST be pinned to immutable commits.
+	// Major-version tags such as @v6 are mutable and therefore insufficient
+	// for a release supply-chain boundary.
 	if ( preg_match_all( '/uses:\s*([^\s#]+)/', $content, $uses_matches ) ) {
 		foreach ( $uses_matches[1] as $uses_ref ) {
 			$uses_ref = trim( $uses_ref );
-			if ( '' === $uses_ref ) {
+			if ( '' === $uses_ref || str_starts_with( $uses_ref, './' ) ) {
 				continue;
 			}
-			// Allow comment-only references (after `#`) by skipping those
-			// already filtered by the regex. Now check pin.
-			if ( ! preg_match( '/@[v0-9]/', $uses_ref ) ) {
+			$immutable = (bool) preg_match(
+				'/^[A-Za-z0-9_.-]+\/[A-Za-z0-9_.-]+(?:\/[A-Za-z0-9_.-]+)*@[0-9a-f]{40}$/i',
+				$uses_ref
+			);
+			if ( ! $immutable ) {
 				$matrix[] = array(
-					'rule'   => "{$wf_name} uses unpinned action: {$uses_ref}",
+					'rule'   => "{$wf_name} uses mutable/unpinned action: {$uses_ref}",
 					'passes' => false,
-					'detail' => 'All `uses:` references must pin a major version (`@vN` or `@sha`). `@main` / `@master` references are mutable and forbidden.',
+					'detail' => 'External actions must use a full 40-character commit SHA; mutable @vN/@main/@master references are forbidden.',
 				);
-				$errors[] = "{$wf_name} references `{$uses_ref}` without a pin.";
+				$errors[] = "{$wf_name} references mutable or unpinned action `{$uses_ref}`.";
 			}
 		}
 	}
