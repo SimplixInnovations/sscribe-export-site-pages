@@ -44,6 +44,25 @@ final class SScribe_PHPUnit_Config_Test extends TestCase {
 		$this->assertStringContainsString( 'tests/Security', $xml );
 	}
 
+	public function test_core_and_coverage_commands_exclude_release_contract_meta_tests(): void {
+		$composer = json_decode( (string) file_get_contents( self::root() . '/composer.json' ), true );
+		$this->assertIsArray( $composer );
+
+		$core = (string) ( $composer['scripts']['test'] ?? '' );
+		$coverage = (string) ( $composer['scripts']['test:coverage'] ?? '' );
+
+		$this->assertStringContainsString(
+			'--exclude-group=release-contract',
+			$core,
+			'Randomized core PHPUnit must exclude release-artifact/governance meta tests that require dedicated CI prerequisites.'
+		);
+		$this->assertStringContainsString(
+			'--exclude-group=release-contract',
+			$coverage,
+			'Coverage must measure production/core tests, not release-evidence meta tests with external prerequisites.'
+		);
+	}
+
 	public function test_composer_coverage_script_uses_coverage_config(): void {
 		$composer = json_decode( (string) file_get_contents( self::root() . '/composer.json' ), true );
 		$this->assertIsArray( $composer );
