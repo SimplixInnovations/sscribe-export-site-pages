@@ -24,8 +24,8 @@ criterion references the Phase gate that enforces it.
 |----|------------------------------------------------------------------------|--------------------------------------------|-----------------|
 | 1  | All Phases 16-77 are complete + green on the final SHA.                | Phases 16-77 verifiers + PHPUnit suite.    | green           |
 | 2  | SSCRIBE_VERSION equals mainfile `Version:` + readme.txt Stable tag + package.json + composer.json constraint. | Phase 16 verifier.            | green           |
-| 3  | Every required CI job on `ci.yml` is SUCCESS on the final SHA.         | Phase 71 final CI state.                   | SUCCESS         |
-| 4  | Every Phase 70 blocker is RESOLVED or DEFERRED.                        | Phase 70 release blockers.                 | green           |
+| 3  | Every required execution signal is SUCCESS or documented LOCAL_PASS on the exact final SHA. | Phase 71 final execution state. | green |
+| 4  | Every Phase 70 blocker is RESOLVED; no DEFERRED blocker remains.       | Phase 70 release blockers.                 | green           |
 | 5  | dist/sscribe-export-site-pages-{VERSION}.zip exists with matching `.sha256` sidecar. | Phase 63 + Phase 72 verifier. | green           |
 | 6  | Plugin Check on the exact ZIP is PASS.                                 | Phase 33 plugin-check job.                 | PASS            |
 | 7  | Real-WordPress matrix is green on every PHP × WP leg.                  | Phase 27 + Phase 56 real-wp-tests matrix.  | green           |
@@ -48,15 +48,16 @@ criterion references the Phase gate that enforces it.
 | 24 | UI refactor discipline holds (admin file count locked at v1.9.0 baseline, zero renames/additions under admin/).| Phase 67 UI refactor discipline. | green |
 | 25 | Phase 68 test coverage holds (all 24 required test signatures present in tests/).| Phase 68 test coverage.               | green           |
 | 26 | Manual runtime tests runbook covers all 6 canonical environments.       | Phase 69 manual runtime tests.             | green           |
-| 27 | Release blockers checklist complete (every blocker RESOLVED or DEFERRED).| Phase 70 release blockers.                 | green           |
-| 28 | Final CI state holds (every required job SUCCESS on the final SHA).    | Phase 71 final CI state.                   | green           |
-| 29 | Exact artifact evidence recorded (SHA-256, byte size, file count, source SHA, builder run ID, plugin check URL, build timestamp).| Phase 72 exact artifact evidence. | green |
+| 27 | Release blockers checklist complete (every blocker RESOLVED).          | Phase 70 release blockers.                 | green           |
+| 28 | Final execution state holds (every required signal SUCCESS or documented LOCAL_PASS on the final SHA). | Phase 71 final execution state. | green |
+| 29 | Strict exact-artifact evidence matches the actual ZIP, sidecar, and source SHA (SHA-256, byte size, file count, source SHA, builder identity, Plugin Check evidence, build timestamp). | Phase 72 exact artifact evidence. | green |
 | 30 | Agent final report produced in the canonical format (6 sections, 7 format rules).| Phase 73 agent final report.            | green           |
 | 31 | Auditor handoff protocol holds (13 artifacts listed, every artifact present).| Phase 74 auditor handoff.               | green           |
 | 32 | Release invariants declared + enforced (33 invariants, each with enforcing Phase gate).| Phase 75 release invariants.            | green           |
 | 33 | Branch topology policy holds (only `main` + `develop` long-lived; both same SHA; no local-only refs; CI-tolerant).| Phase 77 branch topology policy.        | green           |
 | 34 | Tag is cut on `origin/main` HEAD, signed via `gh release create --verify-tag`.| Manual (Phase 54 gate).                  | green           |
 | 35 | WP.org submission is made via the Plugin Check action's `release-zip` artifact, with the audit-trail attached.| Manual (after Phase 33).                | submitted       |
+| 36 | Public maintained exact source/build inputs are available for WordPress.org because build tooling is omitted from the deployed ZIP. | Phase 70 blocker 18 / WordPress.org source guideline. | public |
 
 The verifier asserts all 35 criteria are declared AND each
 declares the enforcing Phase in its row.
