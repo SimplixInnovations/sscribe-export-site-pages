@@ -36,6 +36,7 @@ namespace SScribe\Tests\Integration;
 
 use PHPUnit\Framework\TestCase;
 
+#[\PHPUnit\Framework\Attributes\Group('release-contract')]
 final class SScribe_ZIP_Content_Rules_Test extends TestCase {
 
 	private const SCRIPT_PATH = 'scripts/verify-zip-content-rules.php';
