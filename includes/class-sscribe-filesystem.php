@@ -965,7 +965,14 @@ class SScribe_Filesystem {
 
 		$parent = dirname( $file );
 		$nearest_existing = $parent;
-		while ( ! file_exists( $nearest_existing ) && dirname( $nearest_existing ) !== $nearest_existing ) {
+		// A dangling symlink reports file_exists() === false. Stop at links
+		// explicitly so we never climb past an attacker-planted symlink and
+		// accidentally validate only its safe-looking parent directory.
+		while (
+			! file_exists( $nearest_existing )
+			&& ! is_link( $nearest_existing )
+			&& dirname( $nearest_existing ) !== $nearest_existing
+		) {
 			$nearest_existing = dirname( $nearest_existing );
 		}
 
